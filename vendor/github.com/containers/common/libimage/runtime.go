@@ -74,7 +74,7 @@ func (r *Runtime) SystemContext() *types.SystemContext {
 // Returns a copy of the runtime's system context.
 func (r *Runtime) systemContextCopy() *types.SystemContext {
 	var sys types.SystemContext
-	deepcopy.Copy(&sys, &r.systemContext)
+	_ = deepcopy.Copy(&sys, &r.systemContext)
 	return &sys
 }
 

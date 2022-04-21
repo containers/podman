@@ -10,8 +10,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-type cpusetHandler struct {
-}
+type cpusetHandler struct{}
 
 func cpusetCopyFileFromParent(dir, file string, cgroupv2 bool) ([]byte, error) {
 	if dir == cgroupRoot {
@@ -33,7 +32,7 @@ func cpusetCopyFileFromParent(dir, file string, cgroupv2 bool) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := ioutil.WriteFile(path, data, 0644); err != nil {
+	if err := ioutil.WriteFile(path, data, 0o644); err != nil {
 		return nil, errors.Wrapf(err, "write %s", path)
 	}
 	return data, nil

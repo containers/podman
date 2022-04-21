@@ -10,8 +10,8 @@ import (
 )
 
 func Check() {
-	oldUmask := syscall.Umask(0022) //nolint
-	if (oldUmask & ^0022) != 0 {
+	oldUmask := syscall.Umask(0o022) //nolint
+	if (oldUmask & ^0o022) != 0 {
 		logrus.Debugf("umask value too restrictive.  Forcing it to 022")
 	}
 }

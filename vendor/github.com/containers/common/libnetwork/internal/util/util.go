@@ -109,7 +109,6 @@ func GetFreeIPv4NetworkSubnet(usedNetworks []*net.IPNet, subnetPools []config.Su
 		return nil, err
 	}
 	return nil, errors.New("could not find free subnet from subnet pools")
-
 }
 
 // GetFreeIPv6NetworkSubnet returns a unused ipv6 subnet

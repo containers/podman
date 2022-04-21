@@ -95,9 +95,7 @@ func ImageConfigFromChanges(changes []string) (*ImageConfig, error) { // nolint:
 			// For now: we only support key=value
 			// We will attempt to strip quotation marks if present.
 
-			var (
-				key, val string
-			)
+			var key, val string
 
 			splitEnv := strings.SplitN(value, "=", 2)
 			key = splitEnv[0]

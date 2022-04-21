@@ -252,7 +252,7 @@ type EngineConfig struct {
 
 	// EventsLogFileMaxSize sets the maximum size for the events log. When the limit is exceeded,
 	// the logfile is rotated and the old one is deleted.
-	EventsLogFileMaxSize uint64 `toml:"events_logfile_max_size,omitempty,omitzero"`
+	EventsLogFileMaxSize eventsLogMaxSize `toml:"events_logfile_max_size,omitzero"`
 
 	// EventsLogger determines where events should be logged.
 	EventsLogger string `toml:"events_logger,omitempty"`
@@ -581,7 +581,6 @@ type Destination struct {
 // with cgroupv2v2. Other OCI runtimes are not yet supporting cgroupv2v2. This
 // might change in the future.
 func NewConfig(userConfigPath string) (*Config, error) {
-
 	// Generate the default config for the system
 	config, err := DefaultConfig()
 	if err != nil {
@@ -765,7 +764,6 @@ func (c *Config) addCAPPrefix() {
 
 // Validate is the main entry point for library configuration validation.
 func (c *Config) Validate() error {
-
 	if err := c.Containers.Validate(); err != nil {
 		return errors.Wrap(err, "validating containers config")
 	}
@@ -822,7 +820,6 @@ func (c *EngineConfig) Validate() error {
 // It returns an `error` on validation failure, otherwise
 // `nil`.
 func (c *ContainersConfig) Validate() error {
-
 	if err := c.validateUlimits(); err != nil {
 		return err
 	}
@@ -954,7 +951,6 @@ func (c *Config) GetDefaultEnvEx(envHost, httpProxy bool) []string {
 // Capabilities returns the capabilities parses the Add and Drop capability
 // list from the default capabiltiies for the container
 func (c *Config) Capabilities(user string, addCapabilities, dropCapabilities []string) ([]string, error) {
-
 	userNotRoot := func(user string) bool {
 		if user == "" || user == "root" || user == "0" {
 			return false
@@ -1014,7 +1010,7 @@ func Device(device string) (src, dst, permissions string, err error) {
 // IsValidDeviceMode checks if the mode for device is valid or not.
 // IsValid mode is a composition of r (read), w (write), and m (mknod).
 func IsValidDeviceMode(mode string) bool {
-	var legalDeviceMode = map[rune]bool{
+	legalDeviceMode := map[rune]bool{
 		'r': true,
 		'w': true,
 		'm': true,
@@ -1065,7 +1061,6 @@ func rootlessConfigPath() (string, error) {
 }
 
 func stringsEq(a, b []string) bool {
-
 	if len(a) != len(b) {
 		return false
 	}
@@ -1150,10 +1145,10 @@ func (c *Config) Write() error {
 	if err != nil {
 		return err
 	}
-	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return err
 	}
-	configFile, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0644)
+	configFile, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0o644)
 	if err != nil {
 		return err
 	}
@@ -1265,4 +1260,34 @@ func (c *Config) setupEnv() error {
 		}
 	}
 	return nil
+}
+
+// eventsLogMaxSize is the type used by EventsLogFileMaxSize
+type eventsLogMaxSize uint64
+
+// UnmarshalText parses the JSON encoding of eventsLogMaxSize and
+// stores it in a value.
+func (e *eventsLogMaxSize) UnmarshalText(text []byte) error {
+	// REMOVE once writing works
+	if string(text) == "" {
+		return nil
+	}
+	val, err := units.FromHumanSize((string(text)))
+	if err != nil {
+		return err
+	}
+	if val < 0 {
+		return fmt.Errorf("events log file max size cannot be negative: %s", string(text))
+	}
+	*e = eventsLogMaxSize(uint64(val))
+	return nil
+}
+
+// MarshalText returns the JSON encoding of eventsLogMaxSize.
+func (e eventsLogMaxSize) MarshalText() ([]byte, error) {
+	if uint64(e) == DefaultEventsLogSizeMax || e == 0 {
+		v := []byte{}
+		return v, nil
+	}
+	return []byte(fmt.Sprintf("%d", e)), nil
 }

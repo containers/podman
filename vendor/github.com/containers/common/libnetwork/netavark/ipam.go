@@ -59,9 +59,7 @@ func newIPAMError(cause error, msg string, args ...interface{}) *ipamError {
 // openDB will open the ipam database
 // Note that the caller has to Close it.
 func (n *netavarkNetwork) openDB() (*bbolt.DB, error) {
-	// linter complains about the octal value
-	// nolint:gocritic
-	db, err := bbolt.Open(n.ipamDBPath, 0600, nil)
+	db, err := bbolt.Open(n.ipamDBPath, 0o600, nil)
 	if err != nil {
 		return nil, newIPAMError(err, "failed to open database %s", n.ipamDBPath)
 	}

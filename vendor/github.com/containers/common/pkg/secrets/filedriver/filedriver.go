@@ -34,7 +34,7 @@ func NewDriver(rootPath string) (*Driver, error) {
 	fileDriver := new(Driver)
 	fileDriver.secretsDataFilePath = filepath.Join(rootPath, secretsDataFile)
 	// the lockfile functions require that the rootPath dir is executable
-	if err := os.MkdirAll(rootPath, 0700); err != nil {
+	if err := os.MkdirAll(rootPath, 0o700); err != nil {
 		return nil, err
 	}
 
@@ -95,7 +95,7 @@ func (d *Driver) Store(id string, data []byte) error {
 	if err != nil {
 		return err
 	}
-	err = ioutil.WriteFile(d.secretsDataFilePath, marshalled, 0600)
+	err = ioutil.WriteFile(d.secretsDataFilePath, marshalled, 0o600)
 	if err != nil {
 		return err
 	}
@@ -119,7 +119,7 @@ func (d *Driver) Delete(id string) error {
 	if err != nil {
 		return err
 	}
-	err = ioutil.WriteFile(d.secretsDataFilePath, marshalled, 0600)
+	err = ioutil.WriteFile(d.secretsDataFilePath, marshalled, 0o600)
 	if err != nil {
 		return err
 	}

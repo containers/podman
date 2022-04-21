@@ -213,7 +213,6 @@ func (i *Image) inspectInfo(ctx context.Context) (*types.ImageInspectInfo, error
 
 	ref, err := i.StorageReference()
 	if err != nil {
-
 		return nil, err
 	}
 

@@ -40,14 +40,14 @@ var DefaultFuncs = FuncMap{
 		buf := new(bytes.Buffer)
 		enc := json.NewEncoder(buf)
 		enc.SetEscapeHTML(false)
-		enc.Encode(v)
+		_ = enc.Encode(v)
 		// Remove the trailing new line added by the encoder
 		return strings.TrimSpace(buf.String())
 	},
 	"lower":    strings.ToLower,
 	"pad":      padWithSpace,
 	"split":    strings.Split,
-	"title":    strings.Title,
+	"title":    strings.Title, //nolint:staticcheck
 	"truncate": truncateWithLength,
 	"upper":    strings.ToUpper,
 }

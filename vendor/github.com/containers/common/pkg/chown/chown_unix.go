@@ -41,7 +41,6 @@ func ChangeHostPathOwnership(path string, recursive bool, uid, gid int) error {
 
 			return nil
 		})
-
 		if err != nil {
 			return errors.Wrap(err, "failed to chown recursively host path")
 		}

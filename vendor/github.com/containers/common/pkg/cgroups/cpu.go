@@ -12,8 +12,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-type cpuHandler struct {
-}
+type cpuHandler struct{}
 
 func getCPUHandler() *cpuHandler {
 	return &cpuHandler{}

@@ -11,7 +11,6 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"syscall"
 	"time"
 
 	"github.com/containernetworking/cni/libcni"
@@ -21,6 +20,7 @@ import (
 	pkgutil "github.com/containers/common/pkg/util"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/sys/unix"
 )
 
 func createNetworkFromCNIConfigList(conf *libcni.NetworkConfigList, confPath string) (*types.Network, error) {
@@ -45,12 +45,11 @@ func createNetworkFromCNIConfigList(conf *libcni.NetworkConfigList, confPath str
 		}
 	}
 
-	f, err := os.Stat(confPath)
+	t, err := fileTime(confPath)
 	if err != nil {
 		return nil, err
 	}
-	stat := f.Sys().(*syscall.Stat_t)
-	network.Created = time.Unix(int64(stat.Ctim.Sec), int64(stat.Ctim.Nsec))
+	network.Created = t
 
 	firstPlugin := conf.Plugins[0]
 	network.Driver = firstPlugin.Network.Type
@@ -316,16 +315,15 @@ func (n *cniNetwork) createCNIConfigListFromNetwork(network *types.Network, writ
 	cniPathName := ""
 	if writeToDisk {
 		cniPathName = filepath.Join(n.cniConfigDir, network.Name+".conflist")
-		err = ioutil.WriteFile(cniPathName, b, 0644)
+		err = ioutil.WriteFile(cniPathName, b, 0o644)
 		if err != nil {
 			return nil, "", err
 		}
-		f, err := os.Stat(cniPathName)
+		t, err := fileTime(cniPathName)
 		if err != nil {
 			return nil, "", err
 		}
-		stat := f.Sys().(*syscall.Stat_t)
-		network.Created = time.Unix(int64(stat.Ctim.Sec), int64(stat.Ctim.Nsec))
+		network.Created = t
 	} else {
 		network.Created = time.Now()
 	}
@@ -423,4 +421,18 @@ func parseOptions(networkOptions map[string]string, networkDriver string) (*opti
 		}
 	}
 	return opt, nil
+}
+
+func fileTime(file string) (time.Time, error) {
+	var st unix.Stat_t
+	for {
+		err := unix.Stat(file, &st)
+		if err == nil {
+			break
+		}
+		if err != unix.EINTR { //nolint:errorlint // unix errors are bare
+			return time.Time{}, &os.PathError{Path: file, Op: "stat", Err: err}
+		}
+	}
+	return time.Unix(int64(st.Ctim.Sec), int64(st.Ctim.Nsec)), nil //nolint:unconvert // On some platforms Sec and Nsec are int32.
 }
