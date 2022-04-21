@@ -4,10 +4,11 @@
 podman\-container\-restore - Restores one or more containers from a checkpoint
 
 ## SYNOPSIS
-**podman container restore** [*options*] *container* [*container* ...]
+**podman container restore** [*options*] *name* [...]
 
 ## DESCRIPTION
-**podman container restore** restores a container from a checkpoint. The *container IDs* or *names* are used as input.
+**podman container restore** restores a container from a container checkpoint or
+checkpoint image. The *container IDs*, *image IDs* or *names* are used as input.
 
 ## OPTIONS
 #### **--all**, **-a**
@@ -106,14 +107,16 @@ If the **--name, -n** option is used, Podman will not attempt to assign the same
 address to the *container* it was using before checkpointing as each IP address can only
 be used once and the restored *container* will have another IP address. This also means
 that **--name, -n** cannot be used in combination with **--tcp-established**.\
-*IMPORTANT: This OPTION is only available in combination with __--import, -i__.*
+*IMPORTANT: This OPTION is only available for a checkpoint image or in combination
+with __--import, -i__.*
 
 #### **--pod**=*name*
 
 Restore a container into the pod *name*. The destination pod for this restore
 has to have the same namespaces shared as the pod this container was checkpointed
 from (see **[podman pod create --share](podman-pod-create.1.md#--share)**).\
-*IMPORTANT: This OPTION is only available in combination with __--import, -i__.*
+*IMPORTANT: This OPTION is only available for a checkpoint image or in combination
+with __--import, -i__.*
 
 This option requires at least CRIU 3.16.
 
@@ -173,6 +176,15 @@ Start the container "mywebserver". Make a checkpoint of the container and export
 $ podman run --rm -p 2345:80 -d webserver
 # podman container checkpoint -l --export=dump.tar
 # podman container restore -p 5432:8080 --import=dump.tar
+```
+
+Start a container with the name "foobar-1". Create a checkpoint image "foobar-checkpoint". Restore the container from the checkpoint image with a different name.
+```
+# podman run --name foobar-1 -d webserver
+# podman container checkpoint --create-image foobar-checkpoint foobar-1
+# podman inspect foobar-checkpoint
+# podman container restore --name foobar-2 foobar-checkpoint
+# podman container restore --name foobar-3 foobar-checkpoint
 ```
 
 ## SEE ALSO

@@ -28,6 +28,60 @@ archives. Not compressing the checkpoint archive can result in faster checkpoint
 archive creation.\
 The default is **zstd**.
 
+#### **--create-image**=*image*
+
+Create a checkpoint image from a running container. This is a standard OCI image
+created in the local image store. It consists of a single layer that contains
+all of the checkpoint files. The content of this image layer is in the same format as a
+checkpoint created with **--export**. A checkpoint image can be pushed to a
+standard container registry and pulled on a different system to enable container
+migration. In addition, the image can be exported with **podman image save** and
+inspected with **podman inspect**. Inspecting a checkpoint image would display
+additional information, stored as annotations, about the host environment used
+to do the checkpoint:
+
+- **io.podman.annotations.checkpoint.name**: Human-readable name of the original
+  container.
+
+- **io.podman.annotations.checkpoint.rawImageName**: Unprocessed name of the
+  image used to create the original container (as specified by the user).
+
+- **io.podman.annotations.checkpoint.rootfsImageID**: ID of the image used to
+  create the original container.
+
+- **io.podman.annotations.checkpoint.rootfsImageName**: Image name used to
+  create the original container.
+
+- **io.podman.annotations.checkpoint.podman.version**: Version of Podman used to
+  create the checkpoint.
+
+- **io.podman.annotations.checkpoint.criu.version**: Version of CRIU used to
+  create the checkpoint.
+
+- **io.podman.annotations.checkpoint.runtime.name**: Container runtime (e.g.,
+  runc, crun) used to create the checkpoint.
+
+- **io.podman.annotations.checkpoint.runtime.version**: Version of the container
+  runtime used to create the checkpoint.
+
+- **io.podman.annotations.checkpoint.conmon.version**: Version of conmon used
+  with the original container.
+
+- **io.podman.annotations.checkpoint.host.arch**: CPU architecture of the host
+  on which the checkpoint was created.
+
+- **io.podman.annotations.checkpoint.host.kernel**: Version of Linux kernel
+  of the host where the checkpoint was created.
+
+- **io.podman.annotations.checkpoint.cgroups.version**: cgroup version used by
+  the host where the checkpoint was created.
+
+- **io.podman.annotations.checkpoint.distribution.version**: Version of host
+  distribution on which the checkpoint was created.
+
+- **io.podman.annotations.checkpoint.distribution.name**: Name of host
+  distribution on which the checkpoint was created.
+
 #### **--export**, **-e**=*archive*
 
 Export the checkpoint to a tar.gz file. The exported checkpoint can be used
@@ -143,6 +197,11 @@ availability on different systems.
 Make a checkpoint for the container "mywebserver".
 ```
 # podman container checkpoint mywebserver
+```
+
+Create a checkpoint image for the container "mywebserver".
+```
+# podman container checkpoint --create-image mywebserver-checkpoint-1 mywebserver
 ```
 
 Dumps the container's memory information of the latest container into an archive.

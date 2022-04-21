@@ -16,6 +16,7 @@ import (
 	"github.com/containers/podman/v4/libpod/events"
 	"github.com/containers/podman/v4/pkg/api/handlers"
 	"github.com/containers/podman/v4/pkg/bindings/containers"
+	"github.com/containers/podman/v4/pkg/bindings/images"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/domain/entities/reports"
 	"github.com/containers/podman/v4/pkg/errorhandling"
@@ -331,6 +332,7 @@ func (ic *ContainerEngine) ContainerCheckpoint(ctx context.Context, namesOrIds [
 	options.WithIgnoreRootfs(opts.IgnoreRootFS)
 	options.WithKeep(opts.Keep)
 	options.WithExport(opts.Export)
+	options.WithCreateImage(opts.CreateImage)
 	options.WithTCPEstablished(opts.TCPEstablished)
 	options.WithPrintStats(opts.PrintStats)
 	options.WithPreCheckpoint(opts.PreCheckPoint)
@@ -396,8 +398,7 @@ func (ic *ContainerEngine) ContainerRestore(ctx context.Context, namesOrIds []st
 	}
 
 	var (
-		err  error
-		ctrs = []entities.ListContainer{}
+		ids = []string{}
 	)
 	if opts.All {
 		allCtrs, err := getContainersByContext(ic.ClientCtx, true, false, []string{})
@@ -407,20 +408,42 @@ func (ic *ContainerEngine) ContainerRestore(ctx context.Context, namesOrIds []st
 		// narrow the list to exited only
 		for _, c := range allCtrs {
 			if c.State == define.ContainerStateExited.String() {
-				ctrs = append(ctrs, c)
+				ids = append(ids, c.ID)
 			}
 		}
 	} else {
-		ctrs, err = getContainersByContext(ic.ClientCtx, false, false, namesOrIds)
+		getImageOptions := new(images.GetOptions).WithSize(false)
+		hostInfo, err := ic.Info(context.Background())
 		if err != nil {
 			return nil, err
 		}
+
+		for _, nameOrID := range namesOrIds {
+			ctrData, _, err := ic.ContainerInspect(ic.ClientCtx, []string{nameOrID}, entities.InspectOptions{})
+			if err == nil && len(ctrData) > 0 {
+				ids = append(ids, ctrData[0].ID)
+			} else {
+				// If container was not found, check if this is a checkpoint image
+				inspectReport, err := images.GetImage(ic.ClientCtx, nameOrID, getImageOptions)
+				if err != nil {
+					return nil, fmt.Errorf("no such container or image: %s", nameOrID)
+				}
+				checkpointRuntimeName, found := inspectReport.Annotations[define.CheckpointAnnotationRuntimeName]
+				if !found {
+					return nil, fmt.Errorf("image is not a checkpoint: %s", nameOrID)
+				}
+				if hostInfo.Host.OCIRuntime.Name != checkpointRuntimeName {
+					return nil, fmt.Errorf("container image \"%s\" requires runtime: \"%s\"", nameOrID, checkpointRuntimeName)
+				}
+				ids = append(ids, inspectReport.ID)
+			}
+		}
 	}
-	reports := make([]*entities.RestoreReport, 0, len(ctrs))
-	for _, c := range ctrs {
-		report, err := containers.Restore(ic.ClientCtx, c.ID, options)
+	reports := make([]*entities.RestoreReport, 0, len(ids))
+	for _, id := range ids {
+		report, err := containers.Restore(ic.ClientCtx, id, options)
 		if err != nil {
-			reports = append(reports, &entities.RestoreReport{Id: c.ID, Err: err})
+			reports = append(reports, &entities.RestoreReport{Id: id, Err: err})
 		}
 		reports = append(reports, report)
 	}

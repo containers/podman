@@ -47,6 +47,7 @@ type AttachOptions struct {
 // CheckpointOptions are optional options for checkpointing containers
 type CheckpointOptions struct {
 	Export         *string
+	CreateImage    *string
 	IgnoreRootfs   *bool
 	Keep           *bool
 	LeaveRunning   *bool

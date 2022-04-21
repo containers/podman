@@ -48,13 +48,16 @@ const (
 	// kubelet archive
 	CheckpointedPodsFile = "checkpointed.pods"
 	// container archive
-	ConfigDumpFile      = "config.dump"
-	SpecDumpFile        = "spec.dump"
-	NetworkStatusFile   = "network.status"
-	CheckpointDirectory = "checkpoint"
-	DevShmCheckpointTar = "devshm-checkpoint.tar"
-	RootFsDiffTar       = "rootfs-diff.tar"
-	DeletedFilesFile    = "deleted.files"
+	ConfigDumpFile             = "config.dump"
+	SpecDumpFile               = "spec.dump"
+	NetworkStatusFile          = "network.status"
+	CheckpointDirectory        = "checkpoint"
+	CheckpointVolumesDirectory = "volumes"
+	DevShmCheckpointTar        = "devshm-checkpoint.tar"
+	RootFsDiffTar              = "rootfs-diff.tar"
+	DeletedFilesFile           = "deleted.files"
+	DumpLogFile                = "dump.log"
+	RestoreLogFile             = "restore.log"
 	// pod archive
 	PodOptionsFile = "pod.options"
 	PodDumpFile    = "pod.dump"

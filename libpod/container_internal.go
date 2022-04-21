@@ -132,6 +132,11 @@ func (c *Container) ControlSocketPath() string {
 	return filepath.Join(c.bundlePath(), "ctl")
 }
 
+// CheckpointVolumesPath returns the path to the directory containing the checkpointed volumes
+func (c *Container) CheckpointVolumesPath() string {
+	return filepath.Join(c.bundlePath(), metadata.CheckpointVolumesDirectory)
+}
+
 // CheckpointPath returns the path to the directory containing the checkpoint
 func (c *Container) CheckpointPath() string {
 	return filepath.Join(c.bundlePath(), metadata.CheckpointDirectory)

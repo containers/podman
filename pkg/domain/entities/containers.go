@@ -178,6 +178,7 @@ type ContainerExportOptions struct {
 type CheckpointOptions struct {
 	All            bool
 	Export         string
+	CreateImage    string
 	IgnoreRootFS   bool
 	IgnoreVolumes  bool
 	Keep           bool
@@ -205,6 +206,7 @@ type RestoreOptions struct {
 	IgnoreStaticIP  bool
 	IgnoreStaticMAC bool
 	Import          string
+	CheckpointImage bool
 	Keep            bool
 	Latest          bool
 	Name            string
