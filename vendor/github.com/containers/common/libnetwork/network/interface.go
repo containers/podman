@@ -14,6 +14,7 @@ import (
 	"github.com/containers/common/libnetwork/netavark"
 	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/common/pkg/config"
+	"github.com/containers/common/pkg/machine"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/homedir"
 	"github.com/containers/storage/pkg/ioutils"
@@ -173,7 +174,7 @@ func getCniInterface(conf *config.Config) (types.ContainerNetwork, error) {
 		DefaultNetwork:     conf.Network.DefaultNetwork,
 		DefaultSubnet:      conf.Network.DefaultSubnet,
 		DefaultsubnetPools: conf.Network.DefaultSubnetPools,
-		IsMachine:          conf.Engine.MachineEnabled,
+		IsMachine:          machine.IsGvProxyBased(),
 	})
 }
 

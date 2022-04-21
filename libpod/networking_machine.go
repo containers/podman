@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/containers/common/libnetwork/types"
+	"github.com/containers/common/pkg/machine"
 	"github.com/sirupsen/logrus"
 )
 
@@ -117,7 +118,7 @@ func annotateGvproxyResponseError(r io.Reader) error {
 
 // exposeMachinePorts exposes the ports for podman machine via gvproxy
 func (r *Runtime) exposeMachinePorts(ports []types.PortMapping) error {
-	if !r.config.Engine.MachineEnabled {
+	if !machine.IsGvProxyBased() {
 		return nil
 	}
 	return requestMachinePorts(true, ports)
@@ -125,7 +126,7 @@ func (r *Runtime) exposeMachinePorts(ports []types.PortMapping) error {
 
 // unexposeMachinePorts closes the ports for podman machine via gvproxy
 func (r *Runtime) unexposeMachinePorts(ports []types.PortMapping) error {
-	if !r.config.Engine.MachineEnabled {
+	if !machine.IsGvProxyBased() {
 		return nil
 	}
 	return requestMachinePorts(false, ports)
