@@ -58,7 +58,6 @@ func useSystemd() bool {
 			val := strings.TrimSuffix(string(dat), "\n")
 			usesSystemd = (val == "systemd")
 		}
-		return
 	})
 	return usesSystemd
 }
@@ -82,7 +81,6 @@ func useJournald() bool {
 				}
 			}
 		}
-		return
 	})
 	return usesJournald
 }

@@ -15,7 +15,7 @@ func (r *Runtime) newEventer() (events.Eventer, error) {
 	options := events.EventerOptions{
 		EventerType:    r.config.Engine.EventsLogger,
 		LogFilePath:    r.config.Engine.EventsLogFilePath,
-		LogFileMaxSize: r.config.Engine.EventsLogFileMaxSize,
+		LogFileMaxSize: r.config.Engine.EventsLogMaxSize(),
 	}
 	return events.NewEventer(options)
 }

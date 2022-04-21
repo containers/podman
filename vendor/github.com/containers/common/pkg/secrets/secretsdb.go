@@ -177,7 +177,7 @@ func (s *SecretsManager) store(entry *Secret) error {
 	if err != nil {
 		return err
 	}
-	err = ioutil.WriteFile(s.secretsDBPath, marshalled, 0600)
+	err = ioutil.WriteFile(s.secretsDBPath, marshalled, 0o600)
 	if err != nil {
 		return err
 	}
@@ -203,7 +203,7 @@ func (s *SecretsManager) delete(nameOrID string) error {
 	if err != nil {
 		return err
 	}
-	err = ioutil.WriteFile(s.secretsDBPath, marshalled, 0600)
+	err = ioutil.WriteFile(s.secretsDBPath, marshalled, 0o600)
 	if err != nil {
 		return err
 	}

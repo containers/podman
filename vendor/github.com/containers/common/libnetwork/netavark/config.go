@@ -19,7 +19,6 @@ import (
 
 // NetworkCreate will take a partial filled Network and fill the
 // missing fields. It creates the Network and returns the full Network.
-// nolint:gocritic
 func (n *netavarkNetwork) NetworkCreate(net types.Network) (types.Network, error) {
 	n.lock.Lock()
 	defer n.lock.Unlock()

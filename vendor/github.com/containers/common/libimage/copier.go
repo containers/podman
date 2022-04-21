@@ -147,15 +147,13 @@ type copier struct {
 	destinationLookup LookupReferenceFunc
 }
 
-var (
-	// storageAllowedPolicyScopes overrides the policy for local storage
-	// to ensure that we can read images from it.
-	storageAllowedPolicyScopes = signature.PolicyTransportScopes{
-		"": []signature.PolicyRequirement{
-			signature.NewPRInsecureAcceptAnything(),
-		},
-	}
-)
+// storageAllowedPolicyScopes overrides the policy for local storage
+// to ensure that we can read images from it.
+var storageAllowedPolicyScopes = signature.PolicyTransportScopes{
+	"": []signature.PolicyRequirement{
+		signature.NewPRInsecureAcceptAnything(),
+	},
+}
 
 // getDockerAuthConfig extracts a docker auth config from the CopyOptions.  Returns
 // nil if no credentials are set.

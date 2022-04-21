@@ -262,7 +262,6 @@ func addSubscriptionsFromMountsFile(filePath, mountLabel, containerRunDir string
 				data, err := readFileOrDir("", hostDirOrFile, mode.Perm())
 				if err != nil {
 					return nil, err
-
 				}
 				for _, s := range data {
 					if err := os.MkdirAll(filepath.Dir(ctrDirOrFileOnHost), s.dirMode); err != nil {
@@ -313,7 +312,7 @@ func addFIPSModeSubscription(mounts *[]rspec.Mount, containerRunDir, mountPoint,
 	subscriptionsDir := "/run/secrets"
 	ctrDirOnHost := filepath.Join(containerRunDir, subscriptionsDir)
 	if _, err := os.Stat(ctrDirOnHost); os.IsNotExist(err) {
-		if err = idtools.MkdirAllAs(ctrDirOnHost, 0755, uid, gid); err != nil { //nolint
+		if err = idtools.MkdirAllAs(ctrDirOnHost, 0o755, uid, gid); err != nil { //nolint
 			return err
 		}
 		if err = label.Relabel(ctrDirOnHost, mountLabel, false); err != nil {

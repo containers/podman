@@ -158,6 +158,10 @@ func rotateLog(logfile string, content string, limit uint64) (bool, error) {
 	}
 	file, err := os.Stat(logfile)
 	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			// The logfile does not exist yet.
+			return false, nil
+		}
 		return false, err
 	}
 	var filesize = uint64(file.Size())

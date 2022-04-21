@@ -108,11 +108,11 @@ func NewNetworkInterface(conf *InitConfig) (types.ContainerNetwork, error) {
 		return nil, errors.Wrap(err, "failed to parse default subnet")
 	}
 
-	if err := os.MkdirAll(conf.NetworkConfigDir, 0755); err != nil {
+	if err := os.MkdirAll(conf.NetworkConfigDir, 0o755); err != nil {
 		return nil, err
 	}
 
-	if err := os.MkdirAll(conf.NetworkRunDir, 0755); err != nil {
+	if err := os.MkdirAll(conf.NetworkRunDir, 0o755); err != nil {
 		return nil, err
 	}
 

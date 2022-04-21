@@ -265,7 +265,7 @@ func createCgroupv2Path(path string) (deferredError error) {
 	for i, e := range elements[3:] {
 		current = filepath.Join(current, e)
 		if i > 0 {
-			if err := os.Mkdir(current, 0755); err != nil {
+			if err := os.Mkdir(current, 0o755); err != nil {
 				if !os.IsExist(err) {
 					return err
 				}
@@ -281,7 +281,7 @@ func createCgroupv2Path(path string) (deferredError error) {
 		// We enable the controllers for all the path components except the last one.  It is not allowed to add
 		// PIDs if there are already enabled controllers.
 		if i < len(elements[3:])-1 {
-			if err := ioutil.WriteFile(filepath.Join(current, "cgroup.subtree_control"), res, 0755); err != nil {
+			if err := ioutil.WriteFile(filepath.Join(current, "cgroup.subtree_control"), res, 0o755); err != nil {
 				return err
 			}
 		}
@@ -323,7 +323,7 @@ func (c *CgroupControl) initialize() (err error) {
 				continue
 			}
 			path := c.getCgroupv1Path(ctr.name)
-			if err := os.MkdirAll(path, 0755); err != nil {
+			if err := os.MkdirAll(path, 0o755); err != nil {
 				return errors.Wrapf(err, "error creating cgroup path for %s", ctr.name)
 			}
 		}
@@ -343,7 +343,7 @@ func (c *CgroupControl) createCgroupDirectory(controller string) (bool, error) {
 		return false, err
 	}
 
-	if err := os.MkdirAll(cPath, 0755); err != nil {
+	if err := os.MkdirAll(cPath, 0o755); err != nil {
 		return false, errors.Wrapf(err, "error creating cgroup for %s", controller)
 	}
 	return true, nil
@@ -589,7 +589,7 @@ func (c *CgroupControl) AddPid(pid int) error {
 
 	if c.cgroup2 {
 		p := filepath.Join(cgroupRoot, c.path, "cgroup.procs")
-		if err := ioutil.WriteFile(p, pidString, 0644); err != nil {
+		if err := ioutil.WriteFile(p, pidString, 0o644); err != nil {
 			return errors.Wrapf(err, "write %s", p)
 		}
 		return nil
@@ -612,7 +612,7 @@ func (c *CgroupControl) AddPid(pid int) error {
 			continue
 		}
 		p := filepath.Join(c.getCgroupv1Path(n), "tasks")
-		if err := ioutil.WriteFile(p, pidString, 0644); err != nil {
+		if err := ioutil.WriteFile(p, pidString, 0o644); err != nil {
 			return errors.Wrapf(err, "write %s", p)
 		}
 	}

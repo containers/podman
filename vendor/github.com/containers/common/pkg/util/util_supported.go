@@ -1,5 +1,5 @@
-//go:build linux || darwin
-// +build linux darwin
+//go:build linux || darwin || freebsd
+// +build linux darwin freebsd
 
 package util
 
@@ -23,7 +23,7 @@ var (
 // isWriteableOnlyByOwner checks that the specified permission mask allows write
 // access only to the owner.
 func isWriteableOnlyByOwner(perm os.FileMode) bool {
-	return (perm & 0722) == 0700
+	return (perm & 0o722) == 0o700
 }
 
 // GetRuntimeDir returns the runtime directory
@@ -46,7 +46,7 @@ func GetRuntimeDir() (string, error) {
 		uid := fmt.Sprintf("%d", unshare.GetRootlessUID())
 		if runtimeDir == "" {
 			tmpDir := filepath.Join("/run", "user", uid)
-			if err := os.MkdirAll(tmpDir, 0700); err != nil {
+			if err := os.MkdirAll(tmpDir, 0o700); err != nil {
 				logrus.Debugf("unable to make temp dir: %v", err)
 			}
 			st, err := os.Stat(tmpDir)
@@ -56,7 +56,7 @@ func GetRuntimeDir() (string, error) {
 		}
 		if runtimeDir == "" {
 			tmpDir := filepath.Join(os.TempDir(), fmt.Sprintf("podman-run-%s", uid))
-			if err := os.MkdirAll(tmpDir, 0700); err != nil {
+			if err := os.MkdirAll(tmpDir, 0o700); err != nil {
 				logrus.Debugf("unable to make temp dir %v", err)
 			}
 			st, err := os.Stat(tmpDir)

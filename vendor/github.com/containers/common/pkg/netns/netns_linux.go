@@ -71,7 +71,7 @@ func NewNSWithName(name string) (ns.NetNS, error) {
 	// Create the directory for mounting network namespaces
 	// This needs to be a shared mountpoint in case it is mounted in to
 	// other namespaces (containers)
-	err = os.MkdirAll(nsRunDir, 0755)
+	err = os.MkdirAll(nsRunDir, 0o755)
 	if err != nil {
 		return nil, err
 	}

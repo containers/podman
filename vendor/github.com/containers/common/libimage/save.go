@@ -68,7 +68,6 @@ func (r *Runtime) Save(ctx context.Context, names []string, format, path string,
 	}
 
 	return errors.Errorf("unsupported format %q for saving images", format)
-
 }
 
 // saveSingleImage saves the specified image name to the specified path.

@@ -102,7 +102,7 @@ func NewManager(rootPath string) (*SecretsManager, error) {
 		return nil, errors.Wrapf(errInvalidPath, "path must be absolute: %s", rootPath)
 	}
 	// the lockfile functions require that the rootPath dir is executable
-	if err := os.MkdirAll(rootPath, 0700); err != nil {
+	if err := os.MkdirAll(rootPath, 0o700); err != nil {
 		return nil, err
 	}
 
@@ -237,7 +237,6 @@ func (s *SecretsManager) List() ([]Secret, error) {
 	var ls []Secret
 	for _, v := range secrets {
 		ls = append(ls, v)
-
 	}
 	return ls, nil
 }

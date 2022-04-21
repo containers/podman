@@ -112,7 +112,7 @@ func setupSeccomp(config *Seccomp, rs *specs.Spec) (*specs.LinuxSeccomp, error) 
 	newConfig := &specs.LinuxSeccomp{}
 
 	var arch string
-	var native, err = libseccomp.GetNativeArch()
+	native, err := libseccomp.GetNativeArch()
 	if err == nil {
 		arch = native.String()
 	}
