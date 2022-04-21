@@ -95,7 +95,10 @@ type ListResponse struct {
 }
 
 type SetOptions struct {
-	Rootful bool
+	CPUs     *uint64
+	DiskSize *uint64
+	Memory   *uint64
+	Rootful  *bool
 }
 
 type SSHOptions struct {
@@ -118,7 +121,7 @@ type InspectOptions struct{}
 type VM interface {
 	Init(opts InitOptions) (bool, error)
 	Remove(name string, opts RemoveOptions) (string, func() error, error)
-	Set(name string, opts SetOptions) error
+	Set(name string, opts SetOptions) ([]error, error)
 	SSH(name string, opts SSHOptions) error
 	Start(name string, opts StartOptions) error
 	State(bypass bool) (Status, error)
