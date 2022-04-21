@@ -2311,6 +2311,24 @@ func isRootlessCgroupSet(cgroup string) bool {
 	return cgroup != CgroupfsDefaultCgroupParent && filepath.Dir(cgroup) != CgroupfsDefaultCgroupParent
 }
 
+func (c *Container) expectPodCgroup() (bool, error) {
+	unified, err := cgroups.IsCgroup2UnifiedMode()
+	if err != nil {
+		return false, err
+	}
+	cgroupManager := c.CgroupManager()
+	switch {
+	case c.config.NoCgroups:
+		return false, nil
+	case cgroupManager == config.SystemdCgroupsManager:
+		return !rootless.IsRootless() || unified, nil
+	case cgroupManager == config.CgroupfsCgroupsManager:
+		return !rootless.IsRootless(), nil
+	default:
+		return false, errors.Wrapf(define.ErrInvalidArg, "invalid cgroup mode %s requested for pods", cgroupManager)
+	}
+}
+
 // Get cgroup path in a format suitable for the OCI spec
 func (c *Container) getOCICgroupPath() (string, error) {
 	unified, err := cgroups.IsCgroup2UnifiedMode()

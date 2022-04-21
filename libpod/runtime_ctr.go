@@ -292,7 +292,11 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 					if err != nil {
 						return nil, errors.Wrapf(err, "error retrieving pod %s cgroup", pod.ID())
 					}
-					if podCgroup == "" {
+					expectPodCgroup, err := ctr.expectPodCgroup()
+					if err != nil {
+						return nil, err
+					}
+					if expectPodCgroup && podCgroup == "" {
 						return nil, errors.Wrapf(define.ErrInternal, "pod %s cgroup is not set", pod.ID())
 					}
 					canUseCgroup := !rootless.IsRootless() || isRootlessCgroupSet(podCgroup)
