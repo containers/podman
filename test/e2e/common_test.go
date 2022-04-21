@@ -849,7 +849,7 @@ func (p *PodmanTestIntegration) makeOptions(args []string, noEvents, noCache boo
 	}
 
 	var debug string
-	if _, ok := os.LookupEnv("DEBUG"); ok {
+	if _, ok := os.LookupEnv("E2E_DEBUG"); ok {
 		debug = "--log-level=debug --syslog=true "
 	}
 
