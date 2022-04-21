@@ -377,21 +377,19 @@ var _ = Describe("Podman pod create", func() {
 		Expect(result.OutputToString()).To(ContainSubstring(infraID))
 	})
 
-	It("podman run --add-host in pod", func() {
-		session := podmanTest.Podman([]string{"pod", "create"})
+	It("podman run --add-host in pod should fail", func() {
+		session := podmanTest.Podman([]string{"pod", "create", "--add-host", "host1:127.0.0.1"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		podID := session.OutputToString()
 
-		// verify we can add a host to the infra's /etc/hosts
-		// N/B: Using alpine for ping, since BB ping throws
-		//      permission denied error as of Fedora 33.
-		session = podmanTest.Podman([]string{"run", "--pod", podID, "--add-host", "foobar:127.0.0.1", ALPINE, "ping", "-c", "1", "foobar"})
+		session = podmanTest.Podman([]string{"create", "--pod", podID, "--add-host", "foobar:127.0.0.1", ALPINE, "ping", "-c", "1", "foobar"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(ExitWithError())
+		Expect(session.ErrorToString()).To(ContainSubstring("extra host entries must be specified on the pod: network cannot be configured when it is shared with a pod"))
 
-		// verify we can see the other hosts of infra's /etc/hosts
-		session = podmanTest.Podman([]string{"run", "--pod", podID, ALPINE, "ping", "-c", "1", "foobar"})
+		// verify we can see the pods hosts
+		session = podmanTest.Podman([]string{"run", "--pod", podID, ALPINE, "ping", "-c", "1", "host1"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 	})

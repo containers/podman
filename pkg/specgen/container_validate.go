@@ -38,6 +38,13 @@ func (s *SpecGenerator) Validate() error {
 		if len(s.PortMappings) > 0 || s.PublishExposedPorts {
 			return errors.Wrap(define.ErrNetworkOnPodContainer, "published or exposed ports must be defined when the pod is created")
 		}
+		if len(s.HostAdd) > 0 {
+			return errors.Wrap(define.ErrNetworkOnPodContainer, "extra host entries must be specified on the pod")
+		}
+	}
+
+	if s.NetNS.IsContainer() && len(s.HostAdd) > 0 {
+		return errors.Wrap(ErrInvalidSpecConfig, "cannot set extra host entries when the container is joined to another containers network namespace")
 	}
 
 	//
