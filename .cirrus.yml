@@ -411,32 +411,32 @@ unit_test_task:
     always: *runner_stats
 
 
-apiv2_test_task:
-    name: "APIv2 test on $DISTRO_NV"
-    alias: apiv2_test
-    skip: *tags
-    depends_on:
-        - validate
-    gce_instance: *standardvm
-    env:
-        <<: *stdenvars
-        TEST_FLAVOR: apiv2
-    clone_script: *noop  # Comes from cache
-    gopath_cache: *ro_gopath_cache
-    setup_script: *setup
-    main_script: *main
-    always: &logs_artifacts
-        <<: *runner_stats
-        # Required for `contrib/cirrus/logformatter` to work properly
-        html_artifacts:
-            path: ./*.html
-            type: text/html
-        package_versions_script: '$SCRIPT_BASE/logcollector.sh packages'
-        df_script: '$SCRIPT_BASE/logcollector.sh df'
-        audit_log_script: '$SCRIPT_BASE/logcollector.sh audit'
-        journal_script: '$SCRIPT_BASE/logcollector.sh journal'
-        podman_system_info_script: '$SCRIPT_BASE/logcollector.sh podman'
-        time_script: '$SCRIPT_BASE/logcollector.sh time'
+#apiv2_test_task:
+#    name: "APIv2 test on $DISTRO_NV"
+#    alias: apiv2_test
+#    skip: *tags
+#    depends_on:
+#        - validate
+#    gce_instance: *standardvm
+#    env:
+#        <<: *stdenvars
+#        TEST_FLAVOR: apiv2
+#    clone_script: *noop  # Comes from cache
+#    gopath_cache: *ro_gopath_cache
+#    setup_script: *setup
+#    main_script: *main
+#    always: &logs_artifacts
+#        <<: *runner_stats
+#        # Required for `contrib/cirrus/logformatter` to work properly
+#        html_artifacts:
+#            path: ./*.html
+#            type: text/html
+#        package_versions_script: '$SCRIPT_BASE/logcollector.sh packages'
+#        df_script: '$SCRIPT_BASE/logcollector.sh df'
+#        audit_log_script: '$SCRIPT_BASE/logcollector.sh audit'
+#        journal_script: '$SCRIPT_BASE/logcollector.sh journal'
+#        podman_system_info_script: '$SCRIPT_BASE/logcollector.sh podman'
+#        time_script: '$SCRIPT_BASE/logcollector.sh time'
 
 
 # Execute the podman integration tests on all primary platforms and release
@@ -549,7 +549,8 @@ local_system_test_task: &local_system_test_task
     gopath_cache: *ro_gopath_cache
     setup_script: *setup
     main_script: *main
-    always: *logs_artifacts
+    always: &logs_artifacts
+        <<: *runner_stats
 
 
 remote_system_test_task:
@@ -684,7 +685,6 @@ success_task:
         - osx_alt_build
         - docker-py_test
         - unit_test
-        - apiv2_test
         - local_system_test
         - remote_system_test
         - rootless_system_test
