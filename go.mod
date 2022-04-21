@@ -29,7 +29,7 @@ require (
 	github.com/docker/go-plugins-helpers v0.0.0-20211224144127-6eecb7beb651
 	github.com/docker/go-units v0.4.0
 	github.com/dtylman/scp v0.0.0-20181017070807-f3000a34aef4
-	github.com/fsnotify/fsnotify v1.5.1
+	github.com/fsnotify/fsnotify v1.5.2
 	github.com/ghodss/yaml v1.0.0
 	github.com/godbus/dbus/v5 v5.1.0
 	github.com/google/gofuzz v1.2.0

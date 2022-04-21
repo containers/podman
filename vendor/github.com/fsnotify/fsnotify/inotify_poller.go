@@ -38,7 +38,6 @@ func newFdPoller(fd int) (*fdPoller, error) {
 			poller.close()
 		}
 	}()
-	poller.fd = fd
 
 	// Create epoll fd
 	poller.epfd, errno = unix.EpollCreate1(unix.EPOLL_CLOEXEC)
