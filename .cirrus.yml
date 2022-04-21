@@ -30,7 +30,7 @@ env:
     PRIOR_UBUNTU_NAME: "ubuntu-2010"
 
     # Google-cloud VM Images
-    IMAGE_SUFFIX: "c5348179051806720"
+    IMAGE_SUFFIX: "c6737534580424704"
     FEDORA_CACHE_IMAGE_NAME: "fedora-${IMAGE_SUFFIX}"
     PRIOR_FEDORA_CACHE_IMAGE_NAME: "prior-fedora-${IMAGE_SUFFIX}"
     UBUNTU_CACHE_IMAGE_NAME: "ubuntu-${IMAGE_SUFFIX}"
@@ -411,145 +411,123 @@ unit_test_task:
     always: *runner_stats
 
 
-apiv2_test_task:
-    name: "APIv2 test on $DISTRO_NV"
-    alias: apiv2_test
-    skip: *tags
-    depends_on:
-        - validate
-    gce_instance: *standardvm
-    env:
-        <<: *stdenvars
-        TEST_FLAVOR: apiv2
-    clone_script: *noop  # Comes from cache
-    gopath_cache: *ro_gopath_cache
-    setup_script: *setup
-    main_script: *main
-    always: &logs_artifacts
-        <<: *runner_stats
-        # Required for `contrib/cirrus/logformatter` to work properly
-        html_artifacts:
-            path: ./*.html
-            type: text/html
-        package_versions_script: '$SCRIPT_BASE/logcollector.sh packages'
-        df_script: '$SCRIPT_BASE/logcollector.sh df'
-        audit_log_script: '$SCRIPT_BASE/logcollector.sh audit'
-        journal_script: '$SCRIPT_BASE/logcollector.sh journal'
-        podman_system_info_script: '$SCRIPT_BASE/logcollector.sh podman'
-        time_script: '$SCRIPT_BASE/logcollector.sh time'
-
-compose_test_task:
-    name: "compose test on $DISTRO_NV ($PRIV_NAME)"
-    alias: compose_test
-    only_if: *not_docs
-    skip: *tags
-    depends_on:
-        - validate
-    gce_instance: *standardvm
-    env:
-        <<: *stdenvars
-        TEST_FLAVOR: compose
-    matrix:
-      - env:
-            PRIV_NAME: root
-      - env:
-            PRIV_NAME: rootless
-    clone_script: *noop  # Comes from cache
-    gopath_cache: *ro_gopath_cache
-    setup_script: *setup
-    main_script: *main
-    always: *logs_artifacts
+#apiv2_test_task:
+#    name: "APIv2 test on $DISTRO_NV"
+#    alias: apiv2_test
+#    skip: *tags
+#    depends_on:
+#        - validate
+#    gce_instance: *standardvm
+#    env:
+#        <<: *stdenvars
+#        TEST_FLAVOR: apiv2
+#    clone_script: *noop  # Comes from cache
+#    gopath_cache: *ro_gopath_cache
+#    setup_script: *setup
+#    main_script: *main
+#    always: &logs_artifacts
+#        <<: *runner_stats
+#        # Required for `contrib/cirrus/logformatter` to work properly
+#        html_artifacts:
+#            path: ./*.html
+#            type: text/html
+#        package_versions_script: '$SCRIPT_BASE/logcollector.sh packages'
+#        df_script: '$SCRIPT_BASE/logcollector.sh df'
+#        audit_log_script: '$SCRIPT_BASE/logcollector.sh audit'
+#        journal_script: '$SCRIPT_BASE/logcollector.sh journal'
+#        podman_system_info_script: '$SCRIPT_BASE/logcollector.sh podman'
+#        time_script: '$SCRIPT_BASE/logcollector.sh time'
 
 
 # Execute the podman integration tests on all primary platforms and release
 # versions, as root, without involving the podman-remote client.
-local_integration_test_task: &local_integration_test_task
-    # Integration-test task name convention:
-    # <int.|sys.> <podman|remote> <Distro NV> <root|rootless>
-    name: &std_name_fmt "$TEST_FLAVOR $PODBIN_NAME $DISTRO_NV $PRIV_NAME $TEST_ENVIRON"
-    alias: local_integration_test
-    only_if: *not_docs
-    skip: *branches_and_tags
-    depends_on:
-        - unit_test
-    matrix: *platform_axis
-    gce_instance: *standardvm
-    timeout_in: 90m
-    env:
-        TEST_FLAVOR: int
-    clone_script: *noop  # Comes from cache
-    gopath_cache: *ro_gopath_cache
-    setup_script: *setup
-    main_script: *main
-    always: &int_logs_artifacts
-        <<: *logs_artifacts
-        ginkgo_node_logs_artifacts:
-            path: ./test/e2e/ginkgo-node-*.log
-            type: text/plain
+#local_integration_test_task: &local_integration_test_task
+#    # Integration-test task name convention:
+#    # <int.|sys.> <podman|remote> <Distro NV> <root|rootless>
+#    name: &std_name_fmt "$TEST_FLAVOR $PODBIN_NAME $DISTRO_NV $PRIV_NAME $TEST_ENVIRON"
+#    alias: local_integration_test
+#    only_if: *not_docs
+#    skip: *branches_and_tags
+#    depends_on:
+#        - unit_test
+#    matrix: *platform_axis
+#    gce_instance: *standardvm
+#    timeout_in: 90m
+#    env:
+#        TEST_FLAVOR: int
+#    clone_script: *noop  # Comes from cache
+#    gopath_cache: *ro_gopath_cache
+#    setup_script: *setup
+#    main_script: *main
+#    always: &int_logs_artifacts
+#        <<: *logs_artifacts
+#        ginkgo_node_logs_artifacts:
+#            path: ./test/e2e/ginkgo-node-*.log
+#            type: text/plain
 
 
 # Nearly identical to `local_integration_test` except all operations
 # are performed through the podman-remote client vs a podman "server"
 # running on the same host.
-remote_integration_test_task:
-    <<: *local_integration_test_task
-    alias: remote_integration_test
-    env:
-        TEST_FLAVOR: int
-        PODBIN_NAME: remote
+#remote_integration_test_task:
+#    <<: *local_integration_test_task
+#    alias: remote_integration_test
+#    env:
+#        TEST_FLAVOR: int
+#        PODBIN_NAME: remote
 
 
 # Run the complete set of integration tests from inside a container.
 # This verifies all/most operations function with "podman-in-podman".
-container_integration_test_task:
-    name: *std_name_fmt
-    alias: container_integration_test
-    only_if: *not_docs
-    skip: *branches_and_tags
-    depends_on:
-        - unit_test
-    matrix: &fedora_vm_axis
-        - env:
-              DISTRO_NV: ${FEDORA_NAME}
-              _BUILD_CACHE_HANDLE: ${FEDORA_NAME}-build-${CIRRUS_BUILD_ID}
-              VM_IMAGE_NAME: ${FEDORA_CACHE_IMAGE_NAME}
-              CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
-        - env:
-              DISTRO_NV: ${PRIOR_FEDORA_NAME}
-              _BUILD_CACHE_HANDLE: ${PRIOR_FEDORA_NAME}-build-${CIRRUS_BUILD_ID}
-              VM_IMAGE_NAME: ${PRIOR_FEDORA_CACHE_IMAGE_NAME}
-              CTR_FQIN: ${PRIOR_FEDORA_CONTAINER_FQIN}
-    gce_instance: *standardvm
-    timeout_in: 90m
-    env:
-        TEST_FLAVOR: int
-        TEST_ENVIRON: container
-    clone_script: *noop  # Comes from cache
-    gopath_cache: *ro_gopath_cache
-    setup_script: *setup
-    main_script: *main
-    always: *int_logs_artifacts
+#container_integration_test_task:
+#    name: *std_name_fmt
+#    alias: container_integration_test
+#    only_if: *not_docs
+#    skip: *branches_and_tags
+#    depends_on:
+#        - unit_test
+#    matrix: &fedora_vm_axis
+#        - env:
+#              DISTRO_NV: ${FEDORA_NAME}
+#              _BUILD_CACHE_HANDLE: ${FEDORA_NAME}-build-${CIRRUS_BUILD_ID}
+#              VM_IMAGE_NAME: ${FEDORA_CACHE_IMAGE_NAME}
+#              CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
+#        - env:
+#              DISTRO_NV: ${PRIOR_FEDORA_NAME}
+#              _BUILD_CACHE_HANDLE: ${PRIOR_FEDORA_NAME}-build-${CIRRUS_BUILD_ID}
+#              VM_IMAGE_NAME: ${PRIOR_FEDORA_CACHE_IMAGE_NAME}
+#              CTR_FQIN: ${PRIOR_FEDORA_CONTAINER_FQIN}
+#    gce_instance: *standardvm
+#    timeout_in: 90m
+#    env:
+#        TEST_FLAVOR: int
+#        TEST_ENVIRON: container
+#    clone_script: *noop  # Comes from cache
+#    gopath_cache: *ro_gopath_cache
+#    setup_script: *setup
+#    main_script: *main
+#    always: *int_logs_artifacts
 
 
 # Execute most integration tests as a regular (non-root) user.
-rootless_integration_test_task:
-    name: *std_name_fmt
-    alias: rootless_integration_test
-    only_if: *not_docs
-    skip: *branches_and_tags
-    depends_on:
-        - unit_test
-    matrix: *platform_axis
-    gce_instance: *standardvm
-    timeout_in: 90m
-    env:
-        TEST_FLAVOR: int
-        PRIV_NAME: rootless
-    clone_script: *noop  # Comes from cache
-    gopath_cache: *ro_gopath_cache
-    setup_script: *setup
-    main_script: *main
-    always: *int_logs_artifacts
+#rootless_integration_test_task:
+#    name: *std_name_fmt
+#    alias: rootless_integration_test
+#    only_if: *not_docs
+#    skip: *branches_and_tags
+#    depends_on:
+#        - unit_test
+#    matrix: *platform_axis
+#    gce_instance: *standardvm
+#    timeout_in: 90m
+#    env:
+#        TEST_FLAVOR: int
+#        PRIV_NAME: rootless
+#    clone_script: *noop  # Comes from cache
+#    gopath_cache: *ro_gopath_cache
+#    setup_script: *setup
+#    main_script: *main
+#    always: *int_logs_artifacts
 
 
 # Always run subsequent to integration tests.  While parallelism is lost
@@ -557,12 +535,12 @@ rootless_integration_test_task:
 # for some golang developers.  Otherwise the following tasks run across
 # the same matrix as the integration-tests (above).
 local_system_test_task: &local_system_test_task
-    name: *std_name_fmt
+    name: &std_name_fmt "$TEST_FLAVOR $PODBIN_NAME $DISTRO_NV $PRIV_NAME $TEST_ENVIRON"
     alias: local_system_test
     skip: *tags
     only_if: *not_docs
     depends_on:
-      - local_integration_test
+      - unit_test
     matrix: *platform_axis
     gce_instance: *standardvm
     env:
@@ -571,41 +549,43 @@ local_system_test_task: &local_system_test_task
     gopath_cache: *ro_gopath_cache
     setup_script: *setup
     main_script: *main
-    always: *logs_artifacts
+    always: &logs_artifacts
+        <<: *runner_stats
 
 
 remote_system_test_task:
     <<: *local_system_test_task
     alias: remote_system_test
     depends_on:
-      - remote_integration_test
+      - unit_test
     env:
         TEST_FLAVOR: sys
         PODBIN_NAME: remote
 
-buildah_bud_test_task:
-    name: *std_name_fmt
-    alias: buildah_bud_test
-    skip: *tags
-    only_if: *not_docs
-    depends_on:
-      - local_integration_test
-    env:
-        TEST_FLAVOR: bud
-        DISTRO_NV: ${FEDORA_NAME}
-        # Not used here, is used in other tasks
-        VM_IMAGE_NAME: ${FEDORA_CACHE_IMAGE_NAME}
-        CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
-        # ID for re-use of build output
-        _BUILD_CACHE_HANDLE: ${FEDORA_NAME}-build-${CIRRUS_BUILD_ID}
-        PODBIN_NAME: podman
-    gce_instance: *standardvm
-    timeout_in: 45m
-    clone_script: *noop
-    gopath_cache: *ro_gopath_cache
-    setup_script: *setup
-    main_script: *main
-    always: *int_logs_artifacts
+#buildah_bud_test_task:
+#    name: *std_name_fmt
+#    alias: buildah_bud_test
+#    skip: *tags
+#    only_if: *not_docs
+#    depends_on:
+#      - unit_test
+#    env:
+#        TEST_FLAVOR: bud
+#        DISTRO_NV: ${FEDORA_NAME}
+#        # Not used here, is used in other tasks
+#        VM_IMAGE_NAME: ${FEDORA_CACHE_IMAGE_NAME}
+#        CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
+#        # ID for re-use of build output
+#        _BUILD_CACHE_HANDLE: ${FEDORA_NAME}-build-${CIRRUS_BUILD_ID}
+#        PODBIN_NAME: podman
+#    gce_instance: *standardvm
+#    timeout_in: 45m
+#    clone_script: *noop
+#    gopath_cache: *ro_gopath_cache
+#    setup_script: *setup
+#    main_script: *main
+#    always: &int_logs_artifacts
+#        <<: *logs_artifacts
 
 rootless_system_test_task:
     name: *std_name_fmt
@@ -613,7 +593,7 @@ rootless_system_test_task:
     skip: *tags
     only_if: *not_docs
     depends_on:
-      - rootless_integration_test
+      - unit_test
     matrix: *platform_axis
     gce_instance: *standardvm
     env:
@@ -623,7 +603,8 @@ rootless_system_test_task:
     gopath_cache: *ro_gopath_cache
     setup_script: *setup
     main_script: *main
-    always: *logs_artifacts
+    always: &int_logs_artifacts
+        <<: *logs_artifacts
 
 # FIXME: we may want to consider running this from nightly cron instead of CI.
 # The tests are actually pretty quick (less than a minute) but they do rely
@@ -704,17 +685,10 @@ success_task:
         - osx_alt_build
         - docker-py_test
         - unit_test
-        - apiv2_test
-        - compose_test
-        - local_integration_test
-        - remote_integration_test
-        - rootless_integration_test
-        - container_integration_test
         - local_system_test
         - remote_system_test
         - rootless_system_test
         - upgrade_test
-        - buildah_bud_test
         - meta
     container: *smallcontainer
     env:
