@@ -30,8 +30,7 @@ fi
 # Nothing changed under test subdirectory.
 #
 # This is OK if the only files being touched are "safe" ones.
-filtered_changes=$(git diff --name-status $base $head |
-                       awk '{print $2}'               |
+filtered_changes=$(git diff --name-only $base $head   |
                        fgrep -vx .cirrus.yml          |
                        fgrep -vx .gitignore           |
                        fgrep -vx Makefile             |
