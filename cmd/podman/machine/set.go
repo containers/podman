@@ -4,6 +4,9 @@
 package machine
 
 import (
+	"fmt"
+	"os"
+
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/containers/podman/v4/pkg/machine"
@@ -23,8 +26,16 @@ var (
 )
 
 var (
-	setOpts = machine.SetOptions{}
+	setFlags = SetFlags{}
+	setOpts  = machine.SetOptions{}
 )
+
+type SetFlags struct {
+	CPUs     uint64
+	DiskSize uint64
+	Memory   uint64
+	Rootful  bool
+}
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
@@ -34,7 +45,32 @@ func init() {
 	flags := setCmd.Flags()
 
 	rootfulFlagName := "rootful"
-	flags.BoolVar(&setOpts.Rootful, rootfulFlagName, false, "Whether this machine should prefer rootful container execution")
+	flags.BoolVar(&setFlags.Rootful, rootfulFlagName, false, "Whether this machine should prefer rootful container execution")
+
+	cpusFlagName := "cpus"
+	flags.Uint64Var(
+		&setFlags.CPUs,
+		cpusFlagName, 0,
+		"Number of CPUs",
+	)
+	_ = setCmd.RegisterFlagCompletionFunc(cpusFlagName, completion.AutocompleteNone)
+
+	diskSizeFlagName := "disk-size"
+	flags.Uint64Var(
+		&setFlags.DiskSize,
+		diskSizeFlagName, 0,
+		"Disk size in GB",
+	)
+
+	_ = setCmd.RegisterFlagCompletionFunc(diskSizeFlagName, completion.AutocompleteNone)
+
+	memoryFlagName := "memory"
+	flags.Uint64VarP(
+		&setFlags.Memory,
+		memoryFlagName, "m", 0,
+		"Memory in MB",
+	)
+	_ = setCmd.RegisterFlagCompletionFunc(memoryFlagName, completion.AutocompleteNone)
 }
 
 func setMachine(cmd *cobra.Command, args []string) error {
@@ -53,5 +89,23 @@ func setMachine(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	return vm.Set(vmName, setOpts)
+	if cmd.Flags().Changed("rootful") {
+		setOpts.Rootful = &setFlags.Rootful
+	}
+	if cmd.Flags().Changed("cpus") {
+		setOpts.CPUs = &setFlags.CPUs
+	}
+	if cmd.Flags().Changed("memory") {
+		setOpts.Memory = &setFlags.Memory
+	}
+	if cmd.Flags().Changed("disk-size") {
+		setOpts.DiskSize = &setFlags.DiskSize
+	}
+
+	setErrs, lasterr := vm.Set(vmName, setOpts)
+	for _, err := range setErrs {
+		fmt.Fprintf(os.Stderr, "%v\n", err)
+	}
+
+	return lasterr
 }
