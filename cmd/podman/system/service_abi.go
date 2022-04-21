@@ -23,7 +23,7 @@ import (
 
 func restService(flags *pflag.FlagSet, cfg *entities.PodmanConfig, opts entities.ServiceOptions) error {
 	var (
-		listener *net.Listener
+		listener net.Listener
 		err      error
 	)
 
@@ -44,17 +44,15 @@ func restService(flags *pflag.FlagSet, cfg *entities.PodmanConfig, opts entities
 				// If it is activated by systemd, use the first LISTEN_FD (3)
 				// instead of opening the socket file.
 				f := os.NewFile(uintptr(3), "podman.sock")
-				l, err := net.FileListener(f)
+				listener, err = net.FileListener(f)
 				if err != nil {
 					return err
 				}
-				listener = &l
 			} else {
-				l, err := net.Listen(uri.Scheme, path)
+				listener, err = net.Listen(uri.Scheme, path)
 				if err != nil {
 					return errors.Wrapf(err, "unable to create socket")
 				}
-				listener = &l
 			}
 		case "tcp":
 			host := uri.Host
@@ -62,11 +60,10 @@ func restService(flags *pflag.FlagSet, cfg *entities.PodmanConfig, opts entities
 				// For backward compatibility, support "tcp:<host>:<port>" and "tcp://<host>:<port>"
 				host = uri.Opaque
 			}
-			l, err := net.Listen(uri.Scheme, host)
+			listener, err = net.Listen(uri.Scheme, host)
 			if err != nil {
 				return errors.Wrapf(err, "unable to create socket %v", host)
 			}
-			listener = &l
 		default:
 			logrus.Debugf("Attempting API Service endpoint scheme %q", uri.Scheme)
 		}
@@ -101,7 +98,7 @@ func restService(flags *pflag.FlagSet, cfg *entities.PodmanConfig, opts entities
 
 	err = server.Serve()
 	if listener != nil {
-		_ = (*listener).Close()
+		_ = listener.Close()
 	}
 	return err
 }
