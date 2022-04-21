@@ -495,6 +495,10 @@ If the pull option is set to `always` (with *--pull=always*),
 pull the image from the first registry it is found in as listed in registries.conf.
 Raise an error if not found in the registries, even if the image is present locally.
 
+If the pull option is set to `missing` (with *--pull=missing*),
+Pull the image only if it is not present in the local storage.  Raise an error if it
+could neither be found in the local storage or on a registry.
+
 If the pull option is set to `never` (with *--pull=never*),
 Do not pull the image from the registry, use only the local version. Raise an error
 if the image is not present locally.
