@@ -137,6 +137,9 @@ func getRemoteOptions(p *PodmanTestIntegration, args []string) []string {
 	if os.Getenv("HOOK_OPTION") != "" {
 		podmanOptions = append(podmanOptions, os.Getenv("HOOK_OPTION"))
 	}
+	if p.NetworkBackend.ToString() == "netavark" {
+		podmanOptions = append(podmanOptions, "--network-backend", "netavark")
+	}
 	podmanOptions = append(podmanOptions, strings.Split(p.StorageOptions, " ")...)
 	podmanOptions = append(podmanOptions, args...)
 	return podmanOptions
