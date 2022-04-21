@@ -561,30 +561,30 @@ remote_system_test_task:
         TEST_FLAVOR: sys
         PODBIN_NAME: remote
 
-buildah_bud_test_task:
-    name: *std_name_fmt
-    alias: buildah_bud_test
-    skip: *tags
-    only_if: *not_docs
-    depends_on:
-      - unit_test
-    env:
-        TEST_FLAVOR: bud
-        DISTRO_NV: ${FEDORA_NAME}
-        # Not used here, is used in other tasks
-        VM_IMAGE_NAME: ${FEDORA_CACHE_IMAGE_NAME}
-        CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
-        # ID for re-use of build output
-        _BUILD_CACHE_HANDLE: ${FEDORA_NAME}-build-${CIRRUS_BUILD_ID}
-        PODBIN_NAME: podman
-    gce_instance: *standardvm
-    timeout_in: 45m
-    clone_script: *noop
-    gopath_cache: *ro_gopath_cache
-    setup_script: *setup
-    main_script: *main
-    always: &int_logs_artifacts
-        <<: *logs_artifacts
+#buildah_bud_test_task:
+#    name: *std_name_fmt
+#    alias: buildah_bud_test
+#    skip: *tags
+#    only_if: *not_docs
+#    depends_on:
+#      - unit_test
+#    env:
+#        TEST_FLAVOR: bud
+#        DISTRO_NV: ${FEDORA_NAME}
+#        # Not used here, is used in other tasks
+#        VM_IMAGE_NAME: ${FEDORA_CACHE_IMAGE_NAME}
+#        CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
+#        # ID for re-use of build output
+#        _BUILD_CACHE_HANDLE: ${FEDORA_NAME}-build-${CIRRUS_BUILD_ID}
+#        PODBIN_NAME: podman
+#    gce_instance: *standardvm
+#    timeout_in: 45m
+#    clone_script: *noop
+#    gopath_cache: *ro_gopath_cache
+#    setup_script: *setup
+#    main_script: *main
+#    always: &int_logs_artifacts
+#        <<: *logs_artifacts
 
 rootless_system_test_task:
     name: *std_name_fmt
@@ -602,7 +602,8 @@ rootless_system_test_task:
     gopath_cache: *ro_gopath_cache
     setup_script: *setup
     main_script: *main
-    always: *logs_artifacts
+    always: &int_logs_artifacts
+        <<: *logs_artifacts
 
 # FIXME: we may want to consider running this from nightly cron instead of CI.
 # The tests are actually pretty quick (less than a minute) but they do rely
@@ -688,7 +689,6 @@ success_task:
         - remote_system_test
         - rootless_system_test
         - upgrade_test
-        - buildah_bud_test
         - meta
     container: *smallcontainer
     env:
