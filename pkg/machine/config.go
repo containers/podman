@@ -28,7 +28,7 @@ type InitOptions struct {
 	URI          url.URL
 	Username     string
 	ReExec       bool
-	Rootful      bool
+	Rootfull     bool
 	// The numerical userid of the user that called machine
 	UID string
 }
@@ -95,7 +95,7 @@ type ListResponse struct {
 }
 
 type SetOptions struct {
-	Rootful bool
+	Rootfull bool
 }
 
 type SSHOptions struct {

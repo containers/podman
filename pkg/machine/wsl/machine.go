@@ -165,8 +165,8 @@ type MachineVM struct {
 	Port int
 	// RemoteUsername of the vm user
 	RemoteUsername string
-	// Whether this machine should run in a rootful or rootless manner
-	Rootful bool
+	// Whether this machine should run in a rootfull or rootless manner
+	Rootfull bool
 }
 
 type ExitCodeError struct {
@@ -232,7 +232,7 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 	homeDir := homedir.Get()
 	sshDir := filepath.Join(homeDir, ".ssh")
 	v.IdentityPath = filepath.Join(sshDir, v.Name)
-	v.Rootful = opts.Rootful
+	v.Rootfull = opts.Rootfull
 
 	if err := downloadDistro(v, opts); err != nil {
 		return false, err
@@ -316,8 +316,8 @@ func setupConnections(v *MachineVM, opts machine.InitOptions, sshDir string) err
 	names := []string{v.Name, v.Name + "-root"}
 
 	// The first connection defined when connections is empty will become the default
-	// regardless of IsDefault, so order according to rootful
-	if opts.Rootful {
+	// regardless of IsDefault, so order according to rootfull
+	if opts.Rootfull {
 		uris[0], names[0], uris[1], names[1] = uris[1], names[1], uris[0], names[0]
 	}
 
@@ -733,7 +733,7 @@ func pipeCmdPassThrough(name string, input string, arg ...string) error {
 }
 
 func (v *MachineVM) Set(name string, opts machine.SetOptions) error {
-	if v.Rootful == opts.Rootful {
+	if v.Rootfull == opts.Rootfull {
 		return nil
 	}
 
@@ -744,7 +744,7 @@ func (v *MachineVM) Set(name string, opts machine.SetOptions) error {
 
 	if changeCon {
 		newDefault := v.Name
-		if opts.Rootful {
+		if opts.Rootfull {
 			newDefault += "-root"
 		}
 		if err := machine.ChangeDefault(newDefault); err != nil {
@@ -752,7 +752,7 @@ func (v *MachineVM) Set(name string, opts machine.SetOptions) error {
 		}
 	}
 
-	v.Rootful = opts.Rootful
+	v.Rootfull = opts.Rootfull
 	return v.writeConfig()
 }
 
@@ -768,7 +768,7 @@ func (v *MachineVM) Start(name string, _ machine.StartOptions) error {
 		return errors.Wrap(err, "WSL bootstrap script failed")
 	}
 
-	if !v.Rootful {
+	if !v.Rootfull {
 		fmt.Printf("\nThis machine is currently configured in rootless mode. If your containers\n")
 		fmt.Printf("require root permissions (e.g. ports < 1024), or if you run into compatibility\n")
 		fmt.Printf("issues with non-podman clients, you can switch using the following command: \n")
@@ -777,7 +777,7 @@ func (v *MachineVM) Start(name string, _ machine.StartOptions) error {
 		if name != machine.DefaultMachineName {
 			suffix = " " + name
 		}
-		fmt.Printf("\n\tpodman machine set --rootful%s\n\n", suffix)
+		fmt.Printf("\n\tpodman machine set --rootfull%s\n\n", suffix)
 	}
 
 	globalName, pipeName, err := launchWinProxy(v)
@@ -833,7 +833,7 @@ func launchWinProxy(v *MachineVM) (bool, string, error) {
 	destSock := "/run/user/1000/podman/podman.sock"
 	forwardUser := v.RemoteUsername
 
-	if v.Rootful {
+	if v.Rootfull {
 		destSock = "/run/podman/podman.sock"
 		forwardUser = "root"
 	}

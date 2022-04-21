@@ -12,6 +12,7 @@ import (
 	"github.com/containers/podman/v4/pkg/machine"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 var (
@@ -106,8 +107,18 @@ func init() {
 	flags.StringVar(&initOpts.IgnitionPath, IgnitionPathFlagName, "", "Path to ignition file")
 	_ = initCmd.RegisterFlagCompletionFunc(IgnitionPathFlagName, completion.AutocompleteDefault)
 
-	rootfulFlagName := "rootful"
-	flags.BoolVar(&initOpts.Rootful, rootfulFlagName, false, "Whether this machine should prefer rootful container execution")
+	rootfullFlagName := "rootfull"
+	flags.BoolVar(&initOpts.Rootfull, rootfullFlagName, false, "Whether this machine should prefer rootfull container execution")
+	flags.SetNormalizeFunc(aliasFlags)
+}
+
+// aliasFlags is a function to handle backwards compatibility with old flags
+func aliasFlags(f *pflag.FlagSet, name string) pflag.NormalizedName {
+	switch name {
+	case "rootful":
+		name = "rootfull"
+	}
+	return pflag.NormalizedName(name)
 }
 
 // TODO should we allow for a users to append to the qemu cmdline?

@@ -204,7 +204,7 @@ END_HTML
 
     print { $out_fh } "<pre> <!-- begin processed output -->\n";
 
-    # Assume rootful prompt, check for rootless (here and in log itself, below)
+    # Assume rootfull prompt, check for rootless (here and in log itself, below)
     my $Prompt = '#';
     $Prompt = '$' if $test_name =~ /rootless/;
 
