@@ -1589,7 +1589,7 @@ func (ic *ContainerEngine) ContainerClone(ctx context.Context, ctrCloneOpts enti
 
 	if ctrCloneOpts.Destroy {
 		var time *uint
-		err := ic.Libpod.RemoveContainer(context.Background(), c, false, false, time)
+		err = ic.Libpod.RemoveContainer(context.Background(), c, ctrCloneOpts.Force, false, time)
 		if err != nil {
 			return nil, err
 		}

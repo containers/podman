@@ -475,4 +475,5 @@ type ContainerCloneOptions struct {
 	Image        string
 	RawImageName string
 	Run          bool
+	Force        bool
 }

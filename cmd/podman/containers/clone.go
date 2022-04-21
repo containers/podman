@@ -38,6 +38,9 @@ func cloneFlags(cmd *cobra.Command) {
 	runFlagName := "run"
 	flags.BoolVar(&ctrClone.Run, runFlagName, false, "run the new container")
 
+	forceFlagName := "force"
+	flags.BoolVarP(&ctrClone.Force, forceFlagName, "f", false, "force the existing container to be destroyed")
+
 	common.DefineCreateFlags(cmd, &ctrClone.CreateOpts, false, true)
 }
 func init() {
@@ -52,7 +55,7 @@ func init() {
 func clone(cmd *cobra.Command, args []string) error {
 	switch len(args) {
 	case 0:
-		return errors.Wrapf(define.ErrInvalidArg, "Must Specify at least 1 argument")
+		return errors.Wrapf(define.ErrInvalidArg, "must specify at least 1 argument")
 	case 2:
 		ctrClone.CreateOpts.Name = args[1]
 	case 3:
@@ -68,6 +71,10 @@ func clone(cmd *cobra.Command, args []string) error {
 			ctrClone.RawImageName = rawImageName
 		}
 	}
+	if ctrClone.Force && !ctrClone.Destroy {
+		return errors.Wrapf(define.ErrInvalidArg, "cannot set --force without --destroy")
+	}
+
 	ctrClone.ID = args[0]
 	ctrClone.CreateOpts.IsClone = true
 	rep, err := registry.ContainerEngine().ContainerClone(registry.GetContext(), ctrClone)
