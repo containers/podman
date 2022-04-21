@@ -60,11 +60,11 @@ func NewServer(runtime *libpod.Runtime) (*APIServer, error) {
 }
 
 // NewServerWithSettings will create and configure a new API server using provided settings
-func NewServerWithSettings(runtime *libpod.Runtime, listener *net.Listener, opts entities.ServiceOptions) (*APIServer, error) {
+func NewServerWithSettings(runtime *libpod.Runtime, listener net.Listener, opts entities.ServiceOptions) (*APIServer, error) {
 	return newServer(runtime, listener, opts)
 }
 
-func newServer(runtime *libpod.Runtime, listener *net.Listener, opts entities.ServiceOptions) (*APIServer, error) {
+func newServer(runtime *libpod.Runtime, listener net.Listener, opts entities.ServiceOptions) (*APIServer, error) {
 	// If listener not provided try socket activation protocol
 	if listener == nil {
 		if _, found := os.LookupEnv("LISTEN_PID"); !found {
@@ -78,7 +78,11 @@ func newServer(runtime *libpod.Runtime, listener *net.Listener, opts entities.Se
 		if len(listeners) != 1 {
 			return nil, fmt.Errorf("wrong number of file descriptors for socket activation protocol (%d != 1)", len(listeners))
 		}
-		listener = &listeners[0]
+		listener = listeners[0]
+		// note that activation.Listeners() return nil when it cannot listen on the fd (i.e. udp connection)
+		if listener == nil {
+			return nil, fmt.Errorf("unexpected fd received from systemd: cannot listen on it")
+		}
 	}
 	if opts.CorsHeaders == "" {
 		logrus.Debug("CORS Headers were not set")
@@ -86,7 +90,7 @@ func newServer(runtime *libpod.Runtime, listener *net.Listener, opts entities.Se
 		logrus.Debugf("CORS Headers were set to %q", opts.CorsHeaders)
 	}
 
-	logrus.Infof("API service listening on %q", (*listener).Addr())
+	logrus.Infof("API service listening on %q", listener.Addr())
 	router := mux.NewRouter().UseEncodedPath()
 	tracker := idle.NewTracker(opts.Timeout)
 
@@ -101,7 +105,7 @@ func newServer(runtime *libpod.Runtime, listener *net.Listener, opts entities.Se
 			IdleTimeout: opts.Timeout * 2,
 		},
 		CorsHeaders: opts.CorsHeaders,
-		Listener:    *listener,
+		Listener:    listener,
 		PProfAddr:   opts.PProfAddr,
 		idleTracker: tracker,
 	}
