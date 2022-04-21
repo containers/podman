@@ -367,7 +367,7 @@ func (c *Container) generateInspectContainerConfig(spec *spec.Spec) *define.Insp
 
 	// Leave empty if not explicitly overwritten by user
 	if len(c.config.Entrypoint) != 0 {
-		ctrConfig.Entrypoint = c.config.Entrypoint
+		ctrConfig.Entrypoint = strings.Join(c.config.Entrypoint, " ")
 	}
 
 	if len(c.config.Labels) != 0 {
