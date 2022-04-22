@@ -16,7 +16,7 @@ import (
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"golang.org/x/crypto/ssh/terminal"
+	"golang.org/x/term"
 )
 
 var (
@@ -90,7 +90,7 @@ func load(cmd *cobra.Command, args []string) error {
 			return err
 		}
 	} else {
-		if terminal.IsTerminal(int(os.Stdin.Fd())) {
+		if term.IsTerminal(int(os.Stdin.Fd())) {
 			return errors.Errorf("cannot read from terminal. Use command-line redirection or the --input flag.")
 		}
 		outFile, err := ioutil.TempFile(util.Tmpdir(), "podman")

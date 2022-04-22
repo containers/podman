@@ -20,7 +20,7 @@ import (
 	"github.com/moby/term"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/crypto/ssh/terminal"
+	terminal "golang.org/x/term"
 )
 
 // The CloseWriter interface is used to determine whether we can do a  one-sided

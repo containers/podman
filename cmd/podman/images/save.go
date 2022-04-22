@@ -14,7 +14,7 @@ import (
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"golang.org/x/crypto/ssh/terminal"
+	"golang.org/x/term"
 )
 
 var (
@@ -109,7 +109,7 @@ func save(cmd *cobra.Command, args []string) (finalErr error) {
 	if len(saveOpts.Output) == 0 {
 		saveOpts.Quiet = true
 		fi := os.Stdout
-		if terminal.IsTerminal(int(fi.Fd())) {
+		if term.IsTerminal(int(fi.Fd())) {
 			return errors.Errorf("refusing to save to terminal. Use -o flag or redirect")
 		}
 		pipePath, cleanup, err := setupPipe()
