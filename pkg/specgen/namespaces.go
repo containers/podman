@@ -55,6 +55,10 @@ const (
 	// of the namespace itself.
 	// Only used with the user namespace, invalid otherwise.
 	KeepID NamespaceMode = "keep-id"
+	// NoMap indicates a user namespace to keep the owner uid out
+	// of the namespace itself.
+	// Only used with the user namespace, invalid otherwise.
+	NoMap NamespaceMode = "no-map"
 	// Auto indicates to automatically create a user namespace.
 	// Only used with the user namespace, invalid otherwise.
 	Auto NamespaceMode = "auto"
@@ -121,6 +125,11 @@ func (n *Namespace) IsKeepID() bool {
 	return n.NSMode == KeepID
 }
 
+// IsNoMap indicates the namespace is NoMap
+func (n *Namespace) IsNoMap() bool {
+	return n.NSMode == NoMap
+}
+
 func (n *Namespace) String() string {
 	if n.Value != "" {
 		return fmt.Sprintf("%s:%s", n.NSMode, n.Value)
@@ -133,7 +142,7 @@ func validateUserNS(n *Namespace) error {
 		return nil
 	}
 	switch n.NSMode {
-	case Auto, KeepID:
+	case Auto, KeepID, NoMap:
 		return nil
 	}
 	return n.validate()
@@ -298,6 +307,9 @@ func ParseUserNamespace(ns string) (Namespace, error) {
 		return toReturn, nil
 	case ns == "keep-id":
 		toReturn.NSMode = KeepID
+		return toReturn, nil
+	case ns == "nomap":
+		toReturn.NSMode = NoMap
 		return toReturn, nil
 	case ns == "":
 		toReturn.NSMode = Host
@@ -548,20 +560,41 @@ func SetupUserNS(idmappings *storage.IDMappingOptions, userns Namespace, g *gene
 		g.SetProcessUID(uint32(uid))
 		g.SetProcessGID(uint32(gid))
 		user = fmt.Sprintf("%d:%d", uid, gid)
-		fallthrough
-	case Private:
-		if err := g.AddOrReplaceLinuxNamespace(string(spec.UserNamespace), ""); err != nil {
+		if err := privateUserNamespace(idmappings, g); err != nil {
 			return user, err
 		}
-		if idmappings == nil || (len(idmappings.UIDMap) == 0 && len(idmappings.GIDMap) == 0) {
-			return user, errors.Errorf("must provide at least one UID or GID mapping to configure a user namespace")
+	case NoMap:
+		mappings, uid, gid, err := util.GetNoMapMapping()
+		if err != nil {
+			return user, err
 		}
-		for _, uidmap := range idmappings.UIDMap {
-			g.AddLinuxUIDMapping(uint32(uidmap.HostID), uint32(uidmap.ContainerID), uint32(uidmap.Size))
+		idmappings = mappings
+		g.SetProcessUID(uint32(uid))
+		g.SetProcessGID(uint32(gid))
+		user = fmt.Sprintf("%d:%d", uid, gid)
+		if err := privateUserNamespace(idmappings, g); err != nil {
+			return user, err
 		}
-		for _, gidmap := range idmappings.GIDMap {
-			g.AddLinuxGIDMapping(uint32(gidmap.HostID), uint32(gidmap.ContainerID), uint32(gidmap.Size))
+	case Private:
+		if err := privateUserNamespace(idmappings, g); err != nil {
+			return user, err
 		}
 	}
 	return user, nil
+}
+
+func privateUserNamespace(idmappings *storage.IDMappingOptions, g *generate.Generator) error {
+	if err := g.AddOrReplaceLinuxNamespace(string(spec.UserNamespace), ""); err != nil {
+		return err
+	}
+	if idmappings == nil || (len(idmappings.UIDMap) == 0 && len(idmappings.GIDMap) == 0) {
+		return errors.Errorf("must provide at least one UID or GID mapping to configure a user namespace")
+	}
+	for _, uidmap := range idmappings.UIDMap {
+		g.AddLinuxUIDMapping(uint32(uidmap.HostID), uint32(uidmap.ContainerID), uint32(uidmap.Size))
+	}
+	for _, gidmap := range idmappings.GIDMap {
+		g.AddLinuxGIDMapping(uint32(gidmap.HostID), uint32(gidmap.ContainerID), uint32(gidmap.Size))
+	}
+	return nil
 }

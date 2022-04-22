@@ -165,21 +165,19 @@ func namespaceOptions(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.
 	// User
 	switch s.UserNS.NSMode {
 	case specgen.KeepID:
-		if rootless.IsRootless() {
-			toReturn = append(toReturn, libpod.WithAddCurrentUserPasswdEntry())
+		if !rootless.IsRootless() {
+			return nil, errors.New("keep-id is only supported in rootless mode")
+		}
+		toReturn = append(toReturn, libpod.WithAddCurrentUserPasswdEntry())
 
-			// If user is not overridden, set user in the container
-			// to user running Podman.
-			if s.User == "" {
-				_, uid, gid, err := util.GetKeepIDMapping()
-				if err != nil {
-					return nil, err
-				}
-				toReturn = append(toReturn, libpod.WithUser(fmt.Sprintf("%d:%d", uid, gid)))
+		// If user is not overridden, set user in the container
+		// to user running Podman.
+		if s.User == "" {
+			_, uid, gid, err := util.GetKeepIDMapping()
+			if err != nil {
+				return nil, err
 			}
-		} else {
-			// keep-id as root doesn't need a user namespace
-			s.UserNS.NSMode = specgen.Host
+			toReturn = append(toReturn, libpod.WithUser(fmt.Sprintf("%d:%d", uid, gid)))
 		}
 	case specgen.FromPod:
 		if pod == nil || infraCtr == nil {

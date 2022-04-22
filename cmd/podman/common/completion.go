@@ -756,7 +756,7 @@ func AutocompleteNamespace(cmd *cobra.Command, args []string, toComplete string)
 // -> same as AutocompleteNamespace with "auto", "keep-id" added
 func AutocompleteUserNamespace(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	results, directive := AutocompleteNamespace(cmd, args, toComplete)
-	results = append(results, "auto", "keep-id")
+	results = append(results, "auto", "keep-id", "nomap")
 	return results, directive
 }
 

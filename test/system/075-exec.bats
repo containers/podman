@@ -87,6 +87,7 @@ load helpers
 
 # #6829 : add username to /etc/passwd inside container if --userns=keep-id
 @test "podman exec - with keep-id" {
+    skip_if_not_rootless "--userns=keep-id only works in rootless mode"
     # Multiple --userns options confirm command-line override (last one wins)
     run_podman run -d --userns=private --userns=keep-id $IMAGE sh -c \
                "echo READY;while [ ! -f /tmp/stop ]; do sleep 1; done"

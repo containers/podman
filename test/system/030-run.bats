@@ -272,9 +272,11 @@ echo $rand        |   0 | $rand
 # symptom only manifests on a fedora container image -- we have no
 # reproducer on alpine. Checking directory ownership is good enough.
 @test "podman run : user namespace preserved root ownership" {
+    keep="--userns=keep-id"
+    is_rootless || keep=""
     for priv in "" "--privileged"; do
         for user in "--user=0" "--user=100"; do
-            for keepid in "" "--userns=keep-id"; do
+            for keepid in "" ${keep}; do
                 opts="$priv $user $keepid"
 
                 for dir in /etc /usr;do
@@ -289,6 +291,7 @@ echo $rand        |   0 | $rand
 
 # #6829 : add username to /etc/passwd inside container if --userns=keep-id
 @test "podman run : add username to /etc/passwd if --userns=keep-id" {
+    skip_if_not_rootless "--userns=keep-id only works in rootless mode"
     # Default: always run as root
     run_podman run --rm $IMAGE id -un
     is "$output" "root" "id -un on regular container"
@@ -339,6 +342,7 @@ echo $rand        |   0 | $rand
 
 # #6991 : /etc/passwd is modifiable
 @test "podman run : --userns=keep-id: passwd file is modifiable" {
+    skip_if_not_rootless "--userns=keep-id only works in rootless mode"
     run_podman run -d --userns=keep-id --cap-add=dac_override $IMAGE sh -c 'while ! test -e /tmp/stop; do sleep 0.1; done'
     cid="$output"
 
@@ -827,6 +831,9 @@ EOF
 
 # CVE-2022-1227 : podman top joins container mount NS and uses nsenter from image
 @test "podman top does not use nsenter from image" {
+    keepid="--userns=keep-id"
+    is_rootless || keepid=""
+
     tmpdir=$PODMAN_TMPDIR/build-test
     mkdir -p $tmpdir
     tmpbuilddir=$tmpdir/build
@@ -841,7 +848,7 @@ EOF
 
     test_image="cve_2022_1227_test"
     run_podman build -t $test_image $tmpbuilddir
-    run_podman run -d --userns=keep-id $test_image top
+    run_podman run -d ${keepid} $test_image top
     ctr="$output"
     run_podman top $ctr huser,user
     run_podman rm -f -t0 $ctr

@@ -182,13 +182,14 @@ EOF
 
     run_podman volume rm $myvol
 
-    # Autocreated volumes should also work with keep-id
-    # All we do here is check status; podman 1.9.1 would fail with EPERM
-    myvol=myvol$(random_string)
-    run_podman run --rm -v $myvol:/myvol:z --userns=keep-id $IMAGE \
+    if is_rootless; then
+       # Autocreated volumes should also work with keep-id
+       # All we do here is check status; podman 1.9.1 would fail with EPERM
+       myvol=myvol$(random_string)
+       run_podman run --rm -v $myvol:/myvol:z --userns=keep-id $IMAGE \
                touch /myvol/myfile
-
-    run_podman volume rm $myvol
+       run_podman volume rm $myvol
+    fi
 }
 
 

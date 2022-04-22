@@ -119,7 +119,9 @@ load helpers
     echo "content" > $srcdir/hostfile
     userid=$(id -u)
 
-    run_podman run --user=$userid --userns=keep-id -d --name cpcontainer $IMAGE sleep infinity
+    keepid="--userns=keep-id"
+    is_rootless || keepid=""
+    run_podman run --user=$userid ${keepid} -d --name cpcontainer $IMAGE sleep infinity
     run_podman cp $srcdir/hostfile cpcontainer:/tmp/hostfile
     run_podman exec cpcontainer stat -c "%u" /tmp/hostfile
     is "$output" "$userid" "copied file is chowned to the container user"
@@ -138,7 +140,9 @@ load helpers
 
     userid=$(id -u)
 
-    run_podman run --user="$userid" --userns=keep-id -d --name cpcontainer $IMAGE sleep infinity
+    keepid="--userns=keep-id"
+    is_rootless || keepid=""
+    run_podman run --user=$userid ${keepid} -d --name cpcontainer $IMAGE sleep infinity
     run_podman cp -a=false - cpcontainer:/tmp/ < "${tmpdir}/a.tar"
     run_podman exec cpcontainer stat -c "%u:%g" /tmp/a.txt
     is "$output" "1042:1043" "copied file retains uid/gid from the tar"
