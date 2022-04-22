@@ -235,4 +235,36 @@ var _ = Describe("Podman container clone", func() {
 
 		Expect(ctrInspect.InspectContainerToJSON()[0].HostConfig.NetworkMode).Should(ContainSubstring("container:"))
 	})
+
+	It("podman container clone --destroy --force test", func() {
+		create := podmanTest.Podman([]string{"create", ALPINE})
+		create.WaitWithDefaultTimeout()
+		Expect(create).To(Exit(0))
+		clone := podmanTest.Podman([]string{"container", "clone", "--destroy", create.OutputToString()})
+		clone.WaitWithDefaultTimeout()
+		Expect(clone).To(Exit(0))
+
+		inspect := podmanTest.Podman([]string{"inspect", create.OutputToString()})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).ToNot(Exit(0))
+
+		run := podmanTest.Podman([]string{"run", "-dt", ALPINE})
+		run.WaitWithDefaultTimeout()
+		Expect(run).To(Exit(0))
+		clone = podmanTest.Podman([]string{"container", "clone", "--destroy", "-f", run.OutputToString()})
+		clone.WaitWithDefaultTimeout()
+		Expect(clone).To(Exit(0))
+
+		inspect = podmanTest.Podman([]string{"inspect", run.OutputToString()})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).ToNot(Exit(0))
+
+		run = podmanTest.Podman([]string{"run", "-dt", ALPINE})
+		run.WaitWithDefaultTimeout()
+		Expect(run).To(Exit(0))
+		clone = podmanTest.Podman([]string{"container", "clone", "-f", run.OutputToString()})
+		clone.WaitWithDefaultTimeout()
+		Expect(clone).ToNot(Exit(0))
+
+	})
 })

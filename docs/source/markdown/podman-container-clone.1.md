@@ -125,6 +125,10 @@ If none are specified, the original container's CPU memory nodes are used.
 
 Remove the original container that we are cloning once used to mimic the configuration.
 
+#### **--force**, **-f**
+
+Force removal of the original container that we are cloning. Can only be used in conjunction with **--destroy**.
+
 #### **--memory**, **-m**=*limit*
 
 Memory limit (format: `<number>[<unit>]`, where unit = b (bytes), k (kilobytes), m (megabytes), or g (gigabytes))
