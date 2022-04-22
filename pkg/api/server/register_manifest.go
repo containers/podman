@@ -167,6 +167,7 @@ func (s *APIServer) registerManifestHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/BadParamError"
 	//   500:
 	//     $ref: "#/responses/InternalError"
+	//lint:ignore SA1019 We still want to support the V3 endpoints
 	v3.Handle("/{name:.*}/add", s.APIHandler(libpod.ManifestAdd)).Methods(http.MethodPost)
 	// swagger:operation DELETE /libpod/manifests/{name} manifests ManifestDeleteV3Libpod
 	// ---
@@ -197,6 +198,7 @@ func (s *APIServer) registerManifestHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/NoSuchManifest"
 	//   500:
 	//     $ref: "#/responses/InternalError"
+	//lint:ignore SA1019 We still want to support the V3 endpoints
 	v3.Handle("/{name:.*}", s.APIHandler(libpod.ManifestRemoveDigest)).Methods(http.MethodDelete)
 	// swagger:operation DELETE /libpod/manifests/{name} manifests ManifestDeleteLibpod
 	// ---
@@ -255,6 +257,7 @@ func (s *APIServer) registerManifestHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/NoSuchManifest"
 	//   500:
 	//     $ref: "#/responses/InternalError"
+	//lint:ignore SA1019 We still want to support the V3 endpoints
 	v3.Handle("/{name}/push", s.APIHandler(libpod.ManifestPushV3)).Methods(http.MethodPost)
 	// swagger:operation POST /libpod/manifests/{name}/registry/{destination} manifests ManifestPushLibpod
 	// ---

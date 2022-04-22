@@ -56,7 +56,7 @@ func (c *Container) startTimer() error {
 		return errors.Wrapf(err, "unable to get systemd connection to start healthchecks")
 	}
 	defer conn.Close()
-	_, err = conn.StartUnit(fmt.Sprintf("%s.service", c.ID()), "fail", nil)
+	_, err = conn.StartUnitContext(context.Background(), fmt.Sprintf("%s.service", c.ID()), "fail", nil)
 	return err
 }
 

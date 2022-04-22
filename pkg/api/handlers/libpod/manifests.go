@@ -100,10 +100,10 @@ func ManifestCreate(w http.ResponseWriter, r *http.Request) {
 	// gather all images for manifest list
 	var images []string
 	if len(query.Images) > 0 {
-		images = append(query.Images)
+		images = query.Images
 	}
 	if len(body.Images) > 0 {
-		images = append(body.Images)
+		images = body.Images
 	}
 
 	id, err := imageEngine.ManifestAdd(r.Context(), query.Name, images, body.ManifestAddOptions)

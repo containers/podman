@@ -439,10 +439,10 @@ func tagOutputToMap(imagesOutput []string) map[string]map[string]bool {
 // GetHostDistributionInfo returns a struct with its distribution Name and version
 func GetHostDistributionInfo() HostOS {
 	f, err := os.Open(OSReleasePath)
-	defer f.Close()
 	if err != nil {
 		return HostOS{}
 	}
+	defer f.Close()
 
 	l := bufio.NewScanner(f)
 	host := HostOS{}

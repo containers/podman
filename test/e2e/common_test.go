@@ -880,11 +880,11 @@ func (p *PodmanTestIntegration) makeOptions(args []string, noEvents, noCache boo
 
 func writeConf(conf []byte, confPath string) {
 	if _, err := os.Stat(filepath.Dir(confPath)); os.IsNotExist(err) {
-		if err := os.MkdirAll(filepath.Dir(confPath), 777); err != nil {
+		if err := os.MkdirAll(filepath.Dir(confPath), 0o777); err != nil {
 			fmt.Println(err)
 		}
 	}
-	if err := ioutil.WriteFile(confPath, conf, 777); err != nil {
+	if err := ioutil.WriteFile(confPath, conf, 0o777); err != nil {
 		fmt.Println(err)
 	}
 }

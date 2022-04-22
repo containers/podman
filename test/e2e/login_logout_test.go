@@ -188,6 +188,8 @@ var _ = Describe("Podman login and logout", func() {
 		Expect(session).To(ExitWithError())
 
 		session = podmanTest.Podman([]string{"logout", "--authfile", authFile, server})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
 	})
 
 	It("podman login and logout with --tls-verify", func() {

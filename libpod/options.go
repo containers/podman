@@ -936,6 +936,9 @@ func WithUserNSFrom(nsCtr *Container) CtrCreateOption {
 		if err := JSONDeepCopy(nsCtr.IDMappings(), &ctr.config.IDMappings); err != nil {
 			return err
 		}
+		// NewFromSpec() is deprecated according to its comment
+		// however the recommended replace just causes a nil map panic
+		//nolint:staticcheck
 		g := generate.NewFromSpec(ctr.config.Spec)
 
 		g.ClearLinuxUIDMappings()

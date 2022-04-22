@@ -6,6 +6,7 @@ package utils
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -32,7 +33,7 @@ func RunUnderSystemdScope(pid int, slice string, unitName string) error {
 			return err
 		}
 	} else {
-		conn, err = systemdDbus.New()
+		conn, err = systemdDbus.NewWithContext(context.Background())
 		if err != nil {
 			return err
 		}
@@ -43,10 +44,10 @@ func RunUnderSystemdScope(pid int, slice string, unitName string) error {
 	properties = append(properties, newProp("Delegate", true))
 	properties = append(properties, newProp("DefaultDependencies", false))
 	ch := make(chan string)
-	_, err = conn.StartTransientUnit(unitName, "replace", properties, ch)
+	_, err = conn.StartTransientUnitContext(context.Background(), unitName, "replace", properties, ch)
 	if err != nil {
 		// On errors check if the cgroup already exists, if it does move the process there
-		if props, err := conn.GetUnitTypeProperties(unitName, "Scope"); err == nil {
+		if props, err := conn.GetUnitTypePropertiesContext(context.Background(), unitName, "Scope"); err == nil {
 			if cgroup, ok := props["ControlGroup"].(string); ok && cgroup != "" {
 				if err := moveUnderCgroup(cgroup, "", []uint32{uint32(pid)}); err == nil {
 					return nil

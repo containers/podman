@@ -1,6 +1,7 @@
 package systemd
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -140,5 +141,5 @@ func ConnectToDBUS() (*dbus.Conn, error) {
 	if rootless.IsRootless() {
 		return newRootlessConnection()
 	}
-	return dbus.NewSystemdConnection()
+	return dbus.NewSystemdConnectionContext(context.Background())
 }

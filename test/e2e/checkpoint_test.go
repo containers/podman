@@ -1061,7 +1061,7 @@ var _ = Describe("Podman checkpoint", func() {
 
 		// Open a network connection to the redis server via initial port mapping
 		// This should fail
-		conn, err = net.DialTimeout("tcp4", fmt.Sprintf("localhost:%d", randomPort), time.Duration(3)*time.Second)
+		_, err = net.DialTimeout("tcp4", fmt.Sprintf("localhost:%d", randomPort), time.Duration(3)*time.Second)
 		Expect(err).ToNot(BeNil())
 		Expect(err.Error()).To(ContainSubstring("connection refused"))
 		// Open a network connection to the redis server via new port mapping

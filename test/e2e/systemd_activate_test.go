@@ -97,7 +97,7 @@ var _ = Describe("Systemd activate", func() {
 
 		// Emulate 'systemd stop podman.service'
 		activateSession.Signal(syscall.SIGTERM)
-		time.Sleep(2)
+		time.Sleep(100 * time.Millisecond)
 		Eventually(activateSession).Should(Exit(0))
 
 		abiSession := podman("inspect", "--format={{.State.Running}}", containerName)

@@ -286,8 +286,6 @@ func CreateInit(c *cobra.Command, vals entities.ContainerCreateOptions, isInfra 
 	if !isInfra && c.Flag("entrypoint").Changed {
 		val := c.Flag("entrypoint").Value.String()
 		vals.Entrypoint = &val
-	} else if isInfra && c.Flag("infra-command").Changed {
-
 	}
 
 	// Docker-compatibility: the "-h" flag for run/create is reserved for
@@ -297,7 +295,7 @@ func CreateInit(c *cobra.Command, vals entities.ContainerCreateOptions, isInfra 
 }
 
 func PullImage(imageName string, cliVals entities.ContainerCreateOptions) (string, error) {
-	pullPolicy, err := config.ValidatePullPolicy(cliVals.Pull)
+	pullPolicy, err := config.ParsePullPolicy(cliVals.Pull)
 	if err != nil {
 		return "", err
 	}
@@ -383,7 +381,7 @@ func createPodIfNecessary(cmd *cobra.Command, s *specgen.SpecGenerator, netOpts 
 	podSpec := entities.PodSpec{}
 	podGen := specgen.NewPodSpecGenerator()
 	podSpec.PodSpecGen = *podGen
-	podGen, err = entities.ToPodSpecGen(*&podSpec.PodSpecGen, &createOptions)
+	podGen, err = entities.ToPodSpecGen(podSpec.PodSpecGen, &createOptions)
 	if err != nil {
 		return nil, err
 	}
