@@ -85,8 +85,10 @@ and specified with a _tag_.
 ## OPTIONS
 #### **--add-host**=_host_:_ip_
 
-Add a line to container's _/etc/hosts_ for custom host-to-IP mapping.
-This option can be set multiple times.
+Add a custom host-to-IP mapping (host:ip)
+
+Add a line to /etc/hosts. The format is hostname:ip. The **--add-host**
+option can be set multiple times.
 
 #### **--annotation**=_key_=_value_
 
@@ -768,9 +770,8 @@ Disable any defined healthchecks for container.
 #### **--no-hosts**
 
 Do not create _/etc/hosts_ for the container.
-
 By default, Podman will manage _/etc/hosts_, adding the container's own IP address and any hosts from **--add-host**.
-#### **--no-hosts** disables this, and the image's _/etc/hosts_ will be preserved unmodified.
+**--no-hosts** disables this, and the image's _/etc/hosts_ will be preserved unmodified.
 This option conflicts with **--add-host**.
 
 #### **--oom-kill-disable**

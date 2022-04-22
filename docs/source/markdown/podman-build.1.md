@@ -439,9 +439,9 @@ with a new set of cached layers.
 #### **--no-hosts**
 
 Do not create _/etc/hosts_ for the container.
-
-By default, Buildah manages _/etc/hosts_, adding the container's own IP address.
-**--no-hosts** disables this, and the image's _/etc/hosts_ will be preserved unmodified. Conflicts with the --add-host option.
+By default, Podman will manage _/etc/hosts_, adding the container's own IP address and any hosts from **--add-host**.
+**--no-hosts** disables this, and the image's _/etc/hosts_ will be preserved unmodified.
+This option conflicts with **--add-host**.
 
 #### **--os**=*string*
 

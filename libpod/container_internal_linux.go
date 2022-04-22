@@ -28,6 +28,7 @@ import (
 	"github.com/containers/buildah/pkg/chrootuser"
 	"github.com/containers/buildah/pkg/overlay"
 	butil "github.com/containers/buildah/util"
+	"github.com/containers/common/libnetwork/etchosts"
 	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/common/pkg/apparmor"
 	"github.com/containers/common/pkg/cgroups"
@@ -49,6 +50,7 @@ import (
 	"github.com/containers/podman/v4/version"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/idtools"
+	"github.com/containers/storage/pkg/lockfile"
 	securejoin "github.com/cyphar/filepath-securejoin"
 	runcuser "github.com/opencontainers/runc/libcontainer/user"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
@@ -2079,23 +2081,25 @@ func (c *Container) makeBindMounts() error {
 
 			// check if dependency container has an /etc/hosts file.
 			// It may not have one, so only use it if it does.
-			hostsPath, exists := bindMounts["/etc/hosts"]
+			hostsPath, exists := bindMounts[config.DefaultHostsFile]
 			if !c.config.UseImageHosts && exists {
-				depCtr.lock.Lock()
-				// generate a hosts file for the dependency container,
-				// based on either its old hosts file, or the default,
-				// and add the relevant information from the new container (hosts and IP)
-				hostsPath, err = depCtr.appendHosts(hostsPath, c)
-
+				// we cannot use the dependency container lock due ABBA deadlocks in cleanup()
+				lock, err := lockfile.GetLockfile(hostsPath)
 				if err != nil {
-					depCtr.lock.Unlock()
+					return fmt.Errorf("failed to lock hosts file: %w", err)
+				}
+				lock.Lock()
+
+				// add the newly added container to the hosts file
+				// we always use 127.0.0.1 as ip since they have the same netns
+				err = etchosts.Add(hostsPath, getLocalhostHostEntry(c))
+				lock.Unlock()
+				if err != nil {
 					return errors.Wrapf(err, "error creating hosts file for container %s which depends on container %s", c.ID(), depCtr.ID())
 				}
-				depCtr.lock.Unlock()
 
 				// finally, save it in the new container
-				err := c.mountIntoRootDirs("/etc/hosts", hostsPath)
-
+				err = c.mountIntoRootDirs(config.DefaultHostsFile, hostsPath)
 				if err != nil {
 					return errors.Wrapf(err, "error assigning mounts to container %s", c.ID())
 				}
@@ -2123,7 +2127,7 @@ func (c *Container) makeBindMounts() error {
 			}
 
 			if !c.config.UseImageHosts {
-				if err := c.updateHosts("/etc/hosts"); err != nil {
+				if err := c.createHosts(); err != nil {
 					return errors.Wrapf(err, "error creating hosts file for container %s", c.ID())
 				}
 			}
@@ -2142,7 +2146,7 @@ func (c *Container) makeBindMounts() error {
 		}
 	} else {
 		if !c.config.UseImageHosts && c.state.BindMounts["/etc/hosts"] == "" {
-			if err := c.updateHosts("/etc/hosts"); err != nil {
+			if err := c.createHosts(); err != nil {
 				return errors.Wrapf(err, "error creating hosts file for container %s", c.ID())
 			}
 		}
@@ -2528,169 +2532,79 @@ func (c *Container) removeNameserver(ips []string) error {
 	return nil
 }
 
-// updateHosts updates the container's hosts file
-func (c *Container) updateHosts(path string) error {
-	var hosts string
-
-	orig, err := ioutil.ReadFile(path)
-	if err != nil {
-		// Ignore if the path does not exist
-		if !os.IsNotExist(err) {
-			return err
-		}
-	} else {
-		hosts = string(orig)
-	}
-
-	hosts += c.getHosts()
-	hosts = c.appendLocalhost(hosts)
-
-	newHosts, err := c.writeStringToRundir("hosts", hosts)
-	if err != nil {
-		return err
-	}
-
-	if err = c.mountIntoRootDirs("/etc/hosts", newHosts); err != nil {
-		return err
-	}
-
-	return nil
+func getLocalhostHostEntry(c *Container) etchosts.HostEntries {
+	return etchosts.HostEntries{{IP: "127.0.0.1", Names: []string{c.Hostname(), c.config.Name}}}
 }
 
-// based on networking mode we may want to append the localhost
-// if there isn't any record for it and also this should happen
-// in slirp4netns and similar network modes.
-func (c *Container) appendLocalhost(hosts string) string {
-	if !strings.Contains(hosts, "localhost") &&
-		!c.config.NetMode.IsHost() {
-		hosts += "127.0.0.1\tlocalhost\n::1\tlocalhost\n"
-	}
-
-	return hosts
-}
-
-// appendHosts appends a container's config and state pertaining to hosts to a container's
-// local hosts file. netCtr is the container from which the netNS information is
-// taken.
-// path is the basis of the hosts file, into which netCtr's netNS information will be appended.
-// FIXME.  Path should be used by this function,but I am not sure what is correct; remove //lint
-// once this is fixed
-func (c *Container) appendHosts(path string, netCtr *Container) (string, error) { //nolint
-	return c.appendStringToRunDir("hosts", netCtr.getHosts())
-}
-
-// getHosts finds the pertinent information for a container's host file in its config and state
-// and returns a string in a format that can be written to the host file
-func (c *Container) getHosts() string {
-	var hosts string
-
-	if len(c.config.HostAdd) > 0 {
-		for _, host := range c.config.HostAdd {
-			// the host format has already been verified at this point
-			fields := strings.SplitN(host, ":", 2)
-			hosts += fmt.Sprintf("%s %s\n", fields[1], fields[0])
+// getHostsEntries returns the container ip host entries for the correct netmode
+func (c *Container) getHostsEntries() (etchosts.HostEntries, error) {
+	var entries etchosts.HostEntries
+	names := []string{c.Hostname(), c.config.Name}
+	switch {
+	case c.config.NetMode.IsBridge():
+		entries = etchosts.GetNetworkHostEntries(c.state.NetworkStatus, names...)
+	case c.config.NetMode.IsSlirp4netns():
+		ip, err := GetSlirp4netnsIP(c.slirp4netnsSubnet)
+		if err != nil {
+			return nil, err
 		}
-	}
-
-	hosts += c.cniHosts()
-
-	// Add hostname for slirp4netns
-	if c.Hostname() != "" {
-		if c.config.NetMode.IsSlirp4netns() {
-			// When using slirp4netns, the interface gets a static IP
-			slirp4netnsIP, err := GetSlirp4netnsIP(c.slirp4netnsSubnet)
-			if err != nil {
-				logrus.Warnf("Failed to determine slirp4netnsIP: %v", err.Error())
-			} else {
-				hosts += fmt.Sprintf("# used by slirp4netns\n%s\t%s %s\n", slirp4netnsIP.String(), c.Hostname(), c.config.Name)
-			}
-		}
-
-		// Do we have a network namespace?
-		netNone := false
-		if c.config.NetNsCtr == "" && !c.config.CreateNetNS {
+		entries = etchosts.HostEntries{{IP: ip.String(), Names: names}}
+	default:
+		// check for net=none
+		if !c.config.CreateNetNS {
 			for _, ns := range c.config.Spec.Linux.Namespaces {
 				if ns.Type == spec.NetworkNamespace {
 					if ns.Path == "" {
-						netNone = true
+						entries = etchosts.HostEntries{{IP: "127.0.0.1", Names: names}}
 					}
 					break
 				}
 			}
 		}
-		// If we are net=none (have a network namespace, but not connected to
-		// anything) add the container's name and hostname to localhost.
-		if netNone {
-			hosts += fmt.Sprintf("127.0.0.1 %s %s\n", c.Hostname(), c.config.Name)
+	}
+	return entries, nil
+}
+
+func (c *Container) createHosts() error {
+	var containerIPsEntries etchosts.HostEntries
+	var err error
+	// if we configure the netns after the container create we should not add
+	// the hosts here since we have no information about the actual ips
+	// instead we will add them in c.completeNetworkSetup()
+	if !c.config.PostConfigureNetNS {
+		containerIPsEntries, err = c.getHostsEntries()
+		if err != nil {
+			return fmt.Errorf("failed to get container ip host entries: %w", err)
 		}
 	}
-
-	// Add gateway entry if we are not in a machine. If we use podman machine
-	// the gvproxy dns server will take care of host.containers.internal.
-	// https://github.com/containers/gvisor-tap-vsock/commit/1108ea45162281046d239047a6db9bc187e64b08
-	if !c.runtime.config.Engine.MachineEnabled {
-		var depCtr *Container
-		netStatus := c.getNetworkStatus()
-		if c.config.NetNsCtr != "" {
-			// ignoring the error because there isn't anything to do
-			depCtr, _ = c.getRootNetNsDepCtr()
-		} else if len(netStatus) != 0 {
-			depCtr = c
-		}
-
-		// getLocalIP returns the non loopback local IP of the host
-		getLocalIP := func() string {
-			addrs, err := net.InterfaceAddrs()
-			if err != nil {
-				return ""
-			}
-			for _, address := range addrs {
-				// check the address type and if it is not a loopback the display it
-				if ipnet, ok := address.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
-					if ipnet.IP.To4() != nil {
-						return ipnet.IP.String()
-					}
-				}
-			}
-			return ""
-		}
-
-		if depCtr != nil {
-			host := ""
-		outer:
-			for net, status := range depCtr.getNetworkStatus() {
-				network, err := c.runtime.network.NetworkInspect(net)
-				// only add the host entry for bridge networks
-				// ip/macvlan gateway is normally not on the host
-				if err != nil || network.Driver != types.BridgeNetworkDriver {
-					continue
-				}
-				for _, netInt := range status.Interfaces {
-					for _, netAddress := range netInt.Subnets {
-						if netAddress.Gateway != nil {
-							host = fmt.Sprintf("%s host.containers.internal\n", netAddress.Gateway.String())
-							break outer
-						}
-					}
-				}
-			}
-			// if no bridge gw was found try to use a local ip
-			if host == "" {
-				if ip := getLocalIP(); ip != "" {
-					host = fmt.Sprintf("%s\t%s\n", ip, "host.containers.internal")
-				}
-			}
-			hosts += host
-		} else if c.config.NetMode.IsSlirp4netns() {
-			if ip := getLocalIP(); ip != "" {
-				hosts += fmt.Sprintf("%s\t%s\n", ip, "host.containers.internal")
-			}
-		} else {
-			logrus.Debug("Network configuration does not support host.containers.internal address")
-		}
+	baseHostFile, err := etchosts.GetBaseHostFile(c.runtime.config.Containers.BaseHostsFile, c.state.Mountpoint)
+	if err != nil {
+		return err
 	}
 
-	return hosts
+	targetFile := filepath.Join(c.state.RunDir, "hosts")
+	err = etchosts.New(&etchosts.Params{
+		BaseFile:                 baseHostFile,
+		ExtraHosts:               c.config.HostAdd,
+		ContainerIPs:             containerIPsEntries,
+		HostContainersInternalIP: etchosts.GetHostContainersInternalIP(c.runtime.config, c.state.NetworkStatus, c.runtime.network),
+		TargetFile:               targetFile,
+	})
+	if err != nil {
+		return err
+	}
+
+	if err := os.Chown(targetFile, c.RootUID(), c.RootGID()); err != nil {
+		return err
+	}
+	if err := label.Relabel(targetFile, c.MountLabel(), false); err != nil {
+		return err
+	}
+
+	if err = c.mountIntoRootDirs(config.DefaultHostsFile, targetFile); err != nil {
+		return err
+	}
+	return nil
 }
 
 // generateGroupEntry generates an entry or entries into /etc/group as

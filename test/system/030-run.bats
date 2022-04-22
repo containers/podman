@@ -786,7 +786,7 @@ EOF
     mv $hosts_tmp /etc/hosts
     assert "$status" = 0 \
            "podman run without /etc/hosts file should work"
-    assert "$output" =~ "^1\.2\.3\.4 foo.com.*" \
+    assert "$output" =~ "^1\.2\.3\.4[[:blank:]]foo\.com.*" \
            "users can add hosts even without /etc/hosts"
 }
 

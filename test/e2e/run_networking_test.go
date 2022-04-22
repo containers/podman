@@ -608,6 +608,18 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 		Expect(ctr2).Should(Exit(0))
 	})
 
+	It("podman run --net container: and --add-host should fail", func() {
+		ctrName := "ctrToJoin"
+		ctr1 := podmanTest.RunTopContainer(ctrName)
+		ctr1.WaitWithDefaultTimeout()
+		Expect(ctr1).Should(Exit(0))
+
+		ctr2 := podmanTest.Podman([]string{"run", "-d", "--net=container:" + ctrName, "--add-host", "host1:127.0.0.1", ALPINE, "true"})
+		ctr2.WaitWithDefaultTimeout()
+		Expect(ctr2).Should(ExitWithError())
+		Expect(ctr2.ErrorToString()).Should(ContainSubstring("cannot set extra host entries when the container is joined to another containers network namespace: invalid configuration"))
+	})
+
 	It("podman run --net container: copies hosts and resolv", func() {
 		ctrName := "ctr1"
 		ctr1 := podmanTest.RunTopContainer(ctrName)

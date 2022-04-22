@@ -134,14 +134,50 @@ load helpers
     done
 }
 
+@test "podman pod manages /etc/hosts correctly" {
+    local pod_name=pod-$(random_string 10)
+    local infra_name=infra-$(random_string 10)
+    local con1_name=con1-$(random_string 10)
+    local con2_name=con2-$(random_string 10)
+    run_podman pod create --name $pod_name  --infra-name $infra_name
+    pid="$output"
+    run_podman run --pod $pod_name --name $con1_name $IMAGE cat /etc/hosts
+    is "$output" ".*\s$pod_name $infra_name.*" "Pod hostname in /etc/hosts"
+    is "$output" ".*127.0.0.1\s$con1_name.*" "Container1 name in /etc/hosts"
+    # get the length of the hosts file
+    old_lines=${#lines[@]}
+
+    # since the first container should be cleaned up now we should only see the
+    # new host entry and the old one should be removed (lines check)
+    run_podman run --pod $pod_name --name $con2_name $IMAGE cat /etc/hosts
+    is "$output" ".*\s$pod_name $infra_name.*" "Pod hostname in /etc/hosts"
+    is "$output" ".*127.0.0.1\s$con2_name.*" "Container2 name in /etc/hosts"
+    is "${#lines[@]}" "$old_lines" "Number of hosts lines is equal"
+
+    run_podman run --pod $pod_name  $IMAGE sh -c  "hostname && cat /etc/hostname"
+    is "${lines[0]}" "$pod_name" "hostname is the pod hostname"
+    is "${lines[1]}" "$pod_name" "/etc/hostname contains correct pod hostname"
+
+    run_podman pod rm $pod_name
+    is "$output" "$pid" "Only ID in output (no extra errors)"
+}
+
 @test "podman run with slirp4ns assigns correct addresses to /etc/hosts" {
     CIDR="$(random_rfc1918_subnet)"
     IP=$(hostname -I | cut -f 1 -d " ")
     local conname=con-$(random_string 10)
     run_podman run --rm --network slirp4netns:cidr="${CIDR}.0/24" \
                 --name $conname --hostname $conname $IMAGE cat /etc/hosts
-    is "$output"   ".*${IP}	host.containers.internal"   "host.containers.internal should be the cidr+2 address"
+    is "$output"   ".*${IP}	host.containers.internal"   "host.containers.internal should be host address"
     is "$output"   ".*${CIDR}.100	$conname $conname"   "$conname should be the cidr+100 address"
+
+    if is_rootless; then
+    # check the slirp ip also works correct with userns
+        run_podman run --rm --userns keep-id --network slirp4netns:cidr="${CIDR}.0/24" \
+                --name $conname --hostname $conname $IMAGE cat /etc/hosts
+        is "$output"   ".*${IP}	host.containers.internal"   "host.containers.internal should be host address"
+        is "$output"   ".*${CIDR}.100	$conname $conname"   "$conname should be the cidr+100 address"
+    fi
 }
 
 @test "podman run with slirp4ns adds correct dns address to resolv.conf" {
@@ -434,8 +470,16 @@ load helpers
     run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname\").Aliases}}"
     is "$output" "[${cid:0:12}]" "short container id in network aliases"
 
+    # check /etc/hosts for our entry
+    run_podman exec $cid cat /etc/hosts
+    is "$output" ".*$ip.*" "hosts contain expected ip"
+
     run_podman network disconnect $netname $cid
     is "$output" "" "Output should be empty (no errors)"
+
+    # check /etc/hosts again, the entry should be gone now
+    run_podman exec $cid cat /etc/hosts
+    assert "$output" !~ "$ip" "IP ($ip) should no longer be in /etc/hosts"
 
     # check that we cannot curl (timeout after 3 sec)
     run curl --max-time 3 -s $SERVER/index.txt
@@ -452,12 +496,17 @@ load helpers
     # check that we have a new ip and mac
     # if the ip is still the same this whole test turns into a nop
     run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname\").IPAddress}}"
-    assert "$output" != "$ip" \
+    new_ip="$output"
+    assert "$new_ip" != "$ip" \
            "IP address did not change after podman network disconnect/connect"
 
     run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname\").MacAddress}}"
     assert "$output" != "$mac" \
            "MAC address did not change after podman network disconnect/connect"
+
+    # check /etc/hosts for the new entry
+    run_podman exec $cid cat /etc/hosts
+    is "$output" ".*$new_ip.*" "hosts contain expected new ip"
 
     # Disconnect/reconnect of a container *with no ports* should succeed quietly
     run_podman network disconnect $netname $background_cid
@@ -627,6 +676,50 @@ EOF
 
         run_podman rm -f -t0 $cid
     done
+}
+
+@test "podman run CONTAINERS_CONF /etc/hosts options" {
+    skip_if_remote "CONTAINERS_CONF redirect does not work on remote"
+
+    containersconf=$PODMAN_TMPDIR/containers.conf
+    basehost=$PODMAN_TMPDIR/host
+
+    ip1="$(random_rfc1918_subnet).$((RANDOM % 256))"
+    name1=host1$(random_string)
+    ip2="$(random_rfc1918_subnet).$((RANDOM % 256))"
+    name2=host2$(random_string)
+
+    cat >$basehost <<EOF
+$ip1 $name1
+$ip2 $name2 #some comment
+EOF
+
+    containersinternal_ip="$(random_rfc1918_subnet).$((RANDOM % 256))"
+    cat >$containersconf <<EOF
+[containers]
+  base_hosts_file = "$basehost"
+  host_containers_internal_ip = "$containersinternal_ip"
+EOF
+
+    ip3="$(random_rfc1918_subnet).$((RANDOM % 256))"
+    name3=host3$(random_string)
+
+    CONTAINERS_CONF=$containersconf run_podman run --rm --add-host $name3:$ip3 $IMAGE cat /etc/hosts
+    is "$output" ".*$ip3[[:blank:]]$name3.*" "--add-host entry in /etc/host"
+    is "$output" ".*$ip1[[:blank:]]$name1.*" "first base entry in /etc/host"
+    is "$output" ".*$ip2[[:blank:]]$name2.*" "second base entry in /etc/host"
+    is "$output" ".*127.0.0.1[[:blank:]]localhost.*" "ipv4 localhost entry added"
+    is "$output" ".*::1[[:blank:]]localhost.*" "ipv6 localhost entry added"
+    is "$output" ".*$containersinternal_ip[[:blank:]]host\.containers\.internal.*" "host.containers.internal ip from config in /etc/host"
+    is "${#lines[@]}" "7" "expect 7 host entries in /etc/hosts"
+
+    # now try again with container name and hostname == host entry name
+    # in this case podman should not add its own entry thus we only have 5 entries (-1 for the removed --add-host)
+    CONTAINERS_CONF=$containersconf run_podman run --rm --name $name1 --hostname $name1 $IMAGE cat /etc/hosts
+    is "$output" ".*$ip1[[:blank:]]$name1.*" "first base entry in /etc/host"
+    is "$output" ".*$ip2[[:blank:]]$name2.*" "second base entry in /etc/host"
+    is "$output" ".*$containersinternal_ip[[:blank:]]host\.containers\.internal.*" "host.containers.internal ip from config in /etc/host"
+    is "${#lines[@]}" "5" "expect 5 host entries in /etc/hosts"
 }
 
 # vim: filetype=sh

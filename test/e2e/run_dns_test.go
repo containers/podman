@@ -78,8 +78,7 @@ var _ = Describe("Podman run dns", func() {
 		session := podmanTest.Podman([]string{"run", "--add-host=foobar:1.1.1.1", "--add-host=foobaz:2001:db8::68", ALPINE, "cat", "/etc/hosts"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.OutputToStringArray()).To(ContainElement(HavePrefix("1.1.1.1 foobar")))
-		Expect(session.OutputToStringArray()).To(ContainElement(HavePrefix("2001:db8::68 foobaz")))
+		Expect(session.OutputToStringArray()).To(ContainElements(HavePrefix("1.1.1.1\tfoobar"), HavePrefix("2001:db8::68\tfoobaz")))
 	})
 
 	It("podman run add hostname", func() {

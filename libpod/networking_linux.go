@@ -20,7 +20,9 @@ import (
 	"time"
 
 	"github.com/containernetworking/plugins/pkg/ns"
+	"github.com/containers/common/libnetwork/etchosts"
 	"github.com/containers/common/libnetwork/types"
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/common/pkg/netns"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/libpod/events"
@@ -1282,15 +1284,35 @@ func (c *Container) NetworkDisconnect(nameOrID, netName string, force bool) erro
 		for _, ip := range oldStatus.DNSServerIPs {
 			stringIPs = append(stringIPs, ip.String())
 		}
-		if len(stringIPs) == 0 {
-			return nil
+		if len(stringIPs) > 0 {
+			logrus.Debugf("Removing DNS Servers %v from resolv.conf", stringIPs)
+			if err := c.removeNameserver(stringIPs); err != nil {
+				return err
+			}
 		}
-		logrus.Debugf("Removing DNS Servers %v from resolv.conf", stringIPs)
-		if err := c.removeNameserver(stringIPs); err != nil {
-			return err
+
+		// update /etc/hosts file
+		if file, ok := c.state.BindMounts[config.DefaultHostsFile]; ok {
+			// sync the names with c.getHostsEntries()
+			names := []string{c.Hostname(), c.config.Name}
+			rm := etchosts.GetNetworkHostEntries(map[string]types.StatusBlock{netName: oldStatus}, names...)
+			if len(rm) > 0 {
+				// make sure to lock this file to prevent concurrent writes when
+				// this is used a net dependency container
+				lock, err := lockfile.GetLockfile(file)
+				if err != nil {
+					return fmt.Errorf("failed to lock hosts file: %w", err)
+				}
+				logrus.Debugf("Remove /etc/hosts entries %v", rm)
+				lock.Lock()
+				err = etchosts.Remove(file, rm)
+				lock.Unlock()
+				if err != nil {
+					return err
+				}
+			}
 		}
 	}
-
 	return nil
 }
 
@@ -1361,6 +1383,13 @@ func (c *Container) NetworkConnect(nameOrID, netName string, netOpts types.PerNe
 		return errors.New("when adding aliases, results must be of length 1")
 	}
 
+	// we need to get the old host entries before we add the new one to the status
+	// if we do not add do it here we will get the wrong existing entries which will throw of the logic
+	// we could also copy the map but this does not seem worth it
+	// sync the hostNames with c.getHostsEntries()
+	hostNames := []string{c.Hostname(), c.config.Name}
+	oldHostEntries := etchosts.GetNetworkHostEntries(networkStatus, hostNames...)
+
 	// update network status
 	if networkStatus == nil {
 		networkStatus = make(map[string]types.StatusBlock, 1)
@@ -1394,12 +1423,31 @@ func (c *Container) NetworkConnect(nameOrID, netName string, netOpts types.PerNe
 		}
 		stringIPs = append(stringIPs, ip.String())
 	}
-	if len(stringIPs) == 0 {
-		return nil
+	if len(stringIPs) > 0 {
+		logrus.Debugf("Adding DNS Servers %v to resolv.conf", stringIPs)
+		if err := c.addNameserver(stringIPs); err != nil {
+			return err
+		}
 	}
-	logrus.Debugf("Adding DNS Servers %v to resolv.conf", stringIPs)
-	if err := c.addNameserver(stringIPs); err != nil {
-		return err
+
+	// update /etc/hosts file
+	if file, ok := c.state.BindMounts[config.DefaultHostsFile]; ok {
+		// make sure to lock this file to prevent concurrent writes when
+		// this is used a net dependency container
+		lock, err := lockfile.GetLockfile(file)
+		if err != nil {
+			return fmt.Errorf("failed to lock hosts file: %w", err)
+		}
+		new := etchosts.GetNetworkHostEntries(results, hostNames...)
+		logrus.Debugf("Add /etc/hosts entries %v", new)
+		// use special AddIfExists API to make sure we only add new entries if an old one exists
+		// see the AddIfExists() comment for more information
+		lock.Lock()
+		err = etchosts.AddIfExists(file, oldHostEntries, new)
+		lock.Unlock()
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

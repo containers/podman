@@ -250,7 +250,7 @@ EOF
     is "$output" ".*invalid config provided: cannot set hostname when joining the pod UTS namespace: invalid configuration" "--hostname should not be allowed in share UTS pod"
 
     run_podman run --rm --pod $pod_id $IMAGE cat /etc/hosts
-    is "$output" ".*$add_host_ip $add_host_n" "--add-host was added"
+    is "$output" ".*$add_host_ip[[:blank:]]$add_host_n" "--add-host was added"
     is "$output" ".*	$hostname"            "--hostname is in /etc/hosts"
     #               ^^^^ this must be a tab, not a space
 

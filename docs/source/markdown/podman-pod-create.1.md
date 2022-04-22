@@ -17,7 +17,11 @@ containers added to it. The pod id is printed to STDOUT. You can then use
 
 #### **--add-host**=_host_:_ip_
 
-Add a host to the /etc/hosts file shared between all containers in the pod.
+Add a custom host-to-IP mapping (host:ip)
+
+Add a line to /etc/hosts. The format is hostname:ip. The **--add-host**
+option can be set multiple times.
+The /etc/hosts file is shared between all containers in the pod.
 
 #### **--cgroup-parent**=*path*
 
@@ -187,7 +191,10 @@ NOTE: A container will only have access to aliases on the first network that it 
 
 #### **--no-hosts**
 
-Disable creation of /etc/hosts for the pod.
+Do not create _/etc/hosts_ for the pod.
+By default, Podman will manage _/etc/hosts_, adding the container's own IP address and any hosts from **--add-host**.
+**--no-hosts** disables this, and the image's _/etc/hosts_ will be preserved unmodified.
+This option conflicts with **--add-host**.
 
 #### **--pid**=*pid*
 

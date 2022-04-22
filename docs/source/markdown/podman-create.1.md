@@ -743,9 +743,9 @@ Disable any defined healthchecks for container.
 
 #### **--no-hosts**
 
-Do not create /etc/hosts for the container.
-By default, Podman will manage /etc/hosts, adding the container's own IP address and any hosts from **--add-host**.
-#### **--no-hosts** disables this, and the image's **/etc/host** will be preserved unmodified.
+Do not create _/etc/hosts_ for the container.
+By default, Podman will manage _/etc/hosts_, adding the container's own IP address and any hosts from **--add-host**.
+**--no-hosts** disables this, and the image's _/etc/hosts_ will be preserved unmodified.
 This option conflicts with **--add-host**.
 
 #### **--oom-kill-disable**
