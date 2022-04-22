@@ -142,7 +142,7 @@ func create(cmd *cobra.Command, args []string) error {
 	}
 	s.RawImageName = rawImageName
 
-	if _, err := createPodIfNecessary(cmd, s, cliVals.Net); err != nil {
+	if err := createPodIfNecessary(cmd, s, cliVals.Net); err != nil {
 		return err
 	}
 
@@ -345,13 +345,13 @@ func PullImage(imageName string, cliVals entities.ContainerCreateOptions) (strin
 // createPodIfNecessary automatically creates a pod when requested.  if the pod name
 // has the form new:ID, the pod ID is created and the name in the spec generator is replaced
 // with ID.
-func createPodIfNecessary(cmd *cobra.Command, s *specgen.SpecGenerator, netOpts *entities.NetOptions) (*entities.PodCreateReport, error) {
+func createPodIfNecessary(cmd *cobra.Command, s *specgen.SpecGenerator, netOpts *entities.NetOptions) error {
 	if !strings.HasPrefix(s.Pod, "new:") {
-		return nil, nil
+		return nil
 	}
 	podName := strings.Replace(s.Pod, "new:", "", 1)
 	if len(podName) < 1 {
-		return nil, errors.Errorf("new pod name must be at least one character")
+		return errors.Errorf("new pod name must be at least one character")
 	}
 
 	var err error
@@ -359,7 +359,7 @@ func createPodIfNecessary(cmd *cobra.Command, s *specgen.SpecGenerator, netOpts 
 	if cliVals.UserNS != "" {
 		uns, err = specgen.ParseNamespace(cliVals.UserNS)
 		if err != nil {
-			return nil, err
+			return err
 		}
 	}
 	createOptions := entities.PodCreateOptions{
@@ -383,7 +383,7 @@ func createPodIfNecessary(cmd *cobra.Command, s *specgen.SpecGenerator, netOpts 
 	podSpec.PodSpecGen = *podGen
 	podGen, err = entities.ToPodSpecGen(podSpec.PodSpecGen, &createOptions)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	infraOpts := entities.NewInfraContainerCreateOptions()
@@ -391,14 +391,15 @@ func createPodIfNecessary(cmd *cobra.Command, s *specgen.SpecGenerator, netOpts 
 	infraOpts.Quiet = true
 	infraOpts.Hostname, err = cmd.Flags().GetString("hostname")
 	if err != nil {
-		return nil, err
+		return err
 	}
 	podGen.InfraContainerSpec = specgen.NewSpecGenerator("", false)
 	podGen.InfraContainerSpec.NetworkOptions = podGen.NetworkOptions
 	err = specgenutil.FillOutSpecGen(podGen.InfraContainerSpec, &infraOpts, []string{})
 	if err != nil {
-		return nil, err
+		return err
 	}
 	podSpec.PodSpecGen = *podGen
-	return registry.ContainerEngine().PodCreate(context.Background(), podSpec)
+	_, err = registry.ContainerEngine().PodCreate(context.Background(), podSpec)
+	return err
 }

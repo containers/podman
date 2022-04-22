@@ -197,7 +197,7 @@ func run(cmd *cobra.Command, args []string) error {
 	s.Passwd = &runOpts.Passwd
 	runOpts.Spec = s
 
-	if _, err := createPodIfNecessary(cmd, s, cliVals.Net); err != nil {
+	if err := createPodIfNecessary(cmd, s, cliVals.Net); err != nil {
 		return err
 	}
 

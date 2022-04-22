@@ -241,7 +241,6 @@ func Test_ocicniPortsToNetTypesPorts(t *testing.T) {
 func Test_resultToBasicNetworkConfig(t *testing.T) {
 	testCases := []struct {
 		description           string
-		expectError           bool
 		inputResult           types.StatusBlock
 		expectedNetworkConfig define.InspectBasicNetworkConfig
 	}{
@@ -431,15 +430,7 @@ func Test_resultToBasicNetworkConfig(t *testing.T) {
 		tc := tcl
 		t.Run(tc.description, func(t *testing.T) {
 			t.Parallel()
-			actualNetworkConfig, err := resultToBasicNetworkConfig(tc.inputResult)
-
-			if tc.expectError && err == nil {
-				t.Fatalf("Expected error didn't happen")
-			}
-
-			if !tc.expectError && err != nil {
-				t.Fatalf("Unexpected error happened: %v", err)
-			}
+			actualNetworkConfig := resultToBasicNetworkConfig(tc.inputResult)
 
 			if !reflect.DeepEqual(tc.expectedNetworkConfig, actualNetworkConfig) {
 				t.Fatalf(

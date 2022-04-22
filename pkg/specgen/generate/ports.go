@@ -1,7 +1,6 @@
 package generate
 
 import (
-	"context"
 	"fmt"
 	"net"
 	"sort"
@@ -338,7 +337,7 @@ func appendProtocolsNoDuplicates(slice []string, protocols []string) []string {
 }
 
 // Make final port mappings for the container
-func createPortMappings(ctx context.Context, s *specgen.SpecGenerator, imageData *libimage.ImageData) ([]types.PortMapping, map[uint16][]string, error) {
+func createPortMappings(s *specgen.SpecGenerator, imageData *libimage.ImageData) ([]types.PortMapping, map[uint16][]string, error) {
 	expose := make(map[uint16]string)
 	var err error
 	if imageData != nil {

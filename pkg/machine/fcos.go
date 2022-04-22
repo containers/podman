@@ -139,7 +139,7 @@ func getStreamURL(streamType string) url2.URL {
 
 // This should get Exported and stay put as it will apply to all fcos downloads
 // getFCOS parses fedoraCoreOS's stream and returns the image download URL and the release version
-func getFCOSDownload(imageStream string) (*fcosDownloadInfo, error) { // nolint:staticcheck
+func getFCOSDownload(imageStream string) (*fcosDownloadInfo, error) { // nolint:staticcheck,unparam
 	var (
 		fcosstable stream.Stream
 		altMeta    release.Release

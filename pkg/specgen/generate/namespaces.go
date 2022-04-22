@@ -1,7 +1,6 @@
 package generate
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"strings"
@@ -80,7 +79,7 @@ func GetDefaultNamespaceMode(nsType string, cfg *config.Config, pod *libpod.Pod)
 // joining a pod.
 // TODO: Consider grouping options that are not directly attached to a namespace
 // elsewhere.
-func namespaceOptions(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runtime, pod *libpod.Pod, imageData *libimage.ImageData) ([]libpod.CtrCreateOption, error) {
+func namespaceOptions(s *specgen.SpecGenerator, rt *libpod.Runtime, pod *libpod.Pod, imageData *libimage.ImageData) ([]libpod.CtrCreateOption, error) {
 	toReturn := []libpod.CtrCreateOption{}
 
 	// If pod is not nil, get infra container.
@@ -256,7 +255,7 @@ func namespaceOptions(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.
 		}
 		toReturn = append(toReturn, libpod.WithNetNSFrom(netCtr))
 	case specgen.Slirp:
-		portMappings, expose, err := createPortMappings(ctx, s, imageData)
+		portMappings, expose, err := createPortMappings(s, imageData)
 		if err != nil {
 			return nil, err
 		}
@@ -268,7 +267,7 @@ func namespaceOptions(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.
 	case specgen.Private:
 		fallthrough
 	case specgen.Bridge:
-		portMappings, expose, err := createPortMappings(ctx, s, imageData)
+		portMappings, expose, err := createPortMappings(s, imageData)
 		if err != nil {
 			return nil, err
 		}

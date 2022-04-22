@@ -54,7 +54,7 @@ var _ = Describe("Podman run networking", func() {
 		cip := ctrIP.OutputToString()
 		Expect(cip).To(MatchRegexp(IPRegex))
 
-		_ = digShort(cid, "aone", []string{cip}, podmanTest)
+		digShort(cid, "aone", []string{cip}, podmanTest)
 
 		reverseLookup := podmanTest.Podman([]string{"exec", cid, "dig", "+short", "-x", cip})
 		reverseLookup.WaitWithDefaultTimeout()
@@ -95,9 +95,9 @@ var _ = Describe("Podman run networking", func() {
 		cip2 := ctrIP2.OutputToString()
 		Expect(cip2).To(MatchRegexp(IPRegex))
 
-		_ = digShort("aone", "atwo", []string{cip2}, podmanTest)
+		digShort("aone", "atwo", []string{cip2}, podmanTest)
 
-		_ = digShort("atwo", "aone", []string{cip1}, podmanTest)
+		digShort("atwo", "aone", []string{cip1}, podmanTest)
 
 		reverseLookup12 := podmanTest.Podman([]string{"exec", cid1, "dig", "+short", "-x", cip2})
 		reverseLookup12.WaitWithDefaultTimeout()
@@ -144,17 +144,17 @@ var _ = Describe("Podman run networking", func() {
 		cip2 := ctrIP2.OutputToString()
 		Expect(cip2).To(MatchRegexp(IPRegex))
 
-		_ = digShort("aone", "atwo", []string{cip2}, podmanTest)
+		digShort("aone", "atwo", []string{cip2}, podmanTest)
 
-		_ = digShort("aone", "alias_a2", []string{cip2}, podmanTest)
+		digShort("aone", "alias_a2", []string{cip2}, podmanTest)
 
-		_ = digShort("aone", "alias_2a", []string{cip2}, podmanTest)
+		digShort("aone", "alias_2a", []string{cip2}, podmanTest)
 
-		_ = digShort("atwo", "aone", []string{cip1}, podmanTest)
+		digShort("atwo", "aone", []string{cip1}, podmanTest)
 
-		_ = digShort("atwo", "alias_a1", []string{cip1}, podmanTest)
+		digShort("atwo", "alias_a1", []string{cip1}, podmanTest)
 
-		_ = digShort("atwo", "alias_1a", []string{cip1}, podmanTest)
+		digShort("atwo", "alias_1a", []string{cip1}, podmanTest)
 
 	})
 
@@ -251,13 +251,13 @@ var _ = Describe("Podman run networking", func() {
 		cipA2B22 := ctrIPA2B22.OutputToString()
 		Expect(cipA2B22).To(MatchRegexp(IPRegex))
 
-		_ = digShort("aone", "atwobtwo", []string{cipA2B21}, podmanTest)
+		digShort("aone", "atwobtwo", []string{cipA2B21}, podmanTest)
 
-		_ = digShort("bone", "atwobtwo", []string{cipA2B22}, podmanTest)
+		digShort("bone", "atwobtwo", []string{cipA2B22}, podmanTest)
 
-		_ = digShort("atwobtwo", "aone", []string{cipA1}, podmanTest)
+		digShort("atwobtwo", "aone", []string{cipA1}, podmanTest)
 
-		_ = digShort("atwobtwo", "bone", []string{cipB1}, podmanTest)
+		digShort("atwobtwo", "bone", []string{cipB1}, podmanTest)
 	})
 
 	It("Aardvark Test 6: Three subnets, first container on 1/2 and second on 2/3, w/ network aliases", func() {
@@ -305,9 +305,9 @@ var _ = Describe("Podman run networking", func() {
 		Expect(ctrIPCB2).Should(Exit(0))
 		cipCB2 := ctrIPCB2.OutputToString()
 
-		_ = digShort("aone", "testB2_nw", []string{cipCB2}, podmanTest)
+		digShort("aone", "testB2_nw", []string{cipCB2}, podmanTest)
 
-		_ = digShort("cone", "testB1_nw", []string{cipAB1}, podmanTest)
+		digShort("cone", "testB1_nw", []string{cipAB1}, podmanTest)
 
 	})
 

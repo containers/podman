@@ -680,7 +680,7 @@ func generateMultiDocKubeYaml(kubeObjects []string, pathname string) error {
 	return writeYaml(multiKube, pathname)
 }
 
-func createSecret(podmanTest *PodmanTestIntegration, name string, value []byte) {
+func createSecret(podmanTest *PodmanTestIntegration, name string, value []byte) { //nolint:unparam
 	secretFilePath := filepath.Join(podmanTest.TempDir, "secret")
 	err := ioutil.WriteFile(secretFilePath, value, 0755)
 	Expect(err).To(BeNil())
@@ -1078,7 +1078,7 @@ func withVolumeMount(mountPath string, readonly bool) ctrOption {
 	}
 }
 
-func withEnv(name, value, valueFrom, refName, refKey string, optional bool) ctrOption {
+func withEnv(name, value, valueFrom, refName, refKey string, optional bool) ctrOption { //nolint:unparam
 	return func(c *Ctr) {
 		e := Env{
 			Name:      name,

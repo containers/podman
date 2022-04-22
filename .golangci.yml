@@ -34,7 +34,6 @@ linters:
     - ifshort
     - forbidigo
     - exhaustive
-    - unparam
     - gofumpt
     - gci
     - godot

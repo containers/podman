@@ -439,7 +439,7 @@ func (r *ConmonOCIRuntime) startExec(c *Container, sessionID string, options *Ex
 	// 	}
 	// }
 
-	conmonEnv := r.configureConmonEnv(c, runtimeDir)
+	conmonEnv := r.configureConmonEnv(runtimeDir)
 
 	var filesToClose []*os.File
 	if options.PreserveFDs > 0 {

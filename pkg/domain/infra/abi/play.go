@@ -114,7 +114,7 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, body io.Reader, options
 				return nil, errors.Wrap(err, "unable to read YAML as Kube PersistentVolumeClaim")
 			}
 
-			r, err := ic.playKubePVC(ctx, &pvcYAML, options)
+			r, err := ic.playKubePVC(ctx, &pvcYAML)
 			if err != nil {
 				return nil, err
 			}
@@ -592,7 +592,7 @@ func (ic *ContainerEngine) getImageAndLabelInfo(ctx context.Context, cwd string,
 }
 
 // playKubePVC creates a podman volume from a kube persistent volume claim.
-func (ic *ContainerEngine) playKubePVC(ctx context.Context, pvcYAML *v1.PersistentVolumeClaim, options entities.PlayKubeOptions) (*entities.PlayKubeReport, error) {
+func (ic *ContainerEngine) playKubePVC(ctx context.Context, pvcYAML *v1.PersistentVolumeClaim) (*entities.PlayKubeReport, error) {
 	var report entities.PlayKubeReport
 	opts := make(map[string]string)
 

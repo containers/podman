@@ -4,7 +4,6 @@
 package libpod
 
 import (
-	"context"
 	"io"
 	"os"
 	"path/filepath"
@@ -24,7 +23,7 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-func (c *Container) copyFromArchive(ctx context.Context, path string, chown bool, rename map[string]string, reader io.Reader) (func() error, error) {
+func (c *Container) copyFromArchive(path string, chown bool, rename map[string]string, reader io.Reader) (func() error, error) {
 	var (
 		mountPoint   string
 		resolvedRoot string
@@ -93,7 +92,7 @@ func (c *Container) copyFromArchive(ctx context.Context, path string, chown bool
 			Rename:     rename,
 		}
 
-		return c.joinMountAndExec(ctx,
+		return c.joinMountAndExec(
 			func() error {
 				return buildahCopiah.Put(resolvedRoot, resolvedPath, putOptions, decompressed)
 			},
@@ -101,7 +100,7 @@ func (c *Container) copyFromArchive(ctx context.Context, path string, chown bool
 	}, nil
 }
 
-func (c *Container) copyToArchive(ctx context.Context, path string, writer io.Writer) (func() error, error) {
+func (c *Container) copyToArchive(path string, writer io.Writer) (func() error, error) {
 	var (
 		mountPoint string
 		unmount    func()
@@ -121,7 +120,7 @@ func (c *Container) copyToArchive(ctx context.Context, path string, writer io.Wr
 		unmount = func() { c.unmount(false) }
 	}
 
-	statInfo, resolvedRoot, resolvedPath, err := c.stat(ctx, mountPoint, path)
+	statInfo, resolvedRoot, resolvedPath, err := c.stat(mountPoint, path)
 	if err != nil {
 		unmount()
 		return nil, err
@@ -165,7 +164,7 @@ func (c *Container) copyToArchive(ctx context.Context, path string, writer io.Wr
 			// container's user namespace.
 			IgnoreUnreadable: rootless.IsRootless() && c.state.State == define.ContainerStateRunning,
 		}
-		return c.joinMountAndExec(ctx,
+		return c.joinMountAndExec(
 			func() error {
 				return buildahCopiah.Get(resolvedRoot, "", getOptions, []string{resolvedPath}, writer)
 			},
@@ -216,7 +215,7 @@ func idtoolsToRuntimeSpec(idMaps []idtools.IDMap) (convertedIDMap []specs.LinuxI
 // container's file system.
 //
 // Note, if the container is not running `f()` will be executed as is.
-func (c *Container) joinMountAndExec(ctx context.Context, f func() error) error {
+func (c *Container) joinMountAndExec(f func() error) error {
 	if c.state.State != define.ContainerStateRunning {
 		return f()
 	}

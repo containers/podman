@@ -889,7 +889,7 @@ func (c *Container) CopyFromArchive(ctx context.Context, containerPath string, c
 		}
 	}
 
-	return c.copyFromArchive(ctx, containerPath, chown, rename, tarStream)
+	return c.copyFromArchive(containerPath, chown, rename, tarStream)
 }
 
 // CopyToArchive copies the contents from the specified path *inside* the
@@ -904,7 +904,7 @@ func (c *Container) CopyToArchive(ctx context.Context, containerPath string, tar
 		}
 	}
 
-	return c.copyToArchive(ctx, containerPath, tarStream)
+	return c.copyToArchive(containerPath, tarStream)
 }
 
 // Stat the specified path *inside* the container and return a file info.
@@ -934,6 +934,6 @@ func (c *Container) Stat(ctx context.Context, containerPath string) (*define.Fil
 		}()
 	}
 
-	info, _, _, err := c.stat(ctx, mountPoint, containerPath)
+	info, _, _, err := c.stat(mountPoint, containerPath)
 	return info, err
 }

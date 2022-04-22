@@ -30,14 +30,14 @@ func TestGenerateUserPasswdEntry(t *testing.T) {
 			Mountpoint: "/does/not/exist/tmp/",
 		},
 	}
-	user, _, _, err := c.generateUserPasswdEntry(0)
+	user, err := c.generateUserPasswdEntry(0)
 	if err != nil {
 		t.Fatal(err)
 	}
 	assert.Equal(t, user, "123:*:123:456:container user:/:/bin/sh\n")
 
 	c.config.User = "567"
-	user, _, _, err = c.generateUserPasswdEntry(0)
+	user, err = c.generateUserPasswdEntry(0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -56,14 +56,14 @@ func TestGenerateUserGroupEntry(t *testing.T) {
 			Mountpoint: "/does/not/exist/tmp/",
 		},
 	}
-	group, _, err := c.generateUserGroupEntry(0)
+	group, err := c.generateUserGroupEntry(0)
 	if err != nil {
 		t.Fatal(err)
 	}
 	assert.Equal(t, group, "456:x:456:123\n")
 
 	c.config.User = "567"
-	group, _, err = c.generateUserGroupEntry(0)
+	group, err = c.generateUserGroupEntry(0)
 	if err != nil {
 		t.Fatal(err)
 	}

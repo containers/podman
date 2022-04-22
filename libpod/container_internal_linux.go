@@ -2632,7 +2632,7 @@ func (c *Container) generateGroupEntry() (string, error) {
 		addedGID = gid
 	}
 	if c.config.User != "" {
-		entry, _, err := c.generateUserGroupEntry(addedGID)
+		entry, err := c.generateUserGroupEntry(addedGID)
 		if err != nil {
 			return "", err
 		}
@@ -2685,9 +2685,9 @@ func (c *Container) generateCurrentUserGroupEntry() (string, int, error) {
 
 // Make an entry in /etc/group for the group the container was specified to run
 // as.
-func (c *Container) generateUserGroupEntry(addedGID int) (string, int, error) {
+func (c *Container) generateUserGroupEntry(addedGID int) (string, error) {
 	if c.config.User == "" {
-		return "", 0, nil
+		return "", nil
 	}
 
 	splitUser := strings.SplitN(c.config.User, ":", 2)
@@ -2698,20 +2698,20 @@ func (c *Container) generateUserGroupEntry(addedGID int) (string, int, error) {
 
 	gid, err := strconv.ParseUint(group, 10, 32)
 	if err != nil {
-		return "", 0, nil // nolint: nilerr
+		return "", nil // nolint: nilerr
 	}
 
 	if addedGID != 0 && addedGID == int(gid) {
-		return "", 0, nil
+		return "", nil
 	}
 
 	// Check if the group already exists
 	_, err = lookup.GetGroup(c.state.Mountpoint, group)
 	if err != runcuser.ErrNoGroupEntries {
-		return "", 0, err
+		return "", err
 	}
 
-	return fmt.Sprintf("%d:x:%d:%s\n", gid, gid, splitUser[0]), int(gid), nil
+	return fmt.Sprintf("%d:x:%d:%s\n", gid, gid, splitUser[0]), nil
 }
 
 // generatePasswdEntry generates an entry or entries into /etc/passwd as
@@ -2751,7 +2751,7 @@ func (c *Container) generatePasswdEntry() (string, error) {
 		addedUID = uid
 	}
 	if c.config.User != "" {
-		entry, _, _, err := c.generateUserPasswdEntry(addedUID)
+		entry, err := c.generateUserPasswdEntry(addedUID)
 		if err != nil {
 			return "", err
 		}
@@ -2838,13 +2838,13 @@ func (c *Container) userPasswdEntry(u *user.User) (string, error) {
 // Accepts one argument, that being any UID that has already been added to the
 // passwd file by other functions; if it matches the UID we were given, we don't
 // need to do anything.
-func (c *Container) generateUserPasswdEntry(addedUID int) (string, int, int, error) {
+func (c *Container) generateUserPasswdEntry(addedUID int) (string, error) {
 	var (
 		groupspec string
 		gid       int
 	)
 	if c.config.User == "" {
-		return "", 0, 0, nil
+		return "", nil
 	}
 	splitSpec := strings.SplitN(c.config.User, ":", 2)
 	userspec := splitSpec[0]
@@ -2854,17 +2854,17 @@ func (c *Container) generateUserPasswdEntry(addedUID int) (string, int, int, err
 	// If a non numeric User, then don't generate passwd
 	uid, err := strconv.ParseUint(userspec, 10, 32)
 	if err != nil {
-		return "", 0, 0, nil // nolint: nilerr
+		return "", nil // nolint: nilerr
 	}
 
 	if addedUID != 0 && int(uid) == addedUID {
-		return "", 0, 0, nil
+		return "", nil
 	}
 
 	// Lookup the user to see if it exists in the container image
 	_, err = lookup.GetUser(c.state.Mountpoint, userspec)
 	if err != runcuser.ErrNoPasswdEntries {
-		return "", 0, 0, err
+		return "", err
 	}
 
 	if groupspec != "" {
@@ -2874,7 +2874,7 @@ func (c *Container) generateUserPasswdEntry(addedUID int) (string, int, int, err
 		} else {
 			group, err := lookup.GetGroup(c.state.Mountpoint, groupspec)
 			if err != nil {
-				return "", 0, 0, errors.Wrapf(err, "unable to get gid %s from group file", groupspec)
+				return "", errors.Wrapf(err, "unable to get gid %s from group file", groupspec)
 			}
 			gid = group.Gid
 		}
@@ -2882,10 +2882,10 @@ func (c *Container) generateUserPasswdEntry(addedUID int) (string, int, int, err
 
 	if c.config.PasswdEntry != "" {
 		entry := c.passwdEntry(fmt.Sprintf("%d", uid), fmt.Sprintf("%d", uid), fmt.Sprintf("%d", gid), "container user", c.WorkingDir())
-		return entry, int(uid), gid, nil
+		return entry, nil
 	}
 
-	return fmt.Sprintf("%d:*:%d:%d:container user:%s:/bin/sh\n", uid, uid, gid, c.WorkingDir()), int(uid), gid, nil
+	return fmt.Sprintf("%d:*:%d:%d:container user:%s:/bin/sh\n", uid, uid, gid, c.WorkingDir()), nil
 }
 
 func (c *Container) passwdEntry(username string, uid, gid, name, homeDir string) string {

@@ -4,7 +4,6 @@
 package libpod
 
 import (
-	"context"
 	"os"
 	"path/filepath"
 	"strings"
@@ -18,12 +17,12 @@ import (
 // statInsideMount stats the specified path *inside* the container's mount and PID
 // namespace.  It returns the file info along with the resolved root ("/") and
 // the resolved path (relative to the root).
-func (c *Container) statInsideMount(ctx context.Context, containerPath string) (*copier.StatForItem, string, string, error) {
+func (c *Container) statInsideMount(containerPath string) (*copier.StatForItem, string, string, error) {
 	resolvedRoot := "/"
 	resolvedPath := c.pathAbs(containerPath)
 	var statInfo *copier.StatForItem
 
-	err := c.joinMountAndExec(ctx,
+	err := c.joinMountAndExec(
 		func() error {
 			var statErr error
 			statInfo, statErr = secureStat(resolvedRoot, resolvedPath)
@@ -38,7 +37,7 @@ func (c *Container) statInsideMount(ctx context.Context, containerPath string) (
 // along with the resolved root and the resolved path.  Both paths are absolute
 // to the host's root.  Note that the paths may resolved outside the
 // container's mount point (e.g., to a volume or bind mount).
-func (c *Container) statOnHost(ctx context.Context, mountPoint string, containerPath string) (*copier.StatForItem, string, string, error) {
+func (c *Container) statOnHost(mountPoint string, containerPath string) (*copier.StatForItem, string, string, error) {
 	// Now resolve the container's path.  It may hit a volume, it may hit a
 	// bind mount, it may be relative.
 	resolvedRoot, resolvedPath, err := c.resolvePath(mountPoint, containerPath)
@@ -50,7 +49,7 @@ func (c *Container) statOnHost(ctx context.Context, mountPoint string, container
 	return statInfo, resolvedRoot, resolvedPath, err
 }
 
-func (c *Container) stat(ctx context.Context, containerMountPoint string, containerPath string) (*define.FileInfo, string, string, error) {
+func (c *Container) stat(containerMountPoint string, containerPath string) (*define.FileInfo, string, string, error) {
 	var (
 		resolvedRoot     string
 		resolvedPath     string
@@ -75,11 +74,11 @@ func (c *Container) stat(ctx context.Context, containerMountPoint string, contai
 	if c.state.State == define.ContainerStateRunning {
 		// If the container is running, we need to join it's mount namespace
 		// and stat there.
-		statInfo, resolvedRoot, resolvedPath, statErr = c.statInsideMount(ctx, containerPath)
+		statInfo, resolvedRoot, resolvedPath, statErr = c.statInsideMount(containerPath)
 	} else {
 		// If the container is NOT running, we need to resolve the path
 		// on the host.
-		statInfo, resolvedRoot, resolvedPath, statErr = c.statOnHost(ctx, containerMountPoint, containerPath)
+		statInfo, resolvedRoot, resolvedPath, statErr = c.statOnHost(containerMountPoint, containerPath)
 	}
 
 	if statErr != nil {

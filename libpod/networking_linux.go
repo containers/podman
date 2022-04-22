@@ -74,7 +74,7 @@ func (c *Container) convertPortMappings() []types.PortMapping {
 	return newPorts
 }
 
-func (c *Container) getNetworkOptions(networkOpts map[string]types.PerNetworkOptions) (types.NetworkOptions, error) {
+func (c *Container) getNetworkOptions(networkOpts map[string]types.PerNetworkOptions) types.NetworkOptions {
 	opts := types.NetworkOptions{
 		ContainerID:   c.config.ID,
 		ContainerName: getCNIPodName(c),
@@ -88,7 +88,7 @@ func (c *Container) getNetworkOptions(networkOpts map[string]types.PerNetworkOpt
 	} else {
 		opts.Networks = networkOpts
 	}
-	return opts, nil
+	return opts
 }
 
 type RootlessNetNS struct {
@@ -653,10 +653,7 @@ func (r *Runtime) configureNetNS(ctr *Container, ctrNS ns.NetNS) (status map[str
 		return nil, nil
 	}
 
-	netOpts, err := ctr.getNetworkOptions(networks)
-	if err != nil {
-		return nil, err
-	}
+	netOpts := ctr.getNetworkOptions(networks)
 	netStatus, err := r.setUpNetwork(ctrNS.Path(), netOpts)
 	if err != nil {
 		return nil, err
@@ -814,10 +811,7 @@ func (r *Runtime) teardownCNI(ctr *Container) error {
 	}
 
 	if !ctr.config.NetMode.IsSlirp4netns() && len(networks) > 0 {
-		netOpts, err := ctr.getNetworkOptions(networks)
-		if err != nil {
-			return err
-		}
+		netOpts := ctr.getNetworkOptions(networks)
 		return r.teardownNetwork(ctr.state.NetNS.Path(), netOpts)
 	}
 	return nil
@@ -1000,11 +994,9 @@ func (c *Container) getContainerNetworkInfo() (*define.InspectNetworkSettings, e
 	if c.state.NetNS == nil {
 		if networkNSPath := c.joinedNetworkNSPath(); networkNSPath != "" {
 			if result, err := c.inspectJoinedNetworkNS(networkNSPath); err == nil {
-				if basicConfig, err := resultToBasicNetworkConfig(result); err == nil {
-					// fallback to dummy configuration
-					settings.InspectBasicNetworkConfig = basicConfig
-					return settings, nil
-				}
+				// fallback to dummy configuration
+				settings.InspectBasicNetworkConfig = resultToBasicNetworkConfig(result)
+				return settings, nil
 			}
 			// do not propagate error inspecting a joined network ns
 			logrus.Errorf("Inspecting network namespace: %s of container %s: %v", networkNSPath, c.ID(), err)
@@ -1047,14 +1039,8 @@ func (c *Container) getContainerNetworkInfo() (*define.InspectNetworkSettings, e
 			result := netStatus[name]
 			addedNet := new(define.InspectAdditionalNetwork)
 			addedNet.NetworkID = name
-
-			basicConfig, err := resultToBasicNetworkConfig(result)
-			if err != nil {
-				return nil, err
-			}
 			addedNet.Aliases = opts.Aliases
-
-			addedNet.InspectBasicNetworkConfig = basicConfig
+			addedNet.InspectBasicNetworkConfig = resultToBasicNetworkConfig(result)
 
 			settings.Networks[name] = addedNet
 		}
@@ -1074,11 +1060,7 @@ func (c *Container) getContainerNetworkInfo() (*define.InspectNetworkSettings, e
 
 	if len(netStatus) == 1 {
 		for _, status := range netStatus {
-			basicConfig, err := resultToBasicNetworkConfig(status)
-			if err != nil {
-				return nil, err
-			}
-			settings.InspectBasicNetworkConfig = basicConfig
+			settings.InspectBasicNetworkConfig = resultToBasicNetworkConfig(status)
 		}
 	}
 	return settings, nil
@@ -1152,7 +1134,7 @@ func (c *Container) inspectJoinedNetworkNS(networkns string) (q types.StatusBloc
 
 // resultToBasicNetworkConfig produces an InspectBasicNetworkConfig from a CNI
 // result
-func resultToBasicNetworkConfig(result types.StatusBlock) (define.InspectBasicNetworkConfig, error) {
+func resultToBasicNetworkConfig(result types.StatusBlock) define.InspectBasicNetworkConfig {
 	config := define.InspectBasicNetworkConfig{}
 	interfaceNames := make([]string, 0, len(result.Interfaces))
 	for interfaceName := range result.Interfaces {
@@ -1190,7 +1172,7 @@ func resultToBasicNetworkConfig(result types.StatusBlock) (define.InspectBasicNe
 			config.AdditionalMacAddresses = append(config.AdditionalMacAddresses, netInt.MacAddress.String())
 		}
 	}
-	return config, nil
+	return config
 }
 
 type logrusDebugWriter struct {
