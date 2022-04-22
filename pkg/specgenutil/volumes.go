@@ -1,6 +1,7 @@
 package specgenutil
 
 import (
+	"encoding/csv"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -152,7 +153,15 @@ func findMountType(input string) (mountType string, tokens []string, err error) 
 	// Split by comma, iterate over the slice and look for
 	// "type=$mountType". Everything else is appended to tokens.
 	found := false
-	for _, s := range strings.Split(input, ",") {
+	csvReader := csv.NewReader(strings.NewReader(input))
+	records, err := csvReader.ReadAll()
+	if err != nil {
+		return "", nil, err
+	}
+	if len(records) != 1 {
+		return "", nil, errInvalidSyntax
+	}
+	for _, s := range records[0] {
 		kv := strings.Split(s, "=")
 		if found || !(len(kv) == 2 && kv[0] == "type") {
 			tokens = append(tokens, s)

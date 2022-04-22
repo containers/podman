@@ -120,6 +120,11 @@ var _ = Describe("Podman run with volumes", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).To(ExitWithError())
 
+		// test csv escaping
+		session = podmanTest.Podman([]string{"run", "--rm", "--mount=type=tmpfs,tmpfs-size=512M,\"destination=/test,\"", ALPINE, "ls", "/test,"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
 		session = podmanTest.Podman([]string{"run", "--rm", "--mount", "type=bind,src=/tmp,target=/tmp,tmpcopyup", ALPINE, "true"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).To(ExitWithError())
