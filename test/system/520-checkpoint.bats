@@ -47,7 +47,8 @@ function teardown() {
 
     # Checkpoint, and confirm via inspect
     run_podman container checkpoint $cid
-    is "$output" "$cid" "podman container checkpoint"
+    # FIXME: remove the `.*` prefix after fix packaged for https://github.com/checkpoint-restore/criu/pull/1706
+    is "$output" ".*$cid" "podman container checkpoint"
 
     run_podman container inspect \
                --format '{{.State.Status}}:{{.State.Running}}:{{.State.Paused}}:{{.State.Checkpointed}}' $cid
