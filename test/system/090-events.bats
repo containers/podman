@@ -171,7 +171,7 @@ EOF
 [engine]
 events_logger="file"
 events_logfile_path="$eventsFile"
-# The limit of 4750 is the *exact* half of the inital events file.
+# The limit of 4750 is the *exact* half of the initial events file.
 events_logfile_max_size=4750
 EOF
 
