@@ -10,7 +10,7 @@ load helpers
 @test "podman subcmd - description of this particular test" {
     args="some sort of argument list"
     run_podman subcmd $args
-    is "$output"   "what we expect"   "output from 'podman subcmd $args'"
+    assert "$output" == "what we expect"   "output from 'podman subcmd $args'"
 }
 
 # vim: filetype=sh
@@ -66,7 +66,7 @@ function teardown() {
     # FIXME: example of dprint. This will trigger if PODMAN_TEST_DEBUG=FOO
     # FIXME:  ...or anything that matches the name assigned in the @test line.
     dprint "podman logs $cid -> '$output'"
-    is "$output" "what are we expecting?" "description of this check"
+    assert "$output" == "what are we expecting?" "description of this check"
 
     # Clean up
     run_podman rm $cid
@@ -90,7 +90,7 @@ size      | -\\\?[0-9]\\\+
     run_podman history --format json $IMAGE
 
     # FIXME: parse_table is what does all the work, giving us test cases.
-    parse_table "$tests" | while read field expect; do
+    while read field expect; do
         # FIXME: this shows a drawback of BATS and bash: we can't include '|'
         # FIXME: in the table, but we need to because some images don't
         # FIXME: have a CID. So, yeah, this is ugly -- but rare.
@@ -104,10 +104,10 @@ size      | -\\\?[0-9]\\\+
             # FIXME: please be sure to note the third field!
             # FIXME: that's the test name. Make it something useful! Include
             # FIXME: loop variables whenever possible. Don't just say "my test"
-            is "$actual"    "$expect\$"    "jq .[$i].$field"
+            assert "$actual" =~ "$expect\$"    "jq .[$i].$field"
             i=$(expr $i + 1)
         done
-    done
+    done < <(parse_table "$tests")
 }
 
 

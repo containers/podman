@@ -126,8 +126,7 @@ function _events_disjunctive_filters() {
 events_logfile_path="$events_file"
 EOF
     CONTAINERS_CONF="$containersconf" run_podman --events-backend=file pull $IMAGE
-    run cat $events_file
-    is "$output" ".*\"Name\":\"$IMAGE" "test"
+    assert "$(< $events_file)" =~ "\"Name\":\"$IMAGE\"" "Image found in events"
 }
 
 function _populate_events_file() {

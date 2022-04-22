@@ -22,10 +22,8 @@ load helpers
     # The initial SIGTERM is ignored, so this operation should take
     # exactly 10 seconds. Give it some leeway.
     delta_t=$(( $t1 - $t0 ))
-    [ $delta_t -gt 8 ]  ||\
-        die "podman stop: ran too quickly! ($delta_t seconds; expected >= 10)"
-    [ $delta_t -le 14 ] ||\
-        die "podman stop: took too long ($delta_t seconds; expected ~10)"
+    assert $delta_t -gt  8 "podman stop: ran too quickly!"
+    assert $delta_t -le 14 "podman stop: took too long"
 
     run_podman rm $cid
 }
@@ -103,8 +101,7 @@ load helpers
 
         # The 'stop' command should return almost instantaneously
         delta_t=$(( $t1 - $t0 ))
-        [ $delta_t -le 2 ] ||\
-            die "podman stop: took too long ($delta_t seconds; expected <= 2)"
+        assert $delta_t -le 2 "podman stop: took too long"
 
         run_podman rm $cid
     done
@@ -138,9 +135,7 @@ load helpers
             break
         fi
         timeout=$((timeout - 1))
-        if [[ $timeout -eq 0 ]]; then
-            die "Timed out waiting for container to receive SIGERM"
-        fi
+        assert $timeout -gt 0 "Timed out waiting for container to receive SIGTERM"
         sleep 0.5
     done
 
@@ -154,9 +149,7 @@ load helpers
     # Time check: make sure we were able to run 'ps' before the container
     # exited. If this takes too long, it means ps had to wait for lock.
     local delta_t=$(( $SECONDS - t0 ))
-    if [[ $delta_t -gt 5 ]]; then
-        die "Operations took too long ($delta_t seconds)"
-    fi
+    assert $delta_t -le 5 "Operations took too long"
 
     run_podman kill stopme
     run_podman wait stopme

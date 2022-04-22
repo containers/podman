@@ -27,9 +27,7 @@ function setup() {
     retries=5
     while [[ ! -e $PODMAN_TEST_PTY ]]; do
         retries=$(( retries - 1 ))
-        if [[ $retries -eq 0 ]]; then
-            die "Timed out waiting for $PODMAN_TEST_PTY"
-        fi
+        assert $retries -gt 0 "Timed out waiting for $PODMAN_TEST_PTY"
         sleep 0.5
     done
 }

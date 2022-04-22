@@ -37,8 +37,7 @@ load helpers
       subset=$(jq -r '.[1] | .repo_name, .type' <<<"$output" | fmt)
       is "$subset" "docker.io accept" "--json, docker.io should now be accept"
 
-      run cat $policypath
-      policy=$output
+      policy="$(< $policypath)"
       run_podman image trust show --policypath=$policypath --raw
       is "$output" "$policy" "output should show match content of policy.json"
 }

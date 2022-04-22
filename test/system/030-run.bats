@@ -78,12 +78,11 @@ echo $rand        |   0 | $rand
     skip_if_remote "TODO Fix this for remote case"
 
     run_podman run --rm --uidmap 0:100:10000 $IMAGE mount
-    run grep /sys/kernel <(echo "$output")
-    is "$output" "" "unwanted /sys/kernel in 'mount' output"
+    assert "$output" !~ /sys/kernel "unwanted /sys/kernel in 'mount' output"
 
     run_podman run --rm --net host --uidmap 0:100:10000 $IMAGE mount
-    run grep /sys/kernel <(echo "$output")
-    is "$output" "" "unwanted /sys/kernel in 'mount' output (with --net=host)"
+    assert "$output" !~ /sys/kernel \
+           "unwanted /sys/kernel in 'mount' output (with --net=host)"
 }
 
 # 'run --rm' goes through different code paths and may lose exit status.
@@ -692,10 +691,8 @@ json-file | f
     # This operation should take
     # exactly 10 seconds. Give it some leeway.
     delta_t=$(( $t1 - $t0 ))
-    [ $delta_t -gt 8 ]  ||\
-        die "podman stop: ran too quickly! ($delta_t seconds; expected >= 10)"
-    [ $delta_t -le 14 ] ||\
-        die "podman stop: took too long ($delta_t seconds; expected ~10)"
+    assert "$delta_t" -gt  8 "podman stop: ran too quickly!"
+    assert "$delta_t" -le 14 "podman stop: took too long"
 
     run_podman rm $cid
 }
@@ -753,34 +750,40 @@ EOF
 
 @test "podman run defaultenv" {
     run_podman run --rm $IMAGE printenv
-    is "$output" ".*TERM=xterm" "output matches TERM"
-    is "$output" ".*container=podman" "output matches container=podman"
+    assert "$output" =~ "TERM=xterm" "env includes TERM"
+    assert "$output" =~ "container=podman" "env includes container=podman"
 
     run_podman run --unsetenv=TERM --rm $IMAGE printenv
-    is "$output" ".*container=podman" "output matches container=podman"
-    run grep TERM <<<$output
-    is "$output" "" "unwanted TERM environment variable despite --unsetenv=TERM"
+    assert "$output" =~ "container=podman" "env includes container=podman"
+    assert "$output" != "TERM" "unwanted TERM environment variable despite --unsetenv=TERM"
 
     run_podman run --unsetenv-all --rm $IMAGE /bin/printenv
-    run grep TERM <<<$output
-    is "$output" "" "unwanted TERM environment variable despite --unsetenv-all"
-    run grep container <<<$output
-    is "$output" "" "unwanted container environment variable despite --unsetenv-all"
-    run grep PATH <<<$output
-    is "$output" "" "unwanted PATH environment variable despite --unsetenv-all"
+    for v in TERM container PATH; do
+        assert "$output" !~ "$v" "variable present despite --unsetenv-all"
+    done
 
     run_podman run --unsetenv-all --env TERM=abc --rm $IMAGE /bin/printenv
-    is "$output" ".*TERM=abc" "missing TERM environment variable despite TERM being set on commandline"
+    assert "$output" =~ "TERM=abc" \
+           "missing TERM environment variable despite TERM being set on commandline"
 }
 
 @test "podman run - no /etc/hosts" {
+    if [[ -z "$container" ]]; then
+        skip "Test is too dangerous to run in a non-container environment"
+    fi
     skip_if_rootless "cannot move /etc/hosts file as a rootless user"
-    tmpfile=$PODMAN_TMPDIR/hosts
-    mv /etc/hosts $tmpfile
+
+    local hosts_tmp=/etc/hosts.RENAME-ME-BACK-TO-JUST-HOSTS
+    if [[ -e $hosts_tmp ]]; then
+        die "Internal error: leftover backup hosts file: $hosts_tmp"
+    fi
+    mv /etc/hosts $hosts_tmp
     run_podman '?' run --rm --add-host "foo.com:1.2.3.4" $IMAGE cat "/etc/hosts"
-    mv $tmpfile /etc/hosts
-    is "$status" 0                   "podman run without /etc/hosts file should work"
-    is "$output" "1.2.3.4 foo.com.*" "users can add hosts even without /etc/hosts"
+    mv $hosts_tmp /etc/hosts
+    assert "$status" = 0 \
+           "podman run without /etc/hosts file should work"
+    assert "$output" =~ "^1\.2\.3\.4 foo.com.*" \
+           "users can add hosts even without /etc/hosts"
 }
 
 # rhbz#1854566 : $IMAGE has incorrect permission 555 on the root '/' filesystem

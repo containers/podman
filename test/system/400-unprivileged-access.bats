@@ -128,9 +128,7 @@ EOF
     # number of links, major, and minor (see below for why). Do it all
     # in one go, to avoid multiple podman-runs
     run_podman '?' run --rm $IMAGE stat -c'%n:%F:%h:%T:%t' /dev/null ${subset[@]}
-    if [[ $status -gt 1 ]]; then
-        die "Unexpected exit status $status: expected 0 or 1"
-    fi
+    assert $status -le 1 "stat exit status: expected 0 or 1"
 
     local devnull=
     for result in "${lines[@]}"; do

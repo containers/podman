@@ -98,9 +98,8 @@ RUN sleep 30
 EOF
     local t1=$SECONDS
     local delta_t=$((t1 - t0))
-    if [[ $delta_t -gt 10 ]]; then
-        die "podman build did not get killed within 10 seconds (actual time: $delta_t seconds)"
-    fi
+    assert $delta_t -le 10 \
+           "podman build did not get killed within 10 seconds"
 
     run_podman ps -a
     is "${#lines[@]}" "1" "podman ps -a does not see buildah containers"

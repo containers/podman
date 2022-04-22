@@ -59,7 +59,7 @@ function teardown() {
     skip_if_remote "CONTAINERS_CONF only effects server side"
     image="i.do/not/exist:image"
     tmpdir=$PODMAN_TMPDIR/pod-test
-    run mkdir -p $tmpdir
+    mkdir -p $tmpdir
     containersconf=$tmpdir/containers.conf
     cat >$containersconf <<EOF
 [engine]
@@ -86,9 +86,7 @@ EOF
 
     # (Assert that output is formatted, not a one-line blob: #8021)
     run_podman pod inspect $podname
-    if [[ "${#lines[*]}" -lt 10 ]]; then
-        die "Output from 'pod inspect' is only ${#lines[*]} lines; see #8011"
-    fi
+    assert "${#lines[*]}" -ge 10 "Output from 'pod inspect'; see #8011"
 
     # Randomly-assigned port in the 5xxx range
     port=$(random_free_port)
@@ -322,10 +320,11 @@ EOF
 
     run_podman --noout pod create --name $pod_name --infra-name "$infra_name" --infra-image "$infra_image"
     is "$output" "" "output from pod create should be empty"
-    run_podman '?' pod create --infra-name "$infra_name"
-    if [ $status -eq 0 ]; then
-        die "Podman should fail when user try to create two pods with the same infra-name value"
-    fi
+
+    run_podman 125 pod create --infra-name "$infra_name"
+    assert "$output" =~ "^Error: .*: the container name \"$infra_name\" is already in use by .* You have to remove that container to be able to reuse that name.: that name is already in use" \
+           "Trying to create two pods with same infra-name"
+
     run_podman pod rm -f $pod_name
     run_podman rmi $infra_image
 }
