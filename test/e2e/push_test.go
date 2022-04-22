@@ -220,6 +220,7 @@ var _ = Describe("Podman push", func() {
 
 		if setup.LineInOutputContains("Active: inactive") {
 			setup = SystemExec("systemctl", []string{"start", "docker"})
+			Expect(setup).Should(Exit(0))
 			defer func() {
 				stop := SystemExec("systemctl", []string{"stop", "docker"})
 				Expect(stop).Should(Exit(0))

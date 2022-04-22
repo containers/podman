@@ -139,7 +139,7 @@ func getStreamURL(streamType string) url2.URL {
 
 // This should get Exported and stay put as it will apply to all fcos downloads
 // getFCOS parses fedoraCoreOS's stream and returns the image download URL and the release version
-func getFCOSDownload(imageStream string) (*fcosDownloadInfo, error) {
+func getFCOSDownload(imageStream string) (*fcosDownloadInfo, error) { // nolint:staticcheck
 	var (
 		fcosstable stream.Stream
 		altMeta    release.Release
@@ -149,6 +149,8 @@ func getFCOSDownload(imageStream string) (*fcosDownloadInfo, error) {
 	// This is being hard set to testing. Once podman4 is in the
 	// fcos trees, we should remove it and re-release at least on
 	// macs.
+	// TODO: remove when podman4.0 is in coreos
+	// nolint:staticcheck
 	imageStream = "podman-testing"
 
 	switch imageStream {

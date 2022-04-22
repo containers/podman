@@ -6,12 +6,12 @@ import (
 	"time"
 
 	sig "github.com/containers/podman/v4/pkg/signal"
-	"golang.org/x/crypto/ssh/terminal"
 	"golang.org/x/sys/windows"
+	"golang.org/x/term"
 )
 
-func makeRawTerm(stdin *os.File) (*terminal.State, error) {
-	state, err := terminal.MakeRaw(int(stdin.Fd()))
+func makeRawTerm(stdin *os.File) (*term.State, error) {
+	state, err := term.MakeRaw(int(stdin.Fd()))
 	if err != nil {
 		return nil, err
 	}
@@ -51,7 +51,7 @@ func notifyWinChange(ctx context.Context, winChange chan os.Signal, stdin *os.Fi
 				break
 			}
 
-			w, h, err := terminal.GetSize(int(stdout.Fd()))
+			w, h, err := term.GetSize(int(stdout.Fd()))
 			if err != nil {
 				continue
 			}
@@ -65,5 +65,5 @@ func notifyWinChange(ctx context.Context, winChange chan os.Signal, stdin *os.Fi
 }
 
 func getTermSize(stdin *os.File, stdout *os.File) (width, height int, err error) {
-	return terminal.GetSize(int(stdout.Fd()))
+	return term.GetSize(int(stdout.Fd()))
 }

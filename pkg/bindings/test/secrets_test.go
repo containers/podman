@@ -64,7 +64,7 @@ var _ = Describe("Podman secrets", func() {
 		Expect(data.Spec.Name).To(Equal(name))
 
 		// inspecting non-existent secret should fail
-		data, err = secrets.Inspect(connText, "notasecret", nil)
+		_, err = secrets.Inspect(connText, "notasecret", nil)
 		code, _ := bindings.CheckResponseCode(err)
 		Expect(code).To(BeNumerically("==", http.StatusNotFound))
 	})

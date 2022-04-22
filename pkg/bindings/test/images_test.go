@@ -103,7 +103,7 @@ var _ = Describe("Podman images", func() {
 		Expect(len(errs)).To(BeZero())
 
 		Expect(inspectData.ID).To(Equal(response.Deleted[0]))
-		inspectData, err = images.GetImage(bt.conn, busybox.shortName, nil)
+		_, err = images.GetImage(bt.conn, busybox.shortName, nil)
 		code, _ := bindings.CheckResponseCode(err)
 		Expect(code).To(BeNumerically("==", http.StatusNotFound))
 
@@ -118,7 +118,7 @@ var _ = Describe("Podman images", func() {
 
 		// try to remove the image "alpine". This should fail since we are not force
 		// deleting hence image cannot be deleted until the container is deleted.
-		response, errs = images.Remove(bt.conn, []string{alpine.shortName}, nil)
+		_, errs = images.Remove(bt.conn, []string{alpine.shortName}, nil)
 		code, _ = bindings.CheckResponseCode(errs[0])
 		// FIXME FIXME FIXME: #12441: another invalid error
 		// FIXME FIXME FIXME: this time msg="Image used by SHA: ..."
@@ -126,7 +126,7 @@ var _ = Describe("Podman images", func() {
 
 		// Removing the image "alpine" where force = true
 		options := new(images.RemoveOptions).WithForce(true)
-		response, errs = images.Remove(bt.conn, []string{alpine.shortName}, options)
+		_, errs = images.Remove(bt.conn, []string{alpine.shortName}, options)
 		Expect(errs).To(Or(HaveLen(0), BeNil()))
 		// To be extra sure, check if the previously created container
 		// is gone as well.
@@ -135,11 +135,11 @@ var _ = Describe("Podman images", func() {
 		Expect(code).To(BeNumerically("==", http.StatusNotFound))
 
 		// Now make sure both images are gone.
-		inspectData, err = images.GetImage(bt.conn, busybox.shortName, nil)
+		_, err = images.GetImage(bt.conn, busybox.shortName, nil)
 		code, _ = bindings.CheckResponseCode(err)
 		Expect(code).To(BeNumerically("==", http.StatusNotFound))
 
-		inspectData, err = images.GetImage(bt.conn, alpine.shortName, nil)
+		_, err = images.GetImage(bt.conn, alpine.shortName, nil)
 		code, _ = bindings.CheckResponseCode(err)
 		Expect(code).To(BeNumerically("==", http.StatusNotFound))
 	})
@@ -230,8 +230,8 @@ var _ = Describe("Podman images", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(exists).To(BeFalse())
 		f, err := os.Open(filepath.Join(ImageCacheDir, alpine.tarballName))
-		defer f.Close()
 		Expect(err).ToNot(HaveOccurred())
+		defer f.Close()
 		names, err := images.Load(bt.conn, f)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(names.Names[0]).To(Equal(alpine.name))
@@ -252,8 +252,6 @@ var _ = Describe("Podman images", func() {
 		Expect(names.Names[0]).To(Equal(alpine.name))
 
 		// load with a bad repo name should trigger a 500
-		f, err = os.Open(filepath.Join(ImageCacheDir, alpine.tarballName))
-		Expect(err).ToNot(HaveOccurred())
 		_, errs = images.Remove(bt.conn, []string{alpine.name}, nil)
 		Expect(len(errs)).To(BeZero())
 		exists, err = images.Exists(bt.conn, alpine.name, nil)
@@ -265,8 +263,8 @@ var _ = Describe("Podman images", func() {
 		// Export an image
 		exportPath := filepath.Join(bt.tempDirPath, alpine.tarballName)
 		w, err := os.Create(filepath.Join(bt.tempDirPath, alpine.tarballName))
-		defer w.Close()
 		Expect(err).ToNot(HaveOccurred())
+		defer w.Close()
 		err = images.Export(bt.conn, []string{alpine.name}, w, nil)
 		Expect(err).ToNot(HaveOccurred())
 		_, err = os.Stat(exportPath)
@@ -283,8 +281,8 @@ var _ = Describe("Podman images", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(exists).To(BeFalse())
 		f, err := os.Open(filepath.Join(ImageCacheDir, alpine.tarballName))
-		defer f.Close()
 		Expect(err).ToNot(HaveOccurred())
+		defer f.Close()
 		changes := []string{"CMD /bin/foobar"}
 		testMessage := "test_import"
 		options := new(images.ImportOptions).WithMessage(testMessage).WithChanges(changes).WithReference(alpine.name)

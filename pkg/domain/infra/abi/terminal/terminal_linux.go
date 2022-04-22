@@ -10,13 +10,13 @@ import (
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/crypto/ssh/terminal"
+	"golang.org/x/term"
 )
 
 // ExecAttachCtr execs and attaches to a container
 func ExecAttachCtr(ctx context.Context, ctr *libpod.Container, execConfig *libpod.ExecConfig, streams *define.AttachStreams) (int, error) {
 	var resize chan define.TerminalSize
-	haveTerminal := terminal.IsTerminal(int(os.Stdin.Fd()))
+	haveTerminal := term.IsTerminal(int(os.Stdin.Fd()))
 
 	// Check if we are attached to a terminal. If we are, generate resize
 	// events, and set the terminal to raw mode
@@ -42,7 +42,7 @@ func ExecAttachCtr(ctx context.Context, ctr *libpod.Container, execConfig *libpo
 func StartAttachCtr(ctx context.Context, ctr *libpod.Container, stdout, stderr, stdin *os.File, detachKeys string, sigProxy bool, startContainer bool) error { //nolint: interfacer
 	resize := make(chan define.TerminalSize)
 
-	haveTerminal := terminal.IsTerminal(int(os.Stdin.Fd()))
+	haveTerminal := term.IsTerminal(int(os.Stdin.Fd()))
 
 	// Check if we are attached to a terminal. If we are, generate resize
 	// events, and set the terminal to raw mode

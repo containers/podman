@@ -32,7 +32,6 @@ linters:
     - predeclared
     - thelper
     - ifshort
-    - staticcheck
     - forbidigo
     - exhaustive
     - unparam

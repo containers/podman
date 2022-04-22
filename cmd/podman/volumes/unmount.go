@@ -37,7 +37,6 @@ func volumeUnmount(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	for _, r := range reports {
-		var errs utils.OutputErrors
 		if r.Err == nil {
 			fmt.Println(r.Id)
 		} else {

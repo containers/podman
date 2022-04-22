@@ -110,9 +110,8 @@ var _ = Describe("Common functions test", func() {
 		Expect(err).To(BeNil(), "Failed to write JSON to file.")
 
 		read, err := os.Open("/tmp/testJSON")
-		defer read.Close()
-
 		Expect(err).To(BeNil(), "Can not find the JSON file after we write it.")
+		defer read.Close()
 
 		bytes, _ := ioutil.ReadAll(read)
 		json.Unmarshal(bytes, compareData)

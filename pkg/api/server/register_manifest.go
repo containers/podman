@@ -167,7 +167,7 @@ func (s *APIServer) registerManifestHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/BadParamError"
 	//   500:
 	//     $ref: "#/responses/InternalError"
-	v3.Handle("/{name:.*}/add", s.APIHandler(libpod.ManifestAdd)).Methods(http.MethodPost)
+	v3.Handle("/{name:.*}/add", s.APIHandler(libpod.ManifestAddV3)).Methods(http.MethodPost)
 	// swagger:operation DELETE /libpod/manifests/{name} manifests ManifestDeleteV3Libpod
 	// ---
 	// summary: Remove image from a manifest list
@@ -197,7 +197,7 @@ func (s *APIServer) registerManifestHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/NoSuchManifest"
 	//   500:
 	//     $ref: "#/responses/InternalError"
-	v3.Handle("/{name:.*}", s.APIHandler(libpod.ManifestRemoveDigest)).Methods(http.MethodDelete)
+	v3.Handle("/{name:.*}", s.APIHandler(libpod.ManifestRemoveDigestV3)).Methods(http.MethodDelete)
 	// swagger:operation DELETE /libpod/manifests/{name} manifests ManifestDeleteLibpod
 	// ---
 	// summary: Delete manifest list

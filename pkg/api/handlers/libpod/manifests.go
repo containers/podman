@@ -100,10 +100,10 @@ func ManifestCreate(w http.ResponseWriter, r *http.Request) {
 	// gather all images for manifest list
 	var images []string
 	if len(query.Images) > 0 {
-		images = append(query.Images)
+		images = query.Images
 	}
 	if len(body.Images) > 0 {
-		images = append(body.Images)
+		images = body.Images
 	}
 
 	id, err := imageEngine.ManifestAdd(r.Context(), query.Name, images, body.ManifestAddOptions)
@@ -153,10 +153,10 @@ func ManifestInspect(w http.ResponseWriter, r *http.Request) {
 	utils.WriteResponse(w, http.StatusOK, schema2List)
 }
 
-// ManifestAdd remove digest from manifest list
+// ManifestAddV3 remove digest from manifest list
 //
-// Deprecated: As of 4.0.0 use ManifestModify instead
-func ManifestAdd(w http.ResponseWriter, r *http.Request) {
+// As of 4.0.0 use ManifestModify instead
+func ManifestAddV3(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 
 	// Wrapper to support 3.x with 4.x libpod
@@ -206,10 +206,10 @@ func ManifestAdd(w http.ResponseWriter, r *http.Request) {
 	utils.WriteResponse(w, http.StatusOK, handlers.IDResponse{ID: newID})
 }
 
-// ManifestRemoveDigest remove digest from manifest list
+// ManifestRemoveDigestV3 remove digest from manifest list
 //
-// Deprecated: As of 4.0.0 use ManifestModify instead
-func ManifestRemoveDigest(w http.ResponseWriter, r *http.Request) {
+// As of 4.0.0 use ManifestModify instead
+func ManifestRemoveDigestV3(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
 	query := struct {
@@ -242,7 +242,7 @@ func ManifestRemoveDigest(w http.ResponseWriter, r *http.Request) {
 
 // ManifestPushV3 push image to registry
 //
-// Deprecated: As of 4.0.0 use ManifestPush instead
+// As of 4.0.0 use ManifestPush instead
 func ManifestPushV3(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)

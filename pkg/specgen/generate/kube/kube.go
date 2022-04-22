@@ -82,7 +82,7 @@ func ToPodOpt(ctx context.Context, podName string, p entities.PodCreateOptions, 
 		}
 		// dns options
 		if options := dnsConfig.Options; len(options) > 0 {
-			dnsOptions := make([]string, 0)
+			dnsOptions := make([]string, 0, len(options))
 			for _, opts := range options {
 				d := opts.Name
 				if opts.Value != nil {
@@ -90,6 +90,7 @@ func ToPodOpt(ctx context.Context, podName string, p entities.PodCreateOptions, 
 				}
 				dnsOptions = append(dnsOptions, d)
 			}
+			p.Net.DNSOptions = dnsOptions
 		}
 	}
 	return p, nil
@@ -281,9 +282,6 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 		annotations = opts.Annotations
 	}
 	if opts.PodInfraID != "" {
-		if annotations == nil {
-
-		}
 		annotations[ann.SandboxID] = opts.PodInfraID
 		annotations[ann.ContainerType] = ann.ContainerTypeContainer
 	}

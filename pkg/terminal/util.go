@@ -14,7 +14,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/knownhosts"
-	"golang.org/x/crypto/ssh/terminal"
+	"golang.org/x/term"
 )
 
 var (
@@ -29,9 +29,9 @@ var (
 // Additionally, all input after `<secret>/n` is queued to podman command.
 func ReadPassword(prompt string) (pw []byte, err error) {
 	fd := int(os.Stdin.Fd())
-	if terminal.IsTerminal(fd) {
+	if term.IsTerminal(fd) {
 		fmt.Fprint(os.Stderr, prompt)
-		pw, err = terminal.ReadPassword(fd)
+		pw, err = term.ReadPassword(fd)
 		fmt.Fprintln(os.Stderr)
 		return
 	}
