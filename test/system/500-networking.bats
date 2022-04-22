@@ -83,8 +83,7 @@ load helpers
 }
 
 # Issue #5466 - port-forwarding doesn't work with this option and -d
-@test "podman networking: port with --userns=keep-id" {
-    skip_if_not_rootless "--userns=keep-id only works in rootless mode"
+@test "podman networking: port with --userns=keep-id for rootless or --uidmap=* for rootfull" {
     for cidr in "" "$(random_rfc1918_subnet).0/24"; do
         myport=$(random_free_port 52000-52999)
         if [[ -z $cidr ]]; then
@@ -106,7 +105,9 @@ load helpers
         # remote IP is not 127.0.0.1 (podman PR #9052).
         # We could get more parseable output by using $NCAT_REMOTE_ADDR,
         # but busybox nc doesn't support that.
-        run_podman run -d --userns=keep-id $network_arg -p 127.0.0.1:$myport:$myport \
+        userns="--userns=keep-id"
+        is_rootless || userns="--uidmap=0:1111111:65536 --gidmap=0:1111111:65536"
+        run_podman run -d ${userns} $network_arg -p 127.0.0.1:$myport:$myport \
                    $IMAGE nc -l -n -v -p $myport
         cid="$output"
 
