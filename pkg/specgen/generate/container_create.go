@@ -293,7 +293,7 @@ func createContainerOptions(ctx context.Context, rt *libpod.Runtime, s *specgen.
 				"/usr/sbin/init":       true,
 				"/usr/local/sbin/init": true,
 			}
-			// Grab last command incase this is launched from a shell
+			// Grab last command in case this is launched from a shell
 			cmd := command
 			if len(command) > 2 {
 				// Podman build will add "/bin/sh" "-c" to

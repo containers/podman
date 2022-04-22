@@ -38,7 +38,7 @@ Unmount image with a given ID
 podman image unmount imageID
 ```
 
-Unmount multiple images wit given IDs
+Unmount multiple images with given IDs
 ```
 podman image unmount imageID1 imageID2 imageID3
 ```
