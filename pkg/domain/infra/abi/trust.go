@@ -84,7 +84,7 @@ func (ir *ImageEngine) SetTrust(ctx context.Context, args []string, options enti
 		policyContentStruct.Default = newReposContent
 	} else {
 		if len(policyContentStruct.Default) == 0 {
-			return errors.Errorf("Default trust policy must be set.")
+			return errors.Errorf("default trust policy must be set")
 		}
 		registryExists := false
 		for transport, transportval := range policyContentStruct.Transports {

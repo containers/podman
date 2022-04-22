@@ -26,8 +26,8 @@ import (
 // These should eventually be moved into machine/qemu as
 // they are specific to running qemu
 var (
-	artifact string = "qemu"
-	Format   string = "qcow2.xz"
+	artifact = "qemu"
+	Format   = "qcow2.xz"
 )
 
 const (

@@ -51,7 +51,6 @@ linters:
     - gosec
     - maligned
     - gomoddirectives
-    - revive
     - containedctx
     - contextcheck
     - cyclop
@@ -61,6 +60,10 @@ linters:
     - varnamelen
     - maintidx
     - nilnil
+    # deprecated linters
+    - golint # replaced by revive
+    - scopelint # replaced by exportloopref
+    - interfacer
 linters-settings:
   errcheck:
     check-blank: false

@@ -49,7 +49,7 @@ type InMemoryManager struct {
 // of locks.
 func NewInMemoryManager(numLocks uint32) (Manager, error) {
 	if numLocks == 0 {
-		return nil, errors.Errorf("must provide a non-zero number of locks!")
+		return nil, errors.Errorf("must provide a non-zero number of locks")
 	}
 
 	manager := new(InMemoryManager)

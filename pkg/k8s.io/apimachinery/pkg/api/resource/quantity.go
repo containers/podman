@@ -138,7 +138,7 @@ const (
 
 var (
 	// Errors that could happen while parsing a string.
-	// nolint:golint
+	//nolint:revive
 	ErrFormatWrong = errors.New("quantities must match the regular expression '" + splitREString + "'")
 	ErrNumeric     = errors.New("unable to parse numeric part of quantity")
 	ErrSuffix      = errors.New("unable to parse quantity's suffix")

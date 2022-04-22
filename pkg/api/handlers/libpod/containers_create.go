@@ -45,7 +45,7 @@ func CreateContainer(w http.ResponseWriter, r *http.Request) {
 	// need to check for memory limit to adjust swap
 	if sg.ResourceLimits != nil && sg.ResourceLimits.Memory != nil {
 		s := ""
-		var l int64 = 0
+		var l int64
 		if sg.ResourceLimits.Memory.Swap != nil {
 			s = strconv.Itoa(int(*sg.ResourceLimits.Memory.Swap))
 		}

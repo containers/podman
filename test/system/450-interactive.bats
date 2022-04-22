@@ -75,7 +75,7 @@ function teardown() {
 @test "podman load - will not read from tty" {
     run_podman 125 load <$PODMAN_TEST_PTY
     is "$output" \
-       "Error: cannot read from terminal. Use command-line redirection or the --input flag." \
+       "Error: cannot read from terminal, use command-line redirection or the --input flag" \
        "Diagnostic from 'podman load' without redirection or -i"
 }
 

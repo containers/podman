@@ -17,7 +17,7 @@ const (
 	kubeFilePermission = 0644
 )
 
-// nolint:golint
+//nolint:revive
 type KubeVolumeType int
 
 const (
@@ -26,7 +26,7 @@ const (
 	KubeVolumeTypeConfigMap KubeVolumeType = iota
 )
 
-// nolint:golint
+//nolint:revive
 type KubeVolume struct {
 	// Type of volume to create
 	Type KubeVolumeType

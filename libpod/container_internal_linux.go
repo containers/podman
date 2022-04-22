@@ -3220,7 +3220,7 @@ func (c *Container) getOCICgroupPath() (string, error) {
 }
 
 func (c *Container) copyTimezoneFile(zonePath string) (string, error) {
-	var localtimeCopy string = filepath.Join(c.state.RunDir, "localtime")
+	localtimeCopy := filepath.Join(c.state.RunDir, "localtime")
 	file, err := os.Stat(zonePath)
 	if err != nil {
 		return "", err

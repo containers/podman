@@ -222,14 +222,14 @@ func ParseNamespace(ns string) (Namespace, error) {
 	case strings.HasPrefix(ns, "ns:"):
 		split := strings.SplitN(ns, ":", 2)
 		if len(split) != 2 {
-			return toReturn, errors.Errorf("must provide a path to a namespace when specifying ns:")
+			return toReturn, errors.Errorf("must provide a path to a namespace when specifying \"ns:\"")
 		}
 		toReturn.NSMode = Path
 		toReturn.Value = split[1]
 	case strings.HasPrefix(ns, "container:"):
 		split := strings.SplitN(ns, ":", 2)
 		if len(split) != 2 {
-			return toReturn, errors.Errorf("must provide name or ID or a container when specifying container:")
+			return toReturn, errors.Errorf("must provide name or ID or a container when specifying \"container:\"")
 		}
 		toReturn.NSMode = FromContainer
 		toReturn.Value = split[1]
@@ -337,14 +337,14 @@ func ParseNetworkNamespace(ns string, rootlessDefaultCNI bool) (Namespace, map[s
 	case strings.HasPrefix(ns, "ns:"):
 		split := strings.SplitN(ns, ":", 2)
 		if len(split) != 2 {
-			return toReturn, nil, errors.Errorf("must provide a path to a namespace when specifying ns:")
+			return toReturn, nil, errors.Errorf("must provide a path to a namespace when specifying \"ns:\"")
 		}
 		toReturn.NSMode = Path
 		toReturn.Value = split[1]
 	case strings.HasPrefix(ns, string(FromContainer)+":"):
 		split := strings.SplitN(ns, ":", 2)
 		if len(split) != 2 {
-			return toReturn, nil, errors.Errorf("must provide name or ID or a container when specifying container:")
+			return toReturn, nil, errors.Errorf("must provide name or ID or a container when specifying \"container:\"")
 		}
 		toReturn.NSMode = FromContainer
 		toReturn.Value = split[1]
@@ -415,14 +415,14 @@ func ParseNetworkFlag(networks []string) (Namespace, map[string]types.PerNetwork
 	case strings.HasPrefix(ns, "ns:"):
 		split := strings.SplitN(ns, ":", 2)
 		if len(split) != 2 {
-			return toReturn, nil, nil, errors.Errorf("must provide a path to a namespace when specifying ns:")
+			return toReturn, nil, nil, errors.Errorf("must provide a path to a namespace when specifying \"ns:\"")
 		}
 		toReturn.NSMode = Path
 		toReturn.Value = split[1]
 	case strings.HasPrefix(ns, string(FromContainer)+":"):
 		split := strings.SplitN(ns, ":", 2)
 		if len(split) != 2 {
-			return toReturn, nil, nil, errors.Errorf("must provide name or ID or a container when specifying container:")
+			return toReturn, nil, nil, errors.Errorf("must provide name or ID or a container when specifying \"container:\"")
 		}
 		toReturn.NSMode = FromContainer
 		toReturn.Value = split[1]
