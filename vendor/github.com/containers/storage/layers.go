@@ -683,7 +683,7 @@ func (r *layerStore) PutAdditionalLayer(id string, parentLayer *Layer, names []s
 		r.bycompressedsum[layer.CompressedDigest] = append(r.bycompressedsum[layer.CompressedDigest], layer.ID)
 	}
 	if layer.UncompressedDigest != "" {
-		r.byuncompressedsum[layer.CompressedDigest] = append(r.byuncompressedsum[layer.CompressedDigest], layer.ID)
+		r.byuncompressedsum[layer.UncompressedDigest] = append(r.byuncompressedsum[layer.UncompressedDigest], layer.ID)
 	}
 	if err := r.Save(); err != nil {
 		r.driver.Remove(id)
@@ -866,6 +866,14 @@ func (r *layerStore) Put(id string, parentLayer *Layer, names []string, mountLab
 				return nil, -1, err
 			}
 			delete(layer.Flags, incompleteFlag)
+		} else {
+			// applyDiffWithOptions in the `diff != nil` case handles this bit for us
+			if layer.CompressedDigest != "" {
+				r.bycompressedsum[layer.CompressedDigest] = append(r.bycompressedsum[layer.CompressedDigest], layer.ID)
+			}
+			if layer.UncompressedDigest != "" {
+				r.byuncompressedsum[layer.UncompressedDigest] = append(r.byuncompressedsum[layer.UncompressedDigest], layer.ID)
+			}
 		}
 		err = r.Save()
 		if err != nil {

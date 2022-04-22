@@ -6,7 +6,6 @@ import (
 	"context"
 	"encoding/json"
 	"io"
-	"io/ioutil"
 	"os"
 	"path"
 	"sync"
@@ -170,7 +169,7 @@ func (s *Source) prepareLayerData(tarManifest *ManifestItem, parsedConfig *manif
 
 			uncompressedSize := h.Size
 			if isCompressed {
-				uncompressedSize, err = io.Copy(ioutil.Discard, uncompressedStream)
+				uncompressedSize, err = io.Copy(io.Discard, uncompressedStream)
 				if err != nil {
 					return nil, errors.Wrapf(err, "reading %s to find its size", layerPath)
 				}
@@ -263,7 +262,7 @@ func (s *Source) GetBlob(ctx context.Context, info types.BlobInfo, cache types.B
 	}
 
 	if info.Digest == s.configDigest { // FIXME? Implement a more general algorithm matching instead of assuming sha256.
-		return ioutil.NopCloser(bytes.NewReader(s.configBytes)), int64(len(s.configBytes)), nil
+		return io.NopCloser(bytes.NewReader(s.configBytes)), int64(len(s.configBytes)), nil
 	}
 
 	if li, ok := s.knownLayers[info.Digest]; ok { // diffID is a digest of the uncompressed tarball,

@@ -69,44 +69,44 @@ local-cross: ## cross build the binaries for arm, darwin, and\nfreebsd
 	done
 
 cross: ## cross build the binaries for arm, darwin, and\nfreebsd using VMs
-	$(RUNINVM) make local-$@
+	$(RUNINVM) $(MAKE) local-$@
 
 docs: install.tools ## build the docs on the host
 	$(MAKE) -C docs docs
 
 gccgo: ## build using gccgo using VMs
-	$(RUNINVM) make local-$@
+	$(RUNINVM) $(MAKE) local-$@
 
 test: local-binary ## build the binaries and run the tests using VMs
-	$(RUNINVM) make local-binary local-cross local-test-unit local-test-integration
+	$(RUNINVM) $(MAKE) local-binary local-cross local-test-unit local-test-integration
 
 local-test-unit: local-binary ## run the unit tests on the host (requires\nsuperuser privileges)
 	@$(GO) test $(MOD_VENDOR) $(BUILDFLAGS) $(TESTFLAGS) $(shell $(GO) list ./... | grep -v ^$(PACKAGE)/vendor)
 
 test-unit: local-binary ## run the unit tests using VMs
-	$(RUNINVM) make local-$@
+	$(RUNINVM) $(MAKE) local-$@
 
 local-test-integration: local-binary ## run the integration tests on the host (requires\nsuperuser privileges)
 	@cd tests; ./test_runner.bash
 
 test-integration: local-binary ## run the integration tests using VMs
-	$(RUNINVM) make local-$@
+	$(RUNINVM) $(MAKE) local-$@
 
 local-validate: ## validate DCO and gofmt on the host
 	@./hack/git-validation.sh
 	@./hack/gofmt.sh
 
 validate: ## validate DCO, gofmt, ./pkg/ isolation, golint,\ngo vet and vendor using VMs
-	$(RUNINVM) make local-$@
+	$(RUNINVM) $(MAKE) local-$@
 
 install.tools:
-	make -C tests/tools
+	$(MAKE) -C tests/tools
 
 $(FFJSON):
-	make -C tests/tools
+	$(MAKE) -C tests/tools
 
 install.docs: docs
-	make -C docs install
+	$(MAKE) -C docs install
 
 install: install.docs
 

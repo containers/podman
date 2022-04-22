@@ -37,3 +37,8 @@ func getMountpoint(id string) string {
 
 	return id[:maxlen]
 }
+
+func detachUnmount(mountpoint string) error {
+	// FreeBSD doesn't have an equivalent to MNT_DETACH
+	return unix.Unmount(mountpoint, 0)
+}

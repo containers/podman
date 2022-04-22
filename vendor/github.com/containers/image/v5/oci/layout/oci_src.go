@@ -3,7 +3,6 @@ package layout
 import (
 	"context"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
@@ -93,7 +92,7 @@ func (s *ociImageSource) GetManifest(ctx context.Context, instanceDigest *digest
 		return nil, "", err
 	}
 
-	m, err := ioutil.ReadFile(manifestPath)
+	m, err := os.ReadFile(manifestPath)
 	if err != nil {
 		return nil, "", err
 	}

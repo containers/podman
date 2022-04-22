@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
@@ -592,7 +591,7 @@ func (d *dockerImageDestination) putOneSignature(url *url.URL, signature []byte)
 		if err != nil {
 			return err
 		}
-		err = ioutil.WriteFile(url.Path, signature, 0644)
+		err = os.WriteFile(url.Path, signature, 0644)
 		if err != nil {
 			return err
 		}

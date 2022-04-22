@@ -126,6 +126,7 @@ github.com/OpenPeeDeeP/depguard v1.0.1/go.mod h1:xsIw86fROiiwelg+jB2uM9PiKihMMmU
 github.com/ProtonMail/go-crypto v0.0.0-20210428141323-04723f9f07d7/go.mod h1:z4/9nQmJSSwwds7ejkxaJwO37dru3geImFUdJlaLzQo=
 github.com/ProtonMail/go-crypto v0.0.0-20210920160938-87db9fbc61c7/go.mod h1:z4/9nQmJSSwwds7ejkxaJwO37dru3geImFUdJlaLzQo=
 github.com/ProtonMail/go-crypto v0.0.0-20220113124808-70ae35bab23f/go.mod h1:z4/9nQmJSSwwds7ejkxaJwO37dru3geImFUdJlaLzQo=
+github.com/ProtonMail/go-crypto v0.0.0-20220407094043-a94812496cf5/go.mod h1:z4/9nQmJSSwwds7ejkxaJwO37dru3geImFUdJlaLzQo=
 github.com/PuerkitoBio/purell v1.0.0/go.mod h1:c11w/QuzBsJSee3cPx9rAFu61PvFxuPbtSwDGJws/X0=
 github.com/PuerkitoBio/purell v1.1.1/go.mod h1:c11w/QuzBsJSee3cPx9rAFu61PvFxuPbtSwDGJws/X0=
 github.com/PuerkitoBio/urlesc v0.0.0-20160726150825-5bd2802263f2/go.mod h1:uGdkoq3SwY9Y+13GIhn11/XLaGBb4BfwItxLd5jeuXE=
@@ -356,14 +357,14 @@ github.com/containernetworking/plugins v1.1.1/go.mod h1:Sr5TH/eBsGLXK/h71HeLfX19
 github.com/containers/buildah v1.25.2-0.20220406205807-5b8e79118057 h1:lKSxhMBpcHyyQrj2QJYzcm56uiSeibRdSL2KoppF6rg=
 github.com/containers/buildah v1.25.2-0.20220406205807-5b8e79118057/go.mod h1:iSoopbYRb6K4b5c3hXgXNkGTI/T085t2+XiGjceud94=
 github.com/containers/common v0.47.5-0.20220331143923-5f14ec785c18/go.mod h1:Vr2Fn6EdzD6JNAbz8L8bTv3uWLv2p31Ih2O3EAK6Hyc=
-github.com/containers/common v0.47.5-0.20220421072908-49f1a40067b2 h1:NadhQUF7FRaZkDeW7xDcU3nxk7kV6b2yRmwGWDp+BNY=
-github.com/containers/common v0.47.5-0.20220421072908-49f1a40067b2/go.mod h1:BBq6jdyjXvJh69YzQPvIuZjBho0MRdA0XGaqBnsO+1Y=
+github.com/containers/common v0.47.5-0.20220421111103-112a47964ddb h1:TBrx1KcmWcesByqTb4Cq7F6bg7bDOjqCf6+6rbi8x4k=
+github.com/containers/common v0.47.5-0.20220421111103-112a47964ddb/go.mod h1:r80nWTmJrG9EoLkuI6WfbWQDUNQVqkVuB8Oaj1VVjOA=
 github.com/containers/conmon v2.0.20+incompatible h1:YbCVSFSCqFjjVwHTPINGdMX1F6JXHGTUje2ZYobNrkg=
 github.com/containers/conmon v2.0.20+incompatible/go.mod h1:hgwZ2mtuDrppv78a/cOBNiCm6O0UMWGx1mu7P00nu5I=
 github.com/containers/image/v5 v5.19.2-0.20220224100137-1045fb70b094/go.mod h1:XoYK6kE0dpazFNcuS+a8lra+QfbC6s8tzv+cUuCrZpE=
 github.com/containers/image/v5 v5.20.1-0.20220404163228-d03e80fc66b3/go.mod h1:2nEPM0WuinC/0ssPsMv5Iy8YaRueUUTmTp3C7bn5uro=
-github.com/containers/image/v5 v5.21.1-0.20220405081457-d1b64686e1d0 h1:Md1CckW9KSYkdtMdKG70Fc+YqCCVgT+HAr7NS9Ilf8E=
-github.com/containers/image/v5 v5.21.1-0.20220405081457-d1b64686e1d0/go.mod h1:JhGkIpC7vKBpLc6mTBE4S8cZUAD+8HgicsxYaLv6BsQ=
+github.com/containers/image/v5 v5.21.1-0.20220421124950-8527e238867c h1:hshgYt6RAs4L0KhOEc2/qLF++2MryOfAXvTWmxYu4v4=
+github.com/containers/image/v5 v5.21.1-0.20220421124950-8527e238867c/go.mod h1:qpUuaiE2mON6xMA0PRO9GteyH9+KT+C6WygZzL5RhnE=
 github.com/containers/libtrust v0.0.0-20200511145503-9c3a6c22cd9a h1:spAGlqziZjCJL25C6F1zsQY05tfCKE9F5YwtEWWe6hU=
 github.com/containers/libtrust v0.0.0-20200511145503-9c3a6c22cd9a/go.mod h1:9rfv8iPl1ZP7aqh9YA68wnZv2NUDbXdcdPHVz0pFbPY=
 github.com/containers/ocicrypt v1.0.1/go.mod h1:MeJDzk1RJHv89LjsH0Sp5KTY3ZYkjXO/C+bKAeWFIrc=
@@ -380,8 +381,8 @@ github.com/containers/storage v1.38.2/go.mod h1:INP0RPLHWBxx+pTsO5uiHlDUGHDFvWZP
 github.com/containers/storage v1.38.3-0.20220301151551-d06b0f81c0aa/go.mod h1:LkkL34WRi4dI4jt9Cp+ImdZi/P5i36glSHimT5CP5zM=
 github.com/containers/storage v1.39.0/go.mod h1:UAD0cKLouN4BOQRgZut/nMjrh/EnTCjSNPgp4ZuGWMs=
 github.com/containers/storage v1.39.1-0.20220330193934-f3200eb5a5d9/go.mod h1:IMa2AfBI+Fxxk2hQqLTGhpJX6z2pZS1/I785QJeUwUY=
-github.com/containers/storage v1.39.1-0.20220414183333-eea4e0f5f1f9 h1:cB2AvqxpfyqyyffXtDN0txJhD0lIaZWktbSRI92WpN4=
-github.com/containers/storage v1.39.1-0.20220414183333-eea4e0f5f1f9/go.mod h1:hFiHLMgNU0r3MiUpE97hEBaEKCN8fEIuEEBXoFC9eN0=
+github.com/containers/storage v1.39.1-0.20220421071128-4899f8265d63 h1:57UXh6fThYqCUJ6iFwHnlFNoWSWlXylkW4H1VRs05mM=
+github.com/containers/storage v1.39.1-0.20220421071128-4899f8265d63/go.mod h1:hFiHLMgNU0r3MiUpE97hEBaEKCN8fEIuEEBXoFC9eN0=
 github.com/coreos/bbolt v1.3.2/go.mod h1:iRUV2dpdMOn7Bo10OQBFzIJO9kkE559Wcmn+qkEiiKk=
 github.com/coreos/etcd v3.3.10+incompatible/go.mod h1:uF7uidLiAD3TWHmW31ZFd/JWoc32PjwdhPthX9715RE=
 github.com/coreos/etcd v3.3.13+incompatible/go.mod h1:uF7uidLiAD3TWHmW31ZFd/JWoc32PjwdhPthX9715RE=
@@ -994,7 +995,6 @@ github.com/mitchellh/mapstructure v0.0.0-20160808181253-ca63d7c062ee/go.mod h1:F
 github.com/mitchellh/mapstructure v1.1.2/go.mod h1:FVVH3fgwuzCH5S8UJGiWEs2h04kUh9fWfEaFds41c1Y=
 github.com/mitchellh/mapstructure v1.4.1/go.mod h1:bFUtVrKA4DC2yAKiSyO/QUcy7e+RRV2QTWOzhPopBRo=
 github.com/mitchellh/mapstructure v1.4.2/go.mod h1:bFUtVrKA4DC2yAKiSyO/QUcy7e+RRV2QTWOzhPopBRo=
-github.com/mitchellh/mapstructure v1.4.3 h1:OVowDSCllw/YjdLkam3/sm7wEtOy59d8ndGgCcyj8cs=
 github.com/mitchellh/mapstructure v1.4.3/go.mod h1:bFUtVrKA4DC2yAKiSyO/QUcy7e+RRV2QTWOzhPopBRo=
 github.com/mitchellh/osext v0.0.0-20151018003038-5e2d6d41470f/go.mod h1:OkQIRizQZAeMln+1tSwduZz7+Af5oFlKirV/MSYes2A=
 github.com/mitchellh/reflectwalk v1.0.0/go.mod h1:mSTlrgnPZtwu0c4WaC2kGObEpuNDbx0jmZXqmk4esnw=
@@ -1314,8 +1314,9 @@ github.com/stretchr/testify v1.7.1/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/
 github.com/subosito/gotenv v1.2.0/go.mod h1:N0PQaV/YGNqwC0u51sEeR/aUtSLEXKX9iv69rRypqCw=
 github.com/sylabs/release-tools v0.1.0/go.mod h1:pqP/z/11/rYMQ0OM/Nn7TxGijw7KfZwW9UolD/J1TUo=
 github.com/sylabs/sif/v2 v2.3.2/go.mod h1:IrLX2pzmQ2O4qgv5iy3HdKJcBNYds9DTMd9Je8A9tX4=
-github.com/sylabs/sif/v2 v2.4.2 h1:L4jcqeOF33JfSnH+8GJKC7/ooVpzpZ2K7wotGG4ZzqQ=
 github.com/sylabs/sif/v2 v2.4.2/go.mod h1:6gQvzNKRIqr4FS08XBfHpkpnxv9b7h58GLkSJ1zdK9A=
+github.com/sylabs/sif/v2 v2.6.0 h1:nrWbtSAavp4T6gETg/QgZXxs67qTpSNEgqs2H1y228w=
+github.com/sylabs/sif/v2 v2.6.0/go.mod h1:TiyBWsgWeh5yBeQFNuQnvROwswqK7YJT8JA1L53bsXQ=
 github.com/sylvia7788/contextcheck v1.0.4/go.mod h1:vuPKJMQ7MQ91ZTqfdyreNKwZjyUg6KO+IebVyQDedZQ=
 github.com/syndtr/gocapability v0.0.0-20170704070218-db04d3cc01c8/go.mod h1:hkRG7XYTFWNJGYcbNJQlaLq0fg1yr4J4t/NcTQtrfww=
 github.com/syndtr/gocapability v0.0.0-20180916011248-d98352740cb2/go.mod h1:hkRG7XYTFWNJGYcbNJQlaLq0fg1yr4J4t/NcTQtrfww=

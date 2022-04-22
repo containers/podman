@@ -4,7 +4,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -544,7 +543,7 @@ func getPathToAuthWithOS(sys *types.SystemContext, goOS string) (string, bool, e
 func readJSONFile(path string, legacyFormat bool) (dockerConfigFile, error) {
 	var auths dockerConfigFile
 
-	raw, err := ioutil.ReadFile(path)
+	raw, err := os.ReadFile(path)
 	if err != nil {
 		if os.IsNotExist(err) {
 			auths.AuthConfigs = map[string]dockerAuthConfig{}

@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"mime"
 	"mime/multipart"
 	"net/http"
@@ -308,7 +307,7 @@ func splitHTTP200ResponseToPartial(streams chan io.ReadCloser, errs chan error, 
 				break
 			}
 			toSkip := c.Offset - currentOffset
-			if _, err := io.Copy(ioutil.Discard, io.LimitReader(body, int64(toSkip))); err != nil {
+			if _, err := io.Copy(io.Discard, io.LimitReader(body, int64(toSkip))); err != nil {
 				errs <- err
 				break
 			}
@@ -316,7 +315,7 @@ func splitHTTP200ResponseToPartial(streams chan io.ReadCloser, errs chan error, 
 		}
 		s := signalCloseReader{
 			closed:        make(chan interface{}),
-			stream:        ioutil.NopCloser(io.LimitReader(body, int64(c.Length))),
+			stream:        io.NopCloser(io.LimitReader(body, int64(c.Length))),
 			consumeStream: true,
 		}
 		streams <- s
@@ -515,7 +514,7 @@ func (s *dockerImageSource) getOneSignature(ctx context.Context, url *url.URL) (
 	switch url.Scheme {
 	case "file":
 		logrus.Debugf("Reading %s", url.Path)
-		sig, err := ioutil.ReadFile(url.Path)
+		sig, err := os.ReadFile(url.Path)
 		if err != nil {
 			if os.IsNotExist(err) {
 				return nil, true, nil
@@ -765,7 +764,7 @@ func (s signalCloseReader) Read(p []byte) (int, error) {
 func (s signalCloseReader) Close() error {
 	defer close(s.closed)
 	if s.consumeStream {
-		if _, err := io.Copy(ioutil.Discard, s.stream); err != nil {
+		if _, err := io.Copy(io.Discard, s.stream); err != nil {
 			s.stream.Close()
 			return err
 		}

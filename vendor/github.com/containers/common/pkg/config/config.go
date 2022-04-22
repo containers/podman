@@ -95,6 +95,13 @@ type ContainersConfig struct {
 	// Annotation to add to all containers
 	Annotations []string `toml:"annotations,omitempty"`
 
+	// BaseHostsFile is the path to a hosts file, the entries from this file
+	// are added to the containers hosts file. As special value "image" is
+	// allowed which uses the /etc/hosts file from within the image and "none"
+	// which uses no base file at all. If it is empty we should default
+	// to /etc/hosts.
+	BaseHostsFile string `toml:"base_hosts_file,omitempty"`
+
 	// Default way to create a cgroup namespace for the container
 	CgroupNS string `toml:"cgroupns,omitempty"`
 
@@ -135,6 +142,9 @@ type ContainersConfig struct {
 
 	// EnvHost Pass all host environment variables into the container.
 	EnvHost bool `toml:"env_host,omitempty"`
+
+	// HostContainersInternalIP is used to set a specific host.containers.internal ip.
+	HostContainersInternalIP string `toml:"host_containers_internal_ip,omitempty"`
 
 	// HTTPProxy is the proxy environment variable list to apply to container process
 	HTTPProxy bool `toml:"http_proxy,omitempty"`

@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"reflect"
 	"strings"
@@ -199,7 +198,7 @@ func Image(ctx context.Context, policyContext *signature.PolicyContext, destRef,
 		return nil, err
 	}
 
-	reportWriter := ioutil.Discard
+	reportWriter := io.Discard
 
 	if options.ReportWriter != nil {
 		reportWriter = options.ReportWriter
@@ -232,7 +231,7 @@ func Image(ctx context.Context, policyContext *signature.PolicyContext, destRef,
 	// createProgressBar() will print a single line instead.
 	progressOutput := reportWriter
 	if !isTTY(reportWriter) {
-		progressOutput = ioutil.Discard
+		progressOutput = io.Discard
 	}
 
 	c := &copier{
@@ -1091,7 +1090,7 @@ func customPartialBlobDecorFunc(s decor.Statistics) string {
 }
 
 // createProgressBar creates a mpb.Bar in pool.  Note that if the copier's reportWriter
-// is ioutil.Discard, the progress bar's output will be discarded
+// is io.Discard, the progress bar's output will be discarded
 // NOTE: Every progress bar created within a progress pool must either successfully
 // complete or be aborted, or pool.Wait() will hang. That is typically done
 // using "defer bar.Abort(false)", which must happen BEFORE pool.Wait() is called.
@@ -1143,7 +1142,7 @@ func (c *copier) createProgressBar(pool *mpb.Progress, partial bool, info types.
 			),
 		)
 	}
-	if c.progressOutput == ioutil.Discard {
+	if c.progressOutput == io.Discard {
 		c.Printf("Copying %s %s\n", kind, info.Digest)
 	}
 	return bar
@@ -1669,7 +1668,7 @@ func (c *copier) copyBlobFromStream(ctx context.Context, srcStream io.Reader, sr
 	// sent there if we are not already at EOF.
 	if getOriginalLayerCopyWriter != nil {
 		logrus.Debugf("Consuming rest of the original blob to satisfy getOriginalLayerCopyWriter")
-		_, err := io.Copy(ioutil.Discard, originalLayerReader)
+		_, err := io.Copy(io.Discard, originalLayerReader)
 		if err != nil {
 			return types.BlobInfo{}, errors.Wrapf(err, "reading input blob %s", srcInfo.Digest)
 		}

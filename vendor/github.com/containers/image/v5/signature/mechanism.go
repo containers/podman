@@ -6,7 +6,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"strings"
 
 	// This code is used only to parse the data in an explicitly-untrusted
@@ -82,7 +82,7 @@ func gpgUntrustedSignatureContents(untrustedSignature []byte) (untrustedContents
 	if !md.IsSigned {
 		return nil, "", errors.New("The input is not a signature")
 	}
-	content, err := ioutil.ReadAll(md.UnverifiedBody)
+	content, err := io.ReadAll(md.UnverifiedBody)
 	if err != nil {
 		// Coverage: An error during reading the body can happen only if
 		// 1) the message is encrypted, which is not our case (and we don’t give ReadMessage the key

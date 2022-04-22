@@ -5,7 +5,6 @@ import (
 	"compress/bzip2"
 	"fmt"
 	"io"
-	"io/ioutil"
 
 	"github.com/containers/image/v5/pkg/compression/internal"
 	"github.com/containers/image/v5/pkg/compression/types"
@@ -65,7 +64,7 @@ func GzipDecompressor(r io.Reader) (io.ReadCloser, error) {
 
 // Bzip2Decompressor is a DecompressorFunc for the bzip2 compression algorithm.
 func Bzip2Decompressor(r io.Reader) (io.ReadCloser, error) {
-	return ioutil.NopCloser(bzip2.NewReader(r)), nil
+	return io.NopCloser(bzip2.NewReader(r)), nil
 }
 
 // XzDecompressor is a DecompressorFunc for the xz compression algorithm.
@@ -74,7 +73,7 @@ func XzDecompressor(r io.Reader) (io.ReadCloser, error) {
 	if err != nil {
 		return nil, err
 	}
-	return ioutil.NopCloser(r), nil
+	return io.NopCloser(r), nil
 }
 
 // gzipCompressor is a CompressorFunc for the gzip compression algorithm.
@@ -161,7 +160,7 @@ func AutoDecompress(stream io.Reader) (io.ReadCloser, bool, error) {
 			return nil, false, errors.Wrapf(err, "initializing decompression")
 		}
 	} else {
-		res = ioutil.NopCloser(stream)
+		res = io.NopCloser(stream)
 	}
 	return res, decompressor != nil, nil
 }

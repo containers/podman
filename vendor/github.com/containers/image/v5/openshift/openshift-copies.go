@@ -5,7 +5,6 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"net/url"
@@ -625,7 +624,7 @@ func (rules *clientConfigLoadingRules) Load() (*clientcmdConfig, error) {
 // loadFromFile is a modified copy of k8s.io/kubernetes/pkg/client/unversioned/clientcmd.LoadFromFile
 // LoadFromFile takes a filename and deserializes the contents into Config object
 func loadFromFile(filename string) (*clientcmdConfig, error) {
-	kubeconfigBytes, err := ioutil.ReadFile(filename)
+	kubeconfigBytes, err := os.ReadFile(filename)
 	if err != nil {
 		return nil, err
 	}
@@ -1013,7 +1012,7 @@ func dataFromSliceOrFile(data []byte, file string) ([]byte, error) {
 		return data, nil
 	}
 	if len(file) > 0 {
-		fileData, err := ioutil.ReadFile(file)
+		fileData, err := os.ReadFile(file)
 		if err != nil {
 			return []byte{}, err
 		}
