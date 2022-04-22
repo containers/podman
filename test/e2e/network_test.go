@@ -254,7 +254,7 @@ var _ = Describe("Podman network", func() {
 
 		expectedNetworks := []string{name}
 		if !rootless.IsRootless() {
-			// rootful image contains "podman/cni/87-podman-bridge.conflist" for "podman" network
+			// rootfull image contains "podman/cni/87-podman-bridge.conflist" for "podman" network
 			expectedNetworks = append(expectedNetworks, "podman")
 		}
 		session := podmanTest.Podman(append([]string{"network", "inspect"}, expectedNetworks...))

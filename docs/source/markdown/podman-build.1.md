@@ -429,7 +429,7 @@ container full access to local system services such as D-bus and is therefore
 considered insecure.
 - **ns:**_path_: path to a network namespace to join.
 - **private**: create a new namespace for the container (default)
-- **\<network name|ID\>**: Join the network with the given name or ID, e.g. use `--network mynet` to join the network with the name mynet. Only supported for rootful users.
+- **\<network name|ID\>**: Join the network with the given name or ID, e.g. use `--network mynet` to join the network with the name mynet. Only supported for rootfull users.
 
 #### **--no-cache**
 

@@ -9,7 +9,7 @@ The bindings require that the Podman system service is running for the specified
 by calling the service directly.
 
 ### Starting the service with system
-The command to start the Podman service differs slightly depending on the user that is running the service.  For a rootful service,
+The command to start the Podman service differs slightly depending on the user that is running the service.  For a rootfull service,
 start the service like this:
 ```
 # systemctl start podman.socket
@@ -26,7 +26,7 @@ It can be handy to run the system service manually.  Doing so allows you to enab
 $ podman --log-level=debug system service -t0
 ```
 If you do not provide a specific path for the socket, a default is provided.  The location of that socket for
-rootful connections is `/run/podman/podman.sock` and for rootless it is `/run/USERID#/podman/podman.sock`. For more
+rootfull connections is `/run/podman/podman.sock` and for rootless it is `/run/USERID#/podman/podman.sock`. For more
 information about the Podman system service, see `man podman-system-service`.
 
 ### Creating a connection
@@ -35,7 +35,7 @@ as they will be required to compile a Go program making use of the bindings.
 
 
 The first step for using the bindings is to create a connection to the socket.  As mentioned earlier, the destination
-of the socket depends on the user who owns it. In this case, a rootful connection is made.
+of the socket depends on the user who owns it. In this case, a rootfull connection is made.
 
 ```
 import (
@@ -59,7 +59,7 @@ The `conn` variable returned from the `bindings.NewConnection` function can then
 to interact with containers.
 
 ### Examples
-The following examples build upon the connection example from above.  They are all rootful connections as well.
+The following examples build upon the connection example from above.  They are all rootfull connections as well.
 
 Note: Optional arguments to the bindings methods are set using With*() methods on *Option structures.
 Composite types are not duplicated rather the address is used. As such, you should not change an underlying
