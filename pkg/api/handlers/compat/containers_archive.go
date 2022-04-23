@@ -2,7 +2,6 @@ package compat
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"os"
 
@@ -28,7 +27,7 @@ func Archive(w http.ResponseWriter, r *http.Request) {
 	case http.MethodHead, http.MethodGet:
 		handleHeadAndGet(w, r, decoder, runtime)
 	default:
-		utils.Error(w, http.StatusNotImplemented, errors.New(fmt.Sprintf("unsupported method: %v", r.Method)))
+		utils.Error(w, http.StatusNotImplemented, errors.Errorf("unsupported method: %v", r.Method))
 	}
 }
 

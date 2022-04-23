@@ -266,7 +266,7 @@ func (c *Container) handleRestartPolicy(ctx context.Context) (_ bool, retErr err
 	if c.ensureState(define.ContainerStateRunning, define.ContainerStatePaused) {
 		return false, nil
 	} else if c.state.State == define.ContainerStateUnknown {
-		return false, errors.Wrapf(define.ErrInternal, "invalid container state encountered in restart attempt!")
+		return false, errors.Wrapf(define.ErrInternal, "invalid container state encountered in restart attempt")
 	}
 
 	c.newContainerEvent(events.Restart)

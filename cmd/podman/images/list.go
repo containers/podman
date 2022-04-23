@@ -225,7 +225,7 @@ func sortImages(imageS []*entities.ImageSummary) ([]imageReporter, error) {
 				h.ImageSummary = *e
 				h.Repository, h.Tag, err = tokenRepoTag(tag)
 				if err != nil {
-					return nil, errors.Wrapf(err, "error parsing repository tag %q:", tag)
+					return nil, errors.Wrapf(err, "error parsing repository tag: %q", tag)
 				}
 				if h.Tag == "<none>" {
 					untagged = append(untagged, h)

@@ -6,7 +6,7 @@ import (
 	"net/url"
 
 	"github.com/containers/common/pkg/config"
-	. "github.com/onsi/gomega" //nolint:golint,stylecheck
+	. "github.com/onsi/gomega" //nolint:revive,stylecheck
 	"github.com/onsi/gomega/format"
 	"github.com/onsi/gomega/gexec"
 	"github.com/onsi/gomega/matchers"

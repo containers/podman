@@ -110,6 +110,10 @@ func (ir *ImageEngine) remoteManifestInspect(ctx context.Context, name string) (
 		if latestErr == nil {
 			latestErr = e
 		} else {
+			// FIXME should we use multierror package instead?
+
+			// we want the new line here so ignore the linter
+			//nolint:revive
 			latestErr = errors.Wrapf(latestErr, "tried %v\n", e)
 		}
 	}

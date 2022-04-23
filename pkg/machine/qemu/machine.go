@@ -907,7 +907,7 @@ func (v *MachineVM) SSH(_ string, opts machine.SSHOptions) error {
 		return err
 	}
 	if state != machine.Running {
-		return errors.Errorf("vm %q is not running.", v.Name)
+		return errors.Errorf("vm %q is not running", v.Name)
 	}
 
 	username := opts.Username

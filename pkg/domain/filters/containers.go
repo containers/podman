@@ -270,7 +270,7 @@ func GenerateContainerFilterFuncs(filter string, filterValues []string, r *libpo
 				invalidPolicyNames = append(invalidPolicyNames, policy)
 			}
 		}
-		var filterValueError error = nil
+		var filterValueError error
 		if len(invalidPolicyNames) > 0 {
 			errPrefix := "invalid restart policy"
 			if len(invalidPolicyNames) > 1 {

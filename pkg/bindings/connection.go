@@ -289,7 +289,7 @@ func sshClient(_url *url.URL, secure bool, passPhrase string, identity string) (
 		},
 	)
 	if err != nil {
-		return Connection{}, errors.Wrapf(err, "Connection to bastion host (%s) failed.", _url.String())
+		return Connection{}, errors.Wrapf(err, "connection to bastion host (%s) failed", _url.String())
 	}
 
 	connection := Connection{URI: _url}

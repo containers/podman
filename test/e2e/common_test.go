@@ -35,12 +35,12 @@ import (
 
 var (
 	//lint:ignore ST1003
-	PODMAN_BINARY      string                        //nolint:golint,stylecheck
-	INTEGRATION_ROOT   string                        //nolint:golint,stylecheck
-	CGROUP_MANAGER     = "systemd"                   //nolint:golint,stylecheck
-	RESTORE_IMAGES     = []string{ALPINE, BB, nginx} //nolint:golint,stylecheck
+	PODMAN_BINARY      string                        //nolint:revive,stylecheck
+	INTEGRATION_ROOT   string                        //nolint:revive,stylecheck
+	CGROUP_MANAGER     = "systemd"                   //nolint:revive,stylecheck
+	RESTORE_IMAGES     = []string{ALPINE, BB, nginx} //nolint:revive,stylecheck
 	defaultWaitTimeout = 90
-	CGROUPSV2, _       = cgroups.IsCgroup2UnifiedMode() //nolint:golint,stylecheck
+	CGROUPSV2, _       = cgroups.IsCgroup2UnifiedMode() //nolint:revive,stylecheck
 )
 
 // PodmanTestIntegration struct for command line options

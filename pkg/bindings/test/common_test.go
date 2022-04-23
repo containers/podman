@@ -51,7 +51,7 @@ var (
 		shortName:   "busybox",
 		tarballName: "busybox.tar",
 	}
-	CACHE_IMAGES = []testImage{alpine, busybox} //nolint:golint,stylecheck
+	CACHE_IMAGES = []testImage{alpine, busybox} //nolint:revive,stylecheck
 )
 
 type bindingTest struct {

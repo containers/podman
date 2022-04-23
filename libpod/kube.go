@@ -213,7 +213,7 @@ type YAMLContainer struct {
 func ConvertV1PodToYAMLPod(pod *v1.Pod) *YAMLPod {
 	cs := []*YAMLContainer{}
 	for _, cc := range pod.Spec.Containers {
-		var res *v1.ResourceRequirements = nil
+		var res *v1.ResourceRequirements
 		if len(cc.Resources.Limits) > 0 || len(cc.Resources.Requests) > 0 {
 			res = &cc.Resources
 		}

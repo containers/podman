@@ -91,7 +91,7 @@ func load(cmd *cobra.Command, args []string) error {
 		}
 	} else {
 		if term.IsTerminal(int(os.Stdin.Fd())) {
-			return errors.Errorf("cannot read from terminal. Use command-line redirection or the --input flag.")
+			return errors.Errorf("cannot read from terminal, use command-line redirection or the --input flag")
 		}
 		outFile, err := ioutil.TempFile(util.Tmpdir(), "podman")
 		if err != nil {

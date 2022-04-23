@@ -31,7 +31,7 @@ type cliConfig struct {
 }
 
 // Default configuration is stored here. Will be overwritten by flags.
-var config cliConfig = cliConfig{
+var config = cliConfig{
 	logLevel: "error",
 	sockName: "test-volume-plugin",
 }
