@@ -193,6 +193,10 @@ Some example URL values in valid formats:
 
 Print the version
 
+#### **--volumepath**=*value*
+
+Volume directory where builtin volume information is stored (default: "/var/lib/containers/storage/volumes" for UID 0, "$HOME/.local/share/containers/storage/volumes" for other users). Default volume path can be overridden in `containers.conf`.
+
 ## Environment Variables
 
 Podman can set up environment variables from env of [engine] table in containers.conf. These variables can be overridden by passing  environment variables before the `podman` commands.

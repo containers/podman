@@ -281,6 +281,7 @@ func CreateExitCommandArgs(storageConfig storageTypes.StoreOptions, config *conf
 		"--tmpdir", config.Engine.TmpDir,
 		"--network-config-dir", config.Network.NetworkConfigDir,
 		"--network-backend", config.Network.NetworkBackend,
+		"--volumepath", config.Engine.VolumePath,
 	}
 	if config.Engine.OCIRuntime != "" {
 		command = append(command, []string{"--runtime", config.Engine.OCIRuntime}...)

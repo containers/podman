@@ -107,4 +107,12 @@ host.slirp4netns.executable | $expr_path
     fi
 }
 
+@test "podman --root PATH --volumepath info - basic output" {
+    volumePath=${PODMAN_TMPDIR}/volumesGoHere
+    if ! is_remote; then
+        run_podman --storage-driver=vfs --root ${PODMAN_TMPDIR}/nothing-here-move-along --volumepath ${volumePath} info --format '{{ .Store.VolumePath }}'
+        is "$output" "${volumePath}" "'podman --volumepath should reset VolumePath"
+    fi
+}
+
 # vim: filetype=sh
