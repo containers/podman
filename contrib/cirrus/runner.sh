@@ -59,8 +59,11 @@ function _run_unit() {
 function _run_apiv2() {
     _bail_if_test_can_be_skipped test/apiv2
 
-    source .venv/requests/bin/activate
-    make localapiv2 |& logformatter
+    (
+        make localapiv2-bash
+        source .venv/requests/bin/activate
+        make localapiv2-python
+    ) |& logformatter
 }
 
 function _run_compose() {

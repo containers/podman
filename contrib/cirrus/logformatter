@@ -20,6 +20,9 @@ use warnings;
 
 our $VERSION = '0.1';
 
+# Autoflush stdout
+$| = 1;
+
 # For debugging, show data structures using DumpTree($var)
 #use Data::TreeDumper; $Data::TreeDumper::Displayaddress = 0;
 
