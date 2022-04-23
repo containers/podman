@@ -5,7 +5,7 @@ package libpod
 
 import (
 	"crypto/rand"
-	"crypto/sha1"
+	"crypto/sha256"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -402,7 +402,7 @@ func (r *Runtime) GetRootlessNetNs(new bool) (*RootlessNetNS, error) {
 	// the cleanup will check if there are running containers
 	// if you run a several libpod instances with different root/runroot directories this check will fail
 	// we want one netns for each libpod static dir so we use the hash to prevent name collisions
-	hash := sha1.Sum([]byte(r.config.Engine.StaticDir))
+	hash := sha256.Sum256([]byte(r.config.Engine.StaticDir))
 	netnsName := fmt.Sprintf("%s-%x", rootlessNetNsName, hash[:10])
 
 	path := filepath.Join(nsDir, netnsName)
