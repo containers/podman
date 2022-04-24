@@ -312,10 +312,15 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 	var (
 		headers http.Header
 	)
-	if options.SystemContext != nil && options.SystemContext.DockerAuthConfig != nil {
-		headers, err = auth.MakeXRegistryAuthHeader(options.SystemContext, options.SystemContext.DockerAuthConfig.Username, options.SystemContext.DockerAuthConfig.Password)
-	} else {
-		headers, err = auth.MakeXRegistryConfigHeader(options.SystemContext, "", "")
+	if options.SystemContext != nil {
+		if options.SystemContext.DockerAuthConfig != nil {
+			headers, err = auth.MakeXRegistryAuthHeader(options.SystemContext, options.SystemContext.DockerAuthConfig.Username, options.SystemContext.DockerAuthConfig.Password)
+		} else {
+			headers, err = auth.MakeXRegistryConfigHeader(options.SystemContext, "", "")
+		}
+		if options.SystemContext.DockerInsecureSkipTLSVerify == types.OptionalBoolTrue {
+			params.Set("tlsVerify", "false")
+		}
 	}
 	if err != nil {
 		return nil, err

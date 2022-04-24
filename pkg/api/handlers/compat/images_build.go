@@ -123,6 +123,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		Tags                   []string `schema:"t"`
 		Target                 string   `schema:"target"`
 		Timestamp              int64    `schema:"timestamp"`
+		TLSVerify              bool     `schema:"tlsVerify"`
 		Ulimits                string   `schema:"ulimits"`
 		UnsetEnvs              []string `schema:"unsetenv"`
 		Secrets                string   `schema:"secrets"`
@@ -491,6 +492,11 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 	}
 	utils.PossiblyEnforceDockerHub(r, systemContext)
 
+	if _, found := r.URL.Query()["tlsVerify"]; found {
+		systemContext.DockerInsecureSkipTLSVerify = types.NewOptionalBool(!query.TLSVerify)
+		systemContext.OCIInsecureSkipTLSVerify = !query.TLSVerify
+		systemContext.DockerDaemonInsecureSkipTLSVerify = !query.TLSVerify
+	}
 	// Channels all mux'ed in select{} below to follow API build protocol
 	stdout := channel.NewWriter(make(chan []byte))
 	defer stdout.Close()
