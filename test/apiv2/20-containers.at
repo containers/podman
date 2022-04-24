@@ -321,7 +321,11 @@ t GET containers/json?filters='garb1age}' 500 \
 t GET containers/json?filters='{"label":["testl' 500 \
     .cause="unexpected end of JSON input"
 
+
 #libpod api list containers sanity checks
+t GET libpod/containers/json?filters='{"status":["removing"]}' 200 length=0
+t GET libpod/containers/json?filters='{"status":["bogus"]}' 500 \
+    .cause="invalid argument"
 t GET libpod/containers/json?filters='garb1age}' 500 \
     .cause="invalid character 'g' looking for beginning of value"
 t GET libpod/containers/json?filters='{"label":["testl' 500 \
