@@ -90,7 +90,7 @@ function teardown() {
 
 @test "podman system service - socket activation - kill rootless pause" {
     if ! is_rootless; then
-        skip "there is no pause process when running rootfull"
+        skip "there is no pause process when running rootful"
     fi
     run_podman run -d $IMAGE sleep 90
     cid="$output"

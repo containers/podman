@@ -367,7 +367,7 @@ func (ir *ImageEngine) Transfer(ctx context.Context, source entities.ImageScpOpt
 	if rootless.IsRootless() && (len(dest.User) == 0 || dest.User == "root") { // if we are rootless and do not have a destination user we can just use sudo
 		return transferRootless(source, dest, podman, parentFlags)
 	}
-	return transferRootfull(source, dest, podman, parentFlags)
+	return transferRootful(source, dest, podman, parentFlags)
 }
 
 func (ir *ImageEngine) Tag(ctx context.Context, nameOrID string, tags []string, options entities.ImageTagOptions) error {
@@ -785,8 +785,8 @@ func transferRootless(source entities.ImageScpOptions, dest entities.ImageScpOpt
 	return cmdLoad.Run()
 }
 
-// transferRootfull creates new podman processes using exec.Command and a new uid/gid alongside a cleared environment
-func transferRootfull(source entities.ImageScpOptions, dest entities.ImageScpOptions, podman string, parentFlags []string) error {
+// TransferRootful creates new podman processes using exec.Command and a new uid/gid alongside a cleared environment
+func transferRootful(source entities.ImageScpOptions, dest entities.ImageScpOptions, podman string, parentFlags []string) error {
 	basicCommand := []string{podman}
 	basicCommand = append(basicCommand, parentFlags...)
 	saveCommand := append(basicCommand, "save")

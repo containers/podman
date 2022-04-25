@@ -483,7 +483,7 @@ function skip_if_root_ubuntu {
     if is_ubuntu; then
         if ! is_remote; then
             if ! is_rootless; then
-                 skip "Cannot run this test on rootfull ubuntu, usually due to user errors"
+                 skip "Cannot run this test on rootful ubuntu, usually due to user errors"
             fi
         fi
     fi
