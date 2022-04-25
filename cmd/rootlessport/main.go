@@ -1,3 +1,6 @@
+//go:build linux
+// +build linux
+
 package main
 
 import (
@@ -307,15 +310,26 @@ func exposePorts(pm rkport.Manager, portMappings []types.PortMapping, childIP st
 					ChildPort:  int(port.ContainerPort + i),
 					ChildIP:    childIP,
 				}
-				if err := rkportutil.ValidatePortSpec(spec, nil); err != nil {
-					return err
-				}
-				if _, err := pm.AddPort(ctx, spec); err != nil {
-					return err
+
+				for _, spec = range splitDualStackSpecIfWsl(spec) {
+					if err := validateAndAddPort(ctx, pm, spec); err != nil {
+						return err
+					}
 				}
 			}
 		}
 	}
+	return nil
+}
+
+func validateAndAddPort(ctx context.Context, pm rkport.Manager, spec rkport.Spec) error {
+	if err := rkportutil.ValidatePortSpec(spec, nil); err != nil {
+		return err
+	}
+	if _, err := pm.AddPort(ctx, spec); err != nil {
+		return err
+	}
+
 	return nil
 }
 
