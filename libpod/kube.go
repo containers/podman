@@ -527,7 +527,7 @@ func simplePodWithV1Containers(ctx context.Context, ctrs []*Container) (*v1.Pod,
 	// Check if the pod name and container name will end up conflicting
 	// Append _pod if so
 	if util.StringInSlice(podName, ctrNames) {
-		podName = podName + "_pod"
+		podName = podName + "-pod"
 	}
 
 	return newPodObject(

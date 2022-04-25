@@ -71,7 +71,7 @@ var _ = Describe("Podman generate kube", func() {
 		Expect(pod.Spec.DNSConfig).To(BeNil())
 		Expect(pod.Spec.Containers[0].WorkingDir).To(Equal(""))
 		Expect(pod.Spec.Containers[0].Env).To(BeNil())
-		Expect(pod.Name).To(Equal("top_pod"))
+		Expect(pod.Name).To(Equal("top-pod"))
 
 		numContainers := 0
 		for range pod.Spec.Containers {
