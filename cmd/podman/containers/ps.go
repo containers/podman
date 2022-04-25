@@ -363,6 +363,11 @@ func (l psReporter) State() string {
 		state = fmt.Sprintf("Exited (%d) %s ago", l.ExitCode, t)
 	default:
 		// Need to capitalize the first letter to match Docker.
+
+		// strings.Title is deprecated since go 1.18
+		// However for our use case it is still fine. The recommended replacement
+		// is adding about 400kb binary size so lets keep using this for now.
+		//nolint:staticcheck
 		state = strings.Title(l.ListContainer.State)
 	}
 	return state
