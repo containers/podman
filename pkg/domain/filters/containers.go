@@ -52,8 +52,8 @@ func GenerateContainerFilterFuncs(filter string, filterValues []string, r *libpo
 		}, nil
 	case "status":
 		for _, filterValue := range filterValues {
-			if !util.StringInSlice(filterValue, []string{"created", "running", "paused", "stopped", "exited", "unknown"}) {
-				return nil, errors.Errorf("%s is not a valid status", filterValue)
+			if _, err := define.StringToContainerStatus(filterValue); err != nil {
+				return nil, err
 			}
 		}
 		return func(c *libpod.Container) bool {
