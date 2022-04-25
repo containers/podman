@@ -121,6 +121,7 @@ function _run_bindings() {
 
 function _run_docker-py() {
     source .venv/docker-py/bin/activate
+    make binaries
     make run-docker-py-tests
 }
 
