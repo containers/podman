@@ -18,9 +18,6 @@ import (
 
 var _ = Describe("Podman volumes", func() {
 	var (
-		//tempdir    string
-		//err        error
-		//podmanTest *PodmanTestIntegration
 		bt       *bindingTest
 		s        *gexec.Session
 		connText context.Context
@@ -28,13 +25,6 @@ var _ = Describe("Podman volumes", func() {
 	)
 
 	BeforeEach(func() {
-		//tempdir, err = CreateTempDirInTempDir()
-		//if err != nil {
-		//	os.Exit(1)
-		//}
-		//podmanTest = PodmanTestCreate(tempdir)
-		//podmanTest.Setup()
-		//podmanTest.SeedImages()
 		bt = newBindingTest()
 		bt.RestoreImagesFromCache()
 		s = bt.startAPIService()
@@ -44,9 +34,6 @@ var _ = Describe("Podman volumes", func() {
 	})
 
 	AfterEach(func() {
-		//podmanTest.Cleanup()
-		//f := CurrentGinkgoTestDescription()
-		//processTestResult(f)
 		s.Kill()
 		bt.cleanup()
 	})

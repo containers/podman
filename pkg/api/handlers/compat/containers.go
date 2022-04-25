@@ -293,9 +293,10 @@ func LibpodToContainer(l *libpod.Container, sz bool) (*handlers.Container, error
 		stateStr = "created"
 	}
 
-	if state == define.ContainerStateConfigured || state == define.ContainerStateCreated {
+	switch state {
+	case define.ContainerStateConfigured, define.ContainerStateCreated:
 		status = "Created"
-	} else if state == define.ContainerStateStopped || state == define.ContainerStateExited {
+	case define.ContainerStateStopped, define.ContainerStateExited:
 		exitCode, _, err := l.ExitCode()
 		if err != nil {
 			return nil, err
@@ -305,7 +306,7 @@ func LibpodToContainer(l *libpod.Container, sz bool) (*handlers.Container, error
 			return nil, err
 		}
 		status = fmt.Sprintf("Exited (%d) %s ago", exitCode, units.HumanDuration(time.Since(finishedTime)))
-	} else if state == define.ContainerStateRunning || state == define.ContainerStatePaused {
+	case define.ContainerStateRunning, define.ContainerStatePaused:
 		startedTime, err := l.StartedTime()
 		if err != nil {
 			return nil, err
@@ -314,11 +315,11 @@ func LibpodToContainer(l *libpod.Container, sz bool) (*handlers.Container, error
 		if state == define.ContainerStatePaused {
 			status += " (Paused)"
 		}
-	} else if state == define.ContainerStateRemoving {
+	case define.ContainerStateRemoving:
 		status = "Removal In Progress"
-	} else if state == define.ContainerStateStopping {
+	case define.ContainerStateStopping:
 		status = "Stopping"
-	} else {
+	default:
 		status = "Unknown"
 	}
 

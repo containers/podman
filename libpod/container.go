@@ -1180,7 +1180,7 @@ func (c *Container) Umask() string {
 	return c.config.Umask
 }
 
-//Secrets return the secrets in the container
+// Secrets return the secrets in the container
 func (c *Container) Secrets() []*ContainerSecret {
 	return c.config.Secrets
 }

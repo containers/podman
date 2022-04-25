@@ -579,7 +579,7 @@ func (r *Runtime) GetRootlessNetNs(new bool) (*RootlessNetNS, error) {
 	// lets add /usr/sbin to $PATH ourselves.
 	path = os.Getenv("PATH")
 	if !strings.Contains(path, "/usr/sbin") {
-		path = path + ":/usr/sbin"
+		path += ":/usr/sbin"
 		os.Setenv("PATH", path)
 	}
 
@@ -1148,7 +1148,7 @@ func resultToBasicNetworkConfig(result types.StatusBlock) define.InspectBasicNet
 		for _, netAddress := range netInt.Subnets {
 			size, _ := netAddress.IPNet.Mask.Size()
 			if netAddress.IPNet.IP.To4() != nil {
-				//ipv4
+				// ipv4
 				if config.IPAddress == "" {
 					config.IPAddress = netAddress.IPNet.IP.String()
 					config.IPPrefixLen = size
@@ -1157,7 +1157,7 @@ func resultToBasicNetworkConfig(result types.StatusBlock) define.InspectBasicNet
 					config.SecondaryIPAddresses = append(config.SecondaryIPAddresses, define.Address{Addr: netAddress.IPNet.IP.String(), PrefixLength: size})
 				}
 			} else {
-				//ipv6
+				// ipv6
 				if config.GlobalIPv6Address == "" {
 					config.GlobalIPv6Address = netAddress.IPNet.IP.String()
 					config.GlobalIPv6PrefixLen = size
@@ -1508,7 +1508,7 @@ func ocicniPortsToNetTypesPorts(ports []types.OCICNIPortMapping) []types.PortMap
 			ports[i].Protocol == currentPort.Protocol &&
 			ports[i].HostPort-int32(currentPort.Range) == int32(currentPort.HostPort) &&
 			ports[i].ContainerPort-int32(currentPort.Range) == int32(currentPort.ContainerPort) {
-			currentPort.Range = currentPort.Range + 1
+			currentPort.Range++
 		} else {
 			newPorts = append(newPorts, currentPort)
 			currentPort = types.PortMapping{

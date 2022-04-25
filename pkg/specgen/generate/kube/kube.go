@@ -449,12 +449,13 @@ func setupLivenessProbe(s *specgen.SpecGenerator, containerYAML v1.Container, re
 		}
 
 		// configure healthcheck on the basis of Handler Actions.
-		if probeHandler.Exec != nil {
+		switch {
+		case probeHandler.Exec != nil:
 			execString := strings.Join(probeHandler.Exec.Command, " ")
 			commandString = fmt.Sprintf("%s || %s", execString, failureCmd)
-		} else if probeHandler.HTTPGet != nil {
+		case probeHandler.HTTPGet != nil:
 			commandString = fmt.Sprintf("curl %s://%s:%d/%s  || %s", probeHandler.HTTPGet.Scheme, probeHandler.HTTPGet.Host, probeHandler.HTTPGet.Port.IntValue(), probeHandler.HTTPGet.Path, failureCmd)
-		} else if probeHandler.TCPSocket != nil {
+		case probeHandler.TCPSocket != nil:
 			commandString = fmt.Sprintf("nc -z -v %s %d || %s", probeHandler.TCPSocket.Host, probeHandler.TCPSocket.Port.IntValue(), failureCmd)
 		}
 		s.HealthConfig, err = makeHealthCheck(commandString, probe.PeriodSeconds, probe.FailureThreshold, probe.TimeoutSeconds, probe.InitialDelaySeconds)
@@ -490,17 +491,17 @@ func makeHealthCheck(inCmd string, interval int32, retries int32, timeout int32,
 	}
 
 	if interval < 1 {
-		//kubernetes interval defaults to 10 sec and cannot be less than 1
+		// kubernetes interval defaults to 10 sec and cannot be less than 1
 		interval = 10
 	}
 	hc.Interval = (time.Duration(interval) * time.Second)
 	if retries < 1 {
-		//kubernetes retries defaults to 3
+		// kubernetes retries defaults to 3
 		retries = 3
 	}
 	hc.Retries = int(retries)
 	if timeout < 1 {
-		//kubernetes timeout defaults to 1
+		// kubernetes timeout defaults to 1
 		timeout = 1
 	}
 	timeoutDuration := (time.Duration(timeout) * time.Second)

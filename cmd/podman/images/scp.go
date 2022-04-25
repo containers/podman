@@ -121,13 +121,8 @@ func scp(cmd *cobra.Command, args []string) (finalErr error) {
 			return err
 		}
 		if flipConnections { // the order of cliConnections matters, we need to flip both arrays since the args are parsed separately sometimes.
-			connect := cliConnections[0]
-			cliConnections[0] = cliConnections[1]
-			cliConnections[1] = connect
-
-			loc := locations[0]
-			locations[0] = locations[1]
-			locations[1] = loc
+			cliConnections[0], cliConnections[1] = cliConnections[1], cliConnections[0]
+			locations[0], locations[1] = locations[1], locations[0]
 		}
 		dest = *locations[1]
 	case len(locations) == 1:

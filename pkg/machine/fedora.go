@@ -21,6 +21,8 @@ const (
 	githubURL = "http://github.com/fedora-cloud/docker-brew-fedora/"
 )
 
+var fedoraxzRegex = regexp.MustCompile(`fedora[^\"]+xz`)
+
 type FedoraDownload struct {
 	Download
 }
@@ -96,12 +98,8 @@ func getFedoraDownload(releaseStream string) (string, *url.URL, int64, error) {
 		return "", nil, -1, err
 	}
 
-	rx, err := regexp.Compile(`fedora[^\"]+xz`)
-	if err != nil {
-		return "", nil, -1, err
-	}
-	file := rx.FindString(string(body))
-	if len(file) <= 0 {
+	file := fedoraxzRegex.FindString(string(body))
+	if len(file) == 0 {
 		return "", nil, -1, fmt.Errorf("could not locate Fedora download at %s", dirURL)
 	}
 

@@ -69,6 +69,10 @@ func migrate(cmd *cobra.Command, args []string) {
 	err = engine.Migrate(registry.Context(), cmd.Flags(), registry.PodmanConfig(), migrateOptions)
 	if err != nil {
 		fmt.Println(err)
+
+		// FIXME change this to return the error like other commands
+		// defer will never run on os.Exit()
+		//nolint:gocritic
 		os.Exit(define.ExecErrorCodeGeneric)
 	}
 	os.Exit(0)

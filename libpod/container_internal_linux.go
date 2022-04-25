@@ -505,8 +505,7 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 			}
 
 			for _, o := range namedVol.Options {
-				switch o {
-				case "U":
+				if o == "U" {
 					if err := c.ChangeHostPathOwnership(mountPoint, true, int(hostUID), int(hostGID)); err != nil {
 						return nil, err
 					}
@@ -596,8 +595,7 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 
 		// Check overlay volume options
 		for _, o := range overlayVol.Options {
-			switch o {
-			case "U":
+			if o == "U" {
 				if err := c.ChangeHostPathOwnership(overlayVol.Source, true, int(hostUID), int(hostGID)); err != nil {
 					return nil, err
 				}
@@ -2144,11 +2142,9 @@ func (c *Container) makeBindMounts() error {
 				return err
 			}
 		}
-	} else {
-		if !c.config.UseImageHosts && c.state.BindMounts["/etc/hosts"] == "" {
-			if err := c.createHosts(); err != nil {
-				return errors.Wrapf(err, "error creating hosts file for container %s", c.ID())
-			}
+	} else if !c.config.UseImageHosts && c.state.BindMounts["/etc/hosts"] == "" {
+		if err := c.createHosts(); err != nil {
+			return errors.Wrapf(err, "error creating hosts file for container %s", c.ID())
 		}
 	}
 
@@ -2267,7 +2263,7 @@ rootless=%d
 			base := "/run/secrets"
 			if secret.Target != "" {
 				secretFileName = secret.Target
-				//If absolute path for target given remove base.
+				// If absolute path for target given remove base.
 				if filepath.IsAbs(secretFileName) {
 					base = ""
 				}
@@ -2351,7 +2347,7 @@ func (c *Container) generateResolvConf() (string, error) {
 		return "", errors.Wrapf(err, "error parsing host resolv.conf")
 	}
 
-	dns := make([]net.IP, 0, len(c.runtime.config.Containers.DNSServers))
+	dns := make([]net.IP, 0, len(c.runtime.config.Containers.DNSServers)+len(c.config.DNSServer))
 	for _, i := range c.runtime.config.Containers.DNSServers {
 		result := net.ParseIP(i)
 		if result == nil {
@@ -2359,13 +2355,13 @@ func (c *Container) generateResolvConf() (string, error) {
 		}
 		dns = append(dns, result)
 	}
-	dnsServers := append(dns, c.config.DNSServer...)
+	dns = append(dns, c.config.DNSServer...)
 	// If the user provided dns, it trumps all; then dns masq; then resolv.conf
 	var search []string
 	switch {
-	case len(dnsServers) > 0:
+	case len(dns) > 0:
 		// We store DNS servers as net.IP, so need to convert to string
-		for _, server := range dnsServers {
+		for _, server := range dns {
 			nameservers = append(nameservers, server.String())
 		}
 	default:
@@ -2890,11 +2886,11 @@ func (c *Container) generateUserPasswdEntry(addedUID int) (string, error) {
 
 func (c *Container) passwdEntry(username string, uid, gid, name, homeDir string) string {
 	s := c.config.PasswdEntry
-	s = strings.Replace(s, "$USERNAME", username, -1)
-	s = strings.Replace(s, "$UID", uid, -1)
-	s = strings.Replace(s, "$GID", gid, -1)
-	s = strings.Replace(s, "$NAME", name, -1)
-	s = strings.Replace(s, "$HOME", homeDir, -1)
+	s = strings.ReplaceAll(s, "$USERNAME", username)
+	s = strings.ReplaceAll(s, "$UID", uid)
+	s = strings.ReplaceAll(s, "$GID", gid)
+	s = strings.ReplaceAll(s, "$NAME", name)
+	s = strings.ReplaceAll(s, "$HOME", homeDir)
 	return s + "\n"
 }
 

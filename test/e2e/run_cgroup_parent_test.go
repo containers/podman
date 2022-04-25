@@ -84,12 +84,12 @@ var _ = Describe("Podman run with --cgroup-parent", func() {
 		exec.WaitWithDefaultTimeout()
 		Expect(exec).Should(Exit(0))
 
-		containerCgroup := strings.TrimRight(strings.Replace(exec.OutputToString(), "0::", "", -1), "\n")
+		containerCgroup := strings.TrimRight(strings.ReplaceAll(exec.OutputToString(), "0::", ""), "\n")
 
 		// Move the container process to a sub cgroup
 		content, err := ioutil.ReadFile(filepath.Join(cgroupRoot, containerCgroup, "cgroup.procs"))
 		Expect(err).To(BeNil())
-		oldSubCgroupPath := filepath.Join(filepath.Join(cgroupRoot, containerCgroup, "old-container"))
+		oldSubCgroupPath := filepath.Join(cgroupRoot, containerCgroup, "old-container")
 		err = os.MkdirAll(oldSubCgroupPath, 0755)
 		Expect(err).To(BeNil())
 		err = ioutil.WriteFile(filepath.Join(oldSubCgroupPath, "cgroup.procs"), content, 0644)
@@ -102,7 +102,7 @@ var _ = Describe("Podman run with --cgroup-parent", func() {
 		run = podmanTest.Podman([]string{"--cgroup-manager=cgroupfs", "run", "--rm", "--cgroupns=host", fmt.Sprintf("--cgroup-parent=%s", newCgroup), fedoraMinimal, "cat", "/proc/self/cgroup"})
 		run.WaitWithDefaultTimeout()
 		Expect(run).Should(Exit(0))
-		cgroupEffective := strings.TrimRight(strings.Replace(run.OutputToString(), "0::", "", -1), "\n")
+		cgroupEffective := strings.TrimRight(strings.ReplaceAll(run.OutputToString(), "0::", ""), "\n")
 
 		Expect(newCgroup).To(Equal(filepath.Dir(cgroupEffective)))
 	})

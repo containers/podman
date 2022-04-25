@@ -231,13 +231,13 @@ func (a int64Amount) AsCanonicalBytes(out []byte) (result []byte, exponent int32
 		if !ok {
 			return infDecAmount{a.AsDec()}.AsCanonicalBytes(out)
 		}
-		exponent = exponent - 1
+		exponent--
 	case 2, -1:
 		amount, ok = int64MultiplyScale100(amount)
 		if !ok {
 			return infDecAmount{a.AsDec()}.AsCanonicalBytes(out)
 		}
-		exponent = exponent - 2
+		exponent -= 2
 	}
 	return strconv.AppendInt(out, amount, 10), exponent
 }

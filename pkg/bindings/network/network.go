@@ -101,7 +101,7 @@ func List(ctx context.Context, options *ListOptions) ([]types.Network, error) {
 }
 
 // Disconnect removes a container from a given network
-func Disconnect(ctx context.Context, networkName string, ContainerNameOrID string, options *DisconnectOptions) error {
+func Disconnect(ctx context.Context, networkName string, containerNameOrID string, options *DisconnectOptions) error {
 	if options == nil {
 		options = new(DisconnectOptions)
 	}
@@ -114,7 +114,7 @@ func Disconnect(ctx context.Context, networkName string, ContainerNameOrID strin
 		Container string
 		Force     bool
 	}{
-		Container: ContainerNameOrID,
+		Container: containerNameOrID,
 	}
 	if force := options.GetForce(); options.Changed("Force") {
 		disconnect.Force = force

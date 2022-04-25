@@ -327,7 +327,7 @@ func suffixCompSlice(suf string, slice []string) []string {
 		if len(split) > 1 {
 			slice[i] = split[0] + suf + "\t" + split[1]
 		} else {
-			slice[i] = slice[i] + suf
+			slice[i] += suf
 		}
 	}
 	return slice
@@ -647,7 +647,10 @@ func AutocompleteInspect(cmd *cobra.Command, args []string, toComplete string) (
 	pods, _ := getPods(cmd, toComplete, completeDefault)
 	networks, _ := getNetworks(cmd, toComplete, completeDefault)
 	volumes, _ := getVolumes(cmd, toComplete)
-	suggestions := append(containers, images...)
+
+	suggestions := make([]string, 0, len(containers)+len(images)+len(pods)+len(networks)+len(volumes))
+	suggestions = append(suggestions, containers...)
+	suggestions = append(suggestions, images...)
 	suggestions = append(suggestions, pods...)
 	suggestions = append(suggestions, networks...)
 	suggestions = append(suggestions, volumes...)
@@ -961,6 +964,8 @@ func AutocompleteFormat(o interface{}) func(cmd *cobra.Command, args []string, t
 	// this function provides shell completion for go templates
 	return func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		// autocomplete json when nothing or json is typed
+		// gocritic complains about the argument order but this is correct in this case
+		//nolint:gocritic
 		if strings.HasPrefix("json", toComplete) {
 			return []string{"json"}, cobra.ShellCompDirectiveNoFileComp
 		}

@@ -385,7 +385,7 @@ type ContainerInitReport struct {
 	Id  string //nolint
 }
 
-//ContainerMountOptions describes the input values for mounting containers
+// ContainerMountOptions describes the input values for mounting containers
 // in the CLI
 type ContainerMountOptions struct {
 	All        bool

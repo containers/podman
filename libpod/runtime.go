@@ -550,6 +550,10 @@ func makeRuntime(runtime *Runtime) (retErr error) {
 				// Check if the pause process was created.  If it was created, then
 				// move it to its own systemd scope.
 				utils.MovePauseProcessToScope(pausePid)
+
+				// gocritic complains because defer is not run on os.Exit()
+				// However this is fine because the lock is released anyway when the process exits
+				//nolint:gocritic
 				os.Exit(ret)
 			}
 		}

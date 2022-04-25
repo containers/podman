@@ -435,7 +435,7 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 		initContainers = append(initContainers, ctr)
 	}
 	for _, container := range podYAML.Spec.Containers {
-		if !strings.Contains("infra", container.Name) {
+		if !strings.Contains(container.Name, "infra") {
 			// Error out if the same name is used for more than one container
 			if _, ok := ctrNames[container.Name]; ok {
 				return nil, errors.Errorf("the pod %q is invalid; duplicate container name %q detected", podName, container.Name)
@@ -770,7 +770,7 @@ func getBuildFile(imageName string, cwd string) (string, error) {
 		logrus.Error(err.Error())
 	}
 
-	_, err = os.Stat(filepath.Join(dockerfilePath))
+	_, err = os.Stat(dockerfilePath)
 	if err == nil {
 		logrus.Debugf("Building %s with %s", imageName, dockerfilePath)
 		return dockerfilePath, nil

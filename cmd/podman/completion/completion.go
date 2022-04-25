@@ -31,7 +31,7 @@ var (
 		Example: `podman completion bash
   podman completion zsh -f _podman
   podman completion fish --no-desc`,
-		//don't show this command to users
+		// don't show this command to users
 		Hidden: true,
 	}
 )

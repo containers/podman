@@ -47,10 +47,8 @@ func verifyContainerResourcesCgroupV1(s *specgen.SpecGenerator) ([]string, error
 			if !sysInfo.MemorySwappiness {
 				warnings = append(warnings, "Your kernel does not support memory swappiness capabilities, or the cgroup is not mounted. Memory swappiness discarded.")
 				memory.Swappiness = nil
-			} else {
-				if *memory.Swappiness > 100 {
-					return warnings, errors.Errorf("invalid value: %v, valid memory swappiness range is 0-100", *memory.Swappiness)
-				}
+			} else if *memory.Swappiness > 100 {
+				return warnings, errors.Errorf("invalid value: %v, valid memory swappiness range is 0-100", *memory.Swappiness)
 			}
 		}
 		if memory.Reservation != nil && !sysInfo.MemoryReservation {

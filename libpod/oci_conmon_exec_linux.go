@@ -766,13 +766,11 @@ func prepareProcessExec(c *Container, options *ExecOptions, env []string, sessio
 	if execUser.Uid == 0 {
 		pspec.Capabilities.Effective = pspec.Capabilities.Bounding
 		pspec.Capabilities.Permitted = pspec.Capabilities.Bounding
-	} else {
-		if user == c.config.User {
-			pspec.Capabilities.Effective = ctrSpec.Process.Capabilities.Effective
-			pspec.Capabilities.Inheritable = ctrSpec.Process.Capabilities.Effective
-			pspec.Capabilities.Permitted = ctrSpec.Process.Capabilities.Effective
-			pspec.Capabilities.Ambient = ctrSpec.Process.Capabilities.Effective
-		}
+	} else if user == c.config.User {
+		pspec.Capabilities.Effective = ctrSpec.Process.Capabilities.Effective
+		pspec.Capabilities.Inheritable = ctrSpec.Process.Capabilities.Effective
+		pspec.Capabilities.Permitted = ctrSpec.Process.Capabilities.Effective
+		pspec.Capabilities.Ambient = ctrSpec.Process.Capabilities.Effective
 	}
 
 	hasHomeSet := false

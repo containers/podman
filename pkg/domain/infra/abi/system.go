@@ -150,7 +150,7 @@ func (ic *ContainerEngine) SystemPrune(ctx context.Context, options entities.Sys
 		if err != nil {
 			return nil, err
 		}
-		reclaimedSpace = reclaimedSpace + reports.PruneReportsSize(containerPruneReports)
+		reclaimedSpace += reports.PruneReportsSize(containerPruneReports)
 		systemPruneReport.ContainerPruneReports = append(systemPruneReport.ContainerPruneReports, containerPruneReports...)
 		imagePruneOptions := entities.ImagePruneOptions{
 			All:    options.All,
@@ -158,7 +158,7 @@ func (ic *ContainerEngine) SystemPrune(ctx context.Context, options entities.Sys
 		}
 		imageEngine := ImageEngine{Libpod: ic.Libpod}
 		imagePruneReports, err := imageEngine.Prune(ctx, imagePruneOptions)
-		reclaimedSpace = reclaimedSpace + reports.PruneReportsSize(imagePruneReports)
+		reclaimedSpace += reports.PruneReportsSize(imagePruneReports)
 
 		if err != nil {
 			return nil, err
@@ -178,7 +178,7 @@ func (ic *ContainerEngine) SystemPrune(ctx context.Context, options entities.Sys
 			if len(volumePruneReport) > 0 {
 				found = true
 			}
-			reclaimedSpace = reclaimedSpace + reports.PruneReportsSize(volumePruneReport)
+			reclaimedSpace += reports.PruneReportsSize(volumePruneReport)
 			systemPruneReport.VolumePruneReports = append(systemPruneReport.VolumePruneReports, volumePruneReport...)
 		}
 	}

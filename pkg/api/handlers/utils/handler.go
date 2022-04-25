@@ -150,7 +150,7 @@ func MarshalErrorJSONIsEmpty(ptr unsafe.Pointer) bool {
 }
 
 func MarshalErrorSliceJSONIsEmpty(ptr unsafe.Pointer) bool {
-	return len(*((*[]error)(ptr))) <= 0
+	return len(*((*[]error)(ptr))) == 0
 }
 
 // WriteJSON writes an interface value encoded as JSON to w

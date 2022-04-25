@@ -202,10 +202,8 @@ func namespaceOptions(s *specgen.SpecGenerator, rt *libpod.Runtime, pod *libpod.
 	if s.IDMappings != nil {
 		if pod == nil {
 			toReturn = append(toReturn, libpod.WithIDMappings(*s.IDMappings))
-		} else {
-			if pod.HasInfraContainer() && (len(s.IDMappings.UIDMap) > 0 || len(s.IDMappings.GIDMap) > 0) {
-				return nil, errors.Wrapf(define.ErrInvalidArg, "cannot specify a new uid/gid map when entering a pod with an infra container")
-			}
+		} else if pod.HasInfraContainer() && (len(s.IDMappings.UIDMap) > 0 || len(s.IDMappings.GIDMap) > 0) {
+			return nil, errors.Wrapf(define.ErrInvalidArg, "cannot specify a new uid/gid map when entering a pod with an infra container")
 		}
 	}
 	if s.User != "" {
@@ -482,7 +480,7 @@ func GetNamespaceOptions(ns []string, netnsIsHost bool) ([]libpod.PodCreateOptio
 	var options []libpod.PodCreateOption
 	var erroredOptions []libpod.PodCreateOption
 	if ns == nil {
-		//set the default namespaces
+		// set the default namespaces
 		ns = strings.Split(specgen.DefaultKernelNamespaces, ",")
 	}
 	for _, toShare := range ns {

@@ -177,7 +177,7 @@ type PullOptions struct {
 	Variant *string
 }
 
-//BuildOptions are optional options for building images
+// BuildOptions are optional options for building images
 type BuildOptions struct {
 	buildahDefine.BuildOptions
 }

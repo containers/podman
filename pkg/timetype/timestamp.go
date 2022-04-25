@@ -34,13 +34,14 @@ func GetTimestamp(value string, reference time.Time) (string, error) {
 	// if the string has a Z or a + or three dashes use parse otherwise use parseinlocation
 	parseInLocation := !(strings.ContainsAny(value, "zZ+") || strings.Count(value, "-") == 3)
 
-	if strings.Contains(value, ".") { // nolint(gocritic)
+	switch {
+	case strings.Contains(value, "."):
 		if parseInLocation {
 			format = rFC3339NanoLocal
 		} else {
 			format = time.RFC3339Nano
 		}
-	} else if strings.Contains(value, "T") {
+	case strings.Contains(value, "T"):
 		// we want the number of colons in the T portion of the timestamp
 		tcolons := strings.Count(value, ":")
 		// if parseInLocation is off and we have a +/- zone offset (not Z) then
@@ -68,9 +69,9 @@ func GetTimestamp(value string, reference time.Time) (string, error) {
 				format = time.RFC3339
 			}
 		}
-	} else if parseInLocation {
+	case parseInLocation:
 		format = dateLocal
-	} else {
+	default:
 		format = dateWithZone
 	}
 

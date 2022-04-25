@@ -104,9 +104,9 @@ var _ = Describe("Podman containers ", func() {
 		// Pause by name
 		err = containers.Pause(bt.conn, name, nil)
 		Expect(err).To(BeNil(), "error from containers.Pause()")
-		//paused := "paused"
-		//_, err = containers.Wait(bt.conn, cid, &paused)
-		//Expect(err).To(BeNil())
+		// paused := "paused"
+		// _, err = containers.Wait(bt.conn, cid, &paused)
+		// Expect(err).To(BeNil())
 		err = containers.Unpause(bt.conn, name, nil)
 		Expect(err).To(BeNil())
 
@@ -332,8 +332,8 @@ var _ = Describe("Podman containers ", func() {
 		// TODO for the life of me, i cannot get this to work. maybe another set
 		// of eyes will
 		// successful healthcheck
-		//status := define.HealthCheckHealthy
-		//for i:=0; i < 10; i++ {
+		// status := define.HealthCheckHealthy
+		// for i:=0; i < 10; i++ {
 		//	result, err := containers.RunHealthCheck(connText, "hc")
 		//	Expect(err).To(BeNil())
 		//	if result.Status != define.HealthCheckHealthy {
@@ -343,18 +343,18 @@ var _ = Describe("Podman containers ", func() {
 		//	}
 		//	status = result.Status
 		//	break
-		//}
-		//Expect(status).To(Equal(define.HealthCheckHealthy))
+		// }
+		// Expect(status).To(Equal(define.HealthCheckHealthy))
 
 		// TODO enable this when wait is working
 		// healthcheck on a stopped container should be a 409
-		//err = containers.Stop(connText, "hc", nil)
-		//Expect(err).To(BeNil())
-		//_, err = containers.Wait(connText, "hc")
-		//Expect(err).To(BeNil())
-		//_, err = containers.RunHealthCheck(connText, "hc")
-		//code, _ = bindings.CheckResponseCode(err)
-		//Expect(code).To(BeNumerically("==", http.StatusConflict))
+		// err = containers.Stop(connText, "hc", nil)
+		// Expect(err).To(BeNil())
+		// _, err = containers.Wait(connText, "hc")
+		// Expect(err).To(BeNil())
+		// _, err = containers.RunHealthCheck(connText, "hc")
+		// code, _ = bindings.CheckResponseCode(err)
+		// Expect(code).To(BeNumerically("==", http.StatusConflict))
 	})
 
 	It("logging", func() {
@@ -490,7 +490,7 @@ var _ = Describe("Podman containers ", func() {
 	})
 
 	It("podman kill a running container by bogus signal", func() {
-		//Killing a running container by bogus signal should fail
+		// Killing a running container by bogus signal should fail
 		var name = "top"
 		cid, err := bt.RunTopContainer(&name, nil)
 		Expect(err).To(BeNil())
@@ -580,7 +580,7 @@ var _ = Describe("Podman containers ", func() {
 
 		// Valid filter params container should be pruned now.
 		filters := map[string][]string{
-			"until": {"5000000000"}, //Friday, June 11, 2128
+			"until": {"5000000000"}, // Friday, June 11, 2128
 		}
 		pruneResponse, err = containers.Prune(bt.conn, new(containers.PruneOptions).WithFilters(filters))
 		Expect(err).To(BeNil())
@@ -594,7 +594,7 @@ var _ = Describe("Podman containers ", func() {
 		Expect(err).To(BeNil())
 
 		filters := map[string][]string{
-			"until": {"5000000000"}, //Friday, June 11, 2128
+			"until": {"5000000000"}, // Friday, June 11, 2128
 		}
 		c, err := containers.List(bt.conn, new(containers.ListOptions).WithFilters(filters).WithAll(true))
 		Expect(err).To(BeNil())

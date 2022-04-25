@@ -56,6 +56,9 @@ func renumber(cmd *cobra.Command, args []string) {
 	err = engine.Renumber(registry.Context(), cmd.Flags(), registry.PodmanConfig())
 	if err != nil {
 		fmt.Println(err)
+		// FIXME change this to return the error like other commands
+		// defer will never run on os.Exit()
+		//nolint:gocritic
 		os.Exit(define.ExecErrorCodeGeneric)
 	}
 	os.Exit(0)

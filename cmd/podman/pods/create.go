@@ -224,7 +224,8 @@ func create(cmd *cobra.Command, args []string) error {
 	}
 	sort.Ints(vals)
 	for ind, core := range vals {
-		if core > int(cpuSet) {
+		switch {
+		case core > int(cpuSet):
 			if copy == "" {
 				copy = "0-" + strconv.Itoa(int(cpuSet))
 				infraOptions.CPUSetCPUs = copy
@@ -233,9 +234,9 @@ func create(cmd *cobra.Command, args []string) error {
 				infraOptions.CPUSetCPUs = copy
 				break
 			}
-		} else if ind != 0 {
+		case ind != 0:
 			copy += "," + strconv.Itoa(core)
-		} else {
+		default:
 			copy = "" + strconv.Itoa(core)
 		}
 	}

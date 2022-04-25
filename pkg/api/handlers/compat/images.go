@@ -532,7 +532,7 @@ func ExportImages(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
 		return
 	}
-	if len(query.Names) <= 0 {
+	if len(query.Names) == 0 {
 		utils.Error(w, http.StatusBadRequest, fmt.Errorf("no images to download"))
 		return
 	}

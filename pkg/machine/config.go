@@ -135,7 +135,7 @@ type InspectInfo struct {
 }
 
 func (rc RemoteConnectionType) MakeSSHURL(host, path, port, userName string) url.URL {
-	//TODO Should this function have input verification?
+	// TODO Should this function have input verification?
 	userInfo := url.User(userName)
 	uri := url.URL{
 		Scheme:     "ssh",

@@ -286,7 +286,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 						}
 					}
 				}
-				secrets = append(secrets, strings.Join(modifiedOpt[:], ","))
+				secrets = append(secrets, strings.Join(modifiedOpt, ","))
 			}
 		}
 	}

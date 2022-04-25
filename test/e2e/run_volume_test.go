@@ -226,7 +226,7 @@ var _ = Describe("Podman run with volumes", func() {
 		mountPath := filepath.Join(podmanTest.TempDir, "secrets")
 		os.Mkdir(mountPath, 0755)
 
-		//Container should be able to start with custom overlay volume
+		// Container should be able to start with custom overlay volume
 		session := podmanTest.Podman([]string{"run", "--rm", "-v", mountPath + ":/data:O", "--workdir=/data", ALPINE, "echo", "hello"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
@@ -729,7 +729,7 @@ VOLUME /test/`, ALPINE)
 		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(ContainSubstring("888:888"))
 
-		vol = vol + ",O"
+		vol += ",O"
 		session = podmanTest.Podman([]string{"run", "--rm", "--user", "888:888", "--userns", "keep-id", "-v", vol, ALPINE, "stat", "-c", "%u:%g", dest})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))

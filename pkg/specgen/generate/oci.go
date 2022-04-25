@@ -298,7 +298,8 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 		g.AddAnnotation(key, val)
 	}
 
-	if compatibleOptions.InfraResources == nil && s.ResourceLimits != nil {
+	switch {
+	case compatibleOptions.InfraResources == nil && s.ResourceLimits != nil:
 		out, err := json.Marshal(s.ResourceLimits)
 		if err != nil {
 			return nil, err
@@ -307,7 +308,7 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 		if err != nil {
 			return nil, err
 		}
-	} else if s.ResourceLimits != nil { // if we have predefined resource limits we need to make sure we keep the infra and container limits
+	case s.ResourceLimits != nil: // if we have predefined resource limits we need to make sure we keep the infra and container limits
 		originalResources, err := json.Marshal(s.ResourceLimits)
 		if err != nil {
 			return nil, err
@@ -325,7 +326,7 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 			return nil, err
 		}
 		g.Config.Linux.Resources = s.ResourceLimits
-	} else {
+	default:
 		g.Config.Linux.Resources = compatibleOptions.InfraResources
 	}
 	// Devices

@@ -34,7 +34,7 @@ func PruneReportsSize(r []*PruneReport) uint64 {
 		if v == nil {
 			continue
 		}
-		size = size + v.Size
+		size += v.Size
 	}
 	return size
 }
