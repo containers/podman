@@ -209,6 +209,10 @@ func getRuntime(ctx context.Context, fs *flag.FlagSet, opts *engineOpts) (*libpo
 		options = append(options, libpod.WithEventsLogger(cfg.Engine.EventsLogger))
 	}
 
+	if fs.Changed("volumepath") {
+		options = append(options, libpod.WithVolumePath(cfg.Engine.VolumePath))
+	}
+
 	if fs.Changed("cgroup-manager") {
 		options = append(options, libpod.WithCgroupManager(cfg.Engine.CgroupManager))
 	} else {

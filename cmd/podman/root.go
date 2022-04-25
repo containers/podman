@@ -429,6 +429,10 @@ func rootFlags(cmd *cobra.Command, opts *entities.PodmanConfig) {
 
 		pFlags.BoolVar(&opts.Trace, "trace", false, "Enable opentracing output (default false)")
 
+		volumePathFlagName := "volumepath"
+		pFlags.StringVar(&opts.Engine.VolumePath, volumePathFlagName, "", "Path to the volume directory in which volume data is stored")
+		_ = cmd.RegisterFlagCompletionFunc(volumePathFlagName, completion.AutocompleteDefault)
+
 		// Hide these flags for both ABI and Tunneling
 		for _, f := range []string{
 			"cpu-profile",
