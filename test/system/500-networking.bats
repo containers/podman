@@ -83,7 +83,7 @@ load helpers
 }
 
 # Issue #5466 - port-forwarding doesn't work with this option and -d
-@test "podman networking: port with --userns=keep-id for rootless or --uidmap=* for rootfull" {
+@test "podman networking: port with --userns=keep-id for rootless or --uidmap=* for rootful" {
     for cidr in "" "$(random_rfc1918_subnet).0/24"; do
         myport=$(random_free_port 52000-52999)
         if [[ -z $cidr ]]; then

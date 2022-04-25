@@ -19,39 +19,39 @@ subset can be changed after machine initialization.
 
 Print usage statement.
 
-#### **--rootfull**=*true|false*
+#### **--rootful**=*true|false*
 
-Whether this machine should prefer rootfull (`true`) or rootless (`false`)
+Whether this machine should prefer rootful (`true`) or rootless (`false`)
 container execution. This option will also update the current podman
 remote connection default if it is currently pointing at the specified
 machine name (or `podman-machine-default` if no name is specified).
 
 Unlike [**podman system connection default**](podman-system-connection-default.1.md)
-this option will also make the API socket, if available, forward to the rootfull/rootless
+this option will also make the API socket, if available, forward to the rootful/rootless
 socket in the VM.
 
 ## EXAMPLES
 
-To switch the default VM `podman-machine-default` from rootless to rootfull:
+To switch the default VM `podman-machine-default` from rootless to rootful:
 
 ```
-$ podman machine set --rootfull
+$ podman machine set --rootful
 ```
 
 or more explicitly:
 
 ```
-$ podman machine set --rootfull=true
+$ podman machine set --rootful=true
 ```
 
-To switch the default VM `podman-machine-default` from rootfull to rootless:
+To switch the default VM `podman-machine-default` from rootful to rootless:
 ```
-$ podman machine set --rootfull=false
+$ podman machine set --rootful=false
 ```
 
-To switch the VM `myvm` from rootless to rootfull:
+To switch the VM `myvm` from rootless to rootful:
 ```
-$ podman machine set --rootfull myvm
+$ podman machine set --rootful myvm
 ```
 
 ## SEE ALSO

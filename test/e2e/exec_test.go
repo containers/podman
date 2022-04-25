@@ -123,7 +123,7 @@ var _ = Describe("Podman exec", func() {
 	})
 
 	It("podman exec in keep-id container drops privileges", func() {
-		SkipIfNotRootless("This function is not enabled for rootfull podman")
+		SkipIfNotRootless("This function is not enabled for rootful podman")
 		ctrName := "testctr1"
 		testCtr := podmanTest.Podman([]string{"run", "-d", "--name", ctrName, "--userns=keep-id", ALPINE, "top"})
 		testCtr.WaitWithDefaultTimeout()

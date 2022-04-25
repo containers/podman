@@ -17,7 +17,7 @@ var (
 		Long:              "Sets an updatable virtual machine setting",
 		RunE:              setMachine,
 		Args:              cobra.MaximumNArgs(1),
-		Example:           `podman machine set --rootfull=false`,
+		Example:           `podman machine set --rootful=false`,
 		ValidArgsFunction: completion.AutocompleteNone,
 	}
 )
@@ -33,9 +33,8 @@ func init() {
 	})
 	flags := setCmd.Flags()
 
-	rootfullFlagName := "rootfull"
-	flags.BoolVar(&setOpts.Rootfull, rootfullFlagName, false, "Whether this machine should prefer rootfull container execution")
-	flags.SetNormalizeFunc(aliasFlags)
+	rootfulFlagName := "rootful"
+	flags.BoolVar(&setOpts.Rootful, rootfulFlagName, false, "Whether this machine should prefer rootful container execution")
 }
 
 func setMachine(cmd *cobra.Command, args []string) error {

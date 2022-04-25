@@ -59,9 +59,9 @@ Memory (in MB).
 
 Start the virtual machine immediately after it has been initialized.
 
-#### **--rootfull**=*true|false*
+#### **--rootful**=*true|false*
 
-Whether this machine should prefer rootfull (`true`) or rootless (`false`)
+Whether this machine should prefer rootful (`true`) or rootless (`false`)
 container execution. This option will also determine the remote connection default
 if there is no existing remote connection configurations.
 
@@ -95,7 +95,7 @@ Driver to use for mounting volumes from the host, such as `virtfs`.
 ```
 $ podman machine init
 $ podman machine init myvm
-$ podman machine init --rootfull
+$ podman machine init --rootful
 $ podman machine init --disk-size 50
 $ podman machine init --memory=1024 myvm
 $ podman machine init -v /Users:/mnt/Users

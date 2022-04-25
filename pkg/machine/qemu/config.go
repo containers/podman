@@ -57,8 +57,8 @@ type MachineVMV1 struct {
 	QMPMonitor Monitorv1
 	// RemoteUsername of the vm user
 	RemoteUsername string
-	// Whether this machine should run in a rootfull or rootless manner
-	Rootfull bool
+	// Whether this machine should run in a rootful or rootless manner
+	Rootful bool
 	// UID is the numerical id of the user that called machine
 	UID int
 }
@@ -99,8 +99,8 @@ type ImageConfig struct {
 
 // HostUser describes the host user
 type HostUser struct {
-	// Whether this machine should run in a rootfull or rootless manner
-	Rootfull bool
+	// Whether this machine should run in a rootful or rootless manner
+	Rootful bool
 	// UID is the numerical id of the user that called machine
 	UID int
 }
