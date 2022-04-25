@@ -268,7 +268,7 @@ case "$TEST_FLAVOR" in
         ;;
     docker-py)
         remove_packaged_podman_files
-        make install PREFIX=/usr ETCDIR=/etc
+        make && make install PREFIX=/usr ETCDIR=/etc
 
         msg "Installing previously downloaded/cached packages"
         dnf install -y $PACKAGE_DOWNLOAD_DIR/python3*.rpm
