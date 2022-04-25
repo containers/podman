@@ -423,7 +423,7 @@ function skip_if_rootless() {
 ######################
 function skip_if_not_rootless() {
     if ! is_rootless; then
-        local msg=$(_add_label_if_missing "$1" "rootfull")
+        local msg=$(_add_label_if_missing "$1" "rootful")
         skip "${msg:-not applicable under rootlfull podman}"
     fi
 }

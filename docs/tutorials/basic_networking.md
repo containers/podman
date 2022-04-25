@@ -7,15 +7,15 @@
 It seems once people master the basics of containers, networking is one of the first
 aspects they begin experimenting with.  And regarding networking, it takes very
 little experimentation before ending up on the deep end of the pool.  The following
-guide shows the most common network setups for Podman rootfull and rootless containers.
+guide shows the most common network setups for Podman rootful and rootless containers.
 Each setup is supported with an example.
 
 
-## Differences between rootfull and rootless container networking
+## Differences between rootful and rootless container networking
 
 One of the guiding factors on networking for containers with Podman is going to be
 whether or not the container is run by a root user or not.  This is because unprivileged
-users cannot create networking interfaces on the host.  Therefore, with rootfull
+users cannot create networking interfaces on the host.  Therefore, with rootful
 containers, the default networking mode is to use netavark.
 For rootless, the default network
 mode is slirp4netns. Because of the limited privileges, slirp4netns lacks some of
@@ -32,13 +32,13 @@ ports being opened automatically due to running a container with a port mapping 
 example).  If container traffic does not seem to work properly, check the firewall
 and allow traffic on ports the container is using. A common problem is that
 reloading the firewall deletes the cni iptables rules resulting in a loss of
-network connectivity for rootfull containers. Podman v3 provides the podman
+network connectivity for rootful containers. Podman v3 provides the podman
 network reload command to restore this without having to restart the container.
 
 ## Basic Network Setups
 
 Most containers and pods being run with Podman adhere to a couple of simple scenarios.
-By default, rootfull Podman will create a bridged network.  This is the most straightforward
+By default, rootful Podman will create a bridged network.  This is the most straightforward
 and preferred network setup for Podman. Bridge networking creates an interface for
 the container on an internal bridge network, which is then connected to the internet
 via Network Address Translation(NAT).  We also see users wanting to use `macvlan`
@@ -79,7 +79,7 @@ command. Containers can be joined to a network when they are created with the
 
 As mentioned earlier, slirp4netns is the default network configuration for rootless
 users.  But as of Podman version 4.0, rootless users can also use netavark.
-The user experience of rootless netavark is very akin to a rootfull netavark, except that
+The user experience of rootless netavark is very akin to a rootful netavark, except that
 there is no default network configuration provided.  You simply need to create a
 network, and the one will be created as a bridge network. If you would like to switch from
 CNI networking to netvaark, you must issue the `podman system reset --force` command.
@@ -95,17 +95,17 @@ will be executed inside an extra network namespace. To join this namespace, use
 
 #### Example
 
-By default, rootfull containers use the netavark for its default network if
+By default, rootful containers use the netavark for its default network if
 you have not migrated from Podman v3.
 In this case, no network name must be passed to Podman.  However, you can create
 additional bridged networks with the podman create command.
 
 The following example shows how to set up a web server and expose it to the network
-outside the host as both rootfull and rootless.  It will also show how an outside
+outside the host as both rootful and rootless.  It will also show how an outside
 client can connect to the container.
 
 ```
-(rootfull) $ sudo podman run -dt --name webserver -p 8080:80 quay.io/libpod/banner
+(rootful) $ sudo podman run -dt --name webserver -p 8080:80 quay.io/libpod/banner
 00f3440c7576aae2d5b193c40513c29c7964e96bf797cf0cc352c2b68ccbe66a
 ```
 
@@ -120,7 +120,7 @@ how the host and container ports can be mapped for external access.  The port co
 very well have been 80 as well (except for rootless users).
 
 To connect from an outside client to the webserver, simply point an HTTP client to
-the host’s IP address at port 8080 for rootfull and port 8081 for rootless.
+the host’s IP address at port 8080 for rootful and port 8081 for rootless.
 ```
 (outside_host): $ curl 192.168.99.109:8080
    ___           __

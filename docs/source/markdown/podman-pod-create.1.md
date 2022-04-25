@@ -156,7 +156,7 @@ Set the network mode for the pod. Invalid if using **--dns**, **--dns-opt**, or 
 
 Valid _mode_ values are:
 
-- **bridge[:OPTIONS,...]**: Create a network stack on the default bridge. This is the default for rootfull containers. It is possible to specify these additional options:
+- **bridge[:OPTIONS,...]**: Create a network stack on the default bridge. This is the default for rootful containers. It is possible to specify these additional options:
   - **alias=name**: Add network-scoped alias for the container.
   - **ip=IPv4**: Specify a static ipv4 address for this container.
   - **ip=IPv6**: Specify a static ipv6 address for this container.
@@ -169,7 +169,7 @@ Valid _mode_ values are:
 - **container:**_id_: Reuse another container's network stack.
 - **host**: Do not create a network namespace, the container will use the host's network. Note: The host mode gives the container full access to local system services such as D-bus and is therefore considered insecure.
 - **ns:**_path_: Path to a network namespace to join.
-- **private**: Create a new namespace for the container. This will use the **bridge** mode for rootfull containers and **slirp4netns** for rootless ones.
+- **private**: Create a new namespace for the container. This will use the **bridge** mode for rootful containers and **slirp4netns** for rootless ones.
 - **slirp4netns[:OPTIONS,...]**: use **slirp4netns**(1) to create a user network stack. This is the default for rootless containers. It is possible to specify these additional options, they can also be set with `network_cmd_options` in containers.conf:
   - **allow_host_loopback=true|false**: Allow the slirp4netns to reach the host loopback IP (`10.0.2.2`). Default is false.
   - **mtu=MTU**: Specify the MTU to use for this network. (Default is `65520`).

@@ -685,7 +685,7 @@ suitable group name to use as the default setting for this option.
 
 **NOTE:** When this option is specified by a rootless user, the specified
 mappings are relative to the rootless user namespace in the container, rather
-than being relative to the host as it would be when run rootfull.
+than being relative to the host as it would be when run rootful.
 
 #### **--userns-uid-map**=*mapping*
 
@@ -721,7 +721,7 @@ suitable user name to use as the default setting for this option.
 
 **NOTE:** When this option is specified by a rootless user, the specified
 mappings are relative to the rootless user namespace in the container, rather
-than being relative to the host as it would be when run rootfull.
+than being relative to the host as it would be when run rootful.
 
 #### **--uts**=*how*
 
