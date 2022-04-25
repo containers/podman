@@ -135,7 +135,6 @@ func initMachine(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-
 	if finished, err := vm.Init(initOpts); err != nil || !finished {
 		// Finished = true,  err  = nil  -  Success! Log a message with further instructions
 		// Finished = false, err  = nil  -  The installation is partially complete and podman should
@@ -144,7 +143,6 @@ func initMachine(cmd *cobra.Command, args []string) error {
 		//                                  - a user has chosen to perform their own reboot
 		//                                  - reexec for limited admin operations, returning to parent
 		// Finished = *,     err != nil  -  Exit with an error message
-
 		return err
 	}
 	fmt.Println("Machine init complete")

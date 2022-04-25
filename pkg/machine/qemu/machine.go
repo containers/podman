@@ -76,7 +76,6 @@ func (p *Provider) NewMachine(opts machine.InitOptions) (machine.VM, error) {
 		return nil, err
 	}
 	vm.IgnitionFilePath = *ignitionFile
-
 	imagePath, err := NewMachineFile(opts.ImagePath, nil)
 	if err != nil {
 		return nil, err
@@ -373,7 +372,6 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 	if err := v.writeConfig(); err != nil {
 		return false, fmt.Errorf("writing JSON file: %w", err)
 	}
-
 	// User has provided ignition file so keygen
 	// will be skipped.
 	if len(opts.IgnitionPath) < 1 {
@@ -387,7 +385,6 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 	if err := v.prepare(); err != nil {
 		return false, err
 	}
-
 	originalDiskSize, err := getDiskSize(v.getImageFile())
 	if err != nil {
 		return false, err
@@ -514,17 +511,28 @@ func (v *MachineVM) Start(name string, _ machine.StartOptions) error {
 		time.Sleep(wait)
 		wait++
 	}
+	defer qemuSocketConn.Close()
 	if err != nil {
 		return err
 	}
-
 	fd, err := qemuSocketConn.(*net.UnixConn).File()
 	if err != nil {
 		return err
 	}
+	defer fd.Close()
+	dnr, err := os.OpenFile("/dev/null", os.O_RDONLY, 0755)
+	if err != nil {
+		return err
+	}
+	defer dnr.Close()
+	dnw, err := os.OpenFile("/dev/null", os.O_WRONLY, 0755)
+	if err != nil {
+		return err
+	}
+	defer dnw.Close()
 
 	attr := new(os.ProcAttr)
-	files := []*os.File{os.Stdin, os.Stdout, os.Stderr, fd}
+	files := []*os.File{dnr, dnw, dnw, fd}
 	attr.Files = files
 	logrus.Debug(v.CmdLine)
 	cmd := v.CmdLine
@@ -552,7 +560,7 @@ func (v *MachineVM) Start(name string, _ machine.StartOptions) error {
 		}
 		_, err = os.StartProcess(cmd[0], cmd, attr)
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "unable to execute %q", cmd)
 		}
 	}
 	fmt.Println("Waiting for VM ...")
@@ -575,11 +583,11 @@ func (v *MachineVM) Start(name string, _ machine.StartOptions) error {
 	if err != nil {
 		return err
 	}
+	defer conn.Close()
 	_, err = bufio.NewReader(conn).ReadString('\n')
 	if err != nil {
 		return err
 	}
-
 	if len(v.Mounts) > 0 {
 		state, err := v.State()
 		if err != nil {
@@ -918,7 +926,7 @@ func (v *MachineVM) SSH(_ string, opts machine.SSHOptions) error {
 	sshDestination := username + "@localhost"
 	port := strconv.Itoa(v.Port)
 
-	args := []string{"-i", v.IdentityPath, "-p", port, sshDestination, "-o", "UserKnownHostsFile /dev/null", "-o", "StrictHostKeyChecking no"}
+	args := []string{"-i", v.IdentityPath, "-p", port, sshDestination, "-o", "UserKnownHostsFile=/dev/null", "-o", "StrictHostKeyChecking=no"}
 	if len(opts.Args) > 0 {
 		args = append(args, opts.Args...)
 	} else {
@@ -1085,9 +1093,19 @@ func (v *MachineVM) startHostNetworking() (string, apiForwardingState, error) {
 	}
 
 	attr := new(os.ProcAttr)
-	// Pass on stdin, stdout, stderr
-	files := []*os.File{os.Stdin, os.Stdout, os.Stderr}
-	attr.Files = files
+	dnr, err := os.OpenFile("/dev/null", os.O_RDONLY, 0755)
+	if err != nil {
+		return "", noForwarding, err
+	}
+	dnw, err := os.OpenFile("/dev/null", os.O_WRONLY, 0755)
+	if err != nil {
+		return "", noForwarding, err
+	}
+
+	defer dnr.Close()
+	defer dnw.Close()
+
+	attr.Files = []*os.File{dnr, dnw, dnw}
 	cmd := []string{binary}
 	cmd = append(cmd, []string{"-listen-qemu", fmt.Sprintf("unix://%s", v.QMPMonitor.Address.GetPath()), "-pid-file", v.PidFilePath.GetPath()}...)
 	// Add the ssh port
@@ -1104,7 +1122,7 @@ func (v *MachineVM) startHostNetworking() (string, apiForwardingState, error) {
 		fmt.Println(cmd)
 	}
 	_, err = os.StartProcess(cmd[0], cmd, attr)
-	return forwardSock, state, err
+	return forwardSock, state, errors.Wrapf(err, "unable to execute: %q", cmd)
 }
 
 func (v *MachineVM) setupAPIForwarding(cmd []string) ([]string, string, apiForwardingState) {

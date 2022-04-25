@@ -10,9 +10,9 @@ BUILD_TAGS[abi]="${BUILD_TAGS[default]},!remoteclient"
 BUILD_TAGS[tunnel]="${BUILD_TAGS[default]},remote,remoteclient"
 
 declare -A SKIP_DIRS
-SKIP_DIRS[abi]=""
+SKIP_DIRS[abi]="pkg/machine/e2e"
 # TODO: add "remote" build tag to pkg/api
-SKIP_DIRS[tunnel]="pkg/api"
+SKIP_DIRS[tunnel]="pkg/api,pkg/machine/e2e"
 
 [[ $1 == run ]] && shift
 

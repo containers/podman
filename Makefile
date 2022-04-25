@@ -537,7 +537,7 @@ localunit: test/goecho/goecho test/version/version
 	UNIT=1 $(GOBIN)/ginkgo \
 		-r \
 		$(TESTFLAGS) \
-		--skipPackage test/e2e,pkg/apparmor,pkg/bindings,hack \
+		--skipPackage test/e2e,pkg/apparmor,pkg/bindings,hack,pkg/machine/e2e \
 		--cover \
 		--covermode atomic \
 		--coverprofile coverprofile \
