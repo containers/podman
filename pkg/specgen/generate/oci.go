@@ -32,7 +32,7 @@ func setProcOpts(s *specgen.SpecGenerator, g *generate.Generator) {
 	}
 }
 
-func addRlimits(s *specgen.SpecGenerator, g *generate.Generator) error {
+func addRlimits(s *specgen.SpecGenerator, g *generate.Generator) {
 	var (
 		isRootless = rootless.IsRootless()
 		nofileSet  = false
@@ -41,7 +41,7 @@ func addRlimits(s *specgen.SpecGenerator, g *generate.Generator) error {
 
 	if s.Rlimits == nil {
 		g.Config.Process.Rlimits = nil
-		return nil
+		return
 	}
 
 	for _, u := range s.Rlimits {
@@ -91,12 +91,10 @@ func addRlimits(s *specgen.SpecGenerator, g *generate.Generator) error {
 		}
 		g.AddProcessRlimits("RLIMIT_NPROC", max, current)
 	}
-
-	return nil
 }
 
 // Produce the final command for the container.
-func makeCommand(ctx context.Context, s *specgen.SpecGenerator, imageData *libimage.ImageData, rtc *config.Config) ([]string, error) {
+func makeCommand(s *specgen.SpecGenerator, imageData *libimage.ImageData, rtc *config.Config) ([]string, error) {
 	finalCommand := []string{}
 
 	entrypoint := s.Entrypoint
@@ -388,9 +386,7 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 		g.AddProcessEnv(name, val)
 	}
 
-	if err := addRlimits(s, &g); err != nil {
-		return nil, err
-	}
+	addRlimits(s, &g)
 
 	// NAMESPACES
 	if err := specConfigureNamespaces(s, &g, rt, pod); err != nil {

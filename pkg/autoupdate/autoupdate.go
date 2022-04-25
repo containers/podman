@@ -209,7 +209,7 @@ func autoUpdateRegistry(ctx context.Context, image *libimage.Image, ctr *libpod.
 	}
 
 	authfile := getAuthfilePath(ctr, options)
-	needsUpdate, err := newerRemoteImageAvailable(ctx, runtime, image, rawImageName, authfile)
+	needsUpdate, err := newerRemoteImageAvailable(ctx, image, rawImageName, authfile)
 	if err != nil {
 		return report, errors.Wrapf(err, "registry auto-updating container %q: image check for %q failed", cid, rawImageName)
 	}
@@ -399,7 +399,7 @@ func getAuthfilePath(ctr *libpod.Container, options *entities.AutoUpdateOptions)
 
 // newerRemoteImageAvailable returns true if there corresponding image on the remote
 // registry is newer.
-func newerRemoteImageAvailable(ctx context.Context, runtime *libpod.Runtime, img *libimage.Image, origName string, authfile string) (bool, error) {
+func newerRemoteImageAvailable(ctx context.Context, img *libimage.Image, origName string, authfile string) (bool, error) {
 	remoteRef, err := docker.ParseReference("//" + origName)
 	if err != nil {
 		return false, err

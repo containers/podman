@@ -119,7 +119,7 @@ func MakePod(p *entities.PodSpec, rt *libpod.Runtime) (*libpod.Pod, error) {
 		}
 	}
 
-	options, err := createPodOptions(&p.PodSpecGen, rt, p.PodSpecGen.InfraContainerSpec)
+	options, err := createPodOptions(&p.PodSpecGen)
 	if err != nil {
 		return nil, err
 	}
@@ -161,11 +161,11 @@ func MakePod(p *entities.PodSpec, rt *libpod.Runtime) (*libpod.Pod, error) {
 	return pod, nil
 }
 
-func createPodOptions(p *specgen.PodSpecGenerator, rt *libpod.Runtime, infraSpec *specgen.SpecGenerator) ([]libpod.PodCreateOption, error) {
+func createPodOptions(p *specgen.PodSpecGenerator) ([]libpod.PodCreateOption, error) {
 	var (
 		options []libpod.PodCreateOption
 	)
-	if !p.NoInfra { //&& infraSpec != nil {
+	if !p.NoInfra {
 		options = append(options, libpod.WithInfraContainer())
 		if p.ShareParent == nil || (p.ShareParent != nil && *p.ShareParent) {
 			options = append(options, libpod.WithPodParent())

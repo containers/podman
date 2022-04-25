@@ -1047,7 +1047,7 @@ var IPRegex = `(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\.(25[0-5]|2[0-4][0-9]|[01
 // digShort execs into the given container and does a dig lookup with a timeout
 // backoff.  If it gets a response, it ensures that the output is in the correct
 // format and iterates a string array for match
-func digShort(container, lookupName string, matchNames []string, p *PodmanTestIntegration) string {
+func digShort(container, lookupName string, matchNames []string, p *PodmanTestIntegration) {
 	digInterval := time.Millisecond * 250
 	for i := 0; i < 6; i++ {
 		time.Sleep(digInterval * time.Duration(i))
@@ -1059,9 +1059,9 @@ func digShort(container, lookupName string, matchNames []string, p *PodmanTestIn
 			for _, name := range matchNames {
 				Expect(output).To(Equal(name))
 			}
-			return output
+			// success
+			return
 		}
 	}
 	Fail("dns is not responding")
-	return ""
 }

@@ -4,7 +4,6 @@
 package libpod
 
 import (
-	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -46,7 +45,7 @@ func (r *Runtime) stopPauseProcess() error {
 	return nil
 }
 
-func (r *Runtime) migrate(ctx context.Context) error {
+func (r *Runtime) migrate() error {
 	runningContainers, err := r.GetRunningContainers()
 	if err != nil {
 		return err

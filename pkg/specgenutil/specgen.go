@@ -136,7 +136,7 @@ func LimitToSwap(memory *specs.LinuxMemory, swap string, ml int64) {
 	}
 }
 
-func getMemoryLimits(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions) (*specs.LinuxMemory, error) {
+func getMemoryLimits(c *entities.ContainerCreateOptions) (*specs.LinuxMemory, error) {
 	var err error
 	memory := &specs.LinuxMemory{}
 	hasLimits := false
@@ -497,7 +497,7 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 	}
 
 	if s.ResourceLimits.Memory == nil || (len(c.Memory) != 0 || len(c.MemoryReservation) != 0 || len(c.MemorySwap) != 0 || c.MemorySwappiness != 0) {
-		s.ResourceLimits.Memory, err = getMemoryLimits(s, c)
+		s.ResourceLimits.Memory, err = getMemoryLimits(c)
 		if err != nil {
 			return err
 		}

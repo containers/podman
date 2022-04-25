@@ -1181,7 +1181,7 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 	}
 
 	// 0, 1 and 2 are stdin, stdout and stderr
-	conmonEnv := r.configureConmonEnv(ctr, runtimeDir)
+	conmonEnv := r.configureConmonEnv(runtimeDir)
 
 	var filesToClose []*os.File
 	if preserveFDs > 0 {
@@ -1312,7 +1312,7 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 
 // configureConmonEnv gets the environment values to add to conmon's exec struct
 // TODO this may want to be less hardcoded/more configurable in the future
-func (r *ConmonOCIRuntime) configureConmonEnv(ctr *Container, runtimeDir string) []string {
+func (r *ConmonOCIRuntime) configureConmonEnv(runtimeDir string) []string {
 	var env []string
 	for _, e := range os.Environ() {
 		if strings.HasPrefix(e, "LC_") {

@@ -146,13 +146,13 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 		options = append(options, libpod.WithHostUsers(s.HostUsers))
 	}
 
-	command, err := makeCommand(ctx, s, imageData, rtc)
+	command, err := makeCommand(s, imageData, rtc)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
 	infraVol := (len(compatibleOptions.Mounts) > 0 || len(compatibleOptions.Volumes) > 0 || len(compatibleOptions.ImageVolumes) > 0 || len(compatibleOptions.OverlayVolumes) > 0)
-	opts, err := createContainerOptions(ctx, rt, s, pod, finalVolumes, finalOverlays, imageData, command, infraVol, *compatibleOptions)
+	opts, err := createContainerOptions(rt, s, pod, finalVolumes, finalOverlays, imageData, command, infraVol, *compatibleOptions)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -251,7 +251,7 @@ func isCDIDevice(device string) bool {
 	return cdi.IsQualifiedName(device)
 }
 
-func createContainerOptions(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGenerator, pod *libpod.Pod, volumes []*specgen.NamedVolume, overlays []*specgen.OverlayVolume, imageData *libimage.ImageData, command []string, infraVolumes bool, compatibleOptions libpod.InfraInherit) ([]libpod.CtrCreateOption, error) {
+func createContainerOptions(rt *libpod.Runtime, s *specgen.SpecGenerator, pod *libpod.Pod, volumes []*specgen.NamedVolume, overlays []*specgen.OverlayVolume, imageData *libimage.ImageData, command []string, infraVolumes bool, compatibleOptions libpod.InfraInherit) ([]libpod.CtrCreateOption, error) {
 	var options []libpod.CtrCreateOption
 	var err error
 
@@ -453,7 +453,7 @@ func createContainerOptions(ctx context.Context, rt *libpod.Runtime, s *specgen.
 	options = append(options, libpod.WithPrivileged(s.Privileged))
 
 	// Get namespace related options
-	namespaceOpts, err := namespaceOptions(ctx, s, rt, pod, imageData)
+	namespaceOpts, err := namespaceOptions(s, rt, pod, imageData)
 	if err != nil {
 		return nil, err
 	}

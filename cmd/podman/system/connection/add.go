@@ -112,7 +112,7 @@ func add(cmd *cobra.Command, args []string) error {
 			iden = cOpts.Identity
 		}
 		if uri.Path == "" || uri.Path == "/" {
-			if uri.Path, err = getUDS(cmd, uri, iden); err != nil {
+			if uri.Path, err = getUDS(uri, iden); err != nil {
 				return err
 			}
 		}
@@ -204,7 +204,7 @@ func GetUserInfo(uri *url.URL) (*url.Userinfo, error) {
 	return url.User(usr.Username), nil
 }
 
-func getUDS(cmd *cobra.Command, uri *url.URL, iden string) (string, error) {
+func getUDS(uri *url.URL, iden string) (string, error) {
 	cfg, err := ValidateAndConfigure(uri, iden)
 	if err != nil {
 		return "", errors.Wrapf(err, "failed to validate")
