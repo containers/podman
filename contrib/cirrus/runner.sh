@@ -373,8 +373,9 @@ dotest() {
 function _bail_if_test_can_be_skipped() {
     local head base diffs
 
-    # Cirrus sets these for PRs but not cron. In cron, we never want to skip.
-    for v in CIRRUS_CHANGE_IN_REPO DEST_BRANCH; do
+    # Cirrus sets these for PRs but not branches or cron. In cron and branches,
+    #we never want to skip.
+    for v in CIRRUS_CHANGE_IN_REPO CIRRUS_PR; do
         if [[ -z "${!v}" ]]; then
             msg "[ _cannot do selective skip: \$$v is undefined ]"
             return 0
