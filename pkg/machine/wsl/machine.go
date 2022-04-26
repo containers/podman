@@ -1028,7 +1028,7 @@ func (v *MachineVM) Stop(name string, _ machine.StopOptions) error {
 
 // TODO: We need to rename isRunning to State(); I do not have a
 // windows system to test this on.
-func (v *MachineVM) State() (machine.Status, error) {
+func (v *MachineVM) State(bypass bool) (machine.Status, error) {
 	return "", define.ErrNotImplemented
 }
 

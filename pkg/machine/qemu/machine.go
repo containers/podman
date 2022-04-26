@@ -94,6 +94,8 @@ func (p *Provider) NewMachine(opts machine.InitOptions) (machine.VM, error) {
 	vm.Memory = opts.Memory
 	vm.DiskSize = opts.DiskSize
 
+	vm.Created = time.Now()
+
 	// Find the qemu executable
 	cfg, err := config.Default()
 	if err != nil {
@@ -436,7 +438,7 @@ func (v *MachineVM) Set(_ string, opts machine.SetOptions) error {
 		return nil
 	}
 
-	state, err := v.State()
+	state, err := v.State(false)
 	if err != nil {
 		return err
 	}
@@ -477,6 +479,17 @@ func (v *MachineVM) Start(name string, _ machine.StartOptions) error {
 		wait           = time.Millisecond * 500
 	)
 
+	v.Starting = true
+	if err := v.writeConfig(); err != nil {
+		return fmt.Errorf("writing JSON file: %w", err)
+	}
+	defer func() error {
+		v.Starting = false
+		if err := v.writeConfig(); err != nil {
+			return fmt.Errorf("writing JSON file: %w", err)
+		}
+		return nil
+	}()
 	if v.isIncompatible() {
 		logrus.Errorf("machine %q is incompatible with this release of podman and needs to be recreated, starting for recovery only", v.Name)
 	}
@@ -498,6 +511,7 @@ func (v *MachineVM) Start(name string, _ machine.StartOptions) error {
 			return err
 		}
 	}
+
 	// If the qemusocketpath exists and the vm is off/down, we should rm
 	// it before the dial as to avoid a segv
 	if err := v.QMPMonitor.Address.Delete(); err != nil {
@@ -589,14 +603,14 @@ func (v *MachineVM) Start(name string, _ machine.StartOptions) error {
 		return err
 	}
 	if len(v.Mounts) > 0 {
-		state, err := v.State()
+		state, err := v.State(true)
 		if err != nil {
 			return err
 		}
 		listening := v.isListening()
 		for state != machine.Running || !listening {
 			time.Sleep(100 * time.Millisecond)
-			state, err = v.State()
+			state, err = v.State(true)
 			if err != nil {
 				return err
 			}
@@ -638,7 +652,6 @@ func (v *MachineVM) Start(name string, _ machine.StartOptions) error {
 	}
 
 	v.waitAPIAndPrintInfo(forwardState, forwardSock)
-
 	return nil
 }
 
@@ -647,9 +660,10 @@ func (v *MachineVM) checkStatus(monitor *qmp.SocketMonitor) (machine.Status, err
 	// {"return": {"status": "running", "singlestep": false, "running": true}}
 
 	type statusDetails struct {
-		Status  string `json:"status"`
-		Step    bool   `json:"singlestep"`
-		Running bool   `json:"running"`
+		Status   string `json:"status"`
+		Step     bool   `json:"singlestep"`
+		Running  bool   `json:"running"`
+		Starting bool   `json:"starting"`
 	}
 	type statusResponse struct {
 		Response statusDetails `json:"return"`
@@ -735,6 +749,11 @@ func (v *MachineVM) Stop(_ string, _ machine.StopOptions) error {
 	if p == nil && err != nil {
 		return err
 	}
+
+	v.LastUp = time.Now()
+	if err := v.writeConfig(); err != nil { // keep track of last up
+		return err
+	}
 	// Kill the process
 	if err := p.Kill(); err != nil {
 		return err
@@ -756,7 +775,7 @@ func (v *MachineVM) Stop(_ string, _ machine.StopOptions) error {
 	disconnected = true
 	waitInternal := 250 * time.Millisecond
 	for i := 0; i < 5; i++ {
-		state, err := v.State()
+		state, err := v.State(false)
 		if err != nil {
 			return err
 		}
@@ -808,7 +827,7 @@ func (v *MachineVM) Remove(_ string, opts machine.RemoveOptions) (string, func()
 	)
 
 	// cannot remove a running vm unless --force is used
-	state, err := v.State()
+	state, err := v.State(false)
 	if err != nil {
 		return "", nil, err
 	}
@@ -874,12 +893,19 @@ func (v *MachineVM) Remove(_ string, opts machine.RemoveOptions) (string, func()
 	}, nil
 }
 
-func (v *MachineVM) State() (machine.Status, error) {
+func (v *MachineVM) State(bypass bool) (machine.Status, error) {
 	// Check if qmp socket path exists
 	if _, err := os.Stat(v.QMPMonitor.Address.GetPath()); os.IsNotExist(err) {
 		return "", nil
 	}
+	err := v.update()
+	if err != nil {
+		return "", err
+	}
 	// Check if we can dial it
+	if v.Starting && !bypass {
+		return "", nil
+	}
 	monitor, err := qmp.NewSocketMonitor(v.QMPMonitor.Network, v.QMPMonitor.Address.GetPath(), v.QMPMonitor.Timeout)
 	if err != nil {
 		// FIXME: this error should probably be returned
@@ -910,7 +936,7 @@ func (v *MachineVM) isListening() bool {
 // SSH opens an interactive SSH session to the vm specified.
 // Added ssh function to VM interface: pkg/machine/config/go : line 58
 func (v *MachineVM) SSH(_ string, opts machine.SSHOptions) error {
-	state, err := v.State()
+	state, err := v.State(true)
 	if err != nil {
 		return err
 	}
@@ -1024,20 +1050,29 @@ func getVMInfos() ([]*machine.ListResponse, error) {
 			listEntry.Port = vm.Port
 			listEntry.RemoteUsername = vm.RemoteUsername
 			listEntry.IdentityPath = vm.IdentityPath
-			fi, err := os.Stat(fullPath)
-			if err != nil {
-				return err
-			}
-			listEntry.CreatedAt = fi.ModTime()
+			listEntry.CreatedAt = vm.Created
 
-			fi, err = os.Stat(vm.getImageFile())
+			if listEntry.CreatedAt.IsZero() {
+				listEntry.CreatedAt = time.Now()
+				vm.Created = time.Now()
+				if err := vm.writeConfig(); err != nil {
+					return err
+				}
+			}
+
+			state, err := vm.State(false)
 			if err != nil {
 				return err
 			}
-			listEntry.LastUp = fi.ModTime()
-			state, err := vm.State()
-			if err != nil {
-				return err
+
+			if !vm.LastUp.IsZero() {
+				listEntry.LastUp = vm.LastUp
+			} else {
+				listEntry.LastUp = vm.Created
+				vm.Created = time.Now()
+				if err := vm.writeConfig(); err != nil {
+					return err
+				}
 			}
 			if state == machine.Running {
 				listEntry.Running = true
