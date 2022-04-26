@@ -65,7 +65,7 @@ func GenVolumeMounts(volumeFlag []string) (map[string]spec.Mount, map[string]*Na
 			err     error
 		)
 
-		splitVol := strings.Split(vol, ":")
+		splitVol := SplitVolumeString(vol)
 		if len(splitVol) > 3 {
 			return nil, nil, nil, errors.Wrapf(volumeFormatErr, vol)
 		}
@@ -93,7 +93,7 @@ func GenVolumeMounts(volumeFlag []string) (map[string]spec.Mount, map[string]*Na
 			}
 		}
 
-		if strings.HasPrefix(src, "/") || strings.HasPrefix(src, ".") {
+		if strings.HasPrefix(src, "/") || strings.HasPrefix(src, ".") || isHostWinPath(src) {
 			// This is not a named volume
 			overlayFlag := false
 			chownFlag := false
@@ -151,4 +151,27 @@ func GenVolumeMounts(volumeFlag []string) (map[string]spec.Mount, map[string]*Na
 	}
 
 	return mounts, volumes, overlayVolumes, nil
+}
+
+// Splits a volume string, accounting for Win drive paths
+// when running as a WSL linux guest or Windows client
+func SplitVolumeString(vol string) []string {
+	parts := strings.Split(vol, ":")
+	if !shouldResolveWinPaths() {
+		return parts
+	}
+
+	// Skip extended marker prefix if present
+	n := 0
+	if strings.HasPrefix(vol, `\\?\`) {
+		n = 4
+	}
+
+	if hasWinDriveScheme(vol, n) {
+		first := parts[0] + ":" + parts[1]
+		parts = parts[1:]
+		parts[0] = first
+	}
+
+	return parts
 }

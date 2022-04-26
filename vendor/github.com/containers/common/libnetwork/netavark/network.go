@@ -27,7 +27,7 @@ type netavarkNetwork struct {
 	// networkRunDir is where temporary files are stored, i.e.the ipam db, aardvark config etc
 	networkRunDir string
 
-	// tells netavark whether this is rootless mode or rootfull, "true" or "false"
+	// tells netavark whether this is rootless mode or rootful, "true" or "false"
 	networkRootless bool
 
 	// netavarkBinary is the path to the netavark binary.

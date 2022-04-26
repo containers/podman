@@ -6,6 +6,7 @@ import (
 	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/common/libnetwork/util"
 	"github.com/containers/common/pkg/config"
+	"github.com/containers/common/pkg/machine"
 	"github.com/containers/storage/pkg/unshare"
 )
 
@@ -15,8 +16,8 @@ func GetHostContainersInternalIP(conf *config.Config, netStatus map[string]types
 	switch conf.Containers.HostContainersInternalIP {
 	case "":
 		// if empty (default) we will automatically choose one below
-		// if machine we let the gvproxy dns server handle the dns name so do not add it
-		if conf.Engine.MachineEnabled {
+		// if machine using gvproxy we let the gvproxy dns server handle the dns name so do not add it
+		if machine.IsGvProxyBased() {
 			return ""
 		}
 	case "none":

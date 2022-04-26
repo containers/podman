@@ -347,7 +347,7 @@ func ContainerCreateToContainerCLIOpts(cc handlers.CreateContainerConfig, rtc *c
 		cliOpts.Volume = append(cliOpts.Volume, vol)
 		// Extract the destination so we don't add duplicate mounts in
 		// the volumes phase.
-		splitVol := strings.SplitN(vol, ":", 3)
+		splitVol := specgen.SplitVolumeString(vol)
 		switch len(splitVol) {
 		case 1:
 			volDestinations[vol] = true
