@@ -435,53 +435,51 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 		initContainers = append(initContainers, ctr)
 	}
 	for _, container := range podYAML.Spec.Containers {
-		if !strings.Contains(container.Name, "infra") {
-			// Error out if the same name is used for more than one container
-			if _, ok := ctrNames[container.Name]; ok {
-				return nil, errors.Errorf("the pod %q is invalid; duplicate container name %q detected", podName, container.Name)
-			}
-			ctrNames[container.Name] = ""
-			pulledImage, labels, err := ic.getImageAndLabelInfo(ctx, cwd, annotations, writer, container, options)
-			if err != nil {
-				return nil, err
-			}
-
-			for k, v := range podSpec.PodSpecGen.Labels { // add podYAML labels
-				labels[k] = v
-			}
-
-			specgenOpts := kube.CtrSpecGenOptions{
-				Annotations:    annotations,
-				Container:      container,
-				Image:          pulledImage,
-				Volumes:        volumes,
-				PodID:          pod.ID(),
-				PodName:        podName,
-				PodInfraID:     podInfraID,
-				ConfigMaps:     configMaps,
-				SeccompPaths:   seccompPaths,
-				RestartPolicy:  ctrRestartPolicy,
-				NetNSIsHost:    p.NetNS.IsHost(),
-				SecretsManager: secretsManager,
-				LogDriver:      options.LogDriver,
-				LogOptions:     options.LogOptions,
-				Labels:         labels,
-			}
-			specGen, err := kube.ToSpecGen(ctx, &specgenOpts)
-			if err != nil {
-				return nil, err
-			}
-			specGen.RawImageName = container.Image
-			rtSpec, spec, opts, err := generate.MakeContainer(ctx, ic.Libpod, specGen, false, nil)
-			if err != nil {
-				return nil, err
-			}
-			ctr, err := generate.ExecuteCreate(ctx, ic.Libpod, rtSpec, spec, false, opts...)
-			if err != nil {
-				return nil, err
-			}
-			containers = append(containers, ctr)
+		// Error out if the same name is used for more than one container
+		if _, ok := ctrNames[container.Name]; ok {
+			return nil, errors.Errorf("the pod %q is invalid; duplicate container name %q detected", podName, container.Name)
 		}
+		ctrNames[container.Name] = ""
+		pulledImage, labels, err := ic.getImageAndLabelInfo(ctx, cwd, annotations, writer, container, options)
+		if err != nil {
+			return nil, err
+		}
+
+		for k, v := range podSpec.PodSpecGen.Labels { // add podYAML labels
+			labels[k] = v
+		}
+
+		specgenOpts := kube.CtrSpecGenOptions{
+			Annotations:    annotations,
+			Container:      container,
+			Image:          pulledImage,
+			Volumes:        volumes,
+			PodID:          pod.ID(),
+			PodName:        podName,
+			PodInfraID:     podInfraID,
+			ConfigMaps:     configMaps,
+			SeccompPaths:   seccompPaths,
+			RestartPolicy:  ctrRestartPolicy,
+			NetNSIsHost:    p.NetNS.IsHost(),
+			SecretsManager: secretsManager,
+			LogDriver:      options.LogDriver,
+			LogOptions:     options.LogOptions,
+			Labels:         labels,
+		}
+		specGen, err := kube.ToSpecGen(ctx, &specgenOpts)
+		if err != nil {
+			return nil, err
+		}
+		specGen.RawImageName = container.Image
+		rtSpec, spec, opts, err := generate.MakeContainer(ctx, ic.Libpod, specGen, false, nil)
+		if err != nil {
+			return nil, err
+		}
+		ctr, err := generate.ExecuteCreate(ctx, ic.Libpod, rtSpec, spec, false, opts...)
+		if err != nil {
+			return nil, err
+		}
+		containers = append(containers, ctr)
 	}
 
 	if options.Start != types.OptionalBoolFalse {
