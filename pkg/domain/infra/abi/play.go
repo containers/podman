@@ -78,7 +78,11 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, body io.Reader, options
 
 			podTemplateSpec.ObjectMeta = podYAML.ObjectMeta
 			podTemplateSpec.Spec = podYAML.Spec
-
+			for name, val := range podYAML.Annotations {
+				if len(val) > define.MaxKubeAnnotation {
+					return nil, errors.Errorf("invalid annotation %q=%q value length exceeds Kubernetetes max %d", name, val, define.MaxKubeAnnotation)
+				}
+			}
 			for name, val := range options.Annotations {
 				if podYAML.Annotations == nil {
 					podYAML.Annotations = make(map[string]string)

@@ -116,7 +116,7 @@ func teardown(origHomeDir string, testDir string, mb *machineTestBuilder) {
 	s := new(stopMachine)
 	for _, name := range mb.names {
 		if _, err := mb.setName(name).setCmd(s).run(); err != nil {
-			fmt.Printf("error occured rm'ing machine: %q\n", err)
+			fmt.Printf("error occurred rm'ing machine: %q\n", err)
 		}
 	}
 	if err := os.RemoveAll(testDir); err != nil {

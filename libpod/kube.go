@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/common/pkg/config"
@@ -288,6 +289,16 @@ func newServicePortState() servicePortState {
 	}
 }
 
+func TruncateKubeAnnotation(str string) string {
+	str = strings.TrimSpace(str)
+	if utf8.RuneCountInString(str) < define.MaxKubeAnnotation {
+		return str
+	}
+	trunc := string([]rune(str)[:define.MaxKubeAnnotation])
+	logrus.Warnf("Truncation Annotation: %q to %q: Kubernetes only allows %d characters", str, trunc, define.MaxKubeAnnotation)
+	return trunc
+}
+
 // containerPortsToServicePorts takes a slice of containerports and generates a
 // slice of service ports
 func (state *servicePortState) containerPortsToServicePorts(containerPorts []v1.ContainerPort) ([]v1.ServicePort, error) {
@@ -348,11 +359,13 @@ func (p *Pod) podWithContainers(ctx context.Context, containers []*Container, po
 
 	for _, ctr := range containers {
 		if !ctr.IsInfra() {
-			// Convert auto-update labels into kube annotations
-			for k, v := range getAutoUpdateAnnotations(removeUnderscores(ctr.Name()), ctr.Labels()) {
-				podAnnotations[k] = v
+			for k, v := range ctr.config.Spec.Annotations {
+				podAnnotations[fmt.Sprintf("%s/%s", k, removeUnderscores(ctr.Name()))] = TruncateKubeAnnotation(v)
 			}
-
+			// Convert auto-update labels into kube annotations
+			for k, v := range getAutoUpdateAnnotations(ctr.Name(), ctr.Labels()) {
+				podAnnotations[k] = TruncateKubeAnnotation(v)
+			}
 			isInit := ctr.IsInitCtr()
 
 			ctr, volumes, _, annotations, err := containerToV1Container(ctx, ctr)
@@ -360,7 +373,7 @@ func (p *Pod) podWithContainers(ctx context.Context, containers []*Container, po
 				return nil, err
 			}
 			for k, v := range annotations {
-				podAnnotations[define.BindMountPrefix+k] = strings.TrimSpace(v)
+				podAnnotations[define.BindMountPrefix+k] = TruncateKubeAnnotation(v)
 			}
 			// Since port bindings for the pod are handled by the
 			// infra container, wipe them here.
@@ -466,10 +479,14 @@ func simplePodWithV1Containers(ctx context.Context, ctrs []*Container) (*v1.Pod,
 	kubeAnnotations := make(map[string]string)
 	ctrNames := make([]string, 0, len(ctrs))
 	for _, ctr := range ctrs {
-		ctrNames = append(ctrNames, strings.ReplaceAll(ctr.Name(), "_", ""))
+		ctrNames = append(ctrNames, removeUnderscores(ctr.Name()))
+		for k, v := range ctr.config.Spec.Annotations {
+			kubeAnnotations[fmt.Sprintf("%s/%s", k, removeUnderscores(ctr.Name()))] = TruncateKubeAnnotation(v)
+		}
+
 		// Convert auto-update labels into kube annotations
-		for k, v := range getAutoUpdateAnnotations(removeUnderscores(ctr.Name()), ctr.Labels()) {
-			kubeAnnotations[k] = v
+		for k, v := range getAutoUpdateAnnotations(ctr.Name(), ctr.Labels()) {
+			kubeAnnotations[k] = TruncateKubeAnnotation(v)
 		}
 
 		isInit := ctr.IsInitCtr()
@@ -482,7 +499,7 @@ func simplePodWithV1Containers(ctx context.Context, ctrs []*Container) (*v1.Pod,
 			return nil, err
 		}
 		for k, v := range annotations {
-			kubeAnnotations[define.BindMountPrefix+k] = strings.TrimSpace(v)
+			kubeAnnotations[define.BindMountPrefix+k] = TruncateKubeAnnotation(v)
 		}
 		if isInit {
 			kubeInitCtrs = append(kubeInitCtrs, kubeCtr)
@@ -523,7 +540,7 @@ func simplePodWithV1Containers(ctx context.Context, ctrs []*Container) (*v1.Pod,
 			}
 		} // end if ctrDNS
 	}
-	podName := strings.ReplaceAll(ctrs[0].Name(), "_", "")
+	podName := removeUnderscores(ctrs[0].Name())
 	// Check if the pod name and container name will end up conflicting
 	// Append -pod if so
 	if util.StringInSlice(podName, ctrNames) {
@@ -1051,12 +1068,13 @@ func getAutoUpdateAnnotations(ctrName string, ctrLabels map[string]string) map[s
 	autoUpdateLabel := "io.containers.autoupdate"
 	annotations := make(map[string]string)
 
+	ctrName = removeUnderscores(ctrName)
 	for k, v := range ctrLabels {
 		if strings.Contains(k, autoUpdateLabel) {
 			// since labels can variate between containers within a pod, they will be
 			// identified with the container name when converted into kube annotations
 			kc := fmt.Sprintf("%s/%s", k, ctrName)
-			annotations[kc] = v
+			annotations[kc] = TruncateKubeAnnotation(v)
 		}
 	}
 

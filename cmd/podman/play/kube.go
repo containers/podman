@@ -178,7 +178,11 @@ func kube(cmd *cobra.Command, args []string) error {
 		if kubeOptions.Annotations == nil {
 			kubeOptions.Annotations = make(map[string]string)
 		}
-		kubeOptions.Annotations[splitN[0]] = splitN[1]
+		annotation := splitN[1]
+		if len(annotation) > define.MaxKubeAnnotation {
+			return errors.Errorf("annotation exceeds maximum size, %d, of kubernetes annotation: %s", define.MaxKubeAnnotation, annotation)
+		}
+		kubeOptions.Annotations[splitN[0]] = annotation
 	}
 	yamlfile := args[0]
 	if yamlfile == "-" {

@@ -233,3 +233,48 @@ _EOF
     run_podman stop -a -t 0
     run_podman pod rm -t 0 -f test_pod
 }
+
+@test "podman play --annotation > Max" {
+    TESTDIR=$PODMAN_TMPDIR/testdir
+    RANDOMSTRING=$(random_string 65)
+    mkdir -p $TESTDIR
+    echo "$testYaml" | sed "s|TESTDIR|${TESTDIR}|g" > $PODMAN_TMPDIR/test.yaml
+    run_podman 125 play kube --annotation "name=$RANDOMSTRING" $PODMAN_TMPDIR/test.yaml
+    assert "$output" =~ "annotation exceeds maximum size, 63, of kubernetes annotation:" "Expected to fail with Length greater than 63"
+}
+
+@test "podman play Yaml with annotation > Max" {
+   RANDOMSTRING=$(random_string 65)
+   testBadYaml="
+apiVersion: v1
+kind: Pod
+metadata:
+  annotations:
+    test: ${RANDOMSTRING}
+  labels:
+    app: test
+  name: test_pod
+spec:
+  containers:
+  - command:
+    - id
+    env:
+    - name: PATH
+      value: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+    - name: TERM
+      value: xterm
+    - name: container
+
+      value: podman
+    image: quay.io/libpod/userimage
+    name: test
+    resources: {}
+status: {}
+"
+    TESTDIR=$PODMAN_TMPDIR/testdir
+    mkdir -p $TESTDIR
+    echo "$testBadYaml" | sed "s|TESTDIR|${TESTDIR}|g" > $PODMAN_TMPDIR/test.yaml
+
+    run_podman 125 play kube - < $PODMAN_TMPDIR/test.yaml
+    assert "$output" =~ "invalid annotation \"test\"=\"$RANDOMSTRING\"" "Expected to fail with annotation length greater than 63"
+}
