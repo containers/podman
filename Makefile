@@ -134,7 +134,7 @@ ifeq ($(GOBIN),)
 GOBIN := $(FIRST_GOPATH)/bin
 endif
 
-export PATH := $(PATH):$(GOBIN)
+export PATH := $(PATH):$(GOBIN):$(CURDIR)/hack
 
 GOMD2MAN ?= $(shell command -v go-md2man || echo '$(GOBIN)/go-md2man')
 
