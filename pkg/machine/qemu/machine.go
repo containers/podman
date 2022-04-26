@@ -71,12 +71,12 @@ func (p *Provider) NewMachine(opts machine.InitOptions) (machine.VM, error) {
 	if len(opts.Name) > 0 {
 		vm.Name = opts.Name
 	}
-	ignitionFile, err := NewMachineFile(filepath.Join(vmConfigDir, vm.Name+".ign"), nil)
+	ignitionFile, err := machine.NewMachineFile(filepath.Join(vmConfigDir, vm.Name+".ign"), nil)
 	if err != nil {
 		return nil, err
 	}
-	vm.IgnitionFilePath = *ignitionFile
-	imagePath, err := NewMachineFile(opts.ImagePath, nil)
+	vm.IgnitionFile = *ignitionFile
+	imagePath, err := machine.NewMachineFile(opts.ImagePath, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -105,14 +105,13 @@ func (p *Provider) NewMachine(opts machine.InitOptions) (machine.VM, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	cmd := []string{execPath}
 	// Add memory
 	cmd = append(cmd, []string{"-m", strconv.Itoa(int(vm.Memory))}...)
 	// Add cpus
 	cmd = append(cmd, []string{"-smp", strconv.Itoa(int(vm.CPUs))}...)
 	// Add ignition file
-	cmd = append(cmd, []string{"-fw_cfg", "name=opt/com.coreos/config,file=" + vm.IgnitionFilePath.GetPath()}...)
+	cmd = append(cmd, []string{"-fw_cfg", "name=opt/com.coreos/config,file=" + vm.IgnitionFile.GetPath()}...)
 	// Add qmp socket
 	monitor, err := NewQMPMonitor("unix", vm.Name, defaultQMPTimeout)
 	if err != nil {
@@ -158,9 +157,9 @@ func migrateVM(configPath string, config []byte, vm *MachineVM) error {
 		return err
 	}
 
-	pidFilePath := MachineFile{Path: pidFile}
+	pidFilePath := machine.VMFile{Path: pidFile}
 	qmpMonitor := Monitor{
-		Address: MachineFile{Path: old.QMPMonitor.Address},
+		Address: machine.VMFile{Path: old.QMPMonitor.Address},
 		Network: old.QMPMonitor.Network,
 		Timeout: old.QMPMonitor.Timeout,
 	}
@@ -169,18 +168,18 @@ func migrateVM(configPath string, config []byte, vm *MachineVM) error {
 		return err
 	}
 	virtualSocketPath := filepath.Join(socketPath, "podman", vm.Name+"_ready.sock")
-	readySocket := MachineFile{Path: virtualSocketPath}
+	readySocket := machine.VMFile{Path: virtualSocketPath}
 
-	vm.HostUser = HostUser{}
-	vm.ImageConfig = ImageConfig{}
-	vm.ResourceConfig = ResourceConfig{}
-	vm.SSHConfig = SSHConfig{}
+	vm.HostUser = machine.HostUser{}
+	vm.ImageConfig = machine.ImageConfig{}
+	vm.ResourceConfig = machine.ResourceConfig{}
+	vm.SSHConfig = machine.SSHConfig{}
 
-	ignitionFilePath, err := NewMachineFile(old.IgnitionFilePath, nil)
+	ignitionFilePath, err := machine.NewMachineFile(old.IgnitionFilePath, nil)
 	if err != nil {
 		return err
 	}
-	imagePath, err := NewMachineFile(old.ImagePath, nil)
+	imagePath, err := machine.NewMachineFile(old.ImagePath, nil)
 	if err != nil {
 		return err
 	}
@@ -194,7 +193,7 @@ func migrateVM(configPath string, config []byte, vm *MachineVM) error {
 	vm.CmdLine = old.CmdLine
 	vm.DiskSize = old.DiskSize
 	vm.IdentityPath = old.IdentityPath
-	vm.IgnitionFilePath = *ignitionFilePath
+	vm.IgnitionFile = *ignitionFilePath
 	vm.ImagePath = *imagePath
 	vm.ImageStream = old.ImageStream
 	vm.Memory = old.Memory
@@ -229,7 +228,7 @@ func migrateVM(configPath string, config []byte, vm *MachineVM) error {
 // and returns a vm instance
 func (p *Provider) LoadVMByName(name string) (machine.VM, error) {
 	vm := &MachineVM{Name: name}
-	vm.HostUser = HostUser{UID: -1} // posix reserves -1, so use it to signify undefined
+	vm.HostUser = machine.HostUser{UID: -1} // posix reserves -1, so use it to signify undefined
 	if err := vm.update(); err != nil {
 		return nil, err
 	}
@@ -270,7 +269,7 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 		if err != nil {
 			return false, err
 		}
-		uncompressedFile, err := NewMachineFile(dd.Get().LocalUncompressedFile, nil)
+		uncompressedFile, err := machine.NewMachineFile(dd.Get().LocalUncompressedFile, nil)
 		if err != nil {
 			return false, err
 		}
@@ -286,7 +285,7 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 		if err != nil {
 			return false, err
 		}
-		imagePath, err := NewMachineFile(g.Get().LocalUncompressedFile, nil)
+		imagePath, err := machine.NewMachineFile(g.Get().LocalUncompressedFile, nil)
 		if err != nil {
 			return false, err
 		}
@@ -308,7 +307,7 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 		return false, err
 	}
 
-	mounts := []Mount{}
+	mounts := []machine.Mount{}
 	for i, volume := range opts.Volumes {
 		tag := fmt.Sprintf("vol%d", i)
 		paths := strings.SplitN(volume, ":", 3)
@@ -338,7 +337,7 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 				virtfsOptions += ",readonly"
 			}
 			v.CmdLine = append(v.CmdLine, []string{"-virtfs", virtfsOptions}...)
-			mounts = append(mounts, Mount{Type: MountType9p, Tag: tag, Source: source, Target: target, ReadOnly: readonly})
+			mounts = append(mounts, machine.Mount{Type: MountType9p, Tag: tag, Source: source, Target: target, ReadOnly: readonly})
 		}
 	}
 	v.Mounts = mounts
@@ -809,7 +808,7 @@ func NewQMPMonitor(network, name string, timeout time.Duration) (Monitor, error)
 	if timeout == 0 {
 		timeout = defaultQMPTimeout
 	}
-	address, err := NewMachineFile(filepath.Join(rtDir, "qmp_"+name+".sock"), nil)
+	address, err := machine.NewMachineFile(filepath.Join(rtDir, "qmp_"+name+".sock"), nil)
 	if err != nil {
 		return Monitor{}, err
 	}
@@ -1238,14 +1237,14 @@ func (v *MachineVM) userGlobalSocketLink() (string, error) {
 	return filepath.Join(filepath.Dir(path), "podman.sock"), err
 }
 
-func (v *MachineVM) forwardSocketPath() (*MachineFile, error) {
+func (v *MachineVM) forwardSocketPath() (*machine.VMFile, error) {
 	sockName := "podman.sock"
 	path, err := machine.GetDataDir(v.Name)
 	if err != nil {
 		logrus.Errorf("Resolving data dir: %s", err.Error())
 		return nil, err
 	}
-	return NewMachineFile(filepath.Join(path, sockName), &sockName)
+	return machine.NewMachineFile(filepath.Join(path, sockName), &sockName)
 }
 
 func (v *MachineVM) setConfigPath() error {
@@ -1254,7 +1253,7 @@ func (v *MachineVM) setConfigPath() error {
 		return err
 	}
 
-	configPath, err := NewMachineFile(filepath.Join(vmConfigDir, v.Name)+".json", nil)
+	configPath, err := machine.NewMachineFile(filepath.Join(vmConfigDir, v.Name)+".json", nil)
 	if err != nil {
 		return err
 	}
@@ -1268,7 +1267,7 @@ func (v *MachineVM) setReadySocket() error {
 	if err != nil {
 		return err
 	}
-	virtualSocketPath, err := NewMachineFile(filepath.Join(rtPath, "podman", readySocketName), &readySocketName)
+	virtualSocketPath, err := machine.NewMachineFile(filepath.Join(rtPath, "podman", readySocketName), &readySocketName)
 	if err != nil {
 		return err
 	}
@@ -1286,7 +1285,7 @@ func (v *MachineVM) setPIDSocket() error {
 	}
 	pidFileName := fmt.Sprintf("%s.pid", v.Name)
 	socketDir := filepath.Join(rtPath, "podman")
-	pidFilePath, err := NewMachineFile(filepath.Join(socketDir, pidFileName), &pidFileName)
+	pidFilePath, err := machine.NewMachineFile(filepath.Join(socketDir, pidFileName), &pidFileName)
 	if err != nil {
 		return err
 	}
@@ -1463,7 +1462,26 @@ func (v *MachineVM) getImageFile() string {
 
 // getIgnitionFile wrapper returns the path to the ignition file
 func (v *MachineVM) getIgnitionFile() string {
-	return v.IgnitionFilePath.GetPath()
+	return v.IgnitionFile.GetPath()
+}
+
+// Inspect returns verbose detail about the machine
+func (v *MachineVM) Inspect() (*machine.InspectInfo, error) {
+	state, err := v.State(false)
+	if err != nil {
+		return nil, err
+	}
+
+	return &machine.InspectInfo{
+		ConfigPath: v.ConfigPath,
+		Created:    v.Created,
+		Image:      v.ImageConfig,
+		LastUp:     v.LastUp,
+		Name:       v.Name,
+		Resources:  v.ResourceConfig,
+		SSHConfig:  v.SSHConfig,
+		State:      state,
+	}, nil
 }
 
 // resizeDisk increases the size of the machine's disk in GB.

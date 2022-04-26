@@ -59,16 +59,12 @@ func inspect(cmd *cobra.Command, args []string) error {
 			errs = append(errs, err)
 			continue
 		}
-		state, err := vm.State(false)
+		ii, err := vm.Inspect()
 		if err != nil {
 			errs = append(errs, err)
 			continue
 		}
-		ii := machine.InspectInfo{
-			State: state,
-			VM:    vm,
-		}
-		vms = append(vms, ii)
+		vms = append(vms, *ii)
 	}
 	if len(inspectFlag.format) > 0 {
 		// need jhonce to work his template magic
