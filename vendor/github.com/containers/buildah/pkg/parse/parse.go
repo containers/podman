@@ -182,7 +182,7 @@ func parseSecurityOpts(securityOpts []string, commonOpts *define.CommonBuildOpti
 		}
 		con := strings.SplitN(opt, "=", 2)
 		if len(con) != 2 {
-			return errors.Errorf("Invalid --security-opt name=value pair: %q", opt)
+			return errors.Errorf("invalid --security-opt name=value pair: %q", opt)
 		}
 
 		switch con[0] {
@@ -193,7 +193,7 @@ func parseSecurityOpts(securityOpts []string, commonOpts *define.CommonBuildOpti
 		case "seccomp":
 			commonOpts.SeccompProfilePath = con[1]
 		default:
-			return errors.Errorf("Invalid --security-opt 2: %q", opt)
+			return errors.Errorf("invalid --security-opt 2: %q", opt)
 		}
 
 	}

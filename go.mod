@@ -11,13 +11,13 @@ require (
 	github.com/container-orchestrated-devices/container-device-interface v0.4.0
 	github.com/containernetworking/cni v1.0.1
 	github.com/containernetworking/plugins v1.1.1
-	github.com/containers/buildah v1.25.2-0.20220406205807-5b8e79118057
+	github.com/containers/buildah v1.25.2-0.20220423102655-8f2bb8876f3f
 	github.com/containers/common v0.47.5-0.20220425182415-4081e6be9356
 	github.com/containers/conmon v2.0.20+incompatible
-	github.com/containers/image/v5 v5.21.1-0.20220421124950-8527e238867c
+	github.com/containers/image/v5 v5.21.1-0.20220425080628-be085685e524
 	github.com/containers/ocicrypt v1.1.3
 	github.com/containers/psgo v1.7.2
-	github.com/containers/storage v1.39.1-0.20220421071128-4899f8265d63
+	github.com/containers/storage v1.39.1-0.20220422100603-8996869ae40b
 	github.com/coreos/go-systemd/v22 v22.3.2
 	github.com/coreos/stream-metadata-go v0.0.0-20210225230131-70edb9eb47b3
 	github.com/cyphar/filepath-securejoin v0.2.3
@@ -74,5 +74,3 @@ require (
 	gopkg.in/inf.v0 v0.9.1
 	gopkg.in/yaml.v2 v2.4.0
 )
-
-replace github.com/onsi/gomega => github.com/onsi/gomega v1.16.0

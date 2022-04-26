@@ -1,3 +1,53 @@
+## 1.19.0
+
+## Features
+- New [`HaveEach`](https://onsi.github.io/gomega/#haveeachelement-interface) matcher to ensure that each and every element in an `array`, `slice`, or `map` satisfies the passed in matcher. (#523) [9fc2ae2] (#524) [c8ba582]
+- Users can now wrap the `Gomega` interface to implement custom behavior on each assertion. (#521) [1f2e714]
+- [`ContainElement`](https://onsi.github.io/gomega/#containelementelement-interface) now accepts an additional pointer argument.  Elements that satisfy the matcher are stored in the pointer enabling developers to easily add subsequent, more detailed, assertions against the matching element. (#527) [1a4e27f]
+
+## Fixes
+- update RELEASING instructions to match ginkgo [0917cde]
+- Bump github.com/onsi/ginkgo/v2 from 2.0.0 to 2.1.3 (#519) [49ab4b0]
+- Fix CVE-2021-38561 (#534) [f1b4456]
+- Fix max number of samples in experiments on non-64-bit systems. (#528) [1c84497]
+- Remove dependency on ginkgo v1.16.4 (#530) [4dea8d5]
+- Fix for Go 1.18 (#532) [56d2a29]
+- Document precendence of timeouts (#533) [b607941]
+
+## 1.18.1
+
+## Fixes
+- Add pointer support to HaveField matcher (#495) [79e41a3]
+
+## 1.18.0
+
+## Features
+- Docs now live on the master branch in the docs folder which will make for easier PRs.  The docs also use Ginkgo 2.0's new docs html/css/js. [2570272]
+- New HaveValue matcher can handle actuals that are either values (in which case they are passed on unscathed) or pointers (in which case they are indirected).  [Docs here.](https://onsi.github.io/gomega/#working-with-values) (#485) [bdc087c]
+- Gmeasure has been declared GA [360db9d]
+
+## Fixes
+- Gomega now uses ioutil for Go 1.15 and lower (#492) - official support is only for the most recent two major versions of Go but this will unblock users who need to stay on older unsupported versions of Go. [c29c1c0]
+
+## Maintenace
+- Remove Travis workflow (#491) [72e6040]
+- Upgrade to Ginkgo 2.0.0 GA [f383637]
+- chore: fix description of HaveField matcher (#487) [2b4b2c0]
+- use tools.go to ensure Ginkgo cli dependencies are included [f58a52b]
+- remove dockerfile and simplify github actions to match ginkgo's actions [3f8160d]
+
+## 1.17.0
+
+### Features
+- Add HaveField matcher [3a26311]
+- add Error() assertions on the final error value of multi-return values (#480) [2f96943]
+- separate out offsets and timeouts (#478) [18a4723]
+- fix transformation error reporting (#479) [e001fab]
+- allow transform functions to report errors (#472) [bf93408]
+
+### Fixes
+Stop using deprecated ioutil package (#467) [07f405d]
+
 ## 1.16.0
 
 ### Features

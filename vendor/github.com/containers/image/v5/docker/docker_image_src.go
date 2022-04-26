@@ -610,8 +610,11 @@ func deleteImage(ctx context.Context, sys *types.SystemContext, ref dockerRefere
 		return errors.Errorf("Failed to delete %v: %s (%v)", ref.ref, manifestBody, get.Status)
 	}
 
-	digest := get.Header.Get("Docker-Content-Digest")
-	deletePath := fmt.Sprintf(manifestPath, reference.Path(ref.ref), digest)
+	manifestDigest, err := manifest.Digest(manifestBody)
+	if err != nil {
+		return fmt.Errorf("computing manifest digest: %w", err)
+	}
+	deletePath := fmt.Sprintf(manifestPath, reference.Path(ref.ref), manifestDigest)
 
 	// When retrieving the digest from a registry >= 2.3 use the following header:
 	//   "Accept": "application/vnd.docker.distribution.manifest.v2+json"
@@ -627,11 +630,6 @@ func deleteImage(ctx context.Context, sys *types.SystemContext, ref dockerRefere
 	}
 	if delete.StatusCode != http.StatusAccepted {
 		return errors.Errorf("Failed to delete %v: %s (%v)", deletePath, string(body), delete.Status)
-	}
-
-	manifestDigest, err := manifest.Digest(manifestBody)
-	if err != nil {
-		return err
 	}
 
 	for i := 0; ; i++ {

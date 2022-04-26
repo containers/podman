@@ -2,11 +2,11 @@ package matchers
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 
 	"github.com/onsi/gomega/format"
+	"github.com/onsi/gomega/internal/gutil"
 	"github.com/onsi/gomega/types"
 )
 
@@ -81,7 +81,7 @@ func (matcher *HaveHTTPBodyMatcher) body(actual interface{}) ([]byte, error) {
 		if a.Body != nil {
 			defer a.Body.Close()
 			var err error
-			matcher.cachedBody, err = ioutil.ReadAll(a.Body)
+			matcher.cachedBody, err = gutil.ReadAll(a.Body)
 			if err != nil {
 				return nil, fmt.Errorf("error reading response body: %w", err)
 			}
