@@ -42,6 +42,8 @@ cp hack/podman-registry /bin
 _gc='git config --file /root/.gitconfig'
 $_gc user.email "TMcTestFace@example.com"
 $_gc user.name "Testy McTestface"
+# Bypass git safety/security checks when operating in a throwaway environment
+git config --system --add safe.directory $GOSRC
 
 # Ensure that all lower-level contexts and child-processes have
 # ready access to higher level orchestration (e.g Cirrus-CI)
@@ -303,6 +305,9 @@ case "$TEST_FLAVOR" in
         rm -rf /run/docker*
         # Guarantee the docker daemon can't be started, even by accident
         rm -vf $(type -P dockerd)
+
+        msg "Recursively chowning source to $ROOTLESS_USER"
+        chown -R $ROOTLESS_USER:$ROOTLESS_USER "$GOPATH" "$GOSRC"
 
         msg "Obtaining necessary gitlab-runner testing bits"
         slug="gitlab.com/gitlab-org/gitlab-runner"
