@@ -1,14 +1,14 @@
 module github.com/containers/buildah
 
-go 1.13
+go 1.16
 
 require (
 	github.com/containerd/containerd v1.6.2
 	github.com/containernetworking/cni v1.0.1
-	github.com/containers/common v0.47.5-0.20220331143923-5f14ec785c18
-	github.com/containers/image/v5 v5.20.1-0.20220404163228-d03e80fc66b3
+	github.com/containers/common v0.47.5-0.20220421111103-112a47964ddb
+	github.com/containers/image/v5 v5.21.1-0.20220421124950-8527e238867c
 	github.com/containers/ocicrypt v1.1.3
-	github.com/containers/storage v1.39.1-0.20220330193934-f3200eb5a5d9
+	github.com/containers/storage v1.39.1-0.20220422100603-8996869ae40b
 	github.com/docker/distribution v2.8.1+incompatible
 	github.com/docker/docker v20.10.14+incompatible
 	github.com/docker/go-units v0.4.0
@@ -37,7 +37,7 @@ require (
 	github.com/stretchr/testify v1.7.1
 	github.com/syndtr/gocapability v0.0.0-20200815063812-42c35b437635
 	go.etcd.io/bbolt v1.3.6
-	golang.org/x/crypto v0.0.0-20211215153901-e495a2d5b3d3
+	golang.org/x/crypto v0.0.0-20220411220226-7b82a4e95df4
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	golang.org/x/sys v0.0.0-20220227234510-4e6760a101f9
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211

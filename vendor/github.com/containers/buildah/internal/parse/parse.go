@@ -38,7 +38,7 @@ var (
 	errBadOptionArg  = errors.New("must provide an argument for option")
 	errBadVolDest    = errors.New("must set volume destination")
 	errBadVolSrc     = errors.New("must set volume source")
-	errDuplicateDest = errors.Errorf("duplicate mount destination")
+	errDuplicateDest = errors.New("duplicate mount destination")
 )
 
 // GetBindMount parses a single bind mount entry from the --mount flag.

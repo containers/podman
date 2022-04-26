@@ -2,13 +2,13 @@ package matchers
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
 	"strings"
 
 	"github.com/onsi/gomega/format"
+	"github.com/onsi/gomega/internal/gutil"
 )
 
 type HaveHTTPStatusMatcher struct {
@@ -78,7 +78,7 @@ func formatHttpResponse(input interface{}) string {
 	body := "<nil>"
 	if resp.Body != nil {
 		defer resp.Body.Close()
-		data, err := ioutil.ReadAll(resp.Body)
+		data, err := gutil.ReadAll(resp.Body)
 		if err != nil {
 			data = []byte("<error reading body>")
 		}

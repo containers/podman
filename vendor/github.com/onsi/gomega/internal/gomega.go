@@ -39,12 +39,12 @@ func (g *Gomega) ConfigureWithT(t types.GomegaTestingT) *Gomega {
 	return g
 }
 
-func (g *Gomega) Ω(atual interface{}, extra ...interface{}) types.Assertion {
-	return g.ExpectWithOffset(0, atual, extra...)
+func (g *Gomega) Ω(actual interface{}, extra ...interface{}) types.Assertion {
+	return g.ExpectWithOffset(0, actual, extra...)
 }
 
-func (g *Gomega) Expect(atual interface{}, extra ...interface{}) types.Assertion {
-	return g.ExpectWithOffset(0, atual, extra...)
+func (g *Gomega) Expect(actual interface{}, extra ...interface{}) types.Assertion {
+	return g.ExpectWithOffset(0, actual, extra...)
 }
 
 func (g *Gomega) ExpectWithOffset(offset int, actual interface{}, extra ...interface{}) types.Assertion {
