@@ -30,7 +30,7 @@ import (
 )
 
 /*
-#cgo remoteclient CFLAGS: -Wall -Werror -DDISABLE_JOIN_SHORTCUT
+#cgo remote CFLAGS: -Wall -Werror -DDISABLE_JOIN_SHORTCUT
 #include <stdlib.h>
 #include <sys/types.h>
 extern uid_t rootless_uid();
