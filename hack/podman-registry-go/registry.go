@@ -9,10 +9,10 @@ import (
 )
 
 const (
-	imageKey = "PODMAN_REGISTRY_IMAGE"
-	userKey  = "PODMAN_REGISTRY_USER"
-	passKey  = "PODMAN_REGISTRY_PASS"
-	portKey  = "PODMAN_REGISTRY_PORT"
+	ImageKey = "PODMAN_REGISTRY_IMAGE"
+	UserKey  = "PODMAN_REGISTRY_USER"
+	PassKey  = "PODMAN_REGISTRY_PASS"
+	PortKey  = "PODMAN_REGISTRY_PORT"
 )
 
 var binary = "podman-registry"
@@ -52,13 +52,13 @@ func Start() (*Registry, error) {
 		key := spl[0]
 		val := strings.TrimSuffix(strings.TrimPrefix(spl[1], "\""), "\"")
 		switch key {
-		case imageKey:
+		case ImageKey:
 			registry.Image = val
-		case userKey:
+		case UserKey:
 			registry.User = val
-		case passKey:
+		case PassKey:
 			registry.Password = val
-		case portKey:
+		case PortKey:
 			registry.Port = val
 		default:
 			logrus.Errorf("Unexpected podman-registry output: %q", s)
@@ -67,16 +67,16 @@ func Start() (*Registry, error) {
 
 	// Extra sanity check.
 	if registry.Image == "" {
-		return nil, errors.Errorf("unexpected output %q: %q missing", out, imageKey)
+		return nil, errors.Errorf("unexpected output %q: %q missing", out, ImageKey)
 	}
 	if registry.User == "" {
-		return nil, errors.Errorf("unexpected output %q: %q missing", out, userKey)
+		return nil, errors.Errorf("unexpected output %q: %q missing", out, UserKey)
 	}
 	if registry.Password == "" {
-		return nil, errors.Errorf("unexpected output %q: %q missing", out, passKey)
+		return nil, errors.Errorf("unexpected output %q: %q missing", out, PassKey)
 	}
 	if registry.Port == "" {
-		return nil, errors.Errorf("unexpected output %q: %q missing", out, portKey)
+		return nil, errors.Errorf("unexpected output %q: %q missing", out, PortKey)
 	}
 
 	registry.running = true
