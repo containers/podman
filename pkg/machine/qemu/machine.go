@@ -1466,7 +1466,7 @@ func (v *MachineVM) getIgnitionFile() string {
 	return v.IgnitionFilePath.GetPath()
 }
 
-//resizeDisk increases the size of the machine's disk in GB.
+// resizeDisk increases the size of the machine's disk in GB.
 func (v *MachineVM) resizeDisk(diskSize uint64, oldSize uint64) error {
 	// Resize the disk image to input disk size
 	// only if the virtualdisk size is less than

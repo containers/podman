@@ -28,13 +28,13 @@ var _ = Describe("podman machine init", func() {
 		reallyLongName := "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 		session, err := mb.setName(reallyLongName).setCmd(&i).run()
 		Expect(err).To(BeNil())
-		Expect(session.ExitCode()).To(Equal(125))
+		Expect(session).To(Exit(125))
 	})
 	It("simple init", func() {
 		i := new(initMachine)
 		session, err := mb.setCmd(i.withImagePath(mb.imagePath)).run()
 		Expect(err).To(BeNil())
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).To(Exit(0))
 
 		inspectBefore, ec, err := mb.toQemuInspectInfo()
 		Expect(err).To(BeNil())
@@ -52,7 +52,7 @@ var _ = Describe("podman machine init", func() {
 		i := initMachine{}
 		session, err := mb.setCmd(i.withImagePath(mb.imagePath)).run()
 		Expect(err).To(BeNil())
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).To(Exit(0))
 
 		inspectBefore, ec, err := mb.toQemuInspectInfo()
 		Expect(ec).To(BeZero())
