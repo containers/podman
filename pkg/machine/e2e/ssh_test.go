@@ -3,6 +3,7 @@ package e2e
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("podman machine ssh", func() {
@@ -23,7 +24,7 @@ var _ = Describe("podman machine ssh", func() {
 		ssh := sshMachine{}
 		session, err := mb.setName(name).setCmd(ssh).run()
 		Expect(err).To(BeNil())
-		Expect(session.ExitCode()).To(Equal(125))
+		Expect(session).To(Exit(125))
 		// TODO seems like stderr is not being returned; re-enabled when fixed
 		//Expect(session.outputToString()).To(ContainSubstring("not exist"))
 	})
@@ -33,14 +34,14 @@ var _ = Describe("podman machine ssh", func() {
 		i := new(initMachine)
 		session, err := mb.setName(name).setCmd(i.withImagePath(mb.imagePath)).run()
 		Expect(err).To(BeNil())
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).To(Exit(0))
 
 		ssh := sshMachine{}
 		sshSession, err := mb.setName(name).setCmd(ssh).run()
 		Expect(err).To(BeNil())
 		// TODO seems like stderr is not being returned; re-enabled when fixed
 		//Expect(sshSession.outputToString()).To(ContainSubstring("is not running"))
-		Expect(sshSession.ExitCode()).To(Equal(125))
+		Expect(sshSession).To(Exit(125))
 	})
 
 	It("ssh to running machine and check os-type", func() {
@@ -48,12 +49,12 @@ var _ = Describe("podman machine ssh", func() {
 		i := new(initMachine)
 		session, err := mb.setName(name).setCmd(i.withImagePath(mb.imagePath).withNow()).run()
 		Expect(err).To(BeNil())
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).To(Exit(0))
 
 		ssh := sshMachine{}
 		sshSession, err := mb.setName(name).setCmd(ssh.withSSHComand([]string{"cat", "/etc/os-release"})).run()
 		Expect(err).To(BeNil())
-		Expect(sshSession.ExitCode()).To(Equal(0))
+		Expect(sshSession).To(Exit(0))
 		Expect(sshSession.outputToString()).To(ContainSubstring("Fedora CoreOS"))
 	})
 })
