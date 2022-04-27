@@ -736,28 +736,34 @@ func pipeCmdPassThrough(name string, input string, arg ...string) error {
 	return cmd.Run()
 }
 
-func (v *MachineVM) Set(name string, opts machine.SetOptions) error {
-	if v.Rootful == opts.Rootful {
-		return nil
-	}
+func (v *MachineVM) Set(_ string, opts machine.SetOptions) ([]error, error) {
+	// If one setting fails to be applied, the others settings will not fail and still be applied.
+	// The setting(s) that failed to be applied will have its errors returned in setErrors
+	var setErrors []error
 
-	changeCon, err := machine.AnyConnectionDefault(v.Name, v.Name+"-root")
-	if err != nil {
-		return err
-	}
-
-	if changeCon {
-		newDefault := v.Name
-		if opts.Rootful {
-			newDefault += "-root"
-		}
-		if err := machine.ChangeDefault(newDefault); err != nil {
-			return err
+	if opts.Rootful != nil && v.Rootful != *opts.Rootful {
+		err := v.setRootful(*opts.Rootful)
+		if err != nil {
+			setErrors = append(setErrors, errors.Wrapf(err, "error setting rootful option"))
+		} else {
+			v.Rootful = *opts.Rootful
 		}
 	}
 
-	v.Rootful = opts.Rootful
-	return v.writeConfig()
+	if opts.CPUs != nil {
+		setErrors = append(setErrors, errors.Errorf("changing CPUs not suppored for WSL machines"))
+	}
+
+	if opts.Memory != nil {
+		setErrors = append(setErrors, errors.Errorf("changing memory not suppored for WSL machines"))
+
+	}
+
+	if opts.DiskSize != nil {
+		setErrors = append(setErrors, errors.Errorf("changing Disk Size not suppored for WSL machines"))
+	}
+
+	return setErrors, v.writeConfig()
 }
 
 func (v *MachineVM) Start(name string, _ machine.StartOptions) error {
@@ -1361,4 +1367,23 @@ func (p *Provider) IsValidVMName(name string) (bool, error) {
 
 func (p *Provider) CheckExclusiveActiveVM() (bool, string, error) {
 	return false, "", nil
+}
+
+func (v *MachineVM) setRootful(rootful bool) error {
+	changeCon, err := machine.AnyConnectionDefault(v.Name, v.Name+"-root")
+	if err != nil {
+		return err
+	}
+
+	if changeCon {
+		newDefault := v.Name
+		if rootful {
+			newDefault += "-root"
+		}
+		err := machine.ChangeDefault(newDefault)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }

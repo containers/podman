@@ -390,25 +390,9 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	// Resize the disk image to input disk size
-	// only if the virtualdisk size is less than
-	// the given disk size
-	if opts.DiskSize<<(10*3) > originalDiskSize {
-		// Find the qemu executable
-		cfg, err := config.Default()
-		if err != nil {
-			return false, err
-		}
-		resizePath, err := cfg.FindHelperBinary("qemu-img", true)
-		if err != nil {
-			return false, err
-		}
-		resize := exec.Command(resizePath, []string{"resize", v.getImageFile(), strconv.Itoa(int(opts.DiskSize)) + "G"}...)
-		resize.Stdout = os.Stdout
-		resize.Stderr = os.Stderr
-		if err := resize.Run(); err != nil {
-			return false, errors.Errorf("resizing image: %q", err)
-		}
+
+	if err := v.resizeDisk(opts.DiskSize, originalDiskSize>>(10*3)); err != nil {
+		return false, err
 	}
 	// If the user provides an ignition file, we need to
 	// copy it into the conf dir
@@ -432,14 +416,14 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 	return err == nil, err
 }
 
-func (v *MachineVM) Set(_ string, opts machine.SetOptions) error {
-	if v.Rootful == opts.Rootful {
-		return nil
-	}
+func (v *MachineVM) Set(_ string, opts machine.SetOptions) ([]error, error) {
+	// If one setting fails to be applied, the others settings will not fail and still be applied.
+	// The setting(s) that failed to be applied will have its errors returned in setErrors
+	var setErrors []error
 
 	state, err := v.State(false)
 	if err != nil {
-		return err
+		return setErrors, err
 	}
 
 	if state == machine.Running {
@@ -447,26 +431,45 @@ func (v *MachineVM) Set(_ string, opts machine.SetOptions) error {
 		if v.Name != machine.DefaultMachineName {
 			suffix = " " + v.Name
 		}
-		return errors.Errorf("cannot change setting while the vm is running, run 'podman machine stop%s' first", suffix)
+		return setErrors, errors.Errorf("cannot change settings while the vm is running, run 'podman machine stop%s' first", suffix)
 	}
 
-	changeCon, err := machine.AnyConnectionDefault(v.Name, v.Name+"-root")
+	if opts.Rootful != nil && v.Rootful != *opts.Rootful {
+		if err := v.setRootful(*opts.Rootful); err != nil {
+			setErrors = append(setErrors, errors.Wrapf(err, "failed to set rootful option"))
+		} else {
+			v.Rootful = *opts.Rootful
+		}
+	}
+
+	if opts.CPUs != nil && v.CPUs != *opts.CPUs {
+		v.CPUs = *opts.CPUs
+		v.editCmdLine("-smp", strconv.Itoa(int(v.CPUs)))
+	}
+
+	if opts.Memory != nil && v.Memory != *opts.Memory {
+		v.Memory = *opts.Memory
+		v.editCmdLine("-m", strconv.Itoa(int(v.Memory)))
+	}
+
+	if opts.DiskSize != nil && v.DiskSize != *opts.DiskSize {
+		if err := v.resizeDisk(*opts.DiskSize, v.DiskSize); err != nil {
+			setErrors = append(setErrors, errors.Wrapf(err, "failed to resize disk"))
+		} else {
+			v.DiskSize = *opts.DiskSize
+		}
+	}
+
+	err = v.writeConfig()
 	if err != nil {
-		return err
+		setErrors = append(setErrors, err)
 	}
 
-	if changeCon {
-		newDefault := v.Name
-		if opts.Rootful {
-			newDefault += "-root"
-		}
-		if err := machine.ChangeDefault(newDefault); err != nil {
-			return err
-		}
+	if len(setErrors) > 0 {
+		return setErrors, setErrors[0]
 	}
 
-	v.Rootful = opts.Rootful
-	return v.writeConfig()
+	return setErrors, nil
 }
 
 // Start executes the qemu command line and forks it
@@ -1461,4 +1464,65 @@ func (v *MachineVM) getImageFile() string {
 // getIgnitionFile wrapper returns the path to the ignition file
 func (v *MachineVM) getIgnitionFile() string {
 	return v.IgnitionFilePath.GetPath()
+}
+
+//resizeDisk increases the size of the machine's disk in GB.
+func (v *MachineVM) resizeDisk(diskSize uint64, oldSize uint64) error {
+	// Resize the disk image to input disk size
+	// only if the virtualdisk size is less than
+	// the given disk size
+	if diskSize < oldSize {
+		return errors.Errorf("new disk size must be larger than current disk size: %vGB", oldSize)
+	}
+
+	// Find the qemu executable
+	cfg, err := config.Default()
+	if err != nil {
+		return err
+	}
+	resizePath, err := cfg.FindHelperBinary("qemu-img", true)
+	if err != nil {
+		return err
+	}
+	resize := exec.Command(resizePath, []string{"resize", v.getImageFile(), strconv.Itoa(int(diskSize)) + "G"}...)
+	resize.Stdout = os.Stdout
+	resize.Stderr = os.Stderr
+	if err := resize.Run(); err != nil {
+		return errors.Errorf("resizing image: %q", err)
+	}
+
+	return nil
+}
+
+func (v *MachineVM) setRootful(rootful bool) error {
+	changeCon, err := machine.AnyConnectionDefault(v.Name, v.Name+"-root")
+	if err != nil {
+		return err
+	}
+
+	if changeCon {
+		newDefault := v.Name
+		if rootful {
+			newDefault += "-root"
+		}
+		err := machine.ChangeDefault(newDefault)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (v *MachineVM) editCmdLine(flag string, value string) {
+	found := false
+	for i, val := range v.CmdLine {
+		if val == flag {
+			found = true
+			v.CmdLine[i+1] = value
+			break
+		}
+	}
+	if !found {
+		v.CmdLine = append(v.CmdLine, []string{flag, value}...)
+	}
 }
