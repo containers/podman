@@ -1206,8 +1206,6 @@ var _ = Describe("Podman play kube", func() {
 		}
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.Setup()
-		podmanTest.SeedImages()
-
 		kubeYaml = filepath.Join(podmanTest.TempDir, "kube.yaml")
 	})
 
@@ -2744,6 +2742,7 @@ MemoryReservation: {{ .HostConfig.MemoryReservation }}`})
 	})
 
 	It("podman play kube applies log driver to containers", func() {
+		SkipIfInContainer("journald inside a container doesn't work")
 		pod := getPod()
 		err := generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).To(BeNil())

@@ -274,11 +274,15 @@ func readStdio(conn *net.UnixConn, streams *define.AttachStreams, receiveStdoutE
 	var err error
 	select {
 	case err = <-receiveStdoutError:
-		conn.CloseWrite()
+		if err := conn.CloseWrite(); err != nil {
+			logrus.Errorf("Failed to close stdin: %v", err)
+		}
 		return err
 	case err = <-stdinDone:
 		if err == define.ErrDetach {
-			conn.CloseWrite()
+			if err := conn.CloseWrite(); err != nil {
+				logrus.Errorf("Failed to close stdin: %v", err)
+			}
 			return err
 		}
 		if err == nil {

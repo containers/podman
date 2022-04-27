@@ -81,7 +81,10 @@ func reset(cmd *cobra.Command, args []string) {
 	}
 
 	// Purge all the external containers with storage
-	registry.ContainerEngine().ContainerRm(registry.Context(), listCtnIds, entities.RmOptions{Force: true, All: true, Ignore: true, Volumes: true})
+	_, err := registry.ContainerEngine().ContainerRm(registry.Context(), listCtnIds, entities.RmOptions{Force: true, All: true, Ignore: true, Volumes: true})
+	if err != nil {
+		logrus.Error(err)
+	}
 	// Shutdown all running engines, `reset` will hijack repository
 	registry.ContainerEngine().Shutdown(registry.Context())
 	registry.ImageEngine().Shutdown(registry.Context())

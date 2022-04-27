@@ -641,7 +641,11 @@ func (ic *ContainerEngine) ContainerRestore(ctx context.Context, namesOrIds []st
 				}
 				restoreOptions.CheckpointImageID = img.ID()
 				mountPoint, err := img.Mount(ctx, nil, "")
-				defer img.Unmount(true)
+				defer func() {
+					if err := img.Unmount(true); err != nil {
+						logrus.Errorf("Failed to unmount image: %v", err)
+					}
+				}()
 				if err != nil {
 					return nil, err
 				}

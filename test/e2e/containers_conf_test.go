@@ -29,7 +29,6 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 		}
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.Setup()
-		podmanTest.SeedImages()
 		os.Setenv("CONTAINERS_CONF", "config/containers.conf")
 		if IsRemote() {
 			podmanTest.RestartRemoteService()

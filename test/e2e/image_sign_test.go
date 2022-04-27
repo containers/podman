@@ -28,8 +28,6 @@ var _ = Describe("Podman image sign", func() {
 		}
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.Setup()
-		podmanTest.SeedImages()
-
 		tempGNUPGHOME := filepath.Join(podmanTest.TempDir, "tmpGPG")
 		err := os.Mkdir(tempGNUPGHOME, os.ModePerm)
 		Expect(err).To(BeNil())

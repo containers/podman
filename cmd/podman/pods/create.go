@@ -214,7 +214,7 @@ func create(cmd *cobra.Command, args []string) error {
 	ret, err := parsers.ParseUintList(copy)
 	copy = ""
 	if err != nil {
-		errors.Wrapf(err, "could not parse list")
+		return errors.Wrapf(err, "could not parse list")
 	}
 	var vals []int
 	for ind, val := range ret {

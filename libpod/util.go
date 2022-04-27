@@ -55,8 +55,11 @@ func WaitForFile(path string, chWait chan error, timeout time.Duration) (bool, e
 		if err := watcher.Add(filepath.Dir(path)); err == nil {
 			inotifyEvents = watcher.Events
 		}
-		defer watcher.Close()
-		defer watcher.Remove(filepath.Dir(path))
+		defer func() {
+			if err := watcher.Close(); err != nil {
+				logrus.Errorf("Failed to close fsnotify watcher: %v", err)
+			}
+		}()
 	}
 
 	var timeoutChan <-chan time.Time

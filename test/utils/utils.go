@@ -489,7 +489,9 @@ func IsCommandAvailable(command string) bool {
 // WriteJSONFile write json format data to a json file
 func WriteJSONFile(data []byte, filePath string) error {
 	var jsonData map[string]interface{}
-	json.Unmarshal(data, &jsonData)
+	if err := json.Unmarshal(data, &jsonData); err != nil {
+		return err
+	}
 	formatJSON, err := json.MarshalIndent(jsonData, "", "	")
 	if err != nil {
 		return err

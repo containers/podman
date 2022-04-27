@@ -101,7 +101,8 @@ var _ = Describe("Podman push", func() {
 			Skip("No registry image for ppc64le")
 		}
 		if rootless.IsRootless() {
-			podmanTest.RestoreArtifact(registry)
+			err := podmanTest.RestoreArtifact(registry)
+			Expect(err).ToNot(HaveOccurred())
 		}
 		lock := GetPortLock("5000")
 		defer lock.Unlock()
@@ -132,8 +133,10 @@ var _ = Describe("Podman push", func() {
 			Skip("No registry image for ppc64le")
 		}
 		authPath := filepath.Join(podmanTest.TempDir, "auth")
-		os.Mkdir(authPath, os.ModePerm)
-		os.MkdirAll("/etc/containers/certs.d/localhost:5000", os.ModePerm)
+		err = os.Mkdir(authPath, os.ModePerm)
+		Expect(err).ToNot(HaveOccurred())
+		err = os.MkdirAll("/etc/containers/certs.d/localhost:5000", os.ModePerm)
+		Expect(err).ToNot(HaveOccurred())
 		defer os.RemoveAll("/etc/containers/certs.d/localhost:5000")
 
 		cwd, _ := os.Getwd()
@@ -157,11 +160,14 @@ var _ = Describe("Podman push", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
-		f, _ := os.Create(filepath.Join(authPath, "htpasswd"))
+		f, err := os.Create(filepath.Join(authPath, "htpasswd"))
+		Expect(err).ToNot(HaveOccurred())
 		defer f.Close()
 
-		f.WriteString(session.OutputToString())
-		f.Sync()
+		_, err = f.WriteString(session.OutputToString())
+		Expect(err).ToNot(HaveOccurred())
+		err = f.Sync()
+		Expect(err).ToNot(HaveOccurred())
 
 		session = podmanTest.Podman([]string{"run", "-d", "-p", "5000:5000", "--name", "registry", "-v",
 			strings.Join([]string{authPath, "/auth"}, ":"), "-e", "REGISTRY_AUTH=htpasswd", "-e",
