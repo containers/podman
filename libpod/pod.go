@@ -159,6 +159,15 @@ func (p *Pod) CPUQuota() int64 {
 	return 0
 }
 
+// NetworkMode returns the Network mode given by the user ex: pod, private...
+func (p *Pod) NetworkMode() string {
+	infra, err := p.runtime.GetContainer(p.state.InfraContainerID)
+	if err != nil {
+		return ""
+	}
+	return infra.NetworkMode()
+}
+
 // PidMode returns the PID mode given by the user ex: pod, private...
 func (p *Pod) PidMode() string {
 	infra, err := p.runtime.GetContainer(p.state.InfraContainerID)
