@@ -256,6 +256,10 @@ type EpollEvent struct {
 }
 
 const (
+	OPEN_TREE_CLOEXEC = 0x80000
+)
+
+const (
 	POLLRDHUP = 0x2000
 )
 
@@ -332,6 +336,8 @@ type Taskstats struct {
 	Thrashing_count           uint64
 	Thrashing_delay_total     uint64
 	Ac_btime64                uint64
+	Compact_count             uint64
+	Compact_delay_total       uint64
 }
 
 type cpuMask uint64

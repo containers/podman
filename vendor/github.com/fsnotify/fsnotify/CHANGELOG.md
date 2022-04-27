@@ -7,9 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.4] - 2022-04-25
+
+* Windows: add missing defer to `Watcher.WatchList` [#447](https://github.com/fsnotify/fsnotify/pull/447)
+* go.mod: use latest x/sys [#444](https://github.com/fsnotify/fsnotify/pull/444)
+* Fix compilation for OpenBSD [#443](https://github.com/fsnotify/fsnotify/pull/443)
+
+## [1.5.3] - 2022-04-22
+
+* This version is retracted. An incorrect branch is published accidentally [#445](https://github.com/fsnotify/fsnotify/issues/445)
+
+## [1.5.2] - 2022-04-21
+
+* Add a feature to return the directories and files that are being monitored [#374](https://github.com/fsnotify/fsnotify/pull/374)
+* Fix potential crash on windows if `raw.FileNameLength` exceeds `syscall.MAX_PATH` [#361](https://github.com/fsnotify/fsnotify/pull/361)
+* Allow build on unsupported GOOS [#424](https://github.com/fsnotify/fsnotify/pull/424)
+* Don't set `poller.fd` twice in `newFdPoller` [#406](https://github.com/fsnotify/fsnotify/pull/406)
+* fix go vet warnings: call to `(*T).Fatalf` from a non-test goroutine [#416](https://github.com/fsnotify/fsnotify/pull/416)
+
 ## [1.5.1] - 2021-08-24
 
-* Revert Add AddRaw to not follow symlinks
+* Revert Add AddRaw to not follow symlinks [#394](https://github.com/fsnotify/fsnotify/pull/394)
 
 ## [1.5.0] - 2021-08-20
 
