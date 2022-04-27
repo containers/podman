@@ -129,6 +129,11 @@ func run(cmd *cobra.Command, args []string) error {
 	}
 	runOpts.CIDFile = cliVals.CIDFile
 	runOpts.Rm = cliVals.Rm
+	// Do not ignore default volumes if any
+	defaultVolumes := registry.PodmanConfig().Volumes()
+	if len(defaultVolumes) != 0 {
+		cliVals.Volume = append(cliVals.Volume, defaultVolumes...)
+	}
 	if cliVals, err = CreateInit(cmd, cliVals, false); err != nil {
 		return err
 	}

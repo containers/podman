@@ -221,6 +221,30 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 		Expect(result).Should(Exit(0))
 	})
 
+	It("add volumes and honor new volumes added during run", func() {
+		volName := "testVol"
+		volCreate := podmanTest.Podman([]string{"volume", "create", volName})
+		volCreate.WaitWithDefaultTimeout()
+		Expect(volCreate).Should(Exit(0))
+
+		conffile := filepath.Join(podmanTest.TempDir, "container.conf")
+		tempdir, err = CreateTempDirInTempDir()
+		Expect(err).ToNot(HaveOccurred())
+
+		err := ioutil.WriteFile(conffile, []byte(fmt.Sprintf("[containers]\nvolumes=[\"%s:%s:Z\",]\n", tempdir, "/world")), 0755)
+		Expect(err).ToNot(HaveOccurred())
+
+		os.Setenv("CONTAINERS_CONF", conffile)
+		if IsRemote() {
+			podmanTest.RestartRemoteService()
+		}
+
+		// /world should be mounted along with /hello
+		result := podmanTest.Podman([]string{"run", "--rm", "-v", fmt.Sprintf("%v:/hello", volName), ALPINE, "sh", "-c", "ls /world && ls /hello"})
+		result.WaitWithDefaultTimeout()
+		Expect(result).Should(Exit(0))
+	})
+
 	It("sysctl test", func() {
 		// containers.conf is set to   "net.ipv4.ping_group_range=0 1000"
 		session := podmanTest.Podman([]string{"run", "--rm", fedoraMinimal, "cat", "/proc/sys/net/ipv4/ping_group_range"})
