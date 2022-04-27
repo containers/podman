@@ -28,6 +28,13 @@ Valid filters are listed below:
 
 Format secret output using Go template.
 
+| **Placeholder**     | **Description**    |
+| ------------------- | ------------------ |
+| .ID                 | ID of secret       |
+| .Spec               | FIXME: this does not seem to work |
+| .CreatedAt          | When secret was created (relative timestamp, human-readable) |
+| .UpdatedAt          | When secret was last updated (relative timestamp, human-readable) |
+
 #### **--noheading**
 
 Omit the table headings from the listing of secrets.	.

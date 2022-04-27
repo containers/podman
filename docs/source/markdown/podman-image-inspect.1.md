@@ -18,6 +18,32 @@ all results in a JSON array.  If a format is specified, the given template will 
 Format the output using the given Go template.
 The keys of the returned JSON can be used as the values for the --format flag (see examples below).
 
+| **Placeholder**     | **Description**    |
+| ------------------- | ------------------ |
+| .Annotations         | FIXME |
+| .Architecture        | FIXME |
+| .Author              | FIXME |
+| .Comment             | FIXME |
+| .Config              | FIXME |
+| .Created             | FIXME |
+| .Digest              | FIXME |
+| .GraphDriver         | FIXME |
+| .HealthCheck         | FIXME |
+| .History             | FIXME |
+| .ID                  | FIXME |
+| .Labels              | FIXME |
+| .ManifestType        | FIXME |
+| .NamesHistory        | FIXME |
+| .Os                  | FIXME |
+| .Parent              | FIXME |
+| .RepoDigests         | FIXME |
+| .RepoTags            | FIXME |
+| .RootFS              | FIXME |
+| .Size                | FIXME |
+| .User                | FIXME |
+| .Version             | FIXME |
+| .VirtualSize         | FIXME |
+
 ## EXAMPLE
 
 ```

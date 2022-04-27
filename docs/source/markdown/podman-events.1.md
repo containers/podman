@@ -95,6 +95,18 @@ In the case where an ID is used, the ID may be in its full or shortened form.
 
 Format the output to JSON Lines or using the given Go template.
 
+| **Placeholder**     | **Description**    |
+| ------------------- | ------------------ |
+| .Attributes         | FIXME |
+| .ContainerExitCode  | FIXME |
+| .ID                 | FIXME |
+| .Image              | FIXME |
+| .Name               | FIXME |
+| .Network            | FIXME |
+| .Status             | FIXME |
+| .Time               | FIXME |
+| .Type               | FIXME |
+
 #### **--help**
 
 Print usage statement.

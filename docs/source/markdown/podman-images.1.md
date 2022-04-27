@@ -75,7 +75,8 @@ Valid placeholders for the Go template are listed below:
 
 | **Placeholder** | **Description**                                                               |
 | --------------- | ----------------------------------------------------------------------------- |
-| .ID             | Image ID                                                                      |
+| .ID             | Image ID (truncated)                                                          |
+| .Id             | Image ID (full SHA)                                                           |
 | .Repository     | Image repository                                                              |
 | .Tag            | Image tag                                                                     |
 | .Digest         | Image digest                                                                  |
@@ -83,6 +84,21 @@ Valid placeholders for the Go template are listed below:
 | .CreatedAt      | Time when the image was created                                               |
 | .Size           | Size of layer on disk                                                         |
 | .History        | History of the image layer                                                    |
+| .ConfigDigest   | FIXME |
+| .Containers     | FIXME |
+| .Created        | FIXME |
+| .CreatedTime    | FIXME |
+| .Dangling       | FIXME |
+| .IsDangling     | FIXME |
+| .IsReadOnly     | FIXME |
+| .Labels         | FIXME |
+| .Names          | FIXME |
+| .ParentId       | FIXME |
+| .ReadOnly       | FIXME |
+| .RepoDigests    | FIXME |
+| .RepoTags       | FIXME |
+| .SharedSize     | FIXME |
+| .VirtualSize    | FIXME |
 
 #### **--history**
 

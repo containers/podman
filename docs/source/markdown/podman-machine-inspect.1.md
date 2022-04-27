@@ -18,6 +18,17 @@ inspected at once.
 
 Print results with a Go template.
 
+| **Placeholder**     | **Description**    |
+| ------------------- | ------------------ |
+| .ConfigPath         | FIXME |
+| .Created            | FIXME |
+| .Image              | FIXME |
+| .LastUp             | FIXME |
+| .Name               | FIXME |
+| .State              | FIXME |
+| .Resources          | FIXME |
+| .SSHConfig          | FIXME |
+
 #### **--help**
 
 Print usage statement.

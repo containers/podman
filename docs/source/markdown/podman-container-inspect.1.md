@@ -18,6 +18,48 @@ all results in a JSON array. If a format is specified, the given template will b
 Format the output using the given Go template.
 The keys of the returned JSON can be used as the values for the --format flag (see examples below).
 
+Valid placeholders for the Go template are listed below:
+
+| **Placeholder**   | **Description**    |
+| ----------------- | ------------------ |
+| .AppArmorProfile  | FIXME |
+| .Args             | FIXME |
+| .BoundingCaps     | FIXME |
+| .Config           | FIXME |
+| .ConmonPidFile    | FIXME |
+| .Created          | FIXME |
+| .Dependencies     | FIXME |
+| .Driver           | FIXME |
+| .EffectiveCaps    | FIXME |
+| .ExecIDs          | FIXME |
+| .GraphDriver      | FIXME |
+| .HostConfig       | FIXME |
+| .HostnamePath     | FIXME |
+| .HostsPath        | FIXME |
+| .ID               | FIXME |
+| .Image            | FIXME |
+| .ImageName        | FIXME |
+| .IsInfra          | FIXME |
+| .IsService        | FIXME |
+| .MountLabel       | FIXME |
+| .Mounts           | FIXME |
+| .Name             | FIXME |
+| .Namespace        | FIXME |
+| .NetworkSettings  | FIXME |
+| .OCIConfigPath    | FIXME |
+| .OCIRuntime       | FIXME |
+| .Path             | FIXME |
+| .PidFile          | FIXME |
+| .Pod              | FIXME |
+| .ProcessLabel     | FIXME |
+| .ResolvConfPath   | FIXME |
+| .RestartCount     | FIXME |
+| .Rootfs           | FIXME |
+| .SizeRootFs       | FIXME |
+| .SizeRw           | FIXME |
+| .State            | FIXME |
+| .StaticDir        | FIXME |
+
 #### **--latest**, **-l**
 
 Instead of providing the container name or ID, use the last created container. If you use methods other than Podman

@@ -88,6 +88,13 @@ Valid placeholders for the Go template are listed below:
 | .Created            | Creation time of pod                                                                            |
 | .InfraID            | Pod infra container ID                                                                          |
 | .Networks           | Show all networks connected to the infra container                                              |
+| .ContainerIds       | FIXME |
+| .ContainerNames     | FIXME |
+| .ContainerStatuses  | FIXME |
+| .Containers         | FIXME |
+| .Id                 | FIXME |
+| .InfraId            | FIXME |
+| .Namespace          | FIXME |
 
 #### **--help**, **-h**
 

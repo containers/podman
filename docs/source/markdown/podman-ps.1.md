@@ -83,6 +83,27 @@ Valid placeholders for the Go template are listed below:
 | .Networks       | Show all networks connected to the container     |
 | .Labels         | All the labels assigned to the container         |
 | .Mounts         | Volumes mounted in the container                 |
+| .AutoRemove     | FIXME                                            |
+| .Cgroup         | FIXME                                            |
+| .CGROUPNS       | FIXME                                            |
+| .Created        | FIXME                                            |
+| .CreatedHuman   | FIXME                                            |
+| .ExitCode       | FIXME                                            |
+| .Exited         | FIXME                                            |
+| .ExitedAt       | FIXME                                            |
+| .IPC            | FIXME                                            |
+| .IsInfra        | FIXME                                            |
+| .MNT            | FIXME                                            |
+| .NET            | FIXME                                            |
+| .Namespaces     | FIXME                                            |
+| .PIDNS          | FIXME                                            |
+| .Pid            | FIXME                                            |
+| .PodName        | FIXME                                            |
+| .StartedAt      | FIXME                                            |
+| .State          | FIXME                                            |
+| .User           | FIXME                                            |
+| .USERNS         | FIXME                                            |
+| .UTS            | FIXME                                            |
 
 #### **--help**, **-h**
 

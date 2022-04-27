@@ -34,6 +34,18 @@ Valid placeholders for the Go template are listed below:
 | .SharedNamespaces | Pod   shared namespaces                                                       |
 | .NumContainers    | Number of containers in the pod                                               |
 | .Containers       | Pod   containers                                                              |
+| .BlkioDeviceReadBps | FIXME |
+| .CPUPeriod          | FIXME |
+| .CPUQuota           | FIXME |
+| .CPUSetCPUs         | FIXME |
+| .CreateCommand      | FIXME |
+| .Devices            | FIXME |
+| .ExitPolicy         | FIXME |
+| .InfraConfig        | FIXME |
+| .Mounts             | FIXME |
+| .Namespace          | FIXME |
+| .SecurityOpts       | FIXME |
+| .VolumesFrom        | FIXME |
 
 #### **--latest**, **-l**
 

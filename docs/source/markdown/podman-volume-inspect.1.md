@@ -24,6 +24,23 @@ Inspect all volumes.
 
 Format volume output using Go template
 
+| **Placeholder**     | **Description**    |
+| ------------------- | ------------------ |
+| .Anonymous          | FIXME |
+| .CreatedAt          | FIXME |
+| .Driver             | FIXME |
+| .GID                | FIXME |
+| .Labels             | FIXME |
+| .MountCount         | FIXME |
+| .Mountpoint         | FIXME |
+| .Name               | FIXME |
+| .NeedsChown         | FIXME |
+| .NeedsCopyUp        | FIXME |
+| .Options            | FIXME |
+| .Scope              | FIXME |
+| .Status             | FIXME |
+| .UID                | FIXME |
+
 #### **--help**
 
 Print usage statement

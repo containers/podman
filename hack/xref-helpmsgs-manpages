@@ -126,9 +126,19 @@ sub main {
 sub xref_by_help {
     my ($help, $man, @subcommand) = @_;
 
+  OPTION:
     for my $k (sort keys %$help) {
         if (exists $man->{$k}) {
             if (ref $help->{$k}) {
+                # This happens when 'podman foo --format' offers
+                # autocompletion that looks like a Go template, but those
+                # template options aren't documented in the man pages.
+                if ($k eq '--format' && ! ref($man->{$k})) {
+                    warn "$ME: 'podman @subcommand': --format options are available through autocomplete, but are not documented in man page\n";
+                    ++$Errs;
+                    next OPTION;
+                }
+
                 xref_by_help($help->{$k}, $man->{$k}, @subcommand, $k);
             }
             # Otherwise, non-ref is leaf node such as a --option
@@ -152,10 +162,22 @@ sub xref_by_man {
     my ($help, $man, @subcommand) = @_;
 
     # FIXME: this generates way too much output
+  KEYWORD:
     for my $k (grep { $_ ne '_path' } sort keys %$man) {
+        if ($k eq '--format' && ref($man->{$k}) && ! ref($help->{$k})) {
+            warn "$ME: 'podman @subcommand': --format options documented in man page, but not available via autocomplete\n";
+            next KEYWORD;
+        }
+
         if (exists $help->{$k}) {
             if (ref $man->{$k}) {
                 xref_by_man($help->{$k}, $man->{$k}, @subcommand, $k);
+            }
+            elsif ($k =~ /^-/) {
+                # This is OK: we don't recurse into options
+            }
+            else {
+                # FIXME: should never get here, but we do. Figure it out later.
             }
         }
         elsif ($k ne '--help' && $k ne '-h') {
@@ -254,15 +276,39 @@ sub podman_help {
             }
         }
         elsif ($section eq 'options') {
+            my $opt = '';
+
             # Handle '--foo' or '-f, --foo'
             if ($line =~ /^\s{1,10}(--\S+)\s/) {
                 print "> podman @_ $1\n"                        if $debug;
-                $help{$1} = 1;
+                $opt = $1;
+                $help{$opt} = 1;
             }
             elsif ($line =~ /^\s{1,10}(-\S),\s+(--\S+)\s/) {
                 print "> podman @_ $1, $2\n"                    if $debug;
-                $help{$1} = $help{$2} = 1;
+                $opt = $2;
+                $help{$1} = $help{$opt} = 1;
             }
+
+            # Special case for --format: run podman with autocomplete.
+            # If that lists one or more '{{.Foo}}' or '{{.Foo.' entries
+            # (indicating terminal or nonterminal nodes respectively)
+            # convert our option data structure from scalar (indicating
+            # that we just cross-check for existence in the man page)
+            # to hashref (indicating that we recurse down and cross-check
+            # each individual param).
+            if ($opt eq '--format') {
+                my @completions = _completions(@_, '--format', '{{.');
+                for my $c (@completions) {
+                    if ($c =~ /^\{\{(\.\S+)(\.|\}\})$/) {
+                        # First time through: convert to a hashref
+                        $help{$opt} = {}   if ! ref($help{$opt});
+
+                        # Remember this param
+                        $help{$opt}{$1} = 1;
+                    }
+                }
+           }
         }
     }
     close $fh
@@ -372,6 +418,24 @@ sub podman_man {
                     push @most_recent_flags, $1;
                 }
             }
+
+            # --format does not always mean a Go format! E.g., push --format=oci
+            if ($previous_flag eq '--format') {
+                # ...but if there's a table like '| .Foo | blah blah |'
+                # then it's definitely a Go template.
+                if ($line =~ /^\|\s+(\.\S+)\s+\|/) {
+                    # Confirmed: we have a table with '.Foo' strings, so
+                    # this is a Go template. Override previous (scalar)
+                    # setting of the --format flag with a hash, indicating
+                    # that we will recursively cross-check each param.
+                    if (! ref($man{$previous_flag})) {
+                        $man{$previous_flag} = { _path => $subpath };
+                    }
+
+                    # ...and document this format option
+                    $man{$previous_flag}{$1} = 1;
+                }
+            }
         }
 
         # It's easy to make mistakes in the SEE ALSO elements.
@@ -461,6 +525,41 @@ sub podman_rst {
     $rst{image}{trust}{$_} = { _desc => 'ok' } for (qw(set show));
 
     return \%rst;
+}
+
+##################
+#  _completions  #  run podman __completeNoDesc, return list of completions
+##################
+sub _completions {
+    my $kidpid = open my $podman_fh, '-|';
+    if (! defined $kidpid) {
+        die "$ME: Could not fork: $!\n";
+    }
+
+    if ($kidpid == 0) {
+        # We are the child
+        close STDERR;
+        exec $PODMAN, '__completeNoDesc', @_;
+        die "$ME: Could not exec: $!\n";
+    }
+
+    # We are the parent
+    my @completions;
+    while (my $line = <$podman_fh>) {
+        chomp $line;
+        push @completions, $line;
+
+        # Recursively expand Go templates?
+        if ($line =~ /^\{\{\..*\.$/) {
+            # FIXME: Nope nope nope! Increases our count by over 500.
+            # However, keep this for now so we can think about it later.
+#            pop @_;
+#            push @completions, _completions(@_, $line);
+        }
+    }
+    close $podman_fh
+        or warn "$ME: Error running podman __completeNoDesc @_\n";
+    return @completions;
 }
 
 # END   data gathering
