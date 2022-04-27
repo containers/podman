@@ -148,6 +148,19 @@ func (w *Watcher) Remove(name string) error {
 	return nil
 }
 
+// WatchList returns the directories and files that are being monitered.
+func (w *Watcher) WatchList() []string {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+
+	entries := make([]string, 0, len(w.watches))
+	for pathname := range w.watches {
+		entries = append(entries, pathname)
+	}
+
+	return entries
+}
+
 // Watch all events (except NOTE_EXTEND, NOTE_LINK, NOTE_REVOKE)
 const noteAllEvents = unix.NOTE_DELETE | unix.NOTE_WRITE | unix.NOTE_ATTRIB | unix.NOTE_RENAME
 
