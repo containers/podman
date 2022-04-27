@@ -135,6 +135,8 @@ const (
 	// creating a checkpoint image to specify the name of host distribution on
 	// which the checkpoint was created.
 	CheckpointAnnotationDistributionName = "io.podman.annotations.checkpoint.distribution.name"
+	// MaxKubeAnnotation is the max length of annotations allowed by Kubernetes.
+	MaxKubeAnnotation = 63
 )
 
 // IsReservedAnnotation returns true if the specified value corresponds to an

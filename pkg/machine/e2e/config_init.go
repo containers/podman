@@ -12,7 +12,7 @@ type initMachine struct {
 	      --image-path string      Path to qcow image (default "testing")
 	  -m, --memory uint            Memory in MB (default 2048)
 	      --now                    Start machine now
-	      --rootful                Whether this machine should prefer rootful container exectution
+	      --rootful                Whether this machine should prefer rootful container execution
 	      --timezone string        Set timezone (default "local")
 	  -v, --volume stringArray     Volumes to mount, source:target
 	      --volume-driver string   Optional volume driver
