@@ -2220,7 +2220,7 @@ spec:
 		Expect(ctr[0].Config.WorkingDir).To(ContainSubstring("/etc"))
 		Expect(ctr[0].Config.Labels).To(HaveKeyWithValue("key1", ContainSubstring("value1")))
 		Expect(ctr[0].Config.Labels).To(HaveKeyWithValue("key1", ContainSubstring("value1")))
-		Expect(ctr[0].Config.StopSignal).To(Equal(uint(51)))
+		Expect(ctr[0].Config).To(HaveField("StopSignal", uint(51)))
 	})
 
 	// Deployment related tests
@@ -2528,7 +2528,7 @@ VOLUME %s`, ALPINE, hostPathDir+"/")
 		// only one will be mounted. Host path volumes take precedence.
 		ctrJSON := inspect.InspectContainerToJSON()
 		Expect(ctrJSON[0].Mounts).To(HaveLen(1))
-		Expect(ctrJSON[0].Mounts[0].Type).To(Equal("bind"))
+		Expect(ctrJSON[0].Mounts[0]).To(HaveField("Type", "bind"))
 
 	})
 
