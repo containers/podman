@@ -448,7 +448,7 @@ var _ = Describe("Podman create", func() {
 		inspect.WaitWithDefaultTimeout()
 		data := inspect.InspectContainerToJSON()
 		Expect(data).To(HaveLen(1))
-		Expect(data[0].HostConfig).To(HaveField("MemorySwap", int64(2 * numMem)))
+		Expect(data[0].HostConfig).To(HaveField("MemorySwap", int64(2*numMem)))
 	})
 
 	It("podman create --cpus 5 sets nanocpus", func() {

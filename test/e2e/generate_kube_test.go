@@ -777,7 +777,8 @@ var _ = Describe("Podman generate kube", func() {
 		Expect(pod.Spec.DNSConfig.Searches).To(ContainElement("foobar.com"))
 		Expect(len(pod.Spec.DNSConfig.Options)).To(BeNumerically(">", 0))
 		Expect(pod.Spec.DNSConfig.Options[0]).To(HaveField("Name", "color"))
-		Expect(*pod.Spec.DNSConfig.Options[0]).To(HaveField("Value", "blue"))
+		s := "blue"
+		Expect(pod.Spec.DNSConfig.Options[0]).To(HaveField("Value", &s))
 	})
 
 	It("podman generate kube multiple container dns servers and options are cumulative", func() {
@@ -820,7 +821,8 @@ var _ = Describe("Podman generate kube", func() {
 		Expect(pod.Spec.DNSConfig.Searches).To(ContainElement("foobar.com"))
 		Expect(len(pod.Spec.DNSConfig.Options)).To(BeNumerically(">", 0))
 		Expect(pod.Spec.DNSConfig.Options[0]).To(HaveField("Name", "color"))
-		Expect(*pod.Spec.DNSConfig.Options[0]).To(HaveField("Value", "blue"))
+		s := "blue"
+		Expect(pod.Spec.DNSConfig.Options[0]).To(HaveField("Value", &s))
 	})
 
 	It("podman generate kube - set entrypoint as command", func() {
