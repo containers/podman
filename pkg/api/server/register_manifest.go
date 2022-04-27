@@ -10,6 +10,82 @@ import (
 func (s *APIServer) registerManifestHandlers(r *mux.Router) error {
 	v3 := r.PathPrefix("/v{version:[0-3][0-9A-Za-z.-]*}/libpod/manifests").Subrouter()
 	v4 := r.PathPrefix("/v{version:[4-9][0-9A-Za-z.-]*}/libpod/manifests").Subrouter()
+	// swagger:operation POST /libpod/manifests/{name}/push manifests ManifestPushV3Libpod
+	// ---
+	// summary: Push manifest to registry
+	// description: |
+	//   Push a manifest list or image index to a registry
+	//
+	//   Deprecated: As of 4.0.0 use ManifestPushLibpod instead
+	// produces:
+	// - application/json
+	// parameters:
+	//  - in: path
+	//    name: name
+	//    type: string
+	//    required: true
+	//    description: the name or ID of the manifest
+	//  - in: query
+	//    name: destination
+	//    type: string
+	//    required: true
+	//    description: the destination for the manifest
+	//  - in: query
+	//    name: all
+	//    description: push all images
+	//    type: boolean
+	// responses:
+	//   200:
+	//     schema:
+	//       $ref: "#/definitions/IDResponse"
+	//   400:
+	//     $ref: "#/responses/BadParamError"
+	//   404:
+	//     $ref: "#/responses/NoSuchManifest"
+	//   500:
+	//     $ref: "#/responses/InternalError"
+	v3.Handle("/{name}/push", s.APIHandler(libpod.ManifestPushV3)).Methods(http.MethodPost)
+	// swagger:operation POST /libpod/manifests/{name}/registry/{destination} manifests ManifestPushLibpod
+	// ---
+	// summary: Push manifest list to registry
+	// description: |
+	//   Push a manifest list or image index to the named registry
+	//
+	//   As of v4.0.0
+	// produces:
+	// - application/json
+	// parameters:
+	//  - in: path
+	//    name: name
+	//    type: string
+	//    required: true
+	//    description: the name or ID of the manifest list
+	//  - in: path
+	//    name: destination
+	//    type: string
+	//    required: true
+	//    description: the registry for the manifest list
+	//  - in: query
+	//    name: all
+	//    description: push all images
+	//    type: boolean
+	//    default: false
+	//  - in: query
+	//    name: tlsVerify
+	//    type: boolean
+	//    default: false
+	//    description: skip TLS verification for registries
+	// responses:
+	//   200:
+	//     schema:
+	//       $ref: "#/definitions/IDResponse"
+	//   400:
+	//     $ref: "#/responses/BadParamError"
+	//   404:
+	//     $ref: "#/responses/NoSuchManifest"
+	//   500:
+	//     $ref: "#/responses/InternalError"
+	v4.Handle("/{name:.*}/registry/{destination:.*}", s.APIHandler(libpod.ManifestPush)).Methods(http.MethodPost)
 	// swagger:operation POST /libpod/manifests manifests ManifestCreateLibpod
 	// ---
 	// summary: Create
@@ -226,81 +302,5 @@ func (s *APIServer) registerManifestHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	v4.Handle("/{name:.*}", s.APIHandler(libpod.ManifestDelete)).Methods(http.MethodDelete)
-	// swagger:operation POST /libpod/manifests/{name}/push manifests ManifestPushV3Libpod
-	// ---
-	// summary: Push manifest to registry
-	// description: |
-	//   Push a manifest list or image index to a registry
-	//
-	//   Deprecated: As of 4.0.0 use ManifestPushLibpod instead
-	// produces:
-	// - application/json
-	// parameters:
-	//  - in: path
-	//    name: name
-	//    type: string
-	//    required: true
-	//    description: the name or ID of the manifest
-	//  - in: query
-	//    name: destination
-	//    type: string
-	//    required: true
-	//    description: the destination for the manifest
-	//  - in: query
-	//    name: all
-	//    description: push all images
-	//    type: boolean
-	// responses:
-	//   200:
-	//     schema:
-	//       $ref: "#/definitions/IDResponse"
-	//   400:
-	//     $ref: "#/responses/BadParamError"
-	//   404:
-	//     $ref: "#/responses/NoSuchManifest"
-	//   500:
-	//     $ref: "#/responses/InternalError"
-	v3.Handle("/{name}/push", s.APIHandler(libpod.ManifestPushV3)).Methods(http.MethodPost)
-	// swagger:operation POST /libpod/manifests/{name}/registry/{destination} manifests ManifestPushLibpod
-	// ---
-	// summary: Push manifest list to registry
-	// description: |
-	//   Push a manifest list or image index to the named registry
-	//
-	//   As of v4.0.0
-	// produces:
-	// - application/json
-	// parameters:
-	//  - in: path
-	//    name: name
-	//    type: string
-	//    required: true
-	//    description: the name or ID of the manifest list
-	//  - in: path
-	//    name: destination
-	//    type: string
-	//    required: true
-	//    description: the registry for the manifest list
-	//  - in: query
-	//    name: all
-	//    description: push all images
-	//    type: boolean
-	//    default: false
-	//  - in: query
-	//    name: tlsVerify
-	//    type: boolean
-	//    default: false
-	//    description: skip TLS verification for registries
-	// responses:
-	//   200:
-	//     schema:
-	//       $ref: "#/definitions/IDResponse"
-	//   400:
-	//     $ref: "#/responses/BadParamError"
-	//   404:
-	//     $ref: "#/responses/NoSuchManifest"
-	//   500:
-	//     $ref: "#/responses/InternalError"
-	v4.Handle("/{name:.*}/registry/{destination:.*}", s.APIHandler(libpod.ManifestPush)).Methods(http.MethodPost)
 	return nil
 }
