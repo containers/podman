@@ -199,18 +199,20 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 		return nil, err
 	}
 
-	ns, networks, netOpts, err := specgen.ParseNetworkFlag(options.Networks)
-	if err != nil {
-		return nil, err
-	}
+	if len(options.Networks) > 0 {
+		ns, networks, netOpts, err := specgen.ParseNetworkFlag(options.Networks)
+		if err != nil {
+			return nil, err
+		}
 
-	if (ns.IsBridge() && len(networks) == 0) || ns.IsHost() {
-		return nil, errors.Errorf("invalid value passed to --network: bridge or host networking must be configured in YAML")
-	}
+		if (ns.IsBridge() && len(networks) == 0) || ns.IsHost() {
+			return nil, errors.Errorf("invalid value passed to --network: bridge or host networking must be configured in YAML")
+		}
 
-	podOpt.Net.Network = ns
-	podOpt.Net.Networks = networks
-	podOpt.Net.NetworkOptions = netOpts
+		podOpt.Net.Network = ns
+		podOpt.Net.Networks = networks
+		podOpt.Net.NetworkOptions = netOpts
+	}
 
 	// FIXME This is very hard to support properly with a good ux
 	if len(options.StaticIPs) > *ipIndex {

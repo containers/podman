@@ -2779,11 +2779,7 @@ MemoryReservation: {{ .HostConfig.MemoryReservation }}`})
 	})
 
 	It("podman play kube test with HostNetwork", func() {
-		if !strings.Contains(podmanTest.OCIRuntime, "crun") {
-			Skip("Test only works on crun")
-		}
-
-		pod := getPod(withHostNetwork())
+		pod := getPod(withHostNetwork(), withCtr(getCtr(withCmd([]string{"readlink", "/proc/self/ns/net"}), withArg(nil))))
 		err := generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).To(BeNil())
 
@@ -2795,6 +2791,17 @@ MemoryReservation: {{ .HostConfig.MemoryReservation }}`})
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect).Should(Exit(0))
 		Expect(inspect.OutputToString()).To(Equal("true"))
+
+		ns := SystemExec("readlink", []string{"/proc/self/ns/net"})
+		ns.WaitWithDefaultTimeout()
+		Expect(ns).Should(Exit(0))
+		netns := ns.OutputToString()
+		Expect(netns).ToNot(BeEmpty())
+
+		logs := podmanTest.Podman([]string{"logs", getCtrNameInPod(pod)})
+		logs.WaitWithDefaultTimeout()
+		Expect(logs).Should(Exit(0))
+		Expect(logs.OutputToString()).To(Equal(netns))
 	})
 
 	It("podman play kube persistentVolumeClaim", func() {
