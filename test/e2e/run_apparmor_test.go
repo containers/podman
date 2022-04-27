@@ -61,7 +61,7 @@ var _ = Describe("Podman run", func() {
 		cid := session.OutputToString()
 		// Verify that apparmor.Profile is being set
 		inspect := podmanTest.InspectContainer(cid)
-		Expect(inspect[0].AppArmorProfile).To(Equal(apparmor.Profile))
+		Expect(inspect[0]).To(HaveField("AppArmorProfile", apparmor.Profile))
 	})
 
 	It("podman run no apparmor --privileged", func() {
@@ -73,7 +73,7 @@ var _ = Describe("Podman run", func() {
 		cid := session.OutputToString()
 		// Verify that apparmor.Profile is being set
 		inspect := podmanTest.InspectContainer(cid)
-		Expect(inspect[0].AppArmorProfile).To(Equal(""))
+		Expect(inspect[0]).To(HaveField("AppArmorProfile", ""))
 	})
 
 	It("podman run no apparmor --security-opt=apparmor.Profile --privileged", func() {
@@ -85,7 +85,7 @@ var _ = Describe("Podman run", func() {
 		cid := session.OutputToString()
 		// Verify that apparmor.Profile is being set
 		inspect := podmanTest.InspectContainer(cid)
-		Expect(inspect[0].AppArmorProfile).To(Equal(apparmor.Profile))
+		Expect(inspect[0]).To(HaveField("AppArmorProfile", apparmor.Profile))
 	})
 
 	It("podman run apparmor aa-test-profile", func() {
@@ -116,7 +116,7 @@ profile aa-test-profile flags=(attach_disconnected,mediate_deleted) {
 		cid := session.OutputToString()
 		// Verify that apparmor.Profile is being set
 		inspect := podmanTest.InspectContainer(cid)
-		Expect(inspect[0].AppArmorProfile).To(Equal("aa-test-profile"))
+		Expect(inspect[0]).To(HaveField("AppArmorProfile", "aa-test-profile"))
 	})
 
 	It("podman run apparmor invalid", func() {
@@ -135,7 +135,7 @@ profile aa-test-profile flags=(attach_disconnected,mediate_deleted) {
 		cid := session.OutputToString()
 		// Verify that apparmor.Profile is being set
 		inspect := podmanTest.InspectContainer(cid)
-		Expect(inspect[0].AppArmorProfile).To(Equal("unconfined"))
+		Expect(inspect[0]).To(HaveField("AppArmorProfile", "unconfined"))
 	})
 
 	It("podman run apparmor disabled --security-opt apparmor fails", func() {
@@ -156,7 +156,7 @@ profile aa-test-profile flags=(attach_disconnected,mediate_deleted) {
 		cid := session.OutputToString()
 		// Verify that apparmor.Profile is being set
 		inspect := podmanTest.InspectContainer(cid)
-		Expect(inspect[0].AppArmorProfile).To(Equal(""))
+		Expect(inspect[0]).To(HaveField("AppArmorProfile", ""))
 	})
 
 	It("podman run apparmor disabled unconfined", func() {
@@ -169,6 +169,6 @@ profile aa-test-profile flags=(attach_disconnected,mediate_deleted) {
 		cid := session.OutputToString()
 		// Verify that apparmor.Profile is being set
 		inspect := podmanTest.InspectContainer(cid)
-		Expect(inspect[0].AppArmorProfile).To(Equal(""))
+		Expect(inspect[0]).To(HaveField("AppArmorProfile", ""))
 	})
 })

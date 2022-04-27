@@ -293,8 +293,8 @@ var _ = Describe("Podman network", func() {
 		Expect(conData[0].NetworkSettings.Networks).To(HaveLen(1))
 		net, ok := conData[0].NetworkSettings.Networks[netName]
 		Expect(ok).To(BeTrue())
-		Expect(net.NetworkID).To(Equal(netName))
-		Expect(net.IPPrefixLen).To(Equal(24))
+		Expect(net).To(HaveField("NetworkID", netName))
+		Expect(net).To(HaveField("IPPrefixLen", 24))
 		Expect(net.IPAddress).To(HavePrefix("10.50.50."))
 
 		// Necessary to ensure the CNI network is removed cleanly
@@ -329,10 +329,10 @@ var _ = Describe("Podman network", func() {
 		Expect(conData[0].NetworkSettings.Networks).To(HaveLen(2))
 		net1, ok := conData[0].NetworkSettings.Networks[netName1]
 		Expect(ok).To(BeTrue())
-		Expect(net1.NetworkID).To(Equal(netName1))
+		Expect(net1).To(HaveField("NetworkID", netName1))
 		net2, ok := conData[0].NetworkSettings.Networks[netName2]
 		Expect(ok).To(BeTrue())
-		Expect(net2.NetworkID).To(Equal(netName2))
+		Expect(net2).To(HaveField("NetworkID", netName2))
 
 		// Necessary to ensure the CNI network is removed cleanly
 		rmAll := podmanTest.Podman([]string{"rm", "-t", "0", "-f", ctrName})
@@ -366,13 +366,13 @@ var _ = Describe("Podman network", func() {
 		Expect(conData[0].NetworkSettings.Networks).To(HaveLen(2))
 		net1, ok := conData[0].NetworkSettings.Networks[netName1]
 		Expect(ok).To(BeTrue())
-		Expect(net1.NetworkID).To(Equal(netName1))
-		Expect(net1.IPPrefixLen).To(Equal(25))
+		Expect(net1).To(HaveField("NetworkID", netName1))
+		Expect(net1).To(HaveField("IPPrefixLen", 25))
 		Expect(net1.IPAddress).To(HavePrefix("10.50.51."))
 		net2, ok := conData[0].NetworkSettings.Networks[netName2]
 		Expect(ok).To(BeTrue())
-		Expect(net2.NetworkID).To(Equal(netName2))
-		Expect(net2.IPPrefixLen).To(Equal(26))
+		Expect(net2).To(HaveField("NetworkID", netName2))
+		Expect(net2).To(HaveField("IPPrefixLen", 26))
 		Expect(net2.IPAddress).To(HavePrefix("10.50.51."))
 
 		// Necessary to ensure the CNI network is removed cleanly
@@ -601,7 +601,7 @@ var _ = Describe("Podman network", func() {
 		Expect(err).To(BeNil())
 		Expect(results).To(HaveLen(1))
 		result := results[0]
-		Expect(result.NetworkInterface).To(Equal(""))
+		Expect(result).To(HaveField("NetworkInterface", ""))
 		Expect(result.IPAMOptions).To(HaveKeyWithValue("driver", "dhcp"))
 
 		nc = podmanTest.Podman([]string{"network", "rm", net})
@@ -628,8 +628,8 @@ var _ = Describe("Podman network", func() {
 		Expect(results).To(HaveLen(1))
 		result := results[0]
 
-		Expect(result.Driver).To(Equal("macvlan"))
-		Expect(result.NetworkInterface).To(Equal("lo"))
+		Expect(result).To(HaveField("Driver", "macvlan"))
+		Expect(result).To(HaveField("NetworkInterface", "lo"))
 		Expect(result.IPAMOptions).To(HaveKeyWithValue("driver", "dhcp"))
 		Expect(result.Subnets).To(HaveLen(0))
 
@@ -672,8 +672,8 @@ var _ = Describe("Podman network", func() {
 		result := results[0]
 
 		Expect(result.Options).To(HaveKeyWithValue("mtu", "1500"))
-		Expect(result.Driver).To(Equal("macvlan"))
-		Expect(result.NetworkInterface).To(Equal("lo"))
+		Expect(result).To(HaveField("Driver", "macvlan"))
+		Expect(result).To(HaveField("NetworkInterface", "lo"))
 		Expect(result.IPAMOptions).To(HaveKeyWithValue("driver", "host-local"))
 
 		Expect(result.Subnets).To(HaveLen(1))

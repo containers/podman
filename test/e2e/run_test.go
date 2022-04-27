@@ -288,7 +288,7 @@ var _ = Describe("Podman run", func() {
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
 		conData := result.InspectContainerToJSON()
-		Expect(conData[0].Path).To(Equal("/dev/init"))
+		Expect(conData[0]).To(HaveField("Path", "/dev/init"))
 		Expect(conData[0].Config.Annotations).To(HaveKeyWithValue("io.podman.annotations.init", "TRUE"))
 	})
 
@@ -300,7 +300,7 @@ var _ = Describe("Podman run", func() {
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
 		conData := result.InspectContainerToJSON()
-		Expect(conData[0].Path).To(Equal("/dev/init"))
+		Expect(conData[0]).To(HaveField("Path", "/dev/init"))
 		Expect(conData[0].Config.Annotations).To(HaveKeyWithValue("io.podman.annotations.init", "TRUE"))
 	})
 
@@ -312,7 +312,7 @@ var _ = Describe("Podman run", func() {
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
 		conData := result.InspectContainerToJSON()
-		Expect(conData[0].Path).To(Equal("ls"))
+		Expect(conData[0]).To(HaveField("Path", "ls"))
 		Expect(conData[0].Config.Annotations).To(HaveKeyWithValue("io.podman.annotations.init", "FALSE"))
 	})
 

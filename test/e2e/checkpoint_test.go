@@ -99,9 +99,9 @@ var _ = Describe("Podman checkpoint", func() {
 		inspectOut := inspect.InspectContainerToJSON()
 		Expect(inspectOut[0].State.Checkpointed).To(BeFalse(), ".State.Checkpointed")
 		Expect(inspectOut[0].State.Restored).To(BeFalse(), ".State.Restored")
-		Expect(inspectOut[0].State.CheckpointPath).To(Equal(""))
-		Expect(inspectOut[0].State.CheckpointLog).To(Equal(""))
-		Expect(inspectOut[0].State.RestoreLog).To(Equal(""))
+		Expect(inspectOut[0].State).To(HaveField("CheckpointPath", ""))
+		Expect(inspectOut[0].State).To(HaveField("CheckpointLog", ""))
+		Expect(inspectOut[0].State).To(HaveField("RestoreLog", ""))
 
 		result := podmanTest.Podman([]string{
 			"container",
@@ -125,7 +125,7 @@ var _ = Describe("Podman checkpoint", func() {
 		Expect(inspectOut[0].State.Restored).To(BeFalse(), ".State.Restored")
 		Expect(inspectOut[0].State.CheckpointPath).To(ContainSubstring("userdata/checkpoint"))
 		Expect(inspectOut[0].State.CheckpointLog).To(ContainSubstring("userdata/dump.log"))
-		Expect(inspectOut[0].State.RestoreLog).To(Equal(""))
+		Expect(inspectOut[0].State).To(HaveField("RestoreLog", ""))
 
 		result = podmanTest.Podman([]string{
 			"container",
@@ -179,9 +179,9 @@ var _ = Describe("Podman checkpoint", func() {
 		inspectOut = inspect.InspectContainerToJSON()
 		Expect(inspectOut[0].State.Checkpointed).To(BeFalse(), ".State.Checkpointed")
 		Expect(inspectOut[0].State.Restored).To(BeFalse(), ".State.Restored")
-		Expect(inspectOut[0].State.CheckpointPath).To(Equal(""))
-		Expect(inspectOut[0].State.CheckpointLog).To(Equal(""))
-		Expect(inspectOut[0].State.RestoreLog).To(Equal(""))
+		Expect(inspectOut[0].State).To(HaveField("CheckpointPath", ""))
+		Expect(inspectOut[0].State).To(HaveField("CheckpointLog", ""))
+		Expect(inspectOut[0].State).To(HaveField("RestoreLog", ""))
 	})
 
 	It("podman checkpoint a running container by name", func() {

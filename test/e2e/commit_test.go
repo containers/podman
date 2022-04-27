@@ -92,7 +92,7 @@ var _ = Describe("Podman commit", func() {
 		check := podmanTest.Podman([]string{"inspect", "foobar.com/test1-image:latest"})
 		check.WaitWithDefaultTimeout()
 		data := check.InspectImageJSON()
-		Expect(data[0].Comment).To(Equal("testing-commit"))
+		Expect(data[0]).To(HaveField("Comment", "testing-commit"))
 	})
 
 	It("podman commit container with author", func() {
@@ -107,7 +107,7 @@ var _ = Describe("Podman commit", func() {
 		check := podmanTest.Podman([]string{"inspect", "foobar.com/test1-image:latest"})
 		check.WaitWithDefaultTimeout()
 		data := check.InspectImageJSON()
-		Expect(data[0].Author).To(Equal("snoopy"))
+		Expect(data[0]).To(HaveField("Author", "snoopy"))
 	})
 
 	It("podman commit container with change flag", func() {
@@ -293,7 +293,7 @@ var _ = Describe("Podman commit", func() {
 		check := podmanTest.Podman([]string{"inspect", "foobar.com/test1-image:latest"})
 		check.WaitWithDefaultTimeout()
 		data := check.InspectImageJSON()
-		Expect(data[0].ID).To(Equal(string(id)))
+		Expect(data[0]).To(HaveField("ID", string(id)))
 	})
 
 	It("podman commit should not commit secret", func() {

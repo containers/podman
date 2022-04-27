@@ -588,8 +588,8 @@ VOLUME /test/`, ALPINE)
 		data := podmanTest.InspectContainer(ctrName)
 		Expect(data).To(HaveLen(1))
 		Expect(data[0].Mounts).To(HaveLen(1))
-		Expect(data[0].Mounts[0].Source).To(Equal("/tmp"))
-		Expect(data[0].Mounts[0].Destination).To(Equal("/test"))
+		Expect(data[0].Mounts[0]).To(HaveField("Source", "/tmp"))
+		Expect(data[0].Mounts[0]).To(HaveField("Destination", "/test"))
 	})
 
 	It("podman run with overlay volume flag", func() {
