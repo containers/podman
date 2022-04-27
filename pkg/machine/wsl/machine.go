@@ -1442,3 +1442,79 @@ func (v *MachineVM) getResources() (resources machine.ResourceConfig) {
 	resources.DiskSize = getDiskSize(v)
 	return
 }
+
+// RemoveAndCleanMachines removes all machine and cleans up any other files associatied with podman machine
+func (p *Provider) RemoveAndCleanMachines() error {
+	var (
+		vm             machine.VM
+		listResponse   []*machine.ListResponse
+		opts           machine.ListOptions
+		destroyOptions machine.RemoveOptions
+	)
+	destroyOptions.Force = true
+	var prevErr error
+
+	listResponse, err := p.List(opts)
+	if err != nil {
+		return err
+	}
+
+	for _, mach := range listResponse {
+		vm, err = p.LoadVMByName(mach.Name)
+		if err != nil {
+			if prevErr != nil {
+				logrus.Error(prevErr)
+			}
+			prevErr = err
+		}
+		_, remove, err := vm.Remove(mach.Name, destroyOptions)
+		if err != nil {
+			if prevErr != nil {
+				logrus.Error(prevErr)
+			}
+			prevErr = err
+		} else {
+			if err := remove(); err != nil {
+				if prevErr != nil {
+					logrus.Error(prevErr)
+				}
+				prevErr = err
+			}
+		}
+	}
+
+	// Clean leftover files in data dir
+	dataDir, err := machine.DataDirPrefix()
+	if err != nil {
+		if prevErr != nil {
+			logrus.Error(prevErr)
+		}
+		prevErr = err
+	} else {
+		err := os.RemoveAll(dataDir)
+		if err != nil {
+			if prevErr != nil {
+				logrus.Error(prevErr)
+			}
+			prevErr = err
+		}
+	}
+
+	// Clean leftover files in conf dir
+	confDir, err := machine.ConfDirPrefix()
+	if err != nil {
+		if prevErr != nil {
+			logrus.Error(prevErr)
+		}
+		prevErr = err
+	} else {
+		err := os.RemoveAll(confDir)
+		if err != nil {
+			if prevErr != nil {
+				logrus.Error(prevErr)
+			}
+			prevErr = err
+		}
+	}
+	return prevErr
+}

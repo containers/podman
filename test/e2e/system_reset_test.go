@@ -89,5 +89,12 @@ var _ = Describe("podman system reset", func() {
 		Expect(session).Should(Exit(0))
 		// default network should exists
 		Expect(session.OutputToStringArray()).To(HaveLen(1))
+
+		// TODO: machine tests currently don't run outside of the machine test pkg
+		// no machines are created here to cleanup
+		session = podmanTest.Podman([]string{"machine", "list", "-q"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToStringArray()).To(BeEmpty())
 	})
 })
