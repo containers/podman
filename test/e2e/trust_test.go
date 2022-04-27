@@ -28,7 +28,6 @@ var _ = Describe("Podman trust", func() {
 		}
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.Setup()
-		podmanTest.SeedImages()
 	})
 
 	AfterEach(func() {
@@ -75,7 +74,8 @@ var _ = Describe("Podman trust", func() {
 		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(BeValidJSON())
 		var teststruct []map[string]string
-		json.Unmarshal(session.Out.Contents(), &teststruct)
+		err = json.Unmarshal(session.Out.Contents(), &teststruct)
+		Expect(err).ToNot(HaveOccurred())
 		Expect(teststruct).To(HaveLen(3))
 		// To ease comparison, group the unordered array of repos by repo (and we expect only one entry by repo, so order within groups doesn’t matter)
 		repoMap := map[string][]map[string]string{}

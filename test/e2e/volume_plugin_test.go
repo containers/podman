@@ -25,11 +25,11 @@ var _ = Describe("Podman volume plugins", func() {
 		}
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.Setup()
-		podmanTest.SeedImages()
 		os.Setenv("CONTAINERS_CONF", "config/containers.conf")
 		SkipIfRemote("Volume plugins only supported as local")
 		SkipIfRootless("Root is required for volume plugin testing")
-		os.MkdirAll("/run/docker/plugins", 0755)
+		err = os.MkdirAll("/run/docker/plugins", 0755)
+		Expect(err).ToNot(HaveOccurred())
 	})
 
 	AfterEach(func() {
@@ -55,7 +55,8 @@ var _ = Describe("Podman volume plugins", func() {
 		podmanTest.AddImageToRWStore(volumeTest)
 
 		pluginStatePath := filepath.Join(podmanTest.TempDir, "volumes")
-		os.Mkdir(pluginStatePath, 0755)
+		err := os.Mkdir(pluginStatePath, 0755)
+		Expect(err).ToNot(HaveOccurred())
 
 		// Keep this distinct within tests to avoid multiple tests using the same plugin.
 		pluginName := "testvol1"
@@ -89,7 +90,8 @@ var _ = Describe("Podman volume plugins", func() {
 		podmanTest.AddImageToRWStore(volumeTest)
 
 		pluginStatePath := filepath.Join(podmanTest.TempDir, "volumes")
-		os.Mkdir(pluginStatePath, 0755)
+		err := os.Mkdir(pluginStatePath, 0755)
+		Expect(err).ToNot(HaveOccurred())
 
 		// Keep this distinct within tests to avoid multiple tests using the same plugin.
 		pluginName := "testvol2"
@@ -112,7 +114,8 @@ var _ = Describe("Podman volume plugins", func() {
 		podmanTest.AddImageToRWStore(volumeTest)
 
 		pluginStatePath := filepath.Join(podmanTest.TempDir, "volumes")
-		os.Mkdir(pluginStatePath, 0755)
+		err := os.Mkdir(pluginStatePath, 0755)
+		Expect(err).ToNot(HaveOccurred())
 
 		// Keep this distinct within tests to avoid multiple tests using the same plugin.
 		pluginName := "testvol3"
@@ -153,7 +156,8 @@ var _ = Describe("Podman volume plugins", func() {
 		podmanTest.AddImageToRWStore(volumeTest)
 
 		pluginStatePath := filepath.Join(podmanTest.TempDir, "volumes")
-		os.Mkdir(pluginStatePath, 0755)
+		err := os.Mkdir(pluginStatePath, 0755)
+		Expect(err).ToNot(HaveOccurred())
 
 		// Keep this distinct within tests to avoid multiple tests using the same plugin.
 		pluginName := "testvol4"

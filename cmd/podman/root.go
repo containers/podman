@@ -153,7 +153,9 @@ func persistentPreRunE(cmd *cobra.Command, args []string) error {
 						*runtime,
 					)
 				}
-				runtimeFlag.Value.Set(*runtime)
+				if err := runtimeFlag.Value.Set(*runtime); err != nil {
+					return err
+				}
 				runtimeFlag.Changed = true
 				logrus.Debugf("Checkpoint was created using '%s'. Restore will use the same runtime", *runtime)
 			} else if cfg.RuntimePath != *runtime {

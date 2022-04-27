@@ -533,7 +533,10 @@ subdir**`
 
 		// make cwd as context root path
 		Expect(os.Chdir(contextDir)).ToNot(HaveOccurred())
-		defer os.Chdir(cwd)
+		defer func() {
+			err := os.Chdir(cwd)
+			Expect(err).ToNot(HaveOccurred())
+		}()
 
 		By("Test .containerignore filtering subdirectory")
 		err = ioutil.WriteFile(filepath.Join(contextDir, ".containerignore"), []byte(`subdir/`), 0644)

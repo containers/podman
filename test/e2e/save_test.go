@@ -170,7 +170,8 @@ var _ = Describe("Podman save", func() {
 		}
 		defer func() {
 			cmd = exec.Command("cp", "default.yaml", "/etc/containers/registries.d/default.yaml")
-			cmd.Run()
+			err := cmd.Run()
+			Expect(err).ToNot(HaveOccurred())
 		}()
 
 		cmd = exec.Command("cp", "sign/key.gpg", "/tmp/key.gpg")

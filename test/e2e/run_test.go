@@ -36,7 +36,6 @@ var _ = Describe("Podman run", func() {
 		}
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.Setup()
-		podmanTest.SeedImages()
 	})
 
 	AfterEach(func() {
@@ -814,8 +813,10 @@ USER bin`, BB)
 	It("podman test hooks", func() {
 		hcheck := "/run/hookscheck"
 		hooksDir := tempdir + "/hooks"
-		os.Mkdir(hooksDir, 0755)
-		fileutils.CopyFile("hooks/hooks.json", hooksDir)
+		err := os.Mkdir(hooksDir, 0755)
+		Expect(err).ToNot(HaveOccurred())
+		err = fileutils.CopyFile("hooks/hooks.json", hooksDir)
+		Expect(err).ToNot(HaveOccurred())
 		os.Setenv("HOOK_OPTION", fmt.Sprintf("--hooks-dir=%s", hooksDir))
 		os.Remove(hcheck)
 		session := podmanTest.Podman([]string{"run", ALPINE, "ls"})

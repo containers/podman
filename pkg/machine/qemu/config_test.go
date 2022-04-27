@@ -68,9 +68,15 @@ func TestNewMachineFile(t *testing.T) {
 
 	p := "/var/tmp/podman/my.sock"
 	longp := filepath.Join(longTemp, utils.RandomString(100), "my.sock")
-	os.MkdirAll(filepath.Dir(longp), 0755)
-	f, _ := os.Create(longp)
-	f.Close()
+	err = os.MkdirAll(filepath.Dir(longp), 0755)
+	if err != nil {
+		panic(err)
+	}
+	f, err := os.Create(longp)
+	if err != nil {
+		panic(err)
+	}
+	_ = f.Close()
 	sym := "my.sock"
 	longSym := filepath.Join(homedir, ".podman", sym)
 
@@ -120,14 +126,15 @@ func TestNewMachineFile(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := machine.NewMachineFile(tt.args.path, tt.args.symlink) //nolint: scopelint
-			if (err != nil) != tt.wantErr {                                   //nolint: scopelint
-				t.Errorf("NewMachineFile() error = %v, wantErr %v", err, tt.wantErr) //nolint: scopelint
+			got, err := machine.NewMachineFile(tt.args.path, tt.args.symlink)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("NewMachineFile() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) { //nolint: scopelint
-				t.Errorf("NewMachineFile() got = %v, want %v", got, tt.want) //nolint: scopelint
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("NewMachineFile() got = %v, want %v", got, tt.want)
 			}
 		})
 	}

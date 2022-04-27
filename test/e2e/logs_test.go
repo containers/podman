@@ -37,9 +37,6 @@ var _ = Describe("Podman logs", func() {
 		}
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.Setup()
-		if err := podmanTest.SeedImages(); err != nil {
-			os.Exit(1)
-		}
 	})
 
 	AfterEach(func() {

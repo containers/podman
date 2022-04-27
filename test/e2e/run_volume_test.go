@@ -34,7 +34,6 @@ var _ = Describe("Podman run with volumes", func() {
 		}
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.Setup()
-		podmanTest.SeedImages()
 	})
 
 	AfterEach(func() {
@@ -55,7 +54,8 @@ var _ = Describe("Podman run with volumes", func() {
 
 	It("podman run with volume flag", func() {
 		mountPath := filepath.Join(podmanTest.TempDir, "secrets")
-		os.Mkdir(mountPath, 0755)
+		err = os.Mkdir(mountPath, 0755)
+		Expect(err).ToNot(HaveOccurred())
 		vol := mountPath + ":" + dest
 
 		// [5] is flags
@@ -82,7 +82,8 @@ var _ = Describe("Podman run with volumes", func() {
 			Skip("skip failing test on ppc64le")
 		}
 		mountPath := filepath.Join(podmanTest.TempDir, "secrets")
-		os.Mkdir(mountPath, 0755)
+		err = os.Mkdir(mountPath, 0755)
+		Expect(err).ToNot(HaveOccurred())
 		mount := "type=bind,src=" + mountPath + ",target=" + dest
 
 		session := podmanTest.Podman([]string{"run", "--rm", "--mount", mount, ALPINE, "grep", dest, "/proc/self/mountinfo"})
@@ -141,14 +142,16 @@ var _ = Describe("Podman run with volumes", func() {
 
 	It("podman run with conflicting volumes errors", func() {
 		mountPath := filepath.Join(podmanTest.TmpDir, "secrets")
-		os.Mkdir(mountPath, 0755)
+		err := os.Mkdir(mountPath, 0755)
+		Expect(err).ToNot(HaveOccurred())
 		session := podmanTest.Podman([]string{"run", "-v", mountPath + ":" + dest, "-v", "/tmp" + ":" + dest, ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(125))
 	})
 
 	It("podman run with conflict between image volume and user mount succeeds", func() {
-		podmanTest.RestoreArtifact(redis)
+		err = podmanTest.RestoreArtifact(redis)
+		Expect(err).ToNot(HaveOccurred())
 		mountPath := filepath.Join(podmanTest.TempDir, "secrets")
 		err := os.Mkdir(mountPath, 0755)
 		Expect(err).To(BeNil())
@@ -164,7 +167,8 @@ var _ = Describe("Podman run with volumes", func() {
 
 	It("podman run with mount flag and boolean options", func() {
 		mountPath := filepath.Join(podmanTest.TempDir, "secrets")
-		os.Mkdir(mountPath, 0755)
+		err := os.Mkdir(mountPath, 0755)
+		Expect(err).ToNot(HaveOccurred())
 		mount := "type=bind,src=" + mountPath + ",target=" + dest
 
 		session := podmanTest.Podman([]string{"run", "--rm", "--mount", mount + ",ro=false", ALPINE, "grep", dest, "/proc/self/mountinfo"})
@@ -193,7 +197,8 @@ var _ = Describe("Podman run with volumes", func() {
 	It("podman run with volumes and suid/dev/exec options", func() {
 		SkipIfRemote("podman-remote does not support --volumes")
 		mountPath := filepath.Join(podmanTest.TempDir, "secrets")
-		os.Mkdir(mountPath, 0755)
+		err := os.Mkdir(mountPath, 0755)
+		Expect(err).ToNot(HaveOccurred())
 
 		session := podmanTest.Podman([]string{"run", "--rm", "-v", mountPath + ":" + dest + ":suid,dev,exec", ALPINE, "grep", dest, "/proc/self/mountinfo"})
 		session.WaitWithDefaultTimeout()
@@ -224,7 +229,8 @@ var _ = Describe("Podman run with volumes", func() {
 			}
 		}
 		mountPath := filepath.Join(podmanTest.TempDir, "secrets")
-		os.Mkdir(mountPath, 0755)
+		err := os.Mkdir(mountPath, 0755)
+		Expect(err).ToNot(HaveOccurred())
 
 		// Container should be able to start with custom overlay volume
 		session := podmanTest.Podman([]string{"run", "--rm", "-v", mountPath + ":/data:O", "--workdir=/data", ALPINE, "echo", "hello"})
@@ -603,7 +609,8 @@ VOLUME /test/`, ALPINE)
 			}
 		}
 		mountPath := filepath.Join(podmanTest.TempDir, "secrets")
-		os.Mkdir(mountPath, 0755)
+		err := os.Mkdir(mountPath, 0755)
+		Expect(err).ToNot(HaveOccurred())
 		testFile := filepath.Join(mountPath, "test1")
 		f, err := os.Create(testFile)
 		Expect(err).To(BeNil(), "os.Create "+testFile)
@@ -651,7 +658,8 @@ VOLUME /test/`, ALPINE)
 
 	It("overlay volume conflicts with named volume and mounts", func() {
 		mountPath := filepath.Join(podmanTest.TempDir, "secrets")
-		os.Mkdir(mountPath, 0755)
+		err := os.Mkdir(mountPath, 0755)
+		Expect(err).ToNot(HaveOccurred())
 		testFile := filepath.Join(mountPath, "test1")
 		f, err := os.Create(testFile)
 		Expect(err).To(BeNil())
@@ -716,7 +724,8 @@ VOLUME /test/`, ALPINE)
 		}
 
 		mountPath := filepath.Join(podmanTest.TempDir, "secrets")
-		os.Mkdir(mountPath, 0755)
+		err = os.Mkdir(mountPath, 0755)
+		Expect(err).ToNot(HaveOccurred())
 		vol := mountPath + ":" + dest + ":U"
 
 		session := podmanTest.Podman([]string{"run", "--rm", "--user", "888:888", "-v", vol, ALPINE, "stat", "-c", "%u:%g", dest})
@@ -754,7 +763,8 @@ VOLUME /test/`, ALPINE)
 		}
 
 		mountPath := filepath.Join(podmanTest.TempDir, "foo")
-		os.Mkdir(mountPath, 0755)
+		err = os.Mkdir(mountPath, 0755)
+		Expect(err).ToNot(HaveOccurred())
 
 		// false bind mount
 		vol := "type=bind,src=" + mountPath + ",dst=" + dest + ",U=false"

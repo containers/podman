@@ -66,7 +66,6 @@ var _ = Describe("Podman Benchmark Suite", func() {
 		}
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.Setup()
-
 		timedir, err = CreateTempDirInTempDir()
 		if err != nil {
 			os.Exit(1)

@@ -34,7 +34,6 @@ var _ = Describe("Podman run with --sig-proxy", func() {
 		}
 		podmanTest = PodmanTestCreate(tmpdir)
 		podmanTest.Setup()
-		podmanTest.SeedImages()
 	})
 
 	AfterEach(func() {
@@ -51,11 +50,14 @@ var _ = Describe("Podman run with --sig-proxy", func() {
 		signal := syscall.SIGFPE
 		// Set up a socket for communication
 		udsDir := filepath.Join(tmpdir, "socket")
-		os.Mkdir(udsDir, 0700)
+		err := os.Mkdir(udsDir, 0700)
+		Expect(err).ToNot(HaveOccurred())
 		udsPath := filepath.Join(udsDir, "fifo")
-		syscall.Mkfifo(udsPath, 0600)
+		err = syscall.Mkfifo(udsPath, 0600)
+		Expect(err).ToNot(HaveOccurred())
 		if rootless.IsRootless() {
-			podmanTest.RestoreArtifact(fedoraMinimal)
+			err = podmanTest.RestoreArtifact(fedoraMinimal)
+			Expect(err).ToNot(HaveOccurred())
 		}
 		_, pid := podmanTest.PodmanPID([]string{"run", "-it", "-v", fmt.Sprintf("%s:/h:Z", udsDir), fedoraMinimal, "bash", "-c", sigCatch})
 
@@ -112,7 +114,8 @@ var _ = Describe("Podman run with --sig-proxy", func() {
 	Specify("signals are not forwarded to container with sig-proxy false", func() {
 		signal := syscall.SIGFPE
 		if rootless.IsRootless() {
-			podmanTest.RestoreArtifact(fedoraMinimal)
+			err = podmanTest.RestoreArtifact(fedoraMinimal)
+			Expect(err).ToNot(HaveOccurred())
 		}
 		session, pid := podmanTest.PodmanPID([]string{"run", "--name", "test2", "--sig-proxy=false", fedoraMinimal, "bash", "-c", sigCatch2})
 

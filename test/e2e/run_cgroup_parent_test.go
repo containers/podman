@@ -30,7 +30,6 @@ var _ = Describe("Podman run with --cgroup-parent", func() {
 		}
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.Setup()
-		podmanTest.SeedImages()
 	})
 
 	AfterEach(func() {

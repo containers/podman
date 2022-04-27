@@ -513,7 +513,9 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 	case define.NoLogging, define.PassthroughLogging:
 		break
 	case define.JournaldLogging:
-		ctr.initializeJournal(ctx)
+		if err := ctr.initializeJournal(ctx); err != nil {
+			return nil, fmt.Errorf("failed to initialize journal: %w", err)
+		}
 	default:
 		if ctr.config.LogPath == "" {
 			ctr.config.LogPath = filepath.Join(ctr.config.StaticDir, "ctr.log")

@@ -45,7 +45,6 @@ linters:
     - gocyclo
     - lll
     - unconvert
-    - errcheck
     - gosec
     - maligned
     - gomoddirectives
@@ -65,4 +64,4 @@ linters:
 linters-settings:
   errcheck:
     check-blank: false
-    ignore: encoding/json:^Unmarshal,fmt:.*
+    ignore: fmt:.*

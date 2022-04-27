@@ -32,7 +32,6 @@ var _ = Describe("Podman run networking", func() {
 		}
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.Setup()
-		podmanTest.SeedImages()
 	})
 
 	AfterEach(func() {
@@ -747,11 +746,12 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 	routeAdd := func(gateway string) {
 		gw := net.ParseIP(gateway)
 		route := &netlink.Route{Dst: nil, Gw: gw}
-		netlink.RouteAdd(route)
+		err = netlink.RouteAdd(route)
+		Expect(err).ToNot(HaveOccurred())
 	}
 
 	setupNetworkNs := func(networkNSName string) {
-		ns.WithNetNSPath("/run/netns/"+networkNSName, func(_ ns.NetNS) error {
+		_ = ns.WithNetNSPath("/run/netns/"+networkNSName, func(_ ns.NetNS) error {
 			loopbackup()
 			linkup("eth0", "46:7f:45:6e:4f:c8", []string{"10.25.40.0/24", "fd04:3e42:4a4e:3381::/64"})
 			linkup("eth1", "56:6e:35:5d:3e:a8", []string{"10.88.0.0/16"})
