@@ -58,7 +58,7 @@ func PruneImages(w http.ResponseWriter, r *http.Request) {
 		idr = append(idr, types.ImageDeleteResponseItem{
 			Deleted: p.Id,
 		})
-		reclaimedSpace = reclaimedSpace + p.Size
+		reclaimedSpace += p.Size
 	}
 	if errorMsg.Len() > 0 {
 		utils.InternalServerError(w, errors.New(errorMsg.String()))

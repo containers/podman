@@ -1662,7 +1662,7 @@ func WithTimezone(path string) CtrCreateOption {
 			if err != nil {
 				return err
 			}
-			//We don't want to mount a timezone directory
+			// We don't want to mount a timezone directory
 			if file.IsDir() {
 				return errors.New("Invalid timezone: is a directory")
 			}

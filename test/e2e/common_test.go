@@ -212,7 +212,7 @@ func PodmanTestCreateUtil(tempDir string, remote bool) *PodmanTestIntegration {
 		podmanRemoteBinary = os.Getenv("PODMAN_REMOTE_BINARY")
 	}
 
-	conmonBinary := filepath.Join("/usr/libexec/podman/conmon")
+	conmonBinary := "/usr/libexec/podman/conmon"
 	altConmonBinary := "/usr/bin/conmon"
 	if _, err := os.Stat(conmonBinary); os.IsNotExist(err) {
 		conmonBinary = altConmonBinary
@@ -344,7 +344,7 @@ func imageTarPath(image string) string {
 	}
 
 	// e.g., registry.com/fubar:latest -> registry.com-fubar-latest.tar
-	imageCacheName := strings.Replace(strings.Replace(image, ":", "-", -1), "/", "-", -1) + ".tar"
+	imageCacheName := strings.ReplaceAll(strings.ReplaceAll(image, ":", "-"), "/", "-") + ".tar"
 
 	return filepath.Join(cacheDir, imageCacheName)
 }

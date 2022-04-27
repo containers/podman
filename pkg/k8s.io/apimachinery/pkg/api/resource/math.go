@@ -171,7 +171,7 @@ func negativeScaleInt64(base int64, scale Scale) (result int64, exact bool) {
 		if !fraction && value%10 != 0 {
 			fraction = true
 		}
-		value = value / 10
+		value /= 10
 		if value == 0 {
 			if fraction {
 				if base > 0 {
@@ -265,18 +265,18 @@ func removeInt64Factors(value int64, base int64) (result int64, times int32) {
 	case 10:
 		for result >= 10 && result%10 == 0 {
 			times++
-			result = result / 10
+			result /= 10
 		}
 	// allow the compiler to optimize the common cases
 	case 1024:
 		for result >= 1024 && result%1024 == 0 {
 			times++
-			result = result / 1024
+			result /= 1024
 		}
 	default:
 		for result >= base && result%base == 0 {
 			times++
-			result = result / base
+			result /= base
 		}
 	}
 	if negative {

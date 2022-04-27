@@ -2995,7 +2995,7 @@ invalid kube kind
 
 	It("podman play kube with auto update annotations for all containers", func() {
 		ctr01Name := "ctr01"
-		ctr02Name := "ctr02"
+		ctr02Name := "infra"
 		podName := "foo"
 		autoUpdateRegistry := "io.containers.autoupdate"
 		autoUpdateRegistryValue := "registry"

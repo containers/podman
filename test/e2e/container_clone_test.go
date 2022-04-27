@@ -184,7 +184,7 @@ var _ = Describe("Podman container clone", func() {
 		Expect(checkCreate).Should(Exit(0))
 		createArray := checkCreate.OutputToStringArray()
 
-		Expect(cloneArray).To(ContainElements(createArray[:]))
+		Expect(cloneArray).To(ContainElements(createArray))
 
 		ctrInspect := podmanTest.Podman([]string{"inspect", clone.OutputToString()})
 		ctrInspect.WaitWithDefaultTimeout()

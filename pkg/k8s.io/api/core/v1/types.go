@@ -1514,7 +1514,7 @@ const (
 // by the node selector terms.
 // +structType=atomic
 type NodeSelector struct {
-	//Required. A list of node selector terms. The terms are ORed.
+	// Required. A list of node selector terms. The terms are ORed.
 	NodeSelectorTerms []NodeSelectorTerm `json:"nodeSelectorTerms"`
 }
 
@@ -3040,7 +3040,7 @@ type ServiceSpec struct {
 	SessionAffinityConfig *SessionAffinityConfig `json:"sessionAffinityConfig,omitempty"`
 
 	// TopologyKeys is tombstoned to show why 16 is reserved protobuf tag.
-	//TopologyKeys []string `json:"topologyKeys,omitempty"`
+	// TopologyKeys []string `json:"topologyKeys,omitempty"`
 
 	// IPFamily is tombstoned to show why 15 is a reserved protobuf tag.
 	// IPFamily *IPFamily `json:"ipFamily,omitempty"`

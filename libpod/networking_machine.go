@@ -33,9 +33,9 @@ type machineExpose struct {
 func requestMachinePorts(expose bool, ports []types.PortMapping) error {
 	url := "http://" + machineGvproxyEndpoint + "/services/forwarder/"
 	if expose {
-		url = url + "expose"
+		url += "expose"
 	} else {
-		url = url + "unexpose"
+		url += "unexpose"
 	}
 	ctx := context.Background()
 	client := &http.Client{

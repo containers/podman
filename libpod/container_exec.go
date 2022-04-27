@@ -817,16 +817,16 @@ func (c *Container) Exec(config *ExecConfig, streams *define.AttachStreams, resi
 // Please be careful when using this function since it might temporarily unlock
 // the container when os.RemoveAll($bundlePath) fails with ENOTEMPTY or EBUSY
 // errors.
-func (c *Container) cleanupExecBundle(sessionID string) (Err error) {
+func (c *Container) cleanupExecBundle(sessionID string) (err error) {
 	path := c.execBundlePath(sessionID)
 	for attempts := 0; attempts < 50; attempts++ {
-		Err = os.RemoveAll(path)
-		if Err == nil || os.IsNotExist(Err) {
+		err = os.RemoveAll(path)
+		if err == nil || os.IsNotExist(err) {
 			return nil
 		}
-		if pathErr, ok := Err.(*os.PathError); ok {
-			Err = pathErr.Err
-			if errors.Cause(Err) == unix.ENOTEMPTY || errors.Cause(Err) == unix.EBUSY {
+		if pathErr, ok := err.(*os.PathError); ok {
+			err = pathErr.Err
+			if errors.Cause(err) == unix.ENOTEMPTY || errors.Cause(err) == unix.EBUSY {
 				// give other processes a chance to use the container
 				if !c.batched {
 					if err := c.save(); err != nil {

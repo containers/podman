@@ -28,7 +28,7 @@ const (
 	// FullLogType signifies a log line is full
 	FullLogType = "F"
 
-	//ANSIEscapeResetCode is a code that resets all colors and text effects
+	// ANSIEscapeResetCode is a code that resets all colors and text effects
 	ANSIEscapeResetCode = "\033[0m"
 )
 
@@ -167,7 +167,7 @@ func getTailLog(path string, tail int) ([]*LogLine, error) {
 	return tailLog, nil
 }
 
-//getColor returns a ANSI escape code for color based on the colorID
+// getColor returns a ANSI escape code for color based on the colorID
 func getColor(colorID int64) string {
 	colors := map[int64]string{
 		0: "\033[37m", // Light Gray

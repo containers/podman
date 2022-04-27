@@ -332,8 +332,7 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 				}
 			}
 		}
-		switch volumeType {
-		case VolumeTypeVirtfs:
+		if volumeType == VolumeTypeVirtfs {
 			virtfsOptions := fmt.Sprintf("local,path=%s,mount_tag=%s,security_model=mapped-xattr", source, tag)
 			if readonly {
 				virtfsOptions += ",readonly"
@@ -783,7 +782,7 @@ func (v *MachineVM) Stop(_ string, _ machine.StopOptions) error {
 			break
 		}
 		time.Sleep(waitInternal)
-		waitInternal = waitInternal * 2
+		waitInternal *= 2
 	}
 
 	return v.ReadySocket.Delete()
@@ -799,8 +798,7 @@ func NewQMPMonitor(network, name string, timeout time.Duration) (Monitor, error)
 		rtDir = "/run"
 	}
 	rtDir = filepath.Join(rtDir, "podman")
-	if _, err := os.Stat(filepath.Join(rtDir)); os.IsNotExist(err) {
-		// TODO 0644 is fine on linux but macos is weird
+	if _, err := os.Stat(rtDir); os.IsNotExist(err) {
 		if err := os.MkdirAll(rtDir, 0755); err != nil {
 			return Monitor{}, err
 		}
@@ -872,7 +870,7 @@ func (v *MachineVM) Remove(_ string, opts machine.RemoveOptions) (string, func()
 		confirmationMessage += msg + "\n"
 	}
 
-	//remove socket and pid file if any: warn at low priority if things fail
+	// remove socket and pid file if any: warn at low priority if things fail
 	// Remove the pidfile
 	if err := v.PidFilePath.Delete(); err != nil {
 		logrus.Debugf("Error while removing pidfile: %v", err)

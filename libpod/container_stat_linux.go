@@ -94,15 +94,16 @@ func (c *Container) stat(containerMountPoint string, containerPath string) (*def
 		}
 	}
 
-	if statInfo.IsSymlink {
+	switch {
+	case statInfo.IsSymlink:
 		// Symlinks are already evaluated and always relative to the
 		// container's mount point.
 		absContainerPath = statInfo.ImmediateTarget
-	} else if strings.HasPrefix(resolvedPath, containerMountPoint) {
+	case strings.HasPrefix(resolvedPath, containerMountPoint):
 		// If the path is on the container's mount point, strip it off.
 		absContainerPath = strings.TrimPrefix(resolvedPath, containerMountPoint)
 		absContainerPath = filepath.Join("/", absContainerPath)
-	} else {
+	default:
 		// No symlink and not on the container's mount point, so let's
 		// move it back to the original input.  It must have evaluated
 		// to a volume or bind mount but we cannot return host paths.

@@ -220,7 +220,7 @@ func ConvertV1PodToYAMLPod(pod *v1.Pod) *YAMLPod {
 		cs = append(cs, &YAMLContainer{Container: cc, Resources: res})
 	}
 	mpo := &YAMLPod{Pod: *pod}
-	mpo.Spec = &YAMLPodSpec{PodSpec: (*pod).Spec, Containers: cs}
+	mpo.Spec = &YAMLPodSpec{PodSpec: pod.Spec, Containers: cs}
 	for _, ctr := range pod.Spec.Containers {
 		if ctr.SecurityContext == nil || ctr.SecurityContext.SELinuxOptions == nil {
 			continue
@@ -527,7 +527,7 @@ func simplePodWithV1Containers(ctx context.Context, ctrs []*Container) (*v1.Pod,
 	// Check if the pod name and container name will end up conflicting
 	// Append -pod if so
 	if util.StringInSlice(podName, ctrNames) {
-		podName = podName + "-pod"
+		podName += "-pod"
 	}
 
 	return newPodObject(
@@ -633,7 +633,7 @@ func containerToV1Container(ctx context.Context, c *Container) (v1.Container, []
 
 	kubeContainer.Ports = ports
 	// This should not be applicable
-	//container.EnvFromSource =
+	// container.EnvFromSource =
 	kubeContainer.SecurityContext = kubeSec
 	kubeContainer.StdinOnce = false
 	kubeContainer.TTY = c.config.Spec.Process.Terminal
@@ -885,7 +885,7 @@ func convertVolumePathToName(hostSourcePath string) (string, error) {
 	}
 	// First, trim trailing slashes, then replace slashes with dashes.
 	// Thus, /mnt/data/ will become mnt-data
-	return strings.Replace(strings.Trim(hostSourcePath, "/"), "/", "-", -1), nil
+	return strings.ReplaceAll(strings.Trim(hostSourcePath, "/"), "/", "-"), nil
 }
 
 func determineCapAddDropFromCapabilities(defaultCaps, containerCaps []string) *v1.Capabilities {
@@ -927,14 +927,20 @@ func capAddDrop(caps *specs.LinuxCapabilities) (*v1.Capabilities, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	defCaps := g.Config.Process.Capabilities
 	// Combine all the default capabilities into a slice
-	defaultCaps := append(g.Config.Process.Capabilities.Ambient, g.Config.Process.Capabilities.Bounding...)
-	defaultCaps = append(defaultCaps, g.Config.Process.Capabilities.Effective...)
-	defaultCaps = append(defaultCaps, g.Config.Process.Capabilities.Inheritable...)
-	defaultCaps = append(defaultCaps, g.Config.Process.Capabilities.Permitted...)
+	defaultCaps := make([]string, 0, len(defCaps.Ambient)+len(defCaps.Bounding)+len(defCaps.Effective)+len(defCaps.Inheritable)+len(defCaps.Permitted))
+	defaultCaps = append(defaultCaps, defCaps.Ambient...)
+	defaultCaps = append(defaultCaps, defCaps.Bounding...)
+	defaultCaps = append(defaultCaps, defCaps.Effective...)
+	defaultCaps = append(defaultCaps, defCaps.Inheritable...)
+	defaultCaps = append(defaultCaps, defCaps.Permitted...)
 
 	// Combine all the container's capabilities into a slice
-	containerCaps := append(caps.Ambient, caps.Bounding...)
+	containerCaps := make([]string, 0, len(caps.Ambient)+len(caps.Bounding)+len(caps.Effective)+len(caps.Inheritable)+len(caps.Permitted))
+	containerCaps = append(containerCaps, caps.Ambient...)
+	containerCaps = append(containerCaps, caps.Bounding...)
 	containerCaps = append(containerCaps, caps.Effective...)
 	containerCaps = append(containerCaps, caps.Inheritable...)
 	containerCaps = append(containerCaps, caps.Permitted...)
@@ -1042,7 +1048,7 @@ func generateKubeVolumeDeviceFromLinuxDevice(devices []specs.LinuxDevice) []v1.V
 }
 
 func removeUnderscores(s string) string {
-	return strings.Replace(s, "_", "", -1)
+	return strings.ReplaceAll(s, "_", "")
 }
 
 // getAutoUpdateAnnotations searches for auto-update container labels

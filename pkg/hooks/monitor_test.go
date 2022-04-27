@@ -226,7 +226,7 @@ func TestMonitorTwoDirGood(t *testing.T) {
 		assert.Equal(t, primaryInjected, config.Hooks) // masked by primary
 	})
 
-	primaryPath2 := filepath.Join(primaryDir, "0a.json") //0a because it will be before a.json alphabetically
+	primaryPath2 := filepath.Join(primaryDir, "0a.json") // 0a because it will be before a.json alphabetically
 
 	t.Run("bad-primary-new-addition", func(t *testing.T) {
 		err = ioutil.WriteFile(primaryPath2, []byte("{\"version\": \"-1\"}"), 0644)

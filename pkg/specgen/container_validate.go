@@ -122,19 +122,19 @@ func (s *SpecGenerator) Validate() error {
 	}
 
 	// TODO the specgen does not appear to handle this?  Should it
-	//switch config.Cgroup.Cgroups {
-	//case "disabled":
+	// switch config.Cgroup.Cgroups {
+	// case "disabled":
 	//	if addedResources {
 	//		return errors.New("cannot specify resource limits when cgroups are disabled is specified")
 	//	}
 	//	configSpec.Linux.Resources = &spec.LinuxResources{}
-	//case "enabled", "no-conmon", "":
+	// case "enabled", "no-conmon", "":
 	//	// Do nothing
-	//default:
+	// default:
 	//	return errors.New("unrecognized option for cgroups; supported are 'default', 'disabled', 'no-conmon'")
-	//}
+	// }
 	invalidUlimitFormatError := errors.New("invalid default ulimit definition must be form of type=soft:hard")
-	//set ulimits if not rootless
+	// set ulimits if not rootless
 	if len(s.ContainerResourceConfig.Rlimits) < 1 && !rootless.IsRootless() {
 		// Containers common defines this as something like nproc=4194304:4194304
 		tmpnproc := containerConfig.Ulimits()

@@ -75,7 +75,7 @@ var _ = Describe("Podman generate kube", func() {
 
 		numContainers := 0
 		for range pod.Spec.Containers {
-			numContainers = numContainers + 1
+			numContainers++
 		}
 		Expect(numContainers).To(Equal(1))
 	})
@@ -169,7 +169,7 @@ var _ = Describe("Podman generate kube", func() {
 
 		numContainers := 0
 		for range pod.Spec.Containers {
-			numContainers = numContainers + 1
+			numContainers++
 		}
 		Expect(numContainers).To(Equal(1))
 	})
@@ -478,11 +478,11 @@ var _ = Describe("Podman generate kube", func() {
 				// for k8s
 				Expect(port.Protocol).To(BeEmpty())
 				if port.HostPort == 4000 {
-					foundPort4000 = foundPort4000 + 1
+					foundPort4000++
 				} else if port.HostPort == 5000 {
-					foundPort5000 = foundPort5000 + 1
+					foundPort5000++
 				} else {
-					foundOtherPort = foundOtherPort + 1
+					foundOtherPort++
 				}
 			}
 		}

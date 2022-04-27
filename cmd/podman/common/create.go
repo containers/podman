@@ -896,7 +896,7 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		)
 		_ = cmd.RegisterFlagCompletionFunc(memorySwappinessFlagName, completion.AutocompleteNone)
 	}
-	//anyone can use these
+	// anyone can use these
 	cpusFlagName := "cpus"
 	createFlags.Float64Var(
 		&cf.CPUS,

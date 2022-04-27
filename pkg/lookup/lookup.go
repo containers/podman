@@ -61,7 +61,7 @@ func GetUserGroupInfo(containerMount, containerUser string, override *Overrides)
 		defaultExecUser = override.DefaultUser
 	} else {
 		// Define a default container user
-		//defaultExecUser = &user.ExecUser{
+		// defaultExecUser = &user.ExecUser{
 		//	Uid:  0,
 		//	Gid:  0,
 		//	Home: "/",

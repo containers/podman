@@ -47,11 +47,12 @@ func ConvertWinMountPath(path string) (string, error) {
 	path = strings.TrimPrefix(path, `\\?\`)
 
 	// Drive installed via wsl --mount
-	if strings.HasPrefix(path, `\\.\`) {
+	switch {
+	case strings.HasPrefix(path, `\\.\`):
 		path = "/mnt/wsl/" + path[4:]
-	} else if len(path) > 1 && path[1] == ':' {
+	case len(path) > 1 && path[1] == ':':
 		path = "/mnt/" + strings.ToLower(path[0:1]) + path[2:]
-	} else {
+	default:
 		return path, errors.New("unsupported UNC path")
 	}
 

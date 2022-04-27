@@ -108,8 +108,8 @@ func (p *PodmanTest) PodmanAsUserBase(args []string, uid, gid uint32, cwd string
 		timeCmd := append([]string{"/usr/bin/time"}, timeArgs...)
 		wrapper = append(timeCmd, wrapper...)
 	}
-
-	runCmd := append(wrapper, podmanBinary)
+	runCmd := wrapper
+	runCmd = append(runCmd, podmanBinary)
 	if !p.RemoteTest && p.NetworkBackend == Netavark {
 		runCmd = append(runCmd, []string{"--network-backend", "netavark"}...)
 	}
@@ -449,10 +449,10 @@ func GetHostDistributionInfo() HostOS {
 	host.Arch = runtime.GOARCH
 	for l.Scan() {
 		if strings.HasPrefix(l.Text(), "ID=") {
-			host.Distribution = strings.Replace(strings.TrimSpace(strings.Join(strings.Split(l.Text(), "=")[1:], "")), "\"", "", -1)
+			host.Distribution = strings.ReplaceAll(strings.TrimSpace(strings.Join(strings.Split(l.Text(), "=")[1:], "")), "\"", "")
 		}
 		if strings.HasPrefix(l.Text(), "VERSION_ID=") {
-			host.Version = strings.Replace(strings.TrimSpace(strings.Join(strings.Split(l.Text(), "=")[1:], "")), "\"", "", -1)
+			host.Version = strings.ReplaceAll(strings.TrimSpace(strings.Join(strings.Split(l.Text(), "=")[1:], "")), "\"", "")
 		}
 	}
 	return host

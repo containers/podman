@@ -225,10 +225,8 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 			platform = "linux"
 		}
 		platform += "/" + options.Architecture
-	} else {
-		if len(platform) > 0 {
-			platform += "/" + runtime.GOARCH
-		}
+	} else if len(platform) > 0 {
+		platform += "/" + runtime.GOARCH
 	}
 	if len(platform) > 0 {
 		params.Set("platform", platform)
@@ -447,7 +445,7 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 						}
 					}
 				}
-				secretsForRemote = append(secretsForRemote, strings.Join(modifiedOpt[:], ","))
+				secretsForRemote = append(secretsForRemote, strings.Join(modifiedOpt, ","))
 			}
 		}
 
@@ -603,8 +601,8 @@ func nTar(excludes []string, sources ...string) (io.ReadCloser, error) {
 					// are required to visit all files. :(
 					return nil
 				}
-
-				if d.Type().IsRegular() { // add file item
+				switch {
+				case d.Type().IsRegular(): // add file item
 					info, err := d.Info()
 					if err != nil {
 						return err
@@ -644,7 +642,7 @@ func nTar(excludes []string, sources ...string) (io.ReadCloser, error) {
 						seen[di] = name
 					}
 					return err
-				} else if d.IsDir() { // add folders
+				case d.IsDir(): // add folders
 					info, err := d.Info()
 					if err != nil {
 						return err
@@ -658,7 +656,7 @@ func nTar(excludes []string, sources ...string) (io.ReadCloser, error) {
 					if lerr := tw.WriteHeader(hdr); lerr != nil {
 						return lerr
 					}
-				} else if d.Type()&os.ModeSymlink != 0 { // add symlinks as it, not content
+				case d.Type()&os.ModeSymlink != 0: // add symlinks as it, not content
 					link, err := os.Readlink(path)
 					if err != nil {
 						return err

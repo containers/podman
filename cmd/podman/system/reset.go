@@ -95,6 +95,9 @@ func reset(cmd *cobra.Command, args []string) {
 
 	if err := engine.Reset(registry.Context()); err != nil {
 		logrus.Error(err)
+		// FIXME change this to return the error like other commands
+		// defer will never run on os.Exit()
+		//nolint:gocritic
 		os.Exit(define.ExecErrorCodeGeneric)
 	}
 	os.Exit(0)

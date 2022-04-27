@@ -12,7 +12,7 @@ type Info struct {
 	Version    Version                `json:"version"`
 }
 
-//HostInfo describes the libpod host
+// HostInfo describes the libpod host
 type SecurityInfo struct {
 	AppArmorEnabled     bool   `json:"apparmorEnabled"`
 	DefaultCapabilities string `json:"capabilities"`

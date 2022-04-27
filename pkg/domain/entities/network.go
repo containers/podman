@@ -33,7 +33,7 @@ type NetworkRmOptions struct {
 	Timeout *uint
 }
 
-//NetworkRmReport describes the results of network removal
+// NetworkRmReport describes the results of network removal
 type NetworkRmReport struct {
 	Name string
 	Err  error

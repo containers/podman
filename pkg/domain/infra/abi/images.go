@@ -785,12 +785,19 @@ func transferRootless(source entities.ImageScpOptions, dest entities.ImageScpOpt
 	return cmdLoad.Run()
 }
 
-// TransferRootful creates new podman processes using exec.Command and a new uid/gid alongside a cleared environment
+// transferRootful creates new podman processes using exec.Command and a new uid/gid alongside a cleared environment
 func transferRootful(source entities.ImageScpOptions, dest entities.ImageScpOptions, podman string, parentFlags []string) error {
-	basicCommand := []string{podman}
+	basicCommand := make([]string, 0, len(parentFlags)+1)
+	basicCommand = append(basicCommand, podman)
 	basicCommand = append(basicCommand, parentFlags...)
-	saveCommand := append(basicCommand, "save")
-	loadCommand := append(basicCommand, "load")
+
+	saveCommand := make([]string, 0, len(basicCommand)+4)
+	saveCommand = append(saveCommand, basicCommand...)
+	saveCommand = append(saveCommand, "save")
+
+	loadCommand := make([]string, 0, len(basicCommand)+3)
+	loadCommand = append(loadCommand, basicCommand...)
+	loadCommand = append(loadCommand, "load")
 	if source.Quiet {
 		saveCommand = append(saveCommand, "-q")
 		loadCommand = append(loadCommand, "-q")

@@ -43,13 +43,13 @@ var _ = Describe("Podman pods", func() {
 	})
 
 	It("inspect pod", func() {
-		//Inspect an invalid pod name
+		// Inspect an invalid pod name
 		_, err := pods.Inspect(bt.conn, "dummyname", nil)
 		Expect(err).ToNot(BeNil())
 		code, _ := bindings.CheckResponseCode(err)
 		Expect(code).To(BeNumerically("==", http.StatusNotFound))
 
-		//Inspect an valid pod name
+		// Inspect an valid pod name
 		response, err := pods.Inspect(bt.conn, newpod, nil)
 		Expect(err).To(BeNil())
 		Expect(response.Name).To(Equal(newpod))
@@ -57,7 +57,7 @@ var _ = Describe("Podman pods", func() {
 
 	// Test validates the list all api returns
 	It("list pod", func() {
-		//List all the pods in the current instance
+		// List all the pods in the current instance
 		podSummary, err := pods.List(bt.conn, nil)
 		Expect(err).To(BeNil())
 		Expect(len(podSummary)).To(Equal(1))

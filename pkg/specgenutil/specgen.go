@@ -1098,9 +1098,9 @@ var cgroupDeviceType = map[string]bool{
 }
 
 var cgroupDeviceAccess = map[string]bool{
-	"r": true, //read
-	"w": true, //write
-	"m": true, //mknod
+	"r": true, // read
+	"w": true, // write
+	"m": true, // mknod
 }
 
 // parseLinuxResourcesDeviceAccess parses the raw string passed with the --device-access-add flag

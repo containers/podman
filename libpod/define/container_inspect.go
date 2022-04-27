@@ -100,7 +100,7 @@ type InspectRestartPolicy struct {
 // InspectLogConfig holds information about a container's configured log driver
 type InspectLogConfig struct {
 	Type   string            `json:"Type"`
-	Config map[string]string `json:"Config"` //idk type, TODO
+	Config map[string]string `json:"Config"`
 	// Path specifies a path to the log file
 	Path string `json:"Path"`
 	// Tag specifies a custom log tag for the container
@@ -680,7 +680,7 @@ type InspectContainerData struct {
 	SizeRootFs      int64                       `json:"SizeRootFs,omitempty"`
 	Mounts          []InspectMount              `json:"Mounts"`
 	Dependencies    []string                    `json:"Dependencies"`
-	NetworkSettings *InspectNetworkSettings     `json:"NetworkSettings"` //TODO
+	NetworkSettings *InspectNetworkSettings     `json:"NetworkSettings"`
 	Namespace       string                      `json:"Namespace"`
 	IsInfra         bool                        `json:"IsInfra"`
 	Config          *InspectContainerConfig     `json:"Config"`

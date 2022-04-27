@@ -64,7 +64,7 @@ var _ = Describe("Podman load", func() {
 
 		compress := SystemExec("gzip", []string{outfile})
 		Expect(compress).Should(Exit(0))
-		outfile = outfile + ".gz"
+		outfile += ".gz"
 
 		rmi := podmanTest.Podman([]string{"rmi", ALPINE})
 		rmi.WaitWithDefaultTimeout()

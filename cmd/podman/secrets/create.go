@@ -62,13 +62,14 @@ func create(cmd *cobra.Command, args []string) error {
 	path := args[1]
 
 	var reader io.Reader
-	if env {
+	switch {
+	case env:
 		envValue := os.Getenv(path)
 		if envValue == "" {
 			return errors.Errorf("cannot create store secret data: environment variable %s is not set", path)
 		}
 		reader = strings.NewReader(envValue)
-	} else if path == "-" || path == "/dev/stdin" {
+	case path == "-" || path == "/dev/stdin":
 		stat, err := os.Stdin.Stat()
 		if err != nil {
 			return err
@@ -77,7 +78,7 @@ func create(cmd *cobra.Command, args []string) error {
 			return errors.New("if `-` is used, data must be passed into stdin")
 		}
 		reader = os.Stdin
-	} else {
+	default:
 		file, err := os.Open(path)
 		if err != nil {
 			return err

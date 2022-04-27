@@ -434,20 +434,18 @@ func createContainerOptions(rt *libpod.Runtime, s *specgen.SpecGenerator, pod *l
 	// Security options
 	if len(s.SelinuxOpts) > 0 {
 		options = append(options, libpod.WithSecLabels(s.SelinuxOpts))
-	} else {
-		if pod != nil && len(compatibleOptions.SelinuxOpts) == 0 {
-			// duplicate the security options from the pod
-			processLabel, err := pod.ProcessLabel()
+	} else if pod != nil && len(compatibleOptions.SelinuxOpts) == 0 {
+		// duplicate the security options from the pod
+		processLabel, err := pod.ProcessLabel()
+		if err != nil {
+			return nil, err
+		}
+		if processLabel != "" {
+			selinuxOpts, err := label.DupSecOpt(processLabel)
 			if err != nil {
 				return nil, err
 			}
-			if processLabel != "" {
-				selinuxOpts, err := label.DupSecOpt(processLabel)
-				if err != nil {
-					return nil, err
-				}
-				options = append(options, libpod.WithSecLabels(selinuxOpts))
-			}
+			options = append(options, libpod.WithSecLabels(selinuxOpts))
 		}
 	}
 	options = append(options, libpod.WithPrivileged(s.Privileged))

@@ -395,7 +395,7 @@ func ConfigToSpec(rt *libpod.Runtime, specg *specgen.SpecGenerator, contaierID s
 		} else {
 			switch nameSpaces[i] {
 			case "pid":
-				specg.PidNS = specgen.Namespace{NSMode: specgen.Default} //default
+				specg.PidNS = specgen.Namespace{NSMode: specgen.Default} // default
 			case "net":
 				switch {
 				case conf.NetMode.IsBridge():
@@ -435,7 +435,7 @@ func ConfigToSpec(rt *libpod.Runtime, specg *specgen.SpecGenerator, contaierID s
 					specg.NetNS = specgen.Namespace{NSMode: specgen.FromPod, Value: strings.Split(string(conf.NetMode), ":")[1]}
 				}
 			case "cgroup":
-				specg.CgroupNS = specgen.Namespace{NSMode: specgen.Default} //default
+				specg.CgroupNS = specgen.Namespace{NSMode: specgen.Default} // default
 			case "ipc":
 				switch conf.ShmDir {
 				case "/dev/shm":
@@ -443,15 +443,15 @@ func ConfigToSpec(rt *libpod.Runtime, specg *specgen.SpecGenerator, contaierID s
 				case "":
 					specg.IpcNS = specgen.Namespace{NSMode: specgen.None}
 				default:
-					specg.IpcNS = specgen.Namespace{NSMode: specgen.Default} //default
+					specg.IpcNS = specgen.Namespace{NSMode: specgen.Default} // default
 				}
 			case "uts":
-				specg.UtsNS = specgen.Namespace{NSMode: specgen.Default} //default
+				specg.UtsNS = specgen.Namespace{NSMode: specgen.Default} // default
 			case "user":
 				if conf.AddCurrentUserPasswdEntry {
 					specg.UserNS = specgen.Namespace{NSMode: specgen.KeepID}
 				} else {
-					specg.UserNS = specgen.Namespace{NSMode: specgen.Default} //default
+					specg.UserNS = specgen.Namespace{NSMode: specgen.Default} // default
 				}
 			}
 		}

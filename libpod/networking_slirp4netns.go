@@ -82,7 +82,9 @@ func checkSlirpFlags(path string) (*slirpFeatures, error) {
 }
 
 func parseSlirp4netnsNetworkOptions(r *Runtime, extraOptions []string) (*slirp4netnsNetworkOptions, error) {
-	slirpOptions := append(r.config.Engine.NetworkCmdOptions, extraOptions...)
+	slirpOptions := make([]string, 0, len(r.config.Engine.NetworkCmdOptions)+len(extraOptions))
+	slirpOptions = append(slirpOptions, r.config.Engine.NetworkCmdOptions...)
+	slirpOptions = append(slirpOptions, extraOptions...)
 	slirp4netnsOpts := &slirp4netnsNetworkOptions{
 		// overwrite defaults
 		disableHostLoopback: true,

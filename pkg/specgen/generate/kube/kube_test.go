@@ -5,7 +5,6 @@ import (
 
 	v1 "github.com/containers/podman/v4/pkg/k8s.io/api/core/v1"
 	"github.com/stretchr/testify/assert"
-	//"github.com/stretchr/testify/require"
 )
 
 func testPropagation(t *testing.T, propagation v1.MountPropagationMode, expected string) {
