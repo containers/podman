@@ -23,10 +23,11 @@ Valid placeholders for the Go template are listed below:
 | --------------- | ----------------------------------------------------------------------------- |
 | .ID             | Image ID                                                                      |
 | .Created        | if --human, time elapsed since creation, otherwise time stamp of creation     |
-| .CreatedBy      | Command used to create the layer                                              |
-| .Size           | Size of layer on disk                                                         |
-| .Comment        | Comment for the layer                                                         |
-
+| .CreatedAt      | Time when the image layer was created                |
+| .CreatedBy      | Command used to create the layer                     |
+| .CreatedSince   | Elapsed time since the image layer was created       |
+| .Size           | Size of layer on disk                                |
+| .Comment        | Comment for the layer                                |
 ## OPTIONS
 
 Print the numeric IDs only (default *false*).
