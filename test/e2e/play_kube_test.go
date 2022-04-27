@@ -3180,8 +3180,10 @@ invalid kube kind
 		Expect(ls).Should(Exit(0))
 		Expect(ls.OutputToStringArray()).To(HaveLen(1))
 
-		containerLen := podmanTest.Podman([]string{"pod", "inspect", pod.Name, "--format", "'{{len .Containers}}'"})
-
+		containerLen := podmanTest.Podman([]string{"pod", "inspect", pod.Name, "--format", "{{len .Containers}}"})
+		containerLen.WaitWithDefaultTimeout()
+		Expect(containerLen).Should(Exit(0))
+		Expect(containerLen.OutputToString()).To(Equal("2"))
 		ctr01Name := "ctr01"
 		ctr02Name := "ctr02"
 
@@ -3199,7 +3201,7 @@ invalid kube kind
 		replace.WaitWithDefaultTimeout()
 		Expect(replace).Should(Exit(0))
 
-		newContainerLen := podmanTest.Podman([]string{"pod", "inspect", newPod.Name, "--format", "'{{len .Containers}}'"})
+		newContainerLen := podmanTest.Podman([]string{"pod", "inspect", newPod.Name, "--format", "{{len .Containers}}"})
 		newContainerLen.WaitWithDefaultTimeout()
 		Expect(newContainerLen).Should(Exit(0))
 		Expect(newContainerLen.OutputToString()).NotTo(Equal(containerLen.OutputToString()))
