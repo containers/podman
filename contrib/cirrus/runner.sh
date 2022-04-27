@@ -12,7 +12,7 @@ set -eo pipefail
 # most notably:
 #
 #    PODBIN_NAME  : "podman" (i.e. local) or "remote"
-#    TEST_ENVIRON : 'host', 'host-netavark', or 'container'; desired environment in which to run
+#    TEST_ENVIRON : 'host', or 'container'; desired environment in which to run
 #    CONTAINER    : 1 if *currently* running inside a container, 0 if host
 #
 
@@ -448,6 +448,13 @@ if [[ "$PRIV_NAME" == "rootless" ]] && [[ "$UID" -eq 0 ]]; then
     # We have to test that it works without this directory.
     # https://github.com/containers/podman/issues/10857
     rm -rf /var/lib/cni
+
+    # This must be done at the last second, otherwise `make` calls
+    # in setup_environment (as root) will balk about ownership.
+    msg "Recursively chowning \$GOPATH and \$GOSRC to $ROOTLESS_USER"
+    if [[ $PRIV_NAME = "rootless" ]]; then
+        chown -R $ROOTLESS_USER:$ROOTLESS_USER "$GOPATH" "$GOSRC"
+    fi
 
     req_env_vars ROOTLESS_USER
     msg "Re-executing runner through ssh as user '$ROOTLESS_USER'"
