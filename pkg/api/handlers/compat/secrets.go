@@ -3,7 +3,6 @@ package compat
 import (
 	"bytes"
 	"encoding/base64"
-	"encoding/json"
 	"net/http"
 
 	"github.com/containers/podman/v4/libpod"

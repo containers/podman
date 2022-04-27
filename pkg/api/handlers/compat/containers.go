@@ -1,7 +1,6 @@
 package compat
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"sort"

@@ -11,6 +11,7 @@ import (
 	api "github.com/containers/podman/v4/pkg/api/types"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/domain/infra/abi"
+	jsoniter "github.com/json-iterator/go"
 
 	"github.com/containers/podman/v4/pkg/api/handlers"
 	"github.com/sirupsen/logrus"
@@ -90,7 +91,7 @@ func WaitContainerDocker(w http.ResponseWriter, r *http.Request) {
 		StatusCode: int(exitCode),
 		Error:      errStruct,
 	}
-	enc := json.NewEncoder(w)
+	enc := jsoniter.NewEncoder(w)
 	enc.SetEscapeHTML(true)
 	err = enc.Encode(&responseData)
 	if err != nil {

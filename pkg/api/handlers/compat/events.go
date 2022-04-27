@@ -10,7 +10,6 @@ import (
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/gorilla/schema"
-	jsoniter "github.com/json-iterator/go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -21,7 +20,6 @@ func GetEvents(w http.ResponseWriter, r *http.Request) {
 		fromStart bool
 		decoder   = r.Context().Value(api.DecoderKey).(*schema.Decoder)
 		runtime   = r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
-		json      = jsoniter.ConfigCompatibleWithStandardLibrary // FIXME: this should happen on the package level
 	)
 
 	// NOTE: the "filters" parameter is extracted separately for backwards

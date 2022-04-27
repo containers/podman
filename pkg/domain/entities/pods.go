@@ -20,15 +20,15 @@ type PodKillOptions struct {
 
 type PodKillReport struct {
 	Errs []error
-	Id   string //nolint
+	Id   string // nolint
 }
 
 type ListPodsReport struct {
 	Cgroup     string
 	Containers []*ListPodContainer
 	Created    time.Time
-	Id         string //nolint
-	InfraId    string //nolint
+	Id         string // nolint
+	InfraId    string // nolint
 	Name       string
 	Namespace  string
 	// Network names connected to infra container
@@ -38,7 +38,7 @@ type ListPodsReport struct {
 }
 
 type ListPodContainer struct {
-	Id     string //nolint
+	Id     string // nolint
 	Names  string
 	Status string
 }
@@ -50,7 +50,7 @@ type PodPauseOptions struct {
 
 type PodPauseReport struct {
 	Errs []error
-	Id   string //nolint
+	Id   string // nolint
 }
 
 type PodunpauseOptions struct {
@@ -60,7 +60,7 @@ type PodunpauseOptions struct {
 
 type PodUnpauseReport struct {
 	Errs []error
-	Id   string //nolint
+	Id   string // nolint
 }
 
 type PodStopOptions struct {
@@ -72,7 +72,7 @@ type PodStopOptions struct {
 
 type PodStopReport struct {
 	Errs []error
-	Id   string //nolint
+	Id   string // nolint
 }
 
 type PodRestartOptions struct {
@@ -82,7 +82,7 @@ type PodRestartOptions struct {
 
 type PodRestartReport struct {
 	Errs []error
-	Id   string //nolint
+	Id   string // nolint
 }
 
 type PodStartOptions struct {
@@ -92,7 +92,7 @@ type PodStartOptions struct {
 
 type PodStartReport struct {
 	Errs []error
-	Id   string //nolint
+	Id   string // nolint
 }
 
 type PodRmOptions struct {
@@ -105,10 +105,10 @@ type PodRmOptions struct {
 
 type PodRmReport struct {
 	Err error
-	Id  string //nolint
+	Id  string // nolint
 }
 
-// PddSpec is an abstracted version of PodSpecGen designed to eventually accept options
+// PodSpec is an abstracted version of PodSpecGen designed to eventually accept options
 // not meant to be in a specgen
 type PodSpec struct {
 	PodSpecGen specgen.PodSpecGenerator
@@ -287,7 +287,7 @@ func NewInfraContainerCreateOptions() ContainerCreateOptions {
 }
 
 type PodCreateReport struct {
-	Id string //nolint
+	Id string // nolint
 }
 
 func (p *PodCreateOptions) CPULimits() *specs.LinuxCPU {
@@ -389,7 +389,7 @@ type PodPruneOptions struct {
 
 type PodPruneReport struct {
 	Err error
-	Id  string //nolint
+	Id  string // nolint
 }
 
 type PodTopOptions struct {

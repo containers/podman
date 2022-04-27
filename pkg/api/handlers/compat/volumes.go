@@ -2,7 +2,6 @@ package compat
 
 import (
 	"bytes"
-	"encoding/json"
 	"net/http"
 	"net/url"
 	"time"

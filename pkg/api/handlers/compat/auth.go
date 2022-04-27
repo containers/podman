@@ -2,7 +2,6 @@ package compat
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"

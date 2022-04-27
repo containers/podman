@@ -2,7 +2,6 @@ package compat
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -26,6 +25,7 @@ import (
 	"github.com/containers/storage/pkg/archive"
 	"github.com/docker/docker/pkg/jsonmessage"
 	"github.com/gorilla/schema"
+	jsoniter "github.com/json-iterator/go"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -637,8 +637,8 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 			Stream string                 `json:"stream,omitempty"`
 			Error  *jsonmessage.JSONError `json:"errorDetail,omitempty"`
 			// NOTE: `error` is being deprecated check https://github.com/moby/moby/blob/master/pkg/jsonmessage/jsonmessage.go#L148
-			ErrorMessage string          `json:"error,omitempty"` // deprecate this slowly
-			Aux          json.RawMessage `json:"aux,omitempty"`
+			ErrorMessage string              `json:"error,omitempty"` // deprecate this slowly
+			Aux          jsoniter.RawMessage `json:"aux,omitempty"`
 		}{}
 
 		select {

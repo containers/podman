@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"encoding/json"
 	"reflect"
 	"syscall"
 	"time"
@@ -9,6 +8,7 @@ import (
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/gorilla/schema"
+	jsoniter "github.com/json-iterator/go"
 	"github.com/sirupsen/logrus"
 )
 
@@ -41,7 +41,7 @@ func NewAPIDecoder() *schema.Decoder {
 func convertURLValuesString(query string) reflect.Value {
 	f := map[string][]string{}
 
-	err := json.Unmarshal([]byte(query), &f)
+	err := jsoniter.Unmarshal([]byte(query), &f)
 	if err != nil {
 		logrus.Infof("convertURLValuesString: Failed to Unmarshal %s: %s", query, err.Error())
 	}
@@ -51,7 +51,7 @@ func convertURLValuesString(query string) reflect.Value {
 
 func convertStringMap(query string) reflect.Value {
 	res := make(map[string]string)
-	err := json.Unmarshal([]byte(query), &res)
+	err := jsoniter.Unmarshal([]byte(query), &res)
 	if err != nil {
 		logrus.Infof("convertStringMap: Failed to Unmarshal %s: %s", query, err.Error())
 	}

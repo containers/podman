@@ -2,6 +2,7 @@ package containers
 
 import (
 	"context"
+	"encoding/json"
 	"io"
 	"net/http"
 	"net/url"
@@ -430,7 +431,7 @@ func Export(ctx context.Context, nameOrID string, w io.Writer, options *ExportOp
 	return response.Process(nil)
 }
 
-// ContainerInit takes a created container and executes all of the
+// ContainerInit takes a created container and executes all the
 // preparations to run the container except it will not start
 // or attach to the container
 func ContainerInit(ctx context.Context, nameOrID string, options *InitOptions) error {

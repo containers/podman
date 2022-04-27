@@ -1,7 +1,6 @@
 package libpod
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"github.com/containers/common/pkg/cgroups"

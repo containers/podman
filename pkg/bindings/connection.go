@@ -90,37 +90,39 @@ func NewConnectionWithIdentity(ctx context.Context, uri string, identity string)
 		passPhrase = v
 	}
 
-	_url, err := url.Parse(uri)
+	uriParsed, err := url.Parse(uri)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Value of CONTAINER_HOST is not a valid url: %s", uri)
 	}
 
 	// Now we setup the http Client to use the connection above
 	var connection Connection
-	switch _url.Scheme {
+	switch uriParsed.Scheme {
 	case "ssh":
-		secure, err = strconv.ParseBool(_url.Query().Get("secure"))
+		secure, err = strconv.ParseBool(uriParsed.Query().Get("secure"))
 		if err != nil {
 			secure = false
 		}
-		connection, err = sshClient(_url, secure, passPhrase, identity)
+		connection, err = sshClient(uriParsed, secure, passPhrase, identity)
 	case "unix":
 		if !strings.HasPrefix(uri, "unix:///") {
 			// autofix unix://path_element vs unix:///path_element
-			_url.Path = JoinURL(_url.Host, _url.Path)
-			_url.Host = ""
+			uriParsed.Path = JoinURL(uriParsed.Host, uriParsed.Path)
+			uriParsed.Host = ""
 		}
-		connection = unixClient(_url)
+		connection = unixClient(uriParsed)
 	case "tcp":
 		if !strings.HasPrefix(uri, "tcp://") {
 			return nil, errors.New("tcp URIs should begin with tcp://")
 		}
-		connection = tcpClient(_url)
+		connection = tcpClient(uriParsed)
+	case "http":
+		connection = tcpClient(uriParsed)
 	default:
-		return nil, errors.Errorf("unable to create connection. %q is not a supported schema", _url.Scheme)
+		return nil, errors.Errorf("unable to create connection. %q is not a supported schema", uriParsed.Scheme)
 	}
 	if err != nil {
-		return nil, errors.Wrapf(err, "unable to connect to Podman. failed to create %sClient", _url.Scheme)
+		return nil, errors.Wrapf(err, "unable to connect to Podman. failed to create %sClient", uriParsed.Scheme)
 	}
 
 	ctx = context.WithValue(ctx, clientKey, &connection)
@@ -132,14 +134,12 @@ func NewConnectionWithIdentity(ctx context.Context, uri string, identity string)
 	return ctx, nil
 }
 
-func tcpClient(_url *url.URL) Connection {
-	connection := Connection{
-		URI: _url,
-	}
+func tcpClient(uri *url.URL) Connection {
+	connection := Connection{URI: uri}
 	connection.Client = &http.Client{
 		Transport: &http.Transport{
 			DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
-				return net.Dial("tcp", _url.Host)
+				return net.Dial("tcp", uri.Host)
 			},
 			DisableCompression: true,
 		},
@@ -184,7 +184,7 @@ func pingNewConnection(ctx context.Context) (*semver.Version, error) {
 	return nil, errors.Errorf("ping response was %d", response.StatusCode)
 }
 
-func sshClient(_url *url.URL, secure bool, passPhrase string, identity string) (Connection, error) {
+func sshClient(uri *url.URL, secure bool, passPhrase string, identity string) (Connection, error) {
 	// if you modify the authmethods or their conditionals, you will also need to make similar
 	// changes in the client (currently cmd/podman/system/connection/add getUDS).
 
@@ -242,7 +242,7 @@ func sshClient(_url *url.URL, secure bool, passPhrase string, identity string) (
 		}))
 	}
 
-	if pw, found := _url.User.Password(); found {
+	if pw, found := uri.User.Password(); found {
 		authMethods = append(authMethods, ssh.Password(pw))
 	}
 
@@ -254,14 +254,14 @@ func sshClient(_url *url.URL, secure bool, passPhrase string, identity string) (
 		authMethods = append(authMethods, ssh.PasswordCallback(callback))
 	}
 
-	port := _url.Port()
+	port := uri.Port()
 	if port == "" {
 		port = "22"
 	}
 
 	callback := ssh.InsecureIgnoreHostKey()
 	if secure {
-		host := _url.Hostname()
+		host := uri.Hostname()
 		if port != "22" {
 			host = fmt.Sprintf("[%s]:%s", host, port)
 		}
@@ -272,9 +272,9 @@ func sshClient(_url *url.URL, secure bool, passPhrase string, identity string) (
 	}
 
 	bastion, err := ssh.Dial("tcp",
-		net.JoinHostPort(_url.Hostname(), port),
+		net.JoinHostPort(uri.Hostname(), port),
 		&ssh.ClientConfig{
-			User:            _url.User.Username(),
+			User:            uri.User.Username(),
 			Auth:            authMethods,
 			HostKeyCallback: callback,
 			HostKeyAlgorithms: []string{
@@ -289,25 +289,25 @@ func sshClient(_url *url.URL, secure bool, passPhrase string, identity string) (
 		},
 	)
 	if err != nil {
-		return Connection{}, errors.Wrapf(err, "connection to bastion host (%s) failed", _url.String())
+		return Connection{}, errors.Wrapf(err, "connection to bastion host (%s) failed", uri.String())
 	}
 
-	connection := Connection{URI: _url}
+	connection := Connection{URI: uri}
 	connection.Client = &http.Client{
 		Transport: &http.Transport{
 			DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
-				return bastion.Dial("unix", _url.Path)
+				return bastion.Dial("unix", uri.Path)
 			},
 		}}
 	return connection, nil
 }
 
-func unixClient(_url *url.URL) Connection {
-	connection := Connection{URI: _url}
+func unixClient(uri *url.URL) Connection {
+	connection := Connection{URI: uri}
 	connection.Client = &http.Client{
 		Transport: &http.Transport{
 			DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
-				return (&net.Dialer{}).DialContext(ctx, "unix", _url.Path)
+				return (&net.Dialer{}).DialContext(ctx, "unix", uri.Path)
 			},
 			DisableCompression: true,
 		},

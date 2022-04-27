@@ -20,6 +20,7 @@ import (
 	_ "github.com/containers/podman/v4/cmd/podman/system/connection"
 	_ "github.com/containers/podman/v4/cmd/podman/volumes"
 	"github.com/containers/podman/v4/pkg/domain/entities"
+	_ "github.com/containers/podman/v4/pkg/errorhandling"
 	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/containers/podman/v4/pkg/terminal"
 	"github.com/containers/storage/pkg/reexec"

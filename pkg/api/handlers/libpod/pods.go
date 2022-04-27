@@ -1,7 +1,6 @@
 package libpod
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
@@ -54,12 +53,12 @@ func PodCreate(w http.ResponseWriter, r *http.Request) {
 			utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "error filling out specgen"))
 			return
 		}
-		out, err := json.Marshal(psg) // marshal our spec so the matching options can be unmarshaled into infra
+		out, err := json.Marshal(psg) // marshal our spec so the matching options can be unmarshalled into infra
 		if err != nil {
 			utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, failedToDecodeSpecgen))
 			return
 		}
-		err = json.Unmarshal(out, psg.InfraContainerSpec) // unmarhal matching options
+		err = json.Unmarshal(out, psg.InfraContainerSpec) // unmarshal matching options
 		if err != nil {
 			utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, failedToDecodeSpecgen))
 			return

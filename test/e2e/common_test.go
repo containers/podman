@@ -2,6 +2,7 @@ package integration
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
@@ -25,7 +26,6 @@ import (
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/reexec"
 	"github.com/containers/storage/pkg/stringid"
-	jsoniter "github.com/json-iterator/go"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
@@ -374,7 +374,7 @@ func (p *PodmanTestIntegration) createArtifact(image string) {
 // image and returns json
 func (s *PodmanSessionIntegration) InspectImageJSON() []inspect.ImageData {
 	var i []inspect.ImageData
-	err := jsoniter.Unmarshal(s.Out.Contents(), &i)
+	err := json.Unmarshal(s.Out.Contents(), &i)
 	Expect(err).To(BeNil())
 	return i
 }
@@ -411,10 +411,10 @@ func GetPortLock(port string) storage.Locker {
 func GetRandomIPAddress() string {
 	// To avoid IP collisions of initialize random seed for random IP addresses
 	rand.Seed(time.Now().UnixNano())
-	// Add GinkgoParallelNode() on top of the IP address
+	// Add GinkgoParallelProcess() on top of the IP address
 	// in case of the same random seed
-	ip3 := strconv.Itoa(rand.Intn(230) + GinkgoParallelNode())
-	ip4 := strconv.Itoa(rand.Intn(230) + GinkgoParallelNode())
+	ip3 := strconv.Itoa(rand.Intn(230) + GinkgoParallelProcess())
+	ip4 := strconv.Itoa(rand.Intn(230) + GinkgoParallelProcess())
 	return "10.88." + ip3 + "." + ip4
 }
 
@@ -565,7 +565,7 @@ func (p *PodmanTestIntegration) CleanupSecrets() {
 // container and returns json
 func (s *PodmanSessionIntegration) InspectContainerToJSON() []define.InspectContainerData {
 	var i []define.InspectContainerData
-	err := jsoniter.Unmarshal(s.Out.Contents(), &i)
+	err := json.Unmarshal(s.Out.Contents(), &i)
 	Expect(err).To(BeNil())
 	return i
 }
@@ -573,7 +573,7 @@ func (s *PodmanSessionIntegration) InspectContainerToJSON() []define.InspectCont
 // InspectPodToJSON takes the sessions output from a pod inspect and returns json
 func (s *PodmanSessionIntegration) InspectPodToJSON() define.InspectPodData {
 	var i define.InspectPodData
-	err := jsoniter.Unmarshal(s.Out.Contents(), &i)
+	err := json.Unmarshal(s.Out.Contents(), &i)
 	Expect(err).To(BeNil())
 	return i
 }
@@ -581,7 +581,7 @@ func (s *PodmanSessionIntegration) InspectPodToJSON() define.InspectPodData {
 // InspectPodToJSON takes the sessions output from an inspect and returns json
 func (s *PodmanSessionIntegration) InspectPodArrToJSON() []define.InspectPodData {
 	var i []define.InspectPodData
-	err := jsoniter.Unmarshal(s.Out.Contents(), &i)
+	err := json.Unmarshal(s.Out.Contents(), &i)
 	Expect(err).To(BeNil())
 	return i
 }

@@ -1,7 +1,6 @@
 package compat
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"github.com/containers/podman/v4/cmd/podman/common"

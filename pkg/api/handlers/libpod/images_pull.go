@@ -2,7 +2,6 @@ package libpod
 
 import (
 	"context"
-	"encoding/json"
 	"net/http"
 
 	"github.com/containers/common/libimage"

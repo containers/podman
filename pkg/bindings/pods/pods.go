@@ -2,6 +2,8 @@ package pods
 
 import (
 	"context"
+	"encoding/json"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -10,7 +12,7 @@ import (
 	"github.com/containers/podman/v4/pkg/bindings"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/errorhandling"
-	jsoniter "github.com/json-iterator/go"
+	"github.com/pkg/errors"
 )
 
 func CreatePodFromSpec(ctx context.Context, spec *entities.PodSpec) (*entities.PodCreateReport, error) {
@@ -24,11 +26,11 @@ func CreatePodFromSpec(ctx context.Context, spec *entities.PodSpec) (*entities.P
 	if err != nil {
 		return nil, err
 	}
-	specString, err := jsoniter.MarshalToString(spec.PodSpecGen)
+	buffer, err := json.Marshal(spec.PodSpecGen)
 	if err != nil {
 		return nil, err
 	}
-	stringReader := strings.NewReader(specString)
+	stringReader := strings.NewReader(string(buffer))
 	response, err := conn.DoRequest(ctx, stringReader, http.MethodPost, "/pods/create", nil, nil)
 	if err != nil {
 		return nil, err
@@ -39,7 +41,7 @@ func CreatePodFromSpec(ctx context.Context, spec *entities.PodSpec) (*entities.P
 }
 
 // Exists is a lightweight method to determine if a pod exists in local storage
-func Exists(ctx context.Context, nameOrID string, options *ExistsOptions) (bool, error) {
+func Exists(ctx context.Context, nameOrID string, _ *ExistsOptions) (bool, error) {
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return false, err
@@ -54,14 +56,9 @@ func Exists(ctx context.Context, nameOrID string, options *ExistsOptions) (bool,
 }
 
 // Inspect returns low-level information about the given pod.
-func Inspect(ctx context.Context, nameOrID string, options *InspectOptions) (*entities.PodInspectReport, error) {
-	var (
-		report entities.PodInspectReport
-	)
-	if options == nil {
-		options = new(InspectOptions)
-	}
-	_ = options
+func Inspect(ctx context.Context, nameOrID string, _ *InspectOptions) (*entities.PodInspectReport, error) {
+	var report entities.PodInspectReport
+
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err
@@ -78,9 +75,8 @@ func Inspect(ctx context.Context, nameOrID string, options *InspectOptions) (*en
 // Kill sends a SIGTERM to all the containers in a pod.  The optional signal parameter
 // can be used to override  SIGTERM.
 func Kill(ctx context.Context, nameOrID string, options *KillOptions) (*entities.PodKillReport, error) {
-	var (
-		report entities.PodKillReport
-	)
+	var report entities.PodKillReport
+
 	if options == nil {
 		options = new(KillOptions)
 	}
@@ -123,12 +119,8 @@ func Pause(ctx context.Context, nameOrID string, options *PauseOptions) (*entiti
 
 // Prune by default removes all non-running pods in local storage.
 // And with force set true removes all pods.
-func Prune(ctx context.Context, options *PruneOptions) ([]*entities.PodPruneReport, error) {
+func Prune(ctx context.Context, _ *PruneOptions) ([]*entities.PodPruneReport, error) {
 	var reports []*entities.PodPruneReport
-	if options == nil {
-		options = new(PruneOptions)
-	}
-	_ = options
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err
@@ -142,12 +134,10 @@ func Prune(ctx context.Context, options *PruneOptions) ([]*entities.PodPruneRepo
 	return reports, response.Process(&reports)
 }
 
-// List returns all pods in local storage.  The optional filters parameter can
+// List returns all pods in local storage.  The optional 'filters' parameter can
 // be used to refine which pods should be listed.
 func List(ctx context.Context, options *ListOptions) ([]*entities.ListPodsReport, error) {
-	var (
-		podsReports []*entities.ListPodsReport
-	)
+	var podsReports []*entities.ListPodsReport
 	if options == nil {
 		options = new(ListOptions)
 	}
@@ -169,12 +159,8 @@ func List(ctx context.Context, options *ListOptions) ([]*entities.ListPodsReport
 }
 
 // Restart restarts all containers in a pod.
-func Restart(ctx context.Context, nameOrID string, options *RestartOptions) (*entities.PodRestartReport, error) {
+func Restart(ctx context.Context, nameOrID string, _ *RestartOptions) (*entities.PodRestartReport, error) {
 	var report entities.PodRestartReport
-	if options == nil {
-		options = new(RestartOptions)
-	}
-	_ = options
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err
@@ -188,37 +174,69 @@ func Restart(ctx context.Context, nameOrID string, options *RestartOptions) (*en
 	return &report, response.ProcessWithError(&report, &errorhandling.PodConflictErrorModel{})
 }
 
-// Remove deletes a Pod from from local storage. The optional force parameter denotes
+// Remove deletes a Pod from local storage. The optional force parameter denotes
 // that the Pod can be removed even if in a running state.
 func Remove(ctx context.Context, nameOrID string, options *RemoveOptions) (*entities.PodRmReport, error) {
-	var report entities.PodRmReport
-	if options == nil {
-		options = new(RemoveOptions)
-	}
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err
 	}
-	params, err := options.ToParams()
-	if err != nil {
-		return nil, err
+
+	var params url.Values
+	if options != nil {
+		var err error
+		if params, err = options.ToParams(); err != nil {
+			return nil, err
+		}
 	}
+
 	response, err := conn.DoRequest(ctx, nil, http.MethodDelete, "/pods/%s", params, nil, nameOrID)
 	if err != nil {
 		return nil, err
 	}
 	defer response.Body.Close()
 
-	return &report, response.Process(&report)
+	report := new(entities.PodRmReport)
+
+	// Process body which may include a field of error type/interface
+	if response.IsSuccess() || response.IsRedirection() {
+		data, err := io.ReadAll(response.Body)
+		if err != nil {
+			return nil, errors.Wrap(err, "unable to process API response")
+		}
+
+		// Use RawMessage to stage Err field...
+		body := new(struct {
+			ID  string `json:"Id"`
+			Err *json.RawMessage
+		})
+
+		if err := json.Unmarshal(data, body); err != nil {
+			return nil, err
+		}
+		report.Id = body.ID
+
+		if body.Err == nil {
+			return report, nil
+		}
+
+		var msg string
+		if err := json.Unmarshal(*body.Err, &msg); err != nil {
+			return nil, err
+		}
+		if len(msg) > 0 {
+			report.Err = errors.New(msg)
+		}
+		return report, nil
+	}
+
+	// fallthrough to process StatusCode >= 400
+	return report, response.Process(report)
 }
 
 // Start starts all containers in a pod.
-func Start(ctx context.Context, nameOrID string, options *StartOptions) (*entities.PodStartReport, error) {
+func Start(ctx context.Context, nameOrID string, _ *StartOptions) (*entities.PodStartReport, error) {
 	var report entities.PodStartReport
-	if options == nil {
-		options = new(StartOptions)
-	}
-	_ = options
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err
@@ -302,11 +320,7 @@ func Top(ctx context.Context, nameOrID string, options *TopOptions) ([]string, e
 }
 
 // Unpause unpauses all paused containers in a Pod.
-func Unpause(ctx context.Context, nameOrID string, options *UnpauseOptions) (*entities.PodUnpauseReport, error) {
-	if options == nil {
-		options = new(UnpauseOptions)
-	}
-	_ = options
+func Unpause(ctx context.Context, nameOrID string, _ *UnpauseOptions) (*entities.PodUnpauseReport, error) {
 	var report entities.PodUnpauseReport
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
