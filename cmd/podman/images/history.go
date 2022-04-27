@@ -168,3 +168,11 @@ func (h historyReporter) ID() string {
 	}
 	return h.ImageHistoryLayer.ID
 }
+
+func (h historyReporter) CreatedAt() string {
+	return time.Unix(h.ImageHistoryLayer.Created.Unix(), 0).UTC().String()
+}
+
+func (h historyReporter) CreatedSince() string {
+	return h.Created()
+}
