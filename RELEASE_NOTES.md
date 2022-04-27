@@ -1,5 +1,75 @@
 # Release Notes
 
+## 4.1.0
+### Features
+- Podman now supports Docker Compose v2.2 and higher ([#11822](https://github.com/containers/podman/issues/11822)).
+- A new container command has been added, `podman container clone`. This command makes a copy of an existing container, with the ability to change some settings (e.g. resource limits) while doing so.
+- A new machine command has been added, `podman machine inspect`. This command provides details on the configuration of machine VMs.
+- Two new volume commands have been added, `podman volume mount` and `podman volume unmount`. These allow for Podman-managed named volumes to be mounted and accessed from outside containers ([#12768](https://github.com/containers/podman/issues/12768)).
+- VMs created by `podman machine` now automatically mount the host's `$HOME` into the VM, to allow mounting volumes from the host into containers.
+- The `podman container checkpoint` and `podman container restore` options now support checkpointing to and restoring from OCI images. This allows checkpoints to be distributed via standard image registries.
+- The `podman play kube` command now supports environment variables that are specified using the `fieldRef` and `resourceFieldRef` sources.
+- The `podman play kube` command will now set default resource limits when the provided YAML does not include them ([#13115](https://github.com/containers/podman/issues/13115)).
+- The `podman play kube` command now supports a new option, `--annotation`, to add annotations to created containers ([#12968](https://github.com/containers/podman/issues/12968)).
+- The `podman play kube --build` command now supports a new option, `--context-dir`, which allows the user to specify the context directory to use when building the Containerfile ([#12485](https://github.com/containers/podman/issues/12485)).
+- The `podman container commit` command now supports a new option, `--squash`, which squashes the generated image into a single layer ([#12889](https://github.com/containers/podman/issues/12889)).
+- The `podman pod logs` command now supports two new options, `--names`, which identifies which container generated a log message by name, instead of ID ([#13261](https://github.com/containers/podman/issues/13261)) and `--color`, which colors messages based on what container generated them ([#13266](https://github.com/containers/podman/issues/13266)).
+- The `podman rmi` command now supports a new option, `--ignore`, which will ignore errors caused by missing images.
+- The `podman network create` command now features a new option, `--ipam-driver`, to specify details about how IP addresses are assigned to containers in the network ([#13521](https://github.com/containers/podman/issues/13521)).
+- The `podman machine list` command now features a new option, `--quiet`, to print only the names of configured VMs and no other information.
+- The `--ipc` option to the `podman create`, `podman run`, and `podman pod create` commands now supports three new modes: `none`, `private`, and `shareable`. The default IPC mode is now `shareable`, indicating the the IPC namespace can be shared with other containers ([#13265](https://github.com/containers/podman/issues/13265)).
+- The `--mount` option to the `podman create` and `podman run` commands can now set options for created named volumes via the `volume-opt` parameter ([#13387](https://github.com/containers/podman/issues/13387)).
+- The `--mount` option to the `podman create` and `podman run` commands now allows parameters to be passed in CSV format ([#13922](https://github.com/containers/podman/issues/13922)).
+- The `--userns` option to the `podman create` and `podman run` commands now supports a new option, `nomap`, that (only for rootless containers) does not map the UID of the user that started the container into the container, increasing security.
+- The `podman import` command now supports three new options, `--arch`, `--os`, and `--variant`, to specify what system the imported image was built for.
+- The `podman inspect` command now includes information on the network configuration of containers that joined a pre-configured network namespace with the `--net ns:` option to `podman run`, `podman create`, and `podman pod create`.
+- The `podman run` and `podman create` commands now support a new option, `--chrootdirs`, which specifies additional locations where container-specific files managed by Podman (e.g. `/etc/hosts`, `/etc/resolv.conf, etc) will be mounted inside the container ([#12961](https://github.com/containers/podman/issues/12691)).
+- The `podman run` and `podman create` commands now support a new option, `--passwd-entry`, allowing entries to be added to the container's `/etc/passwd` file.
+
+### Changes
+- The `--net=container:` option to `podman run`, `podman create`, and `podman pod create` now conflicts with the `--add-host` option.
+- As part of a deprecation of the SHA1 hash algorithm within Podman, the algorithm used to generate the filename of the rootless network namespace has been changed. As a result, rootless containers started before updating to Podman 4.1.0 will need to be restarted if they are joined to a network (and not just using `slirp4netns`) to ensure they can connect to containers started the upgrade.
+- Podman's handling of the `/etc/hosts` file has been rewritten to improve its consistency and handling of edge cases ([#12003](https://github.com/containers/podman/issues/12003) and [#13224](https://github.com/containers/podman/issues/13224)). As part of this, two new options are available in `containers.conf`: `base_hosts_file` (to specify a nonstandard location to source the base contents of the container's `/etc/hosts`) and `host_containers_internal_ip` (to specify a specific IP address for containers' `host.containers.internal` entry to point to).
+- The output of the `podman image trust show` command now includes information on the transport mechanisms allowed.
+- Podman now exits cleanly (with exit code 0) after receiving SIGTERM.
+- Containers running in systemd mode now set the `container_uuid` environment variable ([#13187](https://github.com/containers/podman/issues/13187)).
+- Renaming a container now generates an event readable through `podman events`.
+- The `--privileged` and `--cap-add` flags are no longer mutually exclusive ([#13449](https://github.com/containers/podman/issues/13449)).
+- Fixed a bug where the `--mount` option to `podman create` and `podman run` could not create anonymous volumes ([#13756](https://github.com/containers/podman/issues/13756)).
+- Fixed a bug where Podman containers where the user did not explicitly set an OOM score adjustment would implicitly set a value of 0, instead of not setting one at all ([#13731](https://github.com/containers/podman/issues/13731)).
+- The `podman machine set` command can no longer be used while the VM being updated is running ([#13783](https://github.com/containers/podman/issues/13783)).
+- Systemd service files created by `podman generate systemd` are now prettyprinted for increased readability.
+- The `file` event log driver now automatically rotates the log file, preventing it from growing beyond a set size.
+
+### Bugfixes
+- Fixed a bug where Podman could not add devices with a major or minor number over 256 to containers.
+- Fixed a bug where containers created by the `podman play kube` command did not record the raw image name used to create containers.
+- Fixed a bug where VMs created by `podman machine` could not start containers which forwarded ports when run on a host with a proxy configured ([#13628](https://github.com/containers/podman/issues/13628)).
+- Fixed a bug where VMs created by the `podman machine` command could not be connected to when the username of the current user was sufficiently long ([#12751](https://github.com/containers/podman/issues/12751)).
+- Fixed a bug where the `podman machine rm` command would error when removing a VM that was never started ([#13834](https://github.com/containers/podman/issues/13834)).
+- Fixed a bug where the remote Podman client's `podman manifest push` command could not push to registries that required authentication ([#13629](https://github.com/containers/podman/issues/13629)).
+- Fixed a bug where containers joining a pod with volumes did not have the pod's volumes added ([#13548](https://github.com/containers/podman/issues/13548)).
+- Fixed a bug where the `podman version --format` command could not return the OS of the server ([#13690](https://github.com/containers/podman/issues/13690)).
+- Fixed a bug where the `podman play kube` command would error when a volume specified by a `configMap` already existed ([#13715](https://github.com/containers/podman/issues/13715)).
+- Fixed a bug where the `podman play kube` command did not respect the `hostNetwork` setting in Pod YAML ([#14015](https://github.com/containers/podman/issues/14015)).
+- Fixed a bug where the `podman generate kube` command could generate YAML with too-long labels ([#13962](https://github.com/containers/podman/issues/13962)).
+- Fixed a bug where the `podman logs --tail=1` command would fail when the log driver was `journald` and the container was restarted ([#13098](https://github.com/containers/podman/issues/13098)).
+- Fixed a bug where containers created from images with a healthcheck that did not specify an interval would never run their healthchecks ([#13912](https://github.com/containers/podman/issues/13912)).
+- Fixed a bug where the `podman network connect` and `podman network disconnect` commands could leave invalid entries in `/etc/hosts` ([#13533](https://github.com/containers/podman/issues/13533)).
+- Fixed a bug where the `--tls-verify option to the `remote Podman client's `podman build` command was nonfunctional.
+
+### API
+- Containers created via the Libpod Create API that set a memory limit, but not a swap limit, will automatically have a swap limit set ([#13145](https://github.com/containers/podman/issues/13145)).
+- The Compat and Libpod Attach APIs for Containers can now attach to Stopped containers.
+- Fixed a bug where the Compat and Libpod Create APIs for Containers did not respect the `no_hosts` option in `containers.conf` ([#13719](https://github.com/containers/podman/issues/13719)).
+- Fixed a bug where the default network mode for rootless containers created via the Compat Create API was not `bridge`.
+- Fixed a bug where the Libpod List API for Containers did not allow filtering based on the `removing` status ([#13986](https://github.com/containers/podman/issues/13986)).
+- Fixed a bug where the Libpod Modify endpoint for Manifests did not respect the `tlsVerify` parameter.
+
+### Misc
+- A number of dependencies have been pruned from the project, resulting in a significant reduction in the size of the Podman binary.
+- Using `podman play kube` on a YAML that only includes `configMap` objects (and no pods or deployments) now prints a much clearer error message.
+
 ## 4.0.3
 ### Security
 - This release fixes CVE-2022-27649, where containers run by Podman would have excess inheritable capabilities set.
