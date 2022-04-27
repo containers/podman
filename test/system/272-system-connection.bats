@@ -99,10 +99,9 @@ $c2[ ]\+tcp://localhost:54321[ ]\+true" \
     _SERVICE_PID=$!
     wait_for_port localhost $_SERVICE_PORT
 
-    # FIXME: #12023, RemoteSocket is always /run/something
-#    run_podman info --format '{{.Host.RemoteSocket.Path}}'
-#    is "$output" "tcp:localhost:$_SERVICE_PORT" \
-#       "podman info works, and talks to the correct server"
+    _run_podman_remote info --format '{{.Host.RemoteSocket.Path}}'
+    is "$output" "tcp:localhost:$_SERVICE_PORT" \
+       "podman info works, and talks to the correct server"
 
     _run_podman_remote info --format '{{.Store.GraphRoot}}'
     is "$output" "${PODMAN_TMPDIR}/root" \
