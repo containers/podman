@@ -9,3 +9,19 @@ Finally, be sure to sign commits with your real name.  Since by opening
 a PR you already have commits, you can add signatures if needed with
 something like `git commit -s --amend`.
 -->
+
+#### Does this PR introduce a user-facing change?
+
+<!--
+If no, just write `None` in the release-note block below. If yes, a release note
+is required: Enter your extended release note in the block below. If the PR
+requires additional action from users switching to the new release, include the
+string "action required".
+
+For more information on release notes please follow the kubernetes model:
+https://git.k8s.io/community/contributors/guide/release-notes.md
+-->
+
+```release-note
+
+```
