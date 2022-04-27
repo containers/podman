@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 
 	"github.com/containers/image/v5/docker/reference"
@@ -370,6 +371,15 @@ func ManifestModify(w http.ResponseWriter, r *http.Request) {
 	if _, err := runtime.LibimageRuntime().LookupManifestList(name); err != nil {
 		utils.Error(w, http.StatusNotFound, err)
 		return
+	}
+
+	if tlsVerify, ok := r.URL.Query()["tlsVerify"]; ok {
+		tls, err := strconv.ParseBool(tlsVerify[len(tlsVerify)-1])
+		if err != nil {
+			utils.Error(w, http.StatusBadRequest, fmt.Errorf("tlsVerify param is not a bool: %w", err))
+			return
+		}
+		body.SkipTLSVerify = types.NewOptionalBool(!tls)
 	}
 
 	authconf, authfile, err := auth.GetCredentials(r)

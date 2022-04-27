@@ -2,13 +2,11 @@ package manifests
 
 import (
 	"context"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strconv"
 	"strings"
 
-	"github.com/blang/semver"
 	"github.com/containers/image/v5/manifest"
 	imageTypes "github.com/containers/image/v5/types"
 	"github.com/containers/podman/v4/pkg/api/handlers"
@@ -17,7 +15,6 @@ import (
 	"github.com/containers/podman/v4/pkg/bindings/images"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/errorhandling"
-	"github.com/containers/podman/v4/version"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/pkg/errors"
 )
@@ -95,65 +92,23 @@ func Add(ctx context.Context, name string, options *AddOptions) (string, error) 
 		options = new(AddOptions)
 	}
 
-	if bindings.ServiceVersion(ctx).GTE(semver.MustParse("4.0.0")) {
-		optionsv4 := ModifyOptions{
-			All:           options.All,
-			Annotations:   options.Annotation,
-			Arch:          options.Arch,
-			Features:      options.Features,
-			Images:        options.Images,
-			OS:            options.OS,
-			OSFeatures:    nil,
-			OSVersion:     options.OSVersion,
-			Variant:       options.Variant,
-			Username:      options.Username,
-			Password:      options.Password,
-			Authfile:      options.Authfile,
-			SkipTLSVerify: options.SkipTLSVerify,
-		}
-		optionsv4.WithOperation("update")
-		return Modify(ctx, name, options.Images, &optionsv4)
+	optionsv4 := ModifyOptions{
+		All:           options.All,
+		Annotations:   options.Annotation,
+		Arch:          options.Arch,
+		Features:      options.Features,
+		Images:        options.Images,
+		OS:            options.OS,
+		OSFeatures:    nil,
+		OSVersion:     options.OSVersion,
+		Variant:       options.Variant,
+		Username:      options.Username,
+		Password:      options.Password,
+		Authfile:      options.Authfile,
+		SkipTLSVerify: options.SkipTLSVerify,
 	}
-
-	// API Version < 4.0.0
-	conn, err := bindings.GetClient(ctx)
-	if err != nil {
-		return "", err
-	}
-	opts, err := jsoniter.MarshalToString(options)
-	if err != nil {
-		return "", err
-	}
-	reader := strings.NewReader(opts)
-
-	header, err := auth.MakeXRegistryAuthHeader(&imageTypes.SystemContext{AuthFilePath: options.GetAuthfile()}, options.GetUsername(), options.GetPassword())
-	if err != nil {
-		return "", err
-	}
-
-	params, err := options.ToParams()
-	if err != nil {
-		return "", err
-	}
-	// SkipTLSVerify is special.  We need to delete the param added by
-	// ToParams() and change the key and flip the bool
-	if options.SkipTLSVerify != nil {
-		params.Del("SkipTLSVerify")
-		params.Set("tlsVerify", strconv.FormatBool(!options.GetSkipTLSVerify()))
-	}
-
-	v := version.APIVersion[version.Libpod][version.MinimalAPI]
-	header.Add("API-Version",
-		fmt.Sprintf("%d.%d.%d", v.Major, v.Minor, v.Patch))
-
-	response, err := conn.DoRequest(ctx, reader, http.MethodPost, "/manifests/%s/add", params, header, name)
-	if err != nil {
-		return "", err
-	}
-	defer response.Body.Close()
-
-	var idr handlers.IDResponse
-	return idr.ID, response.Process(&idr)
+	optionsv4.WithOperation("update")
+	return Modify(ctx, name, options.Images, &optionsv4)
 }
 
 // Remove deletes a manifest entry from a manifest list.  Both name and the digest to be
@@ -185,9 +140,6 @@ func Push(ctx context.Context, name, destination string, options *images.PushOpt
 	if err != nil {
 		return "", err
 	}
-	v := version.APIVersion[version.Libpod][version.MinimalAPI]
-	header.Add("API-Version",
-		fmt.Sprintf("%d.%d.%d", v.Major, v.Minor, v.Patch))
 
 	params, err := options.ToParams()
 	if err != nil {
@@ -200,14 +152,7 @@ func Push(ctx context.Context, name, destination string, options *images.PushOpt
 		params.Set("tlsVerify", strconv.FormatBool(!options.GetSkipTLSVerify()))
 	}
 
-	var response *bindings.APIResponse
-	if bindings.ServiceVersion(ctx).GTE(semver.MustParse("4.0.0")) {
-		response, err = conn.DoRequest(ctx, nil, http.MethodPost, "/manifests/%s/registry/%s", params, header, name, destination)
-	} else {
-		params.Set("image", name)
-		params.Set("destination", destination)
-		response, err = conn.DoRequest(ctx, nil, http.MethodPost, "/manifests/%s/push", params, header, name)
-	}
+	response, err := conn.DoRequest(ctx, nil, http.MethodPost, "/manifests/%s/registry/%s", params, header, name, destination)
 	if err != nil {
 		return "", err
 	}
