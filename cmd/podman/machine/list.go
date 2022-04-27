@@ -85,7 +85,7 @@ func list(cmd *cobra.Command, args []string) error {
 		listFlag.format = "{{.Name}}\n"
 	}
 
-	provider := getSystemDefaultProvider()
+	provider := GetSystemDefaultProvider()
 	listResponse, err = provider.List(opts)
 	if err != nil {
 		return errors.Wrap(err, "error listing vms")

@@ -41,7 +41,7 @@ func start(cmd *cobra.Command, args []string) error {
 		vmName = args[0]
 	}
 
-	provider := getSystemDefaultProvider()
+	provider := GetSystemDefaultProvider()
 	vm, err = provider.LoadVMByName(vmName)
 	if err != nil {
 		return err

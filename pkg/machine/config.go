@@ -52,6 +52,7 @@ type Provider interface {
 	List(opts ListOptions) ([]*ListResponse, error)
 	IsValidVMName(name string) (bool, error)
 	CheckExclusiveActiveVM() (bool, string, error)
+	RemoveAndCleanMachines() error
 }
 
 type RemoteConnectionType string
@@ -170,11 +171,11 @@ func (rc RemoteConnectionType) MakeSSHURL(host, path, port, userName string) url
 // GetDataDir returns the filepath where vm images should
 // live for podman-machine.
 func GetDataDir(vmType string) (string, error) {
-	data, err := homedir.GetDataHome()
+	dataDirPrefix, err := DataDirPrefix()
 	if err != nil {
 		return "", err
 	}
-	dataDir := filepath.Join(data, "containers", "podman", "machine", vmType)
+	dataDir := filepath.Join(dataDirPrefix, vmType)
 	if _, err := os.Stat(dataDir); !os.IsNotExist(err) {
 		return dataDir, nil
 	}
@@ -182,19 +183,39 @@ func GetDataDir(vmType string) (string, error) {
 	return dataDir, mkdirErr
 }
 
-// GetConfigDir returns the filepath to where configuration
-// files for podman-machine should live
-func GetConfDir(vmType string) (string, error) {
-	conf, err := homedir.GetConfigHome()
+// DataDirPrefix returns the path prefix for all machine data files
+func DataDirPrefix() (string, error) {
+	data, err := homedir.GetDataHome()
 	if err != nil {
 		return "", err
 	}
-	confDir := filepath.Join(conf, "containers", "podman", "machine", vmType)
+	dataDir := filepath.Join(data, "containers", "podman", "machine")
+	return dataDir, nil
+}
+
+// GetConfigDir returns the filepath to where configuration
+// files for podman-machine should live
+func GetConfDir(vmType string) (string, error) {
+	confDirPrefix, err := ConfDirPrefix()
+	if err != nil {
+		return "", err
+	}
+	confDir := filepath.Join(confDirPrefix, vmType)
 	if _, err := os.Stat(confDir); !os.IsNotExist(err) {
 		return confDir, nil
 	}
 	mkdirErr := os.MkdirAll(confDir, 0755)
 	return confDir, mkdirErr
+}
+
+// ConfDirPrefix returns the path prefix for all machine config files
+func ConfDirPrefix() (string, error) {
+	conf, err := homedir.GetConfigHome()
+	if err != nil {
+		return "", err
+	}
+	confDir := filepath.Join(conf, "containers", "podman", "machine")
+	return confDir, nil
 }
 
 // ResourceConfig describes physical attributes of the machine

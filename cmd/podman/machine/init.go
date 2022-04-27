@@ -117,7 +117,7 @@ func initMachine(cmd *cobra.Command, args []string) error {
 		vm  machine.VM
 	)
 
-	provider := getSystemDefaultProvider()
+	provider := GetSystemDefaultProvider()
 	initOpts.Name = defaultMachineName
 	if len(args) > 0 {
 		if len(args[0]) > maxMachineNameSize {
