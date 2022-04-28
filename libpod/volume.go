@@ -52,6 +52,9 @@ type VolumeConfig struct {
 	Size uint64 `json:"size"`
 	// Inodes maximum of the volume.
 	Inodes uint64 `json:"inodes"`
+	// DisableQuota indicates that the volume should completely disable using any
+	// quota tracking.
+	DisableQuota bool `json:"disableQuota,omitempty"`
 }
 
 // VolumeState holds the volume's mutable state.

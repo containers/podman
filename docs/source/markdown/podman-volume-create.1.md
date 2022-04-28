@@ -38,7 +38,8 @@ The `device` option sets the device to be mounted, and is equivalent to the `dev
 The `o` option sets options for the mount, and is equivalent to the `-o` flag to **mount(8)** with these exceptions:
 
   - The `o` option supports `uid` and `gid` options to set the UID and GID of the created volume that are not normally supported by **mount(8)**.
-  - The `o` option supports the `size` option to set the maximum size of the created volume and the `inodes` option to set the maximum number of inodes for the volume. Currently these flags are only supported on "xfs" file system mounted with the `prjquota` flag described in the **xfs_quota(8)** man page.
+  - The `o` option supports the `size` option to set the maximum size of the created volume, the `inodes` option to set the maximum number of inodes for the volume and `noquota` to completely disable quota support even for tracking of disk usage. Currently these flags are only supported on "xfs" file system mounted with the `prjquota` flag described in the **xfs_quota(8)** man page.
+  - The `o` option supports .
   - Using volume options other then the UID/GID options with the **local** driver requires root privileges.
 
 When not using the **local** driver, the given options are passed directly to the volume plugin. In this case, supported options are dictated by the plugin in question, not Podman.
