@@ -90,7 +90,7 @@ The result contains the Image name and its tag, one line for every tag associate
 
 #### **--no-trunc**
 
-Do not truncate the output (default *true*).
+Do not truncate the output (default *false*).
 
 #### **--tls-verify**
 
