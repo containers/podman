@@ -1634,6 +1634,19 @@ func WithVolumeNoChown() VolumeCreateOption {
 	}
 }
 
+// WithVolumeDisableQuota prevents the volume from being assigned a quota.
+func WithVolumeDisableQuota() VolumeCreateOption {
+	return func(volume *Volume) error {
+		if volume.valid {
+			return define.ErrVolumeFinalized
+		}
+
+		volume.config.DisableQuota = true
+
+		return nil
+	}
+}
+
 // withSetAnon sets a bool notifying libpod that this volume is anonymous and
 // should be removed when containers using it are removed and volumes are
 // specified for removal.

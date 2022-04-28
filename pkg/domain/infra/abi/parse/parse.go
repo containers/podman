@@ -73,6 +73,11 @@ func VolumeOptions(opts map[string]string) ([]libpod.VolumeCreateOption, error) 
 					finalVal = append(finalVal, o)
 					// set option "GID": "$gid"
 					volumeOptions["GID"] = splitO[1]
+				case "noquota":
+					logrus.Debugf("Removing noquota from options and adding WithVolumeDisableQuota")
+					libpodOptions = append(libpodOptions, libpod.WithVolumeDisableQuota())
+					// set option "NOQUOTA": "true"
+					volumeOptions["NOQUOTA"] = "true"
 				default:
 					finalVal = append(finalVal, o)
 				}
