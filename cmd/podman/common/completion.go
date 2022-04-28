@@ -987,14 +987,12 @@ func AutocompleteFormat(o interface{}) func(cmd *cobra.Command, args []string, t
 		fields := strings.Split(field[len(field)-1], ".")
 		f := reflect.ValueOf(o)
 		for i := 1; i < len(fields); i++ {
-			if f.Kind() == reflect.Ptr {
-				f = f.Elem()
-			}
-
-			// the only supported type is struct
-			if f.Kind() != reflect.Struct {
+			val := getActualStructType(f)
+			if val == nil {
+				// no struct return nothing to complete
 				return nil, cobra.ShellCompDirectiveNoFileComp
 			}
+			f = *val
 
 			// last field get all names to suggest
 			if i == len(fields)-1 {
@@ -1012,17 +1010,38 @@ func AutocompleteFormat(o interface{}) func(cmd *cobra.Command, args []string, t
 	}
 }
 
-// getStructFields reads all struct field names and method names and returns them.
-func getStructFields(f reflect.Value, prefix string) []string {
-	suggestions := []string{}
+// getActualStructType take the value and check if it is a struct,
+// if it is pointer it will dereference it and when it is nil,
+// it will create a new value from it to get the actual struct
+// returns nil when type is not a struct
+func getActualStructType(f reflect.Value) *reflect.Value {
 	// follow the pointer first
 	if f.Kind() == reflect.Ptr {
+		// if the pointer is nil we create a new value from the elements type
+		// this allows us to follow nil pointers and get the actual struct fields
+		if f.IsNil() {
+			f = reflect.New(f.Type().Elem())
+		}
 		f = f.Elem()
 	}
 	// we only support structs
 	if f.Kind() != reflect.Struct {
 		return nil
 	}
+	return &f
+}
+
+// getStructFields reads all struct field names and method names and returns them.
+func getStructFields(f reflect.Value, prefix string) []string {
+	suggestions := []string{}
+
+	val := getActualStructType(f)
+	if val == nil {
+		// no struct return nothing to complete
+		return nil
+	}
+	f = *val
+
 	// loop over all field names
 	for j := 0; j < f.NumField(); j++ {
 		field := f.Type().Field(j)
@@ -1043,7 +1062,7 @@ func getStructFields(f reflect.Value, prefix string) []string {
 		}
 		// if field is anonymous add the child fields as well
 		if field.Anonymous {
-			suggestions = append(suggestions, getStructFields(f.FieldByIndex([]int{j}), prefix)...)
+			suggestions = append(suggestions, getStructFields(f.Field(j), prefix)...)
 		}
 	}
 
