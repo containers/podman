@@ -9,6 +9,7 @@ import (
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/common/pkg/report"
 	"github.com/containers/image/v5/types"
+	"github.com/containers/podman/v4/cmd/podman/common"
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/pkg/errors"
@@ -87,7 +88,7 @@ func searchFlags(cmd *cobra.Command) {
 
 	formatFlagName := "format"
 	flags.StringVar(&searchOptions.Format, formatFlagName, "", "Change the output format to JSON or a Go template")
-	_ = cmd.RegisterFlagCompletionFunc(formatFlagName, completion.AutocompleteNone)
+	_ = cmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(&entities.ImageSearchReport{}))
 
 	limitFlagName := "limit"
 	flags.IntVar(&searchOptions.Limit, limitFlagName, 0, "Limit the number of results")
