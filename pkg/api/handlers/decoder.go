@@ -21,6 +21,7 @@ func NewAPIDecoder() *schema.Decoder {
 	d.RegisterConverter(map[string][]string{}, convertURLValuesString)
 	d.RegisterConverter(time.Time{}, convertTimeString)
 	d.RegisterConverter(define.ContainerStatus(0), convertContainerStatusString)
+	d.RegisterConverter(map[string]string{}, convertStringMap)
 
 	var Signal syscall.Signal
 	d.RegisterConverter(Signal, convertSignal)
@@ -46,6 +47,15 @@ func convertURLValuesString(query string) reflect.Value {
 	}
 
 	return reflect.ValueOf(f)
+}
+
+func convertStringMap(query string) reflect.Value {
+	res := make(map[string]string)
+	err := json.Unmarshal([]byte(query), &res)
+	if err != nil {
+		logrus.Infof("convertStringMap: Failed to Unmarshal %s: %s", query, err.Error())
+	}
+	return reflect.ValueOf(res)
 }
 
 func convertContainerStatusString(query string) reflect.Value {
