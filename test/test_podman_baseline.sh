@@ -309,6 +309,28 @@ else
     echo "Overlay test within limits failed"
 fi
 
+before=`xfs_quota -x -c 'report -N -p' $TMPDIR | grep -c ^#`
+podman $PODMANBASE volume create -o o=noquota test-no-quota
+after=`xfs_quota -x -c 'report -N -p' $TMPDIR | grep -c ^#`
+
+if [ $before != $after ];
+then
+    echo "Test -o=noquota doesn't create a projid failed"
+else
+    echo "Test -o=noquota doesn't create a projid passed"
+fi
+
+before=`xfs_quota -x -c 'report -N -p' $TMPDIR | grep -c ^#`
+podman $PODMANBASE volume create -o test-no-quota
+after=`xfs_quota -x -c 'report -N -p' $TMPDIR | grep -c ^#`
+
+if [ $before == $after ];
+then
+    echo "Test without -o=noquota creates a projid failed"
+else
+    echo "Test without -o=noquota creates a projid passed"
+fi
+
 ########
 # Expected to fail
 ########

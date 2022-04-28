@@ -73,7 +73,7 @@ func (r *Runtime) newVolume(options ...VolumeCreateOption) (_ *Volume, deferredE
 						return nil, errors.Wrapf(err, "invalid volume option %s for driver 'local'", key)
 					}
 				}
-			case "o", "type", "uid", "gid", "size", "inodes":
+			case "o", "type", "uid", "gid", "size", "inodes", "noquota":
 				// Do nothing, valid keys
 			default:
 				return nil, errors.Wrapf(define.ErrInvalidArg, "invalid mount option %s for driver 'local'", key)
@@ -111,23 +111,28 @@ func (r *Runtime) newVolume(options ...VolumeCreateOption) (_ *Volume, deferredE
 		if err := LabelVolumePath(fullVolPath); err != nil {
 			return nil, err
 		}
-		projectQuotaSupported := false
-
-		q, err := quota.NewControl(r.config.Engine.VolumePath)
-		if err == nil {
-			projectQuotaSupported = true
-		}
-		quota := quota.Quota{}
-		if volume.config.Size > 0 || volume.config.Inodes > 0 {
-			if !projectQuotaSupported {
-				return nil, errors.New("Volume options size and inodes not supported. Filesystem does not support Project Quota")
+		if volume.config.DisableQuota {
+			if volume.config.Size > 0 || volume.config.Inodes > 0 {
+				return nil, errors.New("volume options size and inodes cannot be used without quota")
 			}
-			quota.Size = volume.config.Size
-			quota.Inodes = volume.config.Inodes
-		}
-		if projectQuotaSupported {
-			if err := q.SetQuota(fullVolPath, quota); err != nil {
-				return nil, errors.Wrapf(err, "failed to set size quota size=%d inodes=%d for volume directory %q", volume.config.Size, volume.config.Inodes, fullVolPath)
+		} else {
+			projectQuotaSupported := false
+			q, err := quota.NewControl(r.config.Engine.VolumePath)
+			if err == nil {
+				projectQuotaSupported = true
+			}
+			quota := quota.Quota{}
+			if volume.config.Size > 0 || volume.config.Inodes > 0 {
+				if !projectQuotaSupported {
+					return nil, errors.New("volume options size and inodes not supported. Filesystem does not support Project Quota")
+				}
+				quota.Size = volume.config.Size
+				quota.Inodes = volume.config.Inodes
+			}
+			if projectQuotaSupported {
+				if err := q.SetQuota(fullVolPath, quota); err != nil {
+					return nil, errors.Wrapf(err, "failed to set size quota size=%d inodes=%d for volume directory %q", volume.config.Size, volume.config.Inodes, fullVolPath)
+				}
 			}
 		}
 
