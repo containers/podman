@@ -39,6 +39,10 @@ host:
     package: conmon-2.0.29-2.fc34.x86_64
     path: /usr/bin/conmon
     version: 'conmon version 2.0.29, commit: '
+ cpu_utilization:
+   idle_percent: 96.84
+   system_percent: 0.71
+   user_percent: 2.45
   cpus: 8
   distribution:
     distribution: fedora
@@ -124,6 +128,8 @@ store:
   graphDriverName: overlay
   graphOptions: {}
   graphRoot: /home/dwalsh/.local/share/containers/storage
+  graphRootAllocated: 510389125120
+  graphRootUsed: 129170714624
   graphStatus:
     Backing Filesystem: extfs
     Native Overlay Diff: "true"
