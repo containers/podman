@@ -79,12 +79,12 @@ func TestAutocompleteFormat(t *testing.T) {
 		{
 			"fist level struct field name",
 			"{{.",
-			[]string{"{{.Name}}", "{{.Age}}", "{{.Car.", "{{.Car2.", "{{.Anonymous.", "{{.Hello}}"},
+			[]string{"{{.Name}}", "{{.Age}}", "{{.Car.", "{{.Car2.", "{{.Hello}}"},
 		},
 		{
 			"fist level struct field name",
 			"{{ .",
-			[]string{"{{ .Name}}", "{{ .Age}}", "{{ .Car.", "{{ .Car2.", "{{ .Anonymous.", "{{ .Hello}}"},
+			[]string{"{{ .Name}}", "{{ .Age}}", "{{ .Car.", "{{ .Car2.", "{{ .Hello}}"},
 		},
 		{
 			"fist level struct field name",
