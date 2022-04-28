@@ -66,7 +66,7 @@ func infoFlags(cmd *cobra.Command) {
 
 	formatFlagName := "format"
 	flags.StringVarP(&inFormat, formatFlagName, "f", "", "Change the output format to JSON or a Go template")
-	_ = cmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(define.Info{Host: &define.HostInfo{}, Store: &define.StoreInfo{}}))
+	_ = cmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(&define.Info{}))
 }
 
 func info(cmd *cobra.Command, args []string) error {

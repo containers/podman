@@ -34,10 +34,9 @@ func TestAutocompleteFormat(t *testing.T) {
 		Name string
 		Age  int
 		Car  *Car
+		Car2 *Car
 		*Anonymous
-	}{
-		Anonymous: &Anonymous{},
-	}
+	}{}
 
 	testStruct.Car = &Car{}
 	testStruct.Car.Extras = map[string]string{"test": "1"}
@@ -80,12 +79,12 @@ func TestAutocompleteFormat(t *testing.T) {
 		{
 			"fist level struct field name",
 			"{{.",
-			[]string{"{{.Name}}", "{{.Age}}", "{{.Car.", "{{.Anonymous.", "{{.Hello}}"},
+			[]string{"{{.Name}}", "{{.Age}}", "{{.Car.", "{{.Car2.", "{{.Hello}}"},
 		},
 		{
 			"fist level struct field name",
 			"{{ .",
-			[]string{"{{ .Name}}", "{{ .Age}}", "{{ .Car.", "{{ .Anonymous.", "{{ .Hello}}"},
+			[]string{"{{ .Name}}", "{{ .Age}}", "{{ .Car.", "{{ .Car2.", "{{ .Hello}}"},
 		},
 		{
 			"fist level struct field name",
@@ -101,6 +100,11 @@ func TestAutocompleteFormat(t *testing.T) {
 			"second level struct field name",
 			"{{ .Car.B",
 			[]string{"{{ .Car.Brand}}"},
+		},
+		{
+			"second level nil struct field name",
+			"{{ .Car2.",
+			[]string{"{{ .Car2.Brand}}", "{{ .Car2.Stats.", "{{ .Car2.Extras}}", "{{ .Car2.Color}}", "{{ .Car2.Type}}"},
 		},
 		{
 			"three level struct field name",

@@ -80,7 +80,7 @@ func listFlagSet(cmd *cobra.Command) {
 
 	formatFlagName := "format"
 	flags.StringVar(&listOpts.Format, formatFlagName, "", "Pretty-print containers to JSON or using a Go template")
-	_ = cmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(entities.ListContainer{}))
+	_ = cmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(&psReporter{}))
 
 	lastFlagName := "last"
 	flags.IntVarP(&listOpts.Last, lastFlagName, "n", -1, "Print the n last created containers (all states)")

@@ -35,12 +35,7 @@ func init() {
 
 	formatFlagName := "format"
 	flags.StringVarP(&inspectOpts.Format, formatFlagName, "f", "json", "Format the output to a Go template or json")
-	_ = inspectCmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(define.InspectContainerData{
-		State:           &define.InspectContainerState{},
-		NetworkSettings: &define.InspectNetworkSettings{},
-		Config:          &define.InspectContainerConfig{},
-		HostConfig:      &define.InspectContainerHostConfig{},
-	}))
+	_ = inspectCmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(&define.InspectContainerData{}))
 
 	validate.AddLatestFlag(inspectCmd, &inspectOpts.Latest)
 }
