@@ -131,7 +131,7 @@ func (m *machineTestBuilder) setTimeout(timeout time.Duration) *machineTestBuild
 func (mb *machineTestBuilder) toQemuInspectInfo() ([]qemuMachineInspectInfo, int, error) {
 	args := []string{"machine", "inspect"}
 	args = append(args, mb.names...)
-	session, err := runWrapper(mb.podmanBinary, args, defaultTimeout)
+	session, err := runWrapper(mb.podmanBinary, args, defaultTimeout, true)
 	if err != nil {
 		return nil, -1, err
 	}
@@ -140,11 +140,15 @@ func (mb *machineTestBuilder) toQemuInspectInfo() ([]qemuMachineInspectInfo, int
 	return mii, session.ExitCode(), err
 }
 
-func (m *machineTestBuilder) run() (*machineSession, error) {
-	return runWrapper(m.podmanBinary, m.cmd, m.timeout)
+func (m *machineTestBuilder) runWithoutWait() (*machineSession, error) {
+	return runWrapper(m.podmanBinary, m.cmd, m.timeout, false)
 }
 
-func runWrapper(podmanBinary string, cmdArgs []string, timeout time.Duration) (*machineSession, error) {
+func (m *machineTestBuilder) run() (*machineSession, error) {
+	return runWrapper(m.podmanBinary, m.cmd, m.timeout, true)
+}
+
+func runWrapper(podmanBinary string, cmdArgs []string, timeout time.Duration, wait bool) (*machineSession, error) {
 	if len(os.Getenv("DEBUG")) > 0 {
 		cmdArgs = append([]string{"--log-level=debug"}, cmdArgs...)
 	}
@@ -156,8 +160,10 @@ func runWrapper(podmanBinary string, cmdArgs []string, timeout time.Duration) (*
 		return nil, err
 	}
 	ms := machineSession{session}
-	ms.waitWithTimeout(timeout)
-	fmt.Println("output:", ms.outputToString())
+	if wait {
+		ms.waitWithTimeout(timeout)
+		fmt.Println("output:", ms.outputToString())
+	}
 	return &ms, nil
 }
 

@@ -70,6 +70,33 @@ var _ = Describe("podman machine list", func() {
 		Expect(util.StringInSlice(name1, listNames)).To(BeTrue())
 		Expect(util.StringInSlice(name2, listNames)).To(BeTrue())
 	})
+
+	It("list machine: check if running while starting", func() {
+		i := new(initMachine)
+		session, err := mb.setCmd(i.withImagePath(mb.imagePath)).run()
+		Expect(err).To(BeNil())
+		Expect(session).To(Exit(0))
+		s := new(startMachine)
+		startSession, err := mb.setCmd(s).runWithoutWait()
+		Expect(err).To(BeNil())
+		l := new(listMachine)
+		for { // needs to be infinite because we need to check if running when inspect returns to avoid race conditions.
+			listSession, err := mb.setCmd(l).run()
+			Expect(listSession).To(Exit(0))
+			Expect(err).To(BeNil())
+			if startSession.ExitCode() == -1 {
+				Expect(listSession.outputToString()).NotTo(ContainSubstring("Currently running"))
+			} else {
+				break
+			}
+		}
+		Expect(startSession).To(Exit(0))
+		listSession, err := mb.setCmd(l).run()
+		Expect(listSession).To(Exit(0))
+		Expect(err).To(BeNil())
+		Expect(listSession.outputToString()).To(ContainSubstring("Currently running"))
+		Expect(listSession.outputToString()).NotTo(ContainSubstring("Less than a second ago")) // check to make sure time created is accurate
+	})
 })
 
 func stripAsterisk(sl []string) {
