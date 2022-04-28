@@ -155,7 +155,7 @@ type Provider struct{}
 type MachineVM struct {
 	// IdentityPath is the fq path to the ssh priv key
 	IdentityPath string
-	// IgnitionFilePath is the fq path to the .ign file
+	// ImageStream is the version of fcos being used
 	ImageStream string
 	// ImagePath is the fq path to
 	ImagePath string
@@ -1386,4 +1386,8 @@ func (v *MachineVM) setRootful(rootful bool) error {
 		}
 	}
 	return nil
+}
+
+func (v *MachineVM) Inspect() (*machine.InspectInfo, error) {
+	return nil, define.ErrNotImplemented
 }

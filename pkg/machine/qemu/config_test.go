@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/containers/podman/v4/pkg/machine"
 	"github.com/containers/podman/v4/test/utils"
 )
 
@@ -37,7 +38,7 @@ func TestMachineFile_GetPath(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			m := &MachineFile{
+			m := &machine.VMFile{
 				Path:    tt.fields.Path,    //nolint: scopelint
 				Symlink: tt.fields.Symlink, //nolint: scopelint
 			}
@@ -73,7 +74,7 @@ func TestNewMachineFile(t *testing.T) {
 	sym := "my.sock"
 	longSym := filepath.Join(homedir, ".podman", sym)
 
-	m := MachineFile{
+	m := machine.VMFile{
 		Path:    p,
 		Symlink: nil,
 	}
@@ -84,7 +85,7 @@ func TestNewMachineFile(t *testing.T) {
 	tests := []struct {
 		name    string
 		args    args
-		want    *MachineFile
+		want    *machine.VMFile
 		wantErr bool
 	}{
 		{
@@ -96,7 +97,7 @@ func TestNewMachineFile(t *testing.T) {
 		{
 			name:    "Good with short symlink",
 			args:    args{p, &sym},
-			want:    &MachineFile{p, nil},
+			want:    &machine.VMFile{Path: p},
 			wantErr: false,
 		},
 		{
@@ -114,14 +115,14 @@ func TestNewMachineFile(t *testing.T) {
 		{
 			name:    "Good with long symlink",
 			args:    args{longp, &sym},
-			want:    &MachineFile{longp, &longSym},
+			want:    &machine.VMFile{Path: longp, Symlink: &longSym},
 			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewMachineFile(tt.args.path, tt.args.symlink) //nolint: scopelint
-			if (err != nil) != tt.wantErr {                           //nolint: scopelint
+			got, err := machine.NewMachineFile(tt.args.path, tt.args.symlink) //nolint: scopelint
+			if (err != nil) != tt.wantErr {                                   //nolint: scopelint
 				t.Errorf("NewMachineFile() error = %v, wantErr %v", err, tt.wantErr) //nolint: scopelint
 				return
 			}
