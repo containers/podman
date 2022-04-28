@@ -1056,13 +1056,12 @@ func getStructFields(f reflect.Value, prefix string) []string {
 		if kind == reflect.Struct {
 			suffix = "."
 		}
-		if strings.HasPrefix(fname, prefix) {
-			// add field name with suffix
-			suggestions = append(suggestions, fname+suffix)
-		}
 		// if field is anonymous add the child fields as well
 		if field.Anonymous {
 			suggestions = append(suggestions, getStructFields(f.Field(j), prefix)...)
+		} else if strings.HasPrefix(fname, prefix) {
+			// add field name with suffix
+			suggestions = append(suggestions, fname+suffix)
 		}
 	}
 
