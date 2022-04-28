@@ -514,7 +514,7 @@ var _ = Describe("Podman pull", func() {
 			Expect(data).To(HaveLen(1))
 			Expect(data[0].RepoTags).To(HaveLen(1))
 			Expect(data[0].RepoTags[0]).To(Equal(t.tag1))
-			Expect(data[0].ID).To(Equal(image1))
+			Expect(data[0]).To(HaveField("ID", image1))
 		}
 	})
 
@@ -541,8 +541,8 @@ var _ = Describe("Podman pull", func() {
 
 		data := setup.InspectImageJSON() // returns []inspect.ImageData
 		Expect(data).To(HaveLen(1))
-		Expect(data[0].Os).To(Equal(runtime.GOOS))
-		Expect(data[0].Architecture).To(Equal("arm64"))
+		Expect(data[0]).To(HaveField("Os", runtime.GOOS))
+		Expect(data[0]).To(HaveField("Architecture", "arm64"))
 	})
 
 	It("podman pull --arch", func() {
@@ -568,7 +568,7 @@ var _ = Describe("Podman pull", func() {
 
 		data := setup.InspectImageJSON() // returns []inspect.ImageData
 		Expect(data).To(HaveLen(1))
-		Expect(data[0].Os).To(Equal(runtime.GOOS))
-		Expect(data[0].Architecture).To(Equal("arm64"))
+		Expect(data[0]).To(HaveField("Os", runtime.GOOS))
+		Expect(data[0]).To(HaveField("Architecture", "arm64"))
 	})
 })

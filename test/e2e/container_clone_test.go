@@ -68,8 +68,8 @@ var _ = Describe("Podman container clone", func() {
 		ctrInspect := podmanTest.Podman([]string{"inspect", clone.OutputToString()})
 		ctrInspect.WaitWithDefaultTimeout()
 		Expect(ctrInspect).To(Exit(0))
-		Expect(ctrInspect.InspectContainerToJSON()[0].ImageName).To(Equal(fedoraMinimal))
-		Expect(ctrInspect.InspectContainerToJSON()[0].Name).To(Equal("new_name"))
+		Expect(ctrInspect.InspectContainerToJSON()[0]).To(HaveField("ImageName", fedoraMinimal))
+		Expect(ctrInspect.InspectContainerToJSON()[0]).To(HaveField("Name", "new_name"))
 	})
 
 	It("podman container clone name test", func() {
@@ -84,7 +84,7 @@ var _ = Describe("Podman container clone", func() {
 		cloneInspect.WaitWithDefaultTimeout()
 		Expect(cloneInspect).To(Exit(0))
 		cloneData := cloneInspect.InspectContainerToJSON()
-		Expect(cloneData[0].Name).To(Equal("testing123"))
+		Expect(cloneData[0]).To(HaveField("Name", "testing123"))
 	})
 
 	It("podman container clone resource limits override", func() {
@@ -104,7 +104,7 @@ var _ = Describe("Podman container clone", func() {
 		cloneInspect.WaitWithDefaultTimeout()
 		Expect(cloneInspect).To(Exit(0))
 		cloneData := cloneInspect.InspectContainerToJSON()
-		Expect(createData[0].HostConfig.NanoCpus).To(Equal(cloneData[0].HostConfig.NanoCpus))
+		Expect(createData[0].HostConfig).To(HaveField("NanoCpus", cloneData[0].HostConfig.NanoCpus))
 
 		create = podmanTest.Podman([]string{"create", "--memory=5", ALPINE})
 		create.WaitWithDefaultTimeout()
@@ -122,7 +122,7 @@ var _ = Describe("Podman container clone", func() {
 		cloneInspect.WaitWithDefaultTimeout()
 		Expect(cloneInspect).To(Exit(0))
 		cloneData = cloneInspect.InspectContainerToJSON()
-		Expect(createData[0].HostConfig.MemorySwap).To(Equal(cloneData[0].HostConfig.MemorySwap))
+		Expect(createData[0].HostConfig).To(HaveField("MemorySwap", cloneData[0].HostConfig.MemorySwap))
 
 		create = podmanTest.Podman([]string{"create", "--cpus=5", ALPINE})
 		create.WaitWithDefaultTimeout()
@@ -145,7 +145,7 @@ var _ = Describe("Podman container clone", func() {
 		Expect(cloneInspect).To(Exit(0))
 		cloneData = cloneInspect.InspectContainerToJSON()
 		Expect(createData[0].HostConfig.NanoCpus).ToNot(Equal(cloneData[0].HostConfig.NanoCpus))
-		Expect(cloneData[0].HostConfig.NanoCpus).To(Equal(nanoCPUs))
+		Expect(cloneData[0].HostConfig).To(HaveField("NanoCpus", nanoCPUs))
 
 		create = podmanTest.Podman([]string{"create", ALPINE})
 		create.WaitWithDefaultTimeout()
@@ -158,7 +158,7 @@ var _ = Describe("Podman container clone", func() {
 		cloneInspect.WaitWithDefaultTimeout()
 		Expect(cloneInspect).To(Exit(0))
 		cloneData = cloneInspect.InspectContainerToJSON()
-		Expect(cloneData[0].HostConfig.MemorySwappiness).To(Equal(int64(0)))
+		Expect(cloneData[0].HostConfig).To(HaveField("MemorySwappiness", int64(0)))
 
 	})
 
