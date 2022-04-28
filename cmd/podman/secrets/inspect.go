@@ -36,7 +36,7 @@ func init() {
 	flags := inspectCmd.Flags()
 	formatFlagName := "format"
 	flags.StringVar(&format, formatFlagName, "", "Format volume output using Go template")
-	_ = inspectCmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(entities.SecretInfoReport{}))
+	_ = inspectCmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(&entities.SecretInfoReport{}))
 }
 
 func inspect(cmd *cobra.Command, args []string) error {

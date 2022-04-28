@@ -38,7 +38,7 @@ func init() {
 	})
 
 	listCmd.Flags().String("format", "", "Custom Go template for printing connections")
-	_ = listCmd.RegisterFlagCompletionFunc("format", common.AutocompleteFormat(namedDestination{}))
+	_ = listCmd.RegisterFlagCompletionFunc("format", common.AutocompleteFormat(&namedDestination{}))
 }
 
 type namedDestination struct {

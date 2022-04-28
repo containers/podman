@@ -45,7 +45,7 @@ func init() {
 	flags := lsCmd.Flags()
 	formatFlagName := "format"
 	flags.StringVar(&listFlag.format, formatFlagName, "{{.ID}}\t{{.Name}}\t{{.Driver}}\t{{.CreatedAt}}\t{{.UpdatedAt}}\t\n", "Format volume output using Go template")
-	_ = lsCmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(entities.SecretInfoReport{}))
+	_ = lsCmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(&entities.SecretInfoReport{}))
 	filterFlagName := "filter"
 	flags.StringSliceVarP(&listFlag.filter, filterFlagName, "f", []string{}, "Filter secret output")
 	_ = lsCmd.RegisterFlagCompletionFunc(filterFlagName, common.AutocompleteSecretFilters)
