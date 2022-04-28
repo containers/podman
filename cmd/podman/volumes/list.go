@@ -11,7 +11,6 @@ import (
 	"github.com/containers/podman/v4/cmd/podman/parse"
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/containers/podman/v4/cmd/podman/validate"
-	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -57,7 +56,7 @@ func init() {
 
 	formatFlagName := "format"
 	flags.StringVar(&cliOpts.Format, formatFlagName, "{{.Driver}}\t{{.Name}}\n", "Format volume output using Go template")
-	_ = lsCommand.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(define.InspectVolumeData{}))
+	_ = lsCommand.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(&entities.VolumeListReport{}))
 
 	flags.Bool("noheading", false, "Do not print headers")
 	flags.BoolVarP(&cliOpts.Quiet, "quiet", "q", false, "Print volume output in quiet mode")

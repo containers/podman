@@ -34,7 +34,7 @@ func init() {
 
 	formatFlagName := "format"
 	flags.StringVarP(&inspectOpts.Format, formatFlagName, "f", "json", "Format the output to a Go template or json")
-	_ = inspectCmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(inspectTypes.ImageData{}))
+	_ = inspectCmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(&inspectTypes.ImageData{}))
 }
 
 func inspectExec(cmd *cobra.Command, args []string) error {
