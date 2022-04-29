@@ -87,7 +87,7 @@ func init() {
 	_ = kubeCmd.RegisterFlagCompletionFunc(staticIPFlagName, completion.AutocompleteNone)
 
 	logDriverFlagName := "log-driver"
-	flags.StringVar(&kubeOptions.LogDriver, logDriverFlagName, "", "Logging driver for the container")
+	flags.StringVar(&kubeOptions.LogDriver, logDriverFlagName, common.LogDriver(), "Logging driver for the container")
 	_ = kubeCmd.RegisterFlagCompletionFunc(logDriverFlagName, common.AutocompleteLogDriver)
 
 	logOptFlagName := "log-opt"
