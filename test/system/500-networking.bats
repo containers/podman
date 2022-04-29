@@ -723,4 +723,19 @@ EOF
     is "${#lines[@]}" "5" "expect 5 host entries in /etc/hosts"
 }
 
+@test "podman run /etc/* permissions" {
+    userns="--userns=keep-id"
+    if ! is_rootless; then
+        userns="--uidmap=0:1111111:65536 --gidmap=0:1111111:65536"
+    fi
+    # check with and without userns
+    for userns in "" "$userns"; do
+        # check the /etc/hosts /etc/hostname /etc/resolv.conf are owned by root
+        run_podman run $userns --rm $IMAGE stat -c %u:%g /etc/hosts /etc/resolv.conf /etc/hostname
+        is "${lines[0]}" "0\:0" "/etc/hosts owned by root"
+        is "${lines[1]}" "0\:0" "/etc/resolv.conf owned by root"
+        is "${lines[2]}" "0\:0" "/etc/hosts owned by root"
+    done
+}
+
 # vim: filetype=sh

@@ -2113,14 +2113,8 @@ func (c *Container) makeBindMounts() error {
 			}
 		} else {
 			if !c.config.UseImageResolvConf {
-				newResolv, err := c.generateResolvConf()
-				if err != nil {
+				if err := c.generateResolvConf(); err != nil {
 					return errors.Wrapf(err, "error creating resolv.conf for container %s", c.ID())
-				}
-				err = c.mountIntoRootDirs("/etc/resolv.conf", newResolv)
-
-				if err != nil {
-					return errors.Wrapf(err, "error assigning mounts to container %s", c.ID())
 				}
 			}
 
@@ -2278,7 +2272,7 @@ rootless=%d
 }
 
 // generateResolvConf generates a containers resolv.conf
-func (c *Container) generateResolvConf() (string, error) {
+func (c *Container) generateResolvConf() error {
 	var (
 		nameservers          []string
 		networkNameServers   []string
@@ -2294,7 +2288,7 @@ func (c *Container) generateResolvConf() (string, error) {
 				if err == nil {
 					resolvConf = definedPath
 				} else if !os.IsNotExist(err) {
-					return "", err
+					return err
 				}
 			}
 			break
@@ -2304,7 +2298,7 @@ func (c *Container) generateResolvConf() (string, error) {
 	contents, err := ioutil.ReadFile(resolvConf)
 	// resolv.conf doesn't have to exists
 	if err != nil && !os.IsNotExist(err) {
-		return "", err
+		return err
 	}
 
 	ns := resolvconf.GetNameservers(contents)
@@ -2314,7 +2308,7 @@ func (c *Container) generateResolvConf() (string, error) {
 		resolvedContents, err := ioutil.ReadFile("/run/systemd/resolve/resolv.conf")
 		if err != nil {
 			if !os.IsNotExist(err) {
-				return "", errors.Wrapf(err, "detected that systemd-resolved is in use, but could not locate real resolv.conf")
+				return errors.Wrapf(err, "detected that systemd-resolved is in use, but could not locate real resolv.conf")
 			}
 		} else {
 			contents = resolvedContents
@@ -2337,21 +2331,21 @@ func (c *Container) generateResolvConf() (string, error) {
 
 	ipv6, err := c.checkForIPv6(netStatus)
 	if err != nil {
-		return "", err
+		return err
 	}
 
 	// Ensure that the container's /etc/resolv.conf is compatible with its
 	// network configuration.
 	resolv, err := resolvconf.FilterResolvDNS(contents, ipv6, c.config.CreateNetNS)
 	if err != nil {
-		return "", errors.Wrapf(err, "error parsing host resolv.conf")
+		return errors.Wrapf(err, "error parsing host resolv.conf")
 	}
 
 	dns := make([]net.IP, 0, len(c.runtime.config.Containers.DNSServers)+len(c.config.DNSServer))
 	for _, i := range c.runtime.config.Containers.DNSServers {
 		result := net.ParseIP(i)
 		if result == nil {
-			return "", errors.Wrapf(define.ErrInvalidArg, "invalid IP address %s", i)
+			return errors.Wrapf(define.ErrInvalidArg, "invalid IP address %s", i)
 		}
 		dns = append(dns, result)
 	}
@@ -2402,20 +2396,15 @@ func (c *Container) generateResolvConf() (string, error) {
 	destPath := filepath.Join(c.state.RunDir, "resolv.conf")
 
 	if err := os.Remove(destPath); err != nil && !os.IsNotExist(err) {
-		return "", errors.Wrapf(err, "container %s", c.ID())
+		return errors.Wrapf(err, "container %s", c.ID())
 	}
 
 	// Build resolv.conf
 	if _, err = resolvconf.Build(destPath, nameservers, search, options); err != nil {
-		return "", errors.Wrapf(err, "error building resolv.conf for container %s", c.ID())
+		return errors.Wrapf(err, "error building resolv.conf for container %s", c.ID())
 	}
 
-	// Relabel resolv.conf for the container
-	if err := c.relabel(destPath, c.config.MountLabel, true); err != nil {
-		return "", err
-	}
-
-	return destPath, nil
+	return c.bindMountRootFile(destPath, "/etc/resolv.conf")
 }
 
 // Check if a container uses IPv6.
@@ -2590,17 +2579,21 @@ func (c *Container) createHosts() error {
 		return err
 	}
 
-	if err := os.Chown(targetFile, c.RootUID(), c.RootGID()); err != nil {
+	return c.bindMountRootFile(targetFile, config.DefaultHostsFile)
+}
+
+// bindMountRootFile will chown and relabel the source file to make it usable in the container.
+// It will also add the path to the container bind mount map.
+// source is the path on the host, dest is the path in the container.
+func (c *Container) bindMountRootFile(source, dest string) error {
+	if err := os.Chown(source, c.RootUID(), c.RootGID()); err != nil {
 		return err
 	}
-	if err := label.Relabel(targetFile, c.MountLabel(), false); err != nil {
+	if err := label.Relabel(source, c.MountLabel(), false); err != nil {
 		return err
 	}
 
-	if err = c.mountIntoRootDirs(config.DefaultHostsFile, targetFile); err != nil {
-		return err
-	}
-	return nil
+	return c.mountIntoRootDirs(dest, source)
 }
 
 // generateGroupEntry generates an entry or entries into /etc/group as
