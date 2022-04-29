@@ -199,10 +199,15 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool,
 	// Go through and lock all containers so we can operate on them all at
 	// once.
 	// First loop also checks that we are ready to go ahead and remove.
+	containersLocked := true
 	for _, ctr := range ctrs {
 		ctrLock := ctr.lock
 		ctrLock.Lock()
-		defer ctrLock.Unlock()
+		defer func() {
+			if containersLocked {
+				ctrLock.Unlock()
+			}
+		}()
 
 		// If we're force-removing, no need to check status.
 		if force {
@@ -304,6 +309,12 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool,
 		}
 	}
 
+	// let's unlock the containers so if there is any cleanup process, it can terminate its execution
+	for _, ctr := range ctrs {
+		ctr.lock.Unlock()
+	}
+	containersLocked = false
+
 	// Remove pod cgroup, if present
 	if p.state.CgroupPath != "" {
 		logrus.Debugf("Removing pod cgroup %s", p.state.CgroupPath)
@@ -332,7 +343,7 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool,
 				}
 			}
 			if err == nil {
-				if err := conmonCgroup.Delete(); err != nil {
+				if err = conmonCgroup.Delete(); err != nil {
 					if removalErr == nil {
 						removalErr = errors.Wrapf(err, "error removing pod %s conmon cgroup", p.ID())
 					} else {
