@@ -1548,6 +1548,12 @@ func (ic *ContainerEngine) ContainerClone(ctx context.Context, ctrCloneOpts enti
 			return nil, err
 		}
 
+		if len(spec.Networks) > 0 && pod.SharesNet() {
+			logrus.Warning("resetting network config, cannot specify a network other than the pod's when sharing the net namespace")
+			spec.Networks = nil
+			spec.NetworkOptions = nil
+		}
+
 		allNamespaces := []struct {
 			isShared bool
 			value    *specgen.Namespace
