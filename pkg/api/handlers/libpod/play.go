@@ -70,6 +70,16 @@ func PlayKube(w http.ResponseWriter, r *http.Request) {
 		password = authConf.Password
 	}
 
+	logDriver := query.LogDriver
+	if logDriver == "" {
+		config, err := runtime.GetConfig()
+		if err != nil {
+			utils.Error(w, http.StatusInternalServerError, err)
+			return
+		}
+		query.LogDriver = config.Containers.LogDriver
+	}
+
 	containerEngine := abi.ContainerEngine{Libpod: runtime}
 	options := entities.PlayKubeOptions{
 		Annotations: query.Annotations,
