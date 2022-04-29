@@ -267,4 +267,30 @@ var _ = Describe("Podman container clone", func() {
 		Expect(clone).ToNot(Exit(0))
 
 	})
+
+	It("podman container clone network passing", func() {
+		networkCreate := podmanTest.Podman([]string{"network", "create", "testing123"})
+		networkCreate.WaitWithDefaultTimeout()
+		defer podmanTest.removeNetwork("testing123")
+		Expect(networkCreate).To(Exit(0))
+		run := podmanTest.Podman([]string{"run", "--network", "bridge", "-dt", ALPINE})
+		run.WaitWithDefaultTimeout()
+		Expect(run).To(Exit(0))
+
+		connect := podmanTest.Podman([]string{"network", "connect", "testing123", run.OutputToString()})
+		connect.WaitWithDefaultTimeout()
+		Expect(connect).To(Exit(0))
+
+		clone := podmanTest.Podman([]string{"container", "clone", run.OutputToString()})
+		clone.WaitWithDefaultTimeout()
+		Expect(clone).To(Exit(0))
+
+		inspect := podmanTest.Podman([]string{"inspect", clone.OutputToString()})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).To(Exit(0))
+		Expect(inspect.InspectContainerToJSON()[0].NetworkSettings.Networks).To(HaveLen(2))
+		_, ok := inspect.InspectContainerToJSON()[0].NetworkSettings.Networks["testing123"]
+		Expect(ok).To(BeTrue())
+
+	})
 })

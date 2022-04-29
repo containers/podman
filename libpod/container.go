@@ -288,6 +288,15 @@ func (c *Container) Config() *ContainerConfig {
 		return nil
 	}
 
+	if c != nil {
+		networks, err := c.networks()
+		if err != nil {
+			return nil
+		}
+
+		returnConfig.Networks = networks
+	}
+
 	return returnConfig
 }
 
@@ -1260,7 +1269,10 @@ func (c *Container) NetworkMode() string {
 
 // Unlocked accessor for networks
 func (c *Container) networks() (map[string]types.PerNetworkOptions, error) {
-	return c.runtime.state.GetNetworks(c)
+	if c != nil && c.runtime != nil && c.runtime.state != nil { // can fail if c.networks is called from the tests
+		return c.runtime.state.GetNetworks(c)
+	}
+	return nil, nil
 }
 
 // getInterfaceByName returns a formatted interface name for a given
