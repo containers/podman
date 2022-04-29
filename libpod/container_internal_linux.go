@@ -2289,9 +2289,11 @@ func (c *Container) generateResolvConf() error {
 		networkSearchDomains []string
 	)
 
+	hostns := true
 	resolvConf := "/etc/resolv.conf"
 	for _, namespace := range c.config.Spec.Linux.Namespaces {
 		if namespace.Type == spec.NetworkNamespace {
+			hostns = false
 			if namespace.Path != "" && !strings.HasPrefix(namespace.Path, "/proc/") {
 				definedPath := filepath.Join("/etc/netns", filepath.Base(namespace.Path), "resolv.conf")
 				_, err := os.Stat(definedPath)
@@ -2313,7 +2315,7 @@ func (c *Container) generateResolvConf() error {
 
 	ns := resolvconf.GetNameservers(contents)
 	// check if systemd-resolved is used, assume it is used when 127.0.0.53 is the only nameserver
-	if len(ns) == 1 && ns[0] == "127.0.0.53" {
+	if !hostns && len(ns) == 1 && ns[0] == "127.0.0.53" {
 		// read the actual resolv.conf file for systemd-resolved
 		resolvedContents, err := ioutil.ReadFile("/run/systemd/resolve/resolv.conf")
 		if err != nil {
@@ -2346,7 +2348,7 @@ func (c *Container) generateResolvConf() error {
 
 	// Ensure that the container's /etc/resolv.conf is compatible with its
 	// network configuration.
-	resolv, err := resolvconf.FilterResolvDNS(contents, ipv6, c.config.CreateNetNS)
+	resolv, err := resolvconf.FilterResolvDNS(contents, ipv6, !hostns)
 	if err != nil {
 		return errors.Wrapf(err, "error parsing host resolv.conf")
 	}
