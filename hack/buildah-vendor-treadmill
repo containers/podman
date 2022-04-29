@@ -24,6 +24,10 @@ our $VERSION = '0.1';
 ###############################################################################
 # BEGIN user-customizable section
 
+# Page describing this process in much more detail
+our $Docs_URL =
+    'https://github.com/containers/podman/wiki/Buildah-Vendor-Treadmill';
+
 # github path to buildah
 our $Buildah = 'github.com/containers/buildah';
 
@@ -72,7 +76,7 @@ Call me with one of two options:
 
 For latest documentation and best practices, please see:
 
-    https://github.com/containers/podman/wiki/Buildah-Vendor-Treadmill
+    $Docs_URL
 
 OPTIONS:
 
@@ -86,7 +90,8 @@ END_USAGE
 # Command-line options.  Note that this operates directly on @ARGV !
 our %action;
 our $debug   = 0;
-our $force   = 0;
+our $force_old_main = 0;        # in --pick, proceeds even if main is old
+our $force_testing = 0;         # in --sync, test even no podman/buildah changes
 our $verbose = 0;
 our $NOT     = '';              # print "blahing the blah$NOT\n" if $debug
 sub handle_opts {
@@ -95,9 +100,11 @@ sub handle_opts {
         'sync'       => sub { $action{sync}++ },
         'pick'       => sub { $action{pick}++ },
 
+        'force-old-main'  => \$force_old_main,
+        'force-testing'   => \$force_testing,
+
         'debug!'     => \$debug,
         'dry-run|n!' => sub { $NOT = ' [NOT]' },
-        'force'      => \$force,
         'verbose|v'  => \$verbose,
 
         help         => \&usage,
@@ -161,6 +168,13 @@ sub do_sync {
             die "$ME: HEAD is a buildah commit, but HEAD^ is not a treadmill commit! Cannot continue.\n";
         }
     }
+    else {
+        # This can happen if a previous script run got interrupted before
+        # committing a new buildah; or when a new buildah has been vendored
+        # into podman and our go.mod version == latest on buildah.
+        warn "$ME: Warning: HEAD is not a buildah vendor commit; will try to continue anyway\n";
+    }
+
     # HEAD must now be a treadmill commit
     is_treadmill_commit('HEAD')
         or die "$ME: HEAD is not a treadmill commit!\n";
@@ -168,7 +182,7 @@ sub do_sync {
     # HEAD is now a change to buildah-tests. Now update main and rebase.
     pull_main();
     git('checkout', '-q', $current_branch);
-    my $forkpoint = git('merge-base', '--fork-point', 'main');
+    my $forkpoint = git_forkpoint();
     my $main_commit = git('rev-parse', 'main');
     my $rebased;
     if ($forkpoint eq $main_commit) {
@@ -195,6 +209,10 @@ sub do_sync {
         or die "$ME: make vendor failed\n";
     my $buildah_new = vendored_buildah();
     print "-> buildah new = $buildah_new\n";
+
+    # Tweak .cirrus.yml so we run bud tests first. Fail fast.
+    tweak_cirrus_test_order();
+
     git('commit', '-as', '-m', <<"END_COMMIT_MESSAGE");
 [DO NOT MERGE] vendor in buildah \@ $buildah_new
 
@@ -208,10 +226,19 @@ END_COMMIT_MESSAGE
     my $change_message = '';
     if ($buildah_new eq $buildah_old) {
         if (! $rebased) {
-            progress("Nothing has changed (same buildah, same podman). Bye!");
-            exit 0;
+            $change_message = "Nothing has changed (same buildah, same podman).";
+            if ($force_testing) {
+                $change_message .= " Testing anyway due to --force-testing.";
+            }
+            else {
+                progress($change_message);
+                progress("Not much point to testing this, but use --force-testing to continue.");
+                exit 0;
+            }
         }
-        $change_message = "Podman has bumped, but Buildah is unchanged. There's probably not much point to testing this.";
+        else {
+            $change_message = "Podman has bumped, but Buildah is unchanged. There's probably not much point to testing this.";
+        }
     }
     else {
         my $samenew = ($rebased ? 'new' : 'same');
@@ -243,6 +270,58 @@ sub pull_main {
     git('pull', '-r', git_upstream(), 'main');
 }
 
+#############################
+#  tweak_cirrus_test_order  #  Run bud tests first, to fail fast & early
+#############################
+sub tweak_cirrus_test_order {
+    my $cirrus_yml = '.cirrus.yml';
+    my $tmpfile = "$cirrus_yml.tmp.$$";
+    unlink $tmpfile;
+
+    progress("Tweaking test order in $cirrus_yml to run bud tests early");
+    open my $in, '<', $cirrus_yml
+        or do {
+            warn "$ME: Cannot read $cirrus_yml: $!\n";
+            warn "$ME: Will continue anyway\n";
+            return;
+        };
+    open my $out, '>'. $tmpfile
+        or die "$ME: Cannot create $tmpfile: $!\n";
+    my $current_task = '';
+    my $in_depend;
+    while (my $line = <$in>) {
+        chomp $line;
+        if ($line =~ /^(\S+)_task:$/) {
+            $current_task = $1;
+            undef $in_depend;
+        }
+        elsif ($line =~ /^(\s+)depends_on:$/) {
+            $in_depend = $1;
+        }
+        elsif ($in_depend && $line =~ /^($in_depend\s+-\s+)(\S+)/) {
+            if ($current_task eq 'buildah_bud_test') {
+                # Buildah bud test now depends on validate, so it runs early
+                $line = "${1}validate";
+            }
+            elsif ($2 eq 'validate' && $current_task ne 'success') {
+                # Other tests that relied on validate, now rely on bud instead
+                $line = "${1}buildah_bud_test";
+            }
+        }
+        else {
+            undef $in_depend;
+        }
+
+        print { $out } $line, "\n";
+    }
+    close $in;
+    close $out
+        or die "$ME: Error writing $tmpfile: $!\n";
+    chmod 0644 => $tmpfile;
+    rename $tmpfile => $cirrus_yml
+        or die "$ME: Could not rename $tmpfile: $!\n";
+}
+
 ############################
 #  build_and_check_podman  #  Run quick (local) sanity checks before pushing
 ############################
@@ -262,13 +341,41 @@ sub build_and_check_podman {
     # the name of the directory created by the bud-tests script.
     progress("Confirming that buildah-bud-tests patches still apply...");
     system('rm -rf test-buildah-*');
-    $errs += system('test/buildah-bud/run-buildah-bud-tests', '--no-test');
-    # Clean up
-    system('rm -rf test-buildah-*');
+    if (system('test/buildah-bud/run-buildah-bud-tests', '--no-test')) {
+        # Error
+        ++$errs;
+        warn "$ME: Leaving test-buildah- directory for you to investigate\n";
+    }
+    else {
+        # Patches apply cleanly. Clean up
+        system('rm -rf test-buildah-*');
+    }
 
     return if !$errs;
-    warn "$ME: Errors found. Please address, then add to HEAD^ commit\n";
-    die  "    ...see $ME --help for more information.\n";
+    warn <<"END_WARN";
+$ME: Errors found. I have to stop now for you to fix them.
+    Your best bet now is:
+      1) Find and fix whatever needs to be fixed; then
+      2) git commit -am'fixme-fixme'; then
+      3) git rebase -i main:
+         a) you are now in an editor window
+         b) move the new fixme-fixme commit up a line, to between the
+            'buildah vendor treadmill' and 'vendor in buildah @ ...' lines
+         c) change 'pick' to 'squash' (or just 's')
+         d) save & quit to continue the rebase
+         e) back to a new editor window
+         f) change the commit message: remove fixme-fixme, add a description
+            of what you actually fixed. If possible, reference the PR (buildah
+            or podman) that introduced the failure
+         g) save & quit to continue the rebase
+
+    Now, for good measure, rerun this script.
+
+    For full documentation, refer to
+
+        $Docs_URL
+END_WARN
+    exit 1;
 }
 
 # END   sync and its helpers
@@ -288,7 +395,11 @@ sub do_pick {
     my $treadmill_pr = treadmill_pr();
     my $treadmill_branch = "$ME/pr$treadmill_pr/tmp$$";
     progress("Fetching treadmill PR $treadmill_pr into $treadmill_branch");
-    git('fetch', git_upstream(), "pull/$treadmill_pr/head:$treadmill_branch");
+    git('fetch', '-q', git_upstream(), "pull/$treadmill_pr/head:$treadmill_branch");
+
+    # Compare merge bases of our branch and the treadmill one
+    progress("Checking merge bases");
+    check_merge_bases($treadmill_pr, $treadmill_branch);
 
     # read buildah go.mod from it, and from current tree, and compare
     my $buildah_on_treadmill = vendored_buildah($treadmill_branch);
@@ -309,7 +420,7 @@ sub do_pick {
 
     build_and_check_podman();
 
-    progress("Looks good! Please 'git commit --amend' before pushing.");
+    progress("Looks good! Please 'git commit --amend' and edit commit message before pushing.");
 }
 
 ##################
@@ -381,6 +492,51 @@ END_QUERY
 
     # Yay. Found exactly one.
     return $prs[0]{node}{number};
+}
+
+#######################
+#  check_merge_bases  #  It's OK if our branch is newer than treadmill
+#######################
+sub check_merge_bases {
+    my $treadmill_pr     = shift;       # e.g., 12345
+    my $treadmill_branch = shift;       # e.g., b-v-p/pr12345/tmpNNN
+
+    # Fetch latest main, for accurate comparison
+    git('fetch', '-q', git_upstream(), 'main');
+
+    my $forkpoint_cur       = git_forkpoint();
+    my $forkpoint_treadmill = git_forkpoint($treadmill_branch);
+
+    print "fork cur: $forkpoint_cur\nfork tm:  $forkpoint_treadmill\n"
+        if $debug;
+    if ($forkpoint_cur eq $forkpoint_treadmill) {
+        progress("Nice. This branch is up-to-date wrt treadmill PR $treadmill_pr");
+        return;
+    }
+
+    # They differ.
+    if (git_is_ancestor($forkpoint_cur, $forkpoint_treadmill)) {
+        warn <<"END_WARN";
+$ME: treadmill PR $treadmill_pr is based on
+    a newer main than this branch. This means it might have
+    more up-to-date patches.
+
+END_WARN
+
+        if ($force_old_main) {
+            warn "$ME: Proceeding due to --force-old-main\n";
+            return;
+        }
+
+        # Cannot continue. Clean up side branch, and bail.
+        git('branch', '-D', $treadmill_branch);
+        warn "$ME: You might want to consider rebasing on latest main.\n";
+        warn "$ME: Aborting. Use --force-old-main to continue without rebasing.\n";
+        exit 1;
+    }
+    else {
+        progress("Your branch is based on a newer main than treadmill PR $treadmill_pr. This is usually OK.");
+    }
 }
 
 #################
@@ -472,6 +628,25 @@ sub git_current_branch() {
     # There is no circumstance in which we can ever be called from main
     die "$ME: must run from side branch, not main\n" if $b eq 'main';
     return $b;
+}
+
+###################
+#  git_forkpoint  #  Hash at which branch (default: cur) branched from main
+###################
+sub git_forkpoint {
+    return git('merge-base', '--fork-point', 'main', @_);
+}
+
+#####################
+#  git_is_ancestor  #  Is hash1 an ancestor of hash2?
+#####################
+sub git_is_ancestor {
+    # Use system(), not git(), because we don't want to abort on exit status
+    my $rc = system('git', 'merge-base', '--is-ancestor', @_);
+    die "$ME: Cannot continue\n"        if $? > 256; # e.g., Not a valid object
+
+    # Translate shell 0/256 status to logical 1/0
+    return !$rc;
 }
 
 ##################
