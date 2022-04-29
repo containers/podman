@@ -27,8 +27,6 @@ var _ = Describe("Podman create", func() {
 		Expect(err).To(BeNil())
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.Setup()
-		err = podmanTest.SeedImages()
-		Expect(err).To(BeNil())
 	})
 
 	AfterEach(func() {
@@ -176,7 +174,8 @@ var _ = Describe("Podman create", func() {
 		// tests are passing inside a container.
 
 		mountPath := filepath.Join(podmanTest.TempDir, "secrets")
-		os.Mkdir(mountPath, 0755)
+		err := os.Mkdir(mountPath, 0755)
+		Expect(err).ToNot(HaveOccurred())
 		session := podmanTest.Podman([]string{"create", "--log-driver", "k8s-file", "--name", "test", "--mount", fmt.Sprintf("type=bind,src=%s,target=/create/test", mountPath), ALPINE, "grep", "/create/test", "/proc/self/mountinfo"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
@@ -212,7 +211,8 @@ var _ = Describe("Podman create", func() {
 		Expect(session.OutputToString()).To(ContainSubstring("shared"))
 
 		mountPath = filepath.Join(podmanTest.TempDir, "scratchpad")
-		os.Mkdir(mountPath, 0755)
+		err = os.Mkdir(mountPath, 0755)
+		Expect(err).ToNot(HaveOccurred())
 		session = podmanTest.Podman([]string{"create", "--log-driver", "k8s-file", "--name", "test_tmpfs", "--mount", "type=tmpfs,target=/create/test", ALPINE, "grep", "/create/test", "/proc/self/mountinfo"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))

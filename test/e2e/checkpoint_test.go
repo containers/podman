@@ -41,8 +41,6 @@ var _ = Describe("Podman checkpoint", func() {
 
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.Setup()
-		err = podmanTest.SeedImages()
-		Expect(err).To(BeNil())
 		// Check if the runtime implements checkpointing. Currently only
 		// runc's checkpoint/restore implementation is supported.
 		cmd := exec.Command(podmanTest.OCIRuntime, "checkpoint", "--help")

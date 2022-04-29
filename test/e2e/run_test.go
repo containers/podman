@@ -16,7 +16,6 @@ import (
 	"github.com/containers/podman/v4/pkg/rootless"
 	. "github.com/containers/podman/v4/test/utils"
 	"github.com/containers/storage/pkg/stringid"
-	"github.com/mrunalp/fileutils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
@@ -36,7 +35,6 @@ var _ = Describe("Podman run", func() {
 		}
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.Setup()
-		podmanTest.SeedImages()
 	})
 
 	AfterEach(func() {
@@ -812,16 +810,38 @@ USER bin`, BB)
 	})
 
 	It("podman test hooks", func() {
-		hcheck := "/run/hookscheck"
+		SkipIfRemote("--hooks-dir does not work with remote")
 		hooksDir := tempdir + "/hooks"
-		os.Mkdir(hooksDir, 0755)
-		fileutils.CopyFile("hooks/hooks.json", hooksDir)
-		os.Setenv("HOOK_OPTION", fmt.Sprintf("--hooks-dir=%s", hooksDir))
-		os.Remove(hcheck)
-		session := podmanTest.Podman([]string{"run", ALPINE, "ls"})
+		err := os.Mkdir(hooksDir, 0755)
+		Expect(err).ToNot(HaveOccurred())
+		hookJSONPath := filepath.Join(hooksDir, "checkhooks.json")
+		hookScriptPath := filepath.Join(hooksDir, "checkhooks.sh")
+		targetFile := filepath.Join(hooksDir, "target")
+
+		hookJSON := fmt.Sprintf(`{
+	"cmd" : [".*"],
+	"hook" : "%s",
+	"stage" : [ "prestart" ]
+}
+`, hookScriptPath)
+		err = ioutil.WriteFile(hookJSONPath, []byte(hookJSON), 0644)
+		Expect(err).ToNot(HaveOccurred())
+
+		random := stringid.GenerateNonCryptoID()
+
+		hookScript := fmt.Sprintf(`#!/bin/sh
+echo -n %s >%s
+`, random, targetFile)
+		err = ioutil.WriteFile(hookScriptPath, []byte(hookScript), 0755)
+		Expect(err).ToNot(HaveOccurred())
+
+		session := podmanTest.Podman([]string{"--hooks-dir", hooksDir, "run", ALPINE, "ls"})
 		session.Wait(10)
-		os.Unsetenv("HOOK_OPTION")
 		Expect(session).Should(Exit(0))
+
+		b, err := ioutil.ReadFile(targetFile)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(string(b)).To(Equal(random))
 	})
 
 	It("podman run with subscription secrets", func() {

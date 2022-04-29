@@ -1,9 +1,7 @@
 package libpod
 
 import (
-	"encoding/json"
 	"net/http"
-	"reflect"
 
 	"github.com/containers/podman/v4/libpod"
 	"github.com/containers/podman/v4/pkg/api/handlers/utils"
@@ -19,12 +17,6 @@ func CreateSecret(w http.ResponseWriter, r *http.Request) {
 		runtime = r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 		decoder = r.Context().Value(api.DecoderKey).(*schema.Decoder)
 	)
-
-	decoder.RegisterConverter(map[string]string{}, func(str string) reflect.Value {
-		res := make(map[string]string)
-		json.Unmarshal([]byte(str), &res)
-		return reflect.ValueOf(res)
-	})
 
 	query := struct {
 		Name       string            `schema:"name"`

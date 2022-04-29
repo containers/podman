@@ -64,8 +64,6 @@ registries = ['{{.Host}}:{{.Port}}']`
 
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.Setup()
-		podmanTest.SeedImages()
-
 	})
 
 	AfterEach(func() {
@@ -242,7 +240,8 @@ registries = ['{{.Host}}:{{.Port}}']`
 			Fail("Cannot start docker registry on port %s", port)
 		}
 		ep := endpoint{Port: fmt.Sprintf("%d", port), Host: "localhost"}
-		podmanTest.RestoreArtifact(ALPINE)
+		err = podmanTest.RestoreArtifact(ALPINE)
+		Expect(err).ToNot(HaveOccurred())
 		image := fmt.Sprintf("%s/my-alpine", ep.Address())
 		push := podmanTest.Podman([]string{"push", "--tls-verify=false", "--remove-signatures", ALPINE, image})
 		push.WaitWithDefaultTimeout()
@@ -277,7 +276,8 @@ registries = ['{{.Host}}:{{.Port}}']`
 			Fail("unable to start registry on port %s", port)
 		}
 
-		podmanTest.RestoreArtifact(ALPINE)
+		err = podmanTest.RestoreArtifact(ALPINE)
+		Expect(err).ToNot(HaveOccurred())
 		image := fmt.Sprintf("%s/my-alpine", ep.Address())
 		push := podmanTest.Podman([]string{"push", "--tls-verify=false", "--remove-signatures", ALPINE, image})
 		push.WaitWithDefaultTimeout()
@@ -285,9 +285,11 @@ registries = ['{{.Host}}:{{.Port}}']`
 
 		// registries.conf set up
 		var buffer bytes.Buffer
-		registryFileTmpl.Execute(&buffer, ep)
+		err = registryFileTmpl.Execute(&buffer, ep)
+		Expect(err).ToNot(HaveOccurred())
 		podmanTest.setRegistriesConfigEnv(buffer.Bytes())
-		ioutil.WriteFile(fmt.Sprintf("%s/registry4.conf", tempdir), buffer.Bytes(), 0644)
+		err = ioutil.WriteFile(fmt.Sprintf("%s/registry4.conf", tempdir), buffer.Bytes(), 0644)
+		Expect(err).ToNot(HaveOccurred())
 		if IsRemote() {
 			podmanTest.RestartRemoteService()
 			defer podmanTest.RestartRemoteService()
@@ -319,16 +321,19 @@ registries = ['{{.Host}}:{{.Port}}']`
 			Fail("Cannot start docker registry on port %s", port)
 		}
 
-		podmanTest.RestoreArtifact(ALPINE)
+		err = podmanTest.RestoreArtifact(ALPINE)
+		Expect(err).ToNot(HaveOccurred())
 		image := fmt.Sprintf("%s/my-alpine", ep.Address())
 		push := podmanTest.Podman([]string{"push", "--tls-verify=false", "--remove-signatures", ALPINE, image})
 		push.WaitWithDefaultTimeout()
 		Expect(push).Should(Exit(0))
 
 		var buffer bytes.Buffer
-		registryFileTmpl.Execute(&buffer, ep)
+		err = registryFileTmpl.Execute(&buffer, ep)
+		Expect(err).ToNot(HaveOccurred())
 		podmanTest.setRegistriesConfigEnv(buffer.Bytes())
-		ioutil.WriteFile(fmt.Sprintf("%s/registry5.conf", tempdir), buffer.Bytes(), 0644)
+		err = ioutil.WriteFile(fmt.Sprintf("%s/registry5.conf", tempdir), buffer.Bytes(), 0644)
+		Expect(err).ToNot(HaveOccurred())
 
 		search := podmanTest.Podman([]string{"search", image, "--tls-verify=true"})
 		search.WaitWithDefaultTimeout()
@@ -356,16 +361,19 @@ registries = ['{{.Host}}:{{.Port}}']`
 			Fail("Cannot start docker registry on port %s", port)
 		}
 
-		podmanTest.RestoreArtifact(ALPINE)
+		err = podmanTest.RestoreArtifact(ALPINE)
+		Expect(err).ToNot(HaveOccurred())
 		image := fmt.Sprintf("%s/my-alpine", ep.Address())
 		push := podmanTest.Podman([]string{"push", "--tls-verify=false", "--remove-signatures", ALPINE, image})
 		push.WaitWithDefaultTimeout()
 		Expect(push).Should(Exit(0))
 
 		var buffer bytes.Buffer
-		registryFileBadTmpl.Execute(&buffer, ep)
+		err = registryFileBadTmpl.Execute(&buffer, ep)
+		Expect(err).ToNot(HaveOccurred())
 		podmanTest.setRegistriesConfigEnv(buffer.Bytes())
-		ioutil.WriteFile(fmt.Sprintf("%s/registry6.conf", tempdir), buffer.Bytes(), 0644)
+		err = ioutil.WriteFile(fmt.Sprintf("%s/registry6.conf", tempdir), buffer.Bytes(), 0644)
+		Expect(err).ToNot(HaveOccurred())
 
 		if IsRemote() {
 			podmanTest.RestartRemoteService()
@@ -409,16 +417,19 @@ registries = ['{{.Host}}:{{.Port}}']`
 			Fail("Cannot start docker registry on port %s", port2)
 		}
 
-		podmanTest.RestoreArtifact(ALPINE)
+		err = podmanTest.RestoreArtifact(ALPINE)
+		Expect(err).ToNot(HaveOccurred())
 		push := podmanTest.Podman([]string{"push", "--tls-verify=false", "--remove-signatures", ALPINE, fmt.Sprintf("localhost:%d/my-alpine", port2)})
 		push.WaitWithDefaultTimeout()
 		Expect(push).Should(Exit(0))
 
 		// registries.conf set up
 		var buffer bytes.Buffer
-		registryFileTwoTmpl.Execute(&buffer, ep3)
+		err = registryFileTwoTmpl.Execute(&buffer, ep3)
+		Expect(err).ToNot(HaveOccurred())
 		podmanTest.setRegistriesConfigEnv(buffer.Bytes())
-		ioutil.WriteFile(fmt.Sprintf("%s/registry8.conf", tempdir), buffer.Bytes(), 0644)
+		err = ioutil.WriteFile(fmt.Sprintf("%s/registry8.conf", tempdir), buffer.Bytes(), 0644)
+		Expect(err).ToNot(HaveOccurred())
 
 		if IsRemote() {
 			podmanTest.RestartRemoteService()

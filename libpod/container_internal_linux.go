@@ -1180,7 +1180,11 @@ func (c *Container) createCheckpointImage(ctx context.Context, options Container
 		return err
 	}
 	// Clean-up buildah working container
-	defer importBuilder.Delete()
+	defer func() {
+		if err := importBuilder.Delete(); err != nil {
+			logrus.Errorf("Image builder delete failed: %v", err)
+		}
+	}()
 
 	if err := c.prepareCheckpointExport(); err != nil {
 		return err
@@ -1201,7 +1205,9 @@ func (c *Container) createCheckpointImage(ctx context.Context, options Container
 
 	// Copy checkpoint from temporary tar file in the image
 	addAndCopyOptions := buildah.AddAndCopyOptions{}
-	importBuilder.Add("", true, addAndCopyOptions, options.TargetFile)
+	if err := importBuilder.Add("", true, addAndCopyOptions, options.TargetFile); err != nil {
+		return err
+	}
 
 	if err := c.addCheckpointImageMetadata(importBuilder); err != nil {
 		return err
@@ -1543,7 +1549,11 @@ func (c *Container) importCheckpointImage(ctx context.Context, imageID string) e
 	}
 
 	mountPoint, err := img.Mount(ctx, nil, "")
-	defer img.Unmount(true)
+	defer func() {
+		if err := c.unmount(true); err != nil {
+			logrus.Errorf("Failed to unmount container: %v", err)
+		}
+	}()
 	if err != nil {
 		return err
 	}

@@ -24,8 +24,6 @@ var _ = Describe("Podman commit", func() {
 		Expect(err).To(BeNil())
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.Setup()
-		err = podmanTest.SeedImages()
-		Expect(err).To(BeNil())
 	})
 
 	AfterEach(func() {

@@ -31,7 +31,7 @@ var _ = Describe("Podman image tree", func() {
 		podmanTest.Cleanup()
 		f := CurrentGinkgoTestDescription()
 		timedResult := fmt.Sprintf("Test: %s completed in %f seconds", f.TestText, f.Duration.Seconds())
-		GinkgoWriter.Write([]byte(timedResult))
+		_, _ = GinkgoWriter.Write([]byte(timedResult))
 	})
 
 	It("podman image tree", func() {

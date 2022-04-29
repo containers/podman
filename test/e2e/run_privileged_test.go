@@ -49,7 +49,6 @@ var _ = Describe("Podman privileged container tests", func() {
 		}
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.Setup()
-		podmanTest.SeedImages()
 	})
 
 	AfterEach(func() {

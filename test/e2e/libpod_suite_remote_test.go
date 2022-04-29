@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/containers/podman/v4/pkg/rootless"
+	. "github.com/onsi/gomega"
 )
 
 func IsRemote() bool {
@@ -57,7 +58,8 @@ func (p *PodmanTestIntegration) setDefaultRegistriesConfigEnv() {
 func (p *PodmanTestIntegration) setRegistriesConfigEnv(b []byte) {
 	outfile := filepath.Join(p.TempDir, "registries.conf")
 	os.Setenv("CONTAINERS_REGISTRIES_CONF", outfile)
-	ioutil.WriteFile(outfile, b, 0644)
+	err := ioutil.WriteFile(outfile, b, 0644)
+	Expect(err).ToNot(HaveOccurred())
 }
 
 func resetRegistriesConfigEnv() {
@@ -71,7 +73,8 @@ func PodmanTestCreate(tempDir string) *PodmanTestIntegration {
 
 func (p *PodmanTestIntegration) StartRemoteService() {
 	if os.Geteuid() == 0 {
-		os.MkdirAll("/run/podman", 0755)
+		err := os.MkdirAll("/run/podman", 0755)
+		Expect(err).ToNot(HaveOccurred())
 	}
 
 	args := []string{}
@@ -88,7 +91,8 @@ func (p *PodmanTestIntegration) StartRemoteService() {
 	command.Stdout = os.Stdout
 	command.Stderr = os.Stderr
 	fmt.Printf("Running: %s %s\n", p.PodmanBinary, strings.Join(podmanOptions, " "))
-	command.Start()
+	err := command.Start()
+	Expect(err).ToNot(HaveOccurred())
 	command.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 	p.RemoteCommand = command
 	p.RemoteSession = command.Process
@@ -134,20 +138,12 @@ func getRemoteOptions(p *PodmanTestIntegration, args []string) []string {
 	networkDir := p.NetworkConfigDir
 	podmanOptions := strings.Split(fmt.Sprintf("--root %s --runroot %s --runtime %s --conmon %s --network-config-dir %s --cgroup-manager %s",
 		p.Root, p.RunRoot, p.OCIRuntime, p.ConmonBinary, networkDir, p.CgroupManager), " ")
-	if os.Getenv("HOOK_OPTION") != "" {
-		podmanOptions = append(podmanOptions, os.Getenv("HOOK_OPTION"))
-	}
 	if p.NetworkBackend.ToString() == "netavark" {
 		podmanOptions = append(podmanOptions, "--network-backend", "netavark")
 	}
 	podmanOptions = append(podmanOptions, strings.Split(p.StorageOptions, " ")...)
 	podmanOptions = append(podmanOptions, args...)
 	return podmanOptions
-}
-
-// SeedImages restores all the artifacts into the main store for remote tests
-func (p *PodmanTestIntegration) SeedImages() error {
-	return nil
 }
 
 // RestoreArtifact puts the cached image into our test store
@@ -159,8 +155,12 @@ func (p *PodmanTestIntegration) RestoreArtifact(image string) error {
 		podmanOptions := getRemoteOptions(p, args)
 		command := exec.Command(p.PodmanBinary, podmanOptions...)
 		fmt.Printf("Running: %s %s\n", p.PodmanBinary, strings.Join(podmanOptions, " "))
-		command.Start()
-		command.Wait()
+		if err := command.Start(); err != nil {
+			return err
+		}
+		if err := command.Wait(); err != nil {
+			return err
+		}
 	}
 	return nil
 }

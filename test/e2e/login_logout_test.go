@@ -36,7 +36,8 @@ var _ = Describe("Podman login and logout", func() {
 		podmanTest = PodmanTestCreate(tempdir)
 
 		authPath = filepath.Join(podmanTest.TempDir, "auth")
-		os.Mkdir(authPath, os.ModePerm)
+		err := os.Mkdir(authPath, os.ModePerm)
+		Expect(err).ToNot(HaveOccurred())
 
 		if IsCommandAvailable("getenforce") {
 			ge := SystemExec("getenforce", []string{})
@@ -55,11 +56,14 @@ var _ = Describe("Podman login and logout", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
-		f, _ := os.Create(filepath.Join(authPath, "htpasswd"))
+		f, err := os.Create(filepath.Join(authPath, "htpasswd"))
+		Expect(err).ToNot(HaveOccurred())
 		defer f.Close()
 
-		f.WriteString(session.OutputToString())
-		f.Sync()
+		_, err = f.WriteString(session.OutputToString())
+		Expect(err).ToNot(HaveOccurred())
+		err = f.Sync()
+		Expect(err).ToNot(HaveOccurred())
 		port := GetPort()
 		server = strings.Join([]string{"localhost", strconv.Itoa(port)}, ":")
 
@@ -68,7 +72,8 @@ var _ = Describe("Podman login and logout", func() {
 		testImg = strings.Join([]string{server, "test-alpine"}, "/")
 
 		certDirPath = filepath.Join(os.Getenv("HOME"), ".config/containers/certs.d", server)
-		os.MkdirAll(certDirPath, os.ModePerm)
+		err = os.MkdirAll(certDirPath, os.ModePerm)
+		Expect(err).ToNot(HaveOccurred())
 		cwd, _ := os.Getwd()
 		certPath = filepath.Join(cwd, "../", "certs")
 
@@ -207,7 +212,8 @@ var _ = Describe("Podman login and logout", func() {
 	})
 	It("podman login and logout with --cert-dir", func() {
 		certDir := filepath.Join(podmanTest.TempDir, "certs")
-		os.MkdirAll(certDir, os.ModePerm)
+		err := os.MkdirAll(certDir, os.ModePerm)
+		Expect(err).ToNot(HaveOccurred())
 
 		setup := SystemExec("cp", []string{filepath.Join(certPath, "domain.crt"), filepath.Join(certDir, "ca.crt")})
 		setup.WaitWithDefaultTimeout()
@@ -226,7 +232,8 @@ var _ = Describe("Podman login and logout", func() {
 	})
 	It("podman login and logout with multi registry", func() {
 		certDir := filepath.Join(os.Getenv("HOME"), ".config/containers/certs.d", "localhost:9001")
-		os.MkdirAll(certDir, os.ModePerm)
+		err = os.MkdirAll(certDir, os.ModePerm)
+		Expect(err).ToNot(HaveOccurred())
 
 		cwd, _ := os.Getwd()
 		certPath = filepath.Join(cwd, "../", "certs")

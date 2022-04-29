@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 
 	"github.com/containers/podman/v4/pkg/rootless"
+	. "github.com/onsi/gomega"
 )
 
 func IsRemote() bool {
@@ -40,13 +41,15 @@ func (p *PodmanTestIntegration) PodmanExtraFiles(args []string, extraFiles []*os
 
 func (p *PodmanTestIntegration) setDefaultRegistriesConfigEnv() {
 	defaultFile := filepath.Join(INTEGRATION_ROOT, "test/registries.conf")
-	os.Setenv("CONTAINERS_REGISTRIES_CONF", defaultFile)
+	err := os.Setenv("CONTAINERS_REGISTRIES_CONF", defaultFile)
+	Expect(err).ToNot(HaveOccurred())
 }
 
 func (p *PodmanTestIntegration) setRegistriesConfigEnv(b []byte) {
 	outfile := filepath.Join(p.TempDir, "registries.conf")
 	os.Setenv("CONTAINERS_REGISTRIES_CONF", outfile)
-	ioutil.WriteFile(outfile, b, 0644)
+	err := ioutil.WriteFile(outfile, b, 0644)
+	Expect(err).ToNot(HaveOccurred())
 }
 
 func resetRegistriesConfigEnv() {
@@ -69,11 +72,6 @@ func (p *PodmanTestIntegration) RestoreArtifact(image string) error {
 }
 
 func (p *PodmanTestIntegration) StopRemoteService() {}
-
-// SeedImages is a no-op for localized testing
-func (p *PodmanTestIntegration) SeedImages() error {
-	return nil
-}
 
 // We don't support running API service when local
 func (p *PodmanTestIntegration) StartRemoteService() {

@@ -484,12 +484,11 @@ func (v *MachineVM) Start(name string, _ machine.StartOptions) error {
 	if err := v.writeConfig(); err != nil {
 		return fmt.Errorf("writing JSON file: %w", err)
 	}
-	defer func() error {
+	defer func() {
 		v.Starting = false
 		if err := v.writeConfig(); err != nil {
-			return fmt.Errorf("writing JSON file: %w", err)
+			logrus.Errorf("Writing JSON file: %v", err)
 		}
-		return nil
 	}()
 	if v.isIncompatible() {
 		logrus.Errorf("machine %q is incompatible with this release of podman and needs to be recreated, starting for recovery only", v.Name)

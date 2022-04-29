@@ -28,7 +28,6 @@ var _ = Describe("Podman systemd", func() {
 		}
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.Setup()
-		podmanTest.SeedImages()
 		systemdUnitFile = `[Unit]
 Description=redis container
 [Service]
