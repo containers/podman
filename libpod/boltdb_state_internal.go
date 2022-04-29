@@ -542,8 +542,12 @@ func (s *BoltState) addContainer(ctr *Container, pod *Pod) error {
 			ctr.ID(), s.namespace, ctr.config.Namespace)
 	}
 
+	// Set the original networks to nil. We can save some space by not storing it in the config
+	// since we store it in a different mutable bucket anyway.
+	configNetworks := ctr.config.Networks
+	ctr.config.Networks = nil
+
 	// JSON container structs to insert into DB
-	// TODO use a higher-performance struct encoding than JSON
 	configJSON, err := json.Marshal(ctr.config)
 	if err != nil {
 		return errors.Wrapf(err, "error marshalling container %s config to JSON", ctr.ID())
@@ -564,8 +568,8 @@ func (s *BoltState) addContainer(ctr *Container, pod *Pod) error {
 	}
 
 	// make sure to marshal the network options before we get the db lock
-	networks := make(map[string][]byte, len(ctr.config.Networks))
-	for net, opts := range ctr.config.Networks {
+	networks := make(map[string][]byte, len(configNetworks))
+	for net, opts := range configNetworks {
 		// Check that we don't have any empty network names
 		if net == "" {
 			return errors.Wrapf(define.ErrInvalidArg, "network names cannot be an empty string")
@@ -581,9 +585,6 @@ func (s *BoltState) addContainer(ctr *Container, pod *Pod) error {
 		}
 		networks[net] = optBytes
 	}
-	// Set the original value to nil. We can safe some space by not storing it in the config
-	// since we store it in a different mutable bucket anyway.
-	ctr.config.Networks = nil
 
 	db, err := s.getDBCon()
 	if err != nil {
