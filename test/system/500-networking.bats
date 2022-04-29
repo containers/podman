@@ -656,6 +656,15 @@ EOF
     run_podman run --network $netname --rm $IMAGE cat /etc/resolv.conf
     is "$output" "search dns.podman.*" "correct search domain"
     is "$output" ".*nameserver $subnet.1.*" "integrated dns nameserver is set"
+
+    # host network should keep localhost nameservers
+    if grep 127.0.0. /etc/resolv.conf >/dev/null; then
+        run_podman run --network host --rm $IMAGE cat /etc/resolv.conf
+        is "$output" ".*nameserver 127\.0\.0.*" "resolv.conf contains localhost nameserver"
+    fi
+    # host net + dns still works
+    run_podman run --network host --dns 1.1.1.1 --rm $IMAGE cat /etc/resolv.conf
+    is "$output" ".*nameserver 1\.1\.1\.1.*" "resolv.conf contains 1.1.1.1 nameserver"
 }
 
 @test "podman run port forward range" {
@@ -721,6 +730,21 @@ EOF
     is "$output" ".*$ip2[[:blank:]]$name2.*" "second base entry in /etc/host"
     is "$output" ".*$containersinternal_ip[[:blank:]]host\.containers\.internal.*" "host.containers.internal ip from config in /etc/host"
     is "${#lines[@]}" "5" "expect 5 host entries in /etc/hosts"
+}
+
+@test "podman run /etc/* permissions" {
+    userns="--userns=keep-id"
+    if ! is_rootless; then
+        userns="--uidmap=0:1111111:65536 --gidmap=0:1111111:65536"
+    fi
+    # check with and without userns
+    for userns in "" "$userns"; do
+        # check the /etc/hosts /etc/hostname /etc/resolv.conf are owned by root
+        run_podman run $userns --rm $IMAGE stat -c %u:%g /etc/hosts /etc/resolv.conf /etc/hostname
+        is "${lines[0]}" "0\:0" "/etc/hosts owned by root"
+        is "${lines[1]}" "0\:0" "/etc/resolv.conf owned by root"
+        is "${lines[2]}" "0\:0" "/etc/hosts owned by root"
+    done
 }
 
 # vim: filetype=sh
