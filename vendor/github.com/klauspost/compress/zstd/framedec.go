@@ -326,6 +326,19 @@ func (d *frameDec) runDecoder(dst []byte, dec *blockDec) ([]byte, error) {
 	d.history.ignoreBuffer = len(dst)
 	// Store input length, so we only check new data.
 	crcStart := len(dst)
+	d.history.decoders.maxSyncLen = 0
+	if d.FrameContentSize != fcsUnknown {
+		d.history.decoders.maxSyncLen = d.FrameContentSize + uint64(len(dst))
+		if d.history.decoders.maxSyncLen > d.o.maxDecodedSize {
+			return dst, ErrDecoderSizeExceeded
+		}
+		if uint64(cap(dst)) < d.history.decoders.maxSyncLen {
+			// Alloc for output
+			dst2 := make([]byte, len(dst), d.history.decoders.maxSyncLen+compressedBlockOverAlloc)
+			copy(dst2, dst)
+			dst = dst2
+		}
+	}
 	var err error
 	for {
 		err = dec.reset(d.rawInput, d.WindowSize)

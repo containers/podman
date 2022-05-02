@@ -76,7 +76,7 @@ func (c *platformChowner) LChown(path string, info os.FileInfo, toHost, toContai
 			UID: uid,
 			GID: gid,
 		}
-		mappedPair, err := toHost.ToHost(pair)
+		mappedPair, err := toHost.ToHostOverflow(pair)
 		if err != nil {
 			return fmt.Errorf("error mapping container ID pair %#v for %q to host: %v", pair, path, err)
 		}

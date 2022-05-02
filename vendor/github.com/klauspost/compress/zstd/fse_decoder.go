@@ -5,8 +5,10 @@
 package zstd
 
 import (
+	"encoding/binary"
 	"errors"
 	"fmt"
+	"io"
 )
 
 const (
@@ -180,6 +182,29 @@ func (s *fseDecoder) readNCount(b *byteReader, maxSymbol uint16) error {
 	b.advance((bitCount + 7) >> 3)
 	// println(s.norm[:s.symbolLen], s.symbolLen)
 	return s.buildDtable()
+}
+
+func (s *fseDecoder) mustReadFrom(r io.Reader) {
+	fatalErr := func(err error) {
+		if err != nil {
+			panic(err)
+		}
+	}
+	// 	dt             [maxTablesize]decSymbol // Decompression table.
+	//	symbolLen      uint16                  // Length of active part of the symbol table.
+	//	actualTableLog uint8                   // Selected tablelog.
+	//	maxBits        uint8                   // Maximum number of additional bits
+	//	// used for table creation to avoid allocations.
+	//	stateTable [256]uint16
+	//	norm       [maxSymbolValue + 1]int16
+	//	preDefined bool
+	fatalErr(binary.Read(r, binary.LittleEndian, &s.dt))
+	fatalErr(binary.Read(r, binary.LittleEndian, &s.symbolLen))
+	fatalErr(binary.Read(r, binary.LittleEndian, &s.actualTableLog))
+	fatalErr(binary.Read(r, binary.LittleEndian, &s.maxBits))
+	fatalErr(binary.Read(r, binary.LittleEndian, &s.stateTable))
+	fatalErr(binary.Read(r, binary.LittleEndian, &s.norm))
+	fatalErr(binary.Read(r, binary.LittleEndian, &s.preDefined))
 }
 
 // decSymbol contains information about a state entry,

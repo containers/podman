@@ -17,6 +17,13 @@ This package provides various compression algorithms.
 
 # changelog
 
+* Mar 11, 2022 (v1.15.1)
+	* huff0: Add x86 assembly of Decode4X by @WojciechMula in [#512](https://github.com/klauspost/compress/pull/512)
+	* zstd: Reuse zip decoders in [#514](https://github.com/klauspost/compress/pull/514)
+	* zstd: Detect extra block data and report as corrupted in [#520](https://github.com/klauspost/compress/pull/520)
+	* zstd: Handle zero sized frame content size stricter in [#521](https://github.com/klauspost/compress/pull/521)
+	* zstd: Add stricter block size checks in [#523](https://github.com/klauspost/compress/pull/523)
+
 * Mar 3, 2022 (v1.15.0)
 	* zstd: Refactor decoder by @klauspost in [#498](https://github.com/klauspost/compress/pull/498)
 	* zstd: Add stream encoding without goroutines by @klauspost in [#505](https://github.com/klauspost/compress/pull/505)

@@ -31,7 +31,7 @@ func (o *decoderOptions) setDefault() {
 	if o.concurrent > 4 {
 		o.concurrent = 4
 	}
-	o.maxDecodedSize = 1 << 63
+	o.maxDecodedSize = 64 << 30
 }
 
 // WithDecoderLowmem will set whether to use a lower amount of memory,
@@ -66,7 +66,7 @@ func WithDecoderConcurrency(n int) DOption {
 // WithDecoderMaxMemory allows to set a maximum decoded size for in-memory
 // non-streaming operations or maximum window size for streaming operations.
 // This can be used to control memory usage of potentially hostile content.
-// Maximum and default is 1 << 63 bytes.
+// Maximum is 1 << 63 bytes. Default is 64GiB.
 func WithDecoderMaxMemory(n uint64) DOption {
 	return func(o *decoderOptions) error {
 		if n == 0 {

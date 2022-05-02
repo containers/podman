@@ -12,14 +12,14 @@ import (
 
 // decompress4x_main_loop_x86 is an x86 assembler implementation
 // of Decompress4X when tablelog > 8.
-// go:noescape
+//go:noescape
 func decompress4x_main_loop_x86(pbr0, pbr1, pbr2, pbr3 *bitReaderShifted,
 	peekBits uint8, buf *byte, tbl *dEntrySingle) uint8
 
 // decompress4x_8b_loop_x86 is an x86 assembler implementation
 // of Decompress4X when tablelog <= 8 which decodes 4 entries
 // per loop.
-// go:noescape
+//go:noescape
 func decompress4x_8b_loop_x86(pbr0, pbr1, pbr2, pbr3 *bitReaderShifted,
 	peekBits uint8, buf *byte, tbl *dEntrySingle) uint8
 

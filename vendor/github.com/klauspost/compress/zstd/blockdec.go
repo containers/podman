@@ -5,9 +5,14 @@
 package zstd
 
 import (
+	"bytes"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
+	"os"
+	"path/filepath"
 	"sync"
 
 	"github.com/klauspost/compress/huff0"
@@ -37,6 +42,9 @@ const (
 const (
 	// maxCompressedBlockSize is the biggest allowed compressed block size (128KB)
 	maxCompressedBlockSize = 128 << 10
+
+	compressedBlockOverAlloc    = 16
+	maxCompressedBlockSizeAlloc = 128<<10 + compressedBlockOverAlloc
 
 	// Maximum possible block size (all Raw+Uncompressed).
 	maxBlockSize = (1 << 21) - 1
@@ -136,7 +144,7 @@ func (b *blockDec) reset(br byteBuffer, windowSize uint64) error {
 	b.Type = blockType((bh >> 1) & 3)
 	// find size.
 	cSize := int(bh >> 3)
-	maxSize := maxBlockSize
+	maxSize := maxCompressedBlockSizeAlloc
 	switch b.Type {
 	case blockTypeReserved:
 		return ErrReservedBlockType
@@ -157,9 +165,9 @@ func (b *blockDec) reset(br byteBuffer, windowSize uint64) error {
 			println("Data size on stream:", cSize)
 		}
 		b.RLESize = 0
-		maxSize = maxCompressedBlockSize
+		maxSize = maxCompressedBlockSizeAlloc
 		if windowSize < maxCompressedBlockSize && b.lowMem {
-			maxSize = int(windowSize)
+			maxSize = int(windowSize) + compressedBlockOverAlloc
 		}
 		if cSize > maxCompressedBlockSize || uint64(cSize) > b.WindowSize {
 			if debugDecoder {
@@ -190,9 +198,9 @@ func (b *blockDec) reset(br byteBuffer, windowSize uint64) error {
 	// Read block data.
 	if cap(b.dataStorage) < cSize {
 		if b.lowMem || cSize > maxCompressedBlockSize {
-			b.dataStorage = make([]byte, 0, cSize)
+			b.dataStorage = make([]byte, 0, cSize+compressedBlockOverAlloc)
 		} else {
-			b.dataStorage = make([]byte, 0, maxCompressedBlockSize)
+			b.dataStorage = make([]byte, 0, maxCompressedBlockSizeAlloc)
 		}
 	}
 	if cap(b.dst) <= maxSize {
@@ -486,9 +494,14 @@ func (b *blockDec) decodeCompressed(hist *history) error {
 		b.dst = append(b.dst, hist.decoders.literals...)
 		return nil
 	}
-	err = hist.decoders.decodeSync(hist)
+	before := len(hist.decoders.out)
+	err = hist.decoders.decodeSync(hist.b[hist.ignoreBuffer:])
 	if err != nil {
 		return err
+	}
+	if hist.decoders.maxSyncLen > 0 {
+		hist.decoders.maxSyncLen += uint64(before)
+		hist.decoders.maxSyncLen -= uint64(len(hist.decoders.out))
 	}
 	b.dst = hist.decoders.out
 	hist.recentOffsets = hist.decoders.prevOffset
@@ -632,6 +645,22 @@ func (b *blockDec) prepareSequences(in []byte, hist *history) (err error) {
 		println("initializing sequences:", err)
 		return err
 	}
+	// Extract blocks...
+	if false && hist.dict == nil {
+		fatalErr := func(err error) {
+			if err != nil {
+				panic(err)
+			}
+		}
+		fn := fmt.Sprintf("n-%d-lits-%d-prev-%d-%d-%d-win-%d.blk", hist.decoders.nSeqs, len(hist.decoders.literals), hist.recentOffsets[0], hist.recentOffsets[1], hist.recentOffsets[2], hist.windowSize)
+		var buf bytes.Buffer
+		fatalErr(binary.Write(&buf, binary.LittleEndian, hist.decoders.litLengths.fse))
+		fatalErr(binary.Write(&buf, binary.LittleEndian, hist.decoders.matchLengths.fse))
+		fatalErr(binary.Write(&buf, binary.LittleEndian, hist.decoders.offsets.fse))
+		buf.Write(in)
+		ioutil.WriteFile(filepath.Join("testdata", "seqs", fn), buf.Bytes(), os.ModePerm)
+	}
+
 	return nil
 }
 
@@ -650,6 +679,7 @@ func (b *blockDec) decodeSequences(hist *history) error {
 	}
 	hist.decoders.windowSize = hist.windowSize
 	hist.decoders.prevOffset = hist.recentOffsets
+
 	err := hist.decoders.decode(b.sequence)
 	hist.recentOffsets = hist.decoders.prevOffset
 	return err
