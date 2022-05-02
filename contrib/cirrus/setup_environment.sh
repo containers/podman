@@ -121,6 +121,9 @@ case "$OS_RELEASE_ID" in
         # CNI networking available.  Upgrading from one to the other is
         # not supported at this time.  Support execution of the upgrade
         # tests in F36 and later, by disabling Netavark and enabling CNI.
+        #
+        # OS_RELEASE_VER is defined by automation-library
+        # shellcheck disable=SC2154
         if [[ "$OS_RELEASE_VER" -ge 36 ]] && \
            [[ "$TEST_FLAVOR" != "upgrade_test" ]];
         then

@@ -36,11 +36,6 @@ fi
 # Managed by setup_environment.sh; holds task-specific definitions.
 if [[ -r "/etc/ci_environment" ]]; then source /etc/ci_environment; fi
 
-OS_RELEASE_ID="$(source /etc/os-release; echo $ID)"
-# GCE image-name compatible string representation of distribution _major_ version
-OS_RELEASE_VER="$(source /etc/os-release; echo $VERSION_ID | tr -d '.')"
-# Combined to ease some usage
-OS_REL_VER="${OS_RELEASE_ID}-${OS_RELEASE_VER}"
 # This is normally set from .cirrus.yml but default is necessary when
 # running under hack/get_ci_vm.sh since it cannot infer the value.
 DISTRO_NV="${DISTRO_NV:-$OS_REL_VER}"
@@ -261,6 +256,8 @@ remove_packaged_podman_files() {
         done
     done
 
+    # OS_RELEASE_ID is defined by automation-library
+    # shellcheck disable=SC2154
     if [[ "$OS_RELEASE_ID" =~ "ubuntu" ]]
     then
         LISTING_CMD="dpkg-query -L podman"
