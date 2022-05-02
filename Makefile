@@ -176,7 +176,7 @@ export GOOS GOARCH CGO_ENABLED BINSFX SRCBINDIR
 
 define go-get
 	env GO111MODULE=off \
-		$(GO) get -u ${1}
+		$(GO) install ${1}
 endef
 
 # Need to use CGO for mDNS resolution, but cross builds need CGO disabled
