@@ -122,6 +122,7 @@ type PodCreateOptions struct {
 	CreateCommand      []string          `json:"create_command,omitempty"`
 	Devices            []string          `json:"devices,omitempty"`
 	DeviceReadBPs      []string          `json:"device_read_bps,omitempty"`
+	ExitPolicy         string            `json:"exit_policy,omitempty"`
 	Hostname           string            `json:"hostname,omitempty"`
 	Infra              bool              `json:"infra,omitempty"`
 	InfraImage         string            `json:"infra_image,omitempty"`
@@ -319,6 +320,7 @@ func ToPodSpecGen(s specgen.PodSpecGenerator, p *PodCreateOptions) (*specgen.Pod
 	}
 	s.Pid = out
 	s.Hostname = p.Hostname
+	s.ExitPolicy = p.ExitPolicy
 	s.Labels = p.Labels
 	s.Devices = p.Devices
 	s.SecurityOpt = p.SecurityOpt

@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/libpod/lock"
 	"github.com/opencontainers/runtime-spec/specs-go"
@@ -69,6 +70,9 @@ type PodConfig struct {
 	// CreateCommand is the full command plus arguments of the process the
 	// container has been created with.
 	CreateCommand []string `json:"CreateCommand,omitempty"`
+
+	// The pod's exit policy.
+	ExitPolicy config.PodExitPolicy `json:"ExitPolicy,omitempty"`
 
 	// ID of the pod's lock
 	LockID uint32 `json:"lockID"`

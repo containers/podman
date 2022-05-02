@@ -2,6 +2,7 @@ package libpod
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/podman/v4/libpod/define"
@@ -134,6 +135,10 @@ func (p *Pod) StopWithTimeout(ctx context.Context, cleanup bool, timeout int) (m
 	p.lock.Lock()
 	defer p.lock.Unlock()
 
+	return p.stopWithTimeout(ctx, cleanup, timeout)
+}
+
+func (p *Pod) stopWithTimeout(ctx context.Context, cleanup bool, timeout int) (map[string]error, error) {
 	if !p.valid {
 		return nil, define.ErrPodRemoved
 	}
@@ -193,6 +198,51 @@ func (p *Pod) StopWithTimeout(ctx context.Context, cleanup bool, timeout int) (m
 		return ctrErrors, errors.Wrapf(define.ErrPodPartialFail, "error stopping some containers")
 	}
 	return nil, nil
+}
+
+// Stops the pod if only the infra containers remains running.
+func (p *Pod) stopIfOnlyInfraRemains(ctx context.Context, ignoreID string) error {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+
+	infraID := ""
+
+	if p.HasInfraContainer() {
+		infra, err := p.infraContainer()
+		if err != nil {
+			return err
+		}
+		infraID = infra.ID()
+	}
+
+	allCtrs, err := p.runtime.state.PodContainers(p)
+	if err != nil {
+		return err
+	}
+
+	for _, ctr := range allCtrs {
+		if ctr.ID() == infraID || ctr.ID() == ignoreID {
+			continue
+		}
+
+		state, err := ctr.State()
+		if err != nil {
+			return fmt.Errorf("getting state of container %s: %w", ctr.ID(), err)
+		}
+
+		switch state {
+		case define.ContainerStateExited,
+			define.ContainerStateRemoving,
+			define.ContainerStateStopping,
+			define.ContainerStateUnknown:
+			continue
+		default:
+			return nil
+		}
+	}
+
+	_, err = p.stopWithTimeout(ctx, true, -1)
+	return err
 }
 
 // Cleanup cleans up all containers within a pod that have stopped.
@@ -661,6 +711,7 @@ func (p *Pod) Inspect() (*define.InspectPodData, error) {
 		Namespace:          p.Namespace(),
 		Created:            p.CreatedTime(),
 		CreateCommand:      p.config.CreateCommand,
+		ExitPolicy:         string(p.config.ExitPolicy),
 		State:              podState,
 		Hostname:           p.config.Hostname,
 		Labels:             p.Labels(),

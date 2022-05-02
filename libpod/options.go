@@ -1843,6 +1843,24 @@ func WithPodName(name string) PodCreateOption {
 	}
 }
 
+// WithPodExitPolicy sets the exit policy of the pod.
+func WithPodExitPolicy(policy string) PodCreateOption {
+	return func(pod *Pod) error {
+		if pod.valid {
+			return define.ErrPodFinalized
+		}
+
+		parsed, err := config.ParsePodExitPolicy(policy)
+		if err != nil {
+			return err
+		}
+
+		pod.config.ExitPolicy = parsed
+
+		return nil
+	}
+}
+
 // WithPodHostname sets the hostname of the pod.
 func WithPodHostname(hostname string) PodCreateOption {
 	return func(pod *Pod) error {

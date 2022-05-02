@@ -72,6 +72,10 @@ func init() {
 	flags.StringVarP(&createOptions.Name, nameFlagName, "n", "", "Assign a name to the pod")
 	_ = createCommand.RegisterFlagCompletionFunc(nameFlagName, completion.AutocompleteNone)
 
+	policyFlag := "exit-policy"
+	flags.StringVarP(&createOptions.ExitPolicy, policyFlag, "", string(containerConfig.Engine.PodExitPolicy), "Behaviour when the last container exits")
+	_ = createCommand.RegisterFlagCompletionFunc(policyFlag, common.AutocompletePodExitPolicy)
+
 	infraImageFlagName := "infra-image"
 	var defInfraImage string
 	if !registry.IsRemote() {

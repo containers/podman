@@ -19,6 +19,8 @@ type PodBasicConfig struct {
 	// all containers in the pod as long as the UTS namespace is shared.
 	// Optional.
 	Hostname string `json:"hostname,omitempty"`
+	// ExitPolicy determines the pod's exit and stop behaviour.
+	ExitPolicy string `json:"exit_policy,omitempty"`
 	// Labels are key-value pairs that are used to add metadata to pods.
 	// Optional.
 	Labels map[string]string `json:"labels,omitempty"`

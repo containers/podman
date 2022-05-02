@@ -1939,7 +1939,49 @@ func (c *Container) cleanup(ctx context.Context) error {
 		}
 	}
 
+	if err := c.stopPodIfNeeded(context.Background()); err != nil {
+		if lastError == nil {
+			lastError = err
+		} else {
+			logrus.Errorf("Stopping pod of container %s: %v", c.ID(), err)
+		}
+	}
+
 	return lastError
+}
+
+// If the container is part of a pod where only the infra container remains
+// running, attempt to stop the pod.
+func (c *Container) stopPodIfNeeded(ctx context.Context) error {
+	if c.config.Pod == "" {
+		return nil
+	}
+
+	pod, err := c.runtime.state.Pod(c.config.Pod)
+	if err != nil {
+		return fmt.Errorf("container %s is in pod %s, but pod cannot be retrieved: %w", c.ID(), c.config.Pod, err)
+	}
+
+	switch pod.config.ExitPolicy {
+	case config.PodExitPolicyContinue:
+		return nil
+
+	case config.PodExitPolicyStop:
+		// Use the runtime's work queue to stop the pod. This resolves
+		// a number of scenarios where we'd otherwise run into
+		// deadlocks.  For instance, during `pod stop`, the pod has
+		// already been locked.
+		// The work queue is a simple means without having to worry about
+		// future changes that may introduce more deadlock scenarios.
+		c.runtime.queueWork(func() {
+			if err := pod.stopIfOnlyInfraRemains(ctx, c.ID()); err != nil {
+				if !errors.Is(err, define.ErrNoSuchPod) {
+					logrus.Errorf("Checking if infra needs to be stopped: %v", err)
+				}
+			}
+		})
+	}
+	return nil
 }
 
 // delete deletes the container and runs any configured poststop

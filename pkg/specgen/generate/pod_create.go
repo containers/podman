@@ -197,6 +197,8 @@ func createPodOptions(p *specgen.PodSpecGenerator) ([]libpod.PodCreateOption, er
 		options = append(options, libpod.WithPodHostname(p.Hostname))
 	}
 
+	options = append(options, libpod.WithPodExitPolicy(p.ExitPolicy))
+
 	return options, nil
 }
 
