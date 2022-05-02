@@ -12,6 +12,7 @@ import (
 	cutil "github.com/containers/common/pkg/util"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/namespaces"
+	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/containers/storage"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
@@ -52,6 +53,9 @@ const (
 	// be used.
 	// Only used with the network namespace, invalid otherwise.
 	Slirp NamespaceMode = "slirp4netns"
+	// Pasta indicates that a pasta network stack should be used.
+	// Only used with the network namespace, invalid otherwise.
+	Pasta NamespaceMode = "pasta"
 	// KeepId indicates a user namespace to keep the owner uid inside
 	// of the namespace itself.
 	// Only used with the user namespace, invalid otherwise.
@@ -156,6 +160,11 @@ func validateNetNS(n *Namespace) error {
 	switch n.NSMode {
 	case Slirp:
 		break
+	case Pasta:
+		if rootless.IsRootless() {
+			break
+		}
+		return fmt.Errorf("pasta networking is only supported for rootless mode")
 	case "", Default, Host, Path, FromContainer, FromPod, Private, NoNetwork, Bridge:
 		break
 	default:
@@ -197,7 +206,7 @@ func (n *Namespace) validate() error {
 	switch n.NSMode {
 	case "", Default, Host, Path, FromContainer, FromPod, Private:
 		// Valid, do nothing
-	case NoNetwork, Bridge, Slirp:
+	case NoNetwork, Bridge, Slirp, Pasta:
 		return errors.New("cannot use network modes with non-network namespace")
 	default:
 		return fmt.Errorf("invalid namespace type %s specified", n.NSMode)
@@ -329,7 +338,8 @@ func ParseUserNamespace(ns string) (Namespace, error) {
 
 // ParseNetworkFlag parses a network string slice into the network options
 // If the input is nil or empty it will use the default setting from containers.conf
-func ParseNetworkFlag(networks []string) (Namespace, map[string]types.PerNetworkOptions, map[string][]string, error) {
+// TODO (5.0): Drop pastaNetworkNameExists
+func ParseNetworkFlag(networks []string, pastaNetworkNameExists bool) (Namespace, map[string]types.PerNetworkOptions, map[string][]string, error) {
 	var networkOptions map[string][]string
 	// by default we try to use the containers.conf setting
 	// if we get at least one value use this instead
@@ -385,6 +395,22 @@ func ParseNetworkFlag(networks []string) (Namespace, map[string]types.PerNetwork
 		}
 		toReturn.NSMode = FromContainer
 		toReturn.Value = split[1]
+	case ns == string(Pasta), strings.HasPrefix(ns, string(Pasta)+":"):
+		var parts []string
+
+		if pastaNetworkNameExists {
+			goto nextCase
+		}
+
+		parts = strings.SplitN(ns, ":", 2)
+		if len(parts) > 1 {
+			networkOptions = make(map[string][]string)
+			networkOptions[parts[0]] = strings.Split(parts[1], ",")
+		}
+		toReturn.NSMode = Pasta
+		break
+	nextCase:
+		fallthrough
 	default:
 		// we should have a normal network
 		parts := strings.SplitN(ns, ":", 2)
@@ -419,6 +445,7 @@ func ParseNetworkFlag(networks []string) (Namespace, map[string]types.PerNetwork
 			if parts[0] == "" {
 				return toReturn, nil, nil, fmt.Errorf("network name cannot be empty: %w", define.ErrInvalidArg)
 			}
+			// TODO (5.0): Don't accept string(Pasta) here once we drop pastaNetworkNameExists
 			if cutil.StringInSlice(parts[0], []string{string(Bridge), string(Slirp), string(FromPod), string(NoNetwork),
 				string(Default), string(Private), string(Path), string(FromContainer), string(Host)}) {
 				return toReturn, nil, nil, fmt.Errorf("can only set extra network names, selected mode %s conflicts with bridge: %w", parts[0], define.ErrInvalidArg)

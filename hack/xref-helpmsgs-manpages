@@ -619,6 +619,8 @@ sub _is_valid_external_link {
         return 1 if $link eq "https://www.freedesktop.org/software/systemd/man/$base.html";
     }
 
+    return 1 if $link eq "https://passt.top/builds/latest/web/passt.1.html";
+
     return;
 }
 

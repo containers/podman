@@ -105,8 +105,15 @@ func init() {
 
 func commonFlags(cmd *cobra.Command) error {
 	var err error
+
+	report, err := registry.ContainerEngine().NetworkExists(registry.Context(), "pasta")
+	if err != nil {
+		return err
+	}
+	pastaNetworkNameExists := report.Value
+
 	flags := cmd.Flags()
-	cliVals.Net, err = common.NetFlagsToNetOptions(nil, *flags)
+	cliVals.Net, err = common.NetFlagsToNetOptions(nil, *flags, pastaNetworkNameExists)
 	if err != nil {
 		return err
 	}

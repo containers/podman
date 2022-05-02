@@ -19,6 +19,7 @@ const (
 	privateType   = "private"
 	shareableType = "shareable"
 	slirpType     = "slirp4netns"
+	pastaType     = "pasta"
 )
 
 // KeepIDUserNsOptions defines how to keepIDmatically create a user namespace.
@@ -440,6 +441,11 @@ func (n NetworkMode) IsSlirp4netns() bool {
 	return n == slirpType || strings.HasPrefix(string(n), slirpType+":")
 }
 
+// IsPasta indicates if we are running a rootless network stack using pasta
+func (n NetworkMode) IsPasta() bool {
+	return n == pastaType || strings.HasPrefix(string(n), pastaType+":")
+}
+
 // IsNS indicates a network namespace passed in by path (ns:<path>)
 func (n NetworkMode) IsNS() bool {
 	return strings.HasPrefix(string(n), nsType)
@@ -461,5 +467,5 @@ func (n NetworkMode) IsPod() bool {
 
 // IsUserDefined indicates user-created network
 func (n NetworkMode) IsUserDefined() bool {
-	return !n.IsDefault() && !n.IsBridge() && !n.IsHost() && !n.IsNone() && !n.IsContainer() && !n.IsSlirp4netns() && !n.IsNS()
+	return !n.IsDefault() && !n.IsBridge() && !n.IsHost() && !n.IsNone() && !n.IsContainer() && !n.IsSlirp4netns() && !n.IsPasta() && !n.IsNS()
 }

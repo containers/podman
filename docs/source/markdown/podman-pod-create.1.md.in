@@ -219,6 +219,8 @@ $ podman pod create --network slirp4netns:outbound_addr=127.0.0.1,allow_host_loo
 
 $ podman pod create --network slirp4netns:cidr=192.168.0.0/24
 
+$ podman pod create --network pasta
+
 $ podman pod create --network net1:ip=10.89.1.5 --network net2:ip=10.89.10.10
 ```
 

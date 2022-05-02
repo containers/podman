@@ -195,11 +195,16 @@ func MapSpec(p *specgen.PodSpecGenerator) (*specgen.SpecGenerator, error) {
 			p.InfraContainerSpec.NetworkOptions = p.NetworkOptions
 			p.InfraContainerSpec.NetNS.NSMode = specgen.Slirp
 		}
+	case specgen.Pasta:
+		logrus.Debugf("Pod will use pasta")
+		if p.InfraContainerSpec.NetNS.NSMode != specgen.Host {
+			p.InfraContainerSpec.NetworkOptions = p.NetworkOptions
+			p.InfraContainerSpec.NetNS.NSMode = specgen.Pasta
+		}
 	case specgen.Path:
 		logrus.Debugf("Pod will use namespace path networking")
 		p.InfraContainerSpec.NetNS.NSMode = specgen.Path
 		p.InfraContainerSpec.NetNS.Value = p.PodNetworkConfig.NetNS.Value
-
 	case specgen.NoNetwork:
 		logrus.Debugf("Pod will not use networking")
 		if len(p.InfraContainerSpec.PortMappings) > 0 ||

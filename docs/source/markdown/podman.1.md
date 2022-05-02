@@ -88,7 +88,7 @@ Set libpod namespace. Namespaces are used to separate groups of containers and p
 When namespace is set, created containers and pods will join the given namespace, and only containers and pods in the given namespace will be visible to Podman.
 
 #### **--network-cmd-path**=*path*
-Path to the command binary to use for setting up a network.  It is currently only used for setting up a slirp4netns network.  If "" is used then the binary is looked up using the $PATH environment variable.
+Path to the command binary to use for setting up a network.  It is currently only used for setting up a slirp4netns(1) or pasta(1) network.  If "" is used then the binary is looked up using the $PATH environment variable.
 
 #### **--network-config-dir**=*directory*
 
@@ -422,7 +422,9 @@ See the `subuid(5)` and `subgid(5)` man pages for more information.
 
 Images are pulled under `XDG_DATA_HOME` when specified, otherwise in the home directory of the user under `.local/share/containers/storage`.
 
-Currently the slirp4netns package is required to be installed to create a network device, otherwise rootless containers need to run in the network namespace of the host.
+Currently slirp4netns or pasta is required to be installed to create a network
+device, otherwise rootless containers need to run in the network namespace of
+the host.
 
 In certain environments like HPC (High Performance Computing), users cannot take advantage of the additional UIDs and GIDs from the /etc/subuid and /etc/subgid systems.  However, in this environment, rootless Podman can operate with a single UID.  To make this work, set the `ignore_chown_errors` option in the /etc/containers/storage.conf or in ~/.config/containers/storage.conf files. This option tells Podman when pulling an image to ignore chown errors when attempting to change a file in a container image to match the non-root UID in the image. This means all files get saved as the user's UID. Note this could cause issues when running the container.
 
@@ -435,7 +437,7 @@ The Network File System (NFS) and other distributed file systems (for example: L
 For more information, please refer to the [Podman Troubleshooting Page](https://github.com/containers/podman/blob/main/troubleshooting.md).
 
 ## SEE ALSO
-**[containers-mounts.conf(5)](https://github.com/containers/common/blob/main/docs/containers-mounts.conf.5.md)**, **[containers.conf(5)](https://github.com/containers/common/blob/main/docs/containers.conf.5.md)**, **[containers-registries.conf(5)](https://github.com/containers/image/blob/main/docs/containers-registries.conf.5.md)**, **[containers-storage.conf(5)](https://github.com/containers/storage/blob/main/docs/containers-storage.conf.5.md)**, **[buildah(1)](https://github.com/containers/buildah/blob/main/docs/buildah.1.md)**, **oci-hooks(5)**, **[containers-policy.json(5)](https://github.com/containers/image/blob/main/docs/containers-policy.json.5.md)**, **[crun(1)](https://github.com/containers/crun/blob/main/crun.1.md)**, **[runc(8)](https://github.com/opencontainers/runc/blob/master/man/runc.8.md)**, **[subuid(5)](https://www.unix.com/man-page/linux/5/subuid)**, **[subgid(5)](https://www.unix.com/man-page/linux/5/subgid)**, **[slirp4netns(1)](https://github.com/rootless-containers/slirp4netns/blob/master/slirp4netns.1.md)**, **[conmon(8)](https://github.com/containers/conmon/blob/main/docs/conmon.8.md)**
+**[containers-mounts.conf(5)](https://github.com/containers/common/blob/main/docs/containers-mounts.conf.5.md)**, **[containers.conf(5)](https://github.com/containers/common/blob/main/docs/containers.conf.5.md)**, **[containers-registries.conf(5)](https://github.com/containers/image/blob/main/docs/containers-registries.conf.5.md)**, **[containers-storage.conf(5)](https://github.com/containers/storage/blob/main/docs/containers-storage.conf.5.md)**, **[buildah(1)](https://github.com/containers/buildah/blob/main/docs/buildah.1.md)**, **oci-hooks(5)**, **[containers-policy.json(5)](https://github.com/containers/image/blob/main/docs/containers-policy.json.5.md)**, **[crun(1)](https://github.com/containers/crun/blob/main/crun.1.md)**, **[runc(8)](https://github.com/opencontainers/runc/blob/master/man/runc.8.md)**, **[subuid(5)](https://www.unix.com/man-page/linux/5/subuid)**, **[subgid(5)](https://www.unix.com/man-page/linux/5/subgid)**, **[slirp4netns(1)](https://github.com/rootless-containers/slirp4netns/blob/master/slirp4netns.1.md)**, **[pasta(1)](https://passt.top/builds/latest/web/passt.1.html)**, **[conmon(8)](https://github.com/containers/conmon/blob/main/docs/conmon.8.md)**
 
 ## HISTORY
 Dec 2016, Originally compiled by Dan Walsh <dwalsh@redhat.com>
