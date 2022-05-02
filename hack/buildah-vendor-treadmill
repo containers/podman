@@ -16,7 +16,7 @@ use JSON;
 use LWP::UserAgent;
 
 (our $ME = $0) =~ s|.*/||;
-our $VERSION = '0.1';
+our $VERSION = '0.2';
 
 # For debugging, show data structures using DumpTree($var)
 #use Data::TreeDumper; $Data::TreeDumper::Displayaddress = 0;
@@ -34,18 +34,26 @@ our $Buildah = 'github.com/containers/buildah';
 # FIXME FIXME FIXME: add 'main'? I hope we never need this script for branches.
 our $Treadmill_PR_Title = 'DO NOT MERGE: buildah vendor treadmill';
 
+# Github API; this is where we query to find out the active treadmill PR
 our $API_URL = 'https://api.github.com/graphql';
 
+# Temporary file used to preserve current treadmill patches. This file
+# should only exist very briefly while we perform branch operations.
+our $Patch_File = "0000-$ME.patch";
+
 # Use colors if available and if stdout is a tty
-our $Highlight = '';
-our $Reset = '';
+our $C_Highlight = '';
+our $C_Warning = '';
+our $C_Reset = '';
 eval '
     use Term::ANSIColor;
     if (-t 1) {
-        $Highlight = color("green");
-        $Reset     = color("reset");
+        $C_Highlight = color("green");
+        $C_Warning   = color("bold red");
+        $C_Reset     = color("reset");
+
     }
-    $SIG{__WARN__} = sub { print STDERR color("bold red"), "@_", $Reset; };
+    $SIG{__WARN__} = sub { print STDERR $C_Warning, "@_", $C_Reset; };
 
 ';
 
@@ -155,72 +163,97 @@ sub do_sync {
     # Preserve current branch name, so we can come back after switching to main
     my $current_branch = git_current_branch();
 
+    # Branch HEAD must be the treadmill commit.
+    my $commit_message = git('log', '-1', '--format=%s', 'HEAD');
+    print "[$commit_message]\n"         if $verbose;
+    $commit_message =~ /buildah.*treadmill/
+        or die "$ME: HEAD must be a 'buildah treadmill' commit.\n";
+
+    # ...and previous commit must be a scratch buildah vendor
+    $commit_message = git('log', '-1', '--format=%B', 'HEAD^');
+    $commit_message =~ /DO NOT MERGE.* vendor in buildah.*JUNK COMMIT/s
+        or die "$ME: HEAD^ must be a DO NOT MERGE / JUNK COMMIT commit\n";
+    assert_buildah_vendor_commit('HEAD^');
+
+    # Looks good so far.
     my $buildah_old = vendored_buildah();
     print "-> buildah old = $buildah_old\n";
 
-    # If HEAD is a buildah-vendor commit (usual case), drop it now.
-    if (head_is_buildah_vendor_commit()) {
-        if (is_treadmill_commit('HEAD^')) {
-            progress("HEAD is buildah vendor (as expected); dropping it...");
-            git('reset', '--hard', 'HEAD^');
-        }
-        else {
-            die "$ME: HEAD is a buildah commit, but HEAD^ is not a treadmill commit! Cannot continue.\n";
-        }
-    }
-    else {
-        # This can happen if a previous script run got interrupted before
-        # committing a new buildah; or when a new buildah has been vendored
-        # into podman and our go.mod version == latest on buildah.
-        warn "$ME: Warning: HEAD is not a buildah vendor commit; will try to continue anyway\n";
-    }
-
-    # HEAD must now be a treadmill commit
-    is_treadmill_commit('HEAD')
-        or die "$ME: HEAD is not a treadmill commit!\n";
-
-    # HEAD is now a change to buildah-tests. Now update main and rebase.
+    # Pull main, and pivot back to this branch
     pull_main();
     git('checkout', '-q', $current_branch);
+
+    # Preserve local patches
+    git('format-patch', "--output=$Patch_File", 'HEAD^');
+    progress("Treadmill patches saved to $Patch_File");
+
+    #
+    # Danger Will Robinson! This is where it gets scary: a failure here
+    # can leave us in a state where we could lose the treadmill patches.
+    # Proceed with extreme caution.
+    #
+    local $SIG{__DIE__} = sub {
+        print STDERR $C_Warning, "@_", <<"END_FAIL_INSTRUCTIONS";
+
+This is not something I can recover from. Your human judgment is needed.
+
+You will need to recover from this manually. Your best option is to
+look at the source code for this script.
+
+Your treadmill patches are here: $Patch_File
+END_FAIL_INSTRUCTIONS
+
+        exit 1;
+    };
+
     my $forkpoint = git_forkpoint();
-    my $main_commit = git('rev-parse', 'main');
     my $rebased;
+
+    # Unlikely to fail
+    git('reset', '--hard', 'HEAD^^');
+
+    # Rebase branch. Also unlikely to fail
+    my $main_commit = git('rev-parse', 'main');
     if ($forkpoint eq $main_commit) {
         progress("[Already rebased on podman main]");
     }
     else {
-        # --empty=keep may be needed after a --pick commit, when we've
-        # vendored a new buildah into podman and incorporated the treadmill
-        # commit. Since this is a perpetual-motion workflow, in which we
-        # keep an in-progress PR open at all times, we need a baseline
-        # commit even if it's empty.
         progress("Rebasing on podman main...");
         git('rebase', '--empty=keep', 'main');
-        # FIXME: rebase can fail after --pick. If it does, offer instructions.
         $rebased = 1;
     }
 
-    # We're now back on our treadmill branch, with one commit on top of main.
-    # Now vendor in latest buildah.
+    # This does have a high possibility of failing.
     progress("Vendoring in buildah...");
     system('go', 'mod', 'edit', '--require' => "${Buildah}\@main") == 0
-        or die "$ME: go mod edit failed\n";
+        or die "$ME: go mod edit failed";
     system('make', 'vendor') == 0
-        or die "$ME: make vendor failed\n";
+        or die "$ME: make vendor failed";
     my $buildah_new = vendored_buildah();
     print "-> buildah new = $buildah_new\n";
 
-    # Tweak .cirrus.yml so we run bud tests first. Fail fast.
+    # Tweak .cirrus.yml so we run bud tests first in CI (to fail fast).
     tweak_cirrus_test_order();
 
+    # FIXME: check if 'make vendor' brought in new (untracked) files?
     git('commit', '-as', '-m', <<"END_COMMIT_MESSAGE");
 [DO NOT MERGE] vendor in buildah \@ $buildah_new
 
 This is a JUNK COMMIT from $ME v$VERSION.
 
 DO NOT MERGE. This is just a way to keep the buildah-podman
-vendoring in sync. See script --help for details.
+vendoring in sync. Refer to:
+
+   $Docs_URL
 END_COMMIT_MESSAGE
+
+    # And, finally, this has the highest possibility of failing
+    progress('Reapplying preserved patches');
+    git('am', $Patch_File);
+
+    # It worked! Clean up: remove our local die() handler and the patch file
+    undef $SIG{__DIE__};
+    unlink $Patch_File;
 
     # if buildah is unchanged, and we did not pull main, exit cleanly
     my $change_message = '';
@@ -250,15 +283,6 @@ END_COMMIT_MESSAGE
 
     progress("All OK. It's now up to you to 'git push --force'");
     progress(" --- Reminder: $change_message");
-}
-
-#########################
-#  is_treadmill_commit  #  ARG (HEAD or HEAD^) commit message =~ treadmill
-#########################
-sub is_treadmill_commit {
-    my $commit_message = git('log', '-1', '--format=%s', @_);
-    print "[$commit_message]\n"         if $verbose;
-    $commit_message =~ /buildah.*treadmill/;
 }
 
 ###############
@@ -333,9 +357,11 @@ sub build_and_check_podman {
     system('make') == 0
         or die "$ME: 'make' failed with new buildah. Cannot continue.\n";
 
-    # See if any new options need man pages
+    # See if any new options need man pages. (C_Warning will highlight errs)
     progress('Cross-checking man pages...');
+    print $C_Warning;
     $errs += system('hack/xref-helpmsgs-manpages');
+    print $C_Reset;
 
     # Confirm that buildah-bud patches still apply. This requires knowing
     # the name of the directory created by the bud-tests script.
@@ -388,7 +414,7 @@ sub do_pick {
     my $current_branch = git_current_branch();
 
     # Confirm that current branch is a buildah-vendor one
-    head_is_buildah_vendor_commit(1);
+    assert_buildah_vendor_commit('HEAD');
     progress("HEAD is a buildah vendor commit. Good.");
 
     # Identify and pull the treadmill PR
@@ -546,7 +572,7 @@ sub cherry_pick {
     my $treadmill_pr     = shift;       # e.g., 12345
     my $treadmill_branch = shift;       # e.g., b-v-p/pr12345/tmpNNN
 
-    progress("Cherry-picking from $treadmill_pr^");
+    progress("Cherry-picking from $treadmill_pr");
 
     # Create a temp script. Do so in /var/tmp because sometimes $TMPDIR
     # (e.g. /tmp) has noexec.
@@ -592,7 +618,7 @@ END_EDIT_SCRIPT
         or die "$ME: Error writing $editor: $!\n";
     chmod 0755 => $editor;
     local $ENV{EDITOR} = $editor;
-    git('cherry-pick', '--allow-empty', '--edit', "$treadmill_branch^");
+    git('cherry-pick', '--allow-empty', '--edit', $treadmill_branch);
     unlink $editor;
 }
 
@@ -604,13 +630,30 @@ END_EDIT_SCRIPT
 #  progress  #  Progris riport Dr Strauss says I shud rite down what I think
 ##############
 sub progress {
-    print $Highlight, "|\n+---> @_\n", $Reset;
+    print $C_Highlight, "|\n+---> @_\n", $C_Reset;
 }
 
 #######################
 #  assert_clean_repo  #  Don't even think of running with local changes
 #######################
 sub assert_clean_repo {
+    # Our patch file should only exist for brief moments during a sync run.
+    # If it exists at any other time, something has gone very wrong.
+    if (-e $Patch_File) {
+        warn <<"END_WARN";
+$ME: File exists: $Patch_File
+
+   This means that something went very wrong during an earlier sync run.
+   Your git branch may be in an inconsistent state. Your work to date
+   may be lost. This file may be your only hope of recovering it.
+
+   This is not something a script can resolve. You need to look at this
+   file, compare to your git HEAD, and manually reconcile any differences.
+END_WARN
+        exit 1;
+    }
+
+    # OK so far. Now check for modified files.
     my @changed = git('status', '--porcelain', '--untracked=no')
         or return;
 
@@ -685,13 +728,16 @@ sub git {
     return wantarray ? @results : join("\n", @results);
 }
 
-###################################
-#  head_is_buildah_vendor_commit  #  Returns 1 if HEAD is buildah vendor
-###################################
-sub head_is_buildah_vendor_commit {
-    my $fatal = shift;                  # in: if true, die upon anything missing
+##################################
+#  assert_buildah_vendor_commit  #  Fails if input arg is not a buildah vendor
+##################################
+sub assert_buildah_vendor_commit {
+    my $ref = shift;                    # in: probably HEAD or HEAD^
 
-    my @deltas = git('diff', '--name-only', 'HEAD^', 'HEAD');
+    my @deltas = git('diff', '--name-only', "$ref^", $ref);
+
+    # It's OK if there are no deltas, e.g. immediately after a buildah vendor PR
+    return if !@deltas;
 
     # It's OK if there are more modified files than just these.
     # It's not OK if any of these are missing.
@@ -707,19 +753,11 @@ sub head_is_buildah_vendor_commit {
         push @missing, "no changes under $Buildah";
     }
 
-    if (@missing) {
-        if ($fatal || $verbose) {
-            warn "$ME: HEAD does not look like a buildah vendor commit:\n";
-            warn "$ME:  - $_\n" for @missing;
-            if ($fatal) {
-                die "$ME: Cannot continue\n";
-            }
-            warn "$ME: ...this might be okay, continuing anyway...\n";
-        }
-        return;
-    }
+    return if !@missing;
 
-    return 1;
+    warn "$ME: $ref does not look like a buildah vendor commit:\n";
+    warn "$ME:  - $_\n" for @missing;
+    die "$ME: Cannot continue\n";
 }
 
 ######################
