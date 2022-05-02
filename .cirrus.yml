@@ -64,6 +64,18 @@ timeout_in: 60m
 gcp_credentials: ENCRYPTED[a28959877b2c9c36f151781b0a05407218cda646c7d047fc556e42f55e097e897ab63ee78369dae141dcf0b46a9d0cdd]
 
 
+# Standard size GCE VM to use
+gce_instance: &standardvm
+    image_project: libpod-218412
+    zone: "us-central1-a"
+    cpu: 2
+    memory: "4Gb"
+    # Required to be 200gig, do not modify - has i/o performance impact
+    # according to gcloud CLI tool warning messages.
+    disk: 200
+    image_name: "${VM_IMAGE_NAME}"  # from stdenvars
+
+
 # Attempt to prevent flakes by confirming all required external/3rd-party
 # services are available and functional.
 ext_svc_check_task:
@@ -136,15 +148,10 @@ automation_task:
 build_task:
     alias: 'build'
     name: 'Build for $DISTRO_NV'
-    gce_instance: &standardvm
-        image_project: libpod-218412
-        zone: "us-central1-a"
-        cpu: 2
-        memory: "4Gb"
-        # Required to be 200gig, do not modify - has i/o performance impact
-        # according to gcloud CLI tool warning messages.
-        disk: 200
-        image_name: "${VM_IMAGE_NAME}"  # from stdenvars
+    container: &mediumcontainer
+        image: ${CTR_FQIN}
+        cpu: 4
+        memory: 4
     matrix: &platform_axis
         # Ref: https://cirrus-ci.org/guide/writing-tasks/#matrix-modification
         - env: &stdenvars
@@ -193,10 +200,11 @@ validate_task:
         - automation
         - build
     # golangci-lint is a very, very hungry beast.
-    gce_instance: &bigvm
-        <<: *standardvm
+    # size limits: https://cirrus-ci.org/faq/#are-there-any-limits
+    container: &largecontainer
+        image: ${CTR_FQIN}
         cpu: 8
-        memory: "16Gb"
+        memory: 8
     env:
         <<: *stdenvars
         TEST_FLAVOR: validate
@@ -249,6 +257,7 @@ swagger_task:
     alias: swagger
     depends_on:
         - build
+    # TODO: This could probably use a container w/ $CTR_FQIN and some minor work
     gce_instance: *standardvm
     env:
         <<: *stdenvars
@@ -302,7 +311,7 @@ alt_build_task:
     env:
         <<: *stdenvars
         TEST_FLAVOR: "altbuild"
-    gce_instance: *standardvm
+    container: *mediumcontainer
     matrix:
       - env:
             ALT_NAME: 'Build Each Commit'
@@ -741,8 +750,7 @@ meta_task:
     name: "VM img. keepalive"
     alias: meta
     container:
-        cpu: 2
-        memory: 2
+        <<: *smallcontainer
         image: quay.io/libpod/imgts:$IMAGE_SUFFIX
     env:
         # Space-separated list of images used by this repository state
@@ -861,7 +869,7 @@ release_task:
     only_if: *tags
     depends_on:
         - success
-    gce_instance: *standardvm
+    container: *smallcontainer
     env:
         <<: *stdenvars
         TEST_FLAVOR: release
@@ -886,7 +894,7 @@ release_test_task:
     trigger_type: manual
     depends_on:
         - success
-    gce_instance: *standardvm
+    container: *smallcontainer
     env:
         <<: *stdenvars
         TEST_FLAVOR: release
