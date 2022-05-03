@@ -43,9 +43,11 @@ var _ = Describe("podman machine stop", func() {
 		Expect(foo2).To(Exit(0))
 
 		inspect := new(inspectMachine)
+		inspect = inspect.withFormat("{{.Name}}")
 		inspectSession, err := mb.setName("foo1").setCmd(inspect).run()
 		Expect(err).To(BeNil())
 		Expect(inspectSession).To(Exit(0))
+		Expect(inspectSession.Bytes()).To(ContainSubstring("foo1"))
 
 		type fakeInfos struct {
 			Status string
@@ -56,13 +58,13 @@ var _ = Describe("podman machine stop", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(len(infos)).To(Equal(2))
 
-		//rm := new(rmMachine)
-		////	Must manually clean up due to multiple names
-		//for _, name := range []string{"foo1", "foo2"} {
+		// rm := new(rmMachine)
+		// //	Must manually clean up due to multiple names
+		// for _, name := range []string{"foo1", "foo2"} {
 		//	mb.setName(name).setCmd(rm.withForce()).run()
 		//	mb.names = []string{}
-		//}
-		//mb.names = []string{}
+		// }
+		// mb.names = []string{}
 
 	})
 })
