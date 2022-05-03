@@ -872,9 +872,11 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 
 	// Warning: CDI may alter g.Config in place.
 	if len(c.config.CDIDevices) > 0 {
-		registry := cdi.GetRegistry()
-		if errs := registry.GetErrors(); len(errs) > 0 {
-			logrus.Debugf("The following errors were triggered when creating the CDI registry: %v", errs)
+		registry := cdi.GetRegistry(
+			cdi.WithAutoRefresh(false),
+		)
+		if err := registry.Refresh(); err != nil {
+			logrus.Debugf("The following error was triggered when refreshing the CDI registry: %v", err)
 		}
 		_, err := registry.InjectDevices(g.Config, c.config.CDIDevices...)
 		if err != nil {

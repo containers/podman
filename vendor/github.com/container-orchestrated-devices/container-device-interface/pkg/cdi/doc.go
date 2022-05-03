@@ -67,6 +67,21 @@
 //
 // Cache Refresh
 //
+// By default the CDI Spec cache monitors the configured Spec directories
+// and automatically refreshes itself when necessary. This behavior can be
+// disabled using the WithAutoRefresh(false) option.
+//
+// Failure to set up monitoring for a Spec directory causes the directory to
+// get ignored and an error to be recorded among the Spec directory errors.
+// These errors can be queried using the GetSpecDirErrors() function. If the
+// error condition is transient, for instance a missing directory which later
+// gets created, the corresponding error will be removed once the condition
+// is over.
+//
+// With auto-refresh enabled injecting any CDI devices can be done without
+// an explicit call to Refresh(), using a code snippet similar to the
+// following:
+//
 // In a runtime implementation one typically wants to make sure the
 // CDI Spec cache is up to date before performing device injection.
 // A code snippet similar to the following accmplishes that:
@@ -146,5 +161,5 @@
 // schema names which switch the used schema to the in-repo validation
 // schema embedded into the binary or the now default no-op schema
 // correspondingly. Other names are interpreted as the path to the actual
-/// validation schema to load and use.
+// validation schema to load and use.
 package cdi
