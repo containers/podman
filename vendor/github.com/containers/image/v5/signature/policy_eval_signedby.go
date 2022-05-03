@@ -5,7 +5,7 @@ package signature
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"strings"
 
 	"github.com/containers/image/v5/manifest"
@@ -33,7 +33,7 @@ func (pr *prSignedBy) isSignatureAuthorAccepted(ctx context.Context, image types
 	if pr.KeyData != nil {
 		data = pr.KeyData
 	} else {
-		d, err := ioutil.ReadFile(pr.KeyPath)
+		d, err := os.ReadFile(pr.KeyPath)
 		if err != nil {
 			return sarRejected, nil, err
 		}

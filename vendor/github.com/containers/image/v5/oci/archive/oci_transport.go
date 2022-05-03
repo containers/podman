@@ -3,7 +3,6 @@ package archive
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strings"
 
@@ -161,7 +160,7 @@ func (t *tempDirOCIRef) deleteTempDir() error {
 // createOCIRef creates the oci reference of the image
 // If SystemContext.BigFilesTemporaryDir not "", overrides the temporary directory to use for storing big files
 func createOCIRef(sys *types.SystemContext, image string) (tempDirOCIRef, error) {
-	dir, err := ioutil.TempDir(tmpdir.TemporaryDirectoryForBigFiles(sys), "oci")
+	dir, err := os.MkdirTemp(tmpdir.TemporaryDirectoryForBigFiles(sys), "oci")
 	if err != nil {
 		return tempDirOCIRef{}, errors.Wrapf(err, "creating temp directory")
 	}

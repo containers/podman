@@ -2,6 +2,7 @@ package sysregistriesv2
 
 import (
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -43,6 +44,16 @@ const builtinRegistriesConfDirPath = "/etc/containers/registries.conf.d"
 // helper.
 const AuthenticationFileHelper = "containers-auth.json"
 
+const (
+	// configuration values for "pull-from-mirror"
+	// mirrors will be used for both digest pulls and tag pulls
+	MirrorAll = "all"
+	// mirrors will only be used for digest pulls
+	MirrorByDigestOnly = "digest-only"
+	// mirrors will only be used for tag pulls
+	MirrorByTagOnly = "tag-only"
+)
+
 // Endpoint describes a remote location of a registry.
 type Endpoint struct {
 	// The endpoint's remote location. Can be empty iff Prefix contains
@@ -53,6 +64,18 @@ type Endpoint struct {
 	// If true, certs verification will be skipped and HTTP (non-TLS)
 	// connections will be allowed.
 	Insecure bool `toml:"insecure,omitempty"`
+	// PullFromMirror is used for adding restrictions to image pull through the mirror.
+	// Set to "all", "digest-only", or "tag-only".
+	// If "digest-only"， mirrors will only be used for digest pulls. Pulling images by
+	// tag can potentially yield different images, depending on which endpoint
+	// we pull from.  Restricting mirrors to pulls by digest avoids that issue.
+	// If "tag-only", mirrors will only be used for tag pulls.  For a more up-to-date and expensive mirror
+	// that it is less likely to be out of sync if tags move, it should not be unnecessarily
+	// used for digest references.
+	// Default is "all" (or left empty), mirrors will be used for both digest pulls and tag pulls unless the mirror-by-digest-only is set for the primary registry.
+	// This can only be set in a registry's Mirror field, not in the registry's primary Endpoint.
+	// This per-mirror setting is allowed only when mirror-by-digest-only is not configured for the primary registry.
+	PullFromMirror string `toml:"pull-from-mirror,omitempty"`
 }
 
 // userRegistriesFile is the path to the per user registry configuration file.
@@ -115,7 +138,7 @@ type Registry struct {
 	Blocked bool `toml:"blocked,omitempty"`
 	// If true, mirrors will only be used for digest pulls. Pulling images by
 	// tag can potentially yield different images, depending on which endpoint
-	// we pull from.  Forcing digest-pulls for mirrors avoids that issue.
+	// we pull from.  Restricting mirrors to pulls by digest avoids that issue.
 	MirrorByDigestOnly bool `toml:"mirror-by-digest-only,omitempty"`
 }
 
@@ -130,17 +153,29 @@ type PullSource struct {
 // reference.
 func (r *Registry) PullSourcesFromReference(ref reference.Named) ([]PullSource, error) {
 	var endpoints []Endpoint
-
+	_, isDigested := ref.(reference.Canonical)
 	if r.MirrorByDigestOnly {
-		// Only use mirrors when the reference is a digest one.
-		if _, isDigested := ref.(reference.Canonical); isDigested {
-			endpoints = append(r.Mirrors, r.Endpoint)
-		} else {
-			endpoints = []Endpoint{r.Endpoint}
+		// Only use mirrors when the reference is a digested one.
+		if isDigested {
+			endpoints = append(endpoints, r.Mirrors...)
 		}
 	} else {
-		endpoints = append(r.Mirrors, r.Endpoint)
+		for _, mirror := range r.Mirrors {
+			// skip the mirror if per mirror setting exists but reference does not match the restriction
+			switch mirror.PullFromMirror {
+			case MirrorByDigestOnly:
+				if !isDigested {
+					continue
+				}
+			case MirrorByTagOnly:
+				if isDigested {
+					continue
+				}
+			}
+			endpoints = append(endpoints, mirror)
+		}
 	}
+	endpoints = append(endpoints, r.Endpoint)
 
 	sources := []PullSource{}
 	for _, ep := range endpoints {
@@ -374,6 +409,10 @@ func (config *V2RegistriesConf) postProcessRegistries() error {
 			}
 		}
 
+		// validate the mirror usage settings does not apply to primary registry
+		if reg.PullFromMirror != "" {
+			return fmt.Errorf("pull-from-mirror must not be set for a non-mirror registry %q", reg.Prefix)
+		}
 		// make sure mirrors are valid
 		for _, mir := range reg.Mirrors {
 			mir.Location, err = parseLocation(mir.Location)
@@ -386,6 +425,14 @@ func (config *V2RegistriesConf) postProcessRegistries() error {
 			// https://github.com/containers/image/pull/1191#discussion_r610623216
 			if mir.Location == "" {
 				return &InvalidRegistries{s: "invalid condition: mirror location is unset"}
+			}
+
+			if reg.MirrorByDigestOnly && mir.PullFromMirror != "" {
+				return &InvalidRegistries{s: fmt.Sprintf("cannot set mirror usage mirror-by-digest-only for the registry (%q) and pull-from-mirror for per-mirror (%q) at the same time", reg.Prefix, mir.Location)}
+			}
+			if mir.PullFromMirror != "" && mir.PullFromMirror != MirrorAll &&
+				mir.PullFromMirror != MirrorByDigestOnly && mir.PullFromMirror != MirrorByTagOnly {
+				return &InvalidRegistries{s: fmt.Sprintf("unsupported pull-from-mirror value %q for mirror %q", mir.PullFromMirror, mir.Location)}
 			}
 		}
 		if reg.Location == "" {
@@ -597,17 +644,17 @@ func dropInConfigs(wrapper configWrapper) ([]string, error) {
 		dirPaths = append(dirPaths, wrapper.userConfigDirPath)
 	}
 	for _, dirPath := range dirPaths {
-		err := filepath.Walk(dirPath,
+		err := filepath.WalkDir(dirPath,
 			// WalkFunc to read additional configs
-			func(path string, info os.FileInfo, err error) error {
+			func(path string, d fs.DirEntry, err error) error {
 				switch {
 				case err != nil:
 					// return error (could be a permission problem)
 					return err
-				case info == nil:
+				case d == nil:
 					// this should only happen when err != nil but let's be sure
 					return nil
-				case info.IsDir():
+				case d.IsDir():
 					if path != dirPath {
 						// make sure to not recurse into sub-directories
 						return filepath.SkipDir
@@ -877,9 +924,12 @@ func loadConfigFile(path string, forceV2 bool) (*parsedConfig, error) {
 
 	// Load the tomlConfig. Note that `DecodeFile` will overwrite set fields.
 	var combinedTOML tomlConfig
-	_, err := toml.DecodeFile(path, &combinedTOML)
+	meta, err := toml.DecodeFile(path, &combinedTOML)
 	if err != nil {
 		return nil, err
+	}
+	if keys := meta.Undecoded(); len(keys) > 0 {
+		logrus.Debugf("Failed to decode keys %q from %q", keys, path)
 	}
 
 	if combinedTOML.V1RegistriesConf.Nonempty() {

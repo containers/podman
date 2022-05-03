@@ -1,3 +1,4 @@
+//go:build linux
 // +build linux
 
 /*
@@ -26,6 +27,7 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"io/fs"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -649,11 +651,11 @@ func (a *Driver) mounted(mountpoint string) (bool, error) {
 // Cleanup aufs and unmount all mountpoints
 func (a *Driver) Cleanup() error {
 	var dirs []string
-	if err := filepath.Walk(a.mntPath(), func(path string, info os.FileInfo, err error) error {
+	if err := filepath.WalkDir(a.mntPath(), func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
-		if !info.IsDir() {
+		if !d.IsDir() {
 			return nil
 		}
 		dirs = append(dirs, path)

@@ -56,7 +56,7 @@ And then decoded with:
 
 ```go
 var conf Config
-err := toml.Decode(tomlData, &conf)
+_, err := toml.Decode(tomlData, &conf)
 // handle error
 ```
 

@@ -7,6 +7,7 @@ import (
 	"compress/bzip2"
 	"fmt"
 	"io"
+	"io/fs"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -863,14 +864,14 @@ func TarWithOptions(srcPath string, options *TarOptions) (io.ReadCloser, error) 
 			rebaseName := options.RebaseNames[include]
 
 			walkRoot := getWalkRoot(srcPath, include)
-			filepath.Walk(walkRoot, func(filePath string, f os.FileInfo, err error) error {
+			filepath.WalkDir(walkRoot, func(filePath string, d fs.DirEntry, err error) error {
 				if err != nil {
 					logrus.Errorf("Tar: Can't stat file %s to tar: %s", srcPath, err)
 					return nil
 				}
 
 				relFilePath, err := filepath.Rel(srcPath, filePath)
-				if err != nil || (!options.IncludeSourceDir && relFilePath == "." && f.IsDir()) {
+				if err != nil || (!options.IncludeSourceDir && relFilePath == "." && d.IsDir()) {
 					// Error getting relative path OR we are looking
 					// at the source directory path. Skip in both situations.
 					return nil
@@ -903,7 +904,7 @@ func TarWithOptions(srcPath string, options *TarOptions) (io.ReadCloser, error) 
 					// dir. If so then we can't skip this dir.
 
 					// Its not a dir then so we can just return/skip.
-					if !f.IsDir() {
+					if !d.IsDir() {
 						return nil
 					}
 

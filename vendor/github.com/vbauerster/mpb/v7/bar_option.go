@@ -59,14 +59,17 @@ func BarWidth(width int) BarOption {
 	}
 }
 
-// BarQueueAfter queues this (being constructed) bar to relplace
-// runningBar after it has been completed.
-func BarQueueAfter(runningBar *Bar) BarOption {
-	if runningBar == nil {
+// BarQueueAfter puts this (being constructed) bar into the queue.
+// When argument bar completes or aborts queued bar replaces its place.
+// If sync is true queued bar is suspended until argument bar completes
+// or aborts.
+func BarQueueAfter(bar *Bar, sync bool) BarOption {
+	if bar == nil {
 		return nil
 	}
 	return func(s *bState) {
-		s.runningBar = runningBar
+		s.afterBar = bar
+		s.sync = sync
 	}
 }
 

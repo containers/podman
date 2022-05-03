@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -112,7 +111,7 @@ func (d *ociImageDestination) IgnoresEmbeddedDockerReference() bool {
 
 // HasThreadSafePutBlob indicates whether PutBlob can be executed concurrently.
 func (d *ociImageDestination) HasThreadSafePutBlob() bool {
-	return false
+	return true
 }
 
 // PutBlob writes contents of stream and returns data representing the result.
@@ -124,7 +123,7 @@ func (d *ociImageDestination) HasThreadSafePutBlob() bool {
 // to any other readers for download using the supplied digest.
 // If stream.Read() at any time, ESPECIALLY at end of input, returns an error, PutBlob MUST 1) fail, and 2) delete any data stored so far.
 func (d *ociImageDestination) PutBlob(ctx context.Context, stream io.Reader, inputInfo types.BlobInfo, cache types.BlobInfoCache, isConfig bool) (types.BlobInfo, error) {
-	blobFile, err := ioutil.TempFile(d.ref.dir, "oci-put-blob")
+	blobFile, err := os.CreateTemp(d.ref.dir, "oci-put-blob")
 	if err != nil {
 		return types.BlobInfo{}, err
 	}
@@ -238,7 +237,7 @@ func (d *ociImageDestination) PutManifest(ctx context.Context, m []byte, instanc
 	if err := ensureParentDirectoryExists(blobPath); err != nil {
 		return err
 	}
-	if err := ioutil.WriteFile(blobPath, m, 0644); err != nil {
+	if err := os.WriteFile(blobPath, m, 0644); err != nil {
 		return err
 	}
 
@@ -309,14 +308,14 @@ func (d *ociImageDestination) PutSignatures(ctx context.Context, signatures [][]
 // - Uploaded data MAY be visible to others before Commit() is called
 // - Uploaded data MAY be removed or MAY remain around if Close() is called without Commit() (i.e. rollback is allowed but not guaranteed)
 func (d *ociImageDestination) Commit(context.Context, types.UnparsedImage) error {
-	if err := ioutil.WriteFile(d.ref.ociLayoutPath(), []byte(`{"imageLayoutVersion": "1.0.0"}`), 0644); err != nil {
+	if err := os.WriteFile(d.ref.ociLayoutPath(), []byte(`{"imageLayoutVersion": "1.0.0"}`), 0644); err != nil {
 		return err
 	}
 	indexJSON, err := json.Marshal(d.index)
 	if err != nil {
 		return err
 	}
-	return ioutil.WriteFile(d.ref.indexPath(), indexJSON, 0644)
+	return os.WriteFile(d.ref.indexPath(), indexJSON, 0644)
 }
 
 func ensureDirectoryExists(path string) error {

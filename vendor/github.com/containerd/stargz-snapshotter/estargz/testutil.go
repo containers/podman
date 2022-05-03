@@ -28,9 +28,9 @@ import (
 	"compress/gzip"
 	"crypto/sha256"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"reflect"
 	"sort"
@@ -41,7 +41,6 @@ import (
 	"github.com/containerd/stargz-snapshotter/estargz/errorutil"
 	"github.com/klauspost/compress/zstd"
 	digest "github.com/opencontainers/go-digest"
-	"github.com/pkg/errors"
 )
 
 // TestingController is Compression with some helper methods necessary for testing.
@@ -287,11 +286,11 @@ func isSameTarGz(t *testing.T, controller TestingController, a, b []byte) bool {
 			return false
 
 		}
-		aFile, err := ioutil.ReadAll(aTar)
+		aFile, err := io.ReadAll(aTar)
 		if err != nil {
 			t.Fatal("failed to read tar payload of A")
 		}
-		bFile, err := ioutil.ReadAll(bTar)
+		bFile, err := io.ReadAll(bTar)
 		if err != nil {
 			t.Fatal("failed to read tar payload of B")
 		}
@@ -1062,18 +1061,18 @@ func parseStargz(sgz *io.SectionReader, controller TestingController) (decodedJT
 	fSize := controller.FooterSize()
 	footer := make([]byte, fSize)
 	if _, err := sgz.ReadAt(footer, sgz.Size()-fSize); err != nil {
-		return nil, 0, errors.Wrap(err, "error reading footer")
+		return nil, 0, fmt.Errorf("error reading footer: %w", err)
 	}
 	_, tocOffset, _, err := controller.ParseFooter(footer[positive(int64(len(footer))-fSize):])
 	if err != nil {
-		return nil, 0, errors.Wrapf(err, "failed to parse footer")
+		return nil, 0, fmt.Errorf("failed to parse footer: %w", err)
 	}
 
 	// Decode the TOC JSON
 	tocReader := io.NewSectionReader(sgz, tocOffset, sgz.Size()-tocOffset-fSize)
 	decodedJTOC, _, err = controller.ParseTOC(tocReader)
 	if err != nil {
-		return nil, 0, errors.Wrap(err, "failed to parse TOC")
+		return nil, 0, fmt.Errorf("failed to parse TOC: %w", err)
 	}
 	return decodedJTOC, tocOffset, nil
 }

@@ -3,14 +3,12 @@ package types
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/BurntSushi/toml"
-	"github.com/containers/storage/drivers/overlay"
 	cfg "github.com/containers/storage/pkg/config"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/sirupsen/logrus"
@@ -19,11 +17,11 @@ import (
 // TOML-friendly explicit tables used for conversions.
 type TomlConfig struct {
 	Storage struct {
-		Driver              string            `toml:"driver"`
-		RunRoot             string            `toml:"runroot"`
-		GraphRoot           string            `toml:"graphroot"`
-		RootlessStoragePath string            `toml:"rootless_storage_path"`
-		Options             cfg.OptionsConfig `toml:"options"`
+		Driver              string            `toml:"driver,omitempty"`
+		RunRoot             string            `toml:"runroot,omitempty"`
+		GraphRoot           string            `toml:"graphroot,omitempty"`
+		RootlessStoragePath string            `toml:"rootless_storage_path,omitempty"`
+		Options             cfg.OptionsConfig `toml:"options,omitempty"`
 	} `toml:"storage"`
 }
 
@@ -225,25 +223,11 @@ func getRootlessStorageOpts(rootlessUID int, systemOpts StoreOptions) (StoreOpti
 		opts.GraphDriverName = overlayDriver
 	}
 
-	if opts.GraphDriverName == "" || opts.GraphDriverName == overlayDriver {
-		supported, err := overlay.SupportsNativeOverlay(opts.GraphRoot, rootlessRuntime)
-		if err != nil {
-			return opts, err
-		}
-		if supported {
-			opts.GraphDriverName = overlayDriver
-		} else {
-			if path, err := exec.LookPath("fuse-overlayfs"); err == nil {
-				opts.GraphDriverName = overlayDriver
-				opts.GraphDriverOptions = []string{fmt.Sprintf("overlay.mount_program=%s", path)}
-			}
-		}
-		if opts.GraphDriverName == overlayDriver {
-			for _, o := range systemOpts.GraphDriverOptions {
-				if strings.Contains(o, "ignore_chown_errors") {
-					opts.GraphDriverOptions = append(opts.GraphDriverOptions, o)
-					break
-				}
+	if opts.GraphDriverName == overlayDriver {
+		for _, o := range systemOpts.GraphDriverOptions {
+			if strings.Contains(o, "ignore_chown_errors") {
+				opts.GraphDriverOptions = append(opts.GraphDriverOptions, o)
+				break
 			}
 		}
 	}
@@ -431,11 +415,12 @@ func Save(conf TomlConfig, rootless bool) error {
 	if err != nil {
 		return err
 	}
-	if err = os.Remove(configFile); !os.IsNotExist(err) {
+
+	if err = os.Remove(configFile); !os.IsNotExist(err) && err != nil {
 		return err
 	}
 
-	f, err := os.Open(configFile)
+	f, err := os.Create(configFile)
 	if err != nil {
 		return err
 	}

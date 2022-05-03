@@ -1,4 +1,5 @@
-// +build !linux
+//go:build !linux && !freebsd
+// +build !linux,!freebsd
 
 package mount
 

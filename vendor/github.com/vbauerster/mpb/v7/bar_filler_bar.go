@@ -157,9 +157,8 @@ func (s *bFiller) Fill(w io.Writer, width int, stat decor.Statistics) {
 		return
 	}
 
-	ow := optimisticWriter(w)
-	ow(s.components[iLbound].bytes)
-	defer ow(s.components[iRbound].bytes)
+	mustWrite(w, s.components[iLbound].bytes)
+	defer mustWrite(w, s.components[iRbound].bytes)
 
 	if width == 0 {
 		return
@@ -231,26 +230,24 @@ func (s *bFiller) Fill(w io.Writer, width int, stat decor.Statistics) {
 	}
 
 	if s.rev {
-		flush(ow, padding, filling)
+		flush(w, padding, filling)
 	} else {
-		flush(ow, filling, padding)
+		flush(w, filling, padding)
 	}
 }
 
-func flush(ow func([]byte), filling, padding [][]byte) {
+func flush(w io.Writer, filling, padding [][]byte) {
 	for i := len(filling) - 1; i >= 0; i-- {
-		ow(filling[i])
+		mustWrite(w, filling[i])
 	}
 	for i := 0; i < len(padding); i++ {
-		ow(padding[i])
+		mustWrite(w, padding[i])
 	}
 }
 
-func optimisticWriter(w io.Writer) func([]byte) {
-	return func(p []byte) {
-		_, err := w.Write(p)
-		if err != nil {
-			panic(err)
-		}
+func mustWrite(w io.Writer, p []byte) {
+	_, err := w.Write(p)
+	if err != nil {
+		panic(err)
 	}
 }

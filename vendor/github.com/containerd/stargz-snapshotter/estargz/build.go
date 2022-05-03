@@ -26,9 +26,10 @@ import (
 	"archive/tar"
 	"bytes"
 	"compress/gzip"
+	"context"
+	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path"
 	"runtime"
@@ -38,7 +39,6 @@ import (
 	"github.com/containerd/stargz-snapshotter/estargz/errorutil"
 	"github.com/klauspost/compress/zstd"
 	digest "github.com/opencontainers/go-digest"
-	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -48,6 +48,7 @@ type options struct {
 	prioritizedFiles       []string
 	missedPrioritizedFiles *[]string
 	compression            Compression
+	ctx                    context.Context
 }
 
 type Option func(o *options) error
@@ -104,6 +105,14 @@ func WithCompression(compression Compression) Option {
 	}
 }
 
+// WithContext specifies a context that can be used for clean canceleration.
+func WithContext(ctx context.Context) Option {
+	return func(o *options) error {
+		o.ctx = ctx
+		return nil
+	}
+}
+
 // Blob is an eStargz blob.
 type Blob struct {
 	io.ReadCloser
@@ -139,11 +148,28 @@ func Build(tarBlob *io.SectionReader, opt ...Option) (_ *Blob, rErr error) {
 		opts.compression = newGzipCompressionWithLevel(opts.compressionLevel)
 	}
 	layerFiles := newTempFiles()
+	ctx := opts.ctx
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	done := make(chan struct{})
+	defer close(done)
+	go func() {
+		select {
+		case <-done:
+			// nop
+		case <-ctx.Done():
+			layerFiles.CleanupAll()
+		}
+	}()
 	defer func() {
 		if rErr != nil {
 			if err := layerFiles.CleanupAll(); err != nil {
-				rErr = errors.Wrapf(rErr, "failed to cleanup tmp files: %v", err)
+				rErr = fmt.Errorf("failed to cleanup tmp files: %v: %w", err, rErr)
 			}
+		}
+		if cErr := ctx.Err(); cErr != nil {
+			rErr = fmt.Errorf("error from context %q: %w", cErr, rErr)
 		}
 	}()
 	tarBlob, err := decompressBlob(tarBlob, layerFiles)
@@ -307,7 +333,7 @@ func sortEntries(in io.ReaderAt, prioritized []string, missedPrioritized *[]stri
 	// Import tar file.
 	intar, err := importTar(in)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to sort")
+		return nil, fmt.Errorf("failed to sort: %w", err)
 	}
 
 	// Sort the tar file respecting to the prioritized files list.
@@ -318,7 +344,7 @@ func sortEntries(in io.ReaderAt, prioritized []string, missedPrioritized *[]stri
 				*missedPrioritized = append(*missedPrioritized, l)
 				continue // allow not found
 			}
-			return nil, errors.Wrap(err, "failed to sort tar entries")
+			return nil, fmt.Errorf("failed to sort tar entries: %w", err)
 		}
 	}
 	if len(prioritized) == 0 {
@@ -371,7 +397,7 @@ func importTar(in io.ReaderAt) (*tarFile, error) {
 	tf := &tarFile{}
 	pw, err := newCountReader(in)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to make position watcher")
+		return nil, fmt.Errorf("failed to make position watcher: %w", err)
 	}
 	tr := tar.NewReader(pw)
 
@@ -383,7 +409,7 @@ func importTar(in io.ReaderAt) (*tarFile, error) {
 			if err == io.EOF {
 				break
 			} else {
-				return nil, errors.Wrap(err, "failed to parse tar file")
+				return nil, fmt.Errorf("failed to parse tar file, %w", err)
 			}
 		}
 		switch cleanEntryName(h.Name) {
@@ -420,7 +446,7 @@ func moveRec(name string, in *tarFile, out *tarFile) error {
 	_, okIn := in.get(name)
 	_, okOut := out.get(name)
 	if !okIn && !okOut {
-		return errors.Wrapf(errNotFound, "file: %q", name)
+		return fmt.Errorf("file: %q: %w", name, errNotFound)
 	}
 
 	parent, _ := path.Split(strings.TrimSuffix(name, "/"))
@@ -506,12 +532,13 @@ func newTempFiles() *tempFiles {
 }
 
 type tempFiles struct {
-	files   []*os.File
-	filesMu sync.Mutex
+	files       []*os.File
+	filesMu     sync.Mutex
+	cleanupOnce sync.Once
 }
 
 func (tf *tempFiles) TempFile(dir, pattern string) (*os.File, error) {
-	f, err := ioutil.TempFile(dir, pattern)
+	f, err := os.CreateTemp(dir, pattern)
 	if err != nil {
 		return nil, err
 	}
@@ -521,7 +548,14 @@ func (tf *tempFiles) TempFile(dir, pattern string) (*os.File, error) {
 	return f, nil
 }
 
-func (tf *tempFiles) CleanupAll() error {
+func (tf *tempFiles) CleanupAll() (err error) {
+	tf.cleanupOnce.Do(func() {
+		err = tf.cleanupAll()
+	})
+	return
+}
+
+func (tf *tempFiles) cleanupAll() error {
 	tf.filesMu.Lock()
 	defer tf.filesMu.Unlock()
 	var allErr []error

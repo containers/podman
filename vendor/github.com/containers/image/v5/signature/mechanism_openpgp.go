@@ -7,7 +7,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"path"
 	"strings"
@@ -20,6 +20,7 @@ import (
 	// For this verify-only fallback, we haven't reviewed any of the
 	// existing alternatives to choose; so, for now, continue to
 	// use this frozen deprecated implementation.
+	//lint:ignore SA1019 See above
 	"golang.org/x/crypto/openpgp" //nolint:staticcheck
 )
 
@@ -43,7 +44,7 @@ func newGPGSigningMechanismInDirectory(optionalDir string) (signingMechanismWith
 		}
 	}
 
-	pubring, err := ioutil.ReadFile(path.Join(gpgHome, "pubring.gpg"))
+	pubring, err := os.ReadFile(path.Join(gpgHome, "pubring.gpg"))
 	if err != nil {
 		if !os.IsNotExist(err) {
 			return nil, err
@@ -129,7 +130,7 @@ func (m *openpgpSigningMechanism) Verify(unverifiedSignature []byte) (contents [
 	if !md.IsSigned {
 		return nil, "", errors.New("not signed")
 	}
-	content, err := ioutil.ReadAll(md.UnverifiedBody)
+	content, err := io.ReadAll(md.UnverifiedBody)
 	if err != nil {
 		// Coverage: md.UnverifiedBody.Read only fails if the body is encrypted
 		// (and possibly also signed, but it _must_ be encrypted) and the signing

@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 
 	"github.com/containers/image/v5/internal/tmpdir"
@@ -65,7 +64,7 @@ func newImageSource(ctx context.Context, sys *types.SystemContext, ref sifRefere
 		_ = sifImg.UnloadContainer()
 	}()
 
-	workDir, err := ioutil.TempDir(tmpdir.TemporaryDirectoryForBigFiles(sys), "sif")
+	workDir, err := os.MkdirTemp(tmpdir.TemporaryDirectoryForBigFiles(sys), "sif")
 	if err != nil {
 		return nil, fmt.Errorf("creating temp directory: %w", err)
 	}
@@ -170,7 +169,7 @@ func (s *sifImageSource) HasThreadSafeGetBlob() bool {
 func (s *sifImageSource) GetBlob(ctx context.Context, info types.BlobInfo, cache types.BlobInfoCache) (io.ReadCloser, int64, error) {
 	switch info.Digest {
 	case s.configDigest:
-		return ioutil.NopCloser(bytes.NewBuffer(s.config)), int64(len(s.config)), nil
+		return io.NopCloser(bytes.NewBuffer(s.config)), int64(len(s.config)), nil
 	case s.layerDigest:
 		reader, err := os.Open(s.layerFile)
 		if err != nil {

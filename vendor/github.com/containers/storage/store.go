@@ -2452,6 +2452,10 @@ func (s *store) DeleteImage(id string, commit bool) (layers []string, err error)
 		}
 		layer := image.TopLayer
 		layersToRemoveMap := make(map[string]struct{})
+		layersToRemove = append(layersToRemove, image.MappedTopLayers...)
+		for _, mappedTopLayer := range image.MappedTopLayers {
+			layersToRemoveMap[mappedTopLayer] = struct{}{}
+		}
 		for layer != "" {
 			if rcstore.Exists(layer) {
 				break
@@ -2482,12 +2486,6 @@ func (s *store) DeleteImage(id string, commit bool) (layers []string, err error)
 			}
 			if hasChildrenNotBeingRemoved() {
 				break
-			}
-			if layer == image.TopLayer {
-				layersToRemove = append(layersToRemove, image.MappedTopLayers...)
-				for _, mappedTopLayer := range image.MappedTopLayers {
-					layersToRemoveMap[mappedTopLayer] = struct{}{}
-				}
 			}
 			layersToRemove = append(layersToRemove, layer)
 			layersToRemoveMap[layer] = struct{}{}
@@ -2589,17 +2587,12 @@ func (s *store) DeleteContainer(id string) error {
 			}()
 
 			var errors []error
-			for {
-				select {
-				case err, ok := <-errChan:
-					if !ok {
-						return multierror.Append(nil, errors...).ErrorOrNil()
-					}
-					if err != nil {
-						errors = append(errors, err)
-					}
+			for err := range errChan {
+				if err != nil {
+					errors = append(errors, err)
 				}
 			}
+			return multierror.Append(nil, errors...).ErrorOrNil()
 		}
 	}
 	return ErrNotAContainer

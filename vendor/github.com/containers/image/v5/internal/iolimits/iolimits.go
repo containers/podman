@@ -2,7 +2,6 @@ package iolimits
 
 import (
 	"io"
-	"io/ioutil"
 
 	"github.com/pkg/errors"
 )
@@ -47,7 +46,7 @@ const (
 func ReadAtMost(reader io.Reader, limit int) ([]byte, error) {
 	limitedReader := io.LimitReader(reader, int64(limit+1))
 
-	res, err := ioutil.ReadAll(limitedReader)
+	res, err := io.ReadAll(limitedReader)
 	if err != nil {
 		return nil, err
 	}

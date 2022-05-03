@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
@@ -182,7 +181,7 @@ func (d *dockerImageDestination) PutBlob(ctx context.Context, stream io.Reader, 
 		// This error text should never be user-visible, we terminate only after makeRequestToResolvedURL
 		// returns, so there isn’t a way for the error text to be provided to any of our callers.
 		defer uploadReader.Terminate(errors.New("Reading data from an already terminated upload"))
-		res, err = d.c.makeRequestToResolvedURL(ctx, http.MethodPatch, uploadLocation.String(), map[string][]string{"Content-Type": {"application/octet-stream"}}, uploadReader, inputInfo.Size, v2Auth, nil)
+		res, err = d.c.makeRequestToResolvedURL(ctx, http.MethodPatch, uploadLocation, map[string][]string{"Content-Type": {"application/octet-stream"}}, uploadReader, inputInfo.Size, v2Auth, nil)
 		if err != nil {
 			logrus.Debugf("Error uploading layer chunked %v", err)
 			return nil, err
@@ -207,7 +206,7 @@ func (d *dockerImageDestination) PutBlob(ctx context.Context, stream io.Reader, 
 	locationQuery := uploadLocation.Query()
 	locationQuery.Set("digest", blobDigest.String())
 	uploadLocation.RawQuery = locationQuery.Encode()
-	res, err = d.c.makeRequestToResolvedURL(ctx, http.MethodPut, uploadLocation.String(), map[string][]string{"Content-Type": {"application/octet-stream"}}, nil, -1, v2Auth, nil)
+	res, err = d.c.makeRequestToResolvedURL(ctx, http.MethodPut, uploadLocation, map[string][]string{"Content-Type": {"application/octet-stream"}}, nil, -1, v2Auth, nil)
 	if err != nil {
 		return types.BlobInfo{}, err
 	}
@@ -257,9 +256,8 @@ func (d *dockerImageDestination) mountBlob(ctx context.Context, srcRepo referenc
 			"from":  {reference.Path(srcRepo)},
 		}.Encode(),
 	}
-	mountPath := u.String()
-	logrus.Debugf("Trying to mount %s", mountPath)
-	res, err := d.c.makeRequest(ctx, http.MethodPost, mountPath, nil, nil, v2Auth, extraScope)
+	logrus.Debugf("Trying to mount %s", u.Redacted())
+	res, err := d.c.makeRequest(ctx, http.MethodPost, u.String(), nil, nil, v2Auth, extraScope)
 	if err != nil {
 		return err
 	}
@@ -276,8 +274,8 @@ func (d *dockerImageDestination) mountBlob(ctx context.Context, srcRepo referenc
 		if err != nil {
 			return errors.Wrap(err, "determining upload URL after a mount attempt")
 		}
-		logrus.Debugf("... started an upload instead of mounting, trying to cancel at %s", uploadLocation.String())
-		res2, err := d.c.makeRequestToResolvedURL(ctx, http.MethodDelete, uploadLocation.String(), nil, nil, -1, v2Auth, extraScope)
+		logrus.Debugf("... started an upload instead of mounting, trying to cancel at %s", uploadLocation.Redacted())
+		res2, err := d.c.makeRequestToResolvedURL(ctx, http.MethodDelete, uploadLocation, nil, nil, -1, v2Auth, extraScope)
 		if err != nil {
 			logrus.Debugf("Error trying to cancel an inadvertent upload: %s", err)
 		} else {
@@ -593,16 +591,16 @@ func (d *dockerImageDestination) putOneSignature(url *url.URL, signature []byte)
 		if err != nil {
 			return err
 		}
-		err = ioutil.WriteFile(url.Path, signature, 0644)
+		err = os.WriteFile(url.Path, signature, 0644)
 		if err != nil {
 			return err
 		}
 		return nil
 
 	case "http", "https":
-		return errors.Errorf("Writing directly to a %s sigstore %s is not supported. Configure a sigstore-staging: location", url.Scheme, url.String())
+		return errors.Errorf("Writing directly to a %s sigstore %s is not supported. Configure a sigstore-staging: location", url.Scheme, url.Redacted())
 	default:
-		return errors.Errorf("Unsupported scheme when writing signature to %s", url.String())
+		return errors.Errorf("Unsupported scheme when writing signature to %s", url.Redacted())
 	}
 }
 
@@ -620,9 +618,9 @@ func (c *dockerClient) deleteOneSignature(url *url.URL) (missing bool, err error
 		return false, err
 
 	case "http", "https":
-		return false, errors.Errorf("Writing directly to a %s sigstore %s is not supported. Configure a sigstore-staging: location", url.Scheme, url.String())
+		return false, errors.Errorf("Writing directly to a %s sigstore %s is not supported. Configure a sigstore-staging: location", url.Scheme, url.Redacted())
 	default:
-		return false, errors.Errorf("Unsupported scheme when deleting signature from %s", url.String())
+		return false, errors.Errorf("Unsupported scheme when deleting signature from %s", url.Redacted())
 	}
 }
 

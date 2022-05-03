@@ -2,7 +2,6 @@ package zfs
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/containers/storage/drivers"
 	"github.com/pkg/errors"
@@ -26,14 +25,10 @@ func checkRootdirFs(rootdir string) error {
 }
 
 func getMountpoint(id string) string {
-	maxlen := 12
+	return id
+}
 
-	// we need to preserve filesystem suffix
-	suffix := strings.SplitN(id, "-", 2)
-
-	if len(suffix) > 1 {
-		return id[:maxlen] + "-" + suffix[1]
-	}
-
-	return id[:maxlen]
+func detachUnmount(mountpoint string) error {
+	// FreeBSD's MNT_FORCE is roughly equivalent to MNT_DETACH
+	return unix.Unmount(mountpoint, unix.MNT_FORCE)
 }

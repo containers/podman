@@ -47,8 +47,8 @@ const (
 // Statistics consists of progress related statistics, that Decorator
 // may need.
 type Statistics struct {
-	ID             int
 	AvailableWidth int
+	ID             int
 	Total          int64
 	Current        int64
 	Refill         int64

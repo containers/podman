@@ -34,7 +34,6 @@ import (
 	"strconv"
 
 	digest "github.com/opencontainers/go-digest"
-	"github.com/pkg/errors"
 )
 
 type gzipCompression struct {
@@ -150,7 +149,7 @@ func (gz *GzipDecompressor) ParseFooter(p []byte) (blobPayloadSize, tocOffset, t
 	}
 	tocOffset, err = strconv.ParseInt(string(subfield[:16]), 16, 64)
 	if err != nil {
-		return 0, 0, 0, errors.Wrapf(err, "legacy: failed to parse toc offset")
+		return 0, 0, 0, fmt.Errorf("legacy: failed to parse toc offset: %w", err)
 	}
 	return tocOffset, tocOffset, 0, nil
 }
@@ -179,7 +178,7 @@ func (gz *LegacyGzipDecompressor) ParseFooter(p []byte) (blobPayloadSize, tocOff
 	}
 	zr, err := gzip.NewReader(bytes.NewReader(p))
 	if err != nil {
-		return 0, 0, 0, errors.Wrapf(err, "legacy: failed to get footer gzip reader")
+		return 0, 0, 0, fmt.Errorf("legacy: failed to get footer gzip reader: %w", err)
 	}
 	defer zr.Close()
 	extra := zr.Header.Extra
@@ -191,7 +190,7 @@ func (gz *LegacyGzipDecompressor) ParseFooter(p []byte) (blobPayloadSize, tocOff
 	}
 	tocOffset, err = strconv.ParseInt(string(extra[:16]), 16, 64)
 	if err != nil {
-		return 0, 0, 0, errors.Wrapf(err, "legacy: failed to parse toc offset")
+		return 0, 0, 0, fmt.Errorf("legacy: failed to parse toc offset: %w", err)
 	}
 	return tocOffset, tocOffset, 0, nil
 }

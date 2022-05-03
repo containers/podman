@@ -4,7 +4,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -15,6 +14,7 @@ import (
 	"github.com/containers/image/v5/pkg/sysregistriesv2"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/storage/pkg/homedir"
+	"github.com/containers/storage/pkg/ioutils"
 	helperclient "github.com/docker/docker-credential-helpers/client"
 	"github.com/docker/docker-credential-helpers/credentials"
 	"github.com/hashicorp/go-multierror"
@@ -543,7 +543,7 @@ func getPathToAuthWithOS(sys *types.SystemContext, goOS string) (string, bool, e
 func readJSONFile(path string, legacyFormat bool) (dockerConfigFile, error) {
 	var auths dockerConfigFile
 
-	raw, err := ioutil.ReadFile(path)
+	raw, err := os.ReadFile(path)
 	if err != nil {
 		if os.IsNotExist(err) {
 			auths.AuthConfigs = map[string]dockerAuthConfig{}
@@ -605,7 +605,7 @@ func modifyJSON(sys *types.SystemContext, editor func(auths *dockerConfigFile) (
 			return "", errors.Wrapf(err, "marshaling JSON %q", path)
 		}
 
-		if err = ioutil.WriteFile(path, newData, 0600); err != nil {
+		if err = ioutils.AtomicWriteFile(path, newData, 0600); err != nil {
 			return "", errors.Wrapf(err, "writing to file %q", path)
 		}
 	}

@@ -1,3 +1,4 @@
+//go:build linux
 // +build linux
 
 package unshare
@@ -9,6 +10,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"os/signal"
 	"os/user"
 	"runtime"
 	"strconv"
@@ -73,6 +75,28 @@ func getRootlessGID() int {
 		return u
 	}
 	return os.Getegid()
+}
+
+// IsSetID checks if specified path has correct FileMode (Setuid|SETGID) or the
+// matching file capabilitiy
+func IsSetID(path string, modeid os.FileMode, capid capability.Cap) (bool, error) {
+	info, err := os.Stat(path)
+	if err != nil {
+		return false, err
+	}
+
+	mode := info.Mode()
+	if mode&modeid == modeid {
+		return true, nil
+	}
+	cap, err := capability.NewFile2(path)
+	if err != nil {
+		return false, err
+	}
+	if err := cap.Load(); err != nil {
+		return false, err
+	}
+	return cap.Get(capability.EFFECTIVE, capid), nil
 }
 
 func (c *Cmd) Start() error {
@@ -214,15 +238,26 @@ func (c *Cmd) Start() error {
 			gidmapSet := false
 			// Set the GID map.
 			if c.UseNewgidmap {
-				cmd := exec.Command("newgidmap", append([]string{pidString}, strings.Fields(strings.Replace(g.String(), "\n", " ", -1))...)...)
+				path, err := exec.LookPath("newgidmap")
+				if err != nil {
+					return errors.Wrapf(err, "error finding newgidmap")
+				}
+				cmd := exec.Command(path, append([]string{pidString}, strings.Fields(strings.Replace(g.String(), "\n", " ", -1))...)...)
 				g.Reset()
 				cmd.Stdout = g
 				cmd.Stderr = g
-				err := cmd.Run()
-				if err == nil {
+				if err := cmd.Run(); err == nil {
 					gidmapSet = true
 				} else {
 					logrus.Warnf("Error running newgidmap: %v: %s", err, g.String())
+					isSetgid, err := IsSetID(path, os.ModeSetgid, capability.CAP_SETGID)
+					if err != nil {
+						logrus.Warnf("Failed to check for setgid on %s: %v", path, err)
+					} else {
+						if !isSetgid {
+							logrus.Warnf("%s should be setgid or have filecaps setgid", path)
+						}
+					}
 					logrus.Warnf("Falling back to single mapping")
 					g.Reset()
 					g.Write([]byte(fmt.Sprintf("0 %d 1\n", os.Getegid())))
@@ -261,17 +296,29 @@ func (c *Cmd) Start() error {
 				fmt.Fprintf(u, "%d %d %d\n", m.ContainerID, m.HostID, m.Size)
 			}
 			uidmapSet := false
-			// Set the GID map.
+			// Set the UID map.
 			if c.UseNewuidmap {
-				cmd := exec.Command("newuidmap", append([]string{pidString}, strings.Fields(strings.Replace(u.String(), "\n", " ", -1))...)...)
+				path, err := exec.LookPath("newuidmap")
+				if err != nil {
+					return errors.Wrapf(err, "error finding newuidmap")
+				}
+				cmd := exec.Command(path, append([]string{pidString}, strings.Fields(strings.Replace(u.String(), "\n", " ", -1))...)...)
 				u.Reset()
 				cmd.Stdout = u
 				cmd.Stderr = u
-				err := cmd.Run()
-				if err == nil {
+				if err := cmd.Run(); err == nil {
 					uidmapSet = true
 				} else {
 					logrus.Warnf("Error running newuidmap: %v: %s", err, u.String())
+					isSetuid, err := IsSetID(path, os.ModeSetuid, capability.CAP_SETUID)
+					if err != nil {
+						logrus.Warnf("Failed to check for setuid on %s: %v", path, err)
+					} else {
+						if !isSetuid {
+							logrus.Warnf("%s should be setuid or have filecaps setuid", path)
+						}
+					}
+
 					logrus.Warnf("Falling back to single mapping")
 					u.Reset()
 					u.Write([]byte(fmt.Sprintf("0 %d 1\n", os.Geteuid())))
@@ -484,6 +531,30 @@ func MaybeReexecUsingUserNamespace(evenForRoot bool) {
 
 	// Finish up.
 	logrus.Debugf("Running %+v with environment %+v, UID map %+v, and GID map %+v", cmd.Cmd.Args, os.Environ(), cmd.UidMappings, cmd.GidMappings)
+
+	// Forward SIGHUP, SIGINT, and SIGTERM to our child process.
+	interrupted := make(chan os.Signal, 100)
+	defer func() {
+		signal.Stop(interrupted)
+		close(interrupted)
+	}()
+	cmd.Hook = func(int) error {
+		go func() {
+			for receivedSignal := range interrupted {
+				cmd.Cmd.Process.Signal(receivedSignal)
+			}
+		}()
+		return nil
+	}
+	signal.Notify(interrupted, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM)
+
+	// Make sure our child process gets SIGKILLed if we exit, for whatever
+	// reason, before it does.
+	if cmd.Cmd.SysProcAttr == nil {
+		cmd.Cmd.SysProcAttr = &syscall.SysProcAttr{}
+	}
+	cmd.Cmd.SysProcAttr.Pdeathsig = syscall.SIGKILL
+
 	ExecRunnable(cmd, nil)
 }
 
@@ -501,11 +572,11 @@ func ExecRunnable(cmd Runnable, cleanup func()) {
 			if exitError.ProcessState.Exited() {
 				if waitStatus, ok := exitError.ProcessState.Sys().(syscall.WaitStatus); ok {
 					if waitStatus.Exited() {
-						logrus.Errorf("%v", exitError)
+						logrus.Debugf("%v", exitError)
 						exit(waitStatus.ExitStatus())
 					}
 					if waitStatus.Signaled() {
-						logrus.Errorf("%v", exitError)
+						logrus.Debugf("%v", exitError)
 						exit(int(waitStatus.Signal()) + 128)
 					}
 				}

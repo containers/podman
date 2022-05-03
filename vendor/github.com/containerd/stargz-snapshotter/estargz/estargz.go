@@ -27,10 +27,10 @@ import (
 	"bytes"
 	"compress/gzip"
 	"crypto/sha256"
+	"errors"
 	"fmt"
 	"hash"
 	"io"
-	"io/ioutil"
 	"os"
 	"path"
 	"sort"
@@ -40,7 +40,6 @@ import (
 
 	"github.com/containerd/stargz-snapshotter/estargz/errorutil"
 	digest "github.com/opencontainers/go-digest"
-	"github.com/pkg/errors"
 	"github.com/vbatts/tar-split/archive/tar"
 )
 
@@ -385,8 +384,7 @@ func (r *Reader) Verifiers() (TOCEntryVerifier, error) {
 			if e.Digest != "" {
 				d, err := digest.Parse(e.Digest)
 				if err != nil {
-					return nil, errors.Wrapf(err,
-						"failed to parse regular file digest %q", e.Digest)
+					return nil, fmt.Errorf("failed to parse regular file digest %q: %w", e.Digest, err)
 				}
 				regDigestMap[e.Offset] = d
 			} else {
@@ -401,8 +399,7 @@ func (r *Reader) Verifiers() (TOCEntryVerifier, error) {
 		if e.ChunkDigest != "" {
 			d, err := digest.Parse(e.ChunkDigest)
 			if err != nil {
-				return nil, errors.Wrapf(err,
-					"failed to parse chunk digest %q", e.ChunkDigest)
+				return nil, fmt.Errorf("failed to parse chunk digest %q: %w", e.ChunkDigest, err)
 			}
 			chunkDigestMap[e.Offset] = d
 		} else {
@@ -581,7 +578,7 @@ func (fr *fileReader) ReadAt(p []byte, off int64) (n int, err error) {
 		return 0, fmt.Errorf("fileReader.ReadAt.decompressor.Reader: %v", err)
 	}
 	defer dr.Close()
-	if n, err := io.CopyN(ioutil.Discard, dr, off); n != off || err != nil {
+	if n, err := io.CopyN(io.Discard, dr, off); n != off || err != nil {
 		return 0, fmt.Errorf("discard of %d bytes = %v, %v", off, n, err)
 	}
 	return io.ReadFull(dr, p)
@@ -647,7 +644,7 @@ func Unpack(sr *io.SectionReader, c Decompressor) (io.ReadCloser, error) {
 	}
 	blobPayloadSize, _, _, err := c.ParseFooter(footer)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to parse footer")
+		return nil, fmt.Errorf("failed to parse footer: %w", err)
 	}
 	return c.Reader(io.LimitReader(sr, blobPayloadSize))
 }
@@ -935,7 +932,7 @@ func (w *Writer) appendTar(r io.Reader, lossless bool) error {
 			}
 		}
 	}
-	remainDest := ioutil.Discard
+	remainDest := io.Discard
 	if lossless {
 		remainDest = dst // Preserve the remaining bytes in lossless mode
 	}

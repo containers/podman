@@ -1,6 +1,7 @@
 package toml
 
 import (
+	"bytes"
 	"encoding"
 	"fmt"
 	"io"
@@ -18,9 +19,27 @@ type Unmarshaler interface {
 }
 
 // Unmarshal decodes the contents of `p` in TOML format into a pointer `v`.
-func Unmarshal(p []byte, v interface{}) error {
-	_, err := Decode(string(p), v)
+func Unmarshal(data []byte, v interface{}) error {
+	_, err := NewDecoder(bytes.NewReader(data)).Decode(v)
 	return err
+}
+
+// Decode the TOML data in to the pointer v.
+//
+// See the documentation on Decoder for a description of the decoding process.
+func Decode(data string, v interface{}) (MetaData, error) {
+	return NewDecoder(strings.NewReader(data)).Decode(v)
+}
+
+// DecodeFile is just like Decode, except it will automatically read the
+// contents of the file at path and decode it for you.
+func DecodeFile(path string, v interface{}) (MetaData, error) {
+	fp, err := os.Open(path)
+	if err != nil {
+		return MetaData{}, err
+	}
+	defer fp.Close()
+	return NewDecoder(fp).Decode(v)
 }
 
 // Primitive is a TOML value that hasn't been decoded into a Go value.
@@ -42,26 +61,9 @@ type Primitive struct {
 // The significand precision for float32 and float64 is 24 and 53 bits; this is
 // the range a natural number can be stored in a float without loss of data.
 const (
-	maxSafeFloat32Int = 16777215         // 2^24-1
-	maxSafeFloat64Int = 9007199254740991 // 2^53-1
+	maxSafeFloat32Int = 16777215                // 2^24-1
+	maxSafeFloat64Int = int64(9007199254740991) // 2^53-1
 )
-
-// PrimitiveDecode is just like the other `Decode*` functions, except it
-// decodes a TOML value that has already been parsed. Valid primitive values
-// can *only* be obtained from values filled by the decoder functions,
-// including this method. (i.e., `v` may contain more `Primitive`
-// values.)
-//
-// Meta data for primitive values is included in the meta data returned by
-// the `Decode*` functions with one exception: keys returned by the Undecoded
-// method will only reflect keys that were decoded. Namely, any keys hidden
-// behind a Primitive will be considered undecoded. Executing this method will
-// update the undecoded keys in the meta data. (See the example.)
-func (md *MetaData) PrimitiveDecode(primValue Primitive, v interface{}) error {
-	md.context = primValue.context
-	defer func() { md.context = nil }()
-	return md.unify(primValue.undecoded, rvalue(v))
-}
 
 // Decoder decodes TOML data.
 //
@@ -158,22 +160,21 @@ func (dec *Decoder) Decode(v interface{}) (MetaData, error) {
 	return md, md.unify(p.mapping, rv)
 }
 
-// Decode the TOML data in to the pointer v.
+// PrimitiveDecode is just like the other `Decode*` functions, except it
+// decodes a TOML value that has already been parsed. Valid primitive values
+// can *only* be obtained from values filled by the decoder functions,
+// including this method. (i.e., `v` may contain more `Primitive`
+// values.)
 //
-// See the documentation on Decoder for a description of the decoding process.
-func Decode(data string, v interface{}) (MetaData, error) {
-	return NewDecoder(strings.NewReader(data)).Decode(v)
-}
-
-// DecodeFile is just like Decode, except it will automatically read the
-// contents of the file at path and decode it for you.
-func DecodeFile(path string, v interface{}) (MetaData, error) {
-	fp, err := os.Open(path)
-	if err != nil {
-		return MetaData{}, err
-	}
-	defer fp.Close()
-	return NewDecoder(fp).Decode(v)
+// Meta data for primitive values is included in the meta data returned by
+// the `Decode*` functions with one exception: keys returned by the Undecoded
+// method will only reflect keys that were decoded. Namely, any keys hidden
+// behind a Primitive will be considered undecoded. Executing this method will
+// update the undecoded keys in the meta data. (See the example.)
+func (md *MetaData) PrimitiveDecode(primValue Primitive, v interface{}) error {
+	md.context = primValue.context
+	defer func() { md.context = nil }()
+	return md.unify(primValue.undecoded, rvalue(v))
 }
 
 // unify performs a sort of type unification based on the structure of `rv`,
