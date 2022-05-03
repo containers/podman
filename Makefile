@@ -174,10 +174,6 @@ endif
 # Necessary for nested-$(MAKE) calls and docs/remote-docs.sh
 export GOOS GOARCH CGO_ENABLED BINSFX SRCBINDIR
 
-define go-install
-		$(GO) install ${1}@latest
-endef
-
 # Need to use CGO for mDNS resolution, but cross builds need CGO disabled
 # See https://github.com/golang/go/issues/12524 for details
 DARWIN_GCO := 0
@@ -864,7 +860,7 @@ install.tools: .install.goimports .install.gitvalidation .install.md2man .instal
 
 .install.goimports: .gopathok
 	if [ ! -x "$(GOBIN)/goimports" ]; then \
-		$(call go-install,golang.org/x/tools/cmd/goimports); \
+		$(GO) install ./vendor/golang.org/x/tools/cmd/goimports ; \
 	fi
 	touch .install.goimports
 
@@ -877,7 +873,7 @@ install.tools: .install.goimports .install.gitvalidation .install.md2man .instal
 .PHONY: .install.gitvalidation
 .install.gitvalidation: .gopathok
 	if [ ! -x "$(GOBIN)/git-validation" ]; then \
-		$(call go-install,github.com/vbatts/git-validation); \
+		$(GO) install ./vendor/github.com/vbatts/git-validation ; \
 	fi
 
 .PHONY: .install.golangci-lint
@@ -897,7 +893,7 @@ install.tools: .install.goimports .install.gitvalidation .install.md2man .instal
 .PHONY: .install.md2man
 .install.md2man: .gopathok
 	if [ ! -x "$(GOMD2MAN)" ]; then \
-		$(call go-install,github.com/cpuguy83/go-md2man); \
+		$(GO) install ./vendor/github.com/cpuguy83/go-md2man/v2 ; \
 	fi
 
 # $BUILD_TAGS variable is used in hack/golangci-lint.sh
