@@ -5,6 +5,7 @@
 - Podman now supports Docker Compose v2.2 and higher ([#11822](https://github.com/containers/podman/issues/11822)).
 - A new container command has been added, `podman container clone`. This command makes a copy of an existing container, with the ability to change some settings (e.g. resource limits) while doing so.
 - A new machine command has been added, `podman machine inspect`. This command provides details on the configuration of machine VMs.
+- The `podman machine set` command can now change the CPUs, memory, and disk space available to machines after they were initially created, using the new `--cpus`, `--disk-size`, and `--memory` options ([#13633](https://github.com/containers/podman/issues/13633)).
 - Two new volume commands have been added, `podman volume mount` and `podman volume unmount`. These allow for Podman-managed named volumes to be mounted and accessed from outside containers ([#12768](https://github.com/containers/podman/issues/12768)).
 - VMs created by `podman machine` now automatically mount the host's `$HOME` into the VM, to allow mounting volumes from the host into containers.
 - The `podman container checkpoint` and `podman container restore` options now support checkpointing to and restoring from OCI images. This allows checkpoints to be distributed via standard image registries.
@@ -25,6 +26,9 @@
 - The `podman inspect` command now includes information on the network configuration of containers that joined a pre-configured network namespace with the `--net ns:` option to `podman run`, `podman create`, and `podman pod create`.
 - The `podman run` and `podman create` commands now support a new option, `--chrootdirs`, which specifies additional locations where container-specific files managed by Podman (e.g. `/etc/hosts`, `/etc/resolv.conf, etc) will be mounted inside the container ([#12961](https://github.com/containers/podman/issues/12691)).
 - The `podman run` and `podman create` commands now support a new option, `--passwd-entry`, allowing entries to be added to the container's `/etc/passwd` file.
+- The `podman images --format` command now accepts two new format directives: `{{.CreatedAt}}` and `{{.CreatedSince}}` ([#14012](https://github.com/containers/podman/issues/14012)).
+- The `podman volume create` command's `-o` option now accepts a new argument, `o=noquota`, to disable XFS quotas entirely and avoid potential issues when Podman is run on an XFS filesystem with existing quotas defined ([#14049](https://github.com/containers/podman/issues/14049)).
+- The `podman info` command now includes additional information on the machine Podman is running on, including disk utilization on the drive Podman is storing containers and images on, and CPU utilization ([#13876](https://github.com/containers/podman/issues/13876)).
 
 ### Changes
 - The `--net=container:` option to `podman run`, `podman create`, and `podman pod create` now conflicts with the `--add-host` option.
@@ -40,6 +44,7 @@
 - The `podman machine set` command can no longer be used while the VM being updated is running ([#13783](https://github.com/containers/podman/issues/13783)).
 - Systemd service files created by `podman generate systemd` are now prettyprinted for increased readability.
 - The `file` event log driver now automatically rotates the log file, preventing it from growing beyond a set size.
+- The `--no-trunc` flag to `podman search` now defaults to `false`, to ensure output is not overly verbose.
 
 ### Bugfixes
 - Fixed a bug where Podman could not add devices with a major or minor number over 256 to containers.
@@ -57,6 +62,8 @@
 - Fixed a bug where containers created from images with a healthcheck that did not specify an interval would never run their healthchecks ([#13912](https://github.com/containers/podman/issues/13912)).
 - Fixed a bug where the `podman network connect` and `podman network disconnect` commands could leave invalid entries in `/etc/hosts` ([#13533](https://github.com/containers/podman/issues/13533)).
 - Fixed a bug where the `--tls-verify option to the `remote Podman client's `podman build` command was nonfunctional.
+- Fixed a bug where the `podman pod inspect` command incorrectly reported whether the pod used the host's network ([#14028](https://github.com/containers/podman/issues/14028)).
+- Fixed a bug where Podman would, when run on WSL2, ports specified without an IP address (e.g. `-p 8080:8080`) would be bound to IPv6 addresses ([#12292](https://github.com/containers/podman/issues/12292)).
 
 ### API
 - Containers created via the Libpod Create API that set a memory limit, but not a swap limit, will automatically have a swap limit set ([#13145](https://github.com/containers/podman/issues/13145)).
