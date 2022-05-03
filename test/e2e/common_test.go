@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"net"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -1062,4 +1063,37 @@ func digShort(container, lookupName string, matchNames []string, p *PodmanTestIn
 		}
 	}
 	Fail("dns is not responding")
+}
+
+// WaitForFile to be created in defaultWaitTimeout seconds, returns false if file not created
+func WaitForFile(path string) (err error) {
+	until := time.Now().Add(time.Duration(defaultWaitTimeout) * time.Second)
+	for i := 1; time.Now().Before(until); i++ {
+		_, err = os.Stat(path)
+		switch {
+		case err == nil:
+			return nil
+		case errors.Is(err, os.ErrNotExist):
+			time.Sleep(time.Duration(i) * time.Second)
+		default:
+			return err
+		}
+	}
+	return err
+}
+
+// WaitForService blocks, waiting for some service listening on given host:port
+func WaitForService(address url.URL) {
+	// Wait for podman to be ready
+	var conn net.Conn
+	var err error
+	for i := 1; i <= 5; i++ {
+		conn, err = net.Dial("tcp", address.Host)
+		if err != nil {
+			// Podman not available yet...
+			time.Sleep(time.Duration(i) * time.Second)
+		}
+	}
+	Expect(err).ShouldNot(HaveOccurred())
+	conn.Close()
 }

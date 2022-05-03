@@ -17,6 +17,8 @@ const (
 	Journald EventerType = iota
 	// Null is a no-op events logger. It does not read or write events.
 	Null EventerType = iota
+	// Memory indicates the event logger will hold events in memory
+	Memory EventerType = iota
 )
 
 // Event describes the attributes of a libpod event
@@ -55,7 +57,7 @@ type Details struct {
 // EventerOptions describe options that need to be passed to create
 // an eventer
 type EventerOptions struct {
-	// EventerType describes whether to use journald or a file
+	// EventerType describes whether to use journald, file or memory
 	EventerType string
 	// LogFilePath is the path to where the log file should reside if using
 	// the file logger
@@ -110,6 +112,8 @@ const (
 	System Type = "system"
 	// Volume - event is related to volumes
 	Volume Type = "volume"
+	// Machine - event is related to machine VM's
+	Machine Type = "machine"
 
 	// Attach ...
 	Attach Status = "attach"
