@@ -7,6 +7,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("podman machine stop", func() {
@@ -27,24 +28,24 @@ var _ = Describe("podman machine stop", func() {
 		reallyLongName := "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 		session, err := mb.setName(reallyLongName).setCmd(&i).run()
 		Expect(err).To(BeNil())
-		Expect(session.ExitCode()).To(Equal(125))
+		Expect(session).To(Exit(125))
 	})
 
 	It("inspect two machines", func() {
 		i := new(initMachine)
 		foo1, err := mb.setName("foo1").setCmd(i.withImagePath(mb.imagePath)).run()
 		Expect(err).To(BeNil())
-		Expect(foo1.ExitCode()).To(Equal(0))
+		Expect(foo1).To(Exit(0))
 
 		ii := new(initMachine)
 		foo2, err := mb.setName("foo2").setCmd(ii.withImagePath(mb.imagePath)).run()
 		Expect(err).To(BeNil())
-		Expect(foo2.ExitCode()).To(Equal(0))
+		Expect(foo2).To(Exit(0))
 
 		inspect := new(inspectMachine)
 		inspectSession, err := mb.setName("foo1").setCmd(inspect).run()
 		Expect(err).To(BeNil())
-		Expect(inspectSession.ExitCode()).To(Equal(0))
+		Expect(inspectSession).To(Exit(0))
 
 		type fakeInfos struct {
 			Status string

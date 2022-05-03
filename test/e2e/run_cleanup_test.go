@@ -23,7 +23,8 @@ var _ = Describe("Podman run exit", func() {
 		}
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.Setup()
-		podmanTest.RestoreArtifact(ALPINE)
+		err = podmanTest.RestoreArtifact(ALPINE)
+		Expect(err).ToNot(HaveOccurred())
 	})
 
 	AfterEach(func() {

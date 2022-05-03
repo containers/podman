@@ -47,7 +47,7 @@ var _ = Describe("podman system connection", func() {
 		}
 
 		f := CurrentGinkgoTestDescription()
-		GinkgoWriter.Write(
+		_, _ = GinkgoWriter.Write(
 			[]byte(
 				fmt.Sprintf("Test: %s completed in %f seconds", f.TestText, f.Duration.Seconds())))
 	})

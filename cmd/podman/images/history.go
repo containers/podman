@@ -69,7 +69,7 @@ func historyFlags(cmd *cobra.Command) {
 
 	formatFlagName := "format"
 	flags.StringVar(&opts.format, formatFlagName, "", "Change the output to JSON or a Go template")
-	_ = cmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(entities.ImageHistoryLayer{}))
+	_ = cmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(&historyReporter{}))
 
 	flags.BoolVarP(&opts.human, "human", "H", true, "Display sizes and dates in human readable format")
 	flags.BoolVar(&opts.noTrunc, "no-trunc", false, "Do not truncate the output")
@@ -167,4 +167,12 @@ func (h historyReporter) ID() string {
 		return h.ImageHistoryLayer.ID[0:12]
 	}
 	return h.ImageHistoryLayer.ID
+}
+
+func (h historyReporter) CreatedAt() string {
+	return time.Unix(h.ImageHistoryLayer.Created.Unix(), 0).UTC().String()
+}
+
+func (h historyReporter) CreatedSince() string {
+	return h.Created()
 }

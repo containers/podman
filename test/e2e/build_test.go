@@ -53,8 +53,8 @@ var _ = Describe("Podman build", func() {
 		inspect := podmanTest.Podman([]string{"inspect", iid})
 		inspect.WaitWithDefaultTimeout()
 		data := inspect.InspectImageJSON()
-		Expect(data[0].Os).To(Equal(runtime.GOOS))
-		Expect(data[0].Architecture).To(Equal(runtime.GOARCH))
+		Expect(data[0]).To(HaveField("Os", runtime.GOOS))
+		Expect(data[0]).To(HaveField("Architecture", runtime.GOARCH))
 
 		session = podmanTest.Podman([]string{"rmi", ALPINE})
 		session.WaitWithDefaultTimeout()
@@ -110,8 +110,8 @@ var _ = Describe("Podman build", func() {
 		inspect := podmanTest.Podman([]string{"inspect", "test"})
 		inspect.WaitWithDefaultTimeout()
 		data := inspect.InspectImageJSON()
-		Expect(data[0].Os).To(Equal(runtime.GOOS))
-		Expect(data[0].Architecture).To(Equal(runtime.GOARCH))
+		Expect(data[0]).To(HaveField("Os", runtime.GOOS))
+		Expect(data[0]).To(HaveField("Architecture", runtime.GOARCH))
 
 		st, err := os.Stat(logfile)
 		Expect(err).To(BeNil())
@@ -533,7 +533,10 @@ subdir**`
 
 		// make cwd as context root path
 		Expect(os.Chdir(contextDir)).ToNot(HaveOccurred())
-		defer os.Chdir(cwd)
+		defer func() {
+			err := os.Chdir(cwd)
+			Expect(err).ToNot(HaveOccurred())
+		}()
 
 		By("Test .containerignore filtering subdirectory")
 		err = ioutil.WriteFile(filepath.Join(contextDir, ".containerignore"), []byte(`subdir/`), 0644)

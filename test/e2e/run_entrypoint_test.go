@@ -23,7 +23,6 @@ var _ = Describe("Podman run entrypoint", func() {
 		}
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.Setup()
-		podmanTest.SeedImages()
 	})
 
 	AfterEach(func() {

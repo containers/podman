@@ -488,7 +488,7 @@ func (r *Runtime) GetRootlessNetNs(new bool) (*RootlessNetNS, error) {
 		pid := strconv.Itoa(cmd.Process.Pid)
 		err = ioutil.WriteFile(filepath.Join(rootlessNetNsDir, rootlessNetNsSilrp4netnsPidFile), []byte(pid), 0700)
 		if err != nil {
-			errors.Wrap(err, "unable to write rootless-netns slirp4netns pid file")
+			return nil, errors.Wrap(err, "unable to write rootless-netns slirp4netns pid file")
 		}
 
 		defer func() {

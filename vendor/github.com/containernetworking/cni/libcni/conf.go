@@ -21,6 +21,8 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+
+	"github.com/containernetworking/cni/pkg/types"
 )
 
 type NotFoundError struct {
@@ -41,8 +43,8 @@ func (e NoConfigsFoundError) Error() string {
 }
 
 func ConfFromBytes(bytes []byte) (*NetworkConfig, error) {
-	conf := &NetworkConfig{Bytes: bytes}
-	if err := json.Unmarshal(bytes, &conf.Network); err != nil {
+	conf := &NetworkConfig{Bytes: bytes, Network: &types.NetConf{}}
+	if err := json.Unmarshal(bytes, conf.Network); err != nil {
 		return nil, fmt.Errorf("error parsing configuration: %w", err)
 	}
 	if conf.Network.Type == "" {

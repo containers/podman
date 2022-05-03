@@ -32,7 +32,6 @@ var _ = Describe("Podman run networking", func() {
 		}
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.Setup()
-		podmanTest.SeedImages()
 	})
 
 	AfterEach(func() {
@@ -99,7 +98,7 @@ var _ = Describe("Podman run networking", func() {
 		Expect(inspectOut[0].NetworkSettings.Ports).To(HaveLen(1))
 		Expect(inspectOut[0].NetworkSettings.Ports["80/tcp"]).To(HaveLen(1))
 		Expect(inspectOut[0].NetworkSettings.Ports["80/tcp"][0].HostPort).To(Not(Equal("80")))
-		Expect(inspectOut[0].NetworkSettings.Ports["80/tcp"][0].HostIP).To(Equal(""))
+		Expect(inspectOut[0].NetworkSettings.Ports["80/tcp"][0]).To(HaveField("HostIP", ""))
 	})
 
 	It("podman run -p 80-82 -p 8090:8090", func() {
@@ -111,16 +110,16 @@ var _ = Describe("Podman run networking", func() {
 		Expect(inspectOut[0].NetworkSettings.Ports).To(HaveLen(4))
 		Expect(inspectOut[0].NetworkSettings.Ports["80/tcp"]).To(HaveLen(1))
 		Expect(inspectOut[0].NetworkSettings.Ports["80/tcp"][0].HostPort).To(Not(Equal("80")))
-		Expect(inspectOut[0].NetworkSettings.Ports["80/tcp"][0].HostIP).To(Equal(""))
+		Expect(inspectOut[0].NetworkSettings.Ports["80/tcp"][0]).To(HaveField("HostIP", ""))
 		Expect(inspectOut[0].NetworkSettings.Ports["81/tcp"]).To(HaveLen(1))
 		Expect(inspectOut[0].NetworkSettings.Ports["81/tcp"][0].HostPort).To(Not(Equal("81")))
-		Expect(inspectOut[0].NetworkSettings.Ports["81/tcp"][0].HostIP).To(Equal(""))
+		Expect(inspectOut[0].NetworkSettings.Ports["81/tcp"][0]).To(HaveField("HostIP", ""))
 		Expect(inspectOut[0].NetworkSettings.Ports["82/tcp"]).To(HaveLen(1))
 		Expect(inspectOut[0].NetworkSettings.Ports["82/tcp"][0].HostPort).To(Not(Equal("82")))
-		Expect(inspectOut[0].NetworkSettings.Ports["82/tcp"][0].HostIP).To(Equal(""))
+		Expect(inspectOut[0].NetworkSettings.Ports["82/tcp"][0]).To(HaveField("HostIP", ""))
 		Expect(inspectOut[0].NetworkSettings.Ports["8090/tcp"]).To(HaveLen(1))
-		Expect(inspectOut[0].NetworkSettings.Ports["8090/tcp"][0].HostPort).To(Equal("8090"))
-		Expect(inspectOut[0].NetworkSettings.Ports["8090/tcp"][0].HostIP).To(Equal(""))
+		Expect(inspectOut[0].NetworkSettings.Ports["8090/tcp"][0]).To(HaveField("HostPort", "8090"))
+		Expect(inspectOut[0].NetworkSettings.Ports["8090/tcp"][0]).To(HaveField("HostIP", ""))
 	})
 
 	It("podman run -p 80-81 -p 8180-8181", func() {
@@ -132,16 +131,16 @@ var _ = Describe("Podman run networking", func() {
 		Expect(inspectOut[0].NetworkSettings.Ports).To(HaveLen(4))
 		Expect(inspectOut[0].NetworkSettings.Ports["80/tcp"]).To(HaveLen(1))
 		Expect(inspectOut[0].NetworkSettings.Ports["80/tcp"][0].HostPort).To(Not(Equal("80")))
-		Expect(inspectOut[0].NetworkSettings.Ports["80/tcp"][0].HostIP).To(Equal(""))
+		Expect(inspectOut[0].NetworkSettings.Ports["80/tcp"][0]).To(HaveField("HostIP", ""))
 		Expect(inspectOut[0].NetworkSettings.Ports["81/tcp"]).To(HaveLen(1))
 		Expect(inspectOut[0].NetworkSettings.Ports["81/tcp"][0].HostPort).To(Not(Equal("81")))
-		Expect(inspectOut[0].NetworkSettings.Ports["81/tcp"][0].HostIP).To(Equal(""))
+		Expect(inspectOut[0].NetworkSettings.Ports["81/tcp"][0]).To(HaveField("HostIP", ""))
 		Expect(inspectOut[0].NetworkSettings.Ports["8180/tcp"]).To(HaveLen(1))
 		Expect(inspectOut[0].NetworkSettings.Ports["8180/tcp"][0].HostPort).To(Not(Equal("8180")))
-		Expect(inspectOut[0].NetworkSettings.Ports["8180/tcp"][0].HostIP).To(Equal(""))
+		Expect(inspectOut[0].NetworkSettings.Ports["8180/tcp"][0]).To(HaveField("HostIP", ""))
 		Expect(inspectOut[0].NetworkSettings.Ports["8181/tcp"]).To(HaveLen(1))
 		Expect(inspectOut[0].NetworkSettings.Ports["8181/tcp"][0].HostPort).To(Not(Equal("8181")))
-		Expect(inspectOut[0].NetworkSettings.Ports["8181/tcp"][0].HostIP).To(Equal(""))
+		Expect(inspectOut[0].NetworkSettings.Ports["8181/tcp"][0]).To(HaveField("HostIP", ""))
 	})
 
 	It("podman run -p 80 -p 8280-8282:8280-8282", func() {
@@ -153,16 +152,16 @@ var _ = Describe("Podman run networking", func() {
 		Expect(inspectOut[0].NetworkSettings.Ports).To(HaveLen(4))
 		Expect(inspectOut[0].NetworkSettings.Ports["80/tcp"]).To(HaveLen(1))
 		Expect(inspectOut[0].NetworkSettings.Ports["80/tcp"][0].HostPort).To(Not(Equal("80")))
-		Expect(inspectOut[0].NetworkSettings.Ports["80/tcp"][0].HostIP).To(Equal(""))
+		Expect(inspectOut[0].NetworkSettings.Ports["80/tcp"][0]).To(HaveField("HostIP", ""))
 		Expect(inspectOut[0].NetworkSettings.Ports["8280/tcp"]).To(HaveLen(1))
-		Expect(inspectOut[0].NetworkSettings.Ports["8280/tcp"][0].HostPort).To(Equal("8280"))
-		Expect(inspectOut[0].NetworkSettings.Ports["8280/tcp"][0].HostIP).To(Equal(""))
+		Expect(inspectOut[0].NetworkSettings.Ports["8280/tcp"][0]).To(HaveField("HostPort", "8280"))
+		Expect(inspectOut[0].NetworkSettings.Ports["8280/tcp"][0]).To(HaveField("HostIP", ""))
 		Expect(inspectOut[0].NetworkSettings.Ports["8281/tcp"]).To(HaveLen(1))
-		Expect(inspectOut[0].NetworkSettings.Ports["8281/tcp"][0].HostPort).To(Equal("8281"))
-		Expect(inspectOut[0].NetworkSettings.Ports["8281/tcp"][0].HostIP).To(Equal(""))
+		Expect(inspectOut[0].NetworkSettings.Ports["8281/tcp"][0]).To(HaveField("HostPort", "8281"))
+		Expect(inspectOut[0].NetworkSettings.Ports["8281/tcp"][0]).To(HaveField("HostIP", ""))
 		Expect(inspectOut[0].NetworkSettings.Ports["8282/tcp"]).To(HaveLen(1))
-		Expect(inspectOut[0].NetworkSettings.Ports["8282/tcp"][0].HostPort).To(Equal("8282"))
-		Expect(inspectOut[0].NetworkSettings.Ports["8282/tcp"][0].HostIP).To(Equal(""))
+		Expect(inspectOut[0].NetworkSettings.Ports["8282/tcp"][0]).To(HaveField("HostPort", "8282"))
+		Expect(inspectOut[0].NetworkSettings.Ports["8282/tcp"][0]).To(HaveField("HostIP", ""))
 	})
 
 	It("podman run -p 8380:80", func() {
@@ -173,8 +172,8 @@ var _ = Describe("Podman run networking", func() {
 		Expect(inspectOut).To(HaveLen(1))
 		Expect(inspectOut[0].NetworkSettings.Ports).To(HaveLen(1))
 		Expect(inspectOut[0].NetworkSettings.Ports["80/tcp"]).To(HaveLen(1))
-		Expect(inspectOut[0].NetworkSettings.Ports["80/tcp"][0].HostPort).To(Equal("8380"))
-		Expect(inspectOut[0].NetworkSettings.Ports["80/tcp"][0].HostIP).To(Equal(""))
+		Expect(inspectOut[0].NetworkSettings.Ports["80/tcp"][0]).To(HaveField("HostPort", "8380"))
+		Expect(inspectOut[0].NetworkSettings.Ports["80/tcp"][0]).To(HaveField("HostIP", ""))
 	})
 
 	It("podman run -p 8480:80/TCP", func() {
@@ -187,8 +186,8 @@ var _ = Describe("Podman run networking", func() {
 		Expect(inspectOut[0].NetworkSettings.Ports).To(HaveLen(1))
 		// "tcp" in lower characters
 		Expect(inspectOut[0].NetworkSettings.Ports["80/tcp"]).To(HaveLen(1))
-		Expect(inspectOut[0].NetworkSettings.Ports["80/tcp"][0].HostPort).To(Equal("8480"))
-		Expect(inspectOut[0].NetworkSettings.Ports["80/tcp"][0].HostIP).To(Equal(""))
+		Expect(inspectOut[0].NetworkSettings.Ports["80/tcp"][0]).To(HaveField("HostPort", "8480"))
+		Expect(inspectOut[0].NetworkSettings.Ports["80/tcp"][0]).To(HaveField("HostIP", ""))
 	})
 
 	It("podman run -p 80/udp", func() {
@@ -200,7 +199,7 @@ var _ = Describe("Podman run networking", func() {
 		Expect(inspectOut[0].NetworkSettings.Ports).To(HaveLen(1))
 		Expect(inspectOut[0].NetworkSettings.Ports["80/udp"]).To(HaveLen(1))
 		Expect(inspectOut[0].NetworkSettings.Ports["80/udp"][0].HostPort).To(Not(Equal("80")))
-		Expect(inspectOut[0].NetworkSettings.Ports["80/udp"][0].HostIP).To(Equal(""))
+		Expect(inspectOut[0].NetworkSettings.Ports["80/udp"][0]).To(HaveField("HostIP", ""))
 	})
 
 	It("podman run -p 127.0.0.1:8580:80", func() {
@@ -211,8 +210,8 @@ var _ = Describe("Podman run networking", func() {
 		Expect(inspectOut).To(HaveLen(1))
 		Expect(inspectOut[0].NetworkSettings.Ports).To(HaveLen(1))
 		Expect(inspectOut[0].NetworkSettings.Ports["80/tcp"]).To(HaveLen(1))
-		Expect(inspectOut[0].NetworkSettings.Ports["80/tcp"][0].HostPort).To(Equal("8580"))
-		Expect(inspectOut[0].NetworkSettings.Ports["80/tcp"][0].HostIP).To(Equal("127.0.0.1"))
+		Expect(inspectOut[0].NetworkSettings.Ports["80/tcp"][0]).To(HaveField("HostPort", "8580"))
+		Expect(inspectOut[0].NetworkSettings.Ports["80/tcp"][0]).To(HaveField("HostIP", "127.0.0.1"))
 	})
 
 	It("podman run -p 127.0.0.1:8680:80/udp", func() {
@@ -223,8 +222,8 @@ var _ = Describe("Podman run networking", func() {
 		Expect(inspectOut).To(HaveLen(1))
 		Expect(inspectOut[0].NetworkSettings.Ports).To(HaveLen(1))
 		Expect(inspectOut[0].NetworkSettings.Ports["80/udp"]).To(HaveLen(1))
-		Expect(inspectOut[0].NetworkSettings.Ports["80/udp"][0].HostPort).To(Equal("8680"))
-		Expect(inspectOut[0].NetworkSettings.Ports["80/udp"][0].HostIP).To(Equal("127.0.0.1"))
+		Expect(inspectOut[0].NetworkSettings.Ports["80/udp"][0]).To(HaveField("HostPort", "8680"))
+		Expect(inspectOut[0].NetworkSettings.Ports["80/udp"][0]).To(HaveField("HostIP", "127.0.0.1"))
 	})
 
 	It("podman run -p [::1]:8780:80/udp", func() {
@@ -235,8 +234,8 @@ var _ = Describe("Podman run networking", func() {
 		Expect(inspectOut).To(HaveLen(1))
 		Expect(inspectOut[0].NetworkSettings.Ports).To(HaveLen(1))
 		Expect(inspectOut[0].NetworkSettings.Ports["80/udp"]).To(HaveLen(1))
-		Expect(inspectOut[0].NetworkSettings.Ports["80/udp"][0].HostPort).To(Equal("8780"))
-		Expect(inspectOut[0].NetworkSettings.Ports["80/udp"][0].HostIP).To(Equal("::1"))
+		Expect(inspectOut[0].NetworkSettings.Ports["80/udp"][0]).To(HaveField("HostPort", "8780"))
+		Expect(inspectOut[0].NetworkSettings.Ports["80/udp"][0]).To(HaveField("HostIP", "::1"))
 	})
 
 	It("podman run -p [::1]:8880:80/tcp", func() {
@@ -247,8 +246,8 @@ var _ = Describe("Podman run networking", func() {
 		Expect(inspectOut).To(HaveLen(1))
 		Expect(inspectOut[0].NetworkSettings.Ports).To(HaveLen(1))
 		Expect(inspectOut[0].NetworkSettings.Ports["80/tcp"]).To(HaveLen(1))
-		Expect(inspectOut[0].NetworkSettings.Ports["80/tcp"][0].HostPort).To(Equal("8880"))
-		Expect(inspectOut[0].NetworkSettings.Ports["80/tcp"][0].HostIP).To(Equal("::1"))
+		Expect(inspectOut[0].NetworkSettings.Ports["80/tcp"][0]).To(HaveField("HostPort", "8880"))
+		Expect(inspectOut[0].NetworkSettings.Ports["80/tcp"][0]).To(HaveField("HostIP", "::1"))
 	})
 
 	It("podman run --expose 80 -P", func() {
@@ -260,7 +259,7 @@ var _ = Describe("Podman run networking", func() {
 		Expect(inspectOut[0].NetworkSettings.Ports).To(HaveLen(1))
 		Expect(inspectOut[0].NetworkSettings.Ports["80/tcp"]).To(HaveLen(1))
 		Expect(inspectOut[0].NetworkSettings.Ports["80/tcp"][0].HostPort).To(Not(Equal("0")))
-		Expect(inspectOut[0].NetworkSettings.Ports["80/tcp"][0].HostIP).To(Equal(""))
+		Expect(inspectOut[0].NetworkSettings.Ports["80/tcp"][0]).To(HaveField("HostIP", ""))
 	})
 
 	It("podman run --expose 80/udp -P", func() {
@@ -272,7 +271,7 @@ var _ = Describe("Podman run networking", func() {
 		Expect(inspectOut[0].NetworkSettings.Ports).To(HaveLen(1))
 		Expect(inspectOut[0].NetworkSettings.Ports["80/udp"]).To(HaveLen(1))
 		Expect(inspectOut[0].NetworkSettings.Ports["80/udp"][0].HostPort).To(Not(Equal("0")))
-		Expect(inspectOut[0].NetworkSettings.Ports["80/udp"][0].HostIP).To(Equal(""))
+		Expect(inspectOut[0].NetworkSettings.Ports["80/udp"][0]).To(HaveField("HostIP", ""))
 	})
 
 	It("podman run --expose 80 -p 80", func() {
@@ -284,7 +283,7 @@ var _ = Describe("Podman run networking", func() {
 		Expect(inspectOut[0].NetworkSettings.Ports).To(HaveLen(1))
 		Expect(inspectOut[0].NetworkSettings.Ports["80/tcp"]).To(HaveLen(1))
 		Expect(inspectOut[0].NetworkSettings.Ports["80/tcp"][0].HostPort).To(Not(Equal("80")))
-		Expect(inspectOut[0].NetworkSettings.Ports["80/tcp"][0].HostIP).To(Equal(""))
+		Expect(inspectOut[0].NetworkSettings.Ports["80/tcp"][0]).To(HaveField("HostIP", ""))
 	})
 
 	It("podman run --publish-all with EXPOSE port ranges in Dockerfile", func() {
@@ -332,7 +331,7 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 		Expect(inspectOut[0].NetworkSettings.Ports).To(HaveLen(1))
 		Expect(inspectOut[0].NetworkSettings.Ports["8980/udp"]).To(HaveLen(1))
 		Expect(inspectOut[0].NetworkSettings.Ports["8980/udp"][0].HostPort).To(Not(Equal("8980")))
-		Expect(inspectOut[0].NetworkSettings.Ports["8980/udp"][0].HostIP).To(Equal("127.0.0.1"))
+		Expect(inspectOut[0].NetworkSettings.Ports["8980/udp"][0]).To(HaveField("HostIP", "127.0.0.1"))
 	})
 
 	It("podman run -p :8181", func() {
@@ -344,7 +343,7 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 		Expect(inspectOut[0].NetworkSettings.Ports).To(HaveLen(1))
 		Expect(inspectOut[0].NetworkSettings.Ports["8181/tcp"]).To(HaveLen(1))
 		Expect(inspectOut[0].NetworkSettings.Ports["8181/tcp"][0].HostPort).To(Not(Equal("8181")))
-		Expect(inspectOut[0].NetworkSettings.Ports["8181/tcp"][0].HostIP).To(Equal(""))
+		Expect(inspectOut[0].NetworkSettings.Ports["8181/tcp"][0]).To(HaveField("HostIP", ""))
 	})
 
 	It("podman run -p xxx:8080 -p yyy:8080", func() {
@@ -371,8 +370,8 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 		Expect(inspectOut).To(HaveLen(1))
 		Expect(inspectOut[0].NetworkSettings.Ports).To(HaveLen(1))
 		Expect(inspectOut[0].NetworkSettings.Ports["80/tcp"]).To(HaveLen(1))
-		Expect(inspectOut[0].NetworkSettings.Ports["80/tcp"][0].HostPort).To(Equal("9280"))
-		Expect(inspectOut[0].NetworkSettings.Ports["80/tcp"][0].HostIP).To(Equal(""))
+		Expect(inspectOut[0].NetworkSettings.Ports["80/tcp"][0]).To(HaveField("HostPort", "9280"))
+		Expect(inspectOut[0].NetworkSettings.Ports["80/tcp"][0]).To(HaveField("HostIP", ""))
 	})
 
 	It("podman run network expose host port 80 to container port", func() {
@@ -747,11 +746,12 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 	routeAdd := func(gateway string) {
 		gw := net.ParseIP(gateway)
 		route := &netlink.Route{Dst: nil, Gw: gw}
-		netlink.RouteAdd(route)
+		err = netlink.RouteAdd(route)
+		Expect(err).ToNot(HaveOccurred())
 	}
 
 	setupNetworkNs := func(networkNSName string) {
-		ns.WithNetNSPath("/run/netns/"+networkNSName, func(_ ns.NetNS) error {
+		_ = ns.WithNetNSPath("/run/netns/"+networkNSName, func(_ ns.NetNS) error {
 			loopbackup()
 			linkup("eth0", "46:7f:45:6e:4f:c8", []string{"10.25.40.0/24", "fd04:3e42:4a4e:3381::/64"})
 			linkup("eth1", "56:6e:35:5d:3e:a8", []string{"10.88.0.0/16"})
@@ -763,18 +763,18 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 
 	checkNetworkNsInspect := func(name string) {
 		inspectOut := podmanTest.InspectContainer(name)
-		Expect(inspectOut[0].NetworkSettings.IPAddress).To(Equal("10.25.40.0"))
-		Expect(inspectOut[0].NetworkSettings.IPPrefixLen).To(Equal(24))
+		Expect(inspectOut[0].NetworkSettings).To(HaveField("IPAddress", "10.25.40.0"))
+		Expect(inspectOut[0].NetworkSettings).To(HaveField("IPPrefixLen", 24))
 		Expect(len(inspectOut[0].NetworkSettings.SecondaryIPAddresses)).To(Equal(1))
-		Expect(inspectOut[0].NetworkSettings.SecondaryIPAddresses[0].Addr).To(Equal("10.88.0.0"))
-		Expect(inspectOut[0].NetworkSettings.SecondaryIPAddresses[0].PrefixLength).To(Equal(16))
-		Expect(inspectOut[0].NetworkSettings.GlobalIPv6Address).To(Equal("fd04:3e42:4a4e:3381::"))
-		Expect(inspectOut[0].NetworkSettings.GlobalIPv6PrefixLen).To(Equal(64))
+		Expect(inspectOut[0].NetworkSettings.SecondaryIPAddresses[0]).To(HaveField("Addr", "10.88.0.0"))
+		Expect(inspectOut[0].NetworkSettings.SecondaryIPAddresses[0]).To(HaveField("PrefixLength", 16))
+		Expect(inspectOut[0].NetworkSettings).To(HaveField("GlobalIPv6Address", "fd04:3e42:4a4e:3381::"))
+		Expect(inspectOut[0].NetworkSettings).To(HaveField("GlobalIPv6PrefixLen", 64))
 		Expect(len(inspectOut[0].NetworkSettings.SecondaryIPv6Addresses)).To(Equal(0))
-		Expect(inspectOut[0].NetworkSettings.MacAddress).To(Equal("46:7f:45:6e:4f:c8"))
+		Expect(inspectOut[0].NetworkSettings).To(HaveField("MacAddress", "46:7f:45:6e:4f:c8"))
 		Expect(len(inspectOut[0].NetworkSettings.AdditionalMacAddresses)).To(Equal(1))
 		Expect(inspectOut[0].NetworkSettings.AdditionalMacAddresses[0]).To(Equal("56:6e:35:5d:3e:a8"))
-		Expect(inspectOut[0].NetworkSettings.Gateway).To(Equal("10.25.40.0"))
+		Expect(inspectOut[0].NetworkSettings).To(HaveField("Gateway", "10.25.40.0"))
 
 	}
 
@@ -796,7 +796,7 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 		Expect(delNetworkNamespace).Should(Exit(0))
 
 		inspectOut := podmanTest.InspectContainer(name)
-		Expect(inspectOut[0].NetworkSettings.IPAddress).To(Equal(""))
+		Expect(inspectOut[0].NetworkSettings).To(HaveField("IPAddress", ""))
 		Expect(len(inspectOut[0].NetworkSettings.Networks)).To(Equal(0))
 	})
 

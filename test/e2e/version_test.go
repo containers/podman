@@ -30,7 +30,7 @@ var _ = Describe("Podman version", func() {
 		podmanTest.Cleanup()
 		f := CurrentGinkgoTestDescription()
 		processTestResult(f)
-		podmanTest.SeedImages()
+
 	})
 
 	It("podman version", func() {

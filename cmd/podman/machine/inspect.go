@@ -41,7 +41,7 @@ func init() {
 	flags := inspectCmd.Flags()
 	formatFlagName := "format"
 	flags.StringVar(&inspectFlag.format, formatFlagName, "", "Format volume output using JSON or a Go template")
-	_ = inspectCmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(machine.InspectInfo{}))
+	_ = inspectCmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(&machine.InspectInfo{}))
 }
 
 func inspect(cmd *cobra.Command, args []string) error {
@@ -59,16 +59,12 @@ func inspect(cmd *cobra.Command, args []string) error {
 			errs = append(errs, err)
 			continue
 		}
-		state, err := vm.State(false)
+		ii, err := vm.Inspect()
 		if err != nil {
 			errs = append(errs, err)
 			continue
 		}
-		ii := machine.InspectInfo{
-			State: state,
-			VM:    vm,
-		}
-		vms = append(vms, ii)
+		vms = append(vms, *ii)
 	}
 	if len(inspectFlag.format) > 0 {
 		// need jhonce to work his template magic

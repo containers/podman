@@ -1,7 +1,6 @@
 package libpod
 
 import (
-	"context"
 	"fmt"
 	"sort"
 	"strings"
@@ -159,6 +158,15 @@ func (p *Pod) CPUQuota() int64 {
 	return 0
 }
 
+// NetworkMode returns the Network mode given by the user ex: pod, private...
+func (p *Pod) NetworkMode() string {
+	infra, err := p.runtime.GetContainer(p.state.InfraContainerID)
+	if err != nil {
+		return ""
+	}
+	return infra.NetworkMode()
+}
+
 // PidMode returns the PID mode given by the user ex: pod, private...
 func (p *Pod) PidMode() string {
 	infra, err := p.runtime.GetContainer(p.state.InfraContainerID)
@@ -296,34 +304,8 @@ func (p *Pod) CgroupPath() (string, error) {
 	if err := p.updatePod(); err != nil {
 		return "", err
 	}
-	if p.state.CgroupPath != "" {
-		return p.state.CgroupPath, nil
-	}
 	if p.state.InfraContainerID == "" {
 		return "", errors.Wrap(define.ErrNoSuchCtr, "pod has no infra container")
-	}
-
-	id, err := p.infraContainerID()
-	if err != nil {
-		return "", err
-	}
-
-	if id != "" {
-		ctr, err := p.infraContainer()
-		if err != nil {
-			return "", errors.Wrapf(err, "could not get infra")
-		}
-		if ctr != nil {
-			ctr.Start(context.Background(), true)
-			cgroupPath, err := ctr.CgroupPath()
-			fmt.Println(cgroupPath)
-			if err != nil {
-				return "", errors.Wrapf(err, "could not get container cgroup")
-			}
-			p.state.CgroupPath = cgroupPath
-			p.save()
-			return cgroupPath, nil
-		}
 	}
 	return p.state.CgroupPath, nil
 }

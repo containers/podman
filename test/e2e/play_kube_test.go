@@ -1206,8 +1206,6 @@ var _ = Describe("Podman play kube", func() {
 		}
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.Setup()
-		podmanTest.SeedImages()
-
 		kubeYaml = filepath.Join(podmanTest.TempDir, "kube.yaml")
 	})
 
@@ -2220,7 +2218,7 @@ spec:
 		Expect(ctr[0].Config.WorkingDir).To(ContainSubstring("/etc"))
 		Expect(ctr[0].Config.Labels).To(HaveKeyWithValue("key1", ContainSubstring("value1")))
 		Expect(ctr[0].Config.Labels).To(HaveKeyWithValue("key1", ContainSubstring("value1")))
-		Expect(ctr[0].Config.StopSignal).To(Equal(uint(51)))
+		Expect(ctr[0].Config).To(HaveField("StopSignal", uint(51)))
 	})
 
 	// Deployment related tests
@@ -2528,7 +2526,7 @@ VOLUME %s`, ALPINE, hostPathDir+"/")
 		// only one will be mounted. Host path volumes take precedence.
 		ctrJSON := inspect.InspectContainerToJSON()
 		Expect(ctrJSON[0].Mounts).To(HaveLen(1))
-		Expect(ctrJSON[0].Mounts[0].Type).To(Equal("bind"))
+		Expect(ctrJSON[0].Mounts[0]).To(HaveField("Type", "bind"))
 
 	})
 
@@ -2744,6 +2742,7 @@ MemoryReservation: {{ .HostConfig.MemoryReservation }}`})
 	})
 
 	It("podman play kube applies log driver to containers", func() {
+		SkipIfInContainer("journald inside a container doesn't work")
 		pod := getPod()
 		err := generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).To(BeNil())

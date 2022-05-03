@@ -25,7 +25,6 @@ var _ = Describe("Podman pod inspect", func() {
 		}
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.Setup()
-		podmanTest.SeedImages()
 	})
 
 	AfterEach(func() {
@@ -58,7 +57,7 @@ var _ = Describe("Podman pod inspect", func() {
 		Expect(inspect).Should(Exit(0))
 		Expect(inspect.OutputToString()).To(BeValidJSON())
 		podData := inspect.InspectPodToJSON()
-		Expect(podData.ID).To(Equal(podid))
+		Expect(podData).To(HaveField("ID", podid))
 	})
 
 	It("podman pod inspect (CreateCommand)", func() {
@@ -98,7 +97,7 @@ var _ = Describe("Podman pod inspect", func() {
 		Expect(err).To(BeNil())
 		Expect(inspectJSON.InfraConfig).To(Not(BeNil()))
 		Expect(inspectJSON.InfraConfig.PortBindings["80/tcp"]).To(HaveLen(1))
-		Expect(inspectJSON.InfraConfig.PortBindings["80/tcp"][0].HostPort).To(Equal("8383"))
+		Expect(inspectJSON.InfraConfig.PortBindings["80/tcp"][0]).To(HaveField("HostPort", "8383"))
 	})
 
 	It("podman pod inspect outputs show correct MAC", func() {

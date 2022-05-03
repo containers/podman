@@ -8,16 +8,28 @@ podman\-machine\-set - Sets a virtual machine setting
 
 ## DESCRIPTION
 
-Sets an updatable virtual machine setting.
-
-Options mirror values passed to `podman machine init`. Only a limited
-subset can be changed after machine initialization.
+Change a machine setting.
 
 ## OPTIONS
+
+#### **--cpus**=*number*
+
+Number of CPUs.
+Only supported for QEMU machines.
+
+#### **--disk-size**=*number*
+
+Size of the disk for the guest VM in GB.
+Can only be increased. Only supported for QEMU machines.
 
 #### **--help**
 
 Print usage statement.
+
+#### **--memory**, **-m**=*number*
+
+Memory (in MB).
+Only supported for QEMU machines.
 
 #### **--rootful**=*true|false*
 

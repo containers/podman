@@ -24,7 +24,6 @@ var _ = Describe("Podman generate systemd", func() {
 		}
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.Setup()
-		podmanTest.SeedImages()
 	})
 
 	AfterEach(func() {
@@ -581,6 +580,7 @@ var _ = Describe("Podman generate systemd", func() {
 	})
 
 	It("podman generate systemd --new create command with double curly braces", func() {
+		SkipIfInContainer("journald inside a container doesn't work")
 		// Regression test for #9034
 		session := podmanTest.Podman([]string{"create", "--name", "foo", "--log-driver=journald", "--log-opt=tag={{.Name}}", ALPINE})
 		session.WaitWithDefaultTimeout()

@@ -55,4 +55,17 @@ size      | -\\\?[0-9]\\\+
 
 }
 
+@test "podman image history Created" {
+    # Values from image LIST
+    run_podman image list --format '{{.CreatedSince}}--{{.CreatedAt}}' $IMAGE
+    from_imagelist="$output"
+    assert "$from_imagelist" =~ "^[0-9].* ago--[0-9]+-[0-9]+-[0-9]+ [0-9:]+ " \
+           "CreatedSince and CreatedAt look reasonable"
+
+    # Values from image HISTORY
+    run_podman image history --format '{{.CreatedSince}}--{{.CreatedAt}}' $IMAGE
+    assert "${lines[0]}" == "$from_imagelist" \
+           "CreatedSince and CreatedAt from image history should == image list"
+}
+
 # vim: filetype=sh

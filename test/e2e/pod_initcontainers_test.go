@@ -26,7 +26,6 @@ var _ = Describe("Podman init containers", func() {
 		}
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.Setup()
-		podmanTest.SeedImages()
 	})
 
 	AfterEach(func() {
@@ -66,7 +65,7 @@ var _ = Describe("Podman init containers", func() {
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect).Should(Exit(0))
 		data := inspect.InspectPodToJSON()
-		Expect(data.State).To(Equal(define.PodStateRunning))
+		Expect(data).To(HaveField("State", define.PodStateRunning))
 	})
 
 	It("podman create init container should fail in running pod", func() {

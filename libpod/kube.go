@@ -1034,7 +1034,11 @@ func generateKubeSecurityContext(c *Container) (*v1.SecurityContext, error) {
 			if err != nil {
 				return nil, errors.Wrapf(err, "failed to mount %s mountpoint", c.ID())
 			}
-			defer c.unmount(false)
+			defer func() {
+				if err := c.unmount(false); err != nil {
+					logrus.Errorf("Failed to unmount container: %v", err)
+				}
+			}()
 		}
 		logrus.Debugf("Looking in container for user: %s", c.User())
 

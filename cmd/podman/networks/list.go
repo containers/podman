@@ -40,7 +40,7 @@ var (
 func networkListFlags(flags *pflag.FlagSet) {
 	formatFlagName := "format"
 	flags.StringVar(&networkListOptions.Format, formatFlagName, "", "Pretty-print networks to JSON or using a Go template")
-	_ = networklistCommand.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(ListPrintReports{}))
+	_ = networklistCommand.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(&ListPrintReports{}))
 
 	flags.BoolVarP(&networkListOptions.Quiet, "quiet", "q", false, "display only names")
 	flags.BoolVar(&noTrunc, "no-trunc", false, "Do not truncate the network ID")

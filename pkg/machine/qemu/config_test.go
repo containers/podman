@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/containers/podman/v4/pkg/machine"
 	"github.com/containers/podman/v4/test/utils"
 )
 
@@ -37,7 +38,7 @@ func TestMachineFile_GetPath(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			m := &MachineFile{
+			m := &machine.VMFile{
 				Path:    tt.fields.Path,    //nolint: scopelint
 				Symlink: tt.fields.Symlink, //nolint: scopelint
 			}
@@ -67,13 +68,19 @@ func TestNewMachineFile(t *testing.T) {
 
 	p := "/var/tmp/podman/my.sock"
 	longp := filepath.Join(longTemp, utils.RandomString(100), "my.sock")
-	os.MkdirAll(filepath.Dir(longp), 0755)
-	f, _ := os.Create(longp)
-	f.Close()
+	err = os.MkdirAll(filepath.Dir(longp), 0755)
+	if err != nil {
+		panic(err)
+	}
+	f, err := os.Create(longp)
+	if err != nil {
+		panic(err)
+	}
+	_ = f.Close()
 	sym := "my.sock"
 	longSym := filepath.Join(homedir, ".podman", sym)
 
-	m := MachineFile{
+	m := machine.VMFile{
 		Path:    p,
 		Symlink: nil,
 	}
@@ -84,7 +91,7 @@ func TestNewMachineFile(t *testing.T) {
 	tests := []struct {
 		name    string
 		args    args
-		want    *MachineFile
+		want    *machine.VMFile
 		wantErr bool
 	}{
 		{
@@ -96,7 +103,7 @@ func TestNewMachineFile(t *testing.T) {
 		{
 			name:    "Good with short symlink",
 			args:    args{p, &sym},
-			want:    &MachineFile{p, nil},
+			want:    &machine.VMFile{Path: p},
 			wantErr: false,
 		},
 		{
@@ -114,19 +121,20 @@ func TestNewMachineFile(t *testing.T) {
 		{
 			name:    "Good with long symlink",
 			args:    args{longp, &sym},
-			want:    &MachineFile{longp, &longSym},
+			want:    &machine.VMFile{Path: longp, Symlink: &longSym},
 			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewMachineFile(tt.args.path, tt.args.symlink) //nolint: scopelint
-			if (err != nil) != tt.wantErr {                           //nolint: scopelint
-				t.Errorf("NewMachineFile() error = %v, wantErr %v", err, tt.wantErr) //nolint: scopelint
+			got, err := machine.NewMachineFile(tt.args.path, tt.args.symlink)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("NewMachineFile() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) { //nolint: scopelint
-				t.Errorf("NewMachineFile() got = %v, want %v", got, tt.want) //nolint: scopelint
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("NewMachineFile() got = %v, want %v", got, tt.want)
 			}
 		})
 	}

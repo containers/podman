@@ -56,7 +56,6 @@ var _ = Describe("Toolbox-specific testing", func() {
 		}
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.Setup()
-		podmanTest.SeedImages()
 	})
 
 	AfterEach(func() {

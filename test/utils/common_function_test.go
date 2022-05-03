@@ -113,8 +113,10 @@ var _ = Describe("Common functions test", func() {
 		Expect(err).To(BeNil(), "Can not find the JSON file after we write it.")
 		defer read.Close()
 
-		bytes, _ := ioutil.ReadAll(read)
-		json.Unmarshal(bytes, compareData)
+		bytes, err := ioutil.ReadAll(read)
+		Expect(err).ToNot(HaveOccurred())
+		err = json.Unmarshal(bytes, compareData)
+		Expect(err).ToNot(HaveOccurred())
 
 		Expect(reflect.DeepEqual(testData, compareData)).To(BeTrue(), "Data changed after we store it to file.")
 	})

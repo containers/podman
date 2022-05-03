@@ -31,7 +31,6 @@ var _ = Describe("Systemd activate", func() {
 
 		podmanTest = PodmanTestCreate(tempDir)
 		podmanTest.Setup()
-		podmanTest.SeedImages()
 	})
 
 	AfterEach(func() {

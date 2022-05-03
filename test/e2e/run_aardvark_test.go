@@ -25,7 +25,6 @@ var _ = Describe("Podman run networking", func() {
 		}
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.Setup()
-		podmanTest.SeedImages()
 		SkipIfCNI(podmanTest)
 	})
 

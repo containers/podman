@@ -5,11 +5,13 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
+	"math"
 	"os"
 	"os/exec"
 	"runtime"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/containers/buildah"
@@ -115,7 +117,10 @@ func (r *Runtime) hostInfo() (*define.HostInfo, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "error getting available cgroup controllers")
 	}
-
+	cpuUtil, err := getCPUUtilization()
+	if err != nil {
+		return nil, err
+	}
 	info := define.HostInfo{
 		Arch:              runtime.GOARCH,
 		BuildahVersion:    buildah.Version,
@@ -123,6 +128,7 @@ func (r *Runtime) hostInfo() (*define.HostInfo, error) {
 		CgroupControllers: availableControllers,
 		Linkmode:          linkmode.Linkmode(),
 		CPUs:              runtime.NumCPU(),
+		CPUUtilization:    cpuUtil,
 		Distribution:      hostDistributionInfo,
 		LogDriver:         r.config.Containers.LogDriver,
 		EventLogger:       r.eventer.String(),
@@ -285,17 +291,25 @@ func (r *Runtime) storeInfo() (*define.StoreInfo, error) {
 	}
 	imageInfo := define.ImageStore{Number: len(images)}
 
-	info := define.StoreInfo{
-		ImageStore:      imageInfo,
-		ImageCopyTmpDir: os.Getenv("TMPDIR"),
-		ContainerStore:  conInfo,
-		GraphRoot:       r.store.GraphRoot(),
-		RunRoot:         r.store.RunRoot(),
-		GraphDriverName: r.store.GraphDriverName(),
-		GraphOptions:    nil,
-		VolumePath:      r.config.Engine.VolumePath,
-		ConfigFile:      configFile,
+	var grStats syscall.Statfs_t
+	if err := syscall.Statfs(r.store.GraphRoot(), &grStats); err != nil {
+		return nil, errors.Wrapf(err, "unable to collect graph root usasge for %q", r.store.GraphRoot())
 	}
+	allocated := uint64(grStats.Bsize) * grStats.Blocks
+	info := define.StoreInfo{
+		ImageStore:         imageInfo,
+		ImageCopyTmpDir:    os.Getenv("TMPDIR"),
+		ContainerStore:     conInfo,
+		GraphRoot:          r.store.GraphRoot(),
+		GraphRootAllocated: allocated,
+		GraphRootUsed:      allocated - (uint64(grStats.Bsize) * grStats.Bfree),
+		RunRoot:            r.store.RunRoot(),
+		GraphDriverName:    r.store.GraphDriverName(),
+		GraphOptions:       nil,
+		VolumePath:         r.config.Engine.VolumePath,
+		ConfigFile:         configFile,
+	}
+
 	graphOptions := map[string]interface{}{}
 	for _, o := range r.store.GraphOptions() {
 		split := strings.SplitN(o, "=", 2)
@@ -381,4 +395,45 @@ func (r *Runtime) GetHostDistributionInfo() define.DistributionInfo {
 		}
 	}
 	return dist
+}
+
+// getCPUUtilization Returns a CPUUsage object that summarizes CPU
+// usage for userspace, system, and idle time.
+func getCPUUtilization() (*define.CPUUsage, error) {
+	f, err := os.Open("/proc/stat")
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	scanner := bufio.NewScanner(f)
+	// Read firt line of /proc/stat
+	for scanner.Scan() {
+		break
+	}
+	// column 1 is user, column 3 is system, column 4 is idle
+	stats := strings.Split(scanner.Text(), " ")
+	return statToPercent(stats)
+}
+
+func statToPercent(stats []string) (*define.CPUUsage, error) {
+	// There is always an extra space between cpu and the first metric
+	userTotal, err := strconv.ParseFloat(stats[2], 64)
+	if err != nil {
+		return nil, errors.Wrapf(err, "unable to parse user value %q", stats[1])
+	}
+	systemTotal, err := strconv.ParseFloat(stats[4], 64)
+	if err != nil {
+		return nil, errors.Wrapf(err, "unable to parse system value %q", stats[3])
+	}
+	idleTotal, err := strconv.ParseFloat(stats[5], 64)
+	if err != nil {
+		return nil, errors.Wrapf(err, "unable to parse idle value %q", stats[4])
+	}
+	total := userTotal + systemTotal + idleTotal
+	s := define.CPUUsage{
+		UserPercent:   math.Round((userTotal/total*100)*100) / 100,
+		SystemPercent: math.Round((systemTotal/total*100)*100) / 100,
+		IdlePercent:   math.Round((idleTotal/total*100)*100) / 100,
+	}
+	return &s, nil
 }

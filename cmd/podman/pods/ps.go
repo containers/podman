@@ -57,7 +57,7 @@ func init() {
 
 	formatFlagName := "format"
 	flags.StringVar(&psInput.Format, formatFlagName, "", "Pretty-print pods to JSON or using a Go template")
-	_ = psCmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(ListPodReporter{ListPodsReport: &entities.ListPodsReport{}}))
+	_ = psCmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(&ListPodReporter{}))
 
 	flags.Bool("noheading", false, "Do not print headers")
 	flags.BoolVar(&psInput.Namespace, "namespace", false, "Display namespace information of the pod")

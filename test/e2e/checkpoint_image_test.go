@@ -28,7 +28,6 @@ var _ = Describe("Podman checkpoint", func() {
 		}
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.Setup()
-		podmanTest.SeedImages()
 		// Check if the runtime implements checkpointing. Currently only
 		// runc's checkpoint/restore implementation is supported.
 		cmd := exec.Command(podmanTest.OCIRuntime, "checkpoint", "--help")
@@ -91,9 +90,9 @@ var _ = Describe("Podman checkpoint", func() {
 		inspectOut := inspect.InspectContainerToJSON()
 		Expect(inspectOut[0].State.Checkpointed).To(BeFalse(), ".State.Checkpointed")
 		Expect(inspectOut[0].State.Restored).To(BeFalse(), ".State.Restored")
-		Expect(inspectOut[0].State.CheckpointPath).To(Equal(""))
-		Expect(inspectOut[0].State.CheckpointLog).To(Equal(""))
-		Expect(inspectOut[0].State.RestoreLog).To(Equal(""))
+		Expect(inspectOut[0].State).To(HaveField("CheckpointPath", ""))
+		Expect(inspectOut[0].State).To(HaveField("CheckpointLog", ""))
+		Expect(inspectOut[0].State).To(HaveField("RestoreLog", ""))
 
 		result := podmanTest.Podman([]string{"container", "checkpoint", "--create-image", checkpointImage, "--keep", containerID})
 		result.WaitWithDefaultTimeout()

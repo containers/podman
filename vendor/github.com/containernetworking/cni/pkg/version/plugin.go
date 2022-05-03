@@ -86,8 +86,8 @@ func (*PluginDecoder) Decode(jsonBytes []byte) (PluginInfo, error) {
 // minor, and micro numbers or returns an error
 func ParseVersion(version string) (int, int, int, error) {
 	var major, minor, micro int
-	if version == "" {
-		return -1, -1, -1, fmt.Errorf("invalid version %q: the version is empty", version)
+	if version == "" { // special case: no version declared == v0.1.0
+		return 0, 1, 0, nil
 	}
 
 	parts := strings.Split(version, ".")

@@ -72,7 +72,7 @@ github.com/containerd/containerd/sys
 # github.com/containerd/stargz-snapshotter/estargz v0.11.4
 github.com/containerd/stargz-snapshotter/estargz
 github.com/containerd/stargz-snapshotter/estargz/errorutil
-# github.com/containernetworking/cni v1.0.1
+# github.com/containernetworking/cni v1.1.0
 ## explicit
 github.com/containernetworking/cni/libcni
 github.com/containernetworking/cni/pkg/invoke
@@ -491,9 +491,6 @@ github.com/modern-go/concurrent
 github.com/modern-go/reflect2
 # github.com/morikuni/aec v1.0.0
 github.com/morikuni/aec
-# github.com/mrunalp/fileutils v0.5.0
-## explicit
-github.com/mrunalp/fileutils
 # github.com/nxadm/tail v1.4.8
 ## explicit
 github.com/nxadm/tail
@@ -614,7 +611,7 @@ github.com/prometheus/procfs/internal/fs
 github.com/prometheus/procfs/internal/util
 # github.com/rivo/uniseg v0.2.0
 github.com/rivo/uniseg
-# github.com/rootless-containers/rootlesskit v1.0.0
+# github.com/rootless-containers/rootlesskit v1.0.1
 ## explicit
 github.com/rootless-containers/rootlesskit/pkg/api
 github.com/rootless-containers/rootlesskit/pkg/msgutil

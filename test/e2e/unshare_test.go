@@ -32,7 +32,6 @@ var _ = Describe("Podman unshare", func() {
 		podmanTest.CgroupManager = "cgroupfs"
 		podmanTest.StorageOptions = ROOTLESS_STORAGE_OPTIONS
 		podmanTest.Setup()
-		podmanTest.SeedImages()
 	})
 
 	AfterEach(func() {

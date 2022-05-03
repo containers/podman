@@ -35,7 +35,6 @@ var _ = Describe("Podman pod create", func() {
 		}
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.Setup()
-		podmanTest.SeedImages()
 	})
 
 	AfterEach(func() {
@@ -279,7 +278,7 @@ var _ = Describe("Podman pod create", func() {
 		ctrInspect.WaitWithDefaultTimeout()
 		Expect(ctrInspect).Should(Exit(0))
 		ctrJSON := ctrInspect.InspectContainerToJSON()
-		Expect(ctrJSON[0].NetworkSettings.IPAddress).To(Equal(ip))
+		Expect(ctrJSON[0].NetworkSettings).To(HaveField("IPAddress", ip))
 	})
 
 	It("podman create pod with IP address and no infra should fail", func() {
@@ -336,7 +335,7 @@ var _ = Describe("Podman pod create", func() {
 		check := podmanTest.Podman([]string{"pod", "inspect", "abc"})
 		check.WaitWithDefaultTimeout()
 		data := check.InspectPodToJSON()
-		Expect(data.ID).To(Equal(string(id)))
+		Expect(data).To(HaveField("ID", string(id)))
 	})
 
 	It("podman pod create --replace", func() {
@@ -551,8 +550,8 @@ ENTRYPOINT ["sleep","99999"]
 		podInspect.WaitWithDefaultTimeout()
 		Expect(podInspect).Should(Exit(0))
 		podJSON := podInspect.InspectPodToJSON()
-		Expect(podJSON.CPUPeriod).To(Equal(period))
-		Expect(podJSON.CPUQuota).To(Equal(quota))
+		Expect(podJSON).To(HaveField("CPUPeriod", period))
+		Expect(podJSON).To(HaveField("CPUQuota", quota))
 	})
 
 	It("podman pod create --cpuset-cpus", func() {
@@ -573,7 +572,7 @@ ENTRYPOINT ["sleep","99999"]
 		podInspect.WaitWithDefaultTimeout()
 		Expect(podInspect).Should(Exit(0))
 		podJSON := podInspect.InspectPodToJSON()
-		Expect(podJSON.CPUSetCPUs).To(Equal(in))
+		Expect(podJSON).To(HaveField("CPUSetCPUs", in))
 	})
 
 	It("podman pod create --pid", func() {
@@ -587,7 +586,7 @@ ENTRYPOINT ["sleep","99999"]
 		podInspect.WaitWithDefaultTimeout()
 		Expect(podInspect).Should(Exit(0))
 		podJSON := podInspect.InspectPodToJSON()
-		Expect(podJSON.InfraConfig.PidNS).To(Equal(ns))
+		Expect(podJSON.InfraConfig).To(HaveField("PidNS", ns))
 
 		podName = "pidPod2"
 		ns = "pod"
@@ -607,7 +606,7 @@ ENTRYPOINT ["sleep","99999"]
 		podInspect.WaitWithDefaultTimeout()
 		Expect(podInspect).Should(Exit(0))
 		podJSON = podInspect.InspectPodToJSON()
-		Expect(podJSON.InfraConfig.PidNS).To(Equal("host"))
+		Expect(podJSON.InfraConfig).To(HaveField("PidNS", "host"))
 
 		podName = "pidPod4"
 		ns = "private"
@@ -620,7 +619,7 @@ ENTRYPOINT ["sleep","99999"]
 		podInspect.WaitWithDefaultTimeout()
 		Expect(podInspect).Should(Exit(0))
 		podJSON = podInspect.InspectPodToJSON()
-		Expect(podJSON.InfraConfig.PidNS).To(Equal("private"))
+		Expect(podJSON.InfraConfig).To(HaveField("PidNS", "private"))
 
 		podName = "pidPod5"
 		ns = "container:randomfakeid"
@@ -856,7 +855,7 @@ ENTRYPOINT ["sleep","99999"]
 		podInspect.WaitWithDefaultTimeout()
 		Expect(podInspect).Should(Exit(0))
 		data := podInspect.InspectPodToJSON()
-		Expect(data.Mounts[0].Name).To(Equal(volName))
+		Expect(data.Mounts[0]).To(HaveField("Name", volName))
 		ctrName := "testCtr"
 		ctrCreate := podmanTest.Podman([]string{"create", "--pod", podName, "--name", ctrName, ALPINE})
 		ctrCreate.WaitWithDefaultTimeout()
@@ -865,7 +864,7 @@ ENTRYPOINT ["sleep","99999"]
 		ctrInspect.WaitWithDefaultTimeout()
 		Expect(ctrInspect).Should(Exit(0))
 		ctrData := ctrInspect.InspectContainerToJSON()
-		Expect(ctrData[0].Mounts[0].Name).To(Equal(volName))
+		Expect(ctrData[0].Mounts[0]).To(HaveField("Name", volName))
 
 		ctr2 := podmanTest.Podman([]string{"run", "--pod", podName, ALPINE, "sh", "-c", "echo hello >> " + "/tmp1/test"})
 		ctr2.WaitWithDefaultTimeout()
@@ -934,7 +933,7 @@ ENTRYPOINT ["sleep","99999"]
 		ctrInspect.WaitWithDefaultTimeout()
 		Expect(ctrInspect).Should(Exit(0))
 		data := ctrInspect.InspectContainerToJSON()
-		Expect(data[0].Mounts[0].Name).To(Equal(volName))
+		Expect(data[0].Mounts[0]).To(HaveField("Name", volName))
 		podName := "testPod"
 		podCreate := podmanTest.Podman([]string{"pod", "create", "--volumes-from", ctrName, "--name", podName})
 		podCreate.WaitWithDefaultTimeout()
@@ -943,7 +942,7 @@ ENTRYPOINT ["sleep","99999"]
 		podInspect.WaitWithDefaultTimeout()
 		Expect(podInspect).Should(Exit(0))
 		podData := podInspect.InspectPodToJSON()
-		Expect(podData.Mounts[0].Name).To(Equal(volName))
+		Expect(podData.Mounts[0]).To(HaveField("Name", volName))
 
 		ctr2 := podmanTest.Podman([]string{"run", "--pod", podName, ALPINE, "sh", "-c", "echo hello >> " + "/tmp1/test"})
 		ctr2.WaitWithDefaultTimeout()
@@ -986,7 +985,7 @@ ENTRYPOINT ["sleep","99999"]
 		Expect(ctrCreate).Should(Exit(0))
 
 		ctrInspect := podmanTest.InspectContainer(ctrCreate.OutputToString())
-		Expect(ctrInspect[0].HostConfig.SecurityOpt).To(Equal([]string{"label=type:spc_t", "seccomp=unconfined"}))
+		Expect(ctrInspect[0].HostConfig).To(HaveField("SecurityOpt", []string{"label=type:spc_t", "seccomp=unconfined"}))
 
 		podCreate = podmanTest.Podman([]string{"pod", "create", "--security-opt", "label=disable"})
 		podCreate.WaitWithDefaultTimeout()
@@ -1012,7 +1011,7 @@ ENTRYPOINT ["sleep","99999"]
 		Expect(ctrCreate).Should(Exit(0))
 
 		ctrInspect := podmanTest.InspectContainer(ctrCreate.OutputToString())
-		Expect(ctrInspect[0].HostConfig.SecurityOpt).To(Equal([]string{"seccomp=unconfined"}))
+		Expect(ctrInspect[0].HostConfig).To(HaveField("SecurityOpt", []string{"seccomp=unconfined"}))
 	})
 
 	It("podman pod create --security-opt apparmor test", func() {
@@ -1028,7 +1027,7 @@ ENTRYPOINT ["sleep","99999"]
 		Expect(ctrCreate).Should(Exit(0))
 
 		inspect := podmanTest.InspectContainer(ctrCreate.OutputToString())
-		Expect(inspect[0].AppArmorProfile).To(Equal(apparmor.Profile))
+		Expect(inspect[0]).To(HaveField("AppArmorProfile", apparmor.Profile))
 
 	})
 
@@ -1090,7 +1089,7 @@ ENTRYPOINT ["sleep","99999"]
 		if podmanTest.CgroupManager == "cgroupfs" || !rootless.IsRootless() {
 			Expect(inspect[0].HostConfig.CgroupParent).To(HaveLen(0))
 		} else if podmanTest.CgroupManager == "systemd" {
-			Expect(inspect[0].HostConfig.CgroupParent).To(Equal("user.slice"))
+			Expect(inspect[0].HostConfig).To(HaveField("CgroupParent", "user.slice"))
 		}
 
 		podCreate2 := podmanTest.Podman([]string{"pod", "create", "--share", "cgroup,ipc,net,uts", "--share-parent=false", "--infra-name", "cgroupCtr"})

@@ -345,7 +345,8 @@ var _ = Describe("Podman pull", func() {
 
 		podmanTest.AddImageToRWStore(cirros)
 		dirpath := filepath.Join(podmanTest.TempDir, "cirros")
-		os.MkdirAll(dirpath, os.ModePerm)
+		err = os.MkdirAll(dirpath, os.ModePerm)
+		Expect(err).ToNot(HaveOccurred())
 		imgPath := fmt.Sprintf("dir:%s", dirpath)
 
 		session := podmanTest.Podman([]string{"push", "cirros", imgPath})
@@ -368,7 +369,8 @@ var _ = Describe("Podman pull", func() {
 
 		podmanTest.AddImageToRWStore(cirros)
 		dirpath := filepath.Join(podmanTest.TempDir, "cirros")
-		os.MkdirAll(dirpath, os.ModePerm)
+		err = os.MkdirAll(dirpath, os.ModePerm)
+		Expect(err).ToNot(HaveOccurred())
 		imgPath := fmt.Sprintf("oci:%s", dirpath)
 
 		session := podmanTest.Podman([]string{"push", "cirros", imgPath})
@@ -387,7 +389,8 @@ var _ = Describe("Podman pull", func() {
 	})
 
 	It("podman pull check quiet", func() {
-		podmanTest.RestoreArtifact(ALPINE)
+		err := podmanTest.RestoreArtifact(ALPINE)
+		Expect(err).ToNot(HaveOccurred())
 		setup := podmanTest.Podman([]string{"images", ALPINE, "-q", "--no-trunc"})
 		setup.WaitWithDefaultTimeout()
 		Expect(setup).Should(Exit(0))
@@ -428,8 +431,10 @@ var _ = Describe("Podman pull", func() {
 
 		// We already tested pulling, so we can save some energy and
 		// just restore local artifacts and tag them.
-		podmanTest.RestoreArtifact(ALPINE)
-		podmanTest.RestoreArtifact(BB)
+		err := podmanTest.RestoreArtifact(ALPINE)
+		Expect(err).ToNot(HaveOccurred())
+		err = podmanTest.RestoreArtifact(BB)
+		Expect(err).ToNot(HaveOccurred())
 
 		// What we want is at least two images which have the same name
 		// and are prefixed with two different unqualified-search
@@ -514,7 +519,7 @@ var _ = Describe("Podman pull", func() {
 			Expect(data).To(HaveLen(1))
 			Expect(data[0].RepoTags).To(HaveLen(1))
 			Expect(data[0].RepoTags[0]).To(Equal(t.tag1))
-			Expect(data[0].ID).To(Equal(image1))
+			Expect(data[0]).To(HaveField("ID", image1))
 		}
 	})
 
@@ -541,8 +546,8 @@ var _ = Describe("Podman pull", func() {
 
 		data := setup.InspectImageJSON() // returns []inspect.ImageData
 		Expect(data).To(HaveLen(1))
-		Expect(data[0].Os).To(Equal(runtime.GOOS))
-		Expect(data[0].Architecture).To(Equal("arm64"))
+		Expect(data[0]).To(HaveField("Os", runtime.GOOS))
+		Expect(data[0]).To(HaveField("Architecture", "arm64"))
 	})
 
 	It("podman pull --arch", func() {
@@ -568,7 +573,7 @@ var _ = Describe("Podman pull", func() {
 
 		data := setup.InspectImageJSON() // returns []inspect.ImageData
 		Expect(data).To(HaveLen(1))
-		Expect(data[0].Os).To(Equal(runtime.GOOS))
-		Expect(data[0].Architecture).To(Equal("arm64"))
+		Expect(data[0]).To(HaveField("Os", runtime.GOOS))
+		Expect(data[0]).To(HaveField("Architecture", "arm64"))
 	})
 })

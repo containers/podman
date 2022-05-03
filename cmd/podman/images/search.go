@@ -9,6 +9,7 @@ import (
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/common/pkg/report"
 	"github.com/containers/image/v5/types"
+	"github.com/containers/podman/v4/cmd/podman/common"
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/pkg/errors"
@@ -23,6 +24,7 @@ type searchOptionsWrapper struct {
 	Compatible   bool   // Docker compat
 	TLSVerifyCLI bool   // Used to convert to an optional bool later
 	Format       string // For go templating
+	NoTrunc      bool
 }
 
 // listEntryTag is a utility structure used for json serialization.
@@ -86,13 +88,13 @@ func searchFlags(cmd *cobra.Command) {
 
 	formatFlagName := "format"
 	flags.StringVar(&searchOptions.Format, formatFlagName, "", "Change the output format to JSON or a Go template")
-	_ = cmd.RegisterFlagCompletionFunc(formatFlagName, completion.AutocompleteNone)
+	_ = cmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(&entities.ImageSearchReport{}))
 
 	limitFlagName := "limit"
 	flags.IntVar(&searchOptions.Limit, limitFlagName, 0, "Limit the number of results")
 	_ = cmd.RegisterFlagCompletionFunc(limitFlagName, completion.AutocompleteNone)
 
-	flags.Bool("no-trunc", true, "Do not truncate the output. Default: true")
+	flags.BoolVar(&searchOptions.NoTrunc, "no-trunc", false, "Do not truncate the output")
 	flags.BoolVar(&searchOptions.Compatible, "compatible", false, "List stars, official and automated columns (Docker compatibility)")
 
 	authfileFlagName := "authfile"
@@ -139,11 +141,10 @@ func imageSearch(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	noTrunc, _ := cmd.Flags().GetBool("no-trunc")
 	isJSON := report.IsJSON(searchOptions.Format)
 	for i, element := range searchReport {
 		d := strings.ReplaceAll(element.Description, "\n", " ")
-		if len(d) > 44 && !(noTrunc || isJSON) {
+		if len(d) > 44 && !(searchOptions.NoTrunc || isJSON) {
 			d = strings.TrimSpace(d[:44]) + "..."
 		}
 		searchReport[i].Description = d

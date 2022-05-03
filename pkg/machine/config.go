@@ -4,6 +4,8 @@
 package machine
 
 import (
+	errors2 "errors"
+	"io/ioutil"
 	"net"
 	"net/url"
 	"os"
@@ -12,6 +14,7 @@ import (
 
 	"github.com/containers/storage/pkg/homedir"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 type InitOptions struct {
@@ -68,7 +71,7 @@ type Download struct {
 	Artifact              string
 	CompressionType       string
 	Format                string
-	ImageName             string `json:"image_name"`
+	ImageName             string
 	LocalPath             string
 	LocalUncompressedFile string
 	Sha256sum             string
@@ -95,7 +98,10 @@ type ListResponse struct {
 }
 
 type SetOptions struct {
-	Rootful bool
+	CPUs     *uint64
+	DiskSize *uint64
+	Memory   *uint64
+	Rootful  *bool
 }
 
 type SSHOptions struct {
@@ -117,8 +123,9 @@ type InspectOptions struct{}
 
 type VM interface {
 	Init(opts InitOptions) (bool, error)
+	Inspect() (*InspectInfo, error)
 	Remove(name string, opts RemoveOptions) (string, func() error, error)
-	Set(name string, opts SetOptions) error
+	Set(name string, opts SetOptions) ([]error, error)
 	SSH(name string, opts SSHOptions) error
 	Start(name string, opts StartOptions) error
 	State(bypass bool) (Status, error)
@@ -130,8 +137,14 @@ type DistributionDownload interface {
 	Get() *Download
 }
 type InspectInfo struct {
-	State Status
-	VM
+	ConfigPath VMFile
+	Created    time.Time
+	Image      ImageConfig
+	LastUp     time.Time
+	Name       string
+	Resources  ResourceConfig
+	SSHConfig  SSHConfig
+	State      Status
 }
 
 func (rc RemoteConnectionType) MakeSSHURL(host, path, port, userName string) url.URL {
@@ -182,4 +195,122 @@ func GetConfDir(vmType string) (string, error) {
 	}
 	mkdirErr := os.MkdirAll(confDir, 0755)
 	return confDir, mkdirErr
+}
+
+// ResourceConfig describes physical attributes of the machine
+type ResourceConfig struct {
+	// CPUs to be assigned to the VM
+	CPUs uint64
+	// Disk size in gigabytes assigned to the vm
+	DiskSize uint64
+	// Memory in megabytes assigned to the vm
+	Memory uint64
+}
+
+const maxSocketPathLength int = 103
+
+type VMFile struct {
+	// Path is the fully qualified path to a file
+	Path string
+	// Symlink is a shortened version of Path by using
+	// a symlink
+	Symlink *string `json:"symlink,omitempty"`
+}
+
+// GetPath returns the working path for a machinefile.  it returns
+// the symlink unless one does not exist
+func (m *VMFile) GetPath() string {
+	if m.Symlink == nil {
+		return m.Path
+	}
+	return *m.Symlink
+}
+
+// Delete removes the machinefile symlink (if it exists) and
+// the actual path
+func (m *VMFile) Delete() error {
+	if m.Symlink != nil {
+		if err := os.Remove(*m.Symlink); err != nil && !errors2.Is(err, os.ErrNotExist) {
+			logrus.Errorf("unable to remove symlink %q", *m.Symlink)
+		}
+	}
+	if err := os.Remove(m.Path); err != nil && !errors2.Is(err, os.ErrNotExist) {
+		return err
+	}
+	return nil
+}
+
+// Read the contents of a given file and return in []bytes
+func (m *VMFile) Read() ([]byte, error) {
+	return ioutil.ReadFile(m.GetPath())
+}
+
+// NewMachineFile is a constructor for VMFile
+func NewMachineFile(path string, symlink *string) (*VMFile, error) {
+	if len(path) < 1 {
+		return nil, errors2.New("invalid machine file path")
+	}
+	if symlink != nil && len(*symlink) < 1 {
+		return nil, errors2.New("invalid symlink path")
+	}
+	mf := VMFile{Path: path}
+	if symlink != nil && len(path) > maxSocketPathLength {
+		if err := mf.makeSymlink(symlink); err != nil && !errors2.Is(err, os.ErrExist) {
+			return nil, err
+		}
+	}
+	return &mf, nil
+}
+
+// makeSymlink for macOS creates a symlink in $HOME/.podman/
+// for a machinefile like a socket
+func (m *VMFile) makeSymlink(symlink *string) error {
+	homedir, err := os.UserHomeDir()
+	if err != nil {
+		return err
+	}
+	sl := filepath.Join(homedir, ".podman", *symlink)
+	// make the symlink dir and throw away if it already exists
+	if err := os.MkdirAll(filepath.Dir(sl), 0700); err != nil && !errors2.Is(err, os.ErrNotExist) {
+		return err
+	}
+	m.Symlink = &sl
+	return os.Symlink(m.Path, sl)
+}
+
+type Mount struct {
+	ReadOnly bool
+	Source   string
+	Tag      string
+	Target   string
+	Type     string
+}
+
+// ImageConfig describes the bootable image for the VM
+type ImageConfig struct {
+	// IgnitionFile is the path to the filesystem where the
+	// ignition file was written (if needs one)
+	IgnitionFile VMFile `json:"IgnitionFilePath"`
+	// ImageStream is the update stream for the image
+	ImageStream string
+	// ImageFile is the fq path to
+	ImagePath VMFile `json:"ImagePath"`
+}
+
+// HostUser describes the host user
+type HostUser struct {
+	// Whether this machine should run in a rootful or rootless manner
+	Rootful bool
+	// UID is the numerical id of the user that called machine
+	UID int
+}
+
+// SSHConfig contains remote access information for SSH
+type SSHConfig struct {
+	// IdentityPath is the fq path to the ssh priv key
+	IdentityPath string
+	// SSH port for user networking
+	Port int
+	// RemoteUsername of the vm user
+	RemoteUsername string
 }

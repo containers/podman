@@ -48,7 +48,11 @@ func (c *Container) copyFromArchive(path string, chown bool, rename map[string]s
 		if err != nil {
 			return nil, err
 		}
-		unmount = func() { c.unmount(false) }
+		unmount = func() {
+			if err := c.unmount(false); err != nil {
+				logrus.Errorf("Failed to unmount container: %v", err)
+			}
+		}
 	}
 
 	if c.state.State == define.ContainerStateRunning {
@@ -117,7 +121,11 @@ func (c *Container) copyToArchive(path string, writer io.Writer) (func() error, 
 		if err != nil {
 			return nil, err
 		}
-		unmount = func() { c.unmount(false) }
+		unmount = func() {
+			if err := c.unmount(false); err != nil {
+				logrus.Errorf("Failed to unmount container: %v", err)
+			}
+		}
 	}
 
 	statInfo, resolvedRoot, resolvedPath, err := c.stat(mountPoint, path)

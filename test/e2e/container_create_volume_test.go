@@ -47,7 +47,7 @@ func checkDataVolumeContainer(pTest *PodmanTestIntegration, image, cont, dest, d
 	inspect := pTest.InspectContainer(cont)
 	Expect(inspect).To(HaveLen(1))
 	Expect(inspect[0].Mounts).To(HaveLen(1))
-	Expect(inspect[0].Mounts[0].Destination).To(Equal(dest))
+	Expect(inspect[0].Mounts[0]).To(HaveField("Destination", dest))
 
 	mntName, mntSource := inspect[0].Mounts[0].Name, inspect[0].Mounts[0].Source
 
@@ -83,7 +83,6 @@ var _ = Describe("Podman create data volume", func() {
 		}
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.Setup()
-		podmanTest.SeedImages()
 	})
 
 	AfterEach(func() {

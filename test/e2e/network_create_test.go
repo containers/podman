@@ -32,7 +32,6 @@ var _ = Describe("Podman network create", func() {
 		}
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.Setup()
-		podmanTest.SeedImages()
 	})
 
 	AfterEach(func() {
@@ -59,7 +58,7 @@ var _ = Describe("Podman network create", func() {
 		Expect(err).To(BeNil())
 		Expect(results).To(HaveLen(1))
 		result := results[0]
-		Expect(result.Name).To(Equal(netName))
+		Expect(result).To(HaveField("Name", netName))
 		Expect(result.Subnets).To(HaveLen(1))
 		Expect(result.Subnets[0].Subnet.String()).To(Equal("10.11.12.0/24"))
 		Expect(result.Subnets[0].Gateway.String()).To(Equal("10.11.12.1"))
@@ -102,7 +101,7 @@ var _ = Describe("Podman network create", func() {
 		Expect(err).To(BeNil())
 		Expect(results).To(HaveLen(1))
 		result := results[0]
-		Expect(result.Name).To(Equal(netName))
+		Expect(result).To(HaveField("Name", netName))
 		Expect(result.Subnets).To(HaveLen(1))
 		Expect(result.Subnets[0].Gateway.String()).To(Equal("fd00:1:2:3::1"))
 		Expect(result.Subnets[0].Subnet.String()).To(Equal("fd00:1:2:3::/64"))
@@ -141,7 +140,7 @@ var _ = Describe("Podman network create", func() {
 		Expect(err).To(BeNil())
 		Expect(results).To(HaveLen(1))
 		result := results[0]
-		Expect(result.Name).To(Equal(netName))
+		Expect(result).To(HaveField("Name", netName))
 		Expect(result.Subnets).To(HaveLen(2))
 		Expect(result.Subnets[0].Subnet.IP).ToNot(BeNil())
 		Expect(result.Subnets[1].Subnet.IP).ToNot(BeNil())
@@ -173,7 +172,7 @@ var _ = Describe("Podman network create", func() {
 		Expect(err).To(BeNil())
 		Expect(results).To(HaveLen(1))
 		result = results[0]
-		Expect(result.Name).To(Equal(netName2))
+		Expect(result).To(HaveField("Name", netName2))
 		Expect(result.Subnets).To(HaveLen(2))
 		Expect(result.Subnets[0].Subnet.IP).ToNot(BeNil())
 		Expect(result.Subnets[1].Subnet.IP).ToNot(BeNil())
