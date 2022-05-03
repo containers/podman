@@ -7,10 +7,10 @@ import (
 	"encoding/json"
 	"os"
 
+	"github.com/containers/common/pkg/report"
 	"github.com/containers/podman/v4/cmd/podman/common"
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/containers/podman/v4/cmd/podman/utils"
-	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/machine"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -66,12 +66,29 @@ func inspect(cmd *cobra.Command, args []string) error {
 		}
 		vms = append(vms, *ii)
 	}
-	if len(inspectFlag.format) > 0 {
-		// need jhonce to work his template magic
-		return define.ErrNotImplemented
-	}
-	if err := printJSON(vms); err != nil {
-		logrus.Error(err)
+	switch {
+	case cmd.Flag("format").Changed:
+		row := report.NormalizeFormat(inspectFlag.format)
+		row = report.EnforceRange(row)
+
+		tmpl, err := report.NewTemplate("Machine inspect").Parse(row)
+		if err != nil {
+			return err
+		}
+
+		w, err := report.NewWriterDefault(os.Stdout)
+		if err != nil {
+			return err
+		}
+
+		if err := tmpl.Execute(w, vms); err != nil {
+			logrus.Error(err)
+		}
+		w.Flush()
+	default:
+		if err := printJSON(vms); err != nil {
+			logrus.Error(err)
+		}
 	}
 	return errs.PrintErrors()
 }
