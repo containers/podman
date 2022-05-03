@@ -12,12 +12,12 @@ require (
 	github.com/containernetworking/cni v1.1.0
 	github.com/containernetworking/plugins v1.1.1
 	github.com/containers/buildah v1.25.2-0.20220423102655-8f2bb8876f3f
-	github.com/containers/common v0.47.5-0.20220429111201-21d83cf7c533
+	github.com/containers/common v0.48.0
 	github.com/containers/conmon v2.0.20+incompatible
-	github.com/containers/image/v5 v5.21.1-0.20220425080628-be085685e524
-	github.com/containers/ocicrypt v1.1.3
+	github.com/containers/image/v5 v5.21.1
+	github.com/containers/ocicrypt v1.1.4-0.20220428134531-566b808bdf6f
 	github.com/containers/psgo v1.7.2
-	github.com/containers/storage v1.39.1-0.20220422100603-8996869ae40b
+	github.com/containers/storage v1.40.0
 	github.com/coreos/go-systemd/v22 v22.3.2
 	github.com/coreos/stream-metadata-go v0.0.0-20210225230131-70edb9eb47b3
 	github.com/cyphar/filepath-securejoin v0.2.3
@@ -66,7 +66,7 @@ require (
 	go.etcd.io/bbolt v1.3.6
 	golang.org/x/crypto v0.0.0-20220411220226-7b82a4e95df4
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
-	golang.org/x/sys v0.0.0-20220412211240-33da011f77ad
+	golang.org/x/sys v0.0.0-20220422013727-9388b58f7150
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211
 	golang.org/x/text v0.3.7
 	google.golang.org/protobuf v1.28.0

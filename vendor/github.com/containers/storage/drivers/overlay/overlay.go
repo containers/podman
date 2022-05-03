@@ -939,6 +939,16 @@ func (d *Driver) create(id, parent string, opts *graphdriver.CreateOpts, disable
 		rootUID = int(st.UID())
 		rootGID = int(st.GID())
 	}
+
+	if _, err := system.Lstat(dir); err == nil {
+		logrus.Warnf("Trying to create a layer %#v while directory %q already exists; removing it first", id, dir)
+		// Don’t just os.RemoveAll(dir) here; d.Remove also removes the link in linkDir,
+		// so that we can’t end up with two symlinks in linkDir pointing to the same layer.
+		if err := d.Remove(id); err != nil {
+			return errors.Wrapf(err, "removing a pre-existing layer directory %q", dir)
+		}
+	}
+
 	if err := idtools.MkdirAllAndChownNew(dir, 0700, idPair); err != nil {
 		return err
 	}
@@ -1389,7 +1399,7 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 	}
 	for err == nil {
 		absLowers = append(absLowers, filepath.Join(dir, nameWithSuffix("diff", diffN)))
-		relLowers = append(relLowers, dumbJoin(string(link), "..", nameWithSuffix("diff", diffN)))
+		relLowers = append(relLowers, dumbJoin(linkDir, string(link), "..", nameWithSuffix("diff", diffN)))
 		diffN++
 		st, err = os.Stat(filepath.Join(dir, nameWithSuffix("diff", diffN)))
 		if err == nil && !permsKnown {

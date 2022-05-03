@@ -40,8 +40,6 @@ import (
 var (
 	// OAEPLabel defines the label we use for OAEP encryption; this cannot be changed
 	OAEPLabel = []byte("")
-	// OAEPDefaultHash defines the default hash used for OAEP encryption; this cannot be changed
-	OAEPDefaultHash = "sha1"
 
 	// OAEPSha1Params describes the OAEP parameters with sha1 hash algorithm; needed by SoftHSM
 	OAEPSha1Params = &pkcs11.OAEPParams{
@@ -69,12 +67,12 @@ func rsaPublicEncryptOAEP(pubKey *rsa.PublicKey, plaintext []byte) ([]byte, stri
 	)
 
 	oaephash := os.Getenv("OCICRYPT_OAEP_HASHALG")
-	// The default is 'sha1'
+	// The default is sha256 (previously was sha1)
 	switch strings.ToLower(oaephash) {
-	case "sha1", "":
+	case "sha1":
 		hashfunc = sha1.New()
 		hashalg = "sha1"
-	case "sha256":
+	case "sha256", "":
 		hashfunc = sha256.New()
 		hashalg = "sha256"
 	default:
@@ -283,12 +281,12 @@ func publicEncryptOAEP(pubKey *Pkcs11KeyFileObject, plaintext []byte) ([]byte, s
 
 	var oaep *pkcs11.OAEPParams
 	oaephash := os.Getenv("OCICRYPT_OAEP_HASHALG")
-	// the default is sha1
+	// The default is sha256 (previously was sha1)
 	switch strings.ToLower(oaephash) {
-	case "sha1", "":
+	case "sha1":
 		oaep = OAEPSha1Params
 		hashalg = "sha1"
-	case "sha256":
+	case "sha256", "":
 		oaep = OAEPSha256Params
 		hashalg = "sha256"
 	default:
@@ -333,7 +331,7 @@ func privateDecryptOAEP(privKeyObj *Pkcs11KeyFileObject, ciphertext []byte, hash
 
 	var oaep *pkcs11.OAEPParams
 
-	// the default is sha1
+	// An empty string from the Hash in the JSON historically defaults to sha1.
 	switch hashalg {
 	case "sha1", "":
 		oaep = OAEPSha1Params
@@ -410,9 +408,6 @@ func EncryptMultiple(pubKeys []interface{}, data []byte) ([]byte, error) {
 			return nil, err
 		}
 
-		if hashalg == OAEPDefaultHash {
-			hashalg = ""
-		}
 		recipient := Pkcs11Recipient{
 			Version: 0,
 			Blob:    base64.StdEncoding.EncodeToString(ciphertext),
@@ -431,15 +426,18 @@ func EncryptMultiple(pubKeys []interface{}, data []byte) ([]byte, error) {
 //     {
 //        "version": 0,
 //        "blob": <base64 encoded RSA OAEP encrypted blob>,
-//        "hash": <hash used for OAEP other than 'sha256'>
+//        "hash": <hash used for OAEP other than 'sha1'>
 //     } ,
 //     {
 //        "version": 0,
 //        "blob": <base64 encoded RSA OAEP encrypted blob>,
-//        "hash": <hash used for OAEP other than 'sha256'>
+//        "hash": <hash used for OAEP other than 'sha1'>
 //     } ,
 //     [...]
 // }
+// Note: More recent versions of this code explicitly write 'sha1'
+//       while older versions left it empty in case of 'sha1'.
+//
 func Decrypt(privKeyObjs []*Pkcs11KeyFileObject, pkcs11blobstr []byte) ([]byte, error) {
 	pkcs11blob := Pkcs11Blob{}
 	err := json.Unmarshal(pkcs11blobstr, &pkcs11blob)
