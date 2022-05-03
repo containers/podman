@@ -235,7 +235,21 @@ END_FAIL_INSTRUCTIONS
     # Tweak .cirrus.yml so we run bud tests first in CI (to fail fast).
     tweak_cirrus_test_order();
 
-    # FIXME: check if 'make vendor' brought in new (untracked) files?
+    # 'make vendor' seems to git-add files under buildah itself, but not
+    # under other changed modules. Add those now, otherwise we fail
+    # the dirty-tree test in CI.
+    if (my @v = git('status', '--porcelain', '--untracked=all', 'vendor')) {
+        if (my @untracked = grep { /^\?\?\s/ } @v) {
+            my %repos = map {
+                s!^.*?vendor/[^/]+/([^/]+/[^/]+)/.*$!$1!; $_ => 1;
+            } @untracked;
+            my $repos = join(', ', sort keys %repos);
+            progress("Adding untracked files under $repos");
+            git('add', 'vendor');
+        }
+    }
+
+    # Commit everything.
     git('commit', '-as', '-m', <<"END_COMMIT_MESSAGE");
 [DO NOT MERGE] vendor in buildah \@ $buildah_new
 
@@ -654,12 +668,18 @@ END_WARN
     }
 
     # OK so far. Now check for modified files.
-    my @changed = git('status', '--porcelain', '--untracked=no')
-        or return;
+    if (my @changed = git('status', '--porcelain', '--untracked=no')) {
+        warn "$ME: Modified files in repo:\n";
+        warn "    $_\n" for @changed;
+        exit 1;
+    }
 
-    warn "$ME: Modified files in repo:\n";
-    warn "    $_\n" for @changed;
-    exit 1;
+    # ...and for untracked files under vendor/
+    if (my @v = git('status', '--porcelain', '--untracked=all', 'vendor')) {
+        warn "$ME: Untracked vendor files:\n";
+        warn "    $_\n" for @v;
+        exit 1;
+    }
 }
 
 ########################
