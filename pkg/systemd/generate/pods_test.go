@@ -7,6 +7,28 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestSetPodExitPolicy(t *testing.T) {
+	tests := []struct {
+		input, expected []string
+	}{
+		{
+			[]string{"podman", "pod", "create"},
+			[]string{"podman", "pod", "create", "--exit-policy=stop"},
+		},
+		{
+			[]string{"podman", "pod", "create", "--exit-policy=continue"},
+			[]string{"podman", "pod", "create", "--exit-policy=continue"},
+		},
+		{
+			[]string{"podman", "pod", "create", "--exit-policy", "continue"},
+			[]string{"podman", "pod", "create", "--exit-policy", "continue"},
+		},
+	}
+	for _, test := range tests {
+		assert.Equalf(t, test.expected, setPodExitPolicy(test.input), "%v", test.input)
+	}
+}
+
 func TestValidateRestartPolicyPod(t *testing.T) {
 	type podInfo struct {
 		restart string
@@ -252,7 +274,7 @@ Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=on-failure
 TimeoutStopSec=70
 ExecStartPre=/bin/rm -f %t/pod-123abc.pid %t/pod-123abc.pod-id
-ExecStartPre=/usr/bin/podman pod create --infra-conmon-pidfile %t/pod-123abc.pid --pod-id-file %t/pod-123abc.pod-id --name foo "bar=arg with space" --replace
+ExecStartPre=/usr/bin/podman pod create --infra-conmon-pidfile %t/pod-123abc.pid --pod-id-file %t/pod-123abc.pod-id --name foo "bar=arg with space" --replace --exit-policy=stop
 ExecStart=/usr/bin/podman pod start --pod-id-file %t/pod-123abc.pod-id
 ExecStop=/usr/bin/podman pod stop --ignore --pod-id-file %t/pod-123abc.pod-id -t 10
 ExecStopPost=/usr/bin/podman pod rm --ignore -f --pod-id-file %t/pod-123abc.pod-id
@@ -280,7 +302,7 @@ Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=on-failure
 TimeoutStopSec=70
 ExecStartPre=/bin/rm -f %t/pod-123abc.pid %t/pod-123abc.pod-id
-ExecStartPre=/usr/bin/podman --events-backend none --runroot /root pod create --infra-conmon-pidfile %t/pod-123abc.pid --pod-id-file %t/pod-123abc.pod-id --name foo "bar=arg with space" --replace
+ExecStartPre=/usr/bin/podman --events-backend none --runroot /root pod create --infra-conmon-pidfile %t/pod-123abc.pid --pod-id-file %t/pod-123abc.pod-id --name foo "bar=arg with space" --replace --exit-policy=stop
 ExecStart=/usr/bin/podman --events-backend none --runroot /root pod start --pod-id-file %t/pod-123abc.pod-id
 ExecStop=/usr/bin/podman --events-backend none --runroot /root pod stop --ignore --pod-id-file %t/pod-123abc.pod-id -t 10
 ExecStopPost=/usr/bin/podman --events-backend none --runroot /root pod rm --ignore -f --pod-id-file %t/pod-123abc.pod-id
@@ -308,7 +330,7 @@ Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=on-failure
 TimeoutStopSec=70
 ExecStartPre=/bin/rm -f %t/pod-123abc.pid %t/pod-123abc.pod-id
-ExecStartPre=/usr/bin/podman pod create --infra-conmon-pidfile %t/pod-123abc.pid --pod-id-file %t/pod-123abc.pod-id --name foo --replace
+ExecStartPre=/usr/bin/podman pod create --infra-conmon-pidfile %t/pod-123abc.pid --pod-id-file %t/pod-123abc.pod-id --name foo --replace --exit-policy=stop
 ExecStart=/usr/bin/podman pod start --pod-id-file %t/pod-123abc.pod-id
 ExecStop=/usr/bin/podman pod stop --ignore --pod-id-file %t/pod-123abc.pod-id -t 10
 ExecStopPost=/usr/bin/podman pod rm --ignore -f --pod-id-file %t/pod-123abc.pod-id
@@ -336,7 +358,7 @@ Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=on-failure
 TimeoutStopSec=70
 ExecStartPre=/bin/rm -f %t/pod-123abc.pid %t/pod-123abc.pod-id
-ExecStartPre=/usr/bin/podman pod create --infra-conmon-pidfile %t/pod-123abc.pid --pod-id-file %t/pod-123abc.pod-id --name foo --label key={{someval}} --replace
+ExecStartPre=/usr/bin/podman pod create --infra-conmon-pidfile %t/pod-123abc.pid --pod-id-file %t/pod-123abc.pod-id --name foo --label key={{someval}} --exit-policy=continue --replace
 ExecStart=/usr/bin/podman pod start --pod-id-file %t/pod-123abc.pod-id
 ExecStop=/usr/bin/podman pod stop --ignore --pod-id-file %t/pod-123abc.pod-id -t 10
 ExecStopPost=/usr/bin/podman pod rm --ignore -f --pod-id-file %t/pod-123abc.pod-id
@@ -581,7 +603,7 @@ WantedBy=default.target
 				GraphRoot:        "/var/lib/containers/storage",
 				RunRoot:          "/var/run/containers/storage",
 				RequiredServices: []string{"container-1", "container-2"},
-				CreateCommand:    []string{"podman", "pod", "create", "--name", "foo", "--label", "key={{someval}}"},
+				CreateCommand:    []string{"podman", "pod", "create", "--name", "foo", "--label", "key={{someval}}", "--exit-policy=continue"},
 			},
 			podNewLabelWithCurlyBraces,
 			true,
