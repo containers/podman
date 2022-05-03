@@ -31,10 +31,31 @@ type Registry struct {
 	running bool
 }
 
+// Options allows for customizing a registry.
+type Options struct {
+	// Image - custom registry image.
+	Image string
+}
+
 // Start a new registry and return it along with it's image, user, password, and port.
 func Start() (*Registry, error) {
+	return StartWithOptions(nil)
+}
+
+// StartWithOptions a new registry and return it along with it's image, user, password, and port.
+func StartWithOptions(options *Options) (*Registry, error) {
+	if options == nil {
+		options = &Options{}
+	}
+
+	var args []string
+	if options.Image != "" {
+		args = append(args, "-i", options.Image)
+	}
+	args = append(args, "start")
+
 	// Start a registry.
-	out, err := utils.ExecCmd(binary, "start")
+	out, err := utils.ExecCmd(binary, args...)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error running %q: %s", binary, out)
 	}
