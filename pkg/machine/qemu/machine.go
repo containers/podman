@@ -525,10 +525,11 @@ func (v *MachineVM) Start(name string, _ machine.StartOptions) error {
 		time.Sleep(wait)
 		wait++
 	}
-	defer qemuSocketConn.Close()
 	if err != nil {
 		return err
 	}
+	defer qemuSocketConn.Close()
+
 	fd, err := qemuSocketConn.(*net.UnixConn).File()
 	if err != nil {
 		return err
