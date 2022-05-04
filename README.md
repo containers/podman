@@ -32,6 +32,7 @@ Podman presently only supports running containers on Linux. However, we are buil
 
 ## Roadmap
 
+1. Improvements to OS X and Windows support
 1. Further improvements to the REST API, with a focus on bugfixes and implementing missing functionality
 1. Improvements on rootless containers, with a focus on improving the user experience and exposing presently-unavailable features when possible
 1. Improvements to Pods, including the addition of pod-level resource limits
