@@ -9,6 +9,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"syscall"
 
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v4/libpod/define"
@@ -259,7 +260,7 @@ func redirectResponseToOutputStreams(outputStream, errorStream io.Writer, writeO
 				}
 			}
 		}
-		if er == io.EOF {
+		if errors.Is(er, io.EOF) || errors.Is(er, syscall.ECONNRESET) {
 			break
 		}
 		if er != nil {
