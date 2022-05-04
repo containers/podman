@@ -64,7 +64,7 @@ func autocompleteMachine(cmd *cobra.Command, args []string, toComplete string) (
 
 func getMachines(toComplete string) ([]string, cobra.ShellCompDirective) {
 	suggestions := []string{}
-	provider := getSystemDefaultProvider()
+	provider := GetSystemDefaultProvider()
 	machines, err := provider.List(machine.ListOptions{})
 	if err != nil {
 		cobra.CompErrorln(err.Error())

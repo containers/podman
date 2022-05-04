@@ -61,7 +61,9 @@ func reset(cmd *cobra.Command, args []string) {
         - all pods
         - all images
         - all networks
-        - all build cache`)
+        - all build cache
+        - all machines`)
+
 		if len(listCtn) > 0 {
 			fmt.Println(`WARNING! The following external containers will be purged:`)
 			// print first 12 characters of ID and first configured name alias
@@ -103,5 +105,11 @@ func reset(cmd *cobra.Command, args []string) {
 		//nolint:gocritic
 		os.Exit(define.ExecErrorCodeGeneric)
 	}
+
+	// Shutdown podman-machine and delete all machine files
+	if err := resetMachine(); err != nil {
+		logrus.Error(err)
+	}
+
 	os.Exit(0)
 }
