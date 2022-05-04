@@ -425,7 +425,6 @@ func createContainerOptions(rt *libpod.Runtime, s *specgen.SpecGenerator, pod *l
 			options = append(options, libpod.WithMaxLogSize(s.LogConfiguration.Size))
 		}
 		if len(s.LogConfiguration.Options) > 0 && s.LogConfiguration.Options["tag"] != "" {
-			// Note: I'm really guessing here.
 			options = append(options, libpod.WithLogTag(s.LogConfiguration.Options["tag"]))
 		}
 

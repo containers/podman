@@ -29,6 +29,7 @@ import (
 	"github.com/docker/go-units"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 func ToPodOpt(ctx context.Context, podName string, p entities.PodCreateOptions, podYAML *v1.PodTemplateSpec) (entities.PodCreateOptions, error) {
@@ -153,6 +154,7 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 		Driver: opts.LogDriver,
 	}
 
+	s.LogConfiguration.Options = make(map[string]string)
 	for _, o := range opts.LogOptions {
 		split := strings.SplitN(o, "=", 2)
 		if len(split) < 2 {
@@ -170,7 +172,17 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 			}
 			s.LogConfiguration.Size = logSize
 		default:
-			s.LogConfiguration.Options[split[0]] = split[1]
+			switch len(split[1]) {
+			case 0:
+				return nil, errors.Wrapf(define.ErrInvalidArg, "invalid log option")
+			default:
+				// tags for journald only
+				if s.LogConfiguration.Driver == "" || s.LogConfiguration.Driver == define.JournaldLogging {
+					s.LogConfiguration.Options[split[0]] = split[1]
+				} else {
+					logrus.Warnf("Can only set tags with journald log driver but driver is %q", s.LogConfiguration.Driver)
+				}
+			}
 		}
 	}
 
