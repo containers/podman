@@ -26,7 +26,6 @@ var (
 	// Pull in configured json library
 	json = registry.JSONLibrary()
 
-	sockPaths     []string   // Paths to unix domain sockets for publishing
 	openEventSock sync.Once  // Singleton support for opening sockets as needed
 	sockets       []net.Conn // Opened sockets, if any
 
@@ -35,7 +34,7 @@ var (
 		Use:                "machine",
 		Short:              "Manage a virtual machine",
 		Long:               "Manage a virtual machine. Virtual machines are used to run Podman.",
-		PersistentPreRunE:  initMachineEvents,
+		PersistentPreRunE:  validate.NoOp,
 		PersistentPostRunE: closeMachineEvents,
 		RunE:               validate.SubCommandExists,
 	}
@@ -79,17 +78,10 @@ func getMachines(toComplete string) ([]string, cobra.ShellCompDirective) {
 	return suggestions, cobra.ShellCompDirectiveNoFileComp
 }
 
-func initMachineEvents(cmd *cobra.Command, _ []string) error {
-	logrus.Debugf("Called machine %s.PersistentPreRunE(%s)", cmd.Name(), strings.Join(os.Args, " "))
-
+func initMachineEvents() {
 	sockPaths, err := resolveEventSock()
 	if err != nil {
-		return err
-	}
-
-	// No sockets found, so no need to publish events...
-	if len(sockPaths) == 0 {
-		return nil
+		logrus.Warnf("Failed to resolve machine event sockets, machine events will not be published: %v", err)
 	}
 
 	for _, path := range sockPaths {
@@ -101,7 +93,6 @@ func initMachineEvents(cmd *cobra.Command, _ []string) error {
 		logrus.Debugf("Machine event socket %q found", path)
 		sockets = append(sockets, conn)
 	}
-	return nil
 }
 
 func resolveEventSock() ([]string, error) {
@@ -145,22 +136,7 @@ func resolveEventSock() ([]string, error) {
 }
 
 func newMachineEvent(status events.Status, event events.Event) {
-	openEventSock.Do(func() {
-		// No sockets where found, so no need to publish events...
-		if len(sockPaths) == 0 {
-			return
-		}
-
-		for _, path := range sockPaths {
-			conn, err := (&net.Dialer{}).DialContext(registry.Context(), "unix", path)
-			if err != nil {
-				logrus.Warnf("Failed to open event socket %q: %v", path, err)
-				continue
-			}
-			logrus.Debugf("Machine event socket %q found", path)
-			sockets = append(sockets, conn)
-		}
-	})
+	openEventSock.Do(initMachineEvents)
 
 	event.Status = status
 	event.Time = time.Now()
