@@ -8,7 +8,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"io/ioutil"
+	"io"
 	"net/http"
 )
 
@@ -53,7 +53,7 @@ func (c *Client) InstallPlugins(opts InstallPluginOptions) error {
 	defer resp.Body.Close()
 	// PullPlugin streams back the progress of the pull, we must consume the whole body
 	// otherwise the pull will be canceled on the engine.
-	if _, err := ioutil.ReadAll(resp.Body); err != nil {
+	if _, err := io.ReadAll(resp.Body); err != nil {
 		return err
 	}
 	return nil
@@ -297,7 +297,7 @@ func (c *Client) RemovePlugin(opts RemovePluginOptions) (*PluginDetail, error) {
 		return nil, err
 	}
 	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}
@@ -386,7 +386,7 @@ func (c *Client) CreatePlugin(opts CreatePluginOptions) (string, error) {
 		return "", err
 	}
 	defer resp.Body.Close()
-	containerNameBytes, err := ioutil.ReadAll(resp.Body)
+	containerNameBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", err
 	}

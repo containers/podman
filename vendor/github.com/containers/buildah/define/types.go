@@ -29,7 +29,7 @@ const (
 	Package = "buildah"
 	// Version for the Package.  Bump version in contrib/rpm/buildah.spec
 	// too.
-	Version = "1.26.0-dev"
+	Version = "1.26.1"
 
 	// DefaultRuntime if containers.conf fails.
 	DefaultRuntime = "runc"
@@ -94,6 +94,13 @@ type Secret struct {
 	ID         string
 	Source     string
 	SourceType string
+}
+
+// BuildOutputOptions contains the the outcome of parsing the value of a build --output flag
+type BuildOutputOption struct {
+	Path     string // Only valid if !IsStdout
+	IsDir    bool
+	IsStdout bool
 }
 
 // TempDirForURL checks if the passed-in string looks like a URL or -.  If it is,

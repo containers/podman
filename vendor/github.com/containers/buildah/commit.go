@@ -102,6 +102,7 @@ type CommitOptions struct {
 	// indexing. i.e. 0 is the first layer, -1 is the last (top-most) layer.
 	OciEncryptLayers *[]int
 	// UnsetEnvs is a list of environments to not add to final image.
+	// Deprecated: use UnsetEnv() before committing instead.
 	UnsetEnvs []string
 }
 
@@ -229,6 +230,7 @@ func (b *Builder) addManifest(ctx context.Context, manifestName string, imageSpe
 func (b *Builder) Commit(ctx context.Context, dest types.ImageReference, options CommitOptions) (string, reference.Canonical, digest.Digest, error) {
 	var (
 		imgID string
+		src   types.ImageReference
 	)
 
 	// If we weren't given a name, build a destination reference using a
@@ -300,7 +302,7 @@ func (b *Builder) Commit(ctx context.Context, dest types.ImageReference, options
 	logrus.Debugf("committing image with reference %q is allowed by policy", transports.ImageName(dest))
 
 	// Build an image reference from which we can copy the finished image.
-	src, err := b.makeImageRef(options)
+	src, err = b.makeContainerImageRef(options)
 	if err != nil {
 		return imgID, nil, "", errors.Wrapf(err, "error computing layer digests and building metadata for container %q", b.ContainerID)
 	}

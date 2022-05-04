@@ -330,7 +330,7 @@ type BuilderOptions struct {
 	Format string
 	// Devices are the additional devices to add to the containers
 	Devices define.ContainerDevices
-	//DefaultEnv for containers
+	// DefaultEnv is deprecated and ignored.
 	DefaultEnv []string
 	// MaxPullRetries is the maximum number of attempts we'll make to pull
 	// any one image from the external registry if the first attempt fails.

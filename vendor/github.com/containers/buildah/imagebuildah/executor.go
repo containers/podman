@@ -133,6 +133,10 @@ type Executor struct {
 	unsetEnvs               []string
 	processLabel            string // Shares processLabel of first stage container with containers of other stages in same build
 	mountLabel              string // Shares mountLabel of first stage container with containers of other stages in same build
+	buildOutput             string // Specifies instructions for any custom build output
+	osVersion               string
+	osFeatures              []string
+	envs                    []string
 }
 
 type imageTypeAndHistoryAndDiffIDs struct {
@@ -275,7 +279,11 @@ func newExecutor(logger *logrus.Logger, logPrefix string, store storage.Store, o
 		secrets:                        secrets,
 		sshsources:                     sshsources,
 		logPrefix:                      logPrefix,
-		unsetEnvs:                      options.UnsetEnvs,
+		unsetEnvs:                      append([]string{}, options.UnsetEnvs...),
+		buildOutput:                    options.BuildOutput,
+		osVersion:                      options.OSVersion,
+		osFeatures:                     append([]string{}, options.OSFeatures...),
+		envs:                           append([]string{}, options.Envs...),
 	}
 	if exec.err == nil {
 		exec.err = os.Stderr
@@ -601,11 +609,12 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) (image
 						}
 						base := child.Next.Value
 						if base != "scratch" {
-							// TODO: this didn't undergo variable and arg
-							// expansion, so if the AS clause in another
-							// FROM instruction uses argument values,
-							// we might not record the right value here.
-							b.baseMap[base] = true
+							userArgs := argsMapToSlice(stage.Builder.Args)
+							baseWithArg, err := imagebuilder.ProcessWord(base, userArgs)
+							if err != nil {
+								return "", nil, errors.Wrapf(err, "while replacing arg variables with values for format %q", base)
+							}
+							b.baseMap[baseWithArg] = true
 							logrus.Debugf("base for stage %d: %q", stageIndex, base)
 						}
 					}
