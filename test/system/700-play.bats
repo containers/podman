@@ -278,3 +278,20 @@ status: {}
     run_podman 125 play kube - < $PODMAN_TMPDIR/test.yaml
     assert "$output" =~ "invalid annotation \"test\"=\"$RANDOMSTRING\"" "Expected to fail with annotation length greater than 63"
 }
+
+@test "podman play kube - default log driver" {
+    TESTDIR=$PODMAN_TMPDIR/testdir
+    mkdir -p $TESTDIR
+    echo "$testYaml" | sed "s|TESTDIR|${TESTDIR}|g" > $PODMAN_TMPDIR/test.yaml
+    # Get the default log driver
+    run_podman info --format "{{.Host.LogDriver}}"
+    default_driver=$output
+
+    # Make sure that the default log driver is used
+    run_podman play kube $PODMAN_TMPDIR/test.yaml
+    run_podman inspect --format "{{.HostConfig.LogConfig.Type}}" test_pod-test
+    is "$output" "$default_driver" "play kube uses default log driver"
+
+    run_podman stop -a -t 0
+    run_podman pod rm -t 0 -f test_pod
+}
