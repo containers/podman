@@ -6,6 +6,7 @@
 - A new container command has been added, `podman container clone`. This command makes a copy of an existing container, with the ability to change some settings (e.g. resource limits) while doing so.
 - A new machine command has been added, `podman machine inspect`. This command provides details on the configuration of machine VMs.
 - The `podman machine set` command can now change the CPUs, memory, and disk space available to machines after they were initially created, using the new `--cpus`, `--disk-size`, and `--memory` options ([#13633](https://github.com/containers/podman/issues/13633)).
+- Podman now supports sending JSON events related to machines to a Unix socket named `machine_events.*\.sock` in `XDG_RUNTIME_DIR/podman` or to a socket whose path is set in the `PODMAN_MACHINE_EVENTS_SOCK` environment variable.
 - Two new volume commands have been added, `podman volume mount` and `podman volume unmount`. These allow for Podman-managed named volumes to be mounted and accessed from outside containers ([#12768](https://github.com/containers/podman/issues/12768)).
 - VMs created by `podman machine` now automatically mount the host's `$HOME` into the VM, to allow mounting volumes from the host into containers.
 - The `podman container checkpoint` and `podman container restore` options now support checkpointing to and restoring from OCI images. This allows checkpoints to be distributed via standard image registries.
