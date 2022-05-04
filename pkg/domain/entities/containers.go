@@ -57,7 +57,7 @@ type WaitOptions struct {
 }
 
 type WaitReport struct {
-	Id       string //nolint
+	Id       string // nolint
 	Error    error
 	ExitCode int32
 }
@@ -77,7 +77,7 @@ type PauseUnPauseOptions struct {
 
 type PauseUnpauseReport struct {
 	Err error
-	Id  string //nolint
+	Id  string // nolint
 }
 
 type StopOptions struct {
@@ -89,7 +89,7 @@ type StopOptions struct {
 
 type StopReport struct {
 	Err      error
-	Id       string //nolint
+	Id       string // nolint
 	RawInput string
 }
 
@@ -111,7 +111,7 @@ type KillOptions struct {
 
 type KillReport struct {
 	Err      error
-	Id       string //nolint
+	Id       string // nolint
 	RawInput string
 }
 
@@ -124,7 +124,7 @@ type RestartOptions struct {
 
 type RestartReport struct {
 	Err error
-	Id  string //nolint
+	Id  string // nolint
 }
 
 type RmOptions struct {
@@ -168,7 +168,7 @@ type CopyOptions struct {
 }
 
 type CommitReport struct {
-	Id string //nolint
+	Id string // nolint
 }
 
 type ContainerExportOptions struct {
@@ -194,7 +194,7 @@ type CheckpointOptions struct {
 
 type CheckpointReport struct {
 	Err             error                                   `json:"-"`
-	Id              string                                  `json:"Id` //nolint
+	Id              string                                  `json:"Id` // nolint
 	RuntimeDuration int64                                   `json:"runtime_checkpoint_duration"`
 	CRIUStatistics  *define.CRIUCheckpointRestoreStatistics `json:"criu_statistics"`
 }
@@ -220,13 +220,13 @@ type RestoreOptions struct {
 
 type RestoreReport struct {
 	Err             error                                   `json:"-"`
-	Id              string                                  `json:"Id` //nolint
+	Id              string                                  `json:"Id` // nolint
 	RuntimeDuration int64                                   `json:"runtime_restore_duration"`
 	CRIUStatistics  *define.CRIUCheckpointRestoreStatistics `json:"criu_statistics"`
 }
 
 type ContainerCreateReport struct {
-	Id string //nolint
+	Id string // nolint
 }
 
 // AttachOptions describes the cli and other values
@@ -305,7 +305,7 @@ type ContainerStartOptions struct {
 // ContainerStartReport describes the response from starting
 // containers from the cli
 type ContainerStartReport struct {
-	Id       string //nolint
+	Id       string // nolint
 	RawInput string
 	Err      error
 	ExitCode int
@@ -349,7 +349,7 @@ type ContainerRunOptions struct {
 // a container
 type ContainerRunReport struct {
 	ExitCode int
-	Id       string //nolint
+	Id       string // nolint
 }
 
 // ContainerCleanupOptions are the CLI values for the
@@ -366,7 +366,7 @@ type ContainerCleanupOptions struct {
 // container cleanup
 type ContainerCleanupReport struct {
 	CleanErr error
-	Id       string //nolint
+	Id       string // nolint
 	RmErr    error
 	RmiErr   error
 }
@@ -382,7 +382,7 @@ type ContainerInitOptions struct {
 // container init
 type ContainerInitReport struct {
 	Err error
-	Id  string //nolint
+	Id  string // nolint
 }
 
 // ContainerMountOptions describes the input values for mounting containers
@@ -404,7 +404,7 @@ type ContainerUnmountOptions struct {
 // ContainerMountReport describes the response from container mount
 type ContainerMountReport struct {
 	Err  error
-	Id   string //nolint
+	Id   string // nolint
 	Name string
 	Path string
 }
@@ -412,7 +412,7 @@ type ContainerMountReport struct {
 // ContainerUnmountReport describes the response from umounting a container
 type ContainerUnmountReport struct {
 	Err error
-	Id  string //nolint
+	Id  string // nolint
 }
 
 // ContainerPruneOptions describes the options needed
@@ -431,7 +431,7 @@ type ContainerPortOptions struct {
 // ContainerPortReport describes the output needed for
 // the CLI to output ports
 type ContainerPortReport struct {
-	Id    string //nolint
+	Id    string // nolint
 	Ports []nettypes.PortMapping
 }
 
@@ -469,7 +469,7 @@ type ContainerRenameOptions struct {
 	NewName string
 }
 
-// ContainerCloneOptions contains options for cloning an existing continer
+// ContainerCloneOptions contains options for cloning an existing container
 type ContainerCloneOptions struct {
 	ID           string
 	Destroy      bool

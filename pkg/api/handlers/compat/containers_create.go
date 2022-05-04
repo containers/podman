@@ -45,7 +45,7 @@ func CreateContainer(w http.ResponseWriter, r *http.Request) {
 	// compatible configuration
 	body := handlers.CreateContainerConfig{}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "Decode()"))
+		utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "failed to decode CreateContainerConfig payload"))
 		return
 	}
 

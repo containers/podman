@@ -7,7 +7,9 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strconv"
 	"strings"
+	"unicode"
 
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/rootless"
@@ -80,7 +82,7 @@ func DevicesFromPath(g *generate.Generator, devicePath string) error {
 	}
 	st, err := os.Stat(resolvedDevicePath)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "failed on device %q", resolvedDevicePath)
 	}
 	if st.IsDir() {
 		found := false
@@ -207,7 +209,7 @@ func getDevices(path string) ([]spec.LinuxDevice, error) {
 			continue
 		}
 
-		device, err := deviceFromPath(filepath.Join(path, f.Name()))
+		device, err := DeviceFromPath(filepath.Join(path, f.Name()))
 		if err != nil {
 			if err == errNotADevice {
 				continue
@@ -227,7 +229,7 @@ func addDevice(g *generate.Generator, device string) error {
 	if err != nil {
 		return err
 	}
-	dev, err := deviceFromPath(src)
+	dev, err := DeviceFromPath(src)
 	if err != nil {
 		return errors.Wrapf(err, "%s is not a valid device", src)
 	}
@@ -262,7 +264,7 @@ func addDevice(g *generate.Generator, device string) error {
 }
 
 // ParseDevice parses device mapping string to a src, dest & permissions string
-func ParseDevice(device string) (string, string, string, error) { //nolint
+func ParseDevice(device string) (string, string, string, error) { // nolint
 	var src string
 	var dst string
 	permissions := "rwm"
@@ -316,9 +318,9 @@ func IsValidDeviceMode(mode string) bool {
 	return true
 }
 
+// DeviceFromPath given a path to a linux device, populate a spec.LinuxDevice struct
 // Copied from github.com/opencontainers/runc/libcontainer/devices
-// Given the path to a device look up the information about a linux device
-func deviceFromPath(path string) (*spec.LinuxDevice, error) {
+func DeviceFromPath(path string) (*spec.LinuxDevice, error) {
 	var stat unix.Stat_t
 	err := unix.Lstat(path, &stat)
 	if err != nil {
@@ -374,4 +376,50 @@ func shouldMask(mask string, unmask []string) bool {
 		}
 	}
 	return true
+}
+
+// ParseFileMode returns an os.FileMode from a string
+// Examples:
+// - rwxrwxrwx
+// - rwm
+// - 0777 (leading zero flag for octal)
+// - 511 (non-leading zero flag for decimal)
+func ParseFileMode(mode string) (os.FileMode, error) {
+	if unicode.IsDigit(rune(mode[0])) {
+		if mode[0] == '0' {
+			m, err := strconv.ParseInt(mode, 8, 32)
+			return os.FileMode(m), err
+		}
+		m, err := strconv.ParseInt(mode, 10, 32)
+		return os.FileMode(m), err
+	}
+
+	m := os.FileMode(0)
+	switch len(mode) {
+	case 9:
+		m |= parseFileModeGroup(mode[6:8])
+		fallthrough
+	case 6:
+		m |= parseFileModeGroup(mode[3:5]) << 3
+		fallthrough
+	case 3:
+		m |= parseFileModeGroup(mode) << 6
+		return m, nil
+	default:
+		return 0, fmt.Errorf("%q is an invalid linux file permission", mode)
+	}
+}
+
+func parseFileModeGroup(group string) os.FileMode {
+	m := os.FileMode(0)
+	if group[2] == 'x' {
+		m |= 01
+	}
+	if group[1] == 'w' {
+		m |= 02
+	}
+	if group[1] == 'r' {
+		m |= 04
+	}
+	return m
 }

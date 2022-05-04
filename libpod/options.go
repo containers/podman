@@ -22,7 +22,6 @@ import (
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/idtools"
-	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -1786,7 +1785,7 @@ func WithInitCtrType(containerType string) CtrCreateOption {
 }
 
 // WithHostDevice adds the original host src to the config
-func WithHostDevice(dev []specs.LinuxDevice) CtrCreateOption {
+func WithHostDevice(dev []specgen.LinuxDevice) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
 			return define.ErrCtrFinalized

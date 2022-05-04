@@ -17,6 +17,7 @@ import (
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/libpod/lock"
+	"github.com/containers/podman/v4/pkg/specgen"
 	"github.com/containers/storage"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
@@ -324,7 +325,7 @@ func (c *Container) ConfigNoCopy() *ContainerConfig {
 }
 
 // DeviceHostSrc returns the user supplied device to be passed down in the pod
-func (c *Container) DeviceHostSrc() []spec.LinuxDevice {
+func (c *Container) DeviceHostSrc() []specgen.LinuxDevice {
 	return c.config.DeviceHostSrc
 }
 

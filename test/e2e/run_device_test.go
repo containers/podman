@@ -10,7 +10,7 @@ import (
 	. "github.com/onsi/gomega/gexec"
 )
 
-var _ = Describe("Podman run device", func() {
+var _ = FDescribe("Podman run device", func() {
 	var (
 		tempdir    string
 		err        error

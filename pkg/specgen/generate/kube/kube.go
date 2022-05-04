@@ -388,7 +388,7 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 				Path: fmt.Sprintf("%s:%s", volumeSource.Source, volume.MountPath),
 				Type: "c",
 			}
-			s.Devices = append(s.Devices, device)
+			s.Devices = append(s.Devices, specgen.LinuxDevice{LinuxDevice: device})
 		case KubeVolumeTypeBlockDevice:
 			// We are setting the path as hostPath:mountPath to comply with pkg/specgen/generate.DeviceFromPath.
 			// The type is here just to improve readability as it is not taken into account when the actual device is created.
@@ -396,7 +396,7 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 				Path: fmt.Sprintf("%s:%s", volumeSource.Source, volume.MountPath),
 				Type: "b",
 			}
-			s.Devices = append(s.Devices, device)
+			s.Devices = append(s.Devices, specgen.LinuxDevice{LinuxDevice: device})
 		default:
 			return nil, errors.Errorf("Unsupported volume source type")
 		}
@@ -500,7 +500,7 @@ func setupLivenessProbe(s *specgen.SpecGenerator, containerYAML v1.Container, re
 	return nil
 }
 
-func makeHealthCheck(inCmd string, interval int32, retries int32, timeout int32, startPeriod int32) (*manifest.Schema2HealthConfig, error) {
+func makeHealthCheck(inCmd string, interval, retries, timeout, startPeriod int32) (*manifest.Schema2HealthConfig, error) {
 	// Every healthcheck requires a command
 	if len(inCmd) == 0 {
 		return nil, errors.New("Must define a healthcheck command for all healthchecks")

@@ -3,8 +3,10 @@ package libpod
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/containers/podman/v4/libpod"
 	"github.com/containers/podman/v4/pkg/api/handlers/utils"
@@ -22,7 +24,7 @@ func CreateContainer(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	conf, err := runtime.GetConfigNoCopy()
 	if err != nil {
-		utils.InternalServerError(w, err)
+		utils.InternalServerError(w, errors.Wrap(err, "failed to read podman config"))
 		return
 	}
 
@@ -57,9 +59,46 @@ func CreateContainer(w http.ResponseWriter, r *http.Request) {
 
 	warn, err := generate.CompleteSpec(r.Context(), runtime, &sg)
 	if err != nil {
-		utils.InternalServerError(w, err)
+		utils.InternalServerError(w,
+			errors.Wrapf(err, "failed to complete spec from provided body: %s", strings.Join(warn, "; ")))
 		return
 	}
+
+	// Override any low-level Device fields, with filesystem specific fields if given
+	// This provides backwards compatibility with previous API versions.
+	for i, d := range sg.Devices {
+		if len(d.PathOnHost) > 0 {
+			spec, err := generate.DeviceFromPath(d.PathOnHost)
+			if err != nil {
+				utils.InternalServerError(w, errors.Wrapf(err, "failed to query linux device %q for container %q", d.Path, sg.Name))
+				return
+			}
+			sg.Devices[i].FileMode = spec.FileMode
+			sg.Devices[i].GID = spec.GID
+			sg.Devices[i].Major = spec.Major
+			sg.Devices[i].Minor = spec.Minor
+			sg.Devices[i].Type = spec.Type
+			sg.Devices[i].UID = spec.UID
+			sg.Devices[i].PathOnHost = ""
+		}
+
+		if len(d.PathInContainer) > 0 {
+			sg.Devices[i].Path = d.PathInContainer
+			sg.Devices[i].PathInContainer = ""
+		}
+
+		// TODO Support 'm' - mknod permission... currently ignored
+		if len(d.CgroupPermissions) > 0 {
+			mode, err := generate.ParseFileMode(d.CgroupPermissions)
+			if err != nil {
+				utils.InternalServerError(w, fmt.Errorf("invalid device permission specification %q for container %q", d.CgroupPermissions, sg.Name))
+				return
+			}
+			sg.Devices[i].FileMode = &mode
+			sg.Devices[i].CgroupPermissions = ""
+		}
+	}
+
 	rtSpec, spec, opts, err := generate.MakeContainer(context.Background(), runtime, &sg, false, nil)
 	if err != nil {
 		utils.InternalServerError(w, err)

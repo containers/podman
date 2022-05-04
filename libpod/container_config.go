@@ -405,7 +405,7 @@ type ContainerMiscConfig struct {
 	// CDIDevices contains devices that use the CDI
 	CDIDevices []string `json:"cdiDevices,omitempty"`
 	// DeviceHostSrc contains the original source on the host
-	DeviceHostSrc []spec.LinuxDevice `json:"device_host_src,omitempty"`
+	DeviceHostSrc []specgen.LinuxDevice `json:"device_host_src,omitempty"`
 	// EnvSecrets are secrets that are set as environment variables
 	EnvSecrets map[string]*secrets.Secret `json:"secret_env,omitempty"`
 	// InitContainerType specifies if the container is an initcontainer
@@ -420,7 +420,7 @@ type InfraInherit struct {
 	ApparmorProfile    string                   `json:"apparmor_profile,omitempty"`
 	CapAdd             []string                 `json:"cap_add,omitempty"`
 	CapDrop            []string                 `json:"cap_drop,omitempty"`
-	HostDeviceList     []spec.LinuxDevice       `json:"host_device_list,omitempty"`
+	HostDeviceList     []specgen.LinuxDevice    `json:"host_device_list,omitempty"`
 	ImageVolumes       []*specgen.ImageVolume   `json:"image_volumes,omitempty"`
 	InfraResources     *spec.LinuxResources     `json:"resource_limits,omitempty"`
 	Mounts             []spec.Mount             `json:"mounts,omitempty"`

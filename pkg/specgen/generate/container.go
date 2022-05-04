@@ -50,7 +50,7 @@ func getImageFromSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGen
 	return image, resolvedName, inspectData, err
 }
 
-// Fill any missing parts of the spec generator (e.g. from the image).
+// CompleteSpec fills any missing parts of the spec generator (e.g. from the image).
 // Returns a set of warnings or any fatal error that occurred.
 func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerator) ([]string, error) {
 	// Only add image configuration if we have an image

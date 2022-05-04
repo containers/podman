@@ -684,8 +684,20 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 		s.ImageVolumes = imageVolumes
 	}
 
-	for _, dev := range c.Devices {
-		s.Devices = append(s.Devices, specs.LinuxDevice{Path: dev})
+	for _, device := range c.Devices {
+		d := specgen.LinuxDevice{}
+		tokens := strings.SplitN(device, ":", 3)
+		switch len(tokens) {
+		case 3:
+			d.CgroupPermissions = tokens[2]
+			fallthrough
+		case 2:
+			d.PathInContainer = tokens[1]
+			fallthrough
+		case 1:
+			d.PathOnHost = tokens[0]
+		}
+		s.Devices = append(s.Devices, d)
 	}
 
 	for _, rule := range c.DeviceCgroupRule {

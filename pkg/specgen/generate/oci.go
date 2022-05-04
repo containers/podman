@@ -336,7 +336,7 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 		g.AddLinuxResourcesDevice(false, "", nil, nil, "rwm")
 	}
 
-	var userDevices []spec.LinuxDevice
+	var userDevices []specgen.LinuxDevice
 	if s.Privileged {
 		// If privileged, we need to add all the host devices to the
 		// spec.  We do not add the user provided ones because we are
@@ -358,7 +358,11 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 		}
 		// add default devices specified by caller
 		for _, device := range userDevices {
-			if err = DevicesFromPath(&g, device.Path); err != nil {
+			path := device.Path
+			if len(device.PathOnHost) > 0 {
+				path = device.PathOnHost
+			}
+			if err = DevicesFromPath(&g, path); err != nil {
 				return nil, err
 			}
 		}

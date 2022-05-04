@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	cdi "github.com/container-orchestrated-devices/container-device-interface/pkg/cdi"
+	"github.com/container-orchestrated-devices/container-device-interface/pkg/cdi"
 	"github.com/containers/common/libimage"
 	"github.com/containers/podman/v4/libpod"
 	"github.com/containers/podman/v4/libpod/define"
@@ -228,7 +228,7 @@ func ExecuteCreate(ctx context.Context, rt *libpod.Runtime, runtimeSpec *spec.Sp
 // The CDI devices are added to the list of CtrCreateOptions.
 // Note that this may modify the device list associated with the spec, which should then only contain non-CDI devices.
 func ExtractCDIDevices(s *specgen.SpecGenerator) []libpod.CtrCreateOption {
-	devs := make([]spec.LinuxDevice, 0, len(s.Devices))
+	devs := make([]specgen.LinuxDevice, 0, len(s.Devices))
 	var cdiDevs []string
 	var options []libpod.CtrCreateOption
 

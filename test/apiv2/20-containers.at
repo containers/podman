@@ -482,5 +482,25 @@ for endpoint in containers/create libpod/containers/create; do
   t DELETE containers/$cid 204
 done
 
+payload='{"Devices":[{"PathOnHost":"/dev/null","PathInContainer":"/dev/bar","CgroupPermissions":"rwm"}]}'
+t POST containers/create Image="$IMAGE" HostConfig="$payload" 201 .Id~[0-9a-f]\\{64\\}
+cid=$(jq -r '.Id' <<<"$output")
+
+t GET "containers/$cid/json" 200
+device=$(jq -r '.HostConfig.Device[0]' <<<"$output")
+echo "$device"
+
+t DELETE containers/$cid?v=true 204
+
+payload='{"Devices":[{"PathOnHost":"/dev/null","PathInContainer":"/dev/bar","CgroupPermissions":"rwm"}]}'
+t POST libpod/containers/create Image="$IMAGE" HostConfig="$payload" 201 .Id~[0-9a-f]\\{64\\}
+cid=$(jq -r '.Id' <<<"$output")
+
+t GET "libpod/containers/$cid/json" 200
+device=$(jq -r '.HostConfig.Device[0]' <<<"$output")
+echo "$device"
+
+t DELETE "libpod/containers/$cid?v=true" 200 .[0].Id="$cid"
+
 stop_service
 start_service

@@ -13,7 +13,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-//  LogConfig describes the logging characteristics for a container
+// LogConfig describes the logging characteristics for a container
 type LogConfig struct {
 	// LogDriver is the container's log driver.
 	// Optional.
@@ -210,6 +210,21 @@ type ContainerBasicConfig struct {
 	PasswdEntry string `json:"passwd_entry,omitempty"`
 }
 
+// DeviceMapping represents the device mapping between the host and the container.
+type DeviceMapping struct {
+	// PathOnHost is the device's filesystem path on the Host. Overrides any provided fields with device details from Host.
+	PathOnHost string `json:",omitempty"`
+	// PathInContainer is the filesystem path in the Container when created. Overrides the Path field when provided.
+	PathInContainer string `json:",omitempty"`
+	// CgroupPermissions are the requested permissions in the Container for the device. Overrides the FileMode field.
+	CgroupPermissions string `json:",omitempty"`
+}
+
+type LinuxDevice struct {
+	spec.LinuxDevice
+	DeviceMapping
+}
+
 // ContainerStorageConfig contains information on the storage configuration of a
 // container.
 type ContainerStorageConfig struct {
@@ -265,14 +280,14 @@ type ContainerStorageConfig struct {
 	ImageVolumes []*ImageVolume `json:"image_volumes,omitempty"`
 	// Devices are devices that will be added to the container.
 	// Optional.
-	Devices []spec.LinuxDevice `json:"devices,omitempty"`
+	Devices []LinuxDevice `json:"devices,omitempty"`
 	// DeviceCgroupRule are device cgroup rules that allow containers
 	// to use additional types of devices.
 	DeviceCgroupRule []spec.LinuxDeviceCgroup `json:"device_cgroup_rule,omitempty"`
 	// DevicesFrom is a way to ensure your container inherits device specific information from another container
 	DevicesFrom []string `json:"devices_from,omitempty"`
 	// HostDeviceList is used to recreate the mounted device on inherited containers
-	HostDeviceList []spec.LinuxDevice `json:"host_device_list,omitempty"`
+	HostDeviceList []LinuxDevice `json:"host_device_list,omitempty"`
 	// IpcNS is the container's IPC namespace.
 	// Default is private.
 	// Conflicts with ShmSize if not set to private.
