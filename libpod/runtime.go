@@ -1158,7 +1158,7 @@ func (r *Runtime) getVolumePlugin(name string) (*plugin.VolumePlugin, error) {
 	return plugin.GetVolumePlugin(name, pluginPath)
 }
 
-// GetSecretsStoreageDir returns the directory that the secrets manager should take
+// GetSecretsStorageDir returns the directory that the secrets manager should take
 func (r *Runtime) GetSecretsStorageDir() string {
 	return filepath.Join(r.store.GraphRoot(), "secrets")
 }
@@ -1206,7 +1206,17 @@ func (r *Runtime) Network() nettypes.ContainerNetwork {
 	return r.network
 }
 
-// Network returns the network interface which is used by the runtime
+// GetDefaultNetworkName returns the network interface which is used by the runtime
 func (r *Runtime) GetDefaultNetworkName() string {
 	return r.config.Network.DefaultNetwork
+}
+
+// RemoteURI returns the API server URI
+func (r *Runtime) RemoteURI() string {
+	return r.config.Engine.RemoteURI
+}
+
+// SetRemoteURI records the API server URI
+func (r *Runtime) SetRemoteURI(uri string) {
+	r.config.Engine.RemoteURI = uri
 }
