@@ -23,13 +23,19 @@ func TestMain(m *testing.M) {
 
 const (
 	defaultStream string = "podman-testing"
-	tmpDir        string = "/var/tmp"
 )
 
 var (
+	tmpDir         = "/var/tmp"
 	fqImageName    string
 	suiteImageName string
 )
+
+func init() {
+	if value, ok := os.LookupEnv("TMPDIR"); ok {
+		tmpDir = value
+	}
+}
 
 // TestLibpod ginkgo master function
 func TestMachine(t *testing.T) {
@@ -70,7 +76,8 @@ var _ = SynchronizedAfterSuite(func() {},
 	})
 
 func setup() (string, *machineTestBuilder) {
-	homeDir, err := ioutil.TempDir("/var/tmp", "podman_test")
+	// Set TMPDIR if this needs a new directory
+	homeDir, err := ioutil.TempDir("", "podman_test")
 	if err != nil {
 		Fail(fmt.Sprintf("failed to create home directory: %q", err))
 	}
