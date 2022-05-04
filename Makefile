@@ -232,7 +232,7 @@ endif
 .PHONY: .gitvalidation
 .gitvalidation: .gopathok
 	@echo "Validating vs commit '$(call err_if_empty,EPOCH_TEST_COMMIT)'"
-	GIT_CHECK_EXCLUDE="./vendor:docs/make.bat:test/buildah-bud/buildah-tests.diff" ./test/tools/build/git-validation -run DCO,short-subject,dangling-whitespace -range $(EPOCH_TEST_COMMIT)..$(HEAD)
+	GIT_CHECK_EXCLUDE="./vendor:./test/tools/vendor:docs/make.bat:test/buildah-bud/buildah-tests.diff" ./test/tools/build/git-validation -run DCO,short-subject,dangling-whitespace -range $(EPOCH_TEST_COMMIT)..$(HEAD)
 
 .PHONY: lint
 lint: golangci-lint
@@ -254,6 +254,7 @@ gofmt: ## Verify the source code gofmt
 			-name '.golangci.yml' -o \
 			-name 'Makefile' -o \
 			-path './vendor/*' -prune -o \
+			-path './test/tools/vendor/*' -prune -o \
 			-path './contrib/*' -prune \
 		\) -exec gofmt -d -e -s -w {} \+
 	git diff --exit-code

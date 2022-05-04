@@ -20,4 +20,3 @@ go-md2man 1 "January 2015" go-md2man "User Manual"
 
 # HISTORY
   January 2015, Originally compiled by Brian Goff( cpuguy83@gmail.com )
-

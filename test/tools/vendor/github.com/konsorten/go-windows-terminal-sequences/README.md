@@ -9,7 +9,7 @@ See [Console Virtual Terminal Sequences](https://docs.microsoft.com/en-us/window
 ```go
 import (
 	"syscall"
-	
+
 	sequences "github.com/konsorten/go-windows-terminal-sequences"
 )
 

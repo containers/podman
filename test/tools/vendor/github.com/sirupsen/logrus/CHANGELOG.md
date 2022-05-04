@@ -1,7 +1,7 @@
 # 1.4.1
 This new release introduces:
   * Enhance TextFormatter to not print caller information when they are empty (#944)
-  * Remove dependency on golang.org/x/crypto (#932, #943) 
+  * Remove dependency on golang.org/x/crypto (#932, #943)
 
 Fixes:
   * Fix Entry.WithContext method to return a copy of the initial entry (#941)
