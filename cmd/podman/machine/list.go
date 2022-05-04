@@ -4,7 +4,6 @@
 package machine
 
 import (
-	"encoding/json"
 	"os"
 	"sort"
 	"strconv"

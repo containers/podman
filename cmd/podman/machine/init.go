@@ -9,6 +9,7 @@ import (
 
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/podman/v4/cmd/podman/registry"
+	"github.com/containers/podman/v4/libpod/events"
 	"github.com/containers/podman/v4/pkg/machine"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -145,11 +146,14 @@ func initMachine(cmd *cobra.Command, args []string) error {
 		// Finished = *,     err != nil  -  Exit with an error message
 		return err
 	}
+	newMachineEvent(events.Init, events.Event{Name: initOpts.Name})
 	fmt.Println("Machine init complete")
+
 	if now {
 		err = vm.Start(initOpts.Name, machine.StartOptions{})
 		if err == nil {
 			fmt.Printf("Machine %q started successfully\n", initOpts.Name)
+			newMachineEvent(events.Start, events.Event{Name: initOpts.Name})
 		}
 	} else {
 		extra := ""

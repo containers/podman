@@ -18,6 +18,7 @@ import (
 	_ "github.com/containers/podman/v4/cmd/podman/secrets"
 	_ "github.com/containers/podman/v4/cmd/podman/system"
 	_ "github.com/containers/podman/v4/cmd/podman/system/connection"
+	"github.com/containers/podman/v4/cmd/podman/validate"
 	_ "github.com/containers/podman/v4/cmd/podman/volumes"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/rootless"
@@ -64,8 +65,8 @@ func parseCommands() *cobra.Command {
 				c.Command.Hidden = true
 
 				// overwrite persistent pre/post function to skip setup
-				c.Command.PersistentPostRunE = noop
-				c.Command.PersistentPreRunE = noop
+				c.Command.PersistentPostRunE = validate.NoOp
+				c.Command.PersistentPreRunE = validate.NoOp
 				addCommand(c)
 				continue
 			}
@@ -119,8 +120,4 @@ func addCommand(c registry.CliCommand) {
 	c.Command.SetHelpTemplate(helpTemplate)
 	c.Command.SetUsageTemplate(usageTemplate)
 	c.Command.DisableFlagsInUseLine = true
-}
-
-func noop(cmd *cobra.Command, args []string) error {
-	return nil
 }
