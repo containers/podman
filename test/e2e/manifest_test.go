@@ -273,7 +273,10 @@ var _ = Describe("Podman manifest", func() {
 	})
 
 	It("authenticated push", func() {
-		registry, err := podmanRegistry.Start()
+		registryOptions := &podmanRegistry.Options{
+			Image: "docker-archive:" + imageTarPath(registry),
+		}
+		registry, err := podmanRegistry.StartWithOptions(registryOptions)
 		Expect(err).To(BeNil())
 
 		session := podmanTest.Podman([]string{"manifest", "create", "foo"})
