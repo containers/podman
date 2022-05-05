@@ -175,13 +175,15 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 			return nil, nil, nil, errors.New("the given container could not be retrieved")
 		}
 		conf := c.Config()
-		out, err := json.Marshal(conf.Spec.Linux)
-		if err != nil {
-			return nil, nil, nil, err
-		}
-		err = json.Unmarshal(out, runtimeSpec.Linux)
-		if err != nil {
-			return nil, nil, nil, err
+		if conf != nil && conf.Spec != nil && conf.Spec.Linux != nil {
+			out, err := json.Marshal(conf.Spec.Linux)
+			if err != nil {
+				return nil, nil, nil, err
+			}
+			err = json.Unmarshal(out, runtimeSpec.Linux)
+			if err != nil {
+				return nil, nil, nil, err
+			}
 		}
 		if s.ResourceLimits != nil {
 			switch {

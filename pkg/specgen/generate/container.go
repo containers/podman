@@ -501,6 +501,8 @@ func ConfigToSpec(rt *libpod.Runtime, specg *specgen.SpecGenerator, contaierID s
 	_, mounts := c.SortUserVolumes(c.Spec())
 	specg.Mounts = mounts
 	specg.HostDeviceList = conf.DeviceHostSrc
+	specg.Networks = conf.Networks
+
 	mapSecurityConfig(conf, specg)
 
 	if c.IsInfra() { // if we are creating this spec for a pod's infra ctr, map the compatible options
