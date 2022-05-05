@@ -2,7 +2,7 @@
 
 ## 4.1.0
 ### Features
-- Podman now supports Docker Compose v2.2 and higher ([#11822](https://github.com/containers/podman/issues/11822)).
+- Podman now supports Docker Compose v2.2 and higher ([#11822](https://github.com/containers/podman/issues/11822)). Please note that it may be necessary to disable the use of Buildkit by setting the environment variable `DOCKER_BUILDKIT=0`.
 - A new container command has been added, `podman container clone`. This command makes a copy of an existing container, with the ability to change some settings (e.g. resource limits) while doing so.
 - A new machine command has been added, `podman machine inspect`. This command provides details on the configuration of machine VMs.
 - The `podman machine set` command can now change the CPUs, memory, and disk space available to machines after they were initially created, using the new `--cpus`, `--disk-size`, and `--memory` options ([#13633](https://github.com/containers/podman/issues/13633)).
@@ -52,12 +52,14 @@
 - Fixed a bug where containers created by the `podman play kube` command did not record the raw image name used to create containers.
 - Fixed a bug where VMs created by `podman machine` could not start containers which forwarded ports when run on a host with a proxy configured ([#13628](https://github.com/containers/podman/issues/13628)).
 - Fixed a bug where VMs created by the `podman machine` command could not be connected to when the username of the current user was sufficiently long ([#12751](https://github.com/containers/podman/issues/12751)).
+- Fixed a bug where the `podman system reset` command on Linux did not fully remove virtual machines created by `podman machine`.
 - Fixed a bug where the `podman machine rm` command would error when removing a VM that was never started ([#13834](https://github.com/containers/podman/issues/13834)).
 - Fixed a bug where the remote Podman client's `podman manifest push` command could not push to registries that required authentication ([#13629](https://github.com/containers/podman/issues/13629)).
 - Fixed a bug where containers joining a pod with volumes did not have the pod's volumes added ([#13548](https://github.com/containers/podman/issues/13548)).
 - Fixed a bug where the `podman version --format` command could not return the OS of the server ([#13690](https://github.com/containers/podman/issues/13690)).
 - Fixed a bug where the `podman play kube` command would error when a volume specified by a `configMap` already existed ([#13715](https://github.com/containers/podman/issues/13715)).
 - Fixed a bug where the `podman play kube` command did not respect the `hostNetwork` setting in Pod YAML ([#14015](https://github.com/containers/podman/issues/14015)).
+- Fixed a bug where the `podman play kube` command would, when the `--log-driver` flag was not specified, ignore Podman's default log driver ([#13781](https://github.com/containers/podman/issues/13781)).
 - Fixed a bug where the `podman generate kube` command could generate YAML with too-long labels ([#13962](https://github.com/containers/podman/issues/13962)).
 - Fixed a bug where the `podman logs --tail=1` command would fail when the log driver was `journald` and the container was restarted ([#13098](https://github.com/containers/podman/issues/13098)).
 - Fixed a bug where containers created from images with a healthcheck that did not specify an interval would never run their healthchecks ([#13912](https://github.com/containers/podman/issues/13912)).
@@ -65,6 +67,7 @@
 - Fixed a bug where the `--tls-verify option to the `remote Podman client's `podman build` command was nonfunctional.
 - Fixed a bug where the `podman pod inspect` command incorrectly reported whether the pod used the host's network ([#14028](https://github.com/containers/podman/issues/14028)).
 - Fixed a bug where Podman would, when run on WSL2, ports specified without an IP address (e.g. `-p 8080:8080`) would be bound to IPv6 addresses ([#12292](https://github.com/containers/podman/issues/12292)).
+- Fixed a bug where the remote Podman client's  `podman info` could report an incorrect path to the socket used to access the Podman service ([#12023](https://github.com/containers/podman/issues/12023)).
 
 ### API
 - Containers created via the Libpod Create API that set a memory limit, but not a swap limit, will automatically have a swap limit set ([#13145](https://github.com/containers/podman/issues/13145)).
@@ -77,6 +80,10 @@
 ### Misc
 - A number of dependencies have been pruned from the project, resulting in a significant reduction in the size of the Podman binary.
 - Using `podman play kube` on a YAML that only includes `configMap` objects (and no pods or deployments) now prints a much clearer error message.
+- Updated Buildah to v1.26.1
+- Updated the containers/storage library to v1.40.2
+- Updated the containers/image library to v5.21.1
+- Updated the containers/common library to v0.48.0
 
 ## 4.0.3
 ### Security
