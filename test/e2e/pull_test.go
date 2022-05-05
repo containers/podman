@@ -5,7 +5,6 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"strings"
 
 	. "github.com/containers/podman/v4/test/utils"
 	. "github.com/onsi/ginkgo"
@@ -59,10 +58,16 @@ var _ = Describe("Podman pull", func() {
 		Expect(session).To(ExitWithError())
 	})
 
-	It("podman pull with tag", func() {
-		session := podmanTest.Podman([]string{"pull", "quay.io/libpod/testdigest_v2s2:20200210"})
+	It("podman pull with tag --quiet", func() {
+		session := podmanTest.Podman([]string{"pull", "-q", "quay.io/libpod/testdigest_v2s2:20200210"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
+		quietOutput := session.OutputToString()
+
+		session = podmanTest.Podman([]string{"inspect", "testdigest_v2s2:20200210", "--format", "{{.ID}}"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).To(Equal(quietOutput))
 
 		session = podmanTest.Podman([]string{"rmi", "testdigest_v2s2:20200210"})
 		session.WaitWithDefaultTimeout()
@@ -92,25 +97,6 @@ var _ = Describe("Podman pull", func() {
 		session = podmanTest.Podman([]string{"rmi", "testdigest_v2s2@sha256:755f4d90b3716e2bf57060d249e2cd61c9ac089b1233465c5c2cb2d7ee550fdb"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-	})
-
-	It("podman pull check quiet", func() {
-		err := podmanTest.RestoreArtifact(ALPINE)
-		Expect(err).ToNot(HaveOccurred())
-		setup := podmanTest.Podman([]string{"images", ALPINE, "-q", "--no-trunc"})
-		setup.WaitWithDefaultTimeout()
-		Expect(setup).Should(Exit(0))
-		shortImageID := strings.Split(setup.OutputToString(), ":")[1]
-
-		rmi := podmanTest.Podman([]string{"rmi", ALPINE})
-		rmi.WaitWithDefaultTimeout()
-		Expect(rmi).Should(Exit(0))
-
-		pull := podmanTest.Podman([]string{"pull", "-q", ALPINE})
-		pull.WaitWithDefaultTimeout()
-		Expect(pull).Should(Exit(0))
-
-		Expect(pull.OutputToString()).To(ContainSubstring(shortImageID))
 	})
 
 	It("podman pull check all tags", func() {
