@@ -479,7 +479,7 @@ Windows base images, so using this option is usually unnecessary.
 
 Output destination (format: type=local,dest=path)
 
-The --output (or -o) option extends the default behavior of building a container image by allowing users to export the contents of the image as files on the local filesystem, which can be useful for generating local binaries, code generation, etc.
+The --output (or -o) option extends the default behavior of building a container image by allowing users to export the contents of the image as files on the local filesystem, which can be useful for generating local binaries, code generation, etc. (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
 
 The value for --output is a comma-separated sequence of key=value pairs, defining the output type and options.
 
