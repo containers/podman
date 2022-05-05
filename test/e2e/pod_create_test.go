@@ -1109,7 +1109,36 @@ ENTRYPOINT ["sleep","99999"]
 		podCreate3 := podmanTest.Podman([]string{"pod", "create", "--share", "cgroup"})
 		podCreate3.WaitWithDefaultTimeout()
 		Expect(podCreate3).ShouldNot(Exit(0))
+	})
 
+	It("podman pod create uts host", func() {
+		conffile := filepath.Join(podmanTest.TempDir, "containers.conf")
+		err := ioutil.WriteFile(conffile, []byte("[containers]\nutsns=\"host\"\n"), 0644)
+		Expect(err).ToNot(HaveOccurred())
+
+		os.Setenv("CONTAINERS_CONF", conffile)
+		defer os.Unsetenv("CONTAINERS_CONF")
+		podmanTest.RestartRemoteService()
+		pod := podmanTest.Podman([]string{"pod", "create", "--name", "test", "--infra-name", "test-infra"})
+		pod.WaitWithDefaultTimeout()
+		Expect(pod).Should(Exit(0))
+		Expect(pod.OutputToString()).To(HaveLen(64))
+
+		inspect := podmanTest.Podman([]string{"container", "inspect", "--format", "{{.HostConfig.UTSMode}}", "test-infra"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).Should(Exit(0))
+		Expect(inspect.OutputToString()).To(Equal("host"))
+
+		// FIXME #13763: cannot run container in pod with hostns when rootless, see https://github.com/containers/podman/issues/13763#issuecomment-1087459598
+		if !isRootless() {
+			hostname, err := os.Hostname()
+			Expect(err).ToNot(HaveOccurred(), "failed to get machine hostname")
+
+			run := podmanTest.Podman([]string{"run", "--pod", "test", ALPINE, "hostname"})
+			run.WaitWithDefaultTimeout()
+			Expect(run).Should(Exit(0))
+			Expect(run.OutputToString()).To(Equal(hostname))
+		}
 	})
 
 })

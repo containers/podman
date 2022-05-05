@@ -140,6 +140,10 @@ func MakePod(p *entities.PodSpec, rt *libpod.Runtime) (*libpod.Pod, error) {
 		if err != nil {
 			return nil, err
 		}
+		// default namespaces are only setup in MakeContainer() so we have to check that afterwards
+		if p.PodSpecGen.InfraContainerSpec.Hostname == "" && !p.PodSpecGen.InfraContainerSpec.UtsNS.IsHost() {
+			p.PodSpecGen.InfraContainerSpec.Name = pod.Name()
+		}
 		spec.Pod = pod.ID()
 		opts = append(opts, rt.WithPod(pod))
 		spec.CgroupParent = pod.CgroupParent()

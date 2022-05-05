@@ -133,9 +133,6 @@ func (r *Runtime) NewPod(ctx context.Context, p specgen.PodSpecGenerator, option
 			pod.config.Name = name
 		}
 
-		if p.InfraContainerSpec != nil && p.InfraContainerSpec.Hostname == "" {
-			p.InfraContainerSpec.Hostname = pod.config.Name
-		}
 		if addPodErr = r.state.AddPod(pod); addPodErr == nil {
 			return pod, nil
 		}
