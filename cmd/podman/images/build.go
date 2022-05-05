@@ -190,6 +190,7 @@ func buildFlags(cmd *cobra.Command) {
 		_ = flags.MarkHidden("tls-verify")
 		_ = flags.MarkHidden("compress")
 		_ = flags.MarkHidden("volume")
+		_ = flags.MarkHidden("output")
 	}
 }
 
@@ -199,6 +200,10 @@ func build(cmd *cobra.Command, args []string) error {
 		(cmd.Flags().Changed("squash-all") && cmd.Flags().Changed("layers")) ||
 		(cmd.Flags().Changed("squash-all") && cmd.Flags().Changed("squash")) {
 		return errors.New("cannot specify --squash, --squash-all and --layers options together")
+	}
+
+	if cmd.Flag("output").Changed && registry.IsRemote() {
+		return errors.New("'--output' option is not supported in remote mode")
 	}
 
 	// Extract container files from the CLI (i.e., --file/-f) first.
