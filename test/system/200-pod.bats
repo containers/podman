@@ -408,19 +408,6 @@ EOF
     run_podman pod rm test
 }
 
-# Wait for the pod (1st arg) to transition into the state (2nd arg)
-function _ensure_pod_state() {
-    for i in {0..5}; do
-        run_podman pod inspect $1 --format "{{.State}}"
-        if [[ $output == "$2" ]]; then
-            break
-        fi
-        sleep 0.5
-    done
-
-    is "$output" "$2" "unexpected pod state"
-}
-
 @test "pod exit policies" {
     # Test setting exit policies
     run_podman pod create

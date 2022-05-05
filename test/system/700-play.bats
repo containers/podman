@@ -100,6 +100,61 @@ RELABEL="system_u:object_r:container_file_t:s0"
     run_podman pod rm -t 0 -f test_pod
 }
 
+@test "podman play --service-container" {
+    skip_if_remote "service containers only work locally"
+
+    TESTDIR=$PODMAN_TMPDIR/testdir
+    mkdir -p $TESTDIR
+
+yaml="
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app: test
+  name: test_pod
+spec:
+  containers:
+  - command:
+    - top
+    image: $IMAGE
+    name: test
+    resources: {}
+"
+
+    echo "$yaml" > $PODMAN_TMPDIR/test.yaml
+    run_podman play kube --service-container=true $PODMAN_TMPDIR/test.yaml
+
+    # Make sure that the service container exists and runs.
+    run_podman container inspect "352a88685060-service" --format "{{.State.Running}}"
+    is "$output" "true"
+
+    # Stop the *main* container and make sure that
+    #  1) The pod transitions to Exited
+    #  2) The service container is stopped
+    #  #) The service container is marked as an service container
+    run_podman stop test_pod-test
+    _ensure_pod_state test_pod Exited
+    run_podman container inspect "352a88685060-service" --format "{{.State.Running}}"
+    is "$output" "false"
+    run_podman container inspect "352a88685060-service" --format "{{.IsService}}"
+    is "$output" "true"
+
+    # Restart the pod, make sure the service is running again
+    run_podman pod restart test_pod
+    run_podman container inspect "352a88685060-service" --format "{{.State.Running}}"
+    is "$output" "true"
+
+    # Kill the pod and make sure the service is not running
+    run_podman pod kill test_pod
+    run_podman container inspect "352a88685060-service" --format "{{.State.Running}}"
+    is "$output" "false"
+
+    # Remove the pod and make sure the service is removed along with it
+    run_podman pod rm test_pod
+    run_podman 1 container exists "352a88685060-service"
+}
+
 @test "podman play --network" {
     TESTDIR=$PODMAN_TMPDIR/testdir
     mkdir -p $TESTDIR

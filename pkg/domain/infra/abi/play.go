@@ -28,12 +28,54 @@ import (
 	"github.com/containers/podman/v4/pkg/specgenutil"
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/ghodss/yaml"
+	"github.com/opencontainers/go-digest"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	yamlv2 "gopkg.in/yaml.v2"
 )
 
-func (ic *ContainerEngine) PlayKube(ctx context.Context, body io.Reader, options entities.PlayKubeOptions) (*entities.PlayKubeReport, error) {
+// createServiceContainer creates a container that can later on
+// be associated with the pods of a K8s yaml.  It will be started along with
+// the first pod.
+func (ic *ContainerEngine) createServiceContainer(ctx context.Context, name string) (*libpod.Container, error) {
+	// Similar to infra containers, a service container is using the pause image.
+	image, err := generate.PullOrBuildInfraImage(ic.Libpod, "")
+	if err != nil {
+		return nil, fmt.Errorf("image for service container: %w", err)
+	}
+
+	ctrOpts := entities.ContainerCreateOptions{
+		// Inherited from infra containers
+		ImageVolume:      "bind",
+		IsInfra:          false,
+		MemorySwappiness: -1,
+		// No need to spin up slirp etc.
+		Net: &entities.NetOptions{Network: specgen.Namespace{NSMode: specgen.NoNetwork}},
+	}
+
+	// Create and fill out the runtime spec.
+	s := specgen.NewSpecGenerator(image, false)
+	if err := specgenutil.FillOutSpecGen(s, &ctrOpts, []string{}); err != nil {
+		return nil, fmt.Errorf("completing spec for service container: %w", err)
+	}
+	s.Name = name
+
+	runtimeSpec, spec, opts, err := generate.MakeContainer(ctx, ic.Libpod, s, false, nil)
+	if err != nil {
+		return nil, fmt.Errorf("creating runtime spec for service container: %w", err)
+	}
+	opts = append(opts, libpod.WithIsService())
+
+	// Create a new libpod container based on the spec.
+	ctr, err := ic.Libpod.NewContainer(ctx, runtimeSpec, spec, false, opts...)
+	if err != nil {
+		return nil, fmt.Errorf("creating service container: %w", err)
+	}
+
+	return ctr, nil
+}
+
+func (ic *ContainerEngine) PlayKube(ctx context.Context, body io.Reader, options entities.PlayKubeOptions) (_ *entities.PlayKubeReport, finalErr error) {
 	report := &entities.PlayKubeReport{}
 	validKinds := 0
 
@@ -67,6 +109,30 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, body io.Reader, options
 			return nil, errors.Wrap(err, "unable to read kube YAML")
 		}
 
+		// TODO: create constants for the various "kinds" of yaml files.
+		var serviceContainer *libpod.Container
+		if options.ServiceContainer && (kind == "Pod" || kind == "Deployment") {
+			// The name of the service container is the first 12
+			// characters of the yaml file's hash followed by the
+			// '-service' suffix to guarantee a predictable and
+			// discoverable name.
+			hash := digest.FromBytes(content).Encoded()
+			ctr, err := ic.createServiceContainer(ctx, hash[0:12]+"-service")
+			if err != nil {
+				return nil, err
+			}
+			serviceContainer = ctr
+			// Make sure to remove the container in case something goes wrong below.
+			defer func() {
+				if finalErr == nil {
+					return
+				}
+				if err := ic.Libpod.RemoveContainer(ctx, ctr, true, false, nil); err != nil {
+					logrus.Errorf("Cleaning up service container after failure: %v", err)
+				}
+			}()
+		}
+
 		switch kind {
 		case "Pod":
 			var podYAML v1.Pod
@@ -90,7 +156,7 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, body io.Reader, options
 				podYAML.Annotations[name] = val
 			}
 
-			r, err := ic.playKubePod(ctx, podTemplateSpec.ObjectMeta.Name, &podTemplateSpec, options, &ipIndex, podYAML.Annotations, configMaps)
+			r, err := ic.playKubePod(ctx, podTemplateSpec.ObjectMeta.Name, &podTemplateSpec, options, &ipIndex, podYAML.Annotations, configMaps, serviceContainer)
 			if err != nil {
 				return nil, err
 			}
@@ -104,7 +170,7 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, body io.Reader, options
 				return nil, errors.Wrap(err, "unable to read YAML as Kube Deployment")
 			}
 
-			r, err := ic.playKubeDeployment(ctx, &deploymentYAML, options, &ipIndex, configMaps)
+			r, err := ic.playKubeDeployment(ctx, &deploymentYAML, options, &ipIndex, configMaps, serviceContainer)
 			if err != nil {
 				return nil, err
 			}
@@ -148,7 +214,7 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, body io.Reader, options
 	return report, nil
 }
 
-func (ic *ContainerEngine) playKubeDeployment(ctx context.Context, deploymentYAML *v1apps.Deployment, options entities.PlayKubeOptions, ipIndex *int, configMaps []v1.ConfigMap) (*entities.PlayKubeReport, error) {
+func (ic *ContainerEngine) playKubeDeployment(ctx context.Context, deploymentYAML *v1apps.Deployment, options entities.PlayKubeOptions, ipIndex *int, configMaps []v1.ConfigMap, serviceContainer *libpod.Container) (*entities.PlayKubeReport, error) {
 	var (
 		deploymentName string
 		podSpec        v1.PodTemplateSpec
@@ -170,7 +236,7 @@ func (ic *ContainerEngine) playKubeDeployment(ctx context.Context, deploymentYAM
 	// create "replicas" number of pods
 	for i = 0; i < numReplicas; i++ {
 		podName := fmt.Sprintf("%s-pod-%d", deploymentName, i)
-		podReport, err := ic.playKubePod(ctx, podName, &podSpec, options, ipIndex, deploymentYAML.Annotations, configMaps)
+		podReport, err := ic.playKubePod(ctx, podName, &podSpec, options, ipIndex, deploymentYAML.Annotations, configMaps, serviceContainer)
 		if err != nil {
 			return nil, errors.Wrapf(err, "error encountered while bringing up pod %s", podName)
 		}
@@ -179,7 +245,7 @@ func (ic *ContainerEngine) playKubeDeployment(ctx context.Context, deploymentYAM
 	return &report, nil
 }
 
-func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podYAML *v1.PodTemplateSpec, options entities.PlayKubeOptions, ipIndex *int, annotations map[string]string, configMaps []v1.ConfigMap) (*entities.PlayKubeReport, error) {
+func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podYAML *v1.PodTemplateSpec, options entities.PlayKubeOptions, ipIndex *int, annotations map[string]string, configMaps []v1.ConfigMap, serviceContainer *libpod.Container) (*entities.PlayKubeReport, error) {
 	var (
 		writer      io.Writer
 		playKubePod entities.PlayKubePod
@@ -372,6 +438,10 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 		if err != nil {
 			return nil, err
 		}
+	}
+
+	if serviceContainer != nil {
+		podSpec.PodSpecGen.ServiceContainerID = serviceContainer.ID()
 	}
 
 	// Create the Pod

@@ -54,6 +54,8 @@ type PlayKubeOptions struct {
 	LogOptions []string
 	// Start - don't start the pod if false
 	Start types.OptionalBool
+	// ServiceContainer - creates a service container that is started before and is stopped after all pods.
+	ServiceContainer bool
 	// Userns - define the user namespace to use.
 	Userns string
 }

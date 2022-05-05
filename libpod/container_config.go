@@ -382,6 +382,9 @@ type ContainerMiscConfig struct {
 	// IsInfra is a bool indicating whether this container is an infra container used for
 	// sharing kernel namespaces in a pod
 	IsInfra bool `json:"pause"`
+	// IsService is a bool indicating whether this container is a service container used for
+	// tracking the life cycle of K8s service.
+	IsService bool `json:"isService"`
 	// SdNotifyMode tells libpod what to do with a NOTIFY_SOCKET if passed
 	SdNotifyMode string `json:"sdnotifyMode,omitempty"`
 	// Systemd tells libpod to setup the container in systemd mode, a value of nil denotes false

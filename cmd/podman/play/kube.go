@@ -139,6 +139,15 @@ func init() {
 		flags.StringVar(&kubeOptions.ContextDir, contextDirFlagName, "", "Path to top level of context directory")
 		_ = kubeCmd.RegisterFlagCompletionFunc(contextDirFlagName, completion.AutocompleteDefault)
 
+		// NOTE: The service-container flag is marked as hidden as it
+		// is purely designed for running play-kube in systemd units.
+		// It is not something users should need to know or care about.
+		//
+		// Having a flag rather than an env variable is cleaner.
+		serviceFlagName := "service-container"
+		flags.BoolVar(&kubeOptions.ServiceContainer, serviceFlagName, false, "Starts a service container before all pods")
+		_ = flags.MarkHidden("service-container")
+
 		flags.StringVar(&kubeOptions.SignaturePolicy, "signature-policy", "", "`Pathname` of signature policy file (not usually used)")
 
 		_ = flags.MarkHidden("signature-policy")
