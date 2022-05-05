@@ -94,6 +94,42 @@ var _ = Describe("Podman pull", func() {
 		Expect(session).Should(Exit(0))
 	})
 
+	It("podman pull check quiet", func() {
+		err := podmanTest.RestoreArtifact(ALPINE)
+		Expect(err).ToNot(HaveOccurred())
+		setup := podmanTest.Podman([]string{"images", ALPINE, "-q", "--no-trunc"})
+		setup.WaitWithDefaultTimeout()
+		Expect(setup).Should(Exit(0))
+		shortImageID := strings.Split(setup.OutputToString(), ":")[1]
+
+		rmi := podmanTest.Podman([]string{"rmi", ALPINE})
+		rmi.WaitWithDefaultTimeout()
+		Expect(rmi).Should(Exit(0))
+
+		pull := podmanTest.Podman([]string{"pull", "-q", ALPINE})
+		pull.WaitWithDefaultTimeout()
+		Expect(pull).Should(Exit(0))
+
+		Expect(pull.OutputToString()).To(ContainSubstring(shortImageID))
+	})
+
+	It("podman pull check all tags", func() {
+		session := podmanTest.Podman([]string{"pull", "--all-tags", "k8s.gcr.io/pause"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"images"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(len(session.OutputToStringArray())).To(BeNumerically(">", 4))
+	})
+
+	It("podman pull from docker with nonexistent --authfile", func() {
+		session := podmanTest.Podman([]string{"pull", "--authfile", "/tmp/nonexistent", ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session).To(ExitWithError())
+	})
+
 	It("podman pull by digest (image list)", func() {
 		session := podmanTest.Podman([]string{"pull", "--arch=arm64", ALPINELISTDIGEST})
 		session.WaitWithDefaultTimeout()
@@ -360,42 +396,6 @@ var _ = Describe("Podman pull", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		Expect(session.LineInOutputContainsTag(filepath.Join("localhost", dirpath), "latest")).To(BeTrue())
-	})
-
-	It("podman pull check quiet", func() {
-		err := podmanTest.RestoreArtifact(ALPINE)
-		Expect(err).ToNot(HaveOccurred())
-		setup := podmanTest.Podman([]string{"images", ALPINE, "-q", "--no-trunc"})
-		setup.WaitWithDefaultTimeout()
-		Expect(setup).Should(Exit(0))
-		shortImageID := strings.Split(setup.OutputToString(), ":")[1]
-
-		rmi := podmanTest.Podman([]string{"rmi", ALPINE})
-		rmi.WaitWithDefaultTimeout()
-		Expect(rmi).Should(Exit(0))
-
-		pull := podmanTest.Podman([]string{"pull", "-q", ALPINE})
-		pull.WaitWithDefaultTimeout()
-		Expect(pull).Should(Exit(0))
-
-		Expect(pull.OutputToString()).To(ContainSubstring(shortImageID))
-	})
-
-	It("podman pull check all tags", func() {
-		session := podmanTest.Podman([]string{"pull", "--all-tags", "k8s.gcr.io/pause"})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
-
-		session = podmanTest.Podman([]string{"images"})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
-		Expect(len(session.OutputToStringArray())).To(BeNumerically(">", 4))
-	})
-
-	It("podman pull from docker with nonexistent --authfile", func() {
-		session := podmanTest.Podman([]string{"pull", "--authfile", "/tmp/nonexistent", ALPINE})
-		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError())
 	})
 
 	It("podman pull + inspect from unqualified-search registry", func() {
