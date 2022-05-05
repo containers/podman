@@ -388,6 +388,8 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 	c.MachineEnabled = false
 	c.ChownCopiedFiles = true
 
+	c.PodExitPolicy = defaultPodExitPolicy
+
 	return c, nil
 }
 

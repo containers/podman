@@ -216,6 +216,12 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 	if t := options.Output; len(t) > 0 {
 		params.Set("output", t)
 	}
+	if t := options.OSVersion; len(t) > 0 {
+		params.Set("osversion", t)
+	}
+	for _, t := range options.OSFeatures {
+		params.Set("osfeature", t)
+	}
 	var platform string
 	if len(options.OS) > 0 {
 		platform = options.OS
@@ -301,6 +307,10 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 			return nil, err
 		}
 		params.Set("ulimits", string(ulimitsJSON))
+	}
+
+	for _, env := range options.Envs {
+		params.Add("setenv", env)
 	}
 
 	for _, uenv := range options.UnsetEnvs {

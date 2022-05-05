@@ -7,7 +7,6 @@ package docker
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -112,7 +111,7 @@ func validateContextDirectory(srcPath string, excludes []string) error {
 
 func parseDockerignore(root string) ([]string, error) {
 	var excludes []string
-	ignore, err := ioutil.ReadFile(path.Join(root, ".dockerignore"))
+	ignore, err := os.ReadFile(path.Join(root, ".dockerignore"))
 	if err != nil && !os.IsNotExist(err) {
 		return excludes, fmt.Errorf("error reading .dockerignore: %w", err)
 	}

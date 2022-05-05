@@ -16,7 +16,9 @@ const (
 )
 
 var (
-	relevantAttributes = []string{"security.capability", "security.ima", "user.*"} // the attributes that we preserve - we discard others
+	relevantAttributes    = []string{"security.capability", "security.ima", "user.*"} // the attributes that we preserve - we discard others
+	initialXattrListSize  = 64 * 1024
+	initialXattrValueSize = 64 * 1024
 )
 
 // isRelevantXattr checks if "attribute" matches one of the attribute patterns
@@ -35,7 +37,7 @@ func isRelevantXattr(attribute string) bool {
 // Lgetxattrs returns a map of the relevant extended attributes set on the given file.
 func Lgetxattrs(path string) (map[string]string, error) {
 	maxSize := 64 * 1024 * 1024
-	listSize := 64 * 1024
+	listSize := initialXattrListSize
 	var list []byte
 	for listSize < maxSize {
 		list = make([]byte, listSize)
@@ -61,7 +63,7 @@ func Lgetxattrs(path string) (map[string]string, error) {
 	m := make(map[string]string)
 	for _, attribute := range strings.Split(string(list), string('\000')) {
 		if isRelevantXattr(attribute) {
-			attributeSize := 64 * 1024
+			attributeSize := initialXattrValueSize
 			var attributeValue []byte
 			for attributeSize < maxSize {
 				attributeValue = make([]byte, attributeSize)

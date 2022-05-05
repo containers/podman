@@ -1,7 +1,6 @@
 package graphdriver
 
 import (
-	"fmt"
 	"golang.org/x/sys/unix"
 
 	"github.com/containers/storage/pkg/mount"

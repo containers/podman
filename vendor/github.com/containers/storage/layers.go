@@ -692,11 +692,10 @@ func (r *layerStore) PutAdditionalLayer(id string, parentLayer *Layer, names []s
 	return copyLayer(layer), nil
 }
 
-func (r *layerStore) Put(id string, parentLayer *Layer, names []string, mountLabel string, options map[string]string, moreOptions *LayerOptions, writeable bool, flags map[string]interface{}, diff io.Reader) (layer *Layer, size int64, err error) {
+func (r *layerStore) Put(id string, parentLayer *Layer, names []string, mountLabel string, options map[string]string, moreOptions *LayerOptions, writeable bool, flags map[string]interface{}, diff io.Reader) (*Layer, int64, error) {
 	if !r.IsReadWrite() {
 		return nil, -1, errors.Wrapf(ErrStoreIsReadOnly, "not allowed to create new layers at %q", r.layerspath())
 	}
-	size = -1
 	if err := os.MkdirAll(r.rundir, 0700); err != nil {
 		return nil, -1, err
 	}
@@ -762,6 +761,60 @@ func (r *layerStore) Put(id string, parentLayer *Layer, names []string, mountLab
 	if mountLabel != "" {
 		label.ReserveLabel(mountLabel)
 	}
+
+	// Before actually creating the layer, make a persistent record of it with incompleteFlag,
+	// so that future processes have a chance to delete it.
+	layer := &Layer{
+		ID:                 id,
+		Parent:             parent,
+		Names:              names,
+		MountLabel:         mountLabel,
+		Metadata:           templateMetadata,
+		Created:            time.Now().UTC(),
+		CompressedDigest:   templateCompressedDigest,
+		CompressedSize:     templateCompressedSize,
+		UncompressedDigest: templateUncompressedDigest,
+		UncompressedSize:   templateUncompressedSize,
+		CompressionType:    templateCompressionType,
+		UIDs:               templateUIDs,
+		GIDs:               templateGIDs,
+		Flags:              make(map[string]interface{}),
+		UIDMap:             copyIDMap(moreOptions.UIDMap),
+		GIDMap:             copyIDMap(moreOptions.GIDMap),
+		BigDataNames:       []string{},
+	}
+	r.layers = append(r.layers, layer)
+	r.idindex.Add(id)
+	r.byid[id] = layer
+	for _, name := range names {
+		r.byname[name] = layer
+	}
+	for flag, value := range flags {
+		layer.Flags[flag] = value
+	}
+	layer.Flags[incompleteFlag] = true
+
+	succeeded := false
+	cleanupFailureContext := ""
+	defer func() {
+		if !succeeded {
+			// On any error, try both removing the driver's data as well
+			// as the in-memory layer record.
+			if err2 := r.Delete(layer.ID); err2 != nil {
+				if cleanupFailureContext == "" {
+					cleanupFailureContext = "unknown: cleanupFailureContext not set at the failure site"
+				}
+				logrus.Errorf("While recovering from a failure (%s), error deleting layer %#v: %v", cleanupFailureContext, layer.ID, err2)
+			}
+		}
+	}()
+
+	err := r.Save()
+	if err != nil {
+		cleanupFailureContext = "saving incomplete layer metadata"
+		return nil, -1, err
+	}
+
 	idMappings := idtools.NewIDMappingsFromMaps(moreOptions.UIDMap, moreOptions.GIDMap)
 	opts := drivers.CreateOpts{
 		MountLabel: mountLabel,
@@ -769,132 +822,67 @@ func (r *layerStore) Put(id string, parentLayer *Layer, names []string, mountLab
 		IDMappings: idMappings,
 	}
 	if moreOptions.TemplateLayer != "" {
-		if err = r.driver.CreateFromTemplate(id, moreOptions.TemplateLayer, templateIDMappings, parent, parentMappings, &opts, writeable); err != nil {
+		if err := r.driver.CreateFromTemplate(id, moreOptions.TemplateLayer, templateIDMappings, parent, parentMappings, &opts, writeable); err != nil {
+			cleanupFailureContext = "creating a layer from template"
 			return nil, -1, errors.Wrapf(err, "error creating copy of template layer %q with ID %q", moreOptions.TemplateLayer, id)
 		}
 		oldMappings = templateIDMappings
 	} else {
 		if writeable {
-			if err = r.driver.CreateReadWrite(id, parent, &opts); err != nil {
+			if err := r.driver.CreateReadWrite(id, parent, &opts); err != nil {
+				cleanupFailureContext = "creating a read-write layer"
 				return nil, -1, errors.Wrapf(err, "error creating read-write layer with ID %q", id)
 			}
 		} else {
-			if err = r.driver.Create(id, parent, &opts); err != nil {
+			if err := r.driver.Create(id, parent, &opts); err != nil {
+				cleanupFailureContext = "creating a read-only layer"
 				return nil, -1, errors.Wrapf(err, "error creating layer with ID %q", id)
 			}
 		}
 		oldMappings = parentMappings
 	}
 	if !reflect.DeepEqual(oldMappings.UIDs(), idMappings.UIDs()) || !reflect.DeepEqual(oldMappings.GIDs(), idMappings.GIDs()) {
-		if err = r.driver.UpdateLayerIDMap(id, oldMappings, idMappings, mountLabel); err != nil {
-			// We don't have a record of this layer, but at least
-			// try to clean it up underneath us.
-			if err2 := r.driver.Remove(id); err2 != nil {
-				logrus.Errorf("While recovering from a failure creating in UpdateLayerIDMap, error deleting layer %#v: %v", id, err2)
-			}
+		if err := r.driver.UpdateLayerIDMap(id, oldMappings, idMappings, mountLabel); err != nil {
+			cleanupFailureContext = "in UpdateLayerIDMap"
 			return nil, -1, err
 		}
 	}
 	if len(templateTSdata) > 0 {
 		if err := os.MkdirAll(filepath.Dir(r.tspath(id)), 0o700); err != nil {
-			// We don't have a record of this layer, but at least
-			// try to clean it up underneath us.
-			if err2 := r.driver.Remove(id); err2 != nil {
-				logrus.Errorf("While recovering from a failure creating in UpdateLayerIDMap, error deleting layer %#v: %v", id, err2)
-			}
+			cleanupFailureContext = "creating tar-split parent directory for a copy from template"
 			return nil, -1, err
 		}
-		if err = ioutils.AtomicWriteFile(r.tspath(id), templateTSdata, 0o600); err != nil {
-			// We don't have a record of this layer, but at least
-			// try to clean it up underneath us.
-			if err2 := r.driver.Remove(id); err2 != nil {
-				logrus.Errorf("While recovering from a failure creating in UpdateLayerIDMap, error deleting layer %#v: %v", id, err2)
-			}
+		if err := ioutils.AtomicWriteFile(r.tspath(id), templateTSdata, 0o600); err != nil {
+			cleanupFailureContext = "creating a tar-split copy from template"
 			return nil, -1, err
 		}
 	}
-	if err == nil {
-		layer = &Layer{
-			ID:                 id,
-			Parent:             parent,
-			Names:              names,
-			MountLabel:         mountLabel,
-			Metadata:           templateMetadata,
-			Created:            time.Now().UTC(),
-			CompressedDigest:   templateCompressedDigest,
-			CompressedSize:     templateCompressedSize,
-			UncompressedDigest: templateUncompressedDigest,
-			UncompressedSize:   templateUncompressedSize,
-			CompressionType:    templateCompressionType,
-			UIDs:               templateUIDs,
-			GIDs:               templateGIDs,
-			Flags:              make(map[string]interface{}),
-			UIDMap:             copyIDMap(moreOptions.UIDMap),
-			GIDMap:             copyIDMap(moreOptions.GIDMap),
-			BigDataNames:       []string{},
-		}
-		r.layers = append(r.layers, layer)
-		r.idindex.Add(id)
-		r.byid[id] = layer
-		for _, name := range names {
-			r.byname[name] = layer
-		}
-		for flag, value := range flags {
-			layer.Flags[flag] = value
-		}
-		savedIncompleteLayer := false
-		if diff != nil {
-			layer.Flags[incompleteFlag] = true
-			err = r.Save()
-			if err != nil {
-				// We don't have a record of this layer, but at least
-				// try to clean it up underneath us.
-				if err2 := r.driver.Remove(id); err2 != nil {
-					logrus.Errorf("While recovering from a failure saving incomplete layer metadata, error deleting layer %#v: %v", id, err2)
-				}
-				return nil, -1, err
-			}
-			savedIncompleteLayer = true
-			size, err = r.applyDiffWithOptions(layer.ID, moreOptions, diff)
-			if err != nil {
-				if err2 := r.Delete(layer.ID); err2 != nil {
-					// Either a driver error or an error saving.
-					// We now have a layer that's been marked for
-					// deletion but which we failed to remove.
-					logrus.Errorf("While recovering from a failure applying layer diff, error deleting layer %#v: %v", layer.ID, err2)
-				}
-				return nil, -1, err
-			}
-			delete(layer.Flags, incompleteFlag)
-		} else {
-			// applyDiffWithOptions in the `diff != nil` case handles this bit for us
-			if layer.CompressedDigest != "" {
-				r.bycompressedsum[layer.CompressedDigest] = append(r.bycompressedsum[layer.CompressedDigest], layer.ID)
-			}
-			if layer.UncompressedDigest != "" {
-				r.byuncompressedsum[layer.UncompressedDigest] = append(r.byuncompressedsum[layer.UncompressedDigest], layer.ID)
-			}
-		}
-		err = r.Save()
+
+	var size int64 = -1
+	if diff != nil {
+		size, err = r.applyDiffWithOptions(layer.ID, moreOptions, diff)
 		if err != nil {
-			if savedIncompleteLayer {
-				if err2 := r.Delete(layer.ID); err2 != nil {
-					// Either a driver error or an error saving.
-					// We now have a layer that's been marked for
-					// deletion but which we failed to remove.
-					logrus.Errorf("While recovering from a failure saving finished layer metadata, error deleting layer %#v: %v", layer.ID, err2)
-				}
-			} else {
-				// We don't have a record of this layer, but at least
-				// try to clean it up underneath us.
-				if err2 := r.driver.Remove(id); err2 != nil {
-					logrus.Errorf("While recovering from a failure saving finished layer metadata, error deleting layer %#v in graph driver: %v", id, err2)
-				}
-			}
+			cleanupFailureContext = "applying layer diff"
 			return nil, -1, err
 		}
-		layer = copyLayer(layer)
+	} else {
+		// applyDiffWithOptions in the `diff != nil` case handles this bit for us
+		if layer.CompressedDigest != "" {
+			r.bycompressedsum[layer.CompressedDigest] = append(r.bycompressedsum[layer.CompressedDigest], layer.ID)
+		}
+		if layer.UncompressedDigest != "" {
+			r.byuncompressedsum[layer.UncompressedDigest] = append(r.byuncompressedsum[layer.UncompressedDigest], layer.ID)
+		}
 	}
+	delete(layer.Flags, incompleteFlag)
+	err = r.Save()
+	if err != nil {
+		cleanupFailureContext = "saving finished layer metadata"
+		return nil, -1, err
+	}
+
+	layer = copyLayer(layer)
+	succeeded = true
 	return layer, size, err
 }
 

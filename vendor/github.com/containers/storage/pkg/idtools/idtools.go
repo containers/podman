@@ -3,15 +3,18 @@ package idtools
 import (
 	"bufio"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/user"
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 
 	"github.com/containers/storage/pkg/system"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 // IDMap contains a single entry for user namespace range remapping. An array
@@ -201,6 +204,67 @@ func (i *IDMappings) ToHost(pair IDPair) (IDPair, error) {
 
 	target.GID, err = RawToHost(pair.GID, i.gids)
 	return target, err
+}
+
+var (
+	overflowUIDOnce sync.Once
+	overflowGIDOnce sync.Once
+	overflowUID     int
+	overflowGID     int
+)
+
+// getOverflowUID returns the UID mapped to the overflow user
+func getOverflowUID() int {
+	overflowUIDOnce.Do(func() {
+		// 65534 is the value on older kernels where /proc/sys/kernel/overflowuid is not present
+		overflowUID = 65534
+		if content, err := ioutil.ReadFile("/proc/sys/kernel/overflowuid"); err == nil {
+			if tmp, err := strconv.Atoi(string(content)); err == nil {
+				overflowUID = tmp
+			}
+		}
+	})
+	return overflowUID
+}
+
+// getOverflowUID returns the GID mapped to the overflow user
+func getOverflowGID() int {
+	overflowGIDOnce.Do(func() {
+		// 65534 is the value on older kernels where /proc/sys/kernel/overflowgid is not present
+		overflowGID = 65534
+		if content, err := ioutil.ReadFile("/proc/sys/kernel/overflowgid"); err == nil {
+			if tmp, err := strconv.Atoi(string(content)); err == nil {
+				overflowGID = tmp
+			}
+		}
+	})
+	return overflowGID
+}
+
+// ToHost returns the host UID and GID for the container uid, gid.
+// Remapping is only performed if the ids aren't already the remapped root ids
+// If the mapping is not possible because the target ID is not mapped into
+// the namespace, then the overflow ID is used.
+func (i *IDMappings) ToHostOverflow(pair IDPair) (IDPair, error) {
+	var err error
+	target := i.RootPair()
+
+	if pair.UID != target.UID {
+		target.UID, err = RawToHost(pair.UID, i.uids)
+		if err != nil {
+			target.UID = getOverflowUID()
+			logrus.Debugf("Failed to map UID %v to the target mapping, using the overflow ID %v", pair.UID, target.UID)
+		}
+	}
+
+	if pair.GID != target.GID {
+		target.GID, err = RawToHost(pair.GID, i.gids)
+		if err != nil {
+			target.GID = getOverflowGID()
+			logrus.Debugf("Failed to map GID %v to the target mapping, using the overflow ID %v", pair.GID, target.GID)
+		}
+	}
+	return target, nil
 }
 
 // ToContainer returns the container UID and GID for the host uid and gid

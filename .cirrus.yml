@@ -6,7 +6,7 @@ env:
     #### Global variables used for all tasks
     ####
     # Name of the ultimate destination branch for this CI run, PR or post-merge.
-    DEST_BRANCH: "main"
+    DEST_BRANCH: "v4.1"
     # Netavark branch to use when TEST_ENVIRON=host-netavark
     NETAVARK_BRANCH: "main"
     # Aardvark branch to use
@@ -24,21 +24,16 @@ env:
     # Runner statistics log file path/name
     STATS_LOGFILE_SFX: 'runner_stats.log'
     STATS_LOGFILE: '$GOSRC/${CIRRUS_TASK_NAME}-${STATS_LOGFILE_SFX}'
-    # Netavark/aardvark location/options when TEST_ENVIRON=host-netavark
-    NETAVARK_URL: "https://api.cirrus-ci.com/v1/artifact/github/containers/netavark/success/binary.zip?branch=${NETAVARK_BRANCH}"
-    NETAVARK_DEBUG: 0  # set non-zero to use the debug-mode binary
-    AARDVARK_URL: "https://api.cirrus-ci.com/v1/artifact/github/containers/aardvark-dns/success/binary.zip?branch=${AARDVARK_BRANCH}"
-    AARDVARK_DEBUG: 0  # set non-zero to use the debug-mode binary
 
     ####
     #### Cache-image names to test with (double-quotes around names are critical)
     ####
-    FEDORA_NAME: "fedora-35"
-    PRIOR_FEDORA_NAME: "fedora-34"
+    FEDORA_NAME: "fedora-36"
+    PRIOR_FEDORA_NAME: "fedora-35"
     UBUNTU_NAME: "ubuntu-2110"
 
     # Google-cloud VM Images
-    IMAGE_SUFFIX: "c4831699639992320"
+    IMAGE_SUFFIX: "c4955393725038592"
     FEDORA_CACHE_IMAGE_NAME: "fedora-${IMAGE_SUFFIX}"
     PRIOR_FEDORA_CACHE_IMAGE_NAME: "prior-fedora-${IMAGE_SUFFIX}"
     UBUNTU_CACHE_IMAGE_NAME: "ubuntu-${IMAGE_SUFFIX}"
@@ -53,7 +48,7 @@ env:
     #### N/B: Required ALL of these are set for every single task.
     ####
     TEST_FLAVOR:             # int, sys, ext_svc, validate, automation, etc.
-    TEST_ENVIRON: host       # 'host', 'host-netavark', or 'container'
+    TEST_ENVIRON: host       # 'host', or 'container'
     PODBIN_NAME: podman      # 'podman' or 'remote'
     PRIV_NAME: root          # 'root' or 'rootless'
     DISTRO_NV:               # any {PRIOR_,}{FEDORA,UBUNTU}_NAME value
@@ -553,41 +548,6 @@ rootless_integration_test_task:
     always: *int_logs_artifacts
 
 
-# Run various scenarios using upstream netavark/aardvark-dns binaries
-netavark_task:
-    name: "Netavark $TEST_FLAVOR $PODBIN_NAME $PRIV_NAME"
-    alias: netavark
-    only_if: *not_build
-    skip: *branches_and_tags
-    depends_on:
-        - unit_test
-    gce_instance: *standardvm
-    matrix:
-        - env: &nenv
-            DISTRO_NV: ${FEDORA_NAME}
-            _BUILD_CACHE_HANDLE: ${FEDORA_NAME}-build-${CIRRUS_BUILD_ID}
-            VM_IMAGE_NAME: ${FEDORA_CACHE_IMAGE_NAME}
-            CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
-            TEST_FLAVOR: int
-            TEST_ENVIRON: host-netavark
-        - env:
-            <<: *nenv
-            TEST_FLAVOR: int
-            PRIV_NAME: rootless
-        - env:
-            <<: *nenv
-            TEST_FLAVOR: sys
-        - env:
-            <<: *nenv
-            TEST_FLAVOR: sys
-            PRIV_NAME: rootless
-    clone_script: *noop  # Comes from cache
-    gopath_cache: *ro_gopath_cache
-    setup_script: *setup
-    main_script: *main
-    always: *int_logs_artifacts
-
-
 # Always run subsequent to integration tests.  While parallelism is lost
 # with runtime, debugging system-test failures can be more challenging
 # for some golang developers.  Otherwise the following tasks run across
@@ -841,7 +801,6 @@ success_task:
         - remote_integration_test
         - container_integration_test
         - rootless_integration_test
-        - netavark
         - local_system_test
         - remote_system_test
         - rootless_system_test

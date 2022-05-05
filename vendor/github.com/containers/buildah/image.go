@@ -43,6 +43,15 @@ const (
 	Dockerv2ImageManifest = define.Dockerv2ImageManifest
 )
 
+// ExtractRootfsOptions is consumed by ExtractRootfs() which allows
+// users to preserve nature of various modes like setuid, setgid and xattrs
+// over the extracted file system objects.
+type ExtractRootfsOptions struct {
+	StripSetuidBit bool // strip the setuid bit off of items being extracted.
+	StripSetgidBit bool // strip the setgid bit off of items being extracted.
+	StripXattrs    bool // don't record extended attributes of items being extracted.
+}
+
 type containerImageRef struct {
 	fromImageName         string
 	fromImageID           string
@@ -150,7 +159,10 @@ func computeLayerMIMEType(what string, layerCompression archive.Compression) (om
 }
 
 // Extract the container's whole filesystem as if it were a single layer.
-func (i *containerImageRef) extractRootfs() (io.ReadCloser, chan error, error) {
+// Takes ExtractRootfsOptions as argument which allows caller to configure
+// preserve nature of setuid,setgid,sticky and extended attributes
+// on extracted rootfs.
+func (i *containerImageRef) extractRootfs(opts ExtractRootfsOptions) (io.ReadCloser, chan error, error) {
 	var uidMap, gidMap []idtools.IDMap
 	mountPoint, err := i.store.Mount(i.containerID, i.mountLabel)
 	if err != nil {
@@ -164,8 +176,11 @@ func (i *containerImageRef) extractRootfs() (io.ReadCloser, chan error, error) {
 			uidMap, gidMap = convertRuntimeIDMaps(i.idMappingOptions.UIDMap, i.idMappingOptions.GIDMap)
 		}
 		copierOptions := copier.GetOptions{
-			UIDMap: uidMap,
-			GIDMap: gidMap,
+			UIDMap:         uidMap,
+			GIDMap:         gidMap,
+			StripSetuidBit: opts.StripSetuidBit,
+			StripSetgidBit: opts.StripSetgidBit,
+			StripXattrs:    opts.StripXattrs,
 		}
 		err = copier.Get(mountPoint, mountPoint, copierOptions, []string{"."}, pipeWriter)
 		errChan <- err
@@ -376,7 +391,7 @@ func (i *containerImageRef) NewImageSource(ctx context.Context, sc *types.System
 		var errChan chan error
 		if i.squash {
 			// Extract the root filesystem as a single layer.
-			rc, errChan, err = i.extractRootfs()
+			rc, errChan, err = i.extractRootfs(ExtractRootfsOptions{})
 			if err != nil {
 				return nil, err
 			}
@@ -738,7 +753,7 @@ func (i *containerImageSource) GetBlob(ctx context.Context, blob types.BlobInfo,
 	return ioutils.NewReadCloserWrapper(layerReadCloser, closer), size, nil
 }
 
-func (b *Builder) makeImageRef(options CommitOptions) (types.ImageReference, error) {
+func (b *Builder) makeContainerImageRef(options CommitOptions) (*containerImageRef, error) {
 	var name reference.Named
 	container, err := b.store.Container(b.ContainerID)
 	if err != nil {
@@ -812,4 +827,13 @@ func (b *Builder) makeImageRef(options CommitOptions) (types.ImageReference, err
 		postEmptyLayers:       b.AppendedEmptyLayers,
 	}
 	return ref, nil
+}
+
+// Extract the container's whole filesystem as if it were a single layer from current builder instance
+func (b *Builder) ExtractRootfs(options CommitOptions, opts ExtractRootfsOptions) (io.ReadCloser, chan error, error) {
+	src, err := b.makeContainerImageRef(options)
+	if err != nil {
+		return nil, nil, errors.Wrapf(err, "error creating image reference for container %q to extract its contents", b.ContainerID)
+	}
+	return src.extractRootfs(opts)
 }

@@ -280,6 +280,14 @@ Set custom DNS options to be used during the build.
 
 Set custom DNS search domains to be used during the build.
 
+#### **--env** *env[=value]*
+
+Add a value (e.g. env=*value*) to the built image.  Can be used multiple times.
+If neither `=` nor a `*value*` are specified, but *env* is set in the current
+environment, the value from the current environment will be added to the image.
+To remove an environment variable from the built image, use the `--unsetenv`
+option.
+
 #### **--file**, **-f**=*Containerfile*
 
 Specifies a Containerfile which contains instructions for building the image,
@@ -448,6 +456,43 @@ This option conflicts with **--add-host**.
 Set the OS of the image to be built, and that of the base image to be pulled,
 if the build uses one, instead of using the current operating system of the
 build host.
+
+#### **--os-feature** *feature*
+
+Set the name of a required operating system *feature* for the image which will
+be built.  By default, if the image is not based on *scratch*, the base image's
+required OS feature list is kept, if the base image specified any.  This option
+is typically only meaningful when the image's OS is Windows.
+
+If *feature* has a trailing `-`, then the *feature* is removed from the set of
+required features which will be listed in the image.
+
+#### **--os-version** *version*
+
+Set the exact required operating system *version* for the image which will be
+built.  By default, if the image is not based on *scratch*, the base image's
+required OS version is kept, if the base image specified one.  This option is
+typically only meaningful when the image's OS is Windows, and is typically set in
+Windows base images, so using this option is usually unnecessary.
+
+#### **--output**, **-o**=""
+
+Output destination (format: type=local,dest=path)
+
+The --output (or -o) option extends the default behavior of building a container image by allowing users to export the contents of the image as files on the local filesystem, which can be useful for generating local binaries, code generation, etc. (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
+
+The value for --output is a comma-separated sequence of key=value pairs, defining the output type and options.
+
+Supported _keys_ are:
+- **dest**: Destination path for exported output. Valid value is absolute or relative path, `-` means the standard output.
+- **type**: Defines the type of output to be used. Valid values is documented below.
+
+Valid _type_ values are:
+- **local**: write the resulting build files to a directory on the client-side.
+- **tar**: write the resulting files as a single tarball (.tar).
+
+If no type is specified, the value defaults to **local**.
+Alternatively, instead of a comma-separated sequence, the value of **--output** can be just a destination (in the `**dest** format) (e.g. `--output some-path`, `--output -`) where `--output some-path` is treated as if **type=local** and `--output -` is treated as if **type=tar**.
 
 #### **--pid**=*pid*
 

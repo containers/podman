@@ -74,7 +74,7 @@ PODMAN_SERVER_LOG=$CIRRUS_WORKING_DIR/server.log
 # Defaults when not running under CI
 export CI="${CI:-false}"
 CIRRUS_CI="${CIRRUS_CI:-false}"
-DEST_BRANCH="${DEST_BRANCH:-main}"
+DEST_BRANCH="${DEST_BRANCH:-v4.1}"
 CONTINUOUS_INTEGRATION="${CONTINUOUS_INTEGRATION:-false}"
 CIRRUS_REPO_NAME=${CIRRUS_REPO_NAME:-podman}
 # Cirrus only sets $CIRRUS_BASE_SHA properly for PRs, but $EPOCH_TEST_COMMIT
@@ -97,7 +97,7 @@ EPOCH_TEST_COMMIT="$CIRRUS_BASE_SHA"
 # testing operations on all platforms and versions.  This is necessary
 # to avoid needlessly passing through global/system values across
 # contexts, such as host->container or root->rootless user
-PASSTHROUGH_ENV_RE='(^CI.*)|(^CIRRUS)|(^DISTRO_NV)|(^GOPATH)|(^GOCACHE)|(^GOSRC)|(^SCRIPT_BASE)|(CGROUP_MANAGER)|(OCI_RUNTIME)|(^TEST.*)|(^PODBIN_NAME)|(^PRIV_NAME)|(^ALT_NAME)|(^ROOTLESS_USER)|(SKIP_USERNS)|(.*_NAME)|(.*_FQIN)'
+PASSTHROUGH_ENV_RE='(^CI.*)|(^CIRRUS)|(^DISTRO_NV)|(^GOPATH)|(^GOCACHE)|(^GOSRC)|(^SCRIPT_BASE)|(CGROUP_MANAGER)|(OCI_RUNTIME)|(^TEST.*)|(^PODBIN_NAME)|(^PRIV_NAME)|(^ALT_NAME)|(^ROOTLESS_USER)|(SKIP_USERNS)|(.*_NAME)|(.*_FQIN)|(NETWORK_BACKEND)'
 # Unsafe env. vars for display
 SECRET_ENV_RE='(ACCOUNT)|(GC[EP]..+)|(SSH)|(PASSWORD)|(TOKEN)'
 
@@ -169,10 +169,6 @@ setup_rootless() {
     groupadd -g $rootless_gid $ROOTLESS_USER
     useradd -g $rootless_gid -u $rootless_uid --no-user-group --create-home $ROOTLESS_USER
 
-    # We also set up rootless user for image-scp tests (running as root)
-    if [[ $PRIV_NAME = "rootless" ]]; then
-        chown -R $ROOTLESS_USER:$ROOTLESS_USER "$GOPATH" "$GOSRC"
-    fi
     echo "$ROOTLESS_USER ALL=(root) NOPASSWD: ALL" > /etc/sudoers.d/ci-rootless
 
     mkdir -p "$HOME/.ssh" "/home/$ROOTLESS_USER/.ssh"
@@ -216,20 +212,39 @@ setup_rootless() {
 install_test_configs() {
     msg "Installing ./test/registries.conf system-wide."
     install -v -D -m 644 ./test/registries.conf /etc/containers/
-    if [[ "$TEST_ENVIRON" =~ netavark ]]; then
-        # belt-and-suspenders: any pre-existing CNI config. will spoil
-        # default use tof netavark (when both are installed).
-        rm -rf /etc/cni/net.d/*
-    else
-        echo "Installing cni config, policy and registry config"
-        req_env_vars GOSRC SCRIPT_BASE
-        cd $GOSRC || exit 1
-        install -v -D -m 644 ./cni/87-podman-bridge.conflist /etc/cni/net.d/
-        # This config must always sort last in the list of networks (podman picks first one
-        # as the default).  This config prevents allocation of network address space used
-        # by default in google cloud.  https://cloud.google.com/vpc/docs/vpc#ip-ranges
-        install -v -D -m 644 $SCRIPT_BASE/99-do-not-use-google-subnets.conflist /etc/cni/net.d/
-    fi
+}
+
+use_cni() {
+    msg "Unsetting NETWORK_BACKEND for all subsequent environments."
+    echo "export -n NETWORK_BACKEND" >> /etc/ci_environment
+    echo "unset NETWORK_BACKEND" >> /etc/ci_environment
+    export -n NETWORK_BACKEND
+    unset NETWORK_BACKEND
+    msg "Installing default CNI configuration"
+    cd $GOSRC || exit 1
+    rm -rvf /etc/cni/net.d
+    mkdir -p /etc/cni/net.d
+    install -v -D -m 644 ./cni/87-podman-bridge.conflist \
+        /etc/cni/net.d/
+    # This config must always sort last in the list of networks (podman picks
+    # first one as the default).  This config prevents allocation of network
+    # address space used by default in google cloud.
+    # https://cloud.google.com/vpc/docs/vpc#ip-ranges
+    install -v -D -m 644 $SCRIPT_BASE/99-do-not-use-google-subnets.conflist \
+        /etc/cni/net.d/
+}
+
+use_netavark() {
+    msg "Forcing NETWORK_BACKEND=netavark for all subsequent environments."
+    echo "NETWORK_BACKEND=netavark" >> /etc/ci_environment
+    export NETWORK_BACKEND=netavark  # needed for install_test_configs()
+    msg "Removing any/all CNI configuration"
+    rm -rvf /etc/cni/net.d/*
+
+    # TODO: Remove this when netavark/aardvark-dns development slows down
+    warn "Updating netavark/aardvark-dns to avoid frequent VM image rebuilds"
+    # N/B: This is coming from updates-testing repo in F36
+    lilto dnf update -y netavark aardvark-dns
 }
 
 # Remove all files provided by the distro version of podman.
