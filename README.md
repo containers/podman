@@ -5,7 +5,7 @@
 Podman (the POD MANager) is a tool for managing containers and images, volumes mounted into those containers, and pods made from groups of containers.
 Podman is based on libpod, a library for container lifecycle management that is also contained in this repository. The libpod library provides APIs for managing containers, pods, container images, and volumes.
 
-* [Latest Version: 4.0.3](https://github.com/containers/podman/releases/tag/v4.0.3)
+* [Latest Version: 4.1.0](https://github.com/containers/podman/releases/tag/v4.1.0)
   * Latest Remote client for Windows
   * Latest Remote client for macOS
   * Latest Static Remote client for Linux
