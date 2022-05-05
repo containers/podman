@@ -317,7 +317,7 @@ func newBuilder(ctx context.Context, store storage.Store, options BuilderOptions
 		Capabilities:     copyStringSlice(options.Capabilities),
 		CommonBuildOpts:  options.CommonBuildOpts,
 		TopLayer:         topLayer,
-		Args:             options.Args,
+		Args:             copyStringStringMap(options.Args),
 		Format:           options.Format,
 		TempVolumes:      map[string]bool{},
 		Devices:          options.Devices,

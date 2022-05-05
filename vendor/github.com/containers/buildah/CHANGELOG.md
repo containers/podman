@@ -2,6 +2,75 @@
 
 # Changelog
 
+## v1.26.1 (2022-05-04)
+
+    Make `buildah build --label foo` create an empty "foo" label again
+    Bump to v1.27.0-dev
+
+## v1.26.0 (2022-05-04)
+
+    imagebuildah,build: move deepcopy of args before we spawn goroutine
+    Vendor in containers/storage v1.40.2
+    buildah.BuilderOptions.DefaultEnv is ignored, so mark it as deprecated
+    help output: get more consistent about option usage text
+    Handle OS version and features flags
+    buildah build: --annotation and --label should remove values
+    buildah build: add a --env
+    buildah: deep copy options.Args before performing concurrent build/stage
+    test: inline platform and builtinargs behaviour
+    vendor: bump imagebuilder to master/009dbc6
+    build: automatically set correct TARGETPLATFORM where expected
+    build(deps): bump github.com/fsouza/go-dockerclient
+    Vendor in containers/(common, storage, image)
+    imagebuildah, executor: process arg variables while populating baseMap
+    buildkit: add support for custom build output with --output
+    Cirrus: Update CI VMs to F36
+    fix staticcheck linter warning for deprecated function
+    Fix docs build on FreeBSD
+    build(deps): bump github.com/containernetworking/cni from 1.0.1 to 1.1.0
+    copier.unwrapError(): update for Go 1.16
+    copier.PutOptions: add StripSetuidBit/StripSetgidBit/StripStickyBit
+    copier.Put(): write to read-only directories
+    build(deps): bump github.com/cpuguy83/go-md2man/v2 in /tests/tools
+    Rename $TESTSDIR (the plural one), step 4 of 3
+    Rename $TESTSDIR (the plural one), step 3 of 3
+    Rename $TESTSDIR (the plural one), step 2 of 3
+    Rename $TESTSDIR (the plural one), step 1 of 3
+    build(deps): bump github.com/containerd/containerd from 1.6.2 to 1.6.3
+    Ed's periodic test cleanup
+    using consistent lowercase 'invalid' word in returned err msg
+    Update vendor of containers/(common,storage,image)
+    use etchosts package from c/common
+    run: set actual hostname in /etc/hostname to match docker parity
+    update c/common to latest main
+    Update vendor of containers/(common,storage,image)
+    Stop littering
+    manifest-create: allow creating manifest list from local image
+    Update vendor of storage,common,image
+    Bump golang.org/x/crypto to 7b82a4e
+    Initialize network backend before first pull
+    oci spec: change special mount points for namespaces
+    tests/helpers.bash: assert handle corner cases correctly
+    buildah: actually use containers.conf settings
+    integration tests: learn to start a dummy registry
+    Fix error check to work on Podman
+    buildah build should accept at most one arg
+    tests: reduce concurrency for flaky bud-multiple-platform-no-run
+    vendor in latest containers/common,image,storage
+    manifest-add: allow override arch,variant while adding image
+    Remove a stray `\` from .containerenv
+    Vendor in latest opencontainers/selinux v1.10.1
+    build, commit: allow removing default identity labels
+    Create shorter names for containers based on image IDs
+    test: skip rootless on cgroupv2 in root env
+    fix hang when oci runtime fails
+    Set permissions for GitHub actions
+    copier test: use correct UID/GID in test archives
+    run: set parent-death signals and forward SIGHUP/SIGINT/SIGTERM
+    Bump back to v1.26.0-dev
+    build(deps): bump github.com/opencontainers/runc from 1.1.0 to 1.1.1
+    Included the URL to check the SHA
+
 ## v1.25.1 (2022-03-30)
 
     buildah: create WORKDIR with USER permissions

@@ -10,7 +10,6 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"os/exec"
@@ -272,7 +271,7 @@ func (c *Client) AuthCheck(conf *AuthConfiguration) (AuthStatus, error) {
 		return authStatus, err
 	}
 	defer resp.Body.Close()
-	data, err := ioutil.ReadAll(resp.Body)
+	data, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return authStatus, err
 	}
@@ -318,7 +317,7 @@ func NewAuthConfigurationsFromCredsHelpers(registry string) (*AuthConfiguration,
 
 func getHelperProviderFromDockerCfg(pathsToTry []string, registry string) (string, error) {
 	for _, path := range pathsToTry {
-		content, err := ioutil.ReadFile(path)
+		content, err := os.ReadFile(path)
 		if err != nil {
 			// if we can't read the file keep going
 			continue

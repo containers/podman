@@ -17,7 +17,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"net/http/httputil"
@@ -240,19 +239,19 @@ func NewVersionedTLSClient(endpoint string, cert, key, ca, apiVersionString stri
 	var keyPEMBlock []byte
 	var caPEMCert []byte
 	if _, err := os.Stat(cert); !os.IsNotExist(err) {
-		certPEMBlock, err = ioutil.ReadFile(cert)
+		certPEMBlock, err = os.ReadFile(cert)
 		if err != nil {
 			return nil, err
 		}
 	}
 	if _, err := os.Stat(key); !os.IsNotExist(err) {
-		keyPEMBlock, err = ioutil.ReadFile(key)
+		keyPEMBlock, err = os.ReadFile(key)
 		if err != nil {
 			return nil, err
 		}
 	}
 	if _, err := os.Stat(ca); !os.IsNotExist(err) {
-		caPEMCert, err = ioutil.ReadFile(ca)
+		caPEMCert, err = os.ReadFile(ca)
 		if err != nil {
 			return nil, err
 		}
@@ -565,10 +564,10 @@ func (c *Client) streamURL(method, url string, streamOptions streamOptions) erro
 	protocol := c.endpointURL.Scheme
 	address := c.endpointURL.Path
 	if streamOptions.stdout == nil {
-		streamOptions.stdout = ioutil.Discard
+		streamOptions.stdout = io.Discard
 	}
 	if streamOptions.stderr == nil {
-		streamOptions.stderr = ioutil.Discard
+		streamOptions.stderr = io.Discard
 	}
 
 	if protocol == unixProtocol || protocol == namedPipeProtocol {
@@ -798,10 +797,10 @@ func (c *Client) hijack(method, path string, hijackOptions hijackOptions) (Close
 			// will "hang" until the container terminates, even though you're not reading
 			// stdout/stderr
 			if hijackOptions.stdout == nil {
-				hijackOptions.stdout = ioutil.Discard
+				hijackOptions.stdout = io.Discard
 			}
 			if hijackOptions.stderr == nil {
-				hijackOptions.stderr = ioutil.Discard
+				hijackOptions.stderr = io.Discard
 			}
 
 			go func() {
@@ -1024,7 +1023,7 @@ func newError(resp *http.Response) *Error {
 		Message string `json:"message"`
 	}
 	defer resp.Body.Close()
-	data, err := ioutil.ReadAll(resp.Body)
+	data, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return &Error{Status: resp.StatusCode, Message: fmt.Sprintf("cannot read body, err: %v", err)}
 	}

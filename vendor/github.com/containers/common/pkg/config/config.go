@@ -349,6 +349,9 @@ type EngineConfig struct {
 	// OCIRuntimes are the set of configured OCI runtimes (default is runc).
 	OCIRuntimes map[string][]string `toml:"runtimes,omitempty"`
 
+	// PodExitPolicy determines the behaviour when the last container of a pod exits.
+	PodExitPolicy PodExitPolicy `toml:"pod_exit_policy,omitempty"`
+
 	// PullPolicy determines whether to pull image before creating or running a container
 	// default is "missing"
 	PullPolicy string `toml:"pull_policy,omitempty"`

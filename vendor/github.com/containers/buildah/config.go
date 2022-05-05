@@ -11,6 +11,7 @@ import (
 	"github.com/containerd/containerd/platforms"
 	"github.com/containers/buildah/define"
 	"github.com/containers/buildah/docker"
+	"github.com/containers/buildah/util"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/pkg/compression"
 	"github.com/containers/image/v5/transports"
@@ -200,6 +201,69 @@ func (b *Builder) OS() string {
 func (b *Builder) SetOS(os string) {
 	b.OCIv1.OS = os
 	b.Docker.OS = os
+}
+
+// OSVersion returns a version of the OS on which the container, or a container
+// built using an image built from this container, is intended to be run.
+func (b *Builder) OSVersion() string {
+	return b.OCIv1.OSVersion
+}
+
+// SetOSVersion sets the version of the OS on which the container, or a
+// container built using an image built from this container, is intended to be
+// run.
+func (b *Builder) SetOSVersion(version string) {
+	b.OCIv1.OSVersion = version
+	b.Docker.OSVersion = version
+}
+
+// OSFeatures returns a list of OS features which the container, or a container
+// built using an image built from this container, depends on the OS supplying.
+func (b *Builder) OSFeatures() []string {
+	return copyStringSlice(b.OCIv1.OSFeatures)
+}
+
+// SetOSFeature adds a feature of the OS which the container, or a container
+// built using an image built from this container, depends on the OS supplying.
+func (b *Builder) SetOSFeature(feature string) {
+	if !util.StringInSlice(feature, b.OCIv1.OSFeatures) {
+		b.OCIv1.OSFeatures = append(b.OCIv1.OSFeatures, feature)
+	}
+	if !util.StringInSlice(feature, b.Docker.OSFeatures) {
+		b.Docker.OSFeatures = append(b.Docker.OSFeatures, feature)
+	}
+}
+
+// UnsetOSFeature removes a feature of the OS which the container, or a
+// container built using an image built from this container, depends on the OS
+// supplying.
+func (b *Builder) UnsetOSFeature(feature string) {
+	if util.StringInSlice(feature, b.OCIv1.OSFeatures) {
+		features := make([]string, 0, len(b.OCIv1.OSFeatures))
+		for _, f := range b.OCIv1.OSFeatures {
+			if f != feature {
+				features = append(features, f)
+			}
+		}
+		b.OCIv1.OSFeatures = features
+	}
+	if util.StringInSlice(feature, b.Docker.OSFeatures) {
+		features := make([]string, 0, len(b.Docker.OSFeatures))
+		for _, f := range b.Docker.OSFeatures {
+			if f != feature {
+				features = append(features, f)
+			}
+		}
+		b.Docker.OSFeatures = features
+	}
+}
+
+// ClearOSFeatures clears the list of features of the OS which the container,
+// or a container built using an image built from this container, depends on
+// the OS supplying.
+func (b *Builder) ClearOSFeatures() {
+	b.OCIv1.OSFeatures = []string{}
+	b.Docker.OSFeatures = []string{}
 }
 
 // Architecture returns a name of the architecture on which the container, or a

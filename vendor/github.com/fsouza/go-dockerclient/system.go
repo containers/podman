@@ -9,7 +9,6 @@ import (
 // VolumeUsageData represents usage data from the docker system api
 // More Info Here https://dockr.ly/2PNzQyO
 type VolumeUsageData struct {
-
 	// The number of containers referencing this volume. This field
 	// is set to `-1` if the reference-count is not available.
 	//
