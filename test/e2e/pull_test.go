@@ -53,13 +53,13 @@ var _ = Describe("Podman pull", func() {
 		Expect(session).Should(Exit(0))
 	})
 
-	It("podman pull from docker a not existing image", func() {
-		session := podmanTest.Podman([]string{"pull", "ibetthisdoesntexistthere:foo"})
+	It("podman pull bogus image", func() {
+		session := podmanTest.Podman([]string{"pull", "quay.io/ibetthis/doesntexistthere:foo"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).To(ExitWithError())
 	})
 
-	It("podman pull from docker with tag", func() {
+	It("podman pull with tag", func() {
 		session := podmanTest.Podman([]string{"pull", "quay.io/libpod/testdigest_v2s2:20200210"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
@@ -69,32 +69,12 @@ var _ = Describe("Podman pull", func() {
 		Expect(session).Should(Exit(0))
 	})
 
-	It("podman pull from docker without tag", func() {
+	It("podman pull without tag", func() {
 		session := podmanTest.Podman([]string{"pull", "quay.io/libpod/testdigest_v2s2"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
 		session = podmanTest.Podman([]string{"rmi", "testdigest_v2s2"})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
-	})
-
-	It("podman pull from alternate registry with tag", func() {
-		session := podmanTest.Podman([]string{"pull", cirros})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
-
-		session = podmanTest.Podman([]string{"rmi", cirros})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
-	})
-
-	It("podman pull from alternate registry without tag", func() {
-		session := podmanTest.Podman([]string{"pull", "quay.io/libpod/cirros"})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
-
-		session = podmanTest.Podman([]string{"rmi", "quay.io/libpod/cirros"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 	})
@@ -249,12 +229,6 @@ var _ = Describe("Podman pull", func() {
 		session = podmanTest.Podman([]string{"rmi", ALPINELISTTAG})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-	})
-
-	It("podman pull bogus image", func() {
-		session := podmanTest.Podman([]string{"pull", "umohnani/get-started"})
-		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError())
 	})
 
 	It("podman pull from docker-archive", func() {
