@@ -52,23 +52,15 @@ func TestMachineFile_GetPath(t *testing.T) {
 func TestNewMachineFile(t *testing.T) {
 	empty := ""
 
-	homedir, err := os.MkdirTemp("/tmp", "homedir")
-	if err != nil {
-		panic(err)
-	}
-	defer os.RemoveAll(homedir)
-	longTemp, err := os.MkdirTemp("/tmp", "tmpdir")
-	if err != nil {
-		panic(err)
-	}
-	defer os.RemoveAll(longTemp)
+	homedir := t.TempDir()
+	longTemp := t.TempDir()
 	oldhome := os.Getenv("HOME")
 	os.Setenv("HOME", homedir) //nolint: tenv
 	defer os.Setenv("HOME", oldhome)
 
 	p := "/var/tmp/podman/my.sock"
 	longp := filepath.Join(longTemp, utils.RandomString(100), "my.sock")
-	err = os.MkdirAll(filepath.Dir(longp), 0755)
+	err := os.MkdirAll(filepath.Dir(longp), 0755)
 	if err != nil {
 		panic(err)
 	}

@@ -2,7 +2,6 @@ package file
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -13,11 +12,9 @@ import (
 
 // Test that creating and destroying locks work
 func TestCreateAndDeallocate(t *testing.T) {
-	d, err := ioutil.TempDir("", "filelock")
-	assert.NoError(t, err)
-	defer os.RemoveAll(d)
+	d := t.TempDir()
 
-	_, err = OpenFileLock(filepath.Join(d, "locks"))
+	_, err := OpenFileLock(filepath.Join(d, "locks"))
 	assert.Error(t, err)
 
 	l, err := CreateFileLock(filepath.Join(d, "locks"))
@@ -47,9 +44,7 @@ func TestCreateAndDeallocate(t *testing.T) {
 
 // Test that creating and destroying locks work
 func TestLockAndUnlock(t *testing.T) {
-	d, err := ioutil.TempDir("", "filelock")
-	assert.NoError(t, err)
-	defer os.RemoveAll(d)
+	d := t.TempDir()
 
 	l, err := CreateFileLock(filepath.Join(d, "locks"))
 	assert.NoError(t, err)

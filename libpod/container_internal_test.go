@@ -19,11 +19,7 @@ var hookPath string
 
 func TestPostDeleteHooks(t *testing.T) {
 	ctx := context.Background()
-	dir, err := ioutil.TempDir("", "libpod_test_")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(dir)
+	dir := t.TempDir()
 
 	statePath := filepath.Join(dir, "state")
 	copyPath := filepath.Join(dir, "copy")
@@ -57,7 +53,7 @@ func TestPostDeleteHooks(t *testing.T) {
 			},
 		},
 	}
-	err = c.postDeleteHooks(ctx)
+	err := c.postDeleteHooks(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
