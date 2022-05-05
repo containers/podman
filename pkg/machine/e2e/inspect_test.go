@@ -3,7 +3,9 @@ package e2e
 import (
 	"encoding/json"
 
+	"github.com/containers/podman/v4/pkg/machine"
 	"github.com/containers/podman/v4/pkg/machine/qemu"
+	jsoniter "github.com/json-iterator/go"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -66,5 +68,30 @@ var _ = Describe("podman machine stop", func() {
 		// }
 		// mb.names = []string{}
 
+	})
+
+	It("inspect with go format", func() {
+		name := randomString(12)
+		i := new(initMachine)
+		session, err := mb.setName(name).setCmd(i.withImagePath(mb.imagePath)).run()
+		Expect(err).To(BeNil())
+		Expect(session).To(Exit(0))
+
+		// regular inspect should
+		inspectJson := new(inspectMachine)
+		inspectSession, err := mb.setName(name).setCmd(inspectJson).run()
+		Expect(err).To(BeNil())
+		Expect(inspectSession).To(Exit(0))
+
+		var inspectInfo []machine.InspectInfo
+		err = jsoniter.Unmarshal(inspectSession.Bytes(), &inspectInfo)
+		Expect(err).To(BeNil())
+
+		inspect := new(inspectMachine)
+		inspect = inspect.withFormat("{{.Name}}")
+		inspectSession, err = mb.setName(name).setCmd(inspect).run()
+		Expect(err).To(BeNil())
+		Expect(inspectSession).To(Exit(0))
+		Expect(inspectSession.Bytes()).To(ContainSubstring(name))
 	})
 })
