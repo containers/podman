@@ -36,11 +36,14 @@ type benchmark struct {
 	options newBenchmarkOptions
 }
 
+var benchmarkRegistry *podmanRegistry.Registry
+
 // Allows for customizing the benchnmark in an easy to extend way.
 type newBenchmarkOptions struct {
 	// Sets the benchmark's init function.
 	init func()
-	// Run a local registry for this benchmark.
+	// Run a local registry for this benchmark. Use `getPortUserPass()` in
+	// the benchmark to get the port, user and password.
 	needsRegistry bool
 }
 
@@ -51,6 +54,15 @@ func newBenchmark(name string, main func(), options *newBenchmarkOptions) {
 		bm.options = *options
 	}
 	allBenchmarks = append(allBenchmarks, bm)
+}
+
+// getPortUserPass returns the port, user and password of the currently running
+// registry.
+func getPortUserPass() (string, string, string) {
+	if benchmarkRegistry == nil {
+		return "", "", ""
+	}
+	return benchmarkRegistry.Port, benchmarkRegistry.User, benchmarkRegistry.Password
 }
 
 var _ = Describe("Podman Benchmark Suite", func() {
@@ -75,6 +87,15 @@ var _ = Describe("Podman Benchmark Suite", func() {
 	cleanup := func() {
 		podmanTest.Cleanup()
 		os.RemoveAll(timedir)
+
+		// Stop the local registry.
+		if benchmarkRegistry != nil {
+			if err := benchmarkRegistry.Stop(); err != nil {
+				logrus.Errorf("Error stopping registry: %v", err)
+				os.Exit(1)
+			}
+			benchmarkRegistry = nil
+		}
 	}
 
 	totalMemoryInKb := func() (total uint64) {
@@ -109,22 +130,23 @@ var _ = Describe("Podman Benchmark Suite", func() {
 
 	// All benchmarks are executed here to have *one* table listing all data.
 	Measure("Podman Benchmark Suite", func(b Benchmarker) {
+
+		registryOptions := &podmanRegistry.Options{
+			Image: "docker-archive:" + imageTarPath(registry),
+		}
+
 		for i := range allBenchmarks {
 			setup()
 			bm := allBenchmarks[i]
 
 			// Start a local registry if requested.
-			var registry *podmanRegistry.Registry
 			if bm.options.needsRegistry {
-				reg, err := podmanRegistry.Start()
+				reg, err := podmanRegistry.StartWithOptions(registryOptions)
 				if err != nil {
 					logrus.Errorf("Error starting registry: %v", err)
 					os.Exit(1)
 				}
-				registry = reg
-				os.Setenv(podmanRegistry.UserKey, reg.User)
-				os.Setenv(podmanRegistry.PassKey, reg.Password)
-				os.Setenv(podmanRegistry.PortKey, reg.Port)
+				benchmarkRegistry = reg
 			}
 
 			if bm.options.init != nil {
@@ -138,17 +160,6 @@ var _ = Describe("Podman Benchmark Suite", func() {
 
 			mem := totalMemoryInKb()
 			b.RecordValueWithPrecision("[MEM] "+bm.name, float64(mem), "KB", 1)
-
-			// Stop the local registry.
-			if bm.options.needsRegistry {
-				os.Unsetenv(podmanRegistry.UserKey)
-				os.Unsetenv(podmanRegistry.PassKey)
-				os.Unsetenv(podmanRegistry.PortKey)
-				if err := registry.Stop(); err != nil {
-					logrus.Errorf("Error stopping registry: %v", err)
-					os.Exit(1)
-				}
-			}
 
 			cleanup()
 		}
@@ -166,11 +177,27 @@ var _ = Describe("Podman Benchmark Suite", func() {
 			Expect(session).Should(Exit(0))
 		}, nil)
 
-		newBenchmark("podman pull", func() {
-			session := podmanTest.Podman([]string{"pull", "quay.io/libpod/cirros"})
+		newBenchmark("podman push", func() {
+			port, user, pass := getPortUserPass()
+			session := podmanTest.Podman([]string{"push", "--tls-verify=false", "--creds", user + ":" + pass, UBI_INIT, "localhost:" + port + "/repo/image:tag"})
 			session.WaitWithDefaultTimeout()
 			Expect(session).Should(Exit(0))
-		}, nil)
+		}, &newBenchmarkOptions{needsRegistry: true})
+
+		newBenchmark("podman pull", func() {
+			port, user, pass := getPortUserPass()
+			session := podmanTest.Podman([]string{"pull", "--tls-verify=false", "--creds", user + ":" + pass, "localhost:" + port + "/repo/image:tag"})
+			session.WaitWithDefaultTimeout()
+			Expect(session).Should(Exit(0))
+		}, &newBenchmarkOptions{
+			needsRegistry: true,
+			init: func() {
+				port, user, pass := getPortUserPass()
+				session := podmanTest.Podman([]string{"push", "--tls-verify=false", "--creds", user + ":" + pass, UBI_INIT, "localhost:" + port + "/repo/image:tag"})
+				session.WaitWithDefaultTimeout()
+				Expect(session).Should(Exit(0))
+			},
+		})
 
 		newBenchmark("podman load [docker]", func() {
 			session := podmanTest.Podman([]string{"load", "-i", "./testdata/docker-two-images.tar.xz"})
@@ -197,9 +224,7 @@ var _ = Describe("Podman Benchmark Suite", func() {
 		}, nil)
 
 		newBenchmark("podman login + logout", func() {
-			user := os.Getenv(podmanRegistry.UserKey)
-			pass := os.Getenv(podmanRegistry.PassKey)
-			port := os.Getenv(podmanRegistry.PortKey)
+			port, user, pass := getPortUserPass()
 
 			session := podmanTest.Podman([]string{"login", "-u", user, "-p", pass, "--tls-verify=false", "localhost:" + port})
 			session.WaitWithDefaultTimeout()
