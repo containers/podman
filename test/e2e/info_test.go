@@ -119,33 +119,31 @@ var _ = Describe("Podman Info", func() {
 		Expect(string(out)).To(Equal(expect))
 	})
 
-	It("podman info check RemoteSocket", func() {
+	It("check RemoteSocket ", func() {
 		session := podmanTest.Podman([]string{"info", "--format", "{{.Host.RemoteSocket.Path}}"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(MatchRegexp("/run/.*podman.*sock"))
 
-		if IsRemote() {
-			session = podmanTest.Podman([]string{"info", "--format", "{{.Host.RemoteSocket.Exists}}"})
-			session.WaitWithDefaultTimeout()
-			Expect(session).Should(Exit(0))
-			Expect(session.OutputToString()).To(ContainSubstring("true"))
-		}
-	})
-
-	It("verify ServiceIsRemote", func() {
-		session := podmanTest.Podman([]string{"info", "--format", "{{.Host.ServiceIsRemote}}"})
+		session = podmanTest.Podman([]string{"info", "--format", "{{.Host.ServiceIsRemote}}"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(Exit(0))
-
+		Expect(session).Should(Exit(0))
 		if podmanTest.RemoteTest {
-			Expect(session.OutputToString()).To(ContainSubstring("true"))
+			Expect(session.OutputToString()).To(Equal("true"))
 		} else {
-			Expect(session.OutputToString()).To(ContainSubstring("false"))
+			Expect(session.OutputToString()).To(Equal("false"))
 		}
+
+		session = podmanTest.Podman([]string{"info", "--format", "{{.Host.RemoteSocket.Exists}}"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		if IsRemote() {
+			Expect(session.OutputToString()).To(ContainSubstring("true"))
+		}
+
 	})
 
-	It("Podman info must contain cgroupControllers with ReleventControllers", func() {
+	It("Podman info must contain cgroupControllers with RelevantControllers", func() {
 		SkipIfRootless("Hard to tell which controllers are going to be enabled for rootless")
 		SkipIfRootlessCgroupsV1("Disable cgroups not supported on cgroupv1 for rootless users")
 		session := podmanTest.Podman([]string{"info", "--format", "{{.Host.CgroupControllers}}"})

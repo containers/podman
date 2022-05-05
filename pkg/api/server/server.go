@@ -20,7 +20,6 @@ import (
 	"github.com/containers/podman/v4/pkg/api/server/idle"
 	"github.com/containers/podman/v4/pkg/api/types"
 	"github.com/containers/podman/v4/pkg/domain/entities"
-	"github.com/coreos/go-systemd/v22/activation"
 	"github.com/coreos/go-systemd/v22/daemon"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/schema"
@@ -65,25 +64,7 @@ func NewServerWithSettings(runtime *libpod.Runtime, listener net.Listener, opts 
 }
 
 func newServer(runtime *libpod.Runtime, listener net.Listener, opts entities.ServiceOptions) (*APIServer, error) {
-	// If listener not provided try socket activation protocol
-	if listener == nil {
-		if _, found := os.LookupEnv("LISTEN_PID"); !found {
-			return nil, fmt.Errorf("no service listener provided and socket activation protocol is not active")
-		}
-
-		listeners, err := activation.Listeners()
-		if err != nil {
-			return nil, fmt.Errorf("cannot retrieve file descriptors from systemd: %w", err)
-		}
-		if len(listeners) != 1 {
-			return nil, fmt.Errorf("wrong number of file descriptors for socket activation protocol (%d != 1)", len(listeners))
-		}
-		listener = listeners[0]
-		// note that activation.Listeners() return nil when it cannot listen on the fd (i.e. udp connection)
-		if listener == nil {
-			return nil, fmt.Errorf("unexpected fd received from systemd: cannot listen on it")
-		}
-	}
+	logrus.Infof("API service listening on %q. URI: %q", listener.Addr(), runtime.RemoteURI())
 	if opts.CorsHeaders == "" {
 		logrus.Debug("CORS Headers were not set")
 	} else {
