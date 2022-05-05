@@ -510,6 +510,73 @@ func AuthConfig(creds string) (*types.DockerAuthConfig, error) {
 	}, nil
 }
 
+// GetBuildOutput is responsible for parsing custom build output argument i.e `build --output` flag.
+// Takes `buildOutput` as string and returns BuildOutputOption
+func GetBuildOutput(buildOutput string) (define.BuildOutputOption, error) {
+	if len(buildOutput) == 1 && buildOutput == "-" {
+		// Feature parity with buildkit, output tar to stdout
+		// Read more here: https://docs.docker.com/engine/reference/commandline/build/#custom-build-outputs
+		return define.BuildOutputOption{Path: "",
+			IsDir:    false,
+			IsStdout: true}, nil
+	}
+	if !strings.Contains(buildOutput, ",") {
+		// expect default --output <dirname>
+		return define.BuildOutputOption{Path: buildOutput,
+			IsDir:    true,
+			IsStdout: false}, nil
+	}
+	isDir := true
+	isStdout := false
+	typeSelected := false
+	pathSelected := false
+	path := ""
+	tokens := strings.Split(buildOutput, ",")
+	for _, option := range tokens {
+		arr := strings.SplitN(option, "=", 2)
+		if len(arr) != 2 {
+			return define.BuildOutputOption{}, fmt.Errorf("invalid build output options %q, expected format key=value", buildOutput)
+		}
+		switch arr[0] {
+		case "type":
+			if typeSelected {
+				return define.BuildOutputOption{}, fmt.Errorf("Duplicate %q not supported", arr[0])
+			}
+			typeSelected = true
+			if arr[1] == "local" {
+				isDir = true
+			} else if arr[1] == "tar" {
+				isDir = false
+			} else {
+				return define.BuildOutputOption{}, fmt.Errorf("invalid type %q selected for build output options %q", arr[1], buildOutput)
+			}
+		case "dest":
+			if pathSelected {
+				return define.BuildOutputOption{}, fmt.Errorf("Duplicate %q not supported", arr[0])
+			}
+			pathSelected = true
+			path = arr[1]
+		default:
+			return define.BuildOutputOption{}, fmt.Errorf("Unrecognized key %q in build output option: %q", arr[0], buildOutput)
+		}
+	}
+
+	if !typeSelected || !pathSelected {
+		return define.BuildOutputOption{}, fmt.Errorf("invalid build output option %q, accepted keys are type and dest must be present", buildOutput)
+	}
+
+	if path == "-" {
+		if isDir {
+			return define.BuildOutputOption{}, fmt.Errorf("invalid build output option %q, type=local and dest=- is not supported", buildOutput)
+		}
+		return define.BuildOutputOption{Path: "",
+			IsDir:    false,
+			IsStdout: true}, nil
+	}
+
+	return define.BuildOutputOption{Path: path, IsDir: isDir, IsStdout: isStdout}, nil
+}
+
 // IDMappingOptions parses the build options related to user namespaces and ID mapping.
 func IDMappingOptions(c *cobra.Command, isolation define.Isolation) (usernsOptions define.NamespaceOptions, idmapOptions *define.IDMappingOptions, err error) {
 	return IDMappingOptionsFromFlagSet(c.Flags(), c.PersistentFlags(), c.Flag)

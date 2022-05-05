@@ -134,6 +134,19 @@ errmsg "no such file or directory" \
        "context must be a directory" \
        "bud with specified context should fail if context contains not-existing Dockerfile"
 
+# 2022-04-26 after buildah PR 3926 (where Ed added error-message checks"
+errmsg "no FROM statement found" \
+       "Error: no FROM statement found" \
+       "bud with Dockerfile from invalid URL"
+
+errmsg "no contents in .*" \
+       "Error: context must be a directory: .*" \
+       "bud with specified context should fail if context contains empty Dockerfile"
+
+errmsg "checking authfile: stat /tmp/nonexistent: no such file or directory" \
+       "Error: checking authfile: stat /tmp/nonexistent: no such file or directory" \
+       "bud with Containerfile should fail with nonexistent authfile"
+
 ###############################################################################
 # BEGIN tests that don't make sense under podman due to fundamental differences
 
@@ -187,6 +200,15 @@ skip_if_remote "local keyfile not sent to podman-remote" \
 # See podman #9890 for discussion
 skip_if_remote "--stdin option will not be implemented in podman-remote" \
                "bud test no --stdin"
+
+# https://github.com/containers/buildah/pull/3823
+# If this is possible with podman-remote, it'll take way more Go skills
+# to implement than what Ed can do.
+skip_if_remote "--output option not implemented in podman-remote" \
+               "build with custom build output and output rootfs to directory" \
+               "build with custom build output and output rootfs to tar" \
+               "build with custom build output and output rootfs to tar by pipe" \
+               "build with custom build output must fail for bad input"
 
 ###############################################################################
 # BEGIN tests which are skipped due to actual podman or podman-remote bugs.

@@ -234,7 +234,9 @@ func from(b *Builder, args []string, attributes map[string]bool, flagArgs []stri
 			return fmt.Errorf("Windows does not support FROM scratch")
 		}
 	}
+	defaultArgs := envMapAsSlice(builtinBuildArgs)
 	userArgs := mergeEnv(envMapAsSlice(b.Args), b.Env)
+	userArgs = mergeEnv(defaultArgs, userArgs)
 	for _, a := range flagArgs {
 		arg, err := ProcessWord(a, userArgs)
 		if err != nil {
