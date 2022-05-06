@@ -125,6 +125,19 @@ var _ = Describe("Podman pod create", func() {
 		session = podmanTest.Podman([]string{"run", fedoraMinimal, "curl", "-f", "localhost"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).To(ExitWithError())
+
+		session = podmanTest.Podman([]string{"pod", "create", "--network", "host"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"run", "-dt", "--pod", session.OutputToString(), ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"inspect", "--format", "'{{.NetworkSettings.SandboxKey}}'", session.OutputToString()})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).Should(ContainSubstring("''")) // no network path... host
 	})
 
 	It("podman pod correctly sets up IPCNS", func() {
