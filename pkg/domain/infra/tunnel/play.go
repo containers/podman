@@ -20,7 +20,7 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, body io.Reader, opts en
 	if opts.Annotations != nil {
 		options.WithAnnotations(opts.Annotations)
 	}
-	options.WithNoHosts(opts.NoHosts)
+	options.WithNoHosts(opts.NoHosts).WithUserns(opts.Userns)
 	if s := opts.SkipTLSVerify; s != types.OptionalBoolUndefined {
 		options.WithSkipTLSVerify(s == types.OptionalBoolTrue)
 	}

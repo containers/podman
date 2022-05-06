@@ -98,6 +98,12 @@ func init() {
 	)
 	_ = kubeCmd.RegisterFlagCompletionFunc(logOptFlagName, common.AutocompleteLogOpt)
 
+	usernsFlagName := "userns"
+	flags.StringVar(&kubeOptions.Userns, usernsFlagName, os.Getenv("PODMAN_USERNS"),
+		"User namespace to use",
+	)
+	_ = kubeCmd.RegisterFlagCompletionFunc(usernsFlagName, common.AutocompleteUserNamespace)
+
 	flags.BoolVar(&kubeOptions.NoHosts, "no-hosts", false, "Do not create /etc/hosts within the pod's containers, instead use the version from the image")
 	flags.BoolVarP(&kubeOptions.Quiet, "quiet", "q", false, "Suppress output information when pulling images")
 	flags.BoolVar(&kubeOptions.TLSVerifyCLI, "tls-verify", true, "Require HTTPS and verify certificates when contacting registries")

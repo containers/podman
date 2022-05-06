@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/url"
 	"os"
+	"os/user"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -3633,6 +3634,55 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 		inspect.WaitWithDefaultTimeout()
 		Expect(start).Should(Exit(0))
 		Expect((inspect.InspectContainerToJSON()[0]).HostConfig.LogConfig.Tag).To(Equal("{{.ImageName}}"))
+	})
 
+	// Check that --userns=auto creates a user namespace
+	It("podman play kube --userns=auto", func() {
+		u, err := user.Current()
+		Expect(err).To(BeNil())
+		name := u.Name
+		if name == "root" {
+			name = "containers"
+		}
+		content, err := ioutil.ReadFile("/etc/subuid")
+		if err != nil {
+			Skip("cannot read /etc/subuid")
+		}
+		if !strings.Contains(string(content), name) {
+			Skip("cannot find mappings for the current user")
+		}
+
+		initialUsernsConfig, err := ioutil.ReadFile("/proc/self/uid_map")
+		Expect(err).To(BeNil())
+		if os.Geteuid() != 0 {
+			unshare := podmanTest.Podman([]string{"unshare", "cat", "/proc/self/uid_map"})
+			unshare.WaitWithDefaultTimeout()
+			Expect(unshare).Should(Exit(0))
+			initialUsernsConfig = unshare.Out.Contents()
+		}
+
+		pod := getPod()
+		err = generateKubeYaml("pod", pod, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		usernsInCtr := podmanTest.Podman([]string{"exec", getCtrNameInPod(pod), "cat", "/proc/self/uid_map"})
+		usernsInCtr.WaitWithDefaultTimeout()
+		Expect(usernsInCtr).Should(Exit(0))
+		// the conversion to string is needed for better error messages
+		Expect(string(usernsInCtr.Out.Contents())).To(Equal(string(initialUsernsConfig)))
+
+		// PodmanNoCache is a workaround for https://github.com/containers/storage/issues/1232
+		kube = podmanTest.PodmanNoCache([]string{"play", "kube", "--replace", "--userns=auto", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		usernsInCtr = podmanTest.Podman([]string{"exec", getCtrNameInPod(pod), "cat", "/proc/self/uid_map"})
+		usernsInCtr.WaitWithDefaultTimeout()
+		Expect(usernsInCtr).Should(Exit(0))
+		Expect(string(usernsInCtr.Out.Contents())).To(Not(Equal(string(initialUsernsConfig))))
 	})
 })
