@@ -281,21 +281,29 @@ type ContainerNetworkDescriptions map[string]int
 // Config accessors
 // Unlocked
 
-// Config returns the configuration used to create the container
+// Config returns the configuration used to create the container.
+// Note that the returned config does not include the actual networks.
+// Use ConfigWithNetworks() if you need them.
 func (c *Container) Config() *ContainerConfig {
 	returnConfig := new(ContainerConfig)
 	if err := JSONDeepCopy(c.config, returnConfig); err != nil {
 		return nil
 	}
+	return returnConfig
+}
 
-	if c != nil {
-		networks, err := c.networks()
-		if err != nil {
-			return nil
-		}
-
-		returnConfig.Networks = networks
+// Config returns the configuration used to create the container.
+func (c *Container) ConfigWithNetworks() *ContainerConfig {
+	returnConfig := c.Config()
+	if returnConfig == nil {
+		return nil
 	}
+
+	networks, err := c.networks()
+	if err != nil {
+		return nil
+	}
+	returnConfig.Networks = networks
 
 	return returnConfig
 }
@@ -1269,10 +1277,7 @@ func (c *Container) NetworkMode() string {
 
 // Unlocked accessor for networks
 func (c *Container) networks() (map[string]types.PerNetworkOptions, error) {
-	if c != nil && c.runtime != nil && c.runtime.state != nil { // can fail if c.networks is called from the tests
-		return c.runtime.state.GetNetworks(c)
-	}
-	return nil, nil
+	return c.runtime.state.GetNetworks(c)
 }
 
 // getInterfaceByName returns a formatted interface name for a given
