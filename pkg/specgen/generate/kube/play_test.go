@@ -3,9 +3,7 @@ package kube
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"math"
-	"os"
 	"runtime"
 	"strconv"
 	"testing"
@@ -39,9 +37,7 @@ func createSecrets(t *testing.T, d string) *secrets.SecretsManager {
 }
 
 func TestEnvVarsFrom(t *testing.T) {
-	d, err := ioutil.TempDir("", "secrets")
-	assert.NoError(t, err)
-	defer os.RemoveAll(d)
+	d := t.TempDir()
 	secretsManager := createSecrets(t, d)
 
 	tests := []struct {
@@ -191,9 +187,7 @@ func TestEnvVarsFrom(t *testing.T) {
 }
 
 func TestEnvVarValue(t *testing.T) {
-	d, err := ioutil.TempDir("", "secrets")
-	assert.NoError(t, err)
-	defer os.RemoveAll(d)
+	d := t.TempDir()
 	secretsManager := createSecrets(t, d)
 	stringNumCPUs := strconv.Itoa(runtime.NumCPU())
 

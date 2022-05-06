@@ -15,11 +15,7 @@ import (
 
 func TestMonitorOneDirGood(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
-	dir, err := ioutil.TempDir("", "hooks-test-")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(dir)
+	dir := t.TempDir()
 
 	manager, err := New(ctx, []string{dir}, []string{})
 	if err != nil {
@@ -114,17 +110,8 @@ func TestMonitorOneDirGood(t *testing.T) {
 
 func TestMonitorTwoDirGood(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
-	primaryDir, err := ioutil.TempDir("", "hooks-test-primary-")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(primaryDir)
-
-	fallbackDir, err := ioutil.TempDir("", "hooks-test-fallback-")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(fallbackDir)
+	primaryDir := t.TempDir()
+	fallbackDir := t.TempDir()
 
 	manager, err := New(ctx, []string{fallbackDir, primaryDir}, []string{})
 	if err != nil {

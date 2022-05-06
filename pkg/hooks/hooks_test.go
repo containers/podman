@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
-	"os"
 	"path/filepath"
 	"runtime"
 	"testing"
@@ -20,11 +19,7 @@ var path string
 func TestGoodNew(t *testing.T) {
 	ctx := context.Background()
 
-	dir, err := ioutil.TempDir("", "hooks-test-")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(dir)
+	dir := t.TempDir()
 
 	for i, name := range []string{
 		"01-my-hook.json",
@@ -36,7 +31,7 @@ func TestGoodNew(t *testing.T) {
 		if i == 0 {
 			extraStages = ", \"poststart\", \"poststop\""
 		}
-		err = ioutil.WriteFile(jsonPath, []byte(fmt.Sprintf("{\"version\": \"1.0.0\", \"hook\": {\"path\": \"%s\", \"timeout\": %d}, \"when\": {\"always\": true}, \"stages\": [\"prestart\"%s]}", path, i+1, extraStages)), 0644)
+		err := ioutil.WriteFile(jsonPath, []byte(fmt.Sprintf("{\"version\": \"1.0.0\", \"hook\": {\"path\": \"%s\", \"timeout\": %d}, \"when\": {\"always\": true}, \"stages\": [\"prestart\"%s]}", path, i+1, extraStages)), 0644)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -92,14 +87,10 @@ func TestGoodNew(t *testing.T) {
 func TestBadNew(t *testing.T) {
 	ctx := context.Background()
 
-	dir, err := ioutil.TempDir("", "hooks-test-")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(dir)
+	dir := t.TempDir()
 
 	jsonPath := filepath.Join(dir, "a.json")
-	err = ioutil.WriteFile(jsonPath, []byte("{\"version\": \"-1\"}"), 0644)
+	err := ioutil.WriteFile(jsonPath, []byte("{\"version\": \"-1\"}"), 0644)
 	if err != nil {
 		t.Fatal(err)
 	}

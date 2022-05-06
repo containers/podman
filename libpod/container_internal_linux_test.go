@@ -4,8 +4,6 @@
 package libpod
 
 import (
-	"io/ioutil"
-	"os"
 	"testing"
 
 	spec "github.com/opencontainers/runtime-spec/specs-go"
@@ -13,12 +11,6 @@ import (
 )
 
 func TestGenerateUserPasswdEntry(t *testing.T) {
-	dir, err := ioutil.TempDir("", "libpod_test_")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(dir)
-
 	c := Container{
 		config: &ContainerConfig{
 			Spec: &spec.Spec{},
