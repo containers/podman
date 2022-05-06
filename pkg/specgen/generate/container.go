@@ -3,6 +3,7 @@ package generate
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 	"strings"
 	"time"
@@ -352,7 +353,10 @@ func ConfigToSpec(rt *libpod.Runtime, specg *specgen.SpecGenerator, contaierID s
 	if err != nil {
 		return nil, nil, err
 	}
-	conf := c.Config()
+	conf := c.ConfigWithNetworks()
+	if conf == nil {
+		return nil, nil, fmt.Errorf("failed to get config for container %s", c.ID())
+	}
 
 	tmpSystemd := conf.Systemd
 	tmpMounts := conf.Mounts
