@@ -3538,6 +3538,7 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 	})
 
 	It("podman play kube --log-opt = tag test", func() {
+		SkipIfContainerized("journald does not work inside the container")
 		pod := getPod()
 		err := generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).To(BeNil())
