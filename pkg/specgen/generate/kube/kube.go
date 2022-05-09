@@ -133,6 +133,8 @@ type CtrSpecGenOptions struct {
 	// InitContainerType sets what type the init container is
 	// Note: When playing a kube yaml, the inti container type will be set to "always" only
 	InitContainerType string
+	// PodSecurityContext is the security context specified for the pod
+	PodSecurityContext *v1.PodSecurityContext
 }
 
 func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGenerator, error) {
@@ -188,7 +190,7 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 
 	s.InitContainerType = opts.InitContainerType
 
-	setupSecurityContext(s, opts.Container.SecurityContext)
+	setupSecurityContext(s, opts.Container.SecurityContext, opts.PodSecurityContext)
 	err := setupLivenessProbe(s, opts.Container, opts.RestartPolicy)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to configure livenessProbe")
@@ -531,10 +533,14 @@ func makeHealthCheck(inCmd string, interval int32, retries int32, timeout int32,
 	return &hc, nil
 }
 
-func setupSecurityContext(s *specgen.SpecGenerator, securityContext *v1.SecurityContext) {
+func setupSecurityContext(s *specgen.SpecGenerator, securityContext *v1.SecurityContext, podSecurityContext *v1.PodSecurityContext) {
 	if securityContext == nil {
-		return
+		securityContext = &v1.SecurityContext{}
 	}
+	if podSecurityContext == nil {
+		podSecurityContext = &v1.PodSecurityContext{}
+	}
+
 	if securityContext.ReadOnlyRootFilesystem != nil {
 		s.ReadOnlyFilesystem = *securityContext.ReadOnlyRootFilesystem
 	}
@@ -546,7 +552,11 @@ func setupSecurityContext(s *specgen.SpecGenerator, securityContext *v1.Security
 		s.NoNewPrivileges = !*securityContext.AllowPrivilegeEscalation
 	}
 
-	if seopt := securityContext.SELinuxOptions; seopt != nil {
+	seopt := securityContext.SELinuxOptions
+	if seopt == nil {
+		seopt = podSecurityContext.SELinuxOptions
+	}
+	if seopt != nil {
 		if seopt.User != "" {
 			s.SelinuxOpts = append(s.SelinuxOpts, fmt.Sprintf("user:%s", seopt.User))
 		}
@@ -568,14 +578,26 @@ func setupSecurityContext(s *specgen.SpecGenerator, securityContext *v1.Security
 			s.CapDrop = append(s.CapDrop, string(capability))
 		}
 	}
-	if securityContext.RunAsUser != nil {
-		s.User = fmt.Sprintf("%d", *securityContext.RunAsUser)
+	runAsUser := securityContext.RunAsUser
+	if runAsUser == nil {
+		runAsUser = podSecurityContext.RunAsUser
 	}
-	if securityContext.RunAsGroup != nil {
+	if runAsUser != nil {
+		s.User = fmt.Sprintf("%d", *runAsUser)
+	}
+
+	runAsGroup := securityContext.RunAsGroup
+	if runAsGroup == nil {
+		runAsGroup = podSecurityContext.RunAsGroup
+	}
+	if runAsGroup != nil {
 		if s.User == "" {
 			s.User = "0"
 		}
-		s.User = fmt.Sprintf("%s:%d", s.User, *securityContext.RunAsGroup)
+		s.User = fmt.Sprintf("%s:%d", s.User, *runAsGroup)
+	}
+	for _, group := range podSecurityContext.SupplementalGroups {
+		s.Groups = append(s.Groups, fmt.Sprintf("%d", group))
 	}
 }
 
