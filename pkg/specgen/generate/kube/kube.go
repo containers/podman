@@ -188,7 +188,7 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 
 	s.InitContainerType = opts.InitContainerType
 
-	setupSecurityContext(s, opts.Container)
+	setupSecurityContext(s, opts.Container.SecurityContext)
 	err := setupLivenessProbe(s, opts.Container, opts.RestartPolicy)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to configure livenessProbe")
@@ -531,22 +531,22 @@ func makeHealthCheck(inCmd string, interval int32, retries int32, timeout int32,
 	return &hc, nil
 }
 
-func setupSecurityContext(s *specgen.SpecGenerator, containerYAML v1.Container) {
-	if containerYAML.SecurityContext == nil {
+func setupSecurityContext(s *specgen.SpecGenerator, securityContext *v1.SecurityContext) {
+	if securityContext == nil {
 		return
 	}
-	if containerYAML.SecurityContext.ReadOnlyRootFilesystem != nil {
-		s.ReadOnlyFilesystem = *containerYAML.SecurityContext.ReadOnlyRootFilesystem
+	if securityContext.ReadOnlyRootFilesystem != nil {
+		s.ReadOnlyFilesystem = *securityContext.ReadOnlyRootFilesystem
 	}
-	if containerYAML.SecurityContext.Privileged != nil {
-		s.Privileged = *containerYAML.SecurityContext.Privileged
-	}
-
-	if containerYAML.SecurityContext.AllowPrivilegeEscalation != nil {
-		s.NoNewPrivileges = !*containerYAML.SecurityContext.AllowPrivilegeEscalation
+	if securityContext.Privileged != nil {
+		s.Privileged = *securityContext.Privileged
 	}
 
-	if seopt := containerYAML.SecurityContext.SELinuxOptions; seopt != nil {
+	if securityContext.AllowPrivilegeEscalation != nil {
+		s.NoNewPrivileges = !*securityContext.AllowPrivilegeEscalation
+	}
+
+	if seopt := securityContext.SELinuxOptions; seopt != nil {
 		if seopt.User != "" {
 			s.SelinuxOpts = append(s.SelinuxOpts, fmt.Sprintf("user:%s", seopt.User))
 		}
@@ -560,7 +560,7 @@ func setupSecurityContext(s *specgen.SpecGenerator, containerYAML v1.Container) 
 			s.SelinuxOpts = append(s.SelinuxOpts, fmt.Sprintf("level:%s", seopt.Level))
 		}
 	}
-	if caps := containerYAML.SecurityContext.Capabilities; caps != nil {
+	if caps := securityContext.Capabilities; caps != nil {
 		for _, capability := range caps.Add {
 			s.CapAdd = append(s.CapAdd, string(capability))
 		}
@@ -568,14 +568,14 @@ func setupSecurityContext(s *specgen.SpecGenerator, containerYAML v1.Container) 
 			s.CapDrop = append(s.CapDrop, string(capability))
 		}
 	}
-	if containerYAML.SecurityContext.RunAsUser != nil {
-		s.User = fmt.Sprintf("%d", *containerYAML.SecurityContext.RunAsUser)
+	if securityContext.RunAsUser != nil {
+		s.User = fmt.Sprintf("%d", *securityContext.RunAsUser)
 	}
-	if containerYAML.SecurityContext.RunAsGroup != nil {
+	if securityContext.RunAsGroup != nil {
 		if s.User == "" {
 			s.User = "0"
 		}
-		s.User = fmt.Sprintf("%s:%d", s.User, *containerYAML.SecurityContext.RunAsGroup)
+		s.User = fmt.Sprintf("%s:%d", s.User, *securityContext.RunAsGroup)
 	}
 }
 
