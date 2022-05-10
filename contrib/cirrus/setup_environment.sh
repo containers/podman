@@ -121,6 +121,9 @@ case "$OS_RELEASE_ID" in
         # CNI networking available.  Upgrading from one to the other is
         # not supported at this time.  Support execution of the upgrade
         # tests in F36 and later, by disabling Netavark and enabling CNI.
+        #
+        # OS_RELEASE_VER is defined by automation-library
+        # shellcheck disable=SC2154
         if [[ "$OS_RELEASE_VER" -ge 36 ]] && \
            [[ "$TEST_FLAVOR" != "upgrade_test" ]];
         then
@@ -217,6 +220,7 @@ case "$TEST_FLAVOR" in
     validate)
         dnf install -y $PACKAGE_DOWNLOAD_DIR/python3*.rpm
         # For some reason, this is also needed for validation
+        make install.tools
         make .install.pre-commit
         ;;
     automation) ;;
@@ -226,10 +230,12 @@ case "$TEST_FLAVOR" in
         if [[ "$ALT_NAME" =~ RPM ]]; then
             bigto dnf install -y glibc-minimal-langpack go-rpm-macros rpkg rpm-build shadow-utils-subid-devel
         fi
+        make install.tools
         ;;
     docker-py)
         remove_packaged_podman_files
-        make && make install PREFIX=/usr ETCDIR=/etc
+        make install.tools
+        make install PREFIX=/usr ETCDIR=/etc
 
         msg "Installing previously downloaded/cached packages"
         dnf install -y $PACKAGE_DOWNLOAD_DIR/python3*.rpm
@@ -239,13 +245,17 @@ case "$TEST_FLAVOR" in
         pip install --requirement $GOSRC/test/python/requirements.txt
         ;;
     build) make clean ;;
-    unit) ;;
+    unit)
+        make install.tools
+        ;;
     compose_v2)
+        make install.tools
         dnf -y remove docker-compose
         curl -SL https://github.com/docker/compose/releases/download/v2.2.3/docker-compose-linux-x86_64 -o /usr/local/bin/docker-compose
         chmod +x /usr/local/bin/docker-compose
         ;& # Continue with next item
     apiv2)
+        make install.tools
         msg "Installing previously downloaded/cached packages"
         dnf install -y $PACKAGE_DOWNLOAD_DIR/python3*.rpm
         virtualenv .venv/requests
@@ -254,6 +264,7 @@ case "$TEST_FLAVOR" in
         pip install --requirement $GOSRC/test/apiv2/python/requirements.txt
         ;&  # continue with next item
     compose)
+        make install.tools
         rpm -ivh $PACKAGE_DOWNLOAD_DIR/podman-docker*
         ;&  # continue with next item
     int) ;&
@@ -262,6 +273,7 @@ case "$TEST_FLAVOR" in
     bud) ;&
     bindings) ;&
     endpoint)
+        make install.tools
         # Use existing host bits when testing is to happen inside a container
         # since this script will run again in that environment.
         # shellcheck disable=SC2154
@@ -270,11 +282,11 @@ case "$TEST_FLAVOR" in
                 die "Refusing to config. host-test in container";
             fi
             remove_packaged_podman_files
-            make && make install PREFIX=/usr ETCDIR=/etc
+            make install PREFIX=/usr ETCDIR=/etc
         elif [[ "$TEST_ENVIRON" == "container" ]]; then
             if ((CONTAINER)); then
                 remove_packaged_podman_files
-                make && make install PREFIX=/usr ETCDIR=/etc
+                make install PREFIX=/usr ETCDIR=/etc
             fi
         else
             die "Invalid value for \$TEST_ENVIRON=$TEST_ENVIRON"
@@ -291,7 +303,7 @@ case "$TEST_FLAVOR" in
         # Ref: https://gitlab.com/gitlab-org/gitlab-runner/-/issues/27270#note_499585550
 
         remove_packaged_podman_files
-        make && make install PREFIX=/usr ETCDIR=/etc
+        make install PREFIX=/usr ETCDIR=/etc
 
         msg "Installing docker and containerd"
         # N/B: Tests check/expect `docker info` output, and this `!= podman info`
@@ -324,7 +336,10 @@ case "$TEST_FLAVOR" in
             docker.io/gitlab/gitlab-runner-helper:x86_64-latest-pwsh
         ;;
     swagger) ;&  # use next item
-    consistency) make clean ;;
+    consistency)
+        make clean
+        make install.tools
+        ;;
     release) ;;
     *) die_unknown TEST_FLAVOR
 esac

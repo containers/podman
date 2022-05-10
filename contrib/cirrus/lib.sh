@@ -36,11 +36,6 @@ fi
 # Managed by setup_environment.sh; holds task-specific definitions.
 if [[ -r "/etc/ci_environment" ]]; then source /etc/ci_environment; fi
 
-OS_RELEASE_ID="$(source /etc/os-release; echo $ID)"
-# GCE image-name compatible string representation of distribution _major_ version
-OS_RELEASE_VER="$(source /etc/os-release; echo $VERSION_ID | tr -d '.')"
-# Combined to ease some usage
-OS_REL_VER="${OS_RELEASE_ID}-${OS_RELEASE_VER}"
 # This is normally set from .cirrus.yml but default is necessary when
 # running under hack/get_ci_vm.sh since it cannot infer the value.
 DISTRO_NV="${DISTRO_NV:-$OS_REL_VER}"
@@ -182,30 +177,21 @@ setup_rootless() {
     cat $HOME/.ssh/*.pub /home/$ROOTLESS_USER/.ssh/*.pub >> $HOME/.ssh/authorized_keys
     cat $HOME/.ssh/*.pub /home/$ROOTLESS_USER/.ssh/*.pub >> /home/$ROOTLESS_USER/.ssh/authorized_keys
 
-    msg "Ensure the ssh daemon is up and running within 5 minutes"
-    systemctl start sshd
-    lilto systemctl is-active sshd
-
     msg "Configure ssh file permissions"
     chmod -R 700 "$HOME/.ssh"
     chmod -R 700 "/home/$ROOTLESS_USER/.ssh"
     chown -R $ROOTLESS_USER:$ROOTLESS_USER "/home/$ROOTLESS_USER/.ssh"
 
+    # N/B: We're clobbering the known_hosts here on purpose.  There should
+    # never be any non-localhost connections made from tests (using strict-mode).
+    # If there are, it's either a security problem or a broken test, both of which
+    # we want to lead to test failures.
     msg "   setup known_hosts for $USER"
-    ssh -q root@localhost \
-        -o UserKnownHostsFile=/root/.ssh/known_hosts \
-        -o UpdateHostKeys=yes \
-        -o StrictHostKeyChecking=no \
-        -o CheckHostIP=no \
-        true
-
+    ssh-keyscan localhost > /root/.ssh/known_hosts
     msg "   setup known_hosts for $ROOTLESS_USER"
-    su $ROOTLESS_USER -c "ssh -q $ROOTLESS_USER@localhost \
-        -o UserKnownHostsFile=/home/$ROOTLESS_USER/.ssh/known_hosts \
-        -o UpdateHostKeys=yes \
-        -o StrictHostKeyChecking=no \
-        -o CheckHostIP=no \
-        true"
+    # Maintain access-permission consistency with all other .ssh files.
+    install -Z -m 700 -o $ROOTLESS_USER -g $ROOTLESS_USER \
+        /root/.ssh/known_hosts /home/$ROOTLESS_USER/.ssh/known_hosts
 }
 
 install_test_configs() {
@@ -270,6 +256,8 @@ remove_packaged_podman_files() {
         done
     done
 
+    # OS_RELEASE_ID is defined by automation-library
+    # shellcheck disable=SC2154
     if [[ "$OS_RELEASE_ID" =~ "ubuntu" ]]
     then
         LISTING_CMD="dpkg-query -L podman"

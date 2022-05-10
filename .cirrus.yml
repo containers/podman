@@ -29,7 +29,7 @@ env:
     UBUNTU_NAME: "ubuntu-2110"
 
     # Google-cloud VM Images
-    IMAGE_SUFFIX: "c4955393725038592"
+    IMAGE_SUFFIX: "c6211193021923328"
     FEDORA_CACHE_IMAGE_NAME: "fedora-${IMAGE_SUFFIX}"
     PRIOR_FEDORA_CACHE_IMAGE_NAME: "prior-fedora-${IMAGE_SUFFIX}"
     UBUNTU_CACHE_IMAGE_NAME: "ubuntu-${IMAGE_SUFFIX}"
@@ -51,6 +51,11 @@ env:
     VM_IMAGE_NAME:           # One of the "Google-cloud VM Images" (above)
     CTR_FQIN:                # One of the "Container FQIN's" (above)
 
+    # Curl-command prefix for downloading task artifacts, simply add the
+    # the url-encoded task name, artifact name, and path as a suffix.
+    ARTCURL: >-
+        curl --fail --location -O
+        --url https://api.cirrus-ci.com/v1/artifact/build/${CIRRUS_BUILD_ID}
 
 # Default timeout for each task
 timeout_in: 60m
@@ -96,7 +101,6 @@ ext_svc_check_task:
           _gc='git config --file /root/.gitconfig'
           $_gc user.email "TMcTestFace@example.com"
           $_gc user.name "Testy McTestface"
-          make install.tools
 
     setup_script: &setup '$GOSRC/$SCRIPT_BASE/setup_environment.sh'
     main_script: &main '/usr/bin/time --verbose --output="$STATS_LOGFILE" $GOSRC/$SCRIPT_BASE/runner.sh'
@@ -123,14 +127,12 @@ automation_task:
     always: *runner_stats
 
 
-# N/B: This task is critical.  It builds all binaries and release archives
-# for the project, using all primary OS platforms and versions.  Assuming
-# the builds are successful, a cache is stored of the entire `$GOPATH`
-# contents.  For all subsequent tasks, the _BUILD_CACHE_HANDLE value
-# is used as a key to reuse this cache, saving both time and money.
-# The only exceptions are tasks which only run inside a container, they
-# will not have access the cache and therefore must rely on cloning the
-# repository.
+# N/B: This task is critical.  It builds all binaries for all supported
+# OS platforms and versions.  On success, the contents of the repository
+# are preserved as an artifact.  This saves most subsequent tasks about
+# 3 minutes of otherwise duplicative effort.  It also ensures that the
+# exact same binaries used throughout CI testing, are available for
+# future consumption|inspection by the final 'artifacts' task.
 build_task:
     alias: 'build'
     name: 'Build for $DISTRO_NV'
@@ -151,37 +153,27 @@ build_task:
               VM_IMAGE_NAME: ${FEDORA_CACHE_IMAGE_NAME}
               CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
               # ID for re-use of build output
-              _BUILD_CACHE_HANDLE: ${FEDORA_NAME}-build-${CIRRUS_BUILD_ID}
         - env: &priorfedora_envvars
               DISTRO_NV: ${PRIOR_FEDORA_NAME}
               VM_IMAGE_NAME: ${PRIOR_FEDORA_CACHE_IMAGE_NAME}
               CTR_FQIN: ${PRIOR_FEDORA_CONTAINER_FQIN}
-              _BUILD_CACHE_HANDLE: ${PRIOR_FEDORA_NAME}-build-${CIRRUS_BUILD_ID}
         - env: &ubuntu_envvars
               DISTRO_NV: ${UBUNTU_NAME}
               VM_IMAGE_NAME: ${UBUNTU_CACHE_IMAGE_NAME}
               CTR_FQIN: ${UBUNTU_CONTAINER_FQIN}
-              _BUILD_CACHE_HANDLE: ${UBUNTU_NAME}-build-${CIRRUS_BUILD_ID}
     env:
         TEST_FLAVOR: build
-    # Ref: https://cirrus-ci.org/guide/writing-tasks/#cache-instruction
-    gopath_cache:  &gopath_cache
-        folder: *gopath  # Required hard-coded path, no variables.
-        fingerprint_script: echo "$_BUILD_CACHE_HANDLE"
-        # Cheat: Clone here when cache is empty, guaranteeing consistency.
-        populate_script: *full_clone
-    # A normal clone would invalidate useful cache
-    clone_script: &noop mkdir -p $CIRRUS_WORKING_DIR
+    clone_script: *full_clone
     setup_script: *setup
     main_script: *main
-    always: &binary_artifacts
-        <<: *runner_stats
-        gosrc_artifacts:
-            path: ./*  # Grab everything in top-level $GOSRC
-            type: application/octet-stream
-        binary_artifacts:
-            path: ./bin/*
-            type: application/octet-stream
+    # Cirrus-CI is very slow uploading one file at time, and the repo contains
+    # thousands of files.  Speed this up by archiving into tarball first.
+    repo_prep_script: &repo_prep >-
+        tar cjf /tmp/repo.tbz -C $GOSRC . && mv /tmp/repo.tbz $GOSRC/
+    repo_artifacts: &repo_artifacts
+        path: ./repo.tbz
+        type: application/octet-stream
+    always: *runner_stats
 
 
 # Confirm the result of building on at least one platform appears sane.
@@ -208,10 +200,12 @@ validate_task:
     env:
         <<: *stdenvars
         TEST_FLAVOR: validate
-    gopath_cache: &ro_gopath_cache
-        <<: *gopath_cache
-        reupload_on_changes: false
-    clone_script: *noop
+    # N/B: This script depends on ${DISTRO_NV} being defined for the task.
+    clone_script: &get_gosrc |
+        cd /tmp
+        echo "$ARTCURL/Build%20for%20${DISTRO_NV}/repo/repo.tbz"
+        time $ARTCURL/Build%20for%20${DISTRO_NV}/repo/repo.tbz
+        time tar xjf /tmp/repo.tbz -C $GOSRC
     setup_script: *setup
     main_script: *main
     always: *runner_stats
@@ -231,8 +225,7 @@ bindings_task:
     env:
         <<: *stdenvars
         TEST_FLAVOR: bindings
-    gopath_cache: *ro_gopath_cache
-    clone_script: *noop  # Comes from cache
+    clone_script: *get_gosrc
     setup_script: *setup
     main_script: *main
     always: &logs_artifacts
@@ -260,19 +253,18 @@ swagger_task:
     env:
         <<: *stdenvars
         TEST_FLAVOR: swagger
-        # TODO: Due to podman 3.0 activity (including new images), avoid
-        # disturbing the status-quo just to incorporate this one new
-        # container image.  Uncomment line below when CI activities normalize.
-        #CTR_FQIN: 'quay.io/libpod/gcsupld:${IMAGE_SUFFIX}'
-        CTR_FQIN: 'quay.io/libpod/gcsupld:c4813063494828032'
+        CTR_FQIN: 'quay.io/libpod/gcsupld:${IMAGE_SUFFIX}'
         GCPJSON: ENCRYPTED[927dc01e755eaddb4242b0845cf86c9098d1e3dffac38c70aefb1487fd8b4fe6dd6ae627b3bffafaba70e2c63172664e]
         GCPNAME: ENCRYPTED[c145e9c16b6fb88d476944a454bf4c1ccc84bb4ecaca73bdd28bdacef0dfa7959ebc8171a27b2e4064d66093b2cdba49]
         GCPPROJECT: 'libpod-218412'
-    gopath_cache: *ro_gopath_cache
-    clone_script: *noop  # Comes from cache
+    clone_script: *get_gosrc
     setup_script: *setup
     main_script: *main
-    always: *binary_artifacts
+    always:
+        <<: *runner_stats
+        swagger_artifacts:
+            path: ./swagger.yaml
+            type: text/plain
 
 
 # Check that all included go modules from other sources match
@@ -291,7 +283,7 @@ consistency_task:
         TEST_FLAVOR: consistency
         TEST_ENVIRON: container
         CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
-    clone_script: *full_clone  # build-cache not available to container tasks
+    clone_script: *get_gosrc
     setup_script: *setup
     main_script: *main
     always: *runner_stats
@@ -322,11 +314,14 @@ alt_build_task:
             ALT_NAME: 'Test build RPM'
       - env:
             ALT_NAME: 'Alt Arch. Cross'
-    gopath_cache: *ro_gopath_cache
-    clone_script: *noop  # Comes from cache
+    # This task cannot make use of the shared repo.tbz artifact.
+    clone_script: *full_clone
     setup_script: *setup
     main_script: *main
-    always: *binary_artifacts
+    # Produce a new repo.tbz artifact for consumption by 'artifacts' task.
+    repo_prep_script: *repo_prep
+    repo_artifacts: *repo_artifacts
+    always: *runner_stats
 
 
 # Confirm building the remote client, natively on a Mac OS-X VM.
@@ -348,10 +343,14 @@ osx_alt_build_task:
         - brew install go-md2man
         - go version
     build_amd64_script:
-        - make podman-remote-release-darwin_amd64.zip
+        - make podman-remote-release-darwin_amd64.zip GOARCH=amd64
     build_arm64_script:
         - make podman-remote-release-darwin_arm64.zip GOARCH=arm64
-    always: *binary_artifacts
+    # This task cannot make use of the shared repo.tbz artifact and must
+    # produce a new repo.tbz artifact for consumption by 'artifacts' task.
+    repo_prep_script: *repo_prep
+    repo_artifacts: *repo_artifacts
+    always: *runner_stats
 
 
 # Verify podman is compatible with the docker python-module.
@@ -367,8 +366,7 @@ docker-py_test_task:
         <<: *stdenvars
         TEST_FLAVOR: docker-py
         TEST_ENVIRON: container
-    gopath_cache: *ro_gopath_cache
-    clone_script: *noop  # Comes from cache
+    clone_script: *get_gosrc
     setup_script: *setup
     main_script: *main
     always: *runner_stats
@@ -395,8 +393,7 @@ unit_test_task:
     gce_instance: *standardvm
     env:
         TEST_FLAVOR: unit
-    clone_script: *noop  # Comes from cache
-    gopath_cache: *ro_gopath_cache
+    clone_script: *get_gosrc
     setup_script: *setup
     main_script: *main
     always: *logs_artifacts
@@ -416,8 +413,7 @@ apiv2_test_task:
     env:
         <<: *stdenvars
         TEST_FLAVOR: apiv2
-    clone_script: *noop  # Comes from cache
-    gopath_cache: *ro_gopath_cache
+    clone_script: *get_gosrc
     setup_script: *setup
     main_script: *main
     always: *logs_artifacts
@@ -431,8 +427,6 @@ compose_test_task:
     depends_on:
         - validate
     gce_instance: *standardvm
-    env:
-        <<: *stdenvars
     matrix:
       - env:
             TEST_FLAVOR: compose
@@ -446,8 +440,9 @@ compose_test_task:
       - env:
             TEST_FLAVOR: compose_v2
             PRIV_NAME: rootless
-    clone_script: *noop  # Comes from cache
-    gopath_cache: *ro_gopath_cache
+    env:
+        <<: *stdenvars
+    clone_script: *get_gosrc
     setup_script: *setup
     main_script: *main
     always: *logs_artifacts
@@ -469,8 +464,7 @@ local_integration_test_task: &local_integration_test_task
     timeout_in: 90m
     env:
         TEST_FLAVOR: int
-    clone_script: *noop  # Comes from cache
-    gopath_cache: *ro_gopath_cache
+    clone_script: *get_gosrc
     setup_script: *setup
     main_script: *main
     always: &int_logs_artifacts
@@ -516,8 +510,7 @@ container_integration_test_task:
     env:
         TEST_FLAVOR: int
         TEST_ENVIRON: container
-    clone_script: *noop  # Comes from cache
-    gopath_cache: *ro_gopath_cache
+    clone_script: *get_gosrc
     setup_script: *setup
     main_script: *main
     always: *int_logs_artifacts
@@ -537,8 +530,7 @@ rootless_integration_test_task:
     env:
         TEST_FLAVOR: int
         PRIV_NAME: rootless
-    clone_script: *noop  # Comes from cache
-    gopath_cache: *ro_gopath_cache
+    clone_script: *get_gosrc
     setup_script: *setup
     main_script: *main
     always: *int_logs_artifacts
@@ -559,8 +551,7 @@ local_system_test_task: &local_system_test_task
     gce_instance: *standardvm
     env:
         TEST_FLAVOR: sys
-    clone_script: *noop  # Comes from cache
-    gopath_cache: *ro_gopath_cache
+    clone_script: *get_gosrc
     setup_script: *setup
     main_script: *main
     always: *logs_artifacts
@@ -619,8 +610,7 @@ buildah_bud_test_task:
             PODBIN_NAME: remote
     gce_instance: *standardvm
     timeout_in: 45m
-    clone_script: *noop
-    gopath_cache: *ro_gopath_cache
+    clone_script: *get_gosrc
     setup_script: *setup
     main_script: *main
     always: *int_logs_artifacts
@@ -638,8 +628,7 @@ rootless_system_test_task:
     env:
         TEST_FLAVOR: sys
         PRIV_NAME: rootless
-    clone_script: *noop  # Comes from cache
-    gopath_cache: *ro_gopath_cache
+    clone_script: *get_gosrc
     setup_script: *setup
     main_script: *main
     always: *logs_artifacts
@@ -661,8 +650,7 @@ rootless_gitlab_test_task:
         <<: *ubuntu_envvars
         TEST_FLAVOR: 'gitlab'
         PRIV_NAME: rootless
-    clone_script: *noop  # Comes from cache
-    gopath_cache: *ro_gopath_cache
+    clone_script: *get_gosrc
     setup_script: *setup
     main_script: *main
     always:
@@ -694,8 +682,7 @@ upgrade_test_task:
         VM_IMAGE_NAME: ${FEDORA_CACHE_IMAGE_NAME}
         # ID for re-use of build output
         _BUILD_CACHE_HANDLE: ${FEDORA_NAME}-build-${CIRRUS_BUILD_ID}
-    clone_script: *noop
-    gopath_cache: *ro_gopath_cache
+    clone_script: *get_gosrc
     setup_script: *setup
     main_script: *main
     always: *logs_artifacts
@@ -715,11 +702,6 @@ image_build_task: &image-build
         image_name: build-push-${IMAGE_SUFFIX}
         # More muscle required for parallel multi-arch build
         type: "n2-standard-4"
-    env:
-        PODMAN_USERNAME: ENCRYPTED[b9f0f2550029dd2196e086d9dd6c2d1fec7e328630b15990d9bb610f9fcccb5baab8b64a8c3e72b0c1d0f5917cf65aa1]
-        PODMAN_PASSWORD: ENCRYPTED[e3444f6072853f0c8db7f964ead5e2204116af485469fa0de367f26b9316b460fd842a9882f552b9e9a83bbaf650d8b4]
-        CONTAINERS_USERNAME: ENCRYPTED[54a372d5f22f424173c114c6fb25c3214956cad323d5b285c7393a71041884ce96471d0ff733774e5dab9fa5a3c8795c]
-        CONTAINERS_PASSWORD: ENCRYPTED[4ecc3fb534935095a99fb1f2e320ac6bc87f3e7e186746e41cbcc4b5f5379a014b9fc8cc90e1f3d5abdbaf31580a4ab9]
     matrix:
         - env:
             CTXDIR: contrib/podmanimage/upstream
@@ -729,6 +711,12 @@ image_build_task: &image-build
             CTXDIR: contrib/podmanimage/stable
         - env:
             CTXDIR: contrib/hello
+    env:
+        PODMAN_USERNAME: ENCRYPTED[b9f0f2550029dd2196e086d9dd6c2d1fec7e328630b15990d9bb610f9fcccb5baab8b64a8c3e72b0c1d0f5917cf65aa1]
+        PODMAN_PASSWORD: ENCRYPTED[e3444f6072853f0c8db7f964ead5e2204116af485469fa0de367f26b9316b460fd842a9882f552b9e9a83bbaf650d8b4]
+        CONTAINERS_USERNAME: ENCRYPTED[54a372d5f22f424173c114c6fb25c3214956cad323d5b285c7393a71041884ce96471d0ff733774e5dab9fa5a3c8795c]
+        CONTAINERS_PASSWORD: ENCRYPTED[4ecc3fb534935095a99fb1f2e320ac6bc87f3e7e186746e41cbcc4b5f5379a014b9fc8cc90e1f3d5abdbaf31580a4ab9]
+    clone_script: &noop mkdir -p $CIRRUS_WORKING_DIR
     script:
         - set -a; source /etc/automation_environment; set +a
         - main.sh $CIRRUS_REPO_CLONE_URL $CTXDIR
@@ -828,42 +816,41 @@ artifacts_task:
     env:
         CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
         TEST_ENVIRON: container
-        CURL: "curl --fail --location -O https://api.cirrus-ci.com/v1/artifact/build/${CIRRUS_BUILD_ID}"
     # In order to keep the download URL and Cirrus-CI artifact.zip contents
     # simple, nothing should exist in $CIRRUS_WORKING_DIR except for artifacts.
     clone_script: *noop
-    script:
-        # Assume the latest Fedora release build is most useful
-        - $CURL/Build%20for%20$FEDORA_NAME/binary/bin/podman
-        - $CURL/Build%20for%20$FEDORA_NAME/binary/bin/podman-remote
-        - $CURL/Build%20for%20$FEDORA_NAME/binary/bin/rootlessport
-        - chmod +x podman* rootlessport
-        # Architecture in filename & can't use wildcards in a URL
+    fedora_binaries_script:
+        - mkdir -p /tmp/fed
+        - cd /tmp/fed
+        - $ARTCURL/Build%20for%20${FEDORA_NAME}/repo/repo.tbz
+        - tar xjf repo.tbz
+        - cp ./bin/* $CIRRUS_WORKING_DIR/
+    alt_binaries_script:
         - mkdir -p /tmp/alt
         - cd /tmp/alt
-        - $CURL/Alt%20Arch.%20Cross/gosrc.zip
-        - unzip gosrc.zip
-        - cd $CIRRUS_WORKING_DIR
-        - mv /tmp/alt/*.tar.gz ./
-        # Windows MSI filename has version number
+        - $ARTCURL/Alt%20Arch.%20Cross/repo/repo.tbz
+        - tar xjf repo.tbz
+        - mv ./*.tar.gz $CIRRUS_WORKING_DIR/
+    win_binaries_script:
         - mkdir -p /tmp/win
         - cd /tmp/win
-        - $CURL/Windows%20Cross/gosrc.zip
-        - unzip gosrc.zip
-        - cd $CIRRUS_WORKING_DIR
-        - mv /tmp/win/podman-remote*.zip /tmp/win/*.msi ./
-        # OSX
-        - $CURL/OSX%20Cross/gosrc/podman-remote-release-darwin_amd64.zip
-        - $CURL/OSX%20Cross/gosrc/podman-remote-release-darwin_arm64.zip
-    # Always show contents to assist in debugging
+        - $ARTCURL/Windows%20Cross/repo/repo.tbz
+        - tar xjf repo.tbz
+        - mv ./podman-remote*.zip ./*.msi $CIRRUS_WORKING_DIR/
+    osx_binaries_script:
+        - mkdir -p /tmp/osx
+        - cd /tmp/osx
+        - $ARTCURL/OSX%20Cross/repo/repo.tbz
+        - tar xjf repo.tbz
+        - mv ./podman-remote-release-darwin_*.zip $CIRRUS_WORKING_DIR/
     always:
-        contents_script: ls -1 $CIRRUS_WORKING_DIR
-    # Produce downloadable files and an automatic zip-file accessible
-    # by a consistent URL, based on contents of $CIRRUS_WORKING_DIR
-    # Ref: https://cirrus-ci.org/guide/writing-tasks/#latest-build-artifacts
-    binary_artifacts:
-        path: ./*
-        type: application/octet-stream
+      contents_script: ls -la $CIRRUS_WORKING_DIR
+      # Produce downloadable files and an automatic zip-file accessible
+      # by a consistent URL, based on contents of $CIRRUS_WORKING_DIR
+      # Ref: https://cirrus-ci.org/guide/writing-tasks/#latest-build-artifacts
+      binary_artifacts:
+          path: ./*
+          type: application/octet-stream
 
 
 # When a new tag is pushed, confirm that the code and commits
@@ -878,11 +865,9 @@ release_task:
     env:
         <<: *stdenvars
         TEST_FLAVOR: release
-    gopath_cache: *ro_gopath_cache
-    clone_script: *noop  # Comes from cache
+    clone_script: *get_gosrc
     setup_script: *setup
     main_script: *main
-    always: *binary_artifacts
 
 
 # When preparing to release a new version, this task may be manually
@@ -905,8 +890,6 @@ release_test_task:
     env:
         <<: *stdenvars
         TEST_FLAVOR: release
-    gopath_cache: *ro_gopath_cache
-    clone_script: *noop  # Comes from cache
+    clone_script: *get_gosrc
     setup_script: *setup
     main_script: *main
-    always: *binary_artifacts

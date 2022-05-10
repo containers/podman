@@ -61,7 +61,7 @@ else
         -e NAME="$USER" \
         -e SRCDIR=/src \
         -e GCLOUD_ZONE="$GCLOUD_ZONE" \
-        -e DEBUG="${DEBUG:-0}" \
+        -e A_DEBUG="${A_DEBUG:-0}" \
         -v $REPO_DIRPATH:/src:O \
         -v $HOME/.config/gcloud:/root/.config/gcloud:z \
         -v $HOME/.config/gcloud/ssh:/root/.ssh:z \
