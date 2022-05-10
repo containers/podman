@@ -26,8 +26,8 @@ func GetDefaultAuthFile() string {
 	if authfile := os.Getenv("REGISTRY_AUTH_FILE"); authfile != "" {
 		return authfile
 	}
-	if auth_env := os.Getenv("DOCKER_CONFIG"); auth_env != "" {
-		return filepath.Join(auth_env, "config.json")
+	if authEnv := os.Getenv("DOCKER_CONFIG"); authEnv != "" {
+		return filepath.Join(authEnv, "config.json")
 	}
 	return ""
 }
@@ -313,7 +313,7 @@ func Logout(systemContext *types.SystemContext, opts *LogoutOptions, args []stri
 			fmt.Printf("Not logged into %s with current tool. Existing credentials were established via docker login. Please use docker logout instead.\n", key)
 			return nil
 		}
-		return errors.Errorf("Not logged into %s\n", key)
+		return errors.Errorf("not logged into %s", key)
 	default:
 		return errors.Wrapf(err, "logging out of %q", key)
 	}

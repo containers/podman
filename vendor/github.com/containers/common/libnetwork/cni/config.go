@@ -96,7 +96,7 @@ func (n *cniNetwork) networkCreate(newNetwork *types.Network, defaultNet bool) (
 	newNetwork.ID = getNetworkIDFromName(newNetwork.Name)
 
 	// when we do not have ipam we must disable dns
-	internalutil.IpamNoneDisableDns(newNetwork)
+	internalutil.IpamNoneDisableDNS(newNetwork)
 
 	// FIXME: Should this be a hard error?
 	if newNetwork.DNSEnabled && newNetwork.Internal && hasDNSNamePlugin(n.cniPluginDirs) {

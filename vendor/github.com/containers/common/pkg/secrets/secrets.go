@@ -53,6 +53,9 @@ var secretsFile = "secrets.json"
 var secretNameRegexp = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9_.-]*$`)
 
 // SecretsManager holds information on handling secrets
+//
+// revive does not like the name because the package is already called secrets
+//nolint:revive
 type SecretsManager struct {
 	// secretsPath is the path to the db file where secrets are stored
 	secretsDBPath string
@@ -82,6 +85,9 @@ type Secret struct {
 // The driver stores the actual bytes of secret data, as opposed to
 // the secret metadata.
 // Currently only the unencrypted filedriver is implemented.
+//
+// revive does not like the name because the package is already called secrets
+//nolint:revive
 type SecretsDriver interface {
 	// List lists all secret ids in the secrets data store
 	List() ([]string, error)
@@ -234,7 +240,7 @@ func (s *SecretsManager) List() ([]Secret, error) {
 	if err != nil {
 		return nil, err
 	}
-	var ls []Secret
+	ls := make([]Secret, 0, len(secrets))
 	for _, v := range secrets {
 		ls = append(ls, v)
 	}
@@ -276,9 +282,8 @@ func getDriver(name string, opts map[string]string) (SecretsDriver, error) {
 	case "file":
 		if path, ok := opts["path"]; ok {
 			return filedriver.NewDriver(path)
-		} else {
-			return nil, errors.Wrap(errInvalidDriverOpt, "need path for filedriver")
 		}
+		return nil, errors.Wrap(errInvalidDriverOpt, "need path for filedriver")
 	case "pass":
 		return passdriver.NewDriver(opts)
 	case "shell":

@@ -413,11 +413,11 @@ func (r *Runtime) imagesIDsForManifest(manifestBytes []byte, sys *types.SystemCo
 		}
 		imageDigest = d
 	}
-	var results []string
 	images, err := r.store.ImagesByDigest(imageDigest)
 	if err != nil {
 		return nil, errors.Wrapf(err, "listing images by manifest digest")
 	}
+	results := make([]string, 0, len(images))
 	for _, image := range images {
 		results = append(results, image.ID)
 	}

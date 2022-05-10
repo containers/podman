@@ -32,8 +32,8 @@ func (r *Runtime) Load(ctx context.Context, path string, options *LoadOptions) (
 		options = &LoadOptions{}
 	}
 
-	var loadErrors []error
-
+	// we have 4 functions, so a maximum of 4 errors
+	loadErrors := make([]error, 0, 4)
 	for _, f := range []func() ([]string, string, error){
 		// OCI
 		func() ([]string, string, error) {
@@ -88,6 +88,8 @@ func (r *Runtime) Load(ctx context.Context, path string, options *LoadOptions) (
 	}
 
 	// Give a decent error message if nothing above worked.
+	// we want the colon here for the multiline error
+	//nolint:revive
 	loadError := fmt.Errorf("payload does not match any of the supported image formats:")
 	for _, err := range loadErrors {
 		loadError = fmt.Errorf("%v\n * %v", loadError, err)

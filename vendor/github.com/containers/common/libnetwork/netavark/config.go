@@ -121,7 +121,7 @@ func (n *netavarkNetwork) networkCreate(newNetwork *types.Network, defaultNet bo
 	}
 
 	// when we do not have ipam we must disable dns
-	internalutil.IpamNoneDisableDns(newNetwork)
+	internalutil.IpamNoneDisableDNS(newNetwork)
 
 	// add gateway when not internal or dns enabled
 	addGateway := !newNetwork.Internal || newNetwork.DNSEnabled

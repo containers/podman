@@ -130,7 +130,7 @@ func matchSyscall(filter *libseccomp.ScmpFilter, call *Syscall) error {
 				return errors.Wrapf(err, "create seccomp syscall condition for syscall %s", call.Name)
 			}
 
-			argCounts[cond.Index] += 1
+			argCounts[cond.Index]++
 
 			conditions = append(conditions, newCond)
 		}

@@ -553,6 +553,9 @@ type SecretConfig struct {
 }
 
 // ConfigMapConfig represents the "configmap" TOML config table
+//
+// revive does not like the name because the package is already called config
+//nolint:revive
 type ConfigMapConfig struct {
 	// Driver specifies the configmap driver to use.
 	// Current valid value:
@@ -1215,14 +1218,14 @@ func (c *Config) ActiveDestination() (uri, identity string, err error) {
 // FindHelperBinary will search the given binary name in the configured directories.
 // If searchPATH is set to true it will also search in $PATH.
 func (c *Config) FindHelperBinary(name string, searchPATH bool) (string, error) {
-	dir_list := c.Engine.HelperBinariesDir
+	dirList := c.Engine.HelperBinariesDir
 
 	// If set, search this directory first. This is used in testing.
 	if dir, found := os.LookupEnv("CONTAINERS_HELPER_BINARY_DIR"); found {
-		dir_list = append([]string{dir}, dir_list...)
+		dirList = append([]string{dir}, dirList...)
 	}
 
-	for _, path := range dir_list {
+	for _, path := range dirList {
 		fullpath := filepath.Join(path, name)
 		if fi, err := os.Stat(fullpath); err == nil && fi.Mode().IsRegular() {
 			return fullpath, nil

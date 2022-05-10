@@ -51,7 +51,7 @@ func AutocompleteCapabilities(cmd *cobra.Command, args []string, toComplete stri
 		offset = 4
 	}
 
-	var completions []string
+	completions := make([]string, 0, len(caps))
 	for _, cap := range caps {
 		completions = append(completions, convertCase(cap)[offset:])
 	}

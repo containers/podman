@@ -608,7 +608,7 @@ func (i *Image) RepoTags() ([]string, error) {
 // NamedTaggedRepoTags returns the repotags associated with the image as a
 // slice of reference.NamedTagged.
 func (i *Image) NamedTaggedRepoTags() ([]reference.NamedTagged, error) {
-	var repoTags []reference.NamedTagged
+	repoTags := make([]reference.NamedTagged, 0, len(i.Names()))
 	for _, name := range i.Names() {
 		parsed, err := reference.Parse(name)
 		if err != nil {

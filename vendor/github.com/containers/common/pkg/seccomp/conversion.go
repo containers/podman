@@ -71,11 +71,12 @@ var (
 		// https://github.com/opencontainers/runtime-spec/pull/1064
 		// specs.ActKillProcess   ActKillProcess,
 		// specs.ActKillThread   ActKillThread,
-		specs.ActErrno: ActErrno,
-		specs.ActTrap:  ActTrap,
-		specs.ActAllow: ActAllow,
-		specs.ActTrace: ActTrace,
-		specs.ActLog:   ActLog,
+		specs.ActErrno:  ActErrno,
+		specs.ActTrap:   ActTrap,
+		specs.ActAllow:  ActAllow,
+		specs.ActTrace:  ActTrace,
+		specs.ActLog:    ActLog,
+		specs.ActNotify: ActNotify,
 	}
 	specOperatorToSeccompOperatorMap = map[specs.LinuxSeccompOperator]Operator{
 		specs.OpNotEqual:     OpNotEqual,
