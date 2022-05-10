@@ -327,6 +327,11 @@ spec:
     name: {{ .Name }}
   {{ end }}
 {{ end }}
+{{ if .SecurityContext }}
+  securityContext:
+    {{ if .RunAsUser }}runAsUser: {{ .RunAsUser }}{{- end }}
+    {{ if .RunAsGroup }}runAsGroup: {{ .RunAsGroup }}{{- end }}
+{{ end }}
   containers:
 {{ with .Ctrs }}
   {{ range . }}
@@ -393,6 +398,8 @@ spec:
     {{- end }}
     {{ if .SecurityContext }}
     securityContext:
+      {{ if .RunAsUser }}runAsUser: {{ .RunAsUser }}{{- end }}
+      {{ if .RunAsGroup }}runAsGroup: {{ .RunAsGroup }}{{- end }}
       allowPrivilegeEscalation: true
       {{ if .Caps }}
       capabilities:
@@ -758,16 +765,19 @@ func withPVCAnnotations(k, v string) pvcOption {
 
 // Pod describes the options a kube yaml can be configured at pod level
 type Pod struct {
-	Name          string
-	RestartPolicy string
-	Hostname      string
-	HostNetwork   bool
-	HostAliases   []HostAlias
-	Ctrs          []*Ctr
-	InitCtrs      []*Ctr
-	Volumes       []*Volume
-	Labels        map[string]string
-	Annotations   map[string]string
+	Name            string
+	RestartPolicy   string
+	Hostname        string
+	HostNetwork     bool
+	HostAliases     []HostAlias
+	Ctrs            []*Ctr
+	InitCtrs        []*Ctr
+	Volumes         []*Volume
+	Labels          map[string]string
+	Annotations     map[string]string
+	SecurityContext bool
+	RunAsUser       string
+	RunAsGroup      string
 }
 
 type HostAlias struct {
@@ -801,6 +811,24 @@ func getPod(options ...podOption) *Pod {
 }
 
 type podOption func(*Pod)
+
+func withPodSecurityContext(sc bool) podOption {
+	return func(p *Pod) {
+		p.SecurityContext = sc
+	}
+}
+
+func withPodRunAsUser(runAsUser string) podOption {
+	return func(p *Pod) {
+		p.RunAsUser = runAsUser
+	}
+}
+
+func withPodRunAsGroup(runAsGroup string) podOption {
+	return func(p *Pod) {
+		p.RunAsGroup = runAsGroup
+	}
+}
 
 func withPodName(name string) podOption {
 	return func(pod *Pod) {
@@ -949,6 +977,8 @@ type Ctr struct {
 	Env             []Env
 	EnvFrom         []EnvFrom
 	InitCtrType     string
+	RunAsUser       string
+	RunAsGroup      string
 }
 
 // getCtr takes a list of ctrOptions and returns a Ctr with sane defaults
@@ -1042,6 +1072,18 @@ func withSecurityContext(sc bool) ctrOption {
 	}
 }
 
+func withRunAsUser(runAsUser string) ctrOption {
+	return func(c *Ctr) {
+		c.RunAsUser = runAsUser
+	}
+}
+
+func withRunAsGroup(runAsGroup string) ctrOption {
+	return func(c *Ctr) {
+		c.RunAsGroup = runAsGroup
+	}
+}
+
 func withCapAdd(caps []string) ctrOption {
 	return func(c *Ctr) {
 		c.CapAdd = caps
@@ -1105,8 +1147,12 @@ func withEnvFrom(name, from string, optional bool) ctrOption {
 	}
 }
 
+func makeCtrNameInPod(pod *Pod, containerName string) string {
+	return fmt.Sprintf("%s-%s", pod.Name, containerName)
+}
+
 func getCtrNameInPod(pod *Pod) string {
-	return fmt.Sprintf("%s-%s", pod.Name, defaultCtrName)
+	return makeCtrNameInPod(pod, defaultCtrName)
 }
 
 type HostPath struct {
@@ -3220,6 +3266,38 @@ invalid kube kind
 		ls.WaitWithDefaultTimeout()
 		Expect(ls).Should(Exit(0))
 		Expect(ls.OutputToStringArray()).To(HaveLen(1))
+	})
+
+	It("podman play kube RunAsUser", func() {
+		ctr1Name := "ctr1"
+		ctr2Name := "ctr2"
+		ctr1 := getCtr(withName(ctr1Name), withSecurityContext(true), withRunAsUser("101"), withRunAsGroup("102"))
+		ctr2 := getCtr(withName(ctr2Name), withSecurityContext(true))
+
+		pod := getPod(
+			withCtr(ctr1),
+			withCtr(ctr2),
+			withPodSecurityContext(true),
+			withPodRunAsUser("103"),
+			withPodRunAsGroup("104"),
+		)
+
+		err := generateKubeYaml("pod", pod, kubeYaml)
+		Expect(err).To(BeNil())
+
+		cmd := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		cmd.WaitWithDefaultTimeout()
+		Expect(cmd).Should(Exit(0))
+
+		// we expect the user:group as configured for the container
+		inspect := podmanTest.Podman([]string{"container", "inspect", "--format", "'{{.Config.User}}'", makeCtrNameInPod(pod, ctr1Name)})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect.OutputToString()).To(Equal("'101:102'"))
+
+		// we expect the user:group as configured for the pod
+		inspect = podmanTest.Podman([]string{"container", "inspect", "--format", "'{{.Config.User}}'", makeCtrNameInPod(pod, ctr2Name)})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect.OutputToString()).To(Equal("'103:104'"))
 	})
 
 	Describe("verify environment variables", func() {
