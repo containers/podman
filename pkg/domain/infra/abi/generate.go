@@ -51,6 +51,7 @@ func (ic *ContainerEngine) GenerateKube(ctx context.Context, nameOrIDs []string,
 		content    [][]byte
 	)
 
+	defaultKubeNS := true
 	// Lookup for podman objects.
 	for _, nameOrID := range nameOrIDs {
 		// Let's assume it's a container, so get the container.
@@ -76,6 +77,17 @@ func (ic *ContainerEngine) GenerateKube(ctx context.Context, nameOrIDs []string,
 				return nil, err
 			}
 		} else {
+			// Get the pod config to see if the user has modified the default
+			// namespace sharing values as this might affect the pods when run
+			// in a k8s cluster
+			podConfig, err := pod.Config()
+			if err != nil {
+				return nil, err
+			}
+			if !(podConfig.UsePodIPC && podConfig.UsePodNet && podConfig.UsePodUTS) {
+				defaultKubeNS = false
+			}
+
 			pods = append(pods, pod)
 			continue
 		}
@@ -93,6 +105,15 @@ func (ic *ContainerEngine) GenerateKube(ctx context.Context, nameOrIDs []string,
 
 		// If it reaches here is because the name or id did not exist.
 		return nil, errors.Errorf("Name or ID %q not found", nameOrID)
+	}
+
+	if !defaultKubeNS {
+		warning := `
+# NOTE: The namespace sharing for a pod has been modified by the user and is not the same as the
+# default settings for kubernetes. This can lead to unexpected behavior when running the generated
+# kube yaml in a kubernetes cluster.
+`
+		content = append(content, []byte(warning))
 	}
 
 	// Generate kube persistent volume claims from volumes.

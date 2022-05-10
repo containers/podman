@@ -353,6 +353,7 @@ func (p *Pod) podWithContainers(ctx context.Context, containers []*Container, po
 	podInitCtrs := []v1.Container{}
 	podAnnotations := make(map[string]string)
 	dnsInfo := v1.PodDNSConfig{}
+	var hostname string
 
 	// Let's sort the containers in order of created time
 	// This will ensure that the init containers are defined in the correct order in the kube yaml
@@ -368,6 +369,14 @@ func (p *Pod) podWithContainers(ctx context.Context, containers []*Container, po
 				podAnnotations[k] = TruncateKubeAnnotation(v)
 			}
 			isInit := ctr.IsInitCtr()
+			// Since hostname is only set at pod level, set the hostname to the hostname of the first container we encounter
+			if hostname == "" {
+				// Only set the hostname if it is not set to the truncated container ID, which we do by default if no
+				// hostname is specified for the container
+				if !strings.Contains(ctr.ID(), ctr.Hostname()) {
+					hostname = ctr.Hostname()
+				}
+			}
 
 			ctr, volumes, _, annotations, err := containerToV1Container(ctx, ctr)
 			if err != nil {
@@ -377,17 +386,21 @@ func (p *Pod) podWithContainers(ctx context.Context, containers []*Container, po
 				podAnnotations[define.BindMountPrefix+k] = TruncateKubeAnnotation(v)
 			}
 			// Since port bindings for the pod are handled by the
-			// infra container, wipe them here.
-			ctr.Ports = nil
+			// infra container, wipe them here only if we are sharing the net namespace
+			// If the network namespace is not being shared in the pod, then containers
+			// can have their own network configurations
+			if p.SharesNet() {
+				ctr.Ports = nil
 
-			// We add the original port declarations from the libpod infra container
-			// to the first kubernetes container description because otherwise we loose
-			// the original container/port bindings.
-			// Add the port configuration to the first regular container or the first
-			// init container if only init containers have been created in the pod.
-			if first && len(ports) > 0 && (!isInit || len(containers) == 2) {
-				ctr.Ports = ports
-				first = false
+				// We add the original port declarations from the libpod infra container
+				// to the first kubernetes container description because otherwise we loose
+				// the original container/port bindings.
+				// Add the port configuration to the first regular container or the first
+				// init container if only init containers have been created in the pod.
+				if first && len(ports) > 0 && (!isInit || len(containers) == 2) {
+					ctr.Ports = ports
+					first = false
+				}
 			}
 			if isInit {
 				podInitCtrs = append(podInitCtrs, ctr)
@@ -430,10 +443,11 @@ func (p *Pod) podWithContainers(ctx context.Context, containers []*Container, po
 		podContainers,
 		podVolumes,
 		&dnsInfo,
-		hostNetwork), nil
+		hostNetwork,
+		hostname), nil
 }
 
-func newPodObject(podName string, annotations map[string]string, initCtrs, containers []v1.Container, volumes []v1.Volume, dnsOptions *v1.PodDNSConfig, hostNetwork bool) *v1.Pod {
+func newPodObject(podName string, annotations map[string]string, initCtrs, containers []v1.Container, volumes []v1.Volume, dnsOptions *v1.PodDNSConfig, hostNetwork bool, hostname string) *v1.Pod {
 	tm := v12.TypeMeta{
 		Kind:       "Pod",
 		APIVersion: "v1",
@@ -454,6 +468,7 @@ func newPodObject(podName string, annotations map[string]string, initCtrs, conta
 	}
 	ps := v1.PodSpec{
 		Containers:     containers,
+		Hostname:       hostname,
 		HostNetwork:    hostNetwork,
 		InitContainers: initCtrs,
 		Volumes:        volumes,
@@ -479,6 +494,7 @@ func simplePodWithV1Containers(ctx context.Context, ctrs []*Container) (*v1.Pod,
 	podDNS := v1.PodDNSConfig{}
 	kubeAnnotations := make(map[string]string)
 	ctrNames := make([]string, 0, len(ctrs))
+	var hostname string
 	for _, ctr := range ctrs {
 		ctrNames = append(ctrNames, removeUnderscores(ctr.Name()))
 		for k, v := range ctr.config.Spec.Annotations {
@@ -491,6 +507,14 @@ func simplePodWithV1Containers(ctx context.Context, ctrs []*Container) (*v1.Pod,
 		}
 
 		isInit := ctr.IsInitCtr()
+		// Since hostname is only set at pod level, set the hostname to the hostname of the first container we encounter
+		if hostname == "" {
+			// Only set the hostname if it is not set to the truncated container ID, which we do by default if no
+			// hostname is specified for the container
+			if !strings.Contains(ctr.ID(), ctr.Hostname()) {
+				hostname = ctr.Hostname()
+			}
+		}
 
 		if !ctr.HostNetwork() {
 			hostNetwork = false
@@ -555,7 +579,8 @@ func simplePodWithV1Containers(ctx context.Context, ctrs []*Container) (*v1.Pod,
 		kubeCtrs,
 		kubeVolumes,
 		&podDNS,
-		hostNetwork), nil
+		hostNetwork,
+		hostname), nil
 }
 
 // containerToV1Container converts information we know about a libpod container
