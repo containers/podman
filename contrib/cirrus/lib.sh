@@ -91,7 +91,7 @@ EPOCH_TEST_COMMIT="$CIRRUS_BASE_SHA"
 # testing operations on all platforms and versions.  This is necessary
 # to avoid needlessly passing through global/system values across
 # contexts, such as host->container or root->rootless user
-PASSTHROUGH_ENV_RE='(^CI.*)|(^CIRRUS)|(^DISTRO_NV)|(^GOPATH)|(^GOCACHE)|(^GOSRC)|(^SCRIPT_BASE)|(CGROUP_MANAGER)|(OCI_RUNTIME)|(^TEST.*)|(^PODBIN_NAME)|(^PRIV_NAME)|(^ALT_NAME)|(^ROOTLESS_USER)|(SKIP_USERNS)|(.*_NAME)|(.*_FQIN)|(NETWORK_BACKEND)'
+PASSTHROUGH_ENV_RE='(^CI.*)|(^CIRRUS)|(^DISTRO_NV)|(^GOPATH)|(^GOCACHE)|(^GOSRC)|(^SCRIPT_BASE)|(CGROUP_MANAGER)|(OCI_RUNTIME)|(^TEST.*)|(^PODBIN_NAME)|(^PRIV_NAME)|(^ALT_NAME)|(^ROOTLESS_USER)|(SKIP_USERNS)|(.*_NAME)|(.*_FQIN)|(NETWORK_BACKEND)|(DEST_BRANCH)'
 # Unsafe env. vars for display
 SECRET_ENV_RE='(ACCOUNT)|(GC[EP]..+)|(SSH)|(PASSWORD)|(TOKEN)'
 
