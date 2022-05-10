@@ -120,6 +120,8 @@ type CtrSpecGenOptions struct {
 	RestartPolicy string
 	// NetNSIsHost tells the container to use the host netns
 	NetNSIsHost bool
+	// UserNSIsHost tells the container to use the host userns
+	UserNSIsHost bool
 	// SecretManager to access the secrets
 	SecretsManager *secrets.SecretsManager
 	// LogDriver which should be used for the container
@@ -389,8 +391,9 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 	if opts.NetNSIsHost {
 		s.NetNS.NSMode = specgen.Host
 	}
-	// Always set the userns to host since k8s doesn't have support for userns yet
-	s.UserNS.NSMode = specgen.Host
+	if opts.UserNSIsHost {
+		s.UserNS.NSMode = specgen.Host
+	}
 
 	// Add labels that come from kube
 	if len(s.Labels) == 0 {

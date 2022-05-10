@@ -54,6 +54,8 @@ type PlayKubeOptions struct {
 	LogOptions []string
 	// Start - don't start the pod if false
 	Start types.OptionalBool
+	// Userns - define the user namespace to use.
+	Userns string
 }
 
 // PlayKubePod represents a single pod and associated containers created by play kube

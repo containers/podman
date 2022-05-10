@@ -272,3 +272,18 @@ func (o *KubeOptions) GetStart() bool {
 	}
 	return *o.Start
 }
+
+// WithUserns set field Userns to given value
+func (o *KubeOptions) WithUserns(value string) *KubeOptions {
+	o.Userns = &value
+	return o
+}
+
+// GetUserns returns value of field Userns
+func (o *KubeOptions) GetUserns() string {
+	if o.Userns == nil {
+		var z string
+		return z
+	}
+	return *o.Userns
+}
