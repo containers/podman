@@ -113,11 +113,11 @@ registries = ['{{.Host}}:{{.Port}}']`
 	})
 
 	It("podman search format json", func() {
-		search := podmanTest.Podman([]string{"search", "--format", "json", "alpine"})
+		search := podmanTest.Podman([]string{"search", "--format", "json", "busybox"})
 		search.WaitWithDefaultTimeout()
 		Expect(search).Should(Exit(0))
 		Expect(search.OutputToString()).To(BeValidJSON())
-		Expect(search.OutputToString()).To(ContainSubstring("docker.io/library/alpine"))
+		Expect(search.OutputToString()).To(ContainSubstring("docker.io/library/busybox"))
 
 		// Test for https://github.com/containers/podman/issues/11894
 		contents := make([]entities.ImageSearchReport, 0)
