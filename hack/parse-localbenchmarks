@@ -1,0 +1,104 @@
+#!/usr/bin/perl
+#
+# parse-localbenchmarks - convert localbenchmarks output to CSV
+#
+# This is a filter. It transforms data from one format to another. Usage:
+#
+#    $ make localbenchmarks &> mylogfile
+#    $ hack/parse-localbenchmarks <mylogfile > benchmarks.csv
+#
+# To be more precise, this is a very stupid simpleminded filter. It is
+# not a complete solution to the benchmarks problem. In particular,
+# other tools are still needed to:
+#
+#    * Actually _run_ the benchmarks in some standard production environment
+#    * Run this script on the results
+#    * Save results, with identifying tags (datetime, git hash, PR id, ...)
+#    * Compare two or more sets of CSVs
+#
+(our $ME = $0) =~ s|^.*/||;             # script name
+
+use v5.14;
+use utf8;
+
+# FIXME: add --help. Some day. Not urgent.
+die "$ME: This is a filter, not an interactive tool\n"    if -t *STDIN;
+
+my $n_samples;                          # Number of timing runs (FIXME: unused)
+my %results;                            # Timing results
+my @benchmarks;                         # Names of benchmarks
+my ($type, $testname);                  # Current context
+
+#
+# Pass 1: read in timings
+#
+while (my $line = <STDIN>) {
+    # Log will have lots of ginkgo output. The only thing we care about is
+    # the summary at the end, which will look something like:
+    #
+    # * [MEASUREMENT]
+    # Podman Benchmark Suite
+    # ....
+    #  Ran 3 samples:
+    #  [CPU] podman images:
+    #    Fastest Time: 0.265s
+    #    Slowest Time: 0.322s
+    #    Average Time: 0.302s ± 0.018s
+    #  [MEM] podman images:
+    #    Smallest: 44076.0KB
+    #    Largest: 44616.0KB
+    #    Average: 44338.7KB ± 171.2KB
+    #  [CPU] podman push:
+    #  ....repeat [CPU] and [MEM] for each test
+    #  --------------------------
+    #  SSSSSSSSSSSSSSSSSSSSS (and more ginkgo output we don't care about)
+    #
+    chomp $line;
+    next unless $line =~ /^.{1,3}\s+\[MEASUREMENT\]/ .. $line =~ /^-{20,}$/;
+
+    # Trim leading & trailing whitespace
+    $line =~ s/(^\s+|\s+$)//g;
+
+    # FIXME: we don't actually emit this. What would be a good way to do so?
+    if ($line =~ /^Ran\s+(\d+)\s+samples/) {
+        $n_samples = $1;
+    }
+
+    # e.g., [CPU] podman foo:
+    elsif ($line =~ /^\[([A-Z]+)\]\s+(\S.*\S):$/) {
+        ($type, $testname) = ($1, $2);
+    }
+
+    # e.g., 'Fastest Time: 0.265s'
+    elsif ($line =~ /^(\S.*?\S):\s+(.*)/) {
+        my $benchmark = "$type $1";
+        $results{$testname}{$benchmark} = $2;
+
+        # Keep an ordered list of benchmark names (as in, the order we
+        # encounter them)
+        push @benchmarks, $benchmark
+            unless grep { $_ eq $benchmark } @benchmarks;
+    }
+
+    else {
+        warn "Cannot grok '$line'\n"    if $ENV{DEBUG_PARSELOCALBENCHMARKS};
+    }
+}
+
+#
+# Pass 2: write out CSV
+#
+
+# Headings...
+print  "\"Test Name\"";
+printf ", \"%s\"", $_   for @benchmarks;
+print  "\n";
+
+# ...then data
+for my $t (sort keys %results) {
+    printf "\"%s\"", $t;
+    for my $benchmark (@benchmarks) {
+        printf ", \"%s\"", $results{$t}{$benchmark} || '';
+    }
+    print "\n";
+}
