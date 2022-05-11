@@ -37,7 +37,15 @@ import (
 // createServiceContainer creates a container that can later on
 // be associated with the pods of a K8s yaml.  It will be started along with
 // the first pod.
-func (ic *ContainerEngine) createServiceContainer(ctx context.Context, name string) (*libpod.Container, error) {
+func (ic *ContainerEngine) createServiceContainer(ctx context.Context, name string, options entities.PlayKubeOptions) (*libpod.Container, error) {
+	// Make sure to replace the service container as well if requested by
+	// the user.
+	if options.Replace {
+		if _, err := ic.ContainerRm(ctx, []string{name}, entities.RmOptions{Force: true, Ignore: true}); err != nil {
+			return nil, fmt.Errorf("replacing service container: %w", err)
+		}
+	}
+
 	// Similar to infra containers, a service container is using the pause image.
 	image, err := generate.PullOrBuildInfraImage(ic.Libpod, "")
 	if err != nil {
@@ -65,6 +73,7 @@ func (ic *ContainerEngine) createServiceContainer(ctx context.Context, name stri
 		return nil, fmt.Errorf("creating runtime spec for service container: %w", err)
 	}
 	opts = append(opts, libpod.WithIsService())
+	opts = append(opts, libpod.WithSdNotifyMode(define.SdNotifyModeConmon))
 
 	// Create a new libpod container based on the spec.
 	ctr, err := ic.Libpod.NewContainer(ctx, runtimeSpec, spec, false, opts...)
@@ -73,6 +82,17 @@ func (ic *ContainerEngine) createServiceContainer(ctx context.Context, name stri
 	}
 
 	return ctr, nil
+}
+
+// Creates the name for a service container based on the provided content of a
+// K8s yaml file.
+func serviceContainerName(content []byte) string {
+	// The name of the service container is the first 12
+	// characters of the yaml file's hash followed by the
+	// '-service' suffix to guarantee a predictable and
+	// discoverable name.
+	hash := digest.FromBytes(content).Encoded()
+	return hash[0:12] + "-service"
 }
 
 func (ic *ContainerEngine) PlayKube(ctx context.Context, body io.Reader, options entities.PlayKubeOptions) (_ *entities.PlayKubeReport, finalErr error) {
@@ -112,12 +132,7 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, body io.Reader, options
 		// TODO: create constants for the various "kinds" of yaml files.
 		var serviceContainer *libpod.Container
 		if options.ServiceContainer && (kind == "Pod" || kind == "Deployment") {
-			// The name of the service container is the first 12
-			// characters of the yaml file's hash followed by the
-			// '-service' suffix to guarantee a predictable and
-			// discoverable name.
-			hash := digest.FromBytes(content).Encoded()
-			ctr, err := ic.createServiceContainer(ctx, hash[0:12]+"-service")
+			ctr, err := ic.createServiceContainer(ctx, serviceContainerName(content), options)
 			if err != nil {
 				return nil, err
 			}
@@ -433,6 +448,7 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 		podSpec.PodSpecGen.NoInfra = false
 		podSpec.PodSpecGen.InfraContainerSpec = specgen.NewSpecGenerator(infraImage, false)
 		podSpec.PodSpecGen.InfraContainerSpec.NetworkOptions = p.NetworkOptions
+		podSpec.PodSpecGen.InfraContainerSpec.SdNotifyMode = define.SdNotifyModeIgnore
 
 		err = specgenutil.FillOutSpecGen(podSpec.PodSpecGen.InfraContainerSpec, &infraOptions, []string{})
 		if err != nil {
@@ -516,10 +532,12 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 		if err != nil {
 			return nil, err
 		}
+		specGen.SdNotifyMode = define.SdNotifyModeIgnore
 		rtSpec, spec, opts, err := generate.MakeContainer(ctx, ic.Libpod, specGen, false, nil)
 		if err != nil {
 			return nil, err
 		}
+		opts = append(opts, libpod.WithSdNotifyMode(define.SdNotifyModeIgnore))
 		ctr, err := generate.ExecuteCreate(ctx, ic.Libpod, rtSpec, spec, false, opts...)
 		if err != nil {
 			return nil, err
@@ -570,6 +588,7 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 		if err != nil {
 			return nil, err
 		}
+		opts = append(opts, libpod.WithSdNotifyMode(define.SdNotifyModeIgnore))
 		ctr, err := generate.ExecuteCreate(ctx, ic.Libpod, rtSpec, spec, false, opts...)
 		if err != nil {
 			return nil, err
@@ -942,5 +961,6 @@ func (ic *ContainerEngine) PlayKubeDown(ctx context.Context, body io.Reader, _ e
 	if err != nil {
 		return nil, err
 	}
+
 	return reports, nil
 }

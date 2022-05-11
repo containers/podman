@@ -172,4 +172,52 @@ READY=1" "sdnotify sent MAINPID and READY"
     _stop_socat
 }
 
+@test "sdnotify : play kube" {
+    # Create the YAMl file
+    yaml_source="$PODMAN_TMPDIR/test.yaml"
+    cat >$yaml_source <<EOF
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app: test
+  name: test_pod
+spec:
+  containers:
+  - command:
+    - top
+    image: $IMAGE
+    name: test
+    resources: {}
+EOF
+
+    # The name of the service container is predictable: the first 12 characters
+    # of the hash of the YAML file followed by the "-service" suffix
+    yaml_sha=$(sha256sum $yaml_source)
+    service_container="${yaml_sha:0:12}-service"
+
+
+    export NOTIFY_SOCKET=$PODMAN_TMPDIR/conmon.sock
+    _start_socat
+
+    run_podman play kube --service-container=true $yaml_source
+    run_podman container inspect $service_container --format "{{.State.ConmonPid}}"
+    mainPID="$output"
+    # The 'echo's help us debug failed runs
+    run cat $_SOCAT_LOG
+    echo "socat log:"
+    echo "$output"
+
+    is "$output" "MAINPID=$mainPID
+READY=1" "sdnotify sent MAINPID and READY"
+
+    _stop_socat
+
+    # Clean up pod and pause image
+    run_podman play kube --down $PODMAN_TMPDIR/test.yaml
+    run_podman version --format "{{.Server.Version}}-{{.Server.Built}}"
+    podman rmi -f localhost/podman-pause:$output
+}
+
+
 # vim: filetype=sh

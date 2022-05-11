@@ -292,7 +292,13 @@ func (ic *ContainerEngine) removeContainer(ctx context.Context, ctr *libpod.Cont
 	logrus.Debugf("Failed to remove container %s: %s", ctr.ID(), err.Error())
 	switch errors.Cause(err) {
 	case define.ErrNoSuchCtr:
-		if options.Ignore {
+		// Ignore if the container does not exist (anymore) when either
+		// it has been requested by the user of if the container is a
+		// service one.  Service containers are removed along with its
+		// pods which in turn are removed along with their infra
+		// container.  Hence, there is an inherent race when removing
+		// infra containers with service containers in parallel.
+		if options.Ignore || ctr.IsService() {
 			logrus.Debugf("Ignoring error (--allow-missing): %v", err)
 			return nil
 		}

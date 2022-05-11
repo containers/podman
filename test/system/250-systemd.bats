@@ -292,4 +292,80 @@ LISTEN_FDNAMES=listen_fdnames" | sort)
     run_podman network rm -f $netname
 }
 
+@test "podman-play-kube@.service template" {
+    skip_if_remote "systemd units do not work with remote clients"
+
+    # If running from a podman source directory, build and use the source
+    # version of the play-kube-@ unit file
+    unit_name="podman-play-kube@.service"
+    unit_file="contrib/systemd/system/${unit_name}"
+    if [[ -e ${unit_file}.in ]]; then
+        echo "# [Building & using $unit_name from source]" >&3
+        BINDIR=$(dirname $PODMAN) make $unit_file
+        cp $unit_file $UNIT_DIR/$unit_name
+    fi
+
+    # Create the YAMl file
+    yaml_source="$PODMAN_TMPDIR/test.yaml"
+    cat >$yaml_source <<EOF
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app: test
+  name: test_pod
+spec:
+  containers:
+  - command:
+    - top
+    image: $IMAGE
+    name: test
+    resources: {}
+EOF
+
+    # Dispatch the YAML file
+    service_name="podman-play-kube@$(systemd-escape $yaml_source).service"
+    systemctl start $service_name
+    systemctl is-active $service_name
+
+    # The name of the service container is predictable: the first 12 characters
+    # of the hash of the YAML file followed by the "-service" suffix
+    yaml_sha=$(sha256sum $yaml_source)
+    service_container="${yaml_sha:0:12}-service"
+
+    # Make sure that the service container exists and runs.
+    run_podman container inspect $service_container --format "{{.State.Running}}"
+    is "$output" "true"
+
+    # Check for an error when trying to remove the service container
+    run_podman 125 container rm $service_container
+    is "$output" "Error: container .* is the service container of pod(s) .* and cannot be removed without removing the pod(s)"
+
+    # Kill the pod and make sure the service is not running.
+    # The restart policy is set to "never" since there is no
+    # design yet for propagating exit codes up to the service
+    # container.
+    run_podman pod kill test_pod
+    for i in {0..5}; do
+        run systemctl is-failed $service_name
+        if [[ $output == "failed" ]]; then
+            break
+        fi
+        sleep 0.5
+    done
+    is "$output" "failed" "systemd service transitioned to 'failed' state"
+
+    # Now stop and start the service again.
+    systemctl stop $service_name
+    systemctl start $service_name
+    systemctl is-active $service_name
+    run_podman container inspect $service_container --format "{{.State.Running}}"
+    is "$output" "true"
+
+    # Clean up
+    systemctl stop $service_name
+    run_podman 1 container exists $service_container
+    run_podman 1 pod exists test_pod
+}
+
 # vim: filetype=sh

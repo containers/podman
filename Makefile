@@ -832,7 +832,8 @@ install.docker-full: install.docker install.docker-docs
 ifneq (,$(findstring systemd,$(BUILDTAGS)))
 PODMAN_UNIT_FILES = contrib/systemd/auto-update/podman-auto-update.service \
 		    contrib/systemd/system/podman.service \
-		    contrib/systemd/system/podman-restart.service
+		    contrib/systemd/system/podman-restart.service \
+		    contrib/systemd/system/podman-play-kube@.service
 
 %.service: %.service.in
 	sed -e 's;@@PODMAN@@;$(BINDIR)/podman;g' $< >$@.tmp.$$ \
@@ -846,12 +847,14 @@ install.systemd: $(PODMAN_UNIT_FILES)
 	install ${SELINUXOPT} -m 644 contrib/systemd/system/podman.socket ${DESTDIR}${USERSYSTEMDDIR}/podman.socket
 	install ${SELINUXOPT} -m 644 contrib/systemd/system/podman.service ${DESTDIR}${USERSYSTEMDDIR}/podman.service
 	install ${SELINUXOPT} -m 644 contrib/systemd/system/podman-restart.service ${DESTDIR}${USERSYSTEMDDIR}/podman-restart.service
+	install ${SELINUXOPT} -m 644 contrib/systemd/system/podman-play-kube@.service ${DESTDIR}${USERSYSTEMDDIR}/podman-play-kube@.service
 	# System services
 	install ${SELINUXOPT} -m 644 contrib/systemd/auto-update/podman-auto-update.service ${DESTDIR}${SYSTEMDDIR}/podman-auto-update.service
 	install ${SELINUXOPT} -m 644 contrib/systemd/auto-update/podman-auto-update.timer ${DESTDIR}${SYSTEMDDIR}/podman-auto-update.timer
 	install ${SELINUXOPT} -m 644 contrib/systemd/system/podman.socket ${DESTDIR}${SYSTEMDDIR}/podman.socket
 	install ${SELINUXOPT} -m 644 contrib/systemd/system/podman.service ${DESTDIR}${SYSTEMDDIR}/podman.service
 	install ${SELINUXOPT} -m 644 contrib/systemd/system/podman-restart.service ${DESTDIR}${SYSTEMDDIR}/podman-restart.service
+	install ${SELINUXOPT} -m 644 contrib/systemd/system/podman-play-kube@.service ${DESTDIR}${SYSTEMDDIR}/podman-play-kube@.service
 	rm -f $(PODMAN_UNIT_FILES)
 else
 install.systemd:

@@ -171,7 +171,7 @@ func (c *Container) getContainerInspectData(size bool, driverData *define.Driver
 		Mounts:          inspectMounts,
 		Dependencies:    c.Dependencies(),
 		IsInfra:         c.IsInfra(),
-		IsService:       c.isService(),
+		IsService:       c.IsService(),
 	}
 
 	if c.state.ConfigPath != "" {

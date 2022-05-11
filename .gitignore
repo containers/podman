@@ -4,6 +4,7 @@
 /build/
 /conmon/
 contrib/spec/podman.spec
+contrib/systemd/*/*.service
 *.coverprofile
 coverprofile
 /.coverage

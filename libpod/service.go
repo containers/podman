@@ -54,11 +54,12 @@ func (c *Container) addServicePodLocked(id string) error {
 	return c.save()
 }
 
-func (c *Container) isService() bool {
+// IsService returns true when the container is a "service container".
+func (c *Container) IsService() bool {
 	return c.config.IsService
 }
 
-// canStopServiceContainer returns true if all pods of the service are stopped.
+// canStopServiceContainerLocked returns true if all pods of the service are stopped.
 // Note that the method acquires the container lock.
 func (c *Container) canStopServiceContainerLocked() (bool, error) {
 	c.lock.Lock()
@@ -67,10 +68,16 @@ func (c *Container) canStopServiceContainerLocked() (bool, error) {
 		return false, err
 	}
 
-	if !c.isService() {
+	if !c.IsService() {
 		return false, fmt.Errorf("internal error: checking service: container %s is not a service container", c.ID())
 	}
 
+	return c.canStopServiceContainer()
+}
+
+// canStopServiceContainer returns true if all pods of the service are stopped.
+// Note that the method expects the container to be locked.
+func (c *Container) canStopServiceContainer() (bool, error) {
 	for _, id := range c.state.Service.Pods {
 		pod, err := c.runtime.LookupPod(id)
 		if err != nil {
@@ -163,7 +170,7 @@ func (c *Container) canRemoveServiceContainerLocked() (bool, error) {
 		return false, err
 	}
 
-	if !c.isService() {
+	if !c.IsService() {
 		return false, fmt.Errorf("internal error: checking service: container %s is not a service container", c.ID())
 	}
 
