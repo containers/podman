@@ -51,15 +51,6 @@ The `UPDATED` field indicates the availability of a new image with "pending".
 Change the default output format.  This can be of a supported type like 'json' or a Go template.
 Valid placeholders for the Go template are listed below:
 
-#### **--rollback**
-
-If restarting a systemd unit after updating the image has failed, rollback to using the previous image and restart the unit another time.  Default is true.
-
-Please note that detecting if a systemd unit has failed is best done by the container sending the READY message via SDNOTIFY.  This way, restarting the unit will wait until having received the message or a timeout kicked in.  Without that, restarting the systemd unit may succeed even if the container has failed shortly after.
-
-For a container to send the READY message via SDNOTIFY it must be created with the `--sdnotify=container` option (see podman-run(1)).  The application running inside the container can then execute `systemd-notify --ready` when ready or use the sdnotify bindings of the specific programming language (e.g., sd_notify(3)).
-
-
 | **Placeholder** | **Description**                        |
 | --------------- | -------------------------------------- |
 | .Unit           | Name of the systemd unit               |
@@ -69,6 +60,14 @@ For a container to send the READY message via SDNOTIFY it must be created with t
 | .Image          | Name of the image                      |
 | .Policy         | Auto-update policy of the container    |
 | .Updated        | Update status: true,false,failed       |
+
+#### **--rollback**
+
+If restarting a systemd unit after updating the image has failed, rollback to using the previous image and restart the unit another time.  Default is true.
+
+Please note that detecting if a systemd unit has failed is best done by the container sending the READY message via SDNOTIFY.  This way, restarting the unit will wait until having received the message or a timeout kicked in.  Without that, restarting the systemd unit may succeed even if the container has failed shortly after.
+
+For a container to send the READY message via SDNOTIFY it must be created with the `--sdnotify=container` option (see podman-run(1)).  The application running inside the container can then execute `systemd-notify --ready` when ready or use the sdnotify bindings of the specific programming language (e.g., sd_notify(3)).
 
 
 ## EXAMPLES
