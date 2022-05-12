@@ -9,7 +9,6 @@ import (
 	"io"
 	"io/ioutil"
 	"math"
-	"net"
 	"os"
 	"os/user"
 	"path"
@@ -29,6 +28,7 @@ import (
 	"github.com/containers/buildah/pkg/overlay"
 	butil "github.com/containers/buildah/util"
 	"github.com/containers/common/libnetwork/etchosts"
+	"github.com/containers/common/libnetwork/resolvconf"
 	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/common/pkg/apparmor"
 	"github.com/containers/common/pkg/cgroups"
@@ -44,7 +44,6 @@ import (
 	"github.com/containers/podman/v4/pkg/checkpoint/crutils"
 	"github.com/containers/podman/v4/pkg/criu"
 	"github.com/containers/podman/v4/pkg/lookup"
-	"github.com/containers/podman/v4/pkg/resolvconf"
 	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/containers/podman/v4/utils"
@@ -2308,48 +2307,9 @@ rootless=%d
 // generateResolvConf generates a containers resolv.conf
 func (c *Container) generateResolvConf() error {
 	var (
-		nameservers          []string
 		networkNameServers   []string
 		networkSearchDomains []string
 	)
-
-	hostns := true
-	resolvConf := "/etc/resolv.conf"
-	for _, namespace := range c.config.Spec.Linux.Namespaces {
-		if namespace.Type == spec.NetworkNamespace {
-			hostns = false
-			if namespace.Path != "" && !strings.HasPrefix(namespace.Path, "/proc/") {
-				definedPath := filepath.Join("/etc/netns", filepath.Base(namespace.Path), "resolv.conf")
-				_, err := os.Stat(definedPath)
-				if err == nil {
-					resolvConf = definedPath
-				} else if !os.IsNotExist(err) {
-					return err
-				}
-			}
-			break
-		}
-	}
-
-	contents, err := ioutil.ReadFile(resolvConf)
-	// resolv.conf doesn't have to exists
-	if err != nil && !os.IsNotExist(err) {
-		return err
-	}
-
-	ns := resolvconf.GetNameservers(contents)
-	// check if systemd-resolved is used, assume it is used when 127.0.0.53 is the only nameserver
-	if !hostns && len(ns) == 1 && ns[0] == "127.0.0.53" {
-		// read the actual resolv.conf file for systemd-resolved
-		resolvedContents, err := ioutil.ReadFile("/run/systemd/resolve/resolv.conf")
-		if err != nil {
-			if !os.IsNotExist(err) {
-				return errors.Wrapf(err, "detected that systemd-resolved is in use, but could not locate real resolv.conf")
-			}
-		} else {
-			contents = resolvedContents
-		}
-	}
 
 	netStatus := c.getNetworkStatus()
 	for _, status := range netStatus {
@@ -2370,34 +2330,18 @@ func (c *Container) generateResolvConf() error {
 		return err
 	}
 
-	// Ensure that the container's /etc/resolv.conf is compatible with its
-	// network configuration.
-	resolv, err := resolvconf.FilterResolvDNS(contents, ipv6, !hostns)
-	if err != nil {
-		return errors.Wrapf(err, "error parsing host resolv.conf")
+	nameservers := make([]string, 0, len(c.runtime.config.Containers.DNSServers)+len(c.config.DNSServer))
+	nameservers = append(nameservers, c.runtime.config.Containers.DNSServers...)
+	for _, ip := range c.config.DNSServer {
+		nameservers = append(nameservers, ip.String())
 	}
-
-	dns := make([]net.IP, 0, len(c.runtime.config.Containers.DNSServers)+len(c.config.DNSServer))
-	for _, i := range c.runtime.config.Containers.DNSServers {
-		result := net.ParseIP(i)
-		if result == nil {
-			return errors.Wrapf(define.ErrInvalidArg, "invalid IP address %s", i)
-		}
-		dns = append(dns, result)
-	}
-	dns = append(dns, c.config.DNSServer...)
 	// If the user provided dns, it trumps all; then dns masq; then resolv.conf
 	var search []string
-	switch {
-	case len(dns) > 0:
-		// We store DNS servers as net.IP, so need to convert to string
-		for _, server := range dns {
-			nameservers = append(nameservers, server.String())
-		}
-	default:
-		// Make a new resolv.conf
+	keepHostServers := false
+	if len(nameservers) == 0 {
+		keepHostServers = true
 		// first add the nameservers from the networks status
-		nameservers = append(nameservers, networkNameServers...)
+		nameservers = networkNameServers
 		// when we add network dns server we also have to add the search domains
 		search = networkSearchDomains
 		// slirp4netns has a built in DNS forwarder.
@@ -2409,38 +2353,34 @@ func (c *Container) generateResolvConf() error {
 				nameservers = append(nameservers, slirp4netnsDNS.String())
 			}
 		}
-		nameservers = append(nameservers, resolvconf.GetNameservers(resolv.Content)...)
 	}
 
 	if len(c.config.DNSSearch) > 0 || len(c.runtime.config.Containers.DNSSearches) > 0 {
-		if !cutil.StringInSlice(".", c.config.DNSSearch) {
-			search = append(search, c.runtime.config.Containers.DNSSearches...)
-			search = append(search, c.config.DNSSearch...)
-		}
-	} else {
-		search = append(search, resolvconf.GetSearchDomains(resolv.Content)...)
+		customSearch := make([]string, 0, len(c.config.DNSSearch)+len(c.runtime.config.Containers.DNSSearches))
+		customSearch = append(customSearch, c.runtime.config.Containers.DNSSearches...)
+		customSearch = append(customSearch, c.config.DNSSearch...)
+		search = customSearch
 	}
 
-	var options []string
-	if len(c.config.DNSOption) > 0 || len(c.runtime.config.Containers.DNSOptions) > 0 {
-		options = c.runtime.config.Containers.DNSOptions
-		options = append(options, c.config.DNSOption...)
-	} else {
-		options = resolvconf.GetOptions(resolv.Content)
-	}
+	options := make([]string, 0, len(c.config.DNSOption)+len(c.runtime.config.Containers.DNSOptions))
+	options = append(options, c.runtime.config.Containers.DNSOptions...)
+	options = append(options, c.config.DNSOption...)
 
 	destPath := filepath.Join(c.state.RunDir, "resolv.conf")
 
-	if err := os.Remove(destPath); err != nil && !os.IsNotExist(err) {
-		return errors.Wrapf(err, "container %s", c.ID())
-	}
-
-	// Build resolv.conf
-	if _, err = resolvconf.Build(destPath, nameservers, search, options); err != nil {
+	if err := resolvconf.New(&resolvconf.Params{
+		IPv6Enabled:     ipv6,
+		KeepHostServers: keepHostServers,
+		Nameservers:     nameservers,
+		Namespaces:      c.config.Spec.Linux.Namespaces,
+		Options:         options,
+		Path:            destPath,
+		Searches:        search,
+	}); err != nil {
 		return errors.Wrapf(err, "error building resolv.conf for container %s", c.ID())
 	}
 
-	return c.bindMountRootFile(destPath, "/etc/resolv.conf")
+	return c.bindMountRootFile(destPath, resolvconf.DefaultResolvConf)
 }
 
 // Check if a container uses IPv6.
@@ -2481,31 +2421,13 @@ func (c *Container) addNameserver(ips []string) error {
 	}
 
 	// Do we have a resolv.conf at all?
-	path, ok := c.state.BindMounts["/etc/resolv.conf"]
+	path, ok := c.state.BindMounts[resolvconf.DefaultResolvConf]
 	if !ok {
 		return nil
 	}
 
-	// Read in full contents, parse out existing nameservers
-	contents, err := ioutil.ReadFile(path)
-	if err != nil {
-		return err
-	}
-	ns := resolvconf.GetNameservers(contents)
-	options := resolvconf.GetOptions(contents)
-	search := resolvconf.GetSearchDomains(contents)
-
-	// We could verify that it doesn't already exist
-	// but extra nameservers shouldn't harm anything.
-	// Ensure we are the first entry in resolv.conf though, otherwise we
-	// might be after user-added servers.
-	ns = append(ips, ns...)
-
-	// We're rewriting the container's resolv.conf as part of this, but we
-	// hold the container lock, so there should be no risk of parallel
-	// modification.
-	if _, err := resolvconf.Build(path, ns, search, options); err != nil {
-		return errors.Wrapf(err, "error adding new nameserver to container %s resolv.conf", c.ID())
+	if err := resolvconf.Add(path, ips); err != nil {
+		return fmt.Errorf("adding new nameserver to container %s resolv.conf: %w", c.ID(), err)
 	}
 
 	return nil
@@ -2520,34 +2442,13 @@ func (c *Container) removeNameserver(ips []string) error {
 	}
 
 	// Do we have a resolv.conf at all?
-	path, ok := c.state.BindMounts["/etc/resolv.conf"]
+	path, ok := c.state.BindMounts[resolvconf.DefaultResolvConf]
 	if !ok {
 		return nil
 	}
 
-	// Read in full contents, parse out existing nameservers
-	contents, err := ioutil.ReadFile(path)
-	if err != nil {
-		return err
-	}
-	ns := resolvconf.GetNameservers(contents)
-	options := resolvconf.GetOptions(contents)
-	search := resolvconf.GetSearchDomains(contents)
-
-	toRemove := make(map[string]bool)
-	for _, ip := range ips {
-		toRemove[ip] = true
-	}
-
-	newNS := make([]string, 0, len(ns))
-	for _, server := range ns {
-		if !toRemove[server] {
-			newNS = append(newNS, server)
-		}
-	}
-
-	if _, err := resolvconf.Build(path, newNS, search, options); err != nil {
-		return errors.Wrapf(err, "error removing nameservers from container %s resolv.conf", c.ID())
+	if err := resolvconf.Remove(path, ips); err != nil {
+		return fmt.Errorf("removing nameservers from container %s resolv.conf: %w", c.ID(), err)
 	}
 
 	return nil
