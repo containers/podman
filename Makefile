@@ -569,7 +569,7 @@ remoteintegration: test-binaries ginkgo-remote
 
 .PHONY: localbenchmarks
 localbenchmarks: test-binaries
-	ACK_GINKGO_RC=true $(GOBIN)/ginkgo \
+	PATH=$(PATH):$(shell PWD)/hack ACK_GINKGO_RC=true $(GOBIN)/ginkgo \
 		      -focus "Podman Benchmark Suite" \
 		      -tags "$(BUILDTAGS) benchmarks" -noColor \
 		      -noisySkippings=false -noisyPendings=false \
