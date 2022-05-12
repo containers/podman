@@ -109,7 +109,7 @@ github.com/containers/buildah/pkg/rusage
 github.com/containers/buildah/pkg/sshagent
 github.com/containers/buildah/pkg/util
 github.com/containers/buildah/util
-# github.com/containers/common v0.48.1-0.20220523155016-2fd37da97824
+# github.com/containers/common v0.48.1-0.20220528105338-54c8092c69a1
 ## explicit
 github.com/containers/common/libimage
 github.com/containers/common/libimage/define
