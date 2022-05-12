@@ -246,6 +246,7 @@ function _run_altbuild() {
     # shellcheck disable=SC2154
     msg "Performing alternate build: $ALT_NAME"
     msg "************************************************************"
+    set -x
     cd $GOSRC
     case "$ALT_NAME" in
         *Each*)
@@ -260,7 +261,7 @@ function _run_altbuild() {
             context_dir=$(mktemp -d --tmpdir make-size-check.XXXXXXX)
             savedhead=$(git rev-parse HEAD)
             # Push to PR base. First run of the script will write size files
-            pr_base=$(git merge-base --fork-point origin/$DEST_BRANCH)
+            pr_base=$(git merge-base origin/$DEST_BRANCH HEAD)
             git checkout $pr_base
             hack/make-and-check-size $context_dir
             # pop back to PR, and run incremental makes. Subsequent script
