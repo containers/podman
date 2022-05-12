@@ -53,6 +53,7 @@ Valid placeholders for the Go template are listed below:
 | .DNSEnabled       | Network has dns enabled (boolean)         |
 | .NetworkInterface | Name of the network interface on the host |
 | .Subnets          | List of subnets on this network           |
+| .Network ...      | Just an artifact. Not actually useful. |
 
 #### **--no-trunc**
 

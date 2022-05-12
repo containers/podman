@@ -58,6 +58,7 @@ Valid placeholders for the Go template are listed below:
 | .SystemNano     | Current system datetime, nanoseconds since epoch |
 | .UpTime         | WTF? This is Duration (CPUNano) in human-readable form?? |
 | .Up             | Same as UpTime (FIXME: why?) |
+| .ContainerStats ... | Just an artifact. Not actually useful. |
 
 When using a GO template, you may precede the format with `table` to print headers.
 

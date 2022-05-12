@@ -24,11 +24,11 @@ The keys of the returned JSON can be used as the values for the --format flag (s
 | .Architecture        | FIXME |
 | .Author              | FIXME |
 | .Comment             | FIXME |
-| .Config              | FIXME |
+| .Config ...          | FIXME |
 | .Created             | FIXME |
 | .Digest              | FIXME |
-| .GraphDriver         | FIXME |
-| .HealthCheck         | FIXME |
+| .GraphDriver ...     | FIXME |
+| .HealthCheck ...     | FIXME |
 | .History             | FIXME |
 | .ID                  | FIXME |
 | .Labels              | FIXME |
@@ -38,7 +38,7 @@ The keys of the returned JSON can be used as the values for the --format flag (s
 | .Parent              | FIXME |
 | .RepoDigests         | FIXME |
 | .RepoTags            | FIXME |
-| .RootFS              | FIXME |
+| .RootFS ...          | FIXME |
 | .Size                | FIXME |
 | .User                | FIXME |
 | .Version             | FIXME |

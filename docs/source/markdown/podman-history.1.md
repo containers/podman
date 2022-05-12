@@ -35,6 +35,7 @@ Valid placeholders for the Go template are listed below:
 | .Size           | Size of layer on disk                                |
 | .Comment        | Comment for the layer                                |
 | .Tags           | Image tags |
+| .ImageHistoryLayer ... | Just an artifact. Not actually useful. |
 
 #### **--help**, **-h**
 

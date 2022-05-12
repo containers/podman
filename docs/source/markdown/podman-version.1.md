@@ -18,8 +18,8 @@ Change output format to "json" or a Go template.
 
 | **Placeholder**     | **Description**          |
 | ------------------- | ------------------------ |
-| .Client             | Version of local podman  |
-| .Server             | Version of remote podman |
+| .Client ...         | Version of local podman  |
+| .Server ...         | Version of remote podman |
 
 Each of the above fields branch deeper into further subfields
 such as .Version, .APIVersion, .GoVersion, and more.

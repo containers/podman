@@ -41,11 +41,12 @@ Valid placeholders for the Go template are listed below:
 | .CreateCommand      | FIXME |
 | .Devices            | FIXME |
 | .ExitPolicy         | FIXME |
-| .InfraConfig        | FIXME |
+| .InfraConfig ...    | FIXME |
 | .Mounts             | FIXME |
 | .Namespace          | FIXME |
 | .SecurityOpts       | FIXME |
 | .VolumesFrom        | FIXME |
+| .InspectPodData ... | Just an artifact. Not actually useful. |
 
 #### **--latest**, **-l**
 

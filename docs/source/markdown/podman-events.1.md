@@ -106,6 +106,7 @@ Format the output to JSON Lines or using the given Go template.
 | .Status             | FIXME |
 | .Time               | FIXME |
 | .Type               | FIXME |
+| .Details ...        | Just an artifact. Not actually useful. |
 
 #### **--help**
 

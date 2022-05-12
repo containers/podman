@@ -24,6 +24,7 @@ Valid placeholders for the Go template listed below:
 | .Identity       | Path to file containing SSH identity |
 | .URI            | URI to podman service. Valid schemes are ssh://[user@]*host*[:port]*Unix domain socket*[?secure=True], unix://*Unix domain socket*, and tcp://localhost[:*port*] |
 | .Default        | Indicates whether connection is the default |
+| .Destination ... | Just an artifact. Not actually useful. |
 
 ## EXAMPLE
 ```

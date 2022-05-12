@@ -95,6 +95,7 @@ Valid placeholders for the Go template are listed below:
 | .Id                 | FIXME |
 | .InfraId            | FIXME |
 | .Namespace          | FIXME |
+| .ListPodsReport ... | Just an artifact. Not actually useful. |
 
 #### **--help**, **-h**
 

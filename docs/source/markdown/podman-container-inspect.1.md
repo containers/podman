@@ -25,15 +25,15 @@ Valid placeholders for the Go template are listed below:
 | .AppArmorProfile  | FIXME |
 | .Args             | FIXME |
 | .BoundingCaps     | FIXME |
-| .Config           | FIXME |
+| .Config ...       | FIXME |
 | .ConmonPidFile    | FIXME |
 | .Created          | FIXME |
 | .Dependencies     | FIXME |
 | .Driver           | FIXME |
 | .EffectiveCaps    | FIXME |
 | .ExecIDs          | FIXME |
-| .GraphDriver      | FIXME |
-| .HostConfig       | FIXME |
+| .GraphDriver ...  | FIXME |
+| .HostConfig ...   | FIXME |
 | .HostnamePath     | FIXME |
 | .HostsPath        | FIXME |
 | .ID               | FIXME |
@@ -45,7 +45,7 @@ Valid placeholders for the Go template are listed below:
 | .Mounts           | FIXME |
 | .Name             | FIXME |
 | .Namespace        | FIXME |
-| .NetworkSettings  | FIXME |
+| .NetworkSettings ... | FIXME |
 | .OCIConfigPath    | FIXME |
 | .OCIRuntime       | FIXME |
 | .Path             | FIXME |
@@ -57,7 +57,7 @@ Valid placeholders for the Go template are listed below:
 | .Rootfs           | FIXME |
 | .SizeRootFs       | FIXME |
 | .SizeRw           | FIXME |
-| .State            | FIXME |
+| .State ...        | FIXME |
 | .StaticDir        | FIXME |
 
 #### **--latest**, **-l**

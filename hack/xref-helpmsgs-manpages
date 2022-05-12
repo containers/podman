@@ -144,6 +144,16 @@ sub xref_by_help {
             # Otherwise, non-ref is leaf node such as a --option
         }
         else {
+            # Not documented in man. However, handle '...' as a special case
+            # in formatting strings. E.g., 'podman info .Host' is documented
+            # in the man page as '.Host ...' to indicate that the subfields
+            # are way too many to list individually.
+            my $k_copy = $k;
+            while ($k_copy =~ s/\.[^.]+$//) {
+                if (($man->{$k_copy}||'') eq '...') {
+                    next OPTION;
+                }
+            }
             my $man = $man->{_path} || 'man';
             warn "$ME: 'podman @subcommand --help' lists '$k', which is not in $man\n";
             ++$Errs;
@@ -422,8 +432,11 @@ sub podman_man {
             # --format does not always mean a Go format! E.g., push --format=oci
             if ($previous_flag eq '--format') {
                 # ...but if there's a table like '| .Foo | blah blah |'
-                # then it's definitely a Go template.
-                if ($line =~ /^\|\s+(\.\S+)\s+\|/) {
+                # then it's definitely a Go template. '.Foo ...' (three dots)
+                # indicates that .Foo includes a number of subfields .Foo.Xxx,
+                # .Foo.Yyy too numerous to list individually in man pages.
+                #                   1     12   3      32
+                if ($line =~ /^\|\s+(\.\S+)(\s+(\.\.\.))?\s+\|/) {
                     # Confirmed: we have a table with '.Foo' strings, so
                     # this is a Go template. Override previous (scalar)
                     # setting of the --format flag with a hash, indicating
@@ -432,8 +445,10 @@ sub podman_man {
                         $man{$previous_flag} = { _path => $subpath };
                     }
 
-                    # ...and document this format option
-                    $man{$previous_flag}{$1} = 1;
+                    # ...and document this format option. $3, if set,
+                    # will be '...' which indicates that $1 (the format)
+                    # has too many subformats to document individually.
+                    $man{$previous_flag}{$1} = $3 || 1;
                 }
             }
         }
@@ -553,8 +568,12 @@ sub _completions {
         if ($line =~ /^\{\{\..*\.$/) {
             # FIXME: Nope nope nope! Increases our count by over 500.
             # However, keep this for now so we can think about it later.
-#            pop @_;
-#            push @completions, _completions(@_, $line);
+            my @cmd_copy = @_;          # clone of podman subcommands...
+            pop @cmd_copy;              # ...so we can recurse with new format
+            my @subcompletions = _completions(@cmd_copy, $line);
+            my @is_time = grep { /Nanosecond|UnixNano|YearDay/ } @subcompletions;
+            push @completions, @subcompletions
+                unless @is_time >= 3;
         }
     }
     close $podman_fh

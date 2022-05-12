@@ -25,11 +25,11 @@ Change output format to "json" or a Go template.
 
 | **Placeholder**     | **Info pertaining to ...**              |
 | ------------------- | --------------------------------------- |
-| .Host               | ...the host on which podman is running  |
-| .Store              | ...the storage driver and paths         |
-| .Registries         | ...configured registries                |
-| .Plugins            | ...external plugins                     |
-| .Version            | ...podman version                       |
+| .Host ...           | ...the host on which podman is running  |
+| .Store ...          | ...the storage driver and paths         |
+| .Registries ...     | ...configured registries                |
+| .Plugins ...        | ...external plugins                     |
+| .Version ...        | ...podman version                       |
 
 Each of the above branch out into further subfields, more than can
 reasonably be enumerated in this document.

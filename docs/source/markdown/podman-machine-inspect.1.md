@@ -20,14 +20,14 @@ Print results with a Go template.
 
 | **Placeholder**     | **Description**    |
 | ------------------- | ------------------ |
-| .ConfigPath         | FIXME |
+| .ConfigPath ...     | FIXME |
 | .Created            | FIXME |
-| .Image              | FIXME |
+| .Image ...          | FIXME |
 | .LastUp             | FIXME |
 | .Name               | FIXME |
 | .State              | FIXME |
-| .Resources          | FIXME |
-| .SSHConfig          | FIXME |
+| .Resources ...      | FIXME |
+| .SSHConfig ...      | FIXME |
 
 #### **--help**
 

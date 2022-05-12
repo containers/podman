@@ -48,6 +48,8 @@ Format volume output using Go template.
 | .Scope              | FIXME |
 | .Status             | FIXME |
 | .UID                | FIXME |
+| .InspectVolumeData    ... | Just an artifact. Not actually useful. |
+| .VolumeConfigResponse ... | Just an artifact. Not actually useful. |
 
 #### **--help**
 

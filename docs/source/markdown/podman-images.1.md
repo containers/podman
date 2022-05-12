@@ -99,6 +99,7 @@ Valid placeholders for the Go template are listed below:
 | .RepoTags       | FIXME |
 | .SharedSize     | FIXME |
 | .VirtualSize    | FIXME |
+| .ImageSummary ... | Just an artifact. Not actually useful. |
 
 #### **--history**
 

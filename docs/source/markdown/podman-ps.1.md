@@ -78,7 +78,7 @@ Valid placeholders for the Go template are listed below:
 | .Status         | Status of container                              |
 | .Pod            | Pod the container is associated with             |
 | .Ports          | Exposed ports                                    |
-| .Size           | Size of container                                |
+| .Size ...       | Size of container                                |
 | .Names          | Name of container                                |
 | .Networks       | Show all networks connected to the container     |
 | .Labels         | All the labels assigned to the container         |
@@ -95,7 +95,7 @@ Valid placeholders for the Go template are listed below:
 | .IsInfra        | FIXME                                            |
 | .MNT            | FIXME                                            |
 | .NET            | FIXME                                            |
-| .Namespaces     | FIXME                                            |
+| .Namespaces ... | FIXME                                            |
 | .PIDNS          | FIXME                                            |
 | .Pid            | FIXME                                            |
 | .PodName        | FIXME                                            |
@@ -104,6 +104,7 @@ Valid placeholders for the Go template are listed below:
 | .User           | FIXME                                            |
 | .USERNS         | FIXME                                            |
 | .UTS            | FIXME                                            |
+| .ListContainer ... | Just an artifact. Not actually useful. |
 
 #### **--help**, **-h**
 
