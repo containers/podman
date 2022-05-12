@@ -24,10 +24,6 @@ const (
 	// _configPath is the path to the containers/containers.conf
 	// inside a given config directory.
 	_configPath = "containers/containers.conf"
-	// DefaultContainersConfig holds the default containers config path
-	DefaultContainersConfig = "/usr/share/" + _configPath
-	// OverrideContainersConfig holds the default config path overridden by the root user
-	OverrideContainersConfig = "/etc/" + _configPath
 	// UserOverrideContainersConfig holds the containers config path overridden by the rootless user
 	UserOverrideContainersConfig = ".config/" + _configPath
 )
@@ -803,7 +799,7 @@ func (c *Config) Validate() error {
 
 func (c *EngineConfig) findRuntime() string {
 	// Search for crun first followed by runc, kata, runsc
-	for _, name := range []string{"crun", "runc", "kata", "runsc"} {
+	for _, name := range []string{"crun", "runc", "runj", "kata", "runsc"} {
 		for _, v := range c.OCIRuntimes[name] {
 			if _, err := os.Stat(v); err == nil {
 				return name

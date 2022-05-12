@@ -2,6 +2,14 @@ package config
 
 import "os"
 
+const (
+	// OverrideContainersConfig holds the default config path overridden by the root user
+	OverrideContainersConfig = "/etc/" + _configPath
+
+	// DefaultContainersConfig holds the default containers config path
+	DefaultContainersConfig = "/usr/share/" + _configPath
+)
+
 // podman remote clients on windows cannot use unshare.isRootless() to determine the configuration file locations.
 func customConfigFile() (string, error) {
 	if path, found := os.LookupEnv("CONTAINERS_CONF"); found {
