@@ -25,7 +25,9 @@ func (c Car) Type() string {
 	return ""
 }
 
-func (c Car) Color() string {
+// Note: It is important that this function is *Car and the Type one is just Car.
+// The reflect logic behaves differently for these cases so we have to test both.
+func (c *Car) Color() string {
 	return ""
 }
 
@@ -94,7 +96,7 @@ func TestAutocompleteFormat(t *testing.T) {
 		{
 			"second level struct field name",
 			"{{ .Car.",
-			[]string{"{{ .Car.Brand}}", "{{ .Car.Stats.", "{{ .Car.Extras}}", "{{ .Car.Color}}", "{{ .Car.Type}}"},
+			[]string{"{{ .Car.Color}}", "{{ .Car.Type}}", "{{ .Car.Brand}}", "{{ .Car.Stats.", "{{ .Car.Extras}}"},
 		},
 		{
 			"second level struct field name",
@@ -104,7 +106,7 @@ func TestAutocompleteFormat(t *testing.T) {
 		{
 			"second level nil struct field name",
 			"{{ .Car2.",
-			[]string{"{{ .Car2.Brand}}", "{{ .Car2.Stats.", "{{ .Car2.Extras}}", "{{ .Car2.Color}}", "{{ .Car2.Type}}"},
+			[]string{"{{ .Car2.Color}}", "{{ .Car2.Type}}", "{{ .Car2.Brand}}", "{{ .Car2.Stats.", "{{ .Car2.Extras}}"},
 		},
 		{
 			"three level struct field name",
@@ -134,8 +136,8 @@ func TestAutocompleteFormat(t *testing.T) {
 		{
 			"two variables struct field name",
 			"{{ .Car.Brand }} {{ .Car.",
-			[]string{"{{ .Car.Brand }} {{ .Car.Brand}}", "{{ .Car.Brand }} {{ .Car.Stats.", "{{ .Car.Brand }} {{ .Car.Extras}}",
-				"{{ .Car.Brand }} {{ .Car.Color}}", "{{ .Car.Brand }} {{ .Car.Type}}"},
+			[]string{"{{ .Car.Brand }} {{ .Car.Color}}", "{{ .Car.Brand }} {{ .Car.Type}}", "{{ .Car.Brand }} {{ .Car.Brand}}",
+				"{{ .Car.Brand }} {{ .Car.Stats.", "{{ .Car.Brand }} {{ .Car.Extras}}"},
 		},
 		{
 			"only dot without variable",

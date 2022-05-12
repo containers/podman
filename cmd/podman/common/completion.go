@@ -992,13 +992,6 @@ func AutocompleteFormat(o interface{}) func(cmd *cobra.Command, args []string, t
 		fields := strings.Split(field[len(field)-1], ".")
 		f := reflect.ValueOf(o)
 		for i := 1; i < len(fields); i++ {
-			val := getActualStructType(f)
-			if val == nil {
-				// no struct return nothing to complete
-				return nil, cobra.ShellCompDirectiveNoFileComp
-			}
-			f = *val
-
 			// last field get all names to suggest
 			if i == len(fields)-1 {
 				suggestions := getStructFields(f, fields[i])
@@ -1008,6 +1001,14 @@ func AutocompleteFormat(o interface{}) func(cmd *cobra.Command, args []string, t
 				toComplete = strings.Join(toCompArr, ".")
 				return prefixSlice(toComplete, suggestions), cobra.ShellCompDirectiveNoSpace | cobra.ShellCompDirectiveNoFileComp
 			}
+
+			val := getActualStructType(f)
+			if val == nil {
+				// no struct return nothing to complete
+				return nil, cobra.ShellCompDirectiveNoFileComp
+			}
+			f = *val
+
 			// set the next struct field
 			f = f.FieldByName(fields[i])
 		}
@@ -1038,12 +1039,15 @@ func getActualStructType(f reflect.Value) *reflect.Value {
 
 // getStructFields reads all struct field names and method names and returns them.
 func getStructFields(f reflect.Value, prefix string) []string {
-	suggestions := []string{}
+	var suggestions []string
+	if f.IsValid() {
+		suggestions = append(suggestions, getMethodNames(f, prefix)...)
+	}
 
 	val := getActualStructType(f)
 	if val == nil {
 		// no struct return nothing to complete
-		return nil
+		return suggestions
 	}
 	f = *val
 
@@ -1069,7 +1073,11 @@ func getStructFields(f reflect.Value, prefix string) []string {
 			suggestions = append(suggestions, fname+suffix)
 		}
 	}
+	return suggestions
+}
 
+func getMethodNames(f reflect.Value, prefix string) []string {
+	suggestions := make([]string, 0, f.NumMethod())
 	for j := 0; j < f.NumMethod(); j++ {
 		fname := f.Type().Method(j).Name
 		if strings.HasPrefix(fname, prefix) {
@@ -1077,7 +1085,6 @@ func getStructFields(f reflect.Value, prefix string) []string {
 			suggestions = append(suggestions, fname+"}}")
 		}
 	}
-
 	return suggestions
 }
 
