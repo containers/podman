@@ -918,6 +918,9 @@ func (c *chunkedDiffer) storeMissingFiles(streams chan io.ReadCloser, errs chan 
 			case p := <-streams:
 				part = p
 			case err := <-errs:
+				if err == nil {
+					return errors.New("not enough data returned from the server")
+				}
 				return err
 			}
 			if part == nil {
@@ -1081,11 +1084,17 @@ func mergeMissingChunks(missingParts []missingPart, target int) []missingPart {
 
 func (c *chunkedDiffer) retrieveMissingFiles(dest string, dirfd int, missingParts []missingPart, options *archive.TarOptions) error {
 	var chunksToRequest []ImageSourceChunk
-	for _, c := range missingParts {
-		if c.OriginFile == nil && !c.Hole {
-			chunksToRequest = append(chunksToRequest, *c.SourceChunk)
+
+	calculateChunksToRequest := func() {
+		chunksToRequest = []ImageSourceChunk{}
+		for _, c := range missingParts {
+			if c.OriginFile == nil && !c.Hole {
+				chunksToRequest = append(chunksToRequest, *c.SourceChunk)
+			}
 		}
 	}
+
+	calculateChunksToRequest()
 
 	// There are some missing files.  Prepare a multirange request for the missing chunks.
 	var streams chan io.ReadCloser
@@ -1106,6 +1115,7 @@ func (c *chunkedDiffer) retrieveMissingFiles(dest string, dirfd int, missingPart
 
 			// Merge more chunks to request
 			missingParts = mergeMissingChunks(missingParts, requested/2)
+			calculateChunksToRequest()
 			continue
 		}
 		return err
@@ -1575,6 +1585,8 @@ func (c *chunkedDiffer) ApplyDiff(dest string, options *archive.TarOptions) (gra
 	wg.Wait()
 
 	for _, res := range copyResults[:filesToWaitFor] {
+		r := &mergedEntries[res.index]
+
 		if res.err != nil {
 			return output, res.err
 		}
@@ -1583,8 +1595,6 @@ func (c *chunkedDiffer) ApplyDiff(dest string, options *archive.TarOptions) (gra
 		if res.found {
 			continue
 		}
-
-		r := &mergedEntries[res.index]
 
 		missingPartsSize += r.Size
 

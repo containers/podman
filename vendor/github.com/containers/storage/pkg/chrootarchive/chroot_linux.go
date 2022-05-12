@@ -3,7 +3,9 @@ package chrootarchive
 import (
 	"fmt"
 	"io/ioutil"
+	"net"
 	"os"
+	"os/user"
 	"path/filepath"
 
 	"github.com/containers/storage/pkg/mount"
@@ -22,6 +24,11 @@ func chroot(path string) (err error) {
 	if err != nil {
 		return err
 	}
+
+	// initialize nss libraries in Glibc so that the dynamic libraries are loaded in the host
+	// environment not in the chroot from untrusted files.
+	_, _ = user.Lookup("storage")
+	_, _ = net.LookupHost("localhost")
 
 	// if the process doesn't have CAP_SYS_ADMIN, but does have CAP_SYS_CHROOT, we need to use the actual chroot
 	if !caps.Get(capability.EFFECTIVE, capability.CAP_SYS_ADMIN) && caps.Get(capability.EFFECTIVE, capability.CAP_SYS_CHROOT) {

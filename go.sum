@@ -343,8 +343,9 @@ github.com/containers/common v0.48.0 h1:997nnXBZ+eNpfSM7L4SxhhZubQrfEyw3jRyNMTSs
 github.com/containers/common v0.48.0/go.mod h1:zPLZCfLXfnd1jI0QRsD4By54fP4k1+ifQs+tulIe3o0=
 github.com/containers/conmon v2.0.20+incompatible h1:YbCVSFSCqFjjVwHTPINGdMX1F6JXHGTUje2ZYobNrkg=
 github.com/containers/conmon v2.0.20+incompatible/go.mod h1:hgwZ2mtuDrppv78a/cOBNiCm6O0UMWGx1mu7P00nu5I=
-github.com/containers/image/v5 v5.21.1 h1:Cr3zw2f0FZs4SCkdGlc8SN/mpcmg2AKG4OUuDbeGS/Q=
 github.com/containers/image/v5 v5.21.1/go.mod h1:zl35egpcDQa79IEXIuoUe1bW+D1pdxRxYjNlyb3YiXw=
+github.com/containers/image/v5 v5.21.2-0.20220511203756-fe4fd4ed8be4 h1:9yDGjKniCxCIVJwdiUHGTjguGJUcntDtWLUIz+LhyzY=
+github.com/containers/image/v5 v5.21.2-0.20220511203756-fe4fd4ed8be4/go.mod h1:OsX9sFexyGF0FCNAjfcVFv3IwMqDyLyV/WQY/roLPcE=
 github.com/containers/libtrust v0.0.0-20200511145503-9c3a6c22cd9a h1:spAGlqziZjCJL25C6F1zsQY05tfCKE9F5YwtEWWe6hU=
 github.com/containers/libtrust v0.0.0-20200511145503-9c3a6c22cd9a/go.mod h1:9rfv8iPl1ZP7aqh9YA68wnZv2NUDbXdcdPHVz0pFbPY=
 github.com/containers/ocicrypt v1.0.1/go.mod h1:MeJDzk1RJHv89LjsH0Sp5KTY3ZYkjXO/C+bKAeWFIrc=
@@ -359,8 +360,9 @@ github.com/containers/psgo v1.7.2/go.mod h1:SLpqxsPOHtTqRygjutCPXmeU2PoEFzV3gzJp
 github.com/containers/storage v1.37.0/go.mod h1:kqeJeS0b7DO2ZT1nVWs0XufrmPFbgV3c+Q/45RlH6r4=
 github.com/containers/storage v1.38.0/go.mod h1:lBzt28gAk5ADZuRtwdndRJyqX22vnRaXmlF+7ktfMYc=
 github.com/containers/storage v1.40.0/go.mod h1:zUyPC3CFIGR1OhY1CKkffxgw9+LuH76PGvVcFj38dgs=
-github.com/containers/storage v1.40.2 h1:GUlHaGnrs1JOEwv6YEvkQdgYXOXZdU1Angy4wgWNgF8=
 github.com/containers/storage v1.40.2/go.mod h1:zUyPC3CFIGR1OhY1CKkffxgw9+LuH76PGvVcFj38dgs=
+github.com/containers/storage v1.41.1-0.20220511210719-cacc3325a9c8 h1:4XdTbn3iVIr1+kN5srZND2G3/Q3hJiZSZZtKdL6r9jg=
+github.com/containers/storage v1.41.1-0.20220511210719-cacc3325a9c8/go.mod h1:Pb0l5Sm/89kolX3o2KolKQ5cCHk5vPNpJrhNaLcdS5s=
 github.com/coreos/bbolt v1.3.2/go.mod h1:iRUV2dpdMOn7Bo10OQBFzIJO9kkE559Wcmn+qkEiiKk=
 github.com/coreos/etcd v3.3.10+incompatible/go.mod h1:uF7uidLiAD3TWHmW31ZFd/JWoc32PjwdhPthX9715RE=
 github.com/coreos/etcd v3.3.13+incompatible/go.mod h1:uF7uidLiAD3TWHmW31ZFd/JWoc32PjwdhPthX9715RE=
@@ -831,8 +833,9 @@ github.com/klauspost/compress v1.13.5/go.mod h1:/3/Vjq9QcHkK5uEr5lBEmyoZ1iFhe47e
 github.com/klauspost/compress v1.13.6/go.mod h1:/3/Vjq9QcHkK5uEr5lBEmyoZ1iFhe47etQ6QUkpK6sk=
 github.com/klauspost/compress v1.14.1/go.mod h1:/3/Vjq9QcHkK5uEr5lBEmyoZ1iFhe47etQ6QUkpK6sk=
 github.com/klauspost/compress v1.15.1/go.mod h1:/3/Vjq9QcHkK5uEr5lBEmyoZ1iFhe47etQ6QUkpK6sk=
-github.com/klauspost/compress v1.15.2 h1:3WH+AG7s2+T8o3nrM/8u2rdqUEcQhmga7smjrT41nAw=
 github.com/klauspost/compress v1.15.2/go.mod h1:PhcZ0MbTNciWF3rruxRgKxI5NkcHHrHUDtV4Yw2GlzU=
+github.com/klauspost/compress v1.15.4 h1:1kn4/7MepF/CHmYub99/nNX8az0IJjfSOU/jbnTVfqQ=
+github.com/klauspost/compress v1.15.4/go.mod h1:PhcZ0MbTNciWF3rruxRgKxI5NkcHHrHUDtV4Yw2GlzU=
 github.com/klauspost/pgzip v1.2.5 h1:qnWYvvKqedOF2ulHpMG72XQol4ILEJ8k2wwRl/Km8oE=
 github.com/klauspost/pgzip v1.2.5/go.mod h1:Ch1tH69qFZu15pkjo5kYi6mth2Zzwzt50oCQKQE9RUs=
 github.com/konsorten/go-windows-terminal-sequences v1.0.1/go.mod h1:T0+1ngSBFLxvqU3pZ+m/2kptfBszLMUkC4ZK/EgS/cQ=

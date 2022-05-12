@@ -25,7 +25,7 @@ var systemRegistriesDirPath = builtinRegistriesDirPath
 
 // builtinRegistriesDirPath is the path to registries.d.
 // DO NOT change this, instead see systemRegistriesDirPath above.
-const builtinRegistriesDirPath = "/etc/containers/registries.d"
+const builtinRegistriesDirPath = etcDir + "/containers/registries.d"
 
 // userRegistriesDirPath is the path to the per user registries.d.
 var userRegistriesDir = filepath.FromSlash(".config/containers/registries.d")

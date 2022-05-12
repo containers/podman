@@ -61,8 +61,8 @@ type certPath struct {
 var (
 	homeCertDir     = filepath.FromSlash(".config/containers/certs.d")
 	perHostCertDirs = []certPath{
-		{path: "/etc/containers/certs.d", absolute: true},
-		{path: "/etc/docker/certs.d", absolute: true},
+		{path: etcDir + "/containers/certs.d", absolute: true},
+		{path: etcDir + "/docker/certs.d", absolute: true},
 	}
 
 	defaultUserAgent = "containers/" + version.Version + " (github.com/containers/image)"

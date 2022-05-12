@@ -155,7 +155,7 @@ github.com/containers/common/version
 # github.com/containers/conmon v2.0.20+incompatible
 ## explicit
 github.com/containers/conmon/runner/config
-# github.com/containers/image/v5 v5.21.1
+# github.com/containers/image/v5 v5.21.2-0.20220511203756-fe4fd4ed8be4
 ## explicit
 github.com/containers/image/v5/copy
 github.com/containers/image/v5/directory
@@ -235,7 +235,7 @@ github.com/containers/psgo/internal/dev
 github.com/containers/psgo/internal/host
 github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
-# github.com/containers/storage v1.40.2
+# github.com/containers/storage v1.41.1-0.20220511210719-cacc3325a9c8
 ## explicit
 github.com/containers/storage
 github.com/containers/storage/drivers
@@ -450,7 +450,7 @@ github.com/jinzhu/copier
 # github.com/json-iterator/go v1.1.12
 ## explicit
 github.com/json-iterator/go
-# github.com/klauspost/compress v1.15.2
+# github.com/klauspost/compress v1.15.4
 github.com/klauspost/compress
 github.com/klauspost/compress/flate
 github.com/klauspost/compress/fse

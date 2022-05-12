@@ -290,13 +290,6 @@ func (d *frameDec) checkCRC() error {
 	if !d.HasCheckSum {
 		return nil
 	}
-	var tmp [4]byte
-	got := d.crc.Sum64()
-	// Flip to match file order.
-	tmp[0] = byte(got >> 0)
-	tmp[1] = byte(got >> 8)
-	tmp[2] = byte(got >> 16)
-	tmp[3] = byte(got >> 24)
 
 	// We can overwrite upper tmp now
 	want, err := d.rawInput.readSmall(4)
@@ -305,7 +298,19 @@ func (d *frameDec) checkCRC() error {
 		return err
 	}
 
-	if !bytes.Equal(tmp[:], want) && !ignoreCRC {
+	if d.o.ignoreChecksum {
+		return nil
+	}
+
+	var tmp [4]byte
+	got := d.crc.Sum64()
+	// Flip to match file order.
+	tmp[0] = byte(got >> 0)
+	tmp[1] = byte(got >> 8)
+	tmp[2] = byte(got >> 16)
+	tmp[3] = byte(got >> 24)
+
+	if !bytes.Equal(tmp[:], want) {
 		if debugDecoder {
 			println("CRC Check Failed:", tmp[:], "!=", want)
 		}
@@ -314,6 +319,19 @@ func (d *frameDec) checkCRC() error {
 	if debugDecoder {
 		println("CRC ok", tmp[:])
 	}
+	return nil
+}
+
+// consumeCRC reads the checksum data if the frame has one.
+func (d *frameDec) consumeCRC() error {
+	if d.HasCheckSum {
+		_, err := d.rawInput.readSmall(4)
+		if err != nil {
+			println("CRC missing?", err)
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -373,13 +391,17 @@ func (d *frameDec) runDecoder(dst []byte, dec *blockDec) ([]byte, error) {
 		if d.FrameContentSize != fcsUnknown && uint64(len(d.history.b)-crcStart) != d.FrameContentSize {
 			err = ErrFrameSizeMismatch
 		} else if d.HasCheckSum {
-			var n int
-			n, err = d.crc.Write(dst[crcStart:])
-			if err == nil {
-				if n != len(dst)-crcStart {
-					err = io.ErrShortWrite
-				} else {
-					err = d.checkCRC()
+			if d.o.ignoreChecksum {
+				err = d.consumeCRC()
+			} else {
+				var n int
+				n, err = d.crc.Write(dst[crcStart:])
+				if err == nil {
+					if n != len(dst)-crcStart {
+						err = io.ErrShortWrite
+					} else {
+						err = d.checkCRC()
+					}
 				}
 			}
 		}

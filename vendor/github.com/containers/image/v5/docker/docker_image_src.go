@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -343,11 +344,15 @@ func handle206Response(streams chan io.ReadCloser, errs chan error, body io.Read
 	buffered := makeBufferedNetworkReader(body, 64, 16384)
 	defer buffered.Close()
 	mr := multipart.NewReader(buffered, boundary)
+	parts := 0
 	for {
 		p, err := mr.NextPart()
 		if err != nil {
 			if err != io.EOF {
 				errs <- err
+			}
+			if parts != len(chunks) {
+				errs <- errors.Errorf("invalid number of chunks returned by the server")
 			}
 			return
 		}
@@ -359,7 +364,32 @@ func handle206Response(streams chan io.ReadCloser, errs chan error, body io.Read
 		// NextPart() cannot be called while the current part
 		// is being read, so wait until it is closed
 		<-s.closed
+		parts++
 	}
+}
+
+var multipartByteRangesRe = regexp.MustCompile("multipart/byteranges; boundary=([A-Za-z-0-9:]+)")
+
+func parseMediaType(contentType string) (string, map[string]string, error) {
+	mediaType, params, err := mime.ParseMediaType(contentType)
+	if err != nil {
+		if err == mime.ErrInvalidMediaParameter {
+			// CloudFront returns an invalid MIME type, that contains an unquoted ":" in the boundary
+			// param, let's handle it here.
+			matches := multipartByteRangesRe.FindStringSubmatch(contentType)
+			if len(matches) == 2 {
+				mediaType = "multipart/byteranges"
+				params = map[string]string{
+					"boundary": matches[1],
+				}
+				err = nil
+			}
+		}
+		if err != nil {
+			return "", nil, err
+		}
+	}
+	return mediaType, params, err
 }
 
 // GetBlobAt returns a sequential channel of readers that contain data for the requested
@@ -397,7 +427,7 @@ func (s *dockerImageSource) GetBlobAt(ctx context.Context, info types.BlobInfo, 
 		go splitHTTP200ResponseToPartial(streams, errs, res.Body, chunks)
 		return streams, errs, nil
 	case http.StatusPartialContent:
-		mediaType, params, err := mime.ParseMediaType(res.Header.Get("Content-Type"))
+		mediaType, params, err := parseMediaType(res.Header.Get("Content-Type"))
 		if err != nil {
 			return nil, nil, err
 		}

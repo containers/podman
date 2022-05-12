@@ -17,6 +17,16 @@ This package provides various compression algorithms.
 
 # changelog
 
+* May 5, 2022 (v1.15.3)
+	* zstd: Allow to ignore checksum checking by @WojciechMula [#572](https://github.com/klauspost/compress/pull/572)
+	* s2: Fix incorrect seek for io.SeekEnd in [#575](https://github.com/klauspost/compress/pull/575)
+
+* Apr 26, 2022 (v1.15.2)
+	* zstd: Add x86-64 assembly for decompression on streams and blocks. Contributed by [@WojciechMula](https://github.com/WojciechMula). Typically 2x faster.  [#528](https://github.com/klauspost/compress/pull/528) [#531](https://github.com/klauspost/compress/pull/531) [#545](https://github.com/klauspost/compress/pull/545) [#537](https://github.com/klauspost/compress/pull/537)
+	* zstd: Add options to ZipDecompressor and fixes [#539](https://github.com/klauspost/compress/pull/539)
+	* s2: Use sorted search for index [#555](https://github.com/klauspost/compress/pull/555)
+	* Minimum version is Go 1.16, added CI test on 1.18.
+
 * Mar 11, 2022 (v1.15.1)
 	* huff0: Add x86 assembly of Decode4X by @WojciechMula in [#512](https://github.com/klauspost/compress/pull/512)
 	* zstd: Reuse zip decoders in [#514](https://github.com/klauspost/compress/pull/514)

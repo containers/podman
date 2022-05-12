@@ -5,8 +5,8 @@
 # files.
 #
 #  Note: The storage.conf file overrides other storage.conf files based on this precedence:
-#      /usr/containers/storage.conf
-#      /etc/containers/storage.conf
+#      /usr/local/share/containers/storage.conf
+#      /usr/local/etc/containers/storage.conf
 #      $HOME/.config/containers/storage.conf
 #      $XDG_CONFIG_HOME/containers/storage.conf (If XDG_CONFIG_HOME is set)
 # See man 5 containers-storage.conf for more information

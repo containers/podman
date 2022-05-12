@@ -1195,6 +1195,11 @@ func (s *store) imageTopLayerForMapping(image *Image, ristore ROImageStore, crea
 				if layer == nil {
 					layer = cLayer
 					parentLayer = cParentLayer
+					if store != rlstore {
+						// The layer is in another store, so we cannot
+						// create a mapped version of it to the image.
+						createMappedLayer = false
+					}
 				}
 			}
 		}
