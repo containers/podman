@@ -3,6 +3,7 @@ package integration
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
 	. "github.com/containers/podman/v4/test/utils"
 	. "github.com/onsi/ginkgo"
@@ -90,7 +91,8 @@ var _ = Describe("Podman volume create", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
-		session = podmanTest.Podman([]string{"volume", "export", volName, "--output=hello.tar"})
+		helloTar := filepath.Join(podmanTest.TempDir, "hello.tar")
+		session = podmanTest.Podman([]string{"volume", "export", volName, "--output", helloTar})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
@@ -98,7 +100,7 @@ var _ = Describe("Podman volume create", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
-		session = podmanTest.Podman([]string{"volume", "import", "my_vol2", "hello.tar"})
+		session = podmanTest.Podman([]string{"volume", "import", "my_vol2", helloTar})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(Equal(""), "output of volume import")
