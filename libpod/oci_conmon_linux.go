@@ -36,7 +36,6 @@ import (
 	"github.com/containers/podman/v4/utils"
 	"github.com/containers/storage/pkg/homedir"
 	pmount "github.com/containers/storage/pkg/mount"
-	"github.com/coreos/go-systemd/v22/daemon"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
@@ -1279,19 +1278,6 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 		// conmon not having a pid file is a valid state, so don't set it if we don't have it
 		logrus.Infof("Got Conmon PID as %d", conmonPID)
 		ctr.state.ConmonPID = conmonPID
-
-		// Send the MAINPID via sdnotify if needed.
-		switch ctr.config.SdNotifyMode {
-		case define.SdNotifyModeContainer, define.SdNotifyModeIgnore:
-		// Nothing to do or conmon takes care of it already.
-
-		default:
-			if sent, err := daemon.SdNotify(false, fmt.Sprintf("MAINPID=%d", conmonPID)); err != nil {
-				logrus.Errorf("Notifying systemd of Conmon PID: %v", err)
-			} else if sent {
-				logrus.Debugf("Notify MAINPID sent successfully")
-			}
-		}
 	}
 
 	runtimeRestoreDuration := func() int64 {
