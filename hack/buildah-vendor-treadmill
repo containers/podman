@@ -14,9 +14,10 @@ use warnings;
 use File::Temp                  qw(tempfile);
 use JSON;
 use LWP::UserAgent;
+use POSIX                       qw(strftime);
 
 (our $ME = $0) =~ s|.*/||;
-our $VERSION = '0.2';
+our $VERSION = '0.3';
 
 # For debugging, show data structures using DumpTree($var)
 #use Data::TreeDumper; $Data::TreeDumper::Displayaddress = 0;
@@ -65,7 +66,7 @@ eval '
 
 sub usage {
     print  <<"END_USAGE";
-Usage: $ME [OPTIONS] [--sync | --pick ]
+Usage: $ME [OPTIONS] [--sync | --pick | --reset ]
 
 $ME is (2022-04-20) **EXPERIMENTAL**
 
@@ -81,6 +82,9 @@ Call me with one of two options:
 
     --pick  Used for really-truly vendoring in a new buildah; will
             cherry-pick a commit on your buildah-vendor working branch
+
+    --reset Used after vendoring buildah into main, when there
+            really aren't any buildah patches to keep rolling.
 
 For latest documentation and best practices, please see:
 
@@ -105,8 +109,9 @@ our $NOT     = '';              # print "blahing the blah$NOT\n" if $debug
 sub handle_opts {
     use Getopt::Long;
     GetOptions(
-        'sync'       => sub { $action{sync}++ },
-        'pick'       => sub { $action{pick}++ },
+        'sync'       => sub { $action{sync}++  },
+        'pick'       => sub { $action{pick}++  },
+        'reset'      => sub { $action{reset}++ },
 
         'force-old-main'  => \$force_old_main,
         'force-testing'   => \$force_testing,
@@ -183,8 +188,10 @@ sub do_sync {
     pull_main();
     git('checkout', '-q', $current_branch);
 
-    # Preserve local patches
-    git('format-patch', "--output=$Patch_File", 'HEAD^');
+    # Preserve local patches. --always will generate empty patches (e.g.,
+    # after a buildah vendor when everything is copacetic); --no-signature
+    # prevents a buildup of "-- 2.35" (git version) lines at the end.
+    git('format-patch', '--always', '--no-signature', "--output=$Patch_File", 'HEAD^');
     progress("Treadmill patches saved to $Patch_File");
 
     #
@@ -250,20 +257,11 @@ END_FAIL_INSTRUCTIONS
     }
 
     # Commit everything.
-    git('commit', '-as', '-m', <<"END_COMMIT_MESSAGE");
-[DO NOT MERGE] vendor in buildah \@ $buildah_new
-
-This is a JUNK COMMIT from $ME v$VERSION.
-
-DO NOT MERGE. This is just a way to keep the buildah-podman
-vendoring in sync. Refer to:
-
-   $Docs_URL
-END_COMMIT_MESSAGE
+    git_commit_buildah($buildah_new);
 
     # And, finally, this has the highest possibility of failing
     progress('Reapplying preserved patches');
-    git('am', $Patch_File);
+    git('am', '--empty=keep', $Patch_File);
 
     # It worked! Clean up: remove our local die() handler and the patch file
     undef $SIG{__DIE__};
@@ -638,6 +636,38 @@ END_EDIT_SCRIPT
 
 # END   pick and its helpers
 ###############################################################################
+# BEGIN reset and its helpers
+
+sub do_reset {
+    my $current_branch = git_current_branch();
+
+    # Make sure side branch == main (i.e., there are no commits on the branch)
+    if (git('rev-parse', $current_branch) ne git('rev-parse', 'main')) {
+        die "$ME: for --reset, $current_branch must == main\n";
+    }
+
+    # Pull main, and pivot back to this branch
+    pull_main();
+    git('checkout', '-q', $current_branch);
+
+    git('rebase', '--empty=keep', 'main');
+    git_commit_buildah('[none]');
+
+    my $ymd = strftime("%Y-%m-%d", localtime);
+    git('commit', '--allow-empty', '-s', '-m' => <<"END_COMMIT_MESSAGE");
+$Treadmill_PR_Title
+
+As you run --sync, please update this commit message with your
+actual changes.
+
+Changes since $ymd:
+END_COMMIT_MESSAGE
+
+    progress("Done. You may now run --sync.\n");
+}
+
+# END   reset and its helpers
+###############################################################################
 # BEGIN general-purpose helpers
 
 ##############
@@ -728,6 +758,24 @@ sub git_upstream {
     die "$ME: did not find a remote with 'github.com/containers/podman'\n";
 }
 
+########################
+#  git_commit_buildah  #  Do the buildah commit
+########################
+sub git_commit_buildah {
+    my $buildah_version = shift;
+
+    # When called by --reset, this can be empty
+    git('commit', '-as', '--allow-empty', '-m', <<"END_COMMIT_MESSAGE");
+DO NOT MERGE: vendor in buildah \@ $buildah_version
+
+This is a JUNK COMMIT from $ME v$VERSION.
+
+DO NOT MERGE! This is just a way to keep the buildah-podman
+vendoring in sync. Refer to:
+
+   $Docs_URL
+END_COMMIT_MESSAGE
+}
 
 #########
 #  git  #  Run a git command
