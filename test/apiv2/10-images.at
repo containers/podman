@@ -156,6 +156,17 @@ t GET images/json?filters='{"reference":["test1"]}' 200 length=1
 
 t DELETE libpod/images/test1:latest 200
 
+# to be used in prune until filter tests
+podman image build -t docker.io/library/test1:latest -<<EOF
+from alpine
+RUN >file4
+EOF
+podman create --name test1 test1 echo hi
+
+t DELETE images/test1:latest 409
+podman rm test1
+t DELETE images/test1:latest 200
+
 t GET "images/get?names=alpine" 200 '[POSIX tar archive]'
 
 podman pull busybox
