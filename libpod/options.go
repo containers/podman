@@ -1,6 +1,7 @@
 package libpod
 
 import (
+	"fmt"
 	"net"
 	"os"
 	"path/filepath"
@@ -1477,7 +1478,7 @@ func WithCreateCommand(cmd []string) CtrCreateOption {
 	}
 }
 
-// withIsInfra allows us to dfferentiate between infra containers and regular containers
+// withIsInfra allows us to dfferentiate between infra containers and other containers
 // within the container config
 func withIsInfra() CtrCreateOption {
 	return func(ctr *Container) error {
@@ -1486,6 +1487,20 @@ func withIsInfra() CtrCreateOption {
 		}
 
 		ctr.config.IsInfra = true
+
+		return nil
+	}
+}
+
+// WithIsService allows us to dfferentiate between service containers and other container
+// within the container config
+func WithIsService() CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return define.ErrCtrFinalized
+		}
+
+		ctr.config.IsService = true
 
 		return nil
 	}
@@ -2077,6 +2092,27 @@ func WithInfraContainer() PodCreateOption {
 		}
 		pod.config.HasInfra = true
 
+		return nil
+	}
+}
+
+// WithServiceContainer associates the specified service container ID with the pod.
+func WithServiceContainer(id string) PodCreateOption {
+	return func(pod *Pod) error {
+		if pod.valid {
+			return define.ErrPodFinalized
+		}
+
+		ctr, err := pod.runtime.LookupContainer(id)
+		if err != nil {
+			return fmt.Errorf("looking up service container: %w", err)
+		}
+
+		if err := ctr.addServicePodLocked(pod.ID()); err != nil {
+			return fmt.Errorf("associating service container %s with pod %s: %w", id, pod.ID(), err)
+		}
+
+		pod.config.ServiceContainerID = id
 		return nil
 	}
 }

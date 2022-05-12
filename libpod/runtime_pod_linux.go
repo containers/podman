@@ -380,6 +380,10 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool,
 		}
 	}
 
+	if err := p.maybeRemoveServiceContainer(); err != nil {
+		return err
+	}
+
 	// Remove pod from state
 	if err := r.state.RemovePod(p); err != nil {
 		if removalErr != nil {

@@ -6,6 +6,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/pkg/shortnames"
 	storageTransport "github.com/containers/image/v5/storage"
@@ -22,13 +23,16 @@ import (
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 // tmpdir returns a path to a temporary directory.
-func tmpdir() string {
-	tmpdir := os.Getenv("TMPDIR")
-	if tmpdir == "" {
-		tmpdir = "/var/tmp"
+func tmpdir() (string, error) {
+	var tmpdir string
+	defaultContainerConfig, err := config.Default()
+	if err == nil {
+		tmpdir, err = defaultContainerConfig.ImageCopyTmpDir()
+		if err == nil {
+			return tmpdir, nil
+		}
 	}
-
-	return tmpdir
+	return tmpdir, err
 }
 
 // RuntimeOptions allow for creating a customized Runtime.
@@ -103,7 +107,11 @@ func RuntimeFromStore(store storage.Store, options *RuntimeOptions) (*Runtime, e
 		systemContext = types.SystemContext{}
 	}
 	if systemContext.BigFilesTemporaryDir == "" {
-		systemContext.BigFilesTemporaryDir = tmpdir()
+		tmpdir, err := tmpdir()
+		if err != nil {
+			return nil, err
+		}
+		systemContext.BigFilesTemporaryDir = tmpdir
 	}
 
 	setRegistriesConfPath(&systemContext)
@@ -224,16 +232,15 @@ func (r *Runtime) LookupImage(name string, options *LookupImageOptions) (*Image,
 		}
 		logrus.Debugf("Found image %q in local containers storage (%s)", name, storageRef.StringWithinTransport())
 		return r.storageToImage(img, storageRef), "", nil
-	} else {
-		// Docker compat: strip off the tag iff name is tagged and digested
-		// (e.g., fedora:latest@sha256...).  In that case, the tag is stripped
-		// off and entirely ignored.  The digest is the sole source of truth.
-		normalizedName, err := normalizeTaggedDigestedString(name)
-		if err != nil {
-			return nil, "", err
-		}
-		name = normalizedName
 	}
+	// Docker compat: strip off the tag iff name is tagged and digested
+	// (e.g., fedora:latest@sha256...).  In that case, the tag is stripped
+	// off and entirely ignored.  The digest is the sole source of truth.
+	normalizedName, err := normalizeTaggedDigestedString(name)
+	if err != nil {
+		return nil, "", err
+	}
+	name = normalizedName
 
 	byDigest := false
 	originalName := name

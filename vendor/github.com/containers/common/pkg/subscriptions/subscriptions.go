@@ -212,8 +212,8 @@ func rchown(chowndir string, uid, gid int) error {
 // addSubscriptionsFromMountsFile copies the contents of host directory to container directory
 // and returns a list of mounts
 func addSubscriptionsFromMountsFile(filePath, mountLabel, containerRunDir string, uid, gid int) ([]rspec.Mount, error) {
-	var mounts []rspec.Mount
 	defaultMountsPaths := getMounts(filePath)
+	mounts := make([]rspec.Mount, 0, len(defaultMountsPaths))
 	for _, path := range defaultMountsPaths {
 		hostDirOrFile, ctrDirOrFile, err := getMountsMap(path)
 		if err != nil {

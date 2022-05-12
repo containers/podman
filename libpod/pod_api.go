@@ -75,6 +75,10 @@ func (p *Pod) Start(ctx context.Context) (map[string]error, error) {
 		return nil, define.ErrPodRemoved
 	}
 
+	if err := p.maybeStartServiceContainer(ctx); err != nil {
+		return nil, err
+	}
+
 	// Before "regular" containers start in the pod, all init containers
 	// must have run and exited successfully.
 	if err := p.startInitContainers(ctx); err != nil {
@@ -197,6 +201,11 @@ func (p *Pod) stopWithTimeout(ctx context.Context, cleanup bool, timeout int) (m
 	if len(ctrErrors) > 0 {
 		return ctrErrors, errors.Wrapf(define.ErrPodPartialFail, "error stopping some containers")
 	}
+
+	if err := p.maybeStopServiceContainer(); err != nil {
+		return nil, err
+	}
+
 	return nil, nil
 }
 
@@ -295,6 +304,10 @@ func (p *Pod) Cleanup(ctx context.Context) (map[string]error, error) {
 
 	if len(ctrErrors) > 0 {
 		return ctrErrors, errors.Wrapf(define.ErrPodPartialFail, "error cleaning up some containers")
+	}
+
+	if err := p.maybeStopServiceContainer(); err != nil {
+		return nil, err
 	}
 
 	return nil, nil
@@ -443,6 +456,10 @@ func (p *Pod) Restart(ctx context.Context) (map[string]error, error) {
 		return nil, define.ErrPodRemoved
 	}
 
+	if err := p.maybeStartServiceContainer(ctx); err != nil {
+		return nil, err
+	}
+
 	allCtrs, err := p.runtime.state.PodContainers(p)
 	if err != nil {
 		return nil, err
@@ -530,6 +547,11 @@ func (p *Pod) Kill(ctx context.Context, signal uint) (map[string]error, error) {
 	if len(ctrErrors) > 0 {
 		return ctrErrors, errors.Wrapf(define.ErrPodPartialFail, "error killing some containers")
 	}
+
+	if err := p.maybeStopServiceContainer(); err != nil {
+		return nil, err
+	}
+
 	return nil, nil
 }
 

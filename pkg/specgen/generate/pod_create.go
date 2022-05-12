@@ -2,13 +2,8 @@ package generate
 
 import (
 	"context"
-	"fmt"
-	"io/ioutil"
 	"net"
-	"os"
 
-	buildahDefine "github.com/containers/buildah/define"
-	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v4/libpod"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/domain/entities"
@@ -17,98 +12,18 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func buildPauseImage(rt *libpod.Runtime, rtConfig *config.Config) (string, error) {
-	version, err := define.GetVersion()
-	if err != nil {
-		return "", err
-	}
-	imageName := fmt.Sprintf("localhost/podman-pause:%s-%d", version.Version, version.Built)
-
-	// First check if the image has already been built.
-	if _, _, err := rt.LibimageRuntime().LookupImage(imageName, nil); err == nil {
-		return imageName, nil
-	}
-
-	// Also look into the path as some distributions install catatonit in
-	// /usr/bin.
-	catatonitPath, err := rtConfig.FindHelperBinary("catatonit", true)
-	if err != nil {
-		return "", fmt.Errorf("finding pause binary: %w", err)
-	}
-
-	buildContent := fmt.Sprintf(`FROM scratch
-COPY %s /catatonit
-ENTRYPOINT ["/catatonit", "-P"]`, catatonitPath)
-
-	tmpF, err := ioutil.TempFile("", "pause.containerfile")
-	if err != nil {
-		return "", err
-	}
-	if _, err := tmpF.WriteString(buildContent); err != nil {
-		return "", err
-	}
-	if err := tmpF.Close(); err != nil {
-		return "", err
-	}
-	defer os.Remove(tmpF.Name())
-
-	buildOptions := buildahDefine.BuildOptions{
-		CommonBuildOpts: &buildahDefine.CommonBuildOptions{},
-		Output:          imageName,
-		Quiet:           true,
-		IgnoreFile:      "/dev/null", // makes sure to not read a local .ignorefile (see #13529)
-		IIDFile:         "/dev/null", // prevents Buildah from writing the ID on stdout
-	}
-	if _, _, err := rt.Build(context.Background(), buildOptions, tmpF.Name()); err != nil {
-		return "", err
-	}
-
-	return imageName, nil
-}
-
-func pullOrBuildInfraImage(p *entities.PodSpec, rt *libpod.Runtime) error {
-	if p.PodSpecGen.NoInfra {
-		return nil
-	}
-
-	rtConfig, err := rt.GetConfigNoCopy()
-	if err != nil {
-		return err
-	}
-
-	// NOTE: we need pull down the infra image if it was explicitly set by
-	// the user (or containers.conf) to the non-default one.
-	imageName := p.PodSpecGen.InfraImage
-	if imageName == "" {
-		imageName = rtConfig.Engine.InfraImage
-	}
-
-	if imageName != "" {
-		_, err := rt.LibimageRuntime().Pull(context.Background(), imageName, config.PullPolicyMissing, nil)
-		if err != nil {
-			return err
-		}
-	} else {
-		name, err := buildPauseImage(rt, rtConfig)
-		if err != nil {
-			return fmt.Errorf("building local pause image: %w", err)
-		}
-		imageName = name
-	}
-
-	p.PodSpecGen.InfraImage = imageName
-	p.PodSpecGen.InfraContainerSpec.RawImageName = imageName
-
-	return nil
-}
-
 func MakePod(p *entities.PodSpec, rt *libpod.Runtime) (*libpod.Pod, error) {
 	if err := p.PodSpecGen.Validate(); err != nil {
 		return nil, err
 	}
 
-	if err := pullOrBuildInfraImage(p, rt); err != nil {
-		return nil, err
+	if !p.PodSpecGen.NoInfra {
+		imageName, err := PullOrBuildInfraImage(rt, p.PodSpecGen.InfraImage)
+		if err != nil {
+			return nil, err
+		}
+		p.PodSpecGen.InfraImage = imageName
+		p.PodSpecGen.InfraContainerSpec.RawImageName = imageName
 	}
 
 	if !p.PodSpecGen.NoInfra && p.PodSpecGen.InfraContainerSpec != nil {
@@ -180,6 +95,11 @@ func createPodOptions(p *specgen.PodSpecGenerator) ([]libpod.PodCreateOption, er
 			options = append(options, libpod.WithPodUser())
 		}
 	}
+
+	if len(p.ServiceContainerID) > 0 {
+		options = append(options, libpod.WithServiceContainer(p.ServiceContainerID))
+	}
+
 	if len(p.CgroupParent) > 0 {
 		options = append(options, libpod.WithPodCgroupParent(p.CgroupParent))
 	}

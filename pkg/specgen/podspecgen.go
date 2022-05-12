@@ -204,6 +204,9 @@ type PodSpecGenerator struct {
 	PodStorageConfig
 	PodSecurityConfig
 	InfraContainerSpec *SpecGenerator `json:"-"`
+
+	// The ID of the pod's service container.
+	ServiceContainerID string `json:"serviceContainerID,omitempty"`
 }
 
 type PodResourceConfig struct {

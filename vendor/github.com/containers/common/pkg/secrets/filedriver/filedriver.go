@@ -55,7 +55,7 @@ func (d *Driver) List() ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	var allID []string
+	allID := make([]string, 0, len(secretData))
 	for k := range secretData {
 		allID = append(allID, k)
 	}
@@ -134,9 +134,8 @@ func (d *Driver) getAllData() (map[string][]byte, error) {
 		if os.IsNotExist(err) {
 			// the file will be created later on a store()
 			return make(map[string][]byte), nil
-		} else {
-			return nil, err
 		}
+		return nil, err
 	}
 
 	file, err := os.Open(d.secretsDataFilePath)

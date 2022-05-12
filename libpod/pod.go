@@ -64,6 +64,13 @@ type PodConfig struct {
 
 	HasInfra bool `json:"hasInfra,omitempty"`
 
+	// ServiceContainerID is the main container of a service.  A service
+	// consists of one or more pods.  The service container is started
+	// before all pods and is stopped when the last pod stops.
+	// The service container allows for tracking and managing the entire
+	// life cycle of service which may be started via `podman-play-kube`.
+	ServiceContainerID string `json:"serviceContainerID,omitempty"`
+
 	// Time pod was created
 	CreatedTime time.Time `json:"created"`
 

@@ -683,6 +683,7 @@ type InspectContainerData struct {
 	NetworkSettings *InspectNetworkSettings     `json:"NetworkSettings"`
 	Namespace       string                      `json:"Namespace"`
 	IsInfra         bool                        `json:"IsInfra"`
+	IsService       bool                        `json:"IsService"`
 	Config          *InspectContainerConfig     `json:"Config"`
 	HostConfig      *InspectContainerHostConfig `json:"HostConfig"`
 }

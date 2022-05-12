@@ -211,6 +211,14 @@ type ContainerState struct {
 	// network and an interface names
 	NetInterfaceDescriptions ContainerNetworkDescriptions `json:"networkDescriptions,omitempty"`
 
+	// Service indicates that container is the service container of a
+	// service. A service consists of one or more pods.  The service
+	// container is started before all pods and is stopped when the last
+	// pod stops. The service container allows for tracking and managing
+	// the entire life cycle of service which may be started via
+	// `podman-play-kube`.
+	Service Service
+
 	// containerPlatformState holds platform-specific container state.
 	containerPlatformState
 

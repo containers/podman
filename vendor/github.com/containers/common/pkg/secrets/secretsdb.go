@@ -31,9 +31,8 @@ func (s *SecretsManager) loadDB() error {
 			// the db cache will show no entries anyway.
 			// The file will be created later on a store()
 			return nil
-		} else {
-			return err
 		}
+		return err
 	}
 
 	// We check if the file has been modified after the last time it was loaded into the cache.

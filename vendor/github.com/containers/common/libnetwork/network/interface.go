@@ -46,6 +46,9 @@ const (
 //   1. read ${graphroot}/defaultNetworkBackend
 //   2. find netavark binary (if not installed use CNI)
 //   3. check containers, images and CNI networks and if there are some we have an existing install and should continue to use CNI
+//
+// revive does not like the name because the package is already called network
+//nolint:revive
 func NetworkBackend(store storage.Store, conf *config.Config, syslog bool) (types.NetworkBackend, types.ContainerNetwork, error) {
 	backend := types.NetworkBackend(conf.Network.NetworkBackend)
 	if backend == "" {

@@ -392,6 +392,19 @@ function pause_image() {
     echo "localhost/podman-pause:$output"
 }
 
+# Wait for the pod (1st arg) to transition into the state (2nd arg)
+function _ensure_pod_state() {
+    for i in {0..5}; do
+        run_podman pod inspect $1 --format "{{.State}}"
+        if [[ $output == "$2" ]]; then
+            break
+        fi
+        sleep 0.5
+    done
+
+    is "$output" "$2" "unexpected pod state"
+}
+
 ###########################
 #  _add_label_if_missing  #  make sure skip messages include rootless/remote
 ###########################

@@ -456,13 +456,12 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 		containersConf = []byte("[engine]\nimage_copy_tmp_dir=\"storage1\"")
 		err = ioutil.WriteFile(configPath, containersConf, os.ModePerm)
 		Expect(err).ToNot(HaveOccurred())
-		if IsRemote() {
-			podmanTest.RestartRemoteService()
-		}
+
+		SkipIfRemote("Restarting the system service will fail loading the broken containers.conf")
 
 		session = podmanTest.Podman([]string{"info", "--format", "{{.Store.ImageCopyTmpDir}}"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		Expect(session).Should(Exit(125))
 		Expect(session.Err.Contents()).To(ContainSubstring("invalid image_copy_tmp_dir"))
 	})
 

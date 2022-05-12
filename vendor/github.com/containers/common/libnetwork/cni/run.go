@@ -106,7 +106,7 @@ func (n *cniNetwork) Setup(namespacePath string, options types.SetupOptions) (ma
 }
 
 // CNIResultToStatus convert the cni result to status block
-// nolint:golint
+// nolint:golint,revive
 func CNIResultToStatus(res cnitypes.Result) (types.StatusBlock, error) {
 	result := types.StatusBlock{}
 	cniResult, err := types040.GetResult(res)

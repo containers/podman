@@ -115,7 +115,7 @@ type NameTagPair struct {
 func ToNameTagPairs(repoTags []reference.Named) ([]NameTagPair, error) {
 	none := "<none>"
 
-	var pairs []NameTagPair
+	pairs := make([]NameTagPair, 0, len(repoTags))
 	for i, named := range repoTags {
 		pair := NameTagPair{
 			Name:  named.Name(),

@@ -1,6 +1,8 @@
 package libpod
 
 import (
+	"fmt"
+
 	"github.com/containers/podman/v4/libpod/define"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
@@ -25,6 +27,12 @@ func (c *Container) validate() error {
 	// Must set at least one of RootfsImageID or Rootfs
 	if !(imageIDSet || rootfsSet) {
 		return errors.Wrapf(define.ErrInvalidArg, "must set root filesystem source to either image or rootfs")
+	}
+
+	// A container cannot be marked as an infra and service container at
+	// the same time.
+	if c.IsInfra() && c.isService() {
+		return fmt.Errorf("cannot be infra and service container at the same time: %w", define.ErrInvalidArg)
 	}
 
 	// Cannot make a network namespace if we are joining another container's

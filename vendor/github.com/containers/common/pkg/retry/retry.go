@@ -17,12 +17,17 @@ import (
 )
 
 // RetryOptions defines the option to retry
+// revive does not like the name because the package is already called retry
+//nolint:revive
 type RetryOptions struct {
 	MaxRetry int           // The number of times to possibly retry
 	Delay    time.Duration // The delay to use between retries, if set
 }
 
 // RetryIfNecessary retries the operation in exponential backoff with the retryOptions
+//
+// revive does not like the name because the package is already called retry
+//nolint:revive
 func RetryIfNecessary(ctx context.Context, operation func() error, retryOptions *RetryOptions) error {
 	err := operation()
 	for attempt := 0; err != nil && isRetryable(err) && attempt < retryOptions.MaxRetry; attempt++ {

@@ -13,7 +13,6 @@ import (
 )
 
 func DeviceFromPath(device string) ([]devices.Device, error) {
-	var devs []devices.Device
 	src, dst, permissions, err := Device(device)
 	if err != nil {
 		return nil, err
@@ -27,7 +26,7 @@ func DeviceFromPath(device string) ([]devices.Device, error) {
 	}
 
 	if !srcInfo.IsDir() {
-
+		devs := make([]devices.Device, 0, 1)
 		dev, err := devices.DeviceFromPath(src, permissions)
 		if err != nil {
 			return nil, errors.Wrapf(err, "%s is not a valid device", src)
@@ -42,6 +41,7 @@ func DeviceFromPath(device string) ([]devices.Device, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "error getting source devices from directory %s", src)
 	}
+	devs := make([]devices.Device, 0, len(srcDevices))
 	for _, d := range srcDevices {
 		d.Path = filepath.Join(dst, filepath.Base(d.Path))
 		d.Permissions = devices.Permissions(permissions)
