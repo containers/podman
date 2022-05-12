@@ -1326,30 +1326,30 @@ copy_match:
 	JA   copy_overlapping_match
 
 	// Copy non-overlapping match
-	XORQ R12, R12
+	ADDQ R13, DI
+	MOVQ BX, R12
+	ADDQ R13, BX
 
 copy_2:
-	MOVUPS (R11)(R12*1), X0
-	MOVUPS X0, (BX)(R12*1)
+	MOVUPS (R11), X0
+	MOVUPS X0, (R12)
+	ADDQ   $0x10, R11
 	ADDQ   $0x10, R12
-	CMPQ   R12, R13
-	JB     copy_2
-	ADDQ   R13, BX
-	ADDQ   R13, DI
+	SUBQ   $0x10, R13
+	JHI    copy_2
 	JMP    handle_loop
 
 	// Copy overlapping match
 copy_overlapping_match:
-	XORQ R12, R12
+	ADDQ R13, DI
 
 copy_slow_3:
-	MOVB (R11)(R12*1), R14
-	MOVB R14, (BX)(R12*1)
-	INCQ R12
-	CMPQ R12, R13
-	JB   copy_slow_3
-	ADDQ R13, BX
-	ADDQ R13, DI
+	MOVB (R11), R12
+	MOVB R12, (BX)
+	INCQ R11
+	INCQ BX
+	DECQ R13
+	JNZ  copy_slow_3
 
 handle_loop:
 	ADDQ $0x18, AX
@@ -1826,30 +1826,30 @@ copy_match:
 	JA   copy_overlapping_match
 
 	// Copy non-overlapping match
-	XORQ CX, CX
+	ADDQ R13, R12
+	MOVQ R10, CX
+	ADDQ R13, R10
 
 copy_2:
-	MOVUPS (AX)(CX*1), X0
-	MOVUPS X0, (R10)(CX*1)
+	MOVUPS (AX), X0
+	MOVUPS X0, (CX)
+	ADDQ   $0x10, AX
 	ADDQ   $0x10, CX
-	CMPQ   CX, R13
-	JB     copy_2
-	ADDQ   R13, R10
-	ADDQ   R13, R12
+	SUBQ   $0x10, R13
+	JHI    copy_2
 	JMP    handle_loop
 
 	// Copy overlapping match
 copy_overlapping_match:
-	XORQ CX, CX
+	ADDQ R13, R12
 
 copy_slow_3:
-	MOVB (AX)(CX*1), R14
-	MOVB R14, (R10)(CX*1)
-	INCQ CX
-	CMPQ CX, R13
-	JB   copy_slow_3
-	ADDQ R13, R10
-	ADDQ R13, R12
+	MOVB (AX), CL
+	MOVB CL, (R10)
+	INCQ AX
+	INCQ R10
+	DECQ R13
+	JNZ  copy_slow_3
 
 handle_loop:
 	MOVQ ctx+16(FP), AX
@@ -2333,30 +2333,30 @@ copy_match:
 	JA   copy_overlapping_match
 
 	// Copy non-overlapping match
-	XORQ R12, R12
+	ADDQ R13, R11
+	MOVQ R9, R12
+	ADDQ R13, R9
 
 copy_2:
-	MOVUPS (CX)(R12*1), X0
-	MOVUPS X0, (R9)(R12*1)
+	MOVUPS (CX), X0
+	MOVUPS X0, (R12)
+	ADDQ   $0x10, CX
 	ADDQ   $0x10, R12
-	CMPQ   R12, R13
-	JB     copy_2
-	ADDQ   R13, R9
-	ADDQ   R13, R11
+	SUBQ   $0x10, R13
+	JHI    copy_2
 	JMP    handle_loop
 
 	// Copy overlapping match
 copy_overlapping_match:
-	XORQ R12, R12
+	ADDQ R13, R11
 
 copy_slow_3:
-	MOVB (CX)(R12*1), R14
-	MOVB R14, (R9)(R12*1)
-	INCQ R12
-	CMPQ R12, R13
-	JB   copy_slow_3
-	ADDQ R13, R9
-	ADDQ R13, R11
+	MOVB (CX), R12
+	MOVB R12, (R9)
+	INCQ CX
+	INCQ R9
+	DECQ R13
+	JNZ  copy_slow_3
 
 handle_loop:
 	MOVQ ctx+16(FP), CX
@@ -2862,6 +2862,7 @@ copy_match:
 	JA   copy_overlapping_match
 
 	// Copy non-overlapping match
+	ADDQ  R13, R12
 	XORQ  CX, CX
 	TESTQ $0x00000001, R13
 	JZ    copy_2_word
@@ -2900,21 +2901,19 @@ copy_2_test:
 	CMPQ CX, R13
 	JB   copy_2
 	ADDQ R13, R10
-	ADDQ R13, R12
 	JMP  handle_loop
 
 	// Copy overlapping match
 copy_overlapping_match:
-	XORQ CX, CX
+	ADDQ R13, R12
 
 copy_slow_3:
-	MOVB (AX)(CX*1), R14
-	MOVB R14, (R10)(CX*1)
-	INCQ CX
-	CMPQ CX, R13
-	JB   copy_slow_3
-	ADDQ R13, R10
-	ADDQ R13, R12
+	MOVB (AX), CL
+	MOVB CL, (R10)
+	INCQ AX
+	INCQ R10
+	DECQ R13
+	JNZ  copy_slow_3
 
 handle_loop:
 	MOVQ ctx+16(FP), AX
@@ -3398,6 +3397,7 @@ copy_match:
 	JA   copy_overlapping_match
 
 	// Copy non-overlapping match
+	ADDQ  R13, R11
 	XORQ  R12, R12
 	TESTQ $0x00000001, R13
 	JZ    copy_2_word
@@ -3436,21 +3436,19 @@ copy_2_test:
 	CMPQ R12, R13
 	JB   copy_2
 	ADDQ R13, R9
-	ADDQ R13, R11
 	JMP  handle_loop
 
 	// Copy overlapping match
 copy_overlapping_match:
-	XORQ R12, R12
+	ADDQ R13, R11
 
 copy_slow_3:
-	MOVB (CX)(R12*1), R14
-	MOVB R14, (R9)(R12*1)
-	INCQ R12
-	CMPQ R12, R13
-	JB   copy_slow_3
-	ADDQ R13, R9
-	ADDQ R13, R11
+	MOVB (CX), R12
+	MOVB R12, (R9)
+	INCQ CX
+	INCQ R9
+	DECQ R13
+	JNZ  copy_slow_3
 
 handle_loop:
 	MOVQ ctx+16(FP), CX

@@ -207,14 +207,18 @@ func checkSupportVolatile(home, runhome string) (bool, error) {
 // checkAndRecordIDMappedSupport checks and stores if the kernel supports mounting overlay on top of a
 // idmapped lower layer.
 func checkAndRecordIDMappedSupport(home, runhome string) (bool, error) {
+	if os.Geteuid() != 0 {
+		return false, nil
+	}
+
 	feature := "idmapped-lower-dir"
 	overlayCacheResult, overlayCacheText, err := cachedFeatureCheck(runhome, feature)
 	if err == nil {
 		if overlayCacheResult {
-			logrus.Debugf("Cached value indicated that overlay is supported")
+			logrus.Debugf("Cached value indicated that idmapped mounts for overlay are supported")
 			return true, nil
 		}
-		logrus.Debugf("Cached value indicated that overlay is not supported")
+		logrus.Debugf("Cached value indicated that idmapped mounts for overlay are not supported")
 		return false, errors.New(overlayCacheText)
 	}
 	supportsIDMappedMounts, err := supportsIdmappedLowerLayers(home)
