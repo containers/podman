@@ -115,7 +115,7 @@ func resolveEventSock() ([]string, error) {
 			return err
 		case info.IsDir():
 			return nil
-		case info.Type() != os.ModeSocket:
+		case !isUnixSocket(info):
 			return nil
 		case !re.MatchString(info.Name()):
 			return nil

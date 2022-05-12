@@ -4,6 +4,9 @@
 package util
 
 import (
+	"path/filepath"
+
+	"github.com/containers/storage/pkg/homedir"
 	"github.com/pkg/errors"
 )
 
@@ -34,7 +37,12 @@ func GetRootlessPauseProcessPidPathGivenDir(unused string) (string, error) {
 
 // GetRuntimeDir returns the runtime directory
 func GetRuntimeDir() (string, error) {
-	return "", errors.New("this function is not implemented for windows")
+	data, err := homedir.GetDataHome()
+	if err != nil {
+		return "", err
+	}
+	runtimeDir := filepath.Join(data, "containers", "podman")
+	return runtimeDir, nil
 }
 
 // GetRootlessConfigHomeDir returns the config home directory when running as non root
