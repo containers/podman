@@ -106,6 +106,9 @@ function _assert_mainpid_is_conmon() {
     cid="$output"
     wait_for_ready $cid
 
+    run_podman container inspect sdnotify_conmon_c --format "{{.State.ConmonPid}}"
+    mainPID="$output"
+
     run_podman logs sdnotify_conmon_c
     is "$output" "READY" "\$NOTIFY_SOCKET in container"
 
@@ -114,12 +117,8 @@ function _assert_mainpid_is_conmon() {
     echo "socat log:"
     echo "$output"
 
-    # ARGH! 'READY=1' should always be the last output line. But sometimes,
-    # for reasons unknown, we get an extra MAINPID=xxx after READY=1 (#8718).
-    # Who knows if this is a systemd bug, or conmon, or what. I don't
-    # even know where to begin asking. So, to eliminate the test flakes,
-    # we look for READY=1 _anywhere_ in the output, not just the last line.
-    is "$output" ".*READY=1.*" "sdnotify sent READY=1"
+    is "$output" "MAINPID=$mainPID
+READY=1" "sdnotify sent MAINPID and READY"
 
     _assert_mainpid_is_conmon "$output"
 
