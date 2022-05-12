@@ -7,12 +7,12 @@ test: pretest gotest
 
 .PHONY: golangci-lint
 golangci-lint:
-	cd /tmp && GO111MODULE=on go get github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+	go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
 	golangci-lint run
 
 .PHONY: staticcheck
 staticcheck:
-	cd /tmp && GO111MODULE=on go get honnef.co/go/tools/cmd/staticcheck@master
+	go install honnef.co/go/tools/cmd/staticcheck@master
 	staticcheck ./...
 
 .PHONY: lint

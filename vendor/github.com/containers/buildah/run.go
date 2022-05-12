@@ -157,6 +157,8 @@ type RunOptions struct {
 	ExternalImageMounts []string
 	// System context of current build
 	SystemContext *types.SystemContext
+	// CgroupManager to use for running OCI containers
+	CgroupManager string
 }
 
 // RunMountArtifacts are the artifacts created when using a run mount.

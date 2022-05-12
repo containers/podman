@@ -182,7 +182,19 @@ func NewAttribute(typ uint, x interface{}) *Attribute {
 		}
 	case int:
 		a.Value = uintToBytes(uint64(v))
+	case int16:
+		a.Value = uintToBytes(uint64(v))
+	case int32:
+		a.Value = uintToBytes(uint64(v))
+	case int64:
+		a.Value = uintToBytes(uint64(v))
 	case uint:
+		a.Value = uintToBytes(uint64(v))
+	case uint16:
+		a.Value = uintToBytes(uint64(v))
+	case uint32:
+		a.Value = uintToBytes(uint64(v))
+	case uint64:
 		a.Value = uintToBytes(uint64(v))
 	case string:
 		a.Value = []byte(v)
