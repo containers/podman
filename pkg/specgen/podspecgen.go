@@ -4,6 +4,7 @@ import (
 	"net"
 
 	"github.com/containers/common/libnetwork/types"
+	storageTypes "github.com/containers/storage/types"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 )
 
@@ -217,6 +218,10 @@ type PodResourceConfig struct {
 
 type PodSecurityConfig struct {
 	SecurityOpt []string `json:"security_opt,omitempty"`
+	// IDMappings are UID and GID mappings that will be used by user
+	// namespaces.
+	// Required if UserNS is private.
+	IDMappings *storageTypes.IDMappingOptions `json:"idmappings,omitempty"`
 }
 
 // NewPodSpecGenerator creates a new pod spec
