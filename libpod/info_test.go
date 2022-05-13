@@ -20,7 +20,7 @@ func Test_statToPercent(t *testing.T) {
 	}{
 		{
 			name: "GoodParse",
-			args: args{in0: []string{"cpu", " ", "33628064", "27537", "9696996", "1314806705", "588142", "4775073", "2789228", "0", "598711", "0"}},
+			args: args{in0: []string{"cpu", "33628064", "27537", "9696996", "1314806705", "588142", "4775073", "2789228", "0", "598711", "0"}},
 			want: &define.CPUUsage{
 				UserPercent:   2.48,
 				SystemPercent: 0.71,
@@ -30,19 +30,19 @@ func Test_statToPercent(t *testing.T) {
 		},
 		{
 			name:    "BadUserValue",
-			args:    args{in0: []string{"cpu", " ", "k", "27537", "9696996", "1314806705", "588142", "4775073", "2789228", "0", "598711", "0"}},
+			args:    args{in0: []string{"cpu", "k", "27537", "9696996", "1314806705", "588142", "4775073", "2789228", "0", "598711", "0"}},
 			want:    nil,
 			wantErr: assert.Error,
 		},
 		{
 			name:    "BadSystemValue",
-			args:    args{in0: []string{"cpu", " ", "33628064", "27537", "k", "1314806705", "588142", "4775073", "2789228", "0", "598711", "0"}},
+			args:    args{in0: []string{"cpu", "33628064", "27537", "k", "1314806705", "588142", "4775073", "2789228", "0", "598711", "0"}},
 			want:    nil,
 			wantErr: assert.Error,
 		},
 		{
 			name:    "BadIdleValue",
-			args:    args{in0: []string{"cpu", " ", "33628064", "27537", "9696996", "k", "588142", "4775073", "2789228", "0", "598711", "0"}},
+			args:    args{in0: []string{"cpu", "33628064", "27537", "9696996", "k", "588142", "4775073", "2789228", "0", "598711", "0"}},
 			want:    nil,
 			wantErr: assert.Error,
 		},

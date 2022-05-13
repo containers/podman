@@ -406,26 +406,25 @@ func getCPUUtilization() (*define.CPUUsage, error) {
 	}
 	defer f.Close()
 	scanner := bufio.NewScanner(f)
-	// Read firt line of /proc/stat
+	// Read first line of /proc/stat that has entries for system ("cpu" line)
 	for scanner.Scan() {
 		break
 	}
 	// column 1 is user, column 3 is system, column 4 is idle
-	stats := strings.Split(scanner.Text(), " ")
+	stats := strings.Fields(scanner.Text())
 	return statToPercent(stats)
 }
 
 func statToPercent(stats []string) (*define.CPUUsage, error) {
-	// There is always an extra space between cpu and the first metric
-	userTotal, err := strconv.ParseFloat(stats[2], 64)
+	userTotal, err := strconv.ParseFloat(stats[1], 64)
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to parse user value %q", stats[1])
 	}
-	systemTotal, err := strconv.ParseFloat(stats[4], 64)
+	systemTotal, err := strconv.ParseFloat(stats[3], 64)
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to parse system value %q", stats[3])
 	}
-	idleTotal, err := strconv.ParseFloat(stats[5], 64)
+	idleTotal, err := strconv.ParseFloat(stats[4], 64)
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to parse idle value %q", stats[4])
 	}
