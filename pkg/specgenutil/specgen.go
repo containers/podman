@@ -312,7 +312,7 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 		s.PublishExposedPorts = c.PublishAll
 	}
 
-	if len(s.Pod) == 0 {
+	if len(s.Pod) == 0 || len(c.Pod) > 0 {
 		s.Pod = c.Pod
 	}
 

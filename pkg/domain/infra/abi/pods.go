@@ -2,12 +2,15 @@ package abi
 
 import (
 	"context"
+	"strconv"
+	"strings"
 
 	"github.com/containers/podman/v4/libpod"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	dfilters "github.com/containers/podman/v4/pkg/domain/filters"
 	"github.com/containers/podman/v4/pkg/signal"
+	"github.com/containers/podman/v4/pkg/specgen"
 	"github.com/containers/podman/v4/pkg/specgen/generate"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -293,6 +296,88 @@ func (ic *ContainerEngine) PodCreate(ctx context.Context, specg entities.PodSpec
 		return nil, err
 	}
 	return &entities.PodCreateReport{Id: pod.ID()}, nil
+}
+
+func (ic *ContainerEngine) PodClone(ctx context.Context, podClone entities.PodCloneOptions) (*entities.PodCloneReport, error) {
+	spec := specgen.NewPodSpecGenerator()
+	p, err := generate.PodConfigToSpec(ic.Libpod, spec, &podClone.InfraOptions, podClone.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(podClone.CreateOpts.Name) > 0 {
+		spec.Name = podClone.CreateOpts.Name
+	} else {
+		n := p.Name()
+		_, err := ic.Libpod.LookupPod(n + "-clone")
+		if err == nil {
+			n += "-clone"
+		}
+		switch {
+		case strings.Contains(n, "-clone"): // meaning this name is taken!
+			ind := strings.Index(n, "-clone") + 6
+			num, err := strconv.Atoi(n[ind:])
+			if num == 0 && err != nil { // meaning invalid
+				_, err = ic.Libpod.LookupPod(n + "1")
+				if err != nil {
+					spec.Name = n + "1"
+					break
+				}
+			} else { // else we already have a number
+				n = n[0:ind]
+			}
+			err = nil
+			count := num
+			for err == nil { // until we cannot find a pod w/ this name, increment num and try again
+				count++
+				tempN := n + strconv.Itoa(count)
+				_, err = ic.Libpod.LookupPod(tempN)
+			}
+			n += strconv.Itoa(count)
+			spec.Name = n
+		default:
+			spec.Name = p.Name() + "-clone"
+		}
+	}
+
+	podSpec := entities.PodSpec{PodSpecGen: *spec}
+	pod, err := generate.MakePod(&podSpec, ic.Libpod)
+	if err != nil {
+		return nil, err
+	}
+
+	ctrs, err := p.AllContainers()
+	if err != nil {
+		return nil, err
+	}
+	for _, ctr := range ctrs {
+		if ctr.IsInfra() {
+			continue // already copied infra
+		}
+
+		podClone.PerContainerOptions.Pod = pod.ID()
+		_, err := ic.ContainerClone(ctx, entities.ContainerCloneOptions{ID: ctr.ID(), CreateOpts: podClone.PerContainerOptions})
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if podClone.Destroy {
+		var timeout *uint
+		err = ic.Libpod.RemovePod(ctx, p, true, true, timeout)
+		if err != nil {
+			return &entities.PodCloneReport{Id: pod.ID()}, err
+		}
+	}
+
+	if podClone.Start {
+		_, err := ic.PodStart(ctx, []string{pod.ID()}, entities.PodStartOptions{})
+		if err != nil {
+			return &entities.PodCloneReport{Id: pod.ID()}, err
+		}
+	}
+
+	return &entities.PodCloneReport{Id: pod.ID()}, nil
 }
 
 func (ic *ContainerEngine) PodTop(ctx context.Context, options entities.PodTopOptions) (*entities.StringSliceReport, error) {

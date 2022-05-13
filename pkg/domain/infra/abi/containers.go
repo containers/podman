@@ -1593,6 +1593,11 @@ func (ic *ContainerEngine) ContainerClone(ctx context.Context, ctrCloneOpts enti
 		return nil, err
 	}
 
+	conf := c.Config()
+	if conf.Spec != nil && conf.Spec.Process != nil && conf.Spec.Process.Terminal { // if we do not pass term, running ctrs exit
+		spec.Terminal = true
+	}
+
 	// Print warnings
 	if len(out) > 0 {
 		for _, w := range out {
@@ -1612,8 +1617,8 @@ func (ic *ContainerEngine) ContainerClone(ctx context.Context, ctrCloneOpts enti
 		switch {
 		case strings.Contains(n, "-clone"):
 			ind := strings.Index(n, "-clone") + 6
-			num, _ := strconv.Atoi(n[ind:])
-			if num == 0 { // clone1 is hard to get with this logic, just check for it here.
+			num, err := strconv.Atoi(n[ind:])
+			if num == 0 && err != nil { // clone1 is hard to get with this logic, just check for it here.
 				_, err = ic.Libpod.LookupContainer(n + "1")
 				if err != nil {
 					spec.Name = n + "1"

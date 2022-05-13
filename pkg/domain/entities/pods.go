@@ -154,6 +154,16 @@ type PodLogsOptions struct {
 	Color bool
 }
 
+// PodCloneOptions contains options for cloning an existing pod
+type PodCloneOptions struct {
+	ID                  string
+	Destroy             bool
+	CreateOpts          PodCreateOptions
+	InfraOptions        ContainerCreateOptions
+	PerContainerOptions ContainerCreateOptions
+	Start               bool
+}
+
 type ContainerCreateOptions struct {
 	Annotation        []string
 	Attach            []string
@@ -288,6 +298,10 @@ func NewInfraContainerCreateOptions() ContainerCreateOptions {
 
 type PodCreateReport struct {
 	Id string // nolint
+}
+
+type PodCloneReport struct {
+	Id string //nolint
 }
 
 func (p *PodCreateOptions) CPULimits() *specs.LinuxCPU {

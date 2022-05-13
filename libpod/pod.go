@@ -450,3 +450,14 @@ func (p *Pod) initContainers() ([]*Container, error) {
 	}
 	return initCons, nil
 }
+
+func (p *Pod) Config() (*PodConfig, error) {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+
+	conf := &PodConfig{}
+
+	err := JSONDeepCopy(p.config, conf)
+
+	return conf, err
+}

@@ -61,6 +61,7 @@ func runFlags(cmd *cobra.Command) {
 	flags := cmd.Flags()
 
 	flags.SetInterspersed(false)
+	common.DefineCreateDefaults(&cliVals)
 	common.DefineCreateFlags(cmd, &cliVals, false, false)
 	common.DefineNetFlags(cmd)
 
