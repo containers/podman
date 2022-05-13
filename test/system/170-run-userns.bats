@@ -38,10 +38,12 @@ function _require_crun() {
 
 @test "rootful pod with custom ID mapping" {
     skip_if_rootless "does not work rootless - rootful feature"
-    skip_if_remote "remote --uidmap is broken (see #14233)"
     random_pod_name=$(random_string 30)
     run_podman pod create --uidmap 0:200000:5000 --name=$random_pod_name
     run_podman pod start $random_pod_name
+    run_podman pod inspect --format '{{.InfraContainerID}}' $random_pod_name
+    run podman inspect --format '{{.HostConfig.IDMappings.UIDMap}}' $output
+    is "$output" ".*0:200000:5000" "UID Map Successful"
 
     # Remove the pod and the pause image
     run_podman pod rm $random_pod_name
