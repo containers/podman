@@ -32,3 +32,15 @@ func getDefaultTmpDir() string {
 	}
 	return os.Getenv("LOCALAPPDATA") + "\\Temp"
 }
+
+func getDefaultCgroupsMode() string {
+	return "enabled"
+}
+
+func getDefaultLockType() string {
+	return "shm"
+}
+
+func getLibpodTmpDir() string {
+	return "/run/libpod"
+}

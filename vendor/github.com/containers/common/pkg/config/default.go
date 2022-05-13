@@ -193,7 +193,7 @@ func DefaultConfig() (*Config, error) {
 			ApparmorProfile:     DefaultApparmorProfile,
 			BaseHostsFile:       "",
 			CgroupNS:            cgroupNS,
-			Cgroups:             "enabled",
+			Cgroups:             getDefaultCgroupsMode(),
 			DefaultCapabilities: DefaultCapabilities,
 			DefaultSysctls:      []string{},
 			DefaultUlimits:      getDefaultProcessLimits(),
@@ -323,6 +323,9 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 			"/usr/lib/cri-o-runc/sbin/runc",
 			"/run/current-system/sw/bin/runc",
 		},
+		"runj": {
+			"/usr/local/bin/runj",
+		},
 		"kata": {
 			"/usr/bin/kata-runtime",
 			"/usr/sbin/kata-runtime",
@@ -384,7 +387,7 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 	c.SDNotify = false
 	// TODO - ideally we should expose a `type LockType string` along with
 	// constants.
-	c.LockType = "shm"
+	c.LockType = getDefaultLockType()
 	c.MachineEnabled = false
 	c.ChownCopiedFiles = true
 
@@ -395,7 +398,7 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 
 func defaultTmpDir() (string, error) {
 	if !unshare.IsRootless() {
-		return "/run/libpod", nil
+		return getLibpodTmpDir(), nil
 	}
 
 	runtimeDir, err := util.GetRuntimeDir()

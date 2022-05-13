@@ -425,6 +425,7 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(Equal("/var/tmp"))
 
+		storagePath := filepath.Join(podmanTest.TempDir, "storage")
 		configPath := filepath.Join(podmanTest.TempDir, "containers.conf")
 		os.Setenv("CONTAINERS_CONF", configPath)
 
@@ -441,7 +442,7 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(Equal("/foobar"))
 
-		containersConf = []byte("[engine]\nimage_copy_tmp_dir=\"storage\"")
+		containersConf = []byte(fmt.Sprintf("[engine]\nimage_copy_tmp_dir=%q", storagePath))
 		err = ioutil.WriteFile(configPath, containersConf, os.ModePerm)
 		Expect(err).ToNot(HaveOccurred())
 		if IsRemote() {
@@ -451,18 +452,18 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 		session = podmanTest.Podman([]string{"info", "--format", "{{.Store.ImageCopyTmpDir}}"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.Out.Contents()).To(ContainSubstring("containers/storage/tmp"))
+		Expect(session.Out.Contents()).To(ContainSubstring(storagePath))
 
 		containersConf = []byte("[engine]\nimage_copy_tmp_dir=\"storage1\"")
 		err = ioutil.WriteFile(configPath, containersConf, os.ModePerm)
 		Expect(err).ToNot(HaveOccurred())
 
-		SkipIfRemote("Restarting the system service will fail loading the broken containers.conf")
-
-		session = podmanTest.Podman([]string{"info", "--format", "{{.Store.ImageCopyTmpDir}}"})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(125))
-		Expect(session.Err.Contents()).To(ContainSubstring("invalid image_copy_tmp_dir"))
+		if !IsRemote() {
+			session = podmanTest.Podman([]string{"info", "--format", "{{.Store.ImageCopyTmpDir}}"})
+			session.WaitWithDefaultTimeout()
+			Expect(session).Should(Exit(125))
+			Expect(session.Err.Contents()).To(ContainSubstring("invalid image_copy_tmp_dir value \"storage1\" (relative paths are not accepted)"))
+		}
 	})
 
 	// FIXME not sure why this is here
