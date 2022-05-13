@@ -164,12 +164,13 @@ var _ = Describe("Podman save", func() {
 		err = cmd.Run()
 		Expect(err).To(BeNil())
 
-		cmd = exec.Command("cp", "/etc/containers/registries.d/default.yaml", "default.yaml")
+		defaultYaml := filepath.Join(podmanTest.TempDir, "default.yaml")
+		cmd = exec.Command("cp", "/etc/containers/registries.d/default.yaml", defaultYaml)
 		if err = cmd.Run(); err != nil {
 			Skip("no signature store to verify")
 		}
 		defer func() {
-			cmd = exec.Command("cp", "default.yaml", "/etc/containers/registries.d/default.yaml")
+			cmd = exec.Command("cp", defaultYaml, "/etc/containers/registries.d/default.yaml")
 			err := cmd.Run()
 			Expect(err).ToNot(HaveOccurred())
 		}()
