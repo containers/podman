@@ -37,6 +37,10 @@ func (c Car) internal() int {
 	return 0
 }
 
+func (c Car) TwoOut() (string, string) {
+	return "", ""
+}
+
 func TestAutocompleteFormat(t *testing.T) {
 	testStruct := struct {
 		Name string

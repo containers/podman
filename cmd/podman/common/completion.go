@@ -1084,7 +1084,12 @@ func getStructFields(f reflect.Value, prefix string) []string {
 func getMethodNames(f reflect.Value, prefix string) []string {
 	suggestions := make([]string, 0, f.NumMethod())
 	for j := 0; j < f.NumMethod(); j++ {
-		fname := f.Type().Method(j).Name
+		method := f.Type().Method(j)
+		// in a template we can only run functions with one return value
+		if method.Func.Type().NumOut() != 1 {
+			continue
+		}
+		fname := method.Name
 		if strings.HasPrefix(fname, prefix) {
 			// add method name with closing braces
 			suggestions = append(suggestions, fname+"}}")
