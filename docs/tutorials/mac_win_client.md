@@ -1,5 +1,9 @@
 # Podman Remote clients for macOS and Windows
 
+***
+**_NOTE:_** For running Podman on Windows, refer to the [Podman for Windows](podman-for-windows.md) guide, which uses the recommended approach of a Podman-managed Linux backend. For Mac, see the [Podman installation instructions](https://podman.io/getting-started/installation). This guide covers the advanced usage of Podman with a custom Linux VM or a remote external Linux system.
+***
+
 ## Introduction
 
 The core Podman runtime environment can only run on Linux operating systems.  But other operating systems can use the “remote client” to manage their containers to a Linux backend.  This remote client is nearly identical to the standard Podman program.  Certain functions that do not make sense for remote clients have been removed.  For example, the “--latest” switch for container commands has been removed.

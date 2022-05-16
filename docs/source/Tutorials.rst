@@ -6,7 +6,8 @@ Here are a number of useful tutorials to get you up and running with Podman. If 
 
 * `Basic Setup and Use of Podman <https://github.com/containers/podman/blob/main/docs/tutorials/podman_tutorial.md>`_: Learn how to setup Podman and perform some basic commands with the utility.
 * `Basic Setup and Use of Podman in a Rootless environment <https://github.com/containers/podman/blob/main/docs/tutorials/rootless_tutorial.md>`_: The steps required to setup rootless Podman are enumerated.
-* `Podman Mac/Windows tutorial <https://github.com/containers/podman/blob/main/docs/tutorials/mac_win_client.md>`_: Special setup for running the Podman remote client on a Mac or Windows PC and connecting to Podman running on a Linux VM are documented.
+* `Podman for Windows <https://github.com/containers/podman/blob/main/docs/tutorials/podman-for-windows.md>`_: A guide to installing and using Podman on Windows.
+* `Podman Remote Clients on Mac/Windows <https://github.com/containers/podman/blob/main/docs/tutorials/mac_win_client.md>`_: Advanced setup for connecting to a remote Linux system using the Podman remote client on Mac and Windows.
 * `How to sign and distribute container images using Podman <https://github.com/containers/podman/blob/main/docs/tutorials/image_signing.md>`_: Learn how to setup and use image signing with Podman.
 * `Podman remote-client tutorial <https://github.com/containers/podman/blob/main/docs/tutorials/remote_client.md>`_: A brief how-to on using the Podman remote-client.
 * `How to use libpod for custom/derivative projects <https://github.com/containers/podman/blob/main/docs/tutorials/podman-derivative-api.md>`_: How the libpod API can be used within your own project.
