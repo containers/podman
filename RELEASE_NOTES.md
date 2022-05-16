@@ -1,5 +1,9 @@
 # Release Notes
 
+## 3.0.2
+### Changed
+- The Go module has been bumped to v3. This release is intended so that the Podman bindings can be used with a v3.0 and higher API server.
+
 ## 3.0.1
 ### Changes
 - Several frequently-occurring `WARN` level log messages have been downgraded to `INFO` or `DEBUG` to not clutter terminal output.
