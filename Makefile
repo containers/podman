@@ -923,7 +923,6 @@ clean: clean-binaries ## Clean all make artifacts
 		libpod/pod_ffjson.go \
 		libpod/container_easyjson.go \
 		libpod/pod_easyjson.go \
-		.install.goimports \
 		docs/build \
 		.venv
 	make -C docs clean
