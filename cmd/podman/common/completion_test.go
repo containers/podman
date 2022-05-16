@@ -14,7 +14,14 @@ type Car struct {
 		HP           *int
 		Displacement int
 	}
-	Extras map[string]string
+	Extras map[string]Extra
+	// also ensure it will work with pointers
+	Extras2 map[string]*Extra
+}
+
+type Extra struct {
+	Name1 string
+	Name2 string
 }
 
 type Anonymous struct {
@@ -52,6 +59,10 @@ func (c Car) TwoOut() (string, string) {
 	return "", ""
 }
 
+func (c Car) Struct() Car {
+	return Car{}
+}
+
 func TestAutocompleteFormat(t *testing.T) {
 	testStruct := struct {
 		Name string
@@ -63,7 +74,6 @@ func TestAutocompleteFormat(t *testing.T) {
 	}{}
 
 	testStruct.Car = &Car{}
-	testStruct.Car.Extras = map[string]string{"test": "1"}
 
 	tests := []struct {
 		name       string
@@ -118,7 +128,7 @@ func TestAutocompleteFormat(t *testing.T) {
 		{
 			"second level struct field name",
 			"{{ .Car.",
-			[]string{"{{ .Car.Color}}", "{{ .Car.Type}}", "{{ .Car.Brand}}", "{{ .Car.Stats.", "{{ .Car.Extras}}"},
+			[]string{"{{ .Car.Color}}", "{{ .Car.Struct.", "{{ .Car.Type}}", "{{ .Car.Brand}}", "{{ .Car.Stats.", "{{ .Car.Extras.", "{{ .Car.Extras2."},
 		},
 		{
 			"second level struct field name",
@@ -128,7 +138,7 @@ func TestAutocompleteFormat(t *testing.T) {
 		{
 			"second level nil struct field name",
 			"{{ .Car2.",
-			[]string{"{{ .Car2.Color}}", "{{ .Car2.Type}}", "{{ .Car2.Brand}}", "{{ .Car2.Stats.", "{{ .Car2.Extras}}"},
+			[]string{"{{ .Car2.Color}}", "{{ .Car2.Struct.", "{{ .Car2.Type}}", "{{ .Car2.Brand}}", "{{ .Car2.Stats.", "{{ .Car2.Extras.", "{{ .Car2.Extras2."},
 		},
 		{
 			"three level struct field name",
@@ -156,20 +166,36 @@ func TestAutocompleteFormat(t *testing.T) {
 			[]string{},
 		},
 		{
+			"map values work",
+			"{{ .Car.Extras.somekey.",
+			[]string{"{{ .Car.Extras.somekey.Name1}}", "{{ .Car.Extras.somekey.Name2}}"},
+		},
+		{
+			"map values work with ptr",
+			"{{ .Car.Extras2.somekey.",
+			[]string{"{{ .Car.Extras2.somekey.Name1}}", "{{ .Car.Extras2.somekey.Name2}}"},
+		},
+		{
 			"two variables struct field name",
 			"{{ .Car.Brand }} {{ .Car.",
-			[]string{"{{ .Car.Brand }} {{ .Car.Color}}", "{{ .Car.Brand }} {{ .Car.Type}}", "{{ .Car.Brand }} {{ .Car.Brand}}",
-				"{{ .Car.Brand }} {{ .Car.Stats.", "{{ .Car.Brand }} {{ .Car.Extras}}"},
+			[]string{"{{ .Car.Brand }} {{ .Car.Color}}", "{{ .Car.Brand }} {{ .Car.Struct.", "{{ .Car.Brand }} {{ .Car.Type}}",
+				"{{ .Car.Brand }} {{ .Car.Brand}}", "{{ .Car.Brand }} {{ .Car.Stats.", "{{ .Car.Brand }} {{ .Car.Extras.",
+				"{{ .Car.Brand }} {{ .Car.Extras2."},
 		},
 		{
 			"only dot without variable",
 			".",
 			nil,
 		},
+		{
+			"access embedded nil struct field",
+			"{{.Hello.",
+			[]string{},
+		},
 	}
 
 	for _, test := range tests {
-		completion, directive := common.AutocompleteFormat(testStruct)(nil, nil, test.toComplete)
+		completion, directive := common.AutocompleteFormat(&testStruct)(nil, nil, test.toComplete)
 		// directive should always be greater than ShellCompDirectiveNoFileComp
 		assert.GreaterOrEqual(t, directive, cobra.ShellCompDirectiveNoFileComp, "unexpected ShellCompDirective")
 		assert.Equal(t, test.expected, completion, test.name)
