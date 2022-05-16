@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 
 	"github.com/containers/common/libimage"
@@ -12,6 +13,7 @@ import (
 	"github.com/containers/podman/v4/pkg/errorhandling"
 	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/containers/podman/v4/pkg/util"
+	"github.com/containers/podman/v4/utils"
 	"github.com/containers/storage"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -218,6 +220,30 @@ func (r *Runtime) reset(ctx context.Context) error {
 			logrus.Error(prevError)
 		}
 		prevError = err
+	}
+
+	if utils.RunsOnSystemd() {
+		path, err := exec.LookPath("systemctl")
+		if err != nil {
+			logrus.Info("systemctl not found, podman service will not be restarted")
+		} else {
+			cmd := exec.Command(path)
+			if rootless.IsRootless() {
+				cmd.Args = append(cmd.Args, "--user")
+			}
+			cmd.Args = append(cmd.Args, "stop", "podman.service")
+			cmd.Stdout = os.Stdout
+			cmd.Stdin = os.Stdin
+			cmd.Stderr = os.Stderr
+			if err := cmd.Run(); err != nil {
+				if prevError != nil {
+					logrus.Error(prevError)
+				}
+				prevError = err
+			} else {
+				logrus.Info("podman service stopped")
+			}
+		}
 	}
 
 	return prevError

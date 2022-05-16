@@ -3,6 +3,7 @@ package integration
 import (
 	"fmt"
 	"os"
+	"os/exec"
 
 	. "github.com/containers/podman/v4/test/utils"
 	. "github.com/onsi/ginkgo"
@@ -96,5 +97,46 @@ var _ = Describe("podman system reset", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		Expect(session.OutputToStringArray()).To(BeEmpty())
+	})
+
+	It("podman system reset, check podman.service", func() {
+		SkipIfRemote("system reset not supported on podman --remote")
+		SkipIfNotRootless("systemctl only works here with --user")
+		SkipIfInContainer("systemd does not run in the containerized tests")
+
+		sys, err := exec.LookPath("systemctl")
+		if err != nil {
+			Skip("systemctl not installed")
+		}
+
+		start := SystemExec(sys, []string{"--user", "start", "podman.service"})
+
+		Expect(start.Exited).ShouldNot(Receive(), "Failed to start podman.service")
+
+		// status should be running
+		startStatus := SystemExec(sys, []string{"--user", "status", "podman.service"})
+
+		Expect(startStatus.Exited).ShouldNot(Receive(), "Unit podman.service could not be found")
+		Expect(startStatus.OutputToString()).To(ContainSubstring("active (running)"))
+
+		sess := podmanTest.Podman([]string{"system", "reset", "-f"})
+		sess.WaitWithDefaultTimeout()
+		Expect(sess).Should(Exit(0))
+
+		stopStatus := SystemExec(sys, []string{"--user", "status", "podman.service"})
+
+		Expect(stopStatus.Exited).ShouldNot(Receive(), "Unit podman.service could not be found")
+		Expect(stopStatus.OutputToString()).To(ContainSubstring("inactive (dead)"))
+		if IsFedora() {
+			Expect(stopStatus.OutputToString()).To(ContainSubstring("Invoking shutdown handler"))
+		} else { // different outputs per OS
+			Expect(stopStatus.OutputToString()).To(ContainSubstring("Stopping Podman API Service"))
+
+		}
+
+		start = StartSystemExec(sys, []string{"--user", "restart", "podman.service"})
+		Expect(start.Exited).ShouldNot(Receive(), "Failed to start podman.service")
+		// failure to restart leads to test flakes
+
 	})
 })

@@ -685,10 +685,14 @@ func SkipIfNotSystemd(manager, reason string) {
 }
 
 func SkipIfNotFedora() {
-	info := GetHostDistributionInfo()
-	if info.Distribution != "fedora" {
+	if !IsFedora() {
 		Skip("Test can only run on Fedora")
 	}
+}
+
+func IsFedora() bool {
+	info := GetHostDistributionInfo()
+	return info.Distribution == "fedora"
 }
 
 func isRootless() bool {

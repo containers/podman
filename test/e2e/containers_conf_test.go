@@ -511,6 +511,22 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 	It("set .engine.remote=true", func() {
 		SkipIfRemote("only meaningful when running ABI/local")
 
+		SkipIfInContainer("systemd does not run in the containerized tests")
+
+		// due to other tests modifying the service, we need to stop it here.
+		sys, err := exec.LookPath("systemctl")
+		if err != nil {
+			Skip("systemctl not installed")
+		}
+
+		args := []string{}
+		if isRootless() {
+			args = append(args, "--user")
+		}
+		args = append(args, "stop", "podman")
+		stop := StartSystemExec(sys, args)
+		Expect(stop.Exited).ShouldNot(Receive(), "Failed to stop podman.service")
+
 		// Need to restore CONTAINERS_CONF or AfterEach() will fail
 		if path, found := os.LookupEnv("CONTAINERS_CONF"); found {
 			defer os.Setenv("CONTAINERS_CONF", path)
@@ -520,7 +536,7 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 		os.Setenv("CONTAINERS_CONF", configPath)
 		defer os.Remove(configPath)
 
-		err := ioutil.WriteFile(configPath, []byte("[engine]\nremote=true"), os.ModePerm)
+		err = ioutil.WriteFile(configPath, []byte("[engine]\nremote=true"), os.ModePerm)
 		Expect(err).ToNot(HaveOccurred())
 
 		// podmanTest.Podman() cannot be used as it was initialized remote==false
