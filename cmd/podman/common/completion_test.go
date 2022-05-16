@@ -19,6 +19,17 @@ type Car struct {
 
 type Anonymous struct {
 	Hello string
+	// The name should match the testStruct Name below. This is used to make
+	// sure the logic uses the actual struct fields before the embedded ones.
+	Name struct {
+		Suffix string
+		Prefix string
+	}
+}
+
+// The name should match the testStruct Age name below.
+func (a Anonymous) Age() int {
+	return 0
 }
 
 func (c Car) Type() string {
@@ -87,17 +98,17 @@ func TestAutocompleteFormat(t *testing.T) {
 		{
 			"invalid completion",
 			"{{  ..",
-			nil,
+			[]string{},
 		},
 		{
 			"fist level struct field name",
 			"{{.",
-			[]string{"{{.Name}}", "{{.Age}}", "{{.Car.", "{{.Car2.", "{{.Hello}}"},
+			[]string{"{{.Name}}", "{{.Age}}", "{{.Car.", "{{.Car2.", "{{.Anonymous.", "{{.Hello}}"},
 		},
 		{
 			"fist level struct field name",
 			"{{ .",
-			[]string{"{{ .Name}}", "{{ .Age}}", "{{ .Car.", "{{ .Car2.", "{{ .Hello}}"},
+			[]string{"{{ .Name}}", "{{ .Age}}", "{{ .Car.", "{{ .Car2.", "{{ .Anonymous.", "{{ .Hello}}"},
 		},
 		{
 			"fist level struct field name",
@@ -137,12 +148,12 @@ func TestAutocompleteFormat(t *testing.T) {
 		{
 			"invalid field name",
 			"{{ .Ca.B",
-			nil,
+			[]string{},
 		},
 		{
 			"map key names don't work",
 			"{{ .Car.Extras.",
-			nil,
+			[]string{},
 		},
 		{
 			"two variables struct field name",

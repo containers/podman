@@ -960,6 +960,19 @@ func AutocompleteNetworkFlag(cmd *cobra.Command, args []string, toComplete strin
 	return append(networks, suggestions...), dir
 }
 
+type formatSuggestion struct {
+	fieldname string
+	suffix    string
+}
+
+func convertFormatSuggestions(suggestions []formatSuggestion) []string {
+	completions := make([]string, 0, len(suggestions))
+	for _, f := range suggestions {
+		completions = append(completions, f.fieldname+f.suffix)
+	}
+	return completions
+}
+
 // AutocompleteFormat - Autocomplete json or a given struct to use for a go template.
 // The input can be nil, In this case only json will be autocompleted.
 // This function will only work for structs other types are not supported.
@@ -999,7 +1012,7 @@ func AutocompleteFormat(o interface{}) func(cmd *cobra.Command, args []string, t
 				toCompArr := strings.Split(toComplete, ".")
 				toCompArr[len(toCompArr)-1] = ""
 				toComplete = strings.Join(toCompArr, ".")
-				return prefixSlice(toComplete, suggestions), cobra.ShellCompDirectiveNoSpace | cobra.ShellCompDirectiveNoFileComp
+				return prefixSlice(toComplete, convertFormatSuggestions(suggestions)), cobra.ShellCompDirectiveNoSpace | cobra.ShellCompDirectiveNoFileComp
 			}
 
 			val := getActualStructType(f)
@@ -1038,8 +1051,8 @@ func getActualStructType(f reflect.Value) *reflect.Value {
 }
 
 // getStructFields reads all struct field names and method names and returns them.
-func getStructFields(f reflect.Value, prefix string) []string {
-	var suggestions []string
+func getStructFields(f reflect.Value, prefix string) []formatSuggestion {
+	var suggestions []formatSuggestion
 	if f.IsValid() {
 		suggestions = append(suggestions, getMethodNames(f, prefix)...)
 	}
@@ -1051,6 +1064,7 @@ func getStructFields(f reflect.Value, prefix string) []string {
 	}
 	f = *val
 
+	var anonymous []formatSuggestion
 	// loop over all field names
 	for j := 0; j < f.NumField(); j++ {
 		field := f.Type().Field(j)
@@ -1072,17 +1086,28 @@ func getStructFields(f reflect.Value, prefix string) []string {
 		}
 		// if field is anonymous add the child fields as well
 		if field.Anonymous {
-			suggestions = append(suggestions, getStructFields(f.Field(j), prefix)...)
-		} else if strings.HasPrefix(fname, prefix) {
-			// add field name with suffix
-			suggestions = append(suggestions, fname+suffix)
+			anonymous = append(anonymous, getStructFields(f.Field(j), prefix)...)
 		}
+		if strings.HasPrefix(fname, prefix) {
+			// add field name with suffix
+			suggestions = append(suggestions, formatSuggestion{fieldname: fname, suffix: suffix})
+		}
+	}
+outer:
+	for _, ano := range anonymous {
+		// we should only add anonymous child fields if they are not already present.
+		for _, sug := range suggestions {
+			if ano.fieldname == sug.fieldname {
+				continue outer
+			}
+		}
+		suggestions = append(suggestions, ano)
 	}
 	return suggestions
 }
 
-func getMethodNames(f reflect.Value, prefix string) []string {
-	suggestions := make([]string, 0, f.NumMethod())
+func getMethodNames(f reflect.Value, prefix string) []formatSuggestion {
+	suggestions := make([]formatSuggestion, 0, f.NumMethod())
 	for j := 0; j < f.NumMethod(); j++ {
 		method := f.Type().Method(j)
 		// in a template we can only run functions with one return value
@@ -1092,7 +1117,7 @@ func getMethodNames(f reflect.Value, prefix string) []string {
 		fname := method.Name
 		if strings.HasPrefix(fname, prefix) {
 			// add method name with closing braces
-			suggestions = append(suggestions, fname+"}}")
+			suggestions = append(suggestions, formatSuggestion{fieldname: fname, suffix: "}}"})
 		}
 	}
 	return suggestions
