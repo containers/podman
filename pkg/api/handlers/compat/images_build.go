@@ -119,6 +119,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		Registry               string   `schema:"registry"`
 		Rm                     bool     `schema:"rm"`
 		RusageLogFile          string   `schema:"rusagelogfile"`
+		Remote                 string   `schema:"remote"`
 		Seccomp                string   `schema:"seccomp"`
 		Secrets                string   `schema:"secrets"`
 		SecurityOpt            string   `schema:"securityopt"`
@@ -169,14 +170,50 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 
 	// convert addcaps formats
 	containerFiles := []string{}
-	if _, found := r.URL.Query()["dockerfile"]; found {
-		var m = []string{}
-		if err := json.Unmarshal([]byte(query.Dockerfile), &m); err != nil {
-			// it's not json, assume just a string
-			m = []string{filepath.Join(contextDirectory, query.Dockerfile)}
+	// Tells if query paramemter `dockerfile` is set or not.
+	dockerFileSet := false
+	if utils.IsLibpodRequest(r) && query.Remote != "" {
+		// The context directory could be a URL.  Try to handle that.
+		anchorDir, err := ioutil.TempDir(parse.GetTempDir(), "libpod_builder")
+		if err != nil {
+			utils.InternalServerError(w, err)
 		}
-		containerFiles = m
+		tempDir, subDir, err := buildahDefine.TempDirForURL(anchorDir, "buildah", query.Remote)
+		if err != nil {
+			utils.InternalServerError(w, err)
+		}
+		if tempDir != "" {
+			// We had to download it to a temporary directory.
+			// Delete it later.
+			defer func() {
+				if err = os.RemoveAll(tempDir); err != nil {
+					// We are deleting this on server so log on server end
+					// client does not have to worry about server cleanup.
+					logrus.Errorf("Cannot delete downloaded temp dir %q: %s", tempDir, err)
+				}
+			}()
+			contextDirectory = filepath.Join(tempDir, subDir)
+		} else {
+			// Nope, it was local.  Use it as is.
+			absDir, err := filepath.Abs(query.Remote)
+			if err != nil {
+				utils.BadRequest(w, "remote", query.Remote, err)
+			}
+			contextDirectory = absDir
+		}
 	} else {
+		if _, found := r.URL.Query()["dockerfile"]; found {
+			var m = []string{}
+			if err := json.Unmarshal([]byte(query.Dockerfile), &m); err != nil {
+				// it's not json, assume just a string
+				m = []string{filepath.Join(contextDirectory, query.Dockerfile)}
+			}
+			containerFiles = m
+			dockerFileSet = true
+		}
+	}
+
+	if !dockerFileSet {
 		containerFiles = []string{filepath.Join(contextDirectory, "Dockerfile")}
 		if utils.IsLibpodRequest(r) {
 			containerFiles = []string{filepath.Join(contextDirectory, "Containerfile")}
