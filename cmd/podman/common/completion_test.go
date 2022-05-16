@@ -31,6 +31,12 @@ func (c *Car) Color() string {
 	return ""
 }
 
+// This is for reflect testing required.
+// nolint:unused
+func (c Car) internal() int {
+	return 0
+}
+
 func TestAutocompleteFormat(t *testing.T) {
 	testStruct := struct {
 		Name string
@@ -38,6 +44,7 @@ func TestAutocompleteFormat(t *testing.T) {
 		Car  *Car
 		Car2 *Car
 		*Anonymous
+		private int
 	}{}
 
 	testStruct.Car = &Car{}

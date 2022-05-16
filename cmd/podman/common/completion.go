@@ -1054,6 +1054,11 @@ func getStructFields(f reflect.Value, prefix string) []string {
 	// loop over all field names
 	for j := 0; j < f.NumField(); j++ {
 		field := f.Type().Field(j)
+		// check if struct field is not exported, templates only use exported fields
+		// PkgPath is always empty for exported fields
+		if field.PkgPath != "" {
+			continue
+		}
 		fname := field.Name
 		suffix := "}}"
 		kind := field.Type.Kind()
