@@ -80,6 +80,12 @@ ENTRYPOINT ["/catatonit", "-P"]`, catatonitPath)
 		Quiet:           true,
 		IgnoreFile:      "/dev/null", // makes sure to not read a local .ignorefile (see #13529)
 		IIDFile:         "/dev/null", // prevents Buildah from writing the ID on stdout
+		IDMappingOptions: &buildahDefine.IDMappingOptions{
+			// Use the host UID/GID mappings for the build to avoid issues when
+			// running with a custom mapping (BZ #2083997).
+			HostUIDMapping: true,
+			HostGIDMapping: true,
+		},
 	}
 	if _, _, err := rt.Build(context.Background(), buildOptions, tmpF.Name()); err != nil {
 		return "", err
