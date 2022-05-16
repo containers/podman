@@ -1,5 +1,5 @@
-//go:build linux || ignore || aix || ignore || android || ignore || darwin || ignore || freebsd || ignore || hurd || ignore || illumos || ignore || ios || ignore || netbsd || ignore || openbsd || ignore || solaris
-// +build linux ignore aix ignore android ignore darwin ignore freebsd ignore hurd ignore illumos ignore ios ignore netbsd ignore openbsd ignore solaris
+//go:build linux || aix || android || darwin || dragonfly || freebsd || hurd || illumos || ios || netbsd || openbsd || solaris
+// +build linux aix android darwin dragonfly freebsd hurd illumos ios netbsd openbsd solaris
 
 package machine
 
