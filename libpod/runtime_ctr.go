@@ -732,7 +732,11 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force, remo
 	// after setting the state to ContainerStateRemoving will prevent that the container is
 	// restarted
 	if err := c.removeAllExecSessions(); err != nil {
-		return err
+		if cleanupErr == nil {
+			cleanupErr = err
+		} else {
+			logrus.Errorf("Remove exec sessions: %v", err)
+		}
 	}
 
 	// Stop the container's storage
