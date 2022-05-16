@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"reflect"
+	"strconv"
 	"strings"
 
 	"github.com/containers/common/libnetwork/types"
@@ -1141,6 +1142,20 @@ func getMethodNames(f reflect.Value, prefix string) []formatSuggestion {
 		suffix := "}}"
 		if kind == reflect.Struct || kind == reflect.Map {
 			suffix = "."
+		}
+		// From a template users POV it is not importent when the use a struct field or method.
+		// They only notice the difference when the function requires arguments.
+		// So lets be nice and let the user know that this method requires arguments via the help text.
+		// Note since this is actually a method on a type the first argument is always fix so we should skip it.
+		num := method.Func.Type().NumIn() - 1
+		if num > 0 {
+			// everything after tab will the completion scripts show as help when enabled
+			// overwrite the suffix because it expects the args
+			suffix = "\tThis is a function and requires " + strconv.Itoa(num) + " argument"
+			if num > 1 {
+				// add plural s
+				suffix += "s"
+			}
 		}
 		fname := method.Name
 		if strings.HasPrefix(fname, prefix) {
