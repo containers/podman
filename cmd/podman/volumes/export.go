@@ -6,7 +6,6 @@ import (
 
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/podman/v4/cmd/podman/common"
-	"github.com/containers/podman/v4/cmd/podman/inspect"
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/utils"
@@ -58,7 +57,7 @@ func export(cmd *cobra.Command, args []string) error {
 	if cliExportOpts.Output == "" {
 		return errors.New("expects output path, use --output=[path]")
 	}
-	inspectOpts.Type = inspect.VolumeType
+	inspectOpts.Type = common.VolumeType
 	volumeData, _, err := containerEngine.VolumeInspect(ctx, args, inspectOpts)
 	if err != nil {
 		return err

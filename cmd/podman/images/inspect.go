@@ -38,6 +38,6 @@ func init() {
 }
 
 func inspectExec(cmd *cobra.Command, args []string) error {
-	inspectOpts.Type = inspect.ImageType
+	inspectOpts.Type = common.ImageType
 	return inspect.Inspect(args, *inspectOpts)
 }

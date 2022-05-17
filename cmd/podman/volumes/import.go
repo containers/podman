@@ -5,7 +5,6 @@ import (
 	"os"
 
 	"github.com/containers/podman/v4/cmd/podman/common"
-	"github.com/containers/podman/v4/cmd/podman/inspect"
 	"github.com/containers/podman/v4/cmd/podman/parse"
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/containers/podman/v4/pkg/domain/entities"
@@ -60,7 +59,7 @@ func importVol(cmd *cobra.Command, args []string) error {
 		tarFile = os.Stdin
 	}
 
-	inspectOpts.Type = inspect.VolumeType
+	inspectOpts.Type = common.VolumeType
 	volumeData, _, err := containerEngine.VolumeInspect(ctx, volumes, inspectOpts)
 	if err != nil {
 		return err

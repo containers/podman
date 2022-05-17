@@ -1141,9 +1141,8 @@ func AutocompleteImageSort(cmd *cobra.Command, args []string, toComplete string)
 }
 
 // AutocompleteInspectType - Autocomplete inspect type options.
-// -> "container", "image", "all"
 func AutocompleteInspectType(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	types := []string{"container", "image", "all"}
+	types := []string{AllType, ContainerType, ImageType, NetworkType, PodType, VolumeType}
 	return types, cobra.ShellCompDirectiveNoFileComp
 }
 
