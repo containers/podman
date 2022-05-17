@@ -18,7 +18,6 @@ import (
 )
 
 var (
-	validFormats    = []string{define.OCIManifestDir, define.OCIArchive, define.V2s2ManifestDir, define.V2s2Archive}
 	containerConfig = registry.PodmanConfig()
 )
 
@@ -38,8 +37,8 @@ var (
 			if err != nil {
 				return err
 			}
-			if !util.StringInSlice(format, validFormats) {
-				return errors.Errorf("format value must be one of %s", strings.Join(validFormats, " "))
+			if !util.StringInSlice(format, common.ValidSaveFormats) {
+				return errors.Errorf("format value must be one of %s", strings.Join(common.ValidSaveFormats, " "))
 			}
 			return nil
 		},

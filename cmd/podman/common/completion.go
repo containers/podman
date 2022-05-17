@@ -25,6 +25,8 @@ var (
 	ChangeCmds = []string{"CMD", "ENTRYPOINT", "ENV", "EXPOSE", "LABEL", "ONBUILD", "STOPSIGNAL", "USER", "VOLUME", "WORKDIR"}
 	// LogLevels supported by podman
 	LogLevels = []string{"trace", "debug", "info", "warn", "warning", "error", "fatal", "panic"}
+	// ValidSaveFormats is the list of support podman save formats
+	ValidSaveFormats = []string{define.OCIManifestDir, define.OCIArchive, define.V2s2ManifestDir, define.V2s2Archive}
 )
 
 type completeType int
@@ -1192,10 +1194,8 @@ func AutocompletePsSort(cmd *cobra.Command, args []string, toComplete string) ([
 }
 
 // AutocompleteImageSaveFormat - Autocomplete image save format options.
-// -> "oci-archive", "oci-dir", "docker-dir"
 func AutocompleteImageSaveFormat(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	formats := []string{"oci-archive", "oci-dir", "docker-dir"}
-	return formats, cobra.ShellCompDirectiveNoFileComp
+	return ValidSaveFormats, cobra.ShellCompDirectiveNoFileComp
 }
 
 // AutocompleteWaitCondition - Autocomplete wait condition options.
