@@ -1208,21 +1208,21 @@ func AutocompleteWaitCondition(cmd *cobra.Command, args []string, toComplete str
 // AutocompleteCgroupManager - Autocomplete cgroup manager options.
 // -> "cgroupfs", "systemd"
 func AutocompleteCgroupManager(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	types := []string{"cgroupfs", "systemd"}
+	types := []string{config.CgroupfsCgroupsManager, config.SystemdCgroupsManager}
 	return types, cobra.ShellCompDirectiveNoFileComp
 }
 
 // AutocompleteEventBackend - Autocomplete event backend options.
 // -> "file", "journald", "none"
 func AutocompleteEventBackend(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	types := []string{"file", "journald", "none"}
+	types := []string{events.LogFile.String(), events.Journald.String(), events.Null.String()}
 	return types, cobra.ShellCompDirectiveNoFileComp
 }
 
 // AutocompleteNetworkBackend - Autocomplete network backend options.
 // -> "cni", "netavark"
 func AutocompleteNetworkBackend(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	types := []string{"cni", "netavark"}
+	types := []string{string(types.CNI), string(types.Netavark)}
 	return types, cobra.ShellCompDirectiveNoFileComp
 }
 
@@ -1235,7 +1235,7 @@ func AutocompleteLogLevel(cmd *cobra.Command, args []string, toComplete string) 
 // AutocompleteSDNotify - Autocomplete sdnotify options.
 // -> "container", "conmon", "ignore"
 func AutocompleteSDNotify(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	types := []string{"container", "conmon", "ignore"}
+	types := []string{define.SdNotifyModeContainer, define.SdNotifyModeContainer, define.SdNotifyModeIgnore}
 	return types, cobra.ShellCompDirectiveNoFileComp
 }
 
