@@ -22,8 +22,10 @@ type KubeVolumeType int
 
 const (
 	KubeVolumeTypeBindMount KubeVolumeType = iota
-	KubeVolumeTypeNamed     KubeVolumeType = iota
-	KubeVolumeTypeConfigMap KubeVolumeType = iota
+	KubeVolumeTypeNamed
+	KubeVolumeTypeConfigMap
+	KubeVolumeTypeBlockDevice
+	KubeVolumeTypeCharDevice
 )
 
 //nolint:revive
@@ -78,7 +80,30 @@ func VolumeFromHostPath(hostPath *v1.HostPathVolumeSource) (*KubeVolume, error) 
 			if st.Mode()&os.ModeSocket != os.ModeSocket {
 				return nil, errors.Errorf("checking HostPathSocket: path %s is not a socket", hostPath.Path)
 			}
-
+		case v1.HostPathBlockDev:
+			dev, err := os.Stat(hostPath.Path)
+			if err != nil {
+				return nil, errors.Wrap(err, "error checking HostPathBlockDevice")
+			}
+			if dev.Mode()&os.ModeDevice != os.ModeDevice {
+				return nil, errors.Errorf("checking HosPathDevice: path %s is not a block device", hostPath.Path)
+			}
+			return &KubeVolume{
+				Type:   KubeVolumeTypeBlockDevice,
+				Source: hostPath.Path,
+			}, nil
+		case v1.HostPathCharDev:
+			dev, err := os.Stat(hostPath.Path)
+			if err != nil {
+				return nil, errors.Wrap(err, "error checking HostPathCharDevice")
+			}
+			if dev.Mode()&os.ModeCharDevice != os.ModeCharDevice {
+				return nil, errors.Errorf("checking HosPathCharDevice: path %s is not a character device", hostPath.Path)
+			}
+			return &KubeVolume{
+				Type:   KubeVolumeTypeCharDevice,
+				Source: hostPath.Path,
+			}, nil
 		case v1.HostPathDirectory:
 		case v1.HostPathFile:
 		case v1.HostPathUnset:

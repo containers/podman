@@ -381,6 +381,22 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 				Options: options,
 			}
 			s.Volumes = append(s.Volumes, &cmVolume)
+		case KubeVolumeTypeCharDevice:
+			// We are setting the path as hostPath:mountPath to comply with DeviceFromPath (https://github.com/containers/podman/blob/eb26fa45f1326191dea27f2afabf82cb8b934140/pkg/specgen/generate/config_linux.go#L72)
+			// The type is here just to improve readability as it is not taken into account when the actual device is created.
+			device := spec.LinuxDevice{
+				Path: fmt.Sprintf("%s:%s", volumeSource.Source, volume.MountPath),
+				Type: "c",
+			}
+			s.Devices = append(s.Devices, device)
+		case KubeVolumeTypeBlockDevice:
+			// We are setting the path as hostPath:mountPath to comply with DeviceFromPath (https://github.com/containers/podman/blob/eb26fa45f1326191dea27f2afabf82cb8b934140/pkg/specgen/generate/config_linux.go#L72)
+			// The type is here just to improve readability as it is not taken into account when the actual device is created.
+			device := spec.LinuxDevice{
+				Path: fmt.Sprintf("%s:%s", volumeSource.Source, volume.MountPath),
+				Type: "b",
+			}
+			s.Devices = append(s.Devices, device)
 		default:
 			return nil, errors.Errorf("Unsupported volume source type")
 		}
