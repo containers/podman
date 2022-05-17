@@ -4,16 +4,22 @@ updates:
   directory: "/"
   schedule:
     interval: daily
+  labels:
+    - "release-note-none"
   open-pull-requests-limit: 10
 
 - package-ecosystem: gomod
   directory: "test/tools"
   schedule:
     interval: daily
+  labels:
+    - "release-note-none"
   open-pull-requests-limit: 10
 
 - package-ecosystem: "github-actions"
   directory: "/"
   schedule:
       interval: "daily"
+  labels:
+    - "release-note-none"
   open-pull-requests-limit: 10
