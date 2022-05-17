@@ -190,6 +190,10 @@ t POST "libpod/build?dockerfile=containerfile" $CONTAINERFILE_TAR application/js
 t POST "build?dockerfile=containerfile" $CONTAINERFILE_TAR application/json 200 \
   .stream~"STEP 1/1: FROM $IMAGE"
 
+# Libpod: allow building from url: https://github.com/alpinelinux/docker-alpine.git and must ignore any provided tar
+t POST "libpod/build?remote=https%3A%2F%2Fgithub.com%2Falpinelinux%2Fdocker-alpine.git" $CONTAINERFILE_TAR 200 \
+  .stream~"STEP 1/5: FROM alpine:3.14"
+
 # Build api response header must contain Content-type: application/json
 t POST "build?dockerfile=containerfile" $CONTAINERFILE_TAR application/json 200
 response_headers=$(cat "$WORKDIR/curl.headers.out")
