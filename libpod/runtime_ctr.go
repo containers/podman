@@ -644,6 +644,16 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force, remo
 		return err
 	}
 
+	if c.IsService() {
+		canStop, err := c.canStopServiceContainer()
+		if err != nil {
+			return err
+		}
+		if !canStop {
+			return fmt.Errorf("container %s is the service container of pod(s) %s and cannot be removed without removing the pod(s)", c.ID(), strings.Join(c.state.Service.Pods, ","))
+		}
+	}
+
 	// If we're not force-removing, we need to check if we're in a good
 	// state to remove.
 	if !force {
@@ -904,6 +914,16 @@ func (r *Runtime) evictContainer(ctx context.Context, idOrName string, removeVol
 		}
 		if c.ID() == infraID {
 			return id, errors.Errorf("container %s is the infra container of pod %s and cannot be removed without removing the pod", c.ID(), pod.ID())
+		}
+	}
+
+	if c.IsService() {
+		canStop, err := c.canStopServiceContainer()
+		if err != nil {
+			return id, err
+		}
+		if !canStop {
+			return id, fmt.Errorf("container %s is the service container of pod(s) %s and cannot be removed without removing the pod(s)", c.ID(), strings.Join(c.state.Service.Pods, ","))
 		}
 	}
 

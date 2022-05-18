@@ -242,11 +242,13 @@ done
 %{_unitdir}/%{name}.service
 %{_unitdir}/%{name}.socket
 %{_unitdir}/%{name}-restart.service
+%{_unitdir}/%{name}-play-kube@.service
 %{_userunitdir}/%{name}-auto-update.service
 %{_userunitdir}/%{name}-auto-update.timer
 %{_userunitdir}/%{name}.service
 %{_userunitdir}/%{name}.socket
 %{_userunitdir}/%{name}-restart.service
+%{_userunitdir}/%{name}-play-kube@.service
 %{_tmpfilesdir}/%{name}.conf
 %if 0%{?fedora} >= 36
 %{_modulesloaddir}/%{name}-iptables.conf

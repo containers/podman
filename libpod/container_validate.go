@@ -31,7 +31,7 @@ func (c *Container) validate() error {
 
 	// A container cannot be marked as an infra and service container at
 	// the same time.
-	if c.IsInfra() && c.isService() {
+	if c.IsInfra() && c.IsService() {
 		return fmt.Errorf("cannot be infra and service container at the same time: %w", define.ErrInvalidArg)
 	}
 
