@@ -128,7 +128,7 @@ func makeCommand(s *specgen.SpecGenerator, imageData *libimage.ImageData, rtc *c
 		if initPath == "" {
 			return nil, errors.Errorf("no path to init binary found but container requested an init")
 		}
-		finalCommand = append([]string{"/dev/init", "--"}, finalCommand...)
+		finalCommand = append([]string{define.ContainerInitPath, "--"}, finalCommand...)
 	}
 
 	return finalCommand, nil

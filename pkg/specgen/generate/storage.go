@@ -20,9 +20,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var (
-	errDuplicateDest = errors.Errorf("duplicate mount destination")
-)
+var errDuplicateDest = errors.Errorf("duplicate mount destination")
 
 // Produce final mounts and named volumes for a container
 func finalizeMounts(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runtime, rtc *config.Config, img *libimage.Image) ([]spec.Mount, []*specgen.NamedVolume, []*specgen.OverlayVolume, error) {
@@ -359,7 +357,7 @@ func getVolumesFrom(volumesFrom []string, runtime *libpod.Runtime) (map[string]s
 // This does *NOT* modify the container command - that must be done elsewhere.
 func addContainerInitBinary(s *specgen.SpecGenerator, path string) (spec.Mount, error) {
 	mount := spec.Mount{
-		Destination: "/dev/init",
+		Destination: define.ContainerInitPath,
 		Type:        define.TypeBind,
 		Source:      path,
 		Options:     []string{define.TypeBind, "ro"},

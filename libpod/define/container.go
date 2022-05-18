@@ -35,4 +35,6 @@ const (
 	// OneShotInitContainer is a container that only runs as init once
 	// and is then deleted.
 	OneShotInitContainer = "once"
+	// ContainerInitPath is the default path of the mounted container init.
+	ContainerInitPath = "/run/podman-init"
 )

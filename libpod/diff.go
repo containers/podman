@@ -8,17 +8,18 @@ import (
 )
 
 var initInodes = map[string]bool{
-	"/dev":               true,
-	"/etc/hostname":      true,
-	"/etc/hosts":         true,
-	"/etc/resolv.conf":   true,
-	"/proc":              true,
-	"/run":               true,
-	"/run/notify":        true,
-	"/run/.containerenv": true,
-	"/run/secrets":       true,
-	"/sys":               true,
-	"/etc/mtab":          true,
+	"/dev":                   true,
+	"/etc/hostname":          true,
+	"/etc/hosts":             true,
+	"/etc/resolv.conf":       true,
+	"/proc":                  true,
+	"/run":                   true,
+	"/run/notify":            true,
+	"/run/.containerenv":     true,
+	"/run/secrets":           true,
+	define.ContainerInitPath: true,
+	"/sys":                   true,
+	"/etc/mtab":              true,
 }
 
 // GetDiff returns the differences between the two images, layers, or containers
