@@ -36,6 +36,19 @@ function _require_crun() {
     is "$output" ".*457" "Check group leaked into container"
 }
 
+@test "rootful pod with custom ID mapping" {
+    skip_if_rootless "does not work rootless - rootful feature"
+    skip_if_remote "remote --uidmap is broken (see #14233)"
+    random_pod_name=$(random_string 30)
+    run_podman pod create --uidmap 0:200000:5000 --name=$random_pod_name
+    run_podman pod start $random_pod_name
+
+    # Remove the pod and the pause image
+    run_podman pod rm $random_pod_name
+    run_podman version --format "{{.Server.Version}}-{{.Server.Built}}"
+    run_podman rmi -f localhost/podman-pause:$output
+}
+
 @test "podman --remote --group-add keep-groups " {
     if is_remote; then
         run_podman 125 run --rm --group-add keep-groups $IMAGE id
