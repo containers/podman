@@ -731,7 +731,7 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 		linkAttr.Name = name
 		m, err := net.ParseMAC(mac)
 		Expect(err).To(BeNil())
-		linkAttr.HardwareAddr = net.HardwareAddr(m)
+		linkAttr.HardwareAddr = m
 		eth := &netlink.Dummy{LinkAttrs: linkAttr}
 		err = netlink.LinkAdd(eth)
 		Expect(err).To(BeNil())

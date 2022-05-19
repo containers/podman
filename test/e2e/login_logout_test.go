@@ -142,7 +142,7 @@ var _ = Describe("Podman login and logout", func() {
 		defer registriesConf.Close()
 		defer os.Remove(registriesConf.Name())
 
-		err = ioutil.WriteFile(registriesConf.Name(), []byte(registriesConfWithSearch), os.ModePerm)
+		err = ioutil.WriteFile(registriesConf.Name(), registriesConfWithSearch, os.ModePerm)
 		Expect(err).To(BeNil())
 
 		// Environment is per-process, so this looks very unsafe; actually it seems fine because tests are not

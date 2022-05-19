@@ -605,7 +605,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		Output:                         output,
 		OutputFormat:                   format,
 		PullPolicy:                     pullPolicy,
-		PullPushRetryDelay:             time.Duration(2 * time.Second),
+		PullPushRetryDelay:             2 * time.Second,
 		Quiet:                          query.Quiet,
 		Registry:                       registry,
 		RemoveIntermediateCtrs:         query.Rm,

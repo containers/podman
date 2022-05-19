@@ -216,9 +216,9 @@ func (ic *ContainerEngine) SystemDf(ctx context.Context, options entities.System
 			Tag:        stat.Tag,
 			ImageID:    stat.ID,
 			Created:    stat.Created,
-			Size:       int64(stat.Size),
-			SharedSize: int64(stat.SharedSize),
-			UniqueSize: int64(stat.UniqueSize),
+			Size:       stat.Size,
+			SharedSize: stat.SharedSize,
+			UniqueSize: stat.UniqueSize,
 			Containers: stat.Containers,
 		}
 		dfImages = append(dfImages, &report)

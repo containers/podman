@@ -293,7 +293,7 @@ func ParseQuantity(str string) (Quantity, error) {
 		switch {
 		case exponent >= 0 && len(denom) == 0:
 			// only handle positive binary numbers with the fast path
-			mantissa = int64(int64(mantissa) << uint64(exponent))
+			mantissa <<= uint64(exponent)
 			// 1Mi (2^20) has ~6 digits of decimal precision, so exponent*3/10 -1 is roughly the precision
 			precision = 15 - int32(len(num)) - int32(float32(exponent)*3/10) - 1
 		default:
@@ -313,7 +313,7 @@ func ParseQuantity(str string) (Quantity, error) {
 			if err != nil {
 				return Quantity{}, ErrNumeric
 			}
-			if result, ok := int64Multiply(value, int64(mantissa)); ok {
+			if result, ok := int64Multiply(value, mantissa); ok {
 				if !positive {
 					result = -result
 				}

@@ -95,7 +95,7 @@ func kill(_ *cobra.Command, args []string) error {
 		return errors.New("valid signals are 1 through 64")
 	}
 	for _, cidFile := range cidFiles {
-		content, err := ioutil.ReadFile(string(cidFile))
+		content, err := ioutil.ReadFile(cidFile)
 		if err != nil {
 			return errors.Wrap(err, "error reading CIDFile")
 		}
