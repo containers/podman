@@ -9,7 +9,6 @@ import (
 
 	"github.com/containers/image/v5/manifest"
 	imageTypes "github.com/containers/image/v5/types"
-	"github.com/containers/podman/v4/pkg/api/handlers"
 	"github.com/containers/podman/v4/pkg/auth"
 	"github.com/containers/podman/v4/pkg/bindings"
 	"github.com/containers/podman/v4/pkg/bindings/images"
@@ -24,7 +23,7 @@ import (
 // of a list if the name provided is a manifest list.  The ID of the new manifest list
 // is returned as a string.
 func Create(ctx context.Context, name string, images []string, options *CreateOptions) (string, error) {
-	var idr handlers.IDResponse
+	var idr entities.IDResponse
 	if options == nil {
 		options = new(CreateOptions)
 	}
@@ -122,9 +121,7 @@ func Remove(ctx context.Context, name, digest string, _ *RemoveOptions) (string,
 // the name will be used instead.  If the optional all boolean is specified, all images specified
 // in the list will be pushed as well.
 func Push(ctx context.Context, name, destination string, options *images.PushOptions) (string, error) {
-	var (
-		idr handlers.IDResponse
-	)
+	var idr entities.IDResponse
 	if options == nil {
 		options = new(images.PushOptions)
 	}

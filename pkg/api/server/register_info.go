@@ -21,7 +21,7 @@ func (s *APIServer) registerInfoHandlers(r *mux.Router) error {
 	//   200:
 	//     description: to be determined
 	//   500:
-	//     $ref: "#/responses/InternalError"
+	//     $ref: "#/responses/internalError"
 	r.Handle(VersionedPath("/info"), s.APIHandler(compat.GetInfo)).Methods(http.MethodGet)
 	// Added non version path to URI to support docker non versioned paths
 	r.Handle("/info", s.APIHandler(compat.GetInfo)).Methods(http.MethodGet)
@@ -35,9 +35,9 @@ func (s *APIServer) registerInfoHandlers(r *mux.Router) error {
 	// - application/json
 	// responses:
 	//   200:
-	//     $ref: "#/responses/InfoResponse"
+	//     $ref: "#/responses/infoResponse"
 	//   500:
-	//     $ref: "#/responses/InternalError"
+	//     $ref: "#/responses/internalError"
 	r.Handle(VersionedPath("/libpod/info"), s.APIHandler(libpod.GetInfo)).Methods(http.MethodGet)
 	return nil
 }

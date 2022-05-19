@@ -45,10 +45,8 @@ const (
 	UnlimitedServiceDuration = 0 * time.Second
 )
 
-var (
-	// shutdownOnce ensures Shutdown() may safely be called from several go routines
-	shutdownOnce sync.Once
-)
+// shutdownOnce ensures Shutdown() may safely be called from several go routines
+var shutdownOnce sync.Once
 
 // NewServer will create and configure a new API server with all defaults
 func NewServer(runtime *libpod.Runtime) (*APIServer, error) {
@@ -209,7 +207,7 @@ func (s *APIServer) Serve() error {
 	}()
 
 	// Before we start serving, ensure umask is properly set for container creation.
-	_ = syscall.Umask(0022)
+	_ = syscall.Umask(0o022)
 
 	errChan := make(chan error, 1)
 	s.setupSystemd()

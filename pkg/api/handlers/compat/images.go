@@ -165,7 +165,7 @@ func CommitContainer(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, http.StatusInternalServerError, errors.Wrapf(err, "CommitFailure"))
 		return
 	}
-	utils.WriteResponse(w, http.StatusCreated, handlers.IDResponse{ID: commitImage.ID()}) // nolint
+	utils.WriteResponse(w, http.StatusCreated, entities.IDResponse{ID: commitImage.ID()}) // nolint
 }
 
 func CreateImageFromSrc(w http.ResponseWriter, r *http.Request) {

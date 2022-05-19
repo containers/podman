@@ -739,7 +739,7 @@ func extractTarFile(r *http.Request) (string, error) {
 	}
 
 	path := filepath.Join(anchorDir, "tarBall")
-	tarBall, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
+	tarBall, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o600)
 	if err != nil {
 		return "", err
 	}
@@ -753,7 +753,7 @@ func extractTarFile(r *http.Request) (string, error) {
 	}
 
 	buildDir := filepath.Join(anchorDir, "build")
-	err = os.Mkdir(buildDir, 0700)
+	err = os.Mkdir(buildDir, 0o700)
 	if err != nil {
 		return "", err
 	}

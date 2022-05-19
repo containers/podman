@@ -9,6 +9,7 @@ import (
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/api/handlers"
 	"github.com/containers/podman/v4/pkg/bindings"
+	"github.com/containers/podman/v4/pkg/domain/entities"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -41,7 +42,7 @@ func ExecCreate(ctx context.Context, nameOrID string, config *handlers.ExecCreat
 	}
 	defer resp.Body.Close()
 
-	respStruct := new(handlers.ExecCreateResponse)
+	respStruct := new(entities.IDResponse)
 	if err := resp.Process(respStruct); err != nil {
 		return "", err
 	}

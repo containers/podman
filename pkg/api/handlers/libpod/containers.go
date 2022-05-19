@@ -168,6 +168,7 @@ func UnmountContainer(w http.ResponseWriter, r *http.Request) {
 	}
 	utils.WriteResponse(w, http.StatusNoContent, "")
 }
+
 func MountContainer(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	name := utils.GetName(r)
