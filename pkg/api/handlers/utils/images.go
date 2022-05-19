@@ -26,21 +26,26 @@ func NormalizeToDockerHub(r *http.Request, nameOrID string) (string, error) {
 		return nameOrID, nil
 	}
 
-	// Try to lookup the input to figure out if it was an ID or not.
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
-	img, _, err := runtime.LibimageRuntime().LookupImage(nameOrID, nil)
+
+	// The candidate may resolve to a local non-Docker Hub image, such as
+	// 'busybox' -> 'registry.com/busybox'.
+	img, candidate, err := runtime.LibimageRuntime().LookupImage(nameOrID, nil)
 	if err != nil {
 		if errors.Cause(err) != storage.ErrImageUnknown {
 			return "", fmt.Errorf("normalizing name for compat API: %v", err)
 		}
+		// If the image could not be resolved locally, set the
+		// candidate back to the input.
+		candidate = nameOrID
 	} else if strings.HasPrefix(img.ID(), strings.TrimPrefix(nameOrID, "sha256:")) {
 		return img.ID(), nil
 	}
 
 	// No ID, so we can normalize.
-	named, err := reference.ParseNormalizedNamed(nameOrID)
+	named, err := reference.ParseNormalizedNamed(candidate)
 	if err != nil {
-		return "", fmt.Errorf("normalizing name for compat API: %v", err)
+		return "", fmt.Errorf("normalizing name %q (orig: %q) for compat API: %v", candidate, nameOrID, err)
 	}
 
 	return named.String(), nil
