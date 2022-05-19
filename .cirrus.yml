@@ -7,9 +7,11 @@ env:
     ####
     # Name of the ultimate destination branch for this CI run, PR or post-merge.
     DEST_BRANCH: "main"
+    # Sane (default) value for GOPROXY and GOSUMDB.
+    GOPROXY: "https://proxy.golang.org,direct"
+    GOSUMDB: "sum.golang.org"
     # Overrides default location (/tmp/cirrus) for repo clone
     GOPATH: &gopath "/var/tmp/go"
-    GOBIN: "${GOPATH}/bin"
     GOCACHE: "${GOPATH}/cache"
     GOSRC: &gosrc "/var/tmp/go/src/github.com/containers/podman"
     CIRRUS_WORKING_DIR: *gosrc

@@ -40,5 +40,4 @@ tags
 result
 # Necessary to prevent hack/tree-status.sh false-positive
 /*runner_stats.log
-.install.goimports
 .generate-bindings

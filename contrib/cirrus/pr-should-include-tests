@@ -34,9 +34,11 @@ filtered_changes=$(git diff --name-only $base $head      |
                        fgrep -vx .cirrus.yml             |
                        fgrep -vx .pre-commit-config.yaml |
                        fgrep -vx .gitignore              |
-                       fgrep -vx Makefile                |
                        fgrep -vx go.mod                  |
                        fgrep -vx go.sum                  |
+                       fgrep -vx podman.spec.rpkg        |
+                       fgrep -vx .golangci.yml           |
+                       egrep -v  '/*Makefile$'           |
                        egrep -v  '^[^/]+\.md$'           |
                        egrep -v  '^.github'              |
                        egrep -v  '^contrib/'             |
