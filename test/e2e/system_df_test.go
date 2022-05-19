@@ -66,7 +66,7 @@ var _ = Describe("podman system df", func() {
 		images := strings.Fields(session.OutputToStringArray()[1])
 		containers := strings.Fields(session.OutputToStringArray()[2])
 		volumes := strings.Fields(session.OutputToStringArray()[3])
-		Expect(images[1]).To(Equal(string(totImages)), "total images expected")
+		Expect(images[1]).To(Equal(totImages), "total images expected")
 		Expect(containers[1]).To(Equal("2"), "total containers expected")
 		Expect(volumes[2]).To(Equal("2"), "total volumes expected")
 		Expect(volumes[6]).To(Equal("(50%)"), "percentage usage expected")

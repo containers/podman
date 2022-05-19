@@ -302,8 +302,8 @@ func FinishThrottleDevices(s *specgen.SpecGenerator) error {
 			if err := unix.Stat(k, &statT); err != nil {
 				return err
 			}
-			v.Major = (int64(unix.Major(uint64(statT.Rdev))))
-			v.Minor = (int64(unix.Minor(uint64(statT.Rdev))))
+			v.Major = (int64(unix.Major(uint64(statT.Rdev)))) // nolint: unconvert
+			v.Minor = (int64(unix.Minor(uint64(statT.Rdev)))) // nolint: unconvert
 			if s.ResourceLimits.BlockIO == nil {
 				s.ResourceLimits.BlockIO = new(spec.LinuxBlockIO)
 			}
@@ -316,8 +316,8 @@ func FinishThrottleDevices(s *specgen.SpecGenerator) error {
 			if err := unix.Stat(k, &statT); err != nil {
 				return err
 			}
-			v.Major = (int64(unix.Major(uint64(statT.Rdev))))
-			v.Minor = (int64(unix.Minor(uint64(statT.Rdev))))
+			v.Major = (int64(unix.Major(uint64(statT.Rdev)))) // nolint: unconvert
+			v.Minor = (int64(unix.Minor(uint64(statT.Rdev)))) // nolint: unconvert
 			s.ResourceLimits.BlockIO.ThrottleWriteBpsDevice = append(s.ResourceLimits.BlockIO.ThrottleWriteBpsDevice, v)
 		}
 	}
@@ -327,8 +327,8 @@ func FinishThrottleDevices(s *specgen.SpecGenerator) error {
 			if err := unix.Stat(k, &statT); err != nil {
 				return err
 			}
-			v.Major = (int64(unix.Major(uint64(statT.Rdev))))
-			v.Minor = (int64(unix.Minor(uint64(statT.Rdev))))
+			v.Major = (int64(unix.Major(uint64(statT.Rdev)))) // nolint: unconvert
+			v.Minor = (int64(unix.Minor(uint64(statT.Rdev)))) // nolint: unconvert
 			s.ResourceLimits.BlockIO.ThrottleReadIOPSDevice = append(s.ResourceLimits.BlockIO.ThrottleReadIOPSDevice, v)
 		}
 	}
@@ -338,8 +338,8 @@ func FinishThrottleDevices(s *specgen.SpecGenerator) error {
 			if err := unix.Stat(k, &statT); err != nil {
 				return err
 			}
-			v.Major = (int64(unix.Major(uint64(statT.Rdev))))
-			v.Minor = (int64(unix.Minor(uint64(statT.Rdev))))
+			v.Major = (int64(unix.Major(uint64(statT.Rdev)))) // nolint: unconvert
+			v.Minor = (int64(unix.Minor(uint64(statT.Rdev)))) // nolint: unconvert
 			s.ResourceLimits.BlockIO.ThrottleWriteIOPSDevice = append(s.ResourceLimits.BlockIO.ThrottleWriteIOPSDevice, v)
 		}
 	}

@@ -43,7 +43,7 @@ func VolumeOptions(opts map[string]string) ([]libpod.VolumeCreateOption, error) 
 					if err != nil {
 						return nil, errors.Wrapf(err, "cannot convert inodes %s to integer", splitO[1])
 					}
-					libpodOptions = append(libpodOptions, libpod.WithVolumeInodes(uint64(inodes)))
+					libpodOptions = append(libpodOptions, libpod.WithVolumeInodes(inodes))
 					finalVal = append(finalVal, o)
 					// set option "INODES": "$size"
 					volumeOptions["INODES"] = splitO[1]

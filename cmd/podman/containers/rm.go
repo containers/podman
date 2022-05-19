@@ -102,7 +102,7 @@ func rm(cmd *cobra.Command, args []string) error {
 		rmOptions.Timeout = &stopTimeout
 	}
 	for _, cidFile := range cidFiles {
-		content, err := ioutil.ReadFile(string(cidFile))
+		content, err := ioutil.ReadFile(cidFile)
 		if err != nil {
 			return errors.Wrap(err, "error reading CIDFile")
 		}

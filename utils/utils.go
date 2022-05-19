@@ -192,7 +192,7 @@ func moveProcessPIDFileToScope(pidPath, slice, scope string) error {
 }
 
 func moveProcessToScope(pid int, slice, scope string) error {
-	err := RunUnderSystemdScope(int(pid), slice, scope)
+	err := RunUnderSystemdScope(pid, slice, scope)
 	// If the PID is not valid anymore, do not return an error.
 	if dbusErr, ok := err.(dbus.Error); ok {
 		if dbusErr.Name == "org.freedesktop.DBus.Error.UnixProcessIdUnknown" {
