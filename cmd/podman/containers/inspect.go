@@ -42,6 +42,6 @@ func init() {
 
 func inspectExec(cmd *cobra.Command, args []string) error {
 	// Force container type
-	inspectOpts.Type = inspect.ContainerType
+	inspectOpts.Type = common.ContainerType
 	return inspect.Inspect(args, *inspectOpts)
 }

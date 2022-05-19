@@ -98,6 +98,8 @@ type Type string
 // Status describes the actual event action (stop, start, create, kill)
 type Status string
 
+// When updating this list below please also update the shell completion list in
+// cmd/podman/common/completion.go and the StringToXXX function in events.go.
 const (
 	// Container - event is related to containers
 	Container Type = "container"

@@ -21,21 +21,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const (
-	// AllType can be of type ImageType or ContainerType.
-	AllType = "all"
-	// ContainerType is the container type.
-	ContainerType = "container"
-	// ImageType is the image type.
-	ImageType = "image"
-	// NetworkType is the network type
-	NetworkType = "network"
-	// PodType is the pod type.
-	PodType = "pod"
-	// VolumeType is the volume type
-	VolumeType = "volume"
-)
-
 // AddInspectFlagSet takes a command and adds the inspect flags and returns an
 // InspectOptions object.
 func AddInspectFlagSet(cmd *cobra.Command) *entities.InspectOptions {
@@ -49,7 +34,7 @@ func AddInspectFlagSet(cmd *cobra.Command) *entities.InspectOptions {
 	_ = cmd.RegisterFlagCompletionFunc(formatFlagName, completion.AutocompleteNone)
 
 	typeFlagName := "type"
-	flags.StringVarP(&opts.Type, typeFlagName, "t", AllType, fmt.Sprintf("Specify inspect-object type (%q, %q or %q)", ImageType, ContainerType, AllType))
+	flags.StringVarP(&opts.Type, typeFlagName, "t", common.AllType, "Specify inspect-object type")
 	_ = cmd.RegisterFlagCompletionFunc(typeFlagName, common.AutocompleteInspectType)
 
 	validate.AddLatestFlag(cmd, &opts.Latest)
@@ -76,21 +61,22 @@ type inspector struct {
 // newInspector creates a new inspector based on the specified options.
 func newInspector(options entities.InspectOptions) (*inspector, error) {
 	switch options.Type {
-	case ImageType, ContainerType, AllType, PodType, NetworkType, VolumeType:
+	case common.ImageType, common.ContainerType, common.AllType, common.PodType, common.NetworkType, common.VolumeType:
 		// Valid types.
 	default:
-		return nil, errors.Errorf("invalid type %q: must be %q, %q, %q, %q, %q, or %q", options.Type, ImageType, ContainerType, PodType, NetworkType, VolumeType, AllType)
+		return nil, errors.Errorf("invalid type %q: must be %q, %q, %q, %q, %q, or %q", options.Type,
+			common.ImageType, common.ContainerType, common.PodType, common.NetworkType, common.VolumeType, common.AllType)
 	}
-	if options.Type == ImageType {
+	if options.Type == common.ImageType {
 		if options.Latest {
-			return nil, errors.Errorf("latest is not supported for type %q", ImageType)
+			return nil, errors.Errorf("latest is not supported for type %q", common.ImageType)
 		}
 		if options.Size {
-			return nil, errors.Errorf("size is not supported for type %q", ImageType)
+			return nil, errors.Errorf("size is not supported for type %q", common.ImageType)
 		}
 	}
-	if options.Type == PodType && options.Size {
-		return nil, errors.Errorf("size is not supported for type %q", PodType)
+	if options.Type == common.PodType && options.Size {
+		return nil, errors.Errorf("size is not supported for type %q", common.PodType)
 	}
 	podOpts := entities.PodInspectOptions{
 		Latest: options.Latest,
@@ -122,21 +108,21 @@ func (i *inspector) inspect(namesOrIDs []string) error {
 		if len(namesOrIDs) > 0 {
 			return errors.New("--latest and arguments cannot be used together")
 		}
-		if i.options.Type == AllType {
-			tmpType = ContainerType // -l works with --type=all, defaults to containertype
+		if i.options.Type == common.AllType {
+			tmpType = common.ContainerType // -l works with --type=all, defaults to containertype
 		}
 	}
 
 	// Inspect - note that AllType requires us to expensively query one-by-one.
 	switch tmpType {
-	case AllType:
+	case common.AllType:
 		allData, allErrs, err := i.inspectAll(ctx, namesOrIDs)
 		if err != nil {
 			return err
 		}
 		data = allData
 		errs = allErrs
-	case ImageType:
+	case common.ImageType:
 		imgData, allErrs, err := i.imageEngine.Inspect(ctx, namesOrIDs, i.options)
 		if err != nil {
 			return err
@@ -145,7 +131,7 @@ func (i *inspector) inspect(namesOrIDs []string) error {
 		for i := range imgData {
 			data = append(data, imgData[i])
 		}
-	case ContainerType:
+	case common.ContainerType:
 		ctrData, allErrs, err := i.containerEngine.ContainerInspect(ctx, namesOrIDs, i.options)
 		if err != nil {
 			return err
@@ -154,7 +140,7 @@ func (i *inspector) inspect(namesOrIDs []string) error {
 		for i := range ctrData {
 			data = append(data, ctrData[i])
 		}
-	case PodType:
+	case common.PodType:
 		for _, pod := range namesOrIDs {
 			i.podOptions.NameOrID = pod
 			podData, err := i.containerEngine.PodInspect(ctx, i.podOptions)
@@ -184,7 +170,7 @@ func (i *inspector) inspect(namesOrIDs []string) error {
 				data = append(data, podData)
 			}
 		}
-	case NetworkType:
+	case common.NetworkType:
 		networkData, allErrs, err := registry.ContainerEngine().NetworkInspect(ctx, namesOrIDs, i.options)
 		if err != nil {
 			return err
@@ -193,7 +179,7 @@ func (i *inspector) inspect(namesOrIDs []string) error {
 		for i := range networkData {
 			data = append(data, networkData[i])
 		}
-	case VolumeType:
+	case common.VolumeType:
 		volumeData, allErrs, err := i.containerEngine.VolumeInspect(ctx, namesOrIDs, i.options)
 		if err != nil {
 			return err
@@ -203,7 +189,8 @@ func (i *inspector) inspect(namesOrIDs []string) error {
 			data = append(data, volumeData[i])
 		}
 	default:
-		return errors.Errorf("invalid type %q: must be %q, %q, %q, %q, %q, or %q", i.options.Type, ImageType, ContainerType, PodType, NetworkType, VolumeType, AllType)
+		return errors.Errorf("invalid type %q: must be %q, %q, %q, %q, %q, or %q", i.options.Type,
+			common.ImageType, common.ContainerType, common.PodType, common.NetworkType, common.VolumeType, common.AllType)
 	}
 	// Always print an empty array
 	if data == nil {

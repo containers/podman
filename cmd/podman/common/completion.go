@@ -12,6 +12,7 @@ import (
 	"github.com/containers/image/v5/pkg/sysregistriesv2"
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/containers/podman/v4/libpod/define"
+	"github.com/containers/podman/v4/libpod/events"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/rootless"
 	systemdDefine "github.com/containers/podman/v4/pkg/systemd/define"
@@ -24,6 +25,8 @@ var (
 	ChangeCmds = []string{"CMD", "ENTRYPOINT", "ENV", "EXPOSE", "LABEL", "ONBUILD", "STOPSIGNAL", "USER", "VOLUME", "WORKDIR"}
 	// LogLevels supported by podman
 	LogLevels = []string{"trace", "debug", "info", "warn", "warning", "error", "fatal", "panic"}
+	// ValidSaveFormats is the list of support podman save formats
+	ValidSaveFormats = []string{define.OCIManifestDir, define.OCIArchive, define.V2s2ManifestDir, define.V2s2Archive}
 )
 
 type completeType int
@@ -1091,11 +1094,21 @@ func getMethodNames(f reflect.Value, prefix string) []string {
 // AutocompleteEventFilter - Autocomplete event filter flag options.
 // -> "container=", "event=", "image=", "pod=", "volume=", "type="
 func AutocompleteEventFilter(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	event := func(_ string) ([]string, cobra.ShellCompDirective) {
+		return []string{events.Attach.String(), events.AutoUpdate.String(), events.Checkpoint.String(), events.Cleanup.String(),
+			events.Commit.String(), events.Create.String(), events.Exec.String(), events.ExecDied.String(),
+			events.Exited.String(), events.Export.String(), events.Import.String(), events.Init.String(), events.Kill.String(),
+			events.LoadFromArchive.String(), events.Mount.String(), events.NetworkConnect.String(),
+			events.NetworkDisconnect.String(), events.Pause.String(), events.Prune.String(), events.Pull.String(),
+			events.Push.String(), events.Refresh.String(), events.Remove.String(), events.Rename.String(),
+			events.Renumber.String(), events.Restart.String(), events.Restore.String(), events.Save.String(),
+			events.Start.String(), events.Stop.String(), events.Sync.String(), events.Tag.String(), events.Unmount.String(),
+			events.Unpause.String(), events.Untag.String(),
+		}, cobra.ShellCompDirectiveNoFileComp
+	}
 	eventTypes := func(_ string) ([]string, cobra.ShellCompDirective) {
-		return []string{"attach", "checkpoint", "cleanup", "commit", "connect", "create", "disconnect", "exec",
-			"exec_died", "exited", "export", "import", "init", "kill", "loadFromArchive", "mount", "pause",
-			"prune", "pull", "push", "refresh", "remove", "rename", "renumber", "restart", "restore", "save",
-			"start", "stop", "sync", "tag", "unmount", "unpause", "untag",
+		return []string{events.Container.String(), events.Image.String(), events.Network.String(),
+			events.Pod.String(), events.System.String(), events.Volume.String(),
 		}, cobra.ShellCompDirectiveNoFileComp
 	}
 	kv := keyValueCompletion{
@@ -1103,7 +1116,7 @@ func AutocompleteEventFilter(cmd *cobra.Command, args []string, toComplete strin
 		"image=":     func(s string) ([]string, cobra.ShellCompDirective) { return getImages(cmd, s) },
 		"pod=":       func(s string) ([]string, cobra.ShellCompDirective) { return getPods(cmd, s, completeDefault) },
 		"volume=":    func(s string) ([]string, cobra.ShellCompDirective) { return getVolumes(cmd, s) },
-		"event=":     eventTypes,
+		"event=":     event,
 		"type=":      eventTypes,
 	}
 	return completeKeyValues(toComplete, kv)
@@ -1130,9 +1143,8 @@ func AutocompleteImageSort(cmd *cobra.Command, args []string, toComplete string)
 }
 
 // AutocompleteInspectType - Autocomplete inspect type options.
-// -> "container", "image", "all"
 func AutocompleteInspectType(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	types := []string{"container", "image", "all"}
+	types := []string{AllType, ContainerType, ImageType, NetworkType, PodType, VolumeType}
 	return types, cobra.ShellCompDirectiveNoFileComp
 }
 
@@ -1182,10 +1194,8 @@ func AutocompletePsSort(cmd *cobra.Command, args []string, toComplete string) ([
 }
 
 // AutocompleteImageSaveFormat - Autocomplete image save format options.
-// -> "oci-archive", "oci-dir", "docker-dir"
 func AutocompleteImageSaveFormat(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	formats := []string{"oci-archive", "oci-dir", "docker-dir"}
-	return formats, cobra.ShellCompDirectiveNoFileComp
+	return ValidSaveFormats, cobra.ShellCompDirectiveNoFileComp
 }
 
 // AutocompleteWaitCondition - Autocomplete wait condition options.
@@ -1198,21 +1208,21 @@ func AutocompleteWaitCondition(cmd *cobra.Command, args []string, toComplete str
 // AutocompleteCgroupManager - Autocomplete cgroup manager options.
 // -> "cgroupfs", "systemd"
 func AutocompleteCgroupManager(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	types := []string{"cgroupfs", "systemd"}
+	types := []string{config.CgroupfsCgroupsManager, config.SystemdCgroupsManager}
 	return types, cobra.ShellCompDirectiveNoFileComp
 }
 
 // AutocompleteEventBackend - Autocomplete event backend options.
 // -> "file", "journald", "none"
 func AutocompleteEventBackend(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	types := []string{"file", "journald", "none"}
+	types := []string{events.LogFile.String(), events.Journald.String(), events.Null.String()}
 	return types, cobra.ShellCompDirectiveNoFileComp
 }
 
 // AutocompleteNetworkBackend - Autocomplete network backend options.
 // -> "cni", "netavark"
 func AutocompleteNetworkBackend(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	types := []string{"cni", "netavark"}
+	types := []string{string(types.CNI), string(types.Netavark)}
 	return types, cobra.ShellCompDirectiveNoFileComp
 }
 
@@ -1225,7 +1235,7 @@ func AutocompleteLogLevel(cmd *cobra.Command, args []string, toComplete string) 
 // AutocompleteSDNotify - Autocomplete sdnotify options.
 // -> "container", "conmon", "ignore"
 func AutocompleteSDNotify(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	types := []string{"container", "conmon", "ignore"}
+	types := []string{define.SdNotifyModeContainer, define.SdNotifyModeContainer, define.SdNotifyModeIgnore}
 	return types, cobra.ShellCompDirectiveNoFileComp
 }
 
