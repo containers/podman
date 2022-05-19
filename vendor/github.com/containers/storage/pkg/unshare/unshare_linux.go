@@ -414,17 +414,6 @@ type Runnable interface {
 	Run() error
 }
 
-func bailOnError(err error, format string, a ...interface{}) { // nolint: golint,goprintffuncname
-	if err != nil {
-		if format != "" {
-			logrus.Errorf("%s: %v", fmt.Sprintf(format, a...), err)
-		} else {
-			logrus.Errorf("%v", err)
-		}
-		os.Exit(1)
-	}
-}
-
 // MaybeReexecUsingUserNamespace re-exec the process in a new namespace
 func MaybeReexecUsingUserNamespace(evenForRoot bool) {
 	// If we've already been through this once, no need to try again.
@@ -673,4 +662,21 @@ func ParseIDMappings(uidmap, gidmap []string) ([]idtools.IDMap, []idtools.IDMap,
 		return nil, nil, err
 	}
 	return uid, gid, nil
+}
+
+// HasCapSysAdmin returns whether the current process has CAP_SYS_ADMIN.
+func HasCapSysAdmin() (bool, error) {
+	hasCapSysAdminOnce.Do(func() {
+		currentCaps, err := capability.NewPid2(0)
+		if err != nil {
+			hasCapSysAdminErr = err
+			return
+		}
+		if err = currentCaps.Load(); err != nil {
+			hasCapSysAdminErr = err
+			return
+		}
+		hasCapSysAdminRet = currentCaps.Get(capability.EFFECTIVE, capability.CAP_SYS_ADMIN)
+	})
+	return hasCapSysAdminRet, hasCapSysAdminErr
 }

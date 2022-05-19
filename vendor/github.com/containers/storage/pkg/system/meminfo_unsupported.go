@@ -1,4 +1,5 @@
-// +build !linux,!windows,!solaris
+//go:build !linux && !windows && !solaris && !freebsd
+// +build !linux,!windows,!solaris,!freebsd
 
 package system
 
