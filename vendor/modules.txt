@@ -155,7 +155,7 @@ github.com/containers/common/version
 # github.com/containers/conmon v2.0.20+incompatible
 ## explicit
 github.com/containers/conmon/runner/config
-# github.com/containers/image/v5 v5.21.2-0.20220511203756-fe4fd4ed8be4
+# github.com/containers/image/v5 v5.21.2-0.20220519193817-1e26896b8059
 ## explicit
 github.com/containers/image/v5/copy
 github.com/containers/image/v5/directory
@@ -594,7 +594,7 @@ github.com/pkg/errors
 # github.com/pmezard/go-difflib v1.0.0
 ## explicit
 github.com/pmezard/go-difflib/difflib
-# github.com/proglottis/gpgme v0.1.1
+# github.com/proglottis/gpgme v0.1.2
 github.com/proglottis/gpgme
 # github.com/prometheus/client_golang v1.11.1
 github.com/prometheus/client_golang/prometheus

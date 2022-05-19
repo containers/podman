@@ -305,7 +305,7 @@ func Image(ctx context.Context, policyContext *signature.PolicyContext, destRef,
 		unparsedInstance := image.UnparsedInstance(rawSource, &instanceDigest)
 
 		if copiedManifest, _, _, err = c.copyOneImage(ctx, policyContext, options, unparsedToplevel, unparsedInstance, nil); err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, "copying system image from manifest list")
 		}
 	} else { /* options.ImageListSelection == CopyAllImages or options.ImageListSelection == CopySpecificImages, */
 		// If we were asked to copy multiple images and can't, that's an error.
@@ -501,7 +501,7 @@ func (c *copier) copyMultipleImages(ctx context.Context, policyContext *signatur
 		unparsedInstance := image.UnparsedInstance(c.rawSource, &instanceDigest)
 		updatedManifest, updatedManifestType, updatedManifestDigest, err := c.copyOneImage(ctx, policyContext, options, unparsedToplevel, unparsedInstance, &instanceDigest)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrapf(err, "copying image %d/%d from manifest list", instancesCopied+1, imagesToCopy)
 		}
 		instancesCopied++
 		// Record the result of a possible conversion here.

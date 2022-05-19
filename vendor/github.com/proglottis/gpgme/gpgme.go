@@ -1,6 +1,7 @@
 // Package gpgme provides a Go wrapper for the GPGME library
 package gpgme
 
+// #cgo pkg-config: gpgme
 // #cgo LDFLAGS: -lgpgme -lassuan -lgpg-error
 // #cgo CPPFLAGS: -D_FILE_OFFSET_BITS=64
 // #include <stdlib.h>
