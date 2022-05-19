@@ -17,9 +17,7 @@ import (
 )
 
 func PruneImages(w http.ResponseWriter, r *http.Request) {
-	var (
-		filters []string
-	)
+	var filters []string
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 
 	filterMap, err := util.PrepareFilters(r)

@@ -11,6 +11,7 @@ import (
 	"github.com/containers/podman/v4/pkg/api/handlers/utils"
 	"github.com/containers/podman/v4/pkg/api/server/idle"
 	api "github.com/containers/podman/v4/pkg/api/types"
+	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/specgenutil"
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
@@ -93,10 +94,7 @@ func ExecCreateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp := new(handlers.ExecCreateResponse)
-	resp.ID = sessID
-
-	utils.WriteResponse(w, http.StatusCreated, resp)
+	utils.WriteResponse(w, http.StatusCreated, entities.IDResponse{ID: sessID})
 }
 
 // ExecInspectHandler inspects a given exec session.

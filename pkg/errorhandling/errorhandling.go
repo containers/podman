@@ -86,7 +86,7 @@ func Contains(err error, sub error) bool {
 // PodConflictErrorModel is used in remote connections with podman
 type PodConflictErrorModel struct {
 	Errs []string
-	Id   string //nolint
+	Id   string // nolint
 }
 
 // ErrorModel is used in remote connections with podman
@@ -97,7 +97,8 @@ type ErrorModel struct {
 	// human error message, formatted for a human to read
 	// example: human error message
 	Message string `json:"message"`
-	// http response code
+	// HTTP response code
+	// min: 400
 	ResponseCode int `json:"response"`
 }
 

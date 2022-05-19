@@ -57,9 +57,9 @@ func (s *APIServer) registerPlayHandlers(r *mux.Router) error {
 	// - application/json
 	// responses:
 	//   200:
-	//     $ref: "#/responses/DocsLibpodPlayKubeResponse"
+	//     $ref: "#/responses/playKubeResponseLibpod"
 	//   500:
-	//     $ref: "#/responses/InternalError"
+	//     $ref: "#/responses/internalError"
 	r.HandleFunc(VersionedPath("/libpod/play/kube"), s.APIHandler(libpod.PlayKube)).Methods(http.MethodPost)
 	// swagger:operation DELETE /libpod/play/kube libpod PlayKubeDownLibpod
 	// ---
@@ -72,9 +72,9 @@ func (s *APIServer) registerPlayHandlers(r *mux.Router) error {
 	// - application/json
 	// responses:
 	//   200:
-	//     $ref: "#/responses/DocsLibpodPlayKubeResponse"
+	//     $ref: "#/responses/playKubeResponseLibpod"
 	//   500:
-	//     $ref: "#/responses/InternalError"
+	//     $ref: "#/responses/internalError"
 	r.HandleFunc(VersionedPath("/libpod/play/kube"), s.APIHandler(libpod.PlayKubeDown)).Methods(http.MethodDelete)
 	return nil
 }

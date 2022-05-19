@@ -41,7 +41,7 @@ type ContainersPruneReport struct {
 	docker.ContainersPruneReport
 }
 
-type LibpodContainersPruneReport struct {
+type ContainersPruneReportLibpod struct {
 	ID             string `json:"Id"`
 	SpaceReclaimed int64  `json:"Size"`
 	// Error which occurred during prune operation (if any).
@@ -121,7 +121,7 @@ type ContainerWaitOKBody struct {
 }
 
 // CreateContainerConfig used when compatible endpoint creates a container
-// swagger:model CreateContainerConfig
+// swagger:model
 type CreateContainerConfig struct {
 	Name                   string                         // container name
 	dockerContainer.Config                                // desired container configuration
@@ -131,32 +131,12 @@ type CreateContainerConfig struct {
 	UnsetEnvAll            bool                           // unset all default environment variables
 }
 
-// swagger:model IDResponse
-type IDResponse struct {
-	// ID
-	ID string `json:"Id"`
-}
-
 type ContainerTopOKBody struct {
 	dockerContainer.ContainerTopOKBody
 }
 
 type PodTopOKBody struct {
 	dockerContainer.ContainerTopOKBody
-}
-
-// swagger:model PodCreateConfig
-type PodCreateConfig struct {
-	Name         string   `json:"name"`
-	CgroupParent string   `json:"cgroup-parent"`
-	Hostname     string   `json:"hostname"`
-	Infra        bool     `json:"infra"`
-	InfraCommand string   `json:"infra-command"`
-	InfraImage   string   `json:"infra-image"`
-	InfraName    string   `json:"infra-name"`
-	Labels       []string `json:"labels"`
-	Publish      []string `json:"publish"`
-	Share        string   `json:"share"`
 }
 
 // HistoryResponse provides details on image layers
@@ -171,10 +151,6 @@ type HistoryResponse struct {
 
 type ExecCreateConfig struct {
 	docker.ExecConfig
-}
-
-type ExecCreateResponse struct {
-	docker.IDResponse
 }
 
 type ExecStartConfig struct {
@@ -250,7 +226,7 @@ func ImageDataToImageInspect(ctx context.Context, l *libimage.Image) (*ImageInsp
 	return &ImageInspect{dockerImageInspect}, nil
 }
 
-// portsToPortSet converts libpods exposed ports to dockers structs
+// portsToPortSet converts libpod's exposed ports to docker's structs
 func portsToPortSet(input map[string]struct{}) (nat.PortSet, error) {
 	ports := make(nat.PortSet)
 	for k := range input {

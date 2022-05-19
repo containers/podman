@@ -9,6 +9,7 @@ import (
 	"github.com/containers/podman/v4/libpod/events"
 	"github.com/containers/podman/v4/pkg/specgen"
 	"github.com/containers/storage/pkg/archive"
+	dockerAPI "github.com/docker/docker/api/types"
 )
 
 type Container struct {
@@ -26,8 +27,10 @@ type Report struct {
 
 type PodDeleteReport struct{ Report }
 
-type VolumeDeleteOptions struct{}
-type VolumeDeleteReport struct{ Report }
+type (
+	VolumeDeleteOptions struct{}
+	VolumeDeleteReport  struct{ Report }
+)
 
 type NetFlags struct {
 	AddHosts     []string `json:"add-host,omitempty"`
@@ -59,7 +62,7 @@ type NetOptions struct {
 	NetworkOptions map[string][]string `json:"network_options,omitempty"`
 }
 
-// All CLI inspect commands and inspect sub-commands use the same options
+// InspectOptions all CLI inspect commands and inspect sub-commands use the same options
 type InspectOptions struct {
 	// Format - change the output to JSON or a Go template.
 	Format string `json:",omitempty"`
@@ -73,7 +76,7 @@ type InspectOptions struct {
 	All bool `json:",omitempty"`
 }
 
-// All API and CLI diff commands and diff sub-commands use the same options
+// DiffOptions all API and CLI diff commands and diff sub-commands use the same options
 type DiffOptions struct {
 	Format  string          `json:",omitempty"` // CLI only
 	Latest  bool            `json:",omitempty"` // API and CLI, only supported by containers
@@ -115,3 +118,11 @@ type BuildReport struct {
 	// ID of the image.
 	ID string
 }
+
+type IDOrNameResponse struct {
+	// The Id or Name of an object
+	IDOrName string
+}
+
+// swagger:model
+type IDResponse dockerAPI.IDResponse
