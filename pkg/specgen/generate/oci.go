@@ -377,7 +377,7 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 		if err := unix.Stat(k, &statT); err != nil {
 			return nil, errors.Wrapf(err, "failed to inspect '%s' in --blkio-weight-device", k)
 		}
-		g.AddLinuxResourcesBlockIOWeightDevice((int64(unix.Major(uint64(statT.Rdev)))), (int64(unix.Minor(uint64(statT.Rdev)))), *v.Weight)
+		g.AddLinuxResourcesBlockIOWeightDevice((int64(unix.Major(uint64(statT.Rdev)))), (int64(unix.Minor(uint64(statT.Rdev)))), *v.Weight) // nolint: unconvert
 	}
 
 	BlockAccessToKernelFilesystems(s.Privileged, s.PidNS.IsHost(), s.Mask, s.Unmask, &g)

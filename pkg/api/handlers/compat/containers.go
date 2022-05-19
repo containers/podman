@@ -254,7 +254,7 @@ func KillContainer(w http.ResponseWriter, r *http.Request) {
 			utils.InternalServerError(w, err)
 			return
 		}
-		if sig == 0 || syscall.Signal(sig) == syscall.SIGKILL {
+		if sig == 0 || sig == syscall.SIGKILL {
 			opts := entities.WaitOptions{
 				Condition: []define.ContainerStatus{define.ContainerStateExited, define.ContainerStateStopped},
 				Interval:  time.Millisecond * 250,
@@ -341,8 +341,8 @@ func LibpodToContainer(l *libpod.Container, sz bool) (*handlers.Container, error
 	for idx, portMapping := range portMappings {
 		ports[idx] = types.Port{
 			IP:          portMapping.HostIP,
-			PrivatePort: uint16(portMapping.ContainerPort),
-			PublicPort:  uint16(portMapping.HostPort),
+			PrivatePort: portMapping.ContainerPort,
+			PublicPort:  portMapping.HostPort,
 			Type:        portMapping.Protocol,
 		}
 	}

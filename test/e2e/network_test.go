@@ -475,7 +475,7 @@ var _ = Describe("Podman network", func() {
 		defer podmanTest.removeNetwork(netName)
 		Expect(session).Should(Exit(0))
 
-		interval := time.Duration(250 * time.Millisecond)
+		interval := 250 * time.Millisecond
 		for i := 0; i < 6; i++ {
 			n := podmanTest.Podman([]string{"network", "exists", netName})
 			n.WaitWithDefaultTimeout()
@@ -490,7 +490,7 @@ var _ = Describe("Podman network", func() {
 		top := podmanTest.Podman([]string{"run", "-dt", "--name=web", "--network=" + netName, "--network-alias=web1", "--network-alias=web2", nginx})
 		top.WaitWithDefaultTimeout()
 		Expect(top).Should(Exit(0))
-		interval = time.Duration(250 * time.Millisecond)
+		interval = 250 * time.Millisecond
 		// Wait for the nginx service to be running
 		for i := 0; i < 6; i++ {
 			// Test curl against the container's name
@@ -526,7 +526,7 @@ var _ = Describe("Podman network", func() {
 		defer podmanTest.removeNetwork(netName)
 		Expect(session).Should(Exit(0))
 
-		interval := time.Duration(250 * time.Millisecond)
+		interval := 250 * time.Millisecond
 		for i := 0; i < 6; i++ {
 			n := podmanTest.Podman([]string{"network", "exists", netName})
 			n.WaitWithDefaultTimeout()
@@ -541,7 +541,7 @@ var _ = Describe("Podman network", func() {
 		top := podmanTest.Podman([]string{"run", "-dt", "--name=web", "--network=" + netName, "--network-alias=web1", "--network-alias=web2", nginx})
 		top.WaitWithDefaultTimeout()
 		Expect(top).Should(Exit(0))
-		interval = time.Duration(250 * time.Millisecond)
+		interval = 250 * time.Millisecond
 		// Wait for the nginx service to be running
 		for i := 0; i < 6; i++ {
 			// Test curl against the container's name

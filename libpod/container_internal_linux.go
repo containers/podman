@@ -3282,7 +3282,7 @@ func (c *Container) fixVolumePermissions(v *ContainerNamedVolume) error {
 				return err
 			}
 			stat := st.Sys().(*syscall.Stat_t)
-			atime := time.Unix(int64(stat.Atim.Sec), int64(stat.Atim.Nsec))
+			atime := time.Unix(int64(stat.Atim.Sec), int64(stat.Atim.Nsec)) // nolint: unconvert
 			if err := os.Chtimes(mountPoint, atime, st.ModTime()); err != nil {
 				return err
 			}
