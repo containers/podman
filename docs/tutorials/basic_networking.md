@@ -18,8 +18,8 @@ whether or not the container is run by a root user or not. This is because unpri
 users cannot create networking interfaces on the host. Therefore, for rootless containers, 
 the default network mode is slirp4netns. Because of the limited privileges, slirp4netns 
 lacks some of the features of networking; for example, slirp4netns cannot give containers 
-a routable IP address. With rootful containers, on the other side, the default networking
-mode is to use netavark.
+a routable IP address. The default networking mode for rootful containers on the other side
+is netavark, which allows a container to have a routable IP address.
 
 ## Firewalls
 
