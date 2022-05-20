@@ -1217,3 +1217,17 @@ WARN[0000] Can't stat lower layer "/var/lib/containers/storage/overlay/l/7HS76F2
 It is the user responsibility to make sure images in an additional
 store are not deleted while being used by containers in another
 store.
+
+### 36) rootful containers fail to run with `crun`
+
+#### Symptom
+``` console
+$ sudo podman run -dt --name webserverRoot2 -p 8881:80 quay.io/libpod/banner
+Error: crun: `/proc/thread-self/attr/exec`: OCI runtime error: unable to assign security attribute
+```
+
+#### Solution
+
+set `runtime = "runc"` (default `"crun"`) in `/etc/containers/containers.conf`
+
+Details: https://issuekiller.com/issues/containers/podman/80943707
