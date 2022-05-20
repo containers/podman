@@ -369,26 +369,28 @@ func LibpodToContainer(l *libpod.Container, sz bool) (*handlers.Container, error
 		return nil, err
 	}
 
-	return &handlers.Container{Container: types.Container{
-		ID:         l.ID(),
-		Names:      []string{fmt.Sprintf("/%s", l.Name())},
-		Image:      imageName,
-		ImageID:    "sha256:" + imageID,
-		Command:    strings.Join(l.Command(), " "),
-		Created:    l.CreatedTime().Unix(),
-		Ports:      ports,
-		SizeRw:     sizeRW,
-		SizeRootFs: sizeRootFs,
-		Labels:     l.Labels(),
-		State:      stateStr,
-		Status:     status,
-		HostConfig: struct {
-			NetworkMode string `json:",omitempty"`
-		}{
-			"host"},
-		NetworkSettings: &networkSettings,
-		Mounts:          mounts,
-	},
+	return &handlers.Container{
+		Container: types.Container{
+			ID:         l.ID(),
+			Names:      []string{fmt.Sprintf("/%s", l.Name())},
+			Image:      imageName,
+			ImageID:    "sha256:" + imageID,
+			Command:    strings.Join(l.Command(), " "),
+			Created:    l.CreatedTime().Unix(),
+			Ports:      ports,
+			SizeRw:     sizeRW,
+			SizeRootFs: sizeRootFs,
+			Labels:     l.Labels(),
+			State:      stateStr,
+			Status:     status,
+			HostConfig: struct {
+				NetworkMode string `json:",omitempty"`
+			}{
+				"host",
+			},
+			NetworkSettings: &networkSettings,
+			Mounts:          mounts,
+		},
 		ContainerCreateConfig: types.ContainerCreateConfig{},
 	}, nil
 }

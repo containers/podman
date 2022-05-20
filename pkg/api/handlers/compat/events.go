@@ -63,7 +63,7 @@ func GetEvents(w http.ResponseWriter, r *http.Request) {
 		errorChannel <- runtime.Events(r.Context(), readOpts)
 	}()
 
-	var flush = func() {}
+	flush := func() {}
 	if flusher, ok := w.(http.Flusher); ok {
 		flush = flusher.Flush
 	}

@@ -16,9 +16,7 @@ import (
 )
 
 func ListSecrets(w http.ResponseWriter, r *http.Request) {
-	var (
-		runtime = r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
-	)
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	filtersMap, err := util.PrepareFilters(r)
 	if err != nil {
 		utils.Error(w, http.StatusInternalServerError, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
@@ -51,9 +49,7 @@ func ListSecrets(w http.ResponseWriter, r *http.Request) {
 }
 
 func InspectSecret(w http.ResponseWriter, r *http.Request) {
-	var (
-		runtime = r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
-	)
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	name := utils.GetName(r)
 	names := []string{name}
 	ic := abi.ContainerEngine{Libpod: runtime}
@@ -84,9 +80,7 @@ func InspectSecret(w http.ResponseWriter, r *http.Request) {
 }
 
 func RemoveSecret(w http.ResponseWriter, r *http.Request) {
-	var (
-		runtime = r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
-	)
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 
 	opts := entities.SecretRmOptions{}
 	name := utils.GetName(r)
@@ -104,9 +98,7 @@ func RemoveSecret(w http.ResponseWriter, r *http.Request) {
 }
 
 func CreateSecret(w http.ResponseWriter, r *http.Request) {
-	var (
-		runtime = r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
-	)
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	opts := entities.SecretCreateOptions{}
 	createParams := struct {
 		*entities.SecretCreateRequest

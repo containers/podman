@@ -15,21 +15,15 @@ type Named interface {
 	Name() string
 }
 
-// Named interface allows filters to access Name() of object
+// Names interface allows filters to access Name() of object
 type Names interface {
 	Names() []string
 }
 
-// IDOrName interface allows filters to access ID() or Name() of object
+// IDOrNamed interface allows filters to access ID() or Name() of object
 type IDOrNamed interface {
 	Identifier
 	Named
-}
-
-// IDOrName interface allows filters to access ID() or Names() of object
-type IDOrNames interface {
-	Identifier
-	Names
 }
 
 type ImageFilter func(Image) bool

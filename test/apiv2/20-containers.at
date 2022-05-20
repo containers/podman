@@ -477,8 +477,7 @@ for endpoint in containers/create libpod/containers/create; do
 
   t POST libpod/containers/$cid/init 204
 
-  t GET libpod/containers/$cid/json 200 \
-    .HostsPath=""
+  t GET libpod/containers/$cid/json 200
 
   t DELETE containers/$cid 204
 done

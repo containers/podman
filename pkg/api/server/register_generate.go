@@ -103,7 +103,7 @@ func (s *APIServer) registerGenerateHandlers(r *mux.Router) error {
 	//       additionalProperties:
 	//         type: string
 	//   500:
-	//     $ref: "#/responses/InternalError"
+	//     $ref: "#/responses/internalError"
 	r.HandleFunc(VersionedPath("/libpod/generate/{name:.*}/systemd"), s.APIHandler(libpod.GenerateSystemd)).Methods(http.MethodGet)
 
 	// swagger:operation GET /libpod/generate/kube libpod GenerateKubeLibpod
@@ -127,15 +127,16 @@ func (s *APIServer) registerGenerateHandlers(r *mux.Router) error {
 	//    default: false
 	//    description: Generate YAML for a Kubernetes service object.
 	// produces:
+	// - text/vnd.yaml
 	// - application/json
 	// responses:
 	//   200:
-	//     description: no error
+	//     description: Kubernetes YAML file describing pod
 	//     schema:
 	//      type: string
 	//      format: binary
 	//   500:
-	//     $ref: "#/responses/InternalError"
+	//     $ref: "#/responses/internalError"
 	r.HandleFunc(VersionedPath("/libpod/generate/kube"), s.APIHandler(libpod.GenerateKube)).Methods(http.MethodGet)
 	return nil
 }

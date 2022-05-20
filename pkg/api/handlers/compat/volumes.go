@@ -180,9 +180,7 @@ func CreateVolume(w http.ResponseWriter, r *http.Request) {
 }
 
 func InspectVolume(w http.ResponseWriter, r *http.Request) {
-	var (
-		runtime = r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
-	)
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	name := utils.GetName(r)
 	vol, err := runtime.GetVolume(name)
 	if err != nil {
@@ -263,9 +261,7 @@ func RemoveVolume(w http.ResponseWriter, r *http.Request) {
 }
 
 func PruneVolumes(w http.ResponseWriter, r *http.Request) {
-	var (
-		runtime = r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
-	)
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	filterMap, err := util.PrepareFilters(r)
 	if err != nil {
 		utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "Decode()"))

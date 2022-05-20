@@ -39,11 +39,11 @@ func (s *APIServer) registerManifestHandlers(r *mux.Router) error {
 	//     schema:
 	//       $ref: "#/definitions/IDResponse"
 	//   400:
-	//     $ref: "#/responses/BadParamError"
+	//     $ref: "#/responses/badParamError"
 	//   404:
-	//     $ref: "#/responses/NoSuchManifest"
+	//     $ref: "#/responses/manifestNotFound"
 	//   500:
-	//     $ref: "#/responses/InternalError"
+	//     $ref: "#/responses/internalError"
 	v3.Handle("/{name}/push", s.APIHandler(libpod.ManifestPushV3)).Methods(http.MethodPost)
 	// swagger:operation POST /libpod/manifests/{name}/registry/{destination} manifests ManifestPushLibpod
 	// ---
@@ -80,11 +80,11 @@ func (s *APIServer) registerManifestHandlers(r *mux.Router) error {
 	//     schema:
 	//       $ref: "#/definitions/IDResponse"
 	//   400:
-	//     $ref: "#/responses/BadParamError"
+	//     $ref: "#/responses/badParamError"
 	//   404:
-	//     $ref: "#/responses/NoSuchManifest"
+	//     $ref: "#/responses/manifestNotFound"
 	//   500:
-	//     $ref: "#/responses/InternalError"
+	//     $ref: "#/responses/internalError"
 	v4.Handle("/{name:.*}/registry/{destination:.*}", s.APIHandler(libpod.ManifestPush)).Methods(http.MethodPost)
 	// swagger:operation POST /libpod/manifests manifests ManifestCreateLibpod
 	// ---
@@ -123,11 +123,11 @@ func (s *APIServer) registerManifestHandlers(r *mux.Router) error {
 	//     schema:
 	//       $ref: "#/definitions/IDResponse"
 	//   400:
-	//     $ref: "#/responses/BadParamError"
+	//     $ref: "#/responses/badParamError"
 	//   404:
-	//     $ref: "#/responses/NoSuchImage"
+	//     $ref: "#/responses/imageNotFound"
 	//   500:
-	//     $ref: "#/responses/InternalError"
+	//     $ref: "#/responses/internalError"
 	v3.Handle("/create", s.APIHandler(libpod.ManifestCreate)).Methods(http.MethodPost)
 	v4.Handle("/{name:.*}", s.APIHandler(libpod.ManifestCreate)).Methods(http.MethodPost)
 	// swagger:operation GET /libpod/manifests/{name}/exists manifests ManifestExistsLibpod
@@ -149,9 +149,9 @@ func (s *APIServer) registerManifestHandlers(r *mux.Router) error {
 	//   204:
 	//     description: manifest list exists
 	//   404:
-	//     $ref: '#/responses/NoSuchManifest'
+	//     $ref: '#/responses/manifestNotFound'
 	//   500:
-	//     $ref: '#/responses/InternalError'
+	//     $ref: '#/responses/internalError'
 	v3.Handle("/{name:.*}/exists", s.APIHandler(libpod.ManifestExists)).Methods(http.MethodGet)
 	v4.Handle("/{name:.*}/exists", s.APIHandler(libpod.ManifestExists)).Methods(http.MethodGet)
 	// swagger:operation GET /libpod/manifests/{name}/json manifests ManifestInspectLibpod
@@ -168,11 +168,11 @@ func (s *APIServer) registerManifestHandlers(r *mux.Router) error {
 	//    description: the name or ID of the manifest list
 	// responses:
 	//   200:
-	//     $ref: "#/responses/InspectManifest"
+	//     $ref: "#/responses/manifestInspect"
 	//   404:
-	//     $ref: "#/responses/NoSuchManifest"
+	//     $ref: "#/responses/manifestNotFound"
 	//   500:
-	//     $ref: "#/responses/InternalError"
+	//     $ref: "#/responses/internalError"
 	v3.Handle("/{name:.*}/json", s.APIHandler(libpod.ManifestInspect)).Methods(http.MethodGet)
 	v4.Handle("/{name:.*}/json", s.APIHandler(libpod.ManifestInspect)).Methods(http.MethodGet)
 	// swagger:operation PUT /libpod/manifests/{name} manifests ManifestModifyLibpod
@@ -208,15 +208,15 @@ func (s *APIServer) registerManifestHandlers(r *mux.Router) error {
 	//     schema:
 	//       $ref: "#/definitions/ManifestModifyReport"
 	//   404:
-	//     $ref: "#/responses/NoSuchManifest"
+	//     $ref: "#/responses/manifestNotFound"
 	//   400:
-	//     $ref: "#/responses/BadParamError"
+	//     $ref: "#/responses/badParamError"
 	//   409:
 	//     description: Operation had partial success, both Images and Errors may have members
 	//     schema:
 	//       $ref: "#/definitions/ManifestModifyReport"
 	//   500:
-	//     $ref: "#/responses/InternalError"
+	//     $ref: "#/responses/internalError"
 	v4.Handle("/{name:.*}", s.APIHandler(libpod.ManifestModify)).Methods(http.MethodPut)
 	// swagger:operation POST /libpod/manifests/{name}/add manifests ManifestAddLibpod
 	// ---
@@ -243,11 +243,11 @@ func (s *APIServer) registerManifestHandlers(r *mux.Router) error {
 	//     schema:
 	//       $ref: "#/definitions/IDResponse"
 	//   404:
-	//     $ref: "#/responses/NoSuchManifest"
+	//     $ref: "#/responses/manifestNotFound"
 	//   409:
-	//     $ref: "#/responses/BadParamError"
+	//     $ref: "#/responses/badParamError"
 	//   500:
-	//     $ref: "#/responses/InternalError"
+	//     $ref: "#/responses/internalError"
 	v3.Handle("/{name:.*}/add", s.APIHandler(libpod.ManifestAddV3)).Methods(http.MethodPost)
 	// swagger:operation DELETE /libpod/manifests/{name} manifests ManifestDeleteV3Libpod
 	// ---
@@ -273,11 +273,11 @@ func (s *APIServer) registerManifestHandlers(r *mux.Router) error {
 	//     schema:
 	//       $ref: "#/definitions/IDResponse"
 	//   400:
-	//     $ref: "#/responses/BadParamError"
+	//     $ref: "#/responses/badParamError"
 	//   404:
-	//     $ref: "#/responses/NoSuchManifest"
+	//     $ref: "#/responses/manifestNotFound"
 	//   500:
-	//     $ref: "#/responses/InternalError"
+	//     $ref: "#/responses/internalError"
 	v3.Handle("/{name:.*}", s.APIHandler(libpod.ManifestRemoveDigestV3)).Methods(http.MethodDelete)
 	// swagger:operation DELETE /libpod/manifests/{name} manifests ManifestDeleteLibpod
 	// ---
@@ -296,11 +296,11 @@ func (s *APIServer) registerManifestHandlers(r *mux.Router) error {
 	//    description: The name or ID of the  list to be deleted
 	// responses:
 	//   200:
-	//     $ref: "#/responses/DocsLibpodImagesRemoveResponse"
+	//     $ref: "#/responses/imagesRemoveResponseLibpod"
 	//   404:
-	//     $ref: "#/responses/NoSuchManifest"
+	//     $ref: "#/responses/manifestNotFound"
 	//   500:
-	//     $ref: "#/responses/InternalError"
+	//     $ref: "#/responses/internalError"
 	v4.Handle("/{name:.*}", s.APIHandler(libpod.ManifestDelete)).Methods(http.MethodDelete)
 	return nil
 }

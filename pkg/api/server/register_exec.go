@@ -69,11 +69,11 @@ func (s *APIServer) registerExecHandlers(r *mux.Router) error {
 	//   201:
 	//     description: no error
 	//   404:
-	//     $ref: "#/responses/NoSuchContainer"
+	//     $ref: "#/responses/containerNotFound"
 	//   409:
 	//	   description: container is paused
 	//   500:
-	//     $ref: "#/responses/InternalError"
+	//     $ref: "#/responses/internalError"
 	r.Handle(VersionedPath("/containers/{name}/exec"), s.APIHandler(compat.ExecCreateHandler)).Methods(http.MethodPost)
 	// Added non version path to URI to support docker non versioned paths
 	r.Handle("/containers/{name}/exec", s.APIHandler(compat.ExecCreateHandler)).Methods(http.MethodPost)
@@ -107,11 +107,11 @@ func (s *APIServer) registerExecHandlers(r *mux.Router) error {
 	//   200:
 	//     description: no error
 	//   404:
-	//     $ref: "#/responses/NoSuchExecInstance"
+	//     $ref: "#/responses/execSessionNotFound"
 	//   409:
 	//	   description: container is not running
 	//   500:
-	//     $ref: "#/responses/InternalError"
+	//     $ref: "#/responses/internalError"
 	r.Handle(VersionedPath("/exec/{id}/start"), s.APIHandler(compat.ExecStartHandler)).Methods(http.MethodPost)
 	// Added non version path to URI to support docker non versioned paths
 	r.Handle("/exec/{id}/start", s.APIHandler(compat.ExecStartHandler)).Methods(http.MethodPost)
@@ -147,9 +147,9 @@ func (s *APIServer) registerExecHandlers(r *mux.Router) error {
 	//   201:
 	//     description: no error
 	//   404:
-	//     $ref: "#/responses/NoSuchExecInstance"
+	//     $ref: "#/responses/execSessionNotFound"
 	//   500:
-	//     $ref: "#/responses/InternalError"
+	//     $ref: "#/responses/internalError"
 	r.Handle(VersionedPath("/exec/{id}/resize"), s.APIHandler(compat.ResizeTTY)).Methods(http.MethodPost)
 	// Added non version path to URI to support docker non versioned paths
 	r.Handle("/exec/{id}/resize", s.APIHandler(compat.ResizeTTY)).Methods(http.MethodPost)
@@ -169,11 +169,11 @@ func (s *APIServer) registerExecHandlers(r *mux.Router) error {
 	// - application/json
 	// responses:
 	//   200:
-	//     $ref: "#/responses/InspectExecSession"
+	//     $ref: "#/responses/execSessionInspect"
 	//   404:
-	//     $ref: "#/responses/NoSuchExecInstance"
+	//     $ref: "#/responses/execSessionNotFound"
 	//   500:
-	//     $ref: "#/responses/InternalError"
+	//     $ref: "#/responses/internalError"
 	r.Handle(VersionedPath("/exec/{id}/json"), s.APIHandler(compat.ExecInspectHandler)).Methods(http.MethodGet)
 	// Added non version path to URI to support docker non versioned paths
 	r.Handle("/exec/{id}/json", s.APIHandler(compat.ExecInspectHandler)).Methods(http.MethodGet)
@@ -243,11 +243,11 @@ func (s *APIServer) registerExecHandlers(r *mux.Router) error {
 	//   201:
 	//     description: no error
 	//   404:
-	//     $ref: "#/responses/NoSuchContainer"
+	//     $ref: "#/responses/containerNotFound"
 	//   409:
 	//	   description: container is paused
 	//   500:
-	//     $ref: "#/responses/InternalError"
+	//     $ref: "#/responses/internalError"
 	r.Handle(VersionedPath("/libpod/containers/{name}/exec"), s.APIHandler(compat.ExecCreateHandler)).Methods(http.MethodPost)
 	// swagger:operation POST /libpod/exec/{id}/start libpod ExecStartLibpod
 	// ---
@@ -285,11 +285,11 @@ func (s *APIServer) registerExecHandlers(r *mux.Router) error {
 	//   200:
 	//     description: no error
 	//   404:
-	//     $ref: "#/responses/NoSuchExecInstance"
+	//     $ref: "#/responses/execSessionNotFound"
 	//   409:
 	//	   description: container is not running.
 	//   500:
-	//     $ref: "#/responses/InternalError"
+	//     $ref: "#/responses/internalError"
 	r.Handle(VersionedPath("/libpod/exec/{id}/start"), s.APIHandler(compat.ExecStartHandler)).Methods(http.MethodPost)
 	// swagger:operation POST /libpod/exec/{id}/resize libpod ExecResizeLibpod
 	// ---
@@ -318,9 +318,9 @@ func (s *APIServer) registerExecHandlers(r *mux.Router) error {
 	//   201:
 	//     description: no error
 	//   404:
-	//     $ref: "#/responses/NoSuchExecInstance"
+	//     $ref: "#/responses/execSessionNotFound"
 	//   500:
-	//     $ref: "#/responses/InternalError"
+	//     $ref: "#/responses/internalError"
 	r.Handle(VersionedPath("/libpod/exec/{id}/resize"), s.APIHandler(compat.ResizeTTY)).Methods(http.MethodPost)
 	// swagger:operation GET /libpod/exec/{id}/json libpod ExecInspectLibpod
 	// ---
@@ -340,9 +340,9 @@ func (s *APIServer) registerExecHandlers(r *mux.Router) error {
 	//   200:
 	//     description: no error
 	//   404:
-	//     $ref: "#/responses/NoSuchExecInstance"
+	//     $ref: "#/responses/execSessionNotFound"
 	//   500:
-	//     $ref: "#/responses/InternalError"
+	//     $ref: "#/responses/internalError"
 	r.Handle(VersionedPath("/libpod/exec/{id}/json"), s.APIHandler(compat.ExecInspectHandler)).Methods(http.MethodGet)
 	return nil
 }

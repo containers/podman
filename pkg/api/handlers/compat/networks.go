@@ -298,9 +298,7 @@ func RemoveNetwork(w http.ResponseWriter, r *http.Request) {
 func Connect(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 
-	var (
-		netConnect types.NetworkConnect
-	)
+	var netConnect types.NetworkConnect
 	if err := json.NewDecoder(r.Body).Decode(&netConnect); err != nil {
 		utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "Decode()"))
 		return

@@ -27,9 +27,9 @@ func (s *APIServer) registerNetworkHandlers(r *mux.Router) error {
 	//   204:
 	//     description: no error
 	//   404:
-	//     $ref: "#/responses/NoSuchNetwork"
+	//     $ref: "#/responses/networkNotFound"
 	//   500:
-	//     $ref: "#/responses/InternalError"
+	//     $ref: "#/responses/internalError"
 	r.HandleFunc(VersionedPath("/networks/{name}"), s.APIHandler(compat.RemoveNetwork)).Methods(http.MethodDelete)
 	r.HandleFunc("/networks/{name}", s.APIHandler(compat.RemoveNetwork)).Methods(http.MethodDelete)
 	// swagger:operation GET /networks/{name} compat NetworkInspect
@@ -58,11 +58,11 @@ func (s *APIServer) registerNetworkHandlers(r *mux.Router) error {
 	// - application/json
 	// responses:
 	//   200:
-	//     $ref: "#/responses/CompatNetworkInspect"
+	//     $ref: "#/responses/networkInspectCompat"
 	//   404:
-	//     $ref: "#/responses/NoSuchNetwork"
+	//     $ref: "#/responses/networkNotFound"
 	//   500:
-	//     $ref: "#/responses/InternalError"
+	//     $ref: "#/responses/internalError"
 	r.HandleFunc(VersionedPath("/networks/{name}"), s.APIHandler(compat.InspectNetwork)).Methods(http.MethodGet)
 	r.HandleFunc("/networks/{name}", s.APIHandler(compat.InspectNetwork)).Methods(http.MethodGet)
 	// swagger:operation GET /networks compat NetworkList
@@ -85,9 +85,9 @@ func (s *APIServer) registerNetworkHandlers(r *mux.Router) error {
 	// - application/json
 	// responses:
 	//   200:
-	//     $ref: "#/responses/CompatNetworkList"
+	//     $ref: "#/responses/networkListCompat"
 	//   500:
-	//     $ref: "#/responses/InternalError"
+	//     $ref: "#/responses/internalError"
 	r.HandleFunc(VersionedPath("/networks"), s.APIHandler(compat.ListNetworks)).Methods(http.MethodGet)
 	r.HandleFunc("/networks", s.APIHandler(compat.ListNetworks)).Methods(http.MethodGet)
 	// swagger:operation POST /networks/create compat NetworkCreate
@@ -103,7 +103,7 @@ func (s *APIServer) registerNetworkHandlers(r *mux.Router) error {
 	//    name: create
 	//    description: attributes for creating a network
 	//    schema:
-	//      $ref: "#/definitions/NetworkCreateRequest"
+	//      $ref: "#/definitions/networkCreate"
 	// responses:
 	//   201:
 	//     description: network created
@@ -115,9 +115,9 @@ func (s *APIServer) registerNetworkHandlers(r *mux.Router) error {
 	//         Warning:
 	//           type: string
 	//   400:
-	//     $ref: "#/responses/BadParamError"
+	//     $ref: "#/responses/badParamError"
 	//   500:
-	//     $ref: "#/responses/InternalError"
+	//     $ref: "#/responses/internalError"
 	r.HandleFunc(VersionedPath("/networks/create"), s.APIHandler(compat.CreateNetwork)).Methods(http.MethodPost)
 	r.HandleFunc("/networks/create", s.APIHandler(compat.CreateNetwork)).Methods(http.MethodPost)
 	// swagger:operation POST /networks/{name}/connect compat NetworkConnect
@@ -138,14 +138,14 @@ func (s *APIServer) registerNetworkHandlers(r *mux.Router) error {
 	//    name: create
 	//    description: attributes for connecting a container to a network
 	//    schema:
-	//      $ref: "#/definitions/NetworkCompatConnectRequest"
+	//      $ref: "#/definitions/networkConnectRequest"
 	// responses:
 	//   200:
 	//     description: OK
 	//   400:
-	//     $ref: "#/responses/BadParamError"
+	//     $ref: "#/responses/badParamError"
 	//   500:
-	//     $ref: "#/responses/InternalError"
+	//     $ref: "#/responses/internalError"
 	r.HandleFunc(VersionedPath("/networks/{name}/connect"), s.APIHandler(compat.Connect)).Methods(http.MethodPost)
 	r.HandleFunc("/networks/{name}/connect", s.APIHandler(compat.Connect)).Methods(http.MethodPost)
 	// swagger:operation POST /networks/{name}/disconnect compat NetworkDisconnect
@@ -166,14 +166,14 @@ func (s *APIServer) registerNetworkHandlers(r *mux.Router) error {
 	//    name: create
 	//    description: attributes for disconnecting a container from a network
 	//    schema:
-	//      $ref: "#/definitions/NetworkCompatDisconnectRequest"
+	//      $ref: "#/definitions/networkDisconnectRequest"
 	// responses:
 	//   200:
 	//     description: OK
 	//   400:
-	//     $ref: "#/responses/BadParamError"
+	//     $ref: "#/responses/badParamError"
 	//   500:
-	//     $ref: "#/responses/InternalError"
+	//     $ref: "#/responses/internalError"
 	r.HandleFunc(VersionedPath("/networks/{name}/disconnect"), s.APIHandler(compat.Disconnect)).Methods(http.MethodPost)
 	r.HandleFunc("/networks/{name}/disconnect", s.APIHandler(compat.Disconnect)).Methods(http.MethodPost)
 	// swagger:operation POST /networks/prune compat NetworkPrune
@@ -204,7 +204,7 @@ func (s *APIServer) registerNetworkHandlers(r *mux.Router) error {
 	//           items:
 	//             type: string
 	//   500:
-	//     $ref: "#/responses/InternalError"
+	//     $ref: "#/responses/internalError"
 	r.HandleFunc(VersionedPath("/networks/prune"), s.APIHandler(compat.Prune)).Methods(http.MethodPost)
 	r.HandleFunc("/networks/prune", s.APIHandler(compat.Prune)).Methods(http.MethodPost)
 
@@ -228,11 +228,11 @@ func (s *APIServer) registerNetworkHandlers(r *mux.Router) error {
 	// - application/json
 	// responses:
 	//   200:
-	//     $ref: "#/responses/NetworkRmReport"
+	//     $ref: "#/responses/networkRmResponse"
 	//   404:
-	//     $ref: "#/responses/NoSuchNetwork"
+	//     $ref: "#/responses/networkNotFound"
 	//   500:
-	//     $ref: "#/responses/InternalError"
+	//     $ref: "#/responses/internalError"
 	r.HandleFunc(VersionedPath("/libpod/networks/{name}"), s.APIHandler(libpod.RemoveNetwork)).Methods(http.MethodDelete)
 	// swagger:operation GET /libpod/networks/{name}/exists libpod NetworkExistsLibpod
 	// ---
@@ -252,9 +252,9 @@ func (s *APIServer) registerNetworkHandlers(r *mux.Router) error {
 	//   204:
 	//     description: network exists
 	//   404:
-	//     $ref: '#/responses/NoSuchNetwork'
+	//     $ref: '#/responses/networkNotFound'
 	//   500:
-	//     $ref: '#/responses/InternalError'
+	//     $ref: '#/responses/internalError'
 	r.Handle(VersionedPath("/libpod/networks/{name}/exists"), s.APIHandler(libpod.ExistsNetwork)).Methods(http.MethodGet)
 	// swagger:operation GET /libpod/networks/json libpod NetworkListLibpod
 	// ---
@@ -279,9 +279,9 @@ func (s *APIServer) registerNetworkHandlers(r *mux.Router) error {
 	// - application/json
 	// responses:
 	//   200:
-	//     $ref: "#/responses/NetworkListReport"
+	//     $ref: "#/responses/networkListLibpod"
 	//   500:
-	//     $ref: "#/responses/InternalError"
+	//     $ref: "#/responses/internalError"
 	r.HandleFunc(VersionedPath("/libpod/networks/json"), s.APIHandler(libpod.ListNetworks)).Methods(http.MethodGet)
 	// swagger:operation GET /libpod/networks/{name}/json libpod NetworkInspectLibpod
 	// ---
@@ -301,11 +301,11 @@ func (s *APIServer) registerNetworkHandlers(r *mux.Router) error {
 	// - application/json
 	// responses:
 	//   200:
-	//     $ref: "#/responses/NetworkInspectReport"
+	//     $ref: "#/responses/networkInspectResponse"
 	//   404:
-	//     $ref: "#/responses/NoSuchNetwork"
+	//     $ref: "#/responses/networkNotFound"
 	//   500:
-	//     $ref: "#/responses/InternalError"
+	//     $ref: "#/responses/internalError"
 	r.HandleFunc(VersionedPath("/libpod/networks/{name}/json"), s.APIHandler(libpod.InspectNetwork)).Methods(http.MethodGet)
 	r.HandleFunc(VersionedPath("/libpod/networks/{name}"), s.APIHandler(libpod.InspectNetwork)).Methods(http.MethodGet)
 	// swagger:operation POST /libpod/networks/create libpod NetworkCreateLibpod
@@ -321,16 +321,16 @@ func (s *APIServer) registerNetworkHandlers(r *mux.Router) error {
 	//    name: create
 	//    description: attributes for creating a network
 	//    schema:
-	//      $ref: "#/definitions/NetworkCreateLibpod"
+	//      $ref: "#/definitions/networkCreateLibpod"
 	// responses:
 	//   200:
-	//     $ref: "#/responses/NetworkCreateReport"
+	//     $ref: "#/responses/networkCreateResponse"
 	//   400:
-	//     $ref: "#/responses/BadParamError"
+	//     $ref: "#/responses/badParamError"
 	//   409:
-	//     $ref: "#/responses/ConflictError"
+	//     $ref: "#/responses/conflictError"
 	//   500:
-	//     $ref: "#/responses/InternalError"
+	//     $ref: "#/responses/internalError"
 	r.HandleFunc(VersionedPath("/libpod/networks/create"), s.APIHandler(libpod.CreateNetwork)).Methods(http.MethodPost)
 	// swagger:operation POST /libpod/networks/{name}/connect libpod NetworkConnectLibpod
 	// ---
@@ -350,14 +350,14 @@ func (s *APIServer) registerNetworkHandlers(r *mux.Router) error {
 	//    name: create
 	//    description: attributes for connecting a container to a network
 	//    schema:
-	//      $ref: "#/definitions/NetworkConnectRequest"
+	//      $ref: "#/definitions/networkConnectRequestLibpod"
 	// responses:
 	//   200:
 	//     description: OK
 	//   404:
-	//     $ref: "#/responses/NoSuchNetwork"
+	//     $ref: "#/responses/networkNotFound"
 	//   500:
-	//     $ref: "#/responses/InternalError"
+	//     $ref: "#/responses/internalError"
 	r.HandleFunc(VersionedPath("/libpod/networks/{name}/connect"), s.APIHandler(libpod.Connect)).Methods(http.MethodPost)
 	// swagger:operation POST /libpod/networks/{name}/disconnect libpod NetworkDisconnectLibpod
 	// ---
@@ -377,14 +377,14 @@ func (s *APIServer) registerNetworkHandlers(r *mux.Router) error {
 	//    name: create
 	//    description: attributes for disconnecting a container from a network
 	//    schema:
-	//      $ref: "#/definitions/NetworkCompatDisconnectRequest"
+	//      $ref: "#/definitions/networkDisconnectRequest"
 	// responses:
 	//   200:
 	//     description: OK
 	//   404:
-	//     $ref: "#/responses/NoSuchNetwork"
+	//     $ref: "#/responses/networkNotFound"
 	//   500:
-	//     $ref: "#/responses/InternalError"
+	//     $ref: "#/responses/internalError"
 	r.HandleFunc(VersionedPath("/libpod/networks/{name}/disconnect"), s.APIHandler(compat.Disconnect)).Methods(http.MethodPost)
 	// swagger:operation POST /libpod/networks/prune libpod NetworkPruneLibpod
 	// ---
@@ -405,9 +405,9 @@ func (s *APIServer) registerNetworkHandlers(r *mux.Router) error {
 	//        - `label` (`label=<key>`, `label=<key>=<value>`, `label!=<key>`, or `label!=<key>=<value>`) Prune networks with (or without, in case `label!=...` is used) the specified labels.
 	// responses:
 	//   200:
-	//     $ref: "#/responses/NetworkPruneResponse"
+	//     $ref: "#/responses/networkPruneResponse"
 	//   500:
-	//     $ref: "#/responses/InternalError"
+	//     $ref: "#/responses/internalError"
 	r.HandleFunc(VersionedPath("/libpod/networks/prune"), s.APIHandler(libpod.Prune)).Methods(http.MethodPost)
 	return nil
 }
