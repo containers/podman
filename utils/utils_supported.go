@@ -64,7 +64,7 @@ func RunUnderSystemdScope(pid int, slice string, unitName string) error {
 	return nil
 }
 
-func getCgroupProcess(procFile string) (string, error) {
+func getCgroupProcess(procFile string, allowRoot bool) (string, error) {
 	f, err := os.Open(procFile)
 	if err != nil {
 		return "", err
@@ -72,7 +72,7 @@ func getCgroupProcess(procFile string) (string, error) {
 	defer f.Close()
 
 	scanner := bufio.NewScanner(f)
-	cgroup := "/"
+	cgroup := ""
 	for scanner.Scan() {
 		line := scanner.Text()
 		parts := strings.SplitN(line, ":", 3)
@@ -87,7 +87,7 @@ func getCgroupProcess(procFile string) (string, error) {
 			cgroup = parts[2]
 		}
 	}
-	if cgroup == "/" {
+	if len(cgroup) == 0 || (!allowRoot && cgroup == "/") {
 		return "", errors.Errorf("could not find cgroup mount in %q", procFile)
 	}
 	return cgroup, nil
@@ -95,12 +95,16 @@ func getCgroupProcess(procFile string) (string, error) {
 
 // GetOwnCgroup returns the cgroup for the current process.
 func GetOwnCgroup() (string, error) {
-	return getCgroupProcess("/proc/self/cgroup")
+	return getCgroupProcess("/proc/self/cgroup", true)
+}
+
+func GetOwnCgroupDisallowRoot() (string, error) {
+	return getCgroupProcess("/proc/self/cgroup", false)
 }
 
 // GetCgroupProcess returns the cgroup for the specified process process.
 func GetCgroupProcess(pid int) (string, error) {
-	return getCgroupProcess(fmt.Sprintf("/proc/%d/cgroup", pid))
+	return getCgroupProcess(fmt.Sprintf("/proc/%d/cgroup", pid), true)
 }
 
 // MoveUnderCgroupSubtree moves the PID under a cgroup subtree.

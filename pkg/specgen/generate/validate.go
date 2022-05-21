@@ -1,6 +1,7 @@
 package generate
 
 import (
+	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -166,6 +167,14 @@ func verifyContainerResourcesCgroupV2(s *specgen.SpecGenerator) ([]string, error
 		if err != nil {
 			return warnings, err
 		}
+
+		if own == "/" {
+			// If running under the root cgroup try to create or reuse a "probe" cgroup to read memory values
+			own = "podman_probe"
+			_ = os.MkdirAll(filepath.Join("/sys/fs/cgroup", own), 0o755)
+			_ = ioutil.WriteFile("/sys/fs/cgroup/cgroup.subtree_control", []byte("+memory"), 0o644)
+		}
+
 		memoryMax := filepath.Join("/sys/fs/cgroup", own, "memory.max")
 		memorySwapMax := filepath.Join("/sys/fs/cgroup", own, "memory.swap.max")
 		_, errMemoryMax := os.Stat(memoryMax)
