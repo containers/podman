@@ -162,6 +162,11 @@ func (s *BoltState) Refresh() error {
 			return err
 		}
 
+		namesBucket, err := getNamesBucket(tx)
+		if err != nil {
+			return err
+		}
+
 		ctrsBucket, err := getCtrBucket(tx)
 		if err != nil {
 			return err
@@ -192,6 +197,7 @@ func (s *BoltState) Refresh() error {
 		// PID, mountpoint, and state for all of them
 		// Then save the modified state
 		// Also clear all network namespaces
+		toRemoveIDs := []string{}
 		err = idBucket.ForEach(func(id, name []byte) error {
 			ctrBkt := ctrsBucket.Bucket(id)
 			if ctrBkt == nil {
@@ -199,8 +205,16 @@ func (s *BoltState) Refresh() error {
 				podBkt := podsBucket.Bucket(id)
 				if podBkt == nil {
 					// This is neither a pod nor a container
-					// Error out on the dangling ID
-					return errors.Wrapf(define.ErrInternal, "id %s is not a pod or a container", string(id))
+					// Something is seriously wrong, but
+					// continue on and try to clean up the
+					// state and become consistent.
+					// Just note what needs to be removed
+					// for now - ForEach says you shouldn't
+					// remove things from the table during
+					// it.
+					logrus.Errorf("Database issue: dangling ID %s found (not a pod or container) - removing", string(id))
+					toRemoveIDs = append(toRemoveIDs, string(id))
+					return nil
 				}
 
 				// Get the state
@@ -283,6 +297,24 @@ func (s *BoltState) Refresh() error {
 		})
 		if err != nil {
 			return err
+		}
+
+		// Remove dangling IDs.
+		for _, id := range toRemoveIDs {
+			// Look up the ID to see if we also have a dangling name
+			// in the DB.
+			name := idBucket.Get([]byte(id))
+			if name != nil {
+				if testID := namesBucket.Get(name); testID != nil {
+					logrus.Infof("Found dangling name %s (ID %s) in database", string(name), id)
+					if err := namesBucket.Delete(name); err != nil {
+						return errors.Wrapf(err, "error removing dangling name %s (ID %s) from database", string(name), id)
+					}
+				}
+			}
+			if err := idBucket.Delete([]byte(id)); err != nil {
+				return errors.Wrapf(err, "error removing dangling ID %s from database", id)
+			}
 		}
 
 		// Now refresh volumes
