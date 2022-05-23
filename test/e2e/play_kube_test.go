@@ -21,6 +21,7 @@ import (
 	"github.com/containers/podman/v4/pkg/util"
 	. "github.com/containers/podman/v4/test/utils"
 	"github.com/containers/storage/pkg/stringid"
+	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/format"
@@ -3685,4 +3686,150 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 		Expect(usernsInCtr).Should(Exit(0))
 		Expect(string(usernsInCtr.Out.Contents())).To(Not(Equal(string(initialUsernsConfig))))
 	})
+
+	// Check the block devices are exposed inside container
+	It("ddpodman play kube expose block device inside container", func() {
+		SkipIfRootless("It needs root access to create devices")
+
+		// randomize the folder name to avoid error when running tests with multiple nodes
+		uuid, err := uuid.NewUUID()
+		Expect(err).To(BeNil())
+		devFolder := fmt.Sprintf("/dev/foodev%x", uuid[:6])
+		Expect(os.MkdirAll(devFolder, os.ModePerm)).To(BeNil())
+		defer os.RemoveAll(devFolder)
+
+		devicePath := fmt.Sprintf("%s/blockdevice", devFolder)
+		mknod := SystemExec("mknod", []string{devicePath, "b", "7", "0"})
+		mknod.WaitWithDefaultTimeout()
+		Expect(mknod).Should(Exit(0))
+
+		blockVolume := getHostPathVolume("BlockDevice", devicePath)
+
+		pod := getPod(withVolume(blockVolume), withCtr(getCtr(withImage(registry), withCmd(nil), withArg(nil), withVolumeMount(devicePath, false))))
+		err = generateKubeYaml("pod", pod, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		// Container should be in running state
+		inspect := podmanTest.Podman([]string{"inspect", "--format", "{{.State.Status}}", "testPod-" + defaultCtrName})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).Should(Exit(0))
+		Expect(inspect.OutputToString()).To(ContainSubstring("running"))
+
+		// Container should have a block device /dev/loop1
+		inspect = podmanTest.Podman([]string{"inspect", "--format", "{{.HostConfig.Devices}}", "testPod-" + defaultCtrName})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).Should(Exit(0))
+		Expect(inspect.OutputToString()).To(ContainSubstring(devicePath))
+	})
+
+	// Check the char devices are exposed inside container
+	It("ddpodman play kube expose character device inside container", func() {
+		SkipIfRootless("It needs root access to create devices")
+
+		// randomize the folder name to avoid error when running tests with multiple nodes
+		uuid, err := uuid.NewUUID()
+		Expect(err).To(BeNil())
+		devFolder := fmt.Sprintf("/dev/foodev%x", uuid[:6])
+		Expect(os.MkdirAll(devFolder, os.ModePerm)).To(BeNil())
+		defer os.RemoveAll(devFolder)
+
+		devicePath := fmt.Sprintf("%s/chardevice", devFolder)
+		mknod := SystemExec("mknod", []string{devicePath, "c", "3", "1"})
+		mknod.WaitWithDefaultTimeout()
+		Expect(mknod).Should(Exit(0))
+
+		charVolume := getHostPathVolume("CharDevice", devicePath)
+
+		pod := getPod(withVolume(charVolume), withCtr(getCtr(withImage(registry), withCmd(nil), withArg(nil), withVolumeMount(devicePath, false))))
+		err = generateKubeYaml("pod", pod, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		// Container should be in running state
+		inspect := podmanTest.Podman([]string{"inspect", "--format", "{{.State.Status}}", "testPod-" + defaultCtrName})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).Should(Exit(0))
+		Expect(inspect.OutputToString()).To(ContainSubstring("running"))
+
+		// Container should have a block device /dev/loop1
+		inspect = podmanTest.Podman([]string{"inspect", "--format", "{{.HostConfig.Devices}}", "testPod-" + defaultCtrName})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).Should(Exit(0))
+		Expect(inspect.OutputToString()).To(ContainSubstring(devicePath))
+	})
+
+	It("podman play kube reports error when the device does not exists", func() {
+		SkipIfRootless("It needs root access to create devices")
+
+		devicePath := "/dev/foodevdir/baddevice"
+
+		blockVolume := getHostPathVolume("BlockDevice", devicePath)
+
+		pod := getPod(withVolume(blockVolume), withCtr(getCtr(withImage(registry), withCmd(nil), withArg(nil), withVolumeMount(devicePath, false))))
+		err = generateKubeYaml("pod", pod, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(125))
+	})
+
+	It("ddpodman play kube reports error when we try to expose char device as block device", func() {
+		SkipIfRootless("It needs root access to create devices")
+
+		// randomize the folder name to avoid error when running tests with multiple nodes
+		uuid, err := uuid.NewUUID()
+		Expect(err).To(BeNil())
+		devFolder := fmt.Sprintf("/dev/foodev%x", uuid[:6])
+		Expect(os.MkdirAll(devFolder, os.ModePerm)).To(BeNil())
+		defer os.RemoveAll(devFolder)
+
+		devicePath := fmt.Sprintf("%s/chardevice", devFolder)
+		mknod := SystemExec("mknod", []string{devicePath, "c", "3", "1"})
+		mknod.WaitWithDefaultTimeout()
+		Expect(mknod).Should(Exit(0))
+
+		charVolume := getHostPathVolume("BlockDevice", devicePath)
+
+		pod := getPod(withVolume(charVolume), withCtr(getCtr(withImage(registry), withCmd(nil), withArg(nil), withVolumeMount(devicePath, false))))
+		err = generateKubeYaml("pod", pod, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(125))
+	})
+
+	It("ddpodman play kube reports error when we try to expose block device as char device", func() {
+		SkipIfRootless("It needs root access to create devices")
+
+		// randomize the folder name to avoid error when running tests with multiple nodes
+		uuid, err := uuid.NewUUID()
+		Expect(err).To(BeNil())
+		devFolder := fmt.Sprintf("/dev/foodev%x", uuid[:6])
+		Expect(os.MkdirAll(devFolder, os.ModePerm)).To(BeNil())
+
+		devicePath := fmt.Sprintf("%s/blockdevice", devFolder)
+		mknod := SystemExec("mknod", []string{devicePath, "b", "7", "0"})
+		mknod.WaitWithDefaultTimeout()
+		Expect(mknod).Should(Exit(0))
+
+		charVolume := getHostPathVolume("CharDevice", devicePath)
+
+		pod := getPod(withVolume(charVolume), withCtr(getCtr(withImage(registry), withCmd(nil), withArg(nil), withVolumeMount(devicePath, false))))
+		err = generateKubeYaml("pod", pod, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(125))
+	})
+
 })

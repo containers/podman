@@ -381,6 +381,22 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 				Options: options,
 			}
 			s.Volumes = append(s.Volumes, &cmVolume)
+		case KubeVolumeTypeCharDevice:
+			// We are setting the path as hostPath:mountPath to comply with pkg/specgen/generate.DeviceFromPath.
+			// The type is here just to improve readability as it is not taken into account when the actual device is created.
+			device := spec.LinuxDevice{
+				Path: fmt.Sprintf("%s:%s", volumeSource.Source, volume.MountPath),
+				Type: "c",
+			}
+			s.Devices = append(s.Devices, device)
+		case KubeVolumeTypeBlockDevice:
+			// We are setting the path as hostPath:mountPath to comply with pkg/specgen/generate.DeviceFromPath.
+			// The type is here just to improve readability as it is not taken into account when the actual device is created.
+			device := spec.LinuxDevice{
+				Path: fmt.Sprintf("%s:%s", volumeSource.Source, volume.MountPath),
+				Type: "b",
+			}
+			s.Devices = append(s.Devices, device)
 		default:
 			return nil, errors.Errorf("Unsupported volume source type")
 		}
