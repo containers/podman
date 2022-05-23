@@ -346,3 +346,23 @@ func Search(ctx context.Context, term string, options *SearchOptions) ([]entitie
 
 	return results, nil
 }
+
+func Scp(ctx context.Context, source, destination *string, options ScpOptions) (reports.ScpReport, error) {
+	rep := reports.ScpReport{}
+
+	conn, err := bindings.GetClient(ctx)
+	if err != nil {
+		return rep, err
+	}
+	params, err := options.ToParams()
+	if err != nil {
+		return rep, err
+	}
+	response, err := conn.DoRequest(ctx, nil, http.MethodPost, fmt.Sprintf("/images/scp/%s", *source), params, nil)
+	if err != nil {
+		return rep, err
+	}
+	defer response.Body.Close()
+
+	return rep, response.Process(&rep)
+}

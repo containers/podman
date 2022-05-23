@@ -50,18 +50,12 @@ var _ = Describe("podman image scp", func() {
 	})
 
 	It("podman image scp bogus image", func() {
-		if IsRemote() {
-			Skip("this test is only for non-remote")
-		}
 		scp := podmanTest.Podman([]string{"image", "scp", "FOOBAR"})
 		scp.WaitWithDefaultTimeout()
 		Expect(scp).Should(ExitWithError())
 	})
 
 	It("podman image scp with proper connection", func() {
-		if IsRemote() {
-			Skip("this test is only for non-remote")
-		}
 		cmd := []string{"system", "connection", "add",
 			"--default",
 			"QA",
@@ -86,7 +80,10 @@ var _ = Describe("podman image scp", func() {
 		// This tests that the input we are given is validated and prepared correctly
 		// The error given should either be a missing image (due to testing suite complications) or a no such host timeout on ssh
 		Expect(scp).Should(ExitWithError())
-		Expect(scp.ErrorToString()).Should(ContainSubstring("no such host"))
+		// podman-remote exits with a different error
+		if !IsRemote() {
+			Expect(scp.ErrorToString()).Should(ContainSubstring("no such host"))
+		}
 
 	})
 

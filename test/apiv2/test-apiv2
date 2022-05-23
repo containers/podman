@@ -23,6 +23,8 @@ REGISTRY_IMAGE="${PODMAN_TEST_IMAGE_REGISTRY}/${PODMAN_TEST_IMAGE_USER}/registry
 ###############################################################################
 # BEGIN setup
 
+USER=$PODMAN_ROOTLESS_USER
+UID=$PODMAN_ROOTLESS_UID
 TMPDIR=${TMPDIR:-/tmp}
 WORKDIR=$(mktemp --tmpdir -d $ME.tmp.XXXXXX)
 

@@ -188,3 +188,8 @@ type BuildOptions struct {
 // ExistsOptions are optional options for checking if an image exists
 type ExistsOptions struct {
 }
+
+type ScpOptions struct {
+	Quiet       *bool
+	Destination *string
+}

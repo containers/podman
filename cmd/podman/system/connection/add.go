@@ -6,21 +6,18 @@ import (
 	"net"
 	"net/url"
 	"os"
-	"os/user"
 	"regexp"
-	"time"
 
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/containers/podman/v4/cmd/podman/system"
 	"github.com/containers/podman/v4/libpod/define"
-	"github.com/containers/podman/v4/pkg/terminal"
+	"github.com/containers/podman/v4/pkg/domain/utils"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"golang.org/x/crypto/ssh"
-	"golang.org/x/crypto/ssh/agent"
 )
 
 var (
@@ -95,7 +92,7 @@ func add(cmd *cobra.Command, args []string) error {
 	switch uri.Scheme {
 	case "ssh":
 		if uri.User.Username() == "" {
-			if uri.User, err = GetUserInfo(uri); err != nil {
+			if uri.User, err = utils.GetUserInfo(uri); err != nil {
 				return err
 			}
 		}
@@ -180,32 +177,8 @@ func add(cmd *cobra.Command, args []string) error {
 	return cfg.Write()
 }
 
-func GetUserInfo(uri *url.URL) (*url.Userinfo, error) {
-	var (
-		usr *user.User
-		err error
-	)
-	if u, found := os.LookupEnv("_CONTAINERS_ROOTLESS_UID"); found {
-		usr, err = user.LookupId(u)
-		if err != nil {
-			return nil, errors.Wrapf(err, "failed to look up rootless user")
-		}
-	} else {
-		usr, err = user.Current()
-		if err != nil {
-			return nil, errors.Wrapf(err, "failed to obtain current user")
-		}
-	}
-
-	pw, set := uri.User.Password()
-	if set {
-		return url.UserPassword(usr.Username, pw), nil
-	}
-	return url.User(usr.Username), nil
-}
-
 func getUDS(uri *url.URL, iden string) (string, error) {
-	cfg, err := ValidateAndConfigure(uri, iden)
+	cfg, err := utils.ValidateAndConfigure(uri, iden)
 	if err != nil {
 		return "", errors.Wrapf(err, "failed to validate")
 	}
@@ -226,7 +199,7 @@ func getUDS(uri *url.URL, iden string) (string, error) {
 	if v, found := os.LookupEnv("PODMAN_BINARY"); found {
 		podman = v
 	}
-	infoJSON, err := ExecRemoteCommand(dial, podman+" info --format=json")
+	infoJSON, err := utils.ExecRemoteCommand(dial, podman+" info --format=json")
 	if err != nil {
 		return "", err
 	}
@@ -240,80 +213,4 @@ func getUDS(uri *url.URL, iden string) (string, error) {
 		return "", errors.Errorf("remote podman %q failed to report its UDS socket", uri.Host)
 	}
 	return info.Host.RemoteSocket.Path, nil
-}
-
-// ValidateAndConfigure will take a ssh url and an identity key (rsa and the like) and ensure the information given is valid
-// iden iden can be blank to mean no identity key
-// once the function validates the information it creates and returns an ssh.ClientConfig.
-func ValidateAndConfigure(uri *url.URL, iden string) (*ssh.ClientConfig, error) {
-	var signers []ssh.Signer
-	passwd, passwdSet := uri.User.Password()
-	if iden != "" { // iden might be blank if coming from image scp or if no validation is needed
-		value := iden
-		s, err := terminal.PublicKey(value, []byte(passwd))
-		if err != nil {
-			return nil, errors.Wrapf(err, "failed to read identity %q", value)
-		}
-		signers = append(signers, s)
-		logrus.Debugf("SSH Ident Key %q %s %s", value, ssh.FingerprintSHA256(s.PublicKey()), s.PublicKey().Type())
-	}
-	if sock, found := os.LookupEnv("SSH_AUTH_SOCK"); found { // validate ssh information, specifically the unix file socket used by the ssh agent.
-		logrus.Debugf("Found SSH_AUTH_SOCK %q, ssh-agent signer enabled", sock)
-
-		c, err := net.Dial("unix", sock)
-		if err != nil {
-			return nil, err
-		}
-		agentSigners, err := agent.NewClient(c).Signers()
-		if err != nil {
-			return nil, err
-		}
-
-		signers = append(signers, agentSigners...)
-
-		if logrus.IsLevelEnabled(logrus.DebugLevel) {
-			for _, s := range agentSigners {
-				logrus.Debugf("SSH Agent Key %s %s", ssh.FingerprintSHA256(s.PublicKey()), s.PublicKey().Type())
-			}
-		}
-	}
-	var authMethods []ssh.AuthMethod // now we validate and check for the authorization methods, most notaibly public key authorization
-	if len(signers) > 0 {
-		var dedup = make(map[string]ssh.Signer)
-		for _, s := range signers {
-			fp := ssh.FingerprintSHA256(s.PublicKey())
-			if _, found := dedup[fp]; found {
-				logrus.Debugf("Dedup SSH Key %s %s", ssh.FingerprintSHA256(s.PublicKey()), s.PublicKey().Type())
-			}
-			dedup[fp] = s
-		}
-
-		var uniq []ssh.Signer
-		for _, s := range dedup {
-			uniq = append(uniq, s)
-		}
-		authMethods = append(authMethods, ssh.PublicKeysCallback(func() ([]ssh.Signer, error) {
-			return uniq, nil
-		}))
-	}
-	if passwdSet { // if password authentication is given and valid, add to the list
-		authMethods = append(authMethods, ssh.Password(passwd))
-	}
-	if len(authMethods) == 0 {
-		authMethods = append(authMethods, ssh.PasswordCallback(func() (string, error) {
-			pass, err := terminal.ReadPassword(fmt.Sprintf("%s's login password:", uri.User.Username()))
-			return string(pass), err
-		}))
-	}
-	tick, err := time.ParseDuration("40s")
-	if err != nil {
-		return nil, err
-	}
-	cfg := &ssh.ClientConfig{
-		User:            uri.User.Username(),
-		Auth:            authMethods,
-		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
-		Timeout:         tick,
-	}
-	return cfg, nil
 }

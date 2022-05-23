@@ -1615,5 +1615,39 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/internalError"
 	r.Handle(VersionedPath("/libpod/build"), s.APIHandler(compat.BuildImage)).Methods(http.MethodPost)
+
+	// swagger:operation POST /libpod/images/scp/{name} libpod ImageScpLibpod
+	// ---
+	// tags:
+	//  - images
+	// summary: Copy an image from one host to another
+	// description: Copy an image from one host to another
+	// parameters:
+	//   - in: path
+	//     name: name
+	//     required: true
+	//     description: source connection/image
+	//     type: string
+	//   - in: query
+	//     name: destination
+	//     required: false
+	//     description: dest connection/image
+	//     type: string
+	//   - in: query
+	//     name: quiet
+	//     required: false
+	//     description: quiet output
+	//     type: boolean
+	//     default: false
+	// produces:
+	// - application/json
+	// responses:
+	//   200:
+	//     $ref: "#/responses/imagesScpResponseLibpod"
+	//   400:
+	//     $ref: "#/responses/badParamError"
+	//   500:
+	//     $ref: '#/responses/internalError'
+	r.Handle(VersionedPath("/libpod/images/scp/{name:.*}"), s.APIHandler(libpod.ImageScp)).Methods(http.MethodPost)
 	return nil
 }

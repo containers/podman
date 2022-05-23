@@ -186,10 +186,11 @@ esac
 # Required to be defined by caller: Are we testing as root or a regular user
 case "$PRIV_NAME" in
     root)
-        if [[ "$TEST_FLAVOR" = "sys" ]]; then
+        if [[ "$TEST_FLAVOR" = "sys" || "$TEST_FLAVOR" = "apiv2" ]]; then
             # Used in local image-scp testing
             setup_rootless
             echo "PODMAN_ROOTLESS_USER=$ROOTLESS_USER" >> /etc/ci_environment
+            echo "PODMAN_ROOTLESS_UID=$ROOTLESS_UID" >> /etc/ci_environment
         fi
         ;;
     rootless)
@@ -203,6 +204,7 @@ esac
 
 if [[ -n "$ROOTLESS_USER" ]]; then
     echo "ROOTLESS_USER=$ROOTLESS_USER" >> /etc/ci_environment
+    echo "ROOTLESS_UID=$ROOTLESS_UID" >> /etc/ci_environment
 fi
 
 # Required to be defined by caller: Are we testing podman or podman-remote client
