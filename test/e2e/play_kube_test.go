@@ -21,6 +21,7 @@ import (
 	"github.com/containers/podman/v4/pkg/util"
 	. "github.com/containers/podman/v4/test/utils"
 	"github.com/containers/storage/pkg/stringid"
+	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/format"
@@ -3687,12 +3688,17 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 	})
 
 	// Check the block devices are exposed inside container
-	It("podman play kube expose block device inside container", func() {
+	It("ddpodman play kube expose block device inside container", func() {
 		SkipIfRootless("It needs root access to create devices")
-		Expect(os.MkdirAll("/dev/foodevdir", os.ModePerm)).To(BeNil())
-		defer os.RemoveAll("/dev/foodevdir")
 
-		devicePath := "/dev/foodevdir/blockdevice"
+		// randomize the folder name to avoid error when running tests with multiple nodes
+		uuid, err := uuid.NewUUID()
+		Expect(err).To(BeNil())
+		devFolder := fmt.Sprintf("/dev/foodev%x", uuid[:6])
+		Expect(os.MkdirAll(devFolder, os.ModePerm)).To(BeNil())
+		defer os.RemoveAll(devFolder)
+
+		devicePath := fmt.Sprintf("%s/blockdevice", devFolder)
 		mknod := SystemExec("mknod", []string{devicePath, "b", "7", "0"})
 		mknod.WaitWithDefaultTimeout()
 		Expect(mknod).Should(Exit(0))
@@ -3721,12 +3727,17 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 	})
 
 	// Check the char devices are exposed inside container
-	It("podman play kube expose character device inside container", func() {
+	It("ddpodman play kube expose character device inside container", func() {
 		SkipIfRootless("It needs root access to create devices")
-		Expect(os.MkdirAll("/dev/foodevdir", os.ModePerm)).To(BeNil())
-		defer os.RemoveAll("/dev/foodevdir")
 
-		devicePath := "/dev/foodevdir/chardevice"
+		// randomize the folder name to avoid error when running tests with multiple nodes
+		uuid, err := uuid.NewUUID()
+		Expect(err).To(BeNil())
+		devFolder := fmt.Sprintf("/dev/foodev%x", uuid[:6])
+		Expect(os.MkdirAll(devFolder, os.ModePerm)).To(BeNil())
+		defer os.RemoveAll(devFolder)
+
+		devicePath := fmt.Sprintf("%s/chardevice", devFolder)
 		mknod := SystemExec("mknod", []string{devicePath, "c", "3", "1"})
 		mknod.WaitWithDefaultTimeout()
 		Expect(mknod).Should(Exit(0))
@@ -3770,12 +3781,17 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 		Expect(kube).Should(Exit(125))
 	})
 
-	It("podman play kube reports error when we try to expose char device as block device", func() {
+	It("ddpodman play kube reports error when we try to expose char device as block device", func() {
 		SkipIfRootless("It needs root access to create devices")
-		Expect(os.MkdirAll("/dev/foodevdir", os.ModePerm)).To(BeNil())
-		defer os.RemoveAll("/dev/foodevdir")
 
-		devicePath := "/dev/foodevdir/chardevice"
+		// randomize the folder name to avoid error when running tests with multiple nodes
+		uuid, err := uuid.NewUUID()
+		Expect(err).To(BeNil())
+		devFolder := fmt.Sprintf("/dev/foodev%x", uuid[:6])
+		Expect(os.MkdirAll(devFolder, os.ModePerm)).To(BeNil())
+		defer os.RemoveAll(devFolder)
+
+		devicePath := fmt.Sprintf("%s/chardevice", devFolder)
 		mknod := SystemExec("mknod", []string{devicePath, "c", "3", "1"})
 		mknod.WaitWithDefaultTimeout()
 		Expect(mknod).Should(Exit(0))
@@ -3791,12 +3807,16 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 		Expect(kube).Should(Exit(125))
 	})
 
-	It("podman play kube reports error when we try to expose block device as char device", func() {
+	It("ddpodman play kube reports error when we try to expose block device as char device", func() {
 		SkipIfRootless("It needs root access to create devices")
-		Expect(os.MkdirAll("/dev/foodevdir", os.ModePerm)).To(BeNil())
-		defer os.RemoveAll("/dev/foodevdir")
 
-		devicePath := "/dev/foodevdir/blockdevice"
+		// randomize the folder name to avoid error when running tests with multiple nodes
+		uuid, err := uuid.NewUUID()
+		Expect(err).To(BeNil())
+		devFolder := fmt.Sprintf("/dev/foodev%x", uuid[:6])
+		Expect(os.MkdirAll(devFolder, os.ModePerm)).To(BeNil())
+
+		devicePath := fmt.Sprintf("%s/blockdevice", devFolder)
 		mknod := SystemExec("mknod", []string{devicePath, "b", "7", "0"})
 		mknod.WaitWithDefaultTimeout()
 		Expect(mknod).Should(Exit(0))
