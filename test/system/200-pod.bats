@@ -335,8 +335,15 @@ EOF
     is "$output" ".*Invalid kernel namespace to share: bogus. Options are: cgroup, ipc, net, pid, uts or none" \
        "pod test for bogus --share option"
     run_podman pod create --share ipc --name $pod_name
+    run_podman pod inspect $pod_name --format "{{.SharedNamespaces}}"
+    is "$output" "[ipc]"
     run_podman run --rm --pod $pod_name --hostname foobar $IMAGE hostname
     is "$output" "foobar" "--hostname should work with non share UTS namespace"
+    run_podman pod create --share +pid --replace --name $pod_name
+    run_podman pod inspect $pod_name --format "{{.SharedNamespaces}}"
+    for ns in uts pid ipc net; do
+        is "$output" ".*$ns"
+    done
 }
 
 @test "podman pod create --pod new:$POD --hostname" {
