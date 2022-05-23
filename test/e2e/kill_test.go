@@ -128,6 +128,26 @@ var _ = Describe("Podman kill", func() {
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
 	})
 
+	It("podman kill paused container", func() {
+		ctrName := "testctr"
+		session := podmanTest.RunTopContainer(ctrName)
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		pause := podmanTest.Podman([]string{"pause", ctrName})
+		pause.WaitWithDefaultTimeout()
+		Expect(pause).Should(Exit(0))
+
+		kill := podmanTest.Podman([]string{"kill", ctrName})
+		kill.WaitWithDefaultTimeout()
+		Expect(kill).Should(Exit(0))
+
+		inspect := podmanTest.Podman([]string{"inspect", "-f", "{{.State.Status}}", ctrName})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).Should(Exit(0))
+		Expect(inspect.OutputToString()).To(Or(Equal("stopped"), Equal("exited")))
+	})
+
 	It("podman kill --cidfile", func() {
 		tmpDir, err := ioutil.TempDir("", "")
 		Expect(err).To(BeNil())

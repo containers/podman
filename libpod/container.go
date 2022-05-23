@@ -1331,8 +1331,7 @@ func (c *Container) getNetworkStatus() map[string]types.StatusBlock {
 		}
 		c.state.NetworkStatus = result
 		_ = c.save()
-		// TODO remove debug for final version
-		logrus.Debugf("converted old network result to new result %v", result)
+
 		return result
 	}
 	return nil

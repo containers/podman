@@ -14,7 +14,7 @@ The main process inside each container specified will be sent SIGKILL, or any si
 ## OPTIONS
 #### **--all**, **-a**
 
-Signal all running containers.  This does not include paused containers.
+Signal all running and paused containers.
 
 #### **--cidfile**
 
