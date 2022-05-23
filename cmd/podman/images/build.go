@@ -197,9 +197,8 @@ func buildFlags(cmd *cobra.Command) {
 // build executes the build command.
 func build(cmd *cobra.Command, args []string) error {
 	if (cmd.Flags().Changed("squash") && cmd.Flags().Changed("layers")) ||
-		(cmd.Flags().Changed("squash-all") && cmd.Flags().Changed("layers")) ||
 		(cmd.Flags().Changed("squash-all") && cmd.Flags().Changed("squash")) {
-		return errors.New("cannot specify --squash, --squash-all and --layers options together")
+		return errors.New("cannot specify --squash with --layers and --squash-all with --squash")
 	}
 
 	if cmd.Flag("output").Changed && registry.IsRemote() {
@@ -418,7 +417,13 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *buil
 	// Squash-all invoked, squash both new and old layers into one.
 	if c.Flags().Changed("squash-all") {
 		flags.Squash = true
-		flags.Layers = false
+		if !c.Flags().Changed("layers") {
+			// Buildah  supports using layers and --squash together
+			// after https://github.com/containers/buildah/pull/3674
+			// so podman must honor if user wants to still use layers
+			//  with --squash-all.
+			flags.Layers = false
+		}
 	}
 
 	var stdin io.Reader
