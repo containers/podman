@@ -96,7 +96,7 @@ func (c *Container) Top(descriptors []string) ([]string, error) {
 // For more details, please refer to github.com/containers/psgo.
 func (c *Container) GetContainerPidInformation(descriptors []string) ([]string, error) {
 	pid := strconv.Itoa(c.state.PID)
-	// TODO: psgo returns a [][]string to give users the ability to apply
+	// NOTE: psgo returns a [][]string to give users the ability to apply
 	//       filters on the data.  We need to change the API here
 	//       to return a [][]string if we want to make use of
 	//       filtering.
