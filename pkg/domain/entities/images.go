@@ -325,6 +325,8 @@ type ImageScpOptions struct {
 	Image string `json:"image,omitempty"`
 	// User is used in conjunction with Transfer to determine if a valid user was given to save from/load into
 	User string `json:"user,omitempty"`
+	// Tag is the name to be used for the image on the destination
+	Tag string `json:"tag,omitempty"`
 }
 
 // ImageScpConnections provides the ssh related information used in remote image transfer

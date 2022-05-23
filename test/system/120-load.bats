@@ -128,8 +128,24 @@ verify_iid_and_name() {
     run_podman image inspect --format '{{.Digest}}' $newname
     is "$output" "$src_digest" "Digest of re-fetched image matches original"
 
-    # Clean up
+    # test tagging capability
+    run_podman untag $IMAGE $newname
+    run_podman image scp ${notme}@localhost::$newname foobar:123
+
+    run_podman image inspect --format '{{.Digest}}' foobar:123
+    is "$output" "$src_digest" "Digest of re-fetched image matches original"
+
+    # remove root img for transfer back with another name
     _sudo $PODMAN image rm $newname
+
+    # get foobar's ID, for an ID transfer test
+    run_podman image inspect --format '{{.ID}}' foobar:123
+    run_podman image scp $output ${notme}@localhost::foobartwo
+
+    _sudo $PODMAN image exists foobartwo
+
+    # Clean up
+    _sudo $PODMAN image rm foobartwo
     run_podman untag $IMAGE $newname
 
     # Negative test for nonexistent image.
@@ -142,12 +158,6 @@ verify_iid_and_name() {
     run_podman 125 image scp $nope ${notme}@localhost::
     is "$output" "Error: $nope: image not known.*" "Pushing nonexistent image"
 
-    # Negative test for copying to a different name
-    run_podman 125 image scp $IMAGE ${notme}@localhost::newname:newtag
-    is "$output" "Error: cannot specify an image rename: invalid argument" \
-       "Pushing with a different name: not allowed"
-
-    # FIXME: any point in copying by image ID? What else should we test?
 }
 
 

@@ -778,6 +778,9 @@ func transferRootless(source entities.ImageScpOptions, dest entities.ImageScpOpt
 	}
 	cmdLoad = utils.CreateSCPCommand(cmdLoad, loadCommand)
 	logrus.Debugf("Executing load command: %q", cmdLoad)
+	if len(dest.Tag) > 0 {
+		return utils.ScpTag(cmdLoad, podman, dest)
+	}
 	return cmdLoad.Run()
 }
 
@@ -833,11 +836,20 @@ func transferRootful(source entities.ImageScpOptions, dest entities.ImageScpOpti
 			return err
 		}
 	}
-	err = execPodman(uSave, saveCommand)
+	_, err = execPodman(uSave, saveCommand, false)
 	if err != nil {
 		return err
 	}
-	return execPodman(uLoad, loadCommand)
+	out, err := execPodman(uLoad, loadCommand, (len(dest.Tag) > 0))
+	if err != nil {
+		return err
+	}
+	if out != nil {
+		image := utils.ExtractImage(out)
+		_, err := execPodman(uLoad, []string{podman, "tag", image, dest.Tag}, false)
+		return err
+	}
+	return nil
 }
 
 func lookupUser(u string) (*user.User, error) {
@@ -847,10 +859,10 @@ func lookupUser(u string) (*user.User, error) {
 	return user.Lookup(u)
 }
 
-func execPodman(execUser *user.User, command []string) error {
+func execPodman(execUser *user.User, command []string, needToTag bool) ([]byte, error) {
 	cmdLogin, err := utils.LoginUser(execUser.Username)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	defer func() {
@@ -864,11 +876,11 @@ func execPodman(execUser *user.User, command []string) error {
 	cmd.Stdout = os.Stdout
 	uid, err := strconv.ParseInt(execUser.Uid, 10, 32)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	gid, err := strconv.ParseInt(execUser.Gid, 10, 32)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	cmd.SysProcAttr = &syscall.SysProcAttr{
 		Credential: &syscall.Credential{
@@ -878,5 +890,9 @@ func execPodman(execUser *user.User, command []string) error {
 			NoSetGroups: false,
 		},
 	}
-	return cmd.Run()
+	if needToTag {
+		cmd.Stdout = nil
+		return cmd.Output()
+	}
+	return nil, cmd.Run()
 }

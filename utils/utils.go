@@ -14,6 +14,7 @@ import (
 
 	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/podman/v4/libpod/define"
+	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/godbus/dbus/v5"
 	"github.com/pkg/errors"
@@ -251,6 +252,31 @@ func CreateSCPCommand(cmd *exec.Cmd, command []string) *exec.Cmd {
 	cmd.Stderr = os.Stderr
 	cmd.Stdout = os.Stdout
 	return cmd
+}
+
+// ScpTag is a helper function for native podman to tag an image after a local load from image SCP
+func ScpTag(cmd *exec.Cmd, podman string, dest entities.ImageScpOptions) error {
+	cmd.Stdout = nil
+	out, err := cmd.Output() // this function captures the output temporarily in order to execute the next command
+	if err != nil {
+		return err
+	}
+	fmt.Println(strings.TrimSuffix(string(out), "\n")) // print output
+	image := ExtractImage(out)
+	if cmd.Args[0] == "sudo" { // transferRootless will need the sudo since we are loading to sudo from a user acct
+		cmd = exec.Command("sudo", podman, "tag", image, dest.Tag)
+	} else {
+		cmd = exec.Command(podman, "tag", image, dest.Tag)
+	}
+	cmd.Stdout = os.Stdout
+	return cmd.Run()
+}
+
+// ExtractImage pulls out the last line of output from save/load (image id)
+func ExtractImage(out []byte) string {
+	stringOut := string(out)                                   // get all output
+	arrOut := strings.Split(stringOut, " ")                    // split it into an array
+	return strings.ReplaceAll(arrOut[len(arrOut)-1], "\n", "") // replace the trailing \n
 }
 
 // LoginUser starts the user process on the host so that image scp can use systemd-run

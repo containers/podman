@@ -66,7 +66,6 @@ func scpFlags(cmd *cobra.Command) {
 
 func scp(cmd *cobra.Command, args []string) (finalErr error) {
 	var (
-		// TODO add tag support for images
 		err error
 	)
 	for i, val := range os.Args {
@@ -105,7 +104,6 @@ func scp(cmd *cobra.Command, args []string) (finalErr error) {
 	}
 	locations := []*entities.ImageScpOptions{}
 	cliConnections := []string{}
-	var flipConnections bool
 	for _, arg := range args {
 		loc, connect, err := parseImageSCPArg(arg)
 		if err != nil {
@@ -117,12 +115,8 @@ func scp(cmd *cobra.Command, args []string) (finalErr error) {
 	source = *locations[0]
 	switch {
 	case len(locations) > 1:
-		if flipConnections, err = validateSCPArgs(locations); err != nil {
+		if err = validateSCPArgs(locations); err != nil {
 			return err
-		}
-		if flipConnections { // the order of cliConnections matters, we need to flip both arrays since the args are parsed separately sometimes.
-			cliConnections[0], cliConnections[1] = cliConnections[1], cliConnections[0]
-			locations[0], locations[1] = locations[1], locations[0]
 		}
 		dest = *locations[1]
 	case len(locations) == 1:
@@ -172,7 +166,9 @@ func scp(cmd *cobra.Command, args []string) (finalErr error) {
 			if err != nil {
 				return err
 			}
-			fmt.Println(rep)
+			if len(rep) > 0 {
+				fmt.Println(rep)
+			}
 			break
 		}
 		err = execPodman(podman, loadCmd)
@@ -188,7 +184,9 @@ func scp(cmd *cobra.Command, args []string) (finalErr error) {
 		if err != nil {
 			return err
 		}
-		fmt.Println(rep)
+		if len(rep) > 0 {
+			fmt.Println(rep)
+		}
 		if err = os.Remove(source.File); err != nil {
 			return err
 		}
@@ -237,6 +235,17 @@ func loadToRemote(localFile string, tag string, url *urlP.URL, iden string) (str
 	out, err := connection.ExecRemoteCommand(dial, run)
 	if err != nil {
 		return "", err
+	}
+	if len(dest.Tag) > 0 { // tag the remote image using the output ID
+		rep := strings.TrimSuffix(string(out), "\n")
+		fmt.Println(rep)
+		outArr := strings.Split(rep, " ")
+		img := outArr[len(outArr)-1]
+		run = podman + " tag " + img + " " + dest.Tag
+		out, err = connection.ExecRemoteCommand(dial, run)
+		if err != nil {
+			return "", err
+		}
 	}
 	return strings.TrimSuffix(string(out), "\n"), nil
 }
@@ -310,14 +319,6 @@ func GetServiceInformation(cliConnections []string, cfg *config.Config) (map[str
 	for i, val := range cliConnections {
 		splitEnv := strings.SplitN(val, "::", 2)
 		sshInfo.Connections = append(sshInfo.Connections, splitEnv[0])
-		if len(splitEnv[1]) != 0 {
-			err := validateImageName(splitEnv[1])
-			if err != nil {
-				return nil, err
-			}
-			source.Image = splitEnv[1]
-			//TODO: actually use the new name given by the user
-		}
 		conn, found := cfg.Engine.ServiceDestinations[sshInfo.Connections[i]]
 		if found {
 			url = conn.URI
@@ -347,6 +348,9 @@ func execPodman(podman string, command []string) error {
 	cmd := exec.Command(podman)
 	utils.CreateSCPCommand(cmd, command[1:])
 	logrus.Debugf("Executing podman command: %q", cmd)
+	if len(dest.Tag) > 0 && strings.Contains(strings.Join(command, " "), "load") { // need to tag
+		return utils.ScpTag(cmd, podman, dest)
+	}
 	return cmd.Run()
 }
 
