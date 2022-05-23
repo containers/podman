@@ -233,15 +233,15 @@ Linux container. This supports several notation schemes, including:
 
 Windows Style Paths:
 
-`podman run -it c:\Users\User\myfolder:/myfolder ubi8-micro ls /myfolder`
+`podman run --rm -v c:\Users\User\myfolder:/myfolder ubi8-micro ls /myfolder`
 
 Unixy Windows Paths:
 
-`podman run -it /c/Users/User/myfolder:/myfolder ubi8-micro ls /myfolder`
+`podman run --rm -v /c/Users/User/myfolder:/myfolder ubi8-micro ls /myfolder`
 
 Linux paths local to the WSL filesystem:
 
-`podman run -it /var/myfolder:/myfolder ubi-micro ls /myfolder`
+`podman run --rm -v /var/myfolder:/myfolder ubi-micro ls /myfolder`
 
 All of the above conventions work, whether running on a Windows prompt or the
 WSL Linux shell. Although when using Windows paths on Linux, appropriately quote
