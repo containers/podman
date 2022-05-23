@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/containers/common/pkg/cgroups"
+	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/rootless"
 	. "github.com/containers/podman/v4/test/utils"
 	"github.com/containers/storage/pkg/stringid"
@@ -286,19 +287,20 @@ var _ = Describe("Podman run", func() {
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
 		conData := result.InspectContainerToJSON()
-		Expect(conData[0]).To(HaveField("Path", "/dev/init"))
+		Expect(conData[0]).To(HaveField("Path", define.ContainerInitPath))
 		Expect(conData[0].Config.Annotations).To(HaveKeyWithValue("io.podman.annotations.init", "TRUE"))
 	})
 
 	It("podman run a container with --init and --init-path", func() {
-		session := podmanTest.Podman([]string{"run", "--name", "test", "--init", "--init-path", "/usr/libexec/podman/catatonit", ALPINE, "ls"})
+		// Also bind-mount /dev (#14251).
+		session := podmanTest.Podman([]string{"run", "-v", "/dev:/dev", "--name", "test", "--init", "--init-path", "/usr/libexec/podman/catatonit", ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		result := podmanTest.Podman([]string{"inspect", "test"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
 		conData := result.InspectContainerToJSON()
-		Expect(conData[0]).To(HaveField("Path", "/dev/init"))
+		Expect(conData[0]).To(HaveField("Path", define.ContainerInitPath))
 		Expect(conData[0].Config.Annotations).To(HaveKeyWithValue("io.podman.annotations.init", "TRUE"))
 	})
 
