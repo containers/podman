@@ -19,7 +19,7 @@ func manifestSchema2FromManifestList(ctx context.Context, sys *types.SystemConte
 	}
 	manblob, mt, err := src.GetManifest(ctx, &targetManifestDigest)
 	if err != nil {
-		return nil, errors.Wrapf(err, "loading manifest for target platform")
+		return nil, errors.Wrapf(err, "fetching target platform image selected from manifest list")
 	}
 
 	matches, err := manifest.MatchesDigest(manblob, targetManifestDigest)

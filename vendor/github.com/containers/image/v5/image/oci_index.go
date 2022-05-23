@@ -19,7 +19,7 @@ func manifestOCI1FromImageIndex(ctx context.Context, sys *types.SystemContext, s
 	}
 	manblob, mt, err := src.GetManifest(ctx, &targetManifestDigest)
 	if err != nil {
-		return nil, errors.Wrapf(err, "loading manifest for target platform")
+		return nil, errors.Wrapf(err, "fetching target platform image selected from image index")
 	}
 
 	matches, err := manifest.MatchesDigest(manblob, targetManifestDigest)

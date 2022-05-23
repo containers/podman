@@ -14,7 +14,7 @@ require (
 	github.com/containers/buildah v1.26.1
 	github.com/containers/common v0.48.1-0.20220512112240-7536bf6ff9b1
 	github.com/containers/conmon v2.0.20+incompatible
-	github.com/containers/image/v5 v5.21.2-0.20220511203756-fe4fd4ed8be4
+	github.com/containers/image/v5 v5.21.2-0.20220519193817-1e26896b8059
 	github.com/containers/ocicrypt v1.1.4-0.20220428134531-566b808bdf6f
 	github.com/containers/psgo v1.7.2
 	github.com/containers/storage v1.41.1-0.20220511210719-cacc3325a9c8
