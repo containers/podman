@@ -135,15 +135,27 @@ function _confirm_update() {
 # This test can fail in dev. environment because of SELinux.
 # quick fix: chcon -t container_runtime_exec_t ./bin/podman
 @test "podman auto-update - label io.containers.autoupdate=image" {
+    since=$(date --iso-8601=seconds)
+    run_podman auto-update
+    is "$output" ""
+    run_podman events --filter type=system --since $since --stream=false
+    is "$output" ""
+
     generate_service alpine image
 
     _wait_service_ready container-$cname.service
+    since=$(date --iso-8601=seconds)
     run_podman auto-update --dry-run --format "{{.Unit}},{{.Image}},{{.Updated}},{{.Policy}}"
     is "$output" ".*container-$cname.service,quay.io/libpod/alpine:latest,pending,registry.*" "Image update is pending."
+    run_podman events --filter type=system --since $since --stream=false
+    is "$output" ".* system auto-update"
 
+    since=$(date --iso-8601=seconds)
     run_podman auto-update --format "{{.Unit}},{{.Image}},{{.Updated}},{{.Policy}}"
     is "$output" "Trying to pull.*" "Image is updated."
     is "$output" ".*container-$cname.service,quay.io/libpod/alpine:latest,true,registry.*" "Image is updated."
+    run_podman events --filter type=system --since $since --stream=false
+    is "$output" ".* system auto-update"
 
     _confirm_update $cname $ori_image
 }

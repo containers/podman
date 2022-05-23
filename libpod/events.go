@@ -89,8 +89,8 @@ func (p *Pod) newPodEvent(status events.Status) {
 	}
 }
 
-// newSystemEvent creates a new event for libpod as a whole.
-func (r *Runtime) newSystemEvent(status events.Status) {
+// NewSystemEvent creates a new event for libpod as a whole.
+func (r *Runtime) NewSystemEvent(status events.Status) {
 	e := events.NewEvent(status)
 	e.Type = events.System
 

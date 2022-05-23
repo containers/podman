@@ -12,6 +12,7 @@ import (
 	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/podman/v4/libpod"
 	"github.com/containers/podman/v4/libpod/define"
+	"github.com/containers/podman/v4/libpod/events"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/systemd"
 	systemdDefine "github.com/containers/podman/v4/pkg/systemd/define"
@@ -141,6 +142,8 @@ func AutoUpdate(ctx context.Context, runtime *libpod.Runtime, options entities.A
 		return nil, []error{err}
 	}
 	defer conn.Close()
+
+	runtime.NewSystemEvent(events.AutoUpdate)
 
 	// Update all images/container according to their auto-update policy.
 	var allReports []*entities.AutoUpdateReport

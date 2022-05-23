@@ -930,7 +930,7 @@ func (r *Runtime) refresh(alivePath string) error {
 	}
 	defer file.Close()
 
-	r.newSystemEvent(events.Refresh)
+	r.NewSystemEvent(events.Refresh)
 
 	return nil
 }
