@@ -442,22 +442,6 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *buil
 		return nil, err
 	}
 
-	// `buildah bud --layers=false` acts like `docker build --squash` does.
-	// That is all of the new layers created during the build process are
-	// condensed into one, any layers present prior to this build are retained
-	// without condensing.  `buildah bud --squash` squashes both new and old
-	// layers down into one.  Translate Podman commands into Buildah.
-	// Squash invoked, retain old layers, squash new layers into one.
-	if c.Flags().Changed("squash") && flags.Squash {
-		flags.Squash = false
-		flags.Layers = false
-	}
-	// Squash-all invoked, squash both new and old layers into one.
-	if c.Flags().Changed("squash-all") {
-		flags.Squash = true
-		flags.Layers = false
-	}
-
 	compression := buildahDefine.Gzip
 	if flags.DisableCompression {
 		compression = buildahDefine.Uncompressed
