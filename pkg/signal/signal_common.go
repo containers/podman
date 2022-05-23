@@ -17,7 +17,7 @@ func ParseSignal(rawSignal string) (syscall.Signal, error) {
 		}
 		return syscall.Signal(s), nil
 	}
-	sig, ok := signalMap[strings.TrimPrefix(strings.ToUpper(rawSignal), "SIG")]
+	sig, ok := SignalMap[strings.TrimPrefix(strings.ToUpper(rawSignal), "SIG")]
 	if !ok {
 		return -1, fmt.Errorf("invalid signal: %s", rawSignal)
 	}
@@ -32,7 +32,7 @@ func ParseSignalNameOrNumber(rawSignal string) (syscall.Signal, error) {
 	if err == nil {
 		return s, nil
 	}
-	for k, v := range signalMap {
+	for k, v := range SignalMap {
 		if k == strings.ToUpper(basename) {
 			return v, nil
 		}

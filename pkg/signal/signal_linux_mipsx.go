@@ -24,8 +24,8 @@ const (
 	SIGWINCH = syscall.SIGWINCH
 )
 
-// signalMap is a map of Linux signals.
-var signalMap = map[string]syscall.Signal{
+// SignalMap is a map of Linux signals.
+var SignalMap = map[string]syscall.Signal{
 	"ABRT":     unix.SIGABRT,
 	"ALRM":     unix.SIGALRM,
 	"BUS":      unix.SIGBUS,
@@ -95,8 +95,8 @@ var signalMap = map[string]syscall.Signal{
 
 // CatchAll catches all signals and relays them to the specified channel.
 func CatchAll(sigc chan os.Signal) {
-	handledSigs := make([]os.Signal, 0, len(signalMap))
-	for _, s := range signalMap {
+	handledSigs := make([]os.Signal, 0, len(SignalMap))
+	for _, s := range SignalMap {
 		handledSigs = append(handledSigs, s)
 	}
 	signal.Notify(sigc, handledSigs...)
