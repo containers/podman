@@ -225,6 +225,18 @@ t POST "images/load" ${TMPD}/test.tar 200 \
 t GET libpod/images/quay.io/libpod/alpine:latest/exists  204
 t GET libpod/images/quay.io/libpod/busybox:latest/exists  204
 
+CONTAINERFILE_WITH_ERR_TAR="${TMPD}/containerfile.tar"
+cat > $TMPD/containerfile << EOF
+FROM quay.io/fedora/fedora
+RUN echo 'some error' >&2
+EOF
+tar --format=posix -C $TMPD -cvf ${CONTAINERFILE_WITH_ERR_TAR} containerfile &> /dev/null
+t POST "build?q=1&dockerfile=containerfile" $CONTAINERFILE_WITH_ERR_TAR 200
+response_output=$(cat "$WORKDIR/curl.result.out")
+if [[ ${response_output} == *"some error"* ]];then
+    _show_ok 0 "compat quiet build" "~ $response_output" "found output from stderr in API"
+fi
+
 cleanBuildTest
 
 # vim: filetype=sh
