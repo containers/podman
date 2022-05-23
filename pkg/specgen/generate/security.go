@@ -7,6 +7,7 @@ import (
 	"github.com/containers/common/pkg/apparmor"
 	"github.com/containers/common/pkg/capabilities"
 	"github.com/containers/common/pkg/config"
+	cutil "github.com/containers/common/pkg/util"
 	"github.com/containers/podman/v4/libpod"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/specgen"
@@ -120,7 +121,7 @@ func securityConfigureGenerator(s *specgen.SpecGenerator, g *generate.Generator,
 		// capabilities, required to run the container.
 		var capsRequiredRequested []string
 		for key, val := range s.Labels {
-			if util.StringInSlice(key, capabilities.ContainerImageLabels) {
+			if cutil.StringInSlice(key, capabilities.ContainerImageLabels) {
 				capsRequiredRequested = strings.Split(val, ",")
 			}
 		}
@@ -132,7 +133,7 @@ func securityConfigureGenerator(s *specgen.SpecGenerator, g *generate.Generator,
 			}
 			// Verify all capRequired are in the capList
 			for _, cap := range capsRequired {
-				if !util.StringInSlice(cap, caplist) {
+				if !cutil.StringInSlice(cap, caplist) {
 					privCapsRequired = append(privCapsRequired, cap)
 				}
 			}

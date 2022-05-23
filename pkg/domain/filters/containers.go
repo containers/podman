@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	cutil "github.com/containers/common/pkg/util"
 	"github.com/containers/podman/v4/libpod"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/util"
@@ -257,7 +258,7 @@ func GenerateContainerFilterFuncs(filter string, filterValues []string, r *libpo
 				return false
 			}
 			for _, net := range networks {
-				if util.StringInSlice(net, inputNetNames) {
+				if cutil.StringInSlice(net, inputNetNames) {
 					return true
 				}
 			}
