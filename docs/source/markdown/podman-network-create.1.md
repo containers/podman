@@ -4,7 +4,7 @@
 podman\-network-create - Create a Podman network
 
 ## SYNOPSIS
-**podman network create**  [*options*] name
+**podman network create**  [*options*] [*name*]
 
 ## DESCRIPTION
 Create a CNI-network configuration for use with Podman. By default, Podman creates a bridge connection.

@@ -4,7 +4,7 @@
 podman\-volume\-create - Create a new volume
 
 ## SYNOPSIS
-**podman volume create** [*options*]
+**podman volume create** [*options*] [*name*]
 
 ## DESCRIPTION
 

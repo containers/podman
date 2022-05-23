@@ -17,6 +17,7 @@ var (
 
 	createCommand = &cobra.Command{
 		Use:               "create [options] [NAME]",
+		Args:              cobra.MaximumNArgs(1),
 		Short:             "Create a new volume",
 		Long:              createDescription,
 		RunE:              create,
@@ -59,9 +60,6 @@ func create(cmd *cobra.Command, args []string) error {
 	var (
 		err error
 	)
-	if len(args) > 1 {
-		return errors.Errorf("too many arguments, create takes at most 1 argument")
-	}
 	if len(args) > 0 {
 		createOpts.Name = args[0]
 	}
