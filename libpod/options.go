@@ -11,6 +11,7 @@ import (
 	nettypes "github.com/containers/common/libnetwork/types"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/common/pkg/secrets"
+	cutil "github.com/containers/common/pkg/util"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v4/libpod/define"
@@ -604,7 +605,7 @@ func WithSdNotifyMode(mode string) CtrCreateOption {
 		}
 
 		// verify values
-		if len(mode) > 0 && !util.StringInSlice(strings.ToLower(mode), SdNotifyModeValues) {
+		if len(mode) > 0 && !cutil.StringInSlice(strings.ToLower(mode), SdNotifyModeValues) {
 			return errors.Wrapf(define.ErrInvalidArg, "--sdnotify values must be one of %q", strings.Join(SdNotifyModeValues, ", "))
 		}
 

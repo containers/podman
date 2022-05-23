@@ -9,6 +9,7 @@ import (
 
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/common/pkg/config"
+	cutil "github.com/containers/common/pkg/util"
 	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v4/cmd/podman/common"
@@ -116,7 +117,7 @@ func create(cmd *cobra.Command, args []string) error {
 		if !cmd.Flags().Changed("pod") {
 			return errors.New("must specify pod value with init-ctr")
 		}
-		if !util.StringInSlice(initctr, []string{define.AlwaysInitContainer, define.OneShotInitContainer}) {
+		if !cutil.StringInSlice(initctr, []string{define.AlwaysInitContainer, define.OneShotInitContainer}) {
 			return errors.Errorf("init-ctr value must be '%s' or '%s'", define.AlwaysInitContainer, define.OneShotInitContainer)
 		}
 		cliVals.InitContainerType = initctr

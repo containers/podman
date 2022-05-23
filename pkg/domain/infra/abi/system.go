@@ -10,6 +10,7 @@ import (
 
 	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/common/pkg/config"
+	cutil "github.com/containers/common/pkg/util"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/domain/entities/reports"
@@ -307,7 +308,7 @@ func (ic *ContainerEngine) SystemDf(ctx context.Context, options entities.System
 			reclaimableSize += volSize
 		}
 		for _, viu := range inUse {
-			if util.StringInSlice(viu, runningContainers) {
+			if cutil.StringInSlice(viu, runningContainers) {
 				consInUse++
 			}
 		}
