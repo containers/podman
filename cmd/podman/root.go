@@ -423,7 +423,7 @@ func rootFlags(cmd *cobra.Command, opts *entities.PodmanConfig) {
 		// -s is deprecated due to conflict with -s on subcommands
 		storageDriverFlagName := "storage-driver"
 		pFlags.StringVar(&opts.StorageDriver, storageDriverFlagName, "", "Select which storage driver is used to manage storage of images and containers")
-		_ = cmd.RegisterFlagCompletionFunc(storageDriverFlagName, completion.AutocompleteNone) //TODO: what can we recommend here?
+		_ = cmd.RegisterFlagCompletionFunc(storageDriverFlagName, completion.AutocompleteNone)
 
 		tmpdirFlagName := "tmpdir"
 		pFlags.StringVar(&opts.Engine.TmpDir, tmpdirFlagName, "", "Path to the tmp directory for libpod state content.\n\nNote: use the environment variable 'TMPDIR' to change the temporary storage location for container images, '/var/tmp'.\n")
