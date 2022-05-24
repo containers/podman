@@ -34,10 +34,16 @@ function check_help() {
         # has no ' [options]'
         is "$usage " "  $command_string .*" "Usage string matches command"
 
+        # Strip off the leading command string; we no longer need it
+        usage=$(sed -e "s/^  $command_string \?//" <<<"$usage")
+
         # If usage ends in '[command]', recurse into subcommands
-        if expr "$usage" : '.*\[command\]$' >/dev/null; then
+        if expr "$usage" : '\[command\]' >/dev/null; then
             found[subcommands]=1
-            check_help "$@" $cmd
+            # (except for 'podman help', which is a special case)
+            if [[ $cmd != "help" ]]; then
+                check_help "$@" $cmd
+            fi
             continue
         fi
 
@@ -49,10 +55,26 @@ function check_help() {
         assert "$usage" !~ '[A-Z].*\[option' \
                "'options' must precede arguments in usage"
 
+        # Strip off '[options]' but remember if we've seen it.
+        local has_options=
+        if [[ $usage =~ \[options\] ]]; then
+            has_options=1
+            usage=$(sed -e 's/^\[options\] \?//' <<<"$usage")
+        fi
+
+        # From this point on, remaining argument descriptions must be UPPER CASE
+        # e.g., 'podman cmd [options] arg' or 'podman cmd [arg]' are invalid.
+        assert "$usage" !~ '[a-z]' \
+               "$command_string: argument names must be UPPER CASE"
+
+        # It makes no sense to have an optional arg followed by a mandatory one
+        assert "$usage" !~ '\[.*\] [A-Z]' \
+               "$command_string: optional args must be _after_ required ones"
+
         # Cross-check: if usage includes '[options]', there must be a
         # longer 'Options:' section in the full --help output; vice-versa,
         # if 'Options:' is in full output, usage line must have '[options]'.
-        if expr "$usage" : '.*\[option' >/dev/null; then
+        if [[ $has_options ]]; then
             if ! expr "$full_help" : ".*Options:" >/dev/null; then
                 die "$command_string: Usage includes '[options]' but has no 'Options:' subsection"
             fi
@@ -95,9 +117,7 @@ function check_help() {
         fi
 
         # If usage has required arguments, try running without them.
-        # The expression here is 'first capital letter is not in [BRACKETS]'.
-        # It is intended to handle 'podman foo [options] ARG' but not ' [ARG]'.
-        if expr "$usage" : '[^A-Z]\+ [A-Z]' >/dev/null; then
+        if expr "$usage" : '[A-Z]' >/dev/null; then
             # Exceptions: these commands don't work rootless
             if is_rootless; then
                 # "pause is not supported for rootless containers"
@@ -126,25 +146,15 @@ function check_help() {
         # the required args, then invoke with one extra. We should get a
         # usage error.
         if ! expr "$usage" : ".*\.\.\."; then
-            # "podman help" can take infinite args, so skip that one
-            if [ "$cmd" != "help" ]; then
-                # Get the args part of the command line; this should be
-                # everything from the first CAPITAL LETTER onward. We
-                # don't actually care about the letter itself, so just
-                # make it 'X'. And we don't care about [OPTIONAL] brackets
-                # either. What we do care about is stuff like 'IMAGE | CTR'
-                # which is actually one argument; convert to 'IMAGE-or-CTR'
-                local rhs=$(sed -e 's/^[^A-Z]\+[A-Z]/X/' -e 's/ | /-or-/g' <<<"$usage")
-                local n_args=$(wc -w <<<"$rhs")
+            local n_args=$(wc -w <<<"$usage")
 
-                run_podman '?' "$@" $cmd $(seq --format='x%g' 0 $n_args)
-                is "$status" 125 \
-                   "'$usage' indicates a maximum of $n_args args. I invoked it with more, and expected this exit status"
-                is "$output" "Error:.* \(takes no arguments\|requires exactly $n_args arg\|accepts at most\|too many arguments\|accepts $n_args arg(s), received\|accepts between .* and .* arg(s), received \)" \
-                   "'$usage' indicates a maximum of $n_args args. I invoked it with more, and expected one of these error messages"
+            run_podman '?' "$@" $cmd $(seq --format='x%g' 0 $n_args)
+            is "$status" 125 \
+               "'$usage' indicates a maximum of $n_args args. I invoked it with more, and expected this exit status"
+            is "$output" "Error:.* \(takes no arguments\|requires exactly $n_args arg\|accepts at most\|too many arguments\|accepts $n_args arg(s), received\|accepts between .* and .* arg(s), received \)" \
+               "'$usage' indicates a maximum of $n_args args. I invoked it with more, and expected one of these error messages"
 
-                found[fixed_args]=1
-            fi
+            found[fixed_args]=1
         fi
 
         count=$(expr $count + 1)

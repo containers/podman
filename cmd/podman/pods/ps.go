@@ -24,7 +24,7 @@ var (
 
 	// Command: podman pod _ps_
 	psCmd = &cobra.Command{
-		Use:               "ps  [options]",
+		Use:               "ps [options]",
 		Aliases:           []string{"ls", "list"},
 		Short:             "List pods",
 		Long:              psDescription,
