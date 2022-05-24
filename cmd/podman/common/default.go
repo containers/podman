@@ -5,9 +5,6 @@ import (
 )
 
 var (
-
-	// DefaultImageVolume default value
-	DefaultImageVolume = "bind"
 	// Pull in configured json library
 	json = registry.JSONLibrary()
 )

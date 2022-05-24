@@ -229,9 +229,11 @@ func setNamespaces(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions)
 }
 
 func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions, args []string) error {
-	var (
-		err error
-	)
+	rtc, err := config.Default()
+	if err != nil {
+		return err
+	}
+
 	// validate flags as needed
 	if err := validate(c); err != nil {
 		return err
@@ -479,8 +481,13 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 	if len(s.HostUsers) == 0 || len(c.HostUsers) != 0 {
 		s.HostUsers = c.HostUsers
 	}
-	if len(s.ImageVolumeMode) == 0 || len(c.ImageVolume) != 0 {
-		s.ImageVolumeMode = c.ImageVolume
+	if len(c.ImageVolume) != 0 {
+		if len(s.ImageVolumeMode) == 0 {
+			s.ImageVolumeMode = c.ImageVolume
+		}
+	}
+	if len(s.ImageVolumeMode) == 0 {
+		s.ImageVolumeMode = rtc.Engine.ImageVolumeMode
 	}
 	if s.ImageVolumeMode == "bind" {
 		s.ImageVolumeMode = "anonymous"
@@ -550,11 +557,6 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 		s.CgroupsMode = c.CgroupsMode
 	}
 	if s.CgroupsMode == "" {
-		rtc, err := config.Default()
-		if err != nil {
-			return err
-		}
-
 		s.CgroupsMode = rtc.Cgroups()
 	}
 

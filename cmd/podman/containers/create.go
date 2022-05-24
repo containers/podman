@@ -102,13 +102,22 @@ func init() {
 	createFlags(containerCreateCommand)
 }
 
-func create(cmd *cobra.Command, args []string) error {
-	var (
-		err error
-	)
+func commonFlags(cmd *cobra.Command) error {
+	var err error
 	flags := cmd.Flags()
 	cliVals.Net, err = common.NetFlagsToNetOptions(nil, *flags)
 	if err != nil {
+		return err
+	}
+
+	if cmd.Flags().Changed("image-volume") {
+		cliVals.ImageVolume = cmd.Flag("image-volume").Value.String()
+	}
+	return nil
+}
+
+func create(cmd *cobra.Command, args []string) error {
+	if err := commonFlags(cmd); err != nil {
 		return err
 	}
 
@@ -123,7 +132,7 @@ func create(cmd *cobra.Command, args []string) error {
 		cliVals.InitContainerType = initctr
 	}
 
-	cliVals, err = CreateInit(cmd, cliVals, false)
+	cliVals, err := CreateInit(cmd, cliVals, false)
 	if err != nil {
 		return err
 	}

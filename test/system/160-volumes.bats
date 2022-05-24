@@ -411,4 +411,43 @@ NeedsChown    | true
     fi
 }
 
+@test "podman --image-volume" {
+    tmpdir=$PODMAN_TMPDIR/volume-test
+    mkdir -p $tmpdir
+    containerfile=$tmpdir/Containerfile
+    cat >$containerfile <<EOF
+FROM $IMAGE
+VOLUME /data
+EOF
+    fs=$(stat -f -c %T .)
+    run_podman build -t volume_image $tmpdir
+
+    containersconf=$tmpdir/containers.conf
+    cat >$containersconf <<EOF
+[engine]
+image_volume_mode="tmpfs"
+EOF
+
+    run_podman run --image-volume tmpfs --rm volume_image stat -f -c %T /data
+    is "$output" "tmpfs" "Should be tmpfs"
+
+    run_podman 1 run --image-volume ignore --rm volume_image stat -f -c %T /data
+    is "$output" "stat: can't read file system information for '/data': No such file or directory" "Should fail with /data does not exists"
+
+    CONTAINERS_CONF="$containersconf" run_podman run --rm volume_image stat -f -c %T /data
+    is "$output" "tmpfs" "Should be tmpfs"
+
+    CONTAINERS_CONF="$containersconf" run_podman run --image-volume bind --rm volume_image stat -f -c %T /data
+    assert "$output" != "tmpfs" "Should match hosts $fs"
+
+    CONTAINERS_CONF="$containersconf" run_podman run --image-volume tmpfs --rm volume_image stat -f -c %T /data
+    is "$output" "tmpfs" "Should be tmpfs"
+
+    CONTAINERS_CONF="$containersconf" run_podman 1 run --image-volume ignore --rm volume_image stat -f -c %T /data
+    is "$output" "stat: can't read file system information for '/data': No such file or directory" "Should fail with /data does not exists"
+
+    run_podman rm --all --force -t 0
+    run_podman image rm --force localhost/volume_image
+}
+
 # vim: filetype=sh
