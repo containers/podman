@@ -1,4 +1,4 @@
-# Using podman-machine on MacOS (x86_64 and Apple silicon)
+# Using podman-machine on MacOS (Apple silicon and x86_64)
 
 ## Setup
 
