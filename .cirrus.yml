@@ -7,10 +7,6 @@ env:
     ####
     # Name of the ultimate destination branch for this CI run, PR or post-merge.
     DEST_BRANCH: "v4.1"
-    # Netavark branch to use when TEST_ENVIRON=host-netavark
-    NETAVARK_BRANCH: "main"
-    # Aardvark branch to use
-    AARDVARK_BRANCH: "main"
     # Overrides default location (/tmp/cirrus) for repo clone
     GOPATH: &gopath "/var/tmp/go"
     GOBIN: "${GOPATH}/bin"
