@@ -1,5 +1,5 @@
-//go:build linux
-// +build linux
+//go:build linux || freebsd
+// +build linux freebsd
 
 package cni
 
@@ -12,13 +12,11 @@ import (
 	"github.com/containernetworking/cni/libcni"
 	cnitypes "github.com/containernetworking/cni/pkg/types"
 	types040 "github.com/containernetworking/cni/pkg/types/040"
-	"github.com/containernetworking/plugins/pkg/ns"
 	"github.com/containers/common/libnetwork/internal/util"
 	"github.com/containers/common/libnetwork/types"
 	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"github.com/vishvananda/netlink"
 )
 
 // Setup will setup the container network namespace. It returns
@@ -36,14 +34,7 @@ func (n *cniNetwork) Setup(namespacePath string, options types.SetupOptions) (ma
 		return nil, err
 	}
 
-	// set the loopback adapter up in the container netns
-	err = ns.WithNetNSPath(namespacePath, func(_ ns.NetNS) error {
-		link, err := netlink.LinkByName("lo")
-		if err == nil {
-			err = netlink.LinkSetUp(link)
-		}
-		return err
-	})
+	err = setupLoopback(namespacePath)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to set the loopback adapter up")
 	}

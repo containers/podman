@@ -315,6 +315,11 @@ func (r *Runtime) copyFromDockerArchive(ctx context.Context, ref types.ImageRefe
 	if err != nil {
 		return nil, err
 	}
+	defer func() {
+		if err := reader.Close(); err != nil {
+			logrus.Errorf("Closing reader of docker archive: %v", err)
+		}
+	}()
 
 	return r.copyFromDockerArchiveReaderReference(ctx, reader, readerRef, options)
 }

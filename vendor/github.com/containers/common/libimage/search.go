@@ -7,6 +7,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/containers/common/libimage/define"
 	registryTransport "github.com/containers/image/v5/docker"
 	"github.com/containers/image/v5/pkg/sysregistriesv2"
 	"github.com/containers/image/v5/transports/alltransports"
@@ -81,22 +82,22 @@ func ParseSearchFilter(filter []string) (*SearchFilter, error) {
 	for _, f := range filter {
 		arr := strings.SplitN(f, "=", 2)
 		switch arr[0] {
-		case "stars":
+		case define.SearchFilterStars:
 			if len(arr) < 2 {
-				return nil, errors.Errorf("invalid `stars` filter %q, should be stars=<value>", filter)
+				return nil, errors.Errorf("invalid filter %q, should be stars=<value>", filter)
 			}
 			stars, err := strconv.Atoi(arr[1])
 			if err != nil {
 				return nil, errors.Wrapf(err, "incorrect value type for stars filter")
 			}
 			sFilter.Stars = stars
-		case "is-automated":
+		case define.SearchFilterAutomated:
 			if len(arr) == 2 && arr[1] == "false" {
 				sFilter.IsAutomated = types.OptionalBoolFalse
 			} else {
 				sFilter.IsAutomated = types.OptionalBoolTrue
 			}
-		case "is-official":
+		case define.SearchFilterOfficial:
 			if len(arr) == 2 && arr[1] == "false" {
 				sFilter.IsOfficial = types.OptionalBoolFalse
 			} else {

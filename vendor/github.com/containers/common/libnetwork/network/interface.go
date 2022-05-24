@@ -1,5 +1,5 @@
-//go:build linux
-// +build linux
+//go:build linux || freebsd
+// +build linux freebsd
 
 package network
 
@@ -25,14 +25,8 @@ import (
 const (
 	// defaultNetworkBackendFileName is the file name for sentinel file to store the backend
 	defaultNetworkBackendFileName = "defaultNetworkBackend"
-	// cniConfigDir is the directory where cni configuration is found
-	cniConfigDir = "/etc/cni/net.d/"
 	// cniConfigDirRootless is the directory in XDG_CONFIG_HOME for cni plugins
 	cniConfigDirRootless = "cni/net.d/"
-	// netavarkConfigDir is the config directory for the rootful network files
-	netavarkConfigDir = "/etc/containers/networks"
-	// netavarkRunDir is the run directory for the rootful temporary network files such as the ipam db
-	netavarkRunDir = "/run/containers/networks"
 
 	// netavarkBinary is the name of the netavark binary
 	netavarkBinary = "netavark"

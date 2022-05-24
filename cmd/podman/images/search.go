@@ -83,8 +83,7 @@ func searchFlags(cmd *cobra.Command) {
 
 	filterFlagName := "filter"
 	flags.StringSliceVarP(&searchOptions.Filters, filterFlagName, "f", []string{}, "Filter output based on conditions provided (default [])")
-	// TODO add custom filter function
-	_ = cmd.RegisterFlagCompletionFunc(filterFlagName, completion.AutocompleteNone)
+	_ = cmd.RegisterFlagCompletionFunc(filterFlagName, common.AutocompleteImageSearchFilters)
 
 	formatFlagName := "format"
 	flags.StringVar(&searchOptions.Format, formatFlagName, "", "Change the output format to JSON or a Go template")
