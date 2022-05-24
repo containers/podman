@@ -37,8 +37,6 @@ func (ir *ImageEngine) List(ctx context.Context, opts entities.ImageListOptions)
 
 		e := entities.ImageSummary{
 			ID: img.ID(),
-			// TODO: libpod/image didn't set it but libimage should
-			// ConfigDigest: string(img.ConfigDigest),
 			Created:     img.Created().Unix(),
 			Dangling:    isDangling,
 			Digest:      string(img.Digest()),

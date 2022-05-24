@@ -68,7 +68,6 @@ type ImageSummary struct {
 	// Podman extensions
 	Names        []string `json:",omitempty"`
 	Digest       string   `json:",omitempty"`
-	ConfigDigest string   `json:",omitempty"`
 	History      []string `json:",omitempty"`
 }
 
