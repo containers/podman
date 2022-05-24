@@ -36,7 +36,7 @@ func (ir *ImageEngine) List(ctx context.Context, opts entities.ImageListOptions)
 		}
 
 		e := entities.ImageSummary{
-			ID: img.ID(),
+			ID:          img.ID(),
 			Created:     img.Created().Unix(),
 			Dangling:    isDangling,
 			Digest:      string(img.Digest()),

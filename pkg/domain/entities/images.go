@@ -66,9 +66,9 @@ type ImageSummary struct {
 	Dangling    bool `json:",omitempty"`
 
 	// Podman extensions
-	Names        []string `json:",omitempty"`
-	Digest       string   `json:",omitempty"`
-	History      []string `json:",omitempty"`
+	Names   []string `json:",omitempty"`
+	Digest  string   `json:",omitempty"`
+	History []string `json:",omitempty"`
 }
 
 func (i *ImageSummary) Id() string { // nolint
