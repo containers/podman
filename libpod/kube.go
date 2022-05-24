@@ -14,6 +14,7 @@ import (
 
 	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/common/pkg/config"
+	cutil "github.com/containers/common/pkg/util"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/env"
 	v1 "github.com/containers/podman/v4/pkg/k8s.io/api/core/v1"
@@ -515,7 +516,7 @@ func simplePodWithV1Containers(ctx context.Context, ctrs []*Container) (*v1.Pod,
 					podDNS.Nameservers = make([]string, 0)
 				}
 				for _, s := range servers {
-					if !util.StringInSlice(s, podDNS.Nameservers) { // only append if it does not exist
+					if !cutil.StringInSlice(s, podDNS.Nameservers) { // only append if it does not exist
 						podDNS.Nameservers = append(podDNS.Nameservers, s)
 					}
 				}
@@ -526,7 +527,7 @@ func simplePodWithV1Containers(ctx context.Context, ctrs []*Container) (*v1.Pod,
 					podDNS.Searches = make([]string, 0)
 				}
 				for _, d := range domains {
-					if !util.StringInSlice(d, podDNS.Searches) { // only append if it does not exist
+					if !cutil.StringInSlice(d, podDNS.Searches) { // only append if it does not exist
 						podDNS.Searches = append(podDNS.Searches, d)
 					}
 				}
@@ -543,7 +544,7 @@ func simplePodWithV1Containers(ctx context.Context, ctrs []*Container) (*v1.Pod,
 	podName := removeUnderscores(ctrs[0].Name())
 	// Check if the pod name and container name will end up conflicting
 	// Append -pod if so
-	if util.StringInSlice(podName, ctrNames) {
+	if cutil.StringInSlice(podName, ctrNames) {
 		podName += "-pod"
 	}
 
@@ -824,7 +825,7 @@ func libpodMountsToKubeVolumeMounts(c *Container) ([]v1.VolumeMount, []v1.Volume
 
 // generateKubePersistentVolumeClaim converts a ContainerNamedVolume to a Kubernetes PersistentVolumeClaim
 func generateKubePersistentVolumeClaim(v *ContainerNamedVolume) (v1.VolumeMount, v1.Volume) {
-	ro := util.StringInSlice("ro", v.Options)
+	ro := cutil.StringInSlice("ro", v.Options)
 
 	// To avoid naming conflicts with any host path mounts, add a unique suffix to the volume's name.
 	name := v.Name + "-pvc"
@@ -857,7 +858,7 @@ func generateKubeVolumeMount(m specs.Mount) (v1.VolumeMount, v1.Volume, error) {
 	name += "-host"
 	vm.Name = name
 	vm.MountPath = m.Destination
-	if util.StringInSlice("ro", m.Options) {
+	if cutil.StringInSlice("ro", m.Options) {
 		vm.ReadOnly = true
 	}
 
@@ -915,7 +916,7 @@ func determineCapAddDropFromCapabilities(defaultCaps, containerCaps []string) *v
 	// Find caps in the defaultCaps but not in the container's
 	// those indicate a dropped cap
 	for _, capability := range defaultCaps {
-		if !util.StringInSlice(capability, containerCaps) {
+		if !cutil.StringInSlice(capability, containerCaps) {
 			if _, ok := dedupDrop[capability]; !ok {
 				drop = append(drop, v1.Capability(capability))
 				dedupDrop[capability] = true
@@ -925,7 +926,7 @@ func determineCapAddDropFromCapabilities(defaultCaps, containerCaps []string) *v
 	// Find caps in the container but not in the defaults; those indicate
 	// an added cap
 	for _, capability := range containerCaps {
-		if !util.StringInSlice(capability, defaultCaps) {
+		if !cutil.StringInSlice(capability, defaultCaps) {
 			if _, ok := dedupAdd[capability]; !ok {
 				add = append(add, v1.Capability(capability))
 				dedupAdd[capability] = true

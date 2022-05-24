@@ -3,7 +3,7 @@ package e2e
 import (
 	"strings"
 
-	"github.com/containers/buildah/util"
+	"github.com/containers/common/pkg/util"
 	"github.com/containers/podman/v4/cmd/podman/machine"
 	jsoniter "github.com/json-iterator/go"
 	. "github.com/onsi/ginkgo"
