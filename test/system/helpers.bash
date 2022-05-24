@@ -397,25 +397,25 @@ function _ensure_pod_state() {
     for i in {0..5}; do
         run_podman pod inspect $1 --format "{{.State}}"
         if [[ $output == "$2" ]]; then
-            break
+            return
         fi
         sleep 0.5
     done
 
-    is "$output" "$2" "unexpected pod state"
+    die "Timed out waiting for pod $1 to enter state $2"
 }
 
 # Wait for the container's (1st arg) running state (2nd arg)
 function _ensure_container_running() {
-    for i in {0..5}; do
+    for i in {0..20}; do
         run_podman container inspect $1 --format "{{.State.Running}}"
         if [[ $output == "$2" ]]; then
-            break
+            return
         fi
         sleep 0.5
     done
 
-    is "$output" "$2" "unexpected pod state"
+    die "Timed out waiting for container $1 to enter state running=$2"
 }
 
 ###########################
