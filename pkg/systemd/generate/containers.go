@@ -362,6 +362,7 @@ func executeContainerTemplate(info *containerInfo, options entities.GenerateSyst
 		}
 		startCommand = append(startCommand,
 			"run",
+			"--label=podman/managed-by=systemd",
 			"--cidfile={{{{.ContainerIDFile}}}}",
 			"--cgroups=no-conmon",
 			"--rm",
