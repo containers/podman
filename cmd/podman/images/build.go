@@ -502,9 +502,26 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *buil
 		return nil, errors.Wrapf(err, "unable to obtain decrypt config")
 	}
 
+	additionalBuildContext := make(map[string]*buildahDefine.AdditionalBuildContext)
+	if c.Flag("build-context").Changed {
+		for _, contextString := range flags.BuildContext {
+			av := strings.SplitN(contextString, "=", 2)
+			if len(av) > 1 {
+				parseAdditionalBuildContext, err := parse.GetAdditionalBuildContext(av[1])
+				if err != nil {
+					return nil, errors.Wrapf(err, "while parsing additional build context")
+				}
+				additionalBuildContext[av[0]] = &parseAdditionalBuildContext
+			} else {
+				return nil, fmt.Errorf("while parsing additional build context: %q, accepts value in the form of key=value", av)
+			}
+		}
+	}
+
 	opts := buildahDefine.BuildOptions{
 		AddCapabilities:         flags.CapAdd,
 		AdditionalTags:          tags,
+		AdditionalBuildContexts: additionalBuildContext,
 		AllPlatforms:            flags.AllPlatforms,
 		Annotations:             flags.Annotation,
 		Args:                    args,
@@ -514,6 +531,7 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *buil
 		Compression:             compression,
 		ConfigureNetwork:        networkPolicy,
 		ContextDirectory:        contextDir,
+		CPPFlags:                flags.CPPFlags,
 		DefaultMountsFilePath:   containerConfig.Containers.DefaultMountsFile,
 		Devices:                 flags.Devices,
 		DropCapabilities:        flags.CapDrop,

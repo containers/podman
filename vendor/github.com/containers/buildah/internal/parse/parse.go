@@ -309,7 +309,7 @@ func GetCacheMount(args []string, store storage.Store, imageMountLabel string, a
 		// add subdirectory if specified
 
 		// cache parent directory
-		cacheParent := filepath.Join(getTempDir(), BuildahCacheDir)
+		cacheParent := filepath.Join(internalUtil.GetTempDir(), BuildahCacheDir)
 		// create cache on host if not present
 		err = os.MkdirAll(cacheParent, os.FileMode(0755))
 		if err != nil {
@@ -596,13 +596,4 @@ func GetTmpfsMount(args []string) (specs.Mount, error) {
 	}
 
 	return newMount, nil
-}
-
-/* This is internal function and could be changed at any time */
-/* for external usage please refer to buildah/pkg/parse.GetTempDir() */
-func getTempDir() string {
-	if tmpdir, ok := os.LookupEnv("TMPDIR"); ok {
-		return tmpdir
-	}
-	return "/var/tmp"
 }

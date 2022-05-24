@@ -7,7 +7,7 @@ import (
 	"sync"
 
 	"github.com/pkg/errors"
-	"github.com/syndtr/gocapability/capability"
+	"github.com/sirupsen/logrus"
 )
 
 var (
@@ -38,19 +38,13 @@ func HomeDir() (string, error) {
 	return homeDir, homeDirErr
 }
 
-// HasCapSysAdmin returns whether the current process has CAP_SYS_ADMIN.
-func HasCapSysAdmin() (bool, error) {
-	hasCapSysAdminOnce.Do(func() {
-		currentCaps, err := capability.NewPid2(0)
-		if err != nil {
-			hasCapSysAdminErr = err
-			return
+func bailOnError(err error, format string, a ...interface{}) { // nolint: golint,goprintffuncname
+	if err != nil {
+		if format != "" {
+			logrus.Errorf("%s: %v", fmt.Sprintf(format, a...), err)
+		} else {
+			logrus.Errorf("%v", err)
 		}
-		if err = currentCaps.Load(); err != nil {
-			hasCapSysAdminErr = err
-			return
-		}
-		hasCapSysAdminRet = currentCaps.Get(capability.EFFECTIVE, capability.CAP_SYS_ADMIN)
-	})
-	return hasCapSysAdminRet, hasCapSysAdminErr
+		os.Exit(1)
+	}
 }

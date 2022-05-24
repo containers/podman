@@ -369,18 +369,73 @@ func (s *StageExecutor) Copy(excludes []string, copies ...imagebuilder.Copy) err
 			if fromErr != nil {
 				return errors.Wrapf(fromErr, "unable to resolve argument %q", copy.From)
 			}
-			if isStage, err := s.executor.waitForStage(s.ctx, from, s.stages[:s.index]); isStage && err != nil {
-				return err
-			}
-			if other, ok := s.executor.stages[from]; ok && other.index < s.index {
-				contextDir = other.mountPoint
-				idMappingOptions = &other.builder.IDMappingOptions
-			} else if builder, ok := s.executor.containerMap[copy.From]; ok {
-				contextDir = builder.MountPoint
-				idMappingOptions = &builder.IDMappingOptions
+			var additionalBuildContext *define.AdditionalBuildContext
+			if foundContext, ok := s.executor.additionalBuildContexts[from]; ok {
+				additionalBuildContext = foundContext
 			} else {
-				return errors.Errorf("the stage %q has not been built", copy.From)
+				// Maybe index is given in COPY --from=index
+				// if that's the case check if provided index
+				// exists and if stage short_name matches any
+				// additionalContext replace stage with addtional
+				// build context.
+				if _, err := strconv.Atoi(from); err == nil {
+					if stage, ok := s.executor.stages[from]; ok {
+						if foundContext, ok := s.executor.additionalBuildContexts[stage.name]; ok {
+							additionalBuildContext = foundContext
+						}
+					}
+				}
 			}
+			if additionalBuildContext != nil {
+				if !additionalBuildContext.IsImage {
+					contextDir = additionalBuildContext.Value
+					if additionalBuildContext.IsURL {
+						// Check if following buildContext was already
+						// downloaded before in any other RUN step. If not
+						// download it and populate DownloadCache field for
+						// future RUN steps.
+						if additionalBuildContext.DownloadedCache == "" {
+							// additional context contains a tar file
+							// so download and explode tar to buildah
+							// temp and point context to that.
+							path, subdir, err := define.TempDirForURL(internalUtil.GetTempDir(), internal.BuildahExternalArtifactsDir, additionalBuildContext.Value)
+							if err != nil {
+								return errors.Wrapf(err, "unable to download context from external source %q", additionalBuildContext.Value)
+							}
+							// point context dir to the extracted path
+							contextDir = filepath.Join(path, subdir)
+							// populate cache for next RUN step
+							additionalBuildContext.DownloadedCache = contextDir
+						} else {
+							contextDir = additionalBuildContext.DownloadedCache
+						}
+					}
+				} else {
+					copy.From = additionalBuildContext.Value
+				}
+			}
+			if additionalBuildContext == nil {
+				if isStage, err := s.executor.waitForStage(s.ctx, from, s.stages[:s.index]); isStage && err != nil {
+					return err
+				}
+				if other, ok := s.executor.stages[from]; ok && other.index < s.index {
+					contextDir = other.mountPoint
+					idMappingOptions = &other.builder.IDMappingOptions
+				} else if builder, ok := s.executor.containerMap[copy.From]; ok {
+					contextDir = builder.MountPoint
+					idMappingOptions = &builder.IDMappingOptions
+				} else {
+					return errors.Errorf("the stage %q has not been built", copy.From)
+				}
+			} else if additionalBuildContext.IsImage {
+				// Image was selected as additionalContext so only process image.
+				mountPoint, err := s.getImageRootfs(s.ctx, copy.From)
+				if err != nil {
+					return err
+				}
+				contextDir = mountPoint
+			}
+			// Original behaviour of buildah still stays true for COPY irrespective of additional context.
 			preserveOwnership = true
 			copyExcludes = excludes
 		} else {
@@ -445,6 +500,55 @@ func (s *StageExecutor) runStageMountPoints(mountList []string) (map[string]inte
 					from, fromErr := imagebuilder.ProcessWord(kv[1], s.stage.Builder.Arguments())
 					if fromErr != nil {
 						return nil, errors.Wrapf(fromErr, "unable to resolve argument %q", kv[1])
+					}
+					// If additional buildContext contains this
+					// give priority to that and break if additional
+					// is not an external image.
+					if additionalBuildContext, ok := s.executor.additionalBuildContexts[from]; ok {
+						if additionalBuildContext.IsImage {
+							mountPoint, err := s.getImageRootfs(s.ctx, additionalBuildContext.Value)
+							if err != nil {
+								return nil, errors.Errorf("%s from=%s: image found with that name", flag, from)
+							}
+							// The `from` in stageMountPoints should point
+							// to `mountPoint` replaced from additional
+							// build-context. Reason: Parser will use this
+							//  `from` to refer from stageMountPoints map later.
+							stageMountPoints[from] = internal.StageMountDetails{IsStage: false, MountPoint: mountPoint}
+							break
+						} else {
+							// Most likely this points to path on filesystem
+							// or external tar archive, Treat it as a stage
+							// nothing is different for this. So process and
+							// point mountPoint to path on host and it will
+							// be automatically handled correctly by since
+							// GetBindMount will honor IsStage:false while
+							// processing stageMountPoints.
+							mountPoint := additionalBuildContext.Value
+							if additionalBuildContext.IsURL {
+								// Check if following buildContext was already
+								// downloaded before in any other RUN step. If not
+								// download it and populate DownloadCache field for
+								// future RUN steps.
+								if additionalBuildContext.DownloadedCache == "" {
+									// additional context contains a tar file
+									// so download and explode tar to buildah
+									// temp and point context to that.
+									path, subdir, err := define.TempDirForURL(internalUtil.GetTempDir(), internal.BuildahExternalArtifactsDir, additionalBuildContext.Value)
+									if err != nil {
+										return nil, errors.Wrapf(err, "unable to download context from external source %q", additionalBuildContext.Value)
+									}
+									// point context dir to the extracted path
+									mountPoint = filepath.Join(path, subdir)
+									// populate cache for next RUN step
+									additionalBuildContext.DownloadedCache = mountPoint
+								} else {
+									mountPoint = additionalBuildContext.DownloadedCache
+								}
+							}
+							stageMountPoints[from] = internal.StageMountDetails{IsStage: true, MountPoint: mountPoint}
+							break
+						}
 					}
 					// If the source's name corresponds to the
 					// result of an earlier stage, wait for that
@@ -865,14 +969,14 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 			// squash the contents of the base image.  Whichever is
 			// the case, we need to commit() to create a new image.
 			logCommit(s.output, -1)
-			if imgID, ref, err = s.commit(ctx, s.getCreatedBy(nil, ""), false, s.output); err != nil {
+			if imgID, ref, err = s.commit(ctx, s.getCreatedBy(nil, ""), false, s.output, s.executor.squash); err != nil {
 				return "", nil, errors.Wrapf(err, "error committing base container")
 			}
 		} else if len(s.executor.labels) > 0 || len(s.executor.annotations) > 0 {
 			// The image would be modified by the labels passed
 			// via the command line, so we need to commit.
 			logCommit(s.output, -1)
-			if imgID, ref, err = s.commit(ctx, s.getCreatedBy(stage.Node, ""), true, s.output); err != nil {
+			if imgID, ref, err = s.commit(ctx, s.getCreatedBy(stage.Node, ""), true, s.output, s.executor.squash); err != nil {
 				return "", nil, err
 			}
 		} else {
@@ -923,6 +1027,25 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 				if fromErr != nil {
 					return "", nil, errors.Wrapf(fromErr, "unable to resolve argument %q", arr[1])
 				}
+				// If additional buildContext contains this
+				// give priority to that and break if additional
+				// is not an external image.
+				if additionalBuildContext, ok := s.executor.additionalBuildContexts[from]; ok {
+					if !additionalBuildContext.IsImage {
+						// We don't need to pull this
+						// since this additional context
+						// is not an image.
+						break
+					} else {
+						// replace with image set in build context
+						from = additionalBuildContext.Value
+						if _, err := s.getImageRootfs(ctx, from); err != nil {
+							return "", nil, errors.Errorf("%s --from=%s: no stage or image found with that name", command, from)
+						}
+						break
+					}
+				}
+
 				// If the source's name corresponds to the
 				// result of an earlier stage, wait for that
 				// stage to finish being built.
@@ -984,7 +1107,7 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 				// stage.
 				if lastStage || imageIsUsedLater {
 					logCommit(s.output, i)
-					imgID, ref, err = s.commit(ctx, s.getCreatedBy(node, addedContentSummary), false, s.output)
+					imgID, ref, err = s.commit(ctx, s.getCreatedBy(node, addedContentSummary), false, s.output, s.executor.squash)
 					if err != nil {
 						return "", nil, errors.Wrapf(err, "error committing container for step %+v", *step)
 					}
@@ -1018,7 +1141,7 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 		// we need to call ib.Run() to correctly put the args together before
 		// determining if a cached layer with the same build args already exists
 		// and that is done in the if block below.
-		if checkForLayers && step.Command != "arg" {
+		if checkForLayers && step.Command != "arg" && !(s.executor.squash && lastInstruction && lastStage) {
 			cacheID, err = s.intermediateImageExists(ctx, node, addedContentSummary, s.stepRequiresLayer(step))
 			if err != nil {
 				return "", nil, errors.Wrap(err, "error checking if cached image exists from a previous build")
@@ -1071,10 +1194,6 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 			}
 		}
 
-		// We want to save history for other layers during a squashed build.
-		// Toggle flag allows executor to treat other instruction and layers
-		// as regular builds and only perform squashing at last
-		squashToggle := false
 		// Note: If the build has squash, we must try to re-use as many layers as possible if cache is found.
 		// So only perform commit if its the lastInstruction of lastStage.
 		if cacheID != "" {
@@ -1091,30 +1210,27 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 				}
 			}
 		} else {
-			if s.executor.squash {
-				// We want to save history for other layers during a squashed build.
-				// squashToggle flag allows executor to treat other instruction and layers
-				// as regular builds and only perform squashing at last
-				s.executor.squash = false
-				squashToggle = true
-			}
 			// We're not going to find any more cache hits, so we
 			// can stop looking for them.
 			checkForLayers = false
 			// Create a new image, maybe with a new layer, with the
 			// name for this stage if it's the last instruction.
 			logCommit(s.output, i)
-			imgID, ref, err = s.commit(ctx, s.getCreatedBy(node, addedContentSummary), !s.stepRequiresLayer(step), commitName)
+			// While commiting we always set squash to false here
+			// because at this point we want to save history for
+			// layers even if its a squashed build so that they
+			// can be part of build-cache.
+			imgID, ref, err = s.commit(ctx, s.getCreatedBy(node, addedContentSummary), !s.stepRequiresLayer(step), commitName, false)
 			if err != nil {
 				return "", nil, errors.Wrapf(err, "error committing container for step %+v", *step)
 			}
 		}
 
-		// Perform final squash for this build as we are one the,
-		// last instruction of last stage
-		if (s.executor.squash || squashToggle) && lastInstruction && lastStage {
-			s.executor.squash = true
-			imgID, ref, err = s.commit(ctx, s.getCreatedBy(node, addedContentSummary), !s.stepRequiresLayer(step), commitName)
+		// Create a squashed version of this image
+		// if we're supposed to create one and this
+		// is the last instruction of the last stage.
+		if s.executor.squash && lastInstruction && lastStage {
+			imgID, ref, err = s.commit(ctx, s.getCreatedBy(node, addedContentSummary), !s.stepRequiresLayer(step), commitName, true)
 			if err != nil {
 				return "", nil, errors.Wrapf(err, "error committing final squash step %+v", *step)
 			}
@@ -1450,7 +1566,7 @@ func (s *StageExecutor) intermediateImageExists(ctx context.Context, currNode *p
 // commit writes the container's contents to an image, using a passed-in tag as
 // the name if there is one, generating a unique ID-based one otherwise.
 // or commit via any custom exporter if specified.
-func (s *StageExecutor) commit(ctx context.Context, createdBy string, emptyLayer bool, output string) (string, reference.Canonical, error) {
+func (s *StageExecutor) commit(ctx context.Context, createdBy string, emptyLayer bool, output string, squash bool) (string, reference.Canonical, error) {
 	ib := s.stage.Builder
 	var buildOutputOption define.BuildOutputOption
 	if s.executor.buildOutput != "" {
@@ -1591,7 +1707,7 @@ func (s *StageExecutor) commit(ctx context.Context, createdBy string, emptyLayer
 		ReportWriter:          writer,
 		PreferredManifestType: s.executor.outputFormat,
 		SystemContext:         s.executor.systemContext,
-		Squash:                s.executor.squash,
+		Squash:                squash,
 		EmptyLayer:            emptyLayer,
 		BlobDirectory:         s.executor.blobDirectory,
 		SignBy:                s.executor.signBy,

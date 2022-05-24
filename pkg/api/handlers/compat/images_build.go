@@ -80,6 +80,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		CgroupParent           string   `schema:"cgroupparent"` // nolint
 		Compression            uint64   `schema:"compression"`
 		ConfigureNetwork       string   `schema:"networkmode"`
+		CPPFlags               string   `schema:"cppflags"`
 		CpuPeriod              uint64   `schema:"cpuperiod"`  // nolint
 		CpuQuota               int64    `schema:"cpuquota"`   // nolint
 		CpuSetCpus             string   `schema:"cpusetcpus"` // nolint
@@ -399,6 +400,15 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// convert cppflags formats
+	var cppflags = []string{}
+	if _, found := r.URL.Query()["cppflags"]; found {
+		if err := json.Unmarshal([]byte(query.CPPFlags), &cppflags); err != nil {
+			utils.BadRequest(w, "cppflags", query.CPPFlags, err)
+			return
+		}
+	}
+
 	// convert nsoptions formats
 	nsoptions := buildah.NamespaceOptions{}
 	if _, found := r.URL.Query()["nsoptions"]; found {
@@ -555,6 +565,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		AddCapabilities: addCaps,
 		AdditionalTags:  additionalTags,
 		Annotations:     annotations,
+		CPPFlags:        cppflags,
 		Args:            buildArgs,
 		AllPlatforms:    query.AllPlatforms,
 		CommonBuildOpts: &buildah.CommonBuildOptions{

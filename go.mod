@@ -11,13 +11,13 @@ require (
 	github.com/container-orchestrated-devices/container-device-interface v0.4.0
 	github.com/containernetworking/cni v1.1.0
 	github.com/containernetworking/plugins v1.1.1
-	github.com/containers/buildah v1.26.1
+	github.com/containers/buildah v1.26.1-0.20220524184833-5500333c2e06
 	github.com/containers/common v0.48.1-0.20220523155016-2fd37da97824
 	github.com/containers/conmon v2.0.20+incompatible
-	github.com/containers/image/v5 v5.21.2-0.20220519193817-1e26896b8059
+	github.com/containers/image/v5 v5.21.2-0.20220520105616-e594853d6471
 	github.com/containers/ocicrypt v1.1.4-0.20220428134531-566b808bdf6f
 	github.com/containers/psgo v1.7.2
-	github.com/containers/storage v1.41.1-0.20220511210719-cacc3325a9c8
+	github.com/containers/storage v1.41.1-0.20220517121726-5019cd55275c
 	github.com/coreos/go-systemd/v22 v22.3.2
 	github.com/coreos/stream-metadata-go v0.0.0-20210225230131-70edb9eb47b3
 	github.com/cyphar/filepath-securejoin v0.2.3
