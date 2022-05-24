@@ -398,7 +398,6 @@ type ImageUnmountOptions struct {
 
 // ImageMountReport describes the response from image mount
 type ImageMountReport struct {
-	Err          error
 	Id           string // nolint
 	Name         string
 	Repositories []string

@@ -159,10 +159,6 @@ func (ir *ImageEngine) Mount(ctx context.Context, nameOrIDs []string, opts entit
 	mountReports := []*entities.ImageMountReport{}
 	listMountsOnly := !opts.All && len(nameOrIDs) == 0
 	for _, i := range images {
-		// TODO: the .Err fields are not used. This pre-dates the
-		// libimage migration but should be addressed at some point.
-		// A quick glimpse at cmd/podman/image/mount.go suggests that
-		// the errors needed to be handled there as well.
 		var mountPoint string
 		var err error
 		if listMountsOnly {
