@@ -114,6 +114,11 @@ func (r *Runtime) loadMultiImageDockerArchive(ctx context.Context, ref types.Ima
 	if err != nil {
 		return nil, err
 	}
+	defer func() {
+		if err := reader.Close(); err != nil {
+			logrus.Errorf("Closing reader of docker archive: %v", err)
+		}
+	}()
 
 	refLists, err := reader.List()
 	if err != nil {

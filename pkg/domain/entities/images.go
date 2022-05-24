@@ -66,10 +66,9 @@ type ImageSummary struct {
 	Dangling    bool `json:",omitempty"`
 
 	// Podman extensions
-	Names        []string `json:",omitempty"`
-	Digest       string   `json:",omitempty"`
-	ConfigDigest string   `json:",omitempty"`
-	History      []string `json:",omitempty"`
+	Names   []string `json:",omitempty"`
+	Digest  string   `json:",omitempty"`
+	History []string `json:",omitempty"`
 }
 
 func (i *ImageSummary) Id() string { // nolint
@@ -398,7 +397,6 @@ type ImageUnmountOptions struct {
 
 // ImageMountReport describes the response from image mount
 type ImageMountReport struct {
-	Err          error
 	Id           string // nolint
 	Name         string
 	Repositories []string

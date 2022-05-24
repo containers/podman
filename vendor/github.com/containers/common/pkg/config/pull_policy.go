@@ -2,8 +2,6 @@ package config
 
 import (
 	"fmt"
-
-	"github.com/pkg/errors"
 )
 
 // PullPolicy determines how and which images are being pulled from a container
@@ -63,7 +61,7 @@ func (p PullPolicy) Validate() error {
 	case PullPolicyAlways, PullPolicyMissing, PullPolicyNewer, PullPolicyNever:
 		return nil
 	default:
-		return errors.Errorf("unsupported pull policy %d", p)
+		return fmt.Errorf("unsupported pull policy %d", p)
 	}
 }
 
@@ -85,7 +83,7 @@ func ParsePullPolicy(s string) (PullPolicy, error) {
 	case "never", "Never":
 		return PullPolicyNever, nil
 	default:
-		return PullPolicyUnsupported, errors.Errorf("unsupported pull policy %q", s)
+		return PullPolicyUnsupported, fmt.Errorf("unsupported pull policy %q", s)
 	}
 }
 

@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	libimageDefine "github.com/containers/common/libimage/define"
 	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/pkg/sysregistriesv2"
@@ -494,6 +495,11 @@ func AutocompleteImages(cmd *cobra.Command, args []string, toComplete string) ([
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
 	return getImages(cmd, toComplete)
+}
+
+// AutocompleteImageSearchFilters - Autocomplate `search --filter`.
+func AutocompleteImageSearchFilters(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	return libimageDefine.SearchFilters, cobra.ShellCompDirectiveNoFileComp
 }
 
 // AutocompletePodExitPolicy - Autocomplete pod exit policy.

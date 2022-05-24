@@ -280,7 +280,6 @@ func Push(ctx context.Context, source string, destination string, options *PushO
 	if err != nil {
 		return err
 	}
-	// TODO: have a global system context we can pass around (1st argument)
 	header, err := auth.MakeXRegistryAuthHeader(&imageTypes.SystemContext{AuthFilePath: options.GetAuthfile()}, options.GetUsername(), options.GetPassword())
 	if err != nil {
 		return err
@@ -329,7 +328,6 @@ func Search(ctx context.Context, term string, options *SearchOptions) ([]entitie
 		params.Set("tlsVerify", strconv.FormatBool(!options.GetSkipTLSVerify()))
 	}
 
-	// TODO: have a global system context we can pass around (1st argument)
 	header, err := auth.MakeXRegistryAuthHeader(&imageTypes.SystemContext{AuthFilePath: options.GetAuthfile()}, "", "")
 	if err != nil {
 		return nil, err

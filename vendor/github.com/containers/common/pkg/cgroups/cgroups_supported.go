@@ -99,7 +99,7 @@ func UserOwnsCurrentSystemdCgroup() (bool, error) {
 func rmDirRecursively(path string) error {
 	killProcesses := func(signal syscall.Signal) {
 		if signal == unix.SIGKILL {
-			if err := ioutil.WriteFile(filepath.Join(path, "cgroup.kill"), []byte("1"), 0600); err == nil {
+			if err := ioutil.WriteFile(filepath.Join(path, "cgroup.kill"), []byte("1"), 0o600); err == nil {
 				return
 			}
 		}

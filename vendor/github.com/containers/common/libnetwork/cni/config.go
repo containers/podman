@@ -1,5 +1,5 @@
-//go:build linux
-// +build linux
+//go:build linux || freebsd
+// +build linux freebsd
 
 package cni
 
@@ -12,7 +12,6 @@ import (
 	pkgutil "github.com/containers/common/pkg/util"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"github.com/vishvananda/netlink"
 )
 
 // NetworkCreate will take a partial filled Network and fill the
@@ -133,14 +132,7 @@ func (n *cniNetwork) NetworkRemove(nameOrID string) error {
 
 	// Remove the bridge network interface on the host.
 	if network.libpodNet.Driver == types.BridgeNetworkDriver {
-		link, err := netlink.LinkByName(network.libpodNet.NetworkInterface)
-		if err == nil {
-			err = netlink.LinkDel(link)
-			// only log the error, it is not fatal
-			if err != nil {
-				logrus.Infof("Failed to remove network interface %s: %v", network.libpodNet.NetworkInterface, err)
-			}
-		}
+		deleteLink(network.libpodNet.NetworkInterface)
 	}
 
 	file := network.filename

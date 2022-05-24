@@ -7,7 +7,6 @@ import (
 	"github.com/containers/common/pkg/report"
 	"github.com/containers/podman/v4/cmd/podman/common"
 	"github.com/containers/podman/v4/cmd/podman/registry"
-	"github.com/containers/podman/v4/cmd/podman/utils"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -71,16 +70,12 @@ func mount(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if len(args) > 0 || mountOpts.All {
-		var errs utils.OutputErrors
-		for _, r := range reports {
-			if r.Err == nil {
-				fmt.Println(r.Path)
-				continue
-			}
-			errs = append(errs, r.Err)
+	if len(args) == 1 && mountOpts.Format == "" && !mountOpts.All {
+		if len(reports) != 1 {
+			return fmt.Errorf("internal error: expected 1 report but got %d", len(reports))
 		}
-		return errs.PrintErrors()
+		fmt.Println(reports[0].Path)
+		return nil
 	}
 
 	switch {

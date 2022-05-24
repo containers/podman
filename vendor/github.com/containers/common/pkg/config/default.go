@@ -2,6 +2,7 @@ package config
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"net"
 	"os"
@@ -19,7 +20,6 @@ import (
 	"github.com/containers/storage/pkg/unshare"
 	"github.com/containers/storage/types"
 	"github.com/opencontainers/selinux/go-selinux"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -35,7 +35,7 @@ const (
 
 	// _conmonVersionFormatErr is used when the expected versio-format of conmon
 	// has changed.
-	_conmonVersionFormatErr = "conmon version changed format"
+	_conmonVersionFormatErr = "conmon version changed format: %w"
 
 	// _defaultGraphRoot points to the default path of the graph root.
 	_defaultGraphRoot = "/var/lib/containers/storage"
@@ -43,26 +43,29 @@ const (
 	// _defaultTransport is a prefix that we apply to an image name to check
 	// docker hub first for the image.
 	_defaultTransport = "docker://"
+
+	// _defaultImageVolumeMode is a mode to handle built-in image volumes.
+	_defaultImageVolumeMode = "bind"
 )
 
 var (
-	// DefaultInitPath is the default path to the container-init binary
+	// DefaultInitPath is the default path to the container-init binary.
 	DefaultInitPath = "/usr/libexec/podman/catatonit"
-	// DefaultInfraImage to use for infra container
+	// DefaultInfraImage is the default image to run as infrastructure containers in pods.
 	DefaultInfraImage = ""
-	// DefaultRootlessSHMLockPath is the default path for rootless SHM locks
+	// DefaultRootlessSHMLockPath is the default path for rootless SHM locks.
 	DefaultRootlessSHMLockPath = "/libpod_rootless_lock"
 	// DefaultDetachKeys is the default keys sequence for detaching a
-	// container
+	// container.
 	DefaultDetachKeys = "ctrl-p,ctrl-q"
 	// ErrConmonOutdated indicates the version of conmon found (whether via the configuration or $PATH)
-	// is out of date for the current podman version
+	// is out of date for the current podman version.
 	ErrConmonOutdated = errors.New("outdated conmon version")
-	// ErrInvalidArg indicates that an invalid argument was passed
+	// ErrInvalidArg indicates that an invalid argument was passed.
 	ErrInvalidArg = errors.New("invalid argument")
-	// DefaultHooksDirs defines the default hooks directory
+	// DefaultHooksDirs defines the default hooks directory.
 	DefaultHooksDirs = []string{"/usr/share/containers/oci/hooks.d"}
-	// DefaultCapabilities for the default_capabilities option in the containers.conf file
+	// DefaultCapabilities is the default for the default_capabilities option in the containers.conf file.
 	DefaultCapabilities = []string{
 		"CAP_AUDIT_WRITE",
 		"CAP_CHOWN",
@@ -80,7 +83,7 @@ var (
 		"CAP_SYS_CHROOT",
 	}
 
-	// It may seem a bit unconventional, but it is necessary to do so
+	// Search these locations in which CNIPlugins can be installed.
 	DefaultCNIPluginDirs = []string{
 		"/usr/local/libexec/cni",
 		"/usr/libexec/cni",
@@ -98,7 +101,7 @@ var (
 	}
 	// additionalHelperBinariesDir is an extra helper binaries directory that
 	// should be set during link-time, if different packagers put their
-	// helper binary in a different location
+	// helper binary in a different location.
 	additionalHelperBinariesDir string
 )
 
@@ -118,13 +121,13 @@ const (
 	// InstallPrefix is the prefix where podman will be installed.
 	// It can be overridden at build time.
 	_installPrefix = "/usr"
-	// CgroupfsCgroupsManager represents cgroupfs native cgroup manager
+	// CgroupfsCgroupsManager represents cgroupfs native cgroup manager.
 	CgroupfsCgroupsManager = "cgroupfs"
 	// DefaultApparmorProfile  specifies the default apparmor profile for the container.
 	DefaultApparmorProfile = apparmor.Profile
-	// DefaultHostsFile is the default path to the hosts file
+	// DefaultHostsFile is the default path to the hosts file.
 	DefaultHostsFile = "/etc/hosts"
-	// SystemdCgroupsManager represents systemd native cgroup manager
+	// SystemdCgroupsManager represents systemd native cgroup manager.
 	SystemdCgroupsManager = "systemd"
 	// DefaultLogSizeMax is the default value for the maximum log size
 	// allowed for a container. Negative values mean that no limit is imposed.
@@ -133,9 +136,9 @@ const (
 	// before rotation.
 	DefaultEventsLogSizeMax = uint64(1000000)
 	// DefaultPidsLimit is the default value for maximum number of processes
-	// allowed inside a container
+	// allowed inside a container.
 	DefaultPidsLimit = 2048
-	// DefaultPullPolicy pulls the image if it does not exist locally
+	// DefaultPullPolicy pulls the image if it does not exist locally.
 	DefaultPullPolicy = "missing"
 	// DefaultSignaturePolicyPath is the default value for the
 	// policy.json file.
@@ -146,11 +149,11 @@ const (
 	// DefaultRootlessSignaturePolicyPath is the location within
 	// XDG_CONFIG_HOME of the rootless policy.json file.
 	DefaultRootlessSignaturePolicyPath = "containers/policy.json"
-	// DefaultShmSize default value
+	// DefaultShmSize is the default upper limit on the size of tmpfs mounts.
 	DefaultShmSize = "65536k"
-	// DefaultUserNSSize default value
+	// DefaultUserNSSize indicates the default number of UIDs allocated for user namespace within a container.
 	DefaultUserNSSize = 65536
-	// OCIBufSize limits maximum LogSizeMax
+	// OCIBufSize limits maximum LogSizeMax.
 	OCIBufSize = 8192
 	// SeccompOverridePath if this exists it overrides the default seccomp path.
 	SeccompOverridePath = _etcDir + "/containers/seccomp.json"
@@ -158,7 +161,7 @@ const (
 	SeccompDefaultPath = _installPrefix + "/share/containers/seccomp.json"
 )
 
-// DefaultConfig defines the default values from containers.conf
+// DefaultConfig defines the default values from containers.conf.
 func DefaultConfig() (*Config, error) {
 	defaultEngineConfig, err := defaultConfigFromMemory()
 	if err != nil {
@@ -294,6 +297,7 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 	}
 	c.HooksDir = DefaultHooksDirs
 	c.ImageDefaultTransport = _defaultTransport
+	c.ImageVolumeMode = _defaultImageVolumeMode
 	c.StateType = BoltDBStateStore
 
 	c.ImageBuildFormat = "oci"
@@ -350,7 +354,7 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 			"/usr/local/bin/krun",
 		},
 	}
-	// Needs to be called after populating c.OCIRuntimes
+	// Needs to be called after populating c.OCIRuntimes.
 	c.OCIRuntime = c.findRuntime()
 
 	c.ConmonEnvVars = []string{
@@ -411,8 +415,8 @@ func defaultTmpDir() (string, error) {
 		if !os.IsExist(err) {
 			return "", err
 		} else if err := os.Chmod(libpodRuntimeDir, 0o700|os.ModeSticky); err != nil {
-			// The directory already exist, just set the sticky bit
-			return "", errors.Wrap(err, "set sticky bit on")
+			// The directory already exists, so we try to make sure it's private and has the sticky bit set on it.
+			return "", fmt.Errorf("set sticky bit on: %w", err)
 		}
 	}
 	return filepath.Join(libpodRuntimeDir, "tmp"), nil
@@ -435,7 +439,7 @@ func probeConmon(conmonBinary string) error {
 	}
 	major, err := strconv.Atoi(matches[1])
 	if err != nil {
-		return errors.Wrap(err, _conmonVersionFormatErr)
+		return fmt.Errorf(_conmonVersionFormatErr, err)
 	}
 	if major < _conmonMinMajorVersion {
 		return ErrConmonOutdated
@@ -446,7 +450,7 @@ func probeConmon(conmonBinary string) error {
 
 	minor, err := strconv.Atoi(matches[2])
 	if err != nil {
-		return errors.Wrap(err, _conmonVersionFormatErr)
+		return fmt.Errorf(_conmonVersionFormatErr, err)
 	}
 	if minor < _conmonMinMinorVersion {
 		return ErrConmonOutdated
@@ -457,7 +461,7 @@ func probeConmon(conmonBinary string) error {
 
 	patch, err := strconv.Atoi(matches[3])
 	if err != nil {
-		return errors.Wrap(err, _conmonVersionFormatErr)
+		return fmt.Errorf(_conmonVersionFormatErr, err)
 	}
 	if patch < _conmonMinPatchVersion {
 		return ErrConmonOutdated
@@ -469,7 +473,7 @@ func probeConmon(conmonBinary string) error {
 	return nil
 }
 
-// NetNS returns the default network namespace
+// NetNS returns the default network namespace.
 func (c *Config) NetNS() string {
 	return c.Containers.NetNS
 }
@@ -478,7 +482,7 @@ func (c EngineConfig) EventsLogMaxSize() uint64 {
 	return uint64(c.EventsLogFileMaxSize)
 }
 
-// SecurityOptions returns the default security options
+// SecurityOptions returns the default security options.
 func (c *Config) SecurityOptions() []string {
 	securityOpts := []string{}
 	if c.Containers.SeccompProfile != "" && c.Containers.SeccompProfile != SeccompDefaultPath {
@@ -493,82 +497,82 @@ func (c *Config) SecurityOptions() []string {
 	return securityOpts
 }
 
-// Sysctls returns the default sysctls
+// Sysctls returns the default sysctls to set in containers.
 func (c *Config) Sysctls() []string {
 	return c.Containers.DefaultSysctls
 }
 
-// Volumes returns the default additional volumes for containersvolumes
+// Volumes returns the default set of volumes that should be mounted in containers.
 func (c *Config) Volumes() []string {
 	return c.Containers.Volumes
 }
 
-// Devices returns the default additional devices for containers
+// Devices returns the default additional devices for containers.
 func (c *Config) Devices() []string {
 	return c.Containers.Devices
 }
 
-// DNSServers returns the default DNS servers to add to resolv.conf in containers
+// DNSServers returns the default DNS servers to add to resolv.conf in containers.
 func (c *Config) DNSServers() []string {
 	return c.Containers.DNSServers
 }
 
-// DNSSerches returns the default DNS searches to add to resolv.conf in containers
+// DNSSerches returns the default DNS searches to add to resolv.conf in containers.
 func (c *Config) DNSSearches() []string {
 	return c.Containers.DNSSearches
 }
 
-// DNSOptions returns the default DNS options to add to resolv.conf in containers
+// DNSOptions returns the default DNS options to add to resolv.conf in containers.
 func (c *Config) DNSOptions() []string {
 	return c.Containers.DNSOptions
 }
 
-// Env returns the default additional environment variables to add to containers
+// Env returns the default additional environment variables to add to containers.
 func (c *Config) Env() []string {
 	return c.Containers.Env
 }
 
-// InitPath returns the default init path to add to containers
+// InitPath returns location where init program added to containers when users specify the --init flag.
 func (c *Config) InitPath() string {
 	return c.Containers.InitPath
 }
 
-// IPCNS returns the default IPC Namespace configuration to run containers with
+// IPCNS returns the default IPC Namespace configuration to run containers with.
 func (c *Config) IPCNS() string {
 	return c.Containers.IPCNS
 }
 
-// PIDNS returns the default PID Namespace configuration to run containers with
+// PIDNS returns the default PID Namespace configuration to run containers with.
 func (c *Config) PidNS() string {
 	return c.Containers.PidNS
 }
 
-// CgroupNS returns the default Cgroup Namespace configuration to run containers with
+// CgroupNS returns the default Cgroup Namespace configuration to run containers with.
 func (c *Config) CgroupNS() string {
 	return c.Containers.CgroupNS
 }
 
-// Cgroups returns whether to containers with cgroup confinement
+// Cgroups returns whether to run containers in their own control groups, as configured by the "cgroups" setting in containers.conf.
 func (c *Config) Cgroups() string {
 	return c.Containers.Cgroups
 }
 
-// UTSNS returns the default UTS Namespace configuration to run containers with
+// UTSNS returns the default UTS Namespace configuration to run containers with.
 func (c *Config) UTSNS() string {
 	return c.Containers.UTSNS
 }
 
-// ShmSize returns the default size for temporary file systems to use in containers
+// ShmSize returns the default size for temporary file systems to use in containers.
 func (c *Config) ShmSize() string {
 	return c.Containers.ShmSize
 }
 
-// Ulimits returns the default ulimits to use in containers
+// Ulimits returns the default ulimits to use in containers.
 func (c *Config) Ulimits() []string {
 	return c.Containers.DefaultUlimits
 }
 
-// PidsLimit returns the default maximum number of pids to use in containers
+// PidsLimit returns the default maximum number of pids to use in containers.
 func (c *Config) PidsLimit() int64 {
 	if unshare.IsRootless() {
 		if c.Engine.CgroupManager != SystemdCgroupsManager {
@@ -583,12 +587,12 @@ func (c *Config) PidsLimit() int64 {
 	return c.Containers.PidsLimit
 }
 
-// DetachKeys returns the default detach keys to detach from a container
+// DetachKeys returns the default detach keys to detach from a container.
 func (c *Config) DetachKeys() string {
 	return c.Engine.DetachKeys
 }
 
-// Tz returns the timezone in the container
+// TZ returns the timezone to set in containers.
 func (c *Config) TZ() string {
 	return c.Containers.TZ
 }
@@ -598,17 +602,17 @@ func (c *Config) Umask() string {
 }
 
 // LogDriver returns the logging driver to be used
-// currently k8s-file or journald
+// currently k8s-file or journald.
 func (c *Config) LogDriver() string {
 	return c.Containers.LogDriver
 }
 
-// MachineEnabled returns if podman is running inside a VM or not
+// MachineEnabled returns if podman is running inside a VM or not.
 func (c *Config) MachineEnabled() bool {
 	return c.Engine.MachineEnabled
 }
 
-// MachineVolumes returns volumes to mount into the VM
+// MachineVolumes returns volumes to mount into the VM.
 func (c *Config) MachineVolumes() ([]string, error) {
 	return machineVolumes(c.Machine.Volumes)
 }
@@ -619,10 +623,10 @@ func machineVolumes(volumes []string) ([]string, error) {
 		vol := os.ExpandEnv(v)
 		split := strings.Split(vol, ":")
 		if len(split) < 2 || len(split) > 3 {
-			return nil, errors.Errorf("invalid machine volume %s, 2 or 3 fields required", v)
+			return nil, fmt.Errorf("invalid machine volume %s, 2 or 3 fields required", v)
 		}
 		if split[0] == "" || split[1] == "" {
-			return nil, errors.Errorf("invalid machine volume %s, fields must container data", v)
+			return nil, fmt.Errorf("invalid machine volume %s, fields must container data", v)
 		}
 		translatedVolumes = append(translatedVolumes, vol)
 	}
