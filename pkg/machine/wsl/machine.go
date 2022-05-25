@@ -831,16 +831,16 @@ func (v *MachineVM) Set(_ string, opts machine.SetOptions) ([]error, error) {
 	}
 
 	if opts.CPUs != nil {
-		setErrors = append(setErrors, errors.Errorf("changing CPUs not suppored for WSL machines"))
+		setErrors = append(setErrors, errors.Errorf("changing CPUs not supported for WSL machines"))
 	}
 
 	if opts.Memory != nil {
-		setErrors = append(setErrors, errors.Errorf("changing memory not suppored for WSL machines"))
+		setErrors = append(setErrors, errors.Errorf("changing memory not supported for WSL machines"))
 
 	}
 
 	if opts.DiskSize != nil {
-		setErrors = append(setErrors, errors.Errorf("changing Disk Size not suppored for WSL machines"))
+		setErrors = append(setErrors, errors.Errorf("changing Disk Size not supported for WSL machines"))
 	}
 
 	return setErrors, v.writeConfig()
@@ -1477,7 +1477,7 @@ func (v *MachineVM) getResources() (resources machine.ResourceConfig) {
 	return
 }
 
-// RemoveAndCleanMachines removes all machine and cleans up any other files associatied with podman machine
+// RemoveAndCleanMachines removes all machine and cleans up any other files associated with podman machine
 func (p *Provider) RemoveAndCleanMachines() error {
 	var (
 		vm             machine.VM

@@ -1545,7 +1545,7 @@ func (v *MachineVM) editCmdLine(flag string, value string) {
 	}
 }
 
-// RemoveAndCleanMachines removes all machine and cleans up any other files associatied with podman machine
+// RemoveAndCleanMachines removes all machine and cleans up any other files associated with podman machine
 func (p *Provider) RemoveAndCleanMachines() error {
 	var (
 		vm             machine.VM

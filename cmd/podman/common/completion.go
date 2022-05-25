@@ -1171,7 +1171,7 @@ func getMethodNames(f reflect.Value, prefix string) []formatSuggestion {
 		if kind == reflect.Struct || kind == reflect.Map {
 			suffix = "."
 		}
-		// From a template users POV it is not importent when the use a struct field or method.
+		// From a template users POV it is not important when the use a struct field or method.
 		// They only notice the difference when the function requires arguments.
 		// So lets be nice and let the user know that this method requires arguments via the help text.
 		// Note since this is actually a method on a type the first argument is always fix so we should skip it.

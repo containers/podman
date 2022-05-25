@@ -79,7 +79,7 @@ func ParseRegistryCreds(creds string) (*types.DockerAuthConfig, error) {
 	}, nil
 }
 
-// StringInSlice is depracated, use containers/common/pkg/util/StringInSlice
+// StringInSlice is deprecated, use containers/common/pkg/util/StringInSlice
 func StringInSlice(s string, sl []string) bool {
 	return util.StringInSlice(s, sl)
 }
