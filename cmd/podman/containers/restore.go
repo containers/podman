@@ -28,7 +28,7 @@ var (
 		Long:  restoreDescription,
 		RunE:  restore,
 		Args: func(cmd *cobra.Command, args []string) error {
-			return validate.CheckAllLatestAndCIDFile(cmd, args, true, false)
+			return validate.CheckAllLatestAndIDFile(cmd, args, true, "")
 		},
 		ValidArgsFunction: common.AutocompleteContainersAndImages,
 		Example: `podman container restore ctrID

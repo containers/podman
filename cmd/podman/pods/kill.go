@@ -22,7 +22,7 @@ var (
 		Long:  podKillDescription,
 		RunE:  kill,
 		Args: func(cmd *cobra.Command, args []string) error {
-			return validate.CheckAllLatestAndCIDFile(cmd, args, false, false)
+			return validate.CheckAllLatestAndIDFile(cmd, args, false, "")
 		},
 		ValidArgsFunction: common.AutocompletePodsRunning,
 		Example: `podman pod kill podID

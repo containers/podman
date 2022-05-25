@@ -26,7 +26,7 @@ var (
 		Long:  stopDescription,
 		RunE:  stop,
 		Args: func(cmd *cobra.Command, args []string) error {
-			return validate.CheckAllLatestAndCIDFile(cmd, args, false, true)
+			return validate.CheckAllLatestAndIDFile(cmd, args, false, "cidfile")
 		},
 		ValidArgsFunction: common.AutocompleteContainersRunning,
 		Example: `podman stop ctrID
@@ -40,7 +40,7 @@ var (
 		Long:  stopCommand.Long,
 		RunE:  stopCommand.RunE,
 		Args: func(cmd *cobra.Command, args []string) error {
-			return validate.CheckAllLatestAndCIDFile(cmd, args, false, true)
+			return validate.CheckAllLatestAndIDFile(cmd, args, false, "cidfile")
 		},
 		ValidArgsFunction: stopCommand.ValidArgsFunction,
 		Example: `podman container stop ctrID
