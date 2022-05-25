@@ -170,7 +170,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 
 	// convert addcaps formats
 	containerFiles := []string{}
-	// Tells if query paramemter `dockerfile` is set or not.
+	// Tells if query parameter `dockerfile` is set or not.
 	dockerFileSet := false
 	if utils.IsLibpodRequest(r) && query.Remote != "" {
 		// The context directory could be a URL.  Try to handle that.
