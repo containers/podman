@@ -31,7 +31,7 @@ var (
 		Long:  checkpointDescription,
 		RunE:  checkpoint,
 		Args: func(cmd *cobra.Command, args []string) error {
-			return validate.CheckAllLatestAndCIDFile(cmd, args, false, false)
+			return validate.CheckAllLatestAndIDFile(cmd, args, false, "")
 		},
 		ValidArgsFunction: common.AutocompleteContainersRunning,
 		Example: `podman container checkpoint --keep ctrID

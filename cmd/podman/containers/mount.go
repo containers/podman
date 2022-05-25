@@ -33,7 +33,7 @@ var (
 		Long:  mountDescription,
 		RunE:  mount,
 		Args: func(cmd *cobra.Command, args []string) error {
-			return validate.CheckAllLatestAndCIDFile(cmd, args, true, false)
+			return validate.CheckAllLatestAndIDFile(cmd, args, true, "")
 		},
 		ValidArgsFunction: common.AutocompleteContainers,
 	}

@@ -31,7 +31,7 @@ var (
 		Long:  podStartDescription,
 		RunE:  start,
 		Args: func(cmd *cobra.Command, args []string) error {
-			return validate.CheckAllLatestAndPodIDFile(cmd, args, false, true)
+			return validate.CheckAllLatestAndIDFile(cmd, args, false, "pod-id-file")
 		},
 		ValidArgsFunction: common.AutocompletePods,
 		Example: `podman pod start podID

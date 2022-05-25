@@ -28,7 +28,7 @@ var (
 		Long:  rmDescription,
 		RunE:  rm,
 		Args: func(cmd *cobra.Command, args []string) error {
-			return validate.CheckAllLatestAndCIDFile(cmd, args, false, true)
+			return validate.CheckAllLatestAndIDFile(cmd, args, false, "cidfile")
 		},
 		ValidArgsFunction: common.AutocompleteContainers,
 		Example: `podman rm imageID

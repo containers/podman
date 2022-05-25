@@ -22,7 +22,7 @@ var (
 		Long:  podUnpauseDescription,
 		RunE:  unpause,
 		Args: func(cmd *cobra.Command, args []string) error {
-			return validate.CheckAllLatestAndCIDFile(cmd, args, false, false)
+			return validate.CheckAllLatestAndIDFile(cmd, args, false, "")
 		},
 		// TODO have a function which shows only pods which could be unpaused
 		// for now show all
