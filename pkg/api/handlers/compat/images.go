@@ -460,8 +460,6 @@ func GetImages(w http.ResponseWriter, r *http.Request) {
 }
 
 func LoadImages(w http.ResponseWriter, r *http.Request) {
-	// TODO this is basically wrong
-	// TODO ... improve these ^ messages to something useful
 	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 

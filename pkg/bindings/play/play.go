@@ -46,7 +46,6 @@ func KubeWithBody(ctx context.Context, body io.Reader, options *KubeOptions) (*e
 		params.Set("start", strconv.FormatBool(options.GetStart()))
 	}
 
-	// TODO: have a global system context we can pass around (1st argument)
 	header, err := auth.MakeXRegistryAuthHeader(&types.SystemContext{AuthFilePath: options.GetAuthfile()}, options.GetUsername(), options.GetPassword())
 	if err != nil {
 		return nil, err

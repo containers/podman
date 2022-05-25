@@ -144,8 +144,6 @@ func StringToType(name string) (Type, error) {
 }
 
 // StringToStatus converts a string to an Event Status
-// TODO if we add more events, we might consider a go-generator to
-// create the switch statement
 func StringToStatus(name string) (Status, error) {
 	switch name {
 	case Attach.String():

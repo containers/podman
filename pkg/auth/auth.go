@@ -245,8 +245,6 @@ func authConfigsToAuthFile(authConfigs map[string]types.DockerAuthConfig) (strin
 	}
 	authFilePath := tmpFile.Name()
 
-	// TODO: It would be nice if c/image could dump the map at once.
-	//
 	// Now use the c/image packages to store the credentials. It's battle
 	// tested, and we make sure to use the same code as the image backend.
 	sys := types.SystemContext{AuthFilePath: authFilePath}

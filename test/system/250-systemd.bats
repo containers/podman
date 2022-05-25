@@ -80,12 +80,6 @@ function service_cleanup() {
     run_podman logs $cname
     is "$output" ".*WAITING.*" "running is waiting for signal"
 
-    # Exercise `podman auto-update`.
-    # TODO: this will at least run auto-update code but won't perform an update
-    #       since the image didn't change.  We need to improve on that and run
-    #       an image from a local registry instead.
-    run_podman auto-update
-
     # All good. Stop service, clean up.
     # Also make sure the service is in the `inactive` state (see #11304).
     service_cleanup inactive
