@@ -279,8 +279,6 @@ func (c *Container) ExecStart(sessionID string) error {
 
 // ExecStartAndAttach starts and attaches to an exec session in a container.
 // newSize resizes the tty to this size before the process is started, must be nil if the exec session has no tty
-// TODO: Should we include detach keys in the signature to allow override?
-// TODO: How do we handle AttachStdin/AttachStdout/AttachStderr?
 func (c *Container) ExecStartAndAttach(sessionID string, streams *define.AttachStreams, newSize *define.TerminalSize) error {
 	if !c.batched {
 		c.lock.Lock()

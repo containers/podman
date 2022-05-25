@@ -1091,7 +1091,6 @@ func (c *Container) addNamespaceContainer(g *generate.Generator, ns LinuxNS, ctr
 		g.AddProcessEnv("HOSTNAME", hostname)
 	}
 
-	// TODO need unlocked version of this for use in pods
 	nsPath, err := nsCtr.NamespacePath(ns)
 	if err != nil {
 		return err
@@ -3230,10 +3229,8 @@ func (c *Container) fixVolumePermissions(v *ContainerNamedVolume) error {
 		return err
 	}
 
-	// TODO: For now, I've disabled chowning volumes owned by non-Podman
-	// drivers. This may be safe, but it's really going to be a case-by-case
-	// thing, I think - safest to leave disabled now and re-enable later if
-	// there is a demand.
+	// Volumes owned by a volume driver are not chowned - we don't want to
+	// mess with a mount not managed by us.
 	if vol.state.NeedsChown && !vol.UsesVolumeDriver() {
 		vol.state.NeedsChown = false
 

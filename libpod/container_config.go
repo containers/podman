@@ -372,7 +372,6 @@ type ContainerMiscConfig struct {
 	// restart the container. Used only if RestartPolicy is set to
 	// "on-failure".
 	RestartRetries uint `json:"restart_retries,omitempty"`
-	// TODO log options for log drivers
 	// PostConfigureNetNS needed when a user namespace is created by an OCI runtime
 	// if the network namespace is created before the user namespace it will be
 	// owned by the wrong user namespace.

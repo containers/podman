@@ -202,9 +202,8 @@ func (c *Container) Kill(signal uint) error {
 		}
 	}
 
-	// TODO: Is killing a paused container OK?
 	switch c.state.State {
-	case define.ContainerStateRunning, define.ContainerStateStopping:
+	case define.ContainerStateRunning, define.ContainerStateStopping, define.ContainerStatePaused:
 		// Note that killing containers in "stopping" state is okay.
 		// In that state, the Podman is waiting for the runtime to
 		// stop the container and if that is taking too long, a user
