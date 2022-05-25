@@ -80,6 +80,10 @@ func (ic *ContainerEngine) PodUnpause(ctx context.Context, namesOrIds []string, 
 	}
 	reports := make([]*entities.PodUnpauseReport, 0, len(foundPods))
 	for _, p := range foundPods {
+		// If the pod is not paused or degraded, there is no need to attempt an unpause on it
+		if p.Status != define.PodStatePaused && p.Status != define.PodStateDegraded {
+			continue
+		}
 		response, err := pods.Unpause(ic.ClientCtx, p.Id, nil)
 		if err != nil {
 			report := entities.PodUnpauseReport{

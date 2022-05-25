@@ -158,6 +158,14 @@ func (ic *ContainerEngine) PodUnpause(ctx context.Context, namesOrIds []string, 
 		return nil, err
 	}
 	for _, p := range pods {
+		status, err := p.GetPodStatus()
+		if err != nil {
+			return nil, err
+		}
+		// If the pod is not paused or degraded, there is no need to attempt an unpause on it
+		if status != define.PodStatePaused && status != define.PodStateDegraded {
+			continue
+		}
 		report := entities.PodUnpauseReport{Id: p.ID()}
 		errs, err := p.Unpause(ctx)
 		if err != nil && errors.Cause(err) != define.ErrPodPartialFail {
