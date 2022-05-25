@@ -320,36 +320,6 @@ alt_build_task:
     always: *binary_artifacts
 
 
-# Confirm building a statically-linked binary is successful
-static_alt_build_task:
-    name: "Static Build"
-    alias: static_alt_build
-    only_if: *not_docs
-    depends_on:
-        - build
-    # Community-maintained task, may fail on occasion.  If so, uncomment
-    # the next line and file an issue with details about the failure.
-    # allow_failures: $CI == $CI
-    gce_instance: *bigvm
-    env:
-        <<: *stdenvars
-        TEST_FLAVOR: "altbuild"
-        # gce_instance variation prevents this being included in alt_build_task
-        ALT_NAME: 'Static build'
-        # Do not use 'latest', fixed-version tag for runtime stability.
-        CTR_FQIN: "docker.io/nixos/nix:2.3.6"
-        # Authentication token for pushing the build cache to cachix.
-        # This is critical, it helps to avoid a very lengthy process of
-        # statically building every dependency needed to build podman.
-        # Assuming the pinned nix dependencies in nix/nixpkgs.json have not
-        # changed, this cache will ensure that only the static podman binary is
-        # built.
-        CACHIX_AUTH_TOKEN: ENCRYPTED[df0d4d0a67474e8ea49cc503221dcb912b7e2ba45c8ec4bf2e5fd9c49a18ac21c24bacee59b5393355ed9e4358d2baef]
-    setup_script: *setup
-    main_script: *main
-    always: *binary_artifacts
-
-
 # Confirm building the remote client, natively on a Mac OS-X VM.
 osx_alt_build_task:
     name: "OSX Cross"
@@ -681,7 +651,6 @@ success_task:
         - swagger
         - consistency
         - alt_build
-        - static_alt_build
         - osx_alt_build
         - docker-py_test
         - unit_test
