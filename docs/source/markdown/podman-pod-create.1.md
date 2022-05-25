@@ -4,14 +4,15 @@
 podman\-pod\-create - Create a new pod
 
 ## SYNOPSIS
-**podman pod create** [*options*]
+**podman pod create** [*options*] [*name*]
 
 ## DESCRIPTION
 
 Creates an empty pod, or unit of multiple containers, and prepares it to have
-containers added to it. The pod id is printed to STDOUT. You can then use
-**podman create --pod `<pod_id|pod_name>` ...** to add containers to the pod, and
-**podman pod start `<pod_id|pod_name>`** to start the pod.
+containers added to it. The pod can be created with a specific name. If a name
+is not given a random name is generated. The pod id is printed to STDOUT. You
+can then use **podman create --pod `<pod_id|pod_name>` ...** to add containers
+to the pod, and **podman pod start `<pod_id|pod_name>`** to start the pod.
 
 ## OPTIONS
 
@@ -549,9 +550,11 @@ that data on the target.
 ```
 $ podman pod create --name test
 
+$ podman pod create mypod
+
 $ podman pod create --infra=false
 
-$ podman pod create --infra-command /top
+$ podman pod create --infra-command /top toppod
 
 $ podman pod create --publish 8443:443
 

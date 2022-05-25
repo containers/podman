@@ -387,20 +387,20 @@ EOF
     is "$output" "false" "Default network sharing should be false"
     run_podman pod rm test
 
-    run_podman pod create --name test --share ipc  --network private
+    run_podman pod create --share ipc  --network private test
     run_podman pod inspect test --format {{.InfraConfig.HostNetwork}}
     is "$output" "false" "Private network sharing with only ipc should be false"
     run_podman pod rm test
 
-    run_podman pod create --name test --share net  --network private
-    run_podman pod inspect test --format {{.InfraConfig.HostNetwork}}
+    local name="$(random_string 10 | tr A-Z a-z)"
+    run_podman pod create --name $name --share net  --network private
+    run_podman pod inspect $name --format {{.InfraConfig.HostNetwork}}
     is "$output" "false" "Private network sharing with only net should be false"
-    run_podman pod rm test
 
-    run_podman pod create --name test --share net --network host
-    run_podman pod inspect test --format {{.InfraConfig.HostNetwork}}
+    run_podman pod create --share net --network host --replace $name
+    run_podman pod inspect $name --format {{.InfraConfig.HostNetwork}}
     is "$output" "true" "Host network sharing with only net should be true"
-    run_podman pod rm test
+    run_podman pod rm $name
 
     run_podman pod create --name test --share ipc --network host
     run_podman pod inspect test --format {{.InfraConfig.HostNetwork}}
