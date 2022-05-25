@@ -49,7 +49,6 @@ func init() {
 	flags.BoolVar(&psInput.CtrNames, "ctr-names", false, "Display the container names")
 	flags.BoolVar(&psInput.CtrIds, "ctr-ids", false, "Display the container UUIDs. If no-trunc is not set they will be truncated")
 	flags.BoolVar(&psInput.CtrStatus, "ctr-status", false, "Display the container status")
-	// TODO should we make this a [] ?
 
 	filterFlagName := "filter"
 	flags.StringSliceVarP(&inputFilters, filterFlagName, "f", []string{}, "Filter output based on conditions given")
