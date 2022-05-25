@@ -14,6 +14,15 @@ is not given a random name is generated. The pod id is printed to STDOUT. You
 can then use **podman create --pod `<pod_id|pod_name>` ...** to add containers
 to the pod, and **podman pod start `<pod_id|pod_name>`** to start the pod.
 
+The operator can identify a pod in three ways:
+UUID long identifier (“f78375b1c487e03c9438c729345e54db9d20cfa2ac1fc3494b6eb60872e74778”)
+UUID short identifier (“f78375b1c487”)
+Name (“jonah”)
+
+podman generates a UUID for each pod, and if a name is not assigned
+to the container with **--name** then a random string name will be generated
+for it. The name is useful any place you need to identify a pod.
+
 ## OPTIONS
 
 #### **--add-host**=_host_:_ip_
@@ -267,16 +276,7 @@ Note: Labeling can be disabled for all containers by setting label=false in the 
 
 #### **--share**=*namespace*
 
-A comma-separated list of kernel namespaces to share. If none or "" is specified, no namespaces will be shared. The namespaces to choose from are cgroup, ipc, net, pid, uts.
-
-The operator can identify a pod in three ways:
-UUID long identifier (“f78375b1c487e03c9438c729345e54db9d20cfa2ac1fc3494b6eb60872e74778”)
-UUID short identifier (“f78375b1c487”)
-Name (“jonah”)
-
-podman generates a UUID for each pod, and if a name is not assigned
-to the container with **--name** then a random string name will be generated
-for it. The name is useful any place you need to identify a pod.
+A comma-separated list of kernel namespaces to share. If none or "" is specified, no namespaces will be shared. The namespaces to choose from are cgroup, ipc, net, pid, uts. If the option is prefixed with a "+" then the namespace is appended to the default list, otherwise it replaces the default list. Defaults matches Kubernetes default (ipc, net, uts)
 
 #### **--share-parent**
 

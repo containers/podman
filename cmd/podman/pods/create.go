@@ -166,7 +166,12 @@ func create(cmd *cobra.Command, args []string) error {
 		if strings.Contains(share, "cgroup") && shareParent {
 			return errors.Wrapf(define.ErrInvalidArg, "cannot define the pod as the cgroup parent at the same time as joining the infra container's cgroupNS")
 		}
-		createOptions.Share = strings.Split(share, ",")
+
+		if strings.HasPrefix(share, "+") {
+			createOptions.Share = append(createOptions.Share, strings.Split(specgen.DefaultKernelNamespaces, ",")...)
+			share = share[1:]
+		}
+		createOptions.Share = append(createOptions.Share, strings.Split(share, ",")...)
 		createOptions.ShareParent = &shareParent
 		if cmd.Flag("infra-command").Changed {
 			// Only send content to server side if user changed defaults
