@@ -381,7 +381,7 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 		session := podmanTest.Podman([]string{"run", "-dt", "-p", fmt.Sprintf("%d:%d", port1, port2), ALPINE, "/bin/sh"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		results := SystemExec("iptables", []string{"-t", "nat", "-L"})
+		results := SystemExec("iptables", []string{"-t", "nat", "-nvL"})
 		Expect(results).Should(Exit(0))
 		Expect(results.OutputToString()).To(ContainSubstring(fmt.Sprintf("%d", port2)))
 
