@@ -11,6 +11,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -87,8 +88,8 @@ type Runtime struct {
 	lockManager            lock.Manager
 
 	// Worker
-	workerShutdown chan bool
-	workerChannel  chan func()
+	workerChannel chan func()
+	workerGroup   sync.WaitGroup
 
 	// syslog describes whenever logrus should log to the syslog as well.
 	// Note that the syslog hook will be enabled early in cmd/podman/syslog_linux.go
@@ -823,12 +824,9 @@ func (r *Runtime) Shutdown(force bool) error {
 		return define.ErrRuntimeStopped
 	}
 
-	if r.workerShutdown != nil {
-		// Signal the worker routine to shutdown.  The routine will
-		// process all pending work items and then read from the
-		// channel; we're blocked until all work items have been
-		// processed.
-		r.workerShutdown <- true
+	if r.workerChannel != nil {
+		r.workerGroup.Wait()
+		close(r.workerChannel)
 	}
 
 	r.valid = false
