@@ -3109,7 +3109,7 @@ func (c *Container) getOCICgroupPath() (string, error) {
 	case c.config.NoCgroups:
 		return "", nil
 	case c.config.CgroupsMode == cgroupSplit:
-		selfCgroup, err := utils.GetOwnCgroup()
+		selfCgroup, err := utils.GetOwnCgroupDisallowRoot()
 		if err != nil {
 			return "", err
 		}
