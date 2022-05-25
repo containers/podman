@@ -55,8 +55,6 @@ func CopyFromArchive(ctx context.Context, nameOrID string, path string, reader i
 }
 
 // CopyFromArchiveWithOptions copy files into container
-//
-// FIXME: remove this function and make CopyFromArchive accept the option as the last parameter in podman 4.0
 func CopyFromArchiveWithOptions(ctx context.Context, nameOrID string, path string, reader io.Reader, options *CopyOptions) (entities.ContainerCopyFunc, error) {
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
