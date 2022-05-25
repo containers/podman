@@ -22,9 +22,6 @@ import (
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
-// TODO: We should add syntax for specifying plugins to containers.conf, and
-// support for loading based on that.
-
 // Copied from docker/go-plugins-helpers/volume/api.go - not exported, so we
 // need to do this to get at them.
 // These are well-established paths that should not change unless the plugin API
@@ -185,8 +182,7 @@ func (p *VolumePlugin) getURI() string {
 }
 
 // Verify the plugin is still available.
-// TODO: Do we want to ping with an HTTP request? There's no ping endpoint so
-// we'd need to hit Activate or Capabilities?
+// Does not actually ping the API, just verifies that the socket still exists.
 func (p *VolumePlugin) verifyReachable() error {
 	if _, err := os.Stat(p.SocketPath); err != nil {
 		if os.IsNotExist(err) {
@@ -307,7 +303,6 @@ func (p *VolumePlugin) ListVolumes() ([]*volume.Volume, error) {
 		return nil, err
 	}
 
-	// TODO: Can probably unify response reading under a helper
 	volumeRespBytes, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error reading response body from volume plugin %s", p.Name)

@@ -412,7 +412,6 @@ func makeRuntime(runtime *Runtime) (retErr error) {
 		return err
 	}
 	runtime.eventer = eventer
-	// TODO: events for libimage
 
 	// Set up containers/image
 	if runtime.imageContext == nil {
@@ -517,8 +516,6 @@ func makeRuntime(runtime *Runtime) (retErr error) {
 	}
 	// Acquire the lock and hold it until we return
 	// This ensures that no two processes will be in runtime.refresh at once
-	// TODO: we can't close the FD in this lock, so we should keep it around
-	// and use it to lock important operations
 	aliveLock.Lock()
 	doRefresh := false
 	defer func() {
