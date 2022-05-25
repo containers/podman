@@ -18,6 +18,8 @@ import (
 const (
 	Protocol_TCP Protocol = 0
 	Protocol_UDP Protocol = 1
+	LabelType    string   = "label"
+	ENVType      string   = "env"
 )
 
 type Protocol int32
@@ -89,9 +91,7 @@ func GetAllLabels(labelFile, inputLabels []string) (map[string]string, error) {
 		// There's an argument that we SHOULD be doing that parsing for
 		// all environment variables, even those sourced from files, but
 		// that would require a substantial rework.
-		if err := parseEnvFile(labels, file); err != nil {
-			// FIXME: parseEnvFile is using parseEnv, so we need to add extra
-			// logic for labels.
+		if err := parseEnvOrLabelFile(labels, file, LabelType); err != nil {
 			return nil, err
 		}
 	}
@@ -109,7 +109,7 @@ func GetAllLabels(labelFile, inputLabels []string) (map[string]string, error) {
 	return labels, nil
 }
 
-func parseEnv(env map[string]string, line string) error {
+func parseEnvOrLabel(env map[string]string, line, configType string) error {
 	data := strings.SplitN(line, "=", 2)
 
 	// catch invalid variables such as "=" or "=A"
@@ -137,7 +137,7 @@ func parseEnv(env map[string]string, line string) error {
 					env[part[0]] = part[1]
 				}
 			}
-		} else {
+		} else if configType == ENVType {
 			// if only a pass-through variable is given, clean it up.
 			if val, ok := os.LookupEnv(name); ok {
 				env[name] = val
@@ -147,8 +147,9 @@ func parseEnv(env map[string]string, line string) error {
 	return nil
 }
 
-// parseEnvFile reads a file with environment variables enumerated by lines
-func parseEnvFile(env map[string]string, filename string) error {
+// parseEnvOrLabelFile reads a file with environment variables enumerated by lines
+// configType should be set to either "label" or "env" based on what type is being parsed
+func parseEnvOrLabelFile(envOrLabel map[string]string, filename, configType string) error {
 	fh, err := os.Open(filename)
 	if err != nil {
 		return err
@@ -161,7 +162,7 @@ func parseEnvFile(env map[string]string, filename string) error {
 		line := strings.TrimLeft(scanner.Text(), whiteSpaces)
 		// line is not empty, and not starting with '#'
 		if len(line) > 0 && !strings.HasPrefix(line, "#") {
-			if err := parseEnv(env, line); err != nil {
+			if err := parseEnvOrLabel(envOrLabel, line, configType); err != nil {
 				return err
 			}
 		}
