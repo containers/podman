@@ -13,7 +13,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func Diff(cmd *cobra.Command, args []string, options entities.DiffOptions) error {
+func Diff(_ *cobra.Command, args []string, options entities.DiffOptions) error {
 	results, err := registry.ContainerEngine().Diff(registry.GetContext(), args, options)
 	if err != nil {
 		return err
@@ -63,7 +63,7 @@ func changesToTable(diffs *entities.DiffReport) error {
 	return nil
 }
 
-// IDOrLatestArgs used to validate a nameOrId was provided or the "--latest" flag
+// ValidateContainerDiffArgs used to validate a nameOrId was provided or the "--latest" flag
 func ValidateContainerDiffArgs(cmd *cobra.Command, args []string) error {
 	given, _ := cmd.Flags().GetBool("latest")
 	if len(args) > 0 && !given {

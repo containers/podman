@@ -78,10 +78,9 @@ type InspectOptions struct {
 
 // DiffOptions all API and CLI diff commands and diff sub-commands use the same options
 type DiffOptions struct {
-	Format  string          `json:",omitempty"` // CLI only
-	Latest  bool            `json:",omitempty"` // API and CLI, only supported by containers
-	Archive bool            `json:",omitempty"` // CLI only
-	Type    define.DiffType // Type which should be compared
+	Format string          `json:",omitempty"` // CLI only
+	Latest bool            `json:",omitempty"` // API and CLI, only supported by containers
+	Type   define.DiffType // Type which should be compared
 }
 
 // DiffReport provides changes for object
