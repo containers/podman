@@ -32,12 +32,8 @@ func init() {
 		Parent:  containerCmd,
 	})
 
-	diffOpts = &entities.DiffOptions{}
+	diffOpts = new(entities.DiffOptions)
 	flags := diffCmd.Flags()
-
-	// FIXME: Why does this exists? It is not used anywhere.
-	flags.BoolVar(&diffOpts.Archive, "archive", true, "Save the diff as a tar archive")
-	_ = flags.MarkHidden("archive")
 
 	formatFlagName := "format"
 	flags.StringVar(&diffOpts.Format, formatFlagName, "", "Change the output format (json)")

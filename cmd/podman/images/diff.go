@@ -34,9 +34,7 @@ func init() {
 }
 
 func diffFlags(flags *pflag.FlagSet) {
-	diffOpts = &entities.DiffOptions{}
-	flags.BoolVar(&diffOpts.Archive, "archive", true, "Save the diff as a tar archive")
-	_ = flags.MarkDeprecated("archive", "Provided for backwards compatibility, has no impact on output.")
+	diffOpts = new(entities.DiffOptions)
 
 	formatFlagName := "format"
 	flags.StringVar(&diffOpts.Format, formatFlagName, "", "Change the output format (json)")
