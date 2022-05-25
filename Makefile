@@ -240,6 +240,14 @@ test/goecho/goecho: $(wildcard test/goecho/*.go)
 test/version/version: version/version.go
 	$(GO) build -o $@ ./test/version/
 
+.PHONY: bin/release-notes
+bin/release-notes:
+	$(GO) build -o $@ ./vendor/k8s.io/release/cmd/release-notes
+
+.PHONY: release-notes
+release-notes: bin/release-notes
+	contrib/script/make-release-notes
+
 .PHONY: codespell
 codespell:
 	codespell -S bin,vendor,.git,go.sum,.cirrus.yml,"RELEASE_NOTES.md,*.xz,*.gz,*.ps1,*.tar,swagger.yaml,*.tgz,bin2img,*ico,*.png,*.1,*.5,copyimg,*.orig,apidoc.go" -L uint,iff,od,seeked,splitted,marge,ERRO,hist,ether -w

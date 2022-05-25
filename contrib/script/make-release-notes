@@ -1,0 +1,77 @@
+#!/bin/sh
+#
+# Generate release notes
+#
+ME=$(basename $0)
+
+set -ex
+
+# Run on current branch; .cirrus.yml will always have that hardcoded.
+if [[ -z "$DEST_BRANCH" ]]; then
+    DEST_BRANCH=$(sed -ne 's/^ *DEST_BRANCH: *"\(.*\)"/\1/p' <.cirrus.yml)
+fi
+# If still unset, there's nothing we can do
+if [[ -z "$DEST_BRANCH" ]]; then
+    echo "$ME: Could not determine \$DEST_BRANCH" >&2
+    exit 1
+fi
+
+# Pull and make sure repo is up-to-date
+# FIXME: do this from cron, but not in developer environment
+#git fetch upstream
+#git checkout $WANT
+#git pull
+
+# Most recent tagged release
+start_tag=$(git describe --tags --abbrev=0)
+# Most recent commit on active branch
+end_sha=$(git rev-parse $DEST_BRANCH)
+
+# Custom template file
+tmpdir=$(mktemp --directory --tmpdir $ME.tmp.XXXXXXX)
+template=$tmpdir/template.txt
+cat >| $template <<EOF
+# Podman $DEST_BRANCH
+
+The release notes have been generated for the commit range
+[${start_tag}...${end_sha}](https://github.com/containers/podman/compare/${start_tag}...${end_sha}) on $(date).
+
+# Changelog since $start_tag
+
+{{with .NotesWithActionRequired -}}
+## Urgent Upgrade Notes
+
+{{range .}} {{println "-" .}} {{end}}
+{{end}}
+
+{{- if .Notes -}}
+## Changes by Kind
+{{ range .Notes}}
+### {{.Kind | prettyKind}}
+{{range \$note := .NoteEntries }}{{println " -" \$note}}{{end}}
+{{- end -}}
+{{- end -}}
+EOF
+
+
+# Run the release-notes tool
+outfile=release-notes-$DEST_BRANCH.md
+
+$(pwd)/bin/release-notes --org=containers   \
+      --repo=podman                         \
+      --branch=$DEST_BRANCH                 \
+      --repo-path=$tmpdir/repo              \
+      --required-author=                    \
+      --start-rev=$start_tag                \
+      --end-sha=$end_sha                    \
+      --output=$outfile                     \
+      --toc                                 \
+      --markdown-links                      \
+      --go-template=go-template:$template
+
+rm -rf $tmpdir
+
+# FIXME FIXME FIXME: check out a side branch, and commit on it?
+#git checkout podman-release-notes
+#git add $outfile
+#git commit -m"Update release notes for $DEST_BRANCH" $outfile
