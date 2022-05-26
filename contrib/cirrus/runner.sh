@@ -303,10 +303,6 @@ function _run_altbuild() {
 }
 
 function _run_release() {
-    # TODO: These tests should come from code external to the podman repo.
-    # to allow test-changes (and re-runs) in the case of a correctable test
-    # flaw or flake at release tag-push time.  For now, the test is here
-    # given its simplicity.
     msg "podman info:"
     bin/podman info
 
