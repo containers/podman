@@ -25,7 +25,7 @@ var (
 		Long:  killDescription,
 		RunE:  kill,
 		Args: func(cmd *cobra.Command, args []string) error {
-			return validate.CheckAllLatestAndCIDFile(cmd, args, false, true)
+			return validate.CheckAllLatestAndIDFile(cmd, args, false, "cidfile")
 		},
 		ValidArgsFunction: common.AutocompleteContainersRunning,
 		Example: `podman kill mywebserver
@@ -35,7 +35,7 @@ var (
 
 	containerKillCommand = &cobra.Command{
 		Args: func(cmd *cobra.Command, args []string) error {
-			return validate.CheckAllLatestAndCIDFile(cmd, args, false, true)
+			return validate.CheckAllLatestAndIDFile(cmd, args, false, "cidfile")
 		},
 		Use:               killCommand.Use,
 		Short:             killCommand.Short,

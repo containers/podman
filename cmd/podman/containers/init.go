@@ -21,7 +21,7 @@ var (
 		Long:  initDescription,
 		RunE:  initContainer,
 		Args: func(cmd *cobra.Command, args []string) error {
-			return validate.CheckAllLatestAndCIDFile(cmd, args, false, false)
+			return validate.CheckAllLatestAndIDFile(cmd, args, false, "")
 		},
 		ValidArgsFunction: common.AutocompleteContainersCreated,
 		Example: `podman init --latest

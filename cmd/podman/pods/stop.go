@@ -36,7 +36,7 @@ var (
 		Long:  podStopDescription,
 		RunE:  stop,
 		Args: func(cmd *cobra.Command, args []string) error {
-			return validate.CheckAllLatestAndPodIDFile(cmd, args, false, true)
+			return validate.CheckAllLatestAndIDFile(cmd, args, false, "pod-id-file")
 		},
 		ValidArgsFunction: common.AutocompletePodsRunning,
 		Example: `podman pod stop mywebserverpod

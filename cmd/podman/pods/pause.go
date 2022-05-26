@@ -22,7 +22,7 @@ var (
 		Long:  podPauseDescription,
 		RunE:  pause,
 		Args: func(cmd *cobra.Command, args []string) error {
-			return validate.CheckAllLatestAndCIDFile(cmd, args, false, false)
+			return validate.CheckAllLatestAndIDFile(cmd, args, false, "")
 		},
 		ValidArgsFunction: common.AutocompletePodsRunning,
 		Example: `podman pod pause podID1 podID2
