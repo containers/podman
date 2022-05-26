@@ -47,8 +47,7 @@ type ContainerRunlabelOptions struct {
 }
 
 // ContainerRunlabelReport contains the results from executing container-runlabel.
-type ContainerRunlabelReport struct {
-}
+type ContainerRunlabelReport struct{}
 
 type WaitOptions struct {
 	Condition []define.ContainerStatus
@@ -165,6 +164,9 @@ type CopyOptions struct {
 	Chown bool
 	// Map to translate path names.
 	Rename map[string]string
+	// NoOverwriteDirNonDir when true prevents an existing directory or file from being overwritten
+	// by the other type
+	NoOverwriteDirNonDir bool
 }
 
 type CommitReport struct {

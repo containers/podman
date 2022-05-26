@@ -12,10 +12,10 @@ func (ic *ContainerEngine) ContainerCopyFromArchive(ctx context.Context, nameOrI
 	if err != nil {
 		return nil, err
 	}
-	return container.CopyFromArchive(ctx, containerPath, options.Chown, options.Rename, reader)
+	return container.CopyFromArchive(ctx, containerPath, options.Chown, options.NoOverwriteDirNonDir, options.Rename, reader)
 }
 
-func (ic *ContainerEngine) ContainerCopyToArchive(ctx context.Context, nameOrID string, containerPath string, writer io.Writer) (entities.ContainerCopyFunc, error) {
+func (ic *ContainerEngine) ContainerCopyToArchive(ctx context.Context, nameOrID, containerPath string, writer io.Writer) (entities.ContainerCopyFunc, error) {
 	container, err := ic.Libpod.LookupContainer(nameOrID)
 	if err != nil {
 		return nil, err
