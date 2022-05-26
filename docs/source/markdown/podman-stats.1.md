@@ -30,17 +30,33 @@ Pretty-print container statistics to JSON or using a Go template
 
 Valid placeholders for the Go template are listed below:
 
-| **Placeholder** | **Description**    |
-| --------------- | ------------------ |
-| .ID             | Container ID       |
-| .Name           | Container Name     |
-| .CPUPerc        | CPU percentage     |
-| .MemUsage       | Memory usage       |
-| .MemUsageBytes  | Memory usage (IEC) |
-| .MemPerc        | Memory percentage  |
-| .NetIO          | Network IO         |
-| .BlockIO        | Block IO           |
-| .PIDS           | Number of PIDs     |
+| **Placeholder**     | **Description**                                          |
+| ---------------     | ------------------                                       |
+| .ID                 | Container ID (truncated)                                 |
+| .ContainerID        | Container ID (full hash)                                 |
+| .Name               | Container Name                                           |
+| .CPUPerc            | CPU percentage                                           |
+| .MemUsage           | Memory usage                                             |
+| .MemUsageBytes      | Memory usage (IEC)                                       |
+| .AvgCPU             | Average CPU (full precision float)                       |
+| .AVGCPU             | Average CPU (formatted)                                  |
+| .CPU                | Percent CPU (full precision float)                       |
+| .CPUNano            | CPU Usage, total, in nanoseconds                         |
+| .CPUSystemNano      | CPU Usage, kernel, in nanoseconds                        |
+| .Duration           | Same as CPUNano (FIXME: why?)                            |
+| .MemLimit           | Memory limit, in bytes                                   |
+| .MemPerc            | Memory percentage                                        |
+| .NetIO              | Network IO                                               |
+| .BlockIO            | Block IO                                                 |
+| .PIDS               | Number of PIDs                                           |
+| .NetInput           | Network Input                                            |
+| .NetOutput          | Network Output                                           |
+| .BlockInput         | Block Input                                              |
+| .BlockOutput        | Block Output                                             |
+| .PIDs               | Number of PIDs                                           |
+| .SystemNano         | Current system datetime, nanoseconds since epoch         |
+| .UpTime             | WTF? This is Duration (CPUNano) in human-readable form?? |
+| .Up                 | Same as UpTime (FIXME: why?)                             |
 
 When using a GO template, you may precede the format with `table` to print headers.
 
