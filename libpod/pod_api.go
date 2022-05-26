@@ -152,8 +152,8 @@ func (p *Pod) stopWithTimeout(ctx context.Context, cleanup bool, timeout int) (m
 		return nil, err
 	}
 
-	// TODO: There may be cases where it makes sense to order stops based on
-	// dependencies. Should we bother with this?
+	// Stopping pods is not ordered by dependency. We haven't seen any case
+	// where this would actually matter.
 
 	ctrErrChan := make(map[string]<-chan error)
 
@@ -162,8 +162,9 @@ func (p *Pod) stopWithTimeout(ctx context.Context, cleanup bool, timeout int) (m
 		c := ctr
 		logrus.Debugf("Adding parallel job to stop container %s", c.ID())
 		retChan := parallel.Enqueue(ctx, func() error {
-			// TODO: Might be better to batch stop and cleanup
-			// together?
+			// Can't batch these without forcing Stop() to hold the
+			// lock for the full duration of the timeout.
+			// We probably don't want to do that.
 			if timeout > -1 {
 				if err := c.StopWithTimeout(uint(timeout)); err != nil {
 					return err
