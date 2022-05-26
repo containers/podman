@@ -19,6 +19,16 @@ Displays information pertinent to the host, current storage stats, configured co
 
 Change output format to "json" or a Go template.
 
+| **Placeholder**     | **Info pertaining to ...**              |
+| ------------------- | --------------------------------------- |
+| .Host ...           | ...the host on which podman is running  |
+| .Plugins ...        | ...external plugins                     |
+| .Registries ...     | ...configured registries                |
+| .Store ...          | ...the storage driver and paths         |
+| .Version ...        | ...podman version                       |
+
+Each of the above branch out into further subfields, more than can
+reasonably be enumerated in this document.
 
 ## EXAMPLES
 

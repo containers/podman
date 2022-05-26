@@ -23,16 +23,16 @@ Valid placeholders for the Go template are listed below:
 
 | **Placeholder** | **Description**    |
 | --------------- | ------------------ |
-| .Pod            | Pod ID             |
+| .BlockIO        | Block IO           |
 | .CID            | Container ID       |
-| .Name           | Container Name     |
 | .CPU            | CPU percentage     |
+| .Mem            | Memory percentage  |
 | .MemUsage       | Memory usage       |
 | .MemUsageBytes  | Memory usage (IEC) |
-| .Mem            | Memory percentage  |
+| .Name           | Container Name     |
 | .NetIO          | Network IO         |
-| .BlockIO        | Block IO           |
 | .PIDS           | Number of PIDs     |
+| .Pod            | Pod ID             |
 
 When using a GO template, you may precede the format with `table` to print headers.
 
