@@ -22,6 +22,10 @@ env:
     # Runner statistics log file path/name
     STATS_LOGFILE_SFX: 'runner_stats.log'
     STATS_LOGFILE: '$GOSRC/${CIRRUS_TASK_NAME}-${STATS_LOGFILE_SFX}'
+    # Many tasks re-use the repository state of the 'build' task for
+    # their platform.  Unless overwritten, use this default.
+    # N/B: Must include ${CIRRUS_BUILD_ID} or bad things may happen.
+    CACHE_KEY: build-${DISTRO_NV}-${CIRRUS_BUILD_ID}
 
     ####
     #### Cache-image names to test with (double-quotes around names are critical)
@@ -53,11 +57,6 @@ env:
     VM_IMAGE_NAME:           # One of the "Google-cloud VM Images" (above)
     CTR_FQIN:                # One of the "Container FQIN's" (above)
 
-    # Curl-command prefix for downloading task artifacts, simply add the
-    # the url-encoded task name, artifact name, and path as a suffix.
-    ARTCURL: >-
-        curl --fail --location -O
-        --url https://api.cirrus-ci.com/v1/artifact/build/${CIRRUS_BUILD_ID}
 
 
 # Default timeout for each task
@@ -139,7 +138,9 @@ automation_task:
 # are preserved as an artifact.  This saves most subsequent tasks about
 # 3 minutes of otherwise duplicative effort.  It also ensures that the
 # exact same binaries used throughout CI testing, are available for
-# future consumption|inspection by the final 'artifacts' task.
+# future consumption|inspection by the final 'artifacts' task.  Finally,
+# note that the agent-cache CAN NOT be shared between container and VM
+# based tasks.  All tasks using this build cache must run in VMs.
 build_task:
     alias: 'build'
     name: 'Build for $DISTRO_NV'
@@ -162,7 +163,6 @@ build_task:
               # Not used here, is used in other tasks
               VM_IMAGE_NAME: ${FEDORA_CACHE_IMAGE_NAME}
               CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
-              # ID for re-use of build output
         - env: &priorfedora_envvars
               DISTRO_NV: ${PRIOR_FEDORA_NAME}
               VM_IMAGE_NAME: ${PRIOR_FEDORA_CACHE_IMAGE_NAME}
@@ -176,13 +176,32 @@ build_task:
     clone_script: *full_clone
     setup_script: *setup
     main_script: *main
-    # Cirrus-CI is very slow uploading one file at time, and the repo contains
-    # thousands of files.  Speed this up by archiving into tarball first.
-    repo_prep_script: &repo_prep >-
-        tar cjf /tmp/repo.tbz -C $GOSRC . && mv /tmp/repo.tbz $GOSRC/
-    repo_artifacts: &repo_artifacts
-        path: ./repo.tbz
-        type: application/octet-stream
+    # Preserve built binaries and repository state in cirrus-agent cache.
+    # ref: https://cirrus-ci.org/guide/writing-tasks/#http-cache
+    # This saves minutes cloning and compiling binaries for dependent tasks.
+    # Race-conditions have been observed under certain conditions, when
+    # using artifacts to acomplish this.  As per Cirrus-support, the agent-cache
+    # mechanism is far less complex (internally), therefore assumed to be more
+    # reliable.
+    cache_upload_script: &cache_upload |
+        set -x
+        tar cjf /tmp/${CACHE_KEY}.tbz -C $GOSRC .
+        curl -X POST --data-binary @/tmp/${CACHE_KEY}.tbz \
+            -H "Content-Type: application/octet-stream" \
+            "http://${CIRRUS_HTTP_CACHE_HOST}/${CACHE_KEY}"
+    # Verify the cache can be retrieved and unpacked, this makes broken
+    # cache apparent earlier rather than later.  Many dependent tasks
+    # will utilize this script as a `clone_script` - meaning it must be
+    # in-line and not rely on any other environment setup.
+    test_cache_download_script: &cache_download |
+          CACHECURL="curl --verbose --location -o /tmp/${CACHE_KEY}.tbz \
+                          --retry 3 --retry-delay 10 --retry-all-errors \
+                          --url http://${CIRRUS_HTTP_CACHE_HOST}/${CACHE_KEY}"
+          if ! time $CACHECURL > /tmp/${CACHE_KEY}_cache_download.log; then
+              cat /tmp/${CACHE_KEY}_cache_download.log
+              exit 1
+          fi
+          time tar xjf /tmp/${CACHE_KEY}.tbz
     always: *runner_stats
 
 
@@ -211,12 +230,7 @@ validate_task:
     env:
         <<: *stdenvars
         TEST_FLAVOR: validate
-    # N/B: This script depends on ${DISTRO_NV} being defined for the task.
-    clone_script: &get_gosrc |
-        cd /tmp
-        echo "$ARTCURL/Build%20for%20${DISTRO_NV}/repo/repo.tbz"
-        time $ARTCURL/Build%20for%20${DISTRO_NV}/repo/repo.tbz
-        time tar xjf /tmp/repo.tbz -C $GOSRC
+    clone_script: *cache_download  # See 'build' task
     setup_script: *setup
     main_script: *main
     always: *runner_stats
@@ -239,7 +253,7 @@ bindings_task:
     env:
         <<: *stdenvars
         TEST_FLAVOR: bindings
-    clone_script: *get_gosrc
+    clone_script: *cache_download
     setup_script: *setup
     main_script: *main
     always: &logs_artifacts
@@ -276,7 +290,7 @@ swagger_task:
         GCPJSON: ENCRYPTED[927dc01e755eaddb4242b0845cf86c9098d1e3dffac38c70aefb1487fd8b4fe6dd6ae627b3bffafaba70e2c63172664e]
         GCPNAME: ENCRYPTED[c145e9c16b6fb88d476944a454bf4c1ccc84bb4ecaca73bdd28bdacef0dfa7959ebc8171a27b2e4064d66093b2cdba49]
         GCPPROJECT: 'libpod-218412'
-    clone_script: *get_gosrc
+    clone_script: *cache_download
     setup_script: *setup
     main_script: *main
     always:
@@ -297,13 +311,11 @@ consistency_task:
     only_if: *is_pr
     depends_on:
         - build
-    container: *smallcontainer
+    gce_instance: *standardvm
     env:
         <<: *stdenvars
         TEST_FLAVOR: consistency
-        TEST_ENVIRON: container
-        CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
-    clone_script: *get_gosrc
+    clone_script: *cache_download
     setup_script: *setup
     main_script: *main
     always: *runner_stats
@@ -329,21 +341,27 @@ alt_build_task:
     matrix:
       - env:
             ALT_NAME: 'Build Each Commit'
+            CACHE_KEY: 'alteach-${CIRRUS_BUILD_ID}'
       - env:
             ALT_NAME: 'Windows Cross'
+            CACHE_KEY: 'altwin-${CIRRUS_BUILD_ID}'
       - env:
             ALT_NAME: 'Build Without CGO'
+            CACHE_KEY: 'altcgo-${CIRRUS_BUILD_ID}'
       - env:
             ALT_NAME: 'Test build RPM'
+            CACHE_KEY: 'altrpm-${CIRRUS_BUILD_ID}'
       - env:
             ALT_NAME: 'Alt Arch. Cross'
-    # This task cannot make use of the shared repo.tbz artifact.
+            CACHE_KEY: 'altcross-${CIRRUS_BUILD_ID}'
+    # This task performs alternate/cross compiles, therefore it
+    # cannot make use of the repo cache from the 'build' task.
     clone_script: *full_clone
     setup_script: *setup
     main_script: *main
-    # Produce a new repo.tbz artifact for consumption by 'artifacts' task.
-    repo_prep_script: *repo_prep
-    repo_artifacts: *repo_artifacts
+    # Produce new repo cache based on a special $CACHE_KEY for consumption
+    # by 'artifacts' task.
+    cache_upload_script: *cache_upload
     always: *runner_stats
 
 
@@ -360,6 +378,7 @@ osx_alt_build_task:
         # OSX platform variation prevents this being included in alt_build_task
         TEST_FLAVOR: "altbuild"
         ALT_NAME: 'OSX Cross'
+        CACHE_KEY: 'altosx-${CIRRUS_BUILD_ID}'
     osx_instance:
         image: 'big-sur-base'
     setup_script:
@@ -370,10 +389,9 @@ osx_alt_build_task:
         - make podman-remote-release-darwin_amd64.zip GOARCH=amd64
     build_arm64_script:
         - make podman-remote-release-darwin_arm64.zip GOARCH=arm64
-    # This task cannot make use of the shared repo.tbz artifact and must
-    # produce a new repo.tbz artifact for consumption by 'artifacts' task.
-    repo_prep_script: *repo_prep
-    repo_artifacts: *repo_artifacts
+    # This task performs alternate/cross compiles, therefore it
+    # cannot make use of the repo cache from the 'build' task.
+    cache_upload_script: *cache_upload
     always: *runner_stats
 
 
@@ -395,8 +413,7 @@ docker-py_test_task:
     env:
         <<: *stdenvars
         TEST_FLAVOR: docker-py
-        TEST_ENVIRON: container
-    clone_script: *get_gosrc
+    clone_script: *cache_download
     setup_script: *setup
     main_script: *main
     always: *runner_stats
@@ -424,7 +441,7 @@ unit_test_task:
     gce_instance: *standardvm
     env:
         TEST_FLAVOR: unit
-    clone_script: *get_gosrc
+    clone_script: *cache_download
     setup_script: *setup
     main_script: *main
     always: *logs_artifacts
@@ -445,7 +462,7 @@ apiv2_test_task:
     env:
         <<: *stdenvars
         TEST_FLAVOR: apiv2
-    clone_script: *get_gosrc
+    clone_script: *cache_download
     setup_script: *setup
     main_script: *main
     always: *logs_artifacts
@@ -475,7 +492,7 @@ compose_test_task:
             PRIV_NAME: rootless
     env:
         <<: *stdenvars
-    clone_script: *get_gosrc
+    clone_script: *cache_download
     setup_script: *setup
     main_script: *main
     always: *logs_artifacts
@@ -498,7 +515,7 @@ local_integration_test_task: &local_integration_test_task
     timeout_in: 90m
     env:
         TEST_FLAVOR: int
-    clone_script: *get_gosrc
+    clone_script: *cache_download
     setup_script: *setup
     main_script: *main
     always: &int_logs_artifacts
@@ -545,7 +562,7 @@ container_integration_test_task:
     env:
         TEST_FLAVOR: int
         TEST_ENVIRON: container
-    clone_script: *get_gosrc
+    clone_script: *cache_download
     setup_script: *setup
     main_script: *main
     always: *int_logs_artifacts
@@ -566,7 +583,7 @@ rootless_integration_test_task:
     env:
         TEST_FLAVOR: int
         PRIV_NAME: rootless
-    clone_script: *get_gosrc
+    clone_script: *cache_download
     setup_script: *setup
     main_script: *main
     always: *int_logs_artifacts
@@ -593,7 +610,7 @@ local_system_test_task: &local_system_test_task
     gce_instance: *standardvm
     env:
         TEST_FLAVOR: sys
-    clone_script: *get_gosrc
+    clone_script: *cache_download
     setup_script: *setup
     main_script: *main
     always: *logs_artifacts
@@ -644,7 +661,7 @@ rootless_system_test_task:
     env:
         TEST_FLAVOR: sys
         PRIV_NAME: rootless
-    clone_script: *get_gosrc
+    clone_script: *cache_download
     setup_script: *setup
     main_script: *main
     always: *logs_artifacts
@@ -673,7 +690,7 @@ buildah_bud_test_task:
             PODBIN_NAME: remote
     gce_instance: *standardvm
     timeout_in: 45m
-    clone_script: *get_gosrc
+    clone_script: *cache_download
     setup_script: *setup
     main_script: *main
     always: *int_logs_artifacts
@@ -696,7 +713,7 @@ rootless_gitlab_test_task:
         <<: *ubuntu_envvars
         TEST_FLAVOR: 'gitlab'
         PRIV_NAME: rootless
-    clone_script: *get_gosrc
+    clone_script: *cache_download
     setup_script: *setup
     main_script: *main
     always:
@@ -729,7 +746,7 @@ upgrade_test_task:
         VM_IMAGE_NAME: ${FEDORA_CACHE_IMAGE_NAME}
         # ID for re-use of build output
         _BUILD_CACHE_HANDLE: ${FEDORA_NAME}-build-${CIRRUS_BUILD_ID}
-    clone_script: *get_gosrc
+    clone_script: *cache_download
     setup_script: *setup
     main_script: *main
     always: *logs_artifacts
@@ -859,44 +876,46 @@ artifacts_task:
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: *not_docs_multiarch
     depends_on:
+        - build
+        - alt_build
+        - osx_alt_build
         - success
     # This task is a secondary/convenience for downstream consumers, don't
     # block development progress if there is a failure in a PR, only break
-    # when running on branches or tags.
+    # if running on branches or tags.
     allow_failures: $CIRRUS_PR != ''
-    container: *smallcontainer
-    env:
-        CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
-        TEST_ENVIRON: container
-    # In order to keep the download URL and Cirrus-CI artifact.zip contents
-    # simple, nothing should exist in $CIRRUS_WORKING_DIR except for artifacts.
+    gce_instance: *standardvm
+    env: *stdenvars
+    # In order to keep the download URL and (Cirrus-CI created) artifact.zip
+    # contents simple, nothing else may exist in $CIRRUS_WORKING_DIR except
+    # for desired artifact files.
     clone_script: *noop
     fedora_binaries_script:
-        - mkdir -p /tmp/fed
-        - cd /tmp/fed
-        - $ARTCURL/Build%20for%20${FEDORA_NAME}/repo/repo.tbz
-        - tar xjf repo.tbz
+        # Use default CACHE_KEY
+        - &mkcdtmpcachekey >-
+          mkdir -p /tmp/$CACHE_KEY;
+          cd /tmp/$CACHE_KEY
+        - *cache_download
         - cp ./bin/* $CIRRUS_WORKING_DIR/
     alt_binaries_script:
-        - mkdir -p /tmp/alt
-        - cd /tmp/alt
-        - $ARTCURL/Alt%20Arch.%20Cross/repo/repo.tbz
-        - tar xjf repo.tbz
+        - CACHE_KEY="altcross-${CIRRUS_BUILD_ID}"
+        - *mkcdtmpcachekey
+        - *cache_download
         - mv ./*.tar.gz $CIRRUS_WORKING_DIR/
     win_binaries_script:
-        - mkdir -p /tmp/win
-        - cd /tmp/win
-        - $ARTCURL/Windows%20Cross/repo/repo.tbz
-        - tar xjf repo.tbz
+        - CACHE_KEY="altwin-${CIRRUS_BUILD_ID}"
+        - *mkcdtmpcachekey
+        - *cache_download
         - mv ./podman-remote*.zip ./*.msi $CIRRUS_WORKING_DIR/
     osx_binaries_script:
-        - mkdir -p /tmp/osx
-        - cd /tmp/osx
-        - $ARTCURL/OSX%20Cross/repo/repo.tbz
-        - tar xjf repo.tbz
+        - CACHE_KEY="altosx-${CIRRUS_BUILD_ID}"
+        - *mkcdtmpcachekey
+        - *cache_download
         - mv ./podman-remote-release-darwin_*.zip $CIRRUS_WORKING_DIR/
     always:
-      contents_script: ls -la $CIRRUS_WORKING_DIR
+      contents_script:
+          - echo "https://cirrus-ci.com/build/${CIRRUS_BUILD_ID}" > artifact_source.txt
+          - ls -la
       # Produce downloadable files and an automatic zip-file accessible
       # by a consistent URL, based on contents of $CIRRUS_WORKING_DIR
       # Ref: https://cirrus-ci.org/guide/writing-tasks/#latest-build-artifacts
@@ -920,7 +939,7 @@ release_task:
     env:
         <<: *stdenvars
         TEST_FLAVOR: release
-    clone_script: *get_gosrc
+    clone_script: *cache_download
     setup_script: *setup
     main_script: *main
 
@@ -947,6 +966,6 @@ release_test_task:
     env:
         <<: *stdenvars
         TEST_FLAVOR: release
-    clone_script: *get_gosrc
+    clone_script: *cache_download
     setup_script: *setup
     main_script: *main
