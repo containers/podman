@@ -14,7 +14,7 @@ type Info struct {
 	Version    Version                `json:"version"`
 }
 
-// HostInfo describes the libpod host
+// SecurityInfo describes the libpod host
 type SecurityInfo struct {
 	AppArmorEnabled     bool   `json:"apparmorEnabled"`
 	DefaultCapabilities string `json:"capabilities"`
@@ -64,8 +64,7 @@ type RemoteSocket struct {
 	Exists bool   `json:"exists,omitempty"`
 }
 
-// SlirpInfo describes the slirp executable that
-// is being being used.
+// SlirpInfo describes the slirp executable that is being used
 type SlirpInfo struct {
 	Executable string `json:"executable"`
 	Package    string `json:"package"`
@@ -78,8 +77,7 @@ type IDMappings struct {
 	UIDMap []idtools.IDMap `json:"uidmap"`
 }
 
-// DistributionInfo describes the host distribution
-// for libpod
+// DistributionInfo describes the host distribution for libpod
 type DistributionInfo struct {
 	Distribution string `json:"distribution"`
 	Variant      string `json:"variant,omitempty"`
@@ -141,8 +139,8 @@ type Plugins struct {
 	Volume  []string `json:"volume"`
 	Network []string `json:"network"`
 	Log     []string `json:"log"`
-	// FIXME what should we do with Authorization, docker seems to return nothing by default
-	// Authorization []string `json:"authorization"`
+	// Authorization is provided for compatibility, will always be nil as Podman has no daemon
+	Authorization []string `json:"authorization"`
 }
 
 type CPUUsage struct {
