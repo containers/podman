@@ -150,7 +150,7 @@ Regardless of the type of PR, all PRs should include:
 * additional testcases. Ideally, they should fail w/o your code change applied.
   (With a few exceptions, CI hooks will block your PR unless your change
   includes files named `*_test.go` or under the `test/` subdirectory. To
-  bypass this block, include the string `[NO TESTS NEEDED]` in your
+  bypass this block, include the string `[NO NEW TESTS NEEDED]` in your
   commit message).
 * documentation changes.
 
