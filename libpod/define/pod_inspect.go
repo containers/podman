@@ -82,6 +82,7 @@ type InspectPodInfraConfig struct {
 	HostNetwork bool
 	// StaticIP is a static IPv4 that will be assigned to the infra
 	// container and then used by the pod.
+	// swagger:strfmt ipv4
 	StaticIP net.IP
 	// StaticMAC is a static MAC address that will be assigned to the infra
 	// container and then used by the pod.
