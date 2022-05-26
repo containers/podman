@@ -25,6 +25,23 @@ cat ${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/required_host_ports.txt | \
         fi
     done
 
-# TODO: Pull images required during testing into /dev/null
+# Verify we can pull metadata from a few key testing images on quay.io
+# in the 'libpod' namespace.  This is mostly aimed at validating the
+# quay.io service is up and responsive.  Images were hand-picked with
+# egrep -ro 'quay.io/libpod/.+:latest' test | sort -u
+TEST_IMGS=(\
+    alpine:latest
+    busybox:latest
+    alpine_labels:latest
+    alpine_nginx:latest
+    alpine_healthcheck:latest
+    badhealthcheck:latest
+    cirros:latest
+)
 
-# TODO: Refresh DNF package-cache into /dev/null
+echo "Checking quay.io test image accessibility"
+for testimg in "${TEST_IMGS[@]}"; do
+    fqin="quay.io/libpod/$testimg"
+    echo "    $fqin"
+    skopeo inspect --retry-times 5 "docker://$fqin" | jq . > /dev/null
+done

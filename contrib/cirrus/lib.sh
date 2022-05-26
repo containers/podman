@@ -225,11 +225,6 @@ use_netavark() {
     export NETWORK_BACKEND=netavark  # needed for install_test_configs()
     msg "Removing any/all CNI configuration"
     rm -rvf /etc/cni/net.d/*
-
-    # TODO: Remove this when netavark/aardvark-dns development slows down
-    warn "Updating netavark/aardvark-dns to avoid frequent VM image rebuilds"
-    # N/B: This is coming from updates-testing repo in F36
-    lilto dnf update -y netavark aardvark-dns
 }
 
 # Remove all files provided by the distro version of podman.
