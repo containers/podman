@@ -54,6 +54,7 @@ func TestValidateExtraHost(t *testing.T) {
 		{name: "bad-ipv6", args: args{val: "foobar:0db8:85a3:0000:0000:8a2e:0370:7334.0000.0000.000"}, want: "", wantErr: true},
 		{name: "noname-ipv6", args: args{val: "2001:0db8:85a3:0000:0000:8a2e:0370:7334"}, want: "", wantErr: true},
 		{name: "noname-ipv6", args: args{val: ":2001:0db8:85a3:0000:0000:8a2e:0370:7334"}, want: "", wantErr: true},
+		{name: "host-gateway", args: args{val: "foobar:host-gateway"}, want: "foobar:host-gateway", wantErr: false}
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

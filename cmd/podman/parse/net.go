@@ -54,6 +54,9 @@ func ValidateExtraHost(val string) (string, error) { // nolint
 	if len(arr) != 2 || len(arr[0]) == 0 {
 		return "", fmt.Errorf("bad format for add-host: %q", val)
 	}
+	if (arr[1] == "host-gateway") {
+		return val, nil
+	}
 	if _, err := validateIPAddress(arr[1]); err != nil {
 		return "", fmt.Errorf("invalid IP address in add-host: %q", arr[1])
 	}

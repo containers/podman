@@ -2562,6 +2562,17 @@ func (c *Container) getHostsEntries() (etchosts.HostEntries, error) {
 	return entries, nil
 }
 
+// replaces a host IP of "host-gateway" with a corresponding gatewayIP in a host entry
+func mapHostGateway(host string, gatewayIP string) string {
+	arr := strings.SplitN(host, ":", 2)
+
+	if len(arr) != 2 || arr[1] != "host-gateway" {
+		return host
+	}
+
+	return arr[0] + ":" + gatewayIP
+}
+
 func (c *Container) createHosts() error {
 	var containerIPsEntries etchosts.HostEntries
 	var err error
@@ -2579,12 +2590,20 @@ func (c *Container) createHosts() error {
 		return err
 	}
 
+	hostContainersInternalIP := etchosts.GetHostContainersInternalIP(c.runtime.config, c.state.NetworkStatus, c.runtime.network)
+
+	extraHosts := make([]string, len(c.config.HostAdd))
+
+	for i, host := range c.config.HostAdd {
+		extraHosts[i] = mapHostGateway(host, hostContainersInternalIP)
+	}
+
 	targetFile := filepath.Join(c.state.RunDir, "hosts")
 	err = etchosts.New(&etchosts.Params{
 		BaseFile:                 baseHostFile,
-		ExtraHosts:               c.config.HostAdd,
+		ExtraHosts:               extraHosts,
 		ContainerIPs:             containerIPsEntries,
-		HostContainersInternalIP: etchosts.GetHostContainersInternalIP(c.runtime.config, c.state.NetworkStatus, c.runtime.network),
+		HostContainersInternalIP: hostContainersInternalIP,
 		TargetFile:               targetFile,
 	})
 	if err != nil {
