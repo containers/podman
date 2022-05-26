@@ -25,16 +25,14 @@ var (
 		Example:           `podman machine init myvm`,
 		ValidArgsFunction: completion.AutocompleteNone,
 	}
-)
 
-var (
 	initOpts           = machine.InitOptions{}
 	defaultMachineName = machine.DefaultMachineName
 	now                bool
 )
 
 // maxMachineNameSize is set to thirty to limit huge machine names primarily
-// because macos has a much smaller file size limit.
+// because macOS has a much smaller file size limit.
 const maxMachineNameSize = 30
 
 func init() {
@@ -111,8 +109,7 @@ func init() {
 	flags.BoolVar(&initOpts.Rootful, rootfulFlagName, false, "Whether this machine should prefer rootful container execution")
 }
 
-// TODO should we allow for a users to append to the qemu cmdline?
-func initMachine(cmd *cobra.Command, args []string) error {
+func initMachine(_ *cobra.Command, args []string) error {
 	var (
 		err error
 		vm  machine.VM
@@ -122,7 +119,7 @@ func initMachine(cmd *cobra.Command, args []string) error {
 	initOpts.Name = defaultMachineName
 	if len(args) > 0 {
 		if len(args[0]) > maxMachineNameSize {
-			return errors.New("machine name must be 30 characters or less")
+			return errors.Errorf("machine name %q must be %d characters or less", args[0], maxMachineNameSize)
 		}
 		initOpts.Name = args[0]
 	}
