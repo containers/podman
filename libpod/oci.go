@@ -12,9 +12,7 @@ import (
 // management logic - e.g., we do not expect it to determine on its own that
 // calling 'UnpauseContainer()' on a container that is not paused is an error.
 // The code calling the OCIRuntime will manage this.
-// TODO: May want to move the Attach() code under this umbrella. It's highly OCI
-// runtime dependent.
-// TODO: May want to move the conmon cleanup code here too - it depends on
+// TODO: May want to move the conmon cleanup code here - it depends on
 // Conmon being in use.
 type OCIRuntime interface {
 	// Name returns the name of the runtime.
@@ -52,6 +50,8 @@ type OCIRuntime interface {
 	// UnpauseContainer unpauses the given container.
 	UnpauseContainer(ctr *Container) error
 
+	// Attach to a container.
+	Attach(ctr *Container, params *AttachOptions) error
 	// HTTPAttach performs an attach intended to be transported over HTTP.
 	// For terminal attach, the container's output will be directly streamed
 	// to output; otherwise, STDOUT and STDERR will be multiplexed, with
@@ -147,6 +147,30 @@ type OCIRuntime interface {
 
 	// RuntimeInfo returns verbose information about the runtime.
 	RuntimeInfo() (*define.ConmonInfo, *define.OCIRuntimeInfo, error)
+}
+
+// AttachOptions are options used when attached to a container or an exec
+// session.
+type AttachOptions struct {
+	// Streams are the streams to attach to.
+	Streams *define.AttachStreams
+	// DetachKeys containers the key combination that will detach from the
+	// attach session. Empty string is assumed as no detach keys - user
+	// detach is impossible. If unset, defaults from containers.conf will be
+	// used.
+	DetachKeys *string
+	// InitialSize is the initial size of the terminal. Set before the
+	// attach begins.
+	InitialSize *define.TerminalSize
+	// AttachReady signals when the attach has successfully completed and
+	// streaming has begun.
+	AttachReady chan<- bool
+	// Start indicates that the container should be started if it is not
+	// already running.
+	Start bool
+	// Started signals when the container has been successfully started.
+	// Required if Start is true, unused otherwise.
+	Started chan<- bool
 }
 
 // ExecOptions are options passed into ExecContainer. They control the command
