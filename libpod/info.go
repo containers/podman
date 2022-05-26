@@ -199,50 +199,38 @@ func (r *Runtime) hostInfo() (*define.HostInfo, error) {
 		info.OCIRuntime = ociruntimeInfo
 	}
 
-	up, err := readUptime()
+	duration, err := procUptime()
 	if err != nil {
 		return nil, errors.Wrapf(err, "error reading up time")
 	}
-	// Convert uptime in seconds to a human-readable format
-	upSeconds := up + "s"
-	upDuration, err := time.ParseDuration(upSeconds)
-	if err != nil {
-		return nil, errors.Wrapf(err, "error parsing system uptime")
+
+	uptime := struct {
+		hours   float64
+		minutes float64
+		seconds float64
+	}{
+		hours:   duration.Truncate(time.Hour).Hours(),
+		minutes: duration.Truncate(time.Minute).Minutes(),
+		seconds: duration.Truncate(time.Second).Seconds(),
 	}
 
-	// TODO Isn't there a simple lib for this, something like humantime?
-	hoursFound := false
-	var timeBuffer bytes.Buffer
-	var hoursBuffer bytes.Buffer
-	for _, elem := range upDuration.String() {
-		timeBuffer.WriteRune(elem)
-		if elem == 'h' || elem == 'm' {
-			timeBuffer.WriteRune(' ')
-			if elem == 'h' {
-				hoursFound = true
-			}
-		}
-		if !hoursFound {
-			hoursBuffer.WriteRune(elem)
-		}
+	// Could not find a humanize-formatter for time.Duration
+	var buffer bytes.Buffer
+	buffer.WriteString(fmt.Sprintf("%.0fh %.0fm %.2fs",
+		uptime.hours,
+		math.Mod(uptime.seconds, 3600)/60,
+		math.Mod(uptime.seconds, 60),
+	))
+	if int64(uptime.hours) > 0 {
+		buffer.WriteString(fmt.Sprintf(" (Approximately %.2f days)", uptime.hours/24))
 	}
-
-	info.Uptime = timeBuffer.String()
-	if hoursFound {
-		hours, err := strconv.ParseFloat(hoursBuffer.String(), 64)
-		if err == nil {
-			days := hours / 24
-			info.Uptime = fmt.Sprintf("%s (Approximately %.2f days)", info.Uptime, days)
-		}
-	}
+	info.Uptime = buffer.String()
 
 	return &info, nil
 }
 
 func (r *Runtime) getContainerStoreInfo() (define.ContainerStore, error) {
-	var (
-		paused, running, stopped int
-	)
+	var paused, running, stopped int
 	cs := define.ContainerStore{}
 	cons, err := r.GetAllContainers()
 	if err != nil {
@@ -353,16 +341,17 @@ func readKernelVersion() (string, error) {
 	return string(f[2]), nil
 }
 
-func readUptime() (string, error) {
+func procUptime() (time.Duration, error) {
+	var zero time.Duration
 	buf, err := ioutil.ReadFile("/proc/uptime")
 	if err != nil {
-		return "", err
+		return zero, err
 	}
 	f := bytes.Fields(buf)
 	if len(f) < 1 {
-		return "", fmt.Errorf("invalid uptime")
+		return zero, errors.New("unable to parse uptime from /proc/uptime")
 	}
-	return string(f[0]), nil
+	return time.ParseDuration(string(f[0]) + "s")
 }
 
 // GetHostDistributionInfo returns a map containing the host's distribution and version
