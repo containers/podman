@@ -123,7 +123,18 @@ func (c *Container) StartAndAttach(ctx context.Context, streams *define.AttachSt
 
 	// Attach to the container before starting it
 	go func() {
-		if err := c.attach(streams, keys, resize, true, startedChan, nil); err != nil {
+		// Start resizing
+		if c.LogDriver() != define.PassthroughLogging {
+			registerResizeFunc(resize, c.bundlePath())
+		}
+
+		opts := new(AttachOptions)
+		opts.Streams = streams
+		opts.DetachKeys = &keys
+		opts.Start = true
+		opts.Started = startedChan
+
+		if err := c.ociRuntime.Attach(c, opts); err != nil {
 			attachChan <- err
 		}
 		close(attachChan)
@@ -261,8 +272,18 @@ func (c *Container) Attach(streams *define.AttachStreams, keys string, resize <-
 		}()
 	}
 
+	// Start resizing
+	if c.LogDriver() != define.PassthroughLogging {
+		registerResizeFunc(resize, c.bundlePath())
+	}
+
+	opts := new(AttachOptions)
+	opts.Streams = streams
+	opts.DetachKeys = &keys
+	opts.AttachReady = attachRdy
+
 	c.newContainerEvent(events.Attach)
-	return c.attach(streams, keys, resize, false, nil, attachRdy)
+	return c.ociRuntime.Attach(c, opts)
 }
 
 // HTTPAttach forwards an attach session over a hijacked HTTP session.
