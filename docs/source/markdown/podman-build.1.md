@@ -91,6 +91,33 @@ instructions read from the Containerfiles in the same way that environment
 variables are, but which will not be added to environment variable list in the
 resulting image's configuration.
 
+#### **--build-context**=*name=value*
+
+Specify an additional build context using its short name and its location.
+Additional build contexts can be referenced in the same manner as we access
+different stages in COPY instruction.
+
+Valid values could be:
+
+* Local directory – e.g. --build-context project2=../path/to/project2/src
+* HTTP URL to a tarball – e.g. --build-context src=https://example.org/releases/src.tar
+* Container image – specified with a container-image:// prefix, e.g. --build-context alpine=container-image://alpine:3.15, (also accepts docker://, docker-image://)
+
+On the Containerfile side, you can reference the build context on all
+commands that accept the “from” parameter. Here’s how that might look:
+
+```dockerfile
+FROM [name]
+COPY --from=[name] ...
+RUN --mount=from=[name] …
+```
+
+The value of [name] is matched with the following priority order:
+
+* Named build context defined with --build-context [name]=..
+* Stage defined with AS [name] inside Containerfile
+* Image [name], either local or in a remote registry
+
 #### **--cache-from**
 
 Images to utilize as potential cache sources. Podman does not currently support
@@ -139,6 +166,10 @@ that the cgroup namespace in which `buildah` itself is being run should be reuse
 This option is added to be aligned with other containers CLIs.
 Podman doesn't communicate with a daemon or a remote server.
 Thus, compressing the data before sending it is irrelevant to Podman. (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
+
+#### **--cpp-flag**=*flags*
+
+Set additional flags to pass to the C Preprocessor cpp(1). Containerfiles ending with a ".in" suffix will be preprocessed via cpp(1). This option can be used to pass additional flags to cpp.Note: You can also set default CPPFLAGS by setting the BUILDAH_CPPFLAGS environment variable (e.g., export BUILDAH_CPPFLAGS="-DDEBUG").
 
 #### **--cpu-period**=*limit*
 

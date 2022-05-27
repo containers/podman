@@ -2688,10 +2688,6 @@ func getSecretMount(tokens []string, secrets map[string]define.Secret, mountlabe
 			return nil, "", err
 		}
 		ctrFileOnHost = filepath.Join(containerWorkingDir, "secrets", id)
-		_, err = os.Stat(ctrFileOnHost)
-		if !os.IsNotExist(err) {
-			return nil, "", err
-		}
 	default:
 		return nil, "", errors.New("invalid source secret type")
 	}

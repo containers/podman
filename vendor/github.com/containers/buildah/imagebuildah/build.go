@@ -28,6 +28,7 @@ import (
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/hashicorp/go-multierror"
+	"github.com/mattn/go-shellwords"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/openshift/imagebuilder"
@@ -157,7 +158,7 @@ func BuildDockerfiles(ctx context.Context, store storage.Store, options define.B
 
 		// pre-process Dockerfiles with ".in" suffix
 		if strings.HasSuffix(dfile, ".in") {
-			pData, err := preprocessContainerfileContents(logger, dfile, data, options.ContextDirectory)
+			pData, err := preprocessContainerfileContents(logger, dfile, data, options.ContextDirectory, options.CPPFlags)
 			if err != nil {
 				return "", nil, err
 			}
@@ -211,7 +212,10 @@ func BuildDockerfiles(ctx context.Context, store storage.Store, options define.B
 	}
 
 	if options.AllPlatforms {
-		options.Platforms, err = platformsForBaseImages(ctx, logger, paths, files, options.From, options.Args, options.SystemContext)
+		if options.AdditionalBuildContexts == nil {
+			options.AdditionalBuildContexts = make(map[string]*define.AdditionalBuildContext)
+		}
+		options.Platforms, err = platformsForBaseImages(ctx, logger, paths, files, options.From, options.Args, options.AdditionalBuildContexts, options.SystemContext)
 		if err != nil {
 			return "", nil, err
 		}
@@ -467,7 +471,7 @@ func warnOnUnsetBuildArgs(logger *logrus.Logger, node *parser.Node, args map[str
 
 // preprocessContainerfileContents runs CPP(1) in preprocess-only mode on the input
 // dockerfile content and will use ctxDir as the base include path.
-func preprocessContainerfileContents(logger *logrus.Logger, containerfile string, r io.Reader, ctxDir string) (stdout io.Reader, err error) {
+func preprocessContainerfileContents(logger *logrus.Logger, containerfile string, r io.Reader, ctxDir string, cppFlags []string) (stdout io.Reader, err error) {
 	cppCommand := "cpp"
 	cppPath, err := exec.LookPath(cppCommand)
 	if err != nil {
@@ -480,7 +484,16 @@ func preprocessContainerfileContents(logger *logrus.Logger, containerfile string
 	stdoutBuffer := bytes.Buffer{}
 	stderrBuffer := bytes.Buffer{}
 
-	cmd := exec.Command(cppPath, "-E", "-iquote", ctxDir, "-traditional", "-undef", "-")
+	cppArgs := []string{"-E", "-iquote", ctxDir, "-traditional", "-undef", "-"}
+	if flags, ok := os.LookupEnv("BUILDAH_CPPFLAGS"); ok {
+		args, err := shellwords.Parse(flags)
+		if err != nil {
+			return nil, errors.Errorf("error parsing BUILDAH_CPPFLAGS %q: %v", flags, err)
+		}
+		cppArgs = append(cppArgs, args...)
+	}
+	cppArgs = append(cppArgs, cppFlags...)
+	cmd := exec.Command(cppPath, cppArgs...)
 	cmd.Stdin = r
 	cmd.Stdout = &stdoutBuffer
 	cmd.Stderr = &stderrBuffer
@@ -502,8 +515,8 @@ func preprocessContainerfileContents(logger *logrus.Logger, containerfile string
 // platformsForBaseImages resolves the names of base images from the
 // dockerfiles, and if they are all valid references to manifest lists, returns
 // the list of platforms that are supported by all of the base images.
-func platformsForBaseImages(ctx context.Context, logger *logrus.Logger, dockerfilepaths []string, dockerfiles [][]byte, from string, args map[string]string, systemContext *types.SystemContext) ([]struct{ OS, Arch, Variant string }, error) {
-	baseImages, err := baseImages(dockerfilepaths, dockerfiles, from, args)
+func platformsForBaseImages(ctx context.Context, logger *logrus.Logger, dockerfilepaths []string, dockerfiles [][]byte, from string, args map[string]string, additionalBuildContext map[string]*define.AdditionalBuildContext, systemContext *types.SystemContext) ([]struct{ OS, Arch, Variant string }, error) {
+	baseImages, err := baseImages(dockerfilepaths, dockerfiles, from, args, additionalBuildContext)
 	if err != nil {
 		return nil, errors.Wrapf(err, "determining list of base images")
 	}
@@ -631,7 +644,7 @@ func platformsForBaseImages(ctx context.Context, logger *logrus.Logger, dockerfi
 // stage's base image with FROM, and returns the list of base images as
 // provided.  Each entry in the dockerfilenames slice corresponds to a slice in
 // dockerfilecontents.
-func baseImages(dockerfilenames []string, dockerfilecontents [][]byte, from string, args map[string]string) ([]string, error) {
+func baseImages(dockerfilenames []string, dockerfilecontents [][]byte, from string, args map[string]string, additionalBuildContext map[string]*define.AdditionalBuildContext) ([]string, error) {
 	mainNode, err := imagebuilder.ParseDockerfile(bytes.NewReader(dockerfilecontents[0]))
 	if err != nil {
 		return nil, errors.Wrapf(err, "error parsing main Dockerfile: %s", dockerfilenames[0])
@@ -669,6 +682,13 @@ func baseImages(dockerfilenames []string, dockerfilecontents [][]byte, from stri
 						if from != "" {
 							child.Next.Value = from
 							from = ""
+						}
+						if replaceBuildContext, ok := additionalBuildContext[child.Next.Value]; ok {
+							if replaceBuildContext.IsImage {
+								child.Next.Value = replaceBuildContext.Value
+							} else {
+								return nil, fmt.Errorf("build context %q is not an image, can not be used for FROM %q", child.Next.Value, child.Next.Value)
+							}
 						}
 						base := child.Next.Value
 						if base != "scratch" && !nicknames[base] {

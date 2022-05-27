@@ -178,6 +178,32 @@ var _ = Describe("Podman build", func() {
 		Expect(session).Should(Exit(0))
 	})
 
+	It("podman build verify explicit cache use with squash-all and --layers", func() {
+		session := podmanTest.Podman([]string{"build", "--pull-never", "-f", "build/squash/Dockerfile.squash-c", "--squash-all", "--layers", "-t", "test-squash-d:latest", "build/squash"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"inspect", "--format", "{{.RootFS.Layers}}", "test-squash-d"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		// Check for one layers
+		Expect(strings.Fields(session.OutputToString())).To(HaveLen(1))
+
+		// Second build must use last squashed build from cache
+		session = podmanTest.Podman([]string{"build", "--pull-never", "-f", "build/squash/Dockerfile.squash-c", "--squash-all", "--layers", "-t", "test", "build/squash"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		// Test if entire build is used from cache
+		Expect(session.OutputToString()).To(ContainSubstring("Using cache"))
+
+		session = podmanTest.Podman([]string{"inspect", "--format", "{{.RootFS.Layers}}", "test-squash-d"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		// Check for one layers
+		Expect(strings.Fields(session.OutputToString())).To(HaveLen(1))
+
+	})
+
 	It("podman build Containerfile locations", func() {
 		// Given
 		// Switch to temp dir and restore it afterwards

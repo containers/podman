@@ -29,7 +29,7 @@ const (
 	Package = "buildah"
 	// Version for the Package.  Bump version in contrib/rpm/buildah.spec
 	// too.
-	Version = "1.26.1"
+	Version = "1.27.0-dev"
 
 	// DefaultRuntime if containers.conf fails.
 	DefaultRuntime = "runc"
@@ -127,12 +127,17 @@ func TempDirForURL(dir, prefix, url string) (name string, subdir string, err err
 		return "", "", errors.Wrapf(err, "error parsing url %q", url)
 	}
 	if strings.HasPrefix(url, "git://") || strings.HasSuffix(urlParsed.Path, ".git") {
-		combinedOutput, err := cloneToDirectory(url, name)
+		combinedOutput, gitSubDir, err := cloneToDirectory(url, name)
 		if err != nil {
 			if err2 := os.RemoveAll(name); err2 != nil {
 				logrus.Debugf("error removing temporary directory %q: %v", name, err2)
 			}
 			return "", "", errors.Wrapf(err, "cloning %q to %q:\n%s", url, name, string(combinedOutput))
+		}
+		// Check if git url specifies any subdir
+		// if subdir is there switch to subdir.
+		if gitSubDir != "" {
+			name = filepath.Join(name, gitSubDir)
 		}
 		return name, "", nil
 	}
@@ -170,17 +175,29 @@ func TempDirForURL(dir, prefix, url string) (name string, subdir string, err err
 	return "", "", errors.Errorf("unreachable code reached")
 }
 
-func cloneToDirectory(url, dir string) ([]byte, error) {
-	gitBranch := strings.Split(url, "#")
+func cloneToDirectory(url, dir string) ([]byte, string, error) {
+	gitSubdir := ""
+	gitBranch := ""
+	gitBranchPart := strings.Split(url, "#")
 	var cmd *exec.Cmd
-	if len(gitBranch) < 2 {
-		logrus.Debugf("cloning %q to %q", url, dir)
-		cmd = exec.Command("git", "clone", url, dir)
-	} else {
-		logrus.Debugf("cloning repo %q and branch %q to %q", gitBranch[0], gitBranch[1], dir)
-		cmd = exec.Command("git", "clone", "--recurse-submodules", "-b", gitBranch[1], gitBranch[0], dir)
+	if len(gitBranchPart) > 1 {
+		// check if string contains path to a subdir
+		gitSubDirPart := strings.Split(gitBranchPart[1], ":")
+		if len(gitSubDirPart) > 1 {
+			gitSubdir = gitSubDirPart[1]
+		}
+		gitBranch = gitSubDirPart[0]
 	}
-	return cmd.CombinedOutput()
+	if gitBranch == "" {
+		logrus.Debugf("cloning %q to %q", gitBranchPart[0], dir)
+		cmd = exec.Command("git", "clone", "--recurse-submodules", gitBranchPart[0], dir)
+	} else {
+		logrus.Debugf("cloning repo %q and branch %q to %q", gitBranchPart[0], gitBranch, dir)
+		cmd = exec.Command("git", "clone", "--recurse-submodules", "-b", gitBranch, gitBranchPart[0], dir)
+	}
+
+	combinedOutput, err := cmd.CombinedOutput()
+	return combinedOutput, gitSubdir, err
 }
 
 func downloadToDirectory(url, dir string) error {

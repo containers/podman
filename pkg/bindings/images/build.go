@@ -65,6 +65,14 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 		params.Set("annotations", l)
 	}
 
+	if cppflags := options.CPPFlags; len(cppflags) > 0 {
+		l, err := jsoniter.MarshalToString(cppflags)
+		if err != nil {
+			return nil, err
+		}
+		params.Set("cppflags", l)
+	}
+
 	if options.AllPlatforms {
 		params.Add("allplatforms", "1")
 	}

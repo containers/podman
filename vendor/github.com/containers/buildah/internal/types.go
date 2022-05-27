@@ -1,5 +1,11 @@
 package internal
 
+const (
+	// Temp directory which stores external artifacts which are download for a build.
+	// Example: tar files from external sources.
+	BuildahExternalArtifactsDir = "buildah-external-artifacts"
+)
+
 // Types is internal packages are suspected to change with releases avoid using these outside of buildah
 
 // StageMountDetails holds the Stage/Image mountpoint returned by StageExecutor

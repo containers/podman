@@ -197,9 +197,8 @@ func buildFlags(cmd *cobra.Command) {
 // build executes the build command.
 func build(cmd *cobra.Command, args []string) error {
 	if (cmd.Flags().Changed("squash") && cmd.Flags().Changed("layers")) ||
-		(cmd.Flags().Changed("squash-all") && cmd.Flags().Changed("layers")) ||
 		(cmd.Flags().Changed("squash-all") && cmd.Flags().Changed("squash")) {
-		return errors.New("cannot specify --squash, --squash-all and --layers options together")
+		return errors.New("cannot specify --squash with --layers and --squash-all with --squash")
 	}
 
 	if cmd.Flag("output").Changed && registry.IsRemote() {
@@ -418,7 +417,13 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *buil
 	// Squash-all invoked, squash both new and old layers into one.
 	if c.Flags().Changed("squash-all") {
 		flags.Squash = true
-		flags.Layers = false
+		if !c.Flags().Changed("layers") {
+			// Buildah  supports using layers and --squash together
+			// after https://github.com/containers/buildah/pull/3674
+			// so podman must honor if user wants to still use layers
+			//  with --squash-all.
+			flags.Layers = false
+		}
 	}
 
 	var stdin io.Reader
@@ -440,22 +445,6 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *buil
 	nsValues, networkPolicy, err := parse.NamespaceOptions(c)
 	if err != nil {
 		return nil, err
-	}
-
-	// `buildah bud --layers=false` acts like `docker build --squash` does.
-	// That is all of the new layers created during the build process are
-	// condensed into one, any layers present prior to this build are retained
-	// without condensing.  `buildah bud --squash` squashes both new and old
-	// layers down into one.  Translate Podman commands into Buildah.
-	// Squash invoked, retain old layers, squash new layers into one.
-	if c.Flags().Changed("squash") && flags.Squash {
-		flags.Squash = false
-		flags.Layers = false
-	}
-	// Squash-all invoked, squash both new and old layers into one.
-	if c.Flags().Changed("squash-all") {
-		flags.Squash = true
-		flags.Layers = false
 	}
 
 	compression := buildahDefine.Gzip
@@ -513,9 +502,26 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *buil
 		return nil, errors.Wrapf(err, "unable to obtain decrypt config")
 	}
 
+	additionalBuildContext := make(map[string]*buildahDefine.AdditionalBuildContext)
+	if c.Flag("build-context").Changed {
+		for _, contextString := range flags.BuildContext {
+			av := strings.SplitN(contextString, "=", 2)
+			if len(av) > 1 {
+				parseAdditionalBuildContext, err := parse.GetAdditionalBuildContext(av[1])
+				if err != nil {
+					return nil, errors.Wrapf(err, "while parsing additional build context")
+				}
+				additionalBuildContext[av[0]] = &parseAdditionalBuildContext
+			} else {
+				return nil, fmt.Errorf("while parsing additional build context: %q, accepts value in the form of key=value", av)
+			}
+		}
+	}
+
 	opts := buildahDefine.BuildOptions{
 		AddCapabilities:         flags.CapAdd,
 		AdditionalTags:          tags,
+		AdditionalBuildContexts: additionalBuildContext,
 		AllPlatforms:            flags.AllPlatforms,
 		Annotations:             flags.Annotation,
 		Args:                    args,
@@ -525,6 +531,7 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *buil
 		Compression:             compression,
 		ConfigureNetwork:        networkPolicy,
 		ContextDirectory:        contextDir,
+		CPPFlags:                flags.CPPFlags,
 		DefaultMountsFilePath:   containerConfig.Containers.DefaultMountsFile,
 		Devices:                 flags.Devices,
 		DropCapabilities:        flags.CapDrop,

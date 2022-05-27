@@ -5,12 +5,12 @@ go 1.16
 require (
 	github.com/containerd/containerd v1.6.4
 	github.com/containernetworking/cni v1.1.0
-	github.com/containers/common v0.48.0
-	github.com/containers/image/v5 v5.21.1
+	github.com/containers/common v0.48.1-0.20220519181648-280c6f69fa82
+	github.com/containers/image/v5 v5.21.2-0.20220520105616-e594853d6471
 	github.com/containers/ocicrypt v1.1.4-0.20220428134531-566b808bdf6f
-	github.com/containers/storage v1.40.2
+	github.com/containers/storage v1.41.1-0.20220517121726-5019cd55275c
 	github.com/docker/distribution v2.8.1+incompatible
-	github.com/docker/docker v20.10.14+incompatible
+	github.com/docker/docker v20.10.16+incompatible
 	github.com/docker/go-units v0.4.0
 	github.com/docker/libnetwork v0.8.0-dev.2.0.20190625141545-5a177b73e316
 	github.com/fsouza/go-dockerclient v1.7.11
@@ -23,7 +23,7 @@ require (
 	github.com/onsi/gomega v1.19.0
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.0.3-0.20211202193544-a5463b7f9c84
-	github.com/opencontainers/runc v1.1.1
+	github.com/opencontainers/runc v1.1.2
 	github.com/opencontainers/runtime-spec v1.0.3-0.20210326190908-1c3f411f0417
 	github.com/opencontainers/runtime-tools v0.9.0
 	github.com/opencontainers/selinux v1.10.1

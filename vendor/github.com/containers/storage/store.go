@@ -173,6 +173,7 @@ type Store interface {
 	GraphRoot() string
 	GraphDriverName() string
 	GraphOptions() []string
+	PullOptions() map[string]string
 	UIDMap() []idtools.IDMap
 	GIDMap() []idtools.IDMap
 
@@ -607,6 +608,7 @@ type store struct {
 	graphRoot       string
 	graphDriverName string
 	graphOptions    []string
+	pullOptions     map[string]string
 	uidMap          []idtools.IDMap
 	gidMap          []idtools.IDMap
 	autoUsernsUser  string
@@ -726,6 +728,7 @@ func GetStore(options types.StoreOptions) (Store, error) {
 		additionalGIDs:  nil,
 		usernsLock:      usernsLock,
 		disableVolatile: options.DisableVolatile,
+		pullOptions:     options.PullOptions,
 	}
 	if err := s.load(); err != nil {
 		return nil, err
@@ -774,6 +777,14 @@ func (s *store) GraphRoot() string {
 
 func (s *store) GraphOptions() []string {
 	return s.graphOptions
+}
+
+func (s *store) PullOptions() map[string]string {
+	cp := make(map[string]string, len(s.pullOptions))
+	for k, v := range s.pullOptions {
+		cp[k] = v
+	}
+	return cp
 }
 
 func (s *store) UIDMap() []idtools.IDMap {

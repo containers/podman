@@ -126,6 +126,7 @@ type Executor struct {
 	imageInfoLock           sync.Mutex
 	imageInfoCache          map[string]imageTypeAndHistoryAndDiffIDs
 	fromOverride            string
+	additionalBuildContexts map[string]*define.AdditionalBuildContext
 	manifest                string
 	secrets                 map[string]define.Secret
 	sshsources              map[string]*sshagent.Source
@@ -275,6 +276,7 @@ func newExecutor(logger *logrus.Logger, logPrefix string, store storage.Store, o
 		rusageLogFile:                  rusageLogFile,
 		imageInfoCache:                 make(map[string]imageTypeAndHistoryAndDiffIDs),
 		fromOverride:                   options.From,
+		additionalBuildContexts:        options.AdditionalBuildContexts,
 		manifest:                       options.Manifest,
 		secrets:                        secrets,
 		sshsources:                     sshsources,
@@ -609,6 +611,12 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) (image
 						}
 						base := child.Next.Value
 						if base != "scratch" {
+							if replaceBuildContext, ok := b.additionalBuildContexts[child.Next.Value]; ok {
+								if replaceBuildContext.IsImage {
+									child.Next.Value = replaceBuildContext.Value
+									base = child.Next.Value
+								}
+							}
 							userArgs := argsMapToSlice(stage.Builder.Args)
 							baseWithArg, err := imagebuilder.ProcessWord(base, userArgs)
 							if err != nil {

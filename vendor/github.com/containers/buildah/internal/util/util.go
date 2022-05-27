@@ -32,6 +32,14 @@ func LookupImage(ctx *types.SystemContext, store storage.Store, image string) (*
 	return localImage, nil
 }
 
+// GetTempDir returns base for a temporary directory on host.
+func GetTempDir() string {
+	if tmpdir, ok := os.LookupEnv("TMPDIR"); ok {
+		return tmpdir
+	}
+	return "/var/tmp"
+}
+
 // ExportFromReader reads bytes from given reader and exports to external tar, directory or stdout.
 func ExportFromReader(input io.Reader, opts define.BuildOutputOption) error {
 	var err error

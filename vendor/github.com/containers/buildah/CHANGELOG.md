@@ -2,11 +2,6 @@
 
 # Changelog
 
-## v1.26.1 (2022-05-04)
-
-    Make `buildah build --label foo` create an empty "foo" label again
-    Bump to v1.27.0-dev
-
 ## v1.26.0 (2022-05-04)
 
     imagebuildah,build: move deepcopy of args before we spawn goroutine
