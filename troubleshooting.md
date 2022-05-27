@@ -1230,4 +1230,4 @@ While running podman remote commands with the most updated Podman, issues that w
 
 When upgrading Podman to a particular version for the required fixes, users often make the mistake of only upgrading the Podman client. However, suppose a setup uses `podman-remote` or uses a client that communicates with the Podman server on a remote machine via the REST API. In that case, it is required to upgrade both the Podman client and the Podman server running on the remote machine. Both the Podman client and server must be upgraded to the same version.
 
-Example: If a particular bug was fixed in `v4.1.0` then The Podman client` must have version `v4.1.0` as well the Podman server must have version `v4.1.0`.
+Example: If a particular bug was fixed in `v4.1.0` then the Podman client must have version `v4.1.0` as well the Podman server must have version `v4.1.0`.
