@@ -23,7 +23,7 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-func (c *Container) copyFromArchive(path string, chown bool, rename map[string]string, reader io.Reader) (func() error, error) {
+func (c *Container) copyFromArchive(path string, chown, noOverwriteDirNonDir bool, rename map[string]string, reader io.Reader) (func() error, error) {
 	var (
 		mountPoint   string
 		resolvedRoot string
@@ -89,11 +89,12 @@ func (c *Container) copyFromArchive(path string, chown bool, rename map[string]s
 		defer unmount()
 		defer decompressed.Close()
 		putOptions := buildahCopiah.PutOptions{
-			UIDMap:     c.config.IDMappings.UIDMap,
-			GIDMap:     c.config.IDMappings.GIDMap,
-			ChownDirs:  idPair,
-			ChownFiles: idPair,
-			Rename:     rename,
+			UIDMap:               c.config.IDMappings.UIDMap,
+			GIDMap:               c.config.IDMappings.GIDMap,
+			ChownDirs:            idPair,
+			ChownFiles:           idPair,
+			NoOverwriteDirNonDir: noOverwriteDirNonDir,
+			Rename:               rename,
 		}
 
 		return c.joinMountAndExec(

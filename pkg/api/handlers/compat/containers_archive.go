@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/containers/podman/v4/libpod"
 	"github.com/containers/podman/v4/libpod/define"
@@ -94,11 +95,10 @@ func handleHeadAndGet(w http.ResponseWriter, r *http.Request, decoder *schema.De
 
 func handlePut(w http.ResponseWriter, r *http.Request, decoder *schema.Decoder, runtime *libpod.Runtime) {
 	query := struct {
-		Path   string `schema:"path"`
-		Chown  bool   `schema:"copyUIDGID"`
-		Rename string `schema:"rename"`
-		// TODO handle params below
-		NoOverwriteDirNonDir bool `schema:"noOverwriteDirNonDir"`
+		Path                 string `schema:"path"`
+		Chown                bool   `schema:"copyUIDGID"`
+		Rename               string `schema:"rename"`
+		NoOverwriteDirNonDir bool   `schema:"noOverwriteDirNonDir"`
 	}{
 		Chown: utils.IsLibpodRequest(r), // backward compatibility
 	}
@@ -112,7 +112,7 @@ func handlePut(w http.ResponseWriter, r *http.Request, decoder *schema.Decoder, 
 	var rename map[string]string
 	if query.Rename != "" {
 		if err := json.Unmarshal([]byte(query.Rename), &rename); err != nil {
-			utils.Error(w, http.StatusBadRequest, errors.Wrap(err, "couldn't decode the query"))
+			utils.Error(w, http.StatusBadRequest, errors.Wrap(err, "couldn't decode the query field 'rename'"))
 			return
 		}
 	}
@@ -120,15 +120,25 @@ func handlePut(w http.ResponseWriter, r *http.Request, decoder *schema.Decoder, 
 	containerName := utils.GetName(r)
 	containerEngine := abi.ContainerEngine{Libpod: runtime}
 
-	copyOptions := entities.CopyOptions{Chown: query.Chown, Rename: rename}
-	copyFunc, err := containerEngine.ContainerCopyFromArchive(r.Context(), containerName, query.Path, r.Body, copyOptions)
-	if errors.Cause(err) == define.ErrNoSuchCtr || os.IsNotExist(err) {
-		// 404 is returned for an absent container and path.  The
-		// clients must deal with it accordingly.
-		utils.Error(w, http.StatusNotFound, errors.Wrap(err, "the container doesn't exists"))
-		return
-	} else if err != nil {
-		utils.Error(w, http.StatusInternalServerError, err)
+	copyFunc, err := containerEngine.ContainerCopyFromArchive(r.Context(), containerName, query.Path, r.Body,
+		entities.CopyOptions{
+			Chown:                query.Chown,
+			NoOverwriteDirNonDir: query.NoOverwriteDirNonDir,
+			Rename:               rename,
+		})
+	if err != nil {
+		switch {
+		case errors.Cause(err) == define.ErrNoSuchCtr || os.IsNotExist(err):
+			// 404 is returned for an absent container and path.  The
+			// clients must deal with it accordingly.
+			utils.Error(w, http.StatusNotFound, errors.Wrap(err, "the container doesn't exists"))
+		case strings.Contains(err.Error(), "copier: put: error creating file"):
+			// Not the best test but need to break this out for compatibility
+			// See vendor/github.com/containers/buildah/copier/copier.go:1585
+			utils.Error(w, http.StatusBadRequest, err)
+		default:
+			utils.Error(w, http.StatusInternalServerError, err)
+		}
 		return
 	}
 
