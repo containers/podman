@@ -8,6 +8,7 @@ import (
 	"github.com/containers/podman/v4/cmd/podman/parse"
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/containers/podman/v4/pkg/domain/entities"
+	"github.com/containers/podman/v4/pkg/errorhandling"
 	"github.com/containers/podman/v4/utils"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -60,9 +61,13 @@ func importVol(cmd *cobra.Command, args []string) error {
 	}
 
 	inspectOpts.Type = common.VolumeType
-	volumeData, _, err := containerEngine.VolumeInspect(ctx, volumes, inspectOpts)
+	inspectOpts.Type = common.VolumeType
+	volumeData, errs, err := containerEngine.VolumeInspect(ctx, volumes, inspectOpts)
 	if err != nil {
 		return err
+	}
+	if len(errs) > 0 {
+		return errorhandling.JoinErrors(errs)
 	}
 	if len(volumeData) < 1 {
 		return errors.New("no volume data found")
