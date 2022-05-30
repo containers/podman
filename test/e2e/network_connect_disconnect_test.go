@@ -114,6 +114,11 @@ var _ = Describe("Podman network connect and disconnect", func() {
 		exec3.WaitWithDefaultTimeout()
 		Expect(exec3).Should(Exit(0))
 		Expect(strings.Contains(exec3.OutputToString(), ns)).To(BeFalse())
+
+		// make sure stats still works https://github.com/containers/podman/issues/13824
+		stats := podmanTest.Podman([]string{"stats", "test", "--no-stream"})
+		stats.WaitWithDefaultTimeout()
+		Expect(stats).Should(Exit(0))
 	})
 
 	It("bad network name in connect should result in error", func() {
@@ -236,6 +241,11 @@ var _ = Describe("Podman network connect and disconnect", func() {
 		exec3.WaitWithDefaultTimeout()
 		Expect(exec3).Should(Exit(0))
 		Expect(strings.Contains(exec3.OutputToString(), ns)).To(BeTrue())
+
+		// make sure stats works https://github.com/containers/podman/issues/13824
+		stats := podmanTest.Podman([]string{"stats", "test", "--no-stream"})
+		stats.WaitWithDefaultTimeout()
+		Expect(stats).Should(Exit(0))
 
 		// make sure no logrus errors are shown https://github.com/containers/podman/issues/9602
 		rm := podmanTest.Podman([]string{"rm", "--time=0", "-f", "test"})
