@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"path"
 	"reflect"
 	"strconv"
 	"strings"
@@ -21,6 +22,7 @@ import (
 	"github.com/containers/podman/v4/pkg/signal"
 	systemdDefine "github.com/containers/podman/v4/pkg/systemd/define"
 	"github.com/containers/podman/v4/pkg/util"
+	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/spf13/cobra"
 )
 
@@ -282,6 +284,61 @@ func getNetworks(cmd *cobra.Command, toComplete string, cType completeType) ([]s
 	return suggestions, cobra.ShellCompDirectiveNoFileComp
 }
 
+func getPathCompletion(root string, toComplete string) []string {
+	if toComplete == "" {
+		toComplete = "/"
+	}
+	// Important: securejoin is required to make sure we never leave the root mount point
+	userpath, err := securejoin.SecureJoin(root, toComplete)
+	if err != nil {
+		cobra.CompErrorln(err.Error())
+		return nil
+	}
+	var base string
+	f, err := os.Open(userpath)
+	if err != nil {
+		// Do not use path.Dir() since this cleans the paths which
+		// then no longer matches the user input.
+		userpath, base = path.Split(userpath)
+		toComplete, _ = path.Split(toComplete)
+		f, err = os.Open(userpath)
+		if err != nil {
+			return nil
+		}
+	}
+	stat, err := f.Stat()
+	if err != nil {
+		cobra.CompErrorln(err.Error())
+		return nil
+	}
+	if !stat.IsDir() {
+		// nothing to complete since it is no dir
+		return nil
+	}
+	entries, err := f.ReadDir(-1)
+	if err != nil {
+		cobra.CompErrorln(err.Error())
+		return nil
+	}
+	completions := make([]string, 0, len(entries))
+	for _, e := range entries {
+		if strings.HasPrefix(e.Name(), base) {
+			completions = append(completions, simplePathJoinUnix(toComplete, e.Name()))
+		}
+	}
+	return completions
+}
+
+// simplePathJoinUnix joins to path components by adding a slash only if p1 doesn't end with one.
+// We cannot use path.Join() for the completions logic because this one always calls Clean() on
+// the path which changes it from the input.
+func simplePathJoinUnix(p1, p2 string) string {
+	if p1[len(p1)-1] == '/' {
+		return p1 + p2
+	}
+	return p1 + "/" + p2
+}
+
 // validCurrentCmdLine validates the current cmd line
 // It utilizes the Args function from the cmd struct
 // In most cases the Args function validates the args length but it
@@ -523,8 +580,32 @@ func AutocompleteCreateRun(cmd *cobra.Command, args []string, toComplete string)
 		}
 		return getImages(cmd, toComplete)
 	}
-	// TODO: add path completion for files in the image
-	return nil, cobra.ShellCompDirectiveDefault
+	// Mount the image and provide path completion
+	engine, err := setupImageEngine(cmd)
+	if err != nil {
+		cobra.CompErrorln(err.Error())
+		return nil, cobra.ShellCompDirectiveDefault
+	}
+
+	resp, err := engine.Mount(registry.Context(), []string{args[0]}, entities.ImageMountOptions{})
+	if err != nil {
+		cobra.CompErrorln(err.Error())
+		return nil, cobra.ShellCompDirectiveDefault
+	}
+	defer func() {
+		_, err := engine.Unmount(registry.Context(), []string{args[0]}, entities.ImageUnmountOptions{})
+		if err != nil {
+			cobra.CompErrorln(err.Error())
+		}
+	}()
+	if len(resp) != 1 {
+		return nil, cobra.ShellCompDirectiveDefault
+	}
+
+	// So this uses ShellCompDirectiveDefault to also still provide normal shell
+	// completion in case no path matches. This is useful if someone tries to get
+	// completion for paths that are not available in the image, e.g. /proc/...
+	return getPathCompletion(resp[0].Path, toComplete), cobra.ShellCompDirectiveDefault | cobra.ShellCompDirectiveNoSpace
 }
 
 // AutocompleteRegistries - Autocomplete registries.
@@ -572,14 +653,39 @@ func AutocompleteCpCommand(cmd *cobra.Command, args []string, toComplete string)
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
 	if len(args) < 2 {
+		if i := strings.IndexByte(toComplete, ':'); i > -1 {
+			// Looks like the user already set the container.
+			// Lets mount it and provide path completion for files in the container.
+			engine, err := setupContainerEngine(cmd)
+			if err != nil {
+				cobra.CompErrorln(err.Error())
+				return nil, cobra.ShellCompDirectiveDefault
+			}
+
+			resp, err := engine.ContainerMount(registry.Context(), []string{toComplete[:i]}, entities.ContainerMountOptions{})
+			if err != nil {
+				cobra.CompErrorln(err.Error())
+				return nil, cobra.ShellCompDirectiveDefault
+			}
+			defer func() {
+				_, err := engine.ContainerUnmount(registry.Context(), []string{toComplete[:i]}, entities.ContainerUnmountOptions{})
+				if err != nil {
+					cobra.CompErrorln(err.Error())
+				}
+			}()
+			if len(resp) != 1 {
+				return nil, cobra.ShellCompDirectiveDefault
+			}
+			return prefixSlice(toComplete[:i+1], getPathCompletion(resp[0].Path, toComplete[i+1:])), cobra.ShellCompDirectiveDefault | cobra.ShellCompDirectiveNoSpace
+		}
+		// Suggest containers when they match the input otherwise normal shell completion is used
 		containers, _ := getContainers(cmd, toComplete, completeDefault)
 		for _, container := range containers {
-			// TODO: Add path completion for inside the container if possible
 			if strings.HasPrefix(container, toComplete) {
-				return containers, cobra.ShellCompDirectiveNoSpace
+				return suffixCompSlice(":", containers), cobra.ShellCompDirectiveNoSpace
 			}
 		}
-		// else complete paths
+		// else complete paths on the host
 		return nil, cobra.ShellCompDirectiveDefault
 	}
 	// don't complete more than 2 args
