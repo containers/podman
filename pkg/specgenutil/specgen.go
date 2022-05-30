@@ -622,7 +622,14 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 		if opt == "no-new-privileges" {
 			s.ContainerSecurityConfig.NoNewPrivileges = true
 		} else {
-			con := strings.SplitN(opt, "=", 2)
+			// Docker deprecated the ":" syntax but still supports it,
+			// so we need to as well
+			var con []string
+			if strings.Contains(opt, "=") {
+				con = strings.SplitN(opt, "=", 2)
+			} else {
+				con = strings.SplitN(opt, ":", 2)
+			}
 			if len(con) != 2 {
 				return fmt.Errorf("invalid --security-opt 1: %q", opt)
 			}
@@ -650,6 +657,12 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 				}
 			case "unmask":
 				s.ContainerSecurityConfig.Unmask = append(s.ContainerSecurityConfig.Unmask, con[1:]...)
+			case "no-new-privileges":
+				noNewPrivileges, err := strconv.ParseBool(con[1])
+				if err != nil {
+					return fmt.Errorf("invalid --security-opt 2: %q", opt)
+				}
+				s.ContainerSecurityConfig.NoNewPrivileges = noNewPrivileges
 			default:
 				return fmt.Errorf("invalid --security-opt 2: %q", opt)
 			}
