@@ -9,6 +9,7 @@ import (
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v4/cmd/podman/registry"
+	"github.com/containers/podman/v4/cmd/podman/utils"
 	"github.com/containers/podman/v4/pkg/machine"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -89,7 +90,8 @@ func ssh(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return errors.Wrapf(err, "vm %s not found", vmName)
 	}
-	return vm.SSH(vmName, sshOpts)
+	err = vm.SSH(vmName, sshOpts)
+	return utils.HandleOSExecError(err)
 }
 
 func remoteConnectionUsername() (string, error) {

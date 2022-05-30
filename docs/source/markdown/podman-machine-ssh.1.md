@@ -14,6 +14,7 @@ first argument must be the virtual machine name. The optional command to
 execute can then follow. If no command is provided, an interactive session
 with the virtual machine is established.
 
+The exit code from ssh command will be forwarded to the podman machine ssh caller, see [Exit Codes](#Exit-Codes).
 
 ## OPTIONS
 
@@ -24,6 +25,35 @@ Print usage statement.
 #### **--username**=*name*
 
 Username to use when SSH-ing into the VM.
+
+## Exit Codes
+
+The exit code from `podman machine ssh` gives information about why the command failed.
+When `podman machine ssh` commands exit with a non-zero code,
+the exit codes follow the `chroot` standard, see below:
+
+  **125** The error is with podman **_itself_**
+
+    $ podman machine ssh --foo; echo $?
+    Error: unknown flag: --foo
+    125
+
+  **126** Executing a _contained command_ and the _command_ cannot be invoked
+
+    $ podman machine ssh /etc; echo $?
+    Error: fork/exec /etc: permission denied
+    126
+
+  **127** Executing a _contained command_ and the _command_ cannot be found
+
+    $ podman machine ssh foo; echo $?
+    Error: fork/exec /usr/bin/bogus: no such file or directory
+    127
+
+  **Exit code** _contained command_ exit code
+
+    $ podman machine ssh /bin/sh -c 'exit 3'; echo $?
+    3
 
 ## EXAMPLES
 
