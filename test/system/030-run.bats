@@ -855,4 +855,15 @@ EOF
     run_podman rmi $test_image
 }
 
+@test "podman create --security-opt" {
+    run_podman create --security-opt no-new-privileges=true $IMAGE
+    run_podman rm $output
+    run_podman create --security-opt no-new-privileges:true $IMAGE
+    run_podman rm $output
+    run_podman create --security-opt no-new-privileges=false $IMAGE
+    run_podman rm $output
+    run_podman create --security-opt no-new-privileges $IMAGE
+    run_podman rm $output
+}
+
 # vim: filetype=sh
