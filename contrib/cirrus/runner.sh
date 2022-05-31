@@ -312,6 +312,11 @@ function _run_release() {
     if [[ -n "$dev" ]]; then
         die "Releases must never contain '-dev' in output of 'podman info' ($dev)"
     fi
+
+    commit=$(bin/podman info --format='{{.Version.GitCommit}}' | tr -d '[:space:]')
+    if [[ -z "$commit" ]]; then
+        die "Releases must contain a non-empty Version.GitCommit in 'podman info'"
+    fi
     msg "All OK"
 }
 
