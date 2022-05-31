@@ -236,10 +236,12 @@ func namespaceOptions(s *specgen.SpecGenerator, rt *libpod.Runtime, pod *libpod.
 		toReturn = append(toReturn, libpod.WithCgroupsMode(s.CgroupsMode))
 	}
 
-	// Net
-	// TODO validate CNINetworks, StaticIP, StaticIPv6 are only set if we
-	// are in bridge mode.
 	postConfigureNetNS := !s.UserNS.IsHost()
+	// when we are rootless we default to slirp4netns
+	if rootless.IsRootless() && (s.NetNS.IsPrivate() || s.NetNS.IsDefault()) {
+		s.NetNS.NSMode = specgen.Slirp
+	}
+
 	switch s.NetNS.NSMode {
 	case specgen.FromPod:
 		if pod == nil || infraCtr == nil {
@@ -262,9 +264,7 @@ func namespaceOptions(s *specgen.SpecGenerator, rt *libpod.Runtime, pod *libpod.
 			val = fmt.Sprintf("slirp4netns:%s", s.NetNS.Value)
 		}
 		toReturn = append(toReturn, libpod.WithNetNS(portMappings, expose, postConfigureNetNS, val, nil))
-	case specgen.Private:
-		fallthrough
-	case specgen.Bridge:
+	case specgen.Bridge, specgen.Private, specgen.Default:
 		portMappings, expose, err := createPortMappings(s, imageData)
 		if err != nil {
 			return nil, err
