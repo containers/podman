@@ -183,10 +183,12 @@ func (s *SpecGenerator) Validate() error {
 	}
 
 	// Set defaults if network info is not provided
-	if s.NetNS.NSMode == "" {
-		s.NetNS.NSMode = Bridge
+	// when we are rootless we default to slirp4netns
+	if s.NetNS.IsPrivate() || s.NetNS.IsDefault() {
 		if rootless.IsRootless() {
 			s.NetNS.NSMode = Slirp
+		} else {
+			s.NetNS.NSMode = Bridge
 		}
 	}
 	if err := validateNetNS(&s.NetNS); err != nil {
