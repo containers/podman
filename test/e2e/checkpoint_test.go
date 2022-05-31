@@ -676,8 +676,8 @@ var _ = Describe("Podman checkpoint", func() {
 	})
 	It("podman checkpoint and restore container with root file-system changes using --ignore-rootfs during restore", func() {
 		// Start the container
-		localRunString := getRunString([]string{"--rm", ALPINE, "top"})
-		session := podmanTest.Podman(localRunString)
+		// test that restore works without network namespace (https://github.com/containers/podman/issues/14389)
+		session := podmanTest.Podman([]string{"run", "--network=none", "-d", "--rm", ALPINE, "top"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
