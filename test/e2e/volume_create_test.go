@@ -110,15 +110,24 @@ var _ = Describe("Podman volume create", func() {
 		Expect(session.OutputToString()).To(ContainSubstring("hello"))
 	})
 
-	It("podman import volume should fail", func() {
+	It("podman import/export volume should fail", func() {
 		// try import on volume or source which does not exists
-		if podmanTest.RemoteTest {
-			Skip("Volume export check does not work with a remote client")
-		}
+		SkipIfRemote("Volume export check does not work with a remote client")
 
 		session := podmanTest.Podman([]string{"volume", "import", "notfound", "notfound.tar"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).To(ExitWithError())
+		Expect(session.ErrorToString()).To(ContainSubstring("open notfound.tar: no such file or directory"))
+
+		session = podmanTest.Podman([]string{"volume", "import", "notfound", "-"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).To(ExitWithError())
+		Expect(session.ErrorToString()).To(ContainSubstring("no such volume notfound"))
+
+		session = podmanTest.Podman([]string{"volume", "export", "notfound"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).To(ExitWithError())
+		Expect(session.ErrorToString()).To(ContainSubstring("no such volume notfound"))
 	})
 
 	It("podman create volume with bad volume option", func() {
