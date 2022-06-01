@@ -287,4 +287,7 @@ type CopyOptions struct {
 	Chown *bool `schema:"copyUIDGID"`
 	// Map to translate path names.
 	Rename map[string]string
+	// NoOverwriteDirNonDir when true prevents an existing directory or file from being overwritten
+	// by the other type.
+	NoOverwriteDirNonDir *bool
 }

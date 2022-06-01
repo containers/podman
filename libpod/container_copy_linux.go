@@ -94,6 +94,7 @@ func (c *Container) copyFromArchive(path string, chown, noOverwriteDirNonDir boo
 			ChownDirs:            idPair,
 			ChownFiles:           idPair,
 			NoOverwriteDirNonDir: noOverwriteDirNonDir,
+			NoOverwriteNonDirDir: noOverwriteDirNonDir,
 			Rename:               rename,
 		}
 

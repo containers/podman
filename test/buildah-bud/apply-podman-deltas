@@ -218,7 +218,10 @@ skip_if_remote "--output option not implemented in podman-remote" \
                "build with custom build output must fail for bad input"
 
 # https://github.com/containers/podman/issues/14544
-skip_if_remote "bud-logfile-with-split-logfile-by-platform"
+skip_if_remote "logfile not implemented on remote" "bud-logfile-with-split-logfile-by-platform"
+
+# https://github.com/containers/podman/issues/14547
+skip_if_remote "omit-history not implemented on remote" "build-with-omit-history-to-true should not add history"
 
 ###############################################################################
 # BEGIN tests which are skipped due to actual podman or podman-remote bugs.

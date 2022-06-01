@@ -443,6 +443,9 @@ type ContainerCpOptions struct {
 	Pause bool
 	// Extract the tarfile into the destination directory.
 	Extract bool
+	// OverwriteDirNonDir allows for overwriting a directory with a
+	// non-directory and vice versa.
+	OverwriteDirNonDir bool
 }
 
 // ContainerStatsOptions describes input options for getting
