@@ -102,12 +102,12 @@ var _ = Describe("Podman logs", func() {
 		It("tail 99 lines: "+log, func() {
 			skipIfJournaldInContainer()
 
-			logc := podmanTest.Podman([]string{"run", "--log-driver", log, "-dt", ALPINE, "sh", "-c", "echo podman; echo podman; echo podman"})
+			name := "test1"
+			logc := podmanTest.Podman([]string{"run", "--name", name, "--log-driver", log, ALPINE, "sh", "-c", "echo podman; echo podman; echo podman"})
 			logc.WaitWithDefaultTimeout()
 			Expect(logc).To(Exit(0))
-			cid := logc.OutputToString()
 
-			results := podmanTest.Podman([]string{"logs", "--tail", "99", cid})
+			results := podmanTest.Podman([]string{"logs", "--tail", "99", name})
 			results.WaitWithDefaultTimeout()
 			Expect(results).To(Exit(0))
 			Expect(results.OutputToStringArray()).To(HaveLen(3))
@@ -116,10 +116,16 @@ var _ = Describe("Podman logs", func() {
 		It("tail 800 lines: "+log, func() {
 			skipIfJournaldInContainer()
 
+			// this uses -d so that we do not have 1000 unnecessary lines printed in every test log
 			logc := podmanTest.Podman([]string{"run", "--log-driver", log, "-dt", ALPINE, "sh", "-c", "i=1; while [ \"$i\" -ne 1000 ]; do echo \"line $i\"; i=$((i + 1)); done"})
 			logc.WaitWithDefaultTimeout()
 			Expect(logc).To(Exit(0))
 			cid := logc.OutputToString()
+
+			// make sure we wait for the container to finish writing its output
+			wait := podmanTest.Podman([]string{"wait", cid})
+			wait.WaitWithDefaultTimeout()
+			Expect(wait).To(Exit(0))
 
 			results := podmanTest.Podman([]string{"logs", "--tail", "800", cid})
 			results.WaitWithDefaultTimeout()
