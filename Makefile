@@ -295,7 +295,7 @@ $(SRCBINDIR)/podman$(BINSFX): $(SRCBINDIR) $(SOURCES) go.mod go.sum
 
 $(SRCBINDIR)/podman-remote-static: $(SRCBINDIR) $(SOURCES) go.mod go.sum
 	CGO_ENABLED=0 \
-	GOOS=$(GOOS) \
+	GOOS=linux \
 	GOARCH=$(GOARCH) \
 	$(GO) build \
 		$(BUILDFLAGS) \
