@@ -2,6 +2,7 @@ package e2e
 
 import (
 	"encoding/json"
+	"strings"
 
 	"github.com/containers/podman/v4/pkg/machine"
 	"github.com/containers/podman/v4/pkg/machine/qemu"
@@ -86,6 +87,7 @@ var _ = Describe("podman machine stop", func() {
 		var inspectInfo []machine.InspectInfo
 		err = jsoniter.Unmarshal(inspectSession.Bytes(), &inspectInfo)
 		Expect(err).To(BeNil())
+		Expect(strings.HasSuffix(inspectInfo[0].ConnectionInfo.PodmanSocket.GetPath(), "podman.sock"))
 
 		inspect := new(inspectMachine)
 		inspect = inspect.withFormat("{{.Name}}")

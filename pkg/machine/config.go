@@ -138,14 +138,15 @@ type DistributionDownload interface {
 	Get() *Download
 }
 type InspectInfo struct {
-	ConfigPath VMFile
-	Created    time.Time
-	Image      ImageConfig
-	LastUp     time.Time
-	Name       string
-	Resources  ResourceConfig
-	SSHConfig  SSHConfig
-	State      Status
+	ConfigPath     VMFile
+	ConnectionInfo ConnectionConfig
+	Created        time.Time
+	Image          ImageConfig
+	LastUp         time.Time
+	Name           string
+	Resources      ResourceConfig
+	SSHConfig      SSHConfig
+	State          Status
 }
 
 func (rc RemoteConnectionType) MakeSSHURL(host, path, port, userName string) url.URL {
@@ -286,11 +287,11 @@ func NewMachineFile(path string, symlink *string) (*VMFile, error) {
 // makeSymlink for macOS creates a symlink in $HOME/.podman/
 // for a machinefile like a socket
 func (m *VMFile) makeSymlink(symlink *string) error {
-	homedir, err := os.UserHomeDir()
+	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return err
 	}
-	sl := filepath.Join(homedir, ".podman", *symlink)
+	sl := filepath.Join(homeDir, ".podman", *symlink)
 	// make the symlink dir and throw away if it already exists
 	if err := os.MkdirAll(filepath.Dir(sl), 0700); err != nil && !errors2.Is(err, os.ErrNotExist) {
 		return err
@@ -334,4 +335,10 @@ type SSHConfig struct {
 	Port int
 	// RemoteUsername of the vm user
 	RemoteUsername string
+}
+
+// ConnectionConfig contains connections like sockets, etc.
+type ConnectionConfig struct {
+	// PodmanSocket is the exported podman service socket
+	PodmanSocket *VMFile `json:"PodmanSocket"`
 }
