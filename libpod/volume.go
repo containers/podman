@@ -55,6 +55,8 @@ type VolumeConfig struct {
 	// DisableQuota indicates that the volume should completely disable using any
 	// quota tracking.
 	DisableQuota bool `json:"disableQuota,omitempty"`
+	// Timeout allows users to override the default driver timeout of 5 seconds
+	Timeout int
 }
 
 // VolumeState holds the volume's mutable state.

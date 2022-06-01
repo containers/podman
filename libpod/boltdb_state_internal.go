@@ -508,7 +508,7 @@ func (s *BoltState) getVolumeFromDB(name []byte, volume *Volume, volBkt *bolt.Bu
 
 	// Retrieve volume driver
 	if volume.UsesVolumeDriver() {
-		plugin, err := s.runtime.getVolumePlugin(volume.config.Driver)
+		plugin, err := s.runtime.getVolumePlugin(volume.config)
 		if err != nil {
 			// We want to fail gracefully here, to ensure that we
 			// can still remove volumes even if their plugin is

@@ -56,4 +56,6 @@ type InspectVolumeData struct {
 	// a container, the container will chown the volume to the container process
 	// UID/GID.
 	NeedsChown bool `json:"NeedsChown,omitempty"`
+	// Timeout is the specified driver timeout if given
+	Timeout int `json:"Timeout,omitempty"`
 }

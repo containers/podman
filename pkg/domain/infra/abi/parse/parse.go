@@ -78,6 +78,16 @@ func VolumeOptions(opts map[string]string) ([]libpod.VolumeCreateOption, error) 
 					libpodOptions = append(libpodOptions, libpod.WithVolumeDisableQuota())
 					// set option "NOQUOTA": "true"
 					volumeOptions["NOQUOTA"] = "true"
+				case "timeout":
+					if len(splitO) != 2 {
+						return nil, errors.Wrapf(define.ErrInvalidArg, "timeout option must provide a valid timeout in seconds")
+					}
+					intTimeout, err := strconv.Atoi(splitO[1])
+					if err != nil {
+						return nil, errors.Wrapf(err, "cannot convert Timeout %s to an integer", splitO[1])
+					}
+					logrus.Debugf("Removing timeout from options and adding WithTimeout for Timeout %d", intTimeout)
+					libpodOptions = append(libpodOptions, libpod.WithVolumeDriverTimeout(intTimeout))
 				default:
 					finalVal = append(finalVal, o)
 				}

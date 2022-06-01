@@ -1693,6 +1693,18 @@ func withSetAnon() VolumeCreateOption {
 	}
 }
 
+// WithVolumeDriverTimeout sets the volume creation timeout period
+func WithVolumeDriverTimeout(timeout int) VolumeCreateOption {
+	return func(volume *Volume) error {
+		if volume.valid {
+			return define.ErrVolumeFinalized
+		}
+
+		volume.config.Timeout = timeout
+		return nil
+	}
+}
+
 // WithTimezone sets the timezone in the container
 func WithTimezone(path string) CtrCreateOption {
 	return func(ctr *Container) error {

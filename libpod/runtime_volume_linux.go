@@ -56,7 +56,7 @@ func (r *Runtime) newVolume(options ...VolumeCreateOption) (_ *Volume, deferredE
 
 	// Plugin can be nil if driver is local, but that's OK - superfluous
 	// assignment doesn't hurt much.
-	plugin, err := r.getVolumePlugin(volume.config.Driver)
+	plugin, err := r.getVolumePlugin(volume.config)
 	if err != nil {
 		return nil, errors.Wrapf(err, "volume %s uses volume plugin %s but it could not be retrieved", volume.config.Name, volume.config.Driver)
 	}
