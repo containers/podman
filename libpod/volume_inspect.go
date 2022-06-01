@@ -64,5 +64,11 @@ func (v *Volume) Inspect() (*define.InspectVolumeData, error) {
 	data.NeedsCopyUp = v.state.NeedsCopyUp
 	data.NeedsChown = v.state.NeedsChown
 
+	if v.config.Timeout != nil {
+		data.Timeout = *v.config.Timeout
+	} else if v.UsesVolumeDriver() {
+		data.Timeout = v.runtime.config.Engine.VolumePluginTimeout
+	}
+
 	return data, nil
 }

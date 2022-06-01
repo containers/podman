@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/docker/go-plugins-helpers/sdk"
 	"github.com/docker/go-plugins-helpers/volume"
@@ -43,7 +44,6 @@ var (
 )
 
 const (
-	defaultTimeout   = 5 * time.Second
 	volumePluginType = "VolumeDriver"
 )
 
@@ -132,7 +132,7 @@ func validatePlugin(newPlugin *VolumePlugin) error {
 
 // GetVolumePlugin gets a single volume plugin, with the given name, at the
 // given path.
-func GetVolumePlugin(name string, path string) (*VolumePlugin, error) {
+func GetVolumePlugin(name string, path string, timeout *uint, cfg *config.Config) (*VolumePlugin, error) {
 	pluginsLock.Lock()
 	defer pluginsLock.Unlock()
 
@@ -155,7 +155,12 @@ func GetVolumePlugin(name string, path string) (*VolumePlugin, error) {
 	// Need an HTTP client to force a Unix connection.
 	// And since we can reuse it, might as well cache it.
 	client := new(http.Client)
-	client.Timeout = defaultTimeout
+	client.Timeout = 5 * time.Second
+	if timeout != nil {
+		client.Timeout = time.Duration(*timeout) * time.Second
+	} else if cfg != nil {
+		client.Timeout = time.Duration(cfg.Engine.VolumePluginTimeout) * time.Second
+	}
 	// This bit borrowed from pkg/bindings/connection.go
 	client.Transport = &http.Transport{
 		DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {

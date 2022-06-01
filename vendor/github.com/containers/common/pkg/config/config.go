@@ -445,6 +445,13 @@ type EngineConfig struct {
 	// may not be by other drivers.
 	VolumePath string `toml:"volume_path,omitempty"`
 
+	// VolumePluginTimeout sets the default timeout, in seconds, for
+	// operations that must contact a volume plugin. Plugins are external
+	// programs accessed via REST API; this sets a timeout for requests to
+	// that API.
+	// A value of 0 is treated as no timeout.
+	VolumePluginTimeout uint `toml:"volume_plugin_timeout,omitempty,omitzero"`
+
 	// VolumePlugins is a set of plugins that can be used as the backend for
 	// Podman named volumes. Each volume is specified as a name (what Podman
 	// will refer to the plugin as) mapped to a path, which must point to a
