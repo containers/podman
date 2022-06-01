@@ -62,7 +62,10 @@ Remote Podman uses SSH to communicate between the client and server. The remote 
 ```
 ssh-keygen -t ed25519
 ```
-Your public key by default should be in your home directory under ~/.ssh/id_ed25519.pub. You then need to copy the contents of id_ed25519.pub and append it into  ~/.ssh/authorized_keys on the Linux  server. You can automate this using ssh-copy-id.
+Your public key by default should be in your home directory under ~/.ssh/id_ed25519.pub. You then need to copy the contents of id_ed25519.pub and append it into  ~/.ssh/authorized_keys on the Linux  server. You can automate this using ssh-copy-id:
+```
+ssh-copy-id -i ~/.ssh/id_ed25519.pub 192.168.122.1
+```
 
 If you do not wish to use SSH keys, you will be prompted with each Podman command for your login password.
 
