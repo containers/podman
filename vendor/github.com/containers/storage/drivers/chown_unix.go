@@ -50,7 +50,7 @@ func platformLChown(path string, info os.FileInfo, toHost, toContainer *idtools.
 	}
 	if uid != int(st.Uid) || gid != int(st.Gid) {
 		cap, err := system.Lgetxattr(path, "security.capability")
-		if err != nil && !errors.Is(err, system.EOPNOTSUPP) && err != system.ErrNotSupportedPlatform {
+		if err != nil && !errors.Is(err, system.EOPNOTSUPP) && !errors.Is(err, system.EOVERFLOW) && err != system.ErrNotSupportedPlatform {
 			return fmt.Errorf("%s: %v", os.Args[0], err)
 		}
 
