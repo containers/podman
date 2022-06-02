@@ -81,6 +81,13 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 	for _, tag := range options.AdditionalTags {
 		params.Add("t", tag)
 	}
+	if additionalBuildContexts := options.AdditionalBuildContexts; len(additionalBuildContexts) > 0 {
+		additionalBuildContextMap, err := jsoniter.Marshal(additionalBuildContexts)
+		if err != nil {
+			return nil, err
+		}
+		params.Set("additionalbuildcontexts", string(additionalBuildContextMap))
+	}
 	if buildArgs := options.Args; len(buildArgs) > 0 {
 		bArgs, err := jsoniter.MarshalToString(buildArgs)
 		if err != nil {

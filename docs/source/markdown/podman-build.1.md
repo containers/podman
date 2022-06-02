@@ -99,7 +99,7 @@ different stages in COPY instruction.
 
 Valid values could be:
 
-* Local directory – e.g. --build-context project2=../path/to/project2/src
+* Local directory – e.g. --build-context project2=../path/to/project2/src (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
 * HTTP URL to a tarball – e.g. --build-context src=https://example.org/releases/src.tar
 * Container image – specified with a container-image:// prefix, e.g. --build-context alpine=container-image://alpine:3.15, (also accepts docker://, docker-image://)
 

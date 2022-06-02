@@ -193,21 +193,10 @@ skip_if_remote "volumes don't work with podman-remote" \
                "buildah bud --volume" \
                "buildah-bud-policy"
 
-# Most of this should work in podman remote after API implementation other than where context is host.
 skip_if_remote "--build-context option not implemented in podman-remote" \
-               "build-with-additional-build-context and COPY, test pinning image" \
-               "build-with-additional-build-context and COPY, stagename and additional-context conflict" \
-               "build-with-additional-build-context and COPY, additionalContext and numeric value of stage" \
-               "build-with-additional-build-context and COPY, additionalContext and numeric value of stage" \
                "build-with-additional-build-context and COPY, additional context from host" \
-               "build-with-additional-build-context and COPY, additional context from external URL" \
-               "build-with-additional-build-context and RUN --mount=from=, additional-context is URL and mounted from subdir" \
                "build-with-additional-build-context and RUN --mount=from=, additional-context not image and also test conflict with stagename" \
-               "build-with-additional-build-context and RUN --mount=from=, additional-context and also test conflict with stagename" \
-               "bud-multiple-platform for --all-platform with additional-build-context" \
-               "build-with-additional-build-context and FROM, stagename and additional-context conflict" \
                "bud with Containerfile.in, via envariable" \
-               "build-with-additional-build-context and FROM, pin busybox to alpine"
 
 # Requires a local file outside context dir
 skip_if_remote "local keyfile not sent to podman-remote" \
