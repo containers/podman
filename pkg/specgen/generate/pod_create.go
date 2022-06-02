@@ -141,6 +141,9 @@ func MapSpec(p *specgen.PodSpecGenerator) (*specgen.SpecGenerator, error) {
 	case specgen.Bridge:
 		p.InfraContainerSpec.NetNS.NSMode = specgen.Bridge
 		logrus.Debugf("Pod using bridge network mode")
+	case specgen.Private:
+		p.InfraContainerSpec.NetNS.NSMode = specgen.Private
+		logrus.Debugf("Pod will use default network mode")
 	case specgen.Host:
 		logrus.Debugf("Pod will use host networking")
 		if len(p.InfraContainerSpec.PortMappings) > 0 ||
@@ -151,15 +154,15 @@ func MapSpec(p *specgen.PodSpecGenerator) (*specgen.SpecGenerator, error) {
 		p.InfraContainerSpec.NetNS.NSMode = specgen.Host
 	case specgen.Slirp:
 		logrus.Debugf("Pod will use slirp4netns")
-		if p.InfraContainerSpec.NetNS.NSMode != "host" {
+		if p.InfraContainerSpec.NetNS.NSMode != specgen.Host {
 			p.InfraContainerSpec.NetworkOptions = p.NetworkOptions
-			p.InfraContainerSpec.NetNS.NSMode = specgen.NamespaceMode("slirp4netns")
+			p.InfraContainerSpec.NetNS.NSMode = specgen.Slirp
 		}
 	case specgen.NoNetwork:
 		logrus.Debugf("Pod will not use networking")
 		if len(p.InfraContainerSpec.PortMappings) > 0 ||
 			len(p.InfraContainerSpec.Networks) > 0 ||
-			p.InfraContainerSpec.NetNS.NSMode == "host" {
+			p.InfraContainerSpec.NetNS.NSMode == specgen.Host {
 			return nil, errors.Wrapf(define.ErrInvalidArg, "cannot disable pod network if network-related configuration is specified")
 		}
 		p.InfraContainerSpec.NetNS.NSMode = specgen.NoNetwork

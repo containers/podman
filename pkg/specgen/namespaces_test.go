@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/containers/common/libnetwork/types"
-	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -17,14 +16,6 @@ func parsMacNoErr(mac string) types.HardwareAddr {
 func TestParseNetworkFlag(t *testing.T) {
 	// root and rootless have different defaults
 	defaultNetName := "default"
-	defaultNetworks := map[string]types.PerNetworkOptions{
-		defaultNetName: {},
-	}
-	defaultNsMode := Namespace{NSMode: Bridge}
-	if rootless.IsRootless() {
-		defaultNsMode = Namespace{NSMode: Slirp}
-		defaultNetworks = map[string]types.PerNetworkOptions{}
-	}
 
 	tests := []struct {
 		name     string
@@ -37,26 +28,26 @@ func TestParseNetworkFlag(t *testing.T) {
 		{
 			name:     "empty input",
 			args:     nil,
-			nsmode:   defaultNsMode,
-			networks: defaultNetworks,
+			nsmode:   Namespace{NSMode: Private},
+			networks: map[string]types.PerNetworkOptions{},
 		},
 		{
 			name:     "empty string as input",
 			args:     []string{},
-			nsmode:   defaultNsMode,
-			networks: defaultNetworks,
+			nsmode:   Namespace{NSMode: Private},
+			networks: map[string]types.PerNetworkOptions{},
 		},
 		{
 			name:     "default mode",
 			args:     []string{"default"},
-			nsmode:   defaultNsMode,
-			networks: defaultNetworks,
+			nsmode:   Namespace{NSMode: Private},
+			networks: map[string]types.PerNetworkOptions{},
 		},
 		{
 			name:     "private mode",
 			args:     []string{"private"},
-			nsmode:   defaultNsMode,
-			networks: defaultNetworks,
+			nsmode:   Namespace{NSMode: Private},
+			networks: map[string]types.PerNetworkOptions{},
 		},
 		{
 			name:   "bridge mode",
