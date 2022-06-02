@@ -110,6 +110,6 @@ func load(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println("Loaded image(s): " + strings.Join(response.Names, ","))
+	fmt.Println("Loaded image: " + strings.Join(response.Names, "\nLoaded image: "))
 	return nil
 }
