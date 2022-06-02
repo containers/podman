@@ -12,7 +12,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const sizeWithUnitFormat = "(format: `<number>[<unit>]`, where unit = b (bytes), k (kilobytes), m (megabytes), or g (gigabytes))"
+const sizeWithUnitFormat = "(format: `<number>[<unit>]`, where unit = b (bytes), k (kibibytes), m (mebibytes), or g (gibibytes))"
 
 var containerConfig = registry.PodmanConfig()
 
