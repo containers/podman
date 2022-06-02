@@ -196,6 +196,8 @@ skip_if_remote "volumes don't work with podman-remote" \
 skip_if_remote "--build-context option not implemented in podman-remote" \
                "build-with-additional-build-context and COPY, additional context from host" \
                "build-with-additional-build-context and RUN --mount=from=, additional-context not image and also test conflict with stagename" \
+
+skip_if_remote "env-variable for Containerfile.in pre-processing is not propogated on remote" \
                "bud with Containerfile.in, via envariable" \
 
 # Requires a local file outside context dir
