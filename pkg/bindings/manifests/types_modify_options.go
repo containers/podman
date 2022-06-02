@@ -122,13 +122,13 @@ func (o *ModifyOptions) GetOS() string {
 	return *o.OS
 }
 
-// WithOSFeatures set oS features for the image
+// WithOSFeatures set field OSFeatures to given value
 func (o *ModifyOptions) WithOSFeatures(value []string) *ModifyOptions {
 	o.OSFeatures = value
 	return o
 }
 
-// GetOSFeatures returns value of oS features for the image
+// GetOSFeatures returns value of field OSFeatures
 func (o *ModifyOptions) GetOSFeatures() []string {
 	if o.OSFeatures == nil {
 		var z []string
@@ -137,13 +137,13 @@ func (o *ModifyOptions) GetOSFeatures() []string {
 	return o.OSFeatures
 }
 
-// WithOSVersion set oSVersion overrides the operating system for the image
+// WithOSVersion set field OSVersion to given value
 func (o *ModifyOptions) WithOSVersion(value string) *ModifyOptions {
 	o.OSVersion = &value
 	return o
 }
 
-// GetOSVersion returns value of oSVersion overrides the operating system for the image
+// GetOSVersion returns value of field OSVersion
 func (o *ModifyOptions) GetOSVersion() string {
 	if o.OSVersion == nil {
 		var z string
