@@ -131,7 +131,7 @@ Force removal of the original container that we are cloning. Can only be used in
 
 #### **--memory**, **-m**=*limit*
 
-Memory limit (format: `<number>[<unit>]`, where unit = b (bytes), k (kilobytes), m (megabytes), or g (gigabytes))
+Memory limit (format: `<number>[<unit>]`, where unit = b (bytes), k (kibibytes), m (mebibytes), or g (gibibytes))
 
 Allows the memory available to a container to be constrained. If the host
 supports swap memory, then the **-m** memory setting can be larger than physical
@@ -143,7 +143,7 @@ If no memory limits are specified, the original container's will be used.
 
 #### **--memory-reservation**=*limit*
 
-Memory soft limit (format: `<number>[<unit>]`, where unit = b (bytes), k (kilobytes), m (megabytes), or g (gigabytes))
+Memory soft limit (format: `<number>[<unit>]`, where unit = b (bytes), k (kibibytes), m (mebibytes), or g (gibibytes))
 
 After setting memory reservation, when the system detects memory contention
 or low memory, containers are forced to restrict their consumption to their
@@ -159,7 +159,7 @@ A limit value equal to memory plus swap. Must be used with the  **-m**
 the value of --memory if specified. Otherwise, the container being cloned will be used to derive the swap value.
 
 The format of `LIMIT` is `<number>[<unit>]`. Unit can be `b` (bytes),
-`k` (kilobytes), `m` (megabytes), or `g` (gigabytes). If you don't specify a
+`k` (kibibytes), `m` (mebibytes), or `g` (gibibytes). If you don't specify a
 unit, `b` is used. Set LIMIT to `-1` to enable unlimited swap.
 
 #### **--memory-swappiness**=*number*

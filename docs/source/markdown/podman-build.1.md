@@ -435,8 +435,8 @@ if it does not exist. This option is useful for building multi architecture imag
 
 #### **--memory**, **-m**=*LIMIT*
 
-Memory limit (format: `<number>[<unit>]`, where unit = b (bytes), k (kilobytes),
-m (megabytes), or g (gigabytes))
+Memory limit (format: `<number>[<unit>]`, where unit = b (bytes), k (kibibytes),
+m (mebibytes), or g (gibibytes))
 
 Allows you to constrain the memory available to a container. If the host
 supports swap memory, then the **-m** memory setting can be larger than physical
@@ -453,7 +453,7 @@ A limit value equal to memory plus swap. Must be used with the  **-m**
 the value of --memory.
 
 The format of `LIMIT` is `<number>[<unit>]`. Unit can be `b` (bytes),
-`k` (kilobytes), `m` (megabytes), or `g` (gigabytes). If you don't specify a
+`k` (kibibytes), `m` (mebibytes), or `g` (gibibytes). If you don't specify a
 unit, `b` is used. Set LIMIT to `-1` to enable unlimited swap.
 
 #### **--network**=*mode*, **--net**
@@ -631,8 +631,8 @@ as a seccomp filter
 
 Size of `/dev/shm`. The format is `<number><unit>`. `number` must be greater
 than `0`.
-Unit is optional and can be `b` (bytes), `k` (kilobytes), `m`(megabytes), or
-`g` (gigabytes). If you omit the unit, the system uses bytes. If you omit the
+Unit is optional and can be `b` (bytes), `k` (kibibytes), `m`(mebibytes), or
+`g` (gibibytes). If you omit the unit, the system uses bytes. If you omit the
 size entirely, the system uses `64m`.
 
 #### **--sign-by**=*fingerprint*

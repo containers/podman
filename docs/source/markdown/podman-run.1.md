@@ -597,7 +597,7 @@ To specify multiple static MAC addresses per container, set multiple networks us
 
 #### **--memory**, **-m**=_number_[_unit_]
 
-Memory limit. A _unit_ can be **b** (bytes), **k** (kilobytes), **m** (megabytes), or **g** (gigabytes).
+Memory limit. A _unit_ can be **b** (bytes), **k** (kibibytes), **m** (mebibytes), or **g** (gibibytes).
 
 Allows you to constrain the memory available to a container. If the host
 supports swap memory, then the **-m** memory setting can be larger than physical
@@ -607,7 +607,7 @@ system's page size (the value would be very large, that's millions of trillions)
 
 #### **--memory-reservation**=_number_[_unit_]
 
-Memory soft limit. A _unit_ can be **b** (bytes), **k** (kilobytes), **m** (megabytes), or **g** (gigabytes).
+Memory soft limit. A _unit_ can be **b** (bytes), **k** (kibibytes), **m** (mebibytes), or **g** (gibibytes).
 
 After setting memory reservation, when the system detects memory contention
 or low memory, containers are forced to restrict their consumption to their
@@ -618,7 +618,7 @@ as memory limit.
 #### **--memory-swap**=_number_[_unit_]
 
 A limit value equal to memory plus swap.
-A _unit_ can be **b** (bytes), **k** (kilobytes), **m** (megabytes), or **g** (gigabytes).
+A _unit_ can be **b** (bytes), **k** (kibibytes), **m** (mebibytes), or **g** (gibibytes).
 
 Must be used with the **-m** (**--memory**) flag.
 The argument value should always be larger than that of
@@ -1058,7 +1058,7 @@ Note: Labeling can be disabled for all containers by setting **label=false** in 
 
 #### **--shm-size**=_number_[_unit_]
 
-Size of _/dev/shm_. A _unit_ can be **b** (bytes), **k** (kilobytes), **m** (megabytes), or **g** (gigabytes).
+Size of _/dev/shm_. A _unit_ can be **b** (bytes), **k** (kibibytes), **m** (mebibytes), or **g** (gibibytes).
 If you omit the unit, the system uses bytes. If you omit the size entirely, the default is **64m**.
 When _size_ is **0**, there is no limit on the amount of memory used for IPC by the container.
 
