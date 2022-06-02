@@ -85,6 +85,14 @@ func (ms *machineSession) outputToString() string {
 	return strings.Join(fields, " ")
 }
 
+// errorToString returns the error output from a session in string form
+func (ms *machineSession) errorToString() string {
+	if ms == nil || ms.Err == nil || ms.Err.Contents() == nil {
+		return ""
+	}
+	return string(ms.Err.Contents())
+}
+
 // newMB constructor for machine test builders
 func newMB() (*machineTestBuilder, error) {
 	mb := machineTestBuilder{

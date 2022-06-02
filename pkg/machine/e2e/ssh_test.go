@@ -56,5 +56,12 @@ var _ = Describe("podman machine ssh", func() {
 		Expect(err).To(BeNil())
 		Expect(sshSession).To(Exit(0))
 		Expect(sshSession.outputToString()).To(ContainSubstring("Fedora CoreOS"))
+
+		// keep exit code
+		sshSession, err = mb.setName(name).setCmd(ssh.withSSHComand([]string{"false"})).run()
+		Expect(err).To(BeNil())
+		Expect(sshSession).To(Exit(1))
+		Expect(sshSession.outputToString()).To(Equal(""))
+		Expect(sshSession.errorToString()).To(Equal(""))
 	})
 })

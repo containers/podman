@@ -9,9 +9,9 @@ import (
 	"os"
 	"os/signal"
 	"sync"
+	"syscall"
 
 	"github.com/containers/common/pkg/cgroups"
-	"github.com/containers/podman/v4/cmd/podman/utils"
 	"github.com/containers/podman/v4/libpod"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/namespaces"
@@ -375,7 +375,7 @@ func ParseIDMapping(mode namespaces.UsernsMode, uidMapSlice, gidMapSlice []strin
 func StartWatcher(rt *libpod.Runtime) {
 	// Setup the signal notifier
 	ch := make(chan os.Signal, 1)
-	signal.Notify(ch, utils.SIGHUP)
+	signal.Notify(ch, syscall.SIGHUP)
 
 	go func() {
 		for {
