@@ -18,20 +18,5 @@ func validate(c *entities.ContainerCreateOptions) error {
 		return err
 	}
 
-	var imageVolType = map[string]string{
-		"bind":   "",
-		"tmpfs":  "",
-		"ignore": "",
-	}
-	if _, ok := imageVolType[c.ImageVolume]; !ok {
-		switch {
-		case c.IsInfra:
-			c.ImageVolume = "bind"
-		case c.IsClone: // the image volume type will be deduced later from the container we are cloning
-			return nil
-		default:
-			return errors.Errorf("invalid image-volume type %q. Pick one of bind, tmpfs, or ignore", c.ImageVolume)
-		}
-	}
-	return nil
+	return config.ValidateImageVolumeMode(c.ImageVolume)
 }
