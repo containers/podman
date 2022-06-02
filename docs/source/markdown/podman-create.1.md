@@ -824,22 +824,27 @@ container.
 
 Rootless containers cannot have more privileges than the account that launched them.
 
-#### **--publish**, **-p**=*port*
+#### **--publish**, **-p**=[[_ip_:][_hostPort_]:]_containerPort_[/_protocol_]
 
-Publish a container's port, or range of ports, to the host
+Publish a container's port, or range of ports, to the host.
 
-Format: `ip:hostPort:containerPort | ip::containerPort | hostPort:containerPort | containerPort`
 Both hostPort and containerPort can be specified as a range of ports.
-When specifying ranges for both, the number of container ports in the range must match the number of host ports in the range.
-(e.g., `podman run -p 1234-1236:1222-1224 --name thisWorks -t busybox`
-but not `podman run -p 1230-1236:1230-1240 --name RangeContainerPortsBiggerThanRangeHostPorts -t busybox`)
-With host IP: `podman run -p 127.0.0.1:$HOSTPORT:$CONTAINERPORT --name CONTAINER -t someimage`
+When specifying ranges for both, the number of container ports in the
+range must match the number of host ports in the range.
+
 If host IP is set to 0.0.0.0 or not set at all, the port will be bound on all IPs on the host.
+
+By default, Podman will publish TCP ports. To publish a UDP port instead, give
+`udp` as protocol. To publish both TCP and UDP ports, set `--publish` twice,
+with `tcp`, and `udp` as protocols respectively. Rootful containers can also
+publish ports using the `sctp` protocol.
+
 Host port does not have to be specified (e.g. `podman run -p 127.0.0.1::80`).
 If it is not, the container port will be randomly assigned a port on the host.
-Use `podman port` to see the actual mapping: `podman port CONTAINER $CONTAINERPORT`
 
-**Note:** if a container will be run within a pod, it is not necessary to publish the port for
+Use **podman port** to see the actual mapping: `podman port $CONTAINER $CONTAINERPORT`.
+
+**Note:** If a container will be run within a pod, it is not necessary to publish the port for
 the containers in the pod. The port must only be published by the pod itself. Pod network
 stacks act like the network stack on the host - you have a variety of containers in the pod,
 and programs in the container, all sharing a single interface and IP address, and
