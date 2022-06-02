@@ -33,7 +33,7 @@ Suppress the output
 
 ```
 $ podman image scp alpine
-Loaded image(s): docker.io/library/alpine:latest
+Loaded image: docker.io/library/alpine:latest
 ```
 
 ```
@@ -43,12 +43,12 @@ Copying blob 72e830a4dff5 done
 Copying config 85f9dc67c7 done
 Writing manifest to image destination
 Storing signatures
-Loaded image(s): docker.io/library/alpine:latest
+Loaded image: docker.io/library/alpine:latest
 ```
 
 ```
 $ podman image scp Fedora::alpine RHEL::
-Loaded image(s): docker.io/library/alpine:latest
+Loaded image: docker.io/library/alpine:latest
 ```
 
 ```
@@ -59,7 +59,7 @@ Copying blob 9450ef9feb15 [--------------------------------------] 0.0b / 0.0b
 Copying config 1f97f0559c done
 Writing manifest to image destination
 Storing signatures
-Loaded image(s): docker.io/library/alpine:latest
+Loaded image: docker.io/library/alpine:latest
 ```
 
 ```
@@ -73,7 +73,7 @@ Copying blob 5eb901baf107 skipped: already exists
 Copying config 696d33ca15 done
 Writing manifest to image destination
 Storing signatures
-Loaded image(s): docker.io/library/alpine:latest
+Loaded image: docker.io/library/alpine:latest
 ```
 
 ```
@@ -87,7 +87,7 @@ Copying blob 5eb901baf107
 Copying config 696d33ca15 done
 Writing manifest to image destination
 Storing signatures
-Loaded image(s): docker.io/library/alpine:latest
+Loaded image: docker.io/library/alpine:latest
 ```
 
 ## SEE ALSO
