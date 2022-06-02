@@ -10,6 +10,9 @@ const (
 
 	// Operation not supported
 	EOPNOTSUPP syscall.Errno = syscall.Errno(0)
+
+	// Value is too small or too large for maximum size allowed
+	EOVERFLOW syscall.Errno = syscall.Errno(0)
 )
 
 // Lgetxattr is not supported on platforms other than linux.
