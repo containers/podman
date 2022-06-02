@@ -96,6 +96,10 @@ type Runtime struct {
 	// This bool is just needed so that we can set it for netavark interface.
 	syslog bool
 
+	// doReset indicates that the runtime should perform a system reset.
+	// All Podman files will be removed.
+	doReset bool
+
 	// doRenumber indicates that the runtime should perform a lock renumber
 	// during initialization.
 	// Once the runtime has been initialized and returned, this variable is
@@ -235,6 +239,11 @@ func newRuntimeFromConfig(conf *config.Config, options ...RuntimeOption) (*Runti
 
 	runtime.config.CheckCgroupsAndAdjustConfig()
 
+	// If resetting storage, do *not* return a runtime.
+	if runtime.doReset {
+		return nil, nil
+	}
+
 	return runtime, nil
 }
 
@@ -305,6 +314,13 @@ func makeRuntime(runtime *Runtime) (retErr error) {
 	}
 	runtime.conmonPath = cPath
 
+	if runtime.noStore && runtime.doReset {
+		return errors.Wrapf(define.ErrInvalidArg, "cannot perform system reset if runtime is not creating a store")
+	}
+	if runtime.doReset && runtime.doRenumber {
+		return errors.Wrapf(define.ErrInvalidArg, "cannot perform system reset while renumbering locks")
+	}
+
 	// Make the static files directory if it does not exist
 	if err := os.MkdirAll(runtime.config.Engine.StaticDir, 0700); err != nil {
 		// The directory is allowed to exist
@@ -339,6 +355,20 @@ func makeRuntime(runtime *Runtime) (retErr error) {
 	// Grab config from the database so we can reset some defaults
 	dbConfig, err := runtime.state.GetDBConfig()
 	if err != nil {
+		if runtime.doReset {
+			// We can at least delete the DB and the static files
+			// directory.
+			// Can't safely touch anything else because we aren't
+			// sure of other directories.
+			if err := runtime.state.Close(); err != nil {
+				logrus.Errorf("Closing database connection: %v", err)
+			} else {
+				if err := os.RemoveAll(runtime.config.Engine.StaticDir); err != nil {
+					logrus.Errorf("Removing static files directory %v: %v", runtime.config.Engine.StaticDir, err)
+				}
+			}
+		}
+
 		return errors.Wrapf(err, "error retrieving runtime configuration from database")
 	}
 
@@ -372,7 +402,13 @@ func makeRuntime(runtime *Runtime) (retErr error) {
 	// Validate our config against the database, now that we've set our
 	// final storage configuration
 	if err := runtime.state.ValidateDBConfig(runtime); err != nil {
-		return err
+		// If we are performing a storage reset: continue on with a
+		// warning. Otherwise we can't `system reset` after a change to
+		// the core paths.
+		if !runtime.doReset {
+			return err
+		}
+		logrus.Errorf("Runtime paths differ from those stored in database, storage reset may not remove all files")
 	}
 
 	if err := runtime.state.SetNamespace(runtime.config.Engine.Namespace); err != nil {
@@ -394,6 +430,14 @@ func makeRuntime(runtime *Runtime) (retErr error) {
 	} else if runtime.noStore {
 		logrus.Debug("No store required. Not opening container store.")
 	} else if err := runtime.configureStore(); err != nil {
+		// Make a best-effort attempt to clean up if performing a
+		// storage reset.
+		if runtime.doReset {
+			if err := runtime.removeAllDirs(); err != nil {
+				logrus.Errorf("Removing libpod directories: %v", err)
+			}
+		}
+
 		return err
 	}
 	defer func() {
@@ -573,6 +617,18 @@ func makeRuntime(runtime *Runtime) (retErr error) {
 	runtime.lockManager, err = getLockManager(runtime)
 	if err != nil {
 		return err
+	}
+
+	// If we're resetting storage, do it now.
+	// We will not return a valid runtime.
+	// TODO: Plumb this context out so it can be set.
+	if runtime.doReset {
+		// Mark the runtime as valid, so normal functionality "mostly"
+		// works and we can use regular functions to remove
+		// ctrs/pods/etc
+		runtime.valid = true
+
+		return runtime.reset(context.Background())
 	}
 
 	// If we're renumbering locks, do it now.
@@ -818,7 +874,7 @@ func (r *Runtime) DeferredShutdown(force bool) {
 // still containers running or mounted
 func (r *Runtime) Shutdown(force bool) error {
 	if !r.valid {
-		return define.ErrRuntimeStopped
+		return nil
 	}
 
 	if r.workerChannel != nil {

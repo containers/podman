@@ -53,7 +53,7 @@ func NewSystemEngine(setup entities.EngineSetup, facts *entities.PodmanConfig) (
 		case entities.RenumberMode:
 			r, err = GetRuntimeRenumber(context.Background(), facts.FlagSet, facts)
 		case entities.ResetMode:
-			r, err = GetRuntimeRenumber(context.Background(), facts.FlagSet, facts)
+			r, err = GetRuntimeReset(context.Background(), facts.FlagSet, facts)
 		case entities.MigrateMode:
 			name, flagErr := facts.FlagSet.GetString("new-runtime")
 			if flagErr != nil {

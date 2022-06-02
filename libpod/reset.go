@@ -17,8 +17,78 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// removeAllDirs removes all Podman storage directories. It is intended to be
+// used as a backup for reset() when that function cannot be used due to
+// failures in initializing libpod.
+// It does not expect that all the directories match what is in use by Podman,
+// as this is a common failure point for `system reset`. As such, our ability to
+// interface with containers and pods is somewhat limited.
+// This function assumes that we do not have a working c/storage store.
+func (r *Runtime) removeAllDirs() error {
+	var lastErr error
+
+	// Grab the runtime alive lock.
+	// This ensures that no other Podman process can run while we are doing
+	// a reset, so no race conditions with containers/pods/etc being created
+	// while we are resetting storage.
+	// TODO: maybe want a helper for getting the path? This is duped from
+	// runtime.go
+	runtimeAliveLock := filepath.Join(r.config.Engine.TmpDir, "alive.lck")
+	aliveLock, err := storage.GetLockfile(runtimeAliveLock)
+	if err != nil {
+		logrus.Errorf("Lock runtime alive lock %s: %v", runtimeAliveLock, err)
+	} else {
+		aliveLock.Lock()
+		defer aliveLock.Unlock()
+	}
+
+	// We do not have a store - so we can't really try and remove containers
+	// or pods or volumes...
+	// Try and remove the directories, in hopes that they are unmounted.
+	// This is likely to fail but it's the best we can do.
+
+	// Volume path
+	if err := os.RemoveAll(r.config.Engine.VolumePath); err != nil {
+		lastErr = errors.Wrapf(err, "removing volume path")
+	}
+
+	// Tmpdir
+	if err := os.RemoveAll(r.config.Engine.TmpDir); err != nil {
+		if lastErr != nil {
+			logrus.Errorf("Reset: %v", lastErr)
+		}
+		lastErr = errors.Wrapf(err, "removing tmp dir")
+	}
+
+	// Runroot
+	if err := os.RemoveAll(r.storageConfig.RunRoot); err != nil {
+		if lastErr != nil {
+			logrus.Errorf("Reset: %v", lastErr)
+		}
+		lastErr = errors.Wrapf(err, "removing run root")
+	}
+
+	// Static dir
+	if err := os.RemoveAll(r.config.Engine.StaticDir); err != nil {
+		if lastErr != nil {
+			logrus.Errorf("Reset: %v", lastErr)
+		}
+		lastErr = errors.Wrapf(err, "removing static dir")
+	}
+
+	// Graph root
+	if err := os.RemoveAll(r.storageConfig.GraphRoot); err != nil {
+		if lastErr != nil {
+			logrus.Errorf("Reset: %v", lastErr)
+		}
+		lastErr = errors.Wrapf(err, "removing graph root")
+	}
+
+	return lastErr
+}
+
 // Reset removes all storage
-func (r *Runtime) Reset(ctx context.Context) error {
+func (r *Runtime) reset(ctx context.Context) error {
 	var timeout *uint
 	pods, err := r.GetAllPods()
 	if err != nil {
