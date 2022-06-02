@@ -85,7 +85,7 @@ func (s *APIServer) registerManifestHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/manifestNotFound"
 	//   500:
 	//     $ref: "#/responses/internalError"
-	v4.Handle("/{name:.*}/registry/{destination:.*}", s.APIHandler(libpod.ManifestPush)).Methods(http.MethodPost)
+	v4.Handle("/{name}/registry/{destination}", s.APIHandler(libpod.ManifestPush)).Methods(http.MethodPost)
 	// swagger:operation POST /libpod/manifests manifests ManifestCreateLibpod
 	// ---
 	// summary: Create
@@ -129,7 +129,7 @@ func (s *APIServer) registerManifestHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/internalError"
 	v3.Handle("/create", s.APIHandler(libpod.ManifestCreate)).Methods(http.MethodPost)
-	v4.Handle("/{name:.*}", s.APIHandler(libpod.ManifestCreate)).Methods(http.MethodPost)
+	v4.Handle("/{name}", s.APIHandler(libpod.ManifestCreate)).Methods(http.MethodPost)
 	// swagger:operation GET /libpod/manifests/{name}/exists manifests ManifestExistsLibpod
 	// ---
 	// summary: Exists
@@ -152,8 +152,8 @@ func (s *APIServer) registerManifestHandlers(r *mux.Router) error {
 	//     $ref: '#/responses/manifestNotFound'
 	//   500:
 	//     $ref: '#/responses/internalError'
-	v3.Handle("/{name:.*}/exists", s.APIHandler(libpod.ManifestExists)).Methods(http.MethodGet)
-	v4.Handle("/{name:.*}/exists", s.APIHandler(libpod.ManifestExists)).Methods(http.MethodGet)
+	v3.Handle("/{name}/exists", s.APIHandler(libpod.ManifestExists)).Methods(http.MethodGet)
+	v4.Handle("/{name}/exists", s.APIHandler(libpod.ManifestExists)).Methods(http.MethodGet)
 	// swagger:operation GET /libpod/manifests/{name}/json manifests ManifestInspectLibpod
 	// ---
 	// summary: Inspect
@@ -173,8 +173,8 @@ func (s *APIServer) registerManifestHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/manifestNotFound"
 	//   500:
 	//     $ref: "#/responses/internalError"
-	v3.Handle("/{name:.*}/json", s.APIHandler(libpod.ManifestInspect)).Methods(http.MethodGet)
-	v4.Handle("/{name:.*}/json", s.APIHandler(libpod.ManifestInspect)).Methods(http.MethodGet)
+	v3.Handle("/{name}/json", s.APIHandler(libpod.ManifestInspect)).Methods(http.MethodGet)
+	v4.Handle("/{name}/json", s.APIHandler(libpod.ManifestInspect)).Methods(http.MethodGet)
 	// swagger:operation PUT /libpod/manifests/{name} manifests ManifestModifyLibpod
 	// ---
 	// summary: Modify manifest list
@@ -217,7 +217,7 @@ func (s *APIServer) registerManifestHandlers(r *mux.Router) error {
 	//       $ref: "#/definitions/ManifestModifyReport"
 	//   500:
 	//     $ref: "#/responses/internalError"
-	v4.Handle("/{name:.*}", s.APIHandler(libpod.ManifestModify)).Methods(http.MethodPut)
+	v4.Handle("/{name}", s.APIHandler(libpod.ManifestModify)).Methods(http.MethodPut)
 	// swagger:operation POST /libpod/manifests/{name}/add manifests ManifestAddLibpod
 	// ---
 	// summary: Add image
@@ -248,7 +248,7 @@ func (s *APIServer) registerManifestHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/badParamError"
 	//   500:
 	//     $ref: "#/responses/internalError"
-	v3.Handle("/{name:.*}/add", s.APIHandler(libpod.ManifestAddV3)).Methods(http.MethodPost)
+	v3.Handle("/{name}/add", s.APIHandler(libpod.ManifestAddV3)).Methods(http.MethodPost)
 	// swagger:operation DELETE /libpod/manifests/{name} manifests ManifestDeleteV3Libpod
 	// ---
 	// summary: Remove image from a manifest list
@@ -278,7 +278,7 @@ func (s *APIServer) registerManifestHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/manifestNotFound"
 	//   500:
 	//     $ref: "#/responses/internalError"
-	v3.Handle("/{name:.*}", s.APIHandler(libpod.ManifestRemoveDigestV3)).Methods(http.MethodDelete)
+	v3.Handle("/{name}", s.APIHandler(libpod.ManifestRemoveDigestV3)).Methods(http.MethodDelete)
 	// swagger:operation DELETE /libpod/manifests/{name} manifests ManifestDeleteLibpod
 	// ---
 	// summary: Delete manifest list
@@ -301,6 +301,6 @@ func (s *APIServer) registerManifestHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/manifestNotFound"
 	//   500:
 	//     $ref: "#/responses/internalError"
-	v4.Handle("/{name:.*}", s.APIHandler(libpod.ManifestDelete)).Methods(http.MethodDelete)
+	v4.Handle("/{name}", s.APIHandler(libpod.ManifestDelete)).Methods(http.MethodDelete)
 	return nil
 }

@@ -31,6 +31,6 @@ func (s *APIServer) registerHealthCheckHandlers(r *mux.Router) error {
 	//     description: container has no healthcheck or is not running
 	//   500:
 	//     $ref: '#/responses/internalError'
-	r.Handle(VersionedPath("/libpod/containers/{name:.*}/healthcheck"), s.APIHandler(libpod.RunHealthCheck)).Methods(http.MethodGet)
+	r.Handle(VersionedPath("/libpod/containers/{name}/healthcheck"), s.APIHandler(libpod.RunHealthCheck)).Methods(http.MethodGet)
 	return nil
 }

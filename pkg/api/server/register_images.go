@@ -241,9 +241,9 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//     $ref: '#/responses/conflictError'
 	//   500:
 	//     $ref: '#/responses/internalError'
-	r.Handle(VersionedPath("/images/{name:.*}"), s.APIHandler(compat.RemoveImage)).Methods(http.MethodDelete)
+	r.Handle(VersionedPath("/images/{name}"), s.APIHandler(compat.RemoveImage)).Methods(http.MethodDelete)
 	// Added non version path to URI to support docker non versioned paths
-	r.Handle("/images/{name:.*}", s.APIHandler(compat.RemoveImage)).Methods(http.MethodDelete)
+	r.Handle("/images/{name}", s.APIHandler(compat.RemoveImage)).Methods(http.MethodDelete)
 	// swagger:operation POST /images/{name}/push compat ImagePush
 	// ---
 	// tags:
@@ -288,9 +288,9 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//     $ref: '#/responses/imageNotFound'
 	//   500:
 	//     $ref: '#/responses/internalError'
-	r.Handle(VersionedPath("/images/{name:.*}/push"), s.APIHandler(compat.PushImage)).Methods(http.MethodPost)
+	r.Handle(VersionedPath("/images/{name}/push"), s.APIHandler(compat.PushImage)).Methods(http.MethodPost)
 	// Added non version path to URI to support docker non versioned paths
-	r.Handle("/images/{name:.*}/push", s.APIHandler(compat.PushImage)).Methods(http.MethodPost)
+	r.Handle("/images/{name}/push", s.APIHandler(compat.PushImage)).Methods(http.MethodPost)
 	// swagger:operation GET /images/{name}/get compat ImageGet
 	// ---
 	// tags:
@@ -313,9 +313,9 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//      format: binary
 	//   500:
 	//     $ref: '#/responses/internalError'
-	r.Handle(VersionedPath("/images/{name:.*}/get"), s.APIHandler(compat.ExportImage)).Methods(http.MethodGet)
+	r.Handle(VersionedPath("/images/{name}/get"), s.APIHandler(compat.ExportImage)).Methods(http.MethodGet)
 	// Added non version path to URI to support docker non versioned paths
-	r.Handle("/images/{name:.*}/get", s.APIHandler(compat.ExportImage)).Methods(http.MethodGet)
+	r.Handle("/images/{name}/get", s.APIHandler(compat.ExportImage)).Methods(http.MethodGet)
 	// swagger:operation GET /images/get compat ImageGetAll
 	// ---
 	// tags:
@@ -362,9 +362,9 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/imageNotFound"
 	//   500:
 	//     $ref: "#/responses/internalError"
-	r.Handle(VersionedPath("/images/{name:.*}/history"), s.APIHandler(compat.HistoryImage)).Methods(http.MethodGet)
+	r.Handle(VersionedPath("/images/{name}/history"), s.APIHandler(compat.HistoryImage)).Methods(http.MethodGet)
 	// Added non version path to URI to support docker non versioned paths
-	r.Handle("/images/{name:.*}/history", s.APIHandler(compat.HistoryImage)).Methods(http.MethodGet)
+	r.Handle("/images/{name}/history", s.APIHandler(compat.HistoryImage)).Methods(http.MethodGet)
 	// swagger:operation GET /images/{name}/json compat ImageInspect
 	// ---
 	// tags:
@@ -386,9 +386,9 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/imageNotFound"
 	//   500:
 	//     $ref: "#/responses/internalError"
-	r.Handle(VersionedPath("/images/{name:.*}/json"), s.APIHandler(compat.GetImage)).Methods(http.MethodGet)
+	r.Handle(VersionedPath("/images/{name}/json"), s.APIHandler(compat.GetImage)).Methods(http.MethodGet)
 	// Added non version path to URI to support docker non versioned paths
-	r.Handle("/images/{name:.*}/json", s.APIHandler(compat.GetImage)).Methods(http.MethodGet)
+	r.Handle("/images/{name}/json", s.APIHandler(compat.GetImage)).Methods(http.MethodGet)
 	// swagger:operation POST /images/{name}/tag compat ImageTag
 	// ---
 	// tags:
@@ -422,9 +422,9 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//     $ref: '#/responses/conflictError'
 	//   500:
 	//     $ref: '#/responses/internalError'
-	r.Handle(VersionedPath("/images/{name:.*}/tag"), s.APIHandler(compat.TagImage)).Methods(http.MethodPost)
+	r.Handle(VersionedPath("/images/{name}/tag"), s.APIHandler(compat.TagImage)).Methods(http.MethodPost)
 	// Added non version path to URI to support docker non versioned paths
-	r.Handle("/images/{name:.*}/tag", s.APIHandler(compat.TagImage)).Methods(http.MethodPost)
+	r.Handle("/images/{name}/tag", s.APIHandler(compat.TagImage)).Methods(http.MethodPost)
 	// swagger:operation POST /commit compat ImageCommit
 	// ---
 	// tags:
@@ -746,7 +746,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//     $ref: '#/responses/imageNotFound'
 	//   500:
 	//     $ref: '#/responses/internalError'
-	r.Handle(VersionedPath("/libpod/images/{name:.*}/push"), s.APIHandler(libpod.PushImage)).Methods(http.MethodPost)
+	r.Handle(VersionedPath("/libpod/images/{name}/push"), s.APIHandler(libpod.PushImage)).Methods(http.MethodPost)
 	// swagger:operation GET /libpod/images/{name}/exists libpod ImageExistsLibpod
 	// ---
 	// tags:
@@ -768,7 +768,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//     $ref: '#/responses/imageNotFound'
 	//   500:
 	//     $ref: '#/responses/internalError'
-	r.Handle(VersionedPath("/libpod/images/{name:.*}/exists"), s.APIHandler(libpod.ImageExists)).Methods(http.MethodGet)
+	r.Handle(VersionedPath("/libpod/images/{name}/exists"), s.APIHandler(libpod.ImageExists)).Methods(http.MethodGet)
 	// swagger:operation GET /libpod/images/{name}/tree libpod ImageTreeLibpod
 	// ---
 	// tags:
@@ -794,7 +794,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//     $ref: '#/responses/imageNotFound'
 	//   500:
 	//     $ref: '#/responses/internalError'
-	r.Handle(VersionedPath("/libpod/images/{name:.*}/tree"), s.APIHandler(libpod.ImageTree)).Methods(http.MethodGet)
+	r.Handle(VersionedPath("/libpod/images/{name}/tree"), s.APIHandler(libpod.ImageTree)).Methods(http.MethodGet)
 	// swagger:operation GET /libpod/images/{name}/history libpod ImageHistoryLibpod
 	// ---
 	// tags:
@@ -816,7 +816,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//     $ref: '#/responses/imageNotFound'
 	//   500:
 	//     $ref: '#/responses/internalError'
-	r.Handle(VersionedPath("/libpod/images/{name:.*}/history"), s.APIHandler(compat.HistoryImage)).Methods(http.MethodGet)
+	r.Handle(VersionedPath("/libpod/images/{name}/history"), s.APIHandler(compat.HistoryImage)).Methods(http.MethodGet)
 	// swagger:operation GET /libpod/images/json libpod ImageListLibpod
 	// ---
 	// tags:
@@ -987,7 +987,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//     $ref: '#/responses/conflictError'
 	//   500:
 	//     $ref: '#/responses/internalError'
-	r.Handle(VersionedPath("/libpod/images/{name:.*}"), s.APIHandler(libpod.ImagesRemove)).Methods(http.MethodDelete)
+	r.Handle(VersionedPath("/libpod/images/{name}"), s.APIHandler(libpod.ImagesRemove)).Methods(http.MethodDelete)
 	// swagger:operation POST /libpod/images/pull libpod ImagePullLibpod
 	// ---
 	// tags:
@@ -1158,7 +1158,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//     $ref: '#/responses/imageNotFound'
 	//   500:
 	//     $ref: '#/responses/internalError'
-	r.Handle(VersionedPath("/libpod/images/{name:.*}/get"), s.APIHandler(libpod.ExportImage)).Methods(http.MethodGet)
+	r.Handle(VersionedPath("/libpod/images/{name}/get"), s.APIHandler(libpod.ExportImage)).Methods(http.MethodGet)
 	// swagger:operation GET /libpod/images/export libpod ImageExportLibpod
 	// ---
 	// tags:
@@ -1218,7 +1218,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//     $ref: '#/responses/imageNotFound'
 	//   500:
 	//     $ref: '#/responses/internalError'
-	r.Handle(VersionedPath("/libpod/images/{name:.*}/json"), s.APIHandler(libpod.GetImage)).Methods(http.MethodGet)
+	r.Handle(VersionedPath("/libpod/images/{name}/json"), s.APIHandler(libpod.GetImage)).Methods(http.MethodGet)
 	// swagger:operation POST /libpod/images/{name}/tag libpod ImageTagLibpod
 	// ---
 	// tags:
@@ -1252,7 +1252,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//     $ref: '#/responses/conflictError'
 	//   500:
 	//     $ref: '#/responses/internalError'
-	r.Handle(VersionedPath("/libpod/images/{name:.*}/tag"), s.APIHandler(compat.TagImage)).Methods(http.MethodPost)
+	r.Handle(VersionedPath("/libpod/images/{name}/tag"), s.APIHandler(compat.TagImage)).Methods(http.MethodPost)
 	// swagger:operation POST /libpod/commit libpod ImageCommitLibpod
 	// ---
 	// tags:
@@ -1338,7 +1338,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//     $ref: '#/responses/conflictError'
 	//   500:
 	//     $ref: '#/responses/internalError'
-	r.Handle(VersionedPath("/libpod/images/{name:.*}/untag"), s.APIHandler(libpod.UntagImage)).Methods(http.MethodPost)
+	r.Handle(VersionedPath("/libpod/images/{name}/untag"), s.APIHandler(libpod.UntagImage)).Methods(http.MethodPost)
 
 	// swagger:operation GET /libpod/images/{name}/changes libpod ImageChangesLibpod
 	// ---

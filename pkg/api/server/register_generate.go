@@ -104,7 +104,7 @@ func (s *APIServer) registerGenerateHandlers(r *mux.Router) error {
 	//         type: string
 	//   500:
 	//     $ref: "#/responses/internalError"
-	r.HandleFunc(VersionedPath("/libpod/generate/{name:.*}/systemd"), s.APIHandler(libpod.GenerateSystemd)).Methods(http.MethodGet)
+	r.HandleFunc(VersionedPath("/libpod/generate/{name}/systemd"), s.APIHandler(libpod.GenerateSystemd)).Methods(http.MethodGet)
 
 	// swagger:operation GET /libpod/generate/kube libpod GenerateKubeLibpod
 	// ---
