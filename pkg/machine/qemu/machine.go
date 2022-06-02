@@ -1471,16 +1471,22 @@ func (v *MachineVM) Inspect() (*machine.InspectInfo, error) {
 	if err != nil {
 		return nil, err
 	}
-
+	connInfo := new(machine.ConnectionConfig)
+	podmanSocket, err := v.forwardSocketPath()
+	if err != nil {
+		return nil, err
+	}
+	connInfo.PodmanSocket = podmanSocket
 	return &machine.InspectInfo{
-		ConfigPath: v.ConfigPath,
-		Created:    v.Created,
-		Image:      v.ImageConfig,
-		LastUp:     v.LastUp,
-		Name:       v.Name,
-		Resources:  v.ResourceConfig,
-		SSHConfig:  v.SSHConfig,
-		State:      state,
+		ConfigPath:     v.ConfigPath,
+		ConnectionInfo: *connInfo,
+		Created:        v.Created,
+		Image:          v.ImageConfig,
+		LastUp:         v.LastUp,
+		Name:           v.Name,
+		Resources:      v.ResourceConfig,
+		SSHConfig:      v.SSHConfig,
+		State:          state,
 	}, nil
 }
 
