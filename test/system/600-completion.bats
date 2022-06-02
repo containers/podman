@@ -8,6 +8,16 @@
 
 load helpers
 
+function setup() {
+    # $PODMAN may be a space-separated string, e.g. if we include a --url.
+    local -a podman_as_array=($PODMAN)
+    # __completeNoDesc must be the first arg if we running the completion cmd
+    # set the var for the run_completion function
+    PODMAN_COMPLETION="${podman_as_array[0]} __completeNoDesc ${podman_as_array[@]:1}"
+
+    basic_setup
+}
+
 # Returns true if we are able to podman-pause
 function _can_pause() {
     # Even though we're just trying completion, not an actual unpause,
@@ -88,8 +98,14 @@ function check_shell_completion() {
                         continue 2
                     fi
 
+                    name=$random_container_name
+                    # special case podman cp suggest containers names with a colon
+                    if [[ $cmd = "cp" ]]; then
+                        name="$name:"
+                    fi
+
                     run_completion "$@" $cmd "${extra_args[@]}" ""
-                    is "$output" ".*-$random_container_name${nl}" \
+                    is "$output" ".*-$name${nl}" \
                        "$* $cmd: actual container listed in suggestions"
 
                     match=true
@@ -175,7 +191,7 @@ function check_shell_completion() {
                         _check_completion_end NoSpace
                     else
                         _check_completion_end Default
-                        assert "${#lines[@]}" -eq 2 "$* $cmd: Suggestions are in the output"
+                        _check_no_suggestions
                     fi
                     ;;
 
@@ -205,16 +221,7 @@ function check_shell_completion() {
         if [[ ! ${args##* } =~ "..." ]]; then
             run_completion "$@" $cmd "${extra_args[@]}" ""
             _check_completion_end NoFileComp
-            if [ ${#lines[@]} -gt 2 ]; then
-                # checking for line count is not enough since we may include additional debug output
-                # lines starting with [Debug] are allowed
-                i=0
-                length=$(( ${#lines[@]} - 2 ))
-                while [[ i -lt length ]]; do
-                    assert "${lines[$i]:0:7}" == "[Debug]" "Suggestions are in the output"
-                    i=$(( i + 1 ))
-                done
-            fi
+            _check_no_suggestions
         fi
 
     done
@@ -229,6 +236,24 @@ function run_completion() {
 # check for the given ShellCompDirective (always last line)
 function _check_completion_end() {
     is "${lines[-1]}" "Completion ended with directive: ShellCompDirective$1" "Completion has wrong ShellCompDirective set"
+}
+
+# Check that there are no suggestions in the output.
+# We could only check stdout and not stderr but this is not possible with bats.
+# By default we always have two extra lines at the end for the ShellCompDirective.
+# Then we could also have other extra lines for debugging, they will always start
+# with [Debug], e.g. `[Debug] [Error] no container with name or ID "t12" found: no such container`.
+function _check_no_suggestions() {
+    if [ ${#lines[@]} -gt 2 ]; then
+        # Checking for line count is not enough since we may include additional debug output.
+        # Lines starting with [Debug] are allowed.
+        local i=0
+        length=$((${#lines[@]} - 2))
+        while [[ i -lt length ]]; do
+            assert "${lines[$i]:0:7}" == "[Debug]"  "Unexpected non-Debug output line: ${lines[$i]}"
+            i=$((i + 1))
+        done
+    fi
 }
 
 
@@ -280,11 +305,6 @@ function _check_completion_end() {
     # create secret
     run_podman secret create $random_secret_name $secret_file
 
-    # $PODMAN may be a space-separated string, e.g. if we include a --url.
-    local -a podman_as_array=($PODMAN)
-    # __completeNoDesc must be the first arg if we running the completion cmd
-    PODMAN_COMPLETION="${podman_as_array[0]} __completeNoDesc ${podman_as_array[@]:1}"
-
     # Called with no args -- start with 'podman --help'. check_shell_completion() will
     # recurse for any subcommands.
     check_shell_completion
@@ -315,4 +335,42 @@ function _check_completion_end() {
         fi
     done <<<"$output"
 
+}
+
+@test "podman shell completion for paths in container/image" {
+    skip_if_remote "mounting via remote does not work"
+    for cmd in create run; do
+        run_completion $cmd $IMAGE ""
+        assert "$output" =~ ".*^/etc\$.*^/home\$.*^/root\$.*" "root directories suggested (cmd: podman $cmd)"
+
+        # check completion for subdirectory
+        run_completion $cmd $IMAGE "/etc"
+        # It should be safe to assume the os-release file always exists in $IMAGE
+        assert "$output" =~ ".*^/etc/os-release\$.*" "/etc files suggested (cmd: podman $cmd /etc)"
+        # check completion for partial file name
+        run_completion $cmd $IMAGE "/etc/os-"
+        assert "$output" =~ ".*^/etc/os-release\$.*" "/etc files suggested (cmd: podman $cmd /etc/os-)"
+
+        # check completion with relative path components
+        # It is important the we will still use the image root and not escape to the host
+        run_completion $cmd $IMAGE "../../"
+        assert "$output" =~ ".*^../../etc\$.*^../../home\$.*" "relative root directories suggested (cmd: podman $cmd ../../)"
+    done
+
+    random_name=$(random_string 30)
+    random_file=$(random_string 30)
+    run_podman run --name $random_name $IMAGE touch /tmp/$random_file
+
+    # check completion for podman cp
+    run_completion cp ""
+    assert "$output" =~ ".*^$random_name\:\$.*" "podman cp suggest container names"
+
+    run_completion cp "$random_name:"
+    assert "$output" =~ ".*^$random_name\:/etc\$.*" "podman cp suggest paths in container"
+
+    run_completion cp "$random_name:/tmp"
+    assert "$output" =~ ".*^$random_name\:/tmp/$random_file\$.*" "podman cp suggest custom file in container"
+
+    # cleanup container
+    run_podman rm $random_name
 }
