@@ -480,6 +480,10 @@ func (v *MachineVM) Start(name string, _ machine.StartOptions) error {
 		wait           = time.Millisecond * 500
 	)
 
+	if v.Starting {
+		return fmt.Errorf("machine %q is already in the process of being started", v.Name)
+	}
+
 	v.Starting = true
 	if err := v.writeConfig(); err != nil {
 		return fmt.Errorf("writing JSON file: %w", err)
