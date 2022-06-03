@@ -831,8 +831,14 @@ func (v *MachineVM) Remove(_ string, opts machine.RemoveOptions) (string, func()
 	if err != nil {
 		return "", nil, err
 	}
-	if state == machine.Running && !opts.Force {
-		return "", nil, errors.Errorf("running vm %q cannot be destroyed", v.Name)
+	if state == machine.Running {
+		if !opts.Force {
+			return "", nil, errors.Errorf("running vm %q cannot be destroyed", v.Name)
+		}
+		err := v.Stop(v.Name, machine.StopOptions{})
+		if err != nil {
+			return "", nil, err
+		}
 	}
 
 	// Collect all the files that need to be destroyed
