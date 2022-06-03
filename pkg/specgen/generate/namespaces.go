@@ -42,6 +42,9 @@ func GetDefaultNamespaceMode(nsType string, cfg *config.Config, pod *libpod.Pod)
 			podMode = true
 		case nsType == "net" && pod.SharesNet():
 			podMode = true
+		case nsType == "net" && pod.NetworkMode() == "host":
+			toReturn.NSMode = specgen.Host
+			return toReturn, nil
 		case nsType == "cgroup" && pod.SharesCgroup():
 			podMode = true
 		}
