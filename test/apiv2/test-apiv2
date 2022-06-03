@@ -87,6 +87,7 @@ trap err_handler ERR
 #########
 function die() {
     echo "$ME: $*" >&2
+    clean_up_server
     exit 1
 }
 
@@ -219,19 +220,19 @@ function jsonify() {
 function t() {
     local method=$1; shift
     local path=$1; shift
-    local curl_args
+    local -a curl_args
     local content_type="application/json"
 
     local testname="$method $path"
-    # POST requests may be followed by one or more key=value pairs.
+    # POST and PUT requests may be followed by one or more key=value pairs.
     # Slurp the command line until we see a 3-digit status code.
-    if [[ $method = "POST" ]]; then
+    if [[ $method = "POST" || $method == "PUT" ]]; then
         local -a post_args
         for arg; do
             case "$arg" in
                 *=*)              post_args+=("$arg");
                                   shift;;
-                *.tar)            curl_args="--data-binary @$arg" ;
+                *.tar)            curl_args+=(--data-binary @$arg);
                                   content_type="application/x-tar";
                                   shift;;
                 application/*)    content_type="$arg";
@@ -241,8 +242,8 @@ function t() {
             esac
         done
         if [[ -z "$curl_args" ]]; then
-            curl_args="-d $(jsonify ${post_args[@]})"
-            testname="$testname [$curl_args]"
+            curl_args+=(-d $(jsonify ${post_args[@]}))
+            testname="$testname [${curl_args[@]}]"
         fi
     fi
 
@@ -269,7 +270,11 @@ function t() {
 
     # curl -X HEAD but without --head seems to wait for output anyway
     if [[ $method == "HEAD" ]]; then
-        curl_args="--head"
+        curl_args+=("--head")
+    fi
+
+    if [ -n "$REGISTRY_CONFIG_HEADER" ]; then
+        curl_args+=(-H "X-Registry-Config: $REGISTRY_CONFIG_HEADER")
     fi
 
     local expected_code=$1; shift
@@ -281,7 +286,7 @@ function t() {
     # -s = silent, but --write-out 'format' gives us important response data
     # The hairy "{ ...;rc=$?; } || :" lets us capture curl's exit code and
     # give a helpful diagnostic if it fails.
-    { response=$(curl -s -X $method ${curl_args}                 \
+    { response=$(curl -s -X $method "${curl_args[@]}"            \
                     -H "Content-type: $content_type"             \
                     --dump-header $WORKDIR/curl.headers.out      \
                     --write-out '%{http_code}^%{content_type}^%{time_total}' \
@@ -289,8 +294,7 @@ function t() {
 
     # Any error from curl is instant bad news, from which we can't recover
     if [[ $rc -ne 0 ]]; then
-        echo "FATAL: curl failure ($rc) on $url - cannot continue" >&2
-        exit 1
+        die "curl failure ($rc) on $url - cannot continue"
     fi
 
     # Show returned headers (without trailing ^M or empty lines) in log file.
@@ -410,6 +414,7 @@ function stop_service() {
 REGISTRY_PORT=
 REGISTRY_USERNAME=
 REGISTRY_PASSWORD=
+REGISTRY_CONFIG_HEADER=
 function start_registry() {
     # We can be invoked multiple times, e.g. from different subtests, but
     # let's assume that once started we only kill it at the end of tests.
@@ -420,6 +425,7 @@ function start_registry() {
     REGISTRY_PORT=$(random_port)
     REGISTRY_USERNAME=u$(random_string 7)
     REGISTRY_PASSWORD=p$(random_string 7)
+    REGISTRY_CONFIG_HEADER=$(echo "{\"localhost:${REGISTRY_PORT}\":{\"username\":\"${REGISTRY_USERNAME}\",\"password\":\"${REGISTRY_PASSWORD}\"}}" | base64 --wrap=0)
 
     local REGDIR=$WORKDIR/registry
     local AUTHDIR=$REGDIR/auth
