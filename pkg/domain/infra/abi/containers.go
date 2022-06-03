@@ -147,11 +147,31 @@ func (ic *ContainerEngine) ContainerUnpause(ctx context.Context, namesOrIds []st
 	return report, nil
 }
 func (ic *ContainerEngine) ContainerStop(ctx context.Context, namesOrIds []string, options entities.StopOptions) ([]*entities.StopReport, error) {
-	names := namesOrIds
-	ctrs, rawInputs, err := getContainersAndInputByContext(options.All, options.Latest, names, ic.Libpod)
+	fmt.Println("containerStop: ", options.Filters)
+	containersNamesOrIds := namesOrIds
+	var filterErr error
+	startOptions := entities.ContainerStartOptions{}
+	fmt.Println(options.All)
+	all := options.All
+	fmt.Println("in containerStop")
+	fmt.Println(len(options.Filters))
+	if len(options.Filters) > 0 {
+		fmt.Println("in filter if statement")
+		all = false
+		containersNamesOrIds, filterErr = ic.ContainerFilter(containersNamesOrIds, len(options.Filters), options.All, options, startOptions)
+	} else {
+		println("did not enter filter conditional")
+	}
+	fmt.Println("line 163: ", containersNamesOrIds)
+	if filterErr != nil {
+		fmt.Println("line 163: ", containersNamesOrIds)
+		return nil, filterErr
+	}
+	ctrs, rawInputs, err := getContainersAndInputByContext(all, options.Latest, containersNamesOrIds, ic.Libpod)
 	if err != nil && !(options.Ignore && errors.Cause(err) == define.ErrNoSuchCtr) {
 		return nil, err
 	}
+	fmt.Println("line 172: ", containersNamesOrIds)
 	ctrMap := map[string]string{}
 	if len(rawInputs) == len(ctrs) {
 		for i := range ctrs {
@@ -161,24 +181,31 @@ func (ic *ContainerEngine) ContainerStop(ctx context.Context, namesOrIds []strin
 	errMap, err := parallelctr.ContainerOp(ctx, ctrs, func(c *libpod.Container) error {
 		var err error
 		if options.Timeout != nil {
+			fmt.Println("abi stopWithTimeout")
 			err = c.StopWithTimeout(*options.Timeout)
 		} else {
+			fmt.Println("abi stop")
 			err = c.Stop()
 		}
+		fmt.Println("line 188")
 		if err != nil {
 			switch {
 			case errors.Cause(err) == define.ErrCtrStopped:
+				fmt.Println("line 192")
 				logrus.Debugf("Container %s is already stopped", c.ID())
 			case options.All && errors.Cause(err) == define.ErrCtrStateInvalid:
+				fmt.Println("line 195")
 				logrus.Debugf("Container %s is not running, could not stop", c.ID())
 			// container never created in OCI runtime
 			// docker parity: do nothing just return container id
 			case errors.Cause(err) == define.ErrCtrStateInvalid:
+				fmt.Println("line 200")
 				logrus.Debugf("Container %s is either not created on runtime or is in a invalid state", c.ID())
 			default:
 				return err
 			}
 		}
+		fmt.Println("line 206")
 		err = c.Cleanup(ctx)
 		if err != nil {
 			// Issue #7384 and #11384: If the container is configured for
@@ -206,6 +233,8 @@ func (ic *ContainerEngine) ContainerStop(ctx context.Context, namesOrIds []strin
 		report.Err = err
 		reports = append(reports, report)
 	}
+	fmt.Println("line 163: %", containersNamesOrIds)
+	fmt.Println("end of containerStop")
 	return reports, nil
 }
 
@@ -840,38 +869,19 @@ func (ic *ContainerEngine) ContainerExecDetached(ctx context.Context, nameOrID s
 }
 
 func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []string, options entities.ContainerStartOptions) ([]*entities.ContainerStartReport, error) {
+	fmt.Println("in containerStart")
 	reports := []*entities.ContainerStartReport{}
 	var exitCode = define.ExecErrorCodeGeneric
 	containersNamesOrIds := namesOrIds
 	all := options.All
+	var filterErr error
+	stopOptions := entities.StopOptions{}
 	if len(options.Filters) > 0 {
 		all = false
-		filterFuncs := make([]libpod.ContainerFilter, 0, len(options.Filters))
-		if len(options.Filters) > 0 {
-			for k, v := range options.Filters {
-				generatedFunc, err := dfilters.GenerateContainerFilterFuncs(k, v, ic.Libpod)
-				if err != nil {
-					return nil, err
-				}
-				filterFuncs = append(filterFuncs, generatedFunc)
-			}
-		}
-		candidates, err := ic.Libpod.GetContainers(filterFuncs...)
-		if err != nil {
-			return nil, err
-		}
-		containersNamesOrIds = []string{}
-		for _, candidate := range candidates {
-			if options.All {
-				containersNamesOrIds = append(containersNamesOrIds, candidate.ID())
-				continue
-			}
-			for _, nameOrID := range namesOrIds {
-				if nameOrID == candidate.ID() || nameOrID == candidate.Name() {
-					containersNamesOrIds = append(containersNamesOrIds, nameOrID)
-				}
-			}
-		}
+		containersNamesOrIds, filterErr = ic.ContainerFilter(containersNamesOrIds, len(options.Filters), options.All, stopOptions, options)
+	}
+	if filterErr != nil {
+		return nil, filterErr
 	}
 	ctrs, rawInputs, err := getContainersAndInputByContext(all, options.Latest, containersNamesOrIds, ic.Libpod)
 	if err != nil {
@@ -1660,4 +1670,57 @@ func (ic *ContainerEngine) ContainerClone(ctx context.Context, ctrCloneOpts enti
 	}
 
 	return &entities.ContainerCreateReport{Id: ctr.ID()}, nil
+}
+
+func (ic *ContainerEngine) ContainerFilter(namesOrIds []string, optionsFilterLength int, optionsAll bool, stopOptions entities.StopOptions, startOptions entities.ContainerStartOptions) ([]string, error) {
+	fmt.Println("in filterfunc")
+	fmt.Println(stopOptions.Filters)
+	filterFuncs := make([]libpod.ContainerFilter, 0, optionsFilterLength)
+	if len(startOptions.Filters) > 0 {
+		for k, v := range startOptions.Filters {
+			fmt.Println("loop through startoptions.filters")
+			generatedFunc, err := dfilters.GenerateContainerFilterFuncs(k, v, ic.Libpod)
+			if err != nil {
+				return nil, err
+			}
+			filterFuncs = append(filterFuncs, generatedFunc)
+		}
+	} else {
+		fmt.Println("stopOptions.Filters: ")
+		fmt.Println(stopOptions.Filters)
+		for k, v := range stopOptions.Filters {
+			fmt.Println("in stopoptions.filters for loop")
+			generatedFunc, err := dfilters.GenerateContainerFilterFuncs(k, v, ic.Libpod)
+			if err != nil {
+				fmt.Println("error in for loop")
+				return nil, err
+			}
+			filterFuncs = append(filterFuncs, generatedFunc)
+		}
+	}
+	fmt.Println("filterFuncs: ", filterFuncs)
+	candidates, err := ic.Libpod.GetContainers(filterFuncs...)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println("line 1688: ", namesOrIds)
+	containersNamesOrIds := []string{}
+	fmt.Println("line 1690: ", containersNamesOrIds)
+	for _, candidate := range candidates {
+		fmt.Println("in candidate for loop")
+		if optionsAll {
+			containersNamesOrIds = append(containersNamesOrIds, candidate.ID())
+			fmt.Println("line 1695: ", containersNamesOrIds)
+			continue
+		}
+		for _, nameOrID := range namesOrIds {
+			fmt.Println("in candidate for loop nameorid for loop")
+			if nameOrID == candidate.ID() || nameOrID == candidate.Name() {
+				containersNamesOrIds = append(containersNamesOrIds, nameOrID)
+				fmt.Println("line 1702: ", containersNamesOrIds)
+			}
+		}
+	}
+	fmt.Println("end of filter func: ", containersNamesOrIds)
+	return containersNamesOrIds, nil
 }

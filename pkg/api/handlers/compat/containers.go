@@ -98,6 +98,7 @@ func RemoveContainer(w http.ResponseWriter, r *http.Request) {
 }
 
 func ListContainers(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("compat/containers.go")
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
 	query := struct {
@@ -606,6 +607,7 @@ func formatCapabilities(slice []string) {
 }
 
 func RenameContainer(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("asdf")
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
 

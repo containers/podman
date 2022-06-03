@@ -59,8 +59,10 @@ func startFlags(cmd *cobra.Command) {
 
 	flags.BoolVarP(&startOptions.Interactive, "interactive", "i", false, "Keep STDIN open even if not attached")
 	flags.BoolVar(&startOptions.SigProxy, "sig-proxy", false, "Proxy received signals to the process (default true if attaching, false otherwise)")
-	flags.StringSliceVarP(&filters, "filter", "f", []string{}, "Filter output based on conditions given")
-	_ = cmd.RegisterFlagCompletionFunc("filter", common.AutocompletePsFilters)
+
+	filterFlagName := "filter"
+	flags.StringSliceVarP(&filters, filterFlagName, "f", []string{}, "Filter output based on conditions given")
+	_ = cmd.RegisterFlagCompletionFunc(filterFlagName, common.AutocompletePsFilters)
 
 	flags.BoolVar(&startOptions.All, "all", false, "Start all containers regardless of their state or configuration")
 

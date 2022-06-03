@@ -1214,6 +1214,7 @@ func (c *Container) initAndStart(ctx context.Context) (retErr error) {
 
 // Internal, non-locking function to start a container
 func (c *Container) start() error {
+	fmt.Println("container_internal.go start()")
 	if c.config.Spec.Process != nil {
 		logrus.Debugf("Starting container %s with command %v", c.ID(), c.config.Spec.Process.Args)
 	}
@@ -1257,6 +1258,7 @@ func (c *Container) start() error {
 
 // Internal, non-locking function to stop container
 func (c *Container) stop(timeout uint) error {
+	fmt.Println("in container_internal stop()")
 	logrus.Debugf("Stopping ctr %s (timeout %d)", c.ID(), timeout)
 
 	// If the container is running in a PID Namespace, then killing the
@@ -1301,9 +1303,9 @@ func (c *Container) stop(timeout uint) error {
 	if !c.batched {
 		c.lock.Unlock()
 	}
-
+	fmt.Println("container_internal at StopContainer call")
 	stopErr := c.ociRuntime.StopContainer(c, timeout, all)
-
+	fmt.Println("return from StopContainer call")
 	if !c.batched {
 		c.lock.Lock()
 		if err := c.syncContainer(); err != nil {

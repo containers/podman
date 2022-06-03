@@ -80,6 +80,7 @@ type PauseUnpauseReport struct {
 }
 
 type StopOptions struct {
+	Filters map[string][]string
 	All     bool
 	Ignore  bool
 	Latest  bool

@@ -1,6 +1,7 @@
 package compat
 
 import (
+	"fmt"
 	"net/http"
 
 	api "github.com/containers/podman/v4/pkg/api/types"
@@ -13,6 +14,7 @@ import (
 )
 
 func StartContainer(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("containers_start.go StartContainer()")
 	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
 	query := struct {
 		DetachKeys string `schema:"detachKeys"`

@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -362,5 +363,48 @@ var _ = Describe("Podman stop", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
+	})
+
+	It("podman stop --filter", func() {
+		session1 := podmanTest.Podman([]string{"container", "create", ALPINE})
+		session1.WaitWithDefaultTimeout()
+		Expect(session1).Should(Exit(0))
+		cid1 := session1.OutputToString()
+
+		session2 := podmanTest.Podman([]string{"container", "create", ALPINE})
+		session2.WaitWithDefaultTimeout()
+		Expect(session2).Should(Exit(0))
+		cid2 := session2.OutputToString()
+		shortCid2 := cid2[0:5]
+
+		session3 := podmanTest.Podman([]string{"container", "create", ALPINE})
+		session3.WaitWithDefaultTimeout()
+		Expect(session3).Should(Exit(0))
+		cid3 := session3.OutputToString()
+		shortCid3 := cid3[0:5]
+
+		run1 := podmanTest.Podman([]string{"start", "--all"})
+		run1.WaitWithDefaultTimeout()
+		Expect(run1).Should(Exit(0))
+
+		session1 = podmanTest.Podman([]string{"stop", cid1, "-f", "status=running"})
+		session1.WaitWithDefaultTimeout()
+		Expect(session1).Should(Exit(0))
+		Expect(session1.OutputToString()).To(HaveLen(0))
+
+		session1 = podmanTest.Podman([]string{"stop", cid1, "-f", "status=exited"})
+		session1.WaitWithDefaultTimeout()
+		Expect(session1).Should(Exit(0))
+		Expect(session1.OutputToString()).To(BeEquivalentTo(cid1))
+
+		session1 = podmanTest.Podman([]string{"stop", "--all", "--filter", fmt.Sprintf("id=%s", shortCid2)})
+		session1.WaitWithDefaultTimeout()
+		Expect(session1).Should(Exit(0))
+		Expect(session1.OutputToString()).To(BeEquivalentTo(cid2))
+
+		session1 = podmanTest.Podman([]string{"stop", "-a", "--filter", fmt.Sprintf("id=%swrongid", shortCid3)})
+		session1.WaitWithDefaultTimeout()
+		Expect(session1).Should(Exit(0))
+		Expect(session1.OutputToString()).To(HaveLen(0))
 	})
 })

@@ -92,7 +92,35 @@ func (ic *ContainerEngine) ContainerUnpause(ctx context.Context, namesOrIds []st
 
 func (ic *ContainerEngine) ContainerStop(ctx context.Context, namesOrIds []string, opts entities.StopOptions) ([]*entities.StopReport, error) {
 	reports := []*entities.StopReport{}
-	ctrs, rawInputs, err := getContainersAndInputByContext(ic.ClientCtx, opts.All, opts.Ignore, namesOrIds)
+	containersNamesOrIds := namesOrIds
+	/*
+		if len(opts.Filters) > 0 {
+			containersNamesOrIds = []string{}
+			options := new(containers.ListOptions).WithFilters(opts.Filters).WithAll(true)
+			candidates, listErr := containers.List(ic.ClientCtx, options)
+			if listErr != nil {
+				return nil, listErr
+			}
+			for _, candidate := range candidates {
+				if opts.All {
+					containersNamesOrIds = append(containersNamesOrIds, candidate.ID)
+					continue
+				}
+				for _, nameOrID := range namesOrIds {
+					if nameOrID == candidate.ID {
+						containersNamesOrIds = append(containersNamesOrIds, nameOrID)
+						continue
+					}
+					for _, containerName := range candidate.Names {
+						if containerName == nameOrID {
+							containersNamesOrIds = append(containersNamesOrIds, nameOrID)
+							continue
+						}
+					}
+				}
+			}
+		}*/
+	ctrs, rawInputs, err := getContainersAndInputByContext(ic.ClientCtx, opts.All, opts.Ignore, containersNamesOrIds)
 	if err != nil {
 		return nil, err
 	}
@@ -621,6 +649,7 @@ func logIfRmError(id string, err error, reports []*reports.RmReport) {
 }
 
 func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []string, options entities.ContainerStartOptions) ([]*entities.ContainerStartReport, error) {
+	fmt.Println("infra/tunnel ContainerStart()")
 	reports := []*entities.ContainerStartReport{}
 	var exitCode = define.ExecErrorCodeGeneric
 	containersNamesOrIds := namesOrIds

@@ -2,6 +2,7 @@ package libpod
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -80,6 +81,7 @@ func (c *Container) Init(ctx context.Context, recursive bool) error {
 // running before being run. The recursive parameter, if set, will start all
 // dependencies before starting this container.
 func (c *Container) Start(ctx context.Context, recursive bool) error {
+	fmt.Println("container_api.go Start()")
 	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
@@ -174,6 +176,7 @@ func (c *Container) RestartWithTimeout(ctx context.Context, timeout uint) error 
 // Default stop timeout is 10 seconds, but can be overridden when the container
 // is created
 func (c *Container) Stop() error {
+	fmt.Println("in container_api Stop()")
 	// Stop with the container's given timeout
 	return c.StopWithTimeout(c.config.StopTimeout)
 }
@@ -182,6 +185,7 @@ func (c *Container) Stop() error {
 // manually. If timeout is 0, SIGKILL will be used immediately to kill the
 // container.
 func (c *Container) StopWithTimeout(timeout uint) error {
+	fmt.Println("in container_api stopwithouttimeout")
 	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
