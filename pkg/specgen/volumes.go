@@ -97,6 +97,8 @@ func GenVolumeMounts(volumeFlag []string) (map[string]spec.Mount, map[string]*Na
 			// This is not a named volume
 			overlayFlag := false
 			chownFlag := false
+			upperDirFlag := false
+			workDirFlag := false
 			for _, o := range options {
 				if o == "O" {
 					overlayFlag = true
@@ -105,8 +107,16 @@ func GenVolumeMounts(volumeFlag []string) (map[string]spec.Mount, map[string]*Na
 					if strings.Contains(joinedOpts, "U") {
 						chownFlag = true
 					}
-
-					if len(options) > 2 || (len(options) == 2 && !chownFlag) {
+					if strings.Contains(joinedOpts, "upperdir") {
+						upperDirFlag = true
+					}
+					if strings.Contains(joinedOpts, "workdir") {
+						workDirFlag = true
+					}
+					if (workDirFlag && !upperDirFlag) || (!workDirFlag && upperDirFlag) {
+						return nil, nil, nil, errors.New("must set both `upperdir` and `workdir`")
+					}
+					if len(options) > 2 && !(len(options) == 3 && upperDirFlag && workDirFlag) || (len(options) == 2 && !chownFlag) {
 						return nil, nil, nil, errors.New("can't use 'O' with other options")
 					}
 				}
