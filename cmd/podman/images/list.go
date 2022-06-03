@@ -172,7 +172,7 @@ func writeJSON(images []imageReporter) error {
 		var h image
 		h.ImageSummary = e.ImageSummary
 		h.Created = e.ImageSummary.Created
-		h.CreatedAt = e.created().Format(time.RFC3339Nano)
+		h.CreatedAt = e.created().String()
 		h.RepoTags = nil
 
 		imgs = append(imgs, h)
