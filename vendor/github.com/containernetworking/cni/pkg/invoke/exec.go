@@ -16,6 +16,7 @@ package invoke
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 
@@ -31,6 +32,43 @@ type Exec interface {
 	ExecPlugin(ctx context.Context, pluginPath string, stdinData []byte, environ []string) ([]byte, error)
 	FindInPath(plugin string, paths []string) (string, error)
 	Decode(jsonBytes []byte) (version.PluginInfo, error)
+}
+
+// Plugin must return result in same version as specified in netconf; but
+// for backwards compatibility reasons if the result version is empty use
+// config version (rather than technically correct 0.1.0).
+// https://github.com/containernetworking/cni/issues/895
+func fixupResultVersion(netconf, result []byte) (string, []byte, error) {
+	versionDecoder := &version.ConfigDecoder{}
+	confVersion, err := versionDecoder.Decode(netconf)
+	if err != nil {
+		return "", nil, err
+	}
+
+	var rawResult map[string]interface{}
+	if err := json.Unmarshal(result, &rawResult); err != nil {
+		return "", nil, fmt.Errorf("failed to unmarshal raw result: %w", err)
+	}
+
+	// Manually decode Result version; we need to know whether its cniVersion
+	// is empty, while built-in decoders (correctly) substitute 0.1.0 for an
+	// empty version per the CNI spec.
+	if resultVerRaw, ok := rawResult["cniVersion"]; ok {
+		resultVer, ok := resultVerRaw.(string)
+		if ok && resultVer != "" {
+			return resultVer, result, nil
+		}
+	}
+
+	// If the cniVersion is not present or empty, assume the result is
+	// the same CNI spec version as the config
+	rawResult["cniVersion"] = confVersion
+	newBytes, err := json.Marshal(rawResult)
+	if err != nil {
+		return "", nil, fmt.Errorf("failed to remarshal fixed result: %w", err)
+	}
+
+	return confVersion, newBytes, nil
 }
 
 // For example, a testcase could pass an instance of the following fakeExec
@@ -84,7 +122,12 @@ func ExecPluginWithResult(ctx context.Context, pluginPath string, netconf []byte
 		return nil, err
 	}
 
-	return create.CreateFromBytes(stdoutBytes)
+	resultVersion, fixedBytes, err := fixupResultVersion(netconf, stdoutBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	return create.Create(resultVersion, fixedBytes)
 }
 
 func ExecPluginWithoutResult(ctx context.Context, pluginPath string, netconf []byte, args CNIArgs, exec Exec) error {
