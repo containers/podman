@@ -75,7 +75,6 @@ func (c *Container) readFromLogFile(ctx context.Context, options *logs.LogOption
 	go func() {
 		defer options.WaitGroup.Done()
 
-		var partial string
 		for line := range t.Lines {
 			select {
 			case <-ctx.Done():
@@ -88,13 +87,6 @@ func (c *Container) readFromLogFile(ctx context.Context, options *logs.LogOption
 			if err != nil {
 				logrus.Errorf("Getting new log line: %v", err)
 				continue
-			}
-			if nll.Partial() {
-				partial += nll.Msg
-				continue
-			} else if !nll.Partial() && len(partial) > 0 {
-				nll.Msg = partial + nll.Msg
-				partial = ""
 			}
 			nll.CID = c.ID()
 			nll.CName = c.Name()
