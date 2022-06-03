@@ -91,18 +91,10 @@ func reset(cmd *cobra.Command, args []string) {
 	registry.ContainerEngine().Shutdown(registry.Context())
 	registry.ImageEngine().Shutdown(registry.Context())
 
-	engine, err := infra.NewSystemEngine(entities.ResetMode, registry.PodmanConfig())
-	if err != nil {
+	// Do not try to shut the engine down, as a Reset engine is not valid
+	// after its creation.
+	if _, err := infra.NewSystemEngine(entities.ResetMode, registry.PodmanConfig()); err != nil {
 		logrus.Error(err)
-		os.Exit(define.ExecErrorCodeGeneric)
-	}
-	defer engine.Shutdown(registry.Context())
-
-	if err := engine.Reset(registry.Context()); err != nil {
-		logrus.Error(err)
-		// FIXME change this to return the error like other commands
-		// defer will never run on os.Exit()
-		//nolint:gocritic
 		os.Exit(define.ExecErrorCodeGeneric)
 	}
 

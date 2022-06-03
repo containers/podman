@@ -37,6 +37,7 @@ type engineOpts struct {
 	migrate  bool
 	noStore  bool
 	withFDS  bool
+	reset    bool
 	config   *entities.PodmanConfig
 }
 
@@ -48,6 +49,7 @@ func GetRuntimeMigrate(ctx context.Context, fs *flag.FlagSet, cfg *entities.Podm
 		migrate:  true,
 		noStore:  false,
 		withFDS:  true,
+		reset:    false,
 		config:   cfg,
 	})
 }
@@ -59,6 +61,7 @@ func GetRuntimeDisableFDs(ctx context.Context, fs *flag.FlagSet, cfg *entities.P
 		migrate:  false,
 		noStore:  false,
 		withFDS:  false,
+		reset:    false,
 		config:   cfg,
 	})
 }
@@ -70,6 +73,7 @@ func GetRuntimeRenumber(ctx context.Context, fs *flag.FlagSet, cfg *entities.Pod
 		migrate:  false,
 		noStore:  false,
 		withFDS:  true,
+		reset:    false,
 		config:   cfg,
 	})
 }
@@ -82,6 +86,7 @@ func GetRuntime(ctx context.Context, flags *flag.FlagSet, cfg *entities.PodmanCo
 			migrate:  false,
 			noStore:  false,
 			withFDS:  true,
+			reset:    false,
 			config:   cfg,
 		})
 	})
@@ -95,6 +100,18 @@ func GetRuntimeNoStore(ctx context.Context, fs *flag.FlagSet, cfg *entities.Podm
 		migrate:  false,
 		noStore:  true,
 		withFDS:  true,
+		reset:    false,
+		config:   cfg,
+	})
+}
+
+func GetRuntimeReset(ctx context.Context, fs *flag.FlagSet, cfg *entities.PodmanConfig) (*libpod.Runtime, error) {
+	return getRuntime(ctx, fs, &engineOpts{
+		renumber: false,
+		migrate:  false,
+		noStore:  false,
+		withFDS:  true,
+		reset:    true,
 		config:   cfg,
 	})
 }
@@ -159,6 +176,10 @@ func getRuntime(ctx context.Context, fs *flag.FlagSet, opts *engineOpts) (*libpo
 		if opts.name != "" {
 			options = append(options, libpod.WithMigrateRuntime(opts.name))
 		}
+	}
+
+	if opts.reset {
+		options = append(options, libpod.WithReset())
 	}
 
 	if opts.renumber {

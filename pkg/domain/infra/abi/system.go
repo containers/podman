@@ -328,7 +328,7 @@ func (ic *ContainerEngine) SystemDf(ctx context.Context, options entities.System
 }
 
 func (se *SystemEngine) Reset(ctx context.Context) error {
-	return se.Libpod.Reset(ctx)
+	return nil
 }
 
 func (se *SystemEngine) Renumber(ctx context.Context, flags *pflag.FlagSet, config *entities.PodmanConfig) error {

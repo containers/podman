@@ -435,6 +435,21 @@ func WithDefaultInfraCommand(cmd string) RuntimeOption {
 	}
 }
 
+// WithReset instructs libpod to reset all storage to factory defaults.
+// All containers, pods, volumes, images, and networks will be removed.
+// All directories created by Libpod will be removed.
+func WithReset() RuntimeOption {
+	return func(rt *Runtime) error {
+		if rt.valid {
+			return define.ErrRuntimeFinalized
+		}
+
+		rt.doReset = true
+
+		return nil
+	}
+}
+
 // WithRenumber instructs libpod to perform a lock renumbering while
 // initializing. This will handle migrations from early versions of libpod with
 // file locks to newer versions with SHM locking, as well as changes in the
