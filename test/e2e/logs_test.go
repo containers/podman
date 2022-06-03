@@ -8,6 +8,7 @@ import (
 	"time"
 
 	. "github.com/containers/podman/v4/test/utils"
+	"github.com/containers/storage/pkg/stringid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
@@ -369,6 +370,26 @@ var _ = Describe("Podman logs", func() {
 			Expect(results).To(Exit(0))
 			Expect(results.OutputToString()).To(Equal("stdout"))
 			Expect(results.ErrorToString()).To(Equal("stderr"))
+		})
+
+		It("podman logs partial log lines: "+log, func() {
+			skipIfJournaldInContainer()
+
+			cname := "log-test"
+			content := stringid.GenerateNonCryptoID()
+			// use printf to print no extra newline
+			logc := podmanTest.Podman([]string{"run", "--log-driver", log, "--name", cname, ALPINE, "printf", content})
+			logc.WaitWithDefaultTimeout()
+			Expect(logc).To(Exit(0))
+			// Important: do not use OutputToString(), this will remove the trailing newline from the output.
+			// However this test must make sure that there is no such extra newline.
+			Expect(string(logc.Out.Contents())).To(Equal(content))
+
+			logs := podmanTest.Podman([]string{"logs", cname})
+			logs.WaitWithDefaultTimeout()
+			Expect(logs).To(Exit(0))
+			// see comment above
+			Expect(string(logs.Out.Contents())).To(Equal(content))
 		})
 	}
 
