@@ -131,6 +131,30 @@ var _ = Describe("Podman privileged container tests", func() {
 		Expect(len(session.OutputToStringArray())).To(BeNumerically(">", 20))
 	})
 
+	It("podman privileged should restart after host devices change", func() {
+		containerName := "privileged-restart-test"
+		SkipIfRootless("Cannot create devices in /dev in rootless mode")
+		Expect(os.MkdirAll("/dev/foodevdir", os.ModePerm)).To(BeNil())
+
+		mknod := SystemExec("mknod", []string{"/dev/foodevdir/null", "c", "1", "3"})
+		mknod.WaitWithDefaultTimeout()
+		Expect(mknod).Should(Exit(0))
+
+		session := podmanTest.Podman([]string{"run", "--name=" + containerName, "--privileged", "-it", fedoraMinimal, "ls", "/dev"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		deviceFiles := session.OutputToStringArray()
+
+		os.RemoveAll("/dev/foodevdir")
+		session = podmanTest.Podman([]string{"start", "--attach", containerName})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		deviceFilesAfterRemoval := session.OutputToStringArray()
+		Expect(deviceFiles).To(Not(Equal(deviceFilesAfterRemoval)))
+	})
+
 	It("run no-new-privileges test", func() {
 		// Check if our kernel is new enough
 		k, err := IsKernelNewerThan("4.14")

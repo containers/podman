@@ -278,6 +278,10 @@ func createContainerOptions(rt *libpod.Runtime, s *specgen.SpecGenerator, pod *l
 		options = append(options, libpod.WithPasswdEntry(s.PasswdEntry))
 	}
 
+	if s.Privileged {
+		options = append(options, libpod.WithMountAllDevices())
+	}
+
 	useSystemd := false
 	switch s.Systemd {
 	case "always":
