@@ -3,6 +3,7 @@
 # Podman: A tool for managing OCI containers and pods
 
 Podman (the POD MANager) is a tool for managing containers and images, volumes mounted into those containers, and pods made from groups of containers.
+Podman runs containers on Linux, but can also be used on Mac and Windows systems using a Podman-managed virtual machine.
 Podman is based on libpod, a library for container lifecycle management that is also contained in this repository. The libpod library provides APIs for managing containers, pods, container images, and volumes.
 
 * [Latest Version: 4.1.0](https://github.com/containers/podman/releases/tag/v4.1.0)
@@ -24,16 +25,15 @@ At a high level, the scope of Podman and libpod is the following:
 * Support for pods, groups of containers that share resources and are managed together.
 * Support for running containers and pods without root or other elevated privileges.
 * Resource isolation of containers and pods.
-* Support for a Docker-compatible CLI interface.
+* Support for a Docker-compatible CLI interface, which can both run containers locally and on remote systems.
 * No manager daemon, for improved security and lower resource utilization at idle.
 * Support for a REST API providing both a Docker-compatible interface and an improved interface exposing advanced Podman functionality.
-
-Podman presently only supports running containers on Linux. However, we are building a remote client which can run on Windows and macOS and manage Podman containers on a Linux system via the REST API using SSH tunneling.
+* Support for running on Windows and Mac via virtual machines run by `podman machine`.
 
 ## Roadmap
 
-1. Further improvements to the REST API, with a focus on bugfixes and implementing missing functionality
-1. Improvements on rootless containers, with a focus on improving the user experience and exposing presently-unavailable features when possible
+1. A fully-featured GUI frontend for `podman machine`
+1. Further improvements to `podman generate kube` and `podman play kube`
 1. Improvements to Pods, including the addition of pod-level resource limits
 
 ## Communications
@@ -111,7 +111,7 @@ includes tables showing Docker commands and their Podman equivalent commands.
 Tutorials on using Podman.
 
 **[Remote Client](https://github.com/containers/podman/blob/main/docs/tutorials/remote_client.md)**
-A brief how-to on using the Podman remote-client.
+A brief how-to on using the Podman remote client.
 
 **[Basic Setup and Use of Podman in a Rootless environment](https://github.com/containers/podman/blob/main/docs/tutorials/rootless_tutorial.md)**
 A tutorial showing the setup and configuration necessary to run Rootless Podman.
