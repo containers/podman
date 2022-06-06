@@ -29,7 +29,6 @@ echo -e "podman:1:999\npodman:1001:64535" > /etc/subuid; \
 echo -e "podman:1:999\npodman:1001:64535" > /etc/subgid;
 
 ARG _REPO_URL="https://raw.githubusercontent.com/containers/podman/main/contrib/podmanimage/stable"
-ADD $_REPO_URL/storage.conf /etc/containers/storage.conf
 ADD $_REPO_URL/containers.conf /etc/containers/containers.conf
 ADD $_REPO_URL/podman-containers.conf /home/podman/.config/containers/containers.conf
 
