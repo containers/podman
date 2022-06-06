@@ -676,6 +676,7 @@ func (p *Pod) Inspect() (*define.InspectPodData, error) {
 		infraConfig.CPUSetCPUs = p.ResourceLim().CPU.Cpus
 		infraConfig.PidNS = p.NamespaceMode(specs.PIDNamespace)
 		infraConfig.UserNS = p.NamespaceMode(specs.UserNamespace)
+		infraConfig.UtsNS = p.NamespaceMode(specs.UTSNamespace)
 		namedVolumes, mounts := infra.SortUserVolumes(infra.config.Spec)
 		inspectMounts, err = infra.GetMounts(namedVolumes, infra.config.ImageVolumes, mounts)
 		infraSecurity = infra.GetSecurityOptions()

@@ -133,6 +133,12 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 
 		options = append(options, libpod.WithRootFSFromImage(newImage.ID(), resolvedImageName, s.RawImageName))
 	}
+
+	_, err = rt.LookupPod(s.Hostname)
+	if len(s.Hostname) > 0 && !s.UtsNS.IsPrivate() && err == nil {
+		// ok, we are incorrectly setting the pod as the hostname, lets undo that before validation
+		s.Hostname = ""
+	}
 	if err := s.Validate(); err != nil {
 		return nil, nil, nil, errors.Wrap(err, "invalid config provided")
 	}

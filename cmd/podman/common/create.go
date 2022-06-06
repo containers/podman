@@ -544,13 +544,6 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		)
 		_ = cmd.RegisterFlagCompletionFunc(userFlagName, AutocompleteUserFlag)
 
-		utsFlagName := "uts"
-		createFlags.String(
-			utsFlagName, "",
-			"UTS namespace to use",
-		)
-		_ = cmd.RegisterFlagCompletionFunc(utsFlagName, AutocompleteNamespace)
-
 		mountFlagName := "mount"
 		createFlags.StringArrayVar(
 			&cf.Mount,
@@ -683,6 +676,14 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 			"User namespace to use",
 		)
 		_ = cmd.RegisterFlagCompletionFunc(usernsFlagName, AutocompleteUserNamespace)
+
+		utsFlagName := "uts"
+		createFlags.StringVar(
+			&cf.UTS,
+			utsFlagName, "",
+			"UTS namespace to use",
+		)
+		_ = cmd.RegisterFlagCompletionFunc(utsFlagName, AutocompleteNamespace)
 
 		cgroupParentFlagName := "cgroup-parent"
 		createFlags.StringVar(

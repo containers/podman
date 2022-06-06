@@ -11,9 +11,10 @@ import (
 
 var _ = Describe("Podman pod clone", func() {
 	var (
-		tempdir    string
-		err        error
-		podmanTest *PodmanTestIntegration
+		tempdir     string
+		err         error
+		podmanTest  *PodmanTestIntegration
+		hostname, _ = os.Hostname()
 	)
 
 	BeforeEach(func() {
@@ -153,6 +154,41 @@ var _ = Describe("Podman pod clone", func() {
 		t, strings := run.GrepString("shm on /dev/shm type tmpfs")
 		Expect(t).To(BeTrue())
 		Expect(strings[0]).Should(ContainSubstring("size=10240k"))
+	})
+
+	It("podman pod create --uts test", func() {
+		SkipIfRemote("hostname for the custom NS test is not as expected on the remote client")
+
+		session := podmanTest.Podman([]string{"pod", "create"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"pod", "clone", "--uts", "host", session.OutputToString()})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"run", "-it", "--pod", session.OutputToString(), ALPINE, "printenv", "HOSTNAME"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).To(ContainSubstring(hostname))
+
+		podName := "utsPod"
+		ns := "ns:/proc/self/ns/"
+
+		session = podmanTest.Podman([]string{"pod", "create"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		// just share uts with a custom path
+		podCreate := podmanTest.Podman([]string{"pod", "clone", "--uts", ns, "--name", podName, session.OutputToString()})
+		podCreate.WaitWithDefaultTimeout()
+		Expect(podCreate).Should(Exit(0))
+
+		podInspect := podmanTest.Podman([]string{"pod", "inspect", podName})
+		podInspect.WaitWithDefaultTimeout()
+		Expect(podInspect).Should(Exit(0))
+		podJSON := podInspect.InspectPodToJSON()
+		Expect(podJSON.InfraConfig).To(HaveField("UtsNS", ns))
 	})
 
 })
