@@ -325,6 +325,51 @@ var _ = Describe("Podman run with volumes", func() {
 
 	})
 
+	It("podman support overlay volume with custom upperdir and workdir", func() {
+		SkipIfRemote("Overlay volumes only work locally")
+		if os.Getenv("container") != "" {
+			Skip("Overlay mounts not supported when running in a container")
+		}
+		if rootless.IsRootless() {
+			if _, err := exec.LookPath("fuse-overlayfs"); err != nil {
+				Skip("Fuse-Overlayfs required for rootless overlay mount test")
+			}
+		}
+
+		// Use bindsource instead of named volume
+		bindSource := filepath.Join(tempdir, "bindsource")
+		err := os.Mkdir(bindSource, 0755)
+		Expect(err).To(BeNil(), "mkdir "+bindSource)
+
+		// create persistent upperdir on host
+		upperDir := filepath.Join(tempdir, "upper")
+		err = os.Mkdir(upperDir, 0755)
+		Expect(err).To(BeNil(), "mkdir "+upperDir)
+
+		// create persistent workdir on host
+		workDir := filepath.Join(tempdir, "work")
+		err = os.Mkdir(workDir, 0755)
+		Expect(err).To(BeNil(), "mkdir "+workDir)
+
+		overlayOpts := fmt.Sprintf("upperdir=%s,workdir=%s", upperDir, workDir)
+
+		// create file on overlay volume
+		session := podmanTest.Podman([]string{"run", "--volume", bindSource + ":/data:O," + overlayOpts, ALPINE, "sh", "-c", "echo hello >> " + "/data/overlay"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"run", "--volume", bindSource + ":/data:O," + overlayOpts, ALPINE, "sh", "-c", "ls /data"})
+		session.WaitWithDefaultTimeout()
+		// must contain `overlay` file since it should be persistent on specified upper and workdir
+		Expect(session.OutputToString()).To(ContainSubstring("overlay"))
+
+		session = podmanTest.Podman([]string{"run", "--volume", bindSource + ":/data:O", ALPINE, "sh", "-c", "ls /data"})
+		session.WaitWithDefaultTimeout()
+		// must not contain `overlay` file which was on custom upper and workdir since we have not specified any upper or workdir
+		Expect(session.OutputToString()).To(Not(ContainSubstring("overlay")))
+
+	})
+
 	It("podman run with noexec can't exec", func() {
 		session := podmanTest.Podman([]string{"run", "--rm", "-v", "/bin:/hostbin:noexec", ALPINE, "/hostbin/ls", "/"})
 		session.WaitWithDefaultTimeout()

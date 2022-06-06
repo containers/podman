@@ -388,6 +388,37 @@ func lookupHostUser(name string) (*runcuser.ExecUser, error) {
 	return &execUser, nil
 }
 
+// Internal only function which returns upper and work dir from
+// overlay options.
+func getOverlayUpperAndWorkDir(options []string) (string, string, error) {
+	upperDir := ""
+	workDir := ""
+	for _, o := range options {
+		if strings.HasPrefix(o, "upperdir") {
+			splitOpt := strings.SplitN(o, "=", 2)
+			if len(splitOpt) > 1 {
+				upperDir = splitOpt[1]
+				if upperDir == "" {
+					return "", "", errors.New("cannot accept empty value for upperdir")
+				}
+			}
+		}
+		if strings.HasPrefix(o, "workdir") {
+			splitOpt := strings.SplitN(o, "=", 2)
+			if len(splitOpt) > 1 {
+				workDir = splitOpt[1]
+				if workDir == "" {
+					return "", "", errors.New("cannot accept empty value for workdir")
+				}
+			}
+		}
+	}
+	if (upperDir != "" && workDir == "") || (upperDir == "" && workDir != "") {
+		return "", "", errors.New("must specify both upperdir and workdir")
+	}
+	return upperDir, workDir, nil
+}
+
 // Generate spec for a container
 // Accepts a map of the container's dependencies
 func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
@@ -460,23 +491,9 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 		for _, o := range namedVol.Options {
 			if o == "O" {
 				overlayFlag = true
-			}
-			if overlayFlag && strings.Contains(o, "upperdir") {
-				splitOpt := strings.SplitN(o, "=", 2)
-				if len(splitOpt) > 1 {
-					upperDir = splitOpt[1]
-					if upperDir == "" {
-						return nil, errors.New("cannot accept empty value for upperdir")
-					}
-				}
-			}
-			if overlayFlag && strings.Contains(o, "workdir") {
-				splitOpt := strings.SplitN(o, "=", 2)
-				if len(splitOpt) > 1 {
-					workDir = splitOpt[1]
-					if workDir == "" {
-						return nil, errors.New("cannot accept empty value for workdir")
-					}
+				upperDir, workDir, err = getOverlayUpperAndWorkDir(namedVol.Options)
+				if err != nil {
+					return nil, err
 				}
 			}
 		}
@@ -487,10 +504,6 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 			contentDir, err := overlay.TempDir(c.config.StaticDir, c.RootUID(), c.RootGID())
 			if err != nil {
 				return nil, err
-			}
-
-			if (upperDir != "" && workDir == "") || (upperDir == "" && workDir != "") {
-				return nil, errors.Wrapf(err, "must specify both upperdir and workdir")
 			}
 
 			overlayOpts = &overlay.Options{RootUID: c.RootUID(),
@@ -585,11 +598,22 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 
 	// Add overlay volumes
 	for _, overlayVol := range c.config.OverlayVolumes {
+		upperDir, workDir, err := getOverlayUpperAndWorkDir(overlayVol.Options)
+		if err != nil {
+			return nil, err
+		}
 		contentDir, err := overlay.TempDir(c.config.StaticDir, c.RootUID(), c.RootGID())
 		if err != nil {
 			return nil, err
 		}
-		overlayMount, err := overlay.Mount(contentDir, overlayVol.Source, overlayVol.Dest, c.RootUID(), c.RootGID(), c.runtime.store.GraphOptions())
+		overlayOpts := &overlay.Options{RootUID: c.RootUID(),
+			RootGID:                c.RootGID(),
+			UpperDirOptionFragment: upperDir,
+			WorkDirOptionFragment:  workDir,
+			GraphOpts:              c.runtime.store.GraphOptions(),
+		}
+
+		overlayMount, err := overlay.MountWithOptions(contentDir, overlayVol.Source, overlayVol.Dest, overlayOpts)
 		if err != nil {
 			return nil, errors.Wrapf(err, "mounting overlay failed %q", overlayVol.Source)
 		}
