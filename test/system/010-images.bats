@@ -158,6 +158,11 @@ Labels.created_at | 20[0-9-]\\\+T[0-9:]\\\+Z
     # start here because this is the first one, fix this problem.
     # You can (probably) ignore any subsequent failures showing '@sha'
     # in the error output.
+    #
+    # WARNING! This test is likely to fail for an hour or so after
+    # building a new testimage (via build-testimage script), because
+    # two consecutive 'podman images' may result in a one-minute
+    # difference in the "XX minutes ago" output. This is OK to ignore.
     run_podman images -a
     is "$output" "$images_baseline" "images -a, after pull: same as before"
 

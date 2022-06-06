@@ -496,7 +496,12 @@ Labels.$label_name | $label_value
        "image tree: third line"
     is "${lines[3]}" "Image Layers" \
        "image tree: fourth line"
-    is "${lines[4]}" ".* ID: [0-9a-f]\{12\} Size: .* Top Layer of: \[$IMAGE]" \
+    # FIXME: if #14536 is ever fixed, rebuild testimage & s/5/4/ below.
+    # Summary: this should be ${lines[4]}, not [5], and prior to 2022-06-15
+    # it was. Unfortunately, a nightmarish bug interaction makes it impossible
+    # for us to use --squash-all on our testimage. Unless/until that bug is
+    # fixed, we have an extra layer that all we can do is ignore.
+    is "${lines[5]}" ".* ID: [0-9a-f]\{12\} Size: .* Top Layer of: \[$IMAGE]" \
        "image tree: first layer line"
     is "${lines[-1]}"  ".* ID: [0-9a-f]\{12\} Size: .* Top Layer of: \[localhost/build_test:latest]" \
        "image tree: last layer line"
