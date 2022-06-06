@@ -3688,7 +3688,7 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 	})
 
 	// Check the block devices are exposed inside container
-	It("ddpodman play kube expose block device inside container", func() {
+	It("podman play kube expose block device inside container", func() {
 		SkipIfRootless("It needs root access to create devices")
 
 		// randomize the folder name to avoid error when running tests with multiple nodes
@@ -3727,7 +3727,7 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 	})
 
 	// Check the char devices are exposed inside container
-	It("ddpodman play kube expose character device inside container", func() {
+	It("podman play kube expose character device inside container", func() {
 		SkipIfRootless("It needs root access to create devices")
 
 		// randomize the folder name to avoid error when running tests with multiple nodes
@@ -3781,7 +3781,7 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 		Expect(kube).Should(Exit(125))
 	})
 
-	It("ddpodman play kube reports error when we try to expose char device as block device", func() {
+	It("podman play kube reports error when we try to expose char device as block device", func() {
 		SkipIfRootless("It needs root access to create devices")
 
 		// randomize the folder name to avoid error when running tests with multiple nodes
@@ -3807,7 +3807,7 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 		Expect(kube).Should(Exit(125))
 	})
 
-	It("ddpodman play kube reports error when we try to expose block device as char device", func() {
+	It("podman play kube reports error when we try to expose block device as char device", func() {
 		SkipIfRootless("It needs root access to create devices")
 
 		// randomize the folder name to avoid error when running tests with multiple nodes
