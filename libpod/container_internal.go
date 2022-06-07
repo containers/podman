@@ -17,6 +17,7 @@ import (
 	"github.com/containers/buildah/pkg/overlay"
 	butil "github.com/containers/buildah/util"
 	"github.com/containers/common/libnetwork/etchosts"
+	"github.com/containers/common/libnetwork/resolvconf"
 	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/common/pkg/chown"
 	"github.com/containers/common/pkg/config"
@@ -986,7 +987,7 @@ func (c *Container) checkDependenciesRunning() ([]string, error) {
 }
 
 func (c *Container) completeNetworkSetup() error {
-	var outResolvConf []string
+	var nameservers []string
 	netDisabled, err := c.NetworkDisabled()
 	if err != nil {
 		return err
@@ -1007,7 +1008,7 @@ func (c *Container) completeNetworkSetup() error {
 	// collect any dns servers that cni tells us to use (dnsname)
 	for _, status := range c.getNetworkStatus() {
 		for _, server := range status.DNSServerIPs {
-			outResolvConf = append(outResolvConf, fmt.Sprintf("nameserver %s", server))
+			nameservers = append(nameservers, server.String())
 		}
 	}
 	// check if we have a bindmount for /etc/hosts
@@ -1023,24 +1024,12 @@ func (c *Container) completeNetworkSetup() error {
 	}
 
 	// check if we have a bindmount for resolv.conf
-	resolvBindMount := state.BindMounts["/etc/resolv.conf"]
-	if len(outResolvConf) < 1 || resolvBindMount == "" || len(c.config.NetNsCtr) > 0 {
+	resolvBindMount := state.BindMounts[resolvconf.DefaultResolvConf]
+	if len(nameservers) < 1 || resolvBindMount == "" || len(c.config.NetNsCtr) > 0 {
 		return nil
 	}
-	// read the existing resolv.conf
-	b, err := ioutil.ReadFile(resolvBindMount)
-	if err != nil {
-		return err
-	}
-	for _, line := range strings.Split(string(b), "\n") {
-		// only keep things that don't start with nameserver from the old
-		// resolv.conf file
-		if !strings.HasPrefix(line, "nameserver") {
-			outResolvConf = append([]string{line}, outResolvConf...)
-		}
-	}
 	// write and return
-	return ioutil.WriteFile(resolvBindMount, []byte(strings.Join(outResolvConf, "\n")), 0644)
+	return resolvconf.Add(resolvBindMount, nameservers)
 }
 
 // Initialize a container, creating it in the runtime

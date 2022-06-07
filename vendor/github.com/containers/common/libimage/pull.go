@@ -533,9 +533,6 @@ func (r *Runtime) copySingleImageFromRegistry(ctx context.Context, imageName str
 	sys := r.systemContextCopy()
 	resolved, err := shortnames.Resolve(sys, imageName)
 	if err != nil {
-		// TODO: that is a too big of a hammer since we should only
-		// ignore errors that indicate that there's no alias and no
-		// USRs.  Must be addressed in c/image first.
 		if localImage != nil && pullPolicy == config.PullPolicyNewer {
 			return []string{resolvedImageName}, nil
 		}

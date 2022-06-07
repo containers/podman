@@ -21,6 +21,7 @@ import (
 
 	"github.com/containernetworking/plugins/pkg/ns"
 	"github.com/containers/common/libnetwork/etchosts"
+	"github.com/containers/common/libnetwork/resolvconf"
 	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/common/pkg/machine"
@@ -30,11 +31,10 @@ import (
 	"github.com/containers/podman/v4/libpod/events"
 	"github.com/containers/podman/v4/pkg/errorhandling"
 	"github.com/containers/podman/v4/pkg/namespaces"
-	"github.com/containers/podman/v4/pkg/resolvconf"
 	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/containers/podman/v4/utils"
 	"github.com/containers/storage/pkg/lockfile"
-	spec "github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -526,23 +526,19 @@ func (r *Runtime) GetRootlessNetNs(new bool) (*RootlessNetNS, error) {
 				return nil, errors.Wrapf(err, "failed to determine slirp4netns DNS address from cidr: %s", cidr.String())
 			}
 		}
-		conf, err := resolvconf.Get()
-		if err != nil {
-			return nil, err
-		}
-		conf, err = resolvconf.FilterResolvDNS(conf.Content, netOptions.enableIPv6, true)
-		if err != nil {
-			return nil, err
-		}
-		searchDomains := resolvconf.GetSearchDomains(conf.Content)
-		dnsOptions := resolvconf.GetOptions(conf.Content)
-		nameServers := resolvconf.GetNameservers(conf.Content)
 
-		_, err = resolvconf.Build(filepath.Join(rootlessNetNsDir, "resolv.conf"), append([]string{resolveIP.String()}, nameServers...), searchDomains, dnsOptions)
-		if err != nil {
+		if err := resolvconf.New(&resolvconf.Params{
+			Path: filepath.Join(rootlessNetNsDir, "resolv.conf"),
+			// fake the netns since we want to filter localhost
+			Namespaces: []specs.LinuxNamespace{
+				{Type: specs.NetworkNamespace},
+			},
+			IPv6Enabled:     netOptions.enableIPv6,
+			KeepHostServers: true,
+			Nameservers:     []string{resolveIP.String()},
+		}); err != nil {
 			return nil, errors.Wrap(err, "failed to create rootless netns resolv.conf")
 		}
-
 		// create cni directories to store files
 		// they will be bind mounted to the correct location in a extra mount ns
 		err = os.MkdirAll(filepath.Join(rootlessNetNsDir, persistentCNIDir), 0700)
@@ -1089,7 +1085,7 @@ func (c *Container) getContainerNetworkInfo() (*define.InspectNetworkSettings, e
 
 func (c *Container) joinedNetworkNSPath() string {
 	for _, namespace := range c.config.Spec.Linux.Namespaces {
-		if namespace.Type == spec.NetworkNamespace {
+		if namespace.Type == specs.NetworkNamespace {
 			return namespace.Path
 		}
 	}

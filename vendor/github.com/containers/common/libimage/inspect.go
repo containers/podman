@@ -128,7 +128,7 @@ func (i *Image) Inspect(ctx context.Context, options *InspectOptions) (*ImageDat
 		Config:       &ociImage.Config,
 		Version:      info.DockerVersion,
 		Size:         size,
-		VirtualSize:  size, // TODO: they should be different (inherited from Podman)
+		VirtualSize:  size, // NOTE: same as size. Inherited from Docker where it's scheduled for deprecation.
 		Digest:       i.Digest(),
 		Labels:       info.Labels,
 		RootFS: &RootFS{
