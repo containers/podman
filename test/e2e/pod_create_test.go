@@ -1112,4 +1112,26 @@ ENTRYPOINT ["sleep","99999"]
 
 	})
 
+	It("podman pod create infra inheritance test", func() {
+		volName := "testVol1"
+		volCreate := podmanTest.Podman([]string{"volume", "create", volName})
+		volCreate.WaitWithDefaultTimeout()
+		Expect(volCreate).Should(Exit(0))
+
+		session := podmanTest.Podman([]string{"pod", "create", "-v", volName + ":/vol1"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		volName2 := "testVol2"
+		volCreate = podmanTest.Podman([]string{"volume", "create", volName2})
+		volCreate.WaitWithDefaultTimeout()
+		Expect(volCreate).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"run", "--pod", session.OutputToString(), "-v", volName2 + ":/vol2", ALPINE, "mount"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).Should(ContainSubstring("/vol1"))
+		Expect(session.OutputToString()).Should(ContainSubstring("/vol2"))
+	})
+
 })
