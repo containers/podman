@@ -410,6 +410,7 @@ unit_test_task:
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: *not_tag_branch_build_docs
     depends_on:
+        - build
         - validate
     matrix:
         - env: *stdenvars
@@ -435,6 +436,7 @@ apiv2_test_task:
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: *not_tag_branch_build_docs
     depends_on:
+        - build
         - validate
     gce_instance: *standardvm
     # Test is normally pretty quick, about 10-minutes.  If it hangs,
@@ -455,6 +457,7 @@ compose_test_task:
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: *not_tag_branch_build_docs
     depends_on:
+        - build
         - validate
     gce_instance: *standardvm
     matrix:
@@ -488,6 +491,7 @@ local_integration_test_task: &local_integration_test_task
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: *not_tag_branch_build_docs
     depends_on:
+        - build
         - unit_test
     matrix: *platform_axis
     gce_instance: *standardvm
@@ -523,6 +527,7 @@ container_integration_test_task:
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: *not_tag_branch_build_docs
     depends_on:
+        - build
         - unit_test
     matrix: &fedora_vm_axis
         - env:
@@ -553,6 +558,7 @@ rootless_integration_test_task:
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: *not_tag_branch_build_docs
     depends_on:
+        - build
         - unit_test
     matrix: *platform_axis
     gce_instance: *standardvm
@@ -581,7 +587,8 @@ local_system_test_task: &local_system_test_task
         $CIRRUS_CHANGE_TITLE !=~ '.*CI:BUILD.*' &&
         $CIRRUS_CRON != 'multiarch'
     depends_on:
-      - local_integration_test
+        - build
+        - local_integration_test
     matrix: *platform_axis
     gce_instance: *standardvm
     env:
@@ -606,7 +613,8 @@ rootless_remote_system_test_task:
     <<: *local_system_test_task
     alias: rootless_remote_system_test
     depends_on:
-      - remote_integration_test
+        - build
+        - remote_integration_test
     matrix:
       # Minimal sanity testing: only the latest Fedora
       - env:
@@ -629,7 +637,8 @@ rootless_system_test_task:
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: *not_tag_build_docs_multiarch
     depends_on:
-      - rootless_integration_test
+        - build
+        - rootless_integration_test
     matrix: *platform_axis
     gce_instance: *standardvm
     env:
@@ -647,7 +656,8 @@ buildah_bud_test_task:
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: *not_tag_branch_build_docs
     depends_on:
-      - local_integration_test
+        - build
+        - local_integration_test
     env:
         TEST_FLAVOR: bud
         DISTRO_NV: ${FEDORA_NAME}
@@ -679,7 +689,8 @@ rootless_gitlab_test_task:
     # If necessary, uncomment the next line and file issue(s) with details.
     # allow_failures: $CI == $CI
     depends_on:
-      - rootless_integration_test
+        - build
+        - rootless_integration_test
     gce_instance: *standardvm
     env:
         <<: *ubuntu_envvars
@@ -702,7 +713,8 @@ upgrade_test_task:
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: *not_tag_branch_build_docs
     depends_on:
-      - local_system_test
+        - build
+        - local_system_test
     matrix:
         - env:
               PODMAN_UPGRADE_FROM: v2.1.1
@@ -902,6 +914,7 @@ release_task:
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: $CIRRUS_TAG != ''
     depends_on:
+        - build
         - success
     gce_instance: *standardvm
     env:
@@ -928,6 +941,7 @@ release_test_task:
     # see RELEASE_PROCESS.md
     trigger_type: manual
     depends_on:
+        - build
         - success
     gce_instance: *standardvm
     env:
