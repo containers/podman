@@ -5594,3 +5594,8 @@ const (
 	FR_ACT_UNREACHABLE     = 0x7
 	FR_ACT_PROHIBIT        = 0x8
 )
+
+const (
+	AUDIT_NLGRP_NONE    = 0x0
+	AUDIT_NLGRP_READLOG = 0x1
+)

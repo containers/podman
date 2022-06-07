@@ -6,9 +6,13 @@ import (
 	"os"
 
 	"github.com/containers/common/pkg/parse"
+	"github.com/containers/common/pkg/secrets"
 	"github.com/containers/podman/v4/libpod"
 	v1 "github.com/containers/podman/v4/pkg/k8s.io/api/core/v1"
+	metav1 "github.com/containers/podman/v4/pkg/k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"github.com/sirupsen/logrus"
+	"gopkg.in/yaml.v3"
 )
 
 const (
@@ -27,6 +31,7 @@ const (
 	KubeVolumeTypeConfigMap
 	KubeVolumeTypeBlockDevice
 	KubeVolumeTypeCharDevice
+	KubeVolumeTypeSecret
 )
 
 //nolint:revive
@@ -125,6 +130,49 @@ func VolumeFromHostPath(hostPath *v1.HostPathVolumeSource) (*KubeVolume, error) 
 	}, nil
 }
 
+// VolumeFromSecret creates a new kube volume from a kube secret.
+func VolumeFromSecret(secretSource *v1.SecretVolumeSource, secretsManager *secrets.SecretsManager) (*KubeVolume, error) {
+	// returns a byte array of a kube secret data, meaning this needs to go into a string map
+	_, secretByte, err := secretsManager.LookupSecretData(secretSource.SecretName)
+	if err != nil {
+		return nil, err
+	}
+
+	// unmarshaling directly into a v1.secret creates type mismatch errors
+	// use a more friendly, string only secret struct.
+	type KubeSecret struct {
+		metav1.TypeMeta `json:",inline"`
+		// +optional
+		metav1.ObjectMeta `json:"metadata,omitempty"`
+		// +optional
+		Immutable *bool             `json:"immutable,omitempty"`
+		Data      map[string]string `json:"data,omitempty"`
+		// +optional
+		StringData map[string]string `json:"stringData,omitempty"`
+		// +optional
+		Type string `json:"type,omitempty"`
+	}
+
+	data := &KubeSecret{}
+
+	err = yaml.Unmarshal(secretByte, data)
+	if err != nil {
+		return nil, err
+	}
+
+	kv := &KubeVolume{}
+	kv.Type = KubeVolumeTypeSecret
+	kv.Source = secretSource.SecretName
+	kv.Optional = *secretSource.Optional
+	kv.Items = make(map[string]string)
+
+	// add key: value pairs to the items array
+	for key, entry := range data.Data {
+		kv.Items[key] = entry
+	}
+	return kv, nil
+}
+
 // Create a KubeVolume from a PersistentVolumeClaimVolumeSource
 func VolumeFromPersistentVolumeClaim(claim *v1.PersistentVolumeClaimVolumeSource) (*KubeVolume, error) {
 	return &KubeVolume{
@@ -172,7 +220,7 @@ func VolumeFromConfigMap(configMapVolumeSource *v1.ConfigMapVolumeSource, config
 }
 
 // Create a KubeVolume from one of the supported VolumeSource
-func VolumeFromSource(volumeSource v1.VolumeSource, configMaps []v1.ConfigMap) (*KubeVolume, error) {
+func VolumeFromSource(volumeSource v1.VolumeSource, configMaps []v1.ConfigMap, secretsManager *secrets.SecretsManager) (*KubeVolume, error) {
 	switch {
 	case volumeSource.HostPath != nil:
 		return VolumeFromHostPath(volumeSource.HostPath)
@@ -180,17 +228,19 @@ func VolumeFromSource(volumeSource v1.VolumeSource, configMaps []v1.ConfigMap) (
 		return VolumeFromPersistentVolumeClaim(volumeSource.PersistentVolumeClaim)
 	case volumeSource.ConfigMap != nil:
 		return VolumeFromConfigMap(volumeSource.ConfigMap, configMaps)
+	case volumeSource.Secret != nil:
+		return VolumeFromSecret(volumeSource.Secret, secretsManager)
 	default:
 		return nil, errors.New("HostPath, ConfigMap, and PersistentVolumeClaim are currently the only supported VolumeSource")
 	}
 }
 
 // Create a map of volume name to KubeVolume
-func InitializeVolumes(specVolumes []v1.Volume, configMaps []v1.ConfigMap) (map[string]*KubeVolume, error) {
+func InitializeVolumes(specVolumes []v1.Volume, configMaps []v1.ConfigMap, secretsManager *secrets.SecretsManager) (map[string]*KubeVolume, error) {
 	volumes := make(map[string]*KubeVolume)
 
 	for _, specVolume := range specVolumes {
-		volume, err := VolumeFromSource(specVolume.VolumeSource, configMaps)
+		volume, err := VolumeFromSource(specVolume.VolumeSource, configMaps, secretsManager)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create volume %q: %w", specVolume.Name, err)
 		}

@@ -393,8 +393,8 @@ github.com/containernetworking/plugins v1.1.1/go.mod h1:Sr5TH/eBsGLXK/h71HeLfX19
 github.com/containers/buildah v1.26.1-0.20220716095526-d31d27c357ab h1:NeI0DOkTf3Tn4OpdjMhMubAfTPs2oCO5jUY5wnpv4qk=
 github.com/containers/buildah v1.26.1-0.20220716095526-d31d27c357ab/go.mod h1:iVtQtU6a+pbETBqIzg0oAWW3gTR1ItrAihJpLFFppmA=
 github.com/containers/common v0.48.1-0.20220715075726-2ac10faca05a/go.mod h1:1dA7JPGoSi83kjf5H4NIrGANyLOULyvFqV1bwvYFEek=
-github.com/containers/common v0.48.1-0.20220718075257-ecddf87b3840 h1:+5C5tnWO2a6M9QqKNUibMIn56LAuIDtuyb/xT6ZGU/4=
-github.com/containers/common v0.48.1-0.20220718075257-ecddf87b3840/go.mod h1:1dA7JPGoSi83kjf5H4NIrGANyLOULyvFqV1bwvYFEek=
+github.com/containers/common v0.48.1-0.20220720145307-26032247af78 h1:Z25E8uA264l7dgk0h+1pfV5Y3ZhrFY/0eR6BUQ5BwkY=
+github.com/containers/common v0.48.1-0.20220720145307-26032247af78/go.mod h1:w9q2iCLu6pIB9qu0S9oZWM2Qo4lOWrIdDB+2SjLljqA=
 github.com/containers/conmon v2.0.20+incompatible h1:YbCVSFSCqFjjVwHTPINGdMX1F6JXHGTUje2ZYobNrkg=
 github.com/containers/conmon v2.0.20+incompatible/go.mod h1:hgwZ2mtuDrppv78a/cOBNiCm6O0UMWGx1mu7P00nu5I=
 github.com/containers/image/v5 v5.21.2-0.20220712113758-29aec5f7bbbf/go.mod h1:0+N0ZM9mgMmoZZc6uNcgnEsbX85Ne7b29cIW5lqWwVU=
@@ -415,8 +415,9 @@ github.com/containers/storage v1.37.0/go.mod h1:kqeJeS0b7DO2ZT1nVWs0XufrmPFbgV3c
 github.com/containers/storage v1.38.0/go.mod h1:lBzt28gAk5ADZuRtwdndRJyqX22vnRaXmlF+7ktfMYc=
 github.com/containers/storage v1.41.0/go.mod h1:Pb0l5Sm/89kolX3o2KolKQ5cCHk5vPNpJrhNaLcdS5s=
 github.com/containers/storage v1.41.1-0.20220712184034-d26be7b27860/go.mod h1:uu6HCcijN30xRxW1ZuZRngwFGOlH5NpBWYiNBnDQNRw=
-github.com/containers/storage v1.41.1-0.20220714115232-fc9b0ff5272a h1:+arJAP0v8kEy5fKRPIELjarjpwUHhB7SyRE0uFXlyKY=
 github.com/containers/storage v1.41.1-0.20220714115232-fc9b0ff5272a/go.mod h1:4DfR+cPpkXKhJnnyydD3z82DXrnTBT63y1k0QWtM2i4=
+github.com/containers/storage v1.41.1-0.20220718173332-b10c469fda0a h1:+2n/MLjSlLQwxcROpJLAOvN86SvOMB5IxOahq4iitok=
+github.com/containers/storage v1.41.1-0.20220718173332-b10c469fda0a/go.mod h1:jfYNR16uI3eCaWU2Bdn9sHgET7W8JB0OPiswQamG1Cs=
 github.com/coreos/bbolt v1.3.2/go.mod h1:iRUV2dpdMOn7Bo10OQBFzIJO9kkE559Wcmn+qkEiiKk=
 github.com/coreos/etcd v3.3.10+incompatible/go.mod h1:uF7uidLiAD3TWHmW31ZFd/JWoc32PjwdhPthX9715RE=
 github.com/coreos/etcd v3.3.13+incompatible/go.mod h1:uF7uidLiAD3TWHmW31ZFd/JWoc32PjwdhPthX9715RE=
@@ -1464,8 +1465,9 @@ github.com/sirupsen/logrus v1.4.1/go.mod h1:ni0Sbl8bgC9z8RoU9G6nDWqqs/fq4eDPysMB
 github.com/sirupsen/logrus v1.4.2/go.mod h1:tLMulIdttU9McNUspp0xgXVQah82FyeX6MwdIuYE2rE=
 github.com/sirupsen/logrus v1.6.0/go.mod h1:7uNnSEd1DgxDLC74fIahvMZmmYsHGZGEOFrfsX/uA88=
 github.com/sirupsen/logrus v1.7.0/go.mod h1:yWOB1SBYBC5VeMP7gHvWumXLIWorT60ONWic61uBYv0=
-github.com/sirupsen/logrus v1.8.1 h1:dJKuHgqk1NNQlqoA6BTlM1Wf9DOH3NBjQyu0h9+AZZE=
 github.com/sirupsen/logrus v1.8.1/go.mod h1:yWOB1SBYBC5VeMP7gHvWumXLIWorT60ONWic61uBYv0=
+github.com/sirupsen/logrus v1.9.0 h1:trlNQbNUG3OdDrDil03MCb1H2o9nJ1x4/5LYw7byDE0=
+github.com/sirupsen/logrus v1.9.0/go.mod h1:naHLuLoDiP4jHNo9R0sCBMtWGeIprob74mVsIT4qYEQ=
 github.com/sivchari/tenv v1.4.7/go.mod h1:5nF+bITvkebQVanjU6IuMbvIot/7ReNsUV7I5NbprB0=
 github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966/go.mod h1:sUM3LWHvSMaG192sy56D9F7CNvL7jUJVXoqM1QKLnog=
 github.com/smartystreets/assertions v0.0.0-20180927180507-b2de0cb4f26d/go.mod h1:OnSkiWE9lh6wB0YB77sQom3nweQdgAjqCqsofrRNTgc=
@@ -2057,8 +2059,9 @@ golang.org/x/sys v0.0.0-20220502124256-b6088ccd6cba/go.mod h1:oPkhp1MJrh7nUepCBc
 golang.org/x/sys v0.0.0-20220503163025-988cb79eb6c6/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/sys v0.0.0-20220520151302-bc2c85ada10a/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/sys v0.0.0-20220610221304-9f5ed59c137d/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
-golang.org/x/sys v0.0.0-20220624220833-87e55d714810 h1:rHZQSjJdAI4Xf5Qzeh2bBc5YJIkPFVM6oDtMFYmgws0=
 golang.org/x/sys v0.0.0-20220624220833-87e55d714810/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
+golang.org/x/sys v0.0.0-20220715151400-c0bba94af5f8 h1:0A+M6Uqn+Eje4kHMK80dtF3JCXC4ykBgQG4Fe06QRhQ=
+golang.org/x/sys v0.0.0-20220715151400-c0bba94af5f8/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/term v0.0.0-20201117132131-f5c789dd3221/go.mod h1:Nr5EML6q2oocZ2LXRh80K7BxOlk5/8JxuGnuhpl+muw=
 golang.org/x/term v0.0.0-20201126162022-7de9c90e9dd1/go.mod h1:bj7SfCRtBDWHUb9snDiAeCFNEtKQo2Wmx5Cou7ajbmo=
 golang.org/x/term v0.0.0-20210220032956-6a3ed077a48d/go.mod h1:bj7SfCRtBDWHUb9snDiAeCFNEtKQo2Wmx5Cou7ajbmo=
