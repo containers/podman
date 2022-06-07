@@ -59,6 +59,7 @@ env:
         curl --fail --location -O
         --url https://api.cirrus-ci.com/v1/artifact/build/${CIRRUS_BUILD_ID}
 
+
 # Default timeout for each task
 timeout_in: 60m
 
@@ -71,7 +72,9 @@ gcp_credentials: ENCRYPTED[a28959877b2c9c36f151781b0a05407218cda646c7d047fc556e4
 ext_svc_check_task:
     alias: 'ext_svc_check'  # int. ref. name - required for depends_on reference
     name: "Ext. services"  # Displayed Title - has no other significance
-    skip: &tags "$CIRRUS_TAG != ''"  # Don't run on tags
+    # Don't create this task for new tags so release process is more reliable
+    # Docs: ./contrib/cirrus/CIModes.md
+    only_if: $CIRRUS_TAG == ''
     # Default/small container image to execute tasks with
     container: &smallcontainer
         image: ${CTR_FQIN}
@@ -117,7 +120,9 @@ ext_svc_check_task:
 automation_task:
     alias: 'automation'
     name: "Check Automation"
-    skip: &branches_and_tags "$CIRRUS_PR == '' || $CIRRUS_TAG != ''" # Don't run on branches/tags
+    # This task is not needed for branches, tags, or cron runs.
+    # Docs: ./contrib/cirrus/CIModes.md
+    only_if: &is_pr "$CIRRUS_PR != ''"
     container: *smallcontainer
     env:
         TEST_FLAVOR: automation
@@ -138,6 +143,9 @@ automation_task:
 build_task:
     alias: 'build'
     name: 'Build for $DISTRO_NV'
+    # Multiarch doesn't depend on buildability in this automation context
+    # Docs: ./contrib/cirrus/CIModes.md
+    only_if: "$CIRRUS_CRON != 'multiarch'"
     gce_instance: &standardvm
         image_project: libpod-218412
         zone: "us-central1-a"
@@ -189,7 +197,8 @@ validate_task:
     # automation reliability/speed in those contexts.  Any missed errors due
     # to nonsequential PR merging practices, will be caught on a future PR,
     # build or test task failures.
-    skip: *branches_and_tags
+    # Docs: ./contrib/cirrus/CIModes.md
+    only_if: *is_pr
     depends_on:
         - ext_svc_check
         - automation
@@ -218,9 +227,12 @@ validate_task:
 bindings_task:
     name: "Test Bindings"
     alias: bindings
-    # Don't run for [CI:DOCS] or [CI:BUILD]
-    only_if: &not_build $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*' && $CIRRUS_CHANGE_TITLE !=~ '.*CI:BUILD.*'
-    skip: *branches_and_tags
+    # Don't create task for PRs using [CI:DOCS] or [CI:BUILD]
+    # Docs: ./contrib/cirrus/CIModes.md
+    only_if: >-
+        $CIRRUS_PR != '' &&
+        $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*' &&
+        $CIRRUS_CHANGE_TITLE !=~ '.*CI:BUILD.*'
     depends_on:
         - build
     gce_instance: *standardvm
@@ -249,6 +261,11 @@ bindings_task:
 swagger_task:
     name: "Test Swagger"
     alias: swagger
+    # Don't create task for [CI:BUILD] or multiarch builds
+    # Docs: ./contrib/cirrus/CIModes.md
+    only_if: >-
+        $CIRRUS_CHANGE_TITLE !=~ '.*CI:BUILD.*' &&
+        $CIRRUS_CRON != 'multiarch'
     depends_on:
         - build
     gce_instance: *standardvm
@@ -276,7 +293,8 @@ swagger_task:
 consistency_task:
     name: "Test Code Consistency"
     alias: consistency
-    skip: *tags
+    # Docs: ./contrib/cirrus/CIModes.md
+    only_if: *is_pr
     depends_on:
         - build
     container: *smallcontainer
@@ -297,8 +315,11 @@ consistency_task:
 alt_build_task:
     name: "$ALT_NAME"
     alias: alt_build
-    # Don't run for [CI:DOCS]; DO run for [CI:BUILD]
-    only_if: &not_docs $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*'
+    # Don't create task for [CI:DOCS] or multiarch builds
+    # Docs: ./contrib/cirrus/CIModes.md
+    only_if: &not_docs_multiarch >-
+        $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*' &&
+        $CIRRUS_CRON != 'multiarch'
     depends_on:
         - build
     env:
@@ -330,7 +351,8 @@ alt_build_task:
 osx_alt_build_task:
     name: "OSX Cross"
     alias: osx_alt_build
-    only_if: *not_docs
+    # Docs: ./contrib/cirrus/CIModes.md
+    only_if: *not_docs_multiarch
     depends_on:
         - build
     env:
@@ -359,8 +381,14 @@ osx_alt_build_task:
 docker-py_test_task:
     name: Docker-py Compat.
     alias: docker-py_test
-    skip: *tags
-    only_if: *not_build
+    # Don't create task for tags, branches, or PRs w/ [CI:DOCS] or [CI:BUILD]
+    # N/B: for PRs $CIRRUS_BRANCH == 'pull/<number>'
+    # Docs: ./contrib/cirrus/CIModes.md
+    only_if: &not_tag_branch_build_docs >-
+        $CIRRUS_PR != '' &&
+        $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*' &&
+        $CIRRUS_CHANGE_TITLE !=~ '.*CI:BUILD.*'
+
     depends_on:
         - build
     gce_instance: *standardvm
@@ -379,8 +407,8 @@ docker-py_test_task:
 unit_test_task:
     name: "Unit tests on $DISTRO_NV"
     alias: unit_test
-    skip: *tags
-    only_if: *not_build
+    # Docs: ./contrib/cirrus/CIModes.md
+    only_if: *not_tag_branch_build_docs
     depends_on:
         - validate
     matrix:
@@ -404,8 +432,8 @@ unit_test_task:
 apiv2_test_task:
     name: "APIv2 test on $DISTRO_NV"
     alias: apiv2_test
-    only_if: *not_build
-    skip: *tags
+    # Docs: ./contrib/cirrus/CIModes.md
+    only_if: *not_tag_branch_build_docs
     depends_on:
         - validate
     gce_instance: *standardvm
@@ -424,8 +452,8 @@ apiv2_test_task:
 compose_test_task:
     name: "$TEST_FLAVOR test on $DISTRO_NV ($PRIV_NAME)"
     alias: compose_test
-    only_if: *not_build
-    skip: *tags
+    # Docs: ./contrib/cirrus/CIModes.md
+    only_if: *not_tag_branch_build_docs
     depends_on:
         - validate
     gce_instance: *standardvm
@@ -457,8 +485,8 @@ local_integration_test_task: &local_integration_test_task
     # <int.|sys.> <podman|remote> <Distro NV> <root|rootless>
     name: &std_name_fmt "$TEST_FLAVOR $PODBIN_NAME $DISTRO_NV $PRIV_NAME $TEST_ENVIRON"
     alias: local_integration_test
-    only_if: *not_build
-    skip: *branches_and_tags
+    # Docs: ./contrib/cirrus/CIModes.md
+    only_if: *not_tag_branch_build_docs
     depends_on:
         - unit_test
     matrix: *platform_axis
@@ -492,8 +520,8 @@ remote_integration_test_task:
 container_integration_test_task:
     name: *std_name_fmt
     alias: container_integration_test
-    only_if: *not_build
-    skip: *branches_and_tags
+    # Docs: ./contrib/cirrus/CIModes.md
+    only_if: *not_tag_branch_build_docs
     depends_on:
         - unit_test
     matrix: &fedora_vm_axis
@@ -522,8 +550,8 @@ container_integration_test_task:
 rootless_integration_test_task:
     name: *std_name_fmt
     alias: rootless_integration_test
-    only_if: *not_build
-    skip: *branches_and_tags
+    # Docs: ./contrib/cirrus/CIModes.md
+    only_if: *not_tag_branch_build_docs
     depends_on:
         - unit_test
     matrix: *platform_axis
@@ -545,8 +573,13 @@ rootless_integration_test_task:
 local_system_test_task: &local_system_test_task
     name: *std_name_fmt
     alias: local_system_test
-    skip: *tags
-    only_if: *not_build
+    # Don't create task for tags, or if using [CI:DOCS], [CI:BUILD], multiarch
+    # Docs: ./contrib/cirrus/CIModes.md
+    only_if: &not_tag_build_docs_multiarch >-
+        $CIRRUS_TAG == '' &&
+        $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*' &&
+        $CIRRUS_CHANGE_TITLE !=~ '.*CI:BUILD.*' &&
+        $CIRRUS_CRON != 'multiarch'
     depends_on:
       - local_integration_test
     matrix: *platform_axis
@@ -590,11 +623,29 @@ rootless_remote_system_test_task:
         PRIV_NAME: rootless
 
 
+rootless_system_test_task:
+    name: *std_name_fmt
+    alias: rootless_system_test
+    # Docs: ./contrib/cirrus/CIModes.md
+    only_if: *not_tag_build_docs_multiarch
+    depends_on:
+      - rootless_integration_test
+    matrix: *platform_axis
+    gce_instance: *standardvm
+    env:
+        TEST_FLAVOR: sys
+        PRIV_NAME: rootless
+    clone_script: *get_gosrc
+    setup_script: *setup
+    main_script: *main
+    always: *logs_artifacts
+
+
 buildah_bud_test_task:
     name: *std_name_fmt
     alias: buildah_bud_test
-    skip: *tags
-    only_if: *not_build
+    # Docs: ./contrib/cirrus/CIModes.md
+    only_if: *not_tag_branch_build_docs
     depends_on:
       - local_integration_test
     env:
@@ -618,29 +669,11 @@ buildah_bud_test_task:
     always: *int_logs_artifacts
 
 
-rootless_system_test_task:
-    name: *std_name_fmt
-    alias: rootless_system_test
-    skip: *tags
-    only_if: *not_build
-    depends_on:
-      - rootless_integration_test
-    matrix: *platform_axis
-    gce_instance: *standardvm
-    env:
-        TEST_FLAVOR: sys
-        PRIV_NAME: rootless
-    clone_script: *get_gosrc
-    setup_script: *setup
-    main_script: *main
-    always: *logs_artifacts
-
-
 rootless_gitlab_test_task:
     name: *std_name_fmt
     alias: rootless_gitlab_test
-    skip: *tags
-    only_if: *not_build
+    # Docs: ./contrib/cirrus/CIModes.md
+    only_if: *not_tag_branch_build_docs
     # Community-maintained downstream test may fail unexpectedly.
     # Ref. repository: https://gitlab.com/gitlab-org/gitlab-runner
     # If necessary, uncomment the next line and file issue(s) with details.
@@ -666,8 +699,8 @@ rootless_gitlab_test_task:
 upgrade_test_task:
     name: "Upgrade test: from $PODMAN_UPGRADE_FROM"
     alias: upgrade_test
-    skip: *tags
-    only_if: *not_build
+    # Docs: ./contrib/cirrus/CIModes.md
+    only_if: *not_tag_branch_build_docs
     depends_on:
       - local_system_test
     matrix:
@@ -695,9 +728,10 @@ image_build_task: &image-build
     alias: image_build
     # Some of these container images take > 1h to build, limit
     # this task to a specific Cirrus-Cron entry with this name.
+    # Docs: ./contrib/cirrus/CIModes.md
     only_if: $CIRRUS_CRON == 'multiarch'
     depends_on:
-        - build
+        - ext_svc_check
     timeout_in: 120m  # emulation is sssllllooooowwww
     gce_instance:
         <<: *standardvm
@@ -728,6 +762,7 @@ test_image_build_task:
     <<: *image-build
     alias: test_image_build
     # Allow this to run inside a PR w/ [CI:BUILD] only.
+    # Docs: ./contrib/cirrus/CIModes.md
     only_if: $CIRRUS_PR != '' && $CIRRUS_CHANGE_TITLE =~ '.*CI:BUILD.*'
     # This takes a LONG time, only run when requested.  N/B: Any task
     # made to depend on this one will block FOREVER unless triggered.
@@ -793,9 +828,9 @@ success_task:
         - remote_system_test
         - rootless_system_test
         - rootless_remote_system_test
+        - buildah_bud_test
         - rootless_gitlab_test
         - upgrade_test
-        - buildah_bud_test
         - image_build
         - meta
     container: *smallcontainer
@@ -809,7 +844,8 @@ success_task:
 artifacts_task:
     name: "Artifacts"
     alias: artifacts
-    only_if: *not_docs
+    # Docs: ./contrib/cirrus/CIModes.md
+    only_if: *not_docs_multiarch
     depends_on:
         - success
     # This task is a secondary/convenience for downstream consumers, don't
@@ -862,7 +898,9 @@ artifacts_task:
 release_task:
     name: "Verify Release"
     alias: release
-    only_if: *tags
+    # This should _only_ run for new tags
+    # Docs: ./contrib/cirrus/CIModes.md
+    only_if: $CIRRUS_TAG != ''
     depends_on:
         - success
     gce_instance: *standardvm
@@ -884,6 +922,7 @@ release_test_task:
     name: "Optional Release Test"
     alias: release_test
     # Release-PRs always include "release" or "Bump" in the title
+    # Docs: ./contrib/cirrus/CIModes.md
     only_if: $CIRRUS_CHANGE_TITLE =~ '.*((release)|(bump)).*'
     # Allow running manually only as part of release-related builds
     # see RELEASE_PROCESS.md
