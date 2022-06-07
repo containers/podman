@@ -1312,6 +1312,7 @@ func GetVMInfos() ([]*machine.ListResponse, error) {
 			listEntry.RemoteUsername = vm.RemoteUsername
 			listEntry.Port = vm.Port
 			listEntry.IdentityPath = vm.IdentityPath
+			listEntry.Starting = false
 
 			running := vm.isRunning()
 			listEntry.CreatedAt, listEntry.LastUp, _ = vm.updateTimeStamps(running)
