@@ -93,6 +93,22 @@ When rootless containers are run, network operations
 will be executed inside an extra network namespace. To join this namespace, use
 `podman unshare --rootless-netns`.
 
+#### Default Network
+
+The default network `podman` with netavark is memory-only.  It does not support dns resolution because of backwards compatibility with Docker.  To change settings, export the in-memory network and change the file.
+
+For the default rootful network use
+```
+podman network inspect podman | jq .[] > /etc/containers/networks/podman.json
+```
+
+And for the rootless network use
+
+```
+podman network inspect podman | jq .[] > ~/.local/share/containers/storage/networks/podman.json
+```
+
+
 #### Example
 
 By default, rootful containers use the netavark for its default network if
