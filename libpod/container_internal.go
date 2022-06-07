@@ -1000,6 +1000,9 @@ func (c *Container) completeNetworkSetup() error {
 	if err := c.runtime.setupNetNS(c); err != nil {
 		return err
 	}
+	if err := c.save(); err != nil {
+		return err
+	}
 	state := c.state
 	// collect any dns servers that cni tells us to use (dnsname)
 	for _, status := range c.getNetworkStatus() {
