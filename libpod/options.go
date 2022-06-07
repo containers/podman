@@ -2174,3 +2174,17 @@ func WithPasswdEntry(passwdEntry string) CtrCreateOption {
 		return nil
 	}
 }
+
+// WithMountAllDevices sets the option to mount all of a privileged container's
+// host devices
+func WithMountAllDevices() CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return define.ErrCtrFinalized
+		}
+
+		ctr.config.MountAllDevices = true
+
+		return nil
+	}
+}

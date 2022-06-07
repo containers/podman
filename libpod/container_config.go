@@ -412,6 +412,9 @@ type ContainerMiscConfig struct {
 	InitContainerType string `json:"init_container_type,omitempty"`
 	// PasswdEntry specifies arbitrary data to append to a file.
 	PasswdEntry string `json:"passwd_entry,omitempty"`
+	// MountAllDevices is an option to indicate whether a privileged container
+	// will mount all the host's devices
+	MountAllDevices bool `json:"mountAllDevices"`
 }
 
 // InfraInherit contains the compatible options inheritable from the infra container

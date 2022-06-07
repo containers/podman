@@ -438,6 +438,14 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 	//nolint:staticcheck
 	g := generate.NewFromSpec(c.config.Spec)
 
+	// If the flag to mount all devices is set for a privileged container, add
+	// all the devices from the host's machine into the container
+	if c.config.MountAllDevices {
+		if err := util.AddPrivilegedDevices(&g); err != nil {
+			return nil, err
+		}
+	}
+
 	// If network namespace was requested, add it now
 	if c.config.CreateNetNS {
 		if c.config.PostConfigureNetNS {
