@@ -56,7 +56,7 @@ func start(_ *cobra.Command, args []string) error {
 		if vmName == activeName {
 			return errors.Wrapf(machine.ErrVMAlreadyRunning, "cannot start VM %s", vmName)
 		}
-		return errors.Wrapf(machine.ErrMultipleActiveVM, "cannot start VM %s. VM %s is currently running", vmName, activeName)
+		return errors.Wrapf(machine.ErrMultipleActiveVM, "cannot start VM %s. VM %s is currently running or starting", vmName, activeName)
 	}
 	fmt.Printf("Starting machine %q\n", vmName)
 	if err := vm.Start(vmName, machine.StartOptions{}); err != nil {

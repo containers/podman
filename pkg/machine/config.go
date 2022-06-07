@@ -42,7 +42,9 @@ const (
 	// Running indicates the qemu vm is running.
 	Running Status = "running"
 	// Stopped indicates the vm has stopped.
-	Stopped            Status = "stopped"
+	Stopped Status = "stopped"
+	// Starting indicated the vm is in the process of starting
+	Starting           Status = "starting"
 	DefaultMachineName string = "podman-machine-default"
 )
 
@@ -62,7 +64,7 @@ var (
 	DefaultIgnitionUserName                      = "core"
 	ErrNoSuchVM                                  = errors.New("VM does not exist")
 	ErrVMAlreadyExists                           = errors.New("VM already exists")
-	ErrVMAlreadyRunning                          = errors.New("VM already running")
+	ErrVMAlreadyRunning                          = errors.New("VM already running or starting")
 	ErrMultipleActiveVM                          = errors.New("only one VM can be active at a time")
 	ForwarderBinaryName                          = "gvproxy"
 )
@@ -88,6 +90,7 @@ type ListResponse struct {
 	CreatedAt      time.Time
 	LastUp         time.Time
 	Running        bool
+	Starting       bool
 	Stream         string
 	VMType         string
 	CPUs           uint64
