@@ -163,7 +163,6 @@ func ManifestAddV3(w http.ResponseWriter, r *http.Request) {
 	// Wrapper to support 3.x with 4.x libpod
 	query := struct {
 		entities.ManifestAddOptions
-		Images    []string
 		TLSVerify bool `schema:"tlsVerify"`
 	}{}
 	if err := json.NewDecoder(r.Body).Decode(&query); err != nil {

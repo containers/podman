@@ -128,7 +128,7 @@ t DELETE "containers/$cid"                                                      
 # disable the docker.io enforcement.
 
 stop_service
-CONTAINERS_CONF=$(pwd)/test/apiv2/containers.conf start_service
+CONTAINERS_CONF=$TESTS_DIR/containers.conf start_service
 
 t POST   "images/create?fromImage=quay.io/libpod/alpine:latest"       200 .error~null .status~".*Download complete.*"
 t POST   "images/alpine/tag?repo=foo"                                 201
