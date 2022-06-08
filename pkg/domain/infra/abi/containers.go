@@ -610,6 +610,7 @@ func (ic *ContainerEngine) ContainerRestore(ctx context.Context, namesOrIds []st
 		ImportPrevious:  options.ImportPrevious,
 		Pod:             options.Pod,
 		PrintStats:      options.PrintStats,
+		FileLocks:       options.FileLocks,
 	}
 
 	filterFuncs := []libpod.ContainerFilter{
