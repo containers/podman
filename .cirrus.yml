@@ -303,8 +303,8 @@ alt_build_task:
         TEST_FLAVOR: "altbuild"
     gce_instance: *standardvm
     matrix:
-      - env:
-            ALT_NAME: 'Build Each Commit'
+      #- env:
+      #      ALT_NAME: 'Build Each Commit'
       - env:
             ALT_NAME: 'Windows Cross'
       - env:
