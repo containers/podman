@@ -170,4 +170,34 @@ function teardown() {
 
 # FIXME: test --leave-running
 
+@test "podman checkpoint --file-locks" {
+    action='flock test.lock sh -c "while [ -e /wait ];do sleep 0.5;done;for i in 1 2 3;do echo \$i;sleep 0.5;done"'
+    run_podman run -d $IMAGE sh -c "touch /wait; touch test.lock; echo READY; $action & $action & wait"
+    local cid="$output"
+
+    # Wait for container to start emitting output
+    wait_for_ready $cid
+
+    # Checkpoint, and confirm via inspect
+    run_podman container checkpoint --file-locks $cid
+    is "$output" "$cid" "podman container checkpoint"
+
+    run_podman container inspect \
+               --format '{{.State.Status}}:{{.State.Running}}:{{.State.Paused}}:{{.State.Checkpointed}}' $cid
+    is "$output" "exited:false:false:true" "State. Status:Running:Pause:Checkpointed"
+
+    # Restart immediately and confirm state
+    run_podman container restore --file-locks $cid
+    is "$output" "$cid" "podman container restore"
+
+    # Signal the container to continue; this is where the 1-2-3s will come from
+    run_podman exec $cid rm /wait
+
+    # Wait for the container to stop
+    run_podman wait $cid
+
+    run_podman logs $cid
+    trim=$(sed -z -e 's/[\r\n]\+//g' <<<"$output")
+    is "$trim" "READY123123" "File lock restored"
+}
 # vim: filetype=sh
