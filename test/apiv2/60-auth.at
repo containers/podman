@@ -3,7 +3,7 @@
 # registry-related tests
 #
 
-start_registry
+start_registry htpasswd
 
 # Test unreachable
 t POST /v1.40/auth username=$REGISTRY_USERNAME password=WrOnGPassWord serveraddress=does.not.exist.io:1234/ \
@@ -26,3 +26,5 @@ t POST /v1.40/auth username=$REGISTRY_USERNAME password=$REGISTRY_PASSWORD serve
   200 \
   .Status="Login Succeeded" \
   .IdentityToken=""
+
+stop_registry

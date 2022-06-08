@@ -53,7 +53,7 @@ t POST "images/create?fromImage=alpine" 200 .error~null .status~".*Download comp
 t POST "images/create?fromImage=alpine&tag=latest" 200
 
 # 10977 - handle platform parameter correctly
-t POST "images/create?fromImage=testimage:20210610&platform=linux/arm64" 200
+t POST "images/create?fromImage=quay.io/libpod/testimage:20210610&platform=linux/arm64" 200
 t GET  "images/testimage:20210610/json" 200 \
   .Architecture=arm64
 
