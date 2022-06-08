@@ -3,17 +3,17 @@ module github.com/containers/buildah
 go 1.16
 
 require (
-	github.com/containerd/containerd v1.6.4
-	github.com/containernetworking/cni v1.1.0
+	github.com/containerd/containerd v1.6.6
+	github.com/containernetworking/cni v1.1.1
 	github.com/containers/common v0.48.1-0.20220519181648-280c6f69fa82
 	github.com/containers/image/v5 v5.21.2-0.20220520105616-e594853d6471
 	github.com/containers/ocicrypt v1.1.4-0.20220428134531-566b808bdf6f
 	github.com/containers/storage v1.41.1-0.20220517121726-5019cd55275c
 	github.com/docker/distribution v2.8.1+incompatible
-	github.com/docker/docker v20.10.16+incompatible
+	github.com/docker/docker v20.10.17+incompatible
 	github.com/docker/go-units v0.4.0
 	github.com/docker/libnetwork v0.8.0-dev.2.0.20190625141545-5a177b73e316
-	github.com/fsouza/go-dockerclient v1.7.11
+	github.com/fsouza/go-dockerclient v1.8.1
 	github.com/ghodss/yaml v1.0.0
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/ishidawataru/sctp v0.0.0-20210226210310-f2269e66cdee // indirect
@@ -33,13 +33,13 @@ require (
 	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/cobra v1.4.0
 	github.com/spf13/pflag v1.0.5
-	github.com/stretchr/testify v1.7.1
+	github.com/stretchr/testify v1.7.2
 	github.com/syndtr/gocapability v0.0.0-20200815063812-42c35b437635
 	go.etcd.io/bbolt v1.3.6
 	golang.org/x/crypto v0.0.0-20220411220226-7b82a4e95df4
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
-	golang.org/x/sys v0.0.0-20220422013727-9388b58f7150
-	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211
+	golang.org/x/sys v0.0.0-20220520151302-bc2c85ada10a
+	golang.org/x/term v0.0.0-20220526004731-065cf7ba2467
 )
 
 replace github.com/sirupsen/logrus => github.com/sirupsen/logrus v1.4.2

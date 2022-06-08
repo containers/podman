@@ -217,6 +217,9 @@ skip_if_remote "--output option not implemented in podman-remote" \
                "build with custom build output and output rootfs to tar by pipe" \
                "build with custom build output must fail for bad input"
 
+# https://github.com/containers/podman/issues/14544
+skip_if_remote "bud-logfile-with-split-logfile-by-platform"
+
 ###############################################################################
 # BEGIN tests which are skipped due to actual podman or podman-remote bugs.
 

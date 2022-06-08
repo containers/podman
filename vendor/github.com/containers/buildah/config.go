@@ -11,7 +11,7 @@ import (
 	"github.com/containerd/containerd/platforms"
 	"github.com/containers/buildah/define"
 	"github.com/containers/buildah/docker"
-	"github.com/containers/buildah/util"
+	"github.com/containers/common/pkg/util"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/pkg/compression"
 	"github.com/containers/image/v5/transports"

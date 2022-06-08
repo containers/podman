@@ -396,9 +396,9 @@ cat /etc/containers/policy.json
 
 ## Debug with Delve and the like
 
-To make a source debug build without optimizations use `DEBUG=1`, like:
+To make a source debug build without optimizations use `BUILDDEBUG=1`, like:
 ```
-make all DEBUG=1
+make all BUILDDEBUG=1
 ```
 
 ## Vendoring

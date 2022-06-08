@@ -26,7 +26,7 @@ type Options struct {
 	// Note!! : Following API does not handles escaping or validates correctness of the values
 	// passed to UpperDirOptionFragment instead API will try to pass values as is it
 	// to the `mount` command. It is user's responsibility to make sure they pre-validate
-	// these values. Invalid inputs may lead to undefined behviour.
+	// these values. Invalid inputs may lead to undefined behaviour.
 	// This is provided as-is, use it if it works for you, we can/will change/break that in the future.
 	// See discussion here for more context: https://github.com/containers/buildah/pull/3715#discussion_r786036959
 	// TODO: Should we address above comment and handle escaping of metacharacters like
@@ -36,7 +36,7 @@ type Options struct {
 	// Note!! : Following API does not handles escaping or validates correctness of the values
 	// passed to WorkDirOptionFragment instead API will try to pass values as is it
 	// to the `mount` command. It is user's responsibility to make sure they pre-validate
-	// these values. Invalid inputs may lead to undefined behviour.
+	// these values. Invalid inputs may lead to undefined behaviour.
 	// This is provided as-is, use it if it works for you, we can/will change/break that in the future.
 	// See discussion here for more context: https://github.com/containers/buildah/pull/3715#discussion_r786036959
 	// TODO: Should we address above comment and handle escaping of metacharacters like

@@ -9,6 +9,7 @@ import (
 	"github.com/containers/buildah/pkg/sshagent"
 	"github.com/containers/image/v5/types"
 	"github.com/opencontainers/runtime-spec/specs-go"
+	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 )
 
@@ -177,4 +178,28 @@ type runMountArtifacts struct {
 	SSHAuthSock string
 	// LockedTargets to be unlocked if there are any.
 	LockedTargets []string
+}
+
+// RunMountInfo are the available run mounts for this run
+type runMountInfo struct {
+	// ContextDir is the root directory for the source location for bind mounts.
+	ContextDir string
+	// Secrets are the available secrets to use in a RUN
+	Secrets map[string]define.Secret
+	// SSHSources is the available ssh agents to use in a RUN
+	SSHSources map[string]*sshagent.Source `json:"-"`
+	// Map of stages and container mountpoint if any from stage executor
+	StageMountPoints map[string]internal.StageMountDetails
+	// System context of current build
+	SystemContext *types.SystemContext
+}
+
+// IDMaps are the UIDs, GID, and maps for the run
+type IDMaps struct {
+	uidmap     []spec.LinuxIDMapping
+	gidmap     []spec.LinuxIDMapping
+	rootUID    int
+	rootGID    int
+	processUID int
+	processGID int
 }

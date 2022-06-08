@@ -1,4 +1,5 @@
-// +build freebsd,cgo openbsd,cgo
+//go:build freebsd && cgo
+// +build freebsd,cgo
 
 package mount
 

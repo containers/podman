@@ -69,6 +69,10 @@ type CommitOptions struct {
 	// Squash tells the builder to produce an image with a single layer
 	// instead of with possibly more than one layer.
 	Squash bool
+	// OmitHistory tells the builder to ignore the history of build layers and
+	// base while preparing image-spec, setting this to true will ensure no history
+	// is added to the image-spec. (default false)
+	OmitHistory bool
 	// BlobDirectory is the name of a directory in which we'll look for
 	// prebuilt copies of layer blobs that we might otherwise need to
 	// regenerate from on-disk layers.  If blobs are available, the

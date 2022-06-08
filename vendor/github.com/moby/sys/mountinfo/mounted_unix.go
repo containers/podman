@@ -1,5 +1,5 @@
-//go:build linux || (freebsd && cgo) || (openbsd && cgo) || (darwin && cgo)
-// +build linux freebsd,cgo openbsd,cgo darwin,cgo
+//go:build linux || freebsd || openbsd || darwin
+// +build linux freebsd openbsd darwin
 
 package mountinfo
 

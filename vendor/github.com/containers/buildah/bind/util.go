@@ -1,7 +1,7 @@
 package bind
 
 import (
-	"github.com/containers/buildah/util"
+	"github.com/containers/common/pkg/util"
 	"github.com/opencontainers/runtime-spec/specs-go"
 )
 

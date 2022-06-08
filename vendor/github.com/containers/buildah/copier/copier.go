@@ -344,6 +344,7 @@ type PutOptions struct {
 	IgnoreXattrErrors    bool              // ignore any errors encountered when attempting to set extended attributes
 	IgnoreDevices        bool              // ignore items which are character or block devices
 	NoOverwriteDirNonDir bool              // instead of quietly overwriting directories with non-directories, return an error
+	NoOverwriteNonDirDir bool              // instead of quietly overwriting non-directories with directories, return an error
 	Rename               map[string]string // rename items with the specified names, or under the specified names
 }
 
@@ -1794,12 +1795,15 @@ func copierHandlerPut(bulkReader io.Reader, req request, idMappings *idtools.IDM
 				}
 			case tar.TypeDir:
 				if err = os.Mkdir(path, 0700); err != nil && os.IsExist(err) {
-					var st os.FileInfo
-					if st, err = os.Lstat(path); err == nil && !st.IsDir() {
-						// it's not a directory, so remove it and mkdir
+					if st, stErr := os.Lstat(path); stErr == nil && !st.IsDir() {
+						if req.PutOptions.NoOverwriteNonDirDir {
+							break
+						}
 						if err = os.Remove(path); err == nil {
 							err = os.Mkdir(path, 0700)
 						}
+					} else {
+						err = stErr
 					}
 					// either we removed it and retried, or it was a directory,
 					// in which case we want to just add the new stuff under it

@@ -427,6 +427,16 @@ BUILDAH\_LAYERS environment variable. `export BUILDAH_LAYERS=true`
 
 Log output which would be sent to standard output and standard error to the
 specified file instead of to standard output and standard error.
+This option is not supported on the remote client, including Mac and Windows
+(excluding WSL2) machines.
+
+#### **--logsplit** *bool-value*
+
+If `--logfile` and `--platform` are specified, the `--logsplit` option allows
+end-users to split the log file for each platform into different files in the
+following format: `${logfile}_${platform-os}_${platform-arch}`.
+This option is not supported on the remote client, including Mac and Windows
+(excluding WSL2) machines.
 
 #### **--manifest** "manifest"
 
@@ -481,6 +491,15 @@ Do not create _/etc/hosts_ for the container.
 By default, Podman will manage _/etc/hosts_, adding the container's own IP address and any hosts from **--add-host**.
 **--no-hosts** disables this, and the image's _/etc/hosts_ will be preserved unmodified.
 This option conflicts with **--add-host**.
+
+#### **--omit-history**
+
+Omit build history information in the built image. (default false).
+
+This option is useful for the cases where end users explicitly
+want to set `--omit-history` to omit the optional `History` from
+built images or when working with images built using build tools that
+do not include `History` information in their images.
 
 #### **--os**=*string*
 

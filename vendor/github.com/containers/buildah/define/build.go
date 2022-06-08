@@ -30,6 +30,10 @@ type AdditionalBuildContext struct {
 type CommonBuildOptions struct {
 	// AddHost is the list of hostnames to add to the build container's /etc/hosts.
 	AddHost []string
+	// OmitHistory tells the builder to ignore the history of build layers and
+	// base while preparing image-spec, setting this to true will ensure no history
+	// is added to the image-spec. (default false)
+	OmitHistory bool
 	// CgroupParent is the path to cgroups under which the cgroup for the container will be created.
 	CgroupParent string
 	// CPUPeriod limits the CPU CFS (Completely Fair Scheduler) period
@@ -147,6 +151,12 @@ type BuildOptions struct {
 	// Additional tags to add to the image that we write, if we know of a
 	// way to add them.
 	AdditionalTags []string
+	// Logfile specifies if log output is redirected to an external file
+	// instead of stdout, stderr.
+	LogFile string
+	// LogByPlatform tells imagebuildah to split log to different log files
+	// for each platform if logging to external file was selected.
+	LogSplitByPlatform bool
 	// Log is a callback that will print a progress message.  If no value
 	// is supplied, the message will be sent to Err (or os.Stderr, if Err
 	// is nil) by default.
