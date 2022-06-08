@@ -284,7 +284,16 @@ func getNetworks(cmd *cobra.Command, toComplete string, cType completeType) ([]s
 	return suggestions, cobra.ShellCompDirectiveNoFileComp
 }
 
-func getPathCompletion(root string, toComplete string) []string {
+func fdIsNotDir(f *os.File) bool {
+	stat, err := f.Stat()
+	if err != nil {
+		cobra.CompErrorln(err.Error())
+		return true
+	}
+	return !stat.IsDir()
+}
+
+func getPathCompletion(root string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	if toComplete == "" {
 		toComplete = "/"
 	}
@@ -292,41 +301,61 @@ func getPathCompletion(root string, toComplete string) []string {
 	userpath, err := securejoin.SecureJoin(root, toComplete)
 	if err != nil {
 		cobra.CompErrorln(err.Error())
-		return nil
+		return nil, cobra.ShellCompDirectiveDefault
 	}
 	var base string
 	f, err := os.Open(userpath)
-	if err != nil {
+	// when error or file is not dir get the parent path to stat
+	if err != nil || fdIsNotDir(f) {
 		// Do not use path.Dir() since this cleans the paths which
 		// then no longer matches the user input.
 		userpath, base = path.Split(userpath)
 		toComplete, _ = path.Split(toComplete)
 		f, err = os.Open(userpath)
 		if err != nil {
-			return nil
+			return nil, cobra.ShellCompDirectiveDefault
 		}
 	}
-	stat, err := f.Stat()
-	if err != nil {
-		cobra.CompErrorln(err.Error())
-		return nil
-	}
-	if !stat.IsDir() {
+
+	if fdIsNotDir(f) {
 		// nothing to complete since it is no dir
-		return nil
+		return nil, cobra.ShellCompDirectiveDefault
 	}
+
 	entries, err := f.ReadDir(-1)
 	if err != nil {
 		cobra.CompErrorln(err.Error())
-		return nil
+		return nil, cobra.ShellCompDirectiveDefault
+	}
+	if len(entries) == 0 {
+		// path is empty dir, just add the trailing slash and no space
+		if !strings.HasSuffix(toComplete, "/") {
+			toComplete += "/"
+		}
+		return []string{toComplete}, cobra.ShellCompDirectiveDefault | cobra.ShellCompDirectiveNoSpace
 	}
 	completions := make([]string, 0, len(entries))
+	count := 0
 	for _, e := range entries {
 		if strings.HasPrefix(e.Name(), base) {
-			completions = append(completions, simplePathJoinUnix(toComplete, e.Name()))
+			suf := ""
+			// When the entry is an directory we add the "/" as suffix and do not want to add space
+			// to match normal shell completion behavior.
+			// Just inc counter again to fake more than one entry in this case and thus get no space.
+			if e.IsDir() {
+				suf = "/"
+				count++
+			}
+			completions = append(completions, simplePathJoinUnix(toComplete, e.Name()+suf))
+			count++
 		}
 	}
-	return completions
+	directive := cobra.ShellCompDirectiveDefault
+	if count > 1 {
+		// when we have more than one match we do not want to add a space after the completion
+		directive |= cobra.ShellCompDirectiveNoSpace
+	}
+	return completions, directive
 }
 
 // simplePathJoinUnix joins to path components by adding a slash only if p1 doesn't end with one.
@@ -605,7 +634,7 @@ func AutocompleteCreateRun(cmd *cobra.Command, args []string, toComplete string)
 	// So this uses ShellCompDirectiveDefault to also still provide normal shell
 	// completion in case no path matches. This is useful if someone tries to get
 	// completion for paths that are not available in the image, e.g. /proc/...
-	return getPathCompletion(resp[0].Path, toComplete), cobra.ShellCompDirectiveDefault | cobra.ShellCompDirectiveNoSpace
+	return getPathCompletion(resp[0].Path, toComplete)
 }
 
 // AutocompleteRegistries - Autocomplete registries.
@@ -676,7 +705,8 @@ func AutocompleteCpCommand(cmd *cobra.Command, args []string, toComplete string)
 			if len(resp) != 1 {
 				return nil, cobra.ShellCompDirectiveDefault
 			}
-			return prefixSlice(toComplete[:i+1], getPathCompletion(resp[0].Path, toComplete[i+1:])), cobra.ShellCompDirectiveDefault | cobra.ShellCompDirectiveNoSpace
+			comps, directive := getPathCompletion(resp[0].Path, toComplete[i+1:])
+			return prefixSlice(toComplete[:i+1], comps), directive
 		}
 		// Suggest containers when they match the input otherwise normal shell completion is used
 		containers, _ := getContainers(cmd, toComplete, completeDefault)
