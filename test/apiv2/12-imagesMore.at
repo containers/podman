@@ -27,19 +27,21 @@ t POST "libpod/images/$IMAGE/tag?repo=localhost:$REGISTRY_PORT/myrepo&tag=mytag"
 t GET libpod/images/$IMAGE/json 200 \
   .RepoTags[1]=localhost:$REGISTRY_PORT/myrepo:mytag
 
-# Push to local registry and check output
-while read -r LINE
-do
-  if echo "${LINE}" | jq --exit-status 'select( .status != null) | select ( .status | contains("digest: sha256:"))' &>/dev/null; then
-    GOT_DIGEST="1"
-  fi
-done < <(curl -sL "http://$HOST:$PORT/images/localhost:$REGISTRY_PORT/myrepo/push?tlsVerify=false&tag=mytag" -XPOST -H "X-Registry-Config: $REGISTRY_CONFIG_HEADER")
-if [ -z "${GOT_DIGEST}" ] ; then
-  echo -e "${red}not ok: did not found digest in output${nc}"  1>&2;
-fi
-
-# Push to local registry
+# Push to local registry...
 t POST "images/localhost:$REGISTRY_PORT/myrepo/push?tlsVerify=false&tag=mytag" 200
+
+# ...and check output. We can't use our built-in checks because this output
+# is a sequence of JSON objects, i.e., individual ones, not in a JSON array.
+# The lines themselves are valid JSON, but taken together they are not.
+readarray lines <<<"$output"
+s0=$(jq -r .status <<<"${lines[0]}")
+is "$s0" "The push refers to repository [localhost:$REGISTRY_PORT/myrepo:mytag]" \
+   "Push to local registry: first status line"
+
+# FIXME: is there a way to test the actual digest?
+s1=$(jq -r .status <<<"${lines[1]}")
+like "$s1" "mytag: digest: sha256:[0-9a-f]\{64\} size: [0-9]\+" \
+     "Push to local registry: second status line"
 
 # Untag the image
 t POST "libpod/images/$iid/untag?repo=localhost:$REGISTRY_PORT/myrepo&tag=mytag" 201
@@ -53,3 +55,5 @@ t GET libpod/images/$IMAGE/json 200 \
 # Remove image
 t DELETE libpod/images/$IMAGE 200 \
   .ExitCode=0
+
+stop_registry
