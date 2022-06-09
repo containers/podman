@@ -341,7 +341,9 @@ function _check_no_suggestions() {
     skip_if_remote "mounting via remote does not work"
     for cmd in create run; do
         run_completion $cmd $IMAGE ""
-        assert "$output" =~ ".*^/etc\$.*^/home\$.*^/root\$.*" "root directories suggested (cmd: podman $cmd)"
+        assert "$output" =~ ".*^/etc/\$.*" "etc directory suggested (cmd: podman $cmd)"
+        assert "$output" =~ ".*^/home/\$.*" "home directory suggested (cmd: podman $cmd)"
+        assert "$output" =~ ".*^/root/\$.*" "root directory suggested (cmd: podman $cmd)"
 
         # check completion for subdirectory
         run_completion $cmd $IMAGE "/etc"
@@ -354,22 +356,30 @@ function _check_no_suggestions() {
         # check completion with relative path components
         # It is important the we will still use the image root and not escape to the host
         run_completion $cmd $IMAGE "../../"
-        assert "$output" =~ ".*^../../etc\$.*^../../home\$.*" "relative root directories suggested (cmd: podman $cmd ../../)"
+        assert "$output" =~ ".*^../../etc/\$.*" "relative etc directory suggested (cmd: podman $cmd ../../)"
+        assert "$output" =~ ".*^../../home/\$.*" "relative home directory suggested (cmd: podman $cmd ../../)"
     done
 
     random_name=$(random_string 30)
     random_file=$(random_string 30)
-    run_podman run --name $random_name $IMAGE touch /tmp/$random_file
+    run_podman run --name $random_name $IMAGE sh -c "touch /tmp/$random_file && touch /tmp/${random_file}2 && mkdir /emptydir"
 
     # check completion for podman cp
     run_completion cp ""
     assert "$output" =~ ".*^$random_name\:\$.*" "podman cp suggest container names"
 
     run_completion cp "$random_name:"
-    assert "$output" =~ ".*^$random_name\:/etc\$.*" "podman cp suggest paths in container"
+    assert "$output" =~ ".*^$random_name\:/etc/\$.*" "podman cp suggest paths in container"
 
     run_completion cp "$random_name:/tmp"
     assert "$output" =~ ".*^$random_name\:/tmp/$random_file\$.*" "podman cp suggest custom file in container"
+
+    run_completion cp "$random_name:/tmp/$random_file"
+    assert "$output" =~ ".*^$random_name\:/tmp/$random_file\$.*" "podman cp suggest /tmp/$random_file file in container"
+    assert "$output" =~ ".*^$random_name\:/tmp/${random_file}2\$.*" "podman cp suggest /tmp/${random_file}2 file in container"
+
+    run_completion cp "$random_name:/emptydir"
+    assert "$output" =~ ".*^$random_name\:/emptydir/\$.*ShellCompDirectiveNoSpace" "podman cp suggest empty dir with no space directive (:2)"
 
     # cleanup container
     run_podman rm $random_name
