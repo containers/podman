@@ -431,7 +431,7 @@ unit_test_task:
 
 
 apiv2_test_task:
-    name: "APIv2 test on $DISTRO_NV"
+    name: "APIv2 test on $DISTRO_NV ($PRIV_NAME)"
     alias: apiv2_test
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: *not_tag_branch_build_docs
@@ -445,6 +445,11 @@ apiv2_test_task:
     env:
         <<: *stdenvars
         TEST_FLAVOR: apiv2
+    matrix:
+      - env:
+          PRIV_NAME: root
+      - env:
+          PRIV_NAME: rootless
     clone_script: *get_gosrc
     setup_script: *setup
     main_script: *main

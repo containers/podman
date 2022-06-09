@@ -380,6 +380,17 @@ function start_service() {
         die "Cannot start service on non-localhost ($HOST)"
     fi
 
+    # FIXME: EXPERIMENTAL: 2022-06-13: podman rootless needs a namespace. If
+    # system-service is the first podman command run (as is the case in CI)
+    # this will happen as a fork-exec, where the parent podman creates the
+    # namespace and the child is the server. Then, when stop_service() kills
+    # the parent, the child (server) happily stays alive and ruins subsequent
+    # tests that try to restart service with different settings.
+    # Workaround: run an unshare to get namespaces initialized.
+    if [[ $(id -u) != 0 ]]; then
+        $PODMAN_BIN unshare true
+    fi
+
     $PODMAN_BIN \
         --root $WORKDIR/server_root --syslog=true \
         system service \
@@ -387,6 +398,7 @@ function start_service() {
         tcp:127.0.0.1:$PORT \
         &> $WORKDIR/server.log &
     service_pid=$!
+    echo "# started service, pid $service_pid"
 
     wait_for_port $HOST $PORT
 }
@@ -396,7 +408,14 @@ function stop_service() {
     if [[ -n $service_pid ]]; then
         kill $service_pid || :
         wait $service_pid || :
+        echo "# stopped service, pid $service_pid"
     fi
+    service_pid=
+
+    if { exec 3<> /dev/tcp/$HOST/$PORT; } &>/dev/null; then
+        echo "# WARNING: stop_service: Service still running on port $PORT"
+    fi
+
 }
 
 ####################
@@ -468,6 +487,7 @@ function start_registry() {
            ${REGISTRY_IMAGE}
 
     wait_for_port localhost $REGISTRY_PORT 10
+    echo "# started registry (auth=$auth) on port $PORT"
 }
 
 function stop_registry() {
@@ -482,6 +502,7 @@ function stop_registry() {
         if [[ "$1" = "--cleanup" ]]; then
             podman $OPTS rmi -f -a
         fi
+        echo "# stopped registry on port $PORT"
     fi
 
     REGISTRY_PORT=
