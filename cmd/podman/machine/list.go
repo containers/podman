@@ -48,6 +48,7 @@ type ListReporter struct {
 	Default        bool
 	Created        string
 	Running        bool
+	Starting       bool
 	LastUp         string
 	Stream         string
 	VMType         string
@@ -224,10 +225,14 @@ func toHumanFormat(vms []*machine.ListResponse) ([]*ListReporter, error) {
 		} else {
 			response.Name = vm.Name
 		}
-		if vm.Running {
+		switch {
+		case vm.Running:
 			response.LastUp = "Currently running"
 			response.Running = true
-		} else {
+		case vm.Starting:
+			response.LastUp = "Currently starting"
+			response.Starting = true
+		default:
 			response.LastUp = units.HumanDuration(time.Since(vm.LastUp)) + " ago"
 		}
 		response.Created = units.HumanDuration(time.Since(vm.CreatedAt)) + " ago"

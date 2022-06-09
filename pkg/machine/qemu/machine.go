@@ -910,7 +910,7 @@ func (v *MachineVM) State(bypass bool) (machine.Status, error) {
 	}
 	// Check if we can dial it
 	if v.Starting && !bypass {
-		return "", nil
+		return machine.Starting, nil
 	}
 	monitor, err := qmp.NewSocketMonitor(v.QMPMonitor.Network, v.QMPMonitor.Address.GetPath(), v.QMPMonitor.Timeout)
 	if err != nil {
@@ -1081,8 +1081,11 @@ func getVMInfos() ([]*machine.ListResponse, error) {
 					return err
 				}
 			}
-			if state == machine.Running {
+			switch state {
+			case machine.Running:
 				listEntry.Running = true
+			case machine.Starting:
+				listEntry.Starting = true
 			}
 
 			listed = append(listed, listEntry)
@@ -1115,7 +1118,7 @@ func (p *Provider) CheckExclusiveActiveVM() (bool, string, error) {
 		return false, "", errors.Wrap(err, "error checking VM active")
 	}
 	for _, vm := range vms {
-		if vm.Running {
+		if vm.Running || vm.Starting {
 			return true, vm.Name, nil
 		}
 	}
