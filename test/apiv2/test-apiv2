@@ -443,12 +443,18 @@ function start_registry() {
     # If invoked with auth=htpasswd, create credentials
     REGISTRY_USERNAME=
     REGISTRY_PASSWORD=
+    declare -a registry_auth_params=(-e "REGISTRY_AUTH=$auth")
     if [[ "$auth" = "htpasswd" ]]; then
         REGISTRY_USERNAME=u$(random_string 7)
         REGISTRY_PASSWORD=p$(random_string 7)
 
         htpasswd -Bbn ${REGISTRY_USERNAME} ${REGISTRY_PASSWORD} \
                  > $AUTHDIR/htpasswd
+
+        registry_auth_params+=(
+            -e "REGISTRY_AUTH_HTPASSWD_REALM=Registry Realm"
+            -e "REGISTRY_AUTH_HTPASSWD_PATH=/auth/htpasswd"
+        )
     fi
 
     # Run the registry, and wait for it to come up
@@ -456,9 +462,7 @@ function start_registry() {
            -p ${REGISTRY_PORT}:5000 \
            --name registry \
            -v $AUTHDIR:/auth:Z \
-           -e "REGISTRY_AUTH=$auth" \
-           -e "REGISTRY_AUTH_HTPASSWD_REALM=Registry Realm" \
-           -e REGISTRY_AUTH_HTPASSWD_PATH=/auth/htpasswd \
+           "${registry_auth_params[@]}" \
            -e REGISTRY_HTTP_TLS_CERTIFICATE=/auth/domain.crt \
            -e REGISTRY_HTTP_TLS_KEY=/auth/domain.key \
            ${REGISTRY_IMAGE}
