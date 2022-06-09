@@ -19,6 +19,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const host = "host"
+
 // Get the default namespace mode for any given namespace type.
 func GetDefaultNamespaceMode(nsType string, cfg *config.Config, pod *libpod.Pod) (specgen.Namespace, error) {
 	// The default for most is private
@@ -33,19 +35,38 @@ func GetDefaultNamespaceMode(nsType string, cfg *config.Config, pod *libpod.Pod)
 		podMode := false
 		switch {
 		case nsType == "pid" && pod.SharesPID():
+			if pod.NamespaceMode(spec.PIDNamespace) == host {
+				toReturn.NSMode = specgen.Host
+				return toReturn, nil
+			}
 			podMode = true
 		case nsType == "ipc" && pod.SharesIPC():
+			if pod.NamespaceMode(spec.IPCNamespace) == host {
+				toReturn.NSMode = specgen.Host
+				return toReturn, nil
+			}
 			podMode = true
 		case nsType == "uts" && pod.SharesUTS():
+			if pod.NamespaceMode(spec.UTSNamespace) == host {
+				toReturn.NSMode = specgen.Host
+				return toReturn, nil
+			}
 			podMode = true
 		case nsType == "user" && pod.SharesUser():
+			// user does not need a special check for host, this is already validated on pod creation
+			// if --userns=host then pod.SharesUser == false
 			podMode = true
 		case nsType == "net" && pod.SharesNet():
+			if pod.NetworkMode() == host {
+				toReturn.NSMode = specgen.Host
+				return toReturn, nil
+			}
 			podMode = true
-		case nsType == "net" && pod.NetworkMode() == "host":
-			toReturn.NSMode = specgen.Host
-			return toReturn, nil
 		case nsType == "cgroup" && pod.SharesCgroup():
+			if pod.NamespaceMode(spec.CgroupNamespace) == host {
+				toReturn.NSMode = specgen.Host
+				return toReturn, nil
+			}
 			podMode = true
 		}
 		if podMode {
@@ -491,10 +512,7 @@ func GetNamespaceOptions(ns []string, netnsIsHost bool) ([]libpod.PodCreateOptio
 		case "cgroup":
 			options = append(options, libpod.WithPodCgroup())
 		case "net":
-			// share the netns setting with other containers in the pod only when it is not set to host
-			if !netnsIsHost {
-				options = append(options, libpod.WithPodNet())
-			}
+			options = append(options, libpod.WithPodNet())
 		case "mnt":
 			return erroredOptions, errors.Errorf("Mount sharing functionality not supported on pod level")
 		case "pid":
