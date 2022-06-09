@@ -240,14 +240,11 @@ t POST containers/create Image=$IMAGE Entrypoint='["top"]' 201 \
   .Id~[0-9a-f]\\{64\\}
 cid_top=$(jq -r '.Id' <<<"$output")
 
-# Unexpected difference between /containers/json and /containers/CID/json:
-# in rootless, the former returns .Networks=none, the latter .Networks={}
-network_expect=${network_expect/=null/='{}'}
 t GET containers/${cid_top}/json 200 \
   .Config.Entrypoint[0]="top" \
   .Config.Cmd='[]' \
   .Path="top" \
-  .NetworkSettings.$network_expect
+  .NetworkSettings.Networks.podman.NetworkID=podman
 t POST  containers/${cid_top}/start 204
 # make sure the container is running
 t GET containers/${cid_top}/json 200 \
@@ -378,13 +375,8 @@ t DELETE containers/$cid?v=true 204
 t POST containers/create Image=$IMAGE HostConfig='{"NetworkMode":"default"}' 201 \
   .Id~[0-9a-f]\\{64\\}
 cid=$(jq -r '.Id' <<<"$output")
-if root; then
-    network_type=bridge
-else
-    network_type=slirp4netns
-fi
 t GET containers/$cid/json 200 \
-  .HostConfig.NetworkMode="$network_type"
+  .HostConfig.NetworkMode="bridge"
 
 t DELETE containers/$cid?v=true 204
 
@@ -486,7 +478,8 @@ for endpoint in containers/create libpod/containers/create; do
 
   t POST libpod/containers/$cid/init 204
 
-  t GET libpod/containers/$cid/json 200
+  t GET libpod/containers/$cid/json 200 \
+    .HostsPath=""
 
   t DELETE containers/$cid 204
 done

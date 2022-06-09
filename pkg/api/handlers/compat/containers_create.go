@@ -261,8 +261,13 @@ func cliOpts(cc handlers.CreateContainerConfig, rtc *config.Config) (*entities.C
 		}
 	}
 
-	// netMode
-	nsmode, networks, netOpts, err := specgen.ParseNetworkFlag([]string{string(cc.HostConfig.NetworkMode)})
+	// special case for NetworkMode, the podman default is slirp4netns for
+	// rootless but for better docker compat we want bridge.
+	netmode := string(cc.HostConfig.NetworkMode)
+	if netmode == "" || netmode == "default" {
+		netmode = "bridge"
+	}
+	nsmode, networks, netOpts, err := specgen.ParseNetworkFlag([]string{netmode})
 	if err != nil {
 		return nil, nil, err
 	}
@@ -278,6 +283,7 @@ func cliOpts(cc handlers.CreateContainerConfig, rtc *config.Config) (*entities.C
 		Network:        nsmode,
 		PublishPorts:   specPorts,
 		NetworkOptions: netOpts,
+		NoHosts:        rtc.Containers.NoHosts,
 	}
 
 	// network names
@@ -438,7 +444,7 @@ func cliOpts(cc handlers.CreateContainerConfig, rtc *config.Config) (*entities.C
 		cliOpts.Volume = append(cliOpts.Volume, vol)
 		// Extract the destination so we don't add duplicate mounts in
 		// the volumes phase.
-		splitVol := strings.SplitN(vol, ":", 3)
+		splitVol := specgen.SplitVolumeString(vol)
 		switch len(splitVol) {
 		case 1:
 			volDestinations[vol] = true
