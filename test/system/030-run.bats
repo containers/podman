@@ -376,17 +376,7 @@ json-file | f
     while read driver do_check; do
         msg=$(random_string 15)
         run_podman run --name myctr --log-driver $driver $IMAGE echo $msg
-
-        # Simple output check
-        # Special case: 'json-file' emits a warning, the rest do not
-        # ...but with podman-remote the warning is on the server only
-        if [[ $do_check == 'f' ]] && ! is_remote; then      # 'f' for 'fallback'
-            is "${lines[0]}" ".* level=error msg=\"json-file logging specified but not supported. Choosing k8s-file logging instead\"" \
-               "Fallback warning emitted"
-            is "${lines[1]}" "$msg" "basic output sanity check (driver=$driver)"
-        else
-            is "$output" "$msg" "basic output sanity check (driver=$driver)"
-        fi
+        is "$output" "$msg" "basic output sanity check (driver=$driver)"
 
         # Simply confirm that podman preserved our argument as-is
         run_podman inspect --format '{{.HostConfig.LogConfig.Type}}' myctr
