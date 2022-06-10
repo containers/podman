@@ -46,3 +46,18 @@ func (o *CopyOptions) GetRename() map[string]string {
 	}
 	return o.Rename
 }
+
+// WithNoOverwriteDirNonDir set field NoOverwriteDirNonDir to given value
+func (o *CopyOptions) WithNoOverwriteDirNonDir(value bool) *CopyOptions {
+	o.NoOverwriteDirNonDir = &value
+	return o
+}
+
+// GetNoOverwriteDirNonDir returns value of field NoOverwriteDirNonDir
+func (o *CopyOptions) GetNoOverwriteDirNonDir() bool {
+	if o.NoOverwriteDirNonDir == nil {
+		var z bool
+		return z
+	}
+	return *o.NoOverwriteDirNonDir
+}

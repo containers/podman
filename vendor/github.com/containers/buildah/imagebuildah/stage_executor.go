@@ -376,7 +376,7 @@ func (s *StageExecutor) Copy(excludes []string, copies ...imagebuilder.Copy) err
 				// Maybe index is given in COPY --from=index
 				// if that's the case check if provided index
 				// exists and if stage short_name matches any
-				// additionalContext replace stage with addtional
+				// additionalContext replace stage with additional
 				// build context.
 				if _, err := strconv.Atoi(from); err == nil {
 					if stage, ok := s.executor.stages[from]; ok {
@@ -597,30 +597,30 @@ func (s *StageExecutor) Run(run imagebuilder.Run, config docker.Config) error {
 		stdin = devNull
 	}
 	options := buildah.RunOptions{
-		Logger:           s.executor.logger,
-		Hostname:         config.Hostname,
-		Runtime:          s.executor.runtime,
 		Args:             s.executor.runtimeArgs,
+		Cmd:              config.Cmd,
+		ContextDir:       s.executor.contextDir,
+		Entrypoint:       config.Entrypoint,
+		Env:              config.Env,
+		Hostname:         config.Hostname,
+		Logger:           s.executor.logger,
+		Mounts:           append([]Mount{}, s.executor.transientMounts...),
+		NamespaceOptions: s.executor.namespaceOptions,
 		NoHosts:          s.executor.noHosts,
 		NoPivot:          os.Getenv("BUILDAH_NOPIVOT") != "",
-		Mounts:           append([]Mount{}, s.executor.transientMounts...),
-		Env:              config.Env,
-		User:             config.User,
-		WorkingDir:       config.WorkingDir,
-		Entrypoint:       config.Entrypoint,
-		ContextDir:       s.executor.contextDir,
-		Cmd:              config.Cmd,
-		Stdin:            stdin,
-		Stdout:           s.executor.out,
-		Stderr:           s.executor.err,
 		Quiet:            s.executor.quiet,
-		NamespaceOptions: s.executor.namespaceOptions,
-		Terminal:         buildah.WithoutTerminal,
+		RunMounts:        run.Mounts,
+		Runtime:          s.executor.runtime,
 		Secrets:          s.executor.secrets,
 		SSHSources:       s.executor.sshsources,
-		RunMounts:        run.Mounts,
 		StageMountPoints: stageMountPoints,
+		Stderr:           s.executor.err,
+		Stdin:            stdin,
+		Stdout:           s.executor.out,
 		SystemContext:    s.executor.systemContext,
+		Terminal:         buildah.WithoutTerminal,
+		User:             config.User,
+		WorkingDir:       config.WorkingDir,
 	}
 	if config.NetworkDisabled {
 		options.ConfigureNetwork = buildah.NetworkDisabled
@@ -1216,7 +1216,7 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 			// Create a new image, maybe with a new layer, with the
 			// name for this stage if it's the last instruction.
 			logCommit(s.output, i)
-			// While commiting we always set squash to false here
+			// While committing we always set squash to false here
 			// because at this point we want to save history for
 			// layers even if its a squashed build so that they
 			// can be part of build-cache.
@@ -1708,6 +1708,7 @@ func (s *StageExecutor) commit(ctx context.Context, createdBy string, emptyLayer
 		PreferredManifestType: s.executor.outputFormat,
 		SystemContext:         s.executor.systemContext,
 		Squash:                squash,
+		OmitHistory:           s.executor.commonBuildOptions.OmitHistory,
 		EmptyLayer:            emptyLayer,
 		BlobDirectory:         s.executor.blobDirectory,
 		SignBy:                s.executor.signBy,

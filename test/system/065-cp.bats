@@ -949,9 +949,107 @@ ${randomcontent[1]}" "$description"
     run_podman rm -t 0 -f cpcontainer
 }
 
+@test "podman cp --overwrite file - ctr/ctr" {
+    rand_content_file=$(random_string 50)
+    rand_content_dir=$(random_string 50)
+
+    run_podman run -d --name ctr-file $IMAGE sh -c "echo '$rand_content_file' > /tmp/foo; sleep infinity"
+    run_podman run -d --name ctr-dir  $IMAGE sh -c "mkdir /tmp/foo; echo '$rand_content_dir' > /tmp/foo/file.txt; sleep infinity"
+
+    # overwrite a directory with a file
+    run_podman 125 cp ctr-file:/tmp/foo ctr-dir:/tmp
+    if ! is_remote; then # remote just returns a 500
+        is "$output" ".* error creating \"/tmp/foo\": .*: file exists.*"
+    fi
+    run_podman cp --overwrite ctr-file:/tmp/foo ctr-dir:/tmp
+    run_podman exec ctr-dir cat /tmp/foo
+    is "$output" "$rand_content_file"
+
+    # reset the ctr-dir container
+    run_podman exec ctr-dir sh -c "rm -rf /tmp/foo; mkdir /tmp/foo; echo '$rand_content_dir' > /tmp/foo/file.txt"
+
+    # overwrite a file with a directory
+    run_podman 125 cp ctr-dir:/tmp/foo ctr-file:/tmp
+    if ! is_remote; then # remote just returns a 500
+        is "$output" ".* error creating \"/tmp/foo\": .*: file exists.*"
+    fi
+    run_podman cp --overwrite ctr-dir:/tmp/foo ctr-file:/tmp
+    run_podman exec ctr-file cat /tmp/foo/file.txt
+    is "$output" "$rand_content_dir"
+
+    run_podman rm -t 0 -f ctr-file ctr-dir
+}
+
+@test "podman cp --overwrite file - ctr/host" {
+    hostdir=$PODMAN_TMPDIR/cp-test
+    mkdir -p $hostdir
+
+    rand_content_file=$(random_string 50)
+    rand_content_dir=$(random_string 50)
+
+    run_podman run -d --name ctr-file $IMAGE sh -c "echo '$rand_content_file' > /tmp/foo; sleep infinity"
+    run_podman run -d --name ctr-dir  $IMAGE sh -c "mkdir /tmp/foo; echo '$rand_content_dir' > /tmp/foo/file.txt; sleep infinity"
+
+    # overwrite a directory with a file
+    mkdir $hostdir/foo
+    run_podman 125 cp ctr-file:/tmp/foo $hostdir
+    if ! is_remote; then # remote just returns a 500
+        is "$output" ".* error creating \"/foo\": .*: file exists.*"
+    fi
+    run_podman cp --overwrite ctr-file:/tmp/foo $hostdir
+    is "$(< $hostdir/foo)" "$rand_content_file"
+
+    # overwrite a file with a directory
+    rm -rf $hostdir/foo
+    touch $hostdir/foo
+    run_podman 125 cp ctr-dir:/tmp/foo $hostdir
+    if ! is_remote; then # remote just returns a 500
+        is "$output" ".* error creating \"/foo\": .*: file exists.*"
+    fi
+    run_podman cp --overwrite ctr-dir:/tmp/foo $hostdir
+    is "$(< $hostdir/foo/file.txt)" "$rand_content_dir"
+
+    run_podman rm -t 0 -f ctr-file ctr-dir
+}
+
+@test "podman cp --overwrite file - host/ctr" {
+    hostdir=$PODMAN_TMPDIR/cp-test
+    mkdir -p $hostdir
+
+    rand_content_file=$(random_string 50)
+    rand_content_dir=$(random_string 50)
+
+    run_podman run -d --name ctr-dir  $IMAGE sh -c "mkdir /tmp/foo; sleep infinity"
+    run_podman run -d --name ctr-file $IMAGE sh -c "touch /tmp/foo; sleep infinity"
+
+    # overwrite a directory with a file
+    echo "$rand_content_file" > $hostdir/foo
+    run_podman 125 cp  $hostdir/foo ctr-dir:/tmp
+    if ! is_remote; then # remote just returns a 500
+        is "$output" ".* error creating \"/tmp/foo\": .*: file exists.*"
+    fi
+    run_podman cp --overwrite $hostdir/foo ctr-dir:/tmp
+    run_podman exec ctr-dir cat /tmp/foo
+    is "$output" "$rand_content_file"
+
+    # overwrite a file with a directory
+    rm -f $hostdir/foo
+    mkdir $hostdir/foo
+    echo "$rand_content_dir" > $hostdir/foo/file.txt
+    run_podman 125 cp $hostdir/foo ctr-file:/tmp
+    if ! is_remote; then # remote just returns a 500
+        is "$output" ".* error creating \"/tmp/foo\": .*: file exists.*"
+    fi
+    run_podman cp --overwrite $hostdir/foo ctr-file:/tmp
+    run_podman exec ctr-file cat /tmp/foo/file.txt
+    is "$output" "$rand_content_dir"
+
+    run_podman rm -t 0 -f ctr-file ctr-dir
+}
+
 function teardown() {
     # In case any test fails, clean up the container we left behind
-    run_podman rm -t 0 f cpcontainer
+    run_podman rm -t 0 -f --ignore cpcontainer
     basic_teardown
 }
 

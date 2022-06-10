@@ -949,7 +949,7 @@ func (ic *ContainerEngine) ContainerPort(ctx context.Context, nameOrID string, o
 }
 
 func (ic *ContainerEngine) ContainerCopyFromArchive(ctx context.Context, nameOrID, path string, reader io.Reader, options entities.CopyOptions) (entities.ContainerCopyFunc, error) {
-	copyOptions := new(containers.CopyOptions).WithChown(options.Chown).WithRename(options.Rename)
+	copyOptions := new(containers.CopyOptions).WithChown(options.Chown).WithRename(options.Rename).WithNoOverwriteDirNonDir(options.NoOverwriteDirNonDir)
 	return containers.CopyFromArchiveWithOptions(ic.ClientCtx, nameOrID, path, reader, copyOptions)
 }
 

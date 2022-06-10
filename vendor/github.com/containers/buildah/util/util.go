@@ -14,6 +14,7 @@ import (
 	"github.com/containers/buildah/define"
 	"github.com/containers/common/libimage"
 	"github.com/containers/common/pkg/config"
+	"github.com/containers/common/pkg/util"
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/pkg/shortnames"
 	"github.com/containers/image/v5/signature"
@@ -43,6 +44,11 @@ var (
 		"docker.io":       "library",
 	}
 )
+
+// StringInSlice is deprecated, use github.com/containers/common/pkg/util.StringInSlice
+func StringInSlice(s string, slice []string) bool {
+	return util.StringInSlice(s, slice)
+}
 
 // resolveName checks if name is a valid image name, and if that name doesn't
 // include a domain portion, returns a list of the names which it might
@@ -242,17 +248,6 @@ func Runtime() string {
 		return define.DefaultRuntime
 	}
 	return conf.Engine.OCIRuntime
-}
-
-// StringInSlice returns a boolean indicating if the exact value s is present
-// in the slice slice.
-func StringInSlice(s string, slice []string) bool {
-	for _, v := range slice {
-		if v == s {
-			return true
-		}
-	}
-	return false
 }
 
 // GetContainerIDs uses ID mappings to compute the container-level IDs that will

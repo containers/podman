@@ -68,10 +68,12 @@ type BudResults struct {
 	Iidfile             string
 	Label               []string
 	Logfile             string
+	LogSplitByPlatform  bool
 	Manifest            string
 	NoHosts             bool
 	NoCache             bool
 	Timestamp           int64
+	OmitHistory         bool
 	Pull                string
 	PullAlways          bool
 	PullNever           bool
@@ -210,6 +212,7 @@ func GetBudFlags(flags *BudResults) pflag.FlagSet {
 	fs.IntVar(&flags.Jobs, "jobs", 1, "how many stages to run in parallel")
 	fs.StringArrayVar(&flags.Label, "label", []string{}, "set metadata for an image (default [])")
 	fs.StringVar(&flags.Logfile, "logfile", "", "log to `file` instead of stdout/stderr")
+	fs.BoolVar(&flags.LogSplitByPlatform, "logsplit", false, "split logfile to different files for each platform")
 	fs.Int("loglevel", 0, "NO LONGER USED, flag ignored, and hidden")
 	if err := fs.MarkHidden("loglevel"); err != nil {
 		panic(fmt.Sprintf("error marking the loglevel flag as hidden: %v", err))
@@ -239,7 +242,8 @@ func GetBudFlags(flags *BudResults) pflag.FlagSet {
 		panic(fmt.Sprintf("error marking the pull-never flag as hidden: %v", err))
 	}
 	fs.BoolVarP(&flags.Quiet, "quiet", "q", false, "refrain from announcing build instructions and image read/write progress")
-	fs.BoolVar(&flags.IdentityLabel, "identity-label", true, "add default identity label (default true)")
+	fs.BoolVar(&flags.OmitHistory, "omit-history", false, "omit build history information from built image")
+	fs.BoolVar(&flags.IdentityLabel, "identity-label", true, "add default identity label")
 	fs.BoolVar(&flags.Rm, "rm", true, "remove intermediate containers after a successful build")
 	// "runtime" definition moved to avoid name collision in podman build.  Defined in cmd/buildah/build.go.
 	fs.StringSliceVar(&flags.RuntimeFlags, "runtime-flag", []string{}, "add global flags for the container runtime")

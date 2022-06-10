@@ -11,7 +11,7 @@ github.com/Microsoft/go-winio/backuptar
 github.com/Microsoft/go-winio/pkg/guid
 github.com/Microsoft/go-winio/pkg/security
 github.com/Microsoft/go-winio/vhd
-# github.com/Microsoft/hcsshim v0.9.2
+# github.com/Microsoft/hcsshim v0.9.3
 github.com/Microsoft/hcsshim
 github.com/Microsoft/hcsshim/computestorage
 github.com/Microsoft/hcsshim/internal/cow
@@ -21,11 +21,13 @@ github.com/Microsoft/hcsshim/internal/hcs/schema2
 github.com/Microsoft/hcsshim/internal/hcserror
 github.com/Microsoft/hcsshim/internal/hns
 github.com/Microsoft/hcsshim/internal/interop
+github.com/Microsoft/hcsshim/internal/jobobject
 github.com/Microsoft/hcsshim/internal/log
 github.com/Microsoft/hcsshim/internal/logfields
 github.com/Microsoft/hcsshim/internal/longpath
 github.com/Microsoft/hcsshim/internal/mergemaps
 github.com/Microsoft/hcsshim/internal/oc
+github.com/Microsoft/hcsshim/internal/queue
 github.com/Microsoft/hcsshim/internal/safefile
 github.com/Microsoft/hcsshim/internal/timeout
 github.com/Microsoft/hcsshim/internal/vmcompute
@@ -63,7 +65,7 @@ github.com/container-orchestrated-devices/container-device-interface/pkg/cdi
 github.com/container-orchestrated-devices/container-device-interface/specs-go
 # github.com/containerd/cgroups v1.0.3
 github.com/containerd/cgroups/stats/v1
-# github.com/containerd/containerd v1.6.4
+# github.com/containerd/containerd v1.6.6
 github.com/containerd/containerd/errdefs
 github.com/containerd/containerd/log
 github.com/containerd/containerd/pkg/userns
@@ -87,7 +89,7 @@ github.com/containernetworking/cni/pkg/version
 # github.com/containernetworking/plugins v1.1.1
 ## explicit
 github.com/containernetworking/plugins/pkg/ns
-# github.com/containers/buildah v1.26.1-0.20220524184833-5500333c2e06
+# github.com/containers/buildah v1.26.1-0.20220607182634-005447be07ee
 ## explicit
 github.com/containers/buildah
 github.com/containers/buildah/bind
@@ -393,7 +395,7 @@ github.com/felixge/httpsnoop
 # github.com/fsnotify/fsnotify v1.5.4
 ## explicit
 github.com/fsnotify/fsnotify
-# github.com/fsouza/go-dockerclient v1.7.11
+# github.com/fsouza/go-dockerclient v1.8.1
 github.com/fsouza/go-dockerclient
 # github.com/ghodss/yaml v1.0.0
 ## explicit
@@ -480,9 +482,9 @@ github.com/matttproud/golang_protobuf_extensions/pbutil
 github.com/miekg/pkcs11
 # github.com/mistifyio/go-zfs v2.1.2-0.20190413222219-f784269be439+incompatible
 github.com/mistifyio/go-zfs
-# github.com/moby/sys/mount v0.2.0
+# github.com/moby/sys/mount v0.3.3
 github.com/moby/sys/mount
-# github.com/moby/sys/mountinfo v0.6.1
+# github.com/moby/sys/mountinfo v0.6.2
 github.com/moby/sys/mountinfo
 # github.com/moby/term v0.0.0-20210619224110-3f7ff695adc6
 ## explicit
@@ -745,7 +747,7 @@ golang.org/x/sys/plan9
 golang.org/x/sys/unix
 golang.org/x/sys/windows
 golang.org/x/sys/windows/registry
-# golang.org/x/term v0.0.0-20210927222741-03fcf44c2211
+# golang.org/x/term v0.0.0-20220526004731-065cf7ba2467
 ## explicit
 golang.org/x/term
 # golang.org/x/text v0.3.7

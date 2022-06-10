@@ -41,11 +41,11 @@ SOURCES=*.go imagebuildah/*.go bind/*.go chroot/*.go copier/*.go define/*.go doc
 
 LINTFLAGS ?=
 
-ifeq ($(DEBUG), 1)
+ifeq ($(BUILDDEBUG), 1)
   override GOGCFLAGS += -N -l
 endif
 
-#   make all DEBUG=1
+#   make all BUILDDEBUG=1
 #     Note: Uses the -N -l go compiler options to disable compiler optimizations
 #           and inlining. Using these build options allows you to subsequently
 #           use source debugging tools like delve.

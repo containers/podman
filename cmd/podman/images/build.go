@@ -546,6 +546,8 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *buil
 		Labels:                  flags.Label,
 		Layers:                  flags.Layers,
 		LogRusage:               flags.LogRusage,
+		LogFile:                 flags.Logfile,
+		LogSplitByPlatform:      flags.LogSplitByPlatform,
 		Manifest:                flags.Manifest,
 		MaxPullPushRetries:      3,
 		NamespaceOptions:        nsValues,

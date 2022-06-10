@@ -55,10 +55,13 @@ var (
 
 func cpFlags(cmd *cobra.Command) {
 	flags := cmd.Flags()
-	flags.BoolVar(&cpOpts.Extract, "extract", false, "Deprecated...")
-	flags.BoolVar(&cpOpts.Pause, "pause", true, "Deprecated")
+	flags.BoolVar(&cpOpts.OverwriteDirNonDir, "overwrite", false, "Allow to overwrite directories with non-directories and vice versa")
 	flags.BoolVarP(&chown, "archive", "a", true, `Chown copied files to the primary uid/gid of the destination container.`)
+
+	// Deprecated flags (both are NOPs): exist for backwards compat
+	flags.BoolVar(&cpOpts.Extract, "extract", false, "Deprecated...")
 	_ = flags.MarkHidden("extract")
+	flags.BoolVar(&cpOpts.Pause, "pause", true, "Deprecated")
 	_ = flags.MarkHidden("pause")
 }
 
@@ -175,7 +178,7 @@ func copyContainerToContainer(sourceContainer string, sourcePath string, destCon
 	destContainerCopy := func() error {
 		defer reader.Close()
 
-		copyOptions := entities.CopyOptions{Chown: chown}
+		copyOptions := entities.CopyOptions{Chown: chown, NoOverwriteDirNonDir: !cpOpts.OverwriteDirNonDir}
 		if (!sourceContainerInfo.IsDir && !destContainerInfo.IsDir) || destResolvedToParentDir {
 			// If we're having a file-to-file copy, make sure to
 			// rename accordingly.
@@ -294,9 +297,11 @@ func copyFromContainer(container string, containerPath string, hostPath string) 
 		}
 
 		putOptions := buildahCopiah.PutOptions{
-			ChownDirs:     &idPair,
-			ChownFiles:    &idPair,
-			IgnoreDevices: true,
+			ChownDirs:            &idPair,
+			ChownFiles:           &idPair,
+			IgnoreDevices:        true,
+			NoOverwriteDirNonDir: !cpOpts.OverwriteDirNonDir,
+			NoOverwriteNonDirDir: !cpOpts.OverwriteDirNonDir,
 		}
 		if (!containerInfo.IsDir && !hostInfo.IsDir) || resolvedToHostParentDir {
 			// If we're having a file-to-file copy, make sure to
@@ -429,7 +434,7 @@ func copyToContainer(container string, containerPath string, hostPath string) er
 			target = filepath.Dir(target)
 		}
 
-		copyFunc, err := registry.ContainerEngine().ContainerCopyFromArchive(registry.GetContext(), container, target, reader, entities.CopyOptions{Chown: chown})
+		copyFunc, err := registry.ContainerEngine().ContainerCopyFromArchive(registry.GetContext(), container, target, reader, entities.CopyOptions{Chown: chown, NoOverwriteDirNonDir: !cpOpts.OverwriteDirNonDir})
 		if err != nil {
 			return err
 		}

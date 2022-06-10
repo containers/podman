@@ -63,6 +63,10 @@ When set to true, files copied to a container will have changed ownership to the
 When set to false, maintain uid/gid from archive sources instead of changing them to the primary uid/gid of the destination container.
 The default is **true**.
 
+#### **--overwrite**
+
+Allow directories to be overwritten with non-directories and vice versa.  By default, `podman cp` errors out when attempting to overwrite, for instance, a regular file with a directory.  Use this option, if you want to allow this behavior.
+
 ## ALTERNATIVES
 
 Podman has much stronger capabilities than just `podman cp` to achieve copying files between the host and containers.

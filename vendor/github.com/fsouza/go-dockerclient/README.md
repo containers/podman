@@ -25,12 +25,6 @@ implemented/merged.
 For new projects, using the official SDK is probably more appropriate as
 go-dockerclient lags behind the official SDK.
 
-When using the official SDK, keep in mind that because of how the its
-dependencies are organized, you may need some extra steps in order to be able
-to import it in your projects (see
-[#784](https://github.com/fsouza/go-dockerclient/issues/784) and
-[moby/moby#28269](https://github.com/moby/moby/issues/28269)).
-
 ## Example
 
 ```go

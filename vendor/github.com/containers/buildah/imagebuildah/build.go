@@ -253,7 +253,25 @@ func BuildDockerfiles(ctx context.Context, store storage.Store, options define.B
 		}
 		platformOptions.Args = argsCopy
 		builds.Go(func() error {
-			thisID, thisRef, err := buildDockerfilesOnce(ctx, store, logger, logPrefix, platformOptions, paths, files)
+			loggerPerPlatform := logger
+			if platformOptions.LogFile != "" && platformOptions.LogSplitByPlatform {
+				logFile := platformOptions.LogFile + "_" + platformOptions.OS + "_" + platformOptions.Architecture
+				f, err := os.OpenFile(logFile, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0600)
+				if err != nil {
+					return errors.Wrapf(err, "opening logfile: %q", logFile)
+				}
+				defer f.Close()
+				loggerPerPlatform = logrus.New()
+				loggerPerPlatform.SetOutput(f)
+				loggerPerPlatform.SetLevel(logrus.GetLevel())
+				stdout := f
+				stderr := f
+				reporter := f
+				platformOptions.Out = stdout
+				platformOptions.ReportWriter = reporter
+				platformOptions.Err = stderr
+			}
+			thisID, thisRef, err := buildDockerfilesOnce(ctx, store, loggerPerPlatform, logPrefix, platformOptions, paths, files)
 			if err != nil {
 				return err
 			}

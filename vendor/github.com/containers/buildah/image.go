@@ -70,6 +70,7 @@ type containerImageRef struct {
 	annotations           map[string]string
 	preferredManifestType string
 	squash                bool
+	omitHistory           bool
 	emptyLayer            bool
 	idMappingOptions      *define.IDMappingOptions
 	parent                string
@@ -221,7 +222,7 @@ func (i *containerImageRef) createConfigsAndManifests() (v1.Image, v1.Manifest, 
 	oimage.RootFS.DiffIDs = []digest.Digest{}
 	// Only clear the history if we're squashing, otherwise leave it be so that we can append
 	// entries to it.
-	if i.squash {
+	if i.squash || i.omitHistory {
 		oimage.History = []v1.History{}
 	}
 
@@ -244,7 +245,7 @@ func (i *containerImageRef) createConfigsAndManifests() (v1.Image, v1.Manifest, 
 	// Only clear the history if we're squashing, otherwise leave it be so
 	// that we can append entries to it.  Clear the parent, too, we no
 	// longer include its layers and history.
-	if i.squash {
+	if i.squash || i.omitHistory {
 		dimage.Parent = ""
 		dimage.History = []docker.V2S2History{}
 	}
@@ -530,43 +531,56 @@ func (i *containerImageRef) NewImageSource(ctx context.Context, sc *types.System
 			dimage.History = append(dimage.History, dnews)
 		}
 	}
-	appendHistory(i.preEmptyLayers)
-	created := time.Now().UTC()
-	if i.created != nil {
-		created = (*i.created).UTC()
-	}
-	comment := i.historyComment
-	// Add a comment for which base image is being used
-	if strings.Contains(i.parent, i.fromImageID) && i.fromImageName != i.fromImageID {
-		comment += "FROM " + i.fromImageName
-	}
-	onews := v1.History{
-		Created:    &created,
-		CreatedBy:  i.createdBy,
-		Author:     oimage.Author,
-		Comment:    comment,
-		EmptyLayer: i.emptyLayer,
-	}
-	oimage.History = append(oimage.History, onews)
-	dnews := docker.V2S2History{
-		Created:    created,
-		CreatedBy:  i.createdBy,
-		Author:     dimage.Author,
-		Comment:    comment,
-		EmptyLayer: i.emptyLayer,
-	}
-	dimage.History = append(dimage.History, dnews)
-	appendHistory(i.postEmptyLayers)
 
-	// Sanity check that we didn't just create a mismatch between non-empty layers in the
-	// history and the number of diffIDs.
-	expectedDiffIDs := expectedOCIDiffIDs(oimage)
-	if len(oimage.RootFS.DiffIDs) != expectedDiffIDs {
-		return nil, errors.Errorf("internal error: history lists %d non-empty layers, but we have %d layers on disk", expectedDiffIDs, len(oimage.RootFS.DiffIDs))
-	}
-	expectedDiffIDs = expectedDockerDiffIDs(dimage)
-	if len(dimage.RootFS.DiffIDs) != expectedDiffIDs {
-		return nil, errors.Errorf("internal error: history lists %d non-empty layers, but we have %d layers on disk", expectedDiffIDs, len(dimage.RootFS.DiffIDs))
+	// Calculate base image history for special scenarios
+	// when base layers does not contains any history.
+	// We will ignore sanity checks if baseImage history is null
+	// but still add new history for docker parity.
+	baseImageHistoryLen := len(oimage.History)
+	// Only attempt to append history if history was not disabled explicitly.
+	if !i.omitHistory {
+		appendHistory(i.preEmptyLayers)
+		created := time.Now().UTC()
+		if i.created != nil {
+			created = (*i.created).UTC()
+		}
+		comment := i.historyComment
+		// Add a comment for which base image is being used
+		if strings.Contains(i.parent, i.fromImageID) && i.fromImageName != i.fromImageID {
+			comment += "FROM " + i.fromImageName
+		}
+		onews := v1.History{
+			Created:    &created,
+			CreatedBy:  i.createdBy,
+			Author:     oimage.Author,
+			Comment:    comment,
+			EmptyLayer: i.emptyLayer,
+		}
+		oimage.History = append(oimage.History, onews)
+		dnews := docker.V2S2History{
+			Created:    created,
+			CreatedBy:  i.createdBy,
+			Author:     dimage.Author,
+			Comment:    comment,
+			EmptyLayer: i.emptyLayer,
+		}
+		dimage.History = append(dimage.History, dnews)
+		appendHistory(i.postEmptyLayers)
+
+		// Sanity check that we didn't just create a mismatch between non-empty layers in the
+		// history and the number of diffIDs. Following sanity check is ignored if build history
+		// is disabled explicitly by the user.
+		// Disable sanity check when baseImageHistory is null for docker parity
+		if baseImageHistoryLen != 0 {
+			expectedDiffIDs := expectedOCIDiffIDs(oimage)
+			if len(oimage.RootFS.DiffIDs) != expectedDiffIDs {
+				return nil, errors.Errorf("internal error: history lists %d non-empty layers, but we have %d layers on disk", expectedDiffIDs, len(oimage.RootFS.DiffIDs))
+			}
+			expectedDiffIDs = expectedDockerDiffIDs(dimage)
+			if len(dimage.RootFS.DiffIDs) != expectedDiffIDs {
+				return nil, errors.Errorf("internal error: history lists %d non-empty layers, but we have %d layers on disk", expectedDiffIDs, len(dimage.RootFS.DiffIDs))
+			}
+		}
 	}
 
 	// Encode the image configuration blob.
@@ -819,6 +833,7 @@ func (b *Builder) makeContainerImageRef(options CommitOptions) (*containerImageR
 		annotations:           b.Annotations(),
 		preferredManifestType: manifestType,
 		squash:                options.Squash,
+		omitHistory:           options.OmitHistory,
 		emptyLayer:            options.EmptyLayer && !options.Squash,
 		idMappingOptions:      &b.IDMappingOptions,
 		parent:                parent,
