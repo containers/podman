@@ -1354,8 +1354,6 @@ func (r *ConmonOCIRuntime) sharedConmonArgs(ctr *Container, cuuid, bundlePath, p
 		logDriverArg = define.NoLogging
 	case define.PassthroughLogging:
 		logDriverArg = define.PassthroughLogging
-	case define.JSONLogging:
-		fallthrough
 	//lint:ignore ST1015 the default case has to be here
 	default: //nolint:stylecheck,gocritic
 		// No case here should happen except JSONLogging, but keep this here in case the options are extended
@@ -1364,6 +1362,8 @@ func (r *ConmonOCIRuntime) sharedConmonArgs(ctr *Container, cuuid, bundlePath, p
 	case "":
 		// to get here, either a user would specify `--log-driver ""`, or this came from another place in libpod
 		// since the former case is obscure, and the latter case isn't an error, let's silently fallthrough
+		fallthrough
+	case define.JSONLogging:
 		fallthrough
 	case define.KubernetesLogging:
 		logDriverArg = fmt.Sprintf("%s:%s", define.KubernetesLogging, logPath)
