@@ -96,7 +96,6 @@ var _ = Describe("Podman push", func() {
 	})
 
 	It("podman push to local registry", func() {
-		SkipIfRemote("Remote does not support --digestfile or --remove-signatures")
 		if podmanTest.Host.Arch == "ppc64le" {
 			Skip("No registry image for ppc64le")
 		}
@@ -118,6 +117,7 @@ var _ = Describe("Podman push", func() {
 		push.WaitWithDefaultTimeout()
 		Expect(push).Should(Exit(0))
 
+		SkipIfRemote("Remote does not support --digestfile")
 		// Test --digestfile option
 		push2 := podmanTest.Podman([]string{"push", "--tls-verify=false", "--digestfile=/tmp/digestfile.txt", "--remove-signatures", ALPINE, "localhost:5000/my-alpine"})
 		push2.WaitWithDefaultTimeout()

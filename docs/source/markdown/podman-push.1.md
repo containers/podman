@@ -95,7 +95,7 @@ When writing the output image, suppress progress output
 
 #### **--remove-signatures**
 
-Discard any pre-existing signatures in the image. (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
+Discard any pre-existing signatures in the image.
 
 #### **--sign-by**=*key*
 
