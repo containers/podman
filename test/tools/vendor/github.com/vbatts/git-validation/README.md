@@ -73,7 +73,7 @@ vbatts@valse ~/src/vb/git-validation (master) $ git-validation -v
 
 Here's a failure:
 ```console
-vbatts@valse ~/src/vb/git-validation (master) $ git-validation
+vbatts@valse ~/src/vb/git-validation (master) $ git-validation 
  * 49f51a8 "README: adding install and usage" ... FAIL
   - FAIL - does not have a valid DCO
  * d614ccf "*: run tests in a runner" ... PASS
@@ -103,3 +103,4 @@ See [`./rules/`](./rules/).
 Feel free to contribute more.
 
 Otherwise, by using `validate` package API directly, rules can be handed directly to the `validate.Runner`.
+

@@ -32,3 +32,4 @@ check-mod: # verifies that module changes for go.mod and go.sum are checked in
 .PHONY: vendor
 vendor: mod
 	@go mod vendor -v
+
