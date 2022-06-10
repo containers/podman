@@ -151,6 +151,9 @@ func (r *Runtime) GetEvents(ctx context.Context, filters []string) ([]*events.Ev
 // GetLastContainerEvent takes a container name or ID and an event status and returns
 // the last occurrence of the container event
 func (r *Runtime) GetLastContainerEvent(ctx context.Context, nameOrID string, containerEvent events.Status) (*events.Event, error) {
+	// FIXME: events should be read in reverse order!
+	// https://github.com/containers/podman/issues/14579
+
 	// check to make sure the event.Status is valid
 	if _, err := events.StringToStatus(containerEvent.String()); err != nil {
 		return nil, err

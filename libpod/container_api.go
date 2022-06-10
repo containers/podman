@@ -2,6 +2,7 @@ package libpod
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -490,41 +491,84 @@ func (c *Container) RemoveArtifact(name string) error {
 
 // Wait blocks until the container exits and returns its exit code.
 func (c *Container) Wait(ctx context.Context) (int32, error) {
-	return c.WaitWithInterval(ctx, DefaultWaitInterval)
+	return c.WaitForExit(ctx, DefaultWaitInterval)
 }
 
-// WaitWithInterval blocks until the container to exit and returns its exit
-// code. The argument is the interval at which checks the container's status.
-func (c *Container) WaitWithInterval(ctx context.Context, waitTimeout time.Duration) (int32, error) {
+// WaitForExit blocks until the container exits and returns its exit code. The
+// argument is the interval at which checks the container's status.
+func (c *Container) WaitForExit(ctx context.Context, pollInterval time.Duration) (int32, error) {
 	if !c.valid {
 		return -1, define.ErrCtrRemoved
 	}
 
-	exitFile, err := c.exitFilePath()
-	if err != nil {
-		return -1, err
-	}
-	chWait := make(chan error, 1)
+	id := c.ID()
+	var conmonTimer time.Timer
+	conmonTimerSet := false
 
-	go func() {
-		<-ctx.Done()
-		chWait <- define.ErrCanceled
-	}()
-
-	for {
-		// ignore errors here (with exception of cancellation), it is only used to avoid waiting
-		// too long.
-		_, e := WaitForFile(exitFile, chWait, waitTimeout)
-		if e == define.ErrCanceled {
-			return -1, define.ErrCanceled
+	getExitCode := func() (bool, int32, error) {
+		containerRemoved := false
+		if !c.batched {
+			c.lock.Lock()
+			defer c.lock.Unlock()
 		}
 
-		stopped, code, err := c.isStopped()
+		if err := c.syncContainer(); err != nil {
+			if !errors.Is(err, define.ErrNoSuchCtr) {
+				return false, -1, err
+			}
+			containerRemoved = true
+		}
+
+		// If conmon is not alive anymore set a timer to make sure
+		// we're returning even if conmon has forcefully been killed.
+		if !conmonTimerSet && !containerRemoved {
+			conmonAlive, err := c.ociRuntime.CheckConmonRunning(c)
+			switch {
+			case errors.Is(err, define.ErrNoSuchCtr):
+				containerRemoved = true
+			case err != nil:
+				return false, -1, err
+			case !conmonAlive:
+				timerDuration := time.Second * 20
+				conmonTimer = *time.NewTimer(timerDuration)
+				conmonTimerSet = true
+			}
+		}
+
+		if !containerRemoved {
+			// If conmon is dead for more than $timerDuration or if the
+			// container has exited properly, try to look up the exit code.
+			select {
+			case <-conmonTimer.C:
+				logrus.Debugf("Exceeded conmon timeout waiting for container %s to exit", id)
+			default:
+				if !c.ensureState(define.ContainerStateExited, define.ContainerStateConfigured) {
+					return false, -1, nil
+				}
+			}
+		}
+
+		exitCode, err := c.runtime.state.GetContainerExitCode(id)
+		if err != nil {
+			return true, -1, err
+		}
+
+		return true, exitCode, nil
+	}
+
+	for {
+		hasExited, exitCode, err := getExitCode()
+		if hasExited {
+			return exitCode, err
+		}
 		if err != nil {
 			return -1, err
 		}
-		if stopped {
-			return code, nil
+		select {
+		case <-ctx.Done():
+			return -1, fmt.Errorf("waiting for exit code of container %s canceled", id)
+		default:
+			time.Sleep(pollInterval)
 		}
 	}
 }
@@ -551,11 +595,12 @@ func (c *Container) WaitForConditionWithInterval(ctx context.Context, waitTimeou
 	wantedStates := make(map[define.ContainerStatus]bool, len(conditions))
 
 	for _, condition := range conditions {
-		if condition == define.ContainerStateStopped || condition == define.ContainerStateExited {
+		switch condition {
+		case define.ContainerStateExited, define.ContainerStateStopped:
 			waitForExit = true
-			continue
+		default:
+			wantedStates[condition] = true
 		}
-		wantedStates[condition] = true
 	}
 
 	trySend := func(code int32, err error) {
@@ -572,7 +617,7 @@ func (c *Container) WaitForConditionWithInterval(ctx context.Context, waitTimeou
 		go func() {
 			defer wg.Done()
 
-			code, err := c.WaitWithInterval(ctx, waitTimeout)
+			code, err := c.WaitForExit(ctx, waitTimeout)
 			trySend(code, err)
 		}()
 	}

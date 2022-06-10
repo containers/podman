@@ -111,6 +111,15 @@ type State interface {
 	// Return a container config from the database by full ID
 	GetContainerConfig(id string) (*ContainerConfig, error)
 
+	// Add the exit code for the specified container to the database.
+	AddContainerExitCode(id string, exitCode int32) error
+
+	// Return the exit code for the specified container.
+	GetContainerExitCode(id string) (int32, error)
+
+	// Remove exit codes older than 5 minutes.
+	PruneContainerExitCodes() error
+
 	// Add creates a reference to an exec session in the database.
 	// The container the exec session is attached to will be recorded.
 	// The container state will not be modified.
