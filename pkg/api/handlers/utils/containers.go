@@ -191,7 +191,6 @@ func waitDockerCondition(ctx context.Context, containerName string, interval tim
 var notRunningStates = []define.ContainerStatus{
 	define.ContainerStateCreated,
 	define.ContainerStateRemoving,
-	define.ContainerStateStopped,
 	define.ContainerStateExited,
 	define.ContainerStateConfigured,
 }

@@ -29,6 +29,9 @@ const (
 	aliasesName       = "aliases"
 	runtimeConfigName = "runtime-config"
 
+	exitCodeName          = "exit-code"
+	exitCodeTimeStampName = "exit-code-time-stamp"
+
 	configName         = "config"
 	stateName          = "state"
 	dependenciesName   = "dependencies"
@@ -64,6 +67,9 @@ var (
 	dependenciesBkt    = []byte(dependenciesName)
 	volDependenciesBkt = []byte(volCtrDependencies)
 	networksBkt        = []byte(networksName)
+
+	exitCodeBkt          = []byte(exitCodeName)
+	exitCodeTimeStampBkt = []byte(exitCodeTimeStampName)
 
 	configKey     = []byte(configName)
 	stateKey      = []byte(stateName)
@@ -358,6 +364,22 @@ func getRuntimeConfigBucket(tx *bolt.Tx) (*bolt.Bucket, error) {
 	bkt := tx.Bucket(runtimeConfigBkt)
 	if bkt == nil {
 		return nil, errors.Wrapf(define.ErrDBBadConfig, "runtime configuration bucket not found in DB")
+	}
+	return bkt, nil
+}
+
+func getExitCodeBucket(tx *bolt.Tx) (*bolt.Bucket, error) {
+	bkt := tx.Bucket(exitCodeBkt)
+	if bkt == nil {
+		return nil, errors.Wrapf(define.ErrDBBadConfig, "exit-code container bucket not found in DB")
+	}
+	return bkt, nil
+}
+
+func getExitCodeTimeStampBucket(tx *bolt.Tx) (*bolt.Bucket, error) {
+	bkt := tx.Bucket(exitCodeTimeStampBkt)
+	if bkt == nil {
+		return nil, errors.Wrapf(define.ErrDBBadConfig, "exit-code time stamp bucket not found in DB")
 	}
 	return bkt, nil
 }
