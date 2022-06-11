@@ -216,7 +216,7 @@ func (i *Image) inspectInfo(ctx context.Context) (*types.ImageInspectInfo, error
 		return nil, err
 	}
 
-	img, err := ref.NewImage(ctx, i.runtime.systemContextCopy())
+	img, err := ref.NewImage(ctx, &i.runtime.systemContext)
 	if err != nil {
 		return nil, err
 	}

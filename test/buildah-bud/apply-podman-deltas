@@ -220,8 +220,8 @@ skip_if_remote "--output option not implemented in podman-remote" \
 # https://github.com/containers/podman/issues/14544
 skip_if_remote "logfile not implemented on remote" "bud-logfile-with-split-logfile-by-platform"
 
-# https://github.com/containers/podman/issues/14547
-skip_if_remote "omit-history not implemented on remote" "build-with-omit-history-to-true should not add history"
+skip_if_remote "envariables do not automatically work with -remote." \
+               "build proxy"
 
 ###############################################################################
 # BEGIN tests which are skipped due to actual podman or podman-remote bugs.
@@ -234,11 +234,5 @@ skip_if_remote "Podman #12838: different error messages" \
 skip_if_remote "FIXME FIXME FIXME: find a way to clean up their podman calls" \
                "bud with run should not leave mounts behind cleanup test" \
                "bud with custom files in /run/ should persist cleanup test"
-
-skip_if_remote "Do envariables work with -remote? Please look into this." \
-               "build proxy"
-
-###############################################################################
-# Done.
 
 exit $RC

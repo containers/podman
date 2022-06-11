@@ -1,5 +1,4 @@
-//go:build !linux && !darwin
-// +build !linux,!darwin
+// +build darwin
 
 package unshare
 
@@ -17,7 +16,7 @@ const (
 
 // IsRootless tells us if we are running in rootless mode
 func IsRootless() bool {
-	return false
+	return true
 }
 
 // GetRootlessUID returns the UID of the user in the parent userNS
@@ -42,10 +41,13 @@ func GetHostIDMappings(pid string) ([]specs.LinuxIDMapping, []specs.LinuxIDMappi
 
 // ParseIDMappings parses mapping triples.
 func ParseIDMappings(uidmap, gidmap []string) ([]idtools.IDMap, []idtools.IDMap, error) {
-	return nil, nil, nil
-}
-
-// HasCapSysAdmin returns whether the current process has CAP_SYS_ADMIN.
-func HasCapSysAdmin() (bool, error) {
-	return os.Geteuid() == 0, nil
+	uid, err := idtools.ParseIDMap(uidmap, "userns-uid-map")
+	if err != nil {
+		return nil, nil, err
+	}
+	gid, err := idtools.ParseIDMap(gidmap, "userns-gid-map")
+	if err != nil {
+		return nil, nil, err
+	}
+	return uid, gid, nil
 }

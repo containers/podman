@@ -62,6 +62,10 @@ func (s *sequenceDecs) decodeSyncSimple(hist []byte) (bool, error) {
 	if s.maxSyncLen > 0 && cap(s.out)-len(s.out)-compressedBlockOverAlloc < int(s.maxSyncLen) {
 		useSafe = true
 	}
+	if cap(s.literals) < len(s.literals)+compressedBlockOverAlloc {
+		useSafe = true
+	}
+
 	br := s.br
 
 	maxBlockSize := maxCompressedBlockSize
@@ -301,6 +305,10 @@ type executeAsmContext struct {
 //go:noescape
 func sequenceDecs_executeSimple_amd64(ctx *executeAsmContext) bool
 
+// Same as above, but with safe memcopies
+//go:noescape
+func sequenceDecs_executeSimple_safe_amd64(ctx *executeAsmContext) bool
+
 // executeSimple handles cases when dictionary is not used.
 func (s *sequenceDecs) executeSimple(seqs []seqVals, hist []byte) error {
 	// Ensure we have enough output size...
@@ -327,8 +335,12 @@ func (s *sequenceDecs) executeSimple(seqs []seqVals, hist []byte) error {
 		literals:    s.literals,
 		windowSize:  s.windowSize,
 	}
-
-	ok := sequenceDecs_executeSimple_amd64(&ctx)
+	var ok bool
+	if cap(s.literals) < len(s.literals)+compressedBlockOverAlloc {
+		ok = sequenceDecs_executeSimple_safe_amd64(&ctx)
+	} else {
+		ok = sequenceDecs_executeSimple_amd64(&ctx)
+	}
 	if !ok {
 		return fmt.Errorf("match offset (%d) bigger than current history (%d)",
 			seqs[ctx.seqIndex].mo, ctx.outPosition+len(hist))

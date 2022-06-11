@@ -17,14 +17,14 @@ env:
     ####
     #### Cache-image names to test with (double-quotes around names are critical)
     ###
-    FEDORA_NAME: "fedora-35"
-    PRIOR_FEDORA_NAME: "fedora-34"
-    UBUNTU_NAME: "ubuntu-2104"
+    FEDORA_NAME: "fedora-36"
+    PRIOR_FEDORA_NAME: "fedora-35"
+    UBUNTU_NAME: "ubuntu-2204"
 
     # GCE project where images live
     IMAGE_PROJECT: "libpod-218412"
     # VM Image built in containers/automation_images
-    IMAGE_SUFFIX: "c4512539143831552"
+    IMAGE_SUFFIX: "c5878804328480768"
     FEDORA_CACHE_IMAGE_NAME: "fedora-${IMAGE_SUFFIX}"
     PRIOR_FEDORA_CACHE_IMAGE_NAME: "prior-fedora-${IMAGE_SUFFIX}"
     UBUNTU_CACHE_IMAGE_NAME: "ubuntu-${IMAGE_SUFFIX}"

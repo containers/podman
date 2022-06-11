@@ -170,6 +170,11 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 	} else {
 		params.Set("rm", "0")
 	}
+	if options.CommonBuildOpts.OmitHistory {
+		params.Set("omithistory", "1")
+	} else {
+		params.Set("omithistory", "0")
+	}
 	if len(options.From) > 0 {
 		params.Set("from", options.From)
 	}

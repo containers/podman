@@ -191,6 +191,7 @@ func buildFlags(cmd *cobra.Command) {
 		_ = flags.MarkHidden("compress")
 		_ = flags.MarkHidden("volume")
 		_ = flags.MarkHidden("output")
+		_ = flags.MarkHidden("logsplit")
 	}
 }
 

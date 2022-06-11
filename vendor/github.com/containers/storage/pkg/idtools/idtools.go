@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/user"
+	"runtime"
 	"sort"
 	"strconv"
 	"strings"
@@ -38,8 +39,9 @@ func (e ranges) Swap(i, j int)      { e[i], e[j] = e[j], e[i] }
 func (e ranges) Less(i, j int) bool { return e[i].Start < e[j].Start }
 
 const (
-	subuidFileName string = "/etc/subuid"
-	subgidFileName string = "/etc/subgid"
+	subuidFileName          string = "/etc/subuid"
+	subgidFileName          string = "/etc/subgid"
+	ContainersOverrideXattr        = "user.containers.override_stat"
 )
 
 // MkdirAllAs creates a directory (include any along the path) and then modifies
@@ -366,6 +368,25 @@ func checkChownErr(err error, name string, uid, gid int) error {
 }
 
 func SafeChown(name string, uid, gid int) error {
+	if runtime.GOOS == "darwin" {
+		var mode uint64 = 0o0700
+		xstat, err := system.Lgetxattr(name, ContainersOverrideXattr)
+		if err == nil {
+			attrs := strings.Split(string(xstat), ":")
+			if len(attrs) == 3 {
+				val, err := strconv.ParseUint(attrs[2], 8, 32)
+				if err == nil {
+					mode = val
+				}
+			}
+		}
+		value := fmt.Sprintf("%d:%d:0%o", uid, gid, mode)
+		if err = system.Lsetxattr(name, ContainersOverrideXattr, []byte(value), 0); err != nil {
+			return err
+		}
+		uid = os.Getuid()
+		gid = os.Getgid()
+	}
 	if stat, statErr := system.Stat(name); statErr == nil {
 		if stat.UID() == uint32(uid) && stat.GID() == uint32(gid) {
 			return nil
@@ -375,6 +396,25 @@ func SafeChown(name string, uid, gid int) error {
 }
 
 func SafeLchown(name string, uid, gid int) error {
+	if runtime.GOOS == "darwin" {
+		var mode uint64 = 0o0700
+		xstat, err := system.Lgetxattr(name, ContainersOverrideXattr)
+		if err == nil {
+			attrs := strings.Split(string(xstat), ":")
+			if len(attrs) == 3 {
+				val, err := strconv.ParseUint(attrs[2], 8, 32)
+				if err == nil {
+					mode = val
+				}
+			}
+		}
+		value := fmt.Sprintf("%d:%d:0%o", uid, gid, mode)
+		if err = system.Lsetxattr(name, ContainersOverrideXattr, []byte(value), 0); err != nil {
+			return err
+		}
+		uid = os.Getuid()
+		gid = os.Getgid()
+	}
 	if stat, statErr := system.Lstat(name); statErr == nil {
 		if stat.UID() == uint32(uid) && stat.GID() == uint32(gid) {
 			return nil

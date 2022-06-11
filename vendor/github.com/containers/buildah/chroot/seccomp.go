@@ -1,3 +1,4 @@
+//go:build linux && seccomp
 // +build linux,seccomp
 
 package chroot
@@ -21,7 +22,7 @@ func setSeccomp(spec *specs.Spec) error {
 	mapAction := func(specAction specs.LinuxSeccompAction, errnoRet *uint) libseccomp.ScmpAction {
 		switch specAction {
 		case specs.ActKill:
-			return libseccomp.ActKill
+			return libseccomp.ActKillThread
 		case specs.ActTrap:
 			return libseccomp.ActTrap
 		case specs.ActErrno:

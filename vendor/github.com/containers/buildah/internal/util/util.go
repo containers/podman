@@ -8,6 +8,8 @@ import (
 	"github.com/containers/buildah/define"
 	"github.com/containers/common/libimage"
 	"github.com/containers/image/v5/types"
+	encconfig "github.com/containers/ocicrypt/config"
+	enchelpers "github.com/containers/ocicrypt/helpers"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/chrootarchive"
@@ -86,4 +88,50 @@ func ExportFromReader(input io.Reader, opts define.BuildOutputOption) error {
 		}
 	}
 	return nil
+}
+
+// DecryptConfig translates decryptionKeys into a DescriptionConfig structure
+func DecryptConfig(decryptionKeys []string) (*encconfig.DecryptConfig, error) {
+	decryptConfig := &encconfig.DecryptConfig{}
+	if len(decryptionKeys) > 0 {
+		// decryption
+		dcc, err := enchelpers.CreateCryptoConfig([]string{}, decryptionKeys)
+		if err != nil {
+			return nil, errors.Wrapf(err, "invalid decryption keys")
+		}
+		cc := encconfig.CombineCryptoConfigs([]encconfig.CryptoConfig{dcc})
+		decryptConfig = cc.DecryptConfig
+	}
+
+	return decryptConfig, nil
+}
+
+// EncryptConfig translates encryptionKeys into a EncriptionsConfig structure
+func EncryptConfig(encryptionKeys []string, encryptLayers []int) (*encconfig.EncryptConfig, *[]int, error) {
+	var encLayers *[]int
+	var encConfig *encconfig.EncryptConfig
+
+	if len(encryptionKeys) > 0 {
+		// encryption
+		encLayers = &encryptLayers
+		ecc, err := enchelpers.CreateCryptoConfig(encryptionKeys, []string{})
+		if err != nil {
+			return nil, nil, errors.Wrapf(err, "invalid encryption keys")
+		}
+		cc := encconfig.CombineCryptoConfigs([]encconfig.CryptoConfig{ecc})
+		encConfig = cc.EncryptConfig
+	}
+	return encConfig, encLayers, nil
+}
+
+// GetFormat translates format string into either docker or OCI format constant
+func GetFormat(format string) (string, error) {
+	switch format {
+	case define.OCI:
+		return define.OCIv1ImageManifest, nil
+	case define.DOCKER:
+		return define.Dockerv2ImageManifest, nil
+	default:
+		return "", errors.Errorf("unrecognized image type %q", format)
+	}
 }

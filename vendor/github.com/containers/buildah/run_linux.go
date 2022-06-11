@@ -35,6 +35,7 @@ import (
 	"github.com/containers/buildah/util"
 	"github.com/containers/common/libnetwork/etchosts"
 	"github.com/containers/common/libnetwork/network"
+	"github.com/containers/common/libnetwork/resolvconf"
 	nettypes "github.com/containers/common/libnetwork/types"
 	"github.com/containers/common/pkg/capabilities"
 	"github.com/containers/common/pkg/chown"
@@ -50,8 +51,6 @@ import (
 	"github.com/containers/storage/pkg/unshare"
 	storagetypes "github.com/containers/storage/types"
 	"github.com/docker/go-units"
-	"github.com/docker/libnetwork/resolvconf"
-	"github.com/docker/libnetwork/types"
 	"github.com/opencontainers/go-digest"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
@@ -250,7 +249,6 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 	}
 
 	bindFiles := make(map[string]string)
-	namespaceOptions := append(b.NamespaceOptions, options.NamespaceOptions...)
 	volumes := b.Volumes()
 
 	// Figure out who owns files that will appear to be owned by UID/GID 0 in the container.
@@ -281,15 +279,12 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 		}
 	}
 
-	if !(contains(volumes, "/etc/resolv.conf") || (len(b.CommonBuildOpts.DNSServers) == 1 && strings.ToLower(b.CommonBuildOpts.DNSServers[0]) == "none")) {
-		resolvFile, err := b.addResolvConf(path, rootIDPair, b.CommonBuildOpts.DNSServers, b.CommonBuildOpts.DNSSearch, b.CommonBuildOpts.DNSOptions, namespaceOptions)
+	if !contains(volumes, resolvconf.DefaultResolvConf) && options.ConfigureNetwork != define.NetworkDisabled && !(len(b.CommonBuildOpts.DNSServers) == 1 && strings.ToLower(b.CommonBuildOpts.DNSServers[0]) == "none") {
+		resolvFile, err := b.addResolvConf(path, rootIDPair, b.CommonBuildOpts.DNSServers, b.CommonBuildOpts.DNSSearch, b.CommonBuildOpts.DNSOptions, spec.Linux.Namespaces)
 		if err != nil {
 			return err
 		}
-		// Only bind /etc/resolv.conf if there's a network
-		if options.ConfigureNetwork != define.NetworkDisabled {
-			bindFiles["/etc/resolv.conf"] = resolvFile
-		}
+		bindFiles[resolvconf.DefaultResolvConf] = resolvFile
 	}
 	// Empty file, so no need to recreate if it exists
 	if _, ok := bindFiles["/run/.containerenv"]; !ok {
@@ -595,94 +590,52 @@ func cleanableDestinationListFromMounts(mounts []spec.Mount) []string {
 }
 
 // addResolvConf copies files from host and sets them up to bind mount into container
-func (b *Builder) addResolvConf(rdir string, chownOpts *idtools.IDPair, dnsServers, dnsSearch, dnsOptions []string, namespaceOptions define.NamespaceOptions) (string, error) {
-	resolvConf := "/etc/resolv.conf"
-
-	stat, err := os.Stat(resolvConf)
+func (b *Builder) addResolvConf(rdir string, chownOpts *idtools.IDPair, dnsServers, dnsSearch, dnsOptions []string, namespaces []specs.LinuxNamespace) (string, error) {
+	defaultConfig, err := config.Default()
 	if err != nil {
-		return "", err
-	}
-	contents, err := ioutil.ReadFile(resolvConf)
-	// resolv.conf doesn't have to exists
-	if err != nil && !os.IsNotExist(err) {
-		return "", err
+		return "", errors.Wrapf(err, "failed to get config")
 	}
 
-	netns := false
-	ns := namespaceOptions.Find(string(spec.NetworkNamespace))
-	if ns != nil && !ns.Host {
-		netns = true
-	}
+	nameservers := make([]string, 0, len(defaultConfig.Containers.DNSServers)+len(dnsServers))
+	nameservers = append(nameservers, defaultConfig.Containers.DNSServers...)
+	nameservers = append(nameservers, dnsServers...)
 
-	nameservers := resolvconf.GetNameservers(contents, types.IPv4)
-	// check if systemd-resolved is used, assume it is used when 127.0.0.53 is the only nameserver
-	if len(nameservers) == 1 && nameservers[0] == "127.0.0.53" && netns {
-		// read the actual resolv.conf file for systemd-resolved
-		resolvedContents, err := ioutil.ReadFile("/run/systemd/resolve/resolv.conf")
-		if err != nil {
-			if !os.IsNotExist(err) {
-				return "", errors.Wrapf(err, "detected that systemd-resolved is in use, but could not locate real resolv.conf")
+	keepHostServers := false
+	// special check for slirp ip
+	if len(nameservers) == 0 && b.Isolation == IsolationOCIRootless {
+		for _, ns := range namespaces {
+			if ns.Type == specs.NetworkNamespace && ns.Path == "" {
+				keepHostServers = true
+				// if we are using slirp4netns, also add the built-in DNS server.
+				logrus.Debugf("adding slirp4netns 10.0.2.3 built-in DNS server")
+				nameservers = append([]string{"10.0.2.3"}, nameservers...)
 			}
-		} else {
-			contents = resolvedContents
 		}
 	}
 
-	// Ensure that the container's /etc/resolv.conf is compatible with its
-	// network configuration.
-	if netns {
-		// FIXME handle IPv6
-		resolve, err := resolvconf.FilterResolvDNS(contents, true)
-		if err != nil {
-			return "", errors.Wrapf(err, "error parsing host resolv.conf")
-		}
-		contents = resolve.Content
-	}
-	search := resolvconf.GetSearchDomains(contents)
-	nameservers = resolvconf.GetNameservers(contents, types.IP)
-	options := resolvconf.GetOptions(contents)
+	searches := make([]string, 0, len(defaultConfig.Containers.DNSSearches)+len(dnsSearch))
+	searches = append(searches, defaultConfig.Containers.DNSSearches...)
+	searches = append(searches, dnsSearch...)
 
-	defaultContainerConfig, err := config.Default()
-	if err != nil {
-		return "", errors.Wrapf(err, "failed to get container config")
-	}
-	dnsSearch = append(defaultContainerConfig.Containers.DNSSearches, dnsSearch...)
-	if len(dnsSearch) > 0 {
-		search = dnsSearch
-	}
+	options := make([]string, 0, len(defaultConfig.Containers.DNSOptions)+len(dnsOptions))
+	options = append(options, defaultConfig.Containers.DNSOptions...)
+	options = append(options, dnsOptions...)
 
-	if b.Isolation == IsolationOCIRootless {
-		if ns != nil && !ns.Host && ns.Path == "" {
-			// if we are using slirp4netns, also add the built-in DNS server.
-			logrus.Debugf("adding slirp4netns 10.0.2.3 built-in DNS server")
-			nameservers = append([]string{"10.0.2.3"}, nameservers...)
-		}
-	}
-
-	dnsServers = append(defaultContainerConfig.Containers.DNSServers, dnsServers...)
-	if len(dnsServers) != 0 {
-		dns, err := getDNSIP(dnsServers)
-		if err != nil {
-			return "", errors.Wrapf(err, "error getting dns servers")
-		}
-		nameservers = []string{}
-		for _, server := range dns {
-			nameservers = append(nameservers, server.String())
-		}
-	}
-
-	dnsOptions = append(defaultContainerConfig.Containers.DNSOptions, dnsOptions...)
-	if len(dnsOptions) != 0 {
-		options = dnsOptions
-	}
-
-	cfile := filepath.Join(rdir, filepath.Base(resolvConf))
-	if _, err = resolvconf.Build(cfile, nameservers, search, options); err != nil {
+	cfile := filepath.Join(rdir, "resolv.conf")
+	if err := resolvconf.New(&resolvconf.Params{
+		Path:            cfile,
+		Namespaces:      namespaces,
+		IPv6Enabled:     true, // TODO we should check if we have ipv6
+		KeepHostServers: keepHostServers,
+		Nameservers:     nameservers,
+		Searches:        searches,
+		Options:         options,
+	}); err != nil {
 		return "", errors.Wrapf(err, "error building resolv.conf for container %s", b.ContainerID)
 	}
 
-	uid := int(stat.Sys().(*syscall.Stat_t).Uid)
-	gid := int(stat.Sys().(*syscall.Stat_t).Gid)
+	uid := 0
+	gid := 0
 	if chownOpts != nil {
 		uid = chownOpts.UID
 		gid = chownOpts.GID
@@ -2094,17 +2047,6 @@ func runLookupPath(g *generate.Generator, command []string) []string {
 		}
 	}
 	return command
-}
-
-func getDNSIP(dnsServers []string) (dns []net.IP, err error) {
-	for _, i := range dnsServers {
-		result := net.ParseIP(i)
-		if result == nil {
-			return dns, errors.Errorf("invalid IP address %s", i)
-		}
-		dns = append(dns, result)
-	}
-	return dns, nil
 }
 
 func (b *Builder) configureUIDGID(g *generate.Generator, mountPoint string, options RunOptions) (string, error) {
