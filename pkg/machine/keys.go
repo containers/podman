@@ -59,7 +59,16 @@ func generatekeysPrefix(dir string, file string, passThru bool, prefix ...string
 	args := append([]string{}, prefix[1:]...)
 	args = append(args, sshCommand...)
 	args = append(args, file)
-	cmd := exec.Command(prefix[0], args...)
+
+	binary, err := exec.LookPath(prefix[0])
+	if err != nil {
+		return err
+	}
+	binary, err = filepath.Abs(binary)
+	if err != nil {
+		return err
+	}
+	cmd := exec.Command(binary, args...)
 	cmd.Dir = dir
 	if passThru {
 		cmd.Stdin = os.Stdin
