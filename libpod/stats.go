@@ -9,6 +9,8 @@ import (
 	"syscall"
 	"time"
 
+	runccgroup "github.com/opencontainers/runc/libcontainer/cgroups"
+
 	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/pkg/errors"
@@ -69,29 +71,29 @@ func (c *Container) GetContainerStats(previousStats *define.ContainerStats) (*de
 
 	// If the current total usage in the cgroup is less than what was previously
 	// recorded then it means the container was restarted and runs in a new cgroup
-	if previousStats.Duration > cgroupStats.CPU.Usage.Total {
+	if previousStats.Duration > cgroupStats.CpuStats.CpuUsage.TotalUsage {
 		previousStats = &define.ContainerStats{}
 	}
 
 	previousCPU := previousStats.CPUNano
 	now := uint64(time.Now().UnixNano())
-	stats.Duration = cgroupStats.CPU.Usage.Total
+	stats.Duration = cgroupStats.CpuStats.CpuUsage.TotalUsage
 	stats.UpTime = time.Duration(stats.Duration)
 	stats.CPU = calculateCPUPercent(cgroupStats, previousCPU, now, previousStats.SystemNano)
 	// calc the average cpu usage for the time the container is running
 	stats.AvgCPU = calculateCPUPercent(cgroupStats, 0, now, uint64(c.state.StartedTime.UnixNano()))
-	stats.MemUsage = cgroupStats.Memory.Usage.Usage
+	stats.MemUsage = cgroupStats.MemoryStats.Usage.Usage
 	stats.MemLimit = c.getMemLimit()
 	stats.MemPerc = (float64(stats.MemUsage) / float64(stats.MemLimit)) * 100
 	stats.PIDs = 0
 	if conState == define.ContainerStateRunning || conState == define.ContainerStatePaused {
-		stats.PIDs = cgroupStats.Pids.Current
+		stats.PIDs = cgroupStats.PidsStats.Current
 	}
 	stats.BlockInput, stats.BlockOutput = calculateBlockIO(cgroupStats)
-	stats.CPUNano = cgroupStats.CPU.Usage.Total
-	stats.CPUSystemNano = cgroupStats.CPU.Usage.Kernel
+	stats.CPUNano = cgroupStats.CpuStats.CpuUsage.TotalUsage
+	stats.CPUSystemNano = cgroupStats.CpuStats.CpuUsage.UsageInKernelmode
 	stats.SystemNano = now
-	stats.PerCPU = cgroupStats.CPU.Usage.PerCPU
+	stats.PerCPU = cgroupStats.CpuStats.CpuUsage.PercpuUsage
 	// Handle case where the container is not in a network namespace
 	if netStats != nil {
 		stats.NetInput = netStats.TxBytes
@@ -133,10 +135,10 @@ func (c *Container) getMemLimit() uint64 {
 // previousCPU is the last value of stats.CPU.Usage.Total measured at the time previousSystem.
 //  (now - previousSystem) is the time delta in nanoseconds, between the measurement in previousCPU
 // and the updated value in stats.
-func calculateCPUPercent(stats *cgroups.Metrics, previousCPU, now, previousSystem uint64) float64 {
+func calculateCPUPercent(stats *runccgroup.Stats, previousCPU, now, previousSystem uint64) float64 {
 	var (
 		cpuPercent  = 0.0
-		cpuDelta    = float64(stats.CPU.Usage.Total - previousCPU)
+		cpuDelta    = float64(stats.CpuStats.CpuUsage.TotalUsage - previousCPU)
 		systemDelta = float64(now - previousSystem)
 	)
 	if systemDelta > 0.0 && cpuDelta > 0.0 {
@@ -146,8 +148,8 @@ func calculateCPUPercent(stats *cgroups.Metrics, previousCPU, now, previousSyste
 	return cpuPercent
 }
 
-func calculateBlockIO(stats *cgroups.Metrics) (read uint64, write uint64) {
-	for _, blkIOEntry := range stats.Blkio.IoServiceBytesRecursive {
+func calculateBlockIO(stats *runccgroup.Stats) (read uint64, write uint64) {
+	for _, blkIOEntry := range stats.BlkioStats.IoServiceBytesRecursive {
 		switch strings.ToLower(blkIOEntry.Op) {
 		case "read":
 			read += blkIOEntry.Value

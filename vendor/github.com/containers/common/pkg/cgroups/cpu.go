@@ -1,12 +1,12 @@
+//go:build !linux
+// +build !linux
+
 package cgroups
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
-	"path/filepath"
 	"strconv"
-	"strings"
 
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
@@ -16,36 +16,6 @@ type cpuHandler struct{}
 
 func getCPUHandler() *cpuHandler {
 	return &cpuHandler{}
-}
-
-func cleanString(s string) string {
-	return strings.Trim(s, "\n")
-}
-
-func readAcct(ctr *CgroupControl, name string) (uint64, error) {
-	p := filepath.Join(ctr.getCgroupv1Path(CPUAcct), name)
-	return readFileAsUint64(p)
-}
-
-func readAcctList(ctr *CgroupControl, name string) ([]uint64, error) {
-	p := filepath.Join(ctr.getCgroupv1Path(CPUAcct), name)
-	data, err := ioutil.ReadFile(p)
-	if err != nil {
-		return nil, errors.Wrapf(err, "reading %s", p)
-	}
-	r := []uint64{}
-	for _, s := range strings.Split(string(data), " ") {
-		s = cleanString(s)
-		if s == "" {
-			break
-		}
-		v, err := strconv.ParseUint(s, 10, 64)
-		if err != nil {
-			return nil, errors.Wrapf(err, "parsing %s", s)
-		}
-		r = append(r, v)
-	}
-	return r, nil
 }
 
 // Apply set the specified constraints
@@ -118,42 +88,4 @@ func (c *cpuHandler) Stat(ctr *CgroupControl, m *Metrics) error {
 	}
 	m.CPU = CPUMetrics{Usage: usage}
 	return nil
-}
-
-// GetSystemCPUUsage returns the system usage for all the cgroups
-func GetSystemCPUUsage() (uint64, error) {
-	cgroupv2, err := IsCgroup2UnifiedMode()
-	if err != nil {
-		return 0, err
-	}
-	if !cgroupv2 {
-		p := filepath.Join(cgroupRoot, CPUAcct, "cpuacct.usage")
-		return readFileAsUint64(p)
-	}
-
-	files, err := ioutil.ReadDir(cgroupRoot)
-	if err != nil {
-		return 0, err
-	}
-	var total uint64
-	for _, file := range files {
-		if !file.IsDir() {
-			continue
-		}
-		p := filepath.Join(cgroupRoot, file.Name(), "cpu.stat")
-
-		values, err := readCgroup2MapPath(p)
-		if err != nil {
-			return 0, err
-		}
-
-		if val, found := values["usage_usec"]; found {
-			v, err := strconv.ParseUint(cleanString(val[0]), 10, 64)
-			if err != nil {
-				return 0, err
-			}
-			total += v * 1000
-		}
-	}
-	return total, nil
 }

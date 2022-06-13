@@ -168,7 +168,8 @@ func matchSyscall(filter *libseccomp.ScmpFilter, call *Syscall) error {
 func toAction(act Action, errnoRet *uint) (libseccomp.ScmpAction, error) {
 	switch act {
 	case ActKill:
-		return libseccomp.ActKill, nil
+		// lint was not passing until this was changed from ActKill to ActKilThread.
+		return libseccomp.ActKillThread, nil
 	case ActKillProcess:
 		return libseccomp.ActKillProcess, nil
 	case ActErrno:
