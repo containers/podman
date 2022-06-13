@@ -14,7 +14,7 @@ import (
 
 // FileLocks is a struct enabling POSIX lock locking in a shared memory
 // segment.
-type FileLocks struct { // nolint
+type FileLocks struct { //nolint:revive // struct name stutters
 	lockPath string
 	valid    bool
 }

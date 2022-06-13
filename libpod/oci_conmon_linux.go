@@ -1014,7 +1014,7 @@ func (r *ConmonOCIRuntime) getLogTag(ctr *Container) (string, error) {
 	data, err := ctr.inspectLocked(false)
 	if err != nil {
 		// FIXME: this error should probably be returned
-		return "", nil // nolint: nilerr
+		return "", nil //nolint: nilerr
 	}
 	tmpl, err := template.New("container").Parse(logTag)
 	if err != nil {

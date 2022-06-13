@@ -50,7 +50,7 @@ func TryJoinPauseProcess(pausePidPath string) (bool, int, error) {
 	if err != nil {
 		// It is still failing.  We can safely remove it.
 		os.Remove(pausePidPath)
-		return false, -1, nil // nolint: nilerr
+		return false, -1, nil //nolint: nilerr
 	}
 	return became, ret, err
 }

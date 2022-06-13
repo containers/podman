@@ -78,15 +78,15 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		AppArmor                string   `schema:"apparmor"`
 		BuildArgs               string   `schema:"buildargs"`
 		CacheFrom               string   `schema:"cachefrom"`
-		CgroupParent            string   `schema:"cgroupparent"` // nolint
+		CgroupParent            string   `schema:"cgroupparent"`
 		Compression             uint64   `schema:"compression"`
 		ConfigureNetwork        string   `schema:"networkmode"`
 		CPPFlags                string   `schema:"cppflags"`
-		CpuPeriod               uint64   `schema:"cpuperiod"`  // nolint
-		CpuQuota                int64    `schema:"cpuquota"`   // nolint
-		CpuSetCpus              string   `schema:"cpusetcpus"` // nolint
-		CpuSetMems              string   `schema:"cpusetmems"` // nolint
-		CpuShares               uint64   `schema:"cpushares"`  // nolint
+		CpuPeriod               uint64   `schema:"cpuperiod"`  //nolint:revive,stylecheck
+		CpuQuota                int64    `schema:"cpuquota"`   //nolint:revive,stylecheck
+		CpuSetCpus              string   `schema:"cpusetcpus"` //nolint:revive,stylecheck
+		CpuSetMems              string   `schema:"cpusetmems"` //nolint:revive,stylecheck
+		CpuShares               uint64   `schema:"cpushares"`  //nolint:revive,stylecheck
 		DNSOptions              string   `schema:"dnsoptions"`
 		DNSSearch               string   `schema:"dnssearch"`
 		DNSServers              string   `schema:"dnsservers"`
@@ -101,7 +101,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		IdentityLabel           bool     `schema:"identitylabel"`
 		Ignore                  bool     `schema:"ignore"`
 		Isolation               string   `schema:"isolation"`
-		Jobs                    int      `schema:"jobs"` // nolint
+		Jobs                    int      `schema:"jobs"`
 		LabelOpts               string   `schema:"labelopts"`
 		Labels                  string   `schema:"labels"`
 		Layers                  bool     `schema:"layers"`
@@ -366,7 +366,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-	var additionalTags []string // nolint
+	var additionalTags []string
 	for i := 1; i < len(tags); i++ {
 		possiblyNormalizedTag, err := utils.NormalizeToDockerHub(r, tags[i])
 		if err != nil {
@@ -799,7 +799,7 @@ func parseNetworkConfigurationPolicy(network string) buildah.NetworkConfiguratio
 	}
 }
 
-func parseLibPodIsolation(isolation string) (buildah.Isolation, error) { // nolint
+func parseLibPodIsolation(isolation string) (buildah.Isolation, error) {
 	if val, err := strconv.Atoi(isolation); err == nil {
 		return buildah.Isolation(val), nil
 	}

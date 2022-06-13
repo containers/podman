@@ -562,7 +562,7 @@ func CommitContainer(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, http.StatusInternalServerError, errors.Wrapf(err, "CommitFailure"))
 		return
 	}
-	utils.WriteResponse(w, http.StatusOK, entities.IDResponse{ID: commitImage.ID()}) // nolint
+	utils.WriteResponse(w, http.StatusOK, entities.IDResponse{ID: commitImage.ID()})
 }
 
 func UntagImage(w http.ResponseWriter, r *http.Request) {

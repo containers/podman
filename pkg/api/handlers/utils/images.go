@@ -68,7 +68,7 @@ func IsRegistryReference(name string) error {
 	imageRef, err := alltransports.ParseImageName(name)
 	if err != nil {
 		// No supported transport -> assume a docker-stype reference.
-		return nil // nolint: nilerr
+		return nil //nolint: nilerr
 	}
 	if imageRef.Transport().Name() == docker.Transport.Name() {
 		return nil

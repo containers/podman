@@ -33,7 +33,7 @@ type VolumeRmOptions struct {
 
 type VolumeRmReport struct {
 	Err error
-	Id  string // nolint
+	Id  string //nolint:revive,stylecheck
 }
 
 type VolumeInspectReport struct {
@@ -61,7 +61,7 @@ type VolumeListReport struct {
 // VolumeMountReport describes the response from volume mount
 type VolumeMountReport struct {
 	Err  error
-	Id   string // nolint
+	Id   string //nolint:revive,stylecheck
 	Name string
 	Path string
 }
@@ -69,5 +69,5 @@ type VolumeMountReport struct {
 // VolumeUnmountReport describes the response from umounting a volume
 type VolumeUnmountReport struct {
 	Err error
-	Id  string // nolint
+	Id  string //nolint:revive,stylecheck
 }

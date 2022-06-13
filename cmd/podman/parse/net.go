@@ -1,4 +1,3 @@
-// nolint
 // most of these validate and parse functions have been taken from projectatomic/docker
 // and modified for cri-o
 package parse
@@ -16,25 +15,9 @@ import (
 )
 
 const (
-	Protocol_TCP Protocol = 0
-	Protocol_UDP Protocol = 1
-	LabelType    string   = "label"
-	ENVType      string   = "env"
+	LabelType string = "label"
+	ENVType   string = "env"
 )
-
-type Protocol int32
-
-// PortMapping specifies the port mapping configurations of a sandbox.
-type PortMapping struct {
-	// Protocol of the port mapping.
-	Protocol Protocol `protobuf:"varint,1,opt,name=protocol,proto3,enum=runtime.Protocol" json:"protocol,omitempty"`
-	// Port number within the container. Default: 0 (not specified).
-	ContainerPort int32 `protobuf:"varint,2,opt,name=container_port,json=containerPort,proto3" json:"container_port,omitempty"`
-	// Port number on the host. Default: 0 (not specified).
-	HostPort int32 `protobuf:"varint,3,opt,name=host_port,json=hostPort,proto3" json:"host_port,omitempty"`
-	// Host IP.
-	HostIp string `protobuf:"bytes,4,opt,name=host_ip,json=hostIp,proto3" json:"host_ip,omitempty"`
-}
 
 // Note: for flags that are in the form <number><unit>, use the RAMInBytes function
 // from the units package in docker/go-units/size.go
@@ -48,7 +31,7 @@ var (
 // validateExtraHost validates that the specified string is a valid extrahost and returns it.
 // ExtraHost is in the form of name:ip where the ip has to be a valid ip (ipv4 or ipv6).
 // for add-host flag
-func ValidateExtraHost(val string) (string, error) { // nolint
+func ValidateExtraHost(val string) (string, error) {
 	// allow for IPv6 addresses in extra hosts by only splitting on first ":"
 	arr := strings.SplitN(val, ":", 2)
 	if len(arr) != 2 || len(arr[0]) == 0 {

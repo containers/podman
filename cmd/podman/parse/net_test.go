@@ -1,4 +1,3 @@
-// nolint
 // most of these validate and parse functions have been taken from projectatomic/docker
 // and modified for cri-o
 package parse
@@ -23,7 +22,6 @@ func createTmpFile(content []byte) (string, error) {
 
 	if _, err := tmpfile.Write(content); err != nil {
 		return "", err
-
 	}
 	if err := tmpfile.Close(); err != nil {
 		return "", err

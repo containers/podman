@@ -454,7 +454,7 @@ func resolvePathOnDestinationContainer(container string, containerPath string, i
 	containerInfo, err = registry.ContainerEngine().ContainerStat(registry.GetContext(), container, containerPath)
 	if err == nil {
 		baseName = filepath.Base(containerInfo.LinkTarget)
-		return // nolint: nilerr
+		return //nolint: nilerr
 	}
 
 	if strings.HasSuffix(containerPath, "/") {

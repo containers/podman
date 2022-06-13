@@ -211,7 +211,7 @@ func (l ListPodReporter) ID() string {
 }
 
 // Id returns the Pod id
-func (l ListPodReporter) Id() string { // nolint
+func (l ListPodReporter) Id() string { //nolint:revive,stylecheck
 	if noTrunc {
 		return l.ListPodsReport.Id
 	}
@@ -225,7 +225,7 @@ func (l ListPodReporter) InfraID() string {
 
 // InfraId returns the infra container id for the pod
 // depending on trunc
-func (l ListPodReporter) InfraId() string { // nolint
+func (l ListPodReporter) InfraId() string { //nolint:revive,stylecheck
 	if len(l.ListPodsReport.InfraId) == 0 {
 		return ""
 	}

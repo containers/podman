@@ -46,14 +46,14 @@ type Image struct {
 	HealthCheck   *manifest.Schema2HealthConfig `json:",omitempty"`
 }
 
-func (i *Image) Id() string { // nolint
+func (i *Image) Id() string { //nolint:revive,stylecheck
 	return i.ID
 }
 
 // swagger:model LibpodImageSummary
 type ImageSummary struct {
 	ID          string `json:"Id"`
-	ParentId    string // nolint
+	ParentId    string //nolint:revive,stylecheck
 	RepoTags    []string
 	RepoDigests []string
 	Created     int64
@@ -71,7 +71,7 @@ type ImageSummary struct {
 	History []string `json:",omitempty"`
 }
 
-func (i *ImageSummary) Id() string { // nolint
+func (i *ImageSummary) Id() string { //nolint:revive,stylecheck
 	return i.ID
 }
 
@@ -290,7 +290,7 @@ type ImageImportOptions struct {
 }
 
 type ImageImportReport struct {
-	Id string // nolint
+	Id string //nolint:revive,stylecheck
 }
 
 // ImageSaveOptions provide options for saving images.
@@ -397,7 +397,7 @@ type ImageUnmountOptions struct {
 
 // ImageMountReport describes the response from image mount
 type ImageMountReport struct {
-	Id           string // nolint
+	Id           string //nolint:revive,stylecheck
 	Name         string
 	Repositories []string
 	Path         string
@@ -406,5 +406,5 @@ type ImageMountReport struct {
 // ImageUnmountReport describes the response from umounting an image
 type ImageUnmountReport struct {
 	Err error
-	Id  string // nolint
+	Id  string //nolint:revive,stylecheck
 }

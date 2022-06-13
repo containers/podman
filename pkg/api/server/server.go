@@ -148,7 +148,7 @@ func newServer(runtime *libpod.Runtime, listener net.Listener, opts entities.Ser
 	if logrus.IsLevelEnabled(logrus.TraceLevel) {
 		// If in trace mode log request and response bodies
 		router.Use(loggingHandler())
-		router.Walk(func(route *mux.Route, r *mux.Router, ancestors []*mux.Route) error { // nolint
+		_ = router.Walk(func(route *mux.Route, r *mux.Router, ancestors []*mux.Route) error {
 			path, err := route.GetPathTemplate()
 			if err != nil {
 				path = "<N/A>"
