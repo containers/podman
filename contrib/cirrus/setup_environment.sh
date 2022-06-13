@@ -99,11 +99,28 @@ esac
 if ((CONTAINER==0)); then  # Not yet running inside a container
     # Discovered reemergence of BFQ scheduler bug in kernel 5.8.12-200
     # which causes a kernel panic when system is under heavy I/O load.
-    # Previously discovered in F32beta and confirmed fixed. It's been
-    # observed in F31 kernels as well.  Deploy workaround for all VMs
-    # to ensure a more stable I/O scheduler (elevator).
-    echo "mq-deadline" > /sys/block/sda/queue/scheduler
-    warn "I/O scheduler: $(cat /sys/block/sda/queue/scheduler)"
+    # Disable the I/O scheduler (a.k.a. elevator) for all environments,
+    # leaving optimization up to underlying storage infrastructure.
+    testfs="/"  # mountpoint that experiences the most I/O during testing
+    msg "Querying block device owning partition hosting the '$testfs' filesystem"
+    # Need --nofsroot b/c btrfs appends subvolume label to `source` name
+    testdev=$(findmnt --canonicalize --noheadings --nofsroot \
+              --output source --mountpoint $testfs)
+    msg "    found partition: '$testdev'"
+    testdisk=$(lsblk --noheadings --output pkname --paths $testdev)
+    msg "    found block dev: '$testdisk'"
+    testsched="/sys/block/$(basename $testdisk)/queue/scheduler"
+    if [[ -n "$testdev" ]] && [[ -n "$testdisk" ]] && [[ -e "$testsched" ]]; then
+        msg "    Found active I/O scheduler: $(cat $testsched)"
+        if [[ ! "$(<$testsched)" =~ \[none\]  ]]; then
+            msg "    Disabling elevator for '$testsched'"
+            echo "none" > "$testsched"
+        else
+            msg "    Elevator already disabled"
+        fi
+    else
+        warn "Sys node for elevator doesn't exist: '$testsched'"
+    fi
 fi
 
 # Which distribution are we testing on.
