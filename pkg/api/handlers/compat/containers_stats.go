@@ -44,18 +44,6 @@ func StatsContainer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// If the container isn't running, then let's not bother and return
-	// immediately.
-	state, err := ctnr.State()
-	if err != nil {
-		utils.InternalServerError(w, err)
-		return
-	}
-	if state != define.ContainerStateRunning {
-		utils.Error(w, http.StatusConflict, define.ErrCtrStateInvalid)
-		return
-	}
-
 	stats, err := ctnr.GetContainerStats(nil)
 	if err != nil {
 		utils.InternalServerError(w, errors.Wrapf(err, "failed to obtain Container %s stats", name))
