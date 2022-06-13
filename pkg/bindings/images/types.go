@@ -127,6 +127,8 @@ type PushOptions struct {
 	Password *string
 	// SkipTLSVerify to skip HTTPS and certificate verification.
 	SkipTLSVerify *bool
+	// RemoveSignatures Discard any pre-existing signatures in the image.
+	RemoveSignatures *bool
 	// Username for authenticating against the registry.
 	Username *string
 }

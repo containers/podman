@@ -117,7 +117,6 @@ func pushFlags(cmd *cobra.Command) {
 		_ = flags.MarkHidden("compress")
 		_ = flags.MarkHidden("digestfile")
 		_ = flags.MarkHidden("quiet")
-		_ = flags.MarkHidden("remove-signatures")
 		_ = flags.MarkHidden("sign-by")
 	}
 	if !registry.IsRemote() {

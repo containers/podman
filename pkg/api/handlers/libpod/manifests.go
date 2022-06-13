@@ -247,9 +247,10 @@ func ManifestPushV3(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
 	query := struct {
-		All         bool   `schema:"all"`
-		Destination string `schema:"destination"`
-		TLSVerify   bool   `schema:"tlsVerify"`
+		All              bool   `schema:"all"`
+		Destination      string `schema:"destination"`
+		RemoveSignatures bool   `schema:"removeSignatures"`
+		TLSVerify        bool   `schema:"tlsVerify"`
 	}{
 		// Add defaults here once needed.
 	}
@@ -276,10 +277,11 @@ func ManifestPushV3(w http.ResponseWriter, r *http.Request) {
 		password = authconf.Password
 	}
 	options := entities.ImagePushOptions{
-		Authfile: authfile,
-		Username: username,
-		Password: password,
-		All:      query.All,
+		All:              query.All,
+		Authfile:         authfile,
+		Password:         password,
+		RemoveSignatures: query.RemoveSignatures,
+		Username:         username,
 	}
 	if sys := runtime.SystemContext(); sys != nil {
 		options.CertDir = sys.DockerCertPath

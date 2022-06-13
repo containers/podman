@@ -422,10 +422,11 @@ func PushImage(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 
 	query := struct {
-		Destination string `schema:"destination"`
-		TLSVerify   bool   `schema:"tlsVerify"`
-		Format      string `schema:"format"`
-		All         bool   `schema:"all"`
+		All              bool   `schema:"all"`
+		Destination      string `schema:"destination"`
+		Format           string `schema:"format"`
+		RemoveSignatures bool   `schema:"removeSignatures"`
+		TLSVerify        bool   `schema:"tlsVerify"`
 	}{
 		// This is where you can override the golang default value for one of fields
 	}
@@ -462,12 +463,13 @@ func PushImage(w http.ResponseWriter, r *http.Request) {
 		password = authconf.Password
 	}
 	options := entities.ImagePushOptions{
-		Authfile: authfile,
-		Username: username,
-		Password: password,
-		Format:   query.Format,
-		All:      query.All,
-		Quiet:    true,
+		All:              query.All,
+		Authfile:         authfile,
+		Format:           query.Format,
+		Password:         password,
+		Quiet:            true,
+		RemoveSignatures: query.RemoveSignatures,
+		Username:         username,
 	}
 	if _, found := r.URL.Query()["tlsVerify"]; found {
 		options.SkipTLSVerify = types.NewOptionalBool(!query.TLSVerify)
