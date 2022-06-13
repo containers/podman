@@ -61,7 +61,12 @@ function _skip() {
     local skip=$1;   shift
     local reason=$1; shift
 
-    # All further arguments are test names
+    # All further arguments are test names. Make sure we're invoked with some!
+    if [[ -z "$*" ]]; then
+        echo "$ME: FATAL: Invalid use of '${FUNCNAME[1]}' at line ${BASH_LINENO[1]}: missing test-name argument(s)." >&2
+        exit 1
+    fi
+
     for t in "$@"; do
         if fgrep -qx "@test \"$t\" {" $BUD; then
             $ECHO "@test \"$t\" : $skip \"$reason\""
