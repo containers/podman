@@ -25,7 +25,7 @@ var (
 // the most recent number of containers.  The pod and size booleans indicate that pod information and rootfs
 // size information should also be included.  Finally, the sync bool synchronizes the OCI runtime and
 // container state.
-func List(ctx context.Context, options *ListOptions) ([]entities.ListContainer, error) { // nolint:typecheck
+func List(ctx context.Context, options *ListOptions) ([]entities.ListContainer, error) {
 	if options == nil {
 		options = new(ListOptions)
 	}
@@ -339,7 +339,7 @@ func Unpause(ctx context.Context, nameOrID string, options *UnpauseOptions) erro
 // Wait blocks until the given container reaches a condition. If not provided, the condition will
 // default to stopped.  If the condition is stopped, an exit code for the container will be provided. The
 // nameOrID can be a container name or a partial/full ID.
-func Wait(ctx context.Context, nameOrID string, options *WaitOptions) (int32, error) { // nolint
+func Wait(ctx context.Context, nameOrID string, options *WaitOptions) (int32, error) {
 	if options == nil {
 		options = new(WaitOptions)
 	}

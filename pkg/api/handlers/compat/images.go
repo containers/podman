@@ -165,7 +165,7 @@ func CommitContainer(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, http.StatusInternalServerError, errors.Wrapf(err, "CommitFailure"))
 		return
 	}
-	utils.WriteResponse(w, http.StatusCreated, entities.IDResponse{ID: commitImage.ID()}) // nolint
+	utils.WriteResponse(w, http.StatusCreated, entities.IDResponse{ID: commitImage.ID()})
 }
 
 func CreateImageFromSrc(w http.ResponseWriter, r *http.Request) {
@@ -237,7 +237,7 @@ func CreateImageFromSrc(w http.ResponseWriter, r *http.Request) {
 		Status         string            `json:"status"`
 		Progress       string            `json:"progress"`
 		ProgressDetail map[string]string `json:"progressDetail"`
-		Id             string            `json:"id"` // nolint
+		Id             string            `json:"id"` //nolint:revive,stylecheck
 	}{
 		Status:         report.Id,
 		ProgressDetail: map[string]string{},
@@ -333,7 +333,7 @@ loop: // break out of for/select infinite loop
 				Total   int64  `json:"total,omitempty"`
 			} `json:"progressDetail,omitempty"`
 			Error string `json:"error,omitempty"`
-			Id    string `json:"id,omitempty"` // nolint
+			Id    string `json:"id,omitempty"` //nolint:revive,stylecheck
 		}
 		select {
 		case e := <-progress:

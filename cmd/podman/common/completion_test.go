@@ -50,7 +50,7 @@ func (c *Car) Color() string {
 }
 
 // This is for reflect testing required.
-// nolint:unused
+//nolint:unused
 func (c Car) internal() int {
 	return 0
 }

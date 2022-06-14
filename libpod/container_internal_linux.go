@@ -2643,7 +2643,7 @@ func (c *Container) generateUserGroupEntry(addedGID int) (string, error) {
 
 	gid, err := strconv.ParseUint(group, 10, 32)
 	if err != nil {
-		return "", nil // nolint: nilerr
+		return "", nil //nolint: nilerr
 	}
 
 	if addedGID != 0 && addedGID == int(gid) {
@@ -2799,7 +2799,7 @@ func (c *Container) generateUserPasswdEntry(addedUID int) (string, error) {
 	// If a non numeric User, then don't generate passwd
 	uid, err := strconv.ParseUint(userspec, 10, 32)
 	if err != nil {
-		return "", nil // nolint: nilerr
+		return "", nil //nolint: nilerr
 	}
 
 	if addedUID != 0 && int(uid) == addedUID {
@@ -3224,7 +3224,7 @@ func (c *Container) fixVolumePermissions(v *ContainerNamedVolume) error {
 				return err
 			}
 			stat := st.Sys().(*syscall.Stat_t)
-			atime := time.Unix(int64(stat.Atim.Sec), int64(stat.Atim.Nsec)) // nolint: unconvert
+			atime := time.Unix(int64(stat.Atim.Sec), int64(stat.Atim.Nsec)) //nolint: unconvert
 			if err := os.Chtimes(mountPoint, atime, st.ModTime()); err != nil {
 				return err
 			}

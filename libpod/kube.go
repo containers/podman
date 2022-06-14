@@ -43,8 +43,8 @@ func GenerateForKube(ctx context.Context, ctrs []*Container) (*v1.Pod, error) {
 func (p *Pod) GenerateForKube(ctx context.Context) (*v1.Pod, []v1.ServicePort, error) {
 	// Generate the v1.Pod yaml description
 	var (
-		ports        []v1.ContainerPort //nolint
-		servicePorts []v1.ServicePort   //nolint
+		ports        []v1.ContainerPort
+		servicePorts []v1.ServicePort
 	)
 
 	allContainers, err := p.allContainers()

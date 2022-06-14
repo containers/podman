@@ -770,7 +770,7 @@ func (v *MachineVM) Stop(_ string, _ machine.StopOptions) error {
 
 	if err := qmpMonitor.Disconnect(); err != nil {
 		// FIXME: this error should probably be returned
-		return nil // nolint: nilerr
+		return nil //nolint: nilerr
 	}
 
 	disconnected = true

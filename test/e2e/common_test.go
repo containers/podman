@@ -41,7 +41,7 @@ var (
 	CGROUP_MANAGER     = "systemd"                   //nolint:revive,stylecheck
 	RESTORE_IMAGES     = []string{ALPINE, BB, nginx} //nolint:revive,stylecheck
 	defaultWaitTimeout = 90
-	CGROUPSV2, _       = cgroups.IsCgroup2UnifiedMode() //nolint:revive,stylecheck
+	CGROUPSV2, _       = cgroups.IsCgroup2UnifiedMode()
 )
 
 // PodmanTestIntegration struct for command line options

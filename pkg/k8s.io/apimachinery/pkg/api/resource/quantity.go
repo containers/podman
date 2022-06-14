@@ -138,7 +138,6 @@ const (
 
 var (
 	// Errors that could happen while parsing a string.
-	//nolint:revive
 	ErrFormatWrong = errors.New("quantities must match the regular expression '" + splitREString + "'")
 	ErrNumeric     = errors.New("unable to parse numeric part of quantity")
 	ErrSuffix      = errors.New("unable to parse quantity's suffix")
@@ -258,7 +257,7 @@ Suffix:
 	// we encountered a non decimal in the Suffix loop, but the last character
 	// was not a valid exponent
 	err = ErrFormatWrong
-	// nolint:nakedret
+	//nolint:nakedret
 	return
 }
 
@@ -579,9 +578,9 @@ func (q Quantity) MarshalJSON() ([]byte, error) {
 	// if CanonicalizeBytes needed more space than our slice provided, we may need to allocate again so use
 	// append
 	result = result[:1]
-	result = append(result, number...) // nolint: makezero
-	result = append(result, suffix...) // nolint: makezero
-	result = append(result, '"')       // nolint: makezero
+	result = append(result, number...) //nolint: makezero
+	result = append(result, suffix...) //nolint: makezero
+	result = append(result, '"')       //nolint: makezero
 	return result, nil
 }
 

@@ -164,7 +164,7 @@ func addDevice(g *generate.Generator, device string) error {
 }
 
 // ParseDevice parses device mapping string to a src, dest & permissions string
-func ParseDevice(device string) (string, string, string, error) { //nolint
+func ParseDevice(device string) (string, string, string, error) {
 	var src string
 	var dst string
 	permissions := "rwm"

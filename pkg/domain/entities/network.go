@@ -22,7 +22,7 @@ type NetworkReloadOptions struct {
 
 // NetworkReloadReport describes the results of reloading a container network.
 type NetworkReloadReport struct {
-	// nolint:stylecheck,revive
+	//nolint:stylecheck,revive
 	Id  string
 	Err error
 }

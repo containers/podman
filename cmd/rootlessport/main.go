@@ -226,8 +226,8 @@ outer:
 	// https://github.com/containers/podman/issues/11248
 	// Copy /dev/null to stdout and stderr to prevent SIGPIPE errors
 	if f, err := os.OpenFile("/dev/null", os.O_WRONLY, 0755); err == nil {
-		unix.Dup2(int(f.Fd()), 1) // nolint:errcheck
-		unix.Dup2(int(f.Fd()), 2) // nolint:errcheck
+		unix.Dup2(int(f.Fd()), 1) //nolint:errcheck
+		unix.Dup2(int(f.Fd()), 2) //nolint:errcheck
 		f.Close()
 	}
 	// write and close ReadyFD (convention is same as slirp4netns --ready-fd)

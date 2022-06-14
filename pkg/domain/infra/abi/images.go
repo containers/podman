@@ -593,7 +593,7 @@ func (ir *ImageEngine) Remove(ctx context.Context, images []string, opts entitie
 
 	rmErrors = libimageErrors
 
-	return //nolint
+	return
 }
 
 // Shutdown Libpod engine

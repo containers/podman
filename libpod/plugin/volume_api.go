@@ -35,8 +35,6 @@ var (
 	hostVirtualPath = "/VolumeDriver.Path"
 	mountPath       = "/VolumeDriver.Mount"
 	unmountPath     = "/VolumeDriver.Unmount"
-	// nolint
-	capabilitiesPath = "/VolumeDriver.Capabilities"
 )
 
 const (

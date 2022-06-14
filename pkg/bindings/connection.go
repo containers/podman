@@ -315,7 +315,8 @@ func unixClient(_url *url.URL) Connection {
 	return connection
 }
 
-// DoRequest assembles the http request and returns the response
+// DoRequest assembles the http request and returns the response.
+// The caller must close the response body.
 func (c *Connection) DoRequest(ctx context.Context, httpBody io.Reader, httpMethod, endpoint string, queryParams url.Values, headers http.Header, pathValues ...string) (*APIResponse, error) {
 	var (
 		err      error
@@ -361,7 +362,7 @@ func (c *Connection) DoRequest(ctx context.Context, httpBody io.Reader, httpMeth
 
 	// Give the Do three chances in the case of a comm/service hiccup
 	for i := 1; i <= 3; i++ {
-		response, err = c.Client.Do(req) // nolint
+		response, err = c.Client.Do(req) //nolint:bodyclose // The caller has to close the body.
 		if err == nil {
 			break
 		}

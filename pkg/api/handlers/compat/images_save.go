@@ -6,7 +6,7 @@ import (
 	"os"
 )
 
-func SaveFromBody(f *os.File, r *http.Request) error { // nolint
+func SaveFromBody(f *os.File, r *http.Request) error {
 	if _, err := io.Copy(f, r.Body); err != nil {
 		return err
 	}

@@ -150,7 +150,7 @@ func printSummary(cmd *cobra.Command, reports *entities.SystemDfReport) error {
 	return writeTemplate(rpt, hdrs, dfSummaries)
 }
 
-func printVerbose(cmd *cobra.Command, reports *entities.SystemDfReport) error { // nolint:interfacer
+func printVerbose(cmd *cobra.Command, reports *entities.SystemDfReport) error { //nolint:interfacer
 	rpt := report.New(os.Stdout, cmd.Name())
 	defer rpt.Flush()
 
