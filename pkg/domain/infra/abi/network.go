@@ -142,7 +142,7 @@ func (ic *ContainerEngine) NetworkExists(ctx context.Context, networkname string
 	}, nil
 }
 
-// Network prune removes unused cni networks
+// Network prune removes unused networks
 func (ic *ContainerEngine) NetworkPrune(ctx context.Context, options entities.NetworkPruneOptions) ([]*entities.NetworkPruneReport, error) {
 	cons, err := ic.Libpod.GetAllContainers()
 	if err != nil {

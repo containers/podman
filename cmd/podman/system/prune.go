@@ -75,6 +75,7 @@ func prune(cmd *cobra.Command, args []string) error {
 		}
 	}
 
+	// Remove all unused pods, containers, images, networks, and volume data.
 	pruneOptions.Filters, err = parse.FilterArgumentsIntoFilters(filters)
 	if err != nil {
 		return err
@@ -103,6 +104,11 @@ func prune(cmd *cobra.Command, args []string) error {
 	}
 	// Print Images prune results
 	err = utils.PrintImagePruneResults(response.ImagePruneReports, true)
+	if err != nil {
+		return err
+	}
+	// Print Network prune results
+	err = utils.PrintNetworkPruneResults(response.NetworkPruneReports, true)
 	if err != nil {
 		return err
 	}

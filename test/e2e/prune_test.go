@@ -258,6 +258,29 @@ var _ = Describe("Podman prune", func() {
 		Expect(pods.OutputToStringArray()).To(HaveLen(2))
 	})
 
+	It("podman system prune networks", func() {
+		// About netavark network backend test.
+		session := podmanTest.Podman([]string{"network", "create", "test"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"system", "prune", "-f"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		// Default network should exists.
+		session = podmanTest.Podman([]string{"network", "ls", "-q", "--filter", "name=^podman$"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToStringArray()).To(HaveLen(1))
+
+		// Remove all unused networks.
+		session = podmanTest.Podman([]string{"network", "ls", "-q", "--filter", "name=^test$"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToStringArray()).To(HaveLen(0))
+	})
+
 	It("podman system prune - pod,container stopped", func() {
 		session := podmanTest.Podman([]string{"pod", "create"})
 		session.WaitWithDefaultTimeout()

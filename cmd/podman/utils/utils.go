@@ -84,3 +84,18 @@ func PrintImagePruneResults(imagePruneReports []*reports.PruneReport, heading bo
 
 	return nil
 }
+
+func PrintNetworkPruneResults(networkPruneReport []*reports.PruneReport, heading bool) error {
+	var errs OutputErrors
+	if heading && len(networkPruneReport) > 0 {
+		fmt.Println("Deleted Networks")
+	}
+	for _, r := range networkPruneReport {
+		if r.Err == nil {
+			fmt.Println(r.Id)
+		} else {
+			errs = append(errs, r.Err)
+		}
+	}
+	return errs.PrintErrors()
+}
