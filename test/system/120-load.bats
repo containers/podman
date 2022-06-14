@@ -158,6 +158,7 @@ verify_iid_and_name() {
     run_podman 125 image scp $nope ${notme}@localhost::
     is "$output" "Error: $nope: image not known.*" "Pushing nonexistent image"
 
+    run_podman rmi foobar:123
 }
 
 
