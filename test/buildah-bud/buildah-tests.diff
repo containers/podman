@@ -1,15 +1,15 @@
-From 8a8fa1a75e0fa3261263afbc8c2504feb430df6a Mon Sep 17 00:00:00 2001
+From 6508e3df2a129554fdf8336d8a6f0cdcc6fd4832 Mon Sep 17 00:00:00 2001
 From: Ed Santiago <santiago@redhat.com>
 Date: Tue, 9 Feb 2021 17:28:05 -0700
 Subject: [PATCH] tweaks for running buildah tests under podman
 
 Signed-off-by: Ed Santiago <santiago@redhat.com>
 ---
- tests/helpers.bash | 69 ++++++++++++++++++++++++++++++++++++++++++++--
- 1 file changed, 66 insertions(+), 3 deletions(-)
+ tests/helpers.bash | 70 ++++++++++++++++++++++++++++++++++++++++++++--
+ 1 file changed, 67 insertions(+), 3 deletions(-)
 
 diff --git a/tests/helpers.bash b/tests/helpers.bash
-index e3087063..b3a8f5ee 100644
+index e3087063..178a486e 100644
 --- a/tests/helpers.bash
 +++ b/tests/helpers.bash
 @@ -51,6 +51,23 @@ EOF
@@ -60,13 +60,13 @@ index e3087063..b3a8f5ee 100644
  # There are various scenarios where we would like to execute `tests` as rootless user, however certain commands like `buildah mount`
  # do not work in rootless session since a normal user cannot mount a filesystem unless they're in a user namespace along with its
  # own mount namespace. In order to run such specific commands from a rootless session we must perform `buildah unshare`.
-@@ -247,8 +274,35 @@ function run_buildah() {
+@@ -247,8 +274,36 @@ function run_buildah() {
          --retry)         retry=3;        shift;;  # retry network flakes
      esac
  
 +    local podman_or_buildah=${BUILDAH_BINARY}
 +    local _opts="${ROOTDIR_OPTS} ${BUILDAH_REGISTRY_OPTS}"
-+    if [[ $1 == "build" || $1 == "build-using-dockerfile" ]]; then
++    if [[ $1 == "build" || $1 == "build-using-dockerfile" || $1 == "bud" ]]; then
 +        shift
 +        # podman defaults to --layers=true; buildah to --false.
 +        # If command line includes explicit --layers, leave it untouched,
@@ -82,10 +82,11 @@ index e3087063..b3a8f5ee 100644
 +            _opts=
 +        fi
 +
-+        # podman always exits 125 where buildah exits 1 or 2 (or, in the
-+        # case of git, 128, which is a bug in git, but I won't harp on that).
++        # Special case: there's one test that invokes git in such
++        # a way that it exits 128 (which IMO is a bug in git).
++        # podman exits 125 in that case.
 +        case $expected_rc in
-+            1|2|128)   expected_rc=125 ;;
++            128)   expected_rc=125 ;;
 +        esac
 +    fi
 +    local cmd_basename=$(basename ${podman_or_buildah})
@@ -97,7 +98,7 @@ index e3087063..b3a8f5ee 100644
  
      # If session is rootless and `buildah mount` is invoked, perform unshare,
      # since normal user cannot mount a filesystem unless they're in a user namespace along with its own mount namespace.
-@@ -262,8 +316,8 @@ function run_buildah() {
+@@ -262,8 +317,8 @@ function run_buildah() {
          retry=$(( retry - 1 ))
  
          # stdout is only emitted upon error; this echo is to help a debugger
@@ -108,7 +109,7 @@ index e3087063..b3a8f5ee 100644
          # without "quotes", multiple lines are glommed together into one
          if [ -n "$output" ]; then
              echo "$output"
-@@ -595,6 +649,15 @@ function skip_if_no_docker() {
+@@ -595,6 +650,15 @@ function skip_if_no_docker() {
    fi
  }
  
@@ -125,5 +126,5 @@ index e3087063..b3a8f5ee 100644
    daemondir=${TEST_SCRATCH_DIR}/git-daemon
    mkdir -p ${daemondir}/repo
 -- 
-2.35.1
+2.35.3
 
