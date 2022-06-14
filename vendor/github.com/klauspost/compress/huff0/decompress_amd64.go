@@ -2,12 +2,14 @@
 // +build amd64,!appengine,!noasm,gc
 
 // This file contains the specialisation of Decoder.Decompress4X
-// that uses an asm implementation of its main loop.
+// and Decoder.Decompress1X that use an asm implementation of thir main loops.
 package huff0
 
 import (
 	"errors"
 	"fmt"
+
+	"github.com/klauspost/compress/internal/cpuinfo"
 )
 
 // decompress4x_main_loop_x86 is an x86 assembler implementation
@@ -145,4 +147,82 @@ func (d *Decoder) Decompress4X(dst, src []byte) ([]byte, error) {
 		return nil, errors.New("corruption detected: short output block")
 	}
 	return dst, nil
+}
+
+// decompress4x_main_loop_x86 is an x86 assembler implementation
+// of Decompress1X when tablelog > 8.
+//go:noescape
+func decompress1x_main_loop_amd64(ctx *decompress1xContext)
+
+// decompress4x_main_loop_x86 is an x86 with BMI2 assembler implementation
+// of Decompress1X when tablelog > 8.
+//go:noescape
+func decompress1x_main_loop_bmi2(ctx *decompress1xContext)
+
+type decompress1xContext struct {
+	pbr      *bitReaderShifted
+	peekBits uint8
+	out      *byte
+	outCap   int
+	tbl      *dEntrySingle
+	decoded  int
+}
+
+// Error reported by asm implementations
+const error_max_decoded_size_exeeded = -1
+
+// Decompress1X will decompress a 1X encoded stream.
+// The cap of the output buffer will be the maximum decompressed size.
+// The length of the supplied input must match the end of a block exactly.
+func (d *Decoder) Decompress1X(dst, src []byte) ([]byte, error) {
+	if len(d.dt.single) == 0 {
+		return nil, errors.New("no table loaded")
+	}
+	var br bitReaderShifted
+	err := br.init(src)
+	if err != nil {
+		return dst, err
+	}
+	maxDecodedSize := cap(dst)
+	dst = dst[:maxDecodedSize]
+
+	const tlSize = 1 << tableLogMax
+	const tlMask = tlSize - 1
+
+	if maxDecodedSize >= 4 {
+		ctx := decompress1xContext{
+			pbr:      &br,
+			out:      &dst[0],
+			outCap:   maxDecodedSize,
+			peekBits: uint8((64 - d.actualTableLog) & 63), // see: bitReaderShifted.peekBitsFast()
+			tbl:      &d.dt.single[0],
+		}
+
+		if cpuinfo.HasBMI2() {
+			decompress1x_main_loop_bmi2(&ctx)
+		} else {
+			decompress1x_main_loop_amd64(&ctx)
+		}
+		if ctx.decoded == error_max_decoded_size_exeeded {
+			return nil, ErrMaxDecodedSizeExceeded
+		}
+
+		dst = dst[:ctx.decoded]
+	}
+
+	// br < 8, so uint8 is fine
+	bitsLeft := uint8(br.off)*8 + 64 - br.bitsRead
+	for bitsLeft > 0 {
+		br.fill()
+		if len(dst) >= maxDecodedSize {
+			br.close()
+			return nil, ErrMaxDecodedSizeExceeded
+		}
+		v := d.dt.single[br.peekBitsFast(d.actualTableLog)&tlMask]
+		nBits := uint8(v.entry)
+		br.advance(nBits)
+		bitsLeft -= nBits
+		dst = append(dst, uint8(v.entry>>8))
+	}
+	return dst, br.close()
 }

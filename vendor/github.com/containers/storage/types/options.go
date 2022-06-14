@@ -26,14 +26,23 @@ type TomlConfig struct {
 }
 
 const (
-	overlayDriver = "overlay"
-	overlay2      = "overlay2"
+	overlayDriver  = "overlay"
+	overlay2       = "overlay2"
+	storageConfEnv = "CONTAINERS_STORAGE_CONF"
 )
 
-func init() {
+var (
+	defaultStoreOptionsOnce sync.Once
+)
+
+func loaddefaultStoreOptions() {
 	defaultStoreOptions.RunRoot = defaultRunRoot
 	defaultStoreOptions.GraphRoot = defaultGraphRoot
 	defaultStoreOptions.GraphDriverName = ""
+
+	if path, ok := os.LookupEnv(storageConfEnv); ok {
+		defaultOverrideConfigFile = path
+	}
 
 	if _, err := os.Stat(defaultOverrideConfigFile); err == nil {
 		// The DefaultConfigFile(rootless) function returns the path
@@ -64,6 +73,7 @@ func defaultStoreOptionsIsolated(rootless bool, rootlessUID int, storageConf str
 		defaultRootlessGraphRoot string
 		err                      error
 	)
+	defaultStoreOptionsOnce.Do(loaddefaultStoreOptions)
 	storageOpts := defaultStoreOptions
 	if rootless && rootlessUID != 0 {
 		storageOpts, err = getRootlessStorageOpts(rootlessUID, storageOpts)
@@ -391,6 +401,7 @@ func ReloadConfigurationFile(configFile string, storeOptions *StoreOptions) {
 }
 
 func Options() StoreOptions {
+	defaultStoreOptionsOnce.Do(loaddefaultStoreOptions)
 	return defaultStoreOptions
 }
 

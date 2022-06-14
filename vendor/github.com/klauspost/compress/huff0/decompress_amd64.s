@@ -660,3 +660,206 @@ skip_fill1003:
 	SHLQ  $0x02, DX
 	MOVQ  DX, 64(AX)
 	RET
+
+// func decompress1x_main_loop_amd64(ctx *decompress1xContext)
+TEXT ·decompress1x_main_loop_amd64(SB), $0-8
+	MOVQ    ctx+0(FP), CX
+	MOVQ    16(CX), DX
+	MOVQ    24(CX), BX
+	CMPQ    BX, $0x04
+	JB      error_max_decoded_size_exeeded
+	LEAQ    (DX)(BX*1), BX
+	MOVQ    (CX), SI
+	MOVQ    (SI), R8
+	MOVQ    24(SI), R9
+	MOVQ    32(SI), R10
+	MOVBQZX 40(SI), R11
+	MOVQ    32(CX), SI
+	MOVBQZX 8(CX), DI
+	JMP     loop_condition
+
+main_loop:
+	// Check if we have room for 4 bytes in the output buffer
+	LEAQ 4(DX), CX
+	CMPQ CX, BX
+	JGE  error_max_decoded_size_exeeded
+
+	// Decode 4 values
+	CMPQ R11, $0x20
+	JL   bitReader_fillFast_1_end
+	SUBQ $0x20, R11
+	SUBQ $0x04, R9
+	MOVL (R8)(R9*1), R12
+	MOVQ R11, CX
+	SHLQ CL, R12
+	ORQ  R12, R10
+
+bitReader_fillFast_1_end:
+	MOVQ    DI, CX
+	MOVQ    R10, R12
+	SHRQ    CL, R12
+	MOVW    (SI)(R12*2), CX
+	MOVB    CH, AL
+	MOVBQZX CL, CX
+	ADDQ    CX, R11
+	SHLQ    CL, R10
+	MOVQ    DI, CX
+	MOVQ    R10, R12
+	SHRQ    CL, R12
+	MOVW    (SI)(R12*2), CX
+	MOVB    CH, AH
+	MOVBQZX CL, CX
+	ADDQ    CX, R11
+	SHLQ    CL, R10
+	BSWAPL  AX
+	CMPQ    R11, $0x20
+	JL      bitReader_fillFast_2_end
+	SUBQ    $0x20, R11
+	SUBQ    $0x04, R9
+	MOVL    (R8)(R9*1), R12
+	MOVQ    R11, CX
+	SHLQ    CL, R12
+	ORQ     R12, R10
+
+bitReader_fillFast_2_end:
+	MOVQ    DI, CX
+	MOVQ    R10, R12
+	SHRQ    CL, R12
+	MOVW    (SI)(R12*2), CX
+	MOVB    CH, AH
+	MOVBQZX CL, CX
+	ADDQ    CX, R11
+	SHLQ    CL, R10
+	MOVQ    DI, CX
+	MOVQ    R10, R12
+	SHRQ    CL, R12
+	MOVW    (SI)(R12*2), CX
+	MOVB    CH, AL
+	MOVBQZX CL, CX
+	ADDQ    CX, R11
+	SHLQ    CL, R10
+	BSWAPL  AX
+
+	// Store the decoded values
+	MOVL AX, (DX)
+	ADDQ $0x04, DX
+
+loop_condition:
+	CMPQ R9, $0x08
+	JGE  main_loop
+
+	// Update ctx structure
+	MOVQ ctx+0(FP), AX
+	MOVQ DX, CX
+	MOVQ 16(AX), DX
+	SUBQ DX, CX
+	MOVQ CX, 40(AX)
+	MOVQ (AX), AX
+	MOVQ R9, 24(AX)
+	MOVQ R10, 32(AX)
+	MOVB R11, 40(AX)
+	RET
+
+	// Report error
+error_max_decoded_size_exeeded:
+	MOVQ ctx+0(FP), AX
+	MOVQ $-1, CX
+	MOVQ CX, 40(AX)
+	RET
+
+// func decompress1x_main_loop_bmi2(ctx *decompress1xContext)
+// Requires: BMI2
+TEXT ·decompress1x_main_loop_bmi2(SB), $0-8
+	MOVQ    ctx+0(FP), CX
+	MOVQ    16(CX), DX
+	MOVQ    24(CX), BX
+	CMPQ    BX, $0x04
+	JB      error_max_decoded_size_exeeded
+	LEAQ    (DX)(BX*1), BX
+	MOVQ    (CX), SI
+	MOVQ    (SI), R8
+	MOVQ    24(SI), R9
+	MOVQ    32(SI), R10
+	MOVBQZX 40(SI), R11
+	MOVQ    32(CX), SI
+	MOVBQZX 8(CX), DI
+	JMP     loop_condition
+
+main_loop:
+	// Check if we have room for 4 bytes in the output buffer
+	LEAQ 4(DX), CX
+	CMPQ CX, BX
+	JGE  error_max_decoded_size_exeeded
+
+	// Decode 4 values
+	CMPQ  R11, $0x20
+	JL    bitReader_fillFast_1_end
+	SUBQ  $0x20, R11
+	SUBQ  $0x04, R9
+	MOVL  (R8)(R9*1), CX
+	SHLXQ R11, CX, CX
+	ORQ   CX, R10
+
+bitReader_fillFast_1_end:
+	SHRXQ   DI, R10, CX
+	MOVW    (SI)(CX*2), CX
+	MOVB    CH, AL
+	MOVBQZX CL, CX
+	ADDQ    CX, R11
+	SHLXQ   CX, R10, R10
+	SHRXQ   DI, R10, CX
+	MOVW    (SI)(CX*2), CX
+	MOVB    CH, AH
+	MOVBQZX CL, CX
+	ADDQ    CX, R11
+	SHLXQ   CX, R10, R10
+	BSWAPL  AX
+	CMPQ    R11, $0x20
+	JL      bitReader_fillFast_2_end
+	SUBQ    $0x20, R11
+	SUBQ    $0x04, R9
+	MOVL    (R8)(R9*1), CX
+	SHLXQ   R11, CX, CX
+	ORQ     CX, R10
+
+bitReader_fillFast_2_end:
+	SHRXQ   DI, R10, CX
+	MOVW    (SI)(CX*2), CX
+	MOVB    CH, AH
+	MOVBQZX CL, CX
+	ADDQ    CX, R11
+	SHLXQ   CX, R10, R10
+	SHRXQ   DI, R10, CX
+	MOVW    (SI)(CX*2), CX
+	MOVB    CH, AL
+	MOVBQZX CL, CX
+	ADDQ    CX, R11
+	SHLXQ   CX, R10, R10
+	BSWAPL  AX
+
+	// Store the decoded values
+	MOVL AX, (DX)
+	ADDQ $0x04, DX
+
+loop_condition:
+	CMPQ R9, $0x08
+	JGE  main_loop
+
+	// Update ctx structure
+	MOVQ ctx+0(FP), AX
+	MOVQ DX, CX
+	MOVQ 16(AX), DX
+	SUBQ DX, CX
+	MOVQ CX, 40(AX)
+	MOVQ (AX), AX
+	MOVQ R9, 24(AX)
+	MOVQ R10, 32(AX)
+	MOVB R11, 40(AX)
+	RET
+
+	// Report error
+error_max_decoded_size_exeeded:
+	MOVQ ctx+0(FP), AX
+	MOVQ $-1, CX
+	MOVQ CX, 40(AX)
+	RET

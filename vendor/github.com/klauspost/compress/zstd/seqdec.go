@@ -188,6 +188,7 @@ func (s *sequenceDecs) execute(seqs []seqVals, hist []byte) error {
 			}
 		}
 	}
+
 	// Add final literals
 	copy(out[t:], s.literals)
 	if debugDecoder {
@@ -203,12 +204,11 @@ func (s *sequenceDecs) execute(seqs []seqVals, hist []byte) error {
 
 // decode sequences from the stream with the provided history.
 func (s *sequenceDecs) decodeSync(hist []byte) error {
-	if true {
-		supported, err := s.decodeSyncSimple(hist)
-		if supported {
-			return err
-		}
+	supported, err := s.decodeSyncSimple(hist)
+	if supported {
+		return err
 	}
+
 	br := s.br
 	seqs := s.nSeqs
 	startSize := len(s.out)
@@ -396,6 +396,7 @@ func (s *sequenceDecs) decodeSync(hist []byte) error {
 			ofState = ofTable[ofState.newState()&maxTableMask]
 		} else {
 			bits := br.get32BitsFast(nBits)
+
 			lowBits := uint16(bits >> ((ofState.nbBits() + mlState.nbBits()) & 31))
 			llState = llTable[(llState.newState()+lowBits)&maxTableMask]
 
@@ -418,103 +419,12 @@ func (s *sequenceDecs) decodeSync(hist []byte) error {
 	return br.close()
 }
 
-// update states, at least 27 bits must be available.
-func (s *sequenceDecs) update(br *bitReader) {
-	// Max 8 bits
-	s.litLengths.state.next(br)
-	// Max 9 bits
-	s.matchLengths.state.next(br)
-	// Max 8 bits
-	s.offsets.state.next(br)
-}
-
 var bitMask [16]uint16
 
 func init() {
 	for i := range bitMask[:] {
 		bitMask[i] = uint16((1 << uint(i)) - 1)
 	}
-}
-
-// update states, at least 27 bits must be available.
-func (s *sequenceDecs) updateAlt(br *bitReader) {
-	// Update all 3 states at once. Approx 20% faster.
-	a, b, c := s.litLengths.state.state, s.matchLengths.state.state, s.offsets.state.state
-
-	nBits := a.nbBits() + b.nbBits() + c.nbBits()
-	if nBits == 0 {
-		s.litLengths.state.state = s.litLengths.state.dt[a.newState()]
-		s.matchLengths.state.state = s.matchLengths.state.dt[b.newState()]
-		s.offsets.state.state = s.offsets.state.dt[c.newState()]
-		return
-	}
-	bits := br.get32BitsFast(nBits)
-	lowBits := uint16(bits >> ((c.nbBits() + b.nbBits()) & 31))
-	s.litLengths.state.state = s.litLengths.state.dt[a.newState()+lowBits]
-
-	lowBits = uint16(bits >> (c.nbBits() & 31))
-	lowBits &= bitMask[b.nbBits()&15]
-	s.matchLengths.state.state = s.matchLengths.state.dt[b.newState()+lowBits]
-
-	lowBits = uint16(bits) & bitMask[c.nbBits()&15]
-	s.offsets.state.state = s.offsets.state.dt[c.newState()+lowBits]
-}
-
-// nextFast will return new states when there are at least 4 unused bytes left on the stream when done.
-func (s *sequenceDecs) nextFast(br *bitReader, llState, mlState, ofState decSymbol) (ll, mo, ml int) {
-	// Final will not read from stream.
-	ll, llB := llState.final()
-	ml, mlB := mlState.final()
-	mo, moB := ofState.final()
-
-	// extra bits are stored in reverse order.
-	br.fillFast()
-	mo += br.getBits(moB)
-	if s.maxBits > 32 {
-		br.fillFast()
-	}
-	ml += br.getBits(mlB)
-	ll += br.getBits(llB)
-
-	if moB > 1 {
-		s.prevOffset[2] = s.prevOffset[1]
-		s.prevOffset[1] = s.prevOffset[0]
-		s.prevOffset[0] = mo
-		return
-	}
-	// mo = s.adjustOffset(mo, ll, moB)
-	// Inlined for rather big speedup
-	if ll == 0 {
-		// There is an exception though, when current sequence's literals_length = 0.
-		// In this case, repeated offsets are shifted by one, so an offset_value of 1 means Repeated_Offset2,
-		// an offset_value of 2 means Repeated_Offset3, and an offset_value of 3 means Repeated_Offset1 - 1_byte.
-		mo++
-	}
-
-	if mo == 0 {
-		mo = s.prevOffset[0]
-		return
-	}
-	var temp int
-	if mo == 3 {
-		temp = s.prevOffset[0] - 1
-	} else {
-		temp = s.prevOffset[mo]
-	}
-
-	if temp == 0 {
-		// 0 is not valid; input is corrupted; force offset to 1
-		println("temp was 0")
-		temp = 1
-	}
-
-	if mo != 1 {
-		s.prevOffset[2] = s.prevOffset[1]
-	}
-	s.prevOffset[1] = s.prevOffset[0]
-	s.prevOffset[0] = temp
-	mo = temp
-	return
 }
 
 func (s *sequenceDecs) next(br *bitReader, llState, mlState, ofState decSymbol) (ll, mo, ml int) {

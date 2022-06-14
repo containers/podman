@@ -170,7 +170,7 @@ func DefaultConfigFile(rootless bool) (string, error) {
 		return defaultConfigFile, nil
 	}
 
-	if path, ok := os.LookupEnv("CONTAINERS_STORAGE_CONF"); ok {
+	if path, ok := os.LookupEnv(storageConfEnv); ok {
 		return path, nil
 	}
 	if !rootless {

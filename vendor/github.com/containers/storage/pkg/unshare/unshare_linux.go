@@ -78,7 +78,7 @@ func getRootlessGID() int {
 }
 
 // IsSetID checks if specified path has correct FileMode (Setuid|SETGID) or the
-// matching file capabilitiy
+// matching file capability
 func IsSetID(path string, modeid os.FileMode, capid capability.Cap) (bool, error) {
 	info, err := os.Stat(path)
 	if err != nil {

@@ -17,6 +17,24 @@ This package provides various compression algorithms.
 
 # changelog
 
+* May 25, 2022 (v1.15.5)
+	* s2: Add concurrent stream decompression https://github.com/klauspost/compress/pull/602
+	* s2: Fix final emit oob read crash on amd64 https://github.com/klauspost/compress/pull/601
+	* huff0: asm implementation of Decompress1X by @WojciechMula https://github.com/klauspost/compress/pull/596
+	* zstd: Use 1 less goroutine for stream decoding https://github.com/klauspost/compress/pull/588
+	* zstd: Copy literal in 16 byte blocks when possible https://github.com/klauspost/compress/pull/592
+	* zstd: Speed up when WithDecoderLowmem(false) https://github.com/klauspost/compress/pull/599
+	* zstd: faster next state update in BMI2 version of decode by @WojciechMula in https://github.com/klauspost/compress/pull/593
+	* huff0: Do not check max size when reading table. https://github.com/klauspost/compress/pull/586
+	* flate: Inplace hashing for level 7-9 by @klauspost in https://github.com/klauspost/compress/pull/590
+
+
+* May 11, 2022 (v1.15.4)
+	* huff0: decompress directly into output by @WojciechMula in [#577](https://github.com/klauspost/compress/pull/577)
+	* inflate: Keep dict on stack [#581](https://github.com/klauspost/compress/pull/581)
+	* zstd: Faster decoding memcopy in asm [#583](https://github.com/klauspost/compress/pull/583)
+	* zstd: Fix ignored crc [#580](https://github.com/klauspost/compress/pull/580)
+
 * May 5, 2022 (v1.15.3)
 	* zstd: Allow to ignore checksum checking by @WojciechMula [#572](https://github.com/klauspost/compress/pull/572)
 	* s2: Fix incorrect seek for io.SeekEnd in [#575](https://github.com/klauspost/compress/pull/575)
@@ -77,6 +95,9 @@ While the release has been extensively tested, it is recommended to testing when
 	* zstd: add arm64 xxhash assembly in [#464](https://github.com/klauspost/compress/pull/464)
 	* Add garbled for binaries for s2 in [#445](https://github.com/klauspost/compress/pull/445)
 
+<details>
+	<summary>See changes to v1.13.x</summary>
+	
 * Aug 30, 2021 (v1.13.5)
 	* gz/zlib/flate: Alias stdlib errors [#425](https://github.com/klauspost/compress/pull/425)
 	* s2: Add block support to commandline tools [#413](https://github.com/klauspost/compress/pull/413)
@@ -105,6 +126,8 @@ While the release has been extensively tested, it is recommended to testing when
 	* Added [gzhttp](https://github.com/klauspost/compress/tree/master/gzhttp#gzip-handler) which allows wrapping HTTP servers and clients with GZIP compressors.
 	* zstd: Detect short invalid signatures [#382](https://github.com/klauspost/compress/pull/382)
 	* zstd: Spawn decoder goroutine only if needed. [#380](https://github.com/klauspost/compress/pull/380)
+</details>
+
 
 <details>
 	<summary>See changes to v1.12.x</summary>

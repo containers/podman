@@ -18,7 +18,14 @@ const ZipMethodWinZip = 93
 // See https://pkware.cachefly.net/webdocs/APPNOTE/APPNOTE-6.3.9.TXT
 const ZipMethodPKWare = 20
 
-var zipReaderPool sync.Pool
+// zipReaderPool is the default reader pool.
+var zipReaderPool = sync.Pool{New: func() interface{} {
+	z, err := NewReader(nil, WithDecoderLowmem(true), WithDecoderMaxWindow(128<<20), WithDecoderConcurrency(1))
+	if err != nil {
+		panic(err)
+	}
+	return z
+}}
 
 // newZipReader creates a pooled zip decompressor.
 func newZipReader(opts ...DOption) func(r io.Reader) io.ReadCloser {

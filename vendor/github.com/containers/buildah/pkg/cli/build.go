@@ -14,11 +14,10 @@ import (
 	"time"
 
 	"github.com/containers/buildah/define"
+	iutil "github.com/containers/buildah/internal/util"
 	"github.com/containers/buildah/pkg/parse"
 	"github.com/containers/buildah/pkg/util"
 	"github.com/containers/common/pkg/auth"
-	encconfig "github.com/containers/ocicrypt/config"
-	enchelpers "github.com/containers/ocicrypt/helpers"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -125,7 +124,7 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 	}
 
 	containerfiles := getContainerfiles(iopts.File)
-	format, err := GetFormat(iopts.Format)
+	format, err := iutil.GetFormat(iopts.Format)
 	if err != nil {
 		return options, nil, nil, err
 	}
@@ -266,7 +265,7 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 		return options, nil, nil, err
 	}
 
-	decryptConfig, err := DecryptConfig(iopts.DecryptionKeys)
+	decryptConfig, err := iutil.DecryptConfig(iopts.DecryptionKeys)
 	if err != nil {
 		return options, nil, nil, errors.Wrapf(err, "unable to obtain decrypt config")
 	}
@@ -293,44 +292,51 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 	}
 	options = define.BuildOptions{
 		AddCapabilities:         iopts.CapAdd,
+		AdditionalBuildContexts: additionalBuildContext,
 		AdditionalTags:          tags,
 		AllPlatforms:            iopts.AllPlatforms,
 		Annotations:             iopts.Annotation,
 		Architecture:            systemContext.ArchitectureChoice,
 		Args:                    args,
-		AdditionalBuildContexts: additionalBuildContext,
 		BlobDirectory:           iopts.BlobCache,
+		BuildOutput:             iopts.BuildOutput,
 		CNIConfigDir:            iopts.CNIConfigDir,
 		CNIPluginPath:           iopts.CNIPlugInPath,
+		CPPFlags:                iopts.CPPFlags,
 		CommonBuildOpts:         commonOpts,
 		Compression:             compression,
 		ConfigureNetwork:        networkPolicy,
 		ContextDirectory:        contextDir,
-		CPPFlags:                iopts.CPPFlags,
 		Devices:                 iopts.Devices,
 		DropCapabilities:        iopts.CapDrop,
+		Envs:                    iopts.Envs,
 		Err:                     stderr,
+		Excludes:                excludes,
 		ForceRmIntermediateCtrs: iopts.ForceRm,
 		From:                    iopts.From,
 		IDMappingOptions:        idmappingOptions,
 		IIDFile:                 iopts.Iidfile,
+		IgnoreFile:              iopts.IgnoreFile,
 		In:                      stdin,
 		Isolation:               isolation,
-		IgnoreFile:              iopts.IgnoreFile,
+		Jobs:                    &iopts.Jobs,
 		Labels:                  iopts.Label,
 		Layers:                  layers,
 		LogFile:                 iopts.Logfile,
-		LogSplitByPlatform:      iopts.LogSplitByPlatform,
 		LogRusage:               iopts.LogRusage,
+		LogSplitByPlatform:      iopts.LogSplitByPlatform,
 		Manifest:                iopts.Manifest,
 		MaxPullPushRetries:      MaxPullPushRetries,
 		NamespaceOptions:        namespaceOptions,
 		NoCache:                 iopts.NoCache,
 		OS:                      systemContext.OSChoice,
+		OSFeatures:              iopts.OSFeatures,
+		OSVersion:               iopts.OSVersion,
+		OciDecryptConfig:        decryptConfig,
 		Out:                     stdout,
 		Output:                  output,
-		BuildOutput:             iopts.BuildOutput,
 		OutputFormat:            format,
+		Platforms:               platforms,
 		PullPolicy:              pullPolicy,
 		PullPushRetryDelay:      PullPushRetryDelay,
 		Quiet:                   iopts.Quiet,
@@ -344,16 +350,9 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 		Squash:                  iopts.Squash,
 		SystemContext:           systemContext,
 		Target:                  iopts.Target,
-		TransientMounts:         iopts.Volumes,
-		OciDecryptConfig:        decryptConfig,
-		Jobs:                    &iopts.Jobs,
-		Excludes:                excludes,
 		Timestamp:               timestamp,
-		Platforms:               platforms,
+		TransientMounts:         iopts.Volumes,
 		UnsetEnvs:               iopts.UnsetEnvs,
-		Envs:                    iopts.Envs,
-		OSFeatures:              iopts.OSFeatures,
-		OSVersion:               iopts.OSVersion,
 	}
 	if iopts.Quiet {
 		options.ReportWriter = ioutil.Discard
@@ -371,50 +370,4 @@ func getContainerfiles(files []string) []string {
 		}
 	}
 	return containerfiles
-}
-
-// GetFormat translates format string into either docker or OCI format constant
-func GetFormat(format string) (string, error) {
-	switch format {
-	case define.OCI:
-		return define.OCIv1ImageManifest, nil
-	case define.DOCKER:
-		return define.Dockerv2ImageManifest, nil
-	default:
-		return "", errors.Errorf("unrecognized image type %q", format)
-	}
-}
-
-// DecryptConfig translates decryptionKeys into a DescriptionConfig structure
-func DecryptConfig(decryptionKeys []string) (*encconfig.DecryptConfig, error) {
-	decryptConfig := &encconfig.DecryptConfig{}
-	if len(decryptionKeys) > 0 {
-		// decryption
-		dcc, err := enchelpers.CreateCryptoConfig([]string{}, decryptionKeys)
-		if err != nil {
-			return nil, errors.Wrapf(err, "invalid decryption keys")
-		}
-		cc := encconfig.CombineCryptoConfigs([]encconfig.CryptoConfig{dcc})
-		decryptConfig = cc.DecryptConfig
-	}
-
-	return decryptConfig, nil
-}
-
-// EncryptConfig translates encryptionKeys into a EncriptionsConfig structure
-func EncryptConfig(encryptionKeys []string, encryptLayers []int) (*encconfig.EncryptConfig, *[]int, error) {
-	var encLayers *[]int
-	var encConfig *encconfig.EncryptConfig
-
-	if len(encryptionKeys) > 0 {
-		// encryption
-		encLayers = &encryptLayers
-		ecc, err := enchelpers.CreateCryptoConfig(encryptionKeys, []string{})
-		if err != nil {
-			return nil, nil, errors.Wrapf(err, "invalid encryption keys")
-		}
-		cc := encconfig.CombineCryptoConfigs([]encconfig.CryptoConfig{ecc})
-		encConfig = cc.EncryptConfig
-	}
-	return encConfig, encLayers, nil
 }

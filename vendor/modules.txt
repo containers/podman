@@ -89,7 +89,7 @@ github.com/containernetworking/cni/pkg/version
 # github.com/containernetworking/plugins v1.1.1
 ## explicit
 github.com/containernetworking/plugins/pkg/ns
-# github.com/containers/buildah v1.26.1-0.20220607182634-005447be07ee
+# github.com/containers/buildah v1.26.1-0.20220609225314-e66309ebde8c
 ## explicit
 github.com/containers/buildah
 github.com/containers/buildah/bind
@@ -111,7 +111,7 @@ github.com/containers/buildah/pkg/rusage
 github.com/containers/buildah/pkg/sshagent
 github.com/containers/buildah/pkg/util
 github.com/containers/buildah/util
-# github.com/containers/common v0.48.1-0.20220528105338-54c8092c69a1
+# github.com/containers/common v0.48.1-0.20220608111710-dbecabbe82c9
 ## explicit
 github.com/containers/common/libimage
 github.com/containers/common/libimage/define
@@ -239,7 +239,7 @@ github.com/containers/psgo/internal/dev
 github.com/containers/psgo/internal/host
 github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
-# github.com/containers/storage v1.41.1-0.20220517121726-5019cd55275c
+# github.com/containers/storage v1.41.1-0.20220607143333-8951d0153bf6
 ## explicit
 github.com/containers/storage
 github.com/containers/storage/drivers
@@ -383,10 +383,8 @@ github.com/docker/go-plugins-helpers/volume
 ## explicit
 github.com/docker/go-units
 # github.com/docker/libnetwork v0.8.0-dev.2.0.20190625141545-5a177b73e316
+## explicit
 github.com/docker/libnetwork/ipamutils
-github.com/docker/libnetwork/resolvconf
-github.com/docker/libnetwork/resolvconf/dns
-github.com/docker/libnetwork/types
 # github.com/dtylman/scp v0.0.0-20181017070807-f3000a34aef4
 ## explicit
 github.com/dtylman/scp
@@ -447,14 +445,12 @@ github.com/hashicorp/go-multierror
 github.com/imdario/mergo
 # github.com/inconshreveable/mousetrap v1.0.0
 github.com/inconshreveable/mousetrap
-# github.com/ishidawataru/sctp v0.0.0-20210226210310-f2269e66cdee
-github.com/ishidawataru/sctp
 # github.com/jinzhu/copier v0.3.5
 github.com/jinzhu/copier
 # github.com/json-iterator/go v1.1.12
 ## explicit
 github.com/json-iterator/go
-# github.com/klauspost/compress v1.15.4
+# github.com/klauspost/compress v1.15.6
 github.com/klauspost/compress
 github.com/klauspost/compress/flate
 github.com/klauspost/compress/fse
