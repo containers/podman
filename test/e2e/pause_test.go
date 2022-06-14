@@ -82,7 +82,7 @@ var _ = Describe("Podman pause", func() {
 		// check we can read stats for a paused container
 		result = podmanTest.Podman([]string{"stats", "--no-stream", cid})
 		result.WaitWithDefaultTimeout()
-		Expect(result).To(ExitWithError())
+		Expect(result).Should(Exit(0))
 	})
 
 	It("podman pause a running container by id", func() {

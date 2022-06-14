@@ -214,10 +214,6 @@ func (s *containerStats) BlockIO() string {
 }
 
 func (s *containerStats) PIDS() string {
-	if s.PIDs == 0 {
-		// If things go bazinga, return a safe value
-		return "--"
-	}
 	return fmt.Sprintf("%d", s.PIDs)
 }
 
@@ -231,7 +227,7 @@ func (s *containerStats) MemUsageBytes() string {
 
 func floatToPercentString(f float64) string {
 	strippedFloat, err := utils.RemoveScientificNotationFromFloat(f)
-	if err != nil || strippedFloat == 0 {
+	if err != nil {
 		// If things go bazinga, return a safe value
 		return "--"
 	}
@@ -239,16 +235,10 @@ func floatToPercentString(f float64) string {
 }
 
 func combineHumanValues(a, b uint64) string {
-	if a == 0 && b == 0 {
-		return "-- / --"
-	}
 	return fmt.Sprintf("%s / %s", units.HumanSize(float64(a)), units.HumanSize(float64(b)))
 }
 
 func combineBytesValues(a, b uint64) string {
-	if a == 0 && b == 0 {
-		return "-- / --"
-	}
 	return fmt.Sprintf("%s / %s", units.BytesSize(float64(a)), units.BytesSize(float64(b)))
 }
 
