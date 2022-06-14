@@ -1,5 +1,50 @@
 # Release Notes
 
+## 4.1.1
+### Features
+- Podman machine events are now supported on Windows.
+
+### Changes
+- The output of the `podman load` command now mirrors that of `docker load`.
+
+### Bugfixes
+- Fixed a bug where the `podman play kube` command could panic if the `--log-opt` option was used ([#13356](https://github.com/containers/podman/issues/13356)).
+- Fixed a bug where Podman could, under some circumstances, fail to parse container cgroup paths ([#14146](https://github.com/containers/podman/issues/14146)).
+- Fixed a bug where containers created with the `--sdnotify=conmon` option could send `MAINPID` twice.
+- Fixed a bug where the `podman info` command could fail when run inside an LXC container.
+- Fixed a bug where the pause image of a Pod with a custom ID mappings could not be built ([BZ 2083997](https://bugzilla.redhat.com/show_bug.cgi?id=2083997)).
+- Fixed a bug where, on `podman machine` VMs on Windows, containers could be prematurely terminated with API forwarding was not running ([#13965](https://github.com/containers/podman/issues/13965)).
+- Fixed a bug where removing a container with a zombie exec session would fail the first time, but succeed for subsequent calls ([#14252](https://github.com/containers/podman/issues/14252)).
+- Fixed a bug where a dangling ID in the database could render Podman unusable.
+- Fixed a bug where containers with memory limits could not be created when Podman was run in a root cgroup ([#14236](https://github.com/containers/podman/issues/14236)).
+- Fixed a bug where the `--security-opt` option to `podman run` and `podman create` did not support the `no-new-privileges:true` and `no-new-privileges:false` options (the only supported separator was `=`, not `:`) ([#14133](https://github.com/containers/podman/issues/14133)).
+- Fixed a bug where containers that did not create a network namespace (e.g. containers created with `--network none` or `--network ns:/path/to/ns`) could not be restored from checkpoints ([#14389](https://github.com/containers/podman/issues/14389)).
+- Fixed a bug where `podman-restart.service` could, if enabled, cause system shutdown to hang for 90 seconds ([#14434](https://github.com/containers/podman/issues/14434)).
+- Fixed a bug where the `podman stats` command would, when run as root on a container that had the `podman network disconnect` command run on it or that set a custom network interface name, return an error ([#13824](https://github.com/containers/podman/issues/13824)).
+- Fixed a bug where the remote Podman client's `podman pod create` command would error when the `--uidmap` option was used ([#14233](https://github.com/containers/podman/issues/14233)).
+- Fixed a bug where cleaning up systemd units and timers related to healthchecks was subject to race conditions and could fail.
+- Fixed a bug where the default network mode of containers created by the remote Podman client was assigned by the client, not the server ([#14368](https://github.com/containers/podman/issues/14368)).
+- Fixed a bug where containers joining a pod that was created with `--network=host` would receive a private network namespace ([#13763](https://github.com/containers/podman/issues/13763)).
+- Fixed a bug where `podman machine rm --force` would remove files related to the VM before stopping it, causing issues if removal was interrupted.
+- Fixed a bug where `podman logs` would omit the last line of a container's logs if the log did not end in a newline ([#14458](https://github.com/containers/podman/issues/14458)).
+- Fixed a bug where network cleanup was nonfunctional for containers which used a custom user namespace and were initialized via API ([#14465](https://github.com/containers/podman/issues/14465)).
+- Fixed a bug where some options (including volumes) for containers that joined pods were overwritten by the infra container ([#14454](https://github.com/containers/podman/issues/14454)).
+- Fixed a bug where the `--file-locks` option to `podman container restore` was ignored, such that file locks checkpointed by `podman container checkpoint --file-locks` were not restored.
+- Fixed a bug where signals sent to a Podman attach session with `--sig-proxy` enabled at the exact moment the container that was attached to exited could cause error messages to be printed.
+- Fixed a bug where running the `podman machine start` command more than once (simultaneously) on the same machine would cause errors.
+- Fixed a bug where the `podman stats` command could not be run on containers that were not running (it now reports all-0s statistics for Docker compatibility) ([#14498](https://github.com/containers/podman/issues/14498)).
+
+### API
+- Fixed a bug where images pulled from a private registry could not be accessed via shortname using the Compat API endpoints ([#14291](https://github.com/containers/podman/issues/14291)).
+- Fixed a bug where the Compat Delete API for Images would return an incorrect status code (500) when attempting to delete images that are in use ([#14208](https://github.com/containers/podman/issues/14208)).
+- Fixed a bug where the Compat Build API for Images would include the build's `STDERR` output even if the `quiet` parameter was true.
+- Fixed a bug where the Libpod Play Kube API would overwrite any log driver specified by query parameter with the system default.
+
+### Misc
+- The `podman auto-update` command now creates an event when it is run.
+- Error messages printed when Podman's temporary files directory is not writable have been improved.
+- Units for memory limits accepted by Podman commands were incorrectly stated by documentation as megabytes, instead of mebibytes; this has now been corrected ([#14187](https://github.com/containers/podman/issues/14187)).
+
 ## 4.1.0
 ### Features
 - Podman now supports Docker Compose v2.2 and higher ([#11822](https://github.com/containers/podman/issues/11822)). Please note that it may be necessary to disable the use of Buildkit by setting the environment variable `DOCKER_BUILDKIT=0`.
