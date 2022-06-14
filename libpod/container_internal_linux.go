@@ -1939,8 +1939,19 @@ func (c *Container) makeBindMounts() error {
 		}
 	}
 
+	_, hasRunContainerenv := c.state.BindMounts["/run/.containerenv"]
+	if !hasRunContainerenv {
+		// check in the spec mounts
+		for _, m := range c.config.Spec.Mounts {
+			if m.Destination == "/run/.containerenv" || m.Destination == "/run" {
+				hasRunContainerenv = true
+				break
+			}
+		}
+	}
+
 	// Make .containerenv if it does not exist
-	if _, ok := c.state.BindMounts["/run/.containerenv"]; !ok {
+	if !hasRunContainerenv {
 		containerenv := c.runtime.graphRootMountedFlag(c.config.Spec.Mounts)
 		isRootless := 0
 		if rootless.IsRootless() {

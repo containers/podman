@@ -828,6 +828,20 @@ USER testuser`, fedoraMinimal)
 		Expect(session.OutputToString()).To(Equal(perms))
 	})
 
+	It("podman run with -v $SRC:/run does not create /run/.containerenv", func() {
+		mountSrc := filepath.Join(podmanTest.TempDir, "vol-test1")
+		err := os.MkdirAll(mountSrc, 0755)
+		Expect(err).To(BeNil())
+
+		session := podmanTest.Podman([]string{"run", "-v", mountSrc + ":/run", ALPINE, "true"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		// the file should not have been created
+		_, err = os.Stat(filepath.Join(mountSrc, ".containerenv"))
+		Expect(err).To(Not(BeNil()))
+	})
+
 	It("podman volume with uid and gid works", func() {
 		volName := "testVol"
 		volCreate := podmanTest.Podman([]string{"volume", "create", "--opt", "o=uid=1000", volName})
