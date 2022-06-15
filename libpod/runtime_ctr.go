@@ -13,6 +13,7 @@ import (
 	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/common/pkg/config"
+	cutil "github.com/containers/common/pkg/util"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/libpod/events"
 	"github.com/containers/podman/v4/libpod/shutdown"
@@ -246,7 +247,7 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 		for _, opts := range ctr.config.Networks {
 			if opts.InterfaceName != "" {
 				// check that no name is assigned to more than network
-				if util.StringInSlice(opts.InterfaceName, usedIfNames) {
+				if cutil.StringInSlice(opts.InterfaceName, usedIfNames) {
 					return nil, errors.Errorf("network interface name %q is already assigned to another network", opts.InterfaceName)
 				}
 				usedIfNames = append(usedIfNames, opts.InterfaceName)
@@ -262,7 +263,7 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 			if opts.InterfaceName == "" {
 				for i < 100000 {
 					ifName := fmt.Sprintf("eth%d", i)
-					if !util.StringInSlice(ifName, usedIfNames) {
+					if !cutil.StringInSlice(ifName, usedIfNames) {
 						opts.InterfaceName = ifName
 						usedIfNames = append(usedIfNames, ifName)
 						break
@@ -732,7 +733,11 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force, remo
 	// after setting the state to ContainerStateRemoving will prevent that the container is
 	// restarted
 	if err := c.removeAllExecSessions(); err != nil {
-		return err
+		if cleanupErr == nil {
+			cleanupErr = err
+		} else {
+			logrus.Errorf("Remove exec sessions: %v", err)
+		}
 	}
 
 	// Stop the container's storage

@@ -8,8 +8,8 @@ import (
 
 	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/common/pkg/cgroups"
+	cutil "github.com/containers/common/pkg/util"
 	"github.com/containers/podman/v4/libpod/define"
-	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/containers/storage"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
@@ -318,62 +318,6 @@ func ParseUserNamespace(ns string) (Namespace, error) {
 	return ParseNamespace(ns)
 }
 
-// ParseNetworkNamespace parses a network namespace specification in string
-// form.
-// Returns a namespace and (optionally) a list of CNI networks to join.
-func ParseNetworkNamespace(ns string, rootlessDefaultCNI bool) (Namespace, map[string]types.PerNetworkOptions, error) {
-	toReturn := Namespace{}
-	networks := make(map[string]types.PerNetworkOptions)
-	// Net defaults to Slirp on rootless
-	switch {
-	case ns == string(Slirp), strings.HasPrefix(ns, string(Slirp)+":"):
-		toReturn.NSMode = Slirp
-	case ns == string(FromPod):
-		toReturn.NSMode = FromPod
-	case ns == "" || ns == string(Default) || ns == string(Private):
-		if rootless.IsRootless() {
-			if rootlessDefaultCNI {
-				toReturn.NSMode = Bridge
-			} else {
-				toReturn.NSMode = Slirp
-			}
-		} else {
-			toReturn.NSMode = Bridge
-		}
-	case ns == string(Bridge):
-		toReturn.NSMode = Bridge
-	case ns == string(NoNetwork):
-		toReturn.NSMode = NoNetwork
-	case ns == string(Host):
-		toReturn.NSMode = Host
-	case strings.HasPrefix(ns, "ns:"):
-		split := strings.SplitN(ns, ":", 2)
-		if len(split) != 2 {
-			return toReturn, nil, errors.Errorf("must provide a path to a namespace when specifying \"ns:\"")
-		}
-		toReturn.NSMode = Path
-		toReturn.Value = split[1]
-	case strings.HasPrefix(ns, string(FromContainer)+":"):
-		split := strings.SplitN(ns, ":", 2)
-		if len(split) != 2 {
-			return toReturn, nil, errors.Errorf("must provide name or ID or a container when specifying \"container:\"")
-		}
-		toReturn.NSMode = FromContainer
-		toReturn.Value = split[1]
-	default:
-		// Assume we have been given a list of CNI networks.
-		// Which only works in bridge mode, so set that.
-		networkList := strings.Split(ns, ",")
-		for _, net := range networkList {
-			networks[net] = types.PerNetworkOptions{}
-		}
-
-		toReturn.NSMode = Bridge
-	}
-
-	return toReturn, networks, nil
-}
-
 // ParseNetworkFlag parses a network string slice into the network options
 // If the input is nil or empty it will use the default setting from containers.conf
 func ParseNetworkFlag(networks []string) (Namespace, map[string]types.PerNetworkOptions, map[string][]string, error) {
@@ -399,13 +343,7 @@ func ParseNetworkFlag(networks []string) (Namespace, map[string]types.PerNetwork
 	case ns == string(FromPod):
 		toReturn.NSMode = FromPod
 	case ns == "" || ns == string(Default) || ns == string(Private):
-		// Net defaults to Slirp on rootless
-		if rootless.IsRootless() {
-			toReturn.NSMode = Slirp
-			break
-		}
-		// if root we use bridge
-		fallthrough
+		toReturn.NSMode = Private
 	case ns == string(Bridge), strings.HasPrefix(ns, string(Bridge)+":"):
 		toReturn.NSMode = Bridge
 		parts := strings.SplitN(ns, ":", 2)
@@ -472,7 +410,7 @@ func ParseNetworkFlag(networks []string) (Namespace, map[string]types.PerNetwork
 			if parts[0] == "" {
 				return toReturn, nil, nil, errors.Wrapf(define.ErrInvalidArg, "network name cannot be empty")
 			}
-			if util.StringInSlice(parts[0], []string{string(Bridge), string(Slirp), string(FromPod), string(NoNetwork),
+			if cutil.StringInSlice(parts[0], []string{string(Bridge), string(Slirp), string(FromPod), string(NoNetwork),
 				string(Default), string(Private), string(Path), string(FromContainer), string(Host)}) {
 				return toReturn, nil, nil, errors.Wrapf(define.ErrInvalidArg, "can only set extra network names, selected mode %s conflicts with bridge", parts[0])
 			}

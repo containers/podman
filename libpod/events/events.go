@@ -150,6 +150,8 @@ func StringToStatus(name string) (Status, error) {
 	switch name {
 	case Attach.String():
 		return Attach, nil
+	case AutoUpdate.String():
+		return AutoUpdate, nil
 	case Build.String():
 		return Build, nil
 	case Checkpoint.String():

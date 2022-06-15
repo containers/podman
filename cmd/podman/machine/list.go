@@ -43,11 +43,12 @@ type listFlagType struct {
 	quiet     bool
 }
 
-type machineReporter struct {
+type ListReporter struct {
 	Name           string
 	Default        bool
 	Created        string
 	Running        bool
+	Starting       bool
 	LastUp         string
 	Stream         string
 	VMType         string
@@ -68,7 +69,7 @@ func init() {
 	flags := lsCmd.Flags()
 	formatFlagName := "format"
 	flags.StringVar(&listFlag.format, formatFlagName, "{{.Name}}\t{{.VMType}}\t{{.Created}}\t{{.LastUp}}\t{{.CPUs}}\t{{.Memory}}\t{{.DiskSize}}\n", "Format volume output using JSON or a Go template")
-	_ = lsCmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(&machineReporter{}))
+	_ = lsCmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(&ListReporter{}))
 	flags.BoolVar(&listFlag.noHeading, "noheading", false, "Do not print headers")
 	flags.BoolVarP(&listFlag.quiet, "quiet", "q", false, "Show only machine names")
 }
@@ -121,8 +122,8 @@ func list(cmd *cobra.Command, args []string) error {
 	return outputTemplate(cmd, machineReporter)
 }
 
-func outputTemplate(cmd *cobra.Command, responses []*machineReporter) error {
-	headers := report.Headers(machineReporter{}, map[string]string{
+func outputTemplate(cmd *cobra.Command, responses []*ListReporter) error {
+	headers := report.Headers(ListReporter{}, map[string]string{
 		"LastUp":   "LAST UP",
 		"VmType":   "VM TYPE",
 		"CPUs":     "CPUS",
@@ -181,15 +182,15 @@ func streamName(imageStream string) string {
 	return imageStream
 }
 
-func toMachineFormat(vms []*machine.ListResponse) ([]*machineReporter, error) {
+func toMachineFormat(vms []*machine.ListResponse) ([]*ListReporter, error) {
 	cfg, err := config.ReadCustomConfig()
 	if err != nil {
 		return nil, err
 	}
 
-	machineResponses := make([]*machineReporter, 0, len(vms))
+	machineResponses := make([]*ListReporter, 0, len(vms))
 	for _, vm := range vms {
-		response := new(machineReporter)
+		response := new(ListReporter)
 		response.Default = vm.Name == cfg.Engine.ActiveService
 		response.Name = vm.Name
 		response.Running = vm.Running
@@ -209,25 +210,29 @@ func toMachineFormat(vms []*machine.ListResponse) ([]*machineReporter, error) {
 	return machineResponses, nil
 }
 
-func toHumanFormat(vms []*machine.ListResponse) ([]*machineReporter, error) {
+func toHumanFormat(vms []*machine.ListResponse) ([]*ListReporter, error) {
 	cfg, err := config.ReadCustomConfig()
 	if err != nil {
 		return nil, err
 	}
 
-	humanResponses := make([]*machineReporter, 0, len(vms))
+	humanResponses := make([]*ListReporter, 0, len(vms))
 	for _, vm := range vms {
-		response := new(machineReporter)
+		response := new(ListReporter)
 		if vm.Name == cfg.Engine.ActiveService {
 			response.Name = vm.Name + "*"
 			response.Default = true
 		} else {
 			response.Name = vm.Name
 		}
-		if vm.Running {
+		switch {
+		case vm.Running:
 			response.LastUp = "Currently running"
 			response.Running = true
-		} else {
+		case vm.Starting:
+			response.LastUp = "Currently starting"
+			response.Starting = true
+		default:
 			response.LastUp = units.HumanDuration(time.Since(vm.LastUp)) + " ago"
 		}
 		response.Created = units.HumanDuration(time.Since(vm.CreatedAt)) + " ago"

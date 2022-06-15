@@ -3536,4 +3536,25 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 			Expect(kube.ErrorToString()).To(ContainSubstring("ambiguous configuration: the same config map foo is present in YAML and in --configmaps"))
 		})
 	})
+
+	It("podman play kube --log-opt = tag test", func() {
+		SkipIfContainerized("journald does not work inside the container")
+		pod := getPod()
+		err := generateKubeYaml("pod", pod, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml, "--log-driver", "journald", "--log-opt", "tag={{.ImageName}}"})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		start := podmanTest.Podman([]string{"start", getCtrNameInPod(pod)})
+		start.WaitWithDefaultTimeout()
+		Expect(start).Should(Exit(0))
+
+		inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(pod)})
+		inspect.WaitWithDefaultTimeout()
+		Expect(start).Should(Exit(0))
+		Expect((inspect.InspectContainerToJSON()[0]).HostConfig.LogConfig.Tag).To(Equal("{{.ImageName}}"))
+
+	})
 })

@@ -36,6 +36,7 @@ var (
 const (
 	ErrorSuccessRebootInitiated = 1641
 	ErrorSuccessRebootRequired  = 3010
+	currentMachineVersion       = 2
 )
 
 const containersConf = `[containers]
@@ -168,6 +169,8 @@ type MachineVM struct {
 	Rootful bool
 	// SSH identity, username, etc
 	machine.SSHConfig
+	// machine version
+	Version int
 }
 
 type ExitCodeError struct {
@@ -241,10 +244,27 @@ func readAndMigrate(configPath string, name string) (*MachineVM, error) {
 		return vm, err
 	}
 	err = json.Unmarshal(b, vm)
-	if err == nil && vm.Created.IsZero() {
-		err = vm.migrate40(configPath)
+	if err == nil && vm.Version < currentMachineVersion {
+		err = vm.migrateMachine(configPath)
 	}
+
 	return vm, err
+}
+
+func (v *MachineVM) migrateMachine(configPath string) error {
+	if v.Created.IsZero() {
+		if err := v.migrate40(configPath); err != nil {
+			return err
+		}
+	}
+
+	// Update older machines to use lingering
+	if err := enableUserLinger(v, toDist(v.Name)); err != nil {
+		return err
+	}
+
+	v.Version = currentMachineVersion
+	return v.writeConfig()
 }
 
 func (v *MachineVM) migrate40(configPath string) error {
@@ -255,7 +275,7 @@ func (v *MachineVM) migrate40(configPath string) error {
 	}
 	v.Created = fi.ModTime()
 	v.LastUp = getLegacyLastStart(v)
-	return v.writeConfig()
+	return nil
 }
 
 func getLegacyLastStart(vm *MachineVM) time.Time {
@@ -284,6 +304,7 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 	sshDir := filepath.Join(homeDir, ".ssh")
 	v.IdentityPath = filepath.Join(sshDir, v.Name)
 	v.Rootful = opts.Rootful
+	v.Version = currentMachineVersion
 
 	if err := downloadDistro(v, opts); err != nil {
 		return false, err
@@ -486,6 +507,10 @@ func configureSystem(v *MachineVM, dist string) error {
 		return errors.Wrap(err, "could not generate linger service for guest OS")
 	}
 
+	if err := enableUserLinger(v, dist); err != nil {
+		return err
+	}
+
 	if err := pipeCmdPassThrough("wsl", withUser(lingerSetup, user), "-d", dist, "sh"); err != nil {
 		return errors.Wrap(err, "could not configure systemd settomgs for guest OS")
 	}
@@ -496,6 +521,15 @@ func configureSystem(v *MachineVM, dist string) error {
 
 	if err := runCmdPassThrough("wsl", "-d", dist, "sh", "-c", "echo wsl > /etc/containers/podman-machine"); err != nil {
 		return errors.Wrap(err, "could not create podman-machine file for guest OS")
+	}
+
+	return nil
+}
+
+func enableUserLinger(v *MachineVM, dist string) error {
+	lingerCmd := "mkdir -p /var/lib/systemd/linger; touch /var/lib/systemd/linger/" + v.RemoteUsername
+	if err := runCmdPassThrough("wsl", "-d", dist, "sh", "-c", lingerCmd); err != nil {
+		return errors.Wrap(err, "could not enable linger for remote user on guest OS")
 	}
 
 	return nil
@@ -1278,6 +1312,7 @@ func GetVMInfos() ([]*machine.ListResponse, error) {
 			listEntry.RemoteUsername = vm.RemoteUsername
 			listEntry.Port = vm.Port
 			listEntry.IdentityPath = vm.IdentityPath
+			listEntry.Starting = false
 
 			running := vm.isRunning()
 			listEntry.CreatedAt, listEntry.LastUp, _ = vm.updateTimeStamps(running)

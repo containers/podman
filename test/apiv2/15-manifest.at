@@ -2,18 +2,40 @@
 #
 # Tests for manifest list endpoints
 
+start_registry
+
 t POST /v3.4.0/libpod/manifests/create?name=abc 200 \
     .Id~[0-9a-f]\\{64\\}
 id_abc=$(jq -r '.Id' <<<"$output")
 
 t POST /v4.0.0/libpod/manifests/xyz 201 \
     .Id~[0-9a-f]\\{64\\}
-echo xyz $output
 id_xyz=$(jq -r '.Id' <<<"$output")
 
 t GET /v3.4.0/libpod/manifests/$id_abc/exists 204
 t GET /v4.0.0/libpod/manifests/$id_xyz/exists 204
 
+id_abc_image=$($PODMAN_BIN --root $WORKDIR/server_root image build -q --format=docker -<<EOF
+FROM alpine
+RUN >file1
+EOF
+)
+
+id_xyz_image=$($PODMAN_BIN --root $WORKDIR/server_root image build -q --format=docker -<<EOF
+FROM alpine
+RUN >file2
+EOF
+)
+
+t POST /v3.4.0/libpod/manifests/$id_abc/add images="[\"containers-storage:$id_abc_image\"]" 200
+t PUT /v4.0.0/libpod/manifests/$id_xyz operation='update' images="[\"containers-storage:$id_xyz_image\"]" 200
+
+t POST "/v3.4.0/libpod/manifests/abc:latest/push?destination=localhost:$REGISTRY_PORT%2Fabc:latest&tlsVerify=false&all=true" 200
+t POST "/v4.0.0/libpod/manifests/xyz:latest/registry/localhost:$REGISTRY_PORT%2Fxyz:latest?tlsVerify=false&all=true" 200
+
 # /v3.x cannot delete a manifest list
 t DELETE /v4.0.0/libpod/manifests/$id_abc 200
 t DELETE /v4.0.0/libpod/manifests/$id_xyz 200
+
+podman rmi -a
+stop_registry

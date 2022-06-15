@@ -20,15 +20,15 @@ type PodKillOptions struct {
 
 type PodKillReport struct {
 	Errs []error
-	Id   string //nolint
+	Id   string // nolint
 }
 
 type ListPodsReport struct {
 	Cgroup     string
 	Containers []*ListPodContainer
 	Created    time.Time
-	Id         string //nolint
-	InfraId    string //nolint
+	Id         string // nolint
+	InfraId    string // nolint
 	Name       string
 	Namespace  string
 	// Network names connected to infra container
@@ -38,7 +38,7 @@ type ListPodsReport struct {
 }
 
 type ListPodContainer struct {
-	Id     string //nolint
+	Id     string // nolint
 	Names  string
 	Status string
 }
@@ -50,7 +50,7 @@ type PodPauseOptions struct {
 
 type PodPauseReport struct {
 	Errs []error
-	Id   string //nolint
+	Id   string // nolint
 }
 
 type PodunpauseOptions struct {
@@ -60,7 +60,7 @@ type PodunpauseOptions struct {
 
 type PodUnpauseReport struct {
 	Errs []error
-	Id   string //nolint
+	Id   string // nolint
 }
 
 type PodStopOptions struct {
@@ -72,7 +72,7 @@ type PodStopOptions struct {
 
 type PodStopReport struct {
 	Errs []error
-	Id   string //nolint
+	Id   string // nolint
 }
 
 type PodRestartOptions struct {
@@ -82,7 +82,7 @@ type PodRestartOptions struct {
 
 type PodRestartReport struct {
 	Errs []error
-	Id   string //nolint
+	Id   string // nolint
 }
 
 type PodStartOptions struct {
@@ -92,7 +92,7 @@ type PodStartOptions struct {
 
 type PodStartReport struct {
 	Errs []error
-	Id   string //nolint
+	Id   string // nolint
 }
 
 type PodRmOptions struct {
@@ -105,7 +105,7 @@ type PodRmOptions struct {
 
 type PodRmReport struct {
 	Err error
-	Id  string //nolint
+	Id  string // nolint
 }
 
 // PddSpec is an abstracted version of PodSpecGen designed to eventually accept options
@@ -286,7 +286,7 @@ func NewInfraContainerCreateOptions() ContainerCreateOptions {
 }
 
 type PodCreateReport struct {
-	Id string //nolint
+	Id string // nolint
 }
 
 func (p *PodCreateOptions) CPULimits() *specs.LinuxCPU {
@@ -387,7 +387,7 @@ type PodPruneOptions struct {
 
 type PodPruneReport struct {
 	Err error
-	Id  string //nolint
+	Id  string // nolint
 }
 
 type PodTopOptions struct {
@@ -435,16 +435,33 @@ type PodStatsOptions struct {
 
 // PodStatsReport includes pod-resource statistics data.
 type PodStatsReport struct {
-	CPU           string
-	MemUsage      string
+	// Percentage of CPU utilized by pod
+	// example: 75.5%
+	CPU string
+	// Humanized Memory usage and maximum
+	// example: 12mb / 24mb
+	MemUsage string
+	// Memory usage and maximum in bytes
+	// example: 1,000,000 / 4,000,000
 	MemUsageBytes string
-	Mem           string
-	NetIO         string
-	BlockIO       string
-	PIDS          string
-	Pod           string
-	CID           string
-	Name          string
+	// Percentage of Memory utilized by pod
+	// example: 50.5%
+	Mem string
+	// Network usage inbound + outbound
+	NetIO string
+	// Humanized disk usage read + write
+	BlockIO string
+	// Container PID
+	PIDS string
+	// Pod ID
+	// example: 62310217a19e
+	Pod string
+	// Container ID
+	// example: e43534f89a7d
+	CID string
+	// Pod Name
+	// example: elastic_pascal
+	Name string
 }
 
 // ValidatePodStatsOptions validates the specified slice and options. Allows
@@ -473,7 +490,7 @@ func ValidatePodStatsOptions(args []string, options *PodStatsOptions) error {
 	}
 }
 
-// Converts PodLogOptions to ContainerLogOptions
+// PodLogsOptionsToContainerLogsOptions converts PodLogOptions to ContainerLogOptions
 func PodLogsOptionsToContainerLogsOptions(options PodLogsOptions) ContainerLogsOptions {
 	// PodLogsOptions are similar but contains few extra fields like ctrName
 	// So cast other values as is so we can re-use the code

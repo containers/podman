@@ -425,7 +425,6 @@ func createContainerOptions(rt *libpod.Runtime, s *specgen.SpecGenerator, pod *l
 			options = append(options, libpod.WithMaxLogSize(s.LogConfiguration.Size))
 		}
 		if len(s.LogConfiguration.Options) > 0 && s.LogConfiguration.Options["tag"] != "" {
-			// Note: I'm really guessing here.
 			options = append(options, libpod.WithLogTag(s.LogConfiguration.Options["tag"]))
 		}
 
@@ -542,6 +541,16 @@ func Inherit(infra libpod.Container, s *specgen.SpecGenerator, rt *libpod.Runtim
 	options := []libpod.CtrCreateOption{}
 	infraConf := infra.Config()
 	infraSpec := infraConf.Spec
+
+	// need to set compatOptions to the currently filled specgenOptions so we do not overwrite
+	compatibleOptions.CapAdd = append(compatibleOptions.CapAdd, s.CapAdd...)
+	compatibleOptions.CapDrop = append(compatibleOptions.CapDrop, s.CapDrop...)
+	compatibleOptions.HostDeviceList = append(compatibleOptions.HostDeviceList, s.HostDeviceList...)
+	compatibleOptions.ImageVolumes = append(compatibleOptions.ImageVolumes, s.ImageVolumes...)
+	compatibleOptions.Mounts = append(compatibleOptions.Mounts, s.Mounts...)
+	compatibleOptions.OverlayVolumes = append(compatibleOptions.OverlayVolumes, s.OverlayVolumes...)
+	compatibleOptions.SelinuxOpts = append(compatibleOptions.SelinuxOpts, s.SelinuxOpts...)
+	compatibleOptions.Volumes = append(compatibleOptions.Volumes, s.Volumes...)
 
 	compatByte, err := json.Marshal(compatibleOptions)
 	if err != nil {

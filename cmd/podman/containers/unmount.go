@@ -27,7 +27,7 @@ var (
 		Long:        description,
 		RunE:        unmount,
 		Args: func(cmd *cobra.Command, args []string) error {
-			return validate.CheckAllLatestAndCIDFile(cmd, args, false, false)
+			return validate.CheckAllLatestAndIDFile(cmd, args, false, "")
 		},
 		ValidArgsFunction: common.AutocompleteContainers,
 		Example: `podman unmount ctrID
@@ -43,7 +43,7 @@ var (
 		Long:        unmountCommand.Long,
 		RunE:        unmountCommand.RunE,
 		Args: func(cmd *cobra.Command, args []string) error {
-			return validate.CheckAllLatestAndCIDFile(cmd, args, false, false)
+			return validate.CheckAllLatestAndIDFile(cmd, args, false, "")
 		},
 		ValidArgsFunction: common.AutocompleteContainers,
 		Example: `podman container unmount ctrID

@@ -53,7 +53,7 @@ t POST "images/create?fromImage=alpine" 200 .error~null .status~".*Download comp
 t POST "images/create?fromImage=alpine&tag=latest" 200
 
 # 10977 - handle platform parameter correctly
-t POST "images/create?fromImage=testimage:20210610&platform=linux/arm64" 200
+t POST "images/create?fromImage=quay.io/libpod/testimage:20210610&platform=linux/arm64" 200
 t GET  "images/testimage:20210610/json" 200 \
   .Architecture=arm64
 
@@ -156,6 +156,17 @@ t GET images/json?filters='{"reference":["test1"]}' 200 length=1
 
 t DELETE libpod/images/test1:latest 200
 
+# to be used in prune until filter tests
+podman image build -t docker.io/library/test1:latest -<<EOF
+from alpine
+RUN >file4
+EOF
+podman create --name test1 test1 echo hi
+
+t DELETE images/test1:latest 409
+podman rm test1
+t DELETE images/test1:latest 200
+
 t GET "images/get?names=alpine" 200 '[POSIX tar archive]'
 
 podman pull busybox
@@ -209,6 +220,18 @@ t POST "images/load" ${TMPD}/test.tar 200 \
   .stream="Loaded image: quay.io/libpod/busybox:latest,quay.io/libpod/alpine:latest"
 t GET libpod/images/quay.io/libpod/alpine:latest/exists  204
 t GET libpod/images/quay.io/libpod/busybox:latest/exists  204
+
+CONTAINERFILE_WITH_ERR_TAR="${TMPD}/containerfile.tar"
+cat > $TMPD/containerfile << EOF
+FROM quay.io/fedora/fedora
+RUN echo 'some error' >&2
+EOF
+tar --format=posix -C $TMPD -cvf ${CONTAINERFILE_WITH_ERR_TAR} containerfile &> /dev/null
+t POST "build?q=1&dockerfile=containerfile" $CONTAINERFILE_WITH_ERR_TAR 200
+response_output=$(cat "$WORKDIR/curl.result.out")
+if [[ ${response_output} == *"some error"* ]];then
+    _show_ok 0 "compat quiet build" "~ $response_output" "found output from stderr in API"
+fi
 
 cleanBuildTest
 

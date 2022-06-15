@@ -57,13 +57,15 @@ func VersionHandler(w http.ResponseWriter, r *http.Request) {
 				Version: conmon.Version,
 				Details: map[string]string{
 					"Package": conmon.Package,
-				}},
+				},
+			},
 			{
 				Name:    fmt.Sprintf("OCI Runtime (%s)", oci.Name),
 				Version: oci.Version,
 				Details: map[string]string{
 					"Package": oci.Package,
-				}},
+				},
+			},
 		}
 		components = append(components, additional...)
 	}
@@ -89,5 +91,6 @@ func VersionHandler(w http.ResponseWriter, r *http.Request) {
 			MinAPIVersion: fmt.Sprintf("%d.%d", minVersion.Major, minVersion.Minor),
 			Os:            components[0].Details["Os"],
 			Version:       components[0].Version,
-		}})
+		},
+	})
 }

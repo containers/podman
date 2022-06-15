@@ -167,8 +167,8 @@ func (p *Pod) NetworkMode() string {
 	return infra.NetworkMode()
 }
 
-// PidMode returns the PID mode given by the user ex: pod, private...
-func (p *Pod) PidMode() string {
+// Namespace Mode returns the given NS mode provided by the user ex: host, private...
+func (p *Pod) NamespaceMode(kind specs.LinuxNamespaceType) string {
 	infra, err := p.runtime.GetContainer(p.state.InfraContainerID)
 	if err != nil {
 		return ""
@@ -176,28 +176,7 @@ func (p *Pod) PidMode() string {
 	ctrSpec := infra.config.Spec
 	if ctrSpec != nil && ctrSpec.Linux != nil {
 		for _, ns := range ctrSpec.Linux.Namespaces {
-			if ns.Type == specs.PIDNamespace {
-				if ns.Path != "" {
-					return fmt.Sprintf("ns:%s", ns.Path)
-				}
-				return "private"
-			}
-		}
-		return "host"
-	}
-	return ""
-}
-
-// PidMode returns the PID mode given by the user ex: pod, private...
-func (p *Pod) UserNSMode() string {
-	infra, err := p.infraContainer()
-	if err != nil {
-		return ""
-	}
-	ctrSpec := infra.config.Spec
-	if ctrSpec != nil && ctrSpec.Linux != nil {
-		for _, ns := range ctrSpec.Linux.Namespaces {
-			if ns.Type == specs.UserNamespace {
+			if ns.Type == kind {
 				if ns.Path != "" {
 					return fmt.Sprintf("ns:%s", ns.Path)
 				}

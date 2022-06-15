@@ -25,7 +25,7 @@ var (
 		Long:  killDescription,
 		RunE:  kill,
 		Args: func(cmd *cobra.Command, args []string) error {
-			return validate.CheckAllLatestAndCIDFile(cmd, args, false, true)
+			return validate.CheckAllLatestAndIDFile(cmd, args, false, "cidfile")
 		},
 		ValidArgsFunction: common.AutocompleteContainersRunning,
 		Example: `podman kill mywebserver
@@ -35,7 +35,7 @@ var (
 
 	containerKillCommand = &cobra.Command{
 		Args: func(cmd *cobra.Command, args []string) error {
-			return validate.CheckAllLatestAndCIDFile(cmd, args, false, true)
+			return validate.CheckAllLatestAndIDFile(cmd, args, false, "cidfile")
 		},
 		Use:               killCommand.Use,
 		Short:             killCommand.Short,
@@ -95,7 +95,7 @@ func kill(_ *cobra.Command, args []string) error {
 		return errors.New("valid signals are 1 through 64")
 	}
 	for _, cidFile := range cidFiles {
-		content, err := ioutil.ReadFile(string(cidFile))
+		content, err := ioutil.ReadFile(cidFile)
 		if err != nil {
 			return errors.Wrap(err, "error reading CIDFile")
 		}

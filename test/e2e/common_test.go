@@ -516,17 +516,13 @@ func (p *PodmanTestIntegration) PodmanPID(args []string) (*PodmanSessionIntegrat
 
 // Cleanup cleans up the temporary store
 func (p *PodmanTestIntegration) Cleanup() {
-	// Remove all containers
-	stopall := p.Podman([]string{"stop", "-a", "--time", "0"})
-	stopall.WaitWithDefaultTimeout()
-
-	podstop := p.Podman([]string{"pod", "stop", "-a", "-t", "0"})
-	podstop.WaitWithDefaultTimeout()
-	podrm := p.Podman([]string{"pod", "rm", "-fa"})
+	// Remove all pods...
+	podrm := p.Podman([]string{"pod", "rm", "-fa", "-t", "0"})
 	podrm.WaitWithDefaultTimeout()
 
-	session := p.Podman([]string{"rm", "-fa"})
-	session.WaitWithDefaultTimeout()
+	// ...and containers
+	rmall := p.Podman([]string{"rm", "-fa", "-t", "0"})
+	rmall.WaitWithDefaultTimeout()
 
 	p.StopRemoteService()
 	// Nuke tempdir

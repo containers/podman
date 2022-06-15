@@ -480,6 +480,10 @@ func (v *MachineVM) Start(name string, _ machine.StartOptions) error {
 		wait           = time.Millisecond * 500
 	)
 
+	if v.Starting {
+		return fmt.Errorf("machine %q is already in the process of being started", v.Name)
+	}
+
 	v.Starting = true
 	if err := v.writeConfig(); err != nil {
 		return fmt.Errorf("writing JSON file: %w", err)
@@ -831,8 +835,14 @@ func (v *MachineVM) Remove(_ string, opts machine.RemoveOptions) (string, func()
 	if err != nil {
 		return "", nil, err
 	}
-	if state == machine.Running && !opts.Force {
-		return "", nil, errors.Errorf("running vm %q cannot be destroyed", v.Name)
+	if state == machine.Running {
+		if !opts.Force {
+			return "", nil, errors.Errorf("running vm %q cannot be destroyed", v.Name)
+		}
+		err := v.Stop(v.Name, machine.StopOptions{})
+		if err != nil {
+			return "", nil, err
+		}
 	}
 
 	// Collect all the files that need to be destroyed
@@ -904,7 +914,7 @@ func (v *MachineVM) State(bypass bool) (machine.Status, error) {
 	}
 	// Check if we can dial it
 	if v.Starting && !bypass {
-		return "", nil
+		return machine.Starting, nil
 	}
 	monitor, err := qmp.NewSocketMonitor(v.QMPMonitor.Network, v.QMPMonitor.Address.GetPath(), v.QMPMonitor.Timeout)
 	if err != nil {
@@ -1074,8 +1084,11 @@ func getVMInfos() ([]*machine.ListResponse, error) {
 					return err
 				}
 			}
-			if state == machine.Running {
+			switch state {
+			case machine.Running:
 				listEntry.Running = true
+			case machine.Starting:
+				listEntry.Starting = true
 			}
 
 			listed = append(listed, listEntry)
@@ -1108,7 +1121,7 @@ func (p *Provider) CheckExclusiveActiveVM() (bool, string, error) {
 		return false, "", errors.Wrap(err, "error checking VM active")
 	}
 	for _, vm := range vms {
-		if vm.Running {
+		if vm.Running || vm.Starting {
 			return true, vm.Name, nil
 		}
 	}

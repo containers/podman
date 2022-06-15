@@ -164,12 +164,13 @@ var _ = Describe("Podman save", func() {
 		err = cmd.Run()
 		Expect(err).To(BeNil())
 
-		cmd = exec.Command("cp", "/etc/containers/registries.d/default.yaml", "default.yaml")
+		defaultYaml := filepath.Join(podmanTest.TempDir, "default.yaml")
+		cmd = exec.Command("cp", "/etc/containers/registries.d/default.yaml", defaultYaml)
 		if err = cmd.Run(); err != nil {
 			Skip("no signature store to verify")
 		}
 		defer func() {
-			cmd = exec.Command("cp", "default.yaml", "/etc/containers/registries.d/default.yaml")
+			cmd = exec.Command("cp", defaultYaml, "/etc/containers/registries.d/default.yaml")
 			err := cmd.Run()
 			Expect(err).ToNot(HaveOccurred())
 		}()
@@ -225,13 +226,17 @@ default-docker:
 	})
 
 	It("podman save --multi-image-archive (untagged images)", func() {
-		// Refer to images via ID instead of tag.
-		session := podmanTest.Podman([]string{"images", "--format", "{{.ID}}"})
+		// #14468: to make execution time more predictable, save at
+		// most three images and sort them by size.
+		session := podmanTest.Podman([]string{"images", "--sort", "size", "--format", "{{.ID}}"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		ids := session.OutputToStringArray()
 
 		Expect(len(ids)).To(BeNumerically(">", 1), "We need to have *some* images to save")
+		if len(ids) > 3 {
+			ids = ids[:3]
+		}
 		multiImageSave(podmanTest, ids)
 	})
 })

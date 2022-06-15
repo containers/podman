@@ -986,6 +986,10 @@ func (c *Container) cGroupPath() (string, error) {
 
 	var cgroupPath string
 	for _, line := range bytes.Split(lines, []byte("\n")) {
+		// skip last empty line
+		if len(line) == 0 {
+			continue
+		}
 		// cgroups(7) nails it down to three fields with the 3rd
 		// pointing to the cgroup's path which works both on v1 and v2.
 		fields := bytes.Split(line, []byte(":"))

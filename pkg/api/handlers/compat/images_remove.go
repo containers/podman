@@ -52,7 +52,10 @@ func RemoveImage(w http.ResponseWriter, r *http.Request) {
 			utils.ImageNotFound(w, name, errors.Wrapf(err, "failed to find image %s", name))
 			return
 		}
-
+		if errors.Cause(err) == storage.ErrImageUsedByContainer {
+			utils.Error(w, http.StatusConflict, errors.Wrapf(err, "image %s is in use", name))
+			return
+		}
 		utils.Error(w, http.StatusInternalServerError, err)
 		return
 	}

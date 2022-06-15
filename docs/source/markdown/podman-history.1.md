@@ -17,6 +17,12 @@ set, the time of creation and size are printed out in a human readable format.
 The **--quiet** flag displays the ID of the image only when set and the **--format**
 flag is used to print the information using the Go template provided by the user.
 
+## OPTIONS
+
+#### **--format**=*format*
+
+Alter the output for a format like 'json' or a Go template.
+
 Valid placeholders for the Go template are listed below:
 
 | **Placeholder** | **Description**                                                               |
@@ -28,12 +34,7 @@ Valid placeholders for the Go template are listed below:
 | .CreatedSince   | Elapsed time since the image layer was created       |
 | .Size           | Size of layer on disk                                |
 | .Comment        | Comment for the layer                                |
-## OPTIONS
-
-Print the numeric IDs only (default *false*).
-#### **--format**=*format*
-
-Alter the output for a format like 'json' or a Go template.
+| .Tags           | Image tags |
 
 #### **--help**, **-h**
 
@@ -48,6 +49,8 @@ Display sizes and dates in human readable format (default *true*).
 Do not truncate the output (default *false*).
 
 #### **--quiet**, **-q**
+
+Print the numeric IDs only (default *false*).
 
 ## EXAMPLES
 

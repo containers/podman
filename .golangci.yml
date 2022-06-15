@@ -44,7 +44,6 @@ linters:
     - goconst
     - gocyclo
     - lll
-    - unconvert
     - gosec
     - maligned
     - gomoddirectives

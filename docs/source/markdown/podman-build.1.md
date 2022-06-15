@@ -404,8 +404,8 @@ if it does not exist. This option is useful for building multi architecture imag
 
 #### **--memory**, **-m**=*LIMIT*
 
-Memory limit (format: `<number>[<unit>]`, where unit = b (bytes), k (kilobytes),
-m (megabytes), or g (gigabytes))
+Memory limit (format: `<number>[<unit>]`, where unit = b (bytes), k (kibibytes),
+m (mebibytes), or g (gibibytes))
 
 Allows you to constrain the memory available to a container. If the host
 supports swap memory, then the **-m** memory setting can be larger than physical
@@ -422,7 +422,7 @@ A limit value equal to memory plus swap. Must be used with the  **-m**
 the value of --memory.
 
 The format of `LIMIT` is `<number>[<unit>]`. Unit can be `b` (bytes),
-`k` (kilobytes), `m` (megabytes), or `g` (gigabytes). If you don't specify a
+`k` (kibibytes), `m` (mebibytes), or `g` (gibibytes). If you don't specify a
 unit, `b` is used. Set LIMIT to `-1` to enable unlimited swap.
 
 #### **--network**=*mode*, **--net**
@@ -600,8 +600,8 @@ as a seccomp filter
 
 Size of `/dev/shm`. The format is `<number><unit>`. `number` must be greater
 than `0`.
-Unit is optional and can be `b` (bytes), `k` (kilobytes), `m`(megabytes), or
-`g` (gigabytes). If you omit the unit, the system uses bytes. If you omit the
+Unit is optional and can be `b` (bytes), `k` (kibibytes), `m`(mebibytes), or
+`g` (gibibytes). If you omit the unit, the system uses bytes. If you omit the
 size entirely, the system uses `64m`.
 
 #### **--sign-by**=*fingerprint*
@@ -882,12 +882,10 @@ container. When the mount propagation policy is set to `slave`, one way mount
 propagation is enabled and any mounts completed on the host for that volume will
 be visible only inside of the container. To control the mount propagation
 property of volume use the `:[r]shared`, `:[r]slave` or `:[r]private`
-propagation flag. The propagation property can be specified only for bind mounted
-volumes and not for internal volumes or named volumes. For mount propagation to
-work on the source mount point (mount point where source dir is mounted on) has
-to have the right propagation properties. For shared volumes, the source mount
-point has to be shared. And for slave volumes, the source mount has to be either
-shared or slave. <sup>[[1]](#Footnote1)</sup>
+propagation flag. For mount propagation to work on the source mount point (mount
+point where source dir is mounted on) has to have the right propagation properties.
+For shared volumes, the source mount point has to be shared. And for slave volumes,
+the source mount has to be either shared or slave. <sup>[[1]](#Footnote1)</sup>
 
 Use `df <source-dir>` to determine the source mount and then use
 `findmnt -o TARGET,PROPAGATION <source-mount-dir>` to determine propagation

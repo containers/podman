@@ -246,20 +246,28 @@ function _run_altbuild() {
     # shellcheck disable=SC2154
     msg "Performing alternate build: $ALT_NAME"
     msg "************************************************************"
+    set -x
     cd $GOSRC
     case "$ALT_NAME" in
         *Each*)
             git fetch origin
-            # The check-size script, introduced 2022-03-22 in #13518,
+            # The make-and-check-size script, introduced 2022-03-22 in #13518,
             # runs 'make' (the original purpose of this check) against
             # each commit, then checks image sizes to make sure that
             # none have grown beyond a given limit. That of course
-            # requires a baseline, which is why we use '^' to start
-            # with the *parent* commit of this PR, not the first commit.
+            # requires a baseline, so our first step is to build the
+            # branch point of the PR.
+            local context_dir savedhead pr_base
             context_dir=$(mktemp -d --tmpdir make-size-check.XXXXXXX)
-            make build-all-new-commits \
-                 GIT_BASE_BRANCH=origin/"${DEST_BRANCH}^" \
-                 MAKE="hack/make-and-check-size $context_dir"
+            savedhead=$(git rev-parse HEAD)
+            # Push to PR base. First run of the script will write size files
+            pr_base=$(git merge-base origin/$DEST_BRANCH HEAD)
+            git checkout $pr_base
+            hack/make-and-check-size $context_dir
+            # pop back to PR, and run incremental makes. Subsequent script
+            # invocations will compare against original size.
+            git checkout $savedhead
+            git rebase $pr_base -x "hack/make-and-check-size $context_dir"
             rm -rf $context_dir
             ;;
         *Windows*)
@@ -295,10 +303,6 @@ function _run_altbuild() {
 }
 
 function _run_release() {
-    # TODO: These tests should come from code external to the podman repo.
-    # to allow test-changes (and re-runs) in the case of a correctable test
-    # flaw or flake at release tag-push time.  For now, the test is here
-    # given its simplicity.
     msg "podman info:"
     bin/podman info
 

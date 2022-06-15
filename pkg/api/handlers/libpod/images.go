@@ -102,9 +102,7 @@ func GetImage(w http.ResponseWriter, r *http.Request) {
 }
 
 func PruneImages(w http.ResponseWriter, r *http.Request) {
-	var (
-		err error
-	)
+	var err error
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
 	query := struct {
@@ -129,7 +127,7 @@ func PruneImages(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var libpodFilters = []string{}
+	libpodFilters := []string{}
 	if _, found := r.URL.Query()["filters"]; found {
 		dangling := (*filterMap)["all"]
 		if len(dangling) > 0 {
@@ -162,9 +160,7 @@ func PruneImages(w http.ResponseWriter, r *http.Request) {
 }
 
 func ExportImage(w http.ResponseWriter, r *http.Request) {
-	var (
-		output string
-	)
+	var output string
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
 	query := struct {
@@ -243,9 +239,7 @@ func ExportImage(w http.ResponseWriter, r *http.Request) {
 }
 
 func ExportImages(w http.ResponseWriter, r *http.Request) {
-	var (
-		output string
-	)
+	var output string
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
 	query := struct {
@@ -566,7 +560,7 @@ func CommitContainer(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, http.StatusInternalServerError, errors.Wrapf(err, "CommitFailure"))
 		return
 	}
-	utils.WriteResponse(w, http.StatusOK, handlers.IDResponse{ID: commitImage.ID()}) // nolint
+	utils.WriteResponse(w, http.StatusOK, entities.IDResponse{ID: commitImage.ID()}) // nolint
 }
 
 func UntagImage(w http.ResponseWriter, r *http.Request) {

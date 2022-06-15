@@ -36,6 +36,7 @@ import (
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/common/pkg/subscriptions"
 	"github.com/containers/common/pkg/umask"
+	cutil "github.com/containers/common/pkg/util"
 	is "github.com/containers/image/v5/storage"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/libpod/events"
@@ -393,7 +394,7 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 	overrides := c.getUserOverrides()
 	execUser, err := lookup.GetUserGroupInfo(c.state.Mountpoint, c.config.User, overrides)
 	if err != nil {
-		if util.StringInSlice(c.config.User, c.config.HostUsers) {
+		if cutil.StringInSlice(c.config.User, c.config.HostUsers) {
 			execUser, err = lookupHostUser(c.config.User)
 		}
 		if err != nil {
@@ -2389,7 +2390,7 @@ func (c *Container) generateResolvConf() error {
 	}
 
 	if len(c.config.DNSSearch) > 0 || len(c.runtime.config.Containers.DNSSearches) > 0 {
-		if !util.StringInSlice(".", c.config.DNSSearch) {
+		if !cutil.StringInSlice(".", c.config.DNSSearch) {
 			search = append(search, c.runtime.config.Containers.DNSSearches...)
 			search = append(search, c.config.DNSSearch...)
 		}
@@ -3108,7 +3109,7 @@ func (c *Container) getOCICgroupPath() (string, error) {
 	case c.config.NoCgroups:
 		return "", nil
 	case c.config.CgroupsMode == cgroupSplit:
-		selfCgroup, err := utils.GetOwnCgroup()
+		selfCgroup, err := utils.GetOwnCgroupDisallowRoot()
 		if err != nil {
 			return "", err
 		}
@@ -3282,7 +3283,7 @@ func (c *Container) fixVolumePermissions(v *ContainerNamedVolume) error {
 				return err
 			}
 			stat := st.Sys().(*syscall.Stat_t)
-			atime := time.Unix(int64(stat.Atim.Sec), int64(stat.Atim.Nsec))
+			atime := time.Unix(int64(stat.Atim.Sec), int64(stat.Atim.Nsec)) // nolint: unconvert
 			if err := os.Chtimes(mountPoint, atime, st.ModTime()); err != nil {
 				return err
 			}

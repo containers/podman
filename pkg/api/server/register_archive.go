@@ -44,13 +44,13 @@ func (s *APIServer) registerArchiveHandlers(r *mux.Router) error {
 	//    200:
 	//      description: no error
 	//    400:
-	//      $ref: "#/responses/BadParamError"
+	//      $ref: "#/responses/badParamError"
 	//    403:
 	//      description: the container rootfs is read-only
 	//    404:
-	//      $ref: "#/responses/NoSuchContainer"
+	//      $ref: "#/responses/containerNotFound"
 	//    500:
-	//      $ref: "#/responses/InternalError"
+	//      $ref: "#/responses/internalError"
 
 	// swagger:operation GET /containers/{name}/archive compat ContainerArchive
 	// ---
@@ -78,11 +78,11 @@ func (s *APIServer) registerArchiveHandlers(r *mux.Router) error {
 	//       type: string
 	//       format: binary
 	//    400:
-	//      $ref: "#/responses/BadParamError"
+	//      $ref: "#/responses/badParamError"
 	//    404:
-	//      $ref: "#/responses/NoSuchContainer"
+	//      $ref: "#/responses/containerNotFound"
 	//    500:
-	//      $ref: "#/responses/InternalError"
+	//      $ref: "#/responses/internalError"
 	r.HandleFunc(VersionedPath("/containers/{name}/archive"), s.APIHandler(compat.Archive)).Methods(http.MethodGet, http.MethodPut, http.MethodHead)
 	// Added non version path to URI to support docker non versioned paths
 	r.HandleFunc("/containers/{name}/archive", s.APIHandler(compat.Archive)).Methods(http.MethodGet, http.MethodPut, http.MethodHead)
@@ -124,13 +124,13 @@ func (s *APIServer) registerArchiveHandlers(r *mux.Router) error {
 	//    200:
 	//      description: no error
 	//    400:
-	//      $ref: "#/responses/BadParamError"
+	//      $ref: "#/responses/badParamError"
 	//    403:
 	//      description: the container rootfs is read-only
 	//    404:
-	//      $ref: "#/responses/NoSuchContainer"
+	//      $ref: "#/responses/containerNotFound"
 	//    500:
-	//      $ref: "#/responses/InternalError"
+	//      $ref: "#/responses/internalError"
 
 	// swagger:operation GET /libpod/containers/{name}/archive libpod ContainerArchiveLibpod
 	// ---
@@ -162,11 +162,11 @@ func (s *APIServer) registerArchiveHandlers(r *mux.Router) error {
 	//       type: string
 	//       format: binary
 	//    400:
-	//      $ref: "#/responses/BadParamError"
+	//      $ref: "#/responses/badParamError"
 	//    404:
-	//      $ref: "#/responses/NoSuchContainer"
+	//      $ref: "#/responses/containerNotFound"
 	//    500:
-	//      $ref: "#/responses/InternalError"
+	//      $ref: "#/responses/internalError"
 	r.HandleFunc(VersionedPath("/libpod/containers/{name}/archive"), s.APIHandler(compat.Archive)).Methods(http.MethodGet, http.MethodPut, http.MethodHead)
 
 	return nil

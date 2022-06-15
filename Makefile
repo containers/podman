@@ -134,7 +134,8 @@ ifeq ($(GOBIN),)
 GOBIN := $(FIRST_GOPATH)/bin
 endif
 
-export PATH := $(PATH):$(GOBIN):$(CURDIR)/hack
+# This must never include the 'hack' directory
+export PATH := $(PATH):$(GOBIN)
 
 GOMD2MAN ?= $(shell command -v go-md2man || echo '$(GOBIN)/go-md2man')
 
@@ -571,7 +572,7 @@ remoteintegration: test-binaries ginkgo-remote
 
 .PHONY: localbenchmarks
 localbenchmarks: test-binaries
-	ACK_GINKGO_RC=true $(GOBIN)/ginkgo \
+	PATH=$(PATH):$(shell pwd)/hack ACK_GINKGO_RC=true $(GOBIN)/ginkgo \
 		      -focus "Podman Benchmark Suite" \
 		      -tags "$(BUILDTAGS) benchmarks" -noColor \
 		      -noisySkippings=false -noisyPendings=false \

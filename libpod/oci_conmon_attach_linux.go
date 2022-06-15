@@ -38,17 +38,26 @@ func openUnixSocket(path string) (*net.UnixConn, error) {
 	return net.DialUnix("unixpacket", nil, &net.UnixAddr{Name: fmt.Sprintf("/proc/self/fd/%d", fd), Net: "unixpacket"})
 }
 
-// Attach to the given container
-// Does not check if state is appropriate
-// started is only required if startContainer is true
-func (c *Container) attach(streams *define.AttachStreams, keys string, resize <-chan define.TerminalSize, startContainer bool, started chan bool, attachRdy chan<- bool) error {
+// Attach to the given container.
+// Does not check if state is appropriate.
+// started is only required if startContainer is true.
+func (r *ConmonOCIRuntime) Attach(c *Container, params *AttachOptions) error {
 	passthrough := c.LogDriver() == define.PassthroughLogging
 
-	if !streams.AttachOutput && !streams.AttachError && !streams.AttachInput && !passthrough {
+	if params == nil || params.Streams == nil {
+		return errors.Wrapf(define.ErrInternal, "must provide parameters to Attach")
+	}
+
+	if !params.Streams.AttachOutput && !params.Streams.AttachError && !params.Streams.AttachInput && !passthrough {
 		return errors.Wrapf(define.ErrInvalidArg, "must provide at least one stream to attach to")
 	}
-	if startContainer && started == nil {
+	if params.Start && params.Started == nil {
 		return errors.Wrapf(define.ErrInternal, "started chan not passed when startContainer set")
+	}
+
+	keys := config.DefaultDetachKeys
+	if params.DetachKeys != nil {
+		keys = *params.DetachKeys
 	}
 
 	detachKeys, err := processDetachKeys(keys)
@@ -60,7 +69,12 @@ func (c *Container) attach(streams *define.AttachStreams, keys string, resize <-
 	if !passthrough {
 		logrus.Debugf("Attaching to container %s", c.ID())
 
-		registerResizeFunc(resize, c.bundlePath())
+		// If we have a resize, do it.
+		if params.InitialSize != nil {
+			if err := r.AttachResize(c, *params.InitialSize); err != nil {
+				return err
+			}
+		}
 
 		attachSock, err := c.AttachSocketPath()
 		if err != nil {
@@ -80,22 +94,22 @@ func (c *Container) attach(streams *define.AttachStreams, keys string, resize <-
 
 	// If starting was requested, start the container and notify when that's
 	// done.
-	if startContainer {
+	if params.Start {
 		if err := c.start(); err != nil {
 			return err
 		}
-		started <- true
+		params.Started <- true
 	}
 
 	if passthrough {
 		return nil
 	}
 
-	receiveStdoutError, stdinDone := setupStdioChannels(streams, conn, detachKeys)
-	if attachRdy != nil {
-		attachRdy <- true
+	receiveStdoutError, stdinDone := setupStdioChannels(params.Streams, conn, detachKeys)
+	if params.AttachReady != nil {
+		params.AttachReady <- true
 	}
-	return readStdio(conn, streams, receiveStdoutError, stdinDone)
+	return readStdio(conn, params.Streams, receiveStdoutError, stdinDone)
 }
 
 // Attach to the given container's exec session

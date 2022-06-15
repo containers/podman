@@ -345,7 +345,7 @@ func makeRuntime(runtime *Runtime) (retErr error) {
 		// it will try to use existing XDG_RUNTIME_DIR
 		// if current user has no write access to XDG_RUNTIME_DIR we will fail later
 		if err := unix.Access(runtime.storageConfig.RunRoot, unix.W_OK); err != nil {
-			msg := "XDG_RUNTIME_DIR is pointing to a path which is not writable. Most likely podman will fail."
+			msg := fmt.Sprintf("RunRoot is pointing to a path (%s) which is not writable. Most likely podman will fail.", runtime.storageConfig.RunRoot)
 			if errors.Is(err, os.ErrNotExist) {
 				// if dir does not exists try to create it
 				if err := os.MkdirAll(runtime.storageConfig.RunRoot, 0700); err != nil {
@@ -916,7 +916,7 @@ func (r *Runtime) refresh(alivePath string) error {
 	}
 	defer file.Close()
 
-	r.newSystemEvent(events.Refresh)
+	r.NewSystemEvent(events.Refresh)
 
 	return nil
 }
@@ -1058,7 +1058,7 @@ func (r *Runtime) mergeDBConfig(dbConfig *DBConfig) {
 	if !r.storageSet.GraphDriverNameSet && dbConfig.GraphDriver != "" {
 		if r.storageConfig.GraphDriverName != dbConfig.GraphDriver &&
 			r.storageConfig.GraphDriverName != "" {
-			logrus.Errorf("User-selected graph driver %q overwritten by graph driver %q from database - delete libpod local files to resolve",
+			logrus.Errorf("User-selected graph driver %q overwritten by graph driver %q from database - delete libpod local files to resolve.  May prevent use of images created by other tools",
 				r.storageConfig.GraphDriverName, dbConfig.GraphDriver)
 		}
 		r.storageConfig.GraphDriverName = dbConfig.GraphDriver

@@ -6,6 +6,8 @@
 red='\e[31m'
 nc='\e[0m'
 
+start_registry
+
 podman pull -q $IMAGE
 
 t GET libpod/images/json 200 \
@@ -20,48 +22,38 @@ t GET libpod/images/$IMAGE/tree 200 \
 t POST "libpod/images/nonesuch/tag?repo=myrepo&tag=mytag" 404
 
 # Tag the image
-t POST "libpod/images/$IMAGE/tag?repo=localhost:5000/myrepo&tag=mytag" 201
+t POST "libpod/images/$IMAGE/tag?repo=localhost:$REGISTRY_PORT/myrepo&tag=mytag" 201
 
 t GET libpod/images/$IMAGE/json 200 \
-  .RepoTags[1]=localhost:5000/myrepo:mytag
+  .RepoTags[1]=localhost:$REGISTRY_PORT/myrepo:mytag
 
-# Run registry container
-# FIXME this fails if python tests have been run first...
-podman run -d --name registry -p 5000:5000 quay.io/libpod/registry:2.7 /entrypoint.sh /etc/docker/registry/config.yml
-wait_for_port localhost 5000
+# Push to local registry...
+t POST "images/localhost:$REGISTRY_PORT/myrepo/push?tlsVerify=false&tag=mytag" 200
 
-# Push to local registry and check output
-while read -r LINE
-do
-  if echo "${LINE}" | jq --exit-status 'select( .status != null) | select ( .status | contains("digest: sha256:"))' &>/dev/null; then
-    GOT_DIGEST="1"
-  fi
-done < <(curl -sL "http://$HOST:$PORT/images/localhost:5000/myrepo/push?tlsVerify=false&tag=mytag" -XPOST)
-if [ -z "${GOT_DIGEST}" ] ; then
-  echo -e "${red}not ok: did not found digest in output${nc}"  1>&2;
-fi
+# ...and check output. We can't use our built-in checks because this output
+# is a sequence of JSON objects, i.e., individual ones, not in a JSON array.
+# The lines themselves are valid JSON, but taken together they are not.
+readarray lines <<<"$output"
+s0=$(jq -r .status <<<"${lines[0]}")
+is "$s0" "The push refers to repository [localhost:$REGISTRY_PORT/myrepo:mytag]" \
+   "Push to local registry: first status line"
 
-# Push to local registry
-t POST "images/localhost:5000/myrepo/push?tlsVerify=false&tag=mytag" 200
+# FIXME: is there a way to test the actual digest?
+s1=$(jq -r .status <<<"${lines[1]}")
+like "$s1" "mytag: digest: sha256:[0-9a-f]\{64\} size: [0-9]\+" \
+     "Push to local registry: second status line"
 
 # Untag the image
-t POST "libpod/images/$iid/untag?repo=localhost:5000/myrepo&tag=mytag" 201
+t POST "libpod/images/$iid/untag?repo=localhost:$REGISTRY_PORT/myrepo&tag=mytag" 201
 
 # Try to push non-existing image
-t POST "images/localhost:5000/idonotexist/push?tlsVerify=false" 404
+t POST "images/localhost:$REGISTRY_PORT/idonotexist/push?tlsVerify=false" 404
 
 t GET libpod/images/$IMAGE/json 200 \
   .RepoTags[-1]=$IMAGE
 
-# Remove the registry container
-t DELETE libpod/containers/registry?force=true 200
-
-# Remove images
+# Remove image
 t DELETE libpod/images/$IMAGE 200 \
   .ExitCode=0
-t DELETE libpod/images/quay.io/libpod/registry:2.7 200 \
-  .ExitCode=0
 
-if [ -z "${GOT_DIGEST}" ] ; then
-  exit 1;
-fi
+stop_registry

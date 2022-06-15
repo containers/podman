@@ -111,6 +111,10 @@ load helpers
                    $IMAGE nc -l -n -v -p $myport
         cid="$output"
 
+        # check that podman stores the network info correctly when a userns is used (#14465)
+        run_podman container inspect --format "{{.NetworkSettings.SandboxKey}}" $cid
+        assert "$output" =~ ".*/netns/netns-.*" "Netns path should be set"
+
         wait_for_output "listening on .*:$myport .*" $cid
 
         # emit random string, and check it

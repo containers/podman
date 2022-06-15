@@ -77,7 +77,7 @@ func PlayKube(w http.ResponseWriter, r *http.Request) {
 			utils.Error(w, http.StatusInternalServerError, err)
 			return
 		}
-		query.LogDriver = config.Containers.LogDriver
+		logDriver = config.Containers.LogDriver
 	}
 
 	containerEngine := abi.ContainerEngine{Libpod: runtime}
@@ -89,7 +89,7 @@ func PlayKube(w http.ResponseWriter, r *http.Request) {
 		Networks:    query.Network,
 		NoHosts:     query.NoHosts,
 		Quiet:       true,
-		LogDriver:   query.LogDriver,
+		LogDriver:   logDriver,
 		LogOptions:  query.LogOptions,
 		StaticIPs:   staticIPs,
 		StaticMACs:  staticMACs,

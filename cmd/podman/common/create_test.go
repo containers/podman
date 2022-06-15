@@ -28,8 +28,8 @@ func TestPodOptions(t *testing.T) {
 		for j := 0; j < cc.NumField(); j++ {
 			containerField := cc.FieldByIndex([]int{j})
 			containerType := reflect.TypeOf(exampleOptions).Field(j)
-			tagPod := strings.Split(string(podType.Tag.Get("json")), ",")[0]
-			tagContainer := strings.Split(string(containerType.Tag.Get("json")), ",")[0]
+			tagPod := strings.Split(podType.Tag.Get("json"), ",")[0]
+			tagContainer := strings.Split(containerType.Tag.Get("json"), ",")[0]
 			if tagPod == tagContainer && (tagPod != "" && tagContainer != "") {
 				areEqual := true
 				if containerField.Kind() == podField.Kind() {

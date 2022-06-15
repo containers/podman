@@ -71,7 +71,7 @@ func (r *Runtime) renumberLocks() error {
 		}
 	}
 
-	r.newSystemEvent(events.Renumber)
+	r.NewSystemEvent(events.Renumber)
 
 	return nil
 }

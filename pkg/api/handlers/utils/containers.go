@@ -57,7 +57,6 @@ func WaitContainerDocker(w http.ResponseWriter, r *http.Request) {
 	name := GetName(r)
 
 	exists, err := containerExists(ctx, name)
-
 	if err != nil {
 		InternalServerError(w, err)
 		return

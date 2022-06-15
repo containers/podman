@@ -8,6 +8,7 @@ import (
 	"github.com/containers/podman/v4/libpod/events"
 	"github.com/containers/podman/v4/pkg/parallel"
 	"github.com/containers/podman/v4/pkg/rootless"
+	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -600,8 +601,8 @@ func (p *Pod) Inspect() (*define.InspectPodData, error) {
 		infraConfig.CPUPeriod = p.CPUPeriod()
 		infraConfig.CPUQuota = p.CPUQuota()
 		infraConfig.CPUSetCPUs = p.ResourceLim().CPU.Cpus
-		infraConfig.PidNS = p.PidMode()
-		infraConfig.UserNS = p.UserNSMode()
+		infraConfig.PidNS = p.NamespaceMode(specs.PIDNamespace)
+		infraConfig.UserNS = p.NamespaceMode(specs.UserNamespace)
 		namedVolumes, mounts := infra.SortUserVolumes(infra.config.Spec)
 		inspectMounts, err = infra.GetMounts(namedVolumes, infra.config.ImageVolumes, mounts)
 		infraSecurity = infra.GetSecurityOptions()

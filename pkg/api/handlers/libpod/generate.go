@@ -41,17 +41,17 @@ func GenerateSystemd(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var ContainerPrefix = "container"
+	ContainerPrefix := "container"
 	if query.ContainerPrefix != nil {
 		ContainerPrefix = *query.ContainerPrefix
 	}
 
-	var PodPrefix = "pod"
+	PodPrefix := "pod"
 	if query.PodPrefix != nil {
 		PodPrefix = *query.PodPrefix
 	}
 
-	var Separator = "-"
+	Separator := "-"
 	if query.Separator != nil {
 		Separator = *query.Separator
 	}
@@ -106,5 +106,7 @@ func GenerateKube(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// FIXME: Content-Type is being set as application/x-tar NOT text/vnd.yaml
+	// https://mailarchive.ietf.org/arch/msg/media-types/e9ZNC0hDXKXeFlAVRWxLCCaG9GI/
 	utils.WriteResponse(w, http.StatusOK, report.Reader)
 }

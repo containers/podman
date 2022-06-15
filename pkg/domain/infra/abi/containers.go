@@ -610,6 +610,7 @@ func (ic *ContainerEngine) ContainerRestore(ctx context.Context, namesOrIds []st
 		ImportPrevious:  options.ImportPrevious,
 		Pod:             options.Pod,
 		PrintStats:      options.PrintStats,
+		FileLocks:       options.FileLocks,
 	}
 
 	filterFuncs := []libpod.ContainerFilter{
@@ -1107,7 +1108,7 @@ func (ic *ContainerEngine) GetContainerExitCode(ctx context.Context, ctr *libpod
 			time.Sleep(250 * time.Millisecond)
 			continue
 		}
-		return int(event.ContainerExitCode)
+		return event.ContainerExitCode
 	}
 	logrus.Errorf("Could not retrieve exit code from event: %v", err)
 	return define.ExecErrorCodeNotFound

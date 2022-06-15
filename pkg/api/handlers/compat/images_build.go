@@ -568,7 +568,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		Output:                         output,
 		OutputFormat:                   format,
 		PullPolicy:                     pullPolicy,
-		PullPushRetryDelay:             time.Duration(2 * time.Second),
+		PullPushRetryDelay:             2 * time.Second,
 		Quiet:                          query.Quiet,
 		Registry:                       registry,
 		RemoveIntermediateCtrs:         query.Rm,
@@ -637,15 +637,17 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 
 	enc := json.NewEncoder(body)
 	enc.SetEscapeHTML(true)
+	var stepErrors []string
 
 	for {
-		m := struct {
+		type BuildResponse struct {
 			Stream string                 `json:"stream,omitempty"`
 			Error  *jsonmessage.JSONError `json:"errorDetail,omitempty"`
 			// NOTE: `error` is being deprecated check https://github.com/moby/moby/blob/master/pkg/jsonmessage/jsonmessage.go#L148
 			ErrorMessage string          `json:"error,omitempty"` // deprecate this slowly
 			Aux          json.RawMessage `json:"aux,omitempty"`
-		}{}
+		}
+		m := BuildResponse{}
 
 		select {
 		case e := <-stdout.Chan():
@@ -661,12 +663,27 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 			}
 			flush()
 		case e := <-auxout.Chan():
-			m.Stream = string(e)
-			if err := enc.Encode(m); err != nil {
-				stderr.Write([]byte(err.Error()))
+			if !query.Quiet {
+				m.Stream = string(e)
+				if err := enc.Encode(m); err != nil {
+					stderr.Write([]byte(err.Error()))
+				}
+				flush()
+			} else {
+				stepErrors = append(stepErrors, string(e))
 			}
-			flush()
 		case e := <-stderr.Chan():
+			// Docker-API Compat parity : Build failed so
+			// output all step errors irrespective of quiet
+			// flag.
+			for _, stepError := range stepErrors {
+				t := BuildResponse{}
+				t.Stream = stepError
+				if err := enc.Encode(t); err != nil {
+					stderr.Write([]byte(err.Error()))
+				}
+				flush()
+			}
 			m.ErrorMessage = string(e)
 			m.Error = &jsonmessage.JSONError{
 				Message: m.ErrorMessage,
@@ -739,7 +756,7 @@ func extractTarFile(r *http.Request) (string, error) {
 	}
 
 	path := filepath.Join(anchorDir, "tarBall")
-	tarBall, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
+	tarBall, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o600)
 	if err != nil {
 		return "", err
 	}
@@ -753,7 +770,7 @@ func extractTarFile(r *http.Request) (string, error) {
 	}
 
 	buildDir := filepath.Join(anchorDir, "build")
-	err = os.Mkdir(buildDir, 0700)
+	err = os.Mkdir(buildDir, 0o700)
 	if err != nil {
 		return "", err
 	}

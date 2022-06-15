@@ -88,7 +88,7 @@ func ManifestCreate(w http.ResponseWriter, r *http.Request) {
 
 	// Treat \r\n as empty body
 	if len(buffer) < 3 {
-		utils.WriteResponse(w, status, handlers.IDResponse{ID: manID})
+		utils.WriteResponse(w, status, entities.IDResponse{ID: manID})
 		return
 	}
 
@@ -113,7 +113,7 @@ func ManifestCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	utils.WriteResponse(w, status, handlers.IDResponse{ID: id})
+	utils.WriteResponse(w, status, entities.IDResponse{ID: id})
 }
 
 // ManifestExists return true if manifest list exists.
@@ -163,7 +163,6 @@ func ManifestAddV3(w http.ResponseWriter, r *http.Request) {
 	// Wrapper to support 3.x with 4.x libpod
 	query := struct {
 		entities.ManifestAddOptions
-		Images    []string
 		TLSVerify bool `schema:"tlsVerify"`
 	}{}
 	if err := json.NewDecoder(r.Body).Decode(&query); err != nil {
@@ -204,7 +203,7 @@ func ManifestAddV3(w http.ResponseWriter, r *http.Request) {
 		utils.InternalServerError(w, err)
 		return
 	}
-	utils.WriteResponse(w, http.StatusOK, handlers.IDResponse{ID: newID})
+	utils.WriteResponse(w, http.StatusOK, entities.IDResponse{ID: newID})
 }
 
 // ManifestRemoveDigestV3 remove digest from manifest list
@@ -238,7 +237,7 @@ func ManifestRemoveDigestV3(w http.ResponseWriter, r *http.Request) {
 		utils.InternalServerError(w, err)
 		return
 	}
-	utils.WriteResponse(w, http.StatusOK, handlers.IDResponse{ID: manifestList.ID()})
+	utils.WriteResponse(w, http.StatusOK, entities.IDResponse{ID: manifestList.ID()})
 }
 
 // ManifestPushV3 push image to registry
@@ -294,7 +293,7 @@ func ManifestPushV3(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, http.StatusBadRequest, errors.Wrapf(err, "error pushing image %q", query.Destination))
 		return
 	}
-	utils.WriteResponse(w, http.StatusOK, handlers.IDResponse{ID: digest})
+	utils.WriteResponse(w, http.StatusOK, entities.IDResponse{ID: digest})
 }
 
 // ManifestPush push image to registry
@@ -353,7 +352,7 @@ func ManifestPush(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, http.StatusBadRequest, errors.Wrapf(err, "error pushing image %q", destination))
 		return
 	}
-	utils.WriteResponse(w, http.StatusOK, handlers.IDResponse{ID: digest})
+	utils.WriteResponse(w, http.StatusOK, entities.IDResponse{ID: digest})
 }
 
 // ManifestModify efficiently updates the named manifest list

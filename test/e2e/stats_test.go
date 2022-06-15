@@ -236,4 +236,15 @@ var _ = Describe("Podman stats", func() {
 
 		Expect(customLimit).To(BeNumerically("<", defaultLimit))
 	})
+
+	It("podman stats with a container that is not running", func() {
+		ctr := "created_container"
+		session := podmanTest.Podman([]string{"create", "--name", ctr, ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"stats", "--no-stream", ctr})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+	})
 })

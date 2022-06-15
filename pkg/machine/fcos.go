@@ -146,13 +146,6 @@ func GetFCOSDownload(imageStream string) (*FcosDownloadInfo, error) { //nolint:s
 		streamType string
 	)
 
-	// This is being hard set to testing. Once podman4 is in the
-	// fcos trees, we should remove it and re-release at least on
-	// macs.
-	// TODO: remove when podman4.0 is in coreos
-
-	imageStream = "podman-testing" //nolint:staticcheck
-
 	switch imageStream {
 	case "podman-testing":
 		streamType = "podman-testing"

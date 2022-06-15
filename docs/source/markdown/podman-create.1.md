@@ -571,7 +571,7 @@ To specify multiple static MAC addresses per container, set multiple networks us
 
 #### **--memory**, **-m**=*limit*
 
-Memory limit (format: `<number>[<unit>]`, where unit = b (bytes), k (kilobytes), m (megabytes), or g (gigabytes))
+Memory limit (format: `<number>[<unit>]`, where unit = b (bytes), k (kibibytes), m (mebibytes), or g (gibibytes))
 
 Allows you to constrain the memory available to a container. If the host
 supports swap memory, then the **-m** memory setting can be larger than physical
@@ -581,7 +581,7 @@ system's page size (the value would be very large, that's millions of trillions)
 
 #### **--memory-reservation**=*limit*
 
-Memory soft limit (format: `<number>[<unit>]`, where unit = b (bytes), k (kilobytes), m (megabytes), or g (gigabytes))
+Memory soft limit (format: `<number>[<unit>]`, where unit = b (bytes), k (kibibytes), m (mebibytes), or g (gibibytes))
 
 After setting memory reservation, when the system detects memory contention
 or low memory, containers are forced to restrict their consumption to their
@@ -597,7 +597,7 @@ A limit value equal to memory plus swap. Must be used with the  **-m**
 the value of --memory.
 
 The format of `LIMIT` is `<number>[<unit>]`. Unit can be `b` (bytes),
-`k` (kilobytes), `m` (megabytes), or `g` (gigabytes). If you don't specify a
+`k` (kibibytes), `m` (mebibytes), or `g` (gibibytes). If you don't specify a
 unit, `b` is used. Set LIMIT to `-1` to enable unlimited swap.
 
 #### **--memory-swappiness**=*number*
@@ -824,22 +824,27 @@ container.
 
 Rootless containers cannot have more privileges than the account that launched them.
 
-#### **--publish**, **-p**=*port*
+#### **--publish**, **-p**=[[_ip_:][_hostPort_]:]_containerPort_[/_protocol_]
 
-Publish a container's port, or range of ports, to the host
+Publish a container's port, or range of ports, to the host.
 
-Format: `ip:hostPort:containerPort | ip::containerPort | hostPort:containerPort | containerPort`
 Both hostPort and containerPort can be specified as a range of ports.
-When specifying ranges for both, the number of container ports in the range must match the number of host ports in the range.
-(e.g., `podman run -p 1234-1236:1222-1224 --name thisWorks -t busybox`
-but not `podman run -p 1230-1236:1230-1240 --name RangeContainerPortsBiggerThanRangeHostPorts -t busybox`)
-With host IP: `podman run -p 127.0.0.1:$HOSTPORT:$CONTAINERPORT --name CONTAINER -t someimage`
+When specifying ranges for both, the number of container ports in the
+range must match the number of host ports in the range.
+
 If host IP is set to 0.0.0.0 or not set at all, the port will be bound on all IPs on the host.
+
+By default, Podman will publish TCP ports. To publish a UDP port instead, give
+`udp` as protocol. To publish both TCP and UDP ports, set `--publish` twice,
+with `tcp`, and `udp` as protocols respectively. Rootful containers can also
+publish ports using the `sctp` protocol.
+
 Host port does not have to be specified (e.g. `podman run -p 127.0.0.1::80`).
 If it is not, the container port will be randomly assigned a port on the host.
-Use `podman port` to see the actual mapping: `podman port CONTAINER $CONTAINERPORT`
 
-**Note:** if a container will be run within a pod, it is not necessary to publish the port for
+Use **podman port** to see the actual mapping: `podman port $CONTAINER $CONTAINERPORT`.
+
+**Note:** If a container will be run within a pod, it is not necessary to publish the port for
 the containers in the pod. The port must only be published by the pod itself. Pod network
 stacks act like the network stack on the host - you have a variety of containers in the pod,
 and programs in the container, all sharing a single interface and IP address, and
@@ -1006,7 +1011,7 @@ Note: Labeling can be disabled for all containers by setting label=false in the 
 
 #### **--shm-size**=*size*
 
-Size of `/dev/shm` (format: `<number>[<unit>]`, where unit = b (bytes), k (kilobytes), m (megabytes), or g (gigabytes))
+Size of `/dev/shm` (format: `<number>[<unit>]`, where unit = b (bytes), k (kibibytes), m (mebibytes), or g (gibibytes))
 If you omit the unit, the system uses bytes. If you omit the size entirely, the system uses `64m`.
 When size is `0`, there is no limit on the amount of memory used for IPC by the container.
 
@@ -1402,12 +1407,10 @@ will be visible inside container but not the other way around. <sup>[[1]](#Footn
 
 To control mount propagation property of a volume one can use the [**r**]**shared**,
 [**r**]**slave**, [**r**]**private** or the [**r**]**unbindable** propagation flag.
-Propagation property can be specified only for bind mounted volumes and not for
-internal volumes or named volumes. For mount propagation to work the source mount
-point (the mount point where source dir is mounted on) has to have the right propagation
-properties. For shared volumes, the source mount point has to be shared. And for
-slave volumes, the source mount point has to be either shared or slave.
-<sup>[[1]](#Footnote1)</sup>
+For mount propagation to work the source mount point (the mount point where source dir
+is mounted on) has to have the right propagation properties. For shared volumes, the
+source mount point has to be shared. And for slave volumes, the source mount point
+has to be either shared or slave. <sup>[[1]](#Footnote1)</sup>
 
 If you want to recursively mount a volume and all of its submounts into a
 container, then you can use the `rbind` option. By default the bind option is

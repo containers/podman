@@ -25,7 +25,7 @@ msg "************************************************************"
 show_env_vars
 
 req_env_vars USER HOME GOSRC SCRIPT_BASE TEST_FLAVOR TEST_ENVIRON \
-             PODBIN_NAME PRIV_NAME DISTRO_NV
+             PODBIN_NAME PRIV_NAME DISTRO_NV DEST_BRANCH
 
 # Verify basic dependencies
 for depbin in go rsync unzip sha256sum curl make python3 git

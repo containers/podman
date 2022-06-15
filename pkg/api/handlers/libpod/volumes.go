@@ -25,8 +25,7 @@ func CreateVolume(w http.ResponseWriter, r *http.Request) {
 		runtime       = r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 		decoder       = r.Context().Value(api.DecoderKey).(*schema.Decoder)
 	)
-	query := struct {
-	}{
+	query := struct{}{
 		// override any golang type defaults
 	}
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
@@ -86,9 +85,7 @@ func CreateVolume(w http.ResponseWriter, r *http.Request) {
 }
 
 func InspectVolume(w http.ResponseWriter, r *http.Request) {
-	var (
-		runtime = r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
-	)
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	name := utils.GetName(r)
 	vol, err := runtime.GetVolume(name)
 	if err != nil {
@@ -107,9 +104,7 @@ func InspectVolume(w http.ResponseWriter, r *http.Request) {
 }
 
 func ListVolumes(w http.ResponseWriter, r *http.Request) {
-	var (
-		runtime = r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
-	)
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	filterMap, err := util.PrepareFilters(r)
 	if err != nil {
 		utils.Error(w, http.StatusInternalServerError,
@@ -153,9 +148,7 @@ func PruneVolumes(w http.ResponseWriter, r *http.Request) {
 }
 
 func pruneVolumesHelper(r *http.Request) ([]*reports.PruneReport, error) {
-	var (
-		runtime = r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
-	)
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	filterMap, err := util.PrepareFilters(r)
 	if err != nil {
 		return nil, err

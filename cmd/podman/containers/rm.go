@@ -28,7 +28,7 @@ var (
 		Long:  rmDescription,
 		RunE:  rm,
 		Args: func(cmd *cobra.Command, args []string) error {
-			return validate.CheckAllLatestAndCIDFile(cmd, args, false, true)
+			return validate.CheckAllLatestAndIDFile(cmd, args, false, "cidfile")
 		},
 		ValidArgsFunction: common.AutocompleteContainers,
 		Example: `podman rm imageID
@@ -102,7 +102,7 @@ func rm(cmd *cobra.Command, args []string) error {
 		rmOptions.Timeout = &stopTimeout
 	}
 	for _, cidFile := range cidFiles {
-		content, err := ioutil.ReadFile(string(cidFile))
+		content, err := ioutil.ReadFile(cidFile)
 		if err != nil {
 			return errors.Wrap(err, "error reading CIDFile")
 		}
@@ -123,9 +123,7 @@ func rm(cmd *cobra.Command, args []string) error {
 // removeContainers will set the exit code according to the `podman-rm` man
 // page.
 func removeContainers(namesOrIDs []string, rmOptions entities.RmOptions, setExit bool) error {
-	var (
-		errs utils.OutputErrors
-	)
+	var errs utils.OutputErrors
 	responses, err := registry.ContainerEngine().ContainerRm(context.Background(), namesOrIDs, rmOptions)
 	if err != nil {
 		if setExit {
@@ -135,8 +133,9 @@ func removeContainers(namesOrIDs []string, rmOptions entities.RmOptions, setExit
 	}
 	for _, r := range responses {
 		if r.Err != nil {
-			// TODO this will not work with the remote client
-			if errors.Cause(err) == define.ErrWillDeadlock {
+			// When using the API, errors.Cause(err) will never equal constant define.ErrWillDeadLock
+			if errors.Cause(r.Err) == define.ErrWillDeadlock ||
+				errors.Cause(r.Err).Error() == define.ErrWillDeadlock.Error() {
 				logrus.Errorf("Potential deadlock detected - please run 'podman system renumber' to resolve")
 			}
 			if setExit {

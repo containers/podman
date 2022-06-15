@@ -25,13 +25,13 @@ import (
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/common/pkg/machine"
 	"github.com/containers/common/pkg/netns"
+	"github.com/containers/common/pkg/util"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/libpod/events"
 	"github.com/containers/podman/v4/pkg/errorhandling"
 	"github.com/containers/podman/v4/pkg/namespaces"
 	"github.com/containers/podman/v4/pkg/resolvconf"
 	"github.com/containers/podman/v4/pkg/rootless"
-	"github.com/containers/podman/v4/pkg/util"
 	"github.com/containers/podman/v4/utils"
 	"github.com/containers/storage/pkg/lockfile"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
@@ -930,6 +930,8 @@ func (r *Runtime) reloadContainerNetwork(ctr *Container) (map[string]types.Statu
 	return r.configureNetNS(ctr, ctr.state.NetNS)
 }
 
+// TODO (5.0): return the statistics per network interface
+// This would allow better compat with docker.
 func getContainerNetIO(ctr *Container) (*netlink.LinkStatistics, error) {
 	var netStats *netlink.LinkStatistics
 
@@ -943,21 +945,39 @@ func getContainerNetIO(ctr *Container) (*netlink.LinkStatistics, error) {
 		return nil, nil
 	}
 
-	// FIXME get the interface from the container netstatus
-	dev := "eth0"
 	netMode := ctr.config.NetMode
+	netStatus := ctr.getNetworkStatus()
 	if otherCtr != nil {
 		netMode = otherCtr.config.NetMode
+		netStatus = otherCtr.getNetworkStatus()
 	}
 	if netMode.IsSlirp4netns() {
-		dev = "tap0"
+		// create a fake status with correct interface name for the logic below
+		netStatus = map[string]types.StatusBlock{
+			"slirp4netns": {
+				Interfaces: map[string]types.NetInterface{"tap0": {}},
+			},
+		}
 	}
 	err := ns.WithNetNSPath(netNSPath, func(_ ns.NetNS) error {
-		link, err := netlink.LinkByName(dev)
-		if err != nil {
-			return err
+		for _, status := range netStatus {
+			for dev := range status.Interfaces {
+				link, err := netlink.LinkByName(dev)
+				if err != nil {
+					return err
+				}
+				if netStats == nil {
+					netStats = link.Attrs().Statistics
+					continue
+				}
+				// Currently only Tx/RxBytes are used.
+				// In the future we should return all stats per interface so that
+				// api users have a better options.
+				stats := link.Attrs().Statistics
+				netStats.TxBytes += stats.TxBytes
+				netStats.RxBytes += stats.RxBytes
+			}
 		}
-		netStats = link.Attrs().Statistics
 		return nil
 	})
 	return netStats, err

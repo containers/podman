@@ -10,6 +10,7 @@ import (
 
 	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/common/pkg/config"
+	cutil "github.com/containers/common/pkg/util"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/domain/entities/reports"
@@ -216,9 +217,9 @@ func (ic *ContainerEngine) SystemDf(ctx context.Context, options entities.System
 			Tag:        stat.Tag,
 			ImageID:    stat.ID,
 			Created:    stat.Created,
-			Size:       int64(stat.Size),
-			SharedSize: int64(stat.SharedSize),
-			UniqueSize: int64(stat.UniqueSize),
+			Size:       stat.Size,
+			SharedSize: stat.SharedSize,
+			UniqueSize: stat.UniqueSize,
 			Containers: stat.Containers,
 		}
 		dfImages = append(dfImages, &report)
@@ -307,7 +308,7 @@ func (ic *ContainerEngine) SystemDf(ctx context.Context, options entities.System
 			reclaimableSize += volSize
 		}
 		for _, viu := range inUse {
-			if util.StringInSlice(viu, runningContainers) {
+			if cutil.StringInSlice(viu, runningContainers) {
 				consInUse++
 			}
 		}

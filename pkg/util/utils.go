@@ -17,6 +17,7 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/containers/common/pkg/config"
+	"github.com/containers/common/pkg/util"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v4/pkg/errorhandling"
 	"github.com/containers/podman/v4/pkg/namespaces"
@@ -78,14 +79,9 @@ func ParseRegistryCreds(creds string) (*types.DockerAuthConfig, error) {
 	}, nil
 }
 
-// StringInSlice determines if a string is in a string slice, returns bool
+// StringInSlice is depracated, use containers/common/pkg/util/StringInSlice
 func StringInSlice(s string, sl []string) bool {
-	for _, i := range sl {
-		if i == s {
-			return true
-		}
-	}
-	return false
+	return util.StringInSlice(s, sl)
 }
 
 // StringMatchRegexSlice determines if a given string matches one of the given regexes, returns bool

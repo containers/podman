@@ -4,9 +4,9 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/containers/common/pkg/util"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/rootless"
-	"github.com/containers/podman/v4/pkg/util"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 )
@@ -183,10 +183,12 @@ func (s *SpecGenerator) Validate() error {
 	}
 
 	// Set defaults if network info is not provided
-	if s.NetNS.NSMode == "" {
-		s.NetNS.NSMode = Bridge
+	// when we are rootless we default to slirp4netns
+	if s.NetNS.IsPrivate() || s.NetNS.IsDefault() {
 		if rootless.IsRootless() {
 			s.NetNS.NSMode = Slirp
+		} else {
+			s.NetNS.NSMode = Bridge
 		}
 	}
 	if err := validateNetNS(&s.NetNS); err != nil {

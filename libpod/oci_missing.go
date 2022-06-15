@@ -108,6 +108,11 @@ func (r *MissingRuntime) UnpauseContainer(ctr *Container) error {
 	return r.printError()
 }
 
+// Attach is not available as the runtime is missing
+func (r *MissingRuntime) Attach(ctr *Container, params *AttachOptions) error {
+	return r.printError()
+}
+
 // HTTPAttach is not available as the runtime is missing
 func (r *MissingRuntime) HTTPAttach(ctr *Container, req *http.Request, w http.ResponseWriter, streams *HTTPAttachStreams, detachKeys *string, cancel <-chan bool, hijackDone chan<- bool, streamAttach, streamLogs bool) error {
 	return r.printError()

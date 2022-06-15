@@ -34,8 +34,9 @@ func (c *Container) GetContainerStats(previousStats *define.ContainerStats) (*de
 		}
 	}
 
+	// returns stats with the fields' default values respective of their type
 	if c.state.State != define.ContainerStateRunning && c.state.State != define.ContainerStatePaused {
-		return stats, define.ErrCtrStateInvalid
+		return stats, nil
 	}
 
 	if previousStats == nil {

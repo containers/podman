@@ -81,7 +81,7 @@ func PodCreate(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, httpCode, errors.Wrap(err, "failed to make pod"))
 		return
 	}
-	utils.WriteResponse(w, http.StatusCreated, handlers.IDResponse{ID: pod.ID()})
+	utils.WriteResponse(w, http.StatusCreated, entities.IDResponse{ID: pod.ID()})
 }
 
 func Pods(w http.ResponseWriter, r *http.Request) {
@@ -290,9 +290,7 @@ func PodPrune(w http.ResponseWriter, r *http.Request) {
 }
 
 func PodPruneHelper(r *http.Request) ([]*entities.PodPruneReport, error) {
-	var (
-		runtime = r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
-	)
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	responses, err := runtime.PrunePods(r.Context())
 	if err != nil {
 		return nil, err
@@ -414,7 +412,7 @@ loop: // break out of for/select infinite` loop
 			}
 
 			if len(output) > 0 {
-				var body = handlers.PodTopOKBody{}
+				body := handlers.PodTopOKBody{}
 				body.Titles = strings.Split(output[0], "\t")
 				for i := range body.Titles {
 					body.Titles[i] = strings.TrimSpace(body.Titles[i])

@@ -327,7 +327,7 @@ func deviceFromPath(path string) (*spec.LinuxDevice, error) {
 	var (
 		devType   string
 		mode      = stat.Mode
-		devNumber = uint64(stat.Rdev)
+		devNumber = uint64(stat.Rdev) // nolint: unconvert
 		m         = os.FileMode(mode)
 	)
 

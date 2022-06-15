@@ -62,7 +62,7 @@ clean_up_server() {
         podman rm -a
         podman rmi -af
 
-        stop_registry
+        stop_registry --cleanup
         stop_service
     fi
 }
@@ -87,6 +87,7 @@ trap err_handler ERR
 #########
 function die() {
     echo "$ME: $*" >&2
+    clean_up_server
     exit 1
 }
 
@@ -219,19 +220,19 @@ function jsonify() {
 function t() {
     local method=$1; shift
     local path=$1; shift
-    local curl_args
+    local -a curl_args
     local content_type="application/json"
 
     local testname="$method $path"
-    # POST requests may be followed by one or more key=value pairs.
+    # POST and PUT requests may be followed by one or more key=value pairs.
     # Slurp the command line until we see a 3-digit status code.
-    if [[ $method = "POST" ]]; then
+    if [[ $method = "POST" || $method == "PUT" ]]; then
         local -a post_args
         for arg; do
             case "$arg" in
                 *=*)              post_args+=("$arg");
                                   shift;;
-                *.tar)            curl_args="--data-binary @$arg" ;
+                *.tar)            curl_args+=(--data-binary @$arg);
                                   content_type="application/x-tar";
                                   shift;;
                 application/*)    content_type="$arg";
@@ -241,8 +242,8 @@ function t() {
             esac
         done
         if [[ -z "$curl_args" ]]; then
-            curl_args="-d $(jsonify ${post_args[@]})"
-            testname="$testname [$curl_args]"
+            curl_args=(-d $(jsonify ${post_args[@]}))
+            testname="$testname [${curl_args[@]}]"
         fi
     fi
 
@@ -269,7 +270,7 @@ function t() {
 
     # curl -X HEAD but without --head seems to wait for output anyway
     if [[ $method == "HEAD" ]]; then
-        curl_args="--head"
+        curl_args+=("--head")
     fi
 
     local expected_code=$1; shift
@@ -281,7 +282,7 @@ function t() {
     # -s = silent, but --write-out 'format' gives us important response data
     # The hairy "{ ...;rc=$?; } || :" lets us capture curl's exit code and
     # give a helpful diagnostic if it fails.
-    { response=$(curl -s -X $method ${curl_args}                 \
+    { response=$(curl -s -X $method "${curl_args[@]}"            \
                     -H "Content-type: $content_type"             \
                     --dump-header $WORKDIR/curl.headers.out      \
                     --write-out '%{http_code}^%{content_type}^%{time_total}' \
@@ -289,8 +290,7 @@ function t() {
 
     # Any error from curl is instant bad news, from which we can't recover
     if [[ $rc -ne 0 ]]; then
-        echo "FATAL: curl failure ($rc) on $url - cannot continue" >&2
-        exit 1
+        die "curl failure ($rc) on $url - cannot continue"
     fi
 
     # Show returned headers (without trailing ^M or empty lines) in log file.
@@ -380,11 +380,6 @@ function start_service() {
         die "Cannot start service on non-localhost ($HOST)"
     fi
 
-    echo "rootdir: "$WORKDIR
-    # Some tests use shortnames; force registry override to work around
-    # docker.io throttling.
-#    FIXME esm revisit pulling expected images re: shortnames caused tests to fail
-#    env CONTAINERS_REGISTRIES_CONF=$TESTS_DIR/../registries.conf
     $PODMAN_BIN \
         --root $WORKDIR/server_root --syslog=true \
         system service \
@@ -411,15 +406,17 @@ REGISTRY_PORT=
 REGISTRY_USERNAME=
 REGISTRY_PASSWORD=
 function start_registry() {
-    # We can be invoked multiple times, e.g. from different subtests, but
-    # let's assume that once started we only kill it at the end of tests.
+    # We can be called multiple times, but each time should start a new
+    # registry container with (possibly) different configuration. That
+    # means that all callers must be responsible for invoking stop_registry.
     if [[ -n "$REGISTRY_PORT" ]]; then
-        return
+        die "start_registry invoked twice in succession, without stop_registry"
     fi
 
+    # First arg is auth type (default: "none", but can also be "htpasswd")
+    local auth="${1:-none}"
+
     REGISTRY_PORT=$(random_port)
-    REGISTRY_USERNAME=u$(random_string 7)
-    REGISTRY_PASSWORD=p$(random_string 7)
 
     local REGDIR=$WORKDIR/registry
     local AUTHDIR=$REGDIR/auth
@@ -433,24 +430,39 @@ function start_registry() {
         podman ${PODMAN_REGISTRY_ARGS} pull $REGISTRY_IMAGE ||
         podman ${PODMAN_REGISTRY_ARGS} pull $REGISTRY_IMAGE
 
-    # Create a local cert and credentials
-    # FIXME: is there a hidden "--quiet" flag? This is too noisy.
-    openssl req -newkey rsa:4096 -nodes -sha256 \
-            -keyout $AUTHDIR/domain.key -x509 -days 2 \
-            -out $AUTHDIR/domain.crt \
-            -subj "/C=US/ST=Foo/L=Bar/O=Red Hat, Inc./CN=registry host certificate" \
-            -addext subjectAltName=DNS:localhost
-    htpasswd -Bbn ${REGISTRY_USERNAME} ${REGISTRY_PASSWORD} \
-             > $AUTHDIR/htpasswd
+    # Create a local cert (no need to do this more than once)
+    if [[ ! -e $AUTHDIR/domain.key ]]; then
+        # FIXME: is there a hidden "--quiet" flag? This is too noisy.
+        openssl req -newkey rsa:4096 -nodes -sha256 \
+                -keyout $AUTHDIR/domain.key -x509 -days 2 \
+                -out $AUTHDIR/domain.crt \
+                -subj "/C=US/ST=Foo/L=Bar/O=Red Hat, Inc./CN=registry host certificate" \
+                -addext subjectAltName=DNS:localhost
+    fi
+
+    # If invoked with auth=htpasswd, create credentials
+    REGISTRY_USERNAME=
+    REGISTRY_PASSWORD=
+    declare -a registry_auth_params=(-e "REGISTRY_AUTH=$auth")
+    if [[ "$auth" = "htpasswd" ]]; then
+        REGISTRY_USERNAME=u$(random_string 7)
+        REGISTRY_PASSWORD=p$(random_string 7)
+
+        htpasswd -Bbn ${REGISTRY_USERNAME} ${REGISTRY_PASSWORD} \
+                 > $AUTHDIR/htpasswd
+
+        registry_auth_params+=(
+            -e "REGISTRY_AUTH_HTPASSWD_REALM=Registry Realm"
+            -e "REGISTRY_AUTH_HTPASSWD_PATH=/auth/htpasswd"
+        )
+    fi
 
     # Run the registry, and wait for it to come up
     podman ${PODMAN_REGISTRY_ARGS} run -d \
            -p ${REGISTRY_PORT}:5000 \
            --name registry \
            -v $AUTHDIR:/auth:Z \
-           -e "REGISTRY_AUTH=htpasswd" \
-           -e "REGISTRY_AUTH_HTPASSWD_REALM=Registry Realm" \
-           -e REGISTRY_AUTH_HTPASSWD_PATH=/auth/htpasswd \
+           "${registry_auth_params[@]}" \
            -e REGISTRY_HTTP_TLS_CERTIFICATE=/auth/domain.crt \
            -e REGISTRY_HTTP_TLS_KEY=/auth/domain.key \
            ${REGISTRY_IMAGE}
@@ -462,13 +474,19 @@ function stop_registry() {
     local REGDIR=${WORKDIR}/registry
     if [[ -d $REGDIR ]]; then
         local OPTS="--root ${REGDIR}/root --runroot ${REGDIR}/runroot"
-        podman $OPTS stop -f -t 0 -a
+        podman $OPTS stop -i -t 0 registry
 
         # rm/rmi are important when running rootless: without them we
         # get EPERMS in tmpdir cleanup because files are owned by subuids.
-        podman $OPTS rm -f -a
-        podman $OPTS rmi -f -a
+        podman $OPTS rm -f -i registry
+        if [[ "$1" = "--cleanup" ]]; then
+            podman $OPTS rmi -f -a
+        fi
     fi
+
+    REGISTRY_PORT=
+    REGISTRY_USERNAME=
+    REGISTRY_PASSWORD=
 }
 
 #################

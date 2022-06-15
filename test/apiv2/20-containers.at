@@ -45,16 +45,16 @@ t GET libpod/containers/json?all=true 200 \
   .[0].IsInfra=false
 
 # Test compat API for Network Settings (.Network is N/A when rootless)
-network_expect=
+network_expect="Networks=null"
 if root; then
-    network_expect='.[0].NetworkSettings.Networks.podman.NetworkID=podman'
+    network_expect="Networks.podman.NetworkID=podman"
 fi
 t GET /containers/json?all=true 200 \
   length=1 \
   .[0].Id~[0-9a-f]\\{64\\} \
   .[0].Image=$IMAGE \
   .[0].Mounts~.*/tmp \
-  $network_expect
+  .[0].NetworkSettings.$network_expect
 
 # compat API imageid with sha256: prefix
 t GET containers/json?limit=1 200 \
@@ -239,6 +239,7 @@ t GET containers/$cid/json 200 \
 t POST containers/create Image=$IMAGE Entrypoint='["top"]' 201 \
   .Id~[0-9a-f]\\{64\\}
 cid_top=$(jq -r '.Id' <<<"$output")
+
 t GET containers/${cid_top}/json 200 \
   .Config.Entrypoint[0]="top" \
   .Config.Cmd='[]' \
