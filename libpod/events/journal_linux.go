@@ -169,7 +169,7 @@ func (e EventJournalD) Read(ctx context.Context, options ReadOptions) error {
 	return nil
 }
 
-func newEventFromJournalEntry(entry *sdjournal.JournalEntry) (*Event, error) { //nolint
+func newEventFromJournalEntry(entry *sdjournal.JournalEntry) (*Event, error) {
 	newEvent := Event{}
 	eventType, err := StringToType(entry.Fields["PODMAN_TYPE"])
 	if err != nil {
