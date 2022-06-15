@@ -46,6 +46,10 @@ func restService(flags *pflag.FlagSet, cfg *entities.PodmanConfig, opts entities
 			return fmt.Errorf("wrong number of file descriptors for socket activation protocol (%d != 1)", len(listeners))
 		}
 		listener = listeners[0]
+		// note that activation.Listeners() returns nil when it cannot listen on the fd (i.e. udp connection)
+		if listener == nil {
+			return fmt.Errorf("unexpected fd received from systemd: cannot listen on it")
+		}
 		libpodRuntime.SetRemoteURI(listeners[0].Addr().String())
 	} else {
 		uri, err := url.Parse(opts.URI)
