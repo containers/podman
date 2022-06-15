@@ -19,6 +19,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/containers/common/pkg/config"
@@ -30,6 +31,7 @@ import (
 	"github.com/docker/go-units"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/sys/unix"
 )
 
 var (
@@ -105,6 +107,9 @@ func (p *Provider) NewMachine(opts machine.InitOptions) (machine.VM, error) {
 	if err != nil {
 		return nil, err
 	}
+	if err := vm.setPIDSocket(); err != nil {
+		return nil, err
+	}
 	cmd := []string{execPath}
 	// Add memory
 	cmd = append(cmd, []string{"-m", strconv.Itoa(int(vm.Memory))}...)
@@ -133,11 +138,9 @@ func (p *Provider) NewMachine(opts machine.InitOptions) (machine.VM, error) {
 		"-device", "virtio-serial",
 		// qemu needs to establish the long name; other connections can use the symlink'd
 		"-chardev", "socket,path=" + vm.ReadySocket.Path + ",server=on,wait=off,id=" + vm.Name + "_ready",
-		"-device", "virtserialport,chardev=" + vm.Name + "_ready" + ",name=org.fedoraproject.port.0"}...)
+		"-device", "virtserialport,chardev=" + vm.Name + "_ready" + ",name=org.fedoraproject.port.0",
+		"-pidfile", vm.VMPidFilePath.GetPath()}...)
 	vm.CmdLine = cmd
-	if err := vm.setPIDSocket(); err != nil {
-		return nil, err
-	}
 	return vm, nil
 }
 
@@ -737,17 +740,17 @@ func (v *MachineVM) Stop(_ string, _ machine.StopOptions) error {
 	if _, err := os.Stat(v.PidFilePath.GetPath()); os.IsNotExist(err) {
 		return nil
 	}
-	pidString, err := v.PidFilePath.Read()
+	proxyPidString, err := v.PidFilePath.Read()
 	if err != nil {
 		return err
 	}
-	pidNum, err := strconv.Atoi(string(pidString))
+	proxyPid, err := strconv.Atoi(string(proxyPidString))
 	if err != nil {
 		return err
 	}
 
-	p, err := os.FindProcess(pidNum)
-	if p == nil && err != nil {
+	proxyProc, err := os.FindProcess(proxyPid)
+	if proxyProc == nil && err != nil {
 		return err
 	}
 
@@ -756,7 +759,7 @@ func (v *MachineVM) Stop(_ string, _ machine.StopOptions) error {
 		return err
 	}
 	// Kill the process
-	if err := p.Kill(); err != nil {
+	if err := proxyProc.Kill(); err != nil {
 		return err
 	}
 	// Remove the pidfile
@@ -772,22 +775,50 @@ func (v *MachineVM) Stop(_ string, _ machine.StopOptions) error {
 		// FIXME: this error should probably be returned
 		return nil // nolint: nilerr
 	}
-
 	disconnected = true
-	waitInternal := 250 * time.Millisecond
-	for i := 0; i < 5; i++ {
-		state, err := v.State(false)
-		if err != nil {
-			return err
-		}
-		if state != machine.Running {
-			break
-		}
-		time.Sleep(waitInternal)
-		waitInternal *= 2
+
+	if err := v.ReadySocket.Delete(); err != nil {
+		return err
 	}
 
-	return v.ReadySocket.Delete()
+	if v.VMPidFilePath.GetPath() == "" {
+		// no vm pid file path means it's probably a machine created before we
+		// started using it, so we revert to the old way of waiting for the
+		// machine to stop
+		fmt.Println("Waiting for VM to stop running...")
+		waitInternal := 250 * time.Millisecond
+		for i := 0; i < 5; i++ {
+			state, err := v.State(false)
+			if err != nil {
+				return err
+			}
+			if state != machine.Running {
+				break
+			}
+			time.Sleep(waitInternal)
+			waitInternal *= 2
+		}
+		// after the machine stops running it normally takes about 1 second for the
+		// qemu VM to exit so we wait a bit to try to avoid issues
+		time.Sleep(2 * time.Second)
+		return nil
+	}
+
+	vmPidString, err := v.VMPidFilePath.Read()
+	if err != nil {
+		return err
+	}
+	vmPid, err := strconv.Atoi(strings.TrimSpace(string(vmPidString)))
+	if err != nil {
+		return err
+	}
+
+	fmt.Println("Waiting for VM to exit...")
+	for isProcessAlive(vmPid) {
+		time.Sleep(500 * time.Millisecond)
+	}
+
+	return nil
 }
 
 // NewQMPMonitor creates the monitor subsection of our vm
@@ -880,8 +911,11 @@ func (v *MachineVM) Remove(_ string, opts machine.RemoveOptions) (string, func()
 
 	// remove socket and pid file if any: warn at low priority if things fail
 	// Remove the pidfile
+	if err := v.VMPidFilePath.Delete(); err != nil {
+		logrus.Debugf("Error while removing VM pidfile: %v", err)
+	}
 	if err := v.PidFilePath.Delete(); err != nil {
-		logrus.Debugf("Error while removing pidfile: %v", err)
+		logrus.Debugf("Error while removing proxy pidfile: %v", err)
 	}
 	// Remove socket
 	if err := v.QMPMonitor.Address.Delete(); err != nil {
@@ -1290,13 +1324,19 @@ func (v *MachineVM) setPIDSocket() error {
 	if !rootless.IsRootless() {
 		rtPath = "/run"
 	}
-	pidFileName := fmt.Sprintf("%s.pid", v.Name)
 	socketDir := filepath.Join(rtPath, "podman")
-	pidFilePath, err := machine.NewMachineFile(filepath.Join(socketDir, pidFileName), &pidFileName)
+	vmPidFileName := fmt.Sprintf("%s_vm.pid", v.Name)
+	proxyPidFileName := fmt.Sprintf("%s_proxy.pid", v.Name)
+	vmPidFilePath, err := machine.NewMachineFile(filepath.Join(socketDir, vmPidFileName), &vmPidFileName)
 	if err != nil {
 		return err
 	}
-	v.PidFilePath = *pidFilePath
+	proxyPidFilePath, err := machine.NewMachineFile(filepath.Join(socketDir, proxyPidFileName), &proxyPidFileName)
+	if err != nil {
+		return err
+	}
+	v.VMPidFilePath = *vmPidFilePath
+	v.PidFilePath = *proxyPidFilePath
 	return nil
 }
 
@@ -1632,4 +1672,13 @@ func (p *Provider) RemoveAndCleanMachines() error {
 		}
 	}
 	return prevErr
+}
+
+func isProcessAlive(pid int) bool {
+	err := unix.Kill(pid, syscall.Signal(0))
+	if err == nil || err == unix.EPERM {
+		return true
+	}
+
+	return false
 }

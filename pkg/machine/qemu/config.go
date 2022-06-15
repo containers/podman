@@ -72,8 +72,10 @@ type MachineVM struct {
 	Mounts []machine.Mount
 	// Name of VM
 	Name string
-	// PidFilePath is the where the PID file lives
+	// PidFilePath is the where the Proxy PID file lives
 	PidFilePath machine.VMFile
+	// VMPidFilePath is the where the VM PID file lives
+	VMPidFilePath machine.VMFile
 	// QMPMonitor is the qemu monitor object for sending commands
 	QMPMonitor Monitor
 	// ReadySocket tells host when vm is booted
