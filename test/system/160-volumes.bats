@@ -64,6 +64,29 @@ function teardown() {
 }
 
 
+# Filter volumes by name
+@test "podman volume filter --name" {
+    suffix=$(random_string)
+    prefix="volume"
+
+    for i in 1 2; do
+        myvolume=${prefix}_${i}_${suffix}
+        run_podman volume create $myvolume
+        is "$output" "$myvolume" "output from volume create $i"
+    done
+
+    run_podman volume ls --filter name=${prefix}_1.+ --format "{{.Name}}"
+    is "$output" "${prefix}_1_${suffix}" "--filter name=${prefix}_1.+ shows only one volume"
+
+    # The _1* is intentional as asterisk has different meaning in glob and regexp. Make sure this is regexp
+    run_podman volume ls --filter name=${prefix}_1* --format "{{.Name}}"
+    is "$output" "${prefix}_1_${suffix}.*${prefix}_2_${suffix}.*" "--filter name=${prefix}_1* shows ${prefix}_1_${suffix} and ${prefix}_2_${suffix}"
+
+    for i in 1 2; do
+        run_podman volume rm ${prefix}_${i}_${suffix}
+    done
+}
+
 # Named volumes
 @test "podman volume create / run" {
     myvolume=myvol$(random_string)
