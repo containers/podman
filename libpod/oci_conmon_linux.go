@@ -1435,7 +1435,7 @@ func (r *ConmonOCIRuntime) moveConmonToCgroupAndSignal(ctr *Container, cmd *exec
 	}
 
 	// $INVOCATION_ID is set by systemd when running as a service.
-	if os.Getenv("INVOCATION_ID") != "" {
+	if ctr.runtime.RemoteURI() == "" && os.Getenv("INVOCATION_ID") != "" {
 		mustCreateCgroup = false
 	}
 

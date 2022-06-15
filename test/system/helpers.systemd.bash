@@ -28,3 +28,7 @@ systemctl() {
 journalctl() {
     command journalctl $_DASHUSER "$@"
 }
+
+systemd-run() {
+    command systemd-run $_DASHUSER "$@";
+}
