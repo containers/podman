@@ -829,7 +829,7 @@ install.tools: .install.ginkgo .install.golangci-lint .install.bats ## Install n
 
 .PHONY: .install.golangci-lint
 .install.golangci-lint:
-	VERSION=1.45.2 ./hack/install_golangci.sh
+	VERSION=1.46.2 ./hack/install_golangci.sh
 
 .PHONY: .install.md2man
 .install.md2man:

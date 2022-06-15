@@ -55,6 +55,8 @@ linters:
     - varnamelen
     - maintidx
     - nilnil
+    - nonamedreturns
+    - exhaustruct
     # deprecated linters
     - golint # replaced by revive
     - scopelint # replaced by exportloopref
