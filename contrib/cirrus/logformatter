@@ -190,6 +190,22 @@ END_HTML
     print { $out_fh } "<h2>Synopsis</h2>\n<hr/>\n",
         job_synopsis($test_name), "<hr/>\n";
 
+    # FOR DEBUGGING: dump environment, but in HTML comments to not clutter
+    # This is safe. There is a TOKEN envariable, but it's not sensitive.
+    # There are no sensitive/secret values in our execution environment,
+    # but we're careful anyway. $SECRET_ENV_RE is set in lib.sh
+    my $filter_re = $ENV{SECRET_ENV_RE} || 'ACCOUNT|GC[EP]|PASSW|SECRET|TOKEN';
+    $filter_re .= '|BASH_FUNC';   # These are long and un-useful
+
+    print { $out_fh } "<!-- Environment: -->\n";
+    for my $e (sort keys %ENV) {
+        next if $e =~ /$filter_re/;
+
+        my $val = escapeHTML($ENV{$e});
+        $val =~ s/--/-&#x002D;/g;       # double dash not valid in comments
+        printf { $out_fh } "<!--  %-20s %s -->\n", $e, $val;
+    }
+
     # State variables
     my $previous_timestamp = '';  # timestamp of previous line
     my $cirrus_task;              # Cirrus task number, used for linking
@@ -538,27 +554,24 @@ END_HTML
     # If Cirrus magic envariables are available, write a link to results.
     # FIXME: it'd be so nice to make this a clickable live link.
     #
-    # STATIC_MAGIC_BLOB is the name of a google-storage bucket. It is
-    # unlikely to change often, but if it does you will suddenly start
-    # seeing errors when trying to view formatted logs:
+    # As of June 2022 we use the Cirrus API[1] as the source of our logs,
+    # instead of linking directly to googleapis.com. This will allow us
+    # to abstract cloud-specific details, so we can one day use Amazon cloud.
+    # See #14569 for more info.
     #
-    #    AccessDeniedAccess denied.Anonymous caller does not have storage.objects.get access to the Google Cloud Storage object.
-    #
-    # This happened in July 2020 when github.com/containers/libpod was
-    # renamed to podman. If something like that ever happens again, you
-    # will need to get the new magic blob value from:
-    #
-    #   https://console.cloud.google.com/storage/browser?project=libpod-218412
-    #
-    # You will also probably need to set the bucket Public by clicking on
-    # the bucket name, then the Permissions tab. This is safe, since this
-    # project is fully open-source.
-    if ($have_formatted_log && $ENV{CIRRUS_TASK_ID}) {
-        my $URL_BASE          = "https://storage.googleapis.com";
-        my $STATIC_MAGIC_BLOB = "cirrus-ci-6707778565701632-fcae48";
-        my $ARTIFACT_NAME     = "html";
+    #   [1] https://cirrus-ci.org/guide/writing-tasks/#latest-build-artifacts
+    if ($have_formatted_log && $ENV{CIRRUS_BUILD_ID} && $ENV{CIRRUS_TASK_NAME}) {
+        my $URL_BASE  = "https://api.cirrus-ci.com";
+        my $build_id  = $ENV{CIRRUS_BUILD_ID};
+        my $task_name = $ENV{CIRRUS_TASK_NAME};
 
-        my $URL = "${URL_BASE}/${STATIC_MAGIC_BLOB}/artifacts/$ENV{CIRRUS_REPO_FULL_NAME}/$ENV{CIRRUS_TASK_ID}/${ARTIFACT_NAME}/${outfile}";
+        # Escape spaces in task names ("int fedora 35 podman root etc")
+        $task_name =~ s/\s/%20/g;
+
+        # URL is long and cumbersome and duplicaty. The task name cannot be
+        # reduced; the file name could, but I choose to leave it because I
+        # sometimes download HTML logs and oh how I hate "log.html" filenames.
+        my $URL = "${URL_BASE}/v1/artifact/build/$build_id/$task_name/html/${outfile}";
 
         print "\n\nAnnotated results:\n  $URL\n";
     }
