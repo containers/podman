@@ -757,7 +757,7 @@ EOF
         is "$output" "[no instance of 'Using cache']" "no cache used"
     fi
 
-    run_podman rmi -a --force
+    run_podman rmi -f build_test
 }
 
 # Caveat lector: this test was mostly copy-pasted from buildah in #9275.
