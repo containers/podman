@@ -292,11 +292,12 @@ func formatterPrefix(entry *sdjournal.JournalEntry) (string, error) {
 	if !ok {
 		return "", errors.Errorf("no PRIORITY field present in journal entry")
 	}
-	if priority == journaldLogOut {
+	switch priority {
+	case journaldLogOut:
 		output += "stdout "
-	} else if priority == journaldLogErr {
+	case journaldLogErr:
 		output += "stderr "
-	} else {
+	default:
 		return "", errors.Errorf("unexpected PRIORITY field in journal entry")
 	}
 

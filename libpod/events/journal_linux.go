@@ -64,7 +64,7 @@ func (e EventJournalD) Write(ee Event) error {
 	case Volume:
 		m["PODMAN_NAME"] = ee.Name
 	}
-	return journal.Send(string(ee.ToHumanReadable(false)), journal.PriInfo, m)
+	return journal.Send(ee.ToHumanReadable(false), journal.PriInfo, m)
 }
 
 // Read reads events from the journal and sends qualified events to the event channel
@@ -167,7 +167,6 @@ func (e EventJournalD) Read(ctx context.Context, options ReadOptions) error {
 		}
 	}
 	return nil
-
 }
 
 func newEventFromJournalEntry(entry *sdjournal.JournalEntry) (*Event, error) { //nolint
