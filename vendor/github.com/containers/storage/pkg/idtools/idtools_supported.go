@@ -1,8 +1,10 @@
+//go:build linux && cgo && libsubid
 // +build linux,cgo,libsubid
 
 package idtools
 
 import (
+	"os/user"
 	"unsafe"
 
 	"github.com/pkg/errors"
@@ -32,19 +34,34 @@ import "C"
 
 func readSubid(username string, isUser bool) (ranges, error) {
 	var ret ranges
+	uidstr := ""
+
 	if username == "ALL" {
 		return nil, errors.New("username ALL not supported")
+	}
+
+	if u, err := user.Lookup(username); err == nil {
+		uidstr = u.Uid
 	}
 
 	cUsername := C.CString(username)
 	defer C.free(unsafe.Pointer(cUsername))
 
+	cuidstr := C.CString(uidstr)
+	defer C.free(unsafe.Pointer(cuidstr))
+
 	var nRanges C.int
 	var cRanges *C.struct_subid_range
 	if isUser {
 		nRanges = C.subid_get_uid_ranges(cUsername, &cRanges)
+		if nRanges <= 0 {
+			nRanges = C.subid_get_uid_ranges(cuidstr, &cRanges)
+		}
 	} else {
 		nRanges = C.subid_get_gid_ranges(cUsername, &cRanges)
+		if nRanges <= 0 {
+			nRanges = C.subid_get_gid_ranges(cuidstr, &cRanges)
+		}
 	}
 	if nRanges < 0 {
 		return nil, errors.New("cannot read subids")
