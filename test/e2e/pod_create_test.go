@@ -1134,4 +1134,27 @@ ENTRYPOINT ["sleep","99999"]
 		Expect(session.OutputToString()).Should(ContainSubstring("/vol2"))
 	})
 
+	It("podman pod create --shm-size", func() {
+		podCreate := podmanTest.Podman([]string{"pod", "create", "--shm-size", "10mb"})
+		podCreate.WaitWithDefaultTimeout()
+		Expect(podCreate).Should(Exit(0))
+
+		run := podmanTest.Podman([]string{"run", "-it", "--pod", podCreate.OutputToString(), ALPINE, "mount"})
+		run.WaitWithDefaultTimeout()
+		Expect(run).Should(Exit(0))
+		t, strings := run.GrepString("shm on /dev/shm type tmpfs")
+		Expect(t).To(BeTrue())
+		Expect(strings[0]).Should(ContainSubstring("size=10240k"))
+	})
+
+	It("podman pod create --shm-size and --ipc=host conflict", func() {
+		podCreate := podmanTest.Podman([]string{"pod", "create", "--shm-size", "10mb"})
+		podCreate.WaitWithDefaultTimeout()
+		Expect(podCreate).Should(Exit(0))
+
+		run := podmanTest.Podman([]string{"run", "-dt", "--pod", podCreate.OutputToString(), "--ipc", "host", ALPINE})
+		run.WaitWithDefaultTimeout()
+		Expect(run).ShouldNot(Exit(0))
+	})
+
 })

@@ -138,4 +138,21 @@ var _ = Describe("Podman pod clone", func() {
 		Expect(data.Mounts[0]).To(HaveField("Name", volName))
 	})
 
+	It("podman pod clone --shm-size", func() {
+		podCreate := podmanTest.Podman([]string{"pod", "create"})
+		podCreate.WaitWithDefaultTimeout()
+		Expect(podCreate).Should(Exit(0))
+
+		podClone := podmanTest.Podman([]string{"pod", "clone", "--shm-size", "10mb", podCreate.OutputToString()})
+		podClone.WaitWithDefaultTimeout()
+		Expect(podClone).Should(Exit(0))
+
+		run := podmanTest.Podman([]string{"run", "-it", "--pod", podClone.OutputToString(), ALPINE, "mount"})
+		run.WaitWithDefaultTimeout()
+		Expect(run).Should(Exit(0))
+		t, strings := run.GrepString("shm on /dev/shm type tmpfs")
+		Expect(t).To(BeTrue())
+		Expect(strings[0]).Should(ContainSubstring("size=10240k"))
+	})
+
 })

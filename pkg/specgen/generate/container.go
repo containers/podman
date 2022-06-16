@@ -506,6 +506,7 @@ func ConfigToSpec(rt *libpod.Runtime, specg *specgen.SpecGenerator, contaierID s
 	specg.Mounts = mounts
 	specg.HostDeviceList = conf.DeviceHostSrc
 	specg.Networks = conf.Networks
+	specg.ShmSize = &conf.ShmSize
 
 	mapSecurityConfig(conf, specg)
 

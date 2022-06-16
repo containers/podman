@@ -217,9 +217,6 @@ func CreateInit(c *cobra.Command, vals entities.ContainerCreateOptions, isInfra 
 	}
 
 	if !isInfra {
-		if c.Flag("shm-size").Changed {
-			vals.ShmSize = c.Flag("shm-size").Value.String()
-		}
 		if c.Flag("cpu-period").Changed && c.Flag("cpus").Changed {
 			return vals, errors.Errorf("--cpu-period and --cpus cannot be set together")
 		}
@@ -282,6 +279,9 @@ func CreateInit(c *cobra.Command, vals entities.ContainerCreateOptions, isInfra 
 		if c.Flag("pod").Changed && !strings.HasPrefix(c.Flag("pod").Value.String(), "new:") && c.Flag("userns").Changed {
 			return vals, errors.Errorf("--userns and --pod cannot be set together")
 		}
+	}
+	if c.Flag("shm-size").Changed {
+		vals.ShmSize = c.Flag("shm-size").Value.String()
 	}
 	if (c.Flag("dns").Changed || c.Flag("dns-opt").Changed || c.Flag("dns-search").Changed) && vals.Net != nil && (vals.Net.Network.NSMode == specgen.NoNetwork || vals.Net.Network.IsContainer()) {
 		return vals, errors.Errorf("conflicting options: dns and the network mode: " + string(vals.Net.Network.NSMode))

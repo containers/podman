@@ -183,6 +183,10 @@ type PodStorageConfig struct {
 	// comma-separated options. Valid options are 'ro', 'rw', and 'z'.
 	// Options will be used for all volumes sourced from the container.
 	VolumesFrom []string `json:"volumes_from,omitempty"`
+	// ShmSize is the size of the tmpfs to mount in at /dev/shm, in bytes.
+	// Conflicts with ShmSize if IpcNS is not private.
+	// Optional.
+	ShmSize *int64 `json:"shm_size,omitempty"`
 }
 
 // PodCgroupConfig contains configuration options about a pod's cgroups.
