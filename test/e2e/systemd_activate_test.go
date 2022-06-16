@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -61,9 +62,10 @@ var _ = Describe("Systemd activate", func() {
 		host := "127.0.0.1"
 		port, err := podmanUtils.GetRandomPort()
 		Expect(err).ToNot(HaveOccurred())
+		addr := net.JoinHostPort(host, strconv.Itoa(port))
 
 		activateSession := testUtils.StartSystemExec(activate, []string{
-			fmt.Sprintf("--listen=%s:%d", host, port),
+			"--listen", addr,
 			podmanTest.PodmanBinary,
 			"--root=" + filepath.Join(tempDir, "server_root"),
 			"system", "service",
@@ -73,7 +75,7 @@ var _ = Describe("Systemd activate", func() {
 
 		// Curried functions for specialized podman calls
 		podmanRemote := func(args ...string) *testUtils.PodmanSession {
-			args = append([]string{"--url", fmt.Sprintf("tcp://%s:%d", host, port)}, args...)
+			args = append([]string{"--url", "tcp://" + addr}, args...)
 			return testUtils.SystemExec(podmanTest.RemotePodmanBinary, args)
 		}
 
@@ -111,7 +113,7 @@ var _ = Describe("Systemd activate", func() {
 		port, err := podmanUtils.GetRandomPort()
 		Expect(err).ToNot(HaveOccurred())
 
-		addr := fmt.Sprintf("%s:%d", host, port)
+		addr := net.JoinHostPort(host, strconv.Itoa(port))
 
 		// start systemd activation with datagram socket
 		activateSession := testUtils.StartSystemExec(activate, []string{
