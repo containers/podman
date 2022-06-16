@@ -199,7 +199,7 @@ function check_help() {
     check_help
 
     # Test for regression of #7273 (spurious "--remote" help on output)
-    for helpopt in help --help; do
+    for helpopt in help --help -h; do
         run_podman $helpopt
         is "${lines[0]}" "Manage pods, containers and images" \
            "podman $helpopt: first line of output"
