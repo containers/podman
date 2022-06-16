@@ -21,6 +21,10 @@ The REST API provided by **podman system service** is split into two parts: a co
 Documentation for the latter is available at *https://docs.podman.io/en/latest/_static/api.html*.
 Both APIs are versioned, but the server will not reject requests with an unsupported version set.
 
+Please note that the API grants full access to Podman's capabilities, and as such should be treated as allowing arbitrary code execution as the user running the API.
+As such, we strongly recommend against making the API socket available via the network.
+The default configuration (a Unix socket with permissions set to only allow the user running Podman) is the most secure way of running the API.
+
 Note: The default systemd unit files (system and user) change the log-level option to *info* from *error*. This change provides additional information on each API call.
 
 ## OPTIONS
