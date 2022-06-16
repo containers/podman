@@ -34,12 +34,8 @@ echo $rand        |   0 | $rand
         # FIXME: The </dev/null is a hack, necessary because as of 2019-09
         #        podman-remote has a bug in which it silently slurps up stdin,
         #        including the output of parse_table (i.e. tests to be run).
-        run_podman $expected_rc run $IMAGE "$@" </dev/null
-
-        # FIXME: remove conditional once podman-remote issue #4096 is fixed
-        if ! is_remote; then
-            is "$output" "$expected_output" "podman run $cmd - output"
-        fi
+        run_podman $expected_rc run $IMAGE "$@"
+        is "$output" "$expected_output" "podman run $cmd - output"
 
         tests_run=$(expr $tests_run + 1)
     done < <(parse_table "$tests")
@@ -470,10 +466,10 @@ json-file | f
     # dependent, we pick an obscure zone (+1245) that is unlikely to
     # collide with any of our testing environments.
     #
-    # To get a reference timestamp we run 'date' locally; note the explicit
-    # strftime() format. We can't use --iso=seconds because GNU date adds
-    # a colon to the TZ offset (eg -07:00) whereas alpine does not (-0700).
-    run date --date=@1600000000 +%Y-%m-%dT%H:%M:%S%z
+    # To get a reference timestamp we run 'date' locally. This requires
+    # that GNU date output matches that of alpine; this seems to be true
+    # as of testimage:20220615.
+    run date --date=@1600000000 --iso=seconds
     expect="$output"
     TZ=Pacific/Chatham run_podman run --rm --tz=local $IMAGE date -Iseconds -r $testfile
     is "$output" "$expect" "podman run with --tz=local, matches host"
@@ -628,7 +624,8 @@ json-file | f
         run_podman image mount $IMAGE
         romount="$output"
 
-        run_podman run --rm --rootfs $romount echo "Hello world"
+        # FIXME FIXME FIXME: Remove :O once (if) #14504 is fixed!
+        run_podman run --rm --rootfs $romount:O echo "Hello world"
         is "$output" "Hello world"
 
         run_podman image unmount $IMAGE

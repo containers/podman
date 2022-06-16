@@ -165,6 +165,9 @@ load helpers
 
     run_podman pod rm $pod_name
     is "$output" "$pid" "Only ID in output (no extra errors)"
+
+    # Clean up
+    run_podman rmi $(pause_image)
 }
 
 @test "podman run with slirp4ns assigns correct addresses to /etc/hosts" {

@@ -12,8 +12,8 @@
 # still need a fedora image for that.
 #
 
-# Buildah binary
-BUILDAH=${BUILDAH:-buildah}
+# Podman binary to use
+PODMAN=${PODMAN:-$(pwd)/bin/podman}
 
 # Tag for this new image
 YMD=$(date +%Y%m%d)
@@ -25,7 +25,8 @@ if [ -z "$create_script" ]; then
 fi
 
 # Creation timestamp, Zulu time
-create_time_z=$(env TZ=UTC date +'%Y-%m-%dT%H:%M:%SZ')
+create_time_t=$(date +%s)
+create_time_z=$(env TZ=UTC date --date=@$create_time_t +'%Y-%m-%dT%H:%M:%SZ')
 
 set -ex
 
@@ -60,19 +61,33 @@ chmod 755 pause
 # alpine because it's small and light and reliable
 #    - check for updates @ https://hub.docker.com/_/alpine
 # busybox-extras provides httpd needed in 500-networking.bats
-cat >Containerfile <<EOF
+#
+# Two Containerfiles, because we have to do the image build in two parts,
+# which I think are easier to describe in reverse order:
+#    2) The second build has to be run with --timestamp=CONSTANT, otherwise
+#       the Created test in 110-history.bats may fail (#14456); but
+#    1) the timestamp of the testimage-id file must be preserved (see above),
+#       and 'build --timestamp' clobbers all file timestamps.
+#
+cat >Containerfile1 <<EOF
 ARG REPO=please-override-repo
-FROM docker.io/\${REPO}/alpine:3.13.5
+FROM docker.io/\${REPO}/alpine:3.16.0
 RUN apk add busybox-extras
 ADD testimage-id pause /home/podman/
+EOF
+
+cat >Containerfile2 <<EOF
+FROM localhost/interim-image:latest
 LABEL created_by=$create_script
 LABEL created_at=$create_time_z
 WORKDIR /home/podman
 CMD ["/bin/echo", "This container is intended for podman CI testing"]
 EOF
 
-# --squash-all    : needed by 'tree' test in 070-build.bats
-podman rmi -f testimage &> /dev/null || true
+# Start from scratch
+testimg_base=quay.io/libpod/testimage
+testimg=${testimg_base}:$YMD
+$PODMAN rmi -f $testimg &> /dev/null || true
 
 # There should always be a testimage tagged ':0000000<X>' (eight digits,
 # zero-padded sequence ID) in the same location; this is used by tests
@@ -80,7 +95,7 @@ podman rmi -f testimage &> /dev/null || true
 # if ever need to change, nor in fact does it even have to be a copy of
 # this testimage since all we use it for is 'true'.
 # However, it does need to be multiarch :-(
-zerotag_latest=$(skopeo list-tags docker://quay.io/libpod/testimage |\
+zerotag_latest=$(skopeo list-tags docker://${testimg_base} |\
                      jq -r '.Tags[]' |\
                      sort --version-sort |\
                      grep '^000' |\
@@ -88,12 +103,9 @@ zerotag_latest=$(skopeo list-tags docker://quay.io/libpod/testimage |\
 zerotag_next=$(printf "%08d" $((zerotag_latest + 1)))
 
 # We don't always need to push the :00xx image, but build it anyway.
-zeroimg=quay.io/libpod/testimage:${zerotag_next}
-buildah manifest create $zeroimg
+zeroimg=${testimg_base}:${zerotag_next}
+$PODMAN manifest create $zeroimg
 
-# We need to use buildah because (as of 2021-02-23) only buildah has --manifest
-# and because Dan says arch emulation is not currently working on podman
-# (no further details).
 # Arch emulation on Fedora requires the qemu-user-static package.
 for arch in amd64 arm64 ppc64le s390x;do
     # docker.io repo is usually the same name as the desired arch; except
@@ -104,16 +116,32 @@ for arch in amd64 arm64 ppc64le s390x;do
         repo="${repo}v8"
     fi
 
-    ${BUILDAH} bud \
-               --arch=$arch \
-               --build-arg REPO=$repo \
-               --manifest=testimage \
-               --squash \
-               .
+    # First build defines REPO, but does not have --timestamp
+    $PODMAN build \
+            --arch=$arch \
+            --build-arg REPO=$repo \
+            --squash-all \
+            --file Containerfile1 \
+            -t interim-image \
+            .
+
+    # Second build forces --timestamp, and adds to manifest. Unfortunately
+    # we can't use --squash-all with --timestamp: *all* timestamps get
+    # clobbered. This is not fixable (#14536).
+    $PODMAN build \
+            --arch=$arch \
+            --timestamp=$create_time_t \
+            --manifest=$testimg \
+            --squash \
+            --file Containerfile2 \
+            .
+
+    # No longer need the interim image
+    $PODMAN rmi interim-image
 
     # The zero-tag image
-    ${BUILDAH} pull --arch $arch     docker.io/$repo/busybox:1.33.1
-    ${BUILDAH} manifest add $zeroimg docker.io/$repo/busybox:1.33.1
+    $PODMAN pull --arch $arch     docker.io/$repo/busybox:1.34.1
+    $PODMAN manifest add $zeroimg docker.io/$repo/busybox:1.34.1
 done
 
 # Clean up
@@ -121,14 +149,12 @@ cd /tmp
 rm -rf $tmpdir
 
 # Tag image and push (all arches) to quay.
-remote_tag=quay.io/libpod/testimage:$YMD
-podman tag testimage ${remote_tag}
 cat <<EOF
 
 If you're happy with these images, run:
 
-   ${BUILDAH} manifest push --all  ${remote_tag} docker://${remote_tag}
-   ${BUILDAH} manifest push --all  ${zeroimg} docker://${zeroimg}
+   podman manifest push --all  ${testimg} docker://${testimg}
+   podman manifest push --all  ${zeroimg} docker://${zeroimg}
 
 (You do not always need to push the :0000 image)
 
