@@ -16,9 +16,11 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
+	"os/signal"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/containers/common/pkg/config"
@@ -484,12 +486,26 @@ func (v *MachineVM) Start(name string, _ machine.StartOptions) error {
 	if err := v.writeConfig(); err != nil {
 		return fmt.Errorf("writing JSON file: %w", err)
 	}
-	defer func() {
+	doneStarting := func() {
 		v.Starting = false
 		if err := v.writeConfig(); err != nil {
 			logrus.Errorf("Writing JSON file: %v", err)
 		}
+	}
+	defer doneStarting()
+
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		_, ok := <-c
+		if !ok {
+			return
+		}
+		doneStarting()
+		os.Exit(1)
 	}()
+	defer close(c)
+
 	if v.isIncompatible() {
 		logrus.Errorf("machine %q is incompatible with this release of podman and needs to be recreated, starting for recovery only", v.Name)
 	}
