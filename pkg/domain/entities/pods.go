@@ -301,7 +301,7 @@ type PodCreateReport struct {
 }
 
 type PodCloneReport struct {
-	Id string //nolint
+	Id string //nolint:revive,stylecheck
 }
 
 func (p *PodCreateOptions) CPULimits() *specs.LinuxCPU {
