@@ -873,23 +873,23 @@ func makeHealthCheckFromCli(inCmd, interval string, retries uint, timeout, start
 	}
 
 	var concat string
-	if cmdArr[0] == "CMD" || cmdArr[0] == "none" { // this is for compat, we are already split properly for most compat cases
+	if strings.ToUpper(cmdArr[0]) == define.HealthConfigTestCmd || strings.ToUpper(cmdArr[0]) == define.HealthConfigTestNone { // this is for compat, we are already split properly for most compat cases
 		cmdArr = strings.Fields(inCmd)
-	} else if cmdArr[0] != "CMD-SHELL" { // this is for podman side of things, won't contain the keywords
+	} else if strings.ToUpper(cmdArr[0]) != define.HealthConfigTestCmdShell { // this is for podman side of things, won't contain the keywords
 		if isArr && len(cmdArr) > 1 { // an array of consecutive commands
-			cmdArr = append([]string{"CMD"}, cmdArr...)
+			cmdArr = append([]string{define.HealthConfigTestCmd}, cmdArr...)
 		} else { // one singular command
 			if len(cmdArr) == 1 {
 				concat = cmdArr[0]
 			} else {
 				concat = strings.Join(cmdArr[0:], " ")
 			}
-			cmdArr = append([]string{"CMD-SHELL"}, concat)
+			cmdArr = append([]string{define.HealthConfigTestCmdShell}, concat)
 		}
 	}
 
-	if cmdArr[0] == "none" { // if specified to remove healtcheck
-		cmdArr = []string{"NONE"}
+	if strings.ToUpper(cmdArr[0]) == define.HealthConfigTestNone { // if specified to remove healtcheck
+		cmdArr = []string{define.HealthConfigTestNone}
 	}
 
 	// healthcheck is by default an array, so we simply pass the user input

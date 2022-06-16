@@ -47,3 +47,13 @@ const (
 	// DefaultHealthCheckTimeout default value
 	DefaultHealthCheckTimeout = "30s"
 )
+
+// HealthConfig.Test options
+const (
+	// HealthConfigTestNone disables healthcheck
+	HealthConfigTestNone = "NONE"
+	// HealthConfigTestCmd execs arguments directly
+	HealthConfigTestCmd = "CMD"
+	// HealthConfigTestCmdShell runs commands with the system's default shell
+	HealthConfigTestCmdShell = "CMD-SHELL"
+)

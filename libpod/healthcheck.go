@@ -47,11 +47,11 @@ func (c *Container) runHealthCheck() (define.HealthCheckStatus, error) {
 		return define.HealthCheckNotDefined, errors.Errorf("container %s has no defined healthcheck", c.ID())
 	}
 	switch hcCommand[0] {
-	case "", "NONE":
+	case "", define.HealthConfigTestNone:
 		return define.HealthCheckNotDefined, errors.Errorf("container %s has no defined healthcheck", c.ID())
-	case "CMD":
+	case define.HealthConfigTestCmd:
 		newCommand = hcCommand[1:]
-	case "CMD-SHELL":
+	case define.HealthConfigTestCmdShell:
 		// TODO: SHELL command from image not available in Container - use Docker default
 		newCommand = []string{"/bin/sh", "-c", strings.Join(hcCommand[1:], " ")}
 	default:
