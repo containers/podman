@@ -1607,8 +1607,14 @@ func AutocompleteClone(cmd *cobra.Command, args []string, toComplete string) ([]
 	}
 	switch len(args) {
 	case 0:
+		if cmd.Parent().Name() == "pod" { // needs to be " pod " to exclude 'podman'
+			return getPods(cmd, toComplete, completeDefault)
+		}
 		return getContainers(cmd, toComplete, completeDefault)
 	case 2:
+		if cmd.Parent().Name() == "pod" {
+			return nil, cobra.ShellCompDirectiveNoFileComp
+		}
 		return getImages(cmd, toComplete)
 	}
 	return nil, cobra.ShellCompDirectiveNoFileComp

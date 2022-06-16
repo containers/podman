@@ -13,6 +13,7 @@ podman pod is a set of subcommands that manage pods, or groups of containers.
 
 | Command | Man Page                                          | Description                                                                       |
 | ------- | ------------------------------------------------- | --------------------------------------------------------------------------------- |
+| clone   | [podman-pod-clone(1)](podman-pod-clone.1.md)      | Creates a copy of an existing pod.                                                             |
 | create  | [podman-pod-create(1)](podman-pod-create.1.md)    | Create a new pod.                                                                 |
 | exists  | [podman-pod-exists(1)](podman-pod-exists.1.md)    | Check if a pod exists in local storage.                                           |
 | inspect | [podman-pod-inspect(1)](podman-pod-inspect.1.md)  | Displays information describing a pod.                                            |

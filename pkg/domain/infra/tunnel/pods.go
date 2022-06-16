@@ -195,6 +195,10 @@ func (ic *ContainerEngine) PodCreate(ctx context.Context, specg entities.PodSpec
 	return pods.CreatePodFromSpec(ic.ClientCtx, &specg)
 }
 
+func (ic *ContainerEngine) PodClone(ctx context.Context, podClone entities.PodCloneOptions) (*entities.PodCloneReport, error) {
+	return nil, nil
+}
+
 func (ic *ContainerEngine) PodTop(ctx context.Context, opts entities.PodTopOptions) (*entities.StringSliceReport, error) {
 	switch {
 	case opts.Latest:

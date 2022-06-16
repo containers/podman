@@ -71,6 +71,7 @@ type ContainerEngine interface {
 	PlayKube(ctx context.Context, body io.Reader, opts PlayKubeOptions) (*PlayKubeReport, error)
 	PlayKubeDown(ctx context.Context, body io.Reader, opts PlayKubeDownOptions) (*PlayKubeReport, error)
 	PodCreate(ctx context.Context, specg PodSpec) (*PodCreateReport, error)
+	PodClone(ctx context.Context, podClone PodCloneOptions) (*PodCloneReport, error)
 	PodExists(ctx context.Context, nameOrID string) (*BoolReport, error)
 	PodInspect(ctx context.Context, options PodInspectOptions) (*PodInspectReport, error)
 	PodKill(ctx context.Context, namesOrIds []string, options PodKillOptions) ([]*PodKillReport, error)

@@ -2,12 +2,17 @@ package generate
 
 import (
 	"context"
+	"fmt"
 	"net"
+	"os"
+	"strconv"
+	"strings"
 
 	"github.com/containers/podman/v4/libpod"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/specgen"
+	"github.com/containers/podman/v4/pkg/specgenutil"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -209,4 +214,89 @@ func MapSpec(p *specgen.PodSpecGenerator) (*specgen.SpecGenerator, error) {
 
 	p.InfraContainerSpec.Image = p.InfraImage
 	return p.InfraContainerSpec, nil
+}
+
+func PodConfigToSpec(rt *libpod.Runtime, spec *specgen.PodSpecGenerator, infraOptions *entities.ContainerCreateOptions, id string) (p *libpod.Pod, err error) {
+	pod, err := rt.LookupPod(id)
+	if err != nil {
+		return nil, err
+	}
+
+	infraSpec := &specgen.SpecGenerator{}
+	if pod.HasInfraContainer() {
+		infraID, err := pod.InfraContainerID()
+		if err != nil {
+			return nil, err
+		}
+		_, _, err = ConfigToSpec(rt, infraSpec, infraID)
+		if err != nil {
+			return nil, err
+		}
+
+		infraSpec.Hostname = ""
+		infraSpec.CgroupParent = ""
+		infraSpec.Pod = "" // remove old pod...
+		infraOptions.IsClone = true
+		infraOptions.IsInfra = true
+
+		n := infraSpec.Name
+		_, err = rt.LookupContainer(n + "-clone")
+		if err == nil { // if we found a ctr with this name, set it so the below switch can tell
+			n += "-clone"
+		}
+
+		switch {
+		case strings.Contains(n, "-clone"):
+			ind := strings.Index(n, "-clone") + 6
+			num, err := strconv.Atoi(n[ind:])
+			if num == 0 && err != nil { // clone1 is hard to get with this logic, just check for it here.
+				_, err = rt.LookupContainer(n + "1")
+				if err != nil {
+					infraSpec.Name = n + "1"
+					break
+				}
+			} else {
+				n = n[0:ind]
+			}
+			err = nil
+			count := num
+			for err == nil {
+				count++
+				tempN := n + strconv.Itoa(count)
+				_, err = rt.LookupContainer(tempN)
+			}
+			n += strconv.Itoa(count)
+			infraSpec.Name = n
+		default:
+			infraSpec.Name = n + "-clone"
+		}
+
+		err = specgenutil.FillOutSpecGen(infraSpec, infraOptions, []string{})
+		if err != nil {
+			return nil, err
+		}
+
+		out, err := CompleteSpec(context.Background(), rt, infraSpec)
+		if err != nil {
+			return nil, err
+		}
+
+		// Print warnings
+		if len(out) > 0 {
+			for _, w := range out {
+				fmt.Println("Could not properly complete the spec as expected:")
+				fmt.Fprintf(os.Stderr, "%s\n", w)
+			}
+		}
+
+		spec.InfraContainerSpec = infraSpec
+	}
+
+	// need to reset hostname, name etc of both pod and infra
+	spec.Hostname = ""
+
+	if len(spec.InfraContainerSpec.Image) > 0 {
+		spec.InfraImage = spec.InfraContainerSpec.Image
+	}
+	return pod, nil
 }

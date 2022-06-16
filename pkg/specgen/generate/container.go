@@ -450,7 +450,7 @@ func ConfigToSpec(rt *libpod.Runtime, specg *specgen.SpecGenerator, contaierID s
 					specg.IpcNS = specgen.Namespace{NSMode: specgen.Default} // default
 				}
 			case "uts":
-				specg.UtsNS = specgen.Namespace{NSMode: specgen.Default} // default
+				specg.UtsNS = specgen.Namespace{NSMode: specgen.Private} // default
 			case "user":
 				if conf.AddCurrentUserPasswdEntry {
 					specg.UserNS = specgen.Namespace{NSMode: specgen.KeepID}

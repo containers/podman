@@ -64,6 +64,7 @@ func init() {
 	})
 	flags := createCommand.Flags()
 	flags.SetInterspersed(false)
+	common.DefineCreateDefaults(&infraOptions)
 	common.DefineCreateFlags(createCommand, &infraOptions, true, false)
 	common.DefineNetFlags(createCommand)
 

@@ -98,7 +98,7 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		cgroupsFlagName := "cgroups"
 		createFlags.StringVar(
 			&cf.CgroupsMode,
-			cgroupsFlagName, cgroupConfig(),
+			cgroupsFlagName, cf.CgroupsMode,
 			`control container cgroup configuration ("enabled"|"disabled"|"no-conmon"|"split")`,
 		)
 		_ = cmd.RegisterFlagCompletionFunc(cgroupsFlagName, AutocompleteCgroupMode)
@@ -150,7 +150,7 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 
 		envFlagName := "env"
 		createFlags.StringArrayP(
-			envFlagName, "e", env(),
+			envFlagName, "e", Env(),
 			"Set environment variables in container",
 		)
 		_ = cmd.RegisterFlagCompletionFunc(envFlagName, completion.AutocompleteNone)
@@ -256,7 +256,7 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 
 		imageVolumeFlagName := "image-volume"
 		createFlags.String(
-			imageVolumeFlagName, containerConfig.Engine.ImageVolumeMode,
+			imageVolumeFlagName, cf.ImageVolume,
 			`Tells podman how to handle the builtin image volumes ("bind"|"tmpfs"|"ignore")`,
 		)
 		_ = cmd.RegisterFlagCompletionFunc(imageVolumeFlagName, AutocompleteImageVolume)
@@ -298,7 +298,7 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		logDriverFlagName := "log-driver"
 		createFlags.StringVar(
 			&cf.LogDriver,
-			logDriverFlagName, LogDriver(),
+			logDriverFlagName, cf.LogDriver,
 			"Logging driver for the container",
 		)
 		_ = cmd.RegisterFlagCompletionFunc(logDriverFlagName, AutocompleteLogDriver)
@@ -389,7 +389,7 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		pullFlagName := "pull"
 		createFlags.StringVar(
 			&cf.Pull,
-			pullFlagName, policy(),
+			pullFlagName, cf.Pull,
 			`Pull image before creating ("always"|"missing"|"never")`,
 		)
 		_ = cmd.RegisterFlagCompletionFunc(pullFlagName, AutocompletePullOption)
@@ -406,7 +406,7 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		)
 		createFlags.BoolVar(
 			&cf.ReadOnlyTmpFS,
-			"read-only-tmpfs", true,
+			"read-only-tmpfs", cf.ReadOnlyTmpFS,
 			"When running containers in read-only mode mount a read-write tmpfs on /run, /tmp and /var/tmp",
 		)
 		requiresFlagName := "requires"
@@ -439,7 +439,7 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		sdnotifyFlagName := "sdnotify"
 		createFlags.StringVar(
 			&cf.SdNotifyMode,
-			sdnotifyFlagName, define.SdNotifyModeContainer,
+			sdnotifyFlagName, cf.SdNotifyMode,
 			`control sd-notify behavior ("container"|"conmon"|"ignore")`,
 		)
 		_ = cmd.RegisterFlagCompletionFunc(sdnotifyFlagName, AutocompleteSDNotify)
@@ -470,7 +470,7 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		stopTimeoutFlagName := "stop-timeout"
 		createFlags.UintVar(
 			&cf.StopTimeout,
-			stopTimeoutFlagName, containerConfig.Engine.StopTimeout,
+			stopTimeoutFlagName, cf.StopTimeout,
 			"Timeout (in seconds) that containers stopped by user command have to exit. If exceeded, the container will be forcibly stopped via SIGKILL.",
 		)
 		_ = cmd.RegisterFlagCompletionFunc(stopTimeoutFlagName, completion.AutocompleteNone)
@@ -478,7 +478,7 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		systemdFlagName := "systemd"
 		createFlags.StringVar(
 			&cf.Systemd,
-			systemdFlagName, "true",
+			systemdFlagName, cf.Systemd,
 			`Run container in systemd mode ("true"|"false"|"always")`,
 		)
 		_ = cmd.RegisterFlagCompletionFunc(systemdFlagName, AutocompleteSystemdFlag)
@@ -522,7 +522,7 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		timezoneFlagName := "tz"
 		createFlags.StringVar(
 			&cf.Timezone,
-			timezoneFlagName, containerConfig.TZ(),
+			timezoneFlagName, cf.Timezone,
 			"Set timezone in container",
 		)
 		_ = cmd.RegisterFlagCompletionFunc(timezoneFlagName, completion.AutocompleteNone) //TODO: add timezone completion
@@ -530,7 +530,7 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		umaskFlagName := "umask"
 		createFlags.StringVar(
 			&cf.Umask,
-			umaskFlagName, containerConfig.Umask(),
+			umaskFlagName, cf.Umask,
 			"Set umask in container",
 		)
 		_ = cmd.RegisterFlagCompletionFunc(umaskFlagName, completion.AutocompleteNone)
@@ -538,7 +538,7 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		ulimitFlagName := "ulimit"
 		createFlags.StringSliceVar(
 			&cf.Ulimit,
-			ulimitFlagName, ulimits(),
+			ulimitFlagName, cf.Ulimit,
 			"Ulimit options",
 		)
 		_ = cmd.RegisterFlagCompletionFunc(ulimitFlagName, completion.AutocompleteNone)
@@ -577,7 +577,7 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		seccompPolicyFlagName := "seccomp-policy"
 		createFlags.StringVar(
 			&cf.SeccompPolicy,
-			seccompPolicyFlagName, "default",
+			seccompPolicyFlagName, cf.SeccompPolicy,
 			"Policy for selecting a seccomp profile (experimental)",
 		)
 		_ = cmd.RegisterFlagCompletionFunc(seccompPolicyFlagName, completion.AutocompleteDefault)
@@ -769,7 +769,7 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		volumeFlagName := "volume"
 		createFlags.StringArrayVarP(
 			&cf.Volume,
-			volumeFlagName, "v", volumes(),
+			volumeFlagName, "v", cf.Volume,
 			volumeDesciption,
 		)
 		_ = cmd.RegisterFlagCompletionFunc(volumeFlagName, AutocompleteVolumeFlag)
@@ -890,12 +890,13 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		memorySwappinessFlagName := "memory-swappiness"
 		createFlags.Int64Var(
 			&cf.MemorySwappiness,
-			memorySwappinessFlagName, -1,
+			memorySwappinessFlagName, cf.MemorySwappiness,
 			"Tune container memory swappiness (0 to 100, or -1 for system default)",
 		)
 		_ = cmd.RegisterFlagCompletionFunc(memorySwappinessFlagName, completion.AutocompleteNone)
 	}
 	// anyone can use these
+
 	cpusFlagName := "cpus"
 	createFlags.Float64Var(
 		&cf.CPUS,

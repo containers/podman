@@ -41,6 +41,7 @@ func cloneFlags(cmd *cobra.Command) {
 	forceFlagName := "force"
 	flags.BoolVarP(&ctrClone.Force, forceFlagName, "f", false, "force the existing container to be destroyed")
 
+	common.DefineCreateDefaults(&ctrClone.CreateOpts)
 	common.DefineCreateFlags(cmd, &ctrClone.CreateOpts, false, true)
 }
 func init() {
