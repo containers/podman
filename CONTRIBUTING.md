@@ -93,7 +93,7 @@ You need install some dependencies before building a binary.
 #### Fedora
 
   ```shell
-  $ sudo dnf install gpgme-devel libseccomp-devel.x86_64 libseccomp-devel.x86_64 systemd-devel
+  $ sudo dnf install gpgme-devel libseccomp-devel.x86_64 systemd-devel
   $ export PKG_CONFIG_PATH="/usr/lib/pkgconfig"
   ```
 
@@ -103,8 +103,8 @@ To test your changes do `make binaries` to generate your binaries.
 
 Your binaries are created inside the `bin/` directory and you can test your changes:
 ```shell
-$ bin/podman -h
-bin/podman -h
+$ bin/podman --help
+bin/podman --help
 NAME:
    podman - manage pods and images
 
