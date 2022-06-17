@@ -182,7 +182,7 @@ func joinUserAndMountNS(pid uint, pausePid string) (bool, int, error) {
 
 	pidC := C.reexec_userns_join(C.int(pid), cPausePid)
 	if int(pidC) < 0 {
-		return false, -1, errors.Errorf("cannot re-exec process")
+		return false, -1, errors.Errorf("cannot re-exec process to join the existing user namespace")
 	}
 
 	ret := C.reexec_in_user_namespace_wait(pidC, 0)
