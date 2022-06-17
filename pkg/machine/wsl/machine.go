@@ -1553,3 +1553,7 @@ func (p *Provider) RemoveAndCleanMachines() error {
 	}
 	return prevErr
 }
+
+func (p *Provider) VMType() string {
+	return vmtype
+}

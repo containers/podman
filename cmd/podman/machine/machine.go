@@ -101,12 +101,6 @@ func resolveEventSock() ([]string, error) {
 		return []string{sock}, nil
 	}
 
-	xdg, err := util.GetRuntimeDir()
-	if err != nil {
-		logrus.Warnf("Failed to get runtime dir, machine events will not be published: %s", err)
-		return nil, nil
-	}
-
 	re := regexp.MustCompile(`machine_events.*\.sock`)
 	sockPaths := make([]string, 0)
 	fn := func(path string, info os.DirEntry, err error) error {
@@ -125,14 +119,26 @@ func resolveEventSock() ([]string, error) {
 		sockPaths = append(sockPaths, path)
 		return nil
 	}
+	sockDir, err := eventSockDir()
+	if err != nil {
+		logrus.Warnf("Failed to get runtime dir, machine events will not be published: %s", err)
+	}
 
-	if err := filepath.WalkDir(filepath.Join(xdg, "podman"), fn); err != nil {
+	if err := filepath.WalkDir(sockDir, fn); err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			return nil, nil
 		}
 		return nil, err
 	}
 	return sockPaths, nil
+}
+
+func eventSockDir() (string, error) {
+	xdg, err := util.GetRuntimeDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(xdg, "podman"), nil
 }
 
 func newMachineEvent(status events.Status, event events.Event) {
