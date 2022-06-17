@@ -16,7 +16,7 @@ import (
 	"sync/atomic"
 
 	"github.com/containers/image/v5/docker/reference"
-	"github.com/containers/image/v5/image"
+	"github.com/containers/image/v5/internal/image"
 	"github.com/containers/image/v5/internal/private"
 	"github.com/containers/image/v5/internal/putblobdigest"
 	"github.com/containers/image/v5/internal/tmpdir"
@@ -486,7 +486,7 @@ func (s *storageImageDestination) PutBlob(ctx context.Context, stream io.Reader,
 }
 
 // putBlobToPendingFile implements ImageDestination.PutBlobWithOptions, storing stream into an on-disk file.
-// The caller must arrange the blob to be eventually commited using s.commitLayer().
+// The caller must arrange the blob to be eventually committed using s.commitLayer().
 func (s *storageImageDestination) putBlobToPendingFile(ctx context.Context, stream io.Reader, blobinfo types.BlobInfo, options *private.PutBlobOptions) (types.BlobInfo, error) {
 	// Stores a layer or data blob in our temporary directory, checking that any information
 	// in the blobinfo matches the incoming data.
@@ -641,7 +641,7 @@ func (s *storageImageDestination) TryReusingBlob(ctx context.Context, blobinfo t
 }
 
 // tryReusingBlobAsPending implements TryReusingBlobWithOptions, filling s.blobDiffIDs and other metadata.
-// The caller must arrange the blob to be eventually commited using s.commitLayer().
+// The caller must arrange the blob to be eventually committed using s.commitLayer().
 func (s *storageImageDestination) tryReusingBlobAsPending(ctx context.Context, blobinfo types.BlobInfo, options *private.TryReusingBlobOptions) (bool, types.BlobInfo, error) {
 	// lock the entire method as it executes fairly quickly
 	s.lock.Lock()
@@ -941,7 +941,7 @@ func (s *storageImageDestination) commitLayer(ctx context.Context, blob manifest
 	s.lock.Unlock()
 	if ok {
 		layer, err := al.PutAs(id, lastLayer, nil)
-		if err != nil {
+		if err != nil && errors.Cause(err) != storage.ErrDuplicateID {
 			return errors.Wrapf(err, "failed to put layer from digest and labels")
 		}
 		lastLayer = layer.ID

@@ -14,8 +14,8 @@ require (
 	github.com/containers/buildah v1.26.1-0.20220609225314-e66309ebde8c
 	github.com/containers/common v0.48.1-0.20220608111710-dbecabbe82c9
 	github.com/containers/conmon v2.0.20+incompatible
-	github.com/containers/image/v5 v5.21.2-0.20220520105616-e594853d6471
-	github.com/containers/ocicrypt v1.1.4-0.20220428134531-566b808bdf6f
+	github.com/containers/image/v5 v5.21.2-0.20220617075545-929f14a56f5c
+	github.com/containers/ocicrypt v1.1.5
 	github.com/containers/psgo v1.7.2
 	github.com/containers/storage v1.41.1-0.20220616120034-7df64288ef35
 	github.com/coreos/go-systemd/v22 v22.3.2

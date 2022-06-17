@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	internalManifest "github.com/containers/image/v5/internal/manifest"
 	compressiontypes "github.com/containers/image/v5/pkg/compression/types"
 	"github.com/containers/image/v5/types"
 	ociencspec "github.com/containers/ocicrypt/spec"
@@ -115,6 +116,12 @@ var oci1CompressionMIMETypeSets = []compressionMIMETypeSet{
 // UpdateLayerInfos replaces the original layers with the specified BlobInfos (size+digest+urls+mediatype), in order (the root layer first, and then successive layered layers)
 // The returned error will be a manifest.ManifestLayerCompressionIncompatibilityError if any of the layerInfos includes a combination of CompressionOperation and
 // CompressionAlgorithm that isn't supported by OCI.
+//
+// It’s generally the caller’s responsibility to determine whether a particular edit is acceptable, rather than relying on
+// failures of this function, because the layer is typically created _before_ UpdateLayerInfos is called, because UpdateLayerInfos needs
+// to know the final digest). See OCI1.CanChangeLayerCompression for some help in determining this; other aspects like compression
+// algorithms that might not be supported by a format, or the limited set of MIME types accepted for encryption, are not currently
+// handled — that logic should eventually also be provided as OCI1 methods, not hard-coded in callers.
 func (m *OCI1) UpdateLayerInfos(layerInfos []types.BlobInfo) error {
 	if len(m.Layers) != len(layerInfos) {
 		return errors.Errorf("Error preparing updated manifest: layer count changed from %d to %d", len(m.Layers), len(layerInfos))
@@ -151,6 +158,33 @@ func (m *OCI1) UpdateLayerInfos(layerInfos []types.BlobInfo) error {
 	return nil
 }
 
+// getEncryptedMediaType will return the mediatype to its encrypted counterpart and return
+// an error if the mediatype does not support encryption
+func getEncryptedMediaType(mediatype string) (string, error) {
+	for _, s := range strings.Split(mediatype, "+")[1:] {
+		if s == "encrypted" {
+			return "", errors.Errorf("unsupportedmediatype: %v already encrypted", mediatype)
+		}
+	}
+	unsuffixedMediatype := strings.Split(mediatype, "+")[0]
+	switch unsuffixedMediatype {
+	case DockerV2Schema2LayerMediaType, imgspecv1.MediaTypeImageLayer, imgspecv1.MediaTypeImageLayerNonDistributable:
+		return mediatype + "+encrypted", nil
+	}
+
+	return "", errors.Errorf("unsupported mediatype to encrypt: %v", mediatype)
+}
+
+// getEncryptedMediaType will return the mediatype to its encrypted counterpart and return
+// an error if the mediatype does not support decryption
+func getDecryptedMediaType(mediatype string) (string, error) {
+	if !strings.HasSuffix(mediatype, "+encrypted") {
+		return "", errors.Errorf("unsupported mediatype to decrypt %v:", mediatype)
+	}
+
+	return strings.TrimSuffix(mediatype, "+encrypted"), nil
+}
+
 // Serialize returns the manifest in a blob format.
 // NOTE: Serialize() does not in general reproduce the original blob if this object was loaded from one, even if no modifications were made!
 func (m *OCI1) Serialize() ([]byte, error) {
@@ -159,6 +193,14 @@ func (m *OCI1) Serialize() ([]byte, error) {
 
 // Inspect returns various information for (skopeo inspect) parsed from the manifest and configuration.
 func (m *OCI1) Inspect(configGetter func(types.BlobInfo) ([]byte, error)) (*types.ImageInspectInfo, error) {
+	if m.Config.MediaType != imgspecv1.MediaTypeImageConfig {
+		// We could return at least the layers, but that’s already available in a better format via types.Image.LayerInfos.
+		// Most software calling this without human intervention is going to expect the values to be realistic and relevant,
+		// and is probably better served by failing; we can always re-visit that later if we fail now, but
+		// if we started returning some data for OCI artifacts now, we couldn’t start failing in this function later.
+		return nil, internalManifest.NewNonImageArtifactError(m.Config.MediaType)
+	}
+
 	config, err := configGetter(m.ConfigInfo())
 	if err != nil {
 		return nil, err
@@ -186,35 +228,39 @@ func (m *OCI1) Inspect(configGetter func(types.BlobInfo) ([]byte, error)) (*type
 
 // ImageID computes an ID which can uniquely identify this image by its contents.
 func (m *OCI1) ImageID([]digest.Digest) (string, error) {
+	// The way m.Config.Digest “uniquely identifies” an image is
+	// by containing RootFS.DiffIDs, which identify the layers of the image.
+	// For non-image artifacts, the we can’t expect the config to change
+	// any time the other layers (semantically) change, so this approach of
+	// distinguishing objects only by m.Config.Digest doesn’t work in general.
+	//
+	// Any caller of this method presumably wants to disambiguate the same
+	// images with a different representation, but doesn’t want to disambiguate
+	// representations (by using a manifest digest).  So, submitting a non-image
+	// artifact to such a caller indicates an expectation mismatch.
+	// So, we just fail here instead of inventing some other ID value (e.g.
+	// by combining the config and blob layer digests).  That still
+	// gives us the option to not fail, and return some value, in the future,
+	// without committing to that approach now.
+	// (The only known caller of ImageID is storage/storageImageDestination.computeID,
+	// which can’t work with non-image artifacts.)
+	if m.Config.MediaType != imgspecv1.MediaTypeImageConfig {
+		return "", internalManifest.NewNonImageArtifactError(m.Config.MediaType)
+	}
+
 	if err := m.Config.Digest.Validate(); err != nil {
 		return "", err
 	}
 	return m.Config.Digest.Hex(), nil
 }
 
-// getEncryptedMediaType will return the mediatype to its encrypted counterpart and return
-// an error if the mediatype does not support encryption
-func getEncryptedMediaType(mediatype string) (string, error) {
-	for _, s := range strings.Split(mediatype, "+")[1:] {
-		if s == "encrypted" {
-			return "", errors.Errorf("unsupportedmediatype: %v already encrypted", mediatype)
-		}
+// CanChangeLayerCompression returns true if we can compress/decompress layers with mimeType in the current image
+// (and the code can handle that).
+// NOTE: Even if this returns true, the relevant format might not accept all compression algorithms; the set of accepted
+// algorithms depends not on the current format, but possibly on the target of a conversion.
+func (m *OCI1) CanChangeLayerCompression(mimeType string) bool {
+	if m.Config.MediaType != imgspecv1.MediaTypeImageConfig {
+		return false
 	}
-	unsuffixedMediatype := strings.Split(mediatype, "+")[0]
-	switch unsuffixedMediatype {
-	case DockerV2Schema2LayerMediaType, imgspecv1.MediaTypeImageLayer, imgspecv1.MediaTypeImageLayerNonDistributable:
-		return mediatype + "+encrypted", nil
-	}
-
-	return "", errors.Errorf("unsupported mediatype to encrypt: %v", mediatype)
-}
-
-// getEncryptedMediaType will return the mediatype to its encrypted counterpart and return
-// an error if the mediatype does not support decryption
-func getDecryptedMediaType(mediatype string) (string, error) {
-	if !strings.HasSuffix(mediatype, "+encrypted") {
-		return "", errors.Errorf("unsupported mediatype to decrypt %v:", mediatype)
-	}
-
-	return strings.TrimSuffix(mediatype, "+encrypted"), nil
+	return compressionVariantsRecognizeMIMEType(oci1CompressionMIMETypeSets, mimeType)
 }

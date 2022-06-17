@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	internalManifest "github.com/containers/image/v5/internal/manifest"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/libtrust"
 	digest "github.com/opencontainers/go-digest"
@@ -33,6 +34,10 @@ const (
 	// DockerV2Schema2ForeignLayerMediaType is the MIME type used for gzipped schema 2 foreign layers.
 	DockerV2Schema2ForeignLayerMediaTypeGzip = "application/vnd.docker.image.rootfs.foreign.diff.tar.gzip"
 )
+
+// NonImageArtifactError (detected via errors.As) is used when asking for an image-specific operation
+// on an object which is not a “container image” in the standard sense (e.g. an OCI artifact)
+type NonImageArtifactError = internalManifest.NonImageArtifactError
 
 // SupportedSchema2MediaType checks if the specified string is a supported Docker v2s2 media type.
 func SupportedSchema2MediaType(m string) error {

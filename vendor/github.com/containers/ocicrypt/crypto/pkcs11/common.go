@@ -17,7 +17,7 @@ import (
 	"fmt"
 	"github.com/pkg/errors"
 	pkcs11uri "github.com/stefanberger/go-pkcs11uri"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 // Pkcs11KeyFile describes the format of the pkcs11 (private) key file.

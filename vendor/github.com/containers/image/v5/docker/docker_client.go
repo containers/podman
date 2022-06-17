@@ -163,9 +163,8 @@ func newBearerTokenFromJSONBlob(blob []byte) (*bearerToken, error) {
 func serverDefault() *tls.Config {
 	return &tls.Config{
 		// Avoid fallback to SSL protocols < TLS1.0
-		MinVersion:               tls.VersionTLS10,
-		PreferServerCipherSuites: true,
-		CipherSuites:             tlsconfig.DefaultServerAcceptedCiphers,
+		MinVersion:   tls.VersionTLS10,
+		CipherSuites: tlsconfig.DefaultServerAcceptedCiphers,
 	}
 }
 
