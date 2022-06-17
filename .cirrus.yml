@@ -608,7 +608,8 @@ remote_system_test_task:
     <<: *local_system_test_task
     alias: remote_system_test
     depends_on:
-      - remote_integration_test
+        - build
+        - remote_integration_test
     env:
         TEST_FLAVOR: sys
         PODBIN_NAME: remote
