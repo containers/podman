@@ -461,13 +461,8 @@ func BecomeRootInUserNS(pausePid string) (bool, int, error) {
 // different uidmap and the unprivileged user has no way to read the
 // file owned by the root in the container.
 func TryJoinFromFilePaths(pausePidPath string, needNewNamespace bool, paths []string) (bool, int, error) {
-	if len(paths) == 0 {
-		return BecomeRootInUserNS(pausePidPath)
-	}
-
 	var lastErr error
 	var pausePid int
-	foundProcess := false
 
 	for _, path := range paths {
 		if !needNewNamespace {
@@ -479,12 +474,9 @@ func TryJoinFromFilePaths(pausePidPath string, needNewNamespace bool, paths []st
 
 			pausePid, err = strconv.Atoi(string(data))
 			if err != nil {
-				lastErr = errors.Wrapf(err, "cannot parse file %s", path)
+				lastErr = errors.Wrapf(err, "cannot parse file %q", path)
 				continue
 			}
-
-			lastErr = nil
-			break
 		} else {
 			r, w, err := os.Pipe()
 			if err != nil {
@@ -511,26 +503,29 @@ func TryJoinFromFilePaths(pausePidPath string, needNewNamespace bool, paths []st
 
 			n, err := r.Read(b)
 			if err != nil {
-				lastErr = errors.Wrapf(err, "cannot read %s\n", path)
+				lastErr = errors.Wrapf(err, "cannot read %q", path)
 				continue
 			}
 
 			pausePid, err = strconv.Atoi(string(b[:n]))
-			if err == nil && unix.Kill(pausePid, 0) == nil {
-				foundProcess = true
-				lastErr = nil
-				break
+			if err != nil {
+				lastErr = err
+				continue
 			}
 		}
-	}
-	if !foundProcess && pausePidPath != "" {
-		return BecomeRootInUserNS(pausePidPath)
+
+		if pausePid > 0 && unix.Kill(pausePid, 0) == nil {
+			joined, pid, err := joinUserAndMountNS(uint(pausePid), pausePidPath)
+			if err == nil {
+				return joined, pid, nil
+			}
+			lastErr = err
+		}
 	}
 	if lastErr != nil {
 		return false, 0, lastErr
 	}
-
-	return joinUserAndMountNS(uint(pausePid), pausePidPath)
+	return false, 0, errors.Wrapf(unix.ESRCH, "could not find any running process")
 }
 
 // ReadMappingsProc parses and returns the ID mappings at the specified path.

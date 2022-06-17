@@ -125,8 +125,14 @@ func (ic *ContainerEngine) SetupRootless(_ context.Context, noMoveProcess bool) 
 		paths = append(paths, ctr.Config().ConmonPidFile)
 	}
 
-	became, ret, err = rootless.TryJoinFromFilePaths(pausePidPath, true, paths)
-	utils.MovePauseProcessToScope(pausePidPath)
+	if len(paths) > 0 {
+		became, ret, err = rootless.TryJoinFromFilePaths(pausePidPath, true, paths)
+	} else {
+		became, ret, err = rootless.BecomeRootInUserNS(pausePidPath)
+		if err == nil {
+			utils.MovePauseProcessToScope(pausePidPath)
+		}
+	}
 	if err != nil {
 		logrus.Error(errors.Wrapf(err, "invalid internal status, try resetting the pause process with %q", os.Args[0]+" system migrate"))
 		os.Exit(1)
