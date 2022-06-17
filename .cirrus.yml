@@ -313,78 +313,6 @@ alt_build_task:
     always: *binary_artifacts
 
 
-# Confirm building a statically-linked binary is successful
-static_alt_build_task:
-    name: "Static Build"
-    alias: static_alt_build
-    only_if: *not_docs
-    depends_on:
-        - build
-    # Community-maintained task, may fail on occasion.  If so, uncomment
-    # the next line and file an issue with details about the failure.
-    # allow_failures: $CI == $CI
-    gce_instance: *bigvm
-    env:
-        <<: *stdenvars
-        TEST_FLAVOR: "altbuild"
-        # gce_instance variation prevents this being included in alt_build_task
-        ALT_NAME: 'Static build'
-        # Do not use 'latest', fixed-version tag for runtime stability.
-        CTR_FQIN: "docker.io/nixos/nix:2.3.6"
-        # Authentication token for pushing the build cache to cachix.
-        # This is critical, it helps to avoid a very lengthy process of
-        # statically building every dependency needed to build podman.
-        # Assuming the pinned nix dependencies in nix/nixpkgs.json have not
-        # changed, this cache will ensure that only the static podman binary is
-        # built.
-        CACHIX_AUTH_TOKEN: ENCRYPTED[df0d4d0a67474e8ea49cc503221dcb912b7e2ba45c8ec4bf2e5fd9c49a18ac21c24bacee59b5393355ed9e4358d2baef]
-    setup_script: *setup
-    main_script: *main
-    always: *binary_artifacts
-
-
-# Confirm building the remote client, natively on a Mac OS-X VM.
-osx_alt_build_task:
-    name: "OSX Cross"
-    alias: osx_alt_build
-    depends_on:
-        - build
-    env:
-        <<: *stdenvars
-        # OSX platform variation prevents this being included in alt_build_task
-        TEST_FLAVOR: "altbuild"
-        ALT_NAME: 'OSX Cross'
-    osx_instance:
-        image: 'catalina-base'
-    script:
-        - brew install go
-        - brew install go-md2man
-        - make podman-remote-darwin
-        - make install-podman-remote-darwin-docs
-    always: *binary_artifacts
-
-
-# This task is a stub: In the future it will be used to verify
-# podman is compatible with the docker python-module.
-docker-py_test_task:
-    name: Docker-py Compat.
-    alias: docker-py_test
-    skip: *tags
-    only_if: *not_docs
-    depends_on:
-        - build
-    gce_instance: *standardvm
-    env:
-        <<: *stdenvars
-        TEST_FLAVOR: docker-py
-        TEST_ENVIRON: container
-    gopath_cache: *ro_gopath_cache
-    clone_script: *noop  # Comes from cache
-    setup_script: *setup
-    main_script: *main
-    always: *runner_stats
-
-
 # Does exactly what it says, execute the podman unit-tests on all primary
 # platforms and release versions.
 unit_test_task:
@@ -403,52 +331,6 @@ unit_test_task:
     setup_script: *setup
     main_script: *main
     always: *runner_stats
-
-
-apiv2_test_task:
-    name: "APIv2 test on $DISTRO_NV"
-    alias: apiv2_test
-    skip: *tags
-    depends_on:
-        - validate
-    gce_instance: *standardvm
-    env:
-        <<: *stdenvars
-        TEST_FLAVOR: apiv2
-    clone_script: *noop  # Comes from cache
-    gopath_cache: *ro_gopath_cache
-    setup_script: *setup
-    main_script: *main
-    always: &logs_artifacts
-        <<: *runner_stats
-        # Required for `contrib/cirrus/logformatter` to work properly
-        html_artifacts:
-            path: ./*.html
-            type: text/html
-        package_versions_script: '$SCRIPT_BASE/logcollector.sh packages'
-        ginkgo_node_logs_script: '$SCRIPT_BASE/logcollector.sh ginkgo'
-        df_script: '$SCRIPT_BASE/logcollector.sh df'
-        audit_log_script: '$SCRIPT_BASE/logcollector.sh audit'
-        journal_script: '$SCRIPT_BASE/logcollector.sh journal'
-        podman_system_info_script: '$SCRIPT_BASE/logcollector.sh podman'
-        time_script: '$SCRIPT_BASE/logcollector.sh time'
-
-compose_test_task:
-    name: "compose test on $DISTRO_NV"
-    alias: compose_test
-    only_if: *not_docs
-    skip: *tags
-    depends_on:
-        - validate
-    gce_instance: *standardvm
-    env:
-        <<: *stdenvars
-        TEST_FLAVOR: compose
-    clone_script: *noop  # Comes from cache
-    gopath_cache: *ro_gopath_cache
-    setup_script: *setup
-    main_script: *main
-    always: *logs_artifacts
 
 
 # Execute the podman integration tests on all primary platforms and release
@@ -471,7 +353,19 @@ local_integration_test_task: &local_integration_test_task
     gopath_cache: *ro_gopath_cache
     setup_script: *setup
     main_script: *main
-    always: *logs_artifacts
+    always: &logs_artifacts
+        <<: *runner_stats
+        # Required for `contrib/cirrus/logformatter` to work properly
+        html_artifacts:
+            path: ./*.html
+            type: text/html
+        package_versions_script: '$SCRIPT_BASE/logcollector.sh packages'
+        ginkgo_node_logs_script: '$SCRIPT_BASE/logcollector.sh ginkgo'
+        df_script: '$SCRIPT_BASE/logcollector.sh df'
+        audit_log_script: '$SCRIPT_BASE/logcollector.sh audit'
+        journal_script: '$SCRIPT_BASE/logcollector.sh journal'
+        podman_system_info_script: '$SCRIPT_BASE/logcollector.sh podman'
+        time_script: '$SCRIPT_BASE/logcollector.sh time'
 
 
 # Nearly identical to `local_integration_test` except all operations
@@ -631,12 +525,7 @@ success_task:
         - swagger
         - consistency
         - alt_build
-        - static_alt_build
-        - osx_alt_build
-        - docker-py_test
         - unit_test
-        - apiv2_test
-        - compose_test
         - local_integration_test
         - remote_integration_test
         - rootless_integration_test
