@@ -163,6 +163,26 @@ var _ = Describe("Podman network", func() {
 		Expect(session.OutputToString()).To(Not(ContainSubstring(name)))
 	})
 
+	It("podman network list --filter dangling", func() {
+		name, path := generateNetworkConfig(podmanTest)
+		defer removeConf(path)
+
+		session := podmanTest.Podman([]string{"network", "ls", "--filter", "dangling=true"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).To(ContainSubstring(name))
+
+		session = podmanTest.Podman([]string{"network", "ls", "--filter", "dangling=false"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).NotTo(ContainSubstring(name))
+
+		session = podmanTest.Podman([]string{"network", "ls", "--filter", "dangling=foo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).To(ExitWithError())
+		Expect(session.ErrorToString()).To(ContainSubstring(`invalid dangling filter value "foo"`))
+	})
+
 	It("podman network ID test", func() {
 		net := "networkIDTest"
 		// the network id should be the sha256 hash of the network name
