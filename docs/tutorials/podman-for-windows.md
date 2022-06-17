@@ -1,4 +1,4 @@
-![PODMAN logo](../../logo/podman-logo-source.svg)
+![](../../logo/podman-logo-source.svg)
 
 Podman for Windows
 ==================

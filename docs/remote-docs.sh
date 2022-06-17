@@ -86,6 +86,16 @@ function html_fn() {
         -o $TARGET/${file%%.*}.html $markdown
 }
 
+function html_standalone() {
+    local markdown=$1
+    local title=$2
+    local file=$(basename $markdown)
+    local dir=$(dirname $markdown)
+    (cd $dir; pandoc --ascii --from markdown-smart -c ../standalone-styling.css \
+           --standalone --self-contained --metadata title="$2" -V title= \
+           $file)  > $TARGET/${file%%.*}.html
+}
+
 # Run 'podman help' (possibly against a subcommand, e.g. 'podman help image')
 # and return a list of each first word under 'Available Commands', that is,
 # the command name but not its description.
@@ -165,3 +175,6 @@ for s in $SOURCES; do
     fi
 done
 rename
+if [[ "$PLATFORM" == "windows" ]]; then
+    html_standalone docs/tutorials/podman-for-windows.md 'Podman for Windows'
+fi
