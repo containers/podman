@@ -616,20 +616,20 @@ remote_system_test_task:
 
 
 rootless_remote_system_test_task:
+    matrix:
+        # Minimal sanity testing: only the latest Fedora
+        - env:
+              DISTRO_NV: ${FEDORA_NAME}
+              # Not used here, is used in other tasks
+              VM_IMAGE_NAME: ${FEDORA_CACHE_IMAGE_NAME}
+              CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
+              # ID for re-use of build output
+              _BUILD_CACHE_HANDLE: ${FEDORA_NAME}-build-${CIRRUS_BUILD_ID}
     <<: *local_system_test_task
     alias: rootless_remote_system_test
     depends_on:
         - build
         - remote_integration_test
-    matrix:
-      # Minimal sanity testing: only the latest Fedora
-      - env:
-          DISTRO_NV: ${FEDORA_NAME}
-          # Not used here, is used in other tasks
-          VM_IMAGE_NAME: ${FEDORA_CACHE_IMAGE_NAME}
-          CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
-          # ID for re-use of build output
-          _BUILD_CACHE_HANDLE: ${FEDORA_NAME}-build-${CIRRUS_BUILD_ID}
     gce_instance: *standardvm
     env:
         TEST_FLAVOR: sys
