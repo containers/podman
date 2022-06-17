@@ -31,7 +31,7 @@ import (
 	"github.com/opencontainers/go-digest"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	yamlv2 "gopkg.in/yaml.v2"
+	yamlv3 "gopkg.in/yaml.v3"
 )
 
 // createServiceContainer creates a container that can later on
@@ -790,7 +790,7 @@ func readConfigMapFromFile(r io.Reader) (v1.ConfigMap, error) {
 func splitMultiDocYAML(yamlContent []byte) ([][]byte, error) {
 	var documentList [][]byte
 
-	d := yamlv2.NewDecoder(bytes.NewReader(yamlContent))
+	d := yamlv3.NewDecoder(bytes.NewReader(yamlContent))
 	for {
 		var o interface{}
 		// read individual document
@@ -804,7 +804,7 @@ func splitMultiDocYAML(yamlContent []byte) ([][]byte, error) {
 
 		if o != nil {
 			// back to bytes
-			document, err := yamlv2.Marshal(o)
+			document, err := yamlv3.Marshal(o)
 			if err != nil {
 				return nil, errors.Wrapf(err, "individual doc yaml could not be marshalled")
 			}
