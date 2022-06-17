@@ -118,6 +118,18 @@ type compressionMIMETypeSet map[string]string
 const mtsUncompressed = ""        // A key in compressionMIMETypeSet for the uncompressed variant
 const mtsUnsupportedMIMEType = "" // A value in compressionMIMETypeSet that means “recognized but unsupported”
 
+// findCompressionMIMETypeSet returns a pointer to a compressionMIMETypeSet in variantTable that contains a value of mimeType, or nil if not found
+func findCompressionMIMETypeSet(variantTable []compressionMIMETypeSet, mimeType string) compressionMIMETypeSet {
+	for _, variants := range variantTable {
+		for _, mt := range variants {
+			if mt == mimeType {
+				return variants
+			}
+		}
+	}
+	return nil
+}
+
 // compressionVariantMIMEType returns a variant of mimeType for the specified algorithm (which may be nil
 // to mean "no compression"), based on variantTable.
 // The returned error will be a ManifestLayerCompressionIncompatibilityError if mimeType has variants
@@ -130,29 +142,26 @@ func compressionVariantMIMEType(variantTable []compressionMIMETypeSet, mimeType 
 	if mimeType == mtsUnsupportedMIMEType { // Prevent matching against the {algo:mtsUnsupportedMIMEType} entries
 		return "", fmt.Errorf("cannot update unknown MIME type")
 	}
-	for _, variants := range variantTable {
-		for _, mt := range variants {
-			if mt == mimeType { // Found the variant
-				name := mtsUncompressed
-				if algorithm != nil {
-					name = algorithm.InternalUnstableUndocumentedMIMEQuestionMark()
-				}
-				if res, ok := variants[name]; ok {
-					if res != mtsUnsupportedMIMEType {
-						return res, nil
-					}
-					if name != mtsUncompressed {
-						return "", ManifestLayerCompressionIncompatibilityError{fmt.Sprintf("%s compression is not supported for type %q", name, mt)}
-					}
-					return "", ManifestLayerCompressionIncompatibilityError{fmt.Sprintf("uncompressed variant is not supported for type %q", mt)}
-				}
-				if name != mtsUncompressed {
-					return "", ManifestLayerCompressionIncompatibilityError{fmt.Sprintf("unknown compressed with algorithm %s variant for type %s", name, mt)}
-				}
-				// We can't very well say “the idea of no compression is unknown”
-				return "", ManifestLayerCompressionIncompatibilityError{fmt.Sprintf("uncompressed variant is not supported for type %q", mt)}
-			}
+	variants := findCompressionMIMETypeSet(variantTable, mimeType)
+	if variants != nil {
+		name := mtsUncompressed
+		if algorithm != nil {
+			name = algorithm.InternalUnstableUndocumentedMIMEQuestionMark()
 		}
+		if res, ok := variants[name]; ok {
+			if res != mtsUnsupportedMIMEType {
+				return res, nil
+			}
+			if name != mtsUncompressed {
+				return "", ManifestLayerCompressionIncompatibilityError{fmt.Sprintf("%s compression is not supported for type %q", name, mimeType)}
+			}
+			return "", ManifestLayerCompressionIncompatibilityError{fmt.Sprintf("uncompressed variant is not supported for type %q", mimeType)}
+		}
+		if name != mtsUncompressed {
+			return "", ManifestLayerCompressionIncompatibilityError{fmt.Sprintf("unknown compressed with algorithm %s variant for type %s", name, mimeType)}
+		}
+		// We can't very well say “the idea of no compression is unknown”
+		return "", ManifestLayerCompressionIncompatibilityError{fmt.Sprintf("uncompressed variant is not supported for type %q", mimeType)}
 	}
 	if algorithm != nil {
 		return "", fmt.Errorf("unsupported MIME type for compression: %s", mimeType)
@@ -208,4 +217,14 @@ type ManifestLayerCompressionIncompatibilityError struct {
 
 func (m ManifestLayerCompressionIncompatibilityError) Error() string {
 	return m.text
+}
+
+// compressionVariantsRecognizeMIMEType returns true if variantTable contains data about compressing/decompressing layers with mimeType
+// Note that the caller still needs to worry about a specific algorithm not being supported.
+func compressionVariantsRecognizeMIMEType(variantTable []compressionMIMETypeSet, mimeType string) bool {
+	if mimeType == mtsUnsupportedMIMEType { // Prevent matching against the {algo:mtsUnsupportedMIMEType} entries
+		return false
+	}
+	variants := findCompressionMIMETypeSet(variantTable, mimeType)
+	return variants != nil // Alternatively, this could be len(variants) > 1, but really the caller should ask about a specific algorithm.
 }

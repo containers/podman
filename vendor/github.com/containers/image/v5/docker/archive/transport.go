@@ -8,7 +8,7 @@ import (
 
 	"github.com/containers/image/v5/docker/internal/tarfile"
 	"github.com/containers/image/v5/docker/reference"
-	ctrImage "github.com/containers/image/v5/image"
+	ctrImage "github.com/containers/image/v5/internal/image"
 	"github.com/containers/image/v5/transports"
 	"github.com/containers/image/v5/types"
 	"github.com/pkg/errors"
@@ -185,11 +185,7 @@ func (ref archiveReference) PolicyConfigurationNamespaces() []string {
 // verify that UnparsedImage, and convert it into a real Image via image.FromUnparsedImage.
 // WARNING: This may not do the right thing for a manifest list, see image.FromSource for details.
 func (ref archiveReference) NewImage(ctx context.Context, sys *types.SystemContext) (types.ImageCloser, error) {
-	src, err := newImageSource(ctx, sys, ref)
-	if err != nil {
-		return nil, err
-	}
-	return ctrImage.FromSource(ctx, sys, src)
+	return ctrImage.FromReference(ctx, sys, ref)
 }
 
 // NewImageSource returns a types.ImageSource for this reference.

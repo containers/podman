@@ -21,7 +21,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 // EncryptWithJwe returns a CryptoConfig to encrypt with jwe public keys

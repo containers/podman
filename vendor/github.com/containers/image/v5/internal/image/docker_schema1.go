@@ -246,3 +246,12 @@ func (m *manifestSchema1) convertToManifestOCI1(ctx context.Context, options *ty
 func (m *manifestSchema1) SupportsEncryption(context.Context) bool {
 	return false
 }
+
+// CanChangeLayerCompression returns true if we can compress/decompress layers with mimeType in the current image
+// (and the code can handle that).
+// NOTE: Even if this returns true, the relevant format might not accept all compression algorithms; the set of accepted
+// algorithms depends not on the current format, but possibly on the target of a conversion (if UpdatedImage converts
+// to a different manifest format).
+func (m *manifestSchema1) CanChangeLayerCompression(mimeType string) bool {
+	return true // There are no MIME types in the manifest, so we must assume a valid image.
+}

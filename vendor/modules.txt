@@ -159,7 +159,7 @@ github.com/containers/common/version
 # github.com/containers/conmon v2.0.20+incompatible
 ## explicit
 github.com/containers/conmon/runner/config
-# github.com/containers/image/v5 v5.21.2-0.20220520105616-e594853d6471
+# github.com/containers/image/v5 v5.21.2-0.20220617075545-929f14a56f5c
 ## explicit
 github.com/containers/image/v5/copy
 github.com/containers/image/v5/directory
@@ -172,9 +172,11 @@ github.com/containers/image/v5/docker/policyconfiguration
 github.com/containers/image/v5/docker/reference
 github.com/containers/image/v5/image
 github.com/containers/image/v5/internal/blobinfocache
+github.com/containers/image/v5/internal/image
 github.com/containers/image/v5/internal/imagedestination
 github.com/containers/image/v5/internal/imagesource
 github.com/containers/image/v5/internal/iolimits
+github.com/containers/image/v5/internal/manifest
 github.com/containers/image/v5/internal/pkg/platform
 github.com/containers/image/v5/internal/private
 github.com/containers/image/v5/internal/putblobdigest
@@ -212,7 +214,7 @@ github.com/containers/image/v5/types
 github.com/containers/image/v5/version
 # github.com/containers/libtrust v0.0.0-20200511145503-9c3a6c22cd9a
 github.com/containers/libtrust
-# github.com/containers/ocicrypt v1.1.4-0.20220428134531-566b808bdf6f
+# github.com/containers/ocicrypt v1.1.5
 ## explicit
 github.com/containers/ocicrypt
 github.com/containers/ocicrypt/blockcipher
@@ -441,7 +443,7 @@ github.com/hashicorp/errwrap
 # github.com/hashicorp/go-multierror v1.1.1
 ## explicit
 github.com/hashicorp/go-multierror
-# github.com/imdario/mergo v0.3.12
+# github.com/imdario/mergo v0.3.13
 github.com/imdario/mergo
 # github.com/inconshreveable/mousetrap v1.0.0
 github.com/inconshreveable/mousetrap
@@ -644,7 +646,7 @@ github.com/stefanberger/go-pkcs11uri
 ## explicit
 github.com/stretchr/testify/assert
 github.com/stretchr/testify/require
-# github.com/sylabs/sif/v2 v2.7.0
+# github.com/sylabs/sif/v2 v2.7.1
 github.com/sylabs/sif/v2/pkg/sif
 # github.com/syndtr/gocapability v0.0.0-20200815063812-42c35b437635
 ## explicit

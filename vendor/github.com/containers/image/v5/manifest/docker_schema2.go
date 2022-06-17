@@ -295,3 +295,11 @@ func (m *Schema2) ImageID([]digest.Digest) (string, error) {
 	}
 	return m.ConfigDescriptor.Digest.Hex(), nil
 }
+
+// CanChangeLayerCompression returns true if we can compress/decompress layers with mimeType in the current image
+// (and the code can handle that).
+// NOTE: Even if this returns true, the relevant format might not accept all compression algorithms; the set of accepted
+// algorithms depends not on the current format, but possibly on the target of a conversion.
+func (m *Schema2) CanChangeLayerCompression(mimeType string) bool {
+	return compressionVariantsRecognizeMIMEType(schema2CompressionMIMETypeSets, mimeType)
+}

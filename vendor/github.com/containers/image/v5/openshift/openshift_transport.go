@@ -8,7 +8,7 @@ import (
 
 	"github.com/containers/image/v5/docker/policyconfiguration"
 	"github.com/containers/image/v5/docker/reference"
-	genericImage "github.com/containers/image/v5/image"
+	genericImage "github.com/containers/image/v5/internal/image"
 	"github.com/containers/image/v5/transports"
 	"github.com/containers/image/v5/types"
 	"github.com/pkg/errors"
@@ -132,11 +132,7 @@ func (ref openshiftReference) PolicyConfigurationNamespaces() []string {
 // verify that UnparsedImage, and convert it into a real Image via image.FromUnparsedImage.
 // WARNING: This may not do the right thing for a manifest list, see image.FromSource for details.
 func (ref openshiftReference) NewImage(ctx context.Context, sys *types.SystemContext) (types.ImageCloser, error) {
-	src, err := newImageSource(sys, ref)
-	if err != nil {
-		return nil, err
-	}
-	return genericImage.FromSource(ctx, sys, src)
+	return genericImage.FromReference(ctx, sys, ref)
 }
 
 // NewImageSource returns a types.ImageSource for this reference.

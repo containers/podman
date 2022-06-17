@@ -9,7 +9,7 @@ import (
 	"sync"
 
 	"github.com/containers/image/v5/docker/reference"
-	"github.com/containers/image/v5/image"
+	"github.com/containers/image/v5/internal/image"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/pkg/compression"
 	"github.com/containers/image/v5/transports"
@@ -158,11 +158,7 @@ func (b *BlobCache) ClearCache() error {
 }
 
 func (b *BlobCache) NewImage(ctx context.Context, sys *types.SystemContext) (types.ImageCloser, error) {
-	src, err := b.NewImageSource(ctx, sys)
-	if err != nil {
-		return nil, errors.Wrapf(err, "error creating new image %q", transports.ImageName(b.reference))
-	}
-	return image.FromSource(ctx, sys, src)
+	return image.FromReference(ctx, sys, b)
 }
 
 func (b *BlobCache) NewImageSource(ctx context.Context, sys *types.SystemContext) (types.ImageSource, error) {
