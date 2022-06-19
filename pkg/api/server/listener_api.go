@@ -11,7 +11,7 @@ import (
 // ListenUnix follows stdlib net.Listen() API, providing a unix listener for given path
 //   ListenUnix will delete and create files/directories as needed
 func ListenUnix(network string, path string) (net.Listener, error) {
-	// setup custom listener for API server
+	// set up custom listener for API server
 	err := os.MkdirAll(filepath.Dir(path), 0770)
 	if err != nil {
 		return nil, errors.Wrapf(err, "api.ListenUnix() failed to create %s", filepath.Dir(path))

@@ -154,7 +154,7 @@ func tryMappingTool(uid bool, pid int, hostID int, mappings []idtools.IDMap) err
 
 	if output, err := cmd.CombinedOutput(); err != nil {
 		logrus.Errorf("running `%s`: %s", strings.Join(args, " "), output)
-		errorStr := fmt.Sprintf("cannot setup namespace using %q", path)
+		errorStr := fmt.Sprintf("cannot set up namespace using %q", path)
 		if isSet, err := unshare.IsSetID(cmd.Path, mode, cap); err != nil {
 			logrus.Errorf("Failed to check for %s on %s: %v", idtype, path, err)
 		} else if !isSet {
@@ -303,7 +303,7 @@ func becomeRootInUserNS(pausePid, fileToRead string, fileOutput *os.File) (_ boo
 		if retErr != nil && pid > 0 {
 			if err := unix.Kill(pid, unix.SIGKILL); err != nil {
 				if err != unix.ESRCH {
-					logrus.Errorf("Failed to cleanup process %d: %v", pid, err)
+					logrus.Errorf("Failed to clean up process %d: %v", pid, err)
 				}
 			}
 			C.reexec_in_user_namespace_wait(C.int(pid), 0)

@@ -311,7 +311,7 @@ func (c *Container) cleanupNetwork() error {
 
 	// Stop the container's network namespace (if it has one)
 	if err := c.runtime.teardownNetNS(c); err != nil {
-		logrus.Errorf("Unable to cleanup network for container %s: %q", c.ID(), err)
+		logrus.Errorf("Unable to clean up network for container %s: %q", c.ID(), err)
 	}
 
 	c.state.NetNS = nil
@@ -1210,7 +1210,7 @@ func (c *Container) createCheckpointImage(ctx context.Context, options Container
 	if err != nil {
 		return err
 	}
-	// Clean-up buildah working container
+	// Clean up buildah working container
 	defer func() {
 		if err := importBuilder.Delete(); err != nil {
 			logrus.Errorf("Image builder delete failed: %v", err)
@@ -1504,7 +1504,7 @@ func (c *Container) checkpoint(ctx context.Context, options ContainerCheckpointO
 		c.state.Restored = false
 		c.state.RestoredTime = time.Time{}
 
-		// Cleanup Storage and Network
+		// Clean up Storage and Network
 		if err := c.cleanup(ctx); err != nil {
 			return nil, 0, err
 		}

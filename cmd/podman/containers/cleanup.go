@@ -23,7 +23,7 @@ var (
 	cleanupCommand = &cobra.Command{
 		Annotations: map[string]string{registry.EngineMode: registry.ABIMode},
 		Use:         "cleanup [options] CONTAINER [CONTAINER...]",
-		Short:       "Cleanup network and mountpoints of one or more containers",
+		Short:       "Clean up network and mountpoints of one or more containers",
 		Long:        cleanupDescription,
 		RunE:        cleanup,
 		Args: func(cmd *cobra.Command, args []string) error {

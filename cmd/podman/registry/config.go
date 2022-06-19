@@ -92,7 +92,7 @@ func setXdgDirs() error {
 		return nil
 	}
 
-	// Setup XDG_RUNTIME_DIR
+	// Set up XDG_RUNTIME_DIR
 	if _, found := os.LookupEnv("XDG_RUNTIME_DIR"); !found {
 		dir, err := util.GetRuntimeDir()
 		if err != nil {
@@ -110,7 +110,7 @@ func setXdgDirs() error {
 		}
 	}
 
-	// Setup XDG_CONFIG_HOME
+	// Set up XDG_CONFIG_HOME
 	if _, found := os.LookupEnv("XDG_CONFIG_HOME"); !found {
 		cfgHomeDir, err := util.GetRootlessConfigHomeDir()
 		if err != nil {

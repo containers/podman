@@ -142,7 +142,7 @@ podman rm --latest
 You can verify the deletion of the container by running *podman ps -a*.
 
 ## Integration Tests
-For more information on how to setup and run the integration tests in your environment, checkout the Integration Tests [README.md](../../test/README.md)
+For more information on how to set up and run the integration tests in your environment, checkout the Integration Tests [README.md](../../test/README.md)
 
 ## More information
 

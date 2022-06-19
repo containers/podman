@@ -95,7 +95,7 @@ func NewConnectionWithIdentity(ctx context.Context, uri string, identity string)
 		return nil, errors.Wrapf(err, "Value of CONTAINER_HOST is not a valid url: %s", uri)
 	}
 
-	// Now we setup the http Client to use the connection above
+	// Now we set up the http Client to use the connection above
 	var connection Connection
 	switch _url.Scheme {
 	case "ssh":

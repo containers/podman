@@ -15,7 +15,7 @@ import (
 )
 
 var (
-	portDescription = `List port mappings for the CONTAINER, or lookup the public-facing port that is NAT-ed to the PRIVATE_PORT
+	portDescription = `List port mappings for the CONTAINER, or look up the public-facing port that is NAT-ed to the PRIVATE_PORT
 `
 	portCommand = &cobra.Command{
 		Use:   "port [options] CONTAINER [PORT]",

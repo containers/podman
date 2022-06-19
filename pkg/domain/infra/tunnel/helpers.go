@@ -20,7 +20,7 @@ func getContainersByContext(contextWithConnection context.Context, all, ignore b
 
 func getContainersAndInputByContext(contextWithConnection context.Context, all, ignore bool, namesOrIDs []string) ([]entities.ListContainer, []string, error) {
 	if all && len(namesOrIDs) > 0 {
-		return nil, nil, errors.New("cannot lookup containers and all")
+		return nil, nil, errors.New("cannot look up containers and all")
 	}
 	options := new(containers.ListOptions).WithAll(true).WithSync(true)
 	allContainers, err := containers.List(contextWithConnection, options)
@@ -77,7 +77,7 @@ func getContainersAndInputByContext(contextWithConnection context.Context, all, 
 
 func getPodsByContext(contextWithConnection context.Context, all bool, namesOrIDs []string) ([]*entities.ListPodsReport, error) {
 	if all && len(namesOrIDs) > 0 {
-		return nil, errors.New("cannot lookup specific pods and all")
+		return nil, errors.New("cannot look up specific pods and all")
 	}
 
 	allPods, err := pods.List(contextWithConnection, nil)

@@ -38,7 +38,7 @@ import (
 )
 
 // getContainersAndInputByContext gets containers whether all, latest, or a slice of names/ids
-// is specified.  It also returns a list of the corresponding input name used to lookup each container.
+// is specified.  It also returns a list of the corresponding input name used to look up each container.
 func getContainersAndInputByContext(all, latest bool, names []string, runtime *libpod.Runtime) (ctrs []*libpod.Container, rawInput []string, err error) {
 	var ctr *libpod.Container
 	ctrs = []*libpod.Container{}
@@ -183,7 +183,7 @@ func (ic *ContainerEngine) ContainerStop(ctx context.Context, namesOrIds []strin
 		if err != nil {
 			// Issue #7384 and #11384: If the container is configured for
 			// auto-removal, it might already have been removed at this point.
-			// We still need to to cleanup since we do not know if the other cleanup process is successful
+			// We still need to clean up since we do not know if the other cleanup process is successful
 			if c.AutoRemove() && (errors.Is(err, define.ErrNoSuchCtr) || errors.Is(err, define.ErrCtrRemoved)) {
 				return nil
 			}
@@ -488,7 +488,7 @@ func (ic *ContainerEngine) ContainerTop(ctx context.Context, options entities.To
 		container, err = ic.Libpod.LookupContainer(options.NameOrID)
 	}
 	if err != nil {
-		return nil, errors.Wrap(err, "unable to lookup requested container")
+		return nil, errors.Wrap(err, "unable to look up requested container")
 	}
 
 	// Run Top.
@@ -635,13 +635,13 @@ func (ic *ContainerEngine) ContainerRestore(ctx context.Context, namesOrIds []st
 		containers, err = getContainersByContext(false, options.Latest, namesOrIds, ic.Libpod)
 	default:
 		for _, nameOrID := range namesOrIds {
-			logrus.Debugf("lookup container: %q", nameOrID)
+			logrus.Debugf("look up container: %q", nameOrID)
 			ctr, err := ic.Libpod.LookupContainer(nameOrID)
 			if err == nil {
 				containers = append(containers, ctr)
 			} else {
 				// If container was not found, check if this is a checkpoint image
-				logrus.Debugf("lookup image: %q", nameOrID)
+				logrus.Debugf("look up image: %q", nameOrID)
 				img, _, err := ic.Libpod.LibimageRuntime().LookupImage(nameOrID, nil)
 				if err != nil {
 					return nil, fmt.Errorf("no such container or image: %s", nameOrID)
@@ -1194,12 +1194,12 @@ func (ic *ContainerEngine) ContainerCleanup(ctx context.Context, namesOrIds []st
 			var timeout *uint
 			err = ic.Libpod.RemoveContainer(ctx, ctr, false, true, timeout)
 			if err != nil {
-				report.RmErr = errors.Wrapf(err, "failed to cleanup and remove container %v", ctr.ID())
+				report.RmErr = errors.Wrapf(err, "failed to clean up and remove container %v", ctr.ID())
 			}
 		} else {
 			err := ctr.Cleanup(ctx)
 			if err != nil {
-				report.CleanErr = errors.Wrapf(err, "failed to cleanup container %v", ctr.ID())
+				report.CleanErr = errors.Wrapf(err, "failed to clean up container %v", ctr.ID())
 			}
 		}
 

@@ -135,7 +135,7 @@ func SetXdgDirs() error {
 		return nil
 	}
 
-	// Setup XDG_RUNTIME_DIR
+	// Set up XDG_RUNTIME_DIR
 	runtimeDir := os.Getenv("XDG_RUNTIME_DIR")
 
 	if runtimeDir == "" {
@@ -156,7 +156,7 @@ func SetXdgDirs() error {
 		}
 	}
 
-	// Setup XDG_CONFIG_HOME
+	// Set up XDG_CONFIG_HOME
 	if cfgHomeDir := os.Getenv("XDG_CONFIG_HOME"); cfgHomeDir == "" {
 		cfgHomeDir, err := util.GetRootlessConfigHomeDir()
 		if err != nil {
@@ -450,7 +450,7 @@ func makeRuntime(runtime *Runtime) (retErr error) {
 		}
 	}()
 
-	// Setup the eventer
+	// Set up the eventer
 	eventer, err := runtime.newEventer()
 	if err != nil {
 		return err
@@ -539,7 +539,7 @@ func makeRuntime(runtime *Runtime) (retErr error) {
 		}
 	}
 
-	// the store is only setup when we are in the userns so we do the same for the network interface
+	// the store is only set up when we are in the userns so we do the same for the network interface
 	if !needsUserns {
 		netBackend, netInterface, err := network.NetworkBackend(runtime.store, runtime.config, runtime.syslog)
 		if err != nil {

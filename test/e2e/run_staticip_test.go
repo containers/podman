@@ -28,7 +28,7 @@ var _ = Describe("Podman run with --ip flag", func() {
 		}
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.Setup()
-		// Cleanup the CNI networks used by the tests
+		// Clean up the CNI networks used by the tests
 		os.RemoveAll("/var/lib/cni/networks/podman")
 	})
 

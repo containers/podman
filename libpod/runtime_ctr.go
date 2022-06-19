@@ -755,7 +755,7 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force, remo
 		if cleanupErr == nil {
 			cleanupErr = err
 		} else {
-			logrus.Errorf("Cleanup storage: %v", err)
+			logrus.Errorf("Cleaning up storage: %v", err)
 		}
 	}
 
@@ -810,11 +810,11 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force, remo
 					// Ignore error, since podman will report original error
 					volumesFrom, _ := c.volumesFrom()
 					if len(volumesFrom) > 0 {
-						logrus.Debugf("Cleanup volume not possible since volume is in use (%s)", v)
+						logrus.Debugf("Cleaning up volume not possible since volume is in use (%s)", v)
 						continue
 					}
 				}
-				logrus.Errorf("Cleanup volume (%s): %v", v, err)
+				logrus.Errorf("Cleaning up volume (%s): %v", v, err)
 			}
 		}
 	}
@@ -964,7 +964,7 @@ func (r *Runtime) evictContainer(ctx context.Context, idOrName string, removeVol
 				continue
 			}
 			if err := r.removeVolume(ctx, volume, false, timeout); err != nil && err != define.ErrNoSuchVolume && err != define.ErrVolumeBeingUsed {
-				logrus.Errorf("Cleanup volume (%s): %v", v, err)
+				logrus.Errorf("Cleaning up volume (%s): %v", v, err)
 			}
 		}
 	}
@@ -1111,7 +1111,7 @@ func (r *Runtime) GetContainersByList(containers []string) ([]*Container, error)
 	for _, inputContainer := range containers {
 		ctr, err := r.LookupContainer(inputContainer)
 		if err != nil {
-			return ctrs, errors.Wrapf(err, "unable to lookup container %s", inputContainer)
+			return ctrs, errors.Wrapf(err, "unable to look up container %s", inputContainer)
 		}
 		ctrs = append(ctrs, ctr)
 	}

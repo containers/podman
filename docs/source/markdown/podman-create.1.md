@@ -654,7 +654,7 @@ Current supported mount TYPEs are **bind**, **volume**, **image**, **tmpfs** and
 
 	      · bind-propagation: shared, slave, private, unbindable, rshared, rslave, runbindable, or rprivate(default). See also mount(2).
 
-	      . bind-nonrecursive: do not setup a recursive bind mount. By default it is recursive.
+	      . bind-nonrecursive: do not set up a recursive bind mount. By default it is recursive.
 
 	      . relabel: shared, private.
 

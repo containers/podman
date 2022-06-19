@@ -290,7 +290,7 @@ func (c *Container) handleRestartPolicy(ctx context.Context) (_ bool, retErr err
 		return false, err
 	}
 
-	// setup slirp4netns again because slirp4netns will die when conmon exits
+	// set up slirp4netns again because slirp4netns will die when conmon exits
 	if c.config.NetMode.IsSlirp4netns() {
 		err := c.runtime.setupSlirp4netns(c, c.state.NetNS)
 		if err != nil {
@@ -298,7 +298,7 @@ func (c *Container) handleRestartPolicy(ctx context.Context) (_ bool, retErr err
 		}
 	}
 
-	// setup rootlesskit port forwarder again since it dies when conmon exits
+	// set up rootlesskit port forwarder again since it dies when conmon exits
 	// we use rootlesskit port forwarder only as rootless and when bridge network is used
 	if rootless.IsRootless() && c.config.NetMode.IsBridge() && len(c.config.PortMappings) > 0 {
 		err := c.runtime.setupRootlessPortMappingViaRLK(c, c.state.NetNS.Path(), c.state.NetworkStatus)
@@ -589,7 +589,7 @@ func (c *Container) teardownStorage() error {
 	}
 
 	if err := c.cleanupStorage(); err != nil {
-		return errors.Wrapf(err, "failed to cleanup container %s storage", c.ID())
+		return errors.Wrapf(err, "failed to clean up container %s storage", c.ID())
 	}
 
 	if err := c.runtime.storageService.DeleteContainer(c.ID()); err != nil {
@@ -1784,7 +1784,7 @@ func (c *Container) cleanupStorage() error {
 		overlayBasePath := filepath.Dir(c.state.Mountpoint)
 		if err := overlay.Unmount(overlayBasePath); err != nil {
 			if cleanupErr != nil {
-				logrus.Errorf("Failed to cleanup overlay mounts for %s: %v", c.ID(), err)
+				logrus.Errorf("Failed to clean up overlay mounts for %s: %v", c.ID(), err)
 			}
 			cleanupErr = err
 		}
@@ -1801,7 +1801,7 @@ func (c *Container) cleanupStorage() error {
 
 	if err := c.cleanupOverlayMounts(); err != nil {
 		// If the container can't remove content report the error
-		logrus.Errorf("Failed to cleanup overlay mounts for %s: %v", c.ID(), err)
+		logrus.Errorf("Failed to clean up overlay mounts for %s: %v", c.ID(), err)
 		cleanupErr = err
 	}
 
@@ -1880,7 +1880,7 @@ func (c *Container) cleanup(ctx context.Context) error {
 				// we cannot use the dependency container lock due ABBA deadlocks
 				if lock, err := lockfile.GetLockfile(hoststFile); err == nil {
 					lock.Lock()
-					// make sure to ignore ENOENT error in case the netns container was cleanup before this one
+					// make sure to ignore ENOENT error in case the netns container was cleaned up before this one
 					if err := etchosts.Remove(hoststFile, getLocalhostHostEntry(c)); err != nil && !errors.Is(err, os.ErrNotExist) {
 						// this error is not fatal we still want to do proper cleanup
 						logrus.Errorf("failed to remove hosts entry from the netns containers /etc/hosts: %v", err)

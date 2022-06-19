@@ -93,7 +93,7 @@ func NewIgnitionFile(ign DynamicIgnition) error {
 			tz  string
 		)
 		// local means the same as the host
-		// lookup where it is pointing to on the host
+		// look up where it is pointing to on the host
 		if ign.TimeZone == "local" {
 			tz, err = getLocalTimeZone()
 			if err != nil {
@@ -348,7 +348,7 @@ Delegate=memory pids cpu io
 		},
 	})
 
-	// Setup /etc/subuid and /etc/subgid
+	// Set up /etc/subuid and /etc/subgid
 	for _, sub := range []string{"/etc/subuid", "/etc/subgid"} {
 		files = append(files, File{
 			Node: Node{

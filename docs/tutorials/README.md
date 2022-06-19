@@ -6,11 +6,11 @@
 
 **[Introduction Tutorial](podman_tutorial.md)**
 
-Learn how to setup Podman and perform some basic commands with the utility.
+Learn how to set up Podman and perform some basic commands with the utility.
 
 **[Basic Setup and Use of Podman in a Rootless environment](rootless_tutorial.md)**
 
-The steps required to setup rootless Podman are enumerated.
+The steps required to set up rootless Podman are enumerated.
 
 **[Setup Mac/Windows](mac_win_client.md)**
 
@@ -26,7 +26,7 @@ How the libpod API can be used within your own project.
 
 **[Image Signing](image_signing.md)**
 
-Learn how to setup and use image signing with Podman.
+Learn how to set up and use image signing with Podman.
 
 **[Basic Networking](basic_networking.md)**
 

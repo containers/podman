@@ -393,7 +393,7 @@ func (ic *ContainerEngine) PodTop(ctx context.Context, options entities.PodTopOp
 		pod, err = ic.Libpod.LookupPod(options.NameOrID)
 	}
 	if err != nil {
-		return nil, errors.Wrap(err, "unable to lookup requested container")
+		return nil, errors.Wrap(err, "unable to look up requested container")
 	}
 
 	// Run Top.
@@ -494,7 +494,7 @@ func (ic *ContainerEngine) PodInspect(ctx context.Context, options entities.PodI
 		pod, err = ic.Libpod.LookupPod(options.NameOrID)
 	}
 	if err != nil {
-		return nil, errors.Wrap(err, "unable to lookup requested container")
+		return nil, errors.Wrap(err, "unable to look up requested container")
 	}
 	inspect, err := pod.Inspect()
 	if err != nil {

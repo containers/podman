@@ -322,7 +322,7 @@ func PodmanTestCreateUtil(tempDir string, remote bool) *PodmanTestIntegration {
 		}
 	}
 
-	// Setup registries.conf ENV variable
+	// Set up registries.conf ENV variable
 	p.setDefaultRegistriesConfigEnv()
 	// Rewrite the PodmanAsUser function
 	p.PodmanMakeOptions = p.makeOptions

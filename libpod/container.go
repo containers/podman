@@ -518,7 +518,7 @@ func (c *Container) PortMappings() ([]types.PortMapping, error) {
 	if len(c.config.NetNsCtr) > 0 {
 		netNsCtr, err := c.runtime.GetContainer(c.config.NetNsCtr)
 		if err != nil {
-			return nil, errors.Wrapf(err, "unable to lookup network namespace for container %s", c.ID())
+			return nil, errors.Wrapf(err, "unable to look up network namespace for container %s", c.ID())
 		}
 		return netNsCtr.PortMappings()
 	}
@@ -657,7 +657,7 @@ func (c *Container) Hostname() string {
 		utsNsCtr, err := c.runtime.GetContainer(c.config.UTSNsCtr)
 		if err != nil {
 			// should we return an error here?
-			logrus.Errorf("unable to lookup uts namespace for container %s: %v", c.ID(), err)
+			logrus.Errorf("unable to look up uts namespace for container %s: %v", c.ID(), err)
 			return ""
 		}
 		return utsNsCtr.Hostname()

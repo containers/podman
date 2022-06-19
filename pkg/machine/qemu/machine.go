@@ -209,7 +209,7 @@ func migrateVM(configPath string, config []byte, vm *MachineVM) error {
 	vm.Rootful = old.Rootful
 	vm.UID = old.UID
 
-	// Backup the original config file
+	// Back up the original config file
 	if err := os.Rename(configPath, configPath+".orig"); err != nil {
 		return err
 	}
@@ -580,7 +580,7 @@ func (v *MachineVM) Start(name string, _ machine.StartOptions) error {
 		if !errors.Is(err, os.ErrNotExist) {
 			return err
 		}
-		// lookup qemu again maybe the path was changed, https://github.com/containers/podman/issues/13394
+		// look up qemu again maybe the path was changed, https://github.com/containers/podman/issues/13394
 		cfg, err := config.Default()
 		if err != nil {
 			return err
@@ -1142,7 +1142,7 @@ func (p *Provider) CheckExclusiveActiveVM() (bool, string, error) {
 }
 
 // startHostNetworking runs a binary on the host system that allows users
-// to setup port forwarding to the podman virtual machine
+// to set up port forwarding to the podman virtual machine
 func (v *MachineVM) startHostNetworking() (string, apiForwardingState, error) {
 	cfg, err := config.Default()
 	if err != nil {

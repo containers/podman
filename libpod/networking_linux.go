@@ -291,7 +291,7 @@ func (r *RootlessNetNS) Do(toRun func() error) error {
 	return err
 }
 
-// Cleanup the rootless network namespace if needed.
+// Clean up the rootless network namespace if needed.
 // It checks if we have running containers with the bridge network mode.
 // Cleanup() expects that r.Lock is locked
 func (r *RootlessNetNS) Cleanup(runtime *Runtime) error {
@@ -783,7 +783,7 @@ func (r *Runtime) teardownNetwork(ns string, opts types.NetworkOptions) error {
 		// execute the cni setup in the rootless net ns
 		err = rootlessNetNS.Do(tearDownPod)
 		if cerr := rootlessNetNS.Cleanup(r); cerr != nil {
-			logrus.WithError(err).Error("failed to cleanup rootless netns")
+			logrus.WithError(err).Error("failed to clean up rootless netns")
 		}
 		rootlessNetNS.Lock.Unlock()
 	} else {
