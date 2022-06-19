@@ -54,8 +54,6 @@ func Attach(ctx context.Context, nameOrID string, stdin io.Reader, stdout io.Wri
 		stderr = (io.Writer)(nil)
 	}
 
-	logrus.Infof("Going to attach to container %q", nameOrID)
-
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return err
@@ -357,7 +355,7 @@ func attachHandleResize(ctx, winCtx context.Context, winChange chan os.Signal, i
 			resizeErr = ResizeContainerTTY(ctx, id, new(ResizeTTYOptions).WithHeight(h).WithWidth(w))
 		}
 		if resizeErr != nil {
-			logrus.Infof("Failed to resize TTY: %v", resizeErr)
+			logrus.Debugf("Failed to resize TTY: %v", resizeErr)
 		}
 	}
 

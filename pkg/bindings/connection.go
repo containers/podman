@@ -164,7 +164,7 @@ func pingNewConnection(ctx context.Context) (*semver.Version, error) {
 	if response.StatusCode == http.StatusOK {
 		versionHdr := response.Header.Get("Libpod-API-Version")
 		if versionHdr == "" {
-			logrus.Info("Service did not provide Libpod-API-Version Header")
+			logrus.Warn("Service did not provide Libpod-API-Version Header")
 			return new(semver.Version), nil
 		}
 		versionSrv, err := semver.ParseTolerant(versionHdr)
