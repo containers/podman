@@ -367,7 +367,7 @@ func (c *Container) getUserOverrides() *lookup.Overrides {
 
 func lookupHostUser(name string) (*runcuser.ExecUser, error) {
 	var execUser runcuser.ExecUser
-	// Lookup User on host
+	// Look up User on host
 	u, err := util.LookupUser(name)
 	if err != nil {
 		return &execUser, err
@@ -2600,13 +2600,13 @@ func (c *Container) generateCurrentUserGroupEntry() (string, int, error) {
 		return "", 0, errors.Wrapf(err, "failed to get current group")
 	}
 
-	// Lookup group name to see if it exists in the image.
+	// Look up group name to see if it exists in the image.
 	_, err = lookup.GetGroup(c.state.Mountpoint, g.Name)
 	if err != runcuser.ErrNoGroupEntries {
 		return "", 0, err
 	}
 
-	// Lookup GID to see if it exists in the image.
+	// Look up GID to see if it exists in the image.
 	_, err = lookup.GetGroup(c.state.Mountpoint, g.Gid)
 	if err != runcuser.ErrNoGroupEntries {
 		return "", 0, err
@@ -2676,7 +2676,7 @@ func (c *Container) generatePasswdEntry() (string, error) {
 
 	addedUID := 0
 	for _, userid := range c.config.HostUsers {
-		// Lookup User on host
+		// Look up User on host
 		u, err := util.LookupUser(userid)
 		if err != nil {
 			return "", err
@@ -2728,13 +2728,13 @@ func (c *Container) generateCurrentUserPasswdEntry() (string, int, int, error) {
 }
 
 func (c *Container) userPasswdEntry(u *user.User) (string, error) {
-	// Lookup the user to see if it exists in the container image.
+	// Look up the user to see if it exists in the container image.
 	_, err := lookup.GetUser(c.state.Mountpoint, u.Username)
 	if err != runcuser.ErrNoPasswdEntries {
 		return "", err
 	}
 
-	// Lookup the UID to see if it exists in the container image.
+	// Look up the UID to see if it exists in the container image.
 	_, err = lookup.GetUser(c.state.Mountpoint, u.Uid)
 	if err != runcuser.ErrNoPasswdEntries {
 		return "", err
@@ -2806,7 +2806,7 @@ func (c *Container) generateUserPasswdEntry(addedUID int) (string, error) {
 		return "", nil
 	}
 
-	// Lookup the user to see if it exists in the container image
+	// Look up the user to see if it exists in the container image
 	_, err = lookup.GetUser(c.state.Mountpoint, userspec)
 	if err != runcuser.ErrNoPasswdEntries {
 		return "", err
