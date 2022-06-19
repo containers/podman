@@ -21,10 +21,11 @@ Start the exec session, but do not attach to it. The command will run in the bac
 
 Specify the key sequence for detaching a container. Format is a single character `[a-Z]` or one or more `ctrl-<value>` characters where `<value>` is one of: `a-z`, `@`, `^`, `[`, `,` or `_`. Specifying "" will disable this feature. The default is *ctrl-p,ctrl-q*.
 
-#### **--env**, **-e**
+#### **--env**, **-e**=*env*
 
-You may specify arbitrary environment variables that are available for the
-command to be executed.
+Set environment variables.
+
+This option allows arbitrary environment variables that are available for the process to be launched inside of the container. If an environment variable is specified without a value, Podman will check the host environment for a value and set the variable only if it is set on the host. As a special case, if an environment variable ending in __*__ is specified without a value, Podman will search the host environment for variables starting with the prefix and will add those variables to the container.
 
 #### **--env-file**=*file*
 

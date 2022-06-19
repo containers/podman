@@ -349,7 +349,7 @@ You need to specify multi option commands in the form of a json string.
 
 Set environment variables
 
-This option allows arbitrary environment variables that are available for the process to be launched inside of the container. If an environment variable is specified without a value, Podman will check the host environment for a value and set the variable only if it is set on the host. If an environment variable ending in __*__ is specified, Podman will search the host environment for variables starting with the prefix and will add those variables to the container. If an environment variable with a trailing ***** is specified, then a value must be supplied.
+This option allows arbitrary environment variables that are available for the process to be launched inside of the container. If an environment variable is specified without a value, Podman will check the host environment for a value and set the variable only if it is set on the host. As a special case, if an environment variable ending in __*__ is specified without a value, Podman will search the host environment for variables starting with the prefix and will add those variables to the container.
 
 See [**Environment**](#environment) note below for precedence and examples.
 
@@ -1603,17 +1603,17 @@ Precedence order (later entries override earlier entries):
 - **--env-file** : Any environment variables specified via env-files. If multiple files specified, then they override each other in order of entry.
 - **--env** : Any environment variables specified will override previous settings.
 
-Create containers and set the environment ending with a __*__ and a *****
+Create containers and set the environment ending with a __*__.
+The trailing __*__ glob functionality is only active when no value is specified:
 
 ```
 $ export ENV1=a
-$ podman create --name ctr --env ENV* alpine printenv ENV1
-$ podman start --attach ctr
-a
-
-$ podman create --name ctr --env ENV*****=b alpine printenv ENV*****
-$ podman start --attach ctr
-b
+$ podman create --name ctr1 --env 'ENV*' alpine env
+$ podman start --attach ctr1 | grep ENV
+ENV1=a
+$ podman create --name ctr2 --env 'ENV*=b' alpine env
+$ podman start --attach ctr2 | grep ENV
+ENV*=b
 ```
 
 ## CONMON
