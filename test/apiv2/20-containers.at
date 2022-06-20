@@ -16,7 +16,12 @@ podman pull $ENV_WORKDIR_IMG &>/dev/null
 # Ensure clean slate
 podman rm -a -f &>/dev/null
 
-t GET "libpod/containers/json (at start: clean slate)" 200 length=0
+t GET "libpod/containers/json (at start: clean slate)" 200 \
+  "[]" \
+  length=0
+# check content type: https://github.com/containers/podman/issues/14647
+response_headers=$(cat "$WORKDIR/curl.headers.out")
+like "$response_headers" ".*Content-Type: application/json.*" "header does not contain application/json"
 
 # Regression test for #12904 (race condition in logging code)
 mytext="hi-there-$(random_string 15)"
