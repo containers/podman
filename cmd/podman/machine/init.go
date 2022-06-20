@@ -109,7 +109,7 @@ func init() {
 	flags.BoolVar(&initOpts.Rootful, rootfulFlagName, false, "Whether this machine should prefer rootful container execution")
 }
 
-func initMachine(_ *cobra.Command, args []string) error {
+func initMachine(cmd *cobra.Command, args []string) error {
 	var (
 		err error
 		vm  machine.VM
@@ -147,17 +147,12 @@ func initMachine(_ *cobra.Command, args []string) error {
 	fmt.Println("Machine init complete")
 
 	if now {
-		err = vm.Start(initOpts.Name, machine.StartOptions{})
-		if err == nil {
-			fmt.Printf("Machine %q started successfully\n", initOpts.Name)
-			newMachineEvent(events.Start, events.Event{Name: initOpts.Name})
-		}
-	} else {
-		extra := ""
-		if initOpts.Name != defaultMachineName {
-			extra = " " + initOpts.Name
-		}
-		fmt.Printf("To start your machine run:\n\n\tpodman machine start%s\n\n", extra)
+		return start(cmd, args)
 	}
+	extra := ""
+	if initOpts.Name != defaultMachineName {
+		extra = " " + initOpts.Name
+	}
+	fmt.Printf("To start your machine run:\n\n\tpodman machine start%s\n\n", extra)
 	return err
 }
