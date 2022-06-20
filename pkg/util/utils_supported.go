@@ -61,6 +61,11 @@ func GetRuntimeDir() (string, error) {
 			}
 			runtimeDir = filepath.Join(resolvedHome, "rundir")
 		}
+		runtimeDir, err := filepath.EvalSymlinks(runtimeDir)
+		if err != nil {
+			rootlessRuntimeDirError = fmt.Errorf("cannot resolve runtime dir: %w", err)
+			return
+		}
 		rootlessRuntimeDir = runtimeDir
 	})
 

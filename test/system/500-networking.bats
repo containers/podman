@@ -754,4 +754,23 @@ EOF
     done
 }
 
+@test "podman rootless netns work with symlink" {
+    # regression test for https://github.com/containers/podman/issues/14606
+    is_rootless || skip "only meaningful for rootless"
+    if ! readlink /var/run; then
+        skip "/var/run is not a symlink: cannot test this bug"
+    fi
+    NEW_XDG_RUNTIME_DIR=$XDG_RUNTIME_DIR
+    if [[ "${XDG_RUNTIME_DIR:0:8}" != "/var/run" ]]; then
+        if [[ "${XDG_RUNTIME_DIR:0:4}" != "/run" ]]; then
+            skip "XDG_RUNTIME_DIR: \"$XDG_RUNTIME_DIR\" does not point to /run/...: cannot test this bug"
+        fi
+        NEW_XDG_RUNTIME_DIR="/var$XDG_RUNTIME_DIR"
+    fi
+
+    # This only failed with netavark, CNI already worked before the fix.
+    XDG_RUNTIME_DIR="$NEW_XDG_RUNTIME_DIR" run_podman run --network bridge --rm $IMAGE ip a
+    is "$output" ".*eth0.*" "container interface exists in netns"
+}
+
 # vim: filetype=sh

@@ -135,15 +135,9 @@ func SetXdgDirs() error {
 		return nil
 	}
 
-	// Set up XDG_RUNTIME_DIR
-	runtimeDir := os.Getenv("XDG_RUNTIME_DIR")
-
-	if runtimeDir == "" {
-		var err error
-		runtimeDir, err = util.GetRuntimeDir()
-		if err != nil {
-			return err
-		}
+	runtimeDir, err := util.GetRuntimeDir()
+	if err != nil {
+		return err
 	}
 	if err := os.Setenv("XDG_RUNTIME_DIR", runtimeDir); err != nil {
 		return errors.Wrapf(err, "cannot set XDG_RUNTIME_DIR")
