@@ -137,7 +137,7 @@ func (ic *ContainerEngine) SetupRootless(_ context.Context, noMoveProcess bool) 
 	return nil
 }
 
-// SystemPrune removes unused data from the system. Pruning pods, containers, volumes and images.
+// SystemPrune removes unused data from the system. Pruning pods, containers, networks, volumes and images.
 func (ic *ContainerEngine) SystemPrune(ctx context.Context, options entities.SystemPruneOptions) (*entities.SystemPruneReport, error) {
 	var systemPruneReport = new(entities.SystemPruneReport)
 	filters := []string{}
@@ -148,6 +148,9 @@ func (ic *ContainerEngine) SystemPrune(ctx context.Context, options entities.Sys
 	found := true
 	for found {
 		found = false
+
+		// TODO: Figure out cleaner way to handle all of the different PruneOptions
+		// Remove all unused pods.
 		podPruneReport, err := ic.prunePodHelper(ctx)
 		if err != nil {
 			return nil, err
@@ -155,9 +158,10 @@ func (ic *ContainerEngine) SystemPrune(ctx context.Context, options entities.Sys
 		if len(podPruneReport) > 0 {
 			found = true
 		}
+
 		systemPruneReport.PodPruneReport = append(systemPruneReport.PodPruneReport, podPruneReport...)
 
-		// TODO: Figure out cleaner way to handle all of the different PruneOptions
+		// Remove all unused containers.
 		containerPruneOptions := entities.ContainerPruneOptions{}
 		containerPruneOptions.Filters = (url.Values)(options.Filters)
 
@@ -165,16 +169,18 @@ func (ic *ContainerEngine) SystemPrune(ctx context.Context, options entities.Sys
 		if err != nil {
 			return nil, err
 		}
+
 		reclaimedSpace += reports.PruneReportsSize(containerPruneReports)
 		systemPruneReport.ContainerPruneReports = append(systemPruneReport.ContainerPruneReports, containerPruneReports...)
+
+		// Remove all unused images.
 		imagePruneOptions := entities.ImagePruneOptions{
 			All:    options.All,
 			Filter: filters,
 		}
+
 		imageEngine := ImageEngine{Libpod: ic.Libpod}
 		imagePruneReports, err := imageEngine.Prune(ctx, imagePruneOptions)
-		reclaimedSpace += reports.PruneReportsSize(imagePruneReports)
-
 		if err != nil {
 			return nil, err
 		}
@@ -182,10 +188,33 @@ func (ic *ContainerEngine) SystemPrune(ctx context.Context, options entities.Sys
 			found = true
 		}
 
+		reclaimedSpace += reports.PruneReportsSize(imagePruneReports)
 		systemPruneReport.ImagePruneReports = append(systemPruneReport.ImagePruneReports, imagePruneReports...)
+
+		// Remove all unused networks.
+		networkPruneOptions := entities.NetworkPruneOptions{}
+		networkPruneOptions.Filters = options.Filters
+
+		networkPruneReport, err := ic.NetworkPrune(ctx, networkPruneOptions)
+		if err != nil {
+			return nil, err
+		}
+		if len(networkPruneReport) > 0 {
+			found = true
+		}
+		for _, net := range networkPruneReport {
+			systemPruneReport.NetworkPruneReports = append(systemPruneReport.NetworkPruneReports, &reports.PruneReport{
+				Id:   net.Name,
+				Err:  net.Error,
+				Size: 0,
+			})
+		}
+
+		// Remove unused volume data.
 		if options.Volume {
 			volumePruneOptions := entities.VolumePruneOptions{}
 			volumePruneOptions.Filters = (url.Values)(options.Filters)
+
 			volumePruneReport, err := ic.VolumePrune(ctx, volumePruneOptions)
 			if err != nil {
 				return nil, err
@@ -193,6 +222,7 @@ func (ic *ContainerEngine) SystemPrune(ctx context.Context, options entities.Sys
 			if len(volumePruneReport) > 0 {
 				found = true
 			}
+
 			reclaimedSpace += reports.PruneReportsSize(volumePruneReport)
 			systemPruneReport.VolumePruneReports = append(systemPruneReport.VolumePruneReports, volumePruneReport...)
 		}
