@@ -91,6 +91,27 @@ var _ = Describe("Podman manifest", func() {
 		Expect(session.OutputToString()).To(ContainSubstring(imageListARM64InstanceDigest))
 	})
 
+	It("add with new version", func() {
+		// Following test must pass for both podman and podman-remote
+		session := podmanTest.Podman([]string{"manifest", "create", "foo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		id := strings.TrimSpace(string(session.Out.Contents()))
+
+		session = podmanTest.Podman([]string{"manifest", "inspect", id})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"manifest", "add", "--os-version", "7.7.7", "foo", imageListInstance})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"manifest", "inspect", "foo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).To(ContainSubstring("7.7.7"))
+	})
+
 	It("tag", func() {
 		session := podmanTest.Podman([]string{"manifest", "create", "foobar"})
 		session.WaitWithDefaultTimeout()
