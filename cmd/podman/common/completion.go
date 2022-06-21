@@ -71,7 +71,7 @@ func setupImageEngine(cmd *cobra.Command) (entities.ImageEngine, error) {
 		return nil, err
 	}
 	// we also need to set up the container engine since this
-	// is required to setup the rootless namespace
+	// is required to set up the rootless namespace
 	if _, err = setupContainerEngine(cmd); err != nil {
 		return nil, err
 	}

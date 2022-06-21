@@ -194,7 +194,7 @@ type ContainerSecurityConfig struct {
 	// If not explicitly set, an unused random MLS label will be assigned by
 	// containers/storage (but only if SELinux is enabled).
 	MountLabel string `json:"MountLabel,omitempty"`
-	// LabelOpts are options passed in by the user to setup SELinux labels.
+	// LabelOpts are options passed in by the user to set up SELinux labels.
 	// These are used by the containers/storage library.
 	LabelOpts []string `json:"labelopts,omitempty"`
 	// User and group to use in the container. Can be specified as only user
@@ -386,7 +386,7 @@ type ContainerMiscConfig struct {
 	IsService bool `json:"isService"`
 	// SdNotifyMode tells libpod what to do with a NOTIFY_SOCKET if passed
 	SdNotifyMode string `json:"sdnotifyMode,omitempty"`
-	// Systemd tells libpod to setup the container in systemd mode, a value of nil denotes false
+	// Systemd tells libpod to set up the container in systemd mode, a value of nil denotes false
 	Systemd *bool `json:"systemd,omitempty"`
 	// HealthCheckConfig has the health check command and related timings
 	HealthCheckConfig *manifest.Schema2HealthConfig `json:"healthcheck"`

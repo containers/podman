@@ -109,7 +109,7 @@ func (r *RootlessNetNS) getPath(path string) string {
 func (r *RootlessNetNS) Do(toRun func() error) error {
 	err := r.ns.Do(func(_ ns.NetNS) error {
 		// Before we can run the given function,
-		// we have to setup all mounts correctly.
+		// we have to set up all mounts correctly.
 
 		// The order of the mounts is IMPORTANT.
 		// The idea of the extra mount ns is to make /run and /var/lib/cni writeable
@@ -419,7 +419,7 @@ func (r *Runtime) GetRootlessNetNs(new bool) (*RootlessNetNS, error) {
 		if err != nil {
 			return nil, errors.Wrap(err, "error creating rootless network namespace")
 		}
-		// setup slirp4netns here
+		// set up slirp4netns here
 		path := r.config.Engine.NetworkCmdPath
 		if path == "" {
 			var err error
@@ -656,9 +656,9 @@ func (r *Runtime) configureNetNS(ctr *Container, ctrNS ns.NetNS) (status map[str
 		return nil, err
 	}
 
-	// setup rootless port forwarder when rootless with ports and the network status is empty,
+	// set up rootless port forwarder when rootless with ports and the network status is empty,
 	// if this is called from network reload the network status will not be empty and we should
-	// not setup port because they are still active
+	// not set up port because they are still active
 	if rootless.IsRootless() && len(ctr.config.PortMappings) > 0 && ctr.getNetworkStatus() == nil {
 		// set up port forwarder for rootless netns
 		netnsPath := ctrNS.Path()
