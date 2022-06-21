@@ -1144,7 +1144,7 @@ func resultToBasicNetworkConfig(result *cnitypes.Result) (define.InspectBasicNet
 				config.MacAddress = result.Interfaces[*ctrIP.Interface].Mac
 			}
 		case ctrIP.Version == "4" && config.IPAddress != "":
-			config.SecondaryIPAddresses = append(config.SecondaryIPAddresses, ctrIP.Address.String())
+			config.SecondaryIPAddresses = append(config.SecondaryIPAddresses, define.Address{Addr: ctrIP.Address.IP.String(), PrefixLen: size})
 			if ctrIP.Interface != nil && *ctrIP.Interface < len(result.Interfaces) && *ctrIP.Interface >= 0 {
 				config.AdditionalMacAddresses = append(config.AdditionalMacAddresses, result.Interfaces[*ctrIP.Interface].Mac)
 			}
@@ -1153,7 +1153,7 @@ func resultToBasicNetworkConfig(result *cnitypes.Result) (define.InspectBasicNet
 			config.GlobalIPv6PrefixLen = size
 			config.IPv6Gateway = ctrIP.Gateway.String()
 		case ctrIP.Version == "6" && config.IPAddress != "":
-			config.SecondaryIPv6Addresses = append(config.SecondaryIPv6Addresses, ctrIP.Address.String())
+			config.SecondaryIPv6Addresses = append(config.SecondaryIPv6Addresses, define.Address{Addr: ctrIP.Address.IP.String(), PrefixLen: size})
 		default:
 			return config, errors.Wrapf(define.ErrInternal, "unrecognized IP version %q", ctrIP.Version)
 		}
