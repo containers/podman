@@ -2,6 +2,7 @@ package abi
 
 import (
 	"context"
+	"strconv"
 
 	"github.com/containers/common/libnetwork/types"
 	netutil "github.com/containers/common/libnetwork/util"
@@ -12,9 +13,38 @@ import (
 )
 
 func (ic *ContainerEngine) NetworkList(ctx context.Context, options entities.NetworkListOptions) ([]types.Network, error) {
+	// dangling filter is not provided by netutil
+	var wantDangling bool
+
+	val, filterDangling := options.Filters["dangling"]
+	if filterDangling {
+		switch len(val) {
+		case 0:
+			return nil, errors.Errorf("got no values for filter key \"dangling\"")
+		case 1:
+			var err error
+			wantDangling, err = strconv.ParseBool(val[0])
+			if err != nil {
+				return nil, errors.Errorf("invalid dangling filter value \"%v\"", val[0])
+			}
+			delete(options.Filters, "dangling")
+		default:
+			return nil, errors.Errorf("got more than one value for filter key \"dangling\"")
+		}
+	}
+
 	filters, err := netutil.GenerateNetworkFilters(options.Filters)
 	if err != nil {
 		return nil, err
+	}
+
+	if filterDangling {
+		danglingFilterFunc, err := ic.createDanglingFilterFunc(wantDangling)
+		if err != nil {
+			return nil, err
+		}
+
+		filters = append(filters, danglingFilterFunc)
 	}
 	nets, err := ic.Libpod.Network().NetworkList(filters...)
 	return nets, err
@@ -144,6 +174,33 @@ func (ic *ContainerEngine) NetworkExists(ctx context.Context, networkname string
 
 // Network prune removes unused networks
 func (ic *ContainerEngine) NetworkPrune(ctx context.Context, options entities.NetworkPruneOptions) ([]*entities.NetworkPruneReport, error) {
+	// get all filters
+	filters, err := netutil.GenerateNetworkPruneFilters(options.Filters)
+	if err != nil {
+		return nil, err
+	}
+	danglingFilterFunc, err := ic.createDanglingFilterFunc(true)
+	if err != nil {
+		return nil, err
+	}
+	filters = append(filters, danglingFilterFunc)
+	nets, err := ic.Libpod.Network().NetworkList(filters...)
+	if err != nil {
+		return nil, err
+	}
+
+	pruneReport := make([]*entities.NetworkPruneReport, 0, len(nets))
+	for _, net := range nets {
+		pruneReport = append(pruneReport, &entities.NetworkPruneReport{
+			Name:  net.Name,
+			Error: ic.Libpod.Network().NetworkRemove(net.Name),
+		})
+	}
+	return pruneReport, nil
+}
+
+// danglingFilter function is special and not implemented in libnetwork filters
+func (ic *ContainerEngine) createDanglingFilterFunc(wantDangling bool) (types.FilterFunc, error) {
 	cons, err := ic.Libpod.GetAllContainers()
 	if err != nil {
 		return nil, err
@@ -163,31 +220,12 @@ func (ic *ContainerEngine) NetworkPrune(ctx context.Context, options entities.Ne
 	// ignore the default network, this one cannot be deleted
 	networksToKeep[ic.Libpod.GetDefaultNetworkName()] = true
 
-	// get all filters
-	filters, err := netutil.GenerateNetworkPruneFilters(options.Filters)
-	if err != nil {
-		return nil, err
-	}
-	danglingFilterFunc := func(net types.Network) bool {
+	return func(net types.Network) bool {
 		for network := range networksToKeep {
 			if network == net.Name {
-				return false
+				return !wantDangling
 			}
 		}
-		return true
-	}
-	filters = append(filters, danglingFilterFunc)
-	nets, err := ic.Libpod.Network().NetworkList(filters...)
-	if err != nil {
-		return nil, err
-	}
-
-	pruneReport := make([]*entities.NetworkPruneReport, 0, len(nets))
-	for _, net := range nets {
-		pruneReport = append(pruneReport, &entities.NetworkPruneReport{
-			Name:  net.Name,
-			Error: ic.Libpod.Network().NetworkRemove(net.Name),
-		})
-	}
-	return pruneReport, nil
+		return wantDangling
+	}, nil
 }

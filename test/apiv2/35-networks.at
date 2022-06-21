@@ -78,8 +78,8 @@ t GET networks?filters="{\"id\":[\"$network1_id\"]}" 200 \
   .[0].Name=network1 \
   .[0].Id=$network1_id
 # invalid filter
-t GET networks?filters='{"dangling":["1"]}' 500 \
-  .cause='invalid filter "dangling"'
+t GET networks?filters='{"dangling":["true","0"]}' 500 \
+  .cause="got more than one value for filter key \"dangling\""
 # (#9293 with no networks the endpoint should return empty array instead of null)
 t GET networks?filters='{"name":["doesnotexists"]}' 200 \
   "[]"
