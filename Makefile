@@ -837,9 +837,12 @@ install.tools: .install.ginkgo .install.golangci-lint .install.bats ## Install n
 		make -C test/tools build/go-md2man ; \
 	fi
 
-.PHONY: .install.bats
-.install.bats:
+# Avoid calling script if hard-coded binary path exists
+/usr/local/bin/bats:
 	VERSION=v1.1.0 ./hack/install_bats.sh
+
+.PHONY: .install.bats
+.install.bats: /usr/local/bin/bats
 
 .PHONY: .install.pre-commit
 .install.pre-commit:

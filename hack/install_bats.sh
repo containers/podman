@@ -4,9 +4,9 @@ set -e
 
 die() { echo "${1:-No error message given} (from $(basename $0))"; exit 1; }
 
-if [[ "$(type -t bats)" != "" ]]; then
-	# bats is already installed.
-	exit 0
+if [[ -n "$(type -P bats)" ]]; then
+    echo "bats is already installed."
+    exit 0
 fi
 
 buildDir=$(mktemp -d)
