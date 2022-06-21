@@ -70,7 +70,7 @@ $ cd $GOPATH/src/github.com/containers/podman
 
 ### Deal with make
 
-Podman use a Makefile to realize common action like building etc...
+Podman uses a Makefile to realize common actions like building etc...
 
 You can list available actions by using:
 ```shell
