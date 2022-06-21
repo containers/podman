@@ -178,7 +178,7 @@ get_cmd_line_args ()
           char *tmp = realloc (buffer, allocated);
           if (tmp == NULL)
             return NULL;
-	  buffer = tmp;
+          buffer = tmp;
         }
     }
 
@@ -243,7 +243,7 @@ can_use_shortcut ()
         }
 
       if (argv[argc+1] != NULL && (strcmp (argv[argc], "container") == 0 ||
-	   strcmp (argv[argc], "image") == 0) &&
+                                   strcmp (argv[argc], "image") == 0) &&
      (strcmp (argv[argc+1], "mount") == 0  || strcmp (argv[argc+1], "scp") == 0))
         {
           ret = false;
@@ -512,7 +512,9 @@ create_pause_process (const char *pause_pid_file_path, char **argv)
       r = TEMP_FAILURE_RETRY (read (p[0], &b, 1));
       close (p[0]);
 
-      reexec_in_user_namespace_wait (pid, 0);
+      r = reexec_in_user_namespace_wait (pid, 0);
+      if (r != 0)
+	return -1;
 
       return r == 1 && b == '0' ? 0 : -1;
     }
@@ -757,6 +759,7 @@ reexec_userns_join (int pid_to_join, char *pause_pid_file_path)
     }
 
   execvp (argv[0], argv);
+  fprintf (stderr, "failed to execvp %s: %m\n", argv[0]);
 
   _exit (EXIT_FAILURE);
 }
@@ -788,7 +791,10 @@ copy_file_to_fd (const char *file_to_read, int outfd)
 
   fd = open (file_to_read, O_RDONLY);
   if (fd < 0)
-    return fd;
+    {
+      fprintf (stderr, "open `%s`: %m\n", file_to_read);
+      return fd;
+    }
 
   for (;;)
     {
@@ -796,7 +802,10 @@ copy_file_to_fd (const char *file_to_read, int outfd)
 
       r = TEMP_FAILURE_RETRY (read (fd, buf, sizeof buf));
       if (r < 0)
-        return r;
+        {
+          fprintf (stderr, "read from `%s`: %m\n", file_to_read);
+          return r;
+        }
 
       if (r == 0)
         break;
@@ -805,7 +814,10 @@ copy_file_to_fd (const char *file_to_read, int outfd)
         {
           w = TEMP_FAILURE_RETRY (write (outfd, &buf[t], r - t));
           if (w < 0)
-            return w;
+            {
+              fprintf (stderr, "write file to output fd `%s`: %m\n", file_to_read);
+              return w;
+            }
           t += w;
         }
     }
