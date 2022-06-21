@@ -46,6 +46,7 @@ func cloneFlags(cmd *cobra.Command) {
 
 	common.DefineCreateDefaults(&podClone.InfraOptions)
 	common.DefineCreateFlags(cmd, &podClone.InfraOptions, true, false)
+
 	podClone.InfraOptions.MemorySwappiness = -1 // this is not implemented for pods yet, need to set -1 default manually
 
 	// need to fill an empty ctr create option for each container for sane defaults
@@ -72,6 +73,11 @@ func clone(cmd *cobra.Command, args []string) error {
 	}
 
 	podClone.ID = args[0]
+
+	if cmd.Flag("shm-size").Changed {
+		podClone.InfraOptions.ShmSize = cmd.Flag("shm-size").Value.String()
+	}
+
 	podClone.PerContainerOptions.IsClone = true
 	rep, err := registry.ContainerEngine().PodClone(context.Background(), podClone)
 	if err != nil {

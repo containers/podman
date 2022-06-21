@@ -124,6 +124,12 @@ Note: Labeling can be disabled for all pods/containers by setting label=false in
 
 Note: Labeling can be disabled for all containers by setting label=false in the **containers.conf** (`/etc/containers/containers.conf` or `$HOME/.config/containers/containers.conf`) file.
 
+#### **--shm-size**=*size*
+
+Size of `/dev/shm` (format: `<number>[<unit>]`, where unit = b (bytes), k (kibibytes), m (mebibytes), or g (gibibytes))
+If the unit is omitted, the system uses bytes. If the size is omitted, the system uses `64m`.
+When size is `0`, there is no limit on the amount of memory used for IPC by the pod. This option conflicts with **--ipc=host** when running containers.
+
 #### **--start**
 
 When set to true, this flag starts the newly created pod after the

@@ -298,6 +298,12 @@ This boolean determines whether or not all containers entering the pod will use 
 
 Note: This options conflict with **--share=cgroup** since that would set the pod as the cgroup parent but enter the container into the same cgroupNS as the infra container.
 
+#### **--shm-size**=*size*
+
+Size of `/dev/shm` (format: `<number>[<unit>]`, where unit = b (bytes), k (kibibytes), m (mebibytes), or g (gibibytes))
+If the unit is omitted, the system uses bytes. If the size is omitted, the system uses `64m`.
+When size is `0`, there is no limit on the amount of memory used for IPC by the pod. This option conflicts with **--ipc=host** when running containers.
+
 #### **--subgidname**=*name*
 
 Name for GID map from the `/etc/subgid` file. Using this flag will run the container with user namespace enabled. This flag conflicts with `--userns` and `--gidmap`.
@@ -305,6 +311,7 @@ Name for GID map from the `/etc/subgid` file. Using this flag will run the conta
 #### **--subuidname**=*name*
 
 Name for UID map from the `/etc/subuid` file. Using this flag will run the container with user namespace enabled. This flag conflicts with `--userns` and `--uidmap`.
+
 
 #### **--sysctl**=_name_=_value_
 

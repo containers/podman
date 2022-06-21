@@ -452,13 +452,6 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		)
 		_ = cmd.RegisterFlagCompletionFunc(secretFlagName, AutocompleteSecrets)
 
-		shmSizeFlagName := "shm-size"
-		createFlags.String(
-			shmSizeFlagName, shmSize(),
-			"Size of /dev/shm "+sizeWithUnitFormat,
-		)
-		_ = cmd.RegisterFlagCompletionFunc(shmSizeFlagName, completion.AutocompleteNone)
-
 		stopSignalFlagName := "stop-signal"
 		createFlags.StringVar(
 			&cf.StopSignal,
@@ -628,6 +621,13 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		)
 	}
 	if isInfra || (!clone && !isInfra) { // infra container flags, create should also pick these up
+		shmSizeFlagName := "shm-size"
+		createFlags.String(
+			shmSizeFlagName, shmSize(),
+			"Size of /dev/shm "+sizeWithUnitFormat,
+		)
+		_ = cmd.RegisterFlagCompletionFunc(shmSizeFlagName, completion.AutocompleteNone)
+
 		sysctlFlagName := "sysctl"
 		createFlags.StringSliceVar(
 			&cf.Sysctl,

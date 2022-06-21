@@ -432,4 +432,10 @@ type InfraInherit struct {
 	SeccompProfilePath string                   `json:"seccomp_profile_path,omitempty"`
 	SelinuxOpts        []string                 `json:"selinux_opts,omitempty"`
 	Volumes            []*specgen.NamedVolume   `json:"volumes,omitempty"`
+	ShmSize            *int64                   `json:"shm_size"`
+}
+
+// IsDefaultShmSize determines if the user actually set the shm in the parent ctr or if it has been set to the default size
+func (inherit *InfraInherit) IsDefaultShmSize() bool {
+	return inherit.ShmSize == nil || *inherit.ShmSize == 65536000
 }
