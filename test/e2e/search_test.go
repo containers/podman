@@ -136,6 +136,7 @@ registries = ['{{.Host}}:{{.Port}}']`
 	})
 
 	It("podman search no-trunc flag", func() {
+		Skip("Problematic test.  Skipping for long-term stability on release branch.")
 		search := podmanTest.Podman([]string{"search", "--no-trunc", "alpine"})
 		search.WaitWithDefaultTimeout()
 		Expect(search).Should(Exit(0))
