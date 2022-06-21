@@ -132,6 +132,12 @@ streamLabel: // A label to flatten the scope
 			InstanceID: "",
 		}
 
+		cfg := ctnr.Config()
+		memoryLimit := cgroupStat.Memory.Usage.Limit
+		if cfg.Spec.Linux != nil && cfg.Spec.Linux.Resources != nil && cfg.Spec.Linux.Resources.Memory != nil && *cfg.Spec.Linux.Resources.Memory.Limit > 0 {
+			memoryLimit = uint64(*cfg.Spec.Linux.Resources.Memory.Limit)
+		}
+
 		systemUsage, _ := cgroups.GetSystemCPUUsage()
 		s := StatsJSON{
 			Stats: Stats{
@@ -173,7 +179,7 @@ streamLabel: // A label to flatten the scope
 					MaxUsage:          cgroupStat.Memory.Usage.Limit,
 					Stats:             nil,
 					Failcnt:           0,
-					Limit:             cgroupStat.Memory.Usage.Limit,
+					Limit:             memoryLimit,
 					Commit:            0,
 					CommitPeak:        0,
 					PrivateWorkingSet: 0,
