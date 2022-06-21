@@ -18,7 +18,8 @@ function __podman_remote_perform_completion
     __podman_remote_debug "args: $args"
     __podman_remote_debug "last arg: $lastArg"
 
-    set -l requestComp "$args[1] __complete $args[2..-1] $lastArg"
+    # Disable ActiveHelp which is not supported for fish shell
+    set -l requestComp "PODMAN_REMOTE_ACTIVE_HELP=0 $args[1] __complete $args[2..-1] $lastArg"
 
     __podman_remote_debug "Calling $requestComp"
     set -l results (eval $requestComp 2> /dev/null)

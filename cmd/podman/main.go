@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"os"
 
@@ -27,7 +26,6 @@ import (
 	"github.com/containers/storage/pkg/reexec"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 )
 
 func main() {
@@ -103,13 +101,6 @@ func parseCommands() *cobra.Command {
 }
 
 func flagErrorFuncfunc(c *cobra.Command, e error) error {
-	// cobra compares via == and not errors.Is so we cannot wrap that error.
-	// This is required to make podman -h work.
-	// This can be removed once https://github.com/spf13/cobra/pull/1730
-	// is merged and vendored into podman.
-	if errors.Is(e, pflag.ErrHelp) {
-		return e
-	}
 	e = fmt.Errorf("%w\nSee '%s --help'", e, c.CommandPath())
 	return e
 }
