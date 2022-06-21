@@ -395,6 +395,15 @@ func LibpodToContainer(l *libpod.Container, sz bool) (*handlers.Container, error
 	}, nil
 }
 
+func convertSecondaryIPPrefixLen(input *define.InspectNetworkSettings, output *types.NetworkSettings) {
+	for index, ip := range input.SecondaryIPAddresses {
+		output.SecondaryIPAddresses[index].PrefixLen = ip.PrefixLength
+	}
+	for index, ip := range input.SecondaryIPv6Addresses {
+		output.SecondaryIPv6Addresses[index].PrefixLen = ip.PrefixLength
+	}
+}
+
 func LibpodToContainerJSON(l *libpod.Container, sz bool) (*types.ContainerJSON, error) {
 	_, imageName := l.Image()
 	inspect, err := l.Inspect(sz)
@@ -585,6 +594,9 @@ func LibpodToContainerJSON(l *libpod.Container, sz bool) (*types.ContainerJSON, 
 	if err := json.Unmarshal(n, &networkSettings); err != nil {
 		return nil, err
 	}
+
+	convertSecondaryIPPrefixLen(inspect.NetworkSettings, &networkSettings)
+
 	// do not report null instead use an empty map
 	if networkSettings.Networks == nil {
 		networkSettings.Networks = map[string]*network.EndpointSettings{}
