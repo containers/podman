@@ -930,7 +930,12 @@ func (v *MachineVM) State(bypass bool) (machine.Status, error) {
 	}
 	monitor, err := qmp.NewSocketMonitor(v.QMPMonitor.Network, v.QMPMonitor.Address.GetPath(), v.QMPMonitor.Timeout)
 	if err != nil {
-		// FIXME: this error should probably be returned
+		// If an improper cleanup was done and the socketmonitor was not deleted,
+		// it can appear as though the machine state is not stopped.  Check for ECONNREFUSED
+		// almost assures us that the vm is stopped.
+		if errors.Is(err, syscall.ECONNREFUSED) {
+			return machine.Stopped, nil
+		}
 		return "", err
 	}
 	if err := monitor.Connect(); err != nil {
