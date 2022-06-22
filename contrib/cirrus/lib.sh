@@ -173,7 +173,7 @@ setup_rootless() {
     ssh-keygen -t ed25519 -P "" -f "/home/$ROOTLESS_USER/.ssh/id_ed25519"
     ssh-keygen -t rsa -P "" -f "/home/$ROOTLESS_USER/.ssh/id_rsa"
 
-    msg "Setup authorized_keys"
+    msg "Set up authorized_keys"
     cat $HOME/.ssh/*.pub /home/$ROOTLESS_USER/.ssh/*.pub >> $HOME/.ssh/authorized_keys
     cat $HOME/.ssh/*.pub /home/$ROOTLESS_USER/.ssh/*.pub >> /home/$ROOTLESS_USER/.ssh/authorized_keys
 
@@ -186,9 +186,9 @@ setup_rootless() {
     # never be any non-localhost connections made from tests (using strict-mode).
     # If there are, it's either a security problem or a broken test, both of which
     # we want to lead to test failures.
-    msg "   setup known_hosts for $USER"
+    msg "   set up known_hosts for $USER"
     ssh-keyscan localhost > /root/.ssh/known_hosts
-    msg "   setup known_hosts for $ROOTLESS_USER"
+    msg "   set up known_hosts for $ROOTLESS_USER"
     # Maintain access-permission consistency with all other .ssh files.
     install -Z -m 700 -o $ROOTLESS_USER -g $ROOTLESS_USER \
         /root/.ssh/known_hosts /home/$ROOTLESS_USER/.ssh/known_hosts

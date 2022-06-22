@@ -131,7 +131,7 @@ func removePathFromRegistry(path string) error {
 	k, err := registry.OpenKey(registry.CURRENT_USER, Environment, registry.READ|registry.WRITE)
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
-			// Nothing to cleanup, the Environment registry key does not exist.
+			// Nothing to clean up, the Environment registry key does not exist.
 			return nil
 		}
 		return err

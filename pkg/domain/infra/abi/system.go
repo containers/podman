@@ -404,9 +404,9 @@ func (ic *ContainerEngine) Unshare(ctx context.Context, args []string, options e
 		}
 		// Make sure to unlock, unshare can run for a long time.
 		rootlessNetNS.Lock.Unlock()
-		// We do not want to cleanup the netns after unshare.
-		// The problem is that we cannot know if we need to cleanup and
-		// secondly unshare should allow user to setup the namespace with
+		// We do not want to clean up the netns after unshare.
+		// The problem is that we cannot know if we need to clean up and
+		// secondly unshare should allow user to set up the namespace with
 		// special things, e.g. potentially macvlan or something like that.
 		return rootlessNetNS.Do(unshare)
 	}

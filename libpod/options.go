@@ -1812,7 +1812,7 @@ func WithHostDevice(dev []specs.LinuxDevice) CtrCreateOption {
 	}
 }
 
-// WithSelectedPasswordManagement makes it so that the container either does or does not setup /etc/passwd or /etc/group
+// WithSelectedPasswordManagement makes it so that the container either does or does not set up /etc/passwd or /etc/group
 func WithSelectedPasswordManagement(passwd *bool) CtrCreateOption {
 	return func(c *Container) error {
 		if c.valid {

@@ -247,7 +247,7 @@ var _ = Describe("podman system connection", func() {
 			// podman-remote commands will be executed by ginkgo directly.
 			SkipIfContainerized("sshd is not available when running in a container")
 			SkipIfRemote("connection heuristic requires both podman and podman-remote binaries")
-			SkipIfNotRootless(fmt.Sprintf("FIXME: setup ssh keys when root. uid(%d) euid(%d)", os.Getuid(), os.Geteuid()))
+			SkipIfNotRootless(fmt.Sprintf("FIXME: set up ssh keys when root. uid(%d) euid(%d)", os.Getuid(), os.Geteuid()))
 			SkipIfSystemdNotRunning("cannot test connection heuristic if systemd is not running")
 			SkipIfNotActive("sshd", "cannot test connection heuristic if sshd is not running")
 		})

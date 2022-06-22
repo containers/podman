@@ -679,7 +679,7 @@ Current supported mount TYPEs are **bind**, **volume**, **image**, **tmpfs** and
 
 	      · bind-propagation: shared, slave, private, unbindable, rshared, rslave, runbindable, or rprivate(default). See also mount(2).
 
-	      . bind-nonrecursive: do not setup a recursive bind mount. By default it is recursive.
+	      . bind-nonrecursive: do not set up a recursive bind mount. By default it is recursive.
 
 	      . relabel: shared, private.
 
@@ -1883,7 +1883,7 @@ $ podman run --uidmap 0:30000:7000 --gidmap 0:30000:7000 fedora echo hello
 
 Podman allows for the configuration of storage by changing the values
 in the _/etc/container/storage.conf_ or by using global options. This
-shows how to setup and use fuse-overlayfs for a one time run of busybox
+shows how to set up and use fuse-overlayfs for a one time run of busybox
 using global options.
 
 ```

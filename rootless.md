@@ -8,7 +8,7 @@ Contributors are more than welcomed to help with this work.  If you decide to ca
   * The kernel does not allow processes without CAP_NET_BIND_SERVICE to bind to low ports.
   * You can modify the `net.ipv4.ip_unprivileged_port_start` sysctl to change the lowest port.  For example `sysctl net.ipv4.ip_unprivileged_port_start=443` allows rootless Podman containers to bind to ports >= 443.
 * “How To” documentation is patchy at best.
-* If /etc/subuid and /etc/subgid are not setup for a user, then podman commands
+* If /etc/subuid and /etc/subgid are not set up for a user, then podman commands
 can easily fail
   * This can be a big issue on machines using Network Based Password information (FreeIPA, Active Directory, LDAP)
   * We are working to get support for NSSWITCH on the /etc/subuid and /etc/subgid files.
@@ -24,7 +24,7 @@ can easily fail
   * NFS and parallel filesystems enforce file creation on different UIDs on the server side and does not understand User Namespace.
   * When a container root process like YUM attempts to create a file owned by a different UID, NFS Server/GPFS denies the creation.
 * Does not work with homedirs mounted with noexec/nodev
-  * User can setup storage to point to other directories they can write to that are not mounted noexec/nodev
+  * User can set up storage to point to other directories they can write to that are not mounted noexec/nodev
 * Support for using native overlayfs as an unprivileged user is only available for Podman version >= 3.1 on a Linux kernel version >= 5.12, otherwise the slower _fuse-overlayfs_ may be used.
   * A few Linux distributions (e.g. Ubuntu) have supported even older Podman and Linux kernel versions by modifying the normal Linux kernel behaviour.
 * Only other supported driver is VFS.

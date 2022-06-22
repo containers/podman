@@ -9,7 +9,7 @@ podman\-port - List port mappings for a container
 **podman container port** [*options*] *container* [*private-port*[/*proto*]]
 
 ## DESCRIPTION
-List port mappings for the *container* or lookup the public-facing port that is NAT-ed to the *private-port*.
+List port mappings for the *container* or look up the public-facing port that is NAT-ed to the *private-port*.
 
 ## OPTIONS
 

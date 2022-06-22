@@ -204,7 +204,7 @@ func generateContainerInfo(ctr *libpod.Container, options entities.GenerateSyste
 	} else {
 		runRoot = ctr.Runtime().RunRoot()
 		if runRoot == "" {
-			return nil, errors.Errorf("could not lookup container's runroot: got empty string")
+			return nil, errors.Errorf("could not look up container's runroot: got empty string")
 		}
 	}
 

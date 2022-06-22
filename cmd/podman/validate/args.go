@@ -73,9 +73,9 @@ func CheckAllLatestAndIDFile(c *cobra.Command, args []string, ignoreArgLen bool,
 		specifiedLatest, _ = c.Flags().GetBool("latest")
 		if c.Flags().Lookup("all") == nil || c.Flags().Lookup("latest") == nil {
 			if idFileFlag == "" {
-				return errors.New("unable to lookup values for 'latest' or 'all'")
+				return errors.New("unable to look up values for 'latest' or 'all'")
 			} else if c.Flags().Lookup(idFileFlag) == nil {
-				return errors.Errorf("unable to lookup values for 'latest', 'all', or '%s'", idFileFlag)
+				return errors.Errorf("unable to look up values for 'latest', 'all', or '%s'", idFileFlag)
 			}
 		}
 	}

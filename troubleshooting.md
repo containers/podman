@@ -321,7 +321,7 @@ under `/var/lib/containers/storage`.
 # restorecon -R -v /srv/containers
 ```
 
-The semanage command above tells SELinux to setup the default labeling of
+The semanage command above tells SELinux to set up the default labeling of
 `/srv/containers` to match `/var/lib/containers`.  The `restorecon` command
 tells SELinux to apply the labels to the actual content.
 
@@ -387,7 +387,7 @@ error creating build container: Error committing the finished image: error addin
 
 #### Solution
 Choose one of the following:
-  * Setup containers/storage in a different directory, not on an NFS share.
+  * Set up containers/storage in a different directory, not on an NFS share.
     * Create a directory on a local file system.
     * Edit `~/.config/containers/containers.conf` and point the `volume_path` option to that local directory. (Copy `/usr/share/containers/containers.conf` if `~/.config/containers/containers.conf` does not exist)
   * Otherwise just run Podman as root, via `sudo podman`

@@ -58,7 +58,7 @@ func StatsContainer(w http.ResponseWriter, r *http.Request) {
 		flusher.Flush()
 	}
 
-	// Setup JSON encoder for streaming.
+	// Set up JSON encoder for streaming.
 	coder.SetEscapeHTML(true)
 	var preRead time.Time
 	var preCPUStats CPUStats

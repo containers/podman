@@ -359,7 +359,7 @@ load helpers
     run curl -s $SERVER/index.txt
     is "$output" "$random_1" "curl 127.0.0.1:/index.txt"
 
-    # cleanup the container
+    # clean up the container
     run_podman rm -t 0 -f $cid
 
     # test that we cannot remove the default network
@@ -549,7 +549,7 @@ load helpers
     run curl --max-time 3 -s $SERVER/index.txt
     is "$output" "$random_1" "curl 127.0.0.1:/index.txt should still work"
 
-    # cleanup
+    # clean up
     run_podman rm -t 0 -f $cid $background_cid
     run_podman network rm -t 0 -f $netname $netname2
 }
@@ -622,7 +622,7 @@ load helpers
         run_podman rm -t 0 -f $cid
     done
 
-    # Cleanup network
+    # Clean up network
     run_podman network rm -t 0 -f $netname
 }
 

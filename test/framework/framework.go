@@ -37,7 +37,7 @@ func NilFunc(f *TestFramework) error {
 func (t *TestFramework) Setup() {
 	// Global initialization for the whole framework goes in here
 
-	// Setup the actual test suite
+	// Set up the actual test suite
 	gomega.Expect(t.setup(t)).To(gomega.Succeed())
 }
 

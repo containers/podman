@@ -162,7 +162,7 @@ spelled with complete minutiae.
       release branch (`git checkout upstream/vX.Y`).
    1. Create a new local working-branch to develop the release PR,
       `git checkout -b bump_vX.Y.Z`.
-   1. Lookup the *COMMIT ID* of the last release,
+   1. Look up the *COMMIT ID* of the last release,
       `git log -1 $(git tag | sort -V | tail -1)`.
    1. Edit `version/version.go` and bump the `Version` value to the new
       release version.  If there were API changes, also bump `APIVersion` value.

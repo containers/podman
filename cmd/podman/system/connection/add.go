@@ -188,7 +188,7 @@ func GetUserInfo(uri *url.URL) (*url.Userinfo, error) {
 	if u, found := os.LookupEnv("_CONTAINERS_ROOTLESS_UID"); found {
 		usr, err = user.LookupId(u)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to lookup rootless user")
+			return nil, errors.Wrapf(err, "failed to look up rootless user")
 		}
 	} else {
 		usr, err = user.Current()

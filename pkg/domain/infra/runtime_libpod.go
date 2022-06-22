@@ -342,7 +342,7 @@ func ParseIDMapping(mode namespaces.UsernsMode, uidMapSlice, gidMapSlice []strin
 
 		options.HostUIDMapping = false
 		options.HostGIDMapping = false
-		// Simply ignore the setting and do not setup an inner namespace for root as it is a no-op
+		// Simply ignore the setting and do not set up an inner namespace for root as it is a no-op
 		return &options, nil
 	}
 
@@ -394,7 +394,7 @@ func ParseIDMapping(mode namespaces.UsernsMode, uidMapSlice, gidMapSlice []strin
 
 // StartWatcher starts a new SIGHUP go routine for the current config.
 func StartWatcher(rt *libpod.Runtime) {
-	// Setup the signal notifier
+	// Set up the signal notifier
 	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, syscall.SIGHUP)
 

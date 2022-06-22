@@ -66,7 +66,7 @@ func StatsContainer(w http.ResponseWriter, r *http.Request) {
 		flusher.Flush()
 	}
 
-	// Setup JSON encoder for streaming.
+	// Set up JSON encoder for streaming.
 	coder := json.NewEncoder(w)
 	coder.SetEscapeHTML(true)
 

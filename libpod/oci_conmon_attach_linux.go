@@ -120,7 +120,7 @@ func (r *ConmonOCIRuntime) Attach(c *Container, params *AttachOptions) error {
 //  conmon will then send the exit code of the exec process, or an error in the exec session
 // startFd must be the input side of the fd.
 // newSize resizes the tty to this size before the process is started, must be nil if the exec session has no tty
-//   conmon will wait to start the exec session until the parent process has setup the console socket.
+//   conmon will wait to start the exec session until the parent process has set up the console socket.
 //   Once attachToExec successfully attaches to the console socket, the child conmon process responsible for calling runtime exec
 //     will read from the output side of start fd, thus learning to start the child process.
 // Thus, the order goes as follow:

@@ -11,7 +11,7 @@
 | [podman-commit(1)](https://podman.readthedocs.io/en/latest/markdown/podman-commit.1.html)                             | Create new image based on the changed container                            |
 | [podman-container(1)](https://podman.readthedocs.io/en/latest/managecontainers.html)                                  | Manage Containers                                                          |
 | [podman-container-checkpoint(1)](https://podman.readthedocs.io/en/latest/markdown/podman-container-checkpoint.1.html) | Checkpoints one or more running containers                                 |
-| [podman-container-cleanup(1)](https://podman.readthedocs.io/en/latest/markdown/podman-container-cleanup.1.html)       | Cleanup the container's network and mountpoints                            |
+| [podman-container-cleanup(1)](https://podman.readthedocs.io/en/latest/markdown/podman-container-cleanup.1.html)       | Clean up the container's network and mountpoints                           |
 | [podman-container-exists(1)](https://podman.readthedocs.io/en/latest/markdown/podman-container-exists.1.html)         | Check if an container exists in local storage                              |
 | [podman-container-prune(1)](https://podman.readthedocs.io/en/latest/markdown/podman-container-prune.1.html)           | Remove all stopped containers from local storage                           |
 | [podman-container-restore(1)](https://podman.readthedocs.io/en/latest/markdown/podman-container-restore.1.html)       | Restores one or more containers from a checkpoint                          |

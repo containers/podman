@@ -26,7 +26,7 @@ const (
 func (r *Runtime) HealthCheck(name string) (define.HealthCheckStatus, error) {
 	container, err := r.LookupContainer(name)
 	if err != nil {
-		return define.HealthCheckContainerNotFound, errors.Wrapf(err, "unable to lookup %s to perform a health check", name)
+		return define.HealthCheckContainerNotFound, errors.Wrapf(err, "unable to look up %s to perform a health check", name)
 	}
 	hcStatus, err := checkHealthCheckCanBeRun(container)
 	if err == nil {
