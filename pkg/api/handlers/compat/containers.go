@@ -289,8 +289,10 @@ func LibpodToContainer(l *libpod.Container, sz bool) (*handlers.Container, error
 		return nil, err
 	}
 	stateStr := state.String()
-	if stateStr == "configured" {
-		stateStr = "created"
+
+	// Some docker states are not the same as ours. This makes sure the state string stays true to the Docker API
+	if state == define.ContainerStateCreated {
+		stateStr = define.ContainerStateConfigured.String()
 	}
 
 	switch state {
@@ -420,9 +422,9 @@ func LibpodToContainerJSON(l *libpod.Container, sz bool) (*types.ContainerJSON, 
 		state.Running = true
 	}
 
-	// docker calls the configured state "created"
-	if state.Status == define.ContainerStateConfigured.String() {
-		state.Status = define.ContainerStateCreated.String()
+	// Dockers created state is our configured state
+	if state.Status == define.ContainerStateCreated.String() {
+		state.Status = define.ContainerStateConfigured.String()
 	}
 
 	if l.HasHealthCheck() && state.Status != "created" {
