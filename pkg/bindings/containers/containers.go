@@ -13,7 +13,6 @@ import (
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/domain/entities/reports"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 )
 
 var (
@@ -201,7 +200,6 @@ func Start(ctx context.Context, nameOrID string, options *StartOptions) error {
 	if options == nil {
 		options = new(StartOptions)
 	}
-	logrus.Infof("Going to start container %q", nameOrID)
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return err
