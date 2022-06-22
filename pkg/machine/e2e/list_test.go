@@ -29,7 +29,7 @@ var _ = Describe("podman machine list", func() {
 		firstList, err := mb.setCmd(list).run()
 		Expect(err).NotTo(HaveOccurred())
 		Expect(firstList).Should(Exit(0))
-		Expect(len(firstList.outputToStringSlice())).To(Equal(1)) // just the header
+		Expect(firstList.outputToStringSlice()).To(HaveLen(1)) // just the header
 
 		i := new(initMachine)
 		session, err := mb.setCmd(i.withImagePath(mb.imagePath)).run()
@@ -39,7 +39,7 @@ var _ = Describe("podman machine list", func() {
 		secondList, err := mb.setCmd(list).run()
 		Expect(err).NotTo(HaveOccurred())
 		Expect(secondList).To(Exit(0))
-		Expect(len(secondList.outputToStringSlice())).To(Equal(2)) // one machine and the header
+		Expect(secondList.outputToStringSlice()).To(HaveLen(2)) // one machine and the header
 	})
 
 	It("list machines with quiet or noheading", func() {
@@ -51,12 +51,12 @@ var _ = Describe("podman machine list", func() {
 		firstList, err := mb.setCmd(list.withQuiet()).run()
 		Expect(err).NotTo(HaveOccurred())
 		Expect(firstList).Should(Exit(0))
-		Expect(len(firstList.outputToStringSlice())).To(Equal(0)) // No header with quiet
+		Expect(firstList.outputToStringSlice()).To(HaveLen(0)) // No header with quiet
 
 		noheaderSession, err := mb.setCmd(list.withNoHeading()).run() // noheader
 		Expect(err).NotTo(HaveOccurred())
 		Expect(noheaderSession).Should(Exit(0))
-		Expect(len(noheaderSession.outputToStringSlice())).To(Equal(0))
+		Expect(noheaderSession.outputToStringSlice()).To(HaveLen(0))
 
 		i := new(initMachine)
 		session, err := mb.setName(name1).setCmd(i.withImagePath(mb.imagePath)).run()
@@ -70,7 +70,7 @@ var _ = Describe("podman machine list", func() {
 		secondList, err := mb.setCmd(list.withQuiet()).run()
 		Expect(err).NotTo(HaveOccurred())
 		Expect(secondList).To(Exit(0))
-		Expect(len(secondList.outputToStringSlice())).To(Equal(2)) // two machines, no header
+		Expect(secondList.outputToStringSlice()).To(HaveLen(2)) // two machines, no header
 
 		listNames := secondList.outputToStringSlice()
 		stripAsterisk(listNames)
@@ -119,7 +119,7 @@ var _ = Describe("podman machine list", func() {
 		listSession, err := mb.setCmd(list.withFormat("{{.Name}}")).run()
 		Expect(err).NotTo(HaveOccurred())
 		Expect(listSession).To(Exit(0))
-		Expect(len(listSession.outputToStringSlice())).To(Equal(1))
+		Expect(listSession.outputToStringSlice()).To(HaveLen(1))
 
 		listNames := listSession.outputToStringSlice()
 		stripAsterisk(listNames)
@@ -142,7 +142,7 @@ var _ = Describe("podman machine list", func() {
 		Expect(err3).NotTo(HaveOccurred())
 		Expect(listSession3).To(Exit(0))
 		listNames3 := listSession3.outputToStringSlice()
-		Expect(len(listNames3)).To(Equal(2))
+		Expect(listNames3).To(HaveLen(2))
 		Expect(listNames3).To(ContainSubstring("NAME"))
 	})
 })
