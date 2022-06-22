@@ -33,6 +33,16 @@ func (c *Container) newContainerEvent(status events.Status) {
 		Attributes: c.Labels(),
 	}
 
+	// if the current event is a HealthStatus event, we need to get the current
+	// status of the container to pass to the event
+	if status == events.HealthStatus {
+		containerHealthStatus, err := c.healthCheckStatus()
+		if err != nil {
+			e.HealthStatus = fmt.Sprintf("%v", err)
+		}
+		e.HealthStatus = containerHealthStatus
+	}
+
 	if err := c.runtime.eventer.Write(e); err != nil {
 		logrus.Errorf("Unable to write pod event: %q", err)
 	}

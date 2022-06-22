@@ -216,4 +216,25 @@ var _ = Describe("Podman events", func() {
 		Expect(result.OutputToString()).To(ContainSubstring("create"))
 	})
 
+	It("podman events health_status generated", func() {
+		session := podmanTest.Podman([]string{"run", "--name", "test-hc", "-dt", "--health-cmd", "echo working", "busybox"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		for i := 0; i < 5; i++ {
+			hc := podmanTest.Podman([]string{"healthcheck", "run", "test-hc"})
+			hc.WaitWithDefaultTimeout()
+			exitCode := hc.ExitCode()
+			if exitCode == 0 || i == 4 {
+				break
+			}
+			time.Sleep(1 * time.Second)
+		}
+
+		result := podmanTest.Podman([]string{"events", "--stream=false", "--filter", "event=health_status"})
+		result.WaitWithDefaultTimeout()
+		Expect(result).Should(Exit(0))
+		Expect(len(result.OutputToStringArray())).To(BeNumerically(">=", 1), "Number of health_status events")
+	})
+
 })

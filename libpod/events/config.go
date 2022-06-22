@@ -40,6 +40,8 @@ type Event struct {
 	Time time.Time
 	// Type of event that occurred
 	Type Type
+	// Health status of the current container
+	HealthStatus string `json:"health_status,omitempty"`
 
 	Details
 }
@@ -141,6 +143,8 @@ const (
 	Exited Status = "died"
 	// Export ...
 	Export Status = "export"
+	// HealthStatus ...
+	HealthStatus Status = "health_status"
 	// History ...
 	History Status = "history"
 	// Import ...

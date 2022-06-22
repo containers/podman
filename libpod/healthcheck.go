@@ -90,7 +90,7 @@ func (c *Container) runHealthCheck() (define.HealthCheckStatus, error) {
 	hcResult := define.HealthCheckSuccess
 	config := new(ExecConfig)
 	config.Command = newCommand
-	exitCode, hcErr := c.Exec(config, streams, nil)
+	exitCode, hcErr := c.exec(config, streams, nil, true)
 	if hcErr != nil {
 		errCause := errors.Cause(hcErr)
 		hcResult = define.HealthCheckFailure
@@ -232,18 +232,27 @@ func (c *Container) getHealthCheckLog() (define.HealthCheckResults, error) {
 
 // HealthCheckStatus returns the current state of a container with a healthcheck
 func (c *Container) HealthCheckStatus() (string, error) {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	return c.healthCheckStatus()
+}
+
+// Internal function to return the current state of a container with a healthcheck.
+// This function does not lock the container.
+func (c *Container) healthCheckStatus() (string, error) {
 	if !c.HasHealthCheck() {
 		return "", errors.Errorf("container %s has no defined healthcheck", c.ID())
 	}
-	c.lock.Lock()
-	defer c.lock.Unlock()
+
 	if err := c.syncContainer(); err != nil {
 		return "", err
 	}
+
 	results, err := c.getHealthCheckLog()
 	if err != nil {
 		return "", errors.Wrapf(err, "unable to get healthcheck log for %s", c.ID())
 	}
+
 	return results.Status, nil
 }
 
