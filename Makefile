@@ -268,8 +268,8 @@ test/checkseccomp/checkseccomp: .gopathok $(wildcard test/checkseccomp/*.go)
 	$(GOCMD) build $(BUILDFLAGS) $(GO_LDFLAGS) '$(LDFLAGS_PODMAN)' -tags "$(BUILDTAGS)" -o $@ ./test/checkseccomp
 
 .PHONY: test/testvol/testvol
-test/testvol/testvol: .gopathok $(wildcard test/testvol/*.go)
-	$(GOCMD) build $(BUILDFLAGS) $(GO_LDFLAGS) '$(LDFLAGS_PODMAN)' -o $@ ./test/testvol
+test/testvol/testvol: $(wildcard test/testvol/*.go)
+	$(GOCMD) build -o $@ ./test/testvol
 
 .PHONY: volume-plugin-test-img
 volume-plugin-test-img:
