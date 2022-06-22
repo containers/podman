@@ -225,7 +225,7 @@ test/checkseccomp/checkseccomp: $(wildcard test/checkseccomp/*.go)
 
 .PHONY: test/testvol/testvol
 test/testvol/testvol: $(wildcard test/testvol/*.go)
-	$(GOCMD) build $(BUILDFLAGS) $(GO_LDFLAGS) '$(LDFLAGS_PODMAN)' -o $@ ./test/testvol
+	$(GOCMD) build -o $@ ./test/testvol
 
 .PHONY: volume-plugin-test-img
 volume-plugin-test-img:

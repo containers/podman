@@ -14,13 +14,20 @@ import (
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "testvol",
-	Short: "testvol - volume plugin for Podman",
+	Use:               "testvol",
+	Short:             "testvol - volume plugin for Podman testing",
+	PersistentPreRunE: before,
+	SilenceUsage:      true,
+}
+
+var serveCmd = &cobra.Command{
+	Use:   "serve",
+	Short: "serve the volume plugin on the unix socket",
 	Long:  `Creates simple directory volumes using the Volume Plugin API for testing volume plugin functionality`,
+	Args:  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return startServer(config.sockName)
 	},
-	PersistentPreRunE: before,
 }
 
 // Configuration for the volume plugin
@@ -37,9 +44,12 @@ var config = cliConfig{
 }
 
 func init() {
-	rootCmd.Flags().StringVar(&config.sockName, "sock-name", config.sockName, "Name of unix socket for plugin")
-	rootCmd.Flags().StringVar(&config.path, "path", "", "Path to initialize state and mount points")
+	rootCmd.PersistentFlags().StringVar(&config.sockName, "sock-name", config.sockName, "Name of unix socket for plugin")
 	rootCmd.PersistentFlags().StringVar(&config.logLevel, "log-level", config.logLevel, "Log messages including and over the specified level: debug, info, warn, error, fatal, panic")
+
+	serveCmd.Flags().StringVar(&config.path, "path", "", "Path to initialize state and mount points")
+
+	rootCmd.AddCommand(serveCmd, createCmd, removeCmd, listCmd)
 }
 
 func before(cmd *cobra.Command, args []string) error {
@@ -59,11 +69,8 @@ func before(cmd *cobra.Command, args []string) error {
 
 func main() {
 	if err := rootCmd.Execute(); err != nil {
-		logrus.Errorf("Running volume plugin: %v", err)
 		os.Exit(1)
 	}
-
-	os.Exit(0)
 }
 
 // startServer runs the HTTP server and responds to requests
