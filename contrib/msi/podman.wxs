@@ -41,7 +41,7 @@
 
     <CustomAction Id="AddPath" ExeCommand="add" FileKey="8F507E28-A61D-4E64-A92B-B5A00F023AE8" Execute="deferred" Impersonate="yes" Return="check"/>
     <CustomAction Id="RemovePath" ExeCommand="remove" FileKey="8F507E28-A61D-4E64-A92B-B5A00F023AE8" Execute="deferred" Impersonate="yes" Return="check"/>
-
+    <CustomAction Id='LaunchFile' ExeCommand="open &quot;[INSTALLDIR]podman-for-windows.html&quot;" FileKey="8F507E28-A61D-4E64-A92B-B5A00F023AE8"  Execute="immediate"  Impersonate="yes" Return="check"/>
     <Feature Id="Complete" Level="1">
       <ComponentRef Id="INSTALLDIR_Component"/>
       <ComponentRef Id="MainExecutable"/>
@@ -55,8 +55,9 @@
 
     <InstallExecuteSequence>
       <RemoveExistingProducts Before="InstallInitialize"/>
-      <Custom Action="AddPath" After="InstallFiles">NOT Installed</Custom>
+      <Custom Action="AddPath" Before="InstallFinalize"  After="InstallFiles">NOT Installed</Custom>
       <Custom Action="RemovePath" Before="RemoveFiles" After="InstallInitialize">(REMOVE="ALL") AND (NOT UPGRADINGPRODUCTCODE)</Custom>
+      <Custom Action='LaunchFile' After='InstallFinalize'>(NOT Installed) AND (NOT UILevel=2)</Custom>
     </InstallExecuteSequence>
 
   </Product>

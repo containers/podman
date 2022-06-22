@@ -12,6 +12,7 @@ import (
 	"syscall"
 	"unsafe"
 
+	"golang.org/x/sys/windows"
 	"golang.org/x/sys/windows/registry"
 )
 
@@ -26,6 +27,7 @@ const (
 	Environment                = "Environment"
 	Add              operation = iota
 	Remove
+	Open
 	NotSpecified
 )
 
@@ -37,6 +39,8 @@ func main() {
 			op = Add
 		case "remove":
 			op = Remove
+		case "open":
+			op = Open
 		}
 	}
 
@@ -44,6 +48,14 @@ func main() {
 	if op == NotSpecified {
 		alert("Usage: " + filepath.Base(os.Args[0]) + " [add|remove]\n\nThis utility adds or removes the podman directory to the Windows Path.")
 		os.Exit(ERR_BAD_ARGS)
+	}
+
+	// Hidden operation as a workaround for the installer
+	if op == Open && len(os.Args) > 2 {
+		if err := winOpenFile(os.Args[2]); err != nil {
+			os.Exit(OPERATION_FAILED)
+		}
+		os.Exit(0)
 	}
 
 	if err := modify(op); err != nil {
@@ -181,4 +193,10 @@ func alert(caption string) int {
 		uintptr(format))
 
 	return int(ret)
+}
+
+func winOpenFile(file string) error {
+	verb, _ := syscall.UTF16PtrFromString("open")
+	fileW, _ := syscall.UTF16PtrFromString(file)
+	return windows.ShellExecute(0, verb, fileW, nil, nil, windows.SW_NORMAL)
 }
