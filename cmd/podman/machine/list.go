@@ -138,7 +138,7 @@ func outputTemplate(cmd *cobra.Command, responses []*ListReporter) error {
 	switch {
 	case cmd.Flags().Changed("format"):
 		row = cmd.Flag("format").Value.String()
-		listFlag.noHeading = !report.HasTable(row)
+		printHeader = report.HasTable(row)
 		row = report.NormalizeFormat(row)
 	default:
 		row = cmd.Flag("format").Value.String()
