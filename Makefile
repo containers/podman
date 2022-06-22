@@ -271,9 +271,9 @@ test/checkseccomp/checkseccomp: .gopathok $(wildcard test/checkseccomp/*.go)
 test/testvol/testvol: .gopathok $(wildcard test/testvol/*.go)
 	$(GOCMD) build $(BUILDFLAGS) $(GO_LDFLAGS) '$(LDFLAGS_PODMAN)' -o $@ ./test/testvol
 
-.PHONY: volume-plugin-test-image
+.PHONY: volume-plugin-test-img
 volume-plugin-test-img:
-	podman build -t quay.io/libpod/volume-plugin-test-img -f Containerfile-testvol .
+	podman build -t quay.io/libpod/volume-plugin-test-img:$$(date +%Y%m%d) -f ./test/testvol/Containerfile .
 
 .PHONY: test/goecho/goecho
 test/goecho/goecho: .gopathok $(wildcard test/goecho/*.go)
