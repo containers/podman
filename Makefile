@@ -825,7 +825,7 @@ install.systemd:
 endif
 
 .PHONY: install.tools
-install.tools: .install.ginkgo .install.golangci-lint .install.bats ## Install needed tools
+install.tools: .install.ginkgo .install.golangci-lint ## Install needed tools
 	make -C test/tools
 
 .PHONY: .install.ginkgo
@@ -841,10 +841,6 @@ install.tools: .install.ginkgo .install.golangci-lint .install.bats ## Install n
 	if [ ! -x "$(GOMD2MAN)" ]; then \
 		make -C test/tools build/go-md2man ; \
 	fi
-
-.PHONY: .install.bats
-.install.bats:
-	VERSION=v1.1.0 ./hack/install_bats.sh
 
 .PHONY: .install.pre-commit
 .install.pre-commit:
