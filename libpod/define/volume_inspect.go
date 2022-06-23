@@ -57,3 +57,9 @@ type InspectVolumeData struct {
 	// UID/GID.
 	NeedsChown bool `json:"NeedsChown,omitempty"`
 }
+
+type VolumeReload struct {
+	Added   []string
+	Removed []string
+	Errors  []error
+}
