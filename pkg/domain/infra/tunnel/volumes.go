@@ -108,3 +108,7 @@ func (ic *ContainerEngine) VolumeMount(ctx context.Context, nameOrIDs []string) 
 func (ic *ContainerEngine) VolumeUnmount(ctx context.Context, nameOrIDs []string) ([]*entities.VolumeUnmountReport, error) {
 	return nil, errors.New("unmounting volumes is not supported for remote clients")
 }
+
+func (ic *ContainerEngine) VolumeReload(ctx context.Context) (*entities.VolumeReloadReport, error) {
+	return nil, errors.New("volume reload is not supported for remote clients")
+}

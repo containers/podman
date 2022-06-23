@@ -104,4 +104,5 @@ type ContainerEngine interface {
 	VolumePrune(ctx context.Context, options VolumePruneOptions) ([]*reports.PruneReport, error)
 	VolumeRm(ctx context.Context, namesOrIds []string, opts VolumeRmOptions) ([]*VolumeRmReport, error)
 	VolumeUnmount(ctx context.Context, namesOrIds []string) ([]*VolumeUnmountReport, error)
+	VolumeReload(ctx context.Context) (*VolumeReloadReport, error)
 }

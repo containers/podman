@@ -15,7 +15,7 @@ var (
 	healthcheck       = "quay.io/libpod/alpine_healthcheck:latest"
 	ImageCacheDir     = "/tmp/podman/imagecachedir"
 	fedoraToolbox     = "registry.fedoraproject.org/fedora-toolbox:36"
-	volumeTest        = "quay.io/libpod/volume-plugin-test-img:latest"
+	volumeTest        = "quay.io/libpod/volume-plugin-test-img:20220623"
 
 	// This image has seccomp profiles that blocks all syscalls.
 	// The intention behind blocking all syscalls is to prevent
