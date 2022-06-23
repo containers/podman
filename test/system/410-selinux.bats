@@ -205,7 +205,11 @@ function check_label() {
 	#   from /proc/thread-self/attr/exec`: .* unable to assign
 	#   to   /proc/self/attr/keycreate`: .* unable to process
 	crun) expect="\`/proc/.*\`: OCI runtime error: unable to \(assign\|process\) security attribute" ;;
-	runc) expect="OCI runtime error: .*: failed to set /proc/self/attr/keycreate on procfs" ;;
+	# runc 1.1 changed the error message because of new selinux pkg that uses standard os.PathError, see
+	# https://github.com/opencontainers/selinux/pull/148/commits/a5dc47f74c56922d58ead05d1fdcc5f7f52d5f4e
+	#   from failed to set /proc/self/attr/keycreate on procfs
+	#   to   write /proc/self/attr/keycreate: invalid argument
+	runc) expect="OCI runtime error: .*: \(failed to set|write\) /proc/self/attr/keycreate" ;;
 	*)    skip "Unknown runtime '$runtime'";;
     esac
 
