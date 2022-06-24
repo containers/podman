@@ -1,12 +1,12 @@
-package play
+package kube
 
 import (
 	"net"
 )
 
-//go:generate go run ../generator/generator.go KubeOptions
-// KubeOptions are optional options for replaying kube YAML files
-type KubeOptions struct {
+//go:generate go run ../generator/generator.go PlayOptions
+// PlayOptions are optional options for replaying kube YAML files
+type PlayOptions struct {
 	// Annotations - Annotations to add to Pods
 	Annotations map[string]string
 	// Authfile - path to an authentication file.

@@ -7,8 +7,8 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func (s *APIServer) registerPlayHandlers(r *mux.Router) error {
-	// swagger:operation POST /libpod/play/kube libpod PlayKubeLibpod
+func (s *APIServer) registerKubeHandlers(r *mux.Router) error {
+	// swagger:operation POST /libpod/kube/play libpod KubePlayLibpod
 	// ---
 	// tags:
 	//  - containers
@@ -57,24 +57,26 @@ func (s *APIServer) registerPlayHandlers(r *mux.Router) error {
 	// - application/json
 	// responses:
 	//   200:
-	//     $ref: "#/responses/playKubeResponseLibpod"
+	//     $ref: "#/responses/kubePlayResponseLibpod"
 	//   500:
 	//     $ref: "#/responses/internalError"
+	r.HandleFunc(VersionedPath("/libpod/kube/play"), s.APIHandler(libpod.KubePlay)).Methods(http.MethodPost)
 	r.HandleFunc(VersionedPath("/libpod/play/kube"), s.APIHandler(libpod.PlayKube)).Methods(http.MethodPost)
-	// swagger:operation DELETE /libpod/play/kube libpod PlayKubeDownLibpod
+	// swagger:operation DELETE /libpod/kube/play libpod KubePlayDownLibpod
 	// ---
 	// tags:
 	//  - containers
 	//  - pods
-	// summary: Remove pods from play kube
+	// summary: Remove pods from kube play
 	// description: Tears down pods defined in a YAML file
 	// produces:
 	// - application/json
 	// responses:
 	//   200:
-	//     $ref: "#/responses/playKubeResponseLibpod"
+	//     $ref: "#/responses/kubePlayResponseLibpod"
 	//   500:
 	//     $ref: "#/responses/internalError"
+	r.HandleFunc(VersionedPath("/libpod/kube/play"), s.APIHandler(libpod.KubePlayDown)).Methods(http.MethodDelete)
 	r.HandleFunc(VersionedPath("/libpod/play/kube"), s.APIHandler(libpod.PlayKubeDown)).Methods(http.MethodDelete)
 	return nil
 }

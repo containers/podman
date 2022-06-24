@@ -90,6 +90,8 @@ type PlayKubeReport struct {
 	PlayKubeTeardown
 }
 
+type KubePlayReport = PlayKubeReport
+
 // PlayKubeDownOptions are options for tearing down pods
 type PlayKubeDownOptions struct{}
 

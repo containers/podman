@@ -47,6 +47,8 @@ Commands
 
 :doc:`kill <markdown/podman-kill.1>` Kill one or more running containers with a specific signal
 
+:doc:`kube <markdown/podman-kube.1>` Play a pod
+
 :doc:`load <markdown/podman-load.1>` Load an image from container archive
 
 :doc:`login <markdown/podman-login.1>` Login to a container registry
@@ -64,8 +66,6 @@ Commands
 :doc:`network <markdown/podman-network.1>` Manage Networks
 
 :doc:`pause <markdown/podman-pause.1>` Pause all the processes in one or more containers
-
-:doc:`play <markdown/podman-play.1>` Play a pod
 
 :doc:`pod <markdown/podman-pod.1>` Manage pods
 

@@ -1,6 +1,6 @@
-# Podman Play Kube Support
+# Podman Kube Play Support
 
-This document outlines the kube yaml fields that are currently supported by the **podman play kube** command.
+This document outlines the kube yaml fields that are currently supported by the **podman kube play** command.
 
 Note: **N/A** means that the option cannot be supported in a single-node Podman environment.
 

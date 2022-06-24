@@ -92,7 +92,7 @@ Set the exit policy of the pod when the last container exits.  Supported policie
 | Exit Policy        | Description                                                                 |
 | ------------------ | --------------------------------------------------------------------------- |
 | *continue*         | The pod continues running when the last container exits. Used by default.   |
-| *stop*             | The pod is stopped when the last container exits. Used in `play kube`.      |
+| *stop*             | The pod is stopped when the last container exits. Used in `kube play`.      |
 
 #### **--gidmap**=*container_gid:host_gid:amount*
 
@@ -603,7 +603,7 @@ $ podman pod create --network net1:ip=10.89.1.5 --network net2:ip=10.89.10.10
 ```
 
 ## SEE ALSO
-**[podman(1)](podman.1.md)**, **[podman-pod(1)](podman-pod.1.md)**, **[podman-play-kube(1)](podman-play-kube.1.md)**, **containers.conf(1)**
+**[podman(1)](podman.1.md)**, **[podman-pod(1)](podman-pod.1.md)**, **[podman-kube-play(1)](podman-kube-play.1.md)**, **containers.conf(1)**
 
 
 ## HISTORY

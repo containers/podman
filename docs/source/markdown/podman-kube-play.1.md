@@ -1,15 +1,15 @@
-% podman-play-kube(1)
+% podman-kube-play(1)
 
 ## NAME
-podman-play-kube - Create containers, pods or volumes based on Kubernetes YAML
+podman-kube-play - Create containers, pods or volumes based on Kubernetes YAML
 
 ## SYNOPSIS
-**podman play kube** [*options*] *file.yml|-*
+**podman kube play** [*options*] *file.yml|-*
 
 ## DESCRIPTION
-**podman play kube** will read in a structured file of Kubernetes YAML.  It will then recreate the containers, pods or volumes described in the YAML.  Containers within a pod are then started and the ID of the new Pod or the name of the new Volume is output. If the yaml file is specified as "-" then `podman play kube` will read the YAML file from stdin.
-Using the `--down` command line option, it is also capable of tearing down the pods created by a previous run of `podman play kube`.
-Using the `--replace` command line option, it will tear down the pods(if any) created by a previous run of `podman play kube` and recreate the pods with the Kubernetes YAML file.
+**podman kube play** will read in a structured file of Kubernetes YAML.  It will then recreate the containers, pods or volumes described in the YAML.  Containers within a pod are then started and the ID of the new Pod or the name of the new Volume is output. If the yaml file is specified as "-" then `podman kube play` will read the YAML file from stdin.
+Using the `--down` command line option, it is also capable of tearing down the pods created by a previous run of `podman kube play`.
+Using the `--replace` command line option, it will tear down the pods(if any) created by a previous run of `podman kube play` and recreate the pods with the Kubernetes YAML file.
 Ideally the input file would be one created by Podman (see podman-generate-kube(1)).  This would guarantee a smooth import and expected results.
 
 Currently, the supported Kubernetes kinds are:
@@ -20,13 +20,15 @@ Currently, the supported Kubernetes kinds are:
 
 `Kubernetes Pods or Deployments`
 
-Only two volume types are supported by play kube, the *hostPath* and *persistentVolumeClaim* volume types. For the *hostPath* volume type, only the  *default (empty)*, *DirectoryOrCreate*, *Directory*, *FileOrCreate*, *File*, *Socket*, *CharDevice* and *BlockDevice* subtypes are supported. Podman interprets the value of *hostPath* *path* as a file path when it contains at least one forward slash, otherwise Podman treats the value as the name of a named volume. When using a *persistentVolumeClaim*, the value for *claimName* is the name for the Podman named volume.
+Only two volume types are supported by kube play, the *hostPath* and *persistentVolumeClaim* volume types. For the *hostPath* volume type, only the  *default (empty)*, *DirectoryOrCreate*, *Directory*, *FileOrCreate*, *File*, *Socket*, *CharDevice* and *BlockDevice* subtypes are supported. Podman interprets the value of *hostPath* *path* as a file path when it contains at least one forward slash, otherwise Podman treats the value as the name of a named volume. When using a *persistentVolumeClaim*, the value for *claimName* is the name for the Podman named volume.
 
 Note: When playing a kube YAML with init containers, the init container will be created with init type value `always`.
 
-Note: *hostPath* volume types created by play kube will be given an SELinux shared label (z), bind mounts are not relabeled (use `chcon -t container_file_t -R <directory>`).
+Note: *hostPath* volume types created by kube play will be given an SELinux shared label (z), bind mounts are not relabeled (use `chcon -t container_file_t -R <directory>`).
 
 Note: If the `:latest` tag is used, Podman will attempt to pull the image from a registry. If the image was built locally with Podman or Buildah, it will have `localhost` as the domain, in that case, Podman will use the image from the local store even if it has the `:latest` tag.
+
+Note: The command `podman play kube` is an alias of `podman kube play`, and will perform the same function.
 
 `Kubernetes PersistentVolumeClaims`
 
@@ -39,7 +41,7 @@ A Kubernetes PersistentVolumeClaim represents a Podman named volume. Only the Pe
 - volume.podman.io/gid
 - volume.podman.io/mount-options
 
-Play kube is capable of building images on the fly given the correct directory layout and Containerfiles. This
+Kube play is capable of building images on the fly given the correct directory layout and Containerfiles. This
 option is not available for remote clients, including Mac and Windows (excluding WSL2) machines, yet. Consider the following excerpt from a YAML file:
 ```
 apiVersion: v1
@@ -57,7 +59,7 @@ spec:
 ```
 
 If there is a directory named `foobar` in the current working directory with a file named `Containerfile` or `Dockerfile`,
-Podman play kube will build that image and name it `foobar`.  An example directory structure for this example would look
+Podman kube play will build that image and name it `foobar`.  An example directory structure for this example would look
 like:
 ```
 |- mykubefiles
@@ -103,19 +105,6 @@ spec:
 
 and as a result environment variable `FOO` will be set to `bar` for container `container-1`.
 
-### Systemd Integration
-
-A Kubernetes YAML can be executed in systemd via the `podman-kube@.service` systemd template.  The template's argument is the path to the YAML file.  Given a `workload.yaml` file in the home directory, it can be executed as follows:
-
-```
-$ escaped=$(systemd-escape ~/sysadmin.yaml)
-$ systemctl --user start podman-kube@$escaped.service
-$ systemctl --user is-active podman-kube@$escaped.service
-active
-```
-
-Note that the path to the YAML file must be escaped via `systemd-escape`.
-
 ## OPTIONS
 
 #### **--annotation**=*key=value*
@@ -158,7 +147,7 @@ value can be entered.  The password is entered without echo.
 
 #### **--down**
 
-Tears down the pods that were created by a previous run of `play kube`.  The pods are stopped and then
+Tears down the pods that were created by a previous run of `kube play`.  The pods are stopped and then
 removed.  Any volumes created are left intact.
 
 #### **--help**, **-h**
@@ -167,7 +156,7 @@ Print usage statement
 
 #### **--ip**=*IP address*
 
-Assign a static ip address to the pod. This option can be specified several times when play kube creates more than one pod.
+Assign a static ip address to the pod. This option can be specified several times when kube play creates more than one pod.
 Note: When joining multiple networks you should use the **--network name:ip=\<ip\>** syntax.
 
 #### **--log-driver**=driver
@@ -193,7 +182,7 @@ This option is currently supported only by the **journald** log driver.
 
 #### **--mac-address**=*MAC address*
 
-Assign a static mac address to the pod. This option can be specified several times when play kube creates more than one pod.
+Assign a static mac address to the pod. This option can be specified several times when kube play creates more than one pod.
 Note: When joining multiple networks you should use the **--network name:mac=\<mac\>** syntax.
 
 #### **--network**=*mode*, **--net**
@@ -240,7 +229,7 @@ Suppress output information when pulling images
 
 #### **--replace**
 
-Tears down the pods created by a previous run of `play kube` and recreates the pods. This option is used to keep the existing pods up to date based upon the Kubernetes YAML.
+Tears down the pods created by a previous run of `kube play` and recreates the pods. This option is used to keep the existing pods up to date based upon the Kubernetes YAML.
 
 #### **--seccomp-profile-root**=*path*
 
@@ -299,19 +288,19 @@ Podman allocates unique ranges of UIDs and GIDs from the `containers` subordinat
 
 Recreate the pod and containers as described in a file called `demo.yml`
 ```
-$ podman play kube demo.yml
+$ podman kube play demo.yml
 52182811df2b1e73f36476003a66ec872101ea59034ac0d4d3a7b40903b955a6
 ```
 
 Recreate the pod and containers as described in a file `demo.yml` sent to stdin
 ```
-$ cat demo.yml | podman play kube -
+$ cat demo.yml | podman kube play -
 52182811df2b1e73f36476003a66ec872101ea59034ac0d4d3a7b40903b955a6
 
 ```
 Teardown the pod and containers as described in a file `demo.yml`
 ```
-$  podman play kube --down demo.yml
+$  podman kube play --down demo.yml
 Pods stopped:
 52182811df2b1e73f36476003a66ec872101ea59034ac0d4d3a7b40903b955a6
 Pods removed:
@@ -320,23 +309,23 @@ Pods removed:
 
 Provide `configmap-foo.yml` and `configmap-bar.yml` as sources for environment variables within the containers.
 ```
-$ podman play kube demo.yml --configmap configmap-foo.yml,configmap-bar.yml
+$ podman kube play demo.yml --configmap configmap-foo.yml,configmap-bar.yml
 52182811df2b1e73f36476003a66ec872101ea59034ac0d4d3a7b40903b955a6
 
-$ podman play kube demo.yml --configmap configmap-foo.yml --configmap configmap-bar.yml
+$ podman kube play demo.yml --configmap configmap-foo.yml --configmap configmap-bar.yml
 52182811df2b1e73f36476003a66ec872101ea59034ac0d4d3a7b40903b955a6
 ```
 
 Create a pod connected to two networks (called net1 and net2) with a static ip
 ```
-$ podman play kube demo.yml --network net1:ip=10.89.1.5 --network net2:ip=10.89.10.10
+$ podman kube play demo.yml --network net1:ip=10.89.1.5 --network net2:ip=10.89.10.10
 52182811df2b1e73f36476003a66ec872101ea59034ac0d4d3a7b40903b955a6
 ```
 
 Please take into account that CNI networks must be created first using podman-network-create(1).
 
 ## SEE ALSO
-**[podman(1)](podman.1.md)**, **[podman-play(1)](podman-play.1.md)**, **[podman-network-create(1)](podman-network-create.1.md)**, **[podman-generate-kube(1)](podman-generate-kube.1.md)**, **[containers-certs.d(5)](https://github.com/containers/image/blob/main/docs/containers-certs.d.5.md)**
+**[podman(1)](podman.1.md)**, **[podman-kube(1)](podman-kube.1.md)**, **[podman-network-create(1)](podman-network-create.1.md)**, **[podman-generate-kube(1)](podman-generate-kube.1.md)**, **[containers-certs.d(5)](https://github.com/containers/image/blob/main/docs/containers-certs.d.5.md)**
 
 ## HISTORY
 December 2018, Originally compiled by Brent Baude (bbaude at redhat dot com)
