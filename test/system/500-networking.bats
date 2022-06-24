@@ -676,12 +676,12 @@ EOF
 
 @test "podman run port forward range" {
     for netmode in bridge slirp4netns:port_handler=slirp4netns slirp4netns:port_handler=rootlesskit; do
-        local port=$(random_free_port)
-        local end_port=$(( $port + 2 ))
-        local range="$port-$end_port:$port-$end_port"
+        local range=$(random_free_port_range 3)
+        local port="${test%-*}"
+        local end_port="${test#-*}"
         local random=$(random_string)
 
-        run_podman run --network $netmode -p "$range" -d $IMAGE sleep inf
+        run_podman run --network $netmode -p "$range:$range" -d $IMAGE sleep inf
         cid="$output"
         for port in $(seq $port $end_port); do
             run_podman exec -d $cid nc -l -p $port -e /bin/cat

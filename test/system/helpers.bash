@@ -284,13 +284,42 @@ function random_free_port() {
 
     local port
     for port in $(shuf -i ${range}); do
-        if ! { exec {unused_fd}<> /dev/tcp/127.0.0.1/$port; } &>/dev/null; then
+        if port_is_free $port; then
             echo $port
             return
         fi
     done
 
     die "Could not find open port in range $range"
+}
+
+function random_free_port_range() {
+    local size=${1?Usage: random_free_port_range SIZE (as in, number of ports)}
+
+    local maxtries=10
+    while [[ $maxtries -gt 0 ]]; do
+        local firstport=$(random_free_port)
+        local all_ports_free=1
+        for i in $(seq 2 $size); do
+            if ! port_is_free $((firstport + $i)); then
+                all_ports_free=
+                break
+            fi
+        done
+        if [[ -n "$all_ports_free" ]]; then
+            echo "$firstport-$((firstport + $size - 1))"
+            return
+        fi
+
+        maxtries=$((maxtries - 1))
+    done
+
+    die "Could not find free port range with size $size"
+}
+
+function port_is_free() {
+     local port=${1?Usage: port_is_free PORT}
+    ! { exec {unused_fd}<> /dev/tcp/127.0.0.1/$port; } &>/dev/null
 }
 
 ###################
