@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/containers/podman/v4/pkg/rootless"
 	. "github.com/containers/podman/v4/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -92,9 +93,12 @@ var _ = Describe("podman system reset", func() {
 
 		// TODO: machine tests currently don't run outside of the machine test pkg
 		// no machines are created here to cleanup
-		session = podmanTest.Podman([]string{"machine", "list", "-q"})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
-		Expect(session.OutputToStringArray()).To(BeEmpty())
+		// machine commands are rootless only
+		if rootless.IsRootless() {
+			session = podmanTest.Podman([]string{"machine", "list", "-q"})
+			session.WaitWithDefaultTimeout()
+			Expect(session).Should(Exit(0))
+			Expect(session.OutputToStringArray()).To(BeEmpty())
+		}
 	})
 })

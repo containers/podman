@@ -18,6 +18,7 @@ var (
 		Use:               "start [MACHINE]",
 		Short:             "Start an existing machine",
 		Long:              "Start a managed virtual machine ",
+		PersistentPreRunE: rootlessOnly,
 		RunE:              start,
 		Args:              cobra.MaximumNArgs(1),
 		Example:           `podman machine start myvm`,

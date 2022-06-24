@@ -18,6 +18,7 @@ var (
 		Use:               "set [options] [NAME]",
 		Short:             "Sets a virtual machine setting",
 		Long:              "Sets an updatable virtual machine setting",
+		PersistentPreRunE: rootlessOnly,
 		RunE:              setMachine,
 		Args:              cobra.MaximumNArgs(1),
 		Example:           `podman machine set --rootful=false`,

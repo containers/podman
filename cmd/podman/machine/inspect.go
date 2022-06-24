@@ -20,6 +20,7 @@ var (
 		Use:               "inspect [options] [MACHINE...]",
 		Short:             "Inspect an existing machine",
 		Long:              "Provide details on a managed virtual machine",
+		PersistentPreRunE: rootlessOnly,
 		RunE:              inspect,
 		Example:           `podman machine inspect myvm`,
 		ValidArgsFunction: autocompleteMachine,

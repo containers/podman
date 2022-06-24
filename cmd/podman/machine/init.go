@@ -20,6 +20,7 @@ var (
 		Use:               "init [options] [NAME]",
 		Short:             "Initialize a virtual machine",
 		Long:              "initialize a virtual machine ",
+		PersistentPreRunE: rootlessOnly,
 		RunE:              initMachine,
 		Args:              cobra.MaximumNArgs(1),
 		Example:           `podman machine init myvm`,

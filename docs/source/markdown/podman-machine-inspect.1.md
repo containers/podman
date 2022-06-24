@@ -13,6 +13,8 @@ Inspect one or more virtual machines
 Obtain greater detail about Podman virtual machines.  More than one virtual machine can be
 inspected at once.
 
+Rootless only.
+
 ## OPTIONS
 #### **--format**
 

@@ -10,6 +10,8 @@ podman\-machine\-set - Sets a virtual machine setting
 
 Change a machine setting.
 
+Rootless only.
+
 ## OPTIONS
 
 #### **--cpus**=*number*

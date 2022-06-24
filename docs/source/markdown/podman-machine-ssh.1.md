@@ -16,6 +16,8 @@ with the virtual machine is established.
 
 The exit code from ssh command will be forwarded to the podman machine ssh caller, see [Exit Codes](#Exit-Codes).
 
+Rootless only.
+
 ## OPTIONS
 
 #### **--help**
