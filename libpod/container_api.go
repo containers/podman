@@ -621,6 +621,15 @@ func (c *Container) Cleanup(ctx context.Context) error {
 		defer c.lock.Unlock()
 
 		if err := c.syncContainer(); err != nil {
+			switch errors.Cause(err) {
+			// When the container has already been removed, the OCI runtime directory remain.
+			case define.ErrNoSuchCtr, define.ErrCtrRemoved:
+				if err := c.cleanupRuntime(ctx); err != nil {
+					return errors.Wrapf(err, "error cleaning up container %s from OCI runtime", c.ID())
+				}
+			default:
+				logrus.Errorf("Syncing container %s status: %v", c.ID(), err)
+			}
 			return err
 		}
 	}

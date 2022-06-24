@@ -52,10 +52,20 @@ load helpers
 }
 
 @test "podman rm <-> run --rm race" {
+    OCIDir=/run/$(podman_runtime)
+
+    if is_rootless; then
+        OCIDir=/run/user/$(id -u)/$(podman_runtime)
+    fi
+
     # A container's lock is released before attempting to stop it.  This opens
     # the window for race conditions that led to #9479.
     run_podman run --rm -d $IMAGE sleep infinity
+    local cid="$output"
     run_podman rm -af
+
+    # Check the OCI runtime directory has removed.
+    is "$(ls $OCIDir | grep $cid)" "" "The OCI runtime directory should have been removed"
 }
 
 @test "podman rm --depend" {

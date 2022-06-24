@@ -171,4 +171,19 @@ load helpers
     run_podman --noout stop -t 0 stopme
     is "$output" "" "output should be empty"
 }
+
+@test "podman stop, with --rm container" {
+    OCIDir=/run/$(podman_runtime)
+
+    if is_rootless; then
+        OCIDir=/run/user/$(id -u)/$(podman_runtime)
+    fi
+
+    run_podman run --rm -d --name rmstop $IMAGE sleep infinity
+    local cid="$output"
+    run_podman stop rmstop
+
+    # Check the OCI runtime directory has removed.
+    is "$(ls $OCIDir | grep $cid)" "" "The OCI runtime directory should have been removed"
+}
 # vim: filetype=sh
