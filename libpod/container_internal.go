@@ -1642,19 +1642,6 @@ func (c *Container) mountNamedVolume(v *ContainerNamedVolume, mountpoint string)
 	if vol.state.NeedsCopyUp {
 		logrus.Debugf("Copying up contents from container %s to volume %s", c.ID(), vol.Name())
 
-		// If the volume is not empty, we should not copy up.
-		volMount := vol.mountPoint()
-		contents, err := ioutil.ReadDir(volMount)
-		if err != nil {
-			return nil, errors.Wrapf(err, "error listing contents of volume %s mountpoint when copying up from container %s", vol.Name(), c.ID())
-		}
-		if len(contents) > 0 {
-			// The volume is not empty. It was likely modified
-			// outside of Podman. For safety, let's not copy up into
-			// it. Fixes CVE-2020-1726.
-			return vol, nil
-		}
-
 		srcDir, err := securejoin.SecureJoin(mountpoint, v.Dest)
 		if err != nil {
 			return nil, errors.Wrapf(err, "error calculating destination path to copy up container %s volume %s", c.ID(), vol.Name())
@@ -1685,6 +1672,19 @@ func (c *Container) mountNamedVolume(v *ContainerNamedVolume, mountpoint string)
 			return nil, errors.Wrapf(err, "error reading contents of source directory for copy up into volume %s", vol.Name())
 		}
 		if len(srcContents) == 0 {
+			return vol, nil
+		}
+
+		// If the volume is not empty, we should not copy up.
+		volMount := vol.mountPoint()
+		contents, err := ioutil.ReadDir(volMount)
+		if err != nil {
+			return nil, errors.Wrapf(err, "error listing contents of volume %s mountpoint when copying up from container %s", vol.Name(), c.ID())
+		}
+		if len(contents) > 0 {
+			// The volume is not empty. It was likely modified
+			// outside of Podman. For safety, let's not copy up into
+			// it. Fixes CVE-2020-1726.
 			return vol, nil
 		}
 
