@@ -1648,8 +1648,6 @@ func (c *Container) mountNamedVolume(v *ContainerNamedVolume, mountpoint string)
 		}
 		// Do a manual stat on the source directory to verify existence.
 		// Skip the rest if it exists.
-		// TODO: Should this be stat or lstat? I'm using lstat because I
-		// think copy-up doesn't happen when the source is a link.
 		srcStat, err := os.Lstat(srcDir)
 		if err != nil {
 			if os.IsNotExist(err) {
