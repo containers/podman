@@ -47,9 +47,7 @@ var _ = Describe("podman system connection", func() {
 		}
 
 		f := CurrentGinkgoTestDescription()
-		_, _ = GinkgoWriter.Write(
-			[]byte(
-				fmt.Sprintf("Test: %s completed in %f seconds", f.TestText, f.Duration.Seconds())))
+		processTestResult(f)
 	})
 
 	Context("without running API service", func() {
@@ -58,7 +56,7 @@ var _ = Describe("podman system connection", func() {
 				"--default",
 				"--identity", "~/.ssh/id_rsa",
 				"QA",
-				"ssh://root@server.fubar.com:2222/run/podman/podman.sock",
+				"ssh://root@podman.test:2222/run/podman/podman.sock",
 			}
 			session := podmanTest.Podman(cmd)
 			session.WaitWithDefaultTimeout()
@@ -67,10 +65,10 @@ var _ = Describe("podman system connection", func() {
 
 			cfg, err := config.ReadCustomConfig()
 			Expect(err).ShouldNot(HaveOccurred())
-			Expect(cfg).To(HaveActiveService("QA"))
+			Expect(cfg).Should(HaveActiveService("QA"))
 			Expect(cfg).Should(VerifyService(
 				"QA",
-				"ssh://root@server.fubar.com:2222/run/podman/podman.sock",
+				"ssh://root@podman.test:2222/run/podman/podman.sock",
 				"~/.ssh/id_rsa",
 			))
 
@@ -82,7 +80,7 @@ var _ = Describe("podman system connection", func() {
 			session.WaitWithDefaultTimeout()
 			Expect(session).Should(Exit(0))
 
-			Expect(config.ReadCustomConfig()).To(HaveActiveService("QE"))
+			Expect(config.ReadCustomConfig()).Should(HaveActiveService("QE"))
 		})
 
 		It("add UDS", func() {
@@ -141,7 +139,7 @@ var _ = Describe("podman system connection", func() {
 				"--default",
 				"--identity", "~/.ssh/id_rsa",
 				"QA",
-				"ssh://root@server.fubar.com:2222/run/podman/podman.sock",
+				"ssh://root@podman.test:2222/run/podman/podman.sock",
 			})
 			session.WaitWithDefaultTimeout()
 			Expect(session).Should(Exit(0))
@@ -155,8 +153,8 @@ var _ = Describe("podman system connection", func() {
 
 				cfg, err := config.ReadCustomConfig()
 				Expect(err).ShouldNot(HaveOccurred())
-				Expect(cfg.Engine.ActiveService).To(BeEmpty())
-				Expect(cfg.Engine.ServiceDestinations).To(BeEmpty())
+				Expect(cfg.Engine.ActiveService).Should(BeEmpty())
+				Expect(cfg.Engine.ServiceDestinations).Should(BeEmpty())
 			}
 		})
 
@@ -165,7 +163,7 @@ var _ = Describe("podman system connection", func() {
 				"--default",
 				"--identity", "~/.ssh/id_rsa",
 				"QA",
-				"ssh://root@server.fubar.com:2222/run/podman/podman.sock",
+				"ssh://root@podman.test:2222/run/podman/podman.sock",
 			})
 			session.WaitWithDefaultTimeout()
 			Expect(session).Should(Exit(0))
@@ -187,7 +185,7 @@ var _ = Describe("podman system connection", func() {
 					"--default",
 					"--identity", "~/.ssh/id_rsa",
 					name,
-					"ssh://root@server.fubar.com:2222/run/podman/podman.sock",
+					"ssh://root@podman.test:2222/run/podman/podman.sock",
 				}
 				session := podmanTest.Podman(cmd)
 				session.WaitWithDefaultTimeout()

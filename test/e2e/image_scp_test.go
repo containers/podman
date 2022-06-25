@@ -22,12 +22,10 @@ var _ = Describe("podman image scp", func() {
 	)
 
 	BeforeEach(func() {
-
 		ConfPath.Value, ConfPath.IsSet = os.LookupEnv("CONTAINERS_CONF")
 		conf, err := ioutil.TempFile("", "containersconf")
-		if err != nil {
-			panic(err)
-		}
+		Expect(err).ToNot(HaveOccurred())
+
 		os.Setenv("CONTAINERS_CONF", conf.Name())
 		tempdir, err = CreateTempDirInTempDir()
 		if err != nil {
@@ -57,7 +55,7 @@ var _ = Describe("podman image scp", func() {
 		}
 		scp := podmanTest.Podman([]string{"image", "scp", "FOOBAR"})
 		scp.WaitWithDefaultTimeout()
-		Expect(scp).To(ExitWithError())
+		Expect(scp).Should(ExitWithError())
 	})
 
 	It("podman image scp with proper connection", func() {
@@ -67,27 +65,28 @@ var _ = Describe("podman image scp", func() {
 		cmd := []string{"system", "connection", "add",
 			"--default",
 			"QA",
-			"ssh://root@server.fubar.com:2222/run/podman/podman.sock",
+			"ssh://root@podman.test:2222/run/podman/podman.sock",
 		}
 		session := podmanTest.Podman(cmd)
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(Exit(0))
+		Expect(session).Should(Exit(0))
 
 		cfg, err := config.ReadCustomConfig()
 		Expect(err).ShouldNot(HaveOccurred())
-		Expect(cfg.Engine).To(HaveField("ActiveService", "QA"))
+		Expect(cfg.Engine).Should(HaveField("ActiveService", "QA"))
 		Expect(cfg.Engine.ServiceDestinations).To(HaveKeyWithValue("QA",
 			config.Destination{
-				URI: "ssh://root@server.fubar.com:2222/run/podman/podman.sock",
+				URI: "ssh://root@podman.test:2222/run/podman/podman.sock",
 			},
 		))
 
 		scp := podmanTest.Podman([]string{"image", "scp", ALPINE, "QA::"})
-		scp.Wait(45)
+		scp.WaitWithDefaultTimeout()
 		// exit with error because we cannot make an actual ssh connection
 		// This tests that the input we are given is validated and prepared correctly
-		// The error given should either be a missing image (due to testing suite complications) or a i/o timeout on ssh
-		Expect(scp).To(ExitWithError())
+		// The error given should either be a missing image (due to testing suite complications) or a no such host timeout on ssh
+		Expect(scp).Should(ExitWithError())
+		Expect(scp.ErrorToString()).Should(ContainSubstring("no such host"))
 
 	})
 
