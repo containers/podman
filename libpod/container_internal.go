@@ -21,6 +21,7 @@ import (
 	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/common/pkg/chown"
 	"github.com/containers/common/pkg/config"
+	cutil "github.com/containers/common/pkg/util"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/libpod/events"
 	"github.com/containers/podman/v4/pkg/ctime"
@@ -1639,7 +1640,8 @@ func (c *Container) mountNamedVolume(v *ContainerNamedVolume, mountpoint string)
 	if err := vol.update(); err != nil {
 		return nil, err
 	}
-	if vol.state.NeedsCopyUp {
+	_, hasNoCopy := vol.config.Options["nocopy"]
+	if vol.state.NeedsCopyUp && !cutil.StringInSlice("nocopy", v.Options) && !hasNoCopy {
 		logrus.Debugf("Copying up contents from container %s to volume %s", c.ID(), vol.Name())
 
 		srcDir, err := securejoin.SecureJoin(mountpoint, v.Dest)

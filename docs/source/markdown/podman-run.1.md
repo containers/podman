@@ -1362,13 +1362,14 @@ The _options_ is a comma-separated list and can be: <sup>[[1]](#Footnote1)</sup>
 
 * **rw**|**ro**
 * **z**|**Z**
-* [**r**]**shared**|[**r**]**slave**|[**r**]**private**[**r**]**unbindable**
-* [**r**]**bind**
-* [**no**]**exec**
-* [**no**]**dev**
-* [**no**]**suid**
 * [**O**]
 * [**U**]
+* [**no**]**copy**
+* [**no**]**dev**
+* [**no**]**exec**
+* [**no**]**suid**
+* [**r**]**bind**
+* [**r**]**shared**|[**r**]**slave**|[**r**]**private**[**r**]**unbindable**
 
 The `CONTAINER-DIR` must be an absolute path such as `/src/docs`. The volume
 will be mounted into the container at this directory.

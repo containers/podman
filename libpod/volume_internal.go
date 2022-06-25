@@ -55,6 +55,12 @@ func (v *Volume) needsMount() bool {
 	if _, ok := v.config.Options["NOQUOTA"]; ok {
 		index++
 	}
+	if _, ok := v.config.Options["nocopy"]; ok {
+		index++
+	}
+	if _, ok := v.config.Options["copy"]; ok {
+		index++
+	}
 	// when uid or gid is set there is also the "o" option
 	// set so we have to ignore this one as well
 	if index > 0 {

@@ -452,6 +452,14 @@ var _ = Describe("Podman run with volumes", func() {
 		separateVolumeSession.WaitWithDefaultTimeout()
 		Expect(separateVolumeSession).Should(Exit(0))
 		Expect(separateVolumeSession.OutputToString()).To(Equal(baselineOutput))
+
+		copySession := podmanTest.Podman([]string{"run", "--rm", "-v", "testvol3:/etc/apk:copy", ALPINE, "stat", "-c", "%h", "/etc/apk/arch"})
+		copySession.WaitWithDefaultTimeout()
+		Expect(copySession).Should(Exit(0))
+
+		noCopySession := podmanTest.Podman([]string{"run", "--rm", "-v", "testvol4:/etc/apk:nocopy", ALPINE, "stat", "-c", "%h", "/etc/apk/arch"})
+		noCopySession.WaitWithDefaultTimeout()
+		Expect(noCopySession).Should(Exit(1))
 	})
 
 	It("podman named volume copyup symlink", func() {
