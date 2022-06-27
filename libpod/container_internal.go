@@ -219,7 +219,7 @@ func (c *Container) handleExitFile(exitFile string, fi os.FileInfo) error {
 	// Write an event for the container's death
 	c.newContainerExitedEvent(c.state.ExitCode)
 
-	return nil
+	return c.runtime.state.AddContainerExitCode(c.ID(), c.state.ExitCode)
 }
 
 func (c *Container) shouldRestart() bool {
@@ -784,20 +784,6 @@ func (c *Container) getArtifactPath(name string) string {
 	return filepath.Join(c.config.StaticDir, artifactsDir, name)
 }
 
-// Used with Wait() to determine if a container has exited
-func (c *Container) isStopped() (bool, int32, error) {
-	if !c.batched {
-		c.lock.Lock()
-		defer c.lock.Unlock()
-	}
-	err := c.syncContainer()
-	if err != nil {
-		return true, -1, err
-	}
-
-	return !c.ensureState(define.ContainerStateRunning, define.ContainerStatePaused, define.ContainerStateStopping), c.state.ExitCode, nil
-}
-
 // save container state to the database
 func (c *Container) save() error {
 	if err := c.runtime.state.SaveContainer(c); err != nil {
@@ -1282,13 +1268,6 @@ func (c *Container) stop(timeout uint) error {
 		}
 	}
 
-	// Check if conmon is still alive.
-	// If it is not, we won't be getting an exit file.
-	conmonAlive, err := c.ociRuntime.CheckConmonRunning(c)
-	if err != nil {
-		return err
-	}
-
 	// Set the container state to "stopping" and unlock the container
 	// before handing it over to conmon to unblock other commands.  #8501
 	// demonstrates nicely that a high stop timeout will block even simple
@@ -1341,21 +1320,18 @@ func (c *Container) stop(timeout uint) error {
 	}
 
 	c.newContainerEvent(events.Stop)
-
-	c.state.PID = 0
-	c.state.ConmonPID = 0
 	c.state.StoppedByUser = true
 
+	conmonAlive, err := c.ociRuntime.CheckConmonRunning(c)
+	if err != nil {
+		return err
+	}
 	if !conmonAlive {
-		// Conmon is dead, so we can't expect an exit code.
-		c.state.ExitCode = -1
-		c.state.FinishedTime = time.Now()
-		c.state.State = define.ContainerStateStopped
-		if err := c.save(); err != nil {
-			logrus.Errorf("Saving container %s status: %v", c.ID(), err)
+		if err := c.checkExitFile(); err != nil {
+			return err
 		}
 
-		return errors.Wrapf(define.ErrConmonDead, "container %s conmon process missing, cannot retrieve exit code", c.ID())
+		return c.save()
 	}
 
 	if err := c.save(); err != nil {
@@ -1936,6 +1912,18 @@ func (c *Container) cleanup(ctx context.Context) error {
 			lastError = err
 		} else {
 			logrus.Errorf("Stopping pod of container %s: %v", c.ID(), err)
+		}
+	}
+
+	// Prune the exit codes of other container during clean up.
+	// Since Podman is no daemon, we have to clean them up somewhere.
+	// Cleanup seems like a good place as it's not performance
+	// critical.
+	if err := c.runtime.state.PruneContainerExitCodes(); err != nil {
+		if lastError == nil {
+			lastError = err
+		} else {
+			logrus.Errorf("Pruning container exit codes: %v", err)
 		}
 	}
 

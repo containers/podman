@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/podman/v4/libpod/define"
@@ -63,6 +65,13 @@ type BoltState struct {
 //   initially created the database. This must match for any further instances
 //   that access the database, to ensure that state mismatches with
 //   containers/storage do not occur.
+// - exitCodeBucket/exitCodeTimeStampBucket: (#14559) exit codes must be part
+//   of the database to resolve a previous race condition when one process waits
+//   for the exit file to be written and another process removes it along with
+//   the container during auto-removal.  The same race would happen trying to
+//   read the exit code from the containers bucket.  Hence, exit codes go into
+//   their own bucket.  To avoid the rather expensive JSON (un)marshaling, we
+//   have two buckets: one for the exit codes, the other for the timestamps.
 
 // NewBoltState creates a new bolt-backed state database
 func NewBoltState(path string, runtime *Runtime) (State, error) {
@@ -98,6 +107,8 @@ func NewBoltState(path string, runtime *Runtime) (State, error) {
 		allVolsBkt,
 		execBkt,
 		runtimeConfigBkt,
+		exitCodeBkt,
+		exitCodeTimeStampBkt,
 	}
 
 	// Does the DB need an update?
@@ -190,6 +201,45 @@ func (s *BoltState) Refresh() error {
 		execBucket, err := getExecBucket(tx)
 		if err != nil {
 			return err
+		}
+
+		exitCodeBucket, err := getExitCodeBucket(tx)
+		if err != nil {
+			return err
+		}
+
+		timeStampBucket, err := getExitCodeTimeStampBucket(tx)
+		if err != nil {
+			return err
+		}
+
+		// Clear all exec exit codes
+		toRemoveExitCodes := []string{}
+		err = exitCodeBucket.ForEach(func(id, _ []byte) error {
+			toRemoveExitCodes = append(toRemoveExitCodes, string(id))
+			return nil
+		})
+		if err != nil {
+			return errors.Wrapf(err, "error reading exit codes bucket")
+		}
+		for _, id := range toRemoveExitCodes {
+			if err := exitCodeBucket.Delete([]byte(id)); err != nil {
+				return errors.Wrapf(err, "error removing exit code for ID %s", id)
+			}
+		}
+
+		toRemoveTimeStamps := []string{}
+		err = timeStampBucket.ForEach(func(id, _ []byte) error {
+			toRemoveTimeStamps = append(toRemoveTimeStamps, string(id))
+			return nil
+		})
+		if err != nil {
+			return errors.Wrapf(err, "reading timestamps bucket")
+		}
+		for _, id := range toRemoveTimeStamps {
+			if err := timeStampBucket.Delete([]byte(id)); err != nil {
+				return errors.Wrapf(err, "removing timestamp for ID %s", id)
+			}
 		}
 
 		// Iterate through all IDs. Check if they are containers.
@@ -1339,6 +1389,204 @@ func (s *BoltState) GetContainerConfig(id string) (*ContainerConfig, error) {
 	}
 
 	return config, nil
+}
+
+// AddContainerExitCode adds the exit code for the specified container to the database.
+func (s *BoltState) AddContainerExitCode(id string, exitCode int32) error {
+	if len(id) == 0 {
+		return define.ErrEmptyID
+	}
+
+	if !s.valid {
+		return define.ErrDBClosed
+	}
+
+	db, err := s.getDBCon()
+	if err != nil {
+		return err
+	}
+	defer s.deferredCloseDBCon(db)
+
+	rawID := []byte(id)
+	rawExitCode := []byte(strconv.Itoa(int(exitCode)))
+	rawTimeStamp, err := time.Now().MarshalText()
+	if err != nil {
+		return fmt.Errorf("marshaling exit-code time stamp: %w", err)
+	}
+
+	return db.Update(func(tx *bolt.Tx) error {
+		exitCodeBucket, err := getExitCodeBucket(tx)
+		if err != nil {
+			return err
+		}
+		timeStampBucket, err := getExitCodeTimeStampBucket(tx)
+		if err != nil {
+			return err
+		}
+
+		if err := exitCodeBucket.Put(rawID, rawExitCode); err != nil {
+			return fmt.Errorf("adding exit code of container %s to DB: %w", id, err)
+		}
+		if err := timeStampBucket.Put(rawID, rawTimeStamp); err != nil {
+			if rmErr := exitCodeBucket.Delete(rawID); rmErr != nil {
+				logrus.Errorf("Removing exit code of container %s from DB: %v", id, rmErr)
+			}
+			return fmt.Errorf("adding exit-code time stamp of container %s to DB: %w", id, err)
+		}
+
+		return nil
+	})
+}
+
+// GetContainerExitCode returns the exit code for the specified container.
+func (s *BoltState) GetContainerExitCode(id string) (int32, error) {
+	if len(id) == 0 {
+		return -1, define.ErrEmptyID
+	}
+
+	if !s.valid {
+		return -1, define.ErrDBClosed
+	}
+
+	db, err := s.getDBCon()
+	if err != nil {
+		return -1, err
+	}
+	defer s.deferredCloseDBCon(db)
+
+	rawID := []byte(id)
+	result := int32(-1)
+	return result, db.View(func(tx *bolt.Tx) error {
+		exitCodeBucket, err := getExitCodeBucket(tx)
+		if err != nil {
+			return err
+		}
+
+		rawExitCode := exitCodeBucket.Get(rawID)
+		if rawExitCode == nil {
+			return fmt.Errorf("getting exit code of container %s from DB: %w", id, define.ErrNoSuchExitCode)
+		}
+
+		exitCode, err := strconv.Atoi(string(rawExitCode))
+		if err != nil {
+			return fmt.Errorf("converting raw exit code %v of container %s: %w", rawExitCode, id, err)
+		}
+
+		result = int32(exitCode)
+		return nil
+	})
+}
+
+// GetContainerExitCodeTimeStamp returns the time stamp when the exit code of
+// the specified container was added to the database.
+func (s *BoltState) GetContainerExitCodeTimeStamp(id string) (*time.Time, error) {
+	if len(id) == 0 {
+		return nil, define.ErrEmptyID
+	}
+
+	if !s.valid {
+		return nil, define.ErrDBClosed
+	}
+
+	db, err := s.getDBCon()
+	if err != nil {
+		return nil, err
+	}
+	defer s.deferredCloseDBCon(db)
+
+	rawID := []byte(id)
+	var result time.Time
+	return &result, db.View(func(tx *bolt.Tx) error {
+		timeStampBucket, err := getExitCodeTimeStampBucket(tx)
+		if err != nil {
+			return err
+		}
+
+		rawTimeStamp := timeStampBucket.Get(rawID)
+		if rawTimeStamp == nil {
+			return fmt.Errorf("getting exit-code time stamp of container %s from DB: %w", id, define.ErrNoSuchExitCode)
+		}
+
+		if err := result.UnmarshalText(rawTimeStamp); err != nil {
+			return fmt.Errorf("converting raw time stamp %v of container %s from DB: %w", rawTimeStamp, id, err)
+		}
+
+		return nil
+	})
+}
+
+// PruneExitCodes removes exit codes older than 5 minutes.
+func (s *BoltState) PruneContainerExitCodes() error {
+	if !s.valid {
+		return define.ErrDBClosed
+	}
+
+	db, err := s.getDBCon()
+	if err != nil {
+		return err
+	}
+	defer s.deferredCloseDBCon(db)
+
+	toRemoveIDs := []string{}
+
+	threshold := time.Minute * 5
+	err = db.View(func(tx *bolt.Tx) error {
+		timeStampBucket, err := getExitCodeTimeStampBucket(tx)
+		if err != nil {
+			return err
+		}
+
+		return timeStampBucket.ForEach(func(rawID, rawTimeStamp []byte) error {
+			var timeStamp time.Time
+			if err := timeStamp.UnmarshalText(rawTimeStamp); err != nil {
+				return fmt.Errorf("converting raw time stamp %v of container %s from DB: %w", rawTimeStamp, string(rawID), err)
+			}
+			if time.Since(timeStamp) > threshold {
+				toRemoveIDs = append(toRemoveIDs, string(rawID))
+			}
+			return nil
+		})
+	})
+	if err != nil {
+		return errors.Wrapf(err, "reading exit codes to prune")
+	}
+
+	if len(toRemoveIDs) > 0 {
+		err = db.Update(func(tx *bolt.Tx) error {
+			exitCodeBucket, err := getExitCodeBucket(tx)
+			if err != nil {
+				return err
+			}
+			timeStampBucket, err := getExitCodeTimeStampBucket(tx)
+			if err != nil {
+				return err
+			}
+
+			var finalErr error
+			for _, id := range toRemoveIDs {
+				rawID := []byte(id)
+				if err := exitCodeBucket.Delete(rawID); err != nil {
+					if finalErr != nil {
+						logrus.Error(finalErr)
+					}
+					finalErr = fmt.Errorf("removing exit code of container %s from DB: %w", id, err)
+				}
+				if err := timeStampBucket.Delete(rawID); err != nil {
+					if finalErr != nil {
+						logrus.Error(finalErr)
+					}
+					finalErr = fmt.Errorf("removing exit code timestamp of container %s from DB: %w", id, err)
+				}
+			}
+
+			return finalErr
+		})
+		if err != nil {
+			return errors.Wrapf(err, "pruning exit codes")
+		}
+	}
+
+	return nil
 }
 
 // AddExecSession adds an exec session to the state.

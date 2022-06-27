@@ -16,7 +16,6 @@ import (
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/podman/v4/libpod"
 	"github.com/containers/podman/v4/libpod/define"
-	"github.com/containers/podman/v4/libpod/events"
 	"github.com/containers/podman/v4/libpod/logs"
 	"github.com/containers/podman/v4/pkg/checkpoint"
 	"github.com/containers/podman/v4/pkg/domain/entities"
@@ -939,6 +938,7 @@ func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []stri
 				}
 				return reports, errors.Wrapf(err, "unable to start container %s", ctr.ID())
 			}
+
 			exitCode = ic.GetContainerExitCode(ctx, ctr)
 			reports = append(reports, &entities.ContainerStartReport{
 				Id:       ctr.ID(),
@@ -1099,25 +1099,11 @@ func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.Conta
 
 func (ic *ContainerEngine) GetContainerExitCode(ctx context.Context, ctr *libpod.Container) int {
 	exitCode, err := ctr.Wait(ctx)
-	if err == nil {
-		return int(exitCode)
-	}
-	if errors.Cause(err) != define.ErrNoSuchCtr {
-		logrus.Errorf("Could not retrieve exit code: %v", err)
+	if err != nil {
+		logrus.Errorf("Waiting for container %s: %v", ctr.ID(), err)
 		return define.ExecErrorCodeNotFound
 	}
-	// Make 4 attempt with 0.25s backoff between each for 1 second total
-	var event *events.Event
-	for i := 0; i < 4; i++ {
-		event, err = ic.Libpod.GetLastContainerEvent(ctx, ctr.ID(), events.Exited)
-		if err != nil {
-			time.Sleep(250 * time.Millisecond)
-			continue
-		}
-		return event.ContainerExitCode
-	}
-	logrus.Errorf("Could not retrieve exit code from event: %v", err)
-	return define.ExecErrorCodeNotFound
+	return int(exitCode)
 }
 
 func (ic *ContainerEngine) ContainerLogs(ctx context.Context, containers []string, options entities.ContainerLogsOptions) error {

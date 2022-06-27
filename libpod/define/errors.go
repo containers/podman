@@ -24,6 +24,10 @@ var (
 	// not exist.
 	ErrNoSuchExecSession = errors.New("no such exec session")
 
+	// ErrNoSuchExitCode indicates that the requested container exit code
+	// does not exist.
+	ErrNoSuchExitCode = errors.New("no such exit code")
+
 	// ErrDepExists indicates that the current object has dependencies and
 	// cannot be removed before them.
 	ErrDepExists = errors.New("dependency exists")

@@ -264,11 +264,6 @@ func (r *ConmonOCIRuntime) CreateContainer(ctr *Container, restoreOptions *Conta
 // status, but will instead only check for the existence of the conmon exit file
 // and update state to stopped if it exists.
 func (r *ConmonOCIRuntime) UpdateContainerStatus(ctr *Container) error {
-	exitFile, err := r.ExitFilePath(ctr)
-	if err != nil {
-		return err
-	}
-
 	runtimeDir, err := util.GetRuntimeDir()
 	if err != nil {
 		return err
@@ -340,22 +335,10 @@ func (r *ConmonOCIRuntime) UpdateContainerStatus(ctr *Container) error {
 	// Only grab exit status if we were not already stopped
 	// If we were, it should already be in the database
 	if ctr.state.State == define.ContainerStateStopped && oldState != define.ContainerStateStopped {
-		var fi os.FileInfo
-		chWait := make(chan error)
-		defer close(chWait)
-
-		_, err := WaitForFile(exitFile, chWait, time.Second*5)
-		if err == nil {
-			fi, err = os.Stat(exitFile)
+		if _, err := ctr.Wait(context.Background()); err != nil {
+			logrus.Errorf("Waiting for container %s to exit: %v", ctr.ID(), err)
 		}
-		if err != nil {
-			ctr.state.ExitCode = -1
-			ctr.state.FinishedTime = time.Now()
-			logrus.Errorf("No exit file for container %s found: %v", ctr.ID(), err)
-			return nil
-		}
-
-		return ctr.handleExitFile(exitFile, fi)
+		return nil
 	}
 
 	// Handle ContainerStateStopping - keep it unless the container
@@ -1166,7 +1149,6 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 	}).Debugf("running conmon: %s", r.conmonPath)
 
 	cmd := exec.Command(r.conmonPath, args...)
-	cmd.Dir = ctr.bundlePath()
 	cmd.SysProcAttr = &syscall.SysProcAttr{
 		Setpgid: true,
 	}
@@ -1354,8 +1336,6 @@ func (r *ConmonOCIRuntime) sharedConmonArgs(ctr *Container, cuuid, bundlePath, p
 		logDriverArg = define.NoLogging
 	case define.PassthroughLogging:
 		logDriverArg = define.PassthroughLogging
-	case define.JSONLogging:
-		fallthrough
 	//lint:ignore ST1015 the default case has to be here
 	default: //nolint:stylecheck,gocritic
 		// No case here should happen except JSONLogging, but keep this here in case the options are extended
@@ -1364,6 +1344,8 @@ func (r *ConmonOCIRuntime) sharedConmonArgs(ctr *Container, cuuid, bundlePath, p
 	case "":
 		// to get here, either a user would specify `--log-driver ""`, or this came from another place in libpod
 		// since the former case is obscure, and the latter case isn't an error, let's silently fallthrough
+		fallthrough
+	case define.JSONLogging:
 		fallthrough
 	case define.KubernetesLogging:
 		logDriverArg = fmt.Sprintf("%s:%s", define.KubernetesLogging, logPath)
