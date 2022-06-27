@@ -483,6 +483,9 @@ func (ic *ContainerEngine) PodPs(ctx context.Context, options entities.PodPSOpti
 	for _, p := range pds {
 		r, err := ic.listPodReportFromPod(p)
 		if err != nil {
+			if errors.Is(err, define.ErrNoSuchPod) || errors.Is(err, define.ErrNoSuchCtr) {
+				continue
+			}
 			return nil, err
 		}
 		reports = append(reports, r)

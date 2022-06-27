@@ -495,7 +495,22 @@ spec:
     local actual2=$(< /sys/fs/cgroup/$path2/cpu.max)
     is "$actual2" "500000 100000" "resource limits set properly"
     run_podman --cgroup-manager=cgroupfs pod rm $name2
+}
 
+@test "podman pod ps doesn't race with pod rm" {
+    # create a few pods
+    for i in {0..10}; do
+        run_podman pod create
+    done
+
+    # and delete them
+    $PODMAN pod rm -a &
+
+    # pod ps should not fail while pods are deleted
+    run_podman pod ps -q
+
+    # wait for pod rm -a
+    wait
 }
 
 # vim: filetype=sh
