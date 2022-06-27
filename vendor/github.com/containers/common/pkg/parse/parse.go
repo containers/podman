@@ -14,7 +14,7 @@ import (
 
 // ValidateVolumeOpts validates a volume's options
 func ValidateVolumeOpts(options []string) ([]string, error) {
-	var foundRootPropagation, foundRWRO, foundLabelChange, bindType, foundExec, foundDev, foundSuid, foundChown, foundUpperDir, foundWorkDir int
+	var foundRootPropagation, foundRWRO, foundLabelChange, bindType, foundExec, foundDev, foundSuid, foundChown, foundUpperDir, foundWorkDir, foundCopy int
 	finalOpts := make([]string, 0, len(options))
 	for _, opt := range options {
 		// support advanced options like upperdir=/path, workdir=/path
@@ -88,6 +88,11 @@ func ValidateVolumeOpts(options []string) ([]string, error) {
 			// are intended to be always safe to use, even not on OS
 			// X).
 			continue
+		case "copy", "nocopy":
+			foundCopy++
+			if foundCopy > 1 {
+				return nil, errors.Errorf("invalid options %q, can only specify 1 'copy' or 'nocopy' option", strings.Join(options, ", "))
+			}
 		default:
 			return nil, errors.Errorf("invalid option type %q", opt)
 		}
