@@ -5,7 +5,6 @@
 package signal
 
 import (
-	"os"
 	"syscall"
 )
 
@@ -87,14 +86,4 @@ var SignalMap = map[string]syscall.Signal{
 	"RTMAX-2":  sigrtmax - 2,
 	"RTMAX-1":  sigrtmax - 1,
 	"RTMAX":    sigrtmax,
-}
-
-// CatchAll catches all signals and relays them to the specified channel.
-func CatchAll(sigc chan os.Signal) {
-	panic("Unsupported on non-linux platforms")
-}
-
-// StopCatch stops catching the signals and closes the specified channel.
-func StopCatch(sigc chan os.Signal) {
-	panic("Unsupported on non-linux platforms")
 }

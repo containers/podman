@@ -10,8 +10,6 @@ package signal
 // NOTE: this package has originally been copied from github.com/docker/docker.
 
 import (
-	"os"
-	"os/signal"
 	"syscall"
 
 	"golang.org/x/sys/unix"
@@ -91,19 +89,4 @@ var SignalMap = map[string]syscall.Signal{
 	"RTMAX-2":  sigrtmax - 2,
 	"RTMAX-1":  sigrtmax - 1,
 	"RTMAX":    sigrtmax,
-}
-
-// CatchAll catches all signals and relays them to the specified channel.
-func CatchAll(sigc chan os.Signal) {
-	handledSigs := make([]os.Signal, 0, len(SignalMap))
-	for _, s := range SignalMap {
-		handledSigs = append(handledSigs, s)
-	}
-	signal.Notify(sigc, handledSigs...)
-}
-
-// StopCatch stops catching the signals and closes the specified channel.
-func StopCatch(sigc chan os.Signal) {
-	signal.Stop(sigc)
-	close(sigc)
 }
