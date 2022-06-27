@@ -1142,7 +1142,7 @@ func (c *Container) addCheckpointImageMetadata(importBuilder *buildah.Builder) e
 		return fmt.Errorf("getting host info: %v", err)
 	}
 
-	criuVersion, err := criu.GetCriuVestion()
+	criuVersion, err := criu.GetCriuVersion()
 	if err != nil {
 		return fmt.Errorf("getting criu version: %v", err)
 	}
