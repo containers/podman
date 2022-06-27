@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	. "github.com/containers/podman/v4/test/utils"
+	"github.com/containers/storage/pkg/stringid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
@@ -187,5 +188,72 @@ var _ = Describe("Podman volume plugins", func() {
 		rmAll := podmanTest.Podman([]string{"rm", "-f", ctr2Name, ctr1Name})
 		rmAll.WaitWithDefaultTimeout()
 		Expect(rmAll).Should(Exit(0))
+	})
+
+	It("podman volume reload", func() {
+		podmanTest.AddImageToRWStore(volumeTest)
+
+		confFile := filepath.Join(podmanTest.TempDir, "containers.conf")
+		err := os.WriteFile(confFile, []byte(`[engine]
+[engine.volume_plugins]
+testvol5 = "/run/docker/plugins/testvol5.sock"`), 0o644)
+		Expect(err).ToNot(HaveOccurred())
+		os.Setenv("CONTAINERS_CONF", confFile)
+
+		pluginStatePath := filepath.Join(podmanTest.TempDir, "volumes")
+		err = os.Mkdir(pluginStatePath, 0755)
+		Expect(err).ToNot(HaveOccurred())
+
+		// Keep this distinct within tests to avoid multiple tests using the same plugin.
+		pluginName := "testvol5"
+		ctrName := "pluginCtr"
+		plugin := podmanTest.Podman([]string{"run", "--name", ctrName, "--security-opt", "label=disable", "-v", "/run/docker/plugins:/run/docker/plugins",
+			"-v", fmt.Sprintf("%v:%v", pluginStatePath, pluginStatePath), "-d", volumeTest, "--sock-name", pluginName, "--path", pluginStatePath})
+		plugin.WaitWithDefaultTimeout()
+		Expect(plugin).Should(Exit(0))
+
+		localvol := "local-" + stringid.GenerateNonCryptoID()
+		// create local volume
+		session := podmanTest.Podman([]string{"volume", "create", localvol})
+		session.WaitWithDefaultTimeout()
+		Expect(session).To(Exit(0))
+
+		vol1 := "vol1-" + stringid.GenerateNonCryptoID()
+		session = podmanTest.Podman([]string{"volume", "create", "--driver", pluginName, vol1})
+		session.WaitWithDefaultTimeout()
+		Expect(session).To(Exit(0))
+
+		// now create volume in plugin without podman
+		vol2 := "vol2-" + stringid.GenerateNonCryptoID()
+		plugin = podmanTest.Podman([]string{"exec", ctrName, "/usr/local/bin/testvol", "--sock-name", pluginName, "create", vol2})
+		plugin.WaitWithDefaultTimeout()
+		Expect(plugin).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"volume", "ls", "-q"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).To(Exit(0))
+		Expect(session.OutputToStringArray()).To(ContainElements(localvol, vol1))
+		Expect(session.ErrorToString()).To(Equal("")) // make sure no errors are shown
+
+		plugin = podmanTest.Podman([]string{"exec", ctrName, "/usr/local/bin/testvol", "--sock-name", pluginName, "remove", vol1})
+		plugin.WaitWithDefaultTimeout()
+		Expect(plugin).Should(Exit(0))
+
+		// now reload volumes from plugins
+		session = podmanTest.Podman([]string{"volume", "reload"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).To(Exit(0))
+		Expect(string(session.Out.Contents())).To(Equal(fmt.Sprintf(`Added:
+%s
+Removed:
+%s
+`, vol2, vol1)))
+		Expect(session.ErrorToString()).To(Equal("")) // make sure no errors are shown
+
+		session = podmanTest.Podman([]string{"volume", "ls", "-q"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).To(Exit(0))
+		Expect(session.OutputToStringArray()).To(ContainElements(localvol, vol2))
+		Expect(session.ErrorToString()).To(Equal("")) // make no errors are shown
 	})
 })

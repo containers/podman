@@ -502,7 +502,7 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 				volOptions = append(volOptions, parsedOptions...)
 			}
 		}
-		newVol, err := r.newVolume(volOptions...)
+		newVol, err := r.newVolume(false, volOptions...)
 		if err != nil {
 			return nil, errors.Wrapf(err, "error creating named volume %q", vol.Name)
 		}
@@ -805,7 +805,7 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force, remo
 			if !volume.Anonymous() {
 				continue
 			}
-			if err := runtime.removeVolume(ctx, volume, false, timeout); err != nil && errors.Cause(err) != define.ErrNoSuchVolume {
+			if err := runtime.removeVolume(ctx, volume, false, timeout, false); err != nil && errors.Cause(err) != define.ErrNoSuchVolume {
 				if errors.Cause(err) == define.ErrVolumeBeingUsed {
 					// Ignore error, since podman will report original error
 					volumesFrom, _ := c.volumesFrom()
@@ -963,7 +963,7 @@ func (r *Runtime) evictContainer(ctx context.Context, idOrName string, removeVol
 			if !volume.Anonymous() {
 				continue
 			}
-			if err := r.removeVolume(ctx, volume, false, timeout); err != nil && err != define.ErrNoSuchVolume && err != define.ErrVolumeBeingUsed {
+			if err := r.removeVolume(ctx, volume, false, timeout, false); err != nil && err != define.ErrNoSuchVolume && err != define.ErrVolumeBeingUsed {
 				logrus.Errorf("Cleaning up volume (%s): %v", v, err)
 			}
 		}

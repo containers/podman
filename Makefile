@@ -225,11 +225,11 @@ test/checkseccomp/checkseccomp: $(wildcard test/checkseccomp/*.go)
 
 .PHONY: test/testvol/testvol
 test/testvol/testvol: $(wildcard test/testvol/*.go)
-	$(GOCMD) build $(BUILDFLAGS) $(GO_LDFLAGS) '$(LDFLAGS_PODMAN)' -o $@ ./test/testvol
+	$(GOCMD) build -o $@ ./test/testvol
 
-.PHONY: volume-plugin-test-image
+.PHONY: volume-plugin-test-img
 volume-plugin-test-img:
-	podman build -t quay.io/libpod/volume-plugin-test-img -f Containerfile-testvol .
+	./bin/podman build --network none -t quay.io/libpod/volume-plugin-test-img:$$(date +%Y%m%d) -f ./test/testvol/Containerfile .
 
 .PHONY: test/goecho/goecho
 test/goecho/goecho: $(wildcard test/goecho/*.go)

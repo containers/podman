@@ -5,6 +5,7 @@ package libpod
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -25,11 +26,13 @@ func (r *Runtime) NewVolume(ctx context.Context, options ...VolumeCreateOption) 
 	if !r.valid {
 		return nil, define.ErrRuntimeStopped
 	}
-	return r.newVolume(options...)
+	return r.newVolume(false, options...)
 }
 
-// newVolume creates a new empty volume
-func (r *Runtime) newVolume(options ...VolumeCreateOption) (_ *Volume, deferredErr error) {
+// newVolume creates a new empty volume with the given options.
+// The createPluginVolume can be set to true to make it not create the volume in the volume plugin,
+// this is required for the UpdateVolumePlugins() function. If you are not sure set this to false.
+func (r *Runtime) newVolume(noCreatePluginVolume bool, options ...VolumeCreateOption) (_ *Volume, deferredErr error) {
 	volume := newVolume(r)
 	for _, option := range options {
 		if err := option(volume); err != nil {
@@ -83,7 +86,7 @@ func (r *Runtime) newVolume(options ...VolumeCreateOption) (_ *Volume, deferredE
 
 	// Now we get conditional: we either need to make the volume in the
 	// volume plugin, or on disk if not using a plugin.
-	if volume.plugin != nil {
+	if volume.plugin != nil && !noCreatePluginVolume {
 		// We can't chown, or relabel, or similar the path the volume is
 		// using, because it's not managed by us.
 		// TODO: reevaluate this once we actually have volume plugins in
@@ -164,6 +167,85 @@ func (r *Runtime) newVolume(options ...VolumeCreateOption) (_ *Volume, deferredE
 	return volume, nil
 }
 
+// UpdateVolumePlugins reads all volumes from all configured volume plugins and
+// imports them into the libpod db. It also checks if existing libpod volumes
+// are removed in the plugin, in this case we try to remove it from libpod.
+// On errors we continue and try to do as much as possible. all errors are
+// returned as array in the returned struct.
+// This function has many race conditions, it is best effort but cannot guarantee
+// a perfect state since plugins can be modified from the outside at any time.
+func (r *Runtime) UpdateVolumePlugins(ctx context.Context) *define.VolumeReload {
+	var (
+		added            []string
+		removed          []string
+		errs             []error
+		allPluginVolumes = map[string]struct{}{}
+	)
+
+	for driverName, socket := range r.config.Engine.VolumePlugins {
+		driver, err := volplugin.GetVolumePlugin(driverName, socket)
+		if err != nil {
+			errs = append(errs, err)
+			continue
+		}
+		vols, err := driver.ListVolumes()
+		if err != nil {
+			errs = append(errs, fmt.Errorf("failed to read volumes from plugin %q: %w", driverName, err))
+			continue
+		}
+		for _, vol := range vols {
+			allPluginVolumes[vol.Name] = struct{}{}
+			if _, err := r.newVolume(true, WithVolumeName(vol.Name), WithVolumeDriver(driverName)); err != nil {
+				// If the volume exists this is not an error, just ignore it and log. It is very likely
+				// that the volume from the plugin was already in our db.
+				if !errors.Is(err, define.ErrVolumeExists) {
+					errs = append(errs, err)
+					continue
+				}
+				logrus.Infof("Volume %q already exists: %v", vol.Name, err)
+				continue
+			}
+			added = append(added, vol.Name)
+		}
+	}
+
+	libpodVolumes, err := r.state.AllVolumes()
+	if err != nil {
+		errs = append(errs, fmt.Errorf("cannot delete dangling plugin volumes: failed to read libpod volumes: %w", err))
+	}
+	for _, vol := range libpodVolumes {
+		if vol.UsesVolumeDriver() {
+			if _, ok := allPluginVolumes[vol.Name()]; !ok {
+				// The volume is no longer in the plugin, lets remove it from the libpod db.
+				if err := r.removeVolume(ctx, vol, false, nil, true); err != nil {
+					if errors.Is(err, define.ErrVolumeBeingUsed) {
+						// Volume is still used by at least one container. This is very bad,
+						// the plugin no longer has this but we still need it.
+						errs = append(errs, fmt.Errorf("volume was removed from the plugin %q but containers still require it: %w", vol.config.Driver, err))
+						continue
+					}
+					if errors.Is(err, define.ErrNoSuchVolume) || errors.Is(err, define.ErrVolumeRemoved) || errors.Is(err, define.ErrMissingPlugin) {
+						// Volume was already removed, no problem just ignore it and continue.
+						continue
+					}
+
+					// some other error
+					errs = append(errs, err)
+					continue
+				}
+				// Volume was successfully removed
+				removed = append(removed, vol.Name())
+			}
+		}
+	}
+
+	return &define.VolumeReload{
+		Added:   added,
+		Removed: removed,
+		Errors:  errs,
+	}
+}
+
 // makeVolumeInPluginIfNotExist makes a volume in the given volume plugin if it
 // does not already exist.
 func makeVolumeInPluginIfNotExist(name string, options map[string]string, plugin *volplugin.VolumePlugin) error {
@@ -197,8 +279,10 @@ func makeVolumeInPluginIfNotExist(name string, options map[string]string, plugin
 	return nil
 }
 
-// removeVolume removes the specified volume from state as well tears down its mountpoint and storage
-func (r *Runtime) removeVolume(ctx context.Context, v *Volume, force bool, timeout *uint) error {
+// removeVolume removes the specified volume from state as well tears down its mountpoint and storage.
+// ignoreVolumePlugin is used to only remove the volume from the db and not the plugin,
+// this is required when the volume was already removed from the plugin, i.e. in UpdateVolumePlugins().
+func (r *Runtime) removeVolume(ctx context.Context, v *Volume, force bool, timeout *uint, ignoreVolumePlugin bool) error {
 	if !v.valid {
 		if ok, _ := r.state.HasVolume(v.Name()); !ok {
 			return nil
@@ -263,7 +347,7 @@ func (r *Runtime) removeVolume(ctx context.Context, v *Volume, force bool, timeo
 	var removalErr error
 
 	// If we use a volume plugin, we need to remove from the plugin.
-	if v.UsesVolumeDriver() {
+	if v.UsesVolumeDriver() && !ignoreVolumePlugin {
 		canRemove := true
 
 		// Do we have a volume driver?

@@ -33,7 +33,7 @@ func (r *Runtime) RemoveVolume(ctx context.Context, v *Volume, force bool, timeo
 			return nil
 		}
 	}
-	return r.removeVolume(ctx, v, force, timeout)
+	return r.removeVolume(ctx, v, force, timeout, false)
 }
 
 // GetVolume retrieves a volume given its full name.
