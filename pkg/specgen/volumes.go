@@ -1,6 +1,7 @@
 package specgen
 
 import (
+	"path/filepath"
 	"strings"
 
 	"github.com/containers/common/pkg/parse"
@@ -56,7 +57,6 @@ func GenVolumeMounts(volumeFlag []string) (map[string]spec.Mount, map[string]*Na
 	overlayVolumes := make(map[string]*OverlayVolume)
 
 	volumeFormatErr := errors.Errorf("incorrect volume format, should be [host-dir:]ctr-dir[:option]")
-
 	for _, vol := range volumeFlag {
 		var (
 			options []string
@@ -71,6 +71,20 @@ func GenVolumeMounts(volumeFlag []string) (map[string]spec.Mount, map[string]*Na
 		}
 
 		src = splitVol[0]
+
+		// Support relative paths beginning with ./
+		if strings.HasPrefix(src, "./") {
+			path, err := filepath.EvalSymlinks(src)
+			if err != nil {
+				return nil, nil, nil, err
+			}
+			src, err = filepath.Abs(path)
+			if err != nil {
+				return nil, nil, nil, err
+			}
+			splitVol[0] = src
+		}
+
 		if len(splitVol) == 1 {
 			// This is an anonymous named volume. Only thing given
 			// is destination.

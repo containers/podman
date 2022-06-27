@@ -953,4 +953,32 @@ USER testuser`, fedoraMinimal)
 		Expect(volMount).Should(Exit(0))
 		Expect(volMount.OutputToString()).To(Equal("1000:1000"))
 	})
+
+	It("podman run -v with a relative dir", func() {
+		mountPath := filepath.Join(podmanTest.TempDir, "vol")
+		err = os.Mkdir(mountPath, 0755)
+		Expect(err).ToNot(HaveOccurred())
+		defer func() {
+			err := os.RemoveAll(mountPath)
+			Expect(err).ToNot(HaveOccurred())
+		}()
+
+		f, err := os.CreateTemp(mountPath, "podman")
+		Expect(err).ToNot(HaveOccurred())
+
+		cwd, err := os.Getwd()
+		Expect(err).ToNot(HaveOccurred())
+
+		err = os.Chdir(mountPath)
+		Expect(err).ToNot(HaveOccurred())
+		defer func() {
+			err := os.Chdir(cwd)
+			Expect(err).ToNot(HaveOccurred())
+		}()
+
+		run := podmanTest.Podman([]string{"run", "-it", "--security-opt", "label=disable", "-v", "./:" + dest, ALPINE, "ls", dest})
+		run.WaitWithDefaultTimeout()
+		Expect(run).Should(Exit(0))
+		Expect(run.OutputToString()).Should(ContainSubstring(strings.TrimLeft("/vol/", f.Name())))
+	})
 })
