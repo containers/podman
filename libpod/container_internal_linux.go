@@ -870,6 +870,7 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	g.SetLinuxCgroupsPath(cgroupPath)
 
 	// Warning: CDI may alter g.Config in place.

@@ -1,8 +1,10 @@
+//go:build !linux
+// +build !linux
+
 package cgroups
 
 import (
 	"bufio"
-	"bytes"
 	"context"
 	"fmt"
 	"io/ioutil"
@@ -248,47 +250,6 @@ func (c *CgroupControl) getCgroupv1Path(name string) string {
 	return filepath.Join(cgroupRoot, name, c.path)
 }
 
-// createCgroupv2Path creates the cgroupv2 path and enables all the available controllers
-func createCgroupv2Path(path string) (deferredError error) {
-	if !strings.HasPrefix(path, cgroupRoot+"/") {
-		return fmt.Errorf("invalid cgroup path %s", path)
-	}
-	content, err := ioutil.ReadFile(cgroupRoot + "/cgroup.controllers")
-	if err != nil {
-		return err
-	}
-	ctrs := bytes.Fields(content)
-	res := append([]byte("+"), bytes.Join(ctrs, []byte(" +"))...)
-
-	current := "/sys/fs"
-	elements := strings.Split(path, "/")
-	for i, e := range elements[3:] {
-		current = filepath.Join(current, e)
-		if i > 0 {
-			if err := os.Mkdir(current, 0o755); err != nil {
-				if !os.IsExist(err) {
-					return err
-				}
-			} else {
-				// If the directory was created, be sure it is not left around on errors.
-				defer func() {
-					if deferredError != nil {
-						os.Remove(current)
-					}
-				}()
-			}
-		}
-		// We enable the controllers for all the path components except the last one.  It is not allowed to add
-		// PIDs if there are already enabled controllers.
-		if i < len(elements[3:])-1 {
-			if err := ioutil.WriteFile(filepath.Join(current, "cgroup.subtree_control"), res, 0o755); err != nil {
-				return err
-			}
-		}
-	}
-	return nil
-}
-
 // initialize initializes the specified hierarchy
 func (c *CgroupControl) initialize() (err error) {
 	createdSoFar := map[string]controllerHandler{}
@@ -330,23 +291,6 @@ func (c *CgroupControl) initialize() (err error) {
 	}
 
 	return nil
-}
-
-func (c *CgroupControl) createCgroupDirectory(controller string) (bool, error) {
-	cPath := c.getCgroupv1Path(controller)
-	_, err := os.Stat(cPath)
-	if err == nil {
-		return false, nil
-	}
-
-	if !os.IsNotExist(err) {
-		return false, err
-	}
-
-	if err := os.MkdirAll(cPath, 0o755); err != nil {
-		return false, errors.Wrapf(err, "error creating cgroup for %s", controller)
-	}
-	return true, nil
 }
 
 func readFileAsUint64(path string) (uint64, error) {

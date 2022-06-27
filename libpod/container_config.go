@@ -424,7 +424,6 @@ type InfraInherit struct {
 	CapDrop            []string                 `json:"cap_drop,omitempty"`
 	HostDeviceList     []spec.LinuxDevice       `json:"host_device_list,omitempty"`
 	ImageVolumes       []*specgen.ImageVolume   `json:"image_volumes,omitempty"`
-	InfraResources     *spec.LinuxResources     `json:"resource_limits,omitempty"`
 	Mounts             []spec.Mount             `json:"mounts,omitempty"`
 	NoNewPrivileges    bool                     `json:"no_new_privileges,omitempty"`
 	OverlayVolumes     []*specgen.OverlayVolume `json:"overlay_volumes,omitempty"`

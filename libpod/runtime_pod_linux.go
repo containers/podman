@@ -17,7 +17,7 @@ import (
 	"github.com/containers/podman/v4/libpod/events"
 	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/containers/podman/v4/pkg/specgen"
-	spec "github.com/opencontainers/runtime-spec/specs-go"
+	runcconfig "github.com/opencontainers/runc/libcontainer/configs"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -66,6 +66,7 @@ func (r *Runtime) NewPod(ctx context.Context, p specgen.PodSpecGenerator, option
 		case config.CgroupfsCgroupsManager:
 			canUseCgroup := !rootless.IsRootless() || isRootlessCgroupSet(pod.config.CgroupParent)
 			if canUseCgroup {
+				// need to actually create parent here
 				if pod.config.CgroupParent == "" {
 					pod.config.CgroupParent = CgroupfsDefaultCgroupParent
 				} else if strings.HasSuffix(path.Base(pod.config.CgroupParent), ".slice") {
@@ -73,12 +74,26 @@ func (r *Runtime) NewPod(ctx context.Context, p specgen.PodSpecGenerator, option
 				}
 				// If we are set to use pod cgroups, set the cgroup parent that
 				// all containers in the pod will share
-				// No need to create it with cgroupfs - the first container to
-				// launch should do it for us
 				if pod.config.UsePodCgroup {
 					pod.state.CgroupPath = filepath.Join(pod.config.CgroupParent, pod.ID())
 					if p.InfraContainerSpec != nil {
 						p.InfraContainerSpec.CgroupParent = pod.state.CgroupPath
+						res, err := GetLimits(p.InfraContainerSpec.ResourceLimits)
+						if err != nil {
+							return nil, err
+						}
+						// Need to both create and update the cgroup
+						// rather than create a new path in c/common for pod cgroup creation
+						// just create as if it is a ctr and then update figures out that we need to
+						// populate the resource limits on the pod level
+						cgc, err := cgroups.New(pod.state.CgroupPath, &res)
+						if err != nil {
+							return nil, err
+						}
+						err = cgc.Update(&res)
+						if err != nil {
+							return nil, err
+						}
 					}
 				}
 			}
@@ -95,7 +110,7 @@ func (r *Runtime) NewPod(ctx context.Context, p specgen.PodSpecGenerator, option
 			// If we are set to use pod cgroups, set the cgroup parent that
 			// all containers in the pod will share
 			if pod.config.UsePodCgroup {
-				cgroupPath, err := systemdSliceFromPath(pod.config.CgroupParent, fmt.Sprintf("libpod_pod_%s", pod.ID()))
+				cgroupPath, err := systemdSliceFromPath(pod.config.CgroupParent, fmt.Sprintf("libpod_pod_%s", pod.ID()), p.InfraContainerSpec.ResourceLimits)
 				if err != nil {
 					return nil, errors.Wrapf(err, "unable to create pod cgroup for pod %s", pod.ID())
 				}
@@ -239,9 +254,8 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool,
 		}
 
 		// New resource limits
-		resLimits := new(spec.LinuxResources)
-		resLimits.Pids = new(spec.LinuxPids)
-		resLimits.Pids.Limit = 1 // Inhibit forks with very low pids limit
+		resLimits := new(runcconfig.Resources)
+		resLimits.PidsLimit = 1 // Inhibit forks with very low pids limit
 
 		// Don't try if we failed to retrieve the cgroup
 		if err == nil {
@@ -321,7 +335,7 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool,
 
 		switch p.runtime.config.Engine.CgroupManager {
 		case config.SystemdCgroupsManager:
-			if err := deleteSystemdCgroup(p.state.CgroupPath); err != nil {
+			if err := deleteSystemdCgroup(p.state.CgroupPath, p.ResourceLim()); err != nil {
 				if removalErr == nil {
 					removalErr = errors.Wrapf(err, "error removing pod %s cgroup", p.ID())
 				} else {

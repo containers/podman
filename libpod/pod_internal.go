@@ -69,7 +69,7 @@ func (p *Pod) refresh() error {
 	if p.config.UsePodCgroup {
 		switch p.runtime.config.Engine.CgroupManager {
 		case config.SystemdCgroupsManager:
-			cgroupPath, err := systemdSliceFromPath(p.config.CgroupParent, fmt.Sprintf("libpod_pod_%s", p.ID()))
+			cgroupPath, err := systemdSliceFromPath(p.config.CgroupParent, fmt.Sprintf("libpod_pod_%s", p.ID()), p.ResourceLim())
 			if err != nil {
 				logrus.Errorf("Creating Cgroup for pod %s: %v", p.ID(), err)
 			}

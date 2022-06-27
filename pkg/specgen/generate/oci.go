@@ -298,8 +298,7 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 		g.AddAnnotation(key, val)
 	}
 
-	switch {
-	case compatibleOptions.InfraResources == nil && s.ResourceLimits != nil:
+	if s.ResourceLimits != nil {
 		out, err := json.Marshal(s.ResourceLimits)
 		if err != nil {
 			return nil, err
@@ -308,29 +307,9 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 		if err != nil {
 			return nil, err
 		}
-	case s.ResourceLimits != nil: // if we have predefined resource limits we need to make sure we keep the infra and container limits
-		originalResources, err := json.Marshal(s.ResourceLimits)
-		if err != nil {
-			return nil, err
-		}
-		infraResources, err := json.Marshal(compatibleOptions.InfraResources)
-		if err != nil {
-			return nil, err
-		}
-		err = json.Unmarshal(infraResources, s.ResourceLimits) // put infra's resource limits in the container
-		if err != nil {
-			return nil, err
-		}
-		err = json.Unmarshal(originalResources, s.ResourceLimits) // make sure we did not override anything
-		if err != nil {
-			return nil, err
-		}
 		g.Config.Linux.Resources = s.ResourceLimits
-	default:
-		g.Config.Linux.Resources = compatibleOptions.InfraResources
 	}
 	// Devices
-
 	// set the default rule at the beginning of device configuration
 	if !inUserNS && !s.Privileged {
 		g.AddLinuxResourcesDevice(false, "", nil, nil, "rwm")
