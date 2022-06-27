@@ -277,9 +277,13 @@ func (c *Container) ExecStart(sessionID string) error {
 	return c.save()
 }
 
+func (c *Container) ExecStartAndAttach(sessionID string, streams *define.AttachStreams, newSize *define.TerminalSize) error {
+	return c.execStartAndAttach(sessionID, streams, newSize, false)
+}
+
 // ExecStartAndAttach starts and attaches to an exec session in a container.
 // newSize resizes the tty to this size before the process is started, must be nil if the exec session has no tty
-func (c *Container) ExecStartAndAttach(sessionID string, streams *define.AttachStreams, newSize *define.TerminalSize) error {
+func (c *Container) execStartAndAttach(sessionID string, streams *define.AttachStreams, newSize *define.TerminalSize, isHealthcheck bool) error {
 	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
@@ -315,7 +319,12 @@ func (c *Container) ExecStartAndAttach(sessionID string, streams *define.AttachS
 		return err
 	}
 
-	c.newContainerEvent(events.Exec)
+	if isHealthcheck {
+		c.newContainerEvent(events.HealthStatus)
+	} else {
+		c.newContainerEvent(events.Exec)
+	}
+
 	logrus.Debugf("Successfully started exec session %s in container %s", session.ID(), c.ID())
 
 	var lastErr error
@@ -743,10 +752,14 @@ func (c *Container) ExecResize(sessionID string, newSize define.TerminalSize) er
 	return c.ociRuntime.ExecAttachResize(c, sessionID, newSize)
 }
 
+func (c *Container) Exec(config *ExecConfig, streams *define.AttachStreams, resize <-chan define.TerminalSize) (int, error) {
+	return c.exec(config, streams, resize, false)
+}
+
 // Exec emulates the old Libpod exec API, providing a single call to create,
 // run, and remove an exec session. Returns exit code and error. Exit code is
 // not guaranteed to be set sanely if error is not nil.
-func (c *Container) Exec(config *ExecConfig, streams *define.AttachStreams, resize <-chan define.TerminalSize) (int, error) {
+func (c *Container) exec(config *ExecConfig, streams *define.AttachStreams, resize <-chan define.TerminalSize, isHealthcheck bool) (int, error) {
 	sessionID, err := c.ExecCreate(config)
 	if err != nil {
 		return -1, err
@@ -780,7 +793,7 @@ func (c *Container) Exec(config *ExecConfig, streams *define.AttachStreams, resi
 		}()
 	}
 
-	if err := c.ExecStartAndAttach(sessionID, streams, size); err != nil {
+	if err := c.execStartAndAttach(sessionID, streams, size, isHealthcheck); err != nil {
 		return -1, err
 	}
 
