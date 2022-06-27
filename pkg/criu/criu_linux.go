@@ -38,7 +38,7 @@ func MemTrack() bool {
 	return *features.MemTrack
 }
 
-func GetCriuVestion() (int, error) {
+func GetCriuVersion() (int, error) {
 	c := criu.MakeCriu()
 	return c.GetCriuVersion()
 }

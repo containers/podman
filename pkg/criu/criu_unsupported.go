@@ -11,6 +11,6 @@ func MemTrack() bool {
 	return false
 }
 
-func GetCriuVestion() (int, error) {
+func GetCriuVersion() (int, error) {
 	return MinCriuVersion, nil
 }
