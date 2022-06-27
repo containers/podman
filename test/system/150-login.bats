@@ -314,7 +314,7 @@ function _test_skopeo_credential_sharing() {
     fi
 
     # Make sure socket is closed
-    if { exec 3<> /dev/tcp/127.0.0.1/${PODMAN_LOGIN_REGISTRY_PORT}; } &>/dev/null; then
+    if ! port_is_free $PODMAN_LOGIN_REGISTRY_PORT; then
         die "Socket still seems open"
     fi
 }
