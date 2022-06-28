@@ -111,7 +111,7 @@ github.com/containers/buildah/pkg/rusage
 github.com/containers/buildah/pkg/sshagent
 github.com/containers/buildah/pkg/util
 github.com/containers/buildah/util
-# github.com/containers/common v0.48.1-0.20220624132904-722a80e139ec
+# github.com/containers/common v0.48.1-0.20220624132904-722a80e139ec => github.com/saschagrunert/common v0.40.2-0.20220628133210-471c78288b5c
 ## explicit
 github.com/containers/common/libimage
 github.com/containers/common/libimage/define
@@ -873,3 +873,4 @@ gopkg.in/yaml.v3
 # sigs.k8s.io/yaml v1.3.0
 sigs.k8s.io/yaml
 # github.com/opencontainers/runc => github.com/opencontainers/runc v1.1.1-0.20220617142545-8b9452f75cbc
+# github.com/containers/common => github.com/saschagrunert/common v0.40.2-0.20220628133210-471c78288b5c

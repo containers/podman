@@ -1,6 +1,8 @@
 package sysinfo
 
 import (
+	"errors"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path"
@@ -8,7 +10,6 @@ import (
 
 	"github.com/containers/common/pkg/cgroupv2"
 	"github.com/opencontainers/runc/libcontainer/cgroups"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
@@ -16,7 +17,7 @@ import (
 func findCgroupMountpoints() (map[string]string, error) {
 	cgMounts, err := cgroups.GetCgroupMounts(false)
 	if err != nil {
-		return nil, errors.Wrap(err, "parse cgroup information")
+		return nil, fmt.Errorf("parse cgroup information: %w", err)
 	}
 	mps := make(map[string]string)
 	for _, m := range cgMounts {
@@ -51,7 +52,7 @@ func New(quiet bool) *SysInfo {
 	sysInfo.BridgeNFCallIP6TablesDisabled = !readProcBool("/proc/sys/net/bridge/bridge-nf-call-ip6tables")
 
 	// Check if AppArmor is supported.
-	if _, err := os.Stat("/sys/kernel/security/apparmor"); !os.IsNotExist(err) {
+	if _, err := os.Stat("/sys/kernel/security/apparmor"); !errors.Is(err, os.ErrNotExist) {
 		sysInfo.AppArmor = true
 	}
 

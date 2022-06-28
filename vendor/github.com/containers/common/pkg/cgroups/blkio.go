@@ -5,6 +5,7 @@ package cgroups
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -12,7 +13,6 @@ import (
 	"strings"
 
 	spec "github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/pkg/errors"
 )
 
 type blkioHandler struct{}
@@ -101,10 +101,10 @@ func (c *blkioHandler) Stat(ctr *CgroupControl, m *Metrics) error {
 		p := filepath.Join(BlkioRoot, "blkio.throttle.io_service_bytes_recursive")
 		f, err := os.Open(p)
 		if err != nil {
-			if os.IsNotExist(err) {
+			if errors.Is(err, os.ErrNotExist) {
 				return nil
 			}
-			return errors.Wrapf(err, "open %s", p)
+			return fmt.Errorf("open %s: %w", p, err)
 		}
 		defer f.Close()
 
@@ -143,7 +143,7 @@ func (c *blkioHandler) Stat(ctr *CgroupControl, m *Metrics) error {
 			ioServiceBytesRecursive = append(ioServiceBytesRecursive, entry)
 		}
 		if err := scanner.Err(); err != nil {
-			return errors.Wrapf(err, "parse %s", p)
+			return fmt.Errorf("parse %s: %w", p, err)
 		}
 	}
 	m.Blkio = BlkioMetrics{IoServiceBytesRecursive: ioServiceBytesRecursive}

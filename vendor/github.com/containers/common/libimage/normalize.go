@@ -1,50 +1,12 @@
 package libimage
 
 import (
-	"runtime"
+	"fmt"
 	"strings"
 
-	"github.com/containerd/containerd/platforms"
 	"github.com/containers/image/v5/docker/reference"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
-
-// NormalizePlatform normalizes (according to the OCI spec) the specified os,
-// arch and variant.  If left empty, the individual item will not be normalized.
-func NormalizePlatform(rawOS, rawArch, rawVariant string) (os, arch, variant string) {
-	os, arch, variant = rawOS, rawArch, rawVariant
-	if os == "" {
-		os = runtime.GOOS
-	}
-	if arch == "" {
-		arch = runtime.GOARCH
-	}
-	rawPlatform := os + "/" + arch
-	if variant != "" {
-		rawPlatform += "/" + variant
-	}
-
-	normalizedPlatform, err := platforms.Parse(rawPlatform)
-	if err != nil {
-		logrus.Debugf("Error normalizing platform: %v", err)
-		return rawOS, rawArch, rawVariant
-	}
-	logrus.Debugf("Normalized platform %s to %s", rawPlatform, normalizedPlatform)
-	os = rawOS
-	if rawOS != "" {
-		os = normalizedPlatform.OS
-	}
-	arch = rawArch
-	if rawArch != "" {
-		arch = normalizedPlatform.Architecture
-	}
-	variant = rawVariant
-	if rawVariant != "" {
-		variant = normalizedPlatform.Variant
-	}
-	return os, arch, variant
-}
 
 // NormalizeName normalizes the provided name according to the conventions by
 // Podman and Buildah.  If tag and digest are missing, the "latest" tag will be
@@ -56,12 +18,12 @@ func NormalizeName(name string) (reference.Named, error) {
 	// NOTE: this code is in symmetrie with containers/image/pkg/shortnames.
 	ref, err := reference.Parse(name)
 	if err != nil {
-		return nil, errors.Wrapf(err, "error normalizing name %q", name)
+		return nil, fmt.Errorf("error normalizing name %q: %w", name, err)
 	}
 
 	named, ok := ref.(reference.Named)
 	if !ok {
-		return nil, errors.Errorf("%q is not a named reference", name)
+		return nil, fmt.Errorf("%q is not a named reference", name)
 	}
 
 	// Enforce "localhost" if needed.

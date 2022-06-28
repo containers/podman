@@ -4,6 +4,7 @@
 package cgroups
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -12,7 +13,6 @@ import (
 	"github.com/opencontainers/runc/libcontainer/cgroups/fs"
 	"github.com/opencontainers/runc/libcontainer/cgroups/fs2"
 	"github.com/opencontainers/runc/libcontainer/configs"
-	"github.com/pkg/errors"
 )
 
 type linuxCPUHandler struct {
@@ -75,21 +75,21 @@ func (c *linuxCPUHandler) Stat(ctr *CgroupControl, m *cgroups.Stats) error {
 	} else {
 		cpu.CpuUsage.TotalUsage, err = readAcct(ctr, "cpuacct.usage")
 		if err != nil {
-			if !os.IsNotExist(errors.Cause(err)) {
+			if !errors.Is(err, os.ErrNotExist) {
 				return err
 			}
 			cpu.CpuUsage.TotalUsage = 0
 		}
 		cpu.CpuUsage.UsageInKernelmode, err = readAcct(ctr, "cpuacct.usage_sys")
 		if err != nil {
-			if !os.IsNotExist(errors.Cause(err)) {
+			if !errors.Is(err, os.ErrNotExist) {
 				return err
 			}
 			cpu.CpuUsage.UsageInKernelmode = 0
 		}
 		cpu.CpuUsage.PercpuUsage, err = readAcctList(ctr, "cpuacct.usage_percpu")
 		if err != nil {
-			if !os.IsNotExist(errors.Cause(err)) {
+			if !errors.Is(err, os.ErrNotExist) {
 				return err
 			}
 			cpu.CpuUsage.PercpuUsage = nil

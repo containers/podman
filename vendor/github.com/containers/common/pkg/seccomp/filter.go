@@ -7,8 +7,10 @@
 package seccomp
 
 import (
+	"errors"
+	"fmt"
+
 	specs "github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/pkg/errors"
 	libseccomp "github.com/seccomp/libseccomp-golang"
 	"golang.org/x/sys/unix"
 )
@@ -39,39 +41,39 @@ func BuildFilter(spec *specs.LinuxSeccomp) (*libseccomp.ScmpFilter, error) {
 
 	profile, err := specToSeccomp(spec)
 	if err != nil {
-		return nil, errors.Wrap(err, "convert spec to seccomp profile")
+		return nil, fmt.Errorf("convert spec to seccomp profile: %w", err)
 	}
 
 	defaultAction, err := toAction(profile.DefaultAction, profile.DefaultErrnoRet)
 	if err != nil {
-		return nil, errors.Wrapf(err, "convert default action %s", profile.DefaultAction)
+		return nil, fmt.Errorf("convert default action %s: %w", profile.DefaultAction, err)
 	}
 
 	filter, err := libseccomp.NewFilter(defaultAction)
 	if err != nil {
-		return nil, errors.Wrapf(err, "create filter for default action %s", defaultAction)
+		return nil, fmt.Errorf("create filter for default action %s: %w", defaultAction, err)
 	}
 
 	// Add extra architectures
 	for _, arch := range spec.Architectures {
 		libseccompArch, err := specArchToLibseccompArch(arch)
 		if err != nil {
-			return nil, errors.Wrap(err, "convert spec arch")
+			return nil, fmt.Errorf("convert spec arch: %w", err)
 		}
 
 		scmpArch, err := libseccomp.GetArchFromString(libseccompArch)
 		if err != nil {
-			return nil, errors.Wrapf(err, "validate Seccomp architecture %s", arch)
+			return nil, fmt.Errorf("validate Seccomp architecture %s: %w", arch, err)
 		}
 
 		if err := filter.AddArch(scmpArch); err != nil {
-			return nil, errors.Wrap(err, "add architecture to seccomp filter")
+			return nil, fmt.Errorf("add architecture to seccomp filter: %w", err)
 		}
 	}
 
 	// Unset no new privs bit
 	if err := filter.SetNoNewPrivsBit(false); err != nil {
-		return nil, errors.Wrap(err, "set no new privileges flag")
+		return nil, fmt.Errorf("set no new privileges flag: %w", err)
 	}
 
 	// Add a rule for each syscall
@@ -81,7 +83,7 @@ func BuildFilter(spec *specs.LinuxSeccomp) (*libseccomp.ScmpFilter, error) {
 		}
 
 		if err = matchSyscall(filter, call); err != nil {
-			return nil, errors.Wrap(err, "filter matches syscall")
+			return nil, fmt.Errorf("filter matches syscall: %w", err)
 		}
 	}
 
@@ -107,13 +109,13 @@ func matchSyscall(filter *libseccomp.ScmpFilter, call *Syscall) error {
 	// Convert the call's action to the libseccomp equivalent
 	callAct, err := toAction(call.Action, call.ErrnoRet)
 	if err != nil {
-		return errors.Wrapf(err, "convert action %s", call.Action)
+		return fmt.Errorf("convert action %s: %w", call.Action, err)
 	}
 
 	// Unconditional match - just add the rule
 	if len(call.Args) == 0 {
 		if err = filter.AddRule(callNum, callAct); err != nil {
-			return errors.Wrapf(err, "add seccomp filter rule for syscall %s", call.Name)
+			return fmt.Errorf("add seccomp filter rule for syscall %s: %w", call.Name, err)
 		}
 	} else {
 		// Linux system calls can have at most 6 arguments
@@ -127,7 +129,7 @@ func matchSyscall(filter *libseccomp.ScmpFilter, call *Syscall) error {
 		for _, cond := range call.Args {
 			newCond, err := toCondition(cond)
 			if err != nil {
-				return errors.Wrapf(err, "create seccomp syscall condition for syscall %s", call.Name)
+				return fmt.Errorf("create seccomp syscall condition for syscall %s: %w", call.Name, err)
 			}
 
 			argCounts[cond.Index]++
@@ -150,13 +152,13 @@ func matchSyscall(filter *libseccomp.ScmpFilter, call *Syscall) error {
 				condArr := []libseccomp.ScmpCondition{cond}
 
 				if err = filter.AddRuleConditional(callNum, callAct, condArr); err != nil {
-					return errors.Wrapf(err, "add seccomp rule for syscall %s", call.Name)
+					return fmt.Errorf("add seccomp rule for syscall %s: %w", call.Name, err)
 				}
 			}
 		} else if err = filter.AddRuleConditional(callNum, callAct, conditions); err != nil {
 			// No conditions share same argument
 			// Use new, proper behavior
-			return errors.Wrapf(err, "add seccomp rule for syscall %s", call.Name)
+			return fmt.Errorf("add seccomp rule for syscall %s: %w", call.Name, err)
 		}
 	}
 
@@ -189,7 +191,7 @@ func toAction(act Action, errnoRet *uint) (libseccomp.ScmpAction, error) {
 	case ActLog:
 		return libseccomp.ActLog, nil
 	default:
-		return libseccomp.ActInvalid, errors.Errorf("invalid action %s", act)
+		return libseccomp.ActInvalid, fmt.Errorf("invalid action %s", act)
 	}
 }
 
@@ -202,14 +204,14 @@ func toCondition(arg *Arg) (cond libseccomp.ScmpCondition, err error) {
 
 	op, err := toCompareOp(arg.Op)
 	if err != nil {
-		return cond, errors.Wrap(err, "convert compare operator")
+		return cond, fmt.Errorf("convert compare operator: %w", err)
 	}
 
 	condition, err := libseccomp.MakeCondition(
 		arg.Index, op, arg.Value, arg.ValueTwo,
 	)
 	if err != nil {
-		return cond, errors.Wrap(err, "make condition")
+		return cond, fmt.Errorf("make condition: %w", err)
 	}
 
 	return condition, nil
@@ -234,6 +236,6 @@ func toCompareOp(op Operator) (libseccomp.ScmpCompareOp, error) {
 	case OpMaskedEqual:
 		return libseccomp.CompareMaskedEqual, nil
 	default:
-		return libseccomp.CompareInvalid, errors.Errorf("invalid operator %s", op)
+		return libseccomp.CompareInvalid, fmt.Errorf("invalid operator %s", op)
 	}
 }

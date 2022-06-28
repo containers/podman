@@ -2,6 +2,7 @@ package libimage
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -13,7 +14,6 @@ import (
 	"github.com/containers/image/v5/types"
 	"github.com/containers/storage"
 	"github.com/opencontainers/go-digest"
-	"github.com/pkg/errors"
 )
 
 // NOTE: the abstractions and APIs here are a first step to further merge
@@ -145,7 +145,7 @@ func (m *ManifestList) LookupInstance(ctx context.Context, architecture, os, var
 		}
 	}
 
-	return nil, errors.Wrapf(storage.ErrImageUnknown, "could not find image instance %s of manifest list %s in local containers storage", instanceDigest, m.ID())
+	return nil, fmt.Errorf("could not find image instance %s of manifest list %s in local containers storage: %w", instanceDigest, m.ID(), storage.ErrImageUnknown)
 }
 
 // Saves the specified manifest list and reloads it from storage with the new ID.

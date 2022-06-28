@@ -5,6 +5,8 @@ package netavark
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 	"net"
 	"os"
 	"path/filepath"
@@ -14,7 +16,6 @@ import (
 	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/common/pkg/util"
 	"github.com/containers/storage/pkg/stringid"
-	"github.com/pkg/errors"
 )
 
 // NetworkCreate will take a partial filled Network and fill the
@@ -44,7 +45,7 @@ func (n *netavarkNetwork) networkCreate(newNetwork *types.Network, defaultNet bo
 		// FIXME: Should we use a different type for network create without the ID field?
 		// the caller is not allowed to set a specific ID
 		if newNetwork.ID != "" {
-			return nil, errors.Wrap(types.ErrInvalidArg, "ID can not be set for network create")
+			return nil, fmt.Errorf("ID can not be set for network create: %w", types.ErrInvalidArg)
 		}
 
 		// generate random network ID
@@ -108,7 +109,7 @@ func (n *netavarkNetwork) networkCreate(newNetwork *types.Network, defaultNet bo
 				}
 
 			default:
-				return nil, errors.Errorf("unsupported bridge network option %s", key)
+				return nil, fmt.Errorf("unsupported bridge network option %s", key)
 			}
 		}
 	case types.MacVLANNetworkDriver:
@@ -117,7 +118,7 @@ func (n *netavarkNetwork) networkCreate(newNetwork *types.Network, defaultNet bo
 			return nil, err
 		}
 	default:
-		return nil, errors.Wrapf(types.ErrInvalidArg, "unsupported driver %s", newNetwork.Driver)
+		return nil, fmt.Errorf("unsupported driver %s: %w", newNetwork.Driver, types.ErrInvalidArg)
 	}
 
 	// when we do not have ipam we must disable dns
@@ -157,7 +158,7 @@ func createMacvlan(network *types.Network) error {
 			return err
 		}
 		if !util.StringInSlice(network.NetworkInterface, interfaceNames) {
-			return errors.Errorf("parent interface %s does not exist", network.NetworkInterface)
+			return fmt.Errorf("parent interface %s does not exist", network.NetworkInterface)
 		}
 	}
 
@@ -165,12 +166,12 @@ func createMacvlan(network *types.Network) error {
 	switch network.IPAMOptions[types.Driver] {
 	case "":
 		if len(network.Subnets) == 0 {
-			return errors.Errorf("macvlan driver needs at least one subnet specified, DHCP is not yet supported with netavark")
+			return fmt.Errorf("macvlan driver needs at least one subnet specified, DHCP is not yet supported with netavark")
 		}
 		network.IPAMOptions[types.Driver] = types.HostLocalIPAMDriver
 	case types.HostLocalIPAMDriver:
 		if len(network.Subnets) == 0 {
-			return errors.Errorf("macvlan driver needs at least one subnet specified, when the host-local ipam driver is set")
+			return fmt.Errorf("macvlan driver needs at least one subnet specified, when the host-local ipam driver is set")
 		}
 	}
 
@@ -179,7 +180,7 @@ func createMacvlan(network *types.Network) error {
 		switch key {
 		case "mode":
 			if !util.StringInSlice(value, types.ValidMacVLANModes) {
-				return errors.Errorf("unknown macvlan mode %q", value)
+				return fmt.Errorf("unknown macvlan mode %q", value)
 			}
 		case "mtu":
 			_, err := internalutil.ParseMTU(value)
@@ -187,7 +188,7 @@ func createMacvlan(network *types.Network) error {
 				return err
 			}
 		default:
-			return errors.Errorf("unsupported macvlan network option %s", key)
+			return fmt.Errorf("unsupported macvlan network option %s", key)
 		}
 	}
 	return nil
@@ -210,7 +211,7 @@ func (n *netavarkNetwork) NetworkRemove(nameOrID string) error {
 
 	// Removing the default network is not allowed.
 	if network.Name == n.defaultNetwork {
-		return errors.Errorf("default network %s cannot be removed", n.defaultNetwork)
+		return fmt.Errorf("default network %s cannot be removed", n.defaultNetwork)
 	}
 
 	file := filepath.Join(n.networkConfigDir, network.Name+".json")
@@ -274,7 +275,7 @@ func validateIPAMDriver(n *types.Network) error {
 	case types.DHCPIPAMDriver:
 		return errors.New("dhcp ipam driver is not yet supported with netavark")
 	default:
-		return errors.Errorf("unsupported ipam driver %q", ipamDriver)
+		return fmt.Errorf("unsupported ipam driver %q", ipamDriver)
 	}
 	return nil
 }

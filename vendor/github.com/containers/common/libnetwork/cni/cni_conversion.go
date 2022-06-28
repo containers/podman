@@ -5,6 +5,8 @@ package cni
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 	"io/ioutil"
 	"net"
 	"os"
@@ -18,7 +20,6 @@ import (
 	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/common/libnetwork/util"
 	pkgutil "github.com/containers/common/pkg/util"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
@@ -35,7 +36,7 @@ func createNetworkFromCNIConfigList(conf *libcni.NetworkConfigList, confPath str
 	cniJSON := make(map[string]interface{})
 	err := json.Unmarshal(conf.Bytes, &cniJSON)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to unmarshal network config %s", conf.Name)
+		return nil, fmt.Errorf("failed to unmarshal network config %s: %w", conf.Name, err)
 	}
 	if args, ok := cniJSON["args"]; ok {
 		if key, ok := args.(map[string]interface{}); ok {
@@ -59,7 +60,7 @@ func createNetworkFromCNIConfigList(conf *libcni.NetworkConfigList, confPath str
 		var bridge hostLocalBridge
 		err := json.Unmarshal(firstPlugin.Bytes, &bridge)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to unmarshal the bridge plugin config in %s", confPath)
+			return nil, fmt.Errorf("failed to unmarshal the bridge plugin config in %s: %w", confPath, err)
 		}
 		network.NetworkInterface = bridge.BrName
 
@@ -85,7 +86,7 @@ func createNetworkFromCNIConfigList(conf *libcni.NetworkConfigList, confPath str
 		var vlan VLANConfig
 		err := json.Unmarshal(firstPlugin.Bytes, &vlan)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to unmarshal the macvlan plugin config in %s", confPath)
+			return nil, fmt.Errorf("failed to unmarshal the macvlan plugin config in %s: %w", confPath, err)
 		}
 		network.NetworkInterface = vlan.Master
 
@@ -151,7 +152,7 @@ func convertIPAMConfToNetwork(network *types.Network, ipam *ipamConfig, confPath
 				if ipam.Gateway != "" {
 					gateway = net.ParseIP(ipam.Gateway)
 					if gateway == nil {
-						return errors.Errorf("failed to parse gateway ip %s", ipam.Gateway)
+						return fmt.Errorf("failed to parse gateway ip %s", ipam.Gateway)
 					}
 					// convert to 4 byte if ipv4
 					util.NormalizeIP(&gateway)
@@ -159,7 +160,7 @@ func convertIPAMConfToNetwork(network *types.Network, ipam *ipamConfig, confPath
 					// only add a gateway address if the network is not internal
 					gateway, err = util.FirstIPInSubnet(sub)
 					if err != nil {
-						return errors.Errorf("failed to get first ip in subnet %s", sub.String())
+						return fmt.Errorf("failed to get first ip in subnet %s", sub.String())
 					}
 				}
 				s.Gateway = gateway
@@ -169,13 +170,13 @@ func convertIPAMConfToNetwork(network *types.Network, ipam *ipamConfig, confPath
 				if ipam.RangeStart != "" {
 					rangeStart = net.ParseIP(ipam.RangeStart)
 					if rangeStart == nil {
-						return errors.Errorf("failed to parse range start ip %s", ipam.RangeStart)
+						return fmt.Errorf("failed to parse range start ip %s", ipam.RangeStart)
 					}
 				}
 				if ipam.RangeEnd != "" {
 					rangeEnd = net.ParseIP(ipam.RangeEnd)
 					if rangeEnd == nil {
-						return errors.Errorf("failed to parse range end ip %s", ipam.RangeEnd)
+						return fmt.Errorf("failed to parse range end ip %s", ipam.RangeEnd)
 					}
 				}
 				if rangeStart != nil || rangeEnd != nil {
@@ -267,7 +268,7 @@ func (n *cniNetwork) createCNIConfigListFromNetwork(network *types.Network, writ
 	case types.NoneIPAMDriver:
 		// do nothing
 	default:
-		return nil, "", errors.Errorf("unsupported ipam driver %q", ipamDriver)
+		return nil, "", fmt.Errorf("unsupported ipam driver %q", ipamDriver)
 	}
 
 	opts, err := parseOptions(network.Options, network.Driver)
@@ -305,7 +306,7 @@ func (n *cniNetwork) createCNIConfigListFromNetwork(network *types.Network, writ
 		plugins = append(plugins, newVLANPlugin(types.IPVLANNetworkDriver, network.NetworkInterface, opts.vlanPluginMode, opts.mtu, ipamConf))
 
 	default:
-		return nil, "", errors.Errorf("driver %q is not supported by cni", network.Driver)
+		return nil, "", fmt.Errorf("driver %q is not supported by cni", network.Driver)
 	}
 	ncList["plugins"] = plugins
 	b, err := json.MarshalIndent(ncList, "", "   ")
@@ -344,7 +345,7 @@ func convertSpecgenPortsToCNIPorts(ports []types.PortMapping) ([]cniPortMapEntry
 
 		for _, protocol := range protocols {
 			if !pkgutil.StringInSlice(protocol, []string{"tcp", "udp", "sctp"}) {
-				return nil, errors.Errorf("unknown port protocol %s", protocol)
+				return nil, fmt.Errorf("unknown port protocol %s", protocol)
 			}
 			cniPort := cniPortMapEntry{
 				HostPort:      int(port.HostPort),
@@ -405,19 +406,19 @@ func parseOptions(networkOptions map[string]string, networkDriver string) (*opti
 			switch networkDriver {
 			case types.MacVLANNetworkDriver:
 				if !pkgutil.StringInSlice(v, types.ValidMacVLANModes) {
-					return nil, errors.Errorf("unknown macvlan mode %q", v)
+					return nil, fmt.Errorf("unknown macvlan mode %q", v)
 				}
 			case types.IPVLANNetworkDriver:
 				if !pkgutil.StringInSlice(v, types.ValidIPVLANModes) {
-					return nil, errors.Errorf("unknown ipvlan mode %q", v)
+					return nil, fmt.Errorf("unknown ipvlan mode %q", v)
 				}
 			default:
-				return nil, errors.Errorf("cannot set option \"mode\" with driver %q", networkDriver)
+				return nil, fmt.Errorf("cannot set option \"mode\" with driver %q", networkDriver)
 			}
 			opt.vlanPluginMode = v
 
 		default:
-			return nil, errors.Errorf("unsupported network option %s", k)
+			return nil, fmt.Errorf("unsupported network option %s", k)
 		}
 	}
 	return opt, nil
