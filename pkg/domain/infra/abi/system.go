@@ -319,8 +319,8 @@ func (ic *ContainerEngine) SystemDf(ctx context.Context, options entities.System
 	}
 
 	dfVolumes := make([]*entities.SystemDfVolumeReport, 0, len(vols))
-	var reclaimableSize uint64
 	for _, v := range vols {
+		var reclaimableSize uint64
 		var consInUse int
 		mountPoint, err := v.MountPoint()
 		if err != nil {
@@ -341,7 +341,7 @@ func (ic *ContainerEngine) SystemDf(ctx context.Context, options entities.System
 			return nil, err
 		}
 		if len(inUse) == 0 {
-			reclaimableSize += volSize
+			reclaimableSize = volSize
 		}
 		for _, viu := range inUse {
 			if cutil.StringInSlice(viu, runningContainers) {
