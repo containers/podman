@@ -18,7 +18,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/containers/storage/drivers"
+	graphdriver "github.com/containers/storage/drivers"
 	"github.com/containers/storage/pkg/devicemapper"
 	"github.com/containers/storage/pkg/dmesg"
 	"github.com/containers/storage/pkg/idtools"
@@ -49,8 +49,13 @@ var (
 	lvmSetupConfigForce          bool
 )
 
-const deviceSetMetaFile string = "deviceset-metadata"
-const transactionMetaFile string = "transaction-metadata"
+const (
+	deviceSetMetaFile   = "deviceset-metadata"
+	transactionMetaFile = "transaction-metadata"
+	xfs                 = "xfs"
+	ext4                = "ext4"
+	base                = "base"
+)
 
 type transaction struct {
 	OpenTransactionID uint64 `json:"open_transaction_id"`
@@ -199,7 +204,7 @@ func getDevName(name string) string {
 func (info *devInfo) Name() string {
 	hash := info.Hash
 	if hash == "" {
-		hash = "base"
+		hash = base
 	}
 	return fmt.Sprintf("%s-%s", info.devices.devicePrefix, hash)
 }
@@ -219,7 +224,7 @@ func (devices *DeviceSet) metadataDir() string {
 func (devices *DeviceSet) metadataFile(info *devInfo) string {
 	file := info.Hash
 	if file == "" {
-		file = "base"
+		file = base
 	}
 	return path.Join(devices.metadataDir(), file)
 }
@@ -440,7 +445,7 @@ func (devices *DeviceSet) deviceFileWalkFunction(path string, finfo os.FileInfo)
 	logrus.Debugf("devmapper: Loading data for file %s", path)
 
 	hash := finfo.Name()
-	if hash == "base" {
+	if hash == base {
 		hash = ""
 	}
 
@@ -542,7 +547,7 @@ func xfsSupported() error {
 	}
 
 	// Check if kernel supports xfs filesystem or not.
-	exec.Command("modprobe", "xfs").Run()
+	exec.Command("modprobe", xfs).Run()
 
 	f, err := os.Open("/proc/filesystems")
 	if err != nil {
@@ -567,16 +572,16 @@ func xfsSupported() error {
 func determineDefaultFS() string {
 	err := xfsSupported()
 	if err == nil {
-		return "xfs"
+		return xfs
 	}
 
-	logrus.Warnf("devmapper: XFS is not supported in your system (%v). Defaulting to ext4 filesystem", err)
-	return "ext4"
+	logrus.Warnf("devmapper: XFS is not supported in your system (%v). Defaulting to %s filesystem", ext4, err)
+	return ext4
 }
 
 // mkfsOptions tries to figure out whether some additional mkfs options are required
 func mkfsOptions(fs string) []string {
-	if fs == "xfs" && !kernel.CheckKernelVersion(3, 16, 0) {
+	if fs == xfs && !kernel.CheckKernelVersion(3, 16, 0) {
 		// For kernels earlier than 3.16 (and newer xfsutils),
 		// some xfs features need to be explicitly disabled.
 		return []string{"-m", "crc=0,finobt=0"}
@@ -609,9 +614,9 @@ func (devices *DeviceSet) createFilesystem(info *devInfo) (err error) {
 	}()
 
 	switch devices.filesystem {
-	case "xfs":
+	case xfs:
 		err = exec.Command("mkfs.xfs", args...).Run()
-	case "ext4":
+	case ext4:
 		err = exec.Command("mkfs.ext4", append([]string{"-E", "nodiscard,lazy_itable_init=0,lazy_journal_init=0"}, args...)...).Run()
 		if err != nil {
 			err = exec.Command("mkfs.ext4", append([]string{"-E", "nodiscard,lazy_itable_init=0"}, args...)...).Run()
@@ -1197,7 +1202,7 @@ func (devices *DeviceSet) growFS(info *devInfo) error {
 	}
 
 	options := ""
-	if devices.BaseDeviceFilesystem == "xfs" {
+	if devices.BaseDeviceFilesystem == xfs {
 		// XFS needs nouuid or it can't mount filesystems with the same fs
 		options = joinMountOptions(options, "nouuid")
 	}
@@ -1210,11 +1215,11 @@ func (devices *DeviceSet) growFS(info *devInfo) error {
 	defer unix.Unmount(fsMountPoint, unix.MNT_DETACH)
 
 	switch devices.BaseDeviceFilesystem {
-	case "ext4":
+	case ext4:
 		if out, err := exec.Command("resize2fs", info.DevName()).CombinedOutput(); err != nil {
 			return fmt.Errorf("Failed to grow rootfs:%v:%s", err, string(out))
 		}
-	case "xfs":
+	case xfs:
 		if out, err := exec.Command("xfs_growfs", info.DevName()).CombinedOutput(); err != nil {
 			return fmt.Errorf("Failed to grow rootfs:%v:%s", err, string(out))
 		}
@@ -2391,7 +2396,7 @@ func (devices *DeviceSet) MountDevice(hash, path string, moptions graphdriver.Mo
 
 	options := ""
 
-	if fstype == "xfs" {
+	if fstype == xfs {
 		// XFS needs nouuid or it can't mount filesystems with the same fs
 		options = joinMountOptions(options, "nouuid")
 	}
@@ -2412,7 +2417,7 @@ func (devices *DeviceSet) MountDevice(hash, path string, moptions graphdriver.Mo
 		return fmt.Errorf("devmapper: Error mounting '%s' on '%s': %s\n%v", info.DevName(), path, err, string(dmesg.Dmesg(256)))
 	}
 
-	if fstype == "xfs" && devices.xfsNospaceRetries != "" {
+	if fstype == xfs && devices.xfsNospaceRetries != "" {
 		if err := devices.xfsSetNospaceRetries(info); err != nil {
 			unix.Unmount(path, unix.MNT_DETACH)
 			devices.deactivateDevice(info)
@@ -2693,7 +2698,7 @@ func NewDeviceSet(root string, doInit bool, options []string, uidMaps, gidMaps [
 			}
 			devices.metaDataLoopbackSize = size
 		case "dm.fs":
-			if val != "ext4" && val != "xfs" {
+			if val != ext4 && val != xfs {
 				return nil, fmt.Errorf("devmapper: Unsupported filesystem %s", val)
 			}
 			devices.filesystem = val

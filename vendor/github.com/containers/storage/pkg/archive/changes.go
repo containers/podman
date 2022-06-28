@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"reflect"
 	"sort"
 	"strings"
 	"syscall"
@@ -263,6 +264,7 @@ type FileInfo struct {
 	children   map[string]*FileInfo
 	capability []byte
 	added      bool
+	xattrs     map[string]string
 }
 
 // LookUp looks up the file information of a file.
@@ -331,7 +333,8 @@ func (info *FileInfo) addChanges(oldInfo *FileInfo, changes *[]Change) {
 			// breaks down is if some code intentionally hides a change by setting
 			// back mtime
 			if statDifferent(oldStat, oldInfo, newStat, info) ||
-				!bytes.Equal(oldChild.capability, newChild.capability) {
+				!bytes.Equal(oldChild.capability, newChild.capability) ||
+				!reflect.DeepEqual(oldChild.xattrs, newChild.xattrs) {
 				change := Change{
 					Path: newChild.path(),
 					Kind: ChangeModify,

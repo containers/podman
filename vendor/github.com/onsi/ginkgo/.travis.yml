@@ -5,6 +5,9 @@ go:
   - 1.12.x
   - tip
 
+# allow internal package imports, necessary for forked repositories
+go_import_path: github.com/onsi/ginkgo
+
 install:
   - go get -v -t ./...
   - go get golang.org/x/tools/cmd/cover

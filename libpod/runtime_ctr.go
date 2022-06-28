@@ -489,32 +489,19 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force bool,
 		}
 	}
 
-	var cleanupErr error
-	// Remove the container from the state
-	if c.config.Pod != "" {
-		// If we're removing the pod, the container will be evicted
-		// from the state elsewhere
-		if !removePod {
-			if err := r.state.RemoveContainerFromPod(pod, c); err != nil {
-				cleanupErr = err
-			}
-		}
-	} else {
-		if err := r.state.RemoveContainer(c); err != nil {
-			cleanupErr = err
-		}
+	// Set ContainerStateRemoving and remove exec sessions
+	c.state.State = define.ContainerStateRemoving
+	c.state.ExecSessions = nil
+
+	if err := c.save(); err != nil {
+		return errors.Wrapf(err, "unable to set container %s removing state in database", c.ID())
 	}
 
-	// Set container as invalid so it can no longer be used
-	c.valid = false
+	var cleanupErr error
 
 	// Clean up network namespace, cgroups, mounts
 	if err := c.cleanup(ctx); err != nil {
-		if cleanupErr == nil {
-			cleanupErr = errors.Wrapf(err, "error cleaning up container %s", c.ID())
-		} else {
-			logrus.Errorf("cleanup network, cgroups, mounts: %v", err)
-		}
+		cleanupErr = errors.Wrapf(err, "error cleaning up container %s", c.ID())
 	}
 
 	// Stop the container's storage
@@ -540,6 +527,29 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force bool,
 		}
 	}
 
+	// Remove the container from the state
+	if c.config.Pod != "" {
+		// If we're removing the pod, the container will be evicted
+		// from the state elsewhere
+		if !removePod {
+			if err := r.state.RemoveContainerFromPod(pod, c); err != nil {
+				if cleanupErr == nil {
+					cleanupErr = err
+				} else {
+					logrus.Errorf("Error removing container %s from database: %v", c.ID(), err)
+				}
+			}
+		}
+	} else {
+		if err := r.state.RemoveContainer(c); err != nil {
+			if cleanupErr == nil {
+				cleanupErr = err
+			} else {
+				logrus.Errorf("Error removing container %s from database: %v", c.ID(), err)
+			}
+		}
+	}
+
 	// Deallocate the container's lock
 	if err := c.lock.Free(); err != nil {
 		if cleanupErr == nil {
@@ -548,6 +558,9 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force bool,
 			logrus.Errorf("free container lock: %v", err)
 		}
 	}
+
+	// Set container as invalid so it can no longer be used
+	c.valid = false
 
 	c.newContainerEvent(events.Remove)
 

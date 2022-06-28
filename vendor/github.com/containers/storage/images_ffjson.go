@@ -59,6 +59,22 @@ func (j *Image) MarshalJSONBuf(buf fflib.EncodingBuffer) error {
 		}
 		buf.WriteByte(',')
 	}
+	if len(j.NamesHistory) != 0 {
+		buf.WriteString(`"names-history":`)
+		if j.NamesHistory != nil {
+			buf.WriteString(`[`)
+			for i, v := range j.NamesHistory {
+				if i != 0 {
+					buf.WriteString(`,`)
+				}
+				fflib.WriteJsonString(buf, string(v))
+			}
+			buf.WriteString(`]`)
+		} else {
+			buf.WriteString(`null`)
+		}
+		buf.WriteByte(',')
+	}
 	if len(j.TopLayer) != 0 {
 		buf.WriteString(`"layer":`)
 		fflib.WriteJsonString(buf, string(j.TopLayer))
@@ -171,6 +187,8 @@ const (
 
 	ffjtImageNames
 
+	ffjtImageNamesHistory
+
 	ffjtImageTopLayer
 
 	ffjtImageMappedTopLayers
@@ -193,6 +211,8 @@ var ffjKeyImageID = []byte("id")
 var ffjKeyImageDigest = []byte("digest")
 
 var ffjKeyImageNames = []byte("names")
+
+var ffjKeyImageNamesHistory = []byte("names-history")
 
 var ffjKeyImageTopLayer = []byte("layer")
 
@@ -348,6 +368,11 @@ mainparse:
 						currentKey = ffjtImageNames
 						state = fflib.FFParse_want_colon
 						goto mainparse
+
+					} else if bytes.Equal(ffjKeyImageNamesHistory, kn) {
+						currentKey = ffjtImageNamesHistory
+						state = fflib.FFParse_want_colon
+						goto mainparse
 					}
 
 				}
@@ -400,6 +425,12 @@ mainparse:
 					goto mainparse
 				}
 
+				if fflib.EqualFoldRight(ffjKeyImageNamesHistory, kn) {
+					currentKey = ffjtImageNamesHistory
+					state = fflib.FFParse_want_colon
+					goto mainparse
+				}
+
 				if fflib.EqualFoldRight(ffjKeyImageNames, kn) {
 					currentKey = ffjtImageNames
 					state = fflib.FFParse_want_colon
@@ -443,6 +474,9 @@ mainparse:
 
 				case ffjtImageNames:
 					goto handle_Names
+
+				case ffjtImageNamesHistory:
+					goto handle_NamesHistory
 
 				case ffjtImageTopLayer:
 					goto handle_TopLayer
@@ -599,6 +633,80 @@ handle_Names:
 				}
 
 				j.Names = append(j.Names, tmpJNames)
+
+				wantVal = false
+			}
+		}
+	}
+
+	state = fflib.FFParse_after_value
+	goto mainparse
+
+handle_NamesHistory:
+
+	/* handler: j.NamesHistory type=[]string kind=slice quoted=false*/
+
+	{
+
+		{
+			if tok != fflib.FFTok_left_brace && tok != fflib.FFTok_null {
+				return fs.WrapErr(fmt.Errorf("cannot unmarshal %s into Go value for ", tok))
+			}
+		}
+
+		if tok == fflib.FFTok_null {
+			j.NamesHistory = nil
+		} else {
+
+			j.NamesHistory = []string{}
+
+			wantVal := true
+
+			for {
+
+				var tmpJNamesHistory string
+
+				tok = fs.Scan()
+				if tok == fflib.FFTok_error {
+					goto tokerror
+				}
+				if tok == fflib.FFTok_right_brace {
+					break
+				}
+
+				if tok == fflib.FFTok_comma {
+					if wantVal == true {
+						// TODO(pquerna): this isn't an ideal error message, this handles
+						// things like [,,,] as an array value.
+						return fs.WrapErr(fmt.Errorf("wanted value token, but got token: %v", tok))
+					}
+					continue
+				} else {
+					wantVal = true
+				}
+
+				/* handler: tmpJNamesHistory type=string kind=string quoted=false*/
+
+				{
+
+					{
+						if tok != fflib.FFTok_string && tok != fflib.FFTok_null {
+							return fs.WrapErr(fmt.Errorf("cannot unmarshal %s into Go value for string", tok))
+						}
+					}
+
+					if tok == fflib.FFTok_null {
+
+					} else {
+
+						outBuf := fs.Output.Bytes()
+
+						tmpJNamesHistory = string(string(outBuf))
+
+					}
+				}
+
+				j.NamesHistory = append(j.NamesHistory, tmpJNamesHistory)
 
 				wantVal = false
 			}

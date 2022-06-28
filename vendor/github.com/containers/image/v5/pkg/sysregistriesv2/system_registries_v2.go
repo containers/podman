@@ -275,7 +275,10 @@ func (config *V2RegistriesConf) postProcess() error {
 	// Note: we need to iterate over the registries array to ensure a
 	// deterministic behavior which is not guaranteed by maps.
 	for _, reg := range config.Registries {
-		others, _ := regMap[reg.Location]
+		others, ok := regMap[reg.Location]
+		if !ok {
+			return fmt.Errorf("Internal error in V2RegistriesConf.PostProcess: entry in regMap is missing")
+		}
 		for _, other := range others {
 			if reg.Insecure != other.Insecure {
 				msg := fmt.Sprintf("registry '%s' is defined multiple times with conflicting 'insecure' setting", reg.Location)

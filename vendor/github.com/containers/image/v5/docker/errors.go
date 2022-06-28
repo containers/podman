@@ -14,7 +14,7 @@ var (
 	// docker V1 registry.
 	ErrV1NotSupported = errors.New("can't talk to a V1 docker registry")
 	// ErrTooManyRequests is returned when the status code returned is 429
-	ErrTooManyRequests = errors.New("too many request to registry")
+	ErrTooManyRequests = errors.New("too many requests to registry")
 )
 
 // ErrUnauthorizedForCredentials is returned when the status code returned is 401
@@ -26,9 +26,9 @@ func (e ErrUnauthorizedForCredentials) Error() string {
 	return fmt.Sprintf("unable to retrieve auth token: invalid username/password: %s", e.Err.Error())
 }
 
-// httpResponseToError translates the https.Response into an error. It returns
+// httpResponseToError translates the https.Response into an error, possibly prefixing it with the supplied context. It returns
 // nil if the response is not considered an error.
-func httpResponseToError(res *http.Response) error {
+func httpResponseToError(res *http.Response, context string) error {
 	switch res.StatusCode {
 	case http.StatusOK:
 		return nil
@@ -38,6 +38,9 @@ func httpResponseToError(res *http.Response) error {
 		err := client.HandleErrorResponse(res)
 		return ErrUnauthorizedForCredentials{Err: err}
 	default:
-		return perrors.Errorf("invalid status code from registry %d (%s)", res.StatusCode, http.StatusText(res.StatusCode))
+		if context != "" {
+			context = context + ": "
+		}
+		return perrors.Errorf("%sinvalid status code from registry %d (%s)", context, res.StatusCode, http.StatusText(res.StatusCode))
 	}
 }

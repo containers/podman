@@ -38,12 +38,23 @@ func (b *bitWriter) addBits16Clean(value uint16, bits uint8) {
 	b.nBits += bits
 }
 
-// addBits16Clean will add up to 16 bits. value may not contain more set bits than indicated.
+// encSymbol will add up to 16 bits. value may not contain more set bits than indicated.
 // It will not check if there is space for them, so the caller must ensure that it has flushed recently.
 func (b *bitWriter) encSymbol(ct cTable, symbol byte) {
 	enc := ct[symbol]
 	b.bitContainer |= uint64(enc.val) << (b.nBits & 63)
 	b.nBits += enc.nBits
+}
+
+// encTwoSymbols will add up to 32 bits. value may not contain more set bits than indicated.
+// It will not check if there is space for them, so the caller must ensure that it has flushed recently.
+func (b *bitWriter) encTwoSymbols(ct cTable, av, bv byte) {
+	encA := ct[av]
+	encB := ct[bv]
+	sh := b.nBits & 63
+	combined := uint64(encA.val) | (uint64(encB.val) << (encA.nBits & 63))
+	b.bitContainer |= combined << sh
+	b.nBits += encA.nBits + encB.nBits
 }
 
 // addBits16ZeroNC will add up to 16 bits.

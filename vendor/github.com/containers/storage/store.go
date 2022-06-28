@@ -18,7 +18,7 @@ import (
 	"github.com/BurntSushi/toml"
 	drivers "github.com/containers/storage/drivers"
 	"github.com/containers/storage/pkg/archive"
-	"github.com/containers/storage/pkg/config"
+	cfg "github.com/containers/storage/pkg/config"
 	"github.com/containers/storage/pkg/directory"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/ioutils"
@@ -667,15 +667,6 @@ func (s *store) load() error {
 	s.graphDriverName = driver.String()
 	driverPrefix := s.graphDriverName + "-"
 
-	rls, err := s.LayerStore()
-	if err != nil {
-		return err
-	}
-	s.layerStore = rls
-	if _, err := s.ROLayerStores(); err != nil {
-		return err
-	}
-
 	gipath := filepath.Join(s.graphRoot, driverPrefix+"images")
 	if err := os.MkdirAll(gipath, 0700); err != nil {
 		return err
@@ -774,7 +765,7 @@ func (s *store) LayerStore() (LayerStore, error) {
 	if err := os.MkdirAll(glpath, 0700); err != nil {
 		return nil, err
 	}
-	rls, err := newLayerStore(rlpath, glpath, driver, s.uidMap, s.gidMap)
+	rls, err := s.newLayerStore(rlpath, glpath, driver)
 	if err != nil {
 		return nil, err
 	}
@@ -2488,6 +2479,10 @@ func (s *store) Mount(id, mountLabel string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
+	s.graphLock.Lock()
+	defer s.graphLock.Unlock()
+
 	rlstore.Lock()
 	defer rlstore.Unlock()
 	if modified, err := rlstore.Modified(); modified || err != nil {
@@ -2495,6 +2490,18 @@ func (s *store) Mount(id, mountLabel string) (string, error) {
 			return "", err
 		}
 	}
+
+	/* We need to make sure the home mount is present when the Mount is done.  */
+	if s.graphLock.TouchedSince(s.lastLoaded) {
+		s.graphDriver = nil
+		s.layerStore = nil
+		s.graphDriver, err = s.getGraphDriver()
+		if err != nil {
+			return "", err
+		}
+		s.lastLoaded = time.Now()
+	}
+
 	if rlstore.Exists(id) {
 		options := drivers.MountOpts{
 			MountLabel: mountLabel,
@@ -2776,8 +2783,14 @@ func (s *store) ContainerParentOwners(id string) ([]int, []int, error) {
 }
 
 func (s *store) Layers() ([]Layer, error) {
-	var layers []Layer
 	lstore, err := s.LayerStore()
+	if err != nil {
+		return nil, err
+	}
+	if err := lstore.LoadLocked(); err != nil {
+		return nil, err
+	}
+	layers, err := lstore.Layers()
 	if err != nil {
 		return nil, err
 	}
@@ -2787,7 +2800,7 @@ func (s *store) Layers() ([]Layer, error) {
 		return nil, err
 	}
 
-	for _, s := range append([]ROLayerStore{lstore}, lstores...) {
+	for _, s := range lstores {
 		store := s
 		store.RLock()
 		defer store.Unlock()
@@ -3274,10 +3287,10 @@ func DefaultConfigFile(rootless bool) (string, error) {
 // TOML-friendly explicit tables used for conversions.
 type tomlConfig struct {
 	Storage struct {
-		Driver    string                         `toml:"driver"`
-		RunRoot   string                         `toml:"runroot"`
-		GraphRoot string                         `toml:"graphroot"`
-		Options   struct{ config.OptionsConfig } `toml:"options"`
+		Driver    string            `toml:"driver"`
+		RunRoot   string            `toml:"runroot"`
+		GraphRoot string            `toml:"graphroot"`
+		Options   cfg.OptionsConfig `toml:"options"`
 	} `toml:"storage"`
 }
 
@@ -3306,50 +3319,6 @@ func ReloadConfigurationFile(configFile string, storeOptions *StoreOptions) {
 	}
 	if config.Storage.GraphRoot != "" {
 		storeOptions.GraphRoot = config.Storage.GraphRoot
-	}
-	if config.Storage.Options.Thinpool.AutoExtendPercent != "" {
-		storeOptions.GraphDriverOptions = append(storeOptions.GraphDriverOptions, fmt.Sprintf("dm.thinp_autoextend_percent=%s", config.Storage.Options.Thinpool.AutoExtendPercent))
-	}
-
-	if config.Storage.Options.Thinpool.AutoExtendThreshold != "" {
-		storeOptions.GraphDriverOptions = append(storeOptions.GraphDriverOptions, fmt.Sprintf("dm.thinp_autoextend_threshold=%s", config.Storage.Options.Thinpool.AutoExtendThreshold))
-	}
-
-	if config.Storage.Options.Thinpool.BaseSize != "" {
-		storeOptions.GraphDriverOptions = append(storeOptions.GraphDriverOptions, fmt.Sprintf("dm.basesize=%s", config.Storage.Options.Thinpool.BaseSize))
-	}
-	if config.Storage.Options.Thinpool.BlockSize != "" {
-		storeOptions.GraphDriverOptions = append(storeOptions.GraphDriverOptions, fmt.Sprintf("dm.blocksize=%s", config.Storage.Options.Thinpool.BlockSize))
-	}
-	if config.Storage.Options.Thinpool.DirectLvmDevice != "" {
-		storeOptions.GraphDriverOptions = append(storeOptions.GraphDriverOptions, fmt.Sprintf("dm.directlvm_device=%s", config.Storage.Options.Thinpool.DirectLvmDevice))
-	}
-	if config.Storage.Options.Thinpool.DirectLvmDeviceForce != "" {
-		storeOptions.GraphDriverOptions = append(storeOptions.GraphDriverOptions, fmt.Sprintf("dm.directlvm_device_force=%s", config.Storage.Options.Thinpool.DirectLvmDeviceForce))
-	}
-	if config.Storage.Options.Thinpool.Fs != "" {
-		storeOptions.GraphDriverOptions = append(storeOptions.GraphDriverOptions, fmt.Sprintf("dm.fs=%s", config.Storage.Options.Thinpool.Fs))
-	}
-	if config.Storage.Options.Thinpool.LogLevel != "" {
-		storeOptions.GraphDriverOptions = append(storeOptions.GraphDriverOptions, fmt.Sprintf("dm.libdm_log_level=%s", config.Storage.Options.Thinpool.LogLevel))
-	}
-	if config.Storage.Options.Thinpool.MinFreeSpace != "" {
-		storeOptions.GraphDriverOptions = append(storeOptions.GraphDriverOptions, fmt.Sprintf("dm.min_free_space=%s", config.Storage.Options.Thinpool.MinFreeSpace))
-	}
-	if config.Storage.Options.Thinpool.MkfsArg != "" {
-		storeOptions.GraphDriverOptions = append(storeOptions.GraphDriverOptions, fmt.Sprintf("dm.mkfsarg=%s", config.Storage.Options.Thinpool.MkfsArg))
-	}
-	if config.Storage.Options.Thinpool.MountOpt != "" {
-		storeOptions.GraphDriverOptions = append(storeOptions.GraphDriverOptions, fmt.Sprintf("%s.mountopt=%s", config.Storage.Driver, config.Storage.Options.Thinpool.MountOpt))
-	}
-	if config.Storage.Options.Thinpool.UseDeferredDeletion != "" {
-		storeOptions.GraphDriverOptions = append(storeOptions.GraphDriverOptions, fmt.Sprintf("dm.use_deferred_deletion=%s", config.Storage.Options.Thinpool.UseDeferredDeletion))
-	}
-	if config.Storage.Options.Thinpool.UseDeferredRemoval != "" {
-		storeOptions.GraphDriverOptions = append(storeOptions.GraphDriverOptions, fmt.Sprintf("dm.use_deferred_removal=%s", config.Storage.Options.Thinpool.UseDeferredRemoval))
-	}
-	if config.Storage.Options.Thinpool.XfsNoSpaceMaxRetries != "" {
-		storeOptions.GraphDriverOptions = append(storeOptions.GraphDriverOptions, fmt.Sprintf("dm.xfs_nospace_max_retries=%s", config.Storage.Options.Thinpool.XfsNoSpaceMaxRetries))
 	}
 	for _, s := range config.Storage.Options.AdditionalImageStores {
 		storeOptions.GraphDriverOptions = append(storeOptions.GraphDriverOptions, fmt.Sprintf("%s.imagestore=%s", config.Storage.Driver, s))
@@ -3397,6 +3366,9 @@ func ReloadConfigurationFile(configFile string, storeOptions *StoreOptions) {
 	if os.Getenv("STORAGE_DRIVER") != "" {
 		storeOptions.GraphDriverName = os.Getenv("STORAGE_DRIVER")
 	}
+
+	storeOptions.GraphDriverOptions = cfg.GetGraphDriverOptions(storeOptions.GraphDriverName, config.Storage.Options)
+
 	if os.Getenv("STORAGE_OPTS") != "" {
 		storeOptions.GraphDriverOptions = append(storeOptions.GraphDriverOptions, strings.Split(os.Getenv("STORAGE_OPTS"), ",")...)
 	}

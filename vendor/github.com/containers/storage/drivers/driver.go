@@ -49,8 +49,8 @@ type MountOpts struct {
 	// Mount label is the MAC Labels to assign to mount point (SELINUX)
 	MountLabel string
 	// UidMaps & GidMaps are the User Namespace mappings to be assigned to content in the mount point
-	UidMaps []idtools.IDMap
-	GidMaps []idtools.IDMap
+	UidMaps []idtools.IDMap // nolint: golint
+	GidMaps []idtools.IDMap // nolint: golint
 	Options []string
 }
 

@@ -822,15 +822,17 @@ func CreateContainerFromCreateConfig(r *libpod.Runtime, createConfig *cc.CreateC
 	return ctr, nil
 }
 
-var defaultEnvVariables = map[string]string{
-	"PATH": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
-	"TERM": "xterm",
+func defaultEnvVariables() map[string]string {
+	return map[string]string{
+		"PATH": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+		"TERM": "xterm",
+	}
 }
 
 // EnvVariablesFromData gets sets the default environment variables
 // for containers, and reads the variables from the image data, if present.
 func EnvVariablesFromData(data *inspect.ImageData) map[string]string {
-	env := defaultEnvVariables
+	env := defaultEnvVariables()
 	if data != nil {
 		for _, e := range data.Config.Env {
 			split := strings.SplitN(e, "=", 2)

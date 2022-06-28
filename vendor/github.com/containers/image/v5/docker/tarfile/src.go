@@ -163,7 +163,7 @@ func (s *Source) openTarComponent(componentPath string) (io.ReadCloser, error) {
 	}
 	if header.FileInfo().Mode()&os.ModeType == os.ModeSymlink { // FIXME: untested
 		// We follow only one symlink; so no loops are possible.
-		if _, err := f.Seek(0, os.SEEK_SET); err != nil {
+		if _, err := f.Seek(0, io.SeekStart); err != nil {
 			return nil, err
 		}
 		// The new path could easily point "outside" the archive, but we only compare it to existing tar headers without extracting the archive,

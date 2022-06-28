@@ -12,4 +12,3 @@ mirror.vcu.edu 443
 mirrors.cat.pdx.edu 443
 pubmirror1.math.uh.edu 443
 pubmirror2.math.uh.edu 443
-sjc.edge.kernel.org 443

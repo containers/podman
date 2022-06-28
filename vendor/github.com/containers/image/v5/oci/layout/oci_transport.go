@@ -124,7 +124,7 @@ func (ref ociReference) PolicyConfigurationIdentity() string {
 	// NOTE: ref.image is not a part of the image identity, because "$dir:$someimage" and "$dir:" may mean the
 	// same image and the two can’t be statically disambiguated.  Using at least the repository directory is
 	// less granular but hopefully still useful.
-	return fmt.Sprintf("%s", ref.resolvedDir)
+	return ref.resolvedDir
 }
 
 // PolicyConfigurationNamespaces returns a list of other policy configuration namespaces to search

@@ -63,6 +63,7 @@ type BudResults struct {
 	Platform            string
 	Pull                bool
 	PullAlways          bool
+	PullNever           bool
 	Quiet               bool
 	Rm                  bool
 	Runtime             string
@@ -159,8 +160,9 @@ func GetBudFlags(flags *BudResults) pflag.FlagSet {
 	fs.StringVar(&flags.Logfile, "logfile", "", "log to `file` instead of stdout/stderr")
 	fs.IntVar(&flags.Loglevel, "loglevel", 0, "adjust logging level (range from -2 to 3)")
 	fs.StringVar(&flags.Platform, "platform", "", "CLI compatibility: no action or effect")
-	fs.BoolVar(&flags.Pull, "pull", true, "pull the image if not present")
-	fs.BoolVar(&flags.PullAlways, "pull-always", false, "pull the image, even if a version is present")
+	fs.BoolVar(&flags.Pull, "pull", true, "pull the image from the registry if newer or not present in store, if false, only pull the image if not present")
+	fs.BoolVar(&flags.PullAlways, "pull-always", false, "pull the image even if the named image is present in store")
+	fs.BoolVar(&flags.PullNever, "pull-never", false, "do not pull the image, use the image present in store if available")
 	fs.BoolVarP(&flags.Quiet, "quiet", "q", false, "refrain from announcing build instructions and image read/write progress")
 	fs.BoolVar(&flags.Rm, "rm", true, "Remove intermediate containers after a successful build")
 	// "runtime" definition moved to avoid name collision in podman build.  Defined in cmd/buildah/bud.go.
@@ -192,7 +194,7 @@ func GetFromAndBudFlags(flags *FromAndBudResults, usernsResults *UserNSResults, 
 	fs.StringSliceVar(&flags.DNSSearch, "dns-search", []string{}, "Set custom DNS search domains")
 	fs.StringSliceVar(&flags.DNSServers, "dns", []string{}, "Set custom DNS servers or disable it completely by setting it to 'none', which prevents the automatic creation of `/etc/resolv.conf`.")
 	fs.StringSliceVar(&flags.DNSOptions, "dns-option", []string{}, "Set custom DNS options")
-	fs.BoolVar(&flags.HTTPProxy, "http-proxy", true, "pass thru HTTP Proxy environment variables")
+	fs.BoolVar(&flags.HTTPProxy, "http-proxy", true, "pass through HTTP Proxy environment variables")
 	fs.StringVar(&flags.Isolation, "isolation", DefaultIsolation(), "`type` of process isolation to use. Use BUILDAH_ISOLATION environment variable to override.")
 	fs.StringVarP(&flags.Memory, "memory", "m", "", "memory limit (format: <number>[<unit>], where unit = b, k, m or g)")
 	fs.StringVar(&flags.MemorySwap, "memory-swap", "", "swap limit equal to memory plus swap: '-1' to enable unlimited swap")
@@ -265,9 +267,15 @@ func VerifyFlagsArgsOrder(args []string) error {
 }
 
 func GetDefaultAuthFile() string {
-	authfile := os.Getenv("REGISTRY_AUTH_FILE")
-	if authfile != "" {
-		return authfile
+	return os.Getenv("REGISTRY_AUTH_FILE")
+}
+
+func CheckAuthFile(authfile string) error {
+	if authfile == "" {
+		return nil
 	}
-	return ""
+	if _, err := os.Stat(authfile); err != nil {
+		return errors.Wrapf(err, "error checking authfile path %s", authfile)
+	}
+	return nil
 }

@@ -86,8 +86,6 @@ gating_task:
         # N/B: need 'clean' so some commited files are re-generated.
         - '/usr/local/bin/entrypoint.sh clean podman-remote |& ${TIMESTAMP}'
         - '/usr/local/bin/entrypoint.sh clean podman BUILDTAGS="exclude_graphdriver_devicemapper selinux seccomp" |& ${TIMESTAMP}'
-        - '/usr/local/bin/entrypoint.sh podman-remote-darwin |& ${TIMESTAMP}'
-        - '/usr/local/bin/entrypoint.sh podman-remote-windows |& ${TIMESTAMP}'
 
     # Verify some aspects of ci/related scripts
     ci_script:

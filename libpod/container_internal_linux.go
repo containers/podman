@@ -21,6 +21,7 @@ import (
 	"github.com/containernetworking/plugins/pkg/ns"
 	"github.com/containers/buildah/pkg/secrets"
 	"github.com/containers/libpod/libpod/define"
+	"github.com/containers/libpod/libpod/events"
 	"github.com/containers/libpod/pkg/annotations"
 	"github.com/containers/libpod/pkg/apparmor"
 	"github.com/containers/libpod/pkg/cgroups"
@@ -550,7 +551,7 @@ func (c *Container) setupSystemd(mounts []spec.Mount, g generate.Generator) erro
 			Destination: "/sys/fs/cgroup/systemd",
 			Type:        "bind",
 			Source:      "/sys/fs/cgroup/systemd",
-			Options:     []string{"bind", "nodev", "noexec", "nosuid"},
+			Options:     []string{"bind", "nodev", "noexec", "nosuid", "rprivate"},
 		}
 		g.AddMount(systemdMnt)
 		g.AddLinuxMaskedPaths("/sys/fs/cgroup/systemd/release_agent")
@@ -698,6 +699,8 @@ func (c *Container) checkpoint(ctx context.Context, options ContainerCheckpointO
 		return err
 	}
 
+	defer c.newContainerEvent(events.Checkpoint)
+
 	if options.TargetFile != "" {
 		if err = c.exportCheckpoint(options.TargetFile, options.IgnoreRootfs); err != nil {
 			return err
@@ -769,7 +772,7 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 		return err
 	}
 
-	if (c.state.State != define.ContainerStateConfigured) && (c.state.State != define.ContainerStateExited) {
+	if !c.ensureState(define.ContainerStateConfigured, define.ContainerStateExited) {
 		return errors.Wrapf(define.ErrCtrStateInvalid, "container %s is running or paused, cannot restore", c.ID())
 	}
 
