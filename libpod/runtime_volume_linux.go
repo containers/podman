@@ -76,7 +76,7 @@ func (r *Runtime) newVolume(noCreatePluginVolume bool, options ...VolumeCreateOp
 						return nil, errors.Wrapf(err, "invalid volume option %s for driver 'local'", key)
 					}
 				}
-			case "o", "type", "uid", "gid", "size", "inodes", "noquota":
+			case "o", "type", "uid", "gid", "size", "inodes", "noquota", "copy", "nocopy":
 				// Do nothing, valid keys
 			default:
 				return nil, errors.Wrapf(define.ErrInvalidArg, "invalid mount option %s for driver 'local'", key)

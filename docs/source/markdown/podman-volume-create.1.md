@@ -31,9 +31,10 @@ Set metadata for a volume (e.g., --label mykey=value).
 
 Set driver specific options.
 For the default driver, **local**, this allows a volume to be configured to mount a filesystem on the host.
-For the `local` driver the following options are supported: `type`, `device`, and `o`.
+For the `local` driver the following options are supported: `type`, `device`, `o`, and `[no]copy`.
 The `type` option sets the type of the filesystem to be mounted, and is equivalent to the `-t` flag to **mount(8)**.
 The `device` option sets the device to be mounted, and is equivalent to the `device` argument to **mount(8)**.
+The `copy` option enables copying files from the container image path where the mount is created to the newly created volume on the first run.  `copy` is the default.
 
 The `o` option sets options for the mount, and is equivalent to the `-o` flag to **mount(8)** with these exceptions:
 

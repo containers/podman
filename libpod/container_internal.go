@@ -21,6 +21,7 @@ import (
 	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/common/pkg/chown"
 	"github.com/containers/common/pkg/config"
+	cutil "github.com/containers/common/pkg/util"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/libpod/events"
 	"github.com/containers/podman/v4/pkg/ctime"
@@ -1639,21 +1640,9 @@ func (c *Container) mountNamedVolume(v *ContainerNamedVolume, mountpoint string)
 	if err := vol.update(); err != nil {
 		return nil, err
 	}
-	if vol.state.NeedsCopyUp {
+	_, hasNoCopy := vol.config.Options["nocopy"]
+	if vol.state.NeedsCopyUp && !cutil.StringInSlice("nocopy", v.Options) && !hasNoCopy {
 		logrus.Debugf("Copying up contents from container %s to volume %s", c.ID(), vol.Name())
-
-		// If the volume is not empty, we should not copy up.
-		volMount := vol.mountPoint()
-		contents, err := ioutil.ReadDir(volMount)
-		if err != nil {
-			return nil, errors.Wrapf(err, "error listing contents of volume %s mountpoint when copying up from container %s", vol.Name(), c.ID())
-		}
-		if len(contents) > 0 {
-			// The volume is not empty. It was likely modified
-			// outside of Podman. For safety, let's not copy up into
-			// it. Fixes CVE-2020-1726.
-			return vol, nil
-		}
 
 		srcDir, err := securejoin.SecureJoin(mountpoint, v.Dest)
 		if err != nil {
@@ -1661,8 +1650,6 @@ func (c *Container) mountNamedVolume(v *ContainerNamedVolume, mountpoint string)
 		}
 		// Do a manual stat on the source directory to verify existence.
 		// Skip the rest if it exists.
-		// TODO: Should this be stat or lstat? I'm using lstat because I
-		// think copy-up doesn't happen when the source is a link.
 		srcStat, err := os.Lstat(srcDir)
 		if err != nil {
 			if os.IsNotExist(err) {
@@ -1685,6 +1672,19 @@ func (c *Container) mountNamedVolume(v *ContainerNamedVolume, mountpoint string)
 			return nil, errors.Wrapf(err, "error reading contents of source directory for copy up into volume %s", vol.Name())
 		}
 		if len(srcContents) == 0 {
+			return vol, nil
+		}
+
+		// If the volume is not empty, we should not copy up.
+		volMount := vol.mountPoint()
+		contents, err := ioutil.ReadDir(volMount)
+		if err != nil {
+			return nil, errors.Wrapf(err, "error listing contents of volume %s mountpoint when copying up from container %s", vol.Name(), c.ID())
+		}
+		if len(contents) > 0 {
+			// The volume is not empty. It was likely modified
+			// outside of Podman. For safety, let's not copy up into
+			// it. Fixes CVE-2020-1726.
 			return vol, nil
 		}
 

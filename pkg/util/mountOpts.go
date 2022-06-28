@@ -25,7 +25,7 @@ type defaultMountOptions struct {
 // The sourcePath variable, if not empty, contains a bind mount source.
 func ProcessOptions(options []string, isTmpfs bool, sourcePath string) ([]string, error) {
 	var (
-		foundWrite, foundSize, foundProp, foundMode, foundExec, foundSuid, foundDev, foundCopyUp, foundBind, foundZ, foundU, foundOverlay, foundIdmap bool
+		foundWrite, foundSize, foundProp, foundMode, foundExec, foundSuid, foundDev, foundCopyUp, foundBind, foundZ, foundU, foundOverlay, foundIdmap, foundCopy bool
 	)
 
 	newOptions := make([]string, 0, len(options))
@@ -55,6 +55,11 @@ func ProcessOptions(options []string, isTmpfs bool, sourcePath string) ([]string
 		}
 
 		switch splitOpt[0] {
+		case "copy", "nocopy":
+			if foundCopy {
+				return nil, errors.Wrapf(ErrDupeMntOption, "only one of 'nocopy' and 'copy' can be used")
+			}
+			foundCopy = true
 		case "O":
 			foundOverlay = true
 		case "volume-opt":

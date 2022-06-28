@@ -338,8 +338,8 @@ github.com/containernetworking/plugins v1.1.1/go.mod h1:Sr5TH/eBsGLXK/h71HeLfX19
 github.com/containers/buildah v1.26.1-0.20220609225314-e66309ebde8c h1:/fKyiLFFuceBPZGJ0Lig7ElURhfsslAOw1BOcItD+X8=
 github.com/containers/buildah v1.26.1-0.20220609225314-e66309ebde8c/go.mod h1:b0L+u2Dam7soWGn5sVTK31L++Xrf80AbGvK5z9D2+lw=
 github.com/containers/common v0.48.1-0.20220608111710-dbecabbe82c9/go.mod h1:WBLwq+i7bicCpH54V70HM6s7jqDAESTlYnd05XXp0ac=
-github.com/containers/common v0.48.1-0.20220624132904-722a80e139ec h1:kcfKciMCi6/A72M8TSX2ZYJFa5Yu9hC2Mct8FkuW1Xw=
-github.com/containers/common v0.48.1-0.20220624132904-722a80e139ec/go.mod h1:KDNk8Lazjjjqs9643cKH9dnq6IXB4Lf7evya5GiFcg0=
+github.com/containers/common v0.48.1-0.20220627112538-97d9656daba8 h1:d9CnUqml4SeEWGfQ781UR4quow9xdf7Q0hYqBYFRH4E=
+github.com/containers/common v0.48.1-0.20220627112538-97d9656daba8/go.mod h1:UDe7OTpNdtJA2T80Sp7yB0yTaj79f4kMNQbTsNxsqoY=
 github.com/containers/conmon v2.0.20+incompatible h1:YbCVSFSCqFjjVwHTPINGdMX1F6JXHGTUje2ZYobNrkg=
 github.com/containers/conmon v2.0.20+incompatible/go.mod h1:hgwZ2mtuDrppv78a/cOBNiCm6O0UMWGx1mu7P00nu5I=
 github.com/containers/image/v5 v5.21.2-0.20220511203756-fe4fd4ed8be4/go.mod h1:OsX9sFexyGF0FCNAjfcVFv3IwMqDyLyV/WQY/roLPcE=
@@ -1268,7 +1268,6 @@ github.com/stretchr/testify v1.6.1/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/
 github.com/stretchr/testify v1.7.0/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
 github.com/stretchr/testify v1.7.1/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
 github.com/stretchr/testify v1.7.2/go.mod h1:R6va5+xMeoiuVRoj+gSkQ7d3FALtqAAGI1FQKckRals=
-github.com/stretchr/testify v1.7.4/go.mod h1:yNjHg4UonilssWZ8iaSj1OCr/vHnekPRkoO+kdMU+MU=
 github.com/stretchr/testify v1.7.5 h1:s5PTfem8p8EbKQOctVV53k6jCJt3UX4IEJzwh+C324Q=
 github.com/stretchr/testify v1.7.5/go.mod h1:yNjHg4UonilssWZ8iaSj1OCr/vHnekPRkoO+kdMU+MU=
 github.com/subosito/gotenv v1.2.0/go.mod h1:N0PQaV/YGNqwC0u51sEeR/aUtSLEXKX9iv69rRypqCw=
