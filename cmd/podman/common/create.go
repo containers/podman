@@ -863,14 +863,6 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		)
 		_ = cmd.RegisterFlagCompletionFunc(cpusetMemsFlagName, completion.AutocompleteNone)
 
-		memoryFlagName := "memory"
-		createFlags.StringVarP(
-			&cf.Memory,
-			memoryFlagName, "m", "",
-			"Memory limit "+sizeWithUnitFormat,
-		)
-		_ = cmd.RegisterFlagCompletionFunc(memoryFlagName, completion.AutocompleteNone)
-
 		memoryReservationFlagName := "memory-reservation"
 		createFlags.StringVar(
 			&cf.MemoryReservation,
@@ -912,4 +904,12 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		"CPUs in which to allow execution (0-3, 0,1)",
 	)
 	_ = cmd.RegisterFlagCompletionFunc(cpusetCpusFlagName, completion.AutocompleteNone)
+
+	memoryFlagName := "memory"
+	createFlags.StringVarP(
+		&cf.Memory,
+		memoryFlagName, "m", "",
+		"Memory limit "+sizeWithUnitFormat,
+	)
+	_ = cmd.RegisterFlagCompletionFunc(memoryFlagName, completion.AutocompleteNone)
 }

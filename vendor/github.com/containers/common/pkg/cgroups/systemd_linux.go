@@ -152,10 +152,10 @@ func resourcesToProps(res *configs.Resources) (map[string]uint64, map[string]str
 
 	// Mem
 	if res.Memory != 0 {
-		iMap["MemoryMax"] = res.Memory
+		uMap["MemoryMax"] = uint64(res.Memory)
 	}
 	if res.MemorySwap != 0 {
-		iMap["MemorySwapMax"] = res.MemorySwap
+		uMap["MemorySwapMax"] = uint64(res.MemorySwap)
 	}
 
 	// Blkio
