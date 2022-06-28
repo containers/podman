@@ -51,6 +51,11 @@ BUILDTAGS ?= \
 	$(shell hack/libsubid_tag.sh) \
 	exclude_graphdriver_devicemapper \
 	seccomp
+ifeq ($(shell uname -s),FreeBSD)
+# Use bash for make's shell function - the default shell on FreeBSD
+# has a command builtin is not compatible with the way its used below
+SHELL := $(shell command -v bash)
+endif
 PYTHON ?= $(shell command -v python3 python|head -n1)
 PKG_MANAGER ?= $(shell command -v dnf yum|head -n1)
 # ~/.local/bin is not in PATH on all systems
