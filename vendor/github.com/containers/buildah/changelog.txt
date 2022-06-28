@@ -1,3 +1,16 @@
+- Changelog for v1.11.6 (2019-12-03)
+  * Handle missing equal sign in --from and --chown flags for COPY/ADD
+  * bud COPY does not download URL
+  * Bump github.com/onsi/gomega from 1.7.0 to 1.7.1
+  * Fix .dockerignore exclude regression
+  * Ran buildah through codespell
+  * commit(docker): always set ContainerID and ContainerConfig
+  * Touch up commit man page image parameter
+  * Add builder identity annotations.
+  * info: use util.Runtime()
+  * Bump github.com/onsi/ginkgo from 1.10.2 to 1.10.3
+  * Bump back to v1.12.0-dev
+
 - Changelog for v1.11.5 (2019-11-11)
   * Enhance error on unsafe symbolic link targets
   * Add OCIRuntime to info

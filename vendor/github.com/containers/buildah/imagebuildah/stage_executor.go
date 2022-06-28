@@ -248,7 +248,7 @@ func (s *StageExecutor) volumeCacheRestore() error {
 	return nil
 }
 
-// digestContent digests any content that this next instruction would add to
+// digestSpecifiedContent digests any content that this next instruction would add to
 // the image, returning the digester if there is any, or nil otherwise.  We
 // don't care about the details of where in the filesystem the content actually
 // goes, because we're not actually going to add it here, so this is less
@@ -424,37 +424,37 @@ func (s *StageExecutor) Copy(excludes []string, copies ...imagebuilder.Copy) err
 		for _, src := range copy.Src {
 			if strings.HasPrefix(src, "http://") || strings.HasPrefix(src, "https://") {
 				// Source is a URL.
-				sources = append(sources, src)
-			} else {
-				// Treat the source, which is not a URL, as a
-				// location relative to the
-				// all-content-comes-from-below-this-directory
-				// directory.
-				srcSecure, err := securejoin.SecureJoin(contextDir, src)
-				if err != nil {
-					return errors.Wrapf(err, "forbidden path for %q, it is outside of the build context %q", src, contextDir)
-				}
-				if hadFinalPathSeparator {
-					// If destination is a folder, we need to take extra care to
-					// ensure that files are copied with correct names (since
-					// resolving a symlink may result in a different name).
-					_, srcName := filepath.Split(src)
-					_, srcNameSecure := filepath.Split(srcSecure)
-					if srcName != srcNameSecure {
-						options := buildah.AddAndCopyOptions{
-							Chown:            copy.Chown,
-							ContextDir:       contextDir,
-							Excludes:         copyExcludes,
-							IDMappingOptions: idMappingOptions,
-						}
-						if err := s.builder.Add(filepath.Join(copy.Dest, srcName), copy.Download, options, srcSecure); err != nil {
-							return err
-						}
-						continue
-					}
-				}
-				sources = append(sources, srcSecure)
+				// returns an error to be compatible with docker
+				return errors.Errorf("source can't be a URL for COPY")
 			}
+			// Treat the source, which is not a URL, as a
+			// location relative to the
+			// all-content-comes-from-below-this-directory
+			// directory.
+			srcSecure, err := securejoin.SecureJoin(contextDir, src)
+			if err != nil {
+				return errors.Wrapf(err, "forbidden path for %q, it is outside of the build context %q", src, contextDir)
+			}
+			if hadFinalPathSeparator {
+				// If destination is a folder, we need to take extra care to
+				// ensure that files are copied with correct names (since
+				// resolving a symlink may result in a different name).
+				_, srcName := filepath.Split(src)
+				_, srcNameSecure := filepath.Split(srcSecure)
+				if srcName != srcNameSecure {
+					options := buildah.AddAndCopyOptions{
+						Chown:            copy.Chown,
+						ContextDir:       contextDir,
+						Excludes:         copyExcludes,
+						IDMappingOptions: idMappingOptions,
+					}
+					if err := s.builder.Add(filepath.Join(copy.Dest, srcName), copy.Download, options, srcSecure); err != nil {
+						return err
+					}
+					continue
+				}
+			}
+			sources = append(sources, srcSecure)
 		}
 		options := buildah.AddAndCopyOptions{
 			Chown:            copy.Chown,
@@ -816,14 +816,22 @@ func (s *StageExecutor) Execute(ctx context.Context, stage imagebuilder.Stage, b
 		// Check if there's a --from if the step command is COPY or
 		// ADD.  Set copyFrom to point to either the context directory
 		// or the root of the container from the specified stage.
+		// Also check the chown flag for validity.
 		s.copyFrom = s.executor.contextDir
-		for _, n := range step.Flags {
+		for _, flag := range step.Flags {
 			command := strings.ToUpper(step.Command)
-			if strings.Contains(n, "--from") && (command == "COPY" || command == "ADD") {
+			// chown and from flags should have an '=' sign, '--chown=' or '--from='
+			if command == "COPY" && (flag == "--chown" || flag == "--from") {
+				return "", nil, errors.Errorf("COPY only supports the --chown=<uid:gid> and the --from=<image|stage> flags")
+			}
+			if command == "ADD" && flag == "--chown" {
+				return "", nil, errors.Errorf("ADD only supports the --chown=<uid:gid> flag")
+			}
+			if strings.Contains(flag, "--from") && command == "COPY" {
 				var mountPoint string
-				arr := strings.Split(n, "=")
+				arr := strings.Split(flag, "=")
 				if len(arr) != 2 {
-					return "", nil, errors.Errorf("%s: invalid --from flag, should be --from=<name|index>", command)
+					return "", nil, errors.Errorf("%s: invalid --from flag, should be --from=<name|stage>", command)
 				}
 				otherStage, ok := s.executor.stages[arr[1]]
 				if !ok {

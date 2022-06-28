@@ -1,3 +1,11 @@
+## 1.10.3
+
+### Fixes
+- Set go_import_path in travis.yml to allow internal packages in forks (#607) [3b721db]
+- Add integration test [d90e0dc]
+- Fix coverage files combining [e5dde8c]
+- A new CLI option: -ginkgo.reportFile <file path> (#601) [034fd25]
+
 ## 1.10.2
 
 ### Fixes

@@ -13,6 +13,7 @@ import (
 
 	"github.com/containers/buildah/pkg/cgroups"
 	"github.com/containers/buildah/pkg/unshare"
+	"github.com/containers/buildah/util"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/system"
 	"github.com/sirupsen/logrus"
@@ -52,10 +53,9 @@ func hostInfo() map[string]interface{} {
 		logrus.Error(err, "err reading cgroups mode")
 	}
 	cgroupVersion := "v1"
-	ociruntime := "runc"
+	ociruntime := util.Runtime()
 	if unified {
 		cgroupVersion = "v2"
-		ociruntime = "crun"
 	}
 	info["CgroupVersion"] = cgroupVersion
 	info["OCIRuntime"] = ociruntime
