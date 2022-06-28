@@ -396,7 +396,7 @@ func (r *Runtime) lookupImageInLocalStorage(name, candidate string, options *Loo
 	// Ignore the (fatal) error since the image may be corrupted, which
 	// will bubble up at other places.  During lookup, we just return it as
 	// is.
-	if matchError, customPlatform, _ := image.matchesPlatform(context.Background(), options.Architecture, options.OS, options.Variant); matchError != nil {
+	if matchError, customPlatform, _ := image.matchesPlatform(context.Background(), options.OS, options.Architecture, options.Variant); matchError != nil {
 		if customPlatform {
 			logrus.Debugf("%v", matchError)
 			// Return nil if the user clearly requested a custom
