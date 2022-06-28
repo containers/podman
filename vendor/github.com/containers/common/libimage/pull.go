@@ -169,7 +169,7 @@ func (r *Runtime) Pull(ctx context.Context, name string, pullPolicy config.PullP
 		// Note that we can ignore the 2nd return value here. Some
 		// images may ship with "wrong" platform, but we already warn
 		// about it. Throwing an error is not (yet) the plan.
-		matchError, _, err := image.matchesPlatform(ctx, options.Architecture, options.OS, options.Variant)
+		matchError, _, err := image.matchesPlatform(ctx, options.OS, options.Architecture, options.Variant)
 		if err != nil {
 			return nil, fmt.Errorf("checking platform of image %s: %w", name, err)
 		}
