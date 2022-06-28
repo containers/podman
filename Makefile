@@ -190,7 +190,11 @@ default: all
 all: binaries docs
 
 .PHONY: binaries
+ifeq ($(shell uname -s),FreeBSD)
+binaries: podman podman-remote ## Build podman and podman-remote binaries
+else
 binaries: podman podman-remote rootlessport ## Build podman, podman-remote and rootlessport binaries
+endif
 
 # Extract text following double-# for targets, as their description for
 # the `help` target.  Otherwise These simple-substitutions are resolved
@@ -749,7 +753,9 @@ install.bin:
 	install ${SELINUXOPT} -m 755 bin/podman $(DESTDIR)$(BINDIR)/podman
 	test -z "${SELINUXOPT}" || chcon --verbose --reference=$(DESTDIR)$(BINDIR)/podman bin/podman
 	install ${SELINUXOPT} -d -m 755 $(DESTDIR)$(LIBEXECPODMAN)
+ifneq ($(shell uname -s),FreeBSD)
 	install ${SELINUXOPT} -m 755 bin/rootlessport $(DESTDIR)$(LIBEXECPODMAN)/rootlessport
+endif
 	test -z "${SELINUXOPT}" || chcon --verbose --reference=$(DESTDIR)$(LIBEXECPODMAN)/rootlessport bin/rootlessport
 	install ${SELINUXOPT} -m 755 -d ${DESTDIR}${TMPFILESDIR}
 	install ${SELINUXOPT} -m 644 contrib/tmpfile/podman.conf ${DESTDIR}${TMPFILESDIR}/podman.conf
