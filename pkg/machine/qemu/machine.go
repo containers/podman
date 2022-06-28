@@ -1074,6 +1074,7 @@ func getVMInfos() ([]*machine.ListResponse, error) {
 			listEntry.RemoteUsername = vm.RemoteUsername
 			listEntry.IdentityPath = vm.IdentityPath
 			listEntry.CreatedAt = vm.Created
+			listEntry.Starting = vm.Starting
 
 			if listEntry.CreatedAt.IsZero() {
 				listEntry.CreatedAt = time.Now()
@@ -1087,6 +1088,7 @@ func getVMInfos() ([]*machine.ListResponse, error) {
 			if err != nil {
 				return err
 			}
+			listEntry.Running = state == machine.Running
 
 			if !vm.LastUp.IsZero() { // this means we have already written a time to the config
 				listEntry.LastUp = vm.LastUp
@@ -1096,12 +1098,6 @@ func getVMInfos() ([]*machine.ListResponse, error) {
 				if err := vm.writeConfig(); err != nil {
 					return err
 				}
-			}
-			switch state {
-			case machine.Running:
-				listEntry.Running = true
-			case machine.Starting:
-				listEntry.Starting = true
 			}
 
 			listed = append(listed, listEntry)
