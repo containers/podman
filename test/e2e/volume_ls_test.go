@@ -152,6 +152,37 @@ var _ = Describe("Podman volume ls", func() {
 		Expect(lsDangling).Should(Exit(0))
 		Expect(lsDangling.OutputToString()).To(ContainSubstring(volName1))
 	})
+
+	It("podman ls volume with --filter name", func() {
+		volName1 := "volume1"
+		session := podmanTest.Podman([]string{"volume", "create", volName1})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		volName2 := "volume2"
+		session2 := podmanTest.Podman([]string{"volume", "create", volName2})
+		session2.WaitWithDefaultTimeout()
+		Expect(session2).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"volume", "ls", "--filter", "name=volume1*"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToStringArray()).To(HaveLen(3))
+		Expect(session.OutputToStringArray()[1]).To(ContainSubstring(volName1))
+		Expect(session.OutputToStringArray()[2]).To(ContainSubstring(volName2))
+
+		session = podmanTest.Podman([]string{"volume", "ls", "--filter", "name=volumex"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToStringArray()).To(BeEmpty())
+
+		session = podmanTest.Podman([]string{"volume", "ls", "--filter", "name=volume1"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToStringArray()).To(HaveLen(2))
+		Expect(session.OutputToStringArray()[1]).To(ContainSubstring(volName1))
+	})
+
 	It("podman ls volume with multiple --filter flag", func() {
 		session := podmanTest.Podman([]string{"volume", "create", "--label", "foo=bar", "myvol"})
 		volName := session.OutputToString()

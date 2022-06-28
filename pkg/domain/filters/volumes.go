@@ -2,6 +2,7 @@ package filters
 
 import (
 	"net/url"
+	"regexp"
 	"strings"
 
 	"github.com/containers/podman/v4/libpod"
@@ -15,9 +16,12 @@ func GenerateVolumeFilters(filters url.Values) ([]libpod.VolumeFilter, error) {
 		for _, val := range v {
 			switch filter {
 			case "name":
-				nameVal := val
+				nameRegexp, err := regexp.Compile(val)
+				if err != nil {
+					return nil, err
+				}
 				vf = append(vf, func(v *libpod.Volume) bool {
-					return nameVal == v.Name()
+					return nameRegexp.MatchString(v.Name())
 				})
 			case "driver":
 				driverVal := val
