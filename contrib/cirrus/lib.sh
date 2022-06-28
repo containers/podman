@@ -220,19 +220,6 @@ timeout_attempt_delay_command() {
     fi
 }
 
-ircmsg() {
-    req_env_var CIRRUS_TASK_ID IRCID
-    [[ -n "$*" ]] || die 9 "ircmsg() invoked without message text argument"
-    # Sometimes setup_environment.sh didn't run
-    SCRIPT="$(dirname $0)/podbot.py"
-    NICK="podbot_$CIRRUS_TASK_ID"
-    NICK="${NICK:0:15}"  # Any longer will break things
-    set +e
-    $SCRIPT $NICK $@
-    echo "Ignoring exit($?)"
-    set -e
-}
-
 # This covers all possible human & CI workflow parallel & serial combinations
 # where at least one caller must definitively discover if within a commit range
 # there is at least one release tag not having any '-' characters (return 0)
