@@ -70,6 +70,17 @@ var _ = Describe("podman system df", func() {
 		Expect(containers[1]).To(Equal("2"), "total containers expected")
 		Expect(volumes[2]).To(Equal("2"), "total volumes expected")
 		Expect(volumes[6]).To(Equal("(50%)"), "percentage usage expected")
+
+		session = podmanTest.Podman([]string{"rm", "container1"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		session = podmanTest.Podman([]string{"system", "df"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		volumes = strings.Fields(session.OutputToStringArray()[3])
+		// percentages on volumes were being calculated incorrectly. Make sure we only report 100% and not above
+		Expect(volumes[6]).To(Equal("(100%)"), "percentage usage expected")
+
 	})
 
 	It("podman system df image with no tag", func() {
