@@ -93,6 +93,9 @@ func imageMatchesSystemContext(store storage.Store, img *storage.Image, manifest
 	}
 	// Load the image's configuration blob.
 	m, err := manifest.FromBlob(manifestBytes, manifestType)
+	if err != nil {
+		return false
+	}
 	getConfig := func(blobInfo types.BlobInfo) ([]byte, error) {
 		return store.ImageBigData(img.ID, blobInfo.Digest.String())
 	}

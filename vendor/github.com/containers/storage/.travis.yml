@@ -15,30 +15,21 @@ env:
     - GO_VERSION="stable"
       DISTRO="ubuntu"
 
-    - GO_VERSION="1.11"
-      DISTRO="ubuntu"
-
-    - GO_VERSION="1.12"
+    - GO_VERSION="1.12.12"
       DISTRO="ubuntu"
 
     # Fedora
     - GO_VERSION="stable"
       DISTRO="fedora"
 
-    - GO_VERSION="1.11"
-      DISTRO="fedora"
-
-    - GO_VERSION="1.12"
+    - GO_VERSION="1.12.12"
       DISTRO="fedora"
 
     # CentOS
     - GO_VERSION="stable"
       DISTRO="centos"
 
-    - GO_VERSION="1.11"
-      DISTRO="centos"
-
-    - GO_VERSION="1.12"
+    - GO_VERSION="1.12.12"
       DISTRO="centos"
 
 # GO_VERSION="stable" builds successfully, but tests fail on all platforms.

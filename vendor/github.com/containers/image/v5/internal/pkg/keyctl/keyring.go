@@ -5,9 +5,6 @@
 // +build linux
 
 // Package keyctl is a Go interface to linux kernel keyrings (keyctl interface)
-//
-// Deprecated: Most callers should use either golang.org/x/sys/unix directly,
-// or the original (and more extensive) github.com/jsipprell/keyctl .
 package keyctl
 
 import (

@@ -355,3 +355,8 @@ func v1ConfigFromConfigJSON(configJSON []byte, v1ID, parentV1ID string, throwawa
 	}
 	return json.Marshal(rawContents)
 }
+
+// SupportsEncryption returns if encryption is supported for the manifest type
+func (m *manifestSchema2) SupportsEncryption(context.Context) bool {
+	return false
+}

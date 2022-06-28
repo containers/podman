@@ -482,38 +482,6 @@ func (computeSystem *System) createProcess(ctx context.Context, operation string
 	return newProcess(processHandle, int(processInfo.ProcessId), computeSystem), &processInfo, nil
 }
 
-// CreateProcessNoStdio launches a new process within the computeSystem. The
-// Stdio handles are not cached on the process struct.
-func (computeSystem *System) CreateProcessNoStdio(c interface{}) (_ cow.Process, err error) {
-	operation := "hcsshim::System::CreateProcessNoStdio"
-	ctx, span := trace.StartSpan(context.Background(), operation)
-	defer span.End()
-	defer func() { oc.SetSpanStatus(span, err) }()
-	span.AddAttributes(trace.StringAttribute("cid", computeSystem.id))
-
-	process, processInfo, err := computeSystem.createProcess(ctx, operation, c)
-	if err != nil {
-		return nil, err
-	}
-	defer func() {
-		if err != nil {
-			process.Close()
-		}
-	}()
-
-	// We don't do anything with these handles. Close them so they don't leak.
-	syscall.Close(processInfo.StdInput)
-	syscall.Close(processInfo.StdOutput)
-	syscall.Close(processInfo.StdError)
-
-	if err = process.registerCallback(ctx); err != nil {
-		return nil, makeSystemError(computeSystem, operation, "", err, nil)
-	}
-	go process.waitBackground()
-
-	return process, nil
-}
-
 // CreateProcess launches a new process within the computeSystem.
 func (computeSystem *System) CreateProcess(ctx context.Context, c interface{}) (cow.Process, error) {
 	operation := "hcsshim::System::CreateProcess"
@@ -534,6 +502,7 @@ func (computeSystem *System) CreateProcess(ctx context.Context, c interface{}) (
 	process.stdin = pipes[0]
 	process.stdout = pipes[1]
 	process.stderr = pipes[2]
+	process.hasCachedStdio = true
 
 	if err = process.registerCallback(ctx); err != nil {
 		return nil, makeSystemError(computeSystem, operation, "", err, nil)

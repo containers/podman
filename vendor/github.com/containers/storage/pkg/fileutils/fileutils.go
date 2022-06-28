@@ -57,6 +57,7 @@ func NewPatternMatcher(patterns []string) (*PatternMatcher, error) {
 	return pm, nil
 }
 
+// Deprecated: Please use the `MatchesResult` method instead.
 // Matches matches path against all the patterns. Matches is not safe to be
 // called concurrently
 func (pm *PatternMatcher) Matches(file string) (bool, error) {
@@ -94,6 +95,85 @@ func (pm *PatternMatcher) Matches(file string) (bool, error) {
 	}
 
 	return matched, nil
+}
+
+type MatchResult struct {
+	isMatched         bool
+	matches, excludes uint
+}
+
+// Excludes returns true if the overall result is matched
+func (m *MatchResult) IsMatched() bool {
+	return m.isMatched
+}
+
+// Excludes returns the amount of matches of an MatchResult
+func (m *MatchResult) Matches() uint {
+	return m.matches
+}
+
+// Excludes returns the amount of excludes of an MatchResult
+func (m *MatchResult) Excludes() uint {
+	return m.excludes
+}
+
+// MatchesResult verifies the provided filepath against all patterns.
+// It returns the `*MatchResult` result for the patterns on success, otherwise
+// an error. This method is not safe to be called concurrently.
+func (pm *PatternMatcher) MatchesResult(file string) (res *MatchResult, err error) {
+	file = filepath.FromSlash(file)
+	parentPath := filepath.Dir(file)
+	parentPathDirs := strings.Split(parentPath, string(os.PathSeparator))
+	res = &MatchResult{false, 0, 0}
+
+	for _, pattern := range pm.patterns {
+		negative := false
+
+		if pattern.exclusion {
+			negative = true
+		}
+
+		match, err := pattern.match(file)
+		if err != nil {
+			return nil, err
+		}
+
+		if !match && parentPath != "." {
+			// Check to see if the pattern matches one of our parent dirs.
+			if len(pattern.dirs) <= len(parentPathDirs) {
+				match, _ = pattern.match(strings.Join(
+					parentPathDirs[:len(pattern.dirs)],
+					string(os.PathSeparator)),
+				)
+			}
+		}
+
+		if match {
+			res.isMatched = !negative
+			if negative {
+				res.excludes++
+			} else {
+				res.matches++
+			}
+		}
+	}
+
+	if res.matches > 0 {
+		logrus.Debugf("Skipping excluded path: %s", file)
+	}
+
+	return res, nil
+}
+
+// IsMatch verifies the provided filepath against all patterns and returns true
+// if it matches. A match is valid if the last match is a positive one.
+// It returns an error on failure and is not safe to be called concurrently.
+func (pm *PatternMatcher) IsMatch(file string) (matched bool, err error) {
+	res, err := pm.MatchesResult(file)
+	if err != nil {
+		return false, err
+	}
+	return res.isMatched, nil
 }
 
 // Exclusions returns true if any of the patterns define exclusions
@@ -146,8 +226,9 @@ func (p *Pattern) compile() error {
 
 	sl := string(os.PathSeparator)
 	escSL := sl
-	if sl == `\` {
-		escSL += `\`
+	const bs = `\`
+	if sl == bs {
+		escSL += bs
 	}
 
 	for scan.Peek() != scanner.EOF {
@@ -182,11 +263,11 @@ func (p *Pattern) compile() error {
 		} else if ch == '.' || ch == '$' {
 			// Escape some regexp special chars that have no meaning
 			// in golang's filepath.Match
-			regStr += `\` + string(ch)
+			regStr += bs + string(ch)
 		} else if ch == '\\' {
 			// escape next char. Note that a trailing \ in the pattern
 			// will be left alone (but need to escape it)
-			if sl == `\` {
+			if sl == bs {
 				// On windows map "\" to "\\", meaning an escaped backslash,
 				// and then just continue because filepath.Match on
 				// Windows doesn't allow escaping at all
@@ -194,9 +275,9 @@ func (p *Pattern) compile() error {
 				continue
 			}
 			if scan.Peek() != scanner.EOF {
-				regStr += `\` + string(scan.Next())
+				regStr += bs + string(scan.Next())
 			} else {
-				regStr += `\`
+				regStr += bs
 			}
 		} else {
 			regStr += string(ch)
@@ -228,7 +309,7 @@ func Matches(file string, patterns []string) (bool, error) {
 		return false, nil
 	}
 
-	return pm.Matches(file)
+	return pm.IsMatch(file)
 }
 
 // CopyFile copies from src to dst until either EOF is reached

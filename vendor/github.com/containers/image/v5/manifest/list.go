@@ -66,9 +66,7 @@ func dupStringSlice(list []string) []string {
 		return nil
 	}
 	dup := make([]string, len(list))
-	for i := range list {
-		dup[i] = list[i]
-	}
+	copy(dup, list)
 	return dup
 }
 

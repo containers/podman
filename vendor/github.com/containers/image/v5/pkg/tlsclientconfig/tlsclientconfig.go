@@ -99,14 +99,13 @@ func NewTransport() *http.Transport {
 	}
 	tr := &http.Transport{
 		Proxy:               http.ProxyFromEnvironment,
-		Dial:                direct.Dial,
+		DialContext:         direct.DialContext,
 		TLSHandshakeTimeout: 10 * time.Second,
 		// TODO(dmcgowan): Call close idle connections when complete and use keep alive
 		DisableKeepAlives: true,
 	}
-	proxyDialer, err := sockets.DialerFromEnvironment(direct)
-	if err == nil {
-		tr.Dial = proxyDialer.Dial
+	if _, err := sockets.DialerFromEnvironment(direct); err != nil {
+		logrus.Debugf("Can't execute DialerFromEnvironment: %v", err)
 	}
 	return tr
 }

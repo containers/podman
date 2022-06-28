@@ -5,7 +5,7 @@ package overlayutils
 import (
 	"fmt"
 
-	"github.com/containers/storage/drivers"
+	graphdriver "github.com/containers/storage/drivers"
 	"github.com/pkg/errors"
 )
 

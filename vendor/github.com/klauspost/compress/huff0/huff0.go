@@ -83,11 +83,17 @@ type Scratch struct {
 	MaxSymbolValue uint8
 
 	// TableLog will attempt to override the tablelog for the next block.
-	// Must be <= 11.
+	// Must be <= 11 and >= 5.
 	TableLog uint8
 
 	// Reuse will specify the reuse policy
 	Reuse ReusePolicy
+
+	// WantLogLess allows to specify a log 2 reduction that should at least be achieved,
+	// otherwise the block will be returned as incompressible.
+	// The reduction should then at least be (input size >> WantLogLess)
+	// If WantLogLess == 0 any improvement will do.
+	WantLogLess uint8
 
 	// MaxDecodedSize will set the maximum allowed output size.
 	// This value will automatically be set to BlockSizeMax if not set.
@@ -99,6 +105,7 @@ type Scratch struct {
 	maxCount       int    // count of the most probable symbol
 	clearCount     bool   // clear count
 	actualTableLog uint8  // Selected tablelog.
+	prevTableLog   uint8  // Tablelog for previous table
 	prevTable      cTable // Table used for previous compression.
 	cTable         cTable // compression table
 	dt             dTable // decompression table
@@ -121,8 +128,8 @@ func (s *Scratch) prepare(in []byte) (*Scratch, error) {
 	if s.TableLog == 0 {
 		s.TableLog = tableLogDefault
 	}
-	if s.TableLog > tableLogMax {
-		return nil, fmt.Errorf("tableLog (%d) > maxTableLog (%d)", s.TableLog, tableLogMax)
+	if s.TableLog > tableLogMax || s.TableLog < minTablelog {
+		return nil, fmt.Errorf(" invalid tableLog %d (%d -> %d)", s.TableLog, minTablelog, tableLogMax)
 	}
 	if s.MaxDecodedSize <= 0 || s.MaxDecodedSize > BlockSizeMax {
 		s.MaxDecodedSize = BlockSizeMax

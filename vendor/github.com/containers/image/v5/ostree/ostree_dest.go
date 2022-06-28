@@ -120,7 +120,7 @@ func (d *ostreeImageDestination) AcceptsForeignLayerURLs() bool {
 	return false
 }
 
-// MustMatchRuntimeOS returns true iff the destination can store only images targeted for the current runtime OS. False otherwise.
+// MustMatchRuntimeOS returns true iff the destination can store only images targeted for the current runtime architecture and OS. False otherwise.
 func (d *ostreeImageDestination) MustMatchRuntimeOS() bool {
 	return true
 }

@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"crypto/rand"
 	"encoding/binary"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -18,6 +17,8 @@ import (
 	"strings"
 	"sync"
 	"syscall"
+
+	"github.com/pkg/errors"
 	"golang.org/x/sys/unix"
 )
 
@@ -253,6 +254,12 @@ func getSELinuxPolicyRoot() string {
 	return filepath.Join(selinuxDir, readConfig(selinuxTypeTag))
 }
 
+func isProcHandle(fh *os.File) (bool, error) {
+	var buf unix.Statfs_t
+	err := unix.Fstatfs(int(fh.Fd()), &buf)
+	return buf.Type == unix.PROC_SUPER_MAGIC, err
+}
+
 func readCon(fpath string) (string, error) {
 	if fpath == "" {
 		return "", ErrEmptyPath
@@ -263,6 +270,12 @@ func readCon(fpath string) (string, error) {
 		return "", err
 	}
 	defer in.Close()
+
+	if ok, err := isProcHandle(in); err != nil {
+		return "", err
+	} else if !ok {
+		return "", fmt.Errorf("%s not on procfs", fpath)
+	}
 
 	var retval string
 	if _, err := fmt.Fscanf(in, "%s", &retval); err != nil {
@@ -276,7 +289,10 @@ func SetFileLabel(fpath string, label string) error {
 	if fpath == "" {
 		return ErrEmptyPath
 	}
-	return lsetxattr(fpath, xattrNameSelinux, []byte(label), 0)
+	if err := lsetxattr(fpath, xattrNameSelinux, []byte(label), 0); err != nil {
+		return errors.Wrapf(err, "failed to set file label on %s", fpath)
+	}
+	return nil
 }
 
 // FileLabel returns the SELinux label for this path or returns an error.
@@ -346,12 +362,21 @@ func writeCon(fpath string, val string) error {
 	}
 	defer out.Close()
 
+	if ok, err := isProcHandle(out); err != nil {
+		return err
+	} else if !ok {
+		return fmt.Errorf("%s not on procfs", fpath)
+	}
+
 	if val != "" {
 		_, err = out.Write([]byte(val))
 	} else {
 		_, err = out.Write(nil)
 	}
-	return err
+	if err != nil {
+		return errors.Wrapf(err, "failed to set %s on procfs", fpath)
+	}
+	return nil
 }
 
 /*
@@ -394,7 +419,7 @@ func SetExecLabel(label string) error {
 }
 
 /*
-SetTaskLabel sets the SELinux label for the current thread, or an error. 
+SetTaskLabel sets the SELinux label for the current thread, or an error.
 This requires the dyntransition permission.
 */
 func SetTaskLabel(label string) error {

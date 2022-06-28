@@ -34,7 +34,13 @@ type Destination struct {
 }
 
 // NewDestination returns a tarfile.Destination for the specified io.Writer.
+// Deprecated: please use NewDestinationWithContext instead
 func NewDestination(dest io.Writer, ref reference.NamedTagged) *Destination {
+	return NewDestinationWithContext(nil, dest, ref)
+}
+
+// NewDestinationWithContext returns a tarfile.Destination for the specified io.Writer.
+func NewDestinationWithContext(sys *types.SystemContext, dest io.Writer, ref reference.NamedTagged) *Destination {
 	repoTags := []reference.NamedTagged{}
 	if ref != nil {
 		repoTags = append(repoTags, ref)
@@ -44,6 +50,7 @@ func NewDestination(dest io.Writer, ref reference.NamedTagged) *Destination {
 		tar:      tar.NewWriter(dest),
 		repoTags: repoTags,
 		blobs:    make(map[digest.Digest]types.BlobInfo),
+		sysCtx:   sys,
 	}
 }
 
@@ -72,7 +79,7 @@ func (d *Destination) AcceptsForeignLayerURLs() bool {
 	return false
 }
 
-// MustMatchRuntimeOS returns true iff the destination can store only images targeted for the current runtime OS. False otherwise.
+// MustMatchRuntimeOS returns true iff the destination can store only images targeted for the current runtime architecture and OS. False otherwise.
 func (d *Destination) MustMatchRuntimeOS() bool {
 	return false
 }
@@ -96,8 +103,6 @@ func (d *Destination) HasThreadSafePutBlob() bool {
 // WARNING: The contents of stream are being verified on the fly.  Until stream.Read() returns io.EOF, the contents of the data SHOULD NOT be available
 // to any other readers for download using the supplied digest.
 // If stream.Read() at any time, ESPECIALLY at end of input, returns an error, PutBlob MUST 1) fail, and 2) delete any data stored so far.
-// Deprecated: Please use PutBlobWithSystemContext which will allows you to configure temp directory
-// for big files through SystemContext.BigFilesTemporaryDir
 func (d *Destination) PutBlob(ctx context.Context, stream io.Reader, inputInfo types.BlobInfo, cache types.BlobInfoCache, isConfig bool) (types.BlobInfo, error) {
 	// Ouch, we need to stream the blob into a temporary file just to determine the size.
 	// When the layer is decompressed, we also have to generate the digest on uncompressed datas.
@@ -117,7 +122,7 @@ func (d *Destination) PutBlob(ctx context.Context, stream io.Reader, inputInfo t
 		if err != nil {
 			return types.BlobInfo{}, err
 		}
-		_, err = streamCopy.Seek(0, os.SEEK_SET)
+		_, err = streamCopy.Seek(0, io.SeekStart)
 		if err != nil {
 			return types.BlobInfo{}, err
 		}

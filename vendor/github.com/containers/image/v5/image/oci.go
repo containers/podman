@@ -212,3 +212,8 @@ func (m *manifestOCI1) convertToManifestSchema2() (types.Image, error) {
 	m1 := manifestSchema2FromComponents(config, m.src, nil, layers)
 	return memoryImageFromManifest(m1), nil
 }
+
+// SupportsEncryption returns if encryption is supported for the manifest type
+func (m *manifestOCI1) SupportsEncryption(context.Context) bool {
+	return true
+}
