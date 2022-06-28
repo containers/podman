@@ -1,9 +1,8 @@
 package define
 
 import (
+	"fmt"
 	"time"
-
-	"github.com/pkg/errors"
 )
 
 // ContainerStatus represents the current state of a container
@@ -91,7 +90,7 @@ func StringToContainerStatus(status string) (ContainerStatus, error) {
 	case ContainerStateRemoving.String():
 		return ContainerStateRemoving, nil
 	default:
-		return ContainerStateUnknown, errors.Wrapf(ErrInvalidArg, "unknown container state: %s", status)
+		return ContainerStateUnknown, fmt.Errorf("unknown container state: %s: %w", status, ErrInvalidArg)
 	}
 }
 

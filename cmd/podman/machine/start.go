@@ -9,7 +9,6 @@ import (
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/containers/podman/v4/libpod/events"
 	"github.com/containers/podman/v4/pkg/machine"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -54,9 +53,9 @@ func start(_ *cobra.Command, args []string) error {
 	}
 	if active {
 		if vmName == activeName {
-			return errors.Wrapf(machine.ErrVMAlreadyRunning, "cannot start VM %s", vmName)
+			return fmt.Errorf("cannot start VM %s: %w", vmName, machine.ErrVMAlreadyRunning)
 		}
-		return errors.Wrapf(machine.ErrMultipleActiveVM, "cannot start VM %s. VM %s is currently running or starting", vmName, activeName)
+		return fmt.Errorf("cannot start VM %s. VM %s is currently running or starting: %w", vmName, activeName, machine.ErrMultipleActiveVM)
 	}
 	fmt.Printf("Starting machine %q\n", vmName)
 	if err := vm.Start(vmName, machine.StartOptions{}); err != nil {

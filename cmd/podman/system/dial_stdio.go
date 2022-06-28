@@ -2,13 +2,14 @@ package system
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"io"
 	"os"
 
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/containers/podman/v4/cmd/podman/validate"
 	"github.com/containers/podman/v4/pkg/bindings"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -40,15 +41,15 @@ func runDialStdio() error {
 	defer cancel()
 	bindCtx, err := bindings.NewConnection(ctx, cfg.URI)
 	if err != nil {
-		return errors.Wrap(err, "failed to open connection to podman")
+		return fmt.Errorf("failed to open connection to podman: %w", err)
 	}
 	conn, err := bindings.GetClient(bindCtx)
 	if err != nil {
-		return errors.Wrap(err, "failed to get connection after initialization")
+		return fmt.Errorf("failed to get connection after initialization: %w", err)
 	}
 	netConn, err := conn.GetDialer(bindCtx)
 	if err != nil {
-		return errors.Wrap(err, "failed to open the raw stream connection")
+		return fmt.Errorf("failed to open the raw stream connection: %w", err)
 	}
 	defer netConn.Close()
 
@@ -95,7 +96,7 @@ func copier(to halfWriteCloser, from halfReadCloser, debugDescription string) er
 		}
 	}()
 	if _, err := io.Copy(to, from); err != nil {
-		return errors.Wrapf(err, "error while Copy (%s)", debugDescription)
+		return fmt.Errorf("error while Copy (%s): %w", debugDescription, err)
 	}
 	return nil
 }

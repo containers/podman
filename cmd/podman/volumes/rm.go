@@ -2,8 +2,8 @@ package volumes
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/podman/v4/cmd/podman/common"
@@ -11,7 +11,6 @@ import (
 	"github.com/containers/podman/v4/cmd/podman/utils"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/domain/entities"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -80,15 +79,9 @@ func rm(cmd *cobra.Command, args []string) error {
 }
 
 func setExitCode(err error) {
-	cause := errors.Cause(err)
-	switch {
-	case cause == define.ErrNoSuchVolume:
+	if errors.Is(err, define.ErrNoSuchVolume) {
 		registry.SetExitCode(1)
-	case strings.Contains(cause.Error(), define.ErrNoSuchVolume.Error()):
-		registry.SetExitCode(1)
-	case cause == define.ErrVolumeBeingUsed:
-		registry.SetExitCode(2)
-	case strings.Contains(cause.Error(), define.ErrVolumeBeingUsed.Error()):
+	} else if errors.Is(err, define.ErrVolumeBeingUsed) {
 		registry.SetExitCode(2)
 	}
 }

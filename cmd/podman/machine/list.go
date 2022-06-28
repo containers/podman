@@ -4,6 +4,7 @@
 package machine
 
 import (
+	"fmt"
 	"os"
 	"sort"
 	"strconv"
@@ -17,7 +18,6 @@ import (
 	"github.com/containers/podman/v4/cmd/podman/validate"
 	"github.com/containers/podman/v4/pkg/machine"
 	"github.com/docker/go-units"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -88,7 +88,7 @@ func list(cmd *cobra.Command, args []string) error {
 	provider := GetSystemDefaultProvider()
 	listResponse, err = provider.List(opts)
 	if err != nil {
-		return errors.Wrap(err, "error listing vms")
+		return fmt.Errorf("error listing vms: %w", err)
 	}
 
 	// Sort by last run
@@ -157,7 +157,7 @@ func outputTemplate(cmd *cobra.Command, responses []*ListReporter) error {
 	defer w.Flush()
 	if printHeader {
 		if err := tmpl.Execute(w, headers); err != nil {
-			return errors.Wrapf(err, "failed to write report column headers")
+			return fmt.Errorf("failed to write report column headers: %w", err)
 		}
 	}
 	return tmpl.Execute(w, responses)

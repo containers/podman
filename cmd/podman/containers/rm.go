@@ -2,6 +2,7 @@ package containers
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"strings"
@@ -13,7 +14,6 @@ import (
 	"github.com/containers/podman/v4/cmd/podman/validate"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/domain/entities"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -104,7 +104,7 @@ func rm(cmd *cobra.Command, args []string) error {
 	for _, cidFile := range cidFiles {
 		content, err := ioutil.ReadFile(cidFile)
 		if err != nil {
-			return errors.Wrap(err, "error reading CIDFile")
+			return fmt.Errorf("error reading CIDFile: %w", err)
 		}
 		id := strings.Split(string(content), "\n")[0]
 		args = append(args, id)
@@ -134,8 +134,7 @@ func removeContainers(namesOrIDs []string, rmOptions entities.RmOptions, setExit
 	for _, r := range responses {
 		if r.Err != nil {
 			// When using the API, errors.Cause(err) will never equal constant define.ErrWillDeadLock
-			if errors.Cause(r.Err) == define.ErrWillDeadlock ||
-				errors.Cause(r.Err).Error() == define.ErrWillDeadlock.Error() {
+			if errors.Is(r.Err, define.ErrWillDeadlock) {
 				logrus.Errorf("Potential deadlock detected - please run 'podman system renumber' to resolve")
 			}
 			if setExit {
@@ -154,15 +153,9 @@ func setExitCode(err error) {
 	if registry.GetExitCode() == 1 {
 		return
 	}
-	cause := errors.Cause(err)
-	switch {
-	case cause == define.ErrNoSuchCtr:
+	if errors.Is(err, define.ErrNoSuchCtr) {
 		registry.SetExitCode(1)
-	case strings.Contains(cause.Error(), define.ErrNoSuchCtr.Error()):
-		registry.SetExitCode(1)
-	case cause == define.ErrCtrStateInvalid:
-		registry.SetExitCode(2)
-	case strings.Contains(cause.Error(), define.ErrCtrStateInvalid.Error()):
+	} else if errors.Is(err, define.ErrCtrStateInvalid) {
 		registry.SetExitCode(2)
 	}
 }

@@ -1,12 +1,12 @@
 package images
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/domain/entities"
-	"github.com/pkg/errors"
 )
 
 // parseImageSCPArg returns the valid connection, and source/destination data based off of the information provided by the user
@@ -52,13 +52,13 @@ func validateImagePortion(location entities.ImageScpOptions, arg string) (entiti
 // validateSCPArgs takes the array of source and destination options and checks for common errors
 func validateSCPArgs(locations []*entities.ImageScpOptions) (bool, error) {
 	if len(locations) > 2 {
-		return false, errors.Wrapf(define.ErrInvalidArg, "cannot specify more than two arguments")
+		return false, fmt.Errorf("cannot specify more than two arguments: %w", define.ErrInvalidArg)
 	}
 	switch {
 	case len(locations[0].Image) > 0 && len(locations[1].Image) > 0:
-		return false, errors.Wrapf(define.ErrInvalidArg, "cannot specify an image rename")
+		return false, fmt.Errorf("cannot specify an image rename: %w", define.ErrInvalidArg)
 	case len(locations[0].Image) == 0 && len(locations[1].Image) == 0:
-		return false, errors.Wrapf(define.ErrInvalidArg, "a source image must be specified")
+		return false, fmt.Errorf("a source image must be specified: %w", define.ErrInvalidArg)
 	case len(locations[0].Image) == 0 && len(locations[1].Image) != 0:
 		if locations[0].Remote && locations[1].Remote {
 			return true, nil // we need to flip the cliConnections array so the save/load connections are in the right place

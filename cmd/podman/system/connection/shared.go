@@ -2,8 +2,8 @@ package connection
 
 import (
 	"bytes"
+	"fmt"
 
-	"github.com/pkg/errors"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -21,7 +21,7 @@ func ExecRemoteCommand(dial *ssh.Client, run string) ([]byte, error) {
 	sess.Stdout = &buffer                 // output from client funneled into buffer
 	sess.Stderr = &bufferErr              // err form client funneled into buffer
 	if err := sess.Run(run); err != nil { // run the command on the ssh client
-		return nil, errors.Wrapf(err, bufferErr.String())
+		return nil, fmt.Errorf("%v: %w", bufferErr, err)
 	}
 	return buffer.Bytes(), nil
 }

@@ -11,7 +11,6 @@ import (
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/containers/podman/v4/libpod/events"
 	"github.com/containers/podman/v4/pkg/machine"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -119,12 +118,12 @@ func initMachine(cmd *cobra.Command, args []string) error {
 	initOpts.Name = defaultMachineName
 	if len(args) > 0 {
 		if len(args[0]) > maxMachineNameSize {
-			return errors.Errorf("machine name %q must be %d characters or less", args[0], maxMachineNameSize)
+			return fmt.Errorf("machine name %q must be %d characters or less", args[0], maxMachineNameSize)
 		}
 		initOpts.Name = args[0]
 	}
 	if _, err := provider.LoadVMByName(initOpts.Name); err == nil {
-		return errors.Wrap(machine.ErrVMAlreadyExists, initOpts.Name)
+		return fmt.Errorf("%s: %w", initOpts.Name, machine.ErrVMAlreadyExists)
 	}
 	for idx, vol := range initOpts.Volumes {
 		initOpts.Volumes[idx] = os.ExpandEnv(vol)

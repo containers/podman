@@ -10,7 +10,6 @@ import (
 	"github.com/containers/podman/v4/cmd/podman/common"
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/containers/podman/v4/pkg/domain/entities"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -78,7 +77,7 @@ func inspect(cmd *cobra.Command, args []string) error {
 				fmt.Fprintf(os.Stderr, "error inspecting secret: %v\n", err)
 			}
 		}
-		return errors.Errorf("inspecting secret: %v", errs[0])
+		return fmt.Errorf("inspecting secret: %w", errs[0])
 	}
 	return nil
 }

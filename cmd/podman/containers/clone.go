@@ -7,7 +7,6 @@ import (
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/domain/entities"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -56,7 +55,7 @@ func init() {
 func clone(cmd *cobra.Command, args []string) error {
 	switch len(args) {
 	case 0:
-		return errors.Wrapf(define.ErrInvalidArg, "must specify at least 1 argument")
+		return fmt.Errorf("must specify at least 1 argument: %w", define.ErrInvalidArg)
 	case 2:
 		ctrClone.CreateOpts.Name = args[1]
 	case 3:
@@ -73,7 +72,7 @@ func clone(cmd *cobra.Command, args []string) error {
 		}
 	}
 	if ctrClone.Force && !ctrClone.Destroy {
-		return errors.Wrapf(define.ErrInvalidArg, "cannot set --force without --destroy")
+		return fmt.Errorf("cannot set --force without --destroy: %w", define.ErrInvalidArg)
 	}
 
 	ctrClone.ID = args[0]

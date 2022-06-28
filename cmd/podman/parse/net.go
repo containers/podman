@@ -10,8 +10,6 @@ import (
 	"os"
 	"regexp"
 	"strings"
-
-	"github.com/pkg/errors"
 )
 
 const (
@@ -81,7 +79,7 @@ func GetAllLabels(labelFile, inputLabels []string) (map[string]string, error) {
 	for _, label := range inputLabels {
 		split := strings.SplitN(label, "=", 2)
 		if split[0] == "" {
-			return nil, errors.Errorf("invalid label format: %q", label)
+			return nil, fmt.Errorf("invalid label format: %q", label)
 		}
 		value := ""
 		if len(split) > 1 {
@@ -97,13 +95,13 @@ func parseEnvOrLabel(env map[string]string, line, configType string) error {
 
 	// catch invalid variables such as "=" or "=A"
 	if data[0] == "" {
-		return errors.Errorf("invalid environment variable: %q", line)
+		return fmt.Errorf("invalid environment variable: %q", line)
 	}
 
 	// trim the front of a variable, but nothing else
 	name := strings.TrimLeft(data[0], whiteSpaces)
 	if strings.ContainsAny(name, whiteSpaces) {
-		return errors.Errorf("name %q has white spaces, poorly formatted name", name)
+		return fmt.Errorf("name %q has white spaces, poorly formatted name", name)
 	}
 
 	if len(data) > 1 {
@@ -157,7 +155,7 @@ func parseEnvOrLabelFile(envOrLabel map[string]string, filename, configType stri
 // as it is currently not supported
 func ValidateFileName(filename string) error {
 	if strings.Contains(filename, ":") {
-		return errors.Errorf("invalid filename (should not contain ':') %q", filename)
+		return fmt.Errorf("invalid filename (should not contain ':') %q", filename)
 	}
 	return nil
 }
@@ -166,10 +164,10 @@ func ValidateFileName(filename string) error {
 func ValidURL(urlStr string) error {
 	url, err := url.ParseRequestURI(urlStr)
 	if err != nil {
-		return errors.Wrapf(err, "invalid url %q", urlStr)
+		return fmt.Errorf("invalid url %q: %w", urlStr, err)
 	}
 	if url.Scheme == "" {
-		return errors.Errorf("invalid url %q: missing scheme", urlStr)
+		return fmt.Errorf("invalid url %q: missing scheme", urlStr)
 	}
 	return nil
 }

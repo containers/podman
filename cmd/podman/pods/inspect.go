@@ -2,6 +2,7 @@ package pods
 
 import (
 	"context"
+	"errors"
 	"os"
 	"text/template"
 
@@ -10,7 +11,6 @@ import (
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/containers/podman/v4/cmd/podman/validate"
 	"github.com/containers/podman/v4/pkg/domain/entities"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -49,10 +49,10 @@ func init() {
 
 func inspect(cmd *cobra.Command, args []string) error {
 	if len(args) < 1 && !inspectOptions.Latest {
-		return errors.Errorf("you must provide the name or id of a running pod")
+		return errors.New("you must provide the name or id of a running pod")
 	}
 	if len(args) > 0 && inspectOptions.Latest {
-		return errors.Errorf("--latest and containers cannot be used together")
+		return errors.New("--latest and containers cannot be used together")
 	}
 
 	if !inspectOptions.Latest {

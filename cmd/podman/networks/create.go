@@ -1,6 +1,7 @@
 package network
 
 import (
+	"errors"
 	"fmt"
 	"net"
 
@@ -11,7 +12,6 @@ import (
 	"github.com/containers/podman/v4/cmd/podman/parse"
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/containers/podman/v4/pkg/domain/entities"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -97,11 +97,11 @@ func networkCreate(cmd *cobra.Command, args []string) error {
 	var err error
 	networkCreateOptions.Labels, err = parse.GetAllLabels([]string{}, labels)
 	if err != nil {
-		return errors.Wrap(err, "failed to parse labels")
+		return fmt.Errorf("failed to parse labels: %w", err)
 	}
 	networkCreateOptions.Options, err = parse.GetAllLabels([]string{}, opts)
 	if err != nil {
-		return errors.Wrapf(err, "unable to parse options")
+		return fmt.Errorf("unable to parse options: %w", err)
 	}
 
 	network := types.Network{
@@ -181,11 +181,11 @@ func parseRange(iprange string) (*types.LeaseRange, error) {
 
 	startIP, err := util.FirstIPInSubnet(subnet)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get first ip in range")
+		return nil, fmt.Errorf("failed to get first ip in range: %w", err)
 	}
 	lastIP, err := util.LastIPInSubnet(subnet)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get last ip in range")
+		return nil, fmt.Errorf("failed to get last ip in range: %w", err)
 	}
 	return &types.LeaseRange{
 		StartIP: startIP,

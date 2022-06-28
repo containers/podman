@@ -1,6 +1,7 @@
 package volumes
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
@@ -10,7 +11,6 @@ import (
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/errorhandling"
 	"github.com/containers/podman/v4/utils"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 

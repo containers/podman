@@ -2,8 +2,8 @@ package pods
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/podman/v4/cmd/podman/common"
@@ -13,7 +13,6 @@ import (
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/specgenutil"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -112,11 +111,7 @@ func removePods(namesOrIDs []string, rmOptions entities.PodRmOptions, printIDs b
 }
 
 func setExitCode(err error) {
-	cause := errors.Cause(err)
-	switch {
-	case cause == define.ErrNoSuchPod:
-		registry.SetExitCode(1)
-	case strings.Contains(cause.Error(), define.ErrNoSuchPod.Error()):
+	if errors.Is(err, define.ErrNoSuchPod) {
 		registry.SetExitCode(1)
 	}
 }

@@ -19,7 +19,6 @@ import (
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/utils"
 	scpD "github.com/dtylman/scp"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"golang.org/x/crypto/ssh"
@@ -91,7 +90,7 @@ func scp(cmd *cobra.Command, args []string) (finalErr error) {
 	}
 	confR, err := config.NewConfig("") // create a hand made config for the remote engine since we might use remote and native at once
 	if err != nil {
-		return errors.Wrapf(err, "could not make config")
+		return fmt.Errorf("could not make config: %w", err)
 	}
 
 	abiEng, err := registry.NewImageEngine(cmd, args) // abi native engine
@@ -128,9 +127,9 @@ func scp(cmd *cobra.Command, args []string) (finalErr error) {
 	case len(locations) == 1:
 		switch {
 		case len(locations[0].Image) == 0:
-			return errors.Wrapf(define.ErrInvalidArg, "no source image specified")
+			return fmt.Errorf("no source image specified: %w", define.ErrInvalidArg)
 		case len(locations[0].Image) > 0 && !locations[0].Remote && len(locations[0].User) == 0: // if we have podman image scp $IMAGE
-			return errors.Wrapf(define.ErrInvalidArg, "must specify a destination")
+			return fmt.Errorf("must specify a destination: %w", define.ErrInvalidArg)
 		}
 	}
 
@@ -199,7 +198,7 @@ func scp(cmd *cobra.Command, args []string) (finalErr error) {
 			if source.User == "" {
 				u, err := user.Current()
 				if err != nil {
-					return errors.Wrapf(err, "could not obtain user, make sure the environmental variable $USER is set")
+					return fmt.Errorf("could not obtain user, make sure the environmental variable $USER is set: %w", err)
 				}
 				source.User = u.Username
 			}
@@ -226,11 +225,11 @@ func loadToRemote(localFile string, tag string, url *urlP.URL, iden string) (str
 	n, err := scpD.CopyTo(dial, localFile, remoteFile)
 	if err != nil {
 		errOut := strconv.Itoa(int(n)) + " Bytes copied before error"
-		return " ", errors.Wrapf(err, errOut)
+		return " ", fmt.Errorf("%s: %w", errOut, err)
 	}
 	var run string
 	if tag != "" {
-		return "", errors.Wrapf(define.ErrInvalidArg, "Renaming of an image is currently not supported")
+		return "", fmt.Errorf("Renaming of an image is currently not supported: %w", define.ErrInvalidArg)
 	}
 	podman := os.Args[0]
 	run = podman + " image load --input=" + remoteFile + ";rm " + remoteFile // run ssh image load of the file copied via scp
@@ -253,7 +252,7 @@ func saveToRemote(image, localFile string, tag string, uri *urlP.URL, iden strin
 	defer dial.Close()
 
 	if tag != "" {
-		return errors.Wrapf(define.ErrInvalidArg, "Renaming of an image is currently not supported")
+		return fmt.Errorf("Renaming of an image is currently not supported: %w", define.ErrInvalidArg)
 	}
 	podman := os.Args[0]
 	run := podman + " image save " + image + " --format=oci-archive --output=" + remoteFile // run ssh image load of the file copied via scp. Files are reverse in this case...
@@ -267,7 +266,7 @@ func saveToRemote(image, localFile string, tag string, uri *urlP.URL, iden strin
 	}
 	if err != nil {
 		errOut := strconv.Itoa(int(n)) + " Bytes copied before error"
-		return errors.Wrapf(err, errOut)
+		return fmt.Errorf("%s: %w", errOut, err)
 	}
 	return nil
 }
@@ -292,7 +291,7 @@ func createConnection(url *urlP.URL, iden string) (*ssh.Client, string, error) {
 	}
 	dialAdd, err := ssh.Dial("tcp", url.Host, cfg) // dial the client
 	if err != nil {
-		return nil, "", errors.Wrapf(err, "failed to connect")
+		return nil, "", fmt.Errorf("failed to connect: %w", err)
 	}
 	file, err := makeRemoteFile(dialAdd)
 	if err != nil {

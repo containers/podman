@@ -1,6 +1,7 @@
 package pods
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"os"
@@ -16,7 +17,6 @@ import (
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/errorhandling"
 	"github.com/containers/podman/v4/pkg/util"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -188,14 +188,14 @@ func kube(cmd *cobra.Command, args []string) error {
 	for _, annotation := range annotations {
 		splitN := strings.SplitN(annotation, "=", 2)
 		if len(splitN) > 2 {
-			return errors.Errorf("annotation %q must include an '=' sign", annotation)
+			return fmt.Errorf("annotation %q must include an '=' sign", annotation)
 		}
 		if kubeOptions.Annotations == nil {
 			kubeOptions.Annotations = make(map[string]string)
 		}
 		annotation := splitN[1]
 		if len(annotation) > define.MaxKubeAnnotation {
-			return errors.Errorf("annotation exceeds maximum size, %d, of kubernetes annotation: %s", define.MaxKubeAnnotation, annotation)
+			return fmt.Errorf("annotation exceeds maximum size, %d, of kubernetes annotation: %s", define.MaxKubeAnnotation, annotation)
 		}
 		kubeOptions.Annotations[splitN[0]] = annotation
 	}
@@ -235,7 +235,7 @@ func teardown(yamlfile string) error {
 	defer f.Close()
 	reports, err := registry.ContainerEngine().PlayKubeDown(registry.GetContext(), f, *options)
 	if err != nil {
-		return errors.Wrap(err, yamlfile)
+		return fmt.Errorf("%s: %w", yamlfile, err)
 	}
 
 	// Output stopped pods
@@ -273,7 +273,7 @@ func playkube(yamlfile string) error {
 	defer f.Close()
 	report, err := registry.ContainerEngine().PlayKube(registry.GetContext(), f, kubeOptions.PlayKubeOptions)
 	if err != nil {
-		return errors.Wrap(err, yamlfile)
+		return fmt.Errorf("%s: %w", yamlfile, err)
 	}
 	// Print volumes report
 	for i, volume := range report.Volumes {
@@ -320,7 +320,7 @@ func playkube(yamlfile string) error {
 	}
 
 	if ctrsFailed > 0 {
-		return errors.Errorf("failed to start %d containers", ctrsFailed)
+		return fmt.Errorf("failed to start %d containers", ctrsFailed)
 	}
 
 	return nil
