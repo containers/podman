@@ -3,6 +3,7 @@ package abi
 import (
 	"context"
 	"fmt"
+	"io/fs"
 	"io/ioutil"
 	"net/url"
 	"os"
@@ -29,7 +30,6 @@ import (
 	domainUtils "github.com/containers/podman/v4/pkg/domain/utils"
 	"github.com/containers/podman/v4/pkg/errorhandling"
 	"github.com/containers/podman/v4/pkg/rootless"
-	"github.com/containers/podman/v4/utils"
 	"github.com/containers/storage"
 	dockerRef "github.com/docker/distribution/reference"
 	"github.com/opencontainers/go-digest"
@@ -350,22 +350,6 @@ func (ir *ImageEngine) Push(ctx context.Context, source string, destination stri
 	}
 	return pushError
 }
-
-// Transfer moves images between root and rootless storage so the user specified in the scp call can access and use the image modified by root
-func (ir *ImageEngine) Transfer(ctx context.Context, source entities.ImageScpOptions, dest entities.ImageScpOptions, parentFlags []string) error {
-	if source.User == "" {
-		return errors.Wrapf(define.ErrInvalidArg, "you must define a user when transferring from root to rootless storage")
-	}
-	podman, err := os.Executable()
-	if err != nil {
-		return err
-	}
-	if rootless.IsRootless() && (len(dest.User) == 0 || dest.User == "root") { // if we are rootless and do not have a destination user we can just use sudo
-		return transferRootless(source, dest, podman, parentFlags)
-	}
-	return transferRootful(source, dest, podman, parentFlags)
-}
-
 func (ir *ImageEngine) Tag(ctx context.Context, nameOrID string, tags []string, options entities.ImageTagOptions) error {
 	// Allow tagging manifest list instead of resolving instances from manifest
 	lookupOptions := &libimage.LookupImageOptions{ManifestList: true}
@@ -694,53 +678,32 @@ func (ir *ImageEngine) Sign(ctx context.Context, names []string, options entitie
 	return nil, nil
 }
 
-func getSigFilename(sigStoreDirPath string) (string, error) {
-	sigFileSuffix := 1
-	sigFiles, err := ioutil.ReadDir(sigStoreDirPath)
-	if err != nil {
-		return "", err
-	}
-	sigFilenames := make(map[string]bool)
-	for _, file := range sigFiles {
-		sigFilenames[file.Name()] = true
-	}
-	for {
-		sigFilename := "signature-" + strconv.Itoa(sigFileSuffix)
-		if _, exists := sigFilenames[sigFilename]; !exists {
-			return sigFilename, nil
-		}
-		sigFileSuffix++
-	}
-}
-
-func localPathFromURI(url *url.URL) (string, error) {
-	if url.Scheme != "file" {
-		return "", errors.Errorf("writing to %s is not supported. Use a supported scheme", url.String())
-	}
-	return url.Path, nil
-}
-
-// putSignature creates signature and saves it to the signstore file
-func putSignature(manifestBlob []byte, mech signature.SigningMechanism, sigStoreDir string, instanceDigest digest.Digest, dockerReference dockerRef.Reference, options entities.SignOptions) error {
-	newSig, err := signature.SignDockerManifest(manifestBlob, dockerReference.String(), mech, options.SignBy)
+func (ir *ImageEngine) Scp(ctx context.Context, src, dst string, parentFlags []string, quiet bool) error {
+	rep, source, dest, flags, err := domainUtils.ExecuteTransfer(src, dst, parentFlags, quiet)
 	if err != nil {
 		return err
 	}
-	signatureDir := fmt.Sprintf("%s@%s=%s", sigStoreDir, instanceDigest.Algorithm(), instanceDigest.Hex())
-	if err := os.MkdirAll(signatureDir, 0751); err != nil {
-		// The directory is allowed to exist
-		if !os.IsExist(err) {
+	if (rep == nil && err == nil) && (source != nil && dest != nil) { // we need to execute the transfer
+		err := Transfer(ctx, *source, *dest, flags)
+		if err != nil {
 			return err
 		}
 	}
-	sigFilename, err := getSigFilename(signatureDir)
+	return nil
+}
+
+func Transfer(ctx context.Context, source entities.ImageScpOptions, dest entities.ImageScpOptions, parentFlags []string) error {
+	if source.User == "" {
+		return errors.Wrapf(define.ErrInvalidArg, "you must define a user when transferring from root to rootless storage")
+	}
+	podman, err := os.Executable()
 	if err != nil {
 		return err
 	}
-	if err = ioutil.WriteFile(filepath.Join(signatureDir, sigFilename), newSig, 0644); err != nil {
-		return err
+	if rootless.IsRootless() && (len(dest.User) == 0 || dest.User == "root") { // if we are rootless and do not have a destination user we can just use sudo
+		return transferRootless(source, dest, podman, parentFlags)
 	}
-	return nil
+	return transferRootful(source, dest, podman, parentFlags)
 }
 
 // TransferRootless creates new podman processes using exec.Command and sudo, transferring images between the given source and destination users
@@ -763,7 +726,7 @@ func transferRootless(source entities.ImageScpOptions, dest entities.ImageScpOpt
 	} else {
 		cmdSave = exec.Command(podman)
 	}
-	cmdSave = utils.CreateSCPCommand(cmdSave, saveCommand)
+	cmdSave = domainUtils.CreateSCPCommand(cmdSave, saveCommand)
 	logrus.Debugf("Executing save command: %q", cmdSave)
 	err := cmdSave.Run()
 	if err != nil {
@@ -776,8 +739,11 @@ func transferRootless(source entities.ImageScpOptions, dest entities.ImageScpOpt
 	} else {
 		cmdLoad = exec.Command(podman)
 	}
-	cmdLoad = utils.CreateSCPCommand(cmdLoad, loadCommand)
+	cmdLoad = domainUtils.CreateSCPCommand(cmdLoad, loadCommand)
 	logrus.Debugf("Executing load command: %q", cmdLoad)
+	if len(dest.Tag) > 0 {
+		return domainUtils.ScpTag(cmdLoad, podman, dest)
+	}
 	return cmdLoad.Run()
 }
 
@@ -833,11 +799,20 @@ func transferRootful(source entities.ImageScpOptions, dest entities.ImageScpOpti
 			return err
 		}
 	}
-	err = execPodman(uSave, saveCommand)
+	_, err = execTransferPodman(uSave, saveCommand, false)
 	if err != nil {
 		return err
 	}
-	return execPodman(uLoad, loadCommand)
+	out, err := execTransferPodman(uLoad, loadCommand, (len(dest.Tag) > 0))
+	if err != nil {
+		return err
+	}
+	if out != nil {
+		image := domainUtils.ExtractImage(out)
+		_, err := execTransferPodman(uLoad, []string{podman, "tag", image, dest.Tag}, false)
+		return err
+	}
+	return nil
 }
 
 func lookupUser(u string) (*user.User, error) {
@@ -847,10 +822,10 @@ func lookupUser(u string) (*user.User, error) {
 	return user.Lookup(u)
 }
 
-func execPodman(execUser *user.User, command []string) error {
-	cmdLogin, err := utils.LoginUser(execUser.Username)
+func execTransferPodman(execUser *user.User, command []string, needToTag bool) ([]byte, error) {
+	cmdLogin, err := domainUtils.LoginUser(execUser.Username)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	defer func() {
@@ -864,11 +839,11 @@ func execPodman(execUser *user.User, command []string) error {
 	cmd.Stdout = os.Stdout
 	uid, err := strconv.ParseInt(execUser.Uid, 10, 32)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	gid, err := strconv.ParseInt(execUser.Gid, 10, 32)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	cmd.SysProcAttr = &syscall.SysProcAttr{
 		Credential: &syscall.Credential{
@@ -878,5 +853,55 @@ func execPodman(execUser *user.User, command []string) error {
 			NoSetGroups: false,
 		},
 	}
-	return cmd.Run()
+	if needToTag {
+		cmd.Stdout = nil
+		return cmd.Output()
+	}
+	return nil, cmd.Run()
+}
+
+func getSigFilename(sigStoreDirPath string) (string, error) {
+	sigFileSuffix := 1
+	sigFiles, err := ioutil.ReadDir(sigStoreDirPath)
+	if err != nil {
+		return "", err
+	}
+	sigFilenames := make(map[string]bool)
+	for _, file := range sigFiles {
+		sigFilenames[file.Name()] = true
+	}
+	for {
+		sigFilename := "signature-" + strconv.Itoa(sigFileSuffix)
+		if _, exists := sigFilenames[sigFilename]; !exists {
+			return sigFilename, nil
+		}
+		sigFileSuffix++
+	}
+}
+
+func localPathFromURI(url *url.URL) (string, error) {
+	if url.Scheme != "file" {
+		return "", errors.Errorf("writing to %s is not supported. Use a supported scheme", url.String())
+	}
+	return url.Path, nil
+}
+
+// putSignature creates signature and saves it to the signstore file
+func putSignature(manifestBlob []byte, mech signature.SigningMechanism, sigStoreDir string, instanceDigest digest.Digest, dockerReference dockerRef.Reference, options entities.SignOptions) error {
+	newSig, err := signature.SignDockerManifest(manifestBlob, dockerReference.String(), mech, options.SignBy)
+	if err != nil {
+		return err
+	}
+	signatureDir := fmt.Sprintf("%s@%s=%s", sigStoreDir, instanceDigest.Algorithm(), instanceDigest.Hex())
+	if err := os.MkdirAll(signatureDir, 0751); err != nil {
+		// The directory is allowed to exist
+		if !errors.Is(err, fs.ErrExist) {
+			return err
+		}
+	}
+	sigFilename, err := getSigFilename(signatureDir)
+	if err != nil {
+		return err
+	}
+	return ioutil.WriteFile(filepath.Join(signatureDir, sigFilename), newSig, 0644)
 }

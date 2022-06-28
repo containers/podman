@@ -41,6 +41,13 @@ type imagesLoadResponseLibpod struct {
 	Body entities.ImageLoadReport
 }
 
+// Image Scp
+// swagger:response
+type imagesScpResponseLibpod struct {
+	// in:body
+	Body reports.ScpReport
+}
+
 // Image Import
 // swagger:response
 type imagesImportResponseLibpod struct {

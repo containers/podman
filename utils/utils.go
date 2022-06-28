@@ -243,27 +243,3 @@ func MovePauseProcessToScope(pausePidPath string) {
 		}
 	}
 }
-
-// CreateSCPCommand takes an existing command, appends the given arguments and returns a configured podman command for image scp
-func CreateSCPCommand(cmd *exec.Cmd, command []string) *exec.Cmd {
-	cmd.Args = append(cmd.Args, command...)
-	cmd.Env = os.Environ()
-	cmd.Stderr = os.Stderr
-	cmd.Stdout = os.Stdout
-	return cmd
-}
-
-// LoginUser starts the user process on the host so that image scp can use systemd-run
-func LoginUser(user string) (*exec.Cmd, error) {
-	sleep, err := exec.LookPath("sleep")
-	if err != nil {
-		return nil, err
-	}
-	machinectl, err := exec.LookPath("machinectl")
-	if err != nil {
-		return nil, err
-	}
-	cmd := exec.Command(machinectl, "shell", "-q", user+"@.host", sleep, "inf")
-	err = cmd.Start()
-	return cmd, err
-}
