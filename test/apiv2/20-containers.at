@@ -502,3 +502,27 @@ done
 
 stop_service
 start_service
+
+# Our states are different from Docker's.
+# Regression test for #14700 (Docker compat returning unknown "initialized" for status.status) to ensure the stay compatible
+podman create --name status-test $IMAGE sh -c "sleep 3"
+t GET containers/status-test/json 200 .State.Status="created"
+
+podman init status-test
+t GET containers/status-test/json 200 .State.Status="created"
+
+podman start status-test
+t GET containers/status-test/json 200 .State.Status="running"
+
+podman pause status-test
+t GET containers/status-test/json 200 .State.Status="paused"
+
+podman unpause status-test
+t GET containers/status-test/json 200 .State.Status="running"
+
+podman stop status-test &
+sleep 1
+t GET containers/status-test/json 200 .State.Status="stopping"
+
+sleep 3
+t GET containers/status-test/json 200 .State.Status="exited"
