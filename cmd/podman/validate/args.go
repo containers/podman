@@ -86,6 +86,13 @@ func CheckAllLatestAndIDFile(c *cobra.Command, args []string, ignoreArgLen bool,
 		specifiedIDFile = true
 	}
 
+	if c.Flags().Changed("filter") {
+		if argLen > 0 {
+			return errors.New("--filter takes no arguments")
+		}
+		return nil
+	}
+
 	if specifiedIDFile && (specifiedAll || specifiedLatest) {
 		return fmt.Errorf("--all, --latest, and --%s cannot be used together", idFileFlag)
 	} else if specifiedAll && specifiedLatest {

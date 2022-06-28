@@ -33,9 +33,7 @@ func StopContainer(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, http.StatusBadRequest, fmt.Errorf("failed to parse parameters for %s: %w", r.URL.String(), err))
 		return
 	}
-
 	name := utils.GetName(r)
-
 	options := entities.StopOptions{
 		Ignore: query.Ignore,
 	}
