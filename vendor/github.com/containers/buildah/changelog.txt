@@ -1,3 +1,30 @@
+- Changelog for v1.11.5 (2019-11-11)
+  * Enhance error on unsafe symbolic link targets
+  * Add OCIRuntime to info
+  * Check nonexsit authfile
+  * Only output image id if running buildah bud --quiet
+  * Fix --pull=true||false and add --pull-never to bud and from (retry)
+  * cgroups v2: tweak or skip tests
+  * Prepwork: new 'skip' helpers for tests
+  * Handle configuration blobs for manifest lists
+  * unmarshalConvertedConfig: avoid using the updated image's ref
+  * Add completions for Manifest commands
+  * Add disableFips option to secrets pkg
+  * Update bud.bats test archive test
+  * Add test for caching based on content digest
+  * Builder.untarPath(): always evaluate b.ContentDigester.Hash()
+  * Bump github.com/onsi/ginkgo from 1.10.1 to 1.10.2
+  * Fix another broken test: copy-url-mtime
+  * yet more fixes
+  * Actual bug fix for 'add' test: fix the expected mode
+  * BATS tests - lots of mostly minor cleanup
+  * build: drop support for ostree
+  * Add support for make vendor-in-container
+  * imgtype: exit with error if storage fails
+  * remove XDG_RUNTIME_DIR from default authfile path
+  * fix troubleshooting redirect instructions
+  * Bump back to v1.12.0-dev
+
 - Changelog for v1.11.4 (2019-10-28)
   * buildah: add a "manifest" command
   * manifests: add the module

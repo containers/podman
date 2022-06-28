@@ -18,10 +18,10 @@ documentation](https://docs.docker.com/engine/api/latest/).
 Link for the official SDK: https://docs.docker.com/develop/sdk/
 
 go-dockerclient was created before Docker had an official Go SDK and is
-still maintained and relatively active because it's still used out there. New
-features in the Docker API do not get automatically implemented here: it's
-based on demand, if someone wants it, they can file an issue or a PR and the
-feature may get implemented/merged.
+still maintained and active because it's still used out there. New features in
+the Docker API do not get automatically implemented here: it's based on demand,
+if someone wants it, they can file an issue or a PR and the feature may get
+implemented/merged.
 
 For new projects, using the official SDK is probably more appropriate as
 go-dockerclient lags behind the official SDK.
@@ -105,7 +105,10 @@ import (
 )
 
 func main() {
-	client, _ := docker.NewClientFromEnv()
+	client, err := docker.NewClientFromEnv()
+	if err != nil {
+		// handle err
+	}
 	// use client
 }
 ```
@@ -118,12 +121,11 @@ All development commands can be seen in the [Makefile](Makefile).
 
 Commited code must pass:
 
-* [golangci-lint](integration_unix_test.go)
-* [gofumpt](https://github.com/mvdan/gofumpt)
+* [golangci-lint](https://github.com/golangci/golangci-lint)
 * [go test](https://golang.org/cmd/go/#hdr-Test_packages)
 
-Running ``make test`` will check all of these. You can reformat the code with
-``make fmt``.
+Running ``make test`` will run all checks, as well as install any required
+dependencies.
 
 ## Modules
 
@@ -133,7 +135,7 @@ If you're using dep, you can check the [releases
 page](https://github.com/fsouza/go-dockerclient/releases) for the latest
 release fully compatible with dep.
 
-With other vendoring tools, users might need to specify go-dockerclient's
+With other vendoring tools, users need to specify go-dockerclient's
 dependencies manually.
 
 ## Using with Docker 1.9 and Go 1.4

@@ -8,11 +8,10 @@ require (
 	github.com/buger/goterm v0.0.0-20181115115552-c206103e1f37
 	github.com/checkpoint-restore/go-criu v0.0.0-20190109184317-bdb7599cd87b
 	github.com/codahale/hdrhistogram v0.0.0-20161010025455-3a0bb77429bd // indirect
-	github.com/containerd/continuity v0.0.0-20190426062206-aaeac12a7ffc // indirect
 	github.com/containernetworking/cni v0.7.1
 	github.com/containernetworking/plugins v0.8.2
-	github.com/containers/buildah v1.11.5-0.20191031204705-20e92ffe0982
-	github.com/containers/image/v5 v5.0.1-0.20200205124631-82291c45f2b0
+	github.com/containers/buildah v1.11.5
+	github.com/containers/image/v5 v5.0.1-0.20220628083635-81d74d96442b
 	github.com/containers/psgo v1.3.3-0.20220420090439-2fed3f2e7714
 	github.com/containers/storage v1.13.8
 	github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f
@@ -21,7 +20,7 @@ require (
 	github.com/cyphar/filepath-securejoin v0.2.2
 	github.com/davecgh/go-spew v1.1.1
 	github.com/docker/distribution v2.7.1+incompatible
-	github.com/docker/docker v1.4.2-0.20190927142053-ada3c14355ce
+	github.com/docker/docker v1.4.2-0.20191101170500-ac7306503d23
 	github.com/docker/docker-credential-helpers v0.6.3
 	github.com/docker/go-connections v0.4.0
 	github.com/docker/go-units v0.4.0
@@ -32,7 +31,7 @@ require (
 	github.com/fatih/camelcase v1.0.0
 	github.com/fsnotify/fsnotify v1.4.7
 	github.com/ghodss/yaml v1.0.0
-	github.com/godbus/dbus v0.0.0-20181101234600-2ff6f7ffd60f
+	github.com/godbus/dbus v0.0.0-20190422162347-ade71ed3457e
 	github.com/google/shlex v0.0.0-20181106134648-c34317bd91bf
 	github.com/hashicorp/go-multierror v1.0.0
 	github.com/hpcloud/tail v1.0.0
