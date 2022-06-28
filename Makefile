@@ -60,6 +60,11 @@ PYTHON ?= $(shell command -v python3 python|head -n1)
 PKG_MANAGER ?= $(shell command -v dnf yum|head -n1)
 # ~/.local/bin is not in PATH on all systems
 PRE_COMMIT = $(shell command -v bin/venv/bin/pre-commit ~/.local/bin/pre-commit pre-commit | head -n1)
+ifeq ($(shell uname -s),FreeBSD)
+SED=gsed
+else
+SED=sed
+endif
 
 # This isn't what we actually build; it's a superset, used for target
 # dependencies. Basically: all *.go and *.c files, except *_test.go,
@@ -428,7 +433,7 @@ $(MANPAGES): %: %.md .install.md2man docdir
 ### replaces "\" at the end of a line with two spaces
 ### this ensures that manpages are renderd correctly
 
-	@sed -e 's/\((podman[^)]*\.md\(#.*\)\?)\)//g' \
+	@$(SED) -e 's/\((podman[^)]*\.md\(#.*\)\?)\)//g' \
 	 -e 's/\[\(podman[^]]*\)\]/\1/g' \
 		 -e 's/\[\([^]]*\)](http[^)]\+)/\1/g' \
 	 -e 's;<\(/\)\?\(a\|a\s\+[^>]*\|sup\)>;;g' \
