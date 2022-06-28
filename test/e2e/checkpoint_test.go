@@ -1555,6 +1555,93 @@ var _ = Describe("Podman checkpoint", func() {
 		os.Remove(fileName)
 	})
 
+	It("podman checkpoint container with export and verify non-default runtime", func() {
+		SkipIfRemote("podman-remote does not support --runtime flag")
+		// This test triggers the edge case where:
+		// 1. Default runtime is crun
+		// 2. Container is created with runc
+		// 3. Checkpoint without setting --runtime into archive
+		// 4. Restore without setting --runtime from archive
+		// It should be expected that podman identifies runtime
+		// from the checkpoint archive.
+
+		// Prevent --runtime arg from being set to force using default
+		// runtime unless explicitly set through passed args.
+		preservedMakeOptions := podmanTest.PodmanMakeOptions
+		podmanTest.PodmanMakeOptions = func(args []string, noEvents, noCache bool) []string {
+			defaultArgs := preservedMakeOptions(args, noEvents, noCache)
+			for i := range args {
+				// Runtime is set explicitly, so we should keep --runtime arg.
+				if args[i] == "--runtime" {
+					return defaultArgs
+				}
+			}
+			updatedArgs := make([]string, 0)
+			for i := 0; i < len(defaultArgs); i++ {
+				// Remove --runtime arg, letting podman fall back to its default
+				if defaultArgs[i] == "--runtime" {
+					i++
+				} else {
+					updatedArgs = append(updatedArgs, defaultArgs[i])
+				}
+			}
+			return updatedArgs
+		}
+
+		for _, runtime := range []string{"runc", "crun"} {
+			if err := exec.Command(runtime, "--help").Run(); err != nil {
+				Skip(fmt.Sprintf("%s not found in PATH; this test requires both runc and crun", runtime))
+			}
+		}
+
+		// Detect default runtime
+		session := podmanTest.Podman([]string{"info", "--format", "{{.Host.OCIRuntime.Name}}"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		if defaultRuntime := session.OutputToString(); defaultRuntime != "crun" {
+			Skip(fmt.Sprintf("Default runtime is %q; this test requires crun to be default", defaultRuntime))
+		}
+
+		// Force non-default runtime "runc"
+		localRunString := getRunString([]string{"--runtime", "runc", "--rm", ALPINE, "top"})
+		session = podmanTest.Podman(localRunString)
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
+		cid := session.OutputToString()
+
+		session = podmanTest.Podman([]string{"inspect", "--format", "{{.OCIRuntime}}", cid})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).To(Equal("runc"))
+
+		checkpointExportPath := "/tmp/checkpoint-" + cid + ".tar.gz"
+
+		session = podmanTest.Podman([]string{"container", "checkpoint", cid, "-e", checkpointExportPath})
+		session.WaitWithDefaultTimeout()
+		// As the container has been started with '--rm' it will be completely
+		// cleaned up after checkpointing.
+		Expect(session).Should(Exit(0))
+		fixmeFixme14653(podmanTest, cid)
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
+		Expect(podmanTest.NumberOfContainers()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"container", "restore", "-i", checkpointExportPath})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
+		Expect(podmanTest.GetContainerStatus()).To(ContainSubstring("Up"))
+
+		// The restored container should have the same runtime as the original container
+		session = podmanTest.Podman([]string{"inspect", "--format", "{{.OCIRuntime}}", cid})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).To(Equal("runc"))
+
+		// Remove exported checkpoint
+		os.Remove(checkpointExportPath)
+	})
+
 	It("podman checkpoint container with export and try to change the runtime", func() {
 		SkipIfRemote("podman-remote does not support --runtime flag")
 		// This test will only run if runc and crun both exist

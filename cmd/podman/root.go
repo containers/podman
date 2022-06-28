@@ -143,16 +143,15 @@ func persistentPreRunE(cmd *cobra.Command, args []string) error {
 					cmd.Flag("import").Value.String(),
 				)
 			}
-			if cfg.RuntimePath == "" {
+
+			runtimeFlag := cmd.Root().Flag("runtime")
+			if runtimeFlag == nil {
+				return errors.New("failed to load --runtime flag")
+			}
+
+			if !runtimeFlag.Changed {
 				// If the user did not select a runtime, this takes the one from
 				// the checkpoint archives and tells Podman to use it for the restore.
-				runtimeFlag := cmd.Root().Flags().Lookup("runtime")
-				if runtimeFlag == nil {
-					return errors.Errorf(
-						"setting runtime to '%s' for restore",
-						*runtime,
-					)
-				}
 				if err := runtimeFlag.Value.Set(*runtime); err != nil {
 					return err
 				}
