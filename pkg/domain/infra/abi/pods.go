@@ -402,6 +402,56 @@ func (ic *ContainerEngine) PodTop(ctx context.Context, options entities.PodTopOp
 	return report, err
 }
 
+func (ic *ContainerEngine) listPodReportFromPod(p *libpod.Pod) (*entities.ListPodsReport, error) {
+	status, err := p.GetPodStatus()
+	if err != nil {
+		return nil, err
+	}
+	cons, err := p.AllContainers()
+	if err != nil {
+		return nil, err
+	}
+	lpcs := make([]*entities.ListPodContainer, len(cons))
+	for i, c := range cons {
+		state, err := c.State()
+		if err != nil {
+			return nil, err
+		}
+		lpcs[i] = &entities.ListPodContainer{
+			Id:     c.ID(),
+			Names:  c.Name(),
+			Status: state.String(),
+		}
+	}
+	infraID, err := p.InfraContainerID()
+	if err != nil {
+		return nil, err
+	}
+	networks := []string{}
+	if len(infraID) > 0 {
+		infra, err := p.InfraContainer()
+		if err != nil {
+			return nil, err
+		}
+		networks, err = infra.Networks()
+		if err != nil {
+			return nil, err
+		}
+	}
+	return &entities.ListPodsReport{
+		Cgroup:     p.CgroupParent(),
+		Containers: lpcs,
+		Created:    p.CreatedTime(),
+		Id:         p.ID(),
+		InfraId:    infraID,
+		Name:       p.Name(),
+		Namespace:  p.Namespace(),
+		Networks:   networks,
+		Status:     status,
+		Labels:     p.Labels(),
+	}, nil
+}
+
 func (ic *ContainerEngine) PodPs(ctx context.Context, options entities.PodPSOptions) ([]*entities.ListPodsReport, error) {
 	var (
 		err error
@@ -431,53 +481,11 @@ func (ic *ContainerEngine) PodPs(ctx context.Context, options entities.PodPSOpti
 
 	reports := make([]*entities.ListPodsReport, 0, len(pds))
 	for _, p := range pds {
-		var lpcs []*entities.ListPodContainer
-		status, err := p.GetPodStatus()
+		r, err := ic.listPodReportFromPod(p)
 		if err != nil {
 			return nil, err
 		}
-		cons, err := p.AllContainers()
-		if err != nil {
-			return nil, err
-		}
-		for _, c := range cons {
-			state, err := c.State()
-			if err != nil {
-				return nil, err
-			}
-			lpcs = append(lpcs, &entities.ListPodContainer{
-				Id:     c.ID(),
-				Names:  c.Name(),
-				Status: state.String(),
-			})
-		}
-		infraID, err := p.InfraContainerID()
-		if err != nil {
-			return nil, err
-		}
-		networks := []string{}
-		if len(infraID) > 0 {
-			infra, err := p.InfraContainer()
-			if err != nil {
-				return nil, err
-			}
-			networks, err = infra.Networks()
-			if err != nil {
-				return nil, err
-			}
-		}
-		reports = append(reports, &entities.ListPodsReport{
-			Cgroup:     p.CgroupParent(),
-			Containers: lpcs,
-			Created:    p.CreatedTime(),
-			Id:         p.ID(),
-			InfraId:    infraID,
-			Name:       p.Name(),
-			Namespace:  p.Namespace(),
-			Networks:   networks,
-			Status:     status,
-			Labels:     p.Labels(),
-		})
+		reports = append(reports, r)
 	}
 	return reports, nil
 }
