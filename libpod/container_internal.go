@@ -1289,8 +1289,9 @@ func (c *Container) stop(timeout uint) error {
 		if err := c.syncContainer(); err != nil {
 			switch errors.Cause(err) {
 			// If the container has already been removed (e.g., via
-			// the cleanup process), there's nothing left to do.
+			// the cleanup process), set the container state to "stopped".
 			case define.ErrNoSuchCtr, define.ErrCtrRemoved:
+				c.state.State = define.ContainerStateStopped
 				return stopErr
 			default:
 				if stopErr != nil {
