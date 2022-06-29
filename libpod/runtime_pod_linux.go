@@ -78,21 +78,24 @@ func (r *Runtime) NewPod(ctx context.Context, p specgen.PodSpecGenerator, option
 					pod.state.CgroupPath = filepath.Join(pod.config.CgroupParent, pod.ID())
 					if p.InfraContainerSpec != nil {
 						p.InfraContainerSpec.CgroupParent = pod.state.CgroupPath
-						res, err := GetLimits(p.InfraContainerSpec.ResourceLimits)
-						if err != nil {
-							return nil, err
-						}
-						// Need to both create and update the cgroup
-						// rather than create a new path in c/common for pod cgroup creation
-						// just create as if it is a ctr and then update figures out that we need to
-						// populate the resource limits on the pod level
-						cgc, err := cgroups.New(pod.state.CgroupPath, &res)
-						if err != nil {
-							return nil, err
-						}
-						err = cgc.Update(&res)
-						if err != nil {
-							return nil, err
+						// cgroupfs + rootless = permission denied when creating the cgroup.
+						if !rootless.IsRootless() {
+							res, err := GetLimits(p.InfraContainerSpec.ResourceLimits)
+							if err != nil {
+								return nil, err
+							}
+							// Need to both create and update the cgroup
+							// rather than create a new path in c/common for pod cgroup creation
+							// just create as if it is a ctr and then update figures out that we need to
+							// populate the resource limits on the pod level
+							cgc, err := cgroups.New(pod.state.CgroupPath, &res)
+							if err != nil {
+								return nil, err
+							}
+							err = cgc.Update(&res)
+							if err != nil {
+								return nil, err
+							}
 						}
 					}
 				}
