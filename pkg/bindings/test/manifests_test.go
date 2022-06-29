@@ -62,6 +62,19 @@ var _ = Describe("podman manifest", func() {
 		Expect(len(list.Manifests)).To(BeNumerically("==", 1))
 	})
 
+	It("delete manifest", func() {
+		id, err := manifests.Create(bt.conn, "quay.io/libpod/foobar:latest", []string{}, nil)
+		Expect(err).ToNot(HaveOccurred(), err)
+		list, err := manifests.Inspect(bt.conn, id, nil)
+		Expect(err).ToNot(HaveOccurred())
+
+		Expect(len(list.Manifests)).To(BeZero())
+
+		removeReport, err := manifests.Delete(bt.conn, "quay.io/libpod/foobar:latest")
+		Expect(err).ToNot(HaveOccurred())
+		Expect(len(removeReport.Deleted)).To(BeNumerically("==", 1))
+	})
+
 	It("inspect", func() {
 		_, err := manifests.Inspect(bt.conn, "larry", nil)
 		Expect(err).To(HaveOccurred())

@@ -117,6 +117,26 @@ func Remove(ctx context.Context, name, digest string, _ *RemoveOptions) (string,
 	return Modify(ctx, name, []string{digest}, optionsv4)
 }
 
+// Delete removes specified manifest from local storage.
+func Delete(ctx context.Context, name string) (*entities.ManifestRemoveReport, error) {
+	var report entities.ManifestRemoveReport
+	conn, err := bindings.GetClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+	response, err := conn.DoRequest(ctx, nil, http.MethodDelete, "/manifests/%s", nil, nil, name)
+	if err != nil {
+		return nil, err
+	}
+	defer response.Body.Close()
+
+	if err := response.Process(&report); err != nil {
+		return nil, err
+	}
+
+	return &report, errorhandling.JoinErrors(errorhandling.StringsToErrors(report.Errors))
+}
+
 // Push takes a manifest list and pushes to a destination.  If the destination is not specified,
 // the name will be used instead.  If the optional all boolean is specified, all images specified
 // in the list will be pushed as well.
