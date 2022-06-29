@@ -27,6 +27,7 @@ var (
 		Aliases:           []string{"ls"},
 		Short:             "List machines",
 		Long:              "List managed virtual machines.",
+		PersistentPreRunE: rootlessOnly,
 		RunE:              list,
 		Args:              validate.NoArgs,
 		ValidArgsFunction: completion.AutocompleteNone,

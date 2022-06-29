@@ -20,6 +20,7 @@ var (
 		Use:               "rm [options] [MACHINE]",
 		Short:             "Remove an existing machine",
 		Long:              "Remove a managed virtual machine ",
+		PersistentPreRunE: rootlessOnly,
 		RunE:              rm,
 		Args:              cobra.MaximumNArgs(1),
 		Example:           `podman machine rm myvm`,

@@ -10,9 +10,12 @@ podman\-machine\-init - Initialize a new virtual machine
 
 Initialize a new virtual machine for Podman.
 
-Podman on macOS requires a virtual machine. This is because containers are Linux -
+Rootless only.
+
+Podman on MacOS and Windows requires a virtual machine. This is because containers are Linux -
 containers do not run on any other OS because containers' core functionality are
-tied to the Linux kernel.
+tied to the Linux kernel. Podman machine must be used to manage MacOS and Windows machines,
+but can be optionally used on Linux.
 
 **podman machine init** initializes a new Linux virtual machine where containers are run.
 SSH keys are automatically generated to access the VM, and system connections to the root account

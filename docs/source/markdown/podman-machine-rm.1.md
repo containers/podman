@@ -16,6 +16,7 @@ generated for that VM are also removed as is its image file on the filesystem.
 Users get a display of what will be deleted and are required to confirm unless the option `--force`
 is used.
 
+Rootless only.
 
 ## OPTIONS
 

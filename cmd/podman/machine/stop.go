@@ -17,6 +17,7 @@ var (
 		Use:               "stop [MACHINE]",
 		Short:             "Stop an existing machine",
 		Long:              "Stop a managed virtual machine ",
+		PersistentPreRunE: rootlessOnly,
 		RunE:              stop,
 		Args:              cobra.MaximumNArgs(1),
 		Example:           `podman machine stop myvm`,

@@ -17,10 +17,11 @@ import (
 
 var (
 	sshCmd = &cobra.Command{
-		Use:   "ssh [options] [NAME] [COMMAND [ARG ...]]",
-		Short: "SSH into an existing machine",
-		Long:  "SSH into a managed virtual machine ",
-		RunE:  ssh,
+		Use:               "ssh [options] [NAME] [COMMAND [ARG ...]]",
+		Short:             "SSH into an existing machine",
+		Long:              "SSH into a managed virtual machine ",
+		PersistentPreRunE: rootlessOnly,
+		RunE:              ssh,
 		Example: `podman machine ssh myvm
   podman machine ssh myvm echo hello`,
 		ValidArgsFunction: autocompleteMachineSSH,
