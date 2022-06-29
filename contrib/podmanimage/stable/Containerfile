@@ -11,6 +11,9 @@ FROM registry.fedoraproject.org/fedora:latest
 # Don't include container-selinux and remove
 # directories used by dnf that are just taking
 # up space.
+# TODO: rpm --setcaps... needed due to Fedora (base) image builds
+#       being (maybe still?) affected by
+#       https://bugzilla.redhat.com/show_bug.cgi?id=1995337#c3
 RUN dnf -y update && \
     rpm --setcaps shadow-utils 2>/dev/null && \
     dnf -y install podman fuse-overlayfs \
