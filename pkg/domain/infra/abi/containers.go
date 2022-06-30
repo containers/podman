@@ -2,6 +2,7 @@ package abi
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -32,7 +33,6 @@ import (
 	"github.com/containers/podman/v4/pkg/specgenutil"
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/containers/storage"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -80,7 +80,7 @@ func getContainersByContext(all, latest bool, names []string, runtime *libpod.Ru
 func (ic *ContainerEngine) ContainerExists(ctx context.Context, nameOrID string, options entities.ContainerExistsOptions) (*entities.BoolReport, error) {
 	_, err := ic.Libpod.LookupContainer(nameOrID)
 	if err != nil {
-		if errors.Cause(err) != define.ErrNoSuchCtr {
+		if !errors.Is(err, define.ErrNoSuchCtr) {
 			return nil, err
 		}
 		if options.External {
@@ -120,7 +120,7 @@ func (ic *ContainerEngine) ContainerPause(ctx context.Context, namesOrIds []stri
 	report := make([]*entities.PauseUnpauseReport, 0, len(ctrs))
 	for _, c := range ctrs {
 		err := c.Pause()
-		if err != nil && options.All && errors.Cause(err) == define.ErrCtrStateInvalid {
+		if err != nil && options.All && errors.Is(err, define.ErrCtrStateInvalid) {
 			logrus.Debugf("Container %s is not running", c.ID())
 			continue
 		}
@@ -137,7 +137,7 @@ func (ic *ContainerEngine) ContainerUnpause(ctx context.Context, namesOrIds []st
 	report := make([]*entities.PauseUnpauseReport, 0, len(ctrs))
 	for _, c := range ctrs {
 		err := c.Unpause()
-		if err != nil && options.All && errors.Cause(err) == define.ErrCtrStateInvalid {
+		if err != nil && options.All && errors.Is(err, define.ErrCtrStateInvalid) {
 			logrus.Debugf("Container %s is not paused", c.ID())
 			continue
 		}
@@ -148,7 +148,7 @@ func (ic *ContainerEngine) ContainerUnpause(ctx context.Context, namesOrIds []st
 func (ic *ContainerEngine) ContainerStop(ctx context.Context, namesOrIds []string, options entities.StopOptions) ([]*entities.StopReport, error) {
 	names := namesOrIds
 	ctrs, rawInputs, err := getContainersAndInputByContext(options.All, options.Latest, names, ic.Libpod)
-	if err != nil && !(options.Ignore && errors.Cause(err) == define.ErrNoSuchCtr) {
+	if err != nil && !(options.Ignore && errors.Is(err, define.ErrNoSuchCtr)) {
 		return nil, err
 	}
 	ctrMap := map[string]string{}
@@ -166,13 +166,13 @@ func (ic *ContainerEngine) ContainerStop(ctx context.Context, namesOrIds []strin
 		}
 		if err != nil {
 			switch {
-			case errors.Cause(err) == define.ErrCtrStopped:
+			case errors.Is(err, define.ErrCtrStopped):
 				logrus.Debugf("Container %s is already stopped", c.ID())
-			case options.All && errors.Cause(err) == define.ErrCtrStateInvalid:
+			case options.All && errors.Is(err, define.ErrCtrStateInvalid):
 				logrus.Debugf("Container %s is not running, could not stop", c.ID())
 			// container never created in OCI runtime
 			// docker parity: do nothing just return container id
-			case errors.Cause(err) == define.ErrCtrStateInvalid:
+			case errors.Is(err, define.ErrCtrStateInvalid):
 				logrus.Debugf("Container %s is either not created on runtime or is in a invalid state", c.ID())
 			default:
 				return err
@@ -238,7 +238,7 @@ func (ic *ContainerEngine) ContainerKill(ctx context.Context, namesOrIds []strin
 	reports := make([]*entities.KillReport, 0, len(ctrs))
 	for _, con := range ctrs {
 		err := con.Kill(uint(sig))
-		if options.All && errors.Cause(err) == define.ErrCtrStateInvalid {
+		if options.All && errors.Is(err, define.ErrCtrStateInvalid) {
 			logrus.Debugf("Container %s is not running", con.ID())
 			continue
 		}
@@ -289,8 +289,7 @@ func (ic *ContainerEngine) removeContainer(ctx context.Context, ctr *libpod.Cont
 		return nil
 	}
 	logrus.Debugf("Failed to remove container %s: %s", ctr.ID(), err.Error())
-	switch errors.Cause(err) {
-	case define.ErrNoSuchCtr:
+	if errors.Is(err, define.ErrNoSuchCtr) {
 		// Ignore if the container does not exist (anymore) when either
 		// it has been requested by the user of if the container is a
 		// service one.  Service containers are removed along with its
@@ -301,7 +300,7 @@ func (ic *ContainerEngine) removeContainer(ctx context.Context, ctr *libpod.Cont
 			logrus.Debugf("Ignoring error (--allow-missing): %v", err)
 			return nil
 		}
-	case define.ErrCtrRemoved:
+	} else if errors.Is(err, define.ErrCtrRemoved) {
 		return nil
 	}
 	return err
@@ -317,15 +316,15 @@ func (ic *ContainerEngine) ContainerRm(ctx context.Context, namesOrIds []string,
 	for _, ctr := range names {
 		report := reports.RmReport{Id: ctr}
 		report.Err = ic.Libpod.RemoveStorageContainer(ctr, options.Force)
-		switch errors.Cause(report.Err) {
-		case nil:
+		//nolint:gocritic
+		if report.Err == nil {
 			// remove container names that we successfully deleted
 			rmReports = append(rmReports, &report)
-		case define.ErrNoSuchCtr, define.ErrCtrExists:
+		} else if errors.Is(report.Err, define.ErrNoSuchCtr) || errors.Is(report.Err, define.ErrCtrExists) {
 			// There is still a potential this is a libpod container
 			tmpNames = append(tmpNames, ctr)
-		default:
-			if _, err := ic.Libpod.LookupContainer(ctr); errors.Cause(err) == define.ErrNoSuchCtr {
+		} else {
+			if _, err := ic.Libpod.LookupContainer(ctr); errors.Is(err, define.ErrNoSuchCtr) {
 				// remove container failed, but not a libpod container
 				rmReports = append(rmReports, &report)
 				continue
@@ -337,7 +336,7 @@ func (ic *ContainerEngine) ContainerRm(ctx context.Context, namesOrIds []string,
 	names = tmpNames
 
 	ctrs, err := getContainersByContext(options.All, options.Latest, names, ic.Libpod)
-	if err != nil && !(options.Ignore && errors.Cause(err) == define.ErrNoSuchCtr) {
+	if err != nil && !(options.Ignore && errors.Is(err, define.ErrNoSuchCtr)) {
 		// Failed to get containers. If force is specified, get the containers ID
 		// and evict them
 		if !options.Force {
@@ -349,7 +348,7 @@ func (ic *ContainerEngine) ContainerRm(ctx context.Context, namesOrIds []string,
 			report := reports.RmReport{Id: ctr}
 			_, err := ic.Libpod.EvictContainer(ctx, ctr, options.Volumes)
 			if err != nil {
-				if options.Ignore && errors.Cause(err) == define.ErrNoSuchCtr {
+				if options.Ignore && errors.Is(err, define.ErrNoSuchCtr) {
 					logrus.Debugf("Ignoring error (--allow-missing): %v", err)
 					rmReports = append(rmReports, &report)
 					continue
@@ -426,7 +425,7 @@ func (ic *ContainerEngine) ContainerInspect(ctx context.Context, namesOrIds []st
 		ctr, err := ic.Libpod.GetLatestContainer()
 		if err != nil {
 			if errors.Is(err, define.ErrNoSuchCtr) {
-				return nil, []error{errors.Wrapf(err, "no containers to inspect")}, nil
+				return nil, []error{fmt.Errorf("no containers to inspect: %w", err)}, nil
 			}
 			return nil, nil, err
 		}
@@ -452,7 +451,7 @@ func (ic *ContainerEngine) ContainerInspect(ctx context.Context, namesOrIds []st
 			// ErrNoSuchCtr is non-fatal, other errors will be
 			// treated as fatal.
 			if errors.Is(err, define.ErrNoSuchCtr) {
-				errs = append(errs, errors.Errorf("no such container %s", name))
+				errs = append(errs, fmt.Errorf("no such container %s", name))
 				continue
 			}
 			return nil, nil, err
@@ -463,7 +462,7 @@ func (ic *ContainerEngine) ContainerInspect(ctx context.Context, namesOrIds []st
 			// ErrNoSuchCtr is non-fatal, other errors will be
 			// treated as fatal.
 			if errors.Is(err, define.ErrNoSuchCtr) {
-				errs = append(errs, errors.Errorf("no such container %s", name))
+				errs = append(errs, fmt.Errorf("no such container %s", name))
 				continue
 			}
 			return nil, nil, err
@@ -487,7 +486,7 @@ func (ic *ContainerEngine) ContainerTop(ctx context.Context, options entities.To
 		container, err = ic.Libpod.LookupContainer(options.NameOrID)
 	}
 	if err != nil {
-		return nil, errors.Wrap(err, "unable to look up requested container")
+		return nil, fmt.Errorf("unable to look up requested container: %w", err)
 	}
 
 	// Run Top.
@@ -512,12 +511,12 @@ func (ic *ContainerEngine) ContainerCommit(ctx context.Context, nameOrID string,
 	case "oci":
 		mimeType = buildah.OCIv1ImageManifest
 		if len(options.Message) > 0 {
-			return nil, errors.Errorf("messages are only compatible with the docker image format (-f docker)")
+			return nil, fmt.Errorf("messages are only compatible with the docker image format (-f docker)")
 		}
 	case "docker":
 		mimeType = manifest.DockerV2Schema2MediaType
 	default:
-		return nil, errors.Errorf("unrecognized image format %q", options.Format)
+		return nil, fmt.Errorf("unrecognized image format %q", options.Format)
 	}
 
 	sc := ic.Libpod.SystemContext()
@@ -660,7 +659,7 @@ func (ic *ContainerEngine) ContainerRestore(ctx context.Context, namesOrIds []st
 					// CRImportCheckpoint is expected to import exactly one container from checkpoint image
 					checkpointImageImportErrors = append(
 						checkpointImageImportErrors,
-						errors.Errorf("unable to import checkpoint from image: %q: %v", nameOrID, err),
+						fmt.Errorf("unable to import checkpoint from image: %q: %v", nameOrID, err),
 					)
 				} else {
 					containers = append(containers, importedContainers[0])
@@ -720,16 +719,16 @@ func (ic *ContainerEngine) ContainerAttach(ctx context.Context, nameOrID string,
 	ctr := ctrs[0]
 	conState, err := ctr.State()
 	if err != nil {
-		return errors.Wrapf(err, "unable to determine state of %s", ctr.ID())
+		return fmt.Errorf("unable to determine state of %s: %w", ctr.ID(), err)
 	}
 	if conState != define.ContainerStateRunning {
-		return errors.Errorf("you can only attach to running containers")
+		return fmt.Errorf("you can only attach to running containers")
 	}
 
 	// If the container is in a pod, also set to recursively start dependencies
 	err = terminal.StartAttachCtr(ctx, ctr, options.Stdout, options.Stderr, options.Stdin, options.DetachKeys, options.SigProxy, false)
-	if err != nil && errors.Cause(err) != define.ErrDetach {
-		return errors.Wrapf(err, "error attaching to container %s", ctr.ID())
+	if err != nil && !errors.Is(err, define.ErrDetach) {
+		return fmt.Errorf("error attaching to container %s: %w", ctr.ID(), err)
 	}
 	os.Stdout.WriteString("\n")
 	return nil
@@ -751,12 +750,12 @@ func makeExecConfig(options entities.ExecOptions, rt *libpod.Runtime) (*libpod.E
 	storageConfig := rt.StorageConfig()
 	runtimeConfig, err := rt.GetConfig()
 	if err != nil {
-		return nil, errors.Wrapf(err, "error retrieving Libpod configuration to build exec exit command")
+		return nil, fmt.Errorf("error retrieving Libpod configuration to build exec exit command: %w", err)
 	}
 	// TODO: Add some ability to toggle syslog
 	exitCommandArgs, err := specgenutil.CreateExitCommandArgs(storageConfig, runtimeConfig, logrus.IsLevelEnabled(logrus.DebugLevel), false, true)
 	if err != nil {
-		return nil, errors.Wrapf(err, "error constructing exit command for exec session")
+		return nil, fmt.Errorf("error constructing exit command for exec session: %w", err)
 	}
 	execConfig.ExitCommand = exitCommandArgs
 
@@ -774,7 +773,7 @@ func checkExecPreserveFDs(options entities.ExecOptions) error {
 		for _, e := range entries {
 			i, err := strconv.Atoi(e.Name())
 			if err != nil {
-				return errors.Wrapf(err, "cannot parse %s in /proc/self/fd", e.Name())
+				return fmt.Errorf("cannot parse %s in /proc/self/fd: %w", e.Name(), err)
 			}
 			m[i] = true
 		}
@@ -891,7 +890,7 @@ func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []stri
 
 		if options.Attach {
 			err = terminal.StartAttachCtr(ctx, ctr, options.Stdout, options.Stderr, options.Stdin, options.DetachKeys, options.SigProxy, !ctrRunning)
-			if errors.Cause(err) == define.ErrDetach {
+			if errors.Is(err, define.ErrDetach) {
 				// User manually detached
 				// Exit cleanly immediately
 				reports = append(reports, &entities.ContainerStartReport{
@@ -903,7 +902,7 @@ func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []stri
 				return reports, nil
 			}
 
-			if errors.Cause(err) == define.ErrWillDeadlock {
+			if errors.Is(err, define.ErrWillDeadlock) {
 				logrus.Debugf("Deadlock error: %v", err)
 				reports = append(reports, &entities.ContainerStartReport{
 					Id:       ctr.ID(),
@@ -911,7 +910,7 @@ func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []stri
 					Err:      err,
 					ExitCode: define.ExitCode(err),
 				})
-				return reports, errors.Errorf("attempting to start container %s would cause a deadlock; please run 'podman system renumber' to resolve", ctr.ID())
+				return reports, fmt.Errorf("attempting to start container %s would cause a deadlock; please run 'podman system renumber' to resolve", ctr.ID())
 			}
 
 			if ctrRunning {
@@ -936,7 +935,7 @@ func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []stri
 						logrus.Errorf("Removing container %s: %v", ctr.ID(), err)
 					}
 				}
-				return reports, errors.Wrapf(err, "unable to start container %s", ctr.ID())
+				return reports, fmt.Errorf("unable to start container %s: %w", ctr.ID(), err)
 			}
 
 			exitCode = ic.GetContainerExitCode(ctx, ctr)
@@ -960,12 +959,12 @@ func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []stri
 			}
 			if err := ctr.Start(ctx, true); err != nil {
 				report.Err = err
-				if errors.Cause(err) == define.ErrWillDeadlock {
-					report.Err = errors.Wrapf(err, "please run 'podman system renumber' to resolve deadlocks")
+				if errors.Is(err, define.ErrWillDeadlock) {
+					report.Err = fmt.Errorf("please run 'podman system renumber' to resolve deadlocks: %w", err)
 					reports = append(reports, report)
 					continue
 				}
-				report.Err = errors.Wrapf(err, "unable to start container %q", ctr.ID())
+				report.Err = fmt.Errorf("unable to start container %q: %w", ctr.ID(), err)
 				reports = append(reports, report)
 				if ctr.AutoRemove() {
 					if err := ic.removeContainer(ctx, ctr, entities.RmOptions{}); err != nil {
@@ -1001,7 +1000,7 @@ func (ic *ContainerEngine) Diff(ctx context.Context, namesOrIDs []string, opts e
 	if opts.Latest {
 		ctnr, err := ic.Libpod.GetLatestContainer()
 		if err != nil {
-			return nil, errors.Wrap(err, "unable to get latest container")
+			return nil, fmt.Errorf("unable to get latest container: %w", err)
 		}
 		base = ctnr.ID()
 	}
@@ -1064,7 +1063,7 @@ func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.Conta
 		// We've manually detached from the container
 		// Do not perform cleanup, or wait for container exit code
 		// Just exit immediately
-		if errors.Cause(err) == define.ErrDetach {
+		if errors.Is(err, define.ErrDetach) {
 			report.ExitCode = 0
 			return &report, nil
 		}
@@ -1074,10 +1073,10 @@ func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.Conta
 				logrus.Debugf("unable to remove container %s after failing to start and attach to it", ctr.ID())
 			}
 		}
-		if errors.Cause(err) == define.ErrWillDeadlock {
+		if errors.Is(err, define.ErrWillDeadlock) {
 			logrus.Debugf("Deadlock error on %q: %v", ctr.ID(), err)
 			report.ExitCode = define.ExitCode(err)
-			return &report, errors.Errorf("attempting to start container %s would cause a deadlock; please run 'podman system renumber' to resolve", ctr.ID())
+			return &report, fmt.Errorf("attempting to start container %s would cause a deadlock; please run 'podman system renumber' to resolve", ctr.ID())
 		}
 		report.ExitCode = define.ExitCode(err)
 		return &report, err
@@ -1086,8 +1085,8 @@ func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.Conta
 	if opts.Rm && !ctr.ShouldRestart(ctx) {
 		var timeout *uint
 		if err := ic.Libpod.RemoveContainer(ctx, ctr, false, true, timeout); err != nil {
-			if errors.Cause(err) == define.ErrNoSuchCtr ||
-				errors.Cause(err) == define.ErrCtrRemoved {
+			if errors.Is(err, define.ErrNoSuchCtr) ||
+				errors.Is(err, define.ErrCtrRemoved) {
 				logrus.Infof("Container %s was already removed, skipping --rm", ctr.ID())
 			} else {
 				logrus.Errorf("Removing container %s: %v", ctr.ID(), err)
@@ -1180,12 +1179,12 @@ func (ic *ContainerEngine) ContainerCleanup(ctx context.Context, namesOrIds []st
 			var timeout *uint
 			err = ic.Libpod.RemoveContainer(ctx, ctr, false, true, timeout)
 			if err != nil {
-				report.RmErr = errors.Wrapf(err, "failed to clean up and remove container %v", ctr.ID())
+				report.RmErr = fmt.Errorf("failed to clean up and remove container %v: %w", ctr.ID(), err)
 			}
 		} else {
 			err := ctr.Cleanup(ctx)
 			if err != nil {
-				report.CleanErr = errors.Wrapf(err, "failed to clean up container %v", ctr.ID())
+				report.CleanErr = fmt.Errorf("failed to clean up container %v: %w", ctr.ID(), err)
 			}
 		}
 
@@ -1212,7 +1211,7 @@ func (ic *ContainerEngine) ContainerInit(ctx context.Context, namesOrIds []strin
 		err := ctr.Init(ctx, ctr.PodID() != "")
 
 		// If we're initializing all containers, ignore invalid state errors
-		if options.All && errors.Cause(err) == define.ErrCtrStateInvalid {
+		if options.All && errors.Is(err, define.ErrCtrStateInvalid) {
 			err = nil
 		}
 		report.Err = err
@@ -1323,7 +1322,7 @@ func (ic *ContainerEngine) ContainerUnmount(ctx context.Context, nameOrIDs []str
 			if mounted {
 				report := entities.ContainerUnmountReport{Id: sctr.ID}
 				if _, report.Err = ic.Libpod.UnmountStorageContainer(sctr.ID, options.Force); report.Err != nil {
-					if errors.Cause(report.Err) != define.ErrCtrExists {
+					if !errors.Is(report.Err, define.ErrCtrExists) {
 						reports = append(reports, &report)
 					}
 				} else {
@@ -1357,11 +1356,11 @@ func (ic *ContainerEngine) ContainerUnmount(ctx context.Context, nameOrIDs []str
 
 		report := entities.ContainerUnmountReport{Id: ctr.ID()}
 		if err := ctr.Unmount(options.Force); err != nil {
-			if options.All && errors.Cause(err) == storage.ErrLayerNotMounted {
+			if options.All && errors.Is(err, storage.ErrLayerNotMounted) {
 				logrus.Debugf("Error umounting container %s, storage.ErrLayerNotMounted", ctr.ID())
 				continue
 			}
-			report.Err = errors.Wrapf(err, "error unmounting container %s", ctr.ID())
+			report.Err = fmt.Errorf("error unmounting container %s: %w", ctr.ID(), err)
 		}
 		reports = append(reports, &report)
 	}
@@ -1410,7 +1409,7 @@ func (ic *ContainerEngine) Shutdown(_ context.Context) {
 
 func (ic *ContainerEngine) ContainerStats(ctx context.Context, namesOrIds []string, options entities.ContainerStatsOptions) (statsChan chan entities.ContainerStatsReport, err error) {
 	if options.Interval < 1 {
-		return nil, errors.New("Invalid interval, must be a positive number greater zero")
+		return nil, errors.New("invalid interval, must be a positive number greater zero")
 	}
 	if rootless.IsRootless() {
 		unified, err := cgroups.IsCgroup2UnifiedMode()
@@ -1465,19 +1464,18 @@ func (ic *ContainerEngine) ContainerStats(ctx context.Context, namesOrIds []stri
 		computeStats := func() ([]define.ContainerStats, error) {
 			containers, err = containerFunc()
 			if err != nil {
-				return nil, errors.Wrapf(err, "unable to get list of containers")
+				return nil, fmt.Errorf("unable to get list of containers: %w", err)
 			}
 
 			reportStats := []define.ContainerStats{}
 			for _, ctr := range containers {
 				stats, err := ctr.GetContainerStats(containerStats[ctr.ID()])
 				if err != nil {
-					cause := errors.Cause(err)
-					if queryAll && (cause == define.ErrCtrRemoved || cause == define.ErrNoSuchCtr || cause == define.ErrCtrStateInvalid) {
+					if queryAll && (errors.Is(err, define.ErrCtrRemoved) || errors.Is(err, define.ErrNoSuchCtr) || errors.Is(err, define.ErrCtrStateInvalid)) {
 						continue
 					}
-					if cause == cgroups.ErrCgroupV1Rootless {
-						err = cause
+					if errors.Is(err, cgroups.ErrCgroupV1Rootless) {
+						err = cgroups.ErrCgroupV1Rootless
 					}
 					return nil, err
 				}

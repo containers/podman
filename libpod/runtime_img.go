@@ -2,6 +2,8 @@ package libpod
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -13,7 +15,6 @@ import (
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/libpod/events"
 	"github.com/containers/podman/v4/pkg/util"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -40,14 +41,14 @@ func (r *Runtime) RemoveContainersForImageCallback(ctx context.Context) libimage
 			if ctr.config.IsInfra {
 				pod, err := r.state.Pod(ctr.config.Pod)
 				if err != nil {
-					return errors.Wrapf(err, "container %s is in pod %s, but pod cannot be retrieved", ctr.ID(), ctr.config.Pod)
+					return fmt.Errorf("container %s is in pod %s, but pod cannot be retrieved: %w", ctr.ID(), ctr.config.Pod, err)
 				}
 				if err := r.removePod(ctx, pod, true, true, timeout); err != nil {
-					return errors.Wrapf(err, "removing image %s: container %s using image could not be removed", imageID, ctr.ID())
+					return fmt.Errorf("removing image %s: container %s using image could not be removed: %w", imageID, ctr.ID(), err)
 				}
 			} else {
 				if err := r.removeContainer(ctx, ctr, true, false, false, timeout); err != nil {
-					return errors.Wrapf(err, "removing image %s: container %s using image could not be removed", imageID, ctr.ID())
+					return fmt.Errorf("removing image %s: container %s using image could not be removed: %w", imageID, ctr.ID(), err)
 				}
 			}
 		}
@@ -106,7 +107,7 @@ func (r *Runtime) Build(ctx context.Context, options buildahDefine.BuildOptions,
 func DownloadFromFile(reader *os.File) (string, error) {
 	outFile, err := ioutil.TempFile(util.Tmpdir(), "import")
 	if err != nil {
-		return "", errors.Wrap(err, "error creating file")
+		return "", fmt.Errorf("error creating file: %w", err)
 	}
 	defer outFile.Close()
 
@@ -114,7 +115,7 @@ func DownloadFromFile(reader *os.File) (string, error) {
 
 	_, err = io.Copy(outFile, reader)
 	if err != nil {
-		return "", errors.Wrapf(err, "error saving %s to %s", reader.Name(), outFile.Name())
+		return "", fmt.Errorf("error saving %s to %s: %w", reader.Name(), outFile.Name(), err)
 	}
 
 	return outFile.Name(), nil

@@ -5,6 +5,7 @@ package libpod
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -17,7 +18,6 @@ import (
 	"github.com/containers/storage/drivers/quota"
 	"github.com/containers/storage/pkg/stringid"
 	pluginapi "github.com/docker/go-plugins-helpers/volume"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -36,7 +36,7 @@ func (r *Runtime) newVolume(noCreatePluginVolume bool, options ...VolumeCreateOp
 	volume := newVolume(r)
 	for _, option := range options {
 		if err := option(volume); err != nil {
-			return nil, errors.Wrapf(err, "running volume create option")
+			return nil, fmt.Errorf("running volume create option: %w", err)
 		}
 	}
 
@@ -51,17 +51,17 @@ func (r *Runtime) newVolume(noCreatePluginVolume bool, options ...VolumeCreateOp
 	// Check if volume with given name exists.
 	exists, err := r.state.HasVolume(volume.config.Name)
 	if err != nil {
-		return nil, errors.Wrapf(err, "checking if volume with name %s exists", volume.config.Name)
+		return nil, fmt.Errorf("checking if volume with name %s exists: %w", volume.config.Name, err)
 	}
 	if exists {
-		return nil, errors.Wrapf(define.ErrVolumeExists, "volume with name %s already exists", volume.config.Name)
+		return nil, fmt.Errorf("volume with name %s already exists: %w", volume.config.Name, define.ErrVolumeExists)
 	}
 
 	// Plugin can be nil if driver is local, but that's OK - superfluous
 	// assignment doesn't hurt much.
 	plugin, err := r.getVolumePlugin(volume.config.Driver)
 	if err != nil {
-		return nil, errors.Wrapf(err, "volume %s uses volume plugin %s but it could not be retrieved", volume.config.Name, volume.config.Driver)
+		return nil, fmt.Errorf("volume %s uses volume plugin %s but it could not be retrieved: %w", volume.config.Name, volume.config.Driver, err)
 	}
 	volume.plugin = plugin
 
@@ -73,13 +73,13 @@ func (r *Runtime) newVolume(noCreatePluginVolume bool, options ...VolumeCreateOp
 			case "device":
 				if strings.ToLower(volume.config.Options["type"]) == "bind" {
 					if _, err := os.Stat(val); err != nil {
-						return nil, errors.Wrapf(err, "invalid volume option %s for driver 'local'", key)
+						return nil, fmt.Errorf("invalid volume option %s for driver 'local': %w", key, err)
 					}
 				}
 			case "o", "type", "uid", "gid", "size", "inodes", "noquota", "copy", "nocopy":
 				// Do nothing, valid keys
 			default:
-				return nil, errors.Wrapf(define.ErrInvalidArg, "invalid mount option %s for driver 'local'", key)
+				return nil, fmt.Errorf("invalid mount option %s for driver 'local': %w", key, define.ErrInvalidArg)
 			}
 		}
 	}
@@ -99,17 +99,17 @@ func (r *Runtime) newVolume(noCreatePluginVolume bool, options ...VolumeCreateOp
 		// Create the mountpoint of this volume
 		volPathRoot := filepath.Join(r.config.Engine.VolumePath, volume.config.Name)
 		if err := os.MkdirAll(volPathRoot, 0700); err != nil {
-			return nil, errors.Wrapf(err, "creating volume directory %q", volPathRoot)
+			return nil, fmt.Errorf("creating volume directory %q: %w", volPathRoot, err)
 		}
 		if err := os.Chown(volPathRoot, volume.config.UID, volume.config.GID); err != nil {
-			return nil, errors.Wrapf(err, "chowning volume directory %q to %d:%d", volPathRoot, volume.config.UID, volume.config.GID)
+			return nil, fmt.Errorf("chowning volume directory %q to %d:%d: %w", volPathRoot, volume.config.UID, volume.config.GID, err)
 		}
 		fullVolPath := filepath.Join(volPathRoot, "_data")
 		if err := os.MkdirAll(fullVolPath, 0755); err != nil {
-			return nil, errors.Wrapf(err, "creating volume directory %q", fullVolPath)
+			return nil, fmt.Errorf("creating volume directory %q: %w", fullVolPath, err)
 		}
 		if err := os.Chown(fullVolPath, volume.config.UID, volume.config.GID); err != nil {
-			return nil, errors.Wrapf(err, "chowning volume directory %q to %d:%d", fullVolPath, volume.config.UID, volume.config.GID)
+			return nil, fmt.Errorf("chowning volume directory %q to %d:%d: %w", fullVolPath, volume.config.UID, volume.config.GID, err)
 		}
 		if err := LabelVolumePath(fullVolPath); err != nil {
 			return nil, err
@@ -134,7 +134,7 @@ func (r *Runtime) newVolume(noCreatePluginVolume bool, options ...VolumeCreateOp
 			}
 			if projectQuotaSupported {
 				if err := q.SetQuota(fullVolPath, quota); err != nil {
-					return nil, errors.Wrapf(err, "failed to set size quota size=%d inodes=%d for volume directory %q", volume.config.Size, volume.config.Inodes, fullVolPath)
+					return nil, fmt.Errorf("failed to set size quota size=%d inodes=%d for volume directory %q: %w", volume.config.Size, volume.config.Inodes, fullVolPath, err)
 				}
 			}
 		}
@@ -144,7 +144,7 @@ func (r *Runtime) newVolume(noCreatePluginVolume bool, options ...VolumeCreateOp
 
 	lock, err := r.lockManager.AllocateLock()
 	if err != nil {
-		return nil, errors.Wrapf(err, "allocating lock for new volume")
+		return nil, fmt.Errorf("allocating lock for new volume: %w", err)
 	}
 	volume.lock = lock
 	volume.config.LockID = volume.lock.ID()
@@ -161,7 +161,7 @@ func (r *Runtime) newVolume(noCreatePluginVolume bool, options ...VolumeCreateOp
 
 	// Add the volume to state
 	if err := r.state.AddVolume(volume); err != nil {
-		return nil, errors.Wrapf(err, "adding volume to state")
+		return nil, fmt.Errorf("adding volume to state: %w", err)
 	}
 	defer volume.newVolumeEvent(events.Create)
 	return volume, nil
@@ -272,7 +272,7 @@ func makeVolumeInPluginIfNotExist(name string, options map[string]string, plugin
 		createReq.Name = name
 		createReq.Options = options
 		if err := plugin.CreateVolume(createReq); err != nil {
-			return errors.Wrapf(err, "creating volume %q in plugin %s", name, plugin.Name)
+			return fmt.Errorf("creating volume %q in plugin %s: %w", name, plugin.Name, err)
 		}
 	}
 
@@ -305,7 +305,7 @@ func (r *Runtime) removeVolume(ctx context.Context, v *Volume, force bool, timeo
 	if len(deps) != 0 {
 		depsStr := strings.Join(deps, ", ")
 		if !force {
-			return errors.Wrapf(define.ErrVolumeBeingUsed, "volume %s is being used by the following container(s): %s", v.Name(), depsStr)
+			return fmt.Errorf("volume %s is being used by the following container(s): %s: %w", v.Name(), depsStr, define.ErrVolumeBeingUsed)
 		}
 
 		// We need to remove all containers using the volume
@@ -314,17 +314,17 @@ func (r *Runtime) removeVolume(ctx context.Context, v *Volume, force bool, timeo
 			if err != nil {
 				// If the container's removed, no point in
 				// erroring.
-				if errors.Cause(err) == define.ErrNoSuchCtr || errors.Cause(err) == define.ErrCtrRemoved {
+				if errors.Is(err, define.ErrNoSuchCtr) || errors.Is(err, define.ErrCtrRemoved) {
 					continue
 				}
 
-				return errors.Wrapf(err, "removing container %s that depends on volume %s", dep, v.Name())
+				return fmt.Errorf("removing container %s that depends on volume %s: %w", dep, v.Name(), err)
 			}
 
 			logrus.Debugf("Removing container %s (depends on volume %q)", ctr.ID(), v.Name())
 
 			if err := r.removeContainer(ctx, ctr, force, false, false, timeout); err != nil {
-				return errors.Wrapf(err, "removing container %s that depends on volume %s", ctr.ID(), v.Name())
+				return fmt.Errorf("removing container %s that depends on volume %s: %w", ctr.ID(), v.Name(), err)
 			}
 		}
 	}
@@ -337,7 +337,7 @@ func (r *Runtime) removeVolume(ctx context.Context, v *Volume, force bool, timeo
 			// them.
 			logrus.Errorf("Unmounting volume %s: %v", v.Name(), err)
 		} else {
-			return errors.Wrapf(err, "unmounting volume %s", v.Name())
+			return fmt.Errorf("unmounting volume %s: %w", v.Name(), err)
 		}
 	}
 
@@ -353,7 +353,7 @@ func (r *Runtime) removeVolume(ctx context.Context, v *Volume, force bool, timeo
 		// Do we have a volume driver?
 		if v.plugin == nil {
 			canRemove = false
-			removalErr = errors.Wrapf(define.ErrMissingPlugin, "cannot remove volume %s from plugin %s, but it has been removed from Podman", v.Name(), v.Driver())
+			removalErr = fmt.Errorf("cannot remove volume %s from plugin %s, but it has been removed from Podman: %w", v.Name(), v.Driver(), define.ErrMissingPlugin)
 		} else {
 			// Ping the plugin first to verify the volume still
 			// exists.
@@ -364,14 +364,14 @@ func (r *Runtime) removeVolume(ctx context.Context, v *Volume, force bool, timeo
 			getReq.Name = v.Name()
 			if _, err := v.plugin.GetVolume(getReq); err != nil {
 				canRemove = false
-				removalErr = errors.Wrapf(err, "volume %s could not be retrieved from plugin %s, but it has been removed from Podman", v.Name(), v.Driver())
+				removalErr = fmt.Errorf("volume %s could not be retrieved from plugin %s, but it has been removed from Podman: %w", v.Name(), v.Driver(), err)
 			}
 		}
 		if canRemove {
 			req := new(pluginapi.RemoveRequest)
 			req.Name = v.Name()
 			if err := v.plugin.RemoveVolume(req); err != nil {
-				return errors.Wrapf(err, "volume %s could not be removed from plugin %s", v.Name(), v.Driver())
+				return fmt.Errorf("volume %s could not be removed from plugin %s: %w", v.Name(), v.Driver(), err)
 			}
 		}
 	}
@@ -381,13 +381,13 @@ func (r *Runtime) removeVolume(ctx context.Context, v *Volume, force bool, timeo
 		if removalErr != nil {
 			logrus.Errorf("Removing volume %s from plugin %s: %v", v.Name(), v.Driver(), removalErr)
 		}
-		return errors.Wrapf(err, "removing volume %s", v.Name())
+		return fmt.Errorf("removing volume %s: %w", v.Name(), err)
 	}
 
 	// Free the volume's lock
 	if err := v.lock.Free(); err != nil {
 		if removalErr == nil {
-			removalErr = errors.Wrapf(err, "freeing lock for volume %s", v.Name())
+			removalErr = fmt.Errorf("freeing lock for volume %s: %w", v.Name(), err)
 		} else {
 			logrus.Errorf("Freeing lock for volume %q: %v", v.Name(), err)
 		}
@@ -397,7 +397,7 @@ func (r *Runtime) removeVolume(ctx context.Context, v *Volume, force bool, timeo
 	// from /var/lib/containers/storage/volumes
 	if err := v.teardownStorage(); err != nil {
 		if removalErr == nil {
-			removalErr = errors.Wrapf(err, "cleaning up volume storage for %q", v.Name())
+			removalErr = fmt.Errorf("cleaning up volume storage for %q: %w", v.Name(), err)
 		} else {
 			logrus.Errorf("Cleaning up volume storage for volume %q: %v", v.Name(), err)
 		}

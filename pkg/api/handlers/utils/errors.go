@@ -1,17 +1,18 @@
 package utils
 
 import (
+	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/errorhandling"
 	"github.com/containers/storage"
-	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
 
 var (
-	ErrLinkNotSupport = errors.New("Link is not supported")
+	ErrLinkNotSupport = errors.New("link is not supported")
 )
 
 // TODO: document the exported functions in this file and make them more
@@ -25,7 +26,7 @@ func Error(w http.ResponseWriter, code int, err error) {
 	// Log detailed message of what happened to machine running podman service
 	log.Infof("Request Failed(%s): %s", http.StatusText(code), err.Error())
 	em := errorhandling.ErrorModel{
-		Because:      (errors.Cause(err)).Error(),
+		Because:      errorhandling.Cause(err).Error(),
 		Message:      err.Error(),
 		ResponseCode: code,
 	}
@@ -33,51 +34,50 @@ func Error(w http.ResponseWriter, code int, err error) {
 }
 
 func VolumeNotFound(w http.ResponseWriter, name string, err error) {
-	if errors.Cause(err) != define.ErrNoSuchVolume {
+	if !errors.Is(err, define.ErrNoSuchVolume) {
 		InternalServerError(w, err)
 	}
 	Error(w, http.StatusNotFound, err)
 }
 
 func ContainerNotFound(w http.ResponseWriter, name string, err error) {
-	switch errors.Cause(err) {
-	case define.ErrNoSuchCtr, define.ErrCtrExists:
+	if errors.Is(err, define.ErrNoSuchCtr) || errors.Is(err, define.ErrCtrExists) {
 		Error(w, http.StatusNotFound, err)
-	default:
+	} else {
 		InternalServerError(w, err)
 	}
 }
 
 func ImageNotFound(w http.ResponseWriter, name string, err error) {
-	if errors.Cause(err) != storage.ErrImageUnknown {
+	if !errors.Is(err, storage.ErrImageUnknown) {
 		InternalServerError(w, err)
 	}
 	Error(w, http.StatusNotFound, err)
 }
 
 func NetworkNotFound(w http.ResponseWriter, name string, err error) {
-	if errors.Cause(err) != define.ErrNoSuchNetwork {
+	if !errors.Is(err, define.ErrNoSuchNetwork) {
 		InternalServerError(w, err)
 	}
 	Error(w, http.StatusNotFound, err)
 }
 
 func PodNotFound(w http.ResponseWriter, name string, err error) {
-	if errors.Cause(err) != define.ErrNoSuchPod {
+	if !errors.Is(err, define.ErrNoSuchPod) {
 		InternalServerError(w, err)
 	}
 	Error(w, http.StatusNotFound, err)
 }
 
 func SessionNotFound(w http.ResponseWriter, name string, err error) {
-	if errors.Cause(err) != define.ErrNoSuchExecSession {
+	if !errors.Is(err, define.ErrNoSuchExecSession) {
 		InternalServerError(w, err)
 	}
 	Error(w, http.StatusNotFound, err)
 }
 
 func SecretNotFound(w http.ResponseWriter, nameOrID string, err error) {
-	if errors.Cause(err).Error() != "no such secret" {
+	if errorhandling.Cause(err).Error() != "no such secret" {
 		InternalServerError(w, err)
 	}
 	Error(w, http.StatusNotFound, err)
@@ -92,7 +92,7 @@ func InternalServerError(w http.ResponseWriter, err error) {
 }
 
 func BadRequest(w http.ResponseWriter, key string, value string, err error) {
-	e := errors.Wrapf(err, "failed to parse query parameter '%s': %q", key, value)
+	e := fmt.Errorf("failed to parse query parameter '%s': %q: %w", key, value, err)
 	Error(w, http.StatusBadRequest, e)
 }
 

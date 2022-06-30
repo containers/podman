@@ -1,11 +1,11 @@
 package errorhandling
 
 import (
+	"errors"
 	"os"
 	"strings"
 
 	"github.com/hashicorp/go-multierror"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -120,4 +120,23 @@ func (e PodConflictErrorModel) Error() string {
 
 func (e PodConflictErrorModel) Code() int {
 	return 409
+}
+
+// Cause returns the most underlying error for the provided one. There is a
+// maximum error depth of 100 to avoid endless loops. An additional error log
+// message will be created if this maximum has reached.
+func Cause(err error) (cause error) {
+	cause = err
+
+	const maxDepth = 100
+	for i := 0; i <= maxDepth; i++ {
+		res := errors.Unwrap(cause)
+		if res == nil {
+			return cause
+		}
+		cause = res
+	}
+
+	logrus.Errorf("Max error depth of %d reached, cannot unwrap until root cause: %v", maxDepth, err)
+	return cause
 }

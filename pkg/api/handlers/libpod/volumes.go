@@ -2,8 +2,11 @@ package libpod
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/url"
+
+	"errors"
 
 	"github.com/containers/podman/v4/libpod"
 	"github.com/containers/podman/v4/libpod/define"
@@ -16,7 +19,6 @@ import (
 	"github.com/containers/podman/v4/pkg/domain/infra/abi/parse"
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/gorilla/schema"
-	"github.com/pkg/errors"
 )
 
 func CreateVolume(w http.ResponseWriter, r *http.Request) {
@@ -30,14 +32,14 @@ func CreateVolume(w http.ResponseWriter, r *http.Request) {
 	}
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
 		utils.Error(w, http.StatusInternalServerError,
-			errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
+			fmt.Errorf("failed to parse parameters for %s: %w", r.URL.String(), err))
 		return
 	}
 
 	input := entities.VolumeCreateOptions{}
 	// decode params from body
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-		utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "Decode()"))
+		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("Decode(): %w", err))
 		return
 	}
 
@@ -108,7 +110,7 @@ func ListVolumes(w http.ResponseWriter, r *http.Request) {
 	filterMap, err := util.PrepareFilters(r)
 	if err != nil {
 		utils.Error(w, http.StatusInternalServerError,
-			errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
+			fmt.Errorf("failed to parse parameters for %s: %w", r.URL.String(), err))
 		return
 	}
 
@@ -181,7 +183,7 @@ func RemoveVolume(w http.ResponseWriter, r *http.Request) {
 
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
 		utils.Error(w, http.StatusInternalServerError,
-			errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
+			fmt.Errorf("failed to parse parameters for %s: %w", r.URL.String(), err))
 		return
 	}
 	name := utils.GetName(r)
@@ -191,7 +193,7 @@ func RemoveVolume(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := runtime.RemoveVolume(r.Context(), vol, query.Force, query.Timeout); err != nil {
-		if errors.Cause(err) == define.ErrVolumeBeingUsed {
+		if errors.Is(err, define.ErrVolumeBeingUsed) {
 			utils.Error(w, http.StatusConflict, err)
 			return
 		}
