@@ -405,4 +405,32 @@ var _ = Describe("Podman manifest", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 	})
+
+	It("manifest rm should not remove image and should be able to remove tagged manifest list", func() {
+		// manifest rm should fail with `image is not a manifest list`
+		session := podmanTest.Podman([]string{"manifest", "rm", ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(125))
+		Expect(session.ErrorToString()).To(ContainSubstring("image is not a manifest list"))
+
+		manifestName := "testmanifest:sometag"
+		session = podmanTest.Podman([]string{"manifest", "create", manifestName})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		// verify if manifest exists
+		session = podmanTest.Podman([]string{"manifest", "exists", manifestName})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		// manifest rm should be able to remove tagged manifest list
+		session = podmanTest.Podman([]string{"manifest", "rm", manifestName})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		// verify that manifest should not exist
+		session = podmanTest.Podman([]string{"manifest", "exists", manifestName})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(1))
+	})
 })
