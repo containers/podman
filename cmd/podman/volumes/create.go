@@ -8,7 +8,6 @@ import (
 	"github.com/containers/podman/v4/cmd/podman/parse"
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/containers/podman/v4/pkg/domain/entities"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -65,11 +64,11 @@ func create(cmd *cobra.Command, args []string) error {
 	}
 	createOpts.Label, err = parse.GetAllLabels([]string{}, opts.Label)
 	if err != nil {
-		return errors.Wrapf(err, "unable to process labels")
+		return fmt.Errorf("unable to process labels: %w", err)
 	}
 	createOpts.Options, err = parse.GetAllLabels([]string{}, opts.Opts)
 	if err != nil {
-		return errors.Wrapf(err, "unable to process options")
+		return fmt.Errorf("unable to process options: %w", err)
 	}
 	response, err := registry.ContainerEngine().VolumeCreate(context.Background(), createOpts)
 	if err != nil {

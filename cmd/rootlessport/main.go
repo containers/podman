@@ -6,6 +6,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -18,7 +19,6 @@ import (
 	"github.com/containernetworking/plugins/pkg/ns"
 	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/podman/v4/pkg/rootlessport"
-	"github.com/pkg/errors"
 	rkport "github.com/rootless-containers/rootlesskit/pkg/port"
 	rkbuiltin "github.com/rootless-containers/rootlesskit/pkg/port/builtin"
 	rkportutil "github.com/rootless-containers/rootlesskit/pkg/port/portutil"
@@ -269,16 +269,16 @@ func handler(ctx context.Context, conn io.Reader, pm rkport.Manager) error {
 	dec := json.NewDecoder(conn)
 	err := dec.Decode(&childIP)
 	if err != nil {
-		return errors.Wrap(err, "rootless port failed to decode ports")
+		return fmt.Errorf("rootless port failed to decode ports: %w", err)
 	}
 	portStatus, err := pm.ListPorts(ctx)
 	if err != nil {
-		return errors.Wrap(err, "rootless port failed to list ports")
+		return fmt.Errorf("rootless port failed to list ports: %w", err)
 	}
 	for _, status := range portStatus {
 		err = pm.RemovePort(ctx, status.ID)
 		if err != nil {
-			return errors.Wrap(err, "rootless port failed to remove port")
+			return fmt.Errorf("rootless port failed to remove port: %w", err)
 		}
 	}
 	// add the ports with the new child IP
@@ -287,7 +287,7 @@ func handler(ctx context.Context, conn io.Reader, pm rkport.Manager) error {
 		status.Spec.ChildIP = childIP
 		_, err = pm.AddPort(ctx, status.Spec)
 		if err != nil {
-			return errors.Wrap(err, "rootless port failed to add port")
+			return fmt.Errorf("rootless port failed to add port: %w", err)
 		}
 	}
 	return nil

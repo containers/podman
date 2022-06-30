@@ -2,6 +2,7 @@ package diff
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 
@@ -9,7 +10,6 @@ import (
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/storage/pkg/archive"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -46,7 +46,7 @@ func changesToJSON(diffs *entities.DiffReport) error {
 		case archive.ChangeModify:
 			body.Changed = append(body.Changed, row.Path)
 		default:
-			return errors.Errorf("output kind %q not recognized", row.Kind)
+			return fmt.Errorf("output kind %q not recognized", row.Kind)
 		}
 	}
 
@@ -73,7 +73,7 @@ func ValidateContainerDiffArgs(cmd *cobra.Command, args []string) error {
 		return errors.New("--latest and containers cannot be used together")
 	}
 	if len(args) == 0 && !given {
-		return errors.Errorf("%q requires a name, id, or the \"--latest\" flag", cmd.CommandPath())
+		return fmt.Errorf("%q requires a name, id, or the \"--latest\" flag", cmd.CommandPath())
 	}
 	return nil
 }

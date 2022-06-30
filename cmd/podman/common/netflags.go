@@ -1,6 +1,8 @@
 package common
 
 import (
+	"errors"
+	"fmt"
 	"net"
 
 	"github.com/containers/common/libnetwork/types"
@@ -10,7 +12,6 @@ import (
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/specgen"
 	"github.com/containers/podman/v4/pkg/specgenutil"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
@@ -125,13 +126,13 @@ func NetFlagsToNetOptions(opts *entities.NetOptions, flags pflag.FlagSet) (*enti
 			if d == "none" {
 				opts.UseImageResolvConf = true
 				if len(servers) > 1 {
-					return nil, errors.Errorf("%s is not allowed to be specified with other DNS ip addresses", d)
+					return nil, fmt.Errorf("%s is not allowed to be specified with other DNS ip addresses", d)
 				}
 				break
 			}
 			dns := net.ParseIP(d)
 			if dns == nil {
-				return nil, errors.Errorf("%s is not an ip address", d)
+				return nil, fmt.Errorf("%s is not an ip address", d)
 			}
 			opts.DNSServers = append(opts.DNSServers, dns)
 		}
@@ -154,7 +155,7 @@ func NetFlagsToNetOptions(opts *entities.NetOptions, flags pflag.FlagSet) (*enti
 		for _, dom := range dnsSearches {
 			if dom == "." {
 				if len(dnsSearches) > 1 {
-					return nil, errors.Errorf("cannot pass additional search domains when also specifying '.'")
+					return nil, errors.New("cannot pass additional search domains when also specifying '.'")
 				}
 				continue
 			}
@@ -218,18 +219,18 @@ func NetFlagsToNetOptions(opts *entities.NetOptions, flags pflag.FlagSet) (*enti
 			if ip != "" {
 				// if pod create --infra=false
 				if infra, err := flags.GetBool("infra"); err == nil && !infra {
-					return nil, errors.Wrapf(define.ErrInvalidArg, "cannot set --%s without infra container", ipFlagName)
+					return nil, fmt.Errorf("cannot set --%s without infra container: %w", ipFlagName, define.ErrInvalidArg)
 				}
 
 				staticIP := net.ParseIP(ip)
 				if staticIP == nil {
-					return nil, errors.Errorf("%q is not an ip address", ip)
+					return nil, fmt.Errorf("%q is not an ip address", ip)
 				}
 				if !opts.Network.IsBridge() && !opts.Network.IsDefault() {
-					return nil, errors.Wrapf(define.ErrInvalidArg, "--%s can only be set when the network mode is bridge", ipFlagName)
+					return nil, fmt.Errorf("--%s can only be set when the network mode is bridge: %w", ipFlagName, define.ErrInvalidArg)
 				}
 				if len(opts.Networks) != 1 {
-					return nil, errors.Wrapf(define.ErrInvalidArg, "--%s can only be set for a single network", ipFlagName)
+					return nil, fmt.Errorf("--%s can only be set for a single network: %w", ipFlagName, define.ErrInvalidArg)
 				}
 				for name, netOpts := range opts.Networks {
 					netOpts.StaticIPs = append(netOpts.StaticIPs, staticIP)
@@ -245,17 +246,17 @@ func NetFlagsToNetOptions(opts *entities.NetOptions, flags pflag.FlagSet) (*enti
 		if len(m) > 0 {
 			// if pod create --infra=false
 			if infra, err := flags.GetBool("infra"); err == nil && !infra {
-				return nil, errors.Wrap(define.ErrInvalidArg, "cannot set --mac without infra container")
+				return nil, fmt.Errorf("cannot set --mac without infra container: %w", define.ErrInvalidArg)
 			}
 			mac, err := net.ParseMAC(m)
 			if err != nil {
 				return nil, err
 			}
 			if !opts.Network.IsBridge() && !opts.Network.IsDefault() {
-				return nil, errors.Wrap(define.ErrInvalidArg, "--mac-address can only be set when the network mode is bridge")
+				return nil, fmt.Errorf("--mac-address can only be set when the network mode is bridge: %w", define.ErrInvalidArg)
 			}
 			if len(opts.Networks) != 1 {
-				return nil, errors.Wrap(define.ErrInvalidArg, "--mac-address can only be set for a single network")
+				return nil, fmt.Errorf("--mac-address can only be set for a single network: %w", define.ErrInvalidArg)
 			}
 			for name, netOpts := range opts.Networks {
 				netOpts.StaticMAC = types.HardwareAddr(mac)
@@ -270,10 +271,10 @@ func NetFlagsToNetOptions(opts *entities.NetOptions, flags pflag.FlagSet) (*enti
 		if len(aliases) > 0 {
 			// if pod create --infra=false
 			if infra, err := flags.GetBool("infra"); err == nil && !infra {
-				return nil, errors.Wrap(define.ErrInvalidArg, "cannot set --network-alias without infra container")
+				return nil, fmt.Errorf("cannot set --network-alias without infra container: %w", define.ErrInvalidArg)
 			}
 			if !opts.Network.IsBridge() && !opts.Network.IsDefault() {
-				return nil, errors.Wrap(define.ErrInvalidArg, "--network-alias can only be set when the network mode is bridge")
+				return nil, fmt.Errorf("--network-alias can only be set when the network mode is bridge: %w", define.ErrInvalidArg)
 			}
 			for name, netOpts := range opts.Networks {
 				netOpts.Aliases = aliases

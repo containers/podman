@@ -13,7 +13,6 @@ import (
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/errorhandling"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -63,7 +62,7 @@ func init() {
 func autoUpdate(cmd *cobra.Command, args []string) error {
 	if len(args) > 0 {
 		// Backwards compat. System tests expect this error string.
-		return errors.Errorf("`%s` takes no arguments", cmd.CommandPath())
+		return fmt.Errorf("`%s` takes no arguments", cmd.CommandPath())
 	}
 
 	allReports, failures := registry.ContainerEngine().AutoUpdate(registry.GetContext(), autoUpdateOptions.AutoUpdateOptions)

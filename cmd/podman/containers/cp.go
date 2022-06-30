@@ -1,6 +1,7 @@
 package containers
 
 import (
+	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -8,6 +9,8 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	"errors"
 
 	buildahCopiah "github.com/containers/buildah/copier"
 	"github.com/containers/podman/v4/cmd/podman/common"
@@ -17,7 +20,6 @@ import (
 	"github.com/containers/podman/v4/pkg/errorhandling"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/idtools"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -102,7 +104,7 @@ func containerMustExist(container string) error {
 		return err
 	}
 	if !exists.Value {
-		return errors.Errorf("container %q does not exist", container)
+		return fmt.Errorf("container %q does not exist", container)
 	}
 	return nil
 }
@@ -131,7 +133,7 @@ func copyContainerToContainer(sourceContainer string, sourcePath string, destCon
 
 	sourceContainerInfo, err := registry.ContainerEngine().ContainerStat(registry.GetContext(), sourceContainer, sourcePath)
 	if err != nil {
-		return errors.Wrapf(err, "%q could not be found on container %s", sourcePath, sourceContainer)
+		return fmt.Errorf("%q could not be found on container %s: %w", sourcePath, sourceContainer, err)
 	}
 
 	destContainerBaseName, destContainerInfo, destResolvedToParentDir, err := resolvePathOnDestinationContainer(destContainer, destPath, false)
@@ -170,7 +172,7 @@ func copyContainerToContainer(sourceContainer string, sourcePath string, destCon
 			return err
 		}
 		if err := copyFunc(); err != nil {
-			return errors.Wrap(err, "error copying from container")
+			return fmt.Errorf("error copying from container: %w", err)
 		}
 		return nil
 	}
@@ -190,7 +192,7 @@ func copyContainerToContainer(sourceContainer string, sourcePath string, destCon
 			return err
 		}
 		if err := copyFunc(); err != nil {
-			return errors.Wrap(err, "error copying to container")
+			return fmt.Errorf("error copying to container: %w", err)
 		}
 		return nil
 	}
@@ -212,7 +214,7 @@ func copyFromContainer(container string, containerPath string, hostPath string) 
 
 	containerInfo, err := registry.ContainerEngine().ContainerStat(registry.GetContext(), container, containerPath)
 	if err != nil {
-		return errors.Wrapf(err, "%q could not be found on container %s", containerPath, container)
+		return fmt.Errorf("%q could not be found on container %s: %w", containerPath, container, err)
 	}
 
 	var hostBaseName string
@@ -220,13 +222,13 @@ func copyFromContainer(container string, containerPath string, hostPath string) 
 	hostInfo, hostInfoErr := copy.ResolveHostPath(hostPath)
 	if hostInfoErr != nil {
 		if strings.HasSuffix(hostPath, "/") {
-			return errors.Wrapf(hostInfoErr, "%q could not be found on the host", hostPath)
+			return fmt.Errorf("%q could not be found on the host: %w", hostPath, hostInfoErr)
 		}
 		// If it doesn't exist, then let's have a look at the parent dir.
 		parentDir := filepath.Dir(hostPath)
 		hostInfo, err = copy.ResolveHostPath(parentDir)
 		if err != nil {
-			return errors.Wrapf(hostInfoErr, "%q could not be found on the host", hostPath)
+			return fmt.Errorf("%q could not be found on the host: %w", hostPath, hostInfoErr)
 		}
 		// If the specified path does not exist, we need to assume that
 		// it'll be created while copying.  Hence, we use it as the
@@ -241,7 +243,7 @@ func copyFromContainer(container string, containerPath string, hostPath string) 
 
 	if !isStdout {
 		if err := validateFileInfo(hostInfo); err != nil {
-			return errors.Wrap(err, "invalid destination")
+			return fmt.Errorf("invalid destination: %w", err)
 		}
 	}
 
@@ -313,7 +315,7 @@ func copyFromContainer(container string, containerPath string, hostPath string) 
 			dir = filepath.Dir(dir)
 		}
 		if err := buildahCopiah.Put(dir, "", putOptions, reader); err != nil {
-			return errors.Wrap(err, "error copying to host")
+			return fmt.Errorf("error copying to host: %w", err)
 		}
 		return nil
 	}
@@ -325,7 +327,7 @@ func copyFromContainer(container string, containerPath string, hostPath string) 
 			return err
 		}
 		if err := copyFunc(); err != nil {
-			return errors.Wrap(err, "error copying from container")
+			return fmt.Errorf("error copying from container: %w", err)
 		}
 		return nil
 	}
@@ -347,7 +349,7 @@ func copyToContainer(container string, containerPath string, hostPath string) er
 	// Make sure that host path exists.
 	hostInfo, err := copy.ResolveHostPath(hostPath)
 	if err != nil {
-		return errors.Wrapf(err, "%q could not be found on the host", hostPath)
+		return fmt.Errorf("%q could not be found on the host: %w", hostPath, err)
 	}
 
 	containerBaseName, containerInfo, containerResolvedToParentDir, err := resolvePathOnDestinationContainer(container, containerPath, isStdin)
@@ -422,7 +424,7 @@ func copyToContainer(container string, containerPath string, hostPath string) er
 			getOptions.Rename = map[string]string{filepath.Base(hostTarget): containerBaseName}
 		}
 		if err := buildahCopiah.Get("/", "", getOptions, []string{hostTarget}, writer); err != nil {
-			return errors.Wrap(err, "error copying from host")
+			return fmt.Errorf("error copying from host: %w", err)
 		}
 		return nil
 	}
@@ -439,7 +441,7 @@ func copyToContainer(container string, containerPath string, hostPath string) er
 			return err
 		}
 		if err := copyFunc(); err != nil {
-			return errors.Wrap(err, "error copying to container")
+			return fmt.Errorf("error copying to container: %w", err)
 		}
 		return nil
 	}
@@ -458,7 +460,7 @@ func resolvePathOnDestinationContainer(container string, containerPath string, i
 	}
 
 	if strings.HasSuffix(containerPath, "/") {
-		err = errors.Wrapf(err, "%q could not be found on container %s", containerPath, container)
+		err = fmt.Errorf("%q could not be found on container %s: %w", containerPath, container, err)
 		return
 	}
 	if isStdin {
@@ -479,13 +481,13 @@ func resolvePathOnDestinationContainer(container string, containerPath string, i
 
 	parentDir, err := containerParentDir(container, path)
 	if err != nil {
-		err = errors.Wrapf(err, "could not determine parent dir of %q on container %s", path, container)
+		err = fmt.Errorf("could not determine parent dir of %q on container %s: %w", path, container, err)
 		return
 	}
 
 	containerInfo, err = registry.ContainerEngine().ContainerStat(registry.GetContext(), container, parentDir)
 	if err != nil {
-		err = errors.Wrapf(err, "%q could not be found on container %s", containerPath, container)
+		err = fmt.Errorf("%q could not be found on container %s: %w", containerPath, container, err)
 		return
 	}
 
@@ -505,7 +507,7 @@ func containerParentDir(container string, containerPath string) (string, error) 
 		return "", err
 	}
 	if len(inspectData) != 1 {
-		return "", errors.Errorf("inspecting container %q: expected 1 data item but got %d", container, len(inspectData))
+		return "", fmt.Errorf("inspecting container %q: expected 1 data item but got %d", container, len(inspectData))
 	}
 	workDir := filepath.Join("/", inspectData[0].Config.WorkingDir)
 	workDir = filepath.Join(workDir, containerPath)
@@ -518,5 +520,5 @@ func validateFileInfo(info *copy.FileInfo) error {
 	if info.Mode.IsDir() || info.Mode.IsRegular() {
 		return nil
 	}
-	return errors.Errorf("%q must be a directory or a regular file", info.LinkTarget)
+	return fmt.Errorf("%q must be a directory or a regular file", info.LinkTarget)
 }

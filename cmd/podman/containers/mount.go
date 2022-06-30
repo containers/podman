@@ -1,6 +1,7 @@
 package containers
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
@@ -10,7 +11,6 @@ import (
 	"github.com/containers/podman/v4/cmd/podman/utils"
 	"github.com/containers/podman/v4/cmd/podman/validate"
 	"github.com/containers/podman/v4/pkg/domain/entities"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -83,7 +83,7 @@ func init() {
 
 func mount(cmd *cobra.Command, args []string) error {
 	if len(args) > 0 && mountOpts.Latest {
-		return errors.Errorf("--latest and containers cannot be used together")
+		return errors.New("--latest and containers cannot be used together")
 	}
 	reports, err := registry.ContainerEngine().ContainerMount(registry.GetContext(), args, mountOpts)
 	if err != nil {
@@ -108,7 +108,7 @@ func mount(cmd *cobra.Command, args []string) error {
 	case mountOpts.Format == "":
 		break // print defaults
 	default:
-		return errors.Errorf("unknown --format argument: %q", mountOpts.Format)
+		return fmt.Errorf("unknown --format argument: %q", mountOpts.Format)
 	}
 
 	mrs := make([]mountReporter, 0, len(reports))

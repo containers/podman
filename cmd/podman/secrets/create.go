@@ -2,6 +2,7 @@ package secrets
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -11,7 +12,6 @@ import (
 	"github.com/containers/podman/v4/cmd/podman/common"
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/containers/podman/v4/pkg/domain/entities"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -66,7 +66,7 @@ func create(cmd *cobra.Command, args []string) error {
 	case env:
 		envValue := os.Getenv(path)
 		if envValue == "" {
-			return errors.Errorf("cannot create store secret data: environment variable %s is not set", path)
+			return fmt.Errorf("cannot create store secret data: environment variable %s is not set", path)
 		}
 		reader = strings.NewReader(envValue)
 	case path == "-" || path == "/dev/stdin":

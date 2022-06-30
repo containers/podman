@@ -1,10 +1,9 @@
 package parse
 
 import (
+	"fmt"
 	"net/url"
 	"strings"
-
-	"github.com/pkg/errors"
 )
 
 func FilterArgumentsIntoFilters(filters []string) (url.Values, error) {
@@ -12,7 +11,7 @@ func FilterArgumentsIntoFilters(filters []string) (url.Values, error) {
 	for _, f := range filters {
 		t := strings.SplitN(f, "=", 2)
 		if len(t) < 2 {
-			return parsedFilters, errors.Errorf("filter input must be in the form of filter=value: %s is invalid", f)
+			return parsedFilters, fmt.Errorf("filter input must be in the form of filter=value: %s is invalid", f)
 		}
 		parsedFilters.Add(t[0], t[1])
 	}

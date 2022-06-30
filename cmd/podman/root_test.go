@@ -1,12 +1,12 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"testing"
 
 	"github.com/containers/podman/v4/libpod/define"
-	"github.com/pkg/errors"
 )
 
 func TestFormatError(t *testing.T) {
@@ -22,7 +22,7 @@ func TestFormatError(t *testing.T) {
 func TestFormatOCIError(t *testing.T) {
 	expectedPrefix := "Error: "
 	expectedSuffix := "OCI runtime output"
-	err := errors.Wrap(define.ErrOCIRuntime, expectedSuffix)
+	err := fmt.Errorf("%s: %w", expectedSuffix, define.ErrOCIRuntime)
 	output := formatError(err)
 
 	if !strings.HasPrefix(output, expectedPrefix) {

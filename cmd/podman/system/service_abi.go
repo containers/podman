@@ -4,6 +4,7 @@
 package system
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"net/url"
@@ -16,7 +17,6 @@ import (
 	"github.com/containers/podman/v4/pkg/domain/infra"
 	"github.com/containers/podman/v4/pkg/servicereaper"
 	"github.com/coreos/go-systemd/v22/activation"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
 	"golang.org/x/sys/unix"
@@ -48,13 +48,13 @@ func restService(flags *pflag.FlagSet, cfg *entities.PodmanConfig, opts entities
 		listener = listeners[0]
 		// note that activation.Listeners() returns nil when it cannot listen on the fd (i.e. udp connection)
 		if listener == nil {
-			return fmt.Errorf("unexpected fd received from systemd: cannot listen on it")
+			return errors.New("unexpected fd received from systemd: cannot listen on it")
 		}
 		libpodRuntime.SetRemoteURI(listeners[0].Addr().String())
 	} else {
 		uri, err := url.Parse(opts.URI)
 		if err != nil {
-			return errors.Errorf("%s is an invalid socket destination", opts.URI)
+			return fmt.Errorf("%s is an invalid socket destination", opts.URI)
 		}
 
 		switch uri.Scheme {
@@ -74,7 +74,7 @@ func restService(flags *pflag.FlagSet, cfg *entities.PodmanConfig, opts entities
 			} else {
 				listener, err = net.Listen(uri.Scheme, path)
 				if err != nil {
-					return errors.Wrapf(err, "unable to create socket")
+					return fmt.Errorf("unable to create socket: %w", err)
 				}
 			}
 		case "tcp":
@@ -85,7 +85,7 @@ func restService(flags *pflag.FlagSet, cfg *entities.PodmanConfig, opts entities
 			}
 			listener, err = net.Listen(uri.Scheme, host)
 			if err != nil {
-				return errors.Wrapf(err, "unable to create socket %v", host)
+				return fmt.Errorf("unable to create socket %v: %w", host, err)
 			}
 		default:
 			logrus.Debugf("Attempting API Service endpoint scheme %q", uri.Scheme)

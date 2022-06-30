@@ -2,6 +2,7 @@ package containers
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/containers/common/pkg/cgroups"
@@ -10,7 +11,6 @@ import (
 	"github.com/containers/podman/v4/cmd/podman/utils"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/rootless"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
@@ -73,7 +73,7 @@ func pause(cmd *cobra.Command, args []string) error {
 	}
 
 	if len(args) < 1 && !pauseOpts.All {
-		return errors.Errorf("you must provide at least one container name or id")
+		return errors.New("you must provide at least one container name or id")
 	}
 	responses, err := registry.ContainerEngine().ContainerPause(context.Background(), args, pauseOpts)
 	if err != nil {
