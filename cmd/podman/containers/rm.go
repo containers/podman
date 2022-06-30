@@ -140,6 +140,9 @@ func removeContainers(namesOrIDs []string, rmOptions entities.RmOptions, setExit
 			}
 			if setExit {
 				setExitCode(r.Err)
+				if rmOptions.Force && registry.GetExitCode() == 1 {
+					registry.SetExitCode(define.ExecErrorCodeIgnore)
+				}
 			}
 			errs = append(errs, r.Err)
 		} else {

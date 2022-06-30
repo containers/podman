@@ -94,6 +94,9 @@ func removePods(namesOrIDs []string, rmOptions entities.PodRmOptions, printIDs b
 	responses, err := registry.ContainerEngine().PodRm(context.Background(), namesOrIDs, rmOptions)
 	if err != nil {
 		setExitCode(err)
+		if rmOptions.Force && registry.GetExitCode() == 1 {
+			registry.SetExitCode(define.ExecErrorCodeIgnore)
+		}
 		return err
 	}
 

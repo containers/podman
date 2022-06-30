@@ -106,6 +106,9 @@ func Execute() {
 				fmt.Fprintln(os.Stderr, "Cannot connect to Podman. Please verify your connection to the Linux system using `podman system connection list`, or try `podman machine init` and `podman machine start` to manage a new Linux VM")
 			}
 		}
+		if registry.GetExitCode() == define.ExecErrorCodeIgnore {
+			registry.SetExitCode(0)
+		}
 		fmt.Fprintln(os.Stderr, formatError(err))
 	}
 	os.Exit(registry.GetExitCode())

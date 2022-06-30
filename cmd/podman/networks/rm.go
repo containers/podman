@@ -71,6 +71,9 @@ func networkRm(cmd *cobra.Command, args []string) error {
 			fmt.Println(r.Name)
 		} else {
 			setExitCode(r.Err)
+			if networkRmOptions.Force && registry.GetExitCode() == 1 {
+				registry.SetExitCode(define.ExecErrorCodeIgnore)
+			}
 			errs = append(errs, r.Err)
 		}
 	}

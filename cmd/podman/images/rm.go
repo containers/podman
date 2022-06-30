@@ -2,9 +2,9 @@ package images
 
 import (
 	"fmt"
-
 	"github.com/containers/podman/v4/cmd/podman/common"
 	"github.com/containers/podman/v4/cmd/podman/registry"
+	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/errorhandling"
 	"github.com/pkg/errors"
@@ -82,6 +82,9 @@ func rm(cmd *cobra.Command, args []string) error {
 			}
 		}
 		registry.SetExitCode(report.ExitCode)
+		if imageOpts.Force && registry.GetExitCode() == 1 {
+			registry.SetExitCode(define.ExecErrorCodeIgnore)
+		}
 	}
 
 	return errorhandling.JoinErrors(rmErrors)

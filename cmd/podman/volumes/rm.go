@@ -73,6 +73,9 @@ func rm(cmd *cobra.Command, args []string) error {
 			fmt.Println(r.Id)
 		} else {
 			setExitCode(r.Err)
+			if rmOptions.Force && registry.GetExitCode() == 1 {
+				registry.SetExitCode(define.ExecErrorCodeIgnore)
+			}
 			errs = append(errs, r.Err)
 		}
 	}
