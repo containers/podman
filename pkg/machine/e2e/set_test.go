@@ -1,6 +1,8 @@
 package e2e
 
 import (
+	"runtime"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
@@ -57,8 +59,15 @@ var _ = Describe("podman machine set", func() {
 		memorySession, err := mb.setName(name).setCmd(sshMemory.withSSHComand([]string{"cat", "/proc/meminfo", "|", "numfmt", "--field", "2", "--from-unit=Ki", "--to-unit=Mi", "|", "sed", "'s/ kB/M/g'", "|", "grep", "MemTotal"})).run()
 		Expect(err).To(BeNil())
 		Expect(memorySession).To(Exit(0))
-		Expect(memorySession.outputToString()).To(ContainSubstring("3824"))
-
+		switch runtime.GOOS {
+		// it seems macos and linux handle memory differently
+		case "linux":
+			Expect(memorySession.outputToString()).To(ContainSubstring("3821"))
+		case "darwin":
+			Expect(memorySession.outputToString()).To(ContainSubstring("3824"))
+		default:
+			// windows can go here if we ever run tests there
+		}
 		// Setting a running machine results in 125
 		runner, err := mb.setName(name).setCmd(set.withCPUs(4)).run()
 		Expect(err).To(BeNil())
