@@ -313,6 +313,13 @@ case "$TEST_FLAVOR" in
 
         install_test_configs
         ;;
+    machine)
+        rpm -ivh $PACKAGE_DOWNLOAD_DIR/podman-gvproxy*
+        remove_packaged_podman_files
+        make install.tools
+        make install PREFIX=/usr ETCDIR=/etc
+        install_test_configs
+        ;;
     gitlab)
         # This only runs on Ubuntu for now
         if [[ "$OS_RELEASE_ID" != "ubuntu" ]]; then
