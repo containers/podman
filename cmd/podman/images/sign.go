@@ -1,6 +1,7 @@
 package images
 
 import (
+	"errors"
 	"os"
 
 	"github.com/containers/common/pkg/auth"
@@ -8,7 +9,6 @@ import (
 	"github.com/containers/podman/v4/cmd/podman/common"
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/containers/podman/v4/pkg/domain/entities"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -57,7 +57,7 @@ func init() {
 
 func sign(cmd *cobra.Command, args []string) error {
 	if signOptions.SignBy == "" {
-		return errors.Errorf("please provide an identity")
+		return errors.New("please provide an identity")
 	}
 
 	var sigStoreDir string

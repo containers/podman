@@ -5,7 +5,6 @@ import (
 
 	"github.com/containers/podman/v4/cmd/podman/common"
 	"github.com/containers/podman/v4/cmd/podman/registry"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -31,7 +30,7 @@ func init() {
 func remove(cmd *cobra.Command, args []string) error {
 	updatedListID, err := registry.ImageEngine().ManifestRemoveDigest(registry.Context(), args[0], args[1])
 	if err != nil {
-		return errors.Wrapf(err, "error removing from manifest list %s", args[0])
+		return fmt.Errorf("removing from manifest list %s: %w", args[0], err)
 	}
 	fmt.Println(updatedListID)
 	return nil

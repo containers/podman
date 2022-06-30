@@ -1,6 +1,7 @@
 package system
 
 import (
+	"errors"
 	"os"
 
 	"github.com/containers/common/pkg/completion"
@@ -8,7 +9,6 @@ import (
 	"github.com/containers/podman/v4/cmd/podman/utils"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/rootless"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
@@ -47,14 +47,14 @@ func init() {
 
 func unshare(cmd *cobra.Command, args []string) error {
 	if isRootless := rootless.IsRootless(); !isRootless {
-		return errors.Errorf("please use unshare with rootless")
+		return errors.New("please use unshare with rootless")
 	}
 	// exec the specified command, if there is one
 	if len(args) < 1 {
 		// try to exec the shell, if one's set
 		shell, shellSet := os.LookupEnv("SHELL")
 		if !shellSet {
-			return errors.Errorf("no command specified and no $SHELL specified")
+			return errors.New("no command specified and no $SHELL specified")
 		}
 		args = []string{shell}
 	}

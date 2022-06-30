@@ -1,6 +1,7 @@
 package images
 
 import (
+	"fmt"
 	"net/url"
 	"regexp"
 
@@ -9,7 +10,6 @@ import (
 	"github.com/containers/podman/v4/cmd/podman/common"
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/containers/podman/v4/pkg/domain/entities"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -61,7 +61,7 @@ func setTrust(cmd *cobra.Command, args []string) error {
 	}
 
 	if !util.StringInSlice(setOptions.Type, validTrustTypes) {
-		return errors.Errorf("invalid choice: %s (choose from 'accept', 'reject', 'signedBy')", setOptions.Type)
+		return fmt.Errorf("invalid choice: %s (choose from 'accept', 'reject', 'signedBy')", setOptions.Type)
 	}
 	return registry.ImageEngine().SetTrust(registry.Context(), args, setOptions)
 }
@@ -71,17 +71,17 @@ func isValidImageURI(imguri string) (bool, error) {
 	uri := "http://" + imguri
 	u, err := url.Parse(uri)
 	if err != nil {
-		return false, errors.Wrapf(err, "invalid image uri: %s", imguri)
+		return false, fmt.Errorf("invalid image uri: %s: %w", imguri, err)
 	}
 	reg := regexp.MustCompile(`^[a-zA-Z0-9-_\.]+\/?:?[0-9]*[a-z0-9-\/:]*$`)
 	ret := reg.FindAllString(u.Host, -1)
 	if len(ret) == 0 {
-		return false, errors.Wrapf(err, "invalid image uri: %s", imguri)
+		return false, fmt.Errorf("invalid image uri: %s: %w", imguri, err)
 	}
 	reg = regexp.MustCompile(`^[a-z0-9-:\./]*$`)
 	ret = reg.FindAllString(u.Fragment, -1)
 	if len(ret) == 0 {
-		return false, errors.Wrapf(err, "invalid image uri: %s", imguri)
+		return false, fmt.Errorf("invalid image uri: %s: %w", imguri, err)
 	}
 	return true, nil
 }

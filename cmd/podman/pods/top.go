@@ -2,6 +2,7 @@ package pods
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -12,7 +13,6 @@ import (
 	"github.com/containers/podman/v4/cmd/podman/validate"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/util"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -67,7 +67,7 @@ func top(_ *cobra.Command, args []string) error {
 	}
 
 	if len(args) < 1 && !topOptions.Latest {
-		return errors.Errorf("you must provide the name or id of a running pod")
+		return errors.New("you must provide the name or id of a running pod")
 	}
 
 	if topOptions.Latest {

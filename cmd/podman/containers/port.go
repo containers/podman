@@ -1,6 +1,7 @@
 package containers
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -9,7 +10,6 @@ import (
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/containers/podman/v4/cmd/podman/validate"
 	"github.com/containers/podman/v4/pkg/domain/entities"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
@@ -77,14 +77,14 @@ func port(_ *cobra.Command, args []string) error {
 	)
 
 	if len(args) == 0 && !portOpts.Latest && !portOpts.All {
-		return errors.Errorf("you must supply a running container name or id")
+		return errors.New("you must supply a running container name or id")
 	}
 	if !portOpts.Latest && len(args) >= 1 {
 		container = args[0]
 	}
 	port := ""
 	if len(args) > 2 {
-		return errors.Errorf("`port` accepts at most 2 arguments")
+		return errors.New("`port` accepts at most 2 arguments")
 	}
 	if len(args) > 1 && !portOpts.Latest {
 		port = args[1]
@@ -95,7 +95,7 @@ func port(_ *cobra.Command, args []string) error {
 	if len(port) > 0 {
 		fields := strings.Split(port, "/")
 		if len(fields) > 2 || len(fields) < 1 {
-			return errors.Errorf("port formats are port/protocol. '%s' is invalid", port)
+			return fmt.Errorf("port formats are port/protocol. '%s' is invalid", port)
 		}
 		if len(fields) == 1 {
 			fields = append(fields, "tcp")
@@ -149,7 +149,7 @@ func port(_ *cobra.Command, args []string) error {
 			}
 		}
 		if !found && port != "" {
-			return errors.Errorf("failed to find published port %q", port)
+			return fmt.Errorf("failed to find published port %q", port)
 		}
 	}
 	return nil

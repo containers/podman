@@ -1,6 +1,7 @@
 package images
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"sort"
@@ -15,7 +16,6 @@ import (
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/docker/go-units"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -225,7 +225,7 @@ func sortImages(imageS []*entities.ImageSummary) ([]imageReporter, error) {
 				h.ImageSummary = *e
 				h.Repository, h.Tag, err = tokenRepoTag(tag)
 				if err != nil {
-					return nil, errors.Wrapf(err, "error parsing repository tag: %q", tag)
+					return nil, fmt.Errorf("error parsing repository tag: %q: %w", tag, err)
 				}
 				if h.Tag == "<none>" {
 					untagged = append(untagged, h)

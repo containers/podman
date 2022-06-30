@@ -1,6 +1,7 @@
 package images
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -23,7 +24,6 @@ import (
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/containers/podman/v4/cmd/podman/utils"
 	"github.com/containers/podman/v4/pkg/domain/entities"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -222,7 +222,7 @@ func build(cmd *cobra.Command, args []string) error {
 		// The context directory could be a URL.  Try to handle that.
 		tempDir, subDir, err := buildahDefine.TempDirForURL("", "buildah", args[0])
 		if err != nil {
-			return errors.Wrapf(err, "error prepping temporary context directory")
+			return fmt.Errorf("error prepping temporary context directory: %w", err)
 		}
 		if tempDir != "" {
 			// We had to download it to a temporary directory.
@@ -237,7 +237,7 @@ func build(cmd *cobra.Command, args []string) error {
 			// Nope, it was local.  Use it as is.
 			absDir, err := filepath.Abs(args[0])
 			if err != nil {
-				return errors.Wrapf(err, "error determining path to directory %q", args[0])
+				return fmt.Errorf("error determining path to directory %q: %w", args[0], err)
 			}
 			contextDir = absDir
 		}
@@ -253,7 +253,7 @@ func build(cmd *cobra.Command, args []string) error {
 			}
 			absFile, err := filepath.Abs(containerFiles[i])
 			if err != nil {
-				return errors.Wrapf(err, "error determining path to file %q", containerFiles[i])
+				return fmt.Errorf("error determining path to file %q: %w", containerFiles[i], err)
 			}
 			contextDir = filepath.Dir(absFile)
 			containerFiles[i] = absFile
@@ -262,10 +262,10 @@ func build(cmd *cobra.Command, args []string) error {
 	}
 
 	if contextDir == "" {
-		return errors.Errorf("no context directory and no Containerfile specified")
+		return errors.New("no context directory and no Containerfile specified")
 	}
 	if !utils.IsDir(contextDir) {
-		return errors.Errorf("context must be a directory: %q", contextDir)
+		return fmt.Errorf("context must be a directory: %q", contextDir)
 	}
 	if len(containerFiles) == 0 {
 		if utils.FileExists(filepath.Join(contextDir, "Containerfile")) {
@@ -296,14 +296,15 @@ func build(cmd *cobra.Command, args []string) error {
 		if registry.IsRemote() {
 			// errors from server does not contain ExitCode
 			// so parse exit code from error message
-			remoteExitCode, parseErr := utils.ExitCodeFromBuildError(fmt.Sprint(errors.Cause(err)))
+			remoteExitCode, parseErr := utils.ExitCodeFromBuildError(err.Error())
 			if parseErr == nil {
 				exitCode = remoteExitCode
 			}
 		}
 
-		if ee, ok := (errors.Cause(err)).(*exec.ExitError); ok {
-			exitCode = ee.ExitCode()
+		exitError := &exec.ExitError{}
+		if errors.As(err, &exitError) {
+			exitCode = exitError.ExitCode()
 		}
 
 		registry.SetExitCode(exitCode)
@@ -356,7 +357,7 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *buil
 	}
 
 	if pullFlagsCount > 1 {
-		return nil, errors.Errorf("can only set one of 'pull' or 'pull-always' or 'pull-never'")
+		return nil, errors.New("can only set one of 'pull' or 'pull-always' or 'pull-never'")
 	}
 
 	// Allow for --pull, --pull=true, --pull=false, --pull=never, --pull=always
@@ -477,7 +478,7 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *buil
 	case strings.HasPrefix(flags.Format, buildahDefine.DOCKER):
 		format = buildahDefine.Dockerv2ImageManifest
 	default:
-		return nil, errors.Errorf("unrecognized image type %q", flags.Format)
+		return nil, fmt.Errorf("unrecognized image type %q", flags.Format)
 	}
 
 	runtimeFlags := []string{}
@@ -500,7 +501,7 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *buil
 
 	decConfig, err := getDecryptConfig(flags.DecryptionKeys)
 	if err != nil {
-		return nil, errors.Wrapf(err, "unable to obtain decrypt config")
+		return nil, fmt.Errorf("unable to obtain decrypt config: %w", err)
 	}
 
 	additionalBuildContext := make(map[string]*buildahDefine.AdditionalBuildContext)
@@ -510,7 +511,7 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *buil
 			if len(av) > 1 {
 				parseAdditionalBuildContext, err := parse.GetAdditionalBuildContext(av[1])
 				if err != nil {
-					return nil, errors.Wrapf(err, "while parsing additional build context")
+					return nil, fmt.Errorf("while parsing additional build context: %w", err)
 				}
 				additionalBuildContext[av[0]] = &parseAdditionalBuildContext
 			} else {
@@ -580,7 +581,7 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *buil
 	if flags.IgnoreFile != "" {
 		excludes, err := parseDockerignore(flags.IgnoreFile)
 		if err != nil {
-			return nil, errors.Wrapf(err, "unable to obtain decrypt config")
+			return nil, fmt.Errorf("unable to obtain decrypt config: %w", err)
 		}
 		opts.Excludes = excludes
 	}
@@ -599,7 +600,7 @@ func getDecryptConfig(decryptionKeys []string) (*encconfig.DecryptConfig, error)
 		// decryption
 		dcc, err := enchelpers.CreateCryptoConfig([]string{}, decryptionKeys)
 		if err != nil {
-			return nil, errors.Wrapf(err, "invalid decryption keys")
+			return nil, fmt.Errorf("invalid decryption keys: %w", err)
 		}
 		cc := encconfig.CombineCryptoConfigs([]encconfig.CryptoConfig{dcc})
 		decConfig = cc.DecryptConfig

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -20,7 +21,6 @@ import (
 	"github.com/containers/podman/v4/pkg/parallel"
 	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/containers/podman/v4/version"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -137,10 +137,9 @@ func persistentPreRunE(cmd *cobra.Command, args []string) error {
 		if cmd.Flag("import").Changed {
 			runtime, err := crutils.CRGetRuntimeFromArchive(cmd.Flag("import").Value.String())
 			if err != nil {
-				return errors.Wrapf(
-					err,
-					"failed extracting runtime information from %s",
-					cmd.Flag("import").Value.String(),
+				return fmt.Errorf(
+					"failed extracting runtime information from %s: %w",
+					cmd.Flag("import").Value.String(), err,
 				)
 			}
 
@@ -160,7 +159,7 @@ func persistentPreRunE(cmd *cobra.Command, args []string) error {
 			} else if cfg.RuntimePath != *runtime {
 				// If the user selected a runtime on the command-line this checks if
 				// it is the same then during checkpointing and errors out if not.
-				return errors.Errorf(
+				return fmt.Errorf(
 					"checkpoint archive %s was created with runtime '%s' and cannot be restored with runtime '%s'",
 					cmd.Flag("import").Value.String(),
 					*runtime,
@@ -178,15 +177,15 @@ func persistentPreRunE(cmd *cobra.Command, args []string) error {
 		var err error
 		cfg.URI, cfg.Identity, err = cfg.ActiveDestination()
 		if err != nil {
-			return errors.Wrap(err, "failed to resolve active destination")
+			return fmt.Errorf("failed to resolve active destination: %w", err)
 		}
 
 		if err := cmd.Root().LocalFlags().Set("url", cfg.URI); err != nil {
-			return errors.Wrap(err, "failed to override --url flag")
+			return fmt.Errorf("failed to override --url flag: %w", err)
 		}
 
 		if err := cmd.Root().LocalFlags().Set("identity", cfg.Identity); err != nil {
-			return errors.Wrap(err, "failed to override --identity flag")
+			return fmt.Errorf("failed to override --identity flag: %w", err)
 		}
 	}
 
@@ -255,7 +254,7 @@ func persistentPreRunE(cmd *cobra.Command, args []string) error {
 		}
 
 		if cfg.MaxWorks <= 0 {
-			return errors.Errorf("maximum workers must be set to a positive number (got %d)", cfg.MaxWorks)
+			return fmt.Errorf("maximum workers must be set to a positive number (got %d)", cfg.MaxWorks)
 		}
 		if err := parallel.SetMaxThreads(uint(cfg.MaxWorks)); err != nil {
 			return err
@@ -297,12 +296,12 @@ func persistentPostRunE(cmd *cobra.Command, args []string) error {
 	if cmd.Flag("memory-profile").Changed {
 		f, err := os.Create(registry.PodmanConfig().MemoryProfile)
 		if err != nil {
-			return errors.Wrap(err, "creating memory profile")
+			return fmt.Errorf("creating memory profile: %w", err)
 		}
 		defer f.Close()
 		runtime.GC() // get up-to-date GC statistics
 		if err := pprof.WriteHeapProfile(f); err != nil {
-			return errors.Wrap(err, "writing memory profile")
+			return fmt.Errorf("writing memory profile: %w", err)
 		}
 	}
 
@@ -481,7 +480,7 @@ func resolveDestination() (string, string, string) {
 
 	cfg, err := config.ReadCustomConfig()
 	if err != nil {
-		logrus.Warning(errors.Wrap(err, "unable to read local containers.conf"))
+		logrus.Warning(fmt.Errorf("unable to read local containers.conf: %w", err))
 		return "", registry.DefaultAPIAddress(), ""
 	}
 
@@ -494,7 +493,7 @@ func resolveDestination() (string, string, string) {
 
 func formatError(err error) string {
 	var message string
-	if errors.Cause(err) == define.ErrOCIRuntime {
+	if errors.Is(err, define.ErrOCIRuntime) {
 		// OCIRuntimeErrors include the reason for the failure in the
 		// second to last message in the error chain.
 		message = fmt.Sprintf(

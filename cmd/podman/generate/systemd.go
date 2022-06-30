@@ -2,6 +2,7 @@ package pods
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -13,7 +14,6 @@ import (
 	"github.com/containers/podman/v4/cmd/podman/utils"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	systemDefine "github.com/containers/podman/v4/pkg/systemd/define"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -156,7 +156,7 @@ func systemd(cmd *cobra.Command, args []string) error {
 	if files {
 		cwd, err := os.Getwd()
 		if err != nil {
-			return errors.Wrap(err, "error getting current working directory")
+			return fmt.Errorf("error getting current working directory: %w", err)
 		}
 		for name, content := range reports.Units {
 			path := filepath.Join(cwd, fmt.Sprintf("%s.service", name))
@@ -189,7 +189,7 @@ func systemd(cmd *cobra.Command, args []string) error {
 	case format == "":
 		return printDefault(reports.Units)
 	default:
-		return errors.Errorf("unknown --format argument: %s", format)
+		return fmt.Errorf("unknown --format argument: %s", format)
 	}
 }
 

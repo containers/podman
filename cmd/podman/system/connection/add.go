@@ -2,6 +2,7 @@ package connection
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
 	"net/url"
@@ -14,7 +15,6 @@ import (
 	"github.com/containers/podman/v4/cmd/podman/system"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/domain/utils"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"golang.org/x/crypto/ssh"
@@ -76,7 +76,7 @@ func add(cmd *cobra.Command, args []string) error {
 	// Default to ssh schema if none given
 	dest := args[1]
 	if match, err := regexp.Match("^[A-Za-z][A-Za-z0-9+.-]*://", []byte(dest)); err != nil {
-		return errors.Wrapf(err, "invalid destination")
+		return fmt.Errorf("invalid destination: %w", err)
 	} else if !match {
 		dest = "ssh://" + dest
 	}
@@ -180,17 +180,17 @@ func add(cmd *cobra.Command, args []string) error {
 func getUDS(uri *url.URL, iden string) (string, error) {
 	cfg, err := utils.ValidateAndConfigure(uri, iden)
 	if err != nil {
-		return "", errors.Wrapf(err, "failed to validate")
+		return "", fmt.Errorf("failed to validate: %w", err)
 	}
 	dial, err := ssh.Dial("tcp", uri.Host, cfg)
 	if err != nil {
-		return "", errors.Wrapf(err, "failed to connect")
+		return "", fmt.Errorf("failed to connect: %w", err)
 	}
 	defer dial.Close()
 
 	session, err := dial.NewSession()
 	if err != nil {
-		return "", errors.Wrapf(err, "failed to create new ssh session on %q", uri.Host)
+		return "", fmt.Errorf("failed to create new ssh session on %q: %w", uri.Host, err)
 	}
 	defer session.Close()
 
@@ -206,11 +206,11 @@ func getUDS(uri *url.URL, iden string) (string, error) {
 
 	var info define.Info
 	if err := json.Unmarshal(infoJSON, &info); err != nil {
-		return "", errors.Wrapf(err, "failed to parse 'podman info' results")
+		return "", fmt.Errorf("failed to parse 'podman info' results: %w", err)
 	}
 
 	if info.Host.RemoteSocket == nil || len(info.Host.RemoteSocket.Path) == 0 {
-		return "", errors.Errorf("remote podman %q failed to report its UDS socket", uri.Host)
+		return "", fmt.Errorf("remote podman %q failed to report its UDS socket", uri.Host)
 	}
 	return info.Host.RemoteSocket.Path, nil
 }

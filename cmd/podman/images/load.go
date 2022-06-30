@@ -2,6 +2,7 @@ package images
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -14,7 +15,6 @@ import (
 	"github.com/containers/podman/v4/cmd/podman/validate"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/util"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 )
@@ -91,18 +91,18 @@ func load(cmd *cobra.Command, args []string) error {
 		}
 	} else {
 		if term.IsTerminal(int(os.Stdin.Fd())) {
-			return errors.Errorf("cannot read from terminal, use command-line redirection or the --input flag")
+			return errors.New("cannot read from terminal, use command-line redirection or the --input flag")
 		}
 		outFile, err := ioutil.TempFile(util.Tmpdir(), "podman")
 		if err != nil {
-			return errors.Errorf("creating file %v", err)
+			return fmt.Errorf("creating file %v", err)
 		}
 		defer os.Remove(outFile.Name())
 		defer outFile.Close()
 
 		_, err = io.Copy(outFile, os.Stdin)
 		if err != nil {
-			return errors.Errorf("copying file %v", err)
+			return fmt.Errorf("copying file %v", err)
 		}
 		loadOpts.Input = outFile.Name()
 	}
