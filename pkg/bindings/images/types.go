@@ -13,6 +13,8 @@ type RemoveOptions struct {
 	Force *bool
 	// Ignore if a specified image does not exist and do not throw an error.
 	Ignore *bool
+	// Confirms if given name is a manifest list and removes it, otherwise returns error.
+	LookupManifest *bool
 }
 
 //go:generate go run ../generator/generator.go DiffOptions

@@ -948,6 +948,10 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//     name: ignore
 	//     description: Ignore if a specified image does not exist and do not throw an error.
 	//     type: boolean
+	//   - in: query
+	//     name: lookupManifest
+	//     description: Resolves to manifest list instead of image.
+	//     type: boolean
 	// produces:
 	// - application/json
 	// responses:

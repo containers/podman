@@ -61,3 +61,18 @@ func (o *RemoveOptions) GetIgnore() bool {
 	}
 	return *o.Ignore
 }
+
+// WithLookupManifest set field LookupManifest to given value
+func (o *RemoveOptions) WithLookupManifest(value bool) *RemoveOptions {
+	o.LookupManifest = &value
+	return o
+}
+
+// GetLookupManifest returns value of field LookupManifest
+func (o *RemoveOptions) GetLookupManifest() bool {
+	if o.LookupManifest == nil {
+		var z bool
+		return z
+	}
+	return *o.LookupManifest
+}

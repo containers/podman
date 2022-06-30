@@ -615,10 +615,11 @@ func ImagesBatchRemove(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
 	query := struct {
-		All    bool     `schema:"all"`
-		Force  bool     `schema:"force"`
-		Ignore bool     `schema:"ignore"`
-		Images []string `schema:"images"`
+		All            bool     `schema:"all"`
+		Force          bool     `schema:"force"`
+		Ignore         bool     `schema:"ignore"`
+		LookupManifest bool     `schema:"lookupManifest"`
+		Images         []string `schema:"images"`
 	}{}
 
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
@@ -626,7 +627,7 @@ func ImagesBatchRemove(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	opts := entities.ImageRemoveOptions{All: query.All, Force: query.Force, Ignore: query.Ignore}
+	opts := entities.ImageRemoveOptions{All: query.All, Force: query.Force, Ignore: query.Ignore, LookupManifest: query.LookupManifest}
 	imageEngine := abi.ImageEngine{Libpod: runtime}
 	rmReport, rmErrors := imageEngine.Remove(r.Context(), query.Images, opts)
 	strErrs := errorhandling.ErrorsToStrings(rmErrors)
@@ -639,7 +640,8 @@ func ImagesRemove(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
 	query := struct {
-		Force bool `schema:"force"`
+		Force          bool `schema:"force"`
+		LookupManifest bool `schema:"lookupManifest"`
 	}{
 		Force: false,
 	}
@@ -649,7 +651,7 @@ func ImagesRemove(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	opts := entities.ImageRemoveOptions{Force: query.Force}
+	opts := entities.ImageRemoveOptions{Force: query.Force, LookupManifest: query.LookupManifest}
 	imageEngine := abi.ImageEngine{Libpod: runtime}
 	rmReport, rmErrors := imageEngine.Remove(r.Context(), []string{utils.GetName(r)}, opts)
 
