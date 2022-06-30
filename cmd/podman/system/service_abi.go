@@ -10,17 +10,39 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	api "github.com/containers/podman/v4/pkg/api/server"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/domain/infra"
 	"github.com/containers/podman/v4/pkg/servicereaper"
+	"github.com/containers/podman/v4/utils"
 	"github.com/coreos/go-systemd/v22/activation"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
 	"golang.org/x/sys/unix"
 )
+
+// maybeMoveToSubCgroup moves the current process in a sub cgroup when
+// it is running in the root cgroup on a system that uses cgroupv2.
+func maybeMoveToSubCgroup() error {
+	unifiedMode, err := cgroups.IsCgroup2UnifiedMode()
+	if err != nil {
+		return err
+	}
+	if !unifiedMode {
+		return nil
+	}
+	cgroup, err := utils.GetOwnCgroup()
+	if err != nil {
+		return err
+	}
+	if cgroup == "/" {
+		return utils.MoveUnderCgroupSubtree("init")
+	}
+	return nil
+}
 
 func restService(flags *pflag.FlagSet, cfg *entities.PodmanConfig, opts entities.ServiceOptions) error {
 	var (
@@ -100,6 +122,10 @@ func restService(flags *pflag.FlagSet, cfg *entities.PodmanConfig, opts entities
 	}
 	defer devNullfile.Close()
 	if err := unix.Dup2(int(devNullfile.Fd()), int(os.Stdin.Fd())); err != nil {
+		return err
+	}
+
+	if err := maybeMoveToSubCgroup(); err != nil {
 		return err
 	}
 
