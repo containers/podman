@@ -4,14 +4,15 @@
 package machine
 
 import (
-	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -51,7 +52,23 @@ func CreateSSHKeysPrefix(dir string, file string, passThru bool, skipExisting bo
 // generatekeys creates an ed25519 set of keys
 func generatekeys(writeLocation string) error {
 	args := append(append([]string{}, sshCommand[1:]...), writeLocation)
-	return exec.Command(sshCommand[0], args...).Run()
+	cmd := exec.Command(sshCommand[0], args...)
+	stdErr, err := cmd.StderrPipe()
+	if err != nil {
+		return err
+	}
+	if err := cmd.Start(); err != nil {
+		return err
+	}
+	waitErr := cmd.Wait()
+	if waitErr == nil {
+		return nil
+	}
+	errMsg, err := io.ReadAll(stdErr)
+	if err != nil {
+		return fmt.Errorf("key generation failed, unable to read from stderr: %w", waitErr)
+	}
+	return fmt.Errorf("failed to generate keys: %s: %w", string(errMsg), waitErr)
 }
 
 // generatekeys creates an ed25519 set of keys
