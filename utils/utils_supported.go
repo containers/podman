@@ -137,7 +137,7 @@ func moveUnderCgroup(cgroup, subtree string, processes []uint32) error {
 		}
 
 		// root cgroup, skip it
-		if parts[2] == "/" {
+		if parts[2] == "/" && !(unifiedMode && parts[1] == "") {
 			continue
 		}
 
