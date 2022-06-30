@@ -149,13 +149,8 @@ EOF
 
     # By default, volumes are mounted exec, but we have manually added the
     # noexec option. This should fail.
-    # ARGH. Unfortunately, runc (used for cgroups v1) produces a different error
     local expect_rc=126
-    local expect_msg='.* OCI permission denied.*'
-    if [[ $(podman_runtime) = "runc" ]]; then
-        expect_rc=1
-        expect_msg='.* exec user process caused.*permission denied'
-    fi
+    local expect_msg='.*exec.* OCI permission denied'
 
     run_podman ${expect_rc} run --rm --volume $myvolume:/vol:noexec,z $IMAGE /vol/myscript
     is "$output" "$expect_msg" "run on volume, noexec"
