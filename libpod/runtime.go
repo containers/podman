@@ -471,6 +471,8 @@ func makeRuntime(runtime *Runtime) (retErr error) {
 
 	// Initialize remaining OCI runtimes
 	for name, paths := range runtime.config.Engine.OCIRuntimes {
+		// TODO: to integrate conmon-rs, use the below line instead.
+		// ociRuntime, err := newConmonRsOCIRuntime(name, paths, runtime.conmonPath, runtime.runtimeFlags, runtime.config)
 		ociRuntime, err := newConmonOCIRuntime(name, paths, runtime.conmonPath, runtime.runtimeFlags, runtime.config)
 		if err != nil {
 			// Don't fatally error.
@@ -489,6 +491,8 @@ func makeRuntime(runtime *Runtime) (retErr error) {
 		// If the string starts with / it's a path to a runtime
 		// executable.
 		if strings.HasPrefix(runtime.config.Engine.OCIRuntime, "/") {
+			// TODO: to integrate conmon-rs, use the below line instead.
+			// ociRuntime, err := newConmonRsOCIRuntime(runtime.config.Engine.OCIRuntime, []string{runtime.config.Engine.OCIRuntime}, runtime.conmonPath, runtime.runtimeFlags, runtime.config)
 			ociRuntime, err := newConmonOCIRuntime(runtime.config.Engine.OCIRuntime, []string{runtime.config.Engine.OCIRuntime}, runtime.conmonPath, runtime.runtimeFlags, runtime.config)
 			if err != nil {
 				return err
@@ -652,6 +656,106 @@ func makeRuntime(runtime *Runtime) (retErr error) {
 		if err := runtime.migrate(); err != nil {
 			return err
 		}
+	}
+
+	return nil
+}
+
+// findConmon iterates over conmonPaths and returns the path
+// to the first conmon binary with a new enough version. If none is found,
+// we try to do a path lookup of "conmon".
+func findConmon(conmonPaths []string) (string, error) {
+	foundOutdatedConmon := false
+
+	// TODO: this for loop doesn't seem to work with conmon-rs.
+	for _, path := range conmonPaths {
+		stat, err := os.Stat(path)
+		if err != nil {
+			continue
+		}
+		if stat.IsDir() {
+			continue
+		}
+		if err := probeConmon(path); err != nil {
+			logrus.Warnf("Conmon at %s invalid: %v", path, err)
+			foundOutdatedConmon = true
+			continue
+		}
+		logrus.Debugf("Using conmon: %q", path)
+		return path, nil
+	}
+
+	// Search the $PATH as last fallback
+	// TODO: to integrate conmon-rs, use the below line instead.
+	// if path, err := exec.LookPath("conmonrs"); err == nil {
+	if path, err := exec.LookPath("conmon"); err == nil {
+		if err := probeConmon(path); err != nil {
+			logrus.Warnf("Conmon at %s is invalid: %v", path, err)
+			foundOutdatedConmon = true
+		} else {
+			logrus.Debugf("Using conmon from $PATH: %q", path)
+			return path, nil
+		}
+	}
+
+	if foundOutdatedConmon {
+		return "", fmt.Errorf(
+			"please update to v%d.%d.%d or later: %w",
+			conmonMinMajorVersion, conmonMinMinorVersion, conmonMinPatchVersion, define.ErrConmonOutdated)
+	}
+
+	return "", fmt.Errorf(
+		"could not find a working conmon binary (configured options: %v): %w",
+		conmonPaths, define.ErrInvalidArg)
+}
+
+// probeConmon calls conmon --version and verifies it is a new enough version for
+// the runtime expectations the container engine currently has.
+func probeConmon(conmonBinary string) error {
+	cmd := exec.Command(conmonBinary, "--version")
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	err := cmd.Run()
+	if err != nil {
+		return err
+	}
+	r := regexp.MustCompile(`^conmon version (?P<Major>\d+).(?P<Minor>\d+).(?P<Patch>\d+)`)
+
+	matches := r.FindStringSubmatch(out.String())
+	if len(matches) != 4 {
+		return fmt.Errorf("%v: %w", define.ErrConmonVersionFormat, err)
+	}
+	major, err := strconv.Atoi(matches[1])
+	if err != nil {
+		return fmt.Errorf("%v: %w", define.ErrConmonVersionFormat, err)
+	}
+	if major < conmonMinMajorVersion {
+		return define.ErrConmonOutdated
+	}
+	if major > conmonMinMajorVersion {
+		return nil
+	}
+
+	minor, err := strconv.Atoi(matches[2])
+	if err != nil {
+		return fmt.Errorf("%v: %w", define.ErrConmonVersionFormat, err)
+	}
+	if minor < conmonMinMinorVersion {
+		return define.ErrConmonOutdated
+	}
+	if minor > conmonMinMinorVersion {
+		return nil
+	}
+
+	patch, err := strconv.Atoi(matches[3])
+	if err != nil {
+		return fmt.Errorf("%v: %w", define.ErrConmonVersionFormat, err)
+	}
+	if patch < conmonMinPatchVersion {
+		return define.ErrConmonOutdated
+	}
+	if patch > conmonMinPatchVersion {
+		return nil
 	}
 
 	return nil

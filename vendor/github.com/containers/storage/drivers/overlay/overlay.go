@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path"
@@ -1261,7 +1262,7 @@ func (d *Driver) recreateSymlinks() error {
 		linkDirFullPath := filepath.Join(d.home, "l")
 		// Now check if we somehow lost a "link" file, by making sure
 		// that each symlink we have corresponds to one.
-		links, err := os.ReadDir(linkDirFullPath)
+		links, err := ioutil.ReadDir(linkDirFullPath)
 		if err != nil {
 			errs = multierror.Append(errs, err)
 			continue

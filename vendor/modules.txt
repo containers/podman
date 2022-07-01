@@ -1,3 +1,20 @@
+# capnproto.org/go/capnp/v3 v3.0.0-alpha.3
+## explicit; go 1.18
+capnproto.org/go/capnp/v3
+capnproto.org/go/capnp/v3/encoding/text
+capnproto.org/go/capnp/v3/exc
+capnproto.org/go/capnp/v3/flowcontrol
+capnproto.org/go/capnp/v3/internal/chanmutex
+capnproto.org/go/capnp/v3/internal/mpsc
+capnproto.org/go/capnp/v3/internal/nodemap
+capnproto.org/go/capnp/v3/internal/packed
+capnproto.org/go/capnp/v3/internal/schema
+capnproto.org/go/capnp/v3/internal/strquote
+capnproto.org/go/capnp/v3/internal/syncutil
+capnproto.org/go/capnp/v3/rpc
+capnproto.org/go/capnp/v3/schemas
+capnproto.org/go/capnp/v3/server
+capnproto.org/go/capnp/v3/std/capnp/rpc
 # github.com/Azure/go-ansiterm v0.0.0-20210617225240-d185dfc1b5a1
 ## explicit; go 1.16
 github.com/Azure/go-ansiterm
@@ -173,6 +190,10 @@ github.com/containers/common/version
 ## explicit
 github.com/containers/conmon/runner/config
 # github.com/containers/image/v5 v5.23.1-0.20221130170538-333c50e3eac8
+# github.com/containers/conmon-rs v0.0.0-20220713120232-28c26d61f166
+## explicit; go 1.18
+github.com/containers/conmon-rs/internal/proto
+github.com/containers/conmon-rs/pkg/client
 ## explicit; go 1.17
 github.com/containers/image/v5/copy
 github.com/containers/image/v5/directory

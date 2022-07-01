@@ -268,8 +268,10 @@ github.com/containers/common v0.50.2-0.20221128124429-24d78208a290 h1:ds8YJg3Z91
 github.com/containers/common v0.50.2-0.20221128124429-24d78208a290/go.mod h1:rzuZglPq/5sz6n29nhyDPCXh44CZymkCR2sacEZb7zw=
 github.com/containers/conmon v2.0.20+incompatible h1:YbCVSFSCqFjjVwHTPINGdMX1F6JXHGTUje2ZYobNrkg=
 github.com/containers/conmon v2.0.20+incompatible/go.mod h1:hgwZ2mtuDrppv78a/cOBNiCm6O0UMWGx1mu7P00nu5I=
-github.com/containers/image/v5 v5.23.1-0.20221130170538-333c50e3eac8 h1:GLTTwKYkNGDhG3HagLuPvhieu1JEjDs9RsCDr8oJr9s=
-github.com/containers/image/v5 v5.23.1-0.20221130170538-333c50e3eac8/go.mod h1:dXknI7O86/PznywqTwyHaCpuK1MBh1QYxLkSqyDswI0=
+github.com/containers/image/v5 v5.23.1-0.20221101011818-2f770d6d5a0c h1:Jm6GiccEre7O+KohztmIBlduJdYPvzEhhjUuUczZivQ=
+github.com/containers/image/v5 v5.23.1-0.20221101011818-2f770d6d5a0c/go.mod h1:PWNjca543qp7QK9Pbp0Qsg/cuoCjeREZmIvOx/hXEjI=
+github.com/containers/conmon-rs v0.0.0-20220713120232-28c26d61f166 h1:7iegRNlH0rNDNo5KHpeEvNtbcJLVwafEZOfvPx+PtdQ=
+github.com/containers/conmon-rs v0.0.0-20220713120232-28c26d61f166/go.mod h1:IRl51ueKallkDT8CRjOrcoAJFem0y54jyrGzVUEOTuU=
 github.com/containers/libtrust v0.0.0-20200511145503-9c3a6c22cd9a h1:spAGlqziZjCJL25C6F1zsQY05tfCKE9F5YwtEWWe6hU=
 github.com/containers/libtrust v0.0.0-20200511145503-9c3a6c22cd9a/go.mod h1:9rfv8iPl1ZP7aqh9YA68wnZv2NUDbXdcdPHVz0pFbPY=
 github.com/containers/ocicrypt v1.0.1/go.mod h1:MeJDzk1RJHv89LjsH0Sp5KTY3ZYkjXO/C+bKAeWFIrc=
@@ -780,6 +782,7 @@ github.com/pelletier/go-toml v1.2.0/go.mod h1:5z9KED0ma1S8pY6P1sdut58dfprrGBbd/9
 github.com/pelletier/go-toml v1.8.1/go.mod h1:T2/BmBdy8dvIRq1a/8aqjN41wvWlN4lrapLU/GW4pbc=
 github.com/pelletier/go-toml v1.9.3/go.mod h1:u1nR/EPcESfeI/szUZKdtJ0xRNbUoANCkoOuaOx1Y+c=
 github.com/peterbourgon/diskv v2.0.1+incompatible/go.mod h1:uqqh8zWWbv1HBMNONnaR/tNboyR3/BZd58JJSHlUSCU=
+github.com/philhofer/fwd v1.1.1 h1:GdGcTjf5RNAxwS4QLsiMzJYj5KEvPJD3Abr261yRQXQ=
 github.com/pkg/errors v0.8.0/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pkg/errors v0.8.1-0.20171018195549-f15c970de5b7/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pkg/errors v0.8.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=

@@ -1,0 +1,34 @@
+# This is the official list of people who can contribute
+# (and typically have contributed) code to the go-capnproto repository.
+# The AUTHORS file lists the copyright holders; this file
+# lists people.  For example, Google employees are listed here
+# but not in AUTHORS, because Google holds the copyright.
+#
+# When adding J Random Contributor's name to this file,
+# either J's name or J's organization's name should be
+# added to the AUTHORS file, depending on whether the
+# copyright belongs to the individual or the corporation.
+
+# Names should be added to this file like so:
+#     Individual's name <submission email address>
+#     Individual's name <submission email address> <email2> <emailN>
+
+# Please keep the list sorted.
+
+Alan Braithwaite <alan@cloudflare.com>
+Albert Strasheim <albert@cloudflare.com>
+Daniel Darabos <darabos.daniel@gmail.com>
+Eran Duchan <pavius@gmail.com>
+Evan Shaw <edsrzf@gmail.com>
+Ian Denhardt <ian@zenhack.net>
+James McKaskill <james@foobar.co.nz>
+Jason E. Aten <j.e.aten@gmail.com>
+Johan Hernandez <im@bithavoc.io>
+Joonsung Lee <joonsung@devsisters.com>
+Lev Radomislensky <lev.radomislensky@gmail.com>
+Louis Thibault <louist87@gmail.com>
+Peter Waldschmidt <peterw@gnoso.com>
+Ross Light <light@google.com> <ross@zombiezen.com>
+Tom Thorogood <me+github@tomthorogood.co.uk>
+TJ Holowaychuk <tj@apex.sh>
+William Laffin <william.laffin@gmail.com>

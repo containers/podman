@@ -47,6 +47,8 @@ var (
 )
 
 func loadDefaultStoreOptions() {
+	defaultStoreOptions.RunRoot = defaultRunRoot
+	defaultStoreOptions.GraphRoot = defaultGraphRoot
 	defaultStoreOptions.GraphDriverName = ""
 
 	setDefaults := func() {
@@ -81,10 +83,7 @@ func loadDefaultStoreOptions() {
 				return
 			}
 		}
-	}
-
-	_, err := os.Stat(defaultOverrideConfigFile)
-	if err == nil {
+	} else if _, err := os.Stat(defaultOverrideConfigFile); err == nil {
 		// The DefaultConfigFile(rootless) function returns the path
 		// of the used storage.conf file, by returning defaultConfigFile
 		// If override exists containers/storage uses it by default.
@@ -93,8 +92,14 @@ func loadDefaultStoreOptions() {
 			loadDefaultStoreOptionsErr = err
 			return
 		}
-		setDefaults()
-		return
+	} else {
+		if !os.IsNotExist(err) {
+			logrus.Warningf("Attempting to use %s, %v", defaultConfigFile, err)
+		}
+		if err := ReloadConfigurationFileIfNeeded(defaultConfigFile, &defaultStoreOptions); err != nil {
+			loadDefaultStoreOptionsErr = err
+			return
+		}
 	}
 
 	if !os.IsNotExist(err) {
@@ -362,7 +367,7 @@ func ReloadConfigurationFile(configFile string, storeOptions *StoreOptions) erro
 		}
 	} else {
 		if !os.IsNotExist(err) {
-			logrus.Warningf("Failed to read %s %v\n", configFile, err.Error())
+			fmt.Printf("Failed to read %s %v\n", configFile, err.Error())
 			return err
 		}
 	}
@@ -425,7 +430,7 @@ func ReloadConfigurationFile(configFile string, storeOptions *StoreOptions) erro
 	if config.Storage.Options.RemapUser != "" && config.Storage.Options.RemapGroup != "" {
 		mappings, err := idtools.NewIDMappings(config.Storage.Options.RemapUser, config.Storage.Options.RemapGroup)
 		if err != nil {
-			logrus.Warningf("Error initializing ID mappings for %s:%s %v\n", config.Storage.Options.RemapUser, config.Storage.Options.RemapGroup, err)
+			fmt.Printf("Error initializing ID mappings for %s:%s %v\n", config.Storage.Options.RemapUser, config.Storage.Options.RemapGroup, err)
 			return err
 		}
 		storeOptions.UIDMap = mappings.UIDs()

@@ -1,6 +1,6 @@
 module github.com/containers/podman/v4
 
-go 1.17
+go 1.18
 
 require (
 	github.com/BurntSushi/toml v1.2.1
@@ -97,14 +97,16 @@ require (
 	github.com/google/go-intervals v0.0.2 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/imdario/mergo v0.3.13 // indirect
-	github.com/inconshreveable/mousetrap v1.0.1 // indirect
+	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/jinzhu/copier v0.3.5 // indirect
-	github.com/klauspost/compress v1.15.12 // indirect
 	github.com/klauspost/pgzip v1.2.6-0.20220930104621-17e8dac29df8 // indirect
 	github.com/kr/fs v0.1.0 // indirect
-	github.com/letsencrypt/boulder v0.0.0-20221109233200-85aa52084eaf // indirect
+	github.com/letsencrypt/boulder v0.0.0-20220929215747-76583552c2be // indirect
+	github.com/klauspost/compress v1.15.7 // indirect
 	github.com/manifoldco/promptui v0.9.0 // indirect
 	github.com/mattn/go-runewidth v0.0.13 // indirect
+	github.com/mattn/go-shellwords v1.0.12 // indirect
+	github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182affec369 // indirect
 	github.com/miekg/pkcs11 v1.1.1 // indirect
 	github.com/mistifyio/go-zfs/v3 v3.0.0 // indirect
 	github.com/moby/sys/mount v0.3.3 // indirect
@@ -141,6 +143,11 @@ require (
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	sigs.k8s.io/yaml v1.3.0 // indirect
+)
+
+require (
+	github.com/containers/conmon-rs v0.0.0-20220713120232-28c26d61f166
+	github.com/fsouza/go-dockerclient v1.8.1 // indirect
 )
 
 replace github.com/opencontainers/runc => github.com/opencontainers/runc v1.1.1-0.20220617142545-8b9452f75cbc
