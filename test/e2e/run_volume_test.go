@@ -678,6 +678,15 @@ VOLUME /test/`, ALPINE)
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
+		// Test overlay mount when lowerdir is relative path.
+		f, err = os.Create("hello")
+		Expect(err).To(BeNil(), "os.Create")
+		f.Close()
+		session = podmanTest.Podman([]string{"run", "--rm", "-v", ".:/app:O", ALPINE, "ls", "/app"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.OutputToString()).To(ContainSubstring("hello"))
+		Expect(session).Should(Exit(0))
+
 		// Make sure modifications in container do not show up on host
 		session = podmanTest.Podman([]string{"run", "--rm", "-v", volumeFlag, ALPINE, "touch", "/run/test/container"})
 		session.WaitWithDefaultTimeout()

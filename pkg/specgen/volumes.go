@@ -139,7 +139,13 @@ func GenVolumeMounts(volumeFlag []string) (map[string]spec.Mount, map[string]*Na
 				// This is a overlay volume
 				newOverlayVol := new(OverlayVolume)
 				newOverlayVol.Destination = dest
-				newOverlayVol.Source = src
+				// convert src to absolute path so we don't end up passing
+				// relative values as lowerdir for overlay mounts
+				source, err := filepath.Abs(src)
+				if err != nil {
+					return nil, nil, nil, errors.Wrapf(err, "failed while resolving absolute path for source %v for overlay mount", src)
+				}
+				newOverlayVol.Source = source
 				newOverlayVol.Options = options
 
 				if _, ok := overlayVolumes[newOverlayVol.Destination]; ok {
