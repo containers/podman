@@ -318,6 +318,7 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 		source := paths[0]
 		target := source
 		readonly := false
+		securityModel := "mapped-xattr"
 		if len(paths) > 1 {
 			target = paths[1]
 		}
@@ -325,18 +326,20 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 			options := paths[2]
 			volopts := strings.Split(options, ",")
 			for _, o := range volopts {
-				switch o {
-				case "rw":
+				switch {
+				case o == "rw":
 					readonly = false
-				case "ro":
+				case o == "ro":
 					readonly = true
+				case strings.HasPrefix(o, "security_model="):
+					securityModel = strings.Split(o, "=")[1]
 				default:
 					fmt.Printf("Unknown option: %s\n", o)
 				}
 			}
 		}
 		if volumeType == VolumeTypeVirtfs {
-			virtfsOptions := fmt.Sprintf("local,path=%s,mount_tag=%s,security_model=mapped-xattr", source, tag)
+			virtfsOptions := fmt.Sprintf("local,path=%s,mount_tag=%s,security_model=%s", source, tag, securityModel)
 			if readonly {
 				virtfsOptions += ",readonly"
 			}
