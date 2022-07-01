@@ -5,7 +5,6 @@ package machine
 
 import (
 	"errors"
-	"fmt"
 	"net"
 	"os"
 	"path/filepath"
@@ -18,7 +17,6 @@ import (
 	"github.com/containers/podman/v4/cmd/podman/validate"
 	"github.com/containers/podman/v4/libpod/events"
 	"github.com/containers/podman/v4/pkg/machine"
-	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -161,13 +159,6 @@ func closeMachineEvents(cmd *cobra.Command, _ []string) error {
 	logrus.Debugf("Called machine %s.PersistentPostRunE(%s)", cmd.Name(), strings.Join(os.Args, " "))
 	for _, sock := range sockets {
 		_ = sock.Close()
-	}
-	return nil
-}
-
-func rootlessOnly(cmd *cobra.Command, args []string) error {
-	if !rootless.IsRootless() {
-		return fmt.Errorf("cannot run command %q as root", cmd.CommandPath())
 	}
 	return nil
 }
