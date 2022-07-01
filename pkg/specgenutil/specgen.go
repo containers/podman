@@ -1134,17 +1134,21 @@ func parseLinuxResourcesDeviceAccess(device string) (specs.LinuxDeviceCgroup, er
 	}
 
 	number := strings.SplitN(value[1], ":", 2)
-	i, err := strconv.ParseInt(number[0], 10, 64)
-	if err != nil {
-		return specs.LinuxDeviceCgroup{}, err
-	}
-	major = &i
-	if len(number) == 2 && number[1] != "*" {
-		i, err := strconv.ParseInt(number[1], 10, 64)
+	if number[0] != "*" {
+		i, err := strconv.ParseUint(number[0], 10, 64)
 		if err != nil {
 			return specs.LinuxDeviceCgroup{}, err
 		}
-		minor = &i
+		m := int64(i)
+		major = &m
+	}
+	if len(number) == 2 && number[1] != "*" {
+		i, err := strconv.ParseUint(number[1], 10, 64)
+		if err != nil {
+			return specs.LinuxDeviceCgroup{}, err
+		}
+		m := int64(i)
+		minor = &m
 	}
 	access = value[2]
 	for _, c := range strings.Split(access, "") {

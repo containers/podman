@@ -730,7 +730,7 @@ EOF
     run_podman 125 run --device-cgroup-rule="x 7:* rmw" --rm $IMAGE
     is "$output" "Error: invalid device type in device-access-add: x"
     run_podman 125 run --device-cgroup-rule="a a:* rmw" --rm $IMAGE
-    is "$output" "Error: strconv.ParseInt: parsing \"a\": invalid syntax"
+    is "$output" "Error: strconv.ParseUint: parsing \"a\": invalid syntax"
 }
 
 @test "podman run closes stdin" {
