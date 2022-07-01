@@ -322,7 +322,7 @@ func Init(home string, options graphdriver.Options) (graphdriver.Driver, error) 
 	}
 
 	// Create the driver home dir
-	if err := idtools.MkdirAllAs(path.Join(home, linkDir), 0700, rootUID, rootGID); err != nil {
+	if err := idtools.MkdirAllAs(path.Join(home, linkDir), 0755, 0, 0); err != nil {
 		return nil, err
 	}
 
@@ -917,6 +917,11 @@ func (d *Driver) create(id, parent string, opts *graphdriver.CreateOpts, disable
 		gidMaps = opts.IDMappings.GIDs()
 	}
 
+	// Make the link directory if it does not exist
+	if err := idtools.MkdirAllAs(path.Join(d.home, linkDir), 0755, 0, 0); err != nil {
+		return err
+	}
+
 	rootUID, rootGID, err := idtools.GetRootUIDGID(uidMaps, gidMaps)
 	if err != nil {
 		return err
@@ -927,12 +932,7 @@ func (d *Driver) create(id, parent string, opts *graphdriver.CreateOpts, disable
 		GID: rootGID,
 	}
 
-	// Make the link directory if it does not exist
-	if err := idtools.MkdirAllAndChownNew(path.Join(d.home, linkDir), 0700, idPair); err != nil {
-		return err
-	}
-
-	if err := idtools.MkdirAllAndChownNew(path.Dir(dir), 0700, idPair); err != nil {
+	if err := idtools.MkdirAllAndChownNew(path.Dir(dir), 0755, idPair); err != nil {
 		return err
 	}
 	if parent != "" {
@@ -1214,13 +1214,8 @@ func (d *Driver) recreateSymlinks() error {
 	if err != nil {
 		return fmt.Errorf("reading driver home directory %q: %v", d.home, err)
 	}
-	linksDir := filepath.Join(d.home, "l")
 	// This makes the link directory if it doesn't exist
-	rootUID, rootGID, err := idtools.GetRootUIDGID(d.uidMaps, d.gidMaps)
-	if err != nil {
-		return err
-	}
-	if err := idtools.MkdirAllAs(path.Join(d.home, linkDir), 0700, rootUID, rootGID); err != nil {
+	if err := idtools.MkdirAllAs(path.Join(d.home, linkDir), 0755, 0, 0); err != nil {
 		return err
 	}
 	// Keep looping as long as we take some corrective action in each iteration
@@ -1258,9 +1253,12 @@ func (d *Driver) recreateSymlinks() error {
 				continue
 			}
 		}
+
+		// linkDirFullPath is the full path to the linkDir
+		linkDirFullPath := filepath.Join(d.home, "l")
 		// Now check if we somehow lost a "link" file, by making sure
 		// that each symlink we have corresponds to one.
-		links, err := ioutil.ReadDir(linksDir)
+		links, err := ioutil.ReadDir(linkDirFullPath)
 		if err != nil {
 			errs = multierror.Append(errs, err)
 			continue
@@ -1268,7 +1266,7 @@ func (d *Driver) recreateSymlinks() error {
 		// Go through all of the symlinks in the "l" directory
 		for _, link := range links {
 			// Read the symlink's target, which should be "../$layer/diff"
-			target, err := os.Readlink(filepath.Join(linksDir, link.Name()))
+			target, err := os.Readlink(filepath.Join(linkDirFullPath, link.Name()))
 			if err != nil {
 				errs = multierror.Append(errs, err)
 				continue
@@ -1277,7 +1275,7 @@ func (d *Driver) recreateSymlinks() error {
 			if len(targetComponents) != 3 || targetComponents[0] != ".." || targetComponents[2] != "diff" {
 				errs = multierror.Append(errs, errors.Errorf("link target of %q looks weird: %q", link, target))
 				// force the link to be recreated on the next pass
-				if err := os.Remove(filepath.Join(linksDir, link.Name())); err != nil {
+				if err := os.Remove(filepath.Join(linkDirFullPath, link.Name())); err != nil {
 					if !os.IsNotExist(err) {
 						errs = multierror.Append(errs, errors.Wrapf(err, "removing link %q", link))
 					} // else don’t report any error, but also don’t set madeProgress.

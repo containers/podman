@@ -643,8 +643,12 @@ type store struct {
 //       return
 //   }
 func GetStore(options types.StoreOptions) (Store, error) {
+	defaultOpts, err := types.Options()
+	if err != nil {
+		return nil, err
+	}
 	if options.RunRoot == "" && options.GraphRoot == "" && options.GraphDriverName == "" && len(options.GraphDriverOptions) == 0 {
-		options = types.Options()
+		options = defaultOpts
 	}
 
 	if options.GraphRoot != "" {
@@ -677,9 +681,9 @@ func GetStore(options types.StoreOptions) (Store, error) {
 	case options.RunRoot == "" && options.GraphRoot == "":
 		return nil, errors.Wrap(ErrIncompleteOptions, "no storage runroot or graphroot specified")
 	case options.GraphRoot == "":
-		options.GraphRoot = types.Options().GraphRoot
+		options.GraphRoot = defaultOpts.GraphRoot
 	case options.RunRoot == "":
-		options.RunRoot = types.Options().RunRoot
+		options.RunRoot = defaultOpts.RunRoot
 	}
 
 	if err := os.MkdirAll(options.RunRoot, 0700); err != nil {
@@ -3715,7 +3719,10 @@ func ReloadConfigurationFile(configFile string, storeOptions *types.StoreOptions
 
 // GetDefaultMountOptions returns the default mountoptions defined in container/storage
 func GetDefaultMountOptions() ([]string, error) {
-	defaultStoreOptions := types.Options()
+	defaultStoreOptions, err := types.Options()
+	if err != nil {
+		return nil, err
+	}
 	return GetMountOptions(defaultStoreOptions.GraphDriverName, defaultStoreOptions.GraphDriverOptions)
 }
 
