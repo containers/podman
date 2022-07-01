@@ -40,8 +40,8 @@ The `o` option sets options for the mount, and is equivalent to the `-o` flag to
 
   - The `o` option supports `uid` and `gid` options to set the UID and GID of the created volume that are not normally supported by **mount(8)**.
   - The `o` option supports the `size` option to set the maximum size of the created volume, the `inodes` option to set the maximum number of inodes for the volume and `noquota` to completely disable quota support even for tracking of disk usage. Currently these flags are only supported on "xfs" file system mounted with the `prjquota` flag described in the **xfs_quota(8)** man page.
-  - The `o` option supports .
-  - Using volume options other then the UID/GID options with the **local** driver requires root privileges.
+  - The `o` option supports using volume options other than the UID/GID options with the **local** driver and requires root privileges.
+  - The `o` options supports the `timeout` option which allows users to set a driver specific timeout in seconds before volume creation fails. For example, **--opts=o=timeout=10** sets a driver timeout of 10 seconds.
 
 When not using the **local** driver, the given options are passed directly to the volume plugin. In this case, supported options are dictated by the plugin in question, not Podman.
 

@@ -41,7 +41,7 @@ func AddInspectFlagSet(cmd *cobra.Command) *entities.InspectOptions {
 	return &opts
 }
 
-// Inspect inspects the specified container/image names or IDs.
+// Inspect inspects the specified container/image/pod/volume names or IDs.
 func Inspect(namesOrIDs []string, options entities.InspectOptions) error {
 	inspector, err := newInspector(options)
 	if err != nil {

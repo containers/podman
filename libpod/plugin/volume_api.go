@@ -127,7 +127,7 @@ func validatePlugin(newPlugin *VolumePlugin) error {
 
 // GetVolumePlugin gets a single volume plugin, with the given name, at the
 // given path.
-func GetVolumePlugin(name string, path string) (*VolumePlugin, error) {
+func GetVolumePlugin(name string, path string, timeout int) (*VolumePlugin, error) {
 	pluginsLock.Lock()
 	defer pluginsLock.Unlock()
 
@@ -151,6 +151,13 @@ func GetVolumePlugin(name string, path string) (*VolumePlugin, error) {
 	// And since we can reuse it, might as well cache it.
 	client := new(http.Client)
 	client.Timeout = defaultTimeout
+	// if the user specified a non-zero timeout, use their value. Else, keep the default.
+	if timeout != 0 {
+		if time.Duration(timeout)*time.Second < defaultTimeout {
+			logrus.Warnf("the default timeout for volume creation is %d seconds, setting a time less than that may break this feature.", defaultTimeout)
+		}
+		client.Timeout = time.Duration(timeout) * time.Second
+	}
 	// This bit borrowed from pkg/bindings/connection.go
 	client.Transport = &http.Transport{
 		DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {

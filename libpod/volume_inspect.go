@@ -63,6 +63,7 @@ func (v *Volume) Inspect() (*define.InspectVolumeData, error) {
 	data.MountCount = v.state.MountCount
 	data.NeedsCopyUp = v.state.NeedsCopyUp
 	data.NeedsChown = v.state.NeedsChown
+	data.Timeout = v.config.Timeout
 
 	return data, nil
 }
