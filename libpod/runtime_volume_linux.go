@@ -183,7 +183,7 @@ func (r *Runtime) UpdateVolumePlugins(ctx context.Context) *define.VolumeReload 
 	)
 
 	for driverName, socket := range r.config.Engine.VolumePlugins {
-		driver, err := volplugin.GetVolumePlugin(driverName, socket)
+		driver, err := volplugin.GetVolumePlugin(driverName, socket, 0)
 		if err != nil {
 			errs = append(errs, err)
 			continue
