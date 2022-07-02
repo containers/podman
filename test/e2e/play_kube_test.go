@@ -2507,7 +2507,7 @@ spec:
 		Expect(kube).To(ExitWithError())
 	})
 
-	It("podman play kube test with read only HostPath volume", func() {
+	It("podman play kube test with read-only HostPath volume", func() {
 		hostPathLocation := filepath.Join(tempdir, "file")
 		f, err := os.Create(hostPathLocation)
 		Expect(err).To(BeNil())

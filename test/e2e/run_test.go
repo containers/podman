@@ -1084,7 +1084,7 @@ USER mail`, BB)
 		Expect(session).Should(Exit(0))
 		ctrID := session.OutputToString()
 
-		// check that the read only option works
+		// check that the read-only option works
 		session = podmanTest.Podman([]string{"run", "--volumes-from", ctrID + ":ro", ALPINE, "touch", mountpoint + "abc.txt"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(1))
@@ -1108,13 +1108,13 @@ USER mail`, BB)
 		Expect(session).Should(Exit(125))
 		Expect(session.ErrorToString()).To(ContainSubstring("cannot set :z more than once in mount options"))
 
-		// create new read only volume
+		// create new read-only volume
 		session = podmanTest.Podman([]string{"create", "--volume", vol + ":" + mountpoint + ":ro", ALPINE, "cat", mountpoint + filename})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		ctrID = session.OutputToString()
 
-		// check if the original volume was mounted as read only that --volumes-from also mount it as read only
+		// check if the original volume was mounted as read-only that --volumes-from also mount it as read-only
 		session = podmanTest.Podman([]string{"run", "--volumes-from", ctrID, ALPINE, "touch", mountpoint + "abc.txt"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(1))

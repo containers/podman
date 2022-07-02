@@ -1118,7 +1118,7 @@ func (c *Container) IsInitCtr() bool {
 	return len(c.config.InitContainerType) > 0
 }
 
-// IsReadOnly returns whether the container is running in read only mode
+// IsReadOnly returns whether the container is running in read-only mode
 func (c *Container) IsReadOnly() bool {
 	return c.config.Spec.Root.Readonly
 }
