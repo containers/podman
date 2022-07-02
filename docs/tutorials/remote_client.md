@@ -38,10 +38,10 @@ sudo loginctl enable-linger $USER
 ```
 This is only required if you are not running Podman as root.
 
-You can verify that the socket is listening with a simple Podman command.
+You can verify that the socket is listening with a simple first Podman command on the server machine:
 
 ```
-podman --remote info
+podman --remote --url unix://run/user/$UID/podman/podman.sock info
 host:
   arch: amd64
   buildahVersion: 1.16.0-dev
