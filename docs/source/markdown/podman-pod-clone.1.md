@@ -80,6 +80,16 @@ Add metadata to a pod (e.g., --label com.example.key=value).
 
 Read in a line delimited file of labels.
 
+#### **--memory**, **-m**=*limit*
+
+Memory limit (format: `<number>[<unit>]`, where unit = b (bytes), k (kibibytes), m (mebibytes), or g (gibibytes))
+
+Constrains the memory available to a container. If the host
+supports swap memory, then the **-m** memory setting can be larger than physical
+RAM. If a limit of 0 is specified (not using **-m**), the container's memory is
+not limited. The actual limit may be rounded up to a multiple of the operating
+system's page size (the value would be very large, that's millions of trillions).
+
 #### **--name**, **-n**
 
 Set a custom name for the cloned pod. The default if not specified is of the syntax: **<ORIGINAL_NAME>-clone**

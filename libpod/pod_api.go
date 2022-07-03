@@ -751,6 +751,7 @@ func (p *Pod) Inspect() (*define.InspectPodData, error) {
 		CPUSetCPUs:         p.ResourceLim().CPU.Cpus,
 		CPUPeriod:          p.CPUPeriod(),
 		CPUQuota:           p.CPUQuota(),
+		MemoryLimit:        p.MemoryLimit(),
 		Mounts:             inspectMounts,
 		Devices:            devices,
 		BlkioDeviceReadBps: deviceLimits,

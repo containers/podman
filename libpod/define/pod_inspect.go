@@ -69,6 +69,8 @@ type InspectPodData struct {
 	VolumesFrom []string `json:"volumes_from,omitempty"`
 	// SecurityOpt contains the specified security labels and related SELinux information
 	SecurityOpts []string `json:"security_opt,omitempty"`
+	// MemoryLimit contains the specified cgroup memory limit for the pod
+	MemoryLimit uint64 `json:"memory_limit,omitempty"`
 }
 
 // InspectPodInfraConfig contains the configuration of the pod's infra
