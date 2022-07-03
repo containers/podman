@@ -1231,3 +1231,58 @@ While running podman remote commands with the most updated Podman, issues that w
 When upgrading Podman to a particular version for the required fixes, users often make the mistake of only upgrading the Podman client. However, suppose a setup uses `podman-remote` or uses a client that communicates with the Podman server on a remote machine via the REST API. In that case, it is required to upgrade both the Podman client and the Podman server running on the remote machine. Both the Podman client and server must be upgraded to the same version.
 
 Example: If a particular bug was fixed in `v4.1.0` then the Podman client must have version `v4.1.0` as well the Podman server must have version `v4.1.0`.
+
+### 37) Unexpected carriage returns are outputted on the terminal
+
+When using the __--tty__ (__-t__) flag, unexpected carriage returns are outputted on the terminal.
+
+#### Symptom
+
+The container program prints a newline (`\n`) but the terminal outputs a carriage return and a newline (`\r\n`).
+
+```
+$ podman run --rm -t fedora echo abc | od -c
+0000000   a   b   c  \r  \n
+0000005
+```
+
+When run directly on the host, the result is as expected.
+
+```
+$ echo abc | od -c
+0000000   a   b   c  \n
+0000004
+```
+
+Extra carriage returns can also shift the prompt to the right.
+
+```
+$ podman run --rm -t fedora sh -c "echo 1; echo 2; echo 3" | cat -A
+1^M$
+    2^M$
+        3^M$
+            $
+```
+
+#### Solution
+
+Run Podman without the __--tty__ (__-t__) flag.
+
+```
+$ podman run --rm fedora echo abc | od -c
+0000000   a   b   c  \n
+0000004
+```
+
+The __--tty__ (__-t__) flag should only be used when the program requires user interaction in the termainal, for instance expecting
+the user to type an answer to a question.
+
+Where does the extra carriage return `\r` come from?
+
+The extra `\r` is not outputted by Podman but by the terminal. In fact, a reconfiguration of the terminal can make the extra `\r` go away.
+
+```
+$ podman run --rm -t fedora /bin/sh -c "stty -onlcr && echo abc" | od -c
+0000000   a   b   c  \n
+0000004
+```
