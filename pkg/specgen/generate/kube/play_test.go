@@ -2,7 +2,6 @@ package kube
 
 import (
 	"encoding/json"
-	"fmt"
 	"math"
 	"runtime"
 	"strconv"
@@ -777,8 +776,7 @@ func TestEnvVarValue(t *testing.T) {
 			if test.expected == nilString {
 				assert.Nil(t, result)
 			} else {
-				fmt.Println(*result, test.expected)
-				assert.Equal(t, &(test.expected), result)
+				assert.Equal(t, test.expected, *result)
 			}
 		})
 	}
