@@ -193,7 +193,7 @@ func verifyRootDeep(path string) error {
 
 func installExecutable(user string) (string, error) {
 	// Since the installed executable runs as root, as a precaution verify root ownership of
-	// the entire installation path, and utilize sticky + read only perms for the helper path
+	// the entire installation path, and utilize sticky + read-only perms for the helper path
 	// suffix. The goal is to help users harden against privilege escalation from loose
 	// filesystem permissions.
 	//

@@ -605,7 +605,7 @@ func getNamedVolume(args []string) (*specgen.NamedVolume, error) {
 // Parse the arguments into an image volume. An image volume is a volume based
 // on a container image.  The container image is first mounted on the host and
 // is then bind-mounted into the container.  An ImageVolume is always mounted
-// read only.
+// read-only.
 func getImageVolume(args []string) (*specgen.ImageVolume, error) {
 	newVolume := new(specgen.ImageVolume)
 

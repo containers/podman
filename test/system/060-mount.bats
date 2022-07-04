@@ -87,7 +87,7 @@ load helpers
     # Run a container with an image mount
     run_podman run --rm --mount type=image,src=$IMAGE,dst=/image-mount $IMAGE diff /etc/os-release /image-mount/etc/os-release
 
-    # Make sure the mount is read only
+    # Make sure the mount is read-only
     run_podman 1 run --rm --mount type=image,src=$IMAGE,dst=/image-mount $IMAGE touch /image-mount/read-only
     is "$output" "touch: /image-mount/read-only: Read-only file system"
 

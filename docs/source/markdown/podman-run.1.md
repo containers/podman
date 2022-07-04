@@ -919,11 +919,11 @@ Suppress output information when pulling images
 
 #### **--read-only**
 
-Mount the container's root filesystem as read only.
+Mount the container's root filesystem as read-only.
 
 By default a container will have its root filesystem writable allowing processes
 to write files anywhere. By specifying the **--read-only** flag, the container will have
-its root filesystem mounted as read only prohibiting any writes.
+its root filesystem mounted as read-only prohibiting any writes.
 
 #### **--read-only-tmpfs**
 
@@ -1051,8 +1051,8 @@ Note: Labeling can be disabled for all containers by setting label=false in the 
 - **proc-opts**=_OPTIONS_ : Comma-separated list of options to use for the /proc mount. More details
   for the possible mount options are specified in the **proc(5)** man page.
 
-- **unmask**=_ALL_ or _/path/1:/path/2_, or shell expanded paths (/proc/*): Paths to unmask separated by a colon. If set to **ALL**, it will unmask all the paths that are masked or made read only by default.
-  The default masked paths are **/proc/acpi, /proc/kcore, /proc/keys, /proc/latency_stats, /proc/sched_debug, /proc/scsi, /proc/timer_list, /proc/timer_stats, /sys/firmware, and /sys/fs/selinux.**.  The default paths that are read only are **/proc/asound**, **/proc/bus**, **/proc/fs**, **/proc/irq**, **/proc/sys**, **/proc/sysrq-trigger**, **/sys/fs/cgroup**.
+- **unmask**=_ALL_ or _/path/1:/path/2_, or shell expanded paths (/proc/*): Paths to unmask separated by a colon. If set to **ALL**, it will unmask all the paths that are masked or made read-only by default.
+  The default masked paths are **/proc/acpi, /proc/kcore, /proc/keys, /proc/latency_stats, /proc/sched_debug, /proc/scsi, /proc/timer_list, /proc/timer_stats, /sys/firmware, and /sys/fs/selinux.**.  The default paths that are read-only are **/proc/asound**, **/proc/bus**, **/proc/fs**, **/proc/irq**, **/proc/sys**, **/proc/sysrq-trigger**, **/sys/fs/cgroup**.
 
 Note: Labeling can be disabled for all containers by setting **label=false** in the **containers.conf**(5) file.
 
@@ -1603,7 +1603,7 @@ content. Installing packages into _/usr_, for example. In production,
 applications seldom need to write to the image.  Container applications write
 to volumes if they need to write to file systems at all. Applications can be
 made more secure by running them in read-only mode using the **--read-only** switch.
-This protects the containers image from modification. Read only containers may
+This protects the containers image from modification. Read-only containers may
 still need to write temporary data. The best way to handle this is to mount
 tmpfs directories on _/run_ and _/tmp_.
 

@@ -663,7 +663,7 @@ $ podman run --rm --rootfs /path/to/rootfs true
 
 The command above will create all the missing directories needed to run the container.
 
-After that, it can be used in read only mode, by multiple containers at the same time:
+After that, it can be used in read-only mode, by multiple containers at the same time:
 
 ```console
 $ podman run --read-only --rootfs /path/to/rootfs ....
