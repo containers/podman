@@ -1042,18 +1042,15 @@ var IPRegex = `(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\.(25[0-5]|2[0-4][0-9]|[01
 // digShort execs into the given container and does a dig lookup with a timeout
 // backoff.  If it gets a response, it ensures that the output is in the correct
 // format and iterates a string array for match
-func digShort(container, lookupName string, matchNames []string, p *PodmanTestIntegration) {
+func digShort(container, lookupName, expectedIP string, p *PodmanTestIntegration) {
 	digInterval := time.Millisecond * 250
 	for i := 0; i < 6; i++ {
 		time.Sleep(digInterval * time.Duration(i))
 		dig := p.Podman([]string{"exec", container, "dig", "+short", lookupName})
 		dig.WaitWithDefaultTimeout()
-		if dig.ExitCode() == 0 {
-			output := dig.OutputToString()
-			Expect(output).To(MatchRegexp(IPRegex))
-			for _, name := range matchNames {
-				Expect(output).To(Equal(name))
-			}
+		output := dig.OutputToString()
+		if dig.ExitCode() == 0 && output != "" {
+			Expect(output).To(Equal(expectedIP))
 			// success
 			return
 		}
