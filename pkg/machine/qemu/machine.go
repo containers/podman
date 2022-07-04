@@ -1013,7 +1013,7 @@ func (v *MachineVM) SSH(_ string, opts machine.SSHOptions) error {
 	port := strconv.Itoa(v.Port)
 
 	args := []string{"-i", v.IdentityPath, "-p", port, sshDestination, "-o", "UserKnownHostsFile=/dev/null",
-		"-o", "StrictHostKeyChecking=no", "-o", "LogLevel=ERROR"}
+		"-o", "StrictHostKeyChecking=no", "-o", "LogLevel=ERROR", "-o", "SetEnv=LC_ALL="}
 	if len(opts.Args) > 0 {
 		args = append(args, opts.Args...)
 	} else {
