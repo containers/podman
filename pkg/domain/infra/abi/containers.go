@@ -101,6 +101,9 @@ func (ic *ContainerEngine) ContainerWait(ctx context.Context, namesOrIds []strin
 	responses := make([]entities.WaitReport, 0, len(ctrs))
 	for _, c := range ctrs {
 		response := entities.WaitReport{Id: c.ID()}
+		if options.Condition == nil {
+			options.Condition = []define.ContainerStatus{define.ContainerStateStopped, define.ContainerStateExited}
+		}
 		exitCode, err := c.WaitForConditionWithInterval(ctx, options.Interval, options.Condition...)
 		if err != nil {
 			response.Error = err
