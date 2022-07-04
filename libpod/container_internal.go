@@ -1314,16 +1314,24 @@ func (c *Container) stop(timeout uint) error {
 	// state has changed.  If so, we should return immediately and log a
 	// warning.
 	if c.state.State != define.ContainerStateStopping {
-		logrus.Warnf(
-			"Container %q state changed from %q to %q while waiting for it to be stopped: discontinuing stop procedure as another process interfered",
-			c.ID(), define.ContainerStateStopping, c.state.State,
-		)
+		if c.state.State != define.ContainerStateExited {
+			logrus.Warnf(
+				"Container %q state changed from %q to %q while waiting for it to be stopped: discontinuing stop procedure as another process interfered",
+				c.ID(), define.ContainerStateStopping, c.state.State,
+			)
+		}
 		return nil
 	}
 
 	c.newContainerEvent(events.Stop)
 	c.state.StoppedByUser = true
 
+	return c.recordExitCode()
+}
+
+// recordExitCode reads the exit code from conmon and records it in the
+// database.
+func (c *Container) recordExitCode() error {
 	conmonAlive, err := c.ociRuntime.CheckConmonRunning(c)
 	if err != nil {
 		return err

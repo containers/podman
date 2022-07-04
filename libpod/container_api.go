@@ -230,10 +230,9 @@ func (c *Container) Kill(signal uint) error {
 	}
 
 	c.state.StoppedByUser = true
-
 	c.newContainerEvent(events.Kill)
 
-	return c.save()
+	return c.recordExitCode()
 }
 
 // Attach attaches to a container.
