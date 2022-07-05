@@ -2,6 +2,7 @@ package libpod
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"time"
@@ -10,7 +11,6 @@ import (
 	"github.com/containers/podman/v4/libpod/events"
 	"github.com/containers/podman/v4/libpod/logs"
 	"github.com/nxadm/tail/watch"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -35,9 +35,9 @@ func (r *Runtime) Log(ctx context.Context, containers []*Container, options *log
 func (c *Container) ReadLog(ctx context.Context, options *logs.LogOptions, logChannel chan *logs.LogLine, colorID int64) error {
 	switch c.LogDriver() {
 	case define.PassthroughLogging:
-		return errors.Wrapf(define.ErrNoLogs, "this container is using the 'passthrough' log driver, cannot read logs")
+		return fmt.Errorf("this container is using the 'passthrough' log driver, cannot read logs: %w", define.ErrNoLogs)
 	case define.NoLogging:
-		return errors.Wrapf(define.ErrNoLogs, "this container is using the 'none' log driver, cannot read logs")
+		return fmt.Errorf("this container is using the 'none' log driver, cannot read logs: %w", define.ErrNoLogs)
 	case define.JournaldLogging:
 		return c.readFromJournal(ctx, options, logChannel, colorID)
 	case define.JSONLogging:
@@ -47,7 +47,7 @@ func (c *Container) ReadLog(ctx context.Context, options *logs.LogOptions, logCh
 	case define.KubernetesLogging, "":
 		return c.readFromLogFile(ctx, options, logChannel, colorID)
 	default:
-		return errors.Wrapf(define.ErrInternal, "unrecognized log driver %q, cannot read logs", c.LogDriver())
+		return fmt.Errorf("unrecognized log driver %q, cannot read logs: %w", c.LogDriver(), define.ErrInternal)
 	}
 }
 
@@ -55,10 +55,10 @@ func (c *Container) readFromLogFile(ctx context.Context, options *logs.LogOption
 	t, tailLog, err := logs.GetLogFile(c.LogPath(), options)
 	if err != nil {
 		// If the log file does not exist, this is not fatal.
-		if os.IsNotExist(errors.Cause(err)) {
+		if errors.Is(err, os.ErrNotExist) {
 			return nil
 		}
-		return errors.Wrapf(err, "unable to read log file %s for %s ", c.ID(), c.LogPath())
+		return fmt.Errorf("unable to read log file %s for %s : %w", c.ID(), c.LogPath(), err)
 	}
 	options.WaitGroup.Add(1)
 	if len(tailLog) > 0 {
@@ -103,7 +103,7 @@ func (c *Container) readFromLogFile(ctx context.Context, options *logs.LogOption
 		// until EOF.
 		state, err := c.State()
 		if err != nil || state != define.ContainerStateRunning {
-			if err != nil && errors.Cause(err) != define.ErrNoSuchCtr {
+			if err != nil && !errors.Is(err, define.ErrNoSuchCtr) {
 				logrus.Errorf("Getting container state: %v", err)
 			}
 			go func() {

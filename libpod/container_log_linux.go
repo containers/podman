@@ -5,6 +5,7 @@ package libpod
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -14,7 +15,6 @@ import (
 	"github.com/containers/podman/v4/libpod/logs"
 	"github.com/coreos/go-systemd/v22/journal"
 	"github.com/coreos/go-systemd/v22/sdjournal"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -49,7 +49,7 @@ func (c *Container) readFromJournal(ctx context.Context, options *logs.LogOption
 	// We need the container's events in the same journal to guarantee
 	// consistency, see #10323.
 	if options.Follow && c.runtime.config.Engine.EventsLogger != "journald" {
-		return errors.Errorf("using --follow with the journald --log-driver but without the journald --events-backend (%s) is not supported", c.runtime.config.Engine.EventsLogger)
+		return fmt.Errorf("using --follow with the journald --log-driver but without the journald --events-backend (%s) is not supported", c.runtime.config.Engine.EventsLogger)
 	}
 
 	journal, err := sdjournal.NewJournal()
@@ -63,21 +63,21 @@ func (c *Container) readFromJournal(ctx context.Context, options *logs.LogOption
 	// Add the filters for events.
 	match := sdjournal.Match{Field: "SYSLOG_IDENTIFIER", Value: "podman"}
 	if err := journal.AddMatch(match.String()); err != nil {
-		return errors.Wrapf(err, "adding filter to journald logger: %v", match)
+		return fmt.Errorf("adding filter to journald logger: %v: %w", match, err)
 	}
 	match = sdjournal.Match{Field: "PODMAN_ID", Value: c.ID()}
 	if err := journal.AddMatch(match.String()); err != nil {
-		return errors.Wrapf(err, "adding filter to journald logger: %v", match)
+		return fmt.Errorf("adding filter to journald logger: %v: %w", match, err)
 	}
 
 	// Add the filter for logs.  Note the disjunction so that we match
 	// either the events or the logs.
 	if err := journal.AddDisjunction(); err != nil {
-		return errors.Wrap(err, "adding filter disjunction to journald logger")
+		return fmt.Errorf("adding filter disjunction to journald logger: %w", err)
 	}
 	match = sdjournal.Match{Field: "CONTAINER_ID_FULL", Value: c.ID()}
 	if err := journal.AddMatch(match.String()); err != nil {
-		return errors.Wrapf(err, "adding filter to journald logger: %v", match)
+		return fmt.Errorf("adding filter to journald logger: %v: %w", match, err)
 	}
 
 	if err := journal.SeekHead(); err != nil {
@@ -85,12 +85,12 @@ func (c *Container) readFromJournal(ctx context.Context, options *logs.LogOption
 	}
 	// API requires Next() immediately after SeekHead().
 	if _, err := journal.Next(); err != nil {
-		return errors.Wrap(err, "next journal")
+		return fmt.Errorf("next journal: %w", err)
 	}
 
 	// API requires a next|prev before getting a cursor.
 	if _, err := journal.Previous(); err != nil {
-		return errors.Wrap(err, "previous journal")
+		return fmt.Errorf("previous journal: %w", err)
 	}
 
 	// Note that the initial cursor may not yet be ready, so we'll do an
@@ -111,7 +111,7 @@ func (c *Container) readFromJournal(ctx context.Context, options *logs.LogOption
 		break
 	}
 	if cursorError != nil {
-		return errors.Wrap(cursorError, "initial journal cursor")
+		return fmt.Errorf("initial journal cursor: %w", cursorError)
 	}
 
 	options.WaitGroup.Add(1)
@@ -255,7 +255,7 @@ func journalFormatterWithID(entry *sdjournal.JournalEntry) (string, error) {
 
 	id, ok := entry.Fields["CONTAINER_ID_FULL"]
 	if !ok {
-		return "", fmt.Errorf("no CONTAINER_ID_FULL field present in journal entry")
+		return "", errors.New("no CONTAINER_ID_FULL field present in journal entry")
 	}
 	if len(id) > 12 {
 		id = id[:12]
@@ -290,7 +290,7 @@ func formatterPrefix(entry *sdjournal.JournalEntry) (string, error) {
 	output := fmt.Sprintf("%s ", tsString)
 	priority, ok := entry.Fields["PRIORITY"]
 	if !ok {
-		return "", errors.Errorf("no PRIORITY field present in journal entry")
+		return "", errors.New("no PRIORITY field present in journal entry")
 	}
 	switch priority {
 	case journaldLogOut:
@@ -298,7 +298,7 @@ func formatterPrefix(entry *sdjournal.JournalEntry) (string, error) {
 	case journaldLogErr:
 		output += "stderr "
 	default:
-		return "", errors.Errorf("unexpected PRIORITY field in journal entry")
+		return "", errors.New("unexpected PRIORITY field in journal entry")
 	}
 
 	// if CONTAINER_PARTIAL_MESSAGE is defined, the log type is "P"
@@ -315,7 +315,7 @@ func formatterMessage(entry *sdjournal.JournalEntry) (string, error) {
 	// Finally, append the message
 	msg, ok := entry.Fields["MESSAGE"]
 	if !ok {
-		return "", fmt.Errorf("no MESSAGE field present in journal entry")
+		return "", errors.New("no MESSAGE field present in journal entry")
 	}
 	msg = strings.TrimSuffix(msg, "\n")
 	return msg, nil

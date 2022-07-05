@@ -2,6 +2,7 @@ package abi
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io/fs"
 	"io/ioutil"
@@ -34,7 +35,6 @@ import (
 	dockerRef "github.com/docker/distribution/reference"
 	"github.com/opencontainers/go-digest"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -128,14 +128,14 @@ func (ir *ImageEngine) History(ctx context.Context, nameOrID string, opts entiti
 
 func (ir *ImageEngine) Mount(ctx context.Context, nameOrIDs []string, opts entities.ImageMountOptions) ([]*entities.ImageMountReport, error) {
 	if opts.All && len(nameOrIDs) > 0 {
-		return nil, errors.Errorf("cannot mix --all with images")
+		return nil, errors.New("cannot mix --all with images")
 	}
 
 	if os.Geteuid() != 0 {
 		if driver := ir.Libpod.StorageConfig().GraphDriverName; driver != "vfs" {
 			// Do not allow to mount a graphdriver that is not vfs if we are creating the userns as part
 			// of the mount command.
-			return nil, errors.Errorf("cannot mount using driver %s in rootless mode", driver)
+			return nil, fmt.Errorf("cannot mount using driver %s in rootless mode", driver)
 		}
 
 		became, ret, err := rootless.BecomeRootInUserNS("")
@@ -194,7 +194,7 @@ func (ir *ImageEngine) Mount(ctx context.Context, nameOrIDs []string, opts entit
 
 func (ir *ImageEngine) Unmount(ctx context.Context, nameOrIDs []string, options entities.ImageUnmountOptions) ([]*entities.ImageUnmountReport, error) {
 	if options.All && len(nameOrIDs) > 0 {
-		return nil, errors.Errorf("cannot mix --all with images")
+		return nil, errors.New("cannot mix --all with images")
 	}
 
 	listImagesOptions := &libimage.ListImagesOptions{}
@@ -292,7 +292,7 @@ func (ir *ImageEngine) Push(ctx context.Context, source string, destination stri
 	case "v2s2", "docker":
 		manifestType = manifest.DockerV2Schema2MediaType
 	default:
-		return errors.Errorf("unknown format %q. Choose on of the supported formats: 'oci', 'v2s1', or 'v2s2'", options.Format)
+		return fmt.Errorf("unknown format %q. Choose on of the supported formats: 'oci', 'v2s1', or 'v2s2'", options.Format)
 	}
 
 	pushOptions := &libimage.PushOptions{}
@@ -523,12 +523,12 @@ func removeErrorsToExitCode(rmErrors []error) int {
 	}
 
 	for _, e := range rmErrors {
-		switch errors.Cause(e) {
-		case storage.ErrImageUnknown, storage.ErrLayerUnknown:
+		//nolint:gocritic
+		if errors.Is(e, storage.ErrImageUnknown) || errors.Is(e, storage.ErrLayerUnknown) {
 			noSuchImageErrors = true
-		case storage.ErrImageUsedByContainer:
+		} else if errors.Is(e, storage.ErrImageUsedByContainer) {
 			inUseErrors = true
-		default:
+		} else {
 			otherErrors = true
 		}
 	}
@@ -590,11 +590,11 @@ func (ir *ImageEngine) Shutdown(_ context.Context) {
 func (ir *ImageEngine) Sign(ctx context.Context, names []string, options entities.SignOptions) (*entities.SignReport, error) {
 	mech, err := signature.NewGPGSigningMechanism()
 	if err != nil {
-		return nil, errors.Wrap(err, "error initializing GPG")
+		return nil, fmt.Errorf("error initializing GPG: %w", err)
 	}
 	defer mech.Close()
 	if err := mech.SupportsSigning(); err != nil {
-		return nil, errors.Wrap(err, "signing is not supported")
+		return nil, fmt.Errorf("signing is not supported: %w", err)
 	}
 	sc := ir.Libpod.SystemContext()
 	sc.DockerCertPath = options.CertDir
@@ -604,11 +604,11 @@ func (ir *ImageEngine) Sign(ctx context.Context, names []string, options entitie
 		err = func() error {
 			srcRef, err := alltransports.ParseImageName(signimage)
 			if err != nil {
-				return errors.Wrapf(err, "error parsing image name")
+				return fmt.Errorf("error parsing image name: %w", err)
 			}
 			rawSource, err := srcRef.NewImageSource(ctx, sc)
 			if err != nil {
-				return errors.Wrapf(err, "error getting image source")
+				return fmt.Errorf("error getting image source: %w", err)
 			}
 			defer func() {
 				if err = rawSource.Close(); err != nil {
@@ -617,17 +617,17 @@ func (ir *ImageEngine) Sign(ctx context.Context, names []string, options entitie
 			}()
 			topManifestBlob, manifestType, err := rawSource.GetManifest(ctx, nil)
 			if err != nil {
-				return errors.Wrapf(err, "error getting manifest blob")
+				return fmt.Errorf("error getting manifest blob: %w", err)
 			}
 			dockerReference := rawSource.Reference().DockerReference()
 			if dockerReference == nil {
-				return errors.Errorf("cannot determine canonical Docker reference for destination %s", transports.ImageName(rawSource.Reference()))
+				return fmt.Errorf("cannot determine canonical Docker reference for destination %s", transports.ImageName(rawSource.Reference()))
 			}
 			var sigStoreDir string
 			if options.Directory != "" {
 				repo := reference.Path(dockerReference)
 				if path.Clean(repo) != repo { // Coverage: This should not be reachable because /./ and /../ components are not valid in docker references
-					return errors.Errorf("Unexpected path elements in Docker reference %s for signature storage", dockerReference.String())
+					return fmt.Errorf("unexpected path elements in Docker reference %s for signature storage", dockerReference.String())
 				}
 				sigStoreDir = filepath.Join(options.Directory, repo)
 			} else {
@@ -647,11 +647,11 @@ func (ir *ImageEngine) Sign(ctx context.Context, names []string, options entitie
 
 			if options.All {
 				if !manifest.MIMETypeIsMultiImage(manifestType) {
-					return errors.Errorf("%s is not a multi-architecture image (manifest type %s)", signimage, manifestType)
+					return fmt.Errorf("%s is not a multi-architecture image (manifest type %s)", signimage, manifestType)
 				}
 				list, err := manifest.ListFromBlob(topManifestBlob, manifestType)
 				if err != nil {
-					return errors.Wrapf(err, "Error parsing manifest list %q", string(topManifestBlob))
+					return fmt.Errorf("error parsing manifest list %q: %w", string(topManifestBlob), err)
 				}
 				instanceDigests := list.Instances()
 				for _, instanceDigest := range instanceDigests {
@@ -661,13 +661,13 @@ func (ir *ImageEngine) Sign(ctx context.Context, names []string, options entitie
 						return err
 					}
 					if err = putSignature(man, mech, sigStoreDir, instanceDigest, dockerReference, options); err != nil {
-						return errors.Wrapf(err, "error storing signature for %s, %v", dockerReference.String(), instanceDigest)
+						return fmt.Errorf("error storing signature for %s, %v: %w", dockerReference.String(), instanceDigest, err)
 					}
 				}
 				return nil
 			}
 			if err = putSignature(topManifestBlob, mech, sigStoreDir, manifestDigest, dockerReference, options); err != nil {
-				return errors.Wrapf(err, "error storing signature for %s, %v", dockerReference.String(), manifestDigest)
+				return fmt.Errorf("error storing signature for %s, %v: %w", dockerReference.String(), manifestDigest, err)
 			}
 			return nil
 		}()
@@ -694,7 +694,7 @@ func (ir *ImageEngine) Scp(ctx context.Context, src, dst string, parentFlags []s
 
 func Transfer(ctx context.Context, source entities.ImageScpOptions, dest entities.ImageScpOptions, parentFlags []string) error {
 	if source.User == "" {
-		return errors.Wrapf(define.ErrInvalidArg, "you must define a user when transferring from root to rootless storage")
+		return fmt.Errorf("you must define a user when transferring from root to rootless storage: %w", define.ErrInvalidArg)
 	}
 	podman, err := os.Executable()
 	if err != nil {
@@ -881,7 +881,7 @@ func getSigFilename(sigStoreDirPath string) (string, error) {
 
 func localPathFromURI(url *url.URL) (string, error) {
 	if url.Scheme != "file" {
-		return "", errors.Errorf("writing to %s is not supported. Use a supported scheme", url.String())
+		return "", fmt.Errorf("writing to %s is not supported. Use a supported scheme", url.String())
 	}
 	return url.Path, nil
 }

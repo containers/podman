@@ -1,11 +1,11 @@
 package events
 
 import (
+	"fmt"
 	"strings"
 	"time"
 
 	"github.com/containers/podman/v4/pkg/util"
-	"github.com/pkg/errors"
 )
 
 func generateEventFilter(filter, filterValue string) (func(e *Event) bool, error) {
@@ -74,7 +74,7 @@ func generateEventFilter(filter, filterValue string) (func(e *Event) bool, error
 			return found
 		}, nil
 	}
-	return nil, errors.Errorf("%s is an invalid filter", filter)
+	return nil, fmt.Errorf("%s is an invalid filter", filter)
 }
 
 func generateEventSinceOption(timeSince time.Time) func(e *Event) bool {
@@ -92,7 +92,7 @@ func generateEventUntilOption(timeUntil time.Time) func(e *Event) bool {
 func parseFilter(filter string) (string, string, error) {
 	filterSplit := strings.SplitN(filter, "=", 2)
 	if len(filterSplit) != 2 {
-		return "", "", errors.Errorf("%s is an invalid filter", filter)
+		return "", "", fmt.Errorf("%s is an invalid filter", filter)
 	}
 	return filterSplit[0], filterSplit[1], nil
 }
@@ -137,7 +137,7 @@ func generateEventFilters(filters []string, since, until string) (map[string][]E
 	if len(since) > 0 {
 		timeSince, err := util.ParseInputTime(since, true)
 		if err != nil {
-			return nil, errors.Wrapf(err, "unable to convert since time of %s", since)
+			return nil, fmt.Errorf("unable to convert since time of %s: %w", since, err)
 		}
 		filterFunc := generateEventSinceOption(timeSince)
 		filterMap["since"] = []EventFilter{filterFunc}
@@ -146,7 +146,7 @@ func generateEventFilters(filters []string, since, until string) (map[string][]E
 	if len(until) > 0 {
 		timeUntil, err := util.ParseInputTime(until, false)
 		if err != nil {
-			return nil, errors.Wrapf(err, "unable to convert until time of %s", until)
+			return nil, fmt.Errorf("unable to convert until time of %s: %w", until, err)
 		}
 		filterFunc := generateEventUntilOption(timeUntil)
 		filterMap["until"] = []EventFilter{filterFunc}

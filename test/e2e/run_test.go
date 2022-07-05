@@ -1659,7 +1659,7 @@ USER mail`, BB)
 		session = podmanTest.Podman([]string{"run", "--umask", "9999", "--rm", ALPINE, "sh", "-c", "umask"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).To(ExitWithError())
-		Expect(session.ErrorToString()).To(ContainSubstring("Invalid umask"))
+		Expect(session.ErrorToString()).To(ContainSubstring("invalid umask"))
 	})
 
 	It("podman run makes workdir from image", func() {

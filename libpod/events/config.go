@@ -2,9 +2,8 @@ package events
 
 import (
 	"context"
+	"errors"
 	"time"
-
-	"github.com/pkg/errors"
 )
 
 // EventerType ...

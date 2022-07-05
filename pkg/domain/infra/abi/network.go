@@ -2,6 +2,8 @@ package abi
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"strconv"
 
 	"github.com/containers/common/libnetwork/types"
@@ -9,7 +11,6 @@ import (
 	"github.com/containers/common/pkg/util"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/domain/entities"
-	"github.com/pkg/errors"
 )
 
 func (ic *ContainerEngine) NetworkList(ctx context.Context, options entities.NetworkListOptions) ([]types.Network, error) {
@@ -20,16 +21,16 @@ func (ic *ContainerEngine) NetworkList(ctx context.Context, options entities.Net
 	if filterDangling {
 		switch len(val) {
 		case 0:
-			return nil, errors.Errorf("got no values for filter key \"dangling\"")
+			return nil, fmt.Errorf("got no values for filter key \"dangling\"")
 		case 1:
 			var err error
 			wantDangling, err = strconv.ParseBool(val[0])
 			if err != nil {
-				return nil, errors.Errorf("invalid dangling filter value \"%v\"", val[0])
+				return nil, fmt.Errorf("invalid dangling filter value \"%v\"", val[0])
 			}
 			delete(options.Filters, "dangling")
 		default:
-			return nil, errors.Errorf("got more than one value for filter key \"dangling\"")
+			return nil, fmt.Errorf("got more than one value for filter key \"dangling\"")
 		}
 	}
 
@@ -56,11 +57,11 @@ func (ic *ContainerEngine) NetworkInspect(ctx context.Context, namesOrIds []stri
 	for _, name := range namesOrIds {
 		net, err := ic.Libpod.Network().NetworkInspect(name)
 		if err != nil {
-			if errors.Cause(err) == define.ErrNoSuchNetwork {
-				errs = append(errs, errors.Wrapf(err, "network %s", name))
+			if errors.Is(err, define.ErrNoSuchNetwork) {
+				errs = append(errs, fmt.Errorf("network %s: %w", name, err))
 				continue
 			} else {
-				return nil, nil, errors.Wrapf(err, "error inspecting network %s", name)
+				return nil, nil, fmt.Errorf("error inspecting network %s: %w", name, err)
 			}
 		}
 		networks = append(networks, net)
@@ -80,8 +81,8 @@ func (ic *ContainerEngine) NetworkReload(ctx context.Context, names []string, op
 		report.Id = ctr.ID()
 		report.Err = ctr.ReloadNetwork()
 		// ignore errors for invalid ctr state and network mode when --all is used
-		if options.All && (errors.Cause(report.Err) == define.ErrCtrStateInvalid ||
-			errors.Cause(report.Err) == define.ErrNetworkModeInvalid) {
+		if options.All && (errors.Is(report.Err, define.ErrCtrStateInvalid) ||
+			errors.Is(report.Err, define.ErrNetworkModeInvalid)) {
 			continue
 		}
 		reports = append(reports, report)
@@ -113,7 +114,7 @@ func (ic *ContainerEngine) NetworkRm(ctx context.Context, namesOrIds []string, o
 				// if user passes force, we nuke containers and pods
 				if !options.Force {
 					// Without the force option, we return an error
-					return reports, errors.Wrapf(define.ErrNetworkInUse, "%q has associated containers with it. Use -f to forcibly delete containers and pods", name)
+					return reports, fmt.Errorf("%q has associated containers with it. Use -f to forcibly delete containers and pods: %w", name, define.ErrNetworkInUse)
 				}
 				if c.IsInfra() {
 					// if we have a infra container we need to remove the pod
@@ -124,7 +125,7 @@ func (ic *ContainerEngine) NetworkRm(ctx context.Context, namesOrIds []string, o
 					if err := ic.Libpod.RemovePod(ctx, pod, true, true, options.Timeout); err != nil {
 						return reports, err
 					}
-				} else if err := ic.Libpod.RemoveContainer(ctx, c, true, true, options.Timeout); err != nil && errors.Cause(err) != define.ErrNoSuchCtr {
+				} else if err := ic.Libpod.RemoveContainer(ctx, c, true, true, options.Timeout); err != nil && !errors.Is(err, define.ErrNoSuchCtr) {
 					return reports, err
 				}
 			}
@@ -139,7 +140,7 @@ func (ic *ContainerEngine) NetworkRm(ctx context.Context, namesOrIds []string, o
 
 func (ic *ContainerEngine) NetworkCreate(ctx context.Context, network types.Network) (*types.Network, error) {
 	if util.StringInSlice(network.Name, []string{"none", "host", "bridge", "private", "slirp4netns", "container", "ns"}) {
-		return nil, errors.Errorf("cannot create network with name %q because it conflicts with a valid network mode", network.Name)
+		return nil, fmt.Errorf("cannot create network with name %q because it conflicts with a valid network mode", network.Name)
 	}
 	network, err := ic.Libpod.Network().NetworkCreate(network)
 	if err != nil {

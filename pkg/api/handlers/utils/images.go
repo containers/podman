@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -15,7 +16,6 @@ import (
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/containers/storage"
 	"github.com/docker/distribution/reference"
-	"github.com/pkg/errors"
 )
 
 // NormalizeToDockerHub normalizes the specified nameOrID to Docker Hub if the
@@ -32,7 +32,7 @@ func NormalizeToDockerHub(r *http.Request, nameOrID string) (string, error) {
 	// 'busybox' -> 'registry.com/busybox'.
 	img, candidate, err := runtime.LibimageRuntime().LookupImage(nameOrID, nil)
 	if err != nil {
-		if errors.Cause(err) != storage.ErrImageUnknown {
+		if !errors.Is(err, storage.ErrImageUnknown) {
 			return "", fmt.Errorf("normalizing name for compat API: %v", err)
 		}
 		// If the image could not be resolved locally, set the
@@ -73,7 +73,7 @@ func IsRegistryReference(name string) error {
 	if imageRef.Transport().Name() == docker.Transport.Name() {
 		return nil
 	}
-	return errors.Errorf("unsupported transport %s in %q: only docker transport is supported", imageRef.Transport().Name(), name)
+	return fmt.Errorf("unsupported transport %s in %q: only docker transport is supported", imageRef.Transport().Name(), name)
 }
 
 // ParseStorageReference parses the specified image name to a
@@ -83,12 +83,12 @@ func ParseStorageReference(name string) (types.ImageReference, error) {
 	storagePrefix := storageTransport.Transport.Name()
 	imageRef, err := alltransports.ParseImageName(name)
 	if err == nil && imageRef.Transport().Name() != docker.Transport.Name() {
-		return nil, errors.Errorf("reference %q must be a storage reference", name)
+		return nil, fmt.Errorf("reference %q must be a storage reference", name)
 	} else if err != nil {
 		origErr := err
 		imageRef, err = alltransports.ParseImageName(fmt.Sprintf("%s:%s", storagePrefix, name))
 		if err != nil {
-			return nil, errors.Wrapf(origErr, "reference %q must be a storage reference", name)
+			return nil, fmt.Errorf("reference %q must be a storage reference: %w", name, origErr)
 		}
 	}
 	return imageRef, nil

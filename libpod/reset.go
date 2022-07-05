@@ -2,6 +2,7 @@ package libpod
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -13,7 +14,6 @@ import (
 	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/containers/storage"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -49,7 +49,7 @@ func (r *Runtime) removeAllDirs() error {
 
 	// Volume path
 	if err := os.RemoveAll(r.config.Engine.VolumePath); err != nil {
-		lastErr = errors.Wrapf(err, "removing volume path")
+		lastErr = fmt.Errorf("removing volume path: %w", err)
 	}
 
 	// Tmpdir
@@ -57,7 +57,7 @@ func (r *Runtime) removeAllDirs() error {
 		if lastErr != nil {
 			logrus.Errorf("Reset: %v", lastErr)
 		}
-		lastErr = errors.Wrapf(err, "removing tmp dir")
+		lastErr = fmt.Errorf("removing tmp dir: %w", err)
 	}
 
 	// Runroot
@@ -65,7 +65,7 @@ func (r *Runtime) removeAllDirs() error {
 		if lastErr != nil {
 			logrus.Errorf("Reset: %v", lastErr)
 		}
-		lastErr = errors.Wrapf(err, "removing run root")
+		lastErr = fmt.Errorf("removing run root: %w", err)
 	}
 
 	// Static dir
@@ -73,7 +73,7 @@ func (r *Runtime) removeAllDirs() error {
 		if lastErr != nil {
 			logrus.Errorf("Reset: %v", lastErr)
 		}
-		lastErr = errors.Wrapf(err, "removing static dir")
+		lastErr = fmt.Errorf("removing static dir: %w", err)
 	}
 
 	// Graph root
@@ -81,7 +81,7 @@ func (r *Runtime) removeAllDirs() error {
 		if lastErr != nil {
 			logrus.Errorf("Reset: %v", lastErr)
 		}
-		lastErr = errors.Wrapf(err, "removing graph root")
+		lastErr = fmt.Errorf("removing graph root: %w", err)
 	}
 
 	return lastErr
@@ -96,7 +96,7 @@ func (r *Runtime) reset(ctx context.Context) error {
 	}
 	for _, p := range pods {
 		if err := r.RemovePod(ctx, p, true, true, timeout); err != nil {
-			if errors.Cause(err) == define.ErrNoSuchPod {
+			if errors.Is(err, define.ErrNoSuchPod) {
 				continue
 			}
 			logrus.Errorf("Removing Pod %s: %v", p.ID(), err)
@@ -111,7 +111,7 @@ func (r *Runtime) reset(ctx context.Context) error {
 	for _, c := range ctrs {
 		if err := r.RemoveContainer(ctx, c, true, true, timeout); err != nil {
 			if err := r.RemoveStorageContainer(c.ID(), true); err != nil {
-				if errors.Cause(err) == define.ErrNoSuchCtr {
+				if errors.Is(err, define.ErrNoSuchCtr) {
 					continue
 				}
 				logrus.Errorf("Removing container %s: %v", c.ID(), err)
@@ -134,7 +134,7 @@ func (r *Runtime) reset(ctx context.Context) error {
 	}
 	for _, v := range volumes {
 		if err := r.RemoveVolume(ctx, v, true, timeout); err != nil {
-			if errors.Cause(err) == define.ErrNoSuchVolume {
+			if errors.Is(err, define.ErrNoSuchVolume) {
 				continue
 			}
 			logrus.Errorf("Removing volume %s: %v", v.config.Name, err)
@@ -164,7 +164,7 @@ func (r *Runtime) reset(ctx context.Context) error {
 		if prevError != nil {
 			logrus.Error(prevError)
 		}
-		prevError = errors.Errorf("failed to remove runtime graph root dir %s, since it is the same as XDG_RUNTIME_DIR", graphRoot)
+		prevError = fmt.Errorf("failed to remove runtime graph root dir %s, since it is the same as XDG_RUNTIME_DIR", graphRoot)
 	} else {
 		if err := os.RemoveAll(graphRoot); err != nil {
 			if prevError != nil {
@@ -178,7 +178,7 @@ func (r *Runtime) reset(ctx context.Context) error {
 		if prevError != nil {
 			logrus.Error(prevError)
 		}
-		prevError = errors.Errorf("failed to remove runtime root dir %s, since it is the same as XDG_RUNTIME_DIR", runRoot)
+		prevError = fmt.Errorf("failed to remove runtime root dir %s, since it is the same as XDG_RUNTIME_DIR", runRoot)
 	} else {
 		if err := os.RemoveAll(runRoot); err != nil {
 			if prevError != nil {
@@ -199,7 +199,7 @@ func (r *Runtime) reset(ctx context.Context) error {
 		if prevError != nil {
 			logrus.Error(prevError)
 		}
-		prevError = errors.Errorf("failed to remove runtime tmpdir %s, since it is the same as XDG_RUNTIME_DIR", tempDir)
+		prevError = fmt.Errorf("failed to remove runtime tmpdir %s, since it is the same as XDG_RUNTIME_DIR", tempDir)
 	} else {
 		if err := os.RemoveAll(tempDir); err != nil {
 			if prevError != nil {

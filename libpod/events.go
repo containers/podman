@@ -6,7 +6,6 @@ import (
 	"sync"
 
 	"github.com/containers/podman/v4/libpod/events"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -178,7 +177,7 @@ func (r *Runtime) GetLastContainerEvent(ctx context.Context, nameOrID string, co
 		return nil, err
 	}
 	if len(containerEvents) < 1 {
-		return nil, errors.Wrapf(events.ErrEventNotFound, "%s not found", containerEvent.String())
+		return nil, fmt.Errorf("%s not found: %w", containerEvent.String(), events.ErrEventNotFound)
 	}
 	// return the last element in the slice
 	return containerEvents[len(containerEvents)-1], nil
@@ -201,7 +200,7 @@ func (r *Runtime) GetExecDiedEvent(ctx context.Context, nameOrID, execSessionID 
 	// There *should* only be one event maximum.
 	// But... just in case... let's not blow up if there's more than one.
 	if len(containerEvents) < 1 {
-		return nil, errors.Wrapf(events.ErrEventNotFound, "exec died event for session %s (container %s) not found", execSessionID, nameOrID)
+		return nil, fmt.Errorf("exec died event for session %s (container %s) not found: %w", execSessionID, nameOrID, events.ErrEventNotFound)
 	}
 	return containerEvents[len(containerEvents)-1], nil
 }

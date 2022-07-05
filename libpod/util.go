@@ -20,7 +20,6 @@ import (
 	"github.com/fsnotify/fsnotify"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/selinux/go-selinux/label"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -93,7 +92,7 @@ func WaitForFile(path string, chWait chan error, timeout time.Duration) (bool, e
 				return false, err
 			}
 		case <-timeoutChan:
-			return false, errors.Wrapf(define.ErrInternal, "timed out waiting for file %s", path)
+			return false, fmt.Errorf("timed out waiting for file %s: %w", path, define.ErrInternal)
 		}
 	}
 }
@@ -123,15 +122,15 @@ func sortMounts(m []spec.Mount) []spec.Mount {
 
 func validPodNSOption(p *Pod, ctrPod string) error {
 	if p == nil {
-		return errors.Wrapf(define.ErrInvalidArg, "pod passed in was nil. Container may not be associated with a pod")
+		return fmt.Errorf("pod passed in was nil. Container may not be associated with a pod: %w", define.ErrInvalidArg)
 	}
 
 	if ctrPod == "" {
-		return errors.Wrapf(define.ErrInvalidArg, "container is not a member of any pod")
+		return fmt.Errorf("container is not a member of any pod: %w", define.ErrInvalidArg)
 	}
 
 	if ctrPod != p.ID() {
-		return errors.Wrapf(define.ErrInvalidArg, "pod passed in is not the pod the container is associated with")
+		return fmt.Errorf("pod passed in is not the pod the container is associated with: %w", define.ErrInvalidArg)
 	}
 	return nil
 }
@@ -232,18 +231,18 @@ func DefaultSeccompPath() (string, error) {
 func checkDependencyContainer(depCtr, ctr *Container) error {
 	state, err := depCtr.State()
 	if err != nil {
-		return errors.Wrapf(err, "error accessing dependency container %s state", depCtr.ID())
+		return fmt.Errorf("error accessing dependency container %s state: %w", depCtr.ID(), err)
 	}
 	if state == define.ContainerStateRemoving {
-		return errors.Wrapf(define.ErrCtrStateInvalid, "cannot use container %s as a dependency as it is being removed", depCtr.ID())
+		return fmt.Errorf("cannot use container %s as a dependency as it is being removed: %w", depCtr.ID(), define.ErrCtrStateInvalid)
 	}
 
 	if depCtr.ID() == ctr.ID() {
-		return errors.Wrapf(define.ErrInvalidArg, "must specify another container")
+		return fmt.Errorf("must specify another container: %w", define.ErrInvalidArg)
 	}
 
 	if ctr.config.Pod != "" && depCtr.PodID() != ctr.config.Pod {
-		return errors.Wrapf(define.ErrInvalidArg, "container has joined pod %s and dependency container %s is not a member of the pod", ctr.config.Pod, depCtr.ID())
+		return fmt.Errorf("container has joined pod %s and dependency container %s is not a member of the pod: %w", ctr.config.Pod, depCtr.ID(), define.ErrInvalidArg)
 	}
 
 	return nil
@@ -347,7 +346,7 @@ func makeInspectPortBindings(bindings []types.PortMapping, expose map[uint16][]s
 func writeStringToPath(path, contents, mountLabel string, uid, gid int) error {
 	f, err := os.Create(path)
 	if err != nil {
-		return errors.Wrapf(err, "unable to create %s", path)
+		return fmt.Errorf("unable to create %s: %w", path, err)
 	}
 	defer f.Close()
 	if err := f.Chown(uid, gid); err != nil {
@@ -355,7 +354,7 @@ func writeStringToPath(path, contents, mountLabel string, uid, gid int) error {
 	}
 
 	if _, err := f.WriteString(contents); err != nil {
-		return errors.Wrapf(err, "unable to write %s", path)
+		return fmt.Errorf("unable to write %s: %w", path, err)
 	}
 	// Relabel runDirResolv for the container
 	if err := label.Relabel(path, mountLabel, false); err != nil {

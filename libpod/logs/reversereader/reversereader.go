@@ -1,10 +1,10 @@
 package reversereader
 
 import (
+	"errors"
+	"fmt"
 	"io"
 	"os"
-
-	"github.com/pkg/errors"
 )
 
 // ReverseReader structure for reading a file backwards
@@ -49,12 +49,12 @@ func NewReverseReader(reader *os.File) (*ReverseReader, error) {
 // then sets the newoff set one pagesize less than the previous read.
 func (r *ReverseReader) Read() (string, error) {
 	if r.offset < 0 {
-		return "", errors.Wrap(io.EOF, "at beginning of file")
+		return "", fmt.Errorf("at beginning of file: %w", io.EOF)
 	}
 	// Read from given offset
 	b := make([]byte, r.readSize)
 	n, err := r.reader.ReadAt(b, r.offset)
-	if err != nil && errors.Cause(err) != io.EOF {
+	if err != nil && !errors.Is(err, io.EOF) {
 		return "", err
 	}
 	if int64(n) < r.readSize {

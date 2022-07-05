@@ -2,13 +2,14 @@ package abi
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"path/filepath"
+	"strings"
 
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/domain/utils"
-	"github.com/pkg/errors"
 )
 
 func (ic *ContainerEngine) SecretCreate(ctx context.Context, name string, reader io.Reader, options entities.SecretCreateOptions) (*entities.SecretCreateReport, error) {
@@ -60,11 +61,11 @@ func (ic *ContainerEngine) SecretInspect(ctx context.Context, nameOrIDs []string
 	for _, nameOrID := range nameOrIDs {
 		secret, err := manager.Lookup(nameOrID)
 		if err != nil {
-			if errors.Cause(err).Error() == "no such secret" {
+			if strings.Contains(err.Error(), "no such secret") {
 				errs = append(errs, err)
 				continue
 			} else {
-				return nil, nil, errors.Wrapf(err, "error inspecting secret %s", nameOrID)
+				return nil, nil, fmt.Errorf("error inspecting secret %s: %w", nameOrID, err)
 			}
 		}
 		report := &entities.SecretInfoReport{
@@ -141,7 +142,7 @@ func (ic *ContainerEngine) SecretRm(ctx context.Context, nameOrIDs []string, opt
 	}
 	for _, nameOrID := range toRemove {
 		deletedID, err := manager.Delete(nameOrID)
-		if err == nil || errors.Cause(err).Error() == "no such secret" {
+		if err == nil || strings.Contains(err.Error(), "no such secret") {
 			reports = append(reports, &entities.SecretRmReport{
 				Err: err,
 				ID:  deletedID,

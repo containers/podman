@@ -560,7 +560,7 @@ var _ = Describe("Podman create", func() {
 		session = podmanTest.Podman([]string{"create", "--umask", "9999", "--name", "bad", ALPINE})
 		session.WaitWithDefaultTimeout()
 		Expect(session).To(ExitWithError())
-		Expect(session.ErrorToString()).To(ContainSubstring("Invalid umask"))
+		Expect(session.ErrorToString()).To(ContainSubstring("invalid umask"))
 	})
 
 	It("create container in pod with IP should fail", func() {

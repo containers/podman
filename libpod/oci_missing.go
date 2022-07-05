@@ -7,7 +7,6 @@ import (
 	"sync"
 
 	"github.com/containers/podman/v4/libpod/define"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -209,7 +208,7 @@ func (r *MissingRuntime) ExecAttachSocketPath(ctr *Container, sessionID string) 
 // the container, but Conmon should still place an exit file for it.
 func (r *MissingRuntime) ExitFilePath(ctr *Container) (string, error) {
 	if ctr == nil {
-		return "", errors.Wrapf(define.ErrInvalidArg, "must provide a valid container to get exit file path")
+		return "", fmt.Errorf("must provide a valid container to get exit file path: %w", define.ErrInvalidArg)
 	}
 	return filepath.Join(r.exitsDir, ctr.ID()), nil
 }
@@ -227,5 +226,5 @@ func (r *MissingRuntime) RuntimeInfo() (*define.ConmonInfo, *define.OCIRuntimeIn
 
 // Return an error indicating the runtime is missing
 func (r *MissingRuntime) printError() error {
-	return errors.Wrapf(define.ErrOCIRuntimeNotFound, "runtime %s is missing", r.name)
+	return fmt.Errorf("runtime %s is missing: %w", r.name, define.ErrOCIRuntimeNotFound)
 }

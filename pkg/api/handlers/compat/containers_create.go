@@ -2,6 +2,7 @@ package compat
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -26,7 +27,6 @@ import (
 	"github.com/containers/storage"
 	"github.com/docker/docker/api/types/mount"
 	"github.com/gorilla/schema"
-	"github.com/pkg/errors"
 )
 
 func CreateContainer(w http.ResponseWriter, r *http.Request) {
@@ -38,14 +38,14 @@ func CreateContainer(w http.ResponseWriter, r *http.Request) {
 		// override any golang type defaults
 	}
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.Error(w, http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
+		utils.Error(w, http.StatusBadRequest, fmt.Errorf("failed to parse parameters for %s: %w", r.URL.String(), err))
 		return
 	}
 
 	// compatible configuration
 	body := handlers.CreateContainerConfig{}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "Decode()"))
+		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("decode(): %w", err))
 		return
 	}
 
@@ -53,37 +53,37 @@ func CreateContainer(w http.ResponseWriter, r *http.Request) {
 	body.Name = query.Name
 
 	if len(body.HostConfig.Links) > 0 {
-		utils.Error(w, http.StatusBadRequest, errors.Wrapf(utils.ErrLinkNotSupport, "bad parameter"))
+		utils.Error(w, http.StatusBadRequest, fmt.Errorf("bad parameter: %w", utils.ErrLinkNotSupport))
 		return
 	}
 	rtc, err := runtime.GetConfig()
 	if err != nil {
-		utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "unable to get runtime config"))
+		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("unable to get runtime config: %w", err))
 		return
 	}
 
 	imageName, err := utils.NormalizeToDockerHub(r, body.Config.Image)
 	if err != nil {
-		utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "error normalizing image"))
+		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("error normalizing image: %w", err))
 		return
 	}
 	body.Config.Image = imageName
 
 	newImage, resolvedName, err := runtime.LibimageRuntime().LookupImage(body.Config.Image, nil)
 	if err != nil {
-		if errors.Cause(err) == storage.ErrImageUnknown {
-			utils.Error(w, http.StatusNotFound, errors.Wrap(err, "No such image"))
+		if errors.Is(err, storage.ErrImageUnknown) {
+			utils.Error(w, http.StatusNotFound, fmt.Errorf("no such image: %w", err))
 			return
 		}
 
-		utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "error looking up image"))
+		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("error looking up image: %w", err))
 		return
 	}
 
 	// Take body structure and convert to cliopts
 	cliOpts, args, err := cliOpts(body, rtc)
 	if err != nil {
-		utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "make cli opts()"))
+		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("make cli opts(): %w", err))
 		return
 	}
 
@@ -100,7 +100,7 @@ func CreateContainer(w http.ResponseWriter, r *http.Request) {
 
 	sg := specgen.NewSpecGenerator(imgNameOrID, cliOpts.RootFS)
 	if err := specgenutil.FillOutSpecGen(sg, cliOpts, args); err != nil {
-		utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "fill out specgen"))
+		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("fill out specgen: %w", err))
 		return
 	}
 	// moby always create the working directory
@@ -109,7 +109,7 @@ func CreateContainer(w http.ResponseWriter, r *http.Request) {
 	ic := abi.ContainerEngine{Libpod: runtime}
 	report, err := ic.ContainerCreate(r.Context(), sg)
 	if err != nil {
-		utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "container create"))
+		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("container create: %w", err))
 		return
 	}
 	createResponse := entities.ContainerCreateResponse{
@@ -300,7 +300,7 @@ func cliOpts(cc handlers.CreateContainerConfig, rtc *config.Config) (*entities.C
 				if len(endpoint.IPAddress) > 0 {
 					staticIP := net.ParseIP(endpoint.IPAddress)
 					if staticIP == nil {
-						return nil, nil, errors.Errorf("failed to parse the ip address %q", endpoint.IPAddress)
+						return nil, nil, fmt.Errorf("failed to parse the ip address %q", endpoint.IPAddress)
 					}
 					netOpts.StaticIPs = append(netOpts.StaticIPs, staticIP)
 				}
@@ -310,7 +310,7 @@ func cliOpts(cc handlers.CreateContainerConfig, rtc *config.Config) (*entities.C
 					if len(endpoint.IPAMConfig.IPv4Address) > 0 {
 						staticIP := net.ParseIP(endpoint.IPAMConfig.IPv4Address)
 						if staticIP == nil {
-							return nil, nil, errors.Errorf("failed to parse the ipv4 address %q", endpoint.IPAMConfig.IPv4Address)
+							return nil, nil, fmt.Errorf("failed to parse the ipv4 address %q", endpoint.IPAMConfig.IPv4Address)
 						}
 						netOpts.StaticIPs = append(netOpts.StaticIPs, staticIP)
 					}
@@ -318,7 +318,7 @@ func cliOpts(cc handlers.CreateContainerConfig, rtc *config.Config) (*entities.C
 					if len(endpoint.IPAMConfig.IPv6Address) > 0 {
 						staticIP := net.ParseIP(endpoint.IPAMConfig.IPv6Address)
 						if staticIP == nil {
-							return nil, nil, errors.Errorf("failed to parse the ipv6 address %q", endpoint.IPAMConfig.IPv6Address)
+							return nil, nil, fmt.Errorf("failed to parse the ipv6 address %q", endpoint.IPAMConfig.IPv6Address)
 						}
 						netOpts.StaticIPs = append(netOpts.StaticIPs, staticIP)
 					}
@@ -327,7 +327,7 @@ func cliOpts(cc handlers.CreateContainerConfig, rtc *config.Config) (*entities.C
 				if len(endpoint.MacAddress) > 0 {
 					staticMac, err := net.ParseMAC(endpoint.MacAddress)
 					if err != nil {
-						return nil, nil, errors.Errorf("failed to parse the mac address %q", endpoint.MacAddress)
+						return nil, nil, fmt.Errorf("failed to parse the mac address %q", endpoint.MacAddress)
 					}
 					netOpts.StaticMAC = types.HardwareAddr(staticMac)
 				}
@@ -433,7 +433,7 @@ func cliOpts(cc handlers.CreateContainerConfig, rtc *config.Config) (*entities.C
 	}
 	if cc.HostConfig.Resources.NanoCPUs > 0 {
 		if cliOpts.CPUPeriod != 0 || cliOpts.CPUQuota != 0 {
-			return nil, nil, errors.Errorf("NanoCpus conflicts with CpuPeriod and CpuQuota")
+			return nil, nil, fmt.Errorf("NanoCpus conflicts with CpuPeriod and CpuQuota")
 		}
 		cliOpts.CPUPeriod = 100000
 		cliOpts.CPUQuota = cc.HostConfig.Resources.NanoCPUs / 10000
@@ -479,7 +479,7 @@ func cliOpts(cc handlers.CreateContainerConfig, rtc *config.Config) (*entities.C
 		}
 		if err := os.MkdirAll(vol, 0o755); err != nil {
 			if !os.IsExist(err) {
-				return nil, nil, errors.Wrapf(err, "error making volume mountpoint for volume %s", vol)
+				return nil, nil, fmt.Errorf("error making volume mountpoint for volume %s: %w", vol, err)
 			}
 		}
 	}

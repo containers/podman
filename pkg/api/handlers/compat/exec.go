@@ -2,6 +2,8 @@ package compat
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -14,7 +16,6 @@ import (
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/specgenutil"
 	"github.com/gorilla/mux"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -24,7 +25,7 @@ func ExecCreateHandler(w http.ResponseWriter, r *http.Request) {
 
 	input := new(handlers.ExecCreateConfig)
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-		utils.InternalServerError(w, errors.Wrapf(err, "error decoding request body as JSON"))
+		utils.InternalServerError(w, fmt.Errorf("error decoding request body as JSON: %w", err))
 		return
 	}
 
@@ -48,7 +49,7 @@ func ExecCreateHandler(w http.ResponseWriter, r *http.Request) {
 	for _, envStr := range input.Env {
 		split := strings.SplitN(envStr, "=", 2)
 		if len(split) != 2 {
-			utils.Error(w, http.StatusBadRequest, errors.Errorf("environment variable %q badly formed, must be key=value", envStr))
+			utils.Error(w, http.StatusBadRequest, fmt.Errorf("environment variable %q badly formed, must be key=value", envStr))
 			return
 		}
 		libpodConfig.Environment[split[0]] = split[1]
@@ -78,14 +79,14 @@ func ExecCreateHandler(w http.ResponseWriter, r *http.Request) {
 
 	sessID, err := ctr.ExecCreate(libpodConfig)
 	if err != nil {
-		if errors.Cause(err) == define.ErrCtrStateInvalid {
+		if errors.Is(err, define.ErrCtrStateInvalid) {
 			// Check if the container is paused. If so, return a 409
 			state, err := ctr.State()
 			if err == nil {
 				// Ignore the error != nil case. We're already
 				// throwing an InternalServerError below.
 				if state == define.ContainerStatePaused {
-					utils.Error(w, http.StatusConflict, errors.Errorf("cannot create exec session as container %s is paused", ctr.ID()))
+					utils.Error(w, http.StatusConflict, fmt.Errorf("cannot create exec session as container %s is paused", ctr.ID()))
 					return
 				}
 			}
@@ -112,7 +113,7 @@ func ExecInspectHandler(w http.ResponseWriter, r *http.Request) {
 
 	session, err := sessionCtr.ExecSession(sessionID)
 	if err != nil {
-		utils.InternalServerError(w, errors.Wrapf(err, "error retrieving exec session %s from container %s", sessionID, sessionCtr.ID()))
+		utils.InternalServerError(w, fmt.Errorf("error retrieving exec session %s from container %s: %w", sessionID, sessionCtr.ID(), err))
 		return
 	}
 
@@ -135,7 +136,7 @@ func ExecStartHandler(w http.ResponseWriter, r *http.Request) {
 	bodyParams := new(handlers.ExecStartConfig)
 
 	if err := json.NewDecoder(r.Body).Decode(&bodyParams); err != nil {
-		utils.Error(w, http.StatusBadRequest, errors.Wrapf(err, "failed to decode parameters for %s", r.URL.String()))
+		utils.Error(w, http.StatusBadRequest, fmt.Errorf("failed to decode parameters for %s: %w", r.URL.String(), err))
 		return
 	}
 	// TODO: Verify TTY setting against what inspect session was made with
@@ -154,7 +155,7 @@ func ExecStartHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if state != define.ContainerStateRunning {
-		utils.Error(w, http.StatusConflict, errors.Errorf("cannot exec in a container that is not running; container %s is %s", sessionCtr.ID(), state.String()))
+		utils.Error(w, http.StatusConflict, fmt.Errorf("cannot exec in a container that is not running; container %s is %s", sessionCtr.ID(), state.String()))
 		return
 	}
 
@@ -172,7 +173,7 @@ func ExecStartHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	logErr := func(e error) {
-		logrus.Error(errors.Wrapf(e, "error attaching to container %s exec session %s", sessionCtr.ID(), sessionID))
+		logrus.Error(fmt.Errorf("error attaching to container %s exec session %s: %w", sessionCtr.ID(), sessionID, e))
 	}
 
 	var size *define.TerminalSize
