@@ -1081,15 +1081,17 @@ func WaitForFile(path string) (err error) {
 // WaitForService blocks, waiting for some service listening on given host:port
 func WaitForService(address url.URL) {
 	// Wait for podman to be ready
-	var conn net.Conn
 	var err error
 	for i := 1; i <= 5; i++ {
+		var conn net.Conn
 		conn, err = net.Dial("tcp", address.Host)
-		if err != nil {
-			// Podman not available yet...
-			time.Sleep(time.Duration(i) * time.Second)
+		if err == nil {
+			conn.Close()
+			break
 		}
+
+		// Podman not available yet...
+		time.Sleep(time.Duration(i) * time.Second)
 	}
 	Expect(err).ShouldNot(HaveOccurred())
-	conn.Close()
 }
