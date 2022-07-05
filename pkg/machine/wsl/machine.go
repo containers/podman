@@ -18,6 +18,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v4/pkg/machine"
 	"github.com/containers/podman/v4/utils"
 	"github.com/containers/storage/pkg/homedir"
@@ -115,6 +116,43 @@ const lingerSetup = `mkdir -p /home/[USER]/.config/systemd/[USER]/default.target
 ln -fs /home/[USER]/.config/systemd/[USER]/linger-example.service \
        /home/[USER]/.config/systemd/[USER]/default.target.wants/linger-example.service
 `
+
+const proxyConfigSetup = `#!/bin/bash
+
+SYSTEMD_CONF=/etc/systemd/system.conf.d/default-env.conf
+ENVD_CONF=/etc/environment.d/default-env.conf
+PROFILE_CONF=/etc/profile.d/default-env.sh
+
+IFS="|"
+read proxies
+
+mkdir -p /etc/profile.d /etc/environment.d /etc/systemd/system.conf.d/
+rm -f $SYSTEMD_CONF
+for proxy in $proxies; do
+	output+="$proxy "
+done
+echo "[Manager]" >> $SYSTEMD_CONF
+echo -ne "DefaultEnvironment=" >> $SYSTEMD_CONF
+
+echo $output >> $SYSTEMD_CONF
+rm -f $ENVD_CONF
+for proxy in $proxies; do
+	echo "$proxy" >> $ENVD_CONF
+done
+rm -f $PROFILE_CONF
+for proxy in $proxies; do
+	echo "export $proxy" >> $PROFILE_CONF
+done
+`
+
+const proxyConfigAttempt = `if [ -f /usr/local/bin/proxyinit ]; \
+then /usr/local/bin/proxyinit; \
+else exit 42; \
+fi`
+
+const clearProxySettings = `rm -f /etc/systemd/system.conf.d/default-env.conf \
+	   /etc/environment.d/default-env.conf \
+	   /etc/profile.d/default-env.sh`
 
 const wslInstallError = `Could not %s. See previous output for any potential failure details.
 If you can not resolve the issue, and rerunning fails, try the "wsl --install" process
@@ -300,6 +338,7 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 		return cont, err
 	}
 
+	_ = setupWslProxyEnv()
 	homeDir := homedir.Get()
 	sshDir := filepath.Join(homeDir, ".ssh")
 	v.IdentityPath = filepath.Join(sshDir, v.Name)
@@ -526,6 +565,40 @@ func configureSystem(v *MachineVM, dist string) error {
 	return nil
 }
 
+func configureProxy(dist string, useProxy bool) error {
+	if !useProxy {
+		_ = runCmdPassThrough("wsl", "-d", dist, "sh", "-c", clearProxySettings)
+		return nil
+	}
+	var content string
+	for i, key := range config.ProxyEnv {
+		if value, _ := os.LookupEnv(key); len(value) > 0 {
+			var suffix string
+			if i < (len(config.ProxyEnv) - 1) {
+				suffix = "|"
+			}
+			content = fmt.Sprintf("%s%s=\"%s\"%s", content, key, value, suffix)
+		}
+	}
+
+	if err := pipeCmdPassThrough("wsl", content, "-d", dist, "sh", "-c", proxyConfigAttempt); err != nil {
+		const failMessage = "Failure creating proxy configuration"
+		if exitErr, isExit := err.(*exec.ExitError); isExit && exitErr.ExitCode() != 42 {
+			return errors.Wrap(err, failMessage)
+		}
+
+		fmt.Println("Installing proxy support")
+		_ = pipeCmdPassThrough("wsl", proxyConfigSetup, "-d", dist, "sh", "-c",
+			"cat > /usr/local/bin/proxyinit; chmod 755 /usr/local/bin/proxyinit")
+
+		if err = pipeCmdPassThrough("wsl", content, "-d", dist, "/usr/local/bin/proxyinit"); err != nil {
+			return errors.Wrap(err, failMessage)
+		}
+	}
+
+	return nil
+}
+
 func enableUserLinger(v *MachineVM, dist string) error {
 	lingerCmd := "mkdir -p /var/lib/systemd/linger; touch /var/lib/systemd/linger/" + v.RemoteUsername
 	if err := runCmdPassThrough("wsl", "-d", dist, "sh", "-c", lingerCmd); err != nil {
@@ -553,6 +626,11 @@ func installScripts(dist string) error {
 	if err := pipeCmdPassThrough("wsl", bootstrap, "-d", dist, "sh", "-c",
 		"cat > /root/bootstrap; chmod 755 /root/bootstrap"); err != nil {
 		return errors.Wrap(err, "could not create bootstrap script for guest OS")
+	}
+
+	if err := pipeCmdPassThrough("wsl", proxyConfigSetup, "-d", dist, "sh", "-c",
+		"cat > /usr/local/bin/proxyinit; chmod 755 /usr/local/bin/proxyinit"); err != nil {
+		return errors.Wrap(err, "could not create proxyinit script for guest OS")
 	}
 
 	return nil
@@ -816,6 +894,26 @@ func pipeCmdPassThrough(name string, input string, arg ...string) error {
 	return cmd.Run()
 }
 
+func setupWslProxyEnv() (hasProxy bool) {
+	current, _ := os.LookupEnv("WSLENV")
+	for _, key := range config.ProxyEnv {
+		if value, _ := os.LookupEnv(key); len(value) < 1 {
+			continue
+		}
+
+		hasProxy = true
+		delim := ""
+		if len(current) > 0 {
+			delim = ":"
+		}
+		current = fmt.Sprintf("%s%s%s/u", current, delim, key)
+	}
+	if hasProxy {
+		os.Setenv("WSLENV", current)
+	}
+	return
+}
+
 func (v *MachineVM) Set(_ string, opts machine.SetOptions) ([]error, error) {
 	// If one setting fails to be applied, the others settings will not fail and still be applied.
 	// The setting(s) that failed to be applied will have its errors returned in setErrors
@@ -852,6 +950,10 @@ func (v *MachineVM) Start(name string, _ machine.StartOptions) error {
 	}
 
 	dist := toDist(name)
+	useProxy := setupWslProxyEnv()
+	if err := configureProxy(dist, useProxy); err != nil {
+		return err
+	}
 
 	err := runCmdPassThrough("wsl", "-d", dist, "/root/bootstrap")
 	if err != nil {
