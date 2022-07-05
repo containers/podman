@@ -21,5 +21,5 @@ for i in tunnel abi; do
   echo Running golangci-lint for "$i"
   echo Build Tags          "$i": ${BUILD_TAGS[$i]}
   echo Skipped directories "$i": ${SKIP_DIRS[$i]}
-  golangci-lint run --build-tags=${BUILD_TAGS[$i]} --skip-dirs=${SKIP_DIRS[$i]} "$@"
+  ./bin/golangci-lint run --build-tags=${BUILD_TAGS[$i]} --skip-dirs=${SKIP_DIRS[$i]} "$@"
 done
