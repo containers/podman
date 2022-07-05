@@ -141,7 +141,7 @@ func run(cmd *cobra.Command, args []string) error {
 	rawImageName := ""
 	if !cliVals.RootFS {
 		rawImageName = args[0]
-		name, err := PullImage(args[0], cliVals)
+		name, err := PullImage(args[0], &cliVals)
 		if err != nil {
 			return err
 		}
@@ -192,6 +192,9 @@ func run(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	s.RawImageName = rawImageName
+	s.ImageOS = cliVals.OS
+	s.ImageArch = cliVals.Arch
+	s.ImageVariant = cliVals.Variant
 	s.Passwd = &runOpts.Passwd
 	runOpts.Spec = s
 
