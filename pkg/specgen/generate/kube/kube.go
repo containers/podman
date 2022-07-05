@@ -810,8 +810,8 @@ func envVarValueResourceFieldRef(env v1.EnvVar, opts *CtrSpecGenOptions) (*strin
 	}
 
 	// k8s rounds up the result to the nearest integer
-	intValue := int(math.Ceil(value.AsApproximateFloat64() / divisor.AsApproximateFloat64()))
-	stringValue := strconv.Itoa(intValue)
+	intValue := int64(math.Ceil(value.AsApproximateFloat64() / divisor.AsApproximateFloat64()))
+	stringValue := strconv.FormatInt(intValue, 10)
 
 	return &stringValue, nil
 }
