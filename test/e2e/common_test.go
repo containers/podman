@@ -2,6 +2,7 @@ package integration
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
@@ -30,7 +31,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -618,14 +618,14 @@ func (p *PodmanTestIntegration) RunHealthCheck(cid string) error {
 				restart := p.Podman([]string{"restart", cid})
 				restart.WaitWithDefaultTimeout()
 				if restart.ExitCode() != 0 {
-					return errors.Errorf("unable to restart %s", cid)
+					return fmt.Errorf("unable to restart %s", cid)
 				}
 			}
 		}
 		fmt.Printf("Waiting for %s to pass healthcheck\n", cid)
 		time.Sleep(1 * time.Second)
 	}
-	return errors.Errorf("unable to detect %s as running", cid)
+	return fmt.Errorf("unable to detect %s as running", cid)
 }
 
 func (p *PodmanTestIntegration) CreateSeccompJSON(in []byte) (string, error) {
