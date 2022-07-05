@@ -38,9 +38,18 @@ func getImageFromSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGen
 	}
 
 	// Need to look up image.
-	image, resolvedName, err := r.LibimageRuntime().LookupImage(s.Image, nil)
+	lookupOptions := &libimage.LookupImageOptions{ManifestList: true}
+	image, resolvedName, err := r.LibimageRuntime().LookupImage(s.Image, lookupOptions)
 	if err != nil {
 		return nil, "", nil, err
+	}
+	manifestList, err := image.ToManifestList()
+	// only process if manifest list found otherwise expect it to be regular image
+	if err == nil {
+		image, err = manifestList.LookupInstance(ctx, s.ImageArch, s.ImageOS, s.ImageVariant)
+		if err != nil {
+			return nil, "", nil, err
+		}
 	}
 	s.SetImage(image, resolvedName)
 	inspectData, err := image.Inspect(ctx, nil)

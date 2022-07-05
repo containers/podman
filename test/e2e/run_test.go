@@ -73,6 +73,28 @@ var _ = Describe("Podman run", func() {
 		Expect(session.OutputToString()).To(ContainSubstring("graphRootMounted=1"))
 	})
 
+	It("podman run from manifest list", func() {
+		session := podmanTest.Podman([]string{"manifest", "create", "localhost/test:latest"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"build", "-f", "build/Containerfile.with-platform", "--platform", "linux/amd64,linux/arm64", "--manifest", "localhost/test:latest"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"run", "--platform", "linux/arm64", "localhost/test", "uname", "-a"})
+		session.WaitWithDefaultTimeout()
+		exitCode := session.ExitCode()
+		// CI could either support requested platform or not, if it supports then output should contain `aarch64`
+		// if not run should fail with a very specific error i.e `Exec format error` anything other than this should
+		// be marked as failure of test.
+		if exitCode == 0 {
+			Expect(session.OutputToString()).To(ContainSubstring("aarch64"))
+		} else {
+			Expect(session.ErrorToString()).To(ContainSubstring("Exec format error"))
+		}
+	})
+
 	It("podman run a container based on a complex local image name", func() {
 		imageName := strings.TrimPrefix(nginx, "quay.io/")
 		session := podmanTest.Podman([]string{"run", imageName, "ls"})
