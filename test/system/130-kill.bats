@@ -130,4 +130,14 @@ load helpers
     is "$output" $cname
 }
 
+@test "podman kill - concurrent stop" {
+    # 14761 - concurrent kill/stop must record the exit code
+    random_name=$(random_string 10)
+    run_podman run -d --replace --name=$random_name alpine sh -c "trap 'echo Received SIGTERM, ignoring' SIGTERM; echo READY; while :; do sleep 0.2; done"
+    $PODMAN stop -t 1 $random_name &
+    run_podman kill $random_name
+    run_podman wait $random_name
+    run_podman rm -f $random_name
+}
+
 # vim: filetype=sh
