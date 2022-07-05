@@ -161,8 +161,9 @@ func ListNetworks(w http.ResponseWriter, r *http.Request) {
 
 func CreateNetwork(w http.ResponseWriter, r *http.Request) {
 	var (
-		networkCreate types.NetworkCreateRequest
-		network       nettypes.Network
+		networkCreate   types.NetworkCreateRequest
+		network         nettypes.Network
+		responseWarning string
 	)
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	if err := json.NewDecoder(r.Body).Decode(&networkCreate); err != nil {
@@ -179,8 +180,40 @@ func CreateNetwork(w http.ResponseWriter, r *http.Request) {
 	network.Internal = networkCreate.Internal
 	network.IPv6Enabled = networkCreate.EnableIPv6
 
-	// FIXME use docker options and convert them to valid libpod options
-	// network.Options = networkCreate.Options
+	network.Options = make(map[string]string)
+
+	// TODO: we should consider making this constants in c/common/libnetwork/types
+	for opt, optVal := range networkCreate.Options {
+		switch opt {
+		case "mtu":
+			fallthrough
+		case "com.docker.network.driver.mtu":
+			if network.Driver == nettypes.BridgeNetworkDriver {
+				network.Options["mtu"] = optVal
+			}
+		case "icc":
+			fallthrough
+		case "com.docker.network.bridge.enable_icc":
+			// TODO: needs to be implemented
+			if network.Driver == nettypes.BridgeNetworkDriver {
+				responseWarning = "com.docker.network.bridge.enable_icc is not currently implemented"
+			}
+		case "com.docker.network.bridge.name":
+			if network.Driver == nettypes.BridgeNetworkDriver {
+				network.NetworkInterface = optVal
+			}
+		case "mode":
+			if network.Driver == nettypes.MacVLANNetworkDriver || network.Driver == nettypes.IPVLANNetworkDriver {
+				network.Options[opt] = optVal
+			}
+		case "parent":
+			if network.Driver == nettypes.MacVLANNetworkDriver || network.Driver == nettypes.IPVLANNetworkDriver {
+				network.NetworkInterface = optVal
+			}
+		default:
+			responseWarning = "\"" + opt + ": " + optVal + "\" is not a recognized option"
+		}
+	}
 
 	// dns is only enabled for the bridge driver
 	if network.Driver == nettypes.BridgeNetworkDriver {
@@ -242,9 +275,10 @@ func CreateNetwork(w http.ResponseWriter, r *http.Request) {
 
 	body := struct {
 		ID      string `json:"Id"`
-		Warning string
+		Warning string `json:"Warning"`
 	}{
-		ID: newNetwork.ID,
+		ID:      newNetwork.ID,
+		Warning: responseWarning,
 	}
 	utils.WriteResponse(w, http.StatusCreated, body)
 }
