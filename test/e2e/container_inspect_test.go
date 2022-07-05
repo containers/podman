@@ -58,7 +58,7 @@ var _ = Describe("Podman container inspect", func() {
 
 	It("podman inspect shows exposed ports on image", func() {
 		name := "testcon"
-		session := podmanTest.Podman([]string{"run", "-d", "--expose", "8989", "--name", name, nginx})
+		session := podmanTest.Podman([]string{"run", "-d", "--expose", "8989", "--name", name, NGINX_IMAGE})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 

@@ -256,7 +256,7 @@ var _ = Describe("Podman pull", func() {
 	It("podman pull from docker-archive", func() {
 		SkipIfRemote("podman-remote does not support pulling from docker-archive")
 
-		podmanTest.AddImageToRWStore(cirros)
+		podmanTest.AddImageToRWStore(CIRROS_IMAGE)
 		tarfn := filepath.Join(podmanTest.TempDir, "cirros.tar")
 		session := podmanTest.Podman([]string{"save", "-o", tarfn, "cirros"})
 		session.WaitWithDefaultTimeout()
@@ -319,7 +319,7 @@ var _ = Describe("Podman pull", func() {
 	It("podman pull from oci-archive", func() {
 		SkipIfRemote("podman-remote does not support pulling from oci-archive")
 
-		podmanTest.AddImageToRWStore(cirros)
+		podmanTest.AddImageToRWStore(CIRROS_IMAGE)
 		tarfn := filepath.Join(podmanTest.TempDir, "oci-cirrus.tar")
 		session := podmanTest.Podman([]string{"save", "--format", "oci-archive", "-o", tarfn, "cirros"})
 		session.WaitWithDefaultTimeout()
@@ -339,7 +339,7 @@ var _ = Describe("Podman pull", func() {
 	It("podman pull from local directory", func() {
 		SkipIfRemote("podman-remote does not support pulling from local directory")
 
-		podmanTest.AddImageToRWStore(cirros)
+		podmanTest.AddImageToRWStore(CIRROS_IMAGE)
 		dirpath := filepath.Join(podmanTest.TempDir, "cirros")
 		err = os.MkdirAll(dirpath, os.ModePerm)
 		Expect(err).ToNot(HaveOccurred())
@@ -363,7 +363,7 @@ var _ = Describe("Podman pull", func() {
 	It("podman pull from local OCI directory", func() {
 		SkipIfRemote("podman-remote does not support pulling from OCI directory")
 
-		podmanTest.AddImageToRWStore(cirros)
+		podmanTest.AddImageToRWStore(CIRROS_IMAGE)
 		dirpath := filepath.Join(podmanTest.TempDir, "cirros")
 		err = os.MkdirAll(dirpath, os.ModePerm)
 		Expect(err).ToNot(HaveOccurred())

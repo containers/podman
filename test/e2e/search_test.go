@@ -206,7 +206,7 @@ registries = ['{{.Host}}:{{.Port}}']`
 		port := GetPort()
 		fakereg := podmanTest.Podman([]string{"run", "-d", "--name", "registry",
 			"-p", fmt.Sprintf("%d:5000", port),
-			registry, "/entrypoint.sh", "/etc/docker/registry/config.yml"})
+			REGISTRY_IMAGE, "/entrypoint.sh", "/etc/docker/registry/config.yml"})
 		fakereg.WaitWithDefaultTimeout()
 		Expect(fakereg).Should(Exit(0))
 
@@ -231,7 +231,7 @@ registries = ['{{.Host}}:{{.Port}}']`
 		}
 		port := GetPort()
 		registry := podmanTest.Podman([]string{"run", "-d", "--name", "registry3",
-			"-p", fmt.Sprintf("%d:5000", port), registry,
+			"-p", fmt.Sprintf("%d:5000", port), REGISTRY_IMAGE,
 			"/entrypoint.sh", "/etc/docker/registry/config.yml"})
 		registry.WaitWithDefaultTimeout()
 		Expect(registry).Should(Exit(0))
@@ -268,7 +268,7 @@ registries = ['{{.Host}}:{{.Port}}']`
 		port := GetPort()
 		ep := endpoint{Port: fmt.Sprintf("%d", port), Host: "localhost"}
 		registry := podmanTest.Podman([]string{"run", "-d", "-p", fmt.Sprintf("%d:5000", port),
-			"--name", "registry4", registry, "/entrypoint.sh", "/etc/docker/registry/config.yml"})
+			"--name", "registry4", REGISTRY_IMAGE, "/entrypoint.sh", "/etc/docker/registry/config.yml"})
 		registry.WaitWithDefaultTimeout()
 		Expect(registry).Should(Exit(0))
 
@@ -313,7 +313,7 @@ registries = ['{{.Host}}:{{.Port}}']`
 		port := GetPort()
 		ep := endpoint{Port: fmt.Sprintf("%d", port), Host: "localhost"}
 		registry := podmanTest.Podman([]string{"run", "-d", "-p", fmt.Sprintf("%d:5000", port),
-			"--name", "registry5", registry})
+			"--name", "registry5", REGISTRY_IMAGE})
 		registry.WaitWithDefaultTimeout()
 		Expect(registry).Should(Exit(0))
 
@@ -353,7 +353,7 @@ registries = ['{{.Host}}:{{.Port}}']`
 		port := GetPort()
 		ep := endpoint{Port: fmt.Sprintf("%d", port), Host: "localhost"}
 		registry := podmanTest.Podman([]string{"run", "-d", "-p", fmt.Sprintf("%d:5000", port),
-			"--name", "registry6", registry})
+			"--name", "registry6", REGISTRY_IMAGE})
 		registry.WaitWithDefaultTimeout()
 		Expect(registry).Should(Exit(0))
 
@@ -401,7 +401,7 @@ registries = ['{{.Host}}:{{.Port}}']`
 		ep3 := endpoint{Port: fmt.Sprintf("%d", port3), Host: "localhost"}
 
 		registryLocal := podmanTest.Podman([]string{"run", "-d", "-p", fmt.Sprintf("%d", port1),
-			"--name", "registry7", registry})
+			"--name", "registry7", REGISTRY_IMAGE})
 		registryLocal.WaitWithDefaultTimeout()
 		Expect(registryLocal).Should(Exit(0))
 
@@ -409,7 +409,7 @@ registries = ['{{.Host}}:{{.Port}}']`
 			Fail("Cannot start docker registry on port %s", port1)
 		}
 
-		registryLocal = podmanTest.Podman([]string{"run", "-d", "-p", fmt.Sprintf("%d:5000", port2), "--name", "registry8", registry})
+		registryLocal = podmanTest.Podman([]string{"run", "-d", "-p", fmt.Sprintf("%d:5000", port2), "--name", "registry8", REGISTRY_IMAGE})
 		registryLocal.WaitWithDefaultTimeout()
 		Expect(registryLocal).Should(Exit(0))
 

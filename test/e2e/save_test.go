@@ -153,7 +153,7 @@ var _ = Describe("Podman save", func() {
 		defer os.Setenv("GNUPGHOME", origGNUPGHOME)
 
 		port := 5000
-		session := podmanTest.Podman([]string{"run", "-d", "--name", "registry", "-p", strings.Join([]string{strconv.Itoa(port), strconv.Itoa(port)}, ":"), "quay.io/libpod/registry:2.6"})
+		session := podmanTest.Podman([]string{"run", "-d", "--name", "registry", "-p", strings.Join([]string{strconv.Itoa(port), strconv.Itoa(port)}, ":"), REGISTRY_IMAGE})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		if !WaitContainerReady(podmanTest, "registry", "listening on", 20, 1) {

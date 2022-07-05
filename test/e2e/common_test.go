@@ -36,10 +36,10 @@ import (
 
 var (
 	//lint:ignore ST1003
-	PODMAN_BINARY      string                        //nolint:revive,stylecheck
-	INTEGRATION_ROOT   string                        //nolint:revive,stylecheck
-	CGROUP_MANAGER     = "systemd"                   //nolint:revive,stylecheck
-	RESTORE_IMAGES     = []string{ALPINE, BB, nginx} //nolint:revive,stylecheck
+	PODMAN_BINARY      string                              //nolint:revive,stylecheck
+	INTEGRATION_ROOT   string                              //nolint:revive,stylecheck
+	CGROUP_MANAGER     = "systemd"                         //nolint:revive,stylecheck
+	RESTORE_IMAGES     = []string{ALPINE, BB, NGINX_IMAGE} //nolint:revive,stylecheck
 	defaultWaitTimeout = 90
 	CGROUPSV2, _       = cgroups.IsCgroup2UnifiedMode()
 )
@@ -115,7 +115,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	podman := PodmanTestSetup("/tmp")
 
 	// Pull cirros but don't put it into the cache
-	pullImages := []string{cirros, fedoraToolbox, volumeTest}
+	pullImages := []string{CIRROS_IMAGE, fedoraToolbox, volumeTest}
 	pullImages = append(pullImages, CACHE_IMAGES...)
 	for _, image := range pullImages {
 		podman.createArtifact(image)
@@ -464,7 +464,7 @@ func (p *PodmanTestIntegration) RunNginxWithHealthCheck(name string) (*PodmanSes
 		podmanArgs = append(podmanArgs, "--name", name)
 	}
 	// curl without -f exits 0 even if http code >= 400!
-	podmanArgs = append(podmanArgs, "-dt", "-P", "--health-cmd", "curl -f http://localhost/", nginx)
+	podmanArgs = append(podmanArgs, "-dt", "-P", "--health-cmd", "curl -f http://localhost/", NGINX_IMAGE)
 	session := p.Podman(podmanArgs)
 	session.WaitWithDefaultTimeout()
 	return session, session.OutputToString()

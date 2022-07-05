@@ -111,7 +111,7 @@ var _ = Describe("Podman generate systemd", func() {
 	})
 
 	It("podman generate systemd", func() {
-		n := podmanTest.Podman([]string{"run", "--name", "nginx", "-dt", nginx})
+		n := podmanTest.Podman([]string{"run", "--name", "nginx", "-dt", NGINX_IMAGE})
 		n.WaitWithDefaultTimeout()
 		Expect(n).Should(Exit(0))
 
@@ -124,7 +124,7 @@ var _ = Describe("Podman generate systemd", func() {
 	})
 
 	It("podman generate systemd --files --name", func() {
-		n := podmanTest.Podman([]string{"run", "--name", "nginx", "-dt", nginx})
+		n := podmanTest.Podman([]string{"run", "--name", "nginx", "-dt", NGINX_IMAGE})
 		n.WaitWithDefaultTimeout()
 		Expect(n).Should(Exit(0))
 
@@ -139,7 +139,7 @@ var _ = Describe("Podman generate systemd", func() {
 	})
 
 	It("podman generate systemd with timeout", func() {
-		n := podmanTest.Podman([]string{"run", "--name", "nginx", "-dt", nginx})
+		n := podmanTest.Podman([]string{"run", "--name", "nginx", "-dt", NGINX_IMAGE})
 		n.WaitWithDefaultTimeout()
 		Expect(n).Should(Exit(0))
 
@@ -159,7 +159,7 @@ var _ = Describe("Podman generate systemd", func() {
 	})
 
 	It("podman generate systemd with user-defined dependencies", func() {
-		n := podmanTest.Podman([]string{"run", "--name", "nginx", "-dt", nginx})
+		n := podmanTest.Podman([]string{"run", "--name", "nginx", "-dt", NGINX_IMAGE})
 		n.WaitWithDefaultTimeout()
 		Expect(n).Should(Exit(0))
 

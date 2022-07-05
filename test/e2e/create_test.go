@@ -63,7 +63,7 @@ var _ = Describe("Podman create", func() {
 
 		lock := GetPortLock("5000")
 		defer lock.Unlock()
-		session := podmanTest.Podman([]string{"run", "-d", "--name", "registry", "-p", "5000:5000", registry, "/entrypoint.sh", "/etc/docker/registry/config.yml"})
+		session := podmanTest.Podman([]string{"run", "-d", "--name", "registry", "-p", "5000:5000", REGISTRY_IMAGE, "/entrypoint.sh", "/etc/docker/registry/config.yml"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
@@ -273,7 +273,7 @@ var _ = Describe("Podman create", func() {
 
 	It("podman run entrypoint and cmd test", func() {
 		name := "test101"
-		create := podmanTest.Podman([]string{"create", "--name", name, redis})
+		create := podmanTest.Podman([]string{"create", "--name", name, REDIS_IMAGE})
 		create.WaitWithDefaultTimeout()
 		Expect(create).Should(Exit(0))
 
