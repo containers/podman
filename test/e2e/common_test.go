@@ -1061,13 +1061,13 @@ func digShort(container, lookupName, expectedIP string, p *PodmanTestIntegration
 // WaitForFile to be created in defaultWaitTimeout seconds, returns false if file not created
 func WaitForFile(path string) (err error) {
 	until := time.Now().Add(time.Duration(defaultWaitTimeout) * time.Second)
-	for i := 1; time.Now().Before(until); i++ {
+	for time.Now().Before(until) {
 		_, err = os.Stat(path)
 		switch {
 		case err == nil:
 			return nil
 		case errors.Is(err, os.ErrNotExist):
-			time.Sleep(time.Duration(i) * time.Second)
+			time.Sleep(10 * time.Millisecond)
 		default:
 			return err
 		}
@@ -1075,18 +1075,21 @@ func WaitForFile(path string) (err error) {
 	return err
 }
 
-// WaitForService blocks, waiting for some service listening on given host:port
+// WaitForService blocks for defaultWaitTimeout seconds, waiting for some service listening on given host:port
 func WaitForService(address url.URL) {
 	// Wait for podman to be ready
-	var conn net.Conn
 	var err error
-	for i := 1; i <= 5; i++ {
+	until := time.Now().Add(time.Duration(defaultWaitTimeout) * time.Second)
+	for time.Now().Before(until) {
+		var conn net.Conn
 		conn, err = net.Dial("tcp", address.Host)
-		if err != nil {
-			// Podman not available yet...
-			time.Sleep(time.Duration(i) * time.Second)
+		if err == nil {
+			conn.Close()
+			break
 		}
+
+		// Podman not available yet...
+		time.Sleep(10 * time.Millisecond)
 	}
 	Expect(err).ShouldNot(HaveOccurred())
-	conn.Close()
 }
