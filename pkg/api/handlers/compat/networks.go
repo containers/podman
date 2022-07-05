@@ -2,6 +2,7 @@ package compat
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -19,7 +20,6 @@ import (
 
 	dockerNetwork "github.com/docker/docker/api/types/network"
 	"github.com/gorilla/schema"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -36,7 +36,7 @@ func InspectNetwork(w http.ResponseWriter, r *http.Request) {
 	}
 	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.Error(w, http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
+		utils.Error(w, http.StatusBadRequest, fmt.Errorf("failed to parse parameters for %s: %w", r.URL.String(), err))
 		return
 	}
 
@@ -133,7 +133,7 @@ func ListNetworks(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	filterMap, err := util.PrepareFilters(r)
 	if err != nil {
-		utils.Error(w, http.StatusInternalServerError, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
+		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("failed to parse parameters for %s: %w", r.URL.String(), err))
 		return
 	}
 
@@ -167,7 +167,7 @@ func CreateNetwork(w http.ResponseWriter, r *http.Request) {
 	)
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	if err := json.NewDecoder(r.Body).Decode(&networkCreate); err != nil {
-		utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "Decode()"))
+		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("Decode(): %w", err))
 		return
 	}
 
@@ -227,7 +227,7 @@ func CreateNetwork(w http.ResponseWriter, r *http.Request) {
 				var err error
 				subnet, err := nettypes.ParseCIDR(conf.Subnet)
 				if err != nil {
-					utils.InternalServerError(w, errors.Wrap(err, "failed to parse subnet"))
+					utils.InternalServerError(w, fmt.Errorf("failed to parse subnet: %w", err))
 					return
 				}
 				s.Subnet = subnet
@@ -235,7 +235,7 @@ func CreateNetwork(w http.ResponseWriter, r *http.Request) {
 			if len(conf.Gateway) > 0 {
 				gw := net.ParseIP(conf.Gateway)
 				if gw == nil {
-					utils.InternalServerError(w, errors.Errorf("failed to parse gateway ip %s", conf.Gateway))
+					utils.InternalServerError(w, fmt.Errorf("failed to parse gateway ip %s", conf.Gateway))
 					return
 				}
 				s.Gateway = gw
@@ -243,17 +243,17 @@ func CreateNetwork(w http.ResponseWriter, r *http.Request) {
 			if len(conf.IPRange) > 0 {
 				_, net, err := net.ParseCIDR(conf.IPRange)
 				if err != nil {
-					utils.InternalServerError(w, errors.Wrap(err, "failed to parse ip range"))
+					utils.InternalServerError(w, fmt.Errorf("failed to parse ip range: %w", err))
 					return
 				}
 				startIP, err := netutil.FirstIPInSubnet(net)
 				if err != nil {
-					utils.InternalServerError(w, errors.Wrap(err, "failed to get first ip in range"))
+					utils.InternalServerError(w, fmt.Errorf("failed to get first ip in range: %w", err))
 					return
 				}
 				lastIP, err := netutil.LastIPInSubnet(net)
 				if err != nil {
-					utils.InternalServerError(w, errors.Wrap(err, "failed to get last ip in range"))
+					utils.InternalServerError(w, fmt.Errorf("failed to get last ip in range: %w", err))
 					return
 				}
 				s.LeaseRange = &nettypes.LeaseRange{
@@ -296,7 +296,7 @@ func RemoveNetwork(w http.ResponseWriter, r *http.Request) {
 
 	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.Error(w, http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
+		utils.Error(w, http.StatusBadRequest, fmt.Errorf("failed to parse parameters for %s: %w", r.URL.String(), err))
 		return
 	}
 
@@ -312,12 +312,12 @@ func RemoveNetwork(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if len(reports) == 0 {
-		utils.Error(w, http.StatusInternalServerError, errors.Errorf("internal error"))
+		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("internal error"))
 		return
 	}
 	report := reports[0]
 	if report.Err != nil {
-		if errors.Cause(report.Err) == define.ErrNoSuchNetwork {
+		if errors.Is(report.Err, define.ErrNoSuchNetwork) {
 			utils.Error(w, http.StatusNotFound, define.ErrNoSuchNetwork)
 			return
 		}
@@ -334,7 +334,7 @@ func Connect(w http.ResponseWriter, r *http.Request) {
 
 	var netConnect types.NetworkConnect
 	if err := json.NewDecoder(r.Body).Decode(&netConnect); err != nil {
-		utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "Decode()"))
+		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("Decode(): %w", err))
 		return
 	}
 
@@ -351,7 +351,7 @@ func Connect(w http.ResponseWriter, r *http.Request) {
 			staticIP := net.ParseIP(netConnect.EndpointConfig.IPAddress)
 			if staticIP == nil {
 				utils.Error(w, http.StatusInternalServerError,
-					errors.Errorf("failed to parse the ip address %q", netConnect.EndpointConfig.IPAddress))
+					fmt.Errorf("failed to parse the ip address %q", netConnect.EndpointConfig.IPAddress))
 				return
 			}
 			netOpts.StaticIPs = append(netOpts.StaticIPs, staticIP)
@@ -363,7 +363,7 @@ func Connect(w http.ResponseWriter, r *http.Request) {
 				staticIP := net.ParseIP(netConnect.EndpointConfig.IPAMConfig.IPv4Address)
 				if staticIP == nil {
 					utils.Error(w, http.StatusInternalServerError,
-						errors.Errorf("failed to parse the ipv4 address %q", netConnect.EndpointConfig.IPAMConfig.IPv4Address))
+						fmt.Errorf("failed to parse the ipv4 address %q", netConnect.EndpointConfig.IPAMConfig.IPv4Address))
 					return
 				}
 				netOpts.StaticIPs = append(netOpts.StaticIPs, staticIP)
@@ -373,7 +373,7 @@ func Connect(w http.ResponseWriter, r *http.Request) {
 				staticIP := net.ParseIP(netConnect.EndpointConfig.IPAMConfig.IPv6Address)
 				if staticIP == nil {
 					utils.Error(w, http.StatusInternalServerError,
-						errors.Errorf("failed to parse the ipv6 address %q", netConnect.EndpointConfig.IPAMConfig.IPv6Address))
+						fmt.Errorf("failed to parse the ipv6 address %q", netConnect.EndpointConfig.IPAMConfig.IPv6Address))
 					return
 				}
 				netOpts.StaticIPs = append(netOpts.StaticIPs, staticIP)
@@ -384,7 +384,7 @@ func Connect(w http.ResponseWriter, r *http.Request) {
 			staticMac, err := net.ParseMAC(netConnect.EndpointConfig.MacAddress)
 			if err != nil {
 				utils.Error(w, http.StatusInternalServerError,
-					errors.Errorf("failed to parse the mac address %q", netConnect.EndpointConfig.IPAMConfig.IPv6Address))
+					fmt.Errorf("failed to parse the mac address %q", netConnect.EndpointConfig.IPAMConfig.IPv6Address))
 				return
 			}
 			netOpts.StaticMAC = nettypes.HardwareAddr(staticMac)
@@ -392,11 +392,11 @@ func Connect(w http.ResponseWriter, r *http.Request) {
 	}
 	err := runtime.ConnectContainerToNetwork(netConnect.Container, name, netOpts)
 	if err != nil {
-		if errors.Cause(err) == define.ErrNoSuchCtr {
+		if errors.Is(err, define.ErrNoSuchCtr) {
 			utils.ContainerNotFound(w, netConnect.Container, err)
 			return
 		}
-		if errors.Cause(err) == define.ErrNoSuchNetwork {
+		if errors.Is(err, define.ErrNoSuchNetwork) {
 			utils.Error(w, http.StatusNotFound, err)
 			return
 		}
@@ -412,18 +412,18 @@ func Disconnect(w http.ResponseWriter, r *http.Request) {
 
 	var netDisconnect types.NetworkDisconnect
 	if err := json.NewDecoder(r.Body).Decode(&netDisconnect); err != nil {
-		utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "Decode()"))
+		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("Decode(): %w", err))
 		return
 	}
 
 	name := utils.GetName(r)
 	err := runtime.DisconnectContainerFromNetwork(netDisconnect.Container, name, netDisconnect.Force)
 	if err != nil {
-		if errors.Cause(err) == define.ErrNoSuchCtr {
+		if errors.Is(err, define.ErrNoSuchCtr) {
 			utils.Error(w, http.StatusNotFound, err)
 			return
 		}
-		if errors.Cause(err) == define.ErrNoSuchNetwork {
+		if errors.Is(err, define.ErrNoSuchNetwork) {
 			utils.Error(w, http.StatusNotFound, err)
 			return
 		}
@@ -438,7 +438,7 @@ func Prune(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	filterMap, err := util.PrepareFilters(r)
 	if err != nil {
-		utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "Decode()"))
+		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("Decode(): %w", err))
 		return
 	}
 

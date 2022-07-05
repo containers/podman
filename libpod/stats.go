@@ -4,6 +4,7 @@
 package libpod
 
 import (
+	"fmt"
 	"math"
 	"strings"
 	"syscall"
@@ -13,7 +14,6 @@ import (
 
 	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/podman/v4/libpod/define"
-	"github.com/pkg/errors"
 )
 
 // GetContainerStats gets the running stats for a given container.
@@ -25,7 +25,7 @@ func (c *Container) GetContainerStats(previousStats *define.ContainerStats) (*de
 	stats.Name = c.Name()
 
 	if c.config.NoCgroups {
-		return nil, errors.Wrapf(define.ErrNoCgroups, "cannot run top on container %s as it did not create a cgroup", c.ID())
+		return nil, fmt.Errorf("cannot run top on container %s as it did not create a cgroup: %w", c.ID(), define.ErrNoCgroups)
 	}
 
 	if !c.batched {
@@ -55,13 +55,13 @@ func (c *Container) GetContainerStats(previousStats *define.ContainerStats) (*de
 	}
 	cgroup, err := cgroups.Load(cgroupPath)
 	if err != nil {
-		return stats, errors.Wrapf(err, "unable to load cgroup at %s", cgroupPath)
+		return stats, fmt.Errorf("unable to load cgroup at %s: %w", cgroupPath, err)
 	}
 
 	// Ubuntu does not have swap memory in cgroups because swap is often not enabled.
 	cgroupStats, err := cgroup.Stat()
 	if err != nil {
-		return stats, errors.Wrapf(err, "unable to obtain cgroup stats")
+		return stats, fmt.Errorf("unable to obtain cgroup stats: %w", err)
 	}
 	conState := c.state.State
 	netStats, err := getContainerNetIO(c)

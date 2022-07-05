@@ -1,18 +1,18 @@
 package shutdown
 
 import (
+	"errors"
 	"os"
 	"os/signal"
 	"sync"
 	"syscall"
 	"time"
 
-	"github.com/pkg/errors"
 	logrusImport "github.com/sirupsen/logrus"
 )
 
 var (
-	ErrHandlerExists error = errors.New("handler with given name already exists")
+	ErrHandlerExists = errors.New("handler with given name already exists")
 )
 
 var (

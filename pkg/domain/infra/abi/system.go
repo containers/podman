@@ -2,6 +2,7 @@ package abi
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/url"
 	"os"
@@ -19,7 +20,6 @@ import (
 	"github.com/containers/podman/v4/utils"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/unshare"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
 )
@@ -99,7 +99,7 @@ func (ic *ContainerEngine) SetupRootless(_ context.Context, noMoveProcess bool) 
 	}
 	pausePidPath, err := util.GetRootlessPauseProcessPidPathGivenDir(tmpDir)
 	if err != nil {
-		return errors.Wrapf(err, "could not get pause process pid file path")
+		return fmt.Errorf("could not get pause process pid file path: %w", err)
 	}
 
 	became, ret, err := rootless.TryJoinPauseProcess(pausePidPath)
@@ -134,7 +134,7 @@ func (ic *ContainerEngine) SetupRootless(_ context.Context, noMoveProcess bool) 
 		}
 	}
 	if err != nil {
-		logrus.Error(errors.Wrapf(err, "invalid internal status, try resetting the pause process with %q", os.Args[0]+" system migrate"))
+		logrus.Error(fmt.Errorf("invalid internal status, try resetting the pause process with %q: %w", os.Args[0]+" system migrate", err))
 		os.Exit(1)
 	}
 	if became {
@@ -271,22 +271,22 @@ func (ic *ContainerEngine) SystemDf(ctx context.Context, options entities.System
 		iid, _ := c.Image()
 		state, err := c.State()
 		if err != nil {
-			return nil, errors.Wrapf(err, "Failed to get state of container %s", c.ID())
+			return nil, fmt.Errorf("failed to get state of container %s: %w", c.ID(), err)
 		}
 		conSize, err := c.RootFsSize()
 		if err != nil {
-			if errors.Cause(err) == storage.ErrContainerUnknown {
-				logrus.Error(errors.Wrapf(err, "Failed to get root file system size of container %s", c.ID()))
+			if errors.Is(err, storage.ErrContainerUnknown) {
+				logrus.Error(fmt.Errorf("failed to get root file system size of container %s: %w", c.ID(), err))
 			} else {
-				return nil, errors.Wrapf(err, "Failed to get root file system size of container %s", c.ID())
+				return nil, fmt.Errorf("failed to get root file system size of container %s: %w", c.ID(), err)
 			}
 		}
 		rwsize, err := c.RWSize()
 		if err != nil {
-			if errors.Cause(err) == storage.ErrContainerUnknown {
-				logrus.Error(errors.Wrapf(err, "Failed to get read/write size of container %s", c.ID()))
+			if errors.Is(err, storage.ErrContainerUnknown) {
+				logrus.Error(fmt.Errorf("failed to get read/write size of container %s: %w", c.ID(), err))
 			} else {
-				return nil, errors.Wrapf(err, "Failed to get read/write size of container %s", c.ID())
+				return nil, fmt.Errorf("failed to get read/write size of container %s: %w", c.ID(), err)
 			}
 		}
 		report := entities.SystemDfContainerReport{

@@ -2,6 +2,7 @@ package libpod
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -12,7 +13,6 @@ import (
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/libpod/events"
 	libpodutil "github.com/containers/podman/v4/pkg/util"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -34,7 +34,7 @@ type ContainerCommitOptions struct {
 // image
 func (c *Container) Commit(ctx context.Context, destImage string, options ContainerCommitOptions) (*libimage.Image, error) {
 	if c.config.Rootfs != "" {
-		return nil, errors.Errorf("cannot commit a container that uses an exploded rootfs")
+		return nil, errors.New("cannot commit a container that uses an exploded rootfs")
 	}
 
 	if !c.batched {
@@ -48,7 +48,7 @@ func (c *Container) Commit(ctx context.Context, destImage string, options Contai
 
 	if c.state.State == define.ContainerStateRunning && options.Pause {
 		if err := c.pause(); err != nil {
-			return nil, errors.Wrapf(err, "error pausing container %q to commit", c.ID())
+			return nil, fmt.Errorf("error pausing container %q to commit: %w", c.ID(), err)
 		}
 		defer func() {
 			if err := c.unpause(); err != nil {
@@ -136,7 +136,7 @@ func (c *Container) Commit(ctx context.Context, destImage string, options Contai
 			if include {
 				vol, err := c.runtime.GetVolume(v.Name)
 				if err != nil {
-					return nil, errors.Wrapf(err, "volume %s used in container %s has been removed", v.Name, c.ID())
+					return nil, fmt.Errorf("volume %s used in container %s has been removed: %w", v.Name, c.ID(), err)
 				}
 				if vol.Anonymous() {
 					importBuilder.AddVolume(v.Dest)
@@ -202,7 +202,7 @@ func (c *Container) Commit(ctx context.Context, destImage string, options Contai
 
 		imageRef, err := is.Transport.ParseStoreReference(c.runtime.store, resolvedImageName)
 		if err != nil {
-			return nil, errors.Wrapf(err, "error parsing target image name %q", destImage)
+			return nil, fmt.Errorf("error parsing target image name %q: %w", destImage, err)
 		}
 		commitRef = imageRef
 	}

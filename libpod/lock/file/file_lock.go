@@ -1,6 +1,7 @@
 package file
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -8,7 +9,6 @@ import (
 	"syscall"
 
 	"github.com/containers/storage"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -23,7 +23,7 @@ type FileLocks struct { //nolint:revive // struct name stutters
 func CreateFileLock(path string) (*FileLocks, error) {
 	_, err := os.Stat(path)
 	if err == nil {
-		return nil, errors.Wrapf(syscall.EEXIST, "directory %s exists", path)
+		return nil, fmt.Errorf("directory %s exists: %w", path, syscall.EEXIST)
 	}
 	if err := os.MkdirAll(path, 0711); err != nil {
 		return nil, err
@@ -57,11 +57,11 @@ func OpenFileLock(path string) (*FileLocks, error) {
 // Close() is only intended to be used while testing the locks.
 func (locks *FileLocks) Close() error {
 	if !locks.valid {
-		return errors.Wrapf(syscall.EINVAL, "locks have already been closed")
+		return fmt.Errorf("locks have already been closed: %w", syscall.EINVAL)
 	}
 	err := os.RemoveAll(locks.lockPath)
 	if err != nil {
-		return errors.Wrapf(err, "deleting directory %s", locks.lockPath)
+		return fmt.Errorf("deleting directory %s: %w", locks.lockPath, err)
 	}
 	return nil
 }
@@ -73,7 +73,7 @@ func (locks *FileLocks) getLockPath(lck uint32) string {
 // AllocateLock allocates a lock and returns the index of the lock that was allocated.
 func (locks *FileLocks) AllocateLock() (uint32, error) {
 	if !locks.valid {
-		return 0, errors.Wrapf(syscall.EINVAL, "locks have already been closed")
+		return 0, fmt.Errorf("locks have already been closed: %w", syscall.EINVAL)
 	}
 
 	id := uint32(0)
@@ -84,7 +84,7 @@ func (locks *FileLocks) AllocateLock() (uint32, error) {
 			if os.IsExist(err) {
 				continue
 			}
-			return 0, errors.Wrap(err, "creating lock file")
+			return 0, fmt.Errorf("creating lock file: %w", err)
 		}
 		f.Close()
 		break
@@ -98,12 +98,12 @@ func (locks *FileLocks) AllocateLock() (uint32, error) {
 // returned.
 func (locks *FileLocks) AllocateGivenLock(lck uint32) error {
 	if !locks.valid {
-		return errors.Wrapf(syscall.EINVAL, "locks have already been closed")
+		return fmt.Errorf("locks have already been closed: %w", syscall.EINVAL)
 	}
 
 	f, err := os.OpenFile(locks.getLockPath(lck), os.O_RDWR|os.O_CREATE|os.O_EXCL, 0666)
 	if err != nil {
-		return errors.Wrapf(err, "error creating lock %d", lck)
+		return fmt.Errorf("error creating lock %d: %w", lck, err)
 	}
 	f.Close()
 
@@ -115,10 +115,10 @@ func (locks *FileLocks) AllocateGivenLock(lck uint32) error {
 // The given lock must be already allocated, or an error will be returned.
 func (locks *FileLocks) DeallocateLock(lck uint32) error {
 	if !locks.valid {
-		return errors.Wrapf(syscall.EINVAL, "locks have already been closed")
+		return fmt.Errorf("locks have already been closed: %w", syscall.EINVAL)
 	}
 	if err := os.Remove(locks.getLockPath(lck)); err != nil {
-		return errors.Wrapf(err, "deallocating lock %d", lck)
+		return fmt.Errorf("deallocating lock %d: %w", lck, err)
 	}
 	return nil
 }
@@ -127,11 +127,11 @@ func (locks *FileLocks) DeallocateLock(lck uint32) error {
 // other containers and pods.
 func (locks *FileLocks) DeallocateAllLocks() error {
 	if !locks.valid {
-		return errors.Wrapf(syscall.EINVAL, "locks have already been closed")
+		return fmt.Errorf("locks have already been closed: %w", syscall.EINVAL)
 	}
 	files, err := ioutil.ReadDir(locks.lockPath)
 	if err != nil {
-		return errors.Wrapf(err, "error reading directory %s", locks.lockPath)
+		return fmt.Errorf("error reading directory %s: %w", locks.lockPath, err)
 	}
 	var lastErr error
 	for _, f := range files {
@@ -148,12 +148,12 @@ func (locks *FileLocks) DeallocateAllLocks() error {
 // LockFileLock locks the given lock.
 func (locks *FileLocks) LockFileLock(lck uint32) error {
 	if !locks.valid {
-		return errors.Wrapf(syscall.EINVAL, "locks have already been closed")
+		return fmt.Errorf("locks have already been closed: %w", syscall.EINVAL)
 	}
 
 	l, err := storage.GetLockfile(locks.getLockPath(lck))
 	if err != nil {
-		return errors.Wrapf(err, "error acquiring lock")
+		return fmt.Errorf("error acquiring lock: %w", err)
 	}
 
 	l.Lock()
@@ -163,11 +163,11 @@ func (locks *FileLocks) LockFileLock(lck uint32) error {
 // UnlockFileLock unlocks the given lock.
 func (locks *FileLocks) UnlockFileLock(lck uint32) error {
 	if !locks.valid {
-		return errors.Wrapf(syscall.EINVAL, "locks have already been closed")
+		return fmt.Errorf("locks have already been closed: %w", syscall.EINVAL)
 	}
 	l, err := storage.GetLockfile(locks.getLockPath(lck))
 	if err != nil {
-		return errors.Wrapf(err, "error acquiring lock")
+		return fmt.Errorf("error acquiring lock: %w", err)
 	}
 
 	l.Unlock()

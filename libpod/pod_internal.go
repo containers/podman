@@ -9,7 +9,6 @@ import (
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/containers/storage/pkg/stringid"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -39,7 +38,7 @@ func (p *Pod) updatePod() error {
 // Save pod state to database
 func (p *Pod) save() error {
 	if err := p.runtime.state.SavePod(p); err != nil {
-		return errors.Wrapf(err, "error saving pod %s state", p.ID())
+		return fmt.Errorf("error saving pod %s state: %w", p.ID(), err)
 	}
 
 	return nil
@@ -61,7 +60,7 @@ func (p *Pod) refresh() error {
 	// Retrieve the pod's lock
 	lock, err := p.runtime.lockManager.AllocateAndRetrieveLock(p.config.LockID)
 	if err != nil {
-		return errors.Wrapf(err, "error retrieving lock %d for pod %s", p.config.LockID, p.ID())
+		return fmt.Errorf("error retrieving lock %d for pod %s: %w", p.config.LockID, p.ID(), err)
 	}
 	p.lock = lock
 
@@ -81,7 +80,7 @@ func (p *Pod) refresh() error {
 				logrus.Debugf("setting pod cgroup to %s", p.state.CgroupPath)
 			}
 		default:
-			return errors.Wrapf(define.ErrInvalidArg, "unknown cgroups manager %s specified", p.runtime.config.Engine.CgroupManager)
+			return fmt.Errorf("unknown cgroups manager %s specified: %w", p.runtime.config.Engine.CgroupManager, define.ErrInvalidArg)
 		}
 	}
 

@@ -2,6 +2,8 @@ package libpod
 
 import (
 	"bufio"
+	"errors"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -9,7 +11,6 @@ import (
 	"time"
 
 	"github.com/containers/podman/v4/libpod/define"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -26,7 +27,7 @@ const (
 func (r *Runtime) HealthCheck(name string) (define.HealthCheckStatus, error) {
 	container, err := r.LookupContainer(name)
 	if err != nil {
-		return define.HealthCheckContainerNotFound, errors.Wrapf(err, "unable to look up %s to perform a health check", name)
+		return define.HealthCheckContainerNotFound, fmt.Errorf("unable to look up %s to perform a health check: %w", name, err)
 	}
 	hcStatus, err := checkHealthCheckCanBeRun(container)
 	if err == nil {
@@ -44,11 +45,11 @@ func (c *Container) runHealthCheck() (define.HealthCheckStatus, error) {
 	)
 	hcCommand := c.HealthCheckConfig().Test
 	if len(hcCommand) < 1 {
-		return define.HealthCheckNotDefined, errors.Errorf("container %s has no defined healthcheck", c.ID())
+		return define.HealthCheckNotDefined, fmt.Errorf("container %s has no defined healthcheck", c.ID())
 	}
 	switch hcCommand[0] {
 	case "", define.HealthConfigTestNone:
-		return define.HealthCheckNotDefined, errors.Errorf("container %s has no defined healthcheck", c.ID())
+		return define.HealthCheckNotDefined, fmt.Errorf("container %s has no defined healthcheck", c.ID())
 	case define.HealthConfigTestCmd:
 		newCommand = hcCommand[1:]
 	case define.HealthConfigTestCmdShell:
@@ -59,11 +60,11 @@ func (c *Container) runHealthCheck() (define.HealthCheckStatus, error) {
 		newCommand = hcCommand
 	}
 	if len(newCommand) < 1 || newCommand[0] == "" {
-		return define.HealthCheckNotDefined, errors.Errorf("container %s has no defined healthcheck", c.ID())
+		return define.HealthCheckNotDefined, fmt.Errorf("container %s has no defined healthcheck", c.ID())
 	}
 	rPipe, wPipe, err := os.Pipe()
 	if err != nil {
-		return define.HealthCheckInternalError, errors.Wrapf(err, "unable to create pipe for healthcheck session")
+		return define.HealthCheckInternalError, fmt.Errorf("unable to create pipe for healthcheck session: %w", err)
 	}
 	defer wPipe.Close()
 	defer rPipe.Close()
@@ -92,11 +93,10 @@ func (c *Container) runHealthCheck() (define.HealthCheckStatus, error) {
 	config.Command = newCommand
 	exitCode, hcErr := c.exec(config, streams, nil, true)
 	if hcErr != nil {
-		errCause := errors.Cause(hcErr)
 		hcResult = define.HealthCheckFailure
-		if errCause == define.ErrOCIRuntimeNotFound ||
-			errCause == define.ErrOCIRuntimePermissionDenied ||
-			errCause == define.ErrOCIRuntime {
+		if errors.Is(hcErr, define.ErrOCIRuntimeNotFound) ||
+			errors.Is(hcErr, define.ErrOCIRuntimePermissionDenied) ||
+			errors.Is(hcErr, define.ErrOCIRuntime) {
 			returnCode = 1
 			hcErr = nil
 		} else {
@@ -125,11 +125,11 @@ func (c *Container) runHealthCheck() (define.HealthCheckStatus, error) {
 	if timeEnd.Sub(timeStart) > c.HealthCheckConfig().Timeout {
 		returnCode = -1
 		hcResult = define.HealthCheckFailure
-		hcErr = errors.Errorf("healthcheck command exceeded timeout of %s", c.HealthCheckConfig().Timeout.String())
+		hcErr = fmt.Errorf("healthcheck command exceeded timeout of %s", c.HealthCheckConfig().Timeout.String())
 	}
 	hcl := newHealthCheckLog(timeStart, timeEnd, returnCode, eventLog)
 	if err := c.updateHealthCheckLog(hcl, inStartPeriod); err != nil {
-		return hcResult, errors.Wrapf(err, "unable to update health check log %s for %s", c.healthCheckLogPath(), c.ID())
+		return hcResult, fmt.Errorf("unable to update health check log %s for %s: %w", c.healthCheckLogPath(), c.ID(), err)
 	}
 	return hcResult, hcErr
 }
@@ -140,10 +140,10 @@ func checkHealthCheckCanBeRun(c *Container) (define.HealthCheckStatus, error) {
 		return define.HealthCheckInternalError, err
 	}
 	if cstate != define.ContainerStateRunning {
-		return define.HealthCheckContainerStopped, errors.Errorf("container %s is not running", c.ID())
+		return define.HealthCheckContainerStopped, fmt.Errorf("container %s is not running", c.ID())
 	}
 	if !c.HasHealthCheck() {
-		return define.HealthCheckNotDefined, errors.Errorf("container %s has no defined healthcheck", c.ID())
+		return define.HealthCheckNotDefined, fmt.Errorf("container %s has no defined healthcheck", c.ID())
 	}
 	return define.HealthCheckDefined, nil
 }
@@ -167,7 +167,7 @@ func (c *Container) updateHealthStatus(status string) error {
 	healthCheck.Status = status
 	newResults, err := json.Marshal(healthCheck)
 	if err != nil {
-		return errors.Wrapf(err, "unable to marshall healthchecks for writing status")
+		return fmt.Errorf("unable to marshall healthchecks for writing status: %w", err)
 	}
 	return ioutil.WriteFile(c.healthCheckLogPath(), newResults, 0700)
 }
@@ -201,7 +201,7 @@ func (c *Container) updateHealthCheckLog(hcl define.HealthCheckLog, inStartPerio
 	}
 	newResults, err := json.Marshal(healthCheck)
 	if err != nil {
-		return errors.Wrapf(err, "unable to marshall healthchecks for writing")
+		return fmt.Errorf("unable to marshall healthchecks for writing: %w", err)
 	}
 	return ioutil.WriteFile(c.healthCheckLogPath(), newResults, 0700)
 }
@@ -222,10 +222,10 @@ func (c *Container) getHealthCheckLog() (define.HealthCheckResults, error) {
 	}
 	b, err := ioutil.ReadFile(c.healthCheckLogPath())
 	if err != nil {
-		return healthCheck, errors.Wrap(err, "failed to read health check log file")
+		return healthCheck, fmt.Errorf("failed to read health check log file: %w", err)
 	}
 	if err := json.Unmarshal(b, &healthCheck); err != nil {
-		return healthCheck, errors.Wrapf(err, "failed to unmarshal existing healthcheck results in %s", c.healthCheckLogPath())
+		return healthCheck, fmt.Errorf("failed to unmarshal existing healthcheck results in %s: %w", c.healthCheckLogPath(), err)
 	}
 	return healthCheck, nil
 }
@@ -241,7 +241,7 @@ func (c *Container) HealthCheckStatus() (string, error) {
 // This function does not lock the container.
 func (c *Container) healthCheckStatus() (string, error) {
 	if !c.HasHealthCheck() {
-		return "", errors.Errorf("container %s has no defined healthcheck", c.ID())
+		return "", fmt.Errorf("container %s has no defined healthcheck", c.ID())
 	}
 
 	if err := c.syncContainer(); err != nil {
@@ -250,7 +250,7 @@ func (c *Container) healthCheckStatus() (string, error) {
 
 	results, err := c.getHealthCheckLog()
 	if err != nil {
-		return "", errors.Wrapf(err, "unable to get healthcheck log for %s", c.ID())
+		return "", fmt.Errorf("unable to get healthcheck log for %s: %w", c.ID(), err)
 	}
 
 	return results.Status, nil

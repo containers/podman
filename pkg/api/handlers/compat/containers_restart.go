@@ -1,6 +1,8 @@
 package compat
 
 import (
+	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/containers/podman/v4/libpod"
@@ -10,7 +12,6 @@ import (
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/domain/infra/abi"
 	"github.com/gorilla/schema"
-	"github.com/pkg/errors"
 )
 
 func RestartContainer(w http.ResponseWriter, r *http.Request) {
@@ -29,7 +30,7 @@ func RestartContainer(w http.ResponseWriter, r *http.Request) {
 		// override any golang type defaults
 	}
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.Error(w, http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
+		utils.Error(w, http.StatusBadRequest, fmt.Errorf("failed to parse parameters for %s: %w", r.URL.String(), err))
 		return
 	}
 
@@ -44,7 +45,7 @@ func RestartContainer(w http.ResponseWriter, r *http.Request) {
 	}
 	report, err := containerEngine.ContainerRestart(r.Context(), []string{name}, options)
 	if err != nil {
-		if errors.Cause(err) == define.ErrNoSuchCtr {
+		if errors.Is(err, define.ErrNoSuchCtr) {
 			utils.ContainerNotFound(w, name, err)
 			return
 		}

@@ -2,6 +2,8 @@ package libpod
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -12,7 +14,6 @@ import (
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/libpod/events"
 	"github.com/containers/storage/pkg/stringid"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
@@ -112,7 +113,7 @@ func (e *ExecSession) ContainerID() string {
 // configuration and current state.
 func (e *ExecSession) Inspect() (*define.InspectExecSession, error) {
 	if e.Config == nil {
-		return nil, errors.Wrapf(define.ErrInternal, "given exec session does not have a configuration block")
+		return nil, fmt.Errorf("given exec session does not have a configuration block: %w", define.ErrInternal)
 	}
 
 	output := new(define.InspectExecSession)
@@ -165,18 +166,18 @@ func (c *Container) ExecCreate(config *ExecConfig) (string, error) {
 
 	// Verify our config
 	if config == nil {
-		return "", errors.Wrapf(define.ErrInvalidArg, "must provide a configuration to ExecCreate")
+		return "", fmt.Errorf("must provide a configuration to ExecCreate: %w", define.ErrInvalidArg)
 	}
 	if len(config.Command) == 0 {
-		return "", errors.Wrapf(define.ErrInvalidArg, "must provide a non-empty command to start an exec session")
+		return "", fmt.Errorf("must provide a non-empty command to start an exec session: %w", define.ErrInvalidArg)
 	}
 	if config.ExitCommandDelay > 0 && len(config.ExitCommand) == 0 {
-		return "", errors.Wrapf(define.ErrInvalidArg, "must provide a non-empty exit command if giving an exit command delay")
+		return "", fmt.Errorf("must provide a non-empty exit command if giving an exit command delay: %w", define.ErrInvalidArg)
 	}
 
 	// Verify that we are in a good state to continue
 	if !c.ensureState(define.ContainerStateRunning) {
-		return "", errors.Wrapf(define.ErrCtrStateInvalid, "can only create exec sessions on running containers")
+		return "", fmt.Errorf("can only create exec sessions on running containers: %w", define.ErrCtrStateInvalid)
 	}
 
 	// Generate an ID for our new exec session
@@ -203,7 +204,7 @@ func (c *Container) ExecCreate(config *ExecConfig) (string, error) {
 	session.State = define.ExecStateCreated
 	session.Config = new(ExecConfig)
 	if err := JSONDeepCopy(config, session.Config); err != nil {
-		return "", errors.Wrapf(err, "error copying exec configuration into exec session")
+		return "", fmt.Errorf("error copying exec configuration into exec session: %w", err)
 	}
 
 	if len(session.Config.ExitCommand) > 0 {
@@ -243,16 +244,16 @@ func (c *Container) ExecStart(sessionID string) error {
 
 	// Verify that we are in a good state to continue
 	if !c.ensureState(define.ContainerStateRunning) {
-		return errors.Wrapf(define.ErrCtrStateInvalid, "can only start exec sessions when their container is running")
+		return fmt.Errorf("can only start exec sessions when their container is running: %w", define.ErrCtrStateInvalid)
 	}
 
 	session, ok := c.state.ExecSessions[sessionID]
 	if !ok {
-		return errors.Wrapf(define.ErrNoSuchExecSession, "container %s has no exec session with ID %s", c.ID(), sessionID)
+		return fmt.Errorf("container %s has no exec session with ID %s: %w", c.ID(), sessionID, define.ErrNoSuchExecSession)
 	}
 
 	if session.State != define.ExecStateCreated {
-		return errors.Wrapf(define.ErrExecSessionStateInvalid, "can only start created exec sessions, while container %s session %s state is %q", c.ID(), session.ID(), session.State.String())
+		return fmt.Errorf("can only start created exec sessions, while container %s session %s state is %q: %w", c.ID(), session.ID(), session.State.String(), define.ErrExecSessionStateInvalid)
 	}
 
 	logrus.Infof("Going to start container %s exec session %s and attach to it", c.ID(), session.ID())
@@ -295,16 +296,16 @@ func (c *Container) execStartAndAttach(sessionID string, streams *define.AttachS
 
 	// Verify that we are in a good state to continue
 	if !c.ensureState(define.ContainerStateRunning) {
-		return errors.Wrapf(define.ErrCtrStateInvalid, "can only start exec sessions when their container is running")
+		return fmt.Errorf("can only start exec sessions when their container is running: %w", define.ErrCtrStateInvalid)
 	}
 
 	session, ok := c.state.ExecSessions[sessionID]
 	if !ok {
-		return errors.Wrapf(define.ErrNoSuchExecSession, "container %s has no exec session with ID %s", c.ID(), sessionID)
+		return fmt.Errorf("container %s has no exec session with ID %s: %w", c.ID(), sessionID, define.ErrNoSuchExecSession)
 	}
 
 	if session.State != define.ExecStateCreated {
-		return errors.Wrapf(define.ErrExecSessionStateInvalid, "can only start created exec sessions, while container %s session %s state is %q", c.ID(), session.ID(), session.State.String())
+		return fmt.Errorf("can only start created exec sessions, while container %s session %s state is %q: %w", c.ID(), session.ID(), session.State.String(), define.ErrExecSessionStateInvalid)
 	}
 
 	logrus.Infof("Going to start container %s exec session %s and attach to it", c.ID(), session.ID())
@@ -370,7 +371,7 @@ func (c *Container) execStartAndAttach(sessionID string, streams *define.AttachS
 		if lastErr != nil {
 			logrus.Errorf("Container %s exec session %s error: %v", c.ID(), session.ID(), lastErr)
 		}
-		return errors.Wrapf(err, "error syncing container %s state to update exec session %s", c.ID(), sessionID)
+		return fmt.Errorf("error syncing container %s state to update exec session %s: %w", c.ID(), sessionID, err)
 	}
 
 	// Now handle the error from readExecExitCode above.
@@ -441,16 +442,16 @@ func (c *Container) ExecHTTPStartAndAttach(sessionID string, r *http.Request, w 
 
 	session, ok := c.state.ExecSessions[sessionID]
 	if !ok {
-		return errors.Wrapf(define.ErrNoSuchExecSession, "container %s has no exec session with ID %s", c.ID(), sessionID)
+		return fmt.Errorf("container %s has no exec session with ID %s: %w", c.ID(), sessionID, define.ErrNoSuchExecSession)
 	}
 
 	// Verify that we are in a good state to continue
 	if !c.ensureState(define.ContainerStateRunning) {
-		return errors.Wrapf(define.ErrCtrStateInvalid, "can only start exec sessions when their container is running")
+		return fmt.Errorf("can only start exec sessions when their container is running: %w", define.ErrCtrStateInvalid)
 	}
 
 	if session.State != define.ExecStateCreated {
-		return errors.Wrapf(define.ErrExecSessionStateInvalid, "can only start created exec sessions, while container %s session %s state is %q", c.ID(), session.ID(), session.State.String())
+		return fmt.Errorf("can only start created exec sessions, while container %s session %s state is %q: %w", c.ID(), session.ID(), session.State.String(), define.ErrExecSessionStateInvalid)
 	}
 
 	logrus.Infof("Going to start container %s exec session %s and attach to it", c.ID(), session.ID())
@@ -567,11 +568,11 @@ func (c *Container) ExecStop(sessionID string, timeout *uint) error {
 
 	session, ok := c.state.ExecSessions[sessionID]
 	if !ok {
-		return errors.Wrapf(define.ErrNoSuchExecSession, "container %s has no exec session with ID %s", c.ID(), sessionID)
+		return fmt.Errorf("container %s has no exec session with ID %s: %w", c.ID(), sessionID, define.ErrNoSuchExecSession)
 	}
 
 	if session.State != define.ExecStateRunning {
-		return errors.Wrapf(define.ErrExecSessionStateInvalid, "container %s exec session %s is %q, can only stop running sessions", c.ID(), session.ID(), session.State.String())
+		return fmt.Errorf("container %s exec session %s is %q, can only stop running sessions: %w", c.ID(), session.ID(), session.State.String(), define.ErrExecSessionStateInvalid)
 	}
 
 	logrus.Infof("Stopping container %s exec session %s", c.ID(), session.ID())
@@ -617,7 +618,7 @@ func (c *Container) ExecCleanup(sessionID string) error {
 
 	session, ok := c.state.ExecSessions[sessionID]
 	if !ok {
-		return errors.Wrapf(define.ErrNoSuchExecSession, "container %s has no exec session with ID %s", c.ID(), sessionID)
+		return fmt.Errorf("container %s has no exec session with ID %s: %w", c.ID(), sessionID, define.ErrNoSuchExecSession)
 	}
 
 	if session.State == define.ExecStateRunning {
@@ -628,7 +629,7 @@ func (c *Container) ExecCleanup(sessionID string) error {
 		}
 
 		if alive {
-			return errors.Wrapf(define.ErrExecSessionStateInvalid, "cannot clean up container %s exec session %s as it is running", c.ID(), session.ID())
+			return fmt.Errorf("cannot clean up container %s exec session %s as it is running: %w", c.ID(), session.ID(), define.ErrExecSessionStateInvalid)
 		}
 
 		if err := retrieveAndWriteExecExitCode(c, session.ID()); err != nil {
@@ -655,7 +656,7 @@ func (c *Container) ExecRemove(sessionID string, force bool) error {
 
 	session, ok := c.state.ExecSessions[sessionID]
 	if !ok {
-		return errors.Wrapf(define.ErrNoSuchExecSession, "container %s has no exec session with ID %s", c.ID(), sessionID)
+		return fmt.Errorf("container %s has no exec session with ID %s: %w", c.ID(), sessionID, define.ErrNoSuchExecSession)
 	}
 
 	logrus.Infof("Removing container %s exec session %s", c.ID(), session.ID())
@@ -676,7 +677,7 @@ func (c *Container) ExecRemove(sessionID string, force bool) error {
 
 	if session.State == define.ExecStateRunning {
 		if !force {
-			return errors.Wrapf(define.ErrExecSessionStateInvalid, "container %s exec session %s is still running, cannot remove", c.ID(), session.ID())
+			return fmt.Errorf("container %s exec session %s is still running, cannot remove: %w", c.ID(), session.ID(), define.ErrExecSessionStateInvalid)
 		}
 
 		// Stop the session
@@ -722,13 +723,13 @@ func (c *Container) ExecResize(sessionID string, newSize define.TerminalSize) er
 
 	session, ok := c.state.ExecSessions[sessionID]
 	if !ok {
-		return errors.Wrapf(define.ErrNoSuchExecSession, "container %s has no exec session with ID %s", c.ID(), sessionID)
+		return fmt.Errorf("container %s has no exec session with ID %s: %w", c.ID(), sessionID, define.ErrNoSuchExecSession)
 	}
 
 	logrus.Infof("Resizing container %s exec session %s to %+v", c.ID(), session.ID(), newSize)
 
 	if session.State != define.ExecStateRunning {
-		return errors.Wrapf(define.ErrExecSessionStateInvalid, "cannot resize container %s exec session %s as it is not running", c.ID(), session.ID())
+		return fmt.Errorf("cannot resize container %s exec session %s as it is not running: %w", c.ID(), session.ID(), define.ErrExecSessionStateInvalid)
 	}
 
 	// The exec session may have exited since we last updated.
@@ -744,7 +745,7 @@ func (c *Container) ExecResize(sessionID string, newSize define.TerminalSize) er
 			logrus.Errorf("Saving state of container %s: %v", c.ID(), err)
 		}
 
-		return errors.Wrapf(define.ErrExecSessionStateInvalid, "cannot resize container %s exec session %s as it has stopped", c.ID(), session.ID())
+		return fmt.Errorf("cannot resize container %s exec session %s as it has stopped: %w", c.ID(), session.ID(), define.ErrExecSessionStateInvalid)
 	}
 
 	// Make sure the exec session is still running.
@@ -780,7 +781,7 @@ func (c *Container) exec(config *ExecConfig, streams *define.AttachStreams, resi
 			logrus.Debugf("Sending resize events to exec session %s", sessionID)
 			for resizeRequest := range resize {
 				if err := c.ExecResize(sessionID, resizeRequest); err != nil {
-					if errors.Cause(err) == define.ErrExecSessionStateInvalid {
+					if errors.Is(err, define.ErrExecSessionStateInvalid) {
 						// The exec session stopped
 						// before we could resize.
 						logrus.Infof("Missed resize on exec session %s, already stopped", sessionID)
@@ -799,7 +800,7 @@ func (c *Container) exec(config *ExecConfig, streams *define.AttachStreams, resi
 
 	session, err := c.execSessionNoCopy(sessionID)
 	if err != nil {
-		if errors.Cause(err) == define.ErrNoSuchExecSession {
+		if errors.Is(err, define.ErrNoSuchExecSession) {
 			// TODO: If a proper Context is ever plumbed in here, we
 			// should use it.
 			// As things stand, though, it's not worth it - this
@@ -807,7 +808,7 @@ func (c *Container) exec(config *ExecConfig, streams *define.AttachStreams, resi
 			// streaming.
 			diedEvent, err := c.runtime.GetExecDiedEvent(context.Background(), c.ID(), sessionID)
 			if err != nil {
-				return -1, errors.Wrapf(err, "error retrieving exec session %s exit code", sessionID)
+				return -1, fmt.Errorf("error retrieving exec session %s exit code: %w", sessionID, err)
 			}
 			return diedEvent.ContainerExitCode, nil
 		}
@@ -815,7 +816,7 @@ func (c *Container) exec(config *ExecConfig, streams *define.AttachStreams, resi
 	}
 	exitCode := session.ExitCode
 	if err := c.ExecRemove(sessionID, false); err != nil {
-		if errors.Cause(err) == define.ErrNoSuchExecSession {
+		if errors.Is(err, define.ErrNoSuchExecSession) {
 			return exitCode, nil
 		}
 		return -1, err
@@ -837,7 +838,7 @@ func (c *Container) cleanupExecBundle(sessionID string) (err error) {
 		}
 		if pathErr, ok := err.(*os.PathError); ok {
 			err = pathErr.Err
-			if errors.Cause(err) == unix.ENOTEMPTY || errors.Cause(err) == unix.EBUSY {
+			if errors.Is(err, unix.ENOTEMPTY) || errors.Is(err, unix.EBUSY) {
 				// give other processes a chance to use the container
 				if !c.batched {
 					if err := c.save(); err != nil {
@@ -909,7 +910,7 @@ func (c *Container) createExecBundle(sessionID string) (retErr error) {
 	if err := os.MkdirAll(c.execExitFileDir(sessionID), execDirPermission); err != nil {
 		// The directory is allowed to exist
 		if !os.IsExist(err) {
-			return errors.Wrapf(err, "error creating OCI runtime exit file path %s", c.execExitFileDir(sessionID))
+			return fmt.Errorf("error creating OCI runtime exit file path %s: %w", c.execExitFileDir(sessionID), err)
 		}
 	}
 	return nil
@@ -948,7 +949,7 @@ func (c *Container) getExecSessionPID(sessionID string) (int, error) {
 		return oldSession.PID, nil
 	}
 
-	return -1, errors.Wrapf(define.ErrNoSuchExecSession, "no exec session with ID %s found in container %s", sessionID, c.ID())
+	return -1, fmt.Errorf("no exec session with ID %s found in container %s: %w", sessionID, c.ID(), define.ErrNoSuchExecSession)
 }
 
 // getKnownExecSessions gets a list of all exec sessions we think are running,
@@ -1062,7 +1063,7 @@ func (c *Container) removeAllExecSessions() error {
 	}
 	// Delete all exec sessions
 	if err := c.runtime.state.RemoveContainerExecSessions(c); err != nil {
-		if errors.Cause(err) != define.ErrCtrRemoved {
+		if !errors.Is(err, define.ErrCtrRemoved) {
 			if lastErr != nil {
 				logrus.Errorf("Stopping container %s exec sessions: %v", c.ID(), lastErr)
 			}
@@ -1072,7 +1073,7 @@ func (c *Container) removeAllExecSessions() error {
 	c.state.ExecSessions = nil
 	c.state.LegacyExecSessions = nil
 	if err := c.save(); err != nil {
-		if errors.Cause(err) != define.ErrCtrRemoved {
+		if !errors.Is(err, define.ErrCtrRemoved) {
 			if lastErr != nil {
 				logrus.Errorf("Stopping container %s exec sessions: %v", c.ID(), lastErr)
 			}
@@ -1113,13 +1114,13 @@ func writeExecExitCode(c *Container, sessionID string, exitCode int) error {
 	// If we can't do this, no point in continuing, any attempt to save
 	// would write garbage to the DB.
 	if err := c.syncContainer(); err != nil {
-		if errors.Cause(err) == define.ErrNoSuchCtr || errors.Cause(err) == define.ErrCtrRemoved {
+		if errors.Is(err, define.ErrNoSuchCtr) || errors.Is(err, define.ErrCtrRemoved) {
 			// Container's entirely removed. We can't save status,
 			// but the container's entirely removed, so we don't
 			// need to. Exit without error.
 			return nil
 		}
-		return errors.Wrapf(err, "error syncing container %s state to remove exec session %s", c.ID(), sessionID)
+		return fmt.Errorf("error syncing container %s state to remove exec session %s: %w", c.ID(), sessionID, err)
 	}
 
 	return justWriteExecExitCode(c, sessionID, exitCode)

@@ -2,12 +2,12 @@ package tunnel
 
 import (
 	"context"
+	"errors"
 
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/bindings/pods"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/util"
-	"github.com/pkg/errors"
 )
 
 func (ic *ContainerEngine) PodExists(ctx context.Context, nameOrID string) (*entities.BoolReport, error) {
@@ -97,7 +97,7 @@ func (ic *ContainerEngine) PodUnpause(ctx context.Context, namesOrIds []string, 
 func (ic *ContainerEngine) PodStop(ctx context.Context, namesOrIds []string, opts entities.PodStopOptions) ([]*entities.PodStopReport, error) {
 	timeout := -1
 	foundPods, err := getPodsByContext(ic.ClientCtx, opts.All, namesOrIds)
-	if err != nil && !(opts.Ignore && errors.Cause(err) == define.ErrNoSuchPod) {
+	if err != nil && !(opts.Ignore && errors.Is(err, define.ErrNoSuchPod)) {
 		return nil, err
 	}
 	if opts.Timeout != -1 {
@@ -164,7 +164,7 @@ func (ic *ContainerEngine) PodStart(ctx context.Context, namesOrIds []string, op
 
 func (ic *ContainerEngine) PodRm(ctx context.Context, namesOrIds []string, opts entities.PodRmOptions) ([]*entities.PodRmReport, error) {
 	foundPods, err := getPodsByContext(ic.ClientCtx, opts.All, namesOrIds)
-	if err != nil && !(opts.Ignore && errors.Cause(err) == define.ErrNoSuchPod) {
+	if err != nil && !(opts.Ignore && errors.Is(err, define.ErrNoSuchPod)) {
 		return nil, err
 	}
 	reports := make([]*entities.PodRmReport, 0, len(foundPods))

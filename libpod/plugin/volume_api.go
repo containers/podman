@@ -3,6 +3,7 @@ package plugin
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -12,11 +13,12 @@ import (
 	"sync"
 	"time"
 
+	"errors"
+
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/docker/go-plugins-helpers/sdk"
 	"github.com/docker/go-plugins-helpers/volume"
 	jsoniter "github.com/json-iterator/go"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -75,7 +77,7 @@ func validatePlugin(newPlugin *VolumePlugin) error {
 	// Hit the Activate endpoint to find out if it is, and if so what kind
 	req, err := http.NewRequest("POST", "http://plugin"+activatePath, nil)
 	if err != nil {
-		return errors.Wrapf(err, "error making request to volume plugin %s activation endpoint", newPlugin.Name)
+		return fmt.Errorf("error making request to volume plugin %s activation endpoint: %w", newPlugin.Name, err)
 	}
 
 	req.Header.Set("Host", newPlugin.getURI())
@@ -83,25 +85,25 @@ func validatePlugin(newPlugin *VolumePlugin) error {
 
 	resp, err := newPlugin.Client.Do(req)
 	if err != nil {
-		return errors.Wrapf(err, "error sending request to plugin %s activation endpoint", newPlugin.Name)
+		return fmt.Errorf("error sending request to plugin %s activation endpoint: %w", newPlugin.Name, err)
 	}
 	defer resp.Body.Close()
 
 	// Response code MUST be 200. Anything else, we have to assume it's not
 	// a valid plugin.
 	if resp.StatusCode != 200 {
-		return errors.Wrapf(ErrNotPlugin, "got status code %d from activation endpoint for plugin %s", resp.StatusCode, newPlugin.Name)
+		return fmt.Errorf("got status code %d from activation endpoint for plugin %s: %w", resp.StatusCode, newPlugin.Name, ErrNotPlugin)
 	}
 
 	// Read and decode the body so we can tell if this is a volume plugin.
 	respBytes, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return errors.Wrapf(err, "error reading activation response body from plugin %s", newPlugin.Name)
+		return fmt.Errorf("error reading activation response body from plugin %s: %w", newPlugin.Name, err)
 	}
 
 	respStruct := new(activateResponse)
 	if err := json.Unmarshal(respBytes, respStruct); err != nil {
-		return errors.Wrapf(err, "error unmarshalling plugin %s activation response", newPlugin.Name)
+		return fmt.Errorf("error unmarshalling plugin %s activation response: %w", newPlugin.Name, err)
 	}
 
 	foundVolume := false
@@ -113,7 +115,7 @@ func validatePlugin(newPlugin *VolumePlugin) error {
 	}
 
 	if !foundVolume {
-		return errors.Wrapf(ErrNotVolumePlugin, "plugin %s does not implement volume plugin, instead provides %s", newPlugin.Name, strings.Join(respStruct.Implements, ", "))
+		return fmt.Errorf("plugin %s does not implement volume plugin, instead provides %s: %w", newPlugin.Name, strings.Join(respStruct.Implements, ", "), ErrNotVolumePlugin)
 	}
 
 	if plugins == nil {
@@ -135,7 +137,7 @@ func GetVolumePlugin(name string, path string, timeout int) (*VolumePlugin, erro
 	if exists {
 		// This shouldn't be possible, but just in case...
 		if plugin.SocketPath != filepath.Clean(path) {
-			return nil, errors.Wrapf(define.ErrInvalidArg, "requested path %q for volume plugin %s does not match pre-existing path for plugin, %q", path, name, plugin.SocketPath)
+			return nil, fmt.Errorf("requested path %q for volume plugin %s does not match pre-existing path for plugin, %q: %w", path, name, plugin.SocketPath, define.ErrInvalidArg)
 		}
 
 		return plugin, nil
@@ -169,10 +171,10 @@ func GetVolumePlugin(name string, path string, timeout int) (*VolumePlugin, erro
 
 	stat, err := os.Stat(newPlugin.SocketPath)
 	if err != nil {
-		return nil, errors.Wrapf(err, "cannot access plugin %s socket %q", name, newPlugin.SocketPath)
+		return nil, fmt.Errorf("cannot access plugin %s socket %q: %w", name, newPlugin.SocketPath, err)
 	}
 	if stat.Mode()&os.ModeSocket == 0 {
-		return nil, errors.Wrapf(ErrNotPlugin, "volume %s path %q is not a unix socket", name, newPlugin.SocketPath)
+		return nil, fmt.Errorf("volume %s path %q is not a unix socket: %w", name, newPlugin.SocketPath, ErrNotPlugin)
 	}
 
 	if err := validatePlugin(newPlugin); err != nil {
@@ -194,10 +196,10 @@ func (p *VolumePlugin) verifyReachable() error {
 			pluginsLock.Lock()
 			defer pluginsLock.Unlock()
 			delete(plugins, p.Name)
-			return errors.Wrapf(ErrPluginRemoved, p.Name)
+			return fmt.Errorf("%s: %w", p.Name, ErrPluginRemoved)
 		}
 
-		return errors.Wrapf(err, "error accessing plugin %s", p.Name)
+		return fmt.Errorf("error accessing plugin %s: %w", p.Name, err)
 	}
 	return nil
 }
@@ -213,13 +215,13 @@ func (p *VolumePlugin) sendRequest(toJSON interface{}, endpoint string) (*http.R
 	if toJSON != nil {
 		reqJSON, err = json.Marshal(toJSON)
 		if err != nil {
-			return nil, errors.Wrapf(err, "error marshalling request JSON for volume plugin %s endpoint %s", p.Name, endpoint)
+			return nil, fmt.Errorf("error marshalling request JSON for volume plugin %s endpoint %s: %w", p.Name, endpoint, err)
 		}
 	}
 
 	req, err := http.NewRequest("POST", "http://plugin"+endpoint, bytes.NewReader(reqJSON))
 	if err != nil {
-		return nil, errors.Wrapf(err, "error making request to volume plugin %s endpoint %s", p.Name, endpoint)
+		return nil, fmt.Errorf("error making request to volume plugin %s endpoint %s: %w", p.Name, endpoint, err)
 	}
 
 	req.Header.Set("Host", p.getURI())
@@ -227,7 +229,7 @@ func (p *VolumePlugin) sendRequest(toJSON interface{}, endpoint string) (*http.R
 
 	resp, err := p.Client.Do(req)
 	if err != nil {
-		return nil, errors.Wrapf(err, "error sending request to volume plugin %s endpoint %s", p.Name, endpoint)
+		return nil, fmt.Errorf("error sending request to volume plugin %s endpoint %s: %w", p.Name, endpoint, err)
 	}
 	// We are *deliberately not closing* response here. It is the
 	// responsibility of the caller to do so after reading the response.
@@ -241,9 +243,9 @@ func (p *VolumePlugin) makeErrorResponse(err, endpoint, volName string) error {
 		err = "empty error from plugin"
 	}
 	if volName != "" {
-		return errors.Wrapf(errors.New(err), "error on %s on volume %s in volume plugin %s", endpoint, volName, p.Name)
+		return fmt.Errorf("error on %s on volume %s in volume plugin %s: %w", endpoint, volName, p.Name, errors.New(err))
 	}
-	return errors.Wrapf(errors.New(err), "error on %s in volume plugin %s", endpoint, p.Name)
+	return fmt.Errorf("error on %s in volume plugin %s: %w", endpoint, p.Name, errors.New(err))
 }
 
 // Handle error responses from plugin
@@ -255,12 +257,12 @@ func (p *VolumePlugin) handleErrorResponse(resp *http.Response, endpoint, volNam
 	if resp.StatusCode != 200 {
 		errResp, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			return errors.Wrapf(err, "error reading response body from volume plugin %s", p.Name)
+			return fmt.Errorf("error reading response body from volume plugin %s: %w", p.Name, err)
 		}
 
 		errStruct := new(volume.ErrorResponse)
 		if err := json.Unmarshal(errResp, errStruct); err != nil {
-			return errors.Wrapf(err, "error unmarshalling JSON response from volume plugin %s", p.Name)
+			return fmt.Errorf("error unmarshalling JSON response from volume plugin %s: %w", p.Name, err)
 		}
 
 		return p.makeErrorResponse(errStruct.Err, endpoint, volName)
@@ -272,7 +274,7 @@ func (p *VolumePlugin) handleErrorResponse(resp *http.Response, endpoint, volNam
 // CreateVolume creates a volume in the plugin.
 func (p *VolumePlugin) CreateVolume(req *volume.CreateRequest) error {
 	if req == nil {
-		return errors.Wrapf(define.ErrInvalidArg, "must provide non-nil request to CreateVolume")
+		return fmt.Errorf("must provide non-nil request to CreateVolume: %w", define.ErrInvalidArg)
 	}
 
 	if err := p.verifyReachable(); err != nil {
@@ -310,12 +312,12 @@ func (p *VolumePlugin) ListVolumes() ([]*volume.Volume, error) {
 
 	volumeRespBytes, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, errors.Wrapf(err, "error reading response body from volume plugin %s", p.Name)
+		return nil, fmt.Errorf("error reading response body from volume plugin %s: %w", p.Name, err)
 	}
 
 	volumeResp := new(volume.ListResponse)
 	if err := json.Unmarshal(volumeRespBytes, volumeResp); err != nil {
-		return nil, errors.Wrapf(err, "error unmarshalling volume plugin %s list response", p.Name)
+		return nil, fmt.Errorf("error unmarshalling volume plugin %s list response: %w", p.Name, err)
 	}
 
 	return volumeResp.Volumes, nil
@@ -324,7 +326,7 @@ func (p *VolumePlugin) ListVolumes() ([]*volume.Volume, error) {
 // GetVolume gets a single volume from the plugin.
 func (p *VolumePlugin) GetVolume(req *volume.GetRequest) (*volume.Volume, error) {
 	if req == nil {
-		return nil, errors.Wrapf(define.ErrInvalidArg, "must provide non-nil request to GetVolume")
+		return nil, fmt.Errorf("must provide non-nil request to GetVolume: %w", define.ErrInvalidArg)
 	}
 
 	if err := p.verifyReachable(); err != nil {
@@ -345,12 +347,12 @@ func (p *VolumePlugin) GetVolume(req *volume.GetRequest) (*volume.Volume, error)
 
 	getRespBytes, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, errors.Wrapf(err, "error reading response body from volume plugin %s", p.Name)
+		return nil, fmt.Errorf("error reading response body from volume plugin %s: %w", p.Name, err)
 	}
 
 	getResp := new(volume.GetResponse)
 	if err := json.Unmarshal(getRespBytes, getResp); err != nil {
-		return nil, errors.Wrapf(err, "error unmarshalling volume plugin %s get response", p.Name)
+		return nil, fmt.Errorf("error unmarshalling volume plugin %s get response: %w", p.Name, err)
 	}
 
 	return getResp.Volume, nil
@@ -359,7 +361,7 @@ func (p *VolumePlugin) GetVolume(req *volume.GetRequest) (*volume.Volume, error)
 // RemoveVolume removes a single volume from the plugin.
 func (p *VolumePlugin) RemoveVolume(req *volume.RemoveRequest) error {
 	if req == nil {
-		return errors.Wrapf(define.ErrInvalidArg, "must provide non-nil request to RemoveVolume")
+		return fmt.Errorf("must provide non-nil request to RemoveVolume: %w", define.ErrInvalidArg)
 	}
 
 	if err := p.verifyReachable(); err != nil {
@@ -380,7 +382,7 @@ func (p *VolumePlugin) RemoveVolume(req *volume.RemoveRequest) error {
 // GetVolumePath gets the path the given volume is mounted at.
 func (p *VolumePlugin) GetVolumePath(req *volume.PathRequest) (string, error) {
 	if req == nil {
-		return "", errors.Wrapf(define.ErrInvalidArg, "must provide non-nil request to GetVolumePath")
+		return "", fmt.Errorf("must provide non-nil request to GetVolumePath: %w", define.ErrInvalidArg)
 	}
 
 	if err := p.verifyReachable(); err != nil {
@@ -401,12 +403,12 @@ func (p *VolumePlugin) GetVolumePath(req *volume.PathRequest) (string, error) {
 
 	pathRespBytes, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return "", errors.Wrapf(err, "error reading response body from volume plugin %s", p.Name)
+		return "", fmt.Errorf("error reading response body from volume plugin %s: %w", p.Name, err)
 	}
 
 	pathResp := new(volume.PathResponse)
 	if err := json.Unmarshal(pathRespBytes, pathResp); err != nil {
-		return "", errors.Wrapf(err, "error unmarshalling volume plugin %s path response", p.Name)
+		return "", fmt.Errorf("error unmarshalling volume plugin %s path response: %w", p.Name, err)
 	}
 
 	return pathResp.Mountpoint, nil
@@ -417,7 +419,7 @@ func (p *VolumePlugin) GetVolumePath(req *volume.PathRequest) (string, error) {
 // the path the volume has been mounted at.
 func (p *VolumePlugin) MountVolume(req *volume.MountRequest) (string, error) {
 	if req == nil {
-		return "", errors.Wrapf(define.ErrInvalidArg, "must provide non-nil request to MountVolume")
+		return "", fmt.Errorf("must provide non-nil request to MountVolume: %w", define.ErrInvalidArg)
 	}
 
 	if err := p.verifyReachable(); err != nil {
@@ -438,12 +440,12 @@ func (p *VolumePlugin) MountVolume(req *volume.MountRequest) (string, error) {
 
 	mountRespBytes, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return "", errors.Wrapf(err, "error reading response body from volume plugin %s", p.Name)
+		return "", fmt.Errorf("error reading response body from volume plugin %s: %w", p.Name, err)
 	}
 
 	mountResp := new(volume.MountResponse)
 	if err := json.Unmarshal(mountRespBytes, mountResp); err != nil {
-		return "", errors.Wrapf(err, "error unmarshalling volume plugin %s path response", p.Name)
+		return "", fmt.Errorf("error unmarshalling volume plugin %s path response: %w", p.Name, err)
 	}
 
 	return mountResp.Mountpoint, nil
@@ -453,7 +455,7 @@ func (p *VolumePlugin) MountVolume(req *volume.MountRequest) (string, error) {
 // container that is unmounting, used for internal record-keeping by the plugin.
 func (p *VolumePlugin) UnmountVolume(req *volume.UnmountRequest) error {
 	if req == nil {
-		return errors.Wrapf(define.ErrInvalidArg, "must provide non-nil request to UnmountVolume")
+		return fmt.Errorf("must provide non-nil request to UnmountVolume: %w", define.ErrInvalidArg)
 	}
 
 	if err := p.verifyReachable(); err != nil {
