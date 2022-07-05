@@ -761,19 +761,8 @@ func (c *Container) Sync() error {
 		defer c.lock.Unlock()
 	}
 
-	// If runtime knows about the container, update its status in runtime
-	// And then save back to disk
-	if c.ensureState(define.ContainerStateCreated, define.ContainerStateRunning, define.ContainerStatePaused, define.ContainerStateStopped, define.ContainerStateStopping) {
-		oldState := c.state.State
-		if err := c.ociRuntime.UpdateContainerStatus(c); err != nil {
-			return err
-		}
-		// Only save back to DB if state changed
-		if c.state.State != oldState {
-			if err := c.save(); err != nil {
-				return err
-			}
-		}
+	if err := c.syncContainer(); err != nil {
+		return err
 	}
 
 	defer c.newContainerEvent(events.Sync)
