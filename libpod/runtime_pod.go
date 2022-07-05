@@ -2,11 +2,12 @@ package libpod
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"time"
 
 	"github.com/containers/common/pkg/util"
 	"github.com/containers/podman/v4/libpod/define"
-	"github.com/pkg/errors"
 )
 
 // Contains the public Runtime API for pods
@@ -112,7 +113,7 @@ func (r *Runtime) GetLatestPod() (*Pod, error) {
 	var lastCreatedTime time.Time
 	pods, err := r.GetAllPods()
 	if err != nil {
-		return nil, errors.Wrapf(err, "unable to get all pods")
+		return nil, fmt.Errorf("unable to get all pods: %w", err)
 	}
 	if len(pods) == 0 {
 		return nil, define.ErrNoSuchPod
@@ -146,7 +147,7 @@ func (r *Runtime) GetRunningPods() ([]*Pod, error) {
 			pods = append(pods, c.PodID())
 			pod, err := r.GetPod(c.PodID())
 			if err != nil {
-				if errors.Cause(err) == define.ErrPodRemoved || errors.Cause(err) == define.ErrNoSuchPod {
+				if errors.Is(err, define.ErrPodRemoved) || errors.Is(err, define.ErrNoSuchPod) {
 					continue
 				}
 				return nil, err

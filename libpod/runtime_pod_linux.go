@@ -5,6 +5,7 @@ package libpod
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path"
@@ -18,7 +19,6 @@ import (
 	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/containers/podman/v4/pkg/specgen"
 	runcconfig "github.com/opencontainers/runc/libcontainer/configs"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -38,14 +38,14 @@ func (r *Runtime) NewPod(ctx context.Context, p specgen.PodSpecGenerator, option
 
 	for _, option := range options {
 		if err := option(pod); err != nil {
-			return nil, errors.Wrapf(err, "error running pod create option")
+			return nil, fmt.Errorf("error running pod create option: %w", err)
 		}
 	}
 
 	// Allocate a lock for the pod
 	lock, err := r.lockManager.AllocateLock()
 	if err != nil {
-		return nil, errors.Wrapf(err, "error allocating lock for new pod")
+		return nil, fmt.Errorf("error allocating lock for new pod: %w", err)
 	}
 	pod.lock = lock
 	pod.config.LockID = pod.lock.ID()
@@ -70,7 +70,7 @@ func (r *Runtime) NewPod(ctx context.Context, p specgen.PodSpecGenerator, option
 				if pod.config.CgroupParent == "" {
 					pod.config.CgroupParent = CgroupfsDefaultCgroupParent
 				} else if strings.HasSuffix(path.Base(pod.config.CgroupParent), ".slice") {
-					return nil, errors.Wrapf(define.ErrInvalidArg, "systemd slice received as cgroup parent when using cgroupfs")
+					return nil, fmt.Errorf("systemd slice received as cgroup parent when using cgroupfs: %w", define.ErrInvalidArg)
 				}
 				// If we are set to use pod cgroups, set the cgroup parent that
 				// all containers in the pod will share
@@ -108,14 +108,14 @@ func (r *Runtime) NewPod(ctx context.Context, p specgen.PodSpecGenerator, option
 					pod.config.CgroupParent = SystemdDefaultCgroupParent
 				}
 			} else if len(pod.config.CgroupParent) < 6 || !strings.HasSuffix(path.Base(pod.config.CgroupParent), ".slice") {
-				return nil, errors.Wrapf(define.ErrInvalidArg, "did not receive systemd slice as cgroup parent when using systemd to manage cgroups")
+				return nil, fmt.Errorf("did not receive systemd slice as cgroup parent when using systemd to manage cgroups: %w", define.ErrInvalidArg)
 			}
 			// If we are set to use pod cgroups, set the cgroup parent that
 			// all containers in the pod will share
 			if pod.config.UsePodCgroup {
 				cgroupPath, err := systemdSliceFromPath(pod.config.CgroupParent, fmt.Sprintf("libpod_pod_%s", pod.ID()), p.InfraContainerSpec.ResourceLimits)
 				if err != nil {
-					return nil, errors.Wrapf(err, "unable to create pod cgroup for pod %s", pod.ID())
+					return nil, fmt.Errorf("unable to create pod cgroup for pod %s: %w", pod.ID(), err)
 				}
 				pod.state.CgroupPath = cgroupPath
 				if p.InfraContainerSpec != nil {
@@ -123,7 +123,7 @@ func (r *Runtime) NewPod(ctx context.Context, p specgen.PodSpecGenerator, option
 				}
 			}
 		default:
-			return nil, errors.Wrapf(define.ErrInvalidArg, "unsupported Cgroup manager: %s - cannot validate cgroup parent", r.config.Engine.CgroupManager)
+			return nil, fmt.Errorf("unsupported Cgroup manager: %s - cannot validate cgroup parent: %w", r.config.Engine.CgroupManager, define.ErrInvalidArg)
 		}
 	}
 
@@ -132,7 +132,7 @@ func (r *Runtime) NewPod(ctx context.Context, p specgen.PodSpecGenerator, option
 	}
 
 	if !pod.HasInfraContainer() && pod.SharesNamespaces() {
-		return nil, errors.Errorf("Pods must have an infra container to share namespaces")
+		return nil, errors.New("Pods must have an infra container to share namespaces")
 	}
 	if pod.HasInfraContainer() && !pod.SharesNamespaces() {
 		logrus.Infof("Pod has an infra container, but shares no namespaces")
@@ -157,12 +157,12 @@ func (r *Runtime) NewPod(ctx context.Context, p specgen.PodSpecGenerator, option
 		if addPodErr = r.state.AddPod(pod); addPodErr == nil {
 			return pod, nil
 		}
-		if !generateName || (errors.Cause(addPodErr) != define.ErrPodExists && errors.Cause(addPodErr) != define.ErrCtrExists) {
+		if !generateName || (!errors.Is(addPodErr, define.ErrPodExists) && !errors.Is(addPodErr, define.ErrCtrExists)) {
 			break
 		}
 	}
 	if addPodErr != nil {
-		return nil, errors.Wrapf(addPodErr, "error adding pod to state")
+		return nil, fmt.Errorf("error adding pod to state: %w", addPodErr)
 	}
 
 	return pod, nil
@@ -211,7 +211,7 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool,
 		force = true
 	}
 	if !removeCtrs && numCtrs > 0 {
-		return errors.Wrapf(define.ErrCtrExists, "pod %s contains containers and cannot be removed", p.ID())
+		return fmt.Errorf("pod %s contains containers and cannot be removed: %w", p.ID(), define.ErrCtrExists)
 	}
 
 	// Go through and lock all containers so we can operate on them all at
@@ -239,7 +239,7 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool,
 
 		// Ensure state appropriate for removal
 		if err := ctr.checkReadyForRemoval(); err != nil {
-			return errors.Wrapf(err, "pod %s has containers that are not ready to be removed", p.ID())
+			return fmt.Errorf("pod %s has containers that are not ready to be removed: %w", p.ID(), err)
 		}
 	}
 
@@ -311,7 +311,7 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool,
 
 	for volName := range ctrNamedVolumes {
 		volume, err := r.state.Volume(volName)
-		if err != nil && errors.Cause(err) != define.ErrNoSuchVolume {
+		if err != nil && !errors.Is(err, define.ErrNoSuchVolume) {
 			logrus.Errorf("Retrieving volume %s: %v", volName, err)
 			continue
 		}
@@ -319,7 +319,7 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool,
 			continue
 		}
 		if err := r.removeVolume(ctx, volume, false, timeout, false); err != nil {
-			if errors.Cause(err) == define.ErrNoSuchVolume || errors.Cause(err) == define.ErrVolumeRemoved {
+			if errors.Is(err, define.ErrNoSuchVolume) || errors.Is(err, define.ErrVolumeRemoved) {
 				continue
 			}
 			logrus.Errorf("Removing volume %s: %v", volName, err)
@@ -340,7 +340,7 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool,
 		case config.SystemdCgroupsManager:
 			if err := deleteSystemdCgroup(p.state.CgroupPath, p.ResourceLim()); err != nil {
 				if removalErr == nil {
-					removalErr = errors.Wrapf(err, "error removing pod %s cgroup", p.ID())
+					removalErr = fmt.Errorf("error removing pod %s cgroup: %w", p.ID(), err)
 				} else {
 					logrus.Errorf("Deleting pod %s cgroup %s: %v", p.ID(), p.state.CgroupPath, err)
 				}
@@ -354,7 +354,7 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool,
 			conmonCgroup, err := cgroups.Load(conmonCgroupPath)
 			if err != nil && err != cgroups.ErrCgroupDeleted && err != cgroups.ErrCgroupV1Rootless {
 				if removalErr == nil {
-					removalErr = errors.Wrapf(err, "error retrieving pod %s conmon cgroup", p.ID())
+					removalErr = fmt.Errorf("error retrieving pod %s conmon cgroup: %w", p.ID(), err)
 				} else {
 					logrus.Debugf("Error retrieving pod %s conmon cgroup %s: %v", p.ID(), conmonCgroupPath, err)
 				}
@@ -362,7 +362,7 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool,
 			if err == nil {
 				if err = conmonCgroup.Delete(); err != nil {
 					if removalErr == nil {
-						removalErr = errors.Wrapf(err, "error removing pod %s conmon cgroup", p.ID())
+						removalErr = fmt.Errorf("error removing pod %s conmon cgroup: %w", p.ID(), err)
 					} else {
 						logrus.Errorf("Deleting pod %s conmon cgroup %s: %v", p.ID(), conmonCgroupPath, err)
 					}
@@ -371,7 +371,7 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool,
 			cgroup, err := cgroups.Load(p.state.CgroupPath)
 			if err != nil && err != cgroups.ErrCgroupDeleted && err != cgroups.ErrCgroupV1Rootless {
 				if removalErr == nil {
-					removalErr = errors.Wrapf(err, "error retrieving pod %s cgroup", p.ID())
+					removalErr = fmt.Errorf("error retrieving pod %s cgroup: %w", p.ID(), err)
 				} else {
 					logrus.Errorf("Retrieving pod %s cgroup %s: %v", p.ID(), p.state.CgroupPath, err)
 				}
@@ -379,7 +379,7 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool,
 			if err == nil {
 				if err := cgroup.Delete(); err != nil {
 					if removalErr == nil {
-						removalErr = errors.Wrapf(err, "error removing pod %s cgroup", p.ID())
+						removalErr = fmt.Errorf("error removing pod %s cgroup: %w", p.ID(), err)
 					} else {
 						logrus.Errorf("Deleting pod %s cgroup %s: %v", p.ID(), p.state.CgroupPath, err)
 					}
@@ -390,7 +390,7 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool,
 			// keep going so we make sure to evict the pod before
 			// ending up with an inconsistent state.
 			if removalErr == nil {
-				removalErr = errors.Wrapf(define.ErrInternal, "unrecognized cgroup manager %s when removing pod %s cgroups", p.runtime.config.Engine.CgroupManager, p.ID())
+				removalErr = fmt.Errorf("unrecognized cgroup manager %s when removing pod %s cgroups: %w", p.runtime.config.Engine.CgroupManager, p.ID(), define.ErrInternal)
 			} else {
 				logrus.Errorf("Unknown cgroups manager %s specified - cannot remove pod %s cgroup", p.runtime.config.Engine.CgroupManager, p.ID())
 			}
@@ -416,7 +416,7 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool,
 	// Deallocate the pod lock
 	if err := p.lock.Free(); err != nil {
 		if removalErr == nil {
-			removalErr = errors.Wrapf(err, "error freeing pod %s lock", p.ID())
+			removalErr = fmt.Errorf("error freeing pod %s lock: %w", p.ID(), err)
 		} else {
 			logrus.Errorf("Freeing pod %s lock: %v", p.ID(), err)
 		}

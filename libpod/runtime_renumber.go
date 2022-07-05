@@ -1,8 +1,9 @@
 package libpod
 
 import (
+	"fmt"
+
 	"github.com/containers/podman/v4/libpod/events"
-	"github.com/pkg/errors"
 )
 
 // renumberLocks reassigns lock numbers for all containers and pods in the
@@ -26,7 +27,7 @@ func (r *Runtime) renumberLocks() error {
 	for _, ctr := range allCtrs {
 		lock, err := r.lockManager.AllocateLock()
 		if err != nil {
-			return errors.Wrapf(err, "error allocating lock for container %s", ctr.ID())
+			return fmt.Errorf("error allocating lock for container %s: %w", ctr.ID(), err)
 		}
 
 		ctr.config.LockID = lock.ID()
@@ -43,7 +44,7 @@ func (r *Runtime) renumberLocks() error {
 	for _, pod := range allPods {
 		lock, err := r.lockManager.AllocateLock()
 		if err != nil {
-			return errors.Wrapf(err, "error allocating lock for pod %s", pod.ID())
+			return fmt.Errorf("error allocating lock for pod %s: %w", pod.ID(), err)
 		}
 
 		pod.config.LockID = lock.ID()
@@ -60,7 +61,7 @@ func (r *Runtime) renumberLocks() error {
 	for _, vol := range allVols {
 		lock, err := r.lockManager.AllocateLock()
 		if err != nil {
-			return errors.Wrapf(err, "error allocating lock for volume %s", vol.Name())
+			return fmt.Errorf("error allocating lock for volume %s: %w", vol.Name(), err)
 		}
 
 		vol.config.LockID = lock.ID()

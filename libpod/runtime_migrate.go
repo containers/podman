@@ -14,7 +14,6 @@ import (
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/containers/podman/v4/pkg/util"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -22,21 +21,21 @@ func (r *Runtime) stopPauseProcess() error {
 	if rootless.IsRootless() {
 		pausePidPath, err := util.GetRootlessPauseProcessPidPathGivenDir(r.config.Engine.TmpDir)
 		if err != nil {
-			return errors.Wrapf(err, "could not get pause process pid file path")
+			return fmt.Errorf("could not get pause process pid file path: %w", err)
 		}
 		data, err := ioutil.ReadFile(pausePidPath)
 		if err != nil {
 			if os.IsNotExist(err) {
 				return nil
 			}
-			return errors.Wrap(err, "cannot read pause process pid file")
+			return fmt.Errorf("cannot read pause process pid file: %w", err)
 		}
 		pausePid, err := strconv.Atoi(string(data))
 		if err != nil {
-			return errors.Wrapf(err, "cannot parse pause pid file %s", pausePidPath)
+			return fmt.Errorf("cannot parse pause pid file %s: %w", pausePidPath, err)
 		}
 		if err := os.Remove(pausePidPath); err != nil {
-			return errors.Wrapf(err, "cannot delete pause pid file %s", pausePidPath)
+			return fmt.Errorf("cannot delete pause pid file %s: %w", pausePidPath, err)
 		}
 		if err := syscall.Kill(pausePid, syscall.SIGKILL); err != nil {
 			return err
@@ -60,7 +59,7 @@ func (r *Runtime) migrate() error {
 	for _, ctr := range runningContainers {
 		fmt.Printf("stopped %s\n", ctr.ID())
 		if err := ctr.Stop(); err != nil {
-			return errors.Wrapf(err, "cannot stop container %s", ctr.ID())
+			return fmt.Errorf("cannot stop container %s: %w", ctr.ID(), err)
 		}
 	}
 
@@ -68,7 +67,7 @@ func (r *Runtime) migrate() error {
 	runtimeChangeRequested := r.migrateRuntime != ""
 	requestedRuntime, runtimeExists := r.ociRuntimes[r.migrateRuntime]
 	if !runtimeExists && runtimeChangeRequested {
-		return errors.Wrapf(define.ErrInvalidArg, "change to runtime %q requested but no such runtime is defined", r.migrateRuntime)
+		return fmt.Errorf("change to runtime %q requested but no such runtime is defined: %w", r.migrateRuntime, define.ErrInvalidArg)
 	}
 
 	for _, ctr := range allCtrs {
@@ -93,7 +92,7 @@ func (r *Runtime) migrate() error {
 
 		if needsWrite {
 			if err := r.state.RewriteContainerConfig(ctr, ctr.config); err != nil {
-				return errors.Wrapf(err, "error rewriting config for container %s", ctr.ID())
+				return fmt.Errorf("error rewriting config for container %s: %w", ctr.ID(), err)
 			}
 		}
 	}

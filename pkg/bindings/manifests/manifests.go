@@ -231,7 +231,7 @@ func Modify(ctx context.Context, name string, images []string, options *ModifyOp
 		err = errorhandling.JoinErrors(report.Errors)
 		if err != nil {
 			errModel := errorhandling.ErrorModel{
-				Because:      (errors.Cause(err)).Error(),
+				Because:      errorhandling.Cause(err).Error(),
 				Message:      err.Error(),
 				ResponseCode: response.StatusCode,
 			}

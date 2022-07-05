@@ -2,6 +2,7 @@ package compat
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"sort"
@@ -27,7 +28,6 @@ import (
 	"github.com/docker/go-connections/nat"
 	"github.com/docker/go-units"
 	"github.com/gorilla/schema"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -46,7 +46,7 @@ func RemoveContainer(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.Error(w, http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
+		utils.Error(w, http.StatusBadRequest, fmt.Errorf("failed to parse parameters for %s: %w", r.URL.String(), err))
 		return
 	}
 
@@ -73,7 +73,7 @@ func RemoveContainer(w http.ResponseWriter, r *http.Request) {
 	name := utils.GetName(r)
 	reports, err := containerEngine.ContainerRm(r.Context(), []string{name}, options)
 	if err != nil {
-		if errors.Cause(err) == define.ErrNoSuchCtr {
+		if errors.Is(err, define.ErrNoSuchCtr) {
 			utils.ContainerNotFound(w, name, err)
 			return
 		}
@@ -83,7 +83,7 @@ func RemoveContainer(w http.ResponseWriter, r *http.Request) {
 	}
 	if len(reports) > 0 && reports[0].Err != nil {
 		err = reports[0].Err
-		if errors.Cause(err) == define.ErrNoSuchCtr {
+		if errors.Is(err, define.ErrNoSuchCtr) {
 			utils.ContainerNotFound(w, name, err)
 			return
 		}
@@ -110,12 +110,12 @@ func ListContainers(w http.ResponseWriter, r *http.Request) {
 
 	filterMap, err := util.PrepareFilters(r)
 	if err != nil {
-		utils.Error(w, http.StatusInternalServerError, errors.Wrapf(err, "failed to decode filter parameters for %s", r.URL.String()))
+		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("failed to decode filter parameters for %s: %w", r.URL.String(), err))
 		return
 	}
 
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.Error(w, http.StatusInternalServerError, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
+		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("failed to parse parameters for %s: %w", r.URL.String(), err))
 		return
 	}
 
@@ -164,7 +164,7 @@ func ListContainers(w http.ResponseWriter, r *http.Request) {
 	for _, ctnr := range containers {
 		api, err := LibpodToContainer(ctnr, query.Size)
 		if err != nil {
-			if errors.Cause(err) == define.ErrNoSuchCtr {
+			if errors.Is(err, define.ErrNoSuchCtr) {
 				// container was removed between the initial fetch of the list and conversion
 				logrus.Debugf("Container %s removed between initial fetch and conversion, ignoring in output", ctnr.ID())
 				continue
@@ -187,7 +187,7 @@ func GetContainer(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.Error(w, http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
+		utils.Error(w, http.StatusBadRequest, fmt.Errorf("failed to parse parameters for %s: %w", r.URL.String(), err))
 		return
 	}
 
@@ -215,7 +215,7 @@ func KillContainer(w http.ResponseWriter, r *http.Request) {
 		Signal: "KILL",
 	}
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.Error(w, http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
+		utils.Error(w, http.StatusBadRequest, fmt.Errorf("failed to parse parameters for %s: %w", r.URL.String(), err))
 		return
 	}
 
@@ -228,12 +228,12 @@ func KillContainer(w http.ResponseWriter, r *http.Request) {
 	}
 	report, err := containerEngine.ContainerKill(r.Context(), []string{name}, options)
 	if err != nil {
-		if errors.Cause(err) == define.ErrCtrStateInvalid ||
-			errors.Cause(err) == define.ErrCtrStopped {
+		if errors.Is(err, define.ErrCtrStateInvalid) ||
+			errors.Is(err, define.ErrCtrStopped) {
 			utils.Error(w, http.StatusConflict, err)
 			return
 		}
-		if errors.Cause(err) == define.ErrNoSuchCtr {
+		if errors.Is(err, define.ErrNoSuchCtr) {
 			utils.ContainerNotFound(w, name, err)
 			return
 		}
@@ -512,7 +512,7 @@ func LibpodToContainerJSON(l *libpod.Container, sz bool) (*types.ContainerJSON, 
 	for ep := range inspect.HostConfig.PortBindings {
 		splitp := strings.SplitN(ep, "/", 2)
 		if len(splitp) != 2 {
-			return nil, errors.Errorf("PORT/PROTOCOL Format required for %q", ep)
+			return nil, fmt.Errorf("PORT/PROTOCOL Format required for %q", ep)
 		}
 		exposedPort, err := nat.NewPort(splitp[1], splitp[0])
 		if err != nil {
@@ -616,7 +616,7 @@ func RenameContainer(w http.ResponseWriter, r *http.Request) {
 		Name string `schema:"name"`
 	}{}
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.Error(w, http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
+		utils.Error(w, http.StatusBadRequest, fmt.Errorf("failed to parse parameters for %s: %w", r.URL.String(), err))
 		return
 	}
 
@@ -627,7 +627,7 @@ func RenameContainer(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if _, err := runtime.RenameContainer(r.Context(), ctr, query.Name); err != nil {
-		if errors.Cause(err) == define.ErrPodExists || errors.Cause(err) == define.ErrCtrExists {
+		if errors.Is(err, define.ErrPodExists) || errors.Is(err, define.ErrCtrExists) {
 			utils.Error(w, http.StatusConflict, err)
 			return
 		}
