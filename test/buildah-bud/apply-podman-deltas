@@ -119,7 +119,7 @@ function skip_if_remote() {
 # BEGIN differences in error messages between buildah and podman
 
 errmsg "non-directory/Dockerfile: not a directory" \
-       "Error: context must be a directory:" \
+       "unable to access absolute path of containerfile" \
        "bud with a path to a Dockerfile (-f) containing a non-directory entry"
 
 errmsg "no such file or directory" \

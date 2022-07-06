@@ -255,7 +255,15 @@ func build(cmd *cobra.Command, args []string) error {
 			if err != nil {
 				return fmt.Errorf("error determining path to file %q: %w", containerFiles[i], err)
 			}
-			contextDir = filepath.Dir(absFile)
+			// Check if absolute path of containerfile is directory
+			// set context only if it is a file and not a directory.
+			containerFileInfo, err := os.Stat(absFile)
+			if err != nil {
+				return fmt.Errorf("unable to access absolute path of containerfile at %q: %w", absFile, err)
+			}
+			if !containerFileInfo.IsDir() {
+				contextDir = filepath.Dir(absFile)
+			}
 			containerFiles[i] = absFile
 			break
 		}
