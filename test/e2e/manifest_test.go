@@ -295,7 +295,7 @@ var _ = Describe("Podman manifest", func() {
 
 	It("authenticated push", func() {
 		registryOptions := &podmanRegistry.Options{
-			Image: "docker-archive:" + imageTarPath(registry),
+			Image: "docker-archive:" + imageTarPath(REGISTRY_IMAGE),
 		}
 		registry, err := podmanRegistry.StartWithOptions(registryOptions)
 		Expect(err).To(BeNil())

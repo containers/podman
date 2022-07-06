@@ -1512,7 +1512,7 @@ var _ = Describe("Podman play kube", func() {
 
 	// If you do not supply command or args for a Container, the defaults defined in the Docker image are used.
 	It("podman play kube test correct args and cmd when not specified", func() {
-		pod := getPod(withCtr(getCtr(withImage(registry), withCmd(nil), withArg(nil))))
+		pod := getPod(withCtr(getCtr(withImage(REGISTRY_IMAGE), withCmd(nil), withArg(nil))))
 		err := generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).To(BeNil())
 
@@ -1536,7 +1536,7 @@ var _ = Describe("Podman play kube", func() {
 	// If you supply a command but no args for a Container, only the supplied command is used.
 	// The default EntryPoint and the default Cmd defined in the Docker image are ignored.
 	It("podman play kube test correct command with only set command in yaml file", func() {
-		pod := getPod(withCtr(getCtr(withImage(registry), withCmd([]string{"echo", "hello"}), withArg(nil))))
+		pod := getPod(withCtr(getCtr(withImage(REGISTRY_IMAGE), withCmd([]string{"echo", "hello"}), withArg(nil))))
 		err := generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).To(BeNil())
 
@@ -1587,7 +1587,7 @@ var _ = Describe("Podman play kube", func() {
 
 	// If you supply only args for a Container, the default Entrypoint defined in the Docker image is run with the args that you supplied.
 	It("podman play kube test correct command with only set args in yaml file", func() {
-		pod := getPod(withCtr(getCtr(withImage(registry), withCmd(nil), withArg([]string{"echo", "hello"}))))
+		pod := getPod(withCtr(getCtr(withImage(REGISTRY_IMAGE), withCmd(nil), withArg([]string{"echo", "hello"}))))
 		err := generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).To(BeNil())
 
@@ -1611,7 +1611,7 @@ var _ = Describe("Podman play kube", func() {
 	// the default Entrypoint and the default Cmd defined in the Docker image are ignored.
 	// Your command is run with your args.
 	It("podman play kube test correct command with both set args and cmd in yaml file", func() {
-		pod := getPod(withCtr(getCtr(withImage(registry), withCmd([]string{"echo"}), withArg([]string{"hello"}))))
+		pod := getPod(withCtr(getCtr(withImage(REGISTRY_IMAGE), withCmd([]string{"echo"}), withArg([]string{"hello"}))))
 		err := generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).To(BeNil())
 
@@ -3705,7 +3705,7 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 
 		blockVolume := getHostPathVolume("BlockDevice", devicePath)
 
-		pod := getPod(withVolume(blockVolume), withCtr(getCtr(withImage(registry), withCmd(nil), withArg(nil), withVolumeMount(devicePath, false))))
+		pod := getPod(withVolume(blockVolume), withCtr(getCtr(withImage(REGISTRY_IMAGE), withCmd(nil), withArg(nil), withVolumeMount(devicePath, false))))
 		err = generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).To(BeNil())
 
@@ -3744,7 +3744,7 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 
 		charVolume := getHostPathVolume("CharDevice", devicePath)
 
-		pod := getPod(withVolume(charVolume), withCtr(getCtr(withImage(registry), withCmd(nil), withArg(nil), withVolumeMount(devicePath, false))))
+		pod := getPod(withVolume(charVolume), withCtr(getCtr(withImage(REGISTRY_IMAGE), withCmd(nil), withArg(nil), withVolumeMount(devicePath, false))))
 		err = generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).To(BeNil())
 
@@ -3772,7 +3772,7 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 
 		blockVolume := getHostPathVolume("BlockDevice", devicePath)
 
-		pod := getPod(withVolume(blockVolume), withCtr(getCtr(withImage(registry), withCmd(nil), withArg(nil), withVolumeMount(devicePath, false))))
+		pod := getPod(withVolume(blockVolume), withCtr(getCtr(withImage(REGISTRY_IMAGE), withCmd(nil), withArg(nil), withVolumeMount(devicePath, false))))
 		err = generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).To(BeNil())
 
@@ -3798,7 +3798,7 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 
 		charVolume := getHostPathVolume("BlockDevice", devicePath)
 
-		pod := getPod(withVolume(charVolume), withCtr(getCtr(withImage(registry), withCmd(nil), withArg(nil), withVolumeMount(devicePath, false))))
+		pod := getPod(withVolume(charVolume), withCtr(getCtr(withImage(REGISTRY_IMAGE), withCmd(nil), withArg(nil), withVolumeMount(devicePath, false))))
 		err = generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).To(BeNil())
 
@@ -3823,7 +3823,7 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 
 		charVolume := getHostPathVolume("CharDevice", devicePath)
 
-		pod := getPod(withVolume(charVolume), withCtr(getCtr(withImage(registry), withCmd(nil), withArg(nil), withVolumeMount(devicePath, false))))
+		pod := getPod(withVolume(charVolume), withCtr(getCtr(withImage(REGISTRY_IMAGE), withCmd(nil), withArg(nil), withVolumeMount(devicePath, false))))
 		err = generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).To(BeNil())
 

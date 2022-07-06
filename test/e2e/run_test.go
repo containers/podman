@@ -96,7 +96,7 @@ var _ = Describe("Podman run", func() {
 	})
 
 	It("podman run a container based on a complex local image name", func() {
-		imageName := strings.TrimPrefix(nginx, "quay.io/")
+		imageName := strings.TrimPrefix(NGINX_IMAGE, "quay.io/")
 		session := podmanTest.Podman([]string{"run", imageName, "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ErrorToString()).ToNot(ContainSubstring("Trying to pull"))
@@ -141,10 +141,10 @@ var _ = Describe("Podman run", func() {
 	})
 
 	It("podman run a container based on on a short name with localhost", func() {
-		tag := podmanTest.Podman([]string{"tag", nginx, "localhost/libpod/alpine_nginx:latest"})
+		tag := podmanTest.Podman([]string{"tag", NGINX_IMAGE, "localhost/libpod/alpine_nginx:latest"})
 		tag.WaitWithDefaultTimeout()
 
-		rmi := podmanTest.Podman([]string{"rmi", nginx})
+		rmi := podmanTest.Podman([]string{"rmi", NGINX_IMAGE})
 		rmi.WaitWithDefaultTimeout()
 
 		session := podmanTest.Podman([]string{"run", "libpod/alpine_nginx:latest", "ls"})
@@ -154,10 +154,10 @@ var _ = Describe("Podman run", func() {
 	})
 
 	It("podman container run a container based on on a short name with localhost", func() {
-		tag := podmanTest.Podman([]string{"image", "tag", nginx, "localhost/libpod/alpine_nginx:latest"})
+		tag := podmanTest.Podman([]string{"image", "tag", NGINX_IMAGE, "localhost/libpod/alpine_nginx:latest"})
 		tag.WaitWithDefaultTimeout()
 
-		rmi := podmanTest.Podman([]string{"image", "rm", nginx})
+		rmi := podmanTest.Podman([]string{"image", "rm", NGINX_IMAGE})
 		rmi.WaitWithDefaultTimeout()
 
 		session := podmanTest.Podman([]string{"container", "run", "libpod/alpine_nginx:latest", "ls"})
@@ -198,7 +198,7 @@ var _ = Describe("Podman run", func() {
 
 		lock := GetPortLock("5000")
 		defer lock.Unlock()
-		session := podmanTest.Podman([]string{"run", "-d", "--name", "registry", "-p", "5000:5000", registry, "/entrypoint.sh", "/etc/docker/registry/config.yml"})
+		session := podmanTest.Podman([]string{"run", "-d", "--name", "registry", "-p", "5000:5000", REGISTRY_IMAGE, "/entrypoint.sh", "/etc/docker/registry/config.yml"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
@@ -1041,7 +1041,7 @@ echo -n %s >%s
 	})
 
 	It("podman run with built-in volume image", func() {
-		session := podmanTest.Podman([]string{"run", "--rm", redis, "ls"})
+		session := podmanTest.Podman([]string{"run", "--rm", REDIS_IMAGE, "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
@@ -1144,7 +1144,7 @@ USER mail`, BB)
 	})
 
 	It("podman run --volumes-from flag with built-in volumes", func() {
-		session := podmanTest.Podman([]string{"create", redis, "sh"})
+		session := podmanTest.Podman([]string{"create", REDIS_IMAGE, "sh"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		ctrID := session.OutputToString()
@@ -1701,24 +1701,24 @@ WORKDIR /madethis`, BB)
 	})
 
 	It("podman run container with --pull missing and only pull once", func() {
-		session := podmanTest.Podman([]string{"run", "--pull", "missing", cirros, "ls"})
+		session := podmanTest.Podman([]string{"run", "--pull", "missing", CIRROS_IMAGE, "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		Expect(session.ErrorToString()).To(ContainSubstring("Trying to pull"))
 
-		session = podmanTest.Podman([]string{"run", "--pull", "missing", cirros, "ls"})
+		session = podmanTest.Podman([]string{"run", "--pull", "missing", CIRROS_IMAGE, "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		Expect(session.ErrorToString()).ToNot(ContainSubstring("Trying to pull"))
 	})
 
 	It("podman run container with --pull missing should pull image multiple times", func() {
-		session := podmanTest.Podman([]string{"run", "--pull", "always", cirros, "ls"})
+		session := podmanTest.Podman([]string{"run", "--pull", "always", CIRROS_IMAGE, "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		Expect(session.ErrorToString()).To(ContainSubstring("Trying to pull"))
 
-		session = podmanTest.Podman([]string{"run", "--pull", "always", cirros, "ls"})
+		session = podmanTest.Podman([]string{"run", "--pull", "always", CIRROS_IMAGE, "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		Expect(session.ErrorToString()).To(ContainSubstring("Trying to pull"))

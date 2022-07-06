@@ -98,7 +98,7 @@ var _ = Describe("Podman pod create", func() {
 		Expect(session).Should(Exit(0))
 		pod := session.OutputToString()
 
-		webserver := podmanTest.Podman([]string{"run", "--pod", pod, "-dt", nginx})
+		webserver := podmanTest.Podman([]string{"run", "--pod", pod, "-dt", NGINX_IMAGE})
 		webserver.WaitWithDefaultTimeout()
 		Expect(webserver).Should(Exit(0))
 
@@ -114,7 +114,7 @@ var _ = Describe("Podman pod create", func() {
 		Expect(session).Should(Exit(0))
 		pod := session.OutputToString()
 
-		webserver := podmanTest.Podman([]string{"run", "--pod", pod, "-dt", nginx})
+		webserver := podmanTest.Podman([]string{"run", "--pod", pod, "-dt", NGINX_IMAGE})
 		webserver.WaitWithDefaultTimeout()
 		Expect(webserver).Should(Exit(0))
 		Expect(ncz(port)).To(BeTrue())
@@ -128,7 +128,7 @@ var _ = Describe("Podman pod create", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
-		webserver := podmanTest.Podman([]string{"run", "--pod-id-file", file, "-dt", nginx})
+		webserver := podmanTest.Podman([]string{"run", "--pod-id-file", file, "-dt", NGINX_IMAGE})
 		webserver.WaitWithDefaultTimeout()
 		Expect(webserver).Should(Exit(0))
 		Expect(ncz(port)).To(BeTrue())

@@ -50,7 +50,7 @@ var _ = Describe("Podman rmi", func() {
 	})
 
 	It("podman rmi with short name", func() {
-		podmanTest.AddImageToRWStore(cirros)
+		podmanTest.AddImageToRWStore(CIRROS_IMAGE)
 		session := podmanTest.Podman([]string{"rmi", "cirros"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
@@ -58,7 +58,7 @@ var _ = Describe("Podman rmi", func() {
 	})
 
 	It("podman rmi all images", func() {
-		podmanTest.AddImageToRWStore(nginx)
+		podmanTest.AddImageToRWStore(NGINX_IMAGE)
 		session := podmanTest.Podman([]string{"rmi", "-a"})
 		session.WaitWithDefaultTimeout()
 		images := podmanTest.Podman([]string{"images"})
@@ -68,7 +68,7 @@ var _ = Describe("Podman rmi", func() {
 	})
 
 	It("podman rmi all images forcibly with short options", func() {
-		podmanTest.AddImageToRWStore(nginx)
+		podmanTest.AddImageToRWStore(NGINX_IMAGE)
 		session := podmanTest.Podman([]string{"rmi", "-fa"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
@@ -76,12 +76,12 @@ var _ = Describe("Podman rmi", func() {
 	})
 
 	It("podman rmi tagged image", func() {
-		podmanTest.AddImageToRWStore(cirros)
-		setup := podmanTest.Podman([]string{"images", "-q", cirros})
+		podmanTest.AddImageToRWStore(CIRROS_IMAGE)
+		setup := podmanTest.Podman([]string{"images", "-q", CIRROS_IMAGE})
 		setup.WaitWithDefaultTimeout()
 		Expect(setup).Should(Exit(0))
 
-		session := podmanTest.Podman([]string{"tag", cirros, "foo:bar", "foo"})
+		session := podmanTest.Podman([]string{"tag", CIRROS_IMAGE, "foo:bar", "foo"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
@@ -93,8 +93,8 @@ var _ = Describe("Podman rmi", func() {
 	})
 
 	It("podman rmi image with tags by ID cannot be done without force", func() {
-		podmanTest.AddImageToRWStore(cirros)
-		setup := podmanTest.Podman([]string{"images", "-q", cirros})
+		podmanTest.AddImageToRWStore(CIRROS_IMAGE)
+		setup := podmanTest.Podman([]string{"images", "-q", CIRROS_IMAGE})
 		setup.WaitWithDefaultTimeout()
 		Expect(setup).Should(Exit(0))
 		cirrosID := setup.OutputToString()
@@ -116,8 +116,8 @@ var _ = Describe("Podman rmi", func() {
 
 	It("podman rmi image that is a parent of another image", func() {
 		Skip("I need help with this one. i don't understand what is going on")
-		podmanTest.AddImageToRWStore(cirros)
-		session := podmanTest.Podman([]string{"run", "--name", "c_test", cirros, "true"})
+		podmanTest.AddImageToRWStore(CIRROS_IMAGE)
+		session := podmanTest.Podman([]string{"run", "--name", "c_test", CIRROS_IMAGE, "true"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
@@ -129,7 +129,7 @@ var _ = Describe("Podman rmi", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
-		session = podmanTest.Podman([]string{"rmi", cirros})
+		session = podmanTest.Podman([]string{"rmi", CIRROS_IMAGE})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
@@ -183,12 +183,12 @@ var _ = Describe("Podman rmi", func() {
 	})
 
 	It("podman rmi with cached images", func() {
-		podmanTest.AddImageToRWStore(cirros)
+		podmanTest.AddImageToRWStore(CIRROS_IMAGE)
 		dockerfile := fmt.Sprintf(`FROM %s
 		RUN mkdir hello
 		RUN touch test.txt
 		ENV foo=bar
-		`, cirros)
+		`, CIRROS_IMAGE)
 		podmanTest.BuildImage(dockerfile, "test", "true")
 
 		dockerfile = fmt.Sprintf(`FROM %s
@@ -196,7 +196,7 @@ var _ = Describe("Podman rmi", func() {
 		RUN touch test.txt
 		RUN mkdir blah
 		ENV foo=bar
-		`, cirros)
+		`, CIRROS_IMAGE)
 
 		podmanTest.BuildImage(dockerfile, "test2", "true")
 
@@ -225,7 +225,7 @@ var _ = Describe("Podman rmi", func() {
 
 		podmanTest.BuildImage(dockerfile, "test3", "true")
 
-		session = podmanTest.Podman([]string{"rmi", cirros})
+		session = podmanTest.Podman([]string{"rmi", CIRROS_IMAGE})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
@@ -250,7 +250,7 @@ var _ = Describe("Podman rmi", func() {
 	})
 
 	It("podman rmi -a with parent|child images", func() {
-		podmanTest.AddImageToRWStore(cirros)
+		podmanTest.AddImageToRWStore(CIRROS_IMAGE)
 		dockerfile := fmt.Sprintf(`FROM %s AS base
 RUN touch /1
 ENV LOCAL=/1
@@ -258,7 +258,7 @@ RUN find $LOCAL
 FROM base
 RUN find $LOCAL
 
-`, cirros)
+`, CIRROS_IMAGE)
 		podmanTest.BuildImage(dockerfile, "test", "true")
 		session := podmanTest.Podman([]string{"rmi", "-a"})
 		session.WaitWithDefaultTimeout()
@@ -285,7 +285,7 @@ RUN find $LOCAL
 		// a race, we may not hit the condition a 100 percent of times
 		// but ocal reproducers hit it all the time.
 
-		podmanTest.AddImageToRWStore(cirros)
+		podmanTest.AddImageToRWStore(CIRROS_IMAGE)
 		var wg sync.WaitGroup
 
 		buildAndRemove := func(i int) {
@@ -293,7 +293,7 @@ RUN find $LOCAL
 			defer wg.Done()
 			imageName := fmt.Sprintf("rmtest:%d", i)
 			containerfile := fmt.Sprintf(`FROM %s
-RUN touch %s`, cirros, imageName)
+RUN touch %s`, CIRROS_IMAGE, imageName)
 
 			podmanTest.BuildImage(containerfile, imageName, "false")
 			session := podmanTest.Podman([]string{"rmi", "-f", imageName})

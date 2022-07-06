@@ -362,7 +362,7 @@ var _ = Describe("Podman commit", func() {
 		Expect(images[0].Config.ExposedPorts).To(HaveKey("80/tcp"))
 
 		name = "testcon2"
-		s = podmanTest.Podman([]string{"run", "--name", name, "-d", nginx})
+		s = podmanTest.Podman([]string{"run", "--name", name, "-d", NGINX_IMAGE})
 		s.WaitWithDefaultTimeout()
 		Expect(s).Should(Exit(0))
 

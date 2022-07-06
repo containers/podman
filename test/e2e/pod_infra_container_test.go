@@ -114,7 +114,7 @@ var _ = Describe("Podman pod create", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
-		session = podmanTest.Podman([]string{"run", "-d", "--pod", podID, nginx})
+		session = podmanTest.Podman([]string{"run", "-d", "--pod", podID, NGINX_IMAGE})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
@@ -237,11 +237,11 @@ var _ = Describe("Podman pod create", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
-		session = podmanTest.Podman([]string{"run", "-d", "--pod", podID, nginx})
+		session = podmanTest.Podman([]string{"run", "-d", "--pod", podID, NGINX_IMAGE})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
-		session = podmanTest.Podman([]string{"run", "--pod", podID, "--network", "bridge", nginx, "curl", "-f", "localhost"})
+		session = podmanTest.Podman([]string{"run", "--pod", podID, "--network", "bridge", NGINX_IMAGE, "curl", "-f", "localhost"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).To(ExitWithError())
 	})
