@@ -277,6 +277,7 @@ func create(cmd *cobra.Command, args []string) error {
 		if err != nil {
 			return err
 		}
+
 		podSpec.Volumes = podSpec.InfraContainerSpec.Volumes
 		podSpec.ImageVolumes = podSpec.InfraContainerSpec.ImageVolumes
 		podSpec.OverlayVolumes = podSpec.InfraContainerSpec.OverlayVolumes

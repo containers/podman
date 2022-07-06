@@ -794,28 +794,8 @@ func (c *Container) generateInspectContainerHostConfig(ctrSpec *spec.Spec, named
 	hostConfig.PidMode = pidMode
 
 	// UTS namespace mode
-	utsMode := ""
-	if c.config.UTSNsCtr != "" {
-		utsMode = fmt.Sprintf("container:%s", c.config.UTSNsCtr)
-	} else if ctrSpec.Linux != nil {
-		// Locate the spec's UTS namespace.
-		// If there is none, it's uts=host.
-		// If there is one and it has a path, it's "ns:".
-		// If there is no path, it's default - the empty string.
-		for _, ns := range ctrSpec.Linux.Namespaces {
-			if ns.Type == spec.UTSNamespace {
-				if ns.Path != "" {
-					utsMode = fmt.Sprintf("ns:%s", ns.Path)
-				} else {
-					utsMode = "private"
-				}
-				break
-			}
-		}
-		if utsMode == "" {
-			utsMode = "host"
-		}
-	}
+	utsMode := c.NamespaceMode(spec.UTSNamespace, ctrSpec)
+
 	hostConfig.UTSMode = utsMode
 
 	// User namespace mode

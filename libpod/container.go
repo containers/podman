@@ -1335,3 +1335,52 @@ func (c *Container) getNetworkStatus() map[string]types.StatusBlock {
 	}
 	return nil
 }
+
+func (c *Container) NamespaceMode(ns spec.LinuxNamespaceType, ctrSpec *spec.Spec) string {
+	switch ns {
+	case spec.UTSNamespace:
+		if c.config.UTSNsCtr != "" {
+			return fmt.Sprintf("container:%s", c.config.UTSNsCtr)
+		}
+	case spec.CgroupNamespace:
+		if c.config.CgroupNsCtr != "" {
+			return fmt.Sprintf("container:%s", c.config.CgroupNsCtr)
+		}
+	case spec.IPCNamespace:
+		if c.config.IPCNsCtr != "" {
+			return fmt.Sprintf("container:%s", c.config.IPCNsCtr)
+		}
+	case spec.PIDNamespace:
+		if c.config.PIDNsCtr != "" {
+			return fmt.Sprintf("container:%s", c.config.PIDNsCtr)
+		}
+	case spec.UserNamespace:
+		if c.config.UserNsCtr != "" {
+			return fmt.Sprintf("container:%s", c.config.UserNsCtr)
+		}
+	case spec.NetworkNamespace:
+		if c.config.NetNsCtr != "" {
+			return fmt.Sprintf("container:%s", c.config.NetNsCtr)
+		}
+	case spec.MountNamespace:
+		if c.config.MountNsCtr != "" {
+			return fmt.Sprintf("container:%s", c.config.MountNsCtr)
+		}
+	}
+
+	if ctrSpec.Linux != nil {
+		// Locate the spec's given namespace.
+		// If there is none, it's namespace=host.
+		// If there is one and it has a path, it's "ns:".
+		// If there is no path, it's default - the empty string.
+		for _, availableNS := range ctrSpec.Linux.Namespaces {
+			if availableNS.Type == ns {
+				if availableNS.Path != "" {
+					return fmt.Sprintf("ns:%s", availableNS.Path)
+				}
+				return "private"
+			}
+		}
+	}
+	return "host"
+}

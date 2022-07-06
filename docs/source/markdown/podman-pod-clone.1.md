@@ -211,6 +211,15 @@ Valid _mode_ values are:
 
   - *nomap*: creates a user namespace where the current rootless user's UID:GID are not mapped into the container. This option is ignored for containers created by the root user.
 
+#### **--uts**=*mode*
+
+Set the UTS namespace mode for the pod. The following values are supported:
+
+- **host**: use the host's UTS namespace inside the pod.
+- **private**: create a new namespace for the pod (default).
+- **ns:[path]**: run the pod in the given existing UTS namespace.
+
+
 #### **--volume**, **-v**[=*[[SOURCE-VOLUME|HOST-DIR:]CONTAINER-DIR[:OPTIONS]]*]
 
 Create a bind mount. If ` -v /HOST-DIR:/CONTAINER-DIR` is specified, Podman
