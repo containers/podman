@@ -1,10 +1,10 @@
 package registry
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/containers/podman/v4/utils"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -57,7 +57,7 @@ func StartWithOptions(options *Options) (*Registry, error) {
 	// Start a registry.
 	out, err := utils.ExecCmd(binary, args...)
 	if err != nil {
-		return nil, errors.Wrapf(err, "error running %q: %s", binary, out)
+		return nil, fmt.Errorf("error running %q: %s: %w", binary, out, err)
 	}
 
 	// Parse the output.
@@ -68,7 +68,7 @@ func StartWithOptions(options *Options) (*Registry, error) {
 		}
 		spl := strings.Split(s, "=")
 		if len(spl) != 2 {
-			return nil, errors.Errorf("unexpected output format %q: want 'PODMAN_...=...'", s)
+			return nil, fmt.Errorf("unexpected output format %q: want 'PODMAN_...=...'", s)
 		}
 		key := spl[0]
 		val := strings.TrimSuffix(strings.TrimPrefix(spl[1], "\""), "\"")
@@ -88,16 +88,16 @@ func StartWithOptions(options *Options) (*Registry, error) {
 
 	// Extra sanity check.
 	if registry.Image == "" {
-		return nil, errors.Errorf("unexpected output %q: %q missing", out, ImageKey)
+		return nil, fmt.Errorf("unexpected output %q: %q missing", out, ImageKey)
 	}
 	if registry.User == "" {
-		return nil, errors.Errorf("unexpected output %q: %q missing", out, UserKey)
+		return nil, fmt.Errorf("unexpected output %q: %q missing", out, UserKey)
 	}
 	if registry.Password == "" {
-		return nil, errors.Errorf("unexpected output %q: %q missing", out, PassKey)
+		return nil, fmt.Errorf("unexpected output %q: %q missing", out, PassKey)
 	}
 	if registry.Port == "" {
-		return nil, errors.Errorf("unexpected output %q: %q missing", out, PortKey)
+		return nil, fmt.Errorf("unexpected output %q: %q missing", out, PortKey)
 	}
 
 	registry.running = true
@@ -112,7 +112,7 @@ func (r *Registry) Stop() error {
 		return nil
 	}
 	if _, err := utils.ExecCmd(binary, "-P", r.Port, "stop"); err != nil {
-		return errors.Wrapf(err, "error stopping registry (%v) with %q", *r, binary)
+		return fmt.Errorf("error stopping registry (%v) with %q: %w", *r, binary, err)
 	}
 	r.running = false
 	return nil

@@ -3,12 +3,12 @@ package exec
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"os"
 	"testing"
 	"time"
 
 	spec "github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -18,13 +18,14 @@ func TestRuntimeConfigFilter(t *testing.T) {
 	rootUint32 := uint32(0)
 	binUser := int(1)
 	for _, tt := range []struct {
-		name              string
-		contextTimeout    time.Duration
-		hooks             []spec.Hook
-		input             *spec.Spec
-		expected          *spec.Spec
-		expectedHookError string
-		expectedRunError  error
+		name                   string
+		contextTimeout         time.Duration
+		hooks                  []spec.Hook
+		input                  *spec.Spec
+		expected               *spec.Spec
+		expectedHookError      string
+		expectedRunError       error
+		expectedRunErrorString string
 	}{
 		{
 			name: "no-op",
@@ -231,7 +232,8 @@ func TestRuntimeConfigFilter(t *testing.T) {
 					Path: "rootfs",
 				},
 			},
-			expectedRunError: unexpectedEndOfJSONInput,
+			expectedRunError:       unexpectedEndOfJSONInput,
+			expectedRunErrorString: unexpectedEndOfJSONInput.Error(),
 		},
 	} {
 		test := tt
@@ -243,7 +245,13 @@ func TestRuntimeConfigFilter(t *testing.T) {
 				defer cancel()
 			}
 			hookErr, err := RuntimeConfigFilter(ctx, test.hooks, test.input, DefaultPostKillTimeout)
-			assert.Equal(t, test.expectedRunError, errors.Cause(err))
+			if test.expectedRunError != nil {
+				if test.expectedRunErrorString != "" {
+					assert.Contains(t, err.Error(), test.expectedRunErrorString)
+				} else {
+					assert.True(t, errors.Is(err, test.expectedRunError))
+				}
+			}
 			if test.expectedHookError == "" {
 				if hookErr != nil {
 					t.Fatal(hookErr)

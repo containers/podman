@@ -2,6 +2,8 @@ package abi
 
 import (
 	"context"
+	"errors"
+	"fmt"
 
 	"github.com/containers/podman/v4/libpod"
 	"github.com/containers/podman/v4/libpod/define"
@@ -9,7 +11,6 @@ import (
 	"github.com/containers/podman/v4/pkg/domain/entities/reports"
 	"github.com/containers/podman/v4/pkg/domain/filters"
 	"github.com/containers/podman/v4/pkg/domain/infra/abi/parse"
-	"github.com/pkg/errors"
 )
 
 func (ic *ContainerEngine) VolumeCreate(ctx context.Context, opts entities.VolumeCreateOptions) (*entities.IDOrNameResponse, error) {
@@ -91,11 +92,11 @@ func (ic *ContainerEngine) VolumeInspect(ctx context.Context, namesOrIds []strin
 		for _, v := range namesOrIds {
 			vol, err := ic.Libpod.LookupVolume(v)
 			if err != nil {
-				if errors.Cause(err) == define.ErrNoSuchVolume {
-					errs = append(errs, errors.Errorf("no such volume %s", v))
+				if errors.Is(err, define.ErrNoSuchVolume) {
+					errs = append(errs, fmt.Errorf("no such volume %s", v))
 					continue
 				} else {
-					return nil, nil, errors.Wrapf(err, "error inspecting volume %s", v)
+					return nil, nil, fmt.Errorf("error inspecting volume %s: %w", v, err)
 				}
 			}
 			vols = append(vols, vol)

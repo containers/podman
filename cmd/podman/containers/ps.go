@@ -1,6 +1,7 @@
 package containers
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -16,7 +17,6 @@ import (
 	"github.com/containers/podman/v4/cmd/podman/validate"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/docker/go-units"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -108,18 +108,18 @@ func listFlagSet(cmd *cobra.Command) {
 func checkFlags(c *cobra.Command) error {
 	// latest, and last are mutually exclusive.
 	if listOpts.Last >= 0 && listOpts.Latest {
-		return errors.Errorf("last and latest are mutually exclusive")
+		return errors.New("last and latest are mutually exclusive")
 	}
 	// Quiet conflicts with size and namespace and is overridden by a Go
 	// template.
 	if listOpts.Quiet {
 		if listOpts.Size || listOpts.Namespace {
-			return errors.Errorf("quiet conflicts with size and namespace")
+			return errors.New("quiet conflicts with size and namespace")
 		}
 	}
 	// Size and namespace conflict with each other
 	if listOpts.Size && listOpts.Namespace {
-		return errors.Errorf("size and namespace options conflict")
+		return errors.New("size and namespace options conflict")
 	}
 
 	if listOpts.Watch > 0 && listOpts.Latest {
@@ -191,7 +191,7 @@ func ps(cmd *cobra.Command, _ []string) error {
 	for _, f := range filters {
 		split := strings.SplitN(f, "=", 2)
 		if len(split) == 1 {
-			return errors.Errorf("invalid filter %q", f)
+			return fmt.Errorf("invalid filter %q", f)
 		}
 		listOpts.Filters[split[0]] = append(listOpts.Filters[split[0]], split[1])
 	}

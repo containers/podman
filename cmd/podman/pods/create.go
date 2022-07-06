@@ -2,6 +2,7 @@ package pods
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -23,7 +24,6 @@ import (
 	"github.com/containers/podman/v4/pkg/specgenutil"
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/docker/docker/pkg/parsers"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -127,7 +127,7 @@ func create(cmd *cobra.Command, args []string) error {
 	labels = infraOptions.Label
 	createOptions.Labels, err = parse.GetAllLabels(labelFile, labels)
 	if err != nil {
-		return errors.Wrapf(err, "unable to process labels")
+		return fmt.Errorf("unable to process labels: %w", err)
 	}
 
 	if cmd.Flag("infra-image").Changed {
@@ -165,7 +165,7 @@ func create(cmd *cobra.Command, args []string) error {
 			return err
 		}
 		if strings.Contains(share, "cgroup") && shareParent {
-			return errors.Wrapf(define.ErrInvalidArg, "cannot define the pod as the cgroup parent at the same time as joining the infra container's cgroupNS")
+			return fmt.Errorf("cannot define the pod as the cgroup parent at the same time as joining the infra container's cgroupNS: %w", define.ErrInvalidArg)
 		}
 
 		if strings.HasPrefix(share, "+") {
@@ -193,10 +193,10 @@ func create(cmd *cobra.Command, args []string) error {
 	if cmd.Flag("pod-id-file").Changed {
 		podIDFD, err = util.OpenExclusiveFile(podIDFile)
 		if err != nil && os.IsExist(err) {
-			return errors.Errorf("pod id file exists. Ensure another pod is not using it or delete %s", podIDFile)
+			return fmt.Errorf("pod id file exists. Ensure another pod is not using it or delete %s", podIDFile)
 		}
 		if err != nil {
-			return errors.Errorf("opening pod-id-file %s", podIDFile)
+			return fmt.Errorf("opening pod-id-file %s", podIDFile)
 		}
 		defer errorhandling.CloseQuiet(podIDFD)
 		defer errorhandling.SyncQuiet(podIDFD)
@@ -204,7 +204,7 @@ func create(cmd *cobra.Command, args []string) error {
 
 	if len(createOptions.Net.PublishPorts) > 0 {
 		if !createOptions.Infra {
-			return errors.Errorf("you must have an infra container to publish port bindings to the host")
+			return fmt.Errorf("you must have an infra container to publish port bindings to the host")
 		}
 	}
 
@@ -231,7 +231,7 @@ func create(cmd *cobra.Command, args []string) error {
 	ret, err := parsers.ParseUintList(copy)
 	copy = ""
 	if err != nil {
-		return errors.Wrapf(err, "could not parse list")
+		return fmt.Errorf("could not parse list: %w", err)
 	}
 	var vals []int
 	for ind, val := range ret {
@@ -277,6 +277,7 @@ func create(cmd *cobra.Command, args []string) error {
 		if err != nil {
 			return err
 		}
+
 		podSpec.Volumes = podSpec.InfraContainerSpec.Volumes
 		podSpec.ImageVolumes = podSpec.InfraContainerSpec.ImageVolumes
 		podSpec.OverlayVolumes = podSpec.InfraContainerSpec.OverlayVolumes
@@ -301,7 +302,7 @@ func create(cmd *cobra.Command, args []string) error {
 
 	if len(podIDFile) > 0 {
 		if err = ioutil.WriteFile(podIDFile, []byte(response.Id), 0644); err != nil {
-			return errors.Wrapf(err, "failed to write pod ID to file")
+			return fmt.Errorf("failed to write pod ID to file: %w", err)
 		}
 	}
 	fmt.Println(response.Id)

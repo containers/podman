@@ -2,6 +2,7 @@ package integration
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
@@ -30,16 +31,15 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
 var (
 	//lint:ignore ST1003
-	PODMAN_BINARY      string                        //nolint:revive,stylecheck
-	INTEGRATION_ROOT   string                        //nolint:revive,stylecheck
-	CGROUP_MANAGER     = "systemd"                   //nolint:revive,stylecheck
-	RESTORE_IMAGES     = []string{ALPINE, BB, nginx} //nolint:revive,stylecheck
+	PODMAN_BINARY      string                              //nolint:revive,stylecheck
+	INTEGRATION_ROOT   string                              //nolint:revive,stylecheck
+	CGROUP_MANAGER     = "systemd"                         //nolint:revive,stylecheck
+	RESTORE_IMAGES     = []string{ALPINE, BB, NGINX_IMAGE} //nolint:revive,stylecheck
 	defaultWaitTimeout = 90
 	CGROUPSV2, _       = cgroups.IsCgroup2UnifiedMode()
 )
@@ -115,7 +115,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	podman := PodmanTestSetup("/tmp")
 
 	// Pull cirros but don't put it into the cache
-	pullImages := []string{cirros, fedoraToolbox, volumeTest}
+	pullImages := []string{CIRROS_IMAGE, fedoraToolbox, volumeTest}
 	pullImages = append(pullImages, CACHE_IMAGES...)
 	for _, image := range pullImages {
 		podman.createArtifact(image)
@@ -464,7 +464,7 @@ func (p *PodmanTestIntegration) RunNginxWithHealthCheck(name string) (*PodmanSes
 		podmanArgs = append(podmanArgs, "--name", name)
 	}
 	// curl without -f exits 0 even if http code >= 400!
-	podmanArgs = append(podmanArgs, "-dt", "-P", "--health-cmd", "curl -f http://localhost/", nginx)
+	podmanArgs = append(podmanArgs, "-dt", "-P", "--health-cmd", "curl -f http://localhost/", NGINX_IMAGE)
 	session := p.Podman(podmanArgs)
 	session.WaitWithDefaultTimeout()
 	return session, session.OutputToString()
@@ -618,14 +618,14 @@ func (p *PodmanTestIntegration) RunHealthCheck(cid string) error {
 				restart := p.Podman([]string{"restart", cid})
 				restart.WaitWithDefaultTimeout()
 				if restart.ExitCode() != 0 {
-					return errors.Errorf("unable to restart %s", cid)
+					return fmt.Errorf("unable to restart %s", cid)
 				}
 			}
 		}
 		fmt.Printf("Waiting for %s to pass healthcheck\n", cid)
 		time.Sleep(1 * time.Second)
 	}
-	return errors.Errorf("unable to detect %s as running", cid)
+	return fmt.Errorf("unable to detect %s as running", cid)
 }
 
 func (p *PodmanTestIntegration) CreateSeccompJSON(in []byte) (string, error) {
@@ -1042,18 +1042,15 @@ var IPRegex = `(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\.(25[0-5]|2[0-4][0-9]|[01
 // digShort execs into the given container and does a dig lookup with a timeout
 // backoff.  If it gets a response, it ensures that the output is in the correct
 // format and iterates a string array for match
-func digShort(container, lookupName string, matchNames []string, p *PodmanTestIntegration) {
+func digShort(container, lookupName, expectedIP string, p *PodmanTestIntegration) {
 	digInterval := time.Millisecond * 250
 	for i := 0; i < 6; i++ {
 		time.Sleep(digInterval * time.Duration(i))
 		dig := p.Podman([]string{"exec", container, "dig", "+short", lookupName})
 		dig.WaitWithDefaultTimeout()
-		if dig.ExitCode() == 0 {
-			output := dig.OutputToString()
-			Expect(output).To(MatchRegexp(IPRegex))
-			for _, name := range matchNames {
-				Expect(output).To(Equal(name))
-			}
+		output := dig.OutputToString()
+		if dig.ExitCode() == 0 && output != "" {
+			Expect(output).To(Equal(expectedIP))
 			// success
 			return
 		}
@@ -1064,13 +1061,13 @@ func digShort(container, lookupName string, matchNames []string, p *PodmanTestIn
 // WaitForFile to be created in defaultWaitTimeout seconds, returns false if file not created
 func WaitForFile(path string) (err error) {
 	until := time.Now().Add(time.Duration(defaultWaitTimeout) * time.Second)
-	for i := 1; time.Now().Before(until); i++ {
+	for time.Now().Before(until) {
 		_, err = os.Stat(path)
 		switch {
 		case err == nil:
 			return nil
 		case errors.Is(err, os.ErrNotExist):
-			time.Sleep(time.Duration(i) * time.Second)
+			time.Sleep(10 * time.Millisecond)
 		default:
 			return err
 		}
@@ -1078,18 +1075,21 @@ func WaitForFile(path string) (err error) {
 	return err
 }
 
-// WaitForService blocks, waiting for some service listening on given host:port
+// WaitForService blocks for defaultWaitTimeout seconds, waiting for some service listening on given host:port
 func WaitForService(address url.URL) {
 	// Wait for podman to be ready
-	var conn net.Conn
 	var err error
-	for i := 1; i <= 5; i++ {
+	until := time.Now().Add(time.Duration(defaultWaitTimeout) * time.Second)
+	for time.Now().Before(until) {
+		var conn net.Conn
 		conn, err = net.Dial("tcp", address.Host)
-		if err != nil {
-			// Podman not available yet...
-			time.Sleep(time.Duration(i) * time.Second)
+		if err == nil {
+			conn.Close()
+			break
 		}
+
+		// Podman not available yet...
+		time.Sleep(10 * time.Millisecond)
 	}
 	Expect(err).ShouldNot(HaveOccurred())
-	conn.Close()
 }

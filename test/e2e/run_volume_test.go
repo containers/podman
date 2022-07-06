@@ -150,7 +150,7 @@ var _ = Describe("Podman run with volumes", func() {
 	})
 
 	It("podman run with conflict between image volume and user mount succeeds", func() {
-		err = podmanTest.RestoreArtifact(redis)
+		err = podmanTest.RestoreArtifact(REDIS_IMAGE)
 		Expect(err).ToNot(HaveOccurred())
 		mountPath := filepath.Join(podmanTest.TempDir, "secrets")
 		err := os.Mkdir(mountPath, 0755)
@@ -160,7 +160,7 @@ var _ = Describe("Podman run with volumes", func() {
 		Expect(err).To(BeNil(), "os.Create(testfile)")
 		f.Close()
 		Expect(err).To(BeNil())
-		session := podmanTest.Podman([]string{"run", "-v", fmt.Sprintf("%s:/data", mountPath), redis, "ls", "/data/test1"})
+		session := podmanTest.Podman([]string{"run", "-v", fmt.Sprintf("%s:/data", mountPath), REDIS_IMAGE, "ls", "/data/test1"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 	})
@@ -592,7 +592,7 @@ RUN sh -c "cd /etc/apk && ln -s ../../testfile"`, ALPINE)
 	})
 
 	It("podman run image volume is not noexec", func() {
-		session := podmanTest.Podman([]string{"run", "--rm", redis, "grep", "/data", "/proc/self/mountinfo"})
+		session := podmanTest.Podman([]string{"run", "--rm", REDIS_IMAGE, "grep", "/data", "/proc/self/mountinfo"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(Not(ContainSubstring("noexec")))
@@ -676,6 +676,15 @@ VOLUME /test/`, ALPINE)
 		// Make sure host files show up in the container
 		session := podmanTest.Podman([]string{"run", "--rm", "-v", volumeFlag, ALPINE, "ls", "/run/test/test1"})
 		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		// Test overlay mount when lowerdir is relative path.
+		f, err = os.Create("hello")
+		Expect(err).To(BeNil(), "os.Create")
+		f.Close()
+		session = podmanTest.Podman([]string{"run", "--rm", "-v", ".:/app:O", ALPINE, "ls", "/app"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.OutputToString()).To(ContainSubstring("hello"))
 		Expect(session).Should(Exit(0))
 
 		// Make sure modifications in container do not show up on host

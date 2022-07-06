@@ -1,6 +1,7 @@
 package libpod
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"os"
@@ -25,7 +26,6 @@ import (
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -141,7 +141,7 @@ func WithOCIRuntime(runtime string) RuntimeOption {
 		}
 
 		if runtime == "" {
-			return errors.Wrapf(define.ErrInvalidArg, "must provide a valid path")
+			return fmt.Errorf("must provide a valid path: %w", define.ErrInvalidArg)
 		}
 
 		rt.config.Engine.OCIRuntime = runtime
@@ -159,7 +159,7 @@ func WithConmonPath(path string) RuntimeOption {
 		}
 
 		if path == "" {
-			return errors.Wrapf(define.ErrInvalidArg, "must provide a valid path")
+			return fmt.Errorf("must provide a valid path: %w", define.ErrInvalidArg)
 		}
 
 		rt.config.Engine.ConmonPath = []string{path}
@@ -219,8 +219,8 @@ func WithCgroupManager(manager string) RuntimeOption {
 		}
 
 		if manager != config.CgroupfsCgroupsManager && manager != config.SystemdCgroupsManager {
-			return errors.Wrapf(define.ErrInvalidArg, "Cgroup manager must be one of %s and %s",
-				config.CgroupfsCgroupsManager, config.SystemdCgroupsManager)
+			return fmt.Errorf("cgroup manager must be one of %s and %s: %w",
+				config.CgroupfsCgroupsManager, config.SystemdCgroupsManager, define.ErrInvalidArg)
 		}
 
 		rt.config.Engine.CgroupManager = manager
@@ -250,7 +250,7 @@ func WithRegistriesConf(path string) RuntimeOption {
 	logrus.Debugf("Setting custom registries.conf: %q", path)
 	return func(rt *Runtime) error {
 		if _, err := os.Stat(path); err != nil {
-			return errors.Wrap(err, "locating specified registries.conf")
+			return fmt.Errorf("locating specified registries.conf: %w", err)
 		}
 		if rt.imageContext == nil {
 			rt.imageContext = &types.SystemContext{
@@ -272,7 +272,7 @@ func WithHooksDir(hooksDirs ...string) RuntimeOption {
 
 		for _, hooksDir := range hooksDirs {
 			if hooksDir == "" {
-				return errors.Wrap(define.ErrInvalidArg, "empty-string hook directories are not supported")
+				return fmt.Errorf("empty-string hook directories are not supported: %w", define.ErrInvalidArg)
 			}
 		}
 
@@ -494,7 +494,7 @@ func WithMigrateRuntime(requestedRuntime string) RuntimeOption {
 		}
 
 		if requestedRuntime == "" {
-			return errors.Wrapf(define.ErrInvalidArg, "must provide a non-empty name for new runtime")
+			return fmt.Errorf("must provide a non-empty name for new runtime: %w", define.ErrInvalidArg)
 		}
 
 		rt.migrateRuntime = requestedRuntime
@@ -513,7 +513,7 @@ func WithEventsLogger(logger string) RuntimeOption {
 		}
 
 		if !events.IsValidEventer(logger) {
-			return errors.Wrapf(define.ErrInvalidArg, "%q is not a valid events backend", logger)
+			return fmt.Errorf("%q is not a valid events backend: %w", logger, define.ErrInvalidArg)
 		}
 
 		rt.config.Engine.EventsLogger = logger
@@ -622,7 +622,7 @@ func WithSdNotifyMode(mode string) CtrCreateOption {
 
 		// verify values
 		if len(mode) > 0 && !cutil.StringInSlice(strings.ToLower(mode), SdNotifyModeValues) {
-			return errors.Wrapf(define.ErrInvalidArg, "--sdnotify values must be one of %q", strings.Join(SdNotifyModeValues, ", "))
+			return fmt.Errorf("--sdnotify values must be one of %q: %w", strings.Join(SdNotifyModeValues, ", "), define.ErrInvalidArg)
 		}
 
 		ctr.config.SdNotifyMode = mode
@@ -770,9 +770,9 @@ func WithStopSignal(signal syscall.Signal) CtrCreateOption {
 		}
 
 		if signal == 0 {
-			return errors.Wrapf(define.ErrInvalidArg, "stop signal cannot be 0")
+			return fmt.Errorf("stop signal cannot be 0: %w", define.ErrInvalidArg)
 		} else if signal > 64 {
-			return errors.Wrapf(define.ErrInvalidArg, "stop signal cannot be greater than 64 (SIGRTMAX)")
+			return fmt.Errorf("stop signal cannot be greater than 64 (SIGRTMAX): %w", define.ErrInvalidArg)
 		}
 
 		ctr.config.StopSignal = uint(signal)
@@ -1080,11 +1080,11 @@ func WithLogDriver(driver string) CtrCreateOption {
 		}
 		switch driver {
 		case "":
-			return errors.Wrapf(define.ErrInvalidArg, "log driver must be set")
+			return fmt.Errorf("log driver must be set: %w", define.ErrInvalidArg)
 		case define.JournaldLogging, define.KubernetesLogging, define.JSONLogging, define.NoLogging, define.PassthroughLogging:
 			break
 		default:
-			return errors.Wrapf(define.ErrInvalidArg, "invalid log driver")
+			return fmt.Errorf("invalid log driver: %w", define.ErrInvalidArg)
 		}
 
 		ctr.config.LogDriver = driver
@@ -1100,7 +1100,7 @@ func WithLogPath(path string) CtrCreateOption {
 			return define.ErrCtrFinalized
 		}
 		if path == "" {
-			return errors.Wrapf(define.ErrInvalidArg, "log path must be set")
+			return fmt.Errorf("log path must be set: %w", define.ErrInvalidArg)
 		}
 
 		ctr.config.LogPath = path
@@ -1116,7 +1116,7 @@ func WithLogTag(tag string) CtrCreateOption {
 			return define.ErrCtrFinalized
 		}
 		if tag == "" {
-			return errors.Wrapf(define.ErrInvalidArg, "log tag must be set")
+			return fmt.Errorf("log tag must be set: %w", define.ErrInvalidArg)
 		}
 
 		ctr.config.LogTag = tag
@@ -1139,7 +1139,7 @@ func WithCgroupsMode(mode string) CtrCreateOption {
 		case "enabled", "no-conmon", cgroupSplit:
 			ctr.config.CgroupsMode = mode
 		default:
-			return errors.Wrapf(define.ErrInvalidArg, "Invalid cgroup mode %q", mode)
+			return fmt.Errorf("invalid cgroup mode %q: %w", mode, define.ErrInvalidArg)
 		}
 
 		return nil
@@ -1154,7 +1154,7 @@ func WithCgroupParent(parent string) CtrCreateOption {
 		}
 
 		if parent == "" {
-			return errors.Wrapf(define.ErrInvalidArg, "cgroup parent cannot be empty")
+			return fmt.Errorf("cgroup parent cannot be empty: %w", define.ErrInvalidArg)
 		}
 
 		ctr.config.CgroupParent = parent
@@ -1184,7 +1184,7 @@ func WithDNS(dnsServers []string) CtrCreateOption {
 		for _, i := range dnsServers {
 			result := net.ParseIP(i)
 			if result == nil {
-				return errors.Wrapf(define.ErrInvalidArg, "invalid IP address %s", i)
+				return fmt.Errorf("invalid IP address %s: %w", i, define.ErrInvalidArg)
 			}
 			dns = append(dns, result)
 		}
@@ -1201,7 +1201,7 @@ func WithDNSOption(dnsOptions []string) CtrCreateOption {
 			return define.ErrCtrFinalized
 		}
 		if ctr.config.UseImageResolvConf {
-			return errors.Wrapf(define.ErrInvalidArg, "cannot add DNS options if container will not create /etc/resolv.conf")
+			return fmt.Errorf("cannot add DNS options if container will not create /etc/resolv.conf: %w", define.ErrInvalidArg)
 		}
 		ctr.config.DNSOption = append(ctr.config.DNSOption, dnsOptions...)
 		return nil
@@ -1375,7 +1375,7 @@ func WithRestartPolicy(policy string) CtrCreateOption {
 		case define.RestartPolicyNone, define.RestartPolicyNo, define.RestartPolicyOnFailure, define.RestartPolicyAlways, define.RestartPolicyUnlessStopped:
 			ctr.config.RestartPolicy = policy
 		default:
-			return errors.Wrapf(define.ErrInvalidArg, "%q is not a valid restart policy", policy)
+			return fmt.Errorf("%q is not a valid restart policy: %w", policy, define.ErrInvalidArg)
 		}
 
 		return nil
@@ -1407,7 +1407,7 @@ func WithNamedVolumes(volumes []*ContainerNamedVolume) CtrCreateOption {
 		for _, vol := range volumes {
 			mountOpts, err := util.ProcessOptions(vol.Options, false, "")
 			if err != nil {
-				return errors.Wrapf(err, "processing options for named volume %q mounted at %q", vol.Name, vol.Dest)
+				return fmt.Errorf("processing options for named volume %q mounted at %q: %w", vol.Name, vol.Dest, err)
 			}
 
 			ctr.config.NamedVolumes = append(ctr.config.NamedVolumes, &ContainerNamedVolume{
@@ -1693,6 +1693,18 @@ func withSetAnon() VolumeCreateOption {
 	}
 }
 
+// WithVolumeDriverTimeout sets the volume creation timeout period
+func WithVolumeDriverTimeout(timeout int) VolumeCreateOption {
+	return func(volume *Volume) error {
+		if volume.valid {
+			return define.ErrVolumeFinalized
+		}
+
+		volume.config.Timeout = timeout
+		return nil
+	}
+}
+
 // WithTimezone sets the timezone in the container
 func WithTimezone(path string) CtrCreateOption {
 	return func(ctr *Container) error {
@@ -1708,7 +1720,7 @@ func WithTimezone(path string) CtrCreateOption {
 			}
 			// We don't want to mount a timezone directory
 			if file.IsDir() {
-				return errors.New("Invalid timezone: is a directory")
+				return errors.New("invalid timezone: is a directory")
 			}
 		}
 
@@ -1724,7 +1736,7 @@ func WithUmask(umask string) CtrCreateOption {
 			return define.ErrCtrFinalized
 		}
 		if !define.UmaskRegex.MatchString(umask) {
-			return errors.Wrapf(define.ErrInvalidArg, "Invalid umask string %s", umask)
+			return fmt.Errorf("invalid umask string %s: %w", umask, define.ErrInvalidArg)
 		}
 		ctr.config.Umask = umask
 		return nil
@@ -1797,7 +1809,7 @@ func WithInitCtrType(containerType string) CtrCreateOption {
 			ctr.config.InitContainerType = containerType
 			return nil
 		}
-		return errors.Errorf("%s is invalid init container type", containerType)
+		return fmt.Errorf("%s is invalid init container type", containerType)
 	}
 }
 
@@ -1831,12 +1843,12 @@ func WithInfraConfig(compatibleOptions InfraInherit) CtrCreateOption {
 		}
 		compatMarshal, err := json.Marshal(compatibleOptions)
 		if err != nil {
-			return errors.New("Could not marshal compatible options")
+			return errors.New("could not marshal compatible options")
 		}
 
 		err = json.Unmarshal(compatMarshal, ctr.config)
 		if err != nil {
-			return errors.New("Could not unmarshal compatible options into contrainer config")
+			return errors.New("could not unmarshal compatible options into contrainer config")
 		}
 		return nil
 	}

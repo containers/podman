@@ -513,7 +513,7 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 	})
 
 	It("podman run network expose ports in image metadata", func() {
-		session := podmanTest.Podman([]string{"create", "--name", "test", "-t", "-P", nginx})
+		session := podmanTest.Podman([]string{"create", "--name", "test", "-t", "-P", NGINX_IMAGE})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		results := podmanTest.Podman([]string{"inspect", "test"})

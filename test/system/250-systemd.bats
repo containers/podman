@@ -295,12 +295,12 @@ LISTEN_FDNAMES=listen_fdnames" | sort)
     run_podman network rm -f $netname
 }
 
-@test "podman-play-kube@.service template" {
+@test "podman-kube@.service template" {
     skip_if_remote "systemd units do not work with remote clients"
 
     # If running from a podman source directory, build and use the source
     # version of the play-kube-@ unit file
-    unit_name="podman-play-kube@.service"
+    unit_name="podman-kube@.service"
     unit_file="contrib/systemd/system/${unit_name}"
     if [[ -e ${unit_file}.in ]]; then
         echo "# [Building & using $unit_name from source]" >&3
@@ -329,7 +329,7 @@ spec:
 EOF
 
     # Dispatch the YAML file
-    service_name="podman-play-kube@$(systemd-escape $yaml_source).service"
+    service_name="podman-kube@$(systemd-escape $yaml_source).service"
     systemctl start $service_name
     systemctl is-active $service_name
 

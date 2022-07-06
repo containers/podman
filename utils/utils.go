@@ -16,7 +16,6 @@ import (
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/godbus/dbus/v5"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -114,7 +113,7 @@ func UntarToFileSystem(dest string, tarball *os.File, options *archive.TarOption
 func CreateTarFromSrc(source string, dest string) error {
 	file, err := os.Create(dest)
 	if err != nil {
-		return errors.Wrapf(err, "Could not create tarball file '%s'", dest)
+		return fmt.Errorf("could not create tarball file '%s': %w", dest, err)
 	}
 	defer file.Close()
 	return TarToFilesystem(source, file)
@@ -154,7 +153,7 @@ func RemoveScientificNotationFromFloat(x float64) (float64, error) {
 	}
 	result, err := strconv.ParseFloat(bigNum, 64)
 	if err != nil {
-		return x, errors.Wrapf(err, "unable to remove scientific number from calculations")
+		return x, fmt.Errorf("unable to remove scientific number from calculations: %w", err)
 	}
 	return result, nil
 }
@@ -181,11 +180,11 @@ func moveProcessPIDFileToScope(pidPath, slice, scope string) error {
 		if os.IsNotExist(err) {
 			return nil
 		}
-		return errors.Wrapf(err, "cannot read pid file %s", pidPath)
+		return fmt.Errorf("cannot read pid file %s: %w", pidPath, err)
 	}
 	pid, err := strconv.ParseUint(string(data), 10, 0)
 	if err != nil {
-		return errors.Wrapf(err, "cannot parse pid file %s", pidPath)
+		return fmt.Errorf("cannot parse pid file %s: %w", pidPath, err)
 	}
 
 	return moveProcessToScope(int(pid), slice, scope)

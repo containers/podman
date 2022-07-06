@@ -1,6 +1,7 @@
 package containers
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -11,7 +12,6 @@ import (
 	"github.com/containers/podman/v4/cmd/podman/validate"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/domain/entities"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -88,19 +88,19 @@ func validateStart(cmd *cobra.Command, args []string) error {
 		return errors.New("start requires at least one argument")
 	}
 	if startOptions.All && startOptions.Latest {
-		return errors.Errorf("--all and --latest cannot be used together")
+		return errors.New("--all and --latest cannot be used together")
 	}
 	if len(args) > 0 && startOptions.Latest {
-		return errors.Errorf("--latest and containers cannot be used together")
+		return errors.New("--latest and containers cannot be used together")
 	}
 	if len(args) > 1 && startOptions.Attach {
-		return errors.Errorf("you cannot start and attach multiple containers at once")
+		return errors.New("you cannot start and attach multiple containers at once")
 	}
 	if (len(args) > 0 || startOptions.Latest) && startOptions.All {
-		return errors.Errorf("either start all containers or the container(s) provided in the arguments")
+		return errors.New("either start all containers or the container(s) provided in the arguments")
 	}
 	if startOptions.Attach && startOptions.All {
-		return errors.Errorf("you cannot start and attach all containers at once")
+		return errors.New("you cannot start and attach all containers at once")
 	}
 	return nil
 }
@@ -114,7 +114,7 @@ func start(cmd *cobra.Command, args []string) error {
 	startOptions.SigProxy = sigProxy
 
 	if sigProxy && !startOptions.Attach {
-		return errors.Wrapf(define.ErrInvalidArg, "you cannot use sig-proxy without --attach")
+		return fmt.Errorf("you cannot use sig-proxy without --attach: %w", define.ErrInvalidArg)
 	}
 	if startOptions.Attach {
 		startOptions.Stdin = os.Stdin
@@ -127,7 +127,7 @@ func start(cmd *cobra.Command, args []string) error {
 		for _, f := range filters {
 			split := strings.SplitN(f, "=", 2)
 			if len(split) == 1 {
-				return errors.Errorf("invalid filter %q", f)
+				return fmt.Errorf("invalid filter %q", f)
 			}
 			startOptions.Filters[split[0]] = append(startOptions.Filters[split[0]], split[1])
 		}

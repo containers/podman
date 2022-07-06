@@ -881,11 +881,11 @@ Suppress output information when pulling images
 
 #### **--read-only**
 
-Mount the container's root filesystem as read only.
+Mount the container's root filesystem as read-only.
 
 By default a container will have its root filesystem writable allowing processes
 to write files anywhere. By specifying the `--read-only` flag the container will have
-its root filesystem mounted as read only prohibiting any writes.
+its root filesystem mounted as read-only prohibiting any writes.
 
 #### **--read-only-tmpfs**
 
@@ -1006,8 +1006,8 @@ Note: Labeling can be disabled for all containers by setting label=false in the 
   possible mount options are specified in the **proc(5)** man page.
 
 
-- **unmask**=_ALL_ or _/path/1:/path/2_, or shell expanded paths (/proc/*): Paths to unmask separated by a colon. If set to **ALL**, it will unmask all the paths that are masked or made read only by default.
-  The default masked paths are **/proc/acpi, /proc/kcore, /proc/keys, /proc/latency_stats, /proc/sched_debug, /proc/scsi, /proc/timer_list, /proc/timer_stats, /sys/firmware, and /sys/fs/selinux.**  The default paths that are read only are **/proc/asound, /proc/bus, /proc/fs, /proc/irq, /proc/sys, /proc/sysrq-trigger, /sys/fs/cgroup**.
+- **unmask**=_ALL_ or _/path/1:/path/2_, or shell expanded paths (/proc/*): Paths to unmask separated by a colon. If set to **ALL**, it will unmask all the paths that are masked or made read-only by default.
+  The default masked paths are **/proc/acpi, /proc/kcore, /proc/keys, /proc/latency_stats, /proc/sched_debug, /proc/scsi, /proc/timer_list, /proc/timer_stats, /sys/firmware, and /sys/fs/selinux.**  The default paths that are read-only are **/proc/asound, /proc/bus, /proc/fs, /proc/irq, /proc/sys, /proc/sysrq-trigger, /sys/fs/cgroup**.
 
 Note: Labeling can be disabled for all containers by setting label=false in the **containers.conf** (`/etc/containers/containers.conf` or `$HOME/.config/containers/containers.conf`) file.
 

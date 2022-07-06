@@ -60,7 +60,7 @@ WantedBy=default.target
 			Expect(stop).Should(Exit(0))
 		}()
 
-		create := podmanTest.Podman([]string{"create", "--name", "redis", redis})
+		create := podmanTest.Podman([]string{"create", "--name", "redis", REDIS_IMAGE})
 		create.WaitWithDefaultTimeout()
 		Expect(create).Should(Exit(0))
 

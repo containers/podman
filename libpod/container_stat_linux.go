@@ -4,6 +4,8 @@
 package libpod
 
 import (
+	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -11,7 +13,6 @@ import (
 	"github.com/containers/buildah/copier"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/copy"
-	"github.com/pkg/errors"
 )
 
 // statInsideMount stats the specified path *inside* the container's mount and PID
@@ -150,10 +151,10 @@ func secureStat(root string, path string) (*copier.StatForItem, error) {
 	}
 
 	if len(globStats) != 1 {
-		return nil, errors.Errorf("internal error: secureStat: expected 1 item but got %d", len(globStats))
+		return nil, fmt.Errorf("internal error: secureStat: expected 1 item but got %d", len(globStats))
 	}
 	if len(globStats) != 1 {
-		return nil, errors.Errorf("internal error: secureStat: expected 1 result but got %d", len(globStats[0].Results))
+		return nil, fmt.Errorf("internal error: secureStat: expected 1 result but got %d", len(globStats[0].Results))
 	}
 
 	// NOTE: the key in the map differ from `glob` when hitting symlink.
@@ -167,7 +168,7 @@ func secureStat(root string, path string) (*copier.StatForItem, error) {
 		if stat.IsSymlink {
 			target, err := copier.Eval(root, path, copier.EvalOptions{})
 			if err != nil {
-				return nil, errors.Wrap(err, "error evaluating symlink in container")
+				return nil, fmt.Errorf("error evaluating symlink in container: %w", err)
 			}
 			// Need to make sure the symlink is relative to the root!
 			target = strings.TrimPrefix(target, root)

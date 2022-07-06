@@ -17,7 +17,6 @@ import (
 	"github.com/containers/podman/v4/pkg/rootless"
 	systemdDbus "github.com/coreos/go-systemd/v22/dbus"
 	"github.com/godbus/dbus/v5"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -77,7 +76,7 @@ func getCgroupProcess(procFile string, allowRoot bool) (string, error) {
 		line := scanner.Text()
 		parts := strings.SplitN(line, ":", 3)
 		if len(parts) != 3 {
-			return "", errors.Errorf("cannot parse cgroup line %q", line)
+			return "", fmt.Errorf("cannot parse cgroup line %q", line)
 		}
 		if strings.HasPrefix(line, "0::") {
 			cgroup = line[3:]
@@ -88,7 +87,7 @@ func getCgroupProcess(procFile string, allowRoot bool) (string, error) {
 		}
 	}
 	if len(cgroup) == 0 || (!allowRoot && cgroup == "/") {
-		return "", errors.Errorf("could not find cgroup mount in %q", procFile)
+		return "", fmt.Errorf("could not find cgroup mount in %q", procFile)
 	}
 	return cgroup, nil
 }
@@ -133,11 +132,11 @@ func moveUnderCgroup(cgroup, subtree string, processes []uint32) error {
 		line := scanner.Text()
 		parts := strings.SplitN(line, ":", 3)
 		if len(parts) != 3 {
-			return errors.Errorf("cannot parse cgroup line %q", line)
+			return fmt.Errorf("cannot parse cgroup line %q", line)
 		}
 
 		// root cgroup, skip it
-		if parts[2] == "/" {
+		if parts[2] == "/" && !(unifiedMode && parts[1] == "") {
 			continue
 		}
 

@@ -5,6 +5,7 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"io/fs"
@@ -14,7 +15,6 @@ import (
 	"syscall"
 	"text/template"
 
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -111,7 +111,7 @@ func install(cmd *cobra.Command, args []string) error {
 
 	file, err := os.OpenFile(fileName, os.O_WRONLY|os.O_CREATE|os.O_EXCL, rw_r_r)
 	if err != nil {
-		return errors.Wrap(err, "error creating helper plist file")
+		return fmt.Errorf("creating helper plist file: %w", err)
 	}
 	defer file.Close()
 	_, err = buf.WriteTo(file)
@@ -120,7 +120,7 @@ func install(cmd *cobra.Command, args []string) error {
 	}
 
 	if err = runDetectErr("launchctl", "load", fileName); err != nil {
-		return errors.Wrap(err, "launchctl failed loading service")
+		return fmt.Errorf("launchctl failed loading service: %w", err)
 	}
 
 	return nil
@@ -133,13 +133,13 @@ func restrictRecursive(targetDir string, until string) error {
 			return err
 		}
 		if info.Mode()&fs.ModeSymlink != 0 {
-			return errors.Errorf("symlinks not allowed in helper paths (remove them and rerun): %s", targetDir)
+			return fmt.Errorf("symlinks not allowed in helper paths (remove them and rerun): %s", targetDir)
 		}
 		if err = os.Chown(targetDir, 0, 0); err != nil {
-			return errors.Wrap(err, "could not update ownership of helper path")
+			return fmt.Errorf("could not update ownership of helper path: %w", err)
 		}
 		if err = os.Chmod(targetDir, rwx_rx_rx|fs.ModeSticky); err != nil {
-			return errors.Wrap(err, "could not update permissions of helper path")
+			return fmt.Errorf("could not update permissions of helper path: %w", err)
 		}
 		targetDir = filepath.Dir(targetDir)
 	}
@@ -162,7 +162,7 @@ func verifyRootDeep(path string) error {
 
 		stat := info.Sys().(*syscall.Stat_t)
 		if stat.Uid != 0 {
-			return errors.Errorf("installation target path must be solely owned by root: %s is not", current)
+			return fmt.Errorf("installation target path must be solely owned by root: %s is not", current)
 		}
 
 		if info.Mode()&fs.ModeSymlink != 0 {
@@ -193,7 +193,7 @@ func verifyRootDeep(path string) error {
 
 func installExecutable(user string) (string, error) {
 	// Since the installed executable runs as root, as a precaution verify root ownership of
-	// the entire installation path, and utilize sticky + read only perms for the helper path
+	// the entire installation path, and utilize sticky + read-only perms for the helper path
 	// suffix. The goal is to help users harden against privilege escalation from loose
 	// filesystem permissions.
 	//
@@ -206,7 +206,7 @@ func installExecutable(user string) (string, error) {
 
 	targetDir := filepath.Join(installPrefix, "podman", "helper", user)
 	if err := os.MkdirAll(targetDir, rwx_rx_rx); err != nil {
-		return "", errors.Wrap(err, "could not create helper directory structure")
+		return "", fmt.Errorf("could not create helper directory structure: %w", err)
 	}
 
 	// Correct any incorrect perms on previously existing directories and verify no symlinks

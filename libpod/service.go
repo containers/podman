@@ -2,10 +2,10 @@ package libpod
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/containers/podman/v4/libpod/define"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -29,7 +29,7 @@ func (p *Pod) hasServiceContainer() bool {
 func (p *Pod) serviceContainer() (*Container, error) {
 	id := p.config.ServiceContainerID
 	if id == "" {
-		return nil, errors.Wrap(define.ErrNoSuchCtr, "pod has no service container")
+		return nil, fmt.Errorf("pod has no service container: %w", define.ErrNoSuchCtr)
 	}
 	return p.runtime.state.Container(id)
 }

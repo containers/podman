@@ -1,9 +1,9 @@
 package events
 
 import (
+	"fmt"
 	"strings"
 
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -14,7 +14,7 @@ func NewEventer(options EventerOptions) (Eventer, error) {
 	case strings.ToUpper(Journald.String()):
 		eventer, err := newEventJournalD(options)
 		if err != nil {
-			return nil, errors.Wrapf(err, "eventer creation")
+			return nil, fmt.Errorf("eventer creation: %w", err)
 		}
 		return eventer, nil
 	case strings.ToUpper(LogFile.String()):
@@ -24,6 +24,6 @@ func NewEventer(options EventerOptions) (Eventer, error) {
 	case strings.ToUpper(Memory.String()):
 		return NewMemoryEventer(), nil
 	default:
-		return nil, errors.Errorf("unknown event logger type: %s", strings.ToUpper(options.EventerType))
+		return nil, fmt.Errorf("unknown event logger type: %s", strings.ToUpper(options.EventerType))
 	}
 }

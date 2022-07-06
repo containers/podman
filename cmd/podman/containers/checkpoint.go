@@ -2,6 +2,7 @@ package containers
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -15,7 +16,6 @@ import (
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/containers/storage/pkg/archive"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -90,7 +90,7 @@ func checkpoint(cmd *cobra.Command, args []string) error {
 	podmanStart := time.Now()
 	if cmd.Flags().Changed("compress") {
 		if checkpointOptions.Export == "" {
-			return errors.Errorf("--compress can only be used with --export")
+			return errors.New("--compress can only be used with --export")
 		}
 		compress, _ := cmd.Flags().GetString("compress")
 		switch strings.ToLower(compress) {
@@ -101,7 +101,7 @@ func checkpoint(cmd *cobra.Command, args []string) error {
 		case "zstd":
 			checkpointOptions.Compression = archive.Zstd
 		default:
-			return errors.Errorf("Selected compression algorithm (%q) not supported. Please select one from: gzip, none, zstd", compress)
+			return fmt.Errorf("selected compression algorithm (%q) not supported. Please select one from: gzip, none, zstd", compress)
 		}
 	} else {
 		checkpointOptions.Compression = archive.Zstd
@@ -110,13 +110,13 @@ func checkpoint(cmd *cobra.Command, args []string) error {
 		return errors.New("checkpointing a container requires root")
 	}
 	if checkpointOptions.Export == "" && checkpointOptions.IgnoreRootFS {
-		return errors.Errorf("--ignore-rootfs can only be used with --export")
+		return errors.New("--ignore-rootfs can only be used with --export")
 	}
 	if checkpointOptions.Export == "" && checkpointOptions.IgnoreVolumes {
-		return errors.Errorf("--ignore-volumes can only be used with --export")
+		return errors.New("--ignore-volumes can only be used with --export")
 	}
 	if checkpointOptions.WithPrevious && checkpointOptions.PreCheckPoint {
-		return errors.Errorf("--with-previous can not be used with --pre-checkpoint")
+		return errors.New("--with-previous can not be used with --pre-checkpoint")
 	}
 	if (checkpointOptions.WithPrevious || checkpointOptions.PreCheckPoint) && !criu.MemTrack() {
 		return errors.New("system (architecture/kernel/CRIU) does not support memory tracking")

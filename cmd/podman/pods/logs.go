@@ -1,6 +1,8 @@
 package pods
 
 import (
+	"errors"
+	"fmt"
 	"os"
 
 	"github.com/containers/common/pkg/completion"
@@ -10,7 +12,6 @@ import (
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/util"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -100,7 +101,7 @@ func logs(_ *cobra.Command, args []string) error {
 		// parse time, error out if something is wrong
 		since, err := util.ParseInputTime(logsPodOptions.SinceRaw, true)
 		if err != nil {
-			return errors.Wrapf(err, "error parsing --since %q", logsPodOptions.SinceRaw)
+			return fmt.Errorf("error parsing --since %q: %w", logsPodOptions.SinceRaw, err)
 		}
 		logsPodOptions.Since = since
 	}
@@ -108,14 +109,14 @@ func logs(_ *cobra.Command, args []string) error {
 		// parse time, error out if something is wrong
 		until, err := util.ParseInputTime(logsPodOptions.UntilRaw, false)
 		if err != nil {
-			return errors.Wrapf(err, "error parsing --until %q", logsPodOptions.UntilRaw)
+			return fmt.Errorf("error parsing --until %q: %w", logsPodOptions.UntilRaw, err)
 		}
 		logsPodOptions.Until = until
 	}
 
 	// Remote can only process one container at a time
 	if registry.IsRemote() && logsPodOptions.ContainerName == "" {
-		return errors.Wrapf(define.ErrInvalidArg, "-c or --container cannot be empty")
+		return fmt.Errorf("-c or --container cannot be empty: %w", define.ErrInvalidArg)
 	}
 
 	logsPodOptions.StdoutWriter = os.Stdout

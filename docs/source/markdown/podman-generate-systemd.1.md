@@ -14,6 +14,17 @@ Generating unit files for a pod requires the pod to be created with an infra con
 
 _Note: If you use this command with the remote client, including Mac and Windows (excluding WSL2) machines, you would still have to place the generated units on the remote system.  Moreover, please make sure that the XDG_RUNTIME_DIR environment variable is set.  If unset, you may set it via `export XDG_RUNTIME_DIR=/run/user/$(id -u)`._
 
+### Kubernetes Integration
+
+A Kubernetes YAML can be executed in systemd via the `podman-kube@.service` systemd template.  The template's argument is the path to the YAML file.  Given a `workload.yaml` file in the home directory, it can be executed as follows:
+
+```
+$ escaped=$(systemd-escape ~/sysadmin.yaml)
+$ systemctl --user start podman-kube@$escaped.service
+$ systemctl --user is-active podman-kube@$escaped.service
+active
+```
+
 ## OPTIONS
 
 #### **--after**=*dependency_name*

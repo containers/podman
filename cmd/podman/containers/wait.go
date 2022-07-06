@@ -2,6 +2,7 @@ package containers
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -12,7 +13,6 @@ import (
 	"github.com/containers/podman/v4/cmd/podman/validate"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/domain/entities"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -86,7 +86,7 @@ func wait(cmd *cobra.Command, args []string) error {
 	}
 
 	if !waitOptions.Latest && len(args) == 0 {
-		return errors.Errorf("%q requires a name, id, or the \"--latest\" flag", cmd.CommandPath())
+		return fmt.Errorf("%q requires a name, id, or the \"--latest\" flag", cmd.CommandPath())
 	}
 	if waitOptions.Latest && len(args) > 0 {
 		return errors.New("--latest and containers cannot be used together")

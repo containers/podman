@@ -2,6 +2,7 @@ package libpod
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/containers/common/pkg/cgroups"
@@ -10,7 +11,6 @@ import (
 	"github.com/containers/podman/v4/pkg/parallel"
 	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -32,7 +32,7 @@ func (p *Pod) startInitContainers(ctx context.Context) error {
 			return err
 		}
 		if rc != 0 {
-			return errors.Errorf("init container %s exited with code %d", initCon.ID(), rc)
+			return fmt.Errorf("init container %s exited with code %d", initCon.ID(), rc)
 		}
 		// If the container is a once init container, we need to remove it
 		// after it runs
@@ -42,7 +42,7 @@ func (p *Pod) startInitContainers(ctx context.Context) error {
 			var time *uint
 			if err := p.runtime.removeContainer(ctx, initCon, false, false, true, time); err != nil {
 				icLock.Unlock()
-				return errors.Wrapf(err, "failed to remove once init container %s", initCon.ID())
+				return fmt.Errorf("failed to remove once init container %s: %w", initCon.ID(), err)
 			}
 			// Removing a container this way requires an explicit call to clean up the db
 			if err := p.runtime.state.RemoveContainerFromPod(p, initCon); err != nil {
@@ -92,12 +92,12 @@ func (p *Pod) Start(ctx context.Context) (map[string]error, error) {
 	// Build a dependency graph of containers in the pod
 	graph, err := BuildContainerGraph(allCtrs)
 	if err != nil {
-		return nil, errors.Wrapf(err, "error generating dependency graph for pod %s", p.ID())
+		return nil, fmt.Errorf("error generating dependency graph for pod %s: %w", p.ID(), err)
 	}
 	// If there are no containers without dependencies, we can't start
 	// Error out
 	if len(graph.noDepNodes) == 0 {
-		return nil, errors.Wrapf(define.ErrNoSuchCtr, "no containers in pod %s have no dependencies, cannot start pod", p.ID())
+		return nil, fmt.Errorf("no containers in pod %s have no dependencies, cannot start pod: %w", p.ID(), define.ErrNoSuchCtr)
 	}
 
 	ctrErrors := make(map[string]error)
@@ -109,7 +109,7 @@ func (p *Pod) Start(ctx context.Context) (map[string]error, error) {
 	}
 
 	if len(ctrErrors) > 0 {
-		return ctrErrors, errors.Wrapf(define.ErrPodPartialFail, "error starting some containers")
+		return ctrErrors, fmt.Errorf("error starting some containers: %w", define.ErrPodPartialFail)
 	}
 	defer p.newPodEvent(events.Start)
 	return nil, nil
@@ -193,7 +193,7 @@ func (p *Pod) stopWithTimeout(ctx context.Context, cleanup bool, timeout int) (m
 	// Get returned error for every container we worked on
 	for id, channel := range ctrErrChan {
 		if err := <-channel; err != nil {
-			if errors.Cause(err) == define.ErrCtrStateInvalid || errors.Cause(err) == define.ErrCtrStopped {
+			if errors.Is(err, define.ErrCtrStateInvalid) || errors.Is(err, define.ErrCtrStopped) {
 				continue
 			}
 			ctrErrors[id] = err
@@ -201,7 +201,7 @@ func (p *Pod) stopWithTimeout(ctx context.Context, cleanup bool, timeout int) (m
 	}
 
 	if len(ctrErrors) > 0 {
-		return ctrErrors, errors.Wrapf(define.ErrPodPartialFail, "error stopping some containers")
+		return ctrErrors, fmt.Errorf("error stopping some containers: %w", define.ErrPodPartialFail)
 	}
 
 	if err := p.maybeStopServiceContainer(); err != nil {
@@ -297,7 +297,7 @@ func (p *Pod) Cleanup(ctx context.Context) (map[string]error, error) {
 	// Get returned error for every container we worked on
 	for id, channel := range ctrErrChan {
 		if err := <-channel; err != nil {
-			if errors.Cause(err) == define.ErrCtrStateInvalid || errors.Cause(err) == define.ErrCtrStopped {
+			if errors.Is(err, define.ErrCtrStateInvalid) || errors.Is(err, define.ErrCtrStopped) {
 				continue
 			}
 			ctrErrors[id] = err
@@ -305,7 +305,7 @@ func (p *Pod) Cleanup(ctx context.Context) (map[string]error, error) {
 	}
 
 	if len(ctrErrors) > 0 {
-		return ctrErrors, errors.Wrapf(define.ErrPodPartialFail, "error cleaning up some containers")
+		return ctrErrors, fmt.Errorf("error cleaning up some containers: %w", define.ErrPodPartialFail)
 	}
 
 	if err := p.maybeStopServiceContainer(); err != nil {
@@ -338,10 +338,10 @@ func (p *Pod) Pause(ctx context.Context) (map[string]error, error) {
 	if rootless.IsRootless() {
 		cgroupv2, err := cgroups.IsCgroup2UnifiedMode()
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to determine cgroupversion")
+			return nil, fmt.Errorf("failed to determine cgroupversion: %w", err)
 		}
 		if !cgroupv2 {
-			return nil, errors.Wrap(define.ErrNoCgroups, "can not pause pods containing rootless containers with cgroup V1")
+			return nil, fmt.Errorf("can not pause pods containing rootless containers with cgroup V1: %w", define.ErrNoCgroups)
 		}
 	}
 
@@ -368,7 +368,7 @@ func (p *Pod) Pause(ctx context.Context) (map[string]error, error) {
 	// Get returned error for every container we worked on
 	for id, channel := range ctrErrChan {
 		if err := <-channel; err != nil {
-			if errors.Cause(err) == define.ErrCtrStateInvalid || errors.Cause(err) == define.ErrCtrStopped {
+			if errors.Is(err, define.ErrCtrStateInvalid) || errors.Is(err, define.ErrCtrStopped) {
 				continue
 			}
 			ctrErrors[id] = err
@@ -376,7 +376,7 @@ func (p *Pod) Pause(ctx context.Context) (map[string]error, error) {
 	}
 
 	if len(ctrErrors) > 0 {
-		return ctrErrors, errors.Wrapf(define.ErrPodPartialFail, "error pausing some containers")
+		return ctrErrors, fmt.Errorf("error pausing some containers: %w", define.ErrPodPartialFail)
 	}
 	return nil, nil
 }
@@ -424,7 +424,7 @@ func (p *Pod) Unpause(ctx context.Context) (map[string]error, error) {
 	// Get returned error for every container we worked on
 	for id, channel := range ctrErrChan {
 		if err := <-channel; err != nil {
-			if errors.Cause(err) == define.ErrCtrStateInvalid || errors.Cause(err) == define.ErrCtrStopped {
+			if errors.Is(err, define.ErrCtrStateInvalid) || errors.Is(err, define.ErrCtrStopped) {
 				continue
 			}
 			ctrErrors[id] = err
@@ -432,7 +432,7 @@ func (p *Pod) Unpause(ctx context.Context) (map[string]error, error) {
 	}
 
 	if len(ctrErrors) > 0 {
-		return ctrErrors, errors.Wrapf(define.ErrPodPartialFail, "error unpausing some containers")
+		return ctrErrors, fmt.Errorf("error unpausing some containers: %w", define.ErrPodPartialFail)
 	}
 	return nil, nil
 }
@@ -470,7 +470,7 @@ func (p *Pod) Restart(ctx context.Context) (map[string]error, error) {
 	// Build a dependency graph of containers in the pod
 	graph, err := BuildContainerGraph(allCtrs)
 	if err != nil {
-		return nil, errors.Wrapf(err, "error generating dependency graph for pod %s", p.ID())
+		return nil, fmt.Errorf("error generating dependency graph for pod %s: %w", p.ID(), err)
 	}
 
 	ctrErrors := make(map[string]error)
@@ -479,7 +479,7 @@ func (p *Pod) Restart(ctx context.Context) (map[string]error, error) {
 	// If there are no containers without dependencies, we can't start
 	// Error out
 	if len(graph.noDepNodes) == 0 {
-		return nil, errors.Wrapf(define.ErrNoSuchCtr, "no containers in pod %s have no dependencies, cannot start pod", p.ID())
+		return nil, fmt.Errorf("no containers in pod %s have no dependencies, cannot start pod: %w", p.ID(), define.ErrNoSuchCtr)
 	}
 
 	// Traverse the graph beginning at nodes with no dependencies
@@ -488,7 +488,7 @@ func (p *Pod) Restart(ctx context.Context) (map[string]error, error) {
 	}
 
 	if len(ctrErrors) > 0 {
-		return ctrErrors, errors.Wrapf(define.ErrPodPartialFail, "error stopping some containers")
+		return ctrErrors, fmt.Errorf("error stopping some containers: %w", define.ErrPodPartialFail)
 	}
 	p.newPodEvent(events.Stop)
 	p.newPodEvent(events.Start)
@@ -539,7 +539,7 @@ func (p *Pod) Kill(ctx context.Context, signal uint) (map[string]error, error) {
 	// Get returned error for every container we worked on
 	for id, channel := range ctrErrChan {
 		if err := <-channel; err != nil {
-			if errors.Cause(err) == define.ErrCtrStateInvalid || errors.Cause(err) == define.ErrCtrStopped {
+			if errors.Is(err, define.ErrCtrStateInvalid) || errors.Is(err, define.ErrCtrStopped) {
 				continue
 			}
 			ctrErrors[id] = err
@@ -547,7 +547,7 @@ func (p *Pod) Kill(ctx context.Context, signal uint) (map[string]error, error) {
 	}
 
 	if len(ctrErrors) > 0 {
-		return ctrErrors, errors.Wrapf(define.ErrPodPartialFail, "error killing some containers")
+		return ctrErrors, fmt.Errorf("error killing some containers: %w", define.ErrPodPartialFail)
 	}
 
 	if err := p.maybeStopServiceContainer(); err != nil {
@@ -676,6 +676,7 @@ func (p *Pod) Inspect() (*define.InspectPodData, error) {
 		infraConfig.CPUSetCPUs = p.ResourceLim().CPU.Cpus
 		infraConfig.PidNS = p.NamespaceMode(specs.PIDNamespace)
 		infraConfig.UserNS = p.NamespaceMode(specs.UserNamespace)
+		infraConfig.UtsNS = p.NamespaceMode(specs.UTSNamespace)
 		namedVolumes, mounts := infra.SortUserVolumes(infra.config.Spec)
 		inspectMounts, err = infra.GetMounts(namedVolumes, infra.config.ImageVolumes, mounts)
 		infraSecurity = infra.GetSecurityOptions()
@@ -751,6 +752,7 @@ func (p *Pod) Inspect() (*define.InspectPodData, error) {
 		CPUSetCPUs:         p.ResourceLim().CPU.Cpus,
 		CPUPeriod:          p.CPUPeriod(),
 		CPUQuota:           p.CPUQuota(),
+		MemoryLimit:        p.MemoryLimit(),
 		Mounts:             inspectMounts,
 		Devices:            devices,
 		BlkioDeviceReadBps: deviceLimits,

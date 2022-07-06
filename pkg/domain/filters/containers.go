@@ -1,6 +1,7 @@
 package filters
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -10,7 +11,6 @@ import (
 	"github.com/containers/podman/v4/libpod"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/util"
-	"github.com/pkg/errors"
 )
 
 // GenerateContainerFilterFuncs return ContainerFilter functions based of filter.
@@ -36,7 +36,7 @@ func GenerateContainerFilterFuncs(filter string, filterValues []string, r *libpo
 		for _, exitCode := range filterValues {
 			ec, err := strconv.ParseInt(exitCode, 10, 32)
 			if err != nil {
-				return nil, errors.Wrapf(err, "exited code out of range %q", ec)
+				return nil, fmt.Errorf("exited code out of range %q: %w", ec, err)
 			}
 			exitCodes = append(exitCodes, int32(ec))
 		}
@@ -184,7 +184,7 @@ func GenerateContainerFilterFuncs(filter string, filterValues []string, r *libpo
 		for _, podNameOrID := range filterValues {
 			p, err := r.LookupPod(podNameOrID)
 			if err != nil {
-				if errors.Cause(err) == define.ErrNoSuchPod {
+				if errors.Is(err, define.ErrNoSuchPod) {
 					continue
 				}
 				return nil, err
@@ -291,7 +291,7 @@ func GenerateContainerFilterFuncs(filter string, filterValues []string, r *libpo
 			return false
 		}, filterValueError
 	}
-	return nil, errors.Errorf("%s is an invalid filter", filter)
+	return nil, fmt.Errorf("%s is an invalid filter", filter)
 }
 
 // GeneratePruneContainerFilterFuncs return ContainerFilter functions based of filter for prune operation
@@ -304,7 +304,7 @@ func GeneratePruneContainerFilterFuncs(filter string, filterValues []string, r *
 	case "until":
 		return prepareUntilFilterFunc(filterValues)
 	}
-	return nil, errors.Errorf("%s is an invalid filter", filter)
+	return nil, fmt.Errorf("%s is an invalid filter", filter)
 }
 
 func prepareUntilFilterFunc(filterValues []string) (func(container *libpod.Container) bool, error) {

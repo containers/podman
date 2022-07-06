@@ -2,6 +2,7 @@ package volumes
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 
@@ -12,7 +13,6 @@ import (
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/containers/podman/v4/cmd/podman/validate"
 	"github.com/containers/podman/v4/pkg/domain/entities"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -119,7 +119,7 @@ func outputTemplate(cmd *cobra.Command, responses []*entities.VolumeListReport) 
 
 	if !(noHeading || cliOpts.Quiet || cmd.Flag("format").Changed) {
 		if err := tmpl.Execute(w, headers); err != nil {
-			return errors.Wrapf(err, "failed to write report column headers")
+			return fmt.Errorf("failed to write report column headers: %w", err)
 		}
 	}
 	return tmpl.Execute(w, responses)

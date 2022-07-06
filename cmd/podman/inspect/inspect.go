@@ -3,6 +3,7 @@ package inspect
 import (
 	"context"
 	"encoding/json" // due to a bug in json-iterator it cannot be used here
+	"errors"
 	"fmt"
 	"os"
 	"regexp"
@@ -16,7 +17,6 @@ import (
 	"github.com/containers/podman/v4/cmd/podman/validate"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/domain/entities"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -41,7 +41,7 @@ func AddInspectFlagSet(cmd *cobra.Command) *entities.InspectOptions {
 	return &opts
 }
 
-// Inspect inspects the specified container/image names or IDs.
+// Inspect inspects the specified container/image/pod/volume names or IDs.
 func Inspect(namesOrIDs []string, options entities.InspectOptions) error {
 	inspector, err := newInspector(options)
 	if err != nil {
@@ -64,19 +64,19 @@ func newInspector(options entities.InspectOptions) (*inspector, error) {
 	case common.ImageType, common.ContainerType, common.AllType, common.PodType, common.NetworkType, common.VolumeType:
 		// Valid types.
 	default:
-		return nil, errors.Errorf("invalid type %q: must be %q, %q, %q, %q, %q, or %q", options.Type,
+		return nil, fmt.Errorf("invalid type %q: must be %q, %q, %q, %q, %q, or %q", options.Type,
 			common.ImageType, common.ContainerType, common.PodType, common.NetworkType, common.VolumeType, common.AllType)
 	}
 	if options.Type == common.ImageType {
 		if options.Latest {
-			return nil, errors.Errorf("latest is not supported for type %q", common.ImageType)
+			return nil, fmt.Errorf("latest is not supported for type %q", common.ImageType)
 		}
 		if options.Size {
-			return nil, errors.Errorf("size is not supported for type %q", common.ImageType)
+			return nil, fmt.Errorf("size is not supported for type %q", common.ImageType)
 		}
 	}
 	if options.Type == common.PodType && options.Size {
-		return nil, errors.Errorf("size is not supported for type %q", common.PodType)
+		return nil, fmt.Errorf("size is not supported for type %q", common.PodType)
 	}
 	podOpts := entities.PodInspectOptions{
 		Latest: options.Latest,
@@ -145,8 +145,7 @@ func (i *inspector) inspect(namesOrIDs []string) error {
 			i.podOptions.NameOrID = pod
 			podData, err := i.containerEngine.PodInspect(ctx, i.podOptions)
 			if err != nil {
-				cause := errors.Cause(err)
-				if !strings.Contains(cause.Error(), define.ErrNoSuchPod.Error()) {
+				if !strings.Contains(err.Error(), define.ErrNoSuchPod.Error()) {
 					errs = []error{err}
 				} else {
 					return err
@@ -159,8 +158,7 @@ func (i *inspector) inspect(namesOrIDs []string) error {
 		if i.podOptions.Latest { // latest means there are no names in the namesOrID array
 			podData, err := i.containerEngine.PodInspect(ctx, i.podOptions)
 			if err != nil {
-				cause := errors.Cause(err)
-				if !strings.Contains(cause.Error(), define.ErrNoSuchPod.Error()) {
+				if !strings.Contains(err.Error(), define.ErrNoSuchPod.Error()) {
 					errs = []error{err}
 				} else {
 					return err
@@ -189,7 +187,7 @@ func (i *inspector) inspect(namesOrIDs []string) error {
 			data = append(data, volumeData[i])
 		}
 	default:
-		return errors.Errorf("invalid type %q: must be %q, %q, %q, %q, %q, or %q", i.options.Type,
+		return fmt.Errorf("invalid type %q: must be %q, %q, %q, %q, %q, or %q", i.options.Type,
 			common.ImageType, common.ContainerType, common.PodType, common.NetworkType, common.VolumeType, common.AllType)
 	}
 	// Always print an empty array
@@ -218,7 +216,7 @@ func (i *inspector) inspect(namesOrIDs []string) error {
 				fmt.Fprintf(os.Stderr, "error inspecting object: %v\n", err)
 			}
 		}
-		return errors.Errorf("inspecting object: %v", errs[0])
+		return fmt.Errorf("inspecting object: %w", errs[0])
 	}
 	return nil
 }
@@ -287,8 +285,7 @@ func (i *inspector) inspectAll(ctx context.Context, namesOrIDs []string) ([]inte
 		i.podOptions.NameOrID = name
 		podData, err := i.containerEngine.PodInspect(ctx, i.podOptions)
 		if err != nil {
-			cause := errors.Cause(err)
-			if !strings.Contains(cause.Error(), define.ErrNoSuchPod.Error()) {
+			if !strings.Contains(err.Error(), define.ErrNoSuchPod.Error()) {
 				return nil, nil, err
 			}
 		} else {
@@ -296,7 +293,7 @@ func (i *inspector) inspectAll(ctx context.Context, namesOrIDs []string) ([]inte
 			continue
 		}
 		if len(errs) > 0 {
-			allErrs = append(allErrs, errors.Errorf("no such object: %q", name))
+			allErrs = append(allErrs, fmt.Errorf("no such object: %q", name))
 			continue
 		}
 	}

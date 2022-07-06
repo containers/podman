@@ -4,12 +4,13 @@
 package libpod
 
 import (
+	"errors"
+	"fmt"
 	"os/exec"
 	"strings"
 
 	"github.com/containers/podman/v4/libpod/define"
 	pluginapi "github.com/docker/go-plugins-helpers/volume"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
@@ -51,7 +52,7 @@ func (v *Volume) mount() error {
 	// the same one for everything.
 	if v.UsesVolumeDriver() {
 		if v.plugin == nil {
-			return errors.Wrapf(define.ErrMissingPlugin, "volume plugin %s (needed by volume %s) missing", v.Driver(), v.Name())
+			return fmt.Errorf("volume plugin %s (needed by volume %s) missing: %w", v.Driver(), v.Name(), define.ErrMissingPlugin)
 		}
 
 		req := new(pluginapi.MountRequest)
@@ -83,7 +84,7 @@ func (v *Volume) mount() error {
 	// TODO: might want to cache this path in the runtime?
 	mountPath, err := exec.LookPath("mount")
 	if err != nil {
-		return errors.Wrapf(err, "locating 'mount' binary")
+		return fmt.Errorf("locating 'mount' binary: %w", err)
 	}
 	mountArgs := []string{}
 	if volOptions != "" {
@@ -103,7 +104,7 @@ func (v *Volume) mount() error {
 	logrus.Debugf("Running mount command: %s %s", mountPath, strings.Join(mountArgs, " "))
 	if output, err := mountCmd.CombinedOutput(); err != nil {
 		logrus.Debugf("Mount %v failed with %v", mountCmd, err)
-		return errors.Errorf(string(output))
+		return errors.New(string(output))
 	}
 
 	logrus.Debugf("Mounted volume %s", v.Name())
@@ -148,7 +149,7 @@ func (v *Volume) unmount(force bool) error {
 	if v.state.MountCount == 0 {
 		if v.UsesVolumeDriver() {
 			if v.plugin == nil {
-				return errors.Wrapf(define.ErrMissingPlugin, "volume plugin %s (needed by volume %s) missing", v.Driver(), v.Name())
+				return fmt.Errorf("volume plugin %s (needed by volume %s) missing: %w", v.Driver(), v.Name(), define.ErrMissingPlugin)
 			}
 
 			req := new(pluginapi.UnmountRequest)
@@ -168,7 +169,7 @@ func (v *Volume) unmount(force bool) error {
 				// Ignore EINVAL - the mount no longer exists.
 				return nil
 			}
-			return errors.Wrapf(err, "unmounting volume %s", v.Name())
+			return fmt.Errorf("unmounting volume %s: %w", v.Name(), err)
 		}
 		logrus.Debugf("Unmounted volume %s", v.Name())
 	}

@@ -2,6 +2,7 @@ package libpod
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math/rand"
 	"os"
@@ -27,7 +28,6 @@ import (
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -53,11 +53,11 @@ func (p *Pod) GenerateForKube(ctx context.Context) (*v1.Pod, []v1.ServicePort, e
 	}
 	// If the pod has no containers, no sense to generate YAML
 	if len(allContainers) == 0 {
-		return nil, servicePorts, errors.Errorf("pod %s has no containers", p.ID())
+		return nil, servicePorts, fmt.Errorf("pod %s has no containers", p.ID())
 	}
 	// If only an infra container is present, makes no sense to generate YAML
 	if len(allContainers) == 1 && p.HasInfraContainer() {
-		return nil, servicePorts, errors.Errorf("pod %s only has an infra container", p.ID())
+		return nil, servicePorts, fmt.Errorf("pod %s only has an infra container", p.ID())
 	}
 
 	extraHost := make([]v1.HostAlias, 0)
@@ -573,7 +573,7 @@ func containerToV1Container(ctx context.Context, c *Container) (v1.Container, []
 	if !c.Privileged() && len(c.config.Spec.Linux.Devices) > 0 {
 		// TODO Enable when we can support devices and their names
 		kubeContainer.VolumeDevices = generateKubeVolumeDeviceFromLinuxDevice(c.config.Spec.Linux.Devices)
-		return kubeContainer, kubeVolumes, nil, annotations, errors.Wrapf(define.ErrNotImplemented, "linux devices")
+		return kubeContainer, kubeVolumes, nil, annotations, fmt.Errorf("linux devices: %w", define.ErrNotImplemented)
 	}
 
 	if len(c.config.UserVolumes) > 0 {
@@ -743,7 +743,7 @@ func portMappingToContainerPort(portMappings []types.PortMapping) ([]v1.Containe
 			case "SCTP":
 				protocol = v1.ProtocolSCTP
 			default:
-				return containerPorts, errors.Errorf("unknown network protocol %s", p.Protocol)
+				return containerPorts, fmt.Errorf("unknown network protocol %s", p.Protocol)
 			}
 			for i := uint16(0); i < p.Range; i++ {
 				cp := v1.ContainerPort{
@@ -772,7 +772,7 @@ func libpodEnvVarsToKubeEnvVars(envs []string, imageEnvs []string) ([]v1.EnvVar,
 	for _, e := range envs {
 		split := strings.SplitN(e, "=", 2)
 		if len(split) != 2 {
-			return envVars, errors.Errorf("environment variable %s is malformed; should be key=value", e)
+			return envVars, fmt.Errorf("environment variable %s is malformed; should be key=value", e)
 		}
 		if defaultEnv[split[0]] == split[1] {
 			continue
@@ -892,11 +892,11 @@ func isHostPathDirectory(hostPathSource string) (bool, error) {
 
 func convertVolumePathToName(hostSourcePath string) (string, error) {
 	if len(hostSourcePath) == 0 {
-		return "", errors.Errorf("hostSourcePath must be specified to generate volume name")
+		return "", errors.New("hostSourcePath must be specified to generate volume name")
 	}
 	if len(hostSourcePath) == 1 {
 		if hostSourcePath != "/" {
-			return "", errors.Errorf("hostSourcePath malformatted: %s", hostSourcePath)
+			return "", fmt.Errorf("hostSourcePath malformatted: %s", hostSourcePath)
 		}
 		// add special case name
 		return "root", nil
@@ -1025,7 +1025,7 @@ func generateKubeSecurityContext(c *Container) (*v1.SecurityContext, error) {
 			defer c.lock.Unlock()
 		}
 		if err := c.syncContainer(); err != nil {
-			return nil, errors.Wrapf(err, "unable to sync container during YAML generation")
+			return nil, fmt.Errorf("unable to sync container during YAML generation: %w", err)
 		}
 
 		mountpoint := c.state.Mountpoint
@@ -1033,7 +1033,7 @@ func generateKubeSecurityContext(c *Container) (*v1.SecurityContext, error) {
 			var err error
 			mountpoint, err = c.mount()
 			if err != nil {
-				return nil, errors.Wrapf(err, "failed to mount %s mountpoint", c.ID())
+				return nil, fmt.Errorf("failed to mount %s mountpoint: %w", c.ID(), err)
 			}
 			defer func() {
 				if err := c.unmount(false); err != nil {

@@ -1,11 +1,12 @@
 package libpod
 
 import (
+	"errors"
+	"fmt"
 	"time"
 
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/storage"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -38,7 +39,7 @@ func (r *Runtime) ListStorageContainers() ([]*StorageContainer, error) {
 		// Look up if container is in state
 		hasCtr, err := r.state.HasContainer(ctr.ID)
 		if err != nil {
-			return nil, errors.Wrapf(err, "error looking up container %s in state", ctr.ID)
+			return nil, fmt.Errorf("error looking up container %s in state: %w", ctr.ID, err)
 		}
 
 		storageCtr.PresentInLibpod = hasCtr
@@ -60,20 +61,20 @@ func (r *Runtime) StorageContainer(idOrName string) (*storage.Container, error) 
 func (r *Runtime) RemoveStorageContainer(idOrName string, force bool) error {
 	targetID, err := r.store.Lookup(idOrName)
 	if err != nil {
-		if errors.Cause(err) == storage.ErrLayerUnknown {
-			return errors.Wrapf(define.ErrNoSuchCtr, "no container with ID or name %q found", idOrName)
+		if errors.Is(err, storage.ErrLayerUnknown) {
+			return fmt.Errorf("no container with ID or name %q found: %w", idOrName, define.ErrNoSuchCtr)
 		}
-		return errors.Wrapf(err, "error looking up container %q", idOrName)
+		return fmt.Errorf("error looking up container %q: %w", idOrName, err)
 	}
 
 	// Lookup returns an ID but it's not guaranteed to be a container ID.
 	// So we can still error here.
 	ctr, err := r.store.Container(targetID)
 	if err != nil {
-		if errors.Cause(err) == storage.ErrContainerUnknown {
-			return errors.Wrapf(define.ErrNoSuchCtr, "%q does not refer to a container", idOrName)
+		if errors.Is(err, storage.ErrContainerUnknown) {
+			return fmt.Errorf("%q does not refer to a container: %w", idOrName, define.ErrNoSuchCtr)
 		}
-		return errors.Wrapf(err, "error retrieving container %q", idOrName)
+		return fmt.Errorf("error retrieving container %q: %w", idOrName, err)
 	}
 
 	// Error out if the container exists in libpod
@@ -82,13 +83,13 @@ func (r *Runtime) RemoveStorageContainer(idOrName string, force bool) error {
 		return err
 	}
 	if exists {
-		return errors.Wrapf(define.ErrCtrExists, "refusing to remove %q as it exists in libpod as container %s", idOrName, ctr.ID)
+		return fmt.Errorf("refusing to remove %q as it exists in libpod as container %s: %w", idOrName, ctr.ID, define.ErrCtrExists)
 	}
 
 	if !force {
 		timesMounted, err := r.store.Mounted(ctr.ID)
 		if err != nil {
-			if errors.Cause(err) == storage.ErrContainerUnknown {
+			if errors.Is(err, storage.ErrContainerUnknown) {
 				// Container was removed from under us.
 				// It's gone, so don't bother erroring.
 				logrus.Infof("Storage for container %s already removed", ctr.ID)
@@ -97,7 +98,7 @@ func (r *Runtime) RemoveStorageContainer(idOrName string, force bool) error {
 			logrus.Warnf("Checking if container %q is mounted, attempting to delete: %v", idOrName, err)
 		}
 		if timesMounted > 0 {
-			return errors.Wrapf(define.ErrCtrStateInvalid, "container %q is mounted and cannot be removed without using force", idOrName)
+			return fmt.Errorf("container %q is mounted and cannot be removed without using force: %w", idOrName, define.ErrCtrStateInvalid)
 		}
 	} else if _, err := r.store.Unmount(ctr.ID, true); err != nil {
 		if errors.Is(err, storage.ErrContainerUnknown) {
@@ -109,12 +110,12 @@ func (r *Runtime) RemoveStorageContainer(idOrName string, force bool) error {
 	}
 
 	if err := r.store.DeleteContainer(ctr.ID); err != nil {
-		if errors.Cause(err) == storage.ErrNotAContainer || errors.Cause(err) == storage.ErrContainerUnknown {
+		if errors.Is(err, storage.ErrNotAContainer) || errors.Is(err, storage.ErrContainerUnknown) {
 			// Container again gone, no error
 			logrus.Infof("Storage for container %s already removed", ctr.ID)
 			return nil
 		}
-		return errors.Wrapf(err, "error removing storage for container %q", idOrName)
+		return fmt.Errorf("error removing storage for container %q: %w", idOrName, err)
 	}
 
 	return nil

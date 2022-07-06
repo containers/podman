@@ -1,6 +1,7 @@
 package libpod
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -19,7 +20,6 @@ import (
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/containers/podman/v4/utils"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
@@ -27,14 +27,14 @@ import (
 // ExecContainer executes a command in a running container
 func (r *ConmonOCIRuntime) ExecContainer(c *Container, sessionID string, options *ExecOptions, streams *define.AttachStreams, newSize *define.TerminalSize) (int, chan error, error) {
 	if options == nil {
-		return -1, nil, errors.Wrapf(define.ErrInvalidArg, "must provide an ExecOptions struct to ExecContainer")
+		return -1, nil, fmt.Errorf("must provide an ExecOptions struct to ExecContainer: %w", define.ErrInvalidArg)
 	}
 	if len(options.Cmd) == 0 {
-		return -1, nil, errors.Wrapf(define.ErrInvalidArg, "must provide a command to execute")
+		return -1, nil, fmt.Errorf("must provide a command to execute: %w", define.ErrInvalidArg)
 	}
 
 	if sessionID == "" {
-		return -1, nil, errors.Wrapf(define.ErrEmptyID, "must provide a session ID for exec")
+		return -1, nil, fmt.Errorf("must provide a session ID for exec: %w", define.ErrEmptyID)
 	}
 
 	// TODO: Should we default this to false?
@@ -73,7 +73,7 @@ func (r *ConmonOCIRuntime) ExecContainer(c *Container, sessionID string, options
 	}()
 
 	if err := execCmd.Wait(); err != nil {
-		return -1, nil, errors.Wrapf(err, "cannot run conmon")
+		return -1, nil, fmt.Errorf("cannot run conmon: %w", err)
 	}
 
 	pid, err := readConmonPipeData(r.name, pipes.syncPipe, ociLog)
@@ -87,12 +87,12 @@ func (r *ConmonOCIRuntime) ExecContainerHTTP(ctr *Container, sessionID string, o
 	streams *HTTPAttachStreams, cancel <-chan bool, hijackDone chan<- bool, holdConnOpen <-chan bool, newSize *define.TerminalSize) (int, chan error, error) {
 	if streams != nil {
 		if !streams.Stdin && !streams.Stdout && !streams.Stderr {
-			return -1, nil, errors.Wrapf(define.ErrInvalidArg, "must provide at least one stream to attach to")
+			return -1, nil, fmt.Errorf("must provide at least one stream to attach to: %w", define.ErrInvalidArg)
 		}
 	}
 
 	if options == nil {
-		return -1, nil, errors.Wrapf(define.ErrInvalidArg, "must provide exec options to ExecContainerHTTP")
+		return -1, nil, fmt.Errorf("must provide exec options to ExecContainerHTTP: %w", define.ErrInvalidArg)
 	}
 
 	detachString := config.DefaultDetachKeys
@@ -156,7 +156,7 @@ type conmonPipeData struct {
 // not attach to it.
 func (r *ConmonOCIRuntime) ExecContainerDetached(ctr *Container, sessionID string, options *ExecOptions, stdin bool) (int, error) {
 	if options == nil {
-		return -1, errors.Wrapf(define.ErrInvalidArg, "must provide exec options to ExecContainerHTTP")
+		return -1, fmt.Errorf("must provide exec options to ExecContainerHTTP: %w", define.ErrInvalidArg)
 	}
 
 	var ociLog string
@@ -187,7 +187,7 @@ func (r *ConmonOCIRuntime) ExecContainerDetached(ctr *Container, sessionID strin
 
 	// Wait for conmon to succeed, when return.
 	if err := execCmd.Wait(); err != nil {
-		return -1, errors.Wrapf(err, "cannot run conmon")
+		return -1, fmt.Errorf("cannot run conmon: %w", err)
 	}
 
 	pid, err := readConmonPipeData(r.name, pipes.syncPipe, ociLog)
@@ -204,7 +204,7 @@ func (r *ConmonOCIRuntime) ExecAttachResize(ctr *Container, sessionID string, ne
 	defer controlFile.Close()
 
 	if _, err = fmt.Fprintf(controlFile, "%d %d %d\n", 1, newSize.Height, newSize.Width); err != nil {
-		return errors.Wrapf(err, "failed to write to ctl file to resize terminal")
+		return fmt.Errorf("failed to write to ctl file to resize terminal: %w", err)
 	}
 
 	return nil
@@ -225,7 +225,7 @@ func (r *ConmonOCIRuntime) ExecStopContainer(ctr *Container, sessionID string, t
 		if err == unix.ESRCH {
 			return nil
 		}
-		return errors.Wrapf(err, "error pinging container %s exec session %s PID %d with signal 0", ctr.ID(), sessionID, pid)
+		return fmt.Errorf("error pinging container %s exec session %s PID %d with signal 0: %w", ctr.ID(), sessionID, pid, err)
 	}
 
 	if timeout > 0 {
@@ -235,7 +235,7 @@ func (r *ConmonOCIRuntime) ExecStopContainer(ctr *Container, sessionID string, t
 			if err == unix.ESRCH {
 				return nil
 			}
-			return errors.Wrapf(err, "error killing container %s exec session %s PID %d with SIGTERM", ctr.ID(), sessionID, pid)
+			return fmt.Errorf("error killing container %s exec session %s PID %d with SIGTERM: %w", ctr.ID(), sessionID, pid, err)
 		}
 
 		// Wait for the PID to stop
@@ -253,12 +253,12 @@ func (r *ConmonOCIRuntime) ExecStopContainer(ctr *Container, sessionID string, t
 		if err == unix.ESRCH {
 			return nil
 		}
-		return errors.Wrapf(err, "error killing container %s exec session %s PID %d with SIGKILL", ctr.ID(), sessionID, pid)
+		return fmt.Errorf("error killing container %s exec session %s PID %d with SIGKILL: %w", ctr.ID(), sessionID, pid, err)
 	}
 
 	// Wait for the PID to stop
 	if err := waitPidStop(pid, killContainerTimeout); err != nil {
-		return errors.Wrapf(err, "timed out waiting for container %s exec session %s PID %d to stop after SIGKILL", ctr.ID(), sessionID, pid)
+		return fmt.Errorf("timed out waiting for container %s exec session %s PID %d to stop after SIGKILL: %w", ctr.ID(), sessionID, pid, err)
 	}
 
 	return nil
@@ -279,7 +279,7 @@ func (r *ConmonOCIRuntime) ExecUpdateStatus(ctr *Container, sessionID string) (b
 		if err == unix.ESRCH {
 			return false, nil
 		}
-		return false, errors.Wrapf(err, "error pinging container %s exec session %s PID %d with signal 0", ctr.ID(), sessionID, pid)
+		return false, fmt.Errorf("error pinging container %s exec session %s PID %d with signal 0: %w", ctr.ID(), sessionID, pid, err)
 	}
 
 	return true, nil
@@ -289,7 +289,7 @@ func (r *ConmonOCIRuntime) ExecUpdateStatus(ctr *Container, sessionID string) (b
 func (r *ConmonOCIRuntime) ExecAttachSocketPath(ctr *Container, sessionID string) (string, error) {
 	// We don't even use container, so don't validity check it
 	if sessionID == "" {
-		return "", errors.Wrapf(define.ErrInvalidArg, "must provide a valid session ID to get attach socket path")
+		return "", fmt.Errorf("must provide a valid session ID to get attach socket path: %w", define.ErrInvalidArg)
 	}
 
 	return filepath.Join(ctr.execBundlePath(sessionID), "attach"), nil
@@ -325,20 +325,20 @@ func (r *ConmonOCIRuntime) startExec(c *Container, sessionID string, options *Ex
 	pipes := new(execPipes)
 
 	if options == nil {
-		return nil, nil, errors.Wrapf(define.ErrInvalidArg, "must provide an ExecOptions struct to ExecContainer")
+		return nil, nil, fmt.Errorf("must provide an ExecOptions struct to ExecContainer: %w", define.ErrInvalidArg)
 	}
 	if len(options.Cmd) == 0 {
-		return nil, nil, errors.Wrapf(define.ErrInvalidArg, "must provide a command to execute")
+		return nil, nil, fmt.Errorf("must provide a command to execute: %w", define.ErrInvalidArg)
 	}
 
 	if sessionID == "" {
-		return nil, nil, errors.Wrapf(define.ErrEmptyID, "must provide a session ID for exec")
+		return nil, nil, fmt.Errorf("must provide a session ID for exec: %w", define.ErrEmptyID)
 	}
 
 	// create sync pipe to receive the pid
 	parentSyncPipe, childSyncPipe, err := newPipe()
 	if err != nil {
-		return nil, nil, errors.Wrapf(err, "error creating socket pair")
+		return nil, nil, fmt.Errorf("error creating socket pair: %w", err)
 	}
 	pipes.syncPipe = parentSyncPipe
 
@@ -352,7 +352,7 @@ func (r *ConmonOCIRuntime) startExec(c *Container, sessionID string, options *Ex
 	// attachToExec is responsible for closing parentStartPipe
 	childStartPipe, parentStartPipe, err := newPipe()
 	if err != nil {
-		return nil, nil, errors.Wrapf(err, "error creating socket pair")
+		return nil, nil, fmt.Errorf("error creating socket pair: %w", err)
 	}
 	pipes.startPipe = parentStartPipe
 
@@ -362,7 +362,7 @@ func (r *ConmonOCIRuntime) startExec(c *Container, sessionID string, options *Ex
 	// attachToExec is responsible for closing parentAttachPipe
 	parentAttachPipe, childAttachPipe, err := newPipe()
 	if err != nil {
-		return nil, nil, errors.Wrapf(err, "error creating socket pair")
+		return nil, nil, fmt.Errorf("error creating socket pair: %w", err)
 	}
 	pipes.attachPipe = parentAttachPipe
 
@@ -471,7 +471,7 @@ func (r *ConmonOCIRuntime) startExec(c *Container, sessionID string, options *Ex
 	childrenClosed = true
 
 	if err != nil {
-		return nil, nil, errors.Wrapf(err, "cannot start container %s", c.ID())
+		return nil, nil, fmt.Errorf("cannot start container %s: %w", c.ID(), err)
 	}
 	if err := r.moveConmonToCgroupAndSignal(c, execCmd, parentStartPipe); err != nil {
 		return nil, nil, err
@@ -494,7 +494,7 @@ func attachExecHTTP(c *Container, sessionID string, r *http.Request, w http.Resp
 	// conmonPipeDataChan in case of an error.
 
 	if pipes == nil || pipes.startPipe == nil || pipes.attachPipe == nil {
-		err := errors.Wrapf(define.ErrInvalidArg, "must provide a start and attach pipe to finish an exec attach")
+		err := fmt.Errorf("must provide a start and attach pipe to finish an exec attach: %w", define.ErrInvalidArg)
 		conmonPipeDataChan <- conmonPipeData{-1, err}
 		return err
 	}
@@ -537,7 +537,7 @@ func attachExecHTTP(c *Container, sessionID string, r *http.Request, w http.Resp
 	conn, err := openUnixSocket(sockPath)
 	if err != nil {
 		conmonPipeDataChan <- conmonPipeData{-1, err}
-		return errors.Wrapf(err, "failed to connect to container's attach socket: %v", sockPath)
+		return fmt.Errorf("failed to connect to container's attach socket: %v: %w", sockPath, err)
 	}
 	defer func() {
 		if err := conn.Close(); err != nil {
@@ -558,13 +558,13 @@ func attachExecHTTP(c *Container, sessionID string, r *http.Request, w http.Resp
 	hijacker, ok := w.(http.Hijacker)
 	if !ok {
 		conmonPipeDataChan <- conmonPipeData{-1, err}
-		return errors.Errorf("unable to hijack connection")
+		return errors.New("unable to hijack connection")
 	}
 
 	httpCon, httpBuf, err := hijacker.Hijack()
 	if err != nil {
 		conmonPipeDataChan <- conmonPipeData{-1, err}
-		return errors.Wrapf(err, "error hijacking connection")
+		return fmt.Errorf("error hijacking connection: %w", err)
 	}
 
 	hijackDone <- true
@@ -575,7 +575,7 @@ func attachExecHTTP(c *Container, sessionID string, r *http.Request, w http.Resp
 	// Force a flush after the header is written.
 	if err := httpBuf.Flush(); err != nil {
 		conmonPipeDataChan <- conmonPipeData{-1, err}
-		return errors.Wrapf(err, "error flushing HTTP hijack header")
+		return fmt.Errorf("error flushing HTTP hijack header: %w", err)
 	}
 
 	go func() {
@@ -723,7 +723,7 @@ func prepareProcessExec(c *Container, options *ExecOptions, env []string, sessio
 	if len(addGroups) > 0 {
 		sgids, err = lookup.GetContainerGroups(addGroups, c.state.Mountpoint, overrides)
 		if err != nil {
-			return nil, errors.Wrapf(err, "error looking up supplemental groups for container %s exec session %s", c.ID(), sessionID)
+			return nil, fmt.Errorf("error looking up supplemental groups for container %s exec session %s: %w", c.ID(), sessionID, err)
 		}
 	}
 

@@ -6,13 +6,14 @@ package events
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"strconv"
 	"time"
 
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/coreos/go-systemd/v22/journal"
 	"github.com/coreos/go-systemd/v22/sdjournal"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -73,7 +74,7 @@ func (e EventJournalD) Read(ctx context.Context, options ReadOptions) error {
 	defer close(options.EventChannel)
 	filterMap, err := generateEventFilters(options.Filters, options.Since, options.Until)
 	if err != nil {
-		return errors.Wrapf(err, "failed to parse event filters")
+		return fmt.Errorf("failed to parse event filters: %w", err)
 	}
 
 	var untilTime time.Time
@@ -96,29 +97,29 @@ func (e EventJournalD) Read(ctx context.Context, options ReadOptions) error {
 	// match only podman journal entries
 	podmanJournal := sdjournal.Match{Field: "SYSLOG_IDENTIFIER", Value: "podman"}
 	if err := j.AddMatch(podmanJournal.String()); err != nil {
-		return errors.Wrap(err, "failed to add journal filter for event log")
+		return fmt.Errorf("failed to add journal filter for event log: %w", err)
 	}
 
 	if len(options.Since) == 0 && len(options.Until) == 0 && options.Stream {
 		if err := j.SeekTail(); err != nil {
-			return errors.Wrap(err, "failed to seek end of journal")
+			return fmt.Errorf("failed to seek end of journal: %w", err)
 		}
 		// After SeekTail calling Next moves to a random entry.
 		// To prevent this we have to call Previous first.
 		// see: https://bugs.freedesktop.org/show_bug.cgi?id=64614
 		if _, err := j.Previous(); err != nil {
-			return errors.Wrap(err, "failed to move journal cursor to previous entry")
+			return fmt.Errorf("failed to move journal cursor to previous entry: %w", err)
 		}
 	}
 
 	// the api requires a next|prev before getting a cursor
 	if _, err := j.Next(); err != nil {
-		return errors.Wrap(err, "failed to move journal cursor to next entry")
+		return fmt.Errorf("failed to move journal cursor to next entry: %w", err)
 	}
 
 	prevCursor, err := j.GetCursor()
 	if err != nil {
-		return errors.Wrap(err, "failed to get journal cursor")
+		return fmt.Errorf("failed to get journal cursor: %w", err)
 	}
 	for {
 		select {
@@ -130,11 +131,11 @@ func (e EventJournalD) Read(ctx context.Context, options ReadOptions) error {
 		}
 
 		if _, err := j.Next(); err != nil {
-			return errors.Wrap(err, "failed to move journal cursor to next entry")
+			return fmt.Errorf("failed to move journal cursor to next entry: %w", err)
 		}
 		newCursor, err := j.GetCursor()
 		if err != nil {
-			return errors.Wrap(err, "failed to get journal cursor")
+			return fmt.Errorf("failed to get journal cursor: %w", err)
 		}
 		if prevCursor == newCursor {
 			if !options.Stream || (len(options.Until) > 0 && time.Now().After(untilTime)) {
@@ -151,14 +152,14 @@ func (e EventJournalD) Read(ctx context.Context, options ReadOptions) error {
 
 		entry, err := j.GetEntry()
 		if err != nil {
-			return errors.Wrap(err, "failed to read journal entry")
+			return fmt.Errorf("failed to read journal entry: %w", err)
 		}
 		newEvent, err := newEventFromJournalEntry(entry)
 		if err != nil {
 			// We can't decode this event.
 			// Don't fail hard - that would make events unusable.
 			// Instead, log and continue.
-			if errors.Cause(err) != ErrEventTypeBlank {
+			if !errors.Is(err, ErrEventTypeBlank) {
 				logrus.Errorf("Unable to decode event: %v", err)
 			}
 			continue

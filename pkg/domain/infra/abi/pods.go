@@ -2,6 +2,8 @@ package abi
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -12,7 +14,6 @@ import (
 	"github.com/containers/podman/v4/pkg/signal"
 	"github.com/containers/podman/v4/pkg/specgen"
 	"github.com/containers/podman/v4/pkg/specgen/generate"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -49,7 +50,7 @@ func getPodsByContext(all, latest bool, pods []string, runtime *libpod.Runtime) 
 
 func (ic *ContainerEngine) PodExists(ctx context.Context, nameOrID string) (*entities.BoolReport, error) {
 	_, err := ic.Libpod.LookupPod(nameOrID)
-	if err != nil && errors.Cause(err) != define.ErrNoSuchPod {
+	if err != nil && !errors.Is(err, define.ErrNoSuchPod) {
 		return nil, err
 	}
 	return &entities.BoolReport{Value: err == nil}, nil
@@ -69,14 +70,14 @@ func (ic *ContainerEngine) PodKill(ctx context.Context, namesOrIds []string, opt
 	for _, p := range pods {
 		report := entities.PodKillReport{Id: p.ID()}
 		conErrs, err := p.Kill(ctx, uint(sig))
-		if err != nil && errors.Cause(err) != define.ErrPodPartialFail {
+		if err != nil && !errors.Is(err, define.ErrPodPartialFail) {
 			report.Errs = []error{err}
 			reports = append(reports, &report)
 			continue
 		}
 		if len(conErrs) > 0 {
 			for id, err := range conErrs {
-				report.Errs = append(report.Errs, errors.Wrapf(err, "error killing container %s", id))
+				report.Errs = append(report.Errs, fmt.Errorf("error killing container %s: %w", id, err))
 			}
 			reports = append(reports, &report)
 			continue
@@ -110,7 +111,7 @@ func (ic *ContainerEngine) PodLogs(ctx context.Context, nameOrID string, options
 			}
 		}
 		if !ctrFound {
-			return errors.Wrapf(define.ErrNoSuchCtr, "container %s is not in pod %s", options.ContainerName, nameOrID)
+			return fmt.Errorf("container %s is not in pod %s: %w", options.ContainerName, nameOrID, define.ErrNoSuchCtr)
 		}
 	} else {
 		// No container name specified select all containers
@@ -135,13 +136,13 @@ func (ic *ContainerEngine) PodPause(ctx context.Context, namesOrIds []string, op
 	for _, p := range pods {
 		report := entities.PodPauseReport{Id: p.ID()}
 		errs, err := p.Pause(ctx)
-		if err != nil && errors.Cause(err) != define.ErrPodPartialFail {
+		if err != nil && !errors.Is(err, define.ErrPodPartialFail) {
 			report.Errs = []error{err}
 			continue
 		}
 		if len(errs) > 0 {
 			for id, v := range errs {
-				report.Errs = append(report.Errs, errors.Wrapf(v, "error pausing container %s", id))
+				report.Errs = append(report.Errs, fmt.Errorf("error pausing container %s: %w", id, v))
 			}
 			reports = append(reports, &report)
 			continue
@@ -158,15 +159,23 @@ func (ic *ContainerEngine) PodUnpause(ctx context.Context, namesOrIds []string, 
 		return nil, err
 	}
 	for _, p := range pods {
+		status, err := p.GetPodStatus()
+		if err != nil {
+			return nil, err
+		}
+		// If the pod is not paused or degraded, there is no need to attempt an unpause on it
+		if status != define.PodStatePaused && status != define.PodStateDegraded {
+			continue
+		}
 		report := entities.PodUnpauseReport{Id: p.ID()}
 		errs, err := p.Unpause(ctx)
-		if err != nil && errors.Cause(err) != define.ErrPodPartialFail {
+		if err != nil && !errors.Is(err, define.ErrPodPartialFail) {
 			report.Errs = []error{err}
 			continue
 		}
 		if len(errs) > 0 {
 			for id, v := range errs {
-				report.Errs = append(report.Errs, errors.Wrapf(v, "error unpausing container %s", id))
+				report.Errs = append(report.Errs, fmt.Errorf("error unpausing container %s: %w", id, v))
 			}
 			reports = append(reports, &report)
 			continue
@@ -179,19 +188,19 @@ func (ic *ContainerEngine) PodUnpause(ctx context.Context, namesOrIds []string, 
 func (ic *ContainerEngine) PodStop(ctx context.Context, namesOrIds []string, options entities.PodStopOptions) ([]*entities.PodStopReport, error) {
 	reports := []*entities.PodStopReport{}
 	pods, err := getPodsByContext(options.All, options.Latest, namesOrIds, ic.Libpod)
-	if err != nil && !(options.Ignore && errors.Cause(err) == define.ErrNoSuchPod) {
+	if err != nil && !(options.Ignore && errors.Is(err, define.ErrNoSuchPod)) {
 		return nil, err
 	}
 	for _, p := range pods {
 		report := entities.PodStopReport{Id: p.ID()}
 		errs, err := p.StopWithTimeout(ctx, false, options.Timeout)
-		if err != nil && errors.Cause(err) != define.ErrPodPartialFail {
+		if err != nil && !errors.Is(err, define.ErrPodPartialFail) {
 			report.Errs = []error{err}
 			continue
 		}
 		if len(errs) > 0 {
 			for id, v := range errs {
-				report.Errs = append(report.Errs, errors.Wrapf(v, "error stopping container %s", id))
+				report.Errs = append(report.Errs, fmt.Errorf("error stopping container %s: %w", id, v))
 			}
 			reports = append(reports, &report)
 			continue
@@ -210,14 +219,14 @@ func (ic *ContainerEngine) PodRestart(ctx context.Context, namesOrIds []string, 
 	for _, p := range pods {
 		report := entities.PodRestartReport{Id: p.ID()}
 		errs, err := p.Restart(ctx)
-		if err != nil && errors.Cause(err) != define.ErrPodPartialFail {
+		if err != nil && !errors.Is(err, define.ErrPodPartialFail) {
 			report.Errs = []error{err}
 			reports = append(reports, &report)
 			continue
 		}
 		if len(errs) > 0 {
 			for id, v := range errs {
-				report.Errs = append(report.Errs, errors.Wrapf(v, "error restarting container %s", id))
+				report.Errs = append(report.Errs, fmt.Errorf("error restarting container %s: %w", id, v))
 			}
 			reports = append(reports, &report)
 			continue
@@ -237,14 +246,14 @@ func (ic *ContainerEngine) PodStart(ctx context.Context, namesOrIds []string, op
 	for _, p := range pods {
 		report := entities.PodStartReport{Id: p.ID()}
 		errs, err := p.Start(ctx)
-		if err != nil && errors.Cause(err) != define.ErrPodPartialFail {
+		if err != nil && !errors.Is(err, define.ErrPodPartialFail) {
 			report.Errs = []error{err}
 			reports = append(reports, &report)
 			continue
 		}
 		if len(errs) > 0 {
 			for id, v := range errs {
-				report.Errs = append(report.Errs, errors.Wrapf(v, "error starting container %s", id))
+				report.Errs = append(report.Errs, fmt.Errorf("error starting container %s: %w", id, v))
 			}
 			reports = append(reports, &report)
 			continue
@@ -256,7 +265,7 @@ func (ic *ContainerEngine) PodStart(ctx context.Context, namesOrIds []string, op
 
 func (ic *ContainerEngine) PodRm(ctx context.Context, namesOrIds []string, options entities.PodRmOptions) ([]*entities.PodRmReport, error) {
 	pods, err := getPodsByContext(options.All, options.Latest, namesOrIds, ic.Libpod)
-	if err != nil && !(options.Ignore && errors.Cause(err) == define.ErrNoSuchPod) {
+	if err != nil && !(options.Ignore && errors.Is(err, define.ErrNoSuchPod)) {
 		return nil, err
 	}
 	reports := make([]*entities.PodRmReport, 0, len(pods))
@@ -393,7 +402,7 @@ func (ic *ContainerEngine) PodTop(ctx context.Context, options entities.PodTopOp
 		pod, err = ic.Libpod.LookupPod(options.NameOrID)
 	}
 	if err != nil {
-		return nil, errors.Wrap(err, "unable to look up requested container")
+		return nil, fmt.Errorf("unable to look up requested container: %w", err)
 	}
 
 	// Run Top.
@@ -505,7 +514,7 @@ func (ic *ContainerEngine) PodInspect(ctx context.Context, options entities.PodI
 		pod, err = ic.Libpod.LookupPod(options.NameOrID)
 	}
 	if err != nil {
-		return nil, errors.Wrap(err, "unable to look up requested container")
+		return nil, fmt.Errorf("unable to look up requested container: %w", err)
 	}
 	inspect, err := pod.Inspect()
 	if err != nil {

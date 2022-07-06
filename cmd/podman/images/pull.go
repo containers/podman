@@ -1,6 +1,7 @@
 package images
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -13,7 +14,6 @@ import (
 	"github.com/containers/podman/v4/cmd/podman/utils"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/util"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -138,7 +138,7 @@ func imagePull(cmd *cobra.Command, args []string) error {
 	}
 	if platform != "" {
 		if pullOptions.Arch != "" || pullOptions.OS != "" {
-			return errors.Errorf("--platform option can not be specified with --arch or --os")
+			return errors.New("--platform option can not be specified with --arch or --os")
 		}
 		split := strings.SplitN(platform, "/", 2)
 		pullOptions.OS = split[0]

@@ -1,6 +1,7 @@
 package logs
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -10,7 +11,6 @@ import (
 
 	"github.com/containers/podman/v4/libpod/logs/reversereader"
 	"github.com/nxadm/tail"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -105,7 +105,7 @@ func getTailLog(path string, tail int) ([]*LogLine, error) {
 		for {
 			s, err := rr.Read()
 			if err != nil {
-				if errors.Cause(err) == io.EOF {
+				if errors.Is(err, io.EOF) {
 					inputs <- []string{leftover}
 				} else {
 					logrus.Error(err)
@@ -228,11 +228,11 @@ func (l *LogLine) Until(until time.Time) bool {
 func NewLogLine(line string) (*LogLine, error) {
 	splitLine := strings.Split(line, " ")
 	if len(splitLine) < 4 {
-		return nil, errors.Errorf("'%s' is not a valid container log line", line)
+		return nil, fmt.Errorf("'%s' is not a valid container log line", line)
 	}
 	logTime, err := time.Parse(LogTimeFormat, splitLine[0])
 	if err != nil {
-		return nil, errors.Wrapf(err, "unable to convert time %s from container log", splitLine[0])
+		return nil, fmt.Errorf("unable to convert time %s from container log: %w", splitLine[0], err)
 	}
 	l := LogLine{
 		Time:         logTime,
@@ -249,11 +249,11 @@ func NewLogLine(line string) (*LogLine, error) {
 func NewJournaldLogLine(line string, withID bool) (*LogLine, error) {
 	splitLine := strings.Split(line, " ")
 	if len(splitLine) < 4 {
-		return nil, errors.Errorf("'%s' is not a valid container log line", line)
+		return nil, fmt.Errorf("'%s' is not a valid container log line", line)
 	}
 	logTime, err := time.Parse(LogTimeFormat, splitLine[0])
 	if err != nil {
-		return nil, errors.Wrapf(err, "unable to convert time %s from container log", splitLine[0])
+		return nil, fmt.Errorf("unable to convert time %s from container log: %w", splitLine[0], err)
 	}
 	var msg, id string
 	if withID {

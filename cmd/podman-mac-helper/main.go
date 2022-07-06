@@ -4,6 +4,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -13,7 +14,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -97,7 +97,7 @@ func getUser() (string, string, string, error) {
 		return "", "", "", fmt.Errorf("invalid uid for user: %s", name)
 	}
 	if id == 0 {
-		return "", "", "", fmt.Errorf("unexpected root user")
+		return "", "", "", errors.New("unexpected root user")
 	}
 
 	return name, uid, home, nil

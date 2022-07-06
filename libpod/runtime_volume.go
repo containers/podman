@@ -2,11 +2,11 @@ package libpod
 
 import (
 	"context"
+	"errors"
 
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/libpod/events"
 	"github.com/containers/podman/v4/pkg/domain/entities/reports"
-	"github.com/pkg/errors"
 )
 
 // Contains the public Runtime API for volumes
@@ -133,7 +133,7 @@ func (r *Runtime) PruneVolumes(ctx context.Context, filterFuncs []VolumeFilter) 
 		report.Id = vol.Name()
 		var timeout *uint
 		if err := r.RemoveVolume(ctx, vol, false, timeout); err != nil {
-			if errors.Cause(err) != define.ErrVolumeBeingUsed && errors.Cause(err) != define.ErrVolumeRemoved {
+			if !errors.Is(err, define.ErrVolumeBeingUsed) && !errors.Is(err, define.ErrVolumeRemoved) {
 				report.Err = err
 			} else {
 				// We didn't remove the volume for some reason

@@ -5,6 +5,7 @@ package libpod
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"os"
 	"strconv"
@@ -14,7 +15,6 @@ import (
 	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/containers/psgo"
 	"github.com/google/shlex"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -22,15 +22,15 @@ import (
 // []string for output
 func (c *Container) Top(descriptors []string) ([]string, error) {
 	if c.config.NoCgroups {
-		return nil, errors.Wrapf(define.ErrNoCgroups, "cannot run top on container %s as it did not create a cgroup", c.ID())
+		return nil, fmt.Errorf("cannot run top on container %s as it did not create a cgroup: %w", c.ID(), define.ErrNoCgroups)
 	}
 
 	conStat, err := c.State()
 	if err != nil {
-		return nil, errors.Wrapf(err, "unable to look up state for %s", c.ID())
+		return nil, fmt.Errorf("unable to look up state for %s: %w", c.ID(), err)
 	}
 	if conStat != define.ContainerStateRunning {
-		return nil, errors.Errorf("top can only be used on running containers")
+		return nil, errors.New("top can only be used on running containers")
 	}
 
 	// Also support comma-separated input.
@@ -59,7 +59,7 @@ func (c *Container) Top(descriptors []string) ([]string, error) {
 	for _, d := range descriptors {
 		shSplit, err := shlex.Split(d)
 		if err != nil {
-			return nil, fmt.Errorf("parsing ps args: %v", err)
+			return nil, fmt.Errorf("parsing ps args: %w", err)
 		}
 		for _, s := range shSplit {
 			if s != "" {
@@ -70,7 +70,7 @@ func (c *Container) Top(descriptors []string) ([]string, error) {
 
 	output, err = c.execPS(psDescriptors)
 	if err != nil {
-		return nil, errors.Wrapf(err, "error executing ps(1) in the container")
+		return nil, fmt.Errorf("error executing ps(1) in the container: %w", err)
 	}
 
 	// Trick: filter the ps command from the output instead of
@@ -157,7 +157,7 @@ func (c *Container) execPS(args []string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	} else if ec != 0 {
-		return nil, errors.Errorf("Runtime failed with exit status: %d and output: %s", ec, strings.Join(stderr, " "))
+		return nil, fmt.Errorf("runtime failed with exit status: %d and output: %s", ec, strings.Join(stderr, " "))
 	}
 
 	if logrus.GetLevel() >= logrus.DebugLevel {

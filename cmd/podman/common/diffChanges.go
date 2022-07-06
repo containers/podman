@@ -6,7 +6,6 @@ import (
 
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/storage/pkg/archive"
-	"github.com/pkg/errors"
 )
 
 type ChangesReportJSON struct {
@@ -26,7 +25,7 @@ func ChangesToJSON(diffs *entities.DiffReport) error {
 		case archive.ChangeModify:
 			body.Changed = append(body.Changed, row.Path)
 		default:
-			return errors.Errorf("output kind %q not recognized", row.Kind)
+			return fmt.Errorf("output kind %q not recognized", row.Kind)
 		}
 	}
 

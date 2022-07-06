@@ -2,6 +2,7 @@ package utils
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -19,7 +20,6 @@ import (
 
 	"github.com/containers/podman/v4/libpod"
 	"github.com/gorilla/schema"
-	"github.com/pkg/errors"
 )
 
 type waitQueryDocker struct {
@@ -39,7 +39,7 @@ func WaitContainerDocker(w http.ResponseWriter, r *http.Request) {
 
 	decoder := ctx.Value(api.DecoderKey).(*schema.Decoder)
 	if err = decoder.Decode(&query, r.URL.Query()); err != nil {
-		Error(w, http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
+		Error(w, http.StatusBadRequest, fmt.Errorf("failed to parse parameters for %s: %w", r.URL.String(), err))
 		return
 	}
 
@@ -106,7 +106,7 @@ func WaitContainerLibpod(w http.ResponseWriter, r *http.Request) {
 	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
 	query := waitQueryLibpod{}
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		Error(w, http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
+		Error(w, http.StatusBadRequest, fmt.Errorf("failed to parse parameters for %s: %w", r.URL.String(), err))
 		return
 	}
 
@@ -130,7 +130,7 @@ func WaitContainerLibpod(w http.ResponseWriter, r *http.Request) {
 
 	exitCode, err := waitFn(conditions...)
 	if err != nil {
-		if errors.Cause(err) == define.ErrNoSuchCtr {
+		if errors.Is(err, define.ErrNoSuchCtr) {
 			ContainerNotFound(w, name, err)
 			return
 		}
@@ -197,7 +197,7 @@ var notRunningStates = []define.ContainerStatus{
 
 func waitRemoved(ctrWait containerWaitFn) (int32, error) {
 	code, err := ctrWait(define.ContainerStateUnknown)
-	if err != nil && errors.Cause(err) == define.ErrNoSuchCtr {
+	if err != nil && errors.Is(err, define.ErrNoSuchCtr) {
 		return code, nil
 	}
 	return code, err

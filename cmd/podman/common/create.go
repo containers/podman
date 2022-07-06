@@ -544,13 +544,6 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		)
 		_ = cmd.RegisterFlagCompletionFunc(userFlagName, AutocompleteUserFlag)
 
-		utsFlagName := "uts"
-		createFlags.String(
-			utsFlagName, "",
-			"UTS namespace to use",
-		)
-		_ = cmd.RegisterFlagCompletionFunc(utsFlagName, AutocompleteNamespace)
-
 		mountFlagName := "mount"
 		createFlags.StringArrayVar(
 			&cf.Mount,
@@ -683,6 +676,14 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 			"User namespace to use",
 		)
 		_ = cmd.RegisterFlagCompletionFunc(usernsFlagName, AutocompleteUserNamespace)
+
+		utsFlagName := "uts"
+		createFlags.StringVar(
+			&cf.UTS,
+			utsFlagName, "",
+			"UTS namespace to use",
+		)
+		_ = cmd.RegisterFlagCompletionFunc(utsFlagName, AutocompleteNamespace)
 
 		cgroupParentFlagName := "cgroup-parent"
 		createFlags.StringVar(
@@ -863,14 +864,6 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		)
 		_ = cmd.RegisterFlagCompletionFunc(cpusetMemsFlagName, completion.AutocompleteNone)
 
-		memoryFlagName := "memory"
-		createFlags.StringVarP(
-			&cf.Memory,
-			memoryFlagName, "m", "",
-			"Memory limit "+sizeWithUnitFormat,
-		)
-		_ = cmd.RegisterFlagCompletionFunc(memoryFlagName, completion.AutocompleteNone)
-
 		memoryReservationFlagName := "memory-reservation"
 		createFlags.StringVar(
 			&cf.MemoryReservation,
@@ -912,4 +905,12 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		"CPUs in which to allow execution (0-3, 0,1)",
 	)
 	_ = cmd.RegisterFlagCompletionFunc(cpusetCpusFlagName, completion.AutocompleteNone)
+
+	memoryFlagName := "memory"
+	createFlags.StringVarP(
+		&cf.Memory,
+		memoryFlagName, "m", "",
+		"Memory limit "+sizeWithUnitFormat,
+	)
+	_ = cmd.RegisterFlagCompletionFunc(memoryFlagName, completion.AutocompleteNone)
 }

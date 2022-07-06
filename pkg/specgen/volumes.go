@@ -37,7 +37,7 @@ type OverlayVolume struct {
 
 // ImageVolume is a volume based on a container image.  The container image is
 // first mounted on the host and is then bind-mounted into the container.  An
-// ImageVolume is always mounted read only.
+// ImageVolume is always mounted read-only.
 type ImageVolume struct {
 	// Source is the source of the image volume.  The image can be referred
 	// to by name and by ID.
@@ -139,7 +139,13 @@ func GenVolumeMounts(volumeFlag []string) (map[string]spec.Mount, map[string]*Na
 				// This is a overlay volume
 				newOverlayVol := new(OverlayVolume)
 				newOverlayVol.Destination = dest
-				newOverlayVol.Source = src
+				// convert src to absolute path so we don't end up passing
+				// relative values as lowerdir for overlay mounts
+				source, err := filepath.Abs(src)
+				if err != nil {
+					return nil, nil, nil, errors.Wrapf(err, "failed while resolving absolute path for source %v for overlay mount", src)
+				}
+				newOverlayVol.Source = source
 				newOverlayVol.Options = options
 
 				if _, ok := overlayVolumes[newOverlayVol.Destination]; ok {

@@ -479,21 +479,25 @@ spec:
     fi
 
     local name1="resources1"
-    run_podman --cgroup-manager=systemd pod create --name=$name1 --cpus=5
-    run_podman  --cgroup-manager=systemd pod start $name1
+    run_podman --cgroup-manager=systemd pod create --name=$name1 --cpus=5 --memory=10m
+    run_podman --cgroup-manager=systemd pod start $name1
     run_podman pod inspect --format '{{.CgroupPath}}' $name1
     local path1="$output"
     local actual1=$(< /sys/fs/cgroup/$path1/cpu.max)
     is "$actual1" "500000 100000" "resource limits set properly"
+    local actual2=$(< /sys/fs/cgroup/$path1/memory.max)
+    is "$actual2" "10485760" "resource limits set properly"
     run_podman pod --cgroup-manager=systemd rm -f $name1
 
     local name2="resources2"
-    run_podman --cgroup-manager=cgroupfs pod create --cpus=5 --name=$name2
+    run_podman --cgroup-manager=cgroupfs pod create --cpus=5 --memory=10m --name=$name2
     run_podman --cgroup-manager=cgroupfs pod start $name2
     run_podman pod inspect --format '{{.CgroupPath}}' $name2
     local path2="$output"
     local actual2=$(< /sys/fs/cgroup/$path2/cpu.max)
     is "$actual2" "500000 100000" "resource limits set properly"
+    local actual2=$(< /sys/fs/cgroup/$path2/memory.max)
+    is "$actual2" "10485760" "resource limits set properly"
     run_podman --cgroup-manager=cgroupfs pod rm $name2
 }
 

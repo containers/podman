@@ -2,6 +2,7 @@ package containers
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"strconv"
@@ -21,7 +22,6 @@ import (
 	"github.com/containers/podman/v4/pkg/specgenutil"
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/mattn/go-isatty"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -128,7 +128,7 @@ func create(cmd *cobra.Command, args []string) error {
 			return errors.New("must specify pod value with init-ctr")
 		}
 		if !cutil.StringInSlice(initctr, []string{define.AlwaysInitContainer, define.OneShotInitContainer}) {
-			return errors.Errorf("init-ctr value must be '%s' or '%s'", define.AlwaysInitContainer, define.OneShotInitContainer)
+			return fmt.Errorf("init-ctr value must be '%s' or '%s'", define.AlwaysInitContainer, define.OneShotInitContainer)
 		}
 		cliVals.InitContainerType = initctr
 	}
@@ -141,7 +141,7 @@ func create(cmd *cobra.Command, args []string) error {
 	rawImageName := ""
 	if !cliVals.RootFS {
 		rawImageName = args[0]
-		name, err := PullImage(args[0], cliVals)
+		name, err := PullImage(args[0], &cliVals)
 		if err != nil {
 			return err
 		}
@@ -218,13 +218,12 @@ func CreateInit(c *cobra.Command, vals entities.ContainerCreateOptions, isInfra 
 
 	if !isInfra {
 		if c.Flag("cpu-period").Changed && c.Flag("cpus").Changed {
-			return vals, errors.Errorf("--cpu-period and --cpus cannot be set together")
+			return vals, errors.New("--cpu-period and --cpus cannot be set together")
 		}
 		if c.Flag("cpu-quota").Changed && c.Flag("cpus").Changed {
-			return vals, errors.Errorf("--cpu-quota and --cpus cannot be set together")
+			return vals, errors.New("--cpu-quota and --cpus cannot be set together")
 		}
 		vals.IPC = c.Flag("ipc").Value.String()
-		vals.UTS = c.Flag("uts").Value.String()
 		vals.PID = c.Flag("pid").Value.String()
 		vals.CgroupNS = c.Flag("cgroupns").Value.String()
 
@@ -268,30 +267,30 @@ func CreateInit(c *cobra.Command, vals entities.ContainerCreateOptions, isInfra 
 		if c.Flags().Changed("env") {
 			env, err := c.Flags().GetStringArray("env")
 			if err != nil {
-				return vals, errors.Wrapf(err, "retrieve env flag")
+				return vals, fmt.Errorf("retrieve env flag: %w", err)
 			}
 			vals.Env = env
 		}
 		if c.Flag("cgroups").Changed && vals.CgroupsMode == "split" && registry.IsRemote() {
-			return vals, errors.Errorf("the option --cgroups=%q is not supported in remote mode", vals.CgroupsMode)
+			return vals, fmt.Errorf("the option --cgroups=%q is not supported in remote mode", vals.CgroupsMode)
 		}
 
 		if c.Flag("pod").Changed && !strings.HasPrefix(c.Flag("pod").Value.String(), "new:") && c.Flag("userns").Changed {
-			return vals, errors.Errorf("--userns and --pod cannot be set together")
+			return vals, errors.New("--userns and --pod cannot be set together")
 		}
 	}
 	if c.Flag("shm-size").Changed {
 		vals.ShmSize = c.Flag("shm-size").Value.String()
 	}
 	if (c.Flag("dns").Changed || c.Flag("dns-opt").Changed || c.Flag("dns-search").Changed) && vals.Net != nil && (vals.Net.Network.NSMode == specgen.NoNetwork || vals.Net.Network.IsContainer()) {
-		return vals, errors.Errorf("conflicting options: dns and the network mode: " + string(vals.Net.Network.NSMode))
+		return vals, fmt.Errorf("conflicting options: dns and the network mode: " + string(vals.Net.Network.NSMode))
 	}
 	noHosts, err := c.Flags().GetBool("no-hosts")
 	if err != nil {
 		return vals, err
 	}
 	if noHosts && c.Flag("add-host").Changed {
-		return vals, errors.Errorf("--no-hosts and --add-host cannot be set together")
+		return vals, errors.New("--no-hosts and --add-host cannot be set together")
 	}
 
 	if !isInfra && c.Flag("entrypoint").Changed {
@@ -305,7 +304,8 @@ func CreateInit(c *cobra.Command, vals entities.ContainerCreateOptions, isInfra 
 	return vals, nil
 }
 
-func PullImage(imageName string, cliVals entities.ContainerCreateOptions) (string, error) {
+// Pulls image if any also parses and populates OS, Arch and Variant in specified container create options
+func PullImage(imageName string, cliVals *entities.ContainerCreateOptions) (string, error) {
 	pullPolicy, err := config.ParsePullPolicy(cliVals.Pull)
 	if err != nil {
 		return "", err
@@ -314,7 +314,7 @@ func PullImage(imageName string, cliVals entities.ContainerCreateOptions) (strin
 	if cliVals.Platform != "" || cliVals.Arch != "" || cliVals.OS != "" {
 		if cliVals.Platform != "" {
 			if cliVals.Arch != "" || cliVals.OS != "" {
-				return "", errors.Errorf("--platform option can not be specified with --arch or --os")
+				return "", errors.New("--platform option can not be specified with --arch or --os")
 			}
 			split := strings.SplitN(cliVals.Platform, "/", 2)
 			cliVals.OS = split[0]
@@ -362,7 +362,7 @@ func createPodIfNecessary(cmd *cobra.Command, s *specgen.SpecGenerator, netOpts 
 	}
 	podName := strings.Replace(s.Pod, "new:", "", 1)
 	if len(podName) < 1 {
-		return errors.Errorf("new pod name must be at least one character")
+		return errors.New("new pod name must be at least one character")
 	}
 
 	var err error

@@ -75,3 +75,82 @@ func TestWinPath(t *testing.T) {
 		}
 	}
 }
+
+func TestParseLinuxResourcesDeviceAccess(t *testing.T) {
+	d, err := parseLinuxResourcesDeviceAccess("a *:* rwm")
+	assert.Nil(t, err, "err is nil")
+	assert.True(t, d.Allow, "allow is true")
+	assert.Equal(t, d.Type, "a", "type is 'a'")
+	assert.Nil(t, d.Minor, "minor is nil")
+	assert.Nil(t, d.Major, "major is nil")
+
+	d, err = parseLinuxResourcesDeviceAccess("b 3:* rwm")
+	assert.Nil(t, err, "err is nil")
+	assert.True(t, d.Allow, "allow is true")
+	assert.Equal(t, d.Type, "b", "type is 'b'")
+	assert.Nil(t, d.Minor, "minor is nil")
+	assert.NotNil(t, d.Major, "major is not nil")
+	assert.Equal(t, *d.Major, int64(3), "major is 3")
+
+	d, err = parseLinuxResourcesDeviceAccess("a *:3 rwm")
+	assert.Nil(t, err, "err is nil")
+	assert.True(t, d.Allow, "allow is true")
+	assert.Equal(t, d.Type, "a", "type is 'a'")
+	assert.Nil(t, d.Major, "major is nil")
+	assert.NotNil(t, d.Minor, "minor is not nil")
+	assert.Equal(t, *d.Minor, int64(3), "minor is 3")
+
+	d, err = parseLinuxResourcesDeviceAccess("c 1:2 rwm")
+	assert.Nil(t, err, "err is nil")
+	assert.True(t, d.Allow, "allow is true")
+	assert.Equal(t, d.Type, "c", "type is 'c'")
+	assert.NotNil(t, d.Major, "minor is not nil")
+	assert.Equal(t, *d.Major, int64(1), "minor is 1")
+	assert.NotNil(t, d.Minor, "minor is not nil")
+	assert.Equal(t, *d.Minor, int64(2), "minor is 2")
+
+	_, err = parseLinuxResourcesDeviceAccess("q *:* rwm")
+	assert.NotNil(t, err, "err is not nil")
+
+	_, err = parseLinuxResourcesDeviceAccess("a a:* rwm")
+	assert.NotNil(t, err, "err is not nil")
+
+	_, err = parseLinuxResourcesDeviceAccess("a *:a rwm")
+	assert.NotNil(t, err, "err is not nil")
+
+	_, err = parseLinuxResourcesDeviceAccess("a *:* abc")
+	assert.NotNil(t, err, "err is not nil")
+
+	_, err = parseLinuxResourcesDeviceAccess("* *:* *")
+	assert.NotNil(t, err, "err is not nil")
+
+	_, err = parseLinuxResourcesDeviceAccess("* *:a2 *")
+	assert.NotNil(t, err, "err is not nil")
+
+	_, err = parseLinuxResourcesDeviceAccess("*")
+	assert.NotNil(t, err, "err is not nil")
+
+	_, err = parseLinuxResourcesDeviceAccess("*:*")
+	assert.NotNil(t, err, "err is not nil")
+
+	_, err = parseLinuxResourcesDeviceAccess("a *:*")
+	assert.NotNil(t, err, "err is not nil")
+
+	_, err = parseLinuxResourcesDeviceAccess("a *:*")
+	assert.NotNil(t, err, "err is not nil")
+
+	_, err = parseLinuxResourcesDeviceAccess("a 12a:* r")
+	assert.NotNil(t, err, "err is not nil")
+
+	_, err = parseLinuxResourcesDeviceAccess("a a12:* r")
+	assert.NotNil(t, err, "err is not nil")
+
+	_, err = parseLinuxResourcesDeviceAccess("a 0x1:* r")
+	assert.NotNil(t, err, "err is not nil")
+
+	_, err = parseLinuxResourcesDeviceAccess("a -2:* r")
+	assert.NotNil(t, err, "err is not nil")
+
+	_, err = parseLinuxResourcesDeviceAccess("a *:-3 r")
+	assert.NotNil(t, err, "err is not nil")
+}

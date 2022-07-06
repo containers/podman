@@ -4,7 +4,10 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/containers/podman/v4/libpod"
 	"github.com/containers/podman/v4/pkg/api/handlers/utils"
@@ -12,14 +15,13 @@ import (
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/domain/infra/abi"
 	"github.com/containers/podman/v4/pkg/util"
-	"github.com/pkg/errors"
 )
 
 func ListSecrets(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	filtersMap, err := util.PrepareFilters(r)
 	if err != nil {
-		utils.Error(w, http.StatusInternalServerError, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
+		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("failed to parse parameters for %s: %w", r.URL.String(), err))
 		return
 	}
 	ic := abi.ContainerEngine{Libpod: runtime}
@@ -106,11 +108,11 @@ func CreateSecret(w http.ResponseWriter, r *http.Request) {
 	}{}
 
 	if err := json.NewDecoder(r.Body).Decode(&createParams); err != nil {
-		utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "Decode()"))
+		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("Decode(): %w", err))
 		return
 	}
 	if len(createParams.Labels) > 0 {
-		utils.Error(w, http.StatusBadRequest, errors.Wrapf(errors.New("bad parameter"), "labels not supported"))
+		utils.Error(w, http.StatusBadRequest, fmt.Errorf("labels not supported: %w", errors.New("bad parameter")))
 		return
 	}
 
@@ -121,7 +123,7 @@ func CreateSecret(w http.ResponseWriter, r *http.Request) {
 	ic := abi.ContainerEngine{Libpod: runtime}
 	report, err := ic.SecretCreate(r.Context(), createParams.Name, reader, opts)
 	if err != nil {
-		if errors.Cause(err).Error() == "secret name in use" {
+		if strings.Contains(err.Error(), "secret name in use") {
 			utils.Error(w, http.StatusConflict, err)
 			return
 		}
