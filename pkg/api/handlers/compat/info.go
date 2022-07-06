@@ -22,7 +22,6 @@ import (
 	"github.com/docker/docker/api/types/registry"
 	"github.com/docker/docker/api/types/swarm"
 	"github.com/google/uuid"
-	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -33,18 +32,18 @@ func GetInfo(w http.ResponseWriter, r *http.Request) {
 
 	infoData, err := runtime.Info()
 	if err != nil {
-		utils.Error(w, http.StatusInternalServerError, errors.Wrapf(err, "failed to obtain system memory info"))
+		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("failed to obtain system memory info: %w", err))
 		return
 	}
 
 	configInfo, err := runtime.GetConfig()
 	if err != nil {
-		utils.Error(w, http.StatusInternalServerError, errors.Wrapf(err, "failed to obtain runtime config"))
+		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("failed to obtain runtime config: %w", err))
 		return
 	}
 	versionInfo, err := define.GetVersion()
 	if err != nil {
-		utils.Error(w, http.StatusInternalServerError, errors.Wrapf(err, "failed to obtain podman versions"))
+		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("failed to obtain podman versions: %w", err))
 		return
 	}
 	stateInfo := getContainersState(runtime)

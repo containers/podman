@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/containers/common/libimage"
@@ -10,7 +11,6 @@ import (
 	dockerContainer "github.com/docker/docker/api/types/container"
 	dockerNetwork "github.com/docker/docker/api/types/network"
 	"github.com/docker/go-connections/nat"
-	"github.com/pkg/errors"
 )
 
 type AuthConfig struct {
@@ -237,17 +237,17 @@ func portsToPortSet(input map[string]struct{}) (nat.PortSet, error) {
 		case "tcp", "":
 			p, err := nat.NewPort("tcp", port)
 			if err != nil {
-				return nil, errors.Wrapf(err, "unable to create tcp port from %s", k)
+				return nil, fmt.Errorf("unable to create tcp port from %s: %w", k, err)
 			}
 			ports[p] = struct{}{}
 		case "udp":
 			p, err := nat.NewPort("udp", port)
 			if err != nil {
-				return nil, errors.Wrapf(err, "unable to create tcp port from %s", k)
+				return nil, fmt.Errorf("unable to create tcp port from %s: %w", k, err)
 			}
 			ports[p] = struct{}{}
 		default:
-			return nil, errors.Errorf("invalid port proto %q in %q", proto, k)
+			return nil, fmt.Errorf("invalid port proto %q in %q", proto, k)
 		}
 	}
 	return ports, nil

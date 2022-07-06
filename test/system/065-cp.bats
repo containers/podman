@@ -66,7 +66,7 @@ load helpers
 
     # Container (parent) path does not exist.
     run_podman 125 cp $srcdir/hostfile0 cpcontainer:/IdoNotExist/
-    is "$output" 'Error: "/IdoNotExist/" could not be found on container cpcontainer: No such file or directory' \
+    is "$output" 'Error: "/IdoNotExist/" could not be found on container cpcontainer: no such file or directory' \
        "copy into nonexistent path in container"
 
     run_podman kill cpcontainer
@@ -794,7 +794,7 @@ ${randomcontent[1]}" "$description"
     is "$output" "" "output from podman cp 1"
 
     run_podman 125 cp --pause=false $srcdir/$rand_filename2 cpcontainer:/tmp/d2/x/
-    is "$output" 'Error: "/tmp/d2/x/" could not be found on container cpcontainer: No such file or directory' "cp will not create nonexistent destination directory"
+    is "$output" 'Error: "/tmp/d2/x/" could not be found on container cpcontainer: no such file or directory' "cp will not create nonexistent destination directory"
 
     run_podman cp --pause=false $srcdir/$rand_filename3 cpcontainer:/tmp/d3/x
     is "$output" "" "output from podman cp 3"

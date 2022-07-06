@@ -1,6 +1,7 @@
 package libpod
 
 import (
+	"fmt"
 	"net"
 	"net/http"
 
@@ -12,7 +13,6 @@ import (
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/domain/infra/abi"
 	"github.com/gorilla/schema"
-	"github.com/pkg/errors"
 )
 
 func PlayKube(w http.ResponseWriter, r *http.Request) {
@@ -34,7 +34,7 @@ func PlayKube(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.Error(w, http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
+		utils.Error(w, http.StatusBadRequest, fmt.Errorf("failed to parse parameters for %s: %w", r.URL.String(), err))
 		return
 	}
 
@@ -42,7 +42,7 @@ func PlayKube(w http.ResponseWriter, r *http.Request) {
 	for _, ipString := range query.StaticIPs {
 		ip := net.ParseIP(ipString)
 		if ip == nil {
-			utils.Error(w, http.StatusBadRequest, errors.Errorf("Invalid IP address %s", ipString))
+			utils.Error(w, http.StatusBadRequest, fmt.Errorf("invalid IP address %s", ipString))
 			return
 		}
 		staticIPs = append(staticIPs, ip)
@@ -103,7 +103,7 @@ func PlayKube(w http.ResponseWriter, r *http.Request) {
 	report, err := containerEngine.PlayKube(r.Context(), r.Body, options)
 	_ = r.Body.Close()
 	if err != nil {
-		utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "error playing YAML file"))
+		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("error playing YAML file: %w", err))
 		return
 	}
 	utils.WriteResponse(w, http.StatusOK, report)
@@ -116,7 +116,7 @@ func PlayKubeDown(w http.ResponseWriter, r *http.Request) {
 	report, err := containerEngine.PlayKubeDown(r.Context(), r.Body, *options)
 	_ = r.Body.Close()
 	if err != nil {
-		utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "error tearing down YAML file"))
+		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("error tearing down YAML file: %w", err))
 		return
 	}
 	utils.WriteResponse(w, http.StatusOK, report)

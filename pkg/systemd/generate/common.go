@@ -1,11 +1,11 @@
 package generate
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 
 	"github.com/containers/podman/v4/pkg/systemd/define"
-	"github.com/pkg/errors"
 )
 
 // minTimeoutStopSec is the minimal stop timeout for generated systemd units.
@@ -20,7 +20,7 @@ func validateRestartPolicy(restart string) error {
 			return nil
 		}
 	}
-	return errors.Errorf("%s is not a valid restart policy", restart)
+	return fmt.Errorf("%s is not a valid restart policy", restart)
 }
 
 const headerTemplate = `# {{{{.ServiceName}}}}{{{{- if (eq .IdentifySpecifier true) }}}}@{{{{- end}}}}.service

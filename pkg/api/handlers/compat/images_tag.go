@@ -1,6 +1,7 @@
 package compat
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -8,7 +9,6 @@ import (
 	"github.com/containers/podman/v4/libpod"
 	"github.com/containers/podman/v4/pkg/api/handlers/utils"
 	api "github.com/containers/podman/v4/pkg/api/types"
-	"github.com/pkg/errors"
 )
 
 func TagImage(w http.ResponseWriter, r *http.Request) {
@@ -17,7 +17,7 @@ func TagImage(w http.ResponseWriter, r *http.Request) {
 	name := utils.GetName(r)
 	possiblyNormalizedName, err := utils.NormalizeToDockerHub(r, name)
 	if err != nil {
-		utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "error normalizing image"))
+		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("error normalizing image: %w", err))
 		return
 	}
 
@@ -25,7 +25,7 @@ func TagImage(w http.ResponseWriter, r *http.Request) {
 	lookupOptions := &libimage.LookupImageOptions{ManifestList: true}
 	newImage, _, err := runtime.LibimageRuntime().LookupImage(possiblyNormalizedName, lookupOptions)
 	if err != nil {
-		utils.ImageNotFound(w, name, errors.Wrapf(err, "failed to find image %s", name))
+		utils.ImageNotFound(w, name, fmt.Errorf("failed to find image %s: %w", name, err))
 		return
 	}
 
@@ -42,7 +42,7 @@ func TagImage(w http.ResponseWriter, r *http.Request) {
 
 	possiblyNormalizedTag, err := utils.NormalizeToDockerHub(r, tagName)
 	if err != nil {
-		utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "error normalizing image"))
+		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("error normalizing image: %w", err))
 		return
 	}
 

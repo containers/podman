@@ -2,6 +2,7 @@ package compat
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -13,7 +14,6 @@ import (
 	"github.com/containers/podman/v4/pkg/domain/infra/abi"
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/docker/docker/api/types"
-	"github.com/pkg/errors"
 )
 
 func PruneImages(w http.ResponseWriter, r *http.Request) {
@@ -22,7 +22,7 @@ func PruneImages(w http.ResponseWriter, r *http.Request) {
 
 	filterMap, err := util.PrepareFilters(r)
 	if err != nil {
-		utils.Error(w, http.StatusInternalServerError, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
+		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("failed to parse parameters for %s: %w", r.URL.String(), err))
 		return
 	}
 

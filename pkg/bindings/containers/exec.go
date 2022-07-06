@@ -3,6 +3,8 @@ package containers
 import (
 	"bytes"
 	"context"
+	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -11,7 +13,6 @@ import (
 	"github.com/containers/podman/v4/pkg/bindings"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	jsoniter "github.com/json-iterator/go"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -27,12 +28,12 @@ func ExecCreate(ctx context.Context, nameOrID string, config *handlers.ExecCreat
 	}
 
 	if config == nil {
-		return "", errors.Errorf("must provide a configuration for exec session")
+		return "", errors.New("must provide a configuration for exec session")
 	}
 
 	requestJSON, err := json.Marshal(config)
 	if err != nil {
-		return "", errors.Wrapf(err, "error marshalling exec config to JSON")
+		return "", fmt.Errorf("error marshalling exec config to JSON: %w", err)
 	}
 	jsonReader := strings.NewReader(string(requestJSON))
 

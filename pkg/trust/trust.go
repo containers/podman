@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -14,7 +15,6 @@ import (
 	"github.com/containers/image/v5/types"
 	"github.com/docker/docker/pkg/homedir"
 	"github.com/ghodss/yaml"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -126,11 +126,11 @@ func LoadAndMergeConfig(dirPath string) (*RegistryConfiguration, error) {
 		var config RegistryConfiguration
 		err = yaml.Unmarshal(configBytes, &config)
 		if err != nil {
-			return nil, errors.Wrapf(err, "error parsing %s", configPath)
+			return nil, fmt.Errorf("error parsing %s: %w", configPath, err)
 		}
 		if config.DefaultDocker != nil {
 			if mergedConfig.DefaultDocker != nil {
-				return nil, errors.Errorf(`Error parsing signature storage configuration: "default-docker" defined both in "%s" and "%s"`,
+				return nil, fmt.Errorf(`error parsing signature storage configuration: "default-docker" defined both in "%s" and "%s"`,
 					dockerDefaultMergedFrom, configPath)
 			}
 			mergedConfig.DefaultDocker = config.DefaultDocker
@@ -138,7 +138,7 @@ func LoadAndMergeConfig(dirPath string) (*RegistryConfiguration, error) {
 		}
 		for nsName, nsConfig := range config.Docker { // includes config.Docker == nil
 			if _, ok := mergedConfig.Docker[nsName]; ok {
-				return nil, errors.Errorf(`Error parsing signature storage configuration: "docker" namespace "%s" defined both in "%s" and "%s"`,
+				return nil, fmt.Errorf(`error parsing signature storage configuration: "docker" namespace "%s" defined both in "%s" and "%s"`,
 					nsName, nsMergedFrom[nsName], configPath)
 			}
 			mergedConfig.Docker[nsName] = nsConfig
@@ -234,10 +234,10 @@ func GetPolicy(policyPath string) (PolicyContent, error) {
 	var policyContentStruct PolicyContent
 	policyContent, err := ioutil.ReadFile(policyPath)
 	if err != nil {
-		return policyContentStruct, errors.Wrap(err, "unable to read policy file")
+		return policyContentStruct, fmt.Errorf("unable to read policy file: %w", err)
 	}
 	if err := json.Unmarshal(policyContent, &policyContentStruct); err != nil {
-		return policyContentStruct, errors.Wrapf(err, "could not parse trust policies from %s", policyPath)
+		return policyContentStruct, fmt.Errorf("could not parse trust policies from %s: %w", policyPath, err)
 	}
 	return policyContentStruct, nil
 }

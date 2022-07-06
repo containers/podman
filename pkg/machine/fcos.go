@@ -17,7 +17,6 @@ import (
 	"github.com/coreos/stream-metadata-go/fedoracoreos"
 	"github.com/coreos/stream-metadata-go/release"
 	"github.com/coreos/stream-metadata-go/stream"
-	"github.com/pkg/errors"
 
 	digest "github.com/opencontainers/go-digest"
 	"github.com/sirupsen/logrus"
@@ -156,7 +155,7 @@ func GetFCOSDownload(imageStream string) (*FcosDownloadInfo, error) {
 	case "stable":
 		streamType = fedoracoreos.StreamStable
 	default:
-		return nil, errors.Errorf("invalid stream %s: valid streams are `testing` and `stable`", imageStream)
+		return nil, fmt.Errorf("invalid stream %s: valid streams are `testing` and `stable`", imageStream)
 	}
 	streamurl := getStreamURL(streamType)
 	resp, err := http.Get(streamurl.String())

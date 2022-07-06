@@ -2,6 +2,8 @@ package checkpoint
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"io/ioutil"
 	"os"
 
@@ -16,7 +18,6 @@ import (
 	"github.com/containers/podman/v4/pkg/specgen/generate"
 	"github.com/containers/podman/v4/pkg/specgenutil"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -65,7 +66,7 @@ func CRImportCheckpoint(ctx context.Context, runtime *libpod.Runtime, restoreOpt
 
 	// This should not happen as checkpoints with these options are not exported.
 	if len(ctrConfig.Dependencies) > 0 {
-		return nil, errors.Errorf("Cannot import checkpoints of containers with dependencies")
+		return nil, errors.New("cannot import checkpoints of containers with dependencies")
 	}
 
 	// Volumes included in the checkpoint should not exist
@@ -76,7 +77,7 @@ func CRImportCheckpoint(ctx context.Context, runtime *libpod.Runtime, restoreOpt
 				return nil, err
 			}
 			if exists {
-				return nil, errors.Errorf("volume with name %s already exists. Use --ignore-volumes to not restore content of volumes", vol.Name)
+				return nil, fmt.Errorf("volume with name %s already exists. Use --ignore-volumes to not restore content of volumes", vol.Name)
 			}
 		}
 	}
@@ -106,11 +107,11 @@ func CRImportCheckpoint(ctx context.Context, runtime *libpod.Runtime, restoreOpt
 	if restoreOptions.Pod != "" {
 		// Restoring into a Pod requires much newer versions of CRIU
 		if !criu.CheckForCriu(criu.PodCriuVersion) {
-			return nil, errors.Errorf("restoring containers into pods requires at least CRIU %d", criu.PodCriuVersion)
+			return nil, fmt.Errorf("restoring containers into pods requires at least CRIU %d", criu.PodCriuVersion)
 		}
 		// The runtime also has to support it
 		if !crutils.CRRuntimeSupportsPodCheckpointRestore(runtime.GetOCIRuntimePath()) {
-			return nil, errors.Errorf("runtime %s does not support pod restore", runtime.GetOCIRuntimePath())
+			return nil, fmt.Errorf("runtime %s does not support pod restore", runtime.GetOCIRuntimePath())
 		}
 		// Restoring into an existing Pod
 		ctrConfig.Pod = restoreOptions.Pod
@@ -120,12 +121,12 @@ func CRImportCheckpoint(ctx context.Context, runtime *libpod.Runtime, restoreOpt
 		// Let's make sure we a restoring into a pod with the same shared namespaces.
 		pod, err := runtime.LookupPod(ctrConfig.Pod)
 		if err != nil {
-			return nil, errors.Wrapf(err, "pod %q cannot be retrieved", ctrConfig.Pod)
+			return nil, fmt.Errorf("pod %q cannot be retrieved: %w", ctrConfig.Pod, err)
 		}
 
 		infraContainer, err := pod.InfraContainer()
 		if err != nil {
-			return nil, errors.Wrapf(err, "cannot retrieve infra container from pod %q", ctrConfig.Pod)
+			return nil, fmt.Errorf("cannot retrieve infra container from pod %q: %w", ctrConfig.Pod, err)
 		}
 
 		// If a namespaces was shared (!= "") it needs to be set to the new infrastructure container
@@ -133,14 +134,14 @@ func CRImportCheckpoint(ctx context.Context, runtime *libpod.Runtime, restoreOpt
 		// container we abort.
 		if ctrConfig.IPCNsCtr != "" {
 			if !pod.SharesIPC() {
-				return nil, errors.Errorf("pod %s does not share the IPC namespace", ctrConfig.Pod)
+				return nil, fmt.Errorf("pod %s does not share the IPC namespace", ctrConfig.Pod)
 			}
 			ctrConfig.IPCNsCtr = infraContainer.ID()
 		}
 
 		if ctrConfig.NetNsCtr != "" {
 			if !pod.SharesNet() {
-				return nil, errors.Errorf("pod %s does not share the network namespace", ctrConfig.Pod)
+				return nil, fmt.Errorf("pod %s does not share the network namespace", ctrConfig.Pod)
 			}
 			ctrConfig.NetNsCtr = infraContainer.ID()
 			for net, opts := range ctrConfig.Networks {
@@ -154,21 +155,21 @@ func CRImportCheckpoint(ctx context.Context, runtime *libpod.Runtime, restoreOpt
 
 		if ctrConfig.PIDNsCtr != "" {
 			if !pod.SharesPID() {
-				return nil, errors.Errorf("pod %s does not share the PID namespace", ctrConfig.Pod)
+				return nil, fmt.Errorf("pod %s does not share the PID namespace", ctrConfig.Pod)
 			}
 			ctrConfig.PIDNsCtr = infraContainer.ID()
 		}
 
 		if ctrConfig.UTSNsCtr != "" {
 			if !pod.SharesUTS() {
-				return nil, errors.Errorf("pod %s does not share the UTS namespace", ctrConfig.Pod)
+				return nil, fmt.Errorf("pod %s does not share the UTS namespace", ctrConfig.Pod)
 			}
 			ctrConfig.UTSNsCtr = infraContainer.ID()
 		}
 
 		if ctrConfig.CgroupNsCtr != "" {
 			if !pod.SharesCgroup() {
-				return nil, errors.Errorf("pod %s does not share the cgroup namespace", ctrConfig.Pod)
+				return nil, fmt.Errorf("pod %s does not share the cgroup namespace", ctrConfig.Pod)
 			}
 			ctrConfig.CgroupNsCtr = infraContainer.ID()
 		}
@@ -180,7 +181,7 @@ func CRImportCheckpoint(ctx context.Context, runtime *libpod.Runtime, restoreOpt
 		// Fix parent cgroup
 		cgroupPath, err := pod.CgroupPath()
 		if err != nil {
-			return nil, errors.Wrapf(err, "cannot retrieve cgroup path from pod %q", ctrConfig.Pod)
+			return nil, fmt.Errorf("cannot retrieve cgroup path from pod %q: %w", ctrConfig.Pod, err)
 		}
 		ctrConfig.CgroupParent = cgroupPath
 
@@ -228,14 +229,14 @@ func CRImportCheckpoint(ctx context.Context, runtime *libpod.Runtime, restoreOpt
 	containerConfig := container.Config()
 	ctrName := ctrConfig.Name
 	if containerConfig.Name != ctrName {
-		return nil, errors.Errorf("Name of restored container (%s) does not match requested name (%s)", containerConfig.Name, ctrName)
+		return nil, fmt.Errorf("name of restored container (%s) does not match requested name (%s)", containerConfig.Name, ctrName)
 	}
 
 	if !newName {
 		// Only check ID for a restore with the same name.
 		// Using -n to request a new name for the restored container, will also create a new ID
 		if containerConfig.ID != ctrID {
-			return nil, errors.Errorf("ID of restored container (%s) does not match requested ID (%s)", containerConfig.ID, ctrID)
+			return nil, fmt.Errorf("ID of restored container (%s) does not match requested ID (%s)", containerConfig.ID, ctrID)
 		}
 	}
 

@@ -1,10 +1,9 @@
 package channel
 
 import (
+	"errors"
 	"io"
 	"sync"
-
-	"github.com/pkg/errors"
 )
 
 // WriteCloser is an io.WriteCloser that that proxies Write() calls to a channel

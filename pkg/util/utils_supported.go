@@ -7,13 +7,13 @@ package util
 //  should work to take darwin from this
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"syscall"
 
 	"github.com/containers/podman/v4/pkg/rootless"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -51,12 +51,12 @@ func GetRuntimeDir() (string, error) {
 		if runtimeDir == "" {
 			home := os.Getenv("HOME")
 			if home == "" {
-				rootlessRuntimeDirError = fmt.Errorf("neither XDG_RUNTIME_DIR nor HOME was set non-empty")
+				rootlessRuntimeDirError = errors.New("neither XDG_RUNTIME_DIR nor HOME was set non-empty")
 				return
 			}
 			resolvedHome, err := filepath.EvalSymlinks(home)
 			if err != nil {
-				rootlessRuntimeDirError = errors.Wrapf(err, "cannot resolve %s", home)
+				rootlessRuntimeDirError = fmt.Errorf("cannot resolve %s: %w", home, err)
 				return
 			}
 			runtimeDir = filepath.Join(resolvedHome, "rundir")
@@ -80,7 +80,7 @@ func GetRootlessConfigHomeDir() (string, error) {
 			home := os.Getenv("HOME")
 			resolvedHome, err := filepath.EvalSymlinks(home)
 			if err != nil {
-				rootlessConfigHomeDirError = errors.Wrapf(err, "cannot resolve %s", home)
+				rootlessConfigHomeDirError = fmt.Errorf("cannot resolve %s: %w", home, err)
 				return
 			}
 			tmpDir := filepath.Join(resolvedHome, ".config")
@@ -115,7 +115,7 @@ func GetRootlessPauseProcessPidPath() (string, error) {
 // files.
 func GetRootlessPauseProcessPidPathGivenDir(libpodTmpDir string) (string, error) {
 	if libpodTmpDir == "" {
-		return "", errors.Errorf("must provide non-empty temporary directory")
+		return "", errors.New("must provide non-empty temporary directory")
 	}
 	return filepath.Join(libpodTmpDir, "pause.pid"), nil
 }

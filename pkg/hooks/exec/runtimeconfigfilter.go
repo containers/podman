@@ -4,12 +4,12 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"reflect"
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/pkg/errors"
 	"github.com/pmezard/go-difflib/difflib"
 	"github.com/sirupsen/logrus"
 )
@@ -43,7 +43,7 @@ func RuntimeConfigFilter(ctx context.Context, hooks []spec.Hook, config *spec.Sp
 		err = json.Unmarshal(data, &newConfig)
 		if err != nil {
 			logrus.Debugf("invalid JSON from config-filter hook %d:\n%s", i, string(data))
-			return nil, errors.Wrapf(err, "unmarshal output from config-filter hook %d", i)
+			return nil, fmt.Errorf("unmarshal output from config-filter hook %d: %w", i, err)
 		}
 
 		if !reflect.DeepEqual(config, &newConfig) {

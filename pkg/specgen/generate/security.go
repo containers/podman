@@ -1,6 +1,7 @@
 package generate
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/containers/common/libimage"
@@ -14,7 +15,6 @@ import (
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -32,11 +32,11 @@ func setLabelOpts(s *specgen.SpecGenerator, runtime *libpod.Runtime, pidConfig s
 	} else if pidConfig.IsContainer() {
 		ctr, err := runtime.LookupContainer(pidConfig.Value)
 		if err != nil {
-			return errors.Wrapf(err, "container %q not found", pidConfig.Value)
+			return fmt.Errorf("container %q not found: %w", pidConfig.Value, err)
 		}
 		secopts, err := label.DupSecOpt(ctr.ProcessLabel())
 		if err != nil {
-			return errors.Wrapf(err, "failed to duplicate label %q ", ctr.ProcessLabel())
+			return fmt.Errorf("failed to duplicate label %q : %w", ctr.ProcessLabel(), err)
 		}
 		labelOpts = append(labelOpts, secopts...)
 	}
@@ -46,11 +46,11 @@ func setLabelOpts(s *specgen.SpecGenerator, runtime *libpod.Runtime, pidConfig s
 	} else if ipcConfig.IsContainer() {
 		ctr, err := runtime.LookupContainer(ipcConfig.Value)
 		if err != nil {
-			return errors.Wrapf(err, "container %q not found", ipcConfig.Value)
+			return fmt.Errorf("container %q not found: %w", ipcConfig.Value, err)
 		}
 		secopts, err := label.DupSecOpt(ctr.ProcessLabel())
 		if err != nil {
-			return errors.Wrapf(err, "failed to duplicate label %q ", ctr.ProcessLabel())
+			return fmt.Errorf("failed to duplicate label %q : %w", ctr.ProcessLabel(), err)
 		}
 		labelOpts = append(labelOpts, secopts...)
 	}
@@ -63,7 +63,7 @@ func setupApparmor(s *specgen.SpecGenerator, rtc *config.Config, g *generate.Gen
 	hasProfile := len(s.ApparmorProfile) > 0
 	if !apparmor.IsEnabled() {
 		if hasProfile && s.ApparmorProfile != "unconfined" {
-			return errors.Errorf("Apparmor profile %q specified, but Apparmor is not enabled on this system", s.ApparmorProfile)
+			return fmt.Errorf("apparmor profile %q specified, but Apparmor is not enabled on this system", s.ApparmorProfile)
 		}
 		return nil
 	}
@@ -129,7 +129,7 @@ func securityConfigureGenerator(s *specgen.SpecGenerator, g *generate.Generator,
 			// Pass capRequiredRequested in CapAdd field to normalize capabilities names
 			capsRequired, err := capabilities.MergeCapabilities(nil, capsRequiredRequested, nil)
 			if err != nil {
-				return errors.Wrapf(err, "capabilities requested by user or image are not valid: %q", strings.Join(capsRequired, ","))
+				return fmt.Errorf("capabilities requested by user or image are not valid: %q: %w", strings.Join(capsRequired, ","), err)
 			}
 			// Verify all capRequired are in the capList
 			for _, cap := range capsRequired {
@@ -161,7 +161,7 @@ func securityConfigureGenerator(s *specgen.SpecGenerator, g *generate.Generator,
 	} else {
 		mergedCaps, err := capabilities.MergeCapabilities(nil, s.CapAdd, nil)
 		if err != nil {
-			return errors.Wrapf(err, "capabilities requested by user are not valid: %q", strings.Join(s.CapAdd, ","))
+			return fmt.Errorf("capabilities requested by user are not valid: %q: %w", strings.Join(s.CapAdd, ","), err)
 		}
 		boundingSet, err := capabilities.BoundingSet()
 		if err != nil {
@@ -245,17 +245,17 @@ func securityConfigureGenerator(s *specgen.SpecGenerator, g *generate.Generator,
 
 	for sysctlKey, sysctlVal := range s.Sysctl {
 		if s.IpcNS.IsHost() && strings.HasPrefix(sysctlKey, "fs.mqueue.") {
-			return errors.Wrapf(define.ErrInvalidArg, "sysctl %s=%s can't be set since IPC Namespace set to host", sysctlKey, sysctlVal)
+			return fmt.Errorf("sysctl %s=%s can't be set since IPC Namespace set to host: %w", sysctlKey, sysctlVal, define.ErrInvalidArg)
 		}
 
 		// Ignore net sysctls if --net=host
 		if s.NetNS.IsHost() && strings.HasPrefix(sysctlKey, "net.") {
-			return errors.Wrapf(define.ErrInvalidArg, "sysctl %s=%s can't be set since Network Namespace set to host", sysctlKey, sysctlVal)
+			return fmt.Errorf("sysctl %s=%s can't be set since Network Namespace set to host: %w", sysctlKey, sysctlVal, define.ErrInvalidArg)
 		}
 
 		// Ignore uts sysctls if --uts=host
 		if s.UtsNS.IsHost() && (strings.HasPrefix(sysctlKey, "kernel.domainname") || strings.HasPrefix(sysctlKey, "kernel.hostname")) {
-			return errors.Wrapf(define.ErrInvalidArg, "sysctl %s=%s can't be set since UTS Namespace set to host", sysctlKey, sysctlVal)
+			return fmt.Errorf("sysctl %s=%s can't be set since UTS Namespace set to host: %w", sysctlKey, sysctlVal, define.ErrInvalidArg)
 		}
 
 		g.AddLinuxSysctl(sysctlKey, sysctlVal)

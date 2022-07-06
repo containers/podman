@@ -3,13 +3,14 @@ package abi
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"strings"
 
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/trust"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -35,11 +36,11 @@ func (ir *ImageEngine) ShowTrust(ctx context.Context, args []string, options ent
 	}
 	policyContentStruct, err := trust.GetPolicy(policyPath)
 	if err != nil {
-		return nil, errors.Wrapf(err, "could not read trust policies")
+		return nil, fmt.Errorf("could not read trust policies: %w", err)
 	}
 	report.Policies, err = getPolicyShowOutput(policyContentStruct, report.SystemRegistriesDirPath)
 	if err != nil {
-		return nil, errors.Wrapf(err, "could not show trust policies")
+		return nil, fmt.Errorf("could not show trust policies: %w", err)
 	}
 	return &report, nil
 }
@@ -56,7 +57,7 @@ func (ir *ImageEngine) SetTrust(ctx context.Context, args []string, options enti
 
 	pubkeysfile := options.PubKeysFile
 	if len(pubkeysfile) == 0 && trustType == "signedBy" {
-		return errors.Errorf("At least one public key must be defined for type 'signedBy'")
+		return errors.New("at least one public key must be defined for type 'signedBy'")
 	}
 
 	policyPath := trust.DefaultPolicyPath(ir.Libpod.SystemContext())
@@ -70,7 +71,7 @@ func (ir *ImageEngine) SetTrust(ctx context.Context, args []string, options enti
 			return err
 		}
 		if err := json.Unmarshal(policyContent, &policyContentStruct); err != nil {
-			return errors.Errorf("could not read trust policies")
+			return errors.New("could not read trust policies")
 		}
 	}
 	if len(pubkeysfile) != 0 {
@@ -84,7 +85,7 @@ func (ir *ImageEngine) SetTrust(ctx context.Context, args []string, options enti
 		policyContentStruct.Default = newReposContent
 	} else {
 		if len(policyContentStruct.Default) == 0 {
-			return errors.Errorf("default trust policy must be set")
+			return errors.New("default trust policy must be set")
 		}
 		registryExists := false
 		for transport, transportval := range policyContentStruct.Transports {
@@ -107,7 +108,7 @@ func (ir *ImageEngine) SetTrust(ctx context.Context, args []string, options enti
 
 	data, err := json.MarshalIndent(policyContentStruct, "", "    ")
 	if err != nil {
-		return errors.Wrapf(err, "error setting trust policy")
+		return fmt.Errorf("error setting trust policy: %w", err)
 	}
 	return ioutil.WriteFile(policyPath, data, 0644)
 }

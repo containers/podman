@@ -4,6 +4,7 @@
 package machine
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -13,7 +14,6 @@ import (
 	"path/filepath"
 	"regexp"
 
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -107,12 +107,12 @@ func getFedoraDownload(releaseStream string) (string, *url.URL, int64, error) {
 	newLocation := rawURL + file
 	downloadURL, err := url.Parse(newLocation)
 	if err != nil {
-		return "", nil, -1, errors.Wrapf(err, "invalid URL generated from discovered Fedora file: %s", newLocation)
+		return "", nil, -1, fmt.Errorf("invalid URL generated from discovered Fedora file: %s: %w", newLocation, err)
 	}
 
 	resp, err := http.Head(newLocation)
 	if err != nil {
-		return "", nil, -1, errors.Wrapf(err, "head request failed: %s", newLocation)
+		return "", nil, -1, fmt.Errorf("head request failed: %s: %w", newLocation, err)
 	}
 	_ = resp.Body.Close()
 

@@ -3,6 +3,7 @@ package auth
 import (
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -11,7 +12,6 @@ import (
 	imageAuth "github.com/containers/image/v5/pkg/docker/config"
 	"github.com/containers/image/v5/types"
 	dockerAPITypes "github.com/docker/docker/api/types"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -47,7 +47,7 @@ func GetCredentials(r *http.Request) (*types.DockerAuthConfig, string, error) {
 		return nil, "", nil
 	}
 	if err != nil {
-		return nil, "", errors.Wrapf(err, "failed to parse %q header for %s", headerName, r.URL.String())
+		return nil, "", fmt.Errorf("failed to parse %q header for %s: %w", headerName, r.URL.String(), err)
 	}
 
 	var authFile string
@@ -56,7 +56,7 @@ func GetCredentials(r *http.Request) (*types.DockerAuthConfig, string, error) {
 	} else {
 		authFile, err = authConfigsToAuthFile(fileContents)
 		if err != nil {
-			return nil, "", errors.Wrapf(err, "failed to parse %q header for %s", headerName, r.URL.String())
+			return nil, "", fmt.Errorf("failed to parse %q header for %s: %w", headerName, r.URL.String(), err)
 		}
 	}
 	return override, authFile, nil
@@ -72,13 +72,13 @@ func getConfigCredentials(r *http.Request, headers []string) (*types.DockerAuthC
 	for _, h := range headers {
 		param, err := base64.URLEncoding.DecodeString(h)
 		if err != nil {
-			return nil, nil, errors.Wrapf(err, "failed to decode %q", xRegistryConfigHeader)
+			return nil, nil, fmt.Errorf("failed to decode %q: %w", xRegistryConfigHeader, err)
 		}
 
 		ac := make(map[string]dockerAPITypes.AuthConfig)
 		err = json.Unmarshal(param, &ac)
 		if err != nil {
-			return nil, nil, errors.Wrapf(err, "failed to unmarshal %q", xRegistryConfigHeader)
+			return nil, nil, fmt.Errorf("failed to unmarshal %q: %w", xRegistryConfigHeader, err)
 		}
 
 		for k, v := range ac {
@@ -238,10 +238,10 @@ func authConfigsToAuthFile(authConfigs map[string]types.DockerAuthConfig) (strin
 		return "", err
 	}
 	if _, err := tmpFile.Write([]byte{'{', '}'}); err != nil {
-		return "", errors.Wrap(err, "error initializing temporary auth file")
+		return "", fmt.Errorf("error initializing temporary auth file: %w", err)
 	}
 	if err := tmpFile.Close(); err != nil {
-		return "", errors.Wrap(err, "error closing temporary auth file")
+		return "", fmt.Errorf("error closing temporary auth file: %w", err)
 	}
 	authFilePath := tmpFile.Name()
 
@@ -255,7 +255,7 @@ func authConfigsToAuthFile(authConfigs map[string]types.DockerAuthConfig) (strin
 		// that all credentials are valid. They'll be used on demand
 		// later.
 		if err := imageAuth.SetAuthentication(&sys, key, config.Username, config.Password); err != nil {
-			return "", errors.Wrapf(err, "error storing credentials in temporary auth file (key: %q / %q, user: %q)", authFileKey, key, config.Username)
+			return "", fmt.Errorf("error storing credentials in temporary auth file (key: %q / %q, user: %q): %w", authFileKey, key, config.Username, err)
 		}
 	}
 

@@ -8,8 +8,6 @@ import (
 	"fmt"
 	"os"
 	"strings"
-
-	"github.com/pkg/errors"
 )
 
 const whiteSpaces = " \t"
@@ -56,7 +54,7 @@ func ParseFile(path string) (_ map[string]string, err error) {
 	env := make(map[string]string)
 	defer func() {
 		if err != nil {
-			err = errors.Wrapf(err, "error parsing env file %q", path)
+			err = fmt.Errorf("error parsing env file %q: %w", path, err)
 		}
 	}()
 
@@ -85,12 +83,12 @@ func parseEnv(env map[string]string, line string) error {
 
 	// catch invalid variables such as "=" or "=A"
 	if data[0] == "" {
-		return errors.Errorf("invalid environment variable: %q", line)
+		return fmt.Errorf("invalid environment variable: %q", line)
 	}
 	// trim the front of a variable, but nothing else
 	name := strings.TrimLeft(data[0], whiteSpaces)
 	if strings.ContainsAny(name, whiteSpaces) {
-		return errors.Errorf("name %q has white spaces, poorly formatted name", name)
+		return fmt.Errorf("name %q has white spaces, poorly formatted name", name)
 	}
 
 	if len(data) > 1 {

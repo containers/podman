@@ -3,6 +3,7 @@ package generate
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -17,7 +18,6 @@ import (
 	"github.com/containers/podman/v4/pkg/signal"
 	"github.com/containers/podman/v4/pkg/specgen"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
@@ -115,7 +115,7 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 	// Get Default Environment from containers.conf
 	defaultEnvs, err := envLib.ParseSlice(rtc.GetDefaultEnvEx(s.EnvHost, s.HTTPProxy))
 	if err != nil {
-		return nil, errors.Wrap(err, "error parsing fields in containers.conf")
+		return nil, fmt.Errorf("error parsing fields in containers.conf: %w", err)
 	}
 	var envs map[string]string
 
@@ -125,7 +125,7 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 		// already, overriding the default environments
 		envs, err = envLib.ParseSlice(inspectData.Config.Env)
 		if err != nil {
-			return nil, errors.Wrap(err, "Env fields from image failed to parse")
+			return nil, fmt.Errorf("env fields from image failed to parse: %w", err)
 		}
 		defaultEnvs = envLib.Join(envLib.DefaultEnvVariables(), envLib.Join(defaultEnvs, envs))
 	}
@@ -141,7 +141,7 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 	// any case.
 	osEnv, err := envLib.ParseSlice(os.Environ())
 	if err != nil {
-		return nil, errors.Wrap(err, "error parsing host environment variables")
+		return nil, fmt.Errorf("error parsing host environment variables: %w", err)
 	}
 	// Caller Specified defaults
 	if s.EnvHost {

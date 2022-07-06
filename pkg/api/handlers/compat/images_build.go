@@ -3,6 +3,7 @@ package compat
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -27,7 +28,6 @@ import (
 	"github.com/docker/docker/pkg/jsonmessage"
 	"github.com/gorilla/schema"
 	"github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -65,7 +65,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		}
 		err := os.RemoveAll(filepath.Dir(contextDirectory))
 		if err != nil {
-			logrus.Warn(errors.Wrapf(err, "failed to remove build scratch directory %q", filepath.Dir(contextDirectory)))
+			logrus.Warn(fmt.Errorf("failed to remove build scratch directory %q: %w", filepath.Dir(contextDirectory), err))
 		}
 	}()
 
@@ -338,7 +338,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 	if len(tags) > 0 {
 		possiblyNormalizedName, err := utils.NormalizeToDockerHub(r, tags[0])
 		if err != nil {
-			utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "error normalizing image"))
+			utils.Error(w, http.StatusInternalServerError, fmt.Errorf("error normalizing image: %w", err))
 			return
 		}
 		output = possiblyNormalizedName
@@ -350,7 +350,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		var err error
 		isolation, err = parseLibPodIsolation(query.Isolation)
 		if err != nil {
-			utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "failed to parse isolation"))
+			utils.Error(w, http.StatusInternalServerError, fmt.Errorf("failed to parse isolation: %w", err))
 			return
 		}
 
@@ -371,7 +371,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 	for i := 1; i < len(tags); i++ {
 		possiblyNormalizedTag, err := utils.NormalizeToDockerHub(r, tags[i])
 		if err != nil {
-			utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "error normalizing image"))
+			utils.Error(w, http.StatusInternalServerError, fmt.Errorf("error normalizing image: %w", err))
 			return
 		}
 		additionalTags = append(additionalTags, possiblyNormalizedTag)
@@ -487,7 +487,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 				}
 				con := strings.SplitN(opt, "=", 2)
 				if len(con) != 2 {
-					utils.BadRequest(w, "securityopt", query.SecurityOpt, errors.Errorf("Invalid --security-opt name=value pair: %q", opt))
+					utils.BadRequest(w, "securityopt", query.SecurityOpt, fmt.Errorf("invalid --security-opt name=value pair: %q", opt))
 					return
 				}
 
@@ -499,7 +499,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 				case "seccomp":
 					seccomp = con[1]
 				default:
-					utils.BadRequest(w, "securityopt", query.SecurityOpt, errors.Errorf("Invalid --security-opt 2: %q", opt))
+					utils.BadRequest(w, "securityopt", query.SecurityOpt, fmt.Errorf("invalid --security-opt 2: %q", opt))
 					return
 				}
 			}
@@ -540,7 +540,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 	if fromImage != "" {
 		possiblyNormalizedName, err := utils.NormalizeToDockerHub(r, fromImage)
 		if err != nil {
-			utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "error normalizing image"))
+			utils.Error(w, http.StatusInternalServerError, fmt.Errorf("error normalizing image: %w", err))
 			return
 		}
 		fromImage = possiblyNormalizedName

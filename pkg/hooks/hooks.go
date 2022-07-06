@@ -11,7 +11,6 @@ import (
 
 	current "github.com/containers/podman/v4/pkg/hooks/1.0.0"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -105,7 +104,7 @@ func (m *Manager) Hooks(config *rspec.Spec, annotations map[string]string, hasBi
 	for _, namedHook := range hooks {
 		match, err := namedHook.hook.When.Match(config, annotations, hasBindMounts)
 		if err != nil {
-			return extensionStageHooks, errors.Wrapf(err, "matching hook %q", namedHook.name)
+			return extensionStageHooks, fmt.Errorf("matching hook %q: %w", namedHook.name, err)
 		}
 		if match {
 			logrus.Debugf("hook %s matched; adding to stages %v", namedHook.name, namedHook.hook.Stages)

@@ -5,6 +5,7 @@ package infra
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/signal"
@@ -18,7 +19,6 @@ import (
 	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/types"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
 )
@@ -316,7 +316,7 @@ func ParseIDMapping(mode namespaces.UsernsMode, uidMapSlice, gidMapSlice []strin
 
 		uids, gids, err := rootless.GetConfiguredMappings()
 		if err != nil {
-			return nil, errors.Wrapf(err, "cannot read mappings")
+			return nil, fmt.Errorf("cannot read mappings: %w", err)
 		}
 		maxUID, maxGID := 0, 0
 		for _, u := range uids {

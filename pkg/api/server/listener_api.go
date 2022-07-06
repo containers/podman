@@ -1,11 +1,10 @@
 package server
 
 import (
+	"fmt"
 	"net"
 	"os"
 	"path/filepath"
-
-	"github.com/pkg/errors"
 )
 
 // ListenUnix follows stdlib net.Listen() API, providing a unix listener for given path
@@ -14,18 +13,18 @@ func ListenUnix(network string, path string) (net.Listener, error) {
 	// set up custom listener for API server
 	err := os.MkdirAll(filepath.Dir(path), 0770)
 	if err != nil {
-		return nil, errors.Wrapf(err, "api.ListenUnix() failed to create %s", filepath.Dir(path))
+		return nil, fmt.Errorf("api.ListenUnix() failed to create %s: %w", filepath.Dir(path), err)
 	}
 	os.Remove(path)
 
 	listener, err := net.Listen(network, path)
 	if err != nil {
-		return nil, errors.Wrapf(err, "api.ListenUnix() failed to create net.Listen(%s, %s)", network, path)
+		return nil, fmt.Errorf("api.ListenUnix() failed to create net.Listen(%s, %s): %w", network, path, err)
 	}
 
 	_, err = os.Stat(path)
 	if err != nil {
-		return nil, errors.Wrapf(err, "net.Listen(%s, %s) failed to report the failure to create socket", network, path)
+		return nil, fmt.Errorf("net.Listen(%s, %s) failed to report the failure to create socket: %w", network, path, err)
 	}
 
 	return listener, nil

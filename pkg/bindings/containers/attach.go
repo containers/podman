@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -18,7 +19,6 @@ import (
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/bindings"
 	"github.com/moby/term"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	terminal "golang.org/x/term"
 )
@@ -75,7 +75,7 @@ func Attach(ctx context.Context, nameOrID string, stdin io.Reader, stdout io.Wri
 
 		detachKeysInBytes, err = term.ToBytes(options.GetDetachKeys())
 		if err != nil {
-			return errors.Wrapf(err, "invalid detach keys")
+			return fmt.Errorf("invalid detach keys: %w", err)
 		}
 	}
 	if isSet.stdin {
@@ -261,7 +261,7 @@ func DemuxHeader(r io.Reader, buffer []byte) (fd, sz int, err error) {
 
 	fd = int(buffer[0])
 	if fd < 0 || fd > 3 {
-		err = errors.Wrapf(ErrLostSync, fmt.Sprintf(`channel "%d" found, 0-3 supported`, fd))
+		err = fmt.Errorf(`channel "%d" found, 0-3 supported: %w`, fd, ErrLostSync)
 		return
 	}
 

@@ -2,6 +2,7 @@ package wsl
 
 import (
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -11,7 +12,6 @@ import (
 	"unicode/utf16"
 	"unsafe"
 
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/windows"
 	"golang.org/x/sys/windows/registry"
@@ -157,9 +157,9 @@ func relaunchElevatedWait() error {
 	case syscall.WAIT_OBJECT_0:
 		break
 	case syscall.WAIT_FAILED:
-		return errors.Wrap(err, "could not wait for process, failed")
+		return fmt.Errorf("could not wait for process, failed: %w", err)
 	default:
-		return errors.Errorf("could not wait for process, unknown error")
+		return errors.New("could not wait for process, unknown error")
 	}
 	var code uint32
 	if err := syscall.GetExitCodeProcess(handle, &code); err != nil {
@@ -174,7 +174,7 @@ func relaunchElevatedWait() error {
 
 func wrapMaybe(err error, message string) error {
 	if err != nil {
-		return errors.Wrap(err, message)
+		return fmt.Errorf("%v: %w", message, err)
 	}
 
 	return errors.New(message)
@@ -182,10 +182,10 @@ func wrapMaybe(err error, message string) error {
 
 func wrapMaybef(err error, format string, args ...interface{}) error {
 	if err != nil {
-		return errors.Wrapf(err, format, args...)
+		return fmt.Errorf(format+": %w", append(args, err)...)
 	}
 
-	return errors.Errorf(format, args...)
+	return fmt.Errorf(format, args...)
 }
 
 func reboot() error {
@@ -202,14 +202,14 @@ func reboot() error {
 
 	dataDir, err := homedir.GetDataHome()
 	if err != nil {
-		return errors.Wrap(err, "could not determine data directory")
+		return fmt.Errorf("could not determine data directory: %w", err)
 	}
 	if err := os.MkdirAll(dataDir, 0755); err != nil {
-		return errors.Wrap(err, "could not create data directory")
+		return fmt.Errorf("could not create data directory: %w", err)
 	}
 	commFile := filepath.Join(dataDir, "podman-relaunch.dat")
 	if err := ioutil.WriteFile(commFile, []byte(encoded), 0600); err != nil {
-		return errors.Wrap(err, "could not serialize command state")
+		return fmt.Errorf("could not serialize command state: %w", err)
 	}
 
 	command := fmt.Sprintf(pShellLaunch, commFile)
@@ -244,7 +244,7 @@ func reboot() error {
 	procExit := user32.NewProc("ExitWindowsEx")
 	if ret, _, err := procExit.Call(EWX_REBOOT|EWX_RESTARTAPPS|EWX_FORCEIFHUNG,
 		SHTDN_REASON_MAJOR_APPLICATION|SHTDN_REASON_MINOR_INSTALLATION|SHTDN_REASON_FLAG_PLANNED); ret != 1 {
-		return errors.Wrap(err, "reboot failed")
+		return fmt.Errorf("reboot failed: %w", err)
 	}
 
 	return nil
@@ -262,19 +262,19 @@ func obtainShutdownPrivilege() error {
 
 	var hToken uintptr
 	if ret, _, err := OpenProcessToken.Call(uintptr(proc), TOKEN_ADJUST_PRIVILEGES|TOKEN_QUERY, uintptr(unsafe.Pointer(&hToken))); ret != 1 {
-		return errors.Wrap(err, "error opening process token")
+		return fmt.Errorf("error opening process token: %w", err)
 	}
 
 	var privs TokenPrivileges
 	if ret, _, err := LookupPrivilegeValue.Call(uintptr(0), uintptr(unsafe.Pointer(syscall.StringToUTF16Ptr(SeShutdownName))), uintptr(unsafe.Pointer(&(privs.privileges[0].luid)))); ret != 1 {
-		return errors.Wrap(err, "error looking up shutdown privilege")
+		return fmt.Errorf("error looking up shutdown privilege: %w", err)
 	}
 
 	privs.privilegeCount = 1
 	privs.privileges[0].attributes = SE_PRIVILEGE_ENABLED
 
 	if ret, _, err := AdjustTokenPrivileges.Call(hToken, 0, uintptr(unsafe.Pointer(&privs)), 0, uintptr(0), 0); ret != 1 {
-		return errors.Wrap(err, "error enabling shutdown privilege on token")
+		return fmt.Errorf("error enabling shutdown privilege on token: %w", err)
 	}
 
 	return nil
@@ -295,13 +295,13 @@ func getProcessState(pid int) (active bool, exitCode int) {
 func addRunOnceRegistryEntry(command string) error {
 	k, _, err := registry.CreateKey(registry.CURRENT_USER, `Software\Microsoft\Windows\CurrentVersion\RunOnce`, registry.WRITE)
 	if err != nil {
-		return errors.Wrap(err, "could not open RunOnce registry entry")
+		return fmt.Errorf("could not open RunOnce registry entry: %w", err)
 	}
 
 	defer k.Close()
 
 	if err := k.SetExpandStringValue("podman-machine", command); err != nil {
-		return errors.Wrap(err, "could not open RunOnce registry entry")
+		return fmt.Errorf("could not open RunOnce registry entry: %w", err)
 	}
 
 	return nil

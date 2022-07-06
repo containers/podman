@@ -3,6 +3,7 @@ package libpod
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -24,7 +25,6 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/gorilla/schema"
 	"github.com/opencontainers/go-digest"
-	"github.com/pkg/errors"
 )
 
 func ManifestCreate(w http.ResponseWriter, r *http.Request) {
@@ -45,7 +45,7 @@ func ManifestCreate(w http.ResponseWriter, r *http.Request) {
 
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
 		utils.Error(w, http.StatusBadRequest,
-			errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
+			fmt.Errorf("failed to parse parameters for %s: %w", r.URL.String(), err))
 		return
 	}
 
@@ -54,7 +54,7 @@ func ManifestCreate(w http.ResponseWriter, r *http.Request) {
 		n, err := url.QueryUnescape(name)
 		if err != nil {
 			utils.Error(w, http.StatusBadRequest,
-				errors.Wrapf(err, "failed to parse name parameter %q", name))
+				fmt.Errorf("failed to parse name parameter %q: %w", name, err))
 			return
 		}
 		query.Name = n
@@ -62,7 +62,7 @@ func ManifestCreate(w http.ResponseWriter, r *http.Request) {
 
 	if _, err := reference.ParseNormalizedNamed(query.Name); err != nil {
 		utils.Error(w, http.StatusBadRequest,
-			errors.Wrapf(err, "invalid image name %s", query.Name))
+			fmt.Errorf("invalid image name %s: %w", query.Name, err))
 		return
 	}
 
@@ -94,7 +94,7 @@ func ManifestCreate(w http.ResponseWriter, r *http.Request) {
 
 	body := new(entities.ManifestModifyOptions)
 	if err := json.Unmarshal(buffer, body); err != nil {
-		utils.InternalServerError(w, errors.Wrap(err, "Decode()"))
+		utils.InternalServerError(w, fmt.Errorf("Decode(): %w", err))
 		return
 	}
 
@@ -166,7 +166,7 @@ func ManifestAddV3(w http.ResponseWriter, r *http.Request) {
 		TLSVerify bool `schema:"tlsVerify"`
 	}{}
 	if err := json.NewDecoder(r.Body).Decode(&query); err != nil {
-		utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "Decode()"))
+		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("Decode(): %w", err))
 		return
 	}
 
@@ -220,7 +220,7 @@ func ManifestRemoveDigestV3(w http.ResponseWriter, r *http.Request) {
 	name := utils.GetName(r)
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
 		utils.Error(w, http.StatusBadRequest,
-			errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
+			fmt.Errorf("failed to parse parameters for %s: %w", r.URL.String(), err))
 		return
 	}
 	manifestList, err := runtime.LibimageRuntime().LookupManifestList(name)
@@ -256,7 +256,7 @@ func ManifestPushV3(w http.ResponseWriter, r *http.Request) {
 	}
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
 		utils.Error(w, http.StatusBadRequest,
-			errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
+			fmt.Errorf("failed to parse parameters for %s: %w", r.URL.String(), err))
 		return
 	}
 	if err := utils.IsRegistryReference(query.Destination); err != nil {
@@ -292,7 +292,7 @@ func ManifestPushV3(w http.ResponseWriter, r *http.Request) {
 	imageEngine := abi.ImageEngine{Libpod: runtime}
 	digest, err := imageEngine.ManifestPush(context.Background(), source, query.Destination, options)
 	if err != nil {
-		utils.Error(w, http.StatusBadRequest, errors.Wrapf(err, "error pushing image %q", query.Destination))
+		utils.Error(w, http.StatusBadRequest, fmt.Errorf("error pushing image %q: %w", query.Destination, err))
 		return
 	}
 	utils.WriteResponse(w, http.StatusOK, entities.IDResponse{ID: digest})
@@ -313,7 +313,7 @@ func ManifestPush(w http.ResponseWriter, r *http.Request) {
 	}
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
 		utils.Error(w, http.StatusBadRequest,
-			errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
+			fmt.Errorf("failed to parse parameters for %s: %w", r.URL.String(), err))
 		return
 	}
 
@@ -325,7 +325,7 @@ func ManifestPush(w http.ResponseWriter, r *http.Request) {
 
 	authconf, authfile, err := auth.GetCredentials(r)
 	if err != nil {
-		utils.Error(w, http.StatusBadRequest, errors.Wrapf(err, "failed to parse registry header for %s", r.URL.String()))
+		utils.Error(w, http.StatusBadRequest, fmt.Errorf("failed to parse registry header for %s: %w", r.URL.String(), err))
 		return
 	}
 	defer auth.RemoveAuthfile(authfile)
@@ -351,7 +351,7 @@ func ManifestPush(w http.ResponseWriter, r *http.Request) {
 	source := utils.GetName(r)
 	digest, err := imageEngine.ManifestPush(context.Background(), source, destination, options)
 	if err != nil {
-		utils.Error(w, http.StatusBadRequest, errors.Wrapf(err, "error pushing image %q", destination))
+		utils.Error(w, http.StatusBadRequest, fmt.Errorf("error pushing image %q: %w", destination, err))
 		return
 	}
 	utils.WriteResponse(w, http.StatusOK, entities.IDResponse{ID: digest})
@@ -364,7 +364,7 @@ func ManifestModify(w http.ResponseWriter, r *http.Request) {
 
 	body := new(entities.ManifestModifyOptions)
 	if err := json.NewDecoder(r.Body).Decode(body); err != nil {
-		utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "Decode()"))
+		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("Decode(): %w", err))
 		return
 	}
 

@@ -1,6 +1,7 @@
 package libpod
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/containers/podman/v4/libpod"
@@ -9,7 +10,6 @@ import (
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/domain/infra/abi"
 	"github.com/gorilla/schema"
-	"github.com/pkg/errors"
 )
 
 func CreateSecret(w http.ResponseWriter, r *http.Request) {
@@ -27,7 +27,7 @@ func CreateSecret(w http.ResponseWriter, r *http.Request) {
 	}
 	opts := entities.SecretCreateOptions{}
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.Error(w, http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
+		utils.Error(w, http.StatusBadRequest, fmt.Errorf("failed to parse parameters for %s: %w", r.URL.String(), err))
 		return
 	}
 

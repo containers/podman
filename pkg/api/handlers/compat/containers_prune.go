@@ -2,6 +2,8 @@ package compat
 
 import (
 	"bytes"
+	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/containers/podman/v4/libpod"
@@ -11,14 +13,13 @@ import (
 	"github.com/containers/podman/v4/pkg/domain/entities/reports"
 	"github.com/containers/podman/v4/pkg/domain/filters"
 	"github.com/containers/podman/v4/pkg/util"
-	"github.com/pkg/errors"
 )
 
 func PruneContainers(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	filtersMap, err := util.PrepareFilters(r)
 	if err != nil {
-		utils.Error(w, http.StatusInternalServerError, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
+		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("failed to parse parameters for %s: %w", r.URL.String(), err))
 		return
 	}
 
