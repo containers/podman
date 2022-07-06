@@ -9,14 +9,17 @@ function install() {
     curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v$VERSION
 }
 
-BIN="./bin/golangci-lint"
+# Undocumented behavior: golangci-lint installer requires $BINDIR in env,
+# will default to ./bin but we can't rely on that.
+export BINDIR="./bin"
+BIN="$BINDIR/golangci-lint"
 if [ ! -x "$BIN" ]; then
 	install
 else
     # Prints its own file name as part of --version output
     $BIN --version | grep "$VERSION"
     if [ $? -eq 0 ]; then
-        echo "Using existing $(dirname $BIN)/$($BIN --version)"
+        echo "Using existing $BINDIR/$($BIN --version)"
     else
         install
     fi
