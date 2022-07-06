@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/containers/common/pkg/resize"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/libpod/events"
 	"github.com/containers/storage/pkg/stringid"
@@ -278,13 +279,13 @@ func (c *Container) ExecStart(sessionID string) error {
 	return c.save()
 }
 
-func (c *Container) ExecStartAndAttach(sessionID string, streams *define.AttachStreams, newSize *define.TerminalSize) error {
+func (c *Container) ExecStartAndAttach(sessionID string, streams *define.AttachStreams, newSize *resize.TerminalSize) error {
 	return c.execStartAndAttach(sessionID, streams, newSize, false)
 }
 
 // ExecStartAndAttach starts and attaches to an exec session in a container.
 // newSize resizes the tty to this size before the process is started, must be nil if the exec session has no tty
-func (c *Container) execStartAndAttach(sessionID string, streams *define.AttachStreams, newSize *define.TerminalSize, isHealthcheck bool) error {
+func (c *Container) execStartAndAttach(sessionID string, streams *define.AttachStreams, newSize *resize.TerminalSize, isHealthcheck bool) error {
 	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
@@ -423,7 +424,7 @@ func (c *Container) execStartAndAttach(sessionID string, streams *define.AttachS
 // ExecHTTPStartAndAttach starts and performs an HTTP attach to an exec session.
 // newSize resizes the tty to this size before the process is started, must be nil if the exec session has no tty
 func (c *Container) ExecHTTPStartAndAttach(sessionID string, r *http.Request, w http.ResponseWriter,
-	streams *HTTPAttachStreams, detachKeys *string, cancel <-chan bool, hijackDone chan<- bool, newSize *define.TerminalSize) error {
+	streams *HTTPAttachStreams, detachKeys *string, cancel <-chan bool, hijackDone chan<- bool, newSize *resize.TerminalSize) error {
 	// TODO: How do we combine streams with the default streams set in the exec session?
 
 	// Ensure that we don't leak a goroutine here
@@ -711,7 +712,7 @@ func (c *Container) ExecRemove(sessionID string, force bool) error {
 
 // ExecResize resizes the TTY of the given exec session. Only available if the
 // exec session created a TTY.
-func (c *Container) ExecResize(sessionID string, newSize define.TerminalSize) error {
+func (c *Container) ExecResize(sessionID string, newSize resize.TerminalSize) error {
 	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
@@ -753,14 +754,14 @@ func (c *Container) ExecResize(sessionID string, newSize define.TerminalSize) er
 	return c.ociRuntime.ExecAttachResize(c, sessionID, newSize)
 }
 
-func (c *Container) Exec(config *ExecConfig, streams *define.AttachStreams, resize <-chan define.TerminalSize) (int, error) {
+func (c *Container) Exec(config *ExecConfig, streams *define.AttachStreams, resize <-chan resize.TerminalSize) (int, error) {
 	return c.exec(config, streams, resize, false)
 }
 
 // Exec emulates the old Libpod exec API, providing a single call to create,
 // run, and remove an exec session. Returns exit code and error. Exit code is
 // not guaranteed to be set sanely if error is not nil.
-func (c *Container) exec(config *ExecConfig, streams *define.AttachStreams, resize <-chan define.TerminalSize, isHealthcheck bool) (int, error) {
+func (c *Container) exec(config *ExecConfig, streams *define.AttachStreams, resizeChan <-chan resize.TerminalSize, isHealthcheck bool) (int, error) {
 	sessionID, err := c.ExecCreate(config)
 	if err != nil {
 		return -1, err
@@ -773,13 +774,13 @@ func (c *Container) exec(config *ExecConfig, streams *define.AttachStreams, resi
 	// API there.
 	// TODO: Refactor so this is closed here, before we remove the exec
 	// session.
-	var size *define.TerminalSize
-	if resize != nil {
-		s := <-resize
+	var size *resize.TerminalSize
+	if resizeChan != nil {
+		s := <-resizeChan
 		size = &s
 		go func() {
 			logrus.Debugf("Sending resize events to exec session %s", sessionID)
-			for resizeRequest := range resize {
+			for resizeRequest := range resizeChan {
 				if err := c.ExecResize(sessionID, resizeRequest); err != nil {
 					if errors.Is(err, define.ErrExecSessionStateInvalid) {
 						// The exec session stopped

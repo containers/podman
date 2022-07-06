@@ -5,7 +5,7 @@ import (
 	"os"
 	"os/signal"
 
-	"github.com/containers/podman/v4/libpod/define"
+	"github.com/containers/common/pkg/resize"
 	lsignal "github.com/containers/podman/v4/pkg/signal"
 	"github.com/moby/term"
 	"github.com/pkg/errors"
@@ -18,20 +18,20 @@ type RawTtyFormatter struct {
 
 // getResize returns a TerminalSize command matching stdin's current
 // size on success, and nil on errors.
-func getResize() *define.TerminalSize {
+func getResize() *resize.TerminalSize {
 	winsize, err := term.GetWinsize(os.Stdin.Fd())
 	if err != nil {
 		logrus.Warnf("Could not get terminal size %v", err)
 		return nil
 	}
-	return &define.TerminalSize{
+	return &resize.TerminalSize{
 		Width:  winsize.Width,
 		Height: winsize.Height,
 	}
 }
 
 // Helper for prepareAttach - set up a goroutine to generate terminal resize events
-func resizeTty(ctx context.Context, resize chan define.TerminalSize) {
+func resizeTty(ctx context.Context, resize chan resize.TerminalSize) {
 	sigchan := make(chan os.Signal, 1)
 	signal.Notify(sigchan, lsignal.SIGWINCH)
 	go func() {
@@ -78,7 +78,7 @@ func (f *RawTtyFormatter) Format(entry *logrus.Entry) ([]byte, error) {
 	return bytes, err
 }
 
-func handleTerminalAttach(ctx context.Context, resize chan define.TerminalSize) (context.CancelFunc, *term.State, error) {
+func handleTerminalAttach(ctx context.Context, resize chan resize.TerminalSize) (context.CancelFunc, *term.State, error) {
 	logrus.Debugf("Handling terminal attach")
 
 	subCtx, cancel := context.WithCancel(ctx)

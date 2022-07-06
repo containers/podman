@@ -14,18 +14,19 @@ import (
 
 	"github.com/containers/common/pkg/capabilities"
 	"github.com/containers/common/pkg/config"
+	"github.com/containers/common/pkg/resize"
+	cutil "github.com/containers/common/pkg/util"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/errorhandling"
 	"github.com/containers/podman/v4/pkg/lookup"
 	"github.com/containers/podman/v4/pkg/util"
-	"github.com/containers/podman/v4/utils"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
 
 // ExecContainer executes a command in a running container
-func (r *ConmonOCIRuntime) ExecContainer(c *Container, sessionID string, options *ExecOptions, streams *define.AttachStreams, newSize *define.TerminalSize) (int, chan error, error) {
+func (r *ConmonOCIRuntime) ExecContainer(c *Container, sessionID string, options *ExecOptions, streams *define.AttachStreams, newSize *resize.TerminalSize) (int, chan error, error) {
 	if options == nil {
 		return -1, nil, fmt.Errorf("must provide an ExecOptions struct to ExecContainer: %w", define.ErrInvalidArg)
 	}
@@ -84,7 +85,7 @@ func (r *ConmonOCIRuntime) ExecContainer(c *Container, sessionID string, options
 // ExecContainerHTTP executes a new command in an existing container and
 // forwards its standard streams over an attach
 func (r *ConmonOCIRuntime) ExecContainerHTTP(ctr *Container, sessionID string, options *ExecOptions, req *http.Request, w http.ResponseWriter,
-	streams *HTTPAttachStreams, cancel <-chan bool, hijackDone chan<- bool, holdConnOpen <-chan bool, newSize *define.TerminalSize) (int, chan error, error) {
+	streams *HTTPAttachStreams, cancel <-chan bool, hijackDone chan<- bool, holdConnOpen <-chan bool, newSize *resize.TerminalSize) (int, chan error, error) {
 	if streams != nil {
 		if !streams.Stdin && !streams.Stdout && !streams.Stderr {
 			return -1, nil, fmt.Errorf("must provide at least one stream to attach to: %w", define.ErrInvalidArg)
@@ -196,7 +197,7 @@ func (r *ConmonOCIRuntime) ExecContainerDetached(ctr *Container, sessionID strin
 }
 
 // ExecAttachResize resizes the TTY of the given exec session.
-func (r *ConmonOCIRuntime) ExecAttachResize(ctr *Container, sessionID string, newSize define.TerminalSize) error {
+func (r *ConmonOCIRuntime) ExecAttachResize(ctr *Container, sessionID string, newSize resize.TerminalSize) error {
 	controlFile, err := openControlFile(ctr, ctr.execBundlePath(sessionID))
 	if err != nil {
 		return err
@@ -487,7 +488,7 @@ func (r *ConmonOCIRuntime) startExec(c *Container, sessionID string, options *Ex
 }
 
 // Attach to a container over HTTP
-func attachExecHTTP(c *Container, sessionID string, r *http.Request, w http.ResponseWriter, streams *HTTPAttachStreams, pipes *execPipes, detachKeys []byte, isTerminal bool, cancel <-chan bool, hijackDone chan<- bool, holdConnOpen <-chan bool, execCmd *exec.Cmd, conmonPipeDataChan chan<- conmonPipeData, ociLog string, newSize *define.TerminalSize, runtimeName string) (deferredErr error) {
+func attachExecHTTP(c *Container, sessionID string, r *http.Request, w http.ResponseWriter, streams *HTTPAttachStreams, pipes *execPipes, detachKeys []byte, isTerminal bool, cancel <-chan bool, hijackDone chan<- bool, holdConnOpen <-chan bool, execCmd *exec.Cmd, conmonPipeDataChan chan<- conmonPipeData, ociLog string, newSize *resize.TerminalSize, runtimeName string) (deferredErr error) {
 	// NOTE: As you may notice, the attach code is quite complex.
 	// Many things happen concurrently and yet are interdependent.
 	// If you ever change this function, make sure to write to the
@@ -607,7 +608,7 @@ func attachExecHTTP(c *Container, sessionID string, r *http.Request, w http.Resp
 	if attachStdin {
 		go func() {
 			logrus.Debugf("Beginning STDIN copy")
-			_, err := utils.CopyDetachable(conn, httpBuf, detachKeys)
+			_, err := cutil.CopyDetachable(conn, httpBuf, detachKeys)
 			logrus.Debugf("STDIN copy completed")
 			stdinChan <- err
 		}()

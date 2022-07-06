@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"sync"
 
+	"github.com/containers/common/pkg/resize"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/sirupsen/logrus"
 )
@@ -118,18 +119,18 @@ func (r *MissingRuntime) HTTPAttach(ctr *Container, req *http.Request, w http.Re
 }
 
 // AttachResize is not available as the runtime is missing
-func (r *MissingRuntime) AttachResize(ctr *Container, newSize define.TerminalSize) error {
+func (r *MissingRuntime) AttachResize(ctr *Container, newSize resize.TerminalSize) error {
 	return r.printError()
 }
 
 // ExecContainer is not available as the runtime is missing
-func (r *MissingRuntime) ExecContainer(ctr *Container, sessionID string, options *ExecOptions, streams *define.AttachStreams, newSize *define.TerminalSize) (int, chan error, error) {
+func (r *MissingRuntime) ExecContainer(ctr *Container, sessionID string, options *ExecOptions, streams *define.AttachStreams, newSize *resize.TerminalSize) (int, chan error, error) {
 	return -1, nil, r.printError()
 }
 
 // ExecContainerHTTP is not available as the runtime is missing
 func (r *MissingRuntime) ExecContainerHTTP(ctr *Container, sessionID string, options *ExecOptions, req *http.Request, w http.ResponseWriter,
-	streams *HTTPAttachStreams, cancel <-chan bool, hijackDone chan<- bool, holdConnOpen <-chan bool, newSize *define.TerminalSize) (int, chan error, error) {
+	streams *HTTPAttachStreams, cancel <-chan bool, hijackDone chan<- bool, holdConnOpen <-chan bool, newSize *resize.TerminalSize) (int, chan error, error) {
 	return -1, nil, r.printError()
 }
 
@@ -139,7 +140,7 @@ func (r *MissingRuntime) ExecContainerDetached(ctr *Container, sessionID string,
 }
 
 // ExecAttachResize is not available as the runtime is missing.
-func (r *MissingRuntime) ExecAttachResize(ctr *Container, sessionID string, newSize define.TerminalSize) error {
+func (r *MissingRuntime) ExecAttachResize(ctr *Container, sessionID string, newSize resize.TerminalSize) error {
 	return r.printError()
 }
 
