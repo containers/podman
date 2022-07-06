@@ -1217,7 +1217,10 @@ func (v *MachineVM) startHostNetworking() (string, apiForwardingState, error) {
 		fmt.Println(cmd)
 	}
 	_, err = os.StartProcess(cmd[0], cmd, attr)
-	return forwardSock, state, fmt.Errorf("unable to execute: %q: %w", cmd, err)
+	if err != nil {
+		return "", 0, fmt.Errorf("unable to execute: %q: %w", cmd, err)
+	}
+	return forwardSock, state, nil
 }
 
 func (v *MachineVM) setupAPIForwarding(cmd []string) ([]string, string, apiForwardingState) {
