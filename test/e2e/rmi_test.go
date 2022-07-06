@@ -39,6 +39,9 @@ var _ = Describe("Podman rmi", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(1))
 
+		session = podmanTest.Podman([]string{"rmi", "-f", "debian:6.0.10"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
 	})
 
 	It("podman rmi with fq name", func() {

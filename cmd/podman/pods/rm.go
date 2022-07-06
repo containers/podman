@@ -93,10 +93,7 @@ func removePods(namesOrIDs []string, rmOptions entities.PodRmOptions, printIDs b
 
 	responses, err := registry.ContainerEngine().PodRm(context.Background(), namesOrIDs, rmOptions)
 	if err != nil {
-		setExitCode(err)
-		if rmOptions.Force && registry.GetExitCode() == 1 {
-			registry.SetExitCode(define.ExecErrorCodeIgnore)
-		}
+		setExitCode(rmOptions.Force, []error{err})
 		return err
 	}
 
@@ -107,19 +104,41 @@ func removePods(namesOrIDs []string, rmOptions entities.PodRmOptions, printIDs b
 				fmt.Println(r.Id)
 			}
 		} else {
-			setExitCode(r.Err)
 			errs = append(errs, r.Err)
 		}
 	}
+	setExitCode(rmOptions.Force, errs)
 	return errs.PrintErrors()
 }
 
-func setExitCode(err error) {
-	cause := errors.Cause(err)
+func setExitCode(force bool, errs []error) {
+	var (
+		// noSuchNetworkErrors indicates the requested pod does not exist.
+		noSuchPodErrors bool
+	)
+
+	if len(errs) == 0 {
+		registry.SetExitCode(0)
+	}
+
+	for _, err := range errs {
+		cause := errors.Cause(err)
+		switch {
+		case cause == define.ErrNoSuchPod:
+			noSuchPodErrors = true
+		case strings.Contains(cause.Error(), define.ErrNoSuchPod.Error()):
+			noSuchPodErrors = true
+		}
+	}
+
 	switch {
-	case cause == define.ErrNoSuchPod:
-		registry.SetExitCode(1)
-	case strings.Contains(cause.Error(), define.ErrNoSuchPod.Error()):
-		registry.SetExitCode(1)
+	case noSuchPodErrors:
+		if force {
+			registry.SetExitCode(define.ExecErrorCodeIgnore)
+		} else {
+			registry.SetExitCode(1)
+		}
+	default:
+		registry.SetExitCode(125)
 	}
 }

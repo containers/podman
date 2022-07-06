@@ -427,6 +427,10 @@ var _ = Describe("Podman network", func() {
 		session := podmanTest.Podman([]string{"network", "rm", "bogus"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(1))
+
+		session = podmanTest.Podman([]string{"network", "rm", "-t", "0", "-f", "bogus"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(1))
 	})
 
 	It("podman network remove --force with pod", func() {

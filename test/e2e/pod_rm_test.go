@@ -197,6 +197,10 @@ var _ = Describe("Podman pod rm", func() {
 		session := podmanTest.Podman([]string{"pod", "rm", "bogus"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(1))
+
+		session = podmanTest.Podman([]string{"pod", "rm", "-t", "0", "-f", "bogus"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
 	})
 
 	It("podman rm bogus pod and a running pod", func() {

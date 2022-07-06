@@ -18,7 +18,7 @@ const (
 	// ExecErrorCodeNotFound is the error code to return when a command cannot be found
 	ExecErrorCodeNotFound = 127
 	// ExecErrorCodeIgnore is the error code to can be simply ignored
-	ExecErrorCodeIgnore = 128
+	ExecErrorCodeIgnore = -128
 )
 
 // TranslateExecErrorToExitCode takes an error and checks whether it

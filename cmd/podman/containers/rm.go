@@ -127,7 +127,7 @@ func removeContainers(namesOrIDs []string, rmOptions entities.RmOptions, setExit
 	responses, err := registry.ContainerEngine().ContainerRm(context.Background(), namesOrIDs, rmOptions)
 	if err != nil {
 		if setExit {
-			setExitCode(err)
+			setExitCode(rmOptions.Force, []error{err})
 		}
 		return err
 	}
@@ -138,34 +138,56 @@ func removeContainers(namesOrIDs []string, rmOptions entities.RmOptions, setExit
 				errors.Cause(r.Err).Error() == define.ErrWillDeadlock.Error() {
 				logrus.Errorf("Potential deadlock detected - please run 'podman system renumber' to resolve")
 			}
-			if setExit {
-				setExitCode(r.Err)
-				if rmOptions.Force && registry.GetExitCode() == 1 {
-					registry.SetExitCode(define.ExecErrorCodeIgnore)
-				}
-			}
 			errs = append(errs, r.Err)
 		} else {
 			fmt.Println(r.Id)
 		}
 	}
+	if setExit {
+		setExitCode(rmOptions.Force, errs)
+	}
+
 	return errs.PrintErrors()
 }
 
-func setExitCode(err error) {
-	// If error is set to no such container, do not reset
-	if registry.GetExitCode() == 1 {
-		return
+func setExitCode(force bool, errs []error) {
+	var (
+		// noSuchContainerErrors indicates the requested container does not exist
+		noSuchContainerErrors bool
+		// stateInvalidErrors indicates a container is in an improper state
+		stateInvalidErrors bool
+	)
+
+	if len(errs) == 0 {
+		registry.SetExitCode(0)
 	}
-	cause := errors.Cause(err)
+
+	for _, err := range errs {
+		cause := errors.Cause(err)
+		switch {
+		case cause == define.ErrNoSuchCtr:
+			noSuchContainerErrors = true
+		case strings.Contains(cause.Error(), define.ErrNoSuchCtr.Error()):
+			noSuchContainerErrors = true
+		case cause == define.ErrCtrStateInvalid:
+			stateInvalidErrors = true
+		case strings.Contains(cause.Error(), define.ErrCtrStateInvalid.Error()):
+			stateInvalidErrors = true
+		}
+	}
+
 	switch {
-	case cause == define.ErrNoSuchCtr:
-		registry.SetExitCode(1)
-	case strings.Contains(cause.Error(), define.ErrNoSuchCtr.Error()):
-		registry.SetExitCode(1)
-	case cause == define.ErrCtrStateInvalid:
+	case stateInvalidErrors:
 		registry.SetExitCode(2)
-	case strings.Contains(cause.Error(), define.ErrCtrStateInvalid.Error()):
-		registry.SetExitCode(2)
+	case noSuchContainerErrors:
+		// One of the specified container did not exist, and no other
+		// failures.
+		if force {
+			registry.SetExitCode(define.ExecErrorCodeIgnore)
+		} else {
+			registry.SetExitCode(1)
+		}
+	default:
+		registry.SetExitCode(125)
 	}
 }

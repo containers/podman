@@ -74,16 +74,16 @@ func networkPrune(cmd *cobra.Command, _ []string) error {
 	}
 	responses, err := registry.ContainerEngine().NetworkPrune(registry.Context(), networkPruneOptions)
 	if err != nil {
-		setExitCode(err)
+		setExitCode(false, []error{err})
 		return err
 	}
 	for _, r := range responses {
 		if r.Error == nil {
 			fmt.Println(r.Name)
 		} else {
-			setExitCode(r.Error)
 			errs = append(errs, r.Error)
 		}
 	}
+	setExitCode(false, errs)
 	return errs.PrintErrors()
 }

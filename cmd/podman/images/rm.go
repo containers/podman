@@ -2,6 +2,7 @@ package images
 
 import (
 	"fmt"
+
 	"github.com/containers/podman/v4/cmd/podman/common"
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/containers/podman/v4/libpod/define"

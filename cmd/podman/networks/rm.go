@@ -63,33 +63,60 @@ func networkRm(cmd *cobra.Command, args []string) error {
 	}
 	responses, err := registry.ContainerEngine().NetworkRm(registry.Context(), args, networkRmOptions)
 	if err != nil {
-		setExitCode(err)
+		setExitCode(networkRmOptions.Force, []error{err})
 		return err
 	}
 	for _, r := range responses {
 		if r.Err == nil {
 			fmt.Println(r.Name)
 		} else {
-			setExitCode(r.Err)
-			if networkRmOptions.Force && registry.GetExitCode() == 1 {
-				registry.SetExitCode(define.ExecErrorCodeIgnore)
-			}
 			errs = append(errs, r.Err)
 		}
 	}
+	setExitCode(networkRmOptions.Force, errs)
+
 	return errs.PrintErrors()
 }
 
-func setExitCode(err error) {
-	cause := errors.Cause(err)
+func setExitCode(force bool, errs []error) {
+	var (
+		// noSuchNetworkErrors indicates the requested network does not exist.
+		noSuchNetworkErrors bool
+		// inUseErrors indicates the requested operation failed because the network was in use
+		inUseErrors bool
+	)
+
+	if len(errs) == 0 {
+		registry.SetExitCode(0)
+	}
+
+	for _, err := range errs {
+		cause := errors.Cause(err)
+		switch {
+		case cause == define.ErrNoSuchNetwork:
+			noSuchNetworkErrors = true
+		case strings.Contains(cause.Error(), define.ErrNoSuchNetwork.Error()):
+			noSuchNetworkErrors = true
+		case cause == define.ErrNetworkInUse:
+			inUseErrors = true
+		case strings.Contains(cause.Error(), define.ErrNetworkInUse.Error()):
+			inUseErrors = true
+		}
+	}
+
 	switch {
-	case cause == define.ErrNoSuchNetwork:
-		registry.SetExitCode(1)
-	case strings.Contains(cause.Error(), define.ErrNoSuchNetwork.Error()):
-		registry.SetExitCode(1)
-	case cause == define.ErrNetworkInUse:
+	case inUseErrors:
+		// network is being used.
 		registry.SetExitCode(2)
-	case strings.Contains(cause.Error(), define.ErrNetworkInUse.Error()):
-		registry.SetExitCode(2)
+	case noSuchNetworkErrors && !inUseErrors:
+		// One of the specified network did not exist, and no other
+		// failures.
+		if force {
+			registry.SetExitCode(define.ExecErrorCodeIgnore)
+		} else {
+			registry.SetExitCode(1)
+		}
+	default:
+		registry.SetExitCode(125)
 	}
 }

@@ -65,33 +65,59 @@ func rm(cmd *cobra.Command, args []string) error {
 	}
 	responses, err := registry.ContainerEngine().VolumeRm(context.Background(), args, rmOptions)
 	if err != nil {
-		setExitCode(err)
+		setExitCode(rmOptions.Force, []error{err})
 		return err
 	}
 	for _, r := range responses {
 		if r.Err == nil {
 			fmt.Println(r.Id)
 		} else {
-			setExitCode(r.Err)
-			if rmOptions.Force && registry.GetExitCode() == 1 {
-				registry.SetExitCode(define.ExecErrorCodeIgnore)
-			}
 			errs = append(errs, r.Err)
 		}
 	}
+	setExitCode(rmOptions.Force, errs)
 	return errs.PrintErrors()
 }
 
-func setExitCode(err error) {
-	cause := errors.Cause(err)
+func setExitCode(force bool, errs []error) {
+	var (
+		// noSuchVolumeErrors indicates the requested volume does not exist
+		noSuchVolumeErrors bool
+		// inUseErrors indicates that a volume is being used by at least one container
+		inUseErrors bool
+	)
+
+	if len(errs) == 0 {
+		registry.SetExitCode(0)
+	}
+
+	for _, err := range errs {
+		cause := errors.Cause(err)
+		switch {
+		case cause == define.ErrNoSuchVolume:
+			noSuchVolumeErrors = true
+		case strings.Contains(cause.Error(), define.ErrNoSuchVolume.Error()):
+			noSuchVolumeErrors = true
+		case cause == define.ErrVolumeBeingUsed:
+			inUseErrors = true
+		case strings.Contains(cause.Error(), define.ErrVolumeBeingUsed.Error()):
+			inUseErrors = true
+
+		}
+	}
+
 	switch {
-	case cause == define.ErrNoSuchVolume:
-		registry.SetExitCode(1)
-	case strings.Contains(cause.Error(), define.ErrNoSuchVolume.Error()):
-		registry.SetExitCode(1)
-	case cause == define.ErrVolumeBeingUsed:
+	case inUseErrors:
+		// being used by a container.
 		registry.SetExitCode(2)
-	case strings.Contains(cause.Error(), define.ErrVolumeBeingUsed.Error()):
-		registry.SetExitCode(2)
+	case noSuchVolumeErrors && !inUseErrors:
+		// One of the specified volumes did not exist, and no other
+		if force {
+			registry.SetExitCode(define.ExecErrorCodeIgnore)
+		} else {
+			registry.SetExitCode(1)
+		}
+	default:
+		registry.SetExitCode(125)
 	}
 }
