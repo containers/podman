@@ -2,6 +2,10 @@
 
 # Changelog
 
+## v1.26.2 (2022-06-30)
+
+    buildah: add support for renaming a device in rootless setups
+
 ## v1.26.1 (2022-05-04)
 
     Make `buildah build --label foo` create an empty "foo" label again
