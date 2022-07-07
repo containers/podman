@@ -1,10 +1,12 @@
 import multiprocessing
 import queue
 import random
+import subprocess
 import threading
 import unittest
 
 import requests
+import os
 import time
 from dateutil.parser import parse
 
@@ -357,6 +359,51 @@ class ContainerTestCase(APITestCase):
         self.assertEqual(2000, out["HostConfig"]["MemorySwap"])
         self.assertEqual(1000, out["HostConfig"]["Memory"])
 
+
+
+def execute_process(cmd):
+    return subprocess.run(
+                cmd,
+                shell=True,
+                check=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+
+def create_named_network_ns(network_ns_name):
+    execute_process(f"ip netns add {network_ns_name}")
+    execute_process(f"ip netns exec {network_ns_name} ip link add enp2s0 type veth peer name eth0")
+    execute_process(f"ip netns exec {network_ns_name} ip addr add 10.0.1.0/24 dev eth0")
+    execute_process(f"ip netns exec {network_ns_name} ip link set eth0 up")
+    execute_process(f"ip netns exec {network_ns_name} ip link add enp2s1 type veth peer name eth1")
+    execute_process(f"ip netns exec {network_ns_name} ip addr add 10.0.2.0/24 dev eth1")
+    execute_process(f"ip netns exec {network_ns_name} ip link set eth1 up")
+
+def delete_named_network_ns(network_ns_name):
+    execute_process(f"ip netns delete {network_ns_name}")
+
+class ContainerCompatibleAPITestCase(APITestCase):
+    def test_inspect_network(self):
+        if os.getuid() != 0:
+            self.skipTest("test needs to be executed as root!")
+        try:
+            network_ns_name = "test-compat-api"
+            create_named_network_ns(network_ns_name)
+            self.podman.run("rm", "--all", "--force", check=True)
+            self.podman.run("run", "--net", f"ns:/run/netns/{network_ns_name}", "-d", "alpine", "top", check=True)
+
+            r = requests.post(self.uri(self.resolve_container("/containers/{}/start")))
+            self.assertIn(r.status_code, (204, 304), r.text)
+
+            r = requests.get(self.compat_uri(self.resolve_container("/containers/{}/json")))
+            self.assertEqual(r.status_code, 200, r.text)
+            self.assertId(r.content)
+            out = r.json()
+
+            self.assertEqual("10.0.2.0", out["NetworkSettings"]["SecondaryIPAddresses"][0]["Addr"])
+            self.assertEqual(24, out["NetworkSettings"]["SecondaryIPAddresses"][0]["PrefixLen"])
+        finally:
+            delete_named_network_ns(network_ns_name)
 
 if __name__ == "__main__":
     unittest.main()
