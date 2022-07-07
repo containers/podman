@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/containers/common/pkg/util"
-	"github.com/containers/podman/v4/cmd/podman/machine"
+	"github.com/containers/podman/v4/pkg/domain/entities"
 	jsoniter "github.com/json-iterator/go"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -134,7 +134,7 @@ var _ = Describe("podman machine list", func() {
 		Expect(err).To(BeNil())
 		Expect(listSession2).To(Exit(0))
 
-		var listResponse []*machine.ListReporter
+		var listResponse []*entities.ListReporter
 		err = jsoniter.Unmarshal(listSession.Bytes(), &listResponse)
 		Expect(err).To(BeNil())
 
