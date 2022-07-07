@@ -55,6 +55,7 @@ type Provider interface {
 	IsValidVMName(name string) (bool, error)
 	CheckExclusiveActiveVM() (bool, string, error)
 	RemoveAndCleanMachines() error
+	VMType() string
 }
 
 type RemoteConnectionType string

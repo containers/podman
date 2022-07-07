@@ -1701,6 +1701,9 @@ func isProcessAlive(pid int) bool {
 	if err == nil || err == unix.EPERM {
 		return true
 	}
-
 	return false
+}
+
+func (p *Provider) VMType() string {
+	return vmtype
 }
