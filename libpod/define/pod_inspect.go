@@ -57,20 +57,32 @@ type InspectPodData struct {
 	CPUPeriod uint64 `json:"cpu_period,omitempty"`
 	// CPUQuota contains the CPU quota of the pod
 	CPUQuota int64 `json:"cpu_quota,omitempty"`
+	// CPUShares contains the cpu shares for the pod
+	CPUShares uint64 `json:"cpu_shares,omitempty"`
 	// CPUSetCPUs contains linux specific CPU data for the pod
 	CPUSetCPUs string `json:"cpuset_cpus,omitempty"`
+	// CPUSetMems contains linux specific CPU data for the pod
+	CPUSetMems string `json:"cpuset_mems,omitempty"`
 	// Mounts contains volume related information for the pod
 	Mounts []InspectMount `json:"mounts,omitempty"`
 	// Devices contains the specified host devices
 	Devices []InspectDevice `json:"devices,omitempty"`
 	// BlkioDeviceReadBps contains the Read/Access limit for the pod's devices
 	BlkioDeviceReadBps []InspectBlkioThrottleDevice `json:"device_read_bps,omitempty"`
+	// BlkioDeviceReadBps contains the Read/Access limit for the pod's devices
+	BlkioDeviceWriteBps []InspectBlkioThrottleDevice `json:"device_write_bps,omitempty"`
 	// VolumesFrom contains the containers that the pod inherits mounts from
 	VolumesFrom []string `json:"volumes_from,omitempty"`
 	// SecurityOpt contains the specified security labels and related SELinux information
 	SecurityOpts []string `json:"security_opt,omitempty"`
 	// MemoryLimit contains the specified cgroup memory limit for the pod
 	MemoryLimit uint64 `json:"memory_limit,omitempty"`
+	// MemorySwap contains the specified memory swap limit for the pod
+	MemorySwap uint64 `json:"memory_swap,omitempty"`
+	// BlkioWeight contains the blkio weight limit for the pod
+	BlkioWeight uint64 `json:"blkio_weight,omitempty"`
+	// BlkioWeightDevice contains the blkio weight device limits for the pod
+	BlkioWeightDevice []InspectBlkioWeightDevice `json:"blkio_weight_device,omitempty"`
 }
 
 // InspectPodInfraConfig contains the configuration of the pod's infra

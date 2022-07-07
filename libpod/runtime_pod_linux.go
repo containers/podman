@@ -80,7 +80,7 @@ func (r *Runtime) NewPod(ctx context.Context, p specgen.PodSpecGenerator, option
 						p.InfraContainerSpec.CgroupParent = pod.state.CgroupPath
 						// cgroupfs + rootless = permission denied when creating the cgroup.
 						if !rootless.IsRootless() {
-							res, err := GetLimits(p.InfraContainerSpec.ResourceLimits)
+							res, err := GetLimits(p.ResourceLimits)
 							if err != nil {
 								return nil, err
 							}
@@ -113,7 +113,7 @@ func (r *Runtime) NewPod(ctx context.Context, p specgen.PodSpecGenerator, option
 			// If we are set to use pod cgroups, set the cgroup parent that
 			// all containers in the pod will share
 			if pod.config.UsePodCgroup {
-				cgroupPath, err := systemdSliceFromPath(pod.config.CgroupParent, fmt.Sprintf("libpod_pod_%s", pod.ID()), p.InfraContainerSpec.ResourceLimits)
+				cgroupPath, err := systemdSliceFromPath(pod.config.CgroupParent, fmt.Sprintf("libpod_pod_%s", pod.ID()), p.ResourceLimits)
 				if err != nil {
 					return nil, fmt.Errorf("unable to create pod cgroup for pod %s: %w", pod.ID(), err)
 				}

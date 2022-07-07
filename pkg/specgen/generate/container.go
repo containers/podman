@@ -302,60 +302,6 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 	return warnings, nil
 }
 
-// FinishThrottleDevices takes the temporary representation of the throttle
-// devices in the specgen and looks up the major and major minors. it then
-// sets the throttle devices proper in the specgen
-func FinishThrottleDevices(s *specgen.SpecGenerator) error {
-	if bps := s.ThrottleReadBpsDevice; len(bps) > 0 {
-		for k, v := range bps {
-			statT := unix.Stat_t{}
-			if err := unix.Stat(k, &statT); err != nil {
-				return err
-			}
-			v.Major = (int64(unix.Major(uint64(statT.Rdev)))) //nolint: unconvert
-			v.Minor = (int64(unix.Minor(uint64(statT.Rdev)))) //nolint: unconvert
-			if s.ResourceLimits.BlockIO == nil {
-				s.ResourceLimits.BlockIO = new(spec.LinuxBlockIO)
-			}
-			s.ResourceLimits.BlockIO.ThrottleReadBpsDevice = append(s.ResourceLimits.BlockIO.ThrottleReadBpsDevice, v)
-		}
-	}
-	if bps := s.ThrottleWriteBpsDevice; len(bps) > 0 {
-		for k, v := range bps {
-			statT := unix.Stat_t{}
-			if err := unix.Stat(k, &statT); err != nil {
-				return err
-			}
-			v.Major = (int64(unix.Major(uint64(statT.Rdev)))) //nolint: unconvert
-			v.Minor = (int64(unix.Minor(uint64(statT.Rdev)))) //nolint: unconvert
-			s.ResourceLimits.BlockIO.ThrottleWriteBpsDevice = append(s.ResourceLimits.BlockIO.ThrottleWriteBpsDevice, v)
-		}
-	}
-	if iops := s.ThrottleReadIOPSDevice; len(iops) > 0 {
-		for k, v := range iops {
-			statT := unix.Stat_t{}
-			if err := unix.Stat(k, &statT); err != nil {
-				return err
-			}
-			v.Major = (int64(unix.Major(uint64(statT.Rdev)))) //nolint: unconvert
-			v.Minor = (int64(unix.Minor(uint64(statT.Rdev)))) //nolint: unconvert
-			s.ResourceLimits.BlockIO.ThrottleReadIOPSDevice = append(s.ResourceLimits.BlockIO.ThrottleReadIOPSDevice, v)
-		}
-	}
-	if iops := s.ThrottleWriteIOPSDevice; len(iops) > 0 {
-		for k, v := range iops {
-			statT := unix.Stat_t{}
-			if err := unix.Stat(k, &statT); err != nil {
-				return err
-			}
-			v.Major = (int64(unix.Major(uint64(statT.Rdev)))) //nolint: unconvert
-			v.Minor = (int64(unix.Minor(uint64(statT.Rdev)))) //nolint: unconvert
-			s.ResourceLimits.BlockIO.ThrottleWriteIOPSDevice = append(s.ResourceLimits.BlockIO.ThrottleWriteIOPSDevice, v)
-		}
-	}
-	return nil
-}
-
 // ConfigToSpec takes a completed container config and converts it back into a specgenerator for purposes of cloning an existing container
 func ConfigToSpec(rt *libpod.Runtime, specg *specgen.SpecGenerator, contaierID string) (*libpod.Container, *libpod.InfraInherit, error) {
 	c, err := rt.LookupContainer(contaierID)
@@ -539,4 +485,64 @@ func mapSecurityConfig(c *libpod.ContainerConfig, s *specgen.SpecGenerator) {
 	s.User = c.User
 	s.Groups = c.Groups
 	s.HostUsers = c.HostUsers
+}
+
+// FinishThrottleDevices takes the temporary representation of the throttle
+// devices in the specgen and looks up the major and major minors. it then
+// sets the throttle devices proper in the specgen
+func FinishThrottleDevices(s *specgen.SpecGenerator) error {
+	if s.ResourceLimits == nil {
+		s.ResourceLimits = &spec.LinuxResources{}
+	}
+	if s.ResourceLimits.BlockIO == nil {
+		s.ResourceLimits.BlockIO = &spec.LinuxBlockIO{}
+	}
+	if bps := s.ThrottleReadBpsDevice; len(bps) > 0 {
+		for k, v := range bps {
+			statT := unix.Stat_t{}
+			if err := unix.Stat(k, &statT); err != nil {
+				return fmt.Errorf("could not parse throttle device at %s: %w", k, err)
+			}
+			v.Major = (int64(unix.Major(uint64(statT.Rdev)))) //nolint: unconvert
+			v.Minor = (int64(unix.Minor(uint64(statT.Rdev)))) //nolint: unconvert
+			if s.ResourceLimits.BlockIO == nil {
+				s.ResourceLimits.BlockIO = new(spec.LinuxBlockIO)
+			}
+			s.ResourceLimits.BlockIO.ThrottleReadBpsDevice = append(s.ResourceLimits.BlockIO.ThrottleReadBpsDevice, v)
+		}
+	}
+	if bps := s.ThrottleWriteBpsDevice; len(bps) > 0 {
+		for k, v := range bps {
+			statT := unix.Stat_t{}
+			if err := unix.Stat(k, &statT); err != nil {
+				return fmt.Errorf("could not parse throttle device at %s: %w", k, err)
+			}
+			v.Major = (int64(unix.Major(uint64(statT.Rdev)))) //nolint: unconvert
+			v.Minor = (int64(unix.Minor(uint64(statT.Rdev)))) //nolint: unconvert
+			s.ResourceLimits.BlockIO.ThrottleWriteBpsDevice = append(s.ResourceLimits.BlockIO.ThrottleWriteBpsDevice, v)
+		}
+	}
+	if iops := s.ThrottleReadIOPSDevice; len(iops) > 0 {
+		for k, v := range iops {
+			statT := unix.Stat_t{}
+			if err := unix.Stat(k, &statT); err != nil {
+				return fmt.Errorf("could not parse throttle device at %s: %w", k, err)
+			}
+			v.Major = (int64(unix.Major(uint64(statT.Rdev)))) //nolint: unconvert
+			v.Minor = (int64(unix.Minor(uint64(statT.Rdev)))) //nolint: unconvert
+			s.ResourceLimits.BlockIO.ThrottleReadIOPSDevice = append(s.ResourceLimits.BlockIO.ThrottleReadIOPSDevice, v)
+		}
+	}
+	if iops := s.ThrottleWriteIOPSDevice; len(iops) > 0 {
+		for k, v := range iops {
+			statT := unix.Stat_t{}
+			if err := unix.Stat(k, &statT); err != nil {
+				return fmt.Errorf("could not parse throttle device at %s: %w", k, err)
+			}
+			v.Major = (int64(unix.Major(uint64(statT.Rdev)))) //nolint: unconvert
+			v.Minor = (int64(unix.Minor(uint64(statT.Rdev)))) //nolint: unconvert
+			s.ResourceLimits.BlockIO.ThrottleWriteIOPSDevice = append(s.ResourceLimits.BlockIO.ThrottleWriteIOPSDevice, v)
+		}
+	}
+	return nil
 }

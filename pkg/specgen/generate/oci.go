@@ -309,6 +309,17 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 		}
 		g.Config.Linux.Resources = s.ResourceLimits
 	}
+
+	weightDevices, err := WeightDevices(s.WeightDevice)
+	if err != nil {
+		return nil, err
+	}
+	if len(weightDevices) > 0 {
+		for _, dev := range weightDevices {
+			g.AddLinuxResourcesBlockIOWeightDevice(dev.Major, dev.Minor, *dev.Weight)
+		}
+	}
+
 	// Devices
 	// set the default rule at the beginning of device configuration
 	if !inUserNS && !s.Privileged {
@@ -343,14 +354,6 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 		for _, dev := range s.DeviceCgroupRule {
 			g.AddLinuxResourcesDevice(true, dev.Type, dev.Major, dev.Minor, dev.Access)
 		}
-	}
-
-	for k, v := range s.WeightDevice {
-		statT := unix.Stat_t{}
-		if err := unix.Stat(k, &statT); err != nil {
-			return nil, fmt.Errorf("failed to inspect '%s' in --blkio-weight-device: %w", k, err)
-		}
-		g.AddLinuxResourcesBlockIOWeightDevice((int64(unix.Major(uint64(statT.Rdev)))), (int64(unix.Minor(uint64(statT.Rdev)))), *v.Weight) //nolint: unconvert
 	}
 
 	BlockAccessToKernelFilesystems(s.Privileged, s.PidNS.IsHost(), s.Mask, s.Unmask, &g)
@@ -412,4 +415,20 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 	setProcOpts(s, &g)
 
 	return configSpec, nil
+}
+
+func WeightDevices(wtDevices map[string]spec.LinuxWeightDevice) ([]spec.LinuxWeightDevice, error) {
+	devs := []spec.LinuxWeightDevice{}
+	for k, v := range wtDevices {
+		statT := unix.Stat_t{}
+		if err := unix.Stat(k, &statT); err != nil {
+			return nil, fmt.Errorf("failed to inspect '%s' in --blkio-weight-device: %w", k, err)
+		}
+		dev := new(spec.LinuxWeightDevice)
+		dev.Major = (int64(unix.Major(uint64(statT.Rdev)))) //nolint: unconvert
+		dev.Minor = (int64(unix.Minor(uint64(statT.Rdev)))) //nolint: unconvert
+		dev.Weight = v.Weight
+		devs = append(devs, *dev)
+	}
+	return devs, nil
 }

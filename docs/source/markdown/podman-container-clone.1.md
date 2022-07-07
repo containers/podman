@@ -11,6 +11,14 @@ podman\-container\-clone - Creates a copy of an existing container
 
 ## OPTIONS
 
+#### **--blkio-weight**=*weight*
+
+Block IO weight (relative weight) accepts a weight value between 10 and 1000.
+
+#### **--blkio-weight-device**=*weight*
+
+Block IO weight (relative device weight, format: `DEVICE_NAME:WEIGHT`).
+
 #### **--cpu-period**=*limit*
 
 Set the CPU period for the Completely Fair Scheduler (CFS), which is a
@@ -125,6 +133,14 @@ If none are specified, the original container's CPU memory nodes are used.
 #### **--destroy**
 
 Remove the original container that we are cloning once used to mimic the configuration.
+
+#### **--device-read-bps**=*path*
+
+Limit read rate (bytes per second) from a device (e.g. --device-read-bps=/dev/sda:1mb).
+
+#### **--device-write-bps**=*path*
+
+Limit write rate (bytes per second) to a device (e.g. --device-write-bps=/dev/sda:1mb)
 
 #### **--force**, **-f**
 

@@ -23,6 +23,9 @@ podman generates a UUID for each pod, and if a name is not assigned
 to the container with **--name** then a random string name will be generated
 for it. The name is useful any place you need to identify a pod.
 
+Note: resource limit related flags work by setting the limits explicitly in the pod's cgroup
+which by default, is the cgroup parent for all containers joining the pod. Containers are still delegated the ability to set their own resource limits when joining a pod meaning that if you run **podman pod create --cpus=5** you can also run **podman container create --pod=`<pod_id|pod_name>` --cpus=4** and the container will only see the smaller limit. containers do NOT get the pod level cgroup resources if they specify their own cgroup when joining a pod such as **--cgroupns=host**
+
 ## OPTIONS
 
 #### **--add-host**=*host:ip*
@@ -33,9 +36,54 @@ Add a line to /etc/hosts. The format is hostname:ip. The **--add-host**
 option can be set multiple times.
 The /etc/hosts file is shared between all containers in the pod.
 
+#### **--blkio-weight**=*weight*
+
+Block IO weight (relative weight) accepts a weight value between 10 and 1000.
+
+#### **--blkio-weight-device**=*weight*
+
+Block IO weight (relative device weight, format: `DEVICE_NAME:WEIGHT`).
+
 #### **--cgroup-parent**=*path*
 
 Path to cgroups under which the cgroup for the pod will be created. If the path is not absolute, the path is considered to be relative to the cgroups path of the init process. Cgroups will be created if they do not already exist.
+
+#### **--cpu-shares**, **-c**=*shares*
+
+CPU shares (relative weight)
+
+By default, all containers get the same proportion of CPU cycles. This proportion
+can be modified by changing the container's CPU share weighting relative
+to the weighting of all other running containers.
+
+To modify the proportion from the default of 1024, use the **--cpu-shares**
+flag to set the weighting to 2 or higher.
+
+The proportion will only apply when CPU-intensive processes are running.
+When tasks in one container are idle, other containers can use the
+left-over CPU time. The actual amount of CPU time will vary depending on
+the number of containers running on the system.
+
+For example, consider three containers, one has a cpu-share of 1024 and
+two others have a cpu-share setting of 512. When processes in all three
+containers attempt to use 100% of CPU, the first container would receive
+50% of the total CPU time. If you add a fourth container with a cpu-share
+of 1024, the first container only gets 33% of the CPU. The remaining containers
+receive 16.5%, 16.5% and 33% of the CPU.
+
+On a multi-core system, the shares of CPU time are distributed over all CPU
+cores. Even if a container is limited to less than 100% of CPU time, it can
+use 100% of each individual CPU core.
+
+For example, consider a system with more than three cores. If you start one
+container **{C0}** with **-c=512** running one process, and another container
+**{C1}** with **-c=1024** running two processes, this can result in the following
+division of CPU shares:
+
+PID    container	CPU	CPU share
+100    {C0}		0	100% of CPU0
+101    {C1}		1	100% of CPU1
+102    {C1}		2	100% of CPU2
 
 #### **--cpus**=*amount*
 
@@ -52,7 +100,15 @@ Examples of the List Format:
 0-4,9           # bits 0, 1, 2, 3, 4, and 9 set
 0-2,7,12-14     # bits 0, 1, 2, 7, 12, 13, and 14 set
 
-#### **--device**=*host-device[:container-device][:permissions]*
+#### **--cpuset-mems**=*nodes*
+
+Memory nodes (MEMs) in which to allow execution (0-3, 0,1). Only effective on NUMA systems.
+
+If there are four memory nodes on the system (0-3), use `--cpuset-mems=0,1`
+then processes in the container will only use memory from the first
+two memory nodes.
+
+#### **--device**=_host-device_[**:**_container-device_][**:**_permissions_]
 
 Add a host device to the pod. Optional *permissions* parameter
 can be used to specify device permissions. It is a combination of
@@ -72,6 +128,10 @@ device. The devices that Podman will load modules for when necessary are:
 #### **--device-read-bps**=*path*
 
 Limit read rate (bytes per second) from a device (e.g. --device-read-bps=/dev/sda:1mb)
+
+#### **--device-write-bps**=*path*
+
+Limit write rate (bytes per second) to a device (e.g. --device-write-bps=/dev/sda:1mb)
 
 #### **--dns**=*ipaddr*
 
@@ -174,6 +234,16 @@ RAM. If a limit of 0 is specified (not using **-m**), the container's memory is
 not limited. The actual limit may be rounded up to a multiple of the operating
 system's page size (the value would be very large, that's millions of trillions).
 
+#### **--memory-swap**=*limit*
+
+A limit value equal to memory plus swap. Must be used with the  **-m**
+(**--memory**) flag. The swap `LIMIT` should always be larger than **-m**
+(**--memory**) value. By default, the swap `LIMIT` will be set to double
+the value of --memory.
+
+The format of `LIMIT` is `<number>[<unit>]`. Unit can be `b` (bytes),
+`k` (kibibytes), `m` (mebibytes), or `g` (gibibytes). If you don't specify a
+unit, `b` is used. Set LIMIT to `-1` to enable unlimited swap.
 
 #### **--name**, **-n**=*name*
 
@@ -603,7 +673,7 @@ $ podman pod create --network net1:ip=10.89.1.5 --network net2:ip=10.89.10.10
 ```
 
 ## SEE ALSO
-**[podman(1)](podman.1.md)**, **[podman-pod(1)](podman-pod.1.md)**, **[podman-kube-play(1)](podman-kube-play.1.md)**, **containers.conf(1)**
+**[podman(1)](podman.1.md)**, **[podman-pod(1)](podman-pod.1.md)**, **[podman-kube-play(1)](podman-kube-play.1.md)**, **containers.conf(1)**, **[cgroups(7)](https://man7.org/linux/man-pages/man7/cgroups.7.html)**
 
 
 ## HISTORY

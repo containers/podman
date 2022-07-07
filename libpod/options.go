@@ -2145,6 +2145,18 @@ func WithServiceContainer(id string) PodCreateOption {
 	}
 }
 
+// WithPodResources sets resource limits to be applied to the pod's cgroup
+// these will be inherited by all containers unless overridden.
+func WithPodResources(resources specs.LinuxResources) PodCreateOption {
+	return func(pod *Pod) error {
+		if pod.valid {
+			return define.ErrPodFinalized
+		}
+		pod.config.ResourceLimits = resources
+		return nil
+	}
+}
+
 // WithVolatile sets the volatile flag for the container storage.
 // The option can potentially cause data loss when used on a container that must survive a machine reboot.
 func WithVolatile() CtrCreateOption {
