@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/containers/common/libnetwork/types"
+	"github.com/containers/common/pkg/util"
 )
 
 var (
@@ -92,7 +93,7 @@ var (
 
 	// ErrDetach indicates that an attach session was manually detached by
 	// the user.
-	ErrDetach = errors.New("detached from container")
+	ErrDetach = util.ErrDetach
 
 	// ErrWillDeadlock indicates that the requested operation will cause a
 	// deadlock. This is usually caused by upgrade issues, and is resolved

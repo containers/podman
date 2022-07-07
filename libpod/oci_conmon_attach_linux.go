@@ -13,10 +13,10 @@ import (
 	"syscall"
 
 	"github.com/containers/common/pkg/config"
+	"github.com/containers/common/pkg/resize"
+	"github.com/containers/common/pkg/util"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/errorhandling"
-	"github.com/containers/podman/v4/pkg/kubeutils"
-	"github.com/containers/podman/v4/utils"
 	"github.com/moby/term"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
@@ -130,7 +130,7 @@ func (r *ConmonOCIRuntime) Attach(c *Container, params *AttachOptions) error {
 // 4. attachToExec sends on startFd, signalling it has attached to the socket and child is ready to go
 // 5. child receives on startFd, runs the runtime exec command
 // attachToExec is responsible for closing startFd and attachFd
-func (c *Container) attachToExec(streams *define.AttachStreams, keys *string, sessionID string, startFd, attachFd *os.File, newSize *define.TerminalSize) error {
+func (c *Container) attachToExec(streams *define.AttachStreams, keys *string, sessionID string, startFd, attachFd *os.File, newSize *resize.TerminalSize) error {
 	if !streams.AttachOutput && !streams.AttachError && !streams.AttachInput {
 		return fmt.Errorf("must provide at least one stream to attach to: %w", define.ErrInvalidArg)
 	}
@@ -205,8 +205,8 @@ func processDetachKeys(keys string) ([]byte, error) {
 	return detachKeys, nil
 }
 
-func registerResizeFunc(resize <-chan define.TerminalSize, bundlePath string) {
-	kubeutils.HandleResizing(resize, func(size define.TerminalSize) {
+func registerResizeFunc(r <-chan resize.TerminalSize, bundlePath string) {
+	resize.HandleResizing(r, func(size resize.TerminalSize) {
 		controlPath := filepath.Join(bundlePath, "ctl")
 		controlFile, err := os.OpenFile(controlPath, unix.O_WRONLY, 0)
 		if err != nil {
@@ -232,7 +232,7 @@ func setupStdioChannels(streams *define.AttachStreams, conn *net.UnixConn, detac
 	go func() {
 		var err error
 		if streams.AttachInput {
-			_, err = utils.CopyDetachable(conn, streams.InputStream, detachKeys)
+			_, err = util.CopyDetachable(conn, streams.InputStream, detachKeys)
 		}
 		stdinDone <- err
 	}()

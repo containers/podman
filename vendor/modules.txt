@@ -111,7 +111,7 @@ github.com/containers/buildah/pkg/rusage
 github.com/containers/buildah/pkg/sshagent
 github.com/containers/buildah/pkg/util
 github.com/containers/buildah/util
-# github.com/containers/common v0.48.1-0.20220630172158-178929cf063e
+# github.com/containers/common v0.48.1-0.20220705175712-dd1c331887b9
 ## explicit
 github.com/containers/common/libimage
 github.com/containers/common/libimage/define
@@ -142,6 +142,7 @@ github.com/containers/common/pkg/netns
 github.com/containers/common/pkg/parse
 github.com/containers/common/pkg/report
 github.com/containers/common/pkg/report/camelcase
+github.com/containers/common/pkg/resize
 github.com/containers/common/pkg/retry
 github.com/containers/common/pkg/seccomp
 github.com/containers/common/pkg/secrets

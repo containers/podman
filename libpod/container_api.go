@@ -11,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/containers/common/pkg/resize"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/libpod/events"
 	"github.com/containers/podman/v4/pkg/signal"
@@ -103,7 +104,7 @@ func (c *Container) Start(ctx context.Context, recursive bool) error {
 // Attach call occurs before Start).
 // In overall functionality, it is identical to the Start call, with the added
 // side effect that an attach session will also be started.
-func (c *Container) StartAndAttach(ctx context.Context, streams *define.AttachStreams, keys string, resize <-chan define.TerminalSize, recursive bool) (<-chan error, error) {
+func (c *Container) StartAndAttach(ctx context.Context, streams *define.AttachStreams, keys string, resize <-chan resize.TerminalSize, recursive bool) (<-chan error, error) {
 	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
@@ -239,7 +240,7 @@ func (c *Container) Kill(signal uint) error {
 // Attach attaches to a container.
 // This function returns when the attach finishes. It does not hold the lock for
 // the duration of its runtime, only using it at the beginning to verify state.
-func (c *Container) Attach(streams *define.AttachStreams, keys string, resize <-chan define.TerminalSize) error {
+func (c *Container) Attach(streams *define.AttachStreams, keys string, resize <-chan resize.TerminalSize) error {
 	if c.LogDriver() == define.PassthroughLogging {
 		return fmt.Errorf("this container is using the 'passthrough' log driver, cannot attach: %w", define.ErrNoLogs)
 	}
@@ -335,7 +336,7 @@ func (c *Container) HTTPAttach(r *http.Request, w http.ResponseWriter, streams *
 
 // AttachResize resizes the container's terminal, which is displayed by Attach
 // and HTTPAttach.
-func (c *Container) AttachResize(newSize define.TerminalSize) error {
+func (c *Container) AttachResize(newSize resize.TerminalSize) error {
 	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()

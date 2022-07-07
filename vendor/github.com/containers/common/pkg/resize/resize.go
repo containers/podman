@@ -14,16 +14,18 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package kubeutils
+package resize
 
-import (
-	"github.com/containers/podman/v4/libpod/define"
-)
+// TerminalSize represents the width and height of a terminal.
+type TerminalSize struct {
+	Width  uint16
+	Height uint16
+}
 
 // HandleResizing spawns a goroutine that processes the resize channel, calling resizeFunc for each
-// remotecommand.TerminalSize received from the channel. The resize channel must be closed elsewhere to stop the
+// TerminalSize received from the channel. The resize channel must be closed elsewhere to stop the
 // goroutine.
-func HandleResizing(resize <-chan define.TerminalSize, resizeFunc func(size define.TerminalSize)) {
+func HandleResizing(resize <-chan TerminalSize, resizeFunc func(size TerminalSize)) {
 	if resize == nil {
 		return
 	}

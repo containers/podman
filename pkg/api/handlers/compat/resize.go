@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/containers/common/pkg/resize"
 	"github.com/containers/podman/v4/libpod"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/api/handlers/utils"
@@ -32,7 +33,7 @@ func ResizeTTY(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sz := define.TerminalSize{
+	sz := resize.TerminalSize{
 		Width:  query.Width,
 		Height: query.Height,
 	}
