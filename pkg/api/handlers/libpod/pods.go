@@ -530,8 +530,12 @@ func PodStats(w http.ResponseWriter, r *http.Request) {
 	query := struct {
 		NamesOrIDs []string `schema:"namesOrIDs"`
 		All        bool     `schema:"all"`
+		Stream     bool     `schema:"stream"`
+		Delay      int      `schema:"delay"`
 	}{
 		// default would go here
+		Delay:  5,
+		Stream: false,
 	}
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
 		utils.Error(w, http.StatusBadRequest, fmt.Errorf("failed to parse parameters for %s: %w", r.URL.String(), err))
@@ -544,6 +548,10 @@ func PodStats(w http.ResponseWriter, r *http.Request) {
 		utils.InternalServerError(w, err)
 	}
 
+	var flush = func() {}
+	if flusher, ok := w.(http.Flusher); ok {
+		flush = flusher.Flush
+	}
 	// Collect the stats and send them over the wire.
 	containerEngine := abi.ContainerEngine{Libpod: runtime}
 	reports, err := containerEngine.PodStats(r.Context(), query.NamesOrIDs, options)
@@ -554,10 +562,35 @@ func PodStats(w http.ResponseWriter, r *http.Request) {
 			utils.Error(w, http.StatusNotFound, err)
 			return
 		}
-
 		utils.InternalServerError(w, err)
 		return
 	}
 
-	utils.WriteResponse(w, http.StatusOK, reports)
+	w.Header().Set("Content-Type", "application/json")
+	coder := json.NewEncoder(w)
+	coder.SetEscapeHTML(true)
+
+	if err := coder.Encode(reports); err != nil {
+		logrus.Infof("Error from %s %q : %v", r.Method, r.URL, err)
+	}
+	flush()
+	if query.Stream {
+		for {
+			select {
+			case <-r.Context().Done():
+				return
+			default:
+				time.Sleep(time.Duration(query.Delay) * time.Second)
+				reports, err = containerEngine.PodStats(r.Context(), query.NamesOrIDs, options)
+				if err != nil {
+					return
+				}
+				if err := coder.Encode(reports); err != nil {
+					logrus.Infof("Error from %s %q : %v", r.Method, r.URL, err)
+					return
+				}
+				flush()
+			}
+		}
+	}
 }

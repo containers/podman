@@ -134,4 +134,6 @@ t GET libpod/pods/json?filters='{"label":["testl' 400 \
 t DELETE  libpod/pods/foo 200
 t DELETE "libpod/pods/foo (pod has already been deleted)" 404
 
+t_timeout 5 GET "libpod/pods/stats?stream=true&delay=1" 200
+
 # vim: filetype=sh
