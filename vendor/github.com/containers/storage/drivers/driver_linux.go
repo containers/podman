@@ -1,3 +1,4 @@
+//go:build linux
 // +build linux
 
 package graphdriver
@@ -162,11 +163,32 @@ func (c *defaultChecker) IsMounted(path string) bool {
 	return m
 }
 
+// isMountPoint checks that the given path is a mount point
+func isMountPoint(mountPath string) (bool, error) {
+	// it is already the root
+	if mountPath == "/" {
+		return true, nil
+	}
+
+	var s1, s2 unix.Stat_t
+	if err := unix.Stat(mountPath, &s1); err != nil {
+		return true, err
+	}
+	if err := unix.Stat(filepath.Dir(mountPath), &s2); err != nil {
+		return true, err
+	}
+	return s1.Dev != s2.Dev, nil
+}
+
 // Mounted checks if the given path is mounted as the fs type
 func Mounted(fsType FsMagic, mountPath string) (bool, error) {
 	var buf unix.Statfs_t
+
 	if err := unix.Statfs(mountPath, &buf); err != nil {
 		return false, err
 	}
-	return FsMagic(buf.Type) == fsType, nil
+	if FsMagic(buf.Type) != fsType {
+		return false, nil
+	}
+	return isMountPoint(mountPath)
 }
