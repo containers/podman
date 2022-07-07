@@ -138,8 +138,10 @@ func (p *Provider) NewMachine(opts machine.InitOptions) (machine.VM, error) {
 	cmd = append(cmd, []string{
 		"-device", "virtio-serial",
 		// qemu needs to establish the long name; other connections can use the symlink'd
-		"-chardev", "socket,path=" + vm.ReadySocket.Path + ",server=on,wait=off,id=" + vm.Name + "_ready",
-		"-device", "virtserialport,chardev=" + vm.Name + "_ready" + ",name=org.fedoraproject.port.0",
+		// Note both id and chardev start with an extra "a" becuase qemu requires that it
+		// starts with an letter but users can also use numbers
+		"-chardev", "socket,path=" + vm.ReadySocket.Path + ",server=on,wait=off,id=a" + vm.Name + "_ready",
+		"-device", "virtserialport,chardev=a" + vm.Name + "_ready" + ",name=org.fedoraproject.port.0",
 		"-pidfile", vm.VMPidFilePath.GetPath()}...)
 	vm.CmdLine = cmd
 	return vm, nil
