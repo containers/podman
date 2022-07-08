@@ -966,7 +966,7 @@ func AutocompleteLogOpt(cmd *cobra.Command, args []string, toComplete string) ([
 // AutocompletePullOption - Autocomplete pull options for create and run command.
 // -> "always", "missing", "never"
 func AutocompletePullOption(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	pullOptions := []string{"always", "missing", "never"}
+	pullOptions := []string{"always", "missing", "never", "newer"}
 	return pullOptions, cobra.ShellCompDirectiveNoFileComp
 }
 

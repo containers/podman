@@ -390,7 +390,7 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		createFlags.StringVar(
 			&cf.Pull,
 			pullFlagName, cf.Pull,
-			`Pull image before creating ("always"|"missing"|"never")`,
+			`Pull image policy`,
 		)
 		_ = cmd.RegisterFlagCompletionFunc(pullFlagName, AutocompletePullOption)
 
