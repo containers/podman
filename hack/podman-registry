@@ -122,6 +122,25 @@ function must_pass() {
     fi
 }
 
+###################
+#  wait_for_port  #  Returns once port is available on localhost
+###################
+function wait_for_port() {
+    local port=$1                      # Numeric port
+
+    local host=127.0.0.1
+    local _timeout=5
+
+    # Wait
+    while [ $_timeout -gt 0 ]; do
+        { exec {unused_fd}<> /dev/tcp/$host/$port; } &>/dev/null && return
+        sleep 1
+        _timeout=$(( $_timeout - 1 ))
+    done
+
+    die "Timed out waiting for port $port"
+}
+
 # END   helper functions
 ###############################################################################
 # BEGIN action processing
@@ -130,7 +149,7 @@ function do_start() {
     # If called without a port, assign a random one in the 5xxx range
     if [ -z "${PODMAN_REGISTRY_PORT}" ]; then
         for port in $(shuf -i 5000-5999);do
-            if ! { exec 3<> /dev/tcp/127.0.0.1/$port; } &>/dev/null; then
+            if ! { exec {unused_fd}<> /dev/tcp/127.0.0.1/$port; } &>/dev/null; then
                 PODMAN_REGISTRY_PORT=$port
                 break
             fi
@@ -202,6 +221,9 @@ function do_start() {
               -e "REGISTRY_HTTP_TLS_CERTIFICATE=/auth/domain.crt"       \
               -e "REGISTRY_HTTP_TLS_KEY=/auth/domain.key"               \
               registry:2.6
+
+    # Confirm that registry started and port is active
+    wait_for_port $PODMAN_REGISTRY_PORT
 
     # Dump settings. Our caller will use these to access the registry.
     for v in IMAGE PORT USER PASS; do
