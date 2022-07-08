@@ -5,7 +5,9 @@ package buildah
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -40,6 +42,8 @@ import (
 	"github.com/containers/common/pkg/capabilities"
 	"github.com/containers/common/pkg/chown"
 	"github.com/containers/common/pkg/config"
+	"github.com/containers/common/pkg/hooks"
+	hooksExec "github.com/containers/common/pkg/hooks/exec"
 	"github.com/containers/common/pkg/subscriptions"
 	imagetypes "github.com/containers/image/v5/types"
 	"github.com/containers/storage"
@@ -56,7 +60,6 @@ import (
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 	"golang.org/x/term"
@@ -94,7 +97,7 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 
 	gp, err := generate.New("linux")
 	if err != nil {
-		return errors.Wrapf(err, "error generating new 'linux' runtime spec")
+		return fmt.Errorf("error generating new 'linux' runtime spec: %w", err)
 	}
 	g := &gp
 
@@ -113,7 +116,7 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 	b.configureEnvironment(g, options, []string{"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"})
 
 	if b.CommonBuildOpts == nil {
-		return errors.Errorf("Invalid format on container you must recreate the container")
+		return fmt.Errorf("invalid format on container you must recreate the container")
 	}
 
 	if err := addCommonOptsToSpec(b.CommonBuildOpts, g); err != nil {
@@ -128,7 +131,7 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 	setupSelinux(g, b.ProcessLabel, b.MountLabel)
 	mountPoint, err := b.Mount(b.MountLabel)
 	if err != nil {
-		return errors.Wrapf(err, "error mounting container %q", b.ContainerID)
+		return fmt.Errorf("error mounting container %q: %w", b.ContainerID, err)
 	}
 	defer func() {
 		if err := b.Unmount(); err != nil {
@@ -317,6 +320,12 @@ rootless=%d
 		bindFiles["/run/.containerenv"] = containerenvPath
 	}
 
+	// Setup OCI hooks
+	_, err = b.setupOCIHooks(spec, (len(options.Mounts) > 0 || len(volumes) > 0))
+	if err != nil {
+		return fmt.Errorf("unable to setup OCI hooks: %w", err)
+	}
+
 	runMountInfo := runMountInfo{
 		ContextDir:       options.ContextDir,
 		Secrets:          options.Secrets,
@@ -327,7 +336,7 @@ rootless=%d
 
 	runArtifacts, err := b.setupMounts(mountPoint, spec, path, options.Mounts, bindFiles, volumes, b.CommonBuildOpts.Volumes, options.RunMounts, runMountInfo)
 	if err != nil {
-		return errors.Wrapf(err, "error resolving mountpoints for container %q", b.ContainerID)
+		return fmt.Errorf("error resolving mountpoints for container %q: %w", b.ContainerID, err)
 	}
 	if runArtifacts.SSHAuthSock != "" {
 		sshenv := "SSH_AUTH_SOCK=" + runArtifacts.SSHAuthSock
@@ -367,9 +376,57 @@ rootless=%d
 		err = b.runUsingRuntimeSubproc(isolation, options, configureNetwork, configureNetworks, moreCreateArgs, spec,
 			mountPoint, path, define.Package+"-"+filepath.Base(path), b.Container, hostFile)
 	default:
-		err = errors.Errorf("don't know how to run this command")
+		err = errors.New("don't know how to run this command")
 	}
 	return err
+}
+
+func (b *Builder) setupOCIHooks(config *spec.Spec, hasVolumes bool) (map[string][]spec.Hook, error) {
+	allHooks := make(map[string][]spec.Hook)
+	if len(b.CommonBuildOpts.OCIHooksDir) == 0 {
+		if unshare.IsRootless() {
+			return nil, nil
+		}
+		for _, hDir := range []string{hooks.DefaultDir, hooks.OverrideDir} {
+			manager, err := hooks.New(context.Background(), []string{hDir}, []string{})
+			if err != nil {
+				if os.IsNotExist(err) {
+					continue
+				}
+				return nil, err
+			}
+			ociHooks, err := manager.Hooks(config, b.ImageAnnotations, hasVolumes)
+			if err != nil {
+				return nil, err
+			}
+			if len(ociHooks) > 0 || config.Hooks != nil {
+				logrus.Warnf("Implicit hook directories are deprecated; set --hooks-dir=%q explicitly to continue to load ociHooks from this directory", hDir)
+			}
+			for i, hook := range ociHooks {
+				allHooks[i] = hook
+			}
+		}
+	} else {
+		manager, err := hooks.New(context.Background(), b.CommonBuildOpts.OCIHooksDir, []string{})
+		if err != nil {
+			return nil, err
+		}
+
+		allHooks, err = manager.Hooks(config, b.ImageAnnotations, hasVolumes)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	hookErr, err := hooksExec.RuntimeConfigFilter(context.Background(), allHooks["precreate"], config, hooksExec.DefaultPostKillTimeout)
+	if err != nil {
+		logrus.Warnf("Container: precreate hook: %v", err)
+		if hookErr != nil && hookErr != err {
+			logrus.Debugf("container: precreate hook (hook error): %v", hookErr)
+		}
+		return nil, err
+	}
+	return allHooks, nil
 }
 
 func addCommonOptsToSpec(commonOpts *define.CommonBuildOptions, g *generate.Generator) error {
@@ -405,7 +462,7 @@ func addCommonOptsToSpec(commonOpts *define.CommonBuildOptions, g *generate.Gene
 
 	defaultContainerConfig, err := config.Default()
 	if err != nil {
-		return errors.Wrapf(err, "failed to get container config")
+		return fmt.Errorf("failed to get container config: %w", err)
 	}
 	// Other process resource limits
 	if err := addRlimits(commonOpts.Ulimit, g, defaultContainerConfig.Containers.DefaultUlimits); err != nil {
@@ -447,11 +504,11 @@ func runSetupBuiltinVolumes(mountLabel, mountPoint, containerDir string, builtin
 			ChmodNew: &createDirPerms,
 		})
 		if err != nil {
-			return nil, errors.Wrapf(err, "ensuring volume path %q", filepath.Join(mountPoint, volume))
+			return nil, fmt.Errorf("ensuring volume path %q: %w", filepath.Join(mountPoint, volume), err)
 		}
 		srcPath, err := copier.Eval(mountPoint, filepath.Join(mountPoint, volume), copier.EvalOptions{})
 		if err != nil {
-			return nil, errors.Wrapf(err, "evaluating path %q", srcPath)
+			return nil, fmt.Errorf("evaluating path %q: %w", srcPath, err)
 		}
 		stat, err := os.Stat(srcPath)
 		if err != nil && !os.IsNotExist(err) {
@@ -467,8 +524,8 @@ func runSetupBuiltinVolumes(mountLabel, mountPoint, containerDir string, builtin
 				return nil, err
 			}
 			logrus.Debugf("populating directory %q for volume %q using contents of %q", volumePath, volume, srcPath)
-			if err = extractWithTar(mountPoint, srcPath, volumePath); err != nil && !os.IsNotExist(errors.Cause(err)) {
-				return nil, errors.Wrapf(err, "error populating directory %q for volume %q using contents of %q", volumePath, volume, srcPath)
+			if err = extractWithTar(mountPoint, srcPath, volumePath); err != nil && !errors.Is(err, os.ErrNotExist) {
+				return nil, fmt.Errorf("error populating directory %q for volume %q using contents of %q: %w", volumePath, volume, srcPath, err)
 			}
 		}
 		// Add the bind mount.
@@ -506,7 +563,7 @@ func (b *Builder) setupMounts(mountPoint string, spec *specs.Spec, bundlePath st
 	// After this point we need to know the per-container persistent storage directory.
 	cdir, err := b.store.ContainerDirectory(b.ContainerID)
 	if err != nil {
-		return nil, errors.Wrapf(err, "error determining work directory for container %q", b.ContainerID)
+		return nil, fmt.Errorf("error determining work directory for container %q: %w", b.ContainerID, err)
 	}
 
 	// Figure out which UID and GID to tell the subscriptions package to use
@@ -593,7 +650,7 @@ func cleanableDestinationListFromMounts(mounts []spec.Mount) []string {
 func (b *Builder) addResolvConf(rdir string, chownOpts *idtools.IDPair, dnsServers, dnsSearch, dnsOptions []string, namespaces []specs.LinuxNamespace) (string, error) {
 	defaultConfig, err := config.Default()
 	if err != nil {
-		return "", errors.Wrapf(err, "failed to get config")
+		return "", fmt.Errorf("failed to get config: %w", err)
 	}
 
 	nameservers := make([]string, 0, len(defaultConfig.Containers.DNSServers)+len(dnsServers))
@@ -631,7 +688,7 @@ func (b *Builder) addResolvConf(rdir string, chownOpts *idtools.IDPair, dnsServe
 		Searches:        searches,
 		Options:         options,
 	}); err != nil {
-		return "", errors.Wrapf(err, "error building resolv.conf for container %s", b.ContainerID)
+		return "", fmt.Errorf("error building resolv.conf for container %s: %w", b.ContainerID, err)
 	}
 
 	uid := 0
@@ -698,7 +755,7 @@ func (b *Builder) generateHostname(rdir, hostname string, chownOpts *idtools.IDP
 
 	cfile := filepath.Join(rdir, filepath.Base(hostnamePath))
 	if err = ioutils.AtomicWriteFile(cfile, hostnameBuffer.Bytes(), 0644); err != nil {
-		return "", errors.Wrapf(err, "error writing /etc/hostname into the container")
+		return "", fmt.Errorf("error writing /etc/hostname into the container: %w", err)
 	}
 
 	uid := 0
@@ -762,10 +819,10 @@ func runUsingRuntime(options RunOptions, configureNetwork bool, moreCreateArgs [
 	// Write the runtime configuration.
 	specbytes, err := json.Marshal(spec)
 	if err != nil {
-		return 1, errors.Wrapf(err, "error encoding configuration %#v as json", spec)
+		return 1, fmt.Errorf("error encoding configuration %#v as json: %w", spec, err)
 	}
 	if err = ioutils.AtomicWriteFile(filepath.Join(bundlePath, "config.json"), specbytes, 0600); err != nil {
-		return 1, errors.Wrapf(err, "error storing runtime configuration")
+		return 1, fmt.Errorf("error storing runtime configuration: %w", err)
 	}
 
 	logrus.Debugf("config = %v", string(specbytes))
@@ -794,7 +851,7 @@ func runUsingRuntime(options RunOptions, configureNetwork bool, moreCreateArgs [
 	copyPipes := false
 	finishCopy := make([]int, 2)
 	if err = unix.Pipe(finishCopy); err != nil {
-		return 1, errors.Wrapf(err, "error creating pipe for notifying to stop stdio")
+		return 1, fmt.Errorf("error creating pipe for notifying to stop stdio: %w", err)
 	}
 	finishedCopy := make(chan struct{}, 1)
 	var pargs []string
@@ -806,7 +863,7 @@ func runUsingRuntime(options RunOptions, configureNetwork bool, moreCreateArgs [
 			socketPath := filepath.Join(bundlePath, "console.sock")
 			consoleListener, err = net.ListenUnix("unix", &net.UnixAddr{Name: socketPath, Net: "unix"})
 			if err != nil {
-				return 1, errors.Wrapf(err, "error creating socket %q to receive terminal descriptor", consoleListener.Addr())
+				return 1, fmt.Errorf("error creating socket %q to receive terminal descriptor: %w", consoleListener.Addr(), err)
 			}
 			// Add console socket arguments.
 			moreCreateArgs = append(moreCreateArgs, "--console-socket", socketPath)
@@ -883,13 +940,13 @@ func runUsingRuntime(options RunOptions, configureNetwork bool, moreCreateArgs [
 	logrus.Debugf("Running %q", create.Args)
 	err = create.Run()
 	if err != nil {
-		return 1, errors.Wrapf(err, "error from %s creating container for %v: %s", runtime, pargs, runCollectOutput(options.Logger, errorFds, closeBeforeReadingErrorFds))
+		return 1, fmt.Errorf("error from %s creating container for %v: %s: %w", runtime, pargs, runCollectOutput(options.Logger, errorFds, closeBeforeReadingErrorFds), err)
 	}
 	defer func() {
 		err2 := del.Run()
 		if err2 != nil {
 			if err == nil {
-				err = errors.Wrapf(err2, "error deleting container")
+				err = fmt.Errorf("error deleting container: %w", err2)
 			} else {
 				options.Logger.Infof("error from %s deleting container: %v", runtime, err2)
 			}
@@ -903,7 +960,7 @@ func runUsingRuntime(options RunOptions, configureNetwork bool, moreCreateArgs [
 	}
 	pid, err := strconv.Atoi(strings.TrimSpace(string(pidValue)))
 	if err != nil {
-		return 1, errors.Wrapf(err, "error parsing pid %s as a number", string(pidValue))
+		return 1, fmt.Errorf("error parsing pid %s as a number: %w", string(pidValue), err)
 	}
 	var stopped uint32
 	var reaping sync.WaitGroup
@@ -927,7 +984,7 @@ func runUsingRuntime(options RunOptions, configureNetwork bool, moreCreateArgs [
 		logrus.Debug("waiting for parent start message")
 		b := make([]byte, 1)
 		if _, err := containerStartR.Read(b); err != nil {
-			return 1, errors.Wrap(err, "did not get container start message from parent")
+			return 1, fmt.Errorf("did not get container start message from parent: %w", err)
 		}
 		containerStartR.Close()
 	}
@@ -949,7 +1006,7 @@ func runUsingRuntime(options RunOptions, configureNetwork bool, moreCreateArgs [
 	logrus.Debugf("Running %q", start.Args)
 	err = start.Run()
 	if err != nil {
-		return 1, errors.Wrapf(err, "error from %s starting container", runtime)
+		return 1, fmt.Errorf("error from %s starting container: %w", runtime, err)
 	}
 	defer func() {
 		if atomic.LoadUint32(&stopped) == 0 {
@@ -983,17 +1040,17 @@ func runUsingRuntime(options RunOptions, configureNetwork bool, moreCreateArgs [
 				// container exited
 				break
 			}
-			return 1, errors.Wrapf(err, "error reading container state from %s (got output: %q)", runtime, string(stateOutput))
+			return 1, fmt.Errorf("error reading container state from %s (got output: %q): %w", runtime, string(stateOutput), err)
 		}
 		if err = json.Unmarshal(stateOutput, &state); err != nil {
-			return 1, errors.Wrapf(err, "error parsing container state %q from %s", string(stateOutput), runtime)
+			return 1, fmt.Errorf("error parsing container state %q from %s: %w", string(stateOutput), runtime, err)
 		}
 		switch state.Status {
 		case "running":
 		case "stopped":
 			atomic.StoreUint32(&stopped, 1)
 		default:
-			return 1, errors.Errorf("container status unexpectedly changed to %q", state.Status)
+			return 1, fmt.Errorf("container status unexpectedly changed to %q", state.Status)
 		}
 		if atomic.LoadUint32(&stopped) != 0 {
 			break
@@ -1075,19 +1132,19 @@ func setupRootlessNetwork(pid int) (teardown func(), err error) {
 
 	rootlessSlirpSyncR, rootlessSlirpSyncW, err := os.Pipe()
 	if err != nil {
-		return nil, errors.Wrapf(err, "cannot create slirp4netns sync pipe")
+		return nil, fmt.Errorf("cannot create slirp4netns sync pipe: %w", err)
 	}
 	defer rootlessSlirpSyncR.Close()
 
 	// Be sure there are no fds inherited to slirp4netns except the sync pipe
 	files, err := ioutil.ReadDir("/proc/self/fd")
 	if err != nil {
-		return nil, errors.Wrapf(err, "cannot list open fds")
+		return nil, fmt.Errorf("cannot list open fds: %w", err)
 	}
 	for _, f := range files {
 		fd, err := strconv.Atoi(f.Name())
 		if err != nil {
-			return nil, errors.Wrapf(err, "cannot parse fd")
+			return nil, fmt.Errorf("cannot parse fd: %w", err)
 		}
 		if fd == int(rootlessSlirpSyncW.Fd()) {
 			continue
@@ -1103,13 +1160,13 @@ func setupRootlessNetwork(pid int) (teardown func(), err error) {
 	err = cmd.Start()
 	rootlessSlirpSyncW.Close()
 	if err != nil {
-		return nil, errors.Wrapf(err, "cannot start slirp4netns")
+		return nil, fmt.Errorf("cannot start slirp4netns: %w", err)
 	}
 
 	b := make([]byte, 1)
 	for {
 		if err := rootlessSlirpSyncR.SetDeadline(time.Now().Add(1 * time.Second)); err != nil {
-			return nil, errors.Wrapf(err, "error setting slirp4netns pipe timeout")
+			return nil, fmt.Errorf("error setting slirp4netns pipe timeout: %w", err)
 		}
 		if _, err := rootlessSlirpSyncR.Read(b); err == nil {
 			break
@@ -1119,7 +1176,7 @@ func setupRootlessNetwork(pid int) (teardown func(), err error) {
 				var status syscall.WaitStatus
 				_, err := syscall.Wait4(cmd.Process.Pid, &status, syscall.WNOHANG, nil)
 				if err != nil {
-					return nil, errors.Wrapf(err, "failed to read slirp4netns process status")
+					return nil, fmt.Errorf("failed to read slirp4netns process status: %w", err)
 				}
 				if status.Exited() || status.Signaled() {
 					return nil, errors.New("slirp4netns failed")
@@ -1127,7 +1184,7 @@ func setupRootlessNetwork(pid int) (teardown func(), err error) {
 
 				continue
 			}
-			return nil, errors.Wrapf(err, "failed to read from slirp4netns sync pipe")
+			return nil, fmt.Errorf("failed to read from slirp4netns sync pipe: %w", err)
 		}
 	}
 
@@ -1155,7 +1212,7 @@ func (b *Builder) runConfigureNetwork(pid int, isolation define.Isolation, optio
 	netns := fmt.Sprintf("/proc/%d/ns/net", pid)
 	netFD, err := unix.Open(netns, unix.O_RDONLY, 0)
 	if err != nil {
-		return nil, nil, errors.Wrapf(err, "error opening network namespace")
+		return nil, nil, fmt.Errorf("error opening network namespace: %w", err)
 	}
 	mynetns := fmt.Sprintf("/proc/%d/fd/%d", unix.Getpid(), netFD)
 
@@ -1424,7 +1481,7 @@ func runAcceptTerminal(logger *logrus.Logger, consoleListener *net.UnixListener,
 	defer consoleListener.Close()
 	c, err := consoleListener.AcceptUnix()
 	if err != nil {
-		return -1, errors.Wrapf(err, "error accepting socket descriptor connection")
+		return -1, fmt.Errorf("error accepting socket descriptor connection: %w", err)
 	}
 	defer c.Close()
 	// Expect a control message over our new connection.
@@ -1432,18 +1489,18 @@ func runAcceptTerminal(logger *logrus.Logger, consoleListener *net.UnixListener,
 	oob := make([]byte, 8192)
 	n, oobn, _, _, err := c.ReadMsgUnix(b, oob)
 	if err != nil {
-		return -1, errors.Wrapf(err, "error reading socket descriptor")
+		return -1, fmt.Errorf("error reading socket descriptor: %w", err)
 	}
 	if n > 0 {
 		logrus.Debugf("socket descriptor is for %q", string(b[:n]))
 	}
 	if oobn > len(oob) {
-		return -1, errors.Errorf("too much out-of-bounds data (%d bytes)", oobn)
+		return -1, fmt.Errorf("too much out-of-bounds data (%d bytes)", oobn)
 	}
 	// Parse the control message.
 	scm, err := unix.ParseSocketControlMessage(oob[:oobn])
 	if err != nil {
-		return -1, errors.Wrapf(err, "error parsing out-of-bound data as a socket control message")
+		return -1, fmt.Errorf("error parsing out-of-bound data as a socket control message: %w", err)
 	}
 	logrus.Debugf("control messages: %v", scm)
 	// Expect to get a descriptor.
@@ -1451,7 +1508,7 @@ func runAcceptTerminal(logger *logrus.Logger, consoleListener *net.UnixListener,
 	for i := range scm {
 		fds, err := unix.ParseUnixRights(&scm[i])
 		if err != nil {
-			return -1, errors.Wrapf(err, "error parsing unix rights control message: %v", &scm[i])
+			return -1, fmt.Errorf("error parsing unix rights control message: %v: %w", &scm[i], err)
 		}
 		logrus.Debugf("fds: %v", fds)
 		if len(fds) == 0 {
@@ -1461,7 +1518,7 @@ func runAcceptTerminal(logger *logrus.Logger, consoleListener *net.UnixListener,
 		break
 	}
 	if terminalFD == -1 {
-		return -1, errors.Errorf("unable to read terminal descriptor")
+		return -1, fmt.Errorf("unable to read terminal descriptor")
 	}
 	// Set the pseudoterminal's size to the configured size, or our own.
 	winsize := &unix.Winsize{}
@@ -1496,17 +1553,17 @@ func runMakeStdioPipe(uid, gid int) ([][]int, error) {
 	for i := range stdioPipe {
 		stdioPipe[i] = make([]int, 2)
 		if err := unix.Pipe(stdioPipe[i]); err != nil {
-			return nil, errors.Wrapf(err, "error creating pipe for container FD %d", i)
+			return nil, fmt.Errorf("error creating pipe for container FD %d: %w", i, err)
 		}
 	}
 	if err := unix.Fchown(stdioPipe[unix.Stdin][0], uid, gid); err != nil {
-		return nil, errors.Wrapf(err, "error setting owner of stdin pipe descriptor")
+		return nil, fmt.Errorf("error setting owner of stdin pipe descriptor: %w", err)
 	}
 	if err := unix.Fchown(stdioPipe[unix.Stdout][1], uid, gid); err != nil {
-		return nil, errors.Wrapf(err, "error setting owner of stdout pipe descriptor")
+		return nil, fmt.Errorf("error setting owner of stdout pipe descriptor: %w", err)
 	}
 	if err := unix.Fchown(stdioPipe[unix.Stderr][1], uid, gid); err != nil {
-		return nil, errors.Wrapf(err, "error setting owner of stderr pipe descriptor")
+		return nil, fmt.Errorf("error setting owner of stderr pipe descriptor: %w", err)
 	}
 	return stdioPipe, nil
 }
@@ -1602,20 +1659,20 @@ func setupNamespaces(logger *logrus.Logger, g *generate.Generator, namespaceOpti
 		}
 		if namespaceOption.Host {
 			if err := g.RemoveLinuxNamespace(namespaceOption.Name); err != nil {
-				return false, nil, false, errors.Wrapf(err, "error removing %q namespace for run", namespaceOption.Name)
+				return false, nil, false, fmt.Errorf("error removing %q namespace for run: %w", namespaceOption.Name, err)
 			}
 		} else if err := g.AddOrReplaceLinuxNamespace(namespaceOption.Name, namespaceOption.Path); err != nil {
 			if namespaceOption.Path == "" {
-				return false, nil, false, errors.Wrapf(err, "error adding new %q namespace for run", namespaceOption.Name)
+				return false, nil, false, fmt.Errorf("error adding new %q namespace for run: %w", namespaceOption.Name, err)
 			}
-			return false, nil, false, errors.Wrapf(err, "error adding %q namespace %q for run", namespaceOption.Name, namespaceOption.Path)
+			return false, nil, false, fmt.Errorf("error adding %q namespace %q for run: %w", namespaceOption.Name, namespaceOption.Path, err)
 		}
 	}
 
 	// If we've got mappings, we're going to have to create a user namespace.
 	if len(idmapOptions.UIDMap) > 0 || len(idmapOptions.GIDMap) > 0 || configureUserns {
 		if err := g.AddOrReplaceLinuxNamespace(string(specs.UserNamespace), ""); err != nil {
-			return false, nil, false, errors.Wrapf(err, "error adding new %q namespace for run", string(specs.UserNamespace))
+			return false, nil, false, fmt.Errorf("error adding new %q namespace for run: %w", string(specs.UserNamespace), err)
 		}
 		hostUidmap, hostGidmap, err := unshare.GetHostIDMappings("")
 		if err != nil {
@@ -1639,17 +1696,17 @@ func setupNamespaces(logger *logrus.Logger, g *generate.Generator, namespaceOpti
 		}
 		if !specifiedNetwork {
 			if err := g.AddOrReplaceLinuxNamespace(string(specs.NetworkNamespace), ""); err != nil {
-				return false, nil, false, errors.Wrapf(err, "error adding new %q namespace for run", string(specs.NetworkNamespace))
+				return false, nil, false, fmt.Errorf("error adding new %q namespace for run: %w", string(specs.NetworkNamespace), err)
 			}
 			configureNetwork = (policy != define.NetworkDisabled)
 		}
 	} else {
 		if err := g.RemoveLinuxNamespace(string(specs.UserNamespace)); err != nil {
-			return false, nil, false, errors.Wrapf(err, "error removing %q namespace for run", string(specs.UserNamespace))
+			return false, nil, false, fmt.Errorf("error removing %q namespace for run: %w", string(specs.UserNamespace), err)
 		}
 		if !specifiedNetwork {
 			if err := g.RemoveLinuxNamespace(string(specs.NetworkNamespace)); err != nil {
-				return false, nil, false, errors.Wrapf(err, "error removing %q namespace for run", string(specs.NetworkNamespace))
+				return false, nil, false, fmt.Errorf("error removing %q namespace for run: %w", string(specs.NetworkNamespace), err)
 			}
 		}
 	}
@@ -1753,7 +1810,7 @@ func addRlimits(ulimit []string, g *generate.Generator, defaultUlimits []string)
 	ulimit = append(defaultUlimits, ulimit...)
 	for _, u := range ulimit {
 		if ul, err = units.ParseUlimit(u); err != nil {
-			return errors.Wrapf(err, "ulimit option %q requires name=SOFT:HARD, failed to be parsed", u)
+			return fmt.Errorf("ulimit option %q requires name=SOFT:HARD, failed to be parsed: %w", u, err)
 		}
 
 		g.AddProcessRlimits("RLIMIT_"+strings.ToUpper(ul.Name), uint64(ul.Hard), uint64(ul.Soft))
@@ -1776,10 +1833,10 @@ func (b *Builder) runSetupVolumeMounts(mountLabel string, volumeMounts []string,
 	// Make sure the overlay directory is clean before running
 	containerDir, err := b.store.ContainerDirectory(b.ContainerID)
 	if err != nil {
-		return nil, errors.Wrapf(err, "error looking up container directory for %s", b.ContainerID)
+		return nil, fmt.Errorf("error looking up container directory for %s: %w", b.ContainerID, err)
 	}
 	if err := overlay.CleanupContent(containerDir); err != nil {
-		return nil, errors.Wrapf(err, "error cleaning up overlay content for %s", b.ContainerID)
+		return nil, fmt.Errorf("error cleaning up overlay content for %s: %w", b.ContainerID, err)
 	}
 
 	parseMount := func(mountType, host, container string, options []string) (specs.Mount, error) {
@@ -1846,7 +1903,7 @@ func (b *Builder) runSetupVolumeMounts(mountLabel string, volumeMounts []string,
 
 			contentDir, err := overlay.TempDir(containerDir, idMaps.rootUID, idMaps.rootGID)
 			if err != nil {
-				return specs.Mount{}, errors.Wrapf(err, "failed to create TempDir in the %s directory", containerDir)
+				return specs.Mount{}, fmt.Errorf("failed to create TempDir in the %s directory: %w", containerDir, err)
 			}
 
 			overlayOpts := overlay.Options{
@@ -1946,16 +2003,16 @@ func setupReadOnlyPaths(g *generate.Generator) {
 func setupCapAdd(g *generate.Generator, caps ...string) error {
 	for _, cap := range caps {
 		if err := g.AddProcessCapabilityBounding(cap); err != nil {
-			return errors.Wrapf(err, "error adding %q to the bounding capability set", cap)
+			return fmt.Errorf("error adding %q to the bounding capability set: %w", cap, err)
 		}
 		if err := g.AddProcessCapabilityEffective(cap); err != nil {
-			return errors.Wrapf(err, "error adding %q to the effective capability set", cap)
+			return fmt.Errorf("error adding %q to the effective capability set: %w", cap, err)
 		}
 		if err := g.AddProcessCapabilityPermitted(cap); err != nil {
-			return errors.Wrapf(err, "error adding %q to the permitted capability set", cap)
+			return fmt.Errorf("error adding %q to the permitted capability set: %w", cap, err)
 		}
 		if err := g.AddProcessCapabilityAmbient(cap); err != nil {
-			return errors.Wrapf(err, "error adding %q to the ambient capability set", cap)
+			return fmt.Errorf("error adding %q to the ambient capability set: %w", cap, err)
 		}
 	}
 	return nil
@@ -1964,16 +2021,16 @@ func setupCapAdd(g *generate.Generator, caps ...string) error {
 func setupCapDrop(g *generate.Generator, caps ...string) error {
 	for _, cap := range caps {
 		if err := g.DropProcessCapabilityBounding(cap); err != nil {
-			return errors.Wrapf(err, "error removing %q from the bounding capability set", cap)
+			return fmt.Errorf("error removing %q from the bounding capability set: %w", cap, err)
 		}
 		if err := g.DropProcessCapabilityEffective(cap); err != nil {
-			return errors.Wrapf(err, "error removing %q from the effective capability set", cap)
+			return fmt.Errorf("error removing %q from the effective capability set: %w", cap, err)
 		}
 		if err := g.DropProcessCapabilityPermitted(cap); err != nil {
-			return errors.Wrapf(err, "error removing %q from the permitted capability set", cap)
+			return fmt.Errorf("error removing %q from the permitted capability set: %w", cap, err)
 		}
 		if err := g.DropProcessCapabilityAmbient(cap); err != nil {
-			return errors.Wrapf(err, "error removing %q from the ambient capability set", cap)
+			return fmt.Errorf("error removing %q from the ambient capability set: %w", cap, err)
 		}
 	}
 	return nil
@@ -2245,7 +2302,7 @@ func (b *Builder) runUsingRuntimeSubproc(isolation define.Isolation, options Run
 		Isolation:        isolation,
 	})
 	if conferr != nil {
-		return errors.Wrapf(conferr, "error encoding configuration for %q", runUsingRuntimeCommand)
+		return fmt.Errorf("error encoding configuration for %q: %w", runUsingRuntimeCommand, conferr)
 	}
 	cmd := reexec.Command(runUsingRuntimeCommand)
 	setPdeathsig(cmd)
@@ -2265,13 +2322,13 @@ func (b *Builder) runUsingRuntimeSubproc(isolation define.Isolation, options Run
 	cmd.Env = util.MergeEnv(os.Environ(), []string{fmt.Sprintf("LOGLEVEL=%d", logrus.GetLevel())})
 	preader, pwriter, err := os.Pipe()
 	if err != nil {
-		return errors.Wrapf(err, "error creating configuration pipe")
+		return fmt.Errorf("error creating configuration pipe: %w", err)
 	}
 	confwg.Add(1)
 	go func() {
 		_, conferr = io.Copy(pwriter, bytes.NewReader(config))
 		if conferr != nil {
-			conferr = errors.Wrapf(conferr, "error while copying configuration down pipe to child process")
+			conferr = fmt.Errorf("error while copying configuration down pipe to child process: %w", conferr)
 		}
 		confwg.Done()
 	}()
@@ -2282,14 +2339,14 @@ func (b *Builder) runUsingRuntimeSubproc(isolation define.Isolation, options Run
 	if configureNetwork {
 		containerCreateR.file, containerCreateW.file, err = os.Pipe()
 		if err != nil {
-			return errors.Wrapf(err, "error creating container create pipe")
+			return fmt.Errorf("error creating container create pipe: %w", err)
 		}
 		defer containerCreateR.Close()
 		defer containerCreateW.Close()
 
 		containerStartR.file, containerStartW.file, err = os.Pipe()
 		if err != nil {
-			return errors.Wrapf(err, "error creating container create pipe")
+			return fmt.Errorf("error creating container create pipe: %w", err)
 		}
 		defer containerStartR.Close()
 		defer containerStartW.Close()
@@ -2300,7 +2357,7 @@ func (b *Builder) runUsingRuntimeSubproc(isolation define.Isolation, options Run
 	defer preader.Close()
 	defer pwriter.Close()
 	if err := cmd.Start(); err != nil {
-		return errors.Wrapf(err, "error while starting runtime")
+		return fmt.Errorf("error while starting runtime: %w", err)
 	}
 
 	interrupted := make(chan os.Signal, 100)
@@ -2330,7 +2387,7 @@ func (b *Builder) runUsingRuntimeSubproc(isolation define.Isolation, options Run
 			}
 			pid, err := strconv.Atoi(strings.TrimSpace(string(pidValue)))
 			if err != nil {
-				return errors.Wrapf(err, "error parsing pid %s as a number", string(pidValue))
+				return fmt.Errorf("error parsing pid %s as a number: %w", string(pidValue), err)
 			}
 
 			teardown, netstatus, err := b.runConfigureNetwork(pid, isolation, options, configureNetworks, containerName)
@@ -2366,7 +2423,7 @@ func (b *Builder) runUsingRuntimeSubproc(isolation define.Isolation, options Run
 	}
 
 	if err := cmd.Wait(); err != nil {
-		return errors.Wrapf(err, "error while running runtime")
+		return fmt.Errorf("error while running runtime: %w", err)
 	}
 	confwg.Wait()
 	signal.Stop(interrupted)
@@ -2421,7 +2478,7 @@ func checkAndOverrideIsolationOptions(isolation define.Isolation, options *RunOp
 		pidns := options.NamespaceOptions.Find(string(specs.PIDNamespace))
 		userns := options.NamespaceOptions.Find(string(specs.UserNamespace))
 		if (pidns != nil && pidns.Host) && (userns != nil && !userns.Host) {
-			return errors.Errorf("not allowed to mix host PID namespace with container user namespace")
+			return fmt.Errorf("not allowed to mix host PID namespace with container user namespace")
 		}
 	}
 	return nil
@@ -2432,7 +2489,7 @@ func checkAndOverrideIsolationOptions(isolation define.Isolation, options *RunOp
 func DefaultNamespaceOptions() (define.NamespaceOptions, error) {
 	cfg, err := config.Default()
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to get container config")
+		return nil, fmt.Errorf("failed to get container config: %w", err)
 	}
 	options := define.NamespaceOptions{
 		{Name: string(specs.CgroupNamespace), Host: cfg.CgroupNS() == "host"},
@@ -2547,7 +2604,7 @@ func (b *Builder) runSetupRunMounts(mounts []string, sources runMountInfo, idMap
 			mountTargets = append(mountTargets, mount.Destination)
 			lockedTargets = lockedPaths
 		default:
-			return nil, nil, errors.Errorf("invalid mount type %q", kv[1])
+			return nil, nil, fmt.Errorf("invalid mount type %q", kv[1])
 		}
 	}
 	artifacts := &runMountArtifacts{
@@ -2662,7 +2719,7 @@ func (b *Builder) getSecretMount(tokens []string, secrets map[string]define.Secr
 	secr, ok := secrets[id]
 	if !ok {
 		if required {
-			return nil, "", errors.Errorf("secret required but no secret with id %s found", id)
+			return nil, "", fmt.Errorf("secret required but no secret with id %s found", id)
 		}
 		return nil, "", nil
 	}
@@ -2782,7 +2839,7 @@ func (b *Builder) getSSHMount(tokens []string, count int, sshsources map[string]
 	sshsource, ok := sshsources[id]
 	if !ok {
 		if required {
-			return nil, nil, errors.Errorf("ssh required but no ssh with id %s found", id)
+			return nil, nil, fmt.Errorf("ssh required but no ssh with id %s found", id)
 		}
 		return nil, nil, nil
 	}
@@ -2856,7 +2913,7 @@ func (b *Builder) cleanupRunMounts(context *imagetypes.SystemContext, mountpoint
 				// if image is being used by something else
 				_ = i.Unmount(false)
 			}
-			if errors.Cause(err) == storagetypes.ErrImageUnknown {
+			if errors.Is(err, storagetypes.ErrImageUnknown) {
 				// Ignore only if ErrImageUnknown
 				// Reason: Image is already unmounted do nothing
 				continue

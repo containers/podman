@@ -89,7 +89,7 @@ github.com/containernetworking/cni/pkg/version
 # github.com/containernetworking/plugins v1.1.1
 ## explicit
 github.com/containernetworking/plugins/pkg/ns
-# github.com/containers/buildah v1.26.1-0.20220609225314-e66309ebde8c
+# github.com/containers/buildah v1.26.1-0.20220707154848-3a8223522f9c
 ## explicit
 github.com/containers/buildah
 github.com/containers/buildah/bind
@@ -136,6 +136,10 @@ github.com/containers/common/pkg/config
 github.com/containers/common/pkg/download
 github.com/containers/common/pkg/filters
 github.com/containers/common/pkg/flag
+github.com/containers/common/pkg/hooks
+github.com/containers/common/pkg/hooks/0.1.0
+github.com/containers/common/pkg/hooks/1.0.0
+github.com/containers/common/pkg/hooks/exec
 github.com/containers/common/pkg/machine
 github.com/containers/common/pkg/manifests
 github.com/containers/common/pkg/netns

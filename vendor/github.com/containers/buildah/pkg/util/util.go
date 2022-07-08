@@ -1,12 +1,11 @@
 package util
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
-
-	"github.com/pkg/errors"
 )
 
 // Mirrors path to a tmpfile if path points to a
@@ -44,7 +43,7 @@ func DiscoverContainerfile(path string) (foundCtrFile string, err error) {
 	// Test for existence of the file
 	target, err := os.Stat(path)
 	if err != nil {
-		return "", errors.Wrap(err, "discovering Containerfile")
+		return "", fmt.Errorf("discovering Containerfile: %w", err)
 	}
 
 	switch mode := target.Mode(); {
@@ -61,7 +60,7 @@ func DiscoverContainerfile(path string) (foundCtrFile string, err error) {
 			// Test for existence of the Dockerfile file
 			file, err = os.Stat(ctrfile)
 			if err != nil {
-				return "", errors.Wrap(err, "cannot find Containerfile or Dockerfile in context directory")
+				return "", fmt.Errorf("cannot find Containerfile or Dockerfile in context directory: %w", err)
 			}
 		}
 
@@ -69,7 +68,7 @@ func DiscoverContainerfile(path string) (foundCtrFile string, err error) {
 		if mode := file.Mode(); mode.IsRegular() {
 			foundCtrFile = ctrfile
 		} else {
-			return "", errors.Errorf("assumed Containerfile %q is not a file", ctrfile)
+			return "", fmt.Errorf("assumed Containerfile %q is not a file", ctrfile)
 		}
 
 	case mode.IsRegular():

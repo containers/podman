@@ -1,11 +1,13 @@
+//go:build !linux && !darwin
 // +build !linux,!darwin
 
 package buildah
 
 import (
+	"errors"
+
 	nettypes "github.com/containers/common/libnetwork/types"
 	"github.com/containers/storage"
-	"github.com/pkg/errors"
 )
 
 func setChildProcess() error {

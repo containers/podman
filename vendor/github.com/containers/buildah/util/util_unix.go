@@ -1,4 +1,5 @@
-// +build linux darwin
+//go:build linux || darwin || freebsd
+// +build linux darwin freebsd
 
 package util
 

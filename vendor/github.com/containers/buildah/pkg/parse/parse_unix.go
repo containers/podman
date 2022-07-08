@@ -1,14 +1,15 @@
+//go:build linux || darwin
 // +build linux darwin
 
 package parse
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 
 	"github.com/containers/buildah/define"
 	"github.com/opencontainers/runc/libcontainer/devices"
-	"github.com/pkg/errors"
 )
 
 func DeviceFromPath(device string) (define.ContainerDevices, error) {
@@ -19,13 +20,13 @@ func DeviceFromPath(device string) (define.ContainerDevices, error) {
 	}
 	srcInfo, err := os.Stat(src)
 	if err != nil {
-		return nil, errors.Wrapf(err, "error getting info of source device %s", src)
+		return nil, fmt.Errorf("error getting info of source device %s: %w", src, err)
 	}
 
 	if !srcInfo.IsDir() {
 		dev, err := devices.DeviceFromPath(src, permissions)
 		if err != nil {
-			return nil, errors.Wrapf(err, "%s is not a valid device", src)
+			return nil, fmt.Errorf("%s is not a valid device: %w", src, err)
 		}
 		dev.Path = dst
 		device := define.BuildahDevice{Device: *dev, Source: src, Destination: dst}
@@ -36,7 +37,7 @@ func DeviceFromPath(device string) (define.ContainerDevices, error) {
 	// If source device is a directory
 	srcDevices, err := devices.GetDevices(src)
 	if err != nil {
-		return nil, errors.Wrapf(err, "error getting source devices from directory %s", src)
+		return nil, fmt.Errorf("error getting source devices from directory %s: %w", src, err)
 	}
 	for _, d := range srcDevices {
 		d.Path = filepath.Join(dst, filepath.Base(d.Path))

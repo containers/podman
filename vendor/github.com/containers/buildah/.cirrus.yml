@@ -51,7 +51,7 @@ gcp_credentials: ENCRYPTED[ae0bf7370f0b6e446bc61d0865a2c55d3e166b3fab9466eb0393e
 timeout_in: 120m
 
 # Default VM to use unless set or modified by task
-gce_instance:
+gce_instance: &standardvm
     image_project: "${IMAGE_PROJECT}"
     zone: "us-central1-c"  # Required by Cirrus for the time being
     cpu: 2
@@ -93,9 +93,8 @@ smoke_task:
     gce_instance:
         memory: "12Gb"
 
-    # N/B: Skip running this on branches due to multiple bugs in
-    # the git-validate tool which are difficult to debug and fix.
-    skip: $CIRRUS_PR == ''
+    # Don't bother running on branches (including cron), or for tags.
+    only_if: $CIRRUS_PR != ''
 
     timeout_in: 30m
 
@@ -111,6 +110,7 @@ smoke_task:
 vendor_task:
     name: "Test Vendoring"
     alias: vendor
+    only_if: &not_multiarch $CIRRUS_CRON != 'multiarch'
 
     env:
         CIRRUS_WORKING_DIR: "/var/tmp/go/src/github.com/containers/buildah"
@@ -134,7 +134,9 @@ vendor_task:
 cross_build_task:
     name: "Cross Compile"
     alias: cross_build
-    only_if: &not_docs $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*'
+    only_if: >-
+        $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*' &&
+        $CIRRUS_CRON != 'multiarch'
 
     osx_instance:
         image: 'big-sur-base'
@@ -154,7 +156,10 @@ cross_build_task:
 unit_task:
     name: 'Unit tests w/ $STORAGE_DRIVER'
     alias: unit
-    only_if: *not_docs
+    only_if: &not_build_docs >-
+        $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*' &&
+        $CIRRUS_CHANGE_TITLE !=~ '.*CI:BUILD.*' &&
+        $CIRRUS_CRON != 'multiarch'
     depends_on: &smoke_vendor_cross
       - smoke
       - vendor
@@ -179,7 +184,7 @@ unit_task:
 conformance_task:
     name: 'Build Conformance w/ $STORAGE_DRIVER'
     alias: conformance
-    only_if: *not_docs
+    only_if: *not_build_docs
     depends_on: *smoke_vendor_cross
 
     gce_instance:
@@ -200,7 +205,7 @@ conformance_task:
 integration_task:
     name: "Integration $DISTRO_NV w/ $STORAGE_DRIVER"
     alias: integration
-    only_if: *not_docs
+    only_if: *not_build_docs
     depends_on: *smoke_vendor_cross
 
     matrix:
@@ -255,7 +260,7 @@ integration_task:
 integration_rootless_task:
     name: "Integration rootless $DISTRO_NV w/ $STORAGE_DRIVER"
     alias: integration_rootless
-    only_if: *not_docs
+    only_if: *not_build_docs
     depends_on: *smoke_vendor_cross
 
     matrix:
@@ -294,7 +299,7 @@ integration_rootless_task:
 in_podman_task:
     name: "Containerized Integration"
     alias: in_podman
-    only_if: *not_docs
+    only_if: *not_build_docs
     depends_on: *smoke_vendor_cross
 
     env:
@@ -315,6 +320,52 @@ in_podman_task:
         <<: *standardlogs
 
 
+image_build_task: &image-build
+    name: "Build multi-arch $CTXDIR"
+    alias: image_build
+    # Some of these container images take > 1h to build, limit
+    # this task to a specific Cirrus-Cron entry with this name.
+    only_if: $CIRRUS_CRON == 'multiarch'
+    depends_on:
+        - smoke
+    timeout_in: 120m  # emulation is sssllllooooowwww
+    gce_instance:
+        <<: *standardvm
+        image_name: build-push-${IMAGE_SUFFIX}
+        # More muscle required for parallel multi-arch build
+        type: "n2-standard-4"
+    matrix:
+        - env:
+            CTXDIR: contrib/buildahimage/upstream
+        - env:
+            CTXDIR: contrib/buildahimage/testing
+        - env:
+            CTXDIR: contrib/buildahimage/stable
+    env:
+        DISTRO_NV: "${FEDORA_NAME}"  # Required for repo cache extraction
+        BUILDAH_USERNAME: ENCRYPTED[70e1d4f026cba5d82fc067944baab10f7c71c64bb6b75fce4eeb5c106694b3bbc8e08f8a1b926d6e03e85cf4e21833bb]
+        BUILDAH_PASSWORD: ENCRYPTED[2dc7f4f623bfc856e1d5030df263b9e48ddab39abacea7a8bc714179c188df15fc0a5bb5d3414a24637d4e39aa51b7b5]
+        CONTAINERS_USERNAME: ENCRYPTED[88cd93c753f78d70e4beb5dbebd4402d682daf45793d7e0fe8b75b358f768e8734aef3f130ffb4ebca9bdea8d220a188]
+        CONTAINERS_PASSWORD: ENCRYPTED[886cf4cc126e50b2fd7f2792235a22bb79e4b81db43f803a6214a38d3fd6c04cd4e64570b562cb32b04e5fbc435404b6]
+    main_script:
+        - source /etc/automation_environment
+        - main.sh $CIRRUS_REPO_CLONE_URL $CTXDIR
+
+
+test_image_build_task:
+    <<: *image-build
+    alias: test_image_build
+    # Allow this to run inside a PR w/ [CI:BUILD] only.
+    only_if: $CIRRUS_PR != '' && $CIRRUS_CHANGE_TITLE =~ '.*CI:BUILD.*'
+    # This takes a LONG time, only run when requested.  N/B: Any task
+    # made to depend on this one will block FOREVER unless triggered.
+    # DO NOT ADD THIS TASK AS DEPENDENCY FOR `success_task`.
+    trigger_type: manual
+    # Overwrite all 'env', don't push anything, just do the build.
+    env:
+        DRYRUN: 1
+
+
 # Status aggregator for all tests.  This task simply ensures a defined
 # set of tasks all passed, and allows confirming that based on the status
 # of this task.
@@ -331,6 +382,7 @@ success_task:
       - cross_build
       - integration
       - in_podman
+      - image_build
 
     container:
         image: "quay.io/libpod/alpine:latest"
