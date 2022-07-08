@@ -303,7 +303,7 @@ func (r *ConmonOCIRuntime) UpdateContainerStatus(ctr *Container) error {
 			ctr.state.ExitCode = -1
 			ctr.state.FinishedTime = time.Now()
 			ctr.state.State = define.ContainerStateExited
-			return nil
+			return ctr.runtime.state.AddContainerExitCode(ctr.ID(), ctr.state.ExitCode)
 		}
 		return fmt.Errorf("error getting container %s state. stderr/out: %s: %w", ctr.ID(), out, err)
 	}

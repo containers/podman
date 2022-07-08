@@ -140,4 +140,15 @@ load helpers
     run_podman rm -f $random_name
 }
 
+@test "podman wait - exit codes" {
+    random_name=$(random_string 10)
+    run_podman create --name=$random_name $IMAGE /no/such/command
+    # Container never ran -> exit code == 0
+    run_podman wait $random_name
+    # Container did not start successfully -> exit code != 0
+    run_podman 125 start $random_name
+    # FIXME(#14873): while older Podmans return 0 on wait, Docker does not.
+    run_podman wait $random_name
+}
+
 # vim: filetype=sh
