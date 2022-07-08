@@ -112,6 +112,10 @@ LIBSECCOMP_COMMIT := v2.3.3
 # Rarely if ever should integration tests take more than 50min,
 # caller may override in special circumstances if needed.
 GINKGOTIMEOUT ?= -timeout=90m
+# By default, run test/e2e
+GINKGOWHAT ?= test/e2e/.
+# By default, run tests in parallel across 3 nodes.
+GINKGONODES ?= 3
 
 # Conditional required to produce empty-output if binary not built yet.
 RELEASE_VERSION = $(shell if test -x test/version/version; then test/version/version; fi)
@@ -524,7 +528,7 @@ test: localunit localintegration remoteintegration localsystem remotesystem  ## 
 .PHONY: ginkgo-run
 ginkgo-run:
 	ACK_GINKGO_RC=true ginkgo version
-	ACK_GINKGO_RC=true ginkgo -v $(TESTFLAGS) -tags "$(TAGS)" $(GINKGOTIMEOUT) -cover -flakeAttempts 3 -progress -trace -noColor -nodes 3 -debug test/e2e/. $(HACK)
+	ACK_GINKGO_RC=true ginkgo -v $(TESTFLAGS) -tags "$(TAGS)" $(GINKGOTIMEOUT) -cover -flakeAttempts 3 -progress -trace -noColor -nodes $(GINKGONODES) -debug $(GINKGOWHAT) $(HACK)
 
 .PHONY: ginkgo
 ginkgo:
@@ -539,6 +543,10 @@ localintegration: test-binaries ginkgo
 
 .PHONY: remoteintegration
 remoteintegration: test-binaries ginkgo-remote
+
+.PHONY: localmachine
+localmachine: test-binaries
+	$(MAKE) ginkgo-run GINKGONODES=1 GINKGOWHAT=pkg/machine/e2e/. HACK=
 
 .PHONY: localbenchmarks
 localbenchmarks: test-binaries
