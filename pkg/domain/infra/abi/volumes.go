@@ -211,3 +211,8 @@ func (ic *ContainerEngine) VolumeUnmount(ctx context.Context, nameOrIDs []string
 
 	return reports, nil
 }
+
+func (ic *ContainerEngine) VolumeReload(ctx context.Context) (*entities.VolumeReloadReport, error) {
+	report := ic.Libpod.UpdateVolumePlugins(ctx)
+	return &entities.VolumeReloadReport{VolumeReload: *report}, nil
+}

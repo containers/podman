@@ -203,13 +203,13 @@ func (p *VolumePlugin) verifyReachable() error {
 
 // Send a request to the volume plugin for handling.
 // Callers *MUST* close the response when they are done.
-func (p *VolumePlugin) sendRequest(toJSON interface{}, hasBody bool, endpoint string) (*http.Response, error) {
+func (p *VolumePlugin) sendRequest(toJSON interface{}, endpoint string) (*http.Response, error) {
 	var (
 		reqJSON []byte
 		err     error
 	)
 
-	if hasBody {
+	if toJSON != nil {
 		reqJSON, err = json.Marshal(toJSON)
 		if err != nil {
 			return nil, errors.Wrapf(err, "error marshalling request JSON for volume plugin %s endpoint %s", p.Name, endpoint)
@@ -280,7 +280,7 @@ func (p *VolumePlugin) CreateVolume(req *volume.CreateRequest) error {
 
 	logrus.Infof("Creating volume %s using plugin %s", req.Name, p.Name)
 
-	resp, err := p.sendRequest(req, true, createPath)
+	resp, err := p.sendRequest(req, createPath)
 	if err != nil {
 		return err
 	}
@@ -297,7 +297,7 @@ func (p *VolumePlugin) ListVolumes() ([]*volume.Volume, error) {
 
 	logrus.Infof("Listing volumes using plugin %s", p.Name)
 
-	resp, err := p.sendRequest(nil, false, listPath)
+	resp, err := p.sendRequest(nil, listPath)
 	if err != nil {
 		return nil, err
 	}
@@ -333,7 +333,7 @@ func (p *VolumePlugin) GetVolume(req *volume.GetRequest) (*volume.Volume, error)
 
 	logrus.Infof("Getting volume %s using plugin %s", req.Name, p.Name)
 
-	resp, err := p.sendRequest(req, true, getPath)
+	resp, err := p.sendRequest(req, getPath)
 	if err != nil {
 		return nil, err
 	}
@@ -368,7 +368,7 @@ func (p *VolumePlugin) RemoveVolume(req *volume.RemoveRequest) error {
 
 	logrus.Infof("Removing volume %s using plugin %s", req.Name, p.Name)
 
-	resp, err := p.sendRequest(req, true, removePath)
+	resp, err := p.sendRequest(req, removePath)
 	if err != nil {
 		return err
 	}
@@ -389,7 +389,7 @@ func (p *VolumePlugin) GetVolumePath(req *volume.PathRequest) (string, error) {
 
 	logrus.Infof("Getting volume %s path using plugin %s", req.Name, p.Name)
 
-	resp, err := p.sendRequest(req, true, hostVirtualPath)
+	resp, err := p.sendRequest(req, hostVirtualPath)
 	if err != nil {
 		return "", err
 	}
@@ -426,7 +426,7 @@ func (p *VolumePlugin) MountVolume(req *volume.MountRequest) (string, error) {
 
 	logrus.Infof("Mounting volume %s using plugin %s for container %s", req.Name, p.Name, req.ID)
 
-	resp, err := p.sendRequest(req, true, mountPath)
+	resp, err := p.sendRequest(req, mountPath)
 	if err != nil {
 		return "", err
 	}
@@ -462,7 +462,7 @@ func (p *VolumePlugin) UnmountVolume(req *volume.UnmountRequest) error {
 
 	logrus.Infof("Unmounting volume %s using plugin %s for container %s", req.Name, p.Name, req.ID)
 
-	resp, err := p.sendRequest(req, true, unmountPath)
+	resp, err := p.sendRequest(req, unmountPath)
 	if err != nil {
 		return err
 	}

@@ -54,6 +54,11 @@ type VolumeListReport struct {
 	VolumeConfigResponse
 }
 
+// VolumeReloadReport describes the response from reload volume plugins
+type VolumeReloadReport struct {
+	define.VolumeReload
+}
+
 /*
  * Docker API compatibility types
  */

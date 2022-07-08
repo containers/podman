@@ -301,7 +301,7 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool,
 		if !volume.Anonymous() {
 			continue
 		}
-		if err := r.removeVolume(ctx, volume, false, timeout); err != nil {
+		if err := r.removeVolume(ctx, volume, false, timeout, false); err != nil {
 			if errors.Cause(err) == define.ErrNoSuchVolume || errors.Cause(err) == define.ErrVolumeRemoved {
 				continue
 			}
