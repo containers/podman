@@ -5,6 +5,8 @@ package netavark
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -16,7 +18,6 @@ import (
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/storage/pkg/lockfile"
 	"github.com/containers/storage/pkg/unshare"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -105,7 +106,7 @@ func NewNetworkInterface(conf *InitConfig) (types.ContainerNetwork, error) {
 	}
 	defaultNet, err := types.ParseCIDR(defaultSubnet)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to parse default subnet")
+		return nil, fmt.Errorf("failed to parse default subnet: %w", err)
 	}
 
 	if err := os.MkdirAll(conf.NetworkConfigDir, 0o755); err != nil {
@@ -221,7 +222,7 @@ func (n *netavarkNetwork) loadNetworks() error {
 	if networks[n.defaultNetwork] == nil {
 		networkInfo, err := n.createDefaultNetwork()
 		if err != nil {
-			return errors.Wrapf(err, "failed to create default network %s", n.defaultNetwork)
+			return fmt.Errorf("failed to create default network %s: %w", n.defaultNetwork, err)
 		}
 		networks[n.defaultNetwork] = networkInfo
 	}
@@ -242,7 +243,7 @@ func parseNetwork(network *types.Network) error {
 	}
 
 	if len(network.ID) != 64 {
-		return errors.Errorf("invalid network ID %q", network.ID)
+		return fmt.Errorf("invalid network ID %q", network.ID)
 	}
 
 	// add gateway when not internal or dns enabled
@@ -284,7 +285,7 @@ func (n *netavarkNetwork) getNetwork(nameOrID string) (*types.Network, error) {
 
 		if strings.HasPrefix(val.ID, nameOrID) {
 			if net != nil {
-				return nil, errors.Errorf("more than one result for network ID %s", nameOrID)
+				return nil, fmt.Errorf("more than one result for network ID %s", nameOrID)
 			}
 			net = val
 		}
@@ -292,7 +293,7 @@ func (n *netavarkNetwork) getNetwork(nameOrID string) (*types.Network, error) {
 	if net != nil {
 		return net, nil
 	}
-	return nil, errors.Wrapf(types.ErrNoSuchNetwork, "unable to find network with name or ID %s", nameOrID)
+	return nil, fmt.Errorf("unable to find network with name or ID %s: %w", nameOrID, types.ErrNoSuchNetwork)
 }
 
 // Implement the NetUtil interface for easy code sharing with other network interfaces.

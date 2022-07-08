@@ -1,6 +1,8 @@
 package supported
 
 import (
+	"errors"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -8,7 +10,6 @@ import (
 
 	"github.com/containers/storage/pkg/unshare"
 	runcaa "github.com/opencontainers/runc/libcontainer/apparmor"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -81,7 +82,7 @@ func (a *ApparmorVerifier) FindAppArmorParserBinary() (string, error) {
 		return path, nil
 	}
 
-	return "", errors.Errorf(
+	return "", fmt.Errorf(
 		"%s binary neither found in %s nor $PATH", binary, sbin,
 	)
 }

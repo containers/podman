@@ -11,7 +11,7 @@ require (
 	github.com/container-orchestrated-devices/container-device-interface v0.4.0
 	github.com/containernetworking/cni v1.1.1
 	github.com/containernetworking/plugins v1.1.1
-	github.com/containers/buildah v1.26.1-0.20220609225314-e66309ebde8c
+	github.com/containers/buildah v1.26.1-0.20220711170152-a656e16c756d
 	github.com/containers/common v0.48.1-0.20220705175712-dd1c331887b9
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/image/v5 v5.21.2-0.20220617075545-929f14a56f5c
@@ -76,3 +76,5 @@ require (
 require github.com/docker/libnetwork v0.8.0-dev.2.0.20190625141545-5a177b73e316 // indirect
 
 replace github.com/opencontainers/runc => github.com/opencontainers/runc v1.1.1-0.20220617142545-8b9452f75cbc
+
+replace github.com/containers/common => github.com/saschagrunert/common v0.40.2-0.20220712085407-e6f0784b23ab

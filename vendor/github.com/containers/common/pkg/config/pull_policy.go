@@ -15,18 +15,18 @@ import (
 type PullPolicy int
 
 const (
-	// Always pull the image.
+	// Always pull the image and throw an error if the pull fails.
 	PullPolicyAlways PullPolicy = iota
 	// Pull the image only if it could not be found in the local containers
-	// storage.
+	// storage.  Throw an error if no image could be found and the pull fails.
 	PullPolicyMissing
 	// Never pull the image but use the one from the local containers
-	// storage.
+	// storage.  Throw an error if no image could be found.
 	PullPolicyNever
-	// Pull if the image on the registry is new than the one in the local
+	// Pull if the image on the registry is newer than the one in the local
 	// containers storage.  An image is considered to be newer when the
 	// digests are different.  Comparing the time stamps is prone to
-	// errors.
+	// errors.  Pull errors are suppressed if a local image was found.
 	PullPolicyNewer
 
 	// Ideally this should be the first `ioata` but backwards compatibility

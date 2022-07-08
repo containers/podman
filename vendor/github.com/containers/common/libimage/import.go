@@ -2,6 +2,7 @@ package libimage
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/url"
 	"os"
@@ -10,7 +11,6 @@ import (
 	storageTransport "github.com/containers/image/v5/storage"
 	tarballTransport "github.com/containers/image/v5/tarball"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -117,7 +117,7 @@ func (r *Runtime) Import(ctx context.Context, path string, options *ImportOption
 	if options.Tag != "" {
 		image, _, err := r.LookupImage(name, nil)
 		if err != nil {
-			return "", errors.Wrap(err, "looking up imported image")
+			return "", fmt.Errorf("looking up imported image: %w", err)
 		}
 		if err := image.Tag(options.Tag); err != nil {
 			return "", err

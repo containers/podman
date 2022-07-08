@@ -114,7 +114,6 @@ validate: install.tools
 	./tests/validate/whitespace.sh
 	./hack/xref-helpmsgs-manpages
 	./tests/validate/pr-should-include-tests
-	./tests/validate/buildahimages-are-sane
 
 .PHONY: install.tools
 install.tools:
@@ -189,3 +188,9 @@ vendor:
 .PHONY: lint
 lint: install.tools
 	./tests/tools/build/golangci-lint run $(LINTFLAGS)
+
+# CAUTION: This is not a replacement for RPMs provided by your distro.
+# Only intended to build and test the latest unreleased changes.
+.PHONY: rpm
+rpm:
+	rpkg local

@@ -1,19 +1,17 @@
 package buildah
 
-import (
-	"github.com/pkg/errors"
-)
+import "fmt"
 
 // Unmount unmounts a build container.
 func (b *Builder) Unmount() error {
 	_, err := b.store.Unmount(b.ContainerID, false)
 	if err != nil {
-		return errors.Wrapf(err, "error unmounting build container %q", b.ContainerID)
+		return fmt.Errorf("error unmounting build container %q: %w", b.ContainerID, err)
 	}
 	b.MountPoint = ""
 	err = b.Save()
 	if err != nil {
-		return errors.Wrapf(err, "error saving updated state for build container %q", b.ContainerID)
+		return fmt.Errorf("error saving updated state for build container %q: %w", b.ContainerID, err)
 	}
 	return nil
 }

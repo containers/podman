@@ -6,6 +6,7 @@ package cgroups
 import (
 	"bufio"
 	"context"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"math"
@@ -20,7 +21,6 @@ import (
 	"github.com/opencontainers/runc/libcontainer/cgroups"
 	"github.com/opencontainers/runc/libcontainer/cgroups/fs2"
 	"github.com/opencontainers/runc/libcontainer/configs"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -98,7 +98,7 @@ func getAvailableControllers(exclude map[string]controllerHandler, cgroup2 bool)
 		}
 		controllersFileBytes, err := ioutil.ReadFile(controllersFile)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed while reading controllers for cgroup v2 from %q", controllersFile)
+			return nil, fmt.Errorf("failed while reading controllers for cgroup v2 from %q: %w", controllersFile, err)
 		}
 		for _, controllerName := range strings.Fields(string(controllersFileBytes)) {
 			c := controller{
@@ -217,7 +217,7 @@ func (c *CgroupControl) initialize() (err error) {
 	}()
 	if c.cgroup2 {
 		if err := createCgroupv2Path(filepath.Join(cgroupRoot, c.config.Path)); err != nil {
-			return errors.Wrapf(err, "error creating cgroup path %s", c.config.Path)
+			return fmt.Errorf("error creating cgroup path %s: %w", c.config.Path, err)
 		}
 	}
 	for name, handler := range handlers {
@@ -238,7 +238,7 @@ func (c *CgroupControl) initialize() (err error) {
 			}
 			path := c.getCgroupv1Path(ctr.name)
 			if err := os.MkdirAll(path, 0o755); err != nil {
-				return errors.Wrapf(err, "error creating cgroup path for %s", ctr.name)
+				return fmt.Errorf("error creating cgroup path for %s: %w", ctr.name, err)
 			}
 		}
 	}
@@ -257,7 +257,7 @@ func readFileAsUint64(path string) (uint64, error) {
 	}
 	ret, err := strconv.ParseUint(v, 10, 64)
 	if err != nil {
-		return ret, errors.Wrapf(err, "parse %s from %s", v, path)
+		return ret, fmt.Errorf("parse %s from %s: %w", v, path, err)
 	}
 	return ret, nil
 }
@@ -276,7 +276,7 @@ func readFileByKeyAsUint64(path, key string) (uint64, error) {
 			}
 			ret, err := strconv.ParseUint(v, 10, 64)
 			if err != nil {
-				return ret, errors.Wrapf(err, "parse %s from %s", v, path)
+				return ret, fmt.Errorf("parse %s from %s: %w", v, path, err)
 			}
 			return ret, nil
 		}
@@ -461,7 +461,7 @@ func (c *CgroupControl) DeleteByPathConn(path string, conn *systemdDbus.Conn) er
 		}
 		p := c.getCgroupv1Path(ctr.name)
 		if err := rmDirRecursively(p); err != nil {
-			lastError = errors.Wrapf(err, "remove %s", p)
+			lastError = fmt.Errorf("remove %s: %w", p, err)
 		}
 	}
 	return lastError
@@ -517,7 +517,7 @@ func (c *CgroupControl) AddPid(pid int) error {
 		}
 		p := filepath.Join(c.getCgroupv1Path(n), "tasks")
 		if err := ioutil.WriteFile(p, pidString, 0o644); err != nil {
-			return errors.Wrapf(err, "write %s", p)
+			return fmt.Errorf("write %s: %w", p, err)
 		}
 	}
 	return nil
@@ -529,7 +529,7 @@ func (c *CgroupControl) Stat() (*cgroups.Stats, error) {
 	found := false
 	for _, h := range handlers {
 		if err := h.Stat(c, &m); err != nil {
-			if !os.IsNotExist(errors.Cause(err)) {
+			if !errors.Is(err, os.ErrNotExist) {
 				return nil, err
 			}
 			logrus.Warningf("Failed to retrieve cgroup stats: %v", err)
@@ -547,10 +547,10 @@ func readCgroup2MapPath(path string) (map[string][]string, error) {
 	ret := map[string][]string{}
 	f, err := os.Open(path)
 	if err != nil {
-		if os.IsNotExist(err) {
+		if errors.Is(err, os.ErrNotExist) {
 			return ret, nil
 		}
-		return nil, errors.Wrapf(err, "open file %s", path)
+		return nil, fmt.Errorf("open file %s: %w", path, err)
 	}
 	defer f.Close()
 	scanner := bufio.NewScanner(f)
@@ -563,7 +563,7 @@ func readCgroup2MapPath(path string) (map[string][]string, error) {
 		ret[parts[0]] = parts[1:]
 	}
 	if err := scanner.Err(); err != nil {
-		return nil, errors.Wrapf(err, "parsing file %s", path)
+		return nil, fmt.Errorf("parsing file %s: %w", path, err)
 	}
 	return ret, nil
 }

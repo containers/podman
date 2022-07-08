@@ -4,13 +4,14 @@
 package cni
 
 import (
+	"errors"
+	"fmt"
 	"net"
 	"os"
 
 	internalutil "github.com/containers/common/libnetwork/internal/util"
 	"github.com/containers/common/libnetwork/types"
 	pkgutil "github.com/containers/common/pkg/util"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -43,7 +44,7 @@ func (n *cniNetwork) networkCreate(newNetwork *types.Network, defaultNet bool) (
 	// FIXME: Should we use a different type for network create without the ID field?
 	// the caller is not allowed to set a specific ID
 	if newNetwork.ID != "" {
-		return nil, errors.Wrap(types.ErrInvalidArg, "ID can not be set for network create")
+		return nil, fmt.Errorf("ID can not be set for network create: %w", types.ErrInvalidArg)
 	}
 
 	err := internalutil.CommonNetworkCreate(n, newNetwork)
@@ -83,7 +84,7 @@ func (n *cniNetwork) networkCreate(newNetwork *types.Network, defaultNet bool) (
 			return nil, err
 		}
 	default:
-		return nil, errors.Wrapf(types.ErrInvalidArg, "unsupported driver %s", newNetwork.Driver)
+		return nil, fmt.Errorf("unsupported driver %s: %w", newNetwork.Driver, types.ErrInvalidArg)
 	}
 
 	err = internalutil.ValidateSubnets(newNetwork, !newNetwork.Internal, usedNetworks)
@@ -127,7 +128,7 @@ func (n *cniNetwork) NetworkRemove(nameOrID string) error {
 
 	// Removing the default network is not allowed.
 	if network.libpodNet.Name == n.defaultNetwork {
-		return errors.Errorf("default network %s cannot be removed", n.defaultNetwork)
+		return fmt.Errorf("default network %s cannot be removed", n.defaultNetwork)
 	}
 
 	// Remove the bridge network interface on the host.
@@ -193,7 +194,7 @@ func createIPMACVLAN(network *types.Network) error {
 			return err
 		}
 		if !pkgutil.StringInSlice(network.NetworkInterface, interfaceNames) {
-			return errors.Errorf("parent interface %s does not exist", network.NetworkInterface)
+			return fmt.Errorf("parent interface %s does not exist", network.NetworkInterface)
 		}
 	}
 
@@ -224,10 +225,10 @@ func validateIPAMDriver(n *types.Network) error {
 	case "", types.HostLocalIPAMDriver:
 	case types.DHCPIPAMDriver, types.NoneIPAMDriver:
 		if len(n.Subnets) > 0 {
-			return errors.Errorf("%s ipam driver is set but subnets are given", ipamDriver)
+			return fmt.Errorf("%s ipam driver is set but subnets are given", ipamDriver)
 		}
 	default:
-		return errors.Errorf("unsupported ipam driver %q", ipamDriver)
+		return fmt.Errorf("unsupported ipam driver %q", ipamDriver)
 	}
 	return nil
 }

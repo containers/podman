@@ -129,7 +129,7 @@ errmsg "no such file or directory" \
 
 errmsg "no such file or directory" \
        "Error: no context directory and no Containerfile specified" \
-       "bud without any arguments should fail when no Dockerfile exist"
+       "bud without any arguments should fail when no Dockerfile exists"
 
 errmsg "is not a file" \
        "Error: open .*: no such file or directory" \

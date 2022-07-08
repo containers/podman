@@ -1,6 +1,8 @@
 package secrets
 
 import (
+	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -12,7 +14,6 @@ import (
 	"github.com/containers/common/pkg/secrets/shelldriver"
 	"github.com/containers/storage/pkg/lockfile"
 	"github.com/containers/storage/pkg/stringid"
-	"github.com/pkg/errors"
 )
 
 // maxSecretSize is the max size for secret data - 512kB
@@ -105,7 +106,7 @@ func NewManager(rootPath string) (*SecretsManager, error) {
 	manager := new(SecretsManager)
 
 	if !filepath.IsAbs(rootPath) {
-		return nil, errors.Wrapf(errInvalidPath, "path must be absolute: %s", rootPath)
+		return nil, fmt.Errorf("path must be absolute: %s: %w", rootPath, errInvalidPath)
 	}
 	// the lockfile functions require that the rootPath dir is executable
 	if err := os.MkdirAll(rootPath, 0o700); err != nil {
@@ -146,7 +147,7 @@ func (s *SecretsManager) Store(name string, data []byte, driverType string, driv
 		return "", err
 	}
 	if exist {
-		return "", errors.Wrapf(errSecretNameInUse, name)
+		return "", fmt.Errorf("%s: %w", name, errSecretNameInUse)
 	}
 
 	secr := new(Secret)
@@ -158,7 +159,7 @@ func (s *SecretsManager) Store(name string, data []byte, driverType string, driv
 		newID = newID[0:secretIDLength]
 		_, err := s.lookupSecret(newID)
 		if err != nil {
-			if errors.Cause(err) == ErrNoSuchSecret {
+			if errors.Is(err, ErrNoSuchSecret) {
 				secr.ID = newID
 				break
 			} else {
@@ -178,12 +179,12 @@ func (s *SecretsManager) Store(name string, data []byte, driverType string, driv
 	}
 	err = driver.Store(secr.ID, data)
 	if err != nil {
-		return "", errors.Wrapf(err, "error creating secret %s", name)
+		return "", fmt.Errorf("error creating secret %s: %w", name, err)
 	}
 
 	err = s.store(secr)
 	if err != nil {
-		return "", errors.Wrapf(err, "error creating secret %s", name)
+		return "", fmt.Errorf("error creating secret %s: %w", name, err)
 	}
 
 	return secr.ID, nil
@@ -213,12 +214,12 @@ func (s *SecretsManager) Delete(nameOrID string) (string, error) {
 
 	err = driver.Delete(secretID)
 	if err != nil {
-		return "", errors.Wrapf(err, "error deleting secret %s", nameOrID)
+		return "", fmt.Errorf("error deleting secret %s: %w", nameOrID, err)
 	}
 
 	err = s.delete(secretID)
 	if err != nil {
-		return "", errors.Wrapf(err, "error deleting secret %s", nameOrID)
+		return "", fmt.Errorf("error deleting secret %s: %w", nameOrID, err)
 	}
 	return secretID, nil
 }
@@ -271,7 +272,7 @@ func (s *SecretsManager) LookupSecretData(nameOrID string) (*Secret, []byte, err
 // validateSecretName checks if the secret name is valid.
 func validateSecretName(name string) error {
 	if !secretNameRegexp.MatchString(name) || len(name) > 64 || strings.HasSuffix(name, "-") || strings.HasSuffix(name, ".") {
-		return errors.Wrapf(errInvalidSecretName, "only 64 [a-zA-Z0-9-_.] characters allowed, and the start and end character must be [a-zA-Z0-9]: %s", name)
+		return fmt.Errorf("only 64 [a-zA-Z0-9-_.] characters allowed, and the start and end character must be [a-zA-Z0-9]: %s: %w", name, errInvalidSecretName)
 	}
 	return nil
 }
@@ -283,7 +284,7 @@ func getDriver(name string, opts map[string]string) (SecretsDriver, error) {
 		if path, ok := opts["path"]; ok {
 			return filedriver.NewDriver(path)
 		}
-		return nil, errors.Wrap(errInvalidDriverOpt, "need path for filedriver")
+		return nil, fmt.Errorf("need path for filedriver: %w", errInvalidDriverOpt)
 	case "pass":
 		return passdriver.NewDriver(opts)
 	case "shell":

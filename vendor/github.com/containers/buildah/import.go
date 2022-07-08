@@ -2,6 +2,8 @@ package buildah
 
 import (
 	"context"
+	"errors"
+	"fmt"
 
 	"github.com/containers/buildah/define"
 	"github.com/containers/buildah/docker"
@@ -13,12 +15,11 @@ import (
 	"github.com/containers/image/v5/types"
 	"github.com/containers/storage"
 	digest "github.com/opencontainers/go-digest"
-	"github.com/pkg/errors"
 )
 
 func importBuilderDataFromImage(ctx context.Context, store storage.Store, systemContext *types.SystemContext, imageID, containerName, containerID string) (*Builder, error) {
 	if imageID == "" {
-		return nil, errors.Errorf("Internal error: imageID is empty in importBuilderDataFromImage")
+		return nil, errors.New("Internal error: imageID is empty in importBuilderDataFromImage")
 	}
 
 	storeopts, err := storage.DefaultStoreOptions(false, 0)
@@ -29,18 +30,18 @@ func importBuilderDataFromImage(ctx context.Context, store storage.Store, system
 
 	ref, err := is.Transport.ParseStoreReference(store, imageID)
 	if err != nil {
-		return nil, errors.Wrapf(err, "no such image %q", imageID)
+		return nil, fmt.Errorf("no such image %q: %w", imageID, err)
 	}
 	src, err := ref.NewImageSource(ctx, systemContext)
 	if err != nil {
-		return nil, errors.Wrapf(err, "error instantiating image source")
+		return nil, fmt.Errorf("error instantiating image source: %w", err)
 	}
 	defer src.Close()
 
 	imageDigest := ""
 	manifestBytes, manifestType, err := src.GetManifest(ctx, nil)
 	if err != nil {
-		return nil, errors.Wrapf(err, "error loading image manifest for %q", transports.ImageName(ref))
+		return nil, fmt.Errorf("error loading image manifest for %q: %w", transports.ImageName(ref), err)
 	}
 	if manifestDigest, err := manifest.Digest(manifestBytes); err == nil {
 		imageDigest = manifestDigest.String()
@@ -50,18 +51,18 @@ func importBuilderDataFromImage(ctx context.Context, store storage.Store, system
 	if manifest.MIMETypeIsMultiImage(manifestType) {
 		list, err := manifest.ListFromBlob(manifestBytes, manifestType)
 		if err != nil {
-			return nil, errors.Wrapf(err, "error parsing image manifest for %q as list", transports.ImageName(ref))
+			return nil, fmt.Errorf("error parsing image manifest for %q as list: %w", transports.ImageName(ref), err)
 		}
 		instance, err := list.ChooseInstance(systemContext)
 		if err != nil {
-			return nil, errors.Wrapf(err, "error finding an appropriate image in manifest list %q", transports.ImageName(ref))
+			return nil, fmt.Errorf("error finding an appropriate image in manifest list %q: %w", transports.ImageName(ref), err)
 		}
 		instanceDigest = &instance
 	}
 
 	image, err := image.FromUnparsedImage(ctx, systemContext, image.UnparsedInstance(src, instanceDigest))
 	if err != nil {
-		return nil, errors.Wrapf(err, "error instantiating image for %q instance %q", transports.ImageName(ref), instanceDigest)
+		return nil, fmt.Errorf("error instantiating image for %q instance %q: %w", transports.ImageName(ref), instanceDigest, err)
 	}
 
 	imageName := ""
@@ -72,7 +73,7 @@ func importBuilderDataFromImage(ctx context.Context, store storage.Store, system
 		if img.TopLayer != "" {
 			layer, err4 := store.Layer(img.TopLayer)
 			if err4 != nil {
-				return nil, errors.Wrapf(err4, "error reading information about image's top layer")
+				return nil, fmt.Errorf("error reading information about image's top layer: %w", err4)
 			}
 			uidmap, gidmap = convertStorageIDMaps(layer.UIDMap, layer.GIDMap)
 		}
@@ -109,7 +110,7 @@ func importBuilderDataFromImage(ctx context.Context, store storage.Store, system
 	}
 
 	if err := builder.initConfig(ctx, image, systemContext); err != nil {
-		return nil, errors.Wrapf(err, "error preparing image configuration")
+		return nil, fmt.Errorf("error preparing image configuration: %w", err)
 	}
 
 	return builder, nil
@@ -117,7 +118,7 @@ func importBuilderDataFromImage(ctx context.Context, store storage.Store, system
 
 func importBuilder(ctx context.Context, store storage.Store, options ImportOptions) (*Builder, error) {
 	if options.Container == "" {
-		return nil, errors.Errorf("container name must be specified")
+		return nil, errors.New("container name must be specified")
 	}
 
 	c, err := store.Container(options.Container)
@@ -146,7 +147,7 @@ func importBuilder(ctx context.Context, store storage.Store, options ImportOptio
 
 	err = builder.Save()
 	if err != nil {
-		return nil, errors.Wrapf(err, "error saving builder state")
+		return nil, fmt.Errorf("error saving builder state: %w", err)
 	}
 
 	return builder, nil
@@ -154,19 +155,19 @@ func importBuilder(ctx context.Context, store storage.Store, options ImportOptio
 
 func importBuilderFromImage(ctx context.Context, store storage.Store, options ImportFromImageOptions) (*Builder, error) {
 	if options.Image == "" {
-		return nil, errors.Errorf("image name must be specified")
+		return nil, errors.New("image name must be specified")
 	}
 
 	systemContext := getSystemContext(store, options.SystemContext, options.SignaturePolicyPath)
 
 	_, img, err := util.FindImage(store, "", systemContext, options.Image)
 	if err != nil {
-		return nil, errors.Wrapf(err, "importing settings")
+		return nil, fmt.Errorf("importing settings: %w", err)
 	}
 
 	builder, err := importBuilderDataFromImage(ctx, store, systemContext, img.ID, "", "")
 	if err != nil {
-		return nil, errors.Wrapf(err, "error importing build settings from image %q", options.Image)
+		return nil, fmt.Errorf("error importing build settings from image %q: %w", options.Image, err)
 	}
 
 	builder.setupLogger()
