@@ -1,11 +1,10 @@
 package specgen
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"unicode"
-
-	"github.com/pkg/errors"
 )
 
 func isHostWinPath(path string) bool {

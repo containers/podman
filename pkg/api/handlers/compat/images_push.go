@@ -2,6 +2,7 @@ package compat
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -17,7 +18,6 @@ import (
 	"github.com/containers/storage"
 	"github.com/docker/docker/pkg/jsonmessage"
 	"github.com/gorilla/schema"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -28,7 +28,7 @@ func PushImage(w http.ResponseWriter, r *http.Request) {
 
 	digestFile, err := ioutil.TempFile("", "digest.txt")
 	if err != nil {
-		utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "unable to create tempfile"))
+		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("unable to create tempfile: %w", err))
 		return
 	}
 	defer digestFile.Close()
@@ -50,7 +50,7 @@ func PushImage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.Error(w, http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
+		utils.Error(w, http.StatusBadRequest, fmt.Errorf("failed to parse parameters for %s: %w", r.URL.String(), err))
 		return
 	}
 
@@ -63,19 +63,19 @@ func PushImage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if _, err := utils.ParseStorageReference(imageName); err != nil {
-		utils.Error(w, http.StatusBadRequest, errors.Wrapf(err, "image source %q is not a containers-storage-transport reference", imageName))
+		utils.Error(w, http.StatusBadRequest, fmt.Errorf("image source %q is not a containers-storage-transport reference: %w", imageName, err))
 		return
 	}
 
 	possiblyNormalizedName, err := utils.NormalizeToDockerHub(r, imageName)
 	if err != nil {
-		utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "error normalizing image"))
+		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("error normalizing image: %w", err))
 		return
 	}
 	imageName = possiblyNormalizedName
 	localImage, _, err := runtime.LibimageRuntime().LookupImage(possiblyNormalizedName, nil)
 	if err != nil {
-		utils.ImageNotFound(w, imageName, errors.Wrapf(err, "failed to find image %s", imageName))
+		utils.ImageNotFound(w, imageName, fmt.Errorf("failed to find image %s: %w", imageName, err))
 		return
 	}
 	rawManifest, _, err := localImage.Manifest(r.Context())

@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -13,7 +14,6 @@ import (
 	"github.com/containers/podman/v4/version"
 	"github.com/gorilla/mux"
 	jsoniter "github.com/json-iterator/go"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -42,11 +42,11 @@ func SupportedVersion(r *http.Request, condition string) (semver.Version, error)
 	}
 	safeVal, err := url.PathUnescape(val)
 	if err != nil {
-		return version, errors.Wrapf(err, "unable to unescape given API version: %q", val)
+		return version, fmt.Errorf("unable to unescape given API version: %q: %w", val, err)
 	}
 	version, err = semver.ParseTolerant(safeVal)
 	if err != nil {
-		return version, errors.Wrapf(err, "unable to parse given API version: %q from %q", safeVal, val)
+		return version, fmt.Errorf("unable to parse given API version: %q from %q: %w", safeVal, val, err)
 	}
 
 	inRange, err := semver.ParseRange(condition)
@@ -178,7 +178,7 @@ func GetVar(r *http.Request, k string) string {
 	val := mux.Vars(r)[k]
 	safeVal, err := url.PathUnescape(val)
 	if err != nil {
-		logrus.Error(errors.Wrapf(err, "failed to unescape mux key %s, value %s", k, val))
+		logrus.Error(fmt.Errorf("failed to unescape mux key %s, value %s: %w", k, val, err))
 		return val
 	}
 	return safeVal

@@ -1,6 +1,8 @@
 package specgenutil
 
 import (
+	"errors"
+	"fmt"
 	"io/ioutil"
 	"net"
 	"os"
@@ -10,7 +12,6 @@ import (
 	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/common/pkg/config"
 	storageTypes "github.com/containers/storage/types"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -19,7 +20,7 @@ import (
 func ReadPodIDFile(path string) (string, error) {
 	content, err := ioutil.ReadFile(path)
 	if err != nil {
-		return "", errors.Wrap(err, "error reading pod ID file")
+		return "", fmt.Errorf("error reading pod ID file: %w", err)
 	}
 	return strings.Split(string(content), "\n")[0], nil
 }
@@ -50,7 +51,7 @@ func CreateExpose(expose []string) (map[uint16]string, error) {
 		proto := "tcp"
 		splitProto := strings.Split(e, "/")
 		if len(splitProto) > 2 {
-			return nil, errors.Errorf("invalid expose format - protocol can only be specified once")
+			return nil, errors.New("invalid expose format - protocol can only be specified once")
 		} else if len(splitProto) == 2 {
 			proto = splitProto[1]
 		}
@@ -96,7 +97,7 @@ func CreatePortBindings(ports []string) ([]types.PortMapping, error) {
 		case 2:
 			proto = &(splitProto[1])
 		default:
-			return nil, errors.Errorf("invalid port format - protocol can only be specified once")
+			return nil, errors.New("invalid port format - protocol can only be specified once")
 		}
 
 		remainder := splitProto[0]
@@ -111,23 +112,23 @@ func CreatePortBindings(ports []string) ([]types.PortMapping, error) {
 			// We potentially have an IPv6 address
 			haveV6 = true
 			if !strings.HasPrefix(splitV6[0], "[") {
-				return nil, errors.Errorf("invalid port format - IPv6 addresses must be enclosed by []")
+				return nil, errors.New("invalid port format - IPv6 addresses must be enclosed by []")
 			}
 			if !strings.HasPrefix(splitV6[1], ":") {
-				return nil, errors.Errorf("invalid port format - IPv6 address must be followed by a colon (':')")
+				return nil, errors.New("invalid port format - IPv6 address must be followed by a colon (':')")
 			}
 			ipNoPrefix := strings.TrimPrefix(splitV6[0], "[")
 			hostIP = &ipNoPrefix
 			remainder = strings.TrimPrefix(splitV6[1], ":")
 		default:
-			return nil, errors.Errorf("invalid port format - at most one IPv6 address can be specified in a --publish")
+			return nil, errors.New("invalid port format - at most one IPv6 address can be specified in a --publish")
 		}
 
 		splitPort := strings.Split(remainder, ":")
 		switch len(splitPort) {
 		case 1:
 			if haveV6 {
-				return nil, errors.Errorf("invalid port format - must provide host and destination port if specifying an IP")
+				return nil, errors.New("invalid port format - must provide host and destination port if specifying an IP")
 			}
 			ctrPort = splitPort[0]
 		case 2:
@@ -135,13 +136,13 @@ func CreatePortBindings(ports []string) ([]types.PortMapping, error) {
 			ctrPort = splitPort[1]
 		case 3:
 			if haveV6 {
-				return nil, errors.Errorf("invalid port format - when v6 address specified, must be [ipv6]:hostPort:ctrPort")
+				return nil, errors.New("invalid port format - when v6 address specified, must be [ipv6]:hostPort:ctrPort")
 			}
 			hostIP = &(splitPort[0])
 			hostPort = &(splitPort[1])
 			ctrPort = splitPort[2]
 		default:
-			return nil, errors.Errorf("invalid port format - format is [[hostIP:]hostPort:]containerPort")
+			return nil, errors.New("invalid port format - format is [[hostIP:]hostPort:]containerPort")
 		}
 
 		newPort, err := parseSplitPort(hostIP, hostPort, ctrPort, proto)
@@ -160,30 +161,30 @@ func CreatePortBindings(ports []string) ([]types.PortMapping, error) {
 func parseSplitPort(hostIP, hostPort *string, ctrPort string, protocol *string) (types.PortMapping, error) {
 	newPort := types.PortMapping{}
 	if ctrPort == "" {
-		return newPort, errors.Errorf("must provide a non-empty container port to publish")
+		return newPort, errors.New("must provide a non-empty container port to publish")
 	}
 	ctrStart, ctrLen, err := parseAndValidateRange(ctrPort)
 	if err != nil {
-		return newPort, errors.Wrapf(err, "error parsing container port")
+		return newPort, fmt.Errorf("error parsing container port: %w", err)
 	}
 	newPort.ContainerPort = ctrStart
 	newPort.Range = ctrLen
 
 	if protocol != nil {
 		if *protocol == "" {
-			return newPort, errors.Errorf("must provide a non-empty protocol to publish")
+			return newPort, errors.New("must provide a non-empty protocol to publish")
 		}
 		newPort.Protocol = *protocol
 	}
 	if hostIP != nil {
 		if *hostIP == "" {
-			return newPort, errors.Errorf("must provide a non-empty container host IP to publish")
+			return newPort, errors.New("must provide a non-empty container host IP to publish")
 		} else if *hostIP != "0.0.0.0" {
 			// If hostIP is 0.0.0.0, leave it unset - CNI treats
 			// 0.0.0.0 and empty differently, Docker does not.
 			testIP := net.ParseIP(*hostIP)
 			if testIP == nil {
-				return newPort, errors.Errorf("cannot parse %q as an IP address", *hostIP)
+				return newPort, fmt.Errorf("cannot parse %q as an IP address", *hostIP)
 			}
 			newPort.HostIP = testIP.String()
 		}
@@ -196,10 +197,10 @@ func parseSplitPort(hostIP, hostPort *string, ctrPort string, protocol *string) 
 		} else {
 			hostStart, hostLen, err := parseAndValidateRange(*hostPort)
 			if err != nil {
-				return newPort, errors.Wrapf(err, "error parsing host port")
+				return newPort, fmt.Errorf("error parsing host port: %w", err)
 			}
 			if hostLen != ctrLen {
-				return newPort, errors.Errorf("host and container port ranges have different lengths: %d vs %d", hostLen, ctrLen)
+				return newPort, fmt.Errorf("host and container port ranges have different lengths: %d vs %d", hostLen, ctrLen)
 			}
 			newPort.HostPort = hostStart
 		}
@@ -216,11 +217,11 @@ func parseSplitPort(hostIP, hostPort *string, ctrPort string, protocol *string) 
 func parseAndValidateRange(portRange string) (uint16, uint16, error) {
 	splitRange := strings.Split(portRange, "-")
 	if len(splitRange) > 2 {
-		return 0, 0, errors.Errorf("invalid port format - port ranges are formatted as startPort-stopPort")
+		return 0, 0, errors.New("invalid port format - port ranges are formatted as startPort-stopPort")
 	}
 
 	if splitRange[0] == "" {
-		return 0, 0, errors.Errorf("port numbers cannot be negative")
+		return 0, 0, errors.New("port numbers cannot be negative")
 	}
 
 	startPort, err := parseAndValidatePort(splitRange[0])
@@ -231,14 +232,14 @@ func parseAndValidateRange(portRange string) (uint16, uint16, error) {
 	var rangeLen uint16 = 1
 	if len(splitRange) == 2 {
 		if splitRange[1] == "" {
-			return 0, 0, errors.Errorf("must provide ending number for port range")
+			return 0, 0, errors.New("must provide ending number for port range")
 		}
 		endPort, err := parseAndValidatePort(splitRange[1])
 		if err != nil {
 			return 0, 0, err
 		}
 		if endPort <= startPort {
-			return 0, 0, errors.Errorf("the end port of a range must be higher than the start port - %d is not higher than %d", endPort, startPort)
+			return 0, 0, fmt.Errorf("the end port of a range must be higher than the start port - %d is not higher than %d", endPort, startPort)
 		}
 		// Our range is the total number of ports
 		// involved, so we need to add 1 (8080:8081 is
@@ -253,10 +254,10 @@ func parseAndValidateRange(portRange string) (uint16, uint16, error) {
 func parseAndValidatePort(port string) (uint16, error) {
 	num, err := strconv.Atoi(port)
 	if err != nil {
-		return 0, errors.Wrapf(err, "invalid port number")
+		return 0, fmt.Errorf("invalid port number: %w", err)
 	}
 	if num < 1 || num > 65535 {
-		return 0, errors.Errorf("port numbers must be between 1 and 65535 (inclusive), got %d", num)
+		return 0, fmt.Errorf("port numbers must be between 1 and 65535 (inclusive), got %d", num)
 	}
 	return uint16(num), nil
 }

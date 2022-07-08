@@ -10,7 +10,6 @@ import (
 	"time"
 
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -46,7 +45,7 @@ func Run(ctx context.Context, hook *rspec.Hook, state []byte, stdout io.Writer, 
 	go func() {
 		err := cmd.Wait()
 		if err != nil {
-			err = errors.Wrapf(err, "executing %v", cmd.Args)
+			err = fmt.Errorf("executing %v: %w", cmd.Args, err)
 		}
 		exit <- err
 	}()

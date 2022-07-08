@@ -1,6 +1,7 @@
 package specgen
 
 import (
+	"errors"
 	"net"
 	"strings"
 	"syscall"
@@ -10,7 +11,6 @@ import (
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/storage/types"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/pkg/errors"
 )
 
 //  LogConfig describes the logging characteristics for a container
@@ -571,10 +571,10 @@ type Secret struct {
 var (
 	// ErrNoStaticIPRootless is used when a rootless user requests to assign a static IP address
 	// to a pod or container
-	ErrNoStaticIPRootless error = errors.New("rootless containers and pods cannot be assigned static IP addresses")
+	ErrNoStaticIPRootless = errors.New("rootless containers and pods cannot be assigned static IP addresses")
 	// ErrNoStaticMACRootless is used when a rootless user requests to assign a static MAC address
 	// to a pod or container
-	ErrNoStaticMACRootless error = errors.New("rootless containers and pods cannot be assigned static MAC addresses")
+	ErrNoStaticMACRootless = errors.New("rootless containers and pods cannot be assigned static MAC addresses")
 )
 
 // NewSpecGenerator returns a SpecGenerator struct given one of two mandatory inputs

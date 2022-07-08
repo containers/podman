@@ -5,6 +5,8 @@ package generate
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"io/ioutil"
 
 	"github.com/containers/common/libimage"
@@ -12,7 +14,6 @@ import (
 	"github.com/containers/podman/v4/pkg/seccomp"
 	"github.com/containers/podman/v4/pkg/specgen"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -39,7 +40,7 @@ func getSeccompConfig(s *specgen.SpecGenerator, configSpec *spec.Spec, img *libi
 		logrus.Debug("Loading seccomp profile from the security config")
 		seccompConfig, err = goSeccomp.LoadProfile(imagePolicy, configSpec)
 		if err != nil {
-			return nil, errors.Wrap(err, "loading seccomp profile failed")
+			return nil, fmt.Errorf("loading seccomp profile failed: %w", err)
 		}
 		return seccompConfig, nil
 	}
@@ -48,17 +49,17 @@ func getSeccompConfig(s *specgen.SpecGenerator, configSpec *spec.Spec, img *libi
 		logrus.Debugf("Loading seccomp profile from %q", s.SeccompProfilePath)
 		seccompProfile, err := ioutil.ReadFile(s.SeccompProfilePath)
 		if err != nil {
-			return nil, errors.Wrap(err, "opening seccomp profile failed")
+			return nil, fmt.Errorf("opening seccomp profile failed: %w", err)
 		}
 		seccompConfig, err = goSeccomp.LoadProfile(string(seccompProfile), configSpec)
 		if err != nil {
-			return nil, errors.Wrapf(err, "loading seccomp profile (%s) failed", s.SeccompProfilePath)
+			return nil, fmt.Errorf("loading seccomp profile (%s) failed: %w", s.SeccompProfilePath, err)
 		}
 	} else {
 		logrus.Debug("Loading default seccomp profile")
 		seccompConfig, err = goSeccomp.GetDefaultProfile(configSpec)
 		if err != nil {
-			return nil, errors.Wrapf(err, "loading seccomp profile (%s) failed", s.SeccompProfilePath)
+			return nil, fmt.Errorf("loading seccomp profile (%s) failed: %w", s.SeccompProfilePath, err)
 		}
 	}
 

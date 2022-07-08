@@ -1,6 +1,7 @@
 package libpod
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/containers/podman/v4/libpod"
@@ -10,7 +11,6 @@ import (
 	"github.com/containers/podman/v4/pkg/domain/infra/abi"
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/gorilla/schema"
-	"github.com/pkg/errors"
 )
 
 func GenerateSystemd(w http.ResponseWriter, r *http.Request) {
@@ -37,7 +37,7 @@ func GenerateSystemd(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.Error(w, http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
+		utils.Error(w, http.StatusBadRequest, fmt.Errorf("failed to parse parameters for %s: %w", r.URL.String(), err))
 		return
 	}
 
@@ -76,7 +76,7 @@ func GenerateSystemd(w http.ResponseWriter, r *http.Request) {
 
 	report, err := containerEngine.GenerateSystemd(r.Context(), utils.GetName(r), options)
 	if err != nil {
-		utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "error generating systemd units"))
+		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("error generating systemd units: %w", err))
 		return
 	}
 
@@ -94,7 +94,7 @@ func GenerateKube(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.Error(w, http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
+		utils.Error(w, http.StatusBadRequest, fmt.Errorf("failed to parse parameters for %s: %w", r.URL.String(), err))
 		return
 	}
 
@@ -102,7 +102,7 @@ func GenerateKube(w http.ResponseWriter, r *http.Request) {
 	options := entities.GenerateKubeOptions{Service: query.Service}
 	report, err := containerEngine.GenerateKube(r.Context(), query.Names, options)
 	if err != nil {
-		utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "error generating YAML"))
+		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("error generating YAML: %w", err))
 		return
 	}
 

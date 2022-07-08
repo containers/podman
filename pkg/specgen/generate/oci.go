@@ -3,6 +3,7 @@ package generate
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"path"
 	"strings"
 
@@ -15,7 +16,6 @@ import (
 	"github.com/containers/podman/v4/pkg/specgen"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
@@ -117,7 +117,7 @@ func makeCommand(s *specgen.SpecGenerator, imageData *libimage.ImageData, rtc *c
 	finalCommand = append(finalCommand, command...)
 
 	if len(finalCommand) == 0 {
-		return nil, errors.Errorf("no command or entrypoint provided, and no CMD or ENTRYPOINT from image")
+		return nil, fmt.Errorf("no command or entrypoint provided, and no CMD or ENTRYPOINT from image")
 	}
 
 	if s.Init {
@@ -126,7 +126,7 @@ func makeCommand(s *specgen.SpecGenerator, imageData *libimage.ImageData, rtc *c
 			initPath = rtc.Engine.InitPath
 		}
 		if initPath == "" {
-			return nil, errors.Errorf("no path to init binary found but container requested an init")
+			return nil, fmt.Errorf("no path to init binary found but container requested an init")
 		}
 		finalCommand = append([]string{define.ContainerInitPath, "--"}, finalCommand...)
 	}
@@ -348,7 +348,7 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 	for k, v := range s.WeightDevice {
 		statT := unix.Stat_t{}
 		if err := unix.Stat(k, &statT); err != nil {
-			return nil, errors.Wrapf(err, "failed to inspect '%s' in --blkio-weight-device", k)
+			return nil, fmt.Errorf("failed to inspect '%s' in --blkio-weight-device: %w", k, err)
 		}
 		g.AddLinuxResourcesBlockIOWeightDevice((int64(unix.Major(uint64(statT.Rdev)))), (int64(unix.Minor(uint64(statT.Rdev)))), *v.Weight) //nolint: unconvert
 	}

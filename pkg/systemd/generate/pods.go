@@ -2,6 +2,7 @@ package generate
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"os"
 	"sort"
@@ -13,7 +14,6 @@ import (
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/systemd/define"
 	"github.com/containers/podman/v4/version"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
 )
@@ -141,7 +141,7 @@ func PodUnits(pod *libpod.Pod, options entities.GenerateSystemdOptions) (map[str
 	// Error out if the pod has no infra container, which we require to be the
 	// main service.
 	if !pod.HasInfraContainer() {
-		return nil, errors.Errorf("generating systemd unit files: Pod %q has no infra container", pod.Name())
+		return nil, fmt.Errorf("generating systemd unit files: Pod %q has no infra container", pod.Name())
 	}
 
 	podInfo, err := generatePodInfo(pod, options)
@@ -160,7 +160,7 @@ func PodUnits(pod *libpod.Pod, options entities.GenerateSystemdOptions) (map[str
 		return nil, err
 	}
 	if len(containers) == 0 {
-		return nil, errors.Errorf("generating systemd unit files: Pod %q has no containers", pod.Name())
+		return nil, fmt.Errorf("generating systemd unit files: Pod %q has no containers", pod.Name())
 	}
 	graph, err := libpod.BuildContainerGraph(containers)
 	if err != nil {
@@ -217,7 +217,7 @@ func generatePodInfo(pod *libpod.Pod, options entities.GenerateSystemdOptions) (
 	// containerInfo acts as the main service of the pod.
 	infraCtr, err := pod.InfraContainer()
 	if err != nil {
-		return nil, errors.Wrap(err, "could not find infra container")
+		return nil, fmt.Errorf("could not find infra container: %w", err)
 	}
 
 	stopTimeout := infraCtr.StopTimeout()
@@ -228,12 +228,12 @@ func generatePodInfo(pod *libpod.Pod, options entities.GenerateSystemdOptions) (
 	config := infraCtr.Config()
 	conmonPidFile := config.ConmonPidFile
 	if conmonPidFile == "" {
-		return nil, errors.Errorf("conmon PID file path is empty, try to recreate the container with --conmon-pidfile flag")
+		return nil, errors.New("conmon PID file path is empty, try to recreate the container with --conmon-pidfile flag")
 	}
 
 	createCommand := pod.CreateCommand()
 	if options.New && len(createCommand) == 0 {
-		return nil, errors.Errorf("cannot use --new on pod %q: no create command found", pod.ID())
+		return nil, fmt.Errorf("cannot use --new on pod %q: no create command found", pod.ID())
 	}
 
 	nameOrID := pod.ID()
@@ -312,7 +312,7 @@ func executePodTemplate(info *podInfo, options entities.GenerateSystemdOptions) 
 		var podRootArgs, podCreateArgs []string
 		switch len(info.CreateCommand) {
 		case 0, 1, 2:
-			return "", errors.Errorf("pod does not appear to be created via `podman pod create`: %v", info.CreateCommand)
+			return "", fmt.Errorf("pod does not appear to be created via `podman pod create`: %v", info.CreateCommand)
 		default:
 			// Make sure that pod was created with `pod create` and
 			// not something else, such as `run --pod new`.
@@ -323,7 +323,7 @@ func executePodTemplate(info *podInfo, options entities.GenerateSystemdOptions) 
 				}
 			}
 			if podCreateIndex == 0 {
-				return "", errors.Errorf("pod does not appear to be created via `podman pod create`: %v", info.CreateCommand)
+				return "", fmt.Errorf("pod does not appear to be created via `podman pod create`: %v", info.CreateCommand)
 			}
 			podRootArgs = info.CreateCommand[1 : podCreateIndex-1]
 			info.RootFlags = strings.Join(escapeSystemdArguments(podRootArgs), " ")
@@ -402,7 +402,7 @@ func executePodTemplate(info *podInfo, options entities.GenerateSystemdOptions) 
 	// template execution.
 	templ, err := template.New("pod_template").Delims("{{{{", "}}}}").Parse(podTemplate)
 	if err != nil {
-		return "", errors.Wrap(err, "error parsing systemd service template")
+		return "", fmt.Errorf("error parsing systemd service template: %w", err)
 	}
 
 	var buf bytes.Buffer
@@ -413,7 +413,7 @@ func executePodTemplate(info *podInfo, options entities.GenerateSystemdOptions) 
 	// Now parse the generated template (i.e., buf) and execute it.
 	templ, err = template.New("pod_template").Delims("{{{{", "}}}}").Parse(buf.String())
 	if err != nil {
-		return "", errors.Wrap(err, "error parsing systemd service template")
+		return "", fmt.Errorf("error parsing systemd service template: %w", err)
 	}
 
 	buf = bytes.Buffer{}

@@ -2,6 +2,8 @@ package manifests
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strconv"
@@ -15,7 +17,6 @@ import (
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/errorhandling"
 	jsoniter "github.com/json-iterator/go"
-	"github.com/pkg/errors"
 )
 
 // Create creates a manifest for the given name.  Optional images to be associated with
@@ -219,13 +220,13 @@ func Modify(ctx context.Context, name string, images []string, options *ModifyOp
 
 	data, err := ioutil.ReadAll(response.Body)
 	if err != nil {
-		return "", errors.Wrap(err, "unable to process API response")
+		return "", fmt.Errorf("unable to process API response: %w", err)
 	}
 
 	if response.IsSuccess() || response.IsRedirection() {
 		var report entities.ManifestModifyReport
 		if err = jsoniter.Unmarshal(data, &report); err != nil {
-			return "", errors.Wrap(err, "unable to decode API response")
+			return "", fmt.Errorf("unable to decode API response: %w", err)
 		}
 
 		err = errorhandling.JoinErrors(report.Errors)
@@ -244,7 +245,7 @@ func Modify(ctx context.Context, name string, images []string, options *ModifyOp
 		ResponseCode: response.StatusCode,
 	}
 	if err = jsoniter.Unmarshal(data, &errModel); err != nil {
-		return "", errors.Wrap(err, "unable to decode API response")
+		return "", fmt.Errorf("unable to decode API response: %w", err)
 	}
 	return "", &errModel
 }

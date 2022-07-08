@@ -2,9 +2,10 @@ package parallel
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"sync"
 
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/semaphore"
 )
@@ -59,7 +60,7 @@ func Enqueue(ctx context.Context, fn func() error) <-chan error {
 		defer close(retChan)
 
 		if err := jobControl.Acquire(ctx, 1); err != nil {
-			retChan <- errors.Wrapf(err, "error acquiring job control semaphore")
+			retChan <- fmt.Errorf("error acquiring job control semaphore: %w", err)
 			return
 		}
 

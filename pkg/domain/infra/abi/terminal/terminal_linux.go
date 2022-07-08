@@ -9,7 +9,6 @@ import (
 	"github.com/containers/common/pkg/resize"
 	"github.com/containers/podman/v4/libpod"
 	"github.com/containers/podman/v4/libpod/define"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/term"
 )
@@ -104,7 +103,7 @@ func StartAttachCtr(ctx context.Context, ctr *libpod.Container, stdout, stderr, 
 
 	err = <-attachChan
 	if err != nil {
-		return errors.Wrapf(err, "error attaching to container %s", ctr.ID())
+		return fmt.Errorf("error attaching to container %s: %w", ctr.ID(), err)
 	}
 
 	return nil

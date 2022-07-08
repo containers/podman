@@ -13,7 +13,6 @@ import (
 	"github.com/containers/podman/v4/pkg/util"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
@@ -46,7 +45,7 @@ func DevicesFromPath(g *generate.Generator, devicePath string) error {
 		}
 		if len(devs) > 2 {
 			if devmode != "" {
-				return errors.Wrapf(unix.EINVAL, "invalid device specification %s", devicePath)
+				return fmt.Errorf("invalid device specification %s: %w", devicePath, unix.EINVAL)
 			}
 			devmode = devs[2]
 		}
@@ -60,7 +59,7 @@ func DevicesFromPath(g *generate.Generator, devicePath string) error {
 					device = fmt.Sprintf("%s:%s", device, devmode)
 				}
 				if err := addDevice(g, device); err != nil {
-					return errors.Wrapf(err, "failed to add %s device", dpath)
+					return fmt.Errorf("failed to add %s device: %w", dpath, err)
 				}
 			}
 			return nil
@@ -68,7 +67,7 @@ func DevicesFromPath(g *generate.Generator, devicePath string) error {
 			return err
 		}
 		if !found {
-			return errors.Wrapf(unix.EINVAL, "no devices found in %s", devicePath)
+			return fmt.Errorf("no devices found in %s: %w", devicePath, unix.EINVAL)
 		}
 		return nil
 	}
@@ -131,7 +130,7 @@ func addDevice(g *generate.Generator, device string) error {
 	}
 	dev, err := util.DeviceFromPath(src)
 	if err != nil {
-		return errors.Wrapf(err, "%s is not a valid device", src)
+		return fmt.Errorf("%s is not a valid device: %w", src, err)
 	}
 	if rootless.IsRootless() {
 		if _, err := os.Stat(src); err != nil {

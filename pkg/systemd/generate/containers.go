@@ -2,6 +2,7 @@ package generate
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"os"
 	"sort"
@@ -14,7 +15,6 @@ import (
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/systemd/define"
 	"github.com/containers/podman/v4/version"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
 )
@@ -186,14 +186,14 @@ func generateContainerInfo(ctr *libpod.Container, options entities.GenerateSyste
 	config := ctr.Config()
 	conmonPidFile := config.ConmonPidFile
 	if conmonPidFile == "" {
-		return nil, errors.Errorf("conmon PID file path is empty, try to recreate the container with --conmon-pidfile flag")
+		return nil, errors.New("conmon PID file path is empty, try to recreate the container with --conmon-pidfile flag")
 	}
 
 	createCommand := []string{}
 	if config.CreateCommand != nil {
 		createCommand = config.CreateCommand
 	} else if options.New {
-		return nil, errors.Errorf("cannot use --new on container %q: no create command found: only works on containers created directly with podman but not via REST API", ctr.ID())
+		return nil, fmt.Errorf("cannot use --new on container %q: no create command found: only works on containers created directly with podman but not via REST API", ctr.ID())
 	}
 
 	nameOrID, serviceName := containerServiceName(ctr, options)
@@ -204,7 +204,7 @@ func generateContainerInfo(ctr *libpod.Container, options entities.GenerateSyste
 	} else {
 		runRoot = ctr.Runtime().RunRoot()
 		if runRoot == "" {
-			return nil, errors.Errorf("could not look up container's runroot: got empty string")
+			return nil, errors.New("could not look up container's runroot: got empty string")
 		}
 	}
 
@@ -350,7 +350,7 @@ func executeContainerTemplate(info *containerInfo, options entities.GenerateSyst
 			}
 		}
 		if index == 0 {
-			return "", errors.Errorf("container's create command is too short or invalid: %v", info.CreateCommand)
+			return "", fmt.Errorf("container's create command is too short or invalid: %v", info.CreateCommand)
 		}
 		// We're hard-coding the first five arguments and append the
 		// CreateCommand with a stripped command and subcommand.
@@ -520,7 +520,7 @@ func executeContainerTemplate(info *containerInfo, options entities.GenerateSyst
 	// template execution.
 	templ, err := template.New("container_template").Delims("{{{{", "}}}}").Parse(containerTemplate)
 	if err != nil {
-		return "", errors.Wrap(err, "error parsing systemd service template")
+		return "", fmt.Errorf("error parsing systemd service template: %w", err)
 	}
 
 	var buf bytes.Buffer
@@ -531,7 +531,7 @@ func executeContainerTemplate(info *containerInfo, options entities.GenerateSyst
 	// Now parse the generated template (i.e., buf) and execute it.
 	templ, err = template.New("container_template").Delims("{{{{", "}}}}").Parse(buf.String())
 	if err != nil {
-		return "", errors.Wrap(err, "error parsing systemd service template")
+		return "", fmt.Errorf("error parsing systemd service template: %w", err)
 	}
 
 	buf = bytes.Buffer{}

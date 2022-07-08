@@ -2,10 +2,10 @@ package abi
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/containers/common/libimage"
 	"github.com/containers/podman/v4/pkg/domain/entities"
-	"github.com/pkg/errors"
 )
 
 func (ir *ImageEngine) List(ctx context.Context, opts entities.ImageListOptions) ([]*entities.ImageSummary, error) {
@@ -28,11 +28,11 @@ func (ir *ImageEngine) List(ctx context.Context, opts entities.ImageListOptions)
 	for _, img := range images {
 		repoDigests, err := img.RepoDigests()
 		if err != nil {
-			return nil, errors.Wrapf(err, "getting repoDigests from image %q", img.ID())
+			return nil, fmt.Errorf("getting repoDigests from image %q: %w", img.ID(), err)
 		}
 		isDangling, err := img.IsDangling(ctx)
 		if err != nil {
-			return nil, errors.Wrapf(err, "error checking if image %q is dangling", img.ID())
+			return nil, fmt.Errorf("error checking if image %q is dangling: %w", img.ID(), err)
 		}
 
 		e := entities.ImageSummary{
@@ -49,18 +49,18 @@ func (ir *ImageEngine) List(ctx context.Context, opts entities.ImageListOptions)
 		}
 		e.Labels, err = img.Labels(ctx)
 		if err != nil {
-			return nil, errors.Wrapf(err, "error retrieving label for image %q: you may need to remove the image to resolve the error", img.ID())
+			return nil, fmt.Errorf("error retrieving label for image %q: you may need to remove the image to resolve the error: %w", img.ID(), err)
 		}
 
 		ctnrs, err := img.Containers()
 		if err != nil {
-			return nil, errors.Wrapf(err, "error retrieving containers for image %q: you may need to remove the image to resolve the error", img.ID())
+			return nil, fmt.Errorf("error retrieving containers for image %q: you may need to remove the image to resolve the error: %w", img.ID(), err)
 		}
 		e.Containers = len(ctnrs)
 
 		sz, err := img.Size()
 		if err != nil {
-			return nil, errors.Wrapf(err, "error retrieving size of image %q: you may need to remove the image to resolve the error", img.ID())
+			return nil, fmt.Errorf("error retrieving size of image %q: you may need to remove the image to resolve the error: %w", img.ID(), err)
 		}
 		e.Size = sz
 		// This is good enough for now, but has to be
@@ -69,7 +69,7 @@ func (ir *ImageEngine) List(ctx context.Context, opts entities.ImageListOptions)
 
 		parent, err := img.Parent(ctx)
 		if err != nil {
-			return nil, errors.Wrapf(err, "error retrieving parent of image %q: you may need to remove the image to resolve the error", img.ID())
+			return nil, fmt.Errorf("error retrieving parent of image %q: you may need to remove the image to resolve the error: %w", img.ID(), err)
 		}
 		if parent != nil {
 			e.ParentId = parent.ID()

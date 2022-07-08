@@ -3,6 +3,8 @@ package generate
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"path/filepath"
 	"strings"
 
@@ -15,7 +17,6 @@ import (
 	"github.com/containers/podman/v4/pkg/util"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/selinux/go-selinux/label"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -34,7 +35,7 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 	if s.Pod != "" {
 		pod, err = rt.LookupPod(s.Pod)
 		if err != nil {
-			return nil, nil, nil, errors.Wrapf(err, "error retrieving pod %s", s.Pod)
+			return nil, nil, nil, fmt.Errorf("error retrieving pod %s: %w", s.Pod, err)
 		}
 		if pod.HasInfraContainer() {
 			infra, err = pod.InfraContainer()
@@ -140,7 +141,7 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 		s.Hostname = ""
 	}
 	if err := s.Validate(); err != nil {
-		return nil, nil, nil, errors.Wrap(err, "invalid config provided")
+		return nil, nil, nil, fmt.Errorf("invalid config provided: %w", err)
 	}
 
 	finalMounts, finalVolumes, finalOverlays, err := finalizeMounts(ctx, s, rt, rtc, newImage)
@@ -332,7 +333,7 @@ func createContainerOptions(rt *libpod.Runtime, s *specgen.SpecGenerator, pod *l
 			}
 		}
 	default:
-		return nil, errors.Wrapf(err, "invalid value %q systemd option requires 'true, false, always'", s.Systemd)
+		return nil, fmt.Errorf("invalid value %q systemd option requires 'true, false, always': %w", s.Systemd, err)
 	}
 	logrus.Debugf("using systemd mode: %t", useSystemd)
 	if useSystemd {
@@ -341,7 +342,7 @@ func createContainerOptions(rt *libpod.Runtime, s *specgen.SpecGenerator, pod *l
 		if s.StopSignal == nil {
 			stopSignal, err := util.ParseSignal("RTMIN+3")
 			if err != nil {
-				return nil, errors.Wrapf(err, "error parsing systemd signal")
+				return nil, fmt.Errorf("error parsing systemd signal: %w", err)
 			}
 			s.StopSignal = &stopSignal
 		}
@@ -536,7 +537,7 @@ func createContainerOptions(rt *libpod.Runtime, s *specgen.SpecGenerator, pod *l
 		for _, ctr := range s.DependencyContainers {
 			depCtr, err := rt.LookupContainer(ctr)
 			if err != nil {
-				return nil, errors.Wrapf(err, "%q is not a valid container, cannot be used as a dependency", ctr)
+				return nil, fmt.Errorf("%q is not a valid container, cannot be used as a dependency: %w", ctr, err)
 			}
 			deps = append(deps, depCtr)
 		}

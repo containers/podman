@@ -3,6 +3,7 @@ package compat
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -14,7 +15,6 @@ import (
 	api "github.com/containers/podman/v4/pkg/api/types"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	docker "github.com/docker/docker/api/types"
-	"github.com/pkg/errors"
 )
 
 func stripAddressOfScheme(address string) string {
@@ -28,7 +28,7 @@ func Auth(w http.ResponseWriter, r *http.Request) {
 	var authConfig docker.AuthConfig
 	err := json.NewDecoder(r.Body).Decode(&authConfig)
 	if err != nil {
-		utils.Error(w, http.StatusInternalServerError, errors.Wrapf(err, "failed to parse request"))
+		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("failed to parse request: %w", err))
 		return
 	}
 

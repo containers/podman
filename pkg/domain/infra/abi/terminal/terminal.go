@@ -2,13 +2,13 @@ package terminal
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/signal"
 
 	"github.com/containers/common/pkg/resize"
 	lsignal "github.com/containers/podman/v4/pkg/signal"
 	"github.com/moby/term"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -89,7 +89,7 @@ func handleTerminalAttach(ctx context.Context, resize chan resize.TerminalSize) 
 	if err != nil {
 		// allow caller to not have to do any cleaning up if we error here
 		cancel()
-		return nil, nil, errors.Wrapf(err, "unable to save terminal state")
+		return nil, nil, fmt.Errorf("unable to save terminal state: %w", err)
 	}
 
 	logrus.SetFormatter(&RawTtyFormatter{})

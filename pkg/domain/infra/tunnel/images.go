@@ -2,6 +2,7 @@ package tunnel
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -19,7 +20,6 @@ import (
 	"github.com/containers/podman/v4/pkg/domain/utils"
 	"github.com/containers/podman/v4/pkg/errorhandling"
 	utils2 "github.com/containers/podman/v4/utils"
-	"github.com/pkg/errors"
 )
 
 func (ir *ImageEngine) Exists(_ context.Context, nameOrID string) (*entities.BoolReport, error) {
@@ -131,7 +131,7 @@ func (ir *ImageEngine) Tag(ctx context.Context, nameOrID string, tags []string, 
 		)
 		ref, err := reference.Parse(newTag)
 		if err != nil {
-			return errors.Wrapf(err, "error parsing reference %q", newTag)
+			return fmt.Errorf("error parsing reference %q: %w", newTag, err)
 		}
 		if t, ok := ref.(reference.Tagged); ok {
 			tag = t.Tag()
@@ -140,7 +140,7 @@ func (ir *ImageEngine) Tag(ctx context.Context, nameOrID string, tags []string, 
 			repo = r.Name()
 		}
 		if len(repo) < 1 {
-			return errors.Errorf("invalid image name %q", nameOrID)
+			return fmt.Errorf("invalid image name %q", nameOrID)
 		}
 		if err := images.Tag(ir.ClientCtx, nameOrID, tag, repo, options); err != nil {
 			return err
@@ -161,7 +161,7 @@ func (ir *ImageEngine) Untag(ctx context.Context, nameOrID string, tags []string
 		)
 		ref, err := reference.Parse(newTag)
 		if err != nil {
-			return errors.Wrapf(err, "error parsing reference %q", newTag)
+			return fmt.Errorf("error parsing reference %q: %w", newTag, err)
 		}
 		if t, ok := ref.(reference.Tagged); ok {
 			tag = t.Tag()
@@ -173,7 +173,7 @@ func (ir *ImageEngine) Untag(ctx context.Context, nameOrID string, tags []string
 			repo = r.Name()
 		}
 		if len(repo) < 1 {
-			return errors.Errorf("invalid image name %q", nameOrID)
+			return fmt.Errorf("invalid image name %q", nameOrID)
 		}
 		if err := images.Untag(ir.ClientCtx, nameOrID, tag, repo, options); err != nil {
 			return err
@@ -194,7 +194,7 @@ func (ir *ImageEngine) Inspect(ctx context.Context, namesOrIDs []string, opts en
 				return nil, nil, err
 			}
 			if errModel.ResponseCode == 404 {
-				errs = append(errs, errors.Wrapf(err, "unable to inspect %q", i))
+				errs = append(errs, fmt.Errorf("unable to inspect %q: %w", i, err))
 				continue
 			}
 			return nil, nil, err
@@ -215,7 +215,7 @@ func (ir *ImageEngine) Load(ctx context.Context, opts entities.ImageLoadOptions)
 		return nil, err
 	}
 	if fInfo.IsDir() {
-		return nil, errors.Errorf("remote client supports archives only but %q is a directory", opts.Input)
+		return nil, fmt.Errorf("remote client supports archives only but %q is a directory", opts.Input)
 	}
 	return images.Load(ir.ClientCtx, f)
 }
@@ -296,7 +296,7 @@ func (ir *ImageEngine) Save(ctx context.Context, nameOrID string, tags []string,
 	switch {
 	case err == nil:
 		if info.Mode().IsRegular() {
-			return errors.Errorf("%q already exists as a regular file", opts.Output)
+			return fmt.Errorf("%q already exists as a regular file", opts.Output)
 		}
 	case os.IsNotExist(err):
 		if err := os.Mkdir(opts.Output, 0755); err != nil {

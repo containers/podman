@@ -1,10 +1,11 @@
 package hook
 
 import (
+	"errors"
+	"fmt"
 	"regexp"
 
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/pkg/errors"
 )
 
 // When holds hook-injection conditions.
@@ -52,12 +53,12 @@ func (when *When) Match(config *rspec.Spec, annotations map[string]string, hasBi
 		for key, value := range annotations {
 			match, err = regexp.MatchString(keyPattern, key)
 			if err != nil {
-				return false, errors.Wrap(err, "annotation key")
+				return false, fmt.Errorf("annotation key: %w", err)
 			}
 			if match {
 				match, err = regexp.MatchString(valuePattern, value)
 				if err != nil {
-					return false, errors.Wrap(err, "annotation value")
+					return false, fmt.Errorf("annotation value: %w", err)
 				}
 				if match {
 					break
@@ -82,7 +83,7 @@ func (when *When) Match(config *rspec.Spec, annotations map[string]string, hasBi
 		for _, cmdPattern := range when.Commands {
 			match, err := regexp.MatchString(cmdPattern, command)
 			if err != nil {
-				return false, errors.Wrap(err, "command")
+				return false, fmt.Errorf("command: %w", err)
 			}
 			if match {
 				return true, nil
