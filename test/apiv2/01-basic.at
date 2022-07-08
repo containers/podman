@@ -21,7 +21,7 @@ for i in /version version; do
       .Components[0].Details.APIVersion~4[0-9.-]\\+  \
       .Components[0].Details.MinAPIVersion=4.0.0     \
       .Components[0].Details.Os=linux                \
-      .ApiVersion=1.40                               \
+      .ApiVersion=1.41                               \
       .MinAPIVersion=1.24                            \
       .Os=linux
 done
