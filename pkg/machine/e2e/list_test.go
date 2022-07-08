@@ -130,7 +130,7 @@ var _ = Describe("podman machine list", func() {
 		// --format json
 		list2 := new(listMachine)
 		list2 = list2.withFormat("json")
-		listSession2, err := mb.setName("foo1").setCmd(list2).run()
+		listSession2, err := mb.setCmd(list2).run()
 		Expect(err).To(BeNil())
 		Expect(listSession2).To(Exit(0))
 
@@ -145,7 +145,6 @@ var _ = Describe("podman machine list", func() {
 		Expect(listSession3).To(Exit(0))
 		listNames3 := listSession3.outputToStringSlice()
 		Expect(listNames3).To(HaveLen(2))
-		Expect(listNames3).To(ContainSubstring("NAME"))
 	})
 })
 

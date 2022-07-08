@@ -3,7 +3,6 @@ package e2e
 import (
 	"encoding/json"
 	"fmt"
-	"math/rand"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -13,6 +12,7 @@ import (
 	"github.com/containers/podman/v4/pkg/machine"
 	"github.com/containers/podman/v4/pkg/machine/qemu"
 	"github.com/containers/podman/v4/pkg/util"
+	"github.com/containers/storage/pkg/stringid"
 	. "github.com/onsi/ginkgo" //nolint:golint,stylecheck
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
@@ -136,14 +136,14 @@ func (m *machineTestBuilder) setTimeout(timeout time.Duration) *machineTestBuild
 
 // toQemuInspectInfo is only for inspecting qemu machines.  Other providers will need
 // to make their own.
-func (mb *machineTestBuilder) toQemuInspectInfo() ([]qemuMachineInspectInfo, int, error) {
+func (mb *machineTestBuilder) toQemuInspectInfo() ([]machine.InspectInfo, int, error) {
 	args := []string{"machine", "inspect"}
 	args = append(args, mb.names...)
 	session, err := runWrapper(mb.podmanBinary, args, defaultTimeout, true)
 	if err != nil {
 		return nil, -1, err
 	}
-	mii := []qemuMachineInspectInfo{}
+	mii := []machine.InspectInfo{}
 	err = json.Unmarshal(session.Bytes(), &mii)
 	return mii, session.ExitCode(), err
 }
@@ -179,10 +179,5 @@ func (m *machineTestBuilder) init() {}
 
 // randomString returns a string of given length composed of random characters
 func randomString(n int) string {
-	var randomLetters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
-	b := make([]rune, n)
-	for i := range b {
-		b[i] = randomLetters[rand.Intn(len(randomLetters))]
-	}
-	return string(b)
+	return stringid.GenerateRandomID()[0:12]
 }
