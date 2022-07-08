@@ -17,7 +17,6 @@ var _ = Describe("Podman manifest", func() {
 		tempdir    string
 		err        error
 		podmanTest *PodmanTestIntegration
-		registry   *podmanRegistry.Registry
 	)
 
 	const (
@@ -40,13 +39,6 @@ var _ = Describe("Podman manifest", func() {
 	})
 
 	AfterEach(func() {
-		// if auth test fails, it will leave a registry running
-		if registry != nil {
-			_ = registry.Stop()
-		}
-		// Also from auth test; don't propagate it to other tests
-		os.Unsetenv("PODMAN")
-
 		podmanTest.Cleanup()
 		f := CurrentGinkgoTestDescription()
 		processTestResult(f)
@@ -312,8 +304,13 @@ var _ = Describe("Podman manifest", func() {
 			opts = strings.Join(getRemoteOptions(podmanTest, nil), " ")
 		}
 		os.Setenv("PODMAN", podmanTest.PodmanBinary+" "+opts)
-		registry, err = podmanRegistry.StartWithOptions(registryOptions)
+		registry, err := podmanRegistry.StartWithOptions(registryOptions)
 		Expect(err).To(BeNil())
+		defer func() {
+			err := registry.Stop()
+			Expect(err).To(BeNil())
+			os.Unsetenv("PODMAN")
+		}()
 
 		session := podmanTest.Podman([]string{"manifest", "create", "foo"})
 		session.WaitWithDefaultTimeout()
@@ -342,10 +339,6 @@ var _ = Describe("Podman manifest", func() {
 		push = podmanTest.Podman([]string{"manifest", "push", "--tls-verify=false", "--creds=podmantest:wrongpasswd", "foo", "localhost:" + registry.Port + "/credstest"})
 		push.WaitWithDefaultTimeout()
 		Expect(push).To(ExitWithError())
-
-		err = registry.Stop()
-		Expect(err).To(BeNil())
-		registry = nil
 	})
 
 	It("push with error", func() {
