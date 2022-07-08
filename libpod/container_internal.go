@@ -1104,6 +1104,12 @@ func (c *Container) cleanupRuntime(ctx context.Context) error {
 		return nil
 	}
 
+	// We may be doing this redundantly for some call paths but we need to
+	// make sure the exit code is being read at this point.
+	if err := c.checkExitFile(); err != nil {
+		return err
+	}
+
 	// If necessary, delete attach and ctl files
 	if err := c.removeConmonFiles(); err != nil {
 		return err
