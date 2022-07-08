@@ -5,6 +5,7 @@ package qemu
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"encoding/base64"
 	"encoding/json"
@@ -138,8 +139,10 @@ func (p *Provider) NewMachine(opts machine.InitOptions) (machine.VM, error) {
 	cmd = append(cmd, []string{
 		"-device", "virtio-serial",
 		// qemu needs to establish the long name; other connections can use the symlink'd
-		"-chardev", "socket,path=" + vm.ReadySocket.Path + ",server=on,wait=off,id=" + vm.Name + "_ready",
-		"-device", "virtserialport,chardev=" + vm.Name + "_ready" + ",name=org.fedoraproject.port.0",
+		// Note both id and chardev start with an extra "a" because qemu requires that it
+		// starts with an letter but users can also use numbers
+		"-chardev", "socket,path=" + vm.ReadySocket.Path + ",server=on,wait=off,id=a" + vm.Name + "_ready",
+		"-device", "virtserialport,chardev=a" + vm.Name + "_ready" + ",name=org.fedoraproject.port.0",
 		"-pidfile", vm.VMPidFilePath.GetPath()}...)
 	vm.CmdLine = cmd
 	return vm, nil
@@ -571,15 +574,25 @@ func (v *MachineVM) Start(name string, _ machine.StartOptions) error {
 	files := []*os.File{dnr, dnw, dnw, fd}
 	attr.Files = files
 	logrus.Debug(v.CmdLine)
-	cmd := v.CmdLine
+	cmdLine := v.CmdLine
 
 	// Disable graphic window when not in debug mode
 	// Done in start, so we're not suck with the debug level we used on init
 	if !logrus.IsLevelEnabled(logrus.DebugLevel) {
-		cmd = append(cmd, "-display", "none")
+		cmdLine = append(cmdLine, "-display", "none")
 	}
 
-	_, err = os.StartProcess(v.CmdLine[0], cmd, attr)
+	stderrBuf := &bytes.Buffer{}
+
+	cmd := &exec.Cmd{
+		Args:       cmdLine,
+		Path:       cmdLine[0],
+		Stdin:      dnr,
+		Stdout:     dnw,
+		Stderr:     stderrBuf,
+		ExtraFiles: []*os.File{fd},
+	}
+	err = cmd.Start()
 	if err != nil {
 		// check if qemu was not found
 		if !errors.Is(err, os.ErrNotExist) {
@@ -590,15 +603,17 @@ func (v *MachineVM) Start(name string, _ machine.StartOptions) error {
 		if err != nil {
 			return err
 		}
-		cmd[0], err = cfg.FindHelperBinary(QemuCommand, true)
+		cmdLine[0], err = cfg.FindHelperBinary(QemuCommand, true)
 		if err != nil {
 			return err
 		}
-		_, err = os.StartProcess(cmd[0], cmd, attr)
+		cmd.Path = cmdLine[0]
+		err = cmd.Start()
 		if err != nil {
 			return fmt.Errorf("unable to execute %q: %w", cmd, err)
 		}
 	}
+	defer cmd.Process.Release() //nolint:errcheck
 	fmt.Println("Waiting for VM ...")
 	socketPath, err := getRuntimeDir()
 	if err != nil {
@@ -612,6 +627,16 @@ func (v *MachineVM) Start(name string, _ machine.StartOptions) error {
 		conn, err = net.Dial("unix", filepath.Join(socketPath, "podman", v.Name+"_ready.sock"))
 		if err == nil {
 			break
+		}
+		// check if qemu is still alive
+		var status syscall.WaitStatus
+		pid, err := syscall.Wait4(cmd.Process.Pid, &status, syscall.WNOHANG, nil)
+		if err != nil {
+			return fmt.Errorf("failed to read qemu process status: %w", err)
+		}
+		if pid > 0 {
+			// child exited
+			return fmt.Errorf("qemu exited unexpectedly with exit code %d, stderr: %s", status.ExitStatus(), stderrBuf.String())
 		}
 		time.Sleep(wait)
 		wait++

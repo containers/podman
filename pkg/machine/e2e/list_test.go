@@ -2,9 +2,10 @@ package e2e
 
 import (
 	"strings"
+	"time"
 
 	"github.com/containers/common/pkg/util"
-	"github.com/containers/podman/v4/cmd/podman/machine"
+	"github.com/containers/podman/v4/pkg/domain/entities"
 	jsoniter "github.com/json-iterator/go"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -87,7 +88,7 @@ var _ = Describe("podman machine list", func() {
 		startSession, err := mb.setCmd(s).runWithoutWait()
 		Expect(err).To(BeNil())
 		l := new(listMachine)
-		for { // needs to be infinite because we need to check if running when inspect returns to avoid race conditions.
+		for i := 0; i < 30; i++ {
 			listSession, err := mb.setCmd(l).run()
 			Expect(listSession).To(Exit(0))
 			Expect(err).To(BeNil())
@@ -96,6 +97,7 @@ var _ = Describe("podman machine list", func() {
 			} else {
 				break
 			}
+			time.Sleep(3 * time.Second)
 		}
 		Expect(startSession).To(Exit(0))
 		listSession, err := mb.setCmd(l).run()
@@ -132,7 +134,7 @@ var _ = Describe("podman machine list", func() {
 		Expect(err).To(BeNil())
 		Expect(listSession2).To(Exit(0))
 
-		var listResponse []*machine.ListReporter
+		var listResponse []*entities.ListReporter
 		err = jsoniter.Unmarshal(listSession.Bytes(), &listResponse)
 		Expect(err).To(BeNil())
 
