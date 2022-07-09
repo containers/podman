@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/url"
 	"path/filepath"
+	"time"
 )
 
 const (
@@ -27,7 +28,7 @@ func NewFedoraDownloader(vmType, vmName, releaseStream string) (DistributionDown
 		return nil, err
 	}
 
-	dataDir, err := GetDataDir(vmType)
+	cacheDir, err := GetCacheDir(vmType)
 	if err != nil {
 		return nil, err
 	}
@@ -38,15 +39,20 @@ func NewFedoraDownloader(vmType, vmName, releaseStream string) (DistributionDown
 		Download: Download{
 			Arch:      getFcosArch(),
 			Artifact:  artifact,
+			CacheDir:  cacheDir,
 			Format:    Format,
 			ImageName: imageName,
-			LocalPath: filepath.Join(dataDir, imageName),
+			LocalPath: filepath.Join(cacheDir, imageName),
 			URL:       downloadURL,
 			VMName:    vmName,
 			Size:      size,
 		},
 	}
-	f.Download.LocalUncompressedFile = f.getLocalUncompressedName()
+	dataDir, err := GetDataDir(vmType)
+	if err != nil {
+		return nil, err
+	}
+	f.Download.LocalUncompressedFile = f.getLocalUncompressedFile(dataDir)
 	return f, nil
 }
 
@@ -63,6 +69,12 @@ func (f FedoraDownload) HasUsableCache() (bool, error) {
 		return false, err
 	}
 	return info.Size() == f.Size, nil
+}
+
+func (f FedoraDownload) CleanCache() error {
+	// Set cached image to expire after 2 weeks
+	expire := 14 * 24 * time.Hour
+	return removeImageAfterExpire(f.CacheDir, expire)
 }
 
 func getFedoraDownload(releaseURL string) (*url.URL, int64, error) {

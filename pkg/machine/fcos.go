@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"time"
 
 	"github.com/coreos/stream-metadata-go/fedoracoreos"
 	"github.com/coreos/stream-metadata-go/release"
@@ -53,7 +54,7 @@ func NewFcosDownloader(vmType, vmName, imageStream string) (DistributionDownload
 		return nil, err
 	}
 
-	dataDir, err := GetDataDir(vmType)
+	cacheDir, err := GetCacheDir(vmType)
 	if err != nil {
 		return nil, err
 	}
@@ -62,15 +63,20 @@ func NewFcosDownloader(vmType, vmName, imageStream string) (DistributionDownload
 		Download: Download{
 			Arch:      getFcosArch(),
 			Artifact:  artifact,
+			CacheDir:  cacheDir,
 			Format:    Format,
 			ImageName: imageName,
-			LocalPath: filepath.Join(dataDir, imageName),
+			LocalPath: filepath.Join(cacheDir, imageName),
 			Sha256sum: info.Sha256Sum,
 			URL:       url,
 			VMName:    vmName,
 		},
 	}
-	fcd.Download.LocalUncompressedFile = fcd.getLocalUncompressedName()
+	dataDir, err := GetDataDir(vmType)
+	if err != nil {
+		return nil, err
+	}
+	fcd.Download.LocalUncompressedFile = fcd.getLocalUncompressedFile(dataDir)
 	return fcd, nil
 }
 
@@ -106,6 +112,13 @@ func (f FcosDownload) HasUsableCache() (bool, error) {
 		return false, err
 	}
 	return sum.Encoded() == f.Sha256sum, nil
+}
+
+func (f FcosDownload) CleanCache() error {
+	// Set cached image to expire after 2 weeks
+	// FCOS refreshes around every 2 weeks, assume old images aren't needed
+	expire := 14 * 24 * time.Hour
+	return removeImageAfterExpire(f.CacheDir, expire)
 }
 
 func getFcosArch() string {
