@@ -1,13 +1,14 @@
+//go:build !linux
 // +build !linux
 
 package chunked
 
 import (
 	"context"
+	"errors"
 
 	storage "github.com/containers/storage"
 	graphdriver "github.com/containers/storage/drivers"
-	"github.com/pkg/errors"
 )
 
 // GetDiffer returns a differ than can be used with ApplyDiffWithDiffer.

@@ -11,22 +11,22 @@ import (
 func parseTriple(spec []string) (container, host, size uint32, err error) {
 	cid, err := strconv.ParseUint(spec[0], 10, 32)
 	if err != nil {
-		return 0, 0, 0, fmt.Errorf("error parsing id map value %q: %v", spec[0], err)
+		return 0, 0, 0, fmt.Errorf("parsing id map value %q: %w", spec[0], err)
 	}
 	hid, err := strconv.ParseUint(spec[1], 10, 32)
 	if err != nil {
-		return 0, 0, 0, fmt.Errorf("error parsing id map value %q: %v", spec[1], err)
+		return 0, 0, 0, fmt.Errorf("parsing id map value %q: %w", spec[1], err)
 	}
 	sz, err := strconv.ParseUint(spec[2], 10, 32)
 	if err != nil {
-		return 0, 0, 0, fmt.Errorf("error parsing id map value %q: %v", spec[2], err)
+		return 0, 0, 0, fmt.Errorf("parsing id map value %q: %w", spec[2], err)
 	}
 	return uint32(cid), uint32(hid), uint32(sz), nil
 }
 
 // ParseIDMap parses idmap triples from string.
 func ParseIDMap(mapSpec []string, mapSetting string) (idmap []IDMap, err error) {
-	stdErr := fmt.Errorf("error initializing ID mappings: %s setting is malformed expected [\"uint32:uint32:uint32\"]: %q", mapSetting, mapSpec)
+	stdErr := fmt.Errorf("initializing ID mappings: %s setting is malformed expected [\"uint32:uint32:uint32\"]: %q", mapSetting, mapSpec)
 	for _, idMapSpec := range mapSpec {
 		if idMapSpec == "" {
 			continue

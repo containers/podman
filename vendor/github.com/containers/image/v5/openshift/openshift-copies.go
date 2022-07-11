@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -18,7 +19,6 @@ import (
 	"github.com/containers/storage/pkg/homedir"
 	"github.com/ghodss/yaml"
 	"github.com/imdario/mergo"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/http2"
 )
@@ -354,19 +354,19 @@ func validateClusterInfo(clusterName string, clusterInfo clientcmdCluster) []err
 
 	if len(clusterInfo.Server) == 0 {
 		if len(clusterName) == 0 {
-			validationErrors = append(validationErrors, errors.Errorf("default cluster has no server defined"))
+			validationErrors = append(validationErrors, errors.New("default cluster has no server defined"))
 		} else {
-			validationErrors = append(validationErrors, errors.Errorf("no server found for cluster %q", clusterName))
+			validationErrors = append(validationErrors, fmt.Errorf("no server found for cluster %q", clusterName))
 		}
 	}
 	// Make sure CA data and CA file aren't both specified
 	if len(clusterInfo.CertificateAuthority) != 0 && len(clusterInfo.CertificateAuthorityData) != 0 {
-		validationErrors = append(validationErrors, errors.Errorf("certificate-authority-data and certificate-authority are both specified for %v. certificate-authority-data will override", clusterName))
+		validationErrors = append(validationErrors, fmt.Errorf("certificate-authority-data and certificate-authority are both specified for %v. certificate-authority-data will override", clusterName))
 	}
 	if len(clusterInfo.CertificateAuthority) != 0 {
 		err := validateFileIsReadable(clusterInfo.CertificateAuthority)
 		if err != nil {
-			validationErrors = append(validationErrors, errors.Errorf("unable to read certificate-authority %v for %v due to %v", clusterInfo.CertificateAuthority, clusterName, err))
+			validationErrors = append(validationErrors, fmt.Errorf("unable to read certificate-authority %v for %v due to %v", clusterInfo.CertificateAuthority, clusterName, err))
 		}
 	}
 
@@ -390,34 +390,34 @@ func validateAuthInfo(authInfoName string, authInfo clientcmdAuthInfo) []error {
 	if len(authInfo.ClientCertificate) != 0 || len(authInfo.ClientCertificateData) != 0 {
 		// Make sure cert data and file aren't both specified
 		if len(authInfo.ClientCertificate) != 0 && len(authInfo.ClientCertificateData) != 0 {
-			validationErrors = append(validationErrors, errors.Errorf("client-cert-data and client-cert are both specified for %v. client-cert-data will override", authInfoName))
+			validationErrors = append(validationErrors, fmt.Errorf("client-cert-data and client-cert are both specified for %v. client-cert-data will override", authInfoName))
 		}
 		// Make sure key data and file aren't both specified
 		if len(authInfo.ClientKey) != 0 && len(authInfo.ClientKeyData) != 0 {
-			validationErrors = append(validationErrors, errors.Errorf("client-key-data and client-key are both specified for %v; client-key-data will override", authInfoName))
+			validationErrors = append(validationErrors, fmt.Errorf("client-key-data and client-key are both specified for %v; client-key-data will override", authInfoName))
 		}
 		// Make sure a key is specified
 		if len(authInfo.ClientKey) == 0 && len(authInfo.ClientKeyData) == 0 {
-			validationErrors = append(validationErrors, errors.Errorf("client-key-data or client-key must be specified for %v to use the clientCert authentication method", authInfoName))
+			validationErrors = append(validationErrors, fmt.Errorf("client-key-data or client-key must be specified for %v to use the clientCert authentication method", authInfoName))
 		}
 
 		if len(authInfo.ClientCertificate) != 0 {
 			err := validateFileIsReadable(authInfo.ClientCertificate)
 			if err != nil {
-				validationErrors = append(validationErrors, errors.Errorf("unable to read client-cert %v for %v due to %v", authInfo.ClientCertificate, authInfoName, err))
+				validationErrors = append(validationErrors, fmt.Errorf("unable to read client-cert %v for %v due to %v", authInfo.ClientCertificate, authInfoName, err))
 			}
 		}
 		if len(authInfo.ClientKey) != 0 {
 			err := validateFileIsReadable(authInfo.ClientKey)
 			if err != nil {
-				validationErrors = append(validationErrors, errors.Errorf("unable to read client-key %v for %v due to %v", authInfo.ClientKey, authInfoName, err))
+				validationErrors = append(validationErrors, fmt.Errorf("unable to read client-key %v for %v due to %v", authInfo.ClientKey, authInfoName, err))
 			}
 		}
 	}
 
 	// authPath also provides information for the client to identify the server, so allow multiple auth methods in that case
 	if (len(methods) > 1) && (!usingAuthPath) {
-		validationErrors = append(validationErrors, errors.Errorf("more than one authentication method found for %v; found %v, only one is allowed", authInfoName, methods))
+		validationErrors = append(validationErrors, fmt.Errorf("more than one authentication method found for %v; found %v, only one is allowed", authInfoName, methods))
 	}
 
 	return validationErrors
@@ -578,7 +578,7 @@ func (rules *clientConfigLoadingRules) Load() (*clientcmdConfig, error) {
 			continue
 		}
 		if err != nil {
-			errlist = append(errlist, errors.Wrapf(err, "loading config file \"%s\"", filename))
+			errlist = append(errlist, fmt.Errorf("loading config file \"%s\": %w", filename, err))
 			continue
 		}
 
@@ -691,7 +691,7 @@ func resolveLocalPaths(config *clientcmdConfig) error {
 		}
 		base, err := filepath.Abs(filepath.Dir(cluster.LocationOfOrigin))
 		if err != nil {
-			return errors.Wrapf(err, "Could not determine the absolute path of config file %s", cluster.LocationOfOrigin)
+			return fmt.Errorf("Could not determine the absolute path of config file %s: %w", cluster.LocationOfOrigin, err)
 		}
 
 		if err := resolvePaths(getClusterFileReferences(cluster), base); err != nil {
@@ -704,7 +704,7 @@ func resolveLocalPaths(config *clientcmdConfig) error {
 		}
 		base, err := filepath.Abs(filepath.Dir(authInfo.LocationOfOrigin))
 		if err != nil {
-			return errors.Wrapf(err, "Could not determine the absolute path of config file %s", authInfo.LocationOfOrigin)
+			return fmt.Errorf("Could not determine the absolute path of config file %s: %w", authInfo.LocationOfOrigin, err)
 		}
 
 		if err := resolvePaths(getAuthInfoFileReferences(authInfo), base); err != nil {
@@ -774,7 +774,7 @@ func restClientFor(config *restConfig) (*url.URL, *http.Client, error) {
 // Kubernetes API.
 func defaultServerURL(host string, defaultTLS bool) (*url.URL, error) {
 	if host == "" {
-		return nil, errors.Errorf("host must be a URL or a host:port pair")
+		return nil, errors.New("host must be a URL or a host:port pair")
 	}
 	base := host
 	hostURL, err := url.Parse(base)
@@ -791,7 +791,7 @@ func defaultServerURL(host string, defaultTLS bool) (*url.URL, error) {
 			return nil, err
 		}
 		if hostURL.Path != "" && hostURL.Path != "/" {
-			return nil, errors.Errorf("host must be a URL or a host:port pair: %q", base)
+			return nil, fmt.Errorf("host must be a URL or a host:port pair: %q", base)
 		}
 	}
 
@@ -861,7 +861,7 @@ func transportNew(config *restConfig) (http.RoundTripper, error) {
 
 	// REMOVED: HTTPWrappersForConfig(config, rt) in favor of the caller setting HTTP headers itself based on restConfig. Only this inlined check remains.
 	if len(config.Username) != 0 && len(config.BearerToken) != 0 {
-		return nil, errors.Errorf("username/password or bearer token may be set, but not both")
+		return nil, errors.New("username/password or bearer token may be set, but not both")
 	}
 
 	return rt, nil
@@ -954,7 +954,7 @@ func tlsConfigFor(c *restConfig) (*tls.Config, error) {
 		return nil, nil
 	}
 	if c.HasCA() && c.Insecure {
-		return nil, errors.Errorf("specifying a root certificates file with the insecure flag is not allowed")
+		return nil, errors.New("specifying a root certificates file with the insecure flag is not allowed")
 	}
 	if err := loadTLSFiles(c); err != nil {
 		return nil, err

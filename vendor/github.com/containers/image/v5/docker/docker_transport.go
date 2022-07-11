@@ -2,6 +2,7 @@ package docker
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -9,7 +10,6 @@ import (
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/transports"
 	"github.com/containers/image/v5/types"
-	"github.com/pkg/errors"
 )
 
 func init() {
@@ -49,7 +49,7 @@ type dockerReference struct {
 // ParseReference converts a string, which should not start with the ImageTransport.Name prefix, into an Docker ImageReference.
 func ParseReference(refString string) (types.ImageReference, error) {
 	if !strings.HasPrefix(refString, "//") {
-		return nil, errors.Errorf("docker: image reference %s does not start with //", refString)
+		return nil, fmt.Errorf("docker: image reference %s does not start with //", refString)
 	}
 	ref, err := reference.ParseNormalizedNamed(strings.TrimPrefix(refString, "//"))
 	if err != nil {
@@ -67,7 +67,7 @@ func NewReference(ref reference.Named) (types.ImageReference, error) {
 // newReference returns a dockerReference for a named reference.
 func newReference(ref reference.Named) (dockerReference, error) {
 	if reference.IsNameOnly(ref) {
-		return dockerReference{}, errors.Errorf("Docker reference %s has neither a tag nor a digest", reference.FamiliarString(ref))
+		return dockerReference{}, fmt.Errorf("Docker reference %s has neither a tag nor a digest", reference.FamiliarString(ref))
 	}
 	// A github.com/distribution/reference value can have a tag and a digest at the same time!
 	// The docker/distribution API does not really support that (we can’t ask for an image with a specific
@@ -77,7 +77,7 @@ func newReference(ref reference.Named) (dockerReference, error) {
 	_, isTagged := ref.(reference.NamedTagged)
 	_, isDigested := ref.(reference.Canonical)
 	if isTagged && isDigested {
-		return dockerReference{}, errors.Errorf("Docker references with both a tag and digest are currently not supported")
+		return dockerReference{}, errors.New("Docker references with both a tag and digest are currently not supported")
 	}
 
 	return dockerReference{
@@ -164,5 +164,5 @@ func (ref dockerReference) tagOrDigest() (string, error) {
 		return ref.Tag(), nil
 	}
 	// This should not happen, NewReference above refuses reference.IsNameOnly values.
-	return "", errors.Errorf("Internal inconsistency: Reference %s unexpectedly has neither a digest nor a tag", reference.FamiliarString(ref.ref))
+	return "", fmt.Errorf("Internal inconsistency: Reference %s unexpectedly has neither a digest nor a tag", reference.FamiliarString(ref.ref))
 }

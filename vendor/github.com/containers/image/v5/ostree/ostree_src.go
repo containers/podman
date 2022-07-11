@@ -7,19 +7,23 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"io"
 	"strconv"
 	"strings"
 	"unsafe"
 
+	"github.com/containers/image/v5/internal/imagesource/impl"
+	"github.com/containers/image/v5/internal/imagesource/stubs"
+	"github.com/containers/image/v5/internal/private"
+	"github.com/containers/image/v5/internal/signature"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/storage/pkg/ioutils"
 	"github.com/klauspost/pgzip"
 	digest "github.com/opencontainers/go-digest"
 	glib "github.com/ostreedev/ostree-go/pkg/glibobject"
-	"github.com/pkg/errors"
 	"github.com/vbatts/tar-split/tar/asm"
 	"github.com/vbatts/tar-split/tar/storage"
 )
@@ -34,6 +38,10 @@ import (
 import "C"
 
 type ostreeImageSource struct {
+	impl.Compat
+	impl.PropertyMethodsInitialize
+	stubs.NoGetBlobAtInitialize
+
 	ref    ostreeReference
 	tmpDir string
 	repo   *C.struct_OstreeRepo
@@ -42,8 +50,19 @@ type ostreeImageSource struct {
 }
 
 // newImageSource returns an ImageSource for reading from an existing directory.
-func newImageSource(tmpDir string, ref ostreeReference) (types.ImageSource, error) {
-	return &ostreeImageSource{ref: ref, tmpDir: tmpDir, compressed: nil}, nil
+func newImageSource(tmpDir string, ref ostreeReference) (private.ImageSource, error) {
+	s := &ostreeImageSource{
+		PropertyMethodsInitialize: impl.PropertyMethods(impl.Properties{
+			HasThreadSafeGetBlob: false,
+		}),
+		NoGetBlobAtInitialize: stubs.NoGetBlobAt(ref),
+
+		ref:        ref,
+		tmpDir:     tmpDir,
+		compressed: nil,
+	}
+	s.Compat = impl.AddCompat(s)
+	return s, nil
 }
 
 // Reference returns the reference used to set up this source.
@@ -263,11 +282,6 @@ func (s *ostreeImageSource) readSingleFile(commit, path string) (io.ReadCloser, 
 	return getter.Get(path)
 }
 
-// HasThreadSafeGetBlob indicates whether GetBlob can be executed concurrently.
-func (s *ostreeImageSource) HasThreadSafeGetBlob() bool {
-	return false
-}
-
 // GetBlob returns a stream for the specified blob, and the blob’s size (or -1 if unknown).
 // The Digest field in BlobInfo is guaranteed to be provided, Size may be -1 and MediaType may be optionally provided.
 // May update BlobInfoCache, preferably after it knows for certain that a blob truly exists at a specific location.
@@ -339,10 +353,11 @@ func (s *ostreeImageSource) GetBlob(ctx context.Context, info types.BlobInfo, ca
 	return rc, layerSize, nil
 }
 
-// GetSignatures returns the image's signatures.  It may use a remote (= slow) service.
-// This source implementation does not support manifest lists, so the passed-in instanceDigest should always be nil,
-// as there can be no secondary manifests.
-func (s *ostreeImageSource) GetSignatures(ctx context.Context, instanceDigest *digest.Digest) ([][]byte, error) {
+// GetSignaturesWithFormat returns the image's signatures.  It may use a remote (= slow) service.
+// If instanceDigest is not nil, it contains a digest of the specific manifest instance to retrieve signatures for
+// (when the primary manifest is a manifest list); this never happens if the primary manifest is not a manifest list
+// (e.g. if the source never returns manifest lists).
+func (s *ostreeImageSource) GetSignaturesWithFormat(ctx context.Context, instanceDigest *digest.Digest) ([]signature.Signature, error) {
 	if instanceDigest != nil {
 		return nil, errors.New(`Manifest lists are not supported by "ostree:"`)
 	}
@@ -360,17 +375,22 @@ func (s *ostreeImageSource) GetSignatures(ctx context.Context, instanceDigest *d
 		s.repo = repo
 	}
 
-	signatures := [][]byte{}
+	signatures := []signature.Signature{}
 	for i := int64(1); i <= lenSignatures; i++ {
-		sigReader, err := s.readSingleFile(branch, fmt.Sprintf("/signature-%d", i))
+		path := fmt.Sprintf("/signature-%d", i)
+		sigReader, err := s.readSingleFile(branch, path)
 		if err != nil {
 			return nil, err
 		}
 		defer sigReader.Close()
 
-		sig, err := os.ReadAll(sigReader)
+		sigBlob, err := io.ReadAll(sigReader)
 		if err != nil {
 			return nil, err
+		}
+		sig, err := signature.FromBlob(sigBlob)
+		if err != nil {
+			return nil, fmt.Errorf("parsing signature %q: %w", path, err)
 		}
 		signatures = append(signatures, sig)
 	}

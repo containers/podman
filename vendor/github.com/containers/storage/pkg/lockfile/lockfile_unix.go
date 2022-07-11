@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"github.com/containers/storage/pkg/system"
-	"github.com/pkg/errors"
 	"golang.org/x/sys/unix"
 )
 
@@ -86,7 +85,7 @@ func openLock(path string, ro bool) (fd int, err error) {
 	// the directory of the lockfile seems to be removed, try to create it
 	if os.IsNotExist(err) {
 		if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
-			return fd, errors.Wrap(err, "creating locker directory")
+			return fd, fmt.Errorf("creating locker directory: %w", err)
 		}
 
 		return openLock(path, ro)
@@ -112,7 +111,7 @@ func createLockerForPath(path string, ro bool) (Locker, error) {
 	// Check if we can open the lock.
 	fd, err := openLock(path, ro)
 	if err != nil {
-		return nil, errors.Wrapf(err, "error opening %q", path)
+		return nil, err
 	}
 	unix.Close(fd)
 

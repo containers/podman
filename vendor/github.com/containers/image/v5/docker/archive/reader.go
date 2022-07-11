@@ -1,11 +1,12 @@
 package archive
 
 import (
+	"fmt"
+
 	"github.com/containers/image/v5/docker/internal/tarfile"
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/transports"
 	"github.com/containers/image/v5/types"
-	"github.com/pkg/errors"
 )
 
 // Reader manages a single Docker archive, allows listing its contents and accessing
@@ -40,10 +41,10 @@ func (r *Reader) Close() error {
 func NewReaderForReference(sys *types.SystemContext, ref types.ImageReference) (*Reader, types.ImageReference, error) {
 	standalone, ok := ref.(archiveReference)
 	if !ok {
-		return nil, nil, errors.Errorf("Internal error: NewReaderForReference called for a non-docker/archive ImageReference %s", transports.ImageName(ref))
+		return nil, nil, fmt.Errorf("Internal error: NewReaderForReference called for a non-docker/archive ImageReference %s", transports.ImageName(ref))
 	}
 	if standalone.archiveReader != nil {
-		return nil, nil, errors.Errorf("Internal error: NewReaderForReference called for a reader-bound reference %s", standalone.StringWithinTransport())
+		return nil, nil, fmt.Errorf("Internal error: NewReaderForReference called for a reader-bound reference %s", standalone.StringWithinTransport())
 	}
 	reader, err := NewReader(sys, standalone.path)
 	if err != nil {
@@ -73,22 +74,22 @@ func (r *Reader) List() ([][]types.ImageReference, error) {
 		for _, tag := range image.RepoTags {
 			parsedTag, err := reference.ParseNormalizedNamed(tag)
 			if err != nil {
-				return nil, errors.Wrapf(err, "Invalid tag %#v in manifest item @%d", tag, imageIndex)
+				return nil, fmt.Errorf("Invalid tag %#v in manifest item @%d: %w", tag, imageIndex, err)
 			}
 			nt, ok := parsedTag.(reference.NamedTagged)
 			if !ok {
-				return nil, errors.Errorf("Invalid tag %s (%s): does not contain a tag", tag, parsedTag.String())
+				return nil, fmt.Errorf("Invalid tag %s (%s): does not contain a tag", tag, parsedTag.String())
 			}
 			ref, err := newReference(r.path, nt, -1, r.archive, nil)
 			if err != nil {
-				return nil, errors.Wrapf(err, "creating a reference for tag %#v in manifest item @%d", tag, imageIndex)
+				return nil, fmt.Errorf("creating a reference for tag %#v in manifest item @%d: %w", tag, imageIndex, err)
 			}
 			refs = append(refs, ref)
 		}
 		if len(refs) == 0 {
 			ref, err := newReference(r.path, nil, imageIndex, r.archive, nil)
 			if err != nil {
-				return nil, errors.Wrapf(err, "creating a reference for manifest item @%d", imageIndex)
+				return nil, fmt.Errorf("creating a reference for manifest item @%d: %w", imageIndex, err)
 			}
 			refs = append(refs, ref)
 		}
@@ -107,7 +108,7 @@ func (r *Reader) List() ([][]types.ImageReference, error) {
 func (r *Reader) ManifestTagsForReference(ref types.ImageReference) ([]string, error) {
 	archiveRef, ok := ref.(archiveReference)
 	if !ok {
-		return nil, errors.Errorf("Internal error: ManifestTagsForReference called for a non-docker/archive ImageReference %s", transports.ImageName(ref))
+		return nil, fmt.Errorf("Internal error: ManifestTagsForReference called for a non-docker/archive ImageReference %s", transports.ImageName(ref))
 	}
 	manifestItem, tagIndex, err := r.archive.ChooseManifestItem(archiveRef.ref, archiveRef.sourceIndex)
 	if err != nil {

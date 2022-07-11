@@ -15,16 +15,17 @@ package signature
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
 
 	"github.com/containers/image/v5/docker/reference"
+	"github.com/containers/image/v5/signature/internal"
 	"github.com/containers/image/v5/transports"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/storage/pkg/homedir"
-	"github.com/pkg/errors"
 )
 
 // systemDefaultPolicyPath is the policy path used for DefaultPolicy().
@@ -81,7 +82,7 @@ func NewPolicyFromFile(fileName string) (*Policy, error) {
 	}
 	policy, err := NewPolicyFromBytes(contents)
 	if err != nil {
-		return nil, errors.Wrapf(err, "invalid policy in %q", fileName)
+		return nil, fmt.Errorf("invalid policy in %q: %w", fileName, err)
 	}
 	return policy, nil
 }
@@ -103,7 +104,7 @@ var _ json.Unmarshaler = (*Policy)(nil)
 func (p *Policy) UnmarshalJSON(data []byte) error {
 	*p = Policy{}
 	transports := policyTransportsMap{}
-	if err := paranoidUnmarshalJSONObject(data, func(key string) interface{} {
+	if err := internal.ParanoidUnmarshalJSONObject(data, func(key string) interface{} {
 		switch key {
 		case "default":
 			return &p.Default
@@ -134,10 +135,10 @@ func (m *policyTransportsMap) UnmarshalJSON(data []byte) error {
 	// We can't unmarshal directly into map values because it is not possible to take an address of a map value.
 	// So, use a temporary map of pointers-to-slices and convert.
 	tmpMap := map[string]*PolicyTransportScopes{}
-	if err := paranoidUnmarshalJSONObject(data, func(key string) interface{} {
+	if err := internal.ParanoidUnmarshalJSONObject(data, func(key string) interface{} {
 		// transport can be nil
 		transport := transports.Get(key)
-		// paranoidUnmarshalJSONObject detects key duplication for us, check just to be safe.
+		// internal.ParanoidUnmarshalJSONObject detects key duplication for us, check just to be safe.
 		if _, ok := tmpMap[key]; ok {
 			return nil
 		}
@@ -180,8 +181,8 @@ func (m *policyTransportScopesWithTransport) UnmarshalJSON(data []byte) error {
 	// We can't unmarshal directly into map values because it is not possible to take an address of a map value.
 	// So, use a temporary map of pointers-to-slices and convert.
 	tmpMap := map[string]*PolicyRequirements{}
-	if err := paranoidUnmarshalJSONObject(data, func(key string) interface{} {
-		// paranoidUnmarshalJSONObject detects key duplication for us, check just to be safe.
+	if err := internal.ParanoidUnmarshalJSONObject(data, func(key string) interface{} {
+		// internal.ParanoidUnmarshalJSONObject detects key duplication for us, check just to be safe.
 		if _, ok := tmpMap[key]; ok {
 			return nil
 		}
@@ -242,6 +243,8 @@ func newPolicyRequirementFromJSON(data []byte) (PolicyRequirement, error) {
 		res = &prSignedBy{}
 	case prTypeSignedBaseLayer:
 		res = &prSignedBaseLayer{}
+	case prTypeSigstoreSigned:
+		res = &prSigstoreSigned{}
 	default:
 		return nil, InvalidPolicyFormatError(fmt.Sprintf("Unknown policy requirement type \"%s\"", typeField.Type))
 	}
@@ -268,7 +271,7 @@ var _ json.Unmarshaler = (*prInsecureAcceptAnything)(nil)
 func (pr *prInsecureAcceptAnything) UnmarshalJSON(data []byte) error {
 	*pr = prInsecureAcceptAnything{}
 	var tmp prInsecureAcceptAnything
-	if err := paranoidUnmarshalJSONObjectExactFields(data, map[string]interface{}{
+	if err := internal.ParanoidUnmarshalJSONObjectExactFields(data, map[string]interface{}{
 		"type": &tmp.Type,
 	}); err != nil {
 		return err
@@ -298,7 +301,7 @@ var _ json.Unmarshaler = (*prReject)(nil)
 func (pr *prReject) UnmarshalJSON(data []byte) error {
 	*pr = prReject{}
 	var tmp prReject
-	if err := paranoidUnmarshalJSONObjectExactFields(data, map[string]interface{}{
+	if err := internal.ParanoidUnmarshalJSONObjectExactFields(data, map[string]interface{}{
 		"type": &tmp.Type,
 	}); err != nil {
 		return err
@@ -312,12 +315,22 @@ func (pr *prReject) UnmarshalJSON(data []byte) error {
 }
 
 // newPRSignedBy returns a new prSignedBy if parameters are valid.
-func newPRSignedBy(keyType sbKeyType, keyPath string, keyData []byte, signedIdentity PolicyReferenceMatch) (*prSignedBy, error) {
+func newPRSignedBy(keyType sbKeyType, keyPath string, keyPaths []string, keyData []byte, signedIdentity PolicyReferenceMatch) (*prSignedBy, error) {
 	if !keyType.IsValid() {
 		return nil, InvalidPolicyFormatError(fmt.Sprintf("invalid keyType \"%s\"", keyType))
 	}
-	if len(keyPath) > 0 && len(keyData) > 0 {
-		return nil, InvalidPolicyFormatError("keyType and keyData cannot be used simultaneously")
+	keySources := 0
+	if keyPath != "" {
+		keySources++
+	}
+	if keyPaths != nil {
+		keySources++
+	}
+	if keyData != nil {
+		keySources++
+	}
+	if keySources != 1 {
+		return nil, InvalidPolicyFormatError("exactly one of keyPath, keyPaths and keyData must be specified")
 	}
 	if signedIdentity == nil {
 		return nil, InvalidPolicyFormatError("signedIdentity not specified")
@@ -326,6 +339,7 @@ func newPRSignedBy(keyType sbKeyType, keyPath string, keyData []byte, signedIden
 		prCommon:       prCommon{Type: prTypeSignedBy},
 		KeyType:        keyType,
 		KeyPath:        keyPath,
+		KeyPaths:       keyPaths,
 		KeyData:        keyData,
 		SignedIdentity: signedIdentity,
 	}, nil
@@ -333,7 +347,7 @@ func newPRSignedBy(keyType sbKeyType, keyPath string, keyData []byte, signedIden
 
 // newPRSignedByKeyPath is NewPRSignedByKeyPath, except it returns the private type.
 func newPRSignedByKeyPath(keyType sbKeyType, keyPath string, signedIdentity PolicyReferenceMatch) (*prSignedBy, error) {
-	return newPRSignedBy(keyType, keyPath, nil, signedIdentity)
+	return newPRSignedBy(keyType, keyPath, nil, nil, signedIdentity)
 }
 
 // NewPRSignedByKeyPath returns a new "signedBy" PolicyRequirement using a KeyPath
@@ -341,9 +355,19 @@ func NewPRSignedByKeyPath(keyType sbKeyType, keyPath string, signedIdentity Poli
 	return newPRSignedByKeyPath(keyType, keyPath, signedIdentity)
 }
 
+// newPRSignedByKeyPaths is NewPRSignedByKeyPaths, except it returns the private type.
+func newPRSignedByKeyPaths(keyType sbKeyType, keyPaths []string, signedIdentity PolicyReferenceMatch) (*prSignedBy, error) {
+	return newPRSignedBy(keyType, "", keyPaths, nil, signedIdentity)
+}
+
+// NewPRSignedByKeyPaths returns a new "signedBy" PolicyRequirement using KeyPaths
+func NewPRSignedByKeyPaths(keyType sbKeyType, keyPaths []string, signedIdentity PolicyReferenceMatch) (PolicyRequirement, error) {
+	return newPRSignedByKeyPaths(keyType, keyPaths, signedIdentity)
+}
+
 // newPRSignedByKeyData is NewPRSignedByKeyData, except it returns the private type.
 func newPRSignedByKeyData(keyType sbKeyType, keyData []byte, signedIdentity PolicyReferenceMatch) (*prSignedBy, error) {
-	return newPRSignedBy(keyType, "", keyData, signedIdentity)
+	return newPRSignedBy(keyType, "", nil, keyData, signedIdentity)
 }
 
 // NewPRSignedByKeyData returns a new "signedBy" PolicyRequirement using a KeyData
@@ -358,9 +382,9 @@ var _ json.Unmarshaler = (*prSignedBy)(nil)
 func (pr *prSignedBy) UnmarshalJSON(data []byte) error {
 	*pr = prSignedBy{}
 	var tmp prSignedBy
-	var gotKeyPath, gotKeyData = false, false
+	var gotKeyPath, gotKeyPaths, gotKeyData = false, false, false
 	var signedIdentity json.RawMessage
-	if err := paranoidUnmarshalJSONObject(data, func(key string) interface{} {
+	if err := internal.ParanoidUnmarshalJSONObject(data, func(key string) interface{} {
 		switch key {
 		case "type":
 			return &tmp.Type
@@ -369,6 +393,9 @@ func (pr *prSignedBy) UnmarshalJSON(data []byte) error {
 		case "keyPath":
 			gotKeyPath = true
 			return &tmp.KeyPath
+		case "keyPaths":
+			gotKeyPaths = true
+			return &tmp.KeyPaths
 		case "keyData":
 			gotKeyData = true
 			return &tmp.KeyData
@@ -397,16 +424,16 @@ func (pr *prSignedBy) UnmarshalJSON(data []byte) error {
 	var res *prSignedBy
 	var err error
 	switch {
-	case gotKeyPath && gotKeyData:
-		return InvalidPolicyFormatError("keyPath and keyData cannot be used simultaneously")
-	case gotKeyPath && !gotKeyData:
+	case gotKeyPath && !gotKeyPaths && !gotKeyData:
 		res, err = newPRSignedByKeyPath(tmp.KeyType, tmp.KeyPath, tmp.SignedIdentity)
-	case !gotKeyPath && gotKeyData:
+	case !gotKeyPath && gotKeyPaths && !gotKeyData:
+		res, err = newPRSignedByKeyPaths(tmp.KeyType, tmp.KeyPaths, tmp.SignedIdentity)
+	case !gotKeyPath && !gotKeyPaths && gotKeyData:
 		res, err = newPRSignedByKeyData(tmp.KeyType, tmp.KeyData, tmp.SignedIdentity)
-	case !gotKeyPath && !gotKeyData:
-		return InvalidPolicyFormatError("At least one of keyPath and keyData mus be specified")
-	default: // Coverage: This should never happen
-		return errors.Errorf("Impossible keyPath/keyData presence combination!?")
+	case !gotKeyPath && !gotKeyPaths && !gotKeyData:
+		return InvalidPolicyFormatError("Exactly one of keyPath, keyPaths and keyData must be specified, none of them present")
+	default:
+		return fmt.Errorf("Exactly one of keyPath, keyPaths and keyData must be specified, more than one present")
 	}
 	if err != nil {
 		return err
@@ -468,7 +495,7 @@ func (pr *prSignedBaseLayer) UnmarshalJSON(data []byte) error {
 	*pr = prSignedBaseLayer{}
 	var tmp prSignedBaseLayer
 	var baseLayerIdentity json.RawMessage
-	if err := paranoidUnmarshalJSONObjectExactFields(data, map[string]interface{}{
+	if err := internal.ParanoidUnmarshalJSONObjectExactFields(data, map[string]interface{}{
 		"type":              &tmp.Type,
 		"baseLayerIdentity": &baseLayerIdentity,
 	}); err != nil {
@@ -488,6 +515,107 @@ func (pr *prSignedBaseLayer) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	*pr = *res
+	return nil
+}
+
+// newPRSigstoreSigned returns a new prSigstoreSigned if parameters are valid.
+func newPRSigstoreSigned(keyPath string, keyData []byte, signedIdentity PolicyReferenceMatch) (*prSigstoreSigned, error) {
+	if len(keyPath) > 0 && len(keyData) > 0 {
+		return nil, InvalidPolicyFormatError("keyType and keyData cannot be used simultaneously")
+	}
+	if signedIdentity == nil {
+		return nil, InvalidPolicyFormatError("signedIdentity not specified")
+	}
+	return &prSigstoreSigned{
+		prCommon:       prCommon{Type: prTypeSigstoreSigned},
+		KeyPath:        keyPath,
+		KeyData:        keyData,
+		SignedIdentity: signedIdentity,
+	}, nil
+}
+
+// newPRSigstoreSignedKeyPath is NewPRSigstoreSignedKeyPath, except it returns the private type.
+func newPRSigstoreSignedKeyPath(keyPath string, signedIdentity PolicyReferenceMatch) (*prSigstoreSigned, error) {
+	return newPRSigstoreSigned(keyPath, nil, signedIdentity)
+}
+
+// NewPRSigstoreSignedKeyPath returns a new "sigstoreSigned" PolicyRequirement using a KeyPath
+func NewPRSigstoreSignedKeyPath(keyPath string, signedIdentity PolicyReferenceMatch) (PolicyRequirement, error) {
+	return newPRSigstoreSignedKeyPath(keyPath, signedIdentity)
+}
+
+// newPRSigstoreSignedKeyData is NewPRSigstoreSignedKeyData, except it returns the private type.
+func newPRSigstoreSignedKeyData(keyData []byte, signedIdentity PolicyReferenceMatch) (*prSigstoreSigned, error) {
+	return newPRSigstoreSigned("", keyData, signedIdentity)
+}
+
+// NewPRSigstoreSignedKeyData returns a new "sigstoreSigned" PolicyRequirement using a KeyData
+func NewPRSigstoreSignedKeyData(keyData []byte, signedIdentity PolicyReferenceMatch) (PolicyRequirement, error) {
+	return newPRSigstoreSignedKeyData(keyData, signedIdentity)
+}
+
+// Compile-time check that prSigstoreSigned implements json.Unmarshaler.
+var _ json.Unmarshaler = (*prSigstoreSigned)(nil)
+
+// UnmarshalJSON implements the json.Unmarshaler interface.
+func (pr *prSigstoreSigned) UnmarshalJSON(data []byte) error {
+	*pr = prSigstoreSigned{}
+	var tmp prSigstoreSigned
+	var gotKeyPath, gotKeyData = false, false
+	var signedIdentity json.RawMessage
+	if err := internal.ParanoidUnmarshalJSONObject(data, func(key string) interface{} {
+		switch key {
+		case "type":
+			return &tmp.Type
+		case "keyPath":
+			gotKeyPath = true
+			return &tmp.KeyPath
+		case "keyData":
+			gotKeyData = true
+			return &tmp.KeyData
+		case "signedIdentity":
+			return &signedIdentity
+		default:
+			return nil
+		}
+	}); err != nil {
+		return err
+	}
+
+	if tmp.Type != prTypeSigstoreSigned {
+		return InvalidPolicyFormatError(fmt.Sprintf("Unexpected policy requirement type \"%s\"", tmp.Type))
+	}
+	if signedIdentity == nil {
+		tmp.SignedIdentity = NewPRMMatchRepoDigestOrExact()
+	} else {
+		si, err := newPolicyReferenceMatchFromJSON(signedIdentity)
+		if err != nil {
+			return err
+		}
+		tmp.SignedIdentity = si
+	}
+
+	var res *prSigstoreSigned
+	var err error
+	switch {
+	case gotKeyPath && gotKeyData:
+		return InvalidPolicyFormatError("keyPath and keyData cannot be used simultaneously")
+	case gotKeyPath && !gotKeyData:
+		res, err = newPRSigstoreSignedKeyPath(tmp.KeyPath, tmp.SignedIdentity)
+	case !gotKeyPath && gotKeyData:
+		res, err = newPRSigstoreSignedKeyData(tmp.KeyData, tmp.SignedIdentity)
+	case !gotKeyPath && !gotKeyData:
+		return InvalidPolicyFormatError("At least one of keyPath and keyData must be specified")
+	default: // Coverage: This should never happen
+		return fmt.Errorf("Impossible keyPath/keyData presence combination!?")
+	}
+	if err != nil {
+		// Coverage: This cannot currently happen, creating a prSigstoreSigned only fails
+		// if signedIdentity is nil, which we replace with a default above.
+		return err
+	}
+	*pr = *res
+
 	return nil
 }
 
@@ -537,7 +665,7 @@ var _ json.Unmarshaler = (*prmMatchExact)(nil)
 func (prm *prmMatchExact) UnmarshalJSON(data []byte) error {
 	*prm = prmMatchExact{}
 	var tmp prmMatchExact
-	if err := paranoidUnmarshalJSONObjectExactFields(data, map[string]interface{}{
+	if err := internal.ParanoidUnmarshalJSONObjectExactFields(data, map[string]interface{}{
 		"type": &tmp.Type,
 	}); err != nil {
 		return err
@@ -567,7 +695,7 @@ var _ json.Unmarshaler = (*prmMatchRepoDigestOrExact)(nil)
 func (prm *prmMatchRepoDigestOrExact) UnmarshalJSON(data []byte) error {
 	*prm = prmMatchRepoDigestOrExact{}
 	var tmp prmMatchRepoDigestOrExact
-	if err := paranoidUnmarshalJSONObjectExactFields(data, map[string]interface{}{
+	if err := internal.ParanoidUnmarshalJSONObjectExactFields(data, map[string]interface{}{
 		"type": &tmp.Type,
 	}); err != nil {
 		return err
@@ -597,7 +725,7 @@ var _ json.Unmarshaler = (*prmMatchRepository)(nil)
 func (prm *prmMatchRepository) UnmarshalJSON(data []byte) error {
 	*prm = prmMatchRepository{}
 	var tmp prmMatchRepository
-	if err := paranoidUnmarshalJSONObjectExactFields(data, map[string]interface{}{
+	if err := internal.ParanoidUnmarshalJSONObjectExactFields(data, map[string]interface{}{
 		"type": &tmp.Type,
 	}); err != nil {
 		return err
@@ -637,7 +765,7 @@ var _ json.Unmarshaler = (*prmExactReference)(nil)
 func (prm *prmExactReference) UnmarshalJSON(data []byte) error {
 	*prm = prmExactReference{}
 	var tmp prmExactReference
-	if err := paranoidUnmarshalJSONObjectExactFields(data, map[string]interface{}{
+	if err := internal.ParanoidUnmarshalJSONObjectExactFields(data, map[string]interface{}{
 		"type":            &tmp.Type,
 		"dockerReference": &tmp.DockerReference,
 	}); err != nil {
@@ -679,7 +807,7 @@ var _ json.Unmarshaler = (*prmExactRepository)(nil)
 func (prm *prmExactRepository) UnmarshalJSON(data []byte) error {
 	*prm = prmExactRepository{}
 	var tmp prmExactRepository
-	if err := paranoidUnmarshalJSONObjectExactFields(data, map[string]interface{}{
+	if err := internal.ParanoidUnmarshalJSONObjectExactFields(data, map[string]interface{}{
 		"type":             &tmp.Type,
 		"dockerRepository": &tmp.DockerRepository,
 	}); err != nil {
@@ -751,7 +879,7 @@ var _ json.Unmarshaler = (*prmRemapIdentity)(nil)
 func (prm *prmRemapIdentity) UnmarshalJSON(data []byte) error {
 	*prm = prmRemapIdentity{}
 	var tmp prmRemapIdentity
-	if err := paranoidUnmarshalJSONObjectExactFields(data, map[string]interface{}{
+	if err := internal.ParanoidUnmarshalJSONObjectExactFields(data, map[string]interface{}{
 		"type":         &tmp.Type,
 		"prefix":       &tmp.Prefix,
 		"signedPrefix": &tmp.SignedPrefix,

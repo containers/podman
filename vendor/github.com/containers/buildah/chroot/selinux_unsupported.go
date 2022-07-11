@@ -1,10 +1,12 @@
+//go:build !linux
 // +build !linux
 
 package chroot
 
 import (
+	"errors"
+
 	"github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/pkg/errors"
 )
 
 func setSelinuxLabel(spec *specs.Spec) error {

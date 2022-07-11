@@ -3,6 +3,8 @@ package tarfile
 import (
 	"archive/tar"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"io"
 	"os"
 	"path"
@@ -12,7 +14,6 @@ import (
 	"github.com/containers/image/v5/internal/tmpdir"
 	"github.com/containers/image/v5/pkg/compression"
 	"github.com/containers/image/v5/types"
-	"github.com/pkg/errors"
 )
 
 // Reader is a ((docker save)-formatted) tar archive that allows random access to any component.
@@ -29,7 +30,7 @@ type Reader struct {
 func NewReaderFromFile(sys *types.SystemContext, path string) (*Reader, error) {
 	file, err := os.Open(path)
 	if err != nil {
-		return nil, errors.Wrapf(err, "opening file %q", path)
+		return nil, fmt.Errorf("opening file %q: %w", path, err)
 	}
 	defer file.Close()
 
@@ -37,7 +38,7 @@ func NewReaderFromFile(sys *types.SystemContext, path string) (*Reader, error) {
 	// as a source. Otherwise we pass the stream to NewReaderFromStream.
 	stream, isCompressed, err := compression.AutoDecompress(file)
 	if err != nil {
-		return nil, errors.Wrapf(err, "detecting compression for file %q", path)
+		return nil, fmt.Errorf("detecting compression for file %q: %w", path, err)
 	}
 	defer stream.Close()
 	if !isCompressed {
@@ -54,7 +55,7 @@ func NewReaderFromStream(sys *types.SystemContext, inputStream io.Reader) (*Read
 	// Save inputStream to a temporary file
 	tarCopyFile, err := os.CreateTemp(tmpdir.TemporaryDirectoryForBigFiles(sys), "docker-tar")
 	if err != nil {
-		return nil, errors.Wrap(err, "creating temporary file")
+		return nil, fmt.Errorf("creating temporary file: %w", err)
 	}
 	defer tarCopyFile.Close()
 
@@ -70,7 +71,7 @@ func NewReaderFromStream(sys *types.SystemContext, inputStream io.Reader) (*Read
 	// giving users really confusing "invalid tar header" errors).
 	uncompressedStream, _, err := compression.AutoDecompress(inputStream)
 	if err != nil {
-		return nil, errors.Wrap(err, "auto-decompressing input")
+		return nil, fmt.Errorf("auto-decompressing input: %w", err)
 	}
 	defer uncompressedStream.Close()
 
@@ -79,7 +80,7 @@ func NewReaderFromStream(sys *types.SystemContext, inputStream io.Reader) (*Read
 	// TODO: This can take quite some time, and should ideally be cancellable
 	//       using a context.Context.
 	if _, err := io.Copy(tarCopyFile, uncompressedStream); err != nil {
-		return nil, errors.Wrapf(err, "copying contents to temporary file %q", tarCopyFile.Name())
+		return nil, fmt.Errorf("copying contents to temporary file %q: %w", tarCopyFile.Name(), err)
 	}
 	succeeded = true
 
@@ -112,7 +113,7 @@ func newReader(path string, removeOnClose bool) (*Reader, error) {
 		return nil, err
 	}
 	if err := json.Unmarshal(bytes, &r.Manifest); err != nil {
-		return nil, errors.Wrap(err, "decoding tar manifest.json")
+		return nil, fmt.Errorf("decoding tar manifest.json: %w", err)
 	}
 
 	succeeded = true
@@ -136,7 +137,7 @@ func (r *Reader) Close() error {
 func (r *Reader) ChooseManifestItem(ref reference.NamedTagged, sourceIndex int) (*ManifestItem, int, error) {
 	switch {
 	case ref != nil && sourceIndex != -1:
-		return nil, -1, errors.Errorf("Internal error: Cannot have both ref %s and source index @%d",
+		return nil, -1, fmt.Errorf("Internal error: Cannot have both ref %s and source index @%d",
 			ref.String(), sourceIndex)
 
 	case ref != nil:
@@ -145,25 +146,25 @@ func (r *Reader) ChooseManifestItem(ref reference.NamedTagged, sourceIndex int) 
 			for tagIndex, tag := range r.Manifest[i].RepoTags {
 				parsedTag, err := reference.ParseNormalizedNamed(tag)
 				if err != nil {
-					return nil, -1, errors.Wrapf(err, "Invalid tag %#v in manifest.json item @%d", tag, i)
+					return nil, -1, fmt.Errorf("Invalid tag %#v in manifest.json item @%d: %w", tag, i, err)
 				}
 				if parsedTag.String() == refString {
 					return &r.Manifest[i], tagIndex, nil
 				}
 			}
 		}
-		return nil, -1, errors.Errorf("Tag %#v not found", refString)
+		return nil, -1, fmt.Errorf("Tag %#v not found", refString)
 
 	case sourceIndex != -1:
 		if sourceIndex >= len(r.Manifest) {
-			return nil, -1, errors.Errorf("Invalid source index @%d, only %d manifest items available",
+			return nil, -1, fmt.Errorf("Invalid source index @%d, only %d manifest items available",
 				sourceIndex, len(r.Manifest))
 		}
 		return &r.Manifest[sourceIndex], -1, nil
 
 	default:
 		if len(r.Manifest) != 1 {
-			return nil, -1, errors.Errorf("Unexpected tar manifest.json: expected 1 item, got %d", len(r.Manifest))
+			return nil, -1, fmt.Errorf("Unexpected tar manifest.json: expected 1 item, got %d", len(r.Manifest))
 		}
 		return &r.Manifest[0], -1, nil
 	}
@@ -226,7 +227,7 @@ func (r *Reader) openTarComponent(componentPath string) (io.ReadCloser, error) {
 	}
 
 	if !header.FileInfo().Mode().IsRegular() {
-		return nil, errors.Errorf("Error reading tar archive component %s: not a regular file", header.Name)
+		return nil, fmt.Errorf("Error reading tar archive component %s: not a regular file", header.Name)
 	}
 	succeeded = true
 	return &tarReadCloser{Reader: tarReader, backingFile: f}, nil
@@ -257,7 +258,7 @@ func findTarComponent(inputFile io.Reader, componentPath string) (*tar.Reader, *
 func (r *Reader) readTarComponent(path string, limit int) ([]byte, error) {
 	file, err := r.openTarComponent(path)
 	if err != nil {
-		return nil, errors.Wrapf(err, "loading tar component %s", path)
+		return nil, fmt.Errorf("loading tar component %s: %w", path, err)
 	}
 	defer file.Close()
 	bytes, err := iolimits.ReadAtMost(file, limit)

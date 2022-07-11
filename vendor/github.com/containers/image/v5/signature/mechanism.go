@@ -65,7 +65,7 @@ func NewGPGSigningMechanism() (SigningMechanism, error) {
 // of these keys.
 // The caller must call .Close() on the returned SigningMechanism.
 func NewEphemeralGPGSigningMechanism(blob []byte) (SigningMechanism, []string, error) {
-	return newEphemeralGPGSigningMechanism(blob)
+	return newEphemeralGPGSigningMechanism([][]byte{blob})
 }
 
 // gpgUntrustedSignatureContents returns UNTRUSTED contents of the signature WITHOUT ANY VERIFICATION,

@@ -1,13 +1,14 @@
 package copy
 
 import (
+	"errors"
+	"fmt"
 	"io"
 
 	internalblobinfocache "github.com/containers/image/v5/internal/blobinfocache"
 	"github.com/containers/image/v5/pkg/compression"
 	compressiontypes "github.com/containers/image/v5/pkg/compression/types"
 	"github.com/containers/image/v5/types"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -26,7 +27,7 @@ func blobPipelineDetectCompressionStep(stream *sourceStream, srcInfo types.BlobI
 	// This requires us to “peek ahead” into the stream to read the initial part, which requires us to chain through another io.Reader returned by DetectCompression.
 	format, decompressor, reader, err := compression.DetectCompressionFormat(stream.reader) // We could skip this in some cases, but let's keep the code path uniform
 	if err != nil {
-		return bpDetectCompressionStepData{}, errors.Wrapf(err, "reading blob %s", srcInfo.Digest)
+		return bpDetectCompressionStepData{}, fmt.Errorf("reading blob %s: %w", srcInfo.Digest, err)
 	}
 	stream.reader = reader
 
@@ -259,7 +260,7 @@ func (d *bpCompressionStepData) recordValidatedDigestData(c *copier, uploadedInf
 		case types.Decompress:
 			c.blobInfoCache.RecordDigestUncompressedPair(srcInfo.Digest, uploadedInfo.Digest)
 		default:
-			return errors.Errorf("Internal error: Unexpected d.operation value %#v", d.operation)
+			return fmt.Errorf("Internal error: Unexpected d.operation value %#v", d.operation)
 		}
 	}
 	if d.uploadedCompressorName != "" && d.uploadedCompressorName != internalblobinfocache.UnknownCompression {

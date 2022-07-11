@@ -4,10 +4,9 @@
 package idtools
 
 import (
+	"errors"
 	"os/user"
 	"unsafe"
-
-	"github.com/pkg/errors"
 )
 
 /*

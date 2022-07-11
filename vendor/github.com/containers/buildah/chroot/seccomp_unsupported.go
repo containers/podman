@@ -1,10 +1,12 @@
+//go:build !linux || !seccomp
 // +build !linux !seccomp
 
 package chroot
 
 import (
+	"errors"
+
 	"github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/pkg/errors"
 )
 
 func setSeccomp(spec *specs.Spec) error {

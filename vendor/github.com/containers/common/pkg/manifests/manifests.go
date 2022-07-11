@@ -2,13 +2,14 @@ package manifests
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 	"os"
 
 	"github.com/containers/image/v5/manifest"
 	digest "github.com/opencontainers/go-digest"
 	imgspec "github.com/opencontainers/image-spec/specs-go"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
-	"github.com/pkg/errors"
 )
 
 // List is a generic interface for manipulating a manifest list or an image
@@ -73,7 +74,7 @@ func Create() List {
 // AddInstance adds an entry for the specified manifest digest, with assorted
 // additional information specified in parameters, to the list or index.
 func (l *list) AddInstance(manifestDigest digest.Digest, manifestSize int64, manifestType, osName, architecture, osVersion string, osFeatures []string, variant string, features, annotations []string) error {
-	if err := l.Remove(manifestDigest); err != nil && !os.IsNotExist(errors.Cause(err)) {
+	if err := l.Remove(manifestDigest); err != nil && !errors.Is(err, os.ErrNotExist) {
 		return err
 	}
 
@@ -113,7 +114,7 @@ func (l *list) AddInstance(manifestDigest digest.Digest, manifestSize int64, man
 
 // Remove filters out any instances in the list which match the specified digest.
 func (l *list) Remove(instanceDigest digest.Digest) error {
-	err := errors.Wrapf(os.ErrNotExist, "no instance matching digest %q found in manifest list", instanceDigest)
+	err := fmt.Errorf("no instance matching digest %q found in manifest list: %w", instanceDigest, os.ErrNotExist)
 	newDockerManifests := make([]manifest.Schema2ManifestDescriptor, 0, len(l.docker.Manifests))
 	for i := range l.docker.Manifests {
 		if l.docker.Manifests[i].Digest != instanceDigest {
@@ -141,7 +142,7 @@ func (l *list) findDocker(instanceDigest digest.Digest) (*manifest.Schema2Manife
 			return &l.docker.Manifests[i], nil
 		}
 	}
-	return nil, errors.Wrapf(ErrDigestNotFound, "no Docker manifest matching digest %q was found in list", instanceDigest.String())
+	return nil, fmt.Errorf("no Docker manifest matching digest %q was found in list: %w", instanceDigest.String(), ErrDigestNotFound)
 }
 
 func (l *list) findOCIv1(instanceDigest digest.Digest) (*v1.Descriptor, error) {
@@ -150,7 +151,7 @@ func (l *list) findOCIv1(instanceDigest digest.Digest) (*v1.Descriptor, error) {
 			return &l.oci.Manifests[i], nil
 		}
 	}
-	return nil, errors.Wrapf(ErrDigestNotFound, "no OCI manifest matching digest %q was found in list", instanceDigest.String())
+	return nil, fmt.Errorf("no OCI manifest matching digest %q was found in list: %w", instanceDigest.String(), ErrDigestNotFound)
 }
 
 // SetURLs sets the URLs where the manifest might also be found.
@@ -370,10 +371,10 @@ func FromBlob(manifestBytes []byte) (List, error) {
 	}
 	switch manifestType {
 	default:
-		return nil, errors.Wrapf(ErrManifestTypeNotSupported, "unable to load manifest list: unsupported format %q", manifestType)
+		return nil, fmt.Errorf("unable to load manifest list: unsupported format %q: %w", manifestType, ErrManifestTypeNotSupported)
 	case manifest.DockerV2ListMediaType:
 		if err := json.Unmarshal(manifestBytes, &list.docker); err != nil {
-			return nil, errors.Wrapf(err, "unable to parse Docker manifest list from image")
+			return nil, fmt.Errorf("unable to parse Docker manifest list from image: %w", err)
 		}
 		for _, m := range list.docker.Manifests {
 			list.oci.Manifests = append(list.oci.Manifests, v1.Descriptor{
@@ -391,7 +392,7 @@ func FromBlob(manifestBytes []byte) (List, error) {
 		}
 	case v1.MediaTypeImageIndex:
 		if err := json.Unmarshal(manifestBytes, &list.oci); err != nil {
-			return nil, errors.Wrapf(err, "unable to parse OCIv1 manifest list")
+			return nil, fmt.Errorf("unable to parse OCIv1 manifest list: %w", err)
 		}
 		for _, m := range list.oci.Manifests {
 			platform := m.Platform
@@ -451,26 +452,26 @@ func (l *list) Serialize(mimeType string) ([]byte, error) {
 		if l.preferOCI() {
 			res, err = json.Marshal(&l.oci)
 			if err != nil {
-				return nil, errors.Wrapf(err, "error marshalling OCI image index")
+				return nil, fmt.Errorf("error marshalling OCI image index: %w", err)
 			}
 		} else {
 			res, err = json.Marshal(&l.docker)
 			if err != nil {
-				return nil, errors.Wrapf(err, "error marshalling Docker manifest list")
+				return nil, fmt.Errorf("error marshalling Docker manifest list: %w", err)
 			}
 		}
 	case v1.MediaTypeImageIndex:
 		res, err = json.Marshal(&l.oci)
 		if err != nil {
-			return nil, errors.Wrapf(err, "error marshalling OCI image index")
+			return nil, fmt.Errorf("error marshalling OCI image index: %w", err)
 		}
 	case manifest.DockerV2ListMediaType:
 		res, err = json.Marshal(&l.docker)
 		if err != nil {
-			return nil, errors.Wrapf(err, "error marshalling Docker manifest list")
+			return nil, fmt.Errorf("error marshalling Docker manifest list: %w", err)
 		}
 	default:
-		return nil, errors.Wrapf(ErrManifestTypeNotSupported, "serializing list to type %q not implemented", mimeType)
+		return nil, fmt.Errorf("serializing list to type %q not implemented: %w", mimeType, ErrManifestTypeNotSupported)
 	}
 	return res, nil
 }

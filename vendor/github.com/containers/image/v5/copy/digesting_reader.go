@@ -1,11 +1,11 @@
 package copy
 
 import (
+	"fmt"
 	"hash"
 	"io"
 
 	digest "github.com/opencontainers/go-digest"
-	"github.com/pkg/errors"
 )
 
 type digestingReader struct {
@@ -23,11 +23,11 @@ type digestingReader struct {
 func newDigestingReader(source io.Reader, expectedDigest digest.Digest) (*digestingReader, error) {
 	var digester digest.Digester
 	if err := expectedDigest.Validate(); err != nil {
-		return nil, errors.Errorf("Invalid digest specification %s", expectedDigest)
+		return nil, fmt.Errorf("Invalid digest specification %s", expectedDigest)
 	}
 	digestAlgorithm := expectedDigest.Algorithm()
 	if !digestAlgorithm.Available() {
-		return nil, errors.Errorf("Invalid digest specification %s: unsupported digest algorithm %s", expectedDigest, digestAlgorithm)
+		return nil, fmt.Errorf("Invalid digest specification %s: unsupported digest algorithm %s", expectedDigest, digestAlgorithm)
 	}
 	digester = digestAlgorithm.Digester()
 
@@ -47,14 +47,14 @@ func (d *digestingReader) Read(p []byte) (int, error) {
 			// Coverage: This should not happen, the hash.Hash interface requires
 			// d.digest.Write to never return an error, and the io.Writer interface
 			// requires n2 == len(input) if no error is returned.
-			return 0, errors.Wrapf(err, "updating digest during verification: %d vs. %d", n2, n)
+			return 0, fmt.Errorf("updating digest during verification: %d vs. %d: %w", n2, n, err)
 		}
 	}
 	if err == io.EOF {
 		actualDigest := d.digester.Digest()
 		if actualDigest != d.expectedDigest {
 			d.validationFailed = true
-			return 0, errors.Errorf("Digest did not match, expected %s, got %s", d.expectedDigest, actualDigest)
+			return 0, fmt.Errorf("Digest did not match, expected %s, got %s", d.expectedDigest, actualDigest)
 		}
 		d.validationSucceeded = true
 	}

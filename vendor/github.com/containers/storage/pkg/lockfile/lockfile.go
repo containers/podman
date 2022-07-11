@@ -1,11 +1,10 @@
 package lockfile
 
 import (
+	"fmt"
 	"path/filepath"
 	"sync"
 	"time"
-
-	"github.com/pkg/errors"
 )
 
 // A Locker represents a file lock where the file is used to cache an
@@ -87,14 +86,14 @@ func getLockfile(path string, ro bool) (Locker, error) {
 	}
 	cleanPath, err := filepath.Abs(path)
 	if err != nil {
-		return nil, errors.Wrapf(err, "error ensuring that path %q is an absolute path", path)
+		return nil, fmt.Errorf("ensuring that path %q is an absolute path: %w", path, err)
 	}
 	if locker, ok := lockfiles[cleanPath]; ok {
 		if ro && locker.IsReadWrite() {
-			return nil, errors.Errorf("lock %q is not a read-only lock", cleanPath)
+			return nil, fmt.Errorf("lock %q is not a read-only lock", cleanPath)
 		}
 		if !ro && !locker.IsReadWrite() {
-			return nil, errors.Errorf("lock %q is not a read-write lock", cleanPath)
+			return nil, fmt.Errorf("lock %q is not a read-write lock", cleanPath)
 		}
 		return locker, nil
 	}

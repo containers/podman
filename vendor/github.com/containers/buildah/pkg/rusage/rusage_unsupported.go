@@ -1,15 +1,15 @@
+//go:build windows
 // +build windows
 
 package rusage
 
 import (
+	"fmt"
 	"syscall"
-
-	"github.com/pkg/errors"
 )
 
 func get() (Rusage, error) {
-	return Rusage{}, errors.Wrapf(syscall.ENOTSUP, "error getting resource usage")
+	return Rusage{}, fmt.Errorf("error getting resource usage: %w", syscall.ENOTSUP)
 }
 
 // Supported returns true if resource usage counters are supported on this OS.

@@ -1,3 +1,4 @@
+//go:build linux && cgo
 // +build linux,cgo
 
 package devicemapper
@@ -805,7 +806,7 @@ func CreateSnapDevice(poolName string, deviceID int, baseName string, baseDevice
 	if err := CreateSnapDeviceRaw(poolName, deviceID, baseDeviceID); err != nil {
 		if doSuspend {
 			if err2 := ResumeDevice(baseName); err2 != nil {
-				return fmt.Errorf("CreateSnapDeviceRaw Error: (%v): ResumeDevice Error: (%v)", err, err2)
+				return fmt.Errorf("CreateSnapDeviceRaw Error: (%v): ResumeDevice Error: %w", err, err2)
 			}
 		}
 		return err

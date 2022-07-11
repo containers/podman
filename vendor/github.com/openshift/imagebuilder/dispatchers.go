@@ -142,7 +142,13 @@ func add(b *Builder, args []string, attributes map[string]bool, flagArgs []strin
 	var chmod string
 	last := len(args) - 1
 	dest := makeAbsolute(args[last], b.RunConfig.WorkingDir)
-	userArgs := mergeEnv(envMapAsSlice(b.Args), b.Env)
+	filteredUserArgs := make(map[string]string)
+	for k, v := range b.Args {
+		if _, ok := b.AllowedArgs[k]; ok {
+			filteredUserArgs[k] = v
+		}
+	}
+	userArgs := mergeEnv(envMapAsSlice(filteredUserArgs), b.Env)
 	for _, a := range flagArgs {
 		arg, err := ProcessWord(a, userArgs)
 		if err != nil {
@@ -223,8 +229,20 @@ func from(b *Builder, args []string, attributes map[string]bool, flagArgs []stri
 	for n, v := range b.HeadingArgs {
 		argStrs = append(argStrs, n+"="+v)
 	}
+	defaultArgs := envMapAsSlice(builtinBuildArgs)
+	filteredUserArgs := make(map[string]string)
+	for k, v := range b.UserArgs {
+		for _, a := range b.GlobalAllowedArgs {
+			if a == k {
+				filteredUserArgs[k] = v
+			}
+		}
+	}
+	userArgs := mergeEnv(envMapAsSlice(filteredUserArgs), b.Env)
+	userArgs = mergeEnv(defaultArgs, userArgs)
+	nameArgs := mergeEnv(argStrs, userArgs)
 	var err error
-	if name, err = ProcessWord(name, argStrs); err != nil {
+	if name, err = ProcessWord(name, nameArgs); err != nil {
 		return err
 	}
 
@@ -234,9 +252,6 @@ func from(b *Builder, args []string, attributes map[string]bool, flagArgs []stri
 			return fmt.Errorf("Windows does not support FROM scratch")
 		}
 	}
-	defaultArgs := envMapAsSlice(builtinBuildArgs)
-	userArgs := mergeEnv(envMapAsSlice(b.Args), b.Env)
-	userArgs = mergeEnv(defaultArgs, userArgs)
 	for _, a := range flagArgs {
 		arg, err := ProcessWord(a, userArgs)
 		if err != nil {
@@ -323,7 +338,13 @@ func run(b *Builder, args []string, attributes map[string]bool, flagArgs []strin
 	args = handleJSONArgs(args, attributes)
 
 	var mounts []string
-	userArgs := mergeEnv(envMapAsSlice(b.Args), b.Env)
+	filteredUserArgs := make(map[string]string)
+	for k, v := range b.Args {
+		if _, ok := b.AllowedArgs[k]; ok {
+			filteredUserArgs[k] = v
+		}
+	}
+	userArgs := mergeEnv(envMapAsSlice(filteredUserArgs), b.Env)
 	for _, a := range flagArgs {
 		arg, err := ProcessWord(a, userArgs)
 		if err != nil {
