@@ -8,14 +8,13 @@ import (
 	"time"
 
 	"github.com/containers/common/pkg/timetype"
-	"github.com/pkg/errors"
 )
 
 // ComputeUntilTimestamp extracts until timestamp from filters
 func ComputeUntilTimestamp(filterValues []string) (time.Time, error) {
 	invalid := time.Time{}
 	if len(filterValues) != 1 {
-		return invalid, errors.Errorf("specify exactly one timestamp for until")
+		return invalid, fmt.Errorf("specify exactly one timestamp for until")
 	}
 	ts, err := timetype.GetTimestamp(filterValues[0], time.Now())
 	if err != nil {

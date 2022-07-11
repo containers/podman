@@ -3,9 +3,9 @@ build:
 .PHONY: build
 
 test:
-	go test $(go list ./... | grep -v /vendor/)
+	go test ./...
 .PHONY: test
 
 test-conformance:
-	go test -v -tags conformance -timeout 10m ./dockerclient
+	go test -v -tags conformance -timeout 30m ./dockerclient
 .PHONY: test-conformance

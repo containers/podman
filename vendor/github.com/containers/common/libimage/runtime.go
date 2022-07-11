@@ -2,6 +2,7 @@ package libimage
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -15,7 +16,6 @@ import (
 	"github.com/containers/storage"
 	deepcopy "github.com/jinzhu/copier"
 	jsoniter "github.com/json-iterator/go"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -160,7 +160,7 @@ func (r *Runtime) storageToImage(storageImage *storage.Image, ref types.ImageRef
 // storage.  Note that it may return false if an image corrupted.
 func (r *Runtime) Exists(name string) (bool, error) {
 	image, _, err := r.LookupImage(name, nil)
-	if err != nil && errors.Cause(err) != storage.ErrImageUnknown {
+	if err != nil && !errors.Is(err, storage.ErrImageUnknown) {
 		return false, err
 	}
 	if image == nil {
@@ -227,7 +227,7 @@ func (r *Runtime) LookupImage(name string, options *LookupImageOptions) (*Image,
 	storageRef, err := alltransports.ParseImageName(name)
 	if err == nil {
 		if storageRef.Transport().Name() != storageTransport.Transport.Name() {
-			return nil, "", errors.Errorf("unsupported transport %q for looking up local images", storageRef.Transport().Name())
+			return nil, "", fmt.Errorf("unsupported transport %q for looking up local images", storageRef.Transport().Name())
 		}
 		img, err := storageTransport.Transport.GetStoreImage(r.store, storageRef)
 		if err != nil {
@@ -266,7 +266,7 @@ func (r *Runtime) LookupImage(name string, options *LookupImageOptions) (*Image,
 		if img != nil {
 			return img, originalName, nil
 		}
-		return nil, "", errors.Wrap(storage.ErrImageUnknown, originalName)
+		return nil, "", fmt.Errorf("%s: %w", originalName, storage.ErrImageUnknown)
 	}
 
 	// Unless specified, set the platform specified in the system context
@@ -288,7 +288,7 @@ func (r *Runtime) LookupImage(name string, options *LookupImageOptions) (*Image,
 	// "localhost/" prefixed images into account as well.
 	candidates, err := shortnames.ResolveLocally(&r.systemContext, name)
 	if err != nil {
-		return nil, "", errors.Wrap(storage.ErrImageUnknown, name)
+		return nil, "", fmt.Errorf("%s: %w", name, storage.ErrImageUnknown)
 	}
 	// Backwards compat: normalize to docker.io as some users may very well
 	// rely on that.
@@ -324,7 +324,7 @@ func (r *Runtime) LookupImage(name string, options *LookupImageOptions) (*Image,
 func (r *Runtime) lookupImageInLocalStorage(name, candidate string, options *LookupImageOptions) (*Image, error) {
 	logrus.Debugf("Trying %q ...", candidate)
 	img, err := r.store.Image(candidate)
-	if err != nil && errors.Cause(err) != storage.ErrImageUnknown {
+	if err != nil && !errors.Is(err, storage.ErrImageUnknown) {
 		return nil, err
 	}
 	if img == nil {
@@ -342,7 +342,7 @@ func (r *Runtime) lookupImageInLocalStorage(name, candidate string, options *Loo
 	// find a matching instance in the local containers storage.
 	isManifestList, err := image.IsManifestList(context.Background())
 	if err != nil {
-		if errors.Cause(err) == os.ErrNotExist {
+		if errors.Is(err, os.ErrNotExist) {
 			// We must be tolerant toward corrupted images.
 			// See containers/podman commit fd9dd7065d44.
 			logrus.Warnf("Failed to determine if an image is a manifest list: %v, ignoring the error", err)
@@ -356,7 +356,7 @@ func (r *Runtime) lookupImageInLocalStorage(name, candidate string, options *Loo
 		}
 		// return ErrNotAManifestList if lookupManifest is set otherwise try resolving image.
 		if options.lookupManifest {
-			return nil, errors.Wrapf(ErrNotAManifestList, candidate)
+			return nil, fmt.Errorf("%s: %w", candidate, ErrNotAManifestList)
 		}
 	}
 
@@ -372,7 +372,7 @@ func (r *Runtime) lookupImageInLocalStorage(name, candidate string, options *Loo
 				logrus.Debug("No matching instance was found: returning manifest list instead")
 				return image, nil
 			}
-			return nil, errors.Wrap(storage.ErrImageUnknown, err.Error())
+			return nil, fmt.Errorf("%v: %w", err, storage.ErrImageUnknown)
 		}
 		ref, err = storageTransport.Transport.ParseStoreReference(r.store, "@"+instance.ID())
 		if err != nil {
@@ -434,7 +434,7 @@ func (r *Runtime) lookupImageInDigestsAndRepoTags(name string, options *LookupIm
 	}
 	named, isNamed := ref.(reference.Named)
 	if !isNamed {
-		return nil, "", errors.Wrap(storage.ErrImageUnknown, name)
+		return nil, "", fmt.Errorf("%s: %w", name, storage.ErrImageUnknown)
 	}
 
 	digested, isDigested := named.(reference.Digested)
@@ -454,11 +454,11 @@ func (r *Runtime) lookupImageInDigestsAndRepoTags(name string, options *LookupIm
 
 			}
 		}
-		return nil, "", errors.Wrap(storage.ErrImageUnknown, name)
+		return nil, "", fmt.Errorf("%s: %w", name, storage.ErrImageUnknown)
 	}
 
 	if !shortnames.IsShortName(name) {
-		return nil, "", errors.Wrap(storage.ErrImageUnknown, name)
+		return nil, "", fmt.Errorf("%s: %w", name, storage.ErrImageUnknown)
 	}
 
 	named = reference.TagNameOnly(named) // Make sure to add ":latest" if needed
@@ -486,7 +486,7 @@ func (r *Runtime) lookupImageInDigestsAndRepoTags(name string, options *LookupIm
 		}
 	}
 
-	return nil, "", errors.Wrap(storage.ErrImageUnknown, name)
+	return nil, "", fmt.Errorf("%s: %w", name, storage.ErrImageUnknown)
 }
 
 // ResolveName resolves the specified name.  If the name resolves to a local
@@ -499,7 +499,7 @@ func (r *Runtime) ResolveName(name string) (string, error) {
 		return "", nil
 	}
 	image, resolvedName, err := r.LookupImage(name, nil)
-	if err != nil && errors.Cause(err) != storage.ErrImageUnknown {
+	if err != nil && !errors.Is(err, storage.ErrImageUnknown) {
 		return "", err
 	}
 
@@ -713,7 +713,7 @@ func (r *Runtime) RemoveImages(ctx context.Context, names []string, options *Rem
 	for _, id := range toDelete {
 		del, exists := deleteMap[id]
 		if !exists {
-			appendError(errors.Errorf("internal error: ID %s not in found in image-deletion map", id))
+			appendError(fmt.Errorf("internal error: ID %s not in found in image-deletion map", id))
 			continue
 		}
 		if len(del.referencedBy) == 0 {

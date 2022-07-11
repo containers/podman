@@ -2,12 +2,22 @@ package imagedestination
 
 import (
 	"context"
-	"fmt"
 	"io"
 
+	"github.com/containers/image/v5/internal/imagedestination/stubs"
 	"github.com/containers/image/v5/internal/private"
+	"github.com/containers/image/v5/internal/signature"
 	"github.com/containers/image/v5/types"
+	"github.com/opencontainers/go-digest"
 )
+
+// wrapped provides the private.ImageDestination operations
+// for a destination that only implements types.ImageDestination
+type wrapped struct {
+	stubs.NoPutBlobPartialInitialize
+
+	types.ImageDestination
+}
 
 // FromPublic(dest) returns an object that provides the private.ImageDestination API
 //
@@ -23,18 +33,11 @@ func FromPublic(dest types.ImageDestination) private.ImageDestination {
 	if dest2, ok := dest.(private.ImageDestination); ok {
 		return dest2
 	}
-	return &wrapped{ImageDestination: dest}
-}
+	return &wrapped{
+		NoPutBlobPartialInitialize: stubs.NoPutBlobPartial(dest.Reference()),
 
-// wrapped provides the private.ImageDestination operations
-// for a destination that only implements types.ImageDestination
-type wrapped struct {
-	types.ImageDestination
-}
-
-// SupportsPutBlobPartial returns true if PutBlobPartial is supported.
-func (w *wrapped) SupportsPutBlobPartial() bool {
-	return false
+		ImageDestination: dest,
+	}
 }
 
 // PutBlobWithOptions writes contents of stream and returns data representing the result.
@@ -48,15 +51,6 @@ func (w *wrapped) PutBlobWithOptions(ctx context.Context, stream io.Reader, inpu
 	return w.PutBlob(ctx, stream, inputInfo, options.Cache, options.IsConfig)
 }
 
-// PutBlobPartial attempts to create a blob using the data that is already present
-// at the destination. chunkAccessor is accessed in a non-sequential way to retrieve the missing chunks.
-// It is available only if SupportsPutBlobPartial().
-// Even if SupportsPutBlobPartial() returns true, the call can fail, in which case the caller
-// should fall back to PutBlobWithOptions.
-func (w *wrapped) PutBlobPartial(ctx context.Context, chunkAccessor private.BlobChunkAccessor, srcInfo types.BlobInfo, cache types.BlobInfoCache) (types.BlobInfo, error) {
-	return types.BlobInfo{}, fmt.Errorf("internal error: PutBlobPartial is not supported by the %q transport", w.Reference().Transport().Name())
-}
-
 // TryReusingBlobWithOptions checks whether the transport already contains, or can efficiently reuse, a blob, and if so, applies it to the current destination
 // (e.g. if the blob is a filesystem layer, this signifies that the changes it describes need to be applied again when composing a filesystem tree).
 // info.Digest must not be empty.
@@ -66,4 +60,20 @@ func (w *wrapped) PutBlobPartial(ctx context.Context, chunkAccessor private.Blob
 // If the transport can not reuse the requested blob, TryReusingBlob returns (false, {}, nil); it returns a non-nil error only on an unexpected failure.
 func (w *wrapped) TryReusingBlobWithOptions(ctx context.Context, info types.BlobInfo, options private.TryReusingBlobOptions) (bool, types.BlobInfo, error) {
 	return w.TryReusingBlob(ctx, info, options.Cache, options.CanSubstitute)
+}
+
+// PutSignaturesWithFormat writes a set of signatures to the destination.
+// If instanceDigest is not nil, it contains a digest of the specific manifest instance to write or overwrite the signatures for
+// (when the primary manifest is a manifest list); this should always be nil if the primary manifest is not a manifest list.
+// MUST be called after PutManifest (signatures may reference manifest contents).
+func (w *wrapped) PutSignaturesWithFormat(ctx context.Context, signatures []signature.Signature, instanceDigest *digest.Digest) error {
+	simpleSigs := [][]byte{}
+	for _, sig := range signatures {
+		simpleSig, ok := sig.(signature.SimpleSigning)
+		if !ok {
+			return signature.UnsupportedFormatError(sig)
+		}
+		simpleSigs = append(simpleSigs, simpleSig.UntrustedSignature())
+	}
+	return w.PutSignatures(ctx, simpleSigs, instanceDigest)
 }

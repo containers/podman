@@ -5,6 +5,7 @@ package cli
 // that vendor in this code can use them too.
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -18,7 +19,6 @@ import (
 	"github.com/containers/buildah/pkg/parse"
 	"github.com/containers/buildah/pkg/util"
 	"github.com/containers/common/pkg/auth"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -66,7 +66,7 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 
 	if c.Flag("logsplit").Changed {
 		if !c.Flag("logfile").Changed {
-			return options, nil, nil, errors.Errorf("cannot use --logsplit without --logfile")
+			return options, nil, nil, errors.New("cannot use --logsplit without --logfile")
 		}
 	}
 
@@ -114,7 +114,7 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 			if len(av) > 1 {
 				parseAdditionalBuildContext, err := parse.GetAdditionalBuildContext(av[1])
 				if err != nil {
-					return options, nil, nil, errors.Wrapf(err, "while parsing additional build context")
+					return options, nil, nil, fmt.Errorf("while parsing additional build context: %w", err)
 				}
 				additionalBuildContext[av[0]] = &parseAdditionalBuildContext
 			} else {
@@ -140,13 +140,13 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 	if len(cliArgs) == 0 {
 		contextDir, err = os.Getwd()
 		if err != nil {
-			return options, nil, nil, errors.Wrapf(err, "unable to choose current working directory as build context")
+			return options, nil, nil, fmt.Errorf("unable to choose current working directory as build context: %w", err)
 		}
 	} else {
 		// The context directory could be a URL.  Try to handle that.
 		tempDir, subDir, err := define.TempDirForURL("", "buildah", cliArgs[0])
 		if err != nil {
-			return options, nil, nil, errors.Wrapf(err, "error prepping temporary context directory")
+			return options, nil, nil, fmt.Errorf("error prepping temporary context directory: %w", err)
 		}
 		if tempDir != "" {
 			// We had to download it to a temporary directory.
@@ -157,7 +157,7 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 			// Nope, it was local.  Use it as is.
 			absDir, err := filepath.Abs(cliArgs[0])
 			if err != nil {
-				return options, nil, nil, errors.Wrapf(err, "error determining path to directory")
+				return options, nil, nil, fmt.Errorf("error determining path to directory: %w", err)
 			}
 			contextDir = absDir
 		}
@@ -175,7 +175,7 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 
 	contextDir, err = filepath.EvalSymlinks(contextDir)
 	if err != nil {
-		return options, nil, nil, errors.Wrapf(err, "error evaluating symlinks in build context path")
+		return options, nil, nil, fmt.Errorf("error evaluating symlinks in build context path: %w", err)
 	}
 
 	var stdin io.Reader
@@ -196,7 +196,7 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 
 	systemContext, err := parse.SystemContextFromOptions(c)
 	if err != nil {
-		return options, nil, nil, errors.Wrapf(err, "error building system context")
+		return options, nil, nil, fmt.Errorf("error building system context: %w", err)
 	}
 
 	isolation, err := parse.IsolationOption(iopts.Isolation)
@@ -226,11 +226,11 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 	}
 
 	if pullFlagsCount > 1 {
-		return options, nil, nil, errors.Errorf("can only set one of 'pull' or 'pull-always' or 'pull-never'")
+		return options, nil, nil, errors.New("can only set one of 'pull' or 'pull-always' or 'pull-never'")
 	}
 
 	if (c.Flag("rm").Changed || c.Flag("force-rm").Changed) && (!c.Flag("layers").Changed && !c.Flag("no-cache").Changed) {
-		return options, nil, nil, errors.Errorf("'rm' and 'force-rm' can only be set with either 'layers' or 'no-cache'")
+		return options, nil, nil, errors.New("'rm' and 'force-rm' can only be set with either 'layers' or 'no-cache'")
 	}
 
 	if c.Flag("cache-from").Changed {
@@ -256,7 +256,7 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 	}
 	usernsOption, idmappingOptions, err := parse.IDMappingOptions(c, isolation)
 	if err != nil {
-		return options, nil, nil, errors.Wrapf(err, "error parsing ID mapping options")
+		return options, nil, nil, fmt.Errorf("error parsing ID mapping options: %w", err)
 	}
 	namespaceOptions.AddOrReplace(usernsOption...)
 
@@ -267,7 +267,7 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 
 	decryptConfig, err := iutil.DecryptConfig(iopts.DecryptionKeys)
 	if err != nil {
-		return options, nil, nil, errors.Wrapf(err, "unable to obtain decrypt config")
+		return options, nil, nil, fmt.Errorf("unable to obtain decrypt config: %w", err)
 	}
 
 	var excludes []string

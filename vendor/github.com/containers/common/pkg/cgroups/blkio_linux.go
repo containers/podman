@@ -5,6 +5,8 @@ package cgroups
 
 import (
 	"bufio"
+	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -14,7 +16,6 @@ import (
 	"github.com/opencontainers/runc/libcontainer/cgroups/fs"
 	"github.com/opencontainers/runc/libcontainer/cgroups/fs2"
 	"github.com/opencontainers/runc/libcontainer/configs"
-	"github.com/pkg/errors"
 )
 
 type linuxBlkioHandler struct {
@@ -111,10 +112,10 @@ func (c *linuxBlkioHandler) Stat(ctr *CgroupControl, m *cgroups.Stats) error {
 		p := filepath.Join(BlkioRoot, "blkio.throttle.io_service_bytes_recursive")
 		f, err := os.Open(p)
 		if err != nil {
-			if os.IsNotExist(err) {
+			if errors.Is(err, os.ErrNotExist) {
 				return nil
 			}
-			return errors.Wrapf(err, "open %s", p)
+			return fmt.Errorf("open %s: %w", p, err)
 		}
 		defer f.Close()
 
@@ -153,7 +154,7 @@ func (c *linuxBlkioHandler) Stat(ctr *CgroupControl, m *cgroups.Stats) error {
 			ioServiceBytesRecursive = append(ioServiceBytesRecursive, entry)
 		}
 		if err := scanner.Err(); err != nil {
-			return errors.Wrapf(err, "parse %s", p)
+			return fmt.Errorf("parse %s: %w", p, err)
 		}
 	}
 	m.BlkioStats.IoServiceBytesRecursive = ioServiceBytesRecursive

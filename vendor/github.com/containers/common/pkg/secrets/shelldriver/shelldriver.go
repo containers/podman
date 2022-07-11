@@ -3,13 +3,12 @@ package shelldriver
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
 	"sort"
 	"strings"
-
-	"github.com/pkg/errors"
 )
 
 var (
@@ -126,7 +125,7 @@ func (d *Driver) Lookup(id string) ([]byte, error) {
 
 	err := cmd.Run()
 	if err != nil {
-		return nil, errors.Wrap(errNoSecretData, id)
+		return nil, fmt.Errorf("%s: %w", id, errNoSecretData)
 	}
 	return buf.Bytes(), nil
 }
@@ -163,7 +162,7 @@ func (d *Driver) Delete(id string) error {
 
 	err := cmd.Run()
 	if err != nil {
-		return errors.Wrap(errNoSecretData, id)
+		return fmt.Errorf("%s: %w", id, errNoSecretData)
 	}
 
 	return nil

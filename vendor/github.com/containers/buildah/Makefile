@@ -78,8 +78,9 @@ ALL_CROSS_TARGETS := $(addprefix bin/buildah.,$(subst /,.,$(shell $(GO) tool dis
 LINUX_CROSS_TARGETS := $(filter bin/buildah.linux.%,$(ALL_CROSS_TARGETS))
 DARWIN_CROSS_TARGETS := $(filter bin/buildah.darwin.%,$(ALL_CROSS_TARGETS))
 WINDOWS_CROSS_TARGETS := $(addsuffix .exe,$(filter bin/buildah.windows.%,$(ALL_CROSS_TARGETS)))
+FREEBSD_CROSS_TARGETS := $(filter bin/buildah.freebsd.%,$(ALL_CROSS_TARGETS))
 .PHONY: cross
-cross: $(LINUX_CROSS_TARGETS) $(DARWIN_CROSS_TARGETS) $(WINDOWS_CROSS_TARGETS)
+cross: $(LINUX_CROSS_TARGETS) $(DARWIN_CROSS_TARGETS) $(WINDOWS_CROSS_TARGETS) $(FREEBSD_CROSS_TARGETS)
 
 bin/buildah.%:
 	mkdir -p ./bin
@@ -114,7 +115,6 @@ validate: install.tools
 	./tests/validate/whitespace.sh
 	./hack/xref-helpmsgs-manpages
 	./tests/validate/pr-should-include-tests
-	./tests/validate/buildahimages-are-sane
 
 .PHONY: install.tools
 install.tools:
@@ -189,3 +189,9 @@ vendor:
 .PHONY: lint
 lint: install.tools
 	./tests/tools/build/golangci-lint run $(LINTFLAGS)
+
+# CAUTION: This is not a replacement for RPMs provided by your distro.
+# Only intended to build and test the latest unreleased changes.
+.PHONY: rpm
+rpm:
+	rpkg local

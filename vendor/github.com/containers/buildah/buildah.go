@@ -19,7 +19,6 @@ import (
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/ioutils"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -408,10 +407,10 @@ func OpenBuilder(store storage.Store, container string) (*Builder, error) {
 	}
 	b := &Builder{}
 	if err = json.Unmarshal(buildstate, &b); err != nil {
-		return nil, errors.Wrapf(err, "error parsing %q, read from %q", string(buildstate), filepath.Join(cdir, stateFile))
+		return nil, fmt.Errorf("error parsing %q, read from %q: %w", string(buildstate), filepath.Join(cdir, stateFile), err)
 	}
 	if b.Type != containerType {
-		return nil, errors.Errorf("container %q is not a %s container (is a %q container)", container, define.Package, b.Type)
+		return nil, fmt.Errorf("container %q is not a %s container (is a %q container)", container, define.Package, b.Type)
 	}
 
 	netInt, err := getNetworkInterface(store, b.CNIConfigDir, b.CNIPluginPath)
@@ -520,7 +519,7 @@ func (b *Builder) Save() error {
 		return err
 	}
 	if err = ioutils.AtomicWriteFile(filepath.Join(cdir, stateFile), buildstate, 0600); err != nil {
-		return errors.Wrapf(err, "error saving builder state to %q", filepath.Join(cdir, stateFile))
+		return fmt.Errorf("error saving builder state to %q: %w", filepath.Join(cdir, stateFile), err)
 	}
 	return nil
 }

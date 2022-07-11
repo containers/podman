@@ -119,6 +119,9 @@ func (n *netavarkNetwork) execNetavark(args []string, stdin, result interface{})
 	if logrus.IsLevelEnabled(logrus.DebugLevel) {
 		cmd.Env = append(cmd.Env, "RUST_BACKTRACE=1")
 	}
+	if n.dnsBindPort != 0 {
+		cmd.Env = append(cmd.Env, "NETAVARK_DNS_PORT="+strconv.Itoa(int(n.dnsBindPort)))
+	}
 
 	err = cmd.Start()
 	if err != nil {

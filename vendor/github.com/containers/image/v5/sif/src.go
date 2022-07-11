@@ -9,6 +9,9 @@ import (
 	"io"
 	"os"
 
+	"github.com/containers/image/v5/internal/imagesource/impl"
+	"github.com/containers/image/v5/internal/imagesource/stubs"
+	"github.com/containers/image/v5/internal/private"
 	"github.com/containers/image/v5/internal/tmpdir"
 	"github.com/containers/image/v5/types"
 	"github.com/opencontainers/go-digest"
@@ -19,6 +22,12 @@ import (
 )
 
 type sifImageSource struct {
+	impl.Compat
+	impl.PropertyMethodsInitialize
+	impl.NoSignatures
+	impl.DoesNotAffectLayerInfosForCopy
+	stubs.NoGetBlobAtInitialize
+
 	ref          sifReference
 	workDir      string
 	layerDigest  digest.Digest
@@ -55,7 +64,7 @@ func getBlobInfo(path string) (digest.Digest, int64, error) {
 
 // newImageSource returns an ImageSource for reading from an existing directory.
 // newImageSource extracts SIF objects and saves them in a temp directory.
-func newImageSource(ctx context.Context, sys *types.SystemContext, ref sifReference) (types.ImageSource, error) {
+func newImageSource(ctx context.Context, sys *types.SystemContext, ref sifReference) (private.ImageSource, error) {
 	sifImg, err := sif.LoadContainerFromPath(ref.file, sif.OptLoadWithFlag(os.O_RDONLY))
 	if err != nil {
 		return nil, fmt.Errorf("loading SIF file: %w", err)
@@ -136,7 +145,12 @@ func newImageSource(ctx context.Context, sys *types.SystemContext, ref sifRefere
 	}
 
 	succeeded = true
-	return &sifImageSource{
+	s := &sifImageSource{
+		PropertyMethodsInitialize: impl.PropertyMethods(impl.Properties{
+			HasThreadSafeGetBlob: true,
+		}),
+		NoGetBlobAtInitialize: stubs.NoGetBlobAt(ref),
+
 		ref:          ref,
 		workDir:      workDir,
 		layerDigest:  layerDigest,
@@ -145,7 +159,9 @@ func newImageSource(ctx context.Context, sys *types.SystemContext, ref sifRefere
 		config:       configBytes,
 		configDigest: configDigest,
 		manifest:     manifestBytes,
-	}, nil
+	}
+	s.Compat = impl.AddCompat(s)
+	return s, nil
 }
 
 // Reference returns the reference used to set up this source.
@@ -156,11 +172,6 @@ func (s *sifImageSource) Reference() types.ImageReference {
 // Close removes resources associated with an initialized ImageSource, if any.
 func (s *sifImageSource) Close() error {
 	return os.RemoveAll(s.workDir)
-}
-
-// HasThreadSafeGetBlob indicates whether GetBlob can be executed concurrently.
-func (s *sifImageSource) HasThreadSafeGetBlob() bool {
-	return true
 }
 
 // GetBlob returns a stream for the specified blob, and the blob’s size (or -1 if unknown).
@@ -190,27 +201,4 @@ func (s *sifImageSource) GetManifest(ctx context.Context, instanceDigest *digest
 		return nil, "", errors.New("manifest lists are not supported by the sif transport")
 	}
 	return s.manifest, imgspecv1.MediaTypeImageManifest, nil
-}
-
-// GetSignatures returns the image's signatures.  It may use a remote (= slow) service.
-// If instanceDigest is not nil, it contains a digest of the specific manifest instance to retrieve signatures for
-// (when the primary manifest is a manifest list); this never happens if the primary manifest is not a manifest list
-// (e.g. if the source never returns manifest lists).
-func (s *sifImageSource) GetSignatures(ctx context.Context, instanceDigest *digest.Digest) ([][]byte, error) {
-	if instanceDigest != nil {
-		return nil, errors.New("manifest lists are not supported by the sif transport")
-	}
-	return nil, nil
-}
-
-// LayerInfosForCopy returns either nil (meaning the values in the manifest are fine), or updated values for the layer
-// blobsums that are listed in the image's manifest.  If values are returned, they should be used when using GetBlob()
-// to read the image's layers.
-// If instanceDigest is not nil, it contains a digest of the specific manifest instance to retrieve BlobInfos for
-// (when the primary manifest is a manifest list); this never happens if the primary manifest is not a manifest list
-// (e.g. if the source never returns manifest lists).
-// The Digest field is guaranteed to be provided; Size may be -1.
-// WARNING: The list may contain duplicates, and they are semantically relevant.
-func (s *sifImageSource) LayerInfosForCopy(ctx context.Context, instanceDigest *digest.Digest) ([]types.BlobInfo, error) {
-	return nil, nil
 }

@@ -8,7 +8,6 @@ import (
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/types"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
-	"github.com/pkg/errors"
 )
 
 // genericManifest is an interface for parsing, modifying image manifests and related data.
@@ -107,7 +106,7 @@ func convertManifestIfRequiredWithUpdate(ctx context.Context, options types.Mani
 
 	converter, ok := converters[options.ManifestMIMEType]
 	if !ok {
-		return nil, errors.Errorf("Unsupported conversion type: %v", options.ManifestMIMEType)
+		return nil, fmt.Errorf("Unsupported conversion type: %v", options.ManifestMIMEType)
 	}
 
 	optionsCopy := options

@@ -217,12 +217,12 @@ func Accept(fd int) (nfd int, sa Sockaddr, err error) {
 	return
 }
 
-func recvmsgRaw(fd int, p, oob []byte, flags int, rsa *RawSockaddrAny) (n, oobn int, recvflags int, err error) {
+func recvmsgRaw(fd int, iov []Iovec, oob []byte, flags int, rsa *RawSockaddrAny) (n, oobn int, recvflags int, err error) {
 	// Recvmsg not implemented on AIX
 	return -1, -1, -1, ENOSYS
 }
 
-func sendmsgN(fd int, p, oob []byte, ptr unsafe.Pointer, salen _Socklen, flags int) (n int, err error) {
+func sendmsgN(fd int, iov []Iovec, oob []byte, ptr unsafe.Pointer, salen _Socklen, flags int) (n int, err error) {
 	// SendmsgN not implemented on AIX
 	return -1, ENOSYS
 }

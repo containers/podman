@@ -230,6 +230,7 @@ func DefaultConfig() (*Config, error) {
 			DefaultNetwork:     "podman",
 			DefaultSubnet:      DefaultSubnet,
 			DefaultSubnetPools: DefaultSubnetPools,
+			DNSBindPort:        0,
 			CNIPluginDirs:      DefaultCNIPluginDirs,
 		},
 		Engine:  *defaultEngineConfig,

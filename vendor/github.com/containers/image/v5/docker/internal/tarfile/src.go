@@ -5,22 +5,31 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"io"
 	"os"
 	"path"
 	"sync"
 
 	"github.com/containers/image/v5/docker/reference"
+	"github.com/containers/image/v5/internal/imagesource/impl"
+	"github.com/containers/image/v5/internal/imagesource/stubs"
 	"github.com/containers/image/v5/internal/iolimits"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/pkg/compression"
 	"github.com/containers/image/v5/types"
 	digest "github.com/opencontainers/go-digest"
-	"github.com/pkg/errors"
 )
 
 // Source is a partial implementation of types.ImageSource for reading from tarPath.
 type Source struct {
+	impl.Compat
+	impl.PropertyMethodsInitialize
+	impl.NoSignatures
+	impl.DoesNotAffectLayerInfosForCopy
+	stubs.NoGetBlobAtInitialize
+
 	archive      *Reader
 	closeArchive bool // .Close() the archive when the source is closed.
 	// If ref is nil and sourceIndex is -1, indicates the only image in the archive.
@@ -46,13 +55,20 @@ type layerInfo struct {
 // NewSource returns a tarfile.Source for an image in the specified archive matching ref
 // and sourceIndex (or the only image if they are (nil, -1)).
 // The archive will be closed if closeArchive
-func NewSource(archive *Reader, closeArchive bool, ref reference.NamedTagged, sourceIndex int) *Source {
-	return &Source{
+func NewSource(archive *Reader, closeArchive bool, transportName string, ref reference.NamedTagged, sourceIndex int) *Source {
+	s := &Source{
+		PropertyMethodsInitialize: impl.PropertyMethods(impl.Properties{
+			HasThreadSafeGetBlob: true,
+		}),
+		NoGetBlobAtInitialize: stubs.NoGetBlobAtRaw(transportName),
+
 		archive:      archive,
 		closeArchive: closeArchive,
 		ref:          ref,
 		sourceIndex:  sourceIndex,
 	}
+	s.Compat = impl.AddCompat(s)
+	return s
 }
 
 // ensureCachedDataIsPresent loads data necessary for any of the public accessors.
@@ -79,10 +95,10 @@ func (s *Source) ensureCachedDataIsPresentPrivate() error {
 	}
 	var parsedConfig manifest.Schema2Image // There's a lot of info there, but we only really care about layer DiffIDs.
 	if err := json.Unmarshal(configBytes, &parsedConfig); err != nil {
-		return errors.Wrapf(err, "decoding tar config %s", tarManifest.Config)
+		return fmt.Errorf("decoding tar config %s: %w", tarManifest.Config, err)
 	}
 	if parsedConfig.RootFS == nil {
-		return errors.Errorf("Invalid image config (rootFS is not set): %s", tarManifest.Config)
+		return fmt.Errorf("Invalid image config (rootFS is not set): %s", tarManifest.Config)
 	}
 
 	knownLayers, err := s.prepareLayerData(tarManifest, &parsedConfig)
@@ -115,7 +131,7 @@ func (s *Source) TarManifest() []ManifestItem {
 func (s *Source) prepareLayerData(tarManifest *ManifestItem, parsedConfig *manifest.Schema2Image) (map[digest.Digest]*layerInfo, error) {
 	// Collect layer data available in manifest and config.
 	if len(tarManifest.Layers) != len(parsedConfig.RootFS.DiffIDs) {
-		return nil, errors.Errorf("Inconsistent layer count: %d in manifest, %d in config", len(tarManifest.Layers), len(parsedConfig.RootFS.DiffIDs))
+		return nil, fmt.Errorf("Inconsistent layer count: %d in manifest, %d in config", len(tarManifest.Layers), len(parsedConfig.RootFS.DiffIDs))
 	}
 	knownLayers := map[digest.Digest]*layerInfo{}
 	unknownLayerSizes := map[string]*layerInfo{} // Points into knownLayers, a "to do list" of items with unknown sizes.
@@ -128,7 +144,7 @@ func (s *Source) prepareLayerData(tarManifest *ManifestItem, parsedConfig *manif
 		}
 		layerPath := path.Clean(tarManifest.Layers[i])
 		if _, ok := unknownLayerSizes[layerPath]; ok {
-			return nil, errors.Errorf("Layer tarfile %s used for two different DiffID values", layerPath)
+			return nil, fmt.Errorf("Layer tarfile %s used for two different DiffID values", layerPath)
 		}
 		li := &layerInfo{ // A new element in each iteration
 			path: layerPath,
@@ -163,7 +179,7 @@ func (s *Source) prepareLayerData(tarManifest *ManifestItem, parsedConfig *manif
 			// the slower method of checking if it's compressed.
 			uncompressedStream, isCompressed, err := compression.AutoDecompress(t)
 			if err != nil {
-				return nil, errors.Wrapf(err, "auto-decompressing %s to determine its size", layerPath)
+				return nil, fmt.Errorf("auto-decompressing %s to determine its size: %w", layerPath, err)
 			}
 			defer uncompressedStream.Close()
 
@@ -171,7 +187,7 @@ func (s *Source) prepareLayerData(tarManifest *ManifestItem, parsedConfig *manif
 			if isCompressed {
 				uncompressedSize, err = io.Copy(io.Discard, uncompressedStream)
 				if err != nil {
-					return nil, errors.Wrapf(err, "reading %s to find its size", layerPath)
+					return nil, fmt.Errorf("reading %s to find its size: %w", layerPath, err)
 				}
 			}
 			li.size = uncompressedSize
@@ -179,7 +195,7 @@ func (s *Source) prepareLayerData(tarManifest *ManifestItem, parsedConfig *manif
 		}
 	}
 	if len(unknownLayerSizes) != 0 {
-		return nil, errors.Errorf("Some layer tarfiles are missing in the tarball") // This could do with a better error reporting, if this ever happened in practice.
+		return nil, errors.New("Some layer tarfiles are missing in the tarball") // This could do with a better error reporting, if this ever happened in practice.
 	}
 
 	return knownLayers, nil
@@ -213,7 +229,7 @@ func (s *Source) GetManifest(ctx context.Context, instanceDigest *digest.Digest)
 		for _, diffID := range s.orderedDiffIDList {
 			li, ok := s.knownLayers[diffID]
 			if !ok {
-				return nil, "", errors.Errorf("Internal inconsistency: Information about layer %s missing", diffID)
+				return nil, "", fmt.Errorf("Internal inconsistency: Information about layer %s missing", diffID)
 			}
 			m.LayersDescriptors = append(m.LayersDescriptors, manifest.Schema2Descriptor{
 				Digest:    diffID, // diffID is a digest of the uncompressed tarball
@@ -246,11 +262,6 @@ func (r uncompressedReadCloser) Close() error {
 		res = err
 	}
 	return res
-}
-
-// HasThreadSafeGetBlob indicates whether GetBlob can be executed concurrently.
-func (s *Source) HasThreadSafeGetBlob() bool {
-	return true
 }
 
 // GetBlob returns a stream for the specified blob, and the blob’s size (or -1 if unknown).
@@ -291,7 +302,7 @@ func (s *Source) GetBlob(ctx context.Context, info types.BlobInfo, cache types.B
 
 		uncompressedStream, _, err := compression.AutoDecompress(underlyingStream)
 		if err != nil {
-			return nil, 0, errors.Wrapf(err, "auto-decompressing blob %s", info.Digest)
+			return nil, 0, fmt.Errorf("auto-decompressing blob %s: %w", info.Digest, err)
 		}
 
 		newStream := uncompressedReadCloser{
@@ -304,27 +315,5 @@ func (s *Source) GetBlob(ctx context.Context, info types.BlobInfo, cache types.B
 		return newStream, li.size, nil
 	}
 
-	return nil, 0, errors.Errorf("Unknown blob %s", info.Digest)
-}
-
-// GetSignatures returns the image's signatures.  It may use a remote (= slow) service.
-// This source implementation does not support manifest lists, so the passed-in instanceDigest should always be nil,
-// as there can be no secondary manifests.
-func (s *Source) GetSignatures(ctx context.Context, instanceDigest *digest.Digest) ([][]byte, error) {
-	if instanceDigest != nil {
-		// How did we even get here? GetManifest(ctx, nil) has returned a manifest.DockerV2Schema2MediaType.
-		return nil, errors.Errorf(`Manifest lists are not supported by "docker-daemon:"`)
-	}
-	return [][]byte{}, nil
-}
-
-// LayerInfosForCopy returns either nil (meaning the values in the manifest are fine), or updated values for the layer
-// blobsums that are listed in the image's manifest.  If values are returned, they should be used when using GetBlob()
-// to read the image's layers.
-// This source implementation does not support manifest lists, so the passed-in instanceDigest should always be nil,
-// as the primary manifest can not be a list, so there can be no secondary manifests.
-// The Digest field is guaranteed to be provided; Size may be -1.
-// WARNING: The list may contain duplicates, and they are semantically relevant.
-func (s *Source) LayerInfosForCopy(context.Context, *digest.Digest) ([]types.BlobInfo, error) {
-	return nil, nil
+	return nil, 0, fmt.Errorf("Unknown blob %s", info.Digest)
 }

@@ -6,6 +6,7 @@ package ostree
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -17,7 +18,6 @@ import (
 	"github.com/containers/image/v5/internal/image"
 	"github.com/containers/image/v5/transports"
 	"github.com/containers/image/v5/types"
-	"github.com/pkg/errors"
 )
 
 const defaultOSTreeRepo = "/ostree/repo"
@@ -42,16 +42,16 @@ func init() {
 func (t ostreeTransport) ValidatePolicyConfigurationScope(scope string) error {
 	sep := strings.Index(scope, ":")
 	if sep < 0 {
-		return errors.Errorf("Invalid ostree: scope %s: Must include a repo", scope)
+		return fmt.Errorf("Invalid ostree: scope %s: Must include a repo", scope)
 	}
 	repo := scope[:sep]
 
 	if !strings.HasPrefix(repo, "/") {
-		return errors.Errorf("Invalid ostree: scope %s: repository must be an absolute path", scope)
+		return fmt.Errorf("Invalid ostree: scope %s: repository must be an absolute path", scope)
 	}
 	cleaned := filepath.Clean(repo)
 	if cleaned != repo {
-		return errors.Errorf(`Invalid ostree: scope %s: Uses non-canonical path format, perhaps try with path %s`, scope, cleaned)
+		return fmt.Errorf(`Invalid ostree: scope %s: Uses non-canonical path format, perhaps try with path %s`, scope, cleaned)
 	}
 
 	// FIXME? In the namespaces within a repo,
@@ -117,7 +117,7 @@ func NewReference(image string, repo string) (types.ImageReference, error) {
 	// This is necessary to prevent directory paths returned by PolicyConfigurationNamespaces
 	// from being ambiguous with values of PolicyConfigurationIdentity.
 	if strings.Contains(resolved, ":") {
-		return nil, errors.Errorf("Invalid OSTree reference %s@%s: path %s contains a colon", image, repo, resolved)
+		return nil, fmt.Errorf("Invalid OSTree reference %s@%s: path %s contains a colon", image, repo, resolved)
 	}
 
 	return ostreeReference{
@@ -213,7 +213,7 @@ func (ref ostreeReference) NewImageDestination(ctx context.Context, sys *types.S
 
 // DeleteImage deletes the named image from the registry, if supported.
 func (ref ostreeReference) DeleteImage(ctx context.Context, sys *types.SystemContext) error {
-	return errors.Errorf("Deleting images not implemented for ostree: images")
+	return errors.New("Deleting images not implemented for ostree: images")
 }
 
 var ostreeRefRegexp = regexp.MustCompile(`^[A-Za-z0-9.-]$`)
