@@ -560,18 +560,14 @@ END_HTML
     # See #14569 for more info.
     #
     #   [1] https://cirrus-ci.org/guide/writing-tasks/#latest-build-artifacts
-    if ($have_formatted_log && $ENV{CIRRUS_BUILD_ID} && $ENV{CIRRUS_TASK_NAME}) {
-        my $URL_BASE  = "https://api.cirrus-ci.com";
-        my $build_id  = $ENV{CIRRUS_BUILD_ID};
-        my $task_name = $ENV{CIRRUS_TASK_NAME};
+    if ($have_formatted_log && $ENV{CIRRUS_TASK_ID}) {
+        my $URL_BASE = "https://api.cirrus-ci.com";
+        my $task_id  = $ENV{CIRRUS_TASK_ID};
 
-        # Escape spaces in task names ("int fedora 35 podman root etc")
-        $task_name =~ s/\s/%20/g;
-
-        # URL is long and cumbersome and duplicaty. The task name cannot be
-        # reduced; the file name could, but I choose to leave it because I
-        # sometimes download HTML logs and oh how I hate "log.html" filenames.
-        my $URL = "${URL_BASE}/v1/artifact/build/$build_id/$task_name/html/${outfile}";
+        # Link by *taskID*, not buildID + taskname. First, this is shorter
+        # and less duplicaty. Second, and more important, buildID + taskname
+        # is non-unique, and a link to a flake log will be clobbered.
+        my $URL = "${URL_BASE}/v1/artifact/task/$task_id/html/${outfile}";
 
         print "\n\nAnnotated results:\n  $URL\n";
     }
