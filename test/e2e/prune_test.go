@@ -280,6 +280,24 @@ var _ = Describe("Podman prune", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		Expect(session.OutputToStringArray()).To(HaveLen(0))
+
+		// Create new network.
+		session = podmanTest.Podman([]string{"network", "create", "test1", "--label", "foo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		// Remove all unused networks.
+		session = podmanTest.Podman([]string{"system", "prune", "-f", "--filter", "label!=foo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).Should(Equal("Total reclaimed space: 0B"))
+
+		// Unused networks removed.
+		session = podmanTest.Podman([]string{"network", "ls", "-q", "--filter", "name=^test1$"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		// label should make sure we do not remove this network
+		Expect(session.OutputToStringArray()).To(HaveLen(1))
 	})
 
 	It("podman system prune - pod,container stopped", func() {

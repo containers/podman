@@ -2,6 +2,8 @@ package util
 
 import (
 	"testing"
+
+	"github.com/containers/common/pkg/filters"
 )
 
 func TestMatchLabelFilters(t *testing.T) {
@@ -71,7 +73,7 @@ func TestMatchLabelFilters(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			if got := MatchLabelFilters(tt.args.filterValues, tt.args.labels); got != tt.want {
+			if got := filters.MatchLabelFilters(tt.args.filterValues, tt.args.labels); got != tt.want {
 				t.Errorf("MatchLabelFilters() = %v, want %v", got, tt.want)
 			}
 		})
