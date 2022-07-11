@@ -640,7 +640,7 @@ function assert() {
     fi
 
     # This is a multi-line message, which may in turn contain multi-line
-    # output, so let's format it ourself, readably
+    # output, so let's format it ourself to make it more readable.
     local actual_split
     IFS=$'\n' read -rd '' -a actual_split <<<"$actual_string" || true
     printf "#/vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv\n"    >&2
@@ -690,7 +690,7 @@ function is() {
     fi
 
     # This is a multi-line message, which may in turn contain multi-line
-    # output, so let's format it ourself, readably
+    # output, so let's format it ourself to make it more readable.
     local -a actual_split
     readarray -t actual_split <<<"$actual"
     printf "#/vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv\n" >&2
