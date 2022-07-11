@@ -19,7 +19,7 @@ import "C"
 func getMemInfo() (int64, int64, error) {
 	data, err := unix.SysctlRaw("vm.vmtotal")
 	if err != nil {
-		return -1, -1, fmt.Errorf("Can't get kernel info: %v", err)
+		return -1, -1, fmt.Errorf("can't get kernel info: %w", err)
 	}
 	if len(data) != C.sizeof_struct_vmtotal {
 		return -1, -1, fmt.Errorf("unexpected vmtotal size %d", len(data))
@@ -39,12 +39,12 @@ func getSwapInfo() (int64, int64, error) {
 	)
 	swapCount, err := unix.SysctlUint32("vm.nswapdev")
 	if err != nil {
-		return -1, -1, fmt.Errorf("error reading vm.nswapdev: %v", err)
+		return -1, -1, fmt.Errorf("reading vm.nswapdev: %w", err)
 	}
 	for i := 0; i < int(swapCount); i++ {
 		data, err := unix.SysctlRaw("vm.swap_info", i)
 		if err != nil {
-			return -1, -1, fmt.Errorf("error reading vm.swap_info.%d: %v", i, err)
+			return -1, -1, fmt.Errorf("reading vm.swap_info.%d: %w", i, err)
 		}
 		if len(data) != C.sizeof_struct_xswdev {
 			return -1, -1, fmt.Errorf("unexpected swap_info size %d", len(data))
@@ -62,15 +62,15 @@ func getSwapInfo() (int64, int64, error) {
 func ReadMemInfo() (*MemInfo, error) {
 	MemTotal, MemFree, err := getMemInfo()
 	if err != nil {
-		return nil, fmt.Errorf("error getting memory totals %v\n", err)
+		return nil, fmt.Errorf("getting memory totals %w", err)
 	}
 	SwapTotal, SwapFree, err := getSwapInfo()
 	if err != nil {
-		return nil, fmt.Errorf("error getting swap totals %v\n", err)
+		return nil, fmt.Errorf("getting swap totals %w", err)
 	}
 
 	if MemTotal < 0 || MemFree < 0 || SwapTotal < 0 || SwapFree < 0 {
-		return nil, fmt.Errorf("error getting system memory info %v\n", err)
+		return nil, fmt.Errorf("getting system memory info %w", err)
 	}
 
 	meminfo := &MemInfo{}

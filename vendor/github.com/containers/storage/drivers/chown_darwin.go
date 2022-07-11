@@ -65,7 +65,7 @@ func (c *platformChowner) LChown(path string, info os.FileInfo, toHost, toContai
 		mappedUID, mappedGID, err := toContainer.ToContainer(pair)
 		if err != nil {
 			if (uid != 0) || (gid != 0) {
-				return fmt.Errorf("error mapping host ID pair %#v for %q to container: %v", pair, path, err)
+				return fmt.Errorf("mapping host ID pair %#v for %q to container: %w", pair, path, err)
 			}
 			mappedUID, mappedGID = uid, gid
 		}
@@ -78,29 +78,29 @@ func (c *platformChowner) LChown(path string, info os.FileInfo, toHost, toContai
 		}
 		mappedPair, err := toHost.ToHostOverflow(pair)
 		if err != nil {
-			return fmt.Errorf("error mapping container ID pair %#v for %q to host: %v", pair, path, err)
+			return fmt.Errorf("mapping container ID pair %#v for %q to host: %w", pair, path, err)
 		}
 		uid, gid = mappedPair.UID, mappedPair.GID
 	}
 	if uid != int(st.Uid) || gid != int(st.Gid) {
 		cap, err := system.Lgetxattr(path, "security.capability")
 		if err != nil && !errors.Is(err, system.EOPNOTSUPP) && err != system.ErrNotSupportedPlatform {
-			return fmt.Errorf("%s: %v", os.Args[0], err)
+			return fmt.Errorf("%s: %w", os.Args[0], err)
 		}
 
 		// Make the change.
 		if err := system.Lchown(path, uid, gid); err != nil {
-			return fmt.Errorf("%s: %v", os.Args[0], err)
+			return fmt.Errorf("%s: %w", os.Args[0], err)
 		}
 		// Restore the SUID and SGID bits if they were originally set.
 		if (info.Mode()&os.ModeSymlink == 0) && info.Mode()&(os.ModeSetuid|os.ModeSetgid) != 0 {
 			if err := system.Chmod(path, info.Mode()); err != nil {
-				return fmt.Errorf("%s: %v", os.Args[0], err)
+				return fmt.Errorf("%s: %w", os.Args[0], err)
 			}
 		}
 		if cap != nil {
 			if err := system.Lsetxattr(path, "security.capability", cap, 0); err != nil {
-				return fmt.Errorf("%s: %v", os.Args[0], err)
+				return fmt.Errorf("%s: %w", os.Args[0], err)
 			}
 		}
 

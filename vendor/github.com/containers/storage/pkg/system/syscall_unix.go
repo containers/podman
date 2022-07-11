@@ -1,9 +1,11 @@
+//go:build linux || freebsd || darwin
 // +build linux freebsd darwin
 
 package system
 
 import (
-	"github.com/pkg/errors"
+	"errors"
+
 	"golang.org/x/sys/unix"
 )
 

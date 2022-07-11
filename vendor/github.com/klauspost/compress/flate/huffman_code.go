@@ -16,9 +16,18 @@ const (
 )
 
 // hcode is a huffman code with a bit code and bit length.
-type hcode struct {
-	code uint16
-	len  uint8
+type hcode uint32
+
+func (h hcode) len() uint8 {
+	return uint8(h)
+}
+
+func (h hcode) code64() uint64 {
+	return uint64(h >> 8)
+}
+
+func (h hcode) zero() bool {
+	return h == 0
 }
 
 type huffmanEncoder struct {
@@ -58,8 +67,11 @@ type levelInfo struct {
 
 // set sets the code and length of an hcode.
 func (h *hcode) set(code uint16, length uint8) {
-	h.len = length
-	h.code = code
+	*h = hcode(length) | (hcode(code) << 8)
+}
+
+func newhcode(code uint16, length uint8) hcode {
+	return hcode(length) | (hcode(code) << 8)
 }
 
 func reverseBits(number uint16, bitLength byte) uint16 {
@@ -100,7 +112,7 @@ func generateFixedLiteralEncoding() *huffmanEncoder {
 			bits = ch + 192 - 280
 			size = 8
 		}
-		codes[ch] = hcode{code: reverseBits(bits, size), len: size}
+		codes[ch] = newhcode(reverseBits(bits, size), size)
 	}
 	return h
 }
@@ -109,7 +121,7 @@ func generateFixedOffsetEncoding() *huffmanEncoder {
 	h := newHuffmanEncoder(30)
 	codes := h.codes
 	for ch := range codes {
-		codes[ch] = hcode{code: reverseBits(uint16(ch), 5), len: 5}
+		codes[ch] = newhcode(reverseBits(uint16(ch), 5), 5)
 	}
 	return h
 }
@@ -121,7 +133,7 @@ func (h *huffmanEncoder) bitLength(freq []uint16) int {
 	var total int
 	for i, f := range freq {
 		if f != 0 {
-			total += int(f) * int(h.codes[i].len)
+			total += int(f) * int(h.codes[i].len())
 		}
 	}
 	return total
@@ -130,7 +142,7 @@ func (h *huffmanEncoder) bitLength(freq []uint16) int {
 func (h *huffmanEncoder) bitLengthRaw(b []byte) int {
 	var total int
 	for _, f := range b {
-		total += int(h.codes[f].len)
+		total += int(h.codes[f].len())
 	}
 	return total
 }
@@ -141,10 +153,10 @@ func (h *huffmanEncoder) canReuseBits(freq []uint16) int {
 	for i, f := range freq {
 		if f != 0 {
 			code := h.codes[i]
-			if code.len == 0 {
+			if code.zero() {
 				return math.MaxInt32
 			}
-			total += int(f) * int(code.len)
+			total += int(f) * int(code.len())
 		}
 	}
 	return total
@@ -308,7 +320,7 @@ func (h *huffmanEncoder) assignEncodingAndSize(bitCount []int32, list []literalN
 
 		sortByLiteral(chunk)
 		for _, node := range chunk {
-			h.codes[node.literal] = hcode{code: reverseBits(code, uint8(n)), len: uint8(n)}
+			h.codes[node.literal] = newhcode(reverseBits(code, uint8(n)), uint8(n))
 			code++
 		}
 		list = list[0 : len(list)-int(bits)]
@@ -330,7 +342,7 @@ func (h *huffmanEncoder) generate(freq []uint16, maxBits int32) {
 			list[count] = literalNode{uint16(i), f}
 			count++
 		} else {
-			codes[i].len = 0
+			codes[i] = 0
 		}
 	}
 	list[count] = literalNode{}
@@ -364,21 +376,37 @@ func atLeastOne(v float32) float32 {
 	return v
 }
 
-// Unassigned values are assigned '1' in the histogram.
-func fillHist(b []uint16) {
-	for i, v := range b {
-		if v == 0 {
-			b[i] = 1
+func histogram(b []byte, h []uint16) {
+	if true && len(b) >= 8<<10 {
+		// Split for bigger inputs
+		histogramSplit(b, h)
+	} else {
+		h = h[:256]
+		for _, t := range b {
+			h[t]++
 		}
 	}
 }
 
-func histogram(b []byte, h []uint16, fill bool) {
+func histogramSplit(b []byte, h []uint16) {
+	// Tested, and slightly faster than 2-way.
+	// Writing to separate arrays and combining is also slightly slower.
 	h = h[:256]
-	for _, t := range b {
-		h[t]++
+	for len(b)&3 != 0 {
+		h[b[0]]++
+		b = b[1:]
 	}
-	if fill {
-		fillHist(h)
+	n := len(b) / 4
+	x, y, z, w := b[:n], b[n:], b[n+n:], b[n+n+n:]
+	y, z, w = y[:len(x)], z[:len(x)], w[:len(x)]
+	for i, t := range x {
+		v0 := &h[t]
+		v1 := &h[y[i]]
+		v3 := &h[w[i]]
+		v2 := &h[z[i]]
+		*v0++
+		*v1++
+		*v2++
+		*v3++
 	}
 }

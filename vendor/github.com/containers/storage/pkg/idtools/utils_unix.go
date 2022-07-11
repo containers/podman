@@ -1,3 +1,4 @@
+//go:build !windows
 // +build !windows
 
 package idtools
@@ -23,7 +24,7 @@ func resolveBinary(binname string) (string, error) {
 	if filepath.Base(resolvedPath) == binname {
 		return resolvedPath, nil
 	}
-	return "", fmt.Errorf("Binary %q does not resolve to a binary of that name in $PATH (%q)", binname, resolvedPath)
+	return "", fmt.Errorf("binary %q does not resolve to a binary of that name in $PATH (%q)", binname, resolvedPath)
 }
 
 func execCmd(cmd, args string) ([]byte, error) {
