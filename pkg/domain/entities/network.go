@@ -81,8 +81,7 @@ type NetworkPruneReport struct {
 	Error error
 }
 
-// NetworkPruneOptions describes options for pruning
-// unused cni networks
+// NetworkPruneOptions describes options for pruning unused networks
 type NetworkPruneOptions struct {
 	Filters map[string][]string
 }

@@ -52,10 +52,7 @@ func init() {
 }
 
 func networkPrune(cmd *cobra.Command, _ []string) error {
-	var (
-		errs utils.OutputErrors
-		err  error
-	)
+	var err error
 	if !force {
 		reader := bufio.NewReader(os.Stdin)
 		fmt.Println("WARNING! This will remove all networks not used by at least one container.")
@@ -77,13 +74,5 @@ func networkPrune(cmd *cobra.Command, _ []string) error {
 		setExitCode(err)
 		return err
 	}
-	for _, r := range responses {
-		if r.Error == nil {
-			fmt.Println(r.Name)
-		} else {
-			setExitCode(r.Error)
-			errs = append(errs, r.Error)
-		}
-	}
-	return errs.PrintErrors()
+	return utils.PrintNetworkPruneResults(responses, false)
 }
