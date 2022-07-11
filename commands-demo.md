@@ -12,7 +12,7 @@
 | [podman-container(1)](https://podman.readthedocs.io/en/latest/managecontainers.html)                                  | Manage Containers                                                          |
 | [podman-container-checkpoint(1)](https://podman.readthedocs.io/en/latest/markdown/podman-container-checkpoint.1.html) | Checkpoints one or more running containers                                 |
 | [podman-container-cleanup(1)](https://podman.readthedocs.io/en/latest/markdown/podman-container-cleanup.1.html)       | Clean up the container's network and mountpoints                           |
-| [podman-container-exists(1)](https://podman.readthedocs.io/en/latest/markdown/podman-container-exists.1.html)         | Check if an container exists in local storage                              |
+| [podman-container-exists(1)](https://podman.readthedocs.io/en/latest/markdown/podman-container-exists.1.html)         | Check if a container exists in local storage                              |
 | [podman-container-prune(1)](https://podman.readthedocs.io/en/latest/markdown/podman-container-prune.1.html)           | Remove all stopped containers from local storage                           |
 | [podman-container-restore(1)](https://podman.readthedocs.io/en/latest/markdown/podman-container-restore.1.html)       | Restores one or more containers from a checkpoint                          |
 | [podman-container-runlabel(1)](https://podman.readthedocs.io/en/latest/markdown/podman-container-runlabel.1.html)     | Executes a command as described by a container image label                 |
