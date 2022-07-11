@@ -368,9 +368,10 @@ on the host system.
 
 #### **--gidmap**=*container_gid:host_gid:amount*
 
-GID map for the user namespace. Using this flag will run the container with user namespace enabled. It conflicts with the `--userns` and `--subgidname` flags.
-
-The following example maps uids 0-2000 in the container to the uids 30000-31999 on the host and gids 0-2000 in the container to the gids 30000-31999 on the host. `--gidmap=0:30000:2000`
+Run the container in a new user namespace using the supplied GID mapping. This
+option conflicts with the **--userns** and **--subgidname** options. This
+option provides a way to map host GIDs to container GIDs in the same way as
+__--uidmap__ maps host UIDs to container UIDs. For details see __--uidmap__.
 
 Note: the **--gidmap** flag cannot be called in conjunction with the **--pod** flag as a gidmap cannot be set on the container level when in a pod.
 
@@ -1120,7 +1121,7 @@ Remote connections use local containers.conf for defaults
 
 #### **--uidmap**=*container_uid*:*from_uid*:*amount*
 
-Run the container in a new user namespace using the supplied mapping. This
+Run the container in a new user namespace using the supplied UID mapping. This
 option conflicts with the **--userns** and **--subuidname** options. This
 option provides a way to map host UIDs to container UIDs. It can be passed
 several times to map different ranges.
