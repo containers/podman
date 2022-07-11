@@ -404,16 +404,10 @@ on the host system.
 
 #### **--gidmap**=*container_gid*:*host_gid*:*amount*
 
-Run the container in a new user namespace using the supplied mapping. This option conflicts with the **--userns** and **--subgidname** flags.
-This option can be passed several times to map different ranges. If calling **podman run** as an unprivileged user, the user needs to have the right to use the mapping. See **subuid**(5).
-The example maps gids **0-1999** in the container to the gids **30000-31999** on the host: **--gidmap=0:30000:2000**.
-
-**Important note:** The new user namespace mapping based on **--gidmap** is based on the initial mapping made in the  _/etc/subgid_  file.
-Assuming there is a  _/etc/subgid_  mapping **groupname:100000:65536**, then **groupname** is initially mapped to a namespace starting with
-gid **100000** for **65536** ids. From here the **--gidmap** mapping to the new namespace starts from **0** again, but is based on the initial mapping.
-Meaning **groupname** is initially mapped to gid **100000** which is referenced as **0** in the following **--gidmap** mapping. In terms of the example
-above: The group **groupname** is mapped to group **100000** of the initial namespace then the
-**30000**st id of this namespace (which is gid 130000 in this namespace) is mapped to container namespace group id **0**. (groupname -> 100000 / 30000 -> 0)
+Run the container in a new user namespace using the supplied GID mapping. This
+option conflicts with the **--userns** and **--subgidname** options. This
+option provides a way to map host GIDs to container GIDs in the same way as
+__--uidmap__ maps host UIDs to container UIDs. For details see __--uidmap__.
 
 Note: the **--gidmap** flag cannot be called in conjunction with the **--pod** flag as a gidmap cannot be set on the container level when in a pod.
 
@@ -1188,7 +1182,7 @@ Remote connections use local containers.conf for defaults
 
 #### **--uidmap**=*container_uid*:*from_uid*:*amount*
 
-Run the container in a new user namespace using the supplied mapping. This
+Run the container in a new user namespace using the supplied UID mapping. This
 option conflicts with the **--userns** and **--subuidname** options. This
 option provides a way to map host UIDs to container UIDs. It can be passed
 several times to map different ranges.
