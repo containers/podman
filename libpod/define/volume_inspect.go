@@ -45,7 +45,7 @@ type InspectVolumeData struct {
 	// GID is the GID that the volume was created with.
 	GID int `json:"GID,omitempty"`
 	// Anonymous indicates that the volume was created as an anonymous
-	// volume for a specific container, and will be be removed when any
+	// volume for a specific container, and will be removed when any
 	// container using it is removed.
 	Anonymous bool `json:"Anonymous,omitempty"`
 	// MountCount is the number of times this volume has been mounted.

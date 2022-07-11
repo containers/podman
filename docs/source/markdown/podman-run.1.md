@@ -288,7 +288,7 @@ detached container with **podman attach**.
 
 When attached in the tty mode, you can detach from the container (and leave it
 running) using a configurable key sequence. The default sequence is `ctrl-p,ctrl-q`.
-Configure the keys sequence using the **--detach-keys** option, or specifying
+Specify the key sequence using the **--detach-keys** option, or configure
 it in the **containers.conf** file: see **containers.conf(5)** for more information.
 
 #### **--detach-keys**=*sequence*
@@ -300,7 +300,7 @@ This option can also be set in **containers.conf**(5) file.
 #### **--device**=_host-device_[**:**_container-device_][**:**_permissions_]
 
 Add a host device to the container. Optional *permissions* parameter
-can be used to specify device permissions, it is combination of
+can be used to specify device permissions by combining
 **r** for read, **w** for write, and **m** for **mknod**(2).
 
 Example: **--device=/dev/sdc:/dev/xvdc:rwm**.
@@ -1158,7 +1158,7 @@ $ podman run -d --tmpfs /tmp:rw,size=787448k,mode=1777 my_image
 
 This command mounts a **tmpfs** at _/tmp_ within the container. The supported mount
 options are the same as the Linux default mount flags. If you do not specify
-any options, the systems uses the following options:
+any options, the system uses the following options:
 **rw,noexec,nosuid,nodev**.
 
 #### **--tty**, **-t**
@@ -1598,7 +1598,7 @@ content. Installing packages into _/usr_, for example. In production,
 applications seldom need to write to the image.  Container applications write
 to volumes if they need to write to file systems at all. Applications can be
 made more secure by running them in read-only mode using the **--read-only** switch.
-This protects the containers image from modification. Read-only containers may
+This protects the container's image from modification. Read-only containers may
 still need to write temporary data. The best way to handle this is to mount
 tmpfs directories on _/run_ and _/tmp_.
 
@@ -1879,7 +1879,7 @@ $ podman run --uidmap 0:30000:7000 --gidmap 0:30000:7000 fedora echo hello
 
 Podman allows for the configuration of storage by changing the values
 in the _/etc/container/storage.conf_ or by using global options. This
-shows how to set up and use fuse-overlayfs for a one time run of busybox
+shows how to set up and use fuse-overlayfs for a one-time run of busybox
 using global options.
 
 ```
@@ -1975,7 +1975,7 @@ in the following order of precedence (later entries override earlier entries):
 - Container image: Any environment variables specified in the container image.
 - **--http-proxy**: By default, several environment variables will be passed in from the host, such as **http_proxy** and **no_proxy**. See **--http-proxy** for details.
 - **--env-host**: Host environment of the process executing Podman is added.
-- **--env-file**: Any environment variables specified via env-files. If multiple files specified, then they override each other in order of entry.
+- **--env-file**: Any environment variables specified via env-files. If multiple files are specified, then they override each other in order of entry.
 - **--env**: Any environment variables specified will override previous settings.
 
 Run containers and set the environment ending with a __*__.
