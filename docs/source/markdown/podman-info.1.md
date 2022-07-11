@@ -24,9 +24,10 @@ Show additional information
 Change output format to "json" or a Go template.
 
 
-## EXAMPLE
+## EXAMPLES
 
-Run podman info with plain text response:
+Run `podman info` for a YAML formatted response:
+
 ```
 $ podman info
 host:
@@ -149,7 +150,9 @@ version:
   OsArch: linux/amd64
   Version: 4.0.0
 ```
-Run podman info with JSON formatted response:
+
+Run `podman info --format json` for a JSON formatted response:
+
 ```
 $ podman info --format json
 {
@@ -289,11 +292,68 @@ $ podman info --format json
   }
 }
 ```
-Run podman info and only get the registries information.
+
+#### Extracting the list of container registries with a Go template
+
+If shell completion is enabled, type `podman info --format={{.` and then press `[TAB]` twice.
+
 ```
-$ podman info --format={{".Registries"}}
-map[registries:[docker.io quay.io registry.fedoraproject.org registry.access.redhat.com]]
+$ podman info --format={{.
+{{.Host.         {{.Plugins.      {{.Registries}}  {{.Store.        {{.Version.
 ```
+
+Press `R` `[TAB]` `[ENTER]` to print the registries information.
+
+```
+$ podman info -f {{.Registries}}
+map[search:[registry.fedoraproject.org registry.access.redhat.com docker.io quay.io]]
+$
+```
+
+The output still contains a map and an array. The map value can be extracted with
+
+```
+$ podman info -f '{{index .Registries "search"}}'
+[registry.fedoraproject.org registry.access.redhat.com docker.io quay.io]
+```
+
+The array can be printed as one entry per line
+
+```
+$ podman info -f '{{range index .Registries "search"}}{{.}}\n{{end}}'
+registry.fedoraproject.org
+registry.access.redhat.com
+docker.io
+quay.io
+
+```
+
+#### Extracting the list of container registries from JSON with jq
+
+The command-line JSON processor [__jq__](https://stedolan.github.io/jq/) can be used to extract the list
+of container registries.
+
+```
+$ podman info -f json | jq '.registries["search"]'
+[
+  "registry.fedoraproject.org",
+  "registry.access.redhat.com",
+  "docker.io",
+  "quay.io"
+]
+```
+
+The array can be printed as one entry per line
+
+```
+$ podman info -f json | jq -r '.registries["search"] | .[]'
+registry.fedoraproject.org
+registry.access.redhat.com
+docker.io
+quay.io
+```
+
+Note, the Go template struct fields start with upper case. When running `podman info` or `podman info --format=json`, the same names start with lower case.
 
 ## SEE ALSO
 **[podman(1)](podman.1.md)**, **[containers-registries.conf(5)](https://github.com/containers/image/blob/main/docs/containers-registries.conf.5.md)**, **[containers-storage.conf(5)](https://github.com/containers/storage/blob/main/docs/containers-storage.conf.5.md)**
