@@ -551,6 +551,10 @@ func (c *Container) WaitForExit(ctx context.Context, pollInterval time.Duration)
 
 		exitCode, err := c.runtime.state.GetContainerExitCode(id)
 		if err != nil {
+			if errors.Is(err, define.ErrNoSuchExitCode) && c.ensureState(define.ContainerStateConfigured, define.ContainerStateCreated) {
+				// The container never ran.
+				return true, 0, nil
+			}
 			return true, -1, err
 		}
 
