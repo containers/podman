@@ -124,7 +124,7 @@ function _log_test_restarted() {
     # FIXME: #9597
     # run/start is flaking for remote so let's wait for the container condition
     # to stop wasting energy until the root cause gets fixed.
-    run_podman container wait --condition=exited logtest
+    run_podman container wait --condition=exited --condition=stopped logtest
     run_podman ${events_backend} start -a logtest
     logfile=$(mktemp -p ${PODMAN_TMPDIR} logfileXXXXXXXX)
     $PODMAN $_PODMAN_TEST_OPTS ${events_backend} logs -f logtest > $logfile
