@@ -19,7 +19,6 @@ import (
 	"github.com/containers/podman/v4/pkg/checkpoint/crutils"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/parallel"
-	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/containers/podman/v4/version"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -265,7 +264,7 @@ func persistentPreRunE(cmd *cobra.Command, args []string) error {
 	// 2) running as non-root
 	// 3) command doesn't require Parent Namespace
 	_, found := cmd.Annotations[registry.ParentNSRequired]
-	if !registry.IsRemote() && rootless.IsRootless() && !found {
+	if !registry.IsRemote() && !found {
 		_, noMoveProcess := cmd.Annotations[registry.NoMoveProcess]
 		err := registry.ContainerEngine().SetupRootless(registry.Context(), noMoveProcess)
 		if err != nil {
