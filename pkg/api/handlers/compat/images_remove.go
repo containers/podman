@@ -1,6 +1,8 @@
 package compat
 
 import (
+	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/containers/podman/v4/libpod"
@@ -10,7 +12,6 @@ import (
 	"github.com/containers/podman/v4/pkg/domain/infra/abi"
 	"github.com/containers/storage"
 	"github.com/gorilla/schema"
-	"github.com/pkg/errors"
 )
 
 func RemoveImage(w http.ResponseWriter, r *http.Request) {
@@ -25,7 +26,7 @@ func RemoveImage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.Error(w, http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
+		utils.Error(w, http.StatusBadRequest, fmt.Errorf("failed to parse parameters for %s: %w", r.URL.String(), err))
 		return
 	}
 	if _, found := r.URL.Query()["noprune"]; found {
@@ -36,7 +37,7 @@ func RemoveImage(w http.ResponseWriter, r *http.Request) {
 	name := utils.GetName(r)
 	possiblyNormalizedName, err := utils.NormalizeToDockerHub(r, name)
 	if err != nil {
-		utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "error normalizing image"))
+		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("error normalizing image: %w", err))
 		return
 	}
 
@@ -48,12 +49,12 @@ func RemoveImage(w http.ResponseWriter, r *http.Request) {
 	report, rmerrors := imageEngine.Remove(r.Context(), []string{possiblyNormalizedName}, options)
 	if len(rmerrors) > 0 && rmerrors[0] != nil {
 		err := rmerrors[0]
-		if errors.Cause(err) == storage.ErrImageUnknown {
-			utils.ImageNotFound(w, name, errors.Wrapf(err, "failed to find image %s", name))
+		if errors.Is(err, storage.ErrImageUnknown) {
+			utils.ImageNotFound(w, name, fmt.Errorf("failed to find image %s: %w", name, err))
 			return
 		}
-		if errors.Cause(err) == storage.ErrImageUsedByContainer {
-			utils.Error(w, http.StatusConflict, errors.Wrapf(err, "image %s is in use", name))
+		if errors.Is(err, storage.ErrImageUsedByContainer) {
+			utils.Error(w, http.StatusConflict, fmt.Errorf("image %s is in use: %w", name, err))
 			return
 		}
 		utils.Error(w, http.StatusInternalServerError, err)

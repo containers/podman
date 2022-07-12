@@ -8,6 +8,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/fs"
 	"io/ioutil"
@@ -30,7 +31,6 @@ import (
 	"github.com/containers/storage/pkg/homedir"
 	"github.com/digitalocean/go-qemu/qmp"
 	"github.com/docker/go-units"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
@@ -434,12 +434,12 @@ func (v *MachineVM) Set(_ string, opts machine.SetOptions) ([]error, error) {
 		if v.Name != machine.DefaultMachineName {
 			suffix = " " + v.Name
 		}
-		return setErrors, errors.Errorf("cannot change settings while the vm is running, run 'podman machine stop%s' first", suffix)
+		return setErrors, fmt.Errorf("cannot change settings while the vm is running, run 'podman machine stop%s' first", suffix)
 	}
 
 	if opts.Rootful != nil && v.Rootful != *opts.Rootful {
 		if err := v.setRootful(*opts.Rootful); err != nil {
-			setErrors = append(setErrors, errors.Wrapf(err, "failed to set rootful option"))
+			setErrors = append(setErrors, fmt.Errorf("failed to set rootful option: %w", err))
 		} else {
 			v.Rootful = *opts.Rootful
 		}
@@ -457,7 +457,7 @@ func (v *MachineVM) Set(_ string, opts machine.SetOptions) ([]error, error) {
 
 	if opts.DiskSize != nil && v.DiskSize != *opts.DiskSize {
 		if err := v.resizeDisk(*opts.DiskSize, v.DiskSize); err != nil {
-			setErrors = append(setErrors, errors.Wrapf(err, "failed to resize disk"))
+			setErrors = append(setErrors, fmt.Errorf("failed to resize disk: %w", err))
 		} else {
 			v.DiskSize = *opts.DiskSize
 		}
@@ -514,7 +514,7 @@ func (v *MachineVM) Start(name string, _ machine.StartOptions) error {
 
 	forwardSock, forwardState, err := v.startHostNetworking()
 	if err != nil {
-		return errors.Errorf("unable to start host networking: %q", err)
+		return fmt.Errorf("unable to start host networking: %q", err)
 	}
 
 	rtPath, err := getRuntimeDir()
@@ -593,7 +593,7 @@ func (v *MachineVM) Start(name string, _ machine.StartOptions) error {
 		}
 		_, err = os.StartProcess(cmd[0], cmd, attr)
 		if err != nil {
-			return errors.Wrapf(err, "unable to execute %q", cmd)
+			return fmt.Errorf("unable to execute %q: %w", cmd, err)
 		}
 	}
 	fmt.Println("Waiting for VM ...")
@@ -700,7 +700,7 @@ func (v *MachineVM) checkStatus(monitor *qmp.SocketMonitor) (machine.Status, err
 	}
 	b, err := monitor.Run(input)
 	if err != nil {
-		if errors.Cause(err) == os.ErrNotExist {
+		if errors.Is(err, os.ErrNotExist) {
 			return machine.Stopped, nil
 		}
 		return "", err
@@ -879,7 +879,7 @@ func (v *MachineVM) Remove(_ string, opts machine.RemoveOptions) (string, func()
 	}
 	if state == machine.Running {
 		if !opts.Force {
-			return "", nil, errors.Errorf("running vm %q cannot be destroyed", v.Name)
+			return "", nil, fmt.Errorf("running vm %q cannot be destroyed", v.Name)
 		}
 		err := v.Stop(v.Name, machine.StopOptions{})
 		if err != nil {
@@ -963,7 +963,12 @@ func (v *MachineVM) State(bypass bool) (machine.Status, error) {
 	}
 	monitor, err := qmp.NewSocketMonitor(v.QMPMonitor.Network, v.QMPMonitor.Address.GetPath(), v.QMPMonitor.Timeout)
 	if err != nil {
-		// FIXME: this error should probably be returned
+		// If an improper cleanup was done and the socketmonitor was not deleted,
+		// it can appear as though the machine state is not stopped.  Check for ECONNREFUSED
+		// almost assures us that the vm is stopped.
+		if errors.Is(err, syscall.ECONNREFUSED) {
+			return machine.Stopped, nil
+		}
 		return "", err
 	}
 	if err := monitor.Connect(); err != nil {
@@ -996,7 +1001,7 @@ func (v *MachineVM) SSH(_ string, opts machine.SSHOptions) error {
 		return err
 	}
 	if state != machine.Running {
-		return errors.Errorf("vm %q is not running", v.Name)
+		return fmt.Errorf("vm %q is not running", v.Name)
 	}
 
 	username := opts.Username
@@ -1008,7 +1013,7 @@ func (v *MachineVM) SSH(_ string, opts machine.SSHOptions) error {
 	port := strconv.Itoa(v.Port)
 
 	args := []string{"-i", v.IdentityPath, "-p", port, sshDestination, "-o", "UserKnownHostsFile=/dev/null",
-		"-o", "StrictHostKeyChecking=no", "-o", "LogLevel=ERROR"}
+		"-o", "StrictHostKeyChecking=no", "-o", "LogLevel=ERROR", "-o", "SetEnv=LC_ALL="}
 	if len(opts.Args) > 0 {
 		args = append(args, opts.Args...)
 	} else {
@@ -1160,7 +1165,7 @@ func (p *Provider) IsValidVMName(name string) (bool, error) {
 func (p *Provider) CheckExclusiveActiveVM() (bool, string, error) {
 	vms, err := getVMInfos()
 	if err != nil {
-		return false, "", errors.Wrap(err, "error checking VM active")
+		return false, "", fmt.Errorf("error checking VM active: %w", err)
 	}
 	for _, vm := range vms {
 		if vm.Running || vm.Starting {
@@ -1212,7 +1217,7 @@ func (v *MachineVM) startHostNetworking() (string, apiForwardingState, error) {
 		fmt.Println(cmd)
 	}
 	_, err = os.StartProcess(cmd[0], cmd, attr)
-	return forwardSock, state, errors.Wrapf(err, "unable to execute: %q", cmd)
+	return forwardSock, state, fmt.Errorf("unable to execute: %q: %w", cmd, err)
 }
 
 func (v *MachineVM) setupAPIForwarding(cmd []string) ([]string, string, apiForwardingState) {
@@ -1481,7 +1486,7 @@ func (v *MachineVM) update() error {
 	b, err := v.ConfigPath.Read()
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			return errors.Wrap(machine.ErrNoSuchVM, v.Name)
+			return fmt.Errorf("%v: %w", v.Name, machine.ErrNoSuchVM)
 		}
 		return err
 	}
@@ -1557,7 +1562,7 @@ func (v *MachineVM) resizeDisk(diskSize uint64, oldSize uint64) error {
 	// only if the virtualdisk size is less than
 	// the given disk size
 	if diskSize < oldSize {
-		return errors.Errorf("new disk size must be larger than current disk size: %vGB", oldSize)
+		return fmt.Errorf("new disk size must be larger than current disk size: %vGB", oldSize)
 	}
 
 	// Find the qemu executable
@@ -1573,7 +1578,7 @@ func (v *MachineVM) resizeDisk(diskSize uint64, oldSize uint64) error {
 	resize.Stdout = os.Stdout
 	resize.Stderr = os.Stderr
 	if err := resize.Run(); err != nil {
-		return errors.Errorf("resizing image: %q", err)
+		return fmt.Errorf("resizing image: %q", err)
 	}
 
 	return nil

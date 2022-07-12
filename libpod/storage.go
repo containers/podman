@@ -2,6 +2,7 @@ package libpod
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	istorage "github.com/containers/image/v5/storage"
@@ -10,7 +11,6 @@ import (
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/idtools"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -184,7 +184,7 @@ func (r *storageService) DeleteContainer(idOrName string) error {
 	}
 	err = r.store.DeleteContainer(container.ID)
 	if err != nil {
-		if errors.Cause(err) == storage.ErrNotAContainer || errors.Cause(err) == storage.ErrContainerUnknown {
+		if errors.Is(err, storage.ErrNotAContainer) || errors.Is(err, storage.ErrContainerUnknown) {
 			logrus.Infof("Storage for container %s already removed", container.ID)
 		} else {
 			logrus.Debugf("Failed to delete container %q: %v", container.ID, err)
@@ -218,7 +218,7 @@ func (r *storageService) GetContainerMetadata(idOrName string) (RuntimeContainer
 func (r *storageService) MountContainerImage(idOrName string) (string, error) {
 	container, err := r.store.Container(idOrName)
 	if err != nil {
-		if errors.Cause(err) == storage.ErrContainerUnknown {
+		if errors.Is(err, storage.ErrContainerUnknown) {
 			return "", define.ErrNoSuchCtr
 		}
 		return "", err
@@ -281,7 +281,7 @@ func (r *storageService) MountedContainerImage(idOrName string) (int, error) {
 func (r *storageService) GetMountpoint(id string) (string, error) {
 	container, err := r.store.Container(id)
 	if err != nil {
-		if errors.Cause(err) == storage.ErrContainerUnknown {
+		if errors.Is(err, storage.ErrContainerUnknown) {
 			return "", define.ErrNoSuchCtr
 		}
 		return "", err
@@ -297,7 +297,7 @@ func (r *storageService) GetMountpoint(id string) (string, error) {
 func (r *storageService) GetWorkDir(id string) (string, error) {
 	container, err := r.store.Container(id)
 	if err != nil {
-		if errors.Cause(err) == storage.ErrContainerUnknown {
+		if errors.Is(err, storage.ErrContainerUnknown) {
 			return "", define.ErrNoSuchCtr
 		}
 		return "", err
@@ -308,7 +308,7 @@ func (r *storageService) GetWorkDir(id string) (string, error) {
 func (r *storageService) GetRunDir(id string) (string, error) {
 	container, err := r.store.Container(id)
 	if err != nil {
-		if errors.Cause(err) == storage.ErrContainerUnknown {
+		if errors.Is(err, storage.ErrContainerUnknown) {
 			return "", define.ErrNoSuchCtr
 		}
 		return "", err

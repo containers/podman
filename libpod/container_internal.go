@@ -3,6 +3,7 @@ package libpod
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -41,7 +42,6 @@ import (
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
@@ -85,7 +85,7 @@ func (c *Container) rootFsSize() (int64, error) {
 	for layer.Parent != "" {
 		layerSize, err := c.runtime.store.DiffSize(layer.Parent, layer.ID)
 		if err != nil {
-			return size, errors.Wrapf(err, "getting diffsize of layer %q and its parent %q", layer.ID, layer.Parent)
+			return size, fmt.Errorf("getting diffsize of layer %q and its parent %q: %w", layer.ID, layer.Parent, err)
 		}
 		size += layerSize
 		layer, err = c.runtime.store.Layer(layer.Parent)
@@ -201,12 +201,12 @@ func (c *Container) handleExitFile(exitFile string, fi os.FileInfo) error {
 	c.state.FinishedTime = ctime.Created(fi)
 	statusCodeStr, err := ioutil.ReadFile(exitFile)
 	if err != nil {
-		return errors.Wrapf(err, "failed to read exit file for container %s", c.ID())
+		return fmt.Errorf("failed to read exit file for container %s: %w", c.ID(), err)
 	}
 	statusCode, err := strconv.Atoi(string(statusCodeStr))
 	if err != nil {
-		return errors.Wrapf(err, "error converting exit status code (%q) for container %s to int",
-			c.ID(), statusCodeStr)
+		return fmt.Errorf("error converting exit status code (%q, err) for container %s to int: %w",
+			c.ID(), statusCodeStr, err)
 	}
 	c.state.ExitCode = int32(statusCode)
 
@@ -268,7 +268,7 @@ func (c *Container) handleRestartPolicy(ctx context.Context) (_ bool, retErr err
 	if c.ensureState(define.ContainerStateRunning, define.ContainerStatePaused) {
 		return false, nil
 	} else if c.state.State == define.ContainerStateUnknown {
-		return false, errors.Wrapf(define.ErrInternal, "invalid container state encountered in restart attempt")
+		return false, fmt.Errorf("invalid container state encountered in restart attempt: %w", define.ErrInternal)
 	}
 
 	c.newContainerEvent(events.Restart)
@@ -371,7 +371,7 @@ func (c *Container) syncContainer() error {
 	}
 
 	if !c.valid {
-		return errors.Wrapf(define.ErrCtrRemoved, "container %s is not valid", c.ID())
+		return fmt.Errorf("container %s is not valid: %w", c.ID(), define.ErrCtrRemoved)
 	}
 
 	return nil
@@ -430,16 +430,16 @@ func (c *Container) setupStorageMapping(dest, from *storage.IDMappingOptions) {
 // Create container root filesystem for use
 func (c *Container) setupStorage(ctx context.Context) error {
 	if !c.valid {
-		return errors.Wrapf(define.ErrCtrRemoved, "container %s is not valid", c.ID())
+		return fmt.Errorf("container %s is not valid: %w", c.ID(), define.ErrCtrRemoved)
 	}
 
 	if c.state.State != define.ContainerStateConfigured {
-		return errors.Wrapf(define.ErrCtrStateInvalid, "container %s must be in Configured state to have storage set up", c.ID())
+		return fmt.Errorf("container %s must be in Configured state to have storage set up: %w", c.ID(), define.ErrCtrStateInvalid)
 	}
 
 	// Need both an image ID and image name, plus a bool telling us whether to use the image configuration
 	if c.config.Rootfs == "" && (c.config.RootfsImageID == "" || c.config.RootfsImageName == "") {
-		return errors.Wrapf(define.ErrInvalidArg, "must provide image ID and image name to use an image")
+		return fmt.Errorf("must provide image ID and image name to use an image: %w", define.ErrInvalidArg)
 	}
 	options := storage.ContainerOptions{
 		IDMappingOptions: storage.IDMappingOptions{
@@ -475,7 +475,7 @@ func (c *Container) setupStorage(ctx context.Context) error {
 
 		defOptions, err := storage.GetMountOptions(c.runtime.store.GraphDriverName(), c.runtime.store.GraphOptions())
 		if err != nil {
-			return errors.Wrapf(err, "error getting default mount options")
+			return fmt.Errorf("error getting default mount options: %w", err)
 		}
 		var newOptions []string
 		for _, opt := range defOptions {
@@ -505,12 +505,12 @@ func (c *Container) setupStorage(ctx context.Context) error {
 		}
 		containerInfo, containerInfoErr = c.runtime.storageService.CreateContainerStorage(ctx, c.runtime.imageContext, c.config.RootfsImageName, c.config.RootfsImageID, c.config.Name, c.config.ID, options)
 
-		if !generateName || errors.Cause(containerInfoErr) != storage.ErrDuplicateName {
+		if !generateName || !errors.Is(containerInfoErr, storage.ErrDuplicateName) {
 			break
 		}
 	}
 	if containerInfoErr != nil {
-		return errors.Wrapf(containerInfoErr, "error creating container storage")
+		return fmt.Errorf("error creating container storage: %w", containerInfoErr)
 	}
 
 	// only reconfig IDMappings if layer was mounted from storage
@@ -552,7 +552,7 @@ func (c *Container) setupStorage(ctx context.Context) error {
 
 	artifacts := filepath.Join(c.config.StaticDir, artifactsDir)
 	if err := os.MkdirAll(artifacts, 0755); err != nil {
-		return errors.Wrap(err, "error creating artifacts directory")
+		return fmt.Errorf("error creating artifacts directory: %w", err)
 	}
 
 	return nil
@@ -581,16 +581,16 @@ func (c *Container) processLabel(processLabel string) (string, error) {
 // Tear down a container's storage prior to removal
 func (c *Container) teardownStorage() error {
 	if c.ensureState(define.ContainerStateRunning, define.ContainerStatePaused) {
-		return errors.Wrapf(define.ErrCtrStateInvalid, "cannot remove storage for container %s as it is running or paused", c.ID())
+		return fmt.Errorf("cannot remove storage for container %s as it is running or paused: %w", c.ID(), define.ErrCtrStateInvalid)
 	}
 
 	artifacts := filepath.Join(c.config.StaticDir, artifactsDir)
 	if err := os.RemoveAll(artifacts); err != nil {
-		return errors.Wrapf(err, "error removing container %s artifacts %q", c.ID(), artifacts)
+		return fmt.Errorf("error removing container %s artifacts %q: %w", c.ID(), artifacts, err)
 	}
 
 	if err := c.cleanupStorage(); err != nil {
-		return errors.Wrapf(err, "failed to clean up container %s storage", c.ID())
+		return fmt.Errorf("failed to clean up container %s storage: %w", c.ID(), err)
 	}
 
 	if err := c.runtime.storageService.DeleteContainer(c.ID()); err != nil {
@@ -598,12 +598,12 @@ func (c *Container) teardownStorage() error {
 		// error - we wanted it gone, it is already gone.
 		// Potentially another tool using containers/storage already
 		// removed it?
-		if errors.Cause(err) == storage.ErrNotAContainer || errors.Cause(err) == storage.ErrContainerUnknown {
+		if errors.Is(err, storage.ErrNotAContainer) || errors.Is(err, storage.ErrContainerUnknown) {
 			logrus.Infof("Storage for container %s already removed", c.ID())
 			return nil
 		}
 
-		return errors.Wrapf(err, "error removing container %s root filesystem", c.ID())
+		return fmt.Errorf("error removing container %s root filesystem: %w", c.ID(), err)
 	}
 
 	return nil
@@ -647,14 +647,14 @@ func (c *Container) refresh() error {
 	}
 
 	if !c.valid {
-		return errors.Wrapf(define.ErrCtrRemoved, "container %s is not valid - may have been removed", c.ID())
+		return fmt.Errorf("container %s is not valid - may have been removed: %w", c.ID(), define.ErrCtrRemoved)
 	}
 
 	// We need to get the container's temporary directory from c/storage
 	// It was lost in the reboot and must be recreated
 	dir, err := c.runtime.storageService.GetRunDir(c.ID())
 	if err != nil {
-		return errors.Wrapf(err, "error retrieving temporary directory for container %s", c.ID())
+		return fmt.Errorf("error retrieving temporary directory for container %s: %w", c.ID(), err)
 	}
 	c.state.RunDir = dir
 
@@ -668,7 +668,7 @@ func (c *Container) refresh() error {
 		}
 		root := filepath.Join(c.runtime.config.Engine.TmpDir, "containers-root", c.ID())
 		if err := os.MkdirAll(root, 0755); err != nil {
-			return errors.Wrapf(err, "error creating userNS tmpdir for container %s", c.ID())
+			return fmt.Errorf("error creating userNS tmpdir for container %s: %w", c.ID(), err)
 		}
 		if err := os.Chown(root, c.RootUID(), c.RootGID()); err != nil {
 			return err
@@ -678,7 +678,7 @@ func (c *Container) refresh() error {
 	// We need to pick up a new lock
 	lock, err := c.runtime.lockManager.AllocateAndRetrieveLock(c.config.LockID)
 	if err != nil {
-		return errors.Wrapf(err, "error acquiring lock %d for container %s", c.config.LockID, c.ID())
+		return fmt.Errorf("error acquiring lock %d for container %s: %w", c.config.LockID, c.ID(), err)
 	}
 	c.lock = lock
 
@@ -693,13 +693,13 @@ func (c *Container) refresh() error {
 	if c.config.rewrite {
 		// SafeRewriteContainerConfig must be used with care. Make sure to not change config fields by accident.
 		if err := c.runtime.state.SafeRewriteContainerConfig(c, "", "", c.config); err != nil {
-			return errors.Wrapf(err, "failed to rewrite the config for container %s", c.config.ID)
+			return fmt.Errorf("failed to rewrite the config for container %s: %w", c.config.ID, err)
 		}
 		c.config.rewrite = false
 	}
 
 	if err := c.save(); err != nil {
-		return errors.Wrapf(err, "error refreshing state for container %s", c.ID())
+		return fmt.Errorf("error refreshing state for container %s: %w", c.ID(), err)
 	}
 
 	// Remove ctl and attach files, which may persist across reboot
@@ -716,26 +716,26 @@ func (c *Container) removeConmonFiles() error {
 	// Files are allowed to not exist, so ignore ENOENT
 	attachFile, err := c.AttachSocketPath()
 	if err != nil {
-		return errors.Wrapf(err, "failed to get attach socket path for container %s", c.ID())
+		return fmt.Errorf("failed to get attach socket path for container %s: %w", c.ID(), err)
 	}
 
 	if err := os.Remove(attachFile); err != nil && !os.IsNotExist(err) {
-		return errors.Wrapf(err, "error removing container %s attach file", c.ID())
+		return fmt.Errorf("error removing container %s attach file: %w", c.ID(), err)
 	}
 
 	ctlFile := filepath.Join(c.bundlePath(), "ctl")
 	if err := os.Remove(ctlFile); err != nil && !os.IsNotExist(err) {
-		return errors.Wrapf(err, "error removing container %s ctl file", c.ID())
+		return fmt.Errorf("error removing container %s ctl file: %w", c.ID(), err)
 	}
 
 	winszFile := filepath.Join(c.bundlePath(), "winsz")
 	if err := os.Remove(winszFile); err != nil && !os.IsNotExist(err) {
-		return errors.Wrapf(err, "error removing container %s winsz file", c.ID())
+		return fmt.Errorf("error removing container %s winsz file: %w", c.ID(), err)
 	}
 
 	oomFile := filepath.Join(c.bundlePath(), "oom")
 	if err := os.Remove(oomFile); err != nil && !os.IsNotExist(err) {
-		return errors.Wrapf(err, "error removing container %s OOM file", c.ID())
+		return fmt.Errorf("error removing container %s OOM file: %w", c.ID(), err)
 	}
 
 	// Remove the exit file so we don't leak memory in tmpfs
@@ -744,7 +744,7 @@ func (c *Container) removeConmonFiles() error {
 		return err
 	}
 	if err := os.Remove(exitFile); err != nil && !os.IsNotExist(err) {
-		return errors.Wrapf(err, "error removing container %s exit file", c.ID())
+		return fmt.Errorf("error removing container %s exit file: %w", c.ID(), err)
 	}
 
 	return nil
@@ -755,7 +755,7 @@ func (c *Container) export(path string) error {
 	if !c.state.Mounted {
 		containerMount, err := c.runtime.store.Mount(c.ID(), c.config.MountLabel)
 		if err != nil {
-			return errors.Wrapf(err, "mounting container %q", c.ID())
+			return fmt.Errorf("mounting container %q: %w", c.ID(), err)
 		}
 		mountPoint = containerMount
 		defer func() {
@@ -767,12 +767,12 @@ func (c *Container) export(path string) error {
 
 	input, err := archive.Tar(mountPoint, archive.Uncompressed)
 	if err != nil {
-		return errors.Wrapf(err, "error reading container directory %q", c.ID())
+		return fmt.Errorf("error reading container directory %q: %w", c.ID(), err)
 	}
 
 	outFile, err := os.Create(path)
 	if err != nil {
-		return errors.Wrapf(err, "error creating file %q", path)
+		return fmt.Errorf("error creating file %q: %w", path, err)
 	}
 	defer outFile.Close()
 
@@ -788,7 +788,7 @@ func (c *Container) getArtifactPath(name string) string {
 // save container state to the database
 func (c *Container) save() error {
 	if err := c.runtime.state.SaveContainer(c); err != nil {
-		return errors.Wrapf(err, "error saving container %s state", c.ID())
+		return fmt.Errorf("error saving container %s state: %w", c.ID(), err)
 	}
 	return nil
 }
@@ -799,7 +799,7 @@ func (c *Container) save() error {
 func (c *Container) prepareToStart(ctx context.Context, recursive bool) (retErr error) {
 	// Container must be created or stopped to be started
 	if !c.ensureState(define.ContainerStateConfigured, define.ContainerStateCreated, define.ContainerStateStopped, define.ContainerStateExited) {
-		return errors.Wrapf(define.ErrCtrStateInvalid, "container %s must be in Created or Stopped state to be started", c.ID())
+		return fmt.Errorf("container %s must be in Created or Stopped state to be started: %w", c.ID(), define.ErrCtrStateInvalid)
 	}
 
 	if !recursive {
@@ -842,11 +842,11 @@ func (c *Container) prepareToStart(ctx context.Context, recursive bool) (retErr 
 func (c *Container) checkDependenciesAndHandleError() error {
 	notRunning, err := c.checkDependenciesRunning()
 	if err != nil {
-		return errors.Wrapf(err, "error checking dependencies for container %s", c.ID())
+		return fmt.Errorf("error checking dependencies for container %s: %w", c.ID(), err)
 	}
 	if len(notRunning) > 0 {
 		depString := strings.Join(notRunning, ",")
-		return errors.Wrapf(define.ErrCtrStateInvalid, "some dependencies of container %s are not started: %s", c.ID(), depString)
+		return fmt.Errorf("some dependencies of container %s are not started: %s: %w", c.ID(), depString, define.ErrCtrStateInvalid)
 	}
 
 	return nil
@@ -861,7 +861,7 @@ func (c *Container) startDependencies(ctx context.Context) error {
 
 	depVisitedCtrs := make(map[string]*Container)
 	if err := c.getAllDependencies(depVisitedCtrs); err != nil {
-		return errors.Wrapf(err, "error starting dependency for container %s", c.ID())
+		return fmt.Errorf("error starting dependency for container %s: %w", c.ID(), err)
 	}
 
 	// Because of how Go handles passing slices through functions, a slice cannot grow between function calls
@@ -874,7 +874,7 @@ func (c *Container) startDependencies(ctx context.Context) error {
 	// Build a dependency graph of containers
 	graph, err := BuildContainerGraph(depCtrs)
 	if err != nil {
-		return errors.Wrapf(err, "error generating dependency graph for container %s", c.ID())
+		return fmt.Errorf("error generating dependency graph for container %s: %w", c.ID(), err)
 	}
 
 	// If there are no containers without dependencies, we can't start
@@ -884,7 +884,7 @@ func (c *Container) startDependencies(ctx context.Context) error {
 		if len(graph.nodes) == 0 {
 			return nil
 		}
-		return errors.Wrapf(define.ErrNoSuchCtr, "All dependencies have dependencies of %s", c.ID())
+		return fmt.Errorf("all dependencies have dependencies of %s: %w", c.ID(), define.ErrNoSuchCtr)
 	}
 
 	ctrErrors := make(map[string]error)
@@ -900,7 +900,7 @@ func (c *Container) startDependencies(ctx context.Context) error {
 		for _, e := range ctrErrors {
 			logrus.Errorf("%q", e)
 		}
-		return errors.Wrapf(define.ErrInternal, "error starting some containers")
+		return fmt.Errorf("error starting some containers: %w", define.ErrInternal)
 	}
 	return nil
 }
@@ -956,13 +956,13 @@ func (c *Container) checkDependenciesRunning() ([]string, error) {
 		// Get the dependency container
 		depCtr, err := c.runtime.state.Container(dep)
 		if err != nil {
-			return nil, errors.Wrapf(err, "error retrieving dependency %s of container %s from state", dep, c.ID())
+			return nil, fmt.Errorf("error retrieving dependency %s of container %s from state: %w", dep, c.ID(), err)
 		}
 
 		// Check the status
 		state, err := depCtr.State()
 		if err != nil {
-			return nil, errors.Wrapf(err, "error retrieving state of dependency %s of container %s", dep, c.ID())
+			return nil, fmt.Errorf("error retrieving state of dependency %s of container %s: %w", dep, c.ID(), err)
 		}
 		if state != define.ContainerStateRunning && !depCtr.config.IsInfra {
 			notRunning = append(notRunning, dep)
@@ -1155,9 +1155,9 @@ func (c *Container) reinit(ctx context.Context, retainRetries bool) error {
 func (c *Container) initAndStart(ctx context.Context) (retErr error) {
 	// If we are ContainerStateUnknown, throw an error
 	if c.state.State == define.ContainerStateUnknown {
-		return errors.Wrapf(define.ErrCtrStateInvalid, "container %s is in an unknown state", c.ID())
+		return fmt.Errorf("container %s is in an unknown state: %w", c.ID(), define.ErrCtrStateInvalid)
 	} else if c.state.State == define.ContainerStateRemoving {
-		return errors.Wrapf(define.ErrCtrStateInvalid, "cannot start container %s as it is being removed", c.ID())
+		return fmt.Errorf("cannot start container %s as it is being removed: %w", c.ID(), define.ErrCtrStateInvalid)
 	}
 
 	// If we are running, do nothing
@@ -1166,7 +1166,7 @@ func (c *Container) initAndStart(ctx context.Context) (retErr error) {
 	}
 	// If we are paused, throw an error
 	if c.state.State == define.ContainerStatePaused {
-		return errors.Wrapf(define.ErrCtrStateInvalid, "cannot start paused container %s", c.ID())
+		return fmt.Errorf("cannot start paused container %s: %w", c.ID(), define.ErrCtrStateInvalid)
 	}
 
 	defer func() {
@@ -1276,7 +1276,7 @@ func (c *Container) stop(timeout uint) error {
 	// is held when busy-waiting for the container to be stopped.
 	c.state.State = define.ContainerStateStopping
 	if err := c.save(); err != nil {
-		return errors.Wrapf(err, "error saving container %s state before stopping", c.ID())
+		return fmt.Errorf("error saving container %s state before stopping: %w", c.ID(), err)
 	}
 	if !c.batched {
 		c.lock.Unlock()
@@ -1287,19 +1287,18 @@ func (c *Container) stop(timeout uint) error {
 	if !c.batched {
 		c.lock.Lock()
 		if err := c.syncContainer(); err != nil {
-			switch errors.Cause(err) {
-			// If the container has already been removed (e.g., via
-			// the cleanup process), set the container state to "stopped".
-			case define.ErrNoSuchCtr, define.ErrCtrRemoved:
+			if errors.Is(err, define.ErrNoSuchCtr) || errors.Is(err, define.ErrCtrRemoved) {
+				// If the container has already been removed (e.g., via
+				// the cleanup process), set the container state to "stopped".
 				c.state.State = define.ContainerStateStopped
 				return stopErr
-			default:
-				if stopErr != nil {
-					logrus.Errorf("Syncing container %s status: %v", c.ID(), err)
-					return stopErr
-				}
-				return err
 			}
+
+			if stopErr != nil {
+				logrus.Errorf("Syncing container %s status: %v", c.ID(), err)
+				return stopErr
+			}
+			return err
 		}
 	}
 
@@ -1337,7 +1336,7 @@ func (c *Container) stop(timeout uint) error {
 	}
 
 	if err := c.save(); err != nil {
-		return errors.Wrapf(err, "error saving container %s state after stopping", c.ID())
+		return fmt.Errorf("error saving container %s state after stopping: %w", c.ID(), err)
 	}
 
 	// Wait until we have an exit file, and sync once we do
@@ -1351,16 +1350,16 @@ func (c *Container) stop(timeout uint) error {
 // Internal, non-locking function to pause a container
 func (c *Container) pause() error {
 	if c.config.NoCgroups {
-		return errors.Wrapf(define.ErrNoCgroups, "cannot pause without using Cgroups")
+		return fmt.Errorf("cannot pause without using Cgroups: %w", define.ErrNoCgroups)
 	}
 
 	if rootless.IsRootless() {
 		cgroupv2, err := cgroups.IsCgroup2UnifiedMode()
 		if err != nil {
-			return errors.Wrap(err, "failed to determine cgroupversion")
+			return fmt.Errorf("failed to determine cgroupversion: %w", err)
 		}
 		if !cgroupv2 {
-			return errors.Wrap(define.ErrNoCgroups, "can not pause containers on rootless containers with cgroup V1")
+			return fmt.Errorf("can not pause containers on rootless containers with cgroup V1: %w", define.ErrNoCgroups)
 		}
 	}
 
@@ -1379,7 +1378,7 @@ func (c *Container) pause() error {
 // Internal, non-locking function to unpause a container
 func (c *Container) unpause() error {
 	if c.config.NoCgroups {
-		return errors.Wrapf(define.ErrNoCgroups, "cannot unpause without using Cgroups")
+		return fmt.Errorf("cannot unpause without using Cgroups: %w", define.ErrNoCgroups)
 	}
 
 	if err := c.ociRuntime.UnpauseContainer(c); err != nil {
@@ -1397,7 +1396,7 @@ func (c *Container) unpause() error {
 // Internal, non-locking function to restart a container
 func (c *Container) restartWithTimeout(ctx context.Context, timeout uint) (retErr error) {
 	if !c.ensureState(define.ContainerStateConfigured, define.ContainerStateCreated, define.ContainerStateRunning, define.ContainerStateStopped, define.ContainerStateExited) {
-		return errors.Wrapf(define.ErrCtrStateInvalid, "unable to restart a container in a paused or unknown state")
+		return fmt.Errorf("unable to restart a container in a paused or unknown state: %w", define.ErrCtrStateInvalid)
 	}
 
 	c.newContainerEvent(events.Restart)
@@ -1472,7 +1471,7 @@ func (c *Container) mountStorage() (_ string, deferredErr error) {
 	if !c.config.NoShm {
 		mounted, err := mount.Mounted(c.config.ShmDir)
 		if err != nil {
-			return "", errors.Wrapf(err, "unable to determine if %q is mounted", c.config.ShmDir)
+			return "", fmt.Errorf("unable to determine if %q is mounted: %w", c.config.ShmDir, err)
 		}
 
 		if !mounted && !MountExists(c.config.Spec.Mounts, "/dev/shm") {
@@ -1481,7 +1480,7 @@ func (c *Container) mountStorage() (_ string, deferredErr error) {
 				return "", err
 			}
 			if err := os.Chown(c.config.ShmDir, c.RootUID(), c.RootGID()); err != nil {
-				return "", errors.Wrapf(err, "failed to chown %s", c.config.ShmDir)
+				return "", fmt.Errorf("failed to chown %s: %w", c.config.ShmDir, err)
 			}
 			defer func() {
 				if deferredErr != nil {
@@ -1501,11 +1500,11 @@ func (c *Container) mountStorage() (_ string, deferredErr error) {
 		overlayDest := c.runtime.RunRoot()
 		contentDir, err := overlay.GenerateStructure(overlayDest, c.ID(), "rootfs", c.RootUID(), c.RootGID())
 		if err != nil {
-			return "", errors.Wrapf(err, "rootfs-overlay: failed to create TempDir in the %s directory", overlayDest)
+			return "", fmt.Errorf("rootfs-overlay: failed to create TempDir in the %s directory: %w", overlayDest, err)
 		}
 		overlayMount, err := overlay.Mount(contentDir, c.config.Rootfs, overlayDest, c.RootUID(), c.RootGID(), c.runtime.store.GraphOptions())
 		if err != nil {
-			return "", errors.Wrapf(err, "rootfs-overlay: creating overlay failed %q", c.config.Rootfs)
+			return "", fmt.Errorf("rootfs-overlay: creating overlay failed %q: %w", c.config.Rootfs, err)
 		}
 
 		// Seems fuse-overlayfs is not present
@@ -1515,7 +1514,7 @@ func (c *Container) mountStorage() (_ string, deferredErr error) {
 			mountOpts := label.FormatMountLabel(strings.Join(overlayMount.Options, ","), c.MountLabel())
 			err = mount.Mount("overlay", overlayMount.Source, overlayMount.Type, mountOpts)
 			if err != nil {
-				return "", errors.Wrapf(err, "rootfs-overlay: creating overlay failed %q from native overlay", c.config.Rootfs)
+				return "", fmt.Errorf("rootfs-overlay: creating overlay failed %q from native overlay: %w", c.config.Rootfs, err)
 			}
 		}
 
@@ -1526,7 +1525,7 @@ func (c *Container) mountStorage() (_ string, deferredErr error) {
 		}
 		hostUID, hostGID, err := butil.GetHostIDs(util.IDtoolsToRuntimeSpec(c.config.IDMappings.UIDMap), util.IDtoolsToRuntimeSpec(c.config.IDMappings.GIDMap), uint32(execUser.Uid), uint32(execUser.Gid))
 		if err != nil {
-			return "", errors.Wrap(err, "unable to get host UID and host GID")
+			return "", fmt.Errorf("unable to get host UID and host GID: %w", err)
 		}
 
 		//note: this should not be recursive, if using external rootfs users should be responsible on configuring ownership.
@@ -1553,30 +1552,30 @@ func (c *Container) mountStorage() (_ string, deferredErr error) {
 
 	dirfd, err := unix.Open(mountPoint, unix.O_RDONLY|unix.O_PATH, 0)
 	if err != nil {
-		return "", errors.Wrap(err, "open mount point")
+		return "", fmt.Errorf("open mount point: %w", err)
 	}
 	defer unix.Close(dirfd)
 
 	err = unix.Mkdirat(dirfd, "etc", 0755)
 	if err != nil && !os.IsExist(err) {
-		return "", errors.Wrap(err, "create /etc")
+		return "", fmt.Errorf("create /etc: %w", err)
 	}
 	// If the etc directory was created, chown it to root in the container
 	if err == nil && (rootUID != 0 || rootGID != 0) {
 		err = unix.Fchownat(dirfd, "etc", rootUID, rootGID, unix.AT_SYMLINK_NOFOLLOW)
 		if err != nil {
-			return "", errors.Wrap(err, "chown /etc")
+			return "", fmt.Errorf("chown /etc: %w", err)
 		}
 	}
 
 	etcInTheContainerPath, err := securejoin.SecureJoin(mountPoint, "etc")
 	if err != nil {
-		return "", errors.Wrap(err, "resolve /etc in the container")
+		return "", fmt.Errorf("resolve /etc in the container: %w", err)
 	}
 
 	etcInTheContainerFd, err := unix.Open(etcInTheContainerPath, unix.O_RDONLY|unix.O_PATH, 0)
 	if err != nil {
-		return "", errors.Wrap(err, "open /etc in the container")
+		return "", fmt.Errorf("open /etc in the container: %w", err)
 	}
 	defer unix.Close(etcInTheContainerFd)
 
@@ -1584,13 +1583,13 @@ func (c *Container) mountStorage() (_ string, deferredErr error) {
 	// create it, so that mount command within the container will work.
 	err = unix.Symlinkat("/proc/mounts", etcInTheContainerFd, "mtab")
 	if err != nil && !os.IsExist(err) {
-		return "", errors.Wrap(err, "creating /etc/mtab symlink")
+		return "", fmt.Errorf("creating /etc/mtab symlink: %w", err)
 	}
 	// If the symlink was created, then also chown it to root in the container
 	if err == nil && (rootUID != 0 || rootGID != 0) {
 		err = unix.Fchownat(etcInTheContainerFd, "mtab", rootUID, rootGID, unix.AT_SYMLINK_NOFOLLOW)
 		if err != nil {
-			return "", errors.Wrap(err, "chown /etc/mtab")
+			return "", fmt.Errorf("chown /etc/mtab: %w", err)
 		}
 	}
 
@@ -1624,17 +1623,17 @@ func (c *Container) mountNamedVolume(v *ContainerNamedVolume, mountpoint string)
 	logrus.Debugf("Going to mount named volume %s", v.Name)
 	vol, err := c.runtime.state.Volume(v.Name)
 	if err != nil {
-		return nil, errors.Wrapf(err, "error retrieving named volume %s for container %s", v.Name, c.ID())
+		return nil, fmt.Errorf("error retrieving named volume %s for container %s: %w", v.Name, c.ID(), err)
 	}
 
 	if vol.config.LockID == c.config.LockID {
-		return nil, errors.Wrapf(define.ErrWillDeadlock, "container %s and volume %s share lock ID %d", c.ID(), vol.Name(), c.config.LockID)
+		return nil, fmt.Errorf("container %s and volume %s share lock ID %d: %w", c.ID(), vol.Name(), c.config.LockID, define.ErrWillDeadlock)
 	}
 	vol.lock.Lock()
 	defer vol.lock.Unlock()
 	if vol.needsMount() {
 		if err := vol.mount(); err != nil {
-			return nil, errors.Wrapf(err, "error mounting volume %s for container %s", vol.Name(), c.ID())
+			return nil, fmt.Errorf("error mounting volume %s for container %s: %w", vol.Name(), c.ID(), err)
 		}
 	}
 	// The volume may need a copy-up. Check the state.
@@ -1647,7 +1646,7 @@ func (c *Container) mountNamedVolume(v *ContainerNamedVolume, mountpoint string)
 
 		srcDir, err := securejoin.SecureJoin(mountpoint, v.Dest)
 		if err != nil {
-			return nil, errors.Wrapf(err, "error calculating destination path to copy up container %s volume %s", c.ID(), vol.Name())
+			return nil, fmt.Errorf("error calculating destination path to copy up container %s volume %s: %w", c.ID(), vol.Name(), err)
 		}
 		// Do a manual stat on the source directory to verify existence.
 		// Skip the rest if it exists.
@@ -1658,7 +1657,7 @@ func (c *Container) mountNamedVolume(v *ContainerNamedVolume, mountpoint string)
 				// up.
 				return vol, nil
 			}
-			return nil, errors.Wrapf(err, "error identifying source directory for copy up into volume %s", vol.Name())
+			return nil, fmt.Errorf("error identifying source directory for copy up into volume %s: %w", vol.Name(), err)
 		}
 		// If it's not a directory we're mounting over it.
 		if !srcStat.IsDir() {
@@ -1670,7 +1669,7 @@ func (c *Container) mountNamedVolume(v *ContainerNamedVolume, mountpoint string)
 		// RHBZ#1928643
 		srcContents, err := ioutil.ReadDir(srcDir)
 		if err != nil {
-			return nil, errors.Wrapf(err, "error reading contents of source directory for copy up into volume %s", vol.Name())
+			return nil, fmt.Errorf("error reading contents of source directory for copy up into volume %s: %w", vol.Name(), err)
 		}
 		if len(srcContents) == 0 {
 			return vol, nil
@@ -1680,7 +1679,7 @@ func (c *Container) mountNamedVolume(v *ContainerNamedVolume, mountpoint string)
 		volMount := vol.mountPoint()
 		contents, err := ioutil.ReadDir(volMount)
 		if err != nil {
-			return nil, errors.Wrapf(err, "error listing contents of volume %s mountpoint when copying up from container %s", vol.Name(), c.ID())
+			return nil, fmt.Errorf("error listing contents of volume %s mountpoint when copying up from container %s: %w", vol.Name(), c.ID(), err)
 		}
 		if len(contents) > 0 {
 			// The volume is not empty. It was likely modified
@@ -1722,11 +1721,11 @@ func (c *Container) mountNamedVolume(v *ContainerNamedVolume, mountpoint string)
 			if err2 != nil {
 				logrus.Errorf("Streaming contents of container %s directory for volume copy-up: %v", c.ID(), err2)
 			}
-			return nil, errors.Wrapf(err, "error copying up to volume %s", vol.Name())
+			return nil, fmt.Errorf("error copying up to volume %s: %w", vol.Name(), err)
 		}
 
 		if err := <-errChan; err != nil {
-			return nil, errors.Wrapf(err, "error streaming container content for copy up into volume %s", vol.Name())
+			return nil, fmt.Errorf("error streaming container content for copy up into volume %s: %w", vol.Name(), err)
 		}
 	}
 	return vol, nil
@@ -1792,7 +1791,7 @@ func (c *Container) cleanupStorage() error {
 		// error
 		// We still want to be able to kick the container out of the
 		// state
-		if errors.Cause(err) == storage.ErrNotAContainer || errors.Cause(err) == storage.ErrContainerUnknown || errors.Cause(err) == storage.ErrLayerNotMounted {
+		if errors.Is(err, storage.ErrNotAContainer) || errors.Is(err, storage.ErrContainerUnknown) || errors.Is(err, storage.ErrLayerNotMounted) {
 			logrus.Errorf("Storage for container %s has been removed", c.ID())
 		} else {
 			if cleanupErr != nil {
@@ -1809,7 +1808,7 @@ func (c *Container) cleanupStorage() error {
 			if cleanupErr != nil {
 				logrus.Errorf("Unmounting container %s: %v", c.ID(), cleanupErr)
 			}
-			cleanupErr = errors.Wrapf(err, "error retrieving named volume %s for container %s", v.Name, c.ID())
+			cleanupErr = fmt.Errorf("error retrieving named volume %s for container %s: %w", v.Name, c.ID(), err)
 
 			// We need to try and unmount every volume, so continue
 			// if they fail.
@@ -1822,7 +1821,7 @@ func (c *Container) cleanupStorage() error {
 				if cleanupErr != nil {
 					logrus.Errorf("Unmounting container %s: %v", c.ID(), cleanupErr)
 				}
-				cleanupErr = errors.Wrapf(err, "error unmounting volume %s for container %s", vol.Name(), c.ID())
+				cleanupErr = fmt.Errorf("error unmounting volume %s for container %s: %w", vol.Name(), c.ID(), err)
 			}
 			vol.lock.Unlock()
 		}
@@ -1847,7 +1846,7 @@ func (c *Container) cleanup(ctx context.Context) error {
 
 	// Clean up network namespace, if present
 	if err := c.cleanupNetwork(); err != nil {
-		lastError = errors.Wrapf(err, "error removing container %s network", c.ID())
+		lastError = fmt.Errorf("error removing container %s network: %w", c.ID(), err)
 	}
 
 	// cleanup host entry if it is shared
@@ -1885,7 +1884,7 @@ func (c *Container) cleanup(ctx context.Context) error {
 		if lastError != nil {
 			logrus.Errorf("Unmounting container %s storage: %v", c.ID(), err)
 		} else {
-			lastError = errors.Wrapf(err, "error unmounting container %s storage", c.ID())
+			lastError = fmt.Errorf("error unmounting container %s storage: %w", c.ID(), err)
 		}
 	}
 
@@ -1969,11 +1968,11 @@ func (c *Container) stopPodIfNeeded(ctx context.Context) error {
 // hooks.
 func (c *Container) delete(ctx context.Context) error {
 	if err := c.ociRuntime.DeleteContainer(c); err != nil {
-		return errors.Wrapf(err, "error removing container %s from runtime", c.ID())
+		return fmt.Errorf("error removing container %s from runtime: %w", c.ID(), err)
 	}
 
 	if err := c.postDeleteHooks(ctx); err != nil {
-		return errors.Wrapf(err, "container %s poststop hooks", c.ID())
+		return fmt.Errorf("container %s poststop hooks: %w", c.ID(), err)
 	}
 
 	return nil
@@ -2032,7 +2031,7 @@ func (c *Container) writeStringToRundir(destFile, contents string) (string, erro
 	destFileName := filepath.Join(c.state.RunDir, destFile)
 
 	if err := os.Remove(destFileName); err != nil && !os.IsNotExist(err) {
-		return "", errors.Wrapf(err, "error removing %s for container %s", destFile, c.ID())
+		return "", fmt.Errorf("error removing %s for container %s: %w", destFile, c.ID(), err)
 	}
 
 	if err := writeStringToPath(destFileName, contents, c.config.MountLabel, c.RootUID(), c.RootGID()); err != nil {
@@ -2066,22 +2065,22 @@ func (c *Container) saveSpec(spec *spec.Spec) error {
 	jsonPath := filepath.Join(c.bundlePath(), "config.json")
 	if _, err := os.Stat(jsonPath); err != nil {
 		if !os.IsNotExist(err) {
-			return errors.Wrapf(err, "error doing stat on container %s spec", c.ID())
+			return fmt.Errorf("error doing stat on container %s spec: %w", c.ID(), err)
 		}
 		// The spec does not exist, we're fine
 	} else {
 		// The spec exists, need to remove it
 		if err := os.Remove(jsonPath); err != nil {
-			return errors.Wrapf(err, "error replacing runtime spec for container %s", c.ID())
+			return fmt.Errorf("error replacing runtime spec for container %s: %w", c.ID(), err)
 		}
 	}
 
 	fileJSON, err := json.Marshal(spec)
 	if err != nil {
-		return errors.Wrapf(err, "error exporting runtime spec for container %s to JSON", c.ID())
+		return fmt.Errorf("error exporting runtime spec for container %s to JSON: %w", c.ID(), err)
 	}
 	if err := ioutil.WriteFile(jsonPath, fileJSON, 0644); err != nil {
-		return errors.Wrapf(err, "error writing runtime spec JSON for container %s to disk", c.ID())
+		return fmt.Errorf("error writing runtime spec JSON for container %s to disk: %w", c.ID(), err)
 	}
 
 	logrus.Debugf("Created OCI spec for container %s at %s", c.ID(), jsonPath)
@@ -2144,19 +2143,19 @@ func (c *Container) setupOCIHooks(ctx context.Context, config *spec.Spec) (map[s
 // mount mounts the container's root filesystem
 func (c *Container) mount() (string, error) {
 	if c.state.State == define.ContainerStateRemoving {
-		return "", errors.Wrapf(define.ErrCtrStateInvalid, "cannot mount container %s as it is being removed", c.ID())
+		return "", fmt.Errorf("cannot mount container %s as it is being removed: %w", c.ID(), define.ErrCtrStateInvalid)
 	}
 
 	mountPoint, err := c.runtime.storageService.MountContainerImage(c.ID())
 	if err != nil {
-		return "", errors.Wrapf(err, "error mounting storage for container %s", c.ID())
+		return "", fmt.Errorf("error mounting storage for container %s: %w", c.ID(), err)
 	}
 	mountPoint, err = filepath.EvalSymlinks(mountPoint)
 	if err != nil {
-		return "", errors.Wrapf(err, "error resolving storage path for container %s", c.ID())
+		return "", fmt.Errorf("error resolving storage path for container %s: %w", c.ID(), err)
 	}
 	if err := os.Chown(mountPoint, c.RootUID(), c.RootGID()); err != nil {
-		return "", errors.Wrapf(err, "cannot chown %s to %d:%d", mountPoint, c.RootUID(), c.RootGID())
+		return "", fmt.Errorf("cannot chown %s to %d:%d: %w", mountPoint, c.RootUID(), c.RootGID(), err)
 	}
 	return mountPoint, nil
 }
@@ -2165,7 +2164,7 @@ func (c *Container) mount() (string, error) {
 func (c *Container) unmount(force bool) error {
 	// Also unmount storage
 	if _, err := c.runtime.storageService.UnmountContainerImage(c.ID(), force); err != nil {
-		return errors.Wrapf(err, "error unmounting container %s root filesystem", c.ID())
+		return fmt.Errorf("error unmounting container %s root filesystem: %w", c.ID(), err)
 	}
 
 	return nil
@@ -2178,11 +2177,11 @@ func (c *Container) unmount(force bool) error {
 // Returns nil if safe to remove, or an error describing why it's unsafe if not.
 func (c *Container) checkReadyForRemoval() error {
 	if c.state.State == define.ContainerStateUnknown {
-		return errors.Wrapf(define.ErrCtrStateInvalid, "container %s is in invalid state", c.ID())
+		return fmt.Errorf("container %s is in invalid state: %w", c.ID(), define.ErrCtrStateInvalid)
 	}
 
 	if c.ensureState(define.ContainerStateRunning, define.ContainerStatePaused) && !c.IsInfra() {
-		return errors.Wrapf(define.ErrCtrStateInvalid, "cannot remove container %s as it is %s - running or paused containers cannot be removed without force", c.ID(), c.state.State.String())
+		return fmt.Errorf("cannot remove container %s as it is %s - running or paused containers cannot be removed without force: %w", c.ID(), c.state.State.String(), define.ErrCtrStateInvalid)
 	}
 
 	// Check exec sessions
@@ -2191,7 +2190,7 @@ func (c *Container) checkReadyForRemoval() error {
 		return err
 	}
 	if len(sessions) != 0 {
-		return errors.Wrapf(define.ErrCtrStateInvalid, "cannot remove container %s as it has active exec sessions", c.ID())
+		return fmt.Errorf("cannot remove container %s as it has active exec sessions: %w", c.ID(), define.ErrCtrStateInvalid)
 	}
 
 	return nil
@@ -2294,7 +2293,7 @@ func (c *Container) checkExitFile() error {
 			return nil
 		}
 
-		return errors.Wrapf(err, "error running stat on container %s exit file", c.ID())
+		return fmt.Errorf("error running stat on container %s exit file: %w", c.ID(), err)
 	}
 
 	// Alright, it exists. Transition to Stopped state.
@@ -2332,11 +2331,11 @@ func (c *Container) extractSecretToCtrStorage(secr *ContainerSecret) error {
 
 	hostUID, hostGID, err := butil.GetHostIDs(util.IDtoolsToRuntimeSpec(c.config.IDMappings.UIDMap), util.IDtoolsToRuntimeSpec(c.config.IDMappings.GIDMap), secr.UID, secr.GID)
 	if err != nil {
-		return errors.Wrap(err, "unable to extract secret")
+		return fmt.Errorf("unable to extract secret: %w", err)
 	}
 	err = ioutil.WriteFile(secretFile, data, 0644)
 	if err != nil {
-		return errors.Wrapf(err, "unable to create %s", secretFile)
+		return fmt.Errorf("unable to create %s: %w", secretFile, err)
 	}
 	if err := os.Lchown(secretFile, int(hostUID), int(hostGID)); err != nil {
 		return err

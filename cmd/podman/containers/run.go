@@ -15,7 +15,6 @@ import (
 	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/containers/podman/v4/pkg/specgen"
 	"github.com/containers/podman/v4/pkg/specgenutil"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
@@ -134,7 +133,7 @@ func run(cmd *cobra.Command, args []string) error {
 
 	for fd := 3; fd < int(3+runOpts.PreserveFDs); fd++ {
 		if !rootless.IsFdInherited(fd) {
-			return errors.Errorf("file descriptor %d is not available - the preserve-fds option requires that file descriptors must be passed", fd)
+			return fmt.Errorf("file descriptor %d is not available - the preserve-fds option requires that file descriptors must be passed", fd)
 		}
 	}
 
@@ -142,7 +141,7 @@ func run(cmd *cobra.Command, args []string) error {
 	rawImageName := ""
 	if !cliVals.RootFS {
 		rawImageName = args[0]
-		name, err := PullImage(args[0], cliVals)
+		name, err := PullImage(args[0], &cliVals)
 		if err != nil {
 			return err
 		}
@@ -165,7 +164,7 @@ func run(cmd *cobra.Command, args []string) error {
 	// If attach is set, clear stdin/stdout/stderr and only attach requested
 	if cmd.Flag("attach").Changed {
 		if passthrough {
-			return errors.Wrapf(define.ErrInvalidArg, "cannot specify --attach with --log-driver=passthrough")
+			return fmt.Errorf("cannot specify --attach with --log-driver=passthrough: %w", define.ErrInvalidArg)
 		}
 		runOpts.OutputStream = nil
 		runOpts.ErrorStream = nil
@@ -182,7 +181,7 @@ func run(cmd *cobra.Command, args []string) error {
 			case "stdin":
 				runOpts.InputStream = os.Stdin
 			default:
-				return errors.Wrapf(define.ErrInvalidArg, "invalid stream %q for --attach - must be one of stdin, stdout, or stderr", stream)
+				return fmt.Errorf("invalid stream %q for --attach - must be one of stdin, stdout, or stderr: %w", stream, define.ErrInvalidArg)
 			}
 		}
 	}
@@ -193,6 +192,9 @@ func run(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	s.RawImageName = rawImageName
+	s.ImageOS = cliVals.OS
+	s.ImageArch = cliVals.Arch
+	s.ImageVariant = cliVals.Variant
 	s.Passwd = &runOpts.Passwd
 	runOpts.Spec = s
 

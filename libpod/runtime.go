@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -40,7 +41,6 @@ import (
 	"github.com/containers/storage/pkg/unshare"
 	"github.com/docker/docker/pkg/namesgenerator"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -146,7 +146,7 @@ func SetXdgDirs() error {
 		}
 	}
 	if err := os.Setenv("XDG_RUNTIME_DIR", runtimeDir); err != nil {
-		return errors.Wrapf(err, "cannot set XDG_RUNTIME_DIR")
+		return fmt.Errorf("cannot set XDG_RUNTIME_DIR: %w", err)
 	}
 
 	if rootless.IsRootless() && os.Getenv("DBUS_SESSION_BUS_ADDRESS") == "" {
@@ -163,7 +163,7 @@ func SetXdgDirs() error {
 			return err
 		}
 		if err := os.Setenv("XDG_CONFIG_HOME", cfgHomeDir); err != nil {
-			return errors.Wrapf(err, "cannot set XDG_CONFIG_HOME")
+			return fmt.Errorf("cannot set XDG_CONFIG_HOME: %w", err)
 		}
 	}
 	return nil
@@ -214,7 +214,7 @@ func newRuntimeFromConfig(conf *config.Config, options ...RuntimeOption) (*Runti
 	// Overwrite config with user-given configuration options
 	for _, opt := range options {
 		if err := opt(runtime); err != nil {
-			return nil, errors.Wrapf(err, "error configuring runtime")
+			return nil, fmt.Errorf("error configuring runtime: %w", err)
 		}
 	}
 
@@ -225,12 +225,12 @@ func newRuntimeFromConfig(conf *config.Config, options ...RuntimeOption) (*Runti
 		}
 		os.Exit(1)
 		return nil
-	}); err != nil && errors.Cause(err) != shutdown.ErrHandlerExists {
+	}); err != nil && !errors.Is(err, shutdown.ErrHandlerExists) {
 		logrus.Errorf("Registering shutdown handler for libpod: %v", err)
 	}
 
 	if err := shutdown.Start(); err != nil {
-		return nil, errors.Wrapf(err, "error starting shutdown signal handler")
+		return nil, fmt.Errorf("error starting shutdown signal handler: %w", err)
 	}
 
 	if err := makeRuntime(runtime); err != nil {
@@ -256,10 +256,10 @@ func getLockManager(runtime *Runtime) (lock.Manager, error) {
 		lockPath := filepath.Join(runtime.config.Engine.TmpDir, "locks")
 		manager, err = lock.OpenFileLockManager(lockPath)
 		if err != nil {
-			if os.IsNotExist(errors.Cause(err)) {
+			if errors.Is(err, os.ErrNotExist) {
 				manager, err = lock.NewFileLockManager(lockPath)
 				if err != nil {
-					return nil, errors.Wrapf(err, "failed to get new file lock manager")
+					return nil, fmt.Errorf("failed to get new file lock manager: %w", err)
 				}
 			} else {
 				return nil, err
@@ -275,19 +275,19 @@ func getLockManager(runtime *Runtime) (lock.Manager, error) {
 		manager, err = lock.OpenSHMLockManager(lockPath, runtime.config.Engine.NumLocks)
 		if err != nil {
 			switch {
-			case os.IsNotExist(errors.Cause(err)):
+			case errors.Is(err, os.ErrNotExist):
 				manager, err = lock.NewSHMLockManager(lockPath, runtime.config.Engine.NumLocks)
 				if err != nil {
-					return nil, errors.Wrapf(err, "failed to get new shm lock manager")
+					return nil, fmt.Errorf("failed to get new shm lock manager: %w", err)
 				}
-			case errors.Cause(err) == syscall.ERANGE && runtime.doRenumber:
+			case errors.Is(err, syscall.ERANGE) && runtime.doRenumber:
 				logrus.Debugf("Number of locks does not match - removing old locks")
 
 				// ERANGE indicates a lock numbering mismatch.
 				// Since we're renumbering, this is not fatal.
 				// Remove the earlier set of locks and recreate.
 				if err := os.Remove(filepath.Join("/dev/shm", lockPath)); err != nil {
-					return nil, errors.Wrapf(err, "error removing libpod locks file %s", lockPath)
+					return nil, fmt.Errorf("error removing libpod locks file %s: %w", lockPath, err)
 				}
 
 				manager, err = lock.NewSHMLockManager(lockPath, runtime.config.Engine.NumLocks)
@@ -299,7 +299,7 @@ func getLockManager(runtime *Runtime) (lock.Manager, error) {
 			}
 		}
 	default:
-		return nil, errors.Wrapf(define.ErrInvalidArg, "unknown lock type %s", runtime.config.Engine.LockType)
+		return nil, fmt.Errorf("unknown lock type %s: %w", runtime.config.Engine.LockType, define.ErrInvalidArg)
 	}
 	return manager, nil
 }
@@ -315,17 +315,17 @@ func makeRuntime(runtime *Runtime) (retErr error) {
 	runtime.conmonPath = cPath
 
 	if runtime.noStore && runtime.doReset {
-		return errors.Wrapf(define.ErrInvalidArg, "cannot perform system reset if runtime is not creating a store")
+		return fmt.Errorf("cannot perform system reset if runtime is not creating a store: %w", define.ErrInvalidArg)
 	}
 	if runtime.doReset && runtime.doRenumber {
-		return errors.Wrapf(define.ErrInvalidArg, "cannot perform system reset while renumbering locks")
+		return fmt.Errorf("cannot perform system reset while renumbering locks: %w", define.ErrInvalidArg)
 	}
 
 	// Make the static files directory if it does not exist
 	if err := os.MkdirAll(runtime.config.Engine.StaticDir, 0700); err != nil {
 		// The directory is allowed to exist
-		if !os.IsExist(err) {
-			return errors.Wrap(err, "error creating runtime static files directory")
+		if !errors.Is(err, os.ErrExist) {
+			return fmt.Errorf("error creating runtime static files directory: %w", err)
 		}
 	}
 
@@ -337,9 +337,9 @@ func makeRuntime(runtime *Runtime) (retErr error) {
 	// package.
 	switch runtime.config.Engine.StateType {
 	case config.InMemoryStateStore:
-		return errors.Wrapf(define.ErrInvalidArg, "in-memory state is currently disabled")
+		return fmt.Errorf("in-memory state is currently disabled: %w", define.ErrInvalidArg)
 	case config.SQLiteStateStore:
-		return errors.Wrapf(define.ErrInvalidArg, "SQLite state is currently disabled")
+		return fmt.Errorf("SQLite state is currently disabled: %w", define.ErrInvalidArg)
 	case config.BoltDBStateStore:
 		dbPath := filepath.Join(runtime.config.Engine.StaticDir, "bolt_state.db")
 
@@ -349,7 +349,7 @@ func makeRuntime(runtime *Runtime) (retErr error) {
 		}
 		runtime.state = state
 	default:
-		return errors.Wrapf(define.ErrInvalidArg, "unrecognized state type passed (%v)", runtime.config.Engine.StateType)
+		return fmt.Errorf("unrecognized state type passed (%v): %w", runtime.config.Engine.StateType, define.ErrInvalidArg)
 	}
 
 	// Grab config from the database so we can reset some defaults
@@ -369,7 +369,7 @@ func makeRuntime(runtime *Runtime) (retErr error) {
 			}
 		}
 
-		return errors.Wrapf(err, "error retrieving runtime configuration from database")
+		return fmt.Errorf("error retrieving runtime configuration from database: %w", err)
 	}
 
 	runtime.mergeDBConfig(dbConfig)
@@ -412,7 +412,7 @@ func makeRuntime(runtime *Runtime) (retErr error) {
 	}
 
 	if err := runtime.state.SetNamespace(runtime.config.Engine.Namespace); err != nil {
-		return errors.Wrapf(err, "error setting libpod namespace in state")
+		return fmt.Errorf("error setting libpod namespace in state: %w", err)
 	}
 	logrus.Debugf("Set libpod namespace to %q", runtime.config.Engine.Namespace)
 
@@ -468,16 +468,16 @@ func makeRuntime(runtime *Runtime) (retErr error) {
 	// Create the tmpDir
 	if err := os.MkdirAll(runtime.config.Engine.TmpDir, 0751); err != nil {
 		// The directory is allowed to exist
-		if !os.IsExist(err) {
-			return errors.Wrap(err, "error creating tmpdir")
+		if !errors.Is(err, os.ErrExist) {
+			return fmt.Errorf("error creating tmpdir: %w", err)
 		}
 	}
 
 	// Create events log dir
 	if err := os.MkdirAll(filepath.Dir(runtime.config.Engine.EventsLogFilePath), 0700); err != nil {
 		// The directory is allowed to exist
-		if !os.IsExist(err) {
-			return errors.Wrap(err, "error creating events dirs")
+		if !errors.Is(err, os.ErrExist) {
+			return fmt.Errorf("error creating events dirs: %w", err)
 		}
 	}
 
@@ -514,7 +514,7 @@ func makeRuntime(runtime *Runtime) (retErr error) {
 		} else {
 			ociRuntime, ok := runtime.ociRuntimes[runtime.config.Engine.OCIRuntime]
 			if !ok {
-				return errors.Wrapf(define.ErrInvalidArg, "default OCI runtime %q not found", runtime.config.Engine.OCIRuntime)
+				return fmt.Errorf("default OCI runtime %q not found: %w", runtime.config.Engine.OCIRuntime, define.ErrInvalidArg)
 			}
 			runtime.defaultOCIRuntime = ociRuntime
 		}
@@ -523,19 +523,19 @@ func makeRuntime(runtime *Runtime) (retErr error) {
 
 	// Do we have at least one valid OCI runtime?
 	if len(runtime.ociRuntimes) == 0 {
-		return errors.Wrapf(define.ErrInvalidArg, "no OCI runtime has been configured")
+		return fmt.Errorf("no OCI runtime has been configured: %w", define.ErrInvalidArg)
 	}
 
 	// Do we have a default runtime?
 	if runtime.defaultOCIRuntime == nil {
-		return errors.Wrapf(define.ErrInvalidArg, "no default OCI runtime was configured")
+		return fmt.Errorf("no default OCI runtime was configured: %w", define.ErrInvalidArg)
 	}
 
 	// Make the per-boot files directory if it does not exist
 	if err := os.MkdirAll(runtime.config.Engine.TmpDir, 0755); err != nil {
 		// The directory is allowed to exist
-		if !os.IsExist(err) {
-			return errors.Wrapf(err, "error creating runtime temporary files directory")
+		if !errors.Is(err, os.ErrExist) {
+			return fmt.Errorf("error creating runtime temporary files directory: %w", err)
 		}
 	}
 
@@ -556,7 +556,7 @@ func makeRuntime(runtime *Runtime) (retErr error) {
 	runtimeAliveFile := filepath.Join(runtime.config.Engine.TmpDir, "alive")
 	aliveLock, err := storage.GetLockfile(runtimeAliveLock)
 	if err != nil {
-		return errors.Wrapf(err, "error acquiring runtime init lock")
+		return fmt.Errorf("error acquiring runtime init lock: %w", err)
 	}
 	// Acquire the lock and hold it until we return
 	// This ensures that no two processes will be in runtime.refresh at once
@@ -586,7 +586,7 @@ func makeRuntime(runtime *Runtime) (retErr error) {
 			aliveLock.Unlock() // Unlock to avoid deadlock as BecomeRootInUserNS will reexec.
 			pausePid, err := util.GetRootlessPauseProcessPidPathGivenDir(runtime.config.Engine.TmpDir)
 			if err != nil {
-				return errors.Wrapf(err, "could not get pause process pid file path")
+				return fmt.Errorf("could not get pause process pid file path: %w", err)
 			}
 			became, ret, err := rootless.BecomeRootInUserNS(pausePid)
 			if err != nil {
@@ -607,10 +607,10 @@ func makeRuntime(runtime *Runtime) (retErr error) {
 		// This will trigger on first use as well, but refreshing an
 		// empty state only creates a single file
 		// As such, it's not really a performance concern
-		if os.IsNotExist(err) {
+		if errors.Is(err, os.ErrNotExist) {
 			doRefresh = true
 		} else {
-			return errors.Wrapf(err, "error reading runtime status file %s", runtimeAliveFile)
+			return fmt.Errorf("error reading runtime status file %s: %w", runtimeAliveFile, err)
 		}
 	}
 
@@ -704,14 +704,14 @@ func findConmon(conmonPaths []string) (string, error) {
 	}
 
 	if foundOutdatedConmon {
-		return "", errors.Wrapf(define.ErrConmonOutdated,
-			"please update to v%d.%d.%d or later",
-			conmonMinMajorVersion, conmonMinMinorVersion, conmonMinPatchVersion)
+		return "", fmt.Errorf(
+			"please update to v%d.%d.%d or later: %w",
+			conmonMinMajorVersion, conmonMinMinorVersion, conmonMinPatchVersion, define.ErrConmonOutdated)
 	}
 
-	return "", errors.Wrapf(define.ErrInvalidArg,
-		"could not find a working conmon binary (configured options: %v)",
-		conmonPaths)
+	return "", fmt.Errorf(
+		"could not find a working conmon binary (configured options: %v): %w",
+		conmonPaths, define.ErrInvalidArg)
 }
 
 // probeConmon calls conmon --version and verifies it is a new enough version for
@@ -728,11 +728,11 @@ func probeConmon(conmonBinary string) error {
 
 	matches := r.FindStringSubmatch(out.String())
 	if len(matches) != 4 {
-		return errors.Wrap(err, define.ErrConmonVersionFormat)
+		return fmt.Errorf("%v: %w", define.ErrConmonVersionFormat, err)
 	}
 	major, err := strconv.Atoi(matches[1])
 	if err != nil {
-		return errors.Wrap(err, define.ErrConmonVersionFormat)
+		return fmt.Errorf("%v: %w", define.ErrConmonVersionFormat, err)
 	}
 	if major < conmonMinMajorVersion {
 		return define.ErrConmonOutdated
@@ -743,7 +743,7 @@ func probeConmon(conmonBinary string) error {
 
 	minor, err := strconv.Atoi(matches[2])
 	if err != nil {
-		return errors.Wrap(err, define.ErrConmonVersionFormat)
+		return fmt.Errorf("%v: %w", define.ErrConmonVersionFormat, err)
 	}
 	if minor < conmonMinMinorVersion {
 		return define.ErrConmonOutdated
@@ -754,7 +754,7 @@ func probeConmon(conmonBinary string) error {
 
 	patch, err := strconv.Atoi(matches[3])
 	if err != nil {
-		return errors.Wrap(err, define.ErrConmonVersionFormat)
+		return fmt.Errorf("%v: %w", define.ErrConmonVersionFormat, err)
 	}
 	if patch < conmonMinPatchVersion {
 		return define.ErrConmonOutdated
@@ -798,7 +798,7 @@ func (r *Runtime) GetConfig() (*config.Config, error) {
 
 	// Copy so the caller won't be able to modify the actual config
 	if err := JSONDeepCopy(rtConfig, config); err != nil {
-		return nil, errors.Wrapf(err, "error copying config")
+		return nil, fmt.Errorf("error copying config: %w", err)
 	}
 
 	return config, nil
@@ -909,7 +909,7 @@ func (r *Runtime) Shutdown(force bool) error {
 
 		// Note that the libimage runtime shuts down the store.
 		if err := r.libimageRuntime.Shutdown(force); err != nil {
-			lastError = errors.Wrapf(err, "error shutting down container storage")
+			lastError = fmt.Errorf("error shutting down container storage: %w", err)
 		}
 	}
 	if err := r.state.Close(); err != nil {
@@ -941,15 +941,15 @@ func (r *Runtime) refresh(alivePath string) error {
 	// Containers, pods, and volumes must also reacquire their locks.
 	ctrs, err := r.state.AllContainers()
 	if err != nil {
-		return errors.Wrapf(err, "error retrieving all containers from state")
+		return fmt.Errorf("error retrieving all containers from state: %w", err)
 	}
 	pods, err := r.state.AllPods()
 	if err != nil {
-		return errors.Wrapf(err, "error retrieving all pods from state")
+		return fmt.Errorf("error retrieving all pods from state: %w", err)
 	}
 	vols, err := r.state.AllVolumes()
 	if err != nil {
-		return errors.Wrapf(err, "error retrieving all volumes from state")
+		return fmt.Errorf("error retrieving all volumes from state: %w", err)
 	}
 	// No locks are taken during pod, volume, and container refresh.
 	// Furthermore, the pod/volume/container refresh() functions are not
@@ -977,7 +977,7 @@ func (r *Runtime) refresh(alivePath string) error {
 	// Create a file indicating the runtime is alive and ready
 	file, err := os.OpenFile(alivePath, os.O_RDONLY|os.O_CREATE, 0644)
 	if err != nil {
-		return errors.Wrap(err, "error creating runtime status file")
+		return fmt.Errorf("error creating runtime status file: %w", err)
 	}
 	defer file.Close()
 
@@ -998,13 +998,13 @@ func (r *Runtime) generateName() (string, error) {
 		// Make sure container with this name does not exist
 		if _, err := r.state.LookupContainer(name); err == nil {
 			continue
-		} else if errors.Cause(err) != define.ErrNoSuchCtr {
+		} else if !errors.Is(err, define.ErrNoSuchCtr) {
 			return "", err
 		}
 		// Make sure pod with this name does not exist
 		if _, err := r.state.LookupPod(name); err == nil {
 			continue
-		} else if errors.Cause(err) != define.ErrNoSuchPod {
+		} else if !errors.Is(err, define.ErrNoSuchPod) {
 			return "", err
 		}
 		return name, nil
@@ -1194,19 +1194,21 @@ func (r *Runtime) reloadStorageConf() error {
 	return nil
 }
 
-// getVolumePlugin gets a specific volume plugin given its name.
-func (r *Runtime) getVolumePlugin(name string) (*plugin.VolumePlugin, error) {
+// getVolumePlugin gets a specific volume plugin.
+func (r *Runtime) getVolumePlugin(volConfig *VolumeConfig) (*plugin.VolumePlugin, error) {
 	// There is no plugin for local.
+	name := volConfig.Driver
+	timeout := volConfig.Timeout
 	if name == define.VolumeDriverLocal || name == "" {
 		return nil, nil
 	}
 
 	pluginPath, ok := r.config.Engine.VolumePlugins[name]
 	if !ok {
-		return nil, errors.Wrapf(define.ErrMissingPlugin, "no volume plugin with name %s available", name)
+		return nil, fmt.Errorf("no volume plugin with name %s available: %w", name, define.ErrMissingPlugin)
 	}
 
-	return plugin.GetVolumePlugin(name, pluginPath)
+	return plugin.GetVolumePlugin(name, pluginPath, timeout)
 }
 
 // GetSecretsStorageDir returns the directory that the secrets manager should take

@@ -33,8 +33,8 @@ var _ = Describe("Podman untag", func() {
 	})
 
 	It("podman untag all", func() {
-		podmanTest.AddImageToRWStore(cirros)
-		tags := []string{cirros, "registry.com/foo:bar", "localhost/foo:bar"}
+		podmanTest.AddImageToRWStore(CIRROS_IMAGE)
+		tags := []string{CIRROS_IMAGE, "registry.com/foo:bar", "localhost/foo:bar"}
 
 		cmd := []string{"tag"}
 		cmd = append(cmd, tags...)
@@ -50,7 +50,7 @@ var _ = Describe("Podman untag", func() {
 		}
 
 		// No arguments -> remove all tags.
-		session = podmanTest.Podman([]string{"untag", cirros})
+		session = podmanTest.Podman([]string{"untag", CIRROS_IMAGE})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
@@ -63,7 +63,7 @@ var _ = Describe("Podman untag", func() {
 	})
 
 	It("podman tag/untag - tag normalization", func() {
-		podmanTest.AddImageToRWStore(cirros)
+		podmanTest.AddImageToRWStore(CIRROS_IMAGE)
 
 		tests := []struct {
 			tag, normalized string
@@ -77,7 +77,7 @@ var _ = Describe("Podman untag", func() {
 		// Make sure that the user input is normalized correctly for
 		// `podman tag` and `podman untag`.
 		for _, tt := range tests {
-			session := podmanTest.Podman([]string{"tag", cirros, tt.tag})
+			session := podmanTest.Podman([]string{"tag", CIRROS_IMAGE, tt.tag})
 			session.WaitWithDefaultTimeout()
 			Expect(session).Should(Exit(0))
 
@@ -85,7 +85,7 @@ var _ = Describe("Podman untag", func() {
 			session.WaitWithDefaultTimeout()
 			Expect(session).Should(Exit(0))
 
-			session = podmanTest.Podman([]string{"untag", cirros, tt.tag})
+			session = podmanTest.Podman([]string{"untag", CIRROS_IMAGE, tt.tag})
 			session.WaitWithDefaultTimeout()
 			Expect(session).Should(Exit(0))
 

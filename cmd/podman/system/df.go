@@ -78,11 +78,11 @@ func printSummary(cmd *cobra.Command, reports *entities.SystemDfReport) error {
 		}
 	}
 	imageSummary := dfSummary{
-		Type:        "Images",
-		Total:       len(reports.Images),
-		Active:      active,
-		size:        size,
-		reclaimable: reclaimable,
+		Type:           "Images",
+		Total:          len(reports.Images),
+		Active:         active,
+		RawSize:        size,
+		RawReclaimable: reclaimable,
 	}
 	dfSummaries = append(dfSummaries, &imageSummary)
 
@@ -100,11 +100,11 @@ func printSummary(cmd *cobra.Command, reports *entities.SystemDfReport) error {
 		conSize += c.RWSize
 	}
 	containerSummary := dfSummary{
-		Type:        "Containers",
-		Total:       len(reports.Containers),
-		Active:      conActive,
-		size:        conSize,
-		reclaimable: conReclaimable,
+		Type:           "Containers",
+		Total:          len(reports.Containers),
+		Active:         conActive,
+		RawSize:        conSize,
+		RawReclaimable: conReclaimable,
 	}
 	dfSummaries = append(dfSummaries, &containerSummary)
 
@@ -120,11 +120,11 @@ func printSummary(cmd *cobra.Command, reports *entities.SystemDfReport) error {
 		volumesReclaimable += v.ReclaimableSize
 	}
 	volumeSummary := dfSummary{
-		Type:        "Local Volumes",
-		Total:       len(reports.Volumes),
-		Active:      activeVolumes,
-		size:        volumesSize,
-		reclaimable: volumesReclaimable,
+		Type:           "Local Volumes",
+		Total:          len(reports.Volumes),
+		Active:         activeVolumes,
+		RawSize:        volumesSize,
+		RawReclaimable: volumesReclaimable,
 	}
 	dfSummaries = append(dfSummaries, &volumeSummary)
 
@@ -277,22 +277,22 @@ func (d *dfVolume) Size() string {
 }
 
 type dfSummary struct {
-	Type        string
-	Total       int
-	Active      int
-	size        int64
-	reclaimable int64
+	Type           string
+	Total          int
+	Active         int
+	RawSize        int64 `json:"Size"`
+	RawReclaimable int64 `json:"Reclaimable"`
 }
 
 func (d *dfSummary) Size() string {
-	return units.HumanSize(float64(d.size))
+	return units.HumanSize(float64(d.RawSize))
 }
 
 func (d *dfSummary) Reclaimable() string {
 	percent := 0
 	// make sure to check this to prevent div by zero problems
-	if d.size > 0 {
-		percent = int(math.Round(float64(d.reclaimable) / float64(d.size) * float64(100)))
+	if d.RawSize > 0 {
+		percent = int(math.Round(float64(d.RawReclaimable) / float64(d.RawSize) * float64(100)))
 	}
-	return fmt.Sprintf("%s (%d%%)", units.HumanSize(float64(d.reclaimable)), percent)
+	return fmt.Sprintf("%s (%d%%)", units.HumanSize(float64(d.RawReclaimable)), percent)
 }

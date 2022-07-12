@@ -100,12 +100,12 @@ var _ = Describe("Podman push", func() {
 			Skip("No registry image for ppc64le")
 		}
 		if rootless.IsRootless() {
-			err := podmanTest.RestoreArtifact(registry)
+			err := podmanTest.RestoreArtifact(REGISTRY_IMAGE)
 			Expect(err).ToNot(HaveOccurred())
 		}
 		lock := GetPortLock("5000")
 		defer lock.Unlock()
-		session := podmanTest.Podman([]string{"run", "-d", "--name", "registry", "-p", "5000:5000", registry, "/entrypoint.sh", "/etc/docker/registry/config.yml"})
+		session := podmanTest.Podman([]string{"run", "-d", "--name", "registry", "-p", "5000:5000", REGISTRY_IMAGE, "/entrypoint.sh", "/etc/docker/registry/config.yml"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
@@ -156,7 +156,7 @@ var _ = Describe("Podman push", func() {
 		}
 		lock := GetPortLock("5000")
 		defer lock.Unlock()
-		session := podmanTest.Podman([]string{"run", "--entrypoint", "htpasswd", registry, "-Bbn", "podmantest", "test"})
+		session := podmanTest.Podman([]string{"run", "--entrypoint", "htpasswd", REGISTRY_IMAGE, "-Bbn", "podmantest", "test"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
@@ -173,7 +173,7 @@ var _ = Describe("Podman push", func() {
 			strings.Join([]string{authPath, "/auth"}, ":"), "-e", "REGISTRY_AUTH=htpasswd", "-e",
 			"REGISTRY_AUTH_HTPASSWD_REALM=Registry Realm", "-e", "REGISTRY_AUTH_HTPASSWD_PATH=/auth/htpasswd",
 			"-v", strings.Join([]string{certPath, "/certs"}, ":"), "-e", "REGISTRY_HTTP_TLS_CERTIFICATE=/certs/domain.crt",
-			"-e", "REGISTRY_HTTP_TLS_KEY=/certs/domain.key", registry})
+			"-e", "REGISTRY_HTTP_TLS_KEY=/certs/domain.key", REGISTRY_IMAGE})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 

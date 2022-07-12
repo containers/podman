@@ -176,7 +176,14 @@ func namespaceOptions(s *specgen.SpecGenerator, rt *libpod.Runtime, pod *libpod.
 		if pod == nil || infraCtr == nil {
 			return nil, errNoInfra
 		}
-		toReturn = append(toReturn, libpod.WithUTSNSFrom(infraCtr))
+		if pod.NamespaceMode(spec.UTSNamespace) == host {
+			// adding infra as a nsCtr is not what we want to do when uts == host
+			// this leads the new ctr to try to add an ns path which is should not in this mode
+			logrus.Debug("pod has host uts, not adding infra as a nsCtr")
+			s.UtsNS = specgen.Namespace{NSMode: specgen.Host}
+		} else {
+			toReturn = append(toReturn, libpod.WithUTSNSFrom(infraCtr))
+		}
 	case specgen.FromContainer:
 		utsCtr, err := rt.LookupContainer(s.UtsNS.Value)
 		if err != nil {

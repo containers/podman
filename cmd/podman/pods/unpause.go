@@ -24,9 +24,7 @@ var (
 		Args: func(cmd *cobra.Command, args []string) error {
 			return validate.CheckAllLatestAndIDFile(cmd, args, false, "")
 		},
-		// TODO have a function which shows only pods which could be unpaused
-		// for now show all
-		ValidArgsFunction: common.AutocompletePods,
+		ValidArgsFunction: common.AutoCompletePodsPause,
 		Example: `podman pod unpause podID1 podID2
   podman pod unpause --all
   podman pod unpause --latest`,
@@ -43,7 +41,7 @@ func init() {
 		Parent:  podCmd,
 	})
 	flags := unpauseCommand.Flags()
-	flags.BoolVarP(&unpauseOptions.All, "all", "a", false, "Pause all running pods")
+	flags.BoolVarP(&unpauseOptions.All, "all", "a", false, "Unpause all running pods")
 	validate.AddLatestFlag(unpauseCommand, &unpauseOptions.Latest)
 }
 

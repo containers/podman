@@ -1,6 +1,7 @@
 package manifest
 
 import (
+	"fmt"
 	"io/ioutil"
 
 	"github.com/containers/common/pkg/auth"
@@ -11,7 +12,6 @@ import (
 	"github.com/containers/podman/v4/cmd/podman/utils"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/util"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -88,10 +88,10 @@ func push(cmd *cobra.Command, args []string) error {
 	listImageSpec := args[0]
 	destSpec := args[1]
 	if listImageSpec == "" {
-		return errors.Errorf(`invalid image name "%s"`, listImageSpec)
+		return fmt.Errorf(`invalid image name "%s"`, listImageSpec)
 	}
 	if destSpec == "" {
-		return errors.Errorf(`invalid destination "%s"`, destSpec)
+		return fmt.Errorf(`invalid destination "%s"`, destSpec)
 	}
 
 	if manifestPushOpts.CredentialsCLI != "" {

@@ -12,7 +12,6 @@ import (
 	"github.com/containers/podman/v4/cmd/podman/utils"
 	"github.com/containers/podman/v4/cmd/podman/validate"
 	"github.com/containers/podman/v4/pkg/domain/entities"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -102,7 +101,7 @@ func stop(cmd *cobra.Command, args []string) error {
 	for _, cidFile := range cidFiles {
 		content, err := ioutil.ReadFile(cidFile)
 		if err != nil {
-			return errors.Wrap(err, "error reading CIDFile")
+			return fmt.Errorf("error reading CIDFile: %w", err)
 		}
 		id := strings.Split(string(content), "\n")[0]
 		args = append(args, id)

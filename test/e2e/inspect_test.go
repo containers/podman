@@ -182,8 +182,8 @@ var _ = Describe("Podman inspect", func() {
 	})
 
 	It("podman inspect shows healthcheck on docker image", func() {
-		podmanTest.AddImageToRWStore(healthcheck)
-		session := podmanTest.Podman([]string{"inspect", "--format=json", healthcheck})
+		podmanTest.AddImageToRWStore(HEALTHCHECK_IMAGE)
+		session := podmanTest.Podman([]string{"inspect", "--format=json", HEALTHCHECK_IMAGE})
 		session.WaitWithDefaultTimeout()
 		imageData := session.InspectImageJSON()
 		Expect(imageData[0].HealthCheck.Timeout).To(BeNumerically("==", 3000000000))

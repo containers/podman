@@ -1,10 +1,11 @@
 package libpod
 
 import (
+	"fmt"
+
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/libpod/layers"
 	"github.com/containers/storage/pkg/archive"
-	"github.com/pkg/errors"
 )
 
 var initInodes = map[string]bool{
@@ -76,5 +77,5 @@ func (r *Runtime) getLayerID(id string, diffType define.DiffType) (string, error
 		}
 		lastErr = err
 	}
-	return "", errors.Wrapf(lastErr, "%s not found", id)
+	return "", fmt.Errorf("%s not found: %w", id, lastErr)
 }

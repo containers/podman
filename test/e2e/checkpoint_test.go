@@ -339,7 +339,7 @@ var _ = Describe("Podman checkpoint", func() {
 	It("podman checkpoint container with established tcp connections", func() {
 		// Broken on Ubuntu.
 		SkipIfNotFedora()
-		localRunString := getRunString([]string{redis})
+		localRunString := getRunString([]string{REDIS_IMAGE})
 		session := podmanTest.Podman(localRunString)
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
@@ -1052,7 +1052,7 @@ var _ = Describe("Podman checkpoint", func() {
 	It("podman checkpoint and restore container with different port mappings", func() {
 		randomPort, err := utils.GetRandomPort()
 		Expect(err).ShouldNot(HaveOccurred())
-		localRunString := getRunString([]string{"-p", fmt.Sprintf("%d:6379", randomPort), "--rm", redis})
+		localRunString := getRunString([]string{"-p", fmt.Sprintf("%d:6379", randomPort), "--rm", REDIS_IMAGE})
 		session := podmanTest.Podman(localRunString)
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
@@ -1360,11 +1360,11 @@ var _ = Describe("Podman checkpoint", func() {
 	})
 
 	It("podman checkpoint and restore containers with --print-stats", func() {
-		session1 := podmanTest.Podman(getRunString([]string{redis}))
+		session1 := podmanTest.Podman(getRunString([]string{REDIS_IMAGE}))
 		session1.WaitWithDefaultTimeout()
 		Expect(session1).Should(Exit(0))
 
-		session2 := podmanTest.Podman(getRunString([]string{redis, "top"}))
+		session2 := podmanTest.Podman(getRunString([]string{REDIS_IMAGE, "top"}))
 		session2.WaitWithDefaultTimeout()
 		Expect(session2).Should(Exit(0))
 

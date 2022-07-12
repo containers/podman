@@ -2,6 +2,7 @@ package pods
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -13,7 +14,6 @@ import (
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/specgenutil"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -122,11 +122,7 @@ func setExitCode(force bool, errs []error) {
 	}
 
 	for _, err := range errs {
-		cause := errors.Cause(err)
-		switch {
-		case cause == define.ErrNoSuchPod:
-			noSuchPodErrors = true
-		case strings.Contains(cause.Error(), define.ErrNoSuchPod.Error()):
+		if errors.Is(err, define.ErrNoSuchPod) || strings.Contains(err.Error(), define.ErrNoSuchPod.Error()) {
 			noSuchPodErrors = true
 		}
 	}

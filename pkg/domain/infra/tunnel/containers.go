@@ -2,6 +2,7 @@ package tunnel
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -23,7 +24,6 @@ import (
 	"github.com/containers/podman/v4/pkg/specgen"
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/containers/storage/types"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -64,7 +64,7 @@ func (ic *ContainerEngine) ContainerPause(ctx context.Context, namesOrIds []stri
 	reports := make([]*entities.PauseUnpauseReport, 0, len(ctrs))
 	for _, c := range ctrs {
 		err := containers.Pause(ic.ClientCtx, c.ID, nil)
-		if err != nil && options.All && errors.Cause(err).Error() == define.ErrCtrStateInvalid.Error() {
+		if err != nil && options.All && strings.Contains(err.Error(), define.ErrCtrStateInvalid.Error()) {
 			logrus.Debugf("Container %s is not running", c.ID)
 			continue
 		}
@@ -81,7 +81,7 @@ func (ic *ContainerEngine) ContainerUnpause(ctx context.Context, namesOrIds []st
 	}
 	for _, c := range ctrs {
 		err := containers.Unpause(ic.ClientCtx, c.ID, nil)
-		if err != nil && options.All && errors.Cause(err).Error() == define.ErrCtrStateInvalid.Error() {
+		if err != nil && options.All && strings.Contains(err.Error(), define.ErrCtrStateInvalid.Error()) {
 			logrus.Debugf("Container %s is not paused", c.ID)
 			continue
 		}
@@ -111,11 +111,11 @@ func (ic *ContainerEngine) ContainerStop(ctx context.Context, namesOrIds []strin
 		}
 		if err = containers.Stop(ic.ClientCtx, c.ID, options); err != nil {
 			// These first two are considered non-fatal under the right conditions
-			if errors.Cause(err).Error() == define.ErrCtrStopped.Error() {
+			if strings.Contains(err.Error(), define.ErrCtrStopped.Error()) {
 				logrus.Debugf("Container %s is already stopped", c.ID)
 				reports = append(reports, &report)
 				continue
-			} else if opts.All && errors.Cause(err).Error() == define.ErrCtrStateInvalid.Error() {
+			} else if opts.All && strings.Contains(err.Error(), define.ErrCtrStateInvalid.Error()) {
 				logrus.Debugf("Container %s is not running, could not stop", c.ID)
 				reports = append(reports, &report)
 				continue
@@ -146,7 +146,7 @@ func (ic *ContainerEngine) ContainerKill(ctx context.Context, namesOrIds []strin
 	reports := make([]*entities.KillReport, 0, len(ctrs))
 	for _, c := range ctrs {
 		err := containers.Kill(ic.ClientCtx, c.ID, options)
-		if err != nil && opts.All && errors.Cause(err).Error() == define.ErrCtrStateInvalid.Error() {
+		if err != nil && opts.All && strings.Contains(err.Error(), define.ErrCtrStateInvalid.Error()) {
 			logrus.Debugf("Container %s is not running", c.ID)
 			continue
 		}
@@ -258,7 +258,7 @@ func (ic *ContainerEngine) ContainerInspect(ctx context.Context, namesOrIds []st
 				return nil, nil, err
 			}
 			if errModel.ResponseCode == 404 {
-				errs = append(errs, errors.Errorf("no such container %q", name))
+				errs = append(errs, fmt.Errorf("no such container %q", name))
 				continue
 			}
 			return nil, nil, err
@@ -291,7 +291,7 @@ func (ic *ContainerEngine) ContainerCommit(ctx context.Context, nameOrID string,
 	if len(opts.ImageName) > 0 {
 		ref, err := reference.Parse(opts.ImageName)
 		if err != nil {
-			return nil, errors.Wrapf(err, "error parsing reference %q", opts.ImageName)
+			return nil, fmt.Errorf("error parsing reference %q: %w", opts.ImageName, err)
 		}
 		if t, ok := ref.(reference.Tagged); ok {
 			tag = t.Tag()
@@ -300,7 +300,7 @@ func (ic *ContainerEngine) ContainerCommit(ctx context.Context, nameOrID string,
 			repo = r.Name()
 		}
 		if len(repo) < 1 {
-			return nil, errors.Errorf("invalid image name %q", opts.ImageName)
+			return nil, fmt.Errorf("invalid image name %q", opts.ImageName)
 		}
 	}
 	options := new(containers.CommitOptions).WithAuthor(opts.Author).WithChanges(opts.Changes).WithComment(opts.Message).WithSquash(opts.Squash)
@@ -502,7 +502,7 @@ func (ic *ContainerEngine) ContainerAttach(ctx context.Context, nameOrID string,
 	}
 	ctr := ctrs[0]
 	if ctr.State != define.ContainerStateRunning.String() {
-		return errors.Errorf("you can only attach to running containers")
+		return fmt.Errorf("you can only attach to running containers")
 	}
 	options := new(containers.AttachOptions).WithStream(true).WithDetachKeys(opts.DetachKeys)
 	return containers.Attach(ic.ClientCtx, nameOrID, opts.Stdin, opts.Stdout, opts.Stderr, nil, options)
@@ -695,7 +695,7 @@ func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []stri
 				report.ExitCode = define.ExitCode(report.Err)
 				report.Err = err
 				reports = append(reports, &report)
-				return reports, errors.Wrapf(report.Err, "unable to start container %s", name)
+				return reports, fmt.Errorf("unable to start container %s: %w", name, report.Err)
 			}
 			if ctr.AutoRemove {
 				// Defer the removal, so we can return early if needed and
@@ -739,7 +739,7 @@ func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []stri
 					reports, err := containers.Remove(ic.ClientCtx, ctr.ID, rmOptions)
 					logIfRmError(ctr.ID, err, reports)
 				}
-				report.Err = errors.Wrapf(err, "unable to start container %q", name)
+				report.Err = fmt.Errorf("unable to start container %q: %w", name, err)
 				report.ExitCode = define.ExitCode(err)
 				reports = append(reports, &report)
 				continue
@@ -899,7 +899,7 @@ func (ic *ContainerEngine) ContainerInit(ctx context.Context, namesOrIds []strin
 		err := containers.ContainerInit(ic.ClientCtx, ctr.ID, nil)
 		// When using all, it is NOT considered an error if a container
 		// has already been init'd.
-		if err != nil && options.All && strings.Contains(errors.Cause(err).Error(), define.ErrCtrStateInvalid.Error()) {
+		if err != nil && options.All && strings.Contains(err.Error(), define.ErrCtrStateInvalid.Error()) {
 			err = nil
 		}
 		reports = append(reports, &entities.ContainerInitReport{

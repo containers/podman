@@ -2,7 +2,10 @@ package libpod
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
+
+	"errors"
 
 	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/podman/v4/libpod"
@@ -13,7 +16,6 @@ import (
 	"github.com/containers/podman/v4/pkg/domain/infra/abi"
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/gorilla/schema"
-	"github.com/pkg/errors"
 )
 
 func CreateNetwork(w http.ResponseWriter, r *http.Request) {
@@ -25,7 +27,7 @@ func CreateNetwork(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	network := types.Network{}
 	if err := json.NewDecoder(r.Body).Decode(&network); err != nil {
-		utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "failed to decode request JSON payload"))
+		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("failed to decode request JSON payload: %w", err))
 		return
 	}
 
@@ -52,7 +54,7 @@ func ListNetworks(w http.ResponseWriter, r *http.Request) {
 	filterMap, err := util.PrepareFilters(r)
 	if err != nil {
 		utils.Error(w, http.StatusInternalServerError,
-			errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
+			fmt.Errorf("failed to parse parameters for %s: %w", r.URL.String(), err))
 		return
 	}
 
@@ -83,7 +85,7 @@ func RemoveNetwork(w http.ResponseWriter, r *http.Request) {
 	}
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
 		utils.Error(w, http.StatusInternalServerError,
-			errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
+			fmt.Errorf("failed to parse parameters for %s: %w", r.URL.String(), err))
 		return
 	}
 	name := utils.GetName(r)
@@ -99,7 +101,7 @@ func RemoveNetwork(w http.ResponseWriter, r *http.Request) {
 	}
 	if reports[0].Err != nil {
 		// If the network cannot be found, we return a 404.
-		if errors.Cause(reports[0].Err) == define.ErrNoSuchNetwork {
+		if errors.Is(reports[0].Err, define.ErrNoSuchNetwork) {
 			utils.Error(w, http.StatusNotFound, reports[0].Err)
 			return
 		}
@@ -142,18 +144,18 @@ func Connect(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	var netConnect entities.NetworkConnectOptions
 	if err := json.NewDecoder(r.Body).Decode(&netConnect); err != nil {
-		utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "failed to decode request JSON payload"))
+		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("failed to decode request JSON payload: %w", err))
 		return
 	}
 	name := utils.GetName(r)
 
 	err := runtime.ConnectContainerToNetwork(netConnect.Container, name, netConnect.PerNetworkOptions)
 	if err != nil {
-		if errors.Cause(err) == define.ErrNoSuchCtr {
+		if errors.Is(err, define.ErrNoSuchCtr) {
 			utils.ContainerNotFound(w, netConnect.Container, err)
 			return
 		}
-		if errors.Cause(err) == define.ErrNoSuchNetwork {
+		if errors.Is(err, define.ErrNoSuchNetwork) {
 			utils.Error(w, http.StatusNotFound, err)
 			return
 		}

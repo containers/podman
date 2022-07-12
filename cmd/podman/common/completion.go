@@ -520,6 +520,16 @@ func AutocompletePodsRunning(cmd *cobra.Command, args []string, toComplete strin
 	return getPods(cmd, toComplete, completeDefault, "running", "degraded")
 }
 
+// AutoCompletePodsPause - Autocomplete only paused pod names
+// When a pod has a few containers paused, that ends up in degraded state
+// So autocomplete degraded pod names as well
+func AutoCompletePodsPause(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	if !validCurrentCmdLine(cmd, args, toComplete) {
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	}
+	return getPods(cmd, toComplete, completeDefault, "paused", "degraded")
+}
+
 // AutocompleteForKube - Autocomplete all Podman objects supported by kube generate.
 func AutocompleteForKube(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	if !validCurrentCmdLine(cmd, args, toComplete) {

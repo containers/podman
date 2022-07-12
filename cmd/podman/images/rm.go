@@ -1,6 +1,7 @@
 package images
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/containers/podman/v4/cmd/podman/common"
@@ -8,7 +9,6 @@ import (
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/errorhandling"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
@@ -63,10 +63,10 @@ func imageRemoveFlagSet(flags *pflag.FlagSet) {
 
 func rm(cmd *cobra.Command, args []string) error {
 	if len(args) < 1 && !imageOpts.All {
-		return errors.Errorf("image name or ID must be specified")
+		return errors.New("image name or ID must be specified")
 	}
 	if len(args) > 0 && imageOpts.All {
-		return errors.Errorf("when using the --all switch, you may not pass any images names or IDs")
+		return errors.New("when using the --all switch, you may not pass any images names or IDs")
 	}
 
 	// Note: certain image-removal errors are non-fatal.  Hence, the report

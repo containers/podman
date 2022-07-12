@@ -511,14 +511,14 @@ var _ = Describe("Podman network", func() {
 			interval *= 2
 		}
 
-		top := podmanTest.Podman([]string{"run", "-dt", "--name=web", "--network=" + netName, "--network-alias=web1", "--network-alias=web2", nginx})
+		top := podmanTest.Podman([]string{"run", "-dt", "--name=web", "--network=" + netName, "--network-alias=web1", "--network-alias=web2", NGINX_IMAGE})
 		top.WaitWithDefaultTimeout()
 		Expect(top).Should(Exit(0))
 		interval = 250 * time.Millisecond
 		// Wait for the nginx service to be running
 		for i := 0; i < 6; i++ {
 			// Test curl against the container's name
-			c1 := podmanTest.Podman([]string{"run", "--dns-search", "dns.podman", "--network=" + netName, nginx, "curl", "web"})
+			c1 := podmanTest.Podman([]string{"run", "--dns-search", "dns.podman", "--network=" + netName, NGINX_IMAGE, "curl", "web"})
 			c1.WaitWithDefaultTimeout()
 			worked = c1.ExitCode() == 0
 			if worked {
@@ -531,12 +531,12 @@ var _ = Describe("Podman network", func() {
 
 		// Nginx is now running so no need to do a loop
 		// Test against the first alias
-		c2 := podmanTest.Podman([]string{"run", "--dns-search", "dns.podman", "--network=" + netName, nginx, "curl", "web1"})
+		c2 := podmanTest.Podman([]string{"run", "--dns-search", "dns.podman", "--network=" + netName, NGINX_IMAGE, "curl", "web1"})
 		c2.WaitWithDefaultTimeout()
 		Expect(c2).Should(Exit(0))
 
 		// Test against the second alias
-		c3 := podmanTest.Podman([]string{"run", "--dns-search", "dns.podman", "--network=" + netName, nginx, "curl", "web2"})
+		c3 := podmanTest.Podman([]string{"run", "--dns-search", "dns.podman", "--network=" + netName, NGINX_IMAGE, "curl", "web2"})
 		c3.WaitWithDefaultTimeout()
 		Expect(c3).Should(Exit(0))
 	})
@@ -562,14 +562,14 @@ var _ = Describe("Podman network", func() {
 			interval *= 2
 		}
 
-		top := podmanTest.Podman([]string{"run", "-dt", "--name=web", "--network=" + netName, "--network-alias=web1", "--network-alias=web2", nginx})
+		top := podmanTest.Podman([]string{"run", "-dt", "--name=web", "--network=" + netName, "--network-alias=web1", "--network-alias=web2", NGINX_IMAGE})
 		top.WaitWithDefaultTimeout()
 		Expect(top).Should(Exit(0))
 		interval = 250 * time.Millisecond
 		// Wait for the nginx service to be running
 		for i := 0; i < 6; i++ {
 			// Test curl against the container's name
-			c1 := podmanTest.Podman([]string{"run", "--dns-search", "dns.podman", "--network=" + netName, nginx, "curl", "web"})
+			c1 := podmanTest.Podman([]string{"run", "--dns-search", "dns.podman", "--network=" + netName, NGINX_IMAGE, "curl", "web"})
 			c1.WaitWithDefaultTimeout()
 			worked = c1.ExitCode() == 0
 			if worked {
@@ -582,12 +582,12 @@ var _ = Describe("Podman network", func() {
 
 		// Nginx is now running so no need to do a loop
 		// Test against the first alias
-		c2 := podmanTest.Podman([]string{"run", "--dns-search", "dns.podman", "--network=" + netName, nginx, "curl", "web1"})
+		c2 := podmanTest.Podman([]string{"run", "--dns-search", "dns.podman", "--network=" + netName, NGINX_IMAGE, "curl", "web1"})
 		c2.WaitWithDefaultTimeout()
 		Expect(c2).Should(Exit(0))
 
 		// Test against the second alias
-		c3 := podmanTest.Podman([]string{"run", "--dns-search", "dns.podman", "--network=" + netName, nginx, "curl", "web2"})
+		c3 := podmanTest.Podman([]string{"run", "--dns-search", "dns.podman", "--network=" + netName, NGINX_IMAGE, "curl", "web2"})
 		c3.WaitWithDefaultTimeout()
 		Expect(c3).Should(Exit(0))
 	})

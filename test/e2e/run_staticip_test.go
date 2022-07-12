@@ -101,7 +101,7 @@ var _ = Describe("Podman run with --ip flag", func() {
 
 	It("Podman run two containers with the same IP", func() {
 		ip := GetRandomIPAddress()
-		result := podmanTest.Podman([]string{"run", "-d", "--name", "nginx", "--ip", ip, nginx})
+		result := podmanTest.Podman([]string{"run", "-d", "--name", "nginx", "--ip", ip, NGINX_IMAGE})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
 

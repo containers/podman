@@ -2,6 +2,7 @@ package containers
 
 import (
 	"context"
+	"errors"
 	"os"
 
 	"github.com/containers/common/pkg/completion"
@@ -9,7 +10,6 @@ import (
 	"github.com/containers/podman/v4/cmd/podman/parse"
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/containers/podman/v4/pkg/domain/entities"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 )
@@ -70,7 +70,7 @@ func export(cmd *cobra.Command, args []string) error {
 	if len(exportOpts.Output) == 0 {
 		file := os.Stdout
 		if term.IsTerminal(int(file.Fd())) {
-			return errors.Errorf("refusing to export to terminal. Use -o flag or redirect")
+			return errors.New("refusing to export to terminal. Use -o flag or redirect")
 		}
 		exportOpts.Output = "/dev/stdout"
 	} else if err := parse.ValidateFileName(exportOpts.Output); err != nil {

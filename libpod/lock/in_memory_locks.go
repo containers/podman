@@ -1,9 +1,9 @@
 package lock
 
 import (
+	"errors"
+	"fmt"
 	"sync"
-
-	"github.com/pkg/errors"
 )
 
 // Mutex holds a single mutex and whether it has been allocated.
@@ -49,7 +49,7 @@ type InMemoryManager struct {
 // of locks.
 func NewInMemoryManager(numLocks uint32) (Manager, error) {
 	if numLocks == 0 {
-		return nil, errors.Errorf("must provide a non-zero number of locks")
+		return nil, errors.New("must provide a non-zero number of locks")
 	}
 
 	manager := new(InMemoryManager)
@@ -78,13 +78,13 @@ func (m *InMemoryManager) AllocateLock() (Locker, error) {
 		}
 	}
 
-	return nil, errors.Errorf("all locks have been allocated")
+	return nil, errors.New("all locks have been allocated")
 }
 
 // RetrieveLock retrieves a lock from the manager.
 func (m *InMemoryManager) RetrieveLock(id uint32) (Locker, error) {
 	if id >= m.numLocks {
-		return nil, errors.Errorf("given lock ID %d is too large - this manager only supports lock indexes up to %d", id, m.numLocks-1)
+		return nil, fmt.Errorf("given lock ID %d is too large - this manager only supports lock indexes up to %d", id, m.numLocks-1)
 	}
 
 	return m.locks[id], nil
@@ -94,11 +94,11 @@ func (m *InMemoryManager) RetrieveLock(id uint32) (Locker, error) {
 // use) and returns it.
 func (m *InMemoryManager) AllocateAndRetrieveLock(id uint32) (Locker, error) {
 	if id >= m.numLocks {
-		return nil, errors.Errorf("given lock ID %d is too large - this manager only supports lock indexes up to %d", id, m.numLocks)
+		return nil, fmt.Errorf("given lock ID %d is too large - this manager only supports lock indexes up to %d", id, m.numLocks)
 	}
 
 	if m.locks[id].allocated {
-		return nil, errors.Errorf("given lock ID %d is already in use, cannot reallocate", id)
+		return nil, fmt.Errorf("given lock ID %d is already in use, cannot reallocate", id)
 	}
 
 	m.locks[id].allocated = true

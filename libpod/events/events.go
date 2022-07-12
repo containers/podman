@@ -2,16 +2,16 @@ package events
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
 	"github.com/containers/storage/pkg/stringid"
-	"github.com/pkg/errors"
 )
 
 // ErrNoJournaldLogging indicates that there is no journald logging
 // supported (requires libsystemd)
-var ErrNoJournaldLogging = errors.New("No support for journald logging")
+var ErrNoJournaldLogging = errors.New("no support for journald logging")
 
 // String returns a string representation of EventerType
 func (et EventerType) String() string {
@@ -140,7 +140,7 @@ func StringToType(name string) (Type, error) {
 	case "":
 		return "", ErrEventTypeBlank
 	}
-	return "", errors.Errorf("unknown event type %q", name)
+	return "", fmt.Errorf("unknown event type %q", name)
 }
 
 // StringToStatus converts a string to an Event Status
@@ -225,5 +225,5 @@ func StringToStatus(name string) (Status, error) {
 	case Untag.String():
 		return Untag, nil
 	}
-	return "", errors.Errorf("unknown event status %q", name)
+	return "", fmt.Errorf("unknown event status %q", name)
 }

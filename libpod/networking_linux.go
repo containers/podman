@@ -6,6 +6,7 @@ package libpod
 import (
 	"crypto/rand"
 	"crypto/sha256"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -36,7 +37,6 @@ import (
 	"github.com/containers/storage/pkg/lockfile"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/selinux/go-selinux/label"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/vishvananda/netlink"
 	"golang.org/x/sys/unix"
@@ -127,19 +127,19 @@ func (r *RootlessNetNS) Do(toRun func() error) error {
 		// this must happen inside the netns thread.
 		err := unix.Unshare(unix.CLONE_NEWNS)
 		if err != nil {
-			return errors.Wrapf(err, "cannot create a new mount namespace")
+			return fmt.Errorf("cannot create a new mount namespace: %w", err)
 		}
 
 		xdgRuntimeDir, err := util.GetRuntimeDir()
 		if err != nil {
-			return errors.Wrap(err, "could not get runtime directory")
+			return fmt.Errorf("could not get runtime directory: %w", err)
 		}
 		newXDGRuntimeDir := r.getPath(xdgRuntimeDir)
 		// 1. Mount the netns into the new run to keep them accessible.
 		// Otherwise cni setup will fail because it cannot access the netns files.
 		err = unix.Mount(xdgRuntimeDir, newXDGRuntimeDir, "none", unix.MS_BIND|unix.MS_SHARED|unix.MS_REC, "")
 		if err != nil {
-			return errors.Wrap(err, "failed to mount runtime directory for rootless netns")
+			return fmt.Errorf("failed to mount runtime directory for rootless netns: %w", err)
 		}
 
 		// 2. Also keep /run/systemd if it exists.
@@ -150,7 +150,7 @@ func (r *RootlessNetNS) Do(toRun func() error) error {
 			newRunSystemd := r.getPath(runSystemd)
 			err = unix.Mount(runSystemd, newRunSystemd, "none", unix.MS_BIND|unix.MS_REC, "")
 			if err != nil {
-				return errors.Wrap(err, "failed to mount /run/systemd directory for rootless netns")
+				return fmt.Errorf("failed to mount /run/systemd directory for rootless netns: %w", err)
 			}
 		}
 
@@ -185,7 +185,7 @@ func (r *RootlessNetNS) Do(toRun func() error) error {
 
 			fi, err := os.Lstat(path)
 			if err != nil {
-				return errors.Wrap(err, "failed to stat resolv.conf path")
+				return fmt.Errorf("failed to stat resolv.conf path: %w", err)
 			}
 
 			// no link, just continue
@@ -195,7 +195,7 @@ func (r *RootlessNetNS) Do(toRun func() error) error {
 
 			link, err := os.Readlink(path)
 			if err != nil {
-				return errors.Wrap(err, "failed to read resolv.conf symlink")
+				return fmt.Errorf("failed to read resolv.conf symlink: %w", err)
 			}
 			linkCount++
 			if filepath.IsAbs(link) {
@@ -231,25 +231,25 @@ func (r *RootlessNetNS) Do(toRun func() error) error {
 			rsr := r.getPath("/run/systemd/resolve")
 			err = unix.Mount("", rsr, "tmpfs", unix.MS_NOEXEC|unix.MS_NOSUID|unix.MS_NODEV, "")
 			if err != nil {
-				return errors.Wrapf(err, "failed to mount tmpfs on %q for rootless netns", rsr)
+				return fmt.Errorf("failed to mount tmpfs on %q for rootless netns: %w", rsr, err)
 			}
 		}
 		if strings.HasPrefix(resolvePath, "/run/") {
 			resolvePath = r.getPath(resolvePath)
 			err = os.MkdirAll(filepath.Dir(resolvePath), 0700)
 			if err != nil {
-				return errors.Wrap(err, "failed to create rootless-netns resolv.conf directory")
+				return fmt.Errorf("failed to create rootless-netns resolv.conf directory: %w", err)
 			}
 			// we want to bind mount on this file so we have to create the file first
 			_, err = os.OpenFile(resolvePath, os.O_CREATE|os.O_RDONLY, 0700)
 			if err != nil {
-				return errors.Wrap(err, "failed to create rootless-netns resolv.conf file")
+				return fmt.Errorf("failed to create rootless-netns resolv.conf file: %w", err)
 			}
 		}
 		// mount resolv.conf to make use of the host dns
 		err = unix.Mount(r.getPath("resolv.conf"), resolvePath, "none", unix.MS_BIND, "")
 		if err != nil {
-			return errors.Wrap(err, "failed to mount resolv.conf for rootless netns")
+			return fmt.Errorf("failed to mount resolv.conf for rootless netns: %w", err)
 		}
 
 		// 4. CNI plugins need access to /var/lib/cni and /run
@@ -274,14 +274,14 @@ func (r *RootlessNetNS) Do(toRun func() error) error {
 		// make sure to mount var first
 		err = unix.Mount(varDir, varTarget, "none", unix.MS_BIND, "")
 		if err != nil {
-			return errors.Wrapf(err, "failed to mount %s for rootless netns", varTarget)
+			return fmt.Errorf("failed to mount %s for rootless netns: %w", varTarget, err)
 		}
 
 		// 5. Mount the new prepared run dir to /run, it has to be recursive to keep the other bind mounts.
 		runDir := r.getPath("run")
 		err = unix.Mount(runDir, "/run", "none", unix.MS_BIND|unix.MS_REC, "")
 		if err != nil {
-			return errors.Wrap(err, "failed to mount /run for rootless netns")
+			return fmt.Errorf("failed to mount /run for rootless netns: %w", err)
 		}
 
 		// run the given function in the correct namespace
@@ -377,7 +377,7 @@ func (r *Runtime) GetRootlessNetNs(new bool) (*RootlessNetNS, error) {
 	lfile := filepath.Join(runDir, "rootless-netns.lock")
 	lock, err := lockfile.GetLockfile(lfile)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get rootless-netns lockfile")
+		return nil, fmt.Errorf("failed to get rootless-netns lockfile: %w", err)
 	}
 	lock.Lock()
 	defer func() {
@@ -391,7 +391,7 @@ func (r *Runtime) GetRootlessNetNs(new bool) (*RootlessNetNS, error) {
 	rootlessNetNsDir := filepath.Join(runDir, rootlessNetNsName)
 	err = os.MkdirAll(rootlessNetNsDir, 0700)
 	if err != nil {
-		return nil, errors.Wrap(err, "could not create rootless-netns directory")
+		return nil, fmt.Errorf("could not create rootless-netns directory: %w", err)
 	}
 
 	nsDir, err := netns.GetNSRunDir()
@@ -411,13 +411,13 @@ func (r *Runtime) GetRootlessNetNs(new bool) (*RootlessNetNS, error) {
 	if err != nil {
 		if !new {
 			// return a error if we could not get the namespace and should no create one
-			return nil, errors.Wrap(err, "error getting rootless network namespace")
+			return nil, fmt.Errorf("error getting rootless network namespace: %w", err)
 		}
 		// create a new namespace
 		logrus.Debugf("creating rootless network namespace with name %q", netnsName)
 		ns, err = netns.NewNSWithName(netnsName)
 		if err != nil {
-			return nil, errors.Wrap(err, "error creating rootless network namespace")
+			return nil, fmt.Errorf("error creating rootless network namespace: %w", err)
 		}
 		// set up slirp4netns here
 		path := r.config.Engine.NetworkCmdPath
@@ -431,7 +431,7 @@ func (r *Runtime) GetRootlessNetNs(new bool) (*RootlessNetNS, error) {
 
 		syncR, syncW, err := os.Pipe()
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to open pipe")
+			return nil, fmt.Errorf("failed to open pipe: %w", err)
 		}
 		defer errorhandling.CloseQuiet(syncR)
 		defer errorhandling.CloseQuiet(syncW)
@@ -442,7 +442,7 @@ func (r *Runtime) GetRootlessNetNs(new bool) (*RootlessNetNS, error) {
 		}
 		slirpFeatures, err := checkSlirpFlags(path)
 		if err != nil {
-			return nil, errors.Wrapf(err, "error checking slirp4netns binary %s: %q", path, err)
+			return nil, fmt.Errorf("error checking slirp4netns binary %s: %q: %w", path, err, err)
 		}
 		cmdArgs, err := createBasicSlirp4netnsCmdArgs(netOptions, slirpFeatures)
 		if err != nil {
@@ -470,25 +470,25 @@ func (r *Runtime) GetRootlessNetNs(new bool) (*RootlessNetNS, error) {
 		logPath := filepath.Join(r.config.Engine.TmpDir, "slirp4netns-rootless-netns.log")
 		logFile, err := os.Create(logPath)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to open slirp4netns log file %s", logPath)
+			return nil, fmt.Errorf("failed to open slirp4netns log file %s: %w", logPath, err)
 		}
 		defer logFile.Close()
 		// Unlink immediately the file so we won't need to worry about cleaning it up later.
 		// It is still accessible through the open fd logFile.
 		if err := os.Remove(logPath); err != nil {
-			return nil, errors.Wrapf(err, "delete file %s", logPath)
+			return nil, fmt.Errorf("delete file %s: %w", logPath, err)
 		}
 		cmd.Stdout = logFile
 		cmd.Stderr = logFile
 		if err := cmd.Start(); err != nil {
-			return nil, errors.Wrapf(err, "failed to start slirp4netns process")
+			return nil, fmt.Errorf("failed to start slirp4netns process: %w", err)
 		}
 		// create pid file for the slirp4netns process
 		// this is need to kill the process in the cleanup
 		pid := strconv.Itoa(cmd.Process.Pid)
 		err = ioutil.WriteFile(filepath.Join(rootlessNetNsDir, rootlessNetNsSilrp4netnsPidFile), []byte(pid), 0700)
 		if err != nil {
-			return nil, errors.Wrap(err, "unable to write rootless-netns slirp4netns pid file")
+			return nil, fmt.Errorf("unable to write rootless-netns slirp4netns pid file: %w", err)
 		}
 
 		defer func() {
@@ -513,17 +513,17 @@ func (r *Runtime) GetRootlessNetNs(new bool) (*RootlessNetNS, error) {
 		// build a new resolv.conf file which uses the slirp4netns dns server address
 		resolveIP, err := GetSlirp4netnsDNS(nil)
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to determine default slirp4netns DNS address")
+			return nil, fmt.Errorf("failed to determine default slirp4netns DNS address: %w", err)
 		}
 
 		if netOptions.cidr != "" {
 			_, cidr, err := net.ParseCIDR(netOptions.cidr)
 			if err != nil {
-				return nil, errors.Wrap(err, "failed to parse slirp4netns cidr")
+				return nil, fmt.Errorf("failed to parse slirp4netns cidr: %w", err)
 			}
 			resolveIP, err = GetSlirp4netnsDNS(cidr)
 			if err != nil {
-				return nil, errors.Wrapf(err, "failed to determine slirp4netns DNS address from cidr: %s", cidr.String())
+				return nil, fmt.Errorf("failed to determine slirp4netns DNS address from cidr: %s: %w", cidr.String(), err)
 			}
 		}
 
@@ -537,35 +537,35 @@ func (r *Runtime) GetRootlessNetNs(new bool) (*RootlessNetNS, error) {
 			KeepHostServers: true,
 			Nameservers:     []string{resolveIP.String()},
 		}); err != nil {
-			return nil, errors.Wrap(err, "failed to create rootless netns resolv.conf")
+			return nil, fmt.Errorf("failed to create rootless netns resolv.conf: %w", err)
 		}
 		// create cni directories to store files
 		// they will be bind mounted to the correct location in a extra mount ns
 		err = os.MkdirAll(filepath.Join(rootlessNetNsDir, persistentCNIDir), 0700)
 		if err != nil {
-			return nil, errors.Wrap(err, "could not create rootless-netns var directory")
+			return nil, fmt.Errorf("could not create rootless-netns var directory: %w", err)
 		}
 		runDir := filepath.Join(rootlessNetNsDir, "run")
 		err = os.MkdirAll(runDir, 0700)
 		if err != nil {
-			return nil, errors.Wrap(err, "could not create rootless-netns run directory")
+			return nil, fmt.Errorf("could not create rootless-netns run directory: %w", err)
 		}
 		// relabel the new run directory to the iptables /run label
 		// this is important, otherwise the iptables command will fail
 		err = label.Relabel(runDir, "system_u:object_r:iptables_var_run_t:s0", false)
 		if err != nil {
-			return nil, errors.Wrap(err, "could not create relabel rootless-netns run directory")
+			return nil, fmt.Errorf("could not create relabel rootless-netns run directory: %w", err)
 		}
 		// create systemd run directory
 		err = os.MkdirAll(filepath.Join(runDir, "systemd"), 0700)
 		if err != nil {
-			return nil, errors.Wrap(err, "could not create rootless-netns systemd directory")
+			return nil, fmt.Errorf("could not create rootless-netns systemd directory: %w", err)
 		}
 		// create the directory for the netns files at the same location
 		// relative to the rootless-netns location
 		err = os.MkdirAll(filepath.Join(rootlessNetNsDir, nsDir), 0700)
 		if err != nil {
-			return nil, errors.Wrap(err, "could not create rootless-netns netns directory")
+			return nil, fmt.Errorf("could not create rootless-netns netns directory: %w", err)
 		}
 	}
 
@@ -675,7 +675,7 @@ func (r *Runtime) configureNetNS(ctr *Container, ctrNS ns.NetNS) (status map[str
 func (r *Runtime) createNetNS(ctr *Container) (n ns.NetNS, q map[string]types.StatusBlock, retErr error) {
 	ctrNS, err := netns.NewNS()
 	if err != nil {
-		return nil, nil, errors.Wrapf(err, "error creating network namespace for container %s", ctr.ID())
+		return nil, nil, fmt.Errorf("error creating network namespace for container %s: %w", ctr.ID(), err)
 	}
 	defer func() {
 		if retErr != nil {
@@ -702,7 +702,7 @@ func (r *Runtime) setupNetNS(ctr *Container) error {
 	b := make([]byte, 16)
 
 	if _, err := rand.Reader.Read(b); err != nil {
-		return errors.Wrapf(err, "failed to generate random netns name")
+		return fmt.Errorf("failed to generate random netns name: %w", err)
 	}
 	nsPath, err := netns.GetNSRunDir()
 	if err != nil {
@@ -723,7 +723,7 @@ func (r *Runtime) setupNetNS(ctr *Container) error {
 	}
 
 	if err := unix.Mount(nsProcess, nsPath, "none", unix.MS_BIND, ""); err != nil {
-		return errors.Wrapf(err, "cannot mount %s", nsPath)
+		return fmt.Errorf("cannot mount %s: %w", nsPath, err)
 	}
 
 	netNS, err := ns.GetNS(nsPath)
@@ -742,7 +742,7 @@ func (r *Runtime) setupNetNS(ctr *Container) error {
 func joinNetNS(path string) (ns.NetNS, error) {
 	netNS, err := ns.GetNS(path)
 	if err != nil {
-		return nil, errors.Wrapf(err, "error retrieving network namespace at %s", path)
+		return nil, fmt.Errorf("error retrieving network namespace at %s: %w", path, err)
 	}
 
 	return netNS, nil
@@ -758,7 +758,7 @@ func (r *Runtime) closeNetNS(ctr *Container) error {
 	}
 
 	if err := ctr.state.NetNS.Close(); err != nil {
-		return errors.Wrapf(err, "error closing network namespace for container %s", ctr.ID())
+		return fmt.Errorf("error closing network namespace for container %s: %w", ctr.ID(), err)
 	}
 
 	ctr.state.NetNS = nil
@@ -774,8 +774,10 @@ func (r *Runtime) teardownNetwork(ns string, opts types.NetworkOptions) error {
 		return err
 	}
 	tearDownPod := func() error {
-		err := r.network.Teardown(ns, types.TeardownOptions{NetworkOptions: opts})
-		return errors.Wrapf(err, "error tearing down network namespace configuration for container %s", opts.ContainerID)
+		if err := r.network.Teardown(ns, types.TeardownOptions{NetworkOptions: opts}); err != nil {
+			return fmt.Errorf("error tearing down network namespace configuration for container %s: %w", opts.ContainerID, err)
+		}
+		return nil
 	}
 
 	// rootlessNetNS is nil if we are root
@@ -826,12 +828,12 @@ func (r *Runtime) teardownNetNS(ctr *Container) error {
 
 	// First unmount the namespace
 	if err := netns.UnmountNS(ctr.state.NetNS); err != nil {
-		return errors.Wrapf(err, "error unmounting network namespace for container %s", ctr.ID())
+		return fmt.Errorf("error unmounting network namespace for container %s: %w", ctr.ID(), err)
 	}
 
 	// Now close the open file descriptor
 	if err := ctr.state.NetNS.Close(); err != nil {
-		return errors.Wrapf(err, "error closing network namespace for container %s", ctr.ID())
+		return fmt.Errorf("error closing network namespace for container %s: %w", ctr.ID(), err)
 	}
 
 	ctr.state.NetNS = nil
@@ -864,7 +866,7 @@ func getContainerNetNS(ctr *Container) (string, *Container, error) {
 // It returns nil when it is set to bridge and an error otherwise.
 func isBridgeNetMode(n namespaces.NetworkMode) error {
 	if !n.IsBridge() {
-		return errors.Wrapf(define.ErrNetworkModeInvalid, "%q is not supported", n)
+		return fmt.Errorf("%q is not supported: %w", n, define.ErrNetworkModeInvalid)
 	}
 	return nil
 }
@@ -880,7 +882,7 @@ func isBridgeNetMode(n namespaces.NetworkMode) error {
 // extend this to stop + restart slirp4netns
 func (r *Runtime) reloadContainerNetwork(ctr *Container) (map[string]types.StatusBlock, error) {
 	if ctr.state.NetNS == nil {
-		return nil, errors.Wrapf(define.ErrCtrStateInvalid, "container %s network is not configured, refusing to reload", ctr.ID())
+		return nil, fmt.Errorf("container %s network is not configured, refusing to reload: %w", ctr.ID(), define.ErrCtrStateInvalid)
 	}
 	if err := isBridgeNetMode(ctr.config.NetMode); err != nil {
 		return nil, err
@@ -1047,7 +1049,7 @@ func (c *Container) getContainerNetworkInfo() (*define.InspectNetworkSettings, e
 	// If we have networks - handle that here
 	if len(networks) > 0 {
 		if len(networks) != len(netStatus) {
-			return nil, errors.Wrapf(define.ErrInternal, "network inspection mismatch: asked to join %d network(s) %v, but have information on %d network(s)", len(networks), networks, len(netStatus))
+			return nil, fmt.Errorf("network inspection mismatch: asked to join %d network(s) %v, but have information on %d network(s): %w", len(networks), networks, len(netStatus), define.ErrInternal)
 		}
 
 		settings.Networks = make(map[string]*define.InspectAdditionalNetwork)
@@ -1072,7 +1074,7 @@ func (c *Container) getContainerNetworkInfo() (*define.InspectNetworkSettings, e
 
 	// If not joining networks, we should have at most 1 result
 	if len(netStatus) > 1 {
-		return nil, errors.Wrapf(define.ErrInternal, "should have at most 1 network status result if not joining networks, instead got %d", len(netStatus))
+		return nil, fmt.Errorf("should have at most 1 network status result if not joining networks, instead got %d: %w", len(netStatus), define.ErrInternal)
 	}
 
 	if len(netStatus) == 1 {
@@ -1225,7 +1227,7 @@ func (c *Container) NetworkDisconnect(nameOrID, netName string, force bool) erro
 
 	_, nameExists := networks[netName]
 	if !nameExists && len(networks) > 0 {
-		return errors.Errorf("container %s is not connected to network %s", nameOrID, netName)
+		return fmt.Errorf("container %s is not connected to network %s", nameOrID, netName)
 	}
 
 	if err := c.syncContainer(); err != nil {
@@ -1244,7 +1246,7 @@ func (c *Container) NetworkDisconnect(nameOrID, netName string, force bool) erro
 	}
 
 	if c.state.NetNS == nil {
-		return errors.Wrapf(define.ErrNoNetwork, "unable to disconnect %s from %s", nameOrID, netName)
+		return fmt.Errorf("unable to disconnect %s from %s: %w", nameOrID, netName, define.ErrNoNetwork)
 	}
 
 	opts := types.NetworkOptions{
@@ -1362,7 +1364,7 @@ func (c *Container) NetworkConnect(nameOrID, netName string, netOpts types.PerNe
 		return nil
 	}
 	if c.state.NetNS == nil {
-		return errors.Wrapf(define.ErrNoNetwork, "unable to connect %s to %s", nameOrID, netName)
+		return fmt.Errorf("unable to connect %s to %s: %w", nameOrID, netName, define.ErrNoNetwork)
 	}
 
 	opts := types.NetworkOptions{

@@ -2,6 +2,7 @@ package images
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -14,7 +15,6 @@ import (
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/hashicorp/go-multierror"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -102,7 +102,7 @@ func importCon(cmd *cobra.Command, args []string) error {
 	)
 	switch len(args) {
 	case 0:
-		return errors.Errorf("need to give the path to the tarball, or must specify a tarball of '-' for stdin")
+		return errors.New("need to give the path to the tarball, or must specify a tarball of '-' for stdin")
 	case 1:
 		source = args[0]
 	case 2:
@@ -112,20 +112,20 @@ func importCon(cmd *cobra.Command, args []string) error {
 		// instead of the localhost ones
 		reference = args[1]
 	default:
-		return errors.Errorf("too many arguments. Usage TARBALL [REFERENCE]")
+		return errors.New("too many arguments. Usage TARBALL [REFERENCE]")
 	}
 
 	if source == "-" {
 		outFile, err := ioutil.TempFile("", "podman")
 		if err != nil {
-			return errors.Errorf("creating file %v", err)
+			return fmt.Errorf("creating file %v", err)
 		}
 		defer os.Remove(outFile.Name())
 		defer outFile.Close()
 
 		_, err = io.Copy(outFile, os.Stdin)
 		if err != nil {
-			return errors.Errorf("copying file %v", err)
+			return fmt.Errorf("copying file %v", err)
 		}
 		source = outFile.Name()
 	}

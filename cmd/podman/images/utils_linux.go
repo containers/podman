@@ -1,12 +1,12 @@
 package images
 
 import (
+	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
@@ -26,7 +26,7 @@ func setupPipe() (string, func() <-chan error, error) {
 		if e := os.RemoveAll(pipeDir); e != nil {
 			logrus.Errorf("Removing named pipe: %q", e)
 		}
-		return "", nil, errors.Wrapf(err, "error creating named pipe")
+		return "", nil, fmt.Errorf("error creating named pipe: %w", err)
 	}
 	go func() {
 		fpipe, err := os.Open(pipePath)

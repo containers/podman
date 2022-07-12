@@ -11,7 +11,6 @@ import (
 	"github.com/containers/podman/v4/cmd/podman/validate"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/domain/entities"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -85,10 +84,10 @@ func restart(cmd *cobra.Command, args []string) error {
 		errs utils.OutputErrors
 	)
 	if len(args) < 1 && !restartOptions.Latest && !restartOptions.All {
-		return errors.Wrapf(define.ErrInvalidArg, "you must provide at least one container name or ID")
+		return fmt.Errorf("you must provide at least one container name or ID: %w", define.ErrInvalidArg)
 	}
 	if len(args) > 0 && restartOptions.Latest {
-		return errors.Wrapf(define.ErrInvalidArg, "--latest and containers cannot be used together")
+		return fmt.Errorf("--latest and containers cannot be used together: %w", define.ErrInvalidArg)
 	}
 
 	if cmd.Flag("time").Changed {

@@ -2,6 +2,7 @@ package containers
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"os"
 
@@ -13,7 +14,6 @@ import (
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	envLib "github.com/containers/podman/v4/pkg/env"
 	"github.com/containers/podman/v4/pkg/rootless"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -126,14 +126,14 @@ func exec(_ *cobra.Command, args []string) error {
 
 	cliEnv, err := envLib.ParseSlice(envInput)
 	if err != nil {
-		return errors.Wrap(err, "error parsing environment variables")
+		return fmt.Errorf("error parsing environment variables: %w", err)
 	}
 
 	execOpts.Envs = envLib.Join(execOpts.Envs, cliEnv)
 
 	for fd := 3; fd < int(3+execOpts.PreserveFDs); fd++ {
 		if !rootless.IsFdInherited(fd) {
-			return errors.Errorf("file descriptor %d is not available - the preserve-fds option requires that file descriptors must be passed", fd)
+			return fmt.Errorf("file descriptor %d is not available - the preserve-fds option requires that file descriptors must be passed", fd)
 		}
 	}
 

@@ -3,6 +3,7 @@ package libpod
 import (
 	"bufio"
 	"bytes"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"math"
@@ -25,7 +26,6 @@ import (
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/system"
 	"github.com/opencontainers/selinux/go-selinux"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -34,20 +34,20 @@ func (r *Runtime) info() (*define.Info, error) {
 	info := define.Info{}
 	versionInfo, err := define.GetVersion()
 	if err != nil {
-		return nil, errors.Wrapf(err, "error getting version info")
+		return nil, fmt.Errorf("error getting version info: %w", err)
 	}
 	info.Version = versionInfo
 	// get host information
 	hostInfo, err := r.hostInfo()
 	if err != nil {
-		return nil, errors.Wrapf(err, "error getting host info")
+		return nil, fmt.Errorf("error getting host info: %w", err)
 	}
 	info.Host = hostInfo
 
 	// get store information
 	storeInfo, err := r.storeInfo()
 	if err != nil {
-		return nil, errors.Wrapf(err, "error getting store info")
+		return nil, fmt.Errorf("error getting store info: %w", err)
 	}
 	info.Store = storeInfo
 	registries := make(map[string]interface{})
@@ -55,14 +55,14 @@ func (r *Runtime) info() (*define.Info, error) {
 	sys := r.SystemContext()
 	data, err := sysregistriesv2.GetRegistries(sys)
 	if err != nil {
-		return nil, errors.Wrapf(err, "error getting registries")
+		return nil, fmt.Errorf("error getting registries: %w", err)
 	}
 	for _, reg := range data {
 		registries[reg.Prefix] = reg
 	}
 	regs, err := sysregistriesv2.UnqualifiedSearchRegistries(sys)
 	if err != nil {
-		return nil, errors.Wrapf(err, "error getting registries")
+		return nil, fmt.Errorf("error getting registries: %w", err)
 	}
 	if len(regs) > 0 {
 		registries["search"] = regs
@@ -86,36 +86,36 @@ func (r *Runtime) hostInfo() (*define.HostInfo, error) {
 	// lets say OS, arch, number of cpus, amount of memory, maybe os distribution/version, hostname, kernel version, uptime
 	mi, err := system.ReadMemInfo()
 	if err != nil {
-		return nil, errors.Wrapf(err, "error reading memory info")
+		return nil, fmt.Errorf("error reading memory info: %w", err)
 	}
 
 	hostDistributionInfo := r.GetHostDistributionInfo()
 
 	kv, err := readKernelVersion()
 	if err != nil {
-		return nil, errors.Wrapf(err, "error reading kernel version")
+		return nil, fmt.Errorf("error reading kernel version: %w", err)
 	}
 
 	host, err := os.Hostname()
 	if err != nil {
-		return nil, errors.Wrapf(err, "error getting hostname")
+		return nil, fmt.Errorf("error getting hostname: %w", err)
 	}
 
 	seccompProfilePath, err := DefaultSeccompPath()
 	if err != nil {
-		return nil, errors.Wrapf(err, "error getting Seccomp profile path")
+		return nil, fmt.Errorf("error getting Seccomp profile path: %w", err)
 	}
 
 	// Cgroups version
 	unified, err := cgroups.IsCgroup2UnifiedMode()
 	if err != nil {
-		return nil, errors.Wrapf(err, "error reading cgroups mode")
+		return nil, fmt.Errorf("error reading cgroups mode: %w", err)
 	}
 
 	// Get Map of all available controllers
 	availableControllers, err := cgroups.GetAvailableControllers(nil, unified)
 	if err != nil {
-		return nil, errors.Wrapf(err, "error getting available cgroup controllers")
+		return nil, fmt.Errorf("error getting available cgroup controllers: %w", err)
 	}
 	cpuUtil, err := getCPUUtilization()
 	if err != nil {
@@ -178,11 +178,11 @@ func (r *Runtime) hostInfo() (*define.HostInfo, error) {
 	if rootless.IsRootless() {
 		uidmappings, err := rootless.ReadMappingsProc("/proc/self/uid_map")
 		if err != nil {
-			return nil, errors.Wrapf(err, "error reading uid mappings")
+			return nil, fmt.Errorf("error reading uid mappings: %w", err)
 		}
 		gidmappings, err := rootless.ReadMappingsProc("/proc/self/gid_map")
 		if err != nil {
-			return nil, errors.Wrapf(err, "error reading gid mappings")
+			return nil, fmt.Errorf("error reading gid mappings: %w", err)
 		}
 		idmappings := define.IDMappings{
 			GIDMap: gidmappings,
@@ -201,7 +201,7 @@ func (r *Runtime) hostInfo() (*define.HostInfo, error) {
 
 	duration, err := procUptime()
 	if err != nil {
-		return nil, errors.Wrapf(err, "error reading up time")
+		return nil, fmt.Errorf("error reading up time: %w", err)
 	}
 
 	uptime := struct {
@@ -240,7 +240,7 @@ func (r *Runtime) getContainerStoreInfo() (define.ContainerStore, error) {
 	for _, con := range cons {
 		state, err := con.State()
 		if err != nil {
-			if errors.Cause(err) == define.ErrNoSuchCtr {
+			if errors.Is(err, define.ErrNoSuchCtr) {
 				// container was probably removed
 				cs.Number--
 				continue
@@ -271,7 +271,7 @@ func (r *Runtime) storeInfo() (*define.StoreInfo, error) {
 	}
 	images, err := r.store.Images()
 	if err != nil {
-		return nil, errors.Wrapf(err, "error getting number of images")
+		return nil, fmt.Errorf("error getting number of images: %w", err)
 	}
 	conInfo, err := r.getContainerStoreInfo()
 	if err != nil {
@@ -281,7 +281,7 @@ func (r *Runtime) storeInfo() (*define.StoreInfo, error) {
 
 	var grStats syscall.Statfs_t
 	if err := syscall.Statfs(r.store.GraphRoot(), &grStats); err != nil {
-		return nil, errors.Wrapf(err, "unable to collect graph root usasge for %q", r.store.GraphRoot())
+		return nil, fmt.Errorf("unable to collect graph root usasge for %q: %w", r.store.GraphRoot(), err)
 	}
 	allocated := uint64(grStats.Bsize) * grStats.Blocks
 	info := define.StoreInfo{
@@ -407,15 +407,15 @@ func getCPUUtilization() (*define.CPUUsage, error) {
 func statToPercent(stats []string) (*define.CPUUsage, error) {
 	userTotal, err := strconv.ParseFloat(stats[1], 64)
 	if err != nil {
-		return nil, errors.Wrapf(err, "unable to parse user value %q", stats[1])
+		return nil, fmt.Errorf("unable to parse user value %q: %w", stats[1], err)
 	}
 	systemTotal, err := strconv.ParseFloat(stats[3], 64)
 	if err != nil {
-		return nil, errors.Wrapf(err, "unable to parse system value %q", stats[3])
+		return nil, fmt.Errorf("unable to parse system value %q: %w", stats[3], err)
 	}
 	idleTotal, err := strconv.ParseFloat(stats[4], 64)
 	if err != nil {
-		return nil, errors.Wrapf(err, "unable to parse idle value %q", stats[4])
+		return nil, fmt.Errorf("unable to parse idle value %q: %w", stats[4], err)
 	}
 	total := userTotal + systemTotal + idleTotal
 	s := define.CPUUsage{

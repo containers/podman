@@ -5,6 +5,7 @@ package libpod
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -57,7 +58,6 @@ import (
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux"
 	"github.com/opencontainers/selinux/go-selinux/label"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
@@ -65,7 +65,7 @@ import (
 func (c *Container) mountSHM(shmOptions string) error {
 	if err := unix.Mount("shm", c.config.ShmDir, "tmpfs", unix.MS_NOEXEC|unix.MS_NOSUID|unix.MS_NODEV,
 		label.FormatMountLabel(shmOptions, c.config.MountLabel)); err != nil {
-		return errors.Wrapf(err, "failed to mount shm tmpfs %q", c.config.ShmDir)
+		return fmt.Errorf("failed to mount shm tmpfs %q: %w", c.config.ShmDir, err)
 	}
 	return nil
 }
@@ -73,7 +73,7 @@ func (c *Container) mountSHM(shmOptions string) error {
 func (c *Container) unmountSHM(mount string) error {
 	if err := unix.Unmount(mount, 0); err != nil {
 		if err != syscall.EINVAL && err != syscall.ENOENT {
-			return errors.Wrapf(err, "error unmounting container %s SHM mount %s", c.ID(), mount)
+			return fmt.Errorf("error unmounting container %s SHM mount %s: %w", c.ID(), mount, err)
 		}
 		// If it's just an EINVAL or ENOENT, debug logs only
 		logrus.Debugf("Container %s failed to unmount %s : %v", c.ID(), mount, err)
@@ -152,7 +152,7 @@ func (c *Container) prepare() error {
 			// createErr is guaranteed non-nil, so print
 			// unconditionally
 			logrus.Errorf("Preparing container %s: %v", c.ID(), createErr)
-			createErr = errors.Wrapf(err, "error unmounting storage for container %s after network create failure", c.ID())
+			createErr = fmt.Errorf("error unmounting storage for container %s after network create failure: %w", c.ID(), err)
 		}
 	}
 
@@ -161,7 +161,7 @@ func (c *Container) prepare() error {
 	if createErr != nil {
 		if err := c.cleanupNetwork(); err != nil {
 			logrus.Errorf("Preparing container %s: %v", c.ID(), createErr)
-			createErr = errors.Wrapf(err, "error cleaning up container %s network after setup failure", c.ID())
+			createErr = fmt.Errorf("error cleaning up container %s network after setup failure: %w", c.ID(), err)
 		}
 	}
 
@@ -251,7 +251,7 @@ func (c *Container) resolveWorkDir() error {
 	st, err := os.Stat(resolvedWorkdir)
 	if err == nil {
 		if !st.IsDir() {
-			return errors.Errorf("workdir %q exists on container %s, but is not a directory", workdir, c.ID())
+			return fmt.Errorf("workdir %q exists on container %s, but is not a directory", workdir, c.ID())
 		}
 		return nil
 	}
@@ -265,11 +265,11 @@ func (c *Container) resolveWorkDir() error {
 				if c.isWorkDirSymlink(resolvedWorkdir) {
 					return nil
 				}
-				return errors.Errorf("workdir %q does not exist on container %s", workdir, c.ID())
+				return fmt.Errorf("workdir %q does not exist on container %s", workdir, c.ID())
 			}
 			// This might be a serious error (e.g., permission), so
 			// we need to return the full error.
-			return errors.Wrapf(err, "error detecting workdir %q on container %s", workdir, c.ID())
+			return fmt.Errorf("error detecting workdir %q on container %s: %w", workdir, c.ID(), err)
 		}
 		return nil
 	}
@@ -277,16 +277,16 @@ func (c *Container) resolveWorkDir() error {
 		if os.IsExist(err) {
 			return nil
 		}
-		return errors.Wrapf(err, "error creating container %s workdir", c.ID())
+		return fmt.Errorf("error creating container %s workdir: %w", c.ID(), err)
 	}
 
 	// Ensure container entrypoint is created (if required).
 	uid, gid, _, err := chrootuser.GetUser(c.state.Mountpoint, c.User())
 	if err != nil {
-		return errors.Wrapf(err, "error looking up %s inside of the container %s", c.User(), c.ID())
+		return fmt.Errorf("error looking up %s inside of the container %s: %w", c.User(), c.ID(), err)
 	}
 	if err := os.Chown(resolvedWorkdir, int(uid), int(gid)); err != nil {
-		return errors.Wrapf(err, "error chowning container %s workdir to container root", c.ID())
+		return fmt.Errorf("error chowning container %s workdir to container root: %w", c.ID(), err)
 	}
 
 	return nil
@@ -485,7 +485,7 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 	for _, namedVol := range c.config.NamedVolumes {
 		volume, err := c.runtime.GetVolume(namedVol.Name)
 		if err != nil {
-			return nil, errors.Wrapf(err, "error retrieving volume %s to add to container %s", namedVol.Name, c.ID())
+			return nil, fmt.Errorf("error retrieving volume %s to add to container %s: %w", namedVol.Name, c.ID(), err)
 		}
 		mountPoint, err := volume.MountPoint()
 		if err != nil {
@@ -522,7 +522,7 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 
 			overlayMount, err = overlay.MountWithOptions(contentDir, mountPoint, namedVol.Dest, overlayOpts)
 			if err != nil {
-				return nil, errors.Wrapf(err, "mounting overlay failed %q", mountPoint)
+				return nil, fmt.Errorf("mounting overlay failed %q: %w", mountPoint, err)
 			}
 
 			for _, o := range namedVol.Options {
@@ -622,7 +622,7 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 
 		overlayMount, err := overlay.MountWithOptions(contentDir, overlayVol.Source, overlayVol.Dest, overlayOpts)
 		if err != nil {
-			return nil, errors.Wrapf(err, "mounting overlay failed %q", overlayVol.Source)
+			return nil, fmt.Errorf("mounting overlay failed %q: %w", overlayVol.Source, err)
 		}
 
 		// Check overlay volume options
@@ -646,16 +646,16 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 		// Mount the specified image.
 		img, _, err := c.runtime.LibimageRuntime().LookupImage(volume.Source, nil)
 		if err != nil {
-			return nil, errors.Wrapf(err, "error creating image volume %q:%q", volume.Source, volume.Dest)
+			return nil, fmt.Errorf("error creating image volume %q:%q: %w", volume.Source, volume.Dest, err)
 		}
 		mountPoint, err := img.Mount(ctx, nil, "")
 		if err != nil {
-			return nil, errors.Wrapf(err, "error mounting image volume %q:%q", volume.Source, volume.Dest)
+			return nil, fmt.Errorf("error mounting image volume %q:%q: %w", volume.Source, volume.Dest, err)
 		}
 
 		contentDir, err := overlay.TempDir(c.config.StaticDir, c.RootUID(), c.RootGID())
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to create TempDir in the %s directory", c.config.StaticDir)
+			return nil, fmt.Errorf("failed to create TempDir in the %s directory: %w", c.config.StaticDir, err)
 		}
 
 		var overlayMount spec.Mount
@@ -665,7 +665,7 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 			overlayMount, err = overlay.MountReadOnly(contentDir, mountPoint, volume.Dest, c.RootUID(), c.RootGID(), c.runtime.store.GraphOptions())
 		}
 		if err != nil {
-			return nil, errors.Wrapf(err, "creating overlay mount for image %q failed", volume.Source)
+			return nil, fmt.Errorf("creating overlay mount for image %q failed: %w", volume.Source, err)
 		}
 		g.AddMount(overlayMount)
 	}
@@ -690,7 +690,7 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 	if c.config.Umask != "" {
 		decVal, err := strconv.ParseUint(c.config.Umask, 8, 32)
 		if err != nil {
-			return nil, errors.Wrapf(err, "Invalid Umask Value")
+			return nil, fmt.Errorf("invalid Umask Value: %w", err)
 		}
 		umask := uint32(decVal)
 		g.Config.Process.User.Umask = &umask
@@ -700,7 +700,7 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 	if len(c.config.Groups) > 0 {
 		gids, err := lookup.GetContainerGroups(c.config.Groups, c.state.Mountpoint, overrides)
 		if err != nil {
-			return nil, errors.Wrapf(err, "error looking up supplemental groups for container %s", c.ID())
+			return nil, fmt.Errorf("error looking up supplemental groups for container %s: %w", c.ID(), err)
 		}
 		for _, gid := range gids {
 			g.AddProcessAdditionalGid(gid)
@@ -709,7 +709,7 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 
 	if c.Systemd() {
 		if err := c.setupSystemd(g.Mounts(), g); err != nil {
-			return nil, errors.Wrapf(err, "error adding systemd-specific mounts")
+			return nil, fmt.Errorf("error adding systemd-specific mounts: %w", err)
 		}
 	}
 
@@ -725,7 +725,7 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 			// Check whether the current user namespace has enough gids available.
 			availableGids, err := rootless.GetAvailableGids()
 			if err != nil {
-				return nil, errors.Wrapf(err, "cannot read number of available GIDs")
+				return nil, fmt.Errorf("cannot read number of available GIDs: %w", err)
 			}
 			gidMappings = []idtools.IDMap{{
 				ContainerID: 0,
@@ -881,7 +881,7 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 		}
 		_, err := registry.InjectDevices(g.Config, c.config.CDIDevices...)
 		if err != nil {
-			return nil, errors.Wrapf(err, "error setting up CDI devices")
+			return nil, fmt.Errorf("error setting up CDI devices: %w", err)
 		}
 	}
 
@@ -905,7 +905,7 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 		if m.Type == "tmpfs" {
 			finalPath, err := securejoin.SecureJoin(c.state.Mountpoint, m.Destination)
 			if err != nil {
-				return nil, errors.Wrapf(err, "error resolving symlinks for mount destination %s", m.Destination)
+				return nil, fmt.Errorf("error resolving symlinks for mount destination %s: %w", m.Destination, err)
 			}
 			trimmedPath := strings.TrimPrefix(finalPath, strings.TrimSuffix(c.state.Mountpoint, "/"))
 			m.Destination = trimmedPath
@@ -934,7 +934,7 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 
 	// Warning: precreate hooks may alter g.Config in place.
 	if c.state.ExtensionStageHooks, err = c.setupOCIHooks(ctx, g.Config); err != nil {
-		return nil, errors.Wrapf(err, "error setting up OCI Hooks")
+		return nil, fmt.Errorf("error setting up OCI Hooks: %w", err)
 	}
 	if len(c.config.EnvSecrets) > 0 {
 		manager, err := c.runtime.SecretsManager()
@@ -986,11 +986,11 @@ func (c *Container) mountNotifySocket(g generate.Generator) error {
 	logrus.Debugf("Checking notify %q dir", notifyDir)
 	if err := os.MkdirAll(notifyDir, 0755); err != nil {
 		if !os.IsExist(err) {
-			return errors.Wrapf(err, "unable to create notify %q dir", notifyDir)
+			return fmt.Errorf("unable to create notify %q dir: %w", notifyDir, err)
 		}
 	}
 	if err := label.Relabel(notifyDir, c.MountLabel(), true); err != nil {
-		return errors.Wrapf(err, "relabel failed %q", notifyDir)
+		return fmt.Errorf("relabel failed %q: %w", notifyDir, err)
 	}
 	logrus.Debugf("Add bindmount notify %q dir", notifyDir)
 	if _, ok := c.state.BindMounts["/run/notify"]; !ok {
@@ -1113,7 +1113,7 @@ func (c *Container) setupSystemd(mounts []spec.Mount, g generate.Generator) erro
 func (c *Container) addNamespaceContainer(g *generate.Generator, ns LinuxNS, ctr string, specNS spec.LinuxNamespaceType) error {
 	nsCtr, err := c.runtime.state.Container(ctr)
 	if err != nil {
-		return errors.Wrapf(err, "error retrieving dependency %s of container %s from state", ctr, c.ID())
+		return fmt.Errorf("error retrieving dependency %s of container %s from state: %w", ctr, c.ID(), err)
 	}
 
 	if specNS == spec.UTSNamespace {
@@ -1200,7 +1200,7 @@ func (c *Container) createCheckpointImage(ctx context.Context, options Container
 	// Create storage reference
 	imageRef, err := is.Transport.ParseStoreReference(c.runtime.store, options.CreateImage)
 	if err != nil {
-		return errors.Errorf("Failed to parse image name")
+		return errors.New("failed to parse image name")
 	}
 
 	// Build an image scratch
@@ -1264,23 +1264,23 @@ func (c *Container) exportCheckpoint(options ContainerCheckpointOptions) error {
 		// Check if the dependency is an infra container. If it is we can checkpoint
 		// the container out of the Pod.
 		if c.config.Pod == "" {
-			return errors.Errorf("cannot export checkpoints of containers with dependencies")
+			return errors.New("cannot export checkpoints of containers with dependencies")
 		}
 
 		pod, err := c.runtime.state.Pod(c.config.Pod)
 		if err != nil {
-			return errors.Wrapf(err, "container %s is in pod %s, but pod cannot be retrieved", c.ID(), c.config.Pod)
+			return fmt.Errorf("container %s is in pod %s, but pod cannot be retrieved: %w", c.ID(), c.config.Pod, err)
 		}
 		infraID, err := pod.InfraContainerID()
 		if err != nil {
-			return errors.Wrapf(err, "cannot retrieve infra container ID for pod %s", c.config.Pod)
+			return fmt.Errorf("cannot retrieve infra container ID for pod %s: %w", c.config.Pod, err)
 		}
 		if c.Dependencies()[0] != infraID {
-			return errors.Errorf("cannot export checkpoints of containers with dependencies")
+			return errors.New("cannot export checkpoints of containers with dependencies")
 		}
 	}
 	if len(c.Dependencies()) > 1 {
-		return errors.Errorf("cannot export checkpoints of containers with dependencies")
+		return errors.New("cannot export checkpoints of containers with dependencies")
 	}
 	logrus.Debugf("Exporting checkpoint image of container %q to %q", c.ID(), options.TargetFile)
 
@@ -1308,7 +1308,7 @@ func (c *Container) exportCheckpoint(options ContainerCheckpointOptions) error {
 		// To correctly track deleted files, let's go through the output of 'podman diff'
 		rootFsChanges, err := c.runtime.GetDiff("", c.ID(), define.DiffContainer)
 		if err != nil {
-			return errors.Wrapf(err, "error exporting root file-system diff for %q", c.ID())
+			return fmt.Errorf("error exporting root file-system diff for %q: %w", c.ID(), err)
 		}
 
 		addToTarFiles, err := crutils.CRCreateRootFsDiffTar(&rootFsChanges, c.state.Mountpoint, c.bundlePath())
@@ -1325,7 +1325,7 @@ func (c *Container) exportCheckpoint(options ContainerCheckpointOptions) error {
 	// Create an archive for each volume associated with the container
 	if !options.IgnoreVolumes {
 		if err := os.MkdirAll(expVolDir, 0700); err != nil {
-			return errors.Wrapf(err, "error creating volumes export directory %q", expVolDir)
+			return fmt.Errorf("error creating volumes export directory %q: %w", expVolDir, err)
 		}
 
 		for _, v := range c.config.NamedVolumes {
@@ -1334,7 +1334,7 @@ func (c *Container) exportCheckpoint(options ContainerCheckpointOptions) error {
 
 			volumeTarFile, err := os.Create(volumeTarFileFullPath)
 			if err != nil {
-				return errors.Wrapf(err, "error creating %q", volumeTarFileFullPath)
+				return fmt.Errorf("error creating %q: %w", volumeTarFileFullPath, err)
 			}
 
 			volume, err := c.runtime.GetVolume(v.Name)
@@ -1347,7 +1347,7 @@ func (c *Container) exportCheckpoint(options ContainerCheckpointOptions) error {
 				return err
 			}
 			if mp == "" {
-				return errors.Wrapf(define.ErrInternal, "volume %s is not mounted, cannot export", volume.Name())
+				return fmt.Errorf("volume %s is not mounted, cannot export: %w", volume.Name(), define.ErrInternal)
 			}
 
 			input, err := archive.TarWithOptions(mp, &archive.TarOptions{
@@ -1355,7 +1355,7 @@ func (c *Container) exportCheckpoint(options ContainerCheckpointOptions) error {
 				IncludeSourceDir: true,
 			})
 			if err != nil {
-				return errors.Wrapf(err, "error reading volume directory %q", v.Dest)
+				return fmt.Errorf("error reading volume directory %q: %w", v.Dest, err)
 			}
 
 			_, err = io.Copy(volumeTarFile, input)
@@ -1375,12 +1375,12 @@ func (c *Container) exportCheckpoint(options ContainerCheckpointOptions) error {
 	})
 
 	if err != nil {
-		return errors.Wrapf(err, "error reading checkpoint directory %q", c.ID())
+		return fmt.Errorf("error reading checkpoint directory %q: %w", c.ID(), err)
 	}
 
 	outFile, err := os.Create(options.TargetFile)
 	if err != nil {
-		return errors.Wrapf(err, "error creating checkpoint export file %q", options.TargetFile)
+		return fmt.Errorf("error creating checkpoint export file %q: %w", options.TargetFile, err)
 	}
 	defer outFile.Close()
 
@@ -1406,10 +1406,10 @@ func (c *Container) exportCheckpoint(options ContainerCheckpointOptions) error {
 
 func (c *Container) checkpointRestoreSupported(version int) error {
 	if !criu.CheckForCriu(version) {
-		return errors.Errorf("checkpoint/restore requires at least CRIU %d", version)
+		return fmt.Errorf("checkpoint/restore requires at least CRIU %d", version)
 	}
 	if !c.ociRuntime.SupportsCheckpoint() {
-		return errors.Errorf("configured runtime does not support checkpoint/restore")
+		return errors.New("configured runtime does not support checkpoint/restore")
 	}
 	return nil
 }
@@ -1420,11 +1420,11 @@ func (c *Container) checkpoint(ctx context.Context, options ContainerCheckpointO
 	}
 
 	if c.state.State != define.ContainerStateRunning {
-		return nil, 0, errors.Wrapf(define.ErrCtrStateInvalid, "%q is not running, cannot checkpoint", c.state.State)
+		return nil, 0, fmt.Errorf("%q is not running, cannot checkpoint: %w", c.state.State, define.ErrCtrStateInvalid)
 	}
 
 	if c.AutoRemove() && options.TargetFile == "" {
-		return nil, 0, errors.Errorf("cannot checkpoint containers that have been started with '--rm' unless '--export' is used")
+		return nil, 0, errors.New("cannot checkpoint containers that have been started with '--rm' unless '--export' is used")
 	}
 
 	if err := c.resolveCheckpointImageName(&options); err != nil {
@@ -1517,12 +1517,12 @@ func (c *Container) checkpoint(ctx context.Context, options ContainerCheckpointO
 		}
 		statsDirectory, err := os.Open(c.bundlePath())
 		if err != nil {
-			return nil, errors.Wrapf(err, "Not able to open %q", c.bundlePath())
+			return nil, fmt.Errorf("not able to open %q: %w", c.bundlePath(), err)
 		}
 
 		dumpStatistics, err := stats.CriuGetDumpStats(statsDirectory)
 		if err != nil {
-			return nil, errors.Wrap(err, "Displaying checkpointing statistics not possible")
+			return nil, fmt.Errorf("displaying checkpointing statistics not possible: %w", err)
 		}
 
 		return &define.CRIUCheckpointRestoreStatistics{
@@ -1568,7 +1568,7 @@ func (c *Container) generateContainerSpec() error {
 	g := generate.NewFromSpec(c.config.Spec)
 
 	if err := c.saveSpec(g.Config); err != nil {
-		return errors.Wrap(err, "saving imported container specification for restore failed")
+		return fmt.Errorf("saving imported container specification for restore failed: %w", err)
 	}
 
 	return nil
@@ -1626,14 +1626,14 @@ func (c *Container) importCheckpointTar(input string) error {
 func (c *Container) importPreCheckpoint(input string) error {
 	archiveFile, err := os.Open(input)
 	if err != nil {
-		return errors.Wrap(err, "failed to open pre-checkpoint archive for import")
+		return fmt.Errorf("failed to open pre-checkpoint archive for import: %w", err)
 	}
 
 	defer archiveFile.Close()
 
 	err = archive.Untar(archiveFile, c.bundlePath(), nil)
 	if err != nil {
-		return errors.Wrapf(err, "Unpacking of pre-checkpoint archive %s failed", input)
+		return fmt.Errorf("unpacking of pre-checkpoint archive %s failed: %w", input, err)
 	}
 	return nil
 }
@@ -1650,11 +1650,11 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 	}
 
 	if options.Pod != "" && !crutils.CRRuntimeSupportsPodCheckpointRestore(c.ociRuntime.Path()) {
-		return nil, 0, errors.Errorf("runtime %s does not support pod restore", c.ociRuntime.Path())
+		return nil, 0, fmt.Errorf("runtime %s does not support pod restore", c.ociRuntime.Path())
 	}
 
 	if !c.ensureState(define.ContainerStateConfigured, define.ContainerStateExited) {
-		return nil, 0, errors.Wrapf(define.ErrCtrStateInvalid, "container %s is running or paused, cannot restore", c.ID())
+		return nil, 0, fmt.Errorf("container %s is running or paused, cannot restore: %w", c.ID(), define.ErrCtrStateInvalid)
 	}
 
 	if options.ImportPrevious != "" {
@@ -1676,7 +1676,7 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 	// Let's try to stat() CRIU's inventory file. If it does not exist, it makes
 	// no sense to try a restore. This is a minimal check if a checkpoint exist.
 	if _, err := os.Stat(filepath.Join(c.CheckpointPath(), "inventory.img")); os.IsNotExist(err) {
-		return nil, 0, errors.Wrapf(err, "a complete checkpoint for this container cannot be found, cannot restore")
+		return nil, 0, fmt.Errorf("a complete checkpoint for this container cannot be found, cannot restore: %w", err)
 	}
 
 	if err := crutils.CRCreateFileWithLabel(c.bundlePath(), "restore.log", c.MountLabel()); err != nil {
@@ -1774,23 +1774,23 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 		// the ones from the infrastructure container.
 		pod, err := c.runtime.LookupPod(options.Pod)
 		if err != nil {
-			return nil, 0, errors.Wrapf(err, "pod %q cannot be retrieved", options.Pod)
+			return nil, 0, fmt.Errorf("pod %q cannot be retrieved: %w", options.Pod, err)
 		}
 
 		infraContainer, err := pod.InfraContainer()
 		if err != nil {
-			return nil, 0, errors.Wrapf(err, "cannot retrieved infra container from pod %q", options.Pod)
+			return nil, 0, fmt.Errorf("cannot retrieved infra container from pod %q: %w", options.Pod, err)
 		}
 
 		infraContainer.lock.Lock()
 		if err := infraContainer.syncContainer(); err != nil {
 			infraContainer.lock.Unlock()
-			return nil, 0, errors.Wrapf(err, "Error syncing infrastructure container %s status", infraContainer.ID())
+			return nil, 0, fmt.Errorf("error syncing infrastructure container %s status: %w", infraContainer.ID(), err)
 		}
 		if infraContainer.state.State != define.ContainerStateRunning {
 			if err := infraContainer.initAndStart(ctx); err != nil {
 				infraContainer.lock.Unlock()
-				return nil, 0, errors.Wrapf(err, "Error starting infrastructure container %s status", infraContainer.ID())
+				return nil, 0, fmt.Errorf("error starting infrastructure container %s status: %w", infraContainer.ID(), err)
 			}
 		}
 		infraContainer.lock.Unlock()
@@ -1798,7 +1798,7 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 		if c.config.IPCNsCtr != "" {
 			nsPath, err := infraContainer.namespacePath(IPCNS)
 			if err != nil {
-				return nil, 0, errors.Wrapf(err, "cannot retrieve IPC namespace path for Pod %q", options.Pod)
+				return nil, 0, fmt.Errorf("cannot retrieve IPC namespace path for Pod %q: %w", options.Pod, err)
 			}
 			if err := g.AddOrReplaceLinuxNamespace(string(spec.IPCNamespace), nsPath); err != nil {
 				return nil, 0, err
@@ -1808,7 +1808,7 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 		if c.config.NetNsCtr != "" {
 			nsPath, err := infraContainer.namespacePath(NetNS)
 			if err != nil {
-				return nil, 0, errors.Wrapf(err, "cannot retrieve network namespace path for Pod %q", options.Pod)
+				return nil, 0, fmt.Errorf("cannot retrieve network namespace path for Pod %q: %w", options.Pod, err)
 			}
 			if err := g.AddOrReplaceLinuxNamespace(string(spec.NetworkNamespace), nsPath); err != nil {
 				return nil, 0, err
@@ -1818,7 +1818,7 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 		if c.config.PIDNsCtr != "" {
 			nsPath, err := infraContainer.namespacePath(PIDNS)
 			if err != nil {
-				return nil, 0, errors.Wrapf(err, "cannot retrieve PID namespace path for Pod %q", options.Pod)
+				return nil, 0, fmt.Errorf("cannot retrieve PID namespace path for Pod %q: %w", options.Pod, err)
 			}
 			if err := g.AddOrReplaceLinuxNamespace(string(spec.PIDNamespace), nsPath); err != nil {
 				return nil, 0, err
@@ -1828,7 +1828,7 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 		if c.config.UTSNsCtr != "" {
 			nsPath, err := infraContainer.namespacePath(UTSNS)
 			if err != nil {
-				return nil, 0, errors.Wrapf(err, "cannot retrieve UTS namespace path for Pod %q", options.Pod)
+				return nil, 0, fmt.Errorf("cannot retrieve UTS namespace path for Pod %q: %w", options.Pod, err)
 			}
 			if err := g.AddOrReplaceLinuxNamespace(string(spec.UTSNamespace), nsPath); err != nil {
 				return nil, 0, err
@@ -1838,7 +1838,7 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 		if c.config.CgroupNsCtr != "" {
 			nsPath, err := infraContainer.namespacePath(CgroupNS)
 			if err != nil {
-				return nil, 0, errors.Wrapf(err, "cannot retrieve Cgroup namespace path for Pod %q", options.Pod)
+				return nil, 0, fmt.Errorf("cannot retrieve Cgroup namespace path for Pod %q: %w", options.Pod, err)
 			}
 			if err := g.AddOrReplaceLinuxNamespace(string(spec.CgroupNamespace), nsPath); err != nil {
 				return nil, 0, err
@@ -1906,13 +1906,13 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 
 			volumeFile, err := os.Open(volumeFilePath)
 			if err != nil {
-				return nil, 0, errors.Wrapf(err, "failed to open volume file %s", volumeFilePath)
+				return nil, 0, fmt.Errorf("failed to open volume file %s: %w", volumeFilePath, err)
 			}
 			defer volumeFile.Close()
 
 			volume, err := c.runtime.GetVolume(v.Name)
 			if err != nil {
-				return nil, 0, errors.Wrapf(err, "failed to retrieve volume %s", v.Name)
+				return nil, 0, fmt.Errorf("failed to retrieve volume %s: %w", v.Name, err)
 			}
 
 			mountPoint, err := volume.MountPoint()
@@ -1920,10 +1920,10 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 				return nil, 0, err
 			}
 			if mountPoint == "" {
-				return nil, 0, errors.Wrapf(err, "unable to import volume %s as it is not mounted", volume.Name())
+				return nil, 0, fmt.Errorf("unable to import volume %s as it is not mounted: %w", volume.Name(), err)
 			}
 			if err := archive.UntarUncompressed(volumeFile, mountPoint, nil); err != nil {
-				return nil, 0, errors.Wrapf(err, "Failed to extract volume %s to %s", volumeFilePath, mountPoint)
+				return nil, 0, fmt.Errorf("failed to extract volume %s to %s: %w", volumeFilePath, mountPoint, err)
 			}
 		}
 	}
@@ -1950,12 +1950,12 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 		}
 		statsDirectory, err := os.Open(c.bundlePath())
 		if err != nil {
-			return nil, errors.Wrapf(err, "Not able to open %q", c.bundlePath())
+			return nil, fmt.Errorf("not able to open %q: %w", c.bundlePath(), err)
 		}
 
 		restoreStatistics, err := stats.CriuGetRestoreStats(statsDirectory)
 		if err != nil {
-			return nil, errors.Wrap(err, "Displaying restore statistics not possible")
+			return nil, fmt.Errorf("displaying restore statistics not possible: %w", err)
 		}
 
 		return &define.CRIUCheckpointRestoreStatistics{
@@ -2033,7 +2033,7 @@ func (c *Container) getRootNetNsDepCtr() (depCtr *Container, err error) {
 
 		depCtr, err = c.runtime.state.Container(nextCtr)
 		if err != nil {
-			return nil, errors.Wrapf(err, "error fetching dependency %s of container %s", c.config.NetNsCtr, c.ID())
+			return nil, fmt.Errorf("error fetching dependency %s of container %s: %w", c.config.NetNsCtr, c.ID(), err)
 		}
 		// This should never happen without an error
 		if depCtr == nil {
@@ -2062,7 +2062,7 @@ func (c *Container) mountIntoRootDirs(mountName string, mountPath string) error 
 // Make standard bind mounts to include in the container
 func (c *Container) makeBindMounts() error {
 	if err := os.Chown(c.state.RunDir, c.RootUID(), c.RootGID()); err != nil {
-		return errors.Wrap(err, "cannot chown run directory")
+		return fmt.Errorf("cannot chown run directory: %w", err)
 	}
 
 	if c.state.BindMounts == nil {
@@ -2080,13 +2080,13 @@ func (c *Container) makeBindMounts() error {
 		if c.config.NetNsCtr == "" {
 			if resolvePath, ok := c.state.BindMounts["/etc/resolv.conf"]; ok {
 				if err := os.Remove(resolvePath); err != nil && !os.IsNotExist(err) {
-					return errors.Wrapf(err, "container %s", c.ID())
+					return fmt.Errorf("container %s: %w", c.ID(), err)
 				}
 				delete(c.state.BindMounts, "/etc/resolv.conf")
 			}
 			if hostsPath, ok := c.state.BindMounts["/etc/hosts"]; ok {
 				if err := os.Remove(hostsPath); err != nil && !os.IsNotExist(err) {
-					return errors.Wrapf(err, "container %s", c.ID())
+					return fmt.Errorf("container %s: %w", c.ID(), err)
 				}
 				delete(c.state.BindMounts, "/etc/hosts")
 			}
@@ -2099,13 +2099,13 @@ func (c *Container) makeBindMounts() error {
 			// them.
 			depCtr, err := c.getRootNetNsDepCtr()
 			if err != nil {
-				return errors.Wrapf(err, "error fetching network namespace dependency container for container %s", c.ID())
+				return fmt.Errorf("error fetching network namespace dependency container for container %s: %w", c.ID(), err)
 			}
 
 			// We need that container's bind mounts
 			bindMounts, err := depCtr.BindMounts()
 			if err != nil {
-				return errors.Wrapf(err, "error fetching bind mounts from dependency %s of container %s", depCtr.ID(), c.ID())
+				return fmt.Errorf("error fetching bind mounts from dependency %s of container %s: %w", depCtr.ID(), c.ID(), err)
 			}
 
 			// The other container may not have a resolv.conf or /etc/hosts
@@ -2115,7 +2115,7 @@ func (c *Container) makeBindMounts() error {
 				err := c.mountIntoRootDirs("/etc/resolv.conf", resolvPath)
 
 				if err != nil {
-					return errors.Wrapf(err, "error assigning mounts to container %s", c.ID())
+					return fmt.Errorf("error assigning mounts to container %s: %w", c.ID(), err)
 				}
 			}
 
@@ -2135,13 +2135,13 @@ func (c *Container) makeBindMounts() error {
 				err = etchosts.Add(hostsPath, getLocalhostHostEntry(c))
 				lock.Unlock()
 				if err != nil {
-					return errors.Wrapf(err, "error creating hosts file for container %s which depends on container %s", c.ID(), depCtr.ID())
+					return fmt.Errorf("error creating hosts file for container %s which depends on container %s: %w", c.ID(), depCtr.ID(), err)
 				}
 
 				// finally, save it in the new container
 				err = c.mountIntoRootDirs(config.DefaultHostsFile, hostsPath)
 				if err != nil {
-					return errors.Wrapf(err, "error assigning mounts to container %s", c.ID())
+					return fmt.Errorf("error assigning mounts to container %s: %w", c.ID(), err)
 				}
 			}
 
@@ -2156,13 +2156,13 @@ func (c *Container) makeBindMounts() error {
 		} else {
 			if !c.config.UseImageResolvConf {
 				if err := c.generateResolvConf(); err != nil {
-					return errors.Wrapf(err, "error creating resolv.conf for container %s", c.ID())
+					return fmt.Errorf("error creating resolv.conf for container %s: %w", c.ID(), err)
 				}
 			}
 
 			if !c.config.UseImageHosts {
 				if err := c.createHosts(); err != nil {
-					return errors.Wrapf(err, "error creating hosts file for container %s", c.ID())
+					return fmt.Errorf("error creating hosts file for container %s: %w", c.ID(), err)
 				}
 			}
 		}
@@ -2180,7 +2180,7 @@ func (c *Container) makeBindMounts() error {
 		}
 	} else if !c.config.UseImageHosts && c.state.BindMounts["/etc/hosts"] == "" {
 		if err := c.createHosts(); err != nil {
-			return errors.Wrapf(err, "error creating hosts file for container %s", c.ID())
+			return fmt.Errorf("error creating hosts file for container %s: %w", c.ID(), err)
 		}
 	}
 
@@ -2192,7 +2192,7 @@ func (c *Container) makeBindMounts() error {
 	if c.config.Passwd == nil || *c.config.Passwd {
 		newPasswd, newGroup, err := c.generatePasswdAndGroup()
 		if err != nil {
-			return errors.Wrapf(err, "error creating temporary passwd file for container %s", c.ID())
+			return fmt.Errorf("error creating temporary passwd file for container %s: %w", c.ID(), err)
 		}
 		if newPasswd != "" {
 			// Make /etc/passwd
@@ -2213,7 +2213,7 @@ func (c *Container) makeBindMounts() error {
 	if _, ok := c.state.BindMounts["/etc/hostname"]; !ok {
 		hostnamePath, err := c.writeStringToRundir("hostname", c.Hostname())
 		if err != nil {
-			return errors.Wrapf(err, "error creating hostname file for container %s", c.ID())
+			return fmt.Errorf("error creating hostname file for container %s: %w", c.ID(), err)
 		}
 		c.state.BindMounts["/etc/hostname"] = hostnamePath
 	}
@@ -2225,7 +2225,7 @@ func (c *Container) makeBindMounts() error {
 		if ctrTimezone != "local" {
 			_, err = time.LoadLocation(ctrTimezone)
 			if err != nil {
-				return errors.Wrapf(err, "error finding timezone for container %s", c.ID())
+				return fmt.Errorf("error finding timezone for container %s: %w", c.ID(), err)
 			}
 		}
 		if _, ok := c.state.BindMounts["/etc/localtime"]; !ok {
@@ -2233,18 +2233,18 @@ func (c *Container) makeBindMounts() error {
 			if ctrTimezone == "local" {
 				zonePath, err = filepath.EvalSymlinks("/etc/localtime")
 				if err != nil {
-					return errors.Wrapf(err, "error finding local timezone for container %s", c.ID())
+					return fmt.Errorf("error finding local timezone for container %s: %w", c.ID(), err)
 				}
 			} else {
 				zone := filepath.Join("/usr/share/zoneinfo", ctrTimezone)
 				zonePath, err = filepath.EvalSymlinks(zone)
 				if err != nil {
-					return errors.Wrapf(err, "error setting timezone for container %s", c.ID())
+					return fmt.Errorf("error setting timezone for container %s: %w", c.ID(), err)
 				}
 			}
 			localtimePath, err := c.copyTimezoneFile(zonePath)
 			if err != nil {
-				return errors.Wrapf(err, "error setting timezone for container %s", c.ID())
+				return fmt.Errorf("error setting timezone for container %s: %w", c.ID(), err)
 			}
 			c.state.BindMounts["/etc/localtime"] = localtimePath
 		}
@@ -2282,7 +2282,7 @@ rootless=%d
 		}
 		containerenvPath, err := c.writeStringToRundir(".containerenv", containerenv)
 		if err != nil {
-			return errors.Wrapf(err, "error creating containerenv file for container %s", c.ID())
+			return fmt.Errorf("error creating containerenv file for container %s: %w", c.ID(), err)
 		}
 		c.state.BindMounts["/run/.containerenv"] = containerenvPath
 	}
@@ -2303,7 +2303,7 @@ rootless=%d
 	if len(c.Secrets()) > 0 {
 		// create /run/secrets if subscriptions did not create
 		if err := c.createSecretMountDir(); err != nil {
-			return errors.Wrapf(err, "error creating secrets mount")
+			return fmt.Errorf("error creating secrets mount: %w", err)
 		}
 		for _, secret := range c.Secrets() {
 			secretFileName := secret.Name
@@ -2397,7 +2397,7 @@ func (c *Container) generateResolvConf() error {
 		Path:            destPath,
 		Searches:        search,
 	}); err != nil {
-		return errors.Wrapf(err, "error building resolv.conf for container %s", c.ID())
+		return fmt.Errorf("error building resolv.conf for container %s: %w", c.ID(), err)
 	}
 
 	return c.bindMountRootFile(destPath, resolvconf.DefaultResolvConf)
@@ -2598,7 +2598,7 @@ func (c *Container) generateCurrentUserGroupEntry() (string, int, error) {
 
 	g, err := user.LookupGroupId(strconv.Itoa(gid))
 	if err != nil {
-		return "", 0, errors.Wrapf(err, "failed to get current group")
+		return "", 0, fmt.Errorf("failed to get current group: %w", err)
 	}
 
 	// Look up group name to see if it exists in the image.
@@ -2620,7 +2620,7 @@ func (c *Container) generateCurrentUserGroupEntry() (string, int, error) {
 	if uid != 0 {
 		u, err := user.LookupId(strconv.Itoa(uid))
 		if err != nil {
-			return "", 0, errors.Wrapf(err, "failed to get current user to make group entry")
+			return "", 0, fmt.Errorf("failed to get current user to make group entry: %w", err)
 		}
 		username = u.Username
 	}
@@ -2718,7 +2718,7 @@ func (c *Container) generateCurrentUserPasswdEntry() (string, int, int, error) {
 
 	u, err := user.LookupId(strconv.Itoa(uid))
 	if err != nil {
-		return "", 0, 0, errors.Wrapf(err, "failed to get current user")
+		return "", 0, 0, fmt.Errorf("failed to get current user: %w", err)
 	}
 	pwd, err := c.userPasswdEntry(u)
 	if err != nil {
@@ -2820,7 +2820,7 @@ func (c *Container) generateUserPasswdEntry(addedUID int) (string, error) {
 		} else {
 			group, err := lookup.GetGroup(c.state.Mountpoint, groupspec)
 			if err != nil {
-				return "", errors.Wrapf(err, "unable to get gid %s from group file", groupspec)
+				return "", fmt.Errorf("unable to get gid %s from group file: %w", groupspec, err)
 			}
 			gid = group.Gid
 		}
@@ -2929,7 +2929,7 @@ func (c *Container) generatePasswdAndGroup() (string, string, error) {
 			logrus.Debugf("Making /etc/passwd for container %s", c.ID())
 			originPasswdFile, err := securejoin.SecureJoin(c.state.Mountpoint, "/etc/passwd")
 			if err != nil {
-				return "", "", errors.Wrapf(err, "error creating path to container %s /etc/passwd", c.ID())
+				return "", "", fmt.Errorf("error creating path to container %s /etc/passwd: %w", c.ID(), err)
 			}
 			orig, err := ioutil.ReadFile(originPasswdFile)
 			if err != nil && !os.IsNotExist(err) {
@@ -2937,7 +2937,7 @@ func (c *Container) generatePasswdAndGroup() (string, string, error) {
 			}
 			passwdFile, err := c.writeStringToStaticDir("passwd", string(orig)+passwdEntry)
 			if err != nil {
-				return "", "", errors.Wrapf(err, "failed to create temporary passwd file")
+				return "", "", fmt.Errorf("failed to create temporary passwd file: %w", err)
 			}
 			if err := os.Chmod(passwdFile, 0644); err != nil {
 				return "", "", err
@@ -2947,17 +2947,17 @@ func (c *Container) generatePasswdAndGroup() (string, string, error) {
 			logrus.Debugf("Modifying container %s /etc/passwd", c.ID())
 			containerPasswd, err := securejoin.SecureJoin(c.state.Mountpoint, "/etc/passwd")
 			if err != nil {
-				return "", "", errors.Wrapf(err, "error looking up location of container %s /etc/passwd", c.ID())
+				return "", "", fmt.Errorf("error looking up location of container %s /etc/passwd: %w", c.ID(), err)
 			}
 
 			f, err := os.OpenFile(containerPasswd, os.O_APPEND|os.O_WRONLY, 0600)
 			if err != nil {
-				return "", "", errors.Wrapf(err, "container %s", c.ID())
+				return "", "", fmt.Errorf("container %s: %w", c.ID(), err)
 			}
 			defer f.Close()
 
 			if _, err := f.WriteString(passwdEntry); err != nil {
-				return "", "", errors.Wrapf(err, "unable to append to container %s /etc/passwd", c.ID())
+				return "", "", fmt.Errorf("unable to append to container %s /etc/passwd: %w", c.ID(), err)
 			}
 		default:
 			logrus.Debugf("Not modifying container %s /etc/passwd", c.ID())
@@ -2975,7 +2975,7 @@ func (c *Container) generatePasswdAndGroup() (string, string, error) {
 			logrus.Debugf("Making /etc/group for container %s", c.ID())
 			originGroupFile, err := securejoin.SecureJoin(c.state.Mountpoint, "/etc/group")
 			if err != nil {
-				return "", "", errors.Wrapf(err, "error creating path to container %s /etc/group", c.ID())
+				return "", "", fmt.Errorf("error creating path to container %s /etc/group: %w", c.ID(), err)
 			}
 			orig, err := ioutil.ReadFile(originGroupFile)
 			if err != nil && !os.IsNotExist(err) {
@@ -2983,7 +2983,7 @@ func (c *Container) generatePasswdAndGroup() (string, string, error) {
 			}
 			groupFile, err := c.writeStringToStaticDir("group", string(orig)+groupEntry)
 			if err != nil {
-				return "", "", errors.Wrapf(err, "failed to create temporary group file")
+				return "", "", fmt.Errorf("failed to create temporary group file: %w", err)
 			}
 			if err := os.Chmod(groupFile, 0644); err != nil {
 				return "", "", err
@@ -2993,17 +2993,17 @@ func (c *Container) generatePasswdAndGroup() (string, string, error) {
 			logrus.Debugf("Modifying container %s /etc/group", c.ID())
 			containerGroup, err := securejoin.SecureJoin(c.state.Mountpoint, "/etc/group")
 			if err != nil {
-				return "", "", errors.Wrapf(err, "error looking up location of container %s /etc/group", c.ID())
+				return "", "", fmt.Errorf("error looking up location of container %s /etc/group: %w", c.ID(), err)
 			}
 
 			f, err := os.OpenFile(containerGroup, os.O_APPEND|os.O_WRONLY, 0600)
 			if err != nil {
-				return "", "", errors.Wrapf(err, "container %s", c.ID())
+				return "", "", fmt.Errorf("container %s: %w", c.ID(), err)
 			}
 			defer f.Close()
 
 			if _, err := f.WriteString(groupEntry); err != nil {
-				return "", "", errors.Wrapf(err, "unable to append to container %s /etc/group", c.ID())
+				return "", "", fmt.Errorf("unable to append to container %s /etc/group: %w", c.ID(), err)
 			}
 		default:
 			logrus.Debugf("Not modifying container %s /etc/group", c.ID())
@@ -3038,7 +3038,7 @@ func (c *Container) expectPodCgroup() (bool, error) {
 	case cgroupManager == config.CgroupfsCgroupsManager:
 		return !rootless.IsRootless(), nil
 	default:
-		return false, errors.Wrapf(define.ErrInvalidArg, "invalid cgroup mode %s requested for pods", cgroupManager)
+		return false, fmt.Errorf("invalid cgroup mode %s requested for pods: %w", cgroupManager, define.ErrInvalidArg)
 	}
 }
 
@@ -3075,7 +3075,7 @@ func (c *Container) getOCICgroupPath() (string, error) {
 		logrus.Debugf("Setting Cgroup path for container %s to %s", c.ID(), cgroupPath)
 		return cgroupPath, nil
 	default:
-		return "", errors.Wrapf(define.ErrInvalidArg, "invalid cgroup manager %s requested", cgroupManager)
+		return "", fmt.Errorf("invalid cgroup manager %s requested: %w", cgroupManager, define.ErrInvalidArg)
 	}
 }
 
@@ -3086,7 +3086,7 @@ func (c *Container) copyTimezoneFile(zonePath string) (string, error) {
 		return "", err
 	}
 	if file.IsDir() {
-		return "", errors.New("Invalid timezone: is a directory")
+		return "", errors.New("invalid timezone: is a directory")
 	}
 	src, err := os.Open(zonePath)
 	if err != nil {
@@ -3120,14 +3120,14 @@ func (c *Container) cleanupOverlayMounts() error {
 func (c *Container) checkFileExistsInRootfs(file string) (bool, error) {
 	checkPath, err := securejoin.SecureJoin(c.state.Mountpoint, file)
 	if err != nil {
-		return false, errors.Wrapf(err, "cannot create path to container %s file %q", c.ID(), file)
+		return false, fmt.Errorf("cannot create path to container %s file %q: %w", c.ID(), file, err)
 	}
 	stat, err := os.Stat(checkPath)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return false, nil
 		}
-		return false, errors.Wrapf(err, "container %s", c.ID())
+		return false, fmt.Errorf("container %s: %w", c.ID(), err)
 	}
 	if stat.IsDir() {
 		return false, nil
@@ -3163,7 +3163,7 @@ func (c *Container) createSecretMountDir() error {
 func (c *Container) fixVolumePermissions(v *ContainerNamedVolume) error {
 	vol, err := c.runtime.state.Volume(v.Name)
 	if err != nil {
-		return errors.Wrapf(err, "error retrieving named volume %s for container %s", v.Name, c.ID())
+		return fmt.Errorf("error retrieving named volume %s for container %s: %w", v.Name, c.ID(), err)
 	}
 
 	vol.lock.Lock()
@@ -3190,7 +3190,7 @@ func (c *Container) fixVolumePermissions(v *ContainerNamedVolume) error {
 			mappings := idtools.NewIDMappingsFromMaps(c.config.IDMappings.UIDMap, c.config.IDMappings.GIDMap)
 			newPair, err := mappings.ToHost(p)
 			if err != nil {
-				return errors.Wrapf(err, "error mapping user %d:%d", uid, gid)
+				return fmt.Errorf("error mapping user %d:%d: %w", uid, gid, err)
 			}
 			uid = newPair.UID
 			gid = newPair.GID

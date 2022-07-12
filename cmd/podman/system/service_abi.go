@@ -4,23 +4,45 @@
 package system
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"net/url"
 	"os"
 	"path/filepath"
 
+	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	api "github.com/containers/podman/v4/pkg/api/server"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/domain/infra"
 	"github.com/containers/podman/v4/pkg/servicereaper"
+	"github.com/containers/podman/v4/utils"
 	"github.com/coreos/go-systemd/v22/activation"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
 	"golang.org/x/sys/unix"
 )
+
+// maybeMoveToSubCgroup moves the current process in a sub cgroup when
+// it is running in the root cgroup on a system that uses cgroupv2.
+func maybeMoveToSubCgroup() error {
+	unifiedMode, err := cgroups.IsCgroup2UnifiedMode()
+	if err != nil {
+		return err
+	}
+	if !unifiedMode {
+		return nil
+	}
+	cgroup, err := utils.GetOwnCgroup()
+	if err != nil {
+		return err
+	}
+	if cgroup == "/" {
+		return utils.MoveUnderCgroupSubtree("init")
+	}
+	return nil
+}
 
 func restService(flags *pflag.FlagSet, cfg *entities.PodmanConfig, opts entities.ServiceOptions) error {
 	var (
@@ -48,13 +70,13 @@ func restService(flags *pflag.FlagSet, cfg *entities.PodmanConfig, opts entities
 		listener = listeners[0]
 		// note that activation.Listeners() returns nil when it cannot listen on the fd (i.e. udp connection)
 		if listener == nil {
-			return fmt.Errorf("unexpected fd received from systemd: cannot listen on it")
+			return errors.New("unexpected fd received from systemd: cannot listen on it")
 		}
 		libpodRuntime.SetRemoteURI(listeners[0].Addr().String())
 	} else {
 		uri, err := url.Parse(opts.URI)
 		if err != nil {
-			return errors.Errorf("%s is an invalid socket destination", opts.URI)
+			return fmt.Errorf("%s is an invalid socket destination", opts.URI)
 		}
 
 		switch uri.Scheme {
@@ -74,7 +96,7 @@ func restService(flags *pflag.FlagSet, cfg *entities.PodmanConfig, opts entities
 			} else {
 				listener, err = net.Listen(uri.Scheme, path)
 				if err != nil {
-					return errors.Wrapf(err, "unable to create socket")
+					return fmt.Errorf("unable to create socket: %w", err)
 				}
 			}
 		case "tcp":
@@ -85,7 +107,7 @@ func restService(flags *pflag.FlagSet, cfg *entities.PodmanConfig, opts entities
 			}
 			listener, err = net.Listen(uri.Scheme, host)
 			if err != nil {
-				return errors.Wrapf(err, "unable to create socket %v", host)
+				return fmt.Errorf("unable to create socket %v: %w", host, err)
 			}
 		default:
 			logrus.Debugf("Attempting API Service endpoint scheme %q", uri.Scheme)
@@ -100,6 +122,10 @@ func restService(flags *pflag.FlagSet, cfg *entities.PodmanConfig, opts entities
 	}
 	defer devNullfile.Close()
 	if err := unix.Dup2(int(devNullfile.Fd()), int(os.Stdin.Fd())); err != nil {
+		return err
+	}
+
+	if err := maybeMoveToSubCgroup(); err != nil {
 		return err
 	}
 

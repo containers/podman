@@ -4,6 +4,8 @@
 package libpod
 
 import (
+	"errors"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -18,7 +20,6 @@ import (
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
@@ -196,7 +197,7 @@ func getContainerUser(container *Container, mountPoint string) (specs.User, erro
 	if !strings.Contains(userspec, ":") {
 		groups, err2 := chrootuser.GetAdditionalGroupsForUser(mountPoint, uint64(u.UID))
 		if err2 != nil {
-			if errors.Cause(err2) != chrootuser.ErrNoSuchUser && err == nil {
+			if !errors.Is(err2, chrootuser.ErrNoSuchUser) && err == nil {
 				err = err2
 			}
 		} else {
@@ -253,7 +254,7 @@ func (c *Container) joinMountAndExec(f func() error) error {
 
 		inHostPidNS, err := c.inHostPidNS()
 		if err != nil {
-			errChan <- errors.Wrap(err, "checking inHostPidNS")
+			errChan <- fmt.Errorf("checking inHostPidNS: %w", err)
 			return
 		}
 		var pidFD *os.File

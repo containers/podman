@@ -48,7 +48,7 @@ const (
 var (
 	Zero = int64Amount{}
 
-	// Used by quantity strings - treat as read only
+	// Used by quantity strings - treat as read-only
 	zeroBytes = []byte("0")
 )
 

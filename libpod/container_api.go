@@ -2,6 +2,7 @@ package libpod
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -14,7 +15,6 @@ import (
 	"github.com/containers/podman/v4/libpod/events"
 	"github.com/containers/podman/v4/pkg/signal"
 	"github.com/containers/storage/pkg/archive"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -39,7 +39,7 @@ func (c *Container) Init(ctx context.Context, recursive bool) error {
 	}
 
 	if !c.ensureState(define.ContainerStateConfigured, define.ContainerStateStopped, define.ContainerStateExited) {
-		return errors.Wrapf(define.ErrCtrStateInvalid, "container %s has already been created in runtime", c.ID())
+		return fmt.Errorf("container %s has already been created in runtime: %w", c.ID(), define.ErrCtrStateInvalid)
 	}
 
 	if !recursive {
@@ -197,7 +197,7 @@ func (c *Container) StopWithTimeout(timeout uint) error {
 	}
 
 	if !c.ensureState(define.ContainerStateCreated, define.ContainerStateRunning, define.ContainerStateStopping) {
-		return errors.Wrapf(define.ErrCtrStateInvalid, "can only stop created or running containers. %s is in state %s", c.ID(), c.state.State.String())
+		return fmt.Errorf("can only stop created or running containers. %s is in state %s: %w", c.ID(), c.state.State.String(), define.ErrCtrStateInvalid)
 	}
 
 	return c.stop(timeout)
@@ -221,7 +221,7 @@ func (c *Container) Kill(signal uint) error {
 		// stop the container and if that is taking too long, a user
 		// may have decided to kill the container after all.
 	default:
-		return errors.Wrapf(define.ErrCtrStateInvalid, "can only kill running containers. %s is in state %s", c.ID(), c.state.State.String())
+		return fmt.Errorf("can only kill running containers. %s is in state %s: %w", c.ID(), c.state.State.String(), define.ErrCtrStateInvalid)
 	}
 
 	// Hardcode all = false, we only use all when removing.
@@ -241,7 +241,7 @@ func (c *Container) Kill(signal uint) error {
 // the duration of its runtime, only using it at the beginning to verify state.
 func (c *Container) Attach(streams *define.AttachStreams, keys string, resize <-chan define.TerminalSize) error {
 	if c.LogDriver() == define.PassthroughLogging {
-		return errors.Wrapf(define.ErrNoLogs, "this container is using the 'passthrough' log driver, cannot attach")
+		return fmt.Errorf("this container is using the 'passthrough' log driver, cannot attach: %w", define.ErrNoLogs)
 	}
 	if !c.batched {
 		c.lock.Lock()
@@ -254,7 +254,7 @@ func (c *Container) Attach(streams *define.AttachStreams, keys string, resize <-
 	}
 
 	if !c.ensureState(define.ContainerStateCreated, define.ContainerStateRunning) {
-		return errors.Wrapf(define.ErrCtrStateInvalid, "can only attach to created or running containers")
+		return fmt.Errorf("can only attach to created or running containers: %w", define.ErrCtrStateInvalid)
 	}
 
 	// HACK: This is really gross, but there isn't a better way without
@@ -320,11 +320,11 @@ func (c *Container) HTTPAttach(r *http.Request, w http.ResponseWriter, streams *
 	}
 
 	if !c.ensureState(define.ContainerStateCreated, define.ContainerStateRunning) {
-		return errors.Wrapf(define.ErrCtrStateInvalid, "can only attach to created or running containers")
+		return fmt.Errorf("can only attach to created or running containers: %w", define.ErrCtrStateInvalid)
 	}
 
 	if !streamAttach && !streamLogs {
-		return errors.Wrapf(define.ErrInvalidArg, "must specify at least one of stream or logs")
+		return fmt.Errorf("must specify at least one of stream or logs: %w", define.ErrInvalidArg)
 	}
 
 	logrus.Infof("Performing HTTP Hijack attach to container %s", c.ID())
@@ -346,7 +346,7 @@ func (c *Container) AttachResize(newSize define.TerminalSize) error {
 	}
 
 	if !c.ensureState(define.ContainerStateCreated, define.ContainerStateRunning) {
-		return errors.Wrapf(define.ErrCtrStateInvalid, "can only resize created or running containers")
+		return fmt.Errorf("can only resize created or running containers: %w", define.ErrCtrStateInvalid)
 	}
 
 	logrus.Infof("Resizing TTY of container %s", c.ID())
@@ -383,20 +383,20 @@ func (c *Container) Unmount(force bool) error {
 	if c.state.Mounted {
 		mounted, err := c.runtime.storageService.MountedContainerImage(c.ID())
 		if err != nil {
-			return errors.Wrapf(err, "can't determine how many times %s is mounted, refusing to unmount", c.ID())
+			return fmt.Errorf("can't determine how many times %s is mounted, refusing to unmount: %w", c.ID(), err)
 		}
 		if mounted == 1 {
 			if c.ensureState(define.ContainerStateRunning, define.ContainerStatePaused) {
-				return errors.Wrapf(define.ErrCtrStateInvalid, "cannot unmount storage for container %s as it is running or paused", c.ID())
+				return fmt.Errorf("cannot unmount storage for container %s as it is running or paused: %w", c.ID(), define.ErrCtrStateInvalid)
 			}
 			execSessions, err := c.getActiveExecSessions()
 			if err != nil {
 				return err
 			}
 			if len(execSessions) != 0 {
-				return errors.Wrapf(define.ErrCtrStateInvalid, "container %s has active exec sessions, refusing to unmount", c.ID())
+				return fmt.Errorf("container %s has active exec sessions, refusing to unmount: %w", c.ID(), define.ErrCtrStateInvalid)
 			}
-			return errors.Wrapf(define.ErrInternal, "can't unmount %s last mount, it is still in use", c.ID())
+			return fmt.Errorf("can't unmount %s last mount, it is still in use: %w", c.ID(), define.ErrInternal)
 		}
 	}
 	defer c.newContainerEvent(events.Unmount)
@@ -415,10 +415,10 @@ func (c *Container) Pause() error {
 	}
 
 	if c.state.State == define.ContainerStatePaused {
-		return errors.Wrapf(define.ErrCtrStateInvalid, "%q is already paused", c.ID())
+		return fmt.Errorf("%q is already paused: %w", c.ID(), define.ErrCtrStateInvalid)
 	}
 	if c.state.State != define.ContainerStateRunning {
-		return errors.Wrapf(define.ErrCtrStateInvalid, "%q is not running, can't pause", c.state.State)
+		return fmt.Errorf("%q is not running, can't pause: %w", c.state.State, define.ErrCtrStateInvalid)
 	}
 	defer c.newContainerEvent(events.Pause)
 	return c.pause()
@@ -436,7 +436,7 @@ func (c *Container) Unpause() error {
 	}
 
 	if c.state.State != define.ContainerStatePaused {
-		return errors.Wrapf(define.ErrCtrStateInvalid, "%q is not paused, can't unpause", c.ID())
+		return fmt.Errorf("%q is not paused, can't unpause: %w", c.ID(), define.ErrCtrStateInvalid)
 	}
 	defer c.newContainerEvent(events.Unpause)
 	return c.unpause()
@@ -455,7 +455,7 @@ func (c *Container) Export(path string) error {
 	}
 
 	if c.state.State == define.ContainerStateRemoving {
-		return errors.Wrapf(define.ErrCtrStateInvalid, "cannot mount container %s as it is being removed", c.ID())
+		return fmt.Errorf("cannot mount container %s as it is being removed: %w", c.ID(), define.ErrCtrStateInvalid)
 	}
 
 	defer c.newContainerEvent(events.Mount)
@@ -666,22 +666,21 @@ func (c *Container) Cleanup(ctx context.Context) error {
 		defer c.lock.Unlock()
 
 		if err := c.syncContainer(); err != nil {
-			switch errors.Cause(err) {
 			// When the container has already been removed, the OCI runtime directory remain.
-			case define.ErrNoSuchCtr, define.ErrCtrRemoved:
+			if errors.Is(err, define.ErrNoSuchCtr) || errors.Is(err, define.ErrCtrRemoved) {
 				if err := c.cleanupRuntime(ctx); err != nil {
-					return errors.Wrapf(err, "error cleaning up container %s from OCI runtime", c.ID())
+					return fmt.Errorf("error cleaning up container %s from OCI runtime: %w", c.ID(), err)
 				}
-			default:
-				logrus.Errorf("Syncing container %s status: %v", c.ID(), err)
+				return nil
 			}
+			logrus.Errorf("Syncing container %s status: %v", c.ID(), err)
 			return err
 		}
 	}
 
 	// Check if state is good
 	if !c.ensureState(define.ContainerStateConfigured, define.ContainerStateCreated, define.ContainerStateStopped, define.ContainerStateStopping, define.ContainerStateExited) {
-		return errors.Wrapf(define.ErrCtrStateInvalid, "container %s is running or paused, refusing to clean up", c.ID())
+		return fmt.Errorf("container %s is running or paused, refusing to clean up: %w", c.ID(), define.ErrCtrStateInvalid)
 	}
 
 	// Handle restart policy.
@@ -703,7 +702,7 @@ func (c *Container) Cleanup(ctx context.Context) error {
 		return err
 	}
 	if len(sessions) > 0 {
-		return errors.Wrapf(define.ErrCtrStateInvalid, "container %s has active exec sessions, refusing to clean up", c.ID())
+		return fmt.Errorf("container %s has active exec sessions, refusing to clean up: %w", c.ID(), define.ErrCtrStateInvalid)
 	}
 
 	defer c.newContainerEvent(events.Cleanup)
@@ -761,19 +760,8 @@ func (c *Container) Sync() error {
 		defer c.lock.Unlock()
 	}
 
-	// If runtime knows about the container, update its status in runtime
-	// And then save back to disk
-	if c.ensureState(define.ContainerStateCreated, define.ContainerStateRunning, define.ContainerStatePaused, define.ContainerStateStopped, define.ContainerStateStopping) {
-		oldState := c.state.State
-		if err := c.ociRuntime.UpdateContainerStatus(c); err != nil {
-			return err
-		}
-		// Only save back to DB if state changed
-		if c.state.State != oldState {
-			if err := c.save(); err != nil {
-				return err
-			}
-		}
+	if err := c.syncContainer(); err != nil {
+		return err
 	}
 
 	defer c.newContainerEvent(events.Sync)
@@ -800,7 +788,7 @@ func (c *Container) ReloadNetwork() error {
 	}
 
 	if !c.ensureState(define.ContainerStateCreated, define.ContainerStateRunning) {
-		return errors.Wrapf(define.ErrCtrStateInvalid, "cannot reload network unless container network has been configured")
+		return fmt.Errorf("cannot reload network unless container network has been configured: %w", define.ErrCtrStateInvalid)
 	}
 
 	return c.reloadNetwork()

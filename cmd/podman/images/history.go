@@ -13,7 +13,6 @@ import (
 	"github.com/containers/podman/v4/cmd/podman/utils"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/docker/go-units"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -132,7 +131,7 @@ func history(cmd *cobra.Command, args []string) error {
 		})
 
 		if err := rpt.Execute(hdrs); err != nil {
-			return errors.Wrapf(err, "failed to write report column headers")
+			return fmt.Errorf("failed to write report column headers: %w", err)
 		}
 	}
 	return rpt.Execute(hr)

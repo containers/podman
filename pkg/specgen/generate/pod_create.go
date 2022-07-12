@@ -60,6 +60,7 @@ func MakePod(p *entities.PodSpec, rt *libpod.Runtime) (*libpod.Pod, error) {
 		if err != nil {
 			return nil, err
 		}
+
 		spec.Pod = pod.ID()
 		opts = append(opts, rt.WithPod(pod))
 		spec.CgroupParent = pod.CgroupParent()

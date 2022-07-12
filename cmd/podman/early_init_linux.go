@@ -6,7 +6,6 @@ import (
 	"syscall"
 
 	"github.com/containers/podman/v4/libpod/define"
-	"github.com/pkg/errors"
 )
 
 func setRLimits() error {
@@ -15,11 +14,11 @@ func setRLimits() error {
 	rlimits.Max = define.RLimitDefaultValue
 	if err := syscall.Setrlimit(syscall.RLIMIT_NOFILE, rlimits); err != nil {
 		if err := syscall.Getrlimit(syscall.RLIMIT_NOFILE, rlimits); err != nil {
-			return errors.Wrapf(err, "error getting rlimits")
+			return fmt.Errorf("error getting rlimits: %w", err)
 		}
 		rlimits.Cur = rlimits.Max
 		if err := syscall.Setrlimit(syscall.RLIMIT_NOFILE, rlimits); err != nil {
-			return errors.Wrapf(err, "error setting new rlimits")
+			return fmt.Errorf("error setting new rlimits: %w", err)
 		}
 	}
 	return nil

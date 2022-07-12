@@ -97,4 +97,17 @@ var _ = Describe("podman system df", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 	})
+
+	It("podman system df --format \"{{ json . }}\"", func() {
+		session := podmanTest.Podman([]string{"create", ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"system", "df", "--format", "{{ json . }}"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.LineInOutputContains("Size"))
+		Expect(session.LineInOutputContains("Reclaimable"))
+		Expect(session.IsJSONOutputValid())
+	})
 })

@@ -1,12 +1,12 @@
 package libpod
 
 import (
+	"fmt"
 	"path/filepath"
 	"strings"
 
 	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -65,7 +65,7 @@ func (c *Container) resolvePath(mountPoint string, containerPath string) (string
 				return "", "", err
 			}
 			if mountPoint == "" {
-				return "", "", errors.Errorf("volume %s is not mounted, cannot copy into it", volume.Name())
+				return "", "", fmt.Errorf("volume %s is not mounted, cannot copy into it", volume.Name())
 			}
 
 			// We found a matching volume for searchPath.  We now

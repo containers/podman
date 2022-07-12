@@ -10,7 +10,6 @@ import (
 	"github.com/containers/podman/v4/pkg/errorhandling"
 	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/containers/podman/v4/pkg/systemd"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -21,7 +20,7 @@ func (c *Container) createTimer() error {
 	}
 	podman, err := os.Executable()
 	if err != nil {
-		return errors.Wrapf(err, "failed to get path for podman for a health check timer")
+		return fmt.Errorf("failed to get path for podman for a health check timer: %w", err)
 	}
 
 	var cmd = []string{}
@@ -36,13 +35,13 @@ func (c *Container) createTimer() error {
 
 	conn, err := systemd.ConnectToDBUS()
 	if err != nil {
-		return errors.Wrapf(err, "unable to get systemd connection to add healthchecks")
+		return fmt.Errorf("unable to get systemd connection to add healthchecks: %w", err)
 	}
 	conn.Close()
 	logrus.Debugf("creating systemd-transient files: %s %s", "systemd-run", cmd)
 	systemdRun := exec.Command("systemd-run", cmd...)
 	if output, err := systemdRun.CombinedOutput(); err != nil {
-		return errors.Errorf("%s", output)
+		return fmt.Errorf("%s", output)
 	}
 	return nil
 }
@@ -65,7 +64,7 @@ func (c *Container) startTimer() error {
 	}
 	conn, err := systemd.ConnectToDBUS()
 	if err != nil {
-		return errors.Wrapf(err, "unable to get systemd connection to start healthchecks")
+		return fmt.Errorf("unable to get systemd connection to start healthchecks: %w", err)
 	}
 	defer conn.Close()
 
@@ -89,7 +88,7 @@ func (c *Container) removeTransientFiles(ctx context.Context) error {
 	}
 	conn, err := systemd.ConnectToDBUS()
 	if err != nil {
-		return errors.Wrapf(err, "unable to get systemd connection to remove healthchecks")
+		return fmt.Errorf("unable to get systemd connection to remove healthchecks: %w", err)
 	}
 	defer conn.Close()
 

@@ -132,7 +132,7 @@ var _ = Describe("Podman Benchmark Suite", func() {
 	Measure("Podman Benchmark Suite", func(b Benchmarker) {
 
 		registryOptions := &podmanRegistry.Options{
-			Image: "docker-archive:" + imageTarPath(registry),
+			Image: "docker-archive:" + imageTarPath(REGISTRY_IMAGE),
 		}
 
 		for i := range allBenchmarks {

@@ -9,7 +9,6 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -48,13 +47,13 @@ func uninstall(cmd *cobra.Command, args []string) error {
 
 	if err := os.Remove(fileName); err != nil {
 		if !os.IsNotExist(err) {
-			return errors.Errorf("could not remove plist file: %s", fileName)
+			return fmt.Errorf("could not remove plist file: %s", fileName)
 		}
 	}
 
 	helperPath := filepath.Join(installPrefix, "podman", "helper", userName)
 	if err := os.RemoveAll(helperPath); err != nil {
-		return errors.Errorf("could not remove helper binary path: %s", helperPath)
+		return fmt.Errorf("could not remove helper binary path: %s", helperPath)
 	}
 	return nil
 }

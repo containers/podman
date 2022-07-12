@@ -2,6 +2,7 @@ package volumes
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -11,7 +12,6 @@ import (
 	"github.com/containers/podman/v4/cmd/podman/utils"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/domain/entities"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -92,17 +92,10 @@ func setExitCode(force bool, errs []error) {
 	}
 
 	for _, err := range errs {
-		cause := errors.Cause(err)
-		switch {
-		case cause == define.ErrNoSuchVolume:
+		if errors.Is(err, define.ErrNoSuchVolume) || strings.Contains(err.Error(), define.ErrNoSuchVolume.Error()) {
 			noSuchVolumeErrors = true
-		case strings.Contains(cause.Error(), define.ErrNoSuchVolume.Error()):
-			noSuchVolumeErrors = true
-		case cause == define.ErrVolumeBeingUsed:
+		} else if errors.Is(err, define.ErrVolumeBeingUsed) || strings.Contains(err.Error(), define.ErrVolumeBeingUsed.Error()) {
 			inUseErrors = true
-		case strings.Contains(cause.Error(), define.ErrVolumeBeingUsed.Error()):
-			inUseErrors = true
-
 		}
 	}
 

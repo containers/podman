@@ -13,7 +13,6 @@ import (
 	"github.com/containers/podman/v4/pkg/rootless"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/selinux/go-selinux/label"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
@@ -30,7 +29,7 @@ func systemdSliceFromPath(parent, name string, resources *spec.LinuxResources) (
 	logrus.Debugf("Created cgroup path %s for parent %s and name %s", cgroupPath, parent, name)
 
 	if err := makeSystemdCgroup(cgroupPath, resources); err != nil {
-		return "", errors.Wrapf(err, "error creating cgroup %s", cgroupPath)
+		return "", fmt.Errorf("error creating cgroup %s: %w", cgroupPath, err)
 	}
 
 	logrus.Debugf("Created cgroup %s", cgroupPath)
@@ -95,7 +94,7 @@ func assembleSystemdCgroupName(baseSlice, newSlice string) (string, error) {
 	const sliceSuffix = ".slice"
 
 	if !strings.HasSuffix(baseSlice, sliceSuffix) {
-		return "", errors.Wrapf(define.ErrInvalidArg, "cannot assemble cgroup path with base %q - must end in .slice", baseSlice)
+		return "", fmt.Errorf("cannot assemble cgroup path with base %q - must end in .slice: %w", baseSlice, define.ErrInvalidArg)
 	}
 
 	noSlice := strings.TrimSuffix(baseSlice, sliceSuffix)
@@ -113,17 +112,17 @@ var lvpReleaseLabel = label.ReleaseLabel
 func LabelVolumePath(path string) error {
 	_, mountLabel, err := lvpInitLabels([]string{})
 	if err != nil {
-		return errors.Wrapf(err, "error getting default mountlabels")
+		return fmt.Errorf("error getting default mountlabels: %w", err)
 	}
 	if err := lvpReleaseLabel(mountLabel); err != nil {
-		return errors.Wrapf(err, "error releasing label %q", mountLabel)
+		return fmt.Errorf("error releasing label %q: %w", mountLabel, err)
 	}
 
 	if err := lvpRelabel(path, mountLabel, true); err != nil {
 		if err == syscall.ENOTSUP {
 			logrus.Debugf("Labeling not supported on %q", path)
 		} else {
-			return errors.Wrapf(err, "error setting selinux label for %s to %q as shared", path, mountLabel)
+			return fmt.Errorf("error setting selinux label for %s to %q as shared: %w", path, mountLabel, err)
 		}
 	}
 	return nil

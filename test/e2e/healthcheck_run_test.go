@@ -45,7 +45,7 @@ var _ = Describe("Podman healthcheck run", func() {
 	})
 
 	It("podman disable healthcheck with --no-healthcheck on valid container", func() {
-		session := podmanTest.Podman([]string{"run", "-dt", "--no-healthcheck", "--name", "hc", healthcheck})
+		session := podmanTest.Podman([]string{"run", "-dt", "--no-healthcheck", "--name", "hc", HEALTHCHECK_IMAGE})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		hc := podmanTest.Podman([]string{"healthcheck", "run", "hc"})
@@ -54,7 +54,7 @@ var _ = Describe("Podman healthcheck run", func() {
 	})
 
 	It("podman disable healthcheck with --no-healthcheck must not show starting on status", func() {
-		session := podmanTest.Podman([]string{"run", "-dt", "--no-healthcheck", "--name", "hc", healthcheck})
+		session := podmanTest.Podman([]string{"run", "-dt", "--no-healthcheck", "--name", "hc", HEALTHCHECK_IMAGE})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		hc := podmanTest.Podman([]string{"container", "inspect", "--format", "{{.State.Health.Status}}", "hc"})
@@ -98,7 +98,7 @@ var _ = Describe("Podman healthcheck run", func() {
 	})
 
 	It("podman disable healthcheck with --health-cmd=none on valid container", func() {
-		session := podmanTest.Podman([]string{"run", "-dt", "--health-cmd", "none", "--name", "hc", healthcheck})
+		session := podmanTest.Podman([]string{"run", "-dt", "--health-cmd", "none", "--name", "hc", HEALTHCHECK_IMAGE})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		hc := podmanTest.Podman([]string{"healthcheck", "run", "hc"})
@@ -108,7 +108,7 @@ var _ = Describe("Podman healthcheck run", func() {
 
 	It("podman healthcheck on valid container", func() {
 		Skip("Extremely consistent flake - re-enable on debugging")
-		session := podmanTest.Podman([]string{"run", "-dt", "--name", "hc", healthcheck})
+		session := podmanTest.Podman([]string{"run", "-dt", "--name", "hc", HEALTHCHECK_IMAGE})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
@@ -143,7 +143,7 @@ var _ = Describe("Podman healthcheck run", func() {
 	})
 
 	It("podman healthcheck on stopped container", func() {
-		session := podmanTest.Podman([]string{"run", "-dt", "--name", "hc", healthcheck, "ls"})
+		session := podmanTest.Podman([]string{"run", "-dt", "--name", "hc", HEALTHCHECK_IMAGE, "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 

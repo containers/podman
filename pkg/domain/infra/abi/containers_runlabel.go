@@ -2,6 +2,7 @@ package abi
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -14,7 +15,6 @@ import (
 	envLib "github.com/containers/podman/v4/pkg/env"
 	"github.com/containers/podman/v4/utils"
 	"github.com/google/shlex"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -40,7 +40,7 @@ func (ic *ContainerEngine) ContainerRunlabel(ctx context.Context, label string, 
 	}
 
 	if len(pulledImages) != 1 {
-		return errors.Errorf("internal error: expected an image to be pulled (or an error)")
+		return errors.New("internal error: expected an image to be pulled (or an error)")
 	}
 
 	// Extract the runlabel from the image.
@@ -57,7 +57,7 @@ func (ic *ContainerEngine) ContainerRunlabel(ctx context.Context, label string, 
 		}
 	}
 	if runlabel == "" {
-		return errors.Errorf("cannot find the value of label: %s in image: %s", label, imageRef)
+		return fmt.Errorf("cannot find the value of label: %s in image: %s", label, imageRef)
 	}
 
 	cmd, env, err := generateRunlabelCommand(runlabel, pulledImages[0], imageRef, args, options)
@@ -86,7 +86,7 @@ func (ic *ContainerEngine) ContainerRunlabel(ctx context.Context, label string, 
 				name := cmd[i+1]
 				ctr, err := ic.Libpod.LookupContainer(name)
 				if err != nil {
-					if errors.Cause(err) != define.ErrNoSuchCtr {
+					if !errors.Is(err, define.ErrNoSuchCtr) {
 						logrus.Debugf("Error occurred searching for container %s: %v", name, err)
 						return err
 					}

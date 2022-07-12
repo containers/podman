@@ -1,6 +1,7 @@
 package libpod
 
 import (
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -10,7 +11,6 @@ import (
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/libpod/lock"
 	"github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/pkg/errors"
 )
 
 // Pod represents a group of containers that are managed together.
@@ -169,6 +169,23 @@ func (p *Pod) CPUQuota() int64 {
 	return 0
 }
 
+// MemoryLimit returns the pod Memory Limit
+func (p *Pod) MemoryLimit() uint64 {
+	if p.state.InfraContainerID == "" {
+		return 0
+	}
+	infra, err := p.runtime.GetContainer(p.state.InfraContainerID)
+	if err != nil {
+		return 0
+	}
+	conf := infra.config.Spec
+	if conf != nil && conf.Linux != nil && conf.Linux.Resources != nil && conf.Linux.Resources.Memory != nil && conf.Linux.Resources.Memory.Limit != nil {
+		val := *conf.Linux.Resources.Memory.Limit
+		return uint64(val)
+	}
+	return 0
+}
+
 // NetworkMode returns the Network mode given by the user ex: pod, private...
 func (p *Pod) NetworkMode() string {
 	infra, err := p.runtime.GetContainer(p.state.InfraContainerID)
@@ -295,7 +312,7 @@ func (p *Pod) CgroupPath() (string, error) {
 		return "", err
 	}
 	if p.state.InfraContainerID == "" {
-		return "", errors.Wrap(define.ErrNoSuchCtr, "pod has no infra container")
+		return "", fmt.Errorf("pod has no infra container: %w", define.ErrNoSuchCtr)
 	}
 	return p.state.CgroupPath, nil
 }
@@ -369,7 +386,7 @@ func (p *Pod) infraContainer() (*Container, error) {
 		return nil, err
 	}
 	if id == "" {
-		return nil, errors.Wrap(define.ErrNoSuchCtr, "pod has no infra container")
+		return nil, fmt.Errorf("pod has no infra container: %w", define.ErrNoSuchCtr)
 	}
 
 	return p.runtime.state.Container(id)
@@ -409,7 +426,7 @@ func (p *Pod) GetPodStats(previousContainerStats map[string]*define.ContainerSta
 		newStats, err := c.GetContainerStats(previousContainerStats[c.ID()])
 		// If the container wasn't running, don't include it
 		// but also suppress the error
-		if err != nil && errors.Cause(err) != define.ErrCtrStateInvalid {
+		if err != nil && !errors.Is(err, define.ErrCtrStateInvalid) {
 			return nil, err
 		}
 		if err == nil {

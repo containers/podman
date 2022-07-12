@@ -1,6 +1,7 @@
 package libpod
 
 import (
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -14,7 +15,6 @@ import (
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/runtime-tools/validate"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/syndtr/gocapability/capability"
 )
@@ -24,15 +24,15 @@ import (
 func (c *Container) inspectLocked(size bool) (*define.InspectContainerData, error) {
 	storeCtr, err := c.runtime.store.Container(c.ID())
 	if err != nil {
-		return nil, errors.Wrapf(err, "error getting container from store %q", c.ID())
+		return nil, fmt.Errorf("error getting container from store %q: %w", c.ID(), err)
 	}
 	layer, err := c.runtime.store.Layer(storeCtr.LayerID)
 	if err != nil {
-		return nil, errors.Wrapf(err, "error reading information about layer %q", storeCtr.LayerID)
+		return nil, fmt.Errorf("error reading information about layer %q: %w", storeCtr.LayerID, err)
 	}
 	driverData, err := driver.GetDriverData(c.runtime.store, layer.ID)
 	if err != nil {
-		return nil, errors.Wrapf(err, "error getting graph driver info %q", c.ID())
+		return nil, fmt.Errorf("error getting graph driver info %q: %w", c.ID(), err)
 	}
 	return c.getContainerInspectData(size, driverData)
 }
@@ -241,7 +241,7 @@ func (c *Container) GetMounts(namedVolumes []*ContainerNamedVolume, imageVolumes
 		// volume.
 		volFromDB, err := c.runtime.state.Volume(volume.Name)
 		if err != nil {
-			return nil, errors.Wrapf(err, "error looking up volume %s in container %s config", volume.Name, c.ID())
+			return nil, fmt.Errorf("error looking up volume %s in container %s config: %w", volume.Name, c.ID(), err)
 		}
 		mountStruct.Driver = volFromDB.Driver()
 
@@ -794,28 +794,8 @@ func (c *Container) generateInspectContainerHostConfig(ctrSpec *spec.Spec, named
 	hostConfig.PidMode = pidMode
 
 	// UTS namespace mode
-	utsMode := ""
-	if c.config.UTSNsCtr != "" {
-		utsMode = fmt.Sprintf("container:%s", c.config.UTSNsCtr)
-	} else if ctrSpec.Linux != nil {
-		// Locate the spec's UTS namespace.
-		// If there is none, it's uts=host.
-		// If there is one and it has a path, it's "ns:".
-		// If there is no path, it's default - the empty string.
-		for _, ns := range ctrSpec.Linux.Namespaces {
-			if ns.Type == spec.UTSNamespace {
-				if ns.Path != "" {
-					utsMode = fmt.Sprintf("ns:%s", ns.Path)
-				} else {
-					utsMode = "private"
-				}
-				break
-			}
-		}
-		if utsMode == "" {
-			utsMode = "host"
-		}
-	}
+	utsMode := c.NamespaceMode(spec.UTSNamespace, ctrSpec)
+
 	hostConfig.UTSMode = utsMode
 
 	// User namespace mode

@@ -11,7 +11,6 @@ import (
 	"github.com/containers/podman/v4/cmd/podman/common"
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/containers/podman/v4/pkg/domain/entities"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -109,7 +108,7 @@ func commit(cmd *cobra.Command, args []string) error {
 	}
 	if len(iidFile) > 0 {
 		if err = ioutil.WriteFile(iidFile, []byte(response.Id), 0644); err != nil {
-			return errors.Wrap(err, "failed to write image ID")
+			return fmt.Errorf("failed to write image ID: %w", err)
 		}
 	}
 	fmt.Println(response.Id)

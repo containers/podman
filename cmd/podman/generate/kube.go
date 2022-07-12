@@ -11,7 +11,6 @@ import (
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/containers/podman/v4/cmd/podman/utils"
 	"github.com/containers/podman/v4/pkg/domain/entities"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -68,10 +67,10 @@ func kube(cmd *cobra.Command, args []string) error {
 
 	if cmd.Flags().Changed("filename") {
 		if _, err := os.Stat(kubeFile); err == nil {
-			return errors.Errorf("cannot write to %q; file exists", kubeFile)
+			return fmt.Errorf("cannot write to %q; file exists", kubeFile)
 		}
 		if err := ioutil.WriteFile(kubeFile, content, 0644); err != nil {
-			return errors.Wrapf(err, "cannot write to %q", kubeFile)
+			return fmt.Errorf("cannot write to %q: %w", kubeFile, err)
 		}
 		return nil
 	}

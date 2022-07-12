@@ -511,12 +511,12 @@ func makeHealthCheck(inCmd string, interval int32, retries int32, timeout int32,
 	cmd := []string{}
 
 	if inCmd == "none" {
-		cmd = []string{"NONE"}
+		cmd = []string{define.HealthConfigTestNone}
 	} else {
 		err := json.Unmarshal([]byte(inCmd), &cmd)
 		if err != nil {
 			// ...otherwise pass it to "/bin/sh -c" inside the container
-			cmd = []string{"CMD-SHELL"}
+			cmd = []string{define.HealthConfigTestCmdShell}
 			cmd = append(cmd, strings.Split(inCmd, " ")...)
 		}
 	}
@@ -810,8 +810,8 @@ func envVarValueResourceFieldRef(env v1.EnvVar, opts *CtrSpecGenOptions) (*strin
 	}
 
 	// k8s rounds up the result to the nearest integer
-	intValue := int(math.Ceil(value.AsApproximateFloat64() / divisor.AsApproximateFloat64()))
-	stringValue := strconv.Itoa(intValue)
+	intValue := int64(math.Ceil(value.AsApproximateFloat64() / divisor.AsApproximateFloat64()))
+	stringValue := strconv.FormatInt(intValue, 10)
 
 	return &stringValue, nil
 }

@@ -1,6 +1,7 @@
 package network
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -10,7 +11,6 @@ import (
 	"github.com/containers/podman/v4/cmd/podman/utils"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/domain/entities"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
@@ -91,15 +91,9 @@ func setExitCode(force bool, errs []error) {
 	}
 
 	for _, err := range errs {
-		cause := errors.Cause(err)
-		switch {
-		case cause == define.ErrNoSuchNetwork:
+		if errors.Is(err, define.ErrNoSuchNetwork) || strings.Contains(err.Error(), define.ErrNoSuchNetwork.Error()) {
 			noSuchNetworkErrors = true
-		case strings.Contains(cause.Error(), define.ErrNoSuchNetwork.Error()):
-			noSuchNetworkErrors = true
-		case cause == define.ErrNetworkInUse:
-			inUseErrors = true
-		case strings.Contains(cause.Error(), define.ErrNetworkInUse.Error()):
+		} else if errors.Is(err, define.ErrNetworkInUse) || strings.Contains(err.Error(), define.ErrNetworkInUse.Error()) {
 			inUseErrors = true
 		}
 	}
