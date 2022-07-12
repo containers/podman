@@ -186,10 +186,10 @@ We do recognize that this doesn't really match how many people intend to use roo
 
 It is also helpful to distinguish between running Podman as a rootless user, and a container which is built to run rootless. If the container you're trying to run has a `USER` which is not root, then when mounting volumes you **must** use `--userns=keep-id`. This is because the container user would not be able to become `root` and access the mounted volumes.
 
-Other considerations in regards to volumes:
+Another consideration in regards to volumes:
 
-- You should always give the full path to the volume you'd like to mount
-- The mount point must exist in the container
+- When providing the path of a directory you'd like to bind-mount, the path needs to be provided as an absolute path
+  or a relative path that starts with `.` (a dot), otherwise the string will be interpreted as the name of a named volume.
 
 ## More information
 
