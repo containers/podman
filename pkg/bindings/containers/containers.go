@@ -2,6 +2,8 @@ package containers
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -12,7 +14,6 @@ import (
 	"github.com/containers/podman/v4/pkg/bindings"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/domain/entities/reports"
-	"github.com/pkg/errors"
 )
 
 var (
@@ -447,7 +448,7 @@ func ContainerInit(ctx context.Context, nameOrID string, options *InitOptions) e
 	defer response.Body.Close()
 
 	if response.StatusCode == http.StatusNotModified {
-		return errors.Wrapf(define.ErrCtrStateInvalid, "container %s has already been created in runtime", nameOrID)
+		return fmt.Errorf("container %s has already been created in runtime: %w", nameOrID, define.ErrCtrStateInvalid)
 	}
 	return response.Process(nil)
 }

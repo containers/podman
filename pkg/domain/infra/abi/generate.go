@@ -12,7 +12,6 @@ import (
 	k8sAPI "github.com/containers/podman/v4/pkg/k8s.io/api/core/v1"
 	"github.com/containers/podman/v4/pkg/systemd/generate"
 	"github.com/ghodss/yaml"
-	"github.com/pkg/errors"
 )
 
 func (ic *ContainerEngine) GenerateSystemd(ctx context.Context, nameOrID string, options entities.GenerateSystemdOptions) (*entities.GenerateSystemdReport, error) {
@@ -30,8 +29,8 @@ func (ic *ContainerEngine) GenerateSystemd(ctx context.Context, nameOrID string,
 	// If it's not a container, we either have a pod or garbage.
 	pod, err := ic.Libpod.LookupPod(nameOrID)
 	if err != nil {
-		err = errors.Wrap(ctrErr, err.Error())
-		return nil, errors.Wrapf(err, "%s does not refer to a container or pod", nameOrID)
+		err = fmt.Errorf("%v: %w", err.Error(), ctrErr)
+		return nil, fmt.Errorf("%s does not refer to a container or pod: %w", nameOrID, err)
 	}
 
 	// Generate the units for the pod and all its containers.
@@ -51,6 +50,7 @@ func (ic *ContainerEngine) GenerateKube(ctx context.Context, nameOrIDs []string,
 		content    [][]byte
 	)
 
+	defaultKubeNS := true
 	// Lookup for podman objects.
 	for _, nameOrID := range nameOrIDs {
 		// Let's assume it's a container, so get the container.
@@ -63,7 +63,7 @@ func (ic *ContainerEngine) GenerateKube(ctx context.Context, nameOrIDs []string,
 			//  now that infra holds NS data, we need to support dependencies.
 			// we cannot deal with ctrs already in a pod.
 			if len(ctr.PodID()) > 0 {
-				return nil, errors.Errorf("container %s is associated with pod %s: use generate on the pod itself", ctr.ID(), ctr.PodID())
+				return nil, fmt.Errorf("container %s is associated with pod %s: use generate on the pod itself", ctr.ID(), ctr.PodID())
 			}
 			ctrs = append(ctrs, ctr)
 			continue
@@ -76,6 +76,17 @@ func (ic *ContainerEngine) GenerateKube(ctx context.Context, nameOrIDs []string,
 				return nil, err
 			}
 		} else {
+			// Get the pod config to see if the user has modified the default
+			// namespace sharing values as this might affect the pods when run
+			// in a k8s cluster
+			podConfig, err := pod.Config()
+			if err != nil {
+				return nil, err
+			}
+			if !(podConfig.UsePodIPC && podConfig.UsePodNet && podConfig.UsePodUTS) {
+				defaultKubeNS = false
+			}
+
 			pods = append(pods, pod)
 			continue
 		}
@@ -92,7 +103,16 @@ func (ic *ContainerEngine) GenerateKube(ctx context.Context, nameOrIDs []string,
 		}
 
 		// If it reaches here is because the name or id did not exist.
-		return nil, errors.Errorf("Name or ID %q not found", nameOrID)
+		return nil, fmt.Errorf("name or ID %q not found", nameOrID)
+	}
+
+	if !defaultKubeNS {
+		warning := `
+# NOTE: The namespace sharing for a pod has been modified by the user and is not the same as the
+# default settings for kubernetes. This can lead to unexpected behavior when running the generated
+# kube yaml in a kubernetes cluster.
+`
+		content = append(content, []byte(warning))
 	}
 
 	// Generate kube persistent volume claims from volumes.

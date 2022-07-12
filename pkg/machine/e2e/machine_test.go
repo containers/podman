@@ -22,7 +22,7 @@ func TestMain(m *testing.M) {
 }
 
 const (
-	defaultStream string = "podman-testing"
+	defaultStream string = "testing"
 )
 
 var (
@@ -97,6 +97,9 @@ func setup() (string, *machineTestBuilder) {
 	if err := os.Setenv("HOME", homeDir); err != nil {
 		Fail("failed to set home dir")
 	}
+	if err := os.Setenv("XDG_RUNTIME_DIR", homeDir); err != nil {
+		Fail("failed to set xdg_runtime dir")
+	}
 	if err := os.Unsetenv("SSH_AUTH_SOCK"); err != nil {
 		Fail("unable to unset SSH_AUTH_SOCK")
 	}
@@ -120,9 +123,9 @@ func setup() (string, *machineTestBuilder) {
 }
 
 func teardown(origHomeDir string, testDir string, mb *machineTestBuilder) {
-	s := new(stopMachine)
+	r := new(rmMachine)
 	for _, name := range mb.names {
-		if _, err := mb.setName(name).setCmd(s).run(); err != nil {
+		if _, err := mb.setName(name).setCmd(r.withForce()).run(); err != nil {
 			fmt.Printf("error occurred rm'ing machine: %q\n", err)
 		}
 	}

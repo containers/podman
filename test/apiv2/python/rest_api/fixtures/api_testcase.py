@@ -64,6 +64,10 @@ class APITestCase(unittest.TestCase):
     def uri(path):
         return APITestCase.PODMAN_URL + "/v2.0.0/libpod" + path
 
+    @staticmethod
+    def compat_uri(path):
+        return APITestCase.PODMAN_URL + "/v3.0.0/" + path
+
     def resolve_container(self, path):
         """Find 'first' container and return 'Id' formatted into given URI path."""
 

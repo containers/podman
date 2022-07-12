@@ -1,9 +1,8 @@
 package seccomp
 
 import (
+	"fmt"
 	"sort"
-
-	"github.com/pkg/errors"
 )
 
 // ContainerImageLabel is the key of the image annotation embedding a seccomp
@@ -50,5 +49,5 @@ func LookupPolicy(s string) (Policy, error) {
 	}
 	sort.Strings(keys)
 
-	return -1, errors.Errorf("invalid seccomp policy %q: valid policies are %+q", s, keys)
+	return -1, fmt.Errorf("invalid seccomp policy %q: valid policies are %+q", s, keys)
 }

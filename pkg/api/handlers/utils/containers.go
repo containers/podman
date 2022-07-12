@@ -99,9 +99,8 @@ func WaitContainerDocker(w http.ResponseWriter, r *http.Request) {
 
 func WaitContainerLibpod(w http.ResponseWriter, r *http.Request) {
 	var (
-		err        error
-		interval   = time.Millisecond * 250
-		conditions = []define.ContainerStatus{define.ContainerStateStopped, define.ContainerStateExited}
+		err      error
+		interval = time.Millisecond * 250
 	)
 	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
 	query := waitQueryLibpod{}
@@ -118,17 +117,10 @@ func WaitContainerLibpod(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if _, found := r.URL.Query()["condition"]; found {
-		if len(query.Condition) > 0 {
-			conditions = query.Condition
-		}
-	}
-
 	name := GetName(r)
 
 	waitFn := createContainerWaitFn(r.Context(), name, interval)
-
-	exitCode, err := waitFn(conditions...)
+	exitCode, err := waitFn(query.Condition...)
 	if err != nil {
 		if errors.Is(err, define.ErrNoSuchCtr) {
 			ContainerNotFound(w, name, err)

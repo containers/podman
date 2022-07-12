@@ -2,13 +2,14 @@ package tunnel
 
 import (
 	"context"
+	"errors"
+	"fmt"
 
 	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/bindings/network"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/errorhandling"
-	"github.com/pkg/errors"
 )
 
 func (ic *ContainerEngine) NetworkList(ctx context.Context, opts entities.NetworkListOptions) ([]types.Network, error) {
@@ -30,7 +31,7 @@ func (ic *ContainerEngine) NetworkInspect(ctx context.Context, namesOrIds []stri
 				return nil, nil, err
 			}
 			if errModel.ResponseCode == 404 {
-				errs = append(errs, errors.Wrapf(define.ErrNoSuchNetwork, "network %s", name))
+				errs = append(errs, fmt.Errorf("network %s: %w", name, define.ErrNoSuchNetwork))
 				continue
 			}
 			return nil, nil, err
@@ -95,7 +96,7 @@ func (ic *ContainerEngine) NetworkExists(ctx context.Context, networkname string
 	}, nil
 }
 
-// Network prune removes unused cni networks
+// Network prune removes unused networks
 func (ic *ContainerEngine) NetworkPrune(ctx context.Context, options entities.NetworkPruneOptions) ([]*entities.NetworkPruneReport, error) {
 	opts := new(network.PruneOptions).WithFilters(options.Filters)
 	return network.Prune(ic.ClientCtx, opts)

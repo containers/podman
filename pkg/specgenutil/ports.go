@@ -1,8 +1,9 @@
 package specgenutil
 
 import (
+	"fmt"
+
 	"github.com/docker/go-connections/nat"
-	"github.com/pkg/errors"
 )
 
 func verifyExpose(expose []string) error {
@@ -15,7 +16,7 @@ func verifyExpose(expose []string) error {
 		// if expose a port, the start and end port are the same
 		_, _, err := nat.ParsePortRange(port)
 		if err != nil {
-			return errors.Wrapf(err, "invalid range format for --expose: %s", expose)
+			return fmt.Errorf("invalid range format for --expose: %s: %w", expose, err)
 		}
 	}
 	return nil

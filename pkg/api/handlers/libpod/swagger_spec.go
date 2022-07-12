@@ -1,11 +1,12 @@
 package libpod
 
 import (
+	"errors"
+	"fmt"
 	"net/http"
 	"os"
 
 	"github.com/containers/podman/v4/pkg/api/handlers/utils"
-	"github.com/pkg/errors"
 )
 
 // DefaultPodmanSwaggerSpec provides the default path to the podman swagger spec file
@@ -18,7 +19,7 @@ func ServeSwagger(w http.ResponseWriter, r *http.Request) {
 	}
 	if _, err := os.Stat(path); err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			utils.InternalServerError(w, errors.Errorf("swagger spec %q does not exist", path))
+			utils.InternalServerError(w, fmt.Errorf("swagger spec %q does not exist", path))
 			return
 		}
 		utils.InternalServerError(w, err)

@@ -16,7 +16,6 @@ import (
 	api "github.com/containers/podman/v4/pkg/api/types"
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/gorilla/schema"
-	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -36,13 +35,13 @@ func LogsFromContainer(w http.ResponseWriter, r *http.Request) {
 		Tail: "all",
 	}
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.Error(w, http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
+		utils.Error(w, http.StatusBadRequest, fmt.Errorf("failed to parse parameters for %s: %w", r.URL.String(), err))
 		return
 	}
 
 	if !(query.Stdout || query.Stderr) {
 		msg := fmt.Sprintf("%s: you must choose at least one stream", http.StatusText(http.StatusBadRequest))
-		utils.Error(w, http.StatusBadRequest, errors.Errorf("%s for %s", msg, r.URL.String()))
+		utils.Error(w, http.StatusBadRequest, fmt.Errorf("%s for %s", msg, r.URL.String()))
 		return
 	}
 
@@ -96,7 +95,7 @@ func LogsFromContainer(w http.ResponseWriter, r *http.Request) {
 
 	logChannel := make(chan *logs.LogLine, tail+1)
 	if err := runtime.Log(r.Context(), []*libpod.Container{ctnr}, options, logChannel); err != nil {
-		utils.InternalServerError(w, errors.Wrapf(err, "failed to obtain logs for Container '%s'", name))
+		utils.InternalServerError(w, fmt.Errorf("failed to obtain logs for Container '%s': %w", name, err))
 		return
 	}
 	go func() {
@@ -114,7 +113,7 @@ func LogsFromContainer(w http.ResponseWriter, r *http.Request) {
 	if !utils.IsLibpodRequest(r) {
 		inspectData, err := ctnr.Inspect(false)
 		if err != nil {
-			utils.InternalServerError(w, errors.Wrapf(err, "failed to obtain logs for Container '%s'", name))
+			utils.InternalServerError(w, fmt.Errorf("failed to obtain logs for Container '%s': %w", name, err))
 			return
 		}
 		writeHeader = !inspectData.Config.Tty

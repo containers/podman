@@ -3,12 +3,12 @@ package hook
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"regexp"
 
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/pkg/errors"
 )
 
 // Version is the hook configuration version defined in this package.
@@ -50,16 +50,16 @@ func (hook *Hook) Validate(extensionStages []string) (err error) {
 
 	for key, value := range hook.When.Annotations {
 		if _, err = regexp.Compile(key); err != nil {
-			return errors.Wrapf(err, "invalid annotation key %q", key)
+			return fmt.Errorf("invalid annotation key %q: %w", key, err)
 		}
 		if _, err = regexp.Compile(value); err != nil {
-			return errors.Wrapf(err, "invalid annotation value %q", value)
+			return fmt.Errorf("invalid annotation value %q: %w", value, err)
 		}
 	}
 
 	for _, command := range hook.When.Commands {
 		if _, err = regexp.Compile(command); err != nil {
-			return errors.Wrapf(err, "invalid command %q", command)
+			return fmt.Errorf("invalid command %q: %w", command, err)
 		}
 	}
 

@@ -156,7 +156,7 @@ var _ = Describe("Podman pod clone", func() {
 		Expect(strings[0]).Should(ContainSubstring("size=10240k"))
 	})
 
-	It("podman pod create --uts test", func() {
+	It("podman pod clone --uts test", func() {
 		SkipIfRemote("hostname for the custom NS test is not as expected on the remote client")
 
 		session := podmanTest.Podman([]string{"pod", "create"})

@@ -1,6 +1,8 @@
 package generate
 
 import (
+	"errors"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -9,7 +11,6 @@ import (
 	"github.com/containers/common/pkg/sysinfo"
 	"github.com/containers/podman/v4/pkg/specgen"
 	"github.com/containers/podman/v4/utils"
-	"github.com/pkg/errors"
 )
 
 // Verify resource limits are sanely set when running on cgroup v1.
@@ -23,7 +24,7 @@ func verifyContainerResourcesCgroupV1(s *specgen.SpecGenerator) ([]string, error
 	}
 
 	if s.ResourceLimits.Unified != nil {
-		return nil, errors.New("Cannot use --cgroup-conf without cgroup v2")
+		return nil, errors.New("cannot use --cgroup-conf without cgroup v2")
 	}
 
 	// Memory checks
@@ -49,7 +50,7 @@ func verifyContainerResourcesCgroupV1(s *specgen.SpecGenerator) ([]string, error
 				warnings = append(warnings, "Your kernel does not support memory swappiness capabilities, or the cgroup is not mounted. Memory swappiness discarded.")
 				memory.Swappiness = nil
 			} else if *memory.Swappiness > 100 {
-				return warnings, errors.Errorf("invalid value: %v, valid memory swappiness range is 0-100", *memory.Swappiness)
+				return warnings, fmt.Errorf("invalid value: %v, valid memory swappiness range is 0-100", *memory.Swappiness)
 			}
 		}
 		if memory.Reservation != nil && !sysInfo.MemoryReservation {
@@ -104,18 +105,18 @@ func verifyContainerResourcesCgroupV1(s *specgen.SpecGenerator) ([]string, error
 
 		cpusAvailable, err := sysInfo.IsCpusetCpusAvailable(cpu.Cpus)
 		if err != nil {
-			return warnings, errors.Errorf("invalid value %s for cpuset cpus", cpu.Cpus)
+			return warnings, fmt.Errorf("invalid value %s for cpuset cpus", cpu.Cpus)
 		}
 		if !cpusAvailable {
-			return warnings, errors.Errorf("requested CPUs are not available - requested %s, available: %s", cpu.Cpus, sysInfo.Cpus)
+			return warnings, fmt.Errorf("requested CPUs are not available - requested %s, available: %s", cpu.Cpus, sysInfo.Cpus)
 		}
 
 		memsAvailable, err := sysInfo.IsCpusetMemsAvailable(cpu.Mems)
 		if err != nil {
-			return warnings, errors.Errorf("invalid value %s for cpuset mems", cpu.Mems)
+			return warnings, fmt.Errorf("invalid value %s for cpuset mems", cpu.Mems)
 		}
 		if !memsAvailable {
-			return warnings, errors.Errorf("requested memory nodes are not available - requested %s, available: %s", cpu.Mems, sysInfo.Mems)
+			return warnings, fmt.Errorf("requested memory nodes are not available - requested %s, available: %s", cpu.Mems, sysInfo.Mems)
 		}
 	}
 

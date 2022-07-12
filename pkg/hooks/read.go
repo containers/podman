@@ -3,6 +3,8 @@ package hooks
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -10,7 +12,6 @@ import (
 
 	old "github.com/containers/podman/v4/pkg/hooks/0.1.0"
 	current "github.com/containers/podman/v4/pkg/hooks/1.0.0"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -36,7 +37,7 @@ func Read(path string, extensionStages []string) (*current.Hook, error) {
 	}
 	hook, err := read(content)
 	if err != nil {
-		return nil, errors.Wrapf(err, "parsing hook %q", path)
+		return nil, fmt.Errorf("parsing hook %q: %w", path, err)
 	}
 	err = hook.Validate(extensionStages)
 	return hook, err
@@ -45,16 +46,16 @@ func Read(path string, extensionStages []string) (*current.Hook, error) {
 func read(content []byte) (hook *current.Hook, err error) {
 	var ver version
 	if err := json.Unmarshal(content, &ver); err != nil {
-		return nil, errors.Wrap(err, "version check")
+		return nil, fmt.Errorf("version check: %w", err)
 	}
 	reader, ok := Readers[ver.Version]
 	if !ok {
-		return nil, errors.Errorf("unrecognized hook version: %q", ver.Version)
+		return nil, fmt.Errorf("unrecognized hook version: %q", ver.Version)
 	}
 
 	hook, err = reader(content)
 	if err != nil {
-		return hook, errors.Wrap(err, ver.Version)
+		return hook, fmt.Errorf("%v: %w", ver.Version, err)
 	}
 	return hook, err
 }
@@ -83,7 +84,7 @@ func ReadDir(path string, extensionStages []string, hooks map[string]*current.Ho
 			if res == nil {
 				res = err
 			} else {
-				res = errors.Wrapf(res, "%v", err)
+				res = fmt.Errorf("%v: %w", err, res)
 			}
 			continue
 		}

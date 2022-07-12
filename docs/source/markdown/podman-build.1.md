@@ -576,27 +576,14 @@ While `podman build` is happy to use base images and build images for any
 platform that exists, `RUN` instructions will not be able to succeed without
 the help of emulation provided by packages like `qemu-user-static`.
 
-#### **--pull**
+#### **--pull**=**always**|**missing**|**never**|**newer**
 
-When the option is enabled or set explicitly to `true` (with *--pull=true*)
-pull the image from the first registry it is found in as listed in registries.conf.
-Raise an error if the image could not be pulled, even if the image is present locally.
+Pull image policy. The default is **always**.
 
-If the option is disabled (with *--pull=false*), pull the image from the
-registry only if the image is not present locally. Raise an error if the image is not
-in the registries and not present locally.
-
-If the pull option is set to `always` (with *--pull=always*),
-pull the image from the first registry it is found in as listed in registries.conf.
-Raise an error if not found in the registries, even if the image is present locally.
-
-If the pull option is set to `missing` (with *--pull=missing*),
-Pull the image only if it is not present in the local storage.  Raise an error if it
-could neither be found in the local storage or on a registry.
-
-If the pull option is set to `never` (with *--pull=never*),
-Do not pull the image from the registry, use only the local version. Raise an error
-if the image is not present locally.
+- **always**, **true**: Always pull the image and throw an error if the pull fails.
+- **missing**: Pull the image only if it could not be found in the local containers storage.  Throw an error if no image could be found and the pull fails.
+- **never**, **false**: Never pull the image but use the one from the local containers storage.  Throw an error if no image could be found.
+- **newer**: Pull if the image on the registry is newer than the one in the local containers storage.  An image is considered to be newer when the digests are different.  Comparing the time stamps is prone to errors.  Pull errors are suppressed if a local image was found.
 
 #### **--quiet**, **-q**
 

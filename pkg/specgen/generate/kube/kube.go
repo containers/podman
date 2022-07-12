@@ -3,6 +3,7 @@ package kube
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math"
 	"net"
@@ -29,7 +30,6 @@ import (
 	"github.com/docker/docker/pkg/system"
 	"github.com/docker/go-units"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -146,7 +146,7 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 	// pod name should be non-empty for Deployment objects to be able to create
 	// multiple pods having containers with unique names
 	if len(opts.PodName) < 1 {
-		return nil, errors.Errorf("got empty pod name on container creation when playing kube")
+		return nil, errors.New("got empty pod name on container creation when playing kube")
 	}
 
 	s.Name = fmt.Sprintf("%s-%s", opts.PodName, opts.Container.Name)
@@ -163,7 +163,7 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 	for _, o := range opts.LogOptions {
 		split := strings.SplitN(o, "=", 2)
 		if len(split) < 2 {
-			return nil, errors.Errorf("invalid log option %q", o)
+			return nil, fmt.Errorf("invalid log option %q", o)
 		}
 		switch strings.ToLower(split[0]) {
 		case "driver":
@@ -179,7 +179,7 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 		default:
 			switch len(split[1]) {
 			case 0:
-				return nil, errors.Wrapf(define.ErrInvalidArg, "invalid log option")
+				return nil, fmt.Errorf("invalid log option: %w", define.ErrInvalidArg)
 			default:
 				// tags for journald only
 				if s.LogConfiguration.Driver == "" || s.LogConfiguration.Driver == define.JournaldLogging {
@@ -196,7 +196,7 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 	setupSecurityContext(s, opts.Container.SecurityContext, opts.PodSecurityContext)
 	err := setupLivenessProbe(s, opts.Container, opts.RestartPolicy)
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to configure livenessProbe")
+		return nil, fmt.Errorf("failed to configure livenessProbe: %w", err)
 	}
 
 	// Since we prefix the container name with pod name to work-around the uniqueness requirement,
@@ -207,7 +207,7 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 	s.ResourceLimits = &spec.LinuxResources{}
 	milliCPU, err := quantityToInt64(opts.Container.Resources.Limits.Cpu())
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to set CPU quota")
+		return nil, fmt.Errorf("failed to set CPU quota: %w", err)
 	}
 	if milliCPU > 0 {
 		period, quota := util.CoresToPeriodAndQuota(float64(milliCPU))
@@ -219,12 +219,12 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 
 	limit, err := quantityToInt64(opts.Container.Resources.Limits.Memory())
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to set memory limit")
+		return nil, fmt.Errorf("failed to set memory limit: %w", err)
 	}
 
 	memoryRes, err := quantityToInt64(opts.Container.Resources.Requests.Memory())
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to set memory reservation")
+		return nil, fmt.Errorf("failed to set memory reservation: %w", err)
 	}
 
 	if limit > 0 || memoryRes > 0 {
@@ -337,7 +337,7 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 	for _, volume := range opts.Container.VolumeMounts {
 		volumeSource, exists := opts.Volumes[volume.Name]
 		if !exists {
-			return nil, errors.Errorf("Volume mount %s specified for container but not configured in volumes", volume.Name)
+			return nil, fmt.Errorf("volume mount %s specified for container but not configured in volumes", volume.Name)
 		}
 		// Skip if the volume is optional. This means that a configmap for a configmap volume was not found but it was
 		// optional so we can move on without throwing an error
@@ -399,7 +399,7 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 			}
 			s.Devices = append(s.Devices, device)
 		default:
-			return nil, errors.Errorf("Unsupported volume source type")
+			return nil, errors.New("unsupported volume source type")
 		}
 	}
 
@@ -432,21 +432,21 @@ func parseMountPath(mountPath string, readOnly bool, propagationMode *v1.MountPr
 	options := []string{}
 	splitVol := strings.Split(mountPath, ":")
 	if len(splitVol) > 2 {
-		return "", options, errors.Errorf("%q incorrect volume format, should be ctr-dir[:option]", mountPath)
+		return "", options, fmt.Errorf("%q incorrect volume format, should be ctr-dir[:option]", mountPath)
 	}
 	dest := splitVol[0]
 	if len(splitVol) > 1 {
 		options = strings.Split(splitVol[1], ",")
 	}
 	if err := parse.ValidateVolumeCtrDir(dest); err != nil {
-		return "", options, errors.Wrapf(err, "parsing MountPath")
+		return "", options, fmt.Errorf("parsing MountPath: %w", err)
 	}
 	if readOnly {
 		options = append(options, "ro")
 	}
 	opts, err := parse.ValidateVolumeOpts(options)
 	if err != nil {
-		return "", opts, errors.Wrapf(err, "parsing MountOptions")
+		return "", opts, fmt.Errorf("parsing MountOptions: %w", err)
 	}
 	if propagationMode != nil {
 		switch *propagationMode {
@@ -457,7 +457,7 @@ func parseMountPath(mountPath string, readOnly bool, propagationMode *v1.MountPr
 		case v1.MountPropagationBidirectional:
 			opts = append(opts, "rshared")
 		default:
-			return "", opts, errors.Errorf("unknown propagation mode %q", *propagationMode)
+			return "", opts, fmt.Errorf("unknown propagation mode %q", *propagationMode)
 		}
 	}
 	return dest, opts, nil
@@ -504,7 +504,7 @@ func setupLivenessProbe(s *specgen.SpecGenerator, containerYAML v1.Container, re
 func makeHealthCheck(inCmd string, interval int32, retries int32, timeout int32, startPeriod int32) (*manifest.Schema2HealthConfig, error) {
 	// Every healthcheck requires a command
 	if len(inCmd) == 0 {
-		return nil, errors.New("Must define a healthcheck command for all healthchecks")
+		return nil, errors.New("must define a healthcheck command for all healthchecks")
 	}
 
 	// first try to parse option value as JSON array of strings...
@@ -630,7 +630,7 @@ func quantityToInt64(quantity *resource.Quantity) (int64, error) {
 		return i, nil
 	}
 
-	return 0, errors.Errorf("Quantity cannot be represented as int64: %v", quantity)
+	return 0, fmt.Errorf("quantity cannot be represented as int64: %v", quantity)
 }
 
 // read a k8s secret in JSON format from the secret manager
@@ -642,7 +642,7 @@ func k8sSecretFromSecretManager(name string, secretsManager *secrets.SecretsMana
 
 	var secrets map[string][]byte
 	if err := json.Unmarshal(jsonSecret, &secrets); err != nil {
-		return nil, errors.Errorf("Secret %v is not valid JSON: %v", name, err)
+		return nil, fmt.Errorf("secret %v is not valid JSON: %v", name, err)
 	}
 	return secrets, nil
 }
@@ -653,7 +653,7 @@ func envVarsFrom(envFrom v1.EnvFromSource, opts *CtrSpecGenOptions) (map[string]
 
 	if envFrom.ConfigMapRef != nil {
 		cmRef := envFrom.ConfigMapRef
-		err := errors.Errorf("Configmap %v not found", cmRef.Name)
+		err := fmt.Errorf("configmap %v not found", cmRef.Name)
 
 		for _, c := range opts.ConfigMaps {
 			if cmRef.Name == c.Name {
@@ -689,14 +689,14 @@ func envVarValue(env v1.EnvVar, opts *CtrSpecGenOptions) (*string, error) {
 	if env.ValueFrom != nil {
 		if env.ValueFrom.ConfigMapKeyRef != nil {
 			cmKeyRef := env.ValueFrom.ConfigMapKeyRef
-			err := errors.Errorf("Cannot set env %v: configmap %v not found", env.Name, cmKeyRef.Name)
+			err := fmt.Errorf("cannot set env %v: configmap %v not found", env.Name, cmKeyRef.Name)
 
 			for _, c := range opts.ConfigMaps {
 				if cmKeyRef.Name == c.Name {
 					if value, ok := c.Data[cmKeyRef.Key]; ok {
 						return &value, nil
 					}
-					err = errors.Errorf("Cannot set env %v: key %s not found in configmap %v", env.Name, cmKeyRef.Key, cmKeyRef.Name)
+					err = fmt.Errorf("cannot set env %v: key %s not found in configmap %v", env.Name, cmKeyRef.Key, cmKeyRef.Name)
 					break
 				}
 			}
@@ -714,10 +714,10 @@ func envVarValue(env v1.EnvVar, opts *CtrSpecGenOptions) (*string, error) {
 					value := string(val)
 					return &value, nil
 				}
-				err = errors.Errorf("Secret %v has not %v key", secKeyRef.Name, secKeyRef.Key)
+				err = fmt.Errorf("secret %v has not %v key", secKeyRef.Name, secKeyRef.Key)
 			}
 			if secKeyRef.Optional == nil || !*secKeyRef.Optional {
-				return nil, errors.Errorf("Cannot set env %v: %v", env.Name, err)
+				return nil, fmt.Errorf("cannot set env %v: %v", env.Name, err)
 			}
 			return nil, nil
 		}
@@ -761,8 +761,8 @@ func envVarValueFieldRef(env v1.EnvVar, opts *CtrSpecGenOptions) (*string, error
 		return &annotationValue, nil
 	}
 
-	return nil, errors.Errorf(
-		"Can not set env %v. Reason: fieldPath %v is either not valid or not supported",
+	return nil, fmt.Errorf(
+		"can not set env %v. Reason: fieldPath %v is either not valid or not supported",
 		env.Name, fieldPath,
 	)
 }
@@ -796,15 +796,15 @@ func envVarValueResourceFieldRef(env v1.EnvVar, opts *CtrSpecGenOptions) (*strin
 		value = resources.Requests.Cpu()
 		isValidDivisor = isCPUDivisor(divisor)
 	default:
-		return nil, errors.Errorf(
-			"Can not set env %v. Reason: resource %v is either not valid or not supported",
+		return nil, fmt.Errorf(
+			"can not set env %v. Reason: resource %v is either not valid or not supported",
 			env.Name, resourceName,
 		)
 	}
 
 	if !isValidDivisor {
-		return nil, errors.Errorf(
-			"Can not set env %s. Reason: divisor value %s is not valid",
+		return nil, fmt.Errorf(
+			"can not set env %s. Reason: divisor value %s is not valid",
 			env.Name, divisor.String(),
 		)
 	}

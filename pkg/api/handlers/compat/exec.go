@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/containers/common/pkg/resize"
 	"github.com/containers/podman/v4/libpod"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/api/handlers"
@@ -176,9 +177,9 @@ func ExecStartHandler(w http.ResponseWriter, r *http.Request) {
 		logrus.Error(fmt.Errorf("error attaching to container %s exec session %s: %w", sessionCtr.ID(), sessionID, e))
 	}
 
-	var size *define.TerminalSize
+	var size *resize.TerminalSize
 	if bodyParams.Tty && (bodyParams.Height > 0 || bodyParams.Width > 0) {
-		size = &define.TerminalSize{
+		size = &resize.TerminalSize{
 			Height: bodyParams.Height,
 			Width:  bodyParams.Width,
 		}

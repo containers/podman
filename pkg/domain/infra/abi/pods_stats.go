@@ -2,6 +2,7 @@ package abi
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/containers/common/pkg/cgroups"
@@ -10,7 +11,6 @@ import (
 	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/containers/podman/v4/utils"
 	"github.com/docker/go-units"
-	"github.com/pkg/errors"
 )
 
 // PodStats implements printing stats about pods.
@@ -28,7 +28,7 @@ func (ic *ContainerEngine) PodStats(ctx context.Context, namesOrIds []string, op
 	// Get the (running) pods and convert them to the entities format.
 	pods, err := getPodsByContext(options.All, options.Latest, namesOrIds, ic.Libpod)
 	if err != nil {
-		return nil, errors.Wrap(err, "unable to get list of pods")
+		return nil, fmt.Errorf("unable to get list of pods: %w", err)
 	}
 	return ic.podsToStatsReport(pods)
 }

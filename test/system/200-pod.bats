@@ -332,7 +332,7 @@ EOF
 @test "podman pod create --share" {
     local pod_name="$(random_string 10 | tr A-Z a-z)"
     run_podman 125 pod create --share bogus --name $pod_name
-    is "$output" ".*Invalid kernel namespace to share: bogus. Options are: cgroup, ipc, net, pid, uts or none" \
+    is "$output" ".*invalid kernel namespace to share: bogus. Options are: cgroup, ipc, net, pid, uts or none" \
        "pod test for bogus --share option"
     run_podman pod create --share ipc --name $pod_name
     run_podman pod inspect $pod_name --format "{{.SharedNamespaces}}"

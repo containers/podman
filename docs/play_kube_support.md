@@ -150,3 +150,26 @@ Note: **N/A** means that the option cannot be supported in a single-node Podman 
 | selector           |         |
 | resources.limits   |         |
 | resources.requests | ✅      |
+
+## ConfigMap Fields
+
+| Field      | Support |
+|------------|---------|
+| binaryData |         |
+| data       | ✅      |
+| immutable  |         |
+
+## Deployment Fields
+
+| Field                                 | Support |
+|---------------------------------------|---------|
+| replicas                              | ✅      |
+| selector                              | ✅      |
+| template                              | ✅      |
+| minReadySeconds                       |         |
+| strategy.type                         |         |
+| strategy.rollingUpdate.maxSurge       |         |
+| strategy.rollingUpdate.maxUnavailable |         |
+| revisionHistoryLimit                  |         |
+| progressDeadlineSeconds               |         |
+| paused                                |         |

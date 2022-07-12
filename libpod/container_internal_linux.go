@@ -184,11 +184,8 @@ func (c *Container) prepare() error {
 func (c *Container) isWorkDirSymlink(resolvedPath string) bool {
 	// We cannot create workdir since explicit --workdir is
 	// set in config but workdir could also be a symlink.
-	// If its a symlink lets check if resolved link is present
-	// on the container or not.
-
-	// If we can resolve symlink and resolved link is present on the container
-	// then return nil cause its a valid use-case.
+	// If it's a symlink, check if the resolved target is present in the container.
+	// If so, that's a valid use case: return nil.
 
 	maxSymLinks := 0
 	for {

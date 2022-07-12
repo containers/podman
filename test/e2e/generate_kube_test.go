@@ -328,6 +328,109 @@ var _ = Describe("Podman generate kube", func() {
 		Expect(pod.Spec.HostAliases[1]).To(HaveField("IP", testIP))
 	})
 
+	It("podman generate kube with network sharing", func() {
+		// Expect error with default sharing options as Net namespace is shared
+		podName := "testPod"
+		podSession := podmanTest.Podman([]string{"pod", "create", "--name", podName})
+		podSession.WaitWithDefaultTimeout()
+		Expect(podSession).Should(Exit(0))
+
+		ctrSession := podmanTest.Podman([]string{"create", "--name", "testCtr", "--pod", podName, "-p", "9000:8000", ALPINE, "top"})
+		ctrSession.WaitWithDefaultTimeout()
+		Expect(ctrSession).Should(Exit(125))
+
+		// Ports without Net sharing should work with ports being set for each container in the generated kube yaml
+		podName = "testNet"
+		podSession = podmanTest.Podman([]string{"pod", "create", "--name", podName, "--share", "ipc"})
+		podSession.WaitWithDefaultTimeout()
+		Expect(podSession).Should(Exit(0))
+
+		ctr1Name := "ctr1"
+		ctr1Session := podmanTest.Podman([]string{"create", "--name", ctr1Name, "--pod", podName, "-p", "9000:8000", ALPINE, "top"})
+		ctr1Session.WaitWithDefaultTimeout()
+		Expect(ctr1Session).Should(Exit(0))
+
+		ctr2Name := "ctr2"
+		ctr2Session := podmanTest.Podman([]string{"create", "--name", ctr2Name, "--pod", podName, "-p", "6000:5000", ALPINE, "top"})
+		ctr2Session.WaitWithDefaultTimeout()
+		Expect(ctr2Session).Should(Exit(0))
+
+		kube := podmanTest.Podman([]string{"generate", "kube", podName})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		pod := new(v1.Pod)
+		err := yaml.Unmarshal(kube.Out.Contents(), pod)
+		Expect(err).To(BeNil())
+		Expect(pod.Spec.Containers).To(HaveLen(2))
+		Expect(pod.Spec.Containers[0].Ports[0].ContainerPort).To(Equal(int32(8000)))
+		Expect(pod.Spec.Containers[1].Ports[0].ContainerPort).To(Equal(int32(5000)))
+		Expect(pod.Spec.Containers[0].Ports[0].HostPort).To(Equal(int32(9000)))
+		Expect(pod.Spec.Containers[1].Ports[0].HostPort).To(Equal(int32(6000)))
+	})
+
+	It("podman generate kube with and without hostname", func() {
+		// Expect error with default sharing options as UTS namespace is shared
+		podName := "testPod"
+		podSession := podmanTest.Podman([]string{"pod", "create", "--name", podName})
+		podSession.WaitWithDefaultTimeout()
+		Expect(podSession).Should(Exit(0))
+
+		ctrSession := podmanTest.Podman([]string{"create", "--name", "testCtr", "--pod", podName, "--hostname", "test-hostname", ALPINE, "top"})
+		ctrSession.WaitWithDefaultTimeout()
+		Expect(ctrSession).Should(Exit(125))
+
+		// Hostname without uts sharing should work, but generated kube yaml will have pod hostname
+		// set to the hostname of the first container
+		podName = "testHostname"
+		podSession = podmanTest.Podman([]string{"pod", "create", "--name", podName, "--share", "ipc"})
+		podSession.WaitWithDefaultTimeout()
+		Expect(podSession).Should(Exit(0))
+
+		ctr1Name := "ctr1"
+		ctr1HostName := "ctr1-hostname"
+		ctr1Session := podmanTest.Podman([]string{"create", "--name", ctr1Name, "--pod", podName, "--hostname", ctr1HostName, ALPINE, "top"})
+		ctr1Session.WaitWithDefaultTimeout()
+		Expect(ctr1Session).Should(Exit(0))
+
+		ctr2Name := "ctr2"
+		ctr2Session := podmanTest.Podman([]string{"create", "--name", ctr2Name, "--pod", podName, ALPINE, "top"})
+		ctr2Session.WaitWithDefaultTimeout()
+		Expect(ctr2Session).Should(Exit(0))
+
+		kube := podmanTest.Podman([]string{"generate", "kube", podName})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		pod := new(v1.Pod)
+		err := yaml.Unmarshal(kube.Out.Contents(), pod)
+		Expect(err).To(BeNil())
+		Expect(pod.Spec.Containers).To(HaveLen(2))
+		Expect(pod.Spec.Hostname).To(Equal(ctr1HostName))
+
+		// No hostname
+
+		podName = "testNoHostname"
+		podSession = podmanTest.Podman([]string{"pod", "create", "--name", podName, "--share", "ipc"})
+		podSession.WaitWithDefaultTimeout()
+		Expect(podSession).Should(Exit(0))
+
+		ctr3Name := "ctr3"
+		ctr3Session := podmanTest.Podman([]string{"create", "--name", ctr3Name, "--pod", podName, ALPINE, "top"})
+		ctr3Session.WaitWithDefaultTimeout()
+		Expect(ctr3Session).Should(Exit(0))
+
+		kube = podmanTest.Podman([]string{"generate", "kube", podName})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		pod = new(v1.Pod)
+		err = yaml.Unmarshal(kube.Out.Contents(), pod)
+		Expect(err).To(BeNil())
+		Expect(pod.Spec.Containers).To(HaveLen(1))
+		Expect(pod.Spec.Hostname).To(BeEmpty())
+	})
+
 	It("podman generate service kube on pod", func() {
 		session := podmanTest.Podman([]string{"create", "--pod", "new:test-pod", "-p", "4000:4000/udp", ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()

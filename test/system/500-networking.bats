@@ -677,16 +677,20 @@ EOF
 @test "podman run port forward range" {
     for netmode in bridge slirp4netns:port_handler=slirp4netns slirp4netns:port_handler=rootlesskit; do
         local range=$(random_free_port_range 3)
-        local port="${test%-*}"
-        local end_port="${test#-*}"
+        # die() inside $(...) does not actually stop us.
+        assert "$range" != "" "Could not find free port range"
+
+        local port="${range%-*}"
+        local end_port="${range#*-}"
         local random=$(random_string)
 
         run_podman run --network $netmode -p "$range:$range" -d $IMAGE sleep inf
         cid="$output"
         for port in $(seq $port $end_port); do
             run_podman exec -d $cid nc -l -p $port -e /bin/cat
-            # -w 1 adds a 1 second timeout, for some reason ubuntus ncat doesn't close the connection on EOF,
-            # other options to change this are not portable across distros but -w seems to work
+            # -w 1 adds a 1 second timeout. For some reason, ubuntu's ncat
+            # doesn't close the connection on EOF, and other options to
+            # change this are not portable across distros. -w seems to work.
             run nc -w 1 127.0.0.1 $port <<<$random
             is "$output" "$random" "ncat got data back (netmode=$netmode port=$port)"
         done

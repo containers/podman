@@ -379,6 +379,13 @@ dotest() {
         |& logformatter
 }
 
+_run_machine() {
+    # TODO: This is a manually-triggered task, if that ever changes need to
+    # add something like:
+    # _bail_if_test_can_be_skipped docs test/e2e test/system test/python
+    make localmachine |& logformatter
+}
+
 # Optimization: will exit if the only PR diffs are under docs/ or tests/
 # with the exception of any given arguments. E.g., don't run e2e or upgrade
 # or bud tests if the only PR changes are in test/system.

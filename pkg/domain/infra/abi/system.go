@@ -157,15 +157,15 @@ func (ic *ContainerEngine) SystemPrune(ctx context.Context, options entities.Sys
 
 		// TODO: Figure out cleaner way to handle all of the different PruneOptions
 		// Remove all unused pods.
-		podPruneReport, err := ic.prunePodHelper(ctx)
+		podPruneReports, err := ic.prunePodHelper(ctx)
 		if err != nil {
 			return nil, err
 		}
-		if len(podPruneReport) > 0 {
+		if len(podPruneReports) > 0 {
 			found = true
 		}
 
-		systemPruneReport.PodPruneReport = append(systemPruneReport.PodPruneReport, podPruneReport...)
+		systemPruneReport.PodPruneReport = append(systemPruneReport.PodPruneReport, podPruneReports...)
 
 		// Remove all unused containers.
 		containerPruneOptions := entities.ContainerPruneOptions{}
@@ -201,38 +201,35 @@ func (ic *ContainerEngine) SystemPrune(ctx context.Context, options entities.Sys
 		networkPruneOptions := entities.NetworkPruneOptions{}
 		networkPruneOptions.Filters = options.Filters
 
-		networkPruneReport, err := ic.NetworkPrune(ctx, networkPruneOptions)
+		networkPruneReports, err := ic.NetworkPrune(ctx, networkPruneOptions)
 		if err != nil {
 			return nil, err
 		}
-		if len(networkPruneReport) > 0 {
+		if len(networkPruneReports) > 0 {
 			found = true
 		}
-		for _, net := range networkPruneReport {
-			systemPruneReport.NetworkPruneReports = append(systemPruneReport.NetworkPruneReports, &reports.PruneReport{
-				Id:   net.Name,
-				Err:  net.Error,
-				Size: 0,
-			})
-		}
+
+		// Networks reclaimedSpace are always '0'.
+		systemPruneReport.NetworkPruneReports = append(systemPruneReport.NetworkPruneReports, networkPruneReports...)
 
 		// Remove unused volume data.
 		if options.Volume {
 			volumePruneOptions := entities.VolumePruneOptions{}
 			volumePruneOptions.Filters = (url.Values)(options.Filters)
 
-			volumePruneReport, err := ic.VolumePrune(ctx, volumePruneOptions)
+			volumePruneReports, err := ic.VolumePrune(ctx, volumePruneOptions)
 			if err != nil {
 				return nil, err
 			}
-			if len(volumePruneReport) > 0 {
+			if len(volumePruneReports) > 0 {
 				found = true
 			}
 
-			reclaimedSpace += reports.PruneReportsSize(volumePruneReport)
-			systemPruneReport.VolumePruneReports = append(systemPruneReport.VolumePruneReports, volumePruneReport...)
+			reclaimedSpace += reports.PruneReportsSize(volumePruneReports)
+			systemPruneReport.VolumePruneReports = append(systemPruneReport.VolumePruneReports, volumePruneReports...)
 		}
 	}
+
 	systemPruneReport.ReclaimedSpace = reclaimedSpace
 	return systemPruneReport, nil
 }

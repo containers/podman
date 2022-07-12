@@ -2,6 +2,7 @@ package autoupdate
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"sort"
 
@@ -17,7 +18,6 @@ import (
 	"github.com/containers/podman/v4/pkg/systemd"
 	systemdDefine "github.com/containers/podman/v4/pkg/systemd/define"
 	"github.com/coreos/go-systemd/v22/dbus"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -73,7 +73,7 @@ func LookupPolicy(s string) (Policy, error) {
 	}
 	sort.Strings(keys)
 
-	return "", errors.Errorf("invalid auto-update policy %q: valid policies are %+q", s, keys)
+	return "", fmt.Errorf("invalid auto-update policy %q: valid policies are %+q", s, keys)
 }
 
 // ValidateImageReference checks if the specified imageName is a fully-qualified
@@ -85,17 +85,17 @@ func ValidateImageReference(imageName string) error {
 	// Make sure the input image is a docker.
 	imageRef, err := alltransports.ParseImageName(imageName)
 	if err == nil && imageRef.Transport().Name() != docker.Transport.Name() {
-		return errors.Errorf("auto updates require the docker image transport but image is of transport %q", imageRef.Transport().Name())
+		return fmt.Errorf("auto updates require the docker image transport but image is of transport %q", imageRef.Transport().Name())
 	} else if err != nil {
 		repo, err := reference.Parse(imageName)
 		if err != nil {
-			return errors.Wrap(err, "enforcing fully-qualified docker transport reference for auto updates")
+			return fmt.Errorf("enforcing fully-qualified docker transport reference for auto updates: %w", err)
 		}
 		if _, ok := repo.(reference.NamedTagged); !ok {
-			return errors.Errorf("auto updates require fully-qualified image references (no tag): %q", imageName)
+			return fmt.Errorf("auto updates require fully-qualified image references (no tag): %q", imageName)
 		}
 		if _, ok := repo.(reference.Digested); ok {
-			return errors.Errorf("auto updates require fully-qualified image references without digest: %q", imageName)
+			return fmt.Errorf("auto updates require fully-qualified image references without digest: %q", imageName)
 		}
 	}
 	return nil
@@ -151,7 +151,7 @@ func AutoUpdate(ctx context.Context, runtime *libpod.Runtime, options entities.A
 	for imageID, policyMapper := range containerMap {
 		image, exists := imageMap[imageID]
 		if !exists {
-			errs = append(errs, errors.Errorf("container image ID %q not found in local storage", imageID))
+			errs = append(errs, fmt.Errorf("container image ID %q not found in local storage", imageID))
 			return nil, errs
 		}
 
@@ -184,13 +184,13 @@ func autoUpdateRegistry(ctx context.Context, image *libimage.Image, ctr *libpod.
 	cid := ctr.ID()
 	rawImageName := ctr.RawImageName()
 	if rawImageName == "" {
-		return nil, errors.Errorf("registry auto-updating container %q: raw-image name is empty", cid)
+		return nil, fmt.Errorf("registry auto-updating container %q: raw-image name is empty", cid)
 	}
 
 	labels := ctr.Labels()
 	unit, exists := labels[systemdDefine.EnvVariable]
 	if !exists {
-		return nil, errors.Errorf("auto-updating container %q: no %s label found", ctr.ID(), systemdDefine.EnvVariable)
+		return nil, fmt.Errorf("auto-updating container %q: no %s label found", ctr.ID(), systemdDefine.EnvVariable)
 	}
 
 	report := &entities.AutoUpdateReport{
@@ -214,7 +214,7 @@ func autoUpdateRegistry(ctx context.Context, image *libimage.Image, ctr *libpod.
 	authfile := getAuthfilePath(ctr, options)
 	needsUpdate, err := newerRemoteImageAvailable(ctx, image, rawImageName, authfile)
 	if err != nil {
-		return report, errors.Wrapf(err, "registry auto-updating container %q: image check for %q failed", cid, rawImageName)
+		return report, fmt.Errorf("registry auto-updating container %q: image check for %q failed: %w", cid, rawImageName, err)
 	}
 
 	if !needsUpdate {
@@ -228,7 +228,7 @@ func autoUpdateRegistry(ctx context.Context, image *libimage.Image, ctr *libpod.
 	}
 
 	if _, err := updateImage(ctx, runtime, rawImageName, authfile); err != nil {
-		return report, errors.Wrapf(err, "registry auto-updating container %q: image update for %q failed", cid, rawImageName)
+		return report, fmt.Errorf("registry auto-updating container %q: image update for %q failed: %w", cid, rawImageName, err)
 	}
 	updatedRawImages[rawImageName] = true
 
@@ -245,10 +245,10 @@ func autoUpdateRegistry(ctx context.Context, image *libimage.Image, ctr *libpod.
 
 	// To fallback, simply retag the old image and restart the service.
 	if err := image.Tag(rawImageName); err != nil {
-		return report, errors.Wrap(err, "falling back to previous image")
+		return report, fmt.Errorf("falling back to previous image: %w", err)
 	}
 	if err := restartSystemdUnit(ctx, ctr, unit, conn); err != nil {
-		return report, errors.Wrap(err, "restarting unit with old image during fallback")
+		return report, fmt.Errorf("restarting unit with old image during fallback: %w", err)
 	}
 
 	report.Updated = "rolled back"
@@ -260,13 +260,13 @@ func autoUpdateLocally(ctx context.Context, image *libimage.Image, ctr *libpod.C
 	cid := ctr.ID()
 	rawImageName := ctr.RawImageName()
 	if rawImageName == "" {
-		return nil, errors.Errorf("locally auto-updating container %q: raw-image name is empty", cid)
+		return nil, fmt.Errorf("locally auto-updating container %q: raw-image name is empty", cid)
 	}
 
 	labels := ctr.Labels()
 	unit, exists := labels[systemdDefine.EnvVariable]
 	if !exists {
-		return nil, errors.Errorf("auto-updating container %q: no %s label found", ctr.ID(), systemdDefine.EnvVariable)
+		return nil, fmt.Errorf("auto-updating container %q: no %s label found", ctr.ID(), systemdDefine.EnvVariable)
 	}
 
 	report := &entities.AutoUpdateReport{
@@ -280,7 +280,7 @@ func autoUpdateLocally(ctx context.Context, image *libimage.Image, ctr *libpod.C
 
 	needsUpdate, err := newerLocalImageAvailable(runtime, image, rawImageName)
 	if err != nil {
-		return report, errors.Wrapf(err, "locally auto-updating container %q: image check for %q failed", cid, rawImageName)
+		return report, fmt.Errorf("locally auto-updating container %q: image check for %q failed: %w", cid, rawImageName, err)
 	}
 
 	if !needsUpdate {
@@ -306,10 +306,10 @@ func autoUpdateLocally(ctx context.Context, image *libimage.Image, ctr *libpod.C
 
 	// To fallback, simply retag the old image and restart the service.
 	if err := image.Tag(rawImageName); err != nil {
-		return report, errors.Wrap(err, "falling back to previous image")
+		return report, fmt.Errorf("falling back to previous image: %w", err)
 	}
 	if err := restartSystemdUnit(ctx, ctr, unit, conn); err != nil {
-		return report, errors.Wrap(err, "restarting unit with old image during fallback")
+		return report, fmt.Errorf("restarting unit with old image during fallback: %w", err)
 	}
 
 	report.Updated = "rolled back"
@@ -320,7 +320,7 @@ func autoUpdateLocally(ctx context.Context, image *libimage.Image, ctr *libpod.C
 func restartSystemdUnit(ctx context.Context, ctr *libpod.Container, unit string, conn *dbus.Conn) error {
 	restartChan := make(chan string)
 	if _, err := conn.RestartUnitContext(ctx, unit, "replace", restartChan); err != nil {
-		return errors.Wrapf(err, "auto-updating container %q: restarting systemd unit %q failed", ctr.ID(), unit)
+		return fmt.Errorf("auto-updating container %q: restarting systemd unit %q failed: %w", ctr.ID(), unit, err)
 	}
 
 	// Wait for the restart to finish and actually check if it was
@@ -333,7 +333,7 @@ func restartSystemdUnit(ctx context.Context, ctr *libpod.Container, unit string,
 		return nil
 
 	default:
-		return errors.Errorf("auto-updating container %q: restarting systemd unit %q failed: expected %q but received %q", ctr.ID(), unit, "done", result)
+		return fmt.Errorf("auto-updating container %q: restarting systemd unit %q failed: expected %q but received %q", ctr.ID(), unit, "done", result)
 	}
 }
 

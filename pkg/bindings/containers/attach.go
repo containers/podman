@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -14,11 +15,10 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/containers/common/pkg/util"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/bindings"
-	"github.com/containers/podman/v4/utils"
 	"github.com/moby/term"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	terminal "golang.org/x/term"
 )
@@ -75,7 +75,7 @@ func Attach(ctx context.Context, nameOrID string, stdin io.Reader, stdout io.Wri
 
 		detachKeysInBytes, err = term.ToBytes(options.GetDetachKeys())
 		if err != nil {
-			return errors.Wrapf(err, "invalid detach keys")
+			return fmt.Errorf("invalid detach keys: %w", err)
 		}
 	}
 	if isSet.stdin {
@@ -159,7 +159,7 @@ func Attach(ctx context.Context, nameOrID string, stdin io.Reader, stdout io.Wri
 		go func() {
 			logrus.Debugf("Copying STDIN to socket")
 
-			_, err := utils.CopyDetachable(socket, stdin, detachKeysInBytes)
+			_, err := util.CopyDetachable(socket, stdin, detachKeysInBytes)
 			if err != nil && err != define.ErrDetach {
 				logrus.Errorf("Failed to write input to service: %v", err)
 			}
@@ -261,7 +261,7 @@ func DemuxHeader(r io.Reader, buffer []byte) (fd, sz int, err error) {
 
 	fd = int(buffer[0])
 	if fd < 0 || fd > 3 {
-		err = errors.Wrapf(ErrLostSync, fmt.Sprintf(`channel "%d" found, 0-3 supported`, fd))
+		err = fmt.Errorf(`channel "%d" found, 0-3 supported: %w`, fd, ErrLostSync)
 		return
 	}
 
@@ -497,7 +497,7 @@ func ExecStartAndAttach(ctx context.Context, sessionID string, options *ExecStar
 	if options.GetAttachInput() {
 		go func() {
 			logrus.Debugf("Copying STDIN to socket")
-			_, err := utils.CopyDetachable(socket, options.InputStream, []byte{})
+			_, err := util.CopyDetachable(socket, options.InputStream, []byte{})
 			if err != nil {
 				logrus.Errorf("Failed to write input to service: %v", err)
 			}
@@ -518,7 +518,7 @@ func ExecStartAndAttach(ctx context.Context, sessionID string, options *ExecStar
 			return fmt.Errorf("exec session %s has a terminal and must have STDOUT enabled", sessionID)
 		}
 		// If not multiplex'ed, read from server and write to stdout
-		_, err := utils.CopyDetachable(options.GetOutputStream(), socket, []byte{})
+		_, err := util.CopyDetachable(options.GetOutputStream(), socket, []byte{})
 		if err != nil {
 			return err
 		}

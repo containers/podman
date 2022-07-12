@@ -288,7 +288,7 @@ detached container with **podman attach**.
 
 When attached in the tty mode, you can detach from the container (and leave it
 running) using a configurable key sequence. The default sequence is `ctrl-p,ctrl-q`.
-Configure the keys sequence using the **--detach-keys** option, or specifying
+Specify the key sequence using the **--detach-keys** option, or configure
 it in the **containers.conf** file: see **containers.conf(5)** for more information.
 
 #### **--detach-keys**=*sequence*
@@ -300,7 +300,7 @@ This option can also be set in **containers.conf**(5) file.
 #### **--device**=_host-device_[**:**_container-device_][**:**_permissions_]
 
 Add a host device to the container. Optional *permissions* parameter
-can be used to specify device permissions, it is combination of
+can be used to specify device permissions by combining
 **r** for read, **w** for write, and **m** for **mknod**(2).
 
 Example: **--device=/dev/sdc:/dev/xvdc:rwm**.
@@ -404,16 +404,10 @@ on the host system.
 
 #### **--gidmap**=*container_gid*:*host_gid*:*amount*
 
-Run the container in a new user namespace using the supplied mapping. This option conflicts with the **--userns** and **--subgidname** flags.
-This option can be passed several times to map different ranges. If calling **podman run** as an unprivileged user, the user needs to have the right to use the mapping. See **subuid**(5).
-The example maps gids **0-1999** in the container to the gids **30000-31999** on the host: **--gidmap=0:30000:2000**.
-
-**Important note:** The new user namespace mapping based on **--gidmap** is based on the initial mapping made in the  _/etc/subgid_  file.
-Assuming there is a  _/etc/subgid_  mapping **groupname:100000:65536**, then **groupname** is initially mapped to a namespace starting with
-gid **100000** for **65536** ids. From here the **--gidmap** mapping to the new namespace starts from **0** again, but is based on the initial mapping.
-Meaning **groupname** is initially mapped to gid **100000** which is referenced as **0** in the following **--gidmap** mapping. In terms of the example
-above: The group **groupname** is mapped to group **100000** of the initial namespace then the
-**30000**st id of this namespace (which is gid 130000 in this namespace) is mapped to container namespace group id **0**. (groupname -> 100000 / 30000 -> 0)
+Run the container in a new user namespace using the supplied GID mapping. This
+option conflicts with the **--userns** and **--subgidname** options. This
+option provides a way to map host GIDs to container GIDs in the same way as
+__--uidmap__ maps host UIDs to container UIDs. For details see __--uidmap__.
 
 Note: the **--gidmap** flag cannot be called in conjunction with the **--pod** flag as a gidmap cannot be set on the container level when in a pod.
 
@@ -905,13 +899,14 @@ When using this option, Podman will bind any exposed port to a random port on th
 within an ephemeral port range defined by */proc/sys/net/ipv4/ip_local_port_range*.
 To find the mapping between the host ports and the exposed ports, use **podman port**.
 
-#### **--pull**=**always**|**missing**|**never**
+#### **--pull**=**always**|**missing**|**never**|**newer**
 
-Pull image before running. The default is **missing**.
+Pull image policy. The default is **missing**.
 
-- **missing**: attempt to pull the latest image from the registries listed in registries.conf if a local image does not exist.Raise an error if the image is not in any listed registry and is not present locally.
-- **always**: Pull the image from the first registry it is found in as listed in registries.conf. Raise an error if not found in the registries, even if the image is present locally.
-- **never**: do not pull the image from the registry, use only the local version. Raise an error if the image is not present locally.
+- **always**: Always pull the image and throw an error if the pull fails.
+- **missing**: Pull the image only if it could not be found in the local containers storage.  Throw an error if no image could be found and the pull fails.
+- **never**: Never pull the image but use the one from the local containers storage.  Throw an error if no image could be found.
+- **newer**: Pull if the image on the registry is newer than the one in the local containers storage.  An image is considered to be newer when the digests are different.  Comparing the time stamps is prone to errors.  Pull errors are suppressed if a local image was found.
 
 #### **--quiet**, **-q**
 
@@ -1163,7 +1158,7 @@ $ podman run -d --tmpfs /tmp:rw,size=787448k,mode=1777 my_image
 
 This command mounts a **tmpfs** at _/tmp_ within the container. The supported mount
 options are the same as the Linux default mount flags. If you do not specify
-any options, the systems uses the following options:
+any options, the system uses the following options:
 **rw,noexec,nosuid,nodev**.
 
 #### **--tty**, **-t**
@@ -1187,7 +1182,7 @@ Remote connections use local containers.conf for defaults
 
 #### **--uidmap**=*container_uid*:*from_uid*:*amount*
 
-Run the container in a new user namespace using the supplied mapping. This
+Run the container in a new user namespace using the supplied UID mapping. This
 option conflicts with the **--userns** and **--subuidname** options. This
 option provides a way to map host UIDs to container UIDs. It can be passed
 several times to map different ranges.
@@ -1603,7 +1598,7 @@ content. Installing packages into _/usr_, for example. In production,
 applications seldom need to write to the image.  Container applications write
 to volumes if they need to write to file systems at all. Applications can be
 made more secure by running them in read-only mode using the **--read-only** switch.
-This protects the containers image from modification. Read-only containers may
+This protects the container's image from modification. Read-only containers may
 still need to write temporary data. The best way to handle this is to mount
 tmpfs directories on _/run_ and _/tmp_.
 
@@ -1884,7 +1879,7 @@ $ podman run --uidmap 0:30000:7000 --gidmap 0:30000:7000 fedora echo hello
 
 Podman allows for the configuration of storage by changing the values
 in the _/etc/container/storage.conf_ or by using global options. This
-shows how to set up and use fuse-overlayfs for a one time run of busybox
+shows how to set up and use fuse-overlayfs for a one-time run of busybox
 using global options.
 
 ```
@@ -1980,7 +1975,7 @@ in the following order of precedence (later entries override earlier entries):
 - Container image: Any environment variables specified in the container image.
 - **--http-proxy**: By default, several environment variables will be passed in from the host, such as **http_proxy** and **no_proxy**. See **--http-proxy** for details.
 - **--env-host**: Host environment of the process executing Podman is added.
-- **--env-file**: Any environment variables specified via env-files. If multiple files specified, then they override each other in order of entry.
+- **--env-file**: Any environment variables specified via env-files. If multiple files are specified, then they override each other in order of entry.
 - **--env**: Any environment variables specified will override previous settings.
 
 Run containers and set the environment ending with a __*__.

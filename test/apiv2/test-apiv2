@@ -56,6 +56,9 @@ fi
 # Path to podman binary
 PODMAN_BIN=${PODMAN:-${CONTAINERS_HELPER_BINARY_DIR}/podman}
 
+# Timeout for streamed responses
+CURL_TIMEOUT=0
+
 # Cleanup handlers
 clean_up_server() {
     if [ -n "$service_pid" ]; then
@@ -217,6 +220,21 @@ function jsonify() {
 }
 
 #######
+#  t_timeout  #  Timeout wrapper for test helper
+#######
+function t_timeout() {
+    CURL_TIMEOUT=$1; shift
+    local min_runtime=$((CURL_TIMEOUT - 1))
+    start=`date +%s`
+    t $@
+    local end=`date +%s`
+    local runtime=$((end-start))
+    if ! [[ "$runtime" -ge "$min_runtime" ]]; then
+        die "Error: Streaming time should be greater or equal to '$min_runtime'"
+    fi
+}
+
+#######
 #  t  #  Main test helper
 #######
 function t() {
@@ -226,6 +244,12 @@ function t() {
     local content_type="application/json"
 
     local testname="$method $path"
+
+    if [[ $CURL_TIMEOUT != 0 ]]; then
+        local c_timeout=$CURL_TIMEOUT
+        curl_args+=("-m $CURL_TIMEOUT")
+        CURL_TIMEOUT=0 # 'consume' timeout
+    fi
     # POST and PUT requests may be followed by one or more key=value pairs.
     # Slurp the command line until we see a 3-digit status code.
     if [[ $method = "POST" || $method == "PUT" ]]; then
@@ -291,7 +315,7 @@ function t() {
                     -o $WORKDIR/curl.result.out "$url"); rc=$?; } || :
 
     # Any error from curl is instant bad news, from which we can't recover
-    if [[ $rc -ne 0 ]]; then
+    if [[ $rc -ne 0 ]] && [[ $c_timeout -eq 0 ]]; then
         die "curl failure ($rc) on $url - cannot continue"
     fi
 

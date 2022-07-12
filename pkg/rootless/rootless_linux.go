@@ -6,6 +6,7 @@ package rootless
 import (
 	"bufio"
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -23,7 +24,6 @@ import (
 	"github.com/containers/storage/pkg/idtools"
 	pmount "github.com/containers/storage/pkg/mount"
 	"github.com/containers/storage/pkg/unshare"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/syndtr/gocapability/capability"
 	"golang.org/x/sys/unix"
@@ -126,7 +126,7 @@ func tryMappingTool(uid bool, pid int, hostID int, mappings []idtools.IDMap) err
 	}
 	path, err := exec.LookPath(tool)
 	if err != nil {
-		return errors.Wrapf(err, "command required for rootless mode with multiple IDs")
+		return fmt.Errorf("command required for rootless mode with multiple IDs: %w", err)
 	}
 
 	appendTriplet := func(l []string, a, b, c int) []string {
@@ -143,7 +143,7 @@ func tryMappingTool(uid bool, pid int, hostID int, mappings []idtools.IDMap) err
 				what = "GID"
 				where = "/etc/subgid"
 			}
-			return errors.Errorf("invalid configuration: the specified mapping %d:%d in %q includes the user %s", i.HostID, i.Size, where, what)
+			return fmt.Errorf("invalid configuration: the specified mapping %d:%d in %q includes the user %s", i.HostID, i.Size, where, what)
 		}
 		args = appendTriplet(args, i.ContainerID+1, i.HostID, i.Size)
 	}
@@ -160,7 +160,7 @@ func tryMappingTool(uid bool, pid int, hostID int, mappings []idtools.IDMap) err
 		} else if !isSet {
 			errorStr = fmt.Sprintf("%s: should have %s or have filecaps %s", errorStr, idtype, idtype)
 		}
-		return errors.Wrapf(err, errorStr)
+		return fmt.Errorf("%v: %w", errorStr, err)
 	}
 	return nil
 }
@@ -182,7 +182,7 @@ func joinUserAndMountNS(pid uint, pausePid string) (bool, int, error) {
 
 	pidC := C.reexec_userns_join(C.int(pid), cPausePid)
 	if int(pidC) < 0 {
-		return false, -1, errors.Errorf("cannot re-exec process to join the existing user namespace")
+		return false, -1, fmt.Errorf("cannot re-exec process to join the existing user namespace")
 	}
 
 	ret := C.reexec_in_user_namespace_wait(pidC, 0)
@@ -313,7 +313,7 @@ func becomeRootInUserNS(pausePid, fileToRead string, fileOutput *os.File) (_ boo
 	pidC := C.reexec_in_user_namespace(C.int(r.Fd()), cPausePid, cFileToRead, fileOutputFD)
 	pid = int(pidC)
 	if pid < 0 {
-		return false, -1, errors.Errorf("cannot re-exec process")
+		return false, -1, fmt.Errorf("cannot re-exec process")
 	}
 
 	uids, gids, err := GetConfiguredMappings()
@@ -343,13 +343,13 @@ func becomeRootInUserNS(pausePid, fileToRead string, fileOutput *os.File) (_ boo
 		setgroups := fmt.Sprintf("/proc/%d/setgroups", pid)
 		err = ioutil.WriteFile(setgroups, []byte("deny\n"), 0666)
 		if err != nil {
-			return false, -1, errors.Wrapf(err, "cannot write setgroups file")
+			return false, -1, fmt.Errorf("cannot write setgroups file: %w", err)
 		}
 		logrus.Debugf("write setgroups file exited with 0")
 
 		err = ioutil.WriteFile(uidMap, []byte(fmt.Sprintf("%d %d 1\n", 0, os.Geteuid())), 0666)
 		if err != nil {
-			return false, -1, errors.Wrapf(err, "cannot write uid_map")
+			return false, -1, fmt.Errorf("cannot write uid_map: %w", err)
 		}
 		logrus.Debugf("write uid_map exited with 0")
 	}
@@ -369,19 +369,19 @@ func becomeRootInUserNS(pausePid, fileToRead string, fileOutput *os.File) (_ boo
 	if !gidsMapped {
 		err = ioutil.WriteFile(gidMap, []byte(fmt.Sprintf("%d %d 1\n", 0, os.Getegid())), 0666)
 		if err != nil {
-			return false, -1, errors.Wrapf(err, "cannot write gid_map")
+			return false, -1, fmt.Errorf("cannot write gid_map: %w", err)
 		}
 	}
 
 	_, err = w.Write([]byte("0"))
 	if err != nil {
-		return false, -1, errors.Wrapf(err, "write to sync pipe")
+		return false, -1, fmt.Errorf("write to sync pipe: %w", err)
 	}
 
 	b := make([]byte, 1)
 	_, err = w.Read(b)
 	if err != nil {
-		return false, -1, errors.Wrapf(err, "read from sync pipe")
+		return false, -1, fmt.Errorf("read from sync pipe: %w", err)
 	}
 
 	if fileOutput != nil {
@@ -474,7 +474,7 @@ func TryJoinFromFilePaths(pausePidPath string, needNewNamespace bool, paths []st
 
 			pausePid, err = strconv.Atoi(string(data))
 			if err != nil {
-				lastErr = errors.Wrapf(err, "cannot parse file %q", path)
+				lastErr = fmt.Errorf("cannot parse file %q: %w", path, err)
 				continue
 			}
 		} else {
@@ -503,7 +503,7 @@ func TryJoinFromFilePaths(pausePidPath string, needNewNamespace bool, paths []st
 
 			n, err := r.Read(b)
 			if err != nil {
-				lastErr = errors.Wrapf(err, "cannot read %q", path)
+				lastErr = fmt.Errorf("cannot read %q: %w", path, err)
 				continue
 			}
 
@@ -525,7 +525,7 @@ func TryJoinFromFilePaths(pausePidPath string, needNewNamespace bool, paths []st
 	if lastErr != nil {
 		return false, 0, lastErr
 	}
-	return false, 0, errors.Wrapf(unix.ESRCH, "could not find any running process")
+	return false, 0, fmt.Errorf("could not find any running process: %w", unix.ESRCH)
 }
 
 // ReadMappingsProc parses and returns the ID mappings at the specified path.
@@ -545,7 +545,7 @@ func ReadMappingsProc(path string) ([]idtools.IDMap, error) {
 			if err == io.EOF {
 				return mappings, nil
 			}
-			return nil, errors.Wrapf(err, "cannot read line from %s", path)
+			return nil, fmt.Errorf("cannot read line from %s: %w", path, err)
 		}
 		if line == nil {
 			return mappings, nil
@@ -553,7 +553,7 @@ func ReadMappingsProc(path string) ([]idtools.IDMap, error) {
 
 		containerID, hostID, size := 0, 0, 0
 		if _, err := fmt.Sscanf(string(line), "%d %d %d", &containerID, &hostID, &size); err != nil {
-			return nil, errors.Wrapf(err, "cannot parse %s", string(line))
+			return nil, fmt.Errorf("cannot parse %s: %w", string(line), err)
 		}
 		mappings = append(mappings, idtools.IDMap{ContainerID: containerID, HostID: hostID, Size: size})
 	}

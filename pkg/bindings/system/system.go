@@ -3,6 +3,7 @@ package system
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -11,7 +12,6 @@ import (
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/bindings"
 	"github.com/containers/podman/v4/pkg/domain/entities"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -37,7 +37,7 @@ func Events(ctx context.Context, eventChan chan entities.Event, cancelChan chan 
 		go func() {
 			<-cancelChan
 			err = response.Body.Close()
-			logrus.Error(errors.Wrap(err, "unable to close event response body"))
+			logrus.Errorf("Unable to close event response body: %v", err)
 		}()
 	}
 
@@ -56,7 +56,7 @@ func Events(ctx context.Context, eventChan chan entities.Event, cancelChan chan 
 	case errors.Is(err, io.EOF):
 		return nil
 	default:
-		return errors.Wrap(err, "unable to decode event response")
+		return fmt.Errorf("unable to decode event response: %w", err)
 	}
 }
 

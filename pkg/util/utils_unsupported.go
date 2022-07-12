@@ -3,11 +3,9 @@
 
 package util
 
-import (
-	"github.com/pkg/errors"
-)
+import "errors"
 
 // FindDeviceNodes is not implemented anywhere except Linux.
 func FindDeviceNodes() (map[string]string, error) {
-	return nil, errors.Errorf("not supported on non-Linux OSes")
+	return nil, errors.New("not supported on non-Linux OSes")
 }

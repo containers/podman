@@ -42,7 +42,6 @@ var _ = Describe("Podman manifest", func() {
 		podmanTest.Cleanup()
 		f := CurrentGinkgoTestDescription()
 		processTestResult(f)
-
 	})
 	It("create w/o image", func() {
 		session := podmanTest.Podman([]string{"manifest", "create", "foo"})
@@ -297,8 +296,21 @@ var _ = Describe("Podman manifest", func() {
 		registryOptions := &podmanRegistry.Options{
 			Image: "docker-archive:" + imageTarPath(REGISTRY_IMAGE),
 		}
+
+		// registry script invokes $PODMAN; make sure we define that
+		// so it can use our same networking options.
+		opts := strings.Join(podmanTest.MakeOptions(nil, false, false), " ")
+		if IsRemote() {
+			opts = strings.Join(getRemoteOptions(podmanTest, nil), " ")
+		}
+		os.Setenv("PODMAN", podmanTest.PodmanBinary+" "+opts)
 		registry, err := podmanRegistry.StartWithOptions(registryOptions)
 		Expect(err).To(BeNil())
+		defer func() {
+			err := registry.Stop()
+			Expect(err).To(BeNil())
+			os.Unsetenv("PODMAN")
+		}()
 
 		session := podmanTest.Podman([]string{"manifest", "create", "foo"})
 		session.WaitWithDefaultTimeout()
@@ -327,9 +339,6 @@ var _ = Describe("Podman manifest", func() {
 		push = podmanTest.Podman([]string{"manifest", "push", "--tls-verify=false", "--creds=podmantest:wrongpasswd", "foo", "localhost:" + registry.Port + "/credstest"})
 		push.WaitWithDefaultTimeout()
 		Expect(push).To(ExitWithError())
-
-		err = registry.Stop()
-		Expect(err).To(BeNil())
 	})
 
 	It("push with error", func() {
