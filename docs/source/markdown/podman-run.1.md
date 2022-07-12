@@ -480,7 +480,7 @@ proxy environment at container build time.) (This option is not available with t
 
 Defaults to **true**.
 
-#### **--image-volume**, **builtin-volume**=**bind**|**tmpfs**|**ignore**
+#### **--image-volume**=**bind**|**tmpfs**|**ignore**
 
 Tells Podman how to handle the builtin image volumes. Default is **bind**.
 
