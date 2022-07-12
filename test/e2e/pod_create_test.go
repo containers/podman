@@ -1145,9 +1145,7 @@ ENTRYPOINT ["sleep","99999"]
 		session = podmanTest.Podman([]string{"run", "-it", "--pod", session.OutputToString(), ALPINE, "printenv", "HOSTNAME"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		if !IsRemote() { // remote hostname will not match os.Hostname()
-			Expect(session.OutputToString()).To(ContainSubstring(hostname))
-		}
+		Expect(session.OutputToString()).To(ContainSubstring(hostname))
 
 		podName := "utsPod"
 		ns := "ns:/proc/self/ns/"

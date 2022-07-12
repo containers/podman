@@ -28,7 +28,7 @@ type SystemPruneReport struct {
 	PodPruneReport        []*PodPruneReport
 	ContainerPruneReports []*reports.PruneReport
 	ImagePruneReports     []*reports.PruneReport
-	NetworkPruneReports   []*reports.PruneReport
+	NetworkPruneReports   []*NetworkPruneReport
 	VolumePruneReports    []*reports.PruneReport
 	ReclaimedSpace        uint64
 }

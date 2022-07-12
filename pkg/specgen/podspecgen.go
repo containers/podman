@@ -77,6 +77,8 @@ type PodBasicConfig struct {
 	// Any containers created within the pod will inherit the pod's userns settings.
 	// Optional
 	Userns Namespace `json:"userns,omitempty"`
+	// UtsNs is used to indicate the UTS mode the pod is in
+	UtsNs Namespace `json:"utsns,omitempty"`
 	// Devices contains user specified Devices to be added to the Pod
 	Devices []string `json:"pod_devices,omitempty"`
 	// Sysctl sets kernel parameters for the pod

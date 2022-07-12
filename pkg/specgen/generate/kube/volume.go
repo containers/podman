@@ -1,12 +1,13 @@
 package kube
 
 import (
+	"errors"
+	"fmt"
 	"os"
 
 	"github.com/containers/common/pkg/parse"
 	"github.com/containers/podman/v4/libpod"
 	v1 "github.com/containers/podman/v4/pkg/k8s.io/api/core/v1"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -56,13 +57,13 @@ func VolumeFromHostPath(hostPath *v1.HostPathVolumeSource) (*KubeVolume, error) 
 			}
 			// Label a newly created volume
 			if err := libpod.LabelVolumePath(hostPath.Path); err != nil {
-				return nil, errors.Wrapf(err, "error giving %s a label", hostPath.Path)
+				return nil, fmt.Errorf("error giving %s a label: %w", hostPath.Path, err)
 			}
 		case v1.HostPathFileOrCreate:
 			if _, err := os.Stat(hostPath.Path); os.IsNotExist(err) {
 				f, err := os.OpenFile(hostPath.Path, os.O_RDONLY|os.O_CREATE, kubeFilePermission)
 				if err != nil {
-					return nil, errors.Wrap(err, "error creating HostPath")
+					return nil, fmt.Errorf("error creating HostPath: %w", err)
 				}
 				if err := f.Close(); err != nil {
 					logrus.Warnf("Error in closing newly created HostPath file: %v", err)
@@ -70,23 +71,23 @@ func VolumeFromHostPath(hostPath *v1.HostPathVolumeSource) (*KubeVolume, error) 
 			}
 			// unconditionally label a newly created volume
 			if err := libpod.LabelVolumePath(hostPath.Path); err != nil {
-				return nil, errors.Wrapf(err, "error giving %s a label", hostPath.Path)
+				return nil, fmt.Errorf("error giving %s a label: %w", hostPath.Path, err)
 			}
 		case v1.HostPathSocket:
 			st, err := os.Stat(hostPath.Path)
 			if err != nil {
-				return nil, errors.Wrap(err, "error checking HostPathSocket")
+				return nil, fmt.Errorf("error checking HostPathSocket: %w", err)
 			}
 			if st.Mode()&os.ModeSocket != os.ModeSocket {
-				return nil, errors.Errorf("checking HostPathSocket: path %s is not a socket", hostPath.Path)
+				return nil, fmt.Errorf("checking HostPathSocket: path %s is not a socket", hostPath.Path)
 			}
 		case v1.HostPathBlockDev:
 			dev, err := os.Stat(hostPath.Path)
 			if err != nil {
-				return nil, errors.Wrap(err, "error checking HostPathBlockDevice")
+				return nil, fmt.Errorf("error checking HostPathBlockDevice: %w", err)
 			}
 			if dev.Mode()&os.ModeCharDevice == os.ModeCharDevice {
-				return nil, errors.Errorf("checking HostPathDevice: path %s is not a block device", hostPath.Path)
+				return nil, fmt.Errorf("checking HostPathDevice: path %s is not a block device", hostPath.Path)
 			}
 			return &KubeVolume{
 				Type:   KubeVolumeTypeBlockDevice,
@@ -95,10 +96,10 @@ func VolumeFromHostPath(hostPath *v1.HostPathVolumeSource) (*KubeVolume, error) 
 		case v1.HostPathCharDev:
 			dev, err := os.Stat(hostPath.Path)
 			if err != nil {
-				return nil, errors.Wrap(err, "error checking HostPathCharDevice")
+				return nil, fmt.Errorf("error checking HostPathCharDevice: %w", err)
 			}
 			if dev.Mode()&os.ModeCharDevice != os.ModeCharDevice {
-				return nil, errors.Errorf("checking HostPathCharDevice: path %s is not a character device", hostPath.Path)
+				return nil, fmt.Errorf("checking HostPathCharDevice: path %s is not a character device", hostPath.Path)
 			}
 			return &KubeVolume{
 				Type:   KubeVolumeTypeCharDevice,
@@ -110,12 +111,12 @@ func VolumeFromHostPath(hostPath *v1.HostPathVolumeSource) (*KubeVolume, error) 
 			// do nothing here because we will verify the path exists in validateVolumeHostDir
 			break
 		default:
-			return nil, errors.Errorf("Invalid HostPath type %v", hostPath.Type)
+			return nil, fmt.Errorf("invalid HostPath type %v", hostPath.Type)
 		}
 	}
 
 	if err := parse.ValidateVolumeHostDir(hostPath.Path); err != nil {
-		return nil, errors.Wrapf(err, "error in parsing HostPath in YAML")
+		return nil, fmt.Errorf("error in parsing HostPath in YAML: %w", err)
 	}
 
 	return &KubeVolume{
@@ -152,7 +153,7 @@ func VolumeFromConfigMap(configMapVolumeSource *v1.ConfigMapVolumeSource, config
 			kv.Optional = *configMapVolumeSource.Optional
 			return kv, nil
 		}
-		return nil, errors.Errorf("no such ConfigMap %q", configMapVolumeSource.Name)
+		return nil, fmt.Errorf("no such ConfigMap %q", configMapVolumeSource.Name)
 	}
 
 	// If there are Items specified in the volumeSource, that overwrites the Data from the configmap
@@ -180,7 +181,7 @@ func VolumeFromSource(volumeSource v1.VolumeSource, configMaps []v1.ConfigMap) (
 	case volumeSource.ConfigMap != nil:
 		return VolumeFromConfigMap(volumeSource.ConfigMap, configMaps)
 	default:
-		return nil, errors.Errorf("HostPath, ConfigMap, and PersistentVolumeClaim are currently the only supported VolumeSource")
+		return nil, errors.New("HostPath, ConfigMap, and PersistentVolumeClaim are currently the only supported VolumeSource")
 	}
 }
 
@@ -191,7 +192,7 @@ func InitializeVolumes(specVolumes []v1.Volume, configMaps []v1.ConfigMap) (map[
 	for _, specVolume := range specVolumes {
 		volume, err := VolumeFromSource(specVolume.VolumeSource, configMaps)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to create volume %q", specVolume.Name)
+			return nil, fmt.Errorf("failed to create volume %q: %w", specVolume.Name, err)
 		}
 
 		volumes[specVolume.Name] = volume

@@ -1,13 +1,13 @@
 package compat
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/containers/podman/v4/libpod"
 	"github.com/containers/podman/v4/pkg/api/handlers"
 	"github.com/containers/podman/v4/pkg/api/handlers/utils"
 	api "github.com/containers/podman/v4/pkg/api/types"
-	"github.com/pkg/errors"
 )
 
 func HistoryImage(w http.ResponseWriter, r *http.Request) {
@@ -16,13 +16,13 @@ func HistoryImage(w http.ResponseWriter, r *http.Request) {
 
 	possiblyNormalizedName, err := utils.NormalizeToDockerHub(r, name)
 	if err != nil {
-		utils.Error(w, http.StatusInternalServerError, errors.Wrap(err, "error normalizing image"))
+		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("error normalizing image: %w", err))
 		return
 	}
 
 	newImage, _, err := runtime.LibimageRuntime().LookupImage(possiblyNormalizedName, nil)
 	if err != nil {
-		utils.ImageNotFound(w, possiblyNormalizedName, errors.Wrapf(err, "failed to find image %s", possiblyNormalizedName))
+		utils.ImageNotFound(w, possiblyNormalizedName, fmt.Errorf("failed to find image %s: %w", possiblyNormalizedName, err))
 		return
 	}
 	history, err := newImage.History(r.Context())

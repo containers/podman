@@ -31,7 +31,7 @@ func (r *Runtime) NewVolume(ctx context.Context, options ...VolumeCreateOption) 
 
 // newVolume creates a new empty volume with the given options.
 // The createPluginVolume can be set to true to make it not create the volume in the volume plugin,
-// this is required for the UpdateVolumePlugins() function. If you are not sure set this to false.
+// this is required for the UpdateVolumePlugins() function. If you are not sure, set this to false.
 func (r *Runtime) newVolume(noCreatePluginVolume bool, options ...VolumeCreateOption) (_ *Volume, deferredErr error) {
 	volume := newVolume(r)
 	for _, option := range options {
@@ -216,7 +216,7 @@ func (r *Runtime) UpdateVolumePlugins(ctx context.Context) *define.VolumeReload 
 	for _, vol := range libpodVolumes {
 		if vol.UsesVolumeDriver() {
 			if _, ok := allPluginVolumes[vol.Name()]; !ok {
-				// The volume is no longer in the plugin, lets remove it from the libpod db.
+				// The volume is no longer in the plugin. Let's remove it from the libpod db.
 				if err := r.removeVolume(ctx, vol, false, nil, true); err != nil {
 					if errors.Is(err, define.ErrVolumeBeingUsed) {
 						// Volume is still used by at least one container. This is very bad,

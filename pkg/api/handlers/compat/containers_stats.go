@@ -2,6 +2,7 @@ package compat
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -13,7 +14,6 @@ import (
 	docker "github.com/docker/docker/api/types"
 	"github.com/gorilla/schema"
 	runccgroups "github.com/opencontainers/runc/libcontainer/cgroups"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -30,7 +30,7 @@ func StatsContainer(w http.ResponseWriter, r *http.Request) {
 		Stream: true,
 	}
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.Error(w, http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
+		utils.Error(w, http.StatusBadRequest, fmt.Errorf("failed to parse parameters for %s: %w", r.URL.String(), err))
 		return
 	}
 	if query.Stream && query.OneShot { // mismatch. one-shot can only be passed with stream=false
@@ -47,7 +47,7 @@ func StatsContainer(w http.ResponseWriter, r *http.Request) {
 
 	stats, err := ctnr.GetContainerStats(nil)
 	if err != nil {
-		utils.InternalServerError(w, errors.Wrapf(err, "failed to obtain Container %s stats", name))
+		utils.InternalServerError(w, fmt.Errorf("failed to obtain Container %s stats: %w", name, err))
 		return
 	}
 

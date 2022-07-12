@@ -299,15 +299,17 @@ function random_free_port_range() {
     local maxtries=10
     while [[ $maxtries -gt 0 ]]; do
         local firstport=$(random_free_port)
-        local all_ports_free=1
-        for i in $(seq 2 $size); do
-            if ! port_is_free $((firstport + $i)); then
-                all_ports_free=
+        local lastport=
+        for i in $(seq 1 $((size - 1))); do
+            lastport=$((firstport + i))
+            if ! port_is_free $lastport; then
+                echo "# port $lastport is in use; trying another." >&3
+                lastport=
                 break
             fi
         done
-        if [[ -n "$all_ports_free" ]]; then
-            echo "$firstport-$((firstport + $size - 1))"
+        if [[ -n "$lastport" ]]; then
+            echo "$firstport-$lastport"
             return
         fi
 
@@ -638,7 +640,7 @@ function assert() {
     fi
 
     # This is a multi-line message, which may in turn contain multi-line
-    # output, so let's format it ourself, readably
+    # output, so let's format it ourself to make it more readable.
     local actual_split
     IFS=$'\n' read -rd '' -a actual_split <<<"$actual_string" || true
     printf "#/vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv\n"    >&2
@@ -688,7 +690,7 @@ function is() {
     fi
 
     # This is a multi-line message, which may in turn contain multi-line
-    # output, so let's format it ourself, readably
+    # output, so let's format it ourself to make it more readable.
     local -a actual_split
     readarray -t actual_split <<<"$actual"
     printf "#/vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv\n" >&2

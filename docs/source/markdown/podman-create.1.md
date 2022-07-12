@@ -368,9 +368,10 @@ on the host system.
 
 #### **--gidmap**=*container_gid:host_gid:amount*
 
-GID map for the user namespace. Using this flag will run the container with user namespace enabled. It conflicts with the `--userns` and `--subgidname` flags.
-
-The following example maps uids 0-2000 in the container to the uids 30000-31999 on the host and gids 0-2000 in the container to the gids 30000-31999 on the host. `--gidmap=0:30000:2000`
+Run the container in a new user namespace using the supplied GID mapping. This
+option conflicts with the **--userns** and **--subgidname** options. This
+option provides a way to map host GIDs to container GIDs in the same way as
+__--uidmap__ maps host UIDs to container UIDs. For details see __--uidmap__.
 
 Note: the **--gidmap** flag cannot be called in conjunction with the **--pod** flag as a gidmap cannot be set on the container level when in a pod.
 
@@ -866,14 +867,14 @@ port to a random port on the host within an *ephemeral port range* defined by
 `/proc/sys/net/ipv4/ip_local_port_range`. To find the mapping between the host
 ports and the exposed ports, use `podman port`.
 
-#### **--pull**=*missing*
+#### **--pull**=**always**|**missing**|**never**|**newer**
 
-Pull image before creating ("always"|"missing"|"never") (default "missing").
-       'missing': default value, attempt to pull the latest image from the registries listed in registries.conf if a local image does not exist.Raise an error if the image is not in any listed registry and is not present locally.
-       'always': Pull the image from the first registry it is found in as listed in  registries.conf. Raise an error if not found in the registries, even if the image is present locally.
-       'never': do not pull the image from the registry, use only the local version. Raise an error if the image is not present locally.
+Pull image policy. The default is **missing**.
 
-Defaults to *missing*.
+- **always**: Always pull the image and throw an error if the pull fails.
+- **missing**: Pull the image only if it could not be found in the local containers storage.  Throw an error if no image could be found and the pull fails.
+- **never**: Never pull the image but use the one from the local containers storage.  Throw an error if no image could be found.
+- **newer**: Pull if the image on the registry is newer than the one in the local containers storage.  An image is considered to be newer when the digests are different.  Comparing the time stamps is prone to errors.  Pull errors are suppressed if a local image was found.
 
 #### **--quiet**, **-q**
 
@@ -1120,7 +1121,7 @@ Remote connections use local containers.conf for defaults
 
 #### **--uidmap**=*container_uid*:*from_uid*:*amount*
 
-Run the container in a new user namespace using the supplied mapping. This
+Run the container in a new user namespace using the supplied UID mapping. This
 option conflicts with the **--userns** and **--subuidname** options. This
 option provides a way to map host UIDs to container UIDs. It can be passed
 several times to map different ranges.

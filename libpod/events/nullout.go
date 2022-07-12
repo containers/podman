@@ -19,7 +19,7 @@ func (e EventToNull) Read(ctx context.Context, options ReadOptions) error {
 }
 
 // NewNullEventer returns a new null eventer.  You should only do this for
-// the purposes on internal libpod testing.
+// the purposes of internal libpod testing.
 func NewNullEventer() Eventer {
 	return EventToNull{}
 }

@@ -4,10 +4,10 @@
 package machine
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/containers/common/pkg/config"
-	"github.com/pkg/errors"
 )
 
 func AddConnection(uri fmt.Stringer, name, identity string, isDefault bool) error {
@@ -72,7 +72,7 @@ func RemoveConnection(name string) error {
 	if _, ok := cfg.Engine.ServiceDestinations[name]; ok {
 		delete(cfg.Engine.ServiceDestinations, name)
 	} else {
-		return errors.Errorf("unable to find connection named %q", name)
+		return fmt.Errorf("unable to find connection named %q", name)
 	}
 	return cfg.Write()
 }

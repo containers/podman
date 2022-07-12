@@ -1,8 +1,10 @@
 package specgen
 
 import (
+	"errors"
+	"fmt"
+
 	"github.com/containers/podman/v4/pkg/util"
-	"github.com/pkg/errors"
 )
 
 var (
@@ -13,7 +15,7 @@ var (
 )
 
 func exclusivePodOptions(opt1, opt2 string) error {
-	return errors.Wrapf(ErrInvalidPodSpecConfig, "%s and %s are mutually exclusive pod options", opt1, opt2)
+	return fmt.Errorf("%s and %s are mutually exclusive pod options: %w", opt1, opt2, ErrInvalidPodSpecConfig)
 }
 
 // Validate verifies the input is valid

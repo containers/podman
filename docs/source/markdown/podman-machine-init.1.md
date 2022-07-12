@@ -76,15 +76,33 @@ Set the timezone for the machine and containers.  Valid values are `local` or
 a `timezone` such as `America/Chicago`.  A value of `local`, which is the default,
 means to use the timezone of the machine host.
 
-#### **--volume**, **-v**=*source:target*
+#### **--volume**, **-v**=*source:target[:options]*
 
 Mounts a volume from source to target.
 
 Create a mount. If /host-dir:/machine-dir is specified as the `*source:target*`,
 Podman mounts _host-dir_ in the host to _machine-dir_ in the Podman machine.
 
-The root filesystem is mounted read-only in the default operating system,
-so mounts must be created under the /mnt directory.
+Additional options may be specified as a comma-separated string. Recognized
+options are:
+* **ro**: mount volume read-only
+* **rw**: mount volume read/write (default)
+* **security_model=[model]**: specify 9p security model (see below)
+
+The 9p security model [determines] https://wiki.qemu.org/Documentation/9psetup#Starting_the_Guest_directly
+if and how the 9p filesystem translates some filesystem operations before
+actual storage on the host. The
+default value of *mapped-xattr* specifies that 9p store symlinks and some file
+attributes as extended attributes on the host. This is suitable when the host
+and the guest do not need to interoperate on the shared filesystem, but has
+caveats for actual shared access; notably, symlinks on the host are not usable
+on the guest and vice versa. If interoperability is required, then choose
+*none* instead, but keep in mind that the guest will not be able to do things
+that the user running the virtual machine cannot do, e.g. create files owned by
+another user. Using *none* is almost certainly the best choice for read-only
+volumes.
+
+Example: `-v "$HOME/git:$HOME/git:ro,security_model=none"`
 
 Default volume mounts are defined in *containers.conf*.  Unless changed, the default values
 is `$HOME:$HOME`.

@@ -13,7 +13,6 @@ import (
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/specgen"
 	"github.com/containers/podman/v4/pkg/specgenutil"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -155,7 +154,7 @@ func MapSpec(p *specgen.PodSpecGenerator) (*specgen.SpecGenerator, error) {
 		if len(p.InfraContainerSpec.PortMappings) > 0 ||
 			len(p.InfraContainerSpec.Networks) > 0 ||
 			p.InfraContainerSpec.NetNS.NSMode == specgen.NoNetwork {
-			return nil, errors.Wrapf(define.ErrInvalidArg, "cannot set host network if network-related configuration is specified")
+			return nil, fmt.Errorf("cannot set host network if network-related configuration is specified: %w", define.ErrInvalidArg)
 		}
 		p.InfraContainerSpec.NetNS.NSMode = specgen.Host
 	case specgen.Slirp:
@@ -169,11 +168,11 @@ func MapSpec(p *specgen.PodSpecGenerator) (*specgen.SpecGenerator, error) {
 		if len(p.InfraContainerSpec.PortMappings) > 0 ||
 			len(p.InfraContainerSpec.Networks) > 0 ||
 			p.InfraContainerSpec.NetNS.NSMode == specgen.Host {
-			return nil, errors.Wrapf(define.ErrInvalidArg, "cannot disable pod network if network-related configuration is specified")
+			return nil, fmt.Errorf("cannot disable pod network if network-related configuration is specified: %w", define.ErrInvalidArg)
 		}
 		p.InfraContainerSpec.NetNS.NSMode = specgen.NoNetwork
 	default:
-		return nil, errors.Errorf("pods presently do not support network mode %s", p.NetNS.NSMode)
+		return nil, fmt.Errorf("pods presently do not support network mode %s", p.NetNS.NSMode)
 	}
 
 	if len(p.InfraCommand) > 0 {

@@ -3,13 +3,14 @@ package copy
 import (
 	"encoding/base64"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/containers/podman/v4/libpod/define"
-	"github.com/pkg/errors"
 )
 
 // XDockerContainerPathStatHeader is the *key* in http headers pointing to the
@@ -18,7 +19,7 @@ const XDockerContainerPathStatHeader = "X-Docker-Container-Path-Stat"
 
 // ErrENOENT mimics the stdlib's ErrENOENT and can be used to implement custom logic
 // while preserving the user-visible error message.
-var ErrENOENT = errors.New("No such file or directory")
+var ErrENOENT = errors.New("no such file or directory")
 
 // FileInfo describes a file or directory and is returned by
 // (*CopyItem).Stat().
@@ -29,7 +30,7 @@ type FileInfo = define.FileInfo
 func EncodeFileInfo(info *FileInfo) (string, error) {
 	buf, err := json.Marshal(&info)
 	if err != nil {
-		return "", errors.Wrap(err, "failed to serialize file stats")
+		return "", fmt.Errorf("failed to serialize file stats: %w", err)
 	}
 	return base64.URLEncoding.EncodeToString(buf), nil
 }

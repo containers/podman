@@ -1,6 +1,8 @@
 package compat
 
 import (
+	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/containers/podman/v4/libpod"
@@ -9,7 +11,6 @@ import (
 	"github.com/containers/podman/v4/pkg/api/server/idle"
 	api "github.com/containers/podman/v4/pkg/api/types"
 	"github.com/gorilla/schema"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -60,13 +61,13 @@ func AttachContainer(w http.ResponseWriter, r *http.Request) {
 		streams = nil
 	}
 	if useStreams && !streams.Stdout && !streams.Stderr && !streams.Stdin {
-		utils.Error(w, http.StatusBadRequest, errors.Errorf("at least one of stdin, stdout, stderr must be true"))
+		utils.Error(w, http.StatusBadRequest, errors.New("at least one of stdin, stdout, stderr must be true"))
 		return
 	}
 
 	// At least one of these must be set
 	if !query.Stream && !query.Logs {
-		utils.Error(w, http.StatusBadRequest, errors.Errorf("at least one of Logs or Stream must be set"))
+		utils.Error(w, http.StatusBadRequest, errors.New("at least one of Logs or Stream must be set"))
 		return
 	}
 
@@ -85,16 +86,16 @@ func AttachContainer(w http.ResponseWriter, r *http.Request) {
 	// For Docker compatibility, we need to re-initialize containers in these states.
 	if state == define.ContainerStateConfigured || state == define.ContainerStateExited || state == define.ContainerStateStopped {
 		if err := ctr.Init(r.Context(), ctr.PodID() != ""); err != nil {
-			utils.Error(w, http.StatusConflict, errors.Wrapf(err, "error preparing container %s for attach", ctr.ID()))
+			utils.Error(w, http.StatusConflict, fmt.Errorf("error preparing container %s for attach: %w", ctr.ID(), err))
 			return
 		}
 	} else if !(state == define.ContainerStateCreated || state == define.ContainerStateRunning) {
-		utils.InternalServerError(w, errors.Wrapf(define.ErrCtrStateInvalid, "can only attach to created or running containers - currently in state %s", state.String()))
+		utils.InternalServerError(w, fmt.Errorf("can only attach to created or running containers - currently in state %s: %w", state.String(), define.ErrCtrStateInvalid))
 		return
 	}
 
 	logErr := func(e error) {
-		logrus.Error(errors.Wrapf(e, "error attaching to container %s", ctr.ID()))
+		logrus.Errorf("Error attaching to container %s: %v", ctr.ID(), e)
 	}
 
 	// Perform HTTP attach.

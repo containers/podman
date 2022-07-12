@@ -2,13 +2,12 @@ package tunnel
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"github.com/containers/podman/v4/libpod/events"
 	"github.com/containers/podman/v4/pkg/bindings/system"
 	"github.com/containers/podman/v4/pkg/domain/entities"
-
-	"github.com/pkg/errors"
 )
 
 func (ic *ContainerEngine) Events(ctx context.Context, opts entities.EventsOptions) error {
@@ -17,7 +16,7 @@ func (ic *ContainerEngine) Events(ctx context.Context, opts entities.EventsOptio
 		for _, filter := range opts.Filter {
 			split := strings.Split(filter, "=")
 			if len(split) < 2 {
-				return errors.Errorf("invalid filter %q", filter)
+				return fmt.Errorf("invalid filter %q", filter)
 			}
 			filters[split[0]] = append(filters[split[0]], strings.Join(split[1:], "="))
 		}
@@ -56,7 +55,7 @@ func (ic *ContainerEngine) GetLastContainerEvent(ctx context.Context, nameOrID s
 				return nil, err
 			}
 			if len(containerEvents) < 1 {
-				return nil, errors.Wrapf(events.ErrEventNotFound, "%s not found", containerEvent.String())
+				return nil, fmt.Errorf("%s not found: %w", containerEvent.String(), events.ErrEventNotFound)
 			}
 			// return the last element in the slice
 			return containerEvents[len(containerEvents)-1], nil

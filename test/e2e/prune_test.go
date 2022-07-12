@@ -259,11 +259,12 @@ var _ = Describe("Podman prune", func() {
 	})
 
 	It("podman system prune networks", func() {
-		// About netavark network backend test.
+		// Create new network.
 		session := podmanTest.Podman([]string{"network", "create", "test"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
+		// Remove all unused networks.
 		session = podmanTest.Podman([]string{"system", "prune", "-f"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
@@ -274,7 +275,7 @@ var _ = Describe("Podman prune", func() {
 		Expect(session).Should(Exit(0))
 		Expect(session.OutputToStringArray()).To(HaveLen(1))
 
-		// Remove all unused networks.
+		// Unused networks removed.
 		session = podmanTest.Podman([]string{"network", "ls", "-q", "--filter", "name=^test$"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))

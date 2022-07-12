@@ -3,6 +3,7 @@ package tunnel
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -10,7 +11,6 @@ import (
 	"github.com/containers/podman/v4/pkg/bindings/images"
 	"github.com/containers/podman/v4/pkg/bindings/manifests"
 	"github.com/containers/podman/v4/pkg/domain/entities"
-	"github.com/pkg/errors"
 )
 
 // ManifestCreate implements manifest create via ImageEngine
@@ -18,7 +18,7 @@ func (ir *ImageEngine) ManifestCreate(ctx context.Context, name string, images [
 	options := new(manifests.CreateOptions).WithAll(opts.All)
 	imageID, err := manifests.Create(ir.ClientCtx, name, images, options)
 	if err != nil {
-		return imageID, errors.Wrapf(err, "error creating manifest")
+		return imageID, fmt.Errorf("error creating manifest: %w", err)
 	}
 	return imageID, err
 }
@@ -36,12 +36,12 @@ func (ir *ImageEngine) ManifestExists(ctx context.Context, name string) (*entiti
 func (ir *ImageEngine) ManifestInspect(_ context.Context, name string) ([]byte, error) {
 	list, err := manifests.Inspect(ir.ClientCtx, name, nil)
 	if err != nil {
-		return nil, errors.Wrapf(err, "error getting content of manifest list or image %s", name)
+		return nil, fmt.Errorf("error getting content of manifest list or image %s: %w", name, err)
 	}
 
 	buf, err := json.MarshalIndent(list, "", "    ")
 	if err != nil {
-		return buf, errors.Wrapf(err, "error rendering manifest for display")
+		return buf, fmt.Errorf("error rendering manifest for display: %w", err)
 	}
 	return buf, err
 }
@@ -56,7 +56,7 @@ func (ir *ImageEngine) ManifestAdd(_ context.Context, name string, imageNames []
 		for _, annotationSpec := range opts.Annotation {
 			spec := strings.SplitN(annotationSpec, "=", 2)
 			if len(spec) != 2 {
-				return "", errors.Errorf("no value given for annotation %q", spec[0])
+				return "", fmt.Errorf("no value given for annotation %q", spec[0])
 			}
 			annotations[spec[0]] = spec[1]
 		}
@@ -72,7 +72,7 @@ func (ir *ImageEngine) ManifestAdd(_ context.Context, name string, imageNames []
 
 	id, err := manifests.Add(ir.ClientCtx, name, options)
 	if err != nil {
-		return id, errors.Wrapf(err, "error adding to manifest list %s", name)
+		return id, fmt.Errorf("error adding to manifest list %s: %w", name, err)
 	}
 	return id, nil
 }
@@ -86,7 +86,7 @@ func (ir *ImageEngine) ManifestAnnotate(ctx context.Context, name, images string
 func (ir *ImageEngine) ManifestRemoveDigest(ctx context.Context, name string, image string) (string, error) {
 	updatedListID, err := manifests.Remove(ir.ClientCtx, name, image, nil)
 	if err != nil {
-		return updatedListID, errors.Wrapf(err, "error removing from manifest %s", name)
+		return updatedListID, fmt.Errorf("error removing from manifest %s: %w", name, err)
 	}
 	return fmt.Sprintf("%s :%s\n", updatedListID, image), nil
 }

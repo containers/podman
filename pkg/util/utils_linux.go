@@ -1,6 +1,7 @@
 package util
 
 import (
+	"errors"
 	"fmt"
 	"io/fs"
 	"io/ioutil"
@@ -14,7 +15,6 @@ import (
 	"github.com/containers/psgo"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
@@ -53,7 +53,7 @@ func FindDeviceNodes() (map[string]string, error) {
 		// We are a device node. Get major/minor.
 		sysstat, ok := info.Sys().(*syscall.Stat_t)
 		if !ok {
-			return errors.Errorf("Could not convert stat output for use")
+			return errors.New("could not convert stat output for use")
 		}
 		// We must typeconvert sysstat.Rdev from uint64->int to avoid constant overflow
 		rdev := int(sysstat.Rdev)

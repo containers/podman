@@ -16,7 +16,6 @@ import (
 	"github.com/containers/podman/v4/pkg/specgen"
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega/gexec"
-	"github.com/pkg/errors"
 )
 
 type testImage struct {
@@ -127,7 +126,7 @@ func (b *bindingTest) runPodman(command []string) *gexec.Session {
 	fmt.Printf("Running: %s %s\n", podmanBinary, strings.Join(cmd, " "))
 	session, err := gexec.Start(c, ginkgo.GinkgoWriter, ginkgo.GinkgoWriter)
 	if err != nil {
-		panic(errors.Errorf("unable to run podman command: %q", cmd))
+		panic(fmt.Errorf("unable to run podman command: %q", cmd))
 	}
 	return session
 }

@@ -1,13 +1,13 @@
 package entities
 
 import (
+	"errors"
 	"sort"
 	"strings"
 	"time"
 
 	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/podman/v4/pkg/ps/define"
-	"github.com/pkg/errors"
 )
 
 // ListContainer describes a container suitable for listing
@@ -166,7 +166,7 @@ func SortPsOutput(sortBy string, psOutput SortListContainers) (SortListContainer
 	case "pod":
 		sort.Sort(psSortedPod{psOutput})
 	default:
-		return nil, errors.Errorf("invalid option for --sort, options are: command, created, id, image, names, runningfor, size, or status")
+		return nil, errors.New("invalid option for --sort, options are: command, created, id, image, names, runningfor, size, or status")
 	}
 	return psOutput, nil
 }

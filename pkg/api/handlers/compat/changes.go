@@ -1,6 +1,7 @@
 package compat
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/containers/podman/v4/libpod"
@@ -8,7 +9,6 @@ import (
 	"github.com/containers/podman/v4/pkg/api/handlers/utils"
 	api "github.com/containers/podman/v4/pkg/api/types"
 	"github.com/gorilla/schema"
-	"github.com/pkg/errors"
 )
 
 func Changes(w http.ResponseWriter, r *http.Request) {
@@ -20,7 +20,7 @@ func Changes(w http.ResponseWriter, r *http.Request) {
 		DiffType string `schema:"diffType"`
 	}{}
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.Error(w, http.StatusBadRequest, errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
+		utils.Error(w, http.StatusBadRequest, fmt.Errorf("failed to parse parameters for %s: %w", r.URL.String(), err))
 		return
 	}
 	var diffType define.DiffType
@@ -32,7 +32,7 @@ func Changes(w http.ResponseWriter, r *http.Request) {
 	case "image":
 		diffType = define.DiffImage
 	default:
-		utils.Error(w, http.StatusBadRequest, errors.Errorf("invalid diffType value %q", query.DiffType))
+		utils.Error(w, http.StatusBadRequest, fmt.Errorf("invalid diffType value %q", query.DiffType))
 		return
 	}
 

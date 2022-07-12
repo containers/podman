@@ -1,13 +1,13 @@
 package filters
 
 import (
+	"fmt"
 	"net/url"
 	"regexp"
 	"strings"
 
 	"github.com/containers/podman/v4/libpod"
 	"github.com/containers/podman/v4/pkg/util"
-	"github.com/pkg/errors"
 )
 
 func GenerateVolumeFilters(filters url.Values) ([]libpod.VolumeFilter, error) {
@@ -72,7 +72,7 @@ func GenerateVolumeFilters(filters url.Values) ([]libpod.VolumeFilter, error) {
 					// invert the result of IsDangling.
 					invert = true
 				default:
-					return nil, errors.Errorf("%q is not a valid value for the \"dangling\" filter - must be true or false", danglingVal)
+					return nil, fmt.Errorf("%q is not a valid value for the \"dangling\" filter - must be true or false", danglingVal)
 				}
 				vf = append(vf, func(v *libpod.Volume) bool {
 					dangling, err := v.IsDangling()
@@ -85,7 +85,7 @@ func GenerateVolumeFilters(filters url.Values) ([]libpod.VolumeFilter, error) {
 					return dangling
 				})
 			default:
-				return nil, errors.Errorf("%q is an invalid volume filter", filter)
+				return nil, fmt.Errorf("%q is an invalid volume filter", filter)
 			}
 		}
 	}
@@ -109,7 +109,7 @@ func GeneratePruneVolumeFilters(filters url.Values) ([]libpod.VolumeFilter, erro
 				}
 				vf = append(vf, f)
 			default:
-				return nil, errors.Errorf("%q is an invalid volume filter", filter)
+				return nil, fmt.Errorf("%q is an invalid volume filter", filter)
 			}
 		}
 	}

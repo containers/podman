@@ -41,9 +41,9 @@ var (
 )
 
 var (
-	waitOptions   = entities.WaitOptions{}
-	waitCondition string
-	waitInterval  string
+	waitOptions    = entities.WaitOptions{}
+	waitConditions []string
+	waitInterval   string
 )
 
 func waitFlags(cmd *cobra.Command) {
@@ -54,7 +54,7 @@ func waitFlags(cmd *cobra.Command) {
 	_ = cmd.RegisterFlagCompletionFunc(intervalFlagName, completion.AutocompleteNone)
 
 	conditionFlagName := "condition"
-	flags.StringVar(&waitCondition, conditionFlagName, "stopped", "Condition to wait on")
+	flags.StringSliceVar(&waitConditions, conditionFlagName, []string{}, "Condition to wait on")
 	_ = cmd.RegisterFlagCompletionFunc(conditionFlagName, common.AutocompleteWaitCondition)
 }
 
@@ -92,11 +92,13 @@ func wait(cmd *cobra.Command, args []string) error {
 		return errors.New("--latest and containers cannot be used together")
 	}
 
-	cond, err := define.StringToContainerStatus(waitCondition)
-	if err != nil {
-		return err
+	for _, condition := range waitConditions {
+		cond, err := define.StringToContainerStatus(condition)
+		if err != nil {
+			return err
+		}
+		waitOptions.Condition = append(waitOptions.Condition, cond)
 	}
-	waitOptions.Condition = []define.ContainerStatus{cond}
 
 	responses, err := registry.ContainerEngine().ContainerWait(context.Background(), args, waitOptions)
 	if err != nil {

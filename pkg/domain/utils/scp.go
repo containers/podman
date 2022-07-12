@@ -20,7 +20,6 @@ import (
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/terminal"
 	"github.com/docker/distribution/reference"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/agent"
@@ -44,7 +43,7 @@ func ExecuteTransfer(src, dst string, parentFlags []string, quiet bool) (*entiti
 
 	confR, err := config.NewConfig("") // create a hand made config for the remote engine since we might use remote and native at once
 	if err != nil {
-		return nil, nil, nil, nil, errors.Wrapf(err, "could not make config")
+		return nil, nil, nil, nil, fmt.Errorf("could not make config: %w", err)
 	}
 
 	cfg, err := config.ReadCustomConfig() // get ready to set ssh destination if necessary
@@ -75,9 +74,9 @@ func ExecuteTransfer(src, dst string, parentFlags []string, quiet bool) (*entiti
 	case len(locations) == 1:
 		switch {
 		case len(locations[0].Image) == 0:
-			return nil, nil, nil, nil, errors.Wrapf(define.ErrInvalidArg, "no source image specified")
+			return nil, nil, nil, nil, fmt.Errorf("no source image specified: %w", define.ErrInvalidArg)
 		case len(locations[0].Image) > 0 && !locations[0].Remote && len(locations[0].User) == 0: // if we have podman image scp $IMAGE
-			return nil, nil, nil, nil, errors.Wrapf(define.ErrInvalidArg, "must specify a destination")
+			return nil, nil, nil, nil, fmt.Errorf("must specify a destination: %w", define.ErrInvalidArg)
 		}
 	}
 
@@ -158,7 +157,7 @@ func ExecuteTransfer(src, dst string, parentFlags []string, quiet bool) (*entiti
 			if source.User == "" {
 				u, err := user.Current()
 				if err != nil {
-					return nil, nil, nil, nil, errors.Wrapf(err, "could not obtain user, make sure the environmental variable $USER is set")
+					return nil, nil, nil, nil, fmt.Errorf("could not obtain user, make sure the environmental variable $USER is set: %w", err)
 				}
 				source.User = u.Username
 			}
@@ -231,11 +230,11 @@ func LoadToRemote(dest entities.ImageScpOptions, localFile string, tag string, u
 	n, err := scpD.CopyTo(dial, localFile, remoteFile)
 	if err != nil {
 		errOut := strconv.Itoa(int(n)) + " Bytes copied before error"
-		return " ", "", errors.Wrapf(err, errOut)
+		return " ", "", fmt.Errorf("%v: %w", errOut, err)
 	}
 	var run string
 	if tag != "" {
-		return "", "", errors.Wrapf(define.ErrInvalidArg, "Renaming of an image is currently not supported")
+		return "", "", fmt.Errorf("renaming of an image is currently not supported: %w", define.ErrInvalidArg)
 	}
 	podman := os.Args[0]
 	run = podman + " image load --input=" + remoteFile + ";rm " + remoteFile // run ssh image load of the file copied via scp
@@ -268,7 +267,7 @@ func SaveToRemote(image, localFile string, tag string, uri *url.URL, iden string
 	defer dial.Close()
 
 	if tag != "" {
-		return errors.Wrapf(define.ErrInvalidArg, "Renaming of an image is currently not supported")
+		return fmt.Errorf("renaming of an image is currently not supported: %w", define.ErrInvalidArg)
 	}
 	podman := os.Args[0]
 	run := podman + " image save " + image + " --format=oci-archive --output=" + remoteFile // run ssh image load of the file copied via scp. Files are reverse in this case...
@@ -282,7 +281,7 @@ func SaveToRemote(image, localFile string, tag string, uri *url.URL, iden string
 	}
 	if err != nil {
 		errOut := strconv.Itoa(int(n)) + " Bytes copied before error"
-		return errors.Wrapf(err, errOut)
+		return fmt.Errorf("%v: %w", errOut, err)
 	}
 	return nil
 }
@@ -307,7 +306,7 @@ func CreateConnection(url *url.URL, iden string) (*ssh.Client, string, error) {
 	}
 	dialAdd, err := ssh.Dial("tcp", url.Host, cfg) // dial the client
 	if err != nil {
-		return nil, "", errors.Wrapf(err, "failed to connect")
+		return nil, "", fmt.Errorf("failed to connect: %w", err)
 	}
 	file, err := MakeRemoteFile(dialAdd)
 	if err != nil {
@@ -429,14 +428,14 @@ func ValidateImagePortion(location entities.ImageScpOptions, arg string) (entiti
 // validateSCPArgs takes the array of source and destination options and checks for common errors
 func ValidateSCPArgs(locations []*entities.ImageScpOptions) error {
 	if len(locations) > 2 {
-		return errors.Wrapf(define.ErrInvalidArg, "cannot specify more than two arguments")
+		return fmt.Errorf("cannot specify more than two arguments: %w", define.ErrInvalidArg)
 	}
 	switch {
 	case len(locations[0].Image) > 0 && len(locations[1].Image) > 0:
 		locations[1].Tag = locations[1].Image
 		locations[1].Image = ""
 	case len(locations[0].Image) == 0 && len(locations[1].Image) == 0:
-		return errors.Wrapf(define.ErrInvalidArg, "a source image must be specified")
+		return fmt.Errorf("a source image must be specified: %w", define.ErrInvalidArg)
 	}
 	return nil
 }
@@ -475,7 +474,7 @@ func ExecRemoteCommand(dial *ssh.Client, run string) ([]byte, error) {
 	sess.Stdout = &buffer                 // output from client funneled into buffer
 	sess.Stderr = &bufferErr              // err form client funneled into buffer
 	if err := sess.Run(run); err != nil { // run the command on the ssh client
-		return nil, errors.Wrapf(err, bufferErr.String())
+		return nil, fmt.Errorf("%v: %w", bufferErr.String(), err)
 	}
 	return buffer.Bytes(), nil
 }
@@ -488,12 +487,12 @@ func GetUserInfo(uri *url.URL) (*url.Userinfo, error) {
 	if u, found := os.LookupEnv("_CONTAINERS_ROOTLESS_UID"); found {
 		usr, err = user.LookupId(u)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to lookup rootless user")
+			return nil, fmt.Errorf("failed to lookup rootless user: %w", err)
 		}
 	} else {
 		usr, err = user.Current()
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to obtain current user")
+			return nil, fmt.Errorf("failed to obtain current user: %w", err)
 		}
 	}
 
@@ -514,7 +513,7 @@ func ValidateAndConfigure(uri *url.URL, iden string) (*ssh.ClientConfig, error) 
 		value := iden
 		s, err := terminal.PublicKey(value, []byte(passwd))
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to read identity %q", value)
+			return nil, fmt.Errorf("failed to read identity %q: %w", value, err)
 		}
 		signers = append(signers, s)
 		logrus.Debugf("SSH Ident Key %q %s %s", value, ssh.FingerprintSHA256(s.PublicKey()), s.PublicKey().Type())
