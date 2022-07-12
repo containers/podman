@@ -13,7 +13,7 @@ Rootless only, as all `podman machine` commands can be only be used with rootles
 
 ## OPTIONS
 
-#### **--format**=*format*, **-f**
+#### **--format**, **-f**=*format*
 
 Change output format to "json" or a Go template.
 

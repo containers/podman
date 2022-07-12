@@ -83,11 +83,11 @@ Takes a value in seconds.
 
 Set the systemd unit name separator between the name/id of a container/pod and the prefix. The default is *-*.
 
-#### **--start-timeout** =*value*
+#### **--start-timeout**=*value*
 
 Override the default start timeout for the container with the given value in seconds.
 
-#### **--stop-timeout** =*value*
+#### **--stop-timeout**=*value*
 
 Override the default stop timeout for the container with the given value in seconds.
 

@@ -23,7 +23,7 @@ Show all images (by default filter out the intermediate image layers). The defau
 
 Show image digests
 
-#### **--filter**=*filter*, **-f**
+#### **--filter**, **-f**=*filter*
 
 Provide filter values.
 
@@ -100,9 +100,9 @@ Omit the table headings from the listing of images.
 
 Lists only the image IDs.
 
-#### **--sort**=*sort*=*created*
+#### **--sort**=*sort*
 
-Sort by created, id, repository, size or tag (default: created)
+Sort by *created*, *id*, *repository*, *size* or *tag* (default: **created**)
 
 ## EXAMPLE
 

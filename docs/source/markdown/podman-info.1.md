@@ -19,7 +19,7 @@ Displays information pertinent to the host, current storage stats, configured co
 
 Show additional information
 
-#### **--format**=*format*, **-f**
+#### **--format**, **-f**=*format*
 
 Change output format to "json" or a Go template.
 

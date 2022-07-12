@@ -44,7 +44,7 @@ Valid placeholders for the Go template are listed below:
 
 When using a GO template, you may precede the format with `table` to print headers.
 
-#### **--interval**=*seconds*, **-i**=*seconds*
+#### **--interval**, **-i**=*seconds*
 
 Time in seconds between stats reports, defaults to 5 seconds.
 

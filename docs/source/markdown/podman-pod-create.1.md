@@ -25,7 +25,7 @@ for it. The name is useful any place you need to identify a pod.
 
 ## OPTIONS
 
-#### **--add-host**=_host_:_ip_
+#### **--add-host**=*host:ip*
 
 Add a custom host-to-IP mapping (host:ip)
 
@@ -52,7 +52,7 @@ Examples of the List Format:
 0-4,9           # bits 0, 1, 2, 3, 4, and 9 set
 0-2,7,12-14     # bits 0, 1, 2, 7, 12, 13, and 14 set
 
-#### **--device**=_host-device_[**:**_container-device_][**:**_permissions_]
+#### **--device**=*host-device[:container-device][:permissions]*
 
 Add a host device to the pod. Optional *permissions* parameter
 can be used to specify device permissions. It is a combination of
@@ -60,7 +60,7 @@ can be used to specify device permissions. It is a combination of
 
 Example: **--device=/dev/sdc:/dev/xvdc:rwm**.
 
-Note: if _host_device_ is a symbolic link then it will be resolved first.
+Note: if *host-device* is a symbolic link then it will be resolved first.
 The pod will only store the major and minor numbers of the host device.
 
 Note: the pod implements devices by storing the initial configuration passed by the user and recreating the device on each container added to the pod.
@@ -102,7 +102,7 @@ GID map for the user namespace. Using this flag will run the container with user
 
 Print usage statement.
 
-#### **--hostname**=name
+#### **--hostname**=*name*
 
 Set a hostname to the pod
 
@@ -144,7 +144,7 @@ The address must be within the network's IPv6 address pool.
 
 To specify multiple static IPv6 addresses per pod, set multiple networks using the **--network** option with a static IPv6 address specified for each using the `ip6` mode for that option.
 
-#### **--label**=*label*, **-l**
+#### **--label**, **-l**=*label*
 
 Add metadata to a pod (e.g., --label com.example.key=value).
 
@@ -175,7 +175,7 @@ not limited. The actual limit may be rounded up to a multiple of the operating
 system's page size (the value would be very large, that's millions of trillions).
 
 
-#### **--name**=*name*, **-n**
+#### **--name**, **-n**=*name*
 
 Assign a name to the pod.
 
@@ -237,11 +237,11 @@ Set the PID mode for the pod. The default is to create a private PID namespace f
 
 Write the pod ID to the file.
 
-#### **--publish**, **-p**=[[_ip_:][_hostPort_]:]_containerPort_[/_protocol_]
+#### **--publish**, **-p**=*[[ip:][hostPort]:]containerPort[/protocol]*
 
 Publish a container's port, or range of ports, within this pod to the host.
 
-Both hostPort and containerPort can be specified as a range of ports.
+Both *hostPort* and *containerPort* can be specified as a range of ports.
 When specifying ranges for both, the number of container ports in the
 range must match the number of host ports in the range.
 
@@ -323,7 +323,7 @@ Name for GID map from the `/etc/subgid` file. Using this flag will run the conta
 Name for UID map from the `/etc/subuid` file. Using this flag will run the container with user namespace enabled. This flag conflicts with `--userns` and `--uidmap`.
 
 
-#### **--sysctl**=_name_=_value_
+#### **--sysctl**=*name=value*
 
 Configure namespace kernel parameters for all containers in the pod.
 
@@ -345,7 +345,7 @@ For the network namespace, only sysctls beginning with net.\* are allowed.
 
 Note: if the network namespace is not shared within the pod, these sysctls are not allowed.
 
-#### **--uidmap**=*container_uid*:*from_uid*:*amount*
+#### **--uidmap**=*container_uid:from_uid:amount*
 
 Run the container in a new user namespace using the supplied mapping. This
 option conflicts with the **--userns** and **--subuidname** options. This
@@ -389,7 +389,7 @@ Set the UTS namespace mode for the pod. The following values are supported:
 - **private**: create a new namespace for the pod (default).
 - **ns:[path]**: run the pod in the given existing UTS namespace.
 
-#### **--volume**, **-v**[=*[[SOURCE-VOLUME|HOST-DIR:]CONTAINER-DIR[:OPTIONS]]*]
+#### **--volume**, **-v**=*[[SOURCE-VOLUME|HOST-DIR:]CONTAINER-DIR[:OPTIONS]]*
 
 Create a bind mount. If you specify, ` -v /HOST-DIR:/CONTAINER-DIR`, Podman
 bind mounts `/HOST-DIR` in the host to `/CONTAINER-DIR` in the Podman
@@ -548,7 +548,7 @@ change propagation properties of source mount. Say `/` is source mount for
 Note: if the user only has access rights via a group, accessing the volume
 from inside a rootless pod will fail.
 
-#### **--volumes-from**[=*CONTAINER*[:*OPTIONS*]]
+#### **--volumes-from**=*container[:options]]*
 
 Mount volumes from the specified container(s). Used to share volumes between
 containers and pods. The *options* is a comma-separated list with the following available elements:

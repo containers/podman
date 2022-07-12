@@ -350,7 +350,7 @@ sub podman_man {
                 # This is a while-loop because there may be multiple long
                 # option names, e.g. --net/--network
                 my $is_first = 1;
-                while ($line =~ s/^\*\*(--[a-z0-9-]+)\*\*(=\*[a-zA-Z0-9-]+\*)?(,\s+)?//g) {
+                while ($line =~ s/^\*\*(--[a-z0-9-]+)\*\*(,\s+)?//g) {
                     my $flag = $1;
                     $man{$flag} = 1;
                     if ($flag lt $previous_flag && $is_first) {
@@ -365,11 +365,50 @@ sub podman_man {
                     $is_first = 0;
                 }
                 # Short form
-                if ($line =~ s/^\*\*(-[a-zA-Z0-9])\*\*(=\*[a-zA-Z0-9-]+\*)?//g) {
-                    $man{$1} = 1;
+                if ($line =~ s/^\*\*(-[a-zA-Z0-9])\*\*//) {
+                    my $flag = $1;
+                    $man{$flag} = 1;
 
                     # Keep track of them, in case we see 'Not implemented' below
-                    push @most_recent_flags, $1;
+                    push @most_recent_flags, $flag;
+                }
+
+                # Options with no '=whatever'
+                next if !$line;
+
+                # Anything remaining *must* be of the form '=<possibilities>'
+                if ($line !~ /^=/) {
+                    warn "$ME: $subpath:$.: could not parse '$line' in option description\n";
+                    ++$Errs;
+                }
+
+                # For some years it was traditional, albeit wrong, to write
+                #     **--foo**=*bar*, **-f**
+                # The correct way is to add =*bar* at the end.
+                if ($line =~ s/,\s\*\*(-[a-zA-Z])\*\*//) {
+                    $man{$1} = 1;
+                    warn "$ME: $subpath:$.: please rewrite as ', **$1**$line'\n";
+                    ++$Errs;
+                }
+
+                # List of possibilities ('=*a* | *b*') must be space-separated
+                if ($line =~ /\|/) {
+                    if ($line =~ /[^\s]\|[^\s]/) {
+                        # Sigh, except for this one special case
+                        if ($line !~ /SOURCE-VOLUME.*HOST-DIR.*CONTAINER-DIR/) {
+                            warn "$ME: $subpath:$.: values must be space-separated: '$line'\n";
+                            ++$Errs;
+                        }
+                    }
+                    my $copy = $line;
+                    if ($copy =~ s/\**true\**//) {
+                        if ($copy =~ s/\**false\**//) {
+                            if ($copy !~ /[a-z]/) {
+                                warn "$ME: $subpath:$.: Do not enumerate true/false for boolean-only options\n";
+                                ++$Errs;
+                            }
+                        }
+                    }
                 }
             }
         }
