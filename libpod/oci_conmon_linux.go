@@ -133,7 +133,7 @@ func newConmonOCIRuntime(name string, paths []string, conmonPath string, runtime
 			continue
 		}
 		foundPath = true
-		logrus.Tracef("found runtime %q", runtime.path)
+		logrus.Tracef("found runtime %q", path)
 		runtime.path = path
 		break
 	}
