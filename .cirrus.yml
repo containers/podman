@@ -167,14 +167,18 @@ build_task:
               VM_IMAGE_NAME: ${FEDORA_CACHE_IMAGE_NAME}
               CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
               # ID for re-use of build output
+              CI_DESIRED_RUNTIME: crun
         - env: &priorfedora_envvars
               DISTRO_NV: ${PRIOR_FEDORA_NAME}
               VM_IMAGE_NAME: ${PRIOR_FEDORA_CACHE_IMAGE_NAME}
               CTR_FQIN: ${PRIOR_FEDORA_CONTAINER_FQIN}
+              CI_DESIRED_RUNTIME: crun
         - env: &ubuntu_envvars
               DISTRO_NV: ${UBUNTU_NAME}
               VM_IMAGE_NAME: ${UBUNTU_CACHE_IMAGE_NAME}
               CTR_FQIN: ${UBUNTU_CONTAINER_FQIN}
+              # FIXME 2022-07-12: change to runc once #14833 is fixed!
+              CI_DESIRED_RUNTIME: crun
     env:
         TEST_FLAVOR: build
     clone_script: *full_clone
