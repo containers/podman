@@ -527,3 +527,24 @@ t GET containers/status-test/json 200 .State.Status="stopping"
 
 sleep 3
 t GET containers/status-test/json 200 .State.Status="exited"
+
+# test podman generate spec as input for the api
+podman create --name=specgen alpine_labels
+
+TMPD=$(mktemp -d podman-apiv2-test.build.XXXXXXXX)
+
+podman generate spec -f ${TMPD}/input.txt -c specgen
+
+curl -XPOST -o ${TMPD}/response.txt --dump-header ${TMPD}/headers.txt -H content-type:application/json http://$HOST:$PORT/v4.0.0/libpod/containers/create -d "@${TMPD}/input.txt"
+
+if ! grep -q '201 Created' "${TMPD}/headers.txt"; then
+    cat "${TMPD}/headers.txt"
+    cat "${TMPD}/response.txt"
+    echo -e "${red}NOK: container create failed"
+    rm -rf $TMPD
+    exit 1
+fi
+
+rm -rf $TMPD
+
+podman container rm -fa

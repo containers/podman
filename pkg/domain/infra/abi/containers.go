@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"os"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 
@@ -1669,31 +1668,7 @@ func (ic *ContainerEngine) ContainerClone(ctx context.Context, ctrCloneOpts enti
 		if err == nil {
 			n += "-clone"
 		}
-		switch {
-		case strings.Contains(n, "-clone"):
-			ind := strings.Index(n, "-clone") + 6
-			num, err := strconv.Atoi(n[ind:])
-			if num == 0 && err != nil { // clone1 is hard to get with this logic, just check for it here.
-				_, err = ic.Libpod.LookupContainer(n + "1")
-				if err != nil {
-					spec.Name = n + "1"
-					break
-				}
-			} else {
-				n = n[0:ind]
-			}
-			err = nil
-			count := num
-			for err == nil {
-				count++
-				tempN := n + strconv.Itoa(count)
-				_, err = ic.Libpod.LookupContainer(tempN)
-			}
-			n += strconv.Itoa(count)
-			spec.Name = n
-		default:
-			spec.Name = c.Name() + "-clone"
-		}
+		spec.Name = generate.CheckName(ic.Libpod, n, true)
 	}
 
 	rtSpec, spec, opts, err := generate.MakeContainer(context.Background(), ic.Libpod, spec, true, c)

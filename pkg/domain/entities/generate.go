@@ -53,3 +53,14 @@ type GenerateKubeReport struct {
 	// Reader - the io.Reader to reader the generated YAML file.
 	Reader io.Reader
 }
+
+type GenerateSpecReport struct {
+	Data []byte
+}
+
+type GenerateSpecOptions struct {
+	ID       string
+	FileName string
+	Compact  bool
+	Name     bool
+}

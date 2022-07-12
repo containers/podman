@@ -54,6 +54,7 @@ type ContainerEngine interface {
 	ContainerWait(ctx context.Context, namesOrIds []string, options WaitOptions) ([]WaitReport, error)
 	Diff(ctx context.Context, namesOrIds []string, options DiffOptions) (*DiffReport, error)
 	Events(ctx context.Context, opts EventsOptions) error
+	GenerateSpec(ctx context.Context, opts *GenerateSpecOptions) (*GenerateSpecReport, error)
 	GenerateSystemd(ctx context.Context, nameOrID string, opts GenerateSystemdOptions) (*GenerateSystemdReport, error)
 	GenerateKube(ctx context.Context, nameOrIDs []string, opts GenerateKubeOptions) (*GenerateKubeReport, error)
 	SystemPrune(ctx context.Context, options SystemPruneOptions) (*SystemPruneReport, error)
