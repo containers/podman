@@ -35,3 +35,7 @@ A basic guide to common network setups with Podman
 **[Socket activation](socket_activation.md)**
 
 Learn how to run containers that support socket activation.
+
+**[Performance](performance.md)**
+
+Performance guide regarding Podman configuration and usage.
