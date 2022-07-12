@@ -27,7 +27,7 @@ CPUs in which to allow execution (0-3, 0,1). If none are specified, the original
 
 Remove the original pod that we are cloning once used to mimic the configuration.
 
-#### **--device**=_host-device_[**:**_container-device_][**:**_permissions_]
+#### **--device**=*host-device[:container-device][:permissions]*
 
 Add a host device to the pod. Optional *permissions* parameter
 can be used to specify device permissions. It is a combination of
@@ -56,7 +56,7 @@ GID map for the user namespace. Using this flag will run all containers in the p
 
 Print usage statement.
 
-#### **--hostname**=name
+#### **--hostname**=*name*
 
 Set a hostname to the pod.
 
@@ -72,7 +72,7 @@ Write the pid of the infra container's **conmon** process to a file. As **conmon
 
 The name that will be used for the pod's infra container.
 
-#### **--label**=*label*, **-l**
+#### **--label**, **-l**=*label*
 
 Add metadata to a pod (e.g., --label com.example.key=value).
 
@@ -153,7 +153,7 @@ Name for GID map from the `/etc/subgid` file. Using this flag will run the conta
 
 Name for UID map from the `/etc/subuid` file. Using this flag will run the container with user namespace enabled. This flag conflicts with `--userns` and `--uidmap`.
 
-#### **--sysctl**=_name_=_value_
+#### **--sysctl**=*name=value*
 
 Configure namespace kernel parameters for all containers in the new pod.
 
@@ -175,7 +175,7 @@ For the network namespace, only sysctls beginning with net.\* are allowed.
 
 Note: if the network namespace is not shared within the pod, these sysctls are not allowed.
 
-#### **--uidmap**=*container_uid*:*from_uid*:*amount*
+#### **--uidmap**=*container_uid:from_uid:amount*
 
 Run all containers in the pod in a new user namespace using the supplied mapping. This
 option conflicts with the **--userns** and **--subuidname** options. This
@@ -220,7 +220,7 @@ Set the UTS namespace mode for the pod. The following values are supported:
 - **ns:[path]**: run the pod in the given existing UTS namespace.
 
 
-#### **--volume**, **-v**[=*[[SOURCE-VOLUME|HOST-DIR:]CONTAINER-DIR[:OPTIONS]]*]
+#### **--volume**, **-v**=*[[SOURCE-VOLUME|HOST-DIR:]CONTAINER-DIR[:OPTIONS]]*
 
 Create a bind mount. If ` -v /HOST-DIR:/CONTAINER-DIR` is specified, Podman
 bind mounts `/HOST-DIR` in the host to `/CONTAINER-DIR` in the Podman
@@ -381,7 +381,7 @@ change propagation properties of source mount. Say `/` is source mount for
 Note: if the user only has access rights via a group, accessing the volume
 from inside a rootless pod will fail.
 
-#### **--volumes-from**[=*CONTAINER*[:*OPTIONS*]]
+#### **--volumes-from**=*container[:options]]*
 
 Mount volumes from the specified container(s). Used to share volumes between
 containers and pods. The *options* is a comma-separated list with the following available elements:

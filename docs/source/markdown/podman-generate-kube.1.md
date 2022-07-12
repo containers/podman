@@ -30,7 +30,7 @@ Note that the generated Kubernetes YAML file can be used to re-run the deploymen
 
 ## OPTIONS
 
-#### **--filename**, **-f**=**filename**
+#### **--filename**, **-f**=*filename*
 
 Output to the given file, instead of STDOUT. If the file already exists, `generate kube` will refuse to replace it and return an error.
 

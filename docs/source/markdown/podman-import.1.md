@@ -23,7 +23,7 @@ Note: `:` is a restricted character and cannot be part of the file name.
 
 Set architecture of the imported image.
 
-#### **--change**=*instruction*, **-c**
+#### **--change**, **-c**=*instruction*
 
 Apply the following possible instructions to the created image:
 **CMD** | **ENTRYPOINT** | **ENV** | **EXPOSE** | **LABEL** | **STOPSIGNAL** | **USER** | **VOLUME** | **WORKDIR**

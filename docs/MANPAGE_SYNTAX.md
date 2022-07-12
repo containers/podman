@@ -60,15 +60,15 @@ Example sentence: Use **[podman-generate-systemd --new](./source/markdown/podman
 
 #### **--version**, **-v**
 
-OPTIONS can be put after the command in two different ways. Either the long version with **--option** or as the short version **-o**. If there are two ways to write an OPTION they are separated by a comma. If there are two versions of one command the long version is always shown in front. If the arguments behind the OPTION are boolean, it is not shown behind the OPTION itself. The default boolean argument is shown in the same way normal default arguments are displayed.\
+OPTIONS can be put after the command in two different ways. Either the long version with **--option** or as the short version **-o**. If there are two ways to write an OPTION they are separated by a comma. If there are two versions of one command the long version is always shown in front. If OPTION is boolean, *true/false* are not enumerated. The default boolean argument is shown in the same way normal default arguments are displayed.\
 Example: The default is **false**.\
 *IMPORTANT: This OPTION is not available with the remote Podman client.*
 
 #### **--exit**
 
-An example of an OPTION that has only one possible structure. Thus, it cannot be executed by the extension **-e**.
+An example of a boolean OPTION that is only available in long form.
 
-#### **--answer**=, **-a**=**active** | *disable*
+#### **--answer**, **-a**=**active** | *disable*
 
 The **--answer** OPTION above is an example of an OPTION that accepts two possible arguments as inputs. If a default argument is selected when the OPTION is not used in the command, it is shown in **bold**. If the OPTION is used, it must include an argument afterward. It must always be ensured that the standard argument is in the first position after the OPTION. In this example, there are two different ways to execute the command. Both possible OPTIONS have to be shown with the arguments following them.\
 The default value is shown as **active**.

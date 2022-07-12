@@ -67,7 +67,7 @@ Enable IPv6 (Dual Stack) networking. If not subnets are given it will allocate a
 
 Set metadata for a network (e.g., --label mykey=value).
 
-#### **--opt**=*option*, **-o**
+#### **--opt**, **-o**=*option*
 
 Set driver specific options.
 

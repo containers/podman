@@ -14,7 +14,7 @@ flag. Use the **--quiet** flag to print only the volume names.
 
 ## OPTIONS
 
-#### **--filter**=*filter*, **-f**
+#### **--filter**, **-f**=*filter*
 
 Volumes can be filtered by the following attributes:
 

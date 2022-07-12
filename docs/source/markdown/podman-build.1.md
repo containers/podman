@@ -259,7 +259,7 @@ keys and/or certificates. Decryption will be tried with all keys. If the key is
 protected by a passphrase, it is required to be passed in the argument and
 omitted otherwise.
 
-#### **--device**=_host-device_[**:**_container-device_][**:**_permissions_]
+#### **--device**=*host-device[:container-device][:permissions]*
 
 Add a host device to the container. Optional *permissions* parameter
 can be used to specify device permissions, it is combination of
@@ -267,13 +267,13 @@ can be used to specify device permissions, it is combination of
 
 Example: **--device=/dev/sdc:/dev/xvdc:rwm**.
 
-Note: if _host_device_ is a symbolic link then it will be resolved first.
+Note: if *host-device* is a symbolic link then it will be resolved first.
 The container will only store the major and minor numbers of the host device.
 
 Note: if the user only has access rights via a group, accessing the device
 from inside a rootless container will fail. The **[crun(1)](https://github.com/containers/crun/tree/main/crun.1.md)** runtime offers a
 workaround for this by adding the option
-#### **--annotation run.oci.keep_original_groups=1**.
+**--annotation run.oci.keep_original_groups=1**.
 
 #### **--disable-compression**, **-D**
 
@@ -311,7 +311,7 @@ Set custom DNS options to be used during the build.
 
 Set custom DNS search domains to be used during the build.
 
-#### **--env** *env[=value]*
+#### **--env**=*env[=value]*
 
 Add a value (e.g. env=*value*) to the built image.  Can be used multiple times.
 If neither `=` nor a `*value*` are specified, but *env* is set in the current
@@ -430,7 +430,7 @@ specified file instead of to standard output and standard error.
 This option is not supported on the remote client, including Mac and Windows
 (excluding WSL2) machines.
 
-#### **--logsplit** *bool-value*
+#### **--logsplit**=*bool-value*
 
 If `--logfile` and `--platform` are specified, the `--logsplit` option allows
 end-users to split the log file for each platform into different files in the
@@ -438,7 +438,7 @@ following format: `${logfile}_${platform-os}_${platform-arch}`.
 This option is not supported on the remote client, including Mac and Windows
 (excluding WSL2) machines.
 
-#### **--manifest** "manifest"
+#### **--manifest**=*manifest*
 
 Name of the manifest list to which the image will be added. Creates the manifest list
 if it does not exist. This option is useful for building multi architecture images.
@@ -507,7 +507,7 @@ Set the OS of the image to be built, and that of the base image to be pulled,
 if the build uses one, instead of using the current operating system of the
 build host.
 
-#### **--os-feature** *feature*
+#### **--os-feature**=*feature*
 
 Set the name of a required operating system *feature* for the image which will
 be built.  By default, if the image is not based on *scratch*, the base image's
@@ -517,7 +517,7 @@ is typically only meaningful when the image's OS is Windows.
 If *feature* has a trailing `-`, then the *feature* is removed from the set of
 required features which will be listed in the image.
 
-#### **--os-version** *version*
+#### **--os-version**=*version*
 
 Set the exact required operating system *version* for the image which will be
 built.  By default, if the image is not based on *scratch*, the base image's
@@ -525,7 +525,7 @@ required OS version is kept, if the base image specified one.  This option is
 typically only meaningful when the image's OS is Windows, and is typically set in
 Windows base images, so using this option is usually unnecessary.
 
-#### **--output**, **-o**=""
+#### **--output**, **-o**=*output-opts*
 
 Output destination (format: type=local,dest=path)
 
@@ -553,9 +553,9 @@ that the PID namespace in which `podman` itself is being run should be reused,
 or it can be the path to a PID namespace which is already in use by another
 process.
 
-#### **--platform**="OS/ARCH[/VARIANT][,...]"
+#### **--platform**=*os/arch[/variant][,...]*
 
-Set the OS/ARCH of the built image (and its base image, if your build uses one)
+Set the *os/arch* of the built image (and its base image, if your build uses one)
 to the provided value instead of using the current operating system and
 architecture of the host (for example `linux/arm`). If `--platform` is set,
 then the values of the `--arch`, `--os`, and `--variant` options will be
@@ -566,8 +566,8 @@ comma-separated list of values as its argument.  When more than one platform is
 specified, the `--manifest` option should be used instead of the `--tag`
 option.
 
-OS/ARCH pairs are those used by the Go Programming Language.  In several cases
-the ARCH value for a platform differs from one produced by other tools such as
+Os/arch pairs are those used by the Go Programming Language.  In several cases
+the *arch* value for a platform differs from one produced by other tools such as
 the `arch` command.  Valid OS and architecture name combinations are listed as
 values for $GOOS and $GOARCH at https://golang.org/doc/install/source#environment,
 and can also be found by running `go tool dist list`.
@@ -576,7 +576,7 @@ While `podman build` is happy to use base images and build images for any
 platform that exists, `RUN` instructions will not be able to succeed without
 the help of emulation provided by packages like `qemu-user-static`.
 
-#### **--pull**=**always**|**missing**|**never**|**newer**
+#### **--pull**=*policy*
 
 Pull image policy. The default is **always**.
 
@@ -655,7 +655,7 @@ layers are not squashed.
 Squash all of the new image's layers (including those inherited from a base
 image) into a single new layer.
 
-#### **--ssh**=*default|id[=socket>|[,]*
+#### **--ssh**=*default* | *id[=socket>*
 
 SSH agent socket or keys to expose to the build.
 The socket path can be left empty to use the value of `default=$SSH_AUTH_SOCK`
@@ -683,7 +683,7 @@ Set the target build stage to build.  When building a Containerfile with
 multiple build stages, --target can be used to specify an intermediate build
 stage by name as the final stage for the resulting image. Commands after the target stage will be skipped.
 
-#### **--timestamp** *seconds*
+#### **--timestamp**=*seconds*
 
 Set the create timestamp to seconds since epoch to allow for deterministic
 builds (defaults to current time). By default, the created timestamp is changed
@@ -699,7 +699,7 @@ timestamp.
 Require HTTPS and verify certificates when talking to container registries
 (defaults to true). (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
 
-#### **--ulimit**=*type*=*soft-limit*[:*hard-limit*]
+#### **--ulimit**=*type=soft-limit[:hard-limit]*
 
 Specifies resource limits to apply to processes launched when processing `RUN`
 instructions. This option can be specified multiple times.  Recognized resource
@@ -720,7 +720,7 @@ types include:
   "sigpending": maximum number of pending signals (ulimit -i)
   "stack": maximum stack size (ulimit -s)
 
-#### **--unsetenv** *env*
+#### **--unsetenv**=*env*
 
 Unset environment variables from the final image.
 
@@ -814,19 +814,20 @@ that the UTS namespace in which `podman` itself is being run should be reused,
 or it can be the path to a UTS namespace which is already in use by another
 process.
 
-#### **--variant**=""
+#### **--variant**=*variant*
 
 Set the architecture variant of the image to be built, and that of the base
 image to be pulled, if the build uses one, to the provided value instead of
 using the architecture variant of the build host.
 
-#### **--volume**, **-v**[=*[HOST-DIR:CONTAINER-DIR[:OPTIONS]]*]
+#### **--volume**, **-v**=*[HOST-DIR:CONTAINER-DIR[:OPTIONS]]*
 
-   Create a bind mount. If you specify, ` -v /HOST-DIR:/CONTAINER-DIR`, Podman
-   bind mounts `/HOST-DIR` in the host to `/CONTAINER-DIR` in the Podman
-   container. (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
+Create a bind mount. If you specify `-v /HOST-DIR:/CONTAINER-DIR`, Podman
+bind mounts `/HOST-DIR` in the host to `/CONTAINER-DIR` in the Podman
+container. (This option is not available with the remote Podman client,
+including Mac and Windows (excluding WSL2) machines)
 
-   The `OPTIONS` are a comma-separated list and can be: <sup>[[1]](#Footnote1)</sup>
+The `OPTIONS` are a comma-separated list and can be: <sup>[[1]](#Footnote1)</sup>
 
    * [rw|ro]
    * [z|Z|O]
