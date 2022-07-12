@@ -61,7 +61,7 @@ The sum of all runtimes across containers cannot exceed the amount allotted to t
 
 This option is not supported on cgroups V2 systems.
 
-#### **--cpu-shares**=*shares*
+#### **--cpu-shares**, **-c**=*shares*
 
 CPU shares (relative weight)
 

@@ -849,9 +849,9 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		_ = cmd.RegisterFlagCompletionFunc(cpuRtRuntimeFlagName, completion.AutocompleteNone)
 
 		cpuSharesFlagName := "cpu-shares"
-		createFlags.Uint64Var(
+		createFlags.Uint64VarP(
 			&cf.CPUShares,
-			cpuSharesFlagName, 0,
+			cpuSharesFlagName, "c", 0,
 			"CPU shares (relative weight)",
 		)
 		_ = cmd.RegisterFlagCompletionFunc(cpuSharesFlagName, completion.AutocompleteNone)
