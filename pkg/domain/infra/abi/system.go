@@ -67,6 +67,18 @@ func (ic *ContainerEngine) Info(ctx context.Context) (*define.Info, error) {
 }
 
 func (ic *ContainerEngine) SetupRootless(_ context.Context, noMoveProcess bool) error {
+	runsUnderSystemd := utils.RunsOnSystemd()
+	if !runsUnderSystemd {
+		isPid1 := os.Getpid() == 1
+		if _, found := os.LookupEnv("container"); isPid1 || found {
+			if err := utils.MaybeMoveToSubCgroup(); err != nil {
+				// it is a best effort operation, so just print the
+				// error for debugging purposes.
+				logrus.Debugf("Could not move to subcgroup: %v", err)
+			}
+		}
+	}
+
 	if !rootless.IsRootless() {
 		return nil
 	}
@@ -86,7 +98,6 @@ func (ic *ContainerEngine) SetupRootless(_ context.Context, noMoveProcess bool) 
 			if err != nil {
 				return err
 			}
-			runsUnderSystemd := utils.RunsOnSystemd()
 			unitName := fmt.Sprintf("podman-%d.scope", os.Getpid())
 			if runsUnderSystemd || conf.Engine.CgroupManager == config.SystemdCgroupsManager {
 				if err := utils.RunUnderSystemdScope(os.Getpid(), "user.slice", unitName); err != nil {
