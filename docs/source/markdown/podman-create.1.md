@@ -228,15 +228,16 @@ On a multi-core system, the shares of CPU time are distributed over all CPU
 cores. Even if a container is limited to less than 100% of CPU time, it can
 use 100% of each individual CPU core.
 
-For example, consider a system with more than three cores. If you start one
-container **{C0}** with **-c=512** running one process, and another container
-**{C1}** with **-c=1024** running two processes, this can result in the following
-division of CPU shares:
+For example, consider a system with more than three cores.
+If the container _C0_ is started with **--cpu-shares=512** running one process,
+and another container _C1_ with **--cpu-shares=1024** running two processes,
+this can result in the following division of CPU shares:
 
-PID    container	CPU	CPU share
-100    {C0}		0	100% of CPU0
-101    {C1}		1	100% of CPU1
-102    {C1}		2	100% of CPU2
+| PID  |  container  | CPU     | CPU share    |
+| ---- | ----------- | ------- | ------------ |
+| 100  |  C0         | 0       | 100% of CPU0 |
+| 101  |  C1         | 1       | 100% of CPU1 |
+| 102  |  C1         | 2       | 100% of CPU2 |
 
 #### **--cpus**=*number*
 
