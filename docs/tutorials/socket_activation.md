@@ -3,7 +3,7 @@
 Socket activation conceptually works by having systemd create a socket (e.g. TCP, UDP or Unix
 socket). As soon as a client connects to the socket, systemd will start the systemd service that is
 configured for the socket. The newly started program inherits the file descriptor of the socket
-and can then call accept the incoming connection (in other words run the system call `accept()`).
+and can then accept the incoming connection (in other words run the system call `accept()`).
 This description corresponds to the default systemd socket configuration
 [`Accept=no`](https://www.freedesktop.org/software/systemd/man/systemd.socket.html#Accept=)
 that lets the service accept the socket.
