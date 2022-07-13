@@ -165,10 +165,9 @@ func readLVMConfig(root string) (directLVMConfig, error) {
 	if len(b) == 0 {
 		return cfg, nil
 	}
-	if err := json.Unmarshal(b, &cfg); err != nil {
-		return cfg, fmt.Errorf("unmarshaling previous device setup config: %w", err)
-	}
-	return cfg, nil
+
+	err = json.Unmarshal(b, &cfg)
+	return cfg, fmt.Errorf("unmarshaling previous device setup config: %w", err)
 }
 
 func writeLVMConfig(root string, cfg directLVMConfig) error {
@@ -177,10 +176,8 @@ func writeLVMConfig(root string, cfg directLVMConfig) error {
 	if err != nil {
 		return fmt.Errorf("marshalling direct lvm config: %w", err)
 	}
-	if err := os.WriteFile(p, b, 0600); err != nil {
-		return fmt.Errorf("writing direct lvm config to file: %w", err)
-	}
-	return nil
+	err = ioutil.WriteFile(p, b, 0600)
+	return fmt.Errorf("writing direct lvm config to file: %w", err)
 }
 
 func setupDirectLVM(cfg directLVMConfig) error {

@@ -23,7 +23,6 @@ type Method struct {
 // A Call cannot be used after the server method returns.
 type Call struct {
 	ctx    context.Context
-	cancel context.CancelFunc
 	method *Method
 	recv   capnp.Recv
 	aq     *answerQueue
@@ -90,7 +89,7 @@ type Server struct {
 	// Context used by the goroutine running handleCalls(). Note
 	// the calls themselves will have different contexts, which
 	// are not children of this context, but are supplied by
-	// start(). See cancelCurrentCall.
+	// start().
 	handleCallsCtx context.Context
 
 	// wg is incremented each time a method is queued, and
@@ -100,15 +99,6 @@ type Server struct {
 	// Calls are inserted into this queue, to be handled
 	// by a goroutine running handleCalls()
 	callQueue *mpsc.Queue[*Call]
-
-	// When a call is in progress, this channel will contain the
-	// CancelFunc for that call's context. A goroutine may receive
-	// on this to fetch the function, and is then responsible for calling
-	// it. This happens in Shutdown().
-	//
-	// The caller must call cancelHandleCalls() *before* calling
-	// the received CancelFunc.
-	cancelCurrentCall chan context.CancelFunc
 }
 
 // Policy is a set of behavioral parameters for a Server.
@@ -139,7 +129,6 @@ func New(methods []Method, brand interface{}, shutdown Shutdowner, policy *Polic
 		callQueue:         mpsc.New[*Call](),
 		cancelHandleCalls: cancel,
 		handleCallsCtx:    ctx,
-		cancelCurrentCall: make(chan context.CancelFunc, 1),
 	}
 	copy(srv.methods, methods)
 	sort.Sort(srv.methods)
@@ -188,7 +177,24 @@ func (srv *Server) handleCalls(ctx context.Context) {
 			break
 		}
 
-		srv.handleCall(ctx, call)
+		// The context for the individual call is not necessarily
+		// related to the context managing the server's lifetime
+		// (ctx); we need to monitor both and pass the call a
+		// context that will be canceled if *either* context is
+		// cancelled.
+		callCtx, cancelCall := context.WithCancel(call.ctx)
+		go func() {
+			defer cancelCall()
+			select {
+			case <-callCtx.Done():
+			case <-ctx.Done():
+			}
+		}()
+		func() {
+			defer cancelCall()
+			srv.handleCall(callCtx, call)
+		}()
+
 		if call.acked {
 			// Another goroutine has taken over; time
 			// to retire.
@@ -197,42 +203,22 @@ func (srv *Server) handleCalls(ctx context.Context) {
 	}
 	for {
 		// Context has been canceled; drain the rest of the queue,
-		// cancelling each call.
+		// invoking handleCall() with the cancelled context to
+		// trigger cleanup.
 		call, ok := srv.callQueue.TryRecv()
 		if !ok {
 			return
 		}
-		call.cancel()
 		srv.handleCall(ctx, call)
 	}
 }
 
 func (srv *Server) handleCall(ctx context.Context, c *Call) {
 	defer srv.wg.Done()
-	defer c.cancel()
 
-	// Store this in the channel, in case Shutdown() gets called
-	// while we're servicing the method call.
-	srv.cancelCurrentCall <- c.cancel
-	defer func() {
-		select {
-		case <-srv.cancelCurrentCall:
-		default:
-		}
-	}()
-
-	// Handling the contexts is tricky here, since neither one
-	// is necessarily a parent of the other. We need to check
-	// the context that was passed to us (which manages the
-	// handleCalls loop) some time *after* storing c.cancel,
-	// above, to avoid a race between this code and Shutdown(),
-	// which cancels ctx before attempting to receive c.cancel.
 	err := ctx.Err()
 	if err == nil {
-		err = c.ctx.Err()
-	}
-	if err == nil {
-		err = c.method.Impl(c.ctx, c)
+		err = c.method.Impl(ctx, c)
 	}
 
 	c.recv.ReleaseArgs()
@@ -247,12 +233,9 @@ func (srv *Server) handleCall(ctx context.Context, c *Call) {
 func (srv *Server) start(ctx context.Context, m *Method, r capnp.Recv) capnp.PipelineCaller {
 	srv.wg.Add(1)
 
-	ctx, cancel := context.WithCancel(ctx)
-
 	aq := newAnswerQueue(r.Method)
 	srv.callQueue.Send(&Call{
 		ctx:    ctx,
-		cancel: cancel,
 		method: m,
 		recv:   r,
 		aq:     aq,
@@ -270,17 +253,7 @@ func (srv *Server) Brand() capnp.Brand {
 // Shutdowner passed into NewServer.  Shutdown must not be called more
 // than once.
 func (srv *Server) Shutdown() {
-	// Cancel the loop in handleCalls(), and then cancel the outstanding
-	// call, if any. The order here is critical; if we cancel the
-	// outstanding call first, the loop may start another call before
-	// we cancel it.
 	srv.cancelHandleCalls()
-	select {
-	case cancel := <-srv.cancelCurrentCall:
-		cancel()
-	default:
-	}
-
 	srv.wg.Wait()
 	if srv.shutdown != nil {
 		srv.shutdown.Shutdown()

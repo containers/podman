@@ -10,7 +10,7 @@ import (
 	context "context"
 )
 
-type Conmon struct{ Client *capnp.Client }
+type Conmon struct{ Client capnp.Client }
 
 // Conmon_TypeID is the unique identifier for the type Conmon.
 const Conmon_TypeID = 0xb737e899dd6633f1
@@ -333,6 +333,15 @@ func (c Conmon_setWindowSizeContainer) AllocResults() (Conmon_setWindowSizeConta
 	return Conmon_setWindowSizeContainer_Results{Struct: r}, err
 }
 
+// Conmon_List is a list of Conmon.
+type Conmon_List = capnp.CapList[Conmon]
+
+// NewConmon creates a new list of Conmon.
+func NewConmon_List(s *capnp.Segment, sz int32) (Conmon_List, error) {
+	l, err := capnp.NewPointerList(s, sz)
+	return capnp.CapList[Conmon](l), err
+}
+
 type Conmon_VersionResponse struct{ capnp.Struct }
 
 // Conmon_VersionResponse_TypeID is the unique identifier for the type Conmon_VersionResponse.
@@ -462,7 +471,7 @@ type Conmon_VersionResponse_List = capnp.StructList[Conmon_VersionResponse]
 // NewConmon_VersionResponse creates a new list of Conmon_VersionResponse.
 func NewConmon_VersionResponse_List(s *capnp.Segment, sz int32) (Conmon_VersionResponse_List, error) {
 	l, err := capnp.NewCompositeList(s, capnp.ObjectSize{DataSize: 8, PointerCount: 5}, sz)
-	return capnp.StructList[Conmon_VersionResponse]{l}, err
+	return capnp.StructList[Conmon_VersionResponse]{List: l}, err
 }
 
 // Conmon_VersionResponse_Future is a wrapper for a Conmon_VersionResponse promised by a client call.
@@ -620,7 +629,7 @@ type Conmon_CreateContainerRequest_List = capnp.StructList[Conmon_CreateContaine
 // NewConmon_CreateContainerRequest creates a new list of Conmon_CreateContainerRequest.
 func NewConmon_CreateContainerRequest_List(s *capnp.Segment, sz int32) (Conmon_CreateContainerRequest_List, error) {
 	l, err := capnp.NewCompositeList(s, capnp.ObjectSize{DataSize: 8, PointerCount: 5}, sz)
-	return capnp.StructList[Conmon_CreateContainerRequest]{l}, err
+	return capnp.StructList[Conmon_CreateContainerRequest]{List: l}, err
 }
 
 // Conmon_CreateContainerRequest_Future is a wrapper for a Conmon_CreateContainerRequest promised by a client call.
@@ -688,7 +697,7 @@ type Conmon_LogDriver_List = capnp.StructList[Conmon_LogDriver]
 // NewConmon_LogDriver creates a new list of Conmon_LogDriver.
 func NewConmon_LogDriver_List(s *capnp.Segment, sz int32) (Conmon_LogDriver_List, error) {
 	l, err := capnp.NewCompositeList(s, capnp.ObjectSize{DataSize: 8, PointerCount: 1}, sz)
-	return capnp.StructList[Conmon_LogDriver]{l}, err
+	return capnp.StructList[Conmon_LogDriver]{List: l}, err
 }
 
 // Conmon_LogDriver_Future is a wrapper for a Conmon_LogDriver promised by a client call.
@@ -777,7 +786,7 @@ type Conmon_CreateContainerResponse_List = capnp.StructList[Conmon_CreateContain
 // NewConmon_CreateContainerResponse creates a new list of Conmon_CreateContainerResponse.
 func NewConmon_CreateContainerResponse_List(s *capnp.Segment, sz int32) (Conmon_CreateContainerResponse_List, error) {
 	l, err := capnp.NewCompositeList(s, capnp.ObjectSize{DataSize: 8, PointerCount: 0}, sz)
-	return capnp.StructList[Conmon_CreateContainerResponse]{l}, err
+	return capnp.StructList[Conmon_CreateContainerResponse]{List: l}, err
 }
 
 // Conmon_CreateContainerResponse_Future is a wrapper for a Conmon_CreateContainerResponse promised by a client call.
@@ -877,7 +886,7 @@ type Conmon_ExecSyncContainerRequest_List = capnp.StructList[Conmon_ExecSyncCont
 // NewConmon_ExecSyncContainerRequest creates a new list of Conmon_ExecSyncContainerRequest.
 func NewConmon_ExecSyncContainerRequest_List(s *capnp.Segment, sz int32) (Conmon_ExecSyncContainerRequest_List, error) {
 	l, err := capnp.NewCompositeList(s, capnp.ObjectSize{DataSize: 16, PointerCount: 2}, sz)
-	return capnp.StructList[Conmon_ExecSyncContainerRequest]{l}, err
+	return capnp.StructList[Conmon_ExecSyncContainerRequest]{List: l}, err
 }
 
 // Conmon_ExecSyncContainerRequest_Future is a wrapper for a Conmon_ExecSyncContainerRequest promised by a client call.
@@ -961,7 +970,7 @@ type Conmon_ExecSyncContainerResponse_List = capnp.StructList[Conmon_ExecSyncCon
 // NewConmon_ExecSyncContainerResponse creates a new list of Conmon_ExecSyncContainerResponse.
 func NewConmon_ExecSyncContainerResponse_List(s *capnp.Segment, sz int32) (Conmon_ExecSyncContainerResponse_List, error) {
 	l, err := capnp.NewCompositeList(s, capnp.ObjectSize{DataSize: 8, PointerCount: 2}, sz)
-	return capnp.StructList[Conmon_ExecSyncContainerResponse]{l}, err
+	return capnp.StructList[Conmon_ExecSyncContainerResponse]{List: l}, err
 }
 
 // Conmon_ExecSyncContainerResponse_Future is a wrapper for a Conmon_ExecSyncContainerResponse promised by a client call.
@@ -1057,7 +1066,7 @@ type Conmon_AttachRequest_List = capnp.StructList[Conmon_AttachRequest]
 // NewConmon_AttachRequest creates a new list of Conmon_AttachRequest.
 func NewConmon_AttachRequest_List(s *capnp.Segment, sz int32) (Conmon_AttachRequest_List, error) {
 	l, err := capnp.NewCompositeList(s, capnp.ObjectSize{DataSize: 0, PointerCount: 3}, sz)
-	return capnp.StructList[Conmon_AttachRequest]{l}, err
+	return capnp.StructList[Conmon_AttachRequest]{List: l}, err
 }
 
 // Conmon_AttachRequest_Future is a wrapper for a Conmon_AttachRequest promised by a client call.
@@ -1099,7 +1108,7 @@ type Conmon_AttachResponse_List = capnp.StructList[Conmon_AttachResponse]
 // NewConmon_AttachResponse creates a new list of Conmon_AttachResponse.
 func NewConmon_AttachResponse_List(s *capnp.Segment, sz int32) (Conmon_AttachResponse_List, error) {
 	l, err := capnp.NewCompositeList(s, capnp.ObjectSize{DataSize: 0, PointerCount: 0}, sz)
-	return capnp.StructList[Conmon_AttachResponse]{l}, err
+	return capnp.StructList[Conmon_AttachResponse]{List: l}, err
 }
 
 // Conmon_AttachResponse_Future is a wrapper for a Conmon_AttachResponse promised by a client call.
@@ -1159,7 +1168,7 @@ type Conmon_ReopenLogRequest_List = capnp.StructList[Conmon_ReopenLogRequest]
 // NewConmon_ReopenLogRequest creates a new list of Conmon_ReopenLogRequest.
 func NewConmon_ReopenLogRequest_List(s *capnp.Segment, sz int32) (Conmon_ReopenLogRequest_List, error) {
 	l, err := capnp.NewCompositeList(s, capnp.ObjectSize{DataSize: 0, PointerCount: 1}, sz)
-	return capnp.StructList[Conmon_ReopenLogRequest]{l}, err
+	return capnp.StructList[Conmon_ReopenLogRequest]{List: l}, err
 }
 
 // Conmon_ReopenLogRequest_Future is a wrapper for a Conmon_ReopenLogRequest promised by a client call.
@@ -1201,7 +1210,7 @@ type Conmon_ReopenLogResponse_List = capnp.StructList[Conmon_ReopenLogResponse]
 // NewConmon_ReopenLogResponse creates a new list of Conmon_ReopenLogResponse.
 func NewConmon_ReopenLogResponse_List(s *capnp.Segment, sz int32) (Conmon_ReopenLogResponse_List, error) {
 	l, err := capnp.NewCompositeList(s, capnp.ObjectSize{DataSize: 0, PointerCount: 0}, sz)
-	return capnp.StructList[Conmon_ReopenLogResponse]{l}, err
+	return capnp.StructList[Conmon_ReopenLogResponse]{List: l}, err
 }
 
 // Conmon_ReopenLogResponse_Future is a wrapper for a Conmon_ReopenLogResponse promised by a client call.
@@ -1277,7 +1286,7 @@ type Conmon_SetWindowSizeRequest_List = capnp.StructList[Conmon_SetWindowSizeReq
 // NewConmon_SetWindowSizeRequest creates a new list of Conmon_SetWindowSizeRequest.
 func NewConmon_SetWindowSizeRequest_List(s *capnp.Segment, sz int32) (Conmon_SetWindowSizeRequest_List, error) {
 	l, err := capnp.NewCompositeList(s, capnp.ObjectSize{DataSize: 8, PointerCount: 1}, sz)
-	return capnp.StructList[Conmon_SetWindowSizeRequest]{l}, err
+	return capnp.StructList[Conmon_SetWindowSizeRequest]{List: l}, err
 }
 
 // Conmon_SetWindowSizeRequest_Future is a wrapper for a Conmon_SetWindowSizeRequest promised by a client call.
@@ -1319,7 +1328,7 @@ type Conmon_SetWindowSizeResponse_List = capnp.StructList[Conmon_SetWindowSizeRe
 // NewConmon_SetWindowSizeResponse creates a new list of Conmon_SetWindowSizeResponse.
 func NewConmon_SetWindowSizeResponse_List(s *capnp.Segment, sz int32) (Conmon_SetWindowSizeResponse_List, error) {
 	l, err := capnp.NewCompositeList(s, capnp.ObjectSize{DataSize: 0, PointerCount: 0}, sz)
-	return capnp.StructList[Conmon_SetWindowSizeResponse]{l}, err
+	return capnp.StructList[Conmon_SetWindowSizeResponse]{List: l}, err
 }
 
 // Conmon_SetWindowSizeResponse_Future is a wrapper for a Conmon_SetWindowSizeResponse promised by a client call.
@@ -1361,7 +1370,7 @@ type Conmon_version_Params_List = capnp.StructList[Conmon_version_Params]
 // NewConmon_version_Params creates a new list of Conmon_version_Params.
 func NewConmon_version_Params_List(s *capnp.Segment, sz int32) (Conmon_version_Params_List, error) {
 	l, err := capnp.NewCompositeList(s, capnp.ObjectSize{DataSize: 0, PointerCount: 0}, sz)
-	return capnp.StructList[Conmon_version_Params]{l}, err
+	return capnp.StructList[Conmon_version_Params]{List: l}, err
 }
 
 // Conmon_version_Params_Future is a wrapper for a Conmon_version_Params promised by a client call.
@@ -1427,7 +1436,7 @@ type Conmon_version_Results_List = capnp.StructList[Conmon_version_Results]
 // NewConmon_version_Results creates a new list of Conmon_version_Results.
 func NewConmon_version_Results_List(s *capnp.Segment, sz int32) (Conmon_version_Results_List, error) {
 	l, err := capnp.NewCompositeList(s, capnp.ObjectSize{DataSize: 0, PointerCount: 1}, sz)
-	return capnp.StructList[Conmon_version_Results]{l}, err
+	return capnp.StructList[Conmon_version_Results]{List: l}, err
 }
 
 // Conmon_version_Results_Future is a wrapper for a Conmon_version_Results promised by a client call.
@@ -1497,7 +1506,7 @@ type Conmon_createContainer_Params_List = capnp.StructList[Conmon_createContaine
 // NewConmon_createContainer_Params creates a new list of Conmon_createContainer_Params.
 func NewConmon_createContainer_Params_List(s *capnp.Segment, sz int32) (Conmon_createContainer_Params_List, error) {
 	l, err := capnp.NewCompositeList(s, capnp.ObjectSize{DataSize: 0, PointerCount: 1}, sz)
-	return capnp.StructList[Conmon_createContainer_Params]{l}, err
+	return capnp.StructList[Conmon_createContainer_Params]{List: l}, err
 }
 
 // Conmon_createContainer_Params_Future is a wrapper for a Conmon_createContainer_Params promised by a client call.
@@ -1567,7 +1576,7 @@ type Conmon_createContainer_Results_List = capnp.StructList[Conmon_createContain
 // NewConmon_createContainer_Results creates a new list of Conmon_createContainer_Results.
 func NewConmon_createContainer_Results_List(s *capnp.Segment, sz int32) (Conmon_createContainer_Results_List, error) {
 	l, err := capnp.NewCompositeList(s, capnp.ObjectSize{DataSize: 0, PointerCount: 1}, sz)
-	return capnp.StructList[Conmon_createContainer_Results]{l}, err
+	return capnp.StructList[Conmon_createContainer_Results]{List: l}, err
 }
 
 // Conmon_createContainer_Results_Future is a wrapper for a Conmon_createContainer_Results promised by a client call.
@@ -1637,7 +1646,7 @@ type Conmon_execSyncContainer_Params_List = capnp.StructList[Conmon_execSyncCont
 // NewConmon_execSyncContainer_Params creates a new list of Conmon_execSyncContainer_Params.
 func NewConmon_execSyncContainer_Params_List(s *capnp.Segment, sz int32) (Conmon_execSyncContainer_Params_List, error) {
 	l, err := capnp.NewCompositeList(s, capnp.ObjectSize{DataSize: 0, PointerCount: 1}, sz)
-	return capnp.StructList[Conmon_execSyncContainer_Params]{l}, err
+	return capnp.StructList[Conmon_execSyncContainer_Params]{List: l}, err
 }
 
 // Conmon_execSyncContainer_Params_Future is a wrapper for a Conmon_execSyncContainer_Params promised by a client call.
@@ -1707,7 +1716,7 @@ type Conmon_execSyncContainer_Results_List = capnp.StructList[Conmon_execSyncCon
 // NewConmon_execSyncContainer_Results creates a new list of Conmon_execSyncContainer_Results.
 func NewConmon_execSyncContainer_Results_List(s *capnp.Segment, sz int32) (Conmon_execSyncContainer_Results_List, error) {
 	l, err := capnp.NewCompositeList(s, capnp.ObjectSize{DataSize: 0, PointerCount: 1}, sz)
-	return capnp.StructList[Conmon_execSyncContainer_Results]{l}, err
+	return capnp.StructList[Conmon_execSyncContainer_Results]{List: l}, err
 }
 
 // Conmon_execSyncContainer_Results_Future is a wrapper for a Conmon_execSyncContainer_Results promised by a client call.
@@ -1777,7 +1786,7 @@ type Conmon_attachContainer_Params_List = capnp.StructList[Conmon_attachContaine
 // NewConmon_attachContainer_Params creates a new list of Conmon_attachContainer_Params.
 func NewConmon_attachContainer_Params_List(s *capnp.Segment, sz int32) (Conmon_attachContainer_Params_List, error) {
 	l, err := capnp.NewCompositeList(s, capnp.ObjectSize{DataSize: 0, PointerCount: 1}, sz)
-	return capnp.StructList[Conmon_attachContainer_Params]{l}, err
+	return capnp.StructList[Conmon_attachContainer_Params]{List: l}, err
 }
 
 // Conmon_attachContainer_Params_Future is a wrapper for a Conmon_attachContainer_Params promised by a client call.
@@ -1847,7 +1856,7 @@ type Conmon_attachContainer_Results_List = capnp.StructList[Conmon_attachContain
 // NewConmon_attachContainer_Results creates a new list of Conmon_attachContainer_Results.
 func NewConmon_attachContainer_Results_List(s *capnp.Segment, sz int32) (Conmon_attachContainer_Results_List, error) {
 	l, err := capnp.NewCompositeList(s, capnp.ObjectSize{DataSize: 0, PointerCount: 1}, sz)
-	return capnp.StructList[Conmon_attachContainer_Results]{l}, err
+	return capnp.StructList[Conmon_attachContainer_Results]{List: l}, err
 }
 
 // Conmon_attachContainer_Results_Future is a wrapper for a Conmon_attachContainer_Results promised by a client call.
@@ -1917,7 +1926,7 @@ type Conmon_reopenLogContainer_Params_List = capnp.StructList[Conmon_reopenLogCo
 // NewConmon_reopenLogContainer_Params creates a new list of Conmon_reopenLogContainer_Params.
 func NewConmon_reopenLogContainer_Params_List(s *capnp.Segment, sz int32) (Conmon_reopenLogContainer_Params_List, error) {
 	l, err := capnp.NewCompositeList(s, capnp.ObjectSize{DataSize: 0, PointerCount: 1}, sz)
-	return capnp.StructList[Conmon_reopenLogContainer_Params]{l}, err
+	return capnp.StructList[Conmon_reopenLogContainer_Params]{List: l}, err
 }
 
 // Conmon_reopenLogContainer_Params_Future is a wrapper for a Conmon_reopenLogContainer_Params promised by a client call.
@@ -1987,7 +1996,7 @@ type Conmon_reopenLogContainer_Results_List = capnp.StructList[Conmon_reopenLogC
 // NewConmon_reopenLogContainer_Results creates a new list of Conmon_reopenLogContainer_Results.
 func NewConmon_reopenLogContainer_Results_List(s *capnp.Segment, sz int32) (Conmon_reopenLogContainer_Results_List, error) {
 	l, err := capnp.NewCompositeList(s, capnp.ObjectSize{DataSize: 0, PointerCount: 1}, sz)
-	return capnp.StructList[Conmon_reopenLogContainer_Results]{l}, err
+	return capnp.StructList[Conmon_reopenLogContainer_Results]{List: l}, err
 }
 
 // Conmon_reopenLogContainer_Results_Future is a wrapper for a Conmon_reopenLogContainer_Results promised by a client call.
@@ -2057,7 +2066,7 @@ type Conmon_setWindowSizeContainer_Params_List = capnp.StructList[Conmon_setWind
 // NewConmon_setWindowSizeContainer_Params creates a new list of Conmon_setWindowSizeContainer_Params.
 func NewConmon_setWindowSizeContainer_Params_List(s *capnp.Segment, sz int32) (Conmon_setWindowSizeContainer_Params_List, error) {
 	l, err := capnp.NewCompositeList(s, capnp.ObjectSize{DataSize: 0, PointerCount: 1}, sz)
-	return capnp.StructList[Conmon_setWindowSizeContainer_Params]{l}, err
+	return capnp.StructList[Conmon_setWindowSizeContainer_Params]{List: l}, err
 }
 
 // Conmon_setWindowSizeContainer_Params_Future is a wrapper for a Conmon_setWindowSizeContainer_Params promised by a client call.
@@ -2127,7 +2136,7 @@ type Conmon_setWindowSizeContainer_Results_List = capnp.StructList[Conmon_setWin
 // NewConmon_setWindowSizeContainer_Results creates a new list of Conmon_setWindowSizeContainer_Results.
 func NewConmon_setWindowSizeContainer_Results_List(s *capnp.Segment, sz int32) (Conmon_setWindowSizeContainer_Results_List, error) {
 	l, err := capnp.NewCompositeList(s, capnp.ObjectSize{DataSize: 0, PointerCount: 1}, sz)
-	return capnp.StructList[Conmon_setWindowSizeContainer_Results]{l}, err
+	return capnp.StructList[Conmon_setWindowSizeContainer_Results]{List: l}, err
 }
 
 // Conmon_setWindowSizeContainer_Results_Future is a wrapper for a Conmon_setWindowSizeContainer_Results promised by a client call.

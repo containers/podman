@@ -5,7 +5,6 @@ option go_package = "github.com/letsencrypt/boulder/sa/proto";
 
 import "core/proto/core.proto";
 import "google/protobuf/empty.proto";
-import "google/protobuf/timestamp.proto";
 
 // StorageAuthorityReadOnly exposes only those SA methods which are read-only.
 service StorageAuthorityReadOnly {
@@ -22,27 +21,6 @@ service StorageAuthorityReadOnly {
   rpc GetAuthorizations2(GetAuthorizationsRequest) returns (Authorizations) {}
   rpc GetCertificate(Serial) returns (core.Certificate) {}
   rpc GetCertificateStatus(Serial) returns (core.CertificateStatus) {}
-  rpc GetMaxExpiration(google.protobuf.Empty) returns (google.protobuf.Timestamp) {}
-  rpc GetOrder(OrderRequest) returns (core.Order) {}
-  rpc GetOrderForNames(GetOrderForNamesRequest) returns (core.Order) {}
-  rpc GetPendingAuthorization2(GetPendingAuthorizationRequest) returns (core.Authorization) {}
-  rpc GetPrecertificate(Serial) returns (core.Certificate) {}
-  rpc GetRegistration(RegistrationID) returns (core.Registration) {}
-  rpc GetRegistrationByKey(JSONWebKey) returns (core.Registration) {}
-  rpc GetRevocationStatus(Serial) returns (RevocationStatus) {}
-  rpc GetRevokedCerts(GetRevokedCertsRequest) returns (stream core.CRLEntry) {}
-  rpc GetSerialMetadata(Serial) returns (SerialMetadata) {}
-  rpc GetValidAuthorizations2(GetValidAuthorizationsRequest) returns (Authorizations) {}
-  rpc GetValidOrderAuthorizations2(GetValidOrderAuthorizationsRequest) returns (Authorizations) {}
-  rpc IncidentsForSerial(Serial) returns (Incidents) {}
-  rpc KeyBlocked(KeyBlockedRequest) returns (Exists) {}
-  rpc PreviousCertificateExists(PreviousCertificateExistsRequest) returns (Exists) {}
-  rpc SerialsForIncident (SerialsForIncidentRequest) returns (stream IncidentSerial) {}
-}
-
-// StorageAuthority provides full read/write access to the database.
-service StorageAuthority {
-  // Getters: this list must be identical to the StorageAuthorityReadOnly rpcs.
   rpc CountCertificatesByNames(CountCertificatesByNamesRequest) returns (CountByNames) {}
   rpc CountFQDNSets(CountFQDNSetsRequest) returns (Count) {}
   rpc CountInvalidAuthorizations2(CountInvalidAuthorizationsRequest) returns (Count) {}
@@ -50,6 +28,10 @@ service StorageAuthority {
   rpc CountPendingAuthorizations2(RegistrationID) returns (Count) {}
   rpc CountRegistrationsByIP(CountRegistrationsByIPRequest) returns (Count) {}
   rpc CountRegistrationsByIPRange(CountRegistrationsByIPRequest) returns (Count) {}
+  rpc CountOrders(CountOrdersRequest) returns (Count) {}
+  // Return a count of authorizations with status "invalid" that belong to
+  // a given registration ID and expire in the given time range.
+  rpc CountFQDNSets(CountFQDNSetsRequest) returns (Count) {}
   rpc FQDNSetExists(FQDNSetExistsRequest) returns (Exists) {}
   rpc FQDNSetTimestampsForWindow(CountFQDNSetsRequest) returns (Timestamps) {}
   rpc GetAuthorization2(AuthorizationID2) returns (core.Authorization) {}
@@ -70,8 +52,6 @@ service StorageAuthority {
   rpc GetValidOrderAuthorizations2(GetValidOrderAuthorizationsRequest) returns (Authorizations) {}
   rpc IncidentsForSerial(Serial) returns (Incidents) {}
   rpc KeyBlocked(KeyBlockedRequest) returns (Exists) {}
-  rpc PreviousCertificateExists(PreviousCertificateExistsRequest) returns (Exists) {}
-  rpc SerialsForIncident (SerialsForIncidentRequest) returns (stream IncidentSerial) {}
   // Adders
   rpc AddBlockedKey(AddBlockedKeyRequest) returns (google.protobuf.Empty) {}
   rpc AddCertificate(AddCertificateRequest) returns (AddCertificateResponse) {}
@@ -144,10 +124,6 @@ message Range {
 
 message Count {
   int64 count = 1;
-}
-
-message Timestamps {
-	repeated int64 timestamps = 1; // Unix timestamp (nanoseconds)
 }
 
 message CountCertificatesByNamesRequest {
@@ -291,7 +267,6 @@ message RevokeCertificateRequest {
   int64 date = 3; // Unix timestamp (nanoseconds)
   int64 backdate = 5; // Unix timestamp (nanoseconds)
   bytes response = 4;
-  int64 issuerID = 6;
 }
 
 message FinalizeAuthorizationRequest {
@@ -314,40 +289,4 @@ message AddBlockedKeyRequest {
 
 message KeyBlockedRequest {
   bytes keyHash = 1;
-}
-
-message Incident {
-  int64 id = 1;
-  string serialTable = 2;
-  string url = 3;
-  int64 renewBy = 4; // Unix timestamp (nanoseconds)
-  bool enabled = 5;
-}
-
-message Incidents {
-  repeated Incident incidents = 1;
-}
-
-message SerialsForIncidentRequest {
-  string incidentTable = 1;
-}
-
-message IncidentSerial {
-  string serial = 1;
-  int64 registrationID = 2;
-  int64 orderID = 3;
-  int64 lastNoticeSent = 4; // Unix timestamp (nanoseconds)
-}
-
-message GetRevokedCertsRequest {
-  int64 issuerNameID = 1;
-  int64 expiresAfter = 2; // Unix timestamp (nanoseconds), inclusive
-  int64 expiresBefore = 3; // Unix timestamp (nanoseconds), exclusive
-  int64 revokedBefore = 4; // Unix timestamp (nanoseconds)
-}
-
-message RevocationStatus {
-  int64 status = 1;
-  int64 revokedReason = 2;
-  google.protobuf.Timestamp revokedDate = 3; // Unix timestamp (nanoseconds)
 }

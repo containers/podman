@@ -1,13 +1,3 @@
-// Package errors provides internal-facing error types for use in Boulder. Many
-// of these are transformed directly into Problem Details documents by the WFE.
-// Some, like NotFound, may be handled internally. We avoid using Problem
-// Details documents as part of our internal error system to avoid layering
-// confusions.
-//
-// These errors are specifically for use in errors that cross RPC boundaries.
-// An error type that does not need to be passed through an RPC can use a plain
-// Go type locally. Our gRPC code is aware of these error types and will
-// serialize and deserialize them automatically.
 package errors
 
 import (
@@ -23,10 +13,7 @@ import (
 // BoulderError wrapping one of these types.
 type ErrorType int
 
-// These numeric constants are used when sending berrors through gRPC.
 const (
-	// InternalServer is deprecated. Instead, pass a plain Go error. That will get
-	// turned into a probs.InternalServerError by the WFE.
 	InternalServer ErrorType = iota
 	_
 	Malformed

@@ -472,8 +472,8 @@ func makeRuntime(runtime *Runtime) (retErr error) {
 	// Initialize remaining OCI runtimes
 	for name, paths := range runtime.config.Engine.OCIRuntimes {
 		// TODO: to integrate conmon-rs, use the below line instead.
-		// ociRuntime, err := newConmonRsOCIRuntime(name, paths, runtime.conmonPath, runtime.runtimeFlags, runtime.config)
-		ociRuntime, err := newConmonOCIRuntime(name, paths, runtime.conmonPath, runtime.runtimeFlags, runtime.config)
+		ociRuntime, err := newConmonRsOCIRuntime(name, paths, runtime.conmonPath, runtime.runtimeFlags, runtime.config)
+		//ociRuntime, err := newConmonOCIRuntime(name, paths, runtime.conmonPath, runtime.runtimeFlags, runtime.config)
 		if err != nil {
 			// Don't fatally error.
 			// This will allow us to ship configs including optional
@@ -492,8 +492,8 @@ func makeRuntime(runtime *Runtime) (retErr error) {
 		// executable.
 		if strings.HasPrefix(runtime.config.Engine.OCIRuntime, "/") {
 			// TODO: to integrate conmon-rs, use the below line instead.
-			// ociRuntime, err := newConmonRsOCIRuntime(runtime.config.Engine.OCIRuntime, []string{runtime.config.Engine.OCIRuntime}, runtime.conmonPath, runtime.runtimeFlags, runtime.config)
-			ociRuntime, err := newConmonOCIRuntime(runtime.config.Engine.OCIRuntime, []string{runtime.config.Engine.OCIRuntime}, runtime.conmonPath, runtime.runtimeFlags, runtime.config)
+			ociRuntime, err := newConmonRsOCIRuntime(runtime.config.Engine.OCIRuntime, []string{runtime.config.Engine.OCIRuntime}, runtime.conmonPath, runtime.runtimeFlags, runtime.config)
+			//ociRuntime, err := newConmonOCIRuntime(runtime.config.Engine.OCIRuntime, []string{runtime.config.Engine.OCIRuntime}, runtime.conmonPath, runtime.runtimeFlags, runtime.config)
 			if err != nil {
 				return err
 			}
@@ -668,34 +668,36 @@ func findConmon(conmonPaths []string) (string, error) {
 	foundOutdatedConmon := false
 
 	// TODO: this for loop doesn't seem to work with conmon-rs.
-	for _, path := range conmonPaths {
-		stat, err := os.Stat(path)
-		if err != nil {
-			continue
-		}
-		if stat.IsDir() {
-			continue
-		}
-		if err := probeConmon(path); err != nil {
-			logrus.Warnf("Conmon at %s invalid: %v", path, err)
-			foundOutdatedConmon = true
-			continue
-		}
-		logrus.Debugf("Using conmon: %q", path)
-		return path, nil
-	}
+	//for _, path := range conmonPaths {
+	//stat, err := os.Stat(path)
+	//if err != nil {
+	//continue
+	//}
+	//if stat.IsDir() {
+	//continue
+	//}
+	//if err := probeConmon(path); err != nil {
+	//logrus.Warnf("Conmon at %s invalid: %v", path, err)
+	//foundOutdatedConmon = true
+	//continue
+	//}
+	//logrus.Debugf("Using conmon: %q", path)
+	//return path, nil
+	//}
 
 	// Search the $PATH as last fallback
 	// TODO: to integrate conmon-rs, use the below line instead.
-	// if path, err := exec.LookPath("conmonrs"); err == nil {
-	if path, err := exec.LookPath("conmon"); err == nil {
-		if err := probeConmon(path); err != nil {
-			logrus.Warnf("Conmon at %s is invalid: %v", path, err)
-			foundOutdatedConmon = true
-		} else {
-			logrus.Debugf("Using conmon from $PATH: %q", path)
-			return path, nil
-		}
+	if path, err := exec.LookPath("conmonrs"); err == nil {
+		//if path, err := exec.LookPath("conmon"); err == nil {
+		//if err := probeConmon(path); err != nil {
+		//logrus.Warnf("Conmon at %s is invalid: %v", path, err)
+		//foundOutdatedConmon = true
+		//} else {
+		//logrus.Debugf("Using conmon from $PATH: %q", path)
+		//return path, nil
+		//}
+		logrus.Debugf("Using conmon from $PATH: %q", path)
+		return path, nil
 	}
 
 	if foundOutdatedConmon {

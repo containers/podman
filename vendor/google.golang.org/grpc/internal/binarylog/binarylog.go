@@ -49,7 +49,7 @@ func SetLogger(l Logger) {
 	binLogger = l
 }
 
-// GetLogger gets the binary logger.
+// GetLogger gets the binarg logger.
 //
 // Only call this at init time.
 func GetLogger() Logger {

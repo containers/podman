@@ -13,9 +13,9 @@ import (
 	"expvar"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"math/big"
 	mrand "math/rand"
-	"os"
 	"reflect"
 	"regexp"
 	"sort"
@@ -247,7 +247,7 @@ func UniqueLowerNames(names []string) (unique []string) {
 
 // LoadCert loads a PEM certificate specified by filename or returns an error
 func LoadCert(filename string) (*x509.Certificate, error) {
-	certPEM, err := os.ReadFile(filename)
+	certPEM, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return nil, err
 	}

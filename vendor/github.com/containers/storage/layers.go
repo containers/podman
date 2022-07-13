@@ -26,7 +26,7 @@ import (
 	multierror "github.com/hashicorp/go-multierror"
 	"github.com/klauspost/pgzip"
 	digest "github.com/opencontainers/go-digest"
-	"github.com/opencontainers/selinux/go-selinux"
+	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/sirupsen/logrus"
 	"github.com/vbatts/tar-split/archive/tar"
 	"github.com/vbatts/tar-split/tar/asm"
@@ -740,13 +740,12 @@ func (r *layerStore) save(saveLocations layerLocations) error {
 	return r.saveMounts()
 }
 
-func (r *layerStore) saveFor(modifiedLayer *Layer) error {
-	return r.save(layerLocation(modifiedLayer))
-}
-
-func (r *layerStore) saveLayers(saveLocations layerLocations) error {
-	if !r.lockfile.IsReadWrite() {
-		return fmt.Errorf("not allowed to modify the layer store at %q: %w", r.layerdir, ErrStoreIsReadOnly)
+func (r *layerStore) saveLayers() error {
+	if !r.IsReadWrite() {
+		return fmt.Errorf("not allowed to modify the layer store at %q: %w", r.layerspath(), ErrStoreIsReadOnly)
+	}
+	if !r.Locked() {
+		return errors.New("layer store is not locked for writing")
 	}
 	r.lockfile.AssertLockedForWriting()
 
@@ -785,8 +784,11 @@ func (r *layerStore) saveLayers(saveLocations layerLocations) error {
 }
 
 func (r *layerStore) saveMounts() error {
-	if !r.lockfile.IsReadWrite() {
-		return fmt.Errorf("not allowed to modify the layer store at %q: %w", r.layerdir, ErrStoreIsReadOnly)
+	if !r.IsReadWrite() {
+		return fmt.Errorf("not allowed to modify the layer store at %q: %w", r.layerspath(), ErrStoreIsReadOnly)
+	}
+	if !r.mountsLockfile.Locked() {
+		return errors.New("layer store mount information is not locked for writing")
 	}
 	r.mountsLockfile.AssertLockedForWriting()
 	mpath := r.mountspath()
@@ -920,8 +922,8 @@ func (r *layerStore) Size(name string) (int64, error) {
 }
 
 func (r *layerStore) ClearFlag(id string, flag string) error {
-	if !r.lockfile.IsReadWrite() {
-		return fmt.Errorf("not allowed to clear flags on layers at %q: %w", r.layerdir, ErrStoreIsReadOnly)
+	if !r.IsReadWrite() {
+		return fmt.Errorf("not allowed to clear flags on layers at %q: %w", r.layerspath(), ErrStoreIsReadOnly)
 	}
 	layer, ok := r.lookup(id)
 	if !ok {
@@ -932,8 +934,8 @@ func (r *layerStore) ClearFlag(id string, flag string) error {
 }
 
 func (r *layerStore) SetFlag(id string, flag string, value interface{}) error {
-	if !r.lockfile.IsReadWrite() {
-		return fmt.Errorf("not allowed to set flags on layers at %q: %w", r.layerdir, ErrStoreIsReadOnly)
+	if !r.IsReadWrite() {
+		return fmt.Errorf("not allowed to set flags on layers at %q: %w", r.layerspath(), ErrStoreIsReadOnly)
 	}
 	layer, ok := r.lookup(id)
 	if !ok {
@@ -1007,8 +1009,8 @@ func (r *layerStore) PutAdditionalLayer(id string, parentLayer *Layer, names []s
 }
 
 func (r *layerStore) Put(id string, parentLayer *Layer, names []string, mountLabel string, options map[string]string, moreOptions *LayerOptions, writeable bool, flags map[string]interface{}, diff io.Reader) (*Layer, int64, error) {
-	if !r.lockfile.IsReadWrite() {
-		return nil, -1, fmt.Errorf("not allowed to create new layers at %q: %w", r.layerdir, ErrStoreIsReadOnly)
+	if !r.IsReadWrite() {
+		return nil, -1, fmt.Errorf("not allowed to create new layers at %q: %w", r.layerspath(), ErrStoreIsReadOnly)
 	}
 	if err := os.MkdirAll(r.rundir, 0700); err != nil {
 		return nil, -1, err
@@ -1213,7 +1215,7 @@ func (r *layerStore) Create(id string, parent *Layer, names []string, mountLabel
 }
 
 func (r *layerStore) Mounted(id string) (int, error) {
-	if !r.lockfile.IsReadWrite() {
+	if !r.IsReadWrite() {
 		return 0, fmt.Errorf("no mount information for layers at %q: %w", r.mountspath(), ErrStoreIsReadOnly)
 	}
 	r.mountsLockfile.RLock()
@@ -1243,7 +1245,7 @@ func (r *layerStore) Mount(id string, options drivers.MountOpts) (string, error)
 
 	// You are not allowed to mount layers from readonly stores if they
 	// are not mounted read/only.
-	if !r.lockfile.IsReadWrite() && !hasReadOnlyOpt(options.Options) {
+	if !r.IsReadWrite() && !hasReadOnlyOpt(options.Options) {
 		return "", fmt.Errorf("not allowed to update mount locations for layers at %q: %w", r.mountspath(), ErrStoreIsReadOnly)
 	}
 	r.mountsLockfile.Lock()
@@ -1293,7 +1295,7 @@ func (r *layerStore) Mount(id string, options drivers.MountOpts) (string, error)
 }
 
 func (r *layerStore) Unmount(id string, force bool) (bool, error) {
-	if !r.lockfile.IsReadWrite() {
+	if !r.IsReadWrite() {
 		return false, fmt.Errorf("not allowed to update mount locations for layers at %q: %w", r.mountspath(), ErrStoreIsReadOnly)
 	}
 	r.mountsLockfile.Lock()
@@ -1331,7 +1333,7 @@ func (r *layerStore) Unmount(id string, force bool) (bool, error) {
 }
 
 func (r *layerStore) ParentOwners(id string) (uids, gids []int, err error) {
-	if !r.lockfile.IsReadWrite() {
+	if !r.IsReadWrite() {
 		return nil, nil, fmt.Errorf("no mount information for layers at %q: %w", r.mountspath(), ErrStoreIsReadOnly)
 	}
 	r.mountsLockfile.RLock()
@@ -1406,8 +1408,8 @@ func (r *layerStore) removeName(layer *Layer, name string) {
 }
 
 func (r *layerStore) updateNames(id string, names []string, op updateNameOperation) error {
-	if !r.lockfile.IsReadWrite() {
-		return fmt.Errorf("not allowed to change layer name assignments at %q: %w", r.layerdir, ErrStoreIsReadOnly)
+	if !r.IsReadWrite() {
+		return fmt.Errorf("not allowed to change layer name assignments at %q: %w", r.layerspath(), ErrStoreIsReadOnly)
 	}
 	layer, ok := r.lookup(id)
 	if !ok {
@@ -1454,8 +1456,8 @@ func (r *layerStore) SetBigData(id, key string, data io.Reader) error {
 	if key == "" {
 		return fmt.Errorf("can't set empty name for layer big data item: %w", ErrInvalidBigDataName)
 	}
-	if !r.lockfile.IsReadWrite() {
-		return fmt.Errorf("not allowed to save data items associated with layers at %q: %w", r.layerdir, ErrStoreIsReadOnly)
+	if !r.IsReadWrite() {
+		return fmt.Errorf("not allowed to save data items associated with layers at %q: %w", r.layerspath(), ErrStoreIsReadOnly)
 	}
 	layer, ok := r.lookup(id)
 	if !ok {
@@ -1513,8 +1515,8 @@ func (r *layerStore) Metadata(id string) (string, error) {
 }
 
 func (r *layerStore) SetMetadata(id, metadata string) error {
-	if !r.lockfile.IsReadWrite() {
-		return fmt.Errorf("not allowed to modify layer metadata at %q: %w", r.layerdir, ErrStoreIsReadOnly)
+	if !r.IsReadWrite() {
+		return fmt.Errorf("not allowed to modify layer metadata at %q: %w", r.layerspath(), ErrStoreIsReadOnly)
 	}
 	if layer, ok := r.lookup(id); ok {
 		layer.Metadata = metadata
@@ -1538,9 +1540,10 @@ func layerHasIncompleteFlag(layer *Layer) bool {
 	return false
 }
 
-func (r *layerStore) deleteInternal(id string) error {
-	if !r.lockfile.IsReadWrite() {
-		return fmt.Errorf("not allowed to delete layers at %q: %w", r.layerdir, ErrStoreIsReadOnly)
+func (r *layerStore) delet# github.com/containers/image/v5 v5.23.1-0.20221101011818-2f770d6d5a0c
+eInternal(id string) error {
+	if !r.IsReadWrite() {
+		return fmt.Errorf("not allowed to delete layers at %q: %w", r.layerspath(), ErrStoreIsReadOnly)
 	}
 	layer, ok := r.lookup(id)
 	if !ok {
@@ -1670,8 +1673,8 @@ func (r *layerStore) Get(id string) (*Layer, error) {
 }
 
 func (r *layerStore) Wipe() error {
-	if !r.lockfile.IsReadWrite() {
-		return fmt.Errorf("not allowed to delete layers at %q: %w", r.layerdir, ErrStoreIsReadOnly)
+	if !r.IsReadWrite() {
+		return fmt.Errorf("not allowed to delete layers at %q: %w", r.layerspath(), ErrStoreIsReadOnly)
 	}
 	ids := make([]string, 0, len(r.byid))
 	for id := range r.byid {
@@ -1935,8 +1938,8 @@ func (r *layerStore) ApplyDiff(to string, diff io.Reader) (size int64, err error
 }
 
 func (r *layerStore) applyDiffWithOptions(to string, layerOptions *LayerOptions, diff io.Reader) (size int64, err error) {
-	if !r.lockfile.IsReadWrite() {
-		return -1, fmt.Errorf("not allowed to modify layer contents at %q: %w", r.layerdir, ErrStoreIsReadOnly)
+	if !r.IsReadWrite() {
+		return -1, fmt.Errorf("not allowed to modify layer contents at %q: %w", r.layerspath(), ErrStoreIsReadOnly)
 	}
 
 	layer, ok := r.lookup(to)
@@ -2187,6 +2190,82 @@ func (r *layerStore) LayersByCompressedDigest(d digest.Digest) ([]Layer, error) 
 
 func (r *layerStore) LayersByUncompressedDigest(d digest.Digest) ([]Layer, error) {
 	return r.layersByDigestMap(r.byuncompressedsum, d)
+}
+
+func (r *layerStore) Lock() {
+	r.lockfile.Lock()
+}
+
+func (r *layerStore) RecursiveLock() {
+	r.lockfile.RecursiveLock()
+}
+
+func (r *layerStore) RLock() {
+	r.lockfile.RLock()
+}
+
+func (r *layerStore) Unlock() {
+	r.lockfile.Unlock()
+}
+
+func (r *layerStore) Touch() error {
+	return r.lockfile.Touch()
+}
+
+func (r *layerStore) Modified() (bool, error) {
+	var mmodified, tmodified bool
+	lmodified, err := r.lockfile.Modified()
+	if err != nil {
+		return lmodified, err
+	}
+	if r.IsReadWrite() {
+		r.mountsLockfile.RLock()
+		defer r.mountsLockfile.Unlock()
+		mmodified, err = r.mountsLockfile.Modified()
+		if err != nil {
+			return lmodified, err
+		}
+	}
+
+	if lmodified || mmodified {
+		return true, nil
+	}
+
+	// If the layers.json file has been modified manually, then we have to
+	// reload the storage in any case.
+	info, err := os.Stat(r.layerspath())
+	if err != nil && !os.IsNotExist(err) {
+		return false, fmt.Errorf("stat layers file: %w", err)
+	}
+	if info != nil {
+		tmodified = info.ModTime() != r.layerspathModified
+		r.layerspathModified = info.ModTime()
+	}
+
+	return tmodified, nil
+}
+
+func (r *layerStore) IsReadWrite() bool {
+	return r.lockfile.IsReadWrite()
+}
+
+func (r *layerStore) TouchedSince(when time.Time) bool {
+	return r.lockfile.TouchedSince(when)
+}
+
+func (r *layerStore) Locked() bool {
+	return r.lockfile.Locked()
+}
+
+func (r *layerStore) ReloadIfChanged() error {
+	r.loadMut.Lock()
+	defer r.loadMut.Unlock()
+
+	modified, err := r.Modified()
+	if err == nil && modified {
+		return r.Load()
+	}
+	return err
 }
 
 func closeAll(closes ...func() error) (rErr error) {

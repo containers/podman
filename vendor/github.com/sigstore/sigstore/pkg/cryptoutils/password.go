@@ -18,7 +18,7 @@ package cryptoutils
 import (
 	"errors"
 	"fmt"
-	"io"
+	"io/ioutil"
 	"os"
 
 	"golang.org/x/term"
@@ -27,8 +27,10 @@ import (
 // PassFunc is a type of function that takes a boolean (representing whether confirmation is desired) and returns the password as read, along with an error if one occurred
 type PassFunc func(bool) ([]byte, error)
 
-// Read is for fuzzing
-var Read = readPasswordFn
+var (
+	// Read is for fuzzing
+	Read = readPasswordFn
+)
 
 // readPasswordFn reads the password from the following sources, in order of preference:
 //
@@ -50,7 +52,7 @@ func readPasswordFn() func() ([]byte, error) {
 	}
 	// Handle piped in passwords.
 	return func() ([]byte, error) {
-		return io.ReadAll(os.Stdin)
+		return ioutil.ReadAll(os.Stdin)
 	}
 }
 

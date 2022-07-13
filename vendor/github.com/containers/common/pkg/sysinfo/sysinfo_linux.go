@@ -3,6 +3,7 @@ package sysinfo
 import (
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path"
 	"strings"

@@ -27,7 +27,6 @@ import (
 	"github.com/hashicorp/go-multierror"
 	digest "github.com/opencontainers/go-digest"
 	"github.com/opencontainers/selinux/go-selinux/label"
-	"github.com/sirupsen/logrus"
 )
 
 type updateNameOperation int
@@ -1554,10 +1553,11 @@ func (s *store) CreateContainer(id string, names []string, image, layer, metadat
 	if options.Flags == nil {
 		options.Flags = make(map[string]interface{})
 	}
-	plabel, _ := options.Flags[processLabelFlag].(string)
-	mlabel, _ := options.Flags[mountLabelFlag].(string)
-	if (plabel == "" && mlabel != "") || (plabel != "" && mlabel == "") {
-		return nil, errors.New("ProcessLabel and Mountlabel must either not be specified or both specified")
+	plabel, _ := options.Flags["ProcessLabel"].(string)
+	mlabel, _ := options.Flags["MountLabel"].(string)
+	if (plabel == "" && mlabel != "") ||
+		(plabel != "" && mlabel == "") {
+		return nil, errors.New("processLabel and Mountlabel must either not be specified or both specified")
 	}
 
 	if plabel == "" {
@@ -1791,9 +1791,13 @@ func (s *store) SetImageBigData(id, key string, data []byte, digestManifest func
 func (s *store) ImageSize(id string) (int64, error) {
 	layerStores, err := s.allLayerStores()
 	if err != nil {
-		return -1, err
+		return -1, fmt.Errorf("loading primary layer store data: %w", err)
 	}
-	for _, s := range layerStores {
+	lstores, err := s.ROLayerStores()
+	if err != nil {
+		return -1, fmt.Errorf("loading additional layer stores: %w", err)
+	}
+	for _, s := range append([]ROLayerStore{lstore}, lstores...) {
 		store := s
 		if err := store.startReading(); err != nil {
 			return -1, err
@@ -1803,8 +1807,13 @@ func (s *store) ImageSize(id string) (int64, error) {
 
 	imageStores, err := s.allImageStores()
 	if err != nil {
-		return -1, err
+		return -1, fmt.Errorf("loading primary image store data: %w", err)
 	}
+	istores, err := s.ROImageStores()
+	if err != nil {
+		return -1, fmt.Errorf("loading additional image stores: %w", err)
+	}
+
 	// Look for the image's record.
 	var imageStore roBigDataStore
 	var image *Image
@@ -2213,28 +2222,85 @@ func (s *store) Lookup(name string) (string, error) {
 }
 
 func (s *store) DeleteLayer(id string) error {
-	return s.writeToAllStores(func(rlstore rwLayerStore, ristore rwImageStore, rcstore rwContainerStore) error {
-		if rlstore.Exists(id) {
-			if l, err := rlstore.Get(id); err != nil {
-				id = l.ID
+	rlstore, err := s.LayerStore()
+	if err != nil {
+		return err
+	}
+	ristore, err := s.ImageStore()
+	if err != nil {
+		return err
+	}
+	rcstore, err := s.ContainerStore()
+	if err != nil {
+		return err
+	}
+
+	rlstore.Lock()
+	defer rlstore.Unlock()
+	if err := rlstore.ReloadIfChanged(); err != nil {
+		return err
+	}
+	ristore.Lock()
+	defer ristore.Unlock()
+	if err := ristore.ReloadIfChanged(); err != nil {
+		return err
+	}
+	rcstore.Lock()
+	defer rcstore.Unlock()
+	if err := rcstore.ReloadIfChanged(); err != nil {
+		return err
+	}
+
+	if rlstore.Exists(id) {
+		if l, err := rlstore.Get(id); err != nil {
+			id = l.ID
+		}
+		layers, err := rlstore.Layers()
+		if err != nil {
+			return err
+		}
+		for _, layer := range layers {
+			if layer.Parent == id {
+				return fmt.Errorf("used by layer %v: %w", layer.ID, ErrLayerHasChildren)
 			}
-			layers, err := rlstore.Layers()
-			if err != nil {
-				return err
+		}
+		images, err := ristore.Images()
+		if err != nil {
+			return err
+		}
+
+		for _, image := range images {
+			if image.TopLayer == id {
+				return fmt.Errorf("layer %v used by image %v: %w", id, image.ID, ErrLayerUsedByImage)
 			}
-			for _, layer := range layers {
-				if layer.Parent == id {
-					return fmt.Errorf("used by layer %v: %w", layer.ID, ErrLayerHasChildren)
+			if stringutils.InSlice(image.MappedTopLayers, id) {
+				// No write access to the image store, fail before the layer is deleted
+				if _, ok := ristore.(*imageStore); !ok {
+					return fmt.Errorf("layer %v used by image %v: %w", id, image.ID, ErrLayerUsedByImage)
 				}
 			}
-			images, err := ristore.Images()
-			if err != nil {
-				return err
+		}
+		containers, err := rcstore.Containers()
+		if err != nil {
+			return err
+		}
+		for _, container := range containers {
+			if container.LayerID == id {
+				return fmt.Errorf("layer %v used by container %v: %w", id, container.ID, ErrLayerUsedByContainer)
 			}
+		}
+		if err := rlstore.Delete(id); err != nil {
+			return fmt.Errorf("delete layer %v: %w", id, err)
+		}
 
 			for _, image := range images {
 				if image.TopLayer == id {
 					return fmt.Errorf("layer %v used by image %v: %w", id, image.ID, ErrLayerUsedByImage)
+				}
+				if stringutils.InSlice(image.MappedTopLayers, id) {
+					if err = istore.removeMappedTopLayer(image.ID, id); err != nil {
+						return fmt.Errorf("remove mapped top layer %v from image %v: %w", id, image.ID, err)
+					}
 				}
 			}
 			containers, err := rcstore.Containers()
@@ -2363,6 +2429,125 @@ func (s *store) DeleteImage(id string, commit bool) (layers []string, err error)
 		return nil
 	}); err != nil {
 		return nil, err
+	}
+	ristore, err := s.ImageStore()
+	if err != nil {
+		return nil, err
+	}
+	rcstore, err := s.ContainerStore()
+	if err != nil {
+		return nil, err
+	}
+
+	rlstore.Lock()
+	defer rlstore.Unlock()
+	if err := rlstore.ReloadIfChanged(); err != nil {
+		return nil, err
+	}
+	ristore.Lock()
+	defer ristore.Unlock()
+	if err := ristore.ReloadIfChanged(); err != nil {
+		return nil, err
+	}
+	rcstore.Lock()
+	defer rcstore.Unlock()
+	if err := rcstore.ReloadIfChanged(); err != nil {
+		return nil, err
+	}
+	layersToRemove := []string{}
+	if ristore.Exists(id) {
+		image, err := ristore.Get(id)
+		if err != nil {
+			return nil, err
+		}
+		id = image.ID
+		containers, err := rcstore.Containers()
+		if err != nil {
+			return nil, err
+		}
+		aContainerByImage := make(map[string]string)
+		for _, container := range containers {
+			aContainerByImage[container.ImageID] = container.ID
+		}
+		if container, ok := aContainerByImage[id]; ok {
+			return nil, fmt.Errorf("image used by %v: %w", container, ErrImageUsedByContainer)
+		}
+		images, err := ristore.Images()
+		if err != nil {
+			return nil, err
+		}
+		layers, err := rlstore.Layers()
+		if err != nil {
+			return nil, err
+		}
+		childrenByParent := make(map[string][]string)
+		for _, layer := range layers {
+			childrenByParent[layer.Parent] = append(childrenByParent[layer.Parent], layer.ID)
+		}
+		otherImagesTopLayers := make(map[string]struct{})
+		for _, img := range images {
+			if img.ID != id {
+				otherImagesTopLayers[img.TopLayer] = struct{}{}
+				for _, layerID := range img.MappedTopLayers {
+					otherImagesTopLayers[layerID] = struct{}{}
+				}
+			}
+		}
+		if commit {
+			if err = ristore.Delete(id); err != nil {
+				return nil, err
+			}
+		}
+		layer := image.TopLayer
+		layersToRemoveMap := make(map[string]struct{})
+		layersToRemove = append(layersToRemove, image.MappedTopLayers...)
+		for _, mappedTopLayer := range image.MappedTopLayers {
+			layersToRemoveMap[mappedTopLayer] = struct{}{}
+		}
+		for layer != "" {
+			if rcstore.Exists(layer) {
+				break
+			}
+			if _, used := otherImagesTopLayers[layer]; used {
+				break
+			}
+			parent := ""
+			if l, err := rlstore.Get(layer); err == nil {
+				parent = l.Parent
+			}
+			hasChildrenNotBeingRemoved := func() bool {
+				layersToCheck := []string{layer}
+				if layer == image.TopLayer {
+					layersToCheck = append(layersToCheck, image.MappedTopLayers...)
+				}
+				for _, layer := range layersToCheck {
+					if childList := childrenByParent[layer]; len(childList) > 0 {
+						for _, child := range childList {
+							if _, childIsSlatedForRemoval := layersToRemoveMap[child]; childIsSlatedForRemoval {
+								continue
+							}
+							return true
+						}
+					}
+				}
+				return false
+			}
+			if hasChildrenNotBeingRemoved() {
+				break
+			}
+			layersToRemove = append(layersToRemove, layer)
+			layersToRemoveMap[layer] = struct{}{}
+			layer = parent
+		}
+	} else {
+		return nil, ErrNotAnImage
+	}
+	if commit {
+		for _, layer := range layersToRemove {
+			if err = rlstore.Delete(layer); err != nil {
+				return nil, err
+			}
+		}
 	}
 	return layersToRemove, nil
 }
@@ -2756,7 +2941,7 @@ func (s *store) layersByMappedDigest(m func(roLayerStore, digest.Digest) ([]Laye
 		storeLayers, err := m(store, d)
 		if err != nil {
 			if !errors.Is(err, ErrLayerUnknown) {
-				return true, err
+				return nil, err
 			}
 			return false, nil
 		}
@@ -3025,7 +3210,7 @@ func (s *store) ImagesByDigest(d digest.Digest) ([]*Image, error) {
 	if _, err := s.readAllImageStores(func(store roImageStore) (bool, error) {
 		imageList, err := store.ByDigest(d)
 		if err != nil && !errors.Is(err, ErrImageUnknown) {
-			return true, err
+			return nil, err
 		}
 		images = append(images, imageList...)
 		return false, nil

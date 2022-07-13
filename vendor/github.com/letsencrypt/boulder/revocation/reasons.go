@@ -31,6 +31,7 @@ var ReasonToString = map[Reason]string{
 var UserAllowedReasons = map[Reason]struct{}{
 	ocsp.Unspecified:          {},
 	ocsp.KeyCompromise:        {},
+	ocsp.AffiliationChanged:   {},
 	ocsp.Superseded:           {},
 	ocsp.CessationOfOperation: {},
 }
@@ -41,6 +42,7 @@ var UserAllowedReasons = map[Reason]struct{}{
 var AdminAllowedReasons = map[Reason]struct{}{
 	ocsp.Unspecified:          {},
 	ocsp.KeyCompromise:        {},
+	ocsp.AffiliationChanged:   {},
 	ocsp.Superseded:           {},
 	ocsp.CessationOfOperation: {},
 	ocsp.PrivilegeWithdrawn:   {},

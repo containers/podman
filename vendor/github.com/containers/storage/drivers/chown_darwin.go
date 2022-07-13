@@ -98,8 +98,8 @@ func (c *platformChowner) LChown(path string, info os.FileInfo, toHost, toContai
 				return fmt.Errorf("%s: %w", os.Args[0], err)
 			}
 		}
-		if capability != nil {
-			if err := system.Lsetxattr(path, "security.capability", capability, 0); err != nil {
+		if cap != nil {
+			if err := system.Lsetxattr(path, "security.capability", cap, 0); err != nil {
 				return fmt.Errorf("%s: %w", os.Args[0], err)
 			}
 		}

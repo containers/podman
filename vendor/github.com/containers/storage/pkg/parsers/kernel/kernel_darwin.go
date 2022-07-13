@@ -43,7 +43,7 @@ func getRelease() (string, error) {
 
 			prettyNames, err := shellwords.Parse(content[1])
 			if err != nil {
-				return "", fmt.Errorf("kernel version is invalid: %w", err)
+				return "", fmt.Errorf("kernel version is invalid: %s", err.Error())
 			}
 
 			if len(prettyNames) != 2 {

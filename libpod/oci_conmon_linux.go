@@ -14,7 +14,6 @@ import (
 	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/containers/podman/v4/utils"
 	pmount "github.com/containers/storage/pkg/mount"
-	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
@@ -142,6 +141,258 @@ func (r *ConmonOCIRuntime) CreateContainer(ctr *Container, restoreOptions *Conta
 			// so that the cleanup process is still able to umount the storage and the
 			// changes are propagated to the host.
 			err = unix.Mount("/sys", "/sys", "none", unix.MS_REC|unix.MS_SLAVE, "")
+		}
+	}
+}
+// UpdateContainerStatus retrieves the current status of the container from the
+// runtime. It updates the container's state but does not save it.
+// If useRuntime is false, we will not directly hit runc to see the container's
+// status, but will instead only check for the existence of the conmon exit file
+// and update state to stopped if it exists.
+func (r *ConmonOCIRuntime) UpdateContainerStatus(ctr *Container) error {
+	return updateContainerStatus(ctr, r.path)
+}
+
+// StartContainer starts the given container.
+// Sets time the container was started, but does not save it.
+func (r *ConmonOCIRuntime) StartContainer(ctr *Container) error {
+	return startContainer(ctr, r.path, r.runtimeFlags)
+}
+
+// KillContainer sends the given signal to the given container.
+// If all is set, send to all PIDs in the container.
+// All is only supported if the container created cgroups.
+func (r *ConmonOCIRuntime) KillContainer(ctr *Container, signal uint, all bool) error {
+	return killContainer(ctr, signal, all, r.path, r.runtimeFlags)
+}
+
+// StopContainer stops a container, first using its given stop signal (or
+// SIGTERM if no signal was specified), then using SIGKILL.
+// Timeout is given in seconds. If timeout is 0, the container will be
+// immediately kill with SIGKILL.
+// Does not set finished time for container, assumes you will run updateStatus
+// after to pull the exit code.
+func (r *ConmonOCIRuntime) StopContainer(ctr *Container, timeout uint, all bool) error {
+	return stopContainer(ctr, timeout, all, r.path, r.runtimeFlags)
+}
+
+// DeleteContainer deletes a container from the OCI runtime.
+func (r *ConmonOCIRuntime) DeleteContainer(ctr *Container) error {
+	return deleteContainer(ctr, r.path, r.runtimeFlags)
+}
+
+// PauseContainer pauses the given container.
+func (r *ConmonOCIRuntime) PauseContainer(ctr *Container) error {
+	return pauseContainer(ctr, r.path, r.runtimeFlags)
+}
+
+// UnpauseContainer unpauses the given container.
+func (r *ConmonOCIRuntime) UnpauseContainer(ctr *Container) error {
+	return unpauseContainer(ctr, r.path, r.runtimeFlags)
+}
+
+// HTTPAttach performs an attach for the HTTP API.
+// The caller must handle closing the HTTP connection after this returns.
+// The cancel channel is not closed; it is up to the caller to do so after
+// this function returns.
+// If this is a container with a terminal, we will stream raw. If it is not, we
+// will stream with an 8-byte header to multiplex STDOUT and STDERR.
+// Returns any errors that occurred, and whether the connection was successfully
+// hijacked before that error occurred.
+func (r *ConmonOCIRuntime) HTTPAttach(ctr *Container, req *http.Request, w http.ResponseWriter, streams *HTTPAttachStreams, detachKeys *string, cancel <-chan bool, hijackDone chan<- bool, streamAttach, streamLogs bool) (deferredErr error) {
+	isTerminal := false
+	if ctr.config.Spec.Process != nil {
+		isTerminal = ctr.config.Spec.Process.Terminal
+	}
+
+	if streams != nil {
+		if !streams.Stdin && !streams.Stdout && !streams.Stderr {
+			return fmt.Errorf("must specify at least one stream to attach to: %w", define.ErrInvalidArg)
+		}
+	}
+
+	attachSock, err := r.AttachSocketPath(ctr)
+	if err != nil {
+		return err
+	}
+
+	var conn *net.UnixConn
+	if streamAttach {
+		newConn, err := openUnixSocket(attachSock)
+		if err != nil {
+			return fmt.Errorf("failed to connect to container's attach socket: %v: %w", attachSock, err)
+		}
+		conn = newConn
+		defer func() {
+			if err := conn.Close(); err != nil {
+				logrus.Errorf("Unable to close container %s attach socket: %q", ctr.ID(), err)
+			}
+		}()
+
+		logrus.Debugf("Successfully connected to container %s attach socket %s", ctr.ID(), attachSock)
+	}
+
+	detachString := ctr.runtime.config.Engine.DetachKeys
+	if detachKeys != nil {
+		detachString = *detachKeys
+	}
+	detach, err := processDetachKeys(detachString)
+	if err != nil {
+		return err
+	}
+
+	attachStdout := true
+	attachStderr := true
+	attachStdin := true
+	if streams != nil {
+		attachStdout = streams.Stdout
+		attachStderr = streams.Stderr
+		attachStdin = streams.Stdin
+	}
+
+	logrus.Debugf("Going to hijack container %s attach connection", ctr.ID())
+
+	// Alright, let's hijack.
+	hijacker, ok := w.(http.Hijacker)
+	if !ok {
+		return fmt.Errorf("unable to hijack connection")
+	}
+
+	httpCon, httpBuf, err := hijacker.Hijack()
+	if err != nil {
+		return fmt.Errorf("error hijacking connection: %w", err)
+	}
+
+	hijackDone <- true
+
+	writeHijackHeader(req, httpBuf)
+
+	// Force a flush after the header is written.
+	if err := httpBuf.Flush(); err != nil {
+		return fmt.Errorf("error flushing HTTP hijack header: %w", err)
+	}
+
+	defer func() {
+		hijackWriteErrorAndClose(deferredErr, ctr.ID(), isTerminal, httpCon, httpBuf)
+	}()
+
+	logrus.Debugf("Hijack for container %s attach session done, ready to stream", ctr.ID())
+
+	// TODO: This is gross. Really, really gross.
+	// I want to say we should read all the logs into an array before
+	// calling this, in container_api.go, but that could take a lot of
+	// memory...
+	// On the whole, we need to figure out a better way of doing this,
+	// though.
+	logSize := 0
+	if streamLogs {
+		logrus.Debugf("Will stream logs for container %s attach session", ctr.ID())
+
+		// Get all logs for the container
+		logChan := make(chan *logs.LogLine)
+		logOpts := new(logs.LogOptions)
+		logOpts.Tail = -1
+		logOpts.WaitGroup = new(sync.WaitGroup)
+		errChan := make(chan error)
+		go func() {
+			var err error
+			// In non-terminal mode we need to prepend with the
+			// stream header.
+			logrus.Debugf("Writing logs for container %s to HTTP attach", ctr.ID())
+			for logLine := range logChan {
+				if !isTerminal {
+					device := logLine.Device
+					var header []byte
+					headerLen := uint32(len(logLine.Msg))
+					logSize += len(logLine.Msg)
+					switch strings.ToLower(device) {
+					case "stdin":
+						header = makeHTTPAttachHeader(0, headerLen)
+					case "stdout":
+						header = makeHTTPAttachHeader(1, headerLen)
+					case "stderr":
+						header = makeHTTPAttachHeader(2, headerLen)
+					default:
+						logrus.Errorf("Unknown device for log line: %s", device)
+						header = makeHTTPAttachHeader(1, headerLen)
+					}
+					_, err = httpBuf.Write(header)
+					if err != nil {
+						break
+					}
+				}
+				_, err = httpBuf.Write([]byte(logLine.Msg))
+				if err != nil {
+					break
+				}
+				if !logLine.Partial() {
+					_, err = httpBuf.Write([]byte("\n"))
+					if err != nil {
+						break
+					}
+				}
+				err = httpBuf.Flush()
+				if err != nil {
+					break
+				}
+			}
+			errChan <- err
+		}()
+		if err := ctr.ReadLog(context.Background(), logOpts, logChan, 0); err != nil {
+			return err
+		}
+		go func() {
+			logOpts.WaitGroup.Wait()
+			close(logChan)
+		}()
+		logrus.Debugf("Done reading logs for container %s, %d bytes", ctr.ID(), logSize)
+		if err := <-errChan; err != nil {
+			return err
+		}
+	}
+	if !streamAttach {
+		logrus.Debugf("Done streaming logs for container %s attach, exiting as attach streaming not requested", ctr.ID())
+		return nil
+	}
+
+	logrus.Debugf("Forwarding attach output for container %s", ctr.ID())
+
+	stdoutChan := make(chan error)
+	stdinChan := make(chan error)
+
+	// Handle STDOUT/STDERR
+	go func() {
+		var err error
+		if isTerminal {
+			// Hack: return immediately if attachStdout not set to
+			// emulate Docker.
+			// Basically, when terminal is set, STDERR goes nowhere.
+			// Everything does over STDOUT.
+			// Therefore, if not attaching STDOUT - we'll never copy
+			// anything from here.
+			logrus.Debugf("Performing terminal HTTP attach for container %s", ctr.ID())
+			if attachStdout {
+				err = httpAttachTerminalCopy(conn, httpBuf, ctr.ID())
+			}
+		} else {
+			logrus.Debugf("Performing non-terminal HTTP attach for container %s", ctr.ID())
+			err = httpAttachNonTerminalCopy(conn, httpBuf, ctr.ID(), attachStdin, attachStdout, attachStderr)
+		}
+		stdoutChan <- err
+		logrus.Debugf("STDOUT/ERR copy completed")
+	}()
+	// Next, STDIN. Avoid entirely if attachStdin unset.
+	if attachStdin {
+		go func() {
+			_, err := cutil.CopyDetachable(conn, httpBuf, detach)
+			logrus.Debugf("STDIN copy completed")
+			stdinChan <- err
+		}()
+	}
+
+	for {
+		select {
+		case err := <-stdoutChan:
 			if err != nil {
 				return 0, fmt.Errorf("cannot make /sys slave: %w", err)
 			}
@@ -249,19 +500,12 @@ func (r *ConmonOCIRuntime) SupportsKVM() bool {
 
 // AttachSocketPath is the path to a single container's attach socket.
 func (r *ConmonOCIRuntime) AttachSocketPath(ctr *Container) (string, error) {
-	if ctr == nil {
-		return "", fmt.Errorf("must provide a valid container to get attach socket path: %w", define.ErrInvalidArg)
-	}
-
-	return filepath.Join(ctr.bundlePath(), "attach"), nil
+	return attachSocketPath(ctr)
 }
 
 // ExitFilePath is the path to a container's exit file.
 func (r *ConmonOCIRuntime) ExitFilePath(ctr *Container) (string, error) {
-	if ctr == nil {
-		return "", fmt.Errorf("must provide a valid container to get exit file path: %w", define.ErrInvalidArg)
-	}
-	return filepath.Join(r.exitsDir, ctr.ID()), nil
+	return exitFilePath(ctr, r.exitsDir)
 }
 
 // RuntimeInfo provides information on the runtime.

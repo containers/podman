@@ -160,6 +160,11 @@ outer:
 		return 0, fmt.Errorf("cannot find layer %q", layerName)
 	}
 
+	rlstore, err := s.LayerStore()
+	if err != nil {
+		return 0, err
+	}
+
 	layerOptions := &LayerOptions{
 		IDMappingOptions: types.IDMappingOptions{
 			HostUIDMapping: true,

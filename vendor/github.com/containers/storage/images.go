@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -356,8 +357,8 @@ func (i *Image) recomputeDigests() error {
 		if !bigDataNameIsManifest(name) {
 			continue
 		}
-		if err := digest.Validate(); err != nil {
-			return fmt.Errorf("validating digest %q for big data item %q: %w", string(digest), name, err)
+		if digest.Validate() != nil {
+			return fmt.Errorf("validating digest %q for big data item %q: %w", string(digest), name, digest.Validate())
 		}
 		// Deduplicate the digest values.
 		if _, known := digests[digest]; !known {
@@ -405,6 +406,19 @@ func (r *imageStore) load(lockedForWriting bool) (bool, error) {
 				r.removeName(conflict, name)
 				errorToResolveBySaving = ErrDuplicateImageNames
 			}
+			// Compute the digest list.
+			err = image.recomputeDigests()
+			if err != nil {
+				return fmt.Errorf("computing digests for image with ID %q (%v): %w", image.ID, image.Names, err)
+			}
+			for _, name := range image.Names {
+				names[name] = image
+			}
+			for _, digest := range image.Digests {
+				list := digests[digest]
+				digests[digest] = append(list, image)
+			}
+			image.ReadOnly = !r.IsReadWrite()
 		}
 		// Compute the digest list.
 		if err := image.recomputeDigests(); err != nil {
@@ -442,8 +456,11 @@ func (r *imageStore) load(lockedForWriting bool) (bool, error) {
 // Save saves the contents of the store to disk.  It should be called with
 // the lock held, locked for writing.
 func (r *imageStore) Save() error {
-	if !r.lockfile.IsReadWrite() {
+	if !r.IsReadWrite() {
 		return fmt.Errorf("not allowed to modify the image store at %q: %w", r.imagespath(), ErrStoreIsReadOnly)
+	}
+	if !r.Locked() {
+		return errors.New("image store is not locked for writing")
 	}
 	r.lockfile.AssertLockedForWriting()
 	rpath := r.imagespath()
@@ -522,7 +539,7 @@ func (r *imageStore) lookup(id string) (*Image, bool) {
 }
 
 func (r *imageStore) ClearFlag(id string, flag string) error {
-	if !r.lockfile.IsReadWrite() {
+	if !r.IsReadWrite() {
 		return fmt.Errorf("not allowed to clear flags on images at %q: %w", r.imagespath(), ErrStoreIsReadOnly)
 	}
 	image, ok := r.lookup(id)
@@ -534,7 +551,7 @@ func (r *imageStore) ClearFlag(id string, flag string) error {
 }
 
 func (r *imageStore) SetFlag(id string, flag string, value interface{}) error {
-	if !r.lockfile.IsReadWrite() {
+	if !r.IsReadWrite() {
 		return fmt.Errorf("not allowed to set flags on images at %q: %w", r.imagespath(), ErrStoreIsReadOnly)
 	}
 	image, ok := r.lookup(id)
@@ -549,7 +566,7 @@ func (r *imageStore) SetFlag(id string, flag string, value interface{}) error {
 }
 
 func (r *imageStore) Create(id string, names []string, layer, metadata string, created time.Time, searchableDigest digest.Digest) (image *Image, err error) {
-	if !r.lockfile.IsReadWrite() {
+	if !r.IsReadWrite() {
 		return nil, fmt.Errorf("not allowed to create new images at %q: %w", r.imagespath(), ErrStoreIsReadOnly)
 	}
 	if id == "" {
@@ -636,7 +653,7 @@ func (r *imageStore) Metadata(id string) (string, error) {
 }
 
 func (r *imageStore) SetMetadata(id, metadata string) error {
-	if !r.lockfile.IsReadWrite() {
+	if !r.IsReadWrite() {
 		return fmt.Errorf("not allowed to modify image metadata at %q: %w", r.imagespath(), ErrStoreIsReadOnly)
 	}
 	if image, ok := r.lookup(id); ok {
@@ -655,7 +672,7 @@ func (i *Image) addNameToHistory(name string) {
 }
 
 func (r *imageStore) updateNames(id string, names []string, op updateNameOperation) error {
-	if !r.lockfile.IsReadWrite() {
+	if !r.IsReadWrite() {
 		return fmt.Errorf("not allowed to change image name assignments at %q: %w", r.imagespath(), ErrStoreIsReadOnly)
 	}
 	image, ok := r.lookup(id)
@@ -682,7 +699,7 @@ func (r *imageStore) updateNames(id string, names []string, op updateNameOperati
 }
 
 func (r *imageStore) Delete(id string) error {
-	if !r.lockfile.IsReadWrite() {
+	if !r.IsReadWrite() {
 		return fmt.Errorf("not allowed to delete images at %q: %w", r.imagespath(), ErrStoreIsReadOnly)
 	}
 	image, ok := r.lookup(id)
@@ -733,6 +750,13 @@ func (r *imageStore) Get(id string) (*Image, error) {
 		return copyImage(image), nil
 	}
 	return nil, fmt.Errorf("locating image with ID %q: %w", id, ErrImageUnknown)
+}
+
+func (r *imageStore) Lookup(name string) (id string, err error) {
+	if image, ok := r.lookup(name); ok {
+		return image.ID, nil
+	}
+	return "", fmt.Errorf("locating image with ID %q: %w", id, ErrImageUnknown)
 }
 
 func (r *imageStore) Exists(id string) bool {
@@ -812,7 +836,7 @@ func (r *imageStore) SetBigData(id, key string, data []byte, digestManifest func
 	if key == "" {
 		return fmt.Errorf("can't set empty name for image big data item: %w", ErrInvalidBigDataName)
 	}
-	if !r.lockfile.IsReadWrite() {
+	if !r.IsReadWrite() {
 		return fmt.Errorf("not allowed to save data items associated with images at %q: %w", r.imagespath(), ErrStoreIsReadOnly)
 	}
 	image, ok := r.lookup(id)
@@ -893,7 +917,7 @@ func (r *imageStore) SetBigData(id, key string, data []byte, digestManifest func
 }
 
 func (r *imageStore) Wipe() error {
-	if !r.lockfile.IsReadWrite() {
+	if !r.IsReadWrite() {
 		return fmt.Errorf("not allowed to delete images at %q: %w", r.imagespath(), ErrStoreIsReadOnly)
 	}
 	ids := make([]string, 0, len(r.byid))

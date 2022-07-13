@@ -6,11 +6,11 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"errors"
-	"os"
+	"io/ioutil"
 
 	"github.com/letsencrypt/boulder/core"
 
-	yaml "gopkg.in/yaml.v3"
+	yaml "gopkg.in/yaml.v2"
 )
 
 // blockedKeys is a type for maintaining a map of SHA256 hashes
@@ -42,14 +42,16 @@ func (b blockedKeys) blocked(key crypto.PublicKey) (bool, error) {
 // SHA256 hashes of SubjectPublicKeyInfo's in the input YAML file
 // with the expected format:
 //
-//	blocked:
-//	  - cuwGhNNI6nfob5aqY90e7BleU6l7rfxku4X3UTJ3Z7M=
-//	  <snipped>
-//	  - Qebc1V3SkX3izkYRGNJilm9Bcuvf0oox4U2Rn+b4JOE=
+// ```
+// blocked:
+//   - cuwGhNNI6nfob5aqY90e7BleU6l7rfxku4X3UTJ3Z7M=
+//   <snipped>
+//   - Qebc1V3SkX3izkYRGNJilm9Bcuvf0oox4U2Rn+b4JOE=
+// ```
 //
 // If no hashes are found in the input YAML an error is returned.
 func loadBlockedKeysList(filename string) (*blockedKeys, error) {
-	yamlBytes, err := os.ReadFile(filename)
+	yamlBytes, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return nil, err
 	}

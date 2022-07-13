@@ -1,7 +1,6 @@
 package docker
 
 import (
-	"bytes"
 	"context"
 	"crypto/tls"
 	"encoding/json"
@@ -28,6 +27,7 @@ import (
 	"github.com/containers/storage/pkg/homedir"
 	"github.com/docker/distribution/registry/api/errcode"
 	v2 "github.com/docker/distribution/registry/api/v2"
+	clientLib "github.com/docker/distribution/registry/client"
 	"github.com/docker/go-connections/tlsconfig"
 	digest "github.com/opencontainers/go-digest"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
@@ -237,7 +237,6 @@ func newDockerClientFromRef(sys *types.SystemContext, ref dockerReference, regis
 	}
 	client.signatureBase = sigBase
 	client.useSigstoreAttachments = registryConfig.useSigstoreAttachments(ref)
-	client.scope.resourceType = "repository"
 	client.scope.actions = actions
 	client.scope.remoteName = reference.Path(ref.ref)
 	return client, nil
@@ -909,14 +908,14 @@ func (c *dockerClient) getExternalBlob(ctx context.Context, urls []string) (io.R
 		return nil, 0, errors.New("internal error: getExternalBlob called with no URLs")
 	}
 	for _, u := range urls {
-		blobURL, err := url.Parse(u)
-		if err != nil || (blobURL.Scheme != "http" && blobURL.Scheme != "https") {
+		url, err := url.Parse(u)
+		if err != nil || (url.Scheme != "http" && url.Scheme != "https") {
 			continue // unsupported url. skip this url.
 		}
 		// NOTE: we must not authenticate on additional URLs as those
 		//       can be abused to leak credentials or tokens.  Please
 		//       refer to CVE-2020-15157 for more information.
-		resp, err = c.makeRequestToResolvedURL(ctx, http.MethodGet, blobURL, nil, nil, -1, noAuth, nil)
+		resp, err = c.makeRequestToResolvedURL(ctx, http.MethodGet, url, nil, nil, -1, noAuth, nil)
 		if err == nil {
 			if resp.StatusCode != http.StatusOK {
 				err = fmt.Errorf("error fetching external blob from %q: %d (%s)", u, resp.StatusCode, http.StatusText(resp.StatusCode))
@@ -963,10 +962,9 @@ func (c *dockerClient) getBlob(ctx context.Context, ref dockerReference, info ty
 	if err != nil {
 		return nil, 0, err
 	}
-	if res.StatusCode != http.StatusOK {
-		err := registryHTTPResponseToError(res)
+	if err := httpResponseToError(res, "Error fetching blob"); err != nil {
 		res.Body.Close()
-		return nil, 0, fmt.Errorf("fetching blob: %w", err)
+		return nil, 0, err
 	}
 	cache.RecordKnownLocation(ref.Transport(), bicTransportScope(ref), info.Digest, newBICLocationReference(ref))
 	return res.Body, getBlobSize(res), nil
@@ -990,22 +988,16 @@ func (c *dockerClient) getOCIDescriptorContents(ctx context.Context, ref dockerR
 
 // isManifestUnknownError returns true iff err from fetchManifest is a “manifest unknown” error.
 func isManifestUnknownError(err error) bool {
-	// docker/distribution, and as defined in the spec
-	var ec errcode.ErrorCoder
-	if errors.As(err, &ec) && ec.ErrorCode() == v2.ErrorCodeManifestUnknown {
-		return true
+	var errs errcode.Errors
+	if !errors.As(err, &errs) || len(errs) == 0 {
+		return false
 	}
-	// registry.redhat.io as of October 2022
-	var e errcode.Error
-	if errors.As(err, &e) && e.ErrorCode() == errcode.ErrorCodeUnknown && e.Message == "Not Found" {
-		return true
+	err = errs[0]
+	ec, ok := err.(errcode.ErrorCoder)
+	if !ok {
+		return false
 	}
-	// ALSO registry.redhat.io as of October 2022
-	var unexpected *unexpectedHTTPResponseError
-	if errors.As(err, &unexpected) && unexpected.StatusCode == http.StatusNotFound && bytes.Contains(unexpected.Response, []byte("Not found")) {
-		return true
-	}
-	return false
+	return ec.ErrorCode() == v2.ErrorCodeManifestUnknown
 }
 
 // getSigstoreAttachmentManifest loads and parses the manifest for sigstore attachments for
@@ -1052,7 +1044,7 @@ func (c *dockerClient) getExtensionsSignatures(ctx context.Context, ref dockerRe
 	}
 	defer res.Body.Close()
 	if res.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("downloading signatures for %s in %s: %w", manifestDigest, ref.ref.Name(), registryHTTPResponseToError(res))
+		return nil, fmt.Errorf("downloading signatures for %s in %s: %w", manifestDigest, ref.ref.Name(), clientLib.HandleErrorResponse(res))
 	}
 
 	body, err := iolimits.ReadAtMost(res.Body, iolimits.MaxSignatureListBodySize)

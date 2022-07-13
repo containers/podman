@@ -1,11 +1,9 @@
 package copy
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/containers/image/v5/docker/reference"
-	"github.com/containers/image/v5/internal/private"
 	internalsig "github.com/containers/image/v5/internal/signature"
 	"github.com/containers/image/v5/signature"
 	"github.com/containers/image/v5/signature/sigstore"

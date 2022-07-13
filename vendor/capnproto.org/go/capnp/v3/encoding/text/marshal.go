@@ -113,15 +113,6 @@ func (enc *Encoder) marshalText(t []byte) {
 	enc.w.Write(enc.tmp)
 }
 
-func needsEscape(b byte) bool {
-	return b < 0x20 || b >= 0x7f
-}
-
-func hexDigit(b byte) byte {
-	const digits = "0123456789abcdef"
-	return digits[b]
-}
-
 func (enc *Encoder) marshalStruct(typeID uint64, s capnp.Struct) error {
 	n, err := enc.nodes.Find(typeID)
 	if err != nil {

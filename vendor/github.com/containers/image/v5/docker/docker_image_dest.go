@@ -244,7 +244,7 @@ func (d *dockerImageDestination) blobExists(ctx context.Context, repo reference.
 		logrus.Debugf("... not present")
 		return false, -1, nil
 	default:
-		return false, -1, fmt.Errorf("checking whether a blob %s exists in %s: %w", digest, repo.Name(), registryHTTPResponseToError(res))
+		return false, -1, fmt.Errorf("failed to read from destination repository %s: %d (%s)", reference.Path(d.ref.ref), res.StatusCode, http.StatusText(res.StatusCode))
 	}
 }
 
@@ -580,8 +580,8 @@ func (d *dockerImageDestination) putSignaturesToLookaside(signatures []signature
 
 	// NOTE: Keep this in sync with docs/signature-protocols.md!
 	for i, signature := range signatures {
-		sigURL := lookasideStorageURL(d.c.signatureBase, manifestDigest, i)
-		err := d.putOneSignature(sigURL, signature)
+		url := lookasideStorageURL(d.c.signatureBase, manifestDigest, i)
+		err := d.putOneSignature(url, signature)
 		if err != nil {
 			return err
 		}
@@ -592,8 +592,8 @@ func (d *dockerImageDestination) putSignaturesToLookaside(signatures []signature
 	// is enough for dockerImageSource to stop looking for other signatures, so that
 	// is sufficient.
 	for i := len(signatures); ; i++ {
-		sigURL := lookasideStorageURL(d.c.signatureBase, manifestDigest, i)
-		missing, err := d.c.deleteOneSignature(sigURL)
+		url := lookasideStorageURL(d.c.signatureBase, manifestDigest, i)
+		missing, err := d.c.deleteOneSignature(url)
 		if err != nil {
 			return err
 		}
@@ -605,10 +605,10 @@ func (d *dockerImageDestination) putSignaturesToLookaside(signatures []signature
 	return nil
 }
 
-// putOneSignature stores sig to sigURL.
+// putOneSignature stores sig to url.
 // NOTE: Keep this in sync with docs/signature-protocols.md!
-func (d *dockerImageDestination) putOneSignature(sigURL *url.URL, sig signature.Signature) error {
-	switch sigURL.Scheme {
+func (d *dockerImageDestination) putOneSignature(url *url.URL, sig signature.Signature) error {
+	switch url.Scheme {
 	case "file":
 		logrus.Debugf("Writing to %s", sigURL.Path)
 		err := os.MkdirAll(filepath.Dir(sigURL.Path), 0755)
@@ -619,16 +619,16 @@ func (d *dockerImageDestination) putOneSignature(sigURL *url.URL, sig signature.
 		if err != nil {
 			return err
 		}
-		err = os.WriteFile(sigURL.Path, blob, 0644)
+		err = os.WriteFile(url.Path, blob, 0644)
 		if err != nil {
 			return err
 		}
 		return nil
 
 	case "http", "https":
-		return fmt.Errorf("Writing directly to a %s lookaside %s is not supported. Configure a lookaside-staging: location", sigURL.Scheme, sigURL.Redacted())
+		return fmt.Errorf("Writing directly to a %s lookaside %s is not supported. Configure a lookaside-staging: location", url.Scheme, url.Redacted())
 	default:
-		return fmt.Errorf("Unsupported scheme when writing signature to %s", sigURL.Redacted())
+		return fmt.Errorf("Unsupported scheme when writing signature to %s", url.Redacted())
 	}
 }
 
@@ -648,7 +648,6 @@ func (d *dockerImageDestination) putSignaturesToSigstoreAttachments(ctx context.
 			Digest:    "", // We will fill this in later.
 			Size:      0,
 		}, nil)
-		ociConfig.RootFS.Type = "layers"
 	} else {
 		logrus.Debugf("Fetching sigstore attachment config %s", ociManifest.Config.Digest.String())
 		// We don’t benefit from a real BlobInfoCache here because we never try to reuse/mount configs.
@@ -767,7 +766,7 @@ func (d *dockerImageDestination) putBlobBytesAsOCI(ctx context.Context, contents
 	}, nil
 }
 
-// deleteOneSignature deletes a signature from sigURL, if it exists.
+// deleteOneSignature deletes a signature from url, if it exists.
 // If it successfully determines that the signature does not exist, returns (true, nil)
 // NOTE: Keep this in sync with docs/signature-protocols.md!
 func (c *dockerClient) deleteOneSignature(sigURL *url.URL) (missing bool, err error) {
@@ -781,9 +780,9 @@ func (c *dockerClient) deleteOneSignature(sigURL *url.URL) (missing bool, err er
 		return false, err
 
 	case "http", "https":
-		return false, fmt.Errorf("Writing directly to a %s lookaside %s is not supported. Configure a lookaside-staging: location", sigURL.Scheme, sigURL.Redacted())
+		return false, fmt.Errorf("Writing directly to a %s lookaside %s is not supported. Configure a lookaside-staging: location", url.Scheme, url.Redacted())
 	default:
-		return false, fmt.Errorf("Unsupported scheme when deleting signature from %s", sigURL.Redacted())
+		return false, fmt.Errorf("Unsupported scheme when deleting signature from %s", url.Redacted())
 	}
 }
 

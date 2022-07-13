@@ -163,17 +163,17 @@ func loadAndMergeConfig(dirPath string) (*registryConfiguration, error) {
 // the usage of the BaseURL is defined under docker/distribution registries—separate storage of docs/signature-protocols.md
 func (config *registryConfiguration) lookasideStorageBaseURL(dr dockerReference, write bool) (*url.URL, error) {
 	topLevel := config.signatureTopLevel(dr, write)
-	var baseURL *url.URL
+	var url *url.URL
 	if topLevel != "" {
 		u, err := url.Parse(topLevel)
 		if err != nil {
 			return nil, fmt.Errorf("Invalid signature storage URL %s: %w", topLevel, err)
 		}
-		baseURL = u
+		url = u
 	} else {
 		// returns default directory if no lookaside specified in configuration file
-		baseURL = builtinDefaultLookasideStorageDir(rootless.GetRootlessEUID())
-		logrus.Debugf(" No signature storage configuration found for %s, using built-in default %s", dr.PolicyConfigurationIdentity(), baseURL.Redacted())
+		url = builtinDefaultLookasideStorageDir(rootless.GetRootlessEUID())
+		logrus.Debugf(" No signature storage configuration found for %s, using built-in default %s", dr.PolicyConfigurationIdentity(), url.Redacted())
 	}
 	// NOTE: Keep this in sync with docs/signature-protocols.md!
 	// FIXME? Restrict to explicitly supported schemes?
@@ -181,8 +181,8 @@ func (config *registryConfiguration) lookasideStorageBaseURL(dr dockerReference,
 	if path.Clean(repo) != repo {  // Coverage: This should not be reachable because /./ and /../ components are not valid in docker references
 		return nil, fmt.Errorf("Unexpected path elements in Docker reference %s for signature storage", dr.ref.String())
 	}
-	baseURL.Path = baseURL.Path + "/" + repo
-	return baseURL, nil
+	url.Path = url.Path + "/" + repo
+	return url, nil
 }
 
 // builtinDefaultLookasideStorageDir returns default signature storage URL as per euid
@@ -201,8 +201,8 @@ func (config *registryConfiguration) signatureTopLevel(ref dockerReference, writ
 		identity := ref.PolicyConfigurationIdentity()
 		if ns, ok := config.Docker[identity]; ok {
 			logrus.Debugf(` Lookaside configuration: using "docker" namespace %s`, identity)
-			if ret := ns.signatureTopLevel(write); ret != "" {
-				return ret
+			if url := ns.signatureTopLevel(write); url != "" {
+				return url
 			}
 		}
 
@@ -210,8 +210,8 @@ func (config *registryConfiguration) signatureTopLevel(ref dockerReference, writ
 		for _, name := range ref.PolicyConfigurationNamespaces() {
 			if ns, ok := config.Docker[name]; ok {
 				logrus.Debugf(` Lookaside configuration: using "docker" namespace %s`, name)
-				if ret := ns.signatureTopLevel(write); ret != "" {
-					return ret
+				if url := ns.signatureTopLevel(write); url != "" {
+					return url
 				}
 			}
 		}
@@ -219,8 +219,8 @@ func (config *registryConfiguration) signatureTopLevel(ref dockerReference, writ
 	// Look for a default location
 	if config.DefaultDocker != nil {
 		logrus.Debugf(` Lookaside configuration: using "default-docker" configuration`)
-		if ret := config.DefaultDocker.signatureTopLevel(write); ret != "" {
-			return ret
+		if url := config.DefaultDocker.signatureTopLevel(write); url != "" {
+			return url
 		}
 	}
 	return ""
@@ -287,7 +287,7 @@ func (ns registryNamespace) signatureTopLevel(write bool) string {
 // base is not nil from the caller
 // NOTE: Keep this in sync with docs/signature-protocols.md!
 func lookasideStorageURL(base lookasideStorageBase, manifestDigest digest.Digest, index int) *url.URL {
-	sigURL := *base
-	sigURL.Path = fmt.Sprintf("%s@%s=%s/signature-%d", sigURL.Path, manifestDigest.Algorithm(), manifestDigest.Hex(), index+1)
-	return &sigURL
+	url := *base
+	url.Path = fmt.Sprintf("%s@%s=%s/signature-%d", url.Path, manifestDigest.Algorithm(), manifestDigest.Hex(), index+1)
+	return &url
 }

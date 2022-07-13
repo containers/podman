@@ -455,8 +455,8 @@ func (s *BoltState) getContainerFromDB(id []byte, ctr *Container, ctrsBkt *bolt.
 			if strings.HasPrefix(runtimeName, "/") {
 				if stat, err := os.Stat(runtimeName); err == nil && !stat.IsDir() {
 					// TODO: to integrate conmon-rs, use the below line instead.
-					// newOCIRuntime, err := newConmonRsOCIRuntime(runtimeName, []string{runtimeName}, s.runtime.conmonPath, s.runtime.runtimeFlags, s.runtime.config)
-					newOCIRuntime, err := newConmonOCIRuntime(runtimeName, []string{runtimeName}, s.runtime.conmonPath, s.runtime.runtimeFlags, s.runtime.config)
+					newOCIRuntime, err := newConmonRsOCIRuntime(runtimeName, []string{runtimeName}, s.runtime.conmonPath, s.runtime.runtimeFlags, s.runtime.config)
+					//newOCIRuntime, err := newConmonOCIRuntime(runtimeName, []string{runtimeName}, s.runtime.conmonPath, s.runtime.runtimeFlags, s.runtime.config)
 					if err == nil {
 						// The runtime lock should
 						// protect against concurrent

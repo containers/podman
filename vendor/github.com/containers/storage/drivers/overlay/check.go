@@ -6,6 +6,7 @@ package overlay
 import (
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -81,7 +82,7 @@ func doesSupportNativeDiff(d, mountOpts string) error {
 	}()
 
 	// Touch file in d to force copy up of opaque directory "d" from "l2" to "l3"
-	if err := os.WriteFile(filepath.Join(td, "merged", "d", "f"), []byte{}, 0644); err != nil {
+	if err := ioutil.WriteFile(filepath.Join(td, "merged", "d", "f"), []byte{}, 0644); err != nil {
 		return fmt.Errorf("failed to write to merged directory: %w", err)
 	}
 
@@ -157,7 +158,7 @@ func doesMetacopy(d, mountOpts string) (bool, error) {
 	}
 	if err := unix.Mount("overlay", filepath.Join(td, "merged"), "overlay", uintptr(flags), opts); err != nil {
 		if errors.Is(err, unix.EINVAL) {
-			logrus.Infof("overlay: metacopy option not supported on this kernel, checked using options %q", mountOpts)
+			logrus.Info("metacopy option not supported on this kernel", mountOpts)
 			return false, nil
 		}
 		return false, fmt.Errorf("failed to mount overlay for metacopy check with %q options: %w", mountOpts, err)

@@ -4,7 +4,6 @@ package features
 
 import (
 	"fmt"
-	"strings"
 	"sync"
 )
 
@@ -84,26 +83,6 @@ const (
 	//   with the certificate's keypair, the cert will be revoked with reason
 	//   keyCompromise, regardless of what revocation reason they request.
 	MozRevocationReasons
-	// SHA1CSRs controls whether the /acme/finalize endpoint rejects CSRs that
-	// are self-signed using SHA1.
-	SHA1CSRs
-	// AllowUnrecognizedFeatures is internal to the features package: if true,
-	// skip error when unrecognized feature flag names are passed.
-	AllowUnrecognizedFeatures
-	// RejectDuplicateCSRExtensions enables verification that submitted CSRs do
-	// not contain duplicate extensions. This behavior will be on by default in
-	// go1.19.
-	RejectDuplicateCSRExtensions
-
-	// ROCSPStage6 disables writing full OCSP Responses to MariaDB during
-	// (pre)certificate issuance and during revocation. Because Stage 4 involved
-	// disabling ocsp-updater, this means that no ocsp response bytes will be
-	// written to the database anymore.
-	ROCSPStage6
-	// ROCSPStage7 disables generating OCSP responses during issuance and
-	// revocation. This affects codepaths in both the RA (revocation) and the CA
-	// (precert "birth certificates").
-	ROCSPStage7
 )
 
 // List of features and their default value, protected by fMu
@@ -131,17 +110,6 @@ var features = map[FeatureFlag]bool{
 	CheckFailedAuthorizationsFirst: false,
 	AllowReRevocation:              false,
 	MozRevocationReasons:           false,
-	OldTLSOutbound:                 true,
-	OldTLSInbound:                  true,
-	SHA1CSRs:                       true,
-	AllowUnrecognizedFeatures:      false,
-	ExpirationMailerDontLookTwice:  false,
-	RejectDuplicateCSRExtensions:   false,
-	ROCSPStage1:                    false,
-	ROCSPStage2:                    false,
-	ROCSPStage3:                    false,
-	ROCSPStage6:                    false,
-	ROCSPStage7:                    false,
 }
 
 var fMu = new(sync.RWMutex)
@@ -158,24 +126,17 @@ func init() {
 }
 
 // Set accepts a list of features and whether they should
-// be enabled or disabled. In the presence of unrecognized
-// flags, it will return an error or not depending on the
-// value of AllowUnrecognizedFeatures.
+// be enabled or disabled, it will return a error if passed
+// a feature name that it doesn't know
 func Set(featureSet map[string]bool) error {
 	fMu.Lock()
 	defer fMu.Unlock()
-	var unknown []string
 	for n, v := range featureSet {
 		f, present := nameToFeature[n]
-		if present {
-			features[f] = v
-		} else {
-			unknown = append(unknown, n)
+		if !present {
+			return fmt.Errorf("feature '%s' doesn't exist", n)
 		}
-	}
-	if len(unknown) > 0 && !features[AllowUnrecognizedFeatures] {
-		return fmt.Errorf("unrecognized feature flag names: %s",
-			strings.Join(unknown, ", "))
+		features[f] = v
 	}
 	return nil
 }

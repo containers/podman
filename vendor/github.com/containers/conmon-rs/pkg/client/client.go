@@ -31,6 +31,7 @@ var (
 	errRunDirUnspecified  = errors.New("RunDir must be specified")
 	errInvalidValue       = errors.New("invalid value")
 	errRunDirNotCreated   = errors.New("could not create RunDir")
+	errTimeoutWaitForPid  = errors.New("timed out waiting for server PID to disappear")
 )
 
 // ConmonClient is the main client structure of this package.
@@ -647,13 +648,27 @@ func (c *ConmonClient) PID() uint32 {
 	return c.serverPID
 }
 
-// Shutdown kill the server via SIGINT.
+// Shutdown kill the server via SIGINT. Waits up to 10 seconds for the server
+// PID to be removed from the system.
 func (c *ConmonClient) Shutdown() error {
-	if err := syscall.Kill(int(c.serverPID), syscall.SIGINT); err != nil {
+	pid := int(c.serverPID)
+	if err := syscall.Kill(pid, syscall.SIGINT); err != nil {
 		return fmt.Errorf("kill server PID: %w", err)
 	}
 
-	return nil
+	const (
+		waitInterval = 100 * time.Millisecond
+		waitCount    = 100
+	)
+	for i := 0; i < waitCount; i++ {
+		if err := syscall.Kill(pid, 0); errors.Is(err, syscall.ESRCH) {
+			return nil
+		}
+
+		time.Sleep(waitInterval)
+	}
+
+	return errTimeoutWaitForPid
 }
 
 func (c *ConmonClient) pidFile() string {
