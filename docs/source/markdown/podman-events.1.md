@@ -77,7 +77,7 @@ The *volume* type will report the following statuses:
 
 ## OPTIONS
 
-#### **--filter**=*filter*
+#### **--filter**, **-f**=*filter*
 
 Filter events that are displayed.  They must be in the format of "filter=value".  The following
 filters are supported:
@@ -129,7 +129,7 @@ $ podman events
 
 Show only Podman create events
 ```
-$ podman events --filter event=create
+$ podman events -f event=create
 2019-03-02 10:36:01.375685062 -0600 CST container create 20dc581f6fbf (image=docker.io/library/alpine:latest, name=sharp_morse)
 2019-03-02 10:36:08.561188337 -0600 CST container create 58e7e002344c (image=k8s.gcr.io/pause:3.1, name=3e701f270d54-infra)
 2019-03-02 10:36:13.146899437 -0600 CST volume create cad6dc50e087 (image=, name=cad6dc50e0879568e7d656bd004bd343d6035e7fc4024e1711506fe2fd459e6f)
