@@ -6,29 +6,23 @@ package machine
 import (
 	"errors"
 	"fmt"
-	"io"
-	"io/ioutil"
+	"os"
+
 	"net/http"
 	"net/url"
-	"os"
 	"path/filepath"
-	"regexp"
-
-	"github.com/sirupsen/logrus"
 )
 
 const (
-	githubURL = "http://github.com/fedora-cloud/docker-brew-fedora/"
+	githubLatestReleaseURL = "https://github.com/containers/podman-wsl-fedora/releases/latest/download/rootfs.tar.xz"
 )
-
-var fedoraxzRegex = regexp.MustCompile(`fedora[^\"]+xz`)
 
 type FedoraDownload struct {
 	Download
 }
 
 func NewFedoraDownloader(vmType, vmName, releaseStream string) (DistributionDownload, error) {
-	imageName, downloadURL, size, err := getFedoraDownload(releaseStream)
+	downloadURL, size, err := getFedoraDownload(githubLatestReleaseURL)
 	if err != nil {
 		return nil, err
 	}
@@ -37,6 +31,8 @@ func NewFedoraDownloader(vmType, vmName, releaseStream string) (DistributionDown
 	if err != nil {
 		return nil, err
 	}
+
+	imageName := "rootfs.tar.xz"
 
 	f := FedoraDownload{
 		Download: Download{
@@ -69,56 +65,21 @@ func (f FedoraDownload) HasUsableCache() (bool, error) {
 	return info.Size() == f.Size, nil
 }
 
-func truncRead(url string) ([]byte, error) {
-	resp, err := http.Get(url)
+func getFedoraDownload(releaseURL string) (*url.URL, int64, error) {
+	downloadURL, err := url.Parse(releaseURL)
 	if err != nil {
-		return nil, err
+		return nil, -1, fmt.Errorf("invalid URL generated from discovered Fedora file: %s: %w", releaseURL, err)
 	}
 
-	defer func() {
-		if err := resp.Body.Close(); err != nil {
-			logrus.Error(err)
-		}
-	}()
-
-	body, err := ioutil.ReadAll(io.LimitReader(resp.Body, 10*1024*1024))
+	resp, err := http.Head(releaseURL)
 	if err != nil {
-		return nil, err
-	}
-
-	_, _ = io.Copy(io.Discard, resp.Body)
-
-	return body, nil
-}
-
-func getFedoraDownload(releaseStream string) (string, *url.URL, int64, error) {
-	dirURL := githubURL + "tree/" + releaseStream + "/" + getFcosArch() + "/"
-	body, err := truncRead(dirURL)
-	if err != nil {
-		return "", nil, -1, err
-	}
-
-	file := fedoraxzRegex.FindString(string(body))
-	if len(file) == 0 {
-		return "", nil, -1, fmt.Errorf("could not locate Fedora download at %s", dirURL)
-	}
-
-	rawURL := githubURL + "raw/" + releaseStream + "/" + getFcosArch() + "/"
-	newLocation := rawURL + file
-	downloadURL, err := url.Parse(newLocation)
-	if err != nil {
-		return "", nil, -1, fmt.Errorf("invalid URL generated from discovered Fedora file: %s: %w", newLocation, err)
-	}
-
-	resp, err := http.Head(newLocation)
-	if err != nil {
-		return "", nil, -1, fmt.Errorf("head request failed: %s: %w", newLocation, err)
+		return nil, -1, fmt.Errorf("head request failed: %s: %w", releaseURL, err)
 	}
 	_ = resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return "", nil, -1, fmt.Errorf("head request failed [%d] on download: %s", resp.StatusCode, newLocation)
+		return nil, -1, fmt.Errorf("head request failed: %s: %w", releaseURL, err)
 	}
 
-	return file, downloadURL, resp.ContentLength, nil
+	return downloadURL, resp.ContentLength, nil
 }

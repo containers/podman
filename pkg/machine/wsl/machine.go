@@ -386,7 +386,7 @@ func downloadDistro(v *MachineVM, opts machine.InitOptions) error {
 
 	if _, e := strconv.Atoi(opts.ImagePath); e == nil {
 		v.ImageStream = opts.ImagePath
-		dd, err = machine.NewFedoraDownloader(vmtype, v.Name, v.ImageStream)
+		dd, err = machine.NewFedoraDownloader(vmtype, v.Name, opts.ImagePath)
 	} else {
 		v.ImageStream = "custom"
 		dd, err = machine.NewGenericDownloader(vmtype, v.Name, opts.ImagePath)
@@ -449,34 +449,14 @@ func provisionWSLDist(v *MachineVM) (string, error) {
 	}
 
 	dist := toDist(v.Name)
-	fmt.Println("Importing operating system into WSL (this may take 5+ minutes on a new WSL install)...")
+	fmt.Println("Importing operating system into WSL (this may take a few minutes on a new WSL install)...")
 	if err = runCmdPassThrough("wsl", "--import", dist, distTarget, v.ImagePath); err != nil {
 		return "", fmt.Errorf("the WSL import of guest OS failed: %w", err)
 	}
 
-	fmt.Println("Installing packages (this will take awhile)...")
-	if err = runCmdPassThrough("wsl", "-d", dist, "dnf", "upgrade", "-y"); err != nil {
-		return "", fmt.Errorf("package upgrade on guest OS failed: %w", err)
-	}
-
-	fmt.Println("Enabling Copr")
-	if err = runCmdPassThrough("wsl", "-d", dist, "dnf", "install", "-y", "'dnf-command(copr)'"); err != nil {
-		return "", fmt.Errorf("enabling copr failed: %w", err)
-	}
-
-	fmt.Println("Enabling podman4 repo")
-	if err = runCmdPassThrough("wsl", "-d", dist, "dnf", "-y", "copr", "enable", "rhcontainerbot/podman4"); err != nil {
-		return "", fmt.Errorf("enabling copr failed: %w", err)
-	}
-
-	if err = runCmdPassThrough("wsl", "-d", dist, "dnf", "install",
-		"podman", "podman-docker", "openssh-server", "procps-ng", "-y"); err != nil {
-		return "", fmt.Errorf("package installation on guest OS failed: %w", err)
-	}
-
 	// Fixes newuidmap
-	if err = runCmdPassThrough("wsl", "-d", dist, "dnf", "reinstall", "shadow-utils", "-y"); err != nil {
-		return "", fmt.Errorf("package reinstallation of shadow-utils on guest OS failed: %w", err)
+	if err = runCmdPassThrough("wsl", "-d", dist, "rpm", "-q", "--restore", "shadow-utils", "2>/dev/null"); err != nil {
+		return "", fmt.Errorf("package permissions restore of shadow-utils on guest OS failed: %w", err)
 	}
 
 	// Windows 11 (NT Version = 10, Build 22000) generates harmless but scary messages on every
