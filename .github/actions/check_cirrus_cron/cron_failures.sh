@@ -67,11 +67,6 @@ jq --indent 4 --color-output . <./artifacts/reply.json || \
     cat ./artifacts/reply.json
 echo "::endgroup::"
 
-# Desirable to catch non-JSON encoded errors in reply.
-if grep -qi 'error' ./artifacts/reply.json; then
-    err "Found the word 'error' in reply"
-fi
-
 # e.x. reply.json
 # {
 #   "data": {
@@ -102,8 +97,19 @@ fi
 #     }
 #   }
 # }
-_filt='.data.ownerRepository.cronSettings | map(select(.lastInvocationBuild.status=="FAILED") | { name:.name, id:.lastInvocationBuild.id} | join(" ")) | join("\n")'
-jq --raw-output "$_filt" ./artifacts/reply.json > "$NAME_ID_FILEPATH"
+
+# This should never ever return an empty-list, unless there are no cirrus-cron
+# jobs defined for the repository.  In that case, this monitoring script shouldn't
+# be running anyway.
+filt_head='.data.ownerRepository.cronSettings'
+if ! jq -e "$filt_head" ./artifacts/reply.json &> /dev/null
+then
+    # Actual colorized JSON reply was printed above
+    err "Null/empty result filtering reply with '$filt_head'"
+fi
+
+filt="$filt_head | map(select(.lastInvocationBuild.status==\"FAILED\") | { name:.name, id:.lastInvocationBuild.id} | join(\" \")) | join(\"\n\")"
+jq --raw-output "$filt" ./artifacts/reply.json > "$NAME_ID_FILEPATH"
 
 echo "<Cron Name> <Failed Build ID>"
 cat "$NAME_ID_FILEPATH"
