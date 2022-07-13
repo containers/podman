@@ -94,7 +94,7 @@ var _ = Describe("Podman run cpu", func() {
 			Expect(result).Should(Exit(0))
 			Expect(result.OutputToString()).To(Equal("10000"))
 		} else {
-			result := podmanTest.Podman([]string{"run", "--rm", "--cpu-shares=2", ALPINE, "cat", "/sys/fs/cgroup/cpu/cpu.shares"})
+			result := podmanTest.Podman([]string{"run", "--rm", "-c", "2", ALPINE, "cat", "/sys/fs/cgroup/cpu/cpu.shares"})
 			result.WaitWithDefaultTimeout()
 			Expect(result).Should(Exit(0))
 			Expect(result.OutputToString()).To(Equal("2"))
