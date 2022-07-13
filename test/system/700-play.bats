@@ -65,12 +65,12 @@ status: {}
 
 RELABEL="system_u:object_r:container_file_t:s0"
 
-@test "podman play with stdin" {
+@test "podman kube with stdin" {
     TESTDIR=$PODMAN_TMPDIR/testdir
     mkdir -p $TESTDIR
     echo "$testYaml" | sed "s|TESTDIR|${TESTDIR}|g" > $PODMAN_TMPDIR/test.yaml
 
-    run_podman play kube - < $PODMAN_TMPDIR/test.yaml
+    run_podman kube play - < $PODMAN_TMPDIR/test.yaml
     if [ -e /usr/sbin/selinuxenabled -a /usr/sbin/selinuxenabled ]; then
        run ls -Zd $TESTDIR
        is "$output" "${RELABEL} $TESTDIR" "selinux relabel should have happened"
@@ -81,6 +81,20 @@ RELABEL="system_u:object_r:container_file_t:s0"
     run_podman 1 image exists k8s.gcr.io/pause
     run_podman version --format "{{.Server.Version}}-{{.Server.Built}}"
     run_podman image exists localhost/podman-pause:$output
+
+    run_podman stop -a -t 0
+    run_podman pod rm -t 0 -f test_pod
+}
+
+@test "podman kube" {
+    TESTDIR=$PODMAN_TMPDIR/testdir
+    mkdir -p $TESTDIR
+    echo "$testYaml" | sed "s|TESTDIR|${TESTDIR}|g" > $PODMAN_TMPDIR/test.yaml
+    run_podman kube play $PODMAN_TMPDIR/test.yaml
+    if [ -e /usr/sbin/selinuxenabled -a /usr/sbin/selinuxenabled ]; then
+       run ls -Zd $TESTDIR
+       is "$output" "${RELABEL} $TESTDIR" "selinux relabel should have happened"
+    fi
 
     run_podman stop -a -t 0
     run_podman pod rm -t 0 -f test_pod
@@ -159,13 +173,13 @@ EOF
     run_podman 1 container exists $service_container
 }
 
-@test "podman play --network" {
+@test "podman kube --network" {
     TESTDIR=$PODMAN_TMPDIR/testdir
     mkdir -p $TESTDIR
     echo "$testYaml" | sed "s|TESTDIR|${TESTDIR}|g" > $PODMAN_TMPDIR/test.yaml
-    run_podman 125 play kube --network host $PODMAN_TMPDIR/test.yaml
+    run_podman 125 kube play --network host $PODMAN_TMPDIR/test.yaml
     is "$output" ".*invalid value passed to --network: bridge or host networking must be configured in YAML" "podman plan-network should fail with --network host"
-    run_podman play kube --network slirp4netns:port_handler=slirp4netns $PODMAN_TMPDIR/test.yaml
+    run_podman kube play --network slirp4netns:port_handler=slirp4netns $PODMAN_TMPDIR/test.yaml
     run_podman pod inspect --format {{.InfraContainerID}} "${lines[1]}"
     infraID="$output"
     run_podman container inspect --format "{{.HostConfig.NetworkMode}}" $infraID
@@ -174,7 +188,7 @@ EOF
     run_podman stop -a -t 0
     run_podman pod rm -t 0 -f test_pod
 
-    run_podman play kube --network none $PODMAN_TMPDIR/test.yaml
+    run_podman kube play --network none $PODMAN_TMPDIR/test.yaml
     run_podman pod inspect --format {{.InfraContainerID}} "${lines[1]}"
     infraID="$output"
     run_podman container inspect --format "{{.HostConfig.NetworkMode}}" $infraID
@@ -280,12 +294,12 @@ _EOF
     run_podman rmi -f userimage:latest
 }
 
-@test "podman play --annotation" {
+@test "podman kube --annotation" {
     TESTDIR=$PODMAN_TMPDIR/testdir
     RANDOMSTRING=$(random_string 15)
     mkdir -p $TESTDIR
     echo "$testYaml" | sed "s|TESTDIR|${TESTDIR}|g" > $PODMAN_TMPDIR/test.yaml
-    run_podman play kube --annotation "name=$RANDOMSTRING" $PODMAN_TMPDIR/test.yaml
+    run_podman kube play --annotation "name=$RANDOMSTRING" $PODMAN_TMPDIR/test.yaml
     run_podman inspect --format "{{ .Config.Annotations }}" test_pod-test
     is "$output" ".*name:$RANDOMSTRING" "Annotation should be added to pod"
 
@@ -338,7 +352,7 @@ status: {}
     assert "$output" =~ "invalid annotation \"test\"=\"$RANDOMSTRING\"" "Expected to fail with annotation length greater than 63"
 }
 
-@test "podman play kube - default log driver" {
+@test "podman kube play - default log driver" {
     TESTDIR=$PODMAN_TMPDIR/testdir
     mkdir -p $TESTDIR
     echo "$testYaml" | sed "s|TESTDIR|${TESTDIR}|g" > $PODMAN_TMPDIR/test.yaml
@@ -347,7 +361,7 @@ status: {}
     default_driver=$output
 
     # Make sure that the default log driver is used
-    run_podman play kube $PODMAN_TMPDIR/test.yaml
+    run_podman kube play $PODMAN_TMPDIR/test.yaml
     run_podman inspect --format "{{.HostConfig.LogConfig.Type}}" test_pod-test
     is "$output" "$default_driver" "play kube uses default log driver"
 

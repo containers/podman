@@ -53,34 +53,6 @@ t POST libpod/containers/foo/unmount 204
 
 t DELETE libpod/containers/foo?force=true 200
 
-podman run $IMAGE true
-
-t GET libpod/containers/json?last=1 200 \
-  length=1 \
-  .[0].Id~[0-9a-f]\\{64\\} \
-  .[0].Image=$IMAGE \
-  .[0].Command[0]="true" \
-  .[0].State~\\\(exited\\\|stopped\\\) \
-  .[0].ExitCode=0 \
-  .[0].IsInfra=false
-
-cid=$(jq -r '.[0].Id' <<<"$output")
-
-t GET libpod/generate/kube?names=$cid 200
-like "$output" ".*apiVersion:.*" "Check generated kube yaml - apiVersion"
-like "$output" ".*kind:\\sPod.*" "Check generated kube yaml - kind: Pod"
-like "$output" ".*metadata:.*" "Check generated kube yaml - metadata"
-like "$output" ".*spec:.*" "Check generated kube yaml - spec"
-
-t GET "libpod/generate/kube?service=true&names=$cid" 200
-like "$output" ".*apiVersion:.*" "Check generated kube yaml(service=true) - apiVersion"
-like "$output" ".*kind:\\sPod.*" "Check generated kube yaml(service=true) - kind: Pod"
-like "$output" ".*metadata:.*" "Check generated kube yaml(service=true) - metadata"
-like "$output" ".*spec:.*" "Check generated kube yaml(service=true) - spec"
-like "$output" ".*kind:\\sService.*" "Check generated kube yaml(service=true) - kind: Service"
-
-t DELETE libpod/containers/$cid 200 .[0].Id=$cid
-
 # Create 3 stopped containers to test containers prune
 podman run $IMAGE true
 podman run $IMAGE true

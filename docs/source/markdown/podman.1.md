@@ -325,7 +325,7 @@ the exit codes follow the `chroot` standard, see below:
 | [podman-mount(1)](podman-mount.1.md)             | Mount a working container's root filesystem.                                |
 | [podman-network(1)](podman-network.1.md)         | Manage Podman networks.                                                     |
 | [podman-pause(1)](podman-pause.1.md)             | Pause one or more containers.                                               |
-| [podman-play(1)](podman-play.1.md)               | Play containers, pods or volumes based on a structured input file.          |
+| [podman-kube(1)](podman-kube.1.md)               | Play containers, pods or volumes based on a structured input file.          |
 | [podman-pod(1)](podman-pod.1.md)                 | Management tool for groups of containers, called pods.                      |
 | [podman-port(1)](podman-port.1.md)               | List port mappings for a container.                                         |
 | [podman-ps(1)](podman-ps.1.md)                   | Prints out information about containers.                                    |

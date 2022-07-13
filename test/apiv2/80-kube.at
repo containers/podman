@@ -1,0 +1,50 @@
+# -*- sh -*-
+#
+# test more container-related endpoints
+#
+
+podman create $IMAGE true
+
+t GET libpod/containers/json?last=1 200 \
+  length=1 \
+  .[0].Id~[0-9a-f]\\{64\\} \
+  .[0].Image=$IMAGE \
+  .[0].Command[0]="true" \
+  .[0].IsInfra=false
+
+cid=$(jq -r '.[0].Id' <<<"$output")
+
+# Make sure that generate-kube works
+
+t GET libpod/generate/kube?names=$cid 200
+like "$output" ".*apiVersion:.*" "Check generated kube yaml - apiVersion"
+like "$output" ".*kind:\\sPod.*" "Check generated kube yaml - kind: Pod"
+like "$output" ".*metadata:.*" "Check generated kube yaml - metadata"
+like "$output" ".*spec:.*" "Check generated kube yaml - spec"
+
+t GET "libpod/generate/kube?service=true&names=$cid" 200
+like "$output" ".*apiVersion:.*" "Check generated kube yaml(service=true) - apiVersion"
+like "$output" ".*kind:\\sPod.*" "Check generated kube yaml(service=true) - kind: Pod"
+like "$output" ".*metadata:.*" "Check generated kube yaml(service=true) - metadata"
+like "$output" ".*spec:.*" "Check generated kube yaml(service=true) - spec"
+like "$output" ".*kind:\\sService.*" "Check generated kube yaml(service=true) - kind: Service"
+
+TMPD=$(mktemp -d podman-apiv2-test-kube.XXXXXX)
+YAML="${TMPD}/kube.yaml"
+echo "$output" > $YAML
+
+t DELETE libpod/containers/$cid 200 .[0].Id=$cid
+
+# Make sure that kube-play works
+
+t POST   libpod/kube/play $YAML 200
+t DELETE libpod/kube/play $YAML 200
+
+# Make sure that play-kube works
+
+t POST   libpod/play/kube $YAML 200
+t DELETE libpod/play/kube $YAML 200
+
+rm -rf $TMPD
+
+# vim: filetype=sh

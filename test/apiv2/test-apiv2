@@ -252,7 +252,7 @@ function t() {
     fi
     # POST and PUT requests may be followed by one or more key=value pairs.
     # Slurp the command line until we see a 3-digit status code.
-    if [[ $method = "POST" || $method == "PUT" ]]; then
+    if [[ $method = "POST" || $method == "PUT" || $method = "DELETE" ]]; then
         local -a post_args
         for arg; do
             case "$arg" in
@@ -260,6 +260,8 @@ function t() {
                                   shift;;
                 *.tar)            curl_args+=(--data-binary @$arg);
                                   content_type="application/x-tar";
+                                  shift;;
+                *.yaml)           curl_args+=(--data-binary @$arg);
                                   shift;;
                 application/*)    content_type="$arg";
                                   shift;;
