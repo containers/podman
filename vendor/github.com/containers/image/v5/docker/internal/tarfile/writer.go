@@ -4,6 +4,7 @@ import (
 	"archive/tar"
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -15,7 +16,6 @@ import (
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/types"
 	"github.com/opencontainers/go-digest"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -72,7 +72,7 @@ func (w *Writer) unlock() {
 // The caller must have locked the Writer.
 func (w *Writer) tryReusingBlobLocked(info types.BlobInfo) (bool, types.BlobInfo, error) {
 	if info.Digest == "" {
-		return false, types.BlobInfo{}, errors.Errorf("Can not check for a blob with unknown digest")
+		return false, types.BlobInfo{}, errors.New("Can not check for a blob with unknown digest")
 	}
 	if blob, ok := w.blobs[info.Digest]; ok {
 		return true, types.BlobInfo{Digest: info.Digest, Size: blob.Size}, nil
@@ -94,16 +94,16 @@ func (w *Writer) ensureSingleLegacyLayerLocked(layerID string, layerDigest diges
 		// See also the comment in physicalLayerPath.
 		physicalLayerPath := w.physicalLayerPath(layerDigest)
 		if err := w.sendSymlinkLocked(filepath.Join(layerID, legacyLayerFileName), filepath.Join("..", physicalLayerPath)); err != nil {
-			return errors.Wrap(err, "creating layer symbolic link")
+			return fmt.Errorf("creating layer symbolic link: %w", err)
 		}
 
 		b := []byte("1.0")
 		if err := w.sendBytesLocked(filepath.Join(layerID, legacyVersionFileName), b); err != nil {
-			return errors.Wrap(err, "writing VERSION file")
+			return fmt.Errorf("writing VERSION file: %w", err)
 		}
 
 		if err := w.sendBytesLocked(filepath.Join(layerID, legacyConfigFileName), configBytes); err != nil {
-			return errors.Wrap(err, "writing config json file")
+			return fmt.Errorf("writing config json file: %w", err)
 		}
 
 		w.legacyLayers[layerID] = struct{}{}
@@ -128,7 +128,7 @@ func (w *Writer) writeLegacyMetadataLocked(layerDescriptors []manifest.Schema2De
 			var config map[string]*json.RawMessage
 			err := json.Unmarshal(configBytes, &config)
 			if err != nil {
-				return errors.Wrap(err, "unmarshaling config")
+				return fmt.Errorf("unmarshaling config: %w", err)
 			}
 			for _, attr := range [7]string{"architecture", "config", "container", "container_config", "created", "docker_version", "os"} {
 				layerConfig[attr] = config[attr]
@@ -152,7 +152,7 @@ func (w *Writer) writeLegacyMetadataLocked(layerDescriptors []manifest.Schema2De
 		layerConfig["layer_id"] = chainID
 		b, err := json.Marshal(layerConfig) // Note that layerConfig["id"] is not set yet at this point.
 		if err != nil {
-			return errors.Wrap(err, "marshaling layer config")
+			return fmt.Errorf("marshaling layer config: %w", err)
 		}
 		delete(layerConfig, "layer_id")
 		layerID := digest.Canonical.FromBytes(b).Hex()
@@ -160,7 +160,7 @@ func (w *Writer) writeLegacyMetadataLocked(layerDescriptors []manifest.Schema2De
 
 		configBytes, err := json.Marshal(layerConfig)
 		if err != nil {
-			return errors.Wrap(err, "marshaling layer config")
+			return fmt.Errorf("marshaling layer config: %w", err)
 		}
 
 		if err := w.ensureSingleLegacyLayerLocked(layerID, l.Digest, configBytes); err != nil {
@@ -280,10 +280,10 @@ func (w *Writer) Close() error {
 
 	b, err = json.Marshal(w.repositories)
 	if err != nil {
-		return errors.Wrap(err, "marshaling repositories")
+		return fmt.Errorf("marshaling repositories: %w", err)
 	}
 	if err := w.sendBytesLocked(legacyRepositoriesFileName, b); err != nil {
-		return errors.Wrap(err, "writing config json file")
+		return fmt.Errorf("writing config json file: %w", err)
 	}
 
 	if err := w.tar.Close(); err != nil {
@@ -375,7 +375,7 @@ func (w *Writer) sendFileLocked(path string, expectedSize int64, stream io.Reade
 		return err
 	}
 	if size != expectedSize {
-		return errors.Errorf("Size mismatch when copying %s, expected %d, got %d", path, expectedSize, size)
+		return fmt.Errorf("Size mismatch when copying %s, expected %d, got %d", path, expectedSize, size)
 	}
 	return nil
 }

@@ -2,14 +2,13 @@ package cgroups
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
-
-	"github.com/pkg/errors"
 )
 
 var TestMode bool
@@ -27,7 +26,7 @@ func readAcctList(ctr *CgroupControl, name string) ([]uint64, error) {
 	p := filepath.Join(ctr.getCgroupv1Path(CPUAcct), name)
 	data, err := ioutil.ReadFile(p)
 	if err != nil {
-		return nil, errors.Wrapf(err, "reading %s", p)
+		return nil, fmt.Errorf("reading %s: %w", p, err)
 	}
 	r := []uint64{}
 	for _, s := range strings.Split(string(data), " ") {
@@ -37,7 +36,7 @@ func readAcctList(ctr *CgroupControl, name string) ([]uint64, error) {
 		}
 		v, err := strconv.ParseUint(s, 10, 64)
 		if err != nil {
-			return nil, errors.Wrapf(err, "parsing %s", s)
+			return nil, fmt.Errorf("parsing %s: %w", s, err)
 		}
 		r = append(r, v)
 	}
@@ -93,7 +92,7 @@ func cpusetCopyFileFromParent(dir, file string, cgroupv2 bool) ([]byte, error) {
 	}
 	data, err := ioutil.ReadFile(parentPath)
 	if err != nil {
-		return nil, errors.Wrapf(err, "open %s", path)
+		return nil, fmt.Errorf("open %s: %w", path, err)
 	}
 	if strings.Trim(string(data), "\n") != "" {
 		return data, nil
@@ -103,7 +102,7 @@ func cpusetCopyFileFromParent(dir, file string, cgroupv2 bool) ([]byte, error) {
 		return nil, err
 	}
 	if err := ioutil.WriteFile(path, data, 0o644); err != nil {
-		return nil, errors.Wrapf(err, "write %s", path)
+		return nil, fmt.Errorf("write %s: %w", path, err)
 	}
 	return data, nil
 }
@@ -165,12 +164,12 @@ func (c *CgroupControl) createCgroupDirectory(controller string) (bool, error) {
 		return false, nil
 	}
 
-	if !os.IsNotExist(err) {
+	if !errors.Is(err, os.ErrNotExist) {
 		return false, err
 	}
 
 	if err := os.MkdirAll(cPath, 0o755); err != nil {
-		return false, errors.Wrapf(err, "error creating cgroup for %s", controller)
+		return false, fmt.Errorf("error creating cgroup for %s: %w", controller, err)
 	}
 	return true, nil
 }

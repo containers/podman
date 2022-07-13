@@ -99,7 +99,7 @@ func MergeTmpfsOptions(options []string) ([]string, error) {
 		}
 		opt := strings.SplitN(option, "=", 2)
 		if len(opt) != 2 || !validFlags[opt[0]] {
-			return nil, fmt.Errorf("Invalid tmpfs option %q", opt)
+			return nil, fmt.Errorf("invalid tmpfs option %q", opt)
 		}
 		if !dataCollisions[opt[0]] {
 			// We prepend the option and add to collision map
@@ -142,7 +142,7 @@ func ParseTmpfsOptions(options string) (int, string, error) {
 	for _, o := range strings.Split(data, ",") {
 		opt := strings.SplitN(o, "=", 2)
 		if !validFlags[opt[0]] {
-			return 0, "", fmt.Errorf("Invalid tmpfs option %q", opt)
+			return 0, "", fmt.Errorf("invalid tmpfs option %q", opt)
 		}
 	}
 	return flags, data, nil

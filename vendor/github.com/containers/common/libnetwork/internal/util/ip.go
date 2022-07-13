@@ -2,9 +2,9 @@ package util
 
 import (
 	"crypto/rand"
+	"errors"
+	"fmt"
 	"net"
-
-	"github.com/pkg/errors"
 )
 
 func incByte(subnet *net.IPNet, idx int, shift uint) error {
@@ -31,7 +31,7 @@ func NextSubnet(subnet *net.IPNet) (*net.IPNet, error) {
 	}
 	ones, bits := newSubnet.Mask.Size()
 	if ones == 0 {
-		return nil, errors.Errorf("%s has only one subnet", subnet.String())
+		return nil, fmt.Errorf("%s has only one subnet", subnet.String())
 	}
 	zeroes := uint(bits - ones)
 	shift := zeroes % 8

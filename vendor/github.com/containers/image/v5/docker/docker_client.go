@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -17,16 +18,19 @@ import (
 
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/internal/iolimits"
+	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/pkg/docker/config"
 	"github.com/containers/image/v5/pkg/sysregistriesv2"
 	"github.com/containers/image/v5/pkg/tlsclientconfig"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/image/v5/version"
 	"github.com/containers/storage/pkg/homedir"
+	"github.com/docker/distribution/registry/api/errcode"
+	v2 "github.com/docker/distribution/registry/api/v2"
 	clientLib "github.com/docker/distribution/registry/client"
 	"github.com/docker/go-connections/tlsconfig"
 	digest "github.com/opencontainers/go-digest"
-	"github.com/pkg/errors"
+	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/sirupsen/logrus"
 )
 
@@ -101,10 +105,11 @@ type dockerClient struct {
 	// by detectProperties(). Callers can edit tlsClientConfig.InsecureSkipVerify in the meantime.
 	tlsClientConfig *tls.Config
 	// The following members are not set by newDockerClient and must be set by callers if needed.
-	auth          types.DockerAuthConfig
-	registryToken string
-	signatureBase signatureStorageBase
-	scope         authScope
+	auth                   types.DockerAuthConfig
+	registryToken          string
+	signatureBase          lookasideStorageBase
+	useSigstoreAttachments bool
+	scope                  authScope
 
 	// The following members are detected registry properties:
 	// They are set after a successful detectProperties(), and never change afterwards.
@@ -209,13 +214,13 @@ func dockerCertDir(sys *types.SystemContext, hostPort string) (string, error) {
 // newDockerClientFromRef returns a new dockerClient instance for refHostname (a host a specified in the Docker image reference, not canonicalized to dockerRegistry)
 // “write” specifies whether the client will be used for "write" access (in particular passed to lookaside.go:toplevelFromSection)
 // signatureBase is always set in the return value
-func newDockerClientFromRef(sys *types.SystemContext, ref dockerReference, write bool, actions string) (*dockerClient, error) {
+func newDockerClientFromRef(sys *types.SystemContext, ref dockerReference, registryConfig *registryConfiguration, write bool, actions string) (*dockerClient, error) {
 	auth, err := config.GetCredentialsForRef(sys, ref.ref)
 	if err != nil {
-		return nil, errors.Wrapf(err, "getting username and password")
+		return nil, fmt.Errorf("getting username and password: %w", err)
 	}
 
-	sigBase, err := SignatureStorageBaseURL(sys, ref, write)
+	sigBase, err := registryConfig.lookasideStorageBaseURL(ref, write)
 	if err != nil {
 		return nil, err
 	}
@@ -230,6 +235,7 @@ func newDockerClientFromRef(sys *types.SystemContext, ref dockerReference, write
 		client.registryToken = sys.DockerBearerRegistryToken
 	}
 	client.signatureBase = sigBase
+	client.useSigstoreAttachments = registryConfig.useSigstoreAttachments(ref)
 	client.scope.actions = actions
 	client.scope.remoteName = reference.Path(ref.ref)
 	return client, nil
@@ -266,7 +272,7 @@ func newDockerClient(sys *types.SystemContext, registry, reference string) (*doc
 	skipVerify := false
 	reg, err := sysregistriesv2.FindRegistry(sys, reference)
 	if err != nil {
-		return nil, errors.Wrapf(err, "loading registries")
+		return nil, fmt.Errorf("loading registries: %w", err)
 	}
 	if reg != nil {
 		if reg.Blocked {
@@ -294,7 +300,7 @@ func newDockerClient(sys *types.SystemContext, registry, reference string) (*doc
 func CheckAuth(ctx context.Context, sys *types.SystemContext, username, password, registry string) error {
 	client, err := newDockerClient(sys, registry, registry)
 	if err != nil {
-		return errors.Wrapf(err, "creating new docker client")
+		return fmt.Errorf("creating new docker client: %w", err)
 	}
 	client.auth = types.DockerAuthConfig{
 		Username: username,
@@ -343,7 +349,7 @@ func SearchRegistry(ctx context.Context, sys *types.SystemContext, registry, ima
 	// We can't use GetCredentialsForRef here because we want to search the whole registry.
 	auth, err := config.GetCredentials(sys, registry)
 	if err != nil {
-		return nil, errors.Wrapf(err, "getting username and password")
+		return nil, fmt.Errorf("getting username and password: %w", err)
 	}
 
 	// The /v2/_catalog endpoint has been disabled for docker.io therefore
@@ -357,7 +363,7 @@ func SearchRegistry(ctx context.Context, sys *types.SystemContext, registry, ima
 
 	client, err := newDockerClient(sys, hostname, registry)
 	if err != nil {
-		return nil, errors.Wrapf(err, "creating new docker client")
+		return nil, fmt.Errorf("creating new docker client: %w", err)
 	}
 	client.auth = auth
 	if sys != nil {
@@ -400,13 +406,13 @@ func SearchRegistry(ctx context.Context, sys *types.SystemContext, registry, ima
 		resp, err := client.makeRequest(ctx, http.MethodGet, path, nil, nil, v2Auth, nil)
 		if err != nil {
 			logrus.Debugf("error getting search results from v2 endpoint %q: %v", registry, err)
-			return nil, errors.Wrapf(err, "couldn't search registry %q", registry)
+			return nil, fmt.Errorf("couldn't search registry %q: %w", registry, err)
 		}
 		defer resp.Body.Close()
 		if resp.StatusCode != http.StatusOK {
 			err := httpResponseToError(resp, "")
 			logrus.Errorf("error getting search results from v2 endpoint %q: %v", registry, err)
-			return nil, errors.Wrapf(err, "couldn't search registry %q", registry)
+			return nil, fmt.Errorf("couldn't search registry %q: %w", registry, err)
 		}
 		v2Res := &V2Results{}
 		if err := json.NewDecoder(resp.Body).Decode(v2Res); err != nil {
@@ -628,7 +634,7 @@ func (c *dockerClient) getBearerTokenOAuth2(ctx context.Context, challenge chall
 	scopes []authScope) (*bearerToken, error) {
 	realm, ok := challenge.Parameters["realm"]
 	if !ok {
-		return nil, errors.Errorf("missing realm in bearer auth challenge")
+		return nil, errors.New("missing realm in bearer auth challenge")
 	}
 
 	authReq, err := http.NewRequestWithContext(ctx, http.MethodPost, realm, nil)
@@ -676,7 +682,7 @@ func (c *dockerClient) getBearerToken(ctx context.Context, challenge challenge,
 	scopes []authScope) (*bearerToken, error) {
 	realm, ok := challenge.Parameters["realm"]
 	if !ok {
-		return nil, errors.Errorf("missing realm in bearer auth challenge")
+		return nil, errors.New("missing realm in bearer auth challenge")
 	}
 
 	authReq, err := http.NewRequestWithContext(ctx, http.MethodGet, realm, nil)
@@ -760,7 +766,7 @@ func (c *dockerClient) detectPropertiesHelper(ctx context.Context) error {
 		err = ping("http")
 	}
 	if err != nil {
-		err = errors.Wrapf(err, "pinging container registry %s", c.registry)
+		err = fmt.Errorf("pinging container registry %s: %w", c.registry, err)
 		if c.sys != nil && c.sys.DockerDisableV1Ping {
 			return err
 		}
@@ -800,6 +806,166 @@ func (c *dockerClient) detectProperties(ctx context.Context) error {
 	return c.detectPropertiesError
 }
 
+func (c *dockerClient) fetchManifest(ctx context.Context, ref dockerReference, tagOrDigest string) ([]byte, string, error) {
+	path := fmt.Sprintf(manifestPath, reference.Path(ref.ref), tagOrDigest)
+	headers := map[string][]string{
+		"Accept": manifest.DefaultRequestedManifestMIMETypes,
+	}
+	res, err := c.makeRequest(ctx, http.MethodGet, path, headers, nil, v2Auth, nil)
+	if err != nil {
+		return nil, "", err
+	}
+	logrus.Debugf("Content-Type from manifest GET is %q", res.Header.Get("Content-Type"))
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusOK {
+		return nil, "", fmt.Errorf("reading manifest %s in %s: %w", tagOrDigest, ref.ref.Name(), registryHTTPResponseToError(res))
+	}
+
+	manblob, err := iolimits.ReadAtMost(res.Body, iolimits.MaxManifestBodySize)
+	if err != nil {
+		return nil, "", err
+	}
+	return manblob, simplifyContentType(res.Header.Get("Content-Type")), nil
+}
+
+// getExternalBlob returns the reader of the first available blob URL from urls, which must not be empty.
+// This function can return nil reader when no url is supported by this function. In this case, the caller
+// should fallback to fetch the non-external blob (i.e. pull from the registry).
+func (c *dockerClient) getExternalBlob(ctx context.Context, urls []string) (io.ReadCloser, int64, error) {
+	var (
+		resp *http.Response
+		err  error
+	)
+	if len(urls) == 0 {
+		return nil, 0, errors.New("internal error: getExternalBlob called with no URLs")
+	}
+	for _, u := range urls {
+		url, err := url.Parse(u)
+		if err != nil || (url.Scheme != "http" && url.Scheme != "https") {
+			continue // unsupported url. skip this url.
+		}
+		// NOTE: we must not authenticate on additional URLs as those
+		//       can be abused to leak credentials or tokens.  Please
+		//       refer to CVE-2020-15157 for more information.
+		resp, err = c.makeRequestToResolvedURL(ctx, http.MethodGet, url, nil, nil, -1, noAuth, nil)
+		if err == nil {
+			if resp.StatusCode != http.StatusOK {
+				err = fmt.Errorf("error fetching external blob from %q: %d (%s)", u, resp.StatusCode, http.StatusText(resp.StatusCode))
+				logrus.Debug(err)
+				resp.Body.Close()
+				continue
+			}
+			break
+		}
+	}
+	if resp == nil && err == nil {
+		return nil, 0, nil // fallback to non-external blob
+	}
+	if err != nil {
+		return nil, 0, err
+	}
+	return resp.Body, getBlobSize(resp), nil
+}
+
+func getBlobSize(resp *http.Response) int64 {
+	size, err := strconv.ParseInt(resp.Header.Get("Content-Length"), 10, 64)
+	if err != nil {
+		size = -1
+	}
+	return size
+}
+
+// getBlob returns a stream for the specified blob in ref, and the blob’s size (or -1 if unknown).
+// The Digest field in BlobInfo is guaranteed to be provided, Size may be -1 and MediaType may be optionally provided.
+// May update BlobInfoCache, preferably after it knows for certain that a blob truly exists at a specific location.
+func (c *dockerClient) getBlob(ctx context.Context, ref dockerReference, info types.BlobInfo, cache types.BlobInfoCache) (io.ReadCloser, int64, error) {
+	if len(info.URLs) != 0 {
+		r, s, err := c.getExternalBlob(ctx, info.URLs)
+		if err != nil {
+			return nil, 0, err
+		} else if r != nil {
+			return r, s, nil
+		}
+	}
+
+	path := fmt.Sprintf(blobsPath, reference.Path(ref.ref), info.Digest.String())
+	logrus.Debugf("Downloading %s", path)
+	res, err := c.makeRequest(ctx, http.MethodGet, path, nil, nil, v2Auth, nil)
+	if err != nil {
+		return nil, 0, err
+	}
+	if err := httpResponseToError(res, "Error fetching blob"); err != nil {
+		res.Body.Close()
+		return nil, 0, err
+	}
+	cache.RecordKnownLocation(ref.Transport(), bicTransportScope(ref), info.Digest, newBICLocationReference(ref))
+	return res.Body, getBlobSize(res), nil
+}
+
+// getOCIDescriptorContents returns the contents a blob spcified by descriptor in ref, which must fit within limit.
+func (c *dockerClient) getOCIDescriptorContents(ctx context.Context, ref dockerReference, desc imgspecv1.Descriptor, maxSize int, cache types.BlobInfoCache) ([]byte, error) {
+	// Note that this copies all kinds of attachments: attestations, and whatever else is there,
+	// not just signatures. We leave the signature consumers to decide based on the MIME type.
+	reader, _, err := c.getBlob(ctx, ref, manifest.BlobInfoFromOCI1Descriptor(desc), cache)
+	if err != nil {
+		return nil, err
+	}
+	defer reader.Close()
+	payload, err := iolimits.ReadAtMost(reader, iolimits.MaxSignatureBodySize)
+	if err != nil {
+		return nil, fmt.Errorf("reading blob %s in %s: %w", desc.Digest.String(), ref.ref.Name(), err)
+	}
+	return payload, nil
+}
+
+// isManifestUnknownError returns true iff err from fetchManifest is a “manifest unknown” error.
+func isManifestUnknownError(err error) bool {
+	var errs errcode.Errors
+	if !errors.As(err, &errs) || len(errs) == 0 {
+		return false
+	}
+	err = errs[0]
+	ec, ok := err.(errcode.ErrorCoder)
+	if !ok {
+		return false
+	}
+	return ec.ErrorCode() == v2.ErrorCodeManifestUnknown
+}
+
+// getSigstoreAttachmentManifest loads and parses the manifest for sigstore attachments for
+// digest in ref.
+// It returns (nil, nil) if the manifest does not exist.
+func (c *dockerClient) getSigstoreAttachmentManifest(ctx context.Context, ref dockerReference, digest digest.Digest) (*manifest.OCI1, error) {
+	tag := sigstoreAttachmentTag(digest)
+	sigstoreRef, err := reference.WithTag(reference.TrimNamed(ref.ref), tag)
+	if err != nil {
+		return nil, err
+	}
+	logrus.Debugf("Looking for sigstore attachments in %s", sigstoreRef.String())
+	manifestBlob, mimeType, err := c.fetchManifest(ctx, ref, tag)
+	if err != nil {
+		// FIXME: Are we going to need better heuristics??
+		// This alone is probably a good enough reason for sigstore to be opt-in only,
+		// otherwise we would just break ordinary copies.
+		if isManifestUnknownError(err) {
+			logrus.Debugf("Fetching sigstore attachment manifest failed, assuming it does not exist: %v", err)
+			return nil, nil
+		}
+		logrus.Debugf("Fetching sigstore attachment manifest failed: %v", err)
+		return nil, err
+	}
+	if mimeType != imgspecv1.MediaTypeImageManifest {
+		// FIXME: Try anyway??
+		return nil, fmt.Errorf("unexpected MIME type for sigstore attachment manifest %s: %q",
+			sigstoreRef.String(), mimeType)
+	}
+	res, err := manifest.OCI1FromManifest(manifestBlob)
+	if err != nil {
+		return nil, fmt.Errorf("parsing manifest %s: %w", sigstoreRef.String(), err)
+	}
+	return res, nil
+}
+
 // getExtensionsSignatures returns signatures from the X-Registry-Supports-Signatures API extension,
 // using the original data structures.
 func (c *dockerClient) getExtensionsSignatures(ctx context.Context, ref dockerReference, manifestDigest digest.Digest) (*extensionSignatureList, error) {
@@ -811,7 +977,7 @@ func (c *dockerClient) getExtensionsSignatures(ctx context.Context, ref dockerRe
 	defer res.Body.Close()
 
 	if res.StatusCode != http.StatusOK {
-		return nil, errors.Wrapf(clientLib.HandleErrorResponse(res), "downloading signatures for %s in %s", manifestDigest, ref.ref.Name())
+		return nil, fmt.Errorf("downloading signatures for %s in %s: %w", manifestDigest, ref.ref.Name(), clientLib.HandleErrorResponse(res))
 	}
 
 	body, err := iolimits.ReadAtMost(res.Body, iolimits.MaxSignatureListBodySize)
@@ -821,7 +987,12 @@ func (c *dockerClient) getExtensionsSignatures(ctx context.Context, ref dockerRe
 
 	var parsedBody extensionSignatureList
 	if err := json.Unmarshal(body, &parsedBody); err != nil {
-		return nil, errors.Wrapf(err, "decoding signature list")
+		return nil, fmt.Errorf("decoding signature list: %w", err)
 	}
 	return &parsedBody, nil
+}
+
+// sigstoreAttachmentTag returns a sigstore attachment tag for the specified digest.
+func sigstoreAttachmentTag(d digest.Digest) string {
+	return strings.Replace(d.String(), ":", "-", 1) + ".sig"
 }

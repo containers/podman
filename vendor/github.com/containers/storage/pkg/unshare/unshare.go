@@ -6,7 +6,6 @@ import (
 	"os/user"
 	"sync"
 
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -27,7 +26,7 @@ func HomeDir() (string, error) {
 		if home == "" {
 			usr, err := user.LookupId(fmt.Sprintf("%d", GetRootlessUID()))
 			if err != nil {
-				homeDir, homeDirErr = "", errors.Wrapf(err, "unable to resolve HOME directory")
+				homeDir, homeDirErr = "", fmt.Errorf("unable to resolve HOME directory: %w", err)
 				return
 			}
 			homeDir, homeDirErr = usr.HomeDir, nil

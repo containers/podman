@@ -1,9 +1,9 @@
 package types
 
 import (
+	"errors"
+	"fmt"
 	"regexp"
-
-	"github.com/pkg/errors"
 )
 
 var (
@@ -21,5 +21,5 @@ var (
 	// This must NOT be changed.
 	NameRegex = regexp.MustCompile("^[a-zA-Z0-9][a-zA-Z0-9_.-]*$")
 	// RegexError is thrown in presence of an invalid name.
-	RegexError = errors.Wrapf(ErrInvalidArg, "names must match [a-zA-Z0-9][a-zA-Z0-9_.-]*")
+	RegexError = fmt.Errorf("names must match [a-zA-Z0-9][a-zA-Z0-9_.-]*: %w", ErrInvalidArg) // nolint:revive // This lint is new and we do not want to break the API.
 )

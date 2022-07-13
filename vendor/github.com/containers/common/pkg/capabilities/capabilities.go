@@ -6,11 +6,12 @@ package capabilities
 //       changed significantly to fit the needs of libpod.
 
 import (
+	"errors"
+	"fmt"
 	"sort"
 	"strings"
 	"sync"
 
-	"github.com/pkg/errors"
 	"github.com/syndtr/gocapability/capability"
 )
 
@@ -115,7 +116,7 @@ func NormalizeCapabilities(caps []string) ([]string, error) {
 			c = "CAP_" + c
 		}
 		if !stringInSlice(c, capabilityList) {
-			return nil, errors.Wrapf(ErrUnknownCapability, "%q", c)
+			return nil, fmt.Errorf("%q: %w", c, ErrUnknownCapability)
 		}
 		normalized = append(normalized, c)
 	}
@@ -127,7 +128,7 @@ func NormalizeCapabilities(caps []string) ([]string, error) {
 func ValidateCapabilities(caps []string) error {
 	for _, c := range caps {
 		if !stringInSlice(c, capabilityList) {
-			return errors.Wrapf(ErrUnknownCapability, "%q", c)
+			return fmt.Errorf("%q: %w", c, ErrUnknownCapability)
 		}
 	}
 	return nil
@@ -176,14 +177,14 @@ func MergeCapabilities(base, adds, drops []string) ([]string, error) {
 	} else {
 		for _, add := range capAdd {
 			if stringInSlice(add, capDrop) {
-				return nil, errors.Errorf("capability %q cannot be dropped and added", add)
+				return nil, fmt.Errorf("capability %q cannot be dropped and added", add)
 			}
 		}
 	}
 
 	for _, drop := range capDrop {
 		if stringInSlice(drop, capAdd) {
-			return nil, errors.Errorf("capability %q cannot be dropped and added", drop)
+			return nil, fmt.Errorf("capability %q cannot be dropped and added", drop)
 		}
 	}
 

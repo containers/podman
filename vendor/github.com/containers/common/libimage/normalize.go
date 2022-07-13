@@ -1,10 +1,10 @@
 package libimage
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/containers/image/v5/docker/reference"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -18,12 +18,12 @@ func NormalizeName(name string) (reference.Named, error) {
 	// NOTE: this code is in symmetrie with containers/image/pkg/shortnames.
 	ref, err := reference.Parse(name)
 	if err != nil {
-		return nil, errors.Wrapf(err, "error normalizing name %q", name)
+		return nil, fmt.Errorf("error normalizing name %q: %w", name, err)
 	}
 
 	named, ok := ref.(reference.Named)
 	if !ok {
-		return nil, errors.Errorf("%q is not a named reference", name)
+		return nil, fmt.Errorf("%q is not a named reference", name)
 	}
 
 	// Enforce "localhost" if needed.

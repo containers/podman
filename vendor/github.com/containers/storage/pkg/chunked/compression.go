@@ -4,6 +4,7 @@ import (
 	archivetar "archive/tar"
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"io"
 	"strconv"
@@ -14,7 +15,6 @@ import (
 	"github.com/klauspost/compress/zstd"
 	"github.com/klauspost/pgzip"
 	digest "github.com/opencontainers/go-digest"
-	"github.com/pkg/errors"
 	"github.com/vbatts/tar-split/archive/tar"
 )
 
@@ -92,7 +92,7 @@ func readEstargzChunkedManifest(blobStream ImageSourceSeekable, blobSize int64, 
 	*/
 	tocOffset, err := strconv.ParseInt(string(footer[16:16+22-6]), 16, 64)
 	if err != nil {
-		return nil, 0, errors.Wrap(err, "parse ToC offset")
+		return nil, 0, fmt.Errorf("parse ToC offset: %w", err)
 	}
 
 	size := int64(blobSize - footerSize - tocOffset)

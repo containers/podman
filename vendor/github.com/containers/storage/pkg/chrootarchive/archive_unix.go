@@ -1,9 +1,11 @@
+//go:build !windows && !darwin
 // +build !windows,!darwin
 
 package chrootarchive
 
 import (
 	"bytes"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -15,7 +17,6 @@ import (
 
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/reexec"
-	"github.com/pkg/errors"
 )
 
 // untar is the entry-point for storage-untar on re-exec. This is not used on
@@ -69,7 +70,7 @@ func invokeUnpack(decompressedArchive io.Reader, dest string, options *archive.T
 	// child
 	r, w, err := os.Pipe()
 	if err != nil {
-		return fmt.Errorf("Untar pipe failure: %v", err)
+		return fmt.Errorf("untar pipe failure: %w", err)
 	}
 
 	if root != "" {
@@ -96,13 +97,13 @@ func invokeUnpack(decompressedArchive io.Reader, dest string, options *archive.T
 
 	if err := cmd.Start(); err != nil {
 		w.Close()
-		return fmt.Errorf("Untar error on re-exec cmd: %v", err)
+		return fmt.Errorf("untar error on re-exec cmd: %w", err)
 	}
 
 	//write the options to the pipe for the untar exec to read
 	if err := json.NewEncoder(w).Encode(options); err != nil {
 		w.Close()
-		return fmt.Errorf("Untar json encode to pipe failed: %v", err)
+		return fmt.Errorf("untar json encode to pipe failed: %w", err)
 	}
 	w.Close()
 
@@ -112,7 +113,7 @@ func invokeUnpack(decompressedArchive io.Reader, dest string, options *archive.T
 		// pending on write pipe forever
 		io.Copy(ioutil.Discard, decompressedArchive)
 
-		return fmt.Errorf("Error processing tar file(%v): %s", err, output)
+		return fmt.Errorf("processing tar file(%s): %w", output, err)
 	}
 	return nil
 }
@@ -184,22 +185,24 @@ func invokePack(srcPath string, options *archive.TarOptions, root string) (io.Re
 
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
-		return nil, errors.Wrap(err, "error getting options pipe for tar process")
+		return nil, fmt.Errorf("getting options pipe for tar process: %w", err)
 	}
 
 	if err := cmd.Start(); err != nil {
-		return nil, errors.Wrap(err, "tar error on re-exec cmd")
+		return nil, fmt.Errorf("tar error on re-exec cmd: %w", err)
 	}
 
 	go func() {
 		err := cmd.Wait()
-		err = errors.Wrapf(err, "error processing tar file: %s", errBuff)
+		if err != nil {
+			err = fmt.Errorf("processing tar file(%s): %w", errBuff, err)
+		}
 		tarW.CloseWithError(err)
 	}()
 
 	if err := json.NewEncoder(stdin).Encode(options); err != nil {
 		stdin.Close()
-		return nil, errors.Wrap(err, "tar json encode to pipe failed")
+		return nil, fmt.Errorf("tar json encode to pipe failed: %w", err)
 	}
 	stdin.Close()
 

@@ -11,7 +11,6 @@ import (
 	filtersPkg "github.com/containers/common/pkg/filters"
 	"github.com/containers/common/pkg/timetype"
 	"github.com/containers/image/v5/docker/reference"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -102,7 +101,7 @@ func (r *Runtime) compileImageFilters(ctx context.Context, options *ListImagesOp
 		} else {
 			split = strings.SplitN(f, "=", 2)
 			if len(split) != 2 {
-				return nil, errors.Errorf("invalid image filter %q: must be in the format %q", f, "filter=value or filter!=value")
+				return nil, fmt.Errorf("invalid image filter %q: must be in the format %q", f, "filter=value or filter!=value")
 			}
 		}
 
@@ -160,7 +159,6 @@ func (r *Runtime) compileImageFilters(ctx context.Context, options *ListImagesOp
 
 		case "label":
 			filter = filterLabel(ctx, value)
-
 		case "readonly":
 			readOnly, err := r.bool(duplicate, key, value)
 			if err != nil {
@@ -186,7 +184,7 @@ func (r *Runtime) compileImageFilters(ctx context.Context, options *ListImagesOp
 			filter = filterBefore(until)
 
 		default:
-			return nil, errors.Errorf("unsupported image filter %q", key)
+			return nil, fmt.Errorf("unsupported image filter %q", key)
 		}
 		if negate {
 			filter = negateFilter(filter)
@@ -206,7 +204,7 @@ func negateFilter(f filterFunc) filterFunc {
 
 func (r *Runtime) containers(duplicate map[string]string, key, value string, externalFunc IsExternalContainerFunc) error {
 	if exists, ok := duplicate[key]; ok && exists != value {
-		return errors.Errorf("specifying %q filter more than once with different values is not supported", key)
+		return fmt.Errorf("specifying %q filter more than once with different values is not supported", key)
 	}
 	duplicate[key] = value
 	switch value {
@@ -237,19 +235,19 @@ func (r *Runtime) until(value string) (time.Time, error) {
 func (r *Runtime) time(key, value string) (*Image, error) {
 	img, _, err := r.LookupImage(value, nil)
 	if err != nil {
-		return nil, errors.Wrapf(err, "could not find local image for filter filter %q=%q", key, value)
+		return nil, fmt.Errorf("could not find local image for filter filter %q=%q: %w", key, value, err)
 	}
 	return img, nil
 }
 
 func (r *Runtime) bool(duplicate map[string]string, key, value string) (bool, error) {
 	if exists, ok := duplicate[key]; ok && exists != value {
-		return false, errors.Errorf("specifying %q filter more than once with different values is not supported", key)
+		return false, fmt.Errorf("specifying %q filter more than once with different values is not supported", key)
 	}
 	duplicate[key] = value
 	set, err := strconv.ParseBool(value)
 	if err != nil {
-		return false, errors.Wrapf(err, "non-boolean value %q for %s filter", key, value)
+		return false, fmt.Errorf("non-boolean value %q for %s filter: %w", key, value, err)
 	}
 	return set, nil
 }

@@ -5,7 +5,6 @@ import (
 	"os"
 
 	"github.com/containers/storage/pkg/idtools"
-	"github.com/pkg/errors"
 )
 
 // AutoUserNsOptions defines how to automatically create a user namespace.
@@ -77,18 +76,18 @@ func ParseIDMapping(UIDMapSlice, GIDMapSlice []string, subUIDMap, subGIDMap stri
 	if subUIDMap != "" && subGIDMap != "" {
 		mappings, err := idtools.NewIDMappings(subUIDMap, subGIDMap)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to create NewIDMappings for uidmap=%s gidmap=%s", subUIDMap, subGIDMap)
+			return nil, fmt.Errorf("failed to create NewIDMappings for uidmap=%s gidmap=%s: %w", subUIDMap, subGIDMap, err)
 		}
 		options.UIDMap = mappings.UIDs()
 		options.GIDMap = mappings.GIDs()
 	}
 	parsedUIDMap, err := idtools.ParseIDMap(UIDMapSlice, "UID")
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to create ParseUIDMap UID=%s", UIDMapSlice)
+		return nil, fmt.Errorf("failed to create ParseUIDMap UID=%s: %w", UIDMapSlice, err)
 	}
 	parsedGIDMap, err := idtools.ParseIDMap(GIDMapSlice, "GID")
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to create ParseGIDMap GID=%s", UIDMapSlice)
+		return nil, fmt.Errorf("failed to create ParseGIDMap GID=%s: %w", UIDMapSlice, err)
 	}
 	options.UIDMap = append(options.UIDMap, parsedUIDMap...)
 	options.GIDMap = append(options.GIDMap, parsedGIDMap...)

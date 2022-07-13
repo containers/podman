@@ -2,15 +2,20 @@ package directory
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"runtime"
 
+	"github.com/containers/image/v5/internal/imagedestination/impl"
+	"github.com/containers/image/v5/internal/imagedestination/stubs"
+	"github.com/containers/image/v5/internal/private"
 	"github.com/containers/image/v5/internal/putblobdigest"
+	"github.com/containers/image/v5/internal/signature"
 	"github.com/containers/image/v5/types"
 	"github.com/opencontainers/go-digest"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -21,47 +26,50 @@ const version = "Directory Transport Version: 1.1\n"
 var ErrNotContainerImageDir = errors.New("not a containers image directory, don't want to overwrite important data")
 
 type dirImageDestination struct {
-	ref                     dirReference
-	desiredLayerCompression types.LayerCompression
+	impl.Compat
+	impl.PropertyMethodsInitialize
+	stubs.NoPutBlobPartialInitialize
+	stubs.AlwaysSupportsSignatures
+
+	ref dirReference
 }
 
 // newImageDestination returns an ImageDestination for writing to a directory.
-func newImageDestination(sys *types.SystemContext, ref dirReference) (types.ImageDestination, error) {
+func newImageDestination(sys *types.SystemContext, ref dirReference) (private.ImageDestination, error) {
 	desiredLayerCompression := types.PreserveOriginal
 	if sys != nil {
 		if sys.DirForceCompress {
 			desiredLayerCompression = types.Compress
 
 			if sys.DirForceDecompress {
-				return nil, errors.Errorf("Cannot compress and decompress at the same time")
+				return nil, fmt.Errorf("Cannot compress and decompress at the same time")
 			}
 		}
 		if sys.DirForceDecompress {
 			desiredLayerCompression = types.Decompress
 		}
 	}
-	d := &dirImageDestination{ref: ref, desiredLayerCompression: desiredLayerCompression}
 
 	// If directory exists check if it is empty
 	// if not empty, check whether the contents match that of a container image directory and overwrite the contents
 	// if the contents don't match throw an error
-	dirExists, err := pathExists(d.ref.resolvedPath)
+	dirExists, err := pathExists(ref.resolvedPath)
 	if err != nil {
-		return nil, errors.Wrapf(err, "checking for path %q", d.ref.resolvedPath)
+		return nil, fmt.Errorf("checking for path %q: %w", ref.resolvedPath, err)
 	}
 	if dirExists {
-		isEmpty, err := isDirEmpty(d.ref.resolvedPath)
+		isEmpty, err := isDirEmpty(ref.resolvedPath)
 		if err != nil {
 			return nil, err
 		}
 
 		if !isEmpty {
-			versionExists, err := pathExists(d.ref.versionPath())
+			versionExists, err := pathExists(ref.versionPath())
 			if err != nil {
-				return nil, errors.Wrapf(err, "checking if path exists %q", d.ref.versionPath())
+				return nil, fmt.Errorf("checking if path exists %q: %w", ref.versionPath(), err)
 			}
 			if versionExists {
-				contents, err := os.ReadFile(d.ref.versionPath())
+				contents, err := os.ReadFile(ref.versionPath())
 				if err != nil {
 					return nil, err
 				}
@@ -73,22 +81,37 @@ func newImageDestination(sys *types.SystemContext, ref dirReference) (types.Imag
 				return nil, ErrNotContainerImageDir
 			}
 			// delete directory contents so that only one image is in the directory at a time
-			if err = removeDirContents(d.ref.resolvedPath); err != nil {
-				return nil, errors.Wrapf(err, "erasing contents in %q", d.ref.resolvedPath)
+			if err = removeDirContents(ref.resolvedPath); err != nil {
+				return nil, fmt.Errorf("erasing contents in %q: %w", ref.resolvedPath, err)
 			}
-			logrus.Debugf("overwriting existing container image directory %q", d.ref.resolvedPath)
+			logrus.Debugf("overwriting existing container image directory %q", ref.resolvedPath)
 		}
 	} else {
 		// create directory if it doesn't exist
-		if err := os.MkdirAll(d.ref.resolvedPath, 0755); err != nil {
-			return nil, errors.Wrapf(err, "unable to create directory %q", d.ref.resolvedPath)
+		if err := os.MkdirAll(ref.resolvedPath, 0755); err != nil {
+			return nil, fmt.Errorf("unable to create directory %q: %w", ref.resolvedPath, err)
 		}
 	}
 	// create version file
-	err = os.WriteFile(d.ref.versionPath(), []byte(version), 0644)
+	err = os.WriteFile(ref.versionPath(), []byte(version), 0644)
 	if err != nil {
-		return nil, errors.Wrapf(err, "creating version file %q", d.ref.versionPath())
+		return nil, fmt.Errorf("creating version file %q: %w", ref.versionPath(), err)
 	}
+
+	d := &dirImageDestination{
+		PropertyMethodsInitialize: impl.PropertyMethods(impl.Properties{
+			SupportedManifestMIMETypes:     nil,
+			DesiredLayerCompression:        desiredLayerCompression,
+			AcceptsForeignLayerURLs:        false,
+			MustMatchRuntimeOS:             false,
+			IgnoresEmbeddedDockerReference: false, // N/A, DockerReference() returns nil.
+			HasThreadSafePutBlob:           false,
+		}),
+		NoPutBlobPartialInitialize: stubs.NoPutBlobPartial(ref),
+
+		ref: ref,
+	}
+	d.Compat = impl.AddCompat(d)
 	return d, nil
 }
 
@@ -103,51 +126,14 @@ func (d *dirImageDestination) Close() error {
 	return nil
 }
 
-func (d *dirImageDestination) SupportedManifestMIMETypes() []string {
-	return nil
-}
-
-// SupportsSignatures returns an error (to be displayed to the user) if the destination certainly can't store signatures.
-// Note: It is still possible for PutSignatures to fail if SupportsSignatures returns nil.
-func (d *dirImageDestination) SupportsSignatures(ctx context.Context) error {
-	return nil
-}
-
-func (d *dirImageDestination) DesiredLayerCompression() types.LayerCompression {
-	return d.desiredLayerCompression
-}
-
-// AcceptsForeignLayerURLs returns false iff foreign layers in manifest should be actually
-// uploaded to the image destination, true otherwise.
-func (d *dirImageDestination) AcceptsForeignLayerURLs() bool {
-	return false
-}
-
-// MustMatchRuntimeOS returns true iff the destination can store only images targeted for the current runtime architecture and OS. False otherwise.
-func (d *dirImageDestination) MustMatchRuntimeOS() bool {
-	return false
-}
-
-// IgnoresEmbeddedDockerReference returns true iff the destination does not care about Image.EmbeddedDockerReferenceConflicts(),
-// and would prefer to receive an unmodified manifest instead of one modified for the destination.
-// Does not make a difference if Reference().DockerReference() is nil.
-func (d *dirImageDestination) IgnoresEmbeddedDockerReference() bool {
-	return false // N/A, DockerReference() returns nil.
-}
-
-// HasThreadSafePutBlob indicates whether PutBlob can be executed concurrently.
-func (d *dirImageDestination) HasThreadSafePutBlob() bool {
-	return false
-}
-
-// PutBlob writes contents of stream and returns data representing the result (with all data filled in).
+// PutBlobWithOptions writes contents of stream and returns data representing the result.
 // inputInfo.Digest can be optionally provided if known; if provided, and stream is read to the end without error, the digest MUST match the stream contents.
 // inputInfo.Size is the expected length of stream, if known.
-// May update cache.
+// inputInfo.MediaType describes the blob format, if known.
 // WARNING: The contents of stream are being verified on the fly.  Until stream.Read() returns io.EOF, the contents of the data SHOULD NOT be available
 // to any other readers for download using the supplied digest.
 // If stream.Read() at any time, ESPECIALLY at end of input, returns an error, PutBlob MUST 1) fail, and 2) delete any data stored so far.
-func (d *dirImageDestination) PutBlob(ctx context.Context, stream io.Reader, inputInfo types.BlobInfo, cache types.BlobInfoCache, isConfig bool) (types.BlobInfo, error) {
+func (d *dirImageDestination) PutBlobWithOptions(ctx context.Context, stream io.Reader, inputInfo types.BlobInfo, options private.PutBlobOptions) (types.BlobInfo, error) {
 	blobFile, err := os.CreateTemp(d.ref.path, "dir-put-blob")
 	if err != nil {
 		return types.BlobInfo{}, err
@@ -171,7 +157,7 @@ func (d *dirImageDestination) PutBlob(ctx context.Context, stream io.Reader, inp
 	}
 	blobDigest := digester.Digest()
 	if inputInfo.Size != -1 && size != inputInfo.Size {
-		return types.BlobInfo{}, errors.Errorf("Size mismatch when copying %s, expected %d, got %d", blobDigest, inputInfo.Size, size)
+		return types.BlobInfo{}, fmt.Errorf("Size mismatch when copying %s, expected %d, got %d", blobDigest, inputInfo.Size, size)
 	}
 	if err := blobFile.Sync(); err != nil {
 		return types.BlobInfo{}, err
@@ -198,18 +184,16 @@ func (d *dirImageDestination) PutBlob(ctx context.Context, stream io.Reader, inp
 	return types.BlobInfo{Digest: blobDigest, Size: size}, nil
 }
 
-// TryReusingBlob checks whether the transport already contains, or can efficiently reuse, a blob, and if so, applies it to the current destination
+// TryReusingBlobWithOptions checks whether the transport already contains, or can efficiently reuse, a blob, and if so, applies it to the current destination
 // (e.g. if the blob is a filesystem layer, this signifies that the changes it describes need to be applied again when composing a filesystem tree).
 // info.Digest must not be empty.
-// If canSubstitute, TryReusingBlob can use an equivalent equivalent of the desired blob; in that case the returned info may not match the input.
 // If the blob has been successfully reused, returns (true, info, nil); info must contain at least a digest and size, and may
 // include CompressionOperation and CompressionAlgorithm fields to indicate that a change to the compression type should be
 // reflected in the manifest that will be written.
 // If the transport can not reuse the requested blob, TryReusingBlob returns (false, {}, nil); it returns a non-nil error only on an unexpected failure.
-// May use and/or update cache.
-func (d *dirImageDestination) TryReusingBlob(ctx context.Context, info types.BlobInfo, cache types.BlobInfoCache, canSubstitute bool) (bool, types.BlobInfo, error) {
+func (d *dirImageDestination) TryReusingBlobWithOptions(ctx context.Context, info types.BlobInfo, options private.TryReusingBlobOptions) (bool, types.BlobInfo, error) {
 	if info.Digest == "" {
-		return false, types.BlobInfo{}, errors.Errorf(`"Can not check for a blob with unknown digest`)
+		return false, types.BlobInfo{}, fmt.Errorf("Can not check for a blob with unknown digest")
 	}
 	blobPath := d.ref.layerPath(info.Digest)
 	finfo, err := os.Stat(blobPath)
@@ -234,12 +218,17 @@ func (d *dirImageDestination) PutManifest(ctx context.Context, manifest []byte, 
 	return os.WriteFile(d.ref.manifestPath(instanceDigest), manifest, 0644)
 }
 
-// PutSignatures writes a set of signatures to the destination.
+// PutSignaturesWithFormat writes a set of signatures to the destination.
 // If instanceDigest is not nil, it contains a digest of the specific manifest instance to write or overwrite the signatures for
 // (when the primary manifest is a manifest list); this should always be nil if the primary manifest is not a manifest list.
-func (d *dirImageDestination) PutSignatures(ctx context.Context, signatures [][]byte, instanceDigest *digest.Digest) error {
+// MUST be called after PutManifest (signatures may reference manifest contents).
+func (d *dirImageDestination) PutSignaturesWithFormat(ctx context.Context, signatures []signature.Signature, instanceDigest *digest.Digest) error {
 	for i, sig := range signatures {
-		if err := os.WriteFile(d.ref.signaturePath(i, instanceDigest), sig, 0644); err != nil {
+		blob, err := signature.Blob(sig)
+		if err != nil {
+			return err
+		}
+		if err := os.WriteFile(d.ref.signaturePath(i, instanceDigest), blob, 0644); err != nil {
 			return err
 		}
 	}

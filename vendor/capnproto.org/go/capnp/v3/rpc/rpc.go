@@ -66,7 +66,7 @@ is a common source of errors and/or inefficiencies.
 // A Conn is a connection to another Cap'n Proto vat.
 // It is safe to use from multiple goroutines.
 type Conn struct {
-	bootstrap    *capnp.Client
+	bootstrap    capnp.Client
 	er           errReporter
 	abortTimeout time.Duration
 
@@ -103,7 +103,7 @@ type Options struct {
 	// remote peer when receiving a Bootstrap message.  NewConn "steals"
 	// this reference: it will release the client when the connection is
 	// closed.
-	BootstrapClient *capnp.Client
+	BootstrapClient capnp.Client
 
 	// ErrorReporter will be called upon when errors occur while the Conn
 	// is receiving messages from the remote vat.
@@ -198,7 +198,7 @@ func (c *Conn) backgroundTask(f func() error) func() error {
 
 // Bootstrap returns the remote vat's bootstrap interface.  This creates
 // a new client that the caller is responsible for releasing.
-func (c *Conn) Bootstrap(ctx context.Context) (bc *capnp.Client) {
+func (c *Conn) Bootstrap(ctx context.Context) (bc capnp.Client) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -210,7 +210,6 @@ func (c *Conn) Bootstrap(ctx context.Context) (bc *capnp.Client) {
 
 	bootCtx, cancel := context.WithCancel(ctx)
 	q := c.newQuestion(capnp.Method{})
-	c.setAnswerQuestion(q.p.Answer(), q)
 	bc, q.bootstrapPromise = capnp.NewPromisedClient(bootstrapClient{
 		c:      q.p.Answer().Client().AddRef(),
 		cancel: cancel,
@@ -247,7 +246,7 @@ func (c *Conn) Bootstrap(ctx context.Context) (bc *capnp.Client) {
 }
 
 type bootstrapClient struct {
-	c      *capnp.Client
+	c      capnp.Client
 	cancel context.CancelFunc
 }
 
@@ -362,7 +361,7 @@ func (c *Conn) release() {
 
 func (c *Conn) releaseBootstrap() {
 	c.bootstrap.Release()
-	c.bootstrap = nil
+	c.bootstrap = capnp.Client{}
 }
 
 func (c *Conn) releaseExports(exports []*expent) {
@@ -765,12 +764,12 @@ func (c *Conn) handleCall(ctx context.Context, call rpccp.Call, releaseCall capn
 				return nil
 			}
 			iface := sub.Interface()
-			var tgt *capnp.Client
+			var tgt capnp.Client
 			switch {
 			case sub.IsValid() && !iface.IsValid():
 				tgt = capnp.ErrorClient(rpcerr.Failed(ErrNotACapability))
 			case !iface.IsValid() || int64(iface.Capability()) >= int64(len(tgtAns.resultCapTable)):
-				tgt = nil
+				tgt = capnp.Client{}
 			default:
 				tgt = tgtAns.resultCapTable[iface.Capability()]
 			}
@@ -992,8 +991,10 @@ func (c *Conn) handleReturn(ctx context.Context, ret rpccp.Return, release capnp
 		// TODO(soon): make embargo resolve to error client.
 		for _, s := range pr.disembargoes {
 			c.sendMessage(ctx, s.buildDisembargo, func(err error) {
-				err = fmt.Errorf("incoming return: send disembargo: %w", err)
-				c.er.ReportError(err)
+				if err != nil {
+					err = fmt.Errorf("incoming return: send disembargo: %w", err)
+					c.er.ReportError(err)
+				}
 			})
 		}
 
@@ -1126,10 +1127,10 @@ func (c *Conn) handleFinish(ctx context.Context, id answerID, releaseResultCaps 
 // error indicates a protocol violation.
 //
 // The caller must be holding onto c.mu.
-func (c *Conn) recvCap(d rpccp.CapDescriptor) (*capnp.Client, error) {
+func (c *Conn) recvCap(d rpccp.CapDescriptor) (capnp.Client, error) {
 	switch w := d.Which(); w {
 	case rpccp.CapDescriptor_Which_none:
-		return nil, nil
+		return capnp.Client{}, nil
 	case rpccp.CapDescriptor_Which_senderHosted:
 		id := importID(d.SenderHosted())
 		return c.addImport(id), nil
@@ -1150,27 +1151,27 @@ func (c *Conn) recvCap(d rpccp.CapDescriptor) (*capnp.Client, error) {
 		id := exportID(d.ReceiverHosted())
 		ent := c.findExport(id)
 		if ent == nil {
-			return nil, rpcerr.Failedf("receive capability: invalid export %d", id)
+			return capnp.Client{}, rpcerr.Failedf("receive capability: invalid export %d", id)
 		}
 		return ent.client.AddRef(), nil
 	case rpccp.CapDescriptor_Which_receiverAnswer:
 		promisedAnswer, err := d.ReceiverAnswer()
 		if err != nil {
-			return nil, rpcerr.Failedf("receive capabiltiy: reading promised answer: %v", err)
+			return capnp.Client{}, rpcerr.Failedf("receive capabiltiy: reading promised answer: %v", err)
 		}
 		rawTransform, err := promisedAnswer.Transform()
 		if err != nil {
-			return nil, rpcerr.Failedf("receive capabiltiy: reading promised answer transform: %v", err)
+			return capnp.Client{}, rpcerr.Failedf("receive capabiltiy: reading promised answer transform: %v", err)
 		}
 		transform, err := parseTransform(rawTransform)
 		if err != nil {
-			return nil, rpcerr.Failedf("read target transform: %v", err)
+			return capnp.Client{}, rpcerr.Failedf("read target transform: %v", err)
 		}
 
 		id := answerID(promisedAnswer.QuestionId())
 		ans, ok := c.answers[id]
 		if !ok {
-			return nil, rpcerr.Failedf("receive capability: no such question id: %v", id)
+			return capnp.Client{}, rpcerr.Failedf("receive capability: no such question id: %v", id)
 		}
 
 		return c.recvCapReceiverAnswer(ans, transform), nil
@@ -1180,7 +1181,7 @@ func (c *Conn) recvCap(d rpccp.CapDescriptor) (*capnp.Client, error) {
 }
 
 // Helper for Conn.recvCap(); handles the receiverAnswer case.
-func (c *Conn) recvCapReceiverAnswer(ans *answer, transform []capnp.PipelineOp) *capnp.Client {
+func (c *Conn) recvCapReceiverAnswer(ans *answer, transform []capnp.PipelineOp) capnp.Client {
 	if ans.promise != nil {
 		// Still unresolved.
 		future := ans.promise.Answer().Future()
@@ -1211,7 +1212,7 @@ func (c *Conn) recvCapReceiverAnswer(ans *answer, transform []capnp.PipelineOp) 
 	// look it up in resultCapTable ourselves:
 	capId := int(iface.Capability())
 	if capId < 0 || capId >= len(ans.resultCapTable) {
-		return nil
+		return capnp.Client{}
 	}
 
 	return ans.resultCapTable[capId].AddRef()
@@ -1219,8 +1220,8 @@ func (c *Conn) recvCapReceiverAnswer(ans *answer, transform []capnp.PipelineOp) 
 
 // Returns whether the client should be treated as local, for the purpose of
 // embargos.
-func (c *Conn) isLocalClient(client *capnp.Client) bool {
-	if client == nil {
+func (c *Conn) isLocalClient(client capnp.Client) bool {
+	if (client == capnp.Client{}) {
 		return false
 	}
 
@@ -1276,7 +1277,7 @@ func (c *Conn) recvPayload(payload rpccp.Payload) (_ capnp.Ptr, locals uintSet, 
 		c.er.ReportError(fmt.Errorf("read payload: capability table: %w", err))
 		return p, nil, nil
 	}
-	mtab := make([]*capnp.Client, ptab.Len())
+	mtab := make([]capnp.Client, ptab.Len())
 	for i := 0; i < ptab.Len(); i++ {
 		var err error
 		mtab[i], err = c.recvCap(ptab.At(i))
@@ -1336,7 +1337,7 @@ func (c *Conn) handleDisembargo(ctx context.Context, d rpccp.Disembargo, release
 	case rpccp.Disembargo_context_Which_senderLoopback:
 		var (
 			imp    *importClient
-			client *capnp.Client
+			client capnp.Client
 		)
 
 		syncutil.With(&c.mu, func() {

@@ -1,6 +1,7 @@
 package types
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -60,7 +61,7 @@ func loadDefaultStoreOptions() {
 		if !os.IsNotExist(err) {
 			logrus.Warningf("Attempting to use %s, %v", defaultConfigFile, err)
 		}
-		if err := ReloadConfigurationFileIfNeeded(defaultConfigFile, &defaultStoreOptions); err != nil {
+		if err := ReloadConfigurationFileIfNeeded(defaultConfigFile, &defaultStoreOptions); err != nil && !errors.Is(err, os.ErrNotExist) {
 			loadDefaultStoreOptionsErr = err
 			return
 		}

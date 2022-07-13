@@ -303,6 +303,7 @@ func DefaultProfile(rs *specs.Spec) *rspec.LinuxSeccomp {
 				"stat64",
 				"statfs",
 				"statfs64",
+				"statx",
 				"symlink",
 				"symlinkat",
 				"sync",

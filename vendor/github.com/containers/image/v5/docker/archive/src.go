@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/containers/image/v5/docker/internal/tarfile"
+	"github.com/containers/image/v5/internal/private"
 	"github.com/containers/image/v5/types"
 )
 
@@ -14,7 +15,7 @@ type archiveImageSource struct {
 
 // newImageSource returns a types.ImageSource for the specified image reference.
 // The caller must call .Close() on the returned ImageSource.
-func newImageSource(ctx context.Context, sys *types.SystemContext, ref archiveReference) (types.ImageSource, error) {
+func newImageSource(ctx context.Context, sys *types.SystemContext, ref archiveReference) (private.ImageSource, error) {
 	var archive *tarfile.Reader
 	var closeArchive bool
 	if ref.archiveReader != nil {
@@ -28,7 +29,7 @@ func newImageSource(ctx context.Context, sys *types.SystemContext, ref archiveRe
 		archive = a
 		closeArchive = true
 	}
-	src := tarfile.NewSource(archive, closeArchive, ref.ref, ref.sourceIndex)
+	src := tarfile.NewSource(archive, closeArchive, ref.Transport().Name(), ref.ref, ref.sourceIndex)
 	return &archiveImageSource{
 		Source: src,
 		ref:    ref,

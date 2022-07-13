@@ -13,7 +13,6 @@ import (
 	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/image/v5/types"
 	"github.com/hashicorp/go-multierror"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/semaphore"
 )
@@ -84,11 +83,11 @@ func ParseSearchFilter(filter []string) (*SearchFilter, error) {
 		switch arr[0] {
 		case define.SearchFilterStars:
 			if len(arr) < 2 {
-				return nil, errors.Errorf("invalid filter %q, should be stars=<value>", filter)
+				return nil, fmt.Errorf("invalid filter %q, should be stars=<value>", filter)
 			}
 			stars, err := strconv.Atoi(arr[1])
 			if err != nil {
-				return nil, errors.Wrapf(err, "incorrect value type for stars filter")
+				return nil, fmt.Errorf("incorrect value type for stars filter: %w", err)
 			}
 			sFilter.Stars = stars
 		case define.SearchFilterAutomated:
@@ -104,7 +103,7 @@ func ParseSearchFilter(filter []string) (*SearchFilter, error) {
 				sFilter.IsOfficial = types.OptionalBoolTrue
 			}
 		default:
-			return nil, errors.Errorf("invalid filter type %q", f)
+			return nil, fmt.Errorf("invalid filter type %q", f)
 		}
 	}
 	return sFilter, nil
@@ -273,16 +272,16 @@ func searchRepositoryTags(ctx context.Context, sys *types.SystemContext, registr
 	dockerPrefix := "docker://"
 	imageRef, err := alltransports.ParseImageName(fmt.Sprintf("%s/%s", registry, term))
 	if err == nil && imageRef.Transport().Name() != registryTransport.Transport.Name() {
-		return nil, errors.Errorf("reference %q must be a docker reference", term)
+		return nil, fmt.Errorf("reference %q must be a docker reference", term)
 	} else if err != nil {
 		imageRef, err = alltransports.ParseImageName(fmt.Sprintf("%s%s", dockerPrefix, fmt.Sprintf("%s/%s", registry, term)))
 		if err != nil {
-			return nil, errors.Errorf("reference %q must be a docker reference", term)
+			return nil, fmt.Errorf("reference %q must be a docker reference", term)
 		}
 	}
 	tags, err := registryTransport.GetRepositoryTags(ctx, sys, imageRef)
 	if err != nil {
-		return nil, errors.Errorf("error getting repository tags: %v", err)
+		return nil, fmt.Errorf("error getting repository tags: %v", err)
 	}
 	limit := searchMaxQueries
 	if len(tags) < limit {

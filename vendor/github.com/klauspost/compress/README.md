@@ -17,6 +17,15 @@ This package provides various compression algorithms.
 
 # changelog
 
+* June 29, 2022 (v1.15.7)
+
+	* s2: Fix absolute forward seeks  https://github.com/klauspost/compress/pull/633
+	* zip: Merge upstream  https://github.com/klauspost/compress/pull/631
+	* zip: Re-add zip64 fix https://github.com/klauspost/compress/pull/624
+	* zstd: translate fseDecoder.buildDtable into asm by @WojciechMula in https://github.com/klauspost/compress/pull/598
+	* flate: Faster histograms  https://github.com/klauspost/compress/pull/620
+	* deflate: Use compound hcode  https://github.com/klauspost/compress/pull/622
+
 * June 3, 2022 (v1.15.6)
 	* s2: Improve coding for long, close matches https://github.com/klauspost/compress/pull/613
 	* s2c: Add Snappy/S2 stream recompression https://github.com/klauspost/compress/pull/611

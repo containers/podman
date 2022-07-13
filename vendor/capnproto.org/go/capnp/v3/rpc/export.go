@@ -13,7 +13,7 @@ type exportID uint32
 
 // expent is an entry in a Conn's export table.
 type expent struct {
-	client   *capnp.Client
+	client   capnp.Client
 	wireRefs uint32
 }
 
@@ -55,10 +55,10 @@ func (c *Conn) findExport(id exportID) *expent {
 // export's client.  The caller must be holding onto c.mu, and the
 // caller is responsible for releasing the client once the caller is no
 // longer holding onto c.mu.
-func (c *Conn) releaseExport(id exportID, count uint32) (*capnp.Client, error) {
+func (c *Conn) releaseExport(id exportID, count uint32) (capnp.Client, error) {
 	ent := c.findExport(id)
 	if ent == nil {
-		return nil, rpcerr.Failedf("unknown export ID %d", id)
+		return capnp.Client{}, rpcerr.Failedf("unknown export ID %d", id)
 	}
 	switch {
 	case count == ent.wireRefs:
@@ -71,10 +71,10 @@ func (c *Conn) releaseExport(id exportID, count uint32) (*capnp.Client, error) {
 		})
 		return client, nil
 	case count > ent.wireRefs:
-		return nil, rpcerr.Failedf("export ID %d released too many references", id)
+		return capnp.Client{}, rpcerr.Failedf("export ID %d released too many references", id)
 	default:
 		ent.wireRefs -= count
-		return nil, nil
+		return capnp.Client{}, nil
 	}
 }
 
@@ -91,7 +91,7 @@ func (c *Conn) releaseExportRefs(refs map[exportID]uint32) (releaseList, error) 
 			n--
 			continue
 		}
-		if client == nil {
+		if (client == capnp.Client{}) {
 			n--
 			continue
 		}
@@ -107,7 +107,7 @@ func (c *Conn) releaseExportRefs(refs map[exportID]uint32) (releaseList, error) 
 // sendCap writes a capability descriptor, returning an export ID if
 // this vat is hosting the capability.  The caller must be holding
 // onto c.mu.
-func (c *Conn) sendCap(d rpccp.CapDescriptor, client *capnp.Client) (_ exportID, isExport bool, _ error) {
+func (c *Conn) sendCap(d rpccp.CapDescriptor, client capnp.Client) (_ exportID, isExport bool, _ error) {
 	if !client.IsValid() {
 		d.SetNone()
 		return 0, false, nil
@@ -176,7 +176,7 @@ func (c *Conn) sendCap(d rpccp.CapDescriptor, client *capnp.Client) (_ exportID,
 // reference counts added to the exports table.
 //
 // The caller must be holding onto c.mu.
-func (c *Conn) fillPayloadCapTable(payload rpccp.Payload, clients []*capnp.Client) (map[exportID]uint32, error) {
+func (c *Conn) fillPayloadCapTable(payload rpccp.Payload, clients []capnp.Client) (map[exportID]uint32, error) {
 	if !payload.IsValid() || len(clients) == 0 {
 		return nil, nil
 	}
@@ -204,7 +204,7 @@ func (c *Conn) fillPayloadCapTable(payload rpccp.Payload, clients []*capnp.Clien
 type embargoID uint32
 
 type embargo struct {
-	c      *capnp.Client
+	c      capnp.Client
 	p      *capnp.ClientPromise
 	lifted chan struct{}
 }
@@ -212,7 +212,7 @@ type embargo struct {
 // embargo creates a new embargoed client, stealing the reference.
 //
 // The caller must be holding onto c.mu.
-func (c *Conn) embargo(client *capnp.Client) (embargoID, *capnp.Client) {
+func (c *Conn) embargo(client capnp.Client) (embargoID, capnp.Client) {
 	id := embargoID(c.embargoID.next())
 	e := &embargo{
 		c:      client,
@@ -223,7 +223,7 @@ func (c *Conn) embargo(client *capnp.Client) (embargoID, *capnp.Client) {
 	} else {
 		c.embargoes[id] = e
 	}
-	var c2 *capnp.Client
+	var c2 capnp.Client
 	c2, c.embargoes[id].p = capnp.NewPromisedClient(c.embargoes[id])
 	return id, c2
 }
@@ -304,13 +304,13 @@ func (sl *senderLoopback) buildDisembargo(msg rpccp.Message) error {
 	return nil
 }
 
-type releaseList []*capnp.Client
+type releaseList []capnp.Client
 
 func (rl releaseList) release() {
 	for _, c := range rl {
 		c.Release()
 	}
 	for i := range rl {
-		rl[i] = nil
+		rl[i] = capnp.Client{}
 	}
 }

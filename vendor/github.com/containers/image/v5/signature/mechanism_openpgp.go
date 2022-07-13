@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containers/image/v5/signature/internal"
 	"github.com/containers/storage/pkg/homedir"
 	// This is a fallback code; the primary recommendation is to use the gpgme mechanism
 	// implementation, which is out-of-process and more appropriate for handling long-term private key material
@@ -62,14 +63,19 @@ func newGPGSigningMechanismInDirectory(optionalDir string) (signingMechanismWith
 // recognizes _only_ public keys from the supplied blob, and returns the identities
 // of these keys.
 // The caller must call .Close() on the returned SigningMechanism.
-func newEphemeralGPGSigningMechanism(blob []byte) (signingMechanismWithPassphrase, []string, error) {
+func newEphemeralGPGSigningMechanism(blobs [][]byte) (signingMechanismWithPassphrase, []string, error) {
 	m := &openpgpSigningMechanism{
 		keyring: openpgp.EntityList{},
 	}
-	keyIdentities, err := m.importKeysFromBytes(blob)
-	if err != nil {
-		return nil, nil, err
+	keyIdentities := []string{}
+	for _, blob := range blobs {
+		ki, err := m.importKeysFromBytes(blob)
+		if err != nil {
+			return nil, nil, err
+		}
+		keyIdentities = append(keyIdentities, ki...)
 	}
+
 	return m, keyIdentities, nil
 }
 
@@ -144,19 +150,19 @@ func (m *openpgpSigningMechanism) Verify(unverifiedSignature []byte) (contents [
 		return nil, "", fmt.Errorf("signature error: %v", md.SignatureError)
 	}
 	if md.SignedBy == nil {
-		return nil, "", InvalidSignatureError{msg: fmt.Sprintf("Invalid GPG signature: %#v", md.Signature)}
+		return nil, "", internal.NewInvalidSignatureError(fmt.Sprintf("Invalid GPG signature: %#v", md.Signature))
 	}
 	if md.Signature != nil {
 		if md.Signature.SigLifetimeSecs != nil {
 			expiry := md.Signature.CreationTime.Add(time.Duration(*md.Signature.SigLifetimeSecs) * time.Second)
 			if time.Now().After(expiry) {
-				return nil, "", InvalidSignatureError{msg: fmt.Sprintf("Signature expired on %s", expiry)}
+				return nil, "", internal.NewInvalidSignatureError(fmt.Sprintf("Signature expired on %s", expiry))
 			}
 		}
 	} else if md.SignatureV3 == nil {
 		// Coverage: If md.SignedBy != nil, the final md.UnverifiedBody.Read() either sets one of md.Signature or md.SignatureV3,
 		// or sets md.SignatureError.
-		return nil, "", InvalidSignatureError{msg: "Unexpected openpgp.MessageDetails: neither Signature nor SignatureV3 is set"}
+		return nil, "", internal.NewInvalidSignatureError("Unexpected openpgp.MessageDetails: neither Signature nor SignatureV3 is set")
 	}
 
 	// Uppercase the fingerprint to be compatible with gpgme

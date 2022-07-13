@@ -5,26 +5,40 @@ import (
 	"io"
 
 	"github.com/containers/image/v5/docker/reference"
+	"github.com/containers/image/v5/internal/blobinfocache"
+	"github.com/containers/image/v5/internal/signature"
 	"github.com/containers/image/v5/types"
+	"github.com/opencontainers/go-digest"
 )
 
-// ImageSource is an internal extension to the types.ImageSource interface.
-type ImageSource interface {
-	types.ImageSource
-
+// ImageSourceInternalOnly is the part of private.ImageSource that is not
+// a part of types.ImageSource.
+type ImageSourceInternalOnly interface {
 	// SupportsGetBlobAt() returns true if GetBlobAt (BlobChunkAccessor) is supported.
 	SupportsGetBlobAt() bool
 	// BlobChunkAccessor.GetBlobAt is available only if SupportsGetBlobAt().
 	BlobChunkAccessor
+
+	// GetSignaturesWithFormat returns the image's signatures.  It may use a remote (= slow) service.
+	// If instanceDigest is not nil, it contains a digest of the specific manifest instance to retrieve signatures for
+	// (when the primary manifest is a manifest list); this never happens if the primary manifest is not a manifest list
+	// (e.g. if the source never returns manifest lists).
+	GetSignaturesWithFormat(ctx context.Context, instanceDigest *digest.Digest) ([]signature.Signature, error)
 }
 
-// ImageDestination is an internal extension to the types.ImageDestination
-// interface.
-type ImageDestination interface {
-	types.ImageDestination
+// ImageSource is an internal extension to the types.ImageSource interface.
+type ImageSource interface {
+	types.ImageSource
+	ImageSourceInternalOnly
+}
 
+// ImageDestinationInternalOnly is the part of private.ImageDestination that is not
+// a part of types.ImageDestination.
+type ImageDestinationInternalOnly interface {
 	// SupportsPutBlobPartial returns true if PutBlobPartial is supported.
 	SupportsPutBlobPartial() bool
+	// FIXME: Add SupportsSignaturesWithFormat or something like that, to allow early failures
+	// on unsupported formats.
 
 	// PutBlobWithOptions writes contents of stream and returns data representing the result.
 	// inputInfo.Digest can be optionally provided if known; if provided, and stream is read to the end without error, the digest MUST match the stream contents.
@@ -40,7 +54,7 @@ type ImageDestination interface {
 	// It is available only if SupportsPutBlobPartial().
 	// Even if SupportsPutBlobPartial() returns true, the call can fail, in which case the caller
 	// should fall back to PutBlobWithOptions.
-	PutBlobPartial(ctx context.Context, chunkAccessor BlobChunkAccessor, srcInfo types.BlobInfo, cache types.BlobInfoCache) (types.BlobInfo, error)
+	PutBlobPartial(ctx context.Context, chunkAccessor BlobChunkAccessor, srcInfo types.BlobInfo, cache blobinfocache.BlobInfoCache2) (types.BlobInfo, error)
 
 	// TryReusingBlobWithOptions checks whether the transport already contains, or can efficiently reuse, a blob, and if so, applies it to the current destination
 	// (e.g. if the blob is a filesystem layer, this signifies that the changes it describes need to be applied again when composing a filesystem tree).
@@ -50,15 +64,31 @@ type ImageDestination interface {
 	// reflected in the manifest that will be written.
 	// If the transport can not reuse the requested blob, TryReusingBlob returns (false, {}, nil); it returns a non-nil error only on an unexpected failure.
 	TryReusingBlobWithOptions(ctx context.Context, info types.BlobInfo, options TryReusingBlobOptions) (bool, types.BlobInfo, error)
+
+	// PutSignaturesWithFormat writes a set of signatures to the destination.
+	// If instanceDigest is not nil, it contains a digest of the specific manifest instance to write or overwrite the signatures for
+	// (when the primary manifest is a manifest list); this should always be nil if the primary manifest is not a manifest list.
+	// MUST be called after PutManifest (signatures may reference manifest contents).
+	PutSignaturesWithFormat(ctx context.Context, signatures []signature.Signature, instanceDigest *digest.Digest) error
+}
+
+// ImageDestination is an internal extension to the types.ImageDestination
+// interface.
+type ImageDestination interface {
+	types.ImageDestination
+	ImageDestinationInternalOnly
 }
 
 // PutBlobOptions are used in PutBlobWithOptions.
 type PutBlobOptions struct {
-	Cache    types.BlobInfoCache // Cache to optionally update with the uploaded bloblook up blob infos.
-	IsConfig bool                // True if the blob is a config
+	Cache    blobinfocache.BlobInfoCache2 // Cache to optionally update with the uploaded bloblook up blob infos.
+	IsConfig bool                         // True if the blob is a config
 
 	// The following fields are new to internal/private.  Users of internal/private MUST fill them in,
 	// but they also must expect that they will be ignored by types.ImageDestination transports.
+	// Transports, OTOH, MUST support these fields being zero-valued for types.ImageDestination callers
+	// if they use internal/imagedestination/impl.Compat;
+	// in that case, they will all be consistently zero-valued.
 
 	EmptyLayer bool // True if the blob is an "empty"/"throwaway" layer, and may not necessarily be physically represented.
 	LayerIndex *int // If the blob is a layer, a zero-based index of the layer within the image; nil otherwise.
@@ -66,13 +96,16 @@ type PutBlobOptions struct {
 
 // TryReusingBlobOptions are used in TryReusingBlobWithOptions.
 type TryReusingBlobOptions struct {
-	Cache types.BlobInfoCache // Cache to use and/or update.
+	Cache blobinfocache.BlobInfoCache2 // Cache to use and/or update.
 	// If true, it is allowed to use an equivalent of the desired blob;
 	// in that case the returned info may not match the input.
 	CanSubstitute bool
 
 	// The following fields are new to internal/private.  Users of internal/private MUST fill them in,
 	// but they also must expect that they will be ignored by types.ImageDestination transports.
+	// Transports, OTOH, MUST support these fields being zero-valued for types.ImageDestination callers
+	// if they use internal/imagedestination/impl.Compat;
+	// in that case, they will all be consistently zero-valued.
 
 	EmptyLayer bool            // True if the blob is an "empty"/"throwaway" layer, and may not necessarily be physically represented.
 	LayerIndex *int            // If the blob is a layer, a zero-based index of the layer within the image; nil otherwise.
@@ -103,4 +136,11 @@ type BadPartialRequestError struct {
 
 func (e BadPartialRequestError) Error() string {
 	return e.Status
+}
+
+// UnparsedImage is an internal extension to the types.UnparsedImage interface.
+type UnparsedImage interface {
+	types.UnparsedImage
+	// UntrustedSignatures is like ImageSource.GetSignaturesWithFormat, but the result is cached; it is OK to call this however often you need.
+	UntrustedSignatures(ctx context.Context) ([]signature.Signature, error)
 }

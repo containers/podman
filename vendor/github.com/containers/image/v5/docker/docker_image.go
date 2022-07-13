@@ -3,6 +3,7 @@ package docker
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -13,7 +14,6 @@ import (
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/types"
 	"github.com/opencontainers/go-digest"
-	"github.com/pkg/errors"
 )
 
 // Image is a Docker-specific implementation of types.ImageCloser with a few extra methods
@@ -56,13 +56,17 @@ func (i *Image) GetRepositoryTags(ctx context.Context) ([]string, error) {
 func GetRepositoryTags(ctx context.Context, sys *types.SystemContext, ref types.ImageReference) ([]string, error) {
 	dr, ok := ref.(dockerReference)
 	if !ok {
-		return nil, errors.Errorf("ref must be a dockerReference")
+		return nil, errors.New("ref must be a dockerReference")
 	}
 
-	path := fmt.Sprintf(tagsPath, reference.Path(dr.ref))
-	client, err := newDockerClientFromRef(sys, dr, false, "pull")
+	registryConfig, err := loadRegistryConfiguration(sys)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to create client")
+		return nil, err
+	}
+	path := fmt.Sprintf(tagsPath, reference.Path(dr.ref))
+	client, err := newDockerClientFromRef(sys, dr, registryConfig, false, "pull")
+	if err != nil {
+		return nil, fmt.Errorf("failed to create client: %w", err)
 	}
 
 	tags := make([]string, 0)
@@ -116,7 +120,7 @@ func GetRepositoryTags(ctx context.Context, sys *types.SystemContext, ref types.
 func GetDigest(ctx context.Context, sys *types.SystemContext, ref types.ImageReference) (digest.Digest, error) {
 	dr, ok := ref.(dockerReference)
 	if !ok {
-		return "", errors.Errorf("ref must be a dockerReference")
+		return "", errors.New("ref must be a dockerReference")
 	}
 
 	tagOrDigest, err := dr.tagOrDigest()
@@ -124,9 +128,13 @@ func GetDigest(ctx context.Context, sys *types.SystemContext, ref types.ImageRef
 		return "", err
 	}
 
-	client, err := newDockerClientFromRef(sys, dr, false, "pull")
+	registryConfig, err := loadRegistryConfiguration(sys)
 	if err != nil {
-		return "", errors.Wrap(err, "failed to create client")
+		return "", err
+	}
+	client, err := newDockerClientFromRef(sys, dr, registryConfig, false, "pull")
+	if err != nil {
+		return "", fmt.Errorf("failed to create client: %w", err)
 	}
 
 	path := fmt.Sprintf(manifestPath, reference.Path(dr.ref), tagOrDigest)
@@ -141,7 +149,7 @@ func GetDigest(ctx context.Context, sys *types.SystemContext, ref types.ImageRef
 
 	defer res.Body.Close()
 	if res.StatusCode != http.StatusOK {
-		return "", errors.Wrapf(registryHTTPResponseToError(res), "reading digest %s in %s", tagOrDigest, dr.ref.Name())
+		return "", fmt.Errorf("reading digest %s in %s: %w", tagOrDigest, dr.ref.Name(), registryHTTPResponseToError(res))
 	}
 
 	dig, err := digest.Parse(res.Header.Get("Docker-Content-Digest"))

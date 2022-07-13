@@ -2,6 +2,7 @@ package openshift
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"regexp"
 	"strings"
@@ -11,7 +12,6 @@ import (
 	genericImage "github.com/containers/image/v5/internal/image"
 	"github.com/containers/image/v5/transports"
 	"github.com/containers/image/v5/types"
-	"github.com/pkg/errors"
 )
 
 func init() {
@@ -43,7 +43,7 @@ var scopeRegexp = regexp.MustCompile("^[^/]*(/[^:/]*(/[^:/]*(:[^:/]*)?)?)?$")
 // scope passed to this function will not be "", that value is always allowed.
 func (t openshiftTransport) ValidatePolicyConfigurationScope(scope string) error {
 	if scopeRegexp.FindStringIndex(scope) == nil {
-		return errors.Errorf("Invalid scope name %s", scope)
+		return fmt.Errorf("Invalid scope name %s", scope)
 	}
 	return nil
 }
@@ -59,11 +59,11 @@ type openshiftReference struct {
 func ParseReference(ref string) (types.ImageReference, error) {
 	r, err := reference.ParseNormalizedNamed(ref)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to parse image reference %q", ref)
+		return nil, fmt.Errorf("failed to parse image reference %q: %w", ref, err)
 	}
 	tagged, ok := r.(reference.NamedTagged)
 	if !ok {
-		return nil, errors.Errorf("invalid image reference %s, expected format: 'hostname/namespace/stream:tag'", ref)
+		return nil, fmt.Errorf("invalid image reference %s, expected format: 'hostname/namespace/stream:tag'", ref)
 	}
 	return NewReference(tagged)
 }
@@ -72,7 +72,7 @@ func ParseReference(ref string) (types.ImageReference, error) {
 func NewReference(dockerRef reference.NamedTagged) (types.ImageReference, error) {
 	r := strings.SplitN(reference.Path(dockerRef), "/", 3)
 	if len(r) != 2 {
-		return nil, errors.Errorf("invalid image reference: %s, expected format: 'hostname/namespace/stream:tag'",
+		return nil, fmt.Errorf("invalid image reference: %s, expected format: 'hostname/namespace/stream:tag'",
 			reference.FamiliarString(dockerRef))
 	}
 	return openshiftReference{
@@ -149,5 +149,5 @@ func (ref openshiftReference) NewImageDestination(ctx context.Context, sys *type
 
 // DeleteImage deletes the named image from the registry, if supported.
 func (ref openshiftReference) DeleteImage(ctx context.Context, sys *types.SystemContext) error {
-	return errors.Errorf("Deleting images not implemented for atomic: images")
+	return errors.New("Deleting images not implemented for atomic: images")
 }

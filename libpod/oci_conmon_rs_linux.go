@@ -10,7 +10,6 @@ import (
 	"fmt"
 	// "io"
 	// "io/ioutil"
-	// "net"
 	"net/http"
 	"os"
 	"os/exec"
@@ -34,7 +33,6 @@ import (
 	"github.com/containers/podman/v4/pkg/errorhandling"
 	"github.com/containers/podman/v4/pkg/rootless"
 	// "github.com/containers/podman/v4/pkg/specgenutil"
-	"github.com/containers/podman/v4/pkg/util"
 	"github.com/containers/podman/v4/utils"
 	"github.com/containers/storage/pkg/homedir"
 	pmount "github.com/containers/storage/pkg/mount"
@@ -490,12 +488,7 @@ func (r *ConmonRsOCIRuntime) sharedConmonArgs(ctr *Container, cuuid, bundlePath,
 
 // DeleteContainer deletes a container from the OCI runtime.
 func (r *ConmonRsOCIRuntime) DeleteContainer(ctr *Container) error {
-	runtimeDir, err := util.GetRuntimeDir()
-	if err != nil {
-		return err
-	}
-	env := []string{fmt.Sprintf("XDG_RUNTIME_DIR=%s", runtimeDir)}
-	return utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, env, r.path, append(r.runtimeFlags, "delete", "--force", ctr.ID())...)
+	return deleteContainer(ctr, r.path, r.runtimeFlags)
 }
 
 // moveConmonToCgroupAndSignal gets a container's cgroupParent and moves the conmon process to that cgroup
@@ -592,15 +585,21 @@ func (r *ConmonRsOCIRuntime) configureConmonEnv(runtimeDir string) []string { //
 }
 
 // UpdateContainerStatus updates the status of the given container.
-func (r *ConmonRsOCIRuntime) UpdateContainerStatus(ctr *Container) error { return nil }
+func (r *ConmonRsOCIRuntime) UpdateContainerStatus(ctr *Container) error {
+	return updateContainerStatus(ctr, r.path)
+}
 
 // StartContainer starts the given container.
-func (r *ConmonRsOCIRuntime) StartContainer(ctr *Container) error { return nil }
+func (r *ConmonRsOCIRuntime) StartContainer(ctr *Container) error {
+	return startContainer(ctr, r.path, r.runtimeFlags)
+}
 
 // KillContainer sends the given signal to the given container.
 // If all is set, all processes in the container will be signalled;
 // otherwise, only init will be signalled.
-func (r *ConmonRsOCIRuntime) KillContainer(ctr *Container, signal uint, all bool) error { return nil }
+func (r *ConmonRsOCIRuntime) KillContainer(ctr *Container, signal uint, all bool) error {
+	return killContainer(ctr, signal, all, r.path, r.runtimeFlags)
+}
 
 // StopContainer stops the given container.
 // The container's stop signal (or SIGTERM if unspecified) will be sent
@@ -611,16 +610,95 @@ func (r *ConmonRsOCIRuntime) KillContainer(ctr *Container, signal uint, all bool
 // If all is set, we will attempt to use the --all flag will `kill` in
 // the OCI runtime to kill all processes in the container, including
 // exec sessions. This is only supported if the container has cgroups.
-func (r *ConmonRsOCIRuntime) StopContainer(ctr *Container, timeout uint, all bool) error { return nil }
+func (r *ConmonRsOCIRuntime) StopContainer(ctr *Container, timeout uint, all bool) error {
+	return stopContainer(ctr, timeout, all, r.path, r.runtimeFlags)
+}
 
 // PauseContainer pauses the given container.
-func (r *ConmonRsOCIRuntime) PauseContainer(ctr *Container) error { return nil }
+func (r *ConmonRsOCIRuntime) PauseContainer(ctr *Container) error {
+	return pauseContainer(ctr, r.path, r.runtimeFlags)
+}
 
 // UnpauseContainer unpauses the given container.
-func (r *ConmonRsOCIRuntime) UnpauseContainer(ctr *Container) error { return nil }
+func (r *ConmonRsOCIRuntime) UnpauseContainer(ctr *Container) error {
+	return unpauseContainer(ctr, r.path, r.runtimeFlags)
+}
 
 // Attach to a container.
-func (r *ConmonRsOCIRuntime) Attach(ctr *Container, params *AttachOptions) error { return nil }
+func (r *ConmonRsOCIRuntime) Attach(ctr *Container, params *AttachOptions) error {
+	//return attach(ctr, params)
+
+	client, err := conmonClient.New(&conmonClient.ConmonServerConfig{
+		ConmonServerPath: r.conmonPath,
+		LogLevel:         "debug",
+		Runtime:          r.path,
+		ServerRunDir:     ctr.state.RunDir,
+		LogDriver:        conmonClient.LogDriverStdout,
+	})
+	if err != nil {
+		return fmt.Errorf("error creating conmon-rs client: %w", err)
+	}
+
+	passthrough := ctr.LogDriver() == define.PassthroughLogging
+
+	if params == nil || params.Streams == nil {
+		return fmt.Errorf("must provide parameters to Attach: %w", define.ErrInternal)
+	}
+
+	if !params.Streams.AttachOutput && !params.Streams.AttachError && !params.Streams.AttachInput && !passthrough {
+		return fmt.Errorf("must provide at least one stream to attach to: %w", define.ErrInvalidArg)
+	}
+
+	if params.Start && params.Started == nil {
+		return fmt.Errorf("started chan not passed when startContainer set: %w", define.ErrInternal)
+	}
+
+	keys := config.DefaultDetachKeys
+	if params.DetachKeys != nil {
+		keys = *params.DetachKeys
+	}
+
+	detachKeys, err := processDetachKeys(keys)
+	if err != nil {
+		return err
+	}
+
+	var attachSock string
+	if !passthrough {
+		logrus.Debugf("Attaching to container %s", ctr.ID())
+
+		// If we have a resize, do it.
+		if params.InitialSize != nil {
+			if err := attachResize(ctr, *params.InitialSize); err != nil {
+				return err
+			}
+		}
+
+		attachSock, err = ctr.AttachSocketPath()
+		if err != nil {
+			return err
+		}
+	}
+
+	streams := conmonClient.AttachStreams{
+		Stdin:  &conmonClient.In{params.Streams.InputStream},
+		Stdout: &conmonClient.Out{params.Streams.OutputStream},
+		Stderr: &conmonClient.Out{params.Streams.ErrorStream},
+	}
+
+	var cfg *conmonClient.AttachConfig
+	cfg = &conmonClient.AttachConfig{
+		ID:          ctr.ID(),
+		SocketPath:  attachSock,
+		Tty:         false,
+		Passthrough: passthrough,
+		Resize:      make(chan resize.TerminalSize),
+		Streams:     streams,
+		DetachKeys:  detachKeys,
+	}
+
+	return client.AttachContainer(context.Background(), cfg)
+}
 
 // HTTPAttach performs an attach intended to be transported over HTTP.
 // For terminal attach, the container's output will be directly streamed
@@ -635,11 +713,15 @@ func (r *ConmonRsOCIRuntime) Attach(ctr *Container, params *AttachOptions) error
 // The streams parameter will determine which streams to forward to the
 // client.
 func (r *ConmonRsOCIRuntime) HTTPAttach(ctr *Container, req *http.Request, w http.ResponseWriter, streams *HTTPAttachStreams, detachKeys *string, cancel <-chan bool, hijackDone chan<- bool, streamAttach, streamLogs bool) error {
-	return nil
+	//return httpAttach(ctr, req, w, streams, detachKeys, cancel, hijackDone, streamAttach, streamLogs)
+	panic("http attach")
+	return define.ErrNotImplemented
 }
 
 // AttachResize resizes the terminal in use by the given container.
 func (r *ConmonRsOCIRuntime) AttachResize(ctr *Container, newSize resize.TerminalSize) error {
+	// NOTE: for some reason the conmon_utils implementation of this causes issues
+	//return attachResize(ctr, newSize)
 	return nil
 }
 
@@ -652,7 +734,8 @@ func (r *ConmonRsOCIRuntime) AttachResize(ctr *Container, newSize resize.Termina
 // return signature.
 // newSize resizes the tty to this size before the process is started, must be nil if the exec session has no tty
 func (r *ConmonRsOCIRuntime) ExecContainer(ctr *Container, sessionID string, options *ExecOptions, streams *define.AttachStreams, newSize *resize.TerminalSize) (int, chan error, error) {
-	return 0, make(chan error), nil
+	panic("exec container")
+	return 0, make(chan error), define.ErrNotImplemented
 }
 
 // ExecContainerHTTP executes a command in a running container and
@@ -663,20 +746,23 @@ func (r *ConmonRsOCIRuntime) ExecContainer(ctr *Container, sessionID string, opt
 // newSize resizes the tty to this size before the process is started, must be nil if the exec session has no tty
 func (r *ConmonRsOCIRuntime) ExecContainerHTTP(ctr *Container, sessionID string, options *ExecOptions, req *http.Request, w http.ResponseWriter,
 	streams *HTTPAttachStreams, cancel <-chan bool, hijackDone chan<- bool, holdConnOpen <-chan bool, newSize *resize.TerminalSize) (int, chan error, error) {
-	return 0, make(chan error), nil
+	panic("exec container http")
+	return 0, make(chan error), define.ErrNotImplemented
 }
 
 // ExecContainerDetached executes a command in a running container, but
 // does not attach to it. Returns the PID of the exec session and an
 // error (if starting the exec session failed)
 func (r *ConmonRsOCIRuntime) ExecContainerDetached(ctr *Container, sessionID string, options *ExecOptions, stdin bool) (int, error) {
-	return 0, nil
+	panic("exec container detached")
+	return 0, define.ErrNotImplemented
 }
 
 // ExecAttachResize resizes the terminal of a running exec session. Only
 // allowed with sessions that were created with a TTY.
 func (r *ConmonRsOCIRuntime) ExecAttachResize(ctr *Container, sessionID string, newSize resize.TerminalSize) error {
-	return nil
+	panic("exec attach resize")
+	return define.ErrNotImplemented
 }
 
 // ExecStopContainer stops a given exec session in a running container.
@@ -684,13 +770,15 @@ func (r *ConmonRsOCIRuntime) ExecAttachResize(ctr *Container, sessionID string, 
 // If timeout is 0, SIGKILL will be sent immediately, and SIGTERM will
 // be omitted.
 func (r *ConmonRsOCIRuntime) ExecStopContainer(ctr *Container, sessionID string, timeout uint) error {
-	return nil
+	panic("exec stop container")
+	return define.ErrNotImplemented
 }
 
 // ExecUpdateStatus checks the status of a given exec session.
 // Returns true if the session is still running, or false if it exited.
 func (r *ConmonRsOCIRuntime) ExecUpdateStatus(ctr *Container, sessionID string) (bool, error) {
-	return false, nil
+	panic("exec update status")
+	return false, define.ErrNotImplemented
 }
 
 // CheckpointContainer checkpoints the given container.
@@ -700,7 +788,8 @@ func (r *ConmonRsOCIRuntime) ExecUpdateStatus(ctr *Container, sessionID string) 
 // contains the number of microseconds the runtime needed to checkpoint
 // the given container.
 func (r *ConmonRsOCIRuntime) CheckpointContainer(ctr *Container, options ContainerCheckpointOptions) (int64, error) {
-	return 0, nil
+	panic("checkpoint container")
+	return 0, define.ErrNotImplemented
 }
 
 // CheckConmonRunning verifies that the given container's Conmon
@@ -708,7 +797,9 @@ func (r *ConmonRsOCIRuntime) CheckpointContainer(ctr *Container, options Contain
 // the PID of conmon is not available, should mock this as True.
 // True indicates that Conmon for the instance is running, False
 // indicates it is not.
-func (r *ConmonRsOCIRuntime) CheckConmonRunning(ctr *Container) (bool, error) { return false, nil }
+func (r *ConmonRsOCIRuntime) CheckConmonRunning(ctr *Container) (bool, error) {
+	return checkConmonRunning(ctr)
+}
 
 // SupportsCheckpoint returns whether this OCI runtime
 // implementation supports the CheckpointContainer() operation.
@@ -731,22 +822,28 @@ func (r *ConmonRsOCIRuntime) SupportsKVM() bool { return false }
 // TODO: If we move Attach code in here, this should be made internal.
 // We don't want to force all runtimes to share the same attach
 // implementation.
-func (r *ConmonRsOCIRuntime) AttachSocketPath(ctr *Container) (string, error) { return "", nil }
+func (r *ConmonRsOCIRuntime) AttachSocketPath(ctr *Container) (string, error) {
+	return attachSocketPath(ctr)
+}
 
 // ExecAttachSocketPath is the path to the socket to attach to a given
 // exec session in the given container.
 // TODO: Probably should be made internal.
 func (r *ConmonRsOCIRuntime) ExecAttachSocketPath(ctr *Container, sessionID string) (string, error) {
-	return "", nil
+	panic("exec attach socket path")
+	return "", define.ErrNotImplemented
 }
 
 // ExitFilePath is the path to a container's exit file.
 // All runtime implementations must create an exit file when containers
 // exit, containing the exit code of the container (as a string).
 // This is the path to that file for a given container.
-func (r *ConmonRsOCIRuntime) ExitFilePath(ctr *Container) (string, error) { return "", nil }
+func (r *ConmonRsOCIRuntime) ExitFilePath(ctr *Container) (string, error) {
+	return exitFilePath(ctr, r.exitsDir)
+}
 
 // RuntimeInfo returns verbose information about the runtime.
 func (r *ConmonRsOCIRuntime) RuntimeInfo() (*define.ConmonInfo, *define.OCIRuntimeInfo, error) {
-	return nil, nil, nil
+	panic("runtime info")
+	return nil, nil, define.ErrNotImplemented
 }

@@ -1,3 +1,4 @@
+//go:build cgo
 // +build cgo
 
 package copy
@@ -154,7 +155,7 @@ func DirCopy(srcDir, dstDir string, copyMode Mode, copyXattrs bool) error {
 		dstPath := filepath.Join(dstDir, relPath)
 		stat, ok := f.Sys().(*syscall.Stat_t)
 		if !ok {
-			return fmt.Errorf("Unable to get raw syscall.Stat_t data for %s", srcPath)
+			return fmt.Errorf("unable to get raw syscall.Stat_t data for %s", srcPath)
 		}
 
 		isHardlink := false
