@@ -1,0 +1,60 @@
+#!/usr/bin/env python3
+#
+# markdown-preprocess - filter *.md.in files, convert to .md
+#
+
+import glob
+import os
+import sys
+
+def main():
+    try:
+        os.chdir("docs/source/markdown")
+    except FileNotFoundError:
+        raise Exception("Please invoke me from the base repo dir")
+
+    # If called with args, process only those files
+    infiles = [ os.path.basename(x) for x in sys.argv[1:] ]
+    if len(infiles) == 0:
+        # Called without args: process all *.md.in files
+        infiles = glob.glob('*.md.in')
+    for infile in infiles:
+        process(infile)
+
+def process(infile):
+    # Some options are the same between containers and pods; determine
+    # which description to use from the name of the source man page.
+    pod_or_container = 'container'
+    if '-pod-' in infile:
+        pod_or_container = 'pod'
+
+    # Sometimes a man page includes the subcommand.
+    subcommand = infile.removeprefix("podman-").removesuffix(".1.md.in").replace("-", " ")
+
+    # foo.md.in -> foo.md -- but always write to a tmpfile
+    outfile = os.path.splitext(infile)[0]
+    outfile_tmp = outfile + '.tmp.' + str(os.getpid())
+
+#    print("got here: ",infile, " -> ", outfile)
+
+    with open(infile, 'r') as fh_in, open(outfile_tmp, 'w') as fh_out:
+        for line in fh_in:
+            # '@@option foo' -> include file options/foo.md
+            if line.startswith('@@option '):
+                _, optionname = line.strip().split(" ")
+                optionfile = os.path.join("options", optionname + '.md')
+                fh_out.write("[//]: # (BEGIN included file " + optionfile + ")\n")
+                with open(optionfile, 'r') as fh_optfile:
+                    for opt_line in fh_optfile:
+                        opt_line = opt_line.replace('<POD-OR-CONTAINER>', pod_or_container)
+                        opt_line = opt_line.replace('<SUBCOMMAND>', subcommand)
+                        fh_out.write(opt_line)
+                fh_out.write("[//]: # (END   included file " + optionfile + ")\n")
+            else:
+                fh_out.write(line)
+
+    os.chmod(outfile_tmp, 0o444)
+    os.rename(outfile_tmp, outfile)
+
+if __name__ == "__main__":
+    main()

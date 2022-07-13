@@ -11,101 +11,25 @@ podman\-container\-clone - Creates a copy of an existing container
 
 ## OPTIONS
 
-#### **--blkio-weight**=*weight*
+@@option blkio-weight
 
-Block IO weight (relative weight) accepts a weight value between 10 and 1000.
+@@option blkio-weight-device
 
-#### **--blkio-weight-device**=*weight*
-
-Block IO weight (relative device weight, format: `DEVICE_NAME:WEIGHT`).
-
-#### **--cpu-period**=*limit*
-
-Set the CPU period for the Completely Fair Scheduler (CFS), which is a
-duration in microseconds. Once the container's CPU quota is used up, it will
-not be scheduled to run until the current period ends. Defaults to 100000
-microseconds.
-
-On some systems, changing the CPU limits may not be allowed for non-root
-users. For more details, see
-https://github.com/containers/podman/blob/master/troubleshooting.md#26-running-containers-with-cpu-limits-fails-with-a-permissions-error
+@@option cpu-period
 
 If none is specified, the original container's cpu period is used
 
-#### **--cpu-quota**=*limit*
-
-Limit the CPU Completely Fair Scheduler (CFS) quota.
-
-Limit the container's CPU usage. By default, containers run with the full
-CPU resource. The limit is a number in microseconds. If a number is provided,
-the container will be allowed to use that much CPU time until the CPU period
-ends (controllable via **--cpu-period**).
-
-On some systems, changing the CPU limits may not be allowed for non-root
-users. For more details, see
-https://github.com/containers/podman/blob/master/troubleshooting.md#26-running-containers-with-cpu-limits-fails-with-a-permissions-error
+@@option cpu-quota
 
 If none is specified, the original container's CPU quota are used.
 
-#### **--cpu-rt-period**=*microseconds*
-
-Limit the CPU real-time period in microseconds
-
-Limit the container's Real Time CPU usage. This option tells the kernel to restrict the container's Real Time CPU usage to the period specified.
-
-This option is not supported on cgroups V2 systems.
+@@option cpu-rt-period
 
 If none is specified, the original container's CPU runtime period is used.
 
+@@option cpu-rt-runtime
 
-#### **--cpu-rt-runtime**=*microseconds*
-
-Limit the CPU real-time runtime in microseconds.
-
-Limit the containers Real Time CPU usage. This option tells the kernel to limit the amount of time in a given CPU period Real Time tasks may consume. Ex:
-Period of 1,000,000us and Runtime of 950,000us means that this container could consume 95% of available CPU and leave the remaining 5% to normal priority tasks.
-
-The sum of all runtimes across containers cannot exceed the amount allotted to the parent cgroup.
-
-This option is not supported on cgroups V2 systems.
-
-#### **--cpu-shares**, **-c**=*shares*
-
-CPU shares (relative weight)
-
-By default, all containers get the same proportion of CPU cycles. This proportion
-can be modified by changing the container's CPU share weighting relative
-to the weighting of all other running containers.
-
-To modify the proportion from the default of 1024, use the **--cpu-shares**
-option to set the weighting to 2 or higher.
-
-The proportion will only apply when CPU-intensive processes are running.
-When tasks in one container are idle, other containers can use the
-left-over CPU time. The actual amount of CPU time will vary depending on
-the number of containers running on the system.
-
-For example, consider three containers, one has a cpu-share of 1024 and
-two others have a cpu-share setting of 512. When processes in all three
-containers attempt to use 100% of CPU, the first container would receive
-50% of the total CPU time. If a fourth container is added with a cpu-share
-of 1024, the first container only gets 33% of the CPU. The remaining containers
-receive 16.5%, 16.5% and 33% of the CPU.
-
-On a multi-core system, the shares of CPU time are distributed over all CPU
-cores. Even if a container is limited to less than 100% of CPU time, it can
-use 100% of each individual CPU core.
-
-For example, consider a system with more than three cores.
-If the container _C0_ is started with **--cpu-shares=512** running one process,
-and another container _C1_ with **--cpu-shares=1024** running two processes,
-this can result in the following division of CPU shares:
-
-| PID  |  container  | CPU     | CPU share    |
-| ---- | ----------- | ------- | ------------ |
-| 100  |  C0         | 0       | 100% of CPU0 |
-| 101  |  C1         | 1       | 100% of CPU1 |
-| 102  |  C1         | 2       | 100% of CPU2 |
+@@option cpu-shares
 
 If none are specified, the original container's CPU shares are used.
 
@@ -120,13 +44,7 @@ for **--cpu-period** and **--cpu-quota**, so only **--cpus** or either both the 
 
 CPUs in which to allow execution (0-3, 0,1). If none are specified, the original container's CPUset is used.
 
-#### **--cpuset-mems**=*nodes*
-
-Memory nodes (MEMs) in which to allow execution (0-3, 0,1). Only effective on NUMA systems.
-
-If there are four memory nodes on the system (0-3), use `--cpuset-mems=0,1`
-then processes in the container will only use memory from the first
-two memory nodes.
+@@option cpuset-mems
 
 If none are specified, the original container's CPU memory nodes are used.
 
@@ -134,13 +52,9 @@ If none are specified, the original container's CPU memory nodes are used.
 
 Remove the original container that we are cloning once used to mimic the configuration.
 
-#### **--device-read-bps**=*path*
+@@option device-read-bps
 
-Limit read rate (bytes per second) from a device (e.g. --device-read-bps=/dev/sda:1mb).
-
-#### **--device-write-bps**=*path*
-
-Limit write rate (bytes per second) to a device (e.g. --device-write-bps=/dev/sda:1mb)
+@@option device-write-bps
 
 #### **--force**, **-f**
 
@@ -179,11 +93,7 @@ The format of `LIMIT` is `<number>[<unit>]`. Unit can be `b` (bytes),
 `k` (kibibytes), `m` (mebibytes), or `g` (gibibytes). If you don't specify a
 unit, `b` is used. Set LIMIT to `-1` to enable unlimited swap.
 
-#### **--memory-swappiness**=*number*
-
-Tune a container's memory swappiness behavior. Accepts an integer between 0 and 100.
-
-This flag is not supported on cgroups V2 systems.
+@@option memory-swappiness
 
 #### **--name**
 

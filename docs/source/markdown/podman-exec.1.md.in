@@ -27,9 +27,7 @@ Set environment variables.
 
 This option allows arbitrary environment variables that are available for the process to be launched inside of the container. If an environment variable is specified without a value, Podman will check the host environment for a value and set the variable only if it is set on the host. As a special case, if an environment variable ending in __*__ is specified without a value, Podman will search the host environment for variables starting with the prefix and will add those variables to the container.
 
-#### **--env-file**=*file*
-
-Read in a line delimited file of environment variables.
+@@option env-file
 
 #### **--interactive**, **-i**
 
@@ -40,25 +38,9 @@ When set to true, keep stdin open even if not attached. The default is *false*.
 Instead of providing the container name or ID, use the last created container. If you use methods other than Podman
 to run containers such as CRI-O, the last started container could be from either of those methods. (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
 
-#### **--preserve-fds**=*N*
+@@option preserve-fds
 
-Pass down to the process N additional file descriptors (in addition to 0, 1, 2).  The total FDs will be 3+N.
-
-#### **--privileged**
-
-Give extended privileges to this container. The default is *false*.
-
-By default, Podman containers are
-"unprivileged" and cannot, for example, modify parts of the operating system.
-This is because by default a container is only allowed limited access to devices.
-A "privileged" container is given the same access to devices as the user launching the container.
-
-A privileged container turns off the security features that isolate the
-container from the host. Dropped Capabilities, limited devices, read/only mount
-points, Apparmor/SELinux separation, and Seccomp filters are all disabled.
-
-Rootless containers cannot have more privileges than the account that launched them.
-
+@@option privileged
 
 #### **--tty**, **-t**
 
@@ -70,13 +52,7 @@ Sets the username or UID used and optionally the groupname or GID for the specif
 The following examples are all valid:
 --user [user | user:group | uid | uid:gid | user:gid | uid:group ]
 
-#### **--workdir**, **-w**=*path*
-
-Working directory inside the container
-
-The default working directory for running binaries within a container is the root directory (/).
-The image developer can set a different default with the WORKDIR instruction, which can be overridden
-when creating the container.
+@@option workdir
 
 ## Exit Status
 

@@ -13,7 +13,8 @@ help:
 	@$(SPHINXBUILD) -M help "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 
 clean:
-	rm -fr build/
+	$(RM) -fr build
+	cd source/markdown && $(RM) -f $$(<.gitignore)
 
 .PHONY: help Makefile
 
