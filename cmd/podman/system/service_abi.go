@@ -11,7 +11,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	api "github.com/containers/podman/v4/pkg/api/server"
 	"github.com/containers/podman/v4/pkg/domain/entities"
@@ -23,26 +22,6 @@ import (
 	"github.com/spf13/pflag"
 	"golang.org/x/sys/unix"
 )
-
-// maybeMoveToSubCgroup moves the current process in a sub cgroup when
-// it is running in the root cgroup on a system that uses cgroupv2.
-func maybeMoveToSubCgroup() error {
-	unifiedMode, err := cgroups.IsCgroup2UnifiedMode()
-	if err != nil {
-		return err
-	}
-	if !unifiedMode {
-		return nil
-	}
-	cgroup, err := utils.GetOwnCgroup()
-	if err != nil {
-		return err
-	}
-	if cgroup == "/" {
-		return utils.MoveUnderCgroupSubtree("init")
-	}
-	return nil
-}
 
 func restService(flags *pflag.FlagSet, cfg *entities.PodmanConfig, opts entities.ServiceOptions) error {
 	var (
@@ -125,7 +104,7 @@ func restService(flags *pflag.FlagSet, cfg *entities.PodmanConfig, opts entities
 		return err
 	}
 
-	if err := maybeMoveToSubCgroup(); err != nil {
+	if err := utils.MaybeMoveToSubCgroup(); err != nil {
 		return err
 	}
 

@@ -18,7 +18,6 @@ import (
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/libpod/events"
 	"github.com/containers/podman/v4/pkg/domain/entities"
-	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/containers/podman/v4/pkg/signal"
 	systemdDefine "github.com/containers/podman/v4/pkg/systemd/define"
 	"github.com/containers/podman/v4/pkg/util"
@@ -54,7 +53,7 @@ func setupContainerEngine(cmd *cobra.Command) (entities.ContainerEngine, error) 
 		cobra.CompErrorln(err.Error())
 		return nil, err
 	}
-	if !registry.IsRemote() && rootless.IsRootless() {
+	if !registry.IsRemote() {
 		_, noMoveProcess := cmd.Annotations[registry.NoMoveProcess]
 
 		err := containerEngine.SetupRootless(registry.Context(), noMoveProcess)
