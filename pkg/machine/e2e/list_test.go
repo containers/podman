@@ -135,7 +135,7 @@ var _ = Describe("podman machine list", func() {
 		Expect(listSession2).To(Exit(0))
 
 		var listResponse []*entities.ListReporter
-		err = jsoniter.Unmarshal(listSession.Bytes(), &listResponse)
+		err = jsoniter.Unmarshal(listSession2.Bytes(), &listResponse)
 		Expect(err).To(BeNil())
 
 		// table format includes the header
