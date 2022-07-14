@@ -78,7 +78,7 @@ Identity value resolution precedence:
  - `containers.conf`
 Remote connections use local containers.conf for default.
 
-#### **--log-level**=*level*
+#### **--log-level**, "**-l**"=*level*
 
 Log messages at and above specified level: debug, info, warn, error, fatal or panic (default: "warn")
 

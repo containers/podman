@@ -455,7 +455,7 @@ func rootFlags(cmd *cobra.Command, opts *entities.PodmanConfig) {
 	pFlags.BoolVar(&dummyHelp, "help", false, "Help for podman")
 
 	logLevelFlagName := "log-level"
-	pFlags.StringVar(&logLevel, logLevelFlagName, logLevel, fmt.Sprintf("Log messages above specified level (%s)", strings.Join(common.LogLevels, ", ")))
+	pFlags.StringVarP(&logLevel, logLevelFlagName, "l", logLevel, fmt.Sprintf("Log messages above specified level (%s)", strings.Join(common.LogLevels, ", ")))
 	_ = rootCmd.RegisterFlagCompletionFunc(logLevelFlagName, common.AutocompleteLogLevel)
 
 	// Only create these flags for ABI connections

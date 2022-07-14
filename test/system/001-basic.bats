@@ -173,10 +173,10 @@ See 'podman version --help'" "podman version --remote"
     is "$output" 'Log Level "telepathic" is not supported.*'
     run_podman --log-level=trace   info
     run_podman --log-level=debug   info
-    run_podman --log-level=info    info
+    run_podman --l=info    info
     run_podman --log-level=warn    info
     run_podman --log-level=warning info
-    run_podman --log-level=error   info
+    run_podman --l error   info
     run_podman --log-level=fatal   info
     run_podman --log-level=panic   info
 }
