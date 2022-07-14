@@ -41,8 +41,10 @@ github.com/acarl005/stripansi
 # github.com/beorn7/perks v1.0.1
 github.com/beorn7/perks/quantile
 # github.com/blang/semver v3.5.1+incompatible
-## explicit
 github.com/blang/semver
+# github.com/blang/semver/v4 v4.0.0
+## explicit
+github.com/blang/semver/v4
 # github.com/buger/goterm v1.0.4
 ## explicit
 github.com/buger/goterm
