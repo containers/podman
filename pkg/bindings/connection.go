@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 	"github.com/containers/podman/v4/pkg/terminal"
 	"github.com/containers/podman/v4/version"
 	"github.com/sirupsen/logrus"
