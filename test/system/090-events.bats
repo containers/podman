@@ -13,11 +13,11 @@ load helpers
     run_podman run --label $labelname=$labelvalue --name $cname --rm $IMAGE ls
 
     expect=".* container start [0-9a-f]\+ (image=$IMAGE, name=$cname,.* ${labelname}=${labelvalue}"
-    run_podman events --filter type=container --filter container=$cname --filter label=${labelname}=${labelvalue} --filter event=start --stream=false
+    run_podman events --filter type=container -f container=$cname --filter label=${labelname}=${labelvalue} --filter event=start --stream=false
     is "$output" "$expect" "filtering by container name and label"
 
     # Same thing, but without the container-name filter
-    run_podman events --filter type=container --filter label=${labelname}=${labelvalue} --filter event=start --stream=false
+    run_podman events -f type=container --filter label=${labelname}=${labelvalue} --filter event=start --stream=false
     is "$output" "$expect" "filtering just by label"
 
     # Now filter just by container name, no label

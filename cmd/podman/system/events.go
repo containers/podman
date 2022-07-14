@@ -46,7 +46,7 @@ func init() {
 	flags := eventsCommand.Flags()
 
 	filterFlagName := "filter"
-	flags.StringArrayVar(&eventOptions.Filter, filterFlagName, []string{}, "filter output")
+	flags.StringArrayVarP(&eventOptions.Filter, filterFlagName, "f", []string{}, "filter output")
 	_ = eventsCommand.RegisterFlagCompletionFunc(filterFlagName, common.AutocompleteEventFilter)
 
 	formatFlagName := "format"
