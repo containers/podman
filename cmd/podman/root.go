@@ -345,6 +345,8 @@ func rootFlags(cmd *cobra.Command, opts *entities.PodmanConfig) {
 	urlFlagName := "url"
 	lFlags.StringVar(&opts.URI, urlFlagName, uri, "URL to access Podman service (CONTAINER_HOST)")
 	_ = cmd.RegisterFlagCompletionFunc(urlFlagName, completion.AutocompleteDefault)
+	lFlags.StringVarP(&opts.URI, "host", "H", uri, "Used for Docker compatibility")
+	_ = lFlags.MarkHidden("host")
 
 	// Context option added just for compatibility with DockerCLI.
 	lFlags.String("context", "default", "Name of the context to use to connect to the daemon (This flag is a NOOP and provided solely for scripting compatibility.)")

@@ -400,4 +400,23 @@ EOF
     run_podman rm -f -t 0 $cname
 }
 
+@test "podman-system-service containers --host" {
+    skip_if_remote "N/A under podman-remote"
+
+    SERVICE_NAME=podman-service-$(random_string)
+    port=$(random_free_port)
+    URL=tcp://127.0.0.1:$port
+
+    systemd-run --unit=$SERVICE_NAME $PODMAN system service $URL --time=0
+    wait_for_port 127.0.0.1 $port
+
+    run_podman --host $URL run --rm $IMAGE true
+    run_podman -H $URL run --rm $IMAGE true
+
+    systemctl stop $SERVICE_NAME
+
+    # Make sure the option is actually connecting
+    run_podman 125 --host $URL run --rm $IMAGE true
+    assert "$output" =~ "Cannot connect to Podman.*connection refused"
+}
 # vim: filetype=sh
