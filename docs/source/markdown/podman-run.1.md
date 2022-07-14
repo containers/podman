@@ -83,14 +83,14 @@ and specified with a _tag_.
     $ podman run oci-archive:/tmp/fedora echo hello
 
 ## OPTIONS
-#### **--add-host**=_host_:_ip_
+#### **--add-host**=*host:ip*
 
 Add a custom host-to-IP mapping (host:ip)
 
 Add a line to /etc/hosts. The format is hostname:ip. The **--add-host**
 option can be set multiple times.
 
-#### **--annotation**=_key_=_value_
+#### **--annotation**=*key=value*
 
 Add an annotation to the container.
 This option can be set multiple times.
@@ -98,7 +98,7 @@ This option can be set multiple times.
 #### **--arch**=*ARCH*
 Override the architecture, defaults to hosts, of the image to be pulled. For example, `arm`.
 
-#### **--attach**, **-a**=**stdin**|**stdout**|**stderr**
+#### **--attach**, **-a**=*stdin* | *stdout* | *stderr*
 
 Attach to STDIN, STDOUT or STDERR.
 
@@ -109,7 +109,7 @@ error. It can even pretend to be a TTY (this is what most commandline
 executables expect) and pass along signals. The **-a** option can be set for
 each of **stdin**, **stdout**, and **stderr**.
 
-#### **--authfile**[=*path*]
+#### **--authfile**=*[path]*
 
 Path to the authentication file. Default is *${XDG_RUNTIME_DIR}/containers/auth.json*.
 
@@ -120,7 +120,7 @@ environment variable.
 
 Block IO relative weight. The _weight_ is a value between **10** and **1000**.
 
-#### **--blkio-weight-device**=*device*:*weight*
+#### **--blkio-weight-device**=*device:weight*
 
 Block IO relative device weight.
 
@@ -151,7 +151,7 @@ Set the cgroup namespace mode for the container.
 
 If the host uses cgroups v1, the default is set to **host**. On cgroups v2, the default is **private**.
 
-#### **--cgroups**=**enabled**|**disabled**|**no-conmon**|**split**
+#### **--cgroups**=*how*
 
 Determines whether the container will create CGroups.
 
@@ -259,7 +259,7 @@ this can result in the following division of CPU shares:
 
 Number of CPUs. The default is *0.0* which means no limit. This is shorthand
 for **--cpu-period** and **--cpu-quota**, so you may only set either
-#### **--cpus** or **--cpu-period** and **--cpu-quota**.
+**--cpus** or **--cpu-period** and **--cpu-quota**.
 
 On some systems, changing the CPU limits may not be allowed for non-root
 users. For more details, see
@@ -297,7 +297,7 @@ Specify the key sequence for detaching a container. Format is a single character
 
 This option can also be set in **containers.conf**(5) file.
 
-#### **--device**=_host-device_[**:**_container-device_][**:**_permissions_]
+#### **--device**=*host-device[:container-device][:permissions]*
 
 Add a host device to the container. Optional *permissions* parameter
 can be used to specify device permissions by combining
@@ -316,23 +316,23 @@ Podman may load kernel modules required for using the specified
 device. The devices that Podman will load modules when necessary are:
 /dev/fuse.
 
-#### **--device-cgroup-rule**=rule
+#### **--device-cgroup-rule**=*rule*
 
 Add a rule to the cgroup allowed devices list
 
-#### **--device-read-bps**=_path_:_rate_
+#### **--device-read-bps**=*path:rate*
 
 Limit read rate (in bytes per second) from a device (e.g. **--device-read-bps=/dev/sda:1mb**).
 
-#### **--device-read-iops**=_path_:_rate_
+#### **--device-read-iops**=*path:rate*
 
 Limit read rate (in IO operations per second) from a device (e.g. **--device-read-iops=/dev/sda:1000**).
 
-#### **--device-write-bps**=_path_:_rate_
+#### **--device-write-bps**=*path:rate*
 
 Limit write rate (in bytes per second) to a device (e.g. **--device-write-bps=/dev/sda:1mb**).
 
-#### **--device-write-iops**=_path_:_rate_
+#### **--device-write-iops**=*path:rate*
 
 Limit write rate (in IO operations per second) to a device (e.g. **--device-write-iops=/dev/sda:1000**).
 
@@ -402,7 +402,7 @@ Use host environment inside of the container. See **Environment** note below for
 Expose a port, or a range of ports (e.g. **--expose=3300-3310**) to set up port redirection
 on the host system.
 
-#### **--gidmap**=*container_gid*:*host_gid*:*amount*
+#### **--gidmap**=*container_gid:host_gid:amount*
 
 Run the container in a new user namespace using the supplied GID mapping. This
 option conflicts with the **--userns** and **--subgidname** options. This
@@ -411,7 +411,7 @@ __--uidmap__ maps host UIDs to container UIDs. For details see __--uidmap__.
 
 Note: the **--gidmap** flag cannot be called in conjunction with the **--pod** flag as a gidmap cannot be set on the container level when in a pod.
 
-#### **--group-add**=*group|keep-groups*
+#### **--group-add**=*group* | *keep-groups*
 
 Assign additional groups to the primary user running within the container process.
 
@@ -454,7 +454,7 @@ value can be expressed in a time format such as **1m22s**. The default value is 
 
 Print usage statement
 
-#### **--hostname**=*name*, **-h**
+#### **--hostname**, **-h**=*name*
 
 Container host name
 
@@ -480,7 +480,7 @@ proxy environment at container build time.) (This option is not available with t
 
 Defaults to **true**.
 
-#### **--image-volume**=**bind**|**tmpfs**|**ignore**
+#### **--image-volume**=**bind** | *tmpfs* | *ignore*
 
 Tells Podman how to handle the builtin image volumes. Default is **bind**.
 
@@ -534,7 +534,7 @@ a private IPC namespace.
 - **private**: private IPC namespace.
 = **shareable**: private IPC namespace with a possibility to share it with  other containers.
 
-#### **--label**, **-l**=*key*=*value*
+#### **--label**, **-l**=*key=value*
 
 Add metadata to a container.
 
@@ -546,9 +546,9 @@ Read in a line-delimited file of labels.
 
 Not implemented.
 
-#### **--log-driver**="*driver*"
+#### **--log-driver**=*driver*
 
-Logging driver for the container. Currently available options are **k8s-file**, **journald**, **none** and **passthrough**, with **json-file** aliased to **k8s-file** for scripting compatibility. (Default journald)
+Logging driver for the container. Currently available options are **k8s-file**, **journald**, **none** and **passthrough**, with **json-file** aliased to **k8s-file** for scripting compatibility. (Default **journald**)
 
 The podman info command below will display the default log-driver for the system.
 ```
@@ -560,7 +560,7 @@ container.  It is not allowed with the remote Podman client, including Mac and W
 vulnerable to attacks via TIOCSTI.
 
 
-#### **--log-opt**=*name*=*value*
+#### **--log-opt**=*name=value*
 
 Logging driver specific options.
 
@@ -589,7 +589,7 @@ according to RFC4862.
 
 To specify multiple static MAC addresses per container, set multiple networks using the **--network** option with a static MAC address specified for each using the `mac` mode for that option.
 
-#### **--memory**, **-m**=_number_[_unit_]
+#### **--memory**, **-m**=*number[unit]*
 
 Memory limit. A _unit_ can be **b** (bytes), **k** (kibibytes), **m** (mebibytes), or **g** (gibibytes).
 
@@ -599,7 +599,7 @@ RAM. If a limit of 0 is specified (not using **-m**), the container's memory is
 not limited. The actual limit may be rounded up to a multiple of the operating
 system's page size (the value would be very large, that's millions of trillions).
 
-#### **--memory-reservation**=_number_[_unit_]
+#### **--memory-reservation**=*number[unit]*
 
 Memory soft limit. A _unit_ can be **b** (bytes), **k** (kibibytes), **m** (mebibytes), or **g** (gibibytes).
 
@@ -609,7 +609,7 @@ reservation. So you should always set the value below **--memory**, otherwise th
 hard limit will take precedence. By default, memory reservation will be the same
 as memory limit.
 
-#### **--memory-swap**=_number_[_unit_]
+#### **--memory-swap**=*number[unit]*
 
 A limit value equal to memory plus swap.
 A _unit_ can be **b** (bytes), **k** (kibibytes), **m** (mebibytes), or **g** (gibibytes).
@@ -858,11 +858,11 @@ points, Apparmor/SELinux separation, and Seccomp filters are all disabled.
 
 Rootless containers cannot have more privileges than the account that launched them.
 
-#### **--publish**, **-p**=[[_ip_:][_hostPort_]:]_containerPort_[/_protocol_]
+#### **--publish**, **-p**=*[[ip:][hostPort]:]containerPort[/protocol]*
 
 Publish a container's port, or range of ports, to the host.
 
-Both hostPort and containerPort can be specified as a range of ports.
+Both *hostPort* and *containerPort* can be specified as a range of ports.
 When specifying ranges for both, the number of container ports in the
 range must match the number of host ports in the range.
 
@@ -899,7 +899,7 @@ When using this option, Podman will bind any exposed port to a random port on th
 within an ephemeral port range defined by */proc/sys/net/ipv4/ip_local_port_range*.
 To find the mapping between the host ports and the exposed ports, use **podman port**.
 
-#### **--pull**=**always**|**missing**|**never**|**newer**
+#### **--pull**=*policy*
 
 Pull image policy. The default is **missing**.
 
@@ -928,7 +928,7 @@ If container is running in **--read-only** mode, then mount a read-write tmpfs o
 
 If another container with the same name already exists, replace and remove it. The default is **false**.
 
-#### **--requires**=**container**
+#### **--requires**=*container*
 
 Specify one or more requirements.
 A requirement is a dependency container that will be started before this container.
@@ -979,7 +979,7 @@ finishes executing, similar to a tmpfs mount point being unmounted.
 Note: On **SELinux** systems, the rootfs needs the correct label, which is by default
 **unconfined_u:object_r:container_file_t**.
 
-#### **--sdnotify**=**container**|**conmon**|**ignore**
+#### **--sdnotify**=**container** | *conmon* | *ignore*
 
 Determines how to use the NOTIFY_SOCKET, as passed with systemd and Type=notify.
 
@@ -996,7 +996,7 @@ Specify the policy to select the seccomp profile. If set to *image*, Podman will
 
 Note that this feature is experimental and may change in the future.
 
-#### **--secret**=*secret*[,opt=opt ...]
+#### **--secret**=*secret[,opt=opt ...]*
 
 Give the container access to a secret. Can be specified multiple times.
 
@@ -1051,7 +1051,7 @@ Note: Labeling can be disabled for all containers by setting label=false in the 
 
 Note: Labeling can be disabled for all containers by setting **label=false** in the **containers.conf**(5) file.
 
-#### **--shm-size**=_number_[_unit_]
+#### **--shm-size**=*number[unit]*
 
 Size of _/dev/shm_. A _unit_ can be **b** (bytes), **k** (kibibytes), **m** (mebibytes), or **g** (gibibytes).
 If you omit the unit, the system uses bytes. If you omit the size entirely, the default is **64m**.
@@ -1082,7 +1082,7 @@ Run the container in a new user namespace using the map with _name_ in the _/etc
 If calling **podman run** as an unprivileged user, the user needs to have the right to use the mapping. See **subuid**(5).
 This flag conflicts with **--userns** and **--uidmap**.
 
-#### **--sysctl**=_name_=_value_
+#### **--sysctl**=*name=value*
 
 Configure namespaced kernel parameters at runtime.
 
@@ -1106,7 +1106,7 @@ For the network namespace, the following sysctls are allowed:
 
 Note: if you use the **--network=host** option, these sysctls will not be allowed.
 
-#### **--systemd**=**true**|**false**|**always**
+#### **--systemd**=*true* | *false* | *always*
 
 Run container in systemd mode. The default is **true**.
 
@@ -1180,7 +1180,7 @@ echo "asdf" | podman run --rm -i someimage /bin/cat
 Set timezone in container. This flag takes area-based timezones, GMT time, as well as `local`, which sets the timezone in the container to match the host machine. See `/usr/share/zoneinfo/` for valid timezones.
 Remote connections use local containers.conf for defaults
 
-#### **--uidmap**=*container_uid*:*from_uid*:*amount*
+#### **--uidmap**=*container_uid:from_uid:amount*
 
 Run the container in a new user namespace using the supplied UID mapping. This
 option conflicts with the **--userns** and **--subuidname** options. This
@@ -1275,15 +1275,15 @@ Unset default environment variables for the container. Default environment
 variables include variables provided natively by Podman, environment variables
 configured by the image, and environment variables from containers.conf.
 
-#### **--unsetenv-all**=*true|false*
+#### **--unsetenv-all**
 
 Unset all default environment variables for the container. Default environment
 variables include variables provided natively by Podman, environment variables
 configured by the image, and environment variables from containers.conf.
 
-#### **--user**, **-u**=[_user_ | _user_:_group_ | _uid_ | _uid_:_gid_ | _user_:_gid_ | _uid_:_group_ ]
+#### **--user**, **-u**=*user[:group]*
 
-Sets the username or UID used and optionally the groupname or GID for the specified command.
+Sets the username or UID used and, optionally, the groupname or GID for the specified command. Both *user* and *group* may be symbolic or numeric.
 
 Without this argument, the command will run as the user specified in the container image. Unless overridden by a `USER` command in the Containerfile or by a value passed to this option, this user generally defaults to root.
 
@@ -1345,7 +1345,7 @@ Set the UTS namespace mode for the container. The following values are supported
 #### **--variant**=*VARIANT*
 Use _VARIANT_ instead of the default architecture variant of the container image. Some images can use multiple variants of the arm architectures, such as arm/v5 and arm/v7.
 
-#### **--volume**, **-v**[=*[[SOURCE-VOLUME|HOST-DIR:]CONTAINER-DIR[:OPTIONS]]*]
+#### **--volume**, **-v**=*[[SOURCE-VOLUME|HOST-DIR:]CONTAINER-DIR[:OPTIONS]]*
 
 Create a bind mount. If you specify _/HOST-DIR_:_/CONTAINER-DIR_, Podman
 bind mounts _host-dir_ in the host to _CONTAINER-DIR_ in the Podman
@@ -1519,7 +1519,7 @@ Note: if the user only has access rights via a group, accessing the volume
 from inside a rootless container will fail. Use the `--group-add keep-groups`
 flag to pass the user's supplementary group access into the container.
 
-#### **--volumes-from**[=*CONTAINER*[:*OPTIONS*]]
+#### **--volumes-from**=*CONTAINER[:OPTIONS]*
 
 Mount volumes from the specified container(s). Used to share volumes between
 containers. The *options* is a comma-separated list with the following available elements:

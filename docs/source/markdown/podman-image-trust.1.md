@@ -42,12 +42,12 @@ Trust may be updated using the command **podman image trust set** for an existin
 
 ### set OPTIONS
 
-#### **--pubkeysfile**=*KEY1*, **-f**
+#### **--pubkeysfile**, **-f**=*KEY1*
   A path to an exported public key on the local system. Key paths
   will be referenced in policy.json. Any path to a file may be used but locating the file in **/etc/pki/containers** is recommended. Options may be used multiple times to
   require an image be signed by multiple keys.  The **--pubkeysfile** option is required for the **signedBy** type.
 
-#### **--type**=*value*, **-t**
+#### **--type**, **-t**=*value*
   The trust type for this policy entry.
   Accepted values:
     **signedBy** (default): Require signatures with corresponding list of

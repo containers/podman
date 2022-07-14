@@ -159,11 +159,11 @@ Print usage statement
 Assign a static ip address to the pod. This option can be specified several times when kube play creates more than one pod.
 Note: When joining multiple networks you should use the **--network name:ip=\<ip\>** syntax.
 
-#### **--log-driver**=driver
+#### **--log-driver**=*driver*
 
 Set logging driver for all created containers.
 
-#### **--log-opt**=*name*=*value*
+#### **--log-opt**=*name=value*
 
 Set custom logging configuration. The following *name*s are supported:
 
