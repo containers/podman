@@ -86,21 +86,9 @@ RELABEL="system_u:object_r:container_file_t:s0"
     run_podman pod rm -t 0 -f test_pod
 }
 
-@test "podman kube" {
-    TESTDIR=$PODMAN_TMPDIR/testdir
-    mkdir -p $TESTDIR
-    echo "$testYaml" | sed "s|TESTDIR|${TESTDIR}|g" > $PODMAN_TMPDIR/test.yaml
-    run_podman kube play $PODMAN_TMPDIR/test.yaml
-    if [ -e /usr/sbin/selinuxenabled -a /usr/sbin/selinuxenabled ]; then
-       run ls -Zd $TESTDIR
-       is "$output" "${RELABEL} $TESTDIR" "selinux relabel should have happened"
-    fi
-
-    run_podman stop -a -t 0
-    run_podman pod rm -t 0 -f test_pod
-}
-
 @test "podman play" {
+    # Testing that the "podman play" cmd still works now that
+    # "podman kube" is an option.
     TESTDIR=$PODMAN_TMPDIR/testdir
     mkdir -p $TESTDIR
     echo "$testYaml" | sed "s|TESTDIR|${TESTDIR}|g" > $PODMAN_TMPDIR/test.yaml
