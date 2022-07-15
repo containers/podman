@@ -13,3 +13,4 @@ Here are a number of useful tutorials to get you up and running with Podman. If 
 * `How to use libpod for custom/derivative projects <https://github.com/containers/podman/blob/main/docs/tutorials/podman-derivative-api.md>`_: How the libpod API can be used within your own project.
 * `How to use Podman's Go RESTful bindings <https://github.com/containers/podman/tree/main/pkg/bindings>`_: An introduction to using our RESTful Golang bindings in an external application.
 * `Common network setups <https://github.com/containers/podman/blob/main/docs/tutorials/basic_networking.md>`_: A basic guide to common network setups for Podman.
+* `Socket activation <https://github.com/containers/podman/blob/main/docs/tutorials/socket_activation.md>`_: Learn how to run containers that support socket activation.
