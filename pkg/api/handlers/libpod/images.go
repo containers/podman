@@ -12,6 +12,7 @@ import (
 
 	"github.com/containers/buildah"
 	"github.com/containers/common/libimage"
+	"github.com/containers/common/pkg/ssh"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/podman/v4/libpod"
 	"github.com/containers/podman/v4/libpod/define"
@@ -618,7 +619,7 @@ func ImageScp(w http.ResponseWriter, r *http.Request) {
 
 	sourceArg := utils.GetName(r)
 
-	rep, source, dest, _, err := domainUtils.ExecuteTransfer(sourceArg, query.Destination, []string{}, query.Quiet)
+	rep, source, dest, _, err := domainUtils.ExecuteTransfer(sourceArg, query.Destination, []string{}, query.Quiet, ssh.GolangMode)
 	if err != nil {
 		utils.Error(w, http.StatusInternalServerError, err)
 		return

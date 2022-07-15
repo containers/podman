@@ -287,6 +287,7 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 		logrus.Warnf("Storage configuration is unset - using hardcoded default graph root %q", _defaultGraphRoot)
 		storeOpts.GraphRoot = _defaultGraphRoot
 	}
+
 	c.graphRoot = storeOpts.GraphRoot
 	c.ImageCopyTmpDir = getDefaultTmpDir()
 	c.StaticDir = filepath.Join(storeOpts.GraphRoot, "libpod")
@@ -397,6 +398,7 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 	c.ChownCopiedFiles = true
 
 	c.PodExitPolicy = defaultPodExitPolicy
+	c.SSHConfig = getDefaultSSHConfig()
 
 	return c, nil
 }
@@ -632,4 +634,12 @@ func machineVolumes(volumes []string) ([]string, error) {
 		translatedVolumes = append(translatedVolumes, vol)
 	}
 	return translatedVolumes, nil
+}
+
+func getDefaultSSHConfig() string {
+	if path, ok := os.LookupEnv("CONTAINERS_SSH_CONF"); ok {
+		return path
+	}
+	dirname := homedir.Get()
+	return filepath.Join(dirname, ".ssh", "config")
 }

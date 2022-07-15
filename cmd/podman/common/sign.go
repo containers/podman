@@ -3,9 +3,9 @@ package common
 import (
 	"fmt"
 
+	"github.com/containers/common/pkg/ssh"
 	"github.com/containers/image/v5/pkg/cli"
 	"github.com/containers/podman/v4/pkg/domain/entities"
-	"github.com/containers/podman/v4/pkg/terminal"
 )
 
 // PrepareSigningPassphrase updates pushOpts.SignPassphrase and SignSigstorePrivateKeyPassphrase based on a --sign-passphrase-file value signPassphraseFile,
@@ -27,7 +27,7 @@ func PrepareSigningPassphrase(pushOpts *entities.ImagePushOptions, signPassphras
 		}
 		passphrase = p
 	} else if pushOpts.SignBySigstorePrivateKeyFile != "" {
-		p := terminal.ReadPassphrase()
+		p := ssh.ReadPassphrase()
 		passphrase = string(p)
 	} // pushOpts.SignBy triggers a GPG-agent passphrase prompt, possibly using a more secure channel, so we usually shouldn’t prompt ourselves if no passphrase was explicitly provided.
 	pushOpts.SignPassphrase = passphrase

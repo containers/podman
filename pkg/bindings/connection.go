@@ -14,11 +14,9 @@ import (
 	"time"
 
 	"github.com/blang/semver/v4"
-	"github.com/containers/podman/v4/pkg/terminal"
+	"github.com/containers/common/pkg/ssh"
 	"github.com/containers/podman/v4/version"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/crypto/ssh"
-	"golang.org/x/crypto/ssh/agent"
 )
 
 type APIResponse struct {
@@ -74,8 +72,7 @@ func NewConnection(ctx context.Context, uri string) (context.Context, error) {
 // or ssh://<user>@<host>[:port]/run/podman/podman.sock?secure=True
 func NewConnectionWithIdentity(ctx context.Context, uri string, identity string) (context.Context, error) {
 	var (
-		err    error
-		secure bool
+		err error
 	)
 	if v, found := os.LookupEnv("CONTAINER_HOST"); found && uri == "" {
 		uri = v
@@ -83,11 +80,6 @@ func NewConnectionWithIdentity(ctx context.Context, uri string, identity string)
 
 	if v, found := os.LookupEnv("CONTAINER_SSHKEY"); found && len(identity) == 0 {
 		identity = v
-	}
-
-	passPhrase := ""
-	if v, found := os.LookupEnv("CONTAINER_PASSPHRASE"); found {
-		passPhrase = v
 	}
 
 	_url, err := url.Parse(uri)
@@ -99,11 +91,26 @@ func NewConnectionWithIdentity(ctx context.Context, uri string, identity string)
 	var connection Connection
 	switch _url.Scheme {
 	case "ssh":
-		secure, err = strconv.ParseBool(_url.Query().Get("secure"))
+		port, err := strconv.Atoi(_url.Port())
 		if err != nil {
-			secure = false
+			return nil, err
 		}
-		connection, err = sshClient(_url, secure, passPhrase, identity)
+		conn, err := ssh.Dial(&ssh.ConnectionDialOptions{
+			Host:     uri,
+			Identity: identity,
+			User:     _url.User,
+			Port:     port,
+		}, "golang")
+		if err != nil {
+			return nil, err
+		}
+		connection = Connection{URI: _url}
+		connection.Client = &http.Client{
+			Transport: &http.Transport{
+				DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
+					return ssh.DialNet(conn, "unix", _url)
+				},
+			}}
 	case "unix":
 		if !strings.HasPrefix(uri, "unix:///") {
 			// autofix unix://path_element vs unix:///path_element
@@ -182,124 +189,6 @@ func pingNewConnection(ctx context.Context) (*semver.Version, error) {
 		}
 	}
 	return nil, fmt.Errorf("ping response was %d", response.StatusCode)
-}
-
-func sshClient(_url *url.URL, secure bool, passPhrase string, identity string) (Connection, error) {
-	// if you modify the authmethods or their conditionals, you will also need to make similar
-	// changes in the client (currently cmd/podman/system/connection/add getUDS).
-
-	var signers []ssh.Signer // order Signers are appended to this list determines which key is presented to server
-
-	if len(identity) > 0 {
-		s, err := terminal.PublicKey(identity, []byte(passPhrase))
-		if err != nil {
-			return Connection{}, fmt.Errorf("failed to parse identity %q: %w", identity, err)
-		}
-
-		signers = append(signers, s)
-		logrus.Debugf("SSH Ident Key %q %s %s", identity, ssh.FingerprintSHA256(s.PublicKey()), s.PublicKey().Type())
-	}
-
-	if sock, found := os.LookupEnv("SSH_AUTH_SOCK"); found {
-		logrus.Debugf("Found SSH_AUTH_SOCK %q, ssh-agent signer(s) enabled", sock)
-
-		c, err := net.Dial("unix", sock)
-		if err != nil {
-			return Connection{}, err
-		}
-
-		agentSigners, err := agent.NewClient(c).Signers()
-		if err != nil {
-			return Connection{}, err
-		}
-		signers = append(signers, agentSigners...)
-
-		if logrus.IsLevelEnabled(logrus.DebugLevel) {
-			for _, s := range agentSigners {
-				logrus.Debugf("SSH Agent Key %s %s", ssh.FingerprintSHA256(s.PublicKey()), s.PublicKey().Type())
-			}
-		}
-	}
-
-	var authMethods []ssh.AuthMethod
-	if len(signers) > 0 {
-		var dedup = make(map[string]ssh.Signer)
-		// Dedup signers based on fingerprint, ssh-agent keys override CONTAINER_SSHKEY
-		for _, s := range signers {
-			fp := ssh.FingerprintSHA256(s.PublicKey())
-			if _, found := dedup[fp]; found {
-				logrus.Debugf("Dedup SSH Key %s %s", ssh.FingerprintSHA256(s.PublicKey()), s.PublicKey().Type())
-			}
-			dedup[fp] = s
-		}
-
-		var uniq []ssh.Signer
-		for _, s := range dedup {
-			uniq = append(uniq, s)
-		}
-		authMethods = append(authMethods, ssh.PublicKeysCallback(func() ([]ssh.Signer, error) {
-			return uniq, nil
-		}))
-	}
-
-	if pw, found := _url.User.Password(); found {
-		authMethods = append(authMethods, ssh.Password(pw))
-	}
-
-	if len(authMethods) == 0 {
-		callback := func() (string, error) {
-			pass, err := terminal.ReadPassword("Login password:")
-			return string(pass), err
-		}
-		authMethods = append(authMethods, ssh.PasswordCallback(callback))
-	}
-
-	port := _url.Port()
-	if port == "" {
-		port = "22"
-	}
-
-	callback := ssh.InsecureIgnoreHostKey()
-	if secure {
-		host := _url.Hostname()
-		if port != "22" {
-			host = fmt.Sprintf("[%s]:%s", host, port)
-		}
-		key := terminal.HostKey(host)
-		if key != nil {
-			callback = ssh.FixedHostKey(key)
-		}
-	}
-
-	bastion, err := ssh.Dial("tcp",
-		net.JoinHostPort(_url.Hostname(), port),
-		&ssh.ClientConfig{
-			User:            _url.User.Username(),
-			Auth:            authMethods,
-			HostKeyCallback: callback,
-			HostKeyAlgorithms: []string{
-				ssh.KeyAlgoRSA,
-				ssh.KeyAlgoDSA,
-				ssh.KeyAlgoECDSA256,
-				ssh.KeyAlgoECDSA384,
-				ssh.KeyAlgoECDSA521,
-				ssh.KeyAlgoED25519,
-			},
-			Timeout: 5 * time.Second,
-		},
-	)
-	if err != nil {
-		return Connection{}, fmt.Errorf("connection to bastion host (%s) failed: %w", _url.String(), err)
-	}
-
-	connection := Connection{URI: _url}
-	connection.Client = &http.Client{
-		Transport: &http.Transport{
-			DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
-				return bastion.Dial("unix", _url.Path)
-			},
-		}}
-	return connection, nil
 }
 
 func unixClient(_url *url.URL) Connection {

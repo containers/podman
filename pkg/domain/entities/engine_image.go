@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/containers/common/pkg/config"
+	"github.com/containers/common/pkg/ssh"
 	"github.com/containers/podman/v4/pkg/domain/entities/reports"
 )
 
@@ -22,7 +23,7 @@ type ImageEngine interface {
 	Push(ctx context.Context, source string, destination string, opts ImagePushOptions) error
 	Remove(ctx context.Context, images []string, opts ImageRemoveOptions) (*ImageRemoveReport, []error)
 	Save(ctx context.Context, nameOrID string, tags []string, options ImageSaveOptions) error
-	Scp(ctx context.Context, src, dst string, parentFlags []string, quiet bool) error
+	Scp(ctx context.Context, src, dst string, parentFlags []string, quiet bool, sshMode ssh.EngineMode) error
 	Search(ctx context.Context, term string, opts ImageSearchOptions) ([]ImageSearchReport, error)
 	SetTrust(ctx context.Context, args []string, options SetTrustOptions) error
 	ShowTrust(ctx context.Context, args []string, options ShowTrustOptions) (*ShowTrustReport, error)

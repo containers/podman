@@ -772,7 +772,7 @@ func (s *agentKeyringSigner) Sign(rand io.Reader, data []byte) (*ssh.Signature, 
 }
 
 func (s *agentKeyringSigner) SignWithAlgorithm(rand io.Reader, data []byte, algorithm string) (*ssh.Signature, error) {
-	if algorithm == "" || algorithm == s.pub.Type() {
+	if algorithm == "" || algorithm == underlyingAlgo(s.pub.Type()) {
 		return s.Sign(rand, data)
 	}
 
@@ -790,6 +790,33 @@ func (s *agentKeyringSigner) SignWithAlgorithm(rand io.Reader, data []byte, algo
 }
 
 var _ ssh.AlgorithmSigner = &agentKeyringSigner{}
+
+// certKeyAlgoNames is a mapping from known certificate algorithm names to the
+// corresponding public key signature algorithm.
+//
+// This map must be kept in sync with the one in certs.go.
+var certKeyAlgoNames = map[string]string{
+	ssh.CertAlgoRSAv01:        ssh.KeyAlgoRSA,
+	ssh.CertAlgoRSASHA256v01:  ssh.KeyAlgoRSASHA256,
+	ssh.CertAlgoRSASHA512v01:  ssh.KeyAlgoRSASHA512,
+	ssh.CertAlgoDSAv01:        ssh.KeyAlgoDSA,
+	ssh.CertAlgoECDSA256v01:   ssh.KeyAlgoECDSA256,
+	ssh.CertAlgoECDSA384v01:   ssh.KeyAlgoECDSA384,
+	ssh.CertAlgoECDSA521v01:   ssh.KeyAlgoECDSA521,
+	ssh.CertAlgoSKECDSA256v01: ssh.KeyAlgoSKECDSA256,
+	ssh.CertAlgoED25519v01:    ssh.KeyAlgoED25519,
+	ssh.CertAlgoSKED25519v01:  ssh.KeyAlgoSKED25519,
+}
+
+// underlyingAlgo returns the signature algorithm associated with algo (which is
+// an advertised or negotiated public key or host key algorithm). These are
+// usually the same, except for certificate algorithms.
+func underlyingAlgo(algo string) string {
+	if a, ok := certKeyAlgoNames[algo]; ok {
+		return a
+	}
+	return algo
+}
 
 // Calls an extension method. It is up to the agent implementation as to whether or not
 // any particular extension is supported and may always return an error. Because the
