@@ -1,4 +1,4 @@
-## Podman socket activation
+# Podman socket activation
 
 Socket activation conceptually works by having systemd create a socket (e.g. TCP, UDP or Unix
 socket). As soon as a client connects to the socket, systemd will start the systemd service that is
@@ -13,7 +13,7 @@ Podman supports two forms of socket activation:
 * Socket activation of the API service
 * Socket activation of containers
 
-### Socket activation of the API service
+## Socket activation of the API service
 
 The architecture looks like this
 
@@ -55,7 +55,7 @@ $ export DOCKER_HOST=unix://$XDG_RUNTIME_DIR/podman/podman.sock
 $ docker-compose up
 ```
 
-### Socket activation of containers
+## Socket activation of containers
 
 Since version 3.4.0 Podman supports socket activation of containers, i.e.,  passing
 a socket-activated socket to the container. Thanks to the fork/exec model of Podman, the socket will be first
@@ -79,7 +79,7 @@ The container must also support socket activation. Not all software daemons supp
 but it's getting more popular. For instance Apache HTTP server, MariaDB, DBUS, PipeWire, Gunicorn, CUPS
 all have socket activation support.
 
-#### Example: socket-activated echo server container in a systemd service
+### Example: socket-activated echo server container in a systemd service
 
 Let's try out [socket-activate-echo](https://github.com/eriksjolund/socket-activate-echo/pkgs/container/socket-activate-echo), a simple echo server container that supports socket activation.
 
@@ -121,7 +121,7 @@ WantedBy=default.target
 
 `%h` is a systemd specifier that expands to the user's home directory.
 
-After editing the unit files, systemd needs to reload it's configuration
+After editing the unit files, systemd needs to reload its configuration
 
 ```
 $ systemctl --user daemon-reload
@@ -152,7 +152,7 @@ hello
 
 The echo server works as expected. It replies _"hello"_ after receiving the text _"hello"_.
 
-### Socket activate an Apache HTTP server with systemd-socket-activate
+### Example: socket activate an Apache HTTP server with systemd-socket-activate
 
 Instead of setting up a systemd service to test out socket activation, an alternative is to use the command-line
 tool [__systemd-socket-activate__](https://www.freedesktop.org/software/systemd/man/systemd-socket-activate.html#).
