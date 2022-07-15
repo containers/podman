@@ -2,6 +2,7 @@ package libimage
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	dockerArchiveTransport "github.com/containers/image/v5/docker/archive"
@@ -13,6 +14,7 @@ import (
 // PushOptions allows for custommizing image pushes.
 type PushOptions struct {
 	CopyOptions
+	AllTags bool
 }
 
 // Push pushes the specified source which must refer to an image in the local
@@ -35,6 +37,36 @@ func (r *Runtime) Push(ctx context.Context, source, destination string, options 
 	if err != nil {
 		return nil, err
 	}
+
+	// If specified to push all tags, look them up
+	if options.AllTags {
+		namedRepoTags, err := image.NamedTaggedRepoTags()
+		if err != nil {
+			return nil, err
+		}
+
+		logrus.Debugf("Flag --all-tags true, found: %s", namedRepoTags)
+
+		for _, tag := range namedRepoTags {
+			image, resolvedSource, err := r.LookupImage(tag.Name(), nil)
+			if err != nil {
+				return nil, err
+			}
+
+			fullNamedTag := fmt.Sprintf("%s:%s", destination, tag.Tag())
+			_, err = pushImage(ctx, source, fullNamedTag, options, image, resolvedSource, r)
+			if err != nil {
+				return nil, err
+			}
+		}
+	} else {
+		return pushImage(ctx, source, destination, options, image, resolvedSource, r)
+	}
+
+	return nil, nil
+}
+
+func pushImage(ctx context.Context, source, destination string, options *PushOptions, image *Image, resolvedSource string, r *Runtime) ([]byte, error) {
 
 	srcRef, err := image.StorageReference()
 	if err != nil {

@@ -47,6 +47,10 @@ $ podman push myimage oci-archive:/tmp/myimage
 
 ## OPTIONS
 
+#### **--all-tags**, **-a**
+
+Push all tags for a given image to the repository. When using this flag, do not specify a tag for the DESTINATION.
+
 #### **--authfile**=*path*
 
 Path of the authentication file. Default is ${XDG\_RUNTIME\_DIR}/containers/auth.json, which is set using `podman login`.
@@ -120,6 +124,10 @@ This example pushes the image specified by the imageID to a local directory in o
 This example pushes the image specified by the imageID to a container registry named registry.example.com
 
  `# podman push imageID docker://registry.example.com/repository:tag`
+
+This example pushes all tags for the image specified by the imageID to a container registry named registry.example.com
+
+`# podman push --all-tags imageID docker://registry.example.com/repository`
 
 This example pushes the image specified by the imageID to a container registry named registry.example.com and saves the digest in the specified digestfile.
 

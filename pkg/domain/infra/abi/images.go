@@ -305,6 +305,7 @@ func (ir *ImageEngine) Push(ctx context.Context, source string, destination stri
 	pushOptions.RemoveSignatures = options.RemoveSignatures
 	pushOptions.SignBy = options.SignBy
 	pushOptions.InsecureSkipTLSVerify = options.SkipTLSVerify
+	pushOptions.AllTags = options.All
 
 	compressionFormat := options.CompressionFormat
 	if compressionFormat == "" {
