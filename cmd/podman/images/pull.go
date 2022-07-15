@@ -77,7 +77,7 @@ func init() {
 func pullFlags(cmd *cobra.Command) {
 	flags := cmd.Flags()
 
-	flags.BoolVar(&pullOptions.AllTags, "all-tags", false, "All tagged images in the repository will be pulled")
+	flags.BoolVarP(&pullOptions.AllTags, "all-tags", "a", false, "All tagged images in the repository will be pulled")
 
 	credsFlagName := "creds"
 	flags.StringVar(&pullOptions.CredentialsCLI, credsFlagName, "", "`Credentials` (USERNAME:PASSWORD) to use for authenticating to a registry")
