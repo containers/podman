@@ -73,6 +73,9 @@ require (
 	gopkg.in/yaml.v3 v3.0.1
 )
 
-require github.com/docker/libnetwork v0.8.0-dev.2.0.20190625141545-5a177b73e316 // indirect
+require (
+	github.com/docker/libnetwork v0.8.0-dev.2.0.20190625141545-5a177b73e316 // indirect
+	github.com/morikuni/aec v1.0.0
+)
 
 replace github.com/opencontainers/runc => github.com/opencontainers/runc v1.1.1-0.20220617142545-8b9452f75cbc

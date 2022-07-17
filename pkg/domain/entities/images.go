@@ -10,6 +10,7 @@ import (
 	"github.com/containers/podman/v4/pkg/inspect"
 	"github.com/containers/podman/v4/pkg/trust"
 	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/pkg/jsonmessage"
 	"github.com/opencontainers/go-digest"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
@@ -165,6 +166,10 @@ type ImagePullReport struct {
 	Images []string `json:"images,omitempty"`
 	// ID contains image id (retained for backwards compatibility)
 	ID string `json:"id,omitempty"`
+	// Progress contains detailed information about download progress
+	Progress *jsonmessage.JSONProgress `json:"progressDetail,omitempty"`
+	// Status contains a short progress description
+	Status string `json:"status,omitempty"`
 }
 
 // ImagePushOptions are the arguments for pushing images.

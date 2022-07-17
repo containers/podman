@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/containers/common/libimage"
 	"github.com/containers/common/pkg/config"
@@ -16,6 +17,7 @@ import (
 	"github.com/containers/podman/v4/pkg/auth"
 	"github.com/containers/podman/v4/pkg/channel"
 	"github.com/containers/podman/v4/pkg/domain/entities"
+	"github.com/docker/docker/pkg/jsonmessage"
 	"github.com/gorilla/schema"
 	"github.com/sirupsen/logrus"
 )
@@ -86,6 +88,8 @@ func ImagesPull(w http.ResponseWriter, r *http.Request) {
 	defer writer.Close()
 
 	pullOptions.Writer = writer
+	progress := make(chan types.ProgressProperties)
+	pullOptions.Progress = progress
 
 	pullPolicy, err := config.ParsePullPolicy(query.PullPolicy)
 	if err != nil {
@@ -113,12 +117,39 @@ func ImagesPull(w http.ResponseWriter, r *http.Request) {
 
 	enc := json.NewEncoder(w)
 	enc.SetEscapeHTML(true)
+	copyingBlob := "Copying blob"
+	copyingConfig := "Copying config"
 	for {
 		var report entities.ImagePullReport
 		select {
+		case e := <-progress:
+			switch e.Event {
+			case types.ProgressEventNewArtifact:
+				report.Status = "pulling fs layer"
+			case types.ProgressEventRead:
+				report.Progress = &jsonmessage.JSONProgress{
+					Current: int64(e.Offset),
+					Total:   e.Artifact.Size,
+				}
+			case types.ProgressEventSkipped:
+				report.Status = "skipped: already exists"
+			case types.ProgressEventDone:
+				report.Status = "done"
+			}
+			report.ID = e.Artifact.Digest.Encoded()[0:12]
+			report.Stream = copyingBlob
+			if strings.Contains(e.Artifact.MediaType, "json") {
+				report.Stream = copyingConfig
+			}
+			if !query.Quiet {
+				if err := enc.Encode(report); err != nil {
+					logrus.Warnf("Failed to encode json: %q", err.Error())
+				}
+			}
+			flush()
 		case s := <-writer.Chan():
 			report.Stream = string(s)
-			if !query.Quiet {
+			if !query.Quiet && !(strings.Contains(report.Stream, copyingBlob) || strings.Contains(report.Stream, copyingConfig)) {
 				if err := enc.Encode(report); err != nil {
 					logrus.Warnf("Failed to encode json: %v", err)
 				}

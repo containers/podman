@@ -16,6 +16,7 @@ import (
 	"github.com/containers/podman/v4/pkg/bindings"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/errorhandling"
+	"github.com/morikuni/aec"
 )
 
 // Pull is the binding for libpod's v2 endpoints for pulling images.  Note that
@@ -63,36 +64,80 @@ func Pull(ctx context.Context, rawImage string, options *PullOptions) ([]string,
 		stderr = ioutil.Discard
 	}
 
-	dec := json.NewDecoder(response.Body)
-	var images []string
-	var pullErrors []error
+	return parseImagePullReportStream(response.Body, stderr)
+}
+
+func clearLine(out io.Writer) {
+	eraseMode := aec.EraseModes.All
+	cl := aec.EraseLine(eraseMode)
+	fmt.Fprint(out, cl)
+}
+
+func printStreamLine(report *entities.ImagePullReport, out io.Writer) error {
+	var (
+		endline    string
+		statusLine string
+	)
+
+	if report.Error != "" {
+		return errors.New(report.Error)
+	}
+	if report.Progress != nil {
+		statusLine = report.Progress.String()
+	} else {
+		statusLine = report.Status
+	}
+	if statusLine != "" {
+		clearLine(out)
+		endline = "\r"
+		fmt.Fprint(out, endline)
+	}
+	if statusLine != "" {
+		fmt.Fprintf(out, "%s %s %s%s", report.Stream, report.ID, statusLine, endline)
+	} else if report.Stream != "" {
+		fmt.Fprintf(out, "%s", report.Stream)
+	}
+	return nil
+}
+
+func parseImagePullReportStream(in io.Reader, out io.Writer) ([]string, error) {
+	var (
+		images      []string
+		parseErrors []error
+		dec         = json.NewDecoder(in)
+		ids         = make(map[string]uint)
+	)
 	for {
+		var lines uint
 		var report entities.ImagePullReport
 		if err := dec.Decode(&report); err != nil {
-			if errors.Is(err, io.EOF) {
+			if err == io.EOF {
 				break
 			}
-			report.Error = err.Error() + "\n"
+			return images, err
 		}
-
-		select {
-		case <-response.Request.Context().Done():
-			break
-		default:
-			// non-blocking select
+		if report.ID != "" && (report.Progress != nil || report.Status != "") {
+			line, ok := ids[report.ID]
+			if !ok {
+				line = uint(len(ids))
+				ids[report.ID] = line
+				fmt.Fprintf(out, "\n")
+			}
+			lines = uint(len(ids)) - line
+			fmt.Fprint(out, aec.Up(lines))
+		} else {
+			ids = make(map[string]uint)
 		}
-
-		switch {
-		case report.Stream != "":
-			fmt.Fprint(stderr, report.Stream)
-		case report.Error != "":
-			pullErrors = append(pullErrors, errors.New(report.Error))
-		case len(report.Images) > 0:
+		err := printStreamLine(&report, out)
+		if report.ID != "" {
+			fmt.Fprint(out, aec.Down(lines))
+		}
+		if len(report.Images) > 0 {
 			images = report.Images
-		case report.ID != "":
-		default:
-			return images, fmt.Errorf("failed to parse pull results stream, unexpected input: %v", report)
+		}
+		if err != nil {
+			parseErrors = append(parseErrors, err)
 		}
 	}
-	return images, errorhandling.JoinErrors(pullErrors)
+	return images, errorhandling.JoinErrors(parseErrors)
 }
