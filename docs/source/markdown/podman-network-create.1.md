@@ -73,8 +73,9 @@ Set driver specific options.
 
 All drivers accept the `mtu` option. The `mtu` option sets the Maximum Transmission Unit (MTU) and takes an integer value.
 
-Additionally the `bridge` driver supports the following option:
+Additionally the `bridge` driver supports the following options:
 - `vlan`: This option assign VLAN tag and enables vlan\_filtering. Defaults to none.
+- `isolate`: This option isolates networks by blocking traffic between those that have this option enabled.
 
 The `macvlan` and `ipvlan` driver support the following options:
 - `parent`: The host device which should be used for the macvlan interface. Defaults to the default route interface.
