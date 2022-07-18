@@ -296,8 +296,6 @@ LISTEN_FDNAMES=listen_fdnames" | sort)
 }
 
 @test "podman-kube@.service template" {
-    skip_if_remote "systemd units do not work with remote clients"
-
     # If running from a podman source directory, build and use the source
     # version of the play-kube-@ unit file
     unit_name="podman-kube@.service"
@@ -375,48 +373,4 @@ EOF
     rm -f $UNIT_DIR/$unit_name
 }
 
-@test "podman-system-service containers survive service stop" {
-    skip_if_remote "N/A under podman-remote"
-
-    SERVICE_NAME=podman-service-$(random_string)
-    port=$(random_free_port)
-    URL=tcp://127.0.0.1:$port
-
-    systemd-run --unit=$SERVICE_NAME $PODMAN system service $URL --time=0
-    wait_for_port 127.0.0.1 $port
-
-    # Start a long-running container.
-    cname=keeps-running
-    run_podman --url $URL run -d --name $cname $IMAGE top -d 2
-
-    run_podman container inspect -l --format "{{.State.Running}}"
-    is "$output" "true" "This should never fail"
-
-    systemctl stop $SERVICE_NAME
-
-    run_podman container inspect $cname --format "{{.State.Running}}"
-    is "$output" "true" "Container is still running after podman server stops"
-
-    run_podman rm -f -t 0 $cname
-}
-
-@test "podman-system-service containers --host" {
-    skip_if_remote "N/A under podman-remote"
-
-    SERVICE_NAME=podman-service-$(random_string)
-    port=$(random_free_port)
-    URL=tcp://127.0.0.1:$port
-
-    systemd-run --unit=$SERVICE_NAME $PODMAN system service $URL --time=0
-    wait_for_port 127.0.0.1 $port
-
-    run_podman --host $URL run --rm $IMAGE true
-    run_podman -H $URL run --rm $IMAGE true
-
-    systemctl stop $SERVICE_NAME
-
-    # Make sure the option is actually connecting
-    run_podman 125 --host $URL run --rm $IMAGE true
-    assert "$output" =~ "Cannot connect to Podman.*connection refused"
-}
 # vim: filetype=sh
