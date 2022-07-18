@@ -17,6 +17,27 @@ This package provides various compression algorithms.
 
 # changelog
 
+* June 29, 2022 (v1.15.7)
+
+	* s2: Fix absolute forward seeks  https://github.com/klauspost/compress/pull/633
+	* zip: Merge upstream  https://github.com/klauspost/compress/pull/631
+	* zip: Re-add zip64 fix https://github.com/klauspost/compress/pull/624
+	* zstd: translate fseDecoder.buildDtable into asm by @WojciechMula in https://github.com/klauspost/compress/pull/598
+	* flate: Faster histograms  https://github.com/klauspost/compress/pull/620
+	* deflate: Use compound hcode  https://github.com/klauspost/compress/pull/622
+
+* June 3, 2022 (v1.15.6)
+	* s2: Improve coding for long, close matches https://github.com/klauspost/compress/pull/613
+	* s2c: Add Snappy/S2 stream recompression https://github.com/klauspost/compress/pull/611
+	* zstd: Always use configured block size https://github.com/klauspost/compress/pull/605
+	* zstd: Fix incorrect hash table placement for dict encoding in default https://github.com/klauspost/compress/pull/606
+	* zstd: Apply default config to ZipDecompressor without options https://github.com/klauspost/compress/pull/608
+	* gzhttp: Exclude more common archive formats https://github.com/klauspost/compress/pull/612
+	* s2: Add ReaderIgnoreCRC https://github.com/klauspost/compress/pull/609
+	* s2: Remove sanity load on index creation https://github.com/klauspost/compress/pull/607
+	* snappy: Use dedicated function for scoring https://github.com/klauspost/compress/pull/614
+	* s2c+s2d: Use official snappy framed extension https://github.com/klauspost/compress/pull/610
+
 * May 25, 2022 (v1.15.5)
 	* s2: Add concurrent stream decompression https://github.com/klauspost/compress/pull/602
 	* s2: Fix final emit oob read crash on amd64 https://github.com/klauspost/compress/pull/601

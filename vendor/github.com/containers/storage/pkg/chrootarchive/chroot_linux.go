@@ -36,7 +36,7 @@ func chroot(path string) (err error) {
 	}
 
 	if err := unix.Unshare(unix.CLONE_NEWNS); err != nil {
-		return fmt.Errorf("Error creating mount namespace before pivot: %v", err)
+		return fmt.Errorf("creating mount namespace before pivot: %w", err)
 	}
 
 	// make everything in new ns private
@@ -53,7 +53,7 @@ func chroot(path string) (err error) {
 	// setup oldRoot for pivot_root
 	pivotDir, err := ioutil.TempDir(path, ".pivot_root")
 	if err != nil {
-		return fmt.Errorf("Error setting up pivot dir: %v", err)
+		return fmt.Errorf("setting up pivot dir: %w", err)
 	}
 
 	var mounted bool
@@ -72,7 +72,7 @@ func chroot(path string) (err error) {
 		// pivotDir doesn't exist if pivot_root failed and chroot+chdir was successful
 		// because we already cleaned it up on failed pivot_root
 		if errCleanup != nil && !os.IsNotExist(errCleanup) {
-			errCleanup = fmt.Errorf("Error cleaning up after pivot: %v", errCleanup)
+			errCleanup = fmt.Errorf("cleaning up after pivot: %w", errCleanup)
 			if err == nil {
 				err = errCleanup
 			}
@@ -82,7 +82,7 @@ func chroot(path string) (err error) {
 	if err := unix.PivotRoot(path, pivotDir); err != nil {
 		// If pivot fails, fall back to the normal chroot after cleaning up temp dir
 		if err := os.Remove(pivotDir); err != nil {
-			return fmt.Errorf("Error cleaning up after failed pivot: %v", err)
+			return fmt.Errorf("cleaning up after failed pivot: %w", err)
 		}
 		return realChroot(path)
 	}
@@ -93,17 +93,17 @@ func chroot(path string) (err error) {
 	pivotDir = filepath.Join("/", filepath.Base(pivotDir))
 
 	if err := unix.Chdir("/"); err != nil {
-		return fmt.Errorf("Error changing to new root: %v", err)
+		return fmt.Errorf("changing to new root: %w", err)
 	}
 
 	// Make the pivotDir (where the old root lives) private so it can be unmounted without propagating to the host
 	if err := unix.Mount("", pivotDir, "", unix.MS_PRIVATE|unix.MS_REC, ""); err != nil {
-		return fmt.Errorf("Error making old root private after pivot: %v", err)
+		return fmt.Errorf("making old root private after pivot: %w", err)
 	}
 
 	// Now unmount the old root so it's no longer visible from the new root
 	if err := unix.Unmount(pivotDir, unix.MNT_DETACH); err != nil {
-		return fmt.Errorf("Error while unmounting old root after pivot: %v", err)
+		return fmt.Errorf("while unmounting old root after pivot: %w", err)
 	}
 	mounted = false
 
@@ -112,10 +112,10 @@ func chroot(path string) (err error) {
 
 func realChroot(path string) error {
 	if err := unix.Chroot(path); err != nil {
-		return fmt.Errorf("Error after fallback to chroot: %v", err)
+		return fmt.Errorf("after fallback to chroot: %w", err)
 	}
 	if err := unix.Chdir("/"); err != nil {
-		return fmt.Errorf("Error changing to new root after chroot: %v", err)
+		return fmt.Errorf("changing to new root after chroot: %w", err)
 	}
 	return nil
 }

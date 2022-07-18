@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"fmt"
 	"os"
 	"os/user"
 	"path/filepath"
@@ -11,7 +12,6 @@ import (
 	"github.com/containers/storage/pkg/unshare"
 	"github.com/containers/storage/types"
 	libcontainerUser "github.com/opencontainers/runc/libcontainer/user"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -164,7 +164,7 @@ outer:
 			}
 			continue outer
 		}
-		return 0, errors.Errorf("cannot find layer %q", layerName)
+		return 0, fmt.Errorf("cannot find layer %q", layerName)
 	}
 
 	rlstore, err := s.LayerStore()
@@ -223,7 +223,7 @@ func (s *store) getAutoUserNS(options *types.AutoUserNsOptions, image *Image) ([
 
 	availableUIDs, availableGIDs, err := s.getAvailableIDs()
 	if err != nil {
-		return nil, nil, errors.Wrapf(err, "cannot read mappings")
+		return nil, nil, fmt.Errorf("cannot read mappings: %w", err)
 	}
 
 	// Look every container that is using a user namespace and store
@@ -259,7 +259,7 @@ func (s *store) getAutoUserNS(options *types.AutoUserNsOptions, image *Image) ([
 			}
 		}
 		if s.autoNsMaxSize > 0 && size > s.autoNsMaxSize {
-			return nil, nil, errors.Errorf("the container needs a user namespace with size %q that is bigger than the maximum value allowed with userns=auto %q", size, s.autoNsMaxSize)
+			return nil, nil, fmt.Errorf("the container needs a user namespace with size %q that is bigger than the maximum value allowed with userns=auto %q", size, s.autoNsMaxSize)
 		}
 	}
 

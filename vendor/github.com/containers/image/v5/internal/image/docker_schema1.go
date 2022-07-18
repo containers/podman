@@ -2,13 +2,13 @@ package image
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/types"
 	"github.com/opencontainers/go-digest"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
-	"github.com/pkg/errors"
 )
 
 type manifestSchema1 struct {
@@ -165,22 +165,22 @@ func (m *manifestSchema1) convertToManifestSchema2(_ context.Context, options *t
 
 	if len(m.m.ExtractedV1Compatibility) == 0 {
 		// What would this even mean?! Anyhow, the rest of the code depends on FSLayers[0] and ExtractedV1Compatibility[0] existing.
-		return nil, errors.Errorf("Cannot convert an image with 0 history entries to %s", manifest.DockerV2Schema2MediaType)
+		return nil, fmt.Errorf("Cannot convert an image with 0 history entries to %s", manifest.DockerV2Schema2MediaType)
 	}
 	if len(m.m.ExtractedV1Compatibility) != len(m.m.FSLayers) {
-		return nil, errors.Errorf("Inconsistent schema 1 manifest: %d history entries, %d fsLayers entries", len(m.m.ExtractedV1Compatibility), len(m.m.FSLayers))
+		return nil, fmt.Errorf("Inconsistent schema 1 manifest: %d history entries, %d fsLayers entries", len(m.m.ExtractedV1Compatibility), len(m.m.FSLayers))
 	}
 	if uploadedLayerInfos != nil && len(uploadedLayerInfos) != len(m.m.FSLayers) {
-		return nil, errors.Errorf("Internal error: uploaded %d blobs, but schema1 manifest has %d fsLayers", len(uploadedLayerInfos), len(m.m.FSLayers))
+		return nil, fmt.Errorf("Internal error: uploaded %d blobs, but schema1 manifest has %d fsLayers", len(uploadedLayerInfos), len(m.m.FSLayers))
 	}
 	if layerDiffIDs != nil && len(layerDiffIDs) != len(m.m.FSLayers) {
-		return nil, errors.Errorf("Internal error: collected %d DiffID values, but schema1 manifest has %d fsLayers", len(layerDiffIDs), len(m.m.FSLayers))
+		return nil, fmt.Errorf("Internal error: collected %d DiffID values, but schema1 manifest has %d fsLayers", len(layerDiffIDs), len(m.m.FSLayers))
 	}
 
 	var convertedLayerUpdates []types.BlobInfo // Only used if options.LayerInfos != nil
 	if options.LayerInfos != nil {
 		if len(options.LayerInfos) != len(m.m.FSLayers) {
-			return nil, errors.Errorf("Error converting image: layer edits for %d layers vs %d existing layers",
+			return nil, fmt.Errorf("Error converting image: layer edits for %d layers vs %d existing layers",
 				len(options.LayerInfos), len(m.m.FSLayers))
 		}
 		convertedLayerUpdates = []types.BlobInfo{}

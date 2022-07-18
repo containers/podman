@@ -84,6 +84,7 @@ func NetworkBackend(store storage.Store, conf *config.Config, syslog bool) (type
 			DefaultNetwork:     conf.Network.DefaultNetwork,
 			DefaultSubnet:      conf.Network.DefaultSubnet,
 			DefaultsubnetPools: conf.Network.DefaultSubnetPools,
+			DNSBindPort:        conf.Network.DNSBindPort,
 			Syslog:             syslog,
 		})
 		return types.Netavark, netInt, err
@@ -160,7 +161,7 @@ func getCniInterface(conf *config.Config) (types.ContainerNetwork, error) {
 	confDir := conf.Network.NetworkConfigDir
 	if confDir == "" {
 		var err error
-		confDir, err = getDefultCNIConfigDir()
+		confDir, err = getDefaultCNIConfigDir()
 		if err != nil {
 			return nil, err
 		}
@@ -175,7 +176,7 @@ func getCniInterface(conf *config.Config) (types.ContainerNetwork, error) {
 	})
 }
 
-func getDefultCNIConfigDir() (string, error) {
+func getDefaultCNIConfigDir() (string, error) {
 	if !unshare.IsRootless() {
 		return cniConfigDir, nil
 	}

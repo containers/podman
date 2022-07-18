@@ -5,6 +5,7 @@ import (
 	"bufio"
 	"bytes"
 	"compress/bzip2"
+	"errors"
 	"fmt"
 	"io"
 	"io/fs"
@@ -25,7 +26,6 @@ import (
 	"github.com/containers/storage/pkg/unshare"
 	gzip "github.com/klauspost/pgzip"
 	"github.com/opencontainers/runc/libcontainer/userns"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/ulikunitz/xz"
 )
@@ -220,7 +220,7 @@ func DecompressStream(archive io.Reader) (io.ReadCloser, error) {
 	case Zstd:
 		return zstdReader(buf)
 	default:
-		return nil, fmt.Errorf("Unsupported compression format %s", (&compression).Extension())
+		return nil, fmt.Errorf("unsupported compression format %s", (&compression).Extension())
 	}
 }
 
@@ -241,9 +241,9 @@ func CompressStream(dest io.Writer, compression Compression) (io.WriteCloser, er
 	case Bzip2, Xz:
 		// archive/bzip2 does not support writing, and there is no xz support at all
 		// However, this is not a problem as docker only currently generates gzipped tars
-		return nil, fmt.Errorf("Unsupported compression format %s", (&compression).Extension())
+		return nil, fmt.Errorf("unsupported compression format %s", (&compression).Extension())
 	default:
-		return nil, fmt.Errorf("Unsupported compression format %s", (&compression).Extension())
+		return nil, fmt.Errorf("unsupported compression format %s", (&compression).Extension())
 	}
 }
 
@@ -363,7 +363,7 @@ func FileInfoHeader(name string, fi os.FileInfo, link string) (*tar.Header, erro
 	hdr.Mode = fillGo18FileTypeBits(int64(chmodTarEntry(os.FileMode(hdr.Mode))), fi)
 	name, err = canonicalTarName(name, fi.IsDir())
 	if err != nil {
-		return nil, fmt.Errorf("tar: cannot canonicalize path: %v", err)
+		return nil, fmt.Errorf("tar: cannot canonicalize path: %w", err)
 	}
 	hdr.Name = name
 	if err := setHeaderForSpecialDevice(hdr, name, fi.Sys()); err != nil {
@@ -406,7 +406,7 @@ func ReadSecurityXattrToTarHeader(path string, hdr *tar.Header) error {
 	for _, xattr := range []string{"security.capability", "security.ima"} {
 		capability, err := system.Lgetxattr(path, xattr)
 		if err != nil && !errors.Is(err, system.EOPNOTSUPP) && err != system.ErrNotSupportedPlatform {
-			return errors.Wrapf(err, "failed to read %q attribute from %q", xattr, path)
+			return fmt.Errorf("failed to read %q attribute from %q: %w", xattr, path, err)
 		}
 		if capability != nil {
 			hdr.Xattrs[xattr] = string(capability)
@@ -1123,7 +1123,7 @@ func UntarUncompressed(tarArchive io.Reader, dest string, options *TarOptions) e
 // Handler for teasing out the automatic decompression
 func untarHandler(tarArchive io.Reader, dest string, options *TarOptions, decompress bool) error {
 	if tarArchive == nil {
-		return fmt.Errorf("Empty archive")
+		return fmt.Errorf("empty archive")
 	}
 	dest = filepath.Clean(dest)
 	if options == nil {
@@ -1239,7 +1239,7 @@ func (archiver *Archiver) CopyFileWithTar(src, dst string) (err error) {
 	}
 
 	if srcSt.IsDir() {
-		return fmt.Errorf("Can't copy a directory")
+		return fmt.Errorf("can't copy a directory")
 	}
 
 	// Clean up the trailing slash. This must be done in an operating
@@ -1450,7 +1450,7 @@ func CopyFileWithTarAndChown(chownOpts *idtools.IDPair, hasher io.Writer, uidmap
 		archiver.Untar = func(tarArchive io.Reader, dest string, options *TarOptions) error {
 			contentReader, contentWriter, err := os.Pipe()
 			if err != nil {
-				return errors.Wrapf(err, "error creating pipe extract data to %q", dest)
+				return fmt.Errorf("creating pipe extract data to %q: %w", dest, err)
 			}
 			defer contentReader.Close()
 			defer contentWriter.Close()
@@ -1469,11 +1469,11 @@ func CopyFileWithTarAndChown(chownOpts *idtools.IDPair, hasher io.Writer, uidmap
 				hashWorker.Done()
 			}()
 			if err = originalUntar(io.TeeReader(tarArchive, contentWriter), dest, options); err != nil {
-				err = errors.Wrapf(err, "error extracting data to %q while copying", dest)
+				err = fmt.Errorf("extracting data to %q while copying: %w", dest, err)
 			}
 			hashWorker.Wait()
 			if err == nil {
-				err = errors.Wrapf(hashError, "error calculating digest of data for %q while copying", dest)
+				err = fmt.Errorf("calculating digest of data for %q while copying: %w", dest, hashError)
 			}
 			return err
 		}

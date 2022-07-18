@@ -2,6 +2,7 @@ package buildah
 
 import (
 	"archive/tar"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -24,7 +25,6 @@ import (
 	"github.com/hashicorp/go-multierror"
 	"github.com/opencontainers/runc/libcontainer/userns"
 	"github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -88,6 +88,11 @@ func getURL(src string, chown *idtools.IDPair, mountpoint, renameTarget string, 
 		return err
 	}
 	defer response.Body.Close()
+
+	if response.StatusCode < http.StatusOK || response.StatusCode >= http.StatusBadRequest {
+		return fmt.Errorf("invalid response status %d", response.StatusCode)
+	}
+
 	// Figure out what to name the new content.
 	name := renameTarget
 	if name == "" {
@@ -100,7 +105,7 @@ func getURL(src string, chown *idtools.IDPair, mountpoint, renameTarget string, 
 	if lastModified != "" {
 		d, err := time.Parse(time.RFC1123, lastModified)
 		if err != nil {
-			return errors.Wrapf(err, "error parsing last-modified time")
+			return fmt.Errorf("error parsing last-modified time: %w", err)
 		}
 		date = d
 	}
@@ -112,17 +117,17 @@ func getURL(src string, chown *idtools.IDPair, mountpoint, renameTarget string, 
 		// we can figure out how much content there is.
 		f, err := ioutil.TempFile(mountpoint, "download")
 		if err != nil {
-			return errors.Wrapf(err, "error creating temporary file to hold %q", src)
+			return fmt.Errorf("error creating temporary file to hold %q: %w", src, err)
 		}
 		defer os.Remove(f.Name())
 		defer f.Close()
 		size, err = io.Copy(f, response.Body)
 		if err != nil {
-			return errors.Wrapf(err, "error writing %q to temporary file %q", src, f.Name())
+			return fmt.Errorf("error writing %q to temporary file %q: %w", src, f.Name(), err)
 		}
 		_, err = f.Seek(0, io.SeekStart)
 		if err != nil {
-			return errors.Wrapf(err, "error setting up to read %q from temporary file %q", src, f.Name())
+			return fmt.Errorf("error setting up to read %q from temporary file %q: %w", src, f.Name(), err)
 		}
 		responseBody = f
 	}
@@ -150,10 +155,14 @@ func getURL(src string, chown *idtools.IDPair, mountpoint, renameTarget string, 
 	}
 	err = tw.WriteHeader(&hdr)
 	if err != nil {
-		return errors.Wrapf(err, "error writing header")
+		return fmt.Errorf("error writing header: %w", err)
 	}
-	_, err = io.Copy(tw, responseBody)
-	return errors.Wrapf(err, "error writing content from %q to tar stream", src)
+
+	if _, err := io.Copy(tw, responseBody); err != nil {
+		return fmt.Errorf("error writing content from %q to tar stream: %w", src, err)
+	}
+
+	return nil
 }
 
 // includeDirectoryAnyway returns true if "path" is a prefix for an exception
@@ -199,13 +208,13 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 		contextDir = string(os.PathSeparator)
 		currentDir, err = os.Getwd()
 		if err != nil {
-			return errors.Wrapf(err, "error determining current working directory")
+			return fmt.Errorf("error determining current working directory: %w", err)
 		}
 	} else {
 		if !filepath.IsAbs(options.ContextDir) {
 			contextDir, err = filepath.Abs(options.ContextDir)
 			if err != nil {
-				return errors.Wrapf(err, "error converting context directory path %q to an absolute path", options.ContextDir)
+				return fmt.Errorf("error converting context directory path %q to an absolute path: %w", options.ContextDir, err)
 			}
 		}
 	}
@@ -233,7 +242,7 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 		}
 		localSourceStats, err = copier.Stat(contextDir, contextDir, statOptions, localSources)
 		if err != nil {
-			return errors.Wrapf(err, "checking on sources under %q", contextDir)
+			return fmt.Errorf("checking on sources under %q: %w", contextDir, err)
 		}
 	}
 	numLocalSourceItems := 0
@@ -247,15 +256,15 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 			if strings.HasPrefix(rel, ".."+string(os.PathSeparator)) {
 				errorText = fmt.Sprintf("possible escaping context directory error: %s", errorText)
 			}
-			return errors.Errorf("checking on sources under %q: %v", contextDir, errorText)
+			return fmt.Errorf("checking on sources under %q: %v", contextDir, errorText)
 		}
 		if len(localSourceStat.Globbed) == 0 {
-			return errors.Wrapf(syscall.ENOENT, "checking source under %q: no glob matches", contextDir)
+			return fmt.Errorf("checking source under %q: no glob matches: %w", contextDir, syscall.ENOENT)
 		}
 		numLocalSourceItems += len(localSourceStat.Globbed)
 	}
 	if numLocalSourceItems+len(remoteSources) == 0 {
-		return errors.Wrapf(syscall.ENOENT, "no sources %v found", sources)
+		return fmt.Errorf("no sources %v found: %w", sources, syscall.ENOENT)
 	}
 
 	// Find out which user (and group) the destination should belong to.
@@ -264,14 +273,14 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 	if options.Chown != "" {
 		userUID, userGID, err = b.userForCopy(mountPoint, options.Chown)
 		if err != nil {
-			return errors.Wrapf(err, "error looking up UID/GID for %q", options.Chown)
+			return fmt.Errorf("error looking up UID/GID for %q: %w", options.Chown, err)
 		}
 	}
 	var chmodDirsFiles *os.FileMode
 	if options.Chmod != "" {
 		p, err := strconv.ParseUint(options.Chmod, 8, 32)
 		if err != nil {
-			return errors.Wrapf(err, "error parsing chmod %q", options.Chmod)
+			return fmt.Errorf("error parsing chmod %q: %w", options.Chmod, err)
 		}
 		perm := os.FileMode(p)
 		chmodDirsFiles = &perm
@@ -323,7 +332,7 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 	}
 	destStats, err := copier.Stat(mountPoint, filepath.Join(mountPoint, b.WorkDir()), statOptions, []string{extractDirectory})
 	if err != nil {
-		return errors.Wrapf(err, "error checking on destination %v", extractDirectory)
+		return fmt.Errorf("error checking on destination %v: %w", extractDirectory, err)
 	}
 	if (len(destStats) == 0 || len(destStats[0].Globbed) == 0) && !destMustBeDirectory && destCanBeFile {
 		// destination doesn't exist - extract to parent and rename the incoming file to the destination's name
@@ -339,7 +348,7 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 
 	if len(destStats) == 1 && len(destStats[0].Globbed) == 1 && destStats[0].Results[destStats[0].Globbed[0]].IsRegular {
 		if destMustBeDirectory {
-			return errors.Errorf("destination %v already exists but is not a directory", destination)
+			return fmt.Errorf("destination %v already exists but is not a directory", destination)
 		}
 		// destination exists - it's a file, we need to extract to parent and rename the incoming file to the destination's name
 		renameTarget = filepath.Base(extractDirectory)
@@ -348,7 +357,7 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 
 	pm, err := fileutils.NewPatternMatcher(options.Excludes)
 	if err != nil {
-		return errors.Wrapf(err, "error processing excludes list %v", options.Excludes)
+		return fmt.Errorf("error processing excludes list %v: %w", options.Excludes, err)
 	}
 
 	// Make sure that, if it's a symlink, we'll chroot to the target of the link;
@@ -356,7 +365,7 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 	evalOptions := copier.EvalOptions{}
 	evaluated, err := copier.Eval(mountPoint, extractDirectory, evalOptions)
 	if err != nil {
-		return errors.Wrapf(err, "error checking on destination %v", extractDirectory)
+		return fmt.Errorf("error checking on destination %v: %w", extractDirectory, err)
 	}
 	extractDirectory = evaluated
 
@@ -374,7 +383,7 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 		ChownNew: chownDirs,
 	}
 	if err := copier.Mkdir(mountPoint, extractDirectory, mkdirOptions); err != nil {
-		return errors.Wrapf(err, "error ensuring target directory exists")
+		return fmt.Errorf("error ensuring target directory exists: %w", err)
 	}
 
 	// Copy each source in turn.
@@ -418,10 +427,10 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 			}()
 			wg.Wait()
 			if getErr != nil {
-				getErr = errors.Wrapf(getErr, "error reading %q", src)
+				getErr = fmt.Errorf("error reading %q: %w", src, getErr)
 			}
 			if putErr != nil {
-				putErr = errors.Wrapf(putErr, "error storing %q", src)
+				putErr = fmt.Errorf("error storing %q: %w", src, putErr)
 			}
 			multiErr = multierror.Append(getErr, putErr)
 			if multiErr != nil && multiErr.ErrorOrNil() != nil {
@@ -450,16 +459,16 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 		for _, glob := range localSourceStat.Globbed {
 			rel, err := filepath.Rel(contextDir, glob)
 			if err != nil {
-				return errors.Wrapf(err, "error computing path of %q relative to %q", glob, contextDir)
+				return fmt.Errorf("error computing path of %q relative to %q: %w", glob, contextDir, err)
 			}
 			if strings.HasPrefix(rel, ".."+string(os.PathSeparator)) {
-				return errors.Errorf("possible escaping context directory error: %q is outside of %q", glob, contextDir)
+				return fmt.Errorf("possible escaping context directory error: %q is outside of %q", glob, contextDir)
 			}
 			// Check for dockerignore-style exclusion of this item.
 			if rel != "." {
 				excluded, err := pm.Matches(filepath.ToSlash(rel)) // nolint:staticcheck
 				if err != nil {
-					return errors.Wrapf(err, "error checking if %q(%q) is excluded", glob, rel)
+					return fmt.Errorf("error checking if %q(%q) is excluded: %w", glob, rel, err)
 				}
 				if excluded {
 					// non-directories that are excluded are excluded, no question, but
@@ -515,7 +524,7 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 				getErr = copier.Get(contextDir, contextDir, getOptions, []string{glob}, writer)
 				closeErr = writer.Close()
 				if renameTarget != "" && renamedItems > 1 {
-					renameErr = errors.Errorf("internal error: renamed %d items when we expected to only rename 1", renamedItems)
+					renameErr = fmt.Errorf("internal error: renamed %d items when we expected to only rename 1", renamedItems)
 				}
 				wg.Done()
 			}()
@@ -553,16 +562,16 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 			}()
 			wg.Wait()
 			if getErr != nil {
-				getErr = errors.Wrapf(getErr, "error reading %q", src)
+				getErr = fmt.Errorf("error reading %q: %w", src, getErr)
 			}
 			if closeErr != nil {
-				closeErr = errors.Wrapf(closeErr, "error closing %q", src)
+				closeErr = fmt.Errorf("error closing %q: %w", src, closeErr)
 			}
 			if renameErr != nil {
-				renameErr = errors.Wrapf(renameErr, "error renaming %q", src)
+				renameErr = fmt.Errorf("error renaming %q: %w", src, renameErr)
 			}
 			if putErr != nil {
-				putErr = errors.Wrapf(putErr, "error storing %q", src)
+				putErr = fmt.Errorf("error storing %q: %w", src, putErr)
 			}
 			multiErr = multierror.Append(getErr, closeErr, renameErr, putErr)
 			if multiErr != nil && multiErr.ErrorOrNil() != nil {
@@ -577,7 +586,7 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 			if options.IgnoreFile != "" {
 				excludesFile = " using " + options.IgnoreFile
 			}
-			return errors.Wrapf(syscall.ENOENT, "no items matching glob %q copied (%d filtered out%s)", localSourceStat.Glob, len(localSourceStat.Globbed), excludesFile)
+			return fmt.Errorf("no items matching glob %q copied (%d filtered out%s): %w", localSourceStat.Glob, len(localSourceStat.Globbed), excludesFile, syscall.ENOENT)
 		}
 	}
 	return nil
@@ -599,7 +608,7 @@ func (b *Builder) userForRun(mountPoint string, userspec string) (specs.User, st
 	if !strings.Contains(userspec, ":") {
 		groups, err2 := chrootuser.GetAdditionalGroupsForUser(mountPoint, uint64(u.UID))
 		if err2 != nil {
-			if errors.Cause(err2) != chrootuser.ErrNoSuchUser && err == nil {
+			if !errors.Is(err2, chrootuser.ErrNoSuchUser) && err == nil {
 				err = err2
 			}
 		} else {
@@ -629,7 +638,7 @@ func (b *Builder) userForCopy(mountPoint string, userspec string) (uint32, uint3
 
 	// If userspec did not specify any values for user or group, then fail
 	if user == "" && group == "" {
-		return 0, 0, errors.Errorf("can't find uid for user %s", userspec)
+		return 0, 0, fmt.Errorf("can't find uid for user %s", userspec)
 	}
 
 	// If userspec specifies values for user or group, check for numeric values

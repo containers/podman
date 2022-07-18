@@ -2,6 +2,8 @@ package libimage
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"io"
 	"os"
 	"strings"
@@ -17,7 +19,6 @@ import (
 	storageTransport "github.com/containers/image/v5/storage"
 	"github.com/containers/image/v5/types"
 	encconfig "github.com/containers/ocicrypt/config"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -343,12 +344,12 @@ func (c *copier) copy(ctx context.Context, source, destination types.ImageRefere
 	// Sanity checks for Buildah.
 	if sourceInsecure != nil && *sourceInsecure {
 		if c.systemContext.DockerInsecureSkipTLSVerify == types.OptionalBoolFalse {
-			return nil, errors.Errorf("can't require tls verification on an insecured registry")
+			return nil, fmt.Errorf("can't require tls verification on an insecured registry")
 		}
 	}
 	if destinationInsecure != nil && *destinationInsecure {
 		if c.systemContext.DockerInsecureSkipTLSVerify == types.OptionalBoolFalse {
-			return nil, errors.Errorf("can't require tls verification on an insecured registry")
+			return nil, fmt.Errorf("can't require tls verification on an insecured registry")
 		}
 	}
 
@@ -402,7 +403,7 @@ func checkRegistrySourcesAllows(dest types.ImageReference) (insecure *bool, err 
 		AllowedRegistries  []string `json:"allowedRegistries,omitempty"`
 	}
 	if err := json.Unmarshal([]byte(registrySources), &sources); err != nil {
-		return nil, errors.Wrapf(err, "error parsing $BUILD_REGISTRY_SOURCES (%q) as JSON", registrySources)
+		return nil, fmt.Errorf("error parsing $BUILD_REGISTRY_SOURCES (%q) as JSON: %w", registrySources, err)
 	}
 	blocked := false
 	if len(sources.BlockedRegistries) > 0 {
@@ -413,7 +414,7 @@ func checkRegistrySourcesAllows(dest types.ImageReference) (insecure *bool, err 
 		}
 	}
 	if blocked {
-		return nil, errors.Errorf("registry %q denied by policy: it is in the blocked registries list (%s)", reference.Domain(dref), registrySources)
+		return nil, fmt.Errorf("registry %q denied by policy: it is in the blocked registries list (%s)", reference.Domain(dref), registrySources)
 	}
 	allowed := true
 	if len(sources.AllowedRegistries) > 0 {
@@ -425,7 +426,7 @@ func checkRegistrySourcesAllows(dest types.ImageReference) (insecure *bool, err 
 		}
 	}
 	if !allowed {
-		return nil, errors.Errorf("registry %q denied by policy: not in allowed registries list (%s)", reference.Domain(dref), registrySources)
+		return nil, fmt.Errorf("registry %q denied by policy: not in allowed registries list (%s)", reference.Domain(dref), registrySources)
 	}
 
 	for _, inseureDomain := range sources.InsecureRegistries {

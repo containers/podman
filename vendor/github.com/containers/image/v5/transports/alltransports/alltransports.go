@@ -1,6 +1,7 @@
 package alltransports
 
 import (
+	"fmt"
 	"strings"
 
 	// register all known transports
@@ -19,7 +20,6 @@ import (
 	// The storage transport is registered by storage*.go
 	"github.com/containers/image/v5/transports"
 	"github.com/containers/image/v5/types"
-	"github.com/pkg/errors"
 )
 
 // ParseImageName converts a URL-like image name to a types.ImageReference.
@@ -27,11 +27,11 @@ func ParseImageName(imgName string) (types.ImageReference, error) {
 	// Keep this in sync with TransportFromImageName!
 	parts := strings.SplitN(imgName, ":", 2)
 	if len(parts) != 2 {
-		return nil, errors.Errorf(`Invalid image name "%s", expected colon-separated transport:reference`, imgName)
+		return nil, fmt.Errorf(`Invalid image name "%s", expected colon-separated transport:reference`, imgName)
 	}
 	transport := transports.Get(parts[0])
 	if transport == nil {
-		return nil, errors.Errorf(`Invalid image name "%s", unknown transport "%s"`, imgName, parts[0])
+		return nil, fmt.Errorf(`Invalid image name "%s", unknown transport "%s"`, imgName, parts[0])
 	}
 	return transport.ParseReference(parts[1])
 }

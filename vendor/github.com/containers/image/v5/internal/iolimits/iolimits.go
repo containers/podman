@@ -1,9 +1,8 @@
 package iolimits
 
 import (
+	"fmt"
 	"io"
-
-	"github.com/pkg/errors"
 )
 
 // All constants below are intended to be used as limits for `ReadAtMost`. The
@@ -52,7 +51,7 @@ func ReadAtMost(reader io.Reader, limit int) ([]byte, error) {
 	}
 
 	if len(res) > limit {
-		return nil, errors.Errorf("exceeded maximum allowed size of %d bytes", limit)
+		return nil, fmt.Errorf("exceeded maximum allowed size of %d bytes", limit)
 	}
 
 	return res, nil

@@ -11,6 +11,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containers/image/v5/internal/imagesource/impl"
+	"github.com/containers/image/v5/internal/imagesource/stubs"
 	"github.com/containers/image/v5/types"
 	"github.com/klauspost/pgzip"
 	digest "github.com/opencontainers/go-digest"
@@ -19,6 +21,12 @@ import (
 )
 
 type tarballImageSource struct {
+	impl.Compat
+	impl.PropertyMethodsInitialize
+	impl.NoSignatures
+	impl.DoesNotAffectLayerInfosForCopy
+	stubs.NoGetBlobAtInitialize
+
 	reference  tarballReference
 	filenames  []string
 	diffIDs    []digest.Digest
@@ -185,6 +193,11 @@ func (r *tarballReference) NewImageSource(ctx context.Context, sys *types.System
 
 	// Return the image.
 	src := &tarballImageSource{
+		PropertyMethodsInitialize: impl.PropertyMethods(impl.Properties{
+			HasThreadSafeGetBlob: false,
+		}),
+		NoGetBlobAtInitialize: stubs.NoGetBlobAt(r),
+
 		reference:  *r,
 		filenames:  filenames,
 		diffIDs:    diffIDs,
@@ -197,17 +210,13 @@ func (r *tarballReference) NewImageSource(ctx context.Context, sys *types.System
 		configSize: configSize,
 		manifest:   manifestBytes,
 	}
+	src.Compat = impl.AddCompat(src)
 
 	return src, nil
 }
 
 func (is *tarballImageSource) Close() error {
 	return nil
-}
-
-// HasThreadSafeGetBlob indicates whether GetBlob can be executed concurrently.
-func (is *tarballImageSource) HasThreadSafeGetBlob() bool {
-	return false
 }
 
 // GetBlob returns a stream for the specified blob, and the blob’s size (or -1 if unknown).
@@ -246,28 +255,6 @@ func (is *tarballImageSource) GetManifest(ctx context.Context, instanceDigest *d
 	return is.manifest, imgspecv1.MediaTypeImageManifest, nil
 }
 
-// GetSignatures returns the image's signatures.  It may use a remote (= slow) service.
-// This source implementation does not support manifest lists, so the passed-in instanceDigest should always be nil,
-// as there can be no secondary manifests.
-func (*tarballImageSource) GetSignatures(ctx context.Context, instanceDigest *digest.Digest) ([][]byte, error) {
-	if instanceDigest != nil {
-		return nil, fmt.Errorf("manifest lists are not supported by the %q transport", transportName)
-	}
-	return nil, nil
-}
-
 func (is *tarballImageSource) Reference() types.ImageReference {
 	return &is.reference
-}
-
-// LayerInfosForCopy returns either nil (meaning the values in the manifest are fine), or updated values for the layer
-// blobsums that are listed in the image's manifest.  If values are returned, they should be used when using GetBlob()
-// to read the image's layers.
-// If instanceDigest is not nil, it contains a digest of the specific manifest instance to retrieve BlobInfos for
-// (when the primary manifest is a manifest list); this never happens if the primary manifest is not a manifest list
-// (e.g. if the source never returns manifest lists).
-// The Digest field is guaranteed to be provided; Size may be -1.
-// WARNING: The list may contain duplicates, and they are semantically relevant.
-func (*tarballImageSource) LayerInfosForCopy(context.Context, *digest.Digest) ([]types.BlobInfo, error) {
-	return nil, nil
 }

@@ -1,4 +1,5 @@
-//+build windows
+//go:build windows
+// +build windows
 
 package windows
 
@@ -103,7 +104,7 @@ func InitFilter(home string, options graphdriver.Options) (graphdriver.Driver, e
 	}
 
 	if err := idtools.MkdirAllAs(home, 0700, 0, 0); err != nil {
-		return nil, fmt.Errorf("windowsfilter failed to create '%s': %v", home, err)
+		return nil, fmt.Errorf("windowsfilter failed to create '%s': %w", home, err)
 	}
 
 	d := &Driver{
@@ -252,7 +253,7 @@ func (d *Driver) create(id, parent, mountLabel string, readOnly bool, storageOpt
 
 		storageOptions, err := parseStorageOpt(storageOpt)
 		if err != nil {
-			return fmt.Errorf("Failed to parse storage options - %s", err)
+			return fmt.Errorf("failed to parse storage options - %s", err)
 		}
 
 		if storageOptions.size != 0 {
@@ -266,7 +267,7 @@ func (d *Driver) create(id, parent, mountLabel string, readOnly bool, storageOpt
 		if err2 := hcsshim.DestroyLayer(d.info, id); err2 != nil {
 			logrus.Warnf("Failed to DestroyLayer %s: %s", id, err2)
 		}
-		return fmt.Errorf("Cannot create layer with missing parent %s: %s", parent, err)
+		return fmt.Errorf("cannot create layer with missing parent %s: %s", parent, err)
 	}
 
 	if err := d.setLayerChain(id, layerChain); err != nil {
@@ -810,7 +811,7 @@ func (d *Driver) importLayer(id string, layerData io.Reader, parentLayerPaths []
 		}
 
 		if err = cmd.Wait(); err != nil {
-			return 0, fmt.Errorf("re-exec error: %v: output: %s", err, output)
+			return 0, fmt.Errorf("re-exec output: %s: error: %w", output, err)
 		}
 
 		return strconv.ParseInt(output.String(), 10, 64)
@@ -890,13 +891,13 @@ func (d *Driver) getLayerChain(id string) ([]string, error) {
 	if os.IsNotExist(err) {
 		return nil, nil
 	} else if err != nil {
-		return nil, fmt.Errorf("Unable to read layerchain file - %s", err)
+		return nil, fmt.Errorf("unable to read layerchain file - %s", err)
 	}
 
 	var layerChain []string
 	err = json.Unmarshal(content, &layerChain)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to unmarshall layerchain json - %s", err)
+		return nil, fmt.Errorf("failed to unmarshall layerchain json - %s", err)
 	}
 
 	return layerChain, nil
@@ -906,13 +907,13 @@ func (d *Driver) getLayerChain(id string) ([]string, error) {
 func (d *Driver) setLayerChain(id string, chain []string) error {
 	content, err := json.Marshal(&chain)
 	if err != nil {
-		return fmt.Errorf("Failed to marshall layerchain json - %s", err)
+		return fmt.Errorf("failed to marshall layerchain json - %s", err)
 	}
 
 	jPath := filepath.Join(d.dir(id), "layerchain.json")
 	err = ioutil.WriteFile(jPath, content, 0600)
 	if err != nil {
-		return fmt.Errorf("Unable to write layerchain file - %s", err)
+		return fmt.Errorf("unable to write layerchain file - %s", err)
 	}
 
 	return nil
@@ -999,7 +1000,7 @@ func parseStorageOpt(storageOpt map[string]string) (*storageOptions, error) {
 			}
 			options.size = uint64(size)
 		default:
-			return nil, fmt.Errorf("Unknown storage option: %s", key)
+			return nil, fmt.Errorf("unknown storage option: %s", key)
 		}
 	}
 	return &options, nil

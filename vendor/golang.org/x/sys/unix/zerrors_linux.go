@@ -184,6 +184,7 @@ const (
 	BPF_F_ALLOW_MULTI                           = 0x2
 	BPF_F_ALLOW_OVERRIDE                        = 0x1
 	BPF_F_ANY_ALIGNMENT                         = 0x2
+	BPF_F_KPROBE_MULTI_RETURN                   = 0x1
 	BPF_F_QUERY_EFFECTIVE                       = 0x1
 	BPF_F_REPLACE                               = 0x4
 	BPF_F_SLEEPABLE                             = 0x10
@@ -191,6 +192,8 @@ const (
 	BPF_F_TEST_RND_HI32                         = 0x4
 	BPF_F_TEST_RUN_ON_CPU                       = 0x1
 	BPF_F_TEST_STATE_FREQ                       = 0x8
+	BPF_F_TEST_XDP_LIVE_FRAMES                  = 0x2
+	BPF_F_XDP_HAS_FRAGS                         = 0x20
 	BPF_H                                       = 0x8
 	BPF_IMM                                     = 0x0
 	BPF_IND                                     = 0x40
@@ -517,9 +520,9 @@ const (
 	DM_UUID_FLAG                                = 0x4000
 	DM_UUID_LEN                                 = 0x81
 	DM_VERSION                                  = 0xc138fd00
-	DM_VERSION_EXTRA                            = "-ioctl (2021-03-22)"
+	DM_VERSION_EXTRA                            = "-ioctl (2022-02-22)"
 	DM_VERSION_MAJOR                            = 0x4
-	DM_VERSION_MINOR                            = 0x2d
+	DM_VERSION_MINOR                            = 0x2e
 	DM_VERSION_PATCHLEVEL                       = 0x0
 	DT_BLK                                      = 0x6
 	DT_CHR                                      = 0x2
@@ -712,6 +715,7 @@ const (
 	ETH_P_EDSA                                  = 0xdada
 	ETH_P_ERSPAN                                = 0x88be
 	ETH_P_ERSPAN2                               = 0x22eb
+	ETH_P_ETHERCAT                              = 0x88a4
 	ETH_P_FCOE                                  = 0x8906
 	ETH_P_FIP                                   = 0x8914
 	ETH_P_HDLC                                  = 0x19
@@ -749,6 +753,7 @@ const (
 	ETH_P_PPP_MP                                = 0x8
 	ETH_P_PPP_SES                               = 0x8864
 	ETH_P_PREAUTH                               = 0x88c7
+	ETH_P_PROFINET                              = 0x8892
 	ETH_P_PRP                                   = 0x88fb
 	ETH_P_PUP                                   = 0x200
 	ETH_P_PUPAT                                 = 0x201
@@ -837,6 +842,7 @@ const (
 	FAN_FS_ERROR                                = 0x8000
 	FAN_MARK_ADD                                = 0x1
 	FAN_MARK_DONT_FOLLOW                        = 0x4
+	FAN_MARK_EVICTABLE                          = 0x200
 	FAN_MARK_FILESYSTEM                         = 0x100
 	FAN_MARK_FLUSH                              = 0x80
 	FAN_MARK_IGNORED_MASK                       = 0x20
@@ -1055,7 +1061,7 @@ const (
 	IFA_F_STABLE_PRIVACY                        = 0x800
 	IFA_F_TEMPORARY                             = 0x1
 	IFA_F_TENTATIVE                             = 0x40
-	IFA_MAX                                     = 0xa
+	IFA_MAX                                     = 0xb
 	IFF_ALLMULTI                                = 0x200
 	IFF_ATTACH_QUEUE                            = 0x200
 	IFF_AUTOMEDIA                               = 0x4000
@@ -1403,6 +1409,7 @@ const (
 	LANDLOCK_ACCESS_FS_MAKE_SYM                 = 0x1000
 	LANDLOCK_ACCESS_FS_READ_DIR                 = 0x8
 	LANDLOCK_ACCESS_FS_READ_FILE                = 0x4
+	LANDLOCK_ACCESS_FS_REFER                    = 0x2000
 	LANDLOCK_ACCESS_FS_REMOVE_DIR               = 0x10
 	LANDLOCK_ACCESS_FS_REMOVE_FILE              = 0x20
 	LANDLOCK_ACCESS_FS_WRITE_FILE               = 0x2
@@ -1758,6 +1765,7 @@ const (
 	NLM_F_ACK_TLVS                              = 0x200
 	NLM_F_APPEND                                = 0x800
 	NLM_F_ATOMIC                                = 0x400
+	NLM_F_BULK                                  = 0x200
 	NLM_F_CAPPED                                = 0x100
 	NLM_F_CREATE                                = 0x400
 	NLM_F_DUMP                                  = 0x300
@@ -2075,6 +2083,11 @@ const (
 	PR_SET_UNALIGN                              = 0x6
 	PR_SET_VMA                                  = 0x53564d41
 	PR_SET_VMA_ANON_NAME                        = 0x0
+	PR_SME_GET_VL                               = 0x40
+	PR_SME_SET_VL                               = 0x3f
+	PR_SME_SET_VL_ONEXEC                        = 0x40000
+	PR_SME_VL_INHERIT                           = 0x20000
+	PR_SME_VL_LEN_MASK                          = 0xffff
 	PR_SPEC_DISABLE                             = 0x4
 	PR_SPEC_DISABLE_NOEXEC                      = 0x10
 	PR_SPEC_ENABLE                              = 0x2
@@ -2227,8 +2240,9 @@ const (
 	RTC_FEATURE_ALARM                           = 0x0
 	RTC_FEATURE_ALARM_RES_2S                    = 0x3
 	RTC_FEATURE_ALARM_RES_MINUTE                = 0x1
+	RTC_FEATURE_ALARM_WAKEUP_ONLY               = 0x7
 	RTC_FEATURE_BACKUP_SWITCH_MODE              = 0x6
-	RTC_FEATURE_CNT                             = 0x7
+	RTC_FEATURE_CNT                             = 0x8
 	RTC_FEATURE_CORRECTION                      = 0x5
 	RTC_FEATURE_NEED_WEEK_DAY                   = 0x2
 	RTC_FEATURE_UPDATE_INTERRUPT                = 0x4
@@ -2302,6 +2316,7 @@ const (
 	RTM_DELRULE                                 = 0x21
 	RTM_DELTCLASS                               = 0x29
 	RTM_DELTFILTER                              = 0x2d
+	RTM_DELTUNNEL                               = 0x79
 	RTM_DELVLAN                                 = 0x71
 	RTM_F_CLONED                                = 0x200
 	RTM_F_EQUALIZE                              = 0x400
@@ -2334,8 +2349,9 @@ const (
 	RTM_GETSTATS                                = 0x5e
 	RTM_GETTCLASS                               = 0x2a
 	RTM_GETTFILTER                              = 0x2e
+	RTM_GETTUNNEL                               = 0x7a
 	RTM_GETVLAN                                 = 0x72
-	RTM_MAX                                     = 0x77
+	RTM_MAX                                     = 0x7b
 	RTM_NEWACTION                               = 0x30
 	RTM_NEWADDR                                 = 0x14
 	RTM_NEWADDRLABEL                            = 0x48
@@ -2359,11 +2375,13 @@ const (
 	RTM_NEWSTATS                                = 0x5c
 	RTM_NEWTCLASS                               = 0x28
 	RTM_NEWTFILTER                              = 0x2c
-	RTM_NR_FAMILIES                             = 0x1a
-	RTM_NR_MSGTYPES                             = 0x68
+	RTM_NEWTUNNEL                               = 0x78
+	RTM_NR_FAMILIES                             = 0x1b
+	RTM_NR_MSGTYPES                             = 0x6c
 	RTM_SETDCB                                  = 0x4f
 	RTM_SETLINK                                 = 0x13
 	RTM_SETNEIGHTBL                             = 0x43
+	RTM_SETSTATS                                = 0x5f
 	RTNH_ALIGNTO                                = 0x4
 	RTNH_COMPARE_MASK                           = 0x59
 	RTNH_F_DEAD                                 = 0x1
@@ -2544,6 +2562,9 @@ const (
 	SOCK_RDM                                    = 0x4
 	SOCK_SEQPACKET                              = 0x5
 	SOCK_SNDBUF_LOCK                            = 0x1
+	SOCK_TXREHASH_DEFAULT                       = 0xff
+	SOCK_TXREHASH_DISABLED                      = 0x0
+	SOCK_TXREHASH_ENABLED                       = 0x1
 	SOL_AAL                                     = 0x109
 	SOL_ALG                                     = 0x117
 	SOL_ATM                                     = 0x108
@@ -2559,6 +2580,8 @@ const (
 	SOL_IUCV                                    = 0x115
 	SOL_KCM                                     = 0x119
 	SOL_LLC                                     = 0x10c
+	SOL_MCTP                                    = 0x11d
+	SOL_MPTCP                                   = 0x11c
 	SOL_NETBEUI                                 = 0x10b
 	SOL_NETLINK                                 = 0x10e
 	SOL_NFC                                     = 0x118
@@ -2674,7 +2697,7 @@ const (
 	TASKSTATS_GENL_NAME                         = "TASKSTATS"
 	TASKSTATS_GENL_VERSION                      = 0x1
 	TASKSTATS_TYPE_MAX                          = 0x6
-	TASKSTATS_VERSION                           = 0xb
+	TASKSTATS_VERSION                           = 0xd
 	TCIFLUSH                                    = 0x0
 	TCIOFF                                      = 0x2
 	TCIOFLUSH                                   = 0x2

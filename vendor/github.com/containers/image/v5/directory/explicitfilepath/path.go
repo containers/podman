@@ -1,10 +1,9 @@
 package explicitfilepath
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
-
-	"github.com/pkg/errors"
 )
 
 // ResolvePathToFullyExplicit returns the input path converted to an absolute, no-symlinks, cleaned up path.
@@ -26,14 +25,14 @@ func ResolvePathToFullyExplicit(path string) (string, error) {
 			// This can still happen if there is a filesystem race condition, causing the Lstat() above to fail but the later resolution to succeed.
 			// We do not care to promise anything if such filesystem race conditions can happen, but we definitely don't want to return "."/".." components
 			// in the resulting path, and especially not at the end.
-			return "", errors.Errorf("Unexpectedly missing special filename component in %s", path)
+			return "", fmt.Errorf("Unexpectedly missing special filename component in %s", path)
 		}
 		resolvedPath := filepath.Join(resolvedParent, file)
 		// As a sanity check, ensure that there are no "." or ".." components.
 		cleanedResolvedPath := filepath.Clean(resolvedPath)
 		if cleanedResolvedPath != resolvedPath {
 			// Coverage: This should never happen.
-			return "", errors.Errorf("Internal inconsistency: Path %s resolved to %s still cleaned up to %s", path, resolvedPath, cleanedResolvedPath)
+			return "", fmt.Errorf("Internal inconsistency: Path %s resolved to %s still cleaned up to %s", path, resolvedPath, cleanedResolvedPath)
 		}
 		return resolvedPath, nil
 	default: // err != nil, unrecognized

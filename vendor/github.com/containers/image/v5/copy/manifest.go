@@ -2,11 +2,12 @@ package copy
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/types"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -180,7 +181,7 @@ func (c *copier) determineListConversion(currentListMIMEType string, destSupport
 
 	logrus.Debugf("Manifest list has MIME type %s, ordered candidate list [%s]", currentListMIMEType, strings.Join(destSupportedMIMETypes, ", "))
 	if len(prioritizedTypes.list) == 0 {
-		return "", nil, errors.Errorf("destination does not support any supported manifest list types (%v)", manifest.SupportedListMIMETypes)
+		return "", nil, fmt.Errorf("destination does not support any supported manifest list types (%v)", manifest.SupportedListMIMETypes)
 	}
 	selectedType := prioritizedTypes.list[0]
 	otherSupportedTypes := prioritizedTypes.list[1:]

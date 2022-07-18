@@ -2,12 +2,21 @@ package imagesource
 
 import (
 	"context"
-	"fmt"
-	"io"
 
+	"github.com/containers/image/v5/internal/imagesource/stubs"
 	"github.com/containers/image/v5/internal/private"
+	"github.com/containers/image/v5/internal/signature"
 	"github.com/containers/image/v5/types"
+	"github.com/opencontainers/go-digest"
 )
+
+// wrapped provides the private.ImageSource operations
+// for a source that only implements types.ImageSource
+type wrapped struct {
+	stubs.NoGetBlobAtInitialize
+
+	types.ImageSource
+}
 
 // FromPublic(src) returns an object that provides the private.ImageSource API
 //
@@ -23,25 +32,25 @@ func FromPublic(src types.ImageSource) private.ImageSource {
 	if src2, ok := src.(private.ImageSource); ok {
 		return src2
 	}
-	return &wrapped{ImageSource: src}
+	return &wrapped{
+		NoGetBlobAtInitialize: stubs.NoGetBlobAt(src.Reference()),
+
+		ImageSource: src,
+	}
 }
 
-// wrapped provides the private.ImageSource operations
-// for a source that only implements types.ImageSource
-type wrapped struct {
-	types.ImageSource
-}
-
-// SupportsGetBlobAt() returns true if GetBlobAt (BlobChunkAccessor) is supported.
-func (w *wrapped) SupportsGetBlobAt() bool {
-	return false
-}
-
-// GetBlobAt returns a sequential channel of readers that contain data for the requested
-// blob chunks, and a channel that might get a single error value.
-// The specified chunks must be not overlapping and sorted by their offset.
-// The readers must be fully consumed, in the order they are returned, before blocking
-// to read the next chunk.
-func (w *wrapped) GetBlobAt(ctx context.Context, info types.BlobInfo, chunks []private.ImageSourceChunk) (chan io.ReadCloser, chan error, error) {
-	return nil, nil, fmt.Errorf("internal error: GetBlobAt is not supported by the %q transport", w.Reference().Transport().Name())
+// GetSignaturesWithFormat returns the image's signatures.  It may use a remote (= slow) service.
+// If instanceDigest is not nil, it contains a digest of the specific manifest instance to retrieve signatures for
+// (when the primary manifest is a manifest list); this never happens if the primary manifest is not a manifest list
+// (e.g. if the source never returns manifest lists).
+func (w *wrapped) GetSignaturesWithFormat(ctx context.Context, instanceDigest *digest.Digest) ([]signature.Signature, error) {
+	sigs, err := w.GetSignatures(ctx, instanceDigest)
+	if err != nil {
+		return nil, err
+	}
+	res := []signature.Signature{}
+	for _, sig := range sigs {
+		res = append(res, signature.SimpleSigningFromBlob(sig))
+	}
+	return res, nil
 }

@@ -1,21 +1,19 @@
 package buildah
 
-import (
-	"github.com/pkg/errors"
-)
+import "fmt"
 
 // Mount mounts a container's root filesystem in a location which can be
 // accessed from the host, and returns the location.
 func (b *Builder) Mount(label string) (string, error) {
 	mountpoint, err := b.store.Mount(b.ContainerID, label)
 	if err != nil {
-		return "", errors.Wrapf(err, "error mounting build container %q", b.ContainerID)
+		return "", fmt.Errorf("error mounting build container %q: %w", b.ContainerID, err)
 	}
 	b.MountPoint = mountpoint
 
 	err = b.Save()
 	if err != nil {
-		return "", errors.Wrapf(err, "error saving updated state for build container %q", b.ContainerID)
+		return "", fmt.Errorf("error saving updated state for build container %q: %w", b.ContainerID, err)
 	}
 	return mountpoint, nil
 }
@@ -23,7 +21,7 @@ func (b *Builder) Mount(label string) (string, error) {
 func (b *Builder) setMountPoint(mountPoint string) error {
 	b.MountPoint = mountPoint
 	if err := b.Save(); err != nil {
-		return errors.Wrapf(err, "error saving updated state for build container %q", b.ContainerID)
+		return fmt.Errorf("error saving updated state for build container %q: %w", b.ContainerID, err)
 	}
 	return nil
 }
@@ -32,17 +30,17 @@ func (b *Builder) setMountPoint(mountPoint string) error {
 func (b *Builder) Mounted() (bool, error) {
 	mountCnt, err := b.store.Mounted(b.ContainerID)
 	if err != nil {
-		return false, errors.Wrapf(err, "error determining if mounting build container %q is mounted", b.ContainerID)
+		return false, fmt.Errorf("error determining if mounting build container %q is mounted: %w", b.ContainerID, err)
 	}
 	mounted := mountCnt > 0
 	if mounted && b.MountPoint == "" {
 		ctr, err := b.store.Container(b.ContainerID)
 		if err != nil {
-			return mountCnt > 0, errors.Wrapf(err, "error determining if mounting build container %q is mounted", b.ContainerID)
+			return mountCnt > 0, fmt.Errorf("error determining if mounting build container %q is mounted: %w", b.ContainerID, err)
 		}
 		layer, err := b.store.Layer(ctr.LayerID)
 		if err != nil {
-			return mountCnt > 0, errors.Wrapf(err, "error determining if mounting build container %q is mounted", b.ContainerID)
+			return mountCnt > 0, fmt.Errorf("error determining if mounting build container %q is mounted: %w", b.ContainerID, err)
 		}
 		return mounted, b.setMountPoint(layer.MountPoint)
 	}

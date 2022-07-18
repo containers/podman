@@ -3,6 +3,7 @@ package chunked
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -19,7 +20,6 @@ import (
 	"github.com/containers/storage/pkg/ioutils"
 	jsoniter "github.com/json-iterator/go"
 	digest "github.com/opencontainers/go-digest"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -117,7 +117,7 @@ func (c *layersCache) load() error {
 				continue
 			}
 			logrus.Warningf("Error reading cache file for layer %q: %v", r.ID, err)
-		} else if errors.Cause(err) != os.ErrNotExist {
+		} else if !errors.Is(err, os.ErrNotExist) {
 			return err
 		}
 

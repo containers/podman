@@ -1,23 +1,23 @@
 package util
 
 import (
+	"fmt"
 	"net"
 
 	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/common/libnetwork/util"
 	"github.com/containers/common/pkg/config"
 	pkgutil "github.com/containers/common/pkg/util"
-	"github.com/pkg/errors"
 )
 
 func CreateBridge(n NetUtil, network *types.Network, usedNetworks []*net.IPNet, subnetPools []config.SubnetPool) error {
 	if network.NetworkInterface != "" {
 		bridges := GetBridgeInterfaceNames(n)
 		if pkgutil.StringInSlice(network.NetworkInterface, bridges) {
-			return errors.Errorf("bridge name %s already in use", network.NetworkInterface)
+			return fmt.Errorf("bridge name %s already in use", network.NetworkInterface)
 		}
 		if !types.NameRegex.MatchString(network.NetworkInterface) {
-			return errors.Wrapf(types.RegexError, "bridge name %s invalid", network.NetworkInterface)
+			return fmt.Errorf("bridge name %s invalid: %w", network.NetworkInterface, types.RegexError)
 		}
 	} else {
 		var err error

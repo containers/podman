@@ -1,11 +1,11 @@
 package chrootuser
 
 import (
+	"errors"
+	"fmt"
 	"os/user"
 	"strconv"
 	"strings"
-
-	"github.com/pkg/errors"
 )
 
 var (
@@ -76,9 +76,9 @@ func GetUser(rootdir, userspec string) (uint32, uint32, string, error) {
 		return uint32(uid64), uint32(gid64), homedir, nil
 	}
 
-	err = errors.Wrapf(uerr, "error determining run uid")
+	err = fmt.Errorf("error determining run uid: %w", uerr)
 	if uerr == nil {
-		err = errors.Wrapf(gerr, "error determining run gid")
+		err = fmt.Errorf("error determining run gid: %w", gerr)
 	}
 
 	return 0, 0, homedir, err
@@ -94,7 +94,7 @@ func GetGroup(rootdir, groupspec string) (uint32, error) {
 		gid64, gerr = lookupGroupInContainer(rootdir, groupspec)
 	}
 	if gerr != nil {
-		return 0, errors.Wrapf(gerr, "error looking up group for gid %q", groupspec)
+		return 0, fmt.Errorf("error looking up group for gid %q: %w", groupspec, gerr)
 	}
 	return uint32(gid64), nil
 }
@@ -103,7 +103,7 @@ func GetGroup(rootdir, groupspec string) (uint32, error) {
 func GetAdditionalGroupsForUser(rootdir string, userid uint64) ([]uint32, error) {
 	gids, err := lookupAdditionalGroupsForUIDInContainer(rootdir, userid)
 	if err != nil {
-		return nil, errors.Wrapf(err, "error looking up supplemental groups for uid %d", userid)
+		return nil, fmt.Errorf("error looking up supplemental groups for uid %d: %w", userid, err)
 	}
 	return gids, nil
 }

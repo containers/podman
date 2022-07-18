@@ -4,11 +4,10 @@
 package chown
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"syscall"
-
-	"github.com/pkg/errors"
 )
 
 // ChangeHostPathOwnership changes the uid and gid ownership of a directory or file within the host.
@@ -17,11 +16,11 @@ func ChangeHostPathOwnership(path string, recursive bool, uid, gid int) error {
 	// Validate if host path can be chowned
 	isDangerous, err := DangerousHostPath(path)
 	if err != nil {
-		return errors.Wrap(err, "failed to validate if host path is dangerous")
+		return fmt.Errorf("failed to validate if host path is dangerous: %w", err)
 	}
 
 	if isDangerous {
-		return errors.Errorf("chowning host path %q is not allowed. You can manually `chown -R %d:%d %s`", path, uid, gid, path)
+		return fmt.Errorf("chowning host path %q is not allowed. You can manually `chown -R %d:%d %s`", path, uid, gid, path)
 	}
 
 	// Chown host path
@@ -42,13 +41,13 @@ func ChangeHostPathOwnership(path string, recursive bool, uid, gid int) error {
 			return nil
 		})
 		if err != nil {
-			return errors.Wrap(err, "failed to chown recursively host path")
+			return fmt.Errorf("failed to chown recursively host path: %w", err)
 		}
 	} else {
 		// Get host path info
 		f, err := os.Lstat(path)
 		if err != nil {
-			return errors.Wrap(err, "failed to get host path information")
+			return fmt.Errorf("failed to get host path information: %w", err)
 		}
 
 		// Get current ownership
@@ -57,7 +56,7 @@ func ChangeHostPathOwnership(path string, recursive bool, uid, gid int) error {
 
 		if uid != currentUID || gid != currentGID {
 			if err := os.Lchown(path, uid, gid); err != nil {
-				return errors.Wrap(err, "failed to chown host path")
+				return fmt.Errorf("failed to chown host path: %w", err)
 			}
 		}
 	}
