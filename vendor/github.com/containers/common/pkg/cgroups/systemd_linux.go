@@ -201,7 +201,11 @@ func resourcesToProps(res *configs.Resources, v2 bool) (map[string]uint64, map[s
 
 	// Blkio
 	if res.BlkioWeight > 0 {
-		uMap["BlockIOWeight"] = uint64(res.BlkioWeight)
+		if v2 {
+			uMap["IOWeight"] = uint64(res.BlkioWeight)
+		} else {
+			uMap["BlockIOWeight"] = uint64(res.BlkioWeight)
+		}
 	}
 
 	// systemd requires the paths to be in the form /dev/{block, char}/major:minor

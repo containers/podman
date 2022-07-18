@@ -114,7 +114,7 @@ github.com/containers/buildah/pkg/rusage
 github.com/containers/buildah/pkg/sshagent
 github.com/containers/buildah/pkg/util
 github.com/containers/buildah/util
-# github.com/containers/common v0.48.1-0.20220715075726-2ac10faca05a
+# github.com/containers/common v0.48.1-0.20220718075257-ecddf87b3840
 ## explicit
 github.com/containers/common/libimage
 github.com/containers/common/libimage/define
@@ -599,7 +599,7 @@ github.com/opencontainers/runc/libcontainer/utils
 # github.com/opencontainers/runtime-spec v1.0.3-0.20211214071223-8958f93039ab
 ## explicit
 github.com/opencontainers/runtime-spec/specs-go
-# github.com/opencontainers/runtime-tools v0.9.1-0.20220110225228-7e2d60f1e41f
+# github.com/opencontainers/runtime-tools v0.9.1-0.20220714195903-17b3287fafb7
 ## explicit
 github.com/opencontainers/runtime-tools/error
 github.com/opencontainers/runtime-tools/filepath

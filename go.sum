@@ -392,8 +392,9 @@ github.com/containernetworking/plugins v1.1.1 h1:+AGfFigZ5TiQH00vhR8qPeSatj53eNG
 github.com/containernetworking/plugins v1.1.1/go.mod h1:Sr5TH/eBsGLXK/h71HeLfX19sZPp3ry5uHSkI4LPxV8=
 github.com/containers/buildah v1.26.1-0.20220716095526-d31d27c357ab h1:NeI0DOkTf3Tn4OpdjMhMubAfTPs2oCO5jUY5wnpv4qk=
 github.com/containers/buildah v1.26.1-0.20220716095526-d31d27c357ab/go.mod h1:iVtQtU6a+pbETBqIzg0oAWW3gTR1ItrAihJpLFFppmA=
-github.com/containers/common v0.48.1-0.20220715075726-2ac10faca05a h1:kdcruVl641VTIm8C3O58WRYcBTbnWCsh6AJymk28ScM=
 github.com/containers/common v0.48.1-0.20220715075726-2ac10faca05a/go.mod h1:1dA7JPGoSi83kjf5H4NIrGANyLOULyvFqV1bwvYFEek=
+github.com/containers/common v0.48.1-0.20220718075257-ecddf87b3840 h1:+5C5tnWO2a6M9QqKNUibMIn56LAuIDtuyb/xT6ZGU/4=
+github.com/containers/common v0.48.1-0.20220718075257-ecddf87b3840/go.mod h1:1dA7JPGoSi83kjf5H4NIrGANyLOULyvFqV1bwvYFEek=
 github.com/containers/conmon v2.0.20+incompatible h1:YbCVSFSCqFjjVwHTPINGdMX1F6JXHGTUje2ZYobNrkg=
 github.com/containers/conmon v2.0.20+incompatible/go.mod h1:hgwZ2mtuDrppv78a/cOBNiCm6O0UMWGx1mu7P00nu5I=
 github.com/containers/image/v5 v5.21.2-0.20220712113758-29aec5f7bbbf/go.mod h1:0+N0ZM9mgMmoZZc6uNcgnEsbX85Ne7b29cIW5lqWwVU=
@@ -1302,8 +1303,8 @@ github.com/opencontainers/runtime-spec v1.0.3-0.20211214071223-8958f93039ab/go.m
 github.com/opencontainers/runtime-tools v0.0.0-20181011054405-1d69bd0f9c39/go.mod h1:r3f7wjNzSs2extwzU3Y+6pKfobzPh+kKFJ3ofN+3nfs=
 github.com/opencontainers/runtime-tools v0.0.0-20190417131837-cd1349b7c47e/go.mod h1:r3f7wjNzSs2extwzU3Y+6pKfobzPh+kKFJ3ofN+3nfs=
 github.com/opencontainers/runtime-tools v0.9.0/go.mod h1:r3f7wjNzSs2extwzU3Y+6pKfobzPh+kKFJ3ofN+3nfs=
-github.com/opencontainers/runtime-tools v0.9.1-0.20220110225228-7e2d60f1e41f h1:MMcsVl0FAVEahmXTy+uXoDTw3yJq7nGrK8ITs/kkreo=
-github.com/opencontainers/runtime-tools v0.9.1-0.20220110225228-7e2d60f1e41f/go.mod h1:/tgP02fPXGHkU3/qKK1Y0Db4yqNyGm03vLq/mzHzcS4=
+github.com/opencontainers/runtime-tools v0.9.1-0.20220714195903-17b3287fafb7 h1:Rf+QsQGxrYCia8mVyOPnoQZ+vJkZGL+ESWBDUM5s9cQ=
+github.com/opencontainers/runtime-tools v0.9.1-0.20220714195903-17b3287fafb7/go.mod h1:/tgP02fPXGHkU3/qKK1Y0Db4yqNyGm03vLq/mzHzcS4=
 github.com/opencontainers/selinux v1.6.0/go.mod h1:VVGKuOLlE7v4PJyT6h7mNWvq1rzqiriPsEqVhc+svHE=
 github.com/opencontainers/selinux v1.8.0/go.mod h1:RScLhm78qiWa2gbVCcGkC7tCGdgk3ogry1nUQF8Evvo=
 github.com/opencontainers/selinux v1.8.2/go.mod h1:MUIHuUEvKB1wtJjQdOyYRgOnLD2xAPP8dBsCoU0KuF8=
