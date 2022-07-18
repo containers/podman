@@ -113,7 +113,7 @@ func DownloadImage(d DistributionDownload) error {
 		return err
 	}
 	if !ok {
-		if err := DownloadVMImage(d.Get().URL, d.Get().LocalPath); err != nil {
+		if err := DownloadVMImage(d.Get().URL, d.Get().ImageName, d.Get().LocalPath); err != nil {
 			return err
 		}
 		// Clean out old cached images, since we didn't find needed image in cache
@@ -128,7 +128,7 @@ func DownloadImage(d DistributionDownload) error {
 
 // DownloadVMImage downloads a VM image from url to given path
 // with download status
-func DownloadVMImage(downloadURL *url2.URL, localImagePath string) error {
+func DownloadVMImage(downloadURL *url2.URL, imageName string, localImagePath string) error {
 	out, err := os.Create(localImagePath)
 	if err != nil {
 		return err
@@ -153,8 +153,7 @@ func DownloadVMImage(downloadURL *url2.URL, localImagePath string) error {
 		return fmt.Errorf("downloading VM image %s: %s", downloadURL, resp.Status)
 	}
 	size := resp.ContentLength
-	urlSplit := strings.Split(downloadURL.Path, "/")
-	prefix := "Downloading VM image: " + urlSplit[len(urlSplit)-1]
+	prefix := "Downloading VM image: " + imageName
 	onComplete := prefix + ": done"
 
 	p := mpb.New(

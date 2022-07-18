@@ -6,7 +6,10 @@ package machine
 import (
 	"errors"
 	"fmt"
+	"io"
 	"os"
+	"path"
+	"strings"
 
 	"net/http"
 	"net/url"
@@ -23,7 +26,7 @@ type FedoraDownload struct {
 }
 
 func NewFedoraDownloader(vmType, vmName, releaseStream string) (DistributionDownload, error) {
-	downloadURL, size, err := getFedoraDownload(githubLatestReleaseURL)
+	downloadURL, version, size, err := getFedoraDownload(githubLatestReleaseURL)
 	if err != nil {
 		return nil, err
 	}
@@ -33,7 +36,7 @@ func NewFedoraDownloader(vmType, vmName, releaseStream string) (DistributionDown
 		return nil, err
 	}
 
-	imageName := "rootfs.tar.xz"
+	imageName := fmt.Sprintf("fedora-podman-%s.tar.xz", version)
 
 	f := FedoraDownload{
 		Download: Download{
@@ -77,21 +80,36 @@ func (f FedoraDownload) CleanCache() error {
 	return removeImageAfterExpire(f.CacheDir, expire)
 }
 
-func getFedoraDownload(releaseURL string) (*url.URL, int64, error) {
+func getFedoraDownload(releaseURL string) (*url.URL, string, int64, error) {
 	downloadURL, err := url.Parse(releaseURL)
 	if err != nil {
-		return nil, -1, fmt.Errorf("invalid URL generated from discovered Fedora file: %s: %w", releaseURL, err)
+		return nil, "", -1, fmt.Errorf("invalid URL generated from discovered Fedora file: %s: %w", releaseURL, err)
 	}
 
 	resp, err := http.Head(releaseURL)
 	if err != nil {
-		return nil, -1, fmt.Errorf("head request failed: %s: %w", releaseURL, err)
+		return nil, "", -1, fmt.Errorf("head request failed: %s: %w", releaseURL, err)
+	}
+	_ = resp.Body.Close()
+	contentLen := resp.ContentLength
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, "", -1, fmt.Errorf("head request failed: %s: %w", releaseURL, err)
+	}
+
+	verURL := *downloadURL
+	verURL.Path = path.Join(path.Dir(downloadURL.Path), "version")
+
+	resp, err = http.Get(verURL.String())
+	if err != nil {
+		return nil, "", -1, fmt.Errorf("get request failed: %s: %w", verURL.String(), err)
+	}
+
+	bytes, err := io.ReadAll(&io.LimitedReader{R: resp.Body, N: 1024})
+	if err != nil {
+		return nil, "", -1, fmt.Errorf("failed reading: %s: %w", verURL.String(), err)
 	}
 	_ = resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		return nil, -1, fmt.Errorf("head request failed: %s: %w", releaseURL, err)
-	}
-
-	return downloadURL, resp.ContentLength, nil
+	return downloadURL, strings.TrimSpace(string(bytes)), contentLen, nil
 }
