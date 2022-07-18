@@ -1,4 +1,4 @@
-From 6508e3df2a129554fdf8336d8a6f0cdcc6fd4832 Mon Sep 17 00:00:00 2001
+From d22e44c8fb1c87afb90391188733f7ce8fea005d Mon Sep 17 00:00:00 2001
 From: Ed Santiago <santiago@redhat.com>
 Date: Tue, 9 Feb 2021 17:28:05 -0700
 Subject: [PATCH] tweaks for running buildah tests under podman
@@ -9,10 +9,10 @@ Signed-off-by: Ed Santiago <santiago@redhat.com>
  1 file changed, 67 insertions(+), 3 deletions(-)
 
 diff --git a/tests/helpers.bash b/tests/helpers.bash
-index e3087063..178a486e 100644
+index 8cb93c3a..72c1c797 100644
 --- a/tests/helpers.bash
 +++ b/tests/helpers.bash
-@@ -51,6 +51,23 @@ EOF
+@@ -52,6 +52,23 @@ EOF
      ROOTDIR_OPTS="--root ${TEST_SCRATCH_DIR}/root --runroot ${TEST_SCRATCH_DIR}/runroot --storage-driver ${STORAGE_DRIVER}"
      BUILDAH_REGISTRY_OPTS="--registries-conf ${TEST_SOURCES}/registries.conf --registries-conf-dir ${TEST_SCRATCH_DIR}/registries.d --short-name-alias-conf ${TEST_SCRATCH_DIR}/cache/shortnames.conf"
      PODMAN_REGISTRY_OPTS="--registries-conf ${TEST_SOURCES}/registries.conf"
@@ -36,7 +36,7 @@ index e3087063..178a486e 100644
  }
  
  function starthttpd() {
-@@ -94,6 +111,12 @@ function teardown_tests() {
+@@ -95,6 +112,12 @@ function teardown_tests() {
      stop_git_daemon
      stop_registry
  
@@ -49,7 +49,7 @@ index e3087063..178a486e 100644
      # Workaround for #1991 - buildah + overlayfs leaks mount points.
      # Many tests leave behind /var/tmp/.../root/overlay and sub-mounts;
      # let's find those and clean them up, otherwise 'rm -rf' fails.
-@@ -186,6 +209,10 @@ function podman() {
+@@ -187,6 +210,10 @@ function podman() {
      command ${PODMAN_BINARY:-podman} ${PODMAN_REGISTRY_OPTS} ${ROOTDIR_OPTS} "$@"
  }
  
@@ -60,7 +60,7 @@ index e3087063..178a486e 100644
  # There are various scenarios where we would like to execute `tests` as rootless user, however certain commands like `buildah mount`
  # do not work in rootless session since a normal user cannot mount a filesystem unless they're in a user namespace along with its
  # own mount namespace. In order to run such specific commands from a rootless session we must perform `buildah unshare`.
-@@ -247,8 +274,36 @@ function run_buildah() {
+@@ -248,8 +275,36 @@ function run_buildah() {
          --retry)         retry=3;        shift;;  # retry network flakes
      esac
  
@@ -98,7 +98,7 @@ index e3087063..178a486e 100644
  
      # If session is rootless and `buildah mount` is invoked, perform unshare,
      # since normal user cannot mount a filesystem unless they're in a user namespace along with its own mount namespace.
-@@ -262,8 +317,8 @@ function run_buildah() {
+@@ -263,8 +318,8 @@ function run_buildah() {
          retry=$(( retry - 1 ))
  
          # stdout is only emitted upon error; this echo is to help a debugger
@@ -109,7 +109,7 @@ index e3087063..178a486e 100644
          # without "quotes", multiple lines are glommed together into one
          if [ -n "$output" ]; then
              echo "$output"
-@@ -595,6 +650,15 @@ function skip_if_no_docker() {
+@@ -596,6 +651,15 @@ function skip_if_no_docker() {
    fi
  }
  
@@ -126,5 +126,5 @@ index e3087063..178a486e 100644
    daemondir=${TEST_SCRATCH_DIR}/git-daemon
    mkdir -p ${daemondir}/repo
 -- 
-2.35.3
+2.36.1
 

@@ -200,27 +200,33 @@ var _ = Describe("Podman secret", func() {
 		list := podmanTest.Podman([]string{"secret", "ls", "--filter", fmt.Sprintf("name=%s", secret1)})
 		list.WaitWithDefaultTimeout()
 		Expect(list).Should(Exit(0))
-		Expect(list.OutputToStringArray()).To(HaveLen(2), ContainSubstring(secret1))
+		Expect(list.OutputToStringArray()).To(HaveLen(2))
+		Expect(list.OutputToStringArray()[1]).To(ContainSubstring(secret1))
 
 		list = podmanTest.Podman([]string{"secret", "ls", "--filter", fmt.Sprintf("name=%s", secret2)})
 		list.WaitWithDefaultTimeout()
 		Expect(list).Should(Exit(0))
-		Expect(list.OutputToStringArray()).To(HaveLen(2), ContainSubstring(secret2))
+		Expect(list.OutputToStringArray()).To(HaveLen(2))
+		Expect(list.OutputToStringArray()[1]).To(ContainSubstring(secret2))
 
 		list = podmanTest.Podman([]string{"secret", "ls", "--filter", fmt.Sprintf("id=%s", secrID1)})
 		list.WaitWithDefaultTimeout()
 		Expect(list).Should(Exit(0))
-		Expect(list.OutputToStringArray()).To(HaveLen(2), ContainSubstring(secrID1))
+		Expect(list.OutputToStringArray()).To(HaveLen(2))
+		Expect(list.OutputToStringArray()[1]).To(ContainSubstring(secrID1))
 
 		list = podmanTest.Podman([]string{"secret", "ls", "--filter", fmt.Sprintf("id=%s", secrID2)})
 		list.WaitWithDefaultTimeout()
 		Expect(list).Should(Exit(0))
-		Expect(list.OutputToStringArray()).To(HaveLen(2), ContainSubstring(secrID2))
+		Expect(list.OutputToStringArray()).To(HaveLen(2))
+		Expect(list.OutputToStringArray()[1]).To(ContainSubstring(secrID2))
 
 		list = podmanTest.Podman([]string{"secret", "ls", "--filter", fmt.Sprintf("name=%s,name=%s", secret1, secret2)})
 		list.WaitWithDefaultTimeout()
 		Expect(list).Should(Exit(0))
-		Expect(list.OutputToStringArray()).To(HaveLen(3), ContainSubstring(secret1), ContainSubstring(secret2))
+		Expect(list.OutputToStringArray()).To(HaveLen(3))
+		Expect(list.OutputToString()).To(ContainSubstring(secret1))
+		Expect(list.OutputToString()).To(ContainSubstring(secret2))
 	})
 
 	It("podman secret ls with Go template", func() {
