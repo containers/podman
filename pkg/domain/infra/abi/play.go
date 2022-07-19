@@ -507,13 +507,17 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 		for k, v := range podSpec.PodSpecGen.Labels { // add podYAML labels
 			labels[k] = v
 		}
+		initCtrType := annotations[define.InitContainerType]
+		if initCtrType == "" {
+			initCtrType = define.OneShotInitContainer
+		}
 
 		specgenOpts := kube.CtrSpecGenOptions{
 			Annotations:        annotations,
 			ConfigMaps:         configMaps,
 			Container:          initCtr,
 			Image:              pulledImage,
-			InitContainerType:  define.AlwaysInitContainer,
+			InitContainerType:  initCtrType,
 			Labels:             labels,
 			LogDriver:          options.LogDriver,
 			LogOptions:         options.LogOptions,

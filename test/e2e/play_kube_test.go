@@ -1559,8 +1559,10 @@ var _ = Describe("Podman play kube", func() {
 	})
 
 	// If you have an init container in the pod yaml, podman should create and run the init container with play kube
-	It("podman play kube test with init containers", func() {
-		pod := getPod(withPodInitCtr(getCtr(withImage(ALPINE), withCmd([]string{"echo", "hello"}), withInitCtr(), withName("init-test"))), withCtr(getCtr(withImage(ALPINE), withCmd([]string{"top"}))))
+	// With annotation set to always
+	It("podman play kube test with init containers and annotation set", func() {
+		// With the init container type annotation set to always
+		pod := getPod(withAnnotation("io.podman.annotations.init.container.type", "always"), withPodInitCtr(getCtr(withImage(ALPINE), withCmd([]string{"echo", "hello"}), withInitCtr(), withName("init-test"))), withCtr(getCtr(withImage(ALPINE), withCmd([]string{"top"}))))
 		err := generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).To(BeNil())
 
@@ -1580,6 +1582,29 @@ var _ = Describe("Podman play kube", func() {
 
 		// Regular container should be in running state
 		inspect = podmanTest.Podman([]string{"inspect", "--format", "{{.State.Status}}", "testPod-" + defaultCtrName})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).Should(Exit(0))
+		Expect(inspect.OutputToString()).To(ContainSubstring("running"))
+	})
+
+	// If you have an init container in the pod yaml, podman should create and run the init container with play kube
+	// Using default init container type (once)
+	It("podman play kube test with init container type set to default value", func() {
+		// Using the default init container type (once)
+		pod := getPod(withPodInitCtr(getCtr(withImage(ALPINE), withCmd([]string{"echo", "hello"}), withInitCtr(), withName("init-test"))), withCtr(getCtr(withImage(ALPINE), withCmd([]string{"top"}))))
+		err := generateKubeYaml("pod", pod, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		// Expect the number of containers created to be 2, infra and regular container
+		numOfCtrs := podmanTest.NumberOfContainers()
+		Expect(numOfCtrs).To(Equal(2))
+
+		// Regular container should be in running state
+		inspect := podmanTest.Podman([]string{"inspect", "--format", "{{.State.Status}}", "testPod-" + defaultCtrName})
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect).Should(Exit(0))
 		Expect(inspect.OutputToString()).To(ContainSubstring("running"))

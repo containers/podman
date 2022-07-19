@@ -22,7 +22,7 @@ Currently, the supported Kubernetes kinds are:
 
 Only two volume types are supported by kube play, the *hostPath* and *persistentVolumeClaim* volume types. For the *hostPath* volume type, only the  *default (empty)*, *DirectoryOrCreate*, *Directory*, *FileOrCreate*, *File*, *Socket*, *CharDevice* and *BlockDevice* subtypes are supported. Podman interprets the value of *hostPath* *path* as a file path when it contains at least one forward slash, otherwise Podman treats the value as the name of a named volume. When using a *persistentVolumeClaim*, the value for *claimName* is the name for the Podman named volume.
 
-Note: When playing a kube YAML with init containers, the init container will be created with init type value `always`.
+Note: When playing a kube YAML with init containers, the init container will be created with init type value `once`. To change the default type, use the `io.podman.annotations.init.container.type` annotation to set the type to `always`.
 
 Note: *hostPath* volume types created by kube play will be given an SELinux shared label (z), bind mounts are not relabeled (use `chcon -t container_file_t -R <directory>`).
 
