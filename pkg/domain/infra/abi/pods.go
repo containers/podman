@@ -138,6 +138,7 @@ func (ic *ContainerEngine) PodPause(ctx context.Context, namesOrIds []string, op
 		errs, err := p.Pause(ctx)
 		if err != nil && !errors.Is(err, define.ErrPodPartialFail) {
 			report.Errs = []error{err}
+			reports = append(reports, &report)
 			continue
 		}
 		if len(errs) > 0 {
@@ -171,6 +172,7 @@ func (ic *ContainerEngine) PodUnpause(ctx context.Context, namesOrIds []string, 
 		errs, err := p.Unpause(ctx)
 		if err != nil && !errors.Is(err, define.ErrPodPartialFail) {
 			report.Errs = []error{err}
+			reports = append(reports, &report)
 			continue
 		}
 		if len(errs) > 0 {
@@ -196,6 +198,7 @@ func (ic *ContainerEngine) PodStop(ctx context.Context, namesOrIds []string, opt
 		errs, err := p.StopWithTimeout(ctx, false, options.Timeout)
 		if err != nil && !errors.Is(err, define.ErrPodPartialFail) {
 			report.Errs = []error{err}
+			reports = append(reports, &report)
 			continue
 		}
 		if len(errs) > 0 {
