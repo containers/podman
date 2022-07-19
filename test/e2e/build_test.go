@@ -524,6 +524,8 @@ subdir**`
 	// See https://github.com/containers/podman/issues/13535
 	It("Remote build .containerignore filtering embedded directory (#13535)", func() {
 		SkipIfNotRemote("Testing remote .containerignore file filtering")
+		Skip("FIXME: #15014: test times out in 'dd' on f36.")
+
 		podmanTest.RestartRemoteService()
 
 		// Switch to temp dir and restore it afterwards
@@ -552,7 +554,7 @@ subdir**`
 		Expect(ioutil.WriteFile(filepath.Join(subdirPath, "extra"), contents.Bytes(), 0644)).
 			ToNot(HaveOccurred())
 		randomFile := filepath.Join(subdirPath, "randomFile")
-		dd := exec.Command("dd", "if=/dev/random", "of="+randomFile, "bs=1G", "count=1")
+		dd := exec.Command("dd", "if=/dev/urandom", "of="+randomFile, "bs=1G", "count=1")
 		ddSession, err := Start(dd, GinkgoWriter, GinkgoWriter)
 		Expect(err).ToNot(HaveOccurred())
 		Eventually(ddSession, "10s", "1s").Should(Exit(0))

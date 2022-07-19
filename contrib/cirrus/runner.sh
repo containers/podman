@@ -246,6 +246,7 @@ function _run_build() {
     if [[ "$runtime" != "$CI_DESIRED_RUNTIME" ]]; then
         die "Built podman is using '$runtime'; this CI environment requires $CI_DESIRED_RUNTIME"
     fi
+    msg "Built podman is using expected runtime='$runtime'"
 }
 
 function _run_altbuild() {
