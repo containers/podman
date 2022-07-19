@@ -663,9 +663,9 @@ func (c *Container) WaitForConditionWithInterval(ctx context.Context, waitTimeou
 	return result.code, result.err
 }
 
-// Cleanup unmounts all mount points in container and cleans up container storage
-// It also cleans up the network stack
-func (c *Container) Cleanup(ctx context.Context) error {
+// cleanupLocked unmounts all mount points in container and cleans up container storage
+// It also cleans up the network stack. The caller must hold pod.lock.
+func (c *Container) cleanupLocked(ctx context.Context) error {
 	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
@@ -712,6 +712,29 @@ func (c *Container) Cleanup(ctx context.Context) error {
 
 	defer c.newContainerEvent(events.Cleanup)
 	return c.cleanup(ctx)
+}
+
+// Cleanup unmounts all mount points in container and cleans up container storage
+// It also cleans up the network stack
+func (c *Container) Cleanup(ctx context.Context) error {
+	// We need to lock the pod before we lock the container.
+	// To avoid races around cleaning up a container and the pod it is in.
+	if c.config.Pod != "" {
+		pod, err := c.runtime.state.Pod(c.config.Pod)
+		if err != nil {
+			return fmt.Errorf("container %s is in pod %s, but pod cannot be retrieved: %w", c.ID(), pod.ID(), err)
+		}
+
+		// Lock the pod while we're cleaning up container
+		if pod.config.LockID == c.config.LockID {
+			return fmt.Errorf("container %s and pod %s share lock ID %d: %w", c.ID(), pod.ID(), c.config.LockID, define.ErrWillDeadlock)
+		}
+
+		pod.lock.Lock()
+		defer pod.lock.Unlock()
+	}
+
+	return c.cleanupLocked(ctx)
 }
 
 // Batch starts a batch operation on the given container

@@ -177,7 +177,7 @@ func (p *Pod) stopWithTimeout(ctx context.Context, cleanup bool, timeout int) (m
 			}
 
 			if cleanup {
-				return c.Cleanup(ctx)
+				return c.cleanupLocked(ctx)
 			}
 
 			return nil
@@ -286,7 +286,7 @@ func (p *Pod) Cleanup(ctx context.Context) (map[string]error, error) {
 		c := ctr
 		logrus.Debugf("Adding parallel job to clean up container %s", c.ID())
 		retChan := parallel.Enqueue(ctx, func() error {
-			return c.Cleanup(ctx)
+			return c.cleanupLocked(ctx)
 		})
 
 		ctrErrChan[c.ID()] = retChan
