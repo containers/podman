@@ -22,7 +22,7 @@ The `podman manifest` command provides subcommands which can be used to:
 | inspect  | [podman-manifest-inspect(1)](podman-manifest-inspect.1.md)   | Display a manifest list or image index.                                     |
 | push     | [podman-manifest-push(1)](podman-manifest-push.1.md)         | Push a manifest list or image index to a registry.                          |
 | remove   | [podman-manifest-remove(1)](podman-manifest-remove.1.md)     | Remove an image from a manifest list or image index.                        |
-| rm       | [podman-manifest-rme(1)](podman-manifest-rm.1.md)            | Remove manifest list or image index from local storage.                |
+| rm       | [podman-manifest-rm(1)](podman-manifest-rm.1.md)             | Remove manifest list or image index from local storage.                     |
 
 ## EXAMPLES
 
