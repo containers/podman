@@ -105,11 +105,11 @@ func getFedoraDownload(releaseURL string) (*url.URL, string, int64, error) {
 		return nil, "", -1, fmt.Errorf("get request failed: %s: %w", verURL.String(), err)
 	}
 
+	defer resp.Body.Close()
 	bytes, err := io.ReadAll(&io.LimitedReader{R: resp.Body, N: 1024})
 	if err != nil {
 		return nil, "", -1, fmt.Errorf("failed reading: %s: %w", verURL.String(), err)
 	}
-	_ = resp.Body.Close()
 
 	return downloadURL, strings.TrimSpace(string(bytes)), contentLen, nil
 }
