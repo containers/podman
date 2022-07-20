@@ -94,6 +94,8 @@ type ImageRemoveOptions struct {
 	Ignore bool
 	// Confirms if given name is a manifest list and removes it, otherwise returns error.
 	LookupManifest bool
+	// NoPrune will not remove dangling images
+	NoPrune bool
 }
 
 // ImageRemoveReport is the response for removing one or more image(s) from storage

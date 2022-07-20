@@ -565,6 +565,7 @@ func (ir *ImageEngine) Remove(ctx context.Context, images []string, opts entitie
 	libimageOptions.Force = opts.Force
 	libimageOptions.Ignore = opts.Ignore
 	libimageOptions.LookupManifest = opts.LookupManifest
+	libimageOptions.NoPrune = opts.NoPrune
 	if !opts.All {
 		libimageOptions.Filters = append(libimageOptions.Filters, "intermediate=false")
 	}
@@ -581,7 +582,7 @@ func (ir *ImageEngine) Remove(ctx context.Context, images []string, opts entitie
 
 	rmErrors = libimageErrors
 
-	return
+	return report, rmErrors
 }
 
 // Shutdown Libpod engine

@@ -61,6 +61,7 @@ func imageRemoveFlagSet(flags *pflag.FlagSet) {
 	flags.BoolVarP(&imageOpts.All, "all", "a", false, "Remove all images")
 	flags.BoolVarP(&imageOpts.Ignore, "ignore", "i", false, "Ignore errors if a specified image does not exist")
 	flags.BoolVarP(&imageOpts.Force, "force", "f", false, "Force Removal of the image")
+	flags.BoolVar(&imageOpts.NoPrune, "no-prune", false, "Do not remove dangling images")
 }
 
 func rm(cmd *cobra.Command, args []string) error {

@@ -307,4 +307,82 @@ RUN touch %s`, CIRROS_IMAGE, imageName)
 		}
 		wg.Wait()
 	})
+
+	It("podman rmi --no-prune with dangling parents", func() {
+		podmanTest.AddImageToRWStore(ALPINE)
+		session := podmanTest.Podman([]string{"create", "--name", "c_test1", ALPINE, "true"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"commit", "-q", "c_test1", "test1"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"create", "--name", "c_test2", "test1", "true"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"commit", "-q", "c_test2", "test2"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		imageID2 := session.OutputToString()
+
+		session = podmanTest.Podman([]string{"create", "--name", "c_test3", "test2", "true"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"commit", "-q", "c_test3", "test3"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		imageID3 := session.OutputToString()
+
+		session = podmanTest.Podman([]string{"untag", "test2"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"untag", "test1"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"rmi", "-f", "--no-prune", "test3"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).To(ContainSubstring(imageID3))
+		Expect(session.OutputToString()).NotTo(ContainSubstring(imageID2))
+	})
+
+	It("podman rmi --no-prune with undangling parents", func() {
+		podmanTest.AddImageToRWStore(ALPINE)
+		session := podmanTest.Podman([]string{"create", "--name", "c_test1", ALPINE, "true"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"commit", "-q", "c_test1", "test1"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"create", "--name", "c_test2", "test1", "true"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"commit", "-q", "c_test2", "test2"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		imageID2 := session.OutputToString()
+
+		session = podmanTest.Podman([]string{"create", "--name", "c_test3", "test2", "true"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"commit", "-q", "c_test3", "test3"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		imageID3 := session.OutputToString()
+
+		session = podmanTest.Podman([]string{"rmi", "-f", "--no-prune", "test3"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).To(ContainSubstring(imageID3))
+		Expect(session.OutputToString()).NotTo(ContainSubstring(imageID2))
+	})
 })

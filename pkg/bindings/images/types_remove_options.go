@@ -76,3 +76,18 @@ func (o *RemoveOptions) GetLookupManifest() bool {
 	}
 	return *o.LookupManifest
 }
+
+// WithNoPrune set field NoPrune to given value
+func (o *RemoveOptions) WithNoPrune(value bool) *RemoveOptions {
+	o.NoPrune = &value
+	return o
+}
+
+// GetNoPrune returns value of field NoPrune
+func (o *RemoveOptions) GetNoPrune() bool {
+	if o.NoPrune == nil {
+		var z bool
+		return z
+	}
+	return *o.NoPrune
+}
