@@ -135,6 +135,11 @@ const (
 	// creating a checkpoint image to specify the name of host distribution on
 	// which the checkpoint was created.
 	CheckpointAnnotationDistributionName = "io.podman.annotations.checkpoint.distribution.name"
+
+	// InitContainerType is used by play kube when playing a kube yaml to specify the type
+	// of the init container.
+	InitContainerType = "io.podman.annotations.init.container.type"
+
 	// MaxKubeAnnotation is the max length of annotations allowed by Kubernetes.
 	MaxKubeAnnotation = 63
 )
