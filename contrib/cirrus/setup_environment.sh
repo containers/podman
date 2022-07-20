@@ -158,7 +158,7 @@ case "$TEST_ENVIRON" in
     host)
         # The e2e tests wrongly guess `--cgroup-manager` option
         # shellcheck disable=SC2154
-        if [[ "$CG_FS_TYPE" == "cgroup2fs" ]] || [[ "$PRIV_NAME" == "root" ]]
+        if [[ "$CG_FS_TYPE" == "cgroup2fs" || "$PRIV_NAME" == "root" || "$PRIV_NAME" == "su" ]]
         then
             warn "Forcing CGROUP_MANAGER=systemd"
             echo "CGROUP_MANAGER=systemd" >> /etc/ci_environment
@@ -210,6 +210,7 @@ case "$PRIV_NAME" in
             echo "PODMAN_ROOTLESS_UID=$ROOTLESS_UID" >> /etc/ci_environment
         fi
         ;;
+    su) ;&  # use next block
     rootless)
         # load kernel modules since the rootless user has no permission to do so
         modprobe ip6_tables || :

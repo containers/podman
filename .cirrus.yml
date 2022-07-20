@@ -51,7 +51,7 @@ env:
     TEST_FLAVOR:             # int, sys, ext_svc, validate, automation, etc.
     TEST_ENVIRON: host       # 'host', or 'container'
     PODBIN_NAME: podman      # 'podman' or 'remote'
-    PRIV_NAME: root          # 'root' or 'rootless'
+    PRIV_NAME: root          # 'root', 'rootless', or 'su'
     DISTRO_NV:               # any {PRIOR_,}{FEDORA,UBUNTU}_NAME value
     VM_IMAGE_NAME:           # One of the "Google-cloud VM Images" (above)
     CTR_FQIN:                # One of the "Container FQIN's" (above)
@@ -679,7 +679,7 @@ rootless_remote_system_test_task:
         PRIV_NAME: rootless
 
 
-rootless_system_test_task:
+rootless_system_test_task: &rootless_system_test
     name: *std_name_fmt
     alias: rootless_system_test
     # Docs: ./contrib/cirrus/CIModes.md
@@ -696,6 +696,13 @@ rootless_system_test_task:
     setup_script: *setup
     main_script: *main
     always: *logs_artifacts
+
+su_system_test_task:
+    <<: *rootless_system_test
+    alias: su_system_test
+    env:
+        PRIV_NAME: su
+        TEST_FLAVOR: sys
 
 
 buildah_bud_test_task:
@@ -890,6 +897,7 @@ success_task:
         - local_system_test
         - remote_system_test
         - rootless_system_test
+        - su_system_test
         - rootless_remote_system_test
         - buildah_bud_test
         - rootless_gitlab_test

@@ -147,7 +147,7 @@ setup_rootless() {
     # shellcheck disable=SC2154
     if passwd --status $ROOTLESS_USER
     then
-        if [[ $PRIV_NAME = "rootless" ]]; then
+        if [[ $PRIV_NAME == "rootless" || "$PRIV_NAME" == "su" ]]; then
             msg "Updating $ROOTLESS_USER user permissions on possibly changed libpod code"
             chown -R $ROOTLESS_USER:$ROOTLESS_USER "$GOPATH" "$GOSRC"
             return 0

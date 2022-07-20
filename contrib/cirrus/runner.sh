@@ -472,7 +472,10 @@ msg "************************************************************"
     die "Expecting setup_environment.sh to have completed successfully"
 
 # shellcheck disable=SC2154
-if [[ "$PRIV_NAME" == "rootless" ]] && [[ "$UID" -eq 0 ]]; then
+if [[ "$PRIV_NAME" == "rootless" || "$PRIV_NAME" == "su" ]] && [[ "$UID" -eq 0 ]]
+then
+    req_env_vars ROOTLESS_USER
+
     # Remove /var/lib/cni, it is not required for rootless cni.
     # We have to test that it works without this directory.
     # https://github.com/containers/podman/issues/10857
@@ -481,18 +484,26 @@ if [[ "$PRIV_NAME" == "rootless" ]] && [[ "$UID" -eq 0 ]]; then
     # This must be done at the last second, otherwise `make` calls
     # in setup_environment (as root) will balk about ownership.
     msg "Recursively chowning \$GOPATH and \$GOSRC to $ROOTLESS_USER"
-    if [[ $PRIV_NAME = "rootless" ]]; then
+    if [[ $PRIV_NAME == "rootless" || "$PRIV_NAME" == "su" ]]; then
         chown -R $ROOTLESS_USER:$ROOTLESS_USER "$GOPATH" "$GOSRC"
     fi
 
-    req_env_vars ROOTLESS_USER
-    msg "Re-executing runner through ssh as user '$ROOTLESS_USER'"
-    msg "************************************************************"
-    set -x
-    exec ssh $ROOTLESS_USER@localhost \
-            -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no \
-            -o CheckHostIP=no $GOSRC/$SCRIPT_BASE/runner.sh
-    # Does not return!
+    # N/B: Nothing below will return!
+    if [[ "$PRIV_NAME" == "rootless" ]]; then
+        msg "Re-executing runner through --> _ssh_ <-- as user '$ROOTLESS_USER'"
+        msg "************************************************************"
+        set -x
+        exec ssh $ROOTLESS_USER@localhost \
+                -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no \
+                -o CheckHostIP=no $GOSRC/$SCRIPT_BASE/runner.sh
+    elif [[ "$PRIV_NAME" == "su" ]]; then
+        msg "Re-executing runner through --> _su_ <-- as user '$ROOTLESS_USER'"
+        msg "************************************************************"
+        set -x
+        exec su $ROOTLESS_USER -c $GOSRC/$SCRIPT_BASE/runner.sh
+    else
+        die "Unsupported value for \$PRIV_NAME '$PRIV_NAME'"
+    fi
 fi
 # else: not running rootless, do nothing special
 
