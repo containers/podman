@@ -17,21 +17,65 @@ Pauses all the processes in one or more containers.  You may use container IDs o
 
 Pause all running containers.
 
+#### **--cidfile**
+
+Read container ID from the specified file and pause the container.  Can be specified multiple times.
+
+#### **--filter**, **-f**=*filter*
+
+Filter what containers pause.
+Multiple filters can be given with multiple uses of the --filter flag.
+Filters with the same key work inclusive with the only exception being
+`label` which is exclusive. Filters with different keys always work exclusive.
+
+Valid filters are listed below:
+
+| **Filter**      | **Description**                                                                  |
+| --------------- | -------------------------------------------------------------------------------- |
+| id              | [ID] Container's ID (accepts regex)                                              |
+| name            | [Name] Container's name (accepts regex)                                          |
+| label           | [Key] or [Key=Value] Label assigned to a container                               |
+| exited          | [Int] Container's exit code                                                      |
+| status          | [Status] Container's status: 'created', 'exited', 'paused', 'running', 'unknown' |
+| ancestor        | [ImageName] Image or descendant used to create container                         |
+| before          | [ID] or [Name] Containers created before this container                          |
+| since           | [ID] or [Name] Containers created since this container                           |
+| volume          | [VolumeName] or [MountpointDestination] Volume mounted in container              |
+| health          | [Status] healthy or unhealthy                                                    |
+| pod             | [Pod] name or full or partial ID of pod                                          |
+| network         | [Network] name or full ID of network                                             |
+
+#### **--latest**, **-l**
+
+Instead of providing the container name or ID, use the last created container. If you use methods other than Podman
+to run containers such as CRI-O, the last started container could be from either of those methods. (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
+
 ## EXAMPLE
 
-Pause a container named 'mywebserver'
+Pause container named 'mywebserver'
 ```
 podman pause mywebserver
 ```
 
-Pause a container by partial container ID.
+Pause container by partial container ID.
 ```
 podman pause 860a4b23
 ```
 
 Pause all **running** containers.
 ```
-podman pause -a
+podman pause --all
+```
+
+Pause container using ID specified in a given files.
+```
+podman pause --cidfile /home/user/cidfile-1
+podman pause --cidfile /home/user/cidfile-1 --cidfile ./cidfile-2
+```
+
+Pause the latest container created by Podman.
+```
+podman pause --latest
 ```
 
 ## SEE ALSO

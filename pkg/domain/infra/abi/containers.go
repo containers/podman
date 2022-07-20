@@ -62,6 +62,11 @@ func getContainersAndInputByContext(all, latest bool, names []string, filters ma
 		}
 	case all:
 		ctrs, err = runtime.GetAllContainers()
+		if err == nil {
+			for _, ctr := range ctrs {
+				rawInput = append(rawInput, ctr.ID())
+			}
+		}
 	case latest:
 		ctr, err = runtime.GetLatestContainer()
 		if err == nil {
@@ -133,37 +138,57 @@ func (ic *ContainerEngine) ContainerWait(ctx context.Context, namesOrIds []strin
 }
 
 func (ic *ContainerEngine) ContainerPause(ctx context.Context, namesOrIds []string, options entities.PauseUnPauseOptions) ([]*entities.PauseUnpauseReport, error) {
-	ctrs, err := getContainersByContext(options.All, false, namesOrIds, ic.Libpod)
+	ctrs, rawInputs, err := getContainersAndInputByContext(options.All, options.Latest, namesOrIds, options.Filters, ic.Libpod)
 	if err != nil {
 		return nil, err
 	}
-	report := make([]*entities.PauseUnpauseReport, 0, len(ctrs))
+	ctrMap := map[string]string{}
+	if len(rawInputs) == len(ctrs) {
+		for i := range ctrs {
+			ctrMap[ctrs[i].ID()] = rawInputs[i]
+		}
+	}
+	reports := make([]*entities.PauseUnpauseReport, 0, len(ctrs))
 	for _, c := range ctrs {
 		err := c.Pause()
 		if err != nil && options.All && errors.Is(err, define.ErrCtrStateInvalid) {
 			logrus.Debugf("Container %s is not running", c.ID())
 			continue
 		}
-		report = append(report, &entities.PauseUnpauseReport{Id: c.ID(), Err: err})
+		reports = append(reports, &entities.PauseUnpauseReport{
+			Id:       c.ID(),
+			Err:      err,
+			RawInput: ctrMap[c.ID()],
+		})
 	}
-	return report, nil
+	return reports, nil
 }
 
 func (ic *ContainerEngine) ContainerUnpause(ctx context.Context, namesOrIds []string, options entities.PauseUnPauseOptions) ([]*entities.PauseUnpauseReport, error) {
-	ctrs, err := getContainersByContext(options.All, false, namesOrIds, ic.Libpod)
+	ctrs, rawInputs, err := getContainersAndInputByContext(options.All, options.Latest, namesOrIds, options.Filters, ic.Libpod)
 	if err != nil {
 		return nil, err
 	}
-	report := make([]*entities.PauseUnpauseReport, 0, len(ctrs))
+	ctrMap := map[string]string{}
+	if len(rawInputs) == len(ctrs) {
+		for i := range ctrs {
+			ctrMap[ctrs[i].ID()] = rawInputs[i]
+		}
+	}
+	reports := make([]*entities.PauseUnpauseReport, 0, len(ctrs))
 	for _, c := range ctrs {
 		err := c.Unpause()
 		if err != nil && options.All && errors.Is(err, define.ErrCtrStateInvalid) {
 			logrus.Debugf("Container %s is not paused", c.ID())
 			continue
 		}
-		report = append(report, &entities.PauseUnpauseReport{Id: c.ID(), Err: err})
+		reports = append(reports, &entities.PauseUnpauseReport{
+			Id:       c.ID(),
+			Err:      err,
+			RawInput: ctrMap[c.ID()],
+		})
 	}
-	return report, nil
+	return reports, nil
 }
 func (ic *ContainerEngine) ContainerStop(ctx context.Context, namesOrIds []string, options entities.StopOptions) ([]*entities.StopReport, error) {
 	names := namesOrIds
