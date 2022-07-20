@@ -57,7 +57,7 @@ var _ = BeforeSuite(func() {
 				Fail(fmt.Sprintf("unable to create url for download: %q", err))
 			}
 			now := time.Now()
-			if err := machine.DownloadVMImage(getMe, fqImageName+".xz"); err != nil {
+			if err := machine.DownloadVMImage(getMe, suiteImageName, fqImageName+".xz"); err != nil {
 				Fail(fmt.Sprintf("unable to download machine image: %q", err))
 			}
 			fmt.Println("Download took: ", time.Since(now).String())
