@@ -38,7 +38,8 @@ type progressBar struct {
 }
 
 // createProgressBar creates a progressBar in pool.  Note that if the copier's reportWriter
-// is io.Discard, the progress bar's output will be discarded
+// is io.Discard, the progress bar's output will be discarded.  Callers may call printCopyInfo()
+// to print a single line instead.
 //
 // NOTE: Every progress bar created within a progress pool must either successfully
 // complete or be aborted, or pool.Wait() will hang. That is typically done
@@ -95,12 +96,18 @@ func (c *copier) createProgressBar(pool *mpb.Progress, partial bool, info types.
 			),
 		)
 	}
-	if c.progressOutput == io.Discard {
-		c.Printf("Copying %s %s\n", kind, info.Digest)
-	}
 	return &progressBar{
 		Bar:          bar,
 		originalSize: info.Size,
+	}
+}
+
+// printCopyInfo prints a "Copying ..." message on the copier if the output is
+// set to `io.Discard`.  In that case, the progress bars won't be rendered but
+// we still want to indicate when blobs and configs are copied.
+func (c *copier) printCopyInfo(kind string, info types.BlobInfo) {
+	if c.progressOutput == io.Discard {
+		c.Printf("Copying %s %s\n", kind, info.Digest)
 	}
 }
 
