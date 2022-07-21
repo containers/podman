@@ -12,10 +12,11 @@ import (
 type MetaData struct {
 	context Key // Used only during decoding.
 
+	keyInfo map[string]keyInfo
 	mapping map[string]interface{}
-	types   map[string]tomlType
 	keys    []Key
 	decoded map[string]struct{}
+	data    []byte // Input file; for errors.
 }
 
 // IsDefined reports if the key exists in the TOML data.
@@ -50,8 +51,8 @@ func (md *MetaData) IsDefined(key ...string) bool {
 // Type will return the empty string if given an empty key or a key that does
 // not exist. Keys are case sensitive.
 func (md *MetaData) Type(key ...string) string {
-	if typ, ok := md.types[Key(key).String()]; ok {
-		return typ.typeString()
+	if ki, ok := md.keyInfo[Key(key).String()]; ok {
+		return ki.tomlType.typeString()
 	}
 	return ""
 }

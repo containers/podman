@@ -3,13 +3,16 @@ package toml
 import (
 	"bytes"
 	"encoding"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"math"
 	"os"
 	"reflect"
+	"strconv"
 	"strings"
+	"time"
 )
 
 // Unmarshaler is the interface implemented by objects that can unmarshal a
@@ -18,7 +21,7 @@ type Unmarshaler interface {
 	UnmarshalTOML(interface{}) error
 }
 
-// Unmarshal decodes the contents of `p` in TOML format into a pointer `v`.
+// Unmarshal decodes the contents of `data` in TOML format into a pointer `v`.
 func Unmarshal(data []byte, v interface{}) error {
 	_, err := NewDecoder(bytes.NewReader(data)).Decode(v)
 	return err
@@ -75,6 +78,9 @@ const (
 // TOML datetimes correspond to Go time.Time values. Local datetimes are parsed
 // in the local timezone.
 //
+// time.Duration types are treated as nanoseconds if the TOML value is an
+// integer, or they're parsed with time.ParseDuration() if they're strings.
+//
 // All other TOML types (float, string, int, bool and array) correspond to the
 // obvious Go types.
 //
@@ -82,7 +88,7 @@ const (
 // interface, in which case any primitive TOML value (floats, strings, integers,
 // booleans, datetimes) will be converted to a []byte and given to the value's
 // UnmarshalText method. See the Unmarshaler example for a demonstration with
-// time duration strings.
+// email addresses.
 //
 // Key mapping
 //
@@ -111,6 +117,7 @@ func NewDecoder(r io.Reader) *Decoder {
 var (
 	unmarshalToml = reflect.TypeOf((*Unmarshaler)(nil)).Elem()
 	unmarshalText = reflect.TypeOf((*encoding.TextUnmarshaler)(nil)).Elem()
+	primitiveType = reflect.TypeOf((*Primitive)(nil)).Elem()
 )
 
 // Decode TOML data in to the pointer `v`.
@@ -122,10 +129,10 @@ func (dec *Decoder) Decode(v interface{}) (MetaData, error) {
 			s = "%v"
 		}
 
-		return MetaData{}, e("cannot decode to non-pointer "+s, reflect.TypeOf(v))
+		return MetaData{}, fmt.Errorf("toml: cannot decode to non-pointer "+s, reflect.TypeOf(v))
 	}
 	if rv.IsNil() {
-		return MetaData{}, e("cannot decode to nil value of %q", reflect.TypeOf(v))
+		return MetaData{}, fmt.Errorf("toml: cannot decode to nil value of %q", reflect.TypeOf(v))
 	}
 
 	// Check if this is a supported type: struct, map, interface{}, or something
@@ -135,7 +142,7 @@ func (dec *Decoder) Decode(v interface{}) (MetaData, error) {
 	if rv.Kind() != reflect.Struct && rv.Kind() != reflect.Map &&
 		!(rv.Kind() == reflect.Interface && rv.NumMethod() == 0) &&
 		!rt.Implements(unmarshalToml) && !rt.Implements(unmarshalText) {
-		return MetaData{}, e("cannot decode to type %s", rt)
+		return MetaData{}, fmt.Errorf("toml: cannot decode to type %s", rt)
 	}
 
 	// TODO: parser should read from io.Reader? Or at the very least, make it
@@ -152,10 +159,11 @@ func (dec *Decoder) Decode(v interface{}) (MetaData, error) {
 
 	md := MetaData{
 		mapping: p.mapping,
-		types:   p.types,
+		keyInfo: p.keyInfo,
 		keys:    p.ordered,
 		decoded: make(map[string]struct{}, len(p.ordered)),
 		context: nil,
+		data:    data,
 	}
 	return md, md.unify(p.mapping, rv)
 }
@@ -185,7 +193,7 @@ func (md *MetaData) PrimitiveDecode(primValue Primitive, v interface{}) error {
 func (md *MetaData) unify(data interface{}, rv reflect.Value) error {
 	// Special case. Look for a `Primitive` value.
 	// TODO: #76 would make this superfluous after implemented.
-	if rv.Type() == reflect.TypeOf((*Primitive)(nil)).Elem() {
+	if rv.Type() == primitiveType {
 		// Save the undecoded data and the key context into the primitive
 		// value.
 		context := make(Key, len(md.context))
@@ -197,17 +205,14 @@ func (md *MetaData) unify(data interface{}, rv reflect.Value) error {
 		return nil
 	}
 
-	// Special case. Unmarshaler Interface support.
-	if rv.CanAddr() {
-		if v, ok := rv.Addr().Interface().(Unmarshaler); ok {
-			return v.UnmarshalTOML(data)
-		}
+	rvi := rv.Interface()
+	if v, ok := rvi.(Unmarshaler); ok {
+		return v.UnmarshalTOML(data)
 	}
-
-	// Special case. Look for a value satisfying the TextUnmarshaler interface.
-	if v, ok := rv.Interface().(encoding.TextUnmarshaler); ok {
+	if v, ok := rvi.(encoding.TextUnmarshaler); ok {
 		return md.unifyText(data, v)
 	}
+
 	// TODO:
 	// The behavior here is incorrect whenever a Go type satisfies the
 	// encoding.TextUnmarshaler interface but also corresponds to a TOML hash or
@@ -218,7 +223,6 @@ func (md *MetaData) unify(data interface{}, rv reflect.Value) error {
 
 	k := rv.Kind()
 
-	// laziness
 	if k >= reflect.Int && k <= reflect.Uint64 {
 		return md.unifyInt(data, rv)
 	}
@@ -244,15 +248,14 @@ func (md *MetaData) unify(data interface{}, rv reflect.Value) error {
 	case reflect.Bool:
 		return md.unifyBool(data, rv)
 	case reflect.Interface:
-		// we only support empty interfaces.
-		if rv.NumMethod() > 0 {
-			return e("unsupported type %s", rv.Type())
+		if rv.NumMethod() > 0 { // Only support empty interfaces are supported.
+			return md.e("unsupported type %s", rv.Type())
 		}
 		return md.unifyAnything(data, rv)
 	case reflect.Float32, reflect.Float64:
 		return md.unifyFloat64(data, rv)
 	}
-	return e("unsupported type %s", rv.Kind())
+	return md.e("unsupported type %s", rv.Kind())
 }
 
 func (md *MetaData) unifyStruct(mapping interface{}, rv reflect.Value) error {
@@ -261,7 +264,7 @@ func (md *MetaData) unifyStruct(mapping interface{}, rv reflect.Value) error {
 		if mapping == nil {
 			return nil
 		}
-		return e("type mismatch for %s: expected table but found %T",
+		return md.e("type mismatch for %s: expected table but found %T",
 			rv.Type().String(), mapping)
 	}
 
@@ -287,13 +290,14 @@ func (md *MetaData) unifyStruct(mapping interface{}, rv reflect.Value) error {
 			if isUnifiable(subv) {
 				md.decoded[md.context.add(key).String()] = struct{}{}
 				md.context = append(md.context, key)
+
 				err := md.unify(datum, subv)
 				if err != nil {
 					return err
 				}
 				md.context = md.context[0 : len(md.context)-1]
 			} else if f.name != "" {
-				return e("cannot write unexported field %s.%s", rv.Type().String(), f.name)
+				return md.e("cannot write unexported field %s.%s", rv.Type().String(), f.name)
 			}
 		}
 	}
@@ -301,10 +305,10 @@ func (md *MetaData) unifyStruct(mapping interface{}, rv reflect.Value) error {
 }
 
 func (md *MetaData) unifyMap(mapping interface{}, rv reflect.Value) error {
-	if k := rv.Type().Key().Kind(); k != reflect.String {
-		return fmt.Errorf(
-			"toml: cannot decode to a map with non-string key type (%s in %q)",
-			k, rv.Type())
+	keyType := rv.Type().Key().Kind()
+	if keyType != reflect.String && keyType != reflect.Interface {
+		return fmt.Errorf("toml: cannot decode to a map with non-string key type (%s in %q)",
+			keyType, rv.Type())
 	}
 
 	tmap, ok := mapping.(map[string]interface{})
@@ -322,13 +326,22 @@ func (md *MetaData) unifyMap(mapping interface{}, rv reflect.Value) error {
 		md.context = append(md.context, k)
 
 		rvval := reflect.Indirect(reflect.New(rv.Type().Elem()))
-		if err := md.unify(v, rvval); err != nil {
+
+		err := md.unify(v, indirect(rvval))
+		if err != nil {
 			return err
 		}
 		md.context = md.context[0 : len(md.context)-1]
 
 		rvkey := indirect(reflect.New(rv.Type().Key()))
-		rvkey.SetString(k)
+
+		switch keyType {
+		case reflect.Interface:
+			rvkey.Set(reflect.ValueOf(k))
+		case reflect.String:
+			rvkey.SetString(k)
+		}
+
 		rv.SetMapIndex(rvkey, rvval)
 	}
 	return nil
@@ -343,7 +356,7 @@ func (md *MetaData) unifyArray(data interface{}, rv reflect.Value) error {
 		return md.badtype("slice", data)
 	}
 	if l := datav.Len(); l != rv.Len() {
-		return e("expected array length %d; got TOML array of length %d", rv.Len(), l)
+		return md.e("expected array length %d; got TOML array of length %d", rv.Len(), l)
 	}
 	return md.unifySliceArray(datav, rv)
 }
@@ -376,6 +389,18 @@ func (md *MetaData) unifySliceArray(data, rv reflect.Value) error {
 }
 
 func (md *MetaData) unifyString(data interface{}, rv reflect.Value) error {
+	_, ok := rv.Interface().(json.Number)
+	if ok {
+		if i, ok := data.(int64); ok {
+			rv.SetString(strconv.FormatInt(i, 10))
+		} else if f, ok := data.(float64); ok {
+			rv.SetString(strconv.FormatFloat(f, 'f', -1, 64))
+		} else {
+			return md.badtype("string", data)
+		}
+		return nil
+	}
+
 	if s, ok := data.(string); ok {
 		rv.SetString(s)
 		return nil
@@ -384,11 +409,13 @@ func (md *MetaData) unifyString(data interface{}, rv reflect.Value) error {
 }
 
 func (md *MetaData) unifyFloat64(data interface{}, rv reflect.Value) error {
+	rvk := rv.Kind()
+
 	if num, ok := data.(float64); ok {
-		switch rv.Kind() {
+		switch rvk {
 		case reflect.Float32:
 			if num < -math.MaxFloat32 || num > math.MaxFloat32 {
-				return e("value %f is out of range for float32", num)
+				return md.parseErr(errParseRange{i: num, size: rvk.String()})
 			}
 			fallthrough
 		case reflect.Float64:
@@ -400,20 +427,11 @@ func (md *MetaData) unifyFloat64(data interface{}, rv reflect.Value) error {
 	}
 
 	if num, ok := data.(int64); ok {
-		switch rv.Kind() {
-		case reflect.Float32:
-			if num < -maxSafeFloat32Int || num > maxSafeFloat32Int {
-				return e("value %d is out of range for float32", num)
-			}
-			fallthrough
-		case reflect.Float64:
-			if num < -maxSafeFloat64Int || num > maxSafeFloat64Int {
-				return e("value %d is out of range for float64", num)
-			}
-			rv.SetFloat(float64(num))
-		default:
-			panic("bug")
+		if (rvk == reflect.Float32 && (num < -maxSafeFloat32Int || num > maxSafeFloat32Int)) ||
+			(rvk == reflect.Float64 && (num < -maxSafeFloat64Int || num > maxSafeFloat64Int)) {
+			return md.parseErr(errParseRange{i: num, size: rvk.String()})
 		}
+		rv.SetFloat(float64(num))
 		return nil
 	}
 
@@ -421,50 +439,46 @@ func (md *MetaData) unifyFloat64(data interface{}, rv reflect.Value) error {
 }
 
 func (md *MetaData) unifyInt(data interface{}, rv reflect.Value) error {
-	if num, ok := data.(int64); ok {
-		if rv.Kind() >= reflect.Int && rv.Kind() <= reflect.Int64 {
-			switch rv.Kind() {
-			case reflect.Int, reflect.Int64:
-				// No bounds checking necessary.
-			case reflect.Int8:
-				if num < math.MinInt8 || num > math.MaxInt8 {
-					return e("value %d is out of range for int8", num)
-				}
-			case reflect.Int16:
-				if num < math.MinInt16 || num > math.MaxInt16 {
-					return e("value %d is out of range for int16", num)
-				}
-			case reflect.Int32:
-				if num < math.MinInt32 || num > math.MaxInt32 {
-					return e("value %d is out of range for int32", num)
-				}
+	_, ok := rv.Interface().(time.Duration)
+	if ok {
+		// Parse as string duration, and fall back to regular integer parsing
+		// (as nanosecond) if this is not a string.
+		if s, ok := data.(string); ok {
+			dur, err := time.ParseDuration(s)
+			if err != nil {
+				return md.parseErr(errParseDuration{s})
 			}
-			rv.SetInt(num)
-		} else if rv.Kind() >= reflect.Uint && rv.Kind() <= reflect.Uint64 {
-			unum := uint64(num)
-			switch rv.Kind() {
-			case reflect.Uint, reflect.Uint64:
-				// No bounds checking necessary.
-			case reflect.Uint8:
-				if num < 0 || unum > math.MaxUint8 {
-					return e("value %d is out of range for uint8", num)
-				}
-			case reflect.Uint16:
-				if num < 0 || unum > math.MaxUint16 {
-					return e("value %d is out of range for uint16", num)
-				}
-			case reflect.Uint32:
-				if num < 0 || unum > math.MaxUint32 {
-					return e("value %d is out of range for uint32", num)
-				}
-			}
-			rv.SetUint(unum)
-		} else {
-			panic("unreachable")
+			rv.SetInt(int64(dur))
+			return nil
 		}
-		return nil
 	}
-	return md.badtype("integer", data)
+
+	num, ok := data.(int64)
+	if !ok {
+		return md.badtype("integer", data)
+	}
+
+	rvk := rv.Kind()
+	switch {
+	case rvk >= reflect.Int && rvk <= reflect.Int64:
+		if (rvk == reflect.Int8 && (num < math.MinInt8 || num > math.MaxInt8)) ||
+			(rvk == reflect.Int16 && (num < math.MinInt16 || num > math.MaxInt16)) ||
+			(rvk == reflect.Int32 && (num < math.MinInt32 || num > math.MaxInt32)) {
+			return md.parseErr(errParseRange{i: num, size: rvk.String()})
+		}
+		rv.SetInt(num)
+	case rvk >= reflect.Uint && rvk <= reflect.Uint64:
+		unum := uint64(num)
+		if rvk == reflect.Uint8 && (num < 0 || unum > math.MaxUint8) ||
+			rvk == reflect.Uint16 && (num < 0 || unum > math.MaxUint16) ||
+			rvk == reflect.Uint32 && (num < 0 || unum > math.MaxUint32) {
+			return md.parseErr(errParseRange{i: num, size: rvk.String()})
+		}
+		rv.SetUint(unum)
+	default:
+		panic("unreachable")
+	}
+	return nil
 }
 
 func (md *MetaData) unifyBool(data interface{}, rv reflect.Value) error {
@@ -489,7 +503,7 @@ func (md *MetaData) unifyText(data interface{}, v encoding.TextUnmarshaler) erro
 			return err
 		}
 		s = string(text)
-	case TextMarshaler:
+	case encoding.TextMarshaler:
 		text, err := sdata.MarshalText()
 		if err != nil {
 			return err
@@ -515,7 +529,30 @@ func (md *MetaData) unifyText(data interface{}, v encoding.TextUnmarshaler) erro
 }
 
 func (md *MetaData) badtype(dst string, data interface{}) error {
-	return e("incompatible types: TOML key %q has type %T; destination has type %s", md.context, data, dst)
+	return md.e("incompatible types: TOML value has type %T; destination has type %s", data, dst)
+}
+
+func (md *MetaData) parseErr(err error) error {
+	k := md.context.String()
+	return ParseError{
+		LastKey:  k,
+		Position: md.keyInfo[k].pos,
+		Line:     md.keyInfo[k].pos.Line,
+		err:      err,
+		input:    string(md.data),
+	}
+}
+
+func (md *MetaData) e(format string, args ...interface{}) error {
+	f := "toml: "
+	if len(md.context) > 0 {
+		f = fmt.Sprintf("toml: (last key %q): ", md.context)
+		p := md.keyInfo[md.context.String()].pos
+		if p.Line > 0 {
+			f = fmt.Sprintf("toml: line %d (last key %q): ", p.Line, md.context)
+		}
+	}
+	return fmt.Errorf(f+format, args...)
 }
 
 // rvalue returns a reflect.Value of `v`. All pointers are resolved.
@@ -534,7 +571,11 @@ func indirect(v reflect.Value) reflect.Value {
 	if v.Kind() != reflect.Ptr {
 		if v.CanSet() {
 			pv := v.Addr()
-			if _, ok := pv.Interface().(encoding.TextUnmarshaler); ok {
+			pvi := pv.Interface()
+			if _, ok := pvi.(encoding.TextUnmarshaler); ok {
+				return pv
+			}
+			if _, ok := pvi.(Unmarshaler); ok {
 				return pv
 			}
 		}
@@ -550,12 +591,12 @@ func isUnifiable(rv reflect.Value) bool {
 	if rv.CanSet() {
 		return true
 	}
-	if _, ok := rv.Interface().(encoding.TextUnmarshaler); ok {
+	rvi := rv.Interface()
+	if _, ok := rvi.(encoding.TextUnmarshaler); ok {
+		return true
+	}
+	if _, ok := rvi.(Unmarshaler); ok {
 		return true
 	}
 	return false
-}
-
-func e(format string, args ...interface{}) error {
-	return fmt.Errorf("toml: "+format, args...)
 }
