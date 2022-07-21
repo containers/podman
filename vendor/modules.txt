@@ -325,7 +325,6 @@ github.com/coreos/stream-metadata-go/stream/rhcos
 ## explicit
 github.com/cyphar/filepath-securejoin
 # github.com/davecgh/go-spew v1.1.1
-## explicit
 github.com/davecgh/go-spew/spew
 # github.com/digitalocean/go-libvirt v0.0.0-20201209184759-e2a69bcd5bd1
 github.com/digitalocean/go-libvirt
@@ -625,7 +624,6 @@ github.com/ostreedev/ostree-go/pkg/otbuiltin
 # github.com/pkg/errors v0.9.1
 github.com/pkg/errors
 # github.com/pmezard/go-difflib v1.0.0
-## explicit
 github.com/pmezard/go-difflib/difflib
 # github.com/proglottis/gpgme v0.1.3
 github.com/proglottis/gpgme

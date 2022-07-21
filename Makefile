@@ -77,7 +77,7 @@ BUILDTAGS_CROSS ?= containers_image_openpgp exclude_graphdriver_btrfs exclude_gr
 CONTAINER_RUNTIME := $(shell command -v podman 2> /dev/null || echo docker)
 OCI_RUNTIME ?= ""
 
-MANPAGES_MD ?= $(wildcard docs/source/markdown/*.md pkg/*/docs/*.md)
+MANPAGES_MD ?= $(wildcard docs/source/markdown/*.md)
 MANPAGES ?= $(MANPAGES_MD:%.md=%)
 MANPAGES_DEST ?= $(subst markdown,man, $(subst source,build,$(MANPAGES)))
 
@@ -776,9 +776,7 @@ install.modules-load: # This should only be used by distros which might use ipta
 .PHONY: install.man
 install.man:
 	install ${SELINUXOPT} -d -m 755 $(DESTDIR)$(MANDIR)/man1
-	install ${SELINUXOPT} -d -m 755 $(DESTDIR)$(MANDIR)/man5
 	install ${SELINUXOPT} -m 644 $(filter %.1,$(MANPAGES_DEST)) $(DESTDIR)$(MANDIR)/man1
-	install ${SELINUXOPT} -m 644 $(filter %.5,$(MANPAGES_DEST)) $(DESTDIR)$(MANDIR)/man5
 	install ${SELINUXOPT} -m 644 docs/source/markdown/links/*1 $(DESTDIR)$(MANDIR)/man1
 
 .PHONY: install.completions
