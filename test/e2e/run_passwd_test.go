@@ -66,10 +66,15 @@ RUN rm -f /etc/passwd /etc/shadow /etc/group
 USER 1000`, ALPINE)
 		imgName := "testimg"
 		podmanTest.BuildImage(dockerfile, imgName, "false")
-		session := podmanTest.Podman([]string{"run", "--rm", imgName, "ls", "/etc/"})
+		session := podmanTest.Podman([]string{"run", "--passwd=false", "--rm", imgName, "ls", "/etc/"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(Not(ContainSubstring("passwd")))
+
+		// test that the /etc/passwd file is created
+		session = podmanTest.Podman([]string{"run", "--rm", "--user", "0:0", imgName, "ls", "/etc/passwd"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
 	})
 
 	It("podman run with no user specified does not change --group specified", func() {
