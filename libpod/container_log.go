@@ -10,6 +10,7 @@ import (
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/libpod/events"
 	"github.com/containers/podman/v4/libpod/logs"
+	"github.com/nxadm/tail"
 	"github.com/nxadm/tail/watch"
 	"github.com/sirupsen/logrus"
 )
@@ -74,14 +75,19 @@ func (c *Container) readFromLogFile(ctx context.Context, options *logs.LogOption
 
 	go func() {
 		defer options.WaitGroup.Done()
-
-		for line := range t.Lines {
+		var line *tail.Line
+		var ok bool
+		for {
 			select {
 			case <-ctx.Done():
 				// the consumer has cancelled
+				t.Kill(errors.New("hangup by client"))
 				return
-			default:
-				// fallthrough
+			case line, ok = <-t.Lines:
+				if !ok {
+					// channel was closed
+					return
+				}
 			}
 			nll, err := logs.NewLogLine(line.Text)
 			if err != nil {

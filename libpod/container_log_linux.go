@@ -178,8 +178,13 @@ func (c *Container) readFromJournal(ctx context.Context, options *logs.LogOption
 				if !options.Follow || !containerCouldBeLogging {
 					return
 				}
-				// Sleep until something's happening on the journal.
-				journal.Wait(sdjournal.IndefiniteWait)
+
+				// journal.Wait() is blocking, this would cause the goroutine to hang forever
+				// if no more journal entries are generated and thus if the client
+				// has closed the connection in the meantime to leak memory.
+				// Waiting only 5 seconds makes sure we can check if the client closed in the
+				// meantime at least every 5 seconds.
+				journal.Wait(5 * time.Second)
 				continue
 			}
 			lastReadCursor = cursor
