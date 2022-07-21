@@ -1,7 +1,7 @@
 package e2e_test
 
 import (
-	"github.com/containers/podman/v4/cmd/podman/machine"
+	"github.com/containers/podman/v4/pkg/domain/entities"
 	jsoniter "github.com/json-iterator/go"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -51,7 +51,7 @@ var _ = Describe("podman machine info", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(infoSession).Should(Exit(0))
 
-		infoReport := &machine.Info{}
+		infoReport := &entities.MachineInfo{}
 		err = jsoniter.Unmarshal(infoSession.Bytes(), infoReport)
 		Expect(err).To(BeNil())
 	})
