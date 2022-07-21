@@ -267,46 +267,6 @@ func Import(ctx context.Context, r io.Reader, options *ImportOptions) (*entities
 	return &report, response.Process(&report)
 }
 
-// Push is the binding for libpod's v2 endpoints for push images.  Note that
-// `source` must be a referring to an image in the remote's container storage.
-// The destination must be a reference to a registry (i.e., of docker transport
-// or be normalized to one).  Other transports are rejected as they do not make
-// sense in a remote context.
-func Push(ctx context.Context, source string, destination string, options *PushOptions) error {
-	if options == nil {
-		options = new(PushOptions)
-	}
-	conn, err := bindings.GetClient(ctx)
-	if err != nil {
-		return err
-	}
-	header, err := auth.MakeXRegistryAuthHeader(&imageTypes.SystemContext{AuthFilePath: options.GetAuthfile()}, options.GetUsername(), options.GetPassword())
-	if err != nil {
-		return err
-	}
-
-	params, err := options.ToParams()
-	if err != nil {
-		return err
-	}
-	// SkipTLSVerify is special.  We need to delete the param added by
-	// toparams and change the key and flip the bool
-	if options.SkipTLSVerify != nil {
-		params.Del("SkipTLSVerify")
-		params.Set("tlsVerify", strconv.FormatBool(!options.GetSkipTLSVerify()))
-	}
-	params.Set("destination", destination)
-
-	path := fmt.Sprintf("/images/%s/push", source)
-	response, err := conn.DoRequest(ctx, nil, http.MethodPost, path, params, header)
-	if err != nil {
-		return err
-	}
-	defer response.Body.Close()
-
-	return response.Process(err)
-}
-
 // Search is the binding for libpod's v2 endpoints for Search images.
 func Search(ctx context.Context, term string, options *SearchOptions) ([]entities.ImageSearchReport, error) {
 	if options == nil {

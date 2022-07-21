@@ -116,15 +116,26 @@ var _ = Describe("Podman push", func() {
 		push := podmanTest.Podman([]string{"push", "-q", "--tls-verify=false", "--remove-signatures", ALPINE, "localhost:5000/my-alpine"})
 		push.WaitWithDefaultTimeout()
 		Expect(push).Should(Exit(0))
+		Expect(len(push.ErrorToString())).To(Equal(0))
 
-		SkipIfRemote("Remote does not support --digestfile")
-		// Test --digestfile option
-		push2 := podmanTest.Podman([]string{"push", "--tls-verify=false", "--digestfile=/tmp/digestfile.txt", "--remove-signatures", ALPINE, "localhost:5000/my-alpine"})
-		push2.WaitWithDefaultTimeout()
-		fi, err := os.Lstat("/tmp/digestfile.txt")
-		Expect(err).To(BeNil())
-		Expect(fi.Name()).To(Equal("digestfile.txt"))
-		Expect(push2).Should(Exit(0))
+		push = podmanTest.Podman([]string{"push", "--tls-verify=false", "--remove-signatures", ALPINE, "localhost:5000/my-alpine"})
+		push.WaitWithDefaultTimeout()
+		Expect(push).Should(Exit(0))
+		output := push.ErrorToString()
+		Expect(output).To(ContainSubstring("Copying blob "))
+		Expect(output).To(ContainSubstring("Copying config "))
+		Expect(output).To(ContainSubstring("Writing manifest to image destination"))
+		Expect(output).To(ContainSubstring("Storing signatures"))
+
+		if !IsRemote() { // Remote does not support --digestfile
+			// Test --digestfile option
+			push2 := podmanTest.Podman([]string{"push", "--tls-verify=false", "--digestfile=/tmp/digestfile.txt", "--remove-signatures", ALPINE, "localhost:5000/my-alpine"})
+			push2.WaitWithDefaultTimeout()
+			fi, err := os.Lstat("/tmp/digestfile.txt")
+			Expect(err).To(BeNil())
+			Expect(fi.Name()).To(Equal("digestfile.txt"))
+			Expect(push2).Should(Exit(0))
+		}
 	})
 
 	It("podman push to local registry with authorization", func() {

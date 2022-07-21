@@ -305,6 +305,7 @@ func (ir *ImageEngine) Push(ctx context.Context, source string, destination stri
 	pushOptions.RemoveSignatures = options.RemoveSignatures
 	pushOptions.SignBy = options.SignBy
 	pushOptions.InsecureSkipTLSVerify = options.SkipTLSVerify
+	pushOptions.Writer = options.Writer
 
 	compressionFormat := options.CompressionFormat
 	if compressionFormat == "" {
@@ -322,7 +323,7 @@ func (ir *ImageEngine) Push(ctx context.Context, source string, destination stri
 		pushOptions.CompressionFormat = &algo
 	}
 
-	if !options.Quiet {
+	if !options.Quiet && pushOptions.Writer == nil {
 		pushOptions.Writer = os.Stderr
 	}
 
