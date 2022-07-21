@@ -237,7 +237,7 @@ func Image(ctx context.Context, policyContext *signature.PolicyContext, destRef,
 
 	// If reportWriter is not a TTY (e.g., when piping to a file), do not
 	// print the progress bars to avoid long and hard to parse output.
-	// createProgressBar() will print a single line instead.
+	// Instead use printCopyInfo() to print single line "Copying ..." messages.
 	progressOutput := reportWriter
 	if !isTTY(reportWriter) {
 		progressOutput = io.Discard
@@ -1107,6 +1107,7 @@ func (ic *imageCopier) copyConfig(ctx context.Context, src types.Image) error {
 			defer progressPool.Wait()
 			bar := ic.c.createProgressBar(progressPool, false, srcInfo, "config", "done")
 			defer bar.Abort(false)
+			ic.c.printCopyInfo("config", srcInfo)
 
 			configBlob, err := src.ConfigBlob(ctx)
 			if err != nil {
@@ -1161,6 +1162,8 @@ func (ic *imageCopier) copyLayer(ctx context.Context, srcInfo types.BlobInfo, to
 			srcInfo.CompressionAlgorithm = &compression.Zstd
 		}
 	}
+
+	ic.c.printCopyInfo("blob", srcInfo)
 
 	cachedDiffID := ic.c.blobInfoCache.UncompressedDigest(srcInfo.Digest) // May be ""
 	diffIDIsNeeded := ic.diffIDsAreNeeded && cachedDiffID == ""
