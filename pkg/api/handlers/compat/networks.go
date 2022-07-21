@@ -193,27 +193,22 @@ func CreateNetwork(w http.ResponseWriter, r *http.Request) {
 
 	network.Options = make(map[string]string)
 
-	// TODO: we should consider making this constants in c/common/libnetwork/types
+	// dockers bridge networks are always isolated from each other
+	if network.Driver == nettypes.BridgeNetworkDriver {
+		network.Options[nettypes.IsolateOption] = "true"
+	}
+
 	for opt, optVal := range networkCreate.Options {
 		switch opt {
-		case "mtu":
+		case nettypes.MTUOption:
 			fallthrough
 		case "com.docker.network.driver.mtu":
-			if network.Driver == nettypes.BridgeNetworkDriver {
-				network.Options["mtu"] = optVal
-			}
-		case "icc":
-			fallthrough
-		case "com.docker.network.bridge.enable_icc":
-			// TODO: needs to be implemented
-			if network.Driver == nettypes.BridgeNetworkDriver {
-				responseWarning = "com.docker.network.bridge.enable_icc is not currently implemented"
-			}
+			network.Options[nettypes.MTUOption] = optVal
 		case "com.docker.network.bridge.name":
 			if network.Driver == nettypes.BridgeNetworkDriver {
 				network.NetworkInterface = optVal
 			}
-		case "mode":
+		case nettypes.ModeOption:
 			if network.Driver == nettypes.MacVLANNetworkDriver || network.Driver == nettypes.IPVLANNetworkDriver {
 				network.Options[opt] = optVal
 			}
