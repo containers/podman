@@ -1,4 +1,4 @@
-package e2e
+package e2e_test
 
 import (
 	. "github.com/onsi/ginkgo"
@@ -20,7 +20,7 @@ var _ = Describe("run basic podman commands", func() {
 	})
 
 	It("Basic ops", func() {
-		name := randomString(12)
+		name := randomString()
 		i := new(initMachine)
 		session, err := mb.setName(name).setCmd(i.withImagePath(mb.imagePath).withNow()).run()
 		Expect(err).To(BeNil())

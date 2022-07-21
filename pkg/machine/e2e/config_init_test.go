@@ -1,4 +1,4 @@
-package e2e
+package e2e_test
 
 import (
 	"strconv"
@@ -25,7 +25,7 @@ type initMachine struct {
 	memory       *uint
 	now          bool
 	timezone     string
-	rootful      bool
+	rootful      bool //nolint:unused,structcheck
 	volumes      []string
 
 	cmd []string
@@ -71,7 +71,7 @@ func (i *initMachine) withDiskSize(size uint) *initMachine {
 	return i
 }
 
-func (i *initMachine) withIgnitionPath(path string) *initMachine {
+func (i *initMachine) withIgnitionPath(path string) *initMachine { //nolint:unused
 	i.ignitionPath = path
 	return i
 }
