@@ -1,10 +1,9 @@
-package e2e
+package e2e_test
 
 type startMachine struct {
 	/*
 		No command line args other than a machine vm name (also not required)
 	*/
-	cmd []string
 }
 
 func (s startMachine) buildCmd(m *machineTestBuilder) []string {

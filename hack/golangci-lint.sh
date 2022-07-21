@@ -9,9 +9,9 @@ BUILD_TAGS[abi]="${BUILD_TAGS[default]},systemd"
 BUILD_TAGS[tunnel]="${BUILD_TAGS[default]},remote"
 
 declare -A SKIP_DIRS
-SKIP_DIRS[abi]="pkg/machine/e2e"
+SKIP_DIRS[abi]=""
 # TODO: add "remote" build tag to pkg/api
-SKIP_DIRS[tunnel]="pkg/api,pkg/machine/e2e"
+SKIP_DIRS[tunnel]="pkg/api"
 
 [[ $1 == run ]] && shift
 

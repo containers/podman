@@ -1,4 +1,4 @@
-package e2e
+package e2e_test
 
 import (
 	. "github.com/onsi/ginkgo"

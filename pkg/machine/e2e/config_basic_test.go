@@ -1,8 +1,7 @@
-package e2e
+package e2e_test
 
 type basicMachine struct {
 	args []string
-	cmd  []string
 }
 
 func (s basicMachine) buildCmd(m *machineTestBuilder) []string {

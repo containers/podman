@@ -1,14 +1,12 @@
-package e2e
+package e2e_test
 
 type sshMachine struct {
 	/*
 		--username string   Username to use when ssh-ing into the VM.
 	*/
 
-	username   string
+	username   string //nolint:unused
 	sshCommand []string
-
-	cmd []string
 }
 
 func (s sshMachine) buildCmd(m *machineTestBuilder) []string {
@@ -22,7 +20,7 @@ func (s sshMachine) buildCmd(m *machineTestBuilder) []string {
 	return cmd
 }
 
-func (s *sshMachine) withUsername(name string) *sshMachine {
+func (s *sshMachine) withUsername(name string) *sshMachine { //nolint:unused
 	s.username = name
 	return s
 }

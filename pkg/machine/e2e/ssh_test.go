@@ -1,4 +1,4 @@
-package e2e
+package e2e_test
 
 import (
 	. "github.com/onsi/ginkgo"
@@ -20,17 +20,17 @@ var _ = Describe("podman machine ssh", func() {
 	})
 
 	It("bad machine name", func() {
-		name := randomString(12)
+		name := randomString()
 		ssh := sshMachine{}
 		session, err := mb.setName(name).setCmd(ssh).run()
 		Expect(err).To(BeNil())
 		Expect(session).To(Exit(125))
 		// TODO seems like stderr is not being returned; re-enabled when fixed
-		//Expect(session.outputToString()).To(ContainSubstring("not exist"))
+		// Expect(session.outputToString()).To(ContainSubstring("not exist"))
 	})
 
 	It("ssh to non-running machine", func() {
-		name := randomString(12)
+		name := randomString()
 		i := new(initMachine)
 		session, err := mb.setName(name).setCmd(i.withImagePath(mb.imagePath)).run()
 		Expect(err).To(BeNil())
@@ -40,12 +40,12 @@ var _ = Describe("podman machine ssh", func() {
 		sshSession, err := mb.setName(name).setCmd(ssh).run()
 		Expect(err).To(BeNil())
 		// TODO seems like stderr is not being returned; re-enabled when fixed
-		//Expect(sshSession.outputToString()).To(ContainSubstring("is not running"))
+		// Expect(sshSession.outputToString()).To(ContainSubstring("is not running"))
 		Expect(sshSession).To(Exit(125))
 	})
 
 	It("ssh to running machine and check os-type", func() {
-		name := randomString(12)
+		name := randomString()
 		i := new(initMachine)
 		session, err := mb.setName(name).setCmd(i.withImagePath(mb.imagePath).withNow()).run()
 		Expect(err).To(BeNil())
