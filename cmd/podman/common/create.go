@@ -56,22 +56,6 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		)
 		_ = cmd.RegisterFlagCompletionFunc(authfileFlagName, completion.AutocompleteDefault)
 
-		blkioWeightFlagName := "blkio-weight"
-		createFlags.StringVar(
-			&cf.BlkIOWeight,
-			blkioWeightFlagName, "",
-			"Block IO weight (relative weight) accepts a weight value between 10 and 1000.",
-		)
-		_ = cmd.RegisterFlagCompletionFunc(blkioWeightFlagName, completion.AutocompleteNone)
-
-		blkioWeightDeviceFlagName := "blkio-weight-device"
-		createFlags.StringSliceVar(
-			&cf.BlkIOWeightDevice,
-			blkioWeightDeviceFlagName, []string{},
-			"Block IO weight (relative device weight, format: `DEVICE_NAME:WEIGHT`)",
-		)
-		_ = cmd.RegisterFlagCompletionFunc(blkioWeightDeviceFlagName, completion.AutocompleteDefault)
-
 		capAddFlagName := "cap-add"
 		createFlags.StringSliceVar(
 			&cf.CapAdd,
@@ -126,14 +110,6 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 			"Limit read rate (IO per second) from a device (e.g. --device-read-iops=/dev/sda:1000)",
 		)
 		_ = cmd.RegisterFlagCompletionFunc(deviceReadIopsFlagName, completion.AutocompleteDefault)
-
-		deviceWriteBpsFlagName := "device-write-bps"
-		createFlags.StringSliceVar(
-			&cf.DeviceWriteBPs,
-			deviceWriteBpsFlagName, []string{},
-			"Limit write rate (bytes per second) to a device (e.g. --device-write-bps=/dev/sda:1mb)",
-		)
-		_ = cmd.RegisterFlagCompletionFunc(deviceWriteBpsFlagName, completion.AutocompleteDefault)
 
 		deviceWriteIopsFlagName := "device-write-iops"
 		createFlags.StringSliceVar(
@@ -783,14 +759,6 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		)
 		_ = cmd.RegisterFlagCompletionFunc(deviceFlagName, completion.AutocompleteDefault)
 
-		deviceReadBpsFlagName := "device-read-bps"
-		createFlags.StringSliceVar(
-			&cf.DeviceReadBPs,
-			deviceReadBpsFlagName, []string{},
-			"Limit read rate (bytes per second) from a device (e.g. --device-read-bps=/dev/sda:1mb)",
-		)
-		_ = cmd.RegisterFlagCompletionFunc(deviceReadBpsFlagName, completion.AutocompleteDefault)
-
 		volumesFromFlagName := "volumes-from"
 		createFlags.StringArrayVar(
 			&cf.VolumesFrom,
@@ -848,22 +816,6 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		)
 		_ = cmd.RegisterFlagCompletionFunc(cpuRtRuntimeFlagName, completion.AutocompleteNone)
 
-		cpuSharesFlagName := "cpu-shares"
-		createFlags.Uint64VarP(
-			&cf.CPUShares,
-			cpuSharesFlagName, "c", 0,
-			"CPU shares (relative weight)",
-		)
-		_ = cmd.RegisterFlagCompletionFunc(cpuSharesFlagName, completion.AutocompleteNone)
-
-		cpusetMemsFlagName := "cpuset-mems"
-		createFlags.StringVar(
-			&cf.CPUSetMems,
-			cpusetMemsFlagName, "",
-			"Memory nodes (MEMs) in which to allow execution (0-3, 0,1). Only effective on NUMA systems.",
-		)
-		_ = cmd.RegisterFlagCompletionFunc(cpusetMemsFlagName, completion.AutocompleteNone)
-
 		memoryReservationFlagName := "memory-reservation"
 		createFlags.StringVar(
 			&cf.MemoryReservation,
@@ -871,14 +823,6 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 			"Memory soft limit "+sizeWithUnitFormat,
 		)
 		_ = cmd.RegisterFlagCompletionFunc(memoryReservationFlagName, completion.AutocompleteNone)
-
-		memorySwapFlagName := "memory-swap"
-		createFlags.StringVar(
-			&cf.MemorySwap,
-			memorySwapFlagName, "",
-			"Swap limit equal to memory plus swap: '-1' to enable unlimited swap",
-		)
-		_ = cmd.RegisterFlagCompletionFunc(memorySwapFlagName, completion.AutocompleteNone)
 
 		memorySwappinessFlagName := "memory-swappiness"
 		createFlags.Int64Var(
@@ -913,4 +857,60 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		"Memory limit "+sizeWithUnitFormat,
 	)
 	_ = cmd.RegisterFlagCompletionFunc(memoryFlagName, completion.AutocompleteNone)
+
+	cpuSharesFlagName := "cpu-shares"
+	createFlags.Uint64VarP(
+		&cf.CPUShares,
+		cpuSharesFlagName, "c", 0,
+		"CPU shares (relative weight)",
+	)
+	_ = cmd.RegisterFlagCompletionFunc(cpuSharesFlagName, completion.AutocompleteNone)
+
+	cpusetMemsFlagName := "cpuset-mems"
+	createFlags.StringVar(
+		&cf.CPUSetMems,
+		cpusetMemsFlagName, "",
+		"Memory nodes (MEMs) in which to allow execution (0-3, 0,1). Only effective on NUMA systems.",
+	)
+	_ = cmd.RegisterFlagCompletionFunc(cpusetMemsFlagName, completion.AutocompleteNone)
+
+	memorySwapFlagName := "memory-swap"
+	createFlags.StringVar(
+		&cf.MemorySwap,
+		memorySwapFlagName, "",
+		"Swap limit equal to memory plus swap: '-1' to enable unlimited swap",
+	)
+	_ = cmd.RegisterFlagCompletionFunc(memorySwapFlagName, completion.AutocompleteNone)
+
+	deviceReadBpsFlagName := "device-read-bps"
+	createFlags.StringSliceVar(
+		&cf.DeviceReadBPs,
+		deviceReadBpsFlagName, []string{},
+		"Limit read rate (bytes per second) from a device (e.g. --device-read-bps=/dev/sda:1mb)",
+	)
+	_ = cmd.RegisterFlagCompletionFunc(deviceReadBpsFlagName, completion.AutocompleteDefault)
+
+	deviceWriteBpsFlagName := "device-write-bps"
+	createFlags.StringSliceVar(
+		&cf.DeviceWriteBPs,
+		deviceWriteBpsFlagName, []string{},
+		"Limit write rate (bytes per second) to a device (e.g. --device-write-bps=/dev/sda:1mb)",
+	)
+	_ = cmd.RegisterFlagCompletionFunc(deviceWriteBpsFlagName, completion.AutocompleteDefault)
+
+	blkioWeightFlagName := "blkio-weight"
+	createFlags.StringVar(
+		&cf.BlkIOWeight,
+		blkioWeightFlagName, "",
+		"Block IO weight (relative weight) accepts a weight value between 10 and 1000.",
+	)
+	_ = cmd.RegisterFlagCompletionFunc(blkioWeightFlagName, completion.AutocompleteNone)
+
+	blkioWeightDeviceFlagName := "blkio-weight-device"
+	createFlags.StringSliceVar(
+		&cf.BlkIOWeightDevice,
+		blkioWeightDeviceFlagName, []string{},
+		"Block IO weight (relative device weight, format: `DEVICE_NAME:WEIGHT`)",
+	)
+	_ = cmd.RegisterFlagCompletionFunc(blkioWeightDeviceFlagName, completion.AutocompleteDefault)
 }

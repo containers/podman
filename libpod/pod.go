@@ -83,6 +83,9 @@ type PodConfig struct {
 
 	// ID of the pod's lock
 	LockID uint32 `json:"lockID"`
+
+	// ResourceLimits hold the pod level resource limits
+	ResourceLimits specs.LinuxResources
 }
 
 // podState represents a pod's state
@@ -116,18 +119,7 @@ func (p *Pod) ResourceLim() *specs.LinuxResources {
 	empty := &specs.LinuxResources{
 		CPU: &specs.LinuxCPU{},
 	}
-	infra, err := p.runtime.GetContainer(p.state.InfraContainerID)
-	if err != nil {
-		return empty
-	}
-	conf := infra.config.Spec
-	if err != nil {
-		return empty
-	}
-	if conf.Linux == nil || conf.Linux.Resources == nil {
-		return empty
-	}
-	if err = JSONDeepCopy(conf.Linux.Resources, resCopy); err != nil {
+	if err := JSONDeepCopy(p.config.ResourceLimits, resCopy); err != nil {
 		return nil
 	}
 	if resCopy.CPU != nil {
@@ -139,51 +131,91 @@ func (p *Pod) ResourceLim() *specs.LinuxResources {
 
 // CPUPeriod returns the pod CPU period
 func (p *Pod) CPUPeriod() uint64 {
-	if p.state.InfraContainerID == "" {
+	resLim := p.ResourceLim()
+	if resLim.CPU == nil || resLim.CPU.Period == nil {
 		return 0
 	}
-	infra, err := p.runtime.GetContainer(p.state.InfraContainerID)
-	if err != nil {
-		return 0
-	}
-	conf := infra.config.Spec
-	if conf != nil && conf.Linux != nil && conf.Linux.Resources != nil && conf.Linux.Resources.CPU != nil && conf.Linux.Resources.CPU.Period != nil {
-		return *conf.Linux.Resources.CPU.Period
-	}
-	return 0
+	return *resLim.CPU.Period
 }
 
 // CPUQuota returns the pod CPU quota
 func (p *Pod) CPUQuota() int64 {
-	if p.state.InfraContainerID == "" {
+	resLim := p.ResourceLim()
+	if resLim.CPU == nil || resLim.CPU.Quota == nil {
 		return 0
 	}
-	infra, err := p.runtime.GetContainer(p.state.InfraContainerID)
-	if err != nil {
-		return 0
-	}
-	conf := infra.config.Spec
-	if conf != nil && conf.Linux != nil && conf.Linux.Resources != nil && conf.Linux.Resources.CPU != nil && conf.Linux.Resources.CPU.Quota != nil {
-		return *conf.Linux.Resources.CPU.Quota
-	}
-	return 0
+	return *resLim.CPU.Quota
 }
 
 // MemoryLimit returns the pod Memory Limit
 func (p *Pod) MemoryLimit() uint64 {
-	if p.state.InfraContainerID == "" {
+	resLim := p.ResourceLim()
+	if resLim.Memory == nil || resLim.Memory.Limit == nil {
 		return 0
 	}
-	infra, err := p.runtime.GetContainer(p.state.InfraContainerID)
+	return uint64(*resLim.Memory.Limit)
+}
+
+// MemorySwap returns the pod Memory swap limit
+func (p *Pod) MemorySwap() uint64 {
+	resLim := p.ResourceLim()
+	if resLim.Memory == nil || resLim.Memory.Swap == nil {
+		return 0
+	}
+	return uint64(*resLim.Memory.Swap)
+}
+
+// BlkioWeight returns the pod blkio weight
+func (p *Pod) BlkioWeight() uint64 {
+	resLim := p.ResourceLim()
+	if resLim.BlockIO == nil || resLim.BlockIO.Weight == nil {
+		return 0
+	}
+	return uint64(*resLim.BlockIO.Weight)
+}
+
+// CPUSetMems returns the pod CPUSet memory nodes
+func (p *Pod) CPUSetMems() string {
+	resLim := p.ResourceLim()
+	if resLim.CPU == nil {
+		return ""
+	}
+	return resLim.CPU.Mems
+}
+
+// CPUShares returns the pod cpu shares
+func (p *Pod) CPUShares() uint64 {
+	resLim := p.ResourceLim()
+	if resLim.CPU == nil || resLim.CPU.Shares == nil {
+		return 0
+	}
+	return *resLim.CPU.Shares
+}
+
+// BlkiThrottleReadBps returns the pod  throttle devices
+func (p *Pod) BlkiThrottleReadBps() []define.InspectBlkioThrottleDevice {
+	resLim := p.ResourceLim()
+	if resLim.BlockIO == nil || resLim.BlockIO.ThrottleReadBpsDevice == nil {
+		return []define.InspectBlkioThrottleDevice{}
+	}
+	devs, err := blkioDeviceThrottle(nil, resLim.BlockIO.ThrottleReadBpsDevice)
 	if err != nil {
-		return 0
+		return []define.InspectBlkioThrottleDevice{}
 	}
-	conf := infra.config.Spec
-	if conf != nil && conf.Linux != nil && conf.Linux.Resources != nil && conf.Linux.Resources.Memory != nil && conf.Linux.Resources.Memory.Limit != nil {
-		val := *conf.Linux.Resources.Memory.Limit
-		return uint64(val)
+	return devs
+}
+
+// BlkiThrottleWriteBps returns the pod  throttle devices
+func (p *Pod) BlkiThrottleWriteBps() []define.InspectBlkioThrottleDevice {
+	resLim := p.ResourceLim()
+	if resLim.BlockIO == nil || resLim.BlockIO.ThrottleWriteBpsDevice == nil {
+		return []define.InspectBlkioThrottleDevice{}
 	}
-	return 0
+	devs, err := blkioDeviceThrottle(nil, resLim.BlockIO.ThrottleWriteBpsDevice)
+	if err != nil {
+		return []define.InspectBlkioThrottleDevice{}
+	}
+	return devs
 }
 
 // NetworkMode returns the Network mode given by the user ex: pod, private...

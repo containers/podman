@@ -74,6 +74,12 @@ func getCPULimits(c *entities.ContainerCreateOptions) *specs.LinuxCPU {
 func getIOLimits(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions) (*specs.LinuxBlockIO, error) {
 	var err error
 	io := &specs.LinuxBlockIO{}
+	if s.ResourceLimits == nil {
+		s.ResourceLimits = &specs.LinuxResources{}
+	}
+	if s.ResourceLimits.BlockIO == nil {
+		s.ResourceLimits.BlockIO = &specs.LinuxBlockIO{}
+	}
 	hasLimits := false
 	if b := c.BlkIOWeight; len(b) > 0 {
 		u, err := strconv.ParseUint(b, 10, 16)
@@ -82,6 +88,7 @@ func getIOLimits(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions) (
 		}
 		nu := uint16(u)
 		io.Weight = &nu
+		s.ResourceLimits.BlockIO.Weight = &nu
 		hasLimits = true
 	}
 
@@ -96,6 +103,7 @@ func getIOLimits(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions) (
 		if s.ThrottleReadBpsDevice, err = parseThrottleBPSDevices(bps); err != nil {
 			return nil, err
 		}
+
 		hasLimits = true
 	}
 
@@ -123,6 +131,8 @@ func getIOLimits(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions) (
 	if !hasLimits {
 		return nil, nil
 	}
+	io = s.ResourceLimits.BlockIO
+
 	return io, nil
 }
 
@@ -509,7 +519,7 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 			return err
 		}
 	}
-	if s.ResourceLimits.BlockIO == nil || (len(c.BlkIOWeight) != 0 || len(c.BlkIOWeightDevice) != 0) {
+	if s.ResourceLimits.BlockIO == nil || (len(c.BlkIOWeight) != 0 || len(c.BlkIOWeightDevice) != 0 || len(c.DeviceReadBPs) != 0 || len(c.DeviceWriteBPs) != 0) {
 		s.ResourceLimits.BlockIO, err = getIOLimits(s, c)
 		if err != nil {
 			return err

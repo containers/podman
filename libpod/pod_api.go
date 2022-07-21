@@ -659,7 +659,6 @@ func (p *Pod) Inspect() (*define.InspectPodData, error) {
 	var infraConfig *define.InspectPodInfraConfig
 	var inspectMounts []define.InspectMount
 	var devices []define.InspectDevice
-	var deviceLimits []define.InspectBlkioThrottleDevice
 	var infraSecurity []string
 	if p.state.InfraContainerID != "" {
 		infra, err := p.runtime.GetContainer(p.state.InfraContainerID)
@@ -682,18 +681,6 @@ func (p *Pod) Inspect() (*define.InspectPodData, error) {
 		infraSecurity = infra.GetSecurityOptions()
 		if err != nil {
 			return nil, err
-		}
-		var nodes map[string]string
-		devices, err = infra.GetDevices(false, *infra.config.Spec, nodes)
-		if err != nil {
-			return nil, err
-		}
-		spec := infra.config.Spec
-		if spec.Linux != nil && spec.Linux.Resources != nil && spec.Linux.Resources.BlockIO != nil {
-			deviceLimits, err = blkioDeviceThrottle(nodes, spec.Linux.Resources.BlockIO.ThrottleReadBpsDevice)
-			if err != nil {
-				return nil, err
-			}
 		}
 
 		if len(infra.config.ContainerNetworkConfig.DNSServer) > 0 {
@@ -731,33 +718,38 @@ func (p *Pod) Inspect() (*define.InspectPodData, error) {
 	}
 
 	inspectData := define.InspectPodData{
-		ID:                 p.ID(),
-		Name:               p.Name(),
-		Namespace:          p.Namespace(),
-		Created:            p.CreatedTime(),
-		CreateCommand:      p.config.CreateCommand,
-		ExitPolicy:         string(p.config.ExitPolicy),
-		State:              podState,
-		Hostname:           p.config.Hostname,
-		Labels:             p.Labels(),
-		CreateCgroup:       p.config.UsePodCgroup,
-		CgroupParent:       p.CgroupParent(),
-		CgroupPath:         p.state.CgroupPath,
-		CreateInfra:        infraConfig != nil,
-		InfraContainerID:   p.state.InfraContainerID,
-		InfraConfig:        infraConfig,
-		SharedNamespaces:   sharesNS,
-		NumContainers:      uint(len(containers)),
-		Containers:         ctrs,
-		CPUSetCPUs:         p.ResourceLim().CPU.Cpus,
-		CPUPeriod:          p.CPUPeriod(),
-		CPUQuota:           p.CPUQuota(),
-		MemoryLimit:        p.MemoryLimit(),
-		Mounts:             inspectMounts,
-		Devices:            devices,
-		BlkioDeviceReadBps: deviceLimits,
-		VolumesFrom:        p.VolumesFrom(),
-		SecurityOpts:       infraSecurity,
+		ID:                  p.ID(),
+		Name:                p.Name(),
+		Namespace:           p.Namespace(),
+		Created:             p.CreatedTime(),
+		CreateCommand:       p.config.CreateCommand,
+		ExitPolicy:          string(p.config.ExitPolicy),
+		State:               podState,
+		Hostname:            p.config.Hostname,
+		Labels:              p.Labels(),
+		CreateCgroup:        p.config.UsePodCgroup,
+		CgroupParent:        p.CgroupParent(),
+		CgroupPath:          p.state.CgroupPath,
+		CreateInfra:         infraConfig != nil,
+		InfraContainerID:    p.state.InfraContainerID,
+		InfraConfig:         infraConfig,
+		SharedNamespaces:    sharesNS,
+		NumContainers:       uint(len(containers)),
+		Containers:          ctrs,
+		CPUSetCPUs:          p.ResourceLim().CPU.Cpus,
+		CPUPeriod:           p.CPUPeriod(),
+		CPUQuota:            p.CPUQuota(),
+		MemoryLimit:         p.MemoryLimit(),
+		Mounts:              inspectMounts,
+		Devices:             devices,
+		BlkioDeviceReadBps:  p.BlkiThrottleReadBps(),
+		VolumesFrom:         p.VolumesFrom(),
+		SecurityOpts:        infraSecurity,
+		MemorySwap:          p.MemorySwap(),
+		BlkioWeight:         p.BlkioWeight(),
+		CPUSetMems:          p.CPUSetMems(),
+		BlkioDeviceWriteBps: p.BlkiThrottleWriteBps(),
+		CPUShares:           p.CPUShares(),
 	}
 
 	return &inspectData, nil
