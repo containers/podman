@@ -61,7 +61,18 @@ function setup() {
 }
 
 @test "podman can pull an image" {
+    run_podman rmi -a
     run_podman pull $IMAGE
+
+    # Regression test for https://github.com/containers/image/pull/1615
+    # Make sure no progress lines are duplicated
+    local -A line_seen
+    for line in "${lines[@]}"; do
+        if [[ -n "${line_seen[$line]}" ]]; then
+            die "duplicate podman-pull output line: $line"
+        fi
+        line_seen[$line]=1
+    done
 
     # Also make sure that the tag@digest syntax is supported.
     run_podman inspect --format "{{ .Digest }}" $IMAGE
