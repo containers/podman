@@ -62,7 +62,7 @@ var _ = Describe("podman machine set", func() {
 		switch runtime.GOOS {
 		// it seems macos and linux handle memory differently
 		case "linux":
-			Expect(memorySession.outputToString()).To(ContainSubstring("3821"))
+			Expect(memorySession.outputToString()).To(ContainSubstring("3822"))
 		case "darwin":
 			Expect(memorySession.outputToString()).To(ContainSubstring("3824"))
 		default:
