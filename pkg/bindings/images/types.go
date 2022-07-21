@@ -133,6 +133,8 @@ type PushOptions struct {
 	RemoveSignatures *bool
 	// Username for authenticating against the registry.
 	Username *string
+	// Quiet can be specified to suppress progress when pushing.
+	Quiet *bool
 }
 
 //go:generate go run ../generator/generator.go SearchOptions

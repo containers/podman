@@ -1,7 +1,6 @@
 package libpod
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -14,13 +13,11 @@ import (
 	"github.com/containers/buildah"
 	"github.com/containers/common/libimage"
 	"github.com/containers/image/v5/manifest"
-	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v4/libpod"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/api/handlers"
 	"github.com/containers/podman/v4/pkg/api/handlers/utils"
 	api "github.com/containers/podman/v4/pkg/api/types"
-	"github.com/containers/podman/v4/pkg/auth"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/domain/entities/reports"
 	"github.com/containers/podman/v4/pkg/domain/infra/abi"
@@ -414,74 +411,6 @@ func ImagesImport(w http.ResponseWriter, r *http.Request) {
 	}
 
 	utils.WriteResponse(w, http.StatusOK, report)
-}
-
-// PushImage is the handler for the compat http endpoint for pushing images.
-func PushImage(w http.ResponseWriter, r *http.Request) {
-	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
-	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
-
-	query := struct {
-		All              bool   `schema:"all"`
-		Destination      string `schema:"destination"`
-		Format           string `schema:"format"`
-		RemoveSignatures bool   `schema:"removeSignatures"`
-		TLSVerify        bool   `schema:"tlsVerify"`
-	}{
-		// This is where you can override the golang default value for one of fields
-	}
-	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.Error(w, http.StatusBadRequest, fmt.Errorf("failed to parse parameters for %s: %w", r.URL.String(), err))
-		return
-	}
-
-	source := strings.TrimSuffix(utils.GetName(r), "/push") // GetName returns the entire path
-	if _, err := utils.ParseStorageReference(source); err != nil {
-		utils.Error(w, http.StatusBadRequest, err)
-		return
-	}
-
-	destination := query.Destination
-	if destination == "" {
-		destination = source
-	}
-
-	if err := utils.IsRegistryReference(destination); err != nil {
-		utils.Error(w, http.StatusBadRequest, err)
-		return
-	}
-
-	authconf, authfile, err := auth.GetCredentials(r)
-	if err != nil {
-		utils.Error(w, http.StatusBadRequest, err)
-		return
-	}
-	defer auth.RemoveAuthfile(authfile)
-	var username, password string
-	if authconf != nil {
-		username = authconf.Username
-		password = authconf.Password
-	}
-	options := entities.ImagePushOptions{
-		All:              query.All,
-		Authfile:         authfile,
-		Format:           query.Format,
-		Password:         password,
-		Quiet:            true,
-		RemoveSignatures: query.RemoveSignatures,
-		Username:         username,
-	}
-	if _, found := r.URL.Query()["tlsVerify"]; found {
-		options.SkipTLSVerify = types.NewOptionalBool(!query.TLSVerify)
-	}
-
-	imageEngine := abi.ImageEngine{Libpod: runtime}
-	if err := imageEngine.Push(context.Background(), source, destination, options); err != nil {
-		utils.Error(w, http.StatusBadRequest, fmt.Errorf("error pushing image %q: %w", destination, err))
-		return
-	}
-
-	utils.WriteResponse(w, http.StatusOK, "")
 }
 
 func CommitContainer(w http.ResponseWriter, r *http.Request) {

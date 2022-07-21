@@ -136,3 +136,18 @@ func (o *PushOptions) GetUsername() string {
 	}
 	return *o.Username
 }
+
+// WithQuiet set field Quiet to given value
+func (o *PushOptions) WithQuiet(value bool) *PushOptions {
+	o.Quiet = &value
+	return o
+}
+
+// GetQuiet returns value of field Quiet
+func (o *PushOptions) GetQuiet() bool {
+	if o.Quiet == nil {
+		var z bool
+		return z
+	}
+	return *o.Quiet
+}
