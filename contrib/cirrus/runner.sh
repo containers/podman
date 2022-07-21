@@ -334,6 +334,9 @@ function _run_release() {
 }
 
 
+# ***WARNING*** ***WARNING*** ***WARNING*** ***WARNING***
+#    Please see gitlab comment in setup_environment.sh
+# ***WARNING*** ***WARNING*** ***WARNING*** ***WARNING***
 function _run_gitlab() {
     rootless_uid=$(id -u)
     systemctl enable --now --user podman.socket
