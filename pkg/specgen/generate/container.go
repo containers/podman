@@ -494,10 +494,10 @@ func FinishThrottleDevices(s *specgen.SpecGenerator) error {
 	if s.ResourceLimits == nil {
 		s.ResourceLimits = &spec.LinuxResources{}
 	}
-	if s.ResourceLimits.BlockIO == nil {
-		s.ResourceLimits.BlockIO = &spec.LinuxBlockIO{}
-	}
 	if bps := s.ThrottleReadBpsDevice; len(bps) > 0 {
+		if s.ResourceLimits.BlockIO == nil {
+			s.ResourceLimits.BlockIO = &spec.LinuxBlockIO{}
+		}
 		for k, v := range bps {
 			statT := unix.Stat_t{}
 			if err := unix.Stat(k, &statT); err != nil {
@@ -512,6 +512,9 @@ func FinishThrottleDevices(s *specgen.SpecGenerator) error {
 		}
 	}
 	if bps := s.ThrottleWriteBpsDevice; len(bps) > 0 {
+		if s.ResourceLimits.BlockIO == nil {
+			s.ResourceLimits.BlockIO = &spec.LinuxBlockIO{}
+		}
 		for k, v := range bps {
 			statT := unix.Stat_t{}
 			if err := unix.Stat(k, &statT); err != nil {
@@ -523,6 +526,9 @@ func FinishThrottleDevices(s *specgen.SpecGenerator) error {
 		}
 	}
 	if iops := s.ThrottleReadIOPSDevice; len(iops) > 0 {
+		if s.ResourceLimits.BlockIO == nil {
+			s.ResourceLimits.BlockIO = &spec.LinuxBlockIO{}
+		}
 		for k, v := range iops {
 			statT := unix.Stat_t{}
 			if err := unix.Stat(k, &statT); err != nil {
@@ -534,6 +540,9 @@ func FinishThrottleDevices(s *specgen.SpecGenerator) error {
 		}
 	}
 	if iops := s.ThrottleWriteIOPSDevice; len(iops) > 0 {
+		if s.ResourceLimits.BlockIO == nil {
+			s.ResourceLimits.BlockIO = &spec.LinuxBlockIO{}
+		}
 		for k, v := range iops {
 			statT := unix.Stat_t{}
 			if err := unix.Stat(k, &statT); err != nil {
