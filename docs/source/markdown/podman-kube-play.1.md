@@ -322,7 +322,7 @@ $ podman kube play demo.yml --network net1:ip=10.89.1.5 --network net2:ip=10.89.
 52182811df2b1e73f36476003a66ec872101ea59034ac0d4d3a7b40903b955a6
 ```
 
-Please take into account that CNI networks must be created first using podman-network-create(1).
+Please take into account that networks must be created first using podman-network-create(1).
 
 ## SEE ALSO
 **[podman(1)](podman.1.md)**, **[podman-kube(1)](podman-kube.1.md)**, **[podman-network-create(1)](podman-network-create.1.md)**, **[podman-generate-kube(1)](podman-generate-kube.1.md)**, **[containers-certs.d(5)](https://github.com/containers/image/blob/main/docs/containers-certs.d.5.md)**

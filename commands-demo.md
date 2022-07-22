@@ -45,13 +45,13 @@
 | [podman-logout(1)](https://podman.readthedocs.io/en/latest/markdown/podman-logout.1.html)                             | Logout of a container registry                                             |
 | [podman-logs(1)](https://podman.readthedocs.io/en/latest/markdown/podman-logs.1.html)                                 | Display the logs of one or more containers                                 |
 | [podman-mount(1)](https://podman.readthedocs.io/en/latest/markdown/podman-mount.1.html)                               | Mount a working container's root filesystem                                |
-| [podman-network(1)](https://podman.readthedocs.io/en/latest/network.html)                                             | Manage Podman CNI networks                                                 |
-| [podman-network-create(1)](https://podman.readthedocs.io/en/latest/markdown/podman-network-create.1.html)             | Create a CNI network                                                       |
-| [podman-network-connect(1)](https://podman.readthedocs.io/en/latest/markdown/podman-network-connect.1.html)           | Connect a container to a CNI network                                       |
-| [podman-network-disconnect(1)](https://podman.readthedocs.io/en/latest/markdown/podman-network-disconnect.1.html)             | Disconnect a container from a CNI network                                  |
-| [podman-network-inspect(1)](https://podman.readthedocs.io/en/latest/markdown/podman-network-inspect.1.html)           | Displays the raw CNI network configuration for one or more networks        |
-| [podman-network-ls(1)](https://podman.readthedocs.io/en/latest/markdown/podman-network-ls.1.html)                     | Display a summary of CNI networks                                          |
-| [podman-network-rm(1)](https://podman.readthedocs.io/en/latest/markdown/podman-network-rm.1.html)                     | Remove one or more CNI networks                                            |
+| [podman-network(1)](https://podman.readthedocs.io/en/latest/network.html)                                             | Manage Podman networks                                                 |
+| [podman-network-create(1)](https://podman.readthedocs.io/en/latest/markdown/podman-network-create.1.html)             | Create a network                                                       |
+| [podman-network-connect(1)](https://podman.readthedocs.io/en/latest/markdown/podman-network-connect.1.html)           | Connect a container to a network                                       |
+| [podman-network-disconnect(1)](https://podman.readthedocs.io/en/latest/markdown/podman-network-disconnect.1.html)             | Disconnect a container from a network                                  |
+| [podman-network-inspect(1)](https://podman.readthedocs.io/en/latest/markdown/podman-network-inspect.1.html)           | Displays the network configuration for one or more networks        |
+| [podman-network-ls(1)](https://podman.readthedocs.io/en/latest/markdown/podman-network-ls.1.html)                     | Display a summary of networks                                          |
+| [podman-network-rm(1)](https://podman.readthedocs.io/en/latest/markdown/podman-network-rm.1.html)                     | Remove one or more networks                                            |
 | [podman-pause(1)](https://podman.readthedocs.io/en/latest/markdown/podman-pause.1.html)                               | Pause one or more running containers                                       | [![...](/docs/source/markdown/play.png)](https://podman.io/asciinema/podman/pause_unpause/)        | [Here](https://github.com/containers/Demos/blob/master/podman_cli/podman_pause_unpause.sh) |
 | [podman-play(1)](https://podman.readthedocs.io/en/latest/play.html)                                                   | Play a pod                                                                 |
 | [podman-play-kube(1)](https://podman.readthedocs.io/en/latest/markdown/podman-play-kube.1.html)                       | Create pods and containers based on Kubernetes YAML                        |
