@@ -77,11 +77,11 @@ func getIOLimits(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions) (
 	if s.ResourceLimits == nil {
 		s.ResourceLimits = &specs.LinuxResources{}
 	}
-	if s.ResourceLimits.BlockIO == nil {
-		s.ResourceLimits.BlockIO = &specs.LinuxBlockIO{}
-	}
 	hasLimits := false
 	if b := c.BlkIOWeight; len(b) > 0 {
+		if s.ResourceLimits.BlockIO == nil {
+			s.ResourceLimits.BlockIO = &specs.LinuxBlockIO{}
+		}
 		u, err := strconv.ParseUint(b, 10, 16)
 		if err != nil {
 			return nil, fmt.Errorf("invalid value for blkio-weight: %w", err)
@@ -103,7 +103,6 @@ func getIOLimits(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions) (
 		if s.ThrottleReadBpsDevice, err = parseThrottleBPSDevices(bps); err != nil {
 			return nil, err
 		}
-
 		hasLimits = true
 	}
 
@@ -131,8 +130,6 @@ func getIOLimits(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions) (
 	if !hasLimits {
 		return nil, nil
 	}
-	io = s.ResourceLimits.BlockIO
-
 	return io, nil
 }
 

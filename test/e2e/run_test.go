@@ -715,7 +715,6 @@ USER bin`, BB)
 	})
 
 	It("podman run device-read-bps test", func() {
-		SkipIfCgroupV1("FIXME: #15035 - bps broken")
 		SkipIfRootless("FIXME: requested cgroup controller `io` is not available")
 		SkipIfRootlessCgroupsV1("Setting device-read-bps not supported on cgroupv1 for rootless users")
 
@@ -735,7 +734,6 @@ USER bin`, BB)
 	})
 
 	It("podman run device-write-bps test", func() {
-		SkipIfCgroupV1("FIXME: #15035 - bps broken")
 		SkipIfRootless("FIXME: requested cgroup controller `io` is not available")
 		SkipIfRootlessCgroupsV1("Setting device-write-bps not supported on cgroupv1 for rootless users")
 
@@ -754,7 +752,6 @@ USER bin`, BB)
 	})
 
 	It("podman run device-read-iops test", func() {
-		SkipIfCgroupV1("FIXME: #15035 - bps broken")
 		SkipIfRootless("FIXME: requested cgroup controller `io` is not available")
 		SkipIfRootlessCgroupsV1("Setting device-read-iops not supported on cgroupv1 for rootless users")
 		var session *PodmanSessionIntegration
@@ -773,7 +770,6 @@ USER bin`, BB)
 	})
 
 	It("podman run device-write-iops test", func() {
-		SkipIfCgroupV1("FIXME: #15035 - bps broken")
 		SkipIfRootless("FIXME: requested cgroup controller `io` is not available")
 		SkipIfRootlessCgroupsV1("Setting device-write-iops not supported on cgroupv1 for rootless users")
 		var session *PodmanSessionIntegration

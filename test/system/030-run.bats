@@ -855,4 +855,19 @@ EOF
     run_podman rm $output
 }
 
+@test "podman run --device-read-bps" {
+    skip_if_rootless "cannot use this flag in rootless mode"
+    # this test is a triple check on blkio flags since they seem to sneak by the tests
+    if is_cgroupsv2; then
+        run_podman run -dt --device-read-bps=/dev/zero:1M $IMAGE top
+        run_podman exec -it $output cat /sys/fs/cgroup/io.max
+        is "$output" ".*1:5 rbps=1048576 wbps=max riops=max wiops=max" "throttle devices passed successfully.*"
+    else
+        run_podman run -dt --device-read-bps=/dev/zero:1M $IMAGE top
+        run_podman exec -it $output cat /sys/fs/cgroup/blkio/blkio.throttle.read_bps_device
+        is "$output" ".*1:5 1048576" "throttle devices passed successfully.*"
+    fi
+    run_podman container rm -fa
+}
+
 # vim: filetype=sh
