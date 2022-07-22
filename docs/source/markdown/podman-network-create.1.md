@@ -7,11 +7,9 @@ podman\-network-create - Create a Podman network
 **podman network create**  [*options*] [*name*]
 
 ## DESCRIPTION
-Create a CNI-network configuration for use with Podman. By default, Podman creates a bridge connection.
+Create a network configuration for use with Podman. By default, Podman creates a bridge connection.
 A *Macvlan* connection can be created with the *-d macvlan* option. A parent device for macvlan can
-be designated with the *-o parent=`<device>`* option. In the case of *Macvlan* connections, the
-CNI *dhcp* plugin needs to be activated or the container image must have a DHCP client to interact
-with the host network's DHCP server.
+be designated with the *-o parent=`<device>`* option.
 
 If no options are provided, Podman will assign a free subnet and name for your network.
 
@@ -54,7 +52,7 @@ The argument order of the **--subnet**, **--gateway** and **--ip-range** options
 Set the ipam driver (IP Address Management Driver) for the network. When unset podman will choose an
 ipam driver automatically based on the network driver. Valid values are:
  - `host-local`: IP addresses are assigned locally.
- - `dhcp`: IP addresses are assigned from a dhcp server on your network. This driver is not yet supported with netavark.
+ - `dhcp`: IP addresses are assigned from a dhcp server on your network. This driver is not yet supported with netavark. For CNI the *dhcp* plugin needs to be activated before.
  - `none`: No ip addresses are assigned to the interfaces.
 
 You can see the driver in the **podman network inspect** output under the `ipam_options` field.
@@ -94,7 +92,7 @@ This is useful to set a static ipv4 and ipv6 subnet.
 Create a network with no options.
 ```
 $ podman network create
-cni-podman2
+podman2
 ```
 
 Create a network named *newnet* that uses *192.5.0.0/16* for its subnet.
@@ -118,7 +116,7 @@ newnet
 Create a network that uses a *192.168.55.0/24** subnet and has an IP address range of *192.168.55.129 - 192.168.55.254*.
 ```
 $ podman network create --subnet 192.168.55.0/24 --ip-range 192.168.55.128/25
-cni-podman5
+podman5
 ```
 
 Create a network with a static ipv4 and ipv6 subnet and set a gateway.
