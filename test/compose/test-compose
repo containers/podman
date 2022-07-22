@@ -212,7 +212,6 @@ function start_service() {
     rm -f $DOCKER_SOCK
     mkdir --mode 0755 $WORKDIR/{root,runroot,cni}
     chcon --reference=/var/lib/containers $WORKDIR/root
-    cp /etc/cni/net.d/*podman*conflist $WORKDIR/cni/
 
     $PODMAN_BIN \
         --log-level debug \

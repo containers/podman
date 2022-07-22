@@ -23,6 +23,13 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+func normalizeNetworkName(rt *libpod.Runtime, name string) (string, bool) {
+	if name == nettypes.BridgeNetworkDriver {
+		return rt.Network().DefaultNetworkName(), true
+	}
+	return name, false
+}
+
 func InspectNetwork(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 
@@ -44,13 +51,13 @@ func InspectNetwork(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, http.StatusBadRequest, define.ErrInvalidArg)
 		return
 	}
-	name := utils.GetName(r)
+	name, changed := normalizeNetworkName(runtime, utils.GetName(r))
 	net, err := runtime.Network().NetworkInspect(name)
 	if err != nil {
 		utils.NetworkNotFound(w, name, err)
 		return
 	}
-	report, err := convertLibpodNetworktoDockerNetwork(runtime, net)
+	report, err := convertLibpodNetworktoDockerNetwork(runtime, &net, changed)
 	if err != nil {
 		utils.InternalServerError(w, err)
 		return
@@ -58,7 +65,7 @@ func InspectNetwork(w http.ResponseWriter, r *http.Request) {
 	utils.WriteResponse(w, http.StatusOK, report)
 }
 
-func convertLibpodNetworktoDockerNetwork(runtime *libpod.Runtime, network nettypes.Network) (*types.NetworkResource, error) {
+func convertLibpodNetworktoDockerNetwork(runtime *libpod.Runtime, network *nettypes.Network, changeDefaultName bool) (*types.NetworkResource, error) {
 	cons, err := runtime.GetAllContainers()
 	if err != nil {
 		return nil, err
@@ -107,11 +114,15 @@ func convertLibpodNetworktoDockerNetwork(runtime *libpod.Runtime, network nettyp
 		Config:  ipamConfigs,
 	}
 
+	name := network.Name
+	if changeDefaultName && name == runtime.Network().DefaultNetworkName() {
+		name = nettypes.BridgeNetworkDriver
+	}
 	report := types.NetworkResource{
-		Name:   network.Name,
-		ID:     network.ID,
-		Driver: network.Driver,
-		// TODO add Created: ,
+		Name:       name,
+		ID:         network.ID,
+		Driver:     network.Driver,
+		Created:    network.Created,
 		Internal:   network.Internal,
 		EnableIPv6: network.IPv6Enabled,
 		Labels:     network.Labels,
@@ -149,7 +160,7 @@ func ListNetworks(w http.ResponseWriter, r *http.Request) {
 	}
 	reports := make([]*types.NetworkResource, 0, len(nets))
 	for _, net := range nets {
-		report, err := convertLibpodNetworktoDockerNetwork(runtime, net)
+		report, err := convertLibpodNetworktoDockerNetwork(runtime, &net, true)
 		if err != nil {
 			utils.InternalServerError(w, err)
 			return
@@ -182,27 +193,22 @@ func CreateNetwork(w http.ResponseWriter, r *http.Request) {
 
 	network.Options = make(map[string]string)
 
-	// TODO: we should consider making this constants in c/common/libnetwork/types
+	// dockers bridge networks are always isolated from each other
+	if network.Driver == nettypes.BridgeNetworkDriver {
+		network.Options[nettypes.IsolateOption] = "true"
+	}
+
 	for opt, optVal := range networkCreate.Options {
 		switch opt {
-		case "mtu":
+		case nettypes.MTUOption:
 			fallthrough
 		case "com.docker.network.driver.mtu":
-			if network.Driver == nettypes.BridgeNetworkDriver {
-				network.Options["mtu"] = optVal
-			}
-		case "icc":
-			fallthrough
-		case "com.docker.network.bridge.enable_icc":
-			// TODO: needs to be implemented
-			if network.Driver == nettypes.BridgeNetworkDriver {
-				responseWarning = "com.docker.network.bridge.enable_icc is not currently implemented"
-			}
+			network.Options[nettypes.MTUOption] = optVal
 		case "com.docker.network.bridge.name":
 			if network.Driver == nettypes.BridgeNetworkDriver {
 				network.NetworkInterface = optVal
 			}
-		case "mode":
+		case nettypes.ModeOption:
 			if network.Driver == nettypes.MacVLANNetworkDriver || network.Driver == nettypes.IPVLANNetworkDriver {
 				network.Options[opt] = optVal
 			}
@@ -305,7 +311,7 @@ func RemoveNetwork(w http.ResponseWriter, r *http.Request) {
 		Timeout: query.Timeout,
 	}
 
-	name := utils.GetName(r)
+	name, _ := normalizeNetworkName(runtime, utils.GetName(r))
 	reports, err := ic.NetworkRm(r.Context(), []string{name}, options)
 	if err != nil {
 		utils.Error(w, http.StatusInternalServerError, err)
@@ -340,7 +346,7 @@ func Connect(w http.ResponseWriter, r *http.Request) {
 
 	netOpts := nettypes.PerNetworkOptions{}
 
-	name := utils.GetName(r)
+	name, _ := normalizeNetworkName(runtime, utils.GetName(r))
 	if netConnect.EndpointConfig != nil {
 		if netConnect.EndpointConfig.Aliases != nil {
 			netOpts.Aliases = netConnect.EndpointConfig.Aliases
@@ -416,7 +422,7 @@ func Disconnect(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	name := utils.GetName(r)
+	name, _ := normalizeNetworkName(runtime, utils.GetName(r))
 	err := runtime.DisconnectContainerFromNetwork(netDisconnect.Container, name, netDisconnect.Force)
 	if err != nil {
 		if errors.Is(err, define.ErrNoSuchCtr) {
