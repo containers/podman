@@ -31,6 +31,9 @@ func CreateContainer(w http.ResponseWriter, r *http.Request) {
 		ContainerNetworkConfig: specgen.ContainerNetworkConfig{
 			UseImageHosts: conf.Containers.NoHosts,
 		},
+		ContainerSecurityConfig: specgen.ContainerSecurityConfig{
+			Umask: conf.Containers.Umask,
+		},
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&sg); err != nil {
