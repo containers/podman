@@ -1,4 +1,4 @@
-package e2e
+package e2e_test
 
 type rmMachine struct {
 	/*
@@ -40,17 +40,17 @@ func (i *rmMachine) withForce() *rmMachine {
 	return i
 }
 
-func (i *rmMachine) withSaveIgnition() *rmMachine {
+func (i *rmMachine) withSaveIgnition() *rmMachine { //nolint:unused
 	i.saveIgnition = true
 	return i
 }
 
-func (i *rmMachine) withSaveImage() *rmMachine {
+func (i *rmMachine) withSaveImage() *rmMachine { //nolint:unused
 	i.saveImage = true
 	return i
 }
 
-func (i *rmMachine) withSaveKeys() *rmMachine {
+func (i *rmMachine) withSaveKeys() *rmMachine { //nolint:unused
 	i.saveKeys = true
 	return i
 }

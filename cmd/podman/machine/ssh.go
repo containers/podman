@@ -80,6 +80,11 @@ func ssh(cmd *cobra.Command, args []string) error {
 		}
 	}
 
+	vm, err = provider.LoadVMByName(vmName)
+	if err != nil {
+		return fmt.Errorf("vm %s not found: %w", vmName, err)
+	}
+
 	if !validVM && sshOpts.Username == "" {
 		sshOpts.Username, err = remoteConnectionUsername()
 		if err != nil {
@@ -87,10 +92,6 @@ func ssh(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	vm, err = provider.LoadVMByName(vmName)
-	if err != nil {
-		return fmt.Errorf("vm %s not found: %w", vmName, err)
-	}
 	err = vm.SSH(vmName, sshOpts)
 	return utils.HandleOSExecError(err)
 }

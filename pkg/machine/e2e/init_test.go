@@ -1,4 +1,4 @@
-package e2e
+package e2e_test
 
 import (
 	"io/ioutil"
@@ -78,7 +78,7 @@ var _ = Describe("podman machine init", func() {
 	})
 
 	It("machine init with cpus, disk size, memory, timezone", func() {
-		name := randomString(12)
+		name := randomString()
 		i := new(initMachine)
 		session, err := mb.setName(name).setCmd(i.withImagePath(mb.imagePath).withCPUs(2).withDiskSize(102).withMemory(4000).withTimezone("Pacific/Honolulu")).run()
 		Expect(err).To(BeNil())
@@ -108,7 +108,7 @@ var _ = Describe("podman machine init", func() {
 		switch runtime.GOOS {
 		// os's handle memory differently
 		case "linux":
-			Expect(memorySession.outputToString()).To(ContainSubstring("3821"))
+			Expect(memorySession.outputToString()).To(ContainSubstring("3822"))
 		case "darwin":
 			Expect(memorySession.outputToString()).To(ContainSubstring("3824"))
 		default:
@@ -130,7 +130,7 @@ var _ = Describe("podman machine init", func() {
 		mount := tmpDir + ":/testmountdir"
 		defer os.RemoveAll(tmpDir)
 
-		name := randomString(12)
+		name := randomString()
 		i := new(initMachine)
 		session, err := mb.setName(name).setCmd(i.withImagePath(mb.imagePath).withVolume(mount)).run()
 		Expect(err).To(BeNil())

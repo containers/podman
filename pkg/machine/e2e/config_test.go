@@ -1,4 +1,4 @@
-package e2e
+package e2e_test
 
 import (
 	"encoding/json"
@@ -10,13 +10,11 @@ import (
 	"time"
 
 	"github.com/containers/podman/v4/pkg/machine"
-	"github.com/containers/podman/v4/pkg/machine/qemu"
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/containers/storage/pkg/stringid"
-	. "github.com/onsi/ginkgo" //nolint:golint,stylecheck
+	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/onsi/gomega/gexec"
-	. "github.com/onsi/gomega/gexec" //nolint:golint,stylecheck
+	. "github.com/onsi/gomega/gexec"
 )
 
 var originalHomeDir = os.Getenv("HOME")
@@ -36,7 +34,7 @@ type MachineTestBuilder interface {
 	run() (*machineSession, error)
 }
 type machineSession struct {
-	*gexec.Session
+	*Session
 }
 
 type machineTestBuilder struct {
@@ -46,10 +44,6 @@ type machineTestBuilder struct {
 	names        []string
 	podmanBinary string
 	timeout      time.Duration
-}
-type qemuMachineInspectInfo struct {
-	State machine.Status
-	VM    qemu.MachineVM
 }
 
 // waitWithTimeout waits for a command to complete for a given
@@ -121,7 +115,7 @@ func (m *machineTestBuilder) setCmd(mc machineCommand) *machineTestBuilder {
 	// If no name for the machine exists, we set a random name.
 	if !util.StringInSlice(m.name, m.names) {
 		if len(m.name) < 1 {
-			m.name = randomString(12)
+			m.name = randomString()
 		}
 		m.names = append(m.names, m.name)
 	}
@@ -136,10 +130,10 @@ func (m *machineTestBuilder) setTimeout(timeout time.Duration) *machineTestBuild
 
 // toQemuInspectInfo is only for inspecting qemu machines.  Other providers will need
 // to make their own.
-func (mb *machineTestBuilder) toQemuInspectInfo() ([]machine.InspectInfo, int, error) {
+func (m *machineTestBuilder) toQemuInspectInfo() ([]machine.InspectInfo, int, error) {
 	args := []string{"machine", "inspect"}
-	args = append(args, mb.names...)
-	session, err := runWrapper(mb.podmanBinary, args, defaultTimeout, true)
+	args = append(args, m.names...)
+	session, err := runWrapper(m.podmanBinary, args, defaultTimeout, true)
 	if err != nil {
 		return nil, -1, err
 	}
@@ -175,9 +169,7 @@ func runWrapper(podmanBinary string, cmdArgs []string, timeout time.Duration, wa
 	return &ms, nil
 }
 
-func (m *machineTestBuilder) init() {}
-
 // randomString returns a string of given length composed of random characters
-func randomString(n int) string {
+func randomString() string {
 	return stringid.GenerateRandomID()[0:12]
 }
