@@ -555,7 +555,7 @@ func (c *Container) WaitForExit(ctx context.Context, pollInterval time.Duration)
 				// The container never ran.
 				return true, 0, nil
 			}
-			return true, -1, err
+			return true, -1, fmt.Errorf("%w (container in state %s)", err, c.state.State)
 		}
 
 		return true, exitCode, nil
