@@ -58,6 +58,7 @@ var _ = Describe("Podman checkpoint", func() {
 	})
 
 	It("podman checkpoint --create-image with running container", func() {
+		SkipIfContainerized("FIXME: #15015. All checkpoint tests hang when containerized.")
 		// Container image must be lowercase
 		checkpointImage := "alpine-checkpoint-" + strings.ToLower(RandomString(6))
 		containerName := "alpine-container-" + RandomString(6)
@@ -163,7 +164,8 @@ var _ = Describe("Podman checkpoint", func() {
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
 	})
 
-	It("podman restore multiple containers from single checkpint image", func() {
+	It("podman restore multiple containers from single checkpoint image", func() {
+		SkipIfContainerized("FIXME: #15015. All checkpoint tests hang when containerized.")
 		// Container image must be lowercase
 		checkpointImage := "alpine-checkpoint-" + strings.ToLower(RandomString(6))
 		containerName := "alpine-container-" + RandomString(6)
@@ -225,7 +227,8 @@ var _ = Describe("Podman checkpoint", func() {
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
 	})
 
-	It("podman restore multiple containers from multiple checkpint images", func() {
+	It("podman restore multiple containers from multiple checkpoint images", func() {
+		SkipIfContainerized("FIXME: #15015. All checkpoint tests hang when containerized.")
 		// Container image must be lowercase
 		checkpointImage1 := "alpine-checkpoint-" + strings.ToLower(RandomString(6))
 		checkpointImage2 := "alpine-checkpoint-" + strings.ToLower(RandomString(6))

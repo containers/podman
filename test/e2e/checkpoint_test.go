@@ -57,6 +57,7 @@ var _ = Describe("Podman checkpoint", func() {
 
 	BeforeEach(func() {
 		SkipIfRootless("checkpoint not supported in rootless mode")
+		SkipIfContainerized("FIXME: #15015. All checkpoint tests hang when containerized.")
 		tempdir, err = CreateTempDirInTempDir()
 		Expect(err).To(BeNil())
 
@@ -1128,6 +1129,10 @@ var _ = Describe("Podman checkpoint", func() {
 		share := share // copy into local scope, for use inside function
 
 		It(testName, func() {
+			if podmanTest.Host.Distribution == "ubuntu" && IsRemote() {
+				Skip("FIXME: #15018. Cannot restore --pod under cgroupsV1 and remote")
+			}
+
 			if !criu.CheckForCriu(criu.PodCriuVersion) {
 				Skip("CRIU is missing or too old.")
 			}

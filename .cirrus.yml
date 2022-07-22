@@ -29,11 +29,11 @@ env:
     ####
     FEDORA_NAME: "fedora-36"
     #PRIOR_FEDORA_NAME: "fedora-35"
-    UBUNTU_NAME: "ubuntu-2110"
+    UBUNTU_NAME: "ubuntu-2204"
 
     # Image identifiers
-    IMAGE_SUFFIX: "c6211193021923328"
-    FEDORA_AMI_ID: "ami-06a41d8a81ab56afa"
+    IMAGE_SUFFIX: "c6013173500215296"
+    FEDORA_AMI_ID: "ami-0f116746f31965e41"
     # Complete image names
     FEDORA_CACHE_IMAGE_NAME: "fedora-${IMAGE_SUFFIX}"
     #PRIOR_FEDORA_CACHE_IMAGE_NAME: "prior-fedora-${IMAGE_SUFFIX}"
@@ -178,8 +178,7 @@ build_task:
               DISTRO_NV: ${UBUNTU_NAME}
               VM_IMAGE_NAME: ${UBUNTU_CACHE_IMAGE_NAME}
               CTR_FQIN: ${UBUNTU_CONTAINER_FQIN}
-              # FIXME 2022-07-12: change to runc once #14833 is fixed!
-              CI_DESIRED_RUNTIME: crun
+              CI_DESIRED_RUNTIME: runc
     env:
         TEST_FLAVOR: build
     clone_script: *full_clone
@@ -550,6 +549,7 @@ container_integration_test_task:
               _BUILD_CACHE_HANDLE: ${FEDORA_NAME}-build-${CIRRUS_BUILD_ID}
               VM_IMAGE_NAME: ${FEDORA_CACHE_IMAGE_NAME}
               CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
+              CI_DESIRED_RUNTIME: crun
               #- env:
               #DISTRO_NV: ${PRIOR_FEDORA_NAME}
               #_BUILD_CACHE_HANDLE: ${PRIOR_FEDORA_NAME}-build-${CIRRUS_BUILD_ID}
@@ -667,6 +667,7 @@ rootless_remote_system_test_task:
               CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
               # ID for re-use of build output
               _BUILD_CACHE_HANDLE: ${FEDORA_NAME}-build-${CIRRUS_BUILD_ID}
+              CI_DESIRED_RUNTIME: crun
     <<: *local_system_test_task
     alias: rootless_remote_system_test
     depends_on:

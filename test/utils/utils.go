@@ -367,8 +367,8 @@ func (s *PodmanSession) WaitWithDefaultTimeout() {
 func (s *PodmanSession) WaitWithTimeout(timeout int) {
 	Eventually(s, timeout).Should(Exit(), func() string {
 		// in case of timeouts show output
-		return fmt.Sprintf("command %v timed out\nSTDOUT: %s\nSTDERR: %s",
-			s.Command.Args, string(s.Out.Contents()), string(s.Err.Contents()))
+		return fmt.Sprintf("command timed out after %ds: %v\nSTDOUT: %s\nSTDERR: %s",
+			timeout, s.Command.Args, string(s.Out.Contents()), string(s.Err.Contents()))
 	})
 	os.Stdout.Sync()
 	os.Stderr.Sync()

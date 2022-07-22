@@ -479,9 +479,8 @@ spec:
 
 @test "pod resource limits" {
     skip_if_remote "resource limits only implemented on non-remote"
-    if is_rootless || ! is_cgroupsv2; then
-        skip "only meaningful for rootful"
-    fi
+    skip_if_rootless "resource limits only work with root"
+    skip_if_cgroupsv1 "resource limits only meaningful on cgroups V2"
 
     # create loopback device
     lofile=${PODMAN_TMPDIR}/disk.img

@@ -71,27 +71,20 @@ fi
 
 cd "${GOSRC}/"
 
-# Defined by lib.sh: Does the host support cgroups v1 or v2
+# Defined by lib.sh: Does the host support cgroups v1 or v2? Use runc or crun
+# respectively.
+# **IMPORTANT**: $OCI_RUNTIME is a fakeout! It is used only in e2e tests.
+# For actual podman, as in system tests, we force runtime in containers.conf
 case "$CG_FS_TYPE" in
     tmpfs)
         if ((CONTAINER==0)); then
             warn "Forcing testing with runc instead of crun"
-            if [[ "$OS_RELEASE_ID" == "ubuntu" ]]; then
-                # Need b/c using cri-o-runc package from OBS
-                echo "OCI_RUNTIME=/usr/lib/cri-o-runc/sbin/runc" \
-                    >> /etc/ci_environment
-            else
-                echo "OCI_RUNTIME=runc" >> /etc/ci_environment
-            fi
+            echo "OCI_RUNTIME=runc" >> /etc/ci_environment
+            printf "[engine]\nruntime=\"runc\"\n" >>/etc/containers/containers.conf
         fi
         ;;
     cgroup2fs)
-        if ((CONTAINER==0)); then
-            # This is necessary since we've built/installed from source,
-            # which uses runc as the default.
-            warn "Forcing testing with crun instead of runc"
-            echo "OCI_RUNTIME=crun" >> /etc/ci_environment
-        fi
+        # Nothing to do: podman defaults to crun
         ;;
     *) die_unknown CG_FS_TYPE
 esac
@@ -368,7 +361,7 @@ case "$TEST_FLAVOR" in
         slug="gitlab.com/gitlab-org/gitlab-runner"
         helper_fqin="registry.gitlab.com/gitlab-org/gitlab-runner/gitlab-runner-helper:x86_64-latest-pwsh"
         ssh="ssh $ROOTLESS_USER@localhost -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o CheckHostIP=no env GOPATH=$GOPATH"
-        showrun $ssh go get -u github.com/jstemmer/go-junit-report
+        showrun $ssh go install github.com/jstemmer/go-junit-report/v2@v2.0.0
         showrun $ssh git clone https://$slug $GOPATH/src/$slug
         showrun $ssh make -C $GOPATH/src/$slug development_setup
         showrun $ssh bash -c "'cd $GOPATH/src/$slug && GOPATH=$GOPATH go get .'"
