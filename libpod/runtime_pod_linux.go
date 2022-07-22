@@ -7,7 +7,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
 	"path"
 	"path/filepath"
 	"strings"
@@ -18,7 +17,6 @@ import (
 	"github.com/containers/podman/v4/libpod/events"
 	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/containers/podman/v4/pkg/specgen"
-	runcconfig "github.com/opencontainers/runc/libcontainer/configs"
 	"github.com/sirupsen/logrus"
 )
 
@@ -214,82 +212,36 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool,
 		return fmt.Errorf("pod %s contains containers and cannot be removed: %w", p.ID(), define.ErrCtrExists)
 	}
 
-	// Go through and lock all containers so we can operate on them all at
-	// once.
-	// First loop also checks that we are ready to go ahead and remove.
-	containersLocked := true
-	for _, ctr := range ctrs {
-		ctrLock := ctr.lock
-		ctrLock.Lock()
-		defer func() {
-			if containersLocked {
-				ctrLock.Unlock()
-			}
-		}()
-
-		// If we're force-removing, no need to check status.
-		if force {
-			continue
-		}
-
-		// Sync all containers
-		if err := ctr.syncContainer(); err != nil {
-			return err
-		}
-
-		// Ensure state appropriate for removal
-		if err := ctr.checkReadyForRemoval(); err != nil {
-			return fmt.Errorf("pod %s has containers that are not ready to be removed: %w", p.ID(), err)
-		}
-	}
-
-	// We're going to be removing containers.
-	// If we are Cgroupfs cgroup driver, to avoid races, we need to hit
-	// the pod and conmon Cgroups with a PID limit to prevent them from
-	// spawning any further processes (particularly cleanup processes) which
-	// would prevent removing the Cgroups.
-	if p.runtime.config.Engine.CgroupManager == config.CgroupfsCgroupsManager {
-		// Get the conmon Cgroup
-		conmonCgroupPath := filepath.Join(p.state.CgroupPath, "conmon")
-		conmonCgroup, err := cgroups.Load(conmonCgroupPath)
-		if err != nil && err != cgroups.ErrCgroupDeleted && err != cgroups.ErrCgroupV1Rootless {
-			logrus.Errorf("Retrieving pod %s conmon cgroup %s: %v", p.ID(), conmonCgroupPath, err)
-		}
-
-		// New resource limits
-		resLimits := new(runcconfig.Resources)
-		resLimits.PidsLimit = 1 // Inhibit forks with very low pids limit
-
-		// Don't try if we failed to retrieve the cgroup
-		if err == nil {
-			if err := conmonCgroup.Update(resLimits); err != nil && !os.IsNotExist(err) {
-				logrus.Warnf("Error updating pod %s conmon cgroup PID limit: %v", p.ID(), err)
-			}
-		}
-	}
-
-	var removalErr error
-
 	ctrNamedVolumes := make(map[string]*ContainerNamedVolume)
 
-	// Second loop - all containers are good, so we should be clear to
-	// remove.
+	var removalErr error
 	for _, ctr := range ctrs {
-		// Remove the container.
-		// Do NOT remove named volumes. Instead, we're going to build a
-		// list of them to be removed at the end, once the containers
-		// have been removed by RemovePodContainers.
-		for _, vol := range ctr.config.NamedVolumes {
-			ctrNamedVolumes[vol.Name] = vol
-		}
+		err := func() error {
+			ctrLock := ctr.lock
+			ctrLock.Lock()
+			defer func() {
+				ctrLock.Unlock()
+			}()
 
-		if err := r.removeContainer(ctx, ctr, force, false, true, timeout); err != nil {
-			if removalErr == nil {
-				removalErr = err
-			} else {
-				logrus.Errorf("Removing container %s from pod %s: %v", ctr.ID(), p.ID(), err)
+			if err := ctr.syncContainer(); err != nil {
+				return err
 			}
+
+			for _, vol := range ctr.config.NamedVolumes {
+				ctrNamedVolumes[vol.Name] = vol
+			}
+
+			return r.removeContainer(ctx, ctr, force, false, true, timeout)
+		}()
+
+		if removalErr == nil {
+			removalErr = err
+		} else {
+			logrus.Errorf("Removing container %s from pod %s: %v", ctr.ID(), p.ID(), err)
 		}
+	}
+	if removalErr != nil {
+		return removalErr
 	}
 
 	// Clear infra container ID before we remove the infra container.
@@ -325,12 +277,6 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool,
 			logrus.Errorf("Removing volume %s: %v", volName, err)
 		}
 	}
-
-	// let's unlock the containers so if there is any cleanup process, it can terminate its execution
-	for _, ctr := range ctrs {
-		ctr.lock.Unlock()
-	}
-	containersLocked = false
 
 	// Remove pod cgroup, if present
 	if p.state.CgroupPath != "" {
