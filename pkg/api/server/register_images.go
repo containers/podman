@@ -730,6 +730,11 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//    description: Require TLS verification.
 	//    type: boolean
 	//    default: true
+	//  - in: query
+	//    name: quiet
+	//    description: "silences extra stream data on push"
+	//    type: boolean
+	//    default: true
 	//  - in: header
 	//    name: X-Registry-Auth
 	//    type: string

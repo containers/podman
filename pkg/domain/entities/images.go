@@ -1,6 +1,7 @@
 package entities
 
 import (
+	"io"
 	"net/url"
 	"time"
 
@@ -192,8 +193,7 @@ type ImagePushOptions struct {
 	// image. Default is manifest type of source, with fallbacks.
 	// Ignored for remote calls.
 	Format string
-	// Quiet can be specified to suppress pull progress when pulling.  Ignored
-	// for remote calls.
+	// Quiet can be specified to suppress push progress when pushing.
 	Quiet bool
 	// Rm indicates whether to remove the manifest list if push succeeds
 	Rm bool
@@ -211,6 +211,17 @@ type ImagePushOptions struct {
 	Progress chan types.ProgressProperties
 	// CompressionFormat is the format to use for the compression of the blobs
 	CompressionFormat string
+	// Writer is used to display copy information including progress bars.
+	Writer io.Writer
+}
+
+// ImagePushReport is the response from pushing an image.
+// Currently only used in the remote API.
+type ImagePushReport struct {
+	// Stream used to provide push progress
+	Stream string `json:"stream,omitempty"`
+	// Error contains text of errors from pushing
+	Error string `json:"error,omitempty"`
 }
 
 // ImageSearchOptions are the arguments for searching images.
