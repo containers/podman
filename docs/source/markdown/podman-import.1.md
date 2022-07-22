@@ -50,10 +50,6 @@ Shows progress on the import
 
 Set variant of the imported image.
 
-**--verbose**
-
-Print additional debugging information
-
 ## EXAMPLES
 
 ```
