@@ -32,7 +32,7 @@ port mapping.  Depending on the firewall implementation, we have observed firewa
 ports being opened automatically due to running a container with a port mapping (for
 example).  If container traffic does not seem to work properly, check the firewall
 and allow traffic on ports the container is using. A common problem is that
-reloading the firewall deletes the cni iptables rules resulting in a loss of
+reloading the firewall deletes the cni/netavark iptables rules resulting in a loss of
 network connectivity for rootful containers. Podman v3 provides the podman
 network reload command to restore this without having to restart the container.
 
@@ -83,7 +83,7 @@ users.  But as of Podman version 4.0, rootless users can also use netavark.
 The user experience of rootless netavark is very akin to a rootful netavark, except that
 there is no default network configuration provided.  You simply need to create a
 network, and the one will be created as a bridge network. If you would like to switch from
-CNI networking to netvaark, you must issue the `podman system reset --force` command.
+CNI networking to netavark, you must issue the `podman system reset --force` command.
 This will delete all of your images, containers, and custom networks.
 
 ```
@@ -177,7 +177,7 @@ address, you should continue to use CNI instead of netavark.
 
 ```
 $ sudo podman network create -d macvlan -o parent=eth0 webnetwork
-/etc/cni/net.d/webnetwork.conflist
+webnetwork
 ```
 The next step is to ensure that the DHCP CNI plugin is running.  This plugin facilitates
 the DHCP lease from the network.

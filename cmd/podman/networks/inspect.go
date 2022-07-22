@@ -13,8 +13,8 @@ var (
 	networkinspectDescription = `Inspect network`
 	networkinspectCommand     = &cobra.Command{
 		Use:               "inspect [options] NETWORK [NETWORK...]",
-		Short:             "Displays the raw CNI network configuration for one or more networks.",
-		Long:              networkinspectDescription,
+		Long:              "Displays the network configuration for one or more networks.",
+		Short:             networkinspectDescription,
 		RunE:              networkInspect,
 		Example:           `podman network inspect podman`,
 		Args:              cobra.MinimumNArgs(1),

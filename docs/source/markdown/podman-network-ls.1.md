@@ -77,8 +77,8 @@ Display networks
 $ podman network ls
 NETWORK ID    NAME         DRIVER
 88a7120ee19d  podman       bridge
-6dd508dbf8cd  cni-podman6  bridge
-8e35c2cd3bf6  cni-podman5  macvlan
+6dd508dbf8cd  podman6  bridge
+8e35c2cd3bf6  podman5  macvlan
 ```
 
 Display only network names
@@ -101,7 +101,7 @@ List networks with their subnets
 ```
 $ podman network ls --format "{{.Name}}: {{range .Subnets}}{{.Subnet}} {{end}}"
 podman: 10.88.0.0/16
-cni-podman3: 10.89.30.0/24 fde4:f86f:4aab:e68f::/64
+podman3: 10.89.30.0/24 fde4:f86f:4aab:e68f::/64
 macvlan:
 ```
 

@@ -1,13 +1,13 @@
 % podman-network-inspect(1)
 
 ## NAME
-podman\-network\-inspect - Displays the raw network configuration for one or more networks
+podman\-network\-inspect - Displays the network configuration for one or more networks
 
 ## SYNOPSIS
 **podman network inspect** [*options*] *network* [*network* ...]
 
 ## DESCRIPTION
-Display the raw (JSON format) network configuration.
+Display the (JSON format) network configuration.
 
 ## OPTIONS
 #### **--format**, **-f**=*format*
@@ -40,7 +40,7 @@ $ podman network inspect podman
         "name": "podman",
         "id": "2f259bab93aaaaa2542ba43ef33eb990d0999ee1b9924b557b7be53c0b7a1bb9",
         "driver": "bridge",
-        "network_interface": "cni-podman0",
+        "network_interface": "podman0",
         "created": "2021-06-03T12:04:33.088567413+02:00",
         "subnets": [
             {

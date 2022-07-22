@@ -214,9 +214,12 @@ Valid _mode_ values are:
 
 #### **--network-alias**=*alias*
 
-Add a network-scoped alias for the pod, setting the alias for all networks that the pod joins. To set a name only for a specific network, use the alias option as described under the **--network** option.
-Network aliases work only with the bridge networking mode. This option can be specified multiple times.
-NOTE: A container will only have access to aliases on the first network that it joins. This is a limitation that will be removed in a later release.
+Add a network-scoped alias for the pod, setting the alias for all networks that the container joins. To set a
+name only for a specific network, use the alias option as described under the **--network** option.
+If the network has DNS enabled (`podman network inspect -f {{.DNSEnabled}} <name>`),
+these aliases can be used for name resolution on the given network. This option can be specified multiple times.
+NOTE: When using CNI a pod will only have access to aliases on the first network that it joins. This limitation does
+not exist with netavark/aardvark-dns.
 
 #### **--no-hosts**
 

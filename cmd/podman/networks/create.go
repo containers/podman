@@ -17,7 +17,7 @@ import (
 )
 
 var (
-	networkCreateDescription = `create CNI networks for containers and pods`
+	networkCreateDescription = `create networks for containers and pods`
 	networkCreateCommand     = &cobra.Command{
 		Use:               "create [options] [NAME]",
 		Short:             "network create",
