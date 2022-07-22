@@ -293,9 +293,6 @@ var _ = Describe("Podman manifest", func() {
 	})
 
 	It("authenticated push", func() {
-		if podmanTest.Host.Distribution == "ubuntu" && IsRemote() {
-			Skip("FIXME: #15017. Registry times out.")
-		}
 		registryOptions := &podmanRegistry.Options{
 			Image: "docker-archive:" + imageTarPath(REGISTRY_IMAGE),
 		}
