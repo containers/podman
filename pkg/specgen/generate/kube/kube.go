@@ -398,6 +398,16 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 				Type: "b",
 			}
 			s.Devices = append(s.Devices, device)
+		case KubeVolumeTypeSecret:
+			// in podman play kube we need to add these secrets as volumes rather than as
+			// specgen.Secrets. Adding them as volumes allows for all key: value pairs to be mounted
+			secretVolume := specgen.NamedVolume{
+				Dest:    volume.MountPath,
+				Name:    volumeSource.Source,
+				Options: options,
+			}
+
+			s.Volumes = append(s.Volumes, &secretVolume)
 		default:
 			return nil, errors.New("unsupported volume source type")
 		}

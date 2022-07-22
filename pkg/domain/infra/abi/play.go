@@ -84,15 +84,15 @@ func (ic *ContainerEngine) createServiceContainer(ctx context.Context, name stri
 	return ctr, nil
 }
 
-// Creates the name for a service container based on the provided content of a
-// K8s yaml file.
-func serviceContainerName(content []byte) string {
+// Creates the name for a k8s entity based on the provided content of a
+// K8s yaml file and a given suffix.
+func k8sName(content []byte, suffix string) string {
 	// The name of the service container is the first 12
 	// characters of the yaml file's hash followed by the
 	// '-service' suffix to guarantee a predictable and
 	// discoverable name.
 	hash := digest.FromBytes(content).Encoded()
-	return hash[0:12] + "-service"
+	return hash[0:12] + "-" + suffix
 }
 
 func (ic *ContainerEngine) PlayKube(ctx context.Context, body io.Reader, options entities.PlayKubeOptions) (_ *entities.PlayKubeReport, finalErr error) {
@@ -132,7 +132,7 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, body io.Reader, options
 		// TODO: create constants for the various "kinds" of yaml files.
 		var serviceContainer *libpod.Container
 		if options.ServiceContainer && (kind == "Pod" || kind == "Deployment") {
-			ctr, err := ic.createServiceContainer(ctx, serviceContainerName(content), options)
+			ctr, err := ic.createServiceContainer(ctx, k8sName(content, "service"), options)
 			if err != nil {
 				return nil, err
 			}
@@ -213,6 +213,19 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, body io.Reader, options
 				return nil, fmt.Errorf("unable to read YAML as Kube ConfigMap: %w", err)
 			}
 			configMaps = append(configMaps, configMap)
+		case "Secret":
+			var secret v1.Secret
+
+			if err := yaml.Unmarshal(document, &secret); err != nil {
+				return nil, fmt.Errorf("unable to read YAML as kube secret: %w", err)
+			}
+
+			r, err := ic.playKubeSecret(&secret)
+			if err != nil {
+				return nil, err
+			}
+			report.Secrets = append(report.Secrets, entities.PlaySecret{CreateReport: r})
+			validKinds++
 		default:
 			logrus.Infof("Kube kind %s not supported", kind)
 			continue
@@ -380,7 +393,7 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 		configMaps = append(configMaps, cm)
 	}
 
-	volumes, err := kube.InitializeVolumes(podYAML.Spec.Volumes, configMaps)
+	volumes, err := kube.InitializeVolumes(podYAML.Spec.Volumes, configMaps, secretsManager)
 	if err != nil {
 		return nil, err
 	}
@@ -388,7 +401,7 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 	// Go through the volumes and create a podman volume for all volumes that have been
 	// defined by a configmap
 	for _, v := range volumes {
-		if v.Type == kube.KubeVolumeTypeConfigMap && !v.Optional {
+		if (v.Type == kube.KubeVolumeTypeConfigMap || v.Type == kube.KubeVolumeTypeSecret) && !v.Optional {
 			vol, err := ic.Libpod.NewVolume(ctx, libpod.WithVolumeName(v.Source))
 			if err != nil {
 				if errors.Is(err, define.ErrVolumeExists) {
@@ -583,6 +596,7 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 			UserNSIsHost:       p.Userns.IsHost(),
 			Volumes:            volumes,
 		}
+
 		specGen, err := kube.ToSpecGen(ctx, &specgenOpts)
 		if err != nil {
 			return nil, err
@@ -967,4 +981,56 @@ func (ic *ContainerEngine) PlayKubeDown(ctx context.Context, body io.Reader, _ e
 	}
 
 	return reports, nil
+}
+
+// playKubeSecret allows users to create and store a kubernetes secret as a podman secret
+func (ic *ContainerEngine) playKubeSecret(secret *v1.Secret) (*entities.SecretCreateReport, error) {
+	r := &entities.SecretCreateReport{}
+
+	// Create the secret manager before hand
+	secretsManager, err := ic.Libpod.SecretsManager()
+	if err != nil {
+		return nil, err
+	}
+
+	data, err := yaml.Marshal(secret)
+	if err != nil {
+		return nil, err
+	}
+
+	secretsPath := ic.Libpod.GetSecretsStorageDir()
+	opts := make(map[string]string)
+	opts["path"] = filepath.Join(secretsPath, "filedriver")
+	// maybe k8sName(data)...
+	// using this does not allow the user to use the name given to the secret
+	// but keeping secret.Name as the ID can lead to a collision.
+
+	s, err := secretsManager.Lookup(secret.Name)
+	if err == nil {
+		if val, ok := s.Metadata["immutable"]; ok {
+			if val == "true" {
+				return nil, fmt.Errorf("cannot remove colliding secret as it is set to immutable")
+			}
+		}
+		_, err = secretsManager.Delete(s.Name)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// now we have either removed the old secret w/ the same name or
+	// the name was not taken. Either way, we can now store.
+
+	meta := make(map[string]string)
+	if secret.Immutable != nil && *secret.Immutable {
+		meta["immutable"] = "true"
+	}
+	secretID, err := secretsManager.Store(secret.Name, data, "file", opts, meta)
+	if err != nil {
+		return nil, err
+	}
+
+	r.ID = secretID
+
+	return r, nil
 }

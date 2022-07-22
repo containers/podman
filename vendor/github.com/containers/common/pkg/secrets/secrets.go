@@ -129,7 +129,7 @@ func NewManager(rootPath string) (*SecretsManager, error) {
 // Store takes a name, creates a secret and stores the secret metadata and the secret payload.
 // It returns a generated ID that is associated with the secret.
 // The max size for secret data is 512kB.
-func (s *SecretsManager) Store(name string, data []byte, driverType string, driverOpts map[string]string) (string, error) {
+func (s *SecretsManager) Store(name string, data []byte, driverType string, driverOpts map[string]string, metadata map[string]string) (string, error) {
 	err := validateSecretName(name)
 	if err != nil {
 		return "", err
@@ -168,8 +168,12 @@ func (s *SecretsManager) Store(name string, data []byte, driverType string, driv
 		}
 	}
 
+	if metadata == nil {
+		metadata = make(map[string]string)
+	}
+
 	secr.Driver = driverType
-	secr.Metadata = make(map[string]string)
+	secr.Metadata = metadata
 	secr.CreatedAt = time.Now()
 	secr.DriverOptions = driverOpts
 

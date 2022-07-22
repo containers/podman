@@ -88,6 +88,7 @@ type PlayKubeReport struct {
 	// Volumes - volumes created by play kube.
 	Volumes []PlayKubeVolume
 	PlayKubeTeardown
+	Secrets []PlaySecret
 }
 
 type KubePlayReport = PlayKubeReport
@@ -99,4 +100,8 @@ type PlayKubeDownOptions struct{}
 type PlayKubeTeardown struct {
 	StopReport []*PodStopReport
 	RmReport   []*PodRmReport
+}
+
+type PlaySecret struct {
+	CreateReport *SecretCreateReport
 }

@@ -29,6 +29,76 @@ import (
 	"github.com/opencontainers/selinux/go-selinux"
 )
 
+var secretYaml = `
+apiVersion: v1
+kind: Secret
+metadata:
+  name: newsecret
+type: Opaque
+data:
+  username: dXNlcg==
+  password: NTRmNDFkMTJlOGZh
+`
+
+var complexSecretYaml = `
+apiVersion: v1
+kind: Secret
+metadata:
+  name: newsecrettwo
+type: Opaque
+data:
+  username: Y2RvZXJuCg==
+  password: dGVzdGluZ3Rlc3RpbmcK
+  note: a3ViZSBzZWNyZXRzIGFyZSBjb29sIQo=
+`
+
+var secretPodYaml = `
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mypod
+spec:
+  containers:
+    - name: myctr
+      image: quay.io/libpod/alpine_nginx:latest
+      volumeMounts:
+        - name: foo
+          mountPath: /etc/foo
+          readOnly: true
+  volumes:
+    - name: foo
+      secret:
+        secretName: newsecret
+        optional: false
+`
+
+var secretPodYamlTwo = `
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mypod2
+spec:
+  containers:
+    - name: myctr
+      image: quay.io/libpod/alpine_nginx:latest
+      volumeMounts:
+        - name: foo
+          mountPath: /etc/foo
+          readOnly: true
+        - name: bar
+          mountPath: /etc/bar
+          readOnly: true
+  volumes:
+    - name: foo
+      secret:
+        secretName: newsecret
+        optional: false
+    - name: bar
+      secret:
+        secretName: newsecrettwo
+        optional: false
+`
+
 var unknownKindYaml = `
 apiVersion: v1
 kind: UnknownKind
@@ -3493,7 +3563,7 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 			SkipIfRemote("cannot run in a remote setup")
 			address := url.URL{
 				Scheme: "tcp",
-				Host:   net.JoinHostPort("localhost", randomPort()),
+				Host:   net.JoinHostPort("localhost", "8080"),
 			}
 
 			session := podmanTest.Podman([]string{
@@ -3855,6 +3925,76 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(Exit(125))
+	})
+
+	It("podman play kube secret as volume support", func() {
+		err := writeYaml(secretYaml, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		secretList := podmanTest.Podman([]string{"secret", "list"})
+		secretList.WaitWithDefaultTimeout()
+		Expect(secretList).Should(Exit(0))
+		Expect(secretList.OutputToString()).Should(ContainSubstring("newsecret"))
+
+		err = writeYaml(secretPodYaml, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube = podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		exec := podmanTest.Podman([]string{"exec", "-it", "mypod-myctr", "cat", "/etc/foo/username"})
+		exec.WaitWithDefaultTimeout()
+		Expect(exec).Should(Exit(0))
+		Expect(exec.OutputToString()).Should(ContainSubstring("dXNlcg=="))
+
+		secretRm := podmanTest.Podman([]string{"secret", "rm", "newsecret"})
+		secretRm.WaitWithDefaultTimeout()
+		Expect(secretRm).Should(Exit(0))
+
+		podRm := podmanTest.Podman([]string{"pod", "rm", "-f", "mypod"})
+		podRm.WaitWithDefaultTimeout()
+		Expect(podRm).Should(Exit(0))
+
+		yamls := []string{secretYaml, secretPodYaml}
+		err = generateMultiDocKubeYaml(yamls, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube = podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		// do not remove newsecret to test that we auto remove on collision
+
+		yamls = []string{secretYaml, complexSecretYaml}
+		err = generateMultiDocKubeYaml(yamls, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube = podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		err = writeYaml(secretPodYamlTwo, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube = podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		exec = podmanTest.Podman([]string{"exec", "-it", "mypod2-myctr", "cat", "/etc/foo/username"})
+		exec.WaitWithDefaultTimeout()
+		Expect(exec).Should(Exit(0))
+		Expect(exec.OutputToString()).Should(ContainSubstring("dXNlcg=="))
+
+		exec = podmanTest.Podman([]string{"exec", "-it", "mypod2-myctr", "cat", "/etc/bar/username"})
+		exec.WaitWithDefaultTimeout()
+		Expect(exec).Should(Exit(0))
+		Expect(exec.OutputToString()).Should(ContainSubstring("Y2RvZXJuCg=="))
+
 	})
 
 })
