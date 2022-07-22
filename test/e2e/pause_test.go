@@ -319,4 +319,181 @@ var _ = Describe("Podman pause", func() {
 		Expect(running.OutputToStringArray()).To(HaveLen(3))
 	})
 
+	It("podman pause --latest", func() {
+		SkipIfRemote("--latest flag n/a")
+		session := podmanTest.RunTopContainer("")
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		result := podmanTest.Podman([]string{"pause", "-l"})
+		result.WaitWithDefaultTimeout()
+
+		Expect(session).Should(Exit(0))
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
+		Expect(strings.ToLower(podmanTest.GetContainerStatus())).To(ContainSubstring(pausedState))
+
+		result = podmanTest.Podman([]string{"unpause", "-l"})
+		result.WaitWithDefaultTimeout()
+	})
+
+	It("podman pause --cidfile", func() {
+		tmpDir, err := ioutil.TempDir("", "")
+		Expect(err).To(BeNil())
+		tmpFile := tmpDir + "cid"
+
+		defer os.RemoveAll(tmpDir)
+
+		session := podmanTest.Podman([]string{"create", "--cidfile", tmpFile, ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		cid := session.OutputToStringArray()[0]
+
+		session = podmanTest.Podman([]string{"start", cid})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		result := podmanTest.Podman([]string{"pause", "--cidfile", tmpFile})
+		result.WaitWithDefaultTimeout()
+		Expect(result).Should(Exit(0))
+		output := result.OutputToString()
+		Expect(output).To(ContainSubstring(cid))
+
+		result = podmanTest.Podman([]string{"unpause", "--cidfile", tmpFile})
+		result.WaitWithDefaultTimeout()
+		Expect(result).Should(Exit(0))
+		output = result.OutputToString()
+		Expect(output).To(ContainSubstring(cid))
+	})
+
+	It("podman pause multiple --cidfile", func() {
+		tmpDir, err := ioutil.TempDir("", "")
+		Expect(err).To(BeNil())
+		tmpFile1 := tmpDir + "cid-1"
+		tmpFile2 := tmpDir + "cid-2"
+
+		defer os.RemoveAll(tmpDir)
+
+		session := podmanTest.Podman([]string{"run", "--cidfile", tmpFile1, "-d", ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		cid1 := session.OutputToStringArray()[0]
+		Expect(podmanTest.NumberOfContainers()).To(Equal(1))
+
+		session = podmanTest.Podman([]string{"run", "--cidfile", tmpFile2, "-d", ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		cid2 := session.OutputToStringArray()[0]
+		Expect(podmanTest.NumberOfContainers()).To(Equal(2))
+
+		result := podmanTest.Podman([]string{"pause", "--cidfile", tmpFile1, "--cidfile", tmpFile2})
+		result.WaitWithDefaultTimeout()
+		Expect(result).Should(Exit(0))
+		output := result.OutputToString()
+		Expect(output).To(ContainSubstring(cid1))
+		Expect(output).To(ContainSubstring(cid2))
+		Expect(podmanTest.NumberOfContainers()).To(Equal(2))
+
+		result = podmanTest.Podman([]string{"unpause", "--cidfile", tmpFile1, "--cidfile", tmpFile2})
+		result.WaitWithDefaultTimeout()
+		Expect(result).Should(Exit(0))
+		output = result.OutputToString()
+		Expect(output).To(ContainSubstring(cid1))
+		Expect(output).To(ContainSubstring(cid2))
+		Expect(podmanTest.NumberOfContainers()).To(Equal(2))
+	})
+
+	It("podman pause invalid --latest and --cidfile and --all", func() {
+		SkipIfRemote("--latest flag n/a")
+		result := podmanTest.Podman([]string{"pause", "--cidfile", "foobar", "--latest"})
+		result.WaitWithDefaultTimeout()
+		Expect(result).Should(Exit(125))
+		Expect(result.ErrorToString()).To(ContainSubstring("cannot be used together"))
+		result = podmanTest.Podman([]string{"pause", "--cidfile", "foobar", "--all"})
+		result.WaitWithDefaultTimeout()
+		Expect(result).Should(Exit(125))
+		Expect(result.ErrorToString()).To(ContainSubstring("cannot be used together"))
+		result = podmanTest.Podman([]string{"pause", "--cidfile", "foobar", "--all", "--latest"})
+		result.WaitWithDefaultTimeout()
+		Expect(result).Should(Exit(125))
+		Expect(result.ErrorToString()).To(ContainSubstring("cannot be used together"))
+		result = podmanTest.Podman([]string{"pause", "--latest", "--all"})
+		result.WaitWithDefaultTimeout()
+		Expect(result).Should(Exit(125))
+		Expect(result.ErrorToString()).To(ContainSubstring("cannot be used together"))
+	})
+
+	It("podman unpause invalid --latest and --cidfile and --all", func() {
+		SkipIfRemote("--latest flag n/a")
+		result := podmanTest.Podman([]string{"unpause", "--cidfile", "foobar", "--latest"})
+		result.WaitWithDefaultTimeout()
+		Expect(result).Should(Exit(125))
+		Expect(result.ErrorToString()).To(ContainSubstring("cannot be used together"))
+		result = podmanTest.Podman([]string{"unpause", "--cidfile", "foobar", "--all"})
+		result.WaitWithDefaultTimeout()
+		Expect(result).Should(Exit(125))
+		Expect(result.ErrorToString()).To(ContainSubstring("cannot be used together"))
+		result = podmanTest.Podman([]string{"unpause", "--cidfile", "foobar", "--all", "--latest"})
+		result.WaitWithDefaultTimeout()
+		Expect(result).Should(Exit(125))
+		Expect(result.ErrorToString()).To(ContainSubstring("cannot be used together"))
+		result = podmanTest.Podman([]string{"unpause", "--latest", "--all"})
+		result.WaitWithDefaultTimeout()
+		Expect(result).Should(Exit(125))
+		Expect(result.ErrorToString()).To(ContainSubstring("cannot be used together"))
+	})
+
+	It("podman pause --filter", func() {
+		session1 := podmanTest.RunTopContainer("")
+		session1.WaitWithDefaultTimeout()
+		Expect(session1).Should(Exit(0))
+		cid1 := session1.OutputToString()
+
+		session1 = podmanTest.RunTopContainer("")
+		session1.WaitWithDefaultTimeout()
+		Expect(session1).Should(Exit(0))
+		cid2 := session1.OutputToString()
+
+		session1 = podmanTest.RunTopContainer("")
+		session1.WaitWithDefaultTimeout()
+		Expect(session1).Should(Exit(0))
+		cid3 := session1.OutputToString()
+		shortCid3 := cid3[0:5]
+
+		session1 = podmanTest.Podman([]string{"pause", cid1, "-f", "status=test"})
+		session1.WaitWithDefaultTimeout()
+		Expect(session1).Should(Exit(125))
+
+		session1 = podmanTest.Podman([]string{"unpause", cid1, "-f", "status=paused"})
+		session1.WaitWithDefaultTimeout()
+		Expect(session1).Should(Exit(125))
+
+		session1 = podmanTest.Podman([]string{"pause", "-a", "--filter", fmt.Sprintf("id=%swrongid", shortCid3)})
+		session1.WaitWithDefaultTimeout()
+		Expect(session1).Should(Exit(0))
+		Expect(session1.OutputToString()).To(HaveLen(0))
+
+		session1 = podmanTest.Podman([]string{"pause", "-a", "--filter", fmt.Sprintf("id=%s", shortCid3)})
+		session1.WaitWithDefaultTimeout()
+		Expect(session1).Should(Exit(0))
+		Expect(session1.OutputToString()).To(BeEquivalentTo(cid3))
+
+		session1 = podmanTest.Podman([]string{"unpause", "-a", "--filter", fmt.Sprintf("id=%swrongid", shortCid3)})
+		session1.WaitWithDefaultTimeout()
+		Expect(session1).Should(Exit(0))
+		Expect(session1.OutputToString()).To(HaveLen(0))
+
+		session1 = podmanTest.Podman([]string{"unpause", "-a", "--filter", fmt.Sprintf("id=%s", shortCid3)})
+		session1.WaitWithDefaultTimeout()
+		Expect(session1).Should(Exit(0))
+		Expect(session1.OutputToString()).To(BeEquivalentTo(cid3))
+
+		session1 = podmanTest.Podman([]string{"pause", "-f", fmt.Sprintf("id=%s", cid2)})
+		session1.WaitWithDefaultTimeout()
+		Expect(session1).Should(Exit(0))
+		Expect(session1.OutputToString()).To(BeEquivalentTo(cid2))
+
+		session1 = podmanTest.Podman([]string{"unpause", "-f", fmt.Sprintf("id=%s", cid2)})
+		session1.WaitWithDefaultTimeout()
+		Expect(session1).Should(Exit(0))
+		Expect(session1.OutputToString()).To(BeEquivalentTo(cid2))
+	})
 })

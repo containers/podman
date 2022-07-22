@@ -71,12 +71,15 @@ type StringSliceReport struct {
 }
 
 type PauseUnPauseOptions struct {
-	All bool
+	Filters map[string][]string
+	All     bool
+	Latest  bool
 }
 
 type PauseUnpauseReport struct {
-	Err error
-	Id  string //nolint:revive,stylecheck
+	Err      error
+	Id       string //nolint:revive,stylecheck
+	RawInput string
 }
 
 type StopOptions struct {

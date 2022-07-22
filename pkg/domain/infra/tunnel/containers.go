@@ -57,9 +57,13 @@ func (ic *ContainerEngine) ContainerWait(ctx context.Context, namesOrIds []strin
 }
 
 func (ic *ContainerEngine) ContainerPause(ctx context.Context, namesOrIds []string, options entities.PauseUnPauseOptions) ([]*entities.PauseUnpauseReport, error) {
-	ctrs, err := getContainersByContext(ic.ClientCtx, options.All, false, namesOrIds)
+	ctrs, rawInputs, err := getContainersAndInputByContext(ic.ClientCtx, options.All, false, namesOrIds, options.Filters)
 	if err != nil {
 		return nil, err
+	}
+	ctrMap := map[string]string{}
+	for i := range ctrs {
+		ctrMap[ctrs[i].ID] = rawInputs[i]
 	}
 	reports := make([]*entities.PauseUnpauseReport, 0, len(ctrs))
 	for _, c := range ctrs {
@@ -68,24 +72,36 @@ func (ic *ContainerEngine) ContainerPause(ctx context.Context, namesOrIds []stri
 			logrus.Debugf("Container %s is not running", c.ID)
 			continue
 		}
-		reports = append(reports, &entities.PauseUnpauseReport{Id: c.ID, Err: err})
+		reports = append(reports, &entities.PauseUnpauseReport{
+			Id:       c.ID,
+			Err:      err,
+			RawInput: ctrMap[c.ID],
+		})
 	}
 	return reports, nil
 }
 
 func (ic *ContainerEngine) ContainerUnpause(ctx context.Context, namesOrIds []string, options entities.PauseUnPauseOptions) ([]*entities.PauseUnpauseReport, error) {
-	reports := []*entities.PauseUnpauseReport{}
-	ctrs, err := getContainersByContext(ic.ClientCtx, options.All, false, namesOrIds)
+	ctrs, rawInputs, err := getContainersAndInputByContext(ic.ClientCtx, options.All, false, namesOrIds, options.Filters)
 	if err != nil {
 		return nil, err
 	}
+	ctrMap := map[string]string{}
+	for i := range ctrs {
+		ctrMap[ctrs[i].ID] = rawInputs[i]
+	}
+	reports := make([]*entities.PauseUnpauseReport, 0, len(ctrs))
 	for _, c := range ctrs {
 		err := containers.Unpause(ic.ClientCtx, c.ID, nil)
 		if err != nil && options.All && strings.Contains(err.Error(), define.ErrCtrStateInvalid.Error()) {
 			logrus.Debugf("Container %s is not paused", c.ID)
 			continue
 		}
-		reports = append(reports, &entities.PauseUnpauseReport{Id: c.ID, Err: err})
+		reports = append(reports, &entities.PauseUnpauseReport{
+			Id:       c.ID,
+			Err:      err,
+			RawInput: ctrMap[c.ID],
+		})
 	}
 	return reports, nil
 }
