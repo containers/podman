@@ -509,6 +509,9 @@ spec:
   volumes:
   {{ range . }}
   - name: {{ .Name }}
+    {{- if (eq .VolumeType "EmptyDir") }}
+    emptyDir: {}
+    {{- end }}
     {{- if (eq .VolumeType "HostPath") }}
     hostPath:
       path: {{ .HostPath.Path }}
@@ -1242,12 +1245,15 @@ type ConfigMap struct {
 	Optional bool
 }
 
+type EmptyDir struct{}
+
 type Volume struct {
 	VolumeType string
 	Name       string
 	HostPath
 	PersistentVolumeClaim
 	ConfigMap
+	EmptyDir
 }
 
 // getHostPathVolume takes a type and a location for a HostPath
@@ -1286,6 +1292,14 @@ func getConfigMapVolume(vName string, items []map[string]string, optional bool) 
 			Items:    items,
 			Optional: optional,
 		},
+	}
+}
+
+func getEmptyDirVolume() *Volume {
+	return &Volume{
+		VolumeType: "EmptyDir",
+		Name:       defaultVolName,
+		EmptyDir:   EmptyDir{},
 	}
 }
 
@@ -2760,6 +2774,43 @@ VOLUME %s`, ALPINE, hostPathDir+"/")
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(Exit(0))
+	})
+
+	It("podman play kube with emptyDir volume", func() {
+		podName := "test-pod"
+		ctrName1 := "vol-test-ctr"
+		ctrName2 := "vol-test-ctr-2"
+		ctr1 := getCtr(withVolumeMount("/test-emptydir", false), withImage(BB), withName(ctrName1))
+		ctr2 := getCtr(withVolumeMount("/test-emptydir-2", false), withImage(BB), withName(ctrName2))
+		pod := getPod(withPodName(podName), withVolume(getEmptyDirVolume()), withCtr(ctr1), withCtr(ctr2))
+		err = generateKubeYaml("pod", pod, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		emptyDirCheck1 := podmanTest.Podman([]string{"exec", podName + "-" + ctrName1, "ls", "/test-emptydir"})
+		emptyDirCheck1.WaitWithDefaultTimeout()
+		Expect(emptyDirCheck1).Should(Exit(0))
+
+		emptyDirCheck2 := podmanTest.Podman([]string{"exec", podName + "-" + ctrName2, "ls", "/test-emptydir-2"})
+		emptyDirCheck2.WaitWithDefaultTimeout()
+		Expect(emptyDirCheck2).Should(Exit(0))
+
+		volList1 := podmanTest.Podman([]string{"volume", "ls", "-q"})
+		volList1.WaitWithDefaultTimeout()
+		Expect(volList1).Should(Exit(0))
+		Expect(volList1.OutputToString()).To(Equal(defaultVolName))
+
+		remove := podmanTest.Podman([]string{"pod", "rm", "-f", podName})
+		remove.WaitWithDefaultTimeout()
+		Expect(remove).Should(Exit(0))
+
+		volList2 := podmanTest.Podman([]string{"volume", "ls", "-q"})
+		volList2.WaitWithDefaultTimeout()
+		Expect(volList2).Should(Exit(0))
+		Expect(volList2.OutputToString()).To(Equal(""))
 	})
 
 	It("podman play kube applies labels to pods", func() {

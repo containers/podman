@@ -436,7 +436,7 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 	}
 
 	// Go through the volumes and create a podman volume for all volumes that have been
-	// defined by a configmap
+	// defined by a configmap or secret
 	for _, v := range volumes {
 		if (v.Type == kube.KubeVolumeTypeConfigMap || v.Type == kube.KubeVolumeTypeSecret) && !v.Optional {
 			vol, err := ic.Libpod.NewVolume(ctx, libpod.WithVolumeName(v.Source))

@@ -58,6 +58,10 @@ type VolumeSource struct {
 	ConfigMap *ConfigMapVolumeSource `json:"configMap,omitempty"`
 	// Secret represents a secret that should be mounted as a volume
 	Secret *SecretVolumeSource `json:"secret,omitempty"`
+	// emptyDir represents a temporary directory that shares a pod's lifetime.
+	// More info: https://kubernetes.io/docs/concepts/storage/volumes#emptydir
+	// +optional
+	EmptyDir *EmptyDirVolumeSource `json:"emptyDir,omitempty"`
 }
 
 // PersistentVolumeClaimVolumeSource references the user's PVC in the same namespace.

@@ -23,6 +23,9 @@ type NamedVolume struct {
 	Dest string
 	// Options are options that the named volume will be mounted with.
 	Options []string
+	// IsAnonymous sets the named volume as anonymous even if it has a name
+	// This is used for emptyDir volumes from a kube yaml
+	IsAnonymous bool
 }
 
 // OverlayVolume holds information about a overlay volume that will be mounted into
