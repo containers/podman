@@ -871,4 +871,20 @@ EOF
     run_podman container rm -fa
 }
 
+@test "podman run failed --rm " {
+    port=$(random_free_port)
+
+    # Run two containers with the same port bindings. The second must fail
+    run_podman     run -p $port:80 --rm -d --name c_ok           $IMAGE top
+    run_podman 126 run -p $port:80      -d --name c_fail_no_rm   $IMAGE top
+    run_podman 126 run -p $port:80 --rm -d --name c_fail_with_rm $IMAGE top
+    # Prior to #15060, the third container would still show up in ps -a
+    run_podman ps -a --sort names --format '{{.Image}}--{{.Names}}'
+    is "$output" "$IMAGE--c_fail_no_rm
+$IMAGE--c_ok" \
+       "podman ps -a shows running & failed containers, but not failed-with-rm"
+
+    run_podman container rm -f -t 0 c_ok c_fail_no_rm
+}
+
 # vim: filetype=sh
