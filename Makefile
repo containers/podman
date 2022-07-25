@@ -264,7 +264,7 @@ codespell:
 	codespell -S bin,vendor,.git,go.sum,.cirrus.yml,"RELEASE_NOTES.md,*.xz,*.gz,*.ps1,*.tar,swagger.yaml,*.tgz,bin2img,*ico,*.png,*.1,*.5,copyimg,*.orig,apidoc.go" -L pullrequest,uint,iff,od,seeked,splitted,marge,erro,hist,ether -w
 
 .PHONY: validate
-validate: lint .gitvalidation validate.completions man-page-check swagger-check tests-included tests-expect-exit
+validate: lint .gitvalidation validate.completions man-page-check swagger-check tests-included tests-expect-exit pr-removes-fixed-skips
 
 .PHONY: build-all-new-commits
 build-all-new-commits:
@@ -620,6 +620,10 @@ tests-expect-exit:
 		echo "        Expect(...).To(..., \"Friendly explanation of this check\")"; \
 		exit 1; \
 	fi
+
+.PHONY: pr-removes-fixed-skips
+pr-removes-fixed-skips:
+	contrib/cirrus/pr-removes-fixed-skips
 
 ###
 ### Release/Packaging targets
