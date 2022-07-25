@@ -535,7 +535,8 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 
 	It("podman containers.conf cgroups=disabled", func() {
 		if !strings.Contains(podmanTest.OCIRuntime, "crun") {
-			Skip("FIXME: requires crun")
+			// Assume this will never be fixed in runc
+			Skip("NoCgroups requires crun")
 		}
 
 		conffile := filepath.Join(podmanTest.TempDir, "container.conf")
