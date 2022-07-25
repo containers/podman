@@ -32,8 +32,8 @@ env:
     UBUNTU_NAME: "ubuntu-2204"
 
     # Image identifiers
-    IMAGE_SUFFIX: "c6013173500215296"
-    FEDORA_AMI_ID: "ami-0f116746f31965e41"
+    IMAGE_SUFFIX: "c5495735033528320"
+    FEDORA_AMI_ID: "ami-0df5df528071f1052"
     # Complete image names
     FEDORA_CACHE_IMAGE_NAME: "fedora-${IMAGE_SUFFIX}"
     #PRIOR_FEDORA_CACHE_IMAGE_NAME: "prior-fedora-${IMAGE_SUFFIX}"
