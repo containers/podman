@@ -163,7 +163,7 @@ skip "does not work under podman" \
 # which we could and perhaps should fix in the buildah repo via:
 #    - ... ${TESTSDIR}/bud/layers-squash/Dockerfile.hardlinks
 #    + ... -f Dockerfile.hardlinks ${TESTSDIR}/bud/layers-squash
-skip "FIXME FIXME FIXME: argument-order incompatible with podman" \
+skip "argument-order incompatible with podman" \
      "bud-squash-hardlinks"
 
 # Fails with "Error: context must be a directory: /path/to/Dockerfile"
@@ -231,7 +231,7 @@ skip_if_remote "FIXME FIXME FIXME: does this test make sense in remote?" \
 ###############################################################################
 # BEGIN tests which are skipped due to actual podman or podman-remote bugs.
 
-skip_if_remote "Podman #12838: different error messages" \
+skip_if_remote "different error messages between podman & podman-remote" \
                "bud with .dockerignore #2"
 
 # These two tests, new in 2022-01, invoke podman (create, export) in ways

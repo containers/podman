@@ -715,8 +715,7 @@ USER bin`, BB)
 	})
 
 	It("podman run device-read-bps test", func() {
-		SkipIfRootless("FIXME: requested cgroup controller `io` is not available")
-		SkipIfRootlessCgroupsV1("Setting device-read-bps not supported on cgroupv1 for rootless users")
+		SkipIfRootless("Setting device-read-bps not supported for rootless users")
 
 		var session *PodmanSessionIntegration
 
@@ -734,8 +733,7 @@ USER bin`, BB)
 	})
 
 	It("podman run device-write-bps test", func() {
-		SkipIfRootless("FIXME: requested cgroup controller `io` is not available")
-		SkipIfRootlessCgroupsV1("Setting device-write-bps not supported on cgroupv1 for rootless users")
+		SkipIfRootless("Setting device-write-bps not supported for rootless users")
 
 		var session *PodmanSessionIntegration
 
@@ -752,8 +750,7 @@ USER bin`, BB)
 	})
 
 	It("podman run device-read-iops test", func() {
-		SkipIfRootless("FIXME: requested cgroup controller `io` is not available")
-		SkipIfRootlessCgroupsV1("Setting device-read-iops not supported on cgroupv1 for rootless users")
+		SkipIfRootless("Setting device-read-iops not supported for rootless users")
 		var session *PodmanSessionIntegration
 
 		if CGROUPSV2 {
@@ -770,8 +767,7 @@ USER bin`, BB)
 	})
 
 	It("podman run device-write-iops test", func() {
-		SkipIfRootless("FIXME: requested cgroup controller `io` is not available")
-		SkipIfRootlessCgroupsV1("Setting device-write-iops not supported on cgroupv1 for rootless users")
+		SkipIfRootless("Setting device-write-iops not supported for rootless users")
 		var session *PodmanSessionIntegration
 
 		if CGROUPSV2 {
@@ -1239,6 +1235,7 @@ USER mail`, BB)
 	})
 
 	It("podman run --mount type=bind,bind-nonrecursive", func() {
+		// crun: mount `/` to `/host`: Invalid argument
 		SkipIfRootless("FIXME: rootless users are not allowed to mount bind-nonrecursive (Could this be a Kernel bug?")
 		session := podmanTest.Podman([]string{"run", "--mount", "type=bind,bind-nonrecursive,slave,src=/,target=/host", fedoraMinimal, "findmnt", "-nR", "/host"})
 		session.WaitWithDefaultTimeout()

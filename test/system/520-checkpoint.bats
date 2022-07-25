@@ -12,7 +12,7 @@ function setup() {
     # could run to see if it's fixed, but it's way too complicated. Since
     # integration tests also skip checkpoint tests on Ubuntu, do the same here.
     if is_ubuntu; then
-        skip "FIXME: checkpointing broken in Ubuntu 2004, 2104, 2110, ..."
+        skip "FIXME: checkpointing broken in Ubuntu 2004, 2104, 2110, 2204, ..."
     fi
 
     # None of these tests work rootless....
