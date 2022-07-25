@@ -403,8 +403,13 @@ func executeContainerTemplate(info *containerInfo, options entities.GenerateSyst
 
 		// Default to --sdnotify=conmon unless already set by the
 		// container.
-		hasSdnotifyParam := fs.Lookup("sdnotify").Changed
-		if !hasSdnotifyParam {
+		sdnotifyFlag := fs.Lookup("sdnotify")
+		if !sdnotifyFlag.Changed {
+			startCommand = append(startCommand, "--sdnotify=conmon")
+		} else if sdnotifyFlag.Value.String() == libpodDefine.SdNotifyModeIgnore {
+			// If ignore is set force conmon otherwise the unit with Type=notify will fail.
+			logrus.Infof("Forcing --sdnotify=conmon for container %s", info.ContainerNameOrID)
+			remainingCmd = removeSdNotifyArg(remainingCmd, fs.NArg())
 			startCommand = append(startCommand, "--sdnotify=conmon")
 		}
 

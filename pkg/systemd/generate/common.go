@@ -42,7 +42,7 @@ RequiresMountsFor={{{{.RunRoot}}}}
 // filterPodFlags removes --pod, --pod-id-file and --infra-conmon-pidfile from the specified command.
 // argCount is the number of last arguments which should not be filtered, e.g. the container entrypoint.
 func filterPodFlags(command []string, argCount int) []string {
-	processed := []string{}
+	processed := make([]string, 0, len(command))
 	for i := 0; i < len(command)-argCount; i++ {
 		s := command[i]
 		if s == "--pod" || s == "--pod-id-file" || s == "--infra-conmon-pidfile" {
@@ -63,7 +63,7 @@ func filterPodFlags(command []string, argCount int) []string {
 // filterCommonContainerFlags removes --sdnotify, --rm and --cgroups from the specified command.
 // argCount is the number of last arguments which should not be filtered, e.g. the container entrypoint.
 func filterCommonContainerFlags(command []string, argCount int) []string {
-	processed := []string{}
+	processed := make([]string, 0, len(command))
 	for i := 0; i < len(command)-argCount; i++ {
 		s := command[i]
 
@@ -71,7 +71,7 @@ func filterCommonContainerFlags(command []string, argCount int) []string {
 		case s == "--rm":
 			// Boolean flags support --flag and --flag={true,false}.
 			continue
-		case s == "--sdnotify", s == "--cgroups", s == "--cidfile", s == "--restart":
+		case s == "--cgroups", s == "--cidfile", s == "--restart":
 			i++
 			continue
 		case strings.HasPrefix(s, "--rm="),
@@ -109,6 +109,24 @@ func escapeSystemdArg(arg string) string {
 		arg = strings.ReplaceAll(arg, `\`, `\\`)
 	}
 	return arg
+}
+
+func removeSdNotifyArg(args []string, argCount int) []string {
+	processed := make([]string, 0, len(args))
+	for i := 0; i < len(args)-argCount; i++ {
+		s := args[i]
+
+		switch {
+		case s == "--sdnotify":
+			i++
+			continue
+		case strings.HasPrefix(s, "--sdnotify="):
+			continue
+		}
+		processed = append(processed, s)
+	}
+	processed = append(processed, args[len(args)-argCount:]...)
+	return processed
 }
 
 func removeDetachArg(args []string, argCount int) []string {
