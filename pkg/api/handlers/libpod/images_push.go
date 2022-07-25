@@ -32,6 +32,7 @@ func PushImage(w http.ResponseWriter, r *http.Request) {
 		TLSVerify        bool   `schema:"tlsVerify"`
 		Quiet            bool   `schema:"quiet"`
 	}{
+		TLSVerify: true,
 		// #14971: older versions did not sent *any* data, so we need
 		//         to be quiet by default to remain backwards compatible
 		Quiet: true,

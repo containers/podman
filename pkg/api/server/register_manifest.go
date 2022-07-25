@@ -69,12 +69,12 @@ func (s *APIServer) registerManifestHandlers(r *mux.Router) error {
 	//    name: all
 	//    description: push all images
 	//    type: boolean
-	//    default: false
+	//    default: true
 	//  - in: query
 	//    name: tlsVerify
 	//    type: boolean
-	//    default: false
-	//    description: skip TLS verification for registries
+	//    default: true
+	//    description: Require HTTPS and verify signatures when contacting registries.
 	// responses:
 	//   200:
 	//     schema:
@@ -195,8 +195,8 @@ func (s *APIServer) registerManifestHandlers(r *mux.Router) error {
 	//  - in: query
 	//    name: tlsVerify
 	//    type: boolean
-	//    default: false
-	//    description: skip TLS verification for registries
+	//    default: true
+	//    description: Require HTTPS and verify signatures when contacting registries.
 	//  - in: body
 	//    name: options
 	//    description: options for mutating a manifest

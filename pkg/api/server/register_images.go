@@ -192,8 +192,8 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//  - in: query
 	//    name: tlsVerify
 	//    type: boolean
-	//    default: false
-	//    description: skip TLS verification for registries
+	//    default: true
+	//    description: Require HTTPS and verify signatures when contacting registries.
 	//  - in: query
 	//    name: listTags
 	//    type: boolean
@@ -1120,8 +1120,8 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//  - in: query
 	//    name: tlsVerify
 	//    type: boolean
-	//    default: false
-	//    description: skip TLS verification for registries
+	//    default: true
+	//    description: Require HTTPS and verify signatures when contacting registries.
 	//  - in: query
 	//    name: listTags
 	//    type: boolean

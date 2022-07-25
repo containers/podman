@@ -310,6 +310,7 @@ func ManifestPush(w http.ResponseWriter, r *http.Request) {
 		TLSVerify bool `schema:"tlsVerify"`
 	}{
 		// Add defaults here once needed.
+		TLSVerify: true,
 	}
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
 		utils.Error(w, http.StatusBadRequest,
