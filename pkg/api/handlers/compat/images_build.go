@@ -140,6 +140,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		Registry:      "docker.io",
 		Rm:            true,
 		ShmSize:       64 * 1024 * 1024,
+		TLSVerify:     true,
 	}
 
 	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
