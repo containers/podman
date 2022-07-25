@@ -240,7 +240,7 @@ var _ = Describe("Podman Benchmark Suite", func() {
 		// --------------------------------------------------------------------------
 
 		newBenchmark("podman create", func() {
-			session := podmanTest.Podman([]string{"run", ALPINE, "true"})
+			session := podmanTest.Podman([]string{"create", ALPINE, "true"})
 			session.WaitWithDefaultTimeout()
 			Expect(session).Should(Exit(0))
 		}, nil)
@@ -259,6 +259,12 @@ var _ = Describe("Podman Benchmark Suite", func() {
 
 		newBenchmark("podman run", func() {
 			session := podmanTest.Podman([]string{"run", ALPINE, "true"})
+			session.WaitWithDefaultTimeout()
+			Expect(session).Should(Exit(0))
+		}, nil)
+
+		newBenchmark("podman run --detach", func() {
+			session := podmanTest.Podman([]string{"run", "--detach", ALPINE, "true"})
 			session.WaitWithDefaultTimeout()
 			Expect(session).Should(Exit(0))
 		}, nil)
