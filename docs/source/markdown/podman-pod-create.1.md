@@ -373,7 +373,7 @@ Note: Labeling can be disabled for all containers by setting label=false in the 
 
 #### **--share**=*namespace*
 
-A comma-separated list of kernel namespaces to share. If none or "" is specified, no namespaces will be shared. The namespaces to choose from are cgroup, ipc, net, pid, uts. If the option is prefixed with a "+" then the namespace is appended to the default list, otherwise it replaces the default list. Defaults matches Kubernetes default (ipc, net, uts)
+A comma-separated list of kernel namespaces to share. If none or "" is specified, no namespaces will be shared and the infra container will not be created unless expiclity specified via **--infra=true**. The namespaces to choose from are cgroup, ipc, net, pid, uts. If the option is prefixed with a "+" then the namespace is appended to the default list, otherwise it replaces the default list. Defaults matches Kubernetes default (ipc, net, uts)
 
 #### **--share-parent**
 

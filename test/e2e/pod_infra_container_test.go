@@ -435,4 +435,20 @@ var _ = Describe("Podman pod create", func() {
 		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(ContainSubstring(hostname))
 	})
+
+	tests := []string{"", "none"}
+	for _, test := range tests {
+		test := test
+		It("podman pod create --share="+test+" should not create an infra ctr", func() {
+			session := podmanTest.Podman([]string{"pod", "create", "--share", test})
+			session.WaitWithDefaultTimeout()
+			Expect(session).Should(Exit(0))
+
+			session = podmanTest.Podman([]string{"pod", "inspect", "--format", "{{.NumContainers}}", session.OutputToString()})
+			session.WaitWithDefaultTimeout()
+			Expect(session).Should(Exit(0))
+			Expect(session.OutputToString()).Should((Equal("0")))
+		})
+	}
+
 })
