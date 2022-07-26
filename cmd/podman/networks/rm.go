@@ -63,6 +63,9 @@ func networkRm(cmd *cobra.Command, args []string) error {
 	}
 	responses, err := registry.ContainerEngine().NetworkRm(registry.Context(), args, networkRmOptions)
 	if err != nil {
+		if networkRmOptions.Force && strings.Contains(err.Error(), define.ErrNoSuchNetwork.Error()) {
+			return nil
+		}
 		setExitCode(err)
 		return err
 	}
@@ -70,6 +73,9 @@ func networkRm(cmd *cobra.Command, args []string) error {
 		if r.Err == nil {
 			fmt.Println(r.Name)
 		} else {
+			if networkRmOptions.Force && strings.Contains(r.Err.Error(), define.ErrNoSuchNetwork.Error()) {
+				continue
+			}
 			setExitCode(r.Err)
 			errs = append(errs, r.Err)
 		}
