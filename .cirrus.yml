@@ -745,7 +745,7 @@ meta_task:
     container:
         cpu: 2
         memory: 2
-        image: quay.io/libpod/imgts:$IMAGE_SUFFIX
+        image: quay.io/libpod/imgts:latest
     env:
         # Space-separated list of images used by this repository state
         IMGNAMES: >-
