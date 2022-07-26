@@ -14,6 +14,13 @@ Generating unit files for a pod requires the pod to be created with an infra con
 
 _Note: If you use this command with the remote client, including Mac and Windows (excluding WSL2) machines, you would still have to place the generated units on the remote system.  Moreover, please make sure that the XDG_RUNTIME_DIR environment variable is set.  If unset, you may set it via `export XDG_RUNTIME_DIR=/run/user/$(id -u)`._
 
+_Note: The generated `podman run` command contains an `--sdnotify` option with the value taken from the container.
+If the container does not have any explicitly set value or the value is set to __ignore__, the value __conmon__ is used.
+The reason for overriding the default value __container__ is that almost no container workloads send notify messages.
+Systemd would wait for a ready message that never comes, if the value __container__ is used for a container
+that does not send notify messages. The use of the default value might have been unintentional by the user,
+therefore the overridden default value._
+
 ### Kubernetes Integration
 
 A Kubernetes YAML can be executed in systemd via the `podman-kube@.service` systemd template.  The template's argument is the path to the YAML file.  Given a `workload.yaml` file in the home directory, it can be executed as follows:
