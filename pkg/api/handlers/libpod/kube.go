@@ -29,8 +29,7 @@ func KubePlay(w http.ResponseWriter, r *http.Request) {
 		StaticMACs  []string          `schema:"staticMACs"`
 		NoHosts     bool              `schema:"noHosts"`
 	}{
-		TLSVerify: true,
-		Start:     true,
+		Start: true,
 	}
 
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {

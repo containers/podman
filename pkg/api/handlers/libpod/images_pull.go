@@ -37,7 +37,6 @@ func ImagesPull(w http.ResponseWriter, r *http.Request) {
 		PullPolicy string `schema:"policy"`
 		Quiet      bool   `schema:"quiet"`
 	}{
-		TLSVerify:  true,
 		PullPolicy: "always",
 	}
 

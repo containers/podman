@@ -46,7 +46,6 @@ func PushImage(w http.ResponseWriter, r *http.Request) {
 		Tag         string `schema:"tag"`
 	}{
 		// This is where you can override the golang default value for one of fields
-		TLSVerify: true,
 	}
 
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
