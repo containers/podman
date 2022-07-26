@@ -260,7 +260,7 @@ load helpers
 
     run_podman rm -t 0 -f $cid
     run_podman network rm $mynetname
-    run_podman 1 network rm -f $mynetname
+    run_podman 1 network rm $mynetname
 }
 
 @test "podman network reload" {
@@ -758,6 +758,13 @@ EOF
         is "${lines[1]}" "0\:0" "/etc/resolv.conf owned by root"
         is "${lines[2]}" "0\:0" "/etc/hosts owned by root"
     done
+}
+
+@test "podman network rm --force bogus" {
+    run_podman 1 network rm bogus
+    is "$output" "Error: unable to find network with name or ID bogus: network not found" "Should print error"
+    run_podman network rm --force bogus
+    is "$output" "" "Should print no output"
 }
 
 # vim: filetype=sh

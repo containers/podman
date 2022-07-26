@@ -96,4 +96,11 @@ load helpers
     run_podman 137 run --name $rand $IMAGE sleep 30
 }
 
+@test "podman container rm --force bogus" {
+    run_podman 1 container rm bogus
+    is "$output" "Error: no container with name or ID \"bogus\" found: no such container" "Should print error"
+    run_podman container rm --force bogus
+    is "$output" "" "Should print no output"
+}
+
 # vim: filetype=sh

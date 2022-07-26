@@ -317,4 +317,11 @@ Deleted: $pauseID"
     is "$output" ""
 }
 
+@test "podman image rm --force bogus" {
+    run_podman 1 image rm bogus
+    is "$output" "Error: bogus: image not known" "Should print error"
+    run_podman image rm --force bogus
+    is "$output" "" "Should print no output"
+}
+
 # vim: filetype=sh
