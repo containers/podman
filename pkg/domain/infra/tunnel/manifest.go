@@ -110,5 +110,15 @@ func (ir *ImageEngine) ManifestPush(ctx context.Context, name, destination strin
 		}
 	}
 	digest, err := manifests.Push(ir.ClientCtx, name, destination, options)
+	if err != nil {
+		return "", fmt.Errorf("error adding to manifest list %s: %w", name, err)
+	}
+
+	if opts.Rm {
+		if _, rmErrors := ir.Remove(ctx, []string{name}, entities.ImageRemoveOptions{LookupManifest: true}); len(rmErrors) > 0 {
+			return "", fmt.Errorf("error removing manifest after push: %w", rmErrors[0])
+		}
+	}
+
 	return digest, err
 }
