@@ -315,7 +315,7 @@
 - The `podman run` and `podman create` commands now support a new option, `--hostuser`, that creates one or more users in the container based on users from the host (e.g. with matching username, UID, and GID).
 - The `podman create` and `podman run` commands now support two new options, `--unsetenv` and `--unsetenv-all`, to clear default environment variables set by Podman and by the container image ([#11836](https://github.com/containers/podman/issues/11836)).
 - The `podman rm` command now supports a new option, `--depend`, which recursively removes a given container and all containers that depend on it ([#10360](https://github.com/containers/podman/issues/10360)).
-- All commands that support filtering their output based on labels (e.g. `podman volume ls`, `podman ps`) now support labels specified using regular expressions (e.g. `--filter label=some.prefix.com/key/*`).
+- All commands that support filtering their output based on labels (e.g. `podman volume ls`, `podman ps`) now support labels specified using glob matching (e.g. `--filter label=some.prefix.com/key/*`).
 - The `podman pod create` command now supports the `--volume` option, allowing volumes to be specified that will be mounted automatically to all containers in the pod ([#10379](https://github.com/containers/podman/issues/10379)).
 - The `podman pod create` command now supports the `--device` option, allowing devices to be specified that will be mounted automatically to all containers in the pod.
 - The `podman pod create` command now supports the `--volumes-from` option, allowing volumes from an existing Podman container to be mounted automatically to all containers in the pod.
