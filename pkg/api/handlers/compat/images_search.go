@@ -26,6 +26,7 @@ func SearchImages(w http.ResponseWriter, r *http.Request) {
 		ListTags  bool                `json:"listTags"`
 	}{
 		// This is where you can override the golang default value for one of fields
+		TLSVerify: true,
 	}
 
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
