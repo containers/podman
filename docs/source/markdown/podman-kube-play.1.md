@@ -145,6 +145,12 @@ The [username[:password]] to use to authenticate with the registry if required.
 If one or both values are not supplied, a command line prompt will appear and the
 value can be entered.  The password is entered without echo.
 
+#### **--detach**, **-d**
+
+Return after the pods have been started. The default is **true**.
+
+Use **--detach=false** to remain in the foreground. Pressing Ctrl-C or receiving any other interrupt signal will stop the pods.
+
 #### **--down**
 
 Tears down the pods that were created by a previous run of `kube play`.  The pods are stopped and then

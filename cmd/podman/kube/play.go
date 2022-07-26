@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 
 	"github.com/containers/common/pkg/auth"
 	"github.com/containers/common/pkg/completion"
@@ -143,6 +145,9 @@ func playFlags(cmd *cobra.Command) {
 	replaceFlagName := "replace"
 	flags.BoolVar(&playOptions.Replace, replaceFlagName, false, "Delete and recreate pods defined in the YAML file")
 
+	detachFlagName := "detach"
+	flags.BoolVarP(&playOptions.Detach, detachFlagName, "d", true, "Run pods and containers in background")
+
 	if !registry.IsRemote() {
 		certDirFlagName := "cert-dir"
 		flags.StringVar(&playOptions.CertDir, certDirFlagName, "", "`Pathname` of a directory containing TLS certificates and keys")
@@ -235,15 +240,31 @@ func Play(cmd *cobra.Command, args []string) error {
 		}
 		playOptions.StaticMACs = append(playOptions.StaticMACs, m)
 	}
-	if playOptions.Down {
-		return teardown(yamlfile)
-	}
 	if playOptions.Replace {
 		if err := teardown(yamlfile); err != nil && !errorhandling.Contains(err, define.ErrNoSuchPod) {
 			return err
 		}
 	}
-	return kubeplay(yamlfile)
+	if playOptions.Down {
+		return teardown(yamlfile)
+	}
+
+	done := setupSignalHandler()
+	err := kubeplay(yamlfile)
+	if playOptions.Detach || err != nil {
+		return err
+	}
+
+	// Wait for Ctrl-C
+	<-done
+
+	return teardown(yamlfile)
+}
+
+func setupSignalHandler() chan os.Signal {
+	done := make(chan os.Signal, 1)
+	signal.Notify(done, os.Interrupt, syscall.SIGTERM)
+	return done
 }
 
 func playKube(cmd *cobra.Command, args []string) error {

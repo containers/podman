@@ -23,6 +23,8 @@ type PlayKubeOptions struct {
 	Down bool
 	// Replace indicates whether to delete and recreate a yaml file
 	Replace bool
+	// Detach indicates whether to return after having created the pods
+	Detach bool
 	// Do not create /etc/hosts within the pod's containers,
 	// instead use the version from the image
 	NoHosts bool
