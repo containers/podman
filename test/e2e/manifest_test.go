@@ -339,6 +339,16 @@ var _ = Describe("Podman manifest", func() {
 		push = podmanTest.Podman([]string{"manifest", "push", "--tls-verify=false", "--creds=podmantest:wrongpasswd", "foo", "localhost:" + registry.Port + "/credstest"})
 		push.WaitWithDefaultTimeout()
 		Expect(push).To(ExitWithError())
+
+		// push --rm after pull image (#15033)
+		push = podmanTest.Podman([]string{"manifest", "push", "--rm", "--tls-verify=false", "--creds=" + registry.User + ":" + registry.Password, "foo", "localhost:" + registry.Port + "/rmtest"})
+		push.WaitWithDefaultTimeout()
+		Expect(push).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"images", "-q", "foo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
 	})
 
 	It("push with error", func() {
@@ -348,8 +358,8 @@ var _ = Describe("Podman manifest", func() {
 		Expect(session.ErrorToString()).NotTo(BeEmpty())
 	})
 
-	It("push --rm", func() {
-		SkipIfRemote("remote does not support --rm")
+	It("push --rm to local directory", func() {
+		SkipIfRemote("manifest push to dir not supported in remote mode")
 		session := podmanTest.Podman([]string{"manifest", "create", "foo"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
@@ -365,13 +375,35 @@ var _ = Describe("Podman manifest", func() {
 		session = podmanTest.Podman([]string{"manifest", "push", "--purge", "foo", "dir:" + dest})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		session = podmanTest.Podman([]string{"manifest", "inspect", "foo"})
+		session = podmanTest.Podman([]string{"images", "-q", "foo"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError())
+		Expect(session).Should(Exit(0))
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
 
-		session = podmanTest.Podman([]string{"manifest", "rm", "foo1", "foo2"})
+		// push --rm after pull image (#15033)
+		session = podmanTest.Podman([]string{"pull", "quay.io/libpod/testdigest_v2s2"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError())
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"manifest", "create", "bar"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		session = podmanTest.Podman([]string{"manifest", "add", "bar", "quay.io/libpod/testdigest_v2s2"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		session = podmanTest.Podman([]string{"manifest", "push", "--rm", "bar", "dir:" + dest})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		session = podmanTest.Podman([]string{"images", "-q", "bar"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"manifest", "rm", "foo", "bar"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitWithError())
+		Expect(session.ErrorToString()).To(ContainSubstring("foo: image not known"))
+		Expect(session.ErrorToString()).To(ContainSubstring("bar: image not known"))
 	})
 
 	It("exists", func() {
