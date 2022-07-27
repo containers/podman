@@ -19,7 +19,7 @@ The architecture looks like this
 
 ``` mermaid
 stateDiagram-v2
-    [*] --> systemd: client connects
+    [*] --> systemd: first client connects
     systemd --> podman: socket inherited via fork/exec
 ```
 
@@ -55,6 +55,9 @@ $ export DOCKER_HOST=unix://$XDG_RUNTIME_DIR/podman/podman.sock
 $ docker-compose up
 ```
 
+When __docker-compose__ or any other client connects to the UNIX socket `$XDG_RUNTIME_DIR/podman/podman.sock`,
+the service _podman.service_ is started. See its definition in the file _/usr/lib/systemd/user/podman.service_.
+
 ## Socket activation of containers
 
 Since version 3.4.0 Podman supports socket activation of containers, i.e.,  passing
@@ -65,7 +68,7 @@ as can be seen in the following diagram:
 
 ``` mermaid
 stateDiagram-v2
-    [*] --> systemd: client connects
+    [*] --> systemd: first client connects
     systemd --> podman: socket inherited via fork/exec
     state "OCI runtime" as s2
     podman --> conmon: socket inherited via double fork/exec
@@ -207,6 +210,18 @@ container then runs with less privileges.
 When using rootless Podman, network traffic is normally passed through slirp4netns. This comes with
 a performance penalty. Fortunately, communication over the socket-activated socket does not pass through
 slirp4netns so it has the same performance characteristics as the normal network on the host.
-Note, there is a delay when the first connection is made because the container needs to
+
+### Starting a socket-activated service
+
+There is a delay when the first connection is made because the container needs to
 start up. To minimize this delay, consider passing __--pull=never__ to `podman run` and instead
-pull the container image beforehand.
+pull the container image beforehand. Instead of waiting for the start of the service to be triggered by the
+first client connecting to it, the service can also be explicitly started (`systemctl --user start echo.service`).
+
+### Stopping a socket-activated service
+
+Some services run a command (configured by the systemd directive __ExecStart__) that exits after some time of inactivity.
+Depending on the restart configuration for the service
+(systemd directive [__Restart__](https://www.freedesktop.org/software/systemd/man/systemd.service.html#Restart=)),
+it may then be stopped. An example of this is _podman.service_ that stops after some time of inactivity.
+The service will be started again when the next client connects to the socket.
