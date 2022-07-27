@@ -65,6 +65,9 @@ func rm(cmd *cobra.Command, args []string) error {
 	}
 	responses, err := registry.ContainerEngine().VolumeRm(context.Background(), args, rmOptions)
 	if err != nil {
+		if rmOptions.Force && strings.Contains(err.Error(), define.ErrNoSuchVolume.Error()) {
+			return nil
+		}
 		setExitCode(err)
 		return err
 	}
@@ -72,6 +75,9 @@ func rm(cmd *cobra.Command, args []string) error {
 		if r.Err == nil {
 			fmt.Println(r.Id)
 		} else {
+			if rmOptions.Force && strings.Contains(r.Err.Error(), define.ErrNoSuchVolume.Error()) {
+				continue
+			}
 			setExitCode(r.Err)
 			errs = append(errs, r.Err)
 		}

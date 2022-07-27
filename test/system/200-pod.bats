@@ -547,4 +547,11 @@ io.max          | $lomajmin rbps=1048576 wbps=1048576 riops=max wiops=max
     wait
 }
 
+@test "podman pod rm --force bogus" {
+    run_podman 1 pod rm bogus
+    is "$output" "Error: .*bogus.*: no such pod" "Should print error"
+    run_podman pod rm --force bogus
+    is "$output" "" "Should print no output"
+}
+
 # vim: filetype=sh
