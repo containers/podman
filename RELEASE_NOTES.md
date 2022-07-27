@@ -23,7 +23,7 @@
 - The `podman build` command now supports a new option, `--build-contaxt`, allowing the user to specify an additional build context.
 - The `podman machine inspect` command now prints the location of the VM's Podman API socket on the host ([#14231](https://github.com/containers/podman/issues/14231)).
 - The `podman machine init` command on Windows now fetches an image with packages pre-installed ([#14698](https://github.com/containers/podman/issues/14698)).
-- Unused, cached Podman machine VM images are now cleaned up automatically. Note that because we now cache in a different directory, this will not clean up old images pulled before this change ([#14697](https://github.com/containers/podman/issues/14697)).
+- Unused, cached Podman machine VM images are now cleaned up automatically. Note that because Podman now caches in a different directory, this will not clean up old images pulled before this change ([#14697](https://github.com/containers/podman/issues/14697)).
 - The default for the `--image-volume` option to `podman run` and `podman create` can now have its default set through the `image_volume_mode` setting in `containers.conf` ([#14230](https://github.com/containers/podman/issues/14230)).
 - Overlay volumes now support two new options, `workdir` and `upperdir`, to allow multiple overlay volumes from different containers to reuse the same `workdir` or `upperdir` ([#14427](https://github.com/containers/podman/issues/14427)).
 - The `podman volume create` command now supports two new options, `copy` and `nocopy`, to control whether contents from the overmounted folder in a container will be copied into the newly-created named volume (copy-up).
@@ -51,6 +51,7 @@
 - The `podman unpause --all` command will now only attempt to unpause containers that are paused, not all containers.
 - Init containers created with `podman play kube` now default to the `once` type ([#14877](https://github.com/containers/podman/issues/14877)).
 - Pods created with no shared namespaces will no longer create an infra container unless one is explicitly requested ([#15048](https://github.com/containers/podman/issues/15048)).
+- The `podman create`, `podman run`, and `podman cp` commands can now autocomplete paths in the image or container via the shell completion.
 
 ### Bugfixes
 - Fixed a bug where bind-mounting `/dev` into a container which used the `--init` flag would cause the container to fail to start ([#14251](https://github.com/containers/podman/issues/14251)).
@@ -98,7 +99,7 @@
 - Fixed a bug where the Compat Create endpoint for Containers did not properly handle disabling healthchecks ([#14493](https://github.com/containers/podman/issues/14493)).
 - Fixed a bug where the Compat Create endpoint for Networks did not support the `mtu`, `name`, `mode`, and `parent` options ([#14482](https://github.com/containers/podman/issues/14482)).
 - Fixed a bug where the Compat Create endpoint for Networks did not allow the creation of networks name `bridge` ([#14983](https://github.com/containers/podman/issues/14983)).
-- Fixed a but where the Compat Inspect endpoint for Networks did not properly set netmasks in the `SecondaryIPAddresses` and `SecondaryIPv6Addresses` fields ([#14674](https://github.com/containers/podman/issues/14674)).
+- Fixed a bug where the Compat Inspect endpoint for Networks did not properly set netmasks in the `SecondaryIPAddresses` and `SecondaryIPv6Addresses` fields ([#14674](https://github.com/containers/podman/issues/14674)).
 - The Libpod Stats endpoint for Pods now supports streaming output via two new parameters, `stream` and `delay` ([#14674](https://github.com/containers/podman/issues/14674)).
 
 ### Misc
