@@ -2,10 +2,13 @@
 
 load ../system/helpers.bash
 
+KUBECONFIG="$HOME/.kube/config"
+
 function setup(){
     # only set up the minikube cluster before the first test
     if [[ "$BATS_TEST_NUMBER" -eq 1 ]]; then
         minikube start
+        wait_for_default_sa
     fi
     basic_setup
 }

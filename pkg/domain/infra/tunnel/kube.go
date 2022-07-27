@@ -3,8 +3,12 @@ package tunnel
 import (
 	"context"
 	"fmt"
+	"io"
 
+	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v4/pkg/bindings/generate"
+	"github.com/containers/podman/v4/pkg/bindings/kube"
+	"github.com/containers/podman/v4/pkg/bindings/play"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 )
 
@@ -48,4 +52,34 @@ func (ic *ContainerEngine) GenerateKube(ctx context.Context, nameOrIDs []string,
 
 func (ic *ContainerEngine) GenerateSpec(ctx context.Context, opts *entities.GenerateSpecOptions) (*entities.GenerateSpecReport, error) {
 	return nil, fmt.Errorf("GenerateSpec is not supported on the remote API")
+}
+
+func (ic *ContainerEngine) PlayKube(ctx context.Context, body io.Reader, opts entities.PlayKubeOptions) (*entities.PlayKubeReport, error) {
+	options := new(kube.PlayOptions).WithAuthfile(opts.Authfile).WithUsername(opts.Username).WithPassword(opts.Password)
+	options.WithCertDir(opts.CertDir).WithQuiet(opts.Quiet).WithSignaturePolicy(opts.SignaturePolicy).WithConfigMaps(opts.ConfigMaps)
+	options.WithLogDriver(opts.LogDriver).WithNetwork(opts.Networks).WithSeccompProfileRoot(opts.SeccompProfileRoot)
+	options.WithStaticIPs(opts.StaticIPs).WithStaticMACs(opts.StaticMACs)
+	if len(opts.LogOptions) > 0 {
+		options.WithLogOptions(opts.LogOptions)
+	}
+	if opts.Annotations != nil {
+		options.WithAnnotations(opts.Annotations)
+	}
+	options.WithNoHosts(opts.NoHosts).WithUserns(opts.Userns)
+	if s := opts.SkipTLSVerify; s != types.OptionalBoolUndefined {
+		options.WithSkipTLSVerify(s == types.OptionalBoolTrue)
+	}
+	if start := opts.Start; start != types.OptionalBoolUndefined {
+		options.WithStart(start == types.OptionalBoolTrue)
+	}
+	return play.KubeWithBody(ic.ClientCtx, body, options)
+}
+
+func (ic *ContainerEngine) PlayKubeDown(ctx context.Context, body io.Reader, _ entities.PlayKubeDownOptions) (*entities.PlayKubeReport, error) {
+	return play.DownWithBody(ic.ClientCtx, body)
+}
+
+func (ic *ContainerEngine) KubeApply(ctx context.Context, body io.Reader, opts entities.ApplyOptions) error {
+	options := new(kube.ApplyOptions).WithKubeconfig(opts.Kubeconfig).WithCACertFile(opts.CACertFile).WithNamespace(opts.Namespace)
+	return kube.ApplyWithBody(ic.ClientCtx, body, options)
 }

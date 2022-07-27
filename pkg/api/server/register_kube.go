@@ -111,5 +111,49 @@ func (s *APIServer) registerKubeHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/internalError"
 	r.HandleFunc(VersionedPath("/libpod/generate/kube"), s.APIHandler(libpod.GenerateKube)).Methods(http.MethodGet)
 	r.HandleFunc(VersionedPath("/libpod/kube/generate"), s.APIHandler(libpod.KubeGenerate)).Methods(http.MethodGet)
+	// swagger:operation POST /libpod/kube/apply libpod KubeApplyLibpod
+	// ---
+	// tags:
+	//  - containers
+	//  - pods
+	// summary: Apply a podman workload or Kubernetes YAML file.
+	// description: Deploy a podman container, pod, volume, or Kubernetes yaml to a Kubernetes cluster.
+	// parameters:
+	//  - in: query
+	//    name: caCertFile
+	//    type: string
+	//    description: Path to the CA cert file for the Kubernetes cluster.
+	//  - in: query
+	//    name: kubeConfig
+	//    type: string
+	//    description: Path to the kubeconfig file for the Kubernetes cluster.
+	//  - in: query
+	//    name: namespace
+	//    type: string
+	//    description: The namespace to deploy the workload to on the Kubernetes cluster.
+	//  - in: query
+	//    name: service
+	//    type: boolean
+	//    description: Create a service object for the container being deployed.
+	//  - in: query
+	//    name: file
+	//    type: string
+	//    description: Path to the Kubernetes yaml file to deploy.
+	//  - in: body
+	//    name: request
+	//    description: Kubernetes YAML file.
+	//    schema:
+	//      type: string
+	// produces:
+	// - application/json
+	// responses:
+	//   200:
+	//     description: Kubernetes YAML file successfully deployed to cluster
+	//     schema:
+	//      type: string
+	//      format: binary
+	//   500:
+	//     $ref: "#/responses/internalError"
+	r.HandleFunc(VersionedPath("/libpod/kube/apply"), s.APIHandler(libpod.KubeApply)).Methods(http.MethodPost)
 	return nil
 }

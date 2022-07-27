@@ -102,3 +102,41 @@ func DownWithBody(ctx context.Context, body io.Reader) (*entities.KubePlayReport
 func Generate(ctx context.Context, nameOrIDs []string, options generate.KubeOptions) (*entities.GenerateKubeReport, error) {
 	return generate.Kube(ctx, nameOrIDs, &options)
 }
+
+func Apply(ctx context.Context, path string, options *ApplyOptions) error {
+	f, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err := f.Close(); err != nil {
+			logrus.Warn(err)
+		}
+	}()
+
+	return ApplyWithBody(ctx, f, options)
+}
+
+func ApplyWithBody(ctx context.Context, body io.Reader, options *ApplyOptions) error {
+	if options == nil {
+		options = new(ApplyOptions)
+	}
+
+	conn, err := bindings.GetClient(ctx)
+	if err != nil {
+		return err
+	}
+
+	params, err := options.ToParams()
+	if err != nil {
+		return err
+	}
+
+	response, err := conn.DoRequest(ctx, body, http.MethodPost, "/kube/apply", params, nil)
+	if err != nil {
+		return err
+	}
+	defer response.Body.Close()
+
+	return nil
+}
