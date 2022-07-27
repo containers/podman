@@ -71,7 +71,7 @@ type imagesRemoveResponseLibpod struct {
 
 // PlayKube response
 // swagger:response
-type kubePlayResponseLibpod struct {
+type playKubeResponseLibpod struct {
 	// in:body
 	Body entities.PlayKubeReport
 }

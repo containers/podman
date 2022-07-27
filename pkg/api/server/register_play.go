@@ -7,8 +7,8 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func (s *APIServer) registerKubeHandlers(r *mux.Router) error {
-	// swagger:operation POST /libpod/kube/play libpod KubePlayLibpod
+func (s *APIServer) registerPlayHandlers(r *mux.Router) error {
+	// swagger:operation POST /libpod/play/kube libpod PlayKubeLibpod
 	// ---
 	// tags:
 	//  - containers
@@ -57,12 +57,12 @@ func (s *APIServer) registerKubeHandlers(r *mux.Router) error {
 	// - application/json
 	// responses:
 	//   200:
-	//     $ref: "#/responses/kubePlayResponseLibpod"
+	//     $ref: "#/responses/playKubeResponseLibpod"
 	//   500:
 	//     $ref: "#/responses/internalError"
-	r.HandleFunc(VersionedPath("/libpod/kube/play"), s.APIHandler(libpod.KubePlay)).Methods(http.MethodPost)
 	r.HandleFunc(VersionedPath("/libpod/play/kube"), s.APIHandler(libpod.PlayKube)).Methods(http.MethodPost)
-	// swagger:operation DELETE /libpod/kube/play libpod KubePlayDownLibpod
+	r.HandleFunc(VersionedPath("/libpod/kube/play"), s.APIHandler(libpod.KubePlay)).Methods(http.MethodPost)
+	// swagger:operation DELETE /libpod/play/kube libpod PlayKubeDownLibpod
 	// ---
 	// tags:
 	//  - containers
@@ -73,10 +73,10 @@ func (s *APIServer) registerKubeHandlers(r *mux.Router) error {
 	// - application/json
 	// responses:
 	//   200:
-	//     $ref: "#/responses/kubePlayResponseLibpod"
+	//     $ref: "#/responses/playKubeResponseLibpod"
 	//   500:
 	//     $ref: "#/responses/internalError"
-	r.HandleFunc(VersionedPath("/libpod/kube/play"), s.APIHandler(libpod.KubePlayDown)).Methods(http.MethodDelete)
 	r.HandleFunc(VersionedPath("/libpod/play/kube"), s.APIHandler(libpod.PlayKubeDown)).Methods(http.MethodDelete)
+	r.HandleFunc(VersionedPath("/libpod/kube/play"), s.APIHandler(libpod.KubePlayDown)).Methods(http.MethodDelete)
 	return nil
 }

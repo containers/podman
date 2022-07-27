@@ -164,7 +164,7 @@ func playFlags(cmd *cobra.Command) {
 		_ = cmd.RegisterFlagCompletionFunc(contextDirFlagName, completion.AutocompleteDefault)
 
 		// NOTE: The service-container flag is marked as hidden as it
-		// is purely designed for running kube-play in systemd units.
+		// is purely designed for running kube-play or play-kube in systemd units.
 		// It is not something users should need to know or care about.
 		//
 		// Having a flag rather than an env variable is cleaner.
