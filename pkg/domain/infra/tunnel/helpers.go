@@ -31,8 +31,17 @@ func getContainersAndInputByContext(contextWithConnection context.Context, all, 
 	rawInputs := []string{}
 	switch {
 	case len(filters) > 0:
+		namesOrIDs = nil
 		for i := range allContainers {
-			namesOrIDs = append(namesOrIDs, allContainers[i].ID)
+			if len(namesOrIDs) > 0 {
+				for _, name := range namesOrIDs {
+					if name == allContainers[i].ID {
+						namesOrIDs = append(namesOrIDs, allContainers[i].ID)
+					}
+				}
+			} else {
+				namesOrIDs = append(namesOrIDs, allContainers[i].ID)
+			}
 		}
 	case all:
 		for i := range allContainers {

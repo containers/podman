@@ -623,36 +623,7 @@ func logIfRmError(id string, err error, reports []*reports.RmReport) {
 func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []string, options entities.ContainerStartOptions) ([]*entities.ContainerStartReport, error) {
 	reports := []*entities.ContainerStartReport{}
 	var exitCode = define.ExecErrorCodeGeneric
-	containersNamesOrIds := namesOrIds
-	all := options.All
-	if len(options.Filters) > 0 {
-		all = false
-		containersNamesOrIds = []string{}
-		opts := new(containers.ListOptions).WithFilters(options.Filters).WithAll(true)
-		candidates, listErr := containers.List(ic.ClientCtx, opts)
-		if listErr != nil {
-			return nil, listErr
-		}
-		for _, candidate := range candidates {
-			if options.All {
-				containersNamesOrIds = append(containersNamesOrIds, candidate.ID)
-				continue
-			}
-			for _, nameOrID := range namesOrIds {
-				if nameOrID == candidate.ID {
-					containersNamesOrIds = append(containersNamesOrIds, nameOrID)
-					continue
-				}
-				for _, containerName := range candidate.Names {
-					if containerName == nameOrID {
-						containersNamesOrIds = append(containersNamesOrIds, nameOrID)
-						continue
-					}
-				}
-			}
-		}
-	}
-	ctrs, err := getContainersByContext(ic.ClientCtx, all, false, containersNamesOrIds)
+	ctrs, namesOrIds, err := getContainersAndInputByContext(ic.ClientCtx, options.All, false, namesOrIds, options.Filters)
 	if err != nil {
 		return nil, err
 	}

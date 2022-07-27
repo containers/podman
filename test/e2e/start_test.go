@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"strconv"
@@ -230,5 +231,43 @@ var _ = Describe("Podman start", func() {
 		containerPID := readFirstLine(pidfile)
 		_, err = strconv.Atoi(containerPID) // Make sure it's a proper integer
 		Expect(err).To(BeNil())
+	})
+
+	It("podman start container --filter", func() {
+		session1 := podmanTest.Podman([]string{"container", "create", ALPINE})
+		session1.WaitWithDefaultTimeout()
+		Expect(session1).Should(Exit(0))
+		cid1 := session1.OutputToString()
+
+		session1 = podmanTest.Podman([]string{"container", "create", ALPINE})
+		session1.WaitWithDefaultTimeout()
+		Expect(session1).Should(Exit(0))
+		cid2 := session1.OutputToString()
+
+		session1 = podmanTest.Podman([]string{"container", "create", ALPINE})
+		session1.WaitWithDefaultTimeout()
+		Expect(session1).Should(Exit(0))
+		cid3 := session1.OutputToString()
+		shortCid3 := cid3[0:5]
+
+		session1 = podmanTest.Podman([]string{"start", cid1, "-f", "status=running"})
+		session1.WaitWithDefaultTimeout()
+		Expect(session1).Should(Exit(0))
+		Expect(session1.OutputToString()).To(HaveLen(0))
+
+		session1 = podmanTest.Podman([]string{"start", "--all", "--filter", fmt.Sprintf("id=%swrongid", shortCid3)})
+		session1.WaitWithDefaultTimeout()
+		Expect(session1).Should(Exit(0))
+		Expect(session1.OutputToString()).To(HaveLen(0))
+
+		session1 = podmanTest.Podman([]string{"start", "--all", "--filter", fmt.Sprintf("id=%s", shortCid3)})
+		session1.WaitWithDefaultTimeout()
+		Expect(session1).Should(Exit(0))
+		Expect(session1.OutputToString()).To(BeEquivalentTo(cid3))
+
+		session1 = podmanTest.Podman([]string{"start", "-f", fmt.Sprintf("id=%s", cid2)})
+		session1.WaitWithDefaultTimeout()
+		Expect(session1).Should(Exit(0))
+		Expect(session1.OutputToString()).To(BeEquivalentTo(cid2))
 	})
 })
