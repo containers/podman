@@ -1,4 +1,4 @@
-package e2e
+package e2e_test
 
 import (
 	"strings"
@@ -45,8 +45,8 @@ var _ = Describe("podman machine list", func() {
 
 	It("list machines with quiet or noheading", func() {
 		// Random names for machines to test list
-		name1 := randomString(12)
-		name2 := randomString(12)
+		name1 := randomString()
+		name2 := randomString()
 
 		list := new(listMachine)
 		firstList, err := mb.setCmd(list.withQuiet()).run()
@@ -109,7 +109,7 @@ var _ = Describe("podman machine list", func() {
 
 	It("list with --format", func() {
 		// Random names for machines to test list
-		name1 := randomString(12)
+		name1 := randomString()
 
 		i := new(initMachine)
 		session, err := mb.setName(name1).setCmd(i.withImagePath(mb.imagePath)).run()
@@ -135,7 +135,7 @@ var _ = Describe("podman machine list", func() {
 		Expect(listSession2).To(Exit(0))
 
 		var listResponse []*entities.ListReporter
-		err = jsoniter.Unmarshal(listSession.Bytes(), &listResponse)
+		err = jsoniter.Unmarshal(listSession2.Bytes(), &listResponse)
 		Expect(err).To(BeNil())
 
 		// table format includes the header

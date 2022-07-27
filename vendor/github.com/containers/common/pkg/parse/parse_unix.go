@@ -4,12 +4,12 @@
 package parse
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 
 	"github.com/containers/storage/pkg/unshare"
 	"github.com/opencontainers/runc/libcontainer/devices"
-	"github.com/pkg/errors"
 )
 
 func DeviceFromPath(device string) ([]devices.Device, error) {
@@ -18,7 +18,7 @@ func DeviceFromPath(device string) ([]devices.Device, error) {
 		return nil, err
 	}
 	if unshare.IsRootless() && src != dst {
-		return nil, errors.Errorf("Renaming device %s to %s is not supported in rootless containers", src, dst)
+		return nil, fmt.Errorf("Renaming device %s to %s is not supported in rootless containers", src, dst)
 	}
 	srcInfo, err := os.Stat(src)
 	if err != nil {
@@ -29,7 +29,7 @@ func DeviceFromPath(device string) ([]devices.Device, error) {
 		devs := make([]devices.Device, 0, 1)
 		dev, err := devices.DeviceFromPath(src, permissions)
 		if err != nil {
-			return nil, errors.Wrapf(err, "%s is not a valid device", src)
+			return nil, fmt.Errorf("%s is not a valid device: %w", src, err)
 		}
 		dev.Path = dst
 		devs = append(devs, *dev)
@@ -39,7 +39,7 @@ func DeviceFromPath(device string) ([]devices.Device, error) {
 	// If source device is a directory
 	srcDevices, err := devices.GetDevices(src)
 	if err != nil {
-		return nil, errors.Wrapf(err, "error getting source devices from directory %s", src)
+		return nil, fmt.Errorf("error getting source devices from directory %s: %w", src, err)
 	}
 	devs := make([]devices.Device, 0, len(srcDevices))
 	for _, d := range srcDevices {

@@ -1,6 +1,7 @@
 package util
 
 import (
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -14,7 +15,6 @@ import (
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/chrootarchive"
 	"github.com/containers/storage/pkg/unshare"
-	"github.com/pkg/errors"
 )
 
 // LookupImage returns *Image to corresponding imagename or id
@@ -66,25 +66,25 @@ func ExportFromReader(input io.Reader, opts define.BuildOutputOption) error {
 
 		err = os.MkdirAll(opts.Path, 0700)
 		if err != nil {
-			return errors.Wrapf(err, "failed while creating the destination path %q", opts.Path)
+			return fmt.Errorf("failed while creating the destination path %q: %w", opts.Path, err)
 		}
 
 		err = chrootarchive.Untar(input, opts.Path, &archive.TarOptions{NoLchown: noLChown})
 		if err != nil {
-			return errors.Wrapf(err, "failed while performing untar at %q", opts.Path)
+			return fmt.Errorf("failed while performing untar at %q: %w", opts.Path, err)
 		}
 	} else {
 		outFile := os.Stdout
 		if !opts.IsStdout {
 			outFile, err = os.Create(opts.Path)
 			if err != nil {
-				return errors.Wrapf(err, "failed while creating destination tar at %q", opts.Path)
+				return fmt.Errorf("failed while creating destination tar at %q: %w", opts.Path, err)
 			}
 			defer outFile.Close()
 		}
 		_, err = io.Copy(outFile, input)
 		if err != nil {
-			return errors.Wrapf(err, "failed while performing copy to %q", opts.Path)
+			return fmt.Errorf("failed while performing copy to %q: %w", opts.Path, err)
 		}
 	}
 	return nil
@@ -97,7 +97,7 @@ func DecryptConfig(decryptionKeys []string) (*encconfig.DecryptConfig, error) {
 		// decryption
 		dcc, err := enchelpers.CreateCryptoConfig([]string{}, decryptionKeys)
 		if err != nil {
-			return nil, errors.Wrapf(err, "invalid decryption keys")
+			return nil, fmt.Errorf("invalid decryption keys: %w", err)
 		}
 		cc := encconfig.CombineCryptoConfigs([]encconfig.CryptoConfig{dcc})
 		decryptConfig = cc.DecryptConfig
@@ -116,7 +116,7 @@ func EncryptConfig(encryptionKeys []string, encryptLayers []int) (*encconfig.Enc
 		encLayers = &encryptLayers
 		ecc, err := enchelpers.CreateCryptoConfig(encryptionKeys, []string{})
 		if err != nil {
-			return nil, nil, errors.Wrapf(err, "invalid encryption keys")
+			return nil, nil, fmt.Errorf("invalid encryption keys: %w", err)
 		}
 		cc := encconfig.CombineCryptoConfigs([]encconfig.CryptoConfig{ecc})
 		encConfig = cc.EncryptConfig
@@ -132,6 +132,6 @@ func GetFormat(format string) (string, error) {
 	case define.DOCKER:
 		return define.Dockerv2ImageManifest, nil
 	default:
-		return "", errors.Errorf("unrecognized image type %q", format)
+		return "", fmt.Errorf("unrecognized image type %q", format)
 	}
 }

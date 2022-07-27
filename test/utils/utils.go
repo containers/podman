@@ -110,9 +110,6 @@ func (p *PodmanTest) PodmanAsUserBase(args []string, uid, gid uint32, cwd string
 	}
 	runCmd := wrapper
 	runCmd = append(runCmd, podmanBinary)
-	if !p.RemoteTest && p.NetworkBackend == Netavark {
-		runCmd = append(runCmd, []string{"--network-backend", "netavark"}...)
-	}
 
 	if env == nil {
 		fmt.Printf("Running: %s %s\n", strings.Join(runCmd, " "), strings.Join(podmanOptions, " "))
@@ -365,7 +362,11 @@ func (s *PodmanSession) WaitWithDefaultTimeout() {
 
 // WaitWithTimeout waits for process finished with DefaultWaitTimeout
 func (s *PodmanSession) WaitWithTimeout(timeout int) {
-	Eventually(s, timeout).Should(Exit())
+	Eventually(s, timeout).Should(Exit(), func() string {
+		// in case of timeouts show output
+		return fmt.Sprintf("command %v timed out\nSTDOUT: %s\nSTDERR: %s",
+			s.Command.Args, string(s.Out.Contents()), string(s.Err.Contents()))
+	})
 	os.Stdout.Sync()
 	os.Stderr.Sync()
 	fmt.Println("output:", s.OutputToString())

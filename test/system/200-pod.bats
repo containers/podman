@@ -322,7 +322,7 @@ EOF
     is "$output" "" "output from pod create should be empty"
 
     run_podman 125 pod create --infra-name "$infra_name"
-    assert "$output" =~ "^Error: .*: the container name \"$infra_name\" is already in use by .* You have to remove that container to be able to reuse that name.: that name is already in use" \
+    assert "$output" =~ "^Error: .*: the container name \"$infra_name\" is already in use by .* You have to remove that container to be able to reuse that name: that name is already in use" \
            "Trying to create two pods with same infra-name"
 
     run_podman pod rm -f $pod_name

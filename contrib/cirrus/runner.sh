@@ -236,6 +236,16 @@ function _run_build() {
     make clean
     make vendor
     make podman-release  # includes podman, podman-remote, and docs
+
+    # Last-minute confirmation that we're testing the desired runtime.
+    # This Can't Possibly Fail™ in regular CI; only when updating VMs.
+    # $CI_DESIRED_RUNTIME must be defined in .cirrus.yml.
+    req_env_vars CI_DESIRED_RUNTIME
+    runtime=$(bin/podman info --format '{{.Host.OCIRuntime.Name}}')
+    # shellcheck disable=SC2154
+    if [[ "$runtime" != "$CI_DESIRED_RUNTIME" ]]; then
+        die "Built podman is using '$runtime'; this CI environment requires $CI_DESIRED_RUNTIME"
+    fi
 }
 
 function _run_altbuild() {
@@ -324,6 +334,9 @@ function _run_release() {
 }
 
 
+# ***WARNING*** ***WARNING*** ***WARNING*** ***WARNING***
+#    Please see gitlab comment in setup_environment.sh
+# ***WARNING*** ***WARNING*** ***WARNING*** ***WARNING***
 function _run_gitlab() {
     rootless_uid=$(id -u)
     systemctl enable --now --user podman.socket

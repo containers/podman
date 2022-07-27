@@ -5,6 +5,7 @@ package unshare
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -14,7 +15,6 @@ import (
 	"syscall"
 
 	"github.com/containers/storage/pkg/reexec"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -49,7 +49,7 @@ func (c *Cmd) Start() error {
 	// Create the pipe for reading the child's PID.
 	pidRead, pidWrite, err := os.Pipe()
 	if err != nil {
-		return errors.Wrapf(err, "error creating pid pipe")
+		return fmt.Errorf("creating pid pipe: %w", err)
 	}
 	c.Env = append(c.Env, fmt.Sprintf("_Containers-pid-pipe=%d", len(c.ExtraFiles)+3))
 	c.ExtraFiles = append(c.ExtraFiles, pidWrite)
@@ -59,7 +59,7 @@ func (c *Cmd) Start() error {
 	if err != nil {
 		pidRead.Close()
 		pidWrite.Close()
-		return errors.Wrapf(err, "error creating pid pipe")
+		return fmt.Errorf("creating pid pipe: %w", err)
 	}
 	c.Env = append(c.Env, fmt.Sprintf("_Containers-continue-pipe=%d", len(c.ExtraFiles)+3))
 	c.ExtraFiles = append(c.ExtraFiles, continueRead)
@@ -108,13 +108,13 @@ func (c *Cmd) Start() error {
 	pidString := ""
 	b := new(bytes.Buffer)
 	if _, err := io.Copy(b, pidRead); err != nil {
-		return errors.Wrapf(err, "Reading child PID")
+		return fmt.Errorf("reading child PID: %w", err)
 	}
 	pidString = b.String()
 	pid, err := strconv.Atoi(pidString)
 	if err != nil {
 		fmt.Fprintf(continueWrite, "error parsing PID %q: %v", pidString, err)
-		return errors.Wrapf(err, "error parsing PID %q", pidString)
+		return fmt.Errorf("parsing PID %q: %w", pidString, err)
 	}
 
 	// Run any additional setup that we want to do before the child starts running proper.
@@ -157,7 +157,7 @@ func ExecRunnable(cmd Runnable, cleanup func()) {
 		os.Exit(status)
 	}
 	if err := cmd.Run(); err != nil {
-		if exitError, ok := errors.Cause(err).(*exec.ExitError); ok {
+		if exitError, ok := err.(*exec.ExitError); ok {
 			if exitError.ProcessState.Exited() {
 				if waitStatus, ok := exitError.ProcessState.Sys().(syscall.WaitStatus); ok {
 					if waitStatus.Exited() {

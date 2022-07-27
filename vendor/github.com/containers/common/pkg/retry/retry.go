@@ -12,7 +12,6 @@ import (
 	"github.com/docker/distribution/registry/api/errcode"
 	errcodev2 "github.com/docker/distribution/registry/api/v2"
 	"github.com/hashicorp/go-multierror"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -51,8 +50,6 @@ func IfNecessary(ctx context.Context, operation func() error, options *Options) 
 }
 
 func isRetryable(err error) bool {
-	err = errors.Cause(err)
-
 	switch err {
 	case nil:
 		return false

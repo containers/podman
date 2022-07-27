@@ -134,6 +134,12 @@ func create(cmd *cobra.Command, args []string) error {
 		imageName = infraImage
 	}
 	img := imageName
+
+	if !cmd.Flag("infra").Changed && (share == "none" || share == "") {
+		// we do not want an infra container when not sharing namespaces
+		createOptions.Infra = false
+	}
+
 	if !createOptions.Infra {
 		if cmd.Flag("no-hosts").Changed {
 			return fmt.Errorf("cannot specify --no-hosts without an infra container")

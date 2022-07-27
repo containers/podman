@@ -62,7 +62,7 @@ Memory (in MB).
 
 Start the virtual machine immediately after it has been initialized.
 
-#### **--rootful**=*true|false*
+#### **--rootful**
 
 Whether this machine should prefer rootful (`true`) or rootless (`false`)
 container execution. This option will also determine the remote connection default

@@ -23,6 +23,7 @@ import (
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/domain/infra/abi"
 	"github.com/containers/storage"
+	"github.com/docker/docker/pkg/jsonmessage"
 	"github.com/gorilla/schema"
 	"github.com/opencontainers/go-digest"
 	"github.com/sirupsen/logrus"
@@ -325,16 +326,8 @@ func CreateImageFromImage(w http.ResponseWriter, r *http.Request) {
 
 loop: // break out of for/select infinite loop
 	for {
-		var report struct {
-			Stream   string `json:"stream,omitempty"`
-			Status   string `json:"status,omitempty"`
-			Progress struct {
-				Current uint64 `json:"current,omitempty"`
-				Total   int64  `json:"total,omitempty"`
-			} `json:"progressDetail,omitempty"`
-			Error string `json:"error,omitempty"`
-			Id    string `json:"id,omitempty"` //nolint:revive,stylecheck
-		}
+		report := jsonmessage.JSONMessage{}
+		report.Progress = &jsonmessage.JSONProgress{}
 		select {
 		case e := <-progress:
 			switch e.Event {
@@ -342,14 +335,15 @@ loop: // break out of for/select infinite loop
 				report.Status = "Pulling fs layer"
 			case types.ProgressEventRead:
 				report.Status = "Downloading"
-				report.Progress.Current = e.Offset
+				report.Progress.Current = int64(e.Offset)
 				report.Progress.Total = e.Artifact.Size
+				report.ProgressMessage = report.Progress.String()
 			case types.ProgressEventSkipped:
 				report.Status = "Already exists"
 			case types.ProgressEventDone:
 				report.Status = "Download complete"
 			}
-			report.Id = e.Artifact.Digest.Encoded()[0:12]
+			report.ID = e.Artifact.Digest.Encoded()[0:12]
 			if err := enc.Encode(report); err != nil {
 				logrus.Warnf("Failed to json encode error %q", err.Error())
 			}
@@ -358,7 +352,11 @@ loop: // break out of for/select infinite loop
 			err := pullRes.err
 			pulledImages := pullRes.images
 			if err != nil {
-				report.Error = err.Error()
+				msg := err.Error()
+				report.Error = &jsonmessage.JSONError{
+					Message: msg,
+				}
+				report.ErrorMessage = msg
 			} else {
 				if len(pulledImages) > 0 {
 					img := pulledImages[0].ID()
@@ -367,9 +365,13 @@ loop: // break out of for/select infinite loop
 					} else {
 						report.Status = "Download complete"
 					}
-					report.Id = img[0:12]
+					report.ID = img[0:12]
 				} else {
-					report.Error = "internal error: no images pulled"
+					msg := "internal error: no images pulled"
+					report.Error = &jsonmessage.JSONError{
+						Message: msg,
+					}
+					report.ErrorMessage = msg
 				}
 			}
 			if err := enc.Encode(report); err != nil {

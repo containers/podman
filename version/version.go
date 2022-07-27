@@ -1,7 +1,7 @@
 package version
 
 import (
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 )
 
 type (

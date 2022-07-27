@@ -84,11 +84,23 @@ t GET networks?filters='{"dangling":["true","0"]}' 500 \
 t GET networks?filters='{"name":["doesnotexists"]}' 200 \
   "[]"
 
+# check default name in list endpoint
+t GET networks 200 \
+  .[].Name~.*bridge.*
+
 # network inspect docker
 t GET networks/$network1_id 200 \
   .Name=network1 \
   .Id=$network1_id \
   .Scope=local
+
+# inspect default bridge network
+t GET networks/bridge 200 \
+  .Name=bridge
+
+# inspect default bridge network with real podman name should return real name
+t GET networks/podman 200 \
+  .Name=podman
 
 # network create docker
 t POST networks/create Name=net3\ IPAM='{"Config":[]}' 201

@@ -20,7 +20,7 @@ Volumes can be queried individually by providing their full name or a unique par
 
 Inspect all volumes.
 
-#### **--format**=*format*, **-f**
+#### **--format**, **-f**=*format*
 
 Format volume output using Go template
 

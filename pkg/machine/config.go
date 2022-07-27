@@ -73,6 +73,7 @@ type Download struct {
 	Arch                  string
 	Artifact              string
 	CompressionType       string
+	CacheDir              string
 	Format                string
 	ImageName             string
 	LocalPath             string
@@ -139,6 +140,7 @@ type VM interface {
 type DistributionDownload interface {
 	HasUsableCache() (bool, error)
 	Get() *Download
+	CleanCache() error
 }
 type InspectInfo struct {
 	ConfigPath     VMFile
@@ -172,6 +174,19 @@ func (rc RemoteConnectionType) MakeSSHURL(host, path, port, userName string) url
 	return uri
 }
 
+// GetCacheDir returns the dir where VM images are downladed into when pulled
+func GetCacheDir(vmType string) (string, error) {
+	dataDir, err := GetDataDir(vmType)
+	if err != nil {
+		return "", err
+	}
+	cacheDir := filepath.Join(dataDir, "cache")
+	if _, err := os.Stat(cacheDir); !errors.Is(err, os.ErrNotExist) {
+		return cacheDir, nil
+	}
+	return cacheDir, os.MkdirAll(cacheDir, 0755)
+}
+
 // GetDataDir returns the filepath where vm images should
 // live for podman-machine.
 func GetDataDir(vmType string) (string, error) {
@@ -180,7 +195,7 @@ func GetDataDir(vmType string) (string, error) {
 		return "", err
 	}
 	dataDir := filepath.Join(dataDirPrefix, vmType)
-	if _, err := os.Stat(dataDir); !os.IsNotExist(err) {
+	if _, err := os.Stat(dataDir); !errors.Is(err, os.ErrNotExist) {
 		return dataDir, nil
 	}
 	mkdirErr := os.MkdirAll(dataDir, 0755)
@@ -205,7 +220,7 @@ func GetConfDir(vmType string) (string, error) {
 		return "", err
 	}
 	confDir := filepath.Join(confDirPrefix, vmType)
-	if _, err := os.Stat(confDir); !os.IsNotExist(err) {
+	if _, err := os.Stat(confDir); !errors.Is(err, os.ErrNotExist) {
 		return confDir, nil
 	}
 	mkdirErr := os.MkdirAll(confDir, 0755)

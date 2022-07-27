@@ -12,7 +12,7 @@ that belong to the pod.
 
 ## OPTIONS
 
-#### **--format**=*format*, **-f**
+#### **--format**, **-f**=*format*
 
 Change the default output format.  This can be of a supported type like 'json'
 or a Go template.

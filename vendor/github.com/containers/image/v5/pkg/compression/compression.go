@@ -10,7 +10,6 @@ import (
 	"github.com/containers/image/v5/pkg/compression/types"
 	"github.com/containers/storage/pkg/chunked/compressor"
 	"github.com/klauspost/pgzip"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/ulikunitz/xz"
 )
@@ -151,13 +150,13 @@ func DetectCompression(input io.Reader) (DecompressorFunc, io.Reader, error) {
 func AutoDecompress(stream io.Reader) (io.ReadCloser, bool, error) {
 	decompressor, stream, err := DetectCompression(stream)
 	if err != nil {
-		return nil, false, errors.Wrapf(err, "detecting compression")
+		return nil, false, fmt.Errorf("detecting compression: %w", err)
 	}
 	var res io.ReadCloser
 	if decompressor != nil {
 		res, err = decompressor(stream)
 		if err != nil {
-			return nil, false, errors.Wrapf(err, "initializing decompression")
+			return nil, false, fmt.Errorf("initializing decompression: %w", err)
 		}
 	} else {
 		res = io.NopCloser(stream)

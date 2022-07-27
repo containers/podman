@@ -12,7 +12,7 @@ Adds or updates information about an image included in a manifest list or image 
 
 ## OPTIONS
 
-#### **--annotation** *annotation=value*
+#### **--annotation**=*annotation=value*
 
 Set an annotation on the entry for the specified image.
 

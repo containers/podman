@@ -7,50 +7,55 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
+	"os"
+	"path"
+	"strings"
+
 	"net/http"
 	"net/url"
-	"os"
 	"path/filepath"
-	"regexp"
-
-	"github.com/sirupsen/logrus"
+	"time"
 )
 
 const (
-	githubURL = "http://github.com/fedora-cloud/docker-brew-fedora/"
+	githubLatestReleaseURL = "https://github.com/containers/podman-wsl-fedora/releases/latest/download/rootfs.tar.xz"
 )
-
-var fedoraxzRegex = regexp.MustCompile(`fedora[^\"]+xz`)
 
 type FedoraDownload struct {
 	Download
 }
 
 func NewFedoraDownloader(vmType, vmName, releaseStream string) (DistributionDownload, error) {
-	imageName, downloadURL, size, err := getFedoraDownload(releaseStream)
+	downloadURL, version, size, err := getFedoraDownload(githubLatestReleaseURL)
 	if err != nil {
 		return nil, err
 	}
 
-	dataDir, err := GetDataDir(vmType)
+	cacheDir, err := GetCacheDir(vmType)
 	if err != nil {
 		return nil, err
 	}
+
+	imageName := fmt.Sprintf("fedora-podman-%s.tar.xz", version)
 
 	f := FedoraDownload{
 		Download: Download{
 			Arch:      getFcosArch(),
 			Artifact:  artifact,
+			CacheDir:  cacheDir,
 			Format:    Format,
 			ImageName: imageName,
-			LocalPath: filepath.Join(dataDir, imageName),
+			LocalPath: filepath.Join(cacheDir, imageName),
 			URL:       downloadURL,
 			VMName:    vmName,
 			Size:      size,
 		},
 	}
-	f.Download.LocalUncompressedFile = f.getLocalUncompressedName()
+	dataDir, err := GetDataDir(vmType)
+	if err != nil {
+		return nil, err
+	}
+	f.Download.LocalUncompressedFile = f.getLocalUncompressedFile(dataDir)
 	return f, nil
 }
 
@@ -69,56 +74,42 @@ func (f FedoraDownload) HasUsableCache() (bool, error) {
 	return info.Size() == f.Size, nil
 }
 
-func truncRead(url string) ([]byte, error) {
-	resp, err := http.Get(url)
-	if err != nil {
-		return nil, err
-	}
-
-	defer func() {
-		if err := resp.Body.Close(); err != nil {
-			logrus.Error(err)
-		}
-	}()
-
-	body, err := ioutil.ReadAll(io.LimitReader(resp.Body, 10*1024*1024))
-	if err != nil {
-		return nil, err
-	}
-
-	_, _ = io.Copy(io.Discard, resp.Body)
-
-	return body, nil
+func (f FedoraDownload) CleanCache() error {
+	// Set cached image to expire after 2 weeks
+	expire := 14 * 24 * time.Hour
+	return removeImageAfterExpire(f.CacheDir, expire)
 }
 
-func getFedoraDownload(releaseStream string) (string, *url.URL, int64, error) {
-	dirURL := githubURL + "tree/" + releaseStream + "/" + getFcosArch() + "/"
-	body, err := truncRead(dirURL)
+func getFedoraDownload(releaseURL string) (*url.URL, string, int64, error) {
+	downloadURL, err := url.Parse(releaseURL)
 	if err != nil {
-		return "", nil, -1, err
+		return nil, "", -1, fmt.Errorf("invalid URL generated from discovered Fedora file: %s: %w", releaseURL, err)
 	}
 
-	file := fedoraxzRegex.FindString(string(body))
-	if len(file) == 0 {
-		return "", nil, -1, fmt.Errorf("could not locate Fedora download at %s", dirURL)
-	}
-
-	rawURL := githubURL + "raw/" + releaseStream + "/" + getFcosArch() + "/"
-	newLocation := rawURL + file
-	downloadURL, err := url.Parse(newLocation)
+	resp, err := http.Head(releaseURL)
 	if err != nil {
-		return "", nil, -1, fmt.Errorf("invalid URL generated from discovered Fedora file: %s: %w", newLocation, err)
-	}
-
-	resp, err := http.Head(newLocation)
-	if err != nil {
-		return "", nil, -1, fmt.Errorf("head request failed: %s: %w", newLocation, err)
+		return nil, "", -1, fmt.Errorf("head request failed: %s: %w", releaseURL, err)
 	}
 	_ = resp.Body.Close()
+	contentLen := resp.ContentLength
 
 	if resp.StatusCode != http.StatusOK {
-		return "", nil, -1, fmt.Errorf("head request failed [%d] on download: %s", resp.StatusCode, newLocation)
+		return nil, "", -1, fmt.Errorf("head request failed: %s: %w", releaseURL, err)
 	}
 
-	return file, downloadURL, resp.ContentLength, nil
+	verURL := *downloadURL
+	verURL.Path = path.Join(path.Dir(downloadURL.Path), "version")
+
+	resp, err = http.Get(verURL.String())
+	if err != nil {
+		return nil, "", -1, fmt.Errorf("get request failed: %s: %w", verURL.String(), err)
+	}
+
+	defer resp.Body.Close()
+	bytes, err := io.ReadAll(&io.LimitedReader{R: resp.Body, N: 1024})
+	if err != nil {
+		return nil, "", -1, fmt.Errorf("failed reading: %s: %w", verURL.String(), err)
+	}
+
+	return downloadURL, strings.TrimSpace(string(bytes)), contentLen, nil
 }

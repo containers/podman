@@ -1,3 +1,4 @@
+//go:build linux
 // +build linux
 
 package overlay
@@ -42,7 +43,7 @@ func mountFrom(dir, device, target, mType string, flags uintptr, label string) e
 	cmd := reexec.Command("storage-mountfrom", dir)
 	w, err := cmd.StdinPipe()
 	if err != nil {
-		return fmt.Errorf("mountfrom error on pipe creation: %v", err)
+		return fmt.Errorf("mountfrom error on pipe creation: %w", err)
 	}
 
 	output := bytes.NewBuffer(nil)
@@ -50,17 +51,17 @@ func mountFrom(dir, device, target, mType string, flags uintptr, label string) e
 	cmd.Stderr = output
 	if err := cmd.Start(); err != nil {
 		w.Close()
-		return fmt.Errorf("mountfrom error on re-exec cmd: %v", err)
+		return fmt.Errorf("mountfrom error on re-exec cmd: %w", err)
 	}
 	//write the options to the pipe for the untar exec to read
 	if err := json.NewEncoder(w).Encode(options); err != nil {
 		w.Close()
-		return fmt.Errorf("mountfrom json encode to pipe failed: %v", err)
+		return fmt.Errorf("mountfrom json encode to pipe failed: %w", err)
 	}
 	w.Close()
 
 	if err := cmd.Wait(); err != nil {
-		return fmt.Errorf("mountfrom re-exec error: %v: output: %v", err, output)
+		return fmt.Errorf("mountfrom re-exec output: %s: error: %w", output, err)
 	}
 	return nil
 }

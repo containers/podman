@@ -1452,11 +1452,8 @@ var _ = Describe("Podman checkpoint", func() {
 	})
 
 	It("podman checkpoint and restore container with --file-locks", func() {
-		if !strings.Contains(podmanTest.OCIRuntime, "runc") {
-			// TODO: Enable test for crun when this feature has been released
-			// https://github.com/containers/crun/pull/783
-			Skip("FIXME: requires crun >= 1.4")
-		}
+		// Broken on Ubuntu in this branch.
+		SkipIfNotFedora()
 		localRunString := getRunString([]string{"--name", "test_name", ALPINE, "flock", "test.lock", "sleep", "100"})
 		session := podmanTest.Podman(localRunString)
 		session.WaitWithDefaultTimeout()

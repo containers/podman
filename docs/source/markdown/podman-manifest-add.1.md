@@ -22,7 +22,7 @@ index, add all of the contents to the local list.  By default, only one image
 from such a list or index will be added to the list or index.  Combining
 *--all* with any of the other options described below is NOT recommended.
 
-#### **--annotation** *annotation=value*
+#### **--annotation**=*annotation=value*
 
 Set an annotation on the entry for the newly-added image.
 

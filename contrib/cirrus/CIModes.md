@@ -27,7 +27,7 @@ outdated) example of it's output can be seen below:
   [The list is documented](https://cirrus-ci.org/guide/writing-tasks/#environment-variables).  Reference to any variables defined in YAML will **not** behave how
   you expect, don't use them!
 
-* Somme Cirrus-CI defined variables contain non-empty values outside their
+* Some Cirrus-CI defined variables contain non-empty values outside their
   obvious context. For example, when running for a PR a task will have
   `$CIRRUS_BRANCH` set to `pull/<number>`.
 

@@ -1,7 +1,8 @@
 package internal
 
 import (
-	"github.com/pkg/errors"
+	"errors"
+	"fmt"
 	"path/filepath"
 	"regexp"
 	"runtime"
@@ -27,7 +28,7 @@ func ValidateImageName(image string) error {
 
 	var err error
 	if !refRegexp.MatchString(image) {
-		err = errors.Errorf("Invalid image %s", image)
+		err = fmt.Errorf("Invalid image %s", image)
 	}
 	return err
 }
@@ -72,11 +73,11 @@ func ValidateOCIPath(path string) error {
 	if runtime.GOOS == "windows" {
 		// On Windows we must allow for a ':' as part of the path
 		if strings.Count(path, ":") > 1 {
-			return errors.Errorf("Invalid OCI reference: path %s contains more than one colon", path)
+			return fmt.Errorf("Invalid OCI reference: path %s contains more than one colon", path)
 		}
 	} else {
 		if strings.Contains(path, ":") {
-			return errors.Errorf("Invalid OCI reference: path %s contains a colon", path)
+			return fmt.Errorf("Invalid OCI reference: path %s contains a colon", path)
 		}
 	}
 	return nil
@@ -96,7 +97,7 @@ func ValidateScope(scope string) error {
 
 	cleaned := filepath.Clean(scope)
 	if cleaned != scope {
-		return errors.Errorf(`Invalid scope %s: Uses non-canonical path format, perhaps try with path %s`, scope, cleaned)
+		return fmt.Errorf(`Invalid scope %s: Uses non-canonical path format, perhaps try with path %s`, scope, cleaned)
 	}
 
 	return nil
@@ -105,7 +106,7 @@ func ValidateScope(scope string) error {
 func validateScopeWindows(scope string) error {
 	matched, _ := regexp.Match(`^[a-zA-Z]:\\`, []byte(scope))
 	if !matched {
-		return errors.Errorf("Invalid scope '%s'. Must be an absolute path", scope)
+		return fmt.Errorf("Invalid scope '%s'. Must be an absolute path", scope)
 	}
 
 	return nil
@@ -113,7 +114,7 @@ func validateScopeWindows(scope string) error {
 
 func validateScopeNonWindows(scope string) error {
 	if !strings.HasPrefix(scope, "/") {
-		return errors.Errorf("Invalid scope %s: must be an absolute path", scope)
+		return fmt.Errorf("Invalid scope %s: must be an absolute path", scope)
 	}
 
 	// Refuse also "/", otherwise "/" and "" would have the same semantics,

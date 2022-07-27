@@ -65,7 +65,7 @@ Please refer to containers-certs.d(5) for details. (This option is not available
 Compress tarball image layers when pushing to a directory using the 'dir' transport. (default is same compression type, compressed or uncompressed, as source)
 Note: This flag can only be set when using the **dir** transport
 
-#### **--compression-format** *COMPRESSION*
+#### **--compression-format**=**gzip** | *zstd* | *zstd:chunked*
 
 Specifies the compression format to use.  Supported values are: `gzip`, `zstd` and `zstd:chunked`.  The default is `gzip`.
 
@@ -75,7 +75,7 @@ The [username[:password]] to use to authenticate with the registry if required.
 If one or both values are not supplied, a command line prompt will appear and the
 value can be entered.  The password is entered without echo.
 
-#### **--digestfile** *Digestfile*
+#### **--digestfile**=*Digestfile*
 
 After copying the image, write the digest of the resulting image to the file.  (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
 

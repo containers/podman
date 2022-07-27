@@ -1,13 +1,14 @@
+//go:build !windows
 // +build !windows
 
 package copier
 
 import (
+	"fmt"
 	"os"
 	"syscall"
 	"time"
 
-	"github.com/pkg/errors"
 	"golang.org/x/sys/unix"
 )
 
@@ -16,13 +17,13 @@ var canChroot = os.Getuid() == 0
 func chroot(root string) (bool, error) {
 	if canChroot {
 		if err := os.Chdir(root); err != nil {
-			return false, errors.Wrapf(err, "error changing to intended-new-root directory %q", root)
+			return false, fmt.Errorf("error changing to intended-new-root directory %q: %w", root, err)
 		}
 		if err := unix.Chroot(root); err != nil {
-			return false, errors.Wrapf(err, "error chrooting to directory %q", root)
+			return false, fmt.Errorf("error chrooting to directory %q: %w", root, err)
 		}
 		if err := os.Chdir(string(os.PathSeparator)); err != nil {
-			return false, errors.Wrapf(err, "error changing to just-became-root directory %q", root)
+			return false, fmt.Errorf("error changing to just-became-root directory %q: %w", root, err)
 		}
 		return true, nil
 	}
@@ -43,10 +44,6 @@ func mkdev(major, minor uint32) uint64 {
 
 func mkfifo(path string, mode uint32) error {
 	return unix.Mkfifo(path, mode)
-}
-
-func mknod(path string, mode uint32, dev int) error {
-	return unix.Mknod(path, mode, dev)
 }
 
 func chmod(path string, mode os.FileMode) error {

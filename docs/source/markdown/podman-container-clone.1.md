@@ -61,7 +61,7 @@ The sum of all runtimes across containers cannot exceed the amount allotted to t
 
 This option is not supported on cgroups V2 systems.
 
-#### **--cpu-shares**=*shares*
+#### **--cpu-shares**, **-c**=*shares*
 
 CPU shares (relative weight)
 
@@ -89,14 +89,15 @@ cores. Even if a container is limited to less than 100% of CPU time, it can
 use 100% of each individual CPU core.
 
 For example, consider a system with more than three cores.
-container **{C0}** is started with **-c=512** running one process, and another container
-**{C1}** with **-c=1024** running two processes, this can result in the following
-division of CPU shares:
+If the container _C0_ is started with **--cpu-shares=512** running one process,
+and another container _C1_ with **--cpu-shares=1024** running two processes,
+this can result in the following division of CPU shares:
 
-PID    container	CPU	CPU share
-100    {C0}		0	100% of CPU0
-101    {C1}		1	100% of CPU1
-102    {C1}		2	100% of CPU2
+| PID  |  container  | CPU     | CPU share    |
+| ---- | ----------- | ------- | ------------ |
+| 100  |  C0         | 0       | 100% of CPU0 |
+| 101  |  C1         | 1       | 100% of CPU1 |
+| 102  |  C1         | 2       | 100% of CPU2 |
 
 If none are specified, the original container's CPU shares are used.
 

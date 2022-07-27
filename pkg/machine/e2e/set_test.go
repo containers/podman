@@ -1,4 +1,4 @@
-package e2e
+package e2e_test
 
 import (
 	"runtime"
@@ -22,7 +22,7 @@ var _ = Describe("podman machine set", func() {
 	})
 
 	It("set machine cpus, disk, memory", func() {
-		name := randomString(12)
+		name := randomString()
 		i := new(initMachine)
 		session, err := mb.setName(name).setCmd(i.withImagePath(mb.imagePath)).run()
 		Expect(err).To(BeNil())
@@ -62,7 +62,7 @@ var _ = Describe("podman machine set", func() {
 		switch runtime.GOOS {
 		// it seems macos and linux handle memory differently
 		case "linux":
-			Expect(memorySession.outputToString()).To(ContainSubstring("3821"))
+			Expect(memorySession.outputToString()).To(ContainSubstring("3822"))
 		case "darwin":
 			Expect(memorySession.outputToString()).To(ContainSubstring("3824"))
 		default:
@@ -75,7 +75,7 @@ var _ = Describe("podman machine set", func() {
 	})
 
 	It("no settings should change if no flags", func() {
-		name := randomString(12)
+		name := randomString()
 		i := new(initMachine)
 		session, err := mb.setName(name).setCmd(i.withImagePath(mb.imagePath)).run()
 		Expect(err).To(BeNil())

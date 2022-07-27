@@ -4,12 +4,12 @@
 package cgroups
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strconv"
 
 	spec "github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/pkg/errors"
 )
 
 type cpuHandler struct{}
@@ -66,21 +66,21 @@ func (c *cpuHandler) Stat(ctr *CgroupControl, m *Metrics) error {
 	} else {
 		usage.Total, err = readAcct(ctr, "cpuacct.usage")
 		if err != nil {
-			if !os.IsNotExist(errors.Cause(err)) {
+			if !errors.Is(err, os.ErrNotExist) {
 				return err
 			}
 			usage.Total = 0
 		}
 		usage.Kernel, err = readAcct(ctr, "cpuacct.usage_sys")
 		if err != nil {
-			if !os.IsNotExist(errors.Cause(err)) {
+			if !errors.Is(err, os.ErrNotExist) {
 				return err
 			}
 			usage.Kernel = 0
 		}
 		usage.PerCPU, err = readAcctList(ctr, "cpuacct.usage_percpu")
 		if err != nil {
-			if !os.IsNotExist(errors.Cause(err)) {
+			if !errors.Is(err, os.ErrNotExist) {
 				return err
 			}
 			usage.PerCPU = nil

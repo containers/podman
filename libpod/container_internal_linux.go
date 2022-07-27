@@ -184,11 +184,8 @@ func (c *Container) prepare() error {
 func (c *Container) isWorkDirSymlink(resolvedPath string) bool {
 	// We cannot create workdir since explicit --workdir is
 	// set in config but workdir could also be a symlink.
-	// If its a symlink lets check if resolved link is present
-	// on the container or not.
-
-	// If we can resolve symlink and resolved link is present on the container
-	// then return nil cause its a valid use-case.
+	// If it's a symlink, check if the resolved target is present in the container.
+	// If so, that's a valid use case: return nil.
 
 	maxSymLinks := 0
 	for {
@@ -2889,23 +2886,6 @@ func (c *Container) generatePasswdAndGroup() (string, string, error) {
 		}
 	}
 
-	// Next, check if the container even has a /etc/passwd or /etc/group.
-	// If it doesn't we don't want to create them ourselves.
-	if needPasswd {
-		exists, err := c.checkFileExistsInRootfs("/etc/passwd")
-		if err != nil {
-			return "", "", err
-		}
-		needPasswd = exists
-	}
-	if needGroup {
-		exists, err := c.checkFileExistsInRootfs("/etc/group")
-		if err != nil {
-			return "", "", err
-		}
-		needGroup = exists
-	}
-
 	// If we don't need a /etc/passwd or /etc/group at this point we can
 	// just return.
 	if !needPasswd && !needGroup {
@@ -2950,7 +2930,7 @@ func (c *Container) generatePasswdAndGroup() (string, string, error) {
 				return "", "", fmt.Errorf("error looking up location of container %s /etc/passwd: %w", c.ID(), err)
 			}
 
-			f, err := os.OpenFile(containerPasswd, os.O_APPEND|os.O_WRONLY, 0600)
+			f, err := os.OpenFile(containerPasswd, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600)
 			if err != nil {
 				return "", "", fmt.Errorf("container %s: %w", c.ID(), err)
 			}
@@ -2996,7 +2976,7 @@ func (c *Container) generatePasswdAndGroup() (string, string, error) {
 				return "", "", fmt.Errorf("error looking up location of container %s /etc/group: %w", c.ID(), err)
 			}
 
-			f, err := os.OpenFile(containerGroup, os.O_APPEND|os.O_WRONLY, 0600)
+			f, err := os.OpenFile(containerGroup, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600)
 			if err != nil {
 				return "", "", fmt.Errorf("container %s: %w", c.ID(), err)
 			}
@@ -3113,26 +3093,6 @@ func (c *Container) copyTimezoneFile(zonePath string) (string, error) {
 
 func (c *Container) cleanupOverlayMounts() error {
 	return overlay.CleanupContent(c.config.StaticDir)
-}
-
-// Check if a file exists at the given path in the container's root filesystem.
-// Container must already be mounted for this to be used.
-func (c *Container) checkFileExistsInRootfs(file string) (bool, error) {
-	checkPath, err := securejoin.SecureJoin(c.state.Mountpoint, file)
-	if err != nil {
-		return false, fmt.Errorf("cannot create path to container %s file %q: %w", c.ID(), file, err)
-	}
-	stat, err := os.Stat(checkPath)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return false, nil
-		}
-		return false, fmt.Errorf("container %s: %w", c.ID(), err)
-	}
-	if stat.IsDir() {
-		return false, nil
-	}
-	return true, nil
 }
 
 // Creates and mounts an empty dir to mount secrets into, if it does not already exist

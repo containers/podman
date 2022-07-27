@@ -1,13 +1,13 @@
 package graphdriver
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
 
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/vbatts/tar-split/tar/storage"
 
@@ -282,7 +282,7 @@ func init() {
 // Register registers an InitFunc for the driver.
 func Register(name string, initFunc InitFunc) error {
 	if _, exists := drivers[name]; exists {
-		return fmt.Errorf("Name already registered %s", name)
+		return fmt.Errorf("name already registered %s", name)
 	}
 	drivers[name] = initFunc
 
@@ -296,7 +296,7 @@ func GetDriver(name string, config Options) (Driver, error) {
 	}
 
 	logrus.Errorf("Failed to GetDriver graph %s %s", name, config.Root)
-	return nil, errors.Wrapf(ErrNotSupported, "failed to GetDriver graph %s %s", name, config.Root)
+	return nil, fmt.Errorf("failed to GetDriver graph %s %s: %w", name, config.Root, ErrNotSupported)
 }
 
 // getBuiltinDriver initializes and returns the registered driver, but does not try to load from plugins
@@ -305,7 +305,7 @@ func getBuiltinDriver(name, home string, options Options) (Driver, error) {
 		return initFunc(filepath.Join(home, name), options)
 	}
 	logrus.Errorf("Failed to built-in GetDriver graph %s %s", name, home)
-	return nil, errors.Wrapf(ErrNotSupported, "failed to built-in GetDriver graph %s %s", name, home)
+	return nil, fmt.Errorf("failed to built-in GetDriver graph %s %s: %w", name, home, ErrNotSupported)
 }
 
 // Options is used to initialize a graphdriver
@@ -384,14 +384,13 @@ func New(name string, config Options) (Driver, error) {
 		}
 		return driver, nil
 	}
-	return nil, fmt.Errorf("No supported storage backend found")
+	return nil, fmt.Errorf("no supported storage backend found")
 }
 
 // isDriverNotSupported returns true if the error initializing
 // the graph driver is a non-supported error.
 func isDriverNotSupported(err error) bool {
-	cause := errors.Cause(err)
-	return cause == ErrNotSupported || cause == ErrPrerequisites || cause == ErrIncompatibleFS
+	return errors.Is(err, ErrNotSupported) || errors.Is(err, ErrPrerequisites) || errors.Is(err, ErrIncompatibleFS)
 }
 
 // scanPriorDrivers returns an un-ordered scan of directories of prior storage drivers

@@ -5,6 +5,7 @@ package machine
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -39,6 +40,10 @@ func NewGenericDownloader(vmType, vmName, pullPath string) (DistributionDownload
 	if err != nil {
 		return nil, err
 	}
+	cacheDir, err := GetCacheDir(vmType)
+	if err != nil {
+		return nil, err
+	}
 	dl := Download{}
 	// Is pullpath a file or url?
 	getURL, err := url2.Parse(pullPath)
@@ -48,25 +53,23 @@ func NewGenericDownloader(vmType, vmName, pullPath string) (DistributionDownload
 	if len(getURL.Scheme) > 0 {
 		urlSplit := strings.Split(getURL.Path, "/")
 		imageName = urlSplit[len(urlSplit)-1]
-		dl.LocalUncompressedFile = filepath.Join(dataDir, imageName)
 		dl.URL = getURL
-		dl.LocalPath = filepath.Join(dataDir, imageName)
+		dl.LocalPath = filepath.Join(cacheDir, imageName)
 	} else {
 		// Dealing with FilePath
 		imageName = filepath.Base(pullPath)
-		dl.LocalUncompressedFile = filepath.Join(dataDir, imageName)
 		dl.LocalPath = pullPath
 	}
 	dl.VMName = vmName
 	dl.ImageName = imageName
+	dl.LocalUncompressedFile = filepath.Join(dataDir, imageName)
 	// The download needs to be pulled into the datadir
 
 	gd := GenericDownload{Download: dl}
-	gd.LocalUncompressedFile = gd.getLocalUncompressedName()
 	return gd, nil
 }
 
-func (d Download) getLocalUncompressedName() string {
+func (d Download) getLocalUncompressedFile(dataDir string) string {
 	var (
 		extension string
 	)
@@ -78,8 +81,8 @@ func (d Download) getLocalUncompressedName() string {
 	case strings.HasSuffix(d.LocalPath, ".xz"):
 		extension = ".xz"
 	}
-	uncompressedFilename := filepath.Join(filepath.Dir(d.LocalPath), d.VMName+"_"+d.ImageName)
-	return strings.TrimSuffix(uncompressedFilename, extension)
+	uncompressedFilename := d.VMName + "_" + d.ImageName
+	return filepath.Join(dataDir, strings.TrimSuffix(uncompressedFilename, extension))
 }
 
 func (g GenericDownload) Get() *Download {
@@ -91,6 +94,18 @@ func (g GenericDownload) HasUsableCache() (bool, error) {
 	return g.URL == nil, nil
 }
 
+// CleanCache cleans out downloaded uncompressed image files
+func (g GenericDownload) CleanCache() error {
+	// Remove any image that has been downloaded via URL
+	// We never read from cache for generic downloads
+	if g.URL != nil {
+		if err := os.Remove(g.LocalPath); err != nil && !errors.Is(err, os.ErrNotExist) {
+			return err
+		}
+	}
+	return nil
+}
+
 func DownloadImage(d DistributionDownload) error {
 	// check if the latest image is already present
 	ok, err := d.HasUsableCache()
@@ -98,16 +113,22 @@ func DownloadImage(d DistributionDownload) error {
 		return err
 	}
 	if !ok {
-		if err := DownloadVMImage(d.Get().URL, d.Get().LocalPath); err != nil {
+		if err := DownloadVMImage(d.Get().URL, d.Get().ImageName, d.Get().LocalPath); err != nil {
 			return err
 		}
+		// Clean out old cached images, since we didn't find needed image in cache
+		defer func() {
+			if err = d.CleanCache(); err != nil {
+				logrus.Warnf("error cleaning machine image cache: %s", err)
+			}
+		}()
 	}
-	return Decompress(d.Get().LocalPath, d.Get().getLocalUncompressedName())
+	return Decompress(d.Get().LocalPath, d.Get().LocalUncompressedFile)
 }
 
 // DownloadVMImage downloads a VM image from url to given path
 // with download status
-func DownloadVMImage(downloadURL *url2.URL, localImagePath string) error {
+func DownloadVMImage(downloadURL *url2.URL, imageName string, localImagePath string) error {
 	out, err := os.Create(localImagePath)
 	if err != nil {
 		return err
@@ -132,8 +153,7 @@ func DownloadVMImage(downloadURL *url2.URL, localImagePath string) error {
 		return fmt.Errorf("downloading VM image %s: %s", downloadURL, resp.Status)
 	}
 	size := resp.ContentLength
-	urlSplit := strings.Split(downloadURL.Path, "/")
-	prefix := "Downloading VM image: " + urlSplit[len(urlSplit)-1]
+	prefix := "Downloading VM image: " + imageName
 	onComplete := prefix + ": done"
 
 	p := mpb.New(
@@ -251,5 +271,22 @@ func decompressEverythingElse(src string, output io.WriteCloser) error {
 	}()
 
 	_, err = io.Copy(output, uncompressStream)
+	return err
+}
+
+func removeImageAfterExpire(dir string, expire time.Duration) error {
+	now := time.Now()
+	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+		// Delete any cache files that are older than expiry date
+		if !info.IsDir() && (now.Sub(info.ModTime()) > expire) {
+			err := os.Remove(path)
+			if err != nil && !errors.Is(err, os.ErrNotExist) {
+				logrus.Warnf("unable to clean up cached image: %s", path)
+			} else {
+				logrus.Debugf("cleaning up cached image: %s", path)
+			}
+		}
+		return nil
+	})
 	return err
 }

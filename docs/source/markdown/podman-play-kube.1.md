@@ -22,7 +22,7 @@ Currently, the supported Kubernetes kinds are:
 
 Only two volume types are supported by play kube, the *hostPath* and *persistentVolumeClaim* volume types. For the *hostPath* volume type, only the  *default (empty)*, *DirectoryOrCreate*, *Directory*, *FileOrCreate*, *File*, *Socket*, *CharDevice* and *BlockDevice* subtypes are supported. Podman interprets the value of *hostPath* *path* as a file path when it contains at least one forward slash, otherwise Podman treats the value as the name of a named volume. When using a *persistentVolumeClaim*, the value for *claimName* is the name for the Podman named volume.
 
-Note: When playing a kube YAML with init containers, the init container will be created with init type value `always`.
+Note: When playing a kube YAML with init containers, the init container will be created with init type value `once`. To change the default type, use the `io.podman.annotations.init.container.type` annotation to set the type to `always`.
 
 Note: *hostPath* volume types created by play kube will be given an SELinux shared label (z), bind mounts are not relabeled (use `chcon -t container_file_t -R <directory>`).
 
@@ -170,11 +170,11 @@ Print usage statement
 Assign a static ip address to the pod. This option can be specified several times when play kube creates more than one pod.
 Note: When joining multiple networks you should use the **--network name:ip=\<ip\>** syntax.
 
-#### **--log-driver**=driver
+#### **--log-driver**=*driver*
 
 Set logging driver for all created containers.
 
-#### **--log-opt**=*name*=*value*
+#### **--log-opt**=*name=value*
 
 Set custom logging configuration. The following *name*s are supported:
 
@@ -333,7 +333,7 @@ $ podman play kube demo.yml --network net1:ip=10.89.1.5 --network net2:ip=10.89.
 52182811df2b1e73f36476003a66ec872101ea59034ac0d4d3a7b40903b955a6
 ```
 
-Please take into account that CNI networks must be created first using podman-network-create(1).
+Please take into account that networks must be created first using podman-network-create(1).
 
 ## SEE ALSO
 **[podman(1)](podman.1.md)**, **[podman-play(1)](podman-play.1.md)**, **[podman-network-create(1)](podman-network-create.1.md)**, **[podman-generate-kube(1)](podman-generate-kube.1.md)**, **[containers-certs.d(5)](https://github.com/containers/image/blob/main/docs/containers-certs.d.5.md)**

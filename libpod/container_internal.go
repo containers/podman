@@ -22,12 +22,12 @@ import (
 	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/common/pkg/chown"
 	"github.com/containers/common/pkg/config"
+	"github.com/containers/common/pkg/hooks"
+	"github.com/containers/common/pkg/hooks/exec"
 	cutil "github.com/containers/common/pkg/util"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/libpod/events"
 	"github.com/containers/podman/v4/pkg/ctime"
-	"github.com/containers/podman/v4/pkg/hooks"
-	"github.com/containers/podman/v4/pkg/hooks/exec"
 	"github.com/containers/podman/v4/pkg/lookup"
 	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/containers/podman/v4/pkg/selinux"
@@ -130,7 +130,7 @@ func (c *Container) bundlePath() string {
 	return c.config.StaticDir
 }
 
-// ControlSocketPath returns the path to the containers control socket for things like tty
+// ControlSocketPath returns the path to the container's control socket for things like tty
 // resizing
 func (c *Container) ControlSocketPath() string {
 	return filepath.Join(c.bundlePath(), "ctl")
@@ -513,8 +513,8 @@ func (c *Container) setupStorage(ctx context.Context) error {
 		return fmt.Errorf("error creating container storage: %w", containerInfoErr)
 	}
 
-	// only reconfig IDMappings if layer was mounted from storage
-	// if its a external overlay do not reset IDmappings
+	// Only reconfig IDMappings if layer was mounted from storage.
+	// If it's an external overlay do not reset IDmappings.
 	if !c.config.RootfsOverlay {
 		c.config.IDMappings.UIDMap = containerInfo.UIDMap
 		c.config.IDMappings.GIDMap = containerInfo.GIDMap
@@ -794,7 +794,7 @@ func (c *Container) save() error {
 }
 
 // Checks the container is in the right state, then initializes the container in preparation to start the container.
-// If recursive is true, each of the containers dependencies will be started.
+// If recursive is true, each of the container's dependencies will be started.
 // Otherwise, this function will return with error if there are dependencies of this container that aren't running.
 func (c *Container) prepareToStart(ctx context.Context, recursive bool) (retErr error) {
 	// Container must be created or stopped to be started
@@ -1255,7 +1255,7 @@ func (c *Container) stop(timeout uint) error {
 	// If the container is running in a PID Namespace, then killing the
 	// primary pid is enough to kill the container.  If it is not running in
 	// a pid namespace then the OCI Runtime needs to kill ALL processes in
-	// the containers cgroup in order to make sure the container is stopped.
+	// the container's cgroup in order to make sure the container is stopped.
 	all := !c.hasNamespace(spec.PIDNamespace)
 	// We can't use --all if Cgroups aren't present.
 	// Rootless containers with Cgroups v1 and NoCgroups are both cases

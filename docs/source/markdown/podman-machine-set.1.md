@@ -33,7 +33,7 @@ Print usage statement.
 Memory (in MB).
 Only supported for QEMU machines.
 
-#### **--rootful**=*true|false*
+#### **--rootful**
 
 Whether this machine should prefer rootful (`true`) or rootless (`false`)
 container execution. This option will also update the current podman

@@ -1,11 +1,13 @@
-// +build !linux,!darwin
+//go:build !linux && !darwin && !freebsd
+// +build !linux,!darwin,!freebsd
 
 package buildah
 
 import (
+	"errors"
+
 	nettypes "github.com/containers/common/libnetwork/types"
 	"github.com/containers/storage"
-	"github.com/pkg/errors"
 )
 
 func setChildProcess() error {

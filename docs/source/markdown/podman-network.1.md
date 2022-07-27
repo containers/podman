@@ -27,7 +27,7 @@ so networks have to be created again after a backend change.
 | create     | [podman-network-create(1)](podman-network-create.1.md)         | Create a Podman network                                         |
 | disconnect | [podman-network-disconnect(1)](podman-network-disconnect.1.md) | Disconnect a container from a network                           |
 | exists     | [podman-network-exists(1)](podman-network-exists.1.md)         | Check if the given network exists                               |
-| inspect    | [podman-network-inspect(1)](podman-network-inspect.1.md)       | Displays the raw network configuration for one or more networks |
+| inspect    | [podman-network-inspect(1)](podman-network-inspect.1.md)       | Displays the network configuration for one or more networks     |
 | ls         | [podman-network-ls(1)](podman-network-ls.1.md)                 | Display a summary of networks                                   |
 | prune      | [podman-network-prune(1)](podman-network-prune.1.md)           | Remove all unused networks                                      |
 | reload     | [podman-network-reload(1)](podman-network-reload.1.md)         | Reload network configuration for containers                     |

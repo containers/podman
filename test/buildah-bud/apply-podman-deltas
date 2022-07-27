@@ -129,10 +129,10 @@ errmsg "no such file or directory" \
 
 errmsg "no such file or directory" \
        "Error: no context directory and no Containerfile specified" \
-       "bud without any arguments should fail when no Dockerfile exist"
+       "bud without any arguments should fail when no Dockerfile exists"
 
 errmsg "is not a file" \
-       "Error: open .*: no such file or directory" \
+       "Error: containerfile: .* cannot be path to a directory" \
        "bud with specified context should fail if assumed Dockerfile is a directory"
 
 errmsg "no such file or directory" \
@@ -163,7 +163,7 @@ skip "does not work under podman" \
 # which we could and perhaps should fix in the buildah repo via:
 #    - ... ${TESTSDIR}/bud/layers-squash/Dockerfile.hardlinks
 #    + ... -f Dockerfile.hardlinks ${TESTSDIR}/bud/layers-squash
-skip "FIXME FIXME FIXME: argument-order incompatible with podman" \
+skip "argument-order incompatible with podman" \
      "bud-squash-hardlinks"
 
 # Fails with "Error: context must be a directory: /path/to/Dockerfile"
@@ -197,7 +197,7 @@ skip_if_remote "--build-context option not implemented in podman-remote" \
                "build-with-additional-build-context and COPY, additional context from host" \
                "build-with-additional-build-context and RUN --mount=from=, additional-context not image and also test conflict with stagename" \
 
-skip_if_remote "env-variable for Containerfile.in pre-processing is not propogated on remote" \
+skip_if_remote "env-variable for Containerfile.in pre-processing is not propagated on remote" \
                "bud with Containerfile.in, via envariable" \
 
 # Requires a local file outside context dir
@@ -215,7 +215,8 @@ skip_if_remote "--output option not implemented in podman-remote" \
                "build with custom build output and output rootfs to directory" \
                "build with custom build output and output rootfs to tar" \
                "build with custom build output and output rootfs to tar by pipe" \
-               "build with custom build output must fail for bad input"
+               "build with custom build output must fail for bad input" \
+               "build with custom build output and output rootfs to tar with no additional step"
 
 # https://github.com/containers/podman/issues/14544
 skip_if_remote "logfile not implemented on remote" "bud-logfile-with-split-logfile-by-platform"
@@ -223,10 +224,14 @@ skip_if_remote "logfile not implemented on remote" "bud-logfile-with-split-logfi
 skip_if_remote "envariables do not automatically work with -remote." \
                "build proxy"
 
+# 2022-07-04 this is a new test in buildah; it's failing in treadmill
+skip_if_remote "FIXME FIXME FIXME: does this test make sense in remote?" \
+               "build-test with OCI prestart hook"
+
 ###############################################################################
 # BEGIN tests which are skipped due to actual podman or podman-remote bugs.
 
-skip_if_remote "Podman #12838: different error messages" \
+skip_if_remote "different error messages between podman & podman-remote" \
                "bud with .dockerignore #2"
 
 # These two tests, new in 2022-01, invoke podman (create, export) in ways

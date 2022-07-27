@@ -16,6 +16,7 @@ import (
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/containers/podman/v4/cmd/podman/validate"
 	"github.com/containers/podman/v4/libpod/define"
+	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/machine"
 	"github.com/ghodss/yaml"
 	"github.com/spf13/cobra"
@@ -40,26 +41,6 @@ var (
 	inFormat string
 )
 
-// Info contains info on the machine host and version info
-type Info struct {
-	Host    *HostInfo      `json:"Host"`
-	Version define.Version `json:"Version"`
-}
-
-// HostInfo contains info on the machine host
-type HostInfo struct {
-	Arch             string `json:"Arch"`
-	CurrentMachine   string `json:"CurrentMachine"`
-	DefaultMachine   string `json:"DefaultMachine"`
-	EventsDir        string `json:"EventsDir"`
-	MachineConfigDir string `json:"MachineConfigDir"`
-	MachineImageDir  string `json:"MachineImageDir"`
-	MachineState     string `json:"MachineState"`
-	NumberOfMachines int    `json:"NumberOfMachines"`
-	OS               string `json:"OS"`
-	VMType           string `json:"VMType"`
-}
-
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Command: infoCmd,
@@ -69,11 +50,11 @@ func init() {
 	flags := infoCmd.Flags()
 	formatFlagName := "format"
 	flags.StringVarP(&inFormat, formatFlagName, "f", "", "Change the output format to JSON or a Go template")
-	_ = infoCmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(&define.Info{}))
+	_ = infoCmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(&entities.MachineInfo{}))
 }
 
 func info(cmd *cobra.Command, args []string) error {
-	info := Info{}
+	info := entities.MachineInfo{}
 	version, err := define.GetVersion()
 	if err != nil {
 		return fmt.Errorf("error getting version info %w", err)
@@ -112,8 +93,8 @@ func info(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func hostInfo() (*HostInfo, error) {
-	host := HostInfo{}
+func hostInfo() (*entities.MachineHostInfo, error) {
+	host := entities.MachineHostInfo{}
 
 	host.Arch = runtime.GOARCH
 	host.OS = runtime.GOOS

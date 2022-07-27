@@ -11,7 +11,7 @@ Delete named ssh destination.
 
 ## OPTIONS
 
-#### **--all**=*false*, **-a**
+#### **--all**, **-a**
 
 Remove all connections.
 

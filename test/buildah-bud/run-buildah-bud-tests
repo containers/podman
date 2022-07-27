@@ -94,10 +94,13 @@ fi
 set -e
 
 # Run sudo early, to refresh the credentials cache. This is a NOP under CI,
-# but might be appreciated by developers who run this script,  step away
+# but might be appreciated by developers who run this script, step away
 # during the git-checkout-buildah step, then come back twenty minutes later
-# to an expired sudo prompt and no tests have run.
-sudo --validate
+# to an expired sudo prompt and no tests have run. (No need to do this
+# for checkout; only when running tests)
+if [[ -n $do_test ]]; then
+    sudo --validate
+fi
 
 # Before pulling buildah (while still cd'ed to podman repo), try to determine
 # if this is a PR, and if so if it's a revendoring of buildah. We use this to

@@ -156,6 +156,7 @@ loop: // break out of for/select infinite loop
 					Current: int64(e.Offset),
 					Total:   e.Artifact.Size,
 				}
+				report.ProgressMessage = report.Progress.String()
 			case types.ProgressEventSkipped:
 				report.Status = "Layer already exists"
 			case types.ProgressEventDone:

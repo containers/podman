@@ -120,8 +120,6 @@ var _ = Describe("Podman images", func() {
 		// deleting hence image cannot be deleted until the container is deleted.
 		_, errs = images.Remove(bt.conn, []string{alpine.shortName}, nil)
 		code, _ = bindings.CheckResponseCode(errs[0])
-		// FIXME FIXME FIXME: #12441: another invalid error
-		// FIXME FIXME FIXME: this time msg="Image used by SHA: ..."
 		Expect(code).To(BeNumerically("==", -1))
 
 		// Removing the image "alpine" where force = true

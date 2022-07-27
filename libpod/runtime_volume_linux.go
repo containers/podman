@@ -16,6 +16,7 @@ import (
 	"github.com/containers/podman/v4/libpod/events"
 	volplugin "github.com/containers/podman/v4/libpod/plugin"
 	"github.com/containers/storage/drivers/quota"
+	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/stringid"
 	pluginapi "github.com/docker/go-plugins-helpers/volume"
 	"github.com/sirupsen/logrus"
@@ -31,7 +32,7 @@ func (r *Runtime) NewVolume(ctx context.Context, options ...VolumeCreateOption) 
 
 // newVolume creates a new empty volume with the given options.
 // The createPluginVolume can be set to true to make it not create the volume in the volume plugin,
-// this is required for the UpdateVolumePlugins() function. If you are not sure set this to false.
+// this is required for the UpdateVolumePlugins() function. If you are not sure, set this to false.
 func (r *Runtime) newVolume(noCreatePluginVolume bool, options ...VolumeCreateOption) (_ *Volume, deferredErr error) {
 	volume := newVolume(r)
 	for _, option := range options {
@@ -101,14 +102,14 @@ func (r *Runtime) newVolume(noCreatePluginVolume bool, options ...VolumeCreateOp
 		if err := os.MkdirAll(volPathRoot, 0700); err != nil {
 			return nil, fmt.Errorf("creating volume directory %q: %w", volPathRoot, err)
 		}
-		if err := os.Chown(volPathRoot, volume.config.UID, volume.config.GID); err != nil {
+		if err := idtools.SafeChown(volPathRoot, volume.config.UID, volume.config.GID); err != nil {
 			return nil, fmt.Errorf("chowning volume directory %q to %d:%d: %w", volPathRoot, volume.config.UID, volume.config.GID, err)
 		}
 		fullVolPath := filepath.Join(volPathRoot, "_data")
 		if err := os.MkdirAll(fullVolPath, 0755); err != nil {
 			return nil, fmt.Errorf("creating volume directory %q: %w", fullVolPath, err)
 		}
-		if err := os.Chown(fullVolPath, volume.config.UID, volume.config.GID); err != nil {
+		if err := idtools.SafeChown(fullVolPath, volume.config.UID, volume.config.GID); err != nil {
 			return nil, fmt.Errorf("chowning volume directory %q to %d:%d: %w", fullVolPath, volume.config.UID, volume.config.GID, err)
 		}
 		if err := LabelVolumePath(fullVolPath); err != nil {
@@ -216,7 +217,7 @@ func (r *Runtime) UpdateVolumePlugins(ctx context.Context) *define.VolumeReload 
 	for _, vol := range libpodVolumes {
 		if vol.UsesVolumeDriver() {
 			if _, ok := allPluginVolumes[vol.Name()]; !ok {
-				// The volume is no longer in the plugin, lets remove it from the libpod db.
+				// The volume is no longer in the plugin. Let's remove it from the libpod db.
 				if err := r.removeVolume(ctx, vol, false, nil, true); err != nil {
 					if errors.Is(err, define.ErrVolumeBeingUsed) {
 						// Volume is still used by at least one container. This is very bad,

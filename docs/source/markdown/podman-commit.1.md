@@ -36,7 +36,7 @@ Apply the following possible instructions to the created image:
 
 Can be set multiple times.
 
-#### **--format**, **-f** =**oci** | *docker*
+#### **--format**, **-f**=**oci** | *docker*
 
 Set the format of the image manifest and metadata.  The currently supported formats are **oci** and *docker*.\
 The default is **oci**.

@@ -205,7 +205,7 @@ var (
 	// Useful for potentially long running tasks.
 	ErrCanceled = errors.New("cancelled by user")
 
-	// ErrConmonVersionFormat is used when the expected versio-format of conmon
+	// ErrConmonVersionFormat is used when the expected version format of conmon
 	// has changed.
 	ErrConmonVersionFormat = "conmon version changed format"
 )

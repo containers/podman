@@ -28,7 +28,10 @@ t GET libpod/images/$IMAGE/json 200 \
   .RepoTags[1]=localhost:$REGISTRY_PORT/myrepo:mytag
 
 # Push to local registry...
-t POST "images/localhost:$REGISTRY_PORT/myrepo/push?tlsVerify=false&tag=mytag" 200
+t POST "images/localhost:$REGISTRY_PORT/myrepo/push?tag=mytag" 200 \
+  .error~".*x509: certificate signed by unknown authority"
+t POST "images/localhost:$REGISTRY_PORT/myrepo/push?tlsVerify=false&tag=mytag" 200 \
+  .error~null
 
 # ...and check output. We can't use our built-in checks because this output
 # is a sequence of JSON objects, i.e., individual ones, not in a JSON array.
@@ -63,7 +66,7 @@ podman pull -q $IMAGE
 podman system connection add --default test ssh://$USER@localhost/run/user/$UID/podman/podman.sock
 # should fail but need to check the output...
 # status 125 here means that the save/load fails due to
-# cirrus weirdness with exec.Command. All of the args have been parsed sucessfully.
+# cirrus weirdness with exec.Command. All of the args have been parsed successfully.
 t POST "libpod/images/scp/$IMAGE?destination=QA::" 500 \
     .cause="exit status 125"
 t DELETE libpod/images/$IMAGE 200 \

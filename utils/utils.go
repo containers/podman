@@ -190,3 +190,33 @@ func MovePauseProcessToScope(pausePidPath string) {
 		}
 	}
 }
+
+var (
+	maybeMoveToSubCgroupSync    sync.Once
+	maybeMoveToSubCgroupSyncErr error
+)
+
+// MaybeMoveToSubCgroup moves the current process in a sub cgroup when
+// it is running in the root cgroup on a system that uses cgroupv2.
+func MaybeMoveToSubCgroup() error {
+	maybeMoveToSubCgroupSync.Do(func() {
+		unifiedMode, err := cgroups.IsCgroup2UnifiedMode()
+		if err != nil {
+			maybeMoveToSubCgroupSyncErr = err
+			return
+		}
+		if !unifiedMode {
+			maybeMoveToSubCgroupSyncErr = nil
+			return
+		}
+		cgroup, err := GetOwnCgroup()
+		if err != nil {
+			maybeMoveToSubCgroupSyncErr = err
+			return
+		}
+		if cgroup == "/" {
+			maybeMoveToSubCgroupSyncErr = MoveUnderCgroupSubtree("init")
+		}
+	})
+	return maybeMoveToSubCgroupSyncErr
+}

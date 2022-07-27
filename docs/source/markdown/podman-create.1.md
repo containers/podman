@@ -201,7 +201,7 @@ The sum of all runtimes across containers cannot exceed the amount allotted to t
 
 This flag is not supported on cgroups V2 systems.
 
-#### **--cpu-shares**=*shares*
+#### **--cpu-shares**, **-c**=*shares*
 
 CPU shares (relative weight)
 
@@ -228,21 +228,22 @@ On a multi-core system, the shares of CPU time are distributed over all CPU
 cores. Even if a container is limited to less than 100% of CPU time, it can
 use 100% of each individual CPU core.
 
-For example, consider a system with more than three cores. If you start one
-container **{C0}** with **-c=512** running one process, and another container
-**{C1}** with **-c=1024** running two processes, this can result in the following
-division of CPU shares:
+For example, consider a system with more than three cores.
+If the container _C0_ is started with **--cpu-shares=512** running one process,
+and another container _C1_ with **--cpu-shares=1024** running two processes,
+this can result in the following division of CPU shares:
 
-PID    container	CPU	CPU share
-100    {C0}		0	100% of CPU0
-101    {C1}		1	100% of CPU1
-102    {C1}		2	100% of CPU2
+| PID  |  container  | CPU     | CPU share    |
+| ---- | ----------- | ------- | ------------ |
+| 100  |  C0         | 0       | 100% of CPU0 |
+| 101  |  C1         | 1       | 100% of CPU1 |
+| 102  |  C1         | 2       | 100% of CPU2 |
 
 #### **--cpus**=*number*
 
 Number of CPUs. The default is *0.0* which means no limit. This is shorthand
 for **--cpu-period** and **--cpu-quota**, so you may only set either
-#### **--cpus** or **--cpu-period** and **--cpu-quota**.
+**--cpus** or **--cpu-period** and **--cpu-quota**.
 
 On some systems, changing the CPU limits may not be allowed for non-root
 users. For more details, see
@@ -260,7 +261,7 @@ If you have four memory nodes on your system (0-3), use `--cpuset-mems=0,1`
 then processes in your container will only use memory from the first
 two memory nodes.
 
-#### **--device**=_host-device_[**:**_container-device_][**:**_permissions_]
+#### **--device**=*host-device[:container-device][:permissions]*
 
 Add a host device to the container. Optional *permissions* parameter
 can be used to specify device permissions, it is combination of
@@ -268,7 +269,7 @@ can be used to specify device permissions, it is combination of
 
 Example: **--device=/dev/sdc:/dev/xvdc:rwm**.
 
-Note: if _host_device_ is a symbolic link then it will be resolved first.
+Note: if *host-device* is a symbolic link then it will be resolved first.
 The container will only store the major and minor numbers of the host device.
 
 Note: if the user only has access rights via a group, accessing the device
@@ -279,7 +280,7 @@ Podman may load kernel modules required for using the specified
 device. The devices that podman will load modules when necessary are:
 /dev/fuse.
 
-#### **--device-cgroup-rule**="type major:minor mode"
+#### **--device-cgroup-rule**=*"type major:minor mode"*
 
 Add a rule to the cgroup allowed devices list. The rule is expected to be in the format specified in the Linux kernel documentation (Documentation/cgroup-v1/devices.txt):
        - type: a (all), c (char), or b (block);
@@ -375,7 +376,7 @@ __--uidmap__ maps host UIDs to container UIDs. For details see __--uidmap__.
 
 Note: the **--gidmap** flag cannot be called in conjunction with the **--pod** flag as a gidmap cannot be set on the container level when in a pod.
 
-#### **--group-add**=*group|keep-groups*
+#### **--group-add**=*group* | *keep-groups*
 
 Assign additional groups to the primary user running within the container process.
 
@@ -418,7 +419,7 @@ value can be expressed in a time format such as `1m22s`. The default value is `3
 
 Print usage statement
 
-#### **--hostname**=*name*, **-h**
+#### **--hostname**, **-h**=*name*
 
 Container host name
 
@@ -449,7 +450,7 @@ container:
 
 Defaults to `true`
 
-#### **--image-volume**, **builtin-volume**=*bind|tmpfs|ignore*
+#### **--image-volume**=**bind** | *tmpfs* | *ignore*
 
 Tells Podman how to handle the builtin image volumes. Default is **bind**.
 
@@ -464,8 +465,9 @@ Run an init inside the container that forwards signals and reaps processes.
 The container-init binary is mounted at `/run/podman-init`.
 Mounting over `/run` will hence break container execution.
 
-#### **--init-ctr**=*type* (pods only)
+#### **--init-ctr**=*type*
 
+(Pods only).
 When using pods, create an init style container, which is run after the infra container is started
 but before regular pod containers are started.  Init containers are useful for running
 setup operations for the pod's applications.
@@ -530,7 +532,7 @@ Read in a line delimited file of labels
 
 Not implemented
 
-#### **--log-driver**="*k8s-file*"
+#### **--log-driver**=*driver*
 
 Logging driver for the container. Currently available options are *k8s-file*, *journald*, *none* and *passthrough*, with *json-file* aliased to *k8s-file* for scripting compatibility.
 
@@ -543,7 +545,7 @@ The *passthrough* driver passes down the standard streams (stdin, stdout, stderr
 container.  It is not allowed with the remote Podman client, including Mac and Windows (excluding WSL2) machines, and on a tty, since it is
 vulnerable to attacks via TIOCSTI.
 
-#### **--log-opt**=*name*=*value*
+#### **--log-opt**=*name=value*
 
 Set custom logging configuration. The following *name*s are supported:
 
@@ -736,9 +738,12 @@ Valid _mode_ values are:
 
 #### **--network-alias**=*alias*
 
-Add a network-scoped alias for the container, setting the alias for all networks that the container joins. To set a name only for a specific network, use the alias option as described under the **--network** option.
-Network aliases work only with the bridge networking mode. This option can be specified multiple times.
-NOTE: A container will only have access to aliases on the first network that it joins. This is a limitation that will be removed in a later release.
+Add a network-scoped alias for the container, setting the alias for all networks that the container joins. To set a
+name only for a specific network, use the alias option as described under the **--network** option.
+If the network has DNS enabled (`podman network inspect -f {{.DNSEnabled}} <name>`),
+these aliases can be used for name resolution on the given network. This option can be specified multiple times.
+NOTE: When using CNI a container will only have access to aliases on the first network that it joins. This limitation does
+not exist with netavark/aardvark-dns.
 
 #### **--no-healthcheck**
 
@@ -827,11 +832,11 @@ container.
 
 Rootless containers cannot have more privileges than the account that launched them.
 
-#### **--publish**, **-p**=[[_ip_:][_hostPort_]:]_containerPort_[/_protocol_]
+#### **--publish**, **-p**=*[[ip:][hostPort]:]containerPort[/protocol]*
 
 Publish a container's port, or range of ports, to the host.
 
-Both hostPort and containerPort can be specified as a range of ports.
+Both *hostPort* and *containerPort* can be specified as a range of ports.
 When specifying ranges for both, the number of container ports in the
 range must match the number of host ports in the range.
 
@@ -867,7 +872,7 @@ port to a random port on the host within an *ephemeral port range* defined by
 `/proc/sys/net/ipv4/ip_local_port_range`. To find the mapping between the host
 ports and the exposed ports, use `podman port`.
 
-#### **--pull**=**always**|**missing**|**never**|**newer**
+#### **--pull**=*policy*
 
 Pull image policy. The default is **missing**.
 
@@ -896,7 +901,7 @@ If container is running in --read-only mode, then mount a read-write tmpfs on /r
 
 If another container with the same name already exists, replace and remove it. The default is **false**.
 
-#### **--requires**=**container**
+#### **--requires**=*container*
 
 Specify one or more requirements.
 A requirement is a dependency container that will be started before this container.
@@ -939,7 +944,7 @@ directory will be the lower, and the container storage directory will be the
 upper. Modifications to the mount point are destroyed when the container
 finishes executing, similar to a tmpfs mount point being unmounted.
 
-#### **--sdnotify**=**container**|**conmon**|**ignore**
+#### **--sdnotify**=**container** | *conmon* | *ignore*
 
 Determines how to use the NOTIFY_SOCKET, as passed with systemd and Type=notify.
 
@@ -956,7 +961,7 @@ Specify the policy to select the seccomp profile. If set to *image*, Podman will
 
 Note that this feature is experimental and may change in the future.
 
-#### **--secret**=*secret*[,opt=opt ...]
+#### **--secret**=*secret[,opt=opt ...]*
 
 Give the container access to a secret. Can be specified multiple times.
 
@@ -1051,7 +1056,7 @@ Network Namespace - current sysctls allowed:
 
 Note: if you use the --network=host option these sysctls will not be allowed.
 
-#### **--systemd**=*true|false|always*
+#### **--systemd**=*true* | *false* | *always*
 
 Run container in systemd mode. The default is *true*.
 
@@ -1119,7 +1124,7 @@ standard input.
 Set timezone in container. This flag takes area-based timezones, GMT time, as well as `local`, which sets the timezone in the container to match the host machine. See `/usr/share/zoneinfo/` for valid timezones.
 Remote connections use local containers.conf for defaults
 
-#### **--uidmap**=*container_uid*:*from_uid*:*amount*
+#### **--uidmap**=*container_uid:from_uid:amount*
 
 Run the container in a new user namespace using the supplied UID mapping. This
 option conflicts with the **--userns** and **--subuidname** options. This
@@ -1214,7 +1219,7 @@ Unset default environment variables for the container. Default environment
 variables include variables provided natively by Podman, environment variables
 configured by the image, and environment variables from containers.conf.
 
-#### **--unsetenv-all**=*true|false*
+#### **--unsetenv-all**
 
 Unset all default environment variables for the container. Default environment
 variables include variables provided natively by Podman, environment variables
@@ -1284,7 +1289,7 @@ Set the UTS namespace mode for the container. The following values are supported
 #### **--variant**=*VARIANT*
 Use _VARIANT_ instead of the default architecture variant of the container image. Some images can use multiple variants of the arm architectures, such as arm/v5 and arm/v7.
 
-#### **--volume**, **-v**[=*[[SOURCE-VOLUME|HOST-DIR:]CONTAINER-DIR[:OPTIONS]]*]
+#### **--volume**, **-v**=*[[SOURCE-VOLUME|HOST-DIR:]CONTAINER-DIR[:OPTIONS]]*
 
 Create a bind mount. If you specify, ` -v /HOST-DIR:/CONTAINER-DIR`, Podman
 bind mounts `/HOST-DIR` in the host to `/CONTAINER-DIR` in the Podman
@@ -1454,7 +1459,7 @@ Note: if the user only has access rights via a group, accessing the volume
 from inside a rootless container will fail. Use the `--group-add keep-groups`
 flag to pass the user's supplementary group access into the container.
 
-#### **--volumes-from**[=*CONTAINER*[:*OPTIONS*]]
+#### **--volumes-from**=*CONTAINER[:OPTIONS]]*
 
 Mount volumes from the specified container(s). Used to share volumes between
 containers. The *options* is a comma-separated list with the following available elements:

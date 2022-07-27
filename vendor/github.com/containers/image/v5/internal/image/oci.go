@@ -3,6 +3,7 @@ package image
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"github.com/containers/image/v5/docker/reference"
@@ -13,7 +14,6 @@ import (
 	"github.com/containers/image/v5/types"
 	"github.com/opencontainers/go-digest"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
-	"github.com/pkg/errors"
 )
 
 type manifestOCI1 struct {
@@ -61,7 +61,7 @@ func (m *manifestOCI1) ConfigInfo() types.BlobInfo {
 func (m *manifestOCI1) ConfigBlob(ctx context.Context) ([]byte, error) {
 	if m.configBlob == nil {
 		if m.src == nil {
-			return nil, errors.Errorf("Internal error: neither src nor configBlob set in manifestOCI1")
+			return nil, errors.New("Internal error: neither src nor configBlob set in manifestOCI1")
 		}
 		stream, _, err := m.src.GetBlob(ctx, manifest.BlobInfoFromOCI1Descriptor(m.m.Config), none.NoCache)
 		if err != nil {
@@ -74,7 +74,7 @@ func (m *manifestOCI1) ConfigBlob(ctx context.Context) ([]byte, error) {
 		}
 		computedDigest := digest.FromBytes(blob)
 		if computedDigest != m.m.Config.Digest {
-			return nil, errors.Errorf("Download config.json digest %s does not match expected %s", computedDigest, m.m.Config.Digest)
+			return nil, fmt.Errorf("Download config.json digest %s does not match expected %s", computedDigest, m.m.Config.Digest)
 		}
 		m.configBlob = blob
 	}

@@ -101,6 +101,8 @@ type CommonBuildOptions struct {
 	Secrets []string
 	// SSHSources is the available ssh agent connections to forward in the build
 	SSHSources []string
+	// OCIHooksDir is the location of OCI hooks for the build containers
+	OCIHooksDir []string
 }
 
 // BuildOptions can be used to alter how an image is built.

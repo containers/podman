@@ -77,7 +77,7 @@ BUILDTAGS_CROSS ?= containers_image_openpgp exclude_graphdriver_btrfs exclude_gr
 CONTAINER_RUNTIME := $(shell command -v podman 2> /dev/null || echo docker)
 OCI_RUNTIME ?= ""
 
-MANPAGES_MD ?= $(wildcard docs/source/markdown/*.md pkg/*/docs/*.md)
+MANPAGES_MD ?= $(wildcard docs/source/markdown/*.md)
 MANPAGES ?= $(MANPAGES_MD:%.md=%)
 MANPAGES_DEST ?= $(subst markdown,man, $(subst source,build,$(MANPAGES)))
 
@@ -146,7 +146,8 @@ CROSS_BUILD_TARGETS := \
 # Dereference variable $(1), return value if non-empty, otherwise raise an error.
 err_if_empty = $(if $(strip $($(1))),$(strip $($(1))),$(error Required variable $(1) value is undefined, whitespace, or empty))
 
-# Podman does not work w/o CGO_ENABLED, except in some very specific cases
+# Podman does not work w/o CGO_ENABLED, except in some very specific cases.
+# Windows and Mac (both podman-remote client only) require CGO_ENABLED=0.
 CGO_ENABLED ?= 1
 # Default to the native OS type and architecture unless otherwise specified
 NATIVE_GOOS := $(shell env -u GOOS $(GO) env GOOS)
@@ -157,9 +158,11 @@ GOARCH ?= $(NATIVE_GOARCH)
 ifeq ($(call err_if_empty,GOOS),windows)
 BINSFX := .exe
 SRCBINDIR := bin/windows
+CGO_ENABLED := 0
 else ifeq ($(GOOS),darwin)
 BINSFX :=
 SRCBINDIR := bin/darwin
+CGO_ENABLED := 0
 else
 BINSFX := -remote
 SRCBINDIR := bin
@@ -258,7 +261,7 @@ test/version/version: version/version.go
 
 .PHONY: codespell
 codespell:
-	codespell -S bin,vendor,.git,go.sum,.cirrus.yml,"RELEASE_NOTES.md,*.xz,*.gz,*.ps1,*.tar,swagger.yaml,*.tgz,bin2img,*ico,*.png,*.1,*.5,copyimg,*.orig,apidoc.go" -L uint,iff,od,seeked,splitted,marge,ERRO,hist,ether -w
+	codespell -S bin,vendor,.git,go.sum,.cirrus.yml,"RELEASE_NOTES.md,*.xz,*.gz,*.ps1,*.tar,swagger.yaml,*.tgz,bin2img,*ico,*.png,*.1,*.5,copyimg,*.orig,apidoc.go" -L pullrequest,uint,iff,od,seeked,splitted,marge,erro,hist,ether -w
 
 .PHONY: validate
 validate: lint .gitvalidation validate.completions man-page-check swagger-check tests-included tests-expect-exit
@@ -302,7 +305,8 @@ endif
 $(SRCBINDIR):
 	mkdir -p $(SRCBINDIR)
 
-$(SRCBINDIR)/podman$(BINSFX): $(SRCBINDIR) $(SOURCES) go.mod go.sum
+# '|' is to ignore SRCBINDIR mtime; see: info make 'Types of Prerequisites'
+$(SRCBINDIR)/podman$(BINSFX): $(SOURCES) go.mod go.sum | $(SRCBINDIR)
 	$(GOCMD) build \
 		$(BUILDFLAGS) \
 		$(GO_LDFLAGS) '$(LDFLAGS_PODMAN)' \
@@ -322,27 +326,12 @@ $(SRCBINDIR)/podman-remote-static: $(SRCBINDIR) $(SOURCES) go.mod go.sum
 .PHONY: podman
 podman: bin/podman
 
+# This will map to the right thing on Linux, Windows, and Mac.
 .PHONY: podman-remote
-podman-remote: $(SRCBINDIR) $(SRCBINDIR)/podman$(BINSFX)  ## Build podman-remote binary
-
-# A wildcard podman-remote-% target incorrectly sets GOOS for release targets
-.PHONY: podman-remote-linux
-podman-remote-linux: ## Build podman-remote for Linux
-	$(MAKE) \
-		CGO_ENABLED=0 \
-		GOOS=linux \
-		GOARCH=$(GOARCH) \
-		bin/podman-remote
+podman-remote: $(SRCBINDIR)/podman$(BINSFX)
 
 PHONY: podman-remote-static
 podman-remote-static: $(SRCBINDIR)/podman-remote-static
-
-.PHONY: podman-remote-windows
-podman-remote-windows: ## Build podman-remote for Windows
-	$(MAKE) \
-		CGO_ENABLED=0 \
-		GOOS=windows \
-		bin/windows/podman.exe
 
 .PHONY: podman-winpath
 podman-winpath: $(SOURCES) go.mod go.sum
@@ -353,14 +342,6 @@ podman-winpath: $(SOURCES) go.mod go.sum
 		-ldflags -H=windowsgui \
 		-o bin/windows/winpath.exe \
 		./cmd/winpath
-
-.PHONY: podman-remote-darwin
-podman-remote-darwin: podman-mac-helper ## Build podman-remote for macOS
-	$(MAKE) \
-		CGO_ENABLED=$(DARWIN_GCO) \
-		GOOS=darwin \
-		GOARCH=$(GOARCH) \
-		bin/darwin/podman
 
 .PHONY: podman-mac-helper
 podman-mac-helper: ## Build podman-mac-helper for macOS
@@ -456,8 +437,10 @@ docdir:
 docs: $(MANPAGES) ## Generate documentation
 
 # docs/remote-docs.sh requires a locally executable 'podman-remote' binary
-# in addition to the target-archetecture binary (if any).
-podman-remote-%-docs: podman-remote-$(call err_if_empty,NATIVE_GOOS)
+# in addition to the target-architecture binary (if different). That's
+# what the NATIVE_GOOS make does in the first line.
+podman-remote-%-docs: podman-remote
+	$(MAKE) podman-remote GOOS=$(NATIVE_GOOS)
 	$(eval GOOS := $*)
 	$(MAKE) docs $(MANPAGES)
 	rm -rf docs/build/remote
@@ -685,9 +668,9 @@ podman-remote-release-%.zip: test/version/version ## Build podman-remote for %=$
 		clean-binaries podman-remote-$(GOOS)-docs
 	if [[ "$(GOARCH)" != "$(NATIVE_GOARCH)" ]]; then \
 		$(MAKE) CGO_ENABLED=0 $(GOPLAT) BUILDTAGS="$(BUILDTAGS_CROSS)" \
-			clean-binaries podman-remote-$(GOOS); \
+			clean-binaries podman-remote; \
 	else \
-		$(MAKE) $(GOPLAT) podman-remote-$(GOOS); \
+		$(MAKE) $(GOPLAT) podman-remote; \
 	fi
 	cp -r ./docs/build/remote/$(GOOS) "$(TMPDIR)/$(SUBDIR)/docs/"
 	cp ./contrib/remote/containers.conf "$(TMPDIR)/$(SUBDIR)/"
@@ -700,7 +683,7 @@ podman-remote-release-%.zip: test/version/version ## Build podman-remote for %=$
 .PHONY: podman.msi
 podman.msi: test/version/version  ## Build podman-remote, package for installation on Windows
 	$(MAKE) podman-v$(call err_if_empty,RELEASE_NUMBER).msi
-podman-v%.msi: test/version/version podman-remote-windows podman-remote-windows-docs podman-winpath win-sshproxy
+podman-v%.msi: test/version/version podman-remote podman-remote-windows-docs podman-winpath win-sshproxy
 	$(eval DOCFILE := docs/build/remote/windows)
 	find $(DOCFILE) -print | \
 		wixl-heat --var var.ManSourceDir --component-group ManFiles \
@@ -776,9 +759,7 @@ install.modules-load: # This should only be used by distros which might use ipta
 .PHONY: install.man
 install.man:
 	install ${SELINUXOPT} -d -m 755 $(DESTDIR)$(MANDIR)/man1
-	install ${SELINUXOPT} -d -m 755 $(DESTDIR)$(MANDIR)/man5
 	install ${SELINUXOPT} -m 644 $(filter %.1,$(MANPAGES_DEST)) $(DESTDIR)$(MANDIR)/man1
-	install ${SELINUXOPT} -m 644 $(filter %.5,$(MANPAGES_DEST)) $(DESTDIR)$(MANDIR)/man5
 	install ${SELINUXOPT} -m 644 docs/source/markdown/links/*1 $(DESTDIR)$(MANDIR)/man1
 
 .PHONY: install.completions

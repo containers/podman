@@ -1,13 +1,15 @@
+//go:build darwin
 // +build darwin
 
 package buildah
 
 import (
+	"errors"
+
 	"github.com/containers/buildah/define"
 	nettypes "github.com/containers/common/libnetwork/types"
-	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/containers/storage"
-	"github.com/pkg/errors"
+	"github.com/opencontainers/runtime-spec/specs-go"
 )
 
 // ContainerDevices is an alias for a slice of github.com/opencontainers/runc/libcontainer/configs.Device structures.

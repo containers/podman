@@ -1,16 +1,23 @@
 language: go
 
-go:
-  - "1.16"
-  - "1.17"
+services:
+  - docker
 
-install:
+go:
+  - "1.17"
+  - "1.18"
+
+before_install:
+  - sudo apt-get update -q -y
+  - sudo apt-get install -q -y golang
+  - docker pull busybox
+  - docker pull centos:7
+  - chmod -R go-w ./dockerclient/testdata
 
 script:
   - make build
   - make test
+  - travis_wait 30 make test-conformance
 
 notifications:
   irc: "chat.freenode.net#openshift-dev"
-
-sudo: false

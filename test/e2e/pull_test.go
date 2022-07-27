@@ -108,6 +108,15 @@ var _ = Describe("Podman pull", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		Expect(len(session.OutputToStringArray())).To(BeNumerically(">=", 2), "Expected at least two images")
+
+		session = podmanTest.Podman([]string{"pull", "-a", "quay.io/libpod/testdigest_v2s2"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"images"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(len(session.OutputToStringArray())).To(BeNumerically(">=", 2), "Expected at least two images")
 	})
 
 	It("podman pull from docker with nonexistent --authfile", func() {

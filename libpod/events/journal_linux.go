@@ -141,9 +141,18 @@ func (e EventJournalD) Read(ctx context.Context, options ReadOptions) error {
 			if !options.Stream || (len(options.Until) > 0 && time.Now().After(untilTime)) {
 				break
 			}
-			t := sdjournal.IndefiniteWait
+
+			// j.Wait() is blocking, this would cause the goroutine to hang forever
+			// if no more journal entries are generated and thus if the client
+			// has closed the connection in the meantime to leak memory.
+			// Waiting only 5 seconds makes sure we can check if the client closed in the
+			// meantime at least every 5 seconds.
+			t := 5 * time.Second
 			if len(options.Until) > 0 {
-				t = time.Until(untilTime)
+				until := time.Until(untilTime)
+				if until < t {
+					t = until
+				}
 			}
 			_ = j.Wait(t)
 			continue

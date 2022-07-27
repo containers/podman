@@ -1,4 +1,4 @@
-package e2e
+package e2e_test
 
 import (
 	"strings"
@@ -52,15 +52,15 @@ var _ = Describe("podman machine stop", func() {
 	})
 
 	It("inspect with go format", func() {
-		name := randomString(12)
+		name := randomString()
 		i := new(initMachine)
 		session, err := mb.setName(name).setCmd(i.withImagePath(mb.imagePath)).run()
 		Expect(err).To(BeNil())
 		Expect(session).To(Exit(0))
 
 		// regular inspect should
-		inspectJson := new(inspectMachine)
-		inspectSession, err := mb.setName(name).setCmd(inspectJson).run()
+		inspectJSON := new(inspectMachine)
+		inspectSession, err := mb.setName(name).setCmd(inspectJSON).run()
 		Expect(err).To(BeNil())
 		Expect(inspectSession).To(Exit(0))
 

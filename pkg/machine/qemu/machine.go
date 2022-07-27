@@ -240,20 +240,6 @@ func (p *Provider) LoadVMByName(name string) (machine.VM, error) {
 		return nil, err
 	}
 
-	// It is here for providing the ability to propagate
-	// proxy settings (e.g. HTTP_PROXY and others) on a start
-	// and avoid a need of re-creating/re-initiating a VM
-	if proxyOpts := machine.GetProxyVariables(); len(proxyOpts) > 0 {
-		proxyStr := "name=opt/com.coreos/environment,string="
-		var proxies string
-		for k, v := range proxyOpts {
-			proxies = fmt.Sprintf("%s%s=\"%s\"|", proxies, k, v)
-		}
-		proxyStr = fmt.Sprintf("%s%s", proxyStr, base64.StdEncoding.EncodeToString([]byte(proxies)))
-		vm.CmdLine = append(vm.CmdLine, "-fw_cfg", proxyStr)
-	}
-
-	logrus.Debug(vm.CmdLine)
 	return vm, nil
 }
 
@@ -573,14 +559,28 @@ func (v *MachineVM) Start(name string, _ machine.StartOptions) error {
 	attr := new(os.ProcAttr)
 	files := []*os.File{dnr, dnw, dnw, fd}
 	attr.Files = files
-	logrus.Debug(v.CmdLine)
 	cmdLine := v.CmdLine
+
+	// It is here for providing the ability to propagate
+	// proxy settings (e.g. HTTP_PROXY and others) on a start
+	// and avoid a need of re-creating/re-initiating a VM
+	if proxyOpts := machine.GetProxyVariables(); len(proxyOpts) > 0 {
+		proxyStr := "name=opt/com.coreos/environment,string="
+		var proxies string
+		for k, v := range proxyOpts {
+			proxies = fmt.Sprintf("%s%s=\"%s\"|", proxies, k, v)
+		}
+		proxyStr = fmt.Sprintf("%s%s", proxyStr, base64.StdEncoding.EncodeToString([]byte(proxies)))
+		cmdLine = append(cmdLine, "-fw_cfg", proxyStr)
+	}
 
 	// Disable graphic window when not in debug mode
 	// Done in start, so we're not suck with the debug level we used on init
 	if !logrus.IsLevelEnabled(logrus.DebugLevel) {
 		cmdLine = append(cmdLine, "-display", "none")
 	}
+
+	logrus.Debugf("qemu cmd: %v", cmdLine)
 
 	stderrBuf := &bytes.Buffer{}
 
@@ -670,11 +670,11 @@ func (v *MachineVM) Start(name string, _ machine.StartOptions) error {
 		// because / is immutable, we have to monkey around with permissions
 		// if we dont mount in /home or /mnt
 		args := []string{"-q", "--"}
-		if !strings.HasPrefix(mount.Target, "/home") || !strings.HasPrefix(mount.Target, "/mnt") {
+		if !strings.HasPrefix(mount.Target, "/home") && !strings.HasPrefix(mount.Target, "/mnt") {
 			args = append(args, "sudo", "chattr", "-i", "/", ";")
 		}
 		args = append(args, "sudo", "mkdir", "-p", mount.Target)
-		if !strings.HasPrefix(mount.Target, "/home") || !strings.HasPrefix(mount.Target, "/mnt") {
+		if !strings.HasPrefix(mount.Target, "/home") && !strings.HasPrefix(mount.Target, "/mnt") {
 			args = append(args, ";", "sudo", "chattr", "+i", "/", ";")
 		}
 		err = v.SSH(name, machine.SSHOptions{Args: args})

@@ -321,12 +321,29 @@ case "$TEST_FLAVOR" in
         install_test_configs
         ;;
     gitlab)
-        # This only runs on Ubuntu for now
+        # ***WARNING*** ***WARNING*** ***WARNING*** ***WARNING***
+        # This sets up a special ubuntu environment exclusively for
+        # running the upstream gitlab-runner unit tests through
+        # podman as a drop-in replacement for the Docker daemon.
+        # Test and setup information can be found here:
+        # https://gitlab.com/gitlab-org/gitlab-runner/-/issues/27270#note_499585550
+        #
+        # Unless you know what you're doing, and/or are in contact
+        # with the upstream gitlab-runner developers/community,
+        # please don't make changes willy-nilly to this setup.
+        # It's designed to follow upstream gitlab-runner development
+        # and alert us if any podman change breaks their foundation.
+        #
+        # That said, if this task does break in strange ways or requires
+        # updates you're unsure of.  Please consult with the upstream
+        # community through an issue near the one linked above.  If
+        # an extended period of breakage is expected, please un-comment
+        # the related `allow_failures: $CI == $CI` line in `.cirrus.yml`.
+        # ***WARNING*** ***WARNING*** ***WARNING*** ***WARNING***
+
         if [[ "$OS_RELEASE_ID" != "ubuntu" ]]; then
             die "This test only runs on Ubuntu due to sheer laziness"
         fi
-
-        # Ref: https://gitlab.com/gitlab-org/gitlab-runner/-/issues/27270#note_499585550
 
         remove_packaged_podman_files
         make install PREFIX=/usr ETCDIR=/etc

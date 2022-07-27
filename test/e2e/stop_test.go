@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -247,7 +248,7 @@ var _ = Describe("Podman stop", func() {
 
 	It("podman stop should return silent success on stopping configured containers", func() {
 		// following container is not created on OCI runtime
-		// so we return success and assume that is is stopped
+		// so we return success and assume that it is stopped
 		session2 := podmanTest.Podman([]string{"create", "--name", "stopctr", ALPINE, "/bin/sh"})
 		session2.WaitWithDefaultTimeout()
 		Expect(session2).Should(Exit(0))
@@ -362,5 +363,46 @@ var _ = Describe("Podman stop", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
+	})
+
+	It("podman stop --filter", func() {
+		session1 := podmanTest.Podman([]string{"container", "create", ALPINE})
+		session1.WaitWithDefaultTimeout()
+		Expect(session1).Should(Exit(0))
+		cid1 := session1.OutputToString()
+
+		session1 = podmanTest.Podman([]string{"container", "create", ALPINE})
+		session1.WaitWithDefaultTimeout()
+		Expect(session1).Should(Exit(0))
+		cid2 := session1.OutputToString()
+
+		session1 = podmanTest.Podman([]string{"container", "create", ALPINE})
+		session1.WaitWithDefaultTimeout()
+		Expect(session1).Should(Exit(0))
+		cid3 := session1.OutputToString()
+		shortCid3 := cid3[0:5]
+
+		session1 = podmanTest.Podman([]string{"start", "--all"})
+		session1.WaitWithDefaultTimeout()
+		Expect(session1).Should(Exit(0))
+
+		session1 = podmanTest.Podman([]string{"stop", cid1, "-f", "status=running"})
+		session1.WaitWithDefaultTimeout()
+		Expect(session1).Should(Exit(125))
+
+		session1 = podmanTest.Podman([]string{"stop", "-a", "--filter", fmt.Sprintf("id=%swrongid", shortCid3)})
+		session1.WaitWithDefaultTimeout()
+		Expect(session1).Should(Exit(0))
+		Expect(session1.OutputToString()).To(HaveLen(0))
+
+		session1 = podmanTest.Podman([]string{"stop", "-a", "--filter", fmt.Sprintf("id=%s", shortCid3)})
+		session1.WaitWithDefaultTimeout()
+		Expect(session1).Should(Exit(0))
+		Expect(session1.OutputToString()).To(BeEquivalentTo(cid3))
+
+		session1 = podmanTest.Podman([]string{"stop", "-f", fmt.Sprintf("id=%s", cid2)})
+		session1.WaitWithDefaultTimeout()
+		Expect(session1).Should(Exit(0))
+		Expect(session1.OutputToString()).To(BeEquivalentTo(cid2))
 	})
 })

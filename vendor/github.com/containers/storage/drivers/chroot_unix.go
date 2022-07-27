@@ -1,3 +1,4 @@
+//go:build linux || darwin || freebsd || solaris
 // +build linux darwin freebsd solaris
 
 package graphdriver
@@ -12,10 +13,10 @@ import (
 // specified path followed by chdir() to the new root directory
 func chrootOrChdir(path string) error {
 	if err := syscall.Chroot(path); err != nil {
-		return fmt.Errorf("error chrooting to %q: %v", path, err)
+		return fmt.Errorf("chrooting to %q: %w", path, err)
 	}
 	if err := syscall.Chdir(string(os.PathSeparator)); err != nil {
-		return fmt.Errorf("error changing to %q: %v", path, err)
+		return fmt.Errorf("changing to %q: %w", path, err)
 	}
 	return nil
 }

@@ -12,7 +12,6 @@ import (
 	"github.com/opencontainers/go-digest"
 	"github.com/opencontainers/image-spec/specs-go"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
-	"github.com/pkg/errors"
 )
 
 // BlobInfoFromOCI1Descriptor returns a types.BlobInfo based on the input OCI1 descriptor.
@@ -124,7 +123,7 @@ var oci1CompressionMIMETypeSets = []compressionMIMETypeSet{
 // handled — that logic should eventually also be provided as OCI1 methods, not hard-coded in callers.
 func (m *OCI1) UpdateLayerInfos(layerInfos []types.BlobInfo) error {
 	if len(m.Layers) != len(layerInfos) {
-		return errors.Errorf("Error preparing updated manifest: layer count changed from %d to %d", len(m.Layers), len(layerInfos))
+		return fmt.Errorf("Error preparing updated manifest: layer count changed from %d to %d", len(m.Layers), len(layerInfos))
 	}
 	original := m.Layers
 	m.Layers = make([]imgspecv1.Descriptor, len(layerInfos))
@@ -139,7 +138,7 @@ func (m *OCI1) UpdateLayerInfos(layerInfos []types.BlobInfo) error {
 		}
 		mimeType, err := updatedMIMEType(oci1CompressionMIMETypeSets, mimeType, info)
 		if err != nil {
-			return errors.Wrapf(err, "preparing updated manifest, layer %q", info.Digest)
+			return fmt.Errorf("preparing updated manifest, layer %q: %w", info.Digest, err)
 		}
 		if info.CryptoOperation == types.Encrypt {
 			encMediaType, err := getEncryptedMediaType(mimeType)
@@ -163,7 +162,7 @@ func (m *OCI1) UpdateLayerInfos(layerInfos []types.BlobInfo) error {
 func getEncryptedMediaType(mediatype string) (string, error) {
 	for _, s := range strings.Split(mediatype, "+")[1:] {
 		if s == "encrypted" {
-			return "", errors.Errorf("unsupportedmediatype: %v already encrypted", mediatype)
+			return "", fmt.Errorf("unsupported mediaType: %v already encrypted", mediatype)
 		}
 	}
 	unsuffixedMediatype := strings.Split(mediatype, "+")[0]
@@ -172,14 +171,14 @@ func getEncryptedMediaType(mediatype string) (string, error) {
 		return mediatype + "+encrypted", nil
 	}
 
-	return "", errors.Errorf("unsupported mediatype to encrypt: %v", mediatype)
+	return "", fmt.Errorf("unsupported mediaType to encrypt: %v", mediatype)
 }
 
 // getEncryptedMediaType will return the mediatype to its encrypted counterpart and return
 // an error if the mediatype does not support decryption
 func getDecryptedMediaType(mediatype string) (string, error) {
 	if !strings.HasSuffix(mediatype, "+encrypted") {
-		return "", errors.Errorf("unsupported mediatype to decrypt %v:", mediatype)
+		return "", fmt.Errorf("unsupported mediaType to decrypt %v:", mediatype)
 	}
 
 	return strings.TrimSuffix(mediatype, "+encrypted"), nil

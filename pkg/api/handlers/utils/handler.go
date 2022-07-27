@@ -10,7 +10,7 @@ import (
 	"strings"
 	"unsafe"
 
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 	"github.com/containers/podman/v4/version"
 	"github.com/gorilla/mux"
 	jsoniter "github.com/json-iterator/go"
