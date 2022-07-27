@@ -379,6 +379,10 @@ function is_netavark() {
     return 1
 }
 
+function is_aarch64() {
+    [ "$(uname -m)" == "aarch64" ]
+}
+
 # Returns the OCI runtime *basename* (typically crun or runc). Much as we'd
 # love to cache this result, we probably shouldn't.
 function podman_runtime() {
@@ -543,6 +547,12 @@ function skip_if_root_ubuntu {
                  skip "Cannot run this test on rootful ubuntu, usually due to user errors"
             fi
         fi
+    fi
+}
+
+function skip_if_aarch64 {
+    if is_aarch64; then
+        skip "${msg:-Cannot run this test on aarch64 systems}"
     fi
 }
 

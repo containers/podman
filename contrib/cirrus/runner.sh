@@ -35,6 +35,10 @@ function _run_automation() {
 }
 
 function _run_validate() {
+    # TODO: aarch64 images need python3-devel installed
+    # https://github.com/containers/automation_images/issues/159
+    bigto ooe.sh dnf install -y python3-devel
+
     # git-validation tool fails if $EPOCH_TEST_COMMIT is empty
     # shellcheck disable=SC2154
     if [[ -n "$EPOCH_TEST_COMMIT" ]]; then
