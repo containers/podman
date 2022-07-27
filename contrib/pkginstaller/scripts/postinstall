@@ -1,0 +1,27 @@
+#!/bin/bash
+
+set -e
+
+BZSH_PODMAN_PATH_EXP='PATH="/opt/podman/bin:$PATH"'
+FISH_PODMAN_PATH_EXP='set PATH "/opt/podman/bin $PATH"'
+BASHRC_PATH="$HOME/.bash_profile"
+ZSHENV_PATH="$HOME/.zshenv"
+ZSHRC_PATH="$HOME/.zshrc"
+FSHCFG_PATH="$HOME/.config/fish/config.fish"
+
+# append /Applications/podman/bin to $PATH
+if [ -f "$BASHRC_PATH" ]; then
+    grep -Fxq "$BZSH_PODMAN_PATH_EXP" "$BASHRC_PATH" || echo "$BZSH_PODMAN_PATH_EXP" >> "$BASHRC_PATH"
+fi
+if [ -f "$ZSHENV_PATH" ]; then
+    grep -Fxq "$BZSH_PODMAN_PATH_EXP" "$ZSHENV_PATH" || echo "$BZSH_PODMAN_PATH_EXP" >> "$ZSHENV_PATH"
+fi
+if [ -f "$ZSHRC_PATH" ]; then
+    grep -Fxq "$BZSH_PODMAN_PATH_EXP" "$ZSHRC_PATH" || echo "$BZSH_PODMAN_PATH_EXP" >> "$ZSHRC_PATH"
+fi
+if [ -f "$FSHCFG_PATH" ]; then
+    grep -Fxq "$FISH_PODMAN_PATH_EXP" "$FSHCFG_PATH" || echo "$FISH_PODMAN_PATH_EXP" >> "$FSHCFG_PATH"
+fi
+
+ln -s /opt/podman/bin/podman-mac-helper /opt/podman/qemu/bin/podman-mac-helper
+ln -s /opt/podman/bin/gvproxy /opt/podman/qemu/bin/gvproxy
