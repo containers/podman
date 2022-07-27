@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containers/common/pkg/filters"
 	cutil "github.com/containers/common/pkg/util"
 	"github.com/containers/podman/v4/libpod"
 	"github.com/containers/podman/v4/libpod/define"
@@ -24,7 +25,7 @@ func GenerateContainerFilterFuncs(filter string, filterValues []string, r *libpo
 	case "label":
 		// we have to match that all given labels exits on that container
 		return func(c *libpod.Container) bool {
-			return util.MatchLabelFilters(filterValues, c.Labels())
+			return filters.MatchLabelFilters(filterValues, c.Labels())
 		}, nil
 	case "name":
 		// we only have to match one name
@@ -299,7 +300,11 @@ func GeneratePruneContainerFilterFuncs(filter string, filterValues []string, r *
 	switch filter {
 	case "label":
 		return func(c *libpod.Container) bool {
-			return util.MatchLabelFilters(filterValues, c.Labels())
+			return filters.MatchLabelFilters(filterValues, c.Labels())
+		}, nil
+	case "label!":
+		return func(c *libpod.Container) bool {
+			return !filters.MatchLabelFilters(filterValues, c.Labels())
 		}, nil
 	case "until":
 		return prepareUntilFilterFunc(filterValues)

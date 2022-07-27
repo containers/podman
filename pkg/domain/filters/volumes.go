@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"strings"
 
+	pruneFilters "github.com/containers/common/pkg/filters"
 	"github.com/containers/podman/v4/libpod"
 	"github.com/containers/podman/v4/pkg/util"
 )
@@ -36,7 +37,7 @@ func GenerateVolumeFilters(filters url.Values) ([]libpod.VolumeFilter, error) {
 			case "label":
 				filter := val
 				vf = append(vf, func(v *libpod.Volume) bool {
-					return util.MatchLabelFilters([]string{filter}, v.Labels())
+					return pruneFilters.MatchLabelFilters([]string{filter}, v.Labels())
 				})
 			case "opt":
 				filterArray := strings.SplitN(val, "=", 2)
@@ -100,7 +101,7 @@ func GeneratePruneVolumeFilters(filters url.Values) ([]libpod.VolumeFilter, erro
 			switch filter {
 			case "label":
 				vf = append(vf, func(v *libpod.Volume) bool {
-					return util.MatchLabelFilters([]string{filterVal}, v.Labels())
+					return pruneFilters.MatchLabelFilters([]string{filterVal}, v.Labels())
 				})
 			case "until":
 				f, err := createUntilFilterVolumeFunction(filterVal)

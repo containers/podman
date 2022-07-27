@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/containers/common/pkg/filters"
 	cutil "github.com/containers/common/pkg/util"
 	"github.com/containers/podman/v4/libpod"
 	"github.com/containers/podman/v4/libpod/define"
@@ -115,7 +116,7 @@ func GeneratePodFilterFunc(filter string, filterValues []string, r *libpod.Runti
 	case "label":
 		return func(p *libpod.Pod) bool {
 			labels := p.Labels()
-			return util.MatchLabelFilters(filterValues, labels)
+			return filters.MatchLabelFilters(filterValues, labels)
 		}, nil
 	case "until":
 		return func(p *libpod.Pod) bool {

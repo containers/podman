@@ -260,6 +260,7 @@ func (ic *ContainerEngine) ContainerPrune(ctx context.Context, options entities.
 		if err != nil {
 			return nil, err
 		}
+
 		filterFuncs = append(filterFuncs, generatedFunc)
 	}
 	return ic.Libpod.PruneContainers(filterFuncs)
