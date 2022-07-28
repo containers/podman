@@ -78,6 +78,7 @@ func init() {
 
 	if registry.IsRemote() {
 		_ = flags.MarkHidden("cert-dir")
+		_ = flags.MarkHidden(signByFlagName)
 	}
 }
 
