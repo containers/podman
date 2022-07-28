@@ -9,6 +9,7 @@ QEMU_RELEASE_URL ?= https://github.com/containers/podman-machine-qemu/releases/d
 PACKAGE_DIR ?= out/packaging
 TMP_DOWNLOAD ?= tmp-download
 PACKAGE_ROOT ?= root
+PKG_NAME := podman-installer-macos-$(ARCH).pkg
 
 default: pkginstaller
 
@@ -45,6 +46,12 @@ package_root: get_gvproxy get_qemu
 
 pkginstaller: packagedir
 	cd $(PACKAGE_DIR) && ./package.sh ..
+
+_notarize: pkginstaller
+	xcrun notarytool submit --apple-id $(NOTARIZE_USERNAME) --password $(NOTARIZE_PASSWORD) --team-id=$(NOTARIZE_TEAM) -f json --wait out/$(PKG_NAME)
+
+notarize: _notarize
+	xcrun stapler staple out/$(PKG_NAME)
 
 .PHONY: clean
 clean:
