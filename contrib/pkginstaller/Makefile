@@ -32,6 +32,7 @@ packagedir: package_root Distribution welcome.html
 	echo -n $(PODMAN_VERSION) > $(PACKAGE_DIR)/VERSION
 	echo -n $(ARCH) > $(PACKAGE_DIR)/ARCH
 	cp ../../LICENSE $(PACKAGE_DIR)/Resources/LICENSE.txt
+	cp hvf.entitlements $(PACKAGE_DIR)/
 
 package_root: get_gvproxy get_qemu
 	mkdir -p $(PACKAGE_ROOT)/podman/bin $(PACKAGE_ROOT)/podman/qemu
