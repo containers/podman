@@ -132,6 +132,7 @@ READY=1" "sdnotify sent MAINPID and READY"
 # These tests can fail in dev. environment because of SELinux.
 # quick fix: chcon -t container_runtime_exec_t ./bin/podman
 @test "sdnotify : container" {
+    skip_if_aarch64 "FIXME: #15074 - fails on aarch64 non-remote"
     # Sigh... we need to pull a humongous image because it has systemd-notify.
     # (IMPORTANT: fedora:32 and above silently removed systemd-notify; this
     # caused CI to hang. That's why we explicitly require fedora:31)

@@ -28,12 +28,14 @@ env:
     #### Comment out fedora-35 for podman 4.x branches.
     ####
     FEDORA_NAME: "fedora-36"
+    FEDORA_AARCH64_NAME: "${FEDORA_NAME}-aarch64"
     #PRIOR_FEDORA_NAME: "fedora-35"
     UBUNTU_NAME: "ubuntu-2204"
 
     # Image identifiers
-    IMAGE_SUFFIX: "c6013173500215296"
-    FEDORA_AMI_ID: "ami-0f116746f31965e41"
+    IMAGE_SUFFIX: "c5495735033528320"
+    FEDORA_AMI_ID: "ami-0df5df528071f1052"  # matches c5495735033528320
+    FEDORA_AARCH64_AMI_ID: "ami-02ee8b3a782a78791"  # matches c5495735033528320
     # Complete image names
     FEDORA_CACHE_IMAGE_NAME: "fedora-${IMAGE_SUFFIX}"
     #PRIOR_FEDORA_CACHE_IMAGE_NAME: "prior-fedora-${IMAGE_SUFFIX}"
@@ -139,8 +141,8 @@ automation_task:
     always: *runner_stats
 
 
-# N/B: This task is critical.  It builds all binaries for all supported
-# OS platforms and versions.  On success, the contents of the repository
+# N/B: The two following tasks are critical. They build all binaries for all supported
+# OS platforms and versions on x86_64 and aarch64. On success, the contents of the repository
 # are preserved as an artifact.  This saves most subsequent tasks about
 # 3 minutes of otherwise duplicative effort.  It also ensures that the
 # exact same binaries used throughout CI testing, are available for
@@ -194,6 +196,36 @@ build_task:
     always: *runner_stats
 
 
+build_aarch64_task:
+    alias: 'build_aarch64'
+    name: 'Build for $DISTRO_NV'
+    # Multiarch doesn't depend on buildability in this automation context
+    # Docs: ./contrib/cirrus/CIModes.md
+    only_if: "$CIRRUS_CRON != 'multiarch'"
+    ec2_instance: &standard_build_ec2_aarch64
+        image: ${VM_IMAGE_NAME}
+        type: t4g.xlarge
+        region: us-east-1
+        architecture: arm64  # CAUTION: This has to be "arm64", not "aarch64".
+    env: &stdenvars_aarch64
+        DISTRO_NV: ${FEDORA_AARCH64_NAME}
+        VM_IMAGE_NAME: ${FEDORA_AARCH64_AMI_ID}
+        CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
+        CI_DESIRED_RUNTIME: crun
+        TEST_FLAVOR: build
+    clone_script: *full_clone
+    setup_script: *setup
+    main_script: *main
+    # Cirrus-CI is very slow uploading one file at time, and the repo contains
+    # thousands of files.  Speed this up by archiving into tarball first.
+    repo_prep_script: &repo_prep_aarch64 >-
+        tar cjf /tmp/repo.tbz -C $GOSRC . && mv /tmp/repo.tbz $GOSRC/
+    repo_artifacts: &repo_artifacts_aarch64
+        path: ./repo.tbz
+        type: application/octet-stream
+    always: *runner_stats
+
+
 # Confirm the result of building on at least one platform appears sane.
 # This confirms the binaries can be executed, checks --help vs docs, and
 # other essential post-build validation checks.
@@ -218,12 +250,47 @@ validate_task:
         memory: "16Gb"
     env:
         <<: *stdenvars
+        DISTRO_NV: ${FEDORA_NAME}
         TEST_FLAVOR: validate
     # N/B: This script depends on ${DISTRO_NV} being defined for the task.
     clone_script: &get_gosrc |
         cd /tmp
         echo "$ARTCURL/Build%20for%20${DISTRO_NV}/repo/repo.tbz"
         time $ARTCURL/Build%20for%20${DISTRO_NV}/repo/repo.tbz
+        time tar xjf /tmp/repo.tbz -C $GOSRC
+    setup_script: *setup
+    main_script: *main
+    always: *runner_stats
+
+
+# Confirm the result of building on at least one platform appears sane.
+# This confirms the binaries can be executed, checks --help vs docs, and
+# other essential post-build validation checks.
+validate_aarch64_task:
+    name: "Validate $DISTRO_NV Build"
+    alias: validate_aarch64
+    # This task is primarily intended to catch human-errors early on, in a
+    # PR.  Skip it for branch-push, branch-create, and tag-push to improve
+    # automation reliability/speed in those contexts.  Any missed errors due
+    # to nonsequential PR merging practices, will be caught on a future PR,
+    # build or test task failures.
+    # Docs: ./contrib/cirrus/CIModes.md
+    only_if: *is_pr
+    depends_on:
+        - ext_svc_check
+        - automation
+        - build_aarch64
+    # golangci-lint is a very, very hungry beast.
+    ec2_instance: *standard_build_ec2_aarch64
+    env:
+        <<: *stdenvars_aarch64
+        TEST_FLAVOR: validate
+        DISTRO_NV: ${FEDORA_AARCH64_NAME}
+    # N/B: This script depends on ${DISTRO_NV} being defined for the task.
+    clone_script: &get_gosrc_aarch64 |
+        cd /tmp
+        echo "$ARTCURL/build_aarch64/repo/repo.tbz"
+        time $ARTCURL/build_aarch64/repo/repo.tbz
         time tar xjf /tmp/repo.tbz -C $GOSRC
     setup_script: *setup
     main_script: *main
@@ -312,6 +379,28 @@ consistency_task:
         TEST_ENVIRON: container
         CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
     clone_script: *get_gosrc
+    setup_script: *setup
+    main_script: *main
+    always: *runner_stats
+
+
+# Check that all included go modules from other sources match
+# what is expected in `vendor/modules.txt` vs `go.mod`.  Also
+# make sure that the generated bindings in pkg/bindings/...
+# are in sync with the code.
+consistency_aarch64_task:
+    name: "Test Code Consistency (aarch64)"
+    alias: consistency_aarch64
+    # Docs: ./contrib/cirrus/CIModes.md
+    only_if: *is_pr
+    depends_on:
+        - build_aarch64
+    ec2_instance: *standard_build_ec2_aarch64
+    env:
+        <<: *stdenvars_aarch64
+        TEST_FLAVOR: consistency
+        TEST_ENVIRON: container
+    clone_script: *get_gosrc_aarch64
     setup_script: *setup
     main_script: *main
     always: *runner_stats
@@ -646,11 +735,42 @@ local_system_test_task: &local_system_test_task
     always: *logs_artifacts
 
 
+local_system_test_aarch64_task: &local_system_test_task_aarch64
+    name: *std_name_fmt
+    alias: local_system_test_aarch64
+    # Don't create task for tags, or if using [CI:DOCS], [CI:BUILD], multiarch
+    # Docs: ./contrib/cirrus/CIModes.md
+    only_if: *not_tag_build_docs_multiarch
+    depends_on:
+        - build_aarch64
+        - local_integration_test
+    ec2_instance: *standard_build_ec2_aarch64
+    env:
+        <<: *stdenvars_aarch64
+        TEST_FLAVOR: sys
+        DISTRO_NV: ${FEDORA_AARCH64_NAME}
+    clone_script: *get_gosrc_aarch64
+    setup_script: *setup
+    main_script: *main
+    always: *logs_artifacts
+
+
 remote_system_test_task:
     <<: *local_system_test_task
     alias: remote_system_test
     depends_on:
         - build
+        - remote_integration_test
+    env:
+        TEST_FLAVOR: sys
+        PODBIN_NAME: remote
+
+
+remote_system_test_aarch64_task:
+    <<: *local_system_test_task_aarch64
+    alias: remote_system_test_aarch64
+    depends_on:
+        - build_aarch64
         - remote_integration_test
     env:
         TEST_FLAVOR: sys
@@ -871,10 +991,13 @@ success_task:
         - ext_svc_check
         - automation
         - build
+        - build_aarch64
         - validate
+        - validate_aarch64
         - bindings
         - swagger
         - consistency
+        - consistency_aarch64
         - alt_build
         - osx_alt_build
         - docker-py_test
@@ -889,7 +1012,9 @@ success_task:
         # AND bypass in contrib/cirrus/cirrus_yaml_test.py for this name.
         # - podman_machine
         - local_system_test
+        - local_system_test_aarch64
         - remote_system_test
+        - remote_system_test_aarch64
         - rootless_system_test
         - rootless_remote_system_test
         - buildah_bud_test
