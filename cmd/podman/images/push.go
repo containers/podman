@@ -117,7 +117,7 @@ func pushFlags(cmd *cobra.Command) {
 		_ = flags.MarkHidden("compress")
 		_ = flags.MarkHidden("digestfile")
 		_ = flags.MarkHidden("quiet")
-		_ = flags.MarkHidden("sign-by")
+		_ = flags.MarkHidden(signByFlagName)
 	}
 	if !registry.IsRemote() {
 		flags.StringVar(&pushOptions.SignaturePolicy, "signature-policy", "", "Path to a signature-policy file")
