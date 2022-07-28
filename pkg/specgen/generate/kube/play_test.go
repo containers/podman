@@ -28,7 +28,7 @@ func createSecrets(t *testing.T, d string) *secrets.SecretsManager {
 		data, err := json.Marshal(s.Data)
 		assert.NoError(t, err)
 
-		_, err = secretsManager.Store(s.ObjectMeta.Name, data, driver, driverOpts)
+		_, err = secretsManager.Store(s.ObjectMeta.Name, data, driver, driverOpts, nil)
 		assert.NoError(t, err)
 	}
 

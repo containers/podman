@@ -106,7 +106,7 @@ func (d *frameDec) reset(br byteBuffer) error {
 		}
 		n := uint32(b[0]) | (uint32(b[1]) << 8) | (uint32(b[2]) << 16) | (uint32(b[3]) << 24)
 		println("Skipping frame with", n, "bytes.")
-		err = br.skipN(int(n))
+		err = br.skipN(int64(n))
 		if err != nil {
 			if debugDecoder {
 				println("Reading discarded frame", err)
@@ -231,20 +231,27 @@ func (d *frameDec) reset(br byteBuffer) error {
 		d.crc.Reset()
 	}
 
+	if d.WindowSize > d.o.maxWindowSize {
+		if debugDecoder {
+			printf("window size %d > max %d\n", d.WindowSize, d.o.maxWindowSize)
+		}
+		return ErrWindowSizeExceeded
+	}
+
 	if d.WindowSize == 0 && d.SingleSegment {
 		// We may not need window in this case.
 		d.WindowSize = d.FrameContentSize
 		if d.WindowSize < MinWindowSize {
 			d.WindowSize = MinWindowSize
 		}
+		if d.WindowSize > d.o.maxDecodedSize {
+			if debugDecoder {
+				printf("window size %d > max %d\n", d.WindowSize, d.o.maxWindowSize)
+			}
+			return ErrDecoderSizeExceeded
+		}
 	}
 
-	if d.WindowSize > uint64(d.o.maxWindowSize) {
-		if debugDecoder {
-			printf("window size %d > max %d\n", d.WindowSize, d.o.maxWindowSize)
-		}
-		return ErrWindowSizeExceeded
-	}
 	// The minimum Window_Size is 1 KB.
 	if d.WindowSize < MinWindowSize {
 		if debugDecoder {

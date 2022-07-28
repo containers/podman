@@ -82,7 +82,7 @@ func (lx *lexer) nextItem() item {
 			return item
 		default:
 			lx.state = lx.state(lx)
-			//fmt.Printf("     STATE %-24s  current: %-10q	stack: %s\n", lx.state, lx.current(), lx.stack)
+			//fmt.Printf("     STATE %-24s  current: %-10s	stack: %s\n", lx.state, lx.current(), lx.stack)
 		}
 	}
 }
@@ -716,7 +716,17 @@ func lexMultilineString(lx *lexer) stateFn {
 				if lx.peek() == '"' {
 					/// Check if we already lexed 5 's; if so we have 6 now, and
 					/// that's just too many man!
-					if strings.HasSuffix(lx.current(), `"""""`) {
+					///
+					/// Second check is for the edge case:
+					///
+					///            two quotes allowed.
+					///            vv
+					///   """lol \""""""
+					///          ^^  ^^^---- closing three
+					///     escaped
+					///
+					/// But ugly, but it works
+					if strings.HasSuffix(lx.current(), `"""""`) && !strings.HasSuffix(lx.current(), `\"""""`) {
 						return lx.errorf(`unexpected '""""""'`)
 					}
 					lx.backup()
@@ -807,8 +817,7 @@ func lexMultilineRawString(lx *lexer) stateFn {
 // lexMultilineStringEscape consumes an escaped character. It assumes that the
 // preceding '\\' has already been consumed.
 func lexMultilineStringEscape(lx *lexer) stateFn {
-	// Handle the special case first:
-	if isNL(lx.next()) {
+	if isNL(lx.next()) { /// \ escaping newline.
 		return lexMultilineString
 	}
 	lx.backup()

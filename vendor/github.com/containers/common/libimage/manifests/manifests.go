@@ -56,15 +56,18 @@ type List interface {
 // PushOptions includes various settings which are needed for pushing the
 // manifest list and its instances.
 type PushOptions struct {
-	Store              storage.Store
-	SystemContext      *types.SystemContext  // github.com/containers/image/types.SystemContext
-	ImageListSelection cp.ImageListSelection // set to either CopySystemImage, CopyAllImages, or CopySpecificImages
-	Instances          []digest.Digest       // instances to copy if ImageListSelection == CopySpecificImages
-	ReportWriter       io.Writer             // will be used to log the writing of the list and any blobs
-	SignBy             string                // fingerprint of GPG key to use to sign images
-	RemoveSignatures   bool                  // true to discard signatures in images
-	ManifestType       string                // the format to use when saving the list - possible options are oci, v2s1, and v2s2
-	SourceFilter       LookupReferenceFunc   // filter the list source
+	Store                            storage.Store
+	SystemContext                    *types.SystemContext  // github.com/containers/image/types.SystemContext
+	ImageListSelection               cp.ImageListSelection // set to either CopySystemImage, CopyAllImages, or CopySpecificImages
+	Instances                        []digest.Digest       // instances to copy if ImageListSelection == CopySpecificImages
+	ReportWriter                     io.Writer             // will be used to log the writing of the list and any blobs
+	SignBy                           string                // fingerprint of GPG key to use to sign images
+	SignPassphrase                   string                // passphrase to use when signing with the key ID from SignBy.
+	SignBySigstorePrivateKeyFile     string                // if non-empty, asks for a signature to be added during the copy, using a sigstore private key file at the provided path.
+	SignSigstorePrivateKeyPassphrase []byte                // passphrase to use when signing with SignBySigstorePrivateKeyFile.
+	RemoveSignatures                 bool                  // true to discard signatures in images
+	ManifestType                     string                // the format to use when saving the list - possible options are oci, v2s1, and v2s2
+	SourceFilter                     LookupReferenceFunc   // filter the list source
 }
 
 // Create creates a new list containing information about the specified image,
@@ -235,14 +238,17 @@ func (l *list) Push(ctx context.Context, dest types.ImageReference, options Push
 		}
 	}
 	copyOptions := &cp.Options{
-		ImageListSelection:    options.ImageListSelection,
-		Instances:             options.Instances,
-		SourceCtx:             options.SystemContext,
-		DestinationCtx:        options.SystemContext,
-		ReportWriter:          options.ReportWriter,
-		RemoveSignatures:      options.RemoveSignatures,
-		SignBy:                options.SignBy,
-		ForceManifestMIMEType: singleImageManifestType,
+		ImageListSelection:               options.ImageListSelection,
+		Instances:                        options.Instances,
+		SourceCtx:                        options.SystemContext,
+		DestinationCtx:                   options.SystemContext,
+		ReportWriter:                     options.ReportWriter,
+		RemoveSignatures:                 options.RemoveSignatures,
+		SignBy:                           options.SignBy,
+		SignPassphrase:                   options.SignPassphrase,
+		SignBySigstorePrivateKeyFile:     options.SignBySigstorePrivateKeyFile,
+		SignSigstorePrivateKeyPassphrase: options.SignSigstorePrivateKeyPassphrase,
+		ForceManifestMIMEType:            singleImageManifestType,
 	}
 
 	// Copy whatever we were asked to copy.
