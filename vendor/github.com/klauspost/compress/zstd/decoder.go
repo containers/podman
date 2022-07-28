@@ -348,6 +348,9 @@ func (d *Decoder) DecodeAll(input, dst []byte) ([]byte, error) {
 			frame.history.setDict(&dict)
 		}
 		if frame.WindowSize > d.o.maxWindowSize {
+			if debugDecoder {
+				println("window size exceeded:", frame.WindowSize, ">", d.o.maxWindowSize)
+			}
 			return dst, ErrWindowSizeExceeded
 		}
 		if frame.FrameContentSize != fcsUnknown {

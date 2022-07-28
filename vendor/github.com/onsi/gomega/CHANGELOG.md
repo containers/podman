@@ -1,3 +1,26 @@
+## 1.20.0
+
+## Features
+- New [`gleak`](https://onsi.github.io/gomega/#codegleakcode-finding-leaked-goroutines) experimental goroutine leak detection package! (#538) [85ba7bc]
+- New `BeComparableTo` matcher(#546) that uses `gocmp` to make comparisons [e77ea75]
+- New `HaveExistingField` matcher (#553) [fd130e1]
+- Document how to wrap Gomega (#539) [56714a4]
+
+## Fixes
+- Support pointer receivers in HaveField; fixes #543 (#544) [8dab36e]
+
+## Maintenance
+- Bump various dependencies:
+    - Upgrade to yaml.v3 (#556) [f5a83b1]
+    - Bump github/codeql-action from 1 to 2 (#549) [52f5adf]
+    - Bump github.com/google/go-cmp from 0.5.7 to 0.5.8 (#551) [5f3942d]
+    - Bump nokogiri from 1.13.4 to 1.13.6 in /docs (#554) [eb4b4c2]
+    - Use latest ginkgo (#535) [1c29028]
+    - Bump nokogiri from 1.13.3 to 1.13.4 in /docs (#541) [1ce84d5]
+    - Bump actions/setup-go from 2 to 3 (#540) [755485e]
+    - Bump nokogiri from 1.12.5 to 1.13.3 in /docs (#522) [4fbb0dc]
+    - Bump actions/checkout from 2 to 3 (#526) [ac49202]
+
 ## 1.19.0
 
 ## Features

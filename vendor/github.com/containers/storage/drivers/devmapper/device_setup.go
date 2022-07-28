@@ -177,8 +177,10 @@ func writeLVMConfig(root string, cfg directLVMConfig) error {
 	if err != nil {
 		return fmt.Errorf("marshalling direct lvm config: %w", err)
 	}
-	err = ioutil.WriteFile(p, b, 0600)
-	return fmt.Errorf("writing direct lvm config to file: %w", err)
+	if err := ioutil.WriteFile(p, b, 0600); err != nil {
+		return fmt.Errorf("writing direct lvm config to file: %w", err)
+	}
+	return nil
 }
 
 func setupDirectLVM(cfg directLVMConfig) error {
