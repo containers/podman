@@ -1924,7 +1924,7 @@ $ podman run -v /var/lib/design:/var/lib/design --group-add keep-groups ubi8
 ### Configure execution domain for containers using personality flag
 
 ```
-$ podman run --name container1 --personaity=LINUX32 fedora bash
+$ podman run --name container1 --personality=LINUX32 fedora bash
 ```
 
 ### Run a container with external rootfs mounted as an overlay
