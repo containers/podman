@@ -205,6 +205,16 @@ type ImagePushOptions struct {
 	// SignBy adds a signature at the destination using the specified key.
 	// Ignored for remote calls.
 	SignBy string
+	// SignPassphrase, if non-empty, specifies a passphrase to use when signing
+	// with the key ID from SignBy.
+	SignPassphrase string
+	// SignBySigstorePrivateKeyFile, if non-empty, asks for a signature to be added
+	// during the copy, using a sigstore private key file at the provided path.
+	// Ignored for remote calls.
+	SignBySigstorePrivateKeyFile string
+	// SignSigstorePrivateKeyPassphrase is the passphrase to use when signing with
+	// SignBySigstorePrivateKeyFile.
+	SignSigstorePrivateKeyPassphrase []byte
 	// SkipTLSVerify to skip HTTPS and certificate verification.
 	SkipTLSVerify types.OptionalBool
 	// Progress to get progress notifications

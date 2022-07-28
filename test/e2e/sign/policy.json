@@ -12,6 +12,12 @@
                     "keyType": "GPGKeys",
                     "keyPath": "/tmp/key.gpg"
                 }
+            ],
+            "localhost:5000/sigstore-signed": [
+                {
+                    "type": "sigstoreSigned",
+                    "keyPath": "testdata/sigstore-key.pub"
+                }
             ]
         }
     }

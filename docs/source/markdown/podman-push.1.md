@@ -99,7 +99,15 @@ Discard any pre-existing signatures in the image.
 
 #### **--sign-by**=*key*
 
-Add a signature at the destination using the specified key. (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
+Add a “simple signing” signature at the destination using the specified key. (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
+
+#### **--sign-by-sigstore-private-key**=*path*
+
+Add a sigstore signature at the destination using a private key at the specified path. (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
+
+#### **--sign-passphrase-file**=*path*
+
+If signing the image (using either **--sign-by** or **--sign-by-sigstore-private-key**), read the passphrase to use from the specified path.
 
 #### **--tls-verify**
 
