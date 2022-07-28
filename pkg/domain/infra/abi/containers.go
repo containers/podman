@@ -1061,6 +1061,15 @@ func (ic *ContainerEngine) Diff(ctx context.Context, namesOrIDs []string, opts e
 }
 
 func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.ContainerRunOptions) (*entities.ContainerRunReport, error) {
+	removeContainer := func(ctr *libpod.Container, force bool) error {
+		var timeout *uint
+		if err := ic.Libpod.RemoveContainer(ctx, ctr, force, true, timeout); err != nil {
+			logrus.Debugf("unable to remove container %s after failing to start and attach to it: %v", ctr.ID(), err)
+			return err
+		}
+		return nil
+	}
+
 	warn, err := generate.CompleteSpec(ctx, ic.Libpod, opts.Spec)
 	if err != nil {
 		return nil, err
@@ -1081,6 +1090,8 @@ func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.Conta
 
 	if opts.CIDFile != "" {
 		if err := util.CreateCidFile(opts.CIDFile, ctr.ID()); err != nil {
+			// If you fail to create CIDFile then remove the container
+			_ = removeContainer(ctr, true)
 			return nil, err
 		}
 	}
@@ -1098,6 +1109,11 @@ func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.Conta
 		if err := ctr.Start(ctx, true); err != nil {
 			// This means the command did not exist
 			report.ExitCode = define.ExitCode(err)
+			if opts.Rm {
+				if rmErr := removeContainer(ctr, true); rmErr != nil && !errors.Is(rmErr, define.ErrNoSuchCtr) {
+					logrus.Errorf("Container %s failed to be removed", ctr.ID())
+				}
+			}
 			return &report, err
 		}
 
@@ -1114,10 +1130,7 @@ func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.Conta
 			return &report, nil
 		}
 		if opts.Rm {
-			var timeout *uint
-			if deleteError := ic.Libpod.RemoveContainer(ctx, ctr, true, false, timeout); deleteError != nil {
-				logrus.Debugf("unable to remove container %s after failing to start and attach to it", ctr.ID())
-			}
+			_ = removeContainer(ctr, true)
 		}
 		if errors.Is(err, define.ErrWillDeadlock) {
 			logrus.Debugf("Deadlock error on %q: %v", ctr.ID(), err)
@@ -1129,8 +1142,7 @@ func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.Conta
 	}
 	report.ExitCode = ic.GetContainerExitCode(ctx, ctr)
 	if opts.Rm && !ctr.ShouldRestart(ctx) {
-		var timeout *uint
-		if err := ic.Libpod.RemoveContainer(ctx, ctr, false, true, timeout); err != nil {
+		if err := removeContainer(ctr, false); err != nil {
 			if errors.Is(err, define.ErrNoSuchCtr) ||
 				errors.Is(err, define.ErrCtrRemoved) {
 				logrus.Infof("Container %s was already removed, skipping --rm", ctr.ID())
