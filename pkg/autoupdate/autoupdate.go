@@ -145,9 +145,15 @@ func AutoUpdate(ctx context.Context, runtime *libpod.Runtime, options entities.A
 
 	runtime.NewSystemEvent(events.AutoUpdate)
 
+	auto := updater{
+		conn:             conn,
+		options:          &options,
+		runtime:          runtime,
+		updatedRawImages: make(map[string]bool),
+	}
+
 	// Update all images/container according to their auto-update policy.
 	var allReports []*entities.AutoUpdateReport
-	updatedRawImages := make(map[string]bool)
 	for imageID, policyMapper := range containerMap {
 		image, exists := imageMap[imageID]
 		if !exists {
@@ -156,7 +162,7 @@ func AutoUpdate(ctx context.Context, runtime *libpod.Runtime, options entities.A
 		}
 
 		for _, ctr := range policyMapper[PolicyRegistryImage] {
-			report, err := autoUpdateRegistry(ctx, image, ctr, updatedRawImages, &options, conn, runtime)
+			report, err := auto.updateRegistry(ctx, image, ctr)
 			if err != nil {
 				errs = append(errs, err)
 			}
@@ -166,7 +172,7 @@ func AutoUpdate(ctx context.Context, runtime *libpod.Runtime, options entities.A
 		}
 
 		for _, ctr := range policyMapper[PolicyLocalImage] {
-			report, err := autoUpdateLocally(ctx, image, ctr, &options, conn, runtime)
+			report, err := auto.updateLocally(ctx, image, ctr)
 			if err != nil {
 				errs = append(errs, err)
 			}
@@ -179,8 +185,16 @@ func AutoUpdate(ctx context.Context, runtime *libpod.Runtime, options entities.A
 	return allReports, errs
 }
 
-// autoUpdateRegistry updates the image/container according to the "registry" policy.
-func autoUpdateRegistry(ctx context.Context, image *libimage.Image, ctr *libpod.Container, updatedRawImages map[string]bool, options *entities.AutoUpdateOptions, conn *dbus.Conn, runtime *libpod.Runtime) (*entities.AutoUpdateReport, error) {
+// updater includes shared state for auto-updating one or more containers.
+type updater struct {
+	conn             *dbus.Conn
+	options          *entities.AutoUpdateOptions
+	updatedRawImages map[string]bool
+	runtime          *libpod.Runtime
+}
+
+// updateRegistry updates the image/container according to the "registry" policy.
+func (u *updater) updateRegistry(ctx context.Context, image *libimage.Image, ctr *libpod.Container) (*entities.AutoUpdateReport, error) {
 	cid := ctr.ID()
 	rawImageName := ctr.RawImageName()
 	if rawImageName == "" {
@@ -202,16 +216,16 @@ func autoUpdateRegistry(ctx context.Context, image *libimage.Image, ctr *libpod.
 		Updated:       "failed",
 	}
 
-	if _, updated := updatedRawImages[rawImageName]; updated {
+	if _, updated := u.updatedRawImages[rawImageName]; updated {
 		logrus.Infof("Auto-updating container %q using registry image %q", cid, rawImageName)
-		if err := restartSystemdUnit(ctx, ctr, unit, conn); err != nil {
+		if err := u.restartSystemdUnit(ctx, ctr, unit); err != nil {
 			return report, err
 		}
 		report.Updated = "true"
 		return report, nil
 	}
 
-	authfile := getAuthfilePath(ctr, options)
+	authfile := getAuthfilePath(ctr, u.options)
 	needsUpdate, err := newerRemoteImageAvailable(ctx, image, rawImageName, authfile)
 	if err != nil {
 		return report, fmt.Errorf("registry auto-updating container %q: image check for %q failed: %w", cid, rawImageName, err)
@@ -222,24 +236,24 @@ func autoUpdateRegistry(ctx context.Context, image *libimage.Image, ctr *libpod.
 		return report, nil
 	}
 
-	if options.DryRun {
+	if u.options.DryRun {
 		report.Updated = "pending"
 		return report, nil
 	}
 
-	if _, err := updateImage(ctx, runtime, rawImageName, authfile); err != nil {
+	if _, err := updateImage(ctx, u.runtime, rawImageName, authfile); err != nil {
 		return report, fmt.Errorf("registry auto-updating container %q: image update for %q failed: %w", cid, rawImageName, err)
 	}
-	updatedRawImages[rawImageName] = true
+	u.updatedRawImages[rawImageName] = true
 
 	logrus.Infof("Auto-updating container %q using registry image %q", cid, rawImageName)
-	updateErr := restartSystemdUnit(ctx, ctr, unit, conn)
+	updateErr := u.restartSystemdUnit(ctx, ctr, unit)
 	if updateErr == nil {
 		report.Updated = "true"
 		return report, nil
 	}
 
-	if !options.Rollback {
+	if !u.options.Rollback {
 		return report, updateErr
 	}
 
@@ -247,7 +261,7 @@ func autoUpdateRegistry(ctx context.Context, image *libimage.Image, ctr *libpod.
 	if err := image.Tag(rawImageName); err != nil {
 		return report, fmt.Errorf("falling back to previous image: %w", err)
 	}
-	if err := restartSystemdUnit(ctx, ctr, unit, conn); err != nil {
+	if err := u.restartSystemdUnit(ctx, ctr, unit); err != nil {
 		return report, fmt.Errorf("restarting unit with old image during fallback: %w", err)
 	}
 
@@ -255,8 +269,8 @@ func autoUpdateRegistry(ctx context.Context, image *libimage.Image, ctr *libpod.
 	return report, nil
 }
 
-// autoUpdateRegistry updates the image/container according to the "local" policy.
-func autoUpdateLocally(ctx context.Context, image *libimage.Image, ctr *libpod.Container, options *entities.AutoUpdateOptions, conn *dbus.Conn, runtime *libpod.Runtime) (*entities.AutoUpdateReport, error) {
+// updateRegistry updates the image/container according to the "local" policy.
+func (u *updater) updateLocally(ctx context.Context, image *libimage.Image, ctr *libpod.Container) (*entities.AutoUpdateReport, error) {
 	cid := ctr.ID()
 	rawImageName := ctr.RawImageName()
 	if rawImageName == "" {
@@ -278,7 +292,7 @@ func autoUpdateLocally(ctx context.Context, image *libimage.Image, ctr *libpod.C
 		Updated:       "failed",
 	}
 
-	needsUpdate, err := newerLocalImageAvailable(runtime, image, rawImageName)
+	needsUpdate, err := newerLocalImageAvailable(u.runtime, image, rawImageName)
 	if err != nil {
 		return report, fmt.Errorf("locally auto-updating container %q: image check for %q failed: %w", cid, rawImageName, err)
 	}
@@ -288,19 +302,19 @@ func autoUpdateLocally(ctx context.Context, image *libimage.Image, ctr *libpod.C
 		return report, nil
 	}
 
-	if options.DryRun {
+	if u.options.DryRun {
 		report.Updated = "pending"
 		return report, nil
 	}
 
 	logrus.Infof("Auto-updating container %q using local image %q", cid, rawImageName)
-	updateErr := restartSystemdUnit(ctx, ctr, unit, conn)
+	updateErr := u.restartSystemdUnit(ctx, ctr, unit)
 	if updateErr == nil {
 		report.Updated = "true"
 		return report, nil
 	}
 
-	if !options.Rollback {
+	if !u.options.Rollback {
 		return report, updateErr
 	}
 
@@ -308,7 +322,7 @@ func autoUpdateLocally(ctx context.Context, image *libimage.Image, ctr *libpod.C
 	if err := image.Tag(rawImageName); err != nil {
 		return report, fmt.Errorf("falling back to previous image: %w", err)
 	}
-	if err := restartSystemdUnit(ctx, ctr, unit, conn); err != nil {
+	if err := u.restartSystemdUnit(ctx, ctr, unit); err != nil {
 		return report, fmt.Errorf("restarting unit with old image during fallback: %w", err)
 	}
 
@@ -317,9 +331,9 @@ func autoUpdateLocally(ctx context.Context, image *libimage.Image, ctr *libpod.C
 }
 
 // restartSystemdUnit restarts the systemd unit the container is running in.
-func restartSystemdUnit(ctx context.Context, ctr *libpod.Container, unit string, conn *dbus.Conn) error {
+func (u *updater) restartSystemdUnit(ctx context.Context, ctr *libpod.Container, unit string) error {
 	restartChan := make(chan string)
-	if _, err := conn.RestartUnitContext(ctx, unit, "replace", restartChan); err != nil {
+	if _, err := u.conn.RestartUnitContext(ctx, unit, "replace", restartChan); err != nil {
 		return fmt.Errorf("auto-updating container %q: restarting systemd unit %q failed: %w", ctr.ID(), unit, err)
 	}
 
