@@ -9,7 +9,7 @@ require (
 	github.com/checkpoint-restore/checkpointctl v0.0.0-20220321135231-33f4a66335f0
 	github.com/checkpoint-restore/go-criu/v5 v5.3.0
 	github.com/container-orchestrated-devices/container-device-interface v0.4.0
-	github.com/containernetworking/cni v1.1.1
+	github.com/containernetworking/cni v1.1.2
 	github.com/containernetworking/plugins v1.1.1
 	github.com/containers/buildah v1.26.1-0.20220716095526-d31d27c357ab
 	github.com/containers/common v0.48.1-0.20220720145307-26032247af78
