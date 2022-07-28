@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -135,6 +136,45 @@ var _ = Describe("Podman push", func() {
 			Expect(err).To(BeNil())
 			Expect(fi.Name()).To(Equal("digestfile.txt"))
 			Expect(push2).Should(Exit(0))
+		}
+
+		if !IsRemote() { // Remote does not support signing
+			By("pushing and pulling with sigstore signatures")
+			// Ideally, this should set SystemContext.RegistriesDirPath, but Podman currently doesn’t
+			// expose that as an option. So, for now, modify /etc/directly, and skip testing sigstore if
+			// we don’t have permission to do so.
+			systemRegistriesDAddition := "/etc/containers/registries.d/podman-test-only-temporary-addition.yaml"
+			cmd := exec.Command("cp", "testdata/sigstore-registries.d-fragment.yaml", systemRegistriesDAddition)
+			output, err := cmd.CombinedOutput()
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Skipping sigstore tests because /etc/containers/registries.d isn’t writable: %s", string(output))
+			} else {
+				defer func() {
+					err := os.Remove(systemRegistriesDAddition)
+					Expect(err).ToNot(HaveOccurred())
+				}()
+
+				// Verify that the policy rejects unsigned images
+				push := podmanTest.Podman([]string{"push", "-q", "--tls-verify=false", "--remove-signatures", ALPINE, "localhost:5000/sigstore-signed"})
+				push.WaitWithDefaultTimeout()
+				Expect(push).Should(Exit(0))
+				Expect(len(push.ErrorToString())).To(Equal(0))
+
+				pull := podmanTest.Podman([]string{"pull", "-q", "--tls-verify=false", "--signature-policy", "sign/policy.json", "localhost:5000/sigstore-signed"})
+				pull.WaitWithDefaultTimeout()
+				Expect(pull).To(ExitWithError())
+				Expect(pull.ErrorToString()).To(ContainSubstring("A signature was required, but no signature exists"))
+
+				// Sign an image, and verify it is accepted.
+				push = podmanTest.Podman([]string{"push", "-q", "--tls-verify=false", "--remove-signatures", "--sign-by-sigstore-private-key", "testdata/sigstore-key.key", "--sign-passphrase-file", "testdata/sigstore-key.key.pass", ALPINE, "localhost:5000/sigstore-signed"})
+				push.WaitWithDefaultTimeout()
+				Expect(push).Should(Exit(0))
+				Expect(len(push.ErrorToString())).To(Equal(0))
+
+				pull = podmanTest.Podman([]string{"pull", "-q", "--tls-verify=false", "--signature-policy", "sign/policy.json", "localhost:5000/sigstore-signed"})
+				pull.WaitWithDefaultTimeout()
+				Expect(pull).Should(Exit(0))
+			}
 		}
 	})
 

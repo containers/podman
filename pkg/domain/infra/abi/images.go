@@ -304,6 +304,9 @@ func (ir *ImageEngine) Push(ctx context.Context, source string, destination stri
 	pushOptions.ManifestMIMEType = manifestType
 	pushOptions.RemoveSignatures = options.RemoveSignatures
 	pushOptions.SignBy = options.SignBy
+	pushOptions.SignPassphrase = options.SignPassphrase
+	pushOptions.SignBySigstorePrivateKeyFile = options.SignBySigstorePrivateKeyFile
+	pushOptions.SignSigstorePrivateKeyPassphrase = options.SignSigstorePrivateKeyPassphrase
 	pushOptions.InsecureSkipTLSVerify = options.SkipTLSVerify
 	pushOptions.Writer = options.Writer
 

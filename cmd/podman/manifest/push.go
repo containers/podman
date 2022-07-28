@@ -20,8 +20,9 @@ import (
 type manifestPushOptsWrapper struct {
 	entities.ImagePushOptions
 
-	TLSVerifyCLI   bool // CLI only
-	CredentialsCLI string
+	TLSVerifyCLI          bool // CLI only
+	CredentialsCLI        string
+	SignPassphraseFileCLI string
 }
 
 var (
@@ -72,6 +73,14 @@ func init() {
 	flags.StringVar(&manifestPushOpts.SignBy, signByFlagName, "", "sign the image using a GPG key with the specified `FINGERPRINT`")
 	_ = pushCmd.RegisterFlagCompletionFunc(signByFlagName, completion.AutocompleteNone)
 
+	signBySigstorePrivateKeyFlagName := "sign-by-sigstore-private-key"
+	flags.StringVar(&manifestPushOpts.SignBySigstorePrivateKeyFile, signBySigstorePrivateKeyFlagName, "", "Sign the image using a sigstore private key at `PATH`")
+	_ = pushCmd.RegisterFlagCompletionFunc(signBySigstorePrivateKeyFlagName, completion.AutocompleteDefault)
+
+	signPassphraseFileFlagName := "sign-passphrase-file"
+	flags.StringVar(&manifestPushOpts.SignPassphraseFileCLI, signPassphraseFileFlagName, "", "Read a passphrase for signing an image from `PATH`")
+	_ = pushCmd.RegisterFlagCompletionFunc(signPassphraseFileFlagName, completion.AutocompleteDefault)
+
 	flags.BoolVar(&manifestPushOpts.TLSVerifyCLI, "tls-verify", true, "require HTTPS and verify certificates when accessing the registry")
 	flags.BoolVarP(&manifestPushOpts.Quiet, "quiet", "q", false, "don't output progress information when pushing lists")
 	flags.SetNormalizeFunc(utils.AliasFlags)
@@ -79,6 +88,8 @@ func init() {
 	if registry.IsRemote() {
 		_ = flags.MarkHidden("cert-dir")
 		_ = flags.MarkHidden(signByFlagName)
+		_ = flags.MarkHidden(signBySigstorePrivateKeyFlagName)
+		_ = flags.MarkHidden(signPassphraseFileFlagName)
 	}
 }
 
@@ -102,6 +113,10 @@ func push(cmd *cobra.Command, args []string) error {
 		}
 		manifestPushOpts.Username = creds.Username
 		manifestPushOpts.Password = creds.Password
+	}
+
+	if err := common.PrepareSigningPassphrase(&manifestPushOpts.ImagePushOptions, manifestPushOpts.SignPassphraseFileCLI); err != nil {
+		return err
 	}
 
 	// TLS verification in c/image is controlled via a `types.OptionalBool`

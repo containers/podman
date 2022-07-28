@@ -316,6 +316,9 @@ func (ir *ImageEngine) ManifestPush(ctx context.Context, name, destination strin
 	pushOptions.ManifestMIMEType = manifestType
 	pushOptions.RemoveSignatures = opts.RemoveSignatures
 	pushOptions.SignBy = opts.SignBy
+	pushOptions.SignPassphrase = opts.SignPassphrase
+	pushOptions.SignBySigstorePrivateKeyFile = opts.SignBySigstorePrivateKeyFile
+	pushOptions.SignSigstorePrivateKeyPassphrase = opts.SignSigstorePrivateKeyPassphrase
 	pushOptions.InsecureSkipTLSVerify = opts.SkipTLSVerify
 
 	if opts.All {
