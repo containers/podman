@@ -397,9 +397,9 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/containerNotFound"
 	//   500:
 	//     $ref: "#/responses/internalError"
-	r.HandleFunc(VersionedPath("/containers/{name}/stats"), s.APIHandler(compat.StatsContainer)).Methods(http.MethodGet)
+	r.HandleFunc(VersionedPath("/containers/{name}/stats"), s.StreamBufferedAPIHandler(compat.StatsContainer)).Methods(http.MethodGet)
 	// Added non version path to URI to support docker non versioned paths
-	r.HandleFunc("/containers/{name}/stats", s.APIHandler(compat.StatsContainer)).Methods(http.MethodGet)
+	r.HandleFunc("/containers/{name}/stats", s.StreamBufferedAPIHandler(compat.StatsContainer)).Methods(http.MethodGet)
 	// swagger:operation POST /containers/{name}/stop compat ContainerStop
 	// ---
 	// tags:
@@ -455,9 +455,9 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/containerNotFound"
 	//   500:
 	//     $ref: "#/responses/internalError"
-	r.HandleFunc(VersionedPath("/containers/{name}/top"), s.APIHandler(compat.TopContainer)).Methods(http.MethodGet)
+	r.HandleFunc(VersionedPath("/containers/{name}/top"), s.StreamBufferedAPIHandler(compat.TopContainer)).Methods(http.MethodGet)
 	// Added non version path to URI to support docker non versioned paths
-	r.HandleFunc("/containers/{name}/top", s.APIHandler(compat.TopContainer)).Methods(http.MethodGet)
+	r.HandleFunc("/containers/{name}/top", s.StreamBufferedAPIHandler(compat.TopContainer)).Methods(http.MethodGet)
 	// swagger:operation POST /containers/{name}/unpause compat ContainerUnpause
 	// ---
 	// tags:
