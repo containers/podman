@@ -52,15 +52,15 @@ var _ = Describe("Podman login and logout", func() {
 			}
 		}
 
-		session := podmanTest.Podman([]string{"run", "--entrypoint", "htpasswd", "registry:2.6", "-Bbn", "podmantest", "test"})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		htpasswd := SystemExec("htpasswd", []string{"-Bbn", "podmantest", "test"})
+		htpasswd.WaitWithDefaultTimeout()
+		Expect(htpasswd).Should(Exit(0))
 
 		f, err := os.Create(filepath.Join(authPath, "htpasswd"))
 		Expect(err).ToNot(HaveOccurred())
 		defer f.Close()
 
-		_, err = f.WriteString(session.OutputToString())
+		_, err = f.WriteString(htpasswd.OutputToString())
 		Expect(err).ToNot(HaveOccurred())
 		err = f.Sync()
 		Expect(err).ToNot(HaveOccurred())
@@ -80,7 +80,7 @@ var _ = Describe("Podman login and logout", func() {
 		setup := SystemExec("cp", []string{filepath.Join(certPath, "domain.crt"), filepath.Join(certDirPath, "ca.crt")})
 		setup.WaitWithDefaultTimeout()
 
-		session = podmanTest.Podman([]string{"run", "-d", "-p", strings.Join([]string{strconv.Itoa(port), strconv.Itoa(port)}, ":"),
+		session := podmanTest.Podman([]string{"run", "-d", "-p", strings.Join([]string{strconv.Itoa(port), strconv.Itoa(port)}, ":"),
 			"-e", strings.Join([]string{"REGISTRY_HTTP_ADDR=0.0.0.0", strconv.Itoa(port)}, ":"), "--name", "registry", "-v",
 			strings.Join([]string{authPath, "/auth:Z"}, ":"), "-e", "REGISTRY_AUTH=htpasswd", "-e",
 			"REGISTRY_AUTH_HTPASSWD_REALM=Registry Realm", "-e", "REGISTRY_AUTH_HTPASSWD_PATH=/auth/htpasswd",

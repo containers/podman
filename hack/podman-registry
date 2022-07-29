@@ -197,13 +197,11 @@ function do_start() {
 
     # Store credentials where container will see them. We can't run
     # this one via must_pass because we need its stdout.
-    podman run --rm                                               \
-           --entrypoint htpasswd ${PODMAN_REGISTRY_IMAGE}         \
-           -Bbn ${PODMAN_REGISTRY_USER} ${PODMAN_REGISTRY_PASS}   \
+    htpasswd -Bbn ${PODMAN_REGISTRY_USER} ${PODMAN_REGISTRY_PASS}   \
            > $AUTHDIR/htpasswd
     if [ $? -ne 0 ]; then
         rm -rf ${PODMAN_REGISTRY_WORKDIR}
-        die "Command failed: podman run [htpasswd]"
+        die "Command failed: htpasswd"
     fi
 
     # In case someone needs to debug
