@@ -702,9 +702,9 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/badParamError"
 	//   500:
 	//     $ref: "#/responses/internalError"
-	r.Handle(VersionedPath("/build"), s.APIHandler(compat.BuildImage)).Methods(http.MethodPost)
+	r.Handle(VersionedPath("/build"), s.StreamBufferedAPIHandler(compat.BuildImage)).Methods(http.MethodPost)
 	// Added non version path to URI to support docker non versioned paths
-	r.Handle("/build", s.APIHandler(compat.BuildImage)).Methods(http.MethodPost)
+	r.Handle("/build", s.StreamBufferedAPIHandler(compat.BuildImage)).Methods(http.MethodPost)
 	/*
 		libpod endpoints
 	*/
