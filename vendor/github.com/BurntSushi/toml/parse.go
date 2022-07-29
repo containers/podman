@@ -16,10 +16,16 @@ type parser struct {
 	currentKey string   // Base key name for everything except hashes.
 	pos        Position // Current position in the TOML file.
 
-	ordered   []Key                  // List of keys in the order that they appear in the TOML data.
+	ordered []Key // List of keys in the order that they appear in the TOML data.
+
+	keyInfo   map[string]keyInfo     // Map keyname → info about the TOML key.
 	mapping   map[string]interface{} // Map keyname → key value.
-	types     map[string]tomlType    // Map keyname → TOML type.
 	implicits map[string]struct{}    // Record implicit keys (e.g. "key.group.names").
+}
+
+type keyInfo struct {
+	pos      Position
+	tomlType tomlType
 }
 
 func parse(data string) (p *parser, err error) {
@@ -57,8 +63,8 @@ func parse(data string) (p *parser, err error) {
 	}
 
 	p = &parser{
+		keyInfo:   make(map[string]keyInfo),
 		mapping:   make(map[string]interface{}),
-		types:     make(map[string]tomlType),
 		lx:        lex(data),
 		ordered:   make([]Key, 0),
 		implicits: make(map[string]struct{}),
@@ -72,6 +78,15 @@ func parse(data string) (p *parser, err error) {
 	}
 
 	return p, nil
+}
+
+func (p *parser) panicErr(it item, err error) {
+	panic(ParseError{
+		err:      err,
+		Position: it.pos,
+		Line:     it.pos.Len,
+		LastKey:  p.current(),
+	})
 }
 
 func (p *parser) panicItemf(it item, format string, v ...interface{}) {
@@ -94,7 +109,7 @@ func (p *parser) panicf(format string, v ...interface{}) {
 
 func (p *parser) next() item {
 	it := p.lx.nextItem()
-	//fmt.Printf("ITEM %-18s line %-3d │ %q\n", it.typ, it.line, it.val)
+	//fmt.Printf("ITEM %-18s line %-3d │ %q\n", it.typ, it.pos.Line, it.val)
 	if it.typ == itemError {
 		if it.err != nil {
 			panic(ParseError{
@@ -146,7 +161,7 @@ func (p *parser) topLevel(item item) {
 		p.assertEqual(itemTableEnd, name.typ)
 
 		p.addContext(key, false)
-		p.setType("", tomlHash)
+		p.setType("", tomlHash, item.pos)
 		p.ordered = append(p.ordered, key)
 	case itemArrayTableStart: // [[ .. ]]
 		name := p.nextPos()
@@ -158,7 +173,7 @@ func (p *parser) topLevel(item item) {
 		p.assertEqual(itemArrayTableEnd, name.typ)
 
 		p.addContext(key, true)
-		p.setType("", tomlArrayHash)
+		p.setType("", tomlArrayHash, item.pos)
 		p.ordered = append(p.ordered, key)
 	case itemKeyStart: // key = ..
 		outerContext := p.context
@@ -181,8 +196,9 @@ func (p *parser) topLevel(item item) {
 		}
 
 		/// Set value.
-		val, typ := p.value(p.next(), false)
-		p.set(p.currentKey, val, typ)
+		vItem := p.next()
+		val, typ := p.value(vItem, false)
+		p.set(p.currentKey, val, typ, vItem.pos)
 		p.ordered = append(p.ordered, p.context.add(p.currentKey))
 
 		/// Remove the context we added (preserving any context from [tbl] lines).
@@ -266,7 +282,7 @@ func (p *parser) valueInteger(it item) (interface{}, tomlType) {
 		// So mark the former as a bug but the latter as a legitimate user
 		// error.
 		if e, ok := err.(*strconv.NumError); ok && e.Err == strconv.ErrRange {
-			p.panicItemf(it, "Integer '%s' is out of the range of 64-bit signed integers.", it.val)
+			p.panicErr(it, errParseRange{i: it.val, size: "int64"})
 		} else {
 			p.bug("Expected integer value, but got '%s'.", it.val)
 		}
@@ -304,7 +320,7 @@ func (p *parser) valueFloat(it item) (interface{}, tomlType) {
 	num, err := strconv.ParseFloat(val, 64)
 	if err != nil {
 		if e, ok := err.(*strconv.NumError); ok && e.Err == strconv.ErrRange {
-			p.panicItemf(it, "Float '%s' is out of the range of 64-bit IEEE-754 floating-point numbers.", it.val)
+			p.panicErr(it, errParseRange{i: it.val, size: "float64"})
 		} else {
 			p.panicItemf(it, "Invalid float value: %q", it.val)
 		}
@@ -343,9 +359,8 @@ func (p *parser) valueDatetime(it item) (interface{}, tomlType) {
 }
 
 func (p *parser) valueArray(it item) (interface{}, tomlType) {
-	p.setType(p.currentKey, tomlArray)
+	p.setType(p.currentKey, tomlArray, it.pos)
 
-	// p.setType(p.currentKey, typ)
 	var (
 		types []tomlType
 
@@ -414,7 +429,7 @@ func (p *parser) valueInlineTable(it item, parentIsArray bool) (interface{}, tom
 
 		/// Set the value.
 		val, typ := p.value(p.next(), false)
-		p.set(p.currentKey, val, typ)
+		p.set(p.currentKey, val, typ, it.pos)
 		p.ordered = append(p.ordered, p.context.add(p.currentKey))
 		hash[p.currentKey] = val
 
@@ -533,9 +548,10 @@ func (p *parser) addContext(key Key, array bool) {
 }
 
 // set calls setValue and setType.
-func (p *parser) set(key string, val interface{}, typ tomlType) {
+func (p *parser) set(key string, val interface{}, typ tomlType, pos Position) {
 	p.setValue(key, val)
-	p.setType(key, typ)
+	p.setType(key, typ, pos)
+
 }
 
 // setValue sets the given key to the given value in the current context.
@@ -599,7 +615,7 @@ func (p *parser) setValue(key string, value interface{}) {
 //
 // Note that if `key` is empty, then the type given will be applied to the
 // current context (which is either a table or an array of tables).
-func (p *parser) setType(key string, typ tomlType) {
+func (p *parser) setType(key string, typ tomlType, pos Position) {
 	keyContext := make(Key, 0, len(p.context)+1)
 	keyContext = append(keyContext, p.context...)
 	if len(key) > 0 { // allow type setting for hashes
@@ -611,7 +627,7 @@ func (p *parser) setType(key string, typ tomlType) {
 	if len(keyContext) == 0 {
 		keyContext = Key{""}
 	}
-	p.types[keyContext.String()] = typ
+	p.keyInfo[keyContext.String()] = keyInfo{tomlType: typ, pos: pos}
 }
 
 // Implicit keys need to be created when tables are implied in "a.b.c.d = 1" and
@@ -619,7 +635,7 @@ func (p *parser) setType(key string, typ tomlType) {
 func (p *parser) addImplicit(key Key)     { p.implicits[key.String()] = struct{}{} }
 func (p *parser) removeImplicit(key Key)  { delete(p.implicits, key.String()) }
 func (p *parser) isImplicit(key Key) bool { _, ok := p.implicits[key.String()]; return ok }
-func (p *parser) isArray(key Key) bool    { return p.types[key.String()] == tomlArray }
+func (p *parser) isArray(key Key) bool    { return p.keyInfo[key.String()].tomlType == tomlArray }
 func (p *parser) addImplicitContext(key Key) {
 	p.addImplicit(key)
 	p.addContext(key, false)
@@ -710,10 +726,8 @@ func (p *parser) replaceEscapes(it item, str string) string {
 		switch s[r] {
 		default:
 			p.bug("Expected valid escape code after \\, but got %q.", s[r])
-			return ""
 		case ' ', '\t':
 			p.panicItemf(it, "invalid escape: '\\%c'", s[r])
-			return ""
 		case 'b':
 			replaced = append(replaced, rune(0x0008))
 			r += 1

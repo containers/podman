@@ -128,9 +128,13 @@ func (pe ParseError) ErrorWithPosition() string {
 func (pe ParseError) ErrorWithUsage() string {
 	m := pe.ErrorWithPosition()
 	if u, ok := pe.err.(interface{ Usage() string }); ok && u.Usage() != "" {
-		return m + "Error help:\n\n    " +
-			strings.ReplaceAll(strings.TrimSpace(u.Usage()), "\n", "\n    ") +
-			"\n"
+		lines := strings.Split(strings.TrimSpace(u.Usage()), "\n")
+		for i := range lines {
+			if lines[i] != "" {
+				lines[i] = "    " + lines[i]
+			}
+		}
+		return m + "Error help:\n\n" + strings.Join(lines, "\n") + "\n"
 	}
 	return m
 }
@@ -160,6 +164,11 @@ type (
 	errLexInvalidDate   struct{ v string }
 	errLexInlineTableNL struct{}
 	errLexStringNL      struct{}
+	errParseRange       struct {
+		i    interface{} // int or float
+		size string      // "int64", "uint16", etc.
+	}
+	errParseDuration struct{ d string }
 )
 
 func (e errLexControl) Error() string {
@@ -179,6 +188,10 @@ func (e errLexInlineTableNL) Error() string { return "newlines not allowed withi
 func (e errLexInlineTableNL) Usage() string { return usageInlineNewline }
 func (e errLexStringNL) Error() string      { return "strings cannot contain newlines" }
 func (e errLexStringNL) Usage() string      { return usageStringNewline }
+func (e errParseRange) Error() string       { return fmt.Sprintf("%v is out of range for %s", e.i, e.size) }
+func (e errParseRange) Usage() string       { return usageIntOverflow }
+func (e errParseDuration) Error() string    { return fmt.Sprintf("invalid duration: %q", e.d) }
+func (e errParseDuration) Usage() string    { return usageDuration }
 
 const usageEscape = `
 A '\' inside a "-delimited string is interpreted as an escape character.
@@ -226,4 +239,38 @@ Instead use """ or ''' to split strings over multiple lines:
 
     string = """Hello,
     world!"""
+`
+
+const usageIntOverflow = `
+This number is too large; this may be an error in the TOML, but it can also be a
+bug in the program that uses too small of an integer.
+
+The maximum and minimum values are:
+
+    size   │ lowest         │ highest
+    ───────┼────────────────┼──────────
+    int8   │ -128           │ 127
+    int16  │ -32,768        │ 32,767
+    int32  │ -2,147,483,648 │ 2,147,483,647
+    int64  │ -9.2 × 10¹⁷    │ 9.2 × 10¹⁷
+    uint8  │ 0              │ 255
+    uint16 │ 0              │ 65535
+    uint32 │ 0              │ 4294967295
+    uint64 │ 0              │ 1.8 × 10¹⁸
+
+int refers to int32 on 32-bit systems and int64 on 64-bit systems.
+`
+
+const usageDuration = `
+A duration must be as "number<unit>", without any spaces. Valid units are:
+
+    ns         nanoseconds (billionth of a second)
+    us, µs     microseconds (millionth of a second)
+    ms         milliseconds (thousands of a second)
+    s          seconds
+    m          minutes
+    h          hours
+
+You can combine multiple units; for example "5m10s" for 5 minutes and 10
+seconds.
 `

@@ -1,7 +1,7 @@
 # github.com/Azure/go-ansiterm v0.0.0-20210617225240-d185dfc1b5a1
 github.com/Azure/go-ansiterm
 github.com/Azure/go-ansiterm/winterm
-# github.com/BurntSushi/toml v1.1.0
+# github.com/BurntSushi/toml v1.2.0
 ## explicit
 github.com/BurntSushi/toml
 github.com/BurntSushi/toml/internal

@@ -3,6 +3,7 @@ package toml
 import (
 	"bufio"
 	"encoding"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -63,6 +64,12 @@ var dblQuotedReplacer = strings.NewReplacer(
 	"\x7f", `\u007f`,
 )
 
+var (
+	marshalToml = reflect.TypeOf((*Marshaler)(nil)).Elem()
+	marshalText = reflect.TypeOf((*encoding.TextMarshaler)(nil)).Elem()
+	timeType    = reflect.TypeOf((*time.Time)(nil)).Elem()
+)
+
 // Marshaler is the interface implemented by types that can marshal themselves
 // into valid TOML.
 type Marshaler interface {
@@ -74,6 +81,9 @@ type Marshaler interface {
 // The mapping between Go values and TOML values should be precisely the same as
 // for the Decode* functions.
 //
+// time.Time is encoded as a RFC 3339 string, and time.Duration as its string
+// representation.
+//
 // The toml.Marshaler and encoder.TextMarshaler interfaces are supported to
 // encoding the value as custom TOML.
 //
@@ -84,6 +94,17 @@ type Marshaler interface {
 // are encoded first.
 //
 // Go maps will be sorted alphabetically by key for deterministic output.
+//
+// The toml struct tag can be used to provide the key name; if omitted the
+// struct field name will be used. If the "omitempty" option is present the
+// following value will be skipped:
+//
+//   - arrays, slices, maps, and string with len of 0
+//   - struct with all zero values
+//   - bool false
+//
+// If omitzero is given all int and float types with a value of 0 will be
+// skipped.
 //
 // Encoding Go values without a corresponding TOML representation will return an
 // error. Examples of this includes maps with non-string keys, slices with nil
@@ -136,18 +157,15 @@ func (enc *Encoder) safeEncode(key Key, rv reflect.Value) (err error) {
 }
 
 func (enc *Encoder) encode(key Key, rv reflect.Value) {
-	// Special case: time needs to be in ISO8601 format.
-	//
-	// Special case: if we can marshal the type to text, then we used that. This
-	// prevents the encoder for handling these types as generic structs (or
-	// whatever the underlying type of a TextMarshaler is).
-	switch t := rv.Interface().(type) {
-	case time.Time, encoding.TextMarshaler, Marshaler:
+	// If we can marshal the type to text, then we use that. This prevents the
+	// encoder for handling these types as generic structs (or whatever the
+	// underlying type of a TextMarshaler is).
+	switch {
+	case isMarshaler(rv):
 		enc.writeKeyValue(key, rv, false)
 		return
-	// TODO: #76 would make this superfluous after implemented.
-	case Primitive:
-		enc.encode(key, reflect.ValueOf(t.undecoded))
+	case rv.Type() == primitiveType: // TODO: #76 would make this superfluous after implemented.
+		enc.encode(key, reflect.ValueOf(rv.Interface().(Primitive).undecoded))
 		return
 	}
 
@@ -212,6 +230,9 @@ func (enc *Encoder) eElement(rv reflect.Value) {
 		if err != nil {
 			encPanic(err)
 		}
+		if s == nil {
+			encPanic(errors.New("MarshalTOML returned nil and no error"))
+		}
 		enc.w.Write(s)
 		return
 	case encoding.TextMarshaler:
@@ -219,11 +240,34 @@ func (enc *Encoder) eElement(rv reflect.Value) {
 		if err != nil {
 			encPanic(err)
 		}
+		if s == nil {
+			encPanic(errors.New("MarshalText returned nil and no error"))
+		}
 		enc.writeQuoted(string(s))
 		return
+	case time.Duration:
+		enc.writeQuoted(v.String())
+		return
+	case json.Number:
+		n, _ := rv.Interface().(json.Number)
+
+		if n == "" { /// Useful zero value.
+			enc.w.WriteByte('0')
+			return
+		} else if v, err := n.Int64(); err == nil {
+			enc.eElement(reflect.ValueOf(v))
+			return
+		} else if v, err := n.Float64(); err == nil {
+			enc.eElement(reflect.ValueOf(v))
+			return
+		}
+		encPanic(errors.New(fmt.Sprintf("Unable to convert \"%s\" to neither int64 nor float64", n)))
 	}
 
 	switch rv.Kind() {
+	case reflect.Ptr:
+		enc.eElement(rv.Elem())
+		return
 	case reflect.String:
 		enc.writeQuoted(rv.String())
 	case reflect.Bool:
@@ -259,7 +303,7 @@ func (enc *Encoder) eElement(rv reflect.Value) {
 	case reflect.Interface:
 		enc.eElement(rv.Elem())
 	default:
-		encPanic(fmt.Errorf("unexpected primitive type: %T", rv.Interface()))
+		encPanic(fmt.Errorf("unexpected type: %T", rv.Interface()))
 	}
 }
 
@@ -280,7 +324,7 @@ func (enc *Encoder) eArrayOrSliceElement(rv reflect.Value) {
 	length := rv.Len()
 	enc.wf("[")
 	for i := 0; i < length; i++ {
-		elem := rv.Index(i)
+		elem := eindirect(rv.Index(i))
 		enc.eElement(elem)
 		if i != length-1 {
 			enc.wf(", ")
@@ -294,7 +338,7 @@ func (enc *Encoder) eArrayOfTables(key Key, rv reflect.Value) {
 		encPanic(errNoKey)
 	}
 	for i := 0; i < rv.Len(); i++ {
-		trv := rv.Index(i)
+		trv := eindirect(rv.Index(i))
 		if isNil(trv) {
 			continue
 		}
@@ -319,7 +363,7 @@ func (enc *Encoder) eTable(key Key, rv reflect.Value) {
 }
 
 func (enc *Encoder) eMapOrStruct(key Key, rv reflect.Value, inline bool) {
-	switch rv := eindirect(rv); rv.Kind() {
+	switch rv.Kind() {
 	case reflect.Map:
 		enc.eMap(key, rv, inline)
 	case reflect.Struct:
@@ -341,7 +385,7 @@ func (enc *Encoder) eMap(key Key, rv reflect.Value, inline bool) {
 	var mapKeysDirect, mapKeysSub []string
 	for _, mapKey := range rv.MapKeys() {
 		k := mapKey.String()
-		if typeIsTable(tomlTypeOfGo(rv.MapIndex(mapKey))) {
+		if typeIsTable(tomlTypeOfGo(eindirect(rv.MapIndex(mapKey)))) {
 			mapKeysSub = append(mapKeysSub, k)
 		} else {
 			mapKeysDirect = append(mapKeysDirect, k)
@@ -351,7 +395,7 @@ func (enc *Encoder) eMap(key Key, rv reflect.Value, inline bool) {
 	var writeMapKeys = func(mapKeys []string, trailC bool) {
 		sort.Strings(mapKeys)
 		for i, mapKey := range mapKeys {
-			val := rv.MapIndex(reflect.ValueOf(mapKey))
+			val := eindirect(rv.MapIndex(reflect.ValueOf(mapKey)))
 			if isNil(val) {
 				continue
 			}
@@ -379,6 +423,13 @@ func (enc *Encoder) eMap(key Key, rv reflect.Value, inline bool) {
 
 const is32Bit = (32 << (^uint(0) >> 63)) == 32
 
+func pointerTo(t reflect.Type) reflect.Type {
+	if t.Kind() == reflect.Ptr {
+		return pointerTo(t.Elem())
+	}
+	return t
+}
+
 func (enc *Encoder) eStruct(key Key, rv reflect.Value, inline bool) {
 	// Write keys for fields directly under this key first, because if we write
 	// a field that creates a new table then all keys under it will be in that
@@ -395,7 +446,8 @@ func (enc *Encoder) eStruct(key Key, rv reflect.Value, inline bool) {
 	addFields = func(rt reflect.Type, rv reflect.Value, start []int) {
 		for i := 0; i < rt.NumField(); i++ {
 			f := rt.Field(i)
-			if f.PkgPath != "" && !f.Anonymous { /// Skip unexported fields.
+			isEmbed := f.Anonymous && pointerTo(f.Type).Kind() == reflect.Struct
+			if f.PkgPath != "" && !isEmbed { /// Skip unexported fields.
 				continue
 			}
 			opts := getOptions(f.Tag)
@@ -403,27 +455,16 @@ func (enc *Encoder) eStruct(key Key, rv reflect.Value, inline bool) {
 				continue
 			}
 
-			frv := rv.Field(i)
+			frv := eindirect(rv.Field(i))
 
 			// Treat anonymous struct fields with tag names as though they are
 			// not anonymous, like encoding/json does.
 			//
 			// Non-struct anonymous fields use the normal encoding logic.
-			if f.Anonymous {
-				t := f.Type
-				switch t.Kind() {
-				case reflect.Struct:
-					if getOptions(f.Tag).name == "" {
-						addFields(t, frv, append(start, f.Index...))
-						continue
-					}
-				case reflect.Ptr:
-					if t.Elem().Kind() == reflect.Struct && getOptions(f.Tag).name == "" {
-						if !frv.IsNil() {
-							addFields(t.Elem(), frv.Elem(), append(start, f.Index...))
-						}
-						continue
-					}
+			if isEmbed {
+				if getOptions(f.Tag).name == "" && frv.Kind() == reflect.Struct {
+					addFields(frv.Type(), frv, append(start, f.Index...))
+					continue
 				}
 			}
 
@@ -449,7 +490,7 @@ func (enc *Encoder) eStruct(key Key, rv reflect.Value, inline bool) {
 	writeFields := func(fields [][]int) {
 		for _, fieldIndex := range fields {
 			fieldType := rt.FieldByIndex(fieldIndex)
-			fieldVal := rv.FieldByIndex(fieldIndex)
+			fieldVal := eindirect(rv.FieldByIndex(fieldIndex))
 
 			if isNil(fieldVal) { /// Don't write anything for nil fields.
 				continue
@@ -502,6 +543,21 @@ func tomlTypeOfGo(rv reflect.Value) tomlType {
 	if isNil(rv) || !rv.IsValid() {
 		return nil
 	}
+
+	if rv.Kind() == reflect.Struct {
+		if rv.Type() == timeType {
+			return tomlDatetime
+		}
+		if isMarshaler(rv) {
+			return tomlString
+		}
+		return tomlHash
+	}
+
+	if isMarshaler(rv) {
+		return tomlString
+	}
+
 	switch rv.Kind() {
 	case reflect.Bool:
 		return tomlBool
@@ -513,7 +569,7 @@ func tomlTypeOfGo(rv reflect.Value) tomlType {
 	case reflect.Float32, reflect.Float64:
 		return tomlFloat
 	case reflect.Array, reflect.Slice:
-		if typeEqual(tomlHash, tomlArrayType(rv)) {
+		if isTableArray(rv) {
 			return tomlArrayHash
 		}
 		return tomlArray
@@ -523,67 +579,35 @@ func tomlTypeOfGo(rv reflect.Value) tomlType {
 		return tomlString
 	case reflect.Map:
 		return tomlHash
-	case reflect.Struct:
-		if _, ok := rv.Interface().(time.Time); ok {
-			return tomlDatetime
-		}
-		if isMarshaler(rv) {
-			return tomlString
-		}
-		return tomlHash
 	default:
-		if isMarshaler(rv) {
-			return tomlString
-		}
-
 		encPanic(errors.New("unsupported type: " + rv.Kind().String()))
 		panic("unreachable")
 	}
 }
 
 func isMarshaler(rv reflect.Value) bool {
-	switch rv.Interface().(type) {
-	case encoding.TextMarshaler:
-		return true
-	case Marshaler:
-		return true
-	}
-
-	// Someone used a pointer receiver: we can make it work for pointer values.
-	if rv.CanAddr() {
-		if _, ok := rv.Addr().Interface().(encoding.TextMarshaler); ok {
-			return true
-		}
-		if _, ok := rv.Addr().Interface().(Marshaler); ok {
-			return true
-		}
-	}
-	return false
+	return rv.Type().Implements(marshalText) || rv.Type().Implements(marshalToml)
 }
 
-// tomlArrayType returns the element type of a TOML array. The type returned
-// may be nil if it cannot be determined (e.g., a nil slice or a zero length
-// slize). This function may also panic if it finds a type that cannot be
-// expressed in TOML (such as nil elements, heterogeneous arrays or directly
-// nested arrays of tables).
-func tomlArrayType(rv reflect.Value) tomlType {
-	if isNil(rv) || !rv.IsValid() || rv.Len() == 0 {
-		return nil
+// isTableArray reports if all entries in the array or slice are a table.
+func isTableArray(arr reflect.Value) bool {
+	if isNil(arr) || !arr.IsValid() || arr.Len() == 0 {
+		return false
 	}
 
-	/// Don't allow nil.
-	rvlen := rv.Len()
-	for i := 1; i < rvlen; i++ {
-		if tomlTypeOfGo(rv.Index(i)) == nil {
+	ret := true
+	for i := 0; i < arr.Len(); i++ {
+		tt := tomlTypeOfGo(eindirect(arr.Index(i)))
+		// Don't allow nil.
+		if tt == nil {
 			encPanic(errArrayNilElement)
 		}
-	}
 
-	firstType := tomlTypeOfGo(rv.Index(0))
-	if firstType == nil {
-		encPanic(errArrayNilElement)
+		if ret && !typeEqual(tomlHash, tt) {
+			ret = false
+		}
 	}
-	return firstType
+	return ret
 }
 
 type tagOptions struct {
@@ -628,6 +652,8 @@ func isEmpty(rv reflect.Value) bool {
 	switch rv.Kind() {
 	case reflect.Array, reflect.Slice, reflect.Map, reflect.String:
 		return rv.Len() == 0
+	case reflect.Struct:
+		return reflect.Zero(rv.Type()).Interface() == rv.Interface()
 	case reflect.Bool:
 		return !rv.Bool()
 	}
@@ -679,13 +705,25 @@ func encPanic(err error) {
 	panic(tomlEncodeError{err})
 }
 
+// Resolve any level of pointers to the actual value (e.g. **string → string).
 func eindirect(v reflect.Value) reflect.Value {
-	switch v.Kind() {
-	case reflect.Ptr, reflect.Interface:
-		return eindirect(v.Elem())
-	default:
+	if v.Kind() != reflect.Ptr && v.Kind() != reflect.Interface {
+		if isMarshaler(v) {
+			return v
+		}
+		if v.CanAddr() { /// Special case for marshalers; see #358.
+			if pv := v.Addr(); isMarshaler(pv) {
+				return pv
+			}
+		}
 		return v
 	}
+
+	if v.IsNil() {
+		return v
+	}
+
+	return eindirect(v.Elem())
 }
 
 func isNil(rv reflect.Value) bool {
