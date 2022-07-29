@@ -173,13 +173,15 @@ var _ = Describe("Podman manifest", func() {
 		session = podmanTest.Podman([]string{"manifest", "add", "foo", imageListInstance})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		session = podmanTest.Podman([]string{"manifest", "annotate", "--arch", "bar", "foo", imageListARM64InstanceDigest})
+		session = podmanTest.Podman([]string{"manifest", "annotate", "--annotation", "hello=world", "--arch", "bar", "foo", imageListARM64InstanceDigest})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		session = podmanTest.Podman([]string{"manifest", "inspect", "foo"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(ContainSubstring(`"architecture": "bar"`))
+		// Check added annotation
+		Expect(session.OutputToString()).To(ContainSubstring(`"hello": "world"`))
 	})
 
 	It("remove digest", func() {
