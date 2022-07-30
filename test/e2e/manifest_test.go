@@ -1,12 +1,14 @@
 package integration
 
 import (
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
 
 	podmanRegistry "github.com/containers/podman/v4/hack/podman-registry-go"
 	. "github.com/containers/podman/v4/test/utils"
+	"github.com/containers/storage/pkg/archive"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
@@ -290,6 +292,46 @@ var _ = Describe("Podman manifest", func() {
 				ContainSubstring(strings.TrimPrefix(imageListS390XInstanceDigest, prefix)),
 				ContainSubstring(strings.TrimPrefix(imageListARM64InstanceDigest, prefix)),
 			))
+	})
+
+	It("push with compression-format", func() {
+		SkipIfRemote("manifest push to dir not supported in remote mode")
+		session := podmanTest.Podman([]string{"manifest", "create", "foo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		session = podmanTest.Podman([]string{"manifest", "add", "--all", "foo", imageList})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		dest := filepath.Join(podmanTest.TempDir, "pushed")
+		err := os.MkdirAll(dest, os.ModePerm)
+		Expect(err).To(BeNil())
+		defer func() {
+			os.RemoveAll(dest)
+		}()
+		session = podmanTest.Podman([]string{"push", "--compression-format=zstd", "foo", "oci:" + dest})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		foundZstdFile := false
+
+		blobsDir := filepath.Join(dest, "blobs", "sha256")
+
+		blobs, err := ioutil.ReadDir(blobsDir)
+		Expect(err).To(BeNil())
+
+		for _, f := range blobs {
+			blobPath := filepath.Join(blobsDir, f.Name())
+
+			sourceFile, err := ioutil.ReadFile(blobPath)
+			Expect(err).To(BeNil())
+
+			compressionType := archive.DetectCompression(sourceFile)
+			if compressionType == archive.Zstd {
+				foundZstdFile = true
+				break
+			}
+		}
+		Expect(foundZstdFile).To(BeTrue())
 	})
 
 	It("authenticated push", func() {

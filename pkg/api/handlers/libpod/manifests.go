@@ -306,8 +306,11 @@ func ManifestPush(w http.ResponseWriter, r *http.Request) {
 	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
 
 	query := struct {
-		All       bool `schema:"all"`
-		TLSVerify bool `schema:"tlsVerify"`
+		All               bool   `schema:"all"`
+		CompressionFormat string `schema:"compressionFormat"`
+		Format            string `schema:"format"`
+		RemoveSignatures  bool   `schema:"removeSignatures"`
+		TLSVerify         bool   `schema:"tlsVerify"`
 	}{
 		// Add defaults here once needed.
 		TLSVerify: true,
@@ -336,10 +339,13 @@ func ManifestPush(w http.ResponseWriter, r *http.Request) {
 		password = authconf.Password
 	}
 	options := entities.ImagePushOptions{
-		Authfile: authfile,
-		Username: username,
-		Password: password,
-		All:      query.All,
+		All:               query.All,
+		Authfile:          authfile,
+		CompressionFormat: query.CompressionFormat,
+		Format:            query.Format,
+		Password:          password,
+		RemoveSignatures:  query.RemoveSignatures,
+		Username:          username,
 	}
 	if sys := runtime.SystemContext(); sys != nil {
 		options.CertDir = sys.DockerCertPath
