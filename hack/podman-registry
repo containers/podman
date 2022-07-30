@@ -218,7 +218,7 @@ function do_start() {
               -e "REGISTRY_AUTH_HTPASSWD_PATH=/auth/htpasswd"           \
               -e "REGISTRY_HTTP_TLS_CERTIFICATE=/auth/domain.crt"       \
               -e "REGISTRY_HTTP_TLS_KEY=/auth/domain.key"               \
-              registry:2.6
+              ${PODMAN_REGISTRY_IMAGE}
 
     # Confirm that registry started and port is active
     wait_for_port $PODMAN_REGISTRY_PORT
