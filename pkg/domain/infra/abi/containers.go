@@ -142,10 +142,10 @@ func (ic *ContainerEngine) ContainerPause(ctx context.Context, namesOrIds []stri
 	if err != nil {
 		return nil, err
 	}
-	ctrMap := map[string]string{}
+	idToRawInput := map[string]string{}
 	if len(rawInputs) == len(ctrs) {
 		for i := range ctrs {
-			ctrMap[ctrs[i].ID()] = rawInputs[i]
+			idToRawInput[ctrs[i].ID()] = rawInputs[i]
 		}
 	}
 	reports := make([]*entities.PauseUnpauseReport, 0, len(ctrs))
@@ -158,7 +158,7 @@ func (ic *ContainerEngine) ContainerPause(ctx context.Context, namesOrIds []stri
 		reports = append(reports, &entities.PauseUnpauseReport{
 			Id:       c.ID(),
 			Err:      err,
-			RawInput: ctrMap[c.ID()],
+			RawInput: idToRawInput[c.ID()],
 		})
 	}
 	return reports, nil
@@ -169,10 +169,10 @@ func (ic *ContainerEngine) ContainerUnpause(ctx context.Context, namesOrIds []st
 	if err != nil {
 		return nil, err
 	}
-	ctrMap := map[string]string{}
+	idToRawInput := map[string]string{}
 	if len(rawInputs) == len(ctrs) {
 		for i := range ctrs {
-			ctrMap[ctrs[i].ID()] = rawInputs[i]
+			idToRawInput[ctrs[i].ID()] = rawInputs[i]
 		}
 	}
 	reports := make([]*entities.PauseUnpauseReport, 0, len(ctrs))
@@ -185,7 +185,7 @@ func (ic *ContainerEngine) ContainerUnpause(ctx context.Context, namesOrIds []st
 		reports = append(reports, &entities.PauseUnpauseReport{
 			Id:       c.ID(),
 			Err:      err,
-			RawInput: ctrMap[c.ID()],
+			RawInput: idToRawInput[c.ID()],
 		})
 	}
 	return reports, nil
@@ -196,10 +196,10 @@ func (ic *ContainerEngine) ContainerStop(ctx context.Context, namesOrIds []strin
 	if err != nil && !(options.Ignore && errors.Is(err, define.ErrNoSuchCtr)) {
 		return nil, err
 	}
-	ctrMap := map[string]string{}
+	idToRawInput := map[string]string{}
 	if len(rawInputs) == len(ctrs) {
 		for i := range ctrs {
-			ctrMap[ctrs[i].ID()] = rawInputs[i]
+			idToRawInput[ctrs[i].ID()] = rawInputs[i]
 		}
 	}
 	errMap, err := parallelctr.ContainerOp(ctx, ctrs, func(c *libpod.Container) error {
@@ -245,7 +245,7 @@ func (ic *ContainerEngine) ContainerStop(ctx context.Context, namesOrIds []strin
 		if options.All {
 			report.RawInput = ctr.ID()
 		} else {
-			report.RawInput = ctrMap[ctr.ID()]
+			report.RawInput = idToRawInput[ctr.ID()]
 		}
 		report.Err = err
 		reports = append(reports, report)
@@ -275,10 +275,10 @@ func (ic *ContainerEngine) ContainerKill(ctx context.Context, namesOrIds []strin
 	if err != nil {
 		return nil, err
 	}
-	ctrMap := map[string]string{}
+	idToRawInput := map[string]string{}
 	if len(rawInputs) == len(ctrs) {
 		for i := range ctrs {
-			ctrMap[ctrs[i].ID()] = rawInputs[i]
+			idToRawInput[ctrs[i].ID()] = rawInputs[i]
 		}
 	}
 	reports := make([]*entities.KillReport, 0, len(ctrs))
@@ -291,7 +291,7 @@ func (ic *ContainerEngine) ContainerKill(ctx context.Context, namesOrIds []strin
 		reports = append(reports, &entities.KillReport{
 			Id:       con.ID(),
 			Err:      err,
-			RawInput: ctrMap[con.ID()],
+			RawInput: idToRawInput[con.ID()],
 		})
 	}
 	return reports, nil
@@ -360,7 +360,7 @@ func (ic *ContainerEngine) ContainerRm(ctx context.Context, namesOrIds []string,
 	// this will fail and code will fall through to removing the container from libpod.`
 	tmpNames := []string{}
 	for _, ctr := range names {
-		report := reports.RmReport{Id: ctr}
+		report := reports.RmReport{Id: ctr, RawInput: ctr}
 		report.Err = ic.Libpod.RemoveStorageContainer(ctr, options.Force)
 		//nolint:gocritic
 		if report.Err == nil {
@@ -381,7 +381,16 @@ func (ic *ContainerEngine) ContainerRm(ctx context.Context, namesOrIds []string,
 	}
 	names = tmpNames
 
-	ctrs, err := getContainersByContext(options.All, options.Latest, names, ic.Libpod)
+	ctrs, rawInputs, err := getContainersAndInputByContext(options.All, options.Latest, names, options.Filters, ic.Libpod)
+	if err != nil && !(options.Ignore && errors.Is(err, define.ErrNoSuchCtr)) {
+		return nil, err
+	}
+	idToRawInput := map[string]string{}
+	if len(rawInputs) == len(ctrs) {
+		for i := range ctrs {
+			idToRawInput[ctrs[i].ID()] = rawInputs[i]
+		}
+	}
 	if err != nil && !(options.Ignore && errors.Is(err, define.ErrNoSuchCtr)) {
 		// Failed to get containers. If force is specified, get the containers ID
 		// and evict them
@@ -391,7 +400,10 @@ func (ic *ContainerEngine) ContainerRm(ctx context.Context, namesOrIds []string,
 
 		for _, ctr := range names {
 			logrus.Debugf("Evicting container %q", ctr)
-			report := reports.RmReport{Id: ctr}
+			report := reports.RmReport{
+				Id:       ctr,
+				RawInput: idToRawInput[ctr],
+			}
 			_, err := ic.Libpod.EvictContainer(ctx, ctr, options.Volumes)
 			if err != nil {
 				if options.Ignore && errors.Is(err, define.ErrNoSuchCtr) {
@@ -461,6 +473,7 @@ func (ic *ContainerEngine) ContainerRm(ctx context.Context, namesOrIds []string,
 		report := new(reports.RmReport)
 		report.Id = ctr.ID()
 		report.Err = err
+		report.RawInput = idToRawInput[ctr.ID()]
 		rmReports = append(rmReports, report)
 	}
 	return rmReports, nil

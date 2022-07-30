@@ -14,7 +14,7 @@ import (
 
 // FIXME: the `ignore` parameter is very likely wrong here as it should rather
 //        be used on *errors* from operations such as remove.
-func getContainersByContext(contextWithConnection context.Context, all, ignore bool, namesOrIDs []string) ([]entities.ListContainer, error) {
+func getContainersByContext(contextWithConnection context.Context, all, ignore bool, namesOrIDs []string) ([]entities.ListContainer, error) { //nolint:unparam
 	ctrs, _, err := getContainersAndInputByContext(contextWithConnection, all, ignore, namesOrIDs, nil)
 	return ctrs, err
 }

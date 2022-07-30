@@ -131,6 +131,7 @@ type RestartReport struct {
 }
 
 type RmOptions struct {
+	Filters map[string][]string
 	All     bool
 	Depend  bool
 	Force   bool

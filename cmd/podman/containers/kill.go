@@ -49,7 +49,8 @@ var (
 )
 
 var (
-	killOptions = entities.KillOptions{}
+	killOptions  = entities.KillOptions{}
+	killCidFiles = []string{}
 )
 
 func killFlags(cmd *cobra.Command) {
@@ -61,7 +62,7 @@ func killFlags(cmd *cobra.Command) {
 	flags.StringVarP(&killOptions.Signal, signalFlagName, "s", "KILL", "Signal to send to the container")
 	_ = cmd.RegisterFlagCompletionFunc(signalFlagName, common.AutocompleteStopSignal)
 	cidfileFlagName := "cidfile"
-	flags.StringArrayVar(&cidFiles, cidfileFlagName, []string{}, "Read the container ID from the file")
+	flags.StringArrayVar(&killCidFiles, cidfileFlagName, nil, "Read the container ID from the file")
 	_ = cmd.RegisterFlagCompletionFunc(cidfileFlagName, completion.AutocompleteDefault)
 }
 
@@ -94,7 +95,7 @@ func kill(_ *cobra.Command, args []string) error {
 	if sig < 1 || sig > 64 {
 		return errors.New("valid signals are 1 through 64")
 	}
-	for _, cidFile := range cidFiles {
+	for _, cidFile := range killCidFiles {
 		content, err := ioutil.ReadFile(cidFile)
 		if err != nil {
 			return fmt.Errorf("error reading CIDFile: %w", err)

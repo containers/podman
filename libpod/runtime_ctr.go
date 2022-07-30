@@ -995,7 +995,7 @@ func (r *Runtime) RemoveDepend(ctx context.Context, rmCtr *Container, force bool
 			return nil, err
 		}
 		for _, cID := range podContainerIDS {
-			rmReports = append(rmReports, &reports.RmReport{Id: cID})
+			rmReports = append(rmReports, &reports.RmReport{Id: cID, RawInput: cID})
 		}
 		return rmReports, nil
 	}
@@ -1023,7 +1023,7 @@ func (r *Runtime) RemoveDepend(ctx context.Context, rmCtr *Container, force bool
 		rmReports = append(rmReports, reports...)
 	}
 
-	report := reports.RmReport{Id: rmCtr.ID()}
+	report := reports.RmReport{Id: rmCtr.ID(), RawInput: rmCtr.ID()}
 	report.Err = r.removeContainer(ctx, rmCtr, force, removeVolume, false, timeout)
 	return append(rmReports, &report), nil
 }

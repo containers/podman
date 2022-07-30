@@ -52,8 +52,10 @@ var (
 )
 
 var (
-	rmOptions = entities.RmOptions{}
-	cidFiles  = []string{}
+	rmOptions = entities.RmOptions{
+		Filters: make(map[string][]string),
+	}
+	rmCidFiles = []string{}
 )
 
 func rmFlags(cmd *cobra.Command) {
@@ -69,8 +71,12 @@ func rmFlags(cmd *cobra.Command) {
 	flags.BoolVarP(&rmOptions.Volumes, "volumes", "v", false, "Remove anonymous volumes associated with the container")
 
 	cidfileFlagName := "cidfile"
-	flags.StringArrayVar(&cidFiles, cidfileFlagName, nil, "Read the container ID from the file")
+	flags.StringArrayVar(&rmCidFiles, cidfileFlagName, nil, "Read the container ID from the file")
 	_ = cmd.RegisterFlagCompletionFunc(cidfileFlagName, completion.AutocompleteDefault)
+
+	filterFlagName := "filter"
+	flags.StringSliceVar(&filters, filterFlagName, []string{}, "Filter output based on conditions given")
+	_ = cmd.RegisterFlagCompletionFunc(filterFlagName, common.AutocompletePsFilters)
 
 	if !registry.IsRemote() {
 		// This option is deprecated, but needs to still exists for backwards compatibility
@@ -101,13 +107,21 @@ func rm(cmd *cobra.Command, args []string) error {
 		}
 		rmOptions.Timeout = &stopTimeout
 	}
-	for _, cidFile := range cidFiles {
+	for _, cidFile := range rmCidFiles {
 		content, err := ioutil.ReadFile(cidFile)
 		if err != nil {
 			return fmt.Errorf("error reading CIDFile: %w", err)
 		}
 		id := strings.Split(string(content), "\n")[0]
 		args = append(args, id)
+	}
+
+	for _, f := range filters {
+		split := strings.SplitN(f, "=", 2)
+		if len(split) < 2 {
+			return fmt.Errorf("invalid filter %q", f)
+		}
+		rmOptions.Filters[split[0]] = append(rmOptions.Filters[split[0]], split[1])
 	}
 
 	if rmOptions.All {
@@ -147,7 +161,7 @@ func removeContainers(namesOrIDs []string, rmOptions entities.RmOptions, setExit
 			}
 			errs = append(errs, r.Err)
 		} else {
-			fmt.Println(r.Id)
+			fmt.Println(r.RawInput)
 		}
 	}
 	return errs.PrintErrors()

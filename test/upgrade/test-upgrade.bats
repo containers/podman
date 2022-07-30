@@ -345,10 +345,10 @@ failed    | exited     | 17
 
 @test "rm a stopped container" {
     run_podman rm myfailedcontainer
-    is "$output" "[0-9a-f]\\{64\\}" "podman rm myfailedcontainer"
+    is "$output" "myfailedcontainer" "podman rm myfailedcontainer"
 
     run_podman rm mydonecontainer
-    is "$output" "[0-9a-f]\\{64\\}" "podman rm mydonecontainer"
+    is "$output" "mydonecontainer" "podman rm mydonecontainer"
 }
 
 
