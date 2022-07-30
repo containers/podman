@@ -225,7 +225,7 @@ func (p *PodmanTest) WaitContainerReady(id string, expStr string, timeout int, s
 			return false
 		}
 
-		if strings.Contains(s.OutputToString(), expStr) {
+		if strings.Contains(s.OutputToString(), expStr) || strings.Contains(s.ErrorToString(), expStr) {
 			return true
 		}
 		time.Sleep(time.Duration(step) * time.Second)

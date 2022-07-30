@@ -167,20 +167,20 @@ var _ = Describe("Podman push", func() {
 		}
 		lock := GetPortLock("5000")
 		defer lock.Unlock()
-		session := podmanTest.Podman([]string{"run", "--entrypoint", "htpasswd", REGISTRY_IMAGE, "-Bbn", "podmantest", "test"})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		htpasswd := SystemExec("htpasswd", []string{"-Bbn", "podmantest", "test"})
+		htpasswd.WaitWithDefaultTimeout()
+		Expect(htpasswd).Should(Exit(0))
 
 		f, err := os.Create(filepath.Join(authPath, "htpasswd"))
 		Expect(err).ToNot(HaveOccurred())
 		defer f.Close()
 
-		_, err = f.WriteString(session.OutputToString())
+		_, err = f.WriteString(htpasswd.OutputToString())
 		Expect(err).ToNot(HaveOccurred())
 		err = f.Sync()
 		Expect(err).ToNot(HaveOccurred())
 
-		session = podmanTest.Podman([]string{"run", "-d", "-p", "5000:5000", "--name", "registry", "-v",
+		session := podmanTest.Podman([]string{"run", "-d", "-p", "5000:5000", "--name", "registry", "-v",
 			strings.Join([]string{authPath, "/auth"}, ":"), "-e", "REGISTRY_AUTH=htpasswd", "-e",
 			"REGISTRY_AUTH_HTPASSWD_REALM=Registry Realm", "-e", "REGISTRY_AUTH_HTPASSWD_PATH=/auth/htpasswd",
 			"-v", strings.Join([]string{certPath, "/certs"}, ":"), "-e", "REGISTRY_HTTP_TLS_CERTIFICATE=/certs/domain.crt",

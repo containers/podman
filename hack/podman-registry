@@ -7,7 +7,7 @@ ME=$(basename $0)
 ###############################################################################
 # BEGIN defaults
 
-PODMAN_REGISTRY_IMAGE=quay.io/libpod/registry:2.6
+PODMAN_REGISTRY_IMAGE=quay.io/libpod/registry:2.8
 
 PODMAN_REGISTRY_USER=
 PODMAN_REGISTRY_PASS=
@@ -30,7 +30,7 @@ into a local temporary directory, create an htpasswd, start the
 registry, and dump a series of environment variables to stdout:
 
     \$ $ME start
-    PODMAN_REGISTRY_IMAGE=\"docker.io/library/registry:2.6\"
+    PODMAN_REGISTRY_IMAGE=\"docker.io/library/registry:2.8\"
     PODMAN_REGISTRY_PORT=\"5050\"
     PODMAN_REGISTRY_USER=\"userZ3RZ\"
     PODMAN_REGISTRY_PASS=\"T8JVJzKrcl4p6uT\"
@@ -197,13 +197,11 @@ function do_start() {
 
     # Store credentials where container will see them. We can't run
     # this one via must_pass because we need its stdout.
-    podman run --rm                                               \
-           --entrypoint htpasswd ${PODMAN_REGISTRY_IMAGE}         \
-           -Bbn ${PODMAN_REGISTRY_USER} ${PODMAN_REGISTRY_PASS}   \
+    htpasswd -Bbn ${PODMAN_REGISTRY_USER} ${PODMAN_REGISTRY_PASS}   \
            > $AUTHDIR/htpasswd
     if [ $? -ne 0 ]; then
         rm -rf ${PODMAN_REGISTRY_WORKDIR}
-        die "Command failed: podman run [htpasswd]"
+        die "Command failed: htpasswd"
     fi
 
     # In case someone needs to debug
@@ -220,7 +218,7 @@ function do_start() {
               -e "REGISTRY_AUTH_HTPASSWD_PATH=/auth/htpasswd"           \
               -e "REGISTRY_HTTP_TLS_CERTIFICATE=/auth/domain.crt"       \
               -e "REGISTRY_HTTP_TLS_KEY=/auth/domain.key"               \
-              registry:2.6
+              ${PODMAN_REGISTRY_IMAGE}
 
     # Confirm that registry started and port is active
     wait_for_port $PODMAN_REGISTRY_PORT
