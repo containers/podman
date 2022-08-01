@@ -53,6 +53,15 @@ var supportedPolicies = map[string]Policy{
 // policyMapper is used for tying a container to it's autoupdate policy
 type policyMapper map[Policy][]*libpod.Container
 
+// updater includes shared state for auto-updating one or more containers.
+type updater struct {
+	conn                *dbus.Conn
+	imageToPolicyMapper map[string]policyMapper
+	options             *entities.AutoUpdateOptions
+	updatedRawImages    map[string]bool
+	runtime             *libpod.Runtime
+}
+
 // LookupPolicy looks up the corresponding Policy for the specified
 // string. If none is found, an errors is returned including the list of
 // supported policies.
@@ -116,10 +125,20 @@ func ValidateImageReference(imageName string) error {
 // It returns a slice of successfully restarted systemd units and a slice of
 // errors encountered during auto update.
 func AutoUpdate(ctx context.Context, runtime *libpod.Runtime, options entities.AutoUpdateOptions) ([]*entities.AutoUpdateReport, []error) {
+	auto := updater{
+		options:          &options,
+		runtime:          runtime,
+		updatedRawImages: make(map[string]bool),
+	}
+
 	// Create a map from `image ID -> []*Container`.
-	containerMap, errs := imageContainersMap(runtime)
-	if len(containerMap) == 0 {
+	if errs := auto.imageContainersMap(); len(errs) > 0 {
 		return nil, errs
+	}
+
+	// Nothing to do.
+	if len(auto.imageToPolicyMapper) == 0 {
+		return nil, nil
 	}
 
 	// Create a map from `image ID -> *libimage.Image` for image lookups.
@@ -142,19 +161,14 @@ func AutoUpdate(ctx context.Context, runtime *libpod.Runtime, options entities.A
 		return nil, []error{err}
 	}
 	defer conn.Close()
+	auto.conn = conn
 
 	runtime.NewSystemEvent(events.AutoUpdate)
 
-	auto := updater{
-		conn:             conn,
-		options:          &options,
-		runtime:          runtime,
-		updatedRawImages: make(map[string]bool),
-	}
-
 	// Update all images/container according to their auto-update policy.
 	var allReports []*entities.AutoUpdateReport
-	for imageID, policyMapper := range containerMap {
+	var errs []error
+	for imageID, policyMapper := range auto.imageToPolicyMapper {
 		image, exists := imageMap[imageID]
 		if !exists {
 			errs = append(errs, fmt.Errorf("container image ID %q not found in local storage", imageID))
@@ -183,14 +197,6 @@ func AutoUpdate(ctx context.Context, runtime *libpod.Runtime, options entities.A
 	}
 
 	return allReports, errs
-}
-
-// updater includes shared state for auto-updating one or more containers.
-type updater struct {
-	conn             *dbus.Conn
-	options          *entities.AutoUpdateOptions
-	updatedRawImages map[string]bool
-	runtime          *libpod.Runtime
 }
 
 // updateRegistry updates the image/container according to the "registry" policy.
@@ -353,14 +359,15 @@ func (u *updater) restartSystemdUnit(ctx context.Context, ctr *libpod.Container,
 
 // imageContainersMap generates a map[image ID] -> [containers using the image]
 // of all containers with a valid auto-update policy.
-func imageContainersMap(runtime *libpod.Runtime) (map[string]policyMapper, []error) {
-	allContainers, err := runtime.GetAllContainers()
+func (u *updater) imageContainersMap() []error {
+	allContainers, err := u.runtime.GetAllContainers()
 	if err != nil {
-		return nil, []error{err}
+		return []error{err}
 	}
 
+	u.imageToPolicyMapper = make(map[string]policyMapper)
+
 	errors := []error{}
-	containerMap := make(map[string]policyMapper)
 	for _, ctr := range allContainers {
 		state, err := ctr.State()
 		if err != nil {
@@ -390,17 +397,17 @@ func imageContainersMap(runtime *libpod.Runtime) (map[string]policyMapper, []err
 			continue
 		} else {
 			id, _ := ctr.Image()
-			policyMap, exists := containerMap[id]
+			policyMap, exists := u.imageToPolicyMapper[id]
 			if !exists {
 				policyMap = make(map[Policy][]*libpod.Container)
 			}
 			policyMap[policy] = append(policyMap[policy], ctr)
-			containerMap[id] = policyMap
+			u.imageToPolicyMapper[id] = policyMap
 			// Now we know that `ctr` is configured for auto updates.
 		}
 	}
 
-	return containerMap, errors
+	return errors
 }
 
 // getAuthfilePath returns an authfile path, if set. The authfile label in the
