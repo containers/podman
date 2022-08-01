@@ -378,6 +378,9 @@ func executeContainerTemplate(info *containerInfo, options entities.GenerateSyst
 		fs.StringArrayP("env", "e", nil, "")
 		fs.String("sdnotify", "", "")
 		fs.String("restart", "", "")
+		// have to define extra -h flag to prevent help error when parsing -h hostname
+		// https://github.com/containers/podman/issues/15124
+		fs.StringP("help", "h", "", "")
 		if err := fs.Parse(remainingCmd); err != nil {
 			return "", fmt.Errorf("parsing remaining command-line arguments: %w", err)
 		}
