@@ -1,0 +1,3 @@
+docker:
+  localhost:5000/sigstore-signed:
+    use-sigstore-attachments: true

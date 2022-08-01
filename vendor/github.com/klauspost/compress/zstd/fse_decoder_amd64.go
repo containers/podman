@@ -34,8 +34,8 @@ const (
 // buildDtable will build the decoding table.
 func (s *fseDecoder) buildDtable() error {
 	ctx := buildDtableAsmContext{
-		stateTable: (*uint16)(&s.stateTable[0]),
-		norm:       (*int16)(&s.norm[0]),
+		stateTable: &s.stateTable[0],
+		norm:       &s.norm[0],
 		dt:         (*uint64)(&s.dt[0]),
 	}
 	code := buildDtable_asm(s, &ctx)

@@ -13,6 +13,7 @@ import (
 	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/storage"
+	structcopier "github.com/jinzhu/copier"
 	"github.com/opencontainers/go-digest"
 )
 
@@ -37,6 +38,28 @@ type ManifestList struct {
 
 	// The underlying manifest list.
 	list manifests.List
+}
+
+// ManifestListDescriptor references a platform-specific manifest.
+// Contains exclusive field like `annotations` which is only present in
+// OCI spec and not in docker image spec.
+type ManifestListDescriptor struct {
+	manifest.Schema2Descriptor
+	Platform manifest.Schema2PlatformSpec `json:"platform"`
+	// Annotations contains arbitrary metadata for the image index.
+	Annotations map[string]string `json:"annotations,omitempty"`
+}
+
+// ManifestListData is a list of platform-specific manifests, specifically used to
+// generate output struct for `podman manifest inspect`. Reason for maintaining and
+// having this type is to ensure we can have a common type which contains exclusive
+// fields from both Docker manifest format and OCI manifest format.
+type ManifestListData struct {
+	SchemaVersion int                      `json:"schemaVersion"`
+	MediaType     string                   `json:"mediaType"`
+	Manifests     []ManifestListDescriptor `json:"manifests"`
+	// Annotations contains arbitrary metadata for the image index.
+	Annotations map[string]string `json:"annotations,omitempty"`
 }
 
 // ID returns the ID of the manifest list.
@@ -210,8 +233,21 @@ func (i *Image) IsManifestList(ctx context.Context) (bool, error) {
 }
 
 // Inspect returns a dockerized version of the manifest list.
-func (m *ManifestList) Inspect() (*manifest.Schema2List, error) {
-	return m.list.Docker(), nil
+func (m *ManifestList) Inspect() (*ManifestListData, error) {
+	inspectList := ManifestListData{}
+	dockerFormat := m.list.Docker()
+	err := structcopier.Copy(&inspectList, &dockerFormat)
+	if err != nil {
+		return &inspectList, err
+	}
+	// Get missing annotation field from OCIv1 Spec
+	// and populate inspect data.
+	ociFormat := m.list.OCIv1()
+	inspectList.Annotations = ociFormat.Annotations
+	for i, manifest := range ociFormat.Manifests {
+		inspectList.Manifests[i].Annotations = manifest.Annotations
+	}
+	return &inspectList, nil
 }
 
 // Options for adding a manifest list.
@@ -411,14 +447,17 @@ func (m *ManifestList) Push(ctx context.Context, destination string, options *Ma
 	defer copier.close()
 
 	pushOptions := manifests.PushOptions{
-		Store:              m.image.runtime.store,
-		SystemContext:      copier.systemContext,
-		ImageListSelection: options.ImageListSelection,
-		Instances:          options.Instances,
-		ReportWriter:       options.Writer,
-		SignBy:             options.SignBy,
-		RemoveSignatures:   options.RemoveSignatures,
-		ManifestType:       options.ManifestMIMEType,
+		Store:                            m.image.runtime.store,
+		SystemContext:                    copier.systemContext,
+		ImageListSelection:               options.ImageListSelection,
+		Instances:                        options.Instances,
+		ReportWriter:                     options.Writer,
+		SignBy:                           options.SignBy,
+		SignPassphrase:                   options.SignPassphrase,
+		SignBySigstorePrivateKeyFile:     options.SignBySigstorePrivateKeyFile,
+		SignSigstorePrivateKeyPassphrase: options.SignSigstorePrivateKeyPassphrase,
+		RemoveSignatures:                 options.RemoveSignatures,
+		ManifestType:                     options.ManifestMIMEType,
 	}
 
 	_, d, err := m.list.Push(ctx, dest, pushOptions)

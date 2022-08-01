@@ -55,16 +55,22 @@ func (s *sequenceDecs) decodeSyncSimple(hist []byte) (bool, error) {
 	if s.maxSyncLen == 0 && cap(s.out)-len(s.out) < maxCompressedBlockSize {
 		return false, nil
 	}
-	useSafe := false
-	if s.maxSyncLen == 0 && cap(s.out)-len(s.out) < maxCompressedBlockSizeAlloc {
-		useSafe = true
-	}
-	if s.maxSyncLen > 0 && cap(s.out)-len(s.out)-compressedBlockOverAlloc < int(s.maxSyncLen) {
-		useSafe = true
-	}
-	if cap(s.literals) < len(s.literals)+compressedBlockOverAlloc {
-		useSafe = true
-	}
+
+	// FIXME: Using unsafe memory copies leads to rare, random crashes
+	// with fuzz testing. It is therefore disabled for now.
+	const useSafe = true
+	/*
+		useSafe := false
+		if s.maxSyncLen == 0 && cap(s.out)-len(s.out) < maxCompressedBlockSizeAlloc {
+			useSafe = true
+		}
+		if s.maxSyncLen > 0 && cap(s.out)-len(s.out)-compressedBlockOverAlloc < int(s.maxSyncLen) {
+			useSafe = true
+		}
+		if cap(s.literals) < len(s.literals)+compressedBlockOverAlloc {
+			useSafe = true
+		}
+	*/
 
 	br := s.br
 
