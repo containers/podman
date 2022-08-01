@@ -32,6 +32,10 @@ environment variable. `export REGISTRY_AUTH_FILE=path`
 Use certificates at *path* (\*.crt, \*.cert, \*.key) to connect to the registry. (Default: /etc/containers/certs.d)
 Please refer to containers-certs.d(5) for details. (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
 
+#### **--compression-format**=**gzip** | *zstd* | *zstd:chunked*
+
+Specifies the compression format to use.  Supported values are: `gzip`, `zstd` and `zstd:chunked`.  The default is `gzip` unless overridden in the containers.conf file.
+
 #### **--creds**=*creds*
 
 The [username[:password]] to use to authenticate with the registry if required.

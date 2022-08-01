@@ -123,6 +123,8 @@ type PushOptions struct {
 	Authfile *string
 	// Compress tarball image layers when pushing to a directory using the 'dir' transport.
 	Compress *bool
+	// CompressionFormat is the format to use for the compression of the blobs
+	CompressionFormat *string
 	// Manifest type of the pushed image
 	Format *string
 	// Password for authenticating against the registry.

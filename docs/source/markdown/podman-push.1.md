@@ -67,7 +67,7 @@ Note: This flag can only be set when using the **dir** transport
 
 #### **--compression-format**=**gzip** | *zstd* | *zstd:chunked*
 
-Specifies the compression format to use.  Supported values are: `gzip`, `zstd` and `zstd:chunked`.  The default is `gzip`.
+Specifies the compression format to use.  Supported values are: `gzip`, `zstd` and `zstd:chunked`.  The default is `gzip` unless overridden in the containers.conf file.
 
 #### **--creds**=*[username[:password]]*
 

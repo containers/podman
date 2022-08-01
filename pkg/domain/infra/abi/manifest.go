@@ -13,6 +13,7 @@ import (
 	"github.com/containers/common/libimage"
 	cp "github.com/containers/image/v5/copy"
 	"github.com/containers/image/v5/manifest"
+	"github.com/containers/image/v5/pkg/compression"
 	"github.com/containers/image/v5/pkg/shortnames"
 	"github.com/containers/image/v5/transports"
 	"github.com/containers/image/v5/transports/alltransports"
@@ -317,6 +318,22 @@ func (ir *ImageEngine) ManifestPush(ctx context.Context, name, destination strin
 	pushOptions.RemoveSignatures = opts.RemoveSignatures
 	pushOptions.SignBy = opts.SignBy
 	pushOptions.InsecureSkipTLSVerify = opts.SkipTLSVerify
+
+	compressionFormat := opts.CompressionFormat
+	if compressionFormat == "" {
+		config, err := ir.Libpod.GetConfigNoCopy()
+		if err != nil {
+			return "", err
+		}
+		compressionFormat = config.Engine.CompressionFormat
+	}
+	if compressionFormat != "" {
+		algo, err := compression.AlgorithmByName(compressionFormat)
+		if err != nil {
+			return "", err
+		}
+		pushOptions.CompressionFormat = &algo
+	}
 
 	if opts.All {
 		pushOptions.ImageListSelection = cp.CopyAllImages

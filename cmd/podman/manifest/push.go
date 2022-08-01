@@ -76,6 +76,10 @@ func init() {
 	flags.BoolVarP(&manifestPushOpts.Quiet, "quiet", "q", false, "don't output progress information when pushing lists")
 	flags.SetNormalizeFunc(utils.AliasFlags)
 
+	compressionFormat := "compression-format"
+	flags.StringVar(&manifestPushOpts.CompressionFormat, compressionFormat, "", "compression format to use")
+	_ = pushCmd.RegisterFlagCompletionFunc(compressionFormat, common.AutocompleteCompressionFormat)
+
 	if registry.IsRemote() {
 		_ = flags.MarkHidden("cert-dir")
 	}
