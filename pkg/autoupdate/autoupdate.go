@@ -395,16 +395,16 @@ func (u *updater) imageContainersMap() []error {
 		// Skip labels not related to autoupdate
 		if policy == PolicyDefault {
 			continue
-		} else {
-			id, _ := ctr.Image()
-			policyMap, exists := u.imageToPolicyMapper[id]
-			if !exists {
-				policyMap = make(map[Policy][]*libpod.Container)
-			}
-			policyMap[policy] = append(policyMap[policy], ctr)
-			u.imageToPolicyMapper[id] = policyMap
-			// Now we know that `ctr` is configured for auto updates.
 		}
+
+		id, _ := ctr.Image()
+		policyMap, exists := u.imageToPolicyMapper[id]
+		if !exists {
+			policyMap = make(map[Policy][]*libpod.Container)
+		}
+		policyMap[policy] = append(policyMap[policy], ctr)
+		u.imageToPolicyMapper[id] = policyMap
+		// Now we know that `ctr` is configured for auto updates.
 	}
 
 	return errors
