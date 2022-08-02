@@ -13,11 +13,11 @@ PKG_NAME := podman-installer-macos-$(ARCH).pkg
 
 default: pkginstaller
 
-get_gvproxy:
+$(TMP_DOWNLOAD)/gvproxy:
 	mkdir -p $(TMP_DOWNLOAD)
 	cd $(TMP_DOWNLOAD) && curl -sLo gvproxy $(GVPROXY_RELEASE_URL)
 
-get_qemu:
+$(TMP_DOWNLOAD)/podman-machine-qemu-$(ARCH)-$(QEMU_VERSION).tar.xz:
 	mkdir -p $(TMP_DOWNLOAD)
 	cd $(TMP_DOWNLOAD) && curl -sLO $(QEMU_RELEASE_URL)
 
@@ -35,7 +35,7 @@ packagedir: package_root Distribution welcome.html
 	cp ../../LICENSE $(PACKAGE_DIR)/Resources/LICENSE.txt
 	cp hvf.entitlements $(PACKAGE_DIR)/
 
-package_root: get_gvproxy get_qemu
+package_root: clean-pkgroot $(TMP_DOWNLOAD)/podman-machine-qemu-$(ARCH)-$(QEMU_VERSION).tar.xz $(TMP_DOWNLOAD)/gvproxy
 	mkdir -p $(PACKAGE_ROOT)/podman/bin $(PACKAGE_ROOT)/podman/qemu
 	tar -C $(PACKAGE_ROOT)/podman/qemu -xf $(TMP_DOWNLOAD)/podman-machine-qemu-$(ARCH)-$(QEMU_VERSION).tar.xz
 	cp $(TMP_DOWNLOAD)/gvproxy $(PACKAGE_ROOT)/podman/bin/
@@ -53,6 +53,9 @@ _notarize: pkginstaller
 notarize: _notarize
 	xcrun stapler staple out/$(PKG_NAME)
 
-.PHONY: clean
+.PHONY: clean clean-pkgroot
 clean:
 	rm -rf $(TMP_DOWNLOAD) $(PACKAGE_ROOT) $(PACKAGE_DIR) Distribution welcome.html
+
+clean-pkgroot:
+	rm -rf $(PACKAGE_ROOT) $(PACKAGE_DIR) Distribution welcome.html
