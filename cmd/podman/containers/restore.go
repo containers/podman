@@ -193,14 +193,15 @@ func restore(cmd *cobra.Command, args []string) error {
 	var statistics restoreStatistics
 
 	for _, r := range responses {
-		if r.Err == nil {
-			if restoreOptions.PrintStats {
-				statistics.ContainerStatistics = append(statistics.ContainerStatistics, r)
-			} else {
-				fmt.Println(r.Id)
-			}
-		} else {
+		switch {
+		case r.Err != nil:
 			errs = append(errs, r.Err)
+		case restoreOptions.PrintStats:
+			statistics.ContainerStatistics = append(statistics.ContainerStatistics, r)
+		case r.RawInput != "":
+			fmt.Println(r.RawInput)
+		default:
+			fmt.Println(r.Id)
 		}
 	}
 

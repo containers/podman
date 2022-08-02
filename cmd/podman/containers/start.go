@@ -137,19 +137,18 @@ func start(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-
 	for _, r := range responses {
-		if r.Err == nil {
-			if startOptions.Attach {
-				// Implement the exitcode when the only one container is enabled attach
-				registry.SetExitCode(r.ExitCode)
-			} else {
-				fmt.Println(r.RawInput)
-			}
-		} else {
+		switch {
+		case r.Err != nil:
 			errs = append(errs, r.Err)
+		case startOptions.Attach:
+			// Implement the exitcode when the only one container is enabled attach
+			registry.SetExitCode(r.ExitCode)
+		case r.RawInput != "":
+			fmt.Println(r.RawInput)
+		default:
+			fmt.Println(r.Id)
 		}
 	}
-
 	return errs.PrintErrors()
 }

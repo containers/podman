@@ -84,21 +84,20 @@ func cleanup(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	for _, r := range responses {
-		if r.CleanErr == nil && r.RmErr == nil && r.RmiErr == nil {
-			fmt.Println(r.Id)
-			continue
-		}
-		if r.RmErr != nil {
+		switch {
+		case r.RmErr != nil:
 			logrus.Errorf("Removing container: %v", r.RmErr)
 			errs = append(errs, r.RmErr)
-		}
-		if r.RmiErr != nil {
+		case r.RmiErr != nil:
 			logrus.Errorf("Removing image: %v", r.RmiErr)
 			errs = append(errs, r.RmiErr)
-		}
-		if r.CleanErr != nil {
+		case r.CleanErr != nil:
 			logrus.Errorf("Cleaning up container: %v", r.CleanErr)
 			errs = append(errs, r.CleanErr)
+		case r.RawInput != "":
+			fmt.Println(r.RawInput)
+		default:
+			fmt.Println(r.Id)
 		}
 	}
 	return errs.PrintErrors()

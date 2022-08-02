@@ -101,6 +101,25 @@ function teardown() {
     run_podman rm -t 0 -f $cid
 }
 
+@test "podman checkpoint/restore print IDs or raw input" {
+    # checkpoint/restore -a must print the IDs
+    run_podman run -d $IMAGE top
+    ctrID="$output"
+    run_podman container checkpoint -a
+    is "$output" "$ctrID"
+    run_podman container restore -a
+    is "$output" "$ctrID"
+
+    # checkpoint/restore $input must print $input
+    cname=$(random_string)
+    run_podman run -d --name $cname $IMAGE top
+    run_podman container checkpoint $cname
+    is "$output" $cname
+    run_podman container restore $cname
+    is "$output" $cname
+
+    run_podman rm -t 0 -f $ctrID $cname
+}
 
 @test "podman checkpoint --export, with volumes" {
     skip_if_remote "Test uses --root/--runroot, which are N/A over remote"

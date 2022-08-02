@@ -343,6 +343,12 @@ func (ic *ContainerEngine) ContainerExport(ctx context.Context, nameOrID string,
 }
 
 func (ic *ContainerEngine) ContainerCheckpoint(ctx context.Context, namesOrIds []string, opts entities.CheckpointOptions) ([]*entities.CheckpointReport, error) {
+	var (
+		err          error
+		ctrs         []entities.ListContainer
+		rawInputs    []string
+		idToRawInput = map[string]string{}
+	)
 	options := new(containers.CheckpointOptions)
 	options.WithFileLocks(opts.FileLocks)
 	options.WithIgnoreRootfs(opts.IgnoreRootFS)
@@ -354,11 +360,6 @@ func (ic *ContainerEngine) ContainerCheckpoint(ctx context.Context, namesOrIds [
 	options.WithPreCheckpoint(opts.PreCheckPoint)
 	options.WithLeaveRunning(opts.LeaveRunning)
 	options.WithWithPrevious(opts.WithPrevious)
-
-	var (
-		err  error
-		ctrs = []entities.ListContainer{}
-	)
 
 	if opts.All {
 		allCtrs, err := getContainersByContext(ic.ClientCtx, true, false, []string{})
@@ -372,9 +373,14 @@ func (ic *ContainerEngine) ContainerCheckpoint(ctx context.Context, namesOrIds [
 			}
 		}
 	} else {
-		ctrs, err = getContainersByContext(ic.ClientCtx, false, false, namesOrIds)
+		ctrs, rawInputs, err = getContainersAndInputByContext(ic.ClientCtx, false, false, namesOrIds, nil)
 		if err != nil {
 			return nil, err
+		}
+		if len(rawInputs) == len(ctrs) {
+			for i := range ctrs {
+				idToRawInput[ctrs[i].ID] = rawInputs[i]
+			}
 		}
 	}
 	reports := make([]*entities.CheckpointReport, 0, len(ctrs))
@@ -383,6 +389,7 @@ func (ic *ContainerEngine) ContainerCheckpoint(ctx context.Context, namesOrIds [
 		if err != nil {
 			reports = append(reports, &entities.CheckpointReport{Id: c.ID, Err: err})
 		} else {
+			report.RawInput = idToRawInput[report.Id]
 			reports = append(reports, report)
 		}
 	}
@@ -394,6 +401,10 @@ func (ic *ContainerEngine) ContainerRestore(ctx context.Context, namesOrIds []st
 		return nil, fmt.Errorf("--import-previous is not supported on the remote client")
 	}
 
+	var (
+		ids          []string
+		idToRawInput = map[string]string{}
+	)
 	options := new(containers.RestoreOptions)
 	options.WithFileLocks(opts.FileLocks)
 	options.WithIgnoreRootfs(opts.IgnoreRootFS)
@@ -412,10 +423,6 @@ func (ic *ContainerEngine) ContainerRestore(ctx context.Context, namesOrIds []st
 		report, err := containers.Restore(ic.ClientCtx, "", options)
 		return []*entities.RestoreReport{report}, err
 	}
-
-	var (
-		ids = []string{}
-	)
 	if opts.All {
 		allCtrs, err := getContainersByContext(ic.ClientCtx, true, false, []string{})
 		if err != nil {
@@ -438,6 +445,7 @@ func (ic *ContainerEngine) ContainerRestore(ctx context.Context, namesOrIds []st
 			ctrData, _, err := ic.ContainerInspect(ic.ClientCtx, []string{nameOrID}, entities.InspectOptions{})
 			if err == nil && len(ctrData) > 0 {
 				ids = append(ids, ctrData[0].ID)
+				idToRawInput[ctrData[0].ID] = nameOrID
 			} else {
 				// If container was not found, check if this is a checkpoint image
 				inspectReport, err := images.GetImage(ic.ClientCtx, nameOrID, getImageOptions)
@@ -461,6 +469,7 @@ func (ic *ContainerEngine) ContainerRestore(ctx context.Context, namesOrIds []st
 		if err != nil {
 			reports = append(reports, &entities.RestoreReport{Id: id, Err: err})
 		}
+		report.RawInput = idToRawInput[report.Id]
 		reports = append(reports, report)
 	}
 	return reports, nil
@@ -916,21 +925,28 @@ func (ic *ContainerEngine) ContainerCleanup(ctx context.Context, namesOrIds []st
 }
 
 func (ic *ContainerEngine) ContainerInit(ctx context.Context, namesOrIds []string, options entities.ContainerInitOptions) ([]*entities.ContainerInitReport, error) {
-	ctrs, err := getContainersByContext(ic.ClientCtx, options.All, false, namesOrIds)
+	ctrs, rawInputs, err := getContainersAndInputByContext(ic.ClientCtx, options.All, false, namesOrIds, nil)
 	if err != nil {
 		return nil, err
 	}
+	idToRawInput := map[string]string{}
+	if len(rawInputs) == len(ctrs) {
+		for i := range ctrs {
+			idToRawInput[ctrs[i].ID] = rawInputs[i]
+		}
+	}
 	reports := make([]*entities.ContainerInitReport, 0, len(ctrs))
-	for _, ctr := range ctrs {
-		err := containers.ContainerInit(ic.ClientCtx, ctr.ID, nil)
+	for _, c := range ctrs {
+		err := containers.ContainerInit(ic.ClientCtx, c.ID, nil)
 		// When using all, it is NOT considered an error if a container
 		// has already been init'd.
 		if err != nil && options.All && strings.Contains(err.Error(), define.ErrCtrStateInvalid.Error()) {
 			err = nil
 		}
 		reports = append(reports, &entities.ContainerInitReport{
-			Err: err,
-			Id:  ctr.ID,
+			Err:      err,
+			RawInput: idToRawInput[c.ID],
+			Id:       c.ID,
 		})
 	}
 	return reports, nil
