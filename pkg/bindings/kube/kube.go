@@ -51,7 +51,7 @@ func PlayWithBody(ctx context.Context, body io.Reader, options *PlayOptions) (*e
 		return nil, err
 	}
 
-	response, err := conn.DoRequest(ctx, body, http.MethodPost, "/kube/play", params, header)
+	response, err := conn.DoRequest(ctx, body, http.MethodPost, "/play/kube", params, header)
 	if err != nil {
 		return nil, err
 	}
@@ -85,7 +85,7 @@ func DownWithBody(ctx context.Context, body io.Reader) (*entities.KubePlayReport
 		return nil, err
 	}
 
-	response, err := conn.DoRequest(ctx, body, http.MethodDelete, "/kube/play", nil, nil)
+	response, err := conn.DoRequest(ctx, body, http.MethodDelete, "/play/kube", nil, nil)
 	if err != nil {
 		return nil, err
 	}
