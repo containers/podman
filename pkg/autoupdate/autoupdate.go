@@ -50,16 +50,25 @@ var supportedPolicies = map[string]Policy{
 	"local":    PolicyLocalImage,
 }
 
-// policyMapper is used for tying a container to it's autoupdate policy
-type policyMapper map[Policy][]*libpod.Container
+// policyMappers assembles update tasks by policy
+type policyMapper map[Policy][]*task
 
 // updater includes shared state for auto-updating one or more containers.
 type updater struct {
 	conn                *dbus.Conn
+	idToImage           map[string]*libimage.Image
 	imageToPolicyMapper map[string]policyMapper
 	options             *entities.AutoUpdateOptions
 	updatedRawImages    map[string]bool
 	runtime             *libpod.Runtime
+}
+
+// task includes data and state for updating a container
+type task struct {
+	container *libpod.Container // Container to update
+	policy    Policy            // Update policy
+	image     *libimage.Image   // Original image before the update
+	unit      string            // Name of the systemd unit
 }
 
 // LookupPolicy looks up the corresponding Policy for the specified
@@ -110,6 +119,24 @@ func ValidateImageReference(imageName string) error {
 	return nil
 }
 
+func (u *updater) assembleImageMap(ctx context.Context) error {
+	// Create a map from `image ID -> *libimage.Image` for image lookups.
+	listOptions := &libimage.ListImagesOptions{
+		Filters: []string{"readonly=false"},
+	}
+	imagesSlice, err := u.runtime.LibimageRuntime().ListImages(ctx, nil, listOptions)
+	if err != nil {
+		return err
+	}
+	imageMap := make(map[string]*libimage.Image)
+	for i := range imagesSlice {
+		imageMap[imagesSlice[i].ID()] = imagesSlice[i]
+	}
+
+	u.idToImage = imageMap
+	return nil
+}
+
 // AutoUpdate looks up containers with a specified auto-update policy and acts
 // accordingly.
 //
@@ -131,6 +158,12 @@ func AutoUpdate(ctx context.Context, runtime *libpod.Runtime, options entities.A
 		updatedRawImages: make(map[string]bool),
 	}
 
+	// Assemble a map `image ID -> *libimage.Image` that we can consult
+	// later on for lookups.
+	if err := auto.assembleImageMap(ctx); err != nil {
+		return nil, []error{err}
+	}
+
 	// Create a map from `image ID -> []*Container`.
 	if errs := auto.imageContainersMap(); len(errs) > 0 {
 		return nil, errs
@@ -139,19 +172,6 @@ func AutoUpdate(ctx context.Context, runtime *libpod.Runtime, options entities.A
 	// Nothing to do.
 	if len(auto.imageToPolicyMapper) == 0 {
 		return nil, nil
-	}
-
-	// Create a map from `image ID -> *libimage.Image` for image lookups.
-	listOptions := &libimage.ListImagesOptions{
-		Filters: []string{"readonly=false"},
-	}
-	imagesSlice, err := runtime.LibimageRuntime().ListImages(ctx, nil, listOptions)
-	if err != nil {
-		return nil, []error{err}
-	}
-	imageMap := make(map[string]*libimage.Image)
-	for i := range imagesSlice {
-		imageMap[imagesSlice[i].ID()] = imagesSlice[i]
 	}
 
 	// Connect to DBUS.
@@ -169,14 +189,13 @@ func AutoUpdate(ctx context.Context, runtime *libpod.Runtime, options entities.A
 	var allReports []*entities.AutoUpdateReport
 	var errs []error
 	for imageID, policyMapper := range auto.imageToPolicyMapper {
-		image, exists := imageMap[imageID]
-		if !exists {
+		if _, exists := auto.idToImage[imageID]; !exists {
 			errs = append(errs, fmt.Errorf("container image ID %q not found in local storage", imageID))
 			return nil, errs
 		}
 
-		for _, ctr := range policyMapper[PolicyRegistryImage] {
-			report, err := auto.updateRegistry(ctx, image, ctr)
+		for _, task := range policyMapper[PolicyRegistryImage] {
+			report, err := auto.updateRegistry(ctx, task)
 			if err != nil {
 				errs = append(errs, err)
 			}
@@ -185,8 +204,8 @@ func AutoUpdate(ctx context.Context, runtime *libpod.Runtime, options entities.A
 			}
 		}
 
-		for _, ctr := range policyMapper[PolicyLocalImage] {
-			report, err := auto.updateLocally(ctx, image, ctr)
+		for _, task := range policyMapper[PolicyLocalImage] {
+			report, err := auto.updateLocally(ctx, task)
 			if err != nil {
 				errs = append(errs, err)
 			}
@@ -200,39 +219,37 @@ func AutoUpdate(ctx context.Context, runtime *libpod.Runtime, options entities.A
 }
 
 // updateRegistry updates the image/container according to the "registry" policy.
-func (u *updater) updateRegistry(ctx context.Context, image *libimage.Image, ctr *libpod.Container) (*entities.AutoUpdateReport, error) {
-	cid := ctr.ID()
-	rawImageName := ctr.RawImageName()
+func (u *updater) updateRegistry(ctx context.Context, task *task) (*entities.AutoUpdateReport, error) {
+	cid := task.container.ID()
+	rawImageName := task.container.RawImageName()
 	if rawImageName == "" {
 		return nil, fmt.Errorf("registry auto-updating container %q: raw-image name is empty", cid)
 	}
 
-	labels := ctr.Labels()
-	unit, exists := labels[systemdDefine.EnvVariable]
-	if !exists {
-		return nil, fmt.Errorf("auto-updating container %q: no %s label found", ctr.ID(), systemdDefine.EnvVariable)
+	if task.unit == "" {
+		return nil, fmt.Errorf("auto-updating container %q: no %s label found", task.container.ID(), systemdDefine.EnvVariable)
 	}
 
 	report := &entities.AutoUpdateReport{
 		ContainerID:   cid,
-		ContainerName: ctr.Name(),
+		ContainerName: task.container.Name(),
 		ImageName:     rawImageName,
 		Policy:        PolicyRegistryImage,
-		SystemdUnit:   unit,
+		SystemdUnit:   task.unit,
 		Updated:       "failed",
 	}
 
 	if _, updated := u.updatedRawImages[rawImageName]; updated {
 		logrus.Infof("Auto-updating container %q using registry image %q", cid, rawImageName)
-		if err := u.restartSystemdUnit(ctx, ctr, unit); err != nil {
+		if err := u.restartSystemdUnit(ctx, task.container, task.unit); err != nil {
 			return report, err
 		}
 		report.Updated = "true"
 		return report, nil
 	}
 
-	authfile := getAuthfilePath(ctr, u.options)
-	needsUpdate, err := newerRemoteImageAvailable(ctx, image, rawImageName, authfile)
+	authfile := getAuthfilePath(task.container, u.options)
+	needsUpdate, err := newerRemoteImageAvailable(ctx, task.image, rawImageName, authfile)
 	if err != nil {
 		return report, fmt.Errorf("registry auto-updating container %q: image check for %q failed: %w", cid, rawImageName, err)
 	}
@@ -253,7 +270,7 @@ func (u *updater) updateRegistry(ctx context.Context, image *libimage.Image, ctr
 	u.updatedRawImages[rawImageName] = true
 
 	logrus.Infof("Auto-updating container %q using registry image %q", cid, rawImageName)
-	updateErr := u.restartSystemdUnit(ctx, ctr, unit)
+	updateErr := u.restartSystemdUnit(ctx, task.container, task.unit)
 	if updateErr == nil {
 		report.Updated = "true"
 		return report, nil
@@ -264,10 +281,10 @@ func (u *updater) updateRegistry(ctx context.Context, image *libimage.Image, ctr
 	}
 
 	// To fallback, simply retag the old image and restart the service.
-	if err := image.Tag(rawImageName); err != nil {
+	if err := task.image.Tag(rawImageName); err != nil {
 		return report, fmt.Errorf("falling back to previous image: %w", err)
 	}
-	if err := u.restartSystemdUnit(ctx, ctr, unit); err != nil {
+	if err := u.restartSystemdUnit(ctx, task.container, task.unit); err != nil {
 		return report, fmt.Errorf("restarting unit with old image during fallback: %w", err)
 	}
 
@@ -276,29 +293,27 @@ func (u *updater) updateRegistry(ctx context.Context, image *libimage.Image, ctr
 }
 
 // updateRegistry updates the image/container according to the "local" policy.
-func (u *updater) updateLocally(ctx context.Context, image *libimage.Image, ctr *libpod.Container) (*entities.AutoUpdateReport, error) {
-	cid := ctr.ID()
-	rawImageName := ctr.RawImageName()
+func (u *updater) updateLocally(ctx context.Context, task *task) (*entities.AutoUpdateReport, error) {
+	cid := task.container.ID()
+	rawImageName := task.container.RawImageName()
 	if rawImageName == "" {
 		return nil, fmt.Errorf("locally auto-updating container %q: raw-image name is empty", cid)
 	}
 
-	labels := ctr.Labels()
-	unit, exists := labels[systemdDefine.EnvVariable]
-	if !exists {
-		return nil, fmt.Errorf("auto-updating container %q: no %s label found", ctr.ID(), systemdDefine.EnvVariable)
+	if task.unit == "" {
+		return nil, fmt.Errorf("auto-updating container %q: no %s label found", task.container.ID(), systemdDefine.EnvVariable)
 	}
 
 	report := &entities.AutoUpdateReport{
 		ContainerID:   cid,
-		ContainerName: ctr.Name(),
+		ContainerName: task.container.Name(),
 		ImageName:     rawImageName,
 		Policy:        PolicyLocalImage,
-		SystemdUnit:   unit,
+		SystemdUnit:   task.unit,
 		Updated:       "failed",
 	}
 
-	needsUpdate, err := newerLocalImageAvailable(u.runtime, image, rawImageName)
+	needsUpdate, err := newerLocalImageAvailable(u.runtime, task.image, rawImageName)
 	if err != nil {
 		return report, fmt.Errorf("locally auto-updating container %q: image check for %q failed: %w", cid, rawImageName, err)
 	}
@@ -314,7 +329,7 @@ func (u *updater) updateLocally(ctx context.Context, image *libimage.Image, ctr 
 	}
 
 	logrus.Infof("Auto-updating container %q using local image %q", cid, rawImageName)
-	updateErr := u.restartSystemdUnit(ctx, ctr, unit)
+	updateErr := u.restartSystemdUnit(ctx, task.container, task.unit)
 	if updateErr == nil {
 		report.Updated = "true"
 		return report, nil
@@ -325,10 +340,10 @@ func (u *updater) updateLocally(ctx context.Context, image *libimage.Image, ctr 
 	}
 
 	// To fallback, simply retag the old image and restart the service.
-	if err := image.Tag(rawImageName); err != nil {
+	if err := task.image.Tag(rawImageName); err != nil {
 		return report, fmt.Errorf("falling back to previous image: %w", err)
 	}
-	if err := u.restartSystemdUnit(ctx, ctr, unit); err != nil {
+	if err := u.restartSystemdUnit(ctx, task.container, task.unit); err != nil {
 		return report, fmt.Errorf("restarting unit with old image during fallback: %w", err)
 	}
 
@@ -368,7 +383,8 @@ func (u *updater) imageContainersMap() []error {
 	u.imageToPolicyMapper = make(map[string]policyMapper)
 
 	errors := []error{}
-	for _, ctr := range allContainers {
+	for _, c := range allContainers {
+		ctr := c
 		state, err := ctr.State()
 		if err != nil {
 			errors = append(errors, err)
@@ -379,13 +395,11 @@ func (u *updater) imageContainersMap() []error {
 			continue
 		}
 
-		// Only update containers with the specific label/policy set.
 		labels := ctr.Labels()
 		value, exists := labels[Label]
 		if !exists {
 			continue
 		}
-
 		policy, err := LookupPolicy(value)
 		if err != nil {
 			errors = append(errors, err)
@@ -400,11 +414,26 @@ func (u *updater) imageContainersMap() []error {
 		id, _ := ctr.Image()
 		policyMap, exists := u.imageToPolicyMapper[id]
 		if !exists {
-			policyMap = make(map[Policy][]*libpod.Container)
+			policyMap = make(map[Policy][]*task)
 		}
-		policyMap[policy] = append(policyMap[policy], ctr)
+
+		image, exists := u.idToImage[id]
+		if !exists {
+			err := fmt.Errorf("internal error: no image found for ID %s", id)
+			errors = append(errors, err)
+			continue
+		}
+
+		unit, _ := labels[systemdDefine.EnvVariable]
+
+		t := task{
+			container: ctr,
+			policy:    policy,
+			image:     image,
+			unit:      unit,
+		}
+		policyMap[policy] = append(policyMap[policy], &t)
 		u.imageToPolicyMapper[id] = policyMap
-		// Now we know that `ctr` is configured for auto updates.
 	}
 
 	return errors
