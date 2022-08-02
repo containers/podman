@@ -54,8 +54,8 @@ var supportedPolicies = map[string]Policy{
 type updater struct {
 	conn             *dbus.Conn
 	idToImage        map[string]*libimage.Image
-	unitToTasks      map[string][]*task
 	options          *entities.AutoUpdateOptions
+	unitToTasks      map[string][]*task
 	updatedRawImages map[string]bool
 	runtime          *libpod.Runtime
 }
@@ -278,6 +278,8 @@ func (u *updater) updateRegistry(ctx context.Context, task *task) (*entities.Aut
 	if err := task.image.Tag(rawImageName); err != nil {
 		return report, fmt.Errorf("falling back to previous image: %w", err)
 	}
+	u.updatedRawImages[rawImageName] = false
+
 	if err := u.restartSystemdUnit(ctx, task.container, task.unit); err != nil {
 		return report, fmt.Errorf("restarting unit with old image during fallback: %w", err)
 	}
