@@ -56,7 +56,8 @@ type VolumeSource struct {
 	// ConfigMap represents a configMap that should populate this volume
 	// +optional
 	ConfigMap *ConfigMapVolumeSource `json:"configMap,omitempty"`
-	Secret    *SecretVolumeSource
+	// Secret represents a secret that should be mounted as a volume
+	Secret *SecretVolumeSource `json:"secret,omitempty"`
 }
 
 // PersistentVolumeClaimVolumeSource references the user's PVC in the same namespace.
