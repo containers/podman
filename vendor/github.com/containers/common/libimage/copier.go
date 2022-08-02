@@ -102,6 +102,13 @@ type CopyOptions struct {
 	// If non-empty, asks for a signature to be added during the copy, and
 	// specifies a key ID.
 	SignBy string
+	// If non-empty, passphrase to use when signing with the key ID from SignBy.
+	SignPassphrase string
+	// If non-empty, asks for a signature to be added during the copy, using
+	// a sigstore private key file at the provided path.
+	SignBySigstorePrivateKeyFile string
+	// Passphrase to use when signing with SignBySigstorePrivateKeyFile.
+	SignSigstorePrivateKeyPassphrase []byte
 	// Remove any pre-existing signatures. SignBy will still add a new
 	// signature.
 	RemoveSignatures bool
@@ -293,6 +300,9 @@ func (r *Runtime) newCopier(options *CopyOptions) (*copier, error) {
 	c.imageCopyOptions.OciDecryptConfig = options.OciDecryptConfig
 	c.imageCopyOptions.RemoveSignatures = options.RemoveSignatures
 	c.imageCopyOptions.SignBy = options.SignBy
+	c.imageCopyOptions.SignPassphrase = options.SignPassphrase
+	c.imageCopyOptions.SignBySigstorePrivateKeyFile = options.SignBySigstorePrivateKeyFile
+	c.imageCopyOptions.SignSigstorePrivateKeyPassphrase = options.SignSigstorePrivateKeyPassphrase
 	c.imageCopyOptions.ReportWriter = options.Writer
 
 	defaultContainerConfig, err := config.Default()

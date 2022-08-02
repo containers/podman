@@ -60,7 +60,15 @@ Delete the manifest list or image index from local storage if pushing succeeds.
 
 #### **--sign-by**=*fingerprint*
 
-Sign the pushed images using the GPG key that matches the specified fingerprint.
+Sign the pushed images with a “simple signing” signature using the specified key. (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
+
+#### **--sign-by-sigstore-private-key**=*path*
+
+Sign the pushed images with a sigstore signature using a private key at the specified path. (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
+
+#### **--sign-passphrase-file**=*path*
+
+If signing the image (using either **--sign-by** or **--sign-by-sigstore-private-key**), read the passphrase to use from the specified path.
 
 #### **--tls-verify**
 

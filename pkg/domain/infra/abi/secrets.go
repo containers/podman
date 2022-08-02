@@ -42,7 +42,7 @@ func (ic *ContainerEngine) SecretCreate(ctx context.Context, name string, reader
 		}
 	}
 
-	secretID, err := manager.Store(name, data, options.Driver, options.DriverOpts)
+	secretID, err := manager.Store(name, data, options.Driver, options.DriverOpts, nil)
 	if err != nil {
 		return nil, err
 	}

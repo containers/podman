@@ -19,7 +19,6 @@ import (
 	"github.com/containers/image/v5/internal/imagesource"
 	"github.com/containers/image/v5/internal/pkg/platform"
 	"github.com/containers/image/v5/internal/private"
-	internalsig "github.com/containers/image/v5/internal/signature"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/pkg/blobinfocache"
 	"github.com/containers/image/v5/pkg/compression"
@@ -405,23 +404,11 @@ func (c *copier) copyMultipleImages(ctx context.Context, policyContext *signatur
 	}
 	updatedList := originalList.Clone()
 
-	// Read and/or clear the set of signatures for this list.
-	var sigs []internalsig.Signature
-	if options.RemoveSignatures {
-		sigs = []internalsig.Signature{}
-	} else {
-		c.Printf("Getting image list signatures\n")
-		s, err := c.rawSource.GetSignaturesWithFormat(ctx, nil)
-		if err != nil {
-			return nil, fmt.Errorf("reading signatures: %w", err)
-		}
-		sigs = s
-	}
-	if len(sigs) != 0 {
-		c.Printf("Checking if image list destination supports signatures\n")
-		if err := c.dest.SupportsSignatures(ctx); err != nil {
-			return nil, fmt.Errorf("Can not copy signatures to %s: %w", transports.ImageName(c.dest.Reference()), err)
-		}
+	sigs, err := c.sourceSignatures(ctx, unparsedToplevel, options,
+		"Getting image list signatures",
+		"Checking if image list destination supports signatures")
+	if err != nil {
+		return nil, err
 	}
 
 	// If the destination is a digested reference, make a note of that, determine what digest value we're
@@ -656,22 +643,11 @@ func (c *copier) copyOneImage(ctx context.Context, policyContext *signature.Poli
 		return nil, "", "", err
 	}
 
-	var sigs []internalsig.Signature
-	if options.RemoveSignatures {
-		sigs = []internalsig.Signature{}
-	} else {
-		c.Printf("Getting image source signatures\n")
-		s, err := src.UntrustedSignatures(ctx)
-		if err != nil {
-			return nil, "", "", fmt.Errorf("reading signatures: %w", err)
-		}
-		sigs = s
-	}
-	if len(sigs) != 0 {
-		c.Printf("Checking if image destination supports signatures\n")
-		if err := c.dest.SupportsSignatures(ctx); err != nil {
-			return nil, "", "", fmt.Errorf("Can not copy signatures to %s: %w", transports.ImageName(c.dest.Reference()), err)
-		}
+	sigs, err := c.sourceSignatures(ctx, src, options,
+		"Getting image source signatures",
+		"Checking if image destination supports signatures")
+	if err != nil {
+		return nil, "", "", err
 	}
 
 	// Determine if we're allowed to modify the manifest.
