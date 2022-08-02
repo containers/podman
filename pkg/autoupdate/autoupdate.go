@@ -50,17 +50,14 @@ var supportedPolicies = map[string]Policy{
 	"local":    PolicyLocalImage,
 }
 
-// policyMappers assembles update tasks by policy
-type policyMapper map[Policy][]*task
-
 // updater includes shared state for auto-updating one or more containers.
 type updater struct {
-	conn                *dbus.Conn
-	idToImage           map[string]*libimage.Image
-	imageToPolicyMapper map[string]policyMapper
-	options             *entities.AutoUpdateOptions
-	updatedRawImages    map[string]bool
-	runtime             *libpod.Runtime
+	conn             *dbus.Conn
+	idToImage        map[string]*libimage.Image
+	unitToTasks      map[string][]*task
+	options          *entities.AutoUpdateOptions
+	updatedRawImages map[string]bool
+	runtime          *libpod.Runtime
 }
 
 // task includes data and state for updating a container
@@ -152,26 +149,22 @@ func (u *updater) assembleImageMap(ctx context.Context) error {
 // It returns a slice of successfully restarted systemd units and a slice of
 // errors encountered during auto update.
 func AutoUpdate(ctx context.Context, runtime *libpod.Runtime, options entities.AutoUpdateOptions) ([]*entities.AutoUpdateReport, []error) {
+	// Note that (most) errors are non-fatal such that a single
+	// misconfigured container does not prevent others from being updated
+	// (which could be a security threat).
+
 	auto := updater{
 		options:          &options,
 		runtime:          runtime,
 		updatedRawImages: make(map[string]bool),
 	}
 
-	// Assemble a map `image ID -> *libimage.Image` that we can consult
-	// later on for lookups.
-	if err := auto.assembleImageMap(ctx); err != nil {
-		return nil, []error{err}
-	}
-
-	// Create a map from `image ID -> []*Container`.
-	if errs := auto.imageContainersMap(); len(errs) > 0 {
-		return nil, errs
-	}
+	// Find auto-update tasks and assemble them by unit.
+	errors := auto.assembleTasks(ctx)
 
 	// Nothing to do.
-	if len(auto.imageToPolicyMapper) == 0 {
-		return nil, nil
+	if len(auto.unitToTasks) == 0 {
+		return nil, errors
 	}
 
 	// Connect to DBUS.
@@ -187,27 +180,28 @@ func AutoUpdate(ctx context.Context, runtime *libpod.Runtime, options entities.A
 
 	// Update all images/container according to their auto-update policy.
 	var allReports []*entities.AutoUpdateReport
-	var errs []error
-	for imageID, policyMapper := range auto.imageToPolicyMapper {
-		if _, exists := auto.idToImage[imageID]; !exists {
-			errs = append(errs, fmt.Errorf("container image ID %q not found in local storage", imageID))
-			return nil, errs
+	for unit, tasks := range auto.unitToTasks {
+		// Sanity check: we'll support that in the future.
+		if len(tasks) != 1 {
+			errors = append(errors, fmt.Errorf("only 1 task per unit supported but unit %s has %d", unit, len(tasks)))
+			return nil, errors
 		}
 
-		for _, task := range policyMapper[PolicyRegistryImage] {
-			report, err := auto.updateRegistry(ctx, task)
-			if err != nil {
-				errs = append(errs, err)
-			}
-			if report != nil {
-				allReports = append(allReports, report)
-			}
-		}
+		for _, task := range tasks {
+			var report *entities.AutoUpdateReport
+			var reportError error
 
-		for _, task := range policyMapper[PolicyLocalImage] {
-			report, err := auto.updateLocally(ctx, task)
-			if err != nil {
-				errs = append(errs, err)
+			switch task.policy {
+			case PolicyRegistryImage:
+				report, reportError = auto.updateRegistry(ctx, task)
+			case PolicyLocalImage:
+				report, reportError = auto.updateLocally(ctx, task)
+			default:
+				reportError = fmt.Errorf("unexpected auto-update policy %s for container %s", task.policy, task.container.ID())
+			}
+
+			if reportError != nil {
+				errors = append(errors, reportError)
 			}
 			if report != nil {
 				allReports = append(allReports, report)
@@ -215,7 +209,7 @@ func AutoUpdate(ctx context.Context, runtime *libpod.Runtime, options entities.A
 		}
 	}
 
-	return allReports, errs
+	return allReports, errors
 }
 
 // updateRegistry updates the image/container according to the "registry" policy.
@@ -372,15 +366,21 @@ func (u *updater) restartSystemdUnit(ctx context.Context, ctr *libpod.Container,
 	}
 }
 
-// imageContainersMap generates a map[image ID] -> [containers using the image]
-// of all containers with a valid auto-update policy.
-func (u *updater) imageContainersMap() []error {
+// assembleTasks assembles update tasks per unit and populates a mapping from
+// `unit -> []*task` such that multiple containers _can_ run in a single unit.
+func (u *updater) assembleTasks(ctx context.Context) []error {
+	// Assemble a map `image ID -> *libimage.Image` that we can consult
+	// later on for lookups.
+	if err := u.assembleImageMap(ctx); err != nil {
+		return []error{err}
+	}
+
 	allContainers, err := u.runtime.GetAllContainers()
 	if err != nil {
 		return []error{err}
 	}
 
-	u.imageToPolicyMapper = make(map[string]policyMapper)
+	u.unitToTasks = make(map[string][]*task)
 
 	errors := []error{}
 	for _, c := range allContainers {
@@ -395,6 +395,8 @@ func (u *updater) imageContainersMap() []error {
 			continue
 		}
 
+		// Check the container's auto-update policy which is configured
+		// as a label.
 		labels := ctr.Labels()
 		value, exists := labels[Label]
 		if !exists {
@@ -405,18 +407,19 @@ func (u *updater) imageContainersMap() []error {
 			errors = append(errors, err)
 			continue
 		}
-
-		// Skip labels not related to autoupdate
 		if policy == PolicyDefault {
 			continue
 		}
 
-		id, _ := ctr.Image()
-		policyMap, exists := u.imageToPolicyMapper[id]
+		// Make sure the container runs in a systemd unit which is
+		// stored as a label at container creation.
+		unit, exists := labels[systemdDefine.EnvVariable]
 		if !exists {
-			policyMap = make(map[Policy][]*task)
+			errors = append(errors, fmt.Errorf("auto-updating container %q: no %s label found", ctr.ID(), systemdDefine.EnvVariable))
+			continue
 		}
 
+		id, _ := ctr.Image()
 		image, exists := u.idToImage[id]
 		if !exists {
 			err := fmt.Errorf("internal error: no image found for ID %s", id)
@@ -424,16 +427,15 @@ func (u *updater) imageContainersMap() []error {
 			continue
 		}
 
-		unit, _ := labels[systemdDefine.EnvVariable]
-
 		t := task{
 			container: ctr,
 			policy:    policy,
 			image:     image,
 			unit:      unit,
 		}
-		policyMap[policy] = append(policyMap[policy], &t)
-		u.imageToPolicyMapper[id] = policyMap
+
+		// Add the task to the unit.
+		u.unitToTasks[unit] = append(u.unitToTasks[unit], &t)
 	}
 
 	return errors
