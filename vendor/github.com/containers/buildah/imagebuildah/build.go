@@ -3,7 +3,6 @@ package imagebuildah
 import (
 	"bytes"
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -34,6 +33,7 @@ import (
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/openshift/imagebuilder"
 	"github.com/openshift/imagebuilder/dockerfile/parser"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/semaphore"
 )
@@ -68,10 +68,10 @@ func BuildDockerfiles(ctx context.Context, store storage.Store, options define.B
 	}
 
 	if len(paths) == 0 {
-		return "", nil, errors.New("error building: no dockerfiles specified")
+		return "", nil, errors.Errorf("error building: no dockerfiles specified")
 	}
 	if len(options.Platforms) > 1 && options.IIDFile != "" {
-		return "", nil, fmt.Errorf("building multiple images, but iidfile %q can only be used to store one image ID", options.IIDFile)
+		return "", nil, errors.Errorf("building multiple images, but iidfile %q can only be used to store one image ID", options.IIDFile)
 	}
 
 	logger := logrus.New()
@@ -94,7 +94,7 @@ func BuildDockerfiles(ctx context.Context, store storage.Store, options define.B
 			continue
 		}
 		if _, err := util.VerifyTagName(tag); err != nil {
-			return "", nil, fmt.Errorf("tag %s: %w", tag, err)
+			return "", nil, errors.Wrapf(err, "tag %s", tag)
 		}
 	}
 
@@ -109,7 +109,7 @@ func BuildDockerfiles(ctx context.Context, store storage.Store, options define.B
 			}
 			if resp.ContentLength == 0 {
 				resp.Body.Close()
-				return "", nil, fmt.Errorf("no contents in %q", dfile)
+				return "", nil, errors.Errorf("no contents in %q", dfile)
 			}
 			data = resp.Body
 		} else {
@@ -127,22 +127,31 @@ func BuildDockerfiles(ctx context.Context, store storage.Store, options define.B
 			}
 
 			var contents *os.File
-			// If given a directory error out since `-f` does not supports path to directory
+			// If given a directory, add '/Dockerfile' to it.
 			if dinfo.Mode().IsDir() {
-				return "", nil, fmt.Errorf("containerfile: %q cannot be path to a directory", dfile)
+				for _, file := range []string{"Containerfile", "Dockerfile"} {
+					f := filepath.Join(dfile, file)
+					logger.Debugf("reading local %q", f)
+					contents, err = os.Open(f)
+					if err == nil {
+						break
+					}
+				}
+			} else {
+				contents, err = os.Open(dfile)
 			}
-			contents, err = os.Open(dfile)
+
 			if err != nil {
 				return "", nil, err
 			}
 			dinfo, err = contents.Stat()
 			if err != nil {
 				contents.Close()
-				return "", nil, fmt.Errorf("error reading info about %q: %w", dfile, err)
+				return "", nil, errors.Wrapf(err, "error reading info about %q", dfile)
 			}
 			if dinfo.Mode().IsRegular() && dinfo.Size() == 0 {
 				contents.Close()
-				return "", nil, fmt.Errorf("no contents in %q", dfile)
+				return "", nil, errors.Errorf("no contents in %q", dfile)
 			}
 			data = contents
 		}
@@ -249,7 +258,7 @@ func BuildDockerfiles(ctx context.Context, store storage.Store, options define.B
 				logFile := platformOptions.LogFile + "_" + platformOptions.OS + "_" + platformOptions.Architecture
 				f, err := os.OpenFile(logFile, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0600)
 				if err != nil {
-					return fmt.Errorf("opening logfile: %q: %w", logFile, err)
+					return errors.Wrapf(err, "opening logfile: %q", logFile)
 				}
 				defer f.Close()
 				loggerPerPlatform = logrus.New()
@@ -293,7 +302,7 @@ func BuildDockerfiles(ctx context.Context, store storage.Store, options define.B
 		// partially-populated state at any point if we're creating it
 		// fresh.
 		list, err := rt.LookupManifestList(manifestList)
-		if err != nil && errors.Is(err, storage.ErrImageUnknown) {
+		if err != nil && errors.Is(errors.Cause(err), storage.ErrImageUnknown) {
 			list, err = rt.CreateManifestList(manifestList)
 		}
 		if err != nil {
@@ -354,7 +363,7 @@ func BuildDockerfiles(ctx context.Context, store storage.Store, options define.B
 func buildDockerfilesOnce(ctx context.Context, store storage.Store, logger *logrus.Logger, logPrefix string, options define.BuildOptions, dockerfiles []string, dockerfilecontents [][]byte) (string, reference.Canonical, error) {
 	mainNode, err := imagebuilder.ParseDockerfile(bytes.NewReader(dockerfilecontents[0]))
 	if err != nil {
-		return "", nil, fmt.Errorf("error parsing main Dockerfile: %s: %w", dockerfiles[0], err)
+		return "", nil, errors.Wrapf(err, "error parsing main Dockerfile: %s", dockerfiles[0])
 	}
 
 	warnOnUnsetBuildArgs(logger, mainNode, options.Args)
@@ -396,7 +405,7 @@ func buildDockerfilesOnce(ctx context.Context, store storage.Store, logger *logr
 	for i, d := range dockerfilecontents[1:] {
 		additionalNode, err := imagebuilder.ParseDockerfile(bytes.NewReader(d))
 		if err != nil {
-			return "", nil, fmt.Errorf("error parsing additional Dockerfile %s: %w", dockerfiles[i], err)
+			return "", nil, errors.Wrapf(err, "error parsing additional Dockerfile %s", dockerfiles[i])
 		}
 		mainNode.Children = append(mainNode.Children, additionalNode.Children...)
 	}
@@ -422,7 +431,7 @@ func buildDockerfilesOnce(ctx context.Context, store storage.Store, logger *logr
 				labelLine = fmt.Sprintf("LABEL %q=%q\n", key, value)
 				additionalNode, err := imagebuilder.ParseDockerfile(strings.NewReader(labelLine))
 				if err != nil {
-					return "", nil, fmt.Errorf("error while adding additional LABEL steps: %w", err)
+					return "", nil, errors.Wrapf(err, "error while adding additional LABEL steps")
 				}
 				mainNode.Children = append(mainNode.Children, additionalNode.Children...)
 			}
@@ -431,22 +440,22 @@ func buildDockerfilesOnce(ctx context.Context, store storage.Store, logger *logr
 
 	exec, err := newExecutor(logger, logPrefix, store, options, mainNode)
 	if err != nil {
-		return "", nil, fmt.Errorf("error creating build executor: %w", err)
+		return "", nil, errors.Wrapf(err, "error creating build executor")
 	}
 	b := imagebuilder.NewBuilder(options.Args)
 	defaultContainerConfig, err := config.Default()
 	if err != nil {
-		return "", nil, fmt.Errorf("failed to get container config: %w", err)
+		return "", nil, errors.Wrapf(err, "failed to get container config")
 	}
 	b.Env = append(defaultContainerConfig.GetDefaultEnv(), b.Env...)
 	stages, err := imagebuilder.NewStages(mainNode, b)
 	if err != nil {
-		return "", nil, fmt.Errorf("error reading multiple stages: %w", err)
+		return "", nil, errors.Wrap(err, "error reading multiple stages")
 	}
 	if options.Target != "" {
 		stagesTargeted, ok := stages.ThroughTarget(options.Target)
 		if !ok {
-			return "", nil, fmt.Errorf("The target %q was not found in the provided Dockerfile", options.Target)
+			return "", nil, errors.Errorf("The target %q was not found in the provided Dockerfile", options.Target)
 		}
 		stages = stagesTargeted
 	}
@@ -497,7 +506,7 @@ func preprocessContainerfileContents(logger *logrus.Logger, containerfile string
 	if flags, ok := os.LookupEnv("BUILDAH_CPPFLAGS"); ok {
 		args, err := shellwords.Parse(flags)
 		if err != nil {
-			return nil, fmt.Errorf("error parsing BUILDAH_CPPFLAGS %q: %v", flags, err)
+			return nil, errors.Errorf("error parsing BUILDAH_CPPFLAGS %q: %v", flags, err)
 		}
 		cppArgs = append(cppArgs, args...)
 	}
@@ -508,14 +517,14 @@ func preprocessContainerfileContents(logger *logrus.Logger, containerfile string
 	cmd.Stderr = &stderrBuffer
 
 	if err = cmd.Start(); err != nil {
-		return nil, fmt.Errorf("preprocessing %s: %w", containerfile, err)
+		return nil, errors.Wrapf(err, "preprocessing %s", containerfile)
 	}
 	if err = cmd.Wait(); err != nil {
 		if stderrBuffer.Len() != 0 {
 			logger.Warnf("Ignoring %s\n", stderrBuffer.String())
 		}
 		if stdoutBuffer.Len() == 0 {
-			return nil, fmt.Errorf("error preprocessing %s: preprocessor produced no output: %w", containerfile, err)
+			return nil, errors.Wrapf(err, "error preprocessing %s: preprocessor produced no output", containerfile)
 		}
 	}
 	return &stdoutBuffer, nil
@@ -527,18 +536,18 @@ func preprocessContainerfileContents(logger *logrus.Logger, containerfile string
 func platformsForBaseImages(ctx context.Context, logger *logrus.Logger, dockerfilepaths []string, dockerfiles [][]byte, from string, args map[string]string, additionalBuildContext map[string]*define.AdditionalBuildContext, systemContext *types.SystemContext) ([]struct{ OS, Arch, Variant string }, error) {
 	baseImages, err := baseImages(dockerfilepaths, dockerfiles, from, args, additionalBuildContext)
 	if err != nil {
-		return nil, fmt.Errorf("determining list of base images: %w", err)
+		return nil, errors.Wrapf(err, "determining list of base images")
 	}
 	logrus.Debugf("unresolved base images: %v", baseImages)
 	if len(baseImages) == 0 {
-		return nil, fmt.Errorf("build uses no non-scratch base images: %w", err)
+		return nil, errors.Wrapf(err, "build uses no non-scratch base images")
 	}
 	targetPlatforms := make(map[string]struct{})
 	var platformList []struct{ OS, Arch, Variant string }
 	for baseImageIndex, baseImage := range baseImages {
 		resolved, err := shortnames.Resolve(systemContext, baseImage)
 		if err != nil {
-			return nil, fmt.Errorf("resolving image name %q: %w", baseImage, err)
+			return nil, errors.Wrapf(err, "resolving image name %q", baseImage)
 		}
 		var manifestBytes []byte
 		var manifestType string
@@ -573,27 +582,27 @@ func platformsForBaseImages(ctx context.Context, logger *logrus.Logger, dockerfi
 		}
 		if len(manifestBytes) == 0 {
 			if len(resolved.PullCandidates) > 0 {
-				return nil, fmt.Errorf("base image name %q didn't resolve to a manifest list", baseImage)
+				return nil, errors.Errorf("base image name %q didn't resolve to a manifest list", baseImage)
 			}
-			return nil, fmt.Errorf("base image name %q didn't resolve to anything", baseImage)
+			return nil, errors.Errorf("base image name %q didn't resolve to anything", baseImage)
 		}
 		if manifestType != v1.MediaTypeImageIndex {
 			list, err := manifest.ListFromBlob(manifestBytes, manifestType)
 			if err != nil {
-				return nil, fmt.Errorf("parsing manifest list from base image %q: %w", baseImage, err)
+				return nil, errors.Wrapf(err, "parsing manifest list from base image %q", baseImage)
 			}
 			list, err = list.ConvertToMIMEType(v1.MediaTypeImageIndex)
 			if err != nil {
-				return nil, fmt.Errorf("converting manifest list from base image %q to v2s2 list: %w", baseImage, err)
+				return nil, errors.Wrapf(err, "converting manifest list from base image %q to v2s2 list", baseImage)
 			}
 			manifestBytes, err = list.Serialize()
 			if err != nil {
-				return nil, fmt.Errorf("encoding converted v2s2 manifest list for base image %q: %w", baseImage, err)
+				return nil, errors.Wrapf(err, "encoding converted v2s2 manifest list for base image %q", baseImage)
 			}
 		}
 		index, err := manifest.OCI1IndexFromManifest(manifestBytes)
 		if err != nil {
-			return nil, fmt.Errorf("decoding manifest list for base image %q: %w", baseImage, err)
+			return nil, errors.Wrapf(err, "decoding manifest list for base image %q", baseImage)
 		}
 		if baseImageIndex == 0 {
 			// populate the list with the first image's normalized platforms
@@ -632,7 +641,7 @@ func platformsForBaseImages(ctx context.Context, logger *logrus.Logger, dockerfi
 			for platform := range targetPlatforms {
 				platform, err := platforms.Parse(platform)
 				if err != nil {
-					return nil, fmt.Errorf("parsing platform double/triple %q: %w", platform, err)
+					return nil, errors.Wrapf(err, "parsing platform double/triple %q", platform)
 				}
 				platformList = append(platformList, struct{ OS, Arch, Variant string }{
 					OS:      platform.OS,
@@ -656,13 +665,13 @@ func platformsForBaseImages(ctx context.Context, logger *logrus.Logger, dockerfi
 func baseImages(dockerfilenames []string, dockerfilecontents [][]byte, from string, args map[string]string, additionalBuildContext map[string]*define.AdditionalBuildContext) ([]string, error) {
 	mainNode, err := imagebuilder.ParseDockerfile(bytes.NewReader(dockerfilecontents[0]))
 	if err != nil {
-		return nil, fmt.Errorf("error parsing main Dockerfile: %s: %w", dockerfilenames[0], err)
+		return nil, errors.Wrapf(err, "error parsing main Dockerfile: %s", dockerfilenames[0])
 	}
 
 	for i, d := range dockerfilecontents[1:] {
 		additionalNode, err := imagebuilder.ParseDockerfile(bytes.NewReader(d))
 		if err != nil {
-			return nil, fmt.Errorf("error parsing additional Dockerfile %s: %w", dockerfilenames[i], err)
+			return nil, errors.Wrapf(err, "error parsing additional Dockerfile %s", dockerfilenames[i])
 		}
 		mainNode.Children = append(mainNode.Children, additionalNode.Children...)
 	}
@@ -670,12 +679,12 @@ func baseImages(dockerfilenames []string, dockerfilecontents [][]byte, from stri
 	b := imagebuilder.NewBuilder(args)
 	defaultContainerConfig, err := config.Default()
 	if err != nil {
-		return nil, fmt.Errorf("failed to get container config: %w", err)
+		return nil, errors.Wrapf(err, "failed to get container config")
 	}
 	b.Env = defaultContainerConfig.GetDefaultEnv()
 	stages, err := imagebuilder.NewStages(mainNode, b)
 	if err != nil {
-		return nil, fmt.Errorf("error reading multiple stages: %w", err)
+		return nil, errors.Wrap(err, "error reading multiple stages")
 	}
 	var baseImages []string
 	nicknames := make(map[string]bool)

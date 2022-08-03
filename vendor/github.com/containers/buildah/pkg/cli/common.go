@@ -17,6 +17,7 @@ import (
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/storage/pkg/unshare"
 	"github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/pkg/errors"
 	"github.com/spf13/pflag"
 )
 
@@ -73,7 +74,6 @@ type BudResults struct {
 	NoCache             bool
 	Timestamp           int64
 	OmitHistory         bool
-	OCIHooksDir         []string
 	Pull                string
 	PullAlways          bool
 	PullNever           bool
@@ -194,7 +194,6 @@ func GetBudFlags(flags *BudResults) pflag.FlagSet {
 	fs.String("arch", runtime.GOARCH, "set the ARCH of the image to the provided value instead of the architecture of the host")
 	fs.StringArrayVar(&flags.Annotation, "annotation", []string{}, "set metadata for an image (default [])")
 	fs.StringVar(&flags.Authfile, "authfile", "", "path of the authentication file.")
-	fs.StringArrayVar(&flags.OCIHooksDir, "hooks-dir", []string{}, "set the OCI hooks directory path (may be set multiple times)")
 	fs.StringArrayVar(&flags.BuildArg, "build-arg", []string{}, "`argument=value` to supply to the builder")
 	fs.StringArrayVar(&flags.BuildContext, "build-context", []string{}, "`argument=value` to supply additional build context to the builder")
 	fs.StringVar(&flags.CacheFrom, "cache-from", "", "images to utilise as potential cache sources. The build process does not currently support caching so this is a NOOP.")
@@ -243,8 +242,8 @@ func GetBudFlags(flags *BudResults) pflag.FlagSet {
 		panic(fmt.Sprintf("error marking the pull-never flag as hidden: %v", err))
 	}
 	fs.BoolVarP(&flags.Quiet, "quiet", "q", false, "refrain from announcing build instructions and image read/write progress")
-	fs.BoolVar(&flags.OmitHistory, "omit-history", false, "omit build history information from built image")
-	fs.BoolVar(&flags.IdentityLabel, "identity-label", true, "add default identity label")
+	fs.BoolVar(&flags.OmitHistory, "omit-history", false, "omit build history information from built image (default true)")
+	fs.BoolVar(&flags.IdentityLabel, "identity-label", true, "add default identity label (default true)")
 	fs.BoolVar(&flags.Rm, "rm", true, "remove intermediate containers after a successful build")
 	// "runtime" definition moved to avoid name collision in podman build.  Defined in cmd/buildah/build.go.
 	fs.StringSliceVar(&flags.RuntimeFlags, "runtime-flag", []string{}, "add global flags for the container runtime")
@@ -283,7 +282,6 @@ func GetBudFlagsCompletions() commonComp.FlagCompletions {
 	flagCompletion["file"] = commonComp.AutocompleteDefault
 	flagCompletion["format"] = commonComp.AutocompleteNone
 	flagCompletion["from"] = commonComp.AutocompleteDefault
-	flagCompletion["hooks-dir"] = commonComp.AutocompleteNone
 	flagCompletion["ignorefile"] = commonComp.AutocompleteDefault
 	flagCompletion["iidfile"] = commonComp.AutocompleteDefault
 	flagCompletion["jobs"] = commonComp.AutocompleteNone
@@ -313,7 +311,7 @@ func GetFromAndBudFlags(flags *FromAndBudResults, usernsResults *UserNSResults, 
 	fs := pflag.FlagSet{}
 	defaultContainerConfig, err := config.Default()
 	if err != nil {
-		return fs, fmt.Errorf("failed to get container config: %w", err)
+		return fs, errors.Wrapf(err, "failed to get container config")
 	}
 
 	fs.StringSliceVar(&flags.AddHost, "add-host", []string{}, "add a custom host-to-IP mapping (`host:ip`) (default [])")
@@ -442,7 +440,7 @@ func DefaultHistory() bool {
 func VerifyFlagsArgsOrder(args []string) error {
 	for _, arg := range args {
 		if strings.HasPrefix(arg, "-") {
-			return fmt.Errorf("no options (%s) can be specified after the image or container name", arg)
+			return errors.Errorf("No options (%s) can be specified after the image or container name", arg)
 		}
 	}
 	return nil

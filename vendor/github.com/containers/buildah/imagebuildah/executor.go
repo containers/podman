@@ -2,7 +2,6 @@ package imagebuildah
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -35,6 +34,7 @@ import (
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/openshift/imagebuilder"
 	"github.com/openshift/imagebuilder/dockerfile/parser"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/semaphore"
 )
@@ -151,7 +151,7 @@ type imageTypeAndHistoryAndDiffIDs struct {
 func newExecutor(logger *logrus.Logger, logPrefix string, store storage.Store, options define.BuildOptions, mainNode *parser.Node) (*Executor, error) {
 	defaultContainerConfig, err := config.Default()
 	if err != nil {
-		return nil, fmt.Errorf("failed to get container config: %w", err)
+		return nil, errors.Wrapf(err, "failed to get container config")
 	}
 
 	excludes := options.Excludes
@@ -396,7 +396,7 @@ func (b *Executor) waitForStage(ctx context.Context, name string, stages imagebu
 		b.stagesSemaphore.Release(1)
 		time.Sleep(time.Millisecond * 10)
 		if err := b.stagesSemaphore.Acquire(ctx, 1); err != nil {
-			return true, fmt.Errorf("error reacquiring job semaphore: %w", err)
+			return true, errors.Wrapf(err, "error reacquiring job semaphore")
 		}
 	}
 }
@@ -411,20 +411,20 @@ func (b *Executor) getImageTypeAndHistoryAndDiffIDs(ctx context.Context, imageID
 	}
 	imageRef, err := is.Transport.ParseStoreReference(b.store, "@"+imageID)
 	if err != nil {
-		return "", nil, nil, fmt.Errorf("error getting image reference %q: %w", imageID, err)
+		return "", nil, nil, errors.Wrapf(err, "error getting image reference %q", imageID)
 	}
 	ref, err := imageRef.NewImage(ctx, nil)
 	if err != nil {
-		return "", nil, nil, fmt.Errorf("error creating new image from reference to image %q: %w", imageID, err)
+		return "", nil, nil, errors.Wrapf(err, "error creating new image from reference to image %q", imageID)
 	}
 	defer ref.Close()
 	oci, err := ref.OCIConfig(ctx)
 	if err != nil {
-		return "", nil, nil, fmt.Errorf("error getting possibly-converted OCI config of image %q: %w", imageID, err)
+		return "", nil, nil, errors.Wrapf(err, "error getting possibly-converted OCI config of image %q", imageID)
 	}
 	manifestBytes, manifestFormat, err := ref.Manifest(ctx)
 	if err != nil {
-		return "", nil, nil, fmt.Errorf("error getting manifest of image %q: %w", imageID, err)
+		return "", nil, nil, errors.Wrapf(err, "error getting manifest of image %q", imageID)
 	}
 	if manifestFormat == "" && len(manifestBytes) > 0 {
 		manifestFormat = manifest.GuessMIMEType(manifestBytes)
@@ -510,25 +510,6 @@ func (b *Executor) buildStage(ctx context.Context, cleanupStages map[int]*StageE
 	return imageID, ref, nil
 }
 
-type stageDependencyInfo struct {
-	Name           string
-	Position       int
-	Needs          []string
-	NeededByTarget bool
-}
-
-// Marks `NeededByTarget` as true for the given stage and all its dependency stages as true recursively.
-func markDependencyStagesForTarget(dependencyMap map[string]*stageDependencyInfo, stage string) {
-	if stageDependencyInfo, ok := dependencyMap[stage]; ok {
-		if !stageDependencyInfo.NeededByTarget {
-			stageDependencyInfo.NeededByTarget = true
-			for _, need := range stageDependencyInfo.Needs {
-				markDependencyStagesForTarget(dependencyMap, need)
-			}
-		}
-	}
-}
-
 // Build takes care of the details of running Prepare/Execute/Commit/Delete
 // over each of the one or more parsed Dockerfiles and stages.
 func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) (imageID string, ref reference.Canonical, err error) {
@@ -607,20 +588,15 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) (image
 			if err == nil {
 				err = cleanupErr
 			} else {
-				err = fmt.Errorf("%v: %w", cleanupErr.Error(), err)
+				err = errors.Wrap(err, cleanupErr.Error())
 			}
 		}
 	}()
 
-	// dependencyMap contains dependencyInfo for each stage,
-	// dependencyInfo is used later to mark if a particular
-	// stage is needed by target or not.
-	dependencyMap := make(map[string]*stageDependencyInfo)
 	// Build maps of every named base image and every referenced stage root
 	// filesystem.  Individual stages can use them to determine whether or
 	// not they can skip certain steps near the end of their stages.
 	for stageIndex, stage := range stages {
-		dependencyMap[stage.Name] = &stageDependencyInfo{Name: stage.Name, Position: stage.Position}
 		node := stage.Node // first line
 		for node != nil {  // each line
 			for _, child := range node.Children { // tokens on this line, though we only care about the first
@@ -644,20 +620,10 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) (image
 							userArgs := argsMapToSlice(stage.Builder.Args)
 							baseWithArg, err := imagebuilder.ProcessWord(base, userArgs)
 							if err != nil {
-								return "", nil, fmt.Errorf("while replacing arg variables with values for format %q: %w", base, err)
+								return "", nil, errors.Wrapf(err, "while replacing arg variables with values for format %q", base)
 							}
 							b.baseMap[baseWithArg] = true
 							logrus.Debugf("base for stage %d: %q", stageIndex, base)
-							// Check if selected base is not an additional
-							// build context and if base is a valid stage
-							// add it to current stage's dependency tree.
-							if _, ok := b.additionalBuildContexts[baseWithArg]; !ok {
-								if _, ok := dependencyMap[baseWithArg]; ok {
-									// update current stage's dependency info
-									currentStageInfo := dependencyMap[stage.Name]
-									currentStageInfo.Needs = append(currentStageInfo.Needs, baseWithArg)
-								}
-							}
 						}
 					}
 				case "ADD", "COPY":
@@ -670,67 +636,11 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) (image
 							rootfs := strings.TrimPrefix(flag, "--from=")
 							b.rootfsMap[rootfs] = true
 							logrus.Debugf("rootfs needed for COPY in stage %d: %q", stageIndex, rootfs)
-							// Populate dependency tree and check
-							// if following ADD or COPY needs any other
-							// stage.
-							stageName := rootfs
-							// If --from=<index> convert index to name
-							if index, err := strconv.Atoi(stageName); err == nil {
-								stageName = stages[index].Name
-							}
-							// Check if selected base is not an additional
-							// build context and if base is a valid stage
-							// add it to current stage's dependency tree.
-							if _, ok := b.additionalBuildContexts[stageName]; !ok {
-								if _, ok := dependencyMap[stageName]; ok {
-									// update current stage's dependency info
-									currentStageInfo := dependencyMap[stage.Name]
-									currentStageInfo.Needs = append(currentStageInfo.Needs, stageName)
-								}
-							}
-						}
-					}
-				case "RUN":
-					for _, flag := range child.Flags { // flags for this instruction
-						// We need to populate dependency tree of stages
-						// if it is using `--mount` and `from=` field is set
-						// and `from=` points to a stage consider it in
-						// dependency calculation.
-						if strings.HasPrefix(flag, "--mount=") && strings.Contains(flag, "from") {
-							mountFlags := strings.TrimPrefix(flag, "--mount=")
-							fields := strings.Split(mountFlags, ",")
-							for _, field := range fields {
-								if strings.HasPrefix(field, "from=") {
-									fromField := strings.SplitN(field, "=", 2)
-									if len(fromField) > 1 {
-										mountFrom := fromField[1]
-										// Check if this base is a stage if yes
-										// add base to current stage's dependency tree
-										// but also confirm if this is not in additional context.
-										if _, ok := b.additionalBuildContexts[mountFrom]; !ok {
-											if _, ok := dependencyMap[mountFrom]; ok {
-												// update current stage's dependency info
-												currentStageInfo := dependencyMap[stage.Name]
-												currentStageInfo.Needs = append(currentStageInfo.Needs, mountFrom)
-											}
-										}
-									} else {
-										return "", nil, fmt.Errorf("invalid value for field `from=`: %q", fromField[1])
-									}
-								}
-							}
 						}
 					}
 				}
 			}
 			node = node.Next // next line
-		}
-		// Last stage is always target stage.
-		// Since last/target stage is processed
-		// let's calculate dependency map of stages
-		// so we can mark stages which can be skipped.
-		if stage.Position == (len(stages) - 1) {
-			markDependencyStagesForTarget(dependencyMap, stage.Name)
 		}
 	}
 
@@ -775,27 +685,15 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) (image
 				if cancel || cleanupStages == nil {
 					var err error
 					if stages[index].Name != strconv.Itoa(index) {
-						err = fmt.Errorf("not building stage %d: build canceled", index)
+						err = errors.Errorf("not building stage %d: build canceled", index)
 					} else {
-						err = fmt.Errorf("not building stage %d (%s): build canceled", index, stages[index].Name)
+						err = errors.Errorf("not building stage %d (%s): build canceled", index, stages[index].Name)
 					}
 					ch <- Result{
 						Index: index,
 						Error: err,
 					}
 					return
-				}
-				// Skip stage if it is not needed by TargetStage
-				// or any of its dependency stages.
-				if stageDependencyInfo, ok := dependencyMap[stages[index].Name]; ok {
-					if !stageDependencyInfo.NeededByTarget {
-						logrus.Debugf("Skipping stage with Name %q and index %d since its not needed by the target stage", stages[index].Name, index)
-						ch <- Result{
-							Index: index,
-							Error: nil,
-						}
-						return
-					}
 				}
 				stageID, stageRef, stageErr := b.buildStage(ctx, cleanupStages, stages, index)
 				if stageErr != nil {
@@ -867,18 +765,18 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) (image
 		case is.Transport.Name():
 			img, err := is.Transport.GetStoreImage(b.store, dest)
 			if err != nil {
-				return imageID, ref, fmt.Errorf("error locating just-written image %q: %w", transports.ImageName(dest), err)
+				return imageID, ref, errors.Wrapf(err, "error locating just-written image %q", transports.ImageName(dest))
 			}
 			if len(b.additionalTags) > 0 {
 				if err = util.AddImageNames(b.store, "", b.systemContext, img, b.additionalTags); err != nil {
-					return imageID, ref, fmt.Errorf("error setting image names to %v: %w", append(img.Names, b.additionalTags...), err)
+					return imageID, ref, errors.Wrapf(err, "error setting image names to %v", append(img.Names, b.additionalTags...))
 				}
 				logrus.Debugf("assigned names %v to image %q", img.Names, img.ID)
 			}
 			// Report back the caller the tags applied, if any.
 			img, err = is.Transport.GetStoreImage(b.store, dest)
 			if err != nil {
-				return imageID, ref, fmt.Errorf("error locating just-written image %q: %w", transports.ImageName(dest), err)
+				return imageID, ref, errors.Wrapf(err, "error locating just-written image %q", transports.ImageName(dest))
 			}
 			for _, name := range img.Names {
 				fmt.Fprintf(b.out, "Successfully tagged %s\n", name)
@@ -897,11 +795,11 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) (image
 	logrus.Debugf("printing final image id %q", imageID)
 	if b.iidfile != "" {
 		if err = ioutil.WriteFile(b.iidfile, []byte("sha256:"+imageID), 0644); err != nil {
-			return imageID, ref, fmt.Errorf("failed to write image ID to file %q: %w", b.iidfile, err)
+			return imageID, ref, errors.Wrapf(err, "failed to write image ID to file %q", b.iidfile)
 		}
 	} else {
 		if _, err := stdout.Write([]byte(imageID + "\n")); err != nil {
-			return imageID, ref, fmt.Errorf("failed to write image ID to stdout: %w", err)
+			return imageID, ref, errors.Wrapf(err, "failed to write image ID to stdout")
 		}
 	}
 	return imageID, ref, nil

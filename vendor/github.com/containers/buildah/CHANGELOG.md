@@ -2,6 +2,39 @@
 
 # Changelog
 
+## v1.26.4 (2022-08-03)
+
+    build: add --cpp-flag
+    build: add --build-context flag
+    build: add --omit-history flag
+    build: add --logsplit flag
+    copier: add `NoOverwriteNonDirDir` option
+
+## v1.26.3 (2022-08-02)
+
+    define.downloadToDirectory: fail early if bad HTTP response
+    add: fail on bad http response instead of writing to container
+    squash: never use build cache when computing last step of last stage
+    run: allow resuing secret twice in different RUN steps
+    integration tests: update expected error messages
+    integration tests: quote "?" in shell scripts
+    Use errors.Is() to check for storage errors
+    lint: inspectable is never nil
+    chroot: use ActKillThread instead of ActKill
+    chroot: honor DefaultErrnoRet
+    Bump dependencies
+    Set user namespace defaults correctly for the library
+    contrib/rpm/buildah.spec: fix `rpm` parser warnings
+
+## v1.26.2 (2022-06-30)
+
+    buildah: add support for renaming a device in rootless setups
+
+## v1.26.1 (2022-05-04)
+
+    Make `buildah build --label foo` create an empty "foo" label again
+    Bump to v1.27.0-dev
+
 ## v1.26.0 (2022-05-04)
 
     imagebuildah,build: move deepcopy of args before we spawn goroutine

@@ -3,7 +3,6 @@ package define
 import (
 	"bufio"
 	"bytes"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -18,9 +17,9 @@ import (
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/chrootarchive"
 	"github.com/containers/storage/pkg/ioutils"
-	"github.com/containers/storage/types"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -30,7 +29,7 @@ const (
 	Package = "buildah"
 	// Version for the Package.  Bump version in contrib/rpm/buildah.spec
 	// too.
-	Version = "1.27.0-dev"
+	Version = "1.26.4"
 
 	// DefaultRuntime if containers.conf fails.
 	DefaultRuntime = "runc"
@@ -88,8 +87,6 @@ type IDMappingOptions struct {
 	HostGIDMapping bool
 	UIDMap         []specs.LinuxIDMapping
 	GIDMap         []specs.LinuxIDMapping
-	AutoUserNs     bool
-	AutoUserNsOpts types.AutoUserNsOptions
 }
 
 // Secret is a secret source that can be used in a RUN
@@ -123,24 +120,19 @@ func TempDirForURL(dir, prefix, url string) (name string, subdir string, err err
 	}
 	name, err = ioutil.TempDir(dir, prefix)
 	if err != nil {
-		return "", "", fmt.Errorf("error creating temporary directory for %q: %w", url, err)
+		return "", "", errors.Wrapf(err, "error creating temporary directory for %q", url)
 	}
 	urlParsed, err := urlpkg.Parse(url)
 	if err != nil {
-		return "", "", fmt.Errorf("error parsing url %q: %w", url, err)
+		return "", "", errors.Wrapf(err, "error parsing url %q", url)
 	}
 	if strings.HasPrefix(url, "git://") || strings.HasSuffix(urlParsed.Path, ".git") {
-		combinedOutput, gitSubDir, err := cloneToDirectory(url, name)
+		combinedOutput, err := cloneToDirectory(url, name)
 		if err != nil {
 			if err2 := os.RemoveAll(name); err2 != nil {
 				logrus.Debugf("error removing temporary directory %q: %v", name, err2)
 			}
-			return "", "", fmt.Errorf("cloning %q to %q:\n%s: %w", url, name, string(combinedOutput), err)
-		}
-		// Check if git url specifies any subdir
-		// if subdir is there switch to subdir.
-		if gitSubDir != "" {
-			name = filepath.Join(name, gitSubDir)
+			return "", "", errors.Wrapf(err, "cloning %q to %q:\n%s", url, name, string(combinedOutput))
 		}
 		return name, "", nil
 	}
@@ -175,32 +167,20 @@ func TempDirForURL(dir, prefix, url string) (name string, subdir string, err err
 	if err2 := os.Remove(name); err2 != nil {
 		logrus.Debugf("error removing temporary directory %q: %v", name, err2)
 	}
-	return "", "", errors.New("unreachable code reached")
+	return "", "", errors.Errorf("unreachable code reached")
 }
 
-func cloneToDirectory(url, dir string) ([]byte, string, error) {
-	gitSubdir := ""
-	gitBranch := ""
-	gitBranchPart := strings.Split(url, "#")
+func cloneToDirectory(url, dir string) ([]byte, error) {
+	gitBranch := strings.Split(url, "#")
 	var cmd *exec.Cmd
-	if len(gitBranchPart) > 1 {
-		// check if string contains path to a subdir
-		gitSubDirPart := strings.Split(gitBranchPart[1], ":")
-		if len(gitSubDirPart) > 1 {
-			gitSubdir = gitSubDirPart[1]
-		}
-		gitBranch = gitSubDirPart[0]
-	}
-	if gitBranch == "" {
-		logrus.Debugf("cloning %q to %q", gitBranchPart[0], dir)
-		cmd = exec.Command("git", "clone", "--recurse-submodules", gitBranchPart[0], dir)
+	if len(gitBranch) < 2 {
+		logrus.Debugf("cloning %q to %q", url, dir)
+		cmd = exec.Command("git", "clone", url, dir)
 	} else {
-		logrus.Debugf("cloning repo %q and branch %q to %q", gitBranchPart[0], gitBranch, dir)
-		cmd = exec.Command("git", "clone", "--recurse-submodules", "-b", gitBranch, gitBranchPart[0], dir)
+		logrus.Debugf("cloning repo %q and branch %q to %q", gitBranch[0], gitBranch[1], dir)
+		cmd = exec.Command("git", "clone", "--recurse-submodules", "-b", gitBranch[1], gitBranch[0], dir)
 	}
-
-	combinedOutput, err := cmd.CombinedOutput()
-	return combinedOutput, gitSubdir, err
+	return cmd.CombinedOutput()
 }
 
 func downloadToDirectory(url, dir string) error {
@@ -214,7 +194,7 @@ func downloadToDirectory(url, dir string) error {
 		return fmt.Errorf("invalid response status %d", resp.StatusCode)
 	}
 	if resp.ContentLength == 0 {
-		return fmt.Errorf("no contents in %q", url)
+		return errors.Errorf("no contents in %q", url)
 	}
 	if err := chrootarchive.Untar(resp.Body, dir, nil); err != nil {
 		resp1, err := http.Get(url)
@@ -229,7 +209,7 @@ func downloadToDirectory(url, dir string) error {
 		dockerfile := filepath.Join(dir, "Dockerfile")
 		// Assume this is a Dockerfile
 		if err := ioutils.AtomicWriteFile(dockerfile, body, 0600); err != nil {
-			return fmt.Errorf("failed to write %q to %q: %w", url, dockerfile, err)
+			return errors.Wrapf(err, "Failed to write %q to %q", url, dockerfile)
 		}
 	}
 	return nil
@@ -240,14 +220,14 @@ func stdinToDirectory(dir string) error {
 	r := bufio.NewReader(os.Stdin)
 	b, err := ioutil.ReadAll(r)
 	if err != nil {
-		return fmt.Errorf("failed to read from stdin: %w", err)
+		return errors.Wrapf(err, "Failed to read from stdin")
 	}
 	reader := bytes.NewReader(b)
 	if err := chrootarchive.Untar(reader, dir, nil); err != nil {
 		dockerfile := filepath.Join(dir, "Dockerfile")
 		// Assume this is a Dockerfile
 		if err := ioutils.AtomicWriteFile(dockerfile, b, 0600); err != nil {
-			return fmt.Errorf("failed to write bytes to %q: %w", dockerfile, err)
+			return errors.Wrapf(err, "Failed to write bytes to %q", dockerfile)
 		}
 	}
 	return nil

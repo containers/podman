@@ -1,8 +1,6 @@
 package sshagent
 
 import (
-	"errors"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"net"
@@ -12,6 +10,7 @@ import (
 	"time"
 
 	"github.com/opencontainers/selinux/go-selinux"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/agent"
@@ -41,7 +40,7 @@ func newAgentServerKeyring(keys []interface{}) (*AgentServer, error) {
 	a := agent.NewKeyring()
 	for _, k := range keys {
 		if err := a.Add(agent.AddedKey{PrivateKey: k}); err != nil {
-			return nil, fmt.Errorf("failed to create ssh agent: %w", err)
+			return nil, errors.Wrap(err, "failed to create ssh agent")
 		}
 	}
 	return &AgentServer{
@@ -217,7 +216,7 @@ func NewSource(paths []string) (*Source, error) {
 
 		k, err := ssh.ParseRawPrivateKey(dt)
 		if err != nil {
-			return nil, fmt.Errorf("cannot parse ssh key: %w", err)
+			return nil, errors.Wrapf(err, "cannot parse ssh key")
 		}
 		keys = append(keys, k)
 	}

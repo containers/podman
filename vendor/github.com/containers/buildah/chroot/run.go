@@ -1,4 +1,3 @@
-//go:build linux
 // +build linux
 
 package chroot
@@ -30,6 +29,7 @@ import (
 	"github.com/containers/storage/pkg/unshare"
 	"github.com/opencontainers/runc/libcontainer/apparmor"
 	"github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/syndtr/gocapability/capability"
 	"golang.org/x/sys/unix"
@@ -109,7 +109,7 @@ func RunUsingChroot(spec *specs.Spec, bundlePath, homeDir string, stdin io.Reade
 		return err
 	}
 	if err = ioutils.AtomicWriteFile(filepath.Join(bundlePath, "config.json"), specbytes, 0600); err != nil {
-		return fmt.Errorf("error storing runtime configuration: %w", err)
+		return errors.Wrapf(err, "error storing runtime configuration")
 	}
 	logrus.Debugf("config = %v", string(specbytes))
 
@@ -127,14 +127,14 @@ func RunUsingChroot(spec *specs.Spec, bundlePath, homeDir string, stdin io.Reade
 	// Create a pipe for passing configuration down to the next process.
 	preader, pwriter, err := os.Pipe()
 	if err != nil {
-		return fmt.Errorf("error creating configuration pipe: %w", err)
+		return errors.Wrapf(err, "error creating configuration pipe")
 	}
 	config, conferr := json.Marshal(runUsingChrootSubprocOptions{
 		Spec:       spec,
 		BundlePath: bundlePath,
 	})
 	if conferr != nil {
-		return fmt.Errorf("error encoding configuration for %q: %w", runUsingChrootCommand, conferr)
+		return errors.Wrapf(conferr, "error encoding configuration for %q", runUsingChrootCommand)
 	}
 
 	// Set our terminal's mode to raw, to pass handling of special
@@ -551,7 +551,7 @@ func runUsingChroot(spec *specs.Spec, bundlePath string, ctty *os.File, stdin io
 	// Create a pipe for passing configuration down to the next process.
 	preader, pwriter, err := os.Pipe()
 	if err != nil {
-		return 1, fmt.Errorf("error creating configuration pipe: %w", err)
+		return 1, errors.Wrapf(err, "error creating configuration pipe")
 	}
 	config, conferr := json.Marshal(runUsingChrootExecSubprocOptions{
 		Spec:       spec,
@@ -921,7 +921,7 @@ func setApparmorProfile(spec *specs.Spec) error {
 		return nil
 	}
 	if err := apparmor.ApplyProfile(spec.Process.ApparmorProfile); err != nil {
-		return fmt.Errorf("error setting apparmor profile to %q: %w", spec.Process.ApparmorProfile, err)
+		return errors.Wrapf(err, "error setting apparmor profile to %q", spec.Process.ApparmorProfile)
 	}
 	return nil
 }
@@ -930,14 +930,14 @@ func setApparmorProfile(spec *specs.Spec) error {
 func setCapabilities(spec *specs.Spec, keepCaps ...string) error {
 	currentCaps, err := capability.NewPid2(0)
 	if err != nil {
-		return fmt.Errorf("error reading capabilities of current process: %w", err)
+		return errors.Wrapf(err, "error reading capabilities of current process")
 	}
 	if err := currentCaps.Load(); err != nil {
-		return fmt.Errorf("error loading capabilities: %w", err)
+		return errors.Wrapf(err, "error loading capabilities")
 	}
 	caps, err := capability.NewPid2(0)
 	if err != nil {
-		return fmt.Errorf("error reading capabilities of current process: %w", err)
+		return errors.Wrapf(err, "error reading capabilities of current process")
 	}
 	capMap := map[capability.CapType][]string{
 		capability.BOUNDING:    spec.Process.Capabilities.Bounding,
@@ -958,7 +958,7 @@ func setCapabilities(spec *specs.Spec, keepCaps ...string) error {
 				}
 			}
 			if cap == noCap {
-				return fmt.Errorf("error mapping capability %q to a number", capToSet)
+				return errors.Errorf("error mapping capability %q to a number", capToSet)
 			}
 			caps.Set(capType, cap)
 		}
@@ -971,7 +971,7 @@ func setCapabilities(spec *specs.Spec, keepCaps ...string) error {
 				}
 			}
 			if cap == noCap {
-				return fmt.Errorf("error mapping capability %q to a number", capToSet)
+				return errors.Errorf("error mapping capability %q to a number", capToSet)
 			}
 			if currentCaps.Get(capType, cap) {
 				caps.Set(capType, cap)
@@ -979,7 +979,7 @@ func setCapabilities(spec *specs.Spec, keepCaps ...string) error {
 		}
 	}
 	if err = caps.Apply(capability.CAPS | capability.BOUNDS | capability.AMBS); err != nil {
-		return fmt.Errorf("error setting capabilities: %w", err)
+		return errors.Wrapf(err, "error setting capabilities")
 	}
 	return nil
 }
@@ -994,7 +994,7 @@ func parseRlimits(spec *specs.Spec) (map[int]unix.Rlimit, error) {
 	for _, limit := range spec.Process.Rlimits {
 		resource, recognized := rlimitsMap[strings.ToUpper(limit.Type)]
 		if !recognized {
-			return nil, fmt.Errorf("error parsing limit type %q", limit.Type)
+			return nil, errors.Errorf("error parsing limit type %q", limit.Type)
 		}
 		parsed[resource] = unix.Rlimit{Cur: limit.Soft, Max: limit.Hard}
 	}
@@ -1011,7 +1011,7 @@ func setRlimits(spec *specs.Spec, onlyLower, onlyRaise bool) error {
 	for resource, desired := range limits {
 		var current unix.Rlimit
 		if err := unix.Getrlimit(resource, &current); err != nil {
-			return fmt.Errorf("error reading %q limit: %w", rlimitsReverseMap[resource], err)
+			return errors.Wrapf(err, "error reading %q limit", rlimitsReverseMap[resource])
 		}
 		if desired.Max > current.Max && onlyLower {
 			// this would raise a hard limit, and we're only here to lower them
@@ -1022,7 +1022,7 @@ func setRlimits(spec *specs.Spec, onlyLower, onlyRaise bool) error {
 			continue
 		}
 		if err := unix.Setrlimit(resource, &desired); err != nil {
-			return fmt.Errorf("error setting %q limit to soft=%d,hard=%d (was soft=%d,hard=%d): %w", rlimitsReverseMap[resource], desired.Cur, desired.Max, current.Cur, current.Max, err)
+			return errors.Wrapf(err, "error setting %q limit to soft=%d,hard=%d (was soft=%d,hard=%d)", rlimitsReverseMap[resource], desired.Cur, desired.Max, current.Cur, current.Max)
 		}
 	}
 	return nil
@@ -1032,11 +1032,11 @@ func makeReadOnly(mntpoint string, flags uintptr) error {
 	var fs unix.Statfs_t
 	// Make sure it's read-only.
 	if err := unix.Statfs(mntpoint, &fs); err != nil {
-		return fmt.Errorf("error checking if directory %q was bound read-only: %w", mntpoint, err)
+		return errors.Wrapf(err, "error checking if directory %q was bound read-only", mntpoint)
 	}
 	if fs.Flags&unix.ST_RDONLY == 0 {
 		if err := unix.Mount(mntpoint, mntpoint, "bind", flags|unix.MS_REMOUNT, ""); err != nil {
-			return fmt.Errorf("error remounting %s in mount namespace read-only: %w", mntpoint, err)
+			return errors.Wrapf(err, "error remounting %s in mount namespace read-only", mntpoint)
 		}
 	}
 	return nil
@@ -1097,16 +1097,16 @@ func setupChrootBindMounts(spec *specs.Spec, bundlePath string) (undoBinds func(
 			}
 		}
 		if err != nil {
-			return undoBinds, fmt.Errorf("error bind mounting /dev from host into mount namespace: %w", err)
+			return undoBinds, errors.Wrapf(err, "error bind mounting /dev from host into mount namespace")
 		}
 	}
 	// Make sure it's read-only.
 	if err = unix.Statfs(subDev, &fs); err != nil {
-		return undoBinds, fmt.Errorf("error checking if directory %q was bound read-only: %w", subDev, err)
+		return undoBinds, errors.Wrapf(err, "error checking if directory %q was bound read-only", subDev)
 	}
 	if fs.Flags&unix.ST_RDONLY == 0 {
 		if err := unix.Mount(subDev, subDev, "bind", devFlags|unix.MS_REMOUNT, ""); err != nil {
-			return undoBinds, fmt.Errorf("error remounting /dev in mount namespace read-only: %w", err)
+			return undoBinds, errors.Wrapf(err, "error remounting /dev in mount namespace read-only")
 		}
 	}
 	logrus.Debugf("bind mounted %q to %q", "/dev", filepath.Join(spec.Root.Path, "/dev"))
@@ -1121,7 +1121,7 @@ func setupChrootBindMounts(spec *specs.Spec, bundlePath string) (undoBinds func(
 			}
 		}
 		if err != nil {
-			return undoBinds, fmt.Errorf("error bind mounting /proc from host into mount namespace: %w", err)
+			return undoBinds, errors.Wrapf(err, "error bind mounting /proc from host into mount namespace")
 		}
 	}
 	logrus.Debugf("bind mounted %q to %q", "/proc", filepath.Join(spec.Root.Path, "/proc"))
@@ -1136,7 +1136,7 @@ func setupChrootBindMounts(spec *specs.Spec, bundlePath string) (undoBinds func(
 			}
 		}
 		if err != nil {
-			return undoBinds, fmt.Errorf("error bind mounting /sys from host into mount namespace: %w", err)
+			return undoBinds, errors.Wrapf(err, "error bind mounting /sys from host into mount namespace")
 		}
 	}
 	if err := makeReadOnly(subSys, sysFlags); err != nil {
@@ -1194,14 +1194,14 @@ func setupChrootBindMounts(spec *specs.Spec, bundlePath string) (undoBinds func(
 		case "bind":
 			srcinfo, err = os.Stat(m.Source)
 			if err != nil {
-				return undoBinds, fmt.Errorf("error examining %q for mounting in mount namespace: %w", m.Source, err)
+				return undoBinds, errors.Wrapf(err, "error examining %q for mounting in mount namespace", m.Source)
 			}
 		case "overlay":
 			fallthrough
 		case "tmpfs":
 			srcinfo, err = os.Stat("/")
 			if err != nil {
-				return undoBinds, fmt.Errorf("error examining / to use as a template for a %s: %w", m.Type, err)
+				return undoBinds, errors.Wrapf(err, "error examining / to use as a template for a %s", m.Type)
 			}
 		}
 		target := filepath.Join(spec.Root.Path, m.Destination)
@@ -1211,7 +1211,7 @@ func setupChrootBindMounts(spec *specs.Spec, bundlePath string) (undoBinds func(
 		if err == nil && stat != nil && (stat.Mode()&os.ModeSymlink != 0) {
 			target, err = copier.Eval(spec.Root.Path, m.Destination, copier.EvalOptions{})
 			if err != nil {
-				return nil, fmt.Errorf("evaluating symlink %q: %w", target, err)
+				return nil, errors.Wrapf(err, "evaluating symlink %q", target)
 			}
 			// Stat the destination of the evaluated symlink
 			_, err = os.Stat(target)
@@ -1219,20 +1219,20 @@ func setupChrootBindMounts(spec *specs.Spec, bundlePath string) (undoBinds func(
 		if err != nil {
 			// If the target can't be stat()ted, check the error.
 			if !os.IsNotExist(err) {
-				return undoBinds, fmt.Errorf("error examining %q for mounting in mount namespace: %w", target, err)
+				return undoBinds, errors.Wrapf(err, "error examining %q for mounting in mount namespace", target)
 			}
 			// The target isn't there yet, so create it.
 			if srcinfo.IsDir() {
 				if err = os.MkdirAll(target, 0755); err != nil {
-					return undoBinds, fmt.Errorf("error creating mountpoint %q in mount namespace: %w", target, err)
+					return undoBinds, errors.Wrapf(err, "error creating mountpoint %q in mount namespace", target)
 				}
 			} else {
 				if err = os.MkdirAll(filepath.Dir(target), 0755); err != nil {
-					return undoBinds, fmt.Errorf("error ensuring parent of mountpoint %q (%q) is present in mount namespace: %w", target, filepath.Dir(target), err)
+					return undoBinds, errors.Wrapf(err, "error ensuring parent of mountpoint %q (%q) is present in mount namespace", target, filepath.Dir(target))
 				}
 				var file *os.File
 				if file, err = os.OpenFile(target, os.O_WRONLY|os.O_CREATE, 0755); err != nil {
-					return undoBinds, fmt.Errorf("error creating mountpoint %q in mount namespace: %w", target, err)
+					return undoBinds, errors.Wrapf(err, "error creating mountpoint %q in mount namespace", target)
 				}
 				file.Close()
 			}
@@ -1272,28 +1272,28 @@ func setupChrootBindMounts(spec *specs.Spec, bundlePath string) (undoBinds func(
 			// Do the bind mount.
 			logrus.Debugf("bind mounting %q on %q", m.Destination, filepath.Join(spec.Root.Path, m.Destination))
 			if err := unix.Mount(m.Source, target, "", requestFlags, ""); err != nil {
-				return undoBinds, fmt.Errorf("error bind mounting %q from host to %q in mount namespace (%q): %w", m.Source, m.Destination, target, err)
+				return undoBinds, errors.Wrapf(err, "error bind mounting %q from host to %q in mount namespace (%q)", m.Source, m.Destination, target)
 			}
 			logrus.Debugf("bind mounted %q to %q", m.Source, target)
 		case "tmpfs":
 			// Mount a tmpfs.
 			if err := mount.Mount(m.Source, target, m.Type, strings.Join(append(m.Options, "private"), ",")); err != nil {
-				return undoBinds, fmt.Errorf("error mounting tmpfs to %q in mount namespace (%q, %q): %w", m.Destination, target, strings.Join(m.Options, ","), err)
+				return undoBinds, errors.Wrapf(err, "error mounting tmpfs to %q in mount namespace (%q, %q)", m.Destination, target, strings.Join(m.Options, ","))
 			}
 			logrus.Debugf("mounted a tmpfs to %q", target)
 		case "overlay":
 			// Mount a overlay.
 			if err := mount.Mount(m.Source, target, m.Type, strings.Join(append(m.Options, "private"), ",")); err != nil {
-				return undoBinds, fmt.Errorf("error mounting overlay to %q in mount namespace (%q, %q): %w", m.Destination, target, strings.Join(m.Options, ","), err)
+				return undoBinds, errors.Wrapf(err, "error mounting overlay to %q in mount namespace (%q, %q)", m.Destination, target, strings.Join(m.Options, ","))
 			}
 			logrus.Debugf("mounted a overlay to %q", target)
 		}
 		if err = unix.Statfs(target, &fs); err != nil {
-			return undoBinds, fmt.Errorf("error checking if directory %q was bound read-only: %w", target, err)
+			return undoBinds, errors.Wrapf(err, "error checking if directory %q was bound read-only", target)
 		}
 		if uintptr(fs.Flags)&expectedFlags != expectedFlags {
 			if err := unix.Mount(target, target, "bind", requestFlags|unix.MS_REMOUNT, ""); err != nil {
-				return undoBinds, fmt.Errorf("error remounting %q in mount namespace with expected flags: %w", target, err)
+				return undoBinds, errors.Wrapf(err, "error remounting %q in mount namespace with expected flags", target)
 			}
 		}
 	}
@@ -1308,7 +1308,7 @@ func setupChrootBindMounts(spec *specs.Spec, bundlePath string) (undoBinds func(
 				// No target, no problem.
 				continue
 			}
-			return undoBinds, fmt.Errorf("error checking %q for symlinks before marking it read-only: %w", r, err)
+			return undoBinds, errors.Wrapf(err, "error checking %q for symlinks before marking it read-only", r)
 		}
 		// Check if the location is already read-only.
 		var fs unix.Statfs_t
@@ -1317,7 +1317,7 @@ func setupChrootBindMounts(spec *specs.Spec, bundlePath string) (undoBinds func(
 				// No target, no problem.
 				continue
 			}
-			return undoBinds, fmt.Errorf("error checking if directory %q is already read-only: %w", target, err)
+			return undoBinds, errors.Wrapf(err, "error checking if directory %q is already read-only", target)
 		}
 		if fs.Flags&unix.ST_RDONLY != 0 {
 			continue
@@ -1329,23 +1329,23 @@ func setupChrootBindMounts(spec *specs.Spec, bundlePath string) (undoBinds func(
 				// No target, no problem.
 				continue
 			}
-			return undoBinds, fmt.Errorf("error bind mounting %q onto itself in preparation for making it read-only: %w", target, err)
+			return undoBinds, errors.Wrapf(err, "error bind mounting %q onto itself in preparation for making it read-only", target)
 		}
 		// Remount the location read-only.
 		if err = unix.Statfs(target, &fs); err != nil {
-			return undoBinds, fmt.Errorf("error checking if directory %q was bound read-only: %w", target, err)
+			return undoBinds, errors.Wrapf(err, "error checking if directory %q was bound read-only", target)
 		}
 		if fs.Flags&unix.ST_RDONLY == 0 {
 			if err := unix.Mount(target, target, "", roFlags|unix.MS_BIND|unix.MS_REMOUNT, ""); err != nil {
-				return undoBinds, fmt.Errorf("error remounting %q in mount namespace read-only: %w", target, err)
+				return undoBinds, errors.Wrapf(err, "error remounting %q in mount namespace read-only", target)
 			}
 		}
 		// Check again.
 		if err = unix.Statfs(target, &fs); err != nil {
-			return undoBinds, fmt.Errorf("error checking if directory %q was remounted read-only: %w", target, err)
+			return undoBinds, errors.Wrapf(err, "error checking if directory %q was remounted read-only", target)
 		}
 		if fs.Flags&unix.ST_RDONLY == 0 {
-			return undoBinds, fmt.Errorf("error verifying that %q in mount namespace was remounted read-only: %w", target, err)
+			return undoBinds, errors.Wrapf(err, "error verifying that %q in mount namespace was remounted read-only", target)
 		}
 	}
 
@@ -1353,7 +1353,7 @@ func setupChrootBindMounts(spec *specs.Spec, bundlePath string) (undoBinds func(
 	roEmptyDir := filepath.Join(bundlePath, "empty")
 	if len(spec.Linux.MaskedPaths) > 0 {
 		if err := os.Mkdir(roEmptyDir, 0700); err != nil {
-			return undoBinds, fmt.Errorf("error creating empty directory %q: %w", roEmptyDir, err)
+			return undoBinds, errors.Wrapf(err, "error creating empty directory %q", roEmptyDir)
 		}
 	}
 
@@ -1374,19 +1374,19 @@ func setupChrootBindMounts(spec *specs.Spec, bundlePath string) (undoBinds func(
 				// No target, no problem.
 				continue
 			}
-			return undoBinds, fmt.Errorf("error examining %q for masking in mount namespace: %w", target, err)
+			return undoBinds, errors.Wrapf(err, "error examining %q for masking in mount namespace", target)
 		}
 		if targetinfo.IsDir() {
 			// The target's a directory.  Check if it's a read-only filesystem.
 			var statfs unix.Statfs_t
 			if err = unix.Statfs(target, &statfs); err != nil {
-				return undoBinds, fmt.Errorf("error checking if directory %q is a mountpoint: %w", target, err)
+				return undoBinds, errors.Wrapf(err, "error checking if directory %q is a mountpoint", target)
 			}
 			isReadOnly := statfs.Flags&unix.MS_RDONLY != 0
 			// Check if any of the IDs we're mapping could read it.
 			var stat unix.Stat_t
 			if err = unix.Stat(target, &stat); err != nil {
-				return undoBinds, fmt.Errorf("error checking permissions on directory %q: %w", target, err)
+				return undoBinds, errors.Wrapf(err, "error checking permissions on directory %q", target)
 			}
 			isAccessible := false
 			if stat.Mode&unix.S_IROTH|unix.S_IXOTH != 0 {
@@ -1417,13 +1417,13 @@ func setupChrootBindMounts(spec *specs.Spec, bundlePath string) (undoBinds func(
 			directory, err := os.Open(target)
 			if err != nil {
 				if !os.IsPermission(err) {
-					return undoBinds, fmt.Errorf("error opening directory %q: %w", target, err)
+					return undoBinds, errors.Wrapf(err, "error opening directory %q", target)
 				}
 			} else {
 				names, err := directory.Readdirnames(0)
 				directory.Close()
 				if err != nil {
-					return undoBinds, fmt.Errorf("error reading contents of directory %q: %w", target, err)
+					return undoBinds, errors.Wrapf(err, "error reading contents of directory %q", target)
 				}
 				hasContent = false
 				for _, name := range names {
@@ -1442,14 +1442,14 @@ func setupChrootBindMounts(spec *specs.Spec, bundlePath string) (undoBinds func(
 			roFlags := uintptr(syscall.MS_BIND | syscall.MS_NOSUID | syscall.MS_NODEV | syscall.MS_NOEXEC | syscall.MS_RDONLY)
 			if !isReadOnly || (hasContent && isAccessible) {
 				if err = unix.Mount(roEmptyDir, target, "bind", roFlags, ""); err != nil {
-					return undoBinds, fmt.Errorf("error masking directory %q in mount namespace: %w", target, err)
+					return undoBinds, errors.Wrapf(err, "error masking directory %q in mount namespace", target)
 				}
 				if err = unix.Statfs(target, &fs); err != nil {
-					return undoBinds, fmt.Errorf("error checking if directory %q was mounted read-only in mount namespace: %w", target, err)
+					return undoBinds, errors.Wrapf(err, "error checking if directory %q was mounted read-only in mount namespace", target)
 				}
 				if fs.Flags&unix.ST_RDONLY == 0 {
 					if err = unix.Mount(target, target, "", roFlags|syscall.MS_REMOUNT, ""); err != nil {
-						return undoBinds, fmt.Errorf("error making sure directory %q in mount namespace is read only: %w", target, err)
+						return undoBinds, errors.Wrapf(err, "error making sure directory %q in mount namespace is read only", target)
 					}
 				}
 			}
@@ -1457,7 +1457,7 @@ func setupChrootBindMounts(spec *specs.Spec, bundlePath string) (undoBinds func(
 			// If the target's is not a directory or os.DevNull, bind mount os.DevNull over it.
 			if !isDevNull(targetinfo) {
 				if err = unix.Mount(os.DevNull, target, "", uintptr(syscall.MS_BIND|syscall.MS_RDONLY|syscall.MS_PRIVATE), ""); err != nil {
-					return undoBinds, fmt.Errorf("error masking non-directory %q in mount namespace: %w", target, err)
+					return undoBinds, errors.Wrapf(err, "error masking non-directory %q in mount namespace", target)
 				}
 			}
 		}

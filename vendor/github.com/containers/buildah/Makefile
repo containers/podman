@@ -26,8 +26,7 @@ export GO_TEST=$(GO) test
 endif
 RACEFLAGS := $(shell $(GO_TEST) -race ./pkg/dummy > /dev/null 2>&1 && echo -race)
 
-COMMIT_NO ?= $(shell git rev-parse HEAD 2> /dev/null || true)
-GIT_COMMIT ?= $(if $(shell git status --porcelain --untracked-files=no),${COMMIT_NO}-dirty,${COMMIT_NO})
+GIT_COMMIT ?= $(if $(shell git rev-parse --short HEAD),$(shell git rev-parse --short HEAD),$(error "git failed"))
 SOURCE_DATE_EPOCH ?= $(if $(shell date +%s),$(shell date +%s),$(error "date failed"))
 STATIC_STORAGETAGS = "containers_image_openpgp exclude_graphdriver_devicemapper $(STORAGE_TAGS)"
 
@@ -42,15 +41,15 @@ SOURCES=*.go imagebuildah/*.go bind/*.go chroot/*.go copier/*.go define/*.go doc
 
 LINTFLAGS ?=
 
-ifeq ($(BUILDDEBUG), 1)
+ifeq ($(DEBUG), 1)
   override GOGCFLAGS += -N -l
 endif
 
-#   make all BUILDDEBUG=1
+#   make all DEBUG=1
 #     Note: Uses the -N -l go compiler options to disable compiler optimizations
 #           and inlining. Using these build options allows you to subsequently
 #           use source debugging tools like delve.
-all: bin/buildah bin/imgtype bin/copy docs
+all: bin/buildah bin/imgtype bin/copy bin/tutorial docs
 
 # Update nix/nixpkgs.json its latest stable commit
 .PHONY: nixpkgs
@@ -78,9 +77,8 @@ ALL_CROSS_TARGETS := $(addprefix bin/buildah.,$(subst /,.,$(shell $(GO) tool dis
 LINUX_CROSS_TARGETS := $(filter bin/buildah.linux.%,$(ALL_CROSS_TARGETS))
 DARWIN_CROSS_TARGETS := $(filter bin/buildah.darwin.%,$(ALL_CROSS_TARGETS))
 WINDOWS_CROSS_TARGETS := $(addsuffix .exe,$(filter bin/buildah.windows.%,$(ALL_CROSS_TARGETS)))
-FREEBSD_CROSS_TARGETS := $(filter bin/buildah.freebsd.%,$(ALL_CROSS_TARGETS))
 .PHONY: cross
-cross: $(LINUX_CROSS_TARGETS) $(DARWIN_CROSS_TARGETS) $(WINDOWS_CROSS_TARGETS) $(FREEBSD_CROSS_TARGETS)
+cross: $(LINUX_CROSS_TARGETS) $(DARWIN_CROSS_TARGETS) $(WINDOWS_CROSS_TARGETS)
 
 bin/buildah.%:
 	mkdir -p ./bin
@@ -91,6 +89,9 @@ bin/imgtype: $(SOURCES) tests/imgtype/imgtype.go
 
 bin/copy: $(SOURCES) tests/copy/copy.go
 	$(GO_BUILD) $(BUILDAH_LDFLAGS) -o $@ $(BUILDFLAGS) ./tests/copy/copy.go
+
+bin/tutorial: $(SOURCES) tests/tutorial/tutorial.go
+	$(GO_BUILD) $(BUILDAH_LDFLAGS) -o $@ $(BUILDFLAGS) ./tests/tutorial/tutorial.go
 
 .PHONY: clean
 clean:
@@ -115,6 +116,8 @@ validate: install.tools
 	./tests/validate/whitespace.sh
 	./hack/xref-helpmsgs-manpages
 	./tests/validate/pr-should-include-tests
+	./tests/validate/buildahimages-are-sane
+	./tests/validate/rpmspec-parses.sh
 
 .PHONY: install.tools
 install.tools:
@@ -178,7 +181,7 @@ test-unit: tests/testreport/testreport
 	$(GO_TEST) -v -tags "$(STORAGETAGS) $(SECURITYTAGS)" -cover $(RACEFLAGS) ./cmd/buildah -args --root $$tmp/root --runroot $$tmp/runroot --storage-driver vfs --signature-policy $(shell pwd)/tests/policy.json --registries-conf $(shell pwd)/tests/registries.conf
 
 vendor-in-container:
-	podman run --privileged --rm --env HOME=/root -v `pwd`:/src -w /src docker.io/library/golang:1.17 make vendor
+	podman run --privileged --rm --env HOME=/root -v `pwd`:/src -w /src docker.io/library/golang:1.16 make vendor
 
 .PHONY: vendor
 vendor:
@@ -189,9 +192,3 @@ vendor:
 .PHONY: lint
 lint: install.tools
 	./tests/tools/build/golangci-lint run $(LINTFLAGS)
-
-# CAUTION: This is not a replacement for RPMs provided by your distro.
-# Only intended to build and test the latest unreleased changes.
-.PHONY: rpm
-rpm:
-	rpkg local

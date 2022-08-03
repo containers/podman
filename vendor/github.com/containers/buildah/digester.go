@@ -2,7 +2,6 @@ package buildah
 
 import (
 	"archive/tar"
-	"errors"
 	"fmt"
 	"hash"
 	"io"
@@ -10,6 +9,7 @@ import (
 	"time"
 
 	digest "github.com/opencontainers/go-digest"
+	"github.com/pkg/errors"
 )
 
 type digester interface {
@@ -68,14 +68,14 @@ func (t *tarFilterer) Close() error {
 	t.closedLock.Lock()
 	if t.closed {
 		t.closedLock.Unlock()
-		return errors.New("tar filter is already closed")
+		return errors.Errorf("tar filter is already closed")
 	}
 	t.closed = true
 	t.closedLock.Unlock()
 	err := t.pipeWriter.Close()
 	t.wg.Wait()
 	if err != nil {
-		return fmt.Errorf("error closing filter pipe: %w", err)
+		return errors.Wrapf(err, "error closing filter pipe")
 	}
 	return t.err
 }
@@ -110,7 +110,7 @@ func newTarFilterer(writeCloser io.WriteCloser, filter func(hdr *tar.Header) (sk
 				if !skip {
 					err = tarWriter.WriteHeader(hdr)
 					if err != nil {
-						err = fmt.Errorf("error filtering tar header for %q: %w", hdr.Name, err)
+						err = errors.Wrapf(err, "error filtering tar header for %q", hdr.Name)
 						break
 					}
 					if hdr.Size != 0 {
@@ -122,11 +122,11 @@ func newTarFilterer(writeCloser io.WriteCloser, filter func(hdr *tar.Header) (sk
 							n, copyErr = io.Copy(tarWriter, tarReader)
 						}
 						if copyErr != nil {
-							err = fmt.Errorf("error copying content for %q: %w", hdr.Name, copyErr)
+							err = errors.Wrapf(copyErr, "error copying content for %q", hdr.Name)
 							break
 						}
 						if n != hdr.Size {
-							err = fmt.Errorf("error filtering content for %q: expected %d bytes, got %d bytes", hdr.Name, hdr.Size, n)
+							err = errors.Errorf("error filtering content for %q: expected %d bytes, got %d bytes", hdr.Name, hdr.Size, n)
 							break
 						}
 					}
@@ -134,7 +134,7 @@ func newTarFilterer(writeCloser io.WriteCloser, filter func(hdr *tar.Header) (sk
 				hdr, err = tarReader.Next()
 			}
 			if err != io.EOF {
-				filterer.err = fmt.Errorf("error reading tar archive: %w", err)
+				filterer.err = errors.Wrapf(err, "error reading tar archive")
 				break
 			}
 			filterer.closedLock.Lock()

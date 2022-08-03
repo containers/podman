@@ -17,6 +17,7 @@ import (
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
 	digest "github.com/opencontainers/go-digest"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -32,7 +33,7 @@ func cacheLookupReferenceFunc(directory string, compress types.LayerCompression)
 		}
 		ref, err := blobcache.NewBlobCache(ref, directory, compress)
 		if err != nil {
-			return nil, fmt.Errorf("error using blobcache %q: %w", directory, err)
+			return nil, errors.Wrapf(err, "error using blobcache %q", directory)
 		}
 		return ref, nil
 	}
@@ -135,7 +136,7 @@ func Push(ctx context.Context, image string, dest types.ImageReference, options 
 
 	manifestDigest, err := manifest.Digest(manifestBytes)
 	if err != nil {
-		return nil, "", fmt.Errorf("error computing digest of manifest of new image %q: %w", transports.ImageName(dest), err)
+		return nil, "", errors.Wrapf(err, "error computing digest of manifest of new image %q", transports.ImageName(dest))
 	}
 
 	var ref reference.Canonical

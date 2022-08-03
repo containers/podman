@@ -11,8 +11,8 @@ require (
 	github.com/container-orchestrated-devices/container-device-interface v0.4.0
 	github.com/containernetworking/cni v1.1.2
 	github.com/containernetworking/plugins v1.1.1
-	github.com/containers/buildah v1.26.1-0.20220716095526-d31d27c357ab
-	github.com/containers/common v0.49.1-0.20220729221035-246800047d46
+	github.com/containers/buildah v1.26.4
+	github.com/containers/common v0.49.1
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/image/v5 v5.22.0
 	github.com/containers/ocicrypt v1.1.5
@@ -71,6 +71,9 @@ require (
 	gopkg.in/yaml.v3 v3.0.1
 )
 
-require github.com/docker/libnetwork v0.8.0-dev.2.0.20190625141545-5a177b73e316 // indirect
+require (
+	github.com/fsouza/go-dockerclient v1.8.1 // indirect
+	github.com/openshift/imagebuilder v1.2.4-0.20220711175835-4151e43600df // indirect
+)
 
 replace github.com/opencontainers/runc => github.com/opencontainers/runc v1.1.1-0.20220617142545-8b9452f75cbc

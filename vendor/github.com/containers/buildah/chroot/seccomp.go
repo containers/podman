@@ -1,14 +1,13 @@
-//go:build linux && seccomp
 // +build linux,seccomp
 
 package chroot
 
 import (
-	"fmt"
 	"io/ioutil"
 
 	"github.com/containers/common/pkg/seccomp"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/pkg/errors"
 	libseccomp "github.com/seccomp/libseccomp-golang"
 	"github.com/sirupsen/logrus"
 )
@@ -111,11 +110,11 @@ func setSeccomp(spec *specs.Spec) error {
 
 	filter, err := libseccomp.NewFilter(mapAction(spec.Linux.Seccomp.DefaultAction, spec.Linux.Seccomp.DefaultErrnoRet))
 	if err != nil {
-		return fmt.Errorf("error creating seccomp filter with default action %q: %w", spec.Linux.Seccomp.DefaultAction, err)
+		return errors.Wrapf(err, "error creating seccomp filter with default action %q", spec.Linux.Seccomp.DefaultAction)
 	}
 	for _, arch := range spec.Linux.Seccomp.Architectures {
 		if err = filter.AddArch(mapArch(arch)); err != nil {
-			return fmt.Errorf("error adding architecture %q(%q) to seccomp filter: %w", arch, mapArch(arch), err)
+			return errors.Wrapf(err, "error adding architecture %q(%q) to seccomp filter", arch, mapArch(arch))
 		}
 	}
 	for _, rule := range spec.Linux.Seccomp.Syscalls {
@@ -131,7 +130,7 @@ func setSeccomp(spec *specs.Spec) error {
 		for scnum := range scnames {
 			if len(rule.Args) == 0 {
 				if err = filter.AddRule(scnum, mapAction(rule.Action, rule.ErrnoRet)); err != nil {
-					return fmt.Errorf("error adding a rule (%q:%q) to seccomp filter: %w", scnames[scnum], rule.Action, err)
+					return errors.Wrapf(err, "error adding a rule (%q:%q) to seccomp filter", scnames[scnum], rule.Action)
 				}
 				continue
 			}
@@ -140,7 +139,7 @@ func setSeccomp(spec *specs.Spec) error {
 			for _, arg := range rule.Args {
 				condition, err := libseccomp.MakeCondition(arg.Index, mapOp(arg.Op), arg.Value, arg.ValueTwo)
 				if err != nil {
-					return fmt.Errorf("error building a seccomp condition %d:%v:%d:%d: %w", arg.Index, arg.Op, arg.Value, arg.ValueTwo, err)
+					return errors.Wrapf(err, "error building a seccomp condition %d:%v:%d:%d", arg.Index, arg.Op, arg.Value, arg.ValueTwo)
 				}
 				if arg.Op != specs.OpEqualTo {
 					opsAreAllEquality = false
@@ -156,22 +155,22 @@ func setSeccomp(spec *specs.Spec) error {
 				if len(rule.Args) > 1 && opsAreAllEquality && err.Error() == "two checks on same syscall argument" {
 					for i := range conditions {
 						if err = filter.AddRuleConditional(scnum, mapAction(rule.Action, rule.ErrnoRet), conditions[i:i+1]); err != nil {
-							return fmt.Errorf("error adding a conditional rule (%q:%q[%d]) to seccomp filter: %w", scnames[scnum], rule.Action, i, err)
+							return errors.Wrapf(err, "error adding a conditional rule (%q:%q[%d]) to seccomp filter", scnames[scnum], rule.Action, i)
 						}
 					}
 				} else {
-					return fmt.Errorf("error adding a conditional rule (%q:%q) to seccomp filter: %w", scnames[scnum], rule.Action, err)
+					return errors.Wrapf(err, "error adding a conditional rule (%q:%q) to seccomp filter", scnames[scnum], rule.Action)
 				}
 			}
 		}
 	}
 	if err = filter.SetNoNewPrivsBit(spec.Process.NoNewPrivileges); err != nil {
-		return fmt.Errorf("error setting no-new-privileges bit to %v: %w", spec.Process.NoNewPrivileges, err)
+		return errors.Wrapf(err, "error setting no-new-privileges bit to %v", spec.Process.NoNewPrivileges)
 	}
 	err = filter.Load()
 	filter.Release()
 	if err != nil {
-		return fmt.Errorf("error activating seccomp filter: %w", err)
+		return errors.Wrapf(err, "error activating seccomp filter")
 	}
 	return nil
 }
@@ -183,17 +182,17 @@ func setupSeccomp(spec *specs.Spec, seccompProfilePath string) error {
 	case "":
 		seccompConfig, err := seccomp.GetDefaultProfile(spec)
 		if err != nil {
-			return fmt.Errorf("loading default seccomp profile failed: %w", err)
+			return errors.Wrapf(err, "loading default seccomp profile failed")
 		}
 		spec.Linux.Seccomp = seccompConfig
 	default:
 		seccompProfile, err := ioutil.ReadFile(seccompProfilePath)
 		if err != nil {
-			return fmt.Errorf("opening seccomp profile (%s) failed: %w", seccompProfilePath, err)
+			return errors.Wrapf(err, "opening seccomp profile (%s) failed", seccompProfilePath)
 		}
 		seccompConfig, err := seccomp.LoadProfile(string(seccompProfile), spec)
 		if err != nil {
-			return fmt.Errorf("loading seccomp profile (%s) failed: %w", seccompProfilePath, err)
+			return errors.Wrapf(err, "loading seccomp profile (%s) failed", seccompProfilePath)
 		}
 		spec.Linux.Seccomp = seccompConfig
 	}

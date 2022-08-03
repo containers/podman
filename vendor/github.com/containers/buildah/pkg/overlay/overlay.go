@@ -9,12 +9,11 @@ import (
 	"strings"
 	"syscall"
 
-	"errors"
-
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/system"
 	"github.com/containers/storage/pkg/unshare"
 	"github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
@@ -27,7 +26,7 @@ type Options struct {
 	// Note!! : Following API does not handles escaping or validates correctness of the values
 	// passed to UpperDirOptionFragment instead API will try to pass values as is it
 	// to the `mount` command. It is user's responsibility to make sure they pre-validate
-	// these values. Invalid inputs may lead to undefined behaviour.
+	// these values. Invalid inputs may lead to undefined behviour.
 	// This is provided as-is, use it if it works for you, we can/will change/break that in the future.
 	// See discussion here for more context: https://github.com/containers/buildah/pull/3715#discussion_r786036959
 	// TODO: Should we address above comment and handle escaping of metacharacters like
@@ -37,7 +36,7 @@ type Options struct {
 	// Note!! : Following API does not handles escaping or validates correctness of the values
 	// passed to WorkDirOptionFragment instead API will try to pass values as is it
 	// to the `mount` command. It is user's responsibility to make sure they pre-validate
-	// these values. Invalid inputs may lead to undefined behaviour.
+	// these values. Invalid inputs may lead to undefined behviour.
 	// This is provided as-is, use it if it works for you, we can/will change/break that in the future.
 	// See discussion here for more context: https://github.com/containers/buildah/pull/3715#discussion_r786036959
 	// TODO: Should we address above comment and handle escaping of metacharacters like
@@ -57,12 +56,12 @@ type Options struct {
 func TempDir(containerDir string, rootUID, rootGID int) (string, error) {
 	contentDir := filepath.Join(containerDir, "overlay")
 	if err := idtools.MkdirAllAs(contentDir, 0700, rootUID, rootGID); err != nil {
-		return "", fmt.Errorf("failed to create the overlay %s directory: %w", contentDir, err)
+		return "", errors.Wrapf(err, "failed to create the overlay %s directory", contentDir)
 	}
 
 	contentDir, err := ioutil.TempDir(contentDir, "")
 	if err != nil {
-		return "", fmt.Errorf("failed to create the overlay tmpdir in %s directory: %w", contentDir, err)
+		return "", errors.Wrapf(err, "failed to create the overlay tmpdir in %s directory", contentDir)
 	}
 
 	return generateOverlayStructure(contentDir, rootUID, rootGID)
@@ -72,7 +71,7 @@ func TempDir(containerDir string, rootUID, rootGID int) (string, error) {
 func GenerateStructure(containerDir, containerID, name string, rootUID, rootGID int) (string, error) {
 	contentDir := filepath.Join(containerDir, "overlay-containers", containerID, name)
 	if err := idtools.MkdirAllAs(contentDir, 0700, rootUID, rootGID); err != nil {
-		return "", fmt.Errorf("failed to create the overlay %s directory: %w", contentDir, err)
+		return "", errors.Wrapf(err, "failed to create the overlay %s directory", contentDir)
 	}
 
 	return generateOverlayStructure(contentDir, rootUID, rootGID)
@@ -83,14 +82,14 @@ func generateOverlayStructure(containerDir string, rootUID, rootGID int) (string
 	upperDir := filepath.Join(containerDir, "upper")
 	workDir := filepath.Join(containerDir, "work")
 	if err := idtools.MkdirAllAs(upperDir, 0700, rootUID, rootGID); err != nil {
-		return "", fmt.Errorf("failed to create the overlay %s directory: %w", upperDir, err)
+		return "", errors.Wrapf(err, "failed to create the overlay %s directory", upperDir)
 	}
 	if err := idtools.MkdirAllAs(workDir, 0700, rootUID, rootGID); err != nil {
-		return "", fmt.Errorf("failed to create the overlay %s directory: %w", workDir, err)
+		return "", errors.Wrapf(err, "failed to create the overlay %s directory", workDir)
 	}
 	mergeDir := filepath.Join(containerDir, "merge")
 	if err := idtools.MkdirAllAs(mergeDir, 0700, rootUID, rootGID); err != nil {
-		return "", fmt.Errorf("failed to create the overlay %s directory: %w", mergeDir, err)
+		return "", errors.Wrapf(err, "failed to create the overlay %s directory", mergeDir)
 	}
 
 	return containerDir, nil
@@ -142,7 +141,7 @@ func mountWithMountProgram(mountProgram, overlayOptions, mergeDir string) error 
 	cmd := exec.Command(mountProgram, "-o", overlayOptions, mergeDir)
 
 	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("exec %s: %w", mountProgram, err)
+		return errors.Wrapf(err, "exec %s", mountProgram)
 	}
 	return nil
 }
@@ -239,7 +238,7 @@ func Unmount(contentDir string) error {
 		// If they fail, fallback to unix.Unmount
 		for _, v := range []string{"fusermount3", "fusermount"} {
 			err := exec.Command(v, "-u", mergeDir).Run()
-			if err != nil && !errors.Is(err, exec.ErrNotFound) {
+			if err != nil && errors.Cause(err) != exec.ErrNotFound {
 				logrus.Debugf("Error unmounting %s with %s - %v", mergeDir, v, err)
 			}
 			if err == nil {
@@ -251,7 +250,7 @@ func Unmount(contentDir string) error {
 
 	// Ignore EINVAL as the specified merge dir is not a mount point
 	if err := unix.Unmount(mergeDir, 0); err != nil && !os.IsNotExist(err) && err != unix.EINVAL {
-		return fmt.Errorf("unmount overlay %s: %w", mergeDir, err)
+		return errors.Wrapf(err, "unmount overlay %s", mergeDir)
 	}
 	return nil
 }
@@ -262,15 +261,15 @@ func recreate(contentDir string) error {
 		if os.IsNotExist(err) {
 			return nil
 		}
-		return fmt.Errorf("failed to stat overlay upper directory: %w", err)
+		return errors.Wrap(err, "failed to stat overlay upper directory")
 	}
 
 	if err := os.RemoveAll(contentDir); err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 
 	if err := idtools.MkdirAllAs(contentDir, os.FileMode(st.Mode()), int(st.UID()), int(st.GID())); err != nil {
-		return fmt.Errorf("failed to create overlay directory: %w", err)
+		return errors.Wrap(err, "failed to create overlay directory")
 	}
 	return nil
 }
@@ -296,7 +295,7 @@ func CleanupContent(containerDir string) (Err error) {
 		if os.IsNotExist(err) {
 			return nil
 		}
-		return fmt.Errorf("read directory: %w", err)
+		return errors.Wrap(err, "read directory")
 	}
 	for _, f := range files {
 		dir := filepath.Join(contentDir, f.Name())
@@ -306,7 +305,7 @@ func CleanupContent(containerDir string) (Err error) {
 	}
 
 	if err := os.RemoveAll(contentDir); err != nil && !os.IsNotExist(err) {
-		return fmt.Errorf("failed to cleanup overlay directory: %w", err)
+		return errors.Wrap(err, "failed to cleanup overlay directory")
 	}
 	return nil
 }

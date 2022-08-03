@@ -1,8 +1,6 @@
 package buildah
 
 import (
-	"errors"
-	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -18,6 +16,7 @@ import (
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/selinux/go-selinux/label"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -108,7 +107,7 @@ func convertRuntimeIDMaps(UIDMap, GIDMap []rspec.LinuxIDMapping) ([]idtools.IDMa
 func isRegistryBlocked(registry string, sc *types.SystemContext) (bool, error) {
 	reginfo, err := sysregistriesv2.FindRegistry(sc, registry)
 	if err != nil {
-		return false, fmt.Errorf("unable to parse the registries configuration (%s): %w", sysregistriesv2.ConfigPath(sc), err)
+		return false, errors.Wrapf(err, "unable to parse the registries configuration (%s)", sysregistriesv2.ConfigPath(sc))
 	}
 	if reginfo != nil {
 		if reginfo.Blocked {
@@ -151,7 +150,7 @@ func ReserveSELinuxLabels(store storage.Store, id string) error {
 	if selinuxGetEnabled() {
 		containers, err := store.Containers()
 		if err != nil {
-			return fmt.Errorf("error getting list of containers: %w", err)
+			return errors.Wrapf(err, "error getting list of containers")
 		}
 
 		for _, c := range containers {
@@ -160,7 +159,7 @@ func ReserveSELinuxLabels(store storage.Store, id string) error {
 			} else {
 				b, err := OpenBuilder(store, c.ID)
 				if err != nil {
-					if errors.Is(err, os.ErrNotExist) {
+					if errors.Is(errors.Cause(err), os.ErrNotExist) {
 						// Ignore not exist errors since containers probably created by other tool
 						// TODO, we need to read other containers json data to reserve their SELinux labels
 						continue
@@ -169,7 +168,7 @@ func ReserveSELinuxLabels(store storage.Store, id string) error {
 				}
 				// Prevent different containers from using same MCS label
 				if err := label.ReserveLabel(b.ProcessLabel); err != nil {
-					return fmt.Errorf("error reserving SELinux label %q: %w", b.ProcessLabel, err)
+					return errors.Wrapf(err, "error reserving SELinux label %q", b.ProcessLabel)
 				}
 			}
 		}
@@ -219,10 +218,10 @@ func extractWithTar(root, src, dest string) error {
 	wg.Wait()
 
 	if getErr != nil {
-		return fmt.Errorf("error reading %q: %w", src, getErr)
+		return errors.Wrapf(getErr, "error reading %q", src)
 	}
 	if putErr != nil {
-		return fmt.Errorf("error copying contents of %q to %q: %w", src, dest, putErr)
+		return errors.Wrapf(putErr, "error copying contents of %q to %q", src, dest)
 	}
 	return nil
 }

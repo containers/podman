@@ -3,7 +3,6 @@ package buildah
 import (
 	"bufio"
 	"bytes"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -18,6 +17,7 @@ import (
 	"github.com/containers/storage/pkg/system"
 	"github.com/containers/storage/pkg/unshare"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -189,7 +189,7 @@ func readUptime() (string, error) {
 	}
 	f := bytes.Fields(buf)
 	if len(f) < 1 {
-		return "", errors.New("invalid uptime")
+		return "", errors.Errorf("invalid uptime")
 	}
 	return string(f[0]), nil
 }

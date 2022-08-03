@@ -1,15 +1,13 @@
-//go:build linux || netbsd || freebsd || darwin
 // +build linux netbsd freebsd darwin
 
 package copier
 
 import (
-	"fmt"
 	"path/filepath"
 	"strings"
 	"syscall"
 
-	"github.com/containers/buildah/util"
+	"github.com/pkg/errors"
 	"golang.org/x/sys/unix"
 )
 
@@ -45,22 +43,22 @@ func Lgetxattrs(path string) (map[string]string, error) {
 		list = make([]byte, listSize)
 		size, err := unix.Llistxattr(path, list)
 		if err != nil {
-			if util.Cause(err) == syscall.ERANGE {
+			if unwrapError(err) == syscall.ERANGE {
 				listSize *= 2
 				continue
 			}
-			if (util.Cause(err) == syscall.ENOTSUP) || (util.Cause(err) == syscall.ENOSYS) {
+			if (unwrapError(err) == syscall.ENOTSUP) || (unwrapError(err) == syscall.ENOSYS) {
 				// treat these errors listing xattrs as equivalent to "no xattrs"
 				list = list[:0]
 				break
 			}
-			return nil, fmt.Errorf("error listing extended attributes of %q: %w", path, err)
+			return nil, errors.Wrapf(err, "error listing extended attributes of %q", path)
 		}
 		list = list[:size]
 		break
 	}
 	if listSize >= maxSize {
-		return nil, fmt.Errorf("unable to read list of attributes for %q: size would have been too big", path)
+		return nil, errors.Errorf("unable to read list of attributes for %q: size would have been too big", path)
 	}
 	m := make(map[string]string)
 	for _, attribute := range strings.Split(string(list), string('\000')) {
@@ -71,17 +69,17 @@ func Lgetxattrs(path string) (map[string]string, error) {
 				attributeValue = make([]byte, attributeSize)
 				size, err := unix.Lgetxattr(path, attribute, attributeValue)
 				if err != nil {
-					if util.Cause(err) == syscall.ERANGE {
+					if unwrapError(err) == syscall.ERANGE {
 						attributeSize *= 2
 						continue
 					}
-					return nil, fmt.Errorf("error getting value of extended attribute %q on %q: %w", attribute, path, err)
+					return nil, errors.Wrapf(err, "error getting value of extended attribute %q on %q", attribute, path)
 				}
 				m[attribute] = string(attributeValue[:size])
 				break
 			}
 			if attributeSize >= maxSize {
-				return nil, fmt.Errorf("unable to read attribute %q of %q: size would have been too big", attribute, path)
+				return nil, errors.Errorf("unable to read attribute %q of %q: size would have been too big", attribute, path)
 			}
 		}
 	}
@@ -93,7 +91,7 @@ func Lsetxattrs(path string, xattrs map[string]string) error {
 	for attribute, value := range xattrs {
 		if isRelevantXattr(attribute) {
 			if err := unix.Lsetxattr(path, attribute, []byte(value), 0); err != nil {
-				return fmt.Errorf("error setting value of extended attribute %q on %q: %w", attribute, path, err)
+				return errors.Wrapf(err, "error setting value of extended attribute %q on %q", attribute, path)
 			}
 		}
 	}

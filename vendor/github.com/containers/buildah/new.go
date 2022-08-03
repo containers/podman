@@ -2,7 +2,6 @@ package buildah
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"math/rand"
 	"strings"
@@ -20,6 +19,7 @@ import (
 	digest "github.com/opencontainers/go-digest"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/openshift/imagebuilder"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -76,20 +76,15 @@ func imageNamePrefix(imageName string) string {
 func newContainerIDMappingOptions(idmapOptions *define.IDMappingOptions) storage.IDMappingOptions {
 	var options storage.IDMappingOptions
 	if idmapOptions != nil {
-		if idmapOptions.AutoUserNs {
-			options.AutoUserNs = true
-			options.AutoUserNsOpts = idmapOptions.AutoUserNsOpts
+		options.HostUIDMapping = idmapOptions.HostUIDMapping
+		options.HostGIDMapping = idmapOptions.HostGIDMapping
+		uidmap, gidmap := convertRuntimeIDMaps(idmapOptions.UIDMap, idmapOptions.GIDMap)
+		if len(uidmap) > 0 && len(gidmap) > 0 {
+			options.UIDMap = uidmap
+			options.GIDMap = gidmap
 		} else {
-			options.HostUIDMapping = idmapOptions.HostUIDMapping
-			options.HostGIDMapping = idmapOptions.HostGIDMapping
-			uidmap, gidmap := convertRuntimeIDMaps(idmapOptions.UIDMap, idmapOptions.GIDMap)
-			if len(uidmap) > 0 && len(gidmap) > 0 {
-				options.UIDMap = uidmap
-				options.GIDMap = gidmap
-			} else {
-				options.HostUIDMapping = true
-				options.HostGIDMapping = true
-			}
+			options.HostUIDMapping = true
+			options.HostGIDMapping = true
 		}
 	}
 	return options
@@ -190,12 +185,12 @@ func newBuilder(ctx context.Context, store storage.Store, options BuilderOptions
 	if ref != nil {
 		srcSrc, err := ref.NewImageSource(ctx, systemContext)
 		if err != nil {
-			return nil, fmt.Errorf("error instantiating image for %q: %w", transports.ImageName(ref), err)
+			return nil, errors.Wrapf(err, "error instantiating image for %q", transports.ImageName(ref))
 		}
 		defer srcSrc.Close()
 		manifestBytes, manifestType, err := srcSrc.GetManifest(ctx, nil)
 		if err != nil {
-			return nil, fmt.Errorf("error loading image manifest for %q: %w", transports.ImageName(ref), err)
+			return nil, errors.Wrapf(err, "error loading image manifest for %q", transports.ImageName(ref))
 		}
 		if manifestDigest, err := manifest.Digest(manifestBytes); err == nil {
 			imageDigest = manifestDigest.String()
@@ -204,17 +199,17 @@ func newBuilder(ctx context.Context, store storage.Store, options BuilderOptions
 		if manifest.MIMETypeIsMultiImage(manifestType) {
 			list, err := manifest.ListFromBlob(manifestBytes, manifestType)
 			if err != nil {
-				return nil, fmt.Errorf("error parsing image manifest for %q as list: %w", transports.ImageName(ref), err)
+				return nil, errors.Wrapf(err, "error parsing image manifest for %q as list", transports.ImageName(ref))
 			}
 			instance, err := list.ChooseInstance(systemContext)
 			if err != nil {
-				return nil, fmt.Errorf("error finding an appropriate image in manifest list %q: %w", transports.ImageName(ref), err)
+				return nil, errors.Wrapf(err, "error finding an appropriate image in manifest list %q", transports.ImageName(ref))
 			}
 			instanceDigest = &instance
 		}
 		src, err = image.FromUnparsedImage(ctx, systemContext, image.UnparsedInstance(srcSrc, instanceDigest))
 		if err != nil {
-			return nil, fmt.Errorf("error instantiating image for %q instance %q: %w", transports.ImageName(ref), instanceDigest, err)
+			return nil, errors.Wrapf(err, "error instantiating image for %q instance %q", transports.ImageName(ref), instanceDigest)
 		}
 	}
 
@@ -234,7 +229,7 @@ func newBuilder(ctx context.Context, store storage.Store, options BuilderOptions
 	if options.Container == "" {
 		containers, err := store.Containers()
 		if err != nil {
-			return nil, fmt.Errorf("unable to check for container names: %w", err)
+			return nil, errors.Wrapf(err, "unable to check for container names")
 		}
 		tmpName = findUnusedContainer(tmpName, containers)
 	}
@@ -263,7 +258,7 @@ func newBuilder(ctx context.Context, store storage.Store, options BuilderOptions
 			break
 		}
 		if !errors.Is(err, storage.ErrDuplicateName) || options.Container != "" {
-			return nil, fmt.Errorf("error creating container: %w", err)
+			return nil, errors.Wrapf(err, "error creating container")
 		}
 		tmpName = fmt.Sprintf("%s-%d", name, rand.Int()%conflict)
 		conflict = conflict * 10
@@ -333,16 +328,16 @@ func newBuilder(ctx context.Context, store storage.Store, options BuilderOptions
 	if options.Mount {
 		_, err = builder.Mount(container.MountLabel())
 		if err != nil {
-			return nil, fmt.Errorf("error mounting build container %q: %w", builder.ContainerID, err)
+			return nil, errors.Wrapf(err, "error mounting build container %q", builder.ContainerID)
 		}
 	}
 
 	if err := builder.initConfig(ctx, src, systemContext); err != nil {
-		return nil, fmt.Errorf("error preparing image configuration: %w", err)
+		return nil, errors.Wrapf(err, "error preparing image configuration")
 	}
 	err = builder.Save()
 	if err != nil {
-		return nil, fmt.Errorf("error saving builder state for container %q: %w", builder.ContainerID, err)
+		return nil, errors.Wrapf(err, "error saving builder state for container %q", builder.ContainerID)
 	}
 
 	return builder, nil

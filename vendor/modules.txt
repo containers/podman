@@ -91,7 +91,7 @@ github.com/containernetworking/cni/pkg/version
 # github.com/containernetworking/plugins v1.1.1
 ## explicit
 github.com/containernetworking/plugins/pkg/ns
-# github.com/containers/buildah v1.26.1-0.20220716095526-d31d27c357ab
+# github.com/containers/buildah v1.26.4
 ## explicit
 github.com/containers/buildah
 github.com/containers/buildah/bind
@@ -107,14 +107,13 @@ github.com/containers/buildah/pkg/blobcache
 github.com/containers/buildah/pkg/chrootuser
 github.com/containers/buildah/pkg/cli
 github.com/containers/buildah/pkg/completion
-github.com/containers/buildah/pkg/jail
 github.com/containers/buildah/pkg/overlay
 github.com/containers/buildah/pkg/parse
 github.com/containers/buildah/pkg/rusage
 github.com/containers/buildah/pkg/sshagent
 github.com/containers/buildah/pkg/util
 github.com/containers/buildah/util
-# github.com/containers/common v0.49.1-0.20220729221035-246800047d46
+# github.com/containers/common v0.49.1
 ## explicit
 github.com/containers/common/libimage
 github.com/containers/common/libimage/define
@@ -401,8 +400,10 @@ github.com/docker/go-plugins-helpers/volume
 ## explicit
 github.com/docker/go-units
 # github.com/docker/libnetwork v0.8.0-dev.2.0.20190625141545-5a177b73e316
-## explicit
 github.com/docker/libnetwork/ipamutils
+github.com/docker/libnetwork/resolvconf
+github.com/docker/libnetwork/resolvconf/dns
+github.com/docker/libnetwork/types
 # github.com/dtylman/scp v0.0.0-20181017070807-f3000a34aef4
 ## explicit
 github.com/dtylman/scp
@@ -412,6 +413,7 @@ github.com/felixge/httpsnoop
 ## explicit
 github.com/fsnotify/fsnotify
 # github.com/fsouza/go-dockerclient v1.8.1
+## explicit
 github.com/fsouza/go-dockerclient
 # github.com/ghodss/yaml v1.0.0
 ## explicit
@@ -472,6 +474,8 @@ github.com/hashicorp/go-multierror
 github.com/imdario/mergo
 # github.com/inconshreveable/mousetrap v1.0.0
 github.com/inconshreveable/mousetrap
+# github.com/ishidawataru/sctp v0.0.0-20210226210310-f2269e66cdee
+github.com/ishidawataru/sctp
 # github.com/jinzhu/copier v0.3.5
 github.com/jinzhu/copier
 # github.com/json-iterator/go v1.1.12
@@ -620,6 +624,7 @@ github.com/opencontainers/selinux/go-selinux/label
 github.com/opencontainers/selinux/pkg/pwalk
 github.com/opencontainers/selinux/pkg/pwalkdir
 # github.com/openshift/imagebuilder v1.2.4-0.20220711175835-4151e43600df
+## explicit
 github.com/openshift/imagebuilder
 github.com/openshift/imagebuilder/dockerfile/command
 github.com/openshift/imagebuilder/dockerfile/parser

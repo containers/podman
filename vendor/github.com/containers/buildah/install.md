@@ -52,9 +52,9 @@ rpm-ostree install buildah
 Note: [`podman`](https://podman.io) build is available by default.
 
 ### [Gentoo](https://www.gentoo.org)
-[app-containers/podman](https://packages.gentoo.org/packages/app-containers/podman)
+
 ```bash
-sudo emerge app-containers/podman
+sudo emerge app-emulation/libpod
 ```
 
 ### [openSUSE](https://www.opensuse.org)
@@ -396,9 +396,9 @@ cat /etc/containers/policy.json
 
 ## Debug with Delve and the like
 
-To make a source debug build without optimizations use `BUILDDEBUG=1`, like:
+To make a source debug build without optimizations use `DEBUG=1`, like:
 ```
-make all BUILDDEBUG=1
+make all DEBUG=1
 ```
 
 ## Vendoring
