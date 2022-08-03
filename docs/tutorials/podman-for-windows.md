@@ -415,3 +415,8 @@ your WSL system state and perform a manual WSL installation using the `wsl
    wsl --install
    ```
 5. Continue with podman machine init
+
+Install Certificate Authority
+=============================
+
+Instructions for installing a CA certificate can be found [here](podman-install-certificate-authority.md).
