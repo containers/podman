@@ -51,7 +51,7 @@ env:
     #### N/B: Required ALL of these are set for every single task.
     ####
     TEST_FLAVOR:             # int, sys, ext_svc, validate, automation, etc.
-    TEST_ENVIRON: host       # 'host', or 'container'
+    TEST_ENVIRON: host       # 'host', 'container', 'host-rs' or 'container-rs'
     PODBIN_NAME: podman      # 'podman' or 'remote'
     PRIV_NAME: root          # 'root' or 'rootless'
     DISTRO_NV:               # any {PRIOR_,}{FEDORA,UBUNTU}_NAME value
@@ -597,7 +597,15 @@ local_integration_test_task: &local_integration_test_task
     depends_on:
         - build
         - unit_test
-    matrix: *platform_axis
+    matrix: &all_platforms_and_conmon_rs
+        - env: *stdenvars
+        - env:
+            <<: *stdenvars
+            TEST_ENVIRON: host-rs
+        #- env:
+        #    <<: *priorfedora_envvars
+        #    TEST_ENVIRON: host-rs
+        - env: *ubuntu_envvars
     gce_instance: *standardvm
     timeout_in: 90m
     env:
@@ -633,16 +641,15 @@ container_integration_test_task:
     depends_on:
         - build
         - unit_test
-    matrix: &fedora_vm_axis
+    matrix:
+        - *stdenvars
         - env:
-              DISTRO_NV: ${FEDORA_NAME}
-              VM_IMAGE_NAME: ${FEDORA_CACHE_IMAGE_NAME}
-              CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
-              CI_DESIRED_RUNTIME: crun
+            <<: *stdenvars
+            TEST_ENVIRON: host-rs
+        #- *priorfedora_envvars
         #- env:
-        #DISTRO_NV: ${PRIOR_FEDORA_NAME}
-        #VM_IMAGE_NAME: ${PRIOR_FEDORA_CACHE_IMAGE_NAME}
-        #CTR_FQIN: ${PRIOR_FEDORA_CONTAINER_FQIN}
+        #   <<: *priorfedora_envvars
+        #   TEST_ENVIRON: host-rs
     gce_instance: *standardvm
     timeout_in: 90m
     env:
@@ -663,7 +670,7 @@ rootless_integration_test_task:
     depends_on:
         - build
         - unit_test
-    matrix: *platform_axis
+    matrix: *all_platforms_and_conmon_rs
     gce_instance: *standardvm
     timeout_in: 90m
     env:
@@ -746,7 +753,7 @@ local_system_test_task: &local_system_test_task
     depends_on:
         - build
         - local_integration_test
-    matrix: *platform_axis
+    matrix: *all_platforms_and_conmon_rs
     gce_instance: *standardvm
     env:
         TEST_FLAVOR: sys
@@ -801,12 +808,7 @@ remote_system_test_aarch64_task:
 rootless_remote_system_test_task:
     matrix:
         # Minimal sanity testing: only the latest Fedora
-        - env:
-              DISTRO_NV: ${FEDORA_NAME}
-              # Not used here, is used in other tasks
-              VM_IMAGE_NAME: ${FEDORA_CACHE_IMAGE_NAME}
-              CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
-              CI_DESIRED_RUNTIME: crun
+        - env: *stdenvars
     <<: *local_system_test_task
     alias: rootless_remote_system_test
     depends_on:
@@ -827,7 +829,7 @@ rootless_system_test_task:
     depends_on:
         - build
         - rootless_integration_test
-    matrix: *platform_axis
+    matrix: *all_platforms_and_conmon_rs
     gce_instance: *standardvm
     env:
         TEST_FLAVOR: sys

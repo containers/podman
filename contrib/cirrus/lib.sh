@@ -229,6 +229,46 @@ use_netavark() {
     rm -rvf /etc/cni/net.d/*
 }
 
+use_conmon_rs() {
+    local cfgsrc cfgdst sedscript
+    req_env_vars DISTRO_NV FEDORA_NAME TEST_ENVIRON
+    # TODO: This probably needs updating when F37 is released
+    if [[ "$DISTRO_NV" != "$FEDORA_NAME" ]]; then
+        die "Conmon-rs testing is only suported on $FEDORA_NAME, not $DISTRO_NV"
+    fi
+    if [[ "$DEST_BRANCH" != "main" ]]; then
+        die "Conmon-rs testing is only supported on the main branch"
+    fi
+    # TODO: Conmon-rs development is very active. Until reasonably
+    #       stable packages are available in the standard repos.
+    #       runtime-installs are the most expedient for podman
+    #       development needs.  When the churn stabalizes runtime
+    #       install should be swapped for image-build installs.
+    warn "Installing conmon-rs from upstream podman-next repo."
+    dnf -y install 'dnf-command(copr)'
+    dnf -y copr enable rhcontainerbot/podman-next
+    dnf -y install conmon-rs --enablerepo=updates-testing
+
+    # e2e tests are sensitive to this
+    warn "Forcing CONMON_BINARY to /usr/bin/conmonrs"
+    echo 'CONMON_BINARY=/usr/bin/conmonrs' >> "/etc/ci_environment"
+
+    # System-tests use whatever we set in the configuration file
+    cfgsrc=/usr/share/containers/containers.conf
+    cfgdst=/etc/containers/containers.conf
+    sedscript='s/^\#conmon_path.+/conmon_path = ["\/usr\/bin\/conmonrs"]/'
+    if [[ -r "$cfgdst" ]]; then  # preserve any existing settings
+        sed -i -r -e "$sedscript" $cfgdst
+    else
+        sed -r -e "$sedscript" $cfgsrc > $cfgdst
+    fi
+
+    # Confirm there's only one active 'conmon_path' setting
+    if [[ $(egrep '^conmon_path.+' $cfgdst | wc -l) -ne 1 ]]; then
+        die "Modifying containers.conf 'conmon_path' failed, expecting exactly 1 entry."
+    fi
+}
+
 # Remove all files provided by the distro version of podman.
 # All VM cache-images used for testing include the distro podman because (1) it's
 # required for podman-in-podman testing and (2) it somewhat simplifies the task

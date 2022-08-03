@@ -12,7 +12,7 @@ set -eo pipefail
 # most notably:
 #
 #    PODBIN_NAME  : "podman" (i.e. local) or "remote"
-#    TEST_ENVIRON : 'host', or 'container'; desired environment in which to run
+#    TEST_ENVIRON : 'host', 'container', 'host-rs' or 'container-rs'; desired environment in which to run
 #    CONTAINER    : 1 if *currently* running inside a container, 0 if host
 #
 
@@ -379,7 +379,7 @@ dotest() {
     req_env_vars testsuite CONTAINER TEST_ENVIRON PRIV_NAME
 
     # shellcheck disable=SC2154
-    if ((CONTAINER==0)) && [[ "$TEST_ENVIRON" == "container" ]]; then
+    if ((CONTAINER==0)) && [[ "$TEST_ENVIRON" =~ container ]]; then
         exec_container  # does not return
     fi;
 

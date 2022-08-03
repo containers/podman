@@ -148,7 +148,10 @@ esac
 # Required to be defined by caller: The environment where primary testing happens
 # shellcheck disable=SC2154
 case "$TEST_ENVIRON" in
-    host)
+    host-rs)
+        use_conmon_rs
+        ;&  # Continue to next item
+    host*)
         # The e2e tests wrongly guess `--cgroup-manager` option
         # shellcheck disable=SC2154
         if [[ "$CG_FS_TYPE" == "cgroup2fs" ]] || [[ "$PRIV_NAME" == "root" ]]
@@ -160,7 +163,10 @@ case "$TEST_ENVIRON" in
             echo "CGROUP_MANAGER=cgroupfs" >> /etc/ci_environment
         fi
         ;;
-    container)
+    container-rs)
+        use_conmon_rs
+        ;&  # Continue to next item
+    container*)
         if ((CONTAINER==0)); then  # not yet inside a container
             warn "Force loading iptables modules"
             # Since CRIU 3.11, uses iptables to lock and unlock
@@ -295,7 +301,7 @@ case "$TEST_FLAVOR" in
             fi
             remove_packaged_podman_files
             make install PREFIX=/usr ETCDIR=/etc
-        elif [[ "$TEST_ENVIRON" == "container" ]]; then
+        elif [[ "$TEST_ENVIRON" =~ container ]]; then
             if ((CONTAINER)); then
                 remove_packaged_podman_files
                 make install PREFIX=/usr ETCDIR=/etc
