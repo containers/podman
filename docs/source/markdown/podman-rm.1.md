@@ -26,6 +26,30 @@ Read container ID from the specified file and remove the container.  Can be spec
 
 Remove selected container and recursively remove all containers that depend on it.
 
+#### **--filter**=*filter*
+
+Filter what containers remove.
+Multiple filters can be given with multiple uses of the --filter flag.
+Filters with the same key work inclusive with the only exception being
+`label` which is exclusive. Filters with different keys always work exclusive.
+
+Valid filters are listed below:
+
+| **Filter**      | **Description**                                                                  |
+| --------------- | -------------------------------------------------------------------------------- |
+| id              | [ID] Container's ID (accepts regex)                                              |
+| name            | [Name] Container's name (accepts regex)                                          |
+| label           | [Key] or [Key=Value] Label assigned to a container                               |
+| exited          | [Int] Container's exit code                                                      |
+| status          | [Status] Container's status: 'created', 'exited', 'paused', 'running', 'unknown' |
+| ancestor        | [ImageName] Image or descendant used to create container                         |
+| before          | [ID] or [Name] Containers created before this container                          |
+| since           | [ID] or [Name] Containers created since this container                           |
+| volume          | [VolumeName] or [MountpointDestination] Volume mounted in container              |
+| health          | [Status] healthy or unhealthy                                                    |
+| pod             | [Pod] name or full or partial ID of pod                                          |
+| network         | [Network] name or full ID of network                                             |
+
 #### **--force**, **-f**
 
 Force the removal of running and paused containers. Forcing a container removal also

@@ -61,9 +61,9 @@ func (ic *ContainerEngine) ContainerPause(ctx context.Context, namesOrIds []stri
 	if err != nil {
 		return nil, err
 	}
-	ctrMap := map[string]string{}
+	idToRawInput := map[string]string{}
 	for i := range ctrs {
-		ctrMap[ctrs[i].ID] = rawInputs[i]
+		idToRawInput[ctrs[i].ID] = rawInputs[i]
 	}
 	reports := make([]*entities.PauseUnpauseReport, 0, len(ctrs))
 	for _, c := range ctrs {
@@ -75,7 +75,7 @@ func (ic *ContainerEngine) ContainerPause(ctx context.Context, namesOrIds []stri
 		reports = append(reports, &entities.PauseUnpauseReport{
 			Id:       c.ID,
 			Err:      err,
-			RawInput: ctrMap[c.ID],
+			RawInput: idToRawInput[c.ID],
 		})
 	}
 	return reports, nil
@@ -86,9 +86,9 @@ func (ic *ContainerEngine) ContainerUnpause(ctx context.Context, namesOrIds []st
 	if err != nil {
 		return nil, err
 	}
-	ctrMap := map[string]string{}
+	idToRawInput := map[string]string{}
 	for i := range ctrs {
-		ctrMap[ctrs[i].ID] = rawInputs[i]
+		idToRawInput[ctrs[i].ID] = rawInputs[i]
 	}
 	reports := make([]*entities.PauseUnpauseReport, 0, len(ctrs))
 	for _, c := range ctrs {
@@ -100,7 +100,7 @@ func (ic *ContainerEngine) ContainerUnpause(ctx context.Context, namesOrIds []st
 		reports = append(reports, &entities.PauseUnpauseReport{
 			Id:       c.ID,
 			Err:      err,
-			RawInput: ctrMap[c.ID],
+			RawInput: idToRawInput[c.ID],
 		})
 	}
 	return reports, nil
@@ -111,9 +111,9 @@ func (ic *ContainerEngine) ContainerStop(ctx context.Context, namesOrIds []strin
 	if err != nil {
 		return nil, err
 	}
-	ctrMap := map[string]string{}
+	idToRawInput := map[string]string{}
 	for i := range ctrs {
-		ctrMap[ctrs[i].ID] = rawInputs[i]
+		idToRawInput[ctrs[i].ID] = rawInputs[i]
 	}
 	options := new(containers.StopOptions).WithIgnore(opts.Ignore)
 	if to := opts.Timeout; to != nil {
@@ -123,7 +123,7 @@ func (ic *ContainerEngine) ContainerStop(ctx context.Context, namesOrIds []strin
 	for _, c := range ctrs {
 		report := entities.StopReport{
 			Id:       c.ID,
-			RawInput: ctrMap[c.ID],
+			RawInput: idToRawInput[c.ID],
 		}
 		if err = containers.Stop(ic.ClientCtx, c.ID, options); err != nil {
 			// These first two are considered non-fatal under the right conditions
@@ -154,9 +154,9 @@ func (ic *ContainerEngine) ContainerKill(ctx context.Context, namesOrIds []strin
 	if err != nil {
 		return nil, err
 	}
-	ctrMap := map[string]string{}
+	idToRawInput := map[string]string{}
 	for i := range ctrs {
-		ctrMap[ctrs[i].ID] = rawInputs[i]
+		idToRawInput[ctrs[i].ID] = rawInputs[i]
 	}
 	options := new(containers.KillOptions).WithSignal(opts.Signal)
 	reports := make([]*entities.KillReport, 0, len(ctrs))
@@ -169,7 +169,7 @@ func (ic *ContainerEngine) ContainerKill(ctx context.Context, namesOrIds []strin
 		reports = append(reports, &entities.KillReport{
 			Id:       c.ID,
 			Err:      err,
-			RawInput: ctrMap[c.ID],
+			RawInput: idToRawInput[c.ID],
 		})
 	}
 	return reports, nil
@@ -208,10 +208,17 @@ func (ic *ContainerEngine) ContainerRm(ctx context.Context, namesOrIds []string,
 
 	toRemove := []string{}
 	alreadyRemoved := make(map[string]bool) // Avoids trying to remove already removed containers
-	if opts.All {
-		ctrs, err := getContainersByContext(ic.ClientCtx, opts.All, opts.Ignore, nil)
+	idToRawInput := map[string]string{}
+
+	if opts.All || len(opts.Filters) > 0 {
+		ctrs, rawInputs, err := getContainersAndInputByContext(ic.ClientCtx, opts.All, opts.Ignore, nil, opts.Filters)
 		if err != nil {
 			return nil, err
+		}
+		if len(rawInputs) == len(ctrs) {
+			for i := range ctrs {
+				idToRawInput[ctrs[i].ID] = rawInputs[i]
+			}
 		}
 		for _, c := range ctrs {
 			toRemove = append(toRemove, c.ID)
@@ -225,9 +232,14 @@ func (ic *ContainerEngine) ContainerRm(ctx context.Context, namesOrIds []string,
 			// instead of the ID. Since this can only happen
 			// with external containers, it poses no threat
 			// to the `alreadyRemoved` checks below.
-			ctrs, err := getContainersByContext(ic.ClientCtx, false, true, []string{ctr})
+			ctrs, rawInputs, err := getContainersAndInputByContext(ic.ClientCtx, false, true, []string{ctr}, opts.Filters)
 			if err != nil {
 				return nil, err
+			}
+			if len(rawInputs) == len(ctrs) {
+				for i := range ctrs {
+					idToRawInput[ctrs[i].ID] = rawInputs[i]
+				}
 			}
 			id := ctr
 			if len(ctrs) == 1 {
@@ -238,13 +250,20 @@ func (ic *ContainerEngine) ContainerRm(ctx context.Context, namesOrIds []string,
 	}
 
 	rmReports := make([]*reports.RmReport, 0, len(toRemove))
-	for _, nameOrID := range toRemove {
-		if alreadyRemoved[nameOrID] {
+	for _, rmCtr := range toRemove {
+		if alreadyRemoved[rmCtr] {
 			continue
 		}
-		newReports, err := containers.Remove(ic.ClientCtx, nameOrID, options)
+		if ctr, exist := idToRawInput[rmCtr]; exist {
+			rmCtr = ctr
+		}
+		newReports, err := containers.Remove(ic.ClientCtx, rmCtr, options)
 		if err != nil {
-			rmReports = append(rmReports, &reports.RmReport{Id: nameOrID, Err: err})
+			rmReports = append(rmReports, &reports.RmReport{
+				Id:       rmCtr,
+				Err:      err,
+				RawInput: idToRawInput[rmCtr],
+			})
 			continue
 		}
 		for i := range newReports {

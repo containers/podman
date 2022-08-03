@@ -18,6 +18,7 @@ load helpers
 
     # Remove container; now 'inspect' should fail
     run_podman rm $rand
+    is "$output" "$rand" "display raw input"
     run_podman 125 inspect $rand
 }
 

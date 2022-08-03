@@ -52,7 +52,8 @@ var (
 	stopOptions = entities.StopOptions{
 		Filters: make(map[string][]string),
 	}
-	stopTimeout uint
+	stopCidFiles = []string{}
+	stopTimeout  uint
 )
 
 func stopFlags(cmd *cobra.Command) {
@@ -62,7 +63,7 @@ func stopFlags(cmd *cobra.Command) {
 	flags.BoolVarP(&stopOptions.Ignore, "ignore", "i", false, "Ignore errors when a specified container is missing")
 
 	cidfileFlagName := "cidfile"
-	flags.StringArrayVar(&cidFiles, cidfileFlagName, nil, "Read the container ID from the file")
+	flags.StringArrayVar(&stopCidFiles, cidfileFlagName, nil, "Read the container ID from the file")
 	_ = cmd.RegisterFlagCompletionFunc(cidfileFlagName, completion.AutocompleteDefault)
 
 	timeFlagName := "time"
@@ -103,7 +104,7 @@ func stop(cmd *cobra.Command, args []string) error {
 	if cmd.Flag("time").Changed {
 		stopOptions.Timeout = &stopTimeout
 	}
-	for _, cidFile := range cidFiles {
+	for _, cidFile := range stopCidFiles {
 		content, err := ioutil.ReadFile(cidFile)
 		if err != nil {
 			return fmt.Errorf("error reading CIDFile: %w", err)
