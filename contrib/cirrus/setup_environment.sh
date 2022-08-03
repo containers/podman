@@ -277,7 +277,7 @@ case "$TEST_FLAVOR" in
         ;&  # continue with next item
     compose)
         make install.tools
-        rpm -ivh $PACKAGE_DOWNLOAD_DIR/podman-docker*
+        dnf install -y $PACKAGE_DOWNLOAD_DIR/podman-docker*
         ;&  # continue with next item
     int) ;&
     sys) ;&
@@ -307,7 +307,7 @@ case "$TEST_FLAVOR" in
         install_test_configs
         ;;
     machine)
-        rpm -ivh $PACKAGE_DOWNLOAD_DIR/podman-gvproxy*
+        dnf install -y $PACKAGE_DOWNLOAD_DIR/podman-gvproxy*
         remove_packaged_podman_files
         make install.tools
         make install PREFIX=/usr ETCDIR=/etc
