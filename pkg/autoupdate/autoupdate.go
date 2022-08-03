@@ -258,7 +258,7 @@ func (u *updater) updateRegistry(ctx context.Context, task *task) (*entities.Aut
 		return report, nil
 	}
 
-	if _, err := updateImage(ctx, u.runtime, rawImageName, authfile); err != nil {
+	if _, err := pullImage(ctx, u.runtime, rawImageName, authfile); err != nil {
 		return report, fmt.Errorf("registry auto-updating container %q: image update for %q failed: %w", cid, rawImageName, err)
 	}
 	u.updatedRawImages[rawImageName] = true
@@ -474,8 +474,8 @@ func newerLocalImageAvailable(runtime *libpod.Runtime, img *libimage.Image, rawI
 	return localImg.Digest().String() != img.Digest().String(), nil
 }
 
-// updateImage pulls the specified image.
-func updateImage(ctx context.Context, runtime *libpod.Runtime, name, authfile string) (*libimage.Image, error) {
+// pullImage pulls the specified image.
+func pullImage(ctx context.Context, runtime *libpod.Runtime, name, authfile string) (*libimage.Image, error) {
 	pullOptions := &libimage.PullOptions{}
 	pullOptions.AuthFilePath = authfile
 	pullOptions.Writer = os.Stderr
