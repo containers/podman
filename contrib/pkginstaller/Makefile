@@ -9,14 +9,15 @@ QEMU_RELEASE_URL ?= https://github.com/containers/podman-machine-qemu/releases/d
 PACKAGE_DIR ?= out/packaging
 TMP_DOWNLOAD ?= tmp-download
 PACKAGE_ROOT ?= root
+PKG_NAME := podman-installer-macos-$(ARCH).pkg
 
 default: pkginstaller
 
-get_gvproxy:
+$(TMP_DOWNLOAD)/gvproxy:
 	mkdir -p $(TMP_DOWNLOAD)
 	cd $(TMP_DOWNLOAD) && curl -sLo gvproxy $(GVPROXY_RELEASE_URL)
 
-get_qemu:
+$(TMP_DOWNLOAD)/podman-machine-qemu-$(ARCH)-$(QEMU_VERSION).tar.xz:
 	mkdir -p $(TMP_DOWNLOAD)
 	cd $(TMP_DOWNLOAD) && curl -sLO $(QEMU_RELEASE_URL)
 
@@ -32,8 +33,9 @@ packagedir: package_root Distribution welcome.html
 	echo -n $(PODMAN_VERSION) > $(PACKAGE_DIR)/VERSION
 	echo -n $(ARCH) > $(PACKAGE_DIR)/ARCH
 	cp ../../LICENSE $(PACKAGE_DIR)/Resources/LICENSE.txt
+	cp hvf.entitlements $(PACKAGE_DIR)/
 
-package_root: get_gvproxy get_qemu
+package_root: clean-pkgroot $(TMP_DOWNLOAD)/podman-machine-qemu-$(ARCH)-$(QEMU_VERSION).tar.xz $(TMP_DOWNLOAD)/gvproxy
 	mkdir -p $(PACKAGE_ROOT)/podman/bin $(PACKAGE_ROOT)/podman/qemu
 	tar -C $(PACKAGE_ROOT)/podman/qemu -xf $(TMP_DOWNLOAD)/podman-machine-qemu-$(ARCH)-$(QEMU_VERSION).tar.xz
 	cp $(TMP_DOWNLOAD)/gvproxy $(PACKAGE_ROOT)/podman/bin/
@@ -45,6 +47,15 @@ package_root: get_gvproxy get_qemu
 pkginstaller: packagedir
 	cd $(PACKAGE_DIR) && ./package.sh ..
 
-.PHONY: clean
+_notarize: pkginstaller
+	xcrun notarytool submit --apple-id $(NOTARIZE_USERNAME) --password $(NOTARIZE_PASSWORD) --team-id=$(NOTARIZE_TEAM) -f json --wait out/$(PKG_NAME)
+
+notarize: _notarize
+	xcrun stapler staple out/$(PKG_NAME)
+
+.PHONY: clean clean-pkgroot
 clean:
 	rm -rf $(TMP_DOWNLOAD) $(PACKAGE_ROOT) $(PACKAGE_DIR) Distribution welcome.html
+
+clean-pkgroot:
+	rm -rf $(PACKAGE_ROOT) $(PACKAGE_DIR) Distribution welcome.html
