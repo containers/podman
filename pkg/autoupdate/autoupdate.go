@@ -62,6 +62,7 @@ type updater struct {
 
 // task includes data and state for updating a container
 type task struct {
+	auto      *updater          // Reverse pointer to the updater
 	container *libpod.Container // Container to update
 	policy    Policy            // Update policy
 	image     *libimage.Image   // Original image before the update
@@ -188,20 +189,9 @@ func AutoUpdate(ctx context.Context, runtime *libpod.Runtime, options entities.A
 		}
 
 		for _, task := range tasks {
-			var report *entities.AutoUpdateReport
-			var reportError error
-
-			switch task.policy {
-			case PolicyRegistryImage:
-				report, reportError = auto.updateRegistry(ctx, task)
-			case PolicyLocalImage:
-				report, reportError = auto.updateLocally(ctx, task)
-			default:
-				reportError = fmt.Errorf("unexpected auto-update policy %s for container %s", task.policy, task.container.ID())
-			}
-
-			if reportError != nil {
-				errors = append(errors, reportError)
+			report, err := task.update(ctx)
+			if err != nil {
+				errors = append(errors, err)
 			}
 			if report != nil {
 				allReports = append(allReports, report)
@@ -212,38 +202,50 @@ func AutoUpdate(ctx context.Context, runtime *libpod.Runtime, options entities.A
 	return allReports, errors
 }
 
+// update the task according to its auto-update policy.
+func (t *task) update(ctx context.Context) (*entities.AutoUpdateReport, error) {
+	switch t.policy {
+	case PolicyRegistryImage:
+		return t.updateRegistry(ctx)
+	case PolicyLocalImage:
+		return t.updateLocally(ctx)
+	default:
+		return nil, fmt.Errorf("unexpected auto-update policy %s for container %s", t.policy, t.container.ID())
+	}
+}
+
 // updateRegistry updates the image/container according to the "registry" policy.
-func (u *updater) updateRegistry(ctx context.Context, task *task) (*entities.AutoUpdateReport, error) {
-	cid := task.container.ID()
-	rawImageName := task.container.RawImageName()
+func (t *task) updateRegistry(ctx context.Context) (*entities.AutoUpdateReport, error) {
+	cid := t.container.ID()
+	rawImageName := t.container.RawImageName()
 	if rawImageName == "" {
 		return nil, fmt.Errorf("registry auto-updating container %q: raw-image name is empty", cid)
 	}
 
-	if task.unit == "" {
-		return nil, fmt.Errorf("auto-updating container %q: no %s label found", task.container.ID(), systemdDefine.EnvVariable)
+	if t.unit == "" {
+		return nil, fmt.Errorf("auto-updating container %q: no %s label found", t.container.ID(), systemdDefine.EnvVariable)
 	}
 
 	report := &entities.AutoUpdateReport{
 		ContainerID:   cid,
-		ContainerName: task.container.Name(),
+		ContainerName: t.container.Name(),
 		ImageName:     rawImageName,
 		Policy:        PolicyRegistryImage,
-		SystemdUnit:   task.unit,
+		SystemdUnit:   t.unit,
 		Updated:       "failed",
 	}
 
-	if _, updated := u.updatedRawImages[rawImageName]; updated {
+	if _, updated := t.auto.updatedRawImages[rawImageName]; updated {
 		logrus.Infof("Auto-updating container %q using registry image %q", cid, rawImageName)
-		if err := u.restartSystemdUnit(ctx, task.container, task.unit); err != nil {
+		if err := t.auto.restartSystemdUnit(ctx, t.container, t.unit); err != nil {
 			return report, err
 		}
 		report.Updated = "true"
 		return report, nil
 	}
 
-	authfile := getAuthfilePath(task.container, u.options)
-	needsUpdate, err := newerRemoteImageAvailable(ctx, task.image, rawImageName, authfile)
+	authfile := getAuthfilePath(t.container, t.auto.options)
+	needsUpdate, err := newerRemoteImageAvailable(ctx, t.image, rawImageName, authfile)
 	if err != nil {
 		return report, fmt.Errorf("registry auto-updating container %q: image check for %q failed: %w", cid, rawImageName, err)
 	}
@@ -253,34 +255,34 @@ func (u *updater) updateRegistry(ctx context.Context, task *task) (*entities.Aut
 		return report, nil
 	}
 
-	if u.options.DryRun {
+	if t.auto.options.DryRun {
 		report.Updated = "pending"
 		return report, nil
 	}
 
-	if _, err := pullImage(ctx, u.runtime, rawImageName, authfile); err != nil {
+	if _, err := pullImage(ctx, t.auto.runtime, rawImageName, authfile); err != nil {
 		return report, fmt.Errorf("registry auto-updating container %q: image update for %q failed: %w", cid, rawImageName, err)
 	}
-	u.updatedRawImages[rawImageName] = true
+	t.auto.updatedRawImages[rawImageName] = true
 
 	logrus.Infof("Auto-updating container %q using registry image %q", cid, rawImageName)
-	updateErr := u.restartSystemdUnit(ctx, task.container, task.unit)
+	updateErr := t.auto.restartSystemdUnit(ctx, t.container, t.unit)
 	if updateErr == nil {
 		report.Updated = "true"
 		return report, nil
 	}
 
-	if !u.options.Rollback {
+	if !t.auto.options.Rollback {
 		return report, updateErr
 	}
 
 	// To fallback, simply retag the old image and restart the service.
-	if err := task.image.Tag(rawImageName); err != nil {
+	if err := t.image.Tag(rawImageName); err != nil {
 		return report, fmt.Errorf("falling back to previous image: %w", err)
 	}
-	u.updatedRawImages[rawImageName] = false
+	t.auto.updatedRawImages[rawImageName] = false
 
-	if err := u.restartSystemdUnit(ctx, task.container, task.unit); err != nil {
+	if err := t.auto.restartSystemdUnit(ctx, t.container, t.unit); err != nil {
 		return report, fmt.Errorf("restarting unit with old image during fallback: %w", err)
 	}
 
@@ -289,27 +291,27 @@ func (u *updater) updateRegistry(ctx context.Context, task *task) (*entities.Aut
 }
 
 // updateRegistry updates the image/container according to the "local" policy.
-func (u *updater) updateLocally(ctx context.Context, task *task) (*entities.AutoUpdateReport, error) {
-	cid := task.container.ID()
-	rawImageName := task.container.RawImageName()
+func (t *task) updateLocally(ctx context.Context) (*entities.AutoUpdateReport, error) {
+	cid := t.container.ID()
+	rawImageName := t.container.RawImageName()
 	if rawImageName == "" {
 		return nil, fmt.Errorf("locally auto-updating container %q: raw-image name is empty", cid)
 	}
 
-	if task.unit == "" {
-		return nil, fmt.Errorf("auto-updating container %q: no %s label found", task.container.ID(), systemdDefine.EnvVariable)
+	if t.unit == "" {
+		return nil, fmt.Errorf("auto-updating container %q: no %s label found", t.container.ID(), systemdDefine.EnvVariable)
 	}
 
 	report := &entities.AutoUpdateReport{
 		ContainerID:   cid,
-		ContainerName: task.container.Name(),
+		ContainerName: t.container.Name(),
 		ImageName:     rawImageName,
 		Policy:        PolicyLocalImage,
-		SystemdUnit:   task.unit,
+		SystemdUnit:   t.unit,
 		Updated:       "failed",
 	}
 
-	needsUpdate, err := newerLocalImageAvailable(u.runtime, task.image, rawImageName)
+	needsUpdate, err := newerLocalImageAvailable(t.auto.runtime, t.image, rawImageName)
 	if err != nil {
 		return report, fmt.Errorf("locally auto-updating container %q: image check for %q failed: %w", cid, rawImageName, err)
 	}
@@ -319,27 +321,27 @@ func (u *updater) updateLocally(ctx context.Context, task *task) (*entities.Auto
 		return report, nil
 	}
 
-	if u.options.DryRun {
+	if t.auto.options.DryRun {
 		report.Updated = "pending"
 		return report, nil
 	}
 
 	logrus.Infof("Auto-updating container %q using local image %q", cid, rawImageName)
-	updateErr := u.restartSystemdUnit(ctx, task.container, task.unit)
+	updateErr := t.auto.restartSystemdUnit(ctx, t.container, t.unit)
 	if updateErr == nil {
 		report.Updated = "true"
 		return report, nil
 	}
 
-	if !u.options.Rollback {
+	if !t.auto.options.Rollback {
 		return report, updateErr
 	}
 
 	// To fallback, simply retag the old image and restart the service.
-	if err := task.image.Tag(rawImageName); err != nil {
+	if err := t.image.Tag(rawImageName); err != nil {
 		return report, fmt.Errorf("falling back to previous image: %w", err)
 	}
-	if err := u.restartSystemdUnit(ctx, task.container, task.unit); err != nil {
+	if err := t.auto.restartSystemdUnit(ctx, t.container, t.unit); err != nil {
 		return report, fmt.Errorf("restarting unit with old image during fallback: %w", err)
 	}
 
@@ -430,6 +432,7 @@ func (u *updater) assembleTasks(ctx context.Context) []error {
 		}
 
 		t := task{
+			auto:      u,
 			container: ctr,
 			policy:    policy,
 			image:     image,
