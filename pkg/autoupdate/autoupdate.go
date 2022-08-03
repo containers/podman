@@ -60,6 +60,14 @@ type updater struct {
 	runtime          *libpod.Runtime
 }
 
+const (
+	statusFailed     = "failed"      // The update has failed
+	statusUpdated    = "true"        // The update succeeded
+	statusNotUpdated = "false"       // No update was needed
+	statusPending    = "pending"     // The update is pending (see options.DryRun)
+	statusRolledBack = "rolled back" // Rollback after a failed update
+)
+
 // task includes data and state for updating a container
 type task struct {
 	authfile  string            // Container-specific authfile
@@ -233,7 +241,7 @@ func (t *task) updateRegistry(ctx context.Context) (*entities.AutoUpdateReport, 
 		ImageName:     rawImageName,
 		Policy:        PolicyRegistryImage,
 		SystemdUnit:   t.unit,
-		Updated:       "failed",
+		Updated:       statusFailed,
 	}
 
 	if _, updated := t.auto.updatedRawImages[rawImageName]; updated {
@@ -241,7 +249,7 @@ func (t *task) updateRegistry(ctx context.Context) (*entities.AutoUpdateReport, 
 		if err := t.auto.restartSystemdUnit(ctx, t.container, t.unit); err != nil {
 			return report, err
 		}
-		report.Updated = "true"
+		report.Updated = statusUpdated
 		return report, nil
 	}
 
@@ -251,12 +259,12 @@ func (t *task) updateRegistry(ctx context.Context) (*entities.AutoUpdateReport, 
 	}
 
 	if !needsUpdate {
-		report.Updated = "false"
+		report.Updated = statusNotUpdated
 		return report, nil
 	}
 
 	if t.auto.options.DryRun {
-		report.Updated = "pending"
+		report.Updated = statusPending
 		return report, nil
 	}
 
@@ -268,7 +276,7 @@ func (t *task) updateRegistry(ctx context.Context) (*entities.AutoUpdateReport, 
 	logrus.Infof("Auto-updating container %q using registry image %q", cid, rawImageName)
 	updateErr := t.auto.restartSystemdUnit(ctx, t.container, t.unit)
 	if updateErr == nil {
-		report.Updated = "true"
+		report.Updated = statusUpdated
 		return report, nil
 	}
 
@@ -286,7 +294,7 @@ func (t *task) updateRegistry(ctx context.Context) (*entities.AutoUpdateReport, 
 		return report, fmt.Errorf("restarting unit with old image during fallback: %w", err)
 	}
 
-	report.Updated = "rolled back"
+	report.Updated = statusRolledBack
 	return report, nil
 }
 
@@ -308,7 +316,7 @@ func (t *task) updateLocally(ctx context.Context) (*entities.AutoUpdateReport, e
 		ImageName:     rawImageName,
 		Policy:        PolicyLocalImage,
 		SystemdUnit:   t.unit,
-		Updated:       "failed",
+		Updated:       statusFailed,
 	}
 
 	needsUpdate, err := newerLocalImageAvailable(t.auto.runtime, t.image, rawImageName)
@@ -317,19 +325,19 @@ func (t *task) updateLocally(ctx context.Context) (*entities.AutoUpdateReport, e
 	}
 
 	if !needsUpdate {
-		report.Updated = "false"
+		report.Updated = statusNotUpdated
 		return report, nil
 	}
 
 	if t.auto.options.DryRun {
-		report.Updated = "pending"
+		report.Updated = statusPending
 		return report, nil
 	}
 
 	logrus.Infof("Auto-updating container %q using local image %q", cid, rawImageName)
 	updateErr := t.auto.restartSystemdUnit(ctx, t.container, t.unit)
 	if updateErr == nil {
-		report.Updated = "true"
+		report.Updated = statusUpdated
 		return report, nil
 	}
 
@@ -345,7 +353,7 @@ func (t *task) updateLocally(ctx context.Context) (*entities.AutoUpdateReport, e
 		return report, fmt.Errorf("restarting unit with old image during fallback: %w", err)
 	}
 
-	report.Updated = "rolled back"
+	report.Updated = statusRolledBack
 	return report, nil
 }
 
