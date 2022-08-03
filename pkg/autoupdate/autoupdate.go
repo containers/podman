@@ -43,11 +43,11 @@ const (
 
 // Map for easy lookups of supported policies.
 var supportedPolicies = map[string]Policy{
-	"":         PolicyDefault,
-	"disabled": PolicyDefault,
-	"image":    PolicyRegistryImage,
-	"registry": PolicyRegistryImage,
-	"local":    PolicyLocalImage,
+	"":                          PolicyDefault,
+	string(PolicyDefault):       PolicyDefault,
+	"image":                     PolicyRegistryImage,
+	string(PolicyRegistryImage): PolicyRegistryImage,
+	string(PolicyLocalImage):    PolicyLocalImage,
 }
 
 // updater includes shared state for auto-updating one or more containers.
