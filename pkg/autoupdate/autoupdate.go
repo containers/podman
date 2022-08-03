@@ -182,6 +182,10 @@ func AutoUpdate(ctx context.Context, runtime *libpod.Runtime, options entities.A
 
 		for _, task := range tasks {
 			err := func() error {
+				// Transition from state to state.  Will be
+				// split into multiple loops in the future to
+				// support more than one container/task per
+				// unit.
 				updateAvailable, err := task.updateAvailable(ctx)
 				if err != nil {
 					task.status = statusFailed
@@ -298,8 +302,11 @@ func (t *task) registryUpdate(ctx context.Context) error {
 		return nil
 	}
 
-	if err := pullImage(ctx, t.auto.runtime, t.rawImageName, t.authfile); err != nil {
-		return fmt.Errorf("registry auto-updating container %q: image update for %q failed: %w", t.container.ID(), t.rawImageName, err)
+	pullOptions := &libimage.PullOptions{}
+	pullOptions.AuthFilePath = t.authfile
+	pullOptions.Writer = os.Stderr
+	if _, err := t.auto.runtime.LibimageRuntime().Pull(ctx, t.rawImageName, config.PullPolicyAlways, pullOptions); err != nil {
+		return err
 	}
 
 	t.auto.updatedRawImages[t.rawImageName] = true
@@ -447,14 +454,4 @@ func (u *updater) assembleImageMap(ctx context.Context) (map[string]*libimage.Im
 	}
 
 	return imageMap, nil
-}
-
-// pullImage pulls the specified image.
-func pullImage(ctx context.Context, runtime *libpod.Runtime, name, authfile string) error {
-	pullOptions := &libimage.PullOptions{}
-	pullOptions.AuthFilePath = authfile
-	pullOptions.Writer = os.Stderr
-
-	_, err := runtime.LibimageRuntime().Pull(ctx, name, config.PullPolicyAlways, pullOptions)
-	return err
 }
