@@ -77,7 +77,12 @@ BUILDTAGS_CROSS ?= containers_image_openpgp exclude_graphdriver_btrfs exclude_gr
 CONTAINER_RUNTIME := $(shell command -v podman 2> /dev/null || echo docker)
 OCI_RUNTIME ?= ""
 
-MANPAGES_MD ?= $(wildcard docs/source/markdown/*.md)
+# The 'sort' below is crucial: without it, 'make docs' behaves differently
+# on the first run than on subsequent ones, because the generated .md
+MANPAGES_SOURCE_DIR = docs/source/markdown
+MANPAGES_MD_IN ?= $(wildcard $(MANPAGES_SOURCE_DIR)/*.md.in)
+MANPAGES_MD_GENERATED ?= $(MANPAGES_MD_IN:%.md.in=%.md)
+MANPAGES_MD ?= $(sort $(wildcard $(MANPAGES_SOURCE_DIR)/*.md) $(MANPAGES_MD_GENERATED))
 MANPAGES ?= $(MANPAGES_MD:%.md=%)
 MANPAGES_DEST ?= $(subst markdown,man, $(subst source,build,$(MANPAGES)))
 
@@ -416,17 +421,24 @@ completions: podman podman-remote
 pkg/api/swagger.yaml:
 	make -C pkg/api
 
+$(MANPAGES_MD_GENERATED): %.md: %.md.in $(MANPAGES_SOURCE_DIR)/options/*.md
+	hack/markdown-preprocess $<
+
 $(MANPAGES): %: %.md .install.md2man docdir
 
-### sed is used to filter http/s links as well as relative links
-### replaces "\" at the end of a line with two spaces
-### this ensures that manpages are renderd correctly
-
-	@$(SED) -e 's/\((podman[^)]*\.md\(#.*\)\?)\)//g' \
-	 -e 's/\[\(podman[^]]*\)\]/\1/g' \
-		 -e 's/\[\([^]]*\)](http[^)]\+)/\1/g' \
-	 -e 's;<\(/\)\?\(a\|a\s\+[^>]*\|sup\)>;;g' \
-	 -e 's/\\$$/  /g' $<  | \
+# This does a bunch of filtering needed for man pages:
+#  1. Strip markdown link targets like '[podman(1)](podman.1.md)'
+#     to just '[podman(1)]', because man pages have no link mechanism;
+#  2. Then remove the brackets: '[podman(1)]' -> 'podman(1)';
+#  3. Then do the same for all other markdown links,
+#     like '[cgroups(7)](https://.....)'  -> just 'cgroups(7)';
+#  4. Remove HTML-ish stuff like '<sup>..</sup>' and '<a>..</a>'
+#  5. Replace "\" (backslash) at EOL with two spaces (no idea why)
+	@$(SED) -e 's/\((podman[^)]*\.md\(#.*\)\?)\)//g'    \
+	       -e 's/\[\(podman[^]]*\)\]/\1/g'              \
+	       -e 's/\[\([^]]*\)](http[^)]\+)/\1/g'         \
+	       -e 's;<\(/\)\?\(a\|a\s\+[^>]*\|sup\)>;;g'    \
+	       -e 's/\\$$/  /g' $<                         |\
 	$(GOMD2MAN) -in /dev/stdin -out $(subst source/markdown,build/man,$@)
 
 .PHONY: docdir
