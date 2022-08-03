@@ -182,8 +182,11 @@ EOF
     run_podman container inspect --format "{{.HostConfig.NetworkMode}}" $infraID
     is "$output" "none" "network mode none is set for the container"
 
-    run_podman stop -a -t 0
-    run_podman pod rm -t 0 -f test_pod
+    run_podman kube down - < $PODMAN_TMPDIR/test.yaml
+    run_podman 125 inspect test_pod-test
+    is "$output" ".*Error: inspecting object: no such object: \"test_pod-test\""
+    run_podman pod rm -a
+    run_podman rm -a
 }
 
 @test "podman play with user from image" {
@@ -325,7 +328,6 @@ spec:
     - name: TERM
       value: xterm
     - name: container
-
       value: podman
     image: quay.io/libpod/userimage
     name: test
@@ -353,6 +355,9 @@ status: {}
     run_podman inspect --format "{{.HostConfig.LogConfig.Type}}" test_pod-test
     is "$output" "$default_driver" "play kube uses default log driver"
 
-    run_podman stop -a -t 0
-    run_podman pod rm -t 0 -f test_pod
+    run_podman kube down $PODMAN_TMPDIR/test.yaml
+    run_podman 125 inspect test_pod-test
+    is "$output" ".*Error: inspecting object: no such object: \"test_pod-test\""
+    run_podman pod rm -a
+    run_podman rm -a
 }

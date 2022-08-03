@@ -1,8 +1,10 @@
 package pods
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"os"
 	"strings"
@@ -37,9 +39,9 @@ var (
 	// https://kubernetes.io/docs/reference/command-line-tools-reference/kubelet/
 	defaultSeccompRoot = "/var/lib/kubelet/seccomp"
 	playOptions        = playKubeOptionsWrapper{}
-	playDescription    = `Command reads in a structured file of Kubernetes YAML.
+	playDescription    = `Reads in a structured file of Kubernetes YAML.
 
-  It creates pods or volumes based on the Kubernetes kind described in the YAML. Supported kinds are Pods, Deployments and PersistentVolumeClaims.`
+  Creates pods or volumes based on the Kubernetes kind described in the YAML. Supported kinds are Pods, Deployments and PersistentVolumeClaims.`
 
 	playCmd = &cobra.Command{
 		Use:               "play [options] KUBEFILE|-",
@@ -139,6 +141,7 @@ func playFlags(cmd *cobra.Command) {
 
 	downFlagName := "down"
 	flags.BoolVar(&playOptions.Down, downFlagName, false, "Stop pods defined in the YAML file")
+	_ = flags.MarkHidden("down")
 
 	replaceFlagName := "replace"
 	flags.BoolVar(&playOptions.Replace, replaceFlagName, false, "Delete and recreate pods defined in the YAML file")
@@ -164,7 +167,7 @@ func playFlags(cmd *cobra.Command) {
 		_ = cmd.RegisterFlagCompletionFunc(contextDirFlagName, completion.AutocompleteDefault)
 
 		// NOTE: The service-container flag is marked as hidden as it
-		// is purely designed for running kube-play or play-kube in systemd units.
+		// is purely designed for running kube-play in systemd units.
 		// It is not something users should need to know or care about.
 		//
 		// Having a flag rather than an env variable is cleaner.
@@ -223,10 +226,6 @@ func Play(cmd *cobra.Command, args []string) error {
 		}
 		playOptions.Annotations[splitN[0]] = annotation
 	}
-	yamlfile := args[0]
-	if yamlfile == "-" {
-		yamlfile = "/dev/stdin"
-	}
 
 	for _, mac := range playOptions.macs {
 		m, err := net.ParseMAC(mac)
@@ -235,35 +234,61 @@ func Play(cmd *cobra.Command, args []string) error {
 		}
 		playOptions.StaticMACs = append(playOptions.StaticMACs, m)
 	}
-	if playOptions.Down {
-		return teardown(yamlfile)
+
+	reader, err := readerFromArg(args[0])
+	if err != nil {
+		return err
 	}
+
+	if playOptions.Down {
+		return teardown(reader)
+	}
+
 	if playOptions.Replace {
-		if err := teardown(yamlfile); err != nil && !errorhandling.Contains(err, define.ErrNoSuchPod) {
+		if err := teardown(reader); err != nil && !errorhandling.Contains(err, define.ErrNoSuchPod) {
+			return err
+		}
+		if _, err := reader.Seek(0, 0); err != nil {
 			return err
 		}
 	}
-	return kubeplay(yamlfile)
+	return kubeplay(reader)
 }
 
 func playKube(cmd *cobra.Command, args []string) error {
 	return Play(cmd, args)
 }
 
-func teardown(yamlfile string) error {
+func readerFromArg(fileName string) (*bytes.Reader, error) {
+	if fileName == "-" { // Read from stdin
+		data, err := io.ReadAll(os.Stdin)
+		if err != nil {
+			return nil, err
+		}
+		return bytes.NewReader(data), nil
+	}
+	f, err := os.Open(fileName)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	data, err := io.ReadAll(f)
+	if err != nil {
+		return nil, err
+	}
+	return bytes.NewReader(data), nil
+}
+
+func teardown(body io.Reader) error {
 	var (
 		podStopErrors utils.OutputErrors
 		podRmErrors   utils.OutputErrors
 	)
 	options := new(entities.PlayKubeDownOptions)
-	f, err := os.Open(yamlfile)
+	reports, err := registry.ContainerEngine().PlayKubeDown(registry.GetContext(), body, *options)
 	if err != nil {
 		return err
-	}
-	defer f.Close()
-	reports, err := registry.ContainerEngine().PlayKubeDown(registry.GetContext(), f, *options)
-	if err != nil {
-		return fmt.Errorf("%v: %w", yamlfile, err)
 	}
 
 	// Output stopped pods
@@ -290,18 +315,14 @@ func teardown(yamlfile string) error {
 			podRmErrors = append(podRmErrors, removed.Err)
 		}
 	}
+
 	return podRmErrors.PrintErrors()
 }
 
-func kubeplay(yamlfile string) error {
-	f, err := os.Open(yamlfile)
+func kubeplay(body io.Reader) error {
+	report, err := registry.ContainerEngine().PlayKube(registry.GetContext(), body, playOptions.PlayKubeOptions)
 	if err != nil {
 		return err
-	}
-	defer f.Close()
-	report, err := registry.ContainerEngine().PlayKube(registry.GetContext(), f, playOptions.PlayKubeOptions)
-	if err != nil {
-		return fmt.Errorf("%s: %w", yamlfile, err)
 	}
 	// Print volumes report
 	for i, volume := range report.Volumes {

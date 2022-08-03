@@ -14,7 +14,8 @@ file input.  Containers will be automatically started.
 
 | Command  | Man Page                                            | Description                                                                  |
 | -------  | --------------------------------------------------- | ---------------------------------------------------------------------------- |
-| play     | [podman-kube-play(1)](podman-kube-play.1.md)        | Create containers, pods or volumes based on Kubernetes YAML.                         |
+| down     | [podman-kube-down(1)](podman-kube-down.1.md)        | Remove containers and pods based on Kubernetes YAML.                          |
+| play     | [podman-kube-play(1)](podman-kube-play.1.md)        | Create containers, pods and volumes based on Kubernetes YAML.                 |
 
 ## SEE ALSO
-**[podman(1)](podman.1.md)**, **[podman-pod(1)](podman-pod.1.md)**, **[podman-container(1)](podman-container.1.md)**, **[podman-generate(1)](podman-generate.1.md)**, **[podman-kube-play(1)](podman-kube-play.1.md)**
+**[podman(1)](podman.1.md)**, **[podman-pod(1)](podman-pod.1.md)**, **[podman-container(1)](podman-container.1.md)**, **[podman-generate(1)](podman-generate.1.md)**, **[podman-kube-play(1)](podman-kube-play.1.md)**, **[podman-kube-down(1)](podman-kube-down.1.md)**

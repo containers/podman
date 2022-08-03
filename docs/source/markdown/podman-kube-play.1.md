@@ -1,7 +1,7 @@
 % podman-kube-play(1)
 
 ## NAME
-podman-kube-play - Create containers, pods or volumes based on Kubernetes YAML
+podman-kube-play - Create containers, pods and volumes based on Kubernetes YAML
 
 ## SYNOPSIS
 **podman kube play** [*options*] *file.yml|-*
@@ -29,6 +29,9 @@ Note: *hostPath* volume types created by kube play will be given an SELinux shar
 Note: If the `:latest` tag is used, Podman will attempt to pull the image from a registry. If the image was built locally with Podman or Buildah, it will have `localhost` as the domain, in that case, Podman will use the image from the local store even if it has the `:latest` tag.
 
 Note: The command `podman play kube` is an alias of `podman kube play`, and will perform the same function.
+
+Note: The command `podman kube down` can be used to stop and remove pods or containers based on the same Kubernetes YAML used
+by `podman kube play` to create them.
 
 `Kubernetes PersistentVolumeClaims`
 
@@ -144,11 +147,6 @@ Use *path* as the build context directory for each image. Requires --build optio
 The [username[:password]] to use to authenticate with the registry if required.
 If one or both values are not supplied, a command line prompt will appear and the
 value can be entered.  The password is entered without echo.
-
-#### **--down**
-
-Tears down the pods that were created by a previous run of `kube play`.  The pods are stopped and then
-removed.  Any volumes created are left intact.
 
 #### **--help**, **-h**
 
@@ -325,7 +323,7 @@ $ podman kube play demo.yml --network net1:ip=10.89.1.5 --network net2:ip=10.89.
 Please take into account that networks must be created first using podman-network-create(1).
 
 ## SEE ALSO
-**[podman(1)](podman.1.md)**, **[podman-kube(1)](podman-kube.1.md)**, **[podman-network-create(1)](podman-network-create.1.md)**, **[podman-generate-kube(1)](podman-generate-kube.1.md)**, **[containers-certs.d(5)](https://github.com/containers/image/blob/main/docs/containers-certs.d.5.md)**
+**[podman(1)](podman.1.md)**, **[podman-kube(1)](podman-kube.1.md)**, **[podman-kube-down(1)](podman-kube-down.1.md)**, **[podman-network-create(1)](podman-network-create.1.md)**, **[podman-generate-kube(1)](podman-generate-kube.1.md)**, **[containers-certs.d(5)](https://github.com/containers/image/blob/main/docs/containers-certs.d.5.md)**
 
 ## HISTORY
 December 2018, Originally compiled by Brent Baude (bbaude at redhat dot com)
