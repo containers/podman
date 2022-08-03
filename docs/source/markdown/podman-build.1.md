@@ -729,6 +729,8 @@ specified and therefore not changed, allowing the image's sha256 hash to remain 
 same. All files committed to the layers of the image will be created with the
 timestamp.
 
+If the only instruction in a Containerfile is `FROM`, this flag has no effect.
+
 #### **--tls-verify**
 
 Require HTTPS and verify certificates when talking to container registries
