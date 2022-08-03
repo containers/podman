@@ -53,7 +53,6 @@ var supportedPolicies = map[string]Policy{
 // updater includes shared state for auto-updating one or more containers.
 type updater struct {
 	conn             *dbus.Conn
-	idToImage        map[string]*libimage.Image
 	options          *entities.AutoUpdateOptions
 	unitToTasks      map[string][]*task
 	updatedRawImages map[string]bool
@@ -123,24 +122,6 @@ func ValidateImageReference(imageName string) error {
 			return fmt.Errorf("auto updates require fully-qualified image references without digest: %q", imageName)
 		}
 	}
-	return nil
-}
-
-func (u *updater) assembleImageMap(ctx context.Context) error {
-	// Create a map from `image ID -> *libimage.Image` for image lookups.
-	listOptions := &libimage.ListImagesOptions{
-		Filters: []string{"readonly=false"},
-	}
-	imagesSlice, err := u.runtime.LibimageRuntime().ListImages(ctx, nil, listOptions)
-	if err != nil {
-		return err
-	}
-	imageMap := make(map[string]*libimage.Image)
-	for i := range imagesSlice {
-		imageMap[imagesSlice[i].ID()] = imagesSlice[i]
-	}
-
-	u.idToImage = imageMap
 	return nil
 }
 
@@ -383,7 +364,8 @@ func (u *updater) restartSystemdUnit(ctx context.Context, ctr *libpod.Container,
 func (u *updater) assembleTasks(ctx context.Context) []error {
 	// Assemble a map `image ID -> *libimage.Image` that we can consult
 	// later on for lookups.
-	if err := u.assembleImageMap(ctx); err != nil {
+	imageMap, err := u.assembleImageMap(ctx)
+	if err != nil {
 		return []error{err}
 	}
 
@@ -432,7 +414,7 @@ func (u *updater) assembleTasks(ctx context.Context) []error {
 		}
 
 		id, _ := ctr.Image()
-		image, exists := u.idToImage[id]
+		image, exists := imageMap[id]
 		if !exists {
 			err := fmt.Errorf("internal error: no image found for ID %s", id)
 			errors = append(errors, err)
@@ -453,6 +435,23 @@ func (u *updater) assembleTasks(ctx context.Context) []error {
 	}
 
 	return errors
+}
+
+// assembleImageMap creates a map from `image ID -> *libimage.Image` for image lookups.
+func (u *updater) assembleImageMap(ctx context.Context) (map[string]*libimage.Image, error) {
+	listOptions := &libimage.ListImagesOptions{
+		Filters: []string{"readonly=false"},
+	}
+	imagesSlice, err := u.runtime.LibimageRuntime().ListImages(ctx, nil, listOptions)
+	if err != nil {
+		return nil, err
+	}
+	imageMap := make(map[string]*libimage.Image)
+	for i := range imagesSlice {
+		imageMap[imagesSlice[i].ID()] = imagesSlice[i]
+	}
+
+	return imageMap, nil
 }
 
 // newerRemoteImageAvailable returns true if there corresponding image on the remote
