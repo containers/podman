@@ -52,11 +52,11 @@ var supportedPolicies = map[string]Policy{
 
 // updater includes shared state for auto-updating one or more containers.
 type updater struct {
-	conn             *dbus.Conn
-	options          *entities.AutoUpdateOptions
-	unitToTasks      map[string][]*task
-	updatedRawImages map[string]bool
-	runtime          *libpod.Runtime
+	conn             *dbus.Conn                  // DBUS connection
+	options          *entities.AutoUpdateOptions // User-specified options
+	unitToTasks      map[string][]*task          // Keeps track of tasks per unit
+	updatedRawImages map[string]bool             // Keeps track of updated images
+	runtime          *libpod.Runtime             // The libpod runtime
 }
 
 const (
