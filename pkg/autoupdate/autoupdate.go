@@ -62,6 +62,7 @@ type updater struct {
 
 // task includes data and state for updating a container
 type task struct {
+	authfile  string            // Container-specific authfile
 	auto      *updater          // Reverse pointer to the updater
 	container *libpod.Container // Container to update
 	policy    Policy            // Update policy
@@ -244,8 +245,7 @@ func (t *task) updateRegistry(ctx context.Context) (*entities.AutoUpdateReport, 
 		return report, nil
 	}
 
-	authfile := getAuthfilePath(t.container, t.auto.options)
-	needsUpdate, err := newerRemoteImageAvailable(ctx, t.image, rawImageName, authfile)
+	needsUpdate, err := newerRemoteImageAvailable(ctx, t.image, rawImageName, t.authfile)
 	if err != nil {
 		return report, fmt.Errorf("registry auto-updating container %q: image check for %q failed: %w", cid, rawImageName, err)
 	}
@@ -260,7 +260,7 @@ func (t *task) updateRegistry(ctx context.Context) (*entities.AutoUpdateReport, 
 		return report, nil
 	}
 
-	if _, err := pullImage(ctx, t.auto.runtime, rawImageName, authfile); err != nil {
+	if _, err := pullImage(ctx, t.auto.runtime, rawImageName, t.authfile); err != nil {
 		return report, fmt.Errorf("registry auto-updating container %q: image update for %q failed: %w", cid, rawImageName, err)
 	}
 	t.auto.updatedRawImages[rawImageName] = true
@@ -432,6 +432,7 @@ func (u *updater) assembleTasks(ctx context.Context) []error {
 		}
 
 		t := task{
+			authfile:  labels[AuthfileLabel],
 			auto:      u,
 			container: ctr,
 			policy:    policy,
@@ -444,17 +445,6 @@ func (u *updater) assembleTasks(ctx context.Context) []error {
 	}
 
 	return errors
-}
-
-// getAuthfilePath returns an authfile path, if set. The authfile label in the
-// container, if set, as precedence over the one set in the options.
-func getAuthfilePath(ctr *libpod.Container, options *entities.AutoUpdateOptions) string {
-	labels := ctr.Labels()
-	authFilePath, exists := labels[AuthfileLabel]
-	if exists {
-		return authFilePath
-	}
-	return options.Authfile
 }
 
 // newerRemoteImageAvailable returns true if there corresponding image on the remote
