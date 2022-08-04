@@ -63,6 +63,7 @@ func infoFlags(cmd *cobra.Command) {
 	flags := cmd.Flags()
 
 	flags.BoolVarP(&debug, "debug", "D", false, "Display additional debug information")
+	_ = flags.MarkHidden("debug") // It's a NOP since Podman version 2.0
 
 	formatFlagName := "format"
 	flags.StringVarP(&inFormat, formatFlagName, "f", "", "Change the output format to JSON or a Go template")
