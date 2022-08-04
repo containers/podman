@@ -8,8 +8,11 @@ import os
 import sys
 
 def main():
+    script_dir = os.path.abspath(os.path.dirname(__file__))
+    man_dir = os.path.join(script_dir,"../docs/source/markdown")
+
     try:
-        os.chdir("docs/source/markdown")
+        os.chdir(man_dir)
     except FileNotFoundError:
         raise Exception("Please invoke me from the base repo dir")
 

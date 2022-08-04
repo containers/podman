@@ -15,6 +15,19 @@
 # sys.path.insert(0, os.path.abspath('.'))
 
 import re
+import os
+import subprocess
+
+# We have to run the preprocessor to create the actual markdown files from .in files.
+# Do it here so the it can work on readthedocs as well.
+path = os.path.join(os.path.abspath(os.path.dirname(
+    __file__)), "../../hack/markdown-preprocess")
+p = subprocess.Popen(path,
+                     stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+out, err = p.communicate()
+if p.returncode != 0:
+    raise Exception("failed to run markdown-preprocess", out, err)
+
 
 # -- Project information -----------------------------------------------------
 
