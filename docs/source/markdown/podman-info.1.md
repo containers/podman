@@ -15,10 +15,6 @@ Displays information pertinent to the host, current storage stats, configured co
 
 ## OPTIONS
 
-#### **--debug**, **-D**
-
-Show additional information
-
 #### **--format**, **-f**=*format*
 
 Change output format to "json" or a Go template.
