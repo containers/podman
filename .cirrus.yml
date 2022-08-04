@@ -325,9 +325,7 @@ alt_build_task:
     alias: alt_build
     # Don't create task for [CI:DOCS] or multiarch builds
     # Docs: ./contrib/cirrus/CIModes.md
-    only_if: &not_docs_multiarch >-
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*' &&
-        $CIRRUS_CRON != 'multiarch'
+    only_if: $CIRRUS_CRON != 'multiarch'
     depends_on:
         - build
     env:
@@ -360,7 +358,7 @@ osx_alt_build_task:
     name: "OSX Cross"
     alias: osx_alt_build
     # Docs: ./contrib/cirrus/CIModes.md
-    only_if: *not_docs_multiarch
+    only_if: $CIRRUS_CRON != 'multiarch'
     depends_on:
         - build
     env:
@@ -906,7 +904,9 @@ artifacts_task:
     name: "Artifacts"
     alias: artifacts
     # Docs: ./contrib/cirrus/CIModes.md
-    only_if: *not_docs_multiarch
+    only_if: >-
+        $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*' &&
+        $CIRRUS_CRON != 'multiarch'
     depends_on:
         - success
     # This task is a secondary/convenience for downstream consumers, don't
