@@ -234,6 +234,8 @@ function _confirm_update() {
     _confirm_update $cname $ori_image
 }
 
+# This test can fail in dev. environment because of SELinux.
+# quick fix: chcon -t container_runtime_exec_t ./bin/podman
 @test "podman auto-update - label io.containers.autoupdate=local with rollback" {
     # sdnotify fails with runc 1.0.0-3-dev2 on Ubuntu. Let's just
     # assume that we work only with crun, nothing else.
