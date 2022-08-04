@@ -1228,4 +1228,27 @@ USER test1`
 
 		Expect(pod.Spec.Containers[0].Env).To(HaveLen(2))
 	})
+
+	It("podman generate kube omit secret if empty", func() {
+		dir, err := os.MkdirTemp(tempdir, "podman")
+		Expect(err).Should(BeNil())
+
+		defer os.RemoveAll(dir)
+
+		podCreate := podmanTest.Podman([]string{"run", "-d", "--pod", "new:" + "noSecretsPod", "--name", "noSecretsCtr", "--volume", dir + ":/foobar", ALPINE})
+		podCreate.WaitWithDefaultTimeout()
+		Expect(podCreate).Should(Exit(0))
+
+		kube := podmanTest.Podman([]string{"generate", "kube", "noSecretsPod"})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		Expect(kube.OutputToString()).ShouldNot(ContainSubstring("secret"))
+
+		pod := new(v1.Pod)
+		err = yaml.Unmarshal(kube.Out.Contents(), pod)
+		Expect(err).To(BeNil())
+
+		Expect(pod.Spec.Volumes[0].Secret).To(BeNil())
+	})
 })
