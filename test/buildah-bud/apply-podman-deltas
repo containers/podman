@@ -128,7 +128,8 @@ errmsg "no such file or directory" \
        "bud with bad dir Dockerfile"
 
 errmsg "no such file or directory" \
-       "Error: no context directory and no Containerfile specified"
+       "Error: no context directory and no Containerfile specified" \
+       "bud without any arguments should fail when no Dockerfile exist"
 
 errmsg "is not a file" \
        "Error: containerfile: .* cannot be path to a directory" \
@@ -150,6 +151,11 @@ errmsg "no contents in .*" \
 errmsg "checking authfile: stat /tmp/nonexistent: no such file or directory" \
        "Error: checking authfile: stat /tmp/nonexistent: no such file or directory" \
        "bud with Containerfile should fail with nonexistent authfile"
+
+# 2022-08-04 drop this one if we bump to 1.26.5 or later
+errmsg "Error: containerfile: .* cannot be path to a directory" \
+       "Error: open .*: no such file or directory" \
+       "bud with specified context should fail if assumed Dockerfile is a directory"
 
 ###############################################################################
 # BEGIN tests that don't make sense under podman due to fundamental differences
