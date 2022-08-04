@@ -85,6 +85,9 @@ type ContainerConfig struct {
 	// This field should never be written to the db, the json tag ensures this.
 	rewrite bool `json:"-"`
 
+	// Domainname defines the containers domainname
+	Domainname string `json:"domainname,omitempty"`
+
 	// embedded sub-configs
 	ContainerRootFSConfig
 	ContainerSecurityConfig

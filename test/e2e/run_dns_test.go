@@ -99,6 +99,22 @@ var _ = Describe("Podman run dns", func() {
 		Expect(session.OutputToString()).To(ContainSubstring("foobar"))
 	})
 
+	It("podman run domainname sets /etc/hosts is retrievable via commands", func() {
+		Skip("crun not updated in CI")
+		session := podmanTest.Podman([]string{"run", "--name", "testing", "--hostname", "foobar", "--domainname", "foobar.fake_domain", ALPINE, "cat", "/etc/hosts"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).To(ContainSubstring("foobar.foobar.fake_domain"))
+
+		session = podmanTest.Podman([]string{"run", "--name", "testing2", "-dt", "--hostname", "foobar", "--domainname", "fake_domain", "fedora"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		session = podmanTest.Podman([]string{"exec", "-it", "testing2", "cat", "/proc/sys/kernel/domainname"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).To(ContainSubstring("fake_domain"))
+	})
+
 	It("podman run mutually excludes --dns* and --network", func() {
 		session := podmanTest.Podman([]string{"run", "--dns=1.2.3.4", "--network", "container:ALPINE", ALPINE})
 		session.WaitWithDefaultTimeout()

@@ -191,7 +191,12 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 		opts = ExtractCDIDevices(s)
 		options = append(options, opts...)
 	}
+
 	runtimeSpec, err := SpecGenToOCI(ctx, s, rt, rtc, newImage, finalMounts, pod, command, compatibleOptions)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
 	if clone { // the container fails to start if cloned due to missing Linux spec entries
 		if c == nil {
 			return nil, nil, nil, errors.New("the given container could not be retrieved")

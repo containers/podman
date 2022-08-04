@@ -164,7 +164,6 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 
 	// NewFromSpec() is deprecated according to its comment
 	// however the recommended replace just causes a nil map panic
-	//nolint:staticcheck
 	g := generate.NewFromSpec(c.config.Spec)
 
 	// If the flag to mount all devices is set for a privileged container, add
@@ -1206,7 +1205,6 @@ func (c *Container) generateContainerSpec() error {
 
 	// NewFromSpec() is deprecated according to its comment
 	// however the recommended replace just causes a nil map panic
-	//nolint:staticcheck
 	g := generate.NewFromSpec(c.config.Spec)
 
 	if err := c.saveSpec(g.Config); err != nil {
@@ -2105,13 +2103,25 @@ func (c *Container) removeNameserver(ips []string) error {
 }
 
 func getLocalhostHostEntry(c *Container) etchosts.HostEntries {
-	return etchosts.HostEntries{{IP: "127.0.0.1", Names: []string{c.Hostname(), c.config.Name}}}
+	hostname := c.Hostname()
+	domainname := c.Domainname()
+	fullname := hostname
+	if len(domainname) > 0 {
+		fullname = fullname + "." + domainname
+	}
+	return etchosts.HostEntries{{IP: "127.0.0.1", Names: []string{fullname, c.config.Name}}}
 }
 
 // getHostsEntries returns the container ip host entries for the correct netmode
 func (c *Container) getHostsEntries() (etchosts.HostEntries, error) {
 	var entries etchosts.HostEntries
-	names := []string{c.Hostname(), c.config.Name}
+	hostname := c.Hostname()
+	domainname := c.Domainname()
+	fullname := hostname
+	if len(domainname) > 0 {
+		fullname = fullname + "." + domainname
+	}
+	names := []string{fullname, c.config.Name}
 	switch {
 	case c.config.NetMode.IsBridge():
 		entries = etchosts.GetNetworkHostEntries(c.state.NetworkStatus, names...)

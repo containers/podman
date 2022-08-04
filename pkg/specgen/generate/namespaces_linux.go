@@ -71,22 +71,26 @@ func specConfigureNamespaces(s *specgen.SpecGenerator, g *generate.Generator, rt
 	}
 
 	hostname := s.Hostname
+	domainname := s.Domainname
 	if hostname == "" {
 		switch {
 		case s.UtsNS.NSMode == specgen.FromPod:
 			hostname = pod.Hostname()
+			domainname = ""
 		case s.UtsNS.NSMode == specgen.FromContainer:
 			utsCtr, err := rt.LookupContainer(s.UtsNS.Value)
 			if err != nil {
 				return fmt.Errorf("looking up container to share uts namespace with: %w", err)
 			}
 			hostname = utsCtr.Hostname()
+			domainname = utsCtr.Domainname()
 		case (s.NetNS.NSMode == specgen.Host && hostname == "") || s.UtsNS.NSMode == specgen.Host:
 			tmpHostname, err := os.Hostname()
 			if err != nil {
 				return fmt.Errorf("unable to retrieve hostname of the host: %w", err)
 			}
 			hostname = tmpHostname
+			domainname = ""
 		default:
 			logrus.Debug("No hostname set; container's hostname will default to runtime default")
 		}
@@ -98,7 +102,12 @@ func specConfigureNamespaces(s *specgen.SpecGenerator, g *generate.Generator, rt
 		// the user or if we are creating a new UTS namespace.
 		// TODO: Should we be doing this for pod or container shared
 		// namespaces?
+		// we do not want to add domainname to the hostname, we need to keep track of it for later
 		g.SetHostname(hostname)
+	}
+
+	if s.Domainname != "" && s.UtsNS.NSMode != specgen.Host {
+		g.SetDomainName(domainname)
 	}
 	if _, ok := s.Env["HOSTNAME"]; !ok && s.Hostname != "" {
 		g.AddProcessEnv("HOSTNAME", hostname)

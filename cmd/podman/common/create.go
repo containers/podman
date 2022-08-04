@@ -108,6 +108,14 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 			"This is a Docker specific option and is a NOOP",
 		)
 
+		domainNameFlagName := "domainname"
+		createFlags.StringVar(
+			&cf.Domainname,
+			domainNameFlagName, "",
+			"Set container domain name",
+		)
+		_ = cmd.RegisterFlagCompletionFunc(domainNameFlagName, completion.AutocompleteNone)
+
 		envMergeFlagName := "env-merge"
 		createFlags.StringArrayVar(
 			&cf.EnvMerge,

@@ -688,6 +688,22 @@ func (c *Container) Hostname() string {
 	return c.ID()[:12]
 }
 
+// Domainname gets the container's domainname
+func (c *Container) Domainname() string {
+	if c.config.UTSNsCtr != "" {
+		utsNsCtr, err := c.runtime.GetContainer(c.config.UTSNsCtr)
+		if err != nil {
+			logrus.Errorf("unable to look up uts namespace for container %s: %v", c.ID(), err)
+			return ""
+		}
+		return utsNsCtr.Domainname()
+	}
+	if c.config.Spec.Domainname != "" {
+		return c.config.Spec.Domainname
+	}
+	return ""
+}
+
 // WorkingDir returns the containers working dir
 func (c *Container) WorkingDir() string {
 	if c.config.Spec.Process != nil {

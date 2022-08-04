@@ -160,6 +160,8 @@ type ContainerBasicConfig struct {
 	// Conflicts with UtsNS if UtsNS is not set to private.
 	// Optional.
 	Hostname string `json:"hostname,omitempty"`
+	// Domainname is the container's domain name. Must be specified in conjunction with hostname
+	Domainname string `json:"domainname,omitempty"`
 	// HostUses is a list of host usernames or UIDs to add to the container
 	// /etc/passwd file
 	HostUsers []string `json:"hostusers,omitempty"`

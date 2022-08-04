@@ -561,6 +561,10 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 	if len(s.Hostname) == 0 || len(c.Hostname) != 0 {
 		s.Hostname = c.Hostname
 	}
+
+	if len(s.Domainname) == 0 || len(c.Domainname) != 0 {
+		s.Domainname = c.Domainname
+	}
 	sysctl := map[string]string{}
 	if ctl := c.Sysctl; len(ctl) > 0 {
 		sysctl, err = util.ValidateSysctls(ctl)

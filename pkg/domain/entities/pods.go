@@ -200,6 +200,7 @@ type ContainerCreateOptions struct {
 	DeviceReadIOPs     []string
 	DeviceWriteBPs     []string
 	DeviceWriteIOPs    []string
+	Domainname         string
 	Entrypoint         *string `json:"container_command,omitempty"`
 	Env                []string
 	EnvHost            bool
