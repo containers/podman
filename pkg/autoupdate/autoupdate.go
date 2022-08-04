@@ -45,7 +45,7 @@ const (
 var supportedPolicies = map[string]Policy{
 	"":                          PolicyDefault,
 	string(PolicyDefault):       PolicyDefault,
-	"image":                     PolicyRegistryImage,
+	"image":                     PolicyRegistryImage, // Deprecated in favor of PolicyRegistryImage
 	string(PolicyRegistryImage): PolicyRegistryImage,
 	string(PolicyLocalImage):    PolicyLocalImage,
 }
