@@ -42,7 +42,7 @@ var (
 	vmtype = "qemu"
 )
 
-func GetQemuProvider() machine.Provider {
+func GetVirtualizationProvider() machine.Provider {
 	return qemuProvider
 }
 

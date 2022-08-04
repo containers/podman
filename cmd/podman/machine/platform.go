@@ -9,5 +9,5 @@ import (
 )
 
 func GetSystemDefaultProvider() machine.Provider {
-	return qemu.GetQemuProvider()
+	return qemu.GetVirtualizationProvider()
 }
