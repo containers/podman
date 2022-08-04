@@ -5,9 +5,27 @@ Subject: [PATCH] tweaks for running buildah tests under podman
 
 Signed-off-by: Ed Santiago <santiago@redhat.com>
 ---
+ tests/bud.bats | 5 +++++
  tests/helpers.bash | 70 ++++++++++++++++++++++++++++++++++++++++++++--
- 1 file changed, 67 insertions(+), 3 deletions(-)
+ 2 files changed, 72 insertions(+), 3 deletions(-)
 
+diff --git a/tests/bud.bats b/tests/bud.bats
+index 43c07f37..25df11cd 100644
+--- a/tests/bud.bats
++++ b/tests/bud.bats
+@@ -2684,6 +2684,11 @@ _EOF
+   expect_output --substring "FROM alpine"
+   expect_output --substring "success"
+   expect_output --substring "debug=yes"
++}
++
++@test "bud with Containerfile.in, via envariable" {
++  _prefetch alpine
++  target=alpine-image
+ 
+   BUILDAH_CPPFLAGS="-DDEBUG" run_buildah build $WITH_POLICY_JSON -t ${target} -f $BUDFILES/containerfile/Containerfile.in $BUDFILES/containerfile
+   [ "${status}" -eq 0 ]
+-- 
 diff --git a/tests/helpers.bash b/tests/helpers.bash
 index e3087063..178a486e 100644
 --- a/tests/helpers.bash
