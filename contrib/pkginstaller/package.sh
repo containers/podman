@@ -17,8 +17,8 @@ arch=$(cat "${BASEDIR}/ARCH")
 
 function build_podman() {
   pushd "$1"
-    make podman-remote HELPER_BINARIES_DIR="${HELPER_BINARIES_DIR}"
-    make podman-mac-helper
+    make GOARCH="${arch}" podman-remote HELPER_BINARIES_DIR="${HELPER_BINARIES_DIR}"
+    make GOARCH="${arch}" podman-mac-helper
     cp bin/darwin/podman "contrib/pkginstaller/out/packaging/${binDir}/podman"
     cp bin/darwin/podman-mac-helper "contrib/pkginstaller/out/packaging/${binDir}/podman-mac-helper"
   popd
