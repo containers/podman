@@ -20,7 +20,7 @@
 - The `podman create` and `podman run` commands now include the `-c` short option for the `--cpu-shares` option.
 - The `podman create` and `podman run` commands can now create containers from a manifest list (and not an image) as long as the `--platform` option is specified ([#14773](https://github.com/containers/podman/issues/14773)).
 - The `podman build` command now supports a new option, `--cpp-flag`, to specify options for the C preprocessor when using `Containerfile.in` files that require preprocessing.
-- The `podman build` command now supports a new option, `--build-contaxt`, allowing the user to specify an additional build context.
+- The `podman build` command now supports a new option, `--build-context`, allowing the user to specify an additional build context.
 - The `podman machine inspect` command now prints the location of the VM's Podman API socket on the host ([#14231](https://github.com/containers/podman/issues/14231)).
 - The `podman machine init` command on Windows now fetches an image with packages pre-installed ([#14698](https://github.com/containers/podman/issues/14698)).
 - Unused, cached Podman machine VM images are now cleaned up automatically. Note that because Podman now caches in a different directory, this will not clean up old images pulled before this change ([#14697](https://github.com/containers/podman/issues/14697)).
@@ -40,6 +40,8 @@
 - The `podman stop` command now includes a new flag, `--filter`, to filter which containers will be stopped (e.g. `podman stop --all --filter label=COM.MY.APP`).
 - The Podman global option `--url` now has two aliases: `-H` and `--host`.
 - The `podman network create` command now supports a new option with the default `bridge` driver, `--opt isolate=`, which isolates the network by blocking any traffic from it to any other network with the `isolate` option enabled. This option is enabled by default for networks created using the Docker-compatible API.
+- Added the ability to create sigstore signatures in `podman push` and `podman manifest push`.
+- Added an option to read image signing passphrase from a file.
 
 ### Changes
 - Paused containers can now be killed with the `podman kill` command.
@@ -52,6 +54,7 @@
 - Init containers created with `podman play kube` now default to the `once` type ([#14877](https://github.com/containers/podman/issues/14877)).
 - Pods created with no shared namespaces will no longer create an infra container unless one is explicitly requested ([#15048](https://github.com/containers/podman/issues/15048)).
 - The `podman create`, `podman run`, and `podman cp` commands can now autocomplete paths in the image or container via the shell completion.
+- The `libpod/common` package has been removed as it's not used anywhere.
 
 ### Bugfixes
 - Fixed a bug where bind-mounting `/dev` into a container which used the `--init` flag would cause the container to fail to start ([#14251](https://github.com/containers/podman/issues/14251)).
@@ -111,6 +114,8 @@
 - The `podman system prune` command now no longer prints the `Deleted Images` header if no images were pruned.
 - The `podman system service` command now automatically creates and moves to a sub-cgroup when running in the root cgroup ([#14573](https://github.com/containers/podman/issues/14573)).
 - Podman will automatically create a sub-cgroup and move itself into it when it detects that it is running inside a container ([#14884](https://github.com/containers/podman/issues/14884)).
+- Fixed an incorrect release note about regexp.
+- MacOS pkginstaller support is now included.
 
 ## 4.1.1
 ### Features
