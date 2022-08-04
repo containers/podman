@@ -128,8 +128,7 @@ errmsg "no such file or directory" \
        "bud with bad dir Dockerfile"
 
 errmsg "no such file or directory" \
-       "Error: no context directory and no Containerfile specified" \
-       "bud without any arguments should fail when no Dockerfile exists"
+       "Error: no context directory and no Containerfile specified"
 
 errmsg "is not a file" \
        "Error: containerfile: .* cannot be path to a directory" \
@@ -197,9 +196,6 @@ skip_if_remote "--build-context option not implemented in podman-remote" \
                "build-with-additional-build-context and COPY, additional context from host" \
                "build-with-additional-build-context and RUN --mount=from=, additional-context not image and also test conflict with stagename" \
 
-skip_if_remote "env-variable for Containerfile.in pre-processing is not propagated on remote" \
-               "bud with Containerfile.in, via envariable" \
-
 # Requires a local file outside context dir
 skip_if_remote "local keyfile not sent to podman-remote" \
                "bud with encrypted FROM image"
@@ -215,18 +211,13 @@ skip_if_remote "--output option not implemented in podman-remote" \
                "build with custom build output and output rootfs to directory" \
                "build with custom build output and output rootfs to tar" \
                "build with custom build output and output rootfs to tar by pipe" \
-               "build with custom build output must fail for bad input" \
-               "build with custom build output and output rootfs to tar with no additional step"
+               "build with custom build output must fail for bad input"
 
 # https://github.com/containers/podman/issues/14544
 skip_if_remote "logfile not implemented on remote" "bud-logfile-with-split-logfile-by-platform"
 
 skip_if_remote "envariables do not automatically work with -remote." \
                "build proxy"
-
-# 2022-07-04 this is a new test in buildah; it's failing in treadmill
-skip_if_remote "FIXME FIXME FIXME: does this test make sense in remote?" \
-               "build-test with OCI prestart hook"
 
 ###############################################################################
 # BEGIN tests which are skipped due to actual podman or podman-remote bugs.
