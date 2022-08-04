@@ -1,4 +1,4 @@
-package pods
+package generate
 
 import (
 	"encoding/json"
@@ -57,7 +57,7 @@ var (
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Command: systemdCmd,
-		Parent:  generateCmd,
+		Parent:  GenerateCmd,
 	})
 	flags := systemdCmd.Flags()
 	flags.BoolVarP(&systemdOptions.Name, "name", "n", false, "Use container/pod names instead of IDs")

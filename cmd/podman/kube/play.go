@@ -1,4 +1,4 @@
-package pods
+package kube
 
 import (
 	"bytes"
@@ -47,7 +47,7 @@ var (
 		Use:               "play [options] KUBEFILE|-",
 		Short:             "Play a pod or volume based on Kubernetes YAML.",
 		Long:              playDescription,
-		RunE:              Play,
+		RunE:              play,
 		Args:              cobra.ExactArgs(1),
 		ValidArgsFunction: common.AutocompleteDefaultOneArg,
 		Example: `podman kube play nginx.yml
@@ -181,11 +181,10 @@ func playFlags(cmd *cobra.Command) {
 	}
 }
 
-func Play(cmd *cobra.Command, args []string) error {
+func play(cmd *cobra.Command, args []string) error {
 	if playOptions.ServiceContainer && !playOptions.StartCLI { // Sanity check to be future proof
 		return fmt.Errorf("--service-container does not work with --start=stop")
 	}
-
 	// TLS verification in c/image is controlled via a `types.OptionalBool`
 	// which allows for distinguishing among set-true, set-false, unspecified
 	// which is important to implement a sane way of dealing with defaults of
@@ -260,7 +259,7 @@ func Play(cmd *cobra.Command, args []string) error {
 }
 
 func playKube(cmd *cobra.Command, args []string) error {
-	return Play(cmd, args)
+	return play(cmd, args)
 }
 
 func readerFromArg(fileName string) (*bytes.Reader, error) {

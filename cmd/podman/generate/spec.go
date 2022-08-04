@@ -1,4 +1,4 @@
-package pods
+package generate
 
 import (
 	"fmt"
@@ -31,7 +31,7 @@ var (
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Command: specCmd,
-		Parent:  generateCmd,
+		Parent:  GenerateCmd,
 	})
 	opts = &entities.GenerateSpecOptions{}
 	flags := specCmd.Flags()

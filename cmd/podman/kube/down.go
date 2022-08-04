@@ -1,4 +1,4 @@
-package pods
+package kube
 
 import (
 	"github.com/containers/podman/v4/cmd/podman/common"
