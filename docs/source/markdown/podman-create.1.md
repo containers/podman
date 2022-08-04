@@ -115,7 +115,9 @@ Add Linux capabilities
 
 Drop Linux capabilities
 
-@@option cgroup-conf
+#### **--cgroup-conf**=*KEY=VALUE*
+
+When running on cgroup v2, specify the cgroup file to write to and its value. For example **--cgroup-conf=memory.high=1073741824** sets the memory.high limit to 1GB.
 
 #### **--cgroup-parent**=*path*
 
@@ -141,7 +143,11 @@ The *disabled* option will force the container to not create CGroups, and thus c
 The *no-conmon* option disables a new CGroup only for the conmon process.
 The *split* option splits the current cgroup in two sub-cgroups: one for conmon and one for the container payload. It is not possible to set *--cgroup-parent* with *split*.
 
-@@option chrootdirs
+#### **--chrootdirs**=*path*
+
+Path to a directory inside the container that should be treated as a `chroot` directory.
+Any Podman managed file (e.g., /etc/resolv.conf, /etc/hosts, etc/hostname) that is mounted into the root directory will be mounted into that location as well.
+Multiple directories should be separated with a comma.
 
 #### **--cidfile**=*id*
 
@@ -352,7 +358,9 @@ See [**Environment**](#environment) note below for precedence and examples.
 
 Read in a line delimited file of environment variables. See **Environment** note below for precedence.
 
-@@option env-host
+#### **--env-host**
+
+Use host environment inside of the container. See **Environment** note below for precedence. (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
 
 #### **--expose**=*port*
 
@@ -368,7 +376,17 @@ __--uidmap__ maps host UIDs to container UIDs. For details see __--uidmap__.
 
 Note: the **--gidmap** flag cannot be called in conjunction with the **--pod** flag as a gidmap cannot be set on the container level when in a pod.
 
-@@option group-add
+#### **--group-add**=*group* | *keep-groups*
+
+Assign additional groups to the primary user running within the container process.
+
+- `keep-groups` is a special flag that tells Podman to keep the supplementary group access.
+
+Allows container to use the user's supplementary group access. If file systems or
+devices are only accessible by the rootless user's group, this flag tells the OCI
+runtime to pass the group access into the container. Currently only available
+with the `crun` OCI runtime. Note: `keep-groups` is exclusive, you cannot add any other groups
+with this flag. (Not available for remote commands, including Mac and Windows (excluding WSL2) machines)
 
 #### **--health-cmd**=*"command"* | *'["command", "arg1", ...]'*
 
@@ -407,7 +425,10 @@ Container host name
 
 Sets the container host name that is available inside the container. Can only be used with a private UTS namespace `--uts=private` (default). If `--pod` is specified and the pod shares the UTS namespace (default) the pod's hostname will be used.
 
-@@option hostuser
+#### **--hostuser**=*name*
+
+Add a user account to /etc/passwd from the host to the container. The Username
+or UID must exist on the host system.
 
 #### **--http-proxy**
 
@@ -429,9 +450,20 @@ container:
 
 Defaults to `true`
 
-@@option image-volume
+#### **--image-volume**=**bind** | *tmpfs* | *ignore*
 
-@@option init
+Tells Podman how to handle the builtin image volumes. Default is **bind**.
+
+- **bind**: An anonymous named volume will be created and mounted into the container.
+- **tmpfs**: The volume is mounted onto the container as a tmpfs, which allows the users to create
+content that disappears when the container is stopped.
+- **ignore**: All volumes are just ignored and no action is taken.
+
+#### **--init**
+
+Run an init inside the container that forwards signals and reaps processes.
+The container-init binary is mounted at `/run/podman-init`.
+Mounting over `/run` will hence break container execution.
 
 #### **--init-ctr**=*type*
 
@@ -448,7 +480,9 @@ Init containers are only run on pod `start`.  Restarting a pod will not execute 
 containers should they be present.  Furthermore, init containers can only be created in a
 pod when that pod is not running.
 
-@@option init-path
+#### **--init-path**=*path*
+
+Path to the container-init binary.
 
 #### **--interactive**, **-i**
 
@@ -577,7 +611,83 @@ Tune a container's memory swappiness behavior. Accepts an integer between 0 and 
 
 This flag is not supported on cgroups V2 systems.
 
-@@option mount
+#### **--mount**=*type=TYPE,TYPE-SPECIFIC-OPTION[,...]*
+
+Attach a filesystem mount to the container
+
+Current supported mount TYPEs are **bind**, **volume**, **image**, **tmpfs** and **devpts**. <sup>[[1]](#Footnote1)</sup>
+
+       e.g.
+
+       type=bind,source=/path/on/host,destination=/path/in/container
+
+       type=bind,src=/path/on/host,dst=/path/in/container,relabel=shared
+
+       type=bind,src=/path/on/host,dst=/path/in/container,relabel=shared,U=true
+
+       type=volume,source=vol1,destination=/path/in/container,ro=true
+
+       type=tmpfs,tmpfs-size=512M,destination=/path/in/container
+
+       type=image,source=fedora,destination=/fedora-image,rw=true
+
+       type=devpts,destination=/dev/pts
+
+       Common Options:
+
+	      · src, source: mount source spec for bind and volume. Mandatory for bind.
+
+	      · dst, destination, target: mount destination spec.
+
+       Options specific to volume:
+
+	      · ro, readonly: true or false (default).
+
+	      . U, chown: true or false (default). Change recursively the owner and group of the source volume based on the UID and GID of the container.
+
+	      · idmap: true or false (default).  If specified, create an idmapped mount to the target user namespace in the container.
+
+       Options specific to image:
+
+	      · rw, readwrite: true or false (default).
+
+       Options specific to bind:
+
+	      · ro, readonly: true or false (default).
+
+	      · bind-propagation: shared, slave, private, unbindable, rshared, rslave, runbindable, or rprivate(default). See also mount(2).
+
+	      . bind-nonrecursive: do not set up a recursive bind mount. By default it is recursive.
+
+	      . relabel: shared, private.
+
+	      · idmap: true or false (default).  If specified, create an idmapped mount to the target user namespace in the container.
+
+	      . U, chown: true or false (default). Change recursively the owner and group of the source volume based on the UID and GID of the container.
+
+       Options specific to tmpfs:
+
+	      · ro, readonly: true or false (default).
+
+	      · tmpfs-size: Size of the tmpfs mount in bytes. Unlimited by default in Linux.
+
+	      · tmpfs-mode: File mode of the tmpfs in octal. (e.g. 700 or 0700.) Defaults to 1777 in Linux.
+
+	      · tmpcopyup: Enable copyup from the image directory at the same location to the tmpfs. Used by default.
+
+	      · notmpcopyup: Disable copying files from the image to the tmpfs.
+
+	      . U, chown: true or false (default). Change recursively the owner and group of the source volume based on the UID and GID of the container.
+
+       Options specific to devpts:
+
+	      · uid: UID of the file owner (default 0).
+
+	      · gid: GID of the file owner (default 0).
+
+	      · mode: permission mask for the file (default 600).
+
+	      · max: maximum number of PTYs (default 1048576).
 
 #### **--name**=*name*
 
@@ -635,7 +745,9 @@ these aliases can be used for name resolution on the given network. This option 
 NOTE: When using CNI a container will only have access to aliases on the first network that it joins. This limitation does
 not exist with netavark/aardvark-dns.
 
-@@option no-healthcheck
+#### **--no-healthcheck**
+
+Disable any defined healthchecks for container.
 
 #### **--no-hosts**
 
@@ -644,7 +756,11 @@ By default, Podman will manage _/etc/hosts_, adding the container's own IP addre
 **--no-hosts** disables this, and the image's _/etc/hosts_ will be preserved unmodified.
 This option conflicts with **--add-host**.
 
-@@option oom-kill-disable
+#### **--oom-kill-disable**
+
+Whether to disable OOM Killer for the container or not.
+
+This flag is not supported on cgroups V2 systems.
 
 #### **--oom-score-adj**=*num*
 
@@ -653,9 +769,15 @@ Tune the host's OOM preferences for containers (accepts -1000 to 1000)
 #### **--os**=*OS*
 Override the OS, defaults to hosts, of the image to be pulled. For example, `windows`.
 
-@@option passwd-entry
+#### **--passwd-entry**=*ENTRY*
 
-@@option personality
+Customize the entry that is written to the `/etc/passwd` file within the container when `--passwd` is used.
+
+The variables $USERNAME, $UID, $GID, $NAME, $HOME are automatically replaced with their value at runtime.
+
+#### **--personality**=*persona*
+
+Personality sets the execution domain via Linux personality(2).
 
 #### **--pid**=*pid*
 
@@ -666,7 +788,15 @@ Default is to create a private PID namespace for the container
 - `ns`: join the specified PID namespace
 - `private`: create a new namespace for the container (default)
 
-@@option pidfile
+#### **--pidfile**=*path*
+
+When the pidfile location is specified, the container process' PID will be written to the pidfile. (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
+If the pidfile option is not specified, the container process' PID will be written to /run/containers/storage/${storage-driver}-containers/$CID/userdata/pidfile.
+
+After the container is started, the location for the pidfile can be discovered with the following `podman inspect` command:
+
+    $ podman inspect --format '{{ .PidFile }}' $CID
+    /run/containers/storage/${storage-driver}-containers/$CID/userdata/pidfile
 
 #### **--pids-limit**=*limit*
 
@@ -814,9 +944,22 @@ directory will be the lower, and the container storage directory will be the
 upper. Modifications to the mount point are destroyed when the container
 finishes executing, similar to a tmpfs mount point being unmounted.
 
-@@option sdnotify
+#### **--sdnotify**=**container** | *conmon* | *ignore*
 
-@@option seccomp-policy
+Determines how to use the NOTIFY_SOCKET, as passed with systemd and Type=notify.
+
+Default is **container**, which means allow the OCI runtime to proxy the socket into the
+container to receive ready notification. Podman will set the MAINPID to conmon's pid.
+The **conmon** option sets MAINPID to conmon's pid, and sends READY when the container
+has started. The socket is never passed to the runtime or the container.
+The **ignore** option removes NOTIFY_SOCKET from the environment for itself and child processes,
+for the case where some other process above Podman uses NOTIFY_SOCKET and Podman should not use it.
+
+#### **--seccomp-policy**=*policy*
+
+Specify the policy to select the seccomp profile. If set to *image*, Podman will look for a "io.containers.seccomp.profile" label in the container-image config and use its value as a seccomp profile. Otherwise, Podman will follow the *default* policy by applying the default profile unless specified otherwise via *--security-opt seccomp* as described below.
+
+Note that this feature is experimental and may change in the future.
 
 #### **--secret**=*secret[,opt=opt ...]*
 
@@ -942,7 +1085,11 @@ The `container_manage_cgroup` boolean must be enabled for this to be allowed on 
 
 `setsebool -P container_manage_cgroup true`
 
-@@option timeout
+#### **--timeout**=*seconds*
+
+Maximum time a container is allowed to run before conmon sends it the kill
+signal.  By default containers will run until they exit or are stopped by
+`podman stop`.
 
 #### **--tls-verify**
 
@@ -972,7 +1119,10 @@ interactive shell. The default is false.
 Note: The **-t** option is incompatible with a redirection of the Podman client
 standard input.
 
-@@option tz
+#### **--tz**=*timezone*
+
+Set timezone in container. This flag takes area-based timezones, GMT time, as well as `local`, which sets the timezone in the container to match the host machine. See `/usr/share/zoneinfo/` for valid timezones.
+Remote connections use local containers.conf for defaults
 
 #### **--uidmap**=*container_uid:from_uid:amount*
 
@@ -1058,7 +1208,10 @@ Ulimit options
 
 You can pass `host` to copy the current configuration from the host.
 
-@@option umask
+#### **--umask**=*umask*
+
+Set the umask inside the container. Defaults to `0022`.
+Remote connections use local containers.conf for defaults
 
 #### **--unsetenv**=*env*
 
@@ -1066,7 +1219,11 @@ Unset default environment variables for the container. Default environment
 variables include variables provided natively by Podman, environment variables
 configured by the image, and environment variables from containers.conf.
 
-@@option unsetenv-all
+#### **--unsetenv-all**
+
+Unset all default environment variables for the container. Default environment
+variables include variables provided natively by Podman, environment variables
+configured by the image, and environment variables from containers.conf.
 
 #### **--user**, **-u**=*user*
 
