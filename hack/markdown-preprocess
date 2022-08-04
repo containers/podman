@@ -29,7 +29,7 @@ def process(infile):
         pod_or_container = 'pod'
 
     # Sometimes a man page includes the subcommand.
-    subcommand = infile.removeprefix("podman-").removesuffix(".1.md.in").replace("-", " ")
+    subcommand = removesuffix(removeprefix(infile,"podman-"),".1.md.in").replace("-", " ")
 
     # foo.md.in -> foo.md -- but always write to a tmpfile
     outfile = os.path.splitext(infile)[0]
@@ -63,6 +63,22 @@ def process(infile):
 
     os.chmod(outfile_tmp, 0o444)
     os.rename(outfile_tmp, outfile)
+
+# str.removeprefix() is python 3.9+, we need to support older versions on mac
+def removeprefix(string: str, prefix: str) -> str:
+    if string.startswith(prefix):
+        return string[len(prefix):]
+    else:
+        return string[:]
+
+# str.removesuffix() is python 3.9+, we need to support older versions on mac
+def removesuffix(string: str, suffix: str) -> str:
+    # suffix='' should not call self[:-0].
+    if suffix and string.endswith(suffix):
+        return string[:-len(suffix)]
+    else:
+        return string[:]
+
 
 if __name__ == "__main__":
     main()
