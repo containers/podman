@@ -364,14 +364,6 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 		return false, err
 	}
 
-	if err := v.writeConfig(); err != nil {
-		return false, err
-	}
-
-	if err := setupConnections(v, opts, sshDir); err != nil {
-		return false, err
-	}
-
 	dist, err := provisionWSLDist(v)
 	if err != nil {
 		return false, err
@@ -392,6 +384,14 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 
 	// Cycle so that user change goes into effect
 	_ = terminateDist(dist)
+
+	if err := v.writeConfig(); err != nil {
+		return false, err
+	}
+
+	if err := setupConnections(v, opts, sshDir); err != nil {
+		return false, err
+	}
 
 	return true, nil
 }
