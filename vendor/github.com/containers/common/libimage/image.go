@@ -470,12 +470,20 @@ func (i *Image) removeRecursive(ctx context.Context, rmMap map[string]*RemoveIma
 	}
 
 	if _, err := i.runtime.store.DeleteImage(i.ID(), true); handleError(err) != nil {
+		if errors.Is(err, storage.ErrImageUsedByContainer) {
+			err = fmt.Errorf("%w: consider listing external containers and force-removing image", err)
+		}
 		return processedIDs, err
 	}
 	report.Untagged = append(report.Untagged, i.Names()...)
 
 	if !hasChildren {
 		report.Removed = true
+	}
+
+	// Do not delete any parents if NoPrune is true
+	if options.NoPrune {
+		return processedIDs, nil
 	}
 
 	// Check if can remove the parent image.
@@ -495,7 +503,6 @@ func (i *Image) removeRecursive(ctx context.Context, rmMap map[string]*RemoveIma
 	if !danglingParent {
 		return processedIDs, nil
 	}
-
 	// Recurse into removing the parent.
 	return parent.removeRecursive(ctx, rmMap, processedIDs, "", options)
 }

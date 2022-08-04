@@ -259,8 +259,8 @@ Labels.created_at | 20[0-9-]\\\+T[0-9:]\\\+Z
 
     run_podman 2 rmi -a
     is "$output" "Error: 2 errors occurred:
-.** image used by .*: image is in use by a container
-.** image used by .*: image is in use by a container"
+.** image used by .*: image is in use by a container: consider listing external containers and force-removing image
+.** image used by .*: image is in use by a container: consider listing external containers and force-removing image"
 
     run_podman rmi -af
     is "$output" "Untagged: $IMAGE
@@ -292,7 +292,7 @@ Deleted: $pauseID" "infra images gets removed as well"
     pauseID=$output
 
     run_podman 2 rmi $pauseImage
-    is "$output" "Error: image used by .* image is in use by a container"
+    is "$output" "Error: image used by .* image is in use by a container: consider listing external containers and force-removing image"
 
     run_podman rmi -f $pauseImage
     is "$output" "Untagged: $pauseImage
