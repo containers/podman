@@ -204,10 +204,11 @@ build_aarch64_task:
     only_if: "$CIRRUS_CRON != 'multiarch'"
     ec2_instance: &standard_build_ec2_aarch64
         image: ${VM_IMAGE_NAME}
-        type: t4g.xlarge
+        type: ${EC2_INST_TYPE}
         region: us-east-1
         architecture: arm64  # CAUTION: This has to be "arm64", not "aarch64".
     env: &stdenvars_aarch64
+        EC2_INST_TYPE: "t4g.xlarge"
         DISTRO_NV: ${FEDORA_AARCH64_NAME}
         VM_IMAGE_NAME: ${FEDORA_AARCH64_AMI_ID}
         CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
@@ -695,9 +696,10 @@ podman_machine_task:
         - rootless_integration_test
     ec2_instance:
         image: "${VM_IMAGE_NAME}"
-        type: m5zn.metal  # Bare-metal instance is required
+        type: "${EC2_INST_TYPE}"
         region: us-east-1
     env:
+      EC2_INST_TYPE: "m5zn.metal"  # Bare-metal instance is required
       TEST_FLAVOR: "machine"
       PRIV_NAME: "rootless"  # intended use-case
       DISTRO_NV: "${FEDORA_NAME}"
