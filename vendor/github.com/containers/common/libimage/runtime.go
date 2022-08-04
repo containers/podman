@@ -608,6 +608,8 @@ type RemoveImagesOptions struct {
 	// much space was freed. However, computing the size of an image is
 	// comparatively expensive, so it is made optional.
 	WithSize bool
+	// NoPrune will not remove dangling images
+	NoPrune bool
 }
 
 // RemoveImages removes images specified by names.  If no names are specified,
@@ -653,7 +655,6 @@ func (r *Runtime) RemoveImages(ctx context.Context, names []string, options *Rem
 	toDelete := []string{}
 	// Look up images in the local containers storage and fill out
 	// toDelete and the deleteMap.
-
 	switch {
 	case len(names) > 0:
 		// prepare lookupOptions
