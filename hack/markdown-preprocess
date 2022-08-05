@@ -46,21 +46,19 @@ def process(infile):
             if line.startswith('@@option '):
                 _, optionname = line.strip().split(" ")
                 optionfile = os.path.join("options", optionname + '.md')
-                fh_out.write("[//]: # (BEGIN included file " + optionfile + ")\n")
+
+                # Comment intended to help someone viewing the .md file.
+                # Leading newline is important because if two lines are
+                # consecutive without a break, sphinx (but not go-md2man)
+                # treats them as one line and will unwantedly render the
+                # comment in its output.
+                fh_out.write("\n[//]: # (BEGIN included file " + optionfile + ")\n")
                 with open(optionfile, 'r') as fh_optfile:
                     for opt_line in fh_optfile:
                         opt_line = opt_line.replace('<POD-OR-CONTAINER>', pod_or_container)
                         opt_line = opt_line.replace('<SUBCOMMAND>', subcommand)
                         fh_out.write(opt_line)
-
-                    # Weird special case: options/image-volume.md ends in a
-                    # list, and in markdown lists are continued across lines,
-                    # so without an intervening blank line the '[//]' comment
-                    # becomes part of the final list entry.
-                    if opt_line.startswith('-'):
-                        fh_out.write("\n")
-
-                fh_out.write("[//]: # (END   included file " + optionfile + ")\n")
+                fh_out.write("\n[//]: # (END   included file " + optionfile + ")\n")
             else:
                 fh_out.write(line)
 
