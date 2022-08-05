@@ -547,6 +547,7 @@ func ImagesBatchRemove(w http.ResponseWriter, r *http.Request) {
 		Ignore         bool     `schema:"ignore"`
 		LookupManifest bool     `schema:"lookupManifest"`
 		Images         []string `schema:"images"`
+		NoPrune        bool     `schema:"noprune"`
 	}{}
 
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
@@ -554,7 +555,7 @@ func ImagesBatchRemove(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	opts := entities.ImageRemoveOptions{All: query.All, Force: query.Force, Ignore: query.Ignore, LookupManifest: query.LookupManifest}
+	opts := entities.ImageRemoveOptions{All: query.All, Force: query.Force, Ignore: query.Ignore, LookupManifest: query.LookupManifest, NoPrune: query.NoPrune}
 	imageEngine := abi.ImageEngine{Libpod: runtime}
 	rmReport, rmErrors := imageEngine.Remove(r.Context(), query.Images, opts)
 	strErrs := errorhandling.ErrorsToStrings(rmErrors)

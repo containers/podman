@@ -15,6 +15,8 @@ type RemoveOptions struct {
 	Ignore *bool
 	// Confirms if given name is a manifest list and removes it, otherwise returns error.
 	LookupManifest *bool
+	// Does not remove dangling parent images
+	NoPrune *bool
 }
 
 //go:generate go run ../generator/generator.go DiffOptions

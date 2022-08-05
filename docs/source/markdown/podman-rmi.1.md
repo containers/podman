@@ -28,6 +28,9 @@ This option will cause podman to remove all containers that are using the image 
 
 If a specified image does not exist in the local storage, ignore it and do not throw an error.
 
+#### **--no-prune**
+
+This options will not remove dangling parents of specified image
 
 Remove an image by its short ID
 ```
