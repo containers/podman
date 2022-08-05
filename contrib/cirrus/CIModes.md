@@ -85,6 +85,16 @@ of this document, it's not possible to override the behavior of `$CIRRUS_PR`.
 + meta
 + success
 
+### Intended `[CI:COPR]` PR Tasks:
++ ext_svc_check
++ automation
++ *build*
++ validate
++ swagger
++ consistency
++ meta
++ success
+
 ### Intend `[CI:BUILD]` PR Tasks:
 + ext_svc_check
 + automation
