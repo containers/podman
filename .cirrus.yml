@@ -32,12 +32,12 @@ env:
 
     # Image identifiers
     IMAGE_SUFFIX: "c6211193021923328"
-    FEDORA_AMI_ID: "ami-06a41d8a81ab56afa"
-    # Complete image names
+    # EC2 images
+    FEDORA_AMI: "fedora-aws-${IMAGE_SUFFIX}"
+    # GCP Images
     FEDORA_CACHE_IMAGE_NAME: "fedora-${IMAGE_SUFFIX}"
     PRIOR_FEDORA_CACHE_IMAGE_NAME: "prior-fedora-${IMAGE_SUFFIX}"
     UBUNTU_CACHE_IMAGE_NAME: "ubuntu-${IMAGE_SUFFIX}"
-
     # Container FQIN's
     FEDORA_CONTAINER_FQIN: "quay.io/libpod/fedora_podman:${IMAGE_SUFFIX}"
     PRIOR_FEDORA_CONTAINER_FQIN: "quay.io/libpod/prior-fedora_podman:${IMAGE_SUFFIX}"
@@ -610,7 +610,7 @@ podman_machine_task:
       TEST_FLAVOR: "machine"
       PRIV_NAME: "rootless"  # intended use-case
       DISTRO_NV: "${FEDORA_NAME}"
-      VM_IMAGE_NAME: "${FEDORA_AMI_ID}"
+      VM_IMAGE_NAME: "${FEDORA_AMI}"
     clone_script: *get_gosrc
     setup_script: *setup
     main_script: *main
