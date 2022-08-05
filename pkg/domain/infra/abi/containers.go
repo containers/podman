@@ -40,6 +40,7 @@ import (
 // is specified.  It also returns a list of the corresponding input name used to lookup each container.
 func getContainersAndInputByContext(all, latest bool, names []string, filters map[string][]string, runtime *libpod.Runtime) (ctrs []*libpod.Container, rawInput []string, err error) {
 	var ctr *libpod.Container
+	var filteredCtrs []*libpod.Container
 	ctrs = []*libpod.Container{}
 	filterFuncs := make([]libpod.ContainerFilter, 0, len(filters))
 
@@ -58,7 +59,17 @@ func getContainersAndInputByContext(all, latest bool, names []string, filters ma
 		}
 		rawInput = []string{}
 		for _, candidate := range ctrs {
-			rawInput = append(rawInput, candidate.ID())
+			if len(names) > 0 {
+				for _, name := range names {
+					if candidate.ID() == name || candidate.Name() == name {
+						rawInput = append(rawInput, candidate.ID())
+						filteredCtrs = append(filteredCtrs, candidate)
+					}
+				}
+				ctrs = filteredCtrs
+			} else {
+				rawInput = append(rawInput, candidate.ID())
+			}
 		}
 	case all:
 		ctrs, err = runtime.GetAllContainers()
@@ -899,38 +910,7 @@ func (ic *ContainerEngine) ContainerExecDetached(ctx context.Context, nameOrID s
 func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []string, options entities.ContainerStartOptions) ([]*entities.ContainerStartReport, error) {
 	reports := []*entities.ContainerStartReport{}
 	var exitCode = define.ExecErrorCodeGeneric
-	containersNamesOrIds := namesOrIds
-	all := options.All
-	if len(options.Filters) > 0 {
-		all = false
-		filterFuncs := make([]libpod.ContainerFilter, 0, len(options.Filters))
-		if len(options.Filters) > 0 {
-			for k, v := range options.Filters {
-				generatedFunc, err := dfilters.GenerateContainerFilterFuncs(k, v, ic.Libpod)
-				if err != nil {
-					return nil, err
-				}
-				filterFuncs = append(filterFuncs, generatedFunc)
-			}
-		}
-		candidates, err := ic.Libpod.GetContainers(filterFuncs...)
-		if err != nil {
-			return nil, err
-		}
-		containersNamesOrIds = []string{}
-		for _, candidate := range candidates {
-			if options.All {
-				containersNamesOrIds = append(containersNamesOrIds, candidate.ID())
-				continue
-			}
-			for _, nameOrID := range namesOrIds {
-				if nameOrID == candidate.ID() || nameOrID == candidate.Name() {
-					containersNamesOrIds = append(containersNamesOrIds, nameOrID)
-				}
-			}
-		}
-	}
-	ctrs, rawInputs, err := getContainersAndInputByContext(all, options.Latest, containersNamesOrIds, options.Filters, ic.Libpod)
+	ctrs, rawInputs, err := getContainersAndInputByContext(options.All, options.Latest, namesOrIds, options.Filters, ic.Libpod)
 	if err != nil {
 		return nil, err
 	}
