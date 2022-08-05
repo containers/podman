@@ -1062,8 +1062,8 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 
 	args := r.sharedConmonArgs(ctr, ctr.ID(), ctr.bundlePath(), pidfile, ctr.LogPath(), r.exitsDir, ociLog, ctr.LogDriver(), logTag)
 
-	if ctr.config.SdNotifyMode == define.SdNotifyModeContainer && ctr.notifySocket != "" {
-		args = append(args, fmt.Sprintf("--sdnotify-socket=%s", ctr.notifySocket))
+	if ctr.config.SdNotifyMode == define.SdNotifyModeContainer && ctr.config.SdNotifySocket != "" {
+		args = append(args, fmt.Sprintf("--sdnotify-socket=%s", ctr.config.SdNotifySocket))
 	}
 
 	if ctr.config.Spec.Process.Terminal {
@@ -1391,14 +1391,13 @@ func startCommand(cmd *exec.Cmd, ctr *Container) error {
 	// Make sure to unset the NOTIFY_SOCKET and reset it afterwards if needed.
 	switch ctr.config.SdNotifyMode {
 	case define.SdNotifyModeContainer, define.SdNotifyModeIgnore:
-		if ctr.notifySocket != "" {
+		if prev := os.Getenv("NOTIFY_SOCKET"); prev != "" {
 			if err := os.Unsetenv("NOTIFY_SOCKET"); err != nil {
 				logrus.Warnf("Error unsetting NOTIFY_SOCKET %v", err)
 			}
-
 			defer func() {
-				if err := os.Setenv("NOTIFY_SOCKET", ctr.notifySocket); err != nil {
-					logrus.Errorf("Resetting NOTIFY_SOCKET=%s", ctr.notifySocket)
+				if err := os.Setenv("NOTIFY_SOCKET", prev); err != nil {
+					logrus.Errorf("Resetting NOTIFY_SOCKET=%s", prev)
 				}
 			}()
 		}

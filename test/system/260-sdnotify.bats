@@ -88,7 +88,13 @@ function _assert_mainpid_is_conmon() {
     export NOTIFY_SOCKET=$PODMAN_TMPDIR/ignore.sock
     _start_socat
 
-    run_podman 1 run --rm --sdnotify=ignore $IMAGE printenv NOTIFY_SOCKET
+    run_podman create --rm --sdnotify=ignore $IMAGE printenv NOTIFY_SOCKET
+    cid="$output"
+
+    run_podman container inspect $cid --format "{{.Config.SdNotifyMode}} {{.Config.SdNotifySocket}}"
+    is "$output" "ignore $NOTIFY_SOCKET"
+
+    run_podman 1 start --attach $cid
     is "$output" "" "\$NOTIFY_SOCKET in container"
 
     is "$(< $_SOCAT_LOG)" "" "nothing received on socket"
@@ -105,6 +111,9 @@ function _assert_mainpid_is_conmon() {
                sh -c 'printenv NOTIFY_SOCKET;echo READY;while ! test -f /stop;do sleep 0.1;done'
     cid="$output"
     wait_for_ready $cid
+
+    run_podman container inspect $cid --format "{{.Config.SdNotifyMode}} {{.Config.SdNotifySocket}}"
+    is "$output" "conmon $NOTIFY_SOCKET"
 
     run_podman container inspect sdnotify_conmon_c --format "{{.State.ConmonPid}}"
     mainPID="$output"
@@ -150,6 +159,9 @@ READY=1" "sdnotify sent MAINPID and READY"
                sh -c 'printenv NOTIFY_SOCKET;echo READY;systemd-notify --ready;while ! test -f /stop;do sleep 0.1;done'
     cid="$output"
     wait_for_ready $cid
+
+    run_podman container inspect $cid --format "{{.Config.SdNotifyMode}} {{.Config.SdNotifySocket}}"
+    is "$output" "container $NOTIFY_SOCKET"
 
     run_podman logs $cid
     is "${lines[0]}" "/run/notify/notify.sock" "NOTIFY_SOCKET is passed to container"

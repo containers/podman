@@ -613,6 +613,17 @@ func WithSystemd() CtrCreateOption {
 	}
 }
 
+// WithSdNotifySocket sets the sd-notify of the container
+func WithSdNotifySocket(socketPath string) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return define.ErrCtrFinalized
+		}
+		ctr.config.SdNotifySocket = socketPath
+		return nil
+	}
+}
+
 // WithSdNotifyMode sets the sd-notify method
 func WithSdNotifyMode(mode string) CtrCreateOption {
 	return func(ctr *Container) error {

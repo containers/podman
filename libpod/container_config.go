@@ -386,6 +386,8 @@ type ContainerMiscConfig struct {
 	IsService bool `json:"isService"`
 	// SdNotifyMode tells libpod what to do with a NOTIFY_SOCKET if passed
 	SdNotifyMode string `json:"sdnotifyMode,omitempty"`
+	// SdNotifySocket stores NOTIFY_SOCKET in use by the container
+	SdNotifySocket string `json:"sdnotifySocket,omitempty"`
 	// Systemd tells libpod to set up the container in systemd mode, a value of nil denotes false
 	Systemd *bool `json:"systemd,omitempty"`
 	// HealthCheckConfig has the health check command and related timings
