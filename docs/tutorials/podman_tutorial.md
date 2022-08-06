@@ -1,4 +1,4 @@
-![PODMAN logo](../../logo/podman-logo-source.svg)
+![PODMAN logo](https://raw.githubusercontent.com/containers/common/main/logos/podman-logo-full-vert.png)
 
 # Basic Setup and Use of Podman
 Podman is a utility provided as part of the libpod library.  It can be used to create and maintain

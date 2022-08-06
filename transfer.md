@@ -1,4 +1,4 @@
-![PODMAN logo](logo/podman-logo-source.svg)
+![PODMAN logo](https://raw.githubusercontent.com/containers/common/main/logos/podman-logo-full-vert.png)
 # Podman Usage Transfer
 
 This document outlines useful information for ops and dev transfer as it relates to infrastructure that utilizes `Podman`.

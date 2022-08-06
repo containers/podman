@@ -1,4 +1,4 @@
-![PODMAN logo](../logo/podman-logo-source.svg)
+![PODMAN logo](https://raw.githubusercontent.com/containers/common/main/logos/podman-logo-full-vert.png)
 # Test utils
 Test utils provide common functions and structs for testing. It includes two structs:
 * `PodmanTest`: Handle the *podman* command and other global resources like temporary

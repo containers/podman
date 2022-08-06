@@ -1,6 +1,6 @@
 > - 译文出自：[掘金翻译计划](https://juejin.cn/translate)
 
-![PODMAN logo](../../logo/podman-logo-source.svg)
+![PODMAN logo](https://raw.githubusercontent.com/containers/common/main/logos/podman-logo-full-vert.png)
 
 Podman是由libpod库提供一个实用的程序，可以被用于创建和管理容器。
 
