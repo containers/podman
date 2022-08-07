@@ -636,13 +636,11 @@ container_integration_test_task:
     matrix: &fedora_vm_axis
         - env:
               DISTRO_NV: ${FEDORA_NAME}
-              _BUILD_CACHE_HANDLE: ${FEDORA_NAME}-build-${CIRRUS_BUILD_ID}
               VM_IMAGE_NAME: ${FEDORA_CACHE_IMAGE_NAME}
               CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
               CI_DESIRED_RUNTIME: crun
         #- env:
         #DISTRO_NV: ${PRIOR_FEDORA_NAME}
-        #_BUILD_CACHE_HANDLE: ${PRIOR_FEDORA_NAME}-build-${CIRRUS_BUILD_ID}
         #VM_IMAGE_NAME: ${PRIOR_FEDORA_CACHE_IMAGE_NAME}
         #CTR_FQIN: ${PRIOR_FEDORA_CONTAINER_FQIN}
     gce_instance: *standardvm
@@ -788,8 +786,6 @@ rootless_remote_system_test_task:
               # Not used here, is used in other tasks
               VM_IMAGE_NAME: ${FEDORA_CACHE_IMAGE_NAME}
               CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
-              # ID for re-use of build output
-              _BUILD_CACHE_HANDLE: ${FEDORA_NAME}-build-${CIRRUS_BUILD_ID}
               CI_DESIRED_RUNTIME: crun
     <<: *local_system_test_task
     alias: rootless_remote_system_test
@@ -836,8 +832,6 @@ buildah_bud_test_task:
         # Not used here, is used in other tasks
         VM_IMAGE_NAME: ${FEDORA_CACHE_IMAGE_NAME}
         CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
-        # ID for re-use of build output
-        _BUILD_CACHE_HANDLE: ${FEDORA_NAME}-build-${CIRRUS_BUILD_ID}
     matrix:
         - env:
             PODBIN_NAME: podman
@@ -899,8 +893,6 @@ upgrade_test_task:
         TEST_FLAVOR: upgrade_test
         DISTRO_NV: ${FEDORA_NAME}
         VM_IMAGE_NAME: ${FEDORA_CACHE_IMAGE_NAME}
-        # ID for re-use of build output
-        _BUILD_CACHE_HANDLE: ${FEDORA_NAME}-build-${CIRRUS_BUILD_ID}
     clone_script: *get_gosrc
     setup_script: *setup
     main_script: *main
