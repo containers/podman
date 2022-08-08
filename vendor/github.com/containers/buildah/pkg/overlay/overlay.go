@@ -250,7 +250,7 @@ func Unmount(contentDir string) error {
 	}
 
 	// Ignore EINVAL as the specified merge dir is not a mount point
-	if err := unix.Unmount(mergeDir, 0); err != nil && !os.IsNotExist(err) && err != unix.EINVAL {
+	if err := unix.Unmount(mergeDir, 0); err != nil && !errors.Is(err, os.ErrNotExist) && err != unix.EINVAL {
 		return fmt.Errorf("unmount overlay %s: %w", mergeDir, err)
 	}
 	return nil
@@ -259,7 +259,7 @@ func Unmount(contentDir string) error {
 func recreate(contentDir string) error {
 	st, err := system.Stat(contentDir)
 	if err != nil {
-		if os.IsNotExist(err) {
+		if errors.Is(err, os.ErrNotExist) {
 			return nil
 		}
 		return fmt.Errorf("failed to stat overlay upper directory: %w", err)
@@ -293,7 +293,7 @@ func CleanupContent(containerDir string) (Err error) {
 
 	files, err := ioutil.ReadDir(contentDir)
 	if err != nil {
-		if os.IsNotExist(err) {
+		if errors.Is(err, os.ErrNotExist) {
 			return nil
 		}
 		return fmt.Errorf("read directory: %w", err)
@@ -305,7 +305,7 @@ func CleanupContent(containerDir string) (Err error) {
 		}
 	}
 
-	if err := os.RemoveAll(contentDir); err != nil && !os.IsNotExist(err) {
+	if err := os.RemoveAll(contentDir); err != nil && !errors.Is(err, os.ErrNotExist) {
 		return fmt.Errorf("failed to cleanup overlay directory: %w", err)
 	}
 	return nil

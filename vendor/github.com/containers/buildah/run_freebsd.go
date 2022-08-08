@@ -251,6 +251,7 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 		jconf.Set("enforce_statfs", 0)
 		jconf.Set("devfs_ruleset", 4)
 		jconf.Set("allow.raw_sockets", true)
+		jconf.Set("allow.chflags", true)
 		jconf.Set("allow.mount", true)
 		jconf.Set("allow.mount.devfs", true)
 		jconf.Set("allow.mount.nullfs", true)
