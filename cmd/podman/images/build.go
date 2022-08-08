@@ -18,6 +18,7 @@ import (
 	"github.com/containers/common/pkg/auth"
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/common/pkg/config"
+	"github.com/containers/image/v5/docker/reference"
 	encconfig "github.com/containers/ocicrypt/config"
 	enchelpers "github.com/containers/ocicrypt/helpers"
 	"github.com/containers/podman/v4/cmd/podman/common"
@@ -184,7 +185,6 @@ func buildFlags(cmd *cobra.Command) {
 	flags.SetNormalizeFunc(buildahCLI.AliasFlags)
 	if registry.IsRemote() {
 		_ = flags.MarkHidden("disable-content-trust")
-		_ = flags.MarkHidden("cache-from")
 		_ = flags.MarkHidden("sign-by")
 		_ = flags.MarkHidden("signature-policy")
 		_ = flags.MarkHidden("tls-verify")
@@ -519,6 +519,27 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *buil
 			}
 		}
 	}
+	var cacheTo reference.Named
+	var cacheFrom reference.Named
+	if c.Flag("cache-to").Changed {
+		cacheTo, err = parse.RepoNameToNamedReference(flags.CacheTo)
+		if err != nil {
+			return nil, fmt.Errorf("unable to parse value provided `%s` to --cache-to: %w", flags.CacheTo, err)
+		}
+	}
+	if c.Flag("cache-from").Changed {
+		cacheFrom, err = parse.RepoNameToNamedReference(flags.CacheFrom)
+		if err != nil {
+			return nil, fmt.Errorf("unable to parse value provided `%s` to --cache-from: %w", flags.CacheTo, err)
+		}
+	}
+	var cacheTTL time.Duration
+	if c.Flag("cache-ttl").Changed {
+		cacheTTL, err = time.ParseDuration(flags.CacheTTL)
+		if err != nil {
+			return nil, fmt.Errorf("unable to parse value provided %q as --cache-ttl: %w", flags.CacheTTL, err)
+		}
+	}
 
 	opts := buildahDefine.BuildOptions{
 		AddCapabilities:         flags.CapAdd,
@@ -529,6 +550,9 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *buil
 		Args:                    args,
 		BlobDirectory:           flags.BlobCache,
 		BuildOutput:             flags.BuildOutput,
+		CacheFrom:               cacheFrom,
+		CacheTo:                 cacheTo,
+		CacheTTL:                cacheTTL,
 		CommonBuildOpts:         commonOpts,
 		Compression:             compression,
 		ConfigureNetwork:        networkPolicy,
