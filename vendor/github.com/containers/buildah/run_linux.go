@@ -381,7 +381,7 @@ func (b *Builder) setupOCIHooks(config *spec.Spec, hasVolumes bool) (map[string]
 		for _, hDir := range []string{hooks.DefaultDir, hooks.OverrideDir} {
 			manager, err := hooks.New(context.Background(), []string{hDir}, []string{})
 			if err != nil {
-				if os.IsNotExist(err) {
+				if errors.Is(err, os.ErrNotExist) {
 					continue
 				}
 				return nil, err
@@ -690,7 +690,7 @@ func setupNamespaces(logger *logrus.Logger, g *generate.Generator, namespaceOpti
 			// by the kernel
 			p := filepath.Join("/proc/sys", strings.Replace(name, ".", "/", -1))
 			_, err := os.Stat(p)
-			if err != nil && !os.IsNotExist(err) {
+			if err != nil && !errors.Is(err, os.ErrNotExist) {
 				return false, nil, false, err
 			}
 			if err == nil {

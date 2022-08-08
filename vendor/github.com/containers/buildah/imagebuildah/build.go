@@ -185,7 +185,8 @@ func BuildDockerfiles(ctx context.Context, store storage.Store, options define.B
 	options.Manifest = ""
 	type instance struct {
 		v1.Platform
-		ID string
+		ID  string
+		Ref reference.Canonical
 	}
 	var instances []instance
 	var instancesLock sync.Mutex
@@ -266,10 +267,10 @@ func BuildDockerfiles(ctx context.Context, store storage.Store, options define.B
 			if err != nil {
 				return err
 			}
-			id, ref = thisID, thisRef
 			instancesLock.Lock()
 			instances = append(instances, instance{
 				ID:       thisID,
+				Ref:      thisRef,
 				Platform: platformSpec,
 			})
 			instancesLock.Unlock()
@@ -283,6 +284,25 @@ func BuildDockerfiles(ctx context.Context, store storage.Store, options define.B
 		}
 		return "", nil, merr.ErrorOrNil()
 	}
+
+	// Reasons for this id, ref assigment w.r.t to use-case:
+	//
+	// * Single-platform build: On single platform build we only
+	//   have one built instance i.e on indice 0 of built instances,
+	//   so assign that.
+	//
+	// * Multi-platform build with manifestList: If this is a build for
+	//   multiple platforms ( more than one platform ) and --manifest
+	//   option then this assignment is insignificant since it will be
+	//   overriden anyways with the id and ref of manifest list later in
+	//   in this code.
+	//
+	// * Multi-platform build without manifest list: If this is a build for
+	//   multiple platforms without --manifest then we are free to return
+	//   id and ref of any one of the image in the instance list so always
+	//   return indice 0 for predictable output instead returning the id and
+	//   ref of the go routine which completed at last.
+	id, ref = instances[0].ID, instances[0].Ref
 
 	if manifestList != "" {
 		rt, err := libimage.RuntimeFromStore(store, nil)
@@ -396,6 +416,7 @@ func buildDockerfilesOnce(ctx context.Context, store storage.Store, logger *logr
 	for i, d := range dockerfilecontents[1:] {
 		additionalNode, err := imagebuilder.ParseDockerfile(bytes.NewReader(d))
 		if err != nil {
+			dockerfiles := dockerfiles[1:]
 			return "", nil, fmt.Errorf("error parsing additional Dockerfile %s: %w", dockerfiles[i], err)
 		}
 		mainNode.Children = append(mainNode.Children, additionalNode.Children...)
@@ -662,6 +683,7 @@ func baseImages(dockerfilenames []string, dockerfilecontents [][]byte, from stri
 	for i, d := range dockerfilecontents[1:] {
 		additionalNode, err := imagebuilder.ParseDockerfile(bytes.NewReader(d))
 		if err != nil {
+			dockerfilenames := dockerfilenames[1:]
 			return nil, fmt.Errorf("error parsing additional Dockerfile %s: %w", dockerfilenames[i], err)
 		}
 		mainNode.Children = append(mainNode.Children, additionalNode.Children...)
