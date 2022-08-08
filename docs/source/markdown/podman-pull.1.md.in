@@ -85,11 +85,7 @@ Print the usage statement.
 
 Override the OS, defaults to hosts, of the image to be pulled. For example, `windows`.
 
-#### **--platform**=*OS/ARCH*
-
-Specify the platform for selecting the image. The `--platform` option can be used to override the current architecture and operating system.
-
-*IMPORTANT: Conflicts with --arch and --os*
+@@option platform
 
 #### **--quiet**, **-q**
 
