@@ -12,7 +12,15 @@ import (
 )
 
 // SendMessage sends the specified message to the specified socket.
+// No message is sent if no socketPath is provided and the NOTIFY_SOCKET
+// variable is not set either.
 func SendMessage(socketPath string, message string) error {
+	if socketPath == "" {
+		socketPath, _ = os.LookupEnv("NOTIFY_SOCKET")
+		if socketPath == "" {
+			return nil
+		}
+	}
 	socketAddr := &net.UnixAddr{
 		Name: socketPath,
 		Net:  "unixgram",

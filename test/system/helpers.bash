@@ -342,6 +342,23 @@ function wait_for_port() {
     die "Timed out waiting for $host:$port"
 }
 
+###################
+#  wait_for_file  #  Returns once file is available on host
+###################
+function wait_for_file() {
+    local file=$1                       # The path to the file
+    local _timeout=${2:-5}              # Optional; default 5 seconds
+
+    # Wait
+    while [ $_timeout -gt 0 ]; do
+        test -e $file && return
+        sleep 1
+        _timeout=$(( $_timeout - 1 ))
+    done
+
+    die "Timed out waiting for $file"
+}
+
 # END   podman helpers
 ###############################################################################
 # BEGIN miscellaneous tools

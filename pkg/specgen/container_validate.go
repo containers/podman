@@ -67,9 +67,9 @@ func (s *SpecGenerator) Validate() error {
 	if len(s.ContainerBasicConfig.Systemd) > 0 && !util.StringInSlice(strings.ToLower(s.ContainerBasicConfig.Systemd), SystemDValues) {
 		return fmt.Errorf("--systemd values must be one of %q: %w", strings.Join(SystemDValues, ", "), ErrInvalidSpecConfig)
 	}
-	// sdnotify values must be container, conmon, or ignore
-	if len(s.ContainerBasicConfig.SdNotifyMode) > 0 && !util.StringInSlice(strings.ToLower(s.ContainerBasicConfig.SdNotifyMode), SdNotifyModeValues) {
-		return fmt.Errorf("--sdnotify values must be one of %q: %w", strings.Join(SdNotifyModeValues, ", "), ErrInvalidSpecConfig)
+
+	if err := define.ValidateSdNotifyMode(s.ContainerBasicConfig.SdNotifyMode); err != nil {
+		return err
 	}
 
 	//

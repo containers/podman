@@ -6,14 +6,12 @@ import (
 	"net"
 	"os"
 	"path/filepath"
-	"strings"
 	"syscall"
 
 	"github.com/containers/buildah/pkg/parse"
 	nettypes "github.com/containers/common/libnetwork/types"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/common/pkg/secrets"
-	cutil "github.com/containers/common/pkg/util"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v4/libpod/define"
@@ -27,12 +25,6 @@ import (
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/sirupsen/logrus"
-)
-
-// Runtime Creation Options
-var (
-	// SdNotifyModeValues describes the only values that SdNotifyMode can be
-	SdNotifyModeValues = []string{define.SdNotifyModeContainer, define.SdNotifyModeConmon, define.SdNotifyModeIgnore}
 )
 
 // WithStorageConfig uses the given configuration to set up container storage.
@@ -631,9 +623,8 @@ func WithSdNotifyMode(mode string) CtrCreateOption {
 			return define.ErrCtrFinalized
 		}
 
-		// verify values
-		if len(mode) > 0 && !cutil.StringInSlice(strings.ToLower(mode), SdNotifyModeValues) {
-			return fmt.Errorf("--sdnotify values must be one of %q: %w", strings.Join(SdNotifyModeValues, ", "), define.ErrInvalidArg)
+		if err := define.ValidateSdNotifyMode(mode); err != nil {
+			return err
 		}
 
 		ctr.config.SdNotifyMode = mode

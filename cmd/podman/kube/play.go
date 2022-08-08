@@ -182,6 +182,10 @@ func playFlags(cmd *cobra.Command) {
 }
 
 func Play(cmd *cobra.Command, args []string) error {
+	if playOptions.ServiceContainer && !playOptions.StartCLI { // Sanity check to be future proof
+		return fmt.Errorf("--service-container does not work with --start=stop")
+	}
+
 	// TLS verification in c/image is controlled via a `types.OptionalBool`
 	// which allows for distinguishing among set-true, set-false, unspecified
 	// which is important to implement a sane way of dealing with defaults of
