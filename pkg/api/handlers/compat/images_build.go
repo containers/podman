@@ -17,6 +17,7 @@ import (
 	"github.com/containers/buildah"
 	buildahDefine "github.com/containers/buildah/define"
 	"github.com/containers/buildah/pkg/parse"
+	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v4/libpod"
 	"github.com/containers/podman/v4/pkg/api/handlers/utils"
@@ -78,6 +79,8 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		AppArmor                string   `schema:"apparmor"`
 		BuildArgs               string   `schema:"buildargs"`
 		CacheFrom               string   `schema:"cachefrom"`
+		CacheTo                 string   `schema:"cacheto"`
+		CacheTTL                string   `schema:"cachettl"`
 		CgroupParent            string   `schema:"cgroupparent"`
 		Compression             uint64   `schema:"compression"`
 		ConfigureNetwork        string   `schema:"networkmode"`
@@ -386,6 +389,31 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	var cacheFrom reference.Named
+	if _, found := r.URL.Query()["cachefrom"]; found {
+		cacheFrom, err = parse.RepoNameToNamedReference(query.CacheFrom)
+		if err != nil {
+			utils.BadRequest(w, "cacheFrom", query.CacheFrom, err)
+			return
+		}
+	}
+	var cacheTo reference.Named
+	if _, found := r.URL.Query()["cacheto"]; found {
+		cacheTo, err = parse.RepoNameToNamedReference(query.CacheTo)
+		if err != nil {
+			utils.BadRequest(w, "cacheto", query.CacheTo, err)
+			return
+		}
+	}
+	var cacheTTL time.Duration
+	if _, found := r.URL.Query()["cachettl"]; found {
+		cacheTTL, err = time.ParseDuration(query.CacheTTL)
+		if err != nil {
+			utils.BadRequest(w, "cachettl", query.CacheTTL, err)
+			return
+		}
+	}
+
 	var buildArgs = map[string]string{}
 	if _, found := r.URL.Query()["buildargs"]; found {
 		if err := json.Unmarshal([]byte(query.BuildArgs), &buildArgs); err != nil {
@@ -578,6 +606,9 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		AdditionalTags:          additionalTags,
 		Annotations:             annotations,
 		CPPFlags:                cppflags,
+		CacheFrom:               cacheFrom,
+		CacheTo:                 cacheTo,
+		CacheTTL:                cacheTTL,
 		Args:                    buildArgs,
 		AllPlatforms:            query.AllPlatforms,
 		CommonBuildOpts: &buildah.CommonBuildOptions{
