@@ -8,6 +8,10 @@
 
 Learn how to set up Podman and perform some basic commands with the utility.
 
+**[Podman in VS Code](vs_code.md)**
+
+Set up your project to run Podman inside VS Code.
+
 **[Basic Setup and Use of Podman in a Rootless environment](rootless_tutorial.md)**
 
 The steps required to set up rootless Podman are enumerated.
