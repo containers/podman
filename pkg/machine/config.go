@@ -66,6 +66,7 @@ var (
 	ErrVMAlreadyExists                           = errors.New("VM already exists")
 	ErrVMAlreadyRunning                          = errors.New("VM already running or starting")
 	ErrMultipleActiveVM                          = errors.New("only one VM can be active at a time")
+	ErrNotImplemented                            = errors.New("functionality not implemented")
 	ForwarderBinaryName                          = "gvproxy"
 )
 
