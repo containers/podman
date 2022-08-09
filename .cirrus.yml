@@ -34,13 +34,13 @@ env:
 
     # Image identifiers
     IMAGE_SUFFIX: "c5495735033528320"
-    FEDORA_AMI_ID: "ami-0df5df528071f1052"  # matches c5495735033528320
-    FEDORA_AARCH64_AMI_ID: "ami-02ee8b3a782a78791"  # matches c5495735033528320
-    # Complete image names
+    # EC2 images
+    FEDORA_AMI: "fedora-aws-${IMAGE_SUFFIX}"
+    FEDORA_AARCH64_AMI: "fedora-podman-aws-arm64-${IMAGE_SUFFIX}"
+    # GCP Images
     FEDORA_CACHE_IMAGE_NAME: "fedora-${IMAGE_SUFFIX}"
     #PRIOR_FEDORA_CACHE_IMAGE_NAME: "prior-fedora-${IMAGE_SUFFIX}"
     UBUNTU_CACHE_IMAGE_NAME: "ubuntu-${IMAGE_SUFFIX}"
-
     # Container FQIN's
     FEDORA_CONTAINER_FQIN: "quay.io/libpod/fedora_podman:${IMAGE_SUFFIX}"
     #PRIOR_FEDORA_CONTAINER_FQIN: "quay.io/libpod/prior-fedora_podman:${IMAGE_SUFFIX}"
@@ -210,7 +210,7 @@ build_aarch64_task:
     env: &stdenvars_aarch64
         EC2_INST_TYPE: "t4g.xlarge"
         DISTRO_NV: ${FEDORA_AARCH64_NAME}
-        VM_IMAGE_NAME: ${FEDORA_AARCH64_AMI_ID}
+        VM_IMAGE_NAME: ${FEDORA_AARCH64_AMI}
         CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
         CI_DESIRED_RUNTIME: crun
         TEST_FLAVOR: build
@@ -701,7 +701,7 @@ podman_machine_task:
       TEST_FLAVOR: "machine"
       PRIV_NAME: "rootless"  # intended use-case
       DISTRO_NV: "${FEDORA_NAME}"
-      VM_IMAGE_NAME: "${FEDORA_AMI_ID}"
+      VM_IMAGE_NAME: "${FEDORA_AMI}"
     clone_script: *get_gosrc
     setup_script: *setup
     main_script: *main
