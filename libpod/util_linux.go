@@ -146,10 +146,10 @@ func Unmount(mount string) {
 func createSysBlockSymlink(path string, dir string) error {
 	statT := unix.Stat_t{}
 	if err := unix.Stat(path, &statT); err == nil {
-		major, minor := unix.Major(uint64(statT.Dev)), unix.Minor(uint64(statT.Dev))
+		major, minor := unix.Major(statT.Dev), unix.Minor(statT.Dev)
 		if statT.Mode&unix.S_IFBLK == unix.S_IFBLK {
 			// For block, copy what the major/minor the device is, not what fs it is placed on.
-			major, minor = unix.Major(uint64(statT.Rdev)), unix.Minor(uint64(statT.Rdev))
+			major, minor = unix.Major(statT.Rdev), unix.Minor(statT.Rdev)
 		}
 		target, errlink := os.Readlink(fmt.Sprintf(sysDevBlock+"/%d:%d", major, minor))
 		if errlink == nil {
