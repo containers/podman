@@ -1,4 +1,4 @@
-![PODMAN logo](logo/podman-logo-source.svg)
+![PODMAN logo](https://raw.githubusercontent.com/containers/common/main/logos/podman-logo-full-vert.png)
 # Contributing to Podman
 
 We'd love to have you join the community! Below summarizes the processes

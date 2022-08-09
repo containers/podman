@@ -1,4 +1,4 @@
-![](../../logo/podman-logo-source.svg)
+![](https://raw.githubusercontent.com/containers/common/main/logos/podman-logo-full-vert.png)
 
 Podman for Windows
 ==================
