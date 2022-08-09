@@ -202,6 +202,7 @@ build_aarch64_task:
     # Multiarch doesn't depend on buildability in this automation context
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: "$CIRRUS_CRON != 'multiarch'"
+    experimental: true  # Required to enable EC2 Instance Name-tagging
     ec2_instance: &standard_build_ec2_aarch64
         image: ${VM_IMAGE_NAME}
         type: ${EC2_INST_TYPE}
@@ -281,6 +282,7 @@ validate_aarch64_task:
         - ext_svc_check
         - automation
         - build_aarch64
+    experimental: true  # Required to enable EC2 Instance Name-tagging
     # golangci-lint is a very, very hungry beast.
     ec2_instance: *standard_build_ec2_aarch64
     env:
@@ -397,6 +399,7 @@ consistency_aarch64_task:
     only_if: *is_pr
     depends_on:
         - build_aarch64
+    experimental: true  # Required to enable EC2 Instance Name-tagging
     ec2_instance: *standard_build_ec2_aarch64
     env:
         <<: *stdenvars_aarch64
@@ -692,6 +695,7 @@ podman_machine_task:
         - remote_integration_test
         - container_integration_test
         - rootless_integration_test
+    experimental: true  # Required to enable EC2 Instance Name-tagging
     ec2_instance:
         image: "${VM_IMAGE_NAME}"
         type: "${EC2_INST_TYPE}"
@@ -745,6 +749,7 @@ local_system_test_aarch64_task: &local_system_test_task_aarch64
     depends_on:
         - build_aarch64
         - local_integration_test
+    experimental: true  # Required to enable EC2 Instance Name-tagging
     ec2_instance: *standard_build_ec2_aarch64
     env:
         <<: *stdenvars_aarch64
