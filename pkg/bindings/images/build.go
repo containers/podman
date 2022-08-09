@@ -224,6 +224,15 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 	if len(options.Manifest) > 0 {
 		params.Set("manifest", options.Manifest)
 	}
+	if options.CacheFrom != nil {
+		params.Set("cachefrom", options.CacheFrom.String())
+	}
+	if options.CacheTo != nil {
+		params.Set("cacheto", options.CacheTo.String())
+	}
+	if int64(options.CacheTTL) != 0 {
+		params.Set("cachettl", options.CacheTTL.String())
+	}
 	if memSwap := options.CommonBuildOpts.MemorySwap; memSwap > 0 {
 		params.Set("memswap", strconv.Itoa(int(memSwap)))
 	}

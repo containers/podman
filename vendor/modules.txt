@@ -91,7 +91,7 @@ github.com/containernetworking/cni/pkg/version
 # github.com/containernetworking/plugins v1.1.1
 ## explicit
 github.com/containernetworking/plugins/pkg/ns
-# github.com/containers/buildah v1.26.1-0.20220716095526-d31d27c357ab
+# github.com/containers/buildah v1.27.0
 ## explicit
 github.com/containers/buildah
 github.com/containers/buildah/bind
@@ -114,7 +114,7 @@ github.com/containers/buildah/pkg/rusage
 github.com/containers/buildah/pkg/sshagent
 github.com/containers/buildah/pkg/util
 github.com/containers/buildah/util
-# github.com/containers/common v0.49.1-0.20220729221035-246800047d46
+# github.com/containers/common v0.49.1
 ## explicit
 github.com/containers/common/libimage
 github.com/containers/common/libimage/define

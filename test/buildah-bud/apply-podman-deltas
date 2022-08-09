@@ -152,6 +152,10 @@ errmsg "checking authfile: stat /tmp/nonexistent: no such file or directory" \
        "Error: checking authfile: stat /tmp/nonexistent: no such file or directory" \
        "bud with Containerfile should fail with nonexistent authfile"
 
+errmsg "cannot find Containerfile or Dockerfile" \
+       "no such file or directory" \
+       "bud-github-context-from-commit"
+
 ###############################################################################
 # BEGIN tests that don't make sense under podman due to fundamental differences
 
@@ -216,7 +220,10 @@ skip_if_remote "--output option not implemented in podman-remote" \
                "build with custom build output and output rootfs to tar" \
                "build with custom build output and output rootfs to tar by pipe" \
                "build with custom build output must fail for bad input" \
-               "build with custom build output and output rootfs to tar with no additional step"
+               "build with custom build output and output rootfs to tar with no additional step" \
+               "build with custom build output for single-stage-cached and output rootfs to directory" \
+               "build with custom build output for multi-stage-cached and output rootfs to directory" \
+               "build with custom build output for multi-stage and output rootfs to directory"
 
 # https://github.com/containers/podman/issues/14544
 skip_if_remote "logfile not implemented on remote" "bud-logfile-with-split-logfile-by-platform"

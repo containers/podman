@@ -150,7 +150,7 @@ func SetupIntermediateMountNamespace(spec *specs.Spec, bundlePath string) (unmou
 		// Check if the source is a directory or something else.
 		info, err := os.Stat(spec.Mounts[i].Source)
 		if err != nil {
-			if os.IsNotExist(err) {
+			if errors.Is(err, os.ErrNotExist) {
 				logrus.Warnf("couldn't find %q on host to bind mount into container", spec.Mounts[i].Source)
 				continue
 			}
@@ -269,7 +269,7 @@ func UnmountMountpoints(mountpoint string, mountpointsToRemove []string) error {
 		mount := getMountByID(id)
 		// check if this mountpoint is mounted
 		if err := unix.Lstat(mount.Mountpoint, &st); err != nil {
-			if os.IsNotExist(err) {
+			if errors.Is(err, os.ErrNotExist) {
 				logrus.Debugf("mountpoint %q is not present(?), skipping", mount.Mountpoint)
 				continue
 			}

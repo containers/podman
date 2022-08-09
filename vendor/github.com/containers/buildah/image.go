@@ -747,7 +747,7 @@ func (i *containerImageSource) GetBlob(ctx context.Context, blob types.BlobInfo,
 				}
 				layerFile.Close()
 			}
-			if !os.IsNotExist(err) {
+			if !errors.Is(err, os.ErrNotExist) {
 				logrus.Debugf("error checking for layer %q in %q: %v", blob.Digest.String(), blobDir, err)
 			}
 		}
