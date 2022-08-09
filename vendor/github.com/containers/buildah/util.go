@@ -187,7 +187,7 @@ func IsContainer(id string, store storage.Store) (bool, error) {
 	// Assuming that if the stateFile exists, that this is a Buildah
 	// container.
 	if _, err = os.Stat(filepath.Join(cdir, stateFile)); err != nil {
-		if os.IsNotExist(err) {
+		if errors.Is(err, os.ErrNotExist) {
 			return false, nil
 		}
 		return false, err

@@ -4,6 +4,7 @@
 package buildah
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
@@ -33,7 +34,7 @@ func runLabelStdioPipes(stdioPipe [][]int, processLabel, mountLabel string) erro
 	}
 	for i := range stdioPipe {
 		pipeFdName := fmt.Sprintf("/proc/self/fd/%d", stdioPipe[i][0])
-		if err := selinux.SetFileLabel(pipeFdName, pipeContext); err != nil && !os.IsNotExist(err) {
+		if err := selinux.SetFileLabel(pipeFdName, pipeContext); err != nil && !errors.Is(err, os.ErrNotExist) {
 			return fmt.Errorf("setting file label on %q: %w", pipeFdName, err)
 		}
 	}

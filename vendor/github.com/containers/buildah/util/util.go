@@ -384,13 +384,15 @@ var (
 
 // fileExistsAndNotADir - Check to see if a file exists
 // and that it is not a directory.
-func fileExistsAndNotADir(path string) bool {
+func fileExistsAndNotADir(path string) (bool, error) {
 	file, err := os.Stat(path)
-
-	if file == nil || err != nil || os.IsNotExist(err) {
-		return false
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return false, nil
+		}
+		return false, err
 	}
-	return !file.IsDir()
+	return !file.IsDir(), nil
 }
 
 // FindLocalRuntime find the local runtime of the
@@ -404,7 +406,11 @@ func FindLocalRuntime(runtime string) string {
 		return localRuntime
 	}
 	for _, val := range conf.Engine.OCIRuntimes[runtime] {
-		if fileExistsAndNotADir(val) {
+		exists, err := fileExistsAndNotADir(val)
+		if err != nil {
+			logrus.Errorf("Failed to determine if file exists and is not a directory: %v", err)
+		}
+		if exists {
 			localRuntime = val
 			break
 		}

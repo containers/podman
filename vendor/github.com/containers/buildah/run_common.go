@@ -331,7 +331,7 @@ func DefaultNamespaceOptions() (define.NamespaceOptions, error) {
 		{Name: string(specs.MountNamespace), Host: false},
 		{Name: string(specs.NetworkNamespace), Host: cfg.NetNS() == "host"},
 		{Name: string(specs.PIDNamespace), Host: cfg.PidNS() == "host"},
-		{Name: string(specs.UserNamespace), Host: cfg.Containers.UserNS == "host"},
+		{Name: string(specs.UserNamespace), Host: cfg.Containers.UserNS == "" || cfg.Containers.UserNS == "host"},
 		{Name: string(specs.UTSNamespace), Host: cfg.UTSNS() == "host"},
 	}
 	return options, nil
@@ -477,8 +477,10 @@ func runUsingRuntime(options RunOptions, configureNetwork bool, moreCreateArgs [
 			if stdioPipe, err = runMakeStdioPipe(int(uid), int(gid)); err != nil {
 				return 1, err
 			}
-			if err = runLabelStdioPipes(stdioPipe, spec.Process.SelinuxLabel, spec.Linux.MountLabel); err != nil {
-				return 1, err
+			if spec.Linux != nil {
+				if err = runLabelStdioPipes(stdioPipe, spec.Process.SelinuxLabel, spec.Linux.MountLabel); err != nil {
+					return 1, err
+				}
 			}
 			errorFds = []int{stdioPipe[unix.Stdout][0], stdioPipe[unix.Stderr][0]}
 			closeBeforeReadingErrorFds = []int{stdioPipe[unix.Stdout][1], stdioPipe[unix.Stderr][1]}
@@ -1147,7 +1149,7 @@ func (b *Builder) runUsingRuntimeSubproc(isolation define.Isolation, options Run
 
 		containerStartR.file, containerStartW.file, err = os.Pipe()
 		if err != nil {
-			return fmt.Errorf("error creating container create pipe: %w", err)
+			return fmt.Errorf("error creating container start pipe: %w", err)
 		}
 		defer containerStartR.Close()
 		defer containerStartW.Close()
@@ -1365,7 +1367,7 @@ func runSetupBuiltinVolumes(mountLabel, mountPoint, containerDir string, builtin
 		// the volume contents.  If we do need to create it, then we'll
 		// need to populate it, too, so make a note of that.
 		if _, err := os.Stat(volumePath); err != nil {
-			if !os.IsNotExist(err) {
+			if !errors.Is(err, os.ErrNotExist) {
 				return nil, err
 			}
 			logrus.Debugf("setting up built-in volume path at %q for %q", volumePath, volume)
@@ -1391,7 +1393,7 @@ func runSetupBuiltinVolumes(mountLabel, mountPoint, containerDir string, builtin
 			return nil, fmt.Errorf("evaluating path %q: %w", srcPath, err)
 		}
 		stat, err := os.Stat(srcPath)
-		if err != nil && !os.IsNotExist(err) {
+		if err != nil && !errors.Is(err, os.ErrNotExist) {
 			return nil, err
 		}
 		// If we need to populate the mounted volume's contents with
@@ -1844,7 +1846,7 @@ func (b *Builder) cleanupRunMounts(context *imageTypes.SystemContext, mountpoint
 	var prevErr error
 	for _, path := range artifacts.TmpFiles {
 		err := os.Remove(path)
-		if !os.IsNotExist(err) {
+		if !errors.Is(err, os.ErrNotExist) {
 			if prevErr != nil {
 				logrus.Error(prevErr)
 			}
