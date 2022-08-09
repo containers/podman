@@ -379,6 +379,10 @@ var _ = Describe("Podman images", func() {
 		Expect(err).To(HaveOccurred())
 	})
 
+	It("Image Push", func() {
+		Skip("TODO: implement test for image push to registry")
+	})
+
 	It("Build no options", func() {
 		results, err := images.Build(bt.conn, []string{"fixture/Containerfile"}, entities.BuildOptions{})
 		Expect(err).ToNot(HaveOccurred())

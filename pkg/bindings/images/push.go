@@ -62,6 +62,8 @@ func Push(ctx context.Context, source string, destination string, options *PushO
 	writer := io.Writer(os.Stderr)
 	if options.GetQuiet() {
 		writer = ioutil.Discard
+	} else if progressWriter := options.GetProgressWriter(); progressWriter != nil {
+		writer = progressWriter
 	}
 
 	dec := json.NewDecoder(response.Body)

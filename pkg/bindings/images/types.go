@@ -1,6 +1,8 @@
 package images
 
 import (
+	"io"
+
 	buildahDefine "github.com/containers/buildah/define"
 )
 
@@ -131,6 +133,10 @@ type PushOptions struct {
 	Format *string
 	// Password for authenticating against the registry.
 	Password *string
+	// ProgressWriter is a writer where push progress are sent.
+	// Since API handler for image push is quiet by default, WithQuiet(false) is necessary for
+	// the writer to receive progress messages.
+	ProgressWriter *io.Writer
 	// SkipTLSVerify to skip HTTPS and certificate verification.
 	SkipTLSVerify *bool
 	// RemoveSignatures Discard any pre-existing signatures in the image.

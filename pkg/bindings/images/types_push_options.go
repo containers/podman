@@ -2,6 +2,7 @@
 package images
 
 import (
+	"io"
 	"net/url"
 
 	"github.com/containers/podman/v4/pkg/bindings/internal/util"
@@ -105,6 +106,21 @@ func (o *PushOptions) GetPassword() string {
 		return z
 	}
 	return *o.Password
+}
+
+// WithProgressWriter set field ProgressWriter to given value
+func (o *PushOptions) WithProgressWriter(value io.Writer) *PushOptions {
+	o.ProgressWriter = &value
+	return o
+}
+
+// GetProgressWriter returns value of field ProgressWriter
+func (o *PushOptions) GetProgressWriter() io.Writer {
+	if o.ProgressWriter == nil {
+		var z io.Writer
+		return z
+	}
+	return *o.ProgressWriter
 }
 
 // WithSkipTLSVerify set field SkipTLSVerify to given value
