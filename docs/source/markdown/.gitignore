@@ -1,5 +1,7 @@
+podman-build.1.md
 podman-container-clone.1.md
 podman-create.1.md
+podman-kube-play.1.md
 podman-pod-clone.1.md
 podman-pod-create.1.md
 podman-pull.1.md

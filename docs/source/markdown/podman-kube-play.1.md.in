@@ -214,11 +214,8 @@ Valid _mode_ values are:
   Note: Rootlesskit changes the source IP address of incoming packets to an IP address in the container network namespace, usually `10.0.2.100`. If your application requires the real source IP address, e.g. web server logs, use the slirp4netns port handler. The rootlesskit port handler is also used for rootless containers when connected to user-defined networks.
   - **port_handler=slirp4netns**: Use the slirp4netns port forwarding, it is slower than rootlesskit but preserves the correct source IP address. This port handler cannot be used for user-defined networks.
 
-#### **--no-hosts**
+@@option no-hosts
 
-Do not create /etc/hosts for the pod.
-By default, Podman will manage /etc/hosts, adding the container's own IP address and any hosts from **--add-host**.
-**--no-hosts** disables this, and the image's **/etc/host** will be preserved unmodified.
 This option conflicts with host added in the Kubernetes YAML.
 
 #### **--quiet**, **-q**
