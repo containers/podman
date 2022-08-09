@@ -121,10 +121,13 @@ func unpause(cmd *cobra.Command, args []string) error {
 	}
 
 	for _, r := range responses {
-		if r.Err == nil {
-			fmt.Println(r.RawInput)
-		} else {
+		switch {
+		case r.Err != nil:
 			errs = append(errs, r.Err)
+		case r.RawInput != "":
+			fmt.Println(r.RawInput)
+		default:
+			fmt.Println(r.Id)
 		}
 	}
 	return errs.PrintErrors()

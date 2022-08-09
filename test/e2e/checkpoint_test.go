@@ -132,6 +132,7 @@ var _ = Describe("Podman checkpoint", func() {
 		result.WaitWithDefaultTimeout()
 
 		Expect(result).Should(Exit(0))
+		Expect(result.OutputToString()).To(Equal(cid))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
 		Expect(podmanTest.GetContainerStatus()).To(ContainSubstring("Exited"))
 
@@ -156,6 +157,7 @@ var _ = Describe("Podman checkpoint", func() {
 		result.WaitWithDefaultTimeout()
 
 		Expect(result).Should(Exit(0))
+		Expect(result.OutputToString()).To(Equal(cid))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
 		Expect(podmanTest.GetContainerStatus()).To(ContainSubstring("Up"))
 
@@ -214,6 +216,7 @@ var _ = Describe("Podman checkpoint", func() {
 		result.WaitWithDefaultTimeout()
 
 		Expect(result).Should(Exit(0))
+		Expect(result.OutputToString()).To(Equal("test_name"))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
 		Expect(podmanTest.GetContainerStatus()).To(ContainSubstring("Exited"))
 
@@ -221,6 +224,7 @@ var _ = Describe("Podman checkpoint", func() {
 		result.WaitWithDefaultTimeout()
 
 		Expect(result).Should(Exit(0))
+		Expect(result.OutputToString()).To(Equal("test_name"))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
 		Expect(podmanTest.GetContainerStatus()).To(ContainSubstring("Up"))
 
@@ -298,6 +302,7 @@ var _ = Describe("Podman checkpoint", func() {
 		result.WaitWithDefaultTimeout()
 
 		Expect(result).Should(Exit(0))
+		Expect(result.OutputToString()).To(Equal("second"))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
 
 		ps := podmanTest.Podman([]string{"ps", "-q", "--no-trunc"})
@@ -310,6 +315,7 @@ var _ = Describe("Podman checkpoint", func() {
 		result.WaitWithDefaultTimeout()
 
 		Expect(result).Should(Exit(0))
+		Expect(result.OutputToString()).To(Equal("second"))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(2))
 		Expect(podmanTest.GetContainerStatus()).To(ContainSubstring("Up"))
 		Expect(podmanTest.GetContainerStatus()).To(Not(ContainSubstring("Exited")))
@@ -325,16 +331,20 @@ var _ = Describe("Podman checkpoint", func() {
 		session1 := podmanTest.Podman(localRunString)
 		session1.WaitWithDefaultTimeout()
 		Expect(session1).Should(Exit(0))
+		cid1 := session1.OutputToString()
 
 		localRunString = getRunString([]string{"--name", "second", ALPINE, "top"})
 		session2 := podmanTest.Podman(localRunString)
 		session2.WaitWithDefaultTimeout()
 		Expect(session2).Should(Exit(0))
+		cid2 := session2.OutputToString()
 
 		result := podmanTest.Podman([]string{"container", "checkpoint", "-a"})
 		result.WaitWithDefaultTimeout()
 
 		Expect(result).Should(Exit(0))
+		Expect(result.OutputToString()).To(ContainSubstring(cid1))
+		Expect(result.OutputToString()).To(ContainSubstring(cid2))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
 
 		ps := podmanTest.Podman([]string{"ps", "-q", "--no-trunc"})
@@ -347,6 +357,8 @@ var _ = Describe("Podman checkpoint", func() {
 		result.WaitWithDefaultTimeout()
 
 		Expect(result).Should(Exit(0))
+		Expect(result.OutputToString()).To(ContainSubstring(cid1))
+		Expect(result.OutputToString()).To(ContainSubstring(cid2))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(2))
 		Expect(podmanTest.GetContainerStatus()).To(ContainSubstring("Up"))
 		Expect(podmanTest.GetContainerStatus()).To(Not(ContainSubstring("Exited")))

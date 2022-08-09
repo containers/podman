@@ -66,4 +66,20 @@ load helpers
     is "$output" "$cid_exited_0"
 }
 
+@test "podman start print IDs or raw input" {
+    # start --all must print the IDs
+    run_podman create $IMAGE top
+    ctrID="$output"
+    run_podman start --all
+    is "$output" "$ctrID"
+
+    # start $input must print $input
+    cname=$(random_string)
+    run_podman create --name $cname $IMAGE top
+    run_podman start $cname
+    is "$output" $cname
+
+    run_podman rm -t 0 -f $ctrID $cname
+}
+
 # vim: filetype=sh

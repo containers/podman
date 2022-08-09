@@ -100,23 +100,6 @@ var _ = Describe("Podman start", func() {
 		Expect(session.OutputToString()).To(Equal(shortID))
 	})
 
-	It("podman container start single container by short id", func() {
-		session := podmanTest.Podman([]string{"container", "create", ALPINE, "ls"})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
-		cid := session.OutputToString()
-		shortID := cid[0:10]
-		session = podmanTest.Podman([]string{"container", "start", shortID})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
-		Expect(session.OutputToString()).To(Equal(shortID))
-
-		session = podmanTest.Podman([]string{"stop", shortID})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
-		Expect(session.OutputToString()).To(Equal(shortID))
-	})
-
 	It("podman start single container by name", func() {
 		name := "foobar99"
 		session := podmanTest.Podman([]string{"create", "--name", name, ALPINE, "ls"})
@@ -125,9 +108,6 @@ var _ = Describe("Podman start", func() {
 		session = podmanTest.Podman([]string{"start", name})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		if podmanTest.RemoteTest {
-			Skip("Container-start name check doesn't work on remote client. It always returns the full ID.")
-		}
 		Expect(session.OutputToString()).To(Equal(name))
 	})
 

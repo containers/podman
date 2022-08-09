@@ -622,8 +622,9 @@ func (ic *ContainerEngine) ContainerExport(ctx context.Context, nameOrID string,
 
 func (ic *ContainerEngine) ContainerCheckpoint(ctx context.Context, namesOrIds []string, options entities.CheckpointOptions) ([]*entities.CheckpointReport, error) {
 	var (
-		err  error
-		cons []*libpod.Container
+		ctrs      []*libpod.Container
+		rawInputs []string
+		err       error
 	)
 	checkOpts := libpod.ContainerCheckpointOptions{
 		Keep:           options.Keep,
@@ -640,24 +641,34 @@ func (ic *ContainerEngine) ContainerCheckpoint(ctx context.Context, namesOrIds [
 		CreateImage:    options.CreateImage,
 	}
 
+	idToRawInput := map[string]string{}
 	if options.All {
 		running := func(c *libpod.Container) bool {
 			state, _ := c.State()
 			return state == define.ContainerStateRunning
 		}
-		cons, err = ic.Libpod.GetContainers(running)
+		ctrs, err = ic.Libpod.GetContainers(running)
+		if err != nil {
+			return nil, err
+		}
 	} else {
-		cons, err = getContainersByContext(false, options.Latest, namesOrIds, ic.Libpod)
+		ctrs, rawInputs, err = getContainersAndInputByContext(false, options.Latest, namesOrIds, nil, ic.Libpod)
+		if err != nil {
+			return nil, err
+		}
+		if len(rawInputs) == len(ctrs) {
+			for i := range ctrs {
+				idToRawInput[ctrs[i].ID()] = rawInputs[i]
+			}
+		}
 	}
-	if err != nil {
-		return nil, err
-	}
-	reports := make([]*entities.CheckpointReport, 0, len(cons))
-	for _, con := range cons {
-		criuStatistics, runtimeCheckpointDuration, err := con.Checkpoint(ctx, checkOpts)
+	reports := make([]*entities.CheckpointReport, 0, len(ctrs))
+	for _, c := range ctrs {
+		criuStatistics, runtimeCheckpointDuration, err := c.Checkpoint(ctx, checkOpts)
 		reports = append(reports, &entities.CheckpointReport{
 			Err:             err,
-			Id:              con.ID(),
+			Id:              c.ID(),
+			RawInput:        idToRawInput[c.ID()],
 			RuntimeDuration: runtimeCheckpointDuration,
 			CRIUStatistics:  criuStatistics,
 		})
@@ -667,7 +678,7 @@ func (ic *ContainerEngine) ContainerCheckpoint(ctx context.Context, namesOrIds [
 
 func (ic *ContainerEngine) ContainerRestore(ctx context.Context, namesOrIds []string, options entities.RestoreOptions) ([]*entities.RestoreReport, error) {
 	var (
-		containers                  []*libpod.Container
+		ctrs                        []*libpod.Container
 		checkpointImageImportErrors []error
 		err                         error
 	)
@@ -694,19 +705,21 @@ func (ic *ContainerEngine) ContainerRestore(ctx context.Context, namesOrIds []st
 		},
 	}
 
+	idToRawInput := map[string]string{}
 	switch {
 	case options.Import != "":
-		containers, err = checkpoint.CRImportCheckpointTar(ctx, ic.Libpod, options)
+		ctrs, err = checkpoint.CRImportCheckpointTar(ctx, ic.Libpod, options)
 	case options.All:
-		containers, err = ic.Libpod.GetContainers(filterFuncs...)
+		ctrs, err = ic.Libpod.GetContainers(filterFuncs...)
 	case options.Latest:
-		containers, err = getContainersByContext(false, options.Latest, namesOrIds, ic.Libpod)
+		ctrs, err = getContainersByContext(false, options.Latest, namesOrIds, ic.Libpod)
 	default:
 		for _, nameOrID := range namesOrIds {
 			logrus.Debugf("look up container: %q", nameOrID)
-			ctr, err := ic.Libpod.LookupContainer(nameOrID)
+			c, err := ic.Libpod.LookupContainer(nameOrID)
 			if err == nil {
-				containers = append(containers, ctr)
+				ctrs = append(ctrs, c)
+				idToRawInput[c.ID()] = nameOrID
 			} else {
 				// If container was not found, check if this is a checkpoint image
 				logrus.Debugf("look up image: %q", nameOrID)
@@ -724,7 +737,7 @@ func (ic *ContainerEngine) ContainerRestore(ctx context.Context, namesOrIds []st
 				if err != nil {
 					return nil, err
 				}
-				importedContainers, err := checkpoint.CRImportCheckpoint(ctx, ic.Libpod, options, mountPoint)
+				importedCtrs, err := checkpoint.CRImportCheckpoint(ctx, ic.Libpod, options, mountPoint)
 				if err != nil {
 					// CRImportCheckpoint is expected to import exactly one container from checkpoint image
 					checkpointImageImportErrors = append(
@@ -732,7 +745,7 @@ func (ic *ContainerEngine) ContainerRestore(ctx context.Context, namesOrIds []st
 						fmt.Errorf("unable to import checkpoint from image: %q: %v", nameOrID, err),
 					)
 				} else {
-					containers = append(containers, importedContainers[0])
+					ctrs = append(ctrs, importedCtrs[0])
 				}
 			}
 		}
@@ -741,12 +754,13 @@ func (ic *ContainerEngine) ContainerRestore(ctx context.Context, namesOrIds []st
 		return nil, err
 	}
 
-	reports := make([]*entities.RestoreReport, 0, len(containers))
-	for _, con := range containers {
-		criuStatistics, runtimeRestoreDuration, err := con.Restore(ctx, restoreOptions)
+	reports := make([]*entities.RestoreReport, 0, len(ctrs))
+	for _, c := range ctrs {
+		criuStatistics, runtimeRestoreDuration, err := c.Restore(ctx, restoreOptions)
 		reports = append(reports, &entities.RestoreReport{
 			Err:             err,
-			Id:              con.ID(),
+			Id:              c.ID(),
+			RawInput:        idToRawInput[c.ID()],
 			RuntimeDuration: runtimeRestoreDuration,
 			CRIUStatistics:  criuStatistics,
 		})
@@ -1204,14 +1218,20 @@ func (ic *ContainerEngine) ContainerLogs(ctx context.Context, containers []strin
 }
 
 func (ic *ContainerEngine) ContainerCleanup(ctx context.Context, namesOrIds []string, options entities.ContainerCleanupOptions) ([]*entities.ContainerCleanupReport, error) {
-	reports := []*entities.ContainerCleanupReport{}
-	ctrs, err := getContainersByContext(options.All, options.Latest, namesOrIds, ic.Libpod)
+	ctrs, rawInputs, err := getContainersAndInputByContext(options.All, options.Latest, namesOrIds, nil, ic.Libpod)
 	if err != nil {
 		return nil, err
 	}
+	idToRawInput := map[string]string{}
+	if len(rawInputs) == len(ctrs) {
+		for i := range ctrs {
+			idToRawInput[ctrs[i].ID()] = rawInputs[i]
+		}
+	}
+	reports := []*entities.ContainerCleanupReport{}
 	for _, ctr := range ctrs {
 		var err error
-		report := entities.ContainerCleanupReport{Id: ctr.ID()}
+		report := entities.ContainerCleanupReport{Id: ctr.ID(), RawInput: idToRawInput[ctr.ID()]}
 
 		if options.Exec != "" {
 			if options.Remove {
@@ -1252,13 +1272,19 @@ func (ic *ContainerEngine) ContainerCleanup(ctx context.Context, namesOrIds []st
 }
 
 func (ic *ContainerEngine) ContainerInit(ctx context.Context, namesOrIds []string, options entities.ContainerInitOptions) ([]*entities.ContainerInitReport, error) {
-	ctrs, err := getContainersByContext(options.All, options.Latest, namesOrIds, ic.Libpod)
+	ctrs, rawInputs, err := getContainersAndInputByContext(options.All, options.Latest, namesOrIds, nil, ic.Libpod)
 	if err != nil {
 		return nil, err
 	}
+	idToRawInput := map[string]string{}
+	if len(rawInputs) == len(ctrs) {
+		for i := range ctrs {
+			idToRawInput[ctrs[i].ID()] = rawInputs[i]
+		}
+	}
 	reports := make([]*entities.ContainerInitReport, 0, len(ctrs))
 	for _, ctr := range ctrs {
-		report := entities.ContainerInitReport{Id: ctr.ID()}
+		report := entities.ContainerInitReport{Id: ctr.ID(), RawInput: idToRawInput[ctr.ID()]}
 		err := ctr.Init(ctx, ctr.PodID() != "")
 
 		// If we're initializing all containers, ignore invalid state errors
