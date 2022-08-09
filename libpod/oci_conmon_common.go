@@ -307,6 +307,52 @@ func (r *ConmonOCIRuntime) StartContainer(ctr *Container) error {
 	return nil
 }
 
+// UpdateContainer updates the given container's cgroup configuration
+func (r *ConmonOCIRuntime) UpdateContainer(ctr *Container, resources *spec.LinuxResources) error {
+	runtimeDir, err := util.GetRuntimeDir()
+	if err != nil {
+		return err
+	}
+	env := []string{fmt.Sprintf("XDG_RUNTIME_DIR=%s", runtimeDir)}
+	if path, ok := os.LookupEnv("PATH"); ok {
+		env = append(env, fmt.Sprintf("PATH=%s", path))
+	}
+	args := r.runtimeFlags
+	args = append(args, "update")
+	tempFile, additionalArgs, err := generateResourceFile(resources)
+	if err != nil {
+		return err
+	}
+	defer os.Remove(tempFile)
+
+	args = append(args, additionalArgs...)
+	return utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, env, r.path, append(args, ctr.ID())...)
+}
+
+func generateResourceFile(res *spec.LinuxResources) (string, []string, error) {
+	flags := []string{}
+	if res == nil {
+		return "", flags, nil
+	}
+
+	f, err := ioutil.TempFile("", "podman")
+	if err != nil {
+		return "", nil, err
+	}
+
+	j, err := json.Marshal(res)
+	if err != nil {
+		return "", nil, err
+	}
+	_, err = f.WriteString(string(j))
+	if err != nil {
+		return "", nil, err
+	}
+
+	flags = append(flags, "--resources="+f.Name())
+	return f.Name(), flags, nil
+}
+
 // KillContainer sends the given signal to the given container.
 // If all is set, send to all PIDs in the container.
 // All is only supported if the container created cgroups.

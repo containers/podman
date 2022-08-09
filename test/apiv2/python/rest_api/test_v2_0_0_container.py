@@ -359,8 +359,6 @@ class ContainerTestCase(APITestCase):
         self.assertEqual(2000, out["HostConfig"]["MemorySwap"])
         self.assertEqual(1000, out["HostConfig"]["Memory"])
 
-
-
 def execute_process(cmd):
     return subprocess.run(
                 cmd,

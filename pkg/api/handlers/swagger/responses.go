@@ -313,6 +313,11 @@ type containerCreateResponse struct {
 	Body entities.ContainerCreateResponse
 }
 
+type containerUpdateResponse struct {
+	// in:body
+	ID string
+}
+
 // Wait container
 // swagger:response
 type containerWaitResponse struct {

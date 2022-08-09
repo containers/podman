@@ -5,6 +5,7 @@ import (
 
 	"github.com/containers/common/pkg/resize"
 	"github.com/containers/podman/v4/libpod/define"
+	"github.com/opencontainers/runtime-spec/specs-go"
 )
 
 // OCIRuntime is an implementation of an OCI runtime.
@@ -148,6 +149,9 @@ type OCIRuntime interface {
 
 	// RuntimeInfo returns verbose information about the runtime.
 	RuntimeInfo() (*define.ConmonInfo, *define.OCIRuntimeInfo, error)
+
+	// UpdateContainer updates the given container's cgroup configuration.
+	UpdateContainer(ctr *Container, res *specs.LinuxResources) error
 }
 
 // AttachOptions are options used when attached to a container or an exec

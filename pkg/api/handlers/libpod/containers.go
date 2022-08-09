@@ -1,6 +1,7 @@
 package libpod
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/containers/podman/v4/libpod"
 	"github.com/containers/podman/v4/libpod/define"
+	"github.com/containers/podman/v4/pkg/api/handlers"
 	"github.com/containers/podman/v4/pkg/api/handlers/compat"
 	"github.com/containers/podman/v4/pkg/api/handlers/utils"
 	api "github.com/containers/podman/v4/pkg/api/types"
@@ -17,6 +19,7 @@ import (
 	"github.com/containers/podman/v4/pkg/domain/infra/abi"
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/gorilla/schema"
+	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 )
 
@@ -389,6 +392,28 @@ func InitContainer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	utils.WriteResponse(w, http.StatusNoContent, "")
+}
+
+func UpdateContainer(w http.ResponseWriter, r *http.Request) {
+	name := utils.GetName(r)
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
+	ctr, err := runtime.LookupContainer(name)
+	if err != nil {
+		utils.ContainerNotFound(w, name, err)
+		return
+	}
+
+	options := &handlers.UpdateEntities{Resources: &specs.LinuxResources{}}
+	if err := json.NewDecoder(r.Body).Decode(&options.Resources); err != nil {
+		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("decode(): %w", err))
+		return
+	}
+	err = ctr.Update(options.Resources)
+	if err != nil {
+		utils.InternalServerError(w, err)
+		return
+	}
+	utils.WriteResponse(w, http.StatusCreated, ctr.ID())
 }
 
 func ShouldRestart(w http.ResponseWriter, r *http.Request) {

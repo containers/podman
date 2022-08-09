@@ -1715,3 +1715,27 @@ func (ic *ContainerEngine) ContainerClone(ctx context.Context, ctrCloneOpts enti
 
 	return &entities.ContainerCreateReport{Id: ctr.ID()}, nil
 }
+
+// ContainerUpdate finds and updates the given container's cgroup config with the specified options
+func (ic *ContainerEngine) ContainerUpdate(ctx context.Context, updateOptions *entities.ContainerUpdateOptions) (string, error) {
+	err := specgen.WeightDevices(updateOptions.Specgen)
+	if err != nil {
+		return "", err
+	}
+	err = specgen.FinishThrottleDevices(updateOptions.Specgen)
+	if err != nil {
+		return "", err
+	}
+	ctrs, err := getContainersByContext(false, false, []string{updateOptions.NameOrID}, ic.Libpod)
+	if err != nil {
+		return "", err
+	}
+	if len(ctrs) != 1 {
+		return "", fmt.Errorf("container not found")
+	}
+
+	if err = ctrs[0].Update(updateOptions.Specgen.ResourceLimits); err != nil {
+		return "", err
+	}
+	return ctrs[0].ID(), nil
+}

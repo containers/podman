@@ -28,10 +28,10 @@ func ContainerToPodOptions(containerCreate *entities.ContainerCreateOptions, pod
 }
 
 // DefineCreateFlags declares and instantiates the container create flags
-func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, isInfra bool, clone bool) {
+func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, mode entities.ContainerMode) {
 	createFlags := cmd.Flags()
 
-	if !isInfra && !clone { // regular create flags
+	if mode == entities.CreateMode { // regular create flags
 		annotationFlagName := "annotation"
 		createFlags.StringSliceVar(
 			&cf.Annotation,
@@ -102,22 +102,6 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 			"Add a rule to the cgroup allowed devices list",
 		)
 		_ = cmd.RegisterFlagCompletionFunc(deviceCgroupRuleFlagName, completion.AutocompleteNone)
-
-		deviceReadIopsFlagName := "device-read-iops"
-		createFlags.StringSliceVar(
-			&cf.DeviceReadIOPs,
-			deviceReadIopsFlagName, []string{},
-			"Limit read rate (IO per second) from a device (e.g. --device-read-iops=/dev/sda:1000)",
-		)
-		_ = cmd.RegisterFlagCompletionFunc(deviceReadIopsFlagName, completion.AutocompleteDefault)
-
-		deviceWriteIopsFlagName := "device-write-iops"
-		createFlags.StringSliceVar(
-			&cf.DeviceWriteIOPs,
-			deviceWriteIopsFlagName, []string{},
-			"Limit write rate (IO per second) to a device (e.g. --device-write-iops=/dev/sda:1000)",
-		)
-		_ = cmd.RegisterFlagCompletionFunc(deviceWriteIopsFlagName, completion.AutocompleteDefault)
 
 		createFlags.Bool(
 			"disable-content-trust", false,
@@ -597,7 +581,7 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 			`If a container with the same name exists, replace it`,
 		)
 	}
-	if isInfra || (!clone && !isInfra) { // infra container flags, create should also pick these up
+	if mode == entities.InfraMode || (mode == entities.CreateMode) { // infra container flags, create should also pick these up
 		shmSizeFlagName := "shm-size"
 		createFlags.String(
 			shmSizeFlagName, shmSize(),
@@ -677,7 +661,7 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		)
 		_ = cmd.RegisterFlagCompletionFunc(cgroupParentFlagName, completion.AutocompleteDefault)
 		var conmonPidfileFlagName string
-		if !isInfra {
+		if mode == entities.CreateMode {
 			conmonPidfileFlagName = "conmon-pidfile"
 		} else {
 			conmonPidfileFlagName = "infra-conmon-pidfile"
@@ -690,7 +674,7 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		_ = cmd.RegisterFlagCompletionFunc(conmonPidfileFlagName, completion.AutocompleteDefault)
 
 		var entrypointFlagName string
-		if !isInfra {
+		if mode == entities.CreateMode {
 			entrypointFlagName = "entrypoint"
 		} else {
 			entrypointFlagName = "infra-command"
@@ -725,7 +709,7 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		)
 		_ = cmd.RegisterFlagCompletionFunc(labelFileFlagName, completion.AutocompleteDefault)
 
-		if isInfra {
+		if mode == entities.InfraMode {
 			nameFlagName := "infra-name"
 			createFlags.StringVar(
 				&cf.Name,
@@ -775,7 +759,8 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		)
 		_ = cmd.RegisterFlagCompletionFunc(volumesFromFlagName, AutocompleteContainers)
 	}
-	if clone || !isInfra { // clone and create only flags, we need this level of separation so clone does not pick up all of the flags
+
+	if mode == entities.CloneMode || mode == entities.CreateMode {
 		nameFlagName := "name"
 		createFlags.StringVar(
 			&cf.Name,
@@ -791,7 +776,8 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 			"Run container in an existing pod",
 		)
 		_ = cmd.RegisterFlagCompletionFunc(podFlagName, AutocompletePods)
-
+	}
+	if mode != entities.InfraMode { // clone create and update only flags, we need this level of separation so clone does not pick up all of the flags
 		cpuPeriodFlagName := "cpu-period"
 		createFlags.Uint64Var(
 			&cf.CPUPeriod,
@@ -840,8 +826,24 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		)
 		_ = cmd.RegisterFlagCompletionFunc(memorySwappinessFlagName, completion.AutocompleteNone)
 	}
-	// anyone can use these
+	if mode == entities.CreateMode || mode == entities.UpdateMode {
+		deviceReadIopsFlagName := "device-read-iops"
+		createFlags.StringSliceVar(
+			&cf.DeviceReadIOPs,
+			deviceReadIopsFlagName, []string{},
+			"Limit read rate (IO per second) from a device (e.g. --device-read-iops=/dev/sda:1000)",
+		)
+		_ = cmd.RegisterFlagCompletionFunc(deviceReadIopsFlagName, completion.AutocompleteDefault)
 
+		deviceWriteIopsFlagName := "device-write-iops"
+		createFlags.StringSliceVar(
+			&cf.DeviceWriteIOPs,
+			deviceWriteIopsFlagName, []string{},
+			"Limit write rate (IO per second) to a device (e.g. --device-write-iops=/dev/sda:1000)",
+		)
+		_ = cmd.RegisterFlagCompletionFunc(deviceWriteIopsFlagName, completion.AutocompleteDefault)
+	}
+	// anyone can use these
 	cpusFlagName := "cpus"
 	createFlags.Float64Var(
 		&cf.CPUS,

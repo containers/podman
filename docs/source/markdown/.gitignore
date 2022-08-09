@@ -27,3 +27,4 @@ podman-run.1.md
 podman-search.1.md
 podman-stop.1.md
 podman-unpause.1.md
+podman-update.1.md

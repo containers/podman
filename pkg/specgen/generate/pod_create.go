@@ -45,7 +45,7 @@ func MakePod(p *entities.PodSpec, rt *libpod.Runtime) (*libpod.Pod, error) {
 	}
 
 	if !p.PodSpecGen.NoInfra {
-		err := FinishThrottleDevices(p.PodSpecGen.InfraContainerSpec)
+		err := specgen.FinishThrottleDevices(p.PodSpecGen.InfraContainerSpec)
 		if err != nil {
 			return nil, err
 		}
@@ -53,17 +53,11 @@ func MakePod(p *entities.PodSpec, rt *libpod.Runtime) (*libpod.Pod, error) {
 			p.PodSpecGen.ResourceLimits.BlockIO = p.PodSpecGen.InfraContainerSpec.ResourceLimits.BlockIO
 		}
 
-		weightDevices, err := WeightDevices(p.PodSpecGen.InfraContainerSpec.WeightDevice)
+		err = specgen.WeightDevices(p.PodSpecGen.InfraContainerSpec)
 		if err != nil {
 			return nil, err
 		}
-
-		if p.PodSpecGen.ResourceLimits != nil && len(weightDevices) > 0 {
-			if p.PodSpecGen.ResourceLimits.BlockIO == nil {
-				p.PodSpecGen.ResourceLimits.BlockIO = &specs.LinuxBlockIO{}
-			}
-			p.PodSpecGen.ResourceLimits.BlockIO.WeightDevice = weightDevices
-		}
+		p.PodSpecGen.ResourceLimits = p.PodSpecGen.InfraContainerSpec.ResourceLimits
 	}
 
 	options, err := createPodOptions(&p.PodSpecGen)

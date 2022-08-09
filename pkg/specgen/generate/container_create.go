@@ -56,7 +56,7 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 		}
 	}
 
-	if err := FinishThrottleDevices(s); err != nil {
+	if err := specgen.FinishThrottleDevices(s); err != nil {
 		return nil, nil, nil, err
 	}
 

@@ -507,44 +507,9 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 		s.ResourceLimits = &specs.LinuxResources{}
 	}
 
-	if s.ResourceLimits.Memory == nil || (len(c.Memory) != 0 || len(c.MemoryReservation) != 0 || len(c.MemorySwap) != 0 || c.MemorySwappiness != 0) {
-		s.ResourceLimits.Memory, err = getMemoryLimits(c)
-		if err != nil {
-			return err
-		}
-	}
-	if s.ResourceLimits.BlockIO == nil || (len(c.BlkIOWeight) != 0 || len(c.BlkIOWeightDevice) != 0 || len(c.DeviceReadBPs) != 0 || len(c.DeviceWriteBPs) != 0) {
-		s.ResourceLimits.BlockIO, err = getIOLimits(s, c)
-		if err != nil {
-			return err
-		}
-	}
-	if c.PIDsLimit != nil {
-		pids := specs.LinuxPids{
-			Limit: *c.PIDsLimit,
-		}
-
-		s.ResourceLimits.Pids = &pids
-	}
-
-	if s.ResourceLimits.CPU == nil || (c.CPUPeriod != 0 || c.CPUQuota != 0 || c.CPURTPeriod != 0 || c.CPURTRuntime != 0 || c.CPUS != 0 || len(c.CPUSetCPUs) != 0 || len(c.CPUSetMems) != 0 || c.CPUShares != 0) {
-		s.ResourceLimits.CPU = getCPULimits(c)
-	}
-
-	unifieds := make(map[string]string)
-	for _, unified := range c.CgroupConf {
-		splitUnified := strings.SplitN(unified, "=", 2)
-		if len(splitUnified) < 2 {
-			return errors.New("--cgroup-conf must be formatted KEY=VALUE")
-		}
-		unifieds[splitUnified[0]] = splitUnified[1]
-	}
-	if len(unifieds) > 0 {
-		s.ResourceLimits.Unified = unifieds
-	}
-
-	if s.ResourceLimits.CPU == nil && s.ResourceLimits.Pids == nil && s.ResourceLimits.BlockIO == nil && s.ResourceLimits.Memory == nil && s.ResourceLimits.Unified == nil {
-		s.ResourceLimits = nil
+	s.ResourceLimits, err = GetResources(s, c)
+	if err != nil {
+		return err
 	}
 
 	if s.LogConfiguration == nil {
@@ -1170,4 +1135,48 @@ func parseLinuxResourcesDeviceAccess(device string) (specs.LinuxDeviceCgroup, er
 		Minor:  minor,
 		Access: access,
 	}, nil
+}
+
+func GetResources(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions) (*specs.LinuxResources, error) {
+	var err error
+	if s.ResourceLimits.Memory == nil || (len(c.Memory) != 0 || len(c.MemoryReservation) != 0 || len(c.MemorySwap) != 0 || c.MemorySwappiness != 0) {
+		s.ResourceLimits.Memory, err = getMemoryLimits(c)
+		if err != nil {
+			return nil, err
+		}
+	}
+	if s.ResourceLimits.BlockIO == nil || (len(c.BlkIOWeight) != 0 || len(c.BlkIOWeightDevice) != 0 || len(c.DeviceReadBPs) != 0 || len(c.DeviceWriteBPs) != 0) {
+		s.ResourceLimits.BlockIO, err = getIOLimits(s, c)
+		if err != nil {
+			return nil, err
+		}
+	}
+	if c.PIDsLimit != nil {
+		pids := specs.LinuxPids{
+			Limit: *c.PIDsLimit,
+		}
+
+		s.ResourceLimits.Pids = &pids
+	}
+
+	if s.ResourceLimits.CPU == nil || (c.CPUPeriod != 0 || c.CPUQuota != 0 || c.CPURTPeriod != 0 || c.CPURTRuntime != 0 || c.CPUS != 0 || len(c.CPUSetCPUs) != 0 || len(c.CPUSetMems) != 0 || c.CPUShares != 0) {
+		s.ResourceLimits.CPU = getCPULimits(c)
+	}
+
+	unifieds := make(map[string]string)
+	for _, unified := range c.CgroupConf {
+		splitUnified := strings.SplitN(unified, "=", 2)
+		if len(splitUnified) < 2 {
+			return nil, errors.New("--cgroup-conf must be formatted KEY=VALUE")
+		}
+		unifieds[splitUnified[0]] = splitUnified[1]
+	}
+	if len(unifieds) > 0 {
+		s.ResourceLimits.Unified = unifieds
+	}
+
+	if s.ResourceLimits.CPU == nil && s.ResourceLimits.Pids == nil && s.ResourceLimits.BlockIO == nil && s.ResourceLimits.Memory == nil && s.ResourceLimits.Unified == nil {
+		s.ResourceLimits = nil
+	}
+	return s.ResourceLimits, nil
 }

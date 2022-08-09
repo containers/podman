@@ -164,6 +164,15 @@ type PodCloneOptions struct {
 	Start               bool
 }
 
+type ContainerMode string
+
+const (
+	InfraMode  = ContainerMode("infra")
+	CloneMode  = ContainerMode("clone")
+	UpdateMode = ContainerMode("update")
+	CreateMode = ContainerMode("create")
+)
+
 type ContainerCreateOptions struct {
 	Annotation        []string
 	Attach            []string
