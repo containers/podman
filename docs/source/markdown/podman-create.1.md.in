@@ -99,21 +99,15 @@ Path of the authentication file. Default is ${XDG\_RUNTIME\_DIR}/containers/auth
 Note: You can also override the default path of the authentication file by setting the REGISTRY\_AUTH\_FILE
 environment variable. `export REGISTRY_AUTH_FILE=path`
 
-#### **--blkio-weight**=*weight*
+@@option blkio-weight
 
-Block IO weight (relative weight) accepts a weight value between 10 and 1000.
+#### **--blkio-weight-device**=*device:weight*
 
-#### **--blkio-weight-device**=*weight*
+Block IO relative device weight.
 
-Block IO weight (relative device weight, format: `DEVICE_NAME:WEIGHT`).
+@@option cap-add
 
-#### **--cap-add**=*capability*
-
-Add Linux capabilities
-
-#### **--cap-drop**=*capability*
-
-Drop Linux capabilities
+@@option cap-drop
 
 @@option cgroup-conf
 
@@ -323,22 +317,7 @@ Set custom DNS options. Invalid if using **--dns-opt** and **--network** that is
 
 Set custom DNS search domains. Invalid if using **--dns-search** and **--network** that is set to 'none' or `container:<name|id>`. (Use --dns-search=. if you don't wish to set the search domain)
 
-#### **--entrypoint**=*"command"* | *'["command", "arg1", ...]'*
-
-Overwrite the default ENTRYPOINT of the image
-
-This option allows you to overwrite the default entrypoint of the image.
-The ENTRYPOINT of an image is similar to a COMMAND
-because it specifies what executable to run when the container starts, but it is
-(purposely) more difficult to override. The ENTRYPOINT gives a container its
-default nature or behavior, so that when you set an ENTRYPOINT you can run the
-container as if it were that binary, complete with default options, and you can
-pass in more options via the COMMAND. But, sometimes an operator may want to run
-something else inside the container, so you can override the default ENTRYPOINT
-at runtime by using a **--entrypoint** and a string to specify the new
-ENTRYPOINT.
-
-You need to specify multi option commands in the form of a json string.
+@@option entrypoint
 
 #### **--env**, **-e**=*env*
 
@@ -354,10 +333,7 @@ Read in a line delimited file of environment variables. See **Environment** note
 
 @@option env-host
 
-#### **--expose**=*port*
-
-Expose a port, or a range of ports (e.g. --expose=3300-3310) to set up port redirection
-on the host system.
+@@option expose
 
 #### **--gidmap**=*container_gid:host_gid:amount*
 
@@ -370,42 +346,21 @@ Note: the **--gidmap** flag cannot be called in conjunction with the **--pod** f
 
 @@option group-add
 
-#### **--health-cmd**=*"command"* | *'["command", "arg1", ...]'*
+@@option health-cmd
 
-Set or alter a healthcheck command for a container. The command is a command to be executed inside your
-container that determines your container health. The command is required for other healthcheck options
-to be applied. A value of `none` disables existing healthchecks.
+@@option health-interval
 
-Multiple options can be passed in the form of a JSON array; otherwise, the command will be interpreted
-as an argument to `/bin/sh -c`.
+@@option health-retries
 
-#### **--health-interval**=*interval*
+@@option health-start-period
 
-Set an interval for the healthchecks (a value of `disable` results in no automatic timer setup) (default "30s")
-
-#### **--health-retries**=*retries*
-
-The number of retries allowed before a healthcheck is considered to be unhealthy. The default value is `3`.
-
-#### **--health-start-period**=*period*
-
-The initialization time needed for a container to bootstrap. The value can be expressed in time format like
-`2m3s`. The default value is `0s`
-
-#### **--health-timeout**=*timeout*
-
-The maximum time allowed to complete the healthcheck before an interval is considered failed. Like start-period, the
-value can be expressed in a time format such as `1m22s`. The default value is `30s`.
+@@option health-timeout
 
 #### **--help**
 
 Print usage statement
 
-#### **--hostname**, **-h**=*name*
-
-Container host name
-
-Sets the container host name that is available inside the container. Can only be used with a private UTS namespace `--uts=private` (default). If `--pod` is specified and the pod shares the UTS namespace (default) the pod's hostname will be used.
+@@option hostname.container
 
 @@option hostuser
 
@@ -490,26 +445,11 @@ a private IPC namespace.
 
 Add metadata to a container (e.g., --label com.example.key=value)
 
-#### **--label-file**=*file*
+@@option label-file
 
-Read in a line delimited file of labels
+@@option link-local-ip
 
-#### **--link-local-ip**=*ip*
-
-Not implemented
-
-#### **--log-driver**=*driver*
-
-Logging driver for the container. Currently available options are *k8s-file*, *journald*, *none* and *passthrough*, with *json-file* aliased to *k8s-file* for scripting compatibility.
-
-The podman info command below will display the default log-driver for the system.
-```
-$ podman info --format '{{ .Host.LogDriver }}'
-journald
-```
-The *passthrough* driver passes down the standard streams (stdin, stdout, stderr) to the
-container.  It is not allowed with the remote Podman client, including Mac and Windows (excluding WSL2) machines, and on a tty, since it is
-vulnerable to attacks via TIOCSTI.
+@@option log-driver
 
 #### **--log-opt**=*name=value*
 
@@ -528,17 +468,7 @@ It supports the same keys as **podman inspect --format**.
 
 This option is currently supported only by the **journald** log driver.
 
-#### **--mac-address**=*address*
-
-Container network interface MAC address (e.g. 92:d0:c6:0a:29:33)
-This option can only be used if the container is joined to only a single network - i.e., **--network=_network-name_** is used at most once -
-and if the container is not joining another container's network namespace via **--network=container:_id_**.
-
-Remember that the MAC address in an Ethernet network must be unique.
-The IPv6 link-local address will be based on the device's MAC address
-according to RFC4862.
-
-To specify multiple static MAC addresses per container, set multiple networks using the **--network** option with a static MAC address specified for each using the `mac` mode for that option.
+@@option mac-address
 
 #### **--memory**, **-m**=*limit*
 
@@ -571,11 +501,7 @@ The format of `LIMIT` is `<number>[<unit>]`. Unit can be `b` (bytes),
 `k` (kibibytes), `m` (mebibytes), or `g` (gibibytes). If you don't specify a
 unit, `b` is used. Set LIMIT to `-1` to enable unlimited swap.
 
-#### **--memory-swappiness**=*number*
-
-Tune a container's memory swappiness behavior. Accepts an integer between 0 and 100.
-
-This flag is not supported on cgroups V2 systems.
+@@option memory-swappiness
 
 @@option mount
 
@@ -626,14 +552,7 @@ Valid _mode_ values are:
   Note: Rootlesskit changes the source IP address of incoming packets to an IP address in the container network namespace, usually `10.0.2.100`. If your application requires the real source IP address, e.g. web server logs, use the slirp4netns port handler. The rootlesskit port handler is also used for rootless containers when connected to user-defined networks.
   - **port_handler=slirp4netns**: Use the slirp4netns port forwarding, it is slower than rootlesskit but preserves the correct source IP address. This port handler cannot be used for user-defined networks.
 
-#### **--network-alias**=*alias*
-
-Add a network-scoped alias for the container, setting the alias for all networks that the container joins. To set a
-name only for a specific network, use the alias option as described under the **--network** option.
-If the network has DNS enabled (`podman network inspect -f {{.DNSEnabled}} <name>`),
-these aliases can be used for name resolution on the given network. This option can be specified multiple times.
-NOTE: When using CNI a container will only have access to aliases on the first network that it joins. This limitation does
-not exist with netavark/aardvark-dns.
+@@option network-alias
 
 @@option no-healthcheck
 
@@ -646,9 +565,7 @@ This option conflicts with **--add-host**.
 
 @@option oom-kill-disable
 
-#### **--oom-score-adj**=*num*
-
-Tune the host's OOM preferences for containers (accepts -1000 to 1000)
+@@option oom-score-adj
 
 #### **--os**=*OS*
 Override the OS, defaults to hosts, of the image to be pulled. For example, `windows`.
@@ -668,14 +585,9 @@ Default is to create a private PID namespace for the container
 
 @@option pidfile
 
-#### **--pids-limit**=*limit*
+@@option pids-limit
 
-Tune the container's pids limit. Set `-1` to have unlimited pids for the container. (default "4096" on systems that support PIDS cgroups).
-
-#### **--platform**=*OS/ARCH*
-
-Specify the platform for selecting the image.   (Conflicts with --arch and --os)
-The `--platform` option can be used to override the current architecture and operating system.
+@@option platform
 
 #### **--pod**=*name*
 
@@ -742,40 +654,19 @@ port to a random port on the host within an *ephemeral port range* defined by
 `/proc/sys/net/ipv4/ip_local_port_range`. To find the mapping between the host
 ports and the exposed ports, use `podman port`.
 
-#### **--pull**=*policy*
-
-Pull image policy. The default is **missing**.
-
-- **always**: Always pull the image and throw an error if the pull fails.
-- **missing**: Pull the image only if it could not be found in the local containers storage.  Throw an error if no image could be found and the pull fails.
-- **never**: Never pull the image but use the one from the local containers storage.  Throw an error if no image could be found.
-- **newer**: Pull if the image on the registry is newer than the one in the local containers storage.  An image is considered to be newer when the digests are different.  Comparing the time stamps is prone to errors.  Pull errors are suppressed if a local image was found.
+@@option pull
 
 #### **--quiet**, **-q**
 
 Suppress output information when pulling images
 
-#### **--read-only**
+@@option read-only
 
-Mount the container's root filesystem as read-only.
+@@option read-only-tmpfs
 
-By default a container will have its root filesystem writable allowing processes
-to write files anywhere. By specifying the `--read-only` flag the container will have
-its root filesystem mounted as read-only prohibiting any writes.
+@@option replace
 
-#### **--read-only-tmpfs**
-
-If container is running in --read-only mode, then mount a read-write tmpfs on /run, /tmp, and /var/tmp. The default is *true*
-
-#### **--replace**
-
-If another container with the same name already exists, replace and remove it. The default is **false**.
-
-#### **--requires**=*container*
-
-Specify one or more requirements.
-A requirement is a dependency container that will be started before this container.
-Containers can be specified by name or ID, with multiple containers being separated by commas.
+@@option requires
 
 #### **--restart**=*policy*
 
@@ -818,28 +709,7 @@ finishes executing, similar to a tmpfs mount point being unmounted.
 
 @@option seccomp-policy
 
-#### **--secret**=*secret[,opt=opt ...]*
-
-Give the container access to a secret. Can be specified multiple times.
-
-A secret is a blob of sensitive data which a container needs at runtime but
-should not be stored in the image or in source control, such as usernames and passwords,
-TLS certificates and keys, SSH keys or other important generic strings or binary content (up to 500 kb in size).
-
-When secrets are specified as type `mount`, the secrets are copied and mounted into the container when a container is created.
-When secrets are specified as type `env`, the secret will be set as an environment variable within the container.
-Secrets are written in the container at the time of container creation, and modifying the secret using `podman secret` commands
-after the container is created will not affect the secret inside the container.
-
-Secrets and its storage are managed using the `podman secret` command.
-
-Secret Options
-
-- `type=mount|env`    : How the secret will be exposed to the container. Default mount.
-- `target=target`     : Target of secret. Defaults to secret name.
-- `uid=0`             : UID of secret. Defaults to 0. Mount secret type only.
-- `gid=0`             : GID of secret. Defaults to 0. Mount secret type only.
-- `mode=0`            : Mode of secret. Defaults to 0444. Mount secret type only.
+@@option secret
 
 #### **--security-opt**=*option*
 
@@ -880,14 +750,9 @@ Size of `/dev/shm` (format: `<number>[<unit>]`, where unit = b (bytes), k (kibib
 If you omit the unit, the system uses bytes. If you omit the size entirely, the system uses `64m`.
 When size is `0`, there is no limit on the amount of memory used for IPC by the container.
 
-#### **--stop-signal**=*SIGTERM*
+@@option stop-signal
 
-Signal to stop a container. Default is SIGTERM.
-
-#### **--stop-timeout**=*seconds*
-
-Timeout (in seconds) to stop a container. Default is 10.
-Remote connections use local containers.conf for defaults
+@@option stop-timeout
 
 #### **--subgidname**=*name*
 
@@ -948,18 +813,7 @@ The `container_manage_cgroup` boolean must be enabled for this to be allowed on 
 
 Require HTTPS and verify certificates when contacting registries (default: true). If explicitly set to true, then TLS verification will be used. If set to false, then TLS verification will not be used. If not specified, TLS verification will be used unless the target registry is listed as an insecure registry in registries.conf.
 
-#### **--tmpfs**=*fs*
-
-Create a tmpfs mount
-
-Mount a temporary filesystem (`tmpfs`) mount into a container, for example:
-
-$ podman create -d --tmpfs /tmp:rw,size=787448k,mode=1777 my_image
-
-This command mounts a `tmpfs` at `/tmp` within the container. The supported mount
-options are the same as the Linux default `mount` flags. If you do not specify
-any options, the systems uses the following options:
-`rw,noexec,nosuid,nodev`.
+@@option tmpfs
 
 #### **--tty**, **-t**
 
@@ -974,97 +828,13 @@ standard input.
 
 @@option tz
 
-#### **--uidmap**=*container_uid:from_uid:amount*
+@@option uidmap.container
 
-Run the container in a new user namespace using the supplied UID mapping. This
-option conflicts with the **--userns** and **--subuidname** options. This
-option provides a way to map host UIDs to container UIDs. It can be passed
-several times to map different ranges.
-
-The _from_uid_ value is based upon the user running the command, either rootful or rootless users.
-* rootful user:  *container_uid*:*host_uid*:*amount*
-* rootless user: *container_uid*:*intermediate_uid*:*amount*
-
-When **podman create** is called by a privileged user, the option **--uidmap**
-works as a direct mapping between host UIDs and container UIDs.
-
-host UID -> container UID
-
-The _amount_ specifies the number of consecutive UIDs that will be mapped.
-If for example _amount_ is **4** the mapping would look like:
-
-|   host UID     |    container UID    |
-| -              | -                   |
-| _from_uid_     | _container_uid_     |
-| _from_uid_ + 1 | _container_uid_ + 1 |
-| _from_uid_ + 2 | _container_uid_ + 2 |
-| _from_uid_ + 3 | _container_uid_ + 3 |
-
-When **podman create** is called by an unprivileged user (i.e. running rootless),
-the value _from_uid_ is interpreted as an "intermediate UID". In the rootless
-case, host UIDs are not mapped directly to container UIDs. Instead the mapping
-happens over two mapping steps:
-
-host UID -> intermediate UID -> container UID
-
-The **--uidmap** option only influences the second mapping step.
-
-The first mapping step is derived by Podman from the contents of the file
-_/etc/subuid_ and the UID of the user calling Podman.
-
-First mapping step:
-
-| host UID                                         | intermediate UID |
-| -                                                |                - |
-| UID for the user starting Podman                 |                0 |
-| 1st subordinate UID for the user starting Podman |                1 |
-| 2nd subordinate UID for the user starting Podman |                2 |
-| 3rd subordinate UID for the user starting Podman |                3 |
-| nth subordinate UID for the user starting Podman |                n |
-
-To be able to use intermediate UIDs greater than zero, the user needs to have
-subordinate UIDs configured in _/etc/subuid_. See **subuid**(5).
-
-The second mapping step is configured with **--uidmap**.
-
-If for example _amount_ is **5** the second mapping step would look like:
-
-|   intermediate UID   |    container UID    |
-| -                    | -                   |
-| _from_uid_           | _container_uid_     |
-| _from_uid_ + 1       | _container_uid_ + 1 |
-| _from_uid_ + 2       | _container_uid_ + 2 |
-| _from_uid_ + 3       | _container_uid_ + 3 |
-| _from_uid_ + 4       | _container_uid_ + 4 |
-
-The current user ID is mapped to UID=0 in the rootless user namespace.
-Every additional range is added sequentially afterward:
-
-|   host                |rootless user namespace | length              |
-| -                     | -                      | -                   |
-| $UID                  | 0                      | 1                   |
-| 1                     | $FIRST_RANGE_ID        | $FIRST_RANGE_LENGTH |
-| 1+$FIRST_RANGE_LENGTH | $SECOND_RANGE_ID       | $SECOND_RANGE_LENGTH|
-
-Even if a user does not have any subordinate UIDs in  _/etc/subuid_,
-**--uidmap** could still be used to map the normal UID of the user to a
-container UID by running `podman create --uidmap $container_uid:0:1 --user $container_uid ...`.
-
-Note: the **--uidmap** flag cannot be called in conjunction with the **--pod** flag as a uidmap cannot be set on the container level when in a pod.
-
-#### **--ulimit**=*option*
-
-Ulimit options
-
-You can pass `host` to copy the current configuration from the host.
+@@option ulimit
 
 @@option umask
 
-#### **--unsetenv**=*env*
-
-Unset default environment variables for the container. Default environment
-variables include variables provided natively by Podman, environment variables
-configured by the image, and environment variables from containers.conf.
+@@option unsetenv
 
 @@option unsetenv-all
 
@@ -1120,14 +890,7 @@ Podman allocates unique ranges of UIDs and GIDs from the `containers` subordinat
 
 This option is incompatible with **--gidmap**, **--uidmap**, **--subuidname** and **--subgidname**.
 
-#### **--uts**=*mode*
-
-Set the UTS namespace mode for the container. The following values are supported:
-
-- **host**: use the host's UTS namespace inside the container.
-- **private**: create a new namespace for the container (default).
-- **ns:[path]**: run the container in the given existing UTS namespace.
-- **container:[container]**: join the UTS namespace of the specified container.
+@@option uts.container
 
 #### **--variant**=*VARIANT*
 Use _VARIANT_ instead of the default architecture variant of the container image. Some images can use multiple variants of the arm architectures, such as arm/v5 and arm/v7.

@@ -11,13 +11,9 @@ podman\-container\-clone - Creates a copy of an existing container
 
 ## OPTIONS
 
-#### **--blkio-weight**=*weight*
+@@option blkio-weight
 
-Block IO weight (relative weight) accepts a weight value between 10 and 1000.
-
-#### **--blkio-weight-device**=*weight*
-
-Block IO weight (relative device weight, format: `DEVICE_NAME:WEIGHT`).
+@@option blkio-weight-device
 
 #### **--cpu-period**=*limit*
 
@@ -130,9 +126,7 @@ two memory nodes.
 
 If none are specified, the original container's CPU memory nodes are used.
 
-#### **--destroy**
-
-Remove the original container that we are cloning once used to mimic the configuration.
+@@option destroy
 
 #### **--device-read-bps**=*path*
 
@@ -179,11 +173,7 @@ The format of `LIMIT` is `<number>[<unit>]`. Unit can be `b` (bytes),
 `k` (kibibytes), `m` (mebibytes), or `g` (gibibytes). If you don't specify a
 unit, `b` is used. Set LIMIT to `-1` to enable unlimited swap.
 
-#### **--memory-swappiness**=*number*
-
-Tune a container's memory swappiness behavior. Accepts an integer between 0 and 100.
-
-This flag is not supported on cgroups V2 systems.
+@@option memory-swappiness
 
 #### **--name**
 
