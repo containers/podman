@@ -3,6 +3,7 @@ package buildah
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -445,7 +446,7 @@ func OpenBuilderByPath(store storage.Store, path string) (*Builder, error) {
 		}
 		buildstate, err := ioutil.ReadFile(filepath.Join(cdir, stateFile))
 		if err != nil {
-			if os.IsNotExist(err) {
+			if errors.Is(err, os.ErrNotExist) {
 				logrus.Debugf("error reading %q: %v, ignoring container %q", filepath.Join(cdir, stateFile), err, container.ID)
 				continue
 			}
@@ -482,7 +483,7 @@ func OpenAllBuilders(store storage.Store) (builders []*Builder, err error) {
 		}
 		buildstate, err := ioutil.ReadFile(filepath.Join(cdir, stateFile))
 		if err != nil {
-			if os.IsNotExist(err) {
+			if errors.Is(err, os.ErrNotExist) {
 				logrus.Debugf("error reading %q: %v, ignoring container %q", filepath.Join(cdir, stateFile), err, container.ID)
 				continue
 			}

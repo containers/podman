@@ -6,6 +6,7 @@ package chroot
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -1090,7 +1091,7 @@ func setupChrootBindMounts(spec *specs.Spec, bundlePath string) (undoBinds func(
 	// Bind /dev read-only.
 	subDev := filepath.Join(spec.Root.Path, "/dev")
 	if err := unix.Mount("/dev", subDev, "bind", devFlags, ""); err != nil {
-		if os.IsNotExist(err) {
+		if errors.Is(err, os.ErrNotExist) {
 			err = os.Mkdir(subDev, 0755)
 			if err == nil {
 				err = unix.Mount("/dev", subDev, "bind", devFlags, "")
@@ -1114,7 +1115,7 @@ func setupChrootBindMounts(spec *specs.Spec, bundlePath string) (undoBinds func(
 	// Bind /proc read-only.
 	subProc := filepath.Join(spec.Root.Path, "/proc")
 	if err := unix.Mount("/proc", subProc, "bind", procFlags, ""); err != nil {
-		if os.IsNotExist(err) {
+		if errors.Is(err, os.ErrNotExist) {
 			err = os.Mkdir(subProc, 0755)
 			if err == nil {
 				err = unix.Mount("/proc", subProc, "bind", procFlags, "")
@@ -1129,7 +1130,7 @@ func setupChrootBindMounts(spec *specs.Spec, bundlePath string) (undoBinds func(
 	// Bind /sys read-only.
 	subSys := filepath.Join(spec.Root.Path, "/sys")
 	if err := unix.Mount("/sys", subSys, "bind", sysFlags, ""); err != nil {
-		if os.IsNotExist(err) {
+		if errors.Is(err, os.ErrNotExist) {
 			err = os.Mkdir(subSys, 0755)
 			if err == nil {
 				err = unix.Mount("/sys", subSys, "bind", sysFlags, "")
@@ -1218,7 +1219,7 @@ func setupChrootBindMounts(spec *specs.Spec, bundlePath string) (undoBinds func(
 		}
 		if err != nil {
 			// If the target can't be stat()ted, check the error.
-			if !os.IsNotExist(err) {
+			if !errors.Is(err, os.ErrNotExist) {
 				return undoBinds, fmt.Errorf("error examining %q for mounting in mount namespace: %w", target, err)
 			}
 			// The target isn't there yet, so create it.
@@ -1304,7 +1305,7 @@ func setupChrootBindMounts(spec *specs.Spec, bundlePath string) (undoBinds func(
 		r := filepath.Join(spec.Root.Path, roPath)
 		target, err := filepath.EvalSymlinks(r)
 		if err != nil {
-			if os.IsNotExist(err) {
+			if errors.Is(err, os.ErrNotExist) {
 				// No target, no problem.
 				continue
 			}
@@ -1313,7 +1314,7 @@ func setupChrootBindMounts(spec *specs.Spec, bundlePath string) (undoBinds func(
 		// Check if the location is already read-only.
 		var fs unix.Statfs_t
 		if err = unix.Statfs(target, &fs); err != nil {
-			if os.IsNotExist(err) {
+			if errors.Is(err, os.ErrNotExist) {
 				// No target, no problem.
 				continue
 			}
@@ -1325,7 +1326,7 @@ func setupChrootBindMounts(spec *specs.Spec, bundlePath string) (undoBinds func(
 		// Mount the location over itself, so that we can remount it as read-only.
 		roFlags := uintptr(unix.MS_NODEV | unix.MS_NOEXEC | unix.MS_NOSUID | unix.MS_RDONLY)
 		if err := unix.Mount(target, target, "", roFlags|unix.MS_BIND|unix.MS_REC, ""); err != nil {
-			if os.IsNotExist(err) {
+			if errors.Is(err, os.ErrNotExist) {
 				// No target, no problem.
 				continue
 			}
@@ -1370,7 +1371,7 @@ func setupChrootBindMounts(spec *specs.Spec, bundlePath string) (undoBinds func(
 		// Get some info about the target.
 		targetinfo, err := os.Stat(target)
 		if err != nil {
-			if os.IsNotExist(err) {
+			if errors.Is(err, os.ErrNotExist) {
 				// No target, no problem.
 				continue
 			}

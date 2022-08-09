@@ -1,3 +1,32 @@
+- Changelog for v1.27.0 (2022-08-01)
+  * build: support filtering cache by duration using `--cache-ttl`.
+  * build: support building from commit when using git repo as build context.
+  * build: clean up git repos correctly when using subdirs.
+  * build: add support for distributing cache to remote sources using `--cache-to` and `--cache-from`.
+  * imagebuildah: optimize cache hits for `COPY` and `ADD` instructions.
+  * build: support OCI hooks for ephemeral build containers.
+  * build: add support for `--userns=auto`.
+  * copier: add NoOverwriteNonDirDir option .
+  * add initial support for building images using Buildah on FreeBSD.
+  * multistage: this now skips the computing of unwanted stages to improve performance.
+  * multiarch: support splitting build logs for `--platform` using `--logsplit`.
+  * build: add support for building images where the base image has no history.
+  * commit: allow disabling image history with `--omit-history`.
+  * build: add support for renaming a device in rootless setups.
+  * build: now supports additionalBuildContext in builds via the `--build-context` option.
+  * build: `--output` produces artifacts even if the build container is not committed.
+  * build: now accepts `-cpp-flag`, allowing users to pass in CPP flags when processing a Containerfile with C Preprocessor-like syntax.
+  * build: now accepts a branch and a subdirectory when the build context is a git repository.
+  * build: output now shows a progress bar while pushing and pulling images
+  * build: now errors out if the path to Containerfile is a directory.
+  * build: support building container images on environments that are rootless and without any valid login sessions.
+  * fix: `--output` now generates artifacts even if the entire build is cached.
+  * fix: `--output` generates artifacts only for the target stage in multi-stage builds.
+  * fix,add: now fails on a bad HTTP response instead of writing to container
+  * fix,squash: never use build cache when computing the last step of the last stage
+  * fix,build,run: allow reusing secret more than once in different RUN steps
+  * fix: compatibility with Docker build by making its --label and --annotate options set empty labels and annotations when given a name but no `=` or label value.
+
 - Changelog for v1.26.0 (2022-05-04)
   * imagebuildah,build: move deepcopy of args before we spawn goroutine
   * Vendor in containers/storage v1.40.2

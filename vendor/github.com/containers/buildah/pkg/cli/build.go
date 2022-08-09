@@ -19,6 +19,7 @@ import (
 	"github.com/containers/buildah/pkg/parse"
 	"github.com/containers/buildah/pkg/util"
 	"github.com/containers/common/pkg/auth"
+	"github.com/containers/image/v5/docker/reference"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -233,10 +234,6 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 		return options, nil, nil, errors.New("'rm' and 'force-rm' can only be set with either 'layers' or 'no-cache'")
 	}
 
-	if c.Flag("cache-from").Changed {
-		logrus.Debugf("build --cache-from not enabled, has no effect")
-	}
-
 	if c.Flag("compress").Changed {
 		logrus.Debugf("--compress option specified but is ignored")
 	}
@@ -290,6 +287,29 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 			iopts.Quiet = true
 		}
 	}
+	var cacheTo reference.Named
+	var cacheFrom reference.Named
+	cacheTo = nil
+	cacheFrom = nil
+	if c.Flag("cache-to").Changed {
+		cacheTo, err = parse.RepoNameToNamedReference(iopts.CacheTo)
+		if err != nil {
+			return options, nil, nil, fmt.Errorf("unable to parse value provided `%s` to --cache-to: %w", iopts.CacheTo, err)
+		}
+	}
+	if c.Flag("cache-from").Changed {
+		cacheFrom, err = parse.RepoNameToNamedReference(iopts.CacheFrom)
+		if err != nil {
+			return options, nil, nil, fmt.Errorf("unable to parse value provided `%s` to --cache-from: %w", iopts.CacheTo, err)
+		}
+	}
+	var cacheTTL time.Duration
+	if c.Flag("cache-ttl").Changed {
+		cacheTTL, err = time.ParseDuration(iopts.CacheTTL)
+		if err != nil {
+			return options, nil, nil, fmt.Errorf("unable to parse value provided %q as --cache-ttl: %w", iopts.CacheTTL, err)
+		}
+	}
 	options = define.BuildOptions{
 		AddCapabilities:         iopts.CapAdd,
 		AdditionalBuildContexts: additionalBuildContext,
@@ -300,6 +320,9 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 		Args:                    args,
 		BlobDirectory:           iopts.BlobCache,
 		BuildOutput:             iopts.BuildOutput,
+		CacheFrom:               cacheFrom,
+		CacheTo:                 cacheTo,
+		CacheTTL:                cacheTTL,
 		CNIConfigDir:            iopts.CNIConfigDir,
 		CNIPluginPath:           iopts.CNIPlugInPath,
 		CPPFlags:                iopts.CPPFlags,

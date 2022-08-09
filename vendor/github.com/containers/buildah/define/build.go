@@ -5,6 +5,7 @@ import (
 	"time"
 
 	nettypes "github.com/containers/common/libnetwork/types"
+	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/types"
 	encconfig "github.com/containers/ocicrypt/config"
 	"github.com/containers/storage/pkg/archive"
@@ -136,6 +137,16 @@ type BuildOptions struct {
 	RuntimeArgs []string
 	// TransientMounts is a list of mounts that won't be kept in the image.
 	TransientMounts []string
+	// CacheFrom specifies any remote repository which can be treated as
+	// potential cache source.
+	CacheFrom reference.Named
+	// CacheTo specifies any remote repository which can be treated as
+	// potential cache destination.
+	CacheTo reference.Named
+	// CacheTTL specifies duration, if specified using `--cache-ttl` then
+	// cache intermediate images under this duration will be considered as
+	// valid cache sources and images outside this duration will be ignored.
+	CacheTTL time.Duration
 	// Compression specifies the type of compression which is applied to
 	// layer blobs.  The default is to not use compression, but
 	// archive.Gzip is recommended.
