@@ -56,7 +56,9 @@ rm -f /etc/systemd/system/getty.target.wants/getty@tty1.service
 rm -f /etc/systemd/system/multi-user.target.wants/systemd-resolved.service
 rm -f /etc/systemd/system/dbus-org.freedesktop.resolve1.service
 ln -fs /dev/null /etc/systemd/system/console-getty.service
+ln -fs /dev/null /etc/systemd/system/systemd-oomd.socket
 mkdir -p /etc/systemd/system/systemd-sysusers.service.d/
+echo CREATE_MAIL_SPOOL=no >> /etc/default/useradd
 adduser -m [USER] -G wheel
 mkdir -p /home/[USER]/.config/systemd/[USER]/
 chown [USER]:[USER] /home/[USER]/.config
@@ -89,14 +91,27 @@ fi
 
 const enterns = "#!/bin/bash\n" + sysdpid + `
 if [ ! -z "$SYSDPID" ] && [ "$SYSDPID" != "1" ]; then
-	nsenter -m -p -t $SYSDPID "$@"
-fi
-`
+        NSENTER=("nsenter" "-m" "-p" "-t" "$SYSDPID" "--wd=$PWD")
+
+        if [ "$UID" != "0" ]; then
+                NSENTER=("sudo" "${NSENTER[@]}")
+                if [ "$#" != "0" ]; then
+                        NSENTER+=("sudo" "-u" "$USER")
+                else
+                        NSENTER+=("su" "-l" "$USER")
+                fi
+        fi
+        "${NSENTER[@]}" "$@"
+fi`
 
 const waitTerm = sysdpid + `
 if [ ! -z "$SYSDPID" ]; then
 	timeout 60 tail -f /dev/null --pid $SYSDPID
 fi
+`
+
+const wslConf = `[user]
+default=[USER]
 `
 
 // WSL kernel does not have sg and crypto_user modules
@@ -349,14 +364,6 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 		return false, err
 	}
 
-	if err := v.writeConfig(); err != nil {
-		return false, err
-	}
-
-	if err := setupConnections(v, opts, sshDir); err != nil {
-		return false, err
-	}
-
 	dist, err := provisionWSLDist(v)
 	if err != nil {
 		return false, err
@@ -372,6 +379,17 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 	}
 
 	if err = createKeys(v, dist, sshDir); err != nil {
+		return false, err
+	}
+
+	// Cycle so that user change goes into effect
+	_ = terminateDist(dist)
+
+	if err := v.writeConfig(); err != nil {
+		return false, err
+	}
+
+	if err := setupConnections(v, opts, sshDir); err != nil {
 		return false, err
 	}
 
@@ -450,12 +468,12 @@ func provisionWSLDist(v *MachineVM) (string, error) {
 
 	dist := toDist(v.Name)
 	fmt.Println("Importing operating system into WSL (this may take a few minutes on a new WSL install)...")
-	if err = runCmdPassThrough("wsl", "--import", dist, distTarget, v.ImagePath); err != nil {
+	if err = runCmdPassThrough("wsl", "--import", dist, distTarget, v.ImagePath, "--version", "2"); err != nil {
 		return "", fmt.Errorf("the WSL import of guest OS failed: %w", err)
 	}
 
 	// Fixes newuidmap
-	if err = runCmdPassThrough("wsl", "-d", dist, "rpm", "-q", "--restore", "shadow-utils", "2>/dev/null"); err != nil {
+	if err = wslInvoke(dist, "rpm", "-q", "--restore", "shadow-utils", "2>/dev/null"); err != nil {
 		return "", fmt.Errorf("package permissions restore of shadow-utils on guest OS failed: %w", err)
 	}
 
@@ -463,7 +481,7 @@ func provisionWSLDist(v *MachineVM) (string, error) {
 	// operation when mount was not present on the initial start. Force a cycle so that it won't
 	// repeatedly complain.
 	if winVersionAtLeast(10, 0, 22000) {
-		if err := runCmdPassThrough("wsl", "--terminate", dist); err != nil {
+		if err := terminateDist(dist); err != nil {
 			logrus.Warnf("could not cycle WSL dist: %s", err.Error())
 		}
 	}
@@ -478,16 +496,16 @@ func createKeys(v *MachineVM, dist string, sshDir string) error {
 		return fmt.Errorf("could not create ssh directory: %w", err)
 	}
 
-	if err := runCmdPassThrough("wsl", "--terminate", dist); err != nil {
+	if err := terminateDist(dist); err != nil {
 		return fmt.Errorf("could not cycle WSL dist: %w", err)
 	}
 
-	key, err := machine.CreateSSHKeysPrefix(sshDir, v.Name, true, true, "wsl", "-d", dist)
+	key, err := wslCreateKeys(sshDir, v.Name, dist)
 	if err != nil {
 		return fmt.Errorf("could not create ssh keys: %w", err)
 	}
 
-	if err := pipeCmdPassThrough("wsl", key+"\n", "-d", dist, "sh", "-c", "mkdir -p /root/.ssh;"+
+	if err := wslPipe(key+"\n", dist, "sh", "-c", "mkdir -p /root/.ssh;"+
 		"cat >> /root/.ssh/authorized_keys; chmod 600 /root/.ssh/authorized_keys"); err != nil {
 		return fmt.Errorf("could not create root authorized keys on guest OS: %w", err)
 	}
@@ -495,7 +513,7 @@ func createKeys(v *MachineVM, dist string, sshDir string) error {
 	userAuthCmd := withUser("mkdir -p /home/[USER]/.ssh;"+
 		"cat >> /home/[USER]/.ssh/authorized_keys; chown -R [USER]:[USER] /home/[USER]/.ssh;"+
 		"chmod 600 /home/[USER]/.ssh/authorized_keys", user)
-	if err := pipeCmdPassThrough("wsl", key+"\n", "-d", dist, "sh", "-c", userAuthCmd); err != nil {
+	if err := wslPipe(key+"\n", dist, "sh", "-c", userAuthCmd); err != nil {
 		return fmt.Errorf("could not create '%s' authorized keys on guest OS: %w", v.RemoteUsername, err)
 	}
 
@@ -504,25 +522,25 @@ func createKeys(v *MachineVM, dist string, sshDir string) error {
 
 func configureSystem(v *MachineVM, dist string) error {
 	user := v.RemoteUsername
-	if err := runCmdPassThrough("wsl", "-d", dist, "sh", "-c", fmt.Sprintf(appendPort, v.Port, v.Port)); err != nil {
+	if err := wslInvoke(dist, "sh", "-c", fmt.Sprintf(appendPort, v.Port, v.Port)); err != nil {
 		return fmt.Errorf("could not configure SSH port for guest OS: %w", err)
 	}
 
-	if err := pipeCmdPassThrough("wsl", withUser(configServices, user), "-d", dist, "sh"); err != nil {
+	if err := wslPipe(withUser(configServices, user), dist, "sh"); err != nil {
 		return fmt.Errorf("could not configure systemd settings for guest OS: %w", err)
 	}
 
-	if err := pipeCmdPassThrough("wsl", sudoers, "-d", dist, "sh", "-c", "cat >> /etc/sudoers"); err != nil {
+	if err := wslPipe(sudoers, dist, "sh", "-c", "cat >> /etc/sudoers"); err != nil {
 		return fmt.Errorf("could not add wheel to sudoers: %w", err)
 	}
 
-	if err := pipeCmdPassThrough("wsl", overrideSysusers, "-d", dist, "sh", "-c",
+	if err := wslPipe(overrideSysusers, dist, "sh", "-c",
 		"cat > /etc/systemd/system/systemd-sysusers.service.d/override.conf"); err != nil {
 		return fmt.Errorf("could not generate systemd-sysusers override for guest OS: %w", err)
 	}
 
 	lingerCmd := withUser("cat > /home/[USER]/.config/systemd/[USER]/linger-example.service", user)
-	if err := pipeCmdPassThrough("wsl", lingerService, "-d", dist, "sh", "-c", lingerCmd); err != nil {
+	if err := wslPipe(lingerService, dist, "sh", "-c", lingerCmd); err != nil {
 		return fmt.Errorf("could not generate linger service for guest OS: %w", err)
 	}
 
@@ -530,16 +548,20 @@ func configureSystem(v *MachineVM, dist string) error {
 		return err
 	}
 
-	if err := pipeCmdPassThrough("wsl", withUser(lingerSetup, user), "-d", dist, "sh"); err != nil {
-		return fmt.Errorf("could not configure systemd settomgs for guest OS: %w", err)
+	if err := wslPipe(withUser(lingerSetup, user), dist, "sh"); err != nil {
+		return fmt.Errorf("could not configure systemd settings for guest OS: %w", err)
 	}
 
-	if err := pipeCmdPassThrough("wsl", containersConf, "-d", dist, "sh", "-c", "cat > /etc/containers/containers.conf"); err != nil {
+	if err := wslPipe(containersConf, dist, "sh", "-c", "cat > /etc/containers/containers.conf"); err != nil {
 		return fmt.Errorf("could not create containers.conf for guest OS: %w", err)
 	}
 
-	if err := runCmdPassThrough("wsl", "-d", dist, "sh", "-c", "echo wsl > /etc/containers/podman-machine"); err != nil {
+	if err := wslInvoke(dist, "sh", "-c", "echo wsl > /etc/containers/podman-machine"); err != nil {
 		return fmt.Errorf("could not create podman-machine file for guest OS: %w", err)
+	}
+
+	if err := wslPipe(withUser(wslConf, user), dist, "sh", "-c", "cat > /etc/wsl.conf"); err != nil {
+		return fmt.Errorf("could not configure wsl config for guest OS: %w", err)
 	}
 
 	return nil
@@ -547,7 +569,7 @@ func configureSystem(v *MachineVM, dist string) error {
 
 func configureProxy(dist string, useProxy bool) error {
 	if !useProxy {
-		_ = runCmdPassThrough("wsl", "-d", dist, "sh", "-c", clearProxySettings)
+		_ = wslInvoke(dist, "sh", "-c", clearProxySettings)
 		return nil
 	}
 	var content string
@@ -561,17 +583,17 @@ func configureProxy(dist string, useProxy bool) error {
 		}
 	}
 
-	if err := pipeCmdPassThrough("wsl", content, "-d", dist, "sh", "-c", proxyConfigAttempt); err != nil {
+	if err := wslPipe(content, dist, "sh", "-c", proxyConfigAttempt); err != nil {
 		const failMessage = "Failure creating proxy configuration"
 		if exitErr, isExit := err.(*exec.ExitError); isExit && exitErr.ExitCode() != 42 {
 			return fmt.Errorf("%v: %w", failMessage, err)
 		}
 
 		fmt.Println("Installing proxy support")
-		_ = pipeCmdPassThrough("wsl", proxyConfigSetup, "-d", dist, "sh", "-c",
+		_ = wslPipe(proxyConfigSetup, dist, "sh", "-c",
 			"cat > /usr/local/bin/proxyinit; chmod 755 /usr/local/bin/proxyinit")
 
-		if err = pipeCmdPassThrough("wsl", content, "-d", dist, "/usr/local/bin/proxyinit"); err != nil {
+		if err = wslPipe(content, dist, "/usr/local/bin/proxyinit"); err != nil {
 			return fmt.Errorf("%v: %w", failMessage, err)
 		}
 	}
@@ -581,7 +603,7 @@ func configureProxy(dist string, useProxy bool) error {
 
 func enableUserLinger(v *MachineVM, dist string) error {
 	lingerCmd := "mkdir -p /var/lib/systemd/linger; touch /var/lib/systemd/linger/" + v.RemoteUsername
-	if err := runCmdPassThrough("wsl", "-d", dist, "sh", "-c", lingerCmd); err != nil {
+	if err := wslInvoke(dist, "sh", "-c", lingerCmd); err != nil {
 		return fmt.Errorf("could not enable linger for remote user on guest OS: %w", err)
 	}
 
@@ -589,26 +611,26 @@ func enableUserLinger(v *MachineVM, dist string) error {
 }
 
 func installScripts(dist string) error {
-	if err := pipeCmdPassThrough("wsl", enterns, "-d", dist, "sh", "-c",
+	if err := wslPipe(enterns, dist, "sh", "-c",
 		"cat > /usr/local/bin/enterns; chmod 755 /usr/local/bin/enterns"); err != nil {
 		return fmt.Errorf("could not create enterns script for guest OS: %w", err)
 	}
 
-	if err := pipeCmdPassThrough("wsl", profile, "-d", dist, "sh", "-c",
+	if err := wslPipe(profile, dist, "sh", "-c",
 		"cat > /etc/profile.d/enterns.sh"); err != nil {
 		return fmt.Errorf("could not create motd profile script for guest OS: %w", err)
 	}
 
-	if err := pipeCmdPassThrough("wsl", wslmotd, "-d", dist, "sh", "-c", "cat > /etc/wslmotd"); err != nil {
+	if err := wslPipe(wslmotd, dist, "sh", "-c", "cat > /etc/wslmotd"); err != nil {
 		return fmt.Errorf("could not create a WSL MOTD for guest OS: %w", err)
 	}
 
-	if err := pipeCmdPassThrough("wsl", bootstrap, "-d", dist, "sh", "-c",
+	if err := wslPipe(bootstrap, dist, "sh", "-c",
 		"cat > /root/bootstrap; chmod 755 /root/bootstrap"); err != nil {
 		return fmt.Errorf("could not create bootstrap script for guest OS: %w", err)
 	}
 
-	if err := pipeCmdPassThrough("wsl", proxyConfigSetup, "-d", dist, "sh", "-c",
+	if err := wslPipe(proxyConfigSetup, dist, "sh", "-c",
 		"cat > /usr/local/bin/proxyinit; chmod 755 /usr/local/bin/proxyinit"); err != nil {
 		return fmt.Errorf("could not create proxyinit script for guest OS: %w", err)
 	}
@@ -844,6 +866,22 @@ func withUser(s string, user string) string {
 	return strings.ReplaceAll(s, "[USER]", user)
 }
 
+func wslInvoke(dist string, arg ...string) error {
+	newArgs := []string{"-u", "root", "-d", dist}
+	newArgs = append(newArgs, arg...)
+	return runCmdPassThrough("wsl", newArgs...)
+}
+
+func wslPipe(input string, dist string, arg ...string) error {
+	newArgs := []string{"-u", "root", "-d", dist}
+	newArgs = append(newArgs, arg...)
+	return pipeCmdPassThrough("wsl", input, newArgs...)
+}
+
+func wslCreateKeys(sshDir string, name string, dist string) (string, error) {
+	return machine.CreateSSHKeysPrefix(sshDir, name, true, true, "wsl", "-u", "root", "-d", dist)
+}
+
 func runCmdPassThrough(name string, arg ...string) error {
 	logrus.Debugf("Running command: %s %v", name, arg)
 	cmd := exec.Command(name, arg...)
@@ -935,7 +973,7 @@ func (v *MachineVM) Start(name string, _ machine.StartOptions) error {
 		return err
 	}
 
-	err := runCmdPassThrough("wsl", "-d", dist, "/root/bootstrap")
+	err := wslInvoke(dist, "/root/bootstrap")
 	if err != nil {
 		return fmt.Errorf("the WSL bootstrap script failed: %w", err)
 	}
@@ -1124,7 +1162,7 @@ func isWSLRunning(dist string) (bool, error) {
 }
 
 func isSystemdRunning(dist string) (bool, error) {
-	cmd := exec.Command("wsl", "-d", dist, "sh")
+	cmd := exec.Command("wsl", "-u", "root", "-d", dist, "sh")
 	cmd.Stdin = strings.NewReader(sysdpid + "\necho $SYSDPID\n")
 	out, err := cmd.StdoutPipe()
 	if err != nil {
@@ -1174,13 +1212,13 @@ func (v *MachineVM) Stop(name string, _ machine.StopOptions) error {
 		fmt.Fprintf(os.Stderr, "Could not stop API forwarding service (win-sshproxy.exe): %s\n", err.Error())
 	}
 
-	cmd := exec.Command("wsl", "-d", dist, "sh")
+	cmd := exec.Command("wsl", "-u", "root", "-d", dist, "sh")
 	cmd.Stdin = strings.NewReader(waitTerm)
 	if err = cmd.Start(); err != nil {
 		return fmt.Errorf("executing wait command: %w", err)
 	}
 
-	exitCmd := exec.Command("wsl", "-d", dist, "/usr/local/bin/enterns", "systemctl", "exit", "0")
+	exitCmd := exec.Command("wsl", "-u", "root", "-d", dist, "/usr/local/bin/enterns", "systemctl", "exit", "0")
 	if err = exitCmd.Run(); err != nil {
 		return fmt.Errorf("stopping sysd: %w", err)
 	}
@@ -1189,12 +1227,12 @@ func (v *MachineVM) Stop(name string, _ machine.StopOptions) error {
 		return err
 	}
 
-	cmd = exec.Command("wsl", "--terminate", dist)
-	if err = cmd.Run(); err != nil {
-		return err
-	}
+	return terminateDist(dist)
+}
 
-	return nil
+func terminateDist(dist string) error {
+	cmd := exec.Command("wsl", "--terminate", dist)
+	return cmd.Run()
 }
 
 func (v *MachineVM) State(bypass bool) (machine.Status, error) {
@@ -1438,7 +1476,7 @@ func getCPUs(vm *MachineVM) (uint64, error) {
 	if run, _ := isWSLRunning(dist); !run {
 		return 0, nil
 	}
-	cmd := exec.Command("wsl", "-d", dist, "nproc")
+	cmd := exec.Command("wsl", "-u", "root", "-d", dist, "nproc")
 	out, err := cmd.StdoutPipe()
 	if err != nil {
 		return 0, err
@@ -1462,7 +1500,7 @@ func getMem(vm *MachineVM) (uint64, error) {
 	if run, _ := isWSLRunning(dist); !run {
 		return 0, nil
 	}
-	cmd := exec.Command("wsl", "-d", dist, "cat", "/proc/meminfo")
+	cmd := exec.Command("wsl", "-u", "root", "-d", dist, "cat", "/proc/meminfo")
 	out, err := cmd.StdoutPipe()
 	if err != nil {
 		return 0, err
