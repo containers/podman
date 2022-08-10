@@ -68,16 +68,7 @@ pulled, if the build uses one, to the provided value instead of using the
 architecture of the build host. (Examples: arm, arm64, 386, amd64, ppc64le,
 s390x)
 
-#### **--authfile**=*path*
-
-Path of the authentication file. Default is
-${XDG\_RUNTIME\_DIR}/containers/auth.json, which is set using `podman login`.
-If the authorization state is not found there, $HOME/.docker/config.json is
-checked, which is set using `docker login`.
-
-Note: You can also override the default path of the authentication file by
-setting the REGISTRY\_AUTH\_FILE environment variable.
-`export REGISTRY_AUTH_FILE=path`
+@@option authfile
 
 #### **--build-arg**=*arg=value*
 
@@ -173,10 +164,7 @@ If a capability is specified to both the **--cap-add** and **--cap-drop**
 options, it will be dropped, regardless of the order in which the options were
 given.
 
-#### **--cert-dir**=*path*
-
-Use certificates at *path* (\*.crt, \*.cert, \*.key) to connect to the registry. (Default: /etc/containers/certs.d)
-Please refer to containers-certs.d(5) for details. (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
+@@option cert-dir
 
 @@option cgroup-parent
 
@@ -207,11 +195,7 @@ Set additional flags to pass to the C Preprocessor cpp(1). Containerfiles ending
 
 @@option cpuset-mems
 
-#### **--creds**=*creds*
-
-The [username[:password]] to use to authenticate with the registry if required.
-If one or both values are not supplied, a command line prompt will appear and
-the value can be entered.  The password is entered without echo.
+@@option creds
 
 #### **--decryption-key**=*key[:passphrase]*
 
@@ -223,18 +207,22 @@ omitted otherwise.
 #### **--device**=*host-device[:container-device][:permissions]*
 
 Add a host device to the container. Optional *permissions* parameter
-can be used to specify device permissions, it is combination of
+can be used to specify device permissions by combining
 **r** for read, **w** for write, and **m** for **mknod**(2).
 
 Example: **--device=/dev/sdc:/dev/xvdc:rwm**.
 
-Note: if *host-device* is a symbolic link then it will be resolved first.
+Note: if _host-device_ is a symbolic link then it will be resolved first.
 The container will only store the major and minor numbers of the host device.
 
 Note: if the user only has access rights via a group, accessing the device
 from inside a rootless container will fail. The **[crun(1)](https://github.com/containers/crun/tree/main/crun.1.md)** runtime offers a
 workaround for this by adding the option
 **--annotation run.oci.keep_original_groups=1**.
+
+Podman may load kernel modules required for using the specified
+device. The devices that Podman will load modules when necessary are:
+/dev/fuse.
 
 #### **--disable-compression**, **-D**
 
@@ -245,11 +233,7 @@ registries, and images being written to local storage would only need to be
 decompressed again to be stored.  Compression can be forced in all cases by
 specifying **--disable-compression=false**.
 
-#### **--disable-content-trust**
-
-This is a Docker specific option to disable image verification to a container
-registry and is not supported by Podman.  This option is a NOOP and provided
-solely for scripting compatibility. (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
+@@option disable-content-trust
 
 #### **--dns**=*dns*
 
@@ -404,28 +388,9 @@ This option is not supported on the remote client, including Mac and Windows
 Name of the manifest list to which the image will be added. Creates the manifest list
 if it does not exist. This option is useful for building multi architecture images.
 
-#### **--memory**, **-m**=*LIMIT*
+@@option memory
 
-Memory limit (format: `<number>[<unit>]`, where unit = b (bytes), k (kibibytes),
-m (mebibytes), or g (gibibytes))
-
-Allows you to constrain the memory available to a container. If the host
-supports swap memory, then the **-m** memory setting can be larger than physical
-RAM. If a limit of 0 is specified (not using **-m**), the container's memory is
-not limited. The actual limit may be rounded up to a multiple of the operating
-system's page size (the value would be very large, that's millions of
-trillions).
-
-#### **--memory-swap**=*LIMIT*
-
-A limit value equal to memory plus swap. Must be used with the  **-m**
-(**--memory**) option. The swap `LIMIT` should always be larger than **-m**
-(**--memory**) value.  By default, the swap `LIMIT` will be set to double
-the value of --memory.
-
-The format of `LIMIT` is `<number>[<unit>]`. Unit can be `b` (bytes),
-`k` (kibibytes), `m` (mebibytes), or `g` (gibibytes). If you don't specify a
-unit, `b` is used. Set LIMIT to `-1` to enable unlimited swap.
+@@option memory-swap
 
 #### **--network**=*mode*, **--net**
 

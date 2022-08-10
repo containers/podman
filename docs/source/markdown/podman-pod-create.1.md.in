@@ -48,30 +48,13 @@ Set the total number of CPUs delegated to the pod. Default is 0.000 which indica
 
 @@option cpuset-mems
 
-#### **--device**=_host-device_[**:**_container-device_][**:**_permissions_]
-
-Add a host device to the pod. Optional *permissions* parameter
-can be used to specify device permissions. It is a combination of
-**r** for read, **w** for write, and **m** for **mknod**(2).
-
-Example: **--device=/dev/sdc:/dev/xvdc:rwm**.
-
-Note: if *host-device* is a symbolic link then it will be resolved first.
-The pod will only store the major and minor numbers of the host device.
+@@option device
 
 Note: the pod implements devices by storing the initial configuration passed by the user and recreating the device on each container added to the pod.
 
-Podman may load kernel modules required for using the specified
-device. The devices that Podman will load modules for when necessary are:
-/dev/fuse.
+@@option device-read-bps
 
-#### **--device-read-bps**=*path*
-
-Limit read rate (bytes per second) from a device (e.g. --device-read-bps=/dev/sda:1mb)
-
-#### **--device-write-bps**=*path*
-
-Limit write rate (bytes per second) to a device (e.g. --device-write-bps=/dev/sda:1mb)
+@@option device-write-bps
 
 #### **--dns**=*ipaddr*
 
@@ -94,9 +77,7 @@ Set the exit policy of the pod when the last container exits.  Supported policie
 | *continue*         | The pod continues running when the last container exits. Used by default.   |
 | *stop*             | The pod is stopped when the last container exits. Used in `kube play`.      |
 
-#### **--gidmap**=*container_gid:host_gid:amount*
-
-GID map for the user namespace. Using this flag will run the container with user namespace enabled. It conflicts with the `--userns` and `--subgidname` flags.
+@@option gidmap.pod
 
 #### **--help**, **-h**
 
@@ -144,26 +125,9 @@ Add metadata to a pod (e.g., --label com.example.key=value).
 
 @@option mac-address
 
-#### **--memory**, **-m**=*limit*
+@@option memory
 
-Memory limit (format: `<number>[<unit>]`, where unit = b (bytes), k (kibibytes), m (mebibytes), or g (gibibytes))
-
-Constrains the memory available to a container. If the host
-supports swap memory, then the **-m** memory setting can be larger than physical
-RAM. If a limit of 0 is specified (not using **-m**), the container's memory is
-not limited. The actual limit may be rounded up to a multiple of the operating
-system's page size (the value would be very large, that's millions of trillions).
-
-#### **--memory-swap**=*limit*
-
-A limit value equal to memory plus swap. Must be used with the  **-m**
-(**--memory**) flag. The swap `LIMIT` should always be larger than **-m**
-(**--memory**) value. By default, the swap `LIMIT` will be set to double
-the value of --memory.
-
-The format of `LIMIT` is `<number>[<unit>]`. Unit can be `b` (bytes),
-`k` (kibibytes), `m` (mebibytes), or `g` (gibibytes). If you don't specify a
-unit, `b` is used. Set LIMIT to `-1` to enable unlimited swap.
+@@option memory-swap
 
 #### **--name**, **-n**=*name*
 

@@ -110,27 +110,15 @@ and as a result environment variable `FOO` will be set to `bar` for container `c
 
 ## OPTIONS
 
-#### **--annotation**=*key=value*
+@@option annotation.container
 
-Add an annotation to the container or pod. The format is key=value.
-The **--annotation** option can be set multiple times.
-
-#### **--authfile**=*path*
-
-Path of the authentication file. Default is ${XDG\_RUNTIME\_DIR}/containers/auth.json, which is set using `podman login`.
-If the authorization state is not found there, $HOME/.docker/config.json is checked, which is set using `docker login`.
-
-Note: You can also override the default path of the authentication file by setting the REGISTRY\_AUTH\_FILE
-environment variable. `export REGISTRY_AUTH_FILE=path`
+@@option authfile
 
 #### **--build**
 
 Build images even if they are found in the local storage. Use `--build=false` to completely disable builds. (This option is not available with the remote Podman client)
 
-#### **--cert-dir**=*path*
-
-Use certificates at *path* (\*.crt, \*.cert, \*.key) to connect to the registry. (Default: /etc/containers/certs.d)
-Please refer to containers-certs.d(5) for details. (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
+@@option cert-dir
 
 #### **--configmap**=*path*
 
@@ -142,11 +130,7 @@ Note: The *--configmap* option can be used multiple times or a comma-separated l
 
 Use *path* as the build context directory for each image. Requires --build option be true. (This option is not available with the remote Podman client)
 
-#### **--creds**
-
-The [username[:password]] to use to authenticate with the registry if required.
-If one or both values are not supplied, a command line prompt will appear and the
-value can be entered.  The password is entered without echo.
+@@option creds
 
 #### **--help**, **-h**
 

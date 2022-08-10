@@ -50,50 +50,26 @@ If none are specified, the original container's CPU memory nodes are used.
 
 @@option destroy
 
-#### **--device-read-bps**=*path*
+@@option device-read-bps
 
-Limit read rate (bytes per second) from a device (e.g. --device-read-bps=/dev/sda:1mb).
-
-#### **--device-write-bps**=*path*
-
-Limit write rate (bytes per second) to a device (e.g. --device-write-bps=/dev/sda:1mb)
+@@option device-write-bps
 
 #### **--force**, **-f**
 
 Force removal of the original container that we are cloning. Can only be used in conjunction with **--destroy**.
 
-#### **--memory**, **-m**=*limit*
-
-Memory limit (format: `<number>[<unit>]`, where unit = b (bytes), k (kibibytes), m (mebibytes), or g (gibibytes))
-
-Allows the memory available to a container to be constrained. If the host
-supports swap memory, then the **-m** memory setting can be larger than physical
-RAM. If a limit of 0 is specified (not using **-m**), the container's memory is
-not limited. The actual limit may be rounded up to a multiple of the operating
-system's page size (the value would be very large, that's millions of trillions).
+@@option memory
 
 If no memory limits are specified, the original container's will be used.
 
-#### **--memory-reservation**=*limit*
+@@option memory-reservation
 
-Memory soft limit (format: `<number>[<unit>]`, where unit = b (bytes), k (kibibytes), m (mebibytes), or g (gibibytes))
+By default, memory reservation will be the same as memory limit
+from the container being cloned.
 
-After setting memory reservation, when the system detects memory contention
-or low memory, containers are forced to restrict their consumption to their
-reservation. So you should always set the value below **--memory**, otherwise the
-hard limit will take precedence. By default, memory reservation will be the same
-as memory limit from the container being cloned.
+@@option memory-swap
 
-#### **--memory-swap**=*limit*
-
-A limit value equal to memory plus swap. Must be used with the  **-m**
-(**--memory**) flag. The swap `LIMIT` should always be larger than **-m**
-(**--memory**) value. By default, the swap `LIMIT` will be set to double
-the value of --memory if specified. Otherwise, the container being cloned will be used to derive the swap value.
-
-The format of `LIMIT` is `<number>[<unit>]`. Unit can be `b` (bytes),
-`k` (kibibytes), `m` (mebibytes), or `g` (gibibytes). If you don't specify a
-unit, `b` is used. Set LIMIT to `-1` to enable unlimited swap.
+If absent, the container being cloned will be used to derive the swap value.
 
 @@option memory-swappiness
 
