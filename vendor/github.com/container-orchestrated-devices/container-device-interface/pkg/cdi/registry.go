@@ -19,6 +19,7 @@ package cdi
 import (
 	"sync"
 
+	cdi "github.com/container-orchestrated-devices/container-device-interface/specs-go"
 	oci "github.com/opencontainers/runtime-spec/specs-go"
 )
 
@@ -40,6 +41,8 @@ type Registry interface {
 // RegistryRefresher is the registry interface for refreshing the
 // cache of CDI Specs and devices.
 //
+// Configure reconfigures the registry with the given options.
+//
 // Refresh rescans all CDI Spec directories and updates the
 // state of the cache to reflect any changes. It returns any
 // errors encountered during the refresh.
@@ -50,10 +53,15 @@ type Registry interface {
 // GetSpecDirectories returns the set up CDI Spec directories
 // currently in use. The directories are returned in the scan
 // order of Refresh().
+//
+// GetSpecDirErrors returns any errors related to the configured
+// Spec directories.
 type RegistryRefresher interface {
+	Configure(...Option) error
 	Refresh() error
 	GetErrors() map[string][]error
 	GetSpecDirectories() []string
+	GetSpecDirErrors() map[string]error
 }
 
 // RegistryResolver is the registry interface for injecting CDI
@@ -90,11 +98,15 @@ type RegistryDeviceDB interface {
 //
 // GetSpecErrors returns any errors for the Spec encountered during
 // the last cache refresh.
+//
+// WriteSpec writes the Spec with the given content and name to the
+// last Spec directory.
 type RegistrySpecDB interface {
 	ListVendors() []string
 	ListClasses() []string
 	GetVendorSpecs(vendor string) []*Spec
 	GetSpecErrors(*Spec) []error
+	WriteSpec(raw *cdi.Spec, name string) error
 }
 
 type registry struct {

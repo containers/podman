@@ -85,11 +85,13 @@ func (e *ContainerEdits) Apply(spec *oci.Spec) error {
 	}
 
 	for _, d := range e.DeviceNodes {
-		dev := d.ToOCI()
-		if err := fillMissingInfo(&dev); err != nil {
+		dn := DeviceNode{d}
+
+		err := dn.fillMissingInfo()
+		if err != nil {
 			return err
 		}
-
+		dev := d.ToOCI()
 		if dev.UID == nil && spec.Process != nil {
 			if uid := spec.Process.User.UID; uid > 0 {
 				dev.UID = &uid
@@ -288,26 +290,31 @@ func ensureOCIHooks(spec *oci.Spec) {
 }
 
 // fillMissingInfo fills in missing mandatory attributes from the host device.
-func fillMissingInfo(dev *oci.LinuxDevice) error {
-	if dev.Type != "" && (dev.Major != 0 || dev.Type == "p") {
-		return nil
-	}
-	hostDev, err := runc.DeviceFromPath(dev.Path, "rwm")
-	if err != nil {
-		return errors.Wrapf(err, "failed to stat CDI host device %q", dev.Path)
+func (d *DeviceNode) fillMissingInfo() error {
+	if d.HostPath == "" {
+		d.HostPath = d.Path
 	}
 
-	if dev.Type == "" {
-		dev.Type = string(hostDev.Type)
+	if d.Type != "" && (d.Major != 0 || d.Type == "p") {
+		return nil
+	}
+
+	hostDev, err := runc.DeviceFromPath(d.HostPath, "rwm")
+	if err != nil {
+		return errors.Wrapf(err, "failed to stat CDI host device %q", d.HostPath)
+	}
+
+	if d.Type == "" {
+		d.Type = string(hostDev.Type)
 	} else {
-		if dev.Type != string(hostDev.Type) {
-			return errors.Errorf("CDI device %q, host type mismatch (%s, %s)",
-				dev.Path, dev.Type, string(hostDev.Type))
+		if d.Type != string(hostDev.Type) {
+			return errors.Errorf("CDI device (%q, %q), host type mismatch (%s, %s)",
+				d.Path, d.HostPath, d.Type, string(hostDev.Type))
 		}
 	}
-	if dev.Major == 0 && dev.Type != "p" {
-		dev.Major = hostDev.Major
-		dev.Minor = hostDev.Minor
+	if d.Major == 0 && d.Type != "p" {
+		d.Major = hostDev.Major
+		d.Minor = hostDev.Minor
 	}
 
 	return nil
