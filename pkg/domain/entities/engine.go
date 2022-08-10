@@ -52,4 +52,5 @@ type PodmanConfig struct {
 	Runroot       string
 	StorageDriver string
 	StorageOpts   []string
+	SSHMode       string
 }

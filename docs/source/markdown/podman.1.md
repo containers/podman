@@ -133,6 +133,12 @@ for cgroup V2, the default runtime is `crun`, the manpage to consult is `crun(8)
 Note: Do not pass the leading `--` to the flag. To pass the runc flag `--log-format json`
 to podman build, the option given would be `--runtime-flag log-format=json`.
 
+
+#### **--ssh**=*value*
+
+This option allows the user to change the ssh mode, meaning that rather than using the default **golang** mode, one can instead use **--ssh=native**
+to use the installed ssh binary and config file declared in containers.conf.
+
 #### **--storage-driver**=*value*
 
 Storage driver.  The default storage driver for UID 0 is configured in /etc/containers/storage.conf (`$HOME/.config/containers/storage.conf` in rootless mode), and is *vfs* for non-root users when *fuse-overlayfs* is not available.  The `STORAGE_DRIVER` environment variable overrides the default.  The --storage-driver specified driver overrides all.

@@ -12,6 +12,7 @@ import (
 
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/common/pkg/config"
+	"github.com/containers/common/pkg/ssh"
 	"github.com/containers/podman/v4/cmd/podman/common"
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/containers/podman/v4/cmd/podman/validate"
@@ -337,6 +338,10 @@ func rootFlags(cmd *cobra.Command, opts *entities.PodmanConfig) {
 	srv, uri, ident := resolveDestination()
 
 	lFlags := cmd.Flags()
+
+	sshFlagName := "ssh"
+	lFlags.StringVar(&opts.SSHMode, sshFlagName, string(ssh.GolangMode), "define the ssh mode")
+	_ = cmd.RegisterFlagCompletionFunc(sshFlagName, common.AutocompleteSSH)
 
 	connectionFlagName := "connection"
 	lFlags.StringVarP(&opts.Engine.ActiveService, connectionFlagName, "c", srv, "Connection to use for remote Podman service")

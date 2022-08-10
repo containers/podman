@@ -4,6 +4,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/containers/common/pkg/ssh"
 	"github.com/containers/podman/v4/cmd/podman/common"
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/spf13/cobra"
@@ -48,6 +49,11 @@ func scp(cmd *cobra.Command, args []string) (finalErr error) {
 	var (
 		err error
 	)
+
+	containerConfig := registry.PodmanConfig()
+
+	sshType := containerConfig.SSHMode
+
 	for i, val := range os.Args {
 		if val == "image" {
 			break
@@ -67,7 +73,8 @@ func scp(cmd *cobra.Command, args []string) (finalErr error) {
 		dst = args[1]
 	}
 
-	err = registry.ImageEngine().Scp(registry.Context(), src, dst, parentFlags, quiet)
+	sshEngine := ssh.DefineMode(sshType)
+	err = registry.ImageEngine().Scp(registry.Context(), src, dst, parentFlags, quiet, sshEngine)
 	if err != nil {
 		return err
 	}

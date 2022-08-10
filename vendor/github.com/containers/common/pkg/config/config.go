@@ -375,6 +375,9 @@ type EngineConfig struct {
 	// ServiceDestinations mapped by service Names
 	ServiceDestinations map[string]Destination `toml:"service_destinations,omitempty"`
 
+	// SSHConfig contains the ssh config file path if not the default
+	SSHConfig string `toml:"ssh_config,omitempty"`
+
 	// RuntimePath is the path to OCI runtime binary for launching containers.
 	// The first path pointing to a valid file will be used This is used only
 	// when there are no OCIRuntime/OCIRuntimes defined.  It is used only to be

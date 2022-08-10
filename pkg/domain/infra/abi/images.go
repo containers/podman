@@ -18,6 +18,7 @@ import (
 
 	"github.com/containers/common/libimage"
 	"github.com/containers/common/pkg/config"
+	"github.com/containers/common/pkg/ssh"
 	"github.com/containers/image/v5/docker"
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/manifest"
@@ -683,8 +684,8 @@ func (ir *ImageEngine) Sign(ctx context.Context, names []string, options entitie
 	return nil, nil
 }
 
-func (ir *ImageEngine) Scp(ctx context.Context, src, dst string, parentFlags []string, quiet bool) error {
-	rep, source, dest, flags, err := domainUtils.ExecuteTransfer(src, dst, parentFlags, quiet)
+func (ir *ImageEngine) Scp(ctx context.Context, src, dst string, parentFlags []string, quiet bool, sshMode ssh.EngineMode) error {
+	rep, source, dest, flags, err := domainUtils.ExecuteTransfer(src, dst, parentFlags, quiet, sshMode)
 	if err != nil {
 		return err
 	}

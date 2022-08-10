@@ -12,7 +12,7 @@ require (
 	github.com/containernetworking/cni v1.1.2
 	github.com/containernetworking/plugins v1.1.1
 	github.com/containers/buildah v1.27.0
-	github.com/containers/common v0.49.2-0.20220804143628-dc97077782d5
+	github.com/containers/common v0.49.2-0.20220809074359-b0ea008ba661
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/image/v5 v5.22.0
 	github.com/containers/ocicrypt v1.1.5
@@ -27,7 +27,6 @@ require (
 	github.com/docker/go-connections v0.4.1-0.20210727194412-58542c764a11
 	github.com/docker/go-plugins-helpers v0.0.0-20211224144127-6eecb7beb651
 	github.com/docker/go-units v0.4.0
-	github.com/dtylman/scp v0.0.0-20181017070807-f3000a34aef4
 	github.com/fsnotify/fsnotify v1.5.4
 	github.com/ghodss/yaml v1.0.0
 	github.com/godbus/dbus/v5 v5.1.0
@@ -61,7 +60,6 @@ require (
 	github.com/vbauerster/mpb/v7 v7.4.2
 	github.com/vishvananda/netlink v1.1.1-0.20220115184804-dd687eb2f2d4
 	go.etcd.io/bbolt v1.3.6
-	golang.org/x/crypto v0.0.0-20220411220226-7b82a4e95df4
 	golang.org/x/sync v0.0.0-20220601150217-0de741cfad7f
 	golang.org/x/sys v0.0.0-20220715151400-c0bba94af5f8
 	golang.org/x/term v0.0.0-20220526004731-065cf7ba2467

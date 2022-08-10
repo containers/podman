@@ -347,6 +347,10 @@ function wait_for_port() {
 # BEGIN miscellaneous tools
 
 # Shortcuts for common needs:
+function no_ssh() {
+    [ "$(man ssh)" -ne 0 ]
+}
+
 function is_ubuntu() {
     grep -qiw ubuntu /etc/os-release
 }
@@ -468,6 +472,17 @@ function _add_label_if_missing() {
         echo "[$want] $msg"
     fi
 }
+
+######################
+#  skip_if_no_ssh #  ...with an optional message
+######################
+function skip_if_no_ssh() {
+    if no_ssh; then
+        local msg=$(_add_label_if_missing "$1" "ssh")
+        skip "${msg:-not applicable with no ssh binary}"
+    fi
+}
+
 
 ######################
 #  skip_if_rootless  #  ...with an optional message

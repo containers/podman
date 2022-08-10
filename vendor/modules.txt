@@ -114,7 +114,7 @@ github.com/containers/buildah/pkg/rusage
 github.com/containers/buildah/pkg/sshagent
 github.com/containers/buildah/pkg/util
 github.com/containers/buildah/util
-# github.com/containers/common v0.49.2-0.20220804143628-dc97077782d5
+# github.com/containers/common v0.49.2-0.20220809074359-b0ea008ba661
 ## explicit
 github.com/containers/common/libimage
 github.com/containers/common/libimage/define
@@ -157,6 +157,7 @@ github.com/containers/common/pkg/secrets/filedriver
 github.com/containers/common/pkg/secrets/passdriver
 github.com/containers/common/pkg/secrets/shelldriver
 github.com/containers/common/pkg/signal
+github.com/containers/common/pkg/ssh
 github.com/containers/common/pkg/subscriptions
 github.com/containers/common/pkg/supplemented
 github.com/containers/common/pkg/sysinfo
@@ -403,9 +404,6 @@ github.com/docker/go-units
 # github.com/docker/libnetwork v0.8.0-dev.2.0.20190625141545-5a177b73e316
 ## explicit
 github.com/docker/libnetwork/ipamutils
-# github.com/dtylman/scp v0.0.0-20181017070807-f3000a34aef4
-## explicit
-github.com/dtylman/scp
 # github.com/felixge/httpsnoop v1.0.1
 github.com/felixge/httpsnoop
 # github.com/fsnotify/fsnotify v1.5.4
@@ -488,6 +486,8 @@ github.com/klauspost/compress/zstd
 github.com/klauspost/compress/zstd/internal/xxhash
 # github.com/klauspost/pgzip v1.2.5
 github.com/klauspost/pgzip
+# github.com/kr/fs v0.1.0
+github.com/kr/fs
 # github.com/letsencrypt/boulder v0.0.0-20220331220046-b23ab962616e
 github.com/letsencrypt/boulder/core
 github.com/letsencrypt/boulder/core/proto
@@ -630,6 +630,9 @@ github.com/ostreedev/ostree-go/pkg/glibobject
 github.com/ostreedev/ostree-go/pkg/otbuiltin
 # github.com/pkg/errors v0.9.1
 github.com/pkg/errors
+# github.com/pkg/sftp v1.13.5
+github.com/pkg/sftp
+github.com/pkg/sftp/internal/encoding/ssh/filexfer
 # github.com/pmezard/go-difflib v1.0.0
 github.com/pmezard/go-difflib/difflib
 # github.com/proglottis/gpgme v0.1.3
@@ -745,8 +748,7 @@ go.opencensus.io/internal
 go.opencensus.io/trace
 go.opencensus.io/trace/internal
 go.opencensus.io/trace/tracestate
-# golang.org/x/crypto v0.0.0-20220411220226-7b82a4e95df4
-## explicit
+# golang.org/x/crypto v0.0.0-20220622213112-05595931fe9d
 golang.org/x/crypto/blowfish
 golang.org/x/crypto/cast5
 golang.org/x/crypto/chacha20
