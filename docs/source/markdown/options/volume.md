@@ -3,8 +3,13 @@
 Create a bind mount. If `-v /HOST-DIR:/CONTAINER-DIR` is specified, Podman
 bind mounts `/HOST-DIR` from the host into `/CONTAINER-DIR` in the Podman
 container. Similarly, `-v SOURCE-VOLUME:/CONTAINER-DIR` will mount the named
-volume from the host into the container. If no such named volume exists, Podman will
-create one. (Note when using the remote client, including Mac and Windows (excluding WSL2) machines, the volumes will be mounted from the remote server, not necessarily the client machine.)
+volume from the host into the container. If no such named volume exists,
+Podman will create one. If no source is given, the volume will be created
+as an anonymously named volume with a randomly generated name, and will be
+removed when the <<container|pod>> is removed via the `--rm` flag or
+the `podman rm --volumes` command.
+
+(Note when using the remote client, including Mac and Windows (excluding WSL2) machines, the volumes will be mounted from the remote server, not necessarily the client machine.)
 
 The _OPTIONS_ is a comma-separated list and can be: <sup>[[1]](#Footnote1)</sup>
 
@@ -21,11 +26,6 @@ The _OPTIONS_ is a comma-separated list and can be: <sup>[[1]](#Footnote1)</sup>
 
 The `CONTAINER-DIR` must be an absolute path such as `/src/docs`. The volume
 will be mounted into the container at this directory.
-
-Volumes may specify a source as well, as either a directory on the host
-or the name of a named volume. If no source is given, the volume will be created as an
-anonymously named volume with a randomly generated name, and will be removed when
-the <<container|pod>> is removed via the `--rm` flag or the `podman rm --volumes` command.
 
 If a volume source is specified, it must be a path on the host or the name of a
 named volume. Host paths are allowed to be absolute or relative; relative paths

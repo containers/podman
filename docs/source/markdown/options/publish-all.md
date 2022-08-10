@@ -2,8 +2,8 @@
 
 Publish all exposed ports to random ports on the host interfaces. The default is **false**.
 
-When set to **true**, publish all exposed ports to the host interfaces. The
-default is **false**. If the operator uses **-P** (or **-p**) then Podman will make the
+When set to **true**, publish all exposed ports to the host interfaces.
+If the operator uses **-P** (or **-p**) then Podman will make the
 exposed port accessible on the host and the ports will be available to any
 client that can reach the host.
 
