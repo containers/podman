@@ -55,6 +55,7 @@
 - Pods created with no shared namespaces will no longer create an infra container unless one is explicitly requested ([#15048](https://github.com/containers/podman/issues/15048)).
 - The `podman create`, `podman run`, and `podman cp` commands can now autocomplete paths in the image or container via the shell completion.
 - The `libpod/common` package has been removed as it's not used anywhere.
+- The `--userns` option to `podman create` and `podman run` is no longer accepted when an explicit UID or GID mapping is specified ([#15233](https://github.com/containers/podman/issues/15233)).
 
 ### Bugfixes
 - Fixed a bug where bind-mounting `/dev` into a container which used the `--init` flag would cause the container to fail to start ([#14251](https://github.com/containers/podman/issues/14251)).
@@ -68,6 +69,7 @@
 - Fixed a bug where the `podman machine init` command would fail when run from `C:\Windows\System32` on Windows systems ([#14416](https://github.com/containers/podman/issues/14416)).
 - Fixed a bug where the `podman machine init --now` did not respect proxy environment variables ([#14640](https://github.com/containers/podman/issues/14640)).
 - Fixed a bug where the `podman machine init` command would fail if there is no `$HOME/.ssh` dir ([#14572](https://github.com/containers/podman/issues/14572)).
+- Fixed a bug where the `podman machine init` command would add a connection even if creating the VM failed ([#15154](https://github.com/containers/podman/issues/15154)).
 - Fixed a bug where interrupting the `podman machine start` command could render the VM unable to start.
 - Fixed a bug where the `podman machine list --format` command would still print a heading.
 - Fixed a bug where the `podman machine list` command did not properly set the `Starting` field ([#14738](https://github.com/containers/podman/issues/14738)).
@@ -91,6 +93,12 @@
 - Fixed a bug where Podman containers could fail to run if the image did not contain an `/etc/passwd` file ([#14966](https://github.com/containers/podman/issues/14966)).
 - Fixed a bug where the remote Podman client's `podman push` command did not display progress information ([#14971](https://github.com/containers/podman/issues/14971)).
 - Fixed a bug where a lock ordering issue could cause `podman pod rm` to deadlock if it was run at the same time as a command that attempted to lock multiple containers at once ([#14929](https://github.com/containers/podman/issues/14929)).
+- Fixed a bug where the `podman rm --force` command would exit with a non-0 code if the container in question did not exist ([#14612](https://github.com/containers/podman/issues/14612)).
+- Fixed a bug where the `podman container restore` command would fail when attempting to restore a checkpoint for a container with the same name as an image ([#15055](https://github.com/containers/podman/issues/15055)).
+- Fixed a bug where the `podman manifest push --rm` command could remove image, instead of manifest lists ([#15033](https://github.com/containers/podman/issues/15033)).
+- Fixed a bug where the `podman run --rm` command could fail to remove the container if it failed to start ([#15049](https://github.com/containers/podman/issues/15049)).
+- Fixed a bug where the `podman generate systemd --new` command would create incorrect unit files when the container was created with the `--sdnotify` parameter ([#15052](https://github.com/containers/podman/issues/15052)).
+- Fixed a bug where the `podman generate systemd --new` command would fail when `-h <hostname>` was used to create the container ([#15124](https://github.com/containers/podman/pull/15124)).
 
 ### API
 - The Docker-compatible API now supports API version v1.41 ([#14204](https://github.com/containers/podman/issues/14204)).
@@ -110,12 +118,17 @@
 - The `podman build` command now supports caching with builds that specify `--squash-all` by allowing the `--layers` flag to be used at the same time.
 - Podman Machine support for QEMU installations at non-default paths has been improved.
 - The `podman machine ssh` command no longer prints spurious warnings every time it is run.
+- When accessing the WSL prompt on Windows, the rootless user will be preferred.
 - The `podman info` command now includes a field for information on supported authentication plugins for improved Docker compatibility. Authentication plugins are not presently supported by Podman, so this field is always empty.
 - The `podman system prune` command now no longer prints the `Deleted Images` header if no images were pruned.
 - The `podman system service` command now automatically creates and moves to a sub-cgroup when running in the root cgroup ([#14573](https://github.com/containers/podman/issues/14573)).
+- Updated Buildah to v1.27.0
+- Updated the containers/image library to v5.22.0
+- Updated the containers/storage library to v1.42.0
+- Updated the containers/common library to v0.49.1
 - Podman will automatically create a sub-cgroup and move itself into it when it detects that it is running inside a container ([#14884](https://github.com/containers/podman/issues/14884)).
 - Fixed an incorrect release note about regexp.
-- MacOS pkginstaller support is now included.
+- A new MacOS installer (via pkginstaller) is now supported.
 
 ## 4.1.1
 ### Features
