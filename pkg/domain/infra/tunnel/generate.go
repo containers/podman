@@ -2,6 +2,7 @@ package tunnel
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/containers/podman/v4/pkg/bindings/generate"
 	"github.com/containers/podman/v4/pkg/domain/entities"
@@ -42,4 +43,8 @@ func (ic *ContainerEngine) GenerateSystemd(ctx context.Context, nameOrID string,
 func (ic *ContainerEngine) GenerateKube(ctx context.Context, nameOrIDs []string, opts entities.GenerateKubeOptions) (*entities.GenerateKubeReport, error) {
 	options := new(generate.KubeOptions).WithService(opts.Service)
 	return generate.Kube(ic.ClientCtx, nameOrIDs, options)
+}
+
+func (ic *ContainerEngine) GenerateSpec(ctx context.Context, opts *entities.GenerateSpecOptions) (*entities.GenerateSpecReport, error) {
+	return nil, fmt.Errorf("GenerateSpec is not supported on the remote API")
 }

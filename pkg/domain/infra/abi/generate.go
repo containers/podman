@@ -3,6 +3,7 @@ package abi
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -10,6 +11,8 @@ import (
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	k8sAPI "github.com/containers/podman/v4/pkg/k8s.io/api/core/v1"
+	"github.com/containers/podman/v4/pkg/specgen"
+	generateUtils "github.com/containers/podman/v4/pkg/specgen/generate"
 	"github.com/containers/podman/v4/pkg/systemd/generate"
 	"github.com/ghodss/yaml"
 )
@@ -39,6 +42,63 @@ func (ic *ContainerEngine) GenerateSystemd(ctx context.Context, nameOrID string,
 		return nil, err
 	}
 	return &entities.GenerateSystemdReport{Units: units}, nil
+}
+
+func (ic *ContainerEngine) GenerateSpec(ctx context.Context, opts *entities.GenerateSpecOptions) (*entities.GenerateSpecReport, error) {
+	var spec *specgen.SpecGenerator
+	var pspec *specgen.PodSpecGenerator
+	var err error
+	if _, err := ic.Libpod.LookupContainer(opts.ID); err == nil {
+		spec = &specgen.SpecGenerator{}
+		_, _, err = generateUtils.ConfigToSpec(ic.Libpod, spec, opts.ID)
+		if err != nil {
+			return nil, err
+		}
+	} else if p, err := ic.Libpod.LookupPod(opts.ID); err == nil {
+		pspec = &specgen.PodSpecGenerator{}
+		pspec.Name = p.Name()
+		_, err := generateUtils.PodConfigToSpec(ic.Libpod, pspec, &entities.ContainerCreateOptions{}, opts.ID)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if pspec == nil && spec == nil {
+		return nil, fmt.Errorf("could not find a pod or container with the id %s", opts.ID)
+	}
+
+	// rename if we are looking to consume the output and make a new entity
+	if opts.Name {
+		if spec != nil {
+			spec.Name = generateUtils.CheckName(ic.Libpod, spec.Name, true)
+		} else {
+			pspec.Name = generateUtils.CheckName(ic.Libpod, pspec.Name, false)
+		}
+	}
+
+	j := []byte{}
+	if spec != nil {
+		j, err = json.MarshalIndent(spec, "", " ")
+		if err != nil {
+			return nil, err
+		}
+	} else if pspec != nil {
+		j, err = json.MarshalIndent(pspec, "", " ")
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// compact output
+	if opts.Compact {
+		compacted := &bytes.Buffer{}
+		err := json.Compact(compacted, j)
+		if err != nil {
+			return nil, err
+		}
+		return &entities.GenerateSpecReport{Data: compacted.Bytes()}, nil
+	}
+	return &entities.GenerateSpecReport{Data: j}, nil // regular output
 }
 
 func (ic *ContainerEngine) GenerateKube(ctx context.Context, nameOrIDs []string, options entities.GenerateKubeOptions) (*entities.GenerateKubeReport, error) {

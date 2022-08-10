@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -562,4 +563,42 @@ func FinishThrottleDevices(s *specgen.SpecGenerator) error {
 		}
 	}
 	return nil
+}
+
+// Check name looks for existing containers/pods with the same name, and modifies the given string until a new name is found
+func CheckName(rt *libpod.Runtime, n string, kind bool) string {
+	switch {
+	case strings.Contains(n, "-clone"):
+		ind := strings.Index(n, "-clone") + 6
+		num, err := strconv.Atoi(n[ind:])
+		if num == 0 && err != nil { // clone1 is hard to get with this logic, just check for it here.
+			if kind {
+				_, err = rt.LookupContainer(n + "1")
+			} else {
+				_, err = rt.LookupPod(n + "1")
+			}
+
+			if err != nil {
+				n += "1"
+				break
+			}
+		} else {
+			n = n[0:ind]
+		}
+		err = nil
+		count := num
+		for err == nil {
+			count++
+			tempN := n + strconv.Itoa(count)
+			if kind {
+				_, err = rt.LookupContainer(tempN)
+			} else {
+				_, err = rt.LookupPod(tempN)
+			}
+		}
+		n += strconv.Itoa(count)
+	default:
+		n += "-clone"
+	}
+	return n
 }

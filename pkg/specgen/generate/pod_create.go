@@ -2,6 +2,7 @@ package generate
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net"
 	"os"
@@ -327,6 +328,19 @@ func PodConfigToSpec(rt *libpod.Runtime, spec *specgen.PodSpecGenerator, infraOp
 		}
 
 		spec.InfraContainerSpec = infraSpec
+		matching, err := json.Marshal(infraSpec)
+		if err != nil {
+			return nil, err
+		}
+
+		// track name before unmarshal so we do not overwrite w/ infra
+		name := spec.Name
+		err = json.Unmarshal(matching, spec)
+		if err != nil {
+			return nil, err
+		}
+
+		spec.Name = name
 	}
 
 	// need to reset hostname, name etc of both pod and infra
