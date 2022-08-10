@@ -355,6 +355,10 @@ func (p *PodmanTestIntegration) createArtifact(image string) {
 	if os.Getenv("NO_TEST_CACHE") != "" {
 		return
 	}
+	if p.RemoteTest { // Speed up remote tests by using the local binary
+		p.RemoteTest = false
+		defer func() { p.RemoteTest = true }()
+	}
 	destName := imageTarPath(image)
 	if _, err := os.Stat(destName); os.IsNotExist(err) {
 		fmt.Printf("Caching %s at %s...\n", image, destName)
@@ -805,6 +809,10 @@ func (p *PodmanTestIntegration) RestoreArtifactToCache(image string) error {
 }
 
 func populateCache(podman *PodmanTestIntegration) {
+	if podman.RemoteTest { // Speed up remote tests by using the local binary
+		podman.RemoteTest = false
+		defer func() { podman.RemoteTest = true }()
+	}
 	for _, image := range CACHE_IMAGES {
 		err := podman.RestoreArtifactToCache(image)
 		Expect(err).To(BeNil())
