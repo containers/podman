@@ -1005,9 +1005,6 @@ var _ = Describe("Podman checkpoint", func() {
 		if !criu.MemTrack() {
 			Skip("system (architecture/kernel/CRIU) does not support memory tracking")
 		}
-		if !strings.Contains(podmanTest.OCIRuntime, "runc") {
-			Skip("Test only works on runc 1.0-rc3 or higher.")
-		}
 		localRunString := getRunString([]string{ALPINE, "top"})
 		session := podmanTest.Podman(localRunString)
 		session.WaitWithDefaultTimeout()
@@ -1040,9 +1037,6 @@ var _ = Describe("Podman checkpoint", func() {
 		SkipIfRemote("--import-previous is not yet supported on the remote client")
 		if !criu.MemTrack() {
 			Skip("system (architecture/kernel/CRIU) does not support memory tracking")
-		}
-		if !strings.Contains(podmanTest.OCIRuntime, "runc") {
-			Skip("Test only works on runc 1.0-rc3 or higher.")
 		}
 		localRunString := getRunString([]string{ALPINE, "top"})
 		session := podmanTest.Podman(localRunString)
