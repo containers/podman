@@ -17,6 +17,7 @@
 package cdi
 
 import (
+	"encoding/json"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -35,6 +36,7 @@ var (
 		"0.2.0": {},
 		"0.3.0": {},
 		"0.4.0": {},
+		"0.5.0": {},
 	}
 
 	// Externally set CDI Spec validation function.
@@ -68,7 +70,7 @@ func ReadSpec(path string, priority int) (*Spec, error) {
 		return nil, errors.Wrapf(err, "failed to read CDI Spec %q", path)
 	}
 
-	raw, err := parseSpec(data)
+	raw, err := ParseSpec(data)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to parse CDI Spec %q", path)
 	}
@@ -107,6 +109,56 @@ func NewSpec(raw *cdi.Spec, path string, priority int) (*Spec, error) {
 	}
 
 	return spec, nil
+}
+
+// Write the CDI Spec to the file associated with it during instantiation
+// by NewSpec() or ReadSpec().
+func (s *Spec) Write(overwrite bool) error {
+	var (
+		data []byte
+		dir  string
+		tmp  *os.File
+		err  error
+	)
+
+	err = validateSpec(s.Spec)
+	if err != nil {
+		return err
+	}
+
+	if filepath.Ext(s.path) == ".yaml" {
+		data, err = yaml.Marshal(s.Spec)
+	} else {
+		data, err = json.Marshal(s.Spec)
+	}
+	if err != nil {
+		return errors.Wrap(err, "failed to marshal Spec file")
+	}
+
+	dir = filepath.Dir(s.path)
+	err = os.MkdirAll(dir, 0o755)
+	if err != nil {
+		return errors.Wrap(err, "failed to create Spec dir")
+	}
+
+	tmp, err = os.CreateTemp(dir, "spec.*.tmp")
+	if err != nil {
+		return errors.Wrap(err, "failed to create Spec file")
+	}
+	_, err = tmp.Write(data)
+	tmp.Close()
+	if err != nil {
+		return errors.Wrap(err, "failed to write Spec file")
+	}
+
+	err = renameIn(dir, filepath.Base(tmp.Name()), filepath.Base(s.path), overwrite)
+
+	if err != nil {
+		os.Remove(tmp.Name())
+		err = errors.Wrap(err, "failed to write Spec file")
+	}
+
+	return err
 }
 
 // GetVendor returns the vendor of this Spec.
@@ -183,8 +235,8 @@ func validateVersion(version string) error {
 	return nil
 }
 
-// Parse raw CDI Spec file data.
-func parseSpec(data []byte) (*cdi.Spec, error) {
+// ParseSpec parses CDI Spec data into a raw CDI Spec.
+func ParseSpec(data []byte) (*cdi.Spec, error) {
 	var raw *cdi.Spec
 	err := yaml.UnmarshalStrict(data, &raw)
 	if err != nil {
