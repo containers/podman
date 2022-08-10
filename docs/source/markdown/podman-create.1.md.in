@@ -259,7 +259,7 @@ This option conflicts with **--add-host**.
 
 @@option personality
 
-@@option pid
+@@option pid.container
 
 @@option pidfile
 

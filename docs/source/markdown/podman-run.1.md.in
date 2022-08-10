@@ -281,7 +281,7 @@ This is used to override the Podman provided user setup in favor of entrypoint c
 
 @@option personality
 
-@@option pid
+@@option pid.container
 
 @@option pidfile
 
