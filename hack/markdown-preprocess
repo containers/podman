@@ -29,7 +29,7 @@ def process(infile):
     # Some options are the same between containers and pods; determine
     # which description to use from the name of the source man page.
     pod_or_container = 'container'
-    if '-pod-' in infile:
+    if '-pod-' in infile or '-kube-' in infile:
         pod_or_container = 'pod'
 
     # Sometimes a man page includes the subcommand.

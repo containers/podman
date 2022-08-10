@@ -26,7 +26,7 @@ while (my $line = <$git_diff>) {
         if ($line =~ s/^-####\s+//) {
             $line =~ /^\*\*--(\S+?)\*\*/
                 or die "$ME: in $newname: weird '$line'";
-            $changed{$newname}{$1}{name} = $1;
+            $changed{$newname}{$1}{name} //= $1;
         }
         # Usually the same, but not for host.container and host.pod.md
         elsif ($line =~ /^\+\@\@option\s+(\S+)/) {
@@ -86,7 +86,7 @@ for my $md_file (sort keys %changed) {
             or die "$ME: Error writing $outfile: $!\n";
 
         my $new_text = "$DSM/options/$changed{$md_file}{$opt}{name}.md";
-        die "$ME: File does not exist: $new_text\n" if ! -e $new_text;
+        die "$ME: $md_file: File does not exist: $new_text\n" if ! -e $new_text;
         system('cp', $new_text, "$d/zzz-chosen.md");
     }
 }
