@@ -6,7 +6,7 @@ Podman (the POD MANager) is a tool for managing containers and images, volumes m
 Podman runs containers on Linux, but can also be used on Mac and Windows systems using a Podman-managed virtual machine.
 Podman is based on libpod, a library for container lifecycle management that is also contained in this repository. The libpod library provides APIs for managing containers, pods, container images, and volumes.
 
-* [Latest Version: 4.1.1](https://github.com/containers/podman/releases/tag/v4.1.1)
+* [Latest Version: 4.2.0](https://github.com/containers/podman/releases/tag/v4.2.0)
   * Latest Remote client for Windows
   * Latest Remote client for macOS
   * Latest Static Remote client for Linux
@@ -64,6 +64,10 @@ Almost all normal Podman functionality is available, though there are some [shor
 Any recent Podman release should be able to run rootless without any additional configuration, though your operating system may require some additional configuration detailed in the [install guide](https://github.com/containers/podman/blob/main/install.md).
 
 A little configuration by an administrator is required before rootless Podman can be used, the necessary setup is documented [here](https://github.com/containers/podman/blob/main/docs/tutorials/rootless_tutorial.md).
+
+## Podman Desktop
+
+[Podman Desktop](https://podman-desktop.io/) is a new project under the container organization built to help the developers working with containers from their local environment with a desktop UI. Podman Desktop is still in its early days, but already provides capabilities to list your images, interact with containers (access logs, get a terminal), connect to registries (pull private images, push your images) and configure podman settings (proxies). The project develops on [Github](https://github.com/containers/podman-desktop) and contributors are welcome.
 
 ## Out of scope
 
