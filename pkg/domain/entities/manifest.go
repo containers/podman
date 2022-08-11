@@ -61,6 +61,18 @@ type ManifestModifyOptions struct {
 	ManifestRemoveOptions
 }
 
+// ManifestPushReport provides the model for the pushed manifest
+//
+// swagger:model
+type ManifestPushReport struct {
+	// ID of the pushed manifest
+	ID string `json:"Id"`
+	// Stream used to provide push progress
+	Stream string `json:"stream,omitempty"`
+	// Error contains text of errors from pushing
+	Error string `json:"error,omitempty"`
+}
+
 // ManifestRemoveOptions provides the model for removing digests from a manifest
 //
 // swagger:model

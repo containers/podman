@@ -2,10 +2,13 @@ package manifests
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 
@@ -142,7 +145,6 @@ func Delete(ctx context.Context, name string) (*entities.ManifestRemoveReport, e
 // the name will be used instead.  If the optional all boolean is specified, all images specified
 // in the list will be pushed as well.
 func Push(ctx context.Context, name, destination string, options *images.PushOptions) (string, error) {
-	var idr entities.IDResponse
 	if options == nil {
 		options = new(images.PushOptions)
 	}
@@ -176,7 +178,44 @@ func Push(ctx context.Context, name, destination string, options *images.PushOpt
 	}
 	defer response.Body.Close()
 
-	return idr.ID, response.Process(&idr)
+	if !response.IsSuccess() {
+		return "", response.Process(err)
+	}
+
+	// Historically push writes status to stderr
+	writer := io.Writer(os.Stderr)
+	if options.GetQuiet() {
+		writer = io.Discard
+	} else if progressWriter := options.GetProgressWriter(); progressWriter != nil {
+		writer = progressWriter
+	}
+
+	dec := json.NewDecoder(response.Body)
+	for {
+		var report entities.ManifestPushReport
+		if err := dec.Decode(&report); err != nil {
+			return "", err
+		}
+
+		select {
+		case <-response.Request.Context().Done():
+			break
+		default:
+			// non-blocking select
+		}
+
+		switch {
+		case report.ID != "":
+			return report.ID, nil
+		case report.Stream != "":
+			fmt.Fprint(writer, report.Stream)
+		case report.Error != "":
+			// There can only be one error.
+			return "", errors.New(report.Error)
+		default:
+			return "", fmt.Errorf("failed to parse push results stream, unexpected input: %v", report)
+		}
+	}
 }
 
 // Modify modifies the given manifest list using options and the optional list of images
