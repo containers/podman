@@ -988,8 +988,10 @@ use it as the context. The Containerfile at the root of the repository will be
 used and it only works if the GitHub repository is a dedicated repository.
 
 ```
-$ podman build git://github.com/scollier/purpletest
+$ podman build https://github.com/scollier/purpletest
 ```
+
+  Note: Github does not support using `git://` for performing `clone` operation due to recent changes in their security guidance (https://github.blog/2021-09-01-improving-git-protocol-security-github/). Use an `https://` URL if the source repository is hosted on Github.
 
 #### Building an image using a URL to an archive
 
