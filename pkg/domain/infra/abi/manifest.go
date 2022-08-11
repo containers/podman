@@ -321,6 +321,7 @@ func (ir *ImageEngine) ManifestPush(ctx context.Context, name, destination strin
 	pushOptions.SignBySigstorePrivateKeyFile = opts.SignBySigstorePrivateKeyFile
 	pushOptions.SignSigstorePrivateKeyPassphrase = opts.SignSigstorePrivateKeyPassphrase
 	pushOptions.InsecureSkipTLSVerify = opts.SkipTLSVerify
+	pushOptions.Writer = opts.Writer
 
 	compressionFormat := opts.CompressionFormat
 	if compressionFormat == "" {
@@ -341,7 +342,7 @@ func (ir *ImageEngine) ManifestPush(ctx context.Context, name, destination strin
 	if opts.All {
 		pushOptions.ImageListSelection = cp.CopyAllImages
 	}
-	if !opts.Quiet {
+	if !opts.Quiet && pushOptions.Writer == nil {
 		pushOptions.Writer = os.Stderr
 	}
 

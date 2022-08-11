@@ -19,12 +19,14 @@ import (
 	"github.com/containers/podman/v4/pkg/api/handlers/utils"
 	api "github.com/containers/podman/v4/pkg/api/types"
 	"github.com/containers/podman/v4/pkg/auth"
+	"github.com/containers/podman/v4/pkg/channel"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/domain/infra/abi"
 	"github.com/containers/podman/v4/pkg/errorhandling"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/schema"
 	"github.com/opencontainers/go-digest"
+	"github.com/sirupsen/logrus"
 )
 
 func ManifestCreate(w http.ResponseWriter, r *http.Request) {
@@ -311,9 +313,13 @@ func ManifestPush(w http.ResponseWriter, r *http.Request) {
 		Format            string `schema:"format"`
 		RemoveSignatures  bool   `schema:"removeSignatures"`
 		TLSVerify         bool   `schema:"tlsVerify"`
+		Quiet             bool   `schema:"quiet"`
 	}{
 		// Add defaults here once needed.
 		TLSVerify: true,
+		// #15210: older versions did not sent *any* data, so we need
+		//         to be quiet by default to remain backwards compatible
+		Quiet: true,
 	}
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
 		utils.Error(w, http.StatusBadRequest,
@@ -344,6 +350,7 @@ func ManifestPush(w http.ResponseWriter, r *http.Request) {
 		CompressionFormat: query.CompressionFormat,
 		Format:            query.Format,
 		Password:          password,
+		Quiet:             true,
 		RemoveSignatures:  query.RemoveSignatures,
 		Username:          username,
 	}
@@ -356,12 +363,67 @@ func ManifestPush(w http.ResponseWriter, r *http.Request) {
 
 	imageEngine := abi.ImageEngine{Libpod: runtime}
 	source := utils.GetName(r)
-	digest, err := imageEngine.ManifestPush(context.Background(), source, destination, options)
-	if err != nil {
-		utils.Error(w, http.StatusBadRequest, fmt.Errorf("error pushing image %q: %w", destination, err))
+
+	// Let's keep thing simple when running in quiet mode and push directly.
+	if query.Quiet {
+		digest, err := imageEngine.ManifestPush(context.Background(), source, destination, options)
+		if err != nil {
+			utils.Error(w, http.StatusBadRequest, fmt.Errorf("error pushing image %q: %w", destination, err))
+			return
+		}
+		utils.WriteResponse(w, http.StatusOK, entities.ManifestPushReport{ID: digest})
 		return
 	}
-	utils.WriteResponse(w, http.StatusOK, entities.IDResponse{ID: digest})
+
+	writer := channel.NewWriter(make(chan []byte))
+	defer writer.Close()
+	options.Writer = writer
+
+	pushCtx, pushCancel := context.WithCancel(r.Context())
+	var digest string
+	var pushError error
+	go func() {
+		defer pushCancel()
+		digest, pushError = imageEngine.ManifestPush(pushCtx, source, destination, options)
+	}()
+
+	flush := func() {
+		if flusher, ok := w.(http.Flusher); ok {
+			flusher.Flush()
+		}
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json")
+	flush()
+
+	enc := json.NewEncoder(w)
+	enc.SetEscapeHTML(true)
+	for {
+		var report entities.ManifestPushReport
+		select {
+		case s := <-writer.Chan():
+			report.Stream = string(s)
+			if err := enc.Encode(report); err != nil {
+				logrus.Warnf("Failed to encode json: %v", err)
+			}
+			flush()
+		case <-pushCtx.Done():
+			if pushError != nil {
+				report.Error = pushError.Error()
+			} else {
+				report.ID = digest
+			}
+			if err := enc.Encode(report); err != nil {
+				logrus.Warnf("Failed to encode json: %v", err)
+			}
+			flush()
+			return
+		case <-r.Context().Done():
+			// Client has closed connection
+			return
+		}
+	}
 }
 
 // ManifestModify efficiently updates the named manifest list
