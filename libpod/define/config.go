@@ -81,13 +81,6 @@ const NoLogging = "none"
 // PassthroughLogging is the string conmon expects when specifying to use the passthrough driver
 const PassthroughLogging = "passthrough"
 
-// Strings used for --sdnotify option to podman
-const (
-	SdNotifyModeContainer = "container"
-	SdNotifyModeConmon    = "conmon"
-	SdNotifyModeIgnore    = "ignore"
-)
-
 // DefaultRlimitValue is the value set by default for nofile and nproc
 const RLimitDefaultValue = uint64(1048576)
 

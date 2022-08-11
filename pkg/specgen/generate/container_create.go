@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -352,7 +353,13 @@ func createContainerOptions(rt *libpod.Runtime, s *specgen.SpecGenerator, pod *l
 	}
 	if len(s.SdNotifyMode) > 0 {
 		options = append(options, libpod.WithSdNotifyMode(s.SdNotifyMode))
+		if s.SdNotifyMode != define.SdNotifyModeIgnore {
+			if notify, ok := os.LookupEnv("NOTIFY_SOCKET"); ok {
+				options = append(options, libpod.WithSdNotifySocket(notify))
+			}
+		}
 	}
+
 	if pod != nil {
 		logrus.Debugf("adding container to pod %s", pod.Name())
 		options = append(options, rt.WithPod(pod))

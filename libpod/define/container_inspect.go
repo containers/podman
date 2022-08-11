@@ -79,6 +79,10 @@ type InspectContainerConfig struct {
 	// treated as root directories. Standard bind mounts will be mounted
 	// into paths relative to these directories.
 	ChrootDirs []string `json:"ChrootDirs,omitempty"`
+	// SdNotifyMode is the sd-notify mode of the container.
+	SdNotifyMode string `json:"sdNotifyMode,omitempty"`
+	// SdNotifySocket is the NOTIFY_SOCKET in use by/configured for the container.
+	SdNotifySocket string `json:"sdNotifySocket,omitempty"`
 }
 
 // InspectRestartPolicy holds information about the container's restart policy.

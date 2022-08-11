@@ -31,6 +31,7 @@ import (
 	"github.com/containers/podman/v4/pkg/lookup"
 	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/containers/podman/v4/pkg/selinux"
+	"github.com/containers/podman/v4/pkg/systemd/notifyproxy"
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
@@ -1224,9 +1225,9 @@ func (c *Container) start() error {
 			payload += "\n"
 			payload += daemon.SdNotifyReady
 		}
-		if sent, err := daemon.SdNotify(false, payload); err != nil {
+		if err := notifyproxy.SendMessage(c.config.SdNotifySocket, payload); err != nil {
 			logrus.Errorf("Notifying systemd of Conmon PID: %s", err.Error())
-		} else if sent {
+		} else {
 			logrus.Debugf("Notify sent successfully")
 		}
 	}

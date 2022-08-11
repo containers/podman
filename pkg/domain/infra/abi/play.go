@@ -27,12 +27,18 @@ import (
 	"github.com/containers/podman/v4/pkg/specgen/generate"
 	"github.com/containers/podman/v4/pkg/specgen/generate/kube"
 	"github.com/containers/podman/v4/pkg/specgenutil"
+	"github.com/containers/podman/v4/pkg/systemd/notifyproxy"
 	"github.com/containers/podman/v4/pkg/util"
+	"github.com/coreos/go-systemd/v22/daemon"
 	"github.com/ghodss/yaml"
 	"github.com/opencontainers/go-digest"
 	"github.com/sirupsen/logrus"
 	yamlv3 "gopkg.in/yaml.v3"
 )
+
+// sdNotifyAnnotation allows for configuring service-global and
+// container-specific sd-notify modes.
+const sdNotifyAnnotation = "io.containers.sdnotify"
 
 // createServiceContainer creates a container that can later on
 // be associated with the pods of a K8s yaml.  It will be started along with
@@ -73,7 +79,12 @@ func (ic *ContainerEngine) createServiceContainer(ctx context.Context, name stri
 		return nil, fmt.Errorf("creating runtime spec for service container: %w", err)
 	}
 	opts = append(opts, libpod.WithIsService())
-	opts = append(opts, libpod.WithSdNotifyMode(define.SdNotifyModeConmon))
+
+	// Set the sd-notify mode to "ignore".  Podman is responsible for
+	// sending the notify messages when all containers are ready.
+	// The mode for individual containers or entire pods can be configured
+	// via the `sdNotifyAnnotation` annotation in the K8s YAML.
+	opts = append(opts, libpod.WithSdNotifyMode(define.SdNotifyModeIgnore))
 
 	// Create a new libpod container based on the spec.
 	ctr, err := ic.Libpod.NewContainer(ctx, runtimeSpec, spec, false, opts...)
@@ -96,6 +107,10 @@ func k8sName(content []byte, suffix string) string {
 }
 
 func (ic *ContainerEngine) PlayKube(ctx context.Context, body io.Reader, options entities.PlayKubeOptions) (_ *entities.PlayKubeReport, finalErr error) {
+	if options.ServiceContainer && options.Start == types.OptionalBoolFalse { // Sanity check to be future proof
+		return nil, fmt.Errorf("running a service container requires starting the pod(s)")
+	}
+
 	report := &entities.PlayKubeReport{}
 	validKinds := 0
 
@@ -121,6 +136,8 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, body io.Reader, options
 
 	var configMaps []v1.ConfigMap
 
+	ranContainers := false
+	var serviceContainer *libpod.Container
 	// create pod on each document if it is a pod or deployment
 	// any other kube kind will be skipped
 	for _, document := range documentList {
@@ -130,8 +147,7 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, body io.Reader, options
 		}
 
 		// TODO: create constants for the various "kinds" of yaml files.
-		var serviceContainer *libpod.Container
-		if options.ServiceContainer && (kind == "Pod" || kind == "Deployment") {
+		if options.ServiceContainer && serviceContainer == nil && (kind == "Pod" || kind == "Deployment") {
 			ctr, err := ic.createServiceContainer(ctx, k8sName(content, "service"), options)
 			if err != nil {
 				return nil, err
@@ -178,6 +194,7 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, body io.Reader, options
 
 			report.Pods = append(report.Pods, r.Pods...)
 			validKinds++
+			ranContainers = true
 		case "Deployment":
 			var deploymentYAML v1apps.Deployment
 
@@ -192,6 +209,7 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, body io.Reader, options
 
 			report.Pods = append(report.Pods, r.Pods...)
 			validKinds++
+			ranContainers = true
 		case "PersistentVolumeClaim":
 			var pvcYAML v1.PersistentVolumeClaim
 
@@ -239,6 +257,20 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, body io.Reader, options
 		return nil, fmt.Errorf("YAML document does not contain any supported kube kind")
 	}
 
+	if options.ServiceContainer && ranContainers {
+		// We can consider the service to be up and running now.
+		// Send the sd-notify messages pointing systemd to the
+		// service container.
+		data, err := serviceContainer.Inspect(false)
+		if err != nil {
+			return nil, err
+		}
+		message := fmt.Sprintf("MAINPID=%d\n%s", data.State.ConmonPid, daemon.SdNotifyReady)
+		if err := notifyproxy.SendMessage("", message); err != nil {
+			return nil, err
+		}
+	}
+
 	return report, nil
 }
 
@@ -279,6 +311,11 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 		playKubePod entities.PlayKubePod
 		report      entities.PlayKubeReport
 	)
+
+	mainSdNotifyMode, err := getSdNotifyMode(annotations, "")
+	if err != nil {
+		return nil, err
+	}
 
 	// Create the secret manager before hand
 	secretsManager, err := ic.Libpod.SecretsManager()
@@ -562,6 +599,9 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 
 		initContainers = append(initContainers, ctr)
 	}
+
+	var sdNotifyProxies []*notifyproxy.NotifyProxy // containers' sd-notify proxies
+
 	for _, container := range podYAML.Spec.Containers {
 		// Error out if the same name is used for more than one container
 		if _, ok := ctrNames[container.Name]; ok {
@@ -606,7 +646,31 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 		if err != nil {
 			return nil, err
 		}
-		opts = append(opts, libpod.WithSdNotifyMode(define.SdNotifyModeIgnore))
+
+		sdNotifyMode := mainSdNotifyMode
+		ctrNotifyMode, err := getSdNotifyMode(annotations, container.Name)
+		if err != nil {
+			return nil, err
+		}
+		if ctrNotifyMode != "" {
+			sdNotifyMode = ctrNotifyMode
+		}
+		if sdNotifyMode == "" { // Default to "ignore"
+			sdNotifyMode = define.SdNotifyModeIgnore
+		}
+
+		opts = append(opts, libpod.WithSdNotifyMode(sdNotifyMode))
+
+		// Create a notify proxy for the container.
+		if sdNotifyMode != "" && sdNotifyMode != define.SdNotifyModeIgnore {
+			proxy, err := notifyproxy.New("")
+			if err != nil {
+				return nil, err
+			}
+			sdNotifyProxies = append(sdNotifyProxies, proxy)
+			opts = append(opts, libpod.WithSdNotifySocket(proxy.SocketPath()))
+		}
+
 		ctr, err := generate.ExecuteCreate(ctx, ic.Libpod, rtSpec, spec, false, opts...)
 		if err != nil {
 			return nil, err
@@ -623,6 +687,13 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 		for id, err := range podStartErrors {
 			playKubePod.ContainerErrors = append(playKubePod.ContainerErrors, fmt.Errorf("error starting container %s: %w", id, err).Error())
 			fmt.Println(playKubePod.ContainerErrors)
+		}
+
+		// Wait for each proxy to receive a READY message.
+		for _, proxy := range sdNotifyProxies {
+			if err := proxy.WaitAndClose(); err != nil {
+				return nil, err
+			}
 		}
 	}
 

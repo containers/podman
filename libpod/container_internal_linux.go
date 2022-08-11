@@ -971,12 +971,9 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 // and if the sdnotify mode is set to container.  It also sets c.notifySocket
 // to avoid redundantly looking up the env variable.
 func (c *Container) mountNotifySocket(g generate.Generator) error {
-	notify, ok := os.LookupEnv("NOTIFY_SOCKET")
-	if !ok {
+	if c.config.SdNotifySocket == "" {
 		return nil
 	}
-	c.notifySocket = notify
-
 	if c.config.SdNotifyMode != define.SdNotifyModeContainer {
 		return nil
 	}
