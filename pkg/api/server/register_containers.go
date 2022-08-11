@@ -11,9 +11,9 @@ import (
 func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	// swagger:operation POST /containers/create compat ContainerCreate
 	// ---
-	//   summary: Create a container
 	//   tags:
 	//    - containers (compat)
+	//   summary: Create a container
 	//   produces:
 	//   - application/json
 	//   parameters:
@@ -678,9 +678,9 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 
 	// swagger:operation POST /libpod/containers/create libpod ContainerCreateLibpod
 	// ---
-	//   summary: Create a container
 	//   tags:
 	//    - containers
+	//   summary: Create a container
 	//   produces:
 	//   - application/json
 	//   parameters:
@@ -689,6 +689,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//      description: attributes for creating a container
 	//      schema:
 	//        $ref: "#/definitions/SpecGenerator"
+	//      required: true
 	//   responses:
 	//     201:
 	//       $ref: "#/responses/containerCreateResponse"

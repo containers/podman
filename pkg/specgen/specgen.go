@@ -13,7 +13,8 @@ import (
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 )
 
-//  LogConfig describes the logging characteristics for a container
+// LogConfig describes the logging characteristics for a container
+// swagger:model LogConfigLibpod
 type LogConfig struct {
 	// LogDriver is the container's log driver.
 	// Optional.
