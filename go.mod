@@ -66,7 +66,7 @@ require (
 	golang.org/x/sys v0.0.0-20220715151400-c0bba94af5f8
 	golang.org/x/term v0.0.0-20220526004731-065cf7ba2467
 	golang.org/x/text v0.3.7
-	google.golang.org/protobuf v1.28.0
+	google.golang.org/protobuf v1.28.1
 	gopkg.in/inf.v0 v0.9.1
 	gopkg.in/yaml.v3 v3.0.1
 )

@@ -59,8 +59,10 @@ func startFlags(cmd *cobra.Command) {
 
 	flags.BoolVarP(&startOptions.Interactive, "interactive", "i", false, "Keep STDIN open even if not attached")
 	flags.BoolVar(&startOptions.SigProxy, "sig-proxy", false, "Proxy received signals to the process (default true if attaching, false otherwise)")
-	flags.StringSliceVarP(&filters, "filter", "f", []string{}, "Filter output based on conditions given")
-	_ = cmd.RegisterFlagCompletionFunc("filter", common.AutocompletePsFilters)
+
+	filterFlagName := "filter"
+	flags.StringSliceVarP(&filters, filterFlagName, "f", []string{}, "Filter output based on conditions given")
+	_ = cmd.RegisterFlagCompletionFunc(filterFlagName, common.AutocompletePsFilters)
 
 	flags.BoolVar(&startOptions.All, "all", false, "Start all containers regardless of their state or configuration")
 
@@ -84,7 +86,7 @@ func init() {
 }
 
 func validateStart(cmd *cobra.Command, args []string) error {
-	if len(args) == 0 && !startOptions.Latest && !startOptions.All {
+	if len(args) == 0 && !startOptions.Latest && !startOptions.All && len(filters) < 1 {
 		return errors.New("start requires at least one argument")
 	}
 	if startOptions.All && startOptions.Latest {
@@ -123,14 +125,12 @@ func start(cmd *cobra.Command, args []string) error {
 	}
 
 	containers := args
-	if len(filters) > 0 {
-		for _, f := range filters {
-			split := strings.SplitN(f, "=", 2)
-			if len(split) == 1 {
-				return fmt.Errorf("invalid filter %q", f)
-			}
-			startOptions.Filters[split[0]] = append(startOptions.Filters[split[0]], split[1])
+	for _, f := range filters {
+		split := strings.SplitN(f, "=", 2)
+		if len(split) < 2 {
+			return fmt.Errorf("invalid filter %q", f)
 		}
+		startOptions.Filters[split[0]] = append(startOptions.Filters[split[0]], split[1])
 	}
 
 	responses, err := registry.ContainerEngine().ContainerStart(registry.GetContext(), containers, startOptions)

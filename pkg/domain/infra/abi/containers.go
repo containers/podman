@@ -40,6 +40,7 @@ import (
 // is specified.  It also returns a list of the corresponding input name used to lookup each container.
 func getContainersAndInputByContext(all, latest bool, names []string, filters map[string][]string, runtime *libpod.Runtime) (ctrs []*libpod.Container, rawInput []string, err error) {
 	var ctr *libpod.Container
+	var filteredCtrs []*libpod.Container
 	ctrs = []*libpod.Container{}
 	filterFuncs := make([]libpod.ContainerFilter, 0, len(filters))
 
@@ -58,7 +59,17 @@ func getContainersAndInputByContext(all, latest bool, names []string, filters ma
 		}
 		rawInput = []string{}
 		for _, candidate := range ctrs {
-			rawInput = append(rawInput, candidate.ID())
+			if len(names) > 0 {
+				for _, name := range names {
+					if candidate.ID() == name || candidate.Name() == name {
+						rawInput = append(rawInput, candidate.ID())
+						filteredCtrs = append(filteredCtrs, candidate)
+					}
+				}
+				ctrs = filteredCtrs
+			} else {
+				rawInput = append(rawInput, candidate.ID())
+			}
 		}
 	case all:
 		ctrs, err = runtime.GetAllContainers()
@@ -860,38 +871,7 @@ func (ic *ContainerEngine) ContainerExecDetached(ctx context.Context, nameOrID s
 func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []string, options entities.ContainerStartOptions) ([]*entities.ContainerStartReport, error) {
 	reports := []*entities.ContainerStartReport{}
 	var exitCode = define.ExecErrorCodeGeneric
-	containersNamesOrIds := namesOrIds
-	all := options.All
-	if len(options.Filters) > 0 {
-		all = false
-		filterFuncs := make([]libpod.ContainerFilter, 0, len(options.Filters))
-		if len(options.Filters) > 0 {
-			for k, v := range options.Filters {
-				generatedFunc, err := dfilters.GenerateContainerFilterFuncs(k, v, ic.Libpod)
-				if err != nil {
-					return nil, err
-				}
-				filterFuncs = append(filterFuncs, generatedFunc)
-			}
-		}
-		candidates, err := ic.Libpod.GetContainers(filterFuncs...)
-		if err != nil {
-			return nil, err
-		}
-		containersNamesOrIds = []string{}
-		for _, candidate := range candidates {
-			if options.All {
-				containersNamesOrIds = append(containersNamesOrIds, candidate.ID())
-				continue
-			}
-			for _, nameOrID := range namesOrIds {
-				if nameOrID == candidate.ID() || nameOrID == candidate.Name() {
-					containersNamesOrIds = append(containersNamesOrIds, nameOrID)
-				}
-			}
-		}
-	}
-	ctrs, rawInputs, err := getContainersAndInputByContext(all, options.Latest, containersNamesOrIds, options.Filters, ic.Libpod)
+	ctrs, rawInputs, err := getContainersAndInputByContext(options.All, options.Latest, namesOrIds, options.Filters, ic.Libpod)
 	if err != nil {
 		return nil, err
 	}
@@ -1035,6 +1015,15 @@ func (ic *ContainerEngine) Diff(ctx context.Context, namesOrIDs []string, opts e
 }
 
 func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.ContainerRunOptions) (*entities.ContainerRunReport, error) {
+	removeContainer := func(ctr *libpod.Container, force bool) error {
+		var timeout *uint
+		if err := ic.Libpod.RemoveContainer(ctx, ctr, force, true, timeout); err != nil {
+			logrus.Debugf("unable to remove container %s after failing to start and attach to it: %v", ctr.ID(), err)
+			return err
+		}
+		return nil
+	}
+
 	warn, err := generate.CompleteSpec(ctx, ic.Libpod, opts.Spec)
 	if err != nil {
 		return nil, err
@@ -1055,6 +1044,8 @@ func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.Conta
 
 	if opts.CIDFile != "" {
 		if err := util.CreateCidFile(opts.CIDFile, ctr.ID()); err != nil {
+			// If you fail to create CIDFile then remove the container
+			_ = removeContainer(ctr, true)
 			return nil, err
 		}
 	}
@@ -1072,6 +1063,11 @@ func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.Conta
 		if err := ctr.Start(ctx, true); err != nil {
 			// This means the command did not exist
 			report.ExitCode = define.ExitCode(err)
+			if opts.Rm {
+				if rmErr := removeContainer(ctr, true); rmErr != nil && !errors.Is(rmErr, define.ErrNoSuchCtr) {
+					logrus.Errorf("Container %s failed to be removed", ctr.ID())
+				}
+			}
 			return &report, err
 		}
 
@@ -1088,10 +1084,7 @@ func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.Conta
 			return &report, nil
 		}
 		if opts.Rm {
-			var timeout *uint
-			if deleteError := ic.Libpod.RemoveContainer(ctx, ctr, true, false, timeout); deleteError != nil {
-				logrus.Debugf("unable to remove container %s after failing to start and attach to it", ctr.ID())
-			}
+			_ = removeContainer(ctr, true)
 		}
 		if errors.Is(err, define.ErrWillDeadlock) {
 			logrus.Debugf("Deadlock error on %q: %v", ctr.ID(), err)
@@ -1103,8 +1096,7 @@ func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.Conta
 	}
 	report.ExitCode = ic.GetContainerExitCode(ctx, ctr)
 	if opts.Rm && !ctr.ShouldRestart(ctx) {
-		var timeout *uint
-		if err := ic.Libpod.RemoveContainer(ctx, ctr, false, true, timeout); err != nil {
+		if err := removeContainer(ctr, false); err != nil {
 			if errors.Is(err, define.ErrNoSuchCtr) ||
 				errors.Is(err, define.ErrCtrRemoved) {
 				logrus.Infof("Container %s was already removed, skipping --rm", ctr.ID())

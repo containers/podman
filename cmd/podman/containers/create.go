@@ -192,16 +192,14 @@ func replaceContainer(name string) error {
 }
 
 func CreateInit(c *cobra.Command, vals entities.ContainerCreateOptions, isInfra bool) (entities.ContainerCreateOptions, error) {
-	vals.UserNS = c.Flag("userns").Value.String()
-	// if user did not modify --userns flag and did turn on
-	// uid/gid mappings, set userns flag to "private"
-	if !c.Flag("userns").Changed && vals.UserNS == "host" {
-		if len(vals.UIDMap) > 0 ||
-			len(vals.GIDMap) > 0 ||
-			vals.SubUIDName != "" ||
-			vals.SubGIDName != "" {
-			vals.UserNS = "private"
+	if len(vals.UIDMap) > 0 || len(vals.GIDMap) > 0 || vals.SubUIDName != "" || vals.SubGIDName != "" {
+		if c.Flag("userns").Changed {
+			return vals, errors.New("--userns and --uidmap/--gidmap/--subuidname/--subgidname are mutually exclusive")
 		}
+		// force userns flag to "private"
+		vals.UserNS = "private"
+	} else {
+		vals.UserNS = c.Flag("userns").Value.String()
 	}
 	if c.Flag("kernel-memory") != nil && c.Flag("kernel-memory").Changed {
 		logrus.Warnf("The --kernel-memory flag is no longer supported. This flag is a noop.")

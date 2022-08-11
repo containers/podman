@@ -126,6 +126,9 @@ func removeContainers(namesOrIDs []string, rmOptions entities.RmOptions, setExit
 	var errs utils.OutputErrors
 	responses, err := registry.ContainerEngine().ContainerRm(context.Background(), namesOrIDs, rmOptions)
 	if err != nil {
+		if rmOptions.Force && strings.Contains(err.Error(), define.ErrNoSuchCtr.Error()) {
+			return nil
+		}
 		if setExit {
 			setExitCode(err)
 		}
@@ -135,6 +138,9 @@ func removeContainers(namesOrIDs []string, rmOptions entities.RmOptions, setExit
 		if r.Err != nil {
 			if errors.Is(r.Err, define.ErrWillDeadlock) {
 				logrus.Errorf("Potential deadlock detected - please run 'podman system renumber' to resolve")
+			}
+			if rmOptions.Force && strings.Contains(r.Err.Error(), define.ErrNoSuchCtr.Error()) {
+				continue
 			}
 			if setExit {
 				setExitCode(r.Err)

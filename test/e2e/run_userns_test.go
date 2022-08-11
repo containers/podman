@@ -307,6 +307,30 @@ var _ = Describe("Podman UserNS support", func() {
 		}
 
 	})
+
+	It("podman --userns= conflicts with ui[dg]map and sub[ug]idname", func() {
+		session := podmanTest.Podman([]string{"run", "--userns=host", "--uidmap=0:1:500", "alpine", "true"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(125))
+		Expect(session.ErrorToString()).To(ContainSubstring("--userns and --uidmap/--gidmap/--subuidname/--subgidname are mutually exclusive"))
+
+		session = podmanTest.Podman([]string{"run", "--userns=host", "--gidmap=0:200:5000", "alpine", "true"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(125))
+		Expect(session.ErrorToString()).To(ContainSubstring("--userns and --uidmap/--gidmap/--subuidname/--subgidname are mutually exclusive"))
+
+		// with sub[ug]idname we don't check for the error output since the error message could be different, depending on the
+		// system configuration since the specified user could not be defined and cause a different earlier error.
+		// In any case, make sure the command doesn't succeed.
+		session = podmanTest.Podman([]string{"run", "--userns=private", "--subuidname=containers", "alpine", "true"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Not(Exit(0)))
+
+		session = podmanTest.Podman([]string{"run", "--userns=private", "--subgidname=containers", "alpine", "true"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Not(Exit(0)))
+	})
+
 	It("podman PODMAN_USERNS", func() {
 		SkipIfNotRootless("keep-id only works in rootless mode")
 

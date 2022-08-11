@@ -623,36 +623,7 @@ func logIfRmError(id string, err error, reports []*reports.RmReport) {
 func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []string, options entities.ContainerStartOptions) ([]*entities.ContainerStartReport, error) {
 	reports := []*entities.ContainerStartReport{}
 	var exitCode = define.ExecErrorCodeGeneric
-	containersNamesOrIds := namesOrIds
-	all := options.All
-	if len(options.Filters) > 0 {
-		all = false
-		containersNamesOrIds = []string{}
-		opts := new(containers.ListOptions).WithFilters(options.Filters).WithAll(true)
-		candidates, listErr := containers.List(ic.ClientCtx, opts)
-		if listErr != nil {
-			return nil, listErr
-		}
-		for _, candidate := range candidates {
-			if options.All {
-				containersNamesOrIds = append(containersNamesOrIds, candidate.ID)
-				continue
-			}
-			for _, nameOrID := range namesOrIds {
-				if nameOrID == candidate.ID {
-					containersNamesOrIds = append(containersNamesOrIds, nameOrID)
-					continue
-				}
-				for _, containerName := range candidate.Names {
-					if containerName == nameOrID {
-						containersNamesOrIds = append(containersNamesOrIds, nameOrID)
-						continue
-					}
-				}
-			}
-		}
-	}
-	ctrs, err := getContainersByContext(ic.ClientCtx, all, false, containersNamesOrIds)
+	ctrs, namesOrIds, err := getContainersAndInputByContext(ic.ClientCtx, options.All, false, namesOrIds, options.Filters)
 	if err != nil {
 		return nil, err
 	}
@@ -771,8 +742,17 @@ func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.Conta
 	for _, w := range con.Warnings {
 		fmt.Fprintf(os.Stderr, "%s\n", w)
 	}
+	removeContainer := func(id string, force bool) error {
+		removeOptions := new(containers.RemoveOptions).WithVolumes(true).WithForce(force)
+		reports, err := containers.Remove(ic.ClientCtx, id, removeOptions)
+		logIfRmError(id, err, reports)
+		return err
+	}
+
 	if opts.CIDFile != "" {
 		if err := util.CreateCidFile(opts.CIDFile, con.ID); err != nil {
+			// If you fail to create CIDFile then remove the container
+			_ = removeContainer(con.ID, true)
 			return nil, err
 		}
 	}
@@ -784,6 +764,11 @@ func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.Conta
 		err := containers.Start(ic.ClientCtx, con.ID, new(containers.StartOptions).WithRecursive(true))
 		if err != nil {
 			report.ExitCode = define.ExitCode(err)
+			if opts.Rm {
+				if rmErr := removeContainer(con.ID, true); rmErr != nil && !errors.Is(rmErr, define.ErrNoSuchCtr) {
+					logrus.Errorf("Container %s failed to be removed", con.ID)
+				}
+			}
 		}
 		return &report, err
 	}
@@ -796,10 +781,7 @@ func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.Conta
 
 		report.ExitCode = define.ExitCode(err)
 		if opts.Rm {
-			reports, rmErr := containers.Remove(ic.ClientCtx, con.ID, new(containers.RemoveOptions).WithForce(false).WithVolumes(true))
-			if rmErr != nil || reports[0].Err != nil {
-				logrus.Debugf("unable to remove container %s after failing to start and attach to it", con.ID)
-			}
+			_ = removeContainer(con.ID, false)
 		}
 		return &report, err
 	}
@@ -815,8 +797,7 @@ func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.Conta
 			}
 
 			if !shouldRestart {
-				reports, err := containers.Remove(ic.ClientCtx, con.ID, new(containers.RemoveOptions).WithForce(false).WithVolumes(true))
-				logIfRmError(con.ID, err, reports)
+				_ = removeContainer(con.ID, false)
 			}
 		}()
 	}

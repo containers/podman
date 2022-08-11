@@ -347,7 +347,7 @@ func (c *Container) syncContainer() error {
 	}
 	// If runtime knows about the container, update its status in runtime
 	// And then save back to disk
-	if c.ensureState(define.ContainerStateCreated, define.ContainerStateRunning, define.ContainerStateStopped, define.ContainerStatePaused) {
+	if c.ensureState(define.ContainerStateCreated, define.ContainerStateRunning, define.ContainerStateStopped, define.ContainerStateStopping, define.ContainerStatePaused) {
 		oldState := c.state.State
 
 		if err := c.checkExitFile(); err != nil {
@@ -1316,10 +1316,10 @@ func (c *Container) stop(timeout uint) error {
 
 	// Since we're now subject to a race condition with other processes who
 	// may have altered the state (and other data), let's check if the
-	// state has changed.  If so, we should return immediately and log a
-	// warning.
+	// state has changed.  If so, we should return immediately and leave
+	// breadcrumbs for debugging if needed.
 	if c.state.State != define.ContainerStateStopping {
-		logrus.Warnf(
+		logrus.Debugf(
 			"Container %q state changed from %q to %q while waiting for it to be stopped: discontinuing stop procedure as another process interfered",
 			c.ID(), define.ContainerStateStopping, c.state.State,
 		)

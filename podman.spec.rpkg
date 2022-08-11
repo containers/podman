@@ -59,6 +59,7 @@ BuildRequires: go-rpm-macros
 %endif
 %if 0%{?rhel} <= 8
 BuildRequires: pkgconfig(devmapper)
+BuildRequires: python3
 %endif
 BuildRequires: gpgme-devel
 BuildRequires: libassuan-devel

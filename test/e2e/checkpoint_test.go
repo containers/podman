@@ -222,6 +222,26 @@ var _ = Describe("Podman checkpoint", func() {
 		Expect(result).Should(Exit(0))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
 		Expect(podmanTest.GetContainerStatus()).To(ContainSubstring("Up"))
+
+		// Restore a container which name is equal to a image name (#15055)
+		localRunString = getRunString([]string{"--name", "alpine", "quay.io/libpod/alpine:latest", "top"})
+		session = podmanTest.Podman(localRunString)
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		result = podmanTest.Podman([]string{"container", "checkpoint", "alpine"})
+		result.WaitWithDefaultTimeout()
+
+		Expect(result).Should(Exit(0))
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
+		Expect(podmanTest.GetContainerStatus()).To(ContainSubstring("Exited"))
+
+		result = podmanTest.Podman([]string{"container", "restore", "alpine"})
+		result.WaitWithDefaultTimeout()
+
+		Expect(result).Should(Exit(0))
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(2))
+		Expect(podmanTest.GetContainerStatus()).To(ContainSubstring("Up"))
 	})
 
 	It("podman pause a checkpointed container by id", func() {

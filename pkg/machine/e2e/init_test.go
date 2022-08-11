@@ -3,7 +3,7 @@ package e2e_test
 import (
 	"io/ioutil"
 	"os"
-	"runtime"
+	"strconv"
 	"time"
 
 	"github.com/containers/podman/v4/pkg/machine"
@@ -80,7 +80,7 @@ var _ = Describe("podman machine init", func() {
 	It("machine init with cpus, disk size, memory, timezone", func() {
 		name := randomString()
 		i := new(initMachine)
-		session, err := mb.setName(name).setCmd(i.withImagePath(mb.imagePath).withCPUs(2).withDiskSize(102).withMemory(4000).withTimezone("Pacific/Honolulu")).run()
+		session, err := mb.setName(name).setCmd(i.withImagePath(mb.imagePath).withCPUs(2).withDiskSize(102).withMemory(4096).withTimezone("Pacific/Honolulu")).run()
 		Expect(err).To(BeNil())
 		Expect(session).To(Exit(0))
 
@@ -102,18 +102,13 @@ var _ = Describe("podman machine init", func() {
 		Expect(diskSession.outputToString()).To(ContainSubstring("102 GiB"))
 
 		sshMemory := sshMachine{}
-		memorySession, err := mb.setName(name).setCmd(sshMemory.withSSHComand([]string{"cat", "/proc/meminfo", "|", "numfmt", "--field", "2", "--from-unit=Ki", "--to-unit=Mi", "|", "sed", "'s/ kB/M/g'", "|", "grep", "MemTotal"})).run()
+		memorySession, err := mb.setName(name).setCmd(sshMemory.withSSHComand([]string{"cat", "/proc/meminfo", "|", "grep", "-i", "'memtotal'", "|", "grep", "-o", "'[[:digit:]]*'"})).run()
 		Expect(err).To(BeNil())
 		Expect(memorySession).To(Exit(0))
-		switch runtime.GOOS {
-		// os's handle memory differently
-		case "linux":
-			Expect(memorySession.outputToString()).To(ContainSubstring("3822"))
-		case "darwin":
-			Expect(memorySession.outputToString()).To(ContainSubstring("3824"))
-		default:
-			//	add windows when testing on that platform
-		}
+		foundMemory, err := strconv.Atoi(memorySession.outputToString())
+		Expect(err).To(BeNil())
+		Expect(foundMemory).To(BeNumerically(">", 3800000))
+		Expect(foundMemory).To(BeNumerically("<", 4200000))
 
 		sshTimezone := sshMachine{}
 		timezoneSession, err := mb.setName(name).setCmd(sshTimezone.withSSHComand([]string{"date"})).run()

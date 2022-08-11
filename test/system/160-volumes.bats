@@ -473,4 +473,11 @@ EOF
     run_podman image rm --force localhost/volume_image
 }
 
+@test "podman volume rm --force bogus" {
+    run_podman 1 volume rm bogus
+    is "$output" "Error: no volume with name \"bogus\" found: no such volume" "Should print error"
+    run_podman volume rm --force bogus
+    is "$output" "" "Should print no output"
+}
+
 # vim: filetype=sh
