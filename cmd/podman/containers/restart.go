@@ -59,7 +59,7 @@ func restartFlags(cmd *cobra.Command) {
 	flags := cmd.Flags()
 
 	flags.BoolVarP(&restartOpts.All, "all", "a", false, "Restart all non-running containers")
-	flags.BoolVar(&restartOpts.Running, "running", false, "Restart only running containers when --all is used")
+	flags.BoolVar(&restartOpts.Running, "running", false, "Restart only running containers")
 
 	cidfileFlagName := "cidfile"
 	flags.StringArrayVar(&restartCidFiles, cidfileFlagName, nil, "Read the container ID from the file")
