@@ -58,38 +58,38 @@ func addRlimits(s *specgen.SpecGenerator, g *generate.Generator) {
 	// files and number of processes to the maximum they can be set to
 	// (without overriding a sysctl)
 	if !nofileSet {
-		max := define.RLimitDefaultValue
-		current := define.RLimitDefaultValue
+		max := rlimT(define.RLimitDefaultValue)
+		current := rlimT(define.RLimitDefaultValue)
 		if isRootless {
 			var rlimit unix.Rlimit
 			if err := unix.Getrlimit(unix.RLIMIT_NOFILE, &rlimit); err != nil {
 				logrus.Warnf("Failed to return RLIMIT_NOFILE ulimit %q", err)
 			}
-			if rlimit.Cur < current {
-				current = rlimit.Cur
+			if rlimT(rlimit.Cur) < current {
+				current = rlimT(rlimit.Cur)
 			}
-			if rlimit.Max < max {
-				max = rlimit.Max
+			if rlimT(rlimit.Max) < max {
+				max = rlimT(rlimit.Max)
 			}
 		}
-		g.AddProcessRlimits("RLIMIT_NOFILE", max, current)
+		g.AddProcessRlimits("RLIMIT_NOFILE", uint64(max), uint64(current))
 	}
 	if !nprocSet {
-		max := define.RLimitDefaultValue
-		current := define.RLimitDefaultValue
+		max := rlimT(define.RLimitDefaultValue)
+		current := rlimT(define.RLimitDefaultValue)
 		if isRootless {
 			var rlimit unix.Rlimit
 			if err := unix.Getrlimit(unix.RLIMIT_NPROC, &rlimit); err != nil {
 				logrus.Warnf("Failed to return RLIMIT_NPROC ulimit %q", err)
 			}
-			if rlimit.Cur < current {
-				current = rlimit.Cur
+			if rlimT(rlimit.Cur) < current {
+				current = rlimT(rlimit.Cur)
 			}
-			if rlimit.Max < max {
-				max = rlimit.Max
+			if rlimT(rlimit.Max) < max {
+				max = rlimT(rlimit.Max)
 			}
 		}
-		g.AddProcessRlimits("RLIMIT_NPROC", max, current)
+		g.AddProcessRlimits("RLIMIT_NPROC", uint64(max), uint64(current))
 	}
 }
 
