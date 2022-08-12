@@ -17,7 +17,7 @@ parts:
     source: https://github.com/containers/podman/archive/v0.11.1.1.tar.gz
     go-importpath: github.com/containers/podman
     build-packages:
-     # https://github.com/containers/podman/blob/main/install.md#build-and-run-dependencies
+     # https://podman.io/getting-started/installation#build-and-run-dependencies
      - btrfs-tools
      - git
      - golang-go
