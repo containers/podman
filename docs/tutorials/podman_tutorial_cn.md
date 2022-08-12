@@ -14,7 +14,7 @@ Podman是由libpod库提供一个实用的程序，可以被用于创建和管�
 
 ## 安装Podman
 
-安装或者编译 Podman ，请参照[安装说明](https://github.com/containers/podman/blob/main/install.md)。
+安装或者编译 Podman ，请参照[安装说明](https://podman.io/getting-started/installation)。
 
 ## 熟悉podman
 
