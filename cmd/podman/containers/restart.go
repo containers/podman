@@ -3,13 +3,14 @@ package containers
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
+	"strings"
 
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/podman/v4/cmd/podman/common"
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/containers/podman/v4/cmd/podman/utils"
 	"github.com/containers/podman/v4/cmd/podman/validate"
-	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/spf13/cobra"
 )
@@ -25,7 +26,7 @@ var (
 		Long:  restartDescription,
 		RunE:  restart,
 		Args: func(cmd *cobra.Command, args []string) error {
-			return validate.CheckAllLatestAndIDFile(cmd, args, false, "")
+			return validate.CheckAllLatestAndIDFile(cmd, args, false, "cidfile")
 		},
 		ValidArgsFunction: common.AutocompleteContainers,
 		Example: `podman restart ctrID
@@ -47,19 +48,34 @@ var (
 )
 
 var (
-	restartOptions = entities.RestartOptions{}
-	restartTimeout uint
+	restartOpts = entities.RestartOptions{
+		Filters: make(map[string][]string),
+	}
+	restartCidFiles = []string{}
+	restartTimeout  uint
 )
 
 func restartFlags(cmd *cobra.Command) {
 	flags := cmd.Flags()
 
-	flags.BoolVarP(&restartOptions.All, "all", "a", false, "Restart all non-running containers")
-	flags.BoolVar(&restartOptions.Running, "running", false, "Restart only running containers when --all is used")
+	flags.BoolVarP(&restartOpts.All, "all", "a", false, "Restart all non-running containers")
+	flags.BoolVar(&restartOpts.Running, "running", false, "Restart only running containers when --all is used")
+
+	cidfileFlagName := "cidfile"
+	flags.StringArrayVar(&restartCidFiles, cidfileFlagName, nil, "Read the container ID from the file")
+	_ = cmd.RegisterFlagCompletionFunc(cidfileFlagName, completion.AutocompleteDefault)
+
+	filterFlagName := "filter"
+	flags.StringSliceVarP(&filters, filterFlagName, "f", []string{}, "Filter output based on conditions given")
+	_ = cmd.RegisterFlagCompletionFunc(filterFlagName, common.AutocompletePsFilters)
 
 	timeFlagName := "time"
 	flags.UintVarP(&restartTimeout, timeFlagName, "t", containerConfig.Engine.StopTimeout, "Seconds to wait for stop before killing the container")
 	_ = cmd.RegisterFlagCompletionFunc(timeFlagName, completion.AutocompleteNone)
+
+	if registry.IsRemote() {
+		_ = flags.MarkHidden("cidfile")
+	}
 
 	flags.SetNormalizeFunc(utils.AliasFlags)
 }
@@ -69,39 +85,54 @@ func init() {
 		Command: restartCommand,
 	})
 	restartFlags(restartCommand)
-	validate.AddLatestFlag(restartCommand, &restartOptions.Latest)
+	validate.AddLatestFlag(restartCommand, &restartOpts.Latest)
 
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Command: containerRestartCommand,
 		Parent:  containerCmd,
 	})
 	restartFlags(containerRestartCommand)
-	validate.AddLatestFlag(containerRestartCommand, &restartOptions.Latest)
+	validate.AddLatestFlag(containerRestartCommand, &restartOpts.Latest)
 }
 
 func restart(cmd *cobra.Command, args []string) error {
 	var (
 		errs utils.OutputErrors
 	)
-	if len(args) < 1 && !restartOptions.Latest && !restartOptions.All {
-		return fmt.Errorf("you must provide at least one container name or ID: %w", define.ErrInvalidArg)
-	}
-	if len(args) > 0 && restartOptions.Latest {
-		return fmt.Errorf("--latest and containers cannot be used together: %w", define.ErrInvalidArg)
-	}
 
 	if cmd.Flag("time").Changed {
-		restartOptions.Timeout = &restartTimeout
+		restartOpts.Timeout = &restartTimeout
 	}
-	responses, err := registry.ContainerEngine().ContainerRestart(context.Background(), args, restartOptions)
+
+	for _, cidFile := range restartCidFiles {
+		content, err := ioutil.ReadFile(cidFile)
+		if err != nil {
+			return fmt.Errorf("error reading CIDFile: %w", err)
+		}
+		id := strings.Split(string(content), "\n")[0]
+		args = append(args, id)
+	}
+
+	for _, f := range filters {
+		split := strings.SplitN(f, "=", 2)
+		if len(split) < 2 {
+			return fmt.Errorf("invalid filter %q", f)
+		}
+		restartOpts.Filters[split[0]] = append(restartOpts.Filters[split[0]], split[1])
+	}
+
+	responses, err := registry.ContainerEngine().ContainerRestart(context.Background(), args, restartOpts)
 	if err != nil {
 		return err
 	}
 	for _, r := range responses {
-		if r.Err == nil {
-			fmt.Println(r.Id)
-		} else {
+		switch {
+		case r.Err != nil:
 			errs = append(errs, r.Err)
+		case r.RawInput != "":
+			fmt.Println(r.RawInput)
+		default:
+			fmt.Println(r.Id)
 		}
 	}
 	return errs.PrintErrors()

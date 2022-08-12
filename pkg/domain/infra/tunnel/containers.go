@@ -183,17 +183,22 @@ func (ic *ContainerEngine) ContainerRestart(ctx context.Context, namesOrIds []st
 	if to := opts.Timeout; to != nil {
 		options.WithTimeout(int(*to))
 	}
-	ctrs, err := getContainersByContext(ic.ClientCtx, opts.All, false, namesOrIds)
+	ctrs, rawInputs, err := getContainersAndInputByContext(ic.ClientCtx, opts.All, false, namesOrIds, opts.Filters)
 	if err != nil {
 		return nil, err
+	}
+	idToRawInput := map[string]string{}
+	for i := range ctrs {
+		idToRawInput[ctrs[i].ID] = rawInputs[i]
 	}
 	for _, c := range ctrs {
 		if opts.Running && c.State != define.ContainerStateRunning.String() {
 			continue
 		}
 		reports = append(reports, &entities.RestartReport{
-			Id:  c.ID,
-			Err: containers.Restart(ic.ClientCtx, c.ID, options),
+			Id:       c.ID,
+			Err:      containers.Restart(ic.ClientCtx, c.ID, options),
+			RawInput: idToRawInput[c.ID],
 		})
 	}
 	return reports, nil

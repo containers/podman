@@ -309,31 +309,42 @@ func (ic *ContainerEngine) ContainerKill(ctx context.Context, namesOrIds []strin
 
 func (ic *ContainerEngine) ContainerRestart(ctx context.Context, namesOrIds []string, options entities.RestartOptions) ([]*entities.RestartReport, error) {
 	var (
-		ctrs []*libpod.Container
-		err  error
+		ctrs      []*libpod.Container
+		err       error
+		rawInputs = []string{}
 	)
 
 	if options.Running {
 		ctrs, err = ic.Libpod.GetRunningContainers()
+		for _, candidate := range ctrs {
+			rawInputs = append(rawInputs, candidate.ID())
+		}
+
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		ctrs, err = getContainersByContext(options.All, options.Latest, namesOrIds, ic.Libpod)
+		ctrs, rawInputs, err = getContainersAndInputByContext(options.All, options.Latest, namesOrIds, options.Filters, ic.Libpod)
 		if err != nil {
 			return nil, err
 		}
 	}
-
+	idToRawInput := map[string]string{}
+	if len(rawInputs) == len(ctrs) {
+		for i := range ctrs {
+			idToRawInput[ctrs[i].ID()] = rawInputs[i]
+		}
+	}
 	reports := make([]*entities.RestartReport, 0, len(ctrs))
-	for _, con := range ctrs {
-		timeout := con.StopTimeout()
+	for _, c := range ctrs {
+		timeout := c.StopTimeout()
 		if options.Timeout != nil {
 			timeout = *options.Timeout
 		}
 		reports = append(reports, &entities.RestartReport{
-			Id:  con.ID(),
-			Err: con.RestartWithTimeout(ctx, timeout),
+			Id:       c.ID(),
+			Err:      c.RestartWithTimeout(ctx, timeout),
+			RawInput: idToRawInput[c.ID()],
 		})
 	}
 	return reports, nil

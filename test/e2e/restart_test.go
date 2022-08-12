@@ -1,6 +1,8 @@
 package integration
 
 import (
+	"fmt"
+	"io/ioutil"
 	"os"
 	"time"
 
@@ -33,13 +35,13 @@ var _ = Describe("Podman restart", func() {
 
 	})
 
-	It("Podman restart bogus container", func() {
+	It("podman restart bogus container", func() {
 		session := podmanTest.Podman([]string{"start", "123"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(125))
 	})
 
-	It("Podman restart stopped container by name", func() {
+	It("podman restart stopped container by name", func() {
 		_, exitCode, _ := podmanTest.RunLsContainer("test1")
 		Expect(exitCode).To(Equal(0))
 		startTime := podmanTest.Podman([]string{"inspect", "--format='{{.State.StartedAt}}'", "test1"})
@@ -53,7 +55,7 @@ var _ = Describe("Podman restart", func() {
 		Expect(restartTime.OutputToString()).To(Not(Equal(startTime.OutputToString())))
 	})
 
-	It("Podman restart stopped container by ID", func() {
+	It("podman restart stopped container by ID", func() {
 		session := podmanTest.Podman([]string{"create", ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
@@ -73,7 +75,7 @@ var _ = Describe("Podman restart", func() {
 		Expect(restartTime.OutputToString()).To(Not(Equal(startTime.OutputToString())))
 	})
 
-	It("Podman restart running container", func() {
+	It("podman restart running container", func() {
 		_ = podmanTest.RunTopContainer("test1")
 		ok := WaitForContainer(podmanTest)
 		Expect(ok).To(BeTrue())
@@ -88,7 +90,7 @@ var _ = Describe("Podman restart", func() {
 		Expect(restartTime.OutputToString()).To(Not(Equal(startTime.OutputToString())))
 	})
 
-	It("Podman container restart running container", func() {
+	It("podman container restart running container", func() {
 		_ = podmanTest.RunTopContainer("test1")
 		ok := WaitForContainer(podmanTest)
 		Expect(ok).To(BeTrue())
@@ -103,7 +105,7 @@ var _ = Describe("Podman restart", func() {
 		Expect(restartTime.OutputToString()).To(Not(Equal(startTime.OutputToString())))
 	})
 
-	It("Podman restart multiple containers", func() {
+	It("podman restart multiple containers", func() {
 		_, exitCode, _ := podmanTest.RunLsContainer("test1")
 		Expect(exitCode).To(Equal(0))
 
@@ -121,7 +123,7 @@ var _ = Describe("Podman restart", func() {
 		Expect(restartTime.OutputToStringArray()[1]).To(Not(Equal(startTime.OutputToStringArray()[1])))
 	})
 
-	It("Podman restart the latest container", func() {
+	It("podman restart the latest container", func() {
 		_, exitCode, _ := podmanTest.RunLsContainer("test1")
 		Expect(exitCode).To(Equal(0))
 
@@ -144,7 +146,7 @@ var _ = Describe("Podman restart", func() {
 		Expect(restartTime.OutputToStringArray()[1]).To(Not(Equal(startTime.OutputToStringArray()[1])))
 	})
 
-	It("Podman restart non-stop container with short timeout", func() {
+	It("podman restart non-stop container with short timeout", func() {
 		session := podmanTest.Podman([]string{"run", "-d", "--name", "test1", "--env", "STOPSIGNAL=SIGKILL", ALPINE, "sleep", "999"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
@@ -157,7 +159,7 @@ var _ = Describe("Podman restart", func() {
 		Expect(timeSince).To(BeNumerically(">", 2*time.Second))
 	})
 
-	It("Podman restart --all", func() {
+	It("podman restart --all", func() {
 		_, exitCode, _ := podmanTest.RunLsContainer("test1")
 		Expect(exitCode).To(Equal(0))
 
@@ -177,7 +179,7 @@ var _ = Describe("Podman restart", func() {
 		Expect(restartTime.OutputToStringArray()[1]).To(Not(Equal(startTime.OutputToStringArray()[1])))
 	})
 
-	It("Podman restart --all --running", func() {
+	It("podman restart --all --running", func() {
 		_, exitCode, _ := podmanTest.RunLsContainer("test1")
 		Expect(exitCode).To(Equal(0))
 
@@ -197,7 +199,7 @@ var _ = Describe("Podman restart", func() {
 		Expect(restartTime.OutputToStringArray()[1]).To(Not(Equal(startTime.OutputToStringArray()[1])))
 	})
 
-	It("Podman restart a container in a pod and hosts should not duplicated", func() {
+	It("podman restart a container in a pod and hosts should not duplicated", func() {
 		// Fixes: https://github.com/containers/podman/issues/8921
 
 		_, ec, _ := podmanTest.CreatePod(map[string][]string{"--name": {"foobar99"}})
@@ -226,7 +228,7 @@ var _ = Describe("Podman restart", func() {
 		Expect(beforeRestart.OutputToString()).To(Equal(afterRestart.OutputToString()))
 	})
 
-	It("podman restart --all", func() {
+	It("podman restart all stoped containers with --all", func() {
 		session := podmanTest.RunTopContainer("")
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
@@ -246,5 +248,114 @@ var _ = Describe("Podman restart", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(2))
+	})
+
+	It("podman restart --cidfile", func() {
+		tmpDir, err := ioutil.TempDir("", "")
+		Expect(err).To(BeNil())
+		tmpFile := tmpDir + "cid"
+
+		defer os.RemoveAll(tmpDir)
+
+		session := podmanTest.Podman([]string{"create", "--cidfile", tmpFile, ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		cid := session.OutputToStringArray()[0]
+
+		session = podmanTest.Podman([]string{"start", cid})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		result := podmanTest.Podman([]string{"restart", "--cidfile", tmpFile})
+		result.WaitWithDefaultTimeout()
+		Expect(result).Should(Exit(0))
+		output := result.OutputToString()
+		Expect(output).To(ContainSubstring(cid))
+	})
+
+	It("podman restart multiple --cidfile", func() {
+		tmpDir, err := ioutil.TempDir("", "")
+		Expect(err).To(BeNil())
+		tmpFile1 := tmpDir + "cid-1"
+		tmpFile2 := tmpDir + "cid-2"
+
+		defer os.RemoveAll(tmpDir)
+
+		session := podmanTest.Podman([]string{"run", "--cidfile", tmpFile1, "-d", ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		cid1 := session.OutputToStringArray()[0]
+		Expect(podmanTest.NumberOfContainers()).To(Equal(1))
+
+		session = podmanTest.Podman([]string{"run", "--cidfile", tmpFile2, "-d", ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		cid2 := session.OutputToStringArray()[0]
+		Expect(podmanTest.NumberOfContainers()).To(Equal(2))
+
+		result := podmanTest.Podman([]string{"restart", "--cidfile", tmpFile1, "--cidfile", tmpFile2})
+		result.WaitWithDefaultTimeout()
+		Expect(result).Should(Exit(0))
+		output := result.OutputToString()
+		Expect(output).To(ContainSubstring(cid1))
+		Expect(output).To(ContainSubstring(cid2))
+		Expect(podmanTest.NumberOfContainers()).To(Equal(2))
+	})
+
+	It("podman restart invalid --latest and --cidfile and --all", func() {
+		SkipIfRemote("--latest flag n/a")
+		result := podmanTest.Podman([]string{"restart", "--cidfile", "foobar", "--latest"})
+		result.WaitWithDefaultTimeout()
+		Expect(result).Should(Exit(125))
+		Expect(result.ErrorToString()).To(ContainSubstring("cannot be used together"))
+		result = podmanTest.Podman([]string{"restart", "--cidfile", "foobar", "--all"})
+		result.WaitWithDefaultTimeout()
+		Expect(result).Should(Exit(125))
+		Expect(result.ErrorToString()).To(ContainSubstring("cannot be used together"))
+		result = podmanTest.Podman([]string{"restart", "--cidfile", "foobar", "--all", "--latest"})
+		result.WaitWithDefaultTimeout()
+		Expect(result).Should(Exit(125))
+		Expect(result.ErrorToString()).To(ContainSubstring("cannot be used together"))
+		result = podmanTest.Podman([]string{"restart", "--latest", "--all"})
+		result.WaitWithDefaultTimeout()
+		Expect(result).Should(Exit(125))
+		Expect(result.ErrorToString()).To(ContainSubstring("cannot be used together"))
+	})
+
+	It("podman pause --filter", func() {
+		session1 := podmanTest.RunTopContainer("")
+		session1.WaitWithDefaultTimeout()
+		Expect(session1).Should(Exit(0))
+		cid1 := session1.OutputToString()
+
+		session1 = podmanTest.RunTopContainer("")
+		session1.WaitWithDefaultTimeout()
+		Expect(session1).Should(Exit(0))
+		cid2 := session1.OutputToString()
+
+		session1 = podmanTest.RunTopContainer("")
+		session1.WaitWithDefaultTimeout()
+		Expect(session1).Should(Exit(0))
+		cid3 := session1.OutputToString()
+		shortCid3 := cid3[0:5]
+
+		session1 = podmanTest.Podman([]string{"restart", cid1, "-f", "status=test"})
+		session1.WaitWithDefaultTimeout()
+		Expect(session1).Should(Exit(125))
+
+		session1 = podmanTest.Podman([]string{"restart", "-a", "--filter", fmt.Sprintf("id=%swrongid", shortCid3)})
+		session1.WaitWithDefaultTimeout()
+		Expect(session1).Should(Exit(0))
+		Expect(session1.OutputToString()).To(HaveLen(0))
+
+		session1 = podmanTest.Podman([]string{"restart", "-a", "--filter", fmt.Sprintf("id=%s", shortCid3)})
+		session1.WaitWithDefaultTimeout()
+		Expect(session1).Should(Exit(0))
+		Expect(session1.OutputToString()).To(BeEquivalentTo(cid3))
+
+		session1 = podmanTest.Podman([]string{"restart", "-f", fmt.Sprintf("id=%s", cid2)})
+		session1.WaitWithDefaultTimeout()
+		Expect(session1).Should(Exit(0))
+		Expect(session1.OutputToString()).To(BeEquivalentTo(cid2))
 	})
 })

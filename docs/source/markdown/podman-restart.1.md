@@ -14,14 +14,46 @@ Containers will be stopped if they are running and then restarted. Stopped
 containers will not be stopped and will only be started.
 
 ## OPTIONS
+
 #### **--all**, **-a**
+
 Restart all containers regardless of their current state.
 
+#### **--cidfile**
+
+Read container ID from the specified file and restart the container.  Can be specified multiple times.
+
+#### **--filter**, **-f**=*filter*
+
+Filter what containers restart.
+Multiple filters can be given with multiple uses of the --filter flag.
+Filters with the same key work inclusive with the only exception being
+`label` which is exclusive. Filters with different keys always work exclusive.
+
+Valid filters are listed below:
+
+| **Filter**      | **Description**                                                                  |
+| --------------- | -------------------------------------------------------------------------------- |
+| id              | [ID] Container's ID (accepts regex)                                              |
+| name            | [Name] Container's name (accepts regex)                                          |
+| label           | [Key] or [Key=Value] Label assigned to a container                               |
+| exited          | [Int] Container's exit code                                                      |
+| status          | [Status] Container's status: 'created', 'exited', 'paused', 'running', 'unknown' |
+| ancestor        | [ImageName] Image or descendant used to create container                         |
+| before          | [ID] or [Name] Containers created before this container                          |
+| since           | [ID] or [Name] Containers created since this container                           |
+| volume          | [VolumeName] or [MountpointDestination] Volume mounted in container              |
+| health          | [Status] healthy or unhealthy                                                    |
+| pod             | [Pod] name or full or partial ID of pod                                          |
+| network         | [Network] name or full ID of network                                             |
+
 #### **--latest**, **-l**
+
 Instead of providing the container name or ID, use the last created container. If you use methods other than Podman
 to run containers such as CRI-O, the last started container could be from either of those methods. (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
 
 #### **--running**
+
 Restart all containers that are already in the *running* state.
 
 #### **--time**, **-t**=*seconds*
@@ -57,6 +89,12 @@ $ podman restart --running
 Restart all containers
 ```
 $ podman restart --all
+```
+
+Restart container using ID specified in a given files.
+```
+$ podman restart --cidfile /home/user/cidfile-1
+$ podman restart --cidfile /home/user/cidfile-1 --cidfile ./cidfile-2
 ```
 
 ## SEE ALSO
