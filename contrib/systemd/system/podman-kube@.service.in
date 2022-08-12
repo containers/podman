@@ -7,7 +7,6 @@ RequiresMountsFor=%t/containers
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
-Restart=never
 TimeoutStopSec=70
 ExecStart=@@PODMAN@@ play kube --replace --service-container=true %I
 ExecStop=@@PODMAN@@ play kube --down %I
