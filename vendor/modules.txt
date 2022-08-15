@@ -502,7 +502,7 @@ github.com/letsencrypt/boulder/sa/proto
 github.com/manifoldco/promptui
 github.com/manifoldco/promptui/list
 github.com/manifoldco/promptui/screenbuf
-# github.com/mattn/go-isatty v0.0.14
+# github.com/mattn/go-isatty v0.0.16
 ## explicit
 github.com/mattn/go-isatty
 # github.com/mattn/go-runewidth v0.0.13
@@ -788,7 +788,7 @@ golang.org/x/net/trace
 ## explicit
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
-# golang.org/x/sys v0.0.0-20220715151400-c0bba94af5f8
+# golang.org/x/sys v0.0.0-20220811171246-fbc7d0a398ab
 ## explicit
 golang.org/x/sys/cpu
 golang.org/x/sys/execabs
