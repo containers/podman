@@ -68,6 +68,9 @@ def process(infile):
 
 # Given a file path of the form podman-foo-bar.1.md.in, return "foo bar"
 def podman_subcommand(string: str) -> str:
+    # Special case: 'podman-pod-start' becomes just 'start'
+    if string.startswith("podman-pod-"):
+        string = string[len("podman-pod-"):]
     if string.startswith("podman-"):
         string = string[len("podman-"):]
     if string.endswith(".1.md.in"):
@@ -89,8 +92,8 @@ def replace_type(line: str, type: str) -> str:
         # conceivably be present in both sides. And we check for 'pod',
         # not 'container', because it's possible to have something like
         # <<container in pod|container>>.
-        if re.match('pod([^m]|$)', lhs, re.IGNORECASE):
-            if re.match('pod([^m]|$)', rhs, re.IGNORECASE):
+        if re.match('.*pod([^m]|$)', lhs, re.IGNORECASE):
+            if re.match('.*pod([^m]|$)', rhs, re.IGNORECASE):
                 raise Exception("'%s' matches 'pod' in both left and right sides" % matchobj[0])
             # Only left-hand side has "pod"
             if type == 'pod':
@@ -98,14 +101,14 @@ def replace_type(line: str, type: str) -> str:
             else:
                 return rhs
         else:
-            if not re.match('pod([^m]|$)', rhs, re.IGNORECASE):
+            if not re.match('.*pod([^m]|$)', rhs, re.IGNORECASE):
                 raise Exception("'%s' does not match 'pod' in either side" % matchobj[0])
             if type == 'pod':
                 return rhs
             else:
                 return lhs
 
-    return re.sub('<<[^\|>]+\|[^\|>]+>>', replwith, line)
+    return re.sub('<<[^\|>]*\|[^\|>]*>>', replwith, line)
 
 if __name__ == "__main__":
     main()

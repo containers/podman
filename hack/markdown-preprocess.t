@@ -37,6 +37,24 @@ class TestPodReplacer(unittest.TestCase):
         """we ignore 'podman'"""
         self.assertEqual(mp.replace_type('<<podman container|pod in podman>>', 'container'), 'podman container')
 
+    def test_not_at_beginning(self):
+        """oops - test for 'pod' other than at beginning of string"""
+        s = '<<container|container or pod>>'
+        self.assertEqual(mp.replace_type(s, 'container'), 'container')
+        self.assertEqual(mp.replace_type(s, 'pod'), 'container or pod')
+        s = '<<container or pod|container>>'
+        self.assertEqual(mp.replace_type(s, 'container'), 'container')
+        self.assertEqual(mp.replace_type(s, 'pod'), 'container or pod')
+
+    def test_blank(self):
+        """test that either side of '|' can be empty"""
+        s = 'abc container<<| or pod>> def'
+        self.assertEqual(mp.replace_type(s, 'container'), 'abc container def')
+        self.assertEqual(mp.replace_type(s, 'pod'), 'abc container or pod def')
+        s = 'abc container<< or pod|>> def'
+        self.assertEqual(mp.replace_type(s, 'container'), 'abc container def')
+        self.assertEqual(mp.replace_type(s, 'pod'), 'abc container or pod def')
+
     def test_exception_both(self):
         """test that 'pod' on both sides raises exception"""
         with self.assertRaisesRegex(Exception, "in both left and right sides"):
@@ -52,6 +70,7 @@ class TestPodmanSubcommand(unittest.TestCase):
         """podman subcommand basic test"""
         self.assertEqual(mp.podman_subcommand("podman-foo.1.md.in"), "foo")
         self.assertEqual(mp.podman_subcommand("podman-foo-bar.1.md.in"), "foo bar")
+        self.assertEqual(mp.podman_subcommand("podman-pod-rm.1.md.in"), "rm")
 
 
 if __name__ == '__main__':
