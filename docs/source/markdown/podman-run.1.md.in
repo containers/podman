@@ -85,10 +85,7 @@ and specified with a _tag_.
 ## OPTIONS
 @@option add-host
 
-#### **--annotation**=*key=value*
-
-Add an annotation to the container.
-This option can be set multiple times.
+@@option annotation.container
 
 @@option arch
 
