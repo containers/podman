@@ -12,6 +12,7 @@ coverprofile
 /docs/*.[158].gz
 /docs/build/
 /docs/remote
+**.DS_Store
 .gopathok
 .idea*
 .nfs*
