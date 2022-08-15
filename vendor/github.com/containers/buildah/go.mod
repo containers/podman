@@ -5,7 +5,7 @@ go 1.12
 require (
 	github.com/blang/semver v3.5.0+incompatible // indirect
 	github.com/containernetworking/cni v0.7.1
-	github.com/containers/image/v5 v5.0.0
+	github.com/containers/image/v5 v5.0.1-0.20200205124631-82291c45f2b0
 	github.com/containers/storage v1.14.0
 	github.com/cyphar/filepath-securejoin v0.2.2
 	github.com/docker/distribution v2.7.1+incompatible
@@ -31,10 +31,11 @@ require (
 	github.com/opencontainers/selinux v1.3.0
 	github.com/openshift/api v3.9.1-0.20190810003144-27fb16909b15+incompatible
 	github.com/openshift/imagebuilder v1.1.1
-	github.com/pkg/errors v0.8.1
+	github.com/pkg/errors v0.9.1
+	github.com/prometheus/client_golang v1.11.1 // indirect
 	github.com/seccomp/containers-golang v0.0.0-20180629143253-cdfdaa7543f4
 	github.com/seccomp/libseccomp-golang v0.9.1
-	github.com/sirupsen/logrus v1.4.2
+	github.com/sirupsen/logrus v1.6.0
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.4.0
@@ -42,10 +43,20 @@ require (
 	github.com/vishvananda/netlink v1.0.0 // indirect
 	github.com/vishvananda/netns v0.0.0-20190625233234-7109fa855b0f // indirect
 	github.com/xeipuuv/gojsonschema v1.1.0 // indirect
-	golang.org/x/crypto v0.0.0-20190927123631-a832865fa7ad
-	golang.org/x/sys v0.0.0-20190916202348-b4ddaad3f8a3
+	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
+	golang.org/x/sys v0.0.0-20210603081109-ebe580a85c40
 	golang.org/x/time v0.0.0-20190921001708-c4c64cad1fd0 // indirect
 	google.golang.org/grpc v1.24.0 // indirect
 	k8s.io/api v0.0.0-20190813020757-36bff7324fb7 // indirect
 	k8s.io/client-go v0.0.0-20181219152756-3dd551c0f083 // indirect
+)
+
+replace (
+	github.com/containers/image/v5 => github.com/containers/image/v5 v5.0.1-0.20200205124631-82291c45f2b0
+	github.com/containers/storage => github.com/containers/storage v1.14.0
+	github.com/gogo/protobuf => github.com/gogo/protobuf v1.2.2-0.20190723190241-65acae22fc9d
+	github.com/golang/protobuf => github.com/golang/protobuf v1.3.2
+	github.com/pkg/errors => github.com/pkg/errors v0.8.1
+	github.com/sirupsen/logrus => github.com/sirupsen/logrus v1.4.2
+	gopkg.in/yaml.v2 => gopkg.in/yaml.v2 v2.2.4
 )

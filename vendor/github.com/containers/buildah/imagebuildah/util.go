@@ -14,6 +14,7 @@ import (
 
 	"github.com/containers/buildah"
 	"github.com/containers/storage/pkg/chrootarchive"
+	"github.com/containers/storage/pkg/ioutils"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -57,7 +58,7 @@ func downloadToDirectory(url, dir string) error {
 		}
 		dockerfile := filepath.Join(dir, "Dockerfile")
 		// Assume this is a Dockerfile
-		if err := ioutil.WriteFile(dockerfile, body, 0600); err != nil {
+		if err := ioutils.AtomicWriteFile(dockerfile, body, 0600); err != nil {
 			return errors.Wrapf(err, "Failed to write %q to %q", url, dockerfile)
 		}
 	}
@@ -75,7 +76,7 @@ func stdinToDirectory(dir string) error {
 	if err := chrootarchive.Untar(reader, dir, nil); err != nil {
 		dockerfile := filepath.Join(dir, "Dockerfile")
 		// Assume this is a Dockerfile
-		if err := ioutil.WriteFile(dockerfile, b, 0600); err != nil {
+		if err := ioutils.AtomicWriteFile(dockerfile, b, 0600); err != nil {
 			return errors.Wrapf(err, "Failed to write bytes to %q", dockerfile)
 		}
 	}

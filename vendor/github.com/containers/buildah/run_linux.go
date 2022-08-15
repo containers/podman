@@ -1755,9 +1755,6 @@ func setupCapAdd(g *generate.Generator, caps ...string) error {
 		if err := g.AddProcessCapabilityEffective(cap); err != nil {
 			return errors.Wrapf(err, "error adding %q to the effective capability set", cap)
 		}
-		if err := g.AddProcessCapabilityInheritable(cap); err != nil {
-			return errors.Wrapf(err, "error adding %q to the inheritable capability set", cap)
-		}
 		if err := g.AddProcessCapabilityPermitted(cap); err != nil {
 			return errors.Wrapf(err, "error adding %q to the permitted capability set", cap)
 		}
@@ -1775,9 +1772,6 @@ func setupCapDrop(g *generate.Generator, caps ...string) error {
 		}
 		if err := g.DropProcessCapabilityEffective(cap); err != nil {
 			return errors.Wrapf(err, "error removing %q from the effective capability set", cap)
-		}
-		if err := g.DropProcessCapabilityInheritable(cap); err != nil {
-			return errors.Wrapf(err, "error removing %q from the inheritable capability set", cap)
 		}
 		if err := g.DropProcessCapabilityPermitted(cap); err != nil {
 			return errors.Wrapf(err, "error removing %q from the permitted capability set", cap)

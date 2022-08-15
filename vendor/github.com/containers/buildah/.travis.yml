@@ -43,7 +43,7 @@ before_install:
     - sudo apt-get -qq install software-properties-common
     - sudo add-apt-repository -y ppa:duggan/bats
     - sudo apt-get update
-    - sudo apt-get -qq install bats btrfs-tools git libapparmor-dev libc-dev libdevmapper-dev libglib2.0-dev libgpgme11-dev libselinux1-dev linux-libc-dev realpath e2fslibs-dev libfuse-dev
+    - sudo apt-get -qq install apache2-utils bats btrfs-tools git libapparmor-dev libc-dev libdevmapper-dev libglib2.0-dev libgpgme11-dev libselinux1-dev linux-libc-dev realpath e2fslibs-dev libfuse-dev
     - sudo apt-get -qq update
     - sudo apt-get -y -o Dpkg::Options::="--force-confnew" install docker-ce
     - mkdir /home/travis/auth
@@ -62,7 +62,7 @@ install:
     - sudo cp /home/travis/auth/domain.crt /etc/docker/certs.d/localhost:5000/ca.crt
     - sudo cp /home/travis/auth/domain.crt /etc/docker/certs.d/localhost:5000/domain.crt
     # Create the credentials file, then start up the Docker registry
-    - docker run --entrypoint htpasswd registry:2 -Bbn testuser testpassword > /home/travis/auth/htpasswd
+    - htpasswd -Bbn testuser testpassword > /home/travis/auth/htpasswd
     - docker run -d -p 5000:5000 --name registry -v /home/travis/auth:/home/travis/auth:Z -e "REGISTRY_AUTH=htpasswd" -e "REGISTRY_AUTH_HTPASSWD_REALM=Registry Realm" -e REGISTRY_AUTH_HTPASSWD_PATH=/home/travis/auth/htpasswd -e REGISTRY_HTTP_TLS_CERTIFICATE=/home/travis/auth/domain.crt -e REGISTRY_HTTP_TLS_KEY=/home/travis/auth/domain.key registry:2
 script:
     # Fail fast
