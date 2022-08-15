@@ -398,9 +398,7 @@ dotest() {
 }
 
 _run_machine() {
-    # TODO: This is a manually-triggered task, if that ever changes need to
-    # add something like:
-    # _bail_if_test_can_be_skipped docs test/e2e test/system test/python
+    # N/B: Can't use _bail_if_test_can_be_skipped here b/c content isn't under test/
     make localmachine |& logformatter
 }
 
