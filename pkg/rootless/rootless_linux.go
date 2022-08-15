@@ -251,20 +251,22 @@ func becomeRootInUserNS(pausePid, fileToRead string, fileOutput *os.File) (_ boo
 		return false, 0, nil
 	}
 
-	if mounts, err := pmount.GetMounts(); err == nil {
-		for _, m := range mounts {
-			if m.Mountpoint == "/" {
-				isShared := false
-				for _, o := range strings.Split(m.Optional, ",") {
-					if strings.HasPrefix(o, "shared:") {
-						isShared = true
-						break
+	if _, inContainer := os.LookupEnv("container"); !inContainer {
+		if mounts, err := pmount.GetMounts(); err == nil {
+			for _, m := range mounts {
+				if m.Mountpoint == "/" {
+					isShared := false
+					for _, o := range strings.Split(m.Optional, ",") {
+						if strings.HasPrefix(o, "shared:") {
+							isShared = true
+							break
+						}
 					}
+					if !isShared {
+						logrus.Warningf("%q is not a shared mount, this could cause issues or missing mounts with rootless containers", m.Mountpoint)
+					}
+					break
 				}
-				if !isShared {
-					logrus.Warningf("%q is not a shared mount, this could cause issues or missing mounts with rootless containers", m.Mountpoint)
-				}
-				break
 			}
 		}
 	}
