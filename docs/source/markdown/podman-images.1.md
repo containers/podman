@@ -4,11 +4,11 @@
 podman\-images - List images in local storage
 
 ## SYNOPSIS
-**podman images** [*options*]
+**podman images** [*options*] [image]
 
-**podman image list** [*options*]
+**podman image list** [*options*] [image]
 
-**podman image ls** [*options*]
+**podman image ls** [*options*] [image]
 
 ## DESCRIPTION
 Displays locally stored images, their names, and their IDs.
@@ -107,15 +107,22 @@ Sort by *created*, *id*, *repository*, *size* or *tag* (default: **created**)
 ## EXAMPLE
 
 ```
-# podman images
-REPOSITORY                                   TAG      IMAGE ID       CREATED       SIZE
-docker.io/kubernetes/pause                   latest   e3d42bcaf643   3 years ago   251 kB
-<none>                                       <none>   ebb91b73692b   4 weeks ago   27.2 MB
-docker.io/library/ubuntu                     latest   4526339ae51c   6 weeks ago   126 MB
+$ podman images
+REPOSITORY                         TAG         IMAGE ID      CREATED       SIZE
+quay.io/podman/stable              latest      e0b7dabc3352  22 hours ago  331 MB
+docker.io/library/alpine           latest      9c6f07244728  5 days ago    5.83 MB
+registry.fedoraproject.org/fedora  latest      2ecb6df95994  3 weeks ago   169 MB
+quay.io/libpod/testimage           20220615    f26aa69bb3f3  2 months ago  8.4 MB
 ```
 
 ```
-# podman images --quiet
+$ podman images stable
+REPOSITORY             TAG         IMAGE ID      CREATED       SIZE
+quay.io/podman/stable  latest      e0b7dabc3352  22 hours ago  331 MB
+```
+
+```
+# podman image ls --quiet
 e3d42bcaf643
 ebb91b73692b
 4526339ae51c
@@ -129,7 +136,7 @@ docker.io/library/ubuntu                     latest   4526339ae51c   6 weeks ago
 ```
 
 ```
-# podman images --no-trunc
+# podman image list --no-trunc
 REPOSITORY                                   TAG      IMAGE ID                                                                  CREATED       SIZE
 docker.io/kubernetes/pause                   latest   sha256:e3d42bcaf643097dd1bb0385658ae8cbe100a80f773555c44690d22c25d16b27   3 years ago   251 kB
 <none>                                       <none>   sha256:ebb91b73692bd27890685846412ae338d13552165eacf7fcd5f139bfa9c2d6d9   4 weeks ago   27.2 MB
