@@ -71,7 +71,10 @@ var (
 		DisableFlagsInUseLine: true,
 	}
 
-	logLevel       = "warn"
+	defaultLogLevel = "warn"
+	logLevel        = defaultLogLevel
+	debug           bool
+
 	useSyslog      bool
 	requireCleanup = true
 )
@@ -310,6 +313,13 @@ func persistentPostRunE(cmd *cobra.Command, args []string) error {
 
 func loggingHook() {
 	var found bool
+	if debug {
+		if logLevel != defaultLogLevel {
+			fmt.Fprintf(os.Stderr, "Setting --log-level and --debug is not allowed\n")
+			os.Exit(1)
+		}
+		logLevel = "debug"
+	}
 	for _, l := range common.LogLevels {
 		if l == strings.ToLower(logLevel) {
 			found = true
@@ -464,6 +474,9 @@ func rootFlags(cmd *cobra.Command, opts *entities.PodmanConfig) {
 	logLevelFlagName := "log-level"
 	pFlags.StringVar(&logLevel, logLevelFlagName, logLevel, fmt.Sprintf("Log messages above specified level (%s)", strings.Join(common.LogLevels, ", ")))
 	_ = rootCmd.RegisterFlagCompletionFunc(logLevelFlagName, common.AutocompleteLogLevel)
+
+	pFlags.BoolVar(&debug, "debug", false, "Docker compatibility, force setting of log-level")
+	_ = pFlags.MarkHidden("debug")
 
 	// Only create these flags for ABI connections
 	if !registry.IsRemote() {
