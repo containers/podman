@@ -767,4 +767,14 @@ EOF
     is "$output" "" "Should print no output"
 }
 
+@test "podman network rm --dns-option " {
+    dns_opt=dns$(random_string)
+    run_podman run --rm --dns-opt=${dns_opt} $IMAGE cat /etc/resolv.conf
+    is "$output" ".*options ${dns_opt}" "--dns-opt was added"
+
+    dns_opt=dns$(random_string)
+    run_podman run --rm --dns-option=${dns_opt} $IMAGE cat /etc/resolv.conf
+    is "$output" ".*options ${dns_opt}" "--dns-option was added"
+}
+
 # vim: filetype=sh
