@@ -68,16 +68,7 @@ pulled, if the build uses one, to the provided value instead of using the
 architecture of the build host. (Examples: arm, arm64, 386, amd64, ppc64le,
 s390x)
 
-#### **--authfile**=*path*
-
-Path of the authentication file. Default is
-${XDG\_RUNTIME\_DIR}/containers/auth.json, which is set using `podman login`.
-If the authorization state is not found there, $HOME/.docker/config.json is
-checked, which is set using `docker login`.
-
-Note: You can also override the default path of the authentication file by
-setting the REGISTRY\_AUTH\_FILE environment variable.
-`export REGISTRY_AUTH_FILE=path`
+@@option authfile
 
 #### **--build-arg**=*arg=value*
 

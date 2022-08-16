@@ -33,13 +33,7 @@ the image.  If *imageName* refers to a manifest list or image index, the
 architecture information will be retrieved from it.  Otherwise, it will be
 retrieved from the image's configuration information.
 
-#### **--authfile**=*path*
-
-Path of the authentication file. Default is ${XDG\_RUNTIME\_DIR}/containers/auth.json, which is set using `podman login`.
-If the authorization state is not found there, $HOME/.docker/config.json is checked, which is set using `docker login`.
-
-Note: You can also override the default path of the authentication file by setting the REGISTRY\_AUTH\_FILE
-environment variable. `export REGISTRY_AUTH_FILE=path`
+@@option authfile
 
 #### **--cert-dir**=*path*
 

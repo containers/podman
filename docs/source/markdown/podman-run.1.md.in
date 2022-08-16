@@ -100,12 +100,7 @@ error. It can even pretend to be a TTY (this is what most commandline
 executables expect) and pass along signals. The **-a** option can be set for
 each of **stdin**, **stdout**, and **stderr**.
 
-#### **--authfile**=*[path]*
-
-Path to the authentication file. Default is *${XDG_RUNTIME_DIR}/containers/auth.json*.
-
-Note: You can also override the default path of the authentication file by setting the **REGISTRY_AUTH_FILE**
-environment variable.
+@@option authfile
 
 @@option blkio-weight
 

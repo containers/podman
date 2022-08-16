@@ -51,13 +51,7 @@ All tagged images in the repository will be pulled.
 
 @@option arch
 
-#### **--authfile**=*path*
-
-Path of the authentication file. If the authorization state is not found there, `$HOME/.docker/config.json` is checked, which is set using `docker login`.
-
-Default is `${XDG\_RUNTIME\_DIR}/containers/auth.json`, which is set using `podman login`.
-
-*IMPORTANT: The default path of the authentication file can be overwritten by setting the `REGISTRY\_AUTH\_FILE` environment variable. `export REGISTRY_AUTH_FILE=path`*
+@@option authfile
 
 #### **--cert-dir**=*path*
 
