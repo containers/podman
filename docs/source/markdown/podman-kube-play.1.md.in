@@ -118,10 +118,7 @@ and as a result environment variable `FOO` will be set to `bar` for container `c
 
 Build images even if they are found in the local storage. Use `--build=false` to completely disable builds. (This option is not available with the remote Podman client)
 
-#### **--cert-dir**=*path*
-
-Use certificates at *path* (\*.crt, \*.cert, \*.key) to connect to the registry. (Default: /etc/containers/certs.d)
-Please refer to containers-certs.d(5) for details. (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
+@@option cert-dir
 
 #### **--configmap**=*path*
 
