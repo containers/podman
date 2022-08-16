@@ -117,6 +117,10 @@ func (s *APIServer) registerManifestHandlers(r *mux.Router) error {
 	//   name: all
 	//   type: boolean
 	//   description: add all contents if given list
+	// - in: query
+	//   name: amend
+	//   type: boolean
+	//   description: modify an existing list if one with the desired name already exists
 	// - in: body
 	//   name: options
 	//   description: options for new manifest

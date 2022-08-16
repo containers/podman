@@ -2,6 +2,7 @@ package manifest
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/containers/common/pkg/auth"
@@ -20,6 +21,7 @@ type manifestAddOptsWrapper struct {
 	entities.ManifestAddOptions
 
 	TLSVerifyCLI   bool // CLI only
+	Insecure       bool // CLI only
 	CredentialsCLI string
 }
 
@@ -77,6 +79,8 @@ func init() {
 	flags.StringVar(&manifestAddOpts.OSVersion, osVersionFlagName, "", "override the OS `version` of the specified image")
 	_ = addCmd.RegisterFlagCompletionFunc(osVersionFlagName, completion.AutocompleteNone)
 
+	flags.BoolVar(&manifestAddOpts.Insecure, "insecure", false, "neither require HTTPS nor verify certificates when accessing the registry")
+	_ = flags.MarkHidden("insecure")
 	flags.BoolVar(&manifestAddOpts.TLSVerifyCLI, "tls-verify", true, "require HTTPS and verify certificates when accessing the registry")
 
 	variantFlagName := "variant"
@@ -89,7 +93,7 @@ func init() {
 }
 
 func add(cmd *cobra.Command, args []string) error {
-	if err := auth.CheckAuthFile(manifestPushOpts.Authfile); err != nil {
+	if err := auth.CheckAuthFile(manifestAddOpts.Authfile); err != nil {
 		return err
 	}
 
@@ -108,6 +112,12 @@ func add(cmd *cobra.Command, args []string) error {
 	// boolean CLI flags.
 	if cmd.Flags().Changed("tls-verify") {
 		manifestAddOpts.SkipTLSVerify = types.NewOptionalBool(!manifestAddOpts.TLSVerifyCLI)
+	}
+	if cmd.Flags().Changed("insecure") {
+		if manifestAddOpts.SkipTLSVerify != types.OptionalBoolUndefined {
+			return errors.New("--insecure may not be used with --tls-verify")
+		}
+		manifestAddOpts.SkipTLSVerify = types.NewOptionalBool(manifestAddOpts.Insecure)
 	}
 
 	listID, err := registry.ImageEngine().ManifestAdd(context.Background(), args[0], args[1:], manifestAddOpts.ManifestAddOptions)

@@ -36,6 +36,7 @@ func ManifestCreate(w http.ResponseWriter, r *http.Request) {
 		Name   string   `schema:"name"`
 		Images []string `schema:"images"`
 		All    bool     `schema:"all"`
+		Amend  bool     `schema:"amend"`
 	}{
 		// Add defaults here once needed.
 	}
@@ -70,7 +71,7 @@ func ManifestCreate(w http.ResponseWriter, r *http.Request) {
 
 	imageEngine := abi.ImageEngine{Libpod: runtime}
 
-	createOptions := entities.ManifestCreateOptions{All: query.All}
+	createOptions := entities.ManifestCreateOptions{All: query.All, Amend: query.Amend}
 	manID, err := imageEngine.ManifestCreate(r.Context(), query.Name, query.Images, createOptions)
 	if err != nil {
 		utils.InternalServerError(w, err)
