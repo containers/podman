@@ -209,7 +209,7 @@ function check_label() {
 	# https://github.com/opencontainers/selinux/pull/148/commits/a5dc47f74c56922d58ead05d1fdcc5f7f52d5f4e
 	#   from failed to set /proc/self/attr/keycreate on procfs
 	#   to   write /proc/self/attr/keycreate: invalid argument
-	runc) expect="OCI runtime error: .*: \(failed to set|write\) /proc/self/attr/keycreate" ;;
+	runc) expect="OCI runtime error: .*: \(failed to set\|write\) /proc/self/attr/keycreate.*" ;;
 	*)    skip "Unknown runtime '$runtime'";;
     esac
 
