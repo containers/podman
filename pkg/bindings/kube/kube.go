@@ -10,6 +10,7 @@ import (
 	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v4/pkg/auth"
 	"github.com/containers/podman/v4/pkg/bindings"
+	"github.com/containers/podman/v4/pkg/bindings/generate"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/sirupsen/logrus"
 )
@@ -93,4 +94,9 @@ func DownWithBody(ctx context.Context, body io.Reader) (*entities.KubePlayReport
 		return nil, err
 	}
 	return &report, nil
+}
+
+// Kube generate Kubernetes YAML (v1 specification)
+func Generate(ctx context.Context, nameOrIDs []string, options generate.KubeOptions) (*entities.GenerateKubeReport, error) {
+	return generate.Kube(ctx, nameOrIDs, &options)
 }

@@ -544,6 +544,10 @@ func AutocompleteForKube(cmd *cobra.Command, args []string, toComplete string) (
 	return objs, cobra.ShellCompDirectiveNoFileComp
 }
 
+func AutocompleteForGenerate(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	return AutocompleteForKube(cmd, args, toComplete)
+}
+
 // AutocompleteContainersAndPods - Autocomplete container names and pod names.
 func AutocompleteContainersAndPods(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	if !validCurrentCmdLine(cmd, args, toComplete) {

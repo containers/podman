@@ -7,7 +7,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func (s *APIServer) registerPlayHandlers(r *mux.Router) error {
+func (s *APIServer) registerKubeHandlers(r *mux.Router) error {
 	// swagger:operation POST /libpod/play/kube libpod PlayKubeLibpod
 	// ---
 	// tags:
@@ -78,5 +78,38 @@ func (s *APIServer) registerPlayHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/internalError"
 	r.HandleFunc(VersionedPath("/libpod/play/kube"), s.APIHandler(libpod.PlayKubeDown)).Methods(http.MethodDelete)
 	r.HandleFunc(VersionedPath("/libpod/kube/play"), s.APIHandler(libpod.KubePlayDown)).Methods(http.MethodDelete)
+	// swagger:operation GET /libpod/generate/kube libpod GenerateKubeLibpod
+	// ---
+	// tags:
+	//  - containers
+	//  - pods
+	// summary: Generate a Kubernetes YAML file.
+	// description: Generate Kubernetes YAML based on a pod or container.
+	// parameters:
+	//  - in: query
+	//    name: names
+	//    type: array
+	//    items:
+	//       type: string
+	//    required: true
+	//    description: Name or ID of the container or pod.
+	//  - in: query
+	//    name: service
+	//    type: boolean
+	//    default: false
+	//    description: Generate YAML for a Kubernetes service object.
+	// produces:
+	// - text/vnd.yaml
+	// - application/json
+	// responses:
+	//   200:
+	//     description: Kubernetes YAML file describing pod
+	//     schema:
+	//      type: string
+	//      format: binary
+	//   500:
+	//     $ref: "#/responses/internalError"
+	r.HandleFunc(VersionedPath("/libpod/generate/kube"), s.APIHandler(libpod.GenerateKube)).Methods(http.MethodGet)
+	r.HandleFunc(VersionedPath("/libpod/kube/generate"), s.APIHandler(libpod.KubeGenerate)).Methods(http.MethodGet)
 	return nil
 }

@@ -58,7 +58,7 @@ var _ = Describe("Podman generate kube", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
-		kube := podmanTest.Podman([]string{"generate", "kube", "top"})
+		kube := podmanTest.Podman([]string{"kube", "generate", "top"})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(Exit(0))
 
@@ -115,7 +115,7 @@ var _ = Describe("Podman generate kube", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
-		kube := podmanTest.Podman([]string{"generate", "kube", "test"})
+		kube := podmanTest.Podman([]string{"kube", "generate", "test"})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(Exit(0))
 
@@ -130,7 +130,7 @@ var _ = Describe("Podman generate kube", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
-		kube := podmanTest.Podman([]string{"generate", "kube", "-s", "test-ctr"})
+		kube := podmanTest.Podman([]string{"kube", "generate", "-s", "test-ctr"})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(Exit(0))
 
@@ -182,7 +182,7 @@ var _ = Describe("Podman generate kube", func() {
 		pod2.WaitWithDefaultTimeout()
 		Expect(pod2).Should(Exit(0))
 
-		kube := podmanTest.Podman([]string{"generate", "kube", "pod1", "pod2"})
+		kube := podmanTest.Podman([]string{"kube", "generate", "pod1", "pod2"})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(Exit(0))
 
@@ -203,7 +203,7 @@ var _ = Describe("Podman generate kube", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
-		kube := podmanTest.Podman([]string{"generate", "kube", "toppod"})
+		kube := podmanTest.Podman([]string{"kube", "generate", "toppod"})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(Exit(0))
 
@@ -398,7 +398,7 @@ var _ = Describe("Podman generate kube", func() {
 		ctr2Session.WaitWithDefaultTimeout()
 		Expect(ctr2Session).Should(Exit(0))
 
-		kube := podmanTest.Podman([]string{"generate", "kube", podName})
+		kube := podmanTest.Podman([]string{"kube", "generate", podName})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(Exit(0))
 
@@ -500,7 +500,7 @@ var _ = Describe("Podman generate kube", func() {
 		ctr1Session.WaitWithDefaultTimeout()
 		Expect(ctr1Session).Should(Exit(0))
 
-		kube := podmanTest.Podman([]string{"generate", "kube", podName})
+		kube := podmanTest.Podman([]string{"kube", "generate", podName})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(Exit(0))
 
@@ -562,7 +562,7 @@ var _ = Describe("Podman generate kube", func() {
 		ctr2Session.WaitWithDefaultTimeout()
 		Expect(ctr2Session).Should(Exit(0))
 
-		kube := podmanTest.Podman([]string{"generate", "kube", podName})
+		kube := podmanTest.Podman([]string{"kube", "generate", podName})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(Exit(0))
 
@@ -665,7 +665,7 @@ var _ = Describe("Podman generate kube", func() {
 		Expect(inspect.OutputToString()).To(ContainSubstring("100:200"))
 
 		outputFile := filepath.Join(podmanTest.RunRoot, "pod.yaml")
-		kube := podmanTest.Podman([]string{"generate", "kube", "-f", outputFile, podName})
+		kube := podmanTest.Podman([]string{"kube", "generate", "-f", outputFile, podName})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(Exit(0))
 
@@ -788,7 +788,7 @@ var _ = Describe("Podman generate kube", func() {
 		Expect(session).Should(Exit(0))
 
 		outputFile := filepath.Join(podmanTest.RunRoot, "pod.yaml")
-		kube := podmanTest.Podman([]string{"generate", "kube", podName, "-f", outputFile})
+		kube := podmanTest.Podman([]string{"kube", "generate", podName, "-f", outputFile})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(Exit(0))
 
@@ -857,7 +857,7 @@ var _ = Describe("Podman generate kube", func() {
 		pod2.WaitWithDefaultTimeout()
 		Expect(pod2).Should(Exit(0))
 
-		kube := podmanTest.Podman([]string{"generate", "kube", "top1", "top2"})
+		kube := podmanTest.Podman([]string{"kube", "generate", "top1", "top2"})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).To(ExitWithError())
 	})
@@ -911,7 +911,7 @@ var _ = Describe("Podman generate kube", func() {
 		top.WaitWithDefaultTimeout()
 		Expect(top).Should(Exit(0))
 
-		kube := podmanTest.Podman([]string{"generate", "kube", "pod1"})
+		kube := podmanTest.Podman([]string{"kube", "generate", "pod1"})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(Exit(0))
 
@@ -973,7 +973,7 @@ var _ = Describe("Podman generate kube", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
-		kube = podmanTest.Podman([]string{"generate", "kube", "test1"})
+		kube = podmanTest.Podman([]string{"kube", "generate", "test1"})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(Exit(0))
 
@@ -1026,7 +1026,7 @@ ENTRYPOINT ["sleep"]`
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
-		kube = podmanTest.Podman([]string{"generate", "kube", "testpod-2"})
+		kube = podmanTest.Podman([]string{"kube", "generate", "testpod-2"})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(Exit(0))
 

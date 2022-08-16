@@ -1,12 +1,12 @@
-% podman-generate-kube(1)
+-% podman-kube-generate(1)
 ## NAME
-podman-generate-kube - Generate Kubernetes YAML based on containers, pods or volumes
+podman-kube-generate - Generate Kubernetes YAML based on containers, pods or volumes
 
 ## SYNOPSIS
-**podman generate kube** [*options*] *container...* | *pod...* | *volume...*
+**podman kube generate** [*options*] *container...* | *pod...* | *volume...*
 
 ## DESCRIPTION
-**podman generate kube** will generate Kubernetes YAML (v1 specification) from Podman containers, pods or volumes. Regardless of whether
+**podman kube generate** will generate Kubernetes YAML (v1 specification) from Podman containers, pods or volumes. Regardless of whether
 the input is for containers or pods, Podman will always generate the specification as a Pod. The input may be in the form
 of one or more containers, pods or volumes names or IDs.
 
@@ -32,7 +32,7 @@ Note that the generated Kubernetes YAML file can be used to re-run the deploymen
 
 #### **--filename**, **-f**=*filename*
 
-Output to the given file, instead of STDOUT. If the file already exists, `generate kube` will refuse to replace it and return an error.
+Output to the given file, instead of STDOUT. If the file already exists, `kube generate` will refuse to replace it and return an error.
 
 #### **--service**, **-s**
 
@@ -43,7 +43,7 @@ random port is assigned by Podman in the specification.
 
 Create Kubernetes Pod YAML for a container called `some-mariadb`.
 ```
-$ sudo podman generate kube some-mariadb
+$ sudo podman kube generate some-mariadb
 # Save the output of this file and use kubectl create -f to import
 # it into Kubernetes.
 #
@@ -91,7 +91,7 @@ status: {}
 
 Create Kubernetes Pod YAML for a container with the directory `/home/user/my-data` on the host bind-mounted in the container to `/volume`.
 ```
-$ podman generate kube my-container-with-bind-mounted-data
+$ podman kube generate my-container-with-bind-mounted-data
 # Save the output of this file and use kubectl create -f to import
 # it into Kubernetes.
 #
@@ -130,7 +130,7 @@ status: {}
 
 Create Kubernetes Pod YAML for a container with the named volume `priceless-data` mounted in the container at `/volume`.
 ```
-$ podman generate kube my-container-using-priceless-data
+$ podman kube generate my-container-using-priceless-data
 # Save the output of this file and use kubectl create -f to import
 # it into Kubernetes.
 #
@@ -168,7 +168,7 @@ status: {}
 
 Create Kubernetes Pod YAML for a pod called `demoweb` and include a service.
 ```
-$ sudo podman generate kube -s demoweb
+$ sudo podman kube generate -s demoweb
 # Save the output of this file and use kubectl create -f to import
 # it into Kubernetes.
 #
@@ -213,7 +213,7 @@ status:
 ```
 
 ## SEE ALSO
-**[podman(1)](podman.1.md)**, **[podman-container(1)](podman-container.1.md)**, **[podman-pod(1)](podman-pod.1.md)**, **[podman-kube-play(1)](podman-kube-play.1.md)**
+**[podman(1)](podman.1.md)**, **[podman-container(1)](podman-container.1.md)**, **[podman-pod(1)](podman-pod.1.md)**, **[podman-kube-play(1)](podman-kube-play.1.md)**, **[podman-kube-down(1)](podman-kube-down.1.md)**
 
 ## HISTORY
 December 2018, Originally compiled by Brent Baude (bbaude at redhat dot com)

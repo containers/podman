@@ -46,6 +46,8 @@ type GenerateKubeOptions struct {
 	Service bool
 }
 
+type KubeGenerateOptions = GenerateKubeOptions
+
 // GenerateKubeReport
 //
 // FIXME: Podman4.0 should change io.Reader to io.ReaderCloser

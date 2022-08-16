@@ -121,3 +121,7 @@ func KubePlayDown(w http.ResponseWriter, r *http.Request) {
 	}
 	utils.WriteResponse(w, http.StatusOK, report)
 }
+
+func KubeGenerate(w http.ResponseWriter, r *http.Request) {
+	GenerateKube(w, r)
+}

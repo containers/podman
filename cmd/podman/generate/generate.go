@@ -1,4 +1,4 @@
-package pods
+package generate
 
 import (
 	"github.com/containers/podman/v4/cmd/podman/registry"
@@ -9,7 +9,7 @@ import (
 
 var (
 	// Command: podman _generate_
-	generateCmd = &cobra.Command{
+	GenerateCmd = &cobra.Command{
 		Use:   "generate",
 		Short: "Generate structured data based on containers, pods or volumes",
 		Long:  "Generate structured data (e.g., Kubernetes YAML or systemd units) based on containers, pods or volumes.",
@@ -20,6 +20,6 @@ var (
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
-		Command: generateCmd,
+		Command: GenerateCmd,
 	})
 }

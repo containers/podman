@@ -1,4 +1,4 @@
-package pods
+package kube
 
 import (
 	"github.com/containers/podman/v4/cmd/podman/registry"
@@ -14,7 +14,7 @@ var (
 		Long:  "Play structured data (e.g., Kubernetes YAML) based on containers, pods or volumes.",
 		RunE:  validate.SubCommandExists,
 	}
-
+	// Command: podman _play_
 	playKubeParentCmd = &cobra.Command{
 		Use:    "play",
 		Short:  "Play containers, pods or volumes from a structured file",
