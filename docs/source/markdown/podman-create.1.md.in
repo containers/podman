@@ -68,10 +68,7 @@ and specified with a _tag_.
 
 @@option add-host
 
-#### **--annotation**=*key=value*
-
-Add an annotation to the container. The format is key=value.
-The **--annotation** option can be set multiple times.
+@@option annotation.container
 
 @@option arch
 
