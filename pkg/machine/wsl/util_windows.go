@@ -280,18 +280,6 @@ func obtainShutdownPrivilege() error {
 	return nil
 }
 
-func getProcessState(pid int) (active bool, exitCode int) {
-	const da = syscall.STANDARD_RIGHTS_READ | syscall.PROCESS_QUERY_INFORMATION | syscall.SYNCHRONIZE
-	handle, err := syscall.OpenProcess(da, false, uint32(pid))
-	if err != nil {
-		return false, int(syscall.ERROR_PROC_NOT_FOUND)
-	}
-
-	var code uint32
-	syscall.GetExitCodeProcess(handle, &code)
-	return code == 259, int(code)
-}
-
 func addRunOnceRegistryEntry(command string) error {
 	k, _, err := registry.CreateKey(registry.CURRENT_USER, `Software\Microsoft\Windows\CurrentVersion\RunOnce`, registry.WRITE)
 	if err != nil {
