@@ -545,12 +545,12 @@ func (v *MachineVM) Start(name string, _ machine.StartOptions) error {
 		return err
 	}
 	defer fd.Close()
-	dnr, err := os.OpenFile("/dev/null", os.O_RDONLY, 0755)
+	dnr, err := os.OpenFile(os.DevNull, os.O_RDONLY, 0755)
 	if err != nil {
 		return err
 	}
 	defer dnr.Close()
-	dnw, err := os.OpenFile("/dev/null", os.O_WRONLY, 0755)
+	dnw, err := os.OpenFile(os.DevNull, os.O_WRONLY, 0755)
 	if err != nil {
 		return err
 	}
@@ -1216,11 +1216,11 @@ func (v *MachineVM) startHostNetworking() (string, apiForwardingState, error) {
 	}
 
 	attr := new(os.ProcAttr)
-	dnr, err := os.OpenFile("/dev/null", os.O_RDONLY, 0755)
+	dnr, err := os.OpenFile(os.DevNull, os.O_RDONLY, 0755)
 	if err != nil {
 		return "", noForwarding, err
 	}
-	dnw, err := os.OpenFile("/dev/null", os.O_WRONLY, 0755)
+	dnw, err := os.OpenFile(os.DevNull, os.O_WRONLY, 0755)
 	if err != nil {
 		return "", noForwarding, err
 	}
