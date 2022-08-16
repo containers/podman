@@ -3249,3 +3249,7 @@ func (c *Container) setupRootlessNetwork() error {
 	}
 	return nil
 }
+
+func openDirectory(path string) (fd int, err error) {
+	return unix.Open(path, unix.O_RDONLY|unix.O_PATH, 0)
+}

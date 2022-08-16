@@ -93,3 +93,7 @@ func getLocalhostHostEntry(c *Container) etchosts.HostEntries {
 func isRootlessCgroupSet(cgroup string) bool {
 	return false
 }
+
+func openDirectory(path string) (fd int, err error) {
+	return -1, errors.New("unsupported openDirectory")
+}

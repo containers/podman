@@ -1545,7 +1545,7 @@ func (c *Container) mountStorage() (_ string, deferredErr error) {
 
 	rootUID, rootGID := c.RootUID(), c.RootGID()
 
-	dirfd, err := unix.Open(mountPoint, unix.O_RDONLY|unix.O_PATH, 0)
+	dirfd, err := openDirectory(mountPoint)
 	if err != nil {
 		return "", fmt.Errorf("open mount point: %w", err)
 	}
@@ -1568,7 +1568,7 @@ func (c *Container) mountStorage() (_ string, deferredErr error) {
 		return "", fmt.Errorf("resolve /etc in the container: %w", err)
 	}
 
-	etcInTheContainerFd, err := unix.Open(etcInTheContainerPath, unix.O_RDONLY|unix.O_PATH, 0)
+	etcInTheContainerFd, err := openDirectory(etcInTheContainerPath)
 	if err != nil {
 		return "", fmt.Errorf("open /etc in the container: %w", err)
 	}
