@@ -17,12 +17,14 @@ import (
 	"strings"
 	"time"
 
+	//nolint:staticcheck // Ignore SA1019. Need to keep deprecated package for compatibility.
 	"github.com/golang/protobuf/proto"
+	"github.com/prometheus/common/model"
 
 	dto "github.com/prometheus/client_model/go"
 )
 
-const separatorByte byte = 255
+var separatorByteSlice = []byte{model.SeparatorByte} // For convenient use with xxhash.
 
 // A Metric models a single sample value with its meta data being exported to
 // Prometheus. Implementations of Metric in this package are Gauge, Counter,
@@ -56,7 +58,7 @@ type Metric interface {
 }
 
 // Opts bundles the options for creating most Metric types. Each metric
-// implementation XXX has its own XXXOpts type, but in most cases, it is just be
+// implementation XXX has its own XXXOpts type, but in most cases, it is just
 // an alias of this type (which might change when the requirement arises.)
 //
 // It is mandatory to set Name to a non-empty string. All other fields are
@@ -87,7 +89,7 @@ type Opts struct {
 	// better covered by target labels set by the scraping Prometheus
 	// server, or by one specific metric (e.g. a build_info or a
 	// machine_role metric). See also
-	// https://prometheus.io/docs/instrumenting/writing_exporters/#target-labels,-not-static-scraped-labels
+	// https://prometheus.io/docs/instrumenting/writing_exporters/#target-labels-not-static-scraped-labels
 	ConstLabels Labels
 }
 
