@@ -22,10 +22,22 @@ If any of the images which should be added to the new list or index are
 themselves lists or indexes, add all of their contents.  By default, only one
 image from such a list will be added to the newly-created list or index.
 
+#### **--amend**
+
+If a manifest list named *listnameorindexname* already exists, modify the
+preexisting list instead of exiting with an error.  The contents of
+*listnameorindexname* are not modified if no *imagename*s are given.
+
+#### **--tls-verify**
+
+Require HTTPS and verify certificates when talking to container registries. (defaults to true)
+
 ## EXAMPLES
 
 ```
 podman manifest create mylist:v1.11
+9cfd24048d5fc80903f088f1531a21bff01172abe66effa8941a4c2308dc745f
+podman manifest create --amend mylist:v1.11
 9cfd24048d5fc80903f088f1531a21bff01172abe66effa8941a4c2308dc745f
 ```
 

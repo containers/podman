@@ -4,7 +4,12 @@ import "github.com/containers/image/v5/types"
 
 // ManifestCreateOptions provides model for creating manifest
 type ManifestCreateOptions struct {
+	// True when adding lists to include all images
 	All bool `schema:"all"`
+	// Amend an extant list if there's already one with the desired name
+	Amend bool `schema:"amend"`
+	// Should TLS registry certificate be verified?
+	SkipTLSVerify types.OptionalBool `json:"-" schema:"-"`
 }
 
 // ManifestAddOptions provides model for adding digests to manifest list

@@ -8,7 +8,8 @@ type InspectOptions struct {
 //go:generate go run ../generator/generator.go CreateOptions
 // CreateOptions are optional options for creating manifests
 type CreateOptions struct {
-	All *bool
+	All   *bool
+	Amend *bool
 }
 
 //go:generate go run ../generator/generator.go ExistsOptions

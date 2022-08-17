@@ -1,6 +1,7 @@
 package manifest
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 
@@ -20,9 +21,9 @@ import (
 type manifestPushOptsWrapper struct {
 	entities.ImagePushOptions
 
-	TLSVerifyCLI          bool // CLI only
-	CredentialsCLI        string
-	SignPassphraseFileCLI string
+	TLSVerifyCLI, Insecure bool // CLI only
+	CredentialsCLI         string
+	SignPassphraseFileCLI  string
 }
 
 var (
@@ -82,6 +83,8 @@ func init() {
 	_ = pushCmd.RegisterFlagCompletionFunc(signPassphraseFileFlagName, completion.AutocompleteDefault)
 
 	flags.BoolVar(&manifestPushOpts.TLSVerifyCLI, "tls-verify", true, "require HTTPS and verify certificates when accessing the registry")
+	flags.BoolVar(&manifestPushOpts.Insecure, "insecure", false, "neither require HTTPS nor verify certificates when accessing the registry")
+	_ = flags.MarkHidden("insecure")
 	flags.BoolVarP(&manifestPushOpts.Quiet, "quiet", "q", false, "don't output progress information when pushing lists")
 	flags.SetNormalizeFunc(utils.AliasFlags)
 
@@ -129,6 +132,12 @@ func push(cmd *cobra.Command, args []string) error {
 	// boolean CLI flags.
 	if cmd.Flags().Changed("tls-verify") {
 		manifestPushOpts.SkipTLSVerify = types.NewOptionalBool(!manifestPushOpts.TLSVerifyCLI)
+	}
+	if cmd.Flags().Changed("insecure") {
+		if manifestPushOpts.SkipTLSVerify != types.OptionalBoolUndefined {
+			return errors.New("--insecure may not be used with --tls-verify")
+		}
+		manifestPushOpts.SkipTLSVerify = types.NewOptionalBool(manifestPushOpts.Insecure)
 	}
 	digest, err := registry.ImageEngine().ManifestPush(registry.Context(), args[0], args[1], manifestPushOpts.ImagePushOptions)
 	if err != nil {
