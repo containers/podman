@@ -79,9 +79,10 @@ var _ = Describe("Podman stats", func() {
 		session := podmanTest.RunTopContainer("")
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		session = podmanTest.Podman([]string{"stats", "--all", "--no-stream", "--format", "\"{{.ID}}\""})
+		session = podmanTest.Podman([]string{"stats", "--all", "--no-trunc", "--no-stream", "--format", "\"{{.ID}}\""})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
+		Expect(len(session.OutputToStringArray()[0])).Should(BeEquivalentTo(66))
 	})
 
 	It("podman stats with GO template", func() {
