@@ -71,13 +71,27 @@ func Exists(ctx context.Context, name string, options *ExistsOptions) (bool, err
 }
 
 // Inspect returns a manifest list for a given name.
-func Inspect(ctx context.Context, name string, _ *InspectOptions) (*manifest.Schema2List, error) {
+func Inspect(ctx context.Context, name string, options *InspectOptions) (*manifest.Schema2List, error) {
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err
 	}
+	if options == nil {
+		options = new(InspectOptions)
+	}
 
-	response, err := conn.DoRequest(ctx, nil, http.MethodGet, "/manifests/%s/json", nil, nil, name)
+	params, err := options.ToParams()
+	if err != nil {
+		return nil, err
+	}
+	// SkipTLSVerify is special.  We need to delete the param added by
+	// ToParams() and change the key and flip the bool
+	if options.SkipTLSVerify != nil {
+		params.Del("SkipTLSVerify")
+		params.Set("tlsVerify", strconv.FormatBool(!options.GetSkipTLSVerify()))
+	}
+
+	response, err := conn.DoRequest(ctx, nil, http.MethodGet, "/manifests/%s/json", params, nil, name)
 	if err != nil {
 		return nil, err
 	}

@@ -4,15 +4,18 @@
 podman\-manifest\-inspect - Display a manifest list or image index
 
 ## SYNOPSIS
-**podman manifest inspect** *listnameorindexname*
+**podman manifest inspect** [*options*] *listnameorindexname*
 
 ## DESCRIPTION
 
 Displays the manifest list or image index stored using the specified image name.
-
 ## RETURN VALUE
 
 A formatted JSON representation of the manifest list or image index.
+
+## OPTIONS
+
+@@option tls-verify
 
 ## EXAMPLES
 

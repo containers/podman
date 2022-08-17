@@ -12,6 +12,12 @@ type ManifestCreateOptions struct {
 	SkipTLSVerify types.OptionalBool `json:"-" schema:"-"`
 }
 
+// ManifestInspectOptions provides model for inspecting manifest
+type ManifestInspectOptions struct {
+	// Should TLS registry certificate be verified?
+	SkipTLSVerify types.OptionalBool `json:"-" schema:"-"`
+}
+
 // ManifestAddOptions provides model for adding digests to manifest list
 //
 // swagger:model

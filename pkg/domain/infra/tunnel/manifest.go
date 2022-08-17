@@ -33,8 +33,17 @@ func (ir *ImageEngine) ManifestExists(ctx context.Context, name string) (*entiti
 }
 
 // ManifestInspect returns contents of manifest list with given name
-func (ir *ImageEngine) ManifestInspect(_ context.Context, name string) ([]byte, error) {
-	list, err := manifests.Inspect(ir.ClientCtx, name, nil)
+func (ir *ImageEngine) ManifestInspect(ctx context.Context, name string, opts entities.ManifestInspectOptions) ([]byte, error) {
+	options := new(manifests.InspectOptions)
+	if s := opts.SkipTLSVerify; s != types.OptionalBoolUndefined {
+		if s == types.OptionalBoolTrue {
+			options.WithSkipTLSVerify(true)
+		} else {
+			options.WithSkipTLSVerify(false)
+		}
+	}
+
+	list, err := manifests.Inspect(ir.ClientCtx, name, options)
 	if err != nil {
 		return nil, fmt.Errorf("getting content of manifest list or image %s: %w", name, err)
 	}

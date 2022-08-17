@@ -4,6 +4,7 @@ package manifests
 //
 //go:generate go run ../generator/generator.go InspectOptions
 type InspectOptions struct {
+	SkipTLSVerify *bool
 }
 
 // CreateOptions are optional options for creating manifests

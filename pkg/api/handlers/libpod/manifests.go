@@ -139,10 +139,26 @@ func ManifestExists(w http.ResponseWriter, r *http.Request) {
 
 func ManifestInspect(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
+	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
 	name := utils.GetName(r)
+	// Wrapper to support 3.x with 4.x libpod
+	query := struct {
+		TLSVerify bool `schema:"tlsVerify"`
+	}{}
+
+	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
+		utils.Error(w, http.StatusBadRequest,
+			fmt.Errorf("failed to parse parameters for %s: %w", r.URL.String(), err))
+		return
+	}
 
 	imageEngine := abi.ImageEngine{Libpod: runtime}
-	rawManifest, err := imageEngine.ManifestInspect(r.Context(), name)
+	opts := entities.ManifestInspectOptions{}
+	if _, found := r.URL.Query()["tlsVerify"]; found {
+		opts.SkipTLSVerify = types.NewOptionalBool(!query.TLSVerify)
+	}
+
+	rawManifest, err := imageEngine.ManifestInspect(r.Context(), name, opts)
 	if err != nil {
 		utils.Error(w, http.StatusNotFound, err)
 		return

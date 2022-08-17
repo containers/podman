@@ -175,6 +175,11 @@ func (s *APIServer) registerManifestHandlers(r *mux.Router) error {
 	//    type: string
 	//    required: true
 	//    description: the name or ID of the manifest list
+	//  - in: query
+	//    name: tlsVerify
+	//    type: boolean
+	//    default: true
+	//    description: Require HTTPS and verify signatures when contacting registries.
 	// responses:
 	//   200:
 	//     $ref: "#/responses/manifestInspect"
