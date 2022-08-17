@@ -49,7 +49,7 @@ var _ = Describe("Podman secret", func() {
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect).Should(Exit(0))
 		Expect(inspect.OutputToString()).To(Equal(secrID))
-		inspect = podmanTest.Podman([]string{"secret", "inspect", "--format", "{{.Spec.Driver.Options}}", secrID})
+		inspect = podmanTest.Podman([]string{"secret", "inspect", "-f", "{{.Spec.Driver.Options}}", secrID})
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect).Should(Exit(0))
 		Expect(inspect.OutputToString()).To(ContainSubstring("opt1:val"))
