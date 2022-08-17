@@ -29,15 +29,6 @@ const (
 	AttachPipeStderr = 3
 )
 
-func openUnixSocket(path string) (*net.UnixConn, error) {
-	fd, err := unix.Open(path, unix.O_PATH, 0)
-	if err != nil {
-		return nil, err
-	}
-	defer unix.Close(fd)
-	return net.DialUnix("unixpacket", nil, &net.UnixAddr{Name: fmt.Sprintf("/proc/self/fd/%d", fd), Net: "unixpacket"})
-}
-
 // Attach to the given container.
 // Does not check if state is appropriate.
 // started is only required if startContainer is true.
