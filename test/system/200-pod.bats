@@ -478,7 +478,7 @@ spec:
 }
 
 @test "pod resource limits" {
-    # FIXME: #15074 - possible flake on aarch64
+    skip_if_aarch64 "FIXME: #15074 - flakes on aarch64 non-remote"
     skip_if_remote "resource limits only implemented on non-remote"
     skip_if_rootless "resource limits only work with root"
     skip_if_cgroupsv1 "resource limits only meaningful on cgroups V2"
