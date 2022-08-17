@@ -119,6 +119,7 @@ type KillReport struct {
 }
 
 type RestartOptions struct {
+	Filters map[string][]string
 	All     bool
 	Latest  bool
 	Running bool
@@ -126,8 +127,9 @@ type RestartOptions struct {
 }
 
 type RestartReport struct {
-	Err error
-	Id  string //nolint:revive,stylecheck
+	Err      error
+	Id       string //nolint:revive,stylecheck
+	RawInput string
 }
 
 type RmOptions struct {
