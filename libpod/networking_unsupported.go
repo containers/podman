@@ -77,3 +77,10 @@ func (r *RootlessNetNS) Cleanup(runtime *Runtime) error {
 func (r *Runtime) GetRootlessNetNs(new bool) (*RootlessNetNS, error) {
 	return nil, errors.New("not implemented (*Runtime) GetRootlessNetNs")
 }
+
+// convertPortMappings will remove the HostIP part from the ports when running inside podman machine.
+// This is need because a HostIP of 127.0.0.1 would now allow the gvproxy forwarder to reach to open ports.
+// For machine the HostIP must only be used by gvproxy and never in the VM.
+func (c *Container) convertPortMappings() []types.PortMapping {
+	return []types.PortMapping{}
+}
