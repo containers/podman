@@ -22,7 +22,7 @@ var (
 
   Whether the input is for a container or pod, Podman will always generate the specification as a pod.`
 
-	generateKubeCmd = &cobra.Command{
+	kubeGenerateCmd = &cobra.Command{
 		Use:               "generate [options] {CONTAINER...|POD...|VOLUME...}",
 		Short:             "Generate Kubernetes YAML from containers, pods or volumes.",
 		Long:              generateDescription,
@@ -35,33 +35,28 @@ var (
   podman kube generate volumeName
   podman kube generate ctrID podID volumeName --service`,
 	}
-	kubeGenerateDescription = generateDescription
 
-	kubeGenerateCmd = &cobra.Command{
+	generateKubeCmd = &cobra.Command{
 		Use:               "kube [options] {CONTAINER...|POD...|VOLUME...}",
-		Short:             "Generate Kubernetes YAML from containers, pods or volumes.",
-		Long:              kubeGenerateDescription,
-		RunE:              kubeGenerate,
-		Args:              cobra.MinimumNArgs(1),
-		ValidArgsFunction: common.AutocompleteForGenerate,
-		Example: `podman kube generate ctrID
-  podman kube generate podID
-  podman kube generate --service podID
-  podman kube generate volumeName
-  podman kube generate ctrID podID volumeName --service`,
+		Short:             kubeGenerateCmd.Short,
+		Long:              kubeGenerateCmd.Long,
+		RunE:              kubeGenerateCmd.RunE,
+		Args:              kubeGenerateCmd.Args,
+		ValidArgsFunction: kubeGenerateCmd.ValidArgsFunction,
+		Example:           kubeGenerateCmd.Example,
 	}
 )
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Command: generateKubeCmd,
-		Parent:  kubeCmd,
+		Parent:  generate.GenerateCmd,
 	})
 	generateFlags(generateKubeCmd)
 
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Command: kubeGenerateCmd,
-		Parent:  generate.GenerateCmd,
+		Parent:  kubeCmd,
 	})
 	generateFlags(kubeGenerateCmd)
 }
@@ -102,8 +97,4 @@ func generateKube(cmd *cobra.Command, args []string) error {
 
 	fmt.Println(string(content))
 	return nil
-}
-
-func kubeGenerate(cmd *cobra.Command, args []string) error {
-	return generateKube(cmd, args)
 }
