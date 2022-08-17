@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"os"
 
 	"github.com/containers/common/pkg/auth"
 	"github.com/containers/common/pkg/completion"
@@ -120,6 +121,10 @@ func push(cmd *cobra.Command, args []string) error {
 		}
 		manifestPushOpts.Username = creds.Username
 		manifestPushOpts.Password = creds.Password
+	}
+
+	if !manifestPushOpts.Quiet {
+		manifestPushOpts.Writer = os.Stderr
 	}
 
 	if err := common.PrepareSigningPassphrase(&manifestPushOpts.ImagePushOptions, manifestPushOpts.SignPassphraseFileCLI); err != nil {

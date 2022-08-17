@@ -164,6 +164,10 @@ func imagePush(cmd *cobra.Command, args []string) error {
 		pushOptions.Password = creds.Password
 	}
 
+	if !pushOptions.Quiet {
+		pushOptions.Writer = os.Stderr
+	}
+
 	if err := common.PrepareSigningPassphrase(&pushOptions.ImagePushOptions, pushOptions.SignPassphraseFileCLI); err != nil {
 		return err
 	}
