@@ -22,7 +22,7 @@ If any of the images which should be added to the new list or index are
 themselves lists or indexes, add all of their contents.  By default, only one
 image from such a list will be added to the newly-created list or index.
 
-#### **--amend**
+#### **--amend**, **-a**
 
 If a manifest list named *listnameorindexname* already exists, modify the
 preexisting list instead of exiting with an error.  The contents of
