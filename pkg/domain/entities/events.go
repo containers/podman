@@ -74,7 +74,7 @@ func ConvertToEntitiesEvent(e libpodEvents.Event) *Event {
 		},
 		Scope:    "local",
 		Time:     e.Time.Unix(),
-		TimeNano: e.Time.UnixNano(),
+	 	TimeNano: e.Time.UnixNano(),
 	}
 	return &Event{
 		message,

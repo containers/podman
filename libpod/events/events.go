@@ -87,7 +87,7 @@ func (e *Event) ToHumanReadable(truncate bool) string {
 	case Network:
 		humanFormat = fmt.Sprintf("%s %s %s %s (container=%s, name=%s)", e.Time, e.Type, e.Status, id, id, e.Network)
 	case Image:
-		humanFormat = fmt.Sprintf("%s %s %s %s %s", e.Time, e.Type, e.Status, id, e.Name)
+		humanFormat = fmt.Sprintf("%s %s %s %s %s", e.Time.Unix(), e.Type, e.Status, id, e.Name)
 	case System:
 		if e.Name != "" {
 			humanFormat = fmt.Sprintf("%s %s %s %s", e.Time, e.Type, e.Status, e.Name)

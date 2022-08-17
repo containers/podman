@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+
 var (
 	// Command: podman image _inspect_
 	inspectCmd = &cobra.Command{
