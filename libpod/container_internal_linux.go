@@ -3228,3 +3228,28 @@ func (c *Container) ChangeHostPathOwnership(src string, recurse bool, uid, gid i
 	}
 	return chown.ChangeHostPathOwnership(src, recurse, uid, gid)
 }
+
+// If the container is rootless, set up the slirp4netns network
+func (c *Container) setupRootlessNetwork() error {
+	// set up slirp4netns again because slirp4netns will die when conmon exits
+	if c.config.NetMode.IsSlirp4netns() {
+		err := c.runtime.setupSlirp4netns(c, c.state.NetNS)
+		if err != nil {
+			return err
+		}
+	}
+
+	// set up rootlesskit port forwarder again since it dies when conmon exits
+	// we use rootlesskit port forwarder only as rootless and when bridge network is used
+	if rootless.IsRootless() && c.config.NetMode.IsBridge() && len(c.config.PortMappings) > 0 {
+		err := c.runtime.setupRootlessPortMappingViaRLK(c, c.state.NetNS.Path(), c.state.NetworkStatus)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func openDirectory(path string) (fd int, err error) {
+	return unix.Open(path, unix.O_RDONLY|unix.O_PATH, 0)
+}
