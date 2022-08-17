@@ -16,7 +16,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -42,7 +41,6 @@ import (
 	"github.com/containers/podman/v4/utils"
 	"github.com/containers/storage/pkg/homedir"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
@@ -763,23 +761,11 @@ func (r *ConmonOCIRuntime) CheckpointContainer(ctr *Container, options Container
 		env = append(env, fmt.Sprintf("PATH=%s", path))
 	}
 
-	runtime.LockOSThread()
-	if err := label.SetSocketLabel(ctr.ProcessLabel()); err != nil {
-		return 0, err
-	}
-
-	runtimeCheckpointStarted := time.Now()
-	err = utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, env, r.path, args...)
-	// Ignore error returned from SetSocketLabel("") call,
-	// can't recover.
-	if labelErr := label.SetSocketLabel(""); labelErr == nil {
-		// Unlock the thread only if the process label could be restored
-		// successfully.  Otherwise leave the thread locked and the Go runtime
-		// will terminate it once it returns to the threads pool.
-		runtime.UnlockOSThread()
-	} else {
-		logrus.Errorf("Unable to reset socket label: %q", labelErr)
-	}
+	var runtimeCheckpointStarted time.Time
+	err = r.withContainerSocketLabel(ctr, func() error {
+		runtimeCheckpointStarted = time.Now()
+		return utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, env, r.path, args...)
+	})
 
 	runtimeCheckpointDuration := func() int64 {
 		if options.PrintStats {

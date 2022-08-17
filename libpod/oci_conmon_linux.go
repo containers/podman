@@ -8,6 +8,7 @@ import (
 
 	"github.com/containers/podman/v4/pkg/errorhandling"
 	pmount "github.com/containers/storage/pkg/mount"
+	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
@@ -67,4 +68,24 @@ func (r *ConmonOCIRuntime) createRootlessContainer(ctr *Container, restoreOption
 	}()
 	res := <-ch
 	return res.restoreDuration, res.err
+}
+
+// Run the closure with the container's socket label set
+func (r *ConmonOCIRuntime) withContainerSocketLabel(ctr *Container, closure func() error) error {
+	runtime.LockOSThread()
+	if err := label.SetSocketLabel(ctr.ProcessLabel()); err != nil {
+		return err
+	}
+	err := closure()
+	// Ignore error returned from SetSocketLabel("") call,
+	// can't recover.
+	if labelErr := label.SetSocketLabel(""); labelErr == nil {
+		// Unlock the thread only if the process label could be restored
+		// successfully.  Otherwise leave the thread locked and the Go runtime
+		// will terminate it once it returns to the threads pool.
+		runtime.UnlockOSThread()
+	} else {
+		logrus.Errorf("Unable to reset socket label: %q", labelErr)
+	}
+	return err
 }
