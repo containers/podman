@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"math"
 	"os"
 	"runtime"
@@ -18,6 +17,7 @@ import (
 	"time"
 
 	"github.com/containers/buildah"
+	"github.com/containers/buildah/pkg/util"
 	"github.com/containers/image/v5/pkg/sysregistriesv2"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/libpod/linkmode"
@@ -89,7 +89,7 @@ func (r *Runtime) hostInfo() (*define.HostInfo, error) {
 
 	hostDistributionInfo := r.GetHostDistributionInfo()
 
-	kv, err := readKernelVersion()
+	kv, err := util.ReadKernelVersion()
 	if err != nil {
 		return nil, fmt.Errorf("error reading kernel version: %w", err)
 	}
@@ -133,7 +133,7 @@ func (r *Runtime) hostInfo() (*define.HostInfo, error) {
 		info.OCIRuntime = ociruntimeInfo
 	}
 
-	duration, err := procUptime()
+	duration, err := util.ReadUptime()
 	if err != nil {
 		return nil, fmt.Errorf("error reading up time: %w", err)
 	}
@@ -261,31 +261,6 @@ func (r *Runtime) storeInfo() (*define.StoreInfo, error) {
 	}
 	info.GraphStatus = status
 	return &info, nil
-}
-
-func readKernelVersion() (string, error) {
-	buf, err := ioutil.ReadFile("/proc/version")
-	if err != nil {
-		return "", err
-	}
-	f := bytes.Fields(buf)
-	if len(f) < 3 {
-		return string(bytes.TrimSpace(buf)), nil
-	}
-	return string(f[2]), nil
-}
-
-func procUptime() (time.Duration, error) {
-	var zero time.Duration
-	buf, err := ioutil.ReadFile("/proc/uptime")
-	if err != nil {
-		return zero, err
-	}
-	f := bytes.Fields(buf)
-	if len(f) < 1 {
-		return zero, errors.New("unable to parse uptime from /proc/uptime")
-	}
-	return time.ParseDuration(string(f[0]) + "s")
 }
 
 // GetHostDistributionInfo returns a map containing the host's distribution and version
