@@ -467,6 +467,7 @@ func LibpodToContainerJSON(l *libpod.Container, sz bool) (*types.ContainerJSON, 
 	if err := json.Unmarshal(h, &hc); err != nil {
 		return nil, err
 	}
+	sort.Strings(hc.Binds)
 
 	// k8s-file == json-file
 	if hc.LogConfig.Type == define.KubernetesLogging {
