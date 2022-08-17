@@ -41,7 +41,6 @@ import (
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/containers/podman/v4/utils"
 	"github.com/containers/storage/pkg/homedir"
-	pmount "github.com/containers/storage/pkg/mount"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/sirupsen/logrus"
@@ -204,60 +203,7 @@ func (r *ConmonOCIRuntime) CreateContainer(ctr *Container, restoreOptions *Conta
 		// if we are running a non privileged container, be sure to umount some kernel paths so they are not
 		// bind mounted inside the container at all.
 		if !ctr.config.Privileged && !rootless.IsRootless() {
-			type result struct {
-				restoreDuration int64
-				err             error
-			}
-			ch := make(chan result)
-			go func() {
-				runtime.LockOSThread()
-				restoreDuration, err := func() (int64, error) {
-					fd, err := os.Open(fmt.Sprintf("/proc/%d/task/%d/ns/mnt", os.Getpid(), unix.Gettid()))
-					if err != nil {
-						return 0, err
-					}
-					defer errorhandling.CloseQuiet(fd)
-
-					// create a new mountns on the current thread
-					if err = unix.Unshare(unix.CLONE_NEWNS); err != nil {
-						return 0, err
-					}
-					defer func() {
-						if err := unix.Setns(int(fd.Fd()), unix.CLONE_NEWNS); err != nil {
-							logrus.Errorf("Unable to clone new namespace: %q", err)
-						}
-					}()
-
-					// don't spread our mounts around.  We are setting only /sys to be slave
-					// so that the cleanup process is still able to umount the storage and the
-					// changes are propagated to the host.
-					err = unix.Mount("/sys", "/sys", "none", unix.MS_REC|unix.MS_SLAVE, "")
-					if err != nil {
-						return 0, fmt.Errorf("cannot make /sys slave: %w", err)
-					}
-
-					mounts, err := pmount.GetMounts()
-					if err != nil {
-						return 0, err
-					}
-					for _, m := range mounts {
-						if !strings.HasPrefix(m.Mountpoint, "/sys/kernel") {
-							continue
-						}
-						err = unix.Unmount(m.Mountpoint, 0)
-						if err != nil && !os.IsNotExist(err) {
-							return 0, fmt.Errorf("cannot unmount %s: %w", m.Mountpoint, err)
-						}
-					}
-					return r.createOCIContainer(ctr, restoreOptions)
-				}()
-				ch <- result{
-					restoreDuration: restoreDuration,
-					err:             err,
-				}
-			}()
-			r := <-ch
-			return r.restoreDuration, r.err
+			return r.createRootlessContainer(ctr, restoreOptions)
 		}
 	}
 	return r.createOCIContainer(ctr, restoreOptions)
