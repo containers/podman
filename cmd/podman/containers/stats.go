@@ -58,6 +58,7 @@ type statsOptionsCLI struct {
 
 var (
 	statsOptions statsOptionsCLI
+	notrunc      bool
 )
 
 func statFlags(cmd *cobra.Command) {
@@ -69,6 +70,7 @@ func statFlags(cmd *cobra.Command) {
 	flags.StringVar(&statsOptions.Format, formatFlagName, "", "Pretty-print container statistics to JSON or using a Go template")
 	_ = cmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(&containerStats{}))
 
+	flags.BoolVar(&notrunc, "no-trunc", false, "Do not truncate output")
 	flags.BoolVar(&statsOptions.NoReset, "no-reset", false, "Disable resetting the screen between intervals")
 	flags.BoolVar(&statsOptions.NoStream, "no-stream", false, "Disable streaming stats and only pull the first result, default setting is false")
 	intervalFlagName := "interval"
@@ -186,6 +188,9 @@ type containerStats struct {
 }
 
 func (s *containerStats) ID() string {
+	if notrunc {
+		return s.ContainerID
+	}
 	return s.ContainerID[0:12]
 }
 
