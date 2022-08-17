@@ -40,7 +40,7 @@ var _ = Describe("Podman secret", func() {
 		err := ioutil.WriteFile(secretFilePath, []byte("mysecret"), 0755)
 		Expect(err).To(BeNil())
 
-		session := podmanTest.Podman([]string{"secret", "create", "--driver-opts", "opt1=val", "a", secretFilePath})
+		session := podmanTest.Podman([]string{"secret", "create", "-d", "file", "--driver-opts", "opt1=val", "a", secretFilePath})
 		session.WaitWithDefaultTimeout()
 		secrID := session.OutputToString()
 		Expect(session).Should(Exit(0))
