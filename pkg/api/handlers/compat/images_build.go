@@ -694,7 +694,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		success bool
 	)
 
-	runCtx, cancel := context.WithCancel(context.Background())
+	runCtx, cancel := context.WithCancel(r.Context())
 	go func() {
 		defer cancel()
 		imageID, _, err = runtime.Build(r.Context(), buildOptions, containerFiles...)

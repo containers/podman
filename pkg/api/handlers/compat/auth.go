@@ -1,7 +1,6 @@
 package compat
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -44,7 +43,7 @@ func Auth(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Println("Authenticating with existing credentials...")
 	registry := stripAddressOfScheme(authConfig.ServerAddress)
-	if err := DockerClient.CheckAuth(context.Background(), sysCtx, authConfig.Username, authConfig.Password, registry); err == nil {
+	if err := DockerClient.CheckAuth(r.Context(), sysCtx, authConfig.Username, authConfig.Password, registry); err == nil {
 		utils.WriteResponse(w, http.StatusOK, entities.AuthReport{
 			IdentityToken: "",
 			Status:        "Login Succeeded",
