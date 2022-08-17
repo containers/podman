@@ -46,17 +46,23 @@ var _ = Describe("Podman manifest", func() {
 		processTestResult(f)
 	})
 	It("create w/o image", func() {
-		session := podmanTest.Podman([]string{"manifest", "create", "foo"})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		for _, amend := range []string{"--amend", "-a"} {
+			session := podmanTest.Podman([]string{"manifest", "create", "foo"})
+			session.WaitWithDefaultTimeout()
+			Expect(session).Should(Exit(0))
 
-		session = podmanTest.Podman([]string{"manifest", "create", "foo"})
-		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError())
+			session = podmanTest.Podman([]string{"manifest", "create", "foo"})
+			session.WaitWithDefaultTimeout()
+			Expect(session).To(ExitWithError())
 
-		session = podmanTest.Podman([]string{"manifest", "create", "--amend", "foo"})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+			session = podmanTest.Podman([]string{"manifest", "create", amend, "foo"})
+			session.WaitWithDefaultTimeout()
+			Expect(session).Should(Exit(0))
+
+			session = podmanTest.Podman([]string{"manifest", "rm", "foo"})
+			session.WaitWithDefaultTimeout()
+			Expect(session).Should(Exit(0))
+		}
 	})
 
 	It("create w/ image", func() {

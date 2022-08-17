@@ -42,7 +42,7 @@ func init() {
 	})
 	flags := createCmd.Flags()
 	flags.BoolVar(&manifestCreateOpts.All, "all", false, "add all of the lists' images if the images to add are lists")
-	flags.BoolVar(&manifestCreateOpts.Amend, "amend", false, "modify an existing list if one with the desired name already exists")
+	flags.BoolVarP(&manifestCreateOpts.Amend, "amend", "a", false, "modify an existing list if one with the desired name already exists")
 	flags.BoolVar(&manifestCreateOpts.Insecure, "insecure", false, "neither require HTTPS nor verify certificates when accessing the registry")
 	_ = flags.MarkHidden("insecure")
 	flags.BoolVar(&manifestCreateOpts.TLSVerifyCLI, "tls-verify", true, "require HTTPS and verify certificates when accessing the registry")
