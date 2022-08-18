@@ -19,6 +19,8 @@
 #include <sys/select.h>
 #include <stdio.h>
 
+#define LIBEXECPODMAN "/usr/libexec/podman"
+
 #ifndef TEMP_FAILURE_RETRY
 #define TEMP_FAILURE_RETRY(expression) \
   (__extension__                                                              \
@@ -134,7 +136,7 @@ do_pause ()
     sigaction (sig[i], &act, NULL);
 
   /* Attempt to execv catatonit to keep the pause process alive.  */
-  execl ("/usr/libexec/podman/catatonit", "catatonit", "-P", NULL);
+  execl (LIBEXECPODMAN "catatonit", "catatonit", "-P", NULL);
   execl ("/usr/bin/catatonit", "catatonit", "-P", NULL);
   /* and if the catatonit executable could not be found, fallback here... */
 
