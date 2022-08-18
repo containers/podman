@@ -234,6 +234,10 @@ type EngineConfig struct {
 	// The first path pointing to a valid file will be used.
 	ConmonPath []string `toml:"conmon_path,omitempty"`
 
+	// ConmonRsPath is the path to the Conmon-rs binary used for managing containers.
+	// The first path pointing to a valid file will be used.
+	ConmonRsPath []string `toml:"conmonrs_path,omitempty"`
+
 	// CompatAPIEnforceDockerHub enforces using docker.io for completing
 	// short names in Podman's compatibility REST API.  Note that this will
 	// ignore unqualified-search-registries and short-name aliases defined
@@ -915,8 +919,12 @@ func (c *NetworkConfig) Validate() error {
 // to first (version) matching conmon binary. If non is found, we try
 // to do a path lookup of "conmon".
 func (c *Config) FindConmon() (string, error) {
+	return findConmonPath(c.Engine.ConmonPath, "conmon", _conmonMinMajorVersion, _conmonMinMinorVersion, _conmonMinPatchVersion)
+}
+
+func findConmonPath(paths []string, binaryName string, major int, minor int, patch int) (string, error) {
 	foundOutdatedConmon := false
-	for _, path := range c.Engine.ConmonPath {
+	for _, path := range paths {
 		stat, err := os.Stat(path)
 		if err != nil {
 			continue
@@ -934,7 +942,7 @@ func (c *Config) FindConmon() (string, error) {
 	}
 
 	// Search the $PATH as last fallback
-	if path, err := exec.LookPath("conmon"); err == nil {
+	if path, err := exec.LookPath(binaryName); err == nil {
 		if err := probeConmon(path); err != nil {
 			logrus.Warnf("Conmon at %s is invalid: %v", path, err)
 			foundOutdatedConmon = true
@@ -946,11 +954,18 @@ func (c *Config) FindConmon() (string, error) {
 
 	if foundOutdatedConmon {
 		return "", fmt.Errorf("please update to v%d.%d.%d or later: %w",
-			_conmonMinMajorVersion, _conmonMinMinorVersion, _conmonMinPatchVersion, ErrConmonOutdated)
+			major, minor, patch, ErrConmonOutdated)
 	}
 
 	return "", fmt.Errorf("could not find a working conmon binary (configured options: %v: %w)",
-		c.Engine.ConmonPath, ErrInvalidArg)
+		paths, ErrInvalidArg)
+}
+
+// FindConmonRs iterates over (*Config).ConmonRsPath and returns the path
+// to first (version) matching conmonrs binary. If non is found, we try
+// to do a path lookup of "conmonrs".
+func (c *Config) FindConmonRs() (string, error) {
+	return findConmonPath(c.Engine.ConmonRsPath, "conmonrs", _conmonrsMinMajorVersion, _conmonrsMinMinorVersion, _conmonrsMinPatchVersion)
 }
 
 // GetDefaultEnv returns the environment variables for the container.

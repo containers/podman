@@ -33,6 +33,15 @@ const (
 	// _conmonMinPatchVersion is the sub-minor version required for conmon.
 	_conmonMinPatchVersion = 1
 
+	// _conmonrsMinMajorVersion is the major version required for conmonrs.
+	_conmonrsMinMajorVersion = 0
+
+	// _conmonrsMinMinorVersion is the minor version required for conmonrs.
+	_conmonrsMinMinorVersion = 1
+
+	// _conmonrsMinPatchVersion is the sub-minor version required for conmonrs.
+	_conmonrsMinPatchVersion = 0
+
 	// _conmonVersionFormatErr is used when the expected versio-format of conmon
 	// has changed.
 	_conmonVersionFormatErr = "conmon version changed format: %w"
@@ -276,7 +285,9 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 	c.CompatAPIEnforceDockerHub = true
 
 	if path, ok := os.LookupEnv("CONTAINERS_STORAGE_CONF"); ok {
-		types.SetDefaultConfigFilePath(path)
+		if err := types.SetDefaultConfigFilePath(path); err != nil {
+			return nil, err
+		}
 	}
 	storeOpts, err := types.DefaultStoreOptions(unshare.IsRootless(), unshare.GetRootlessUID())
 	if err != nil {
@@ -372,6 +383,16 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 		"/usr/local/sbin/conmon",
 		"/run/current-system/sw/bin/conmon",
 	}
+	c.ConmonRsPath = []string{
+		"/usr/libexec/podman/conmonrs",
+		"/usr/local/libexec/podman/conmonrs",
+		"/usr/local/lib/podman/conmonrs",
+		"/usr/bin/conmonrs",
+		"/usr/sbin/conmonrs",
+		"/usr/local/bin/conmonrs",
+		"/usr/local/sbin/conmonrs",
+		"/run/current-system/sw/bin/conmonrs",
+	}
 	c.PullPolicy = DefaultPullPolicy
 	c.RuntimeSupportsJSON = []string{
 		"crun",
@@ -434,42 +455,55 @@ func probeConmon(conmonBinary string) error {
 	if err := cmd.Run(); err != nil {
 		return err
 	}
-	r := regexp.MustCompile(`^conmon version (?P<Major>\d+).(?P<Minor>\d+).(?P<Patch>\d+)`)
+	r := regexp.MustCompile(`^(version:|conmon version)? (?P<Major>\d+).(?P<Minor>\d+).(?P<Patch>\d+)`)
 
 	matches := r.FindStringSubmatch(out.String())
-	if len(matches) != 4 {
-		return errors.New(_conmonVersionFormatErr)
+	if len(matches) != 5 {
+		return fmt.Errorf(_conmonVersionFormatErr, errors.New("invalid version format"))
 	}
-	major, err := strconv.Atoi(matches[1])
+	major, err := strconv.Atoi(matches[2])
+
+	var minMajor, minMinor, minPatch int
+	// conmon-rs returns "^version:"
+	if matches[1] == "version:" {
+		minMajor = _conmonrsMinMajorVersion
+		minMinor = _conmonrsMinMinorVersion
+		minPatch = _conmonrsMinPatchVersion
+	} else {
+		minMajor = _conmonMinMajorVersion
+		minMinor = _conmonMinMinorVersion
+		minPatch = _conmonMinPatchVersion
+	}
+
 	if err != nil {
 		return fmt.Errorf(_conmonVersionFormatErr, err)
 	}
-	if major < _conmonMinMajorVersion {
+	if major < minMajor {
 		return ErrConmonOutdated
 	}
-	if major > _conmonMinMajorVersion {
+	if major > minMajor {
 		return nil
 	}
 
-	minor, err := strconv.Atoi(matches[2])
+	minor, err := strconv.Atoi(matches[3])
 	if err != nil {
 		return fmt.Errorf(_conmonVersionFormatErr, err)
 	}
-	if minor < _conmonMinMinorVersion {
+	if minor < minMinor {
 		return ErrConmonOutdated
 	}
-	if minor > _conmonMinMinorVersion {
+	if minor > minMinor {
 		return nil
 	}
 
-	patch, err := strconv.Atoi(matches[3])
+	patch, err := strconv.Atoi(matches[4])
 	if err != nil {
 		return fmt.Errorf(_conmonVersionFormatErr, err)
 	}
-	if patch < _conmonMinPatchVersion {
+	if patch < minPatch {
 		return ErrConmonOutdated
 	}
-	if patch > _conmonMinPatchVersion {
+	if patch > minPatch {
 		return nil
 	}
 
