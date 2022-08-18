@@ -131,6 +131,8 @@ and specified with a _tag_.
 
 @@option cpuset-mems
 
+@@option decryption-key
+
 #### **--detach**, **-d**
 
 Detached mode: run the container in the background and print the new container ID. The default is *false*.

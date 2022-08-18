@@ -8,6 +8,7 @@ import (
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/types"
+	encconfig "github.com/containers/ocicrypt/config"
 	"github.com/containers/podman/v4/pkg/inspect"
 	"github.com/containers/podman/v4/pkg/trust"
 	"github.com/docker/docker/api/types/container"
@@ -158,6 +159,9 @@ type ImagePullOptions struct {
 	PullPolicy config.PullPolicy
 	// Writer is used to display copy information including progress bars.
 	Writer io.Writer
+	// OciDecryptConfig contains the config that can be used to decrypt an image if it is
+	// encrypted if non-nil. If nil, it does not attempt to decrypt an image.
+	OciDecryptConfig *encconfig.DecryptConfig
 }
 
 // ImagePullReport is the response from pulling one or more images.
@@ -227,6 +231,15 @@ type ImagePushOptions struct {
 	CompressionFormat string
 	// Writer is used to display copy information including progress bars.
 	Writer io.Writer
+	// OciEncryptConfig when non-nil indicates that an image should be encrypted.
+	// The encryption options is derived from the construction of EncryptConfig object.
+	OciEncryptConfig *encconfig.EncryptConfig
+	// OciEncryptLayers represents the list of layers to encrypt.
+	// If nil, don't encrypt any layers.
+	// If non-nil and len==0, denotes encrypt all layers.
+	// integers in the slice represent 0-indexed layer indices, with support for negative
+	// indexing. i.e. 0 is the first layer, -1 is the last (top-most) layer.
+	OciEncryptLayers *[]int
 }
 
 // ImagePushReport is the response from pushing an image.

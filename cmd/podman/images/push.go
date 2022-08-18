@@ -1,6 +1,7 @@
 package images
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/containers/common/pkg/auth"
@@ -20,6 +21,8 @@ type pushOptionsWrapper struct {
 	TLSVerifyCLI          bool // CLI only
 	CredentialsCLI        string
 	SignPassphraseFileCLI string
+	EncryptionKeys        []string
+	EncryptLayers         []int
 }
 
 var (
@@ -121,6 +124,14 @@ func pushFlags(cmd *cobra.Command) {
 	flags.StringVar(&pushOptions.CompressionFormat, compressionFormat, "", "compression format to use")
 	_ = cmd.RegisterFlagCompletionFunc(compressionFormat, common.AutocompleteCompressionFormat)
 
+	encryptionKeysFlagName := "encryption-key"
+	flags.StringSliceVar(&pushOptions.EncryptionKeys, encryptionKeysFlagName, nil, "Key with the encryption protocol to use to encrypt the image (e.g. jwe:/path/to/key.pem)")
+	_ = cmd.RegisterFlagCompletionFunc(encryptionKeysFlagName, completion.AutocompleteDefault)
+
+	encryptLayersFlagName := "encrypt-layer"
+	flags.IntSliceVar(&pushOptions.EncryptLayers, encryptLayersFlagName, nil, "Layers to encrypt, 0-indexed layer indices with support for negative indexing (e.g. 0 is the first layer, -1 is the last layer). If not defined, will encrypt all layers if encryption-key flag is specified")
+	_ = cmd.RegisterFlagCompletionFunc(encryptLayersFlagName, completion.AutocompleteDefault)
+
 	if registry.IsRemote() {
 		_ = flags.MarkHidden("cert-dir")
 		_ = flags.MarkHidden("compress")
@@ -129,6 +140,8 @@ func pushFlags(cmd *cobra.Command) {
 		_ = flags.MarkHidden(signByFlagName)
 		_ = flags.MarkHidden(signBySigstorePrivateKeyFlagName)
 		_ = flags.MarkHidden(signPassphraseFileFlagName)
+		_ = flags.MarkHidden(encryptionKeysFlagName)
+		_ = flags.MarkHidden(encryptLayersFlagName)
 	}
 	if !registry.IsRemote() {
 		flags.StringVar(&pushOptions.SignaturePolicy, "signature-policy", "", "Path to a signature-policy file")
@@ -171,6 +184,13 @@ func imagePush(cmd *cobra.Command, args []string) error {
 	if err := common.PrepareSigningPassphrase(&pushOptions.ImagePushOptions, pushOptions.SignPassphraseFileCLI); err != nil {
 		return err
 	}
+
+	encConfig, encLayers, err := util.EncryptConfig(pushOptions.EncryptionKeys, pushOptions.EncryptLayers)
+	if err != nil {
+		return fmt.Errorf("unable to obtain encryption config: %w", err)
+	}
+	pushOptions.OciEncryptConfig = encConfig
+	pushOptions.OciEncryptLayers = encLayers
 
 	// Let's do all the remaining Yoga in the API to prevent us from scattering
 	// logic across (too) many parts of the code.

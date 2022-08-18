@@ -1996,4 +1996,46 @@ WORKDIR /madethis`, BB)
 		Expect(output).To(ContainSubstring("noexec"))
 		Expect(output).To(ContainSubstring("nodev"))
 	})
+
+	It("podman run and decrypt from local registry", func() {
+		SkipIfRemote("Remote run does not support decryption")
+
+		if podmanTest.Host.Arch == "ppc64le" {
+			Skip("No registry image for ppc64le")
+		}
+
+		podmanTest.AddImageToRWStore(ALPINE)
+
+		if rootless.IsRootless() {
+			err := podmanTest.RestoreArtifact(REGISTRY_IMAGE)
+			Expect(err).ToNot(HaveOccurred())
+		}
+		lock := GetPortLock("5000")
+		defer lock.Unlock()
+		session := podmanTest.Podman([]string{"run", "-d", "--name", "registry", "-p", "5000:5000", REGISTRY_IMAGE, "/entrypoint.sh", "/etc/docker/registry/config.yml"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		if !WaitContainerReady(podmanTest, "registry", "listening on", 20, 1) {
+			Skip("Cannot start docker registry.")
+		}
+
+		bitSize := 1024
+		keyFileName := filepath.Join(podmanTest.TempDir, "key")
+		publicKeyFileName, privateKeyFileName, err := WriteRSAKeyPair(keyFileName, bitSize)
+		Expect(err).To(BeNil())
+
+		imgPath := "localhost:5000/my-alpine"
+		session = podmanTest.Podman([]string{"push", "--encryption-key", "jwe:" + publicKeyFileName, "--tls-verify=false", "--remove-signatures", ALPINE, imgPath})
+		session.WaitWithDefaultTimeout()
+
+		session = podmanTest.Podman([]string{"rmi", ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"run", "--decryption-key", privateKeyFileName, imgPath})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.ErrorToString()).To(ContainSubstring("Trying to pull"))
+	})
 })

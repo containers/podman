@@ -105,6 +105,10 @@ func (ir *ImageEngine) Prune(ctx context.Context, opts entities.ImagePruneOption
 }
 
 func (ir *ImageEngine) Pull(ctx context.Context, rawImage string, opts entities.ImagePullOptions) (*entities.ImagePullReport, error) {
+	if opts.OciDecryptConfig != nil {
+		return nil, fmt.Errorf("decryption is not supported for remote clients")
+	}
+
 	options := new(images.PullOptions)
 	options.WithAllTags(opts.AllTags).WithAuthfile(opts.Authfile).WithArch(opts.Arch).WithOS(opts.OS)
 	options.WithVariant(opts.Variant).WithPassword(opts.Password)
@@ -240,6 +244,10 @@ func (ir *ImageEngine) Import(ctx context.Context, opts entities.ImageImportOpti
 }
 
 func (ir *ImageEngine) Push(ctx context.Context, source string, destination string, opts entities.ImagePushOptions) error {
+	if opts.OciEncryptConfig != nil {
+		return fmt.Errorf("encryption is not supported for remote clients")
+	}
+
 	options := new(images.PushOptions)
 	options.WithAll(opts.All).WithCompress(opts.Compress).WithUsername(opts.Username).WithPassword(opts.Password).WithAuthfile(opts.Authfile).WithFormat(opts.Format).WithRemoveSignatures(opts.RemoveSignatures).WithQuiet(opts.Quiet).WithCompressionFormat(opts.CompressionFormat).WithProgressWriter(opts.Writer)
 

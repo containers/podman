@@ -334,15 +334,21 @@ func PullImage(imageName string, cliVals *entities.ContainerCreateOptions) (stri
 		skipTLSVerify = types.NewOptionalBool(!cliVals.TLSVerify.Value())
 	}
 
+	decConfig, err := util.DecryptConfig(cliVals.DecryptionKeys)
+	if err != nil {
+		return "unable to obtain decryption config", err
+	}
+
 	pullReport, pullErr := registry.ImageEngine().Pull(registry.GetContext(), imageName, entities.ImagePullOptions{
-		Authfile:        cliVals.Authfile,
-		Quiet:           cliVals.Quiet,
-		Arch:            cliVals.Arch,
-		OS:              cliVals.OS,
-		Variant:         cliVals.Variant,
-		SignaturePolicy: cliVals.SignaturePolicy,
-		PullPolicy:      pullPolicy,
-		SkipTLSVerify:   skipTLSVerify,
+		Authfile:         cliVals.Authfile,
+		Quiet:            cliVals.Quiet,
+		Arch:             cliVals.Arch,
+		OS:               cliVals.OS,
+		Variant:          cliVals.Variant,
+		SignaturePolicy:  cliVals.SignaturePolicy,
+		PullPolicy:       pullPolicy,
+		SkipTLSVerify:    skipTLSVerify,
+		OciDecryptConfig: decConfig,
 	})
 	if pullErr != nil {
 		return "", pullErr

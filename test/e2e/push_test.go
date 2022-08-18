@@ -127,6 +127,17 @@ var _ = Describe("Podman push", func() {
 		Expect(output).To(ContainSubstring("Writing manifest to image destination"))
 		Expect(output).To(ContainSubstring("Storing signatures"))
 
+		bitSize := 1024
+		keyFileName := filepath.Join(podmanTest.TempDir, "key")
+		publicKeyFileName, _, err := WriteRSAKeyPair(keyFileName, bitSize)
+		Expect(err).To(BeNil())
+
+		if !IsRemote() { // Remote does not support --encryption-key
+			push = podmanTest.Podman([]string{"push", "--encryption-key", "jwe:" + publicKeyFileName, "--tls-verify=false", "--remove-signatures", ALPINE, "localhost:5000/my-alpine"})
+			push.WaitWithDefaultTimeout()
+			Expect(push).Should(Exit(0))
+		}
+
 		if !IsRemote() { // Remote does not support --digestfile
 			// Test --digestfile option
 			push2 := podmanTest.Podman([]string{"push", "--tls-verify=false", "--digestfile=/tmp/digestfile.txt", "--remove-signatures", ALPINE, "localhost:5000/my-alpine"})
@@ -259,6 +270,25 @@ var _ = Describe("Podman push", func() {
 		push = podmanTest.Podman([]string{"push", "--creds=podmantest:test", ALPINE, "localhost:5000/defaultflags"})
 		push.WaitWithDefaultTimeout()
 		Expect(push).Should(Exit(0))
+	})
+
+	It("podman push and encrypt to oci", func() {
+		SkipIfRemote("Remote push neither supports oci transport, nor encryption")
+
+		bbdir := filepath.Join(podmanTest.TempDir, "busybox-oci")
+
+		bitSize := 1024
+		keyFileName := filepath.Join(podmanTest.TempDir, "key")
+		publicKeyFileName, _, err := WriteRSAKeyPair(keyFileName, bitSize)
+		Expect(err).To(BeNil())
+
+		session := podmanTest.Podman([]string{"push", "--encryption-key", "jwe:" + publicKeyFileName, ALPINE, fmt.Sprintf("oci:%s", bbdir)})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"rmi", ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
 	})
 
 	It("podman push to docker-archive", func() {
