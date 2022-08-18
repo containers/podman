@@ -1,9 +1,12 @@
 package bindings_test
 
 import (
+	"bytes"
+	"fmt"
 	"net/http"
 	"time"
 
+	podmanRegistry "github.com/containers/podman/v4/hack/podman-registry-go"
 	"github.com/containers/podman/v4/pkg/bindings"
 	"github.com/containers/podman/v4/pkg/bindings/images"
 	"github.com/containers/podman/v4/pkg/bindings/manifests"
@@ -12,7 +15,7 @@ import (
 	"github.com/onsi/gomega/gexec"
 )
 
-var _ = Describe("podman manifest", func() {
+var _ = Describe("Podman manifests", func() {
 	var (
 		bt *bindingTest
 		s  *gexec.Session
@@ -172,7 +175,21 @@ var _ = Describe("podman manifest", func() {
 		Expect(list.Manifests[0].Platform.OS).To(Equal("foo"))
 	})
 
-	It("push manifest", func() {
-		Skip("TODO: implement test for manifest push to registry")
+	It("Manifest Push", func() {
+		registry, err := podmanRegistry.Start()
+		Expect(err).To(BeNil())
+
+		name := "quay.io/libpod/foobar:latest"
+		_, err = manifests.Create(bt.conn, name, []string{alpine.name}, nil)
+		Expect(err).ToNot(HaveOccurred())
+
+		var writer bytes.Buffer
+		pushOpts := new(images.PushOptions).WithUsername(registry.User).WithPassword(registry.Password).WithAll(true).WithSkipTLSVerify(true).WithProgressWriter(&writer).WithQuiet(false)
+		_, err = manifests.Push(bt.conn, name, fmt.Sprintf("localhost:%s/test:latest", registry.Port), pushOpts)
+		Expect(err).ToNot(HaveOccurred())
+
+		output := writer.String()
+		Expect(output).To(ContainSubstring("Writing manifest list to image destination"))
+		Expect(output).To(ContainSubstring("Storing list signatures"))
 	})
 })

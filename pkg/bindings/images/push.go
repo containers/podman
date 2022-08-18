@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"strconv"
@@ -58,12 +57,14 @@ func Push(ctx context.Context, source string, destination string, options *PushO
 		return response.Process(err)
 	}
 
-	// Historically push writes status to stderr
-	writer := io.Writer(os.Stderr)
+	var writer io.Writer
 	if options.GetQuiet() {
-		writer = ioutil.Discard
+		writer = io.Discard
 	} else if progressWriter := options.GetProgressWriter(); progressWriter != nil {
 		writer = progressWriter
+	} else {
+		// Historically push writes status to stderr
+		writer = os.Stderr
 	}
 
 	dec := json.NewDecoder(response.Body)

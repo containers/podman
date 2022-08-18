@@ -182,6 +182,8 @@ type PullOptions struct {
 	Policy *string
 	// Password for authenticating against the registry.
 	Password *string
+	// ProgressWriter is a writer where pull progress are sent.
+	ProgressWriter *io.Writer
 	// Quiet can be specified to suppress pull progress when pulling.  Ignored
 	// for remote calls.
 	Quiet *bool

@@ -545,4 +545,18 @@ var _ = Describe("Podman pull", func() {
 		Expect(data[0]).To(HaveField("Os", runtime.GOOS))
 		Expect(data[0]).To(HaveField("Architecture", "arm64"))
 	})
+
+	It("podman pull progress", func() {
+		session := podmanTest.Podman([]string{"pull", ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		output := session.ErrorToString()
+		Expect(output).To(ContainSubstring("Getting image source signatures"))
+		Expect(output).To(ContainSubstring("Copying blob "))
+
+		session = podmanTest.Podman([]string{"pull", "-q", ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.ErrorToString()).To(BeEmpty())
+	})
 })
