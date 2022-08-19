@@ -1,8 +1,12 @@
 package libpod
 
 import (
+	"bufio"
 	"fmt"
+	"math"
+	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 
 	"github.com/containers/common/pkg/apparmor"
@@ -85,4 +89,44 @@ func (r *Runtime) setPlatformHostInfo(info *define.HostInfo) error {
 	}
 
 	return nil
+}
+
+func statToPercent(stats []string) (*define.CPUUsage, error) {
+	userTotal, err := strconv.ParseFloat(stats[1], 64)
+	if err != nil {
+		return nil, fmt.Errorf("unable to parse user value %q: %w", stats[1], err)
+	}
+	systemTotal, err := strconv.ParseFloat(stats[3], 64)
+	if err != nil {
+		return nil, fmt.Errorf("unable to parse system value %q: %w", stats[3], err)
+	}
+	idleTotal, err := strconv.ParseFloat(stats[4], 64)
+	if err != nil {
+		return nil, fmt.Errorf("unable to parse idle value %q: %w", stats[4], err)
+	}
+	total := userTotal + systemTotal + idleTotal
+	s := define.CPUUsage{
+		UserPercent:   math.Round((userTotal/total*100)*100) / 100,
+		SystemPercent: math.Round((systemTotal/total*100)*100) / 100,
+		IdlePercent:   math.Round((idleTotal/total*100)*100) / 100,
+	}
+	return &s, nil
+}
+
+// getCPUUtilization Returns a CPUUsage object that summarizes CPU
+// usage for userspace, system, and idle time.
+func getCPUUtilization() (*define.CPUUsage, error) {
+	f, err := os.Open("/proc/stat")
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	scanner := bufio.NewScanner(f)
+	// Read first line of /proc/stat that has entries for system ("cpu" line)
+	for scanner.Scan() {
+		break
+	}
+	// column 1 is user, column 3 is system, column 4 is idle
+	stats := strings.Fields(scanner.Text())
+	return statToPercent(stats)
 }
