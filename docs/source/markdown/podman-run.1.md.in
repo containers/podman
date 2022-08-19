@@ -745,6 +745,11 @@ The rootless option `--userns=keep-id` uses all the subuids and subgids of the u
 
 **keep-id**: creates a user namespace where the current rootless user's UID:GID are mapped to the same values in the container. This option is not allowed for containers created by the root user.
 
+  Valid `keep-id` options:
+
+  - *uid*=UID: override the UID inside the container that will be used to map the current rootless user to.
+  - *gid*=GID: override the GID inside the container that will be used to map the current rootless user to.
+
 **nomap**: creates a user namespace where the current rootless user's UID:GID are not mapped into the container. This option is not allowed for containers created by the root user.
 
 **ns:**_namespace_: run the container in the given existing user namespace.
