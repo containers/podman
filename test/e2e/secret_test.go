@@ -145,6 +145,36 @@ var _ = Describe("Podman secret", func() {
 
 	})
 
+	It("podman secret ls --quiet", func() {
+		secretFilePath := filepath.Join(podmanTest.TempDir, "secret")
+		err := ioutil.WriteFile(secretFilePath, []byte("mysecret"), 0755)
+		Expect(err).To(BeNil())
+
+		secretName := "a"
+
+		session := podmanTest.Podman([]string{"secret", "create", secretName, secretFilePath})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		secretID := session.OutputToString()
+
+		list := podmanTest.Podman([]string{"secret", "ls", "-q"})
+		list.WaitWithDefaultTimeout()
+		Expect(list).Should(Exit(0))
+		Expect(list.OutputToString()).To(Equal(secretID))
+
+		list = podmanTest.Podman([]string{"secret", "ls", "--quiet"})
+		list.WaitWithDefaultTimeout()
+		Expect(list).Should(Exit(0))
+		Expect(list.OutputToString()).To(Equal(secretID))
+
+		// Prefer format over quiet
+		list = podmanTest.Podman([]string{"secret", "ls", "-q", "--format", "{{.Name}}"})
+		list.WaitWithDefaultTimeout()
+		Expect(list).Should(Exit(0))
+		Expect(list.OutputToString()).To(Equal(secretName))
+
+	})
+
 	It("podman secret ls with filters", func() {
 		secretFilePath := filepath.Join(podmanTest.TempDir, "secret")
 		err := ioutil.WriteFile(secretFilePath, []byte("mysecret"), 0755)

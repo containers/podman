@@ -30,7 +30,11 @@ Format secret output using Go template.
 
 #### **--noheading**
 
-Omit the table headings from the listing of secrets.	.
+Omit the table headings from the listing of secrets.
+
+#### **--quiet**, **-q**
+
+Print secret IDs only.
 
 ## EXAMPLES
 

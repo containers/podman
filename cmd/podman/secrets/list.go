@@ -34,6 +34,7 @@ type listFlagType struct {
 	format    string
 	noHeading bool
 	filter    []string
+	quiet     bool
 }
 
 func init() {
@@ -43,13 +44,20 @@ func init() {
 	})
 
 	flags := lsCmd.Flags()
+
 	formatFlagName := "format"
 	flags.StringVar(&listFlag.format, formatFlagName, "{{.ID}}\t{{.Name}}\t{{.Driver}}\t{{.CreatedAt}}\t{{.UpdatedAt}}\t\n", "Format volume output using Go template")
 	_ = lsCmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(&entities.SecretInfoReport{}))
+
 	filterFlagName := "filter"
 	flags.StringSliceVarP(&listFlag.filter, filterFlagName, "f", []string{}, "Filter secret output")
 	_ = lsCmd.RegisterFlagCompletionFunc(filterFlagName, common.AutocompleteSecretFilters)
-	flags.BoolVar(&listFlag.noHeading, "noheading", false, "Do not print headers")
+
+	noHeadingFlagName := "noheading"
+	flags.BoolVar(&listFlag.noHeading, noHeadingFlagName, false, "Do not print headers")
+
+	quietFlagName := "quiet"
+	flags.BoolVarP(&listFlag.quiet, quietFlagName, "q", false, "Print secret IDs only")
 }
 
 func ls(cmd *cobra.Command, args []string) error {
@@ -76,7 +84,19 @@ func ls(cmd *cobra.Command, args []string) error {
 			Driver:    response.Spec.Driver.Name,
 		})
 	}
+
+	if listFlag.quiet && !cmd.Flags().Changed("format") {
+		return quietOut(listed)
+	}
+
 	return outputTemplate(cmd, listed)
+}
+
+func quietOut(responses []*entities.SecretListReport) error {
+	for _, response := range responses {
+		fmt.Println(response.ID)
+	}
+	return nil
 }
 
 func outputTemplate(cmd *cobra.Command, responses []*entities.SecretListReport) error {
