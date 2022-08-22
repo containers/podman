@@ -65,8 +65,9 @@ discarded when writing images in Docker formats.
 
 Set the architecture of the image to be built, and that of the base image to be
 pulled, if the build uses one, to the provided value instead of using the
-architecture of the build host. (Examples: arm, arm64, 386, amd64, ppc64le,
-s390x)
+architecture of the build host. Unless overridden, subsequent lookups of the
+same image in the local storage will match this architecture, regardless of the
+host. (Examples: arm, arm64, 386, amd64, ppc64le, s390x)
 
 @@option authfile
 
@@ -454,7 +455,8 @@ do not include `History` information in their images.
 
 Set the OS of the image to be built, and that of the base image to be pulled,
 if the build uses one, instead of using the current operating system of the
-build host.
+build host. Unless overridden, subsequent lookups of the same image in the
+local storage will match this OS, regardless of the host.
 
 #### **--os-feature**=*feature*
 
@@ -506,9 +508,12 @@ process.
 
 Set the *os/arch* of the built image (and its base image, if your build uses one)
 to the provided value instead of using the current operating system and
-architecture of the host (for example `linux/arm`). If `--platform` is set,
-then the values of the `--arch`, `--os`, and `--variant` options will be
-overridden.
+architecture of the host (for example `linux/arm`).  Unless overridden,
+subsequent lookups of the same image in the local storage will match this
+platform, regardless of the host.
+
+If `--platform` is set, then the values of the `--arch`, `--os`, and
+`--variant` options will be overridden.
 
 The `--platform` option can be specified more than once, or given a
 comma-separated list of values as its argument.  When more than one platform is
