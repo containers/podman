@@ -63,11 +63,7 @@ Note: This flag can only be set when using the **dir** transport
 
 Specifies the compression format to use.  Supported values are: `gzip`, `zstd` and `zstd:chunked`.  The default is `gzip` unless overridden in the containers.conf file.
 
-#### **--creds**=*[username[:password]]*
-
-The [username[:password]] to use to authenticate with the registry if required.
-If one or both values are not supplied, a command line prompt will appear and the
-value can be entered.  The password is entered without echo.
+@@option creds
 
 #### **--digestfile**=*Digestfile*
 
