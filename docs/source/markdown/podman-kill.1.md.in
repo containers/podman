@@ -16,9 +16,7 @@ The main process inside each container specified will be sent SIGKILL, or any si
 
 Signal all running and paused containers.
 
-#### **--cidfile**
-
-Read container ID from the specified file and remove the container.  Can be specified multiple times.
+@@option cidfile.read
 
 #### **--latest**, **-l**
 

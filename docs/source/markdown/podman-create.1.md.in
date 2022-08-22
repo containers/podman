@@ -105,9 +105,7 @@ Block IO relative device weight.
 
 @@option chrootdirs
 
-#### **--cidfile**=*id*
-
-Write the container ID to the file
+@@option cidfile.write
 
 @@option conmon-pidfile
 

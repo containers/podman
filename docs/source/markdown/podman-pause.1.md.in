@@ -17,9 +17,7 @@ Pauses all the processes in one or more containers.  You may use container IDs o
 
 Pause all running containers.
 
-#### **--cidfile**
-
-Read container ID from the specified file and pause the container.  Can be specified multiple times.
+@@option cidfile.read
 
 #### **--filter**, **-f**=*filter*
 
