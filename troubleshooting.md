@@ -678,23 +678,28 @@ $ podman run --rootfs /path/to/rootfs:O ....
 Modifications to the mount point are destroyed when the container
 finishes executing, similar to a tmpfs mount point being unmounted.
 
-### 26) Running containers with CPU limits fails with a permissions error
+### 26) Running containers with resource limits fails with a permissions error
 
-On some systemd-based systems, non-root users do not have CPU limit delegation
-permissions. This causes setting CPU limits to fail.
+On some systemd-based systems, non-root users do not have resource limit delegation
+permissions. This causes setting resource limits to fail.
 
 #### Symptom
 
-Running a container with a CPU limit options such as `--cpus`, `--cpu-period`,
-or `--cpu-quota` will fail with an error similar to the following:
+Running a container with a resource limit options will fail with an error similar to the following:
 
-    Error: opening file `cpu.max` for writing: Permission denied: OCI runtime permission denied error
+`--cpus`, `--cpu-period`, `--cpu-quota`, `--cpu-shares`:
 
-This means that CPU limit delegation is not enabled for the current user.
+    Error: OCI runtime error: crun: the requested cgroup controller `cpu` is not available
+
+`--cpuset-cpus`, `--cpuset-mems`:
+
+    Error: OCI runtime error: crun: the requested cgroup controller `cpuset` is not available
+
+This means that resource limit delegation is not enabled for the current user.
 
 #### Solution
 
-You can verify whether CPU limit delegation is enabled by running the following command:
+You can verify whether resource limit delegation is enabled by running the following command:
 
 ```console
 $ cat "/sys/fs/cgroup/user.slice/user-$(id -u).slice/user@$(id -u).service/cgroup.controllers"
@@ -704,19 +709,19 @@ Example output might be:
 
     memory pids
 
-In the above example, `cpu` is not listed, which means the current user does
-not have permission to set CPU limits.
+In the above example, `cpu` and `cpuset` are not listed, which means the current user does
+not have permission to set CPU or CPUSET limits.
 
-If you want to enable CPU limit delegation for all users, you can create the
+If you want to enable CPU or CPUSET limit delegation for all users, you can create the
 file `/etc/systemd/system/user@.service.d/delegate.conf` with the contents:
 
 ```ini
 [Service]
-Delegate=memory pids cpu io
+Delegate=memory pids cpu cpuset
 ```
 
-After logging out and logging back in, you should have permission to set CPU
-limits.
+After logging out and logging back in, you should have permission to set
+CPU and CPUSET limits.
 
 ### 26) `exec container process '/bin/sh': Exec format error` (or another binary than `bin/sh`)
 
