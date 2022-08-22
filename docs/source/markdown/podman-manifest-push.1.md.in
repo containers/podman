@@ -30,11 +30,7 @@ Please refer to containers-certs.d(5) for details. (This option is not available
 
 Specifies the compression format to use.  Supported values are: `gzip`, `zstd` and `zstd:chunked`.  The default is `gzip` unless overridden in the containers.conf file.
 
-#### **--creds**=*creds*
-
-The [username[:password]] to use to authenticate with the registry if required.
-If one or both values are not supplied, a command line prompt will appear and the
-value can be entered.  The password is entered without echo.
+@@option creds
 
 #### **--digestfile**=*Digestfile*
 
