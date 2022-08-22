@@ -347,9 +347,21 @@ func ConfigToSpec(rt *libpod.Runtime, specg *specgen.SpecGenerator, contaierID s
 	conf.Systemd = tmpSystemd
 	conf.Mounts = tmpMounts
 
-	if conf.Spec != nil && conf.Spec.Linux != nil && conf.Spec.Linux.Resources != nil {
-		if specg.ResourceLimits == nil {
-			specg.ResourceLimits = conf.Spec.Linux.Resources
+	if conf.Spec != nil {
+		if conf.Spec.Linux != nil && conf.Spec.Linux.Resources != nil {
+			if specg.ResourceLimits == nil {
+				specg.ResourceLimits = conf.Spec.Linux.Resources
+			}
+		}
+		if conf.Spec.Process != nil && conf.Spec.Process.Env != nil {
+			env := make(map[string]string)
+			for _, entry := range conf.Spec.Process.Env {
+				split := strings.Split(entry, "=")
+				if len(split) == 2 {
+					env[split[0]] = split[1]
+				}
+			}
+			specg.Env = env
 		}
 	}
 
