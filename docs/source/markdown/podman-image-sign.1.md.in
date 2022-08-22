@@ -19,12 +19,7 @@ By default, the signature will be written into `/var/lib/containers/sigstore` fo
 
 Sign all the manifests of the multi-architecture image (default false).
 
-#### **--authfile**=*path*
-
-Path of the authentication file. Default is ${XDG\_RUNTIME\_DIR}/containers/auth.json
-
-Note: You can also override the default path of the authentication file by setting the REGISTRY\_AUTH\_FILE
-environment variable. `export REGISTRY_AUTH_FILE=path`
+@@option authfile
 
 #### **--cert-dir**=*path*
 

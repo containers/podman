@@ -19,13 +19,7 @@ The list image's ID and the digest of the image's manifest.
 Push the images mentioned in the manifest list or image index, in addition to
 the list or index itself. (Default true)
 
-#### **--authfile**=*path*
-
-Path of the authentication file. Default is ${XDG\_RUNTIME\_DIR}/containers/auth.json, which is set using `podman login`.
-If the authorization state is not found there, $HOME/.docker/config.json is checked, which is set using `docker login`.
-
-Note: You can also override the default path of the authentication file by setting the REGISTRY\_AUTH\_FILE
-environment variable. `export REGISTRY_AUTH_FILE=path`
+@@option authfile
 
 #### **--cert-dir**=*path*
 
