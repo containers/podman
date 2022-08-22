@@ -723,13 +723,13 @@ Delegate=memory pids cpu cpuset
 After logging out and logging back in, you should have permission to set
 CPU and CPUSET limits.
 
-### 26) `exec container process '/bin/sh': Exec format error` (or another binary than `bin/sh`)
+### 27) `exec container process '/bin/sh': Exec format error` (or another binary than `bin/sh`)
 
 This can happen when running a container from an image for another architecture than the one you are running on.
 
 For example, if a remote repository only has, and thus send you, a `linux/arm64` _OS/ARCH_ but you run on `linux/amd64` (as happened in https://github.com/openMF/community-app/issues/3323 due to https://github.com/timbru31/docker-ruby-node/issues/564).
 
-### 27) `Error: failed to create sshClient: Connection to bastion host (ssh://user@host:22/run/user/.../podman/podman.sock) failed.: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain`
+### 28) `Error: failed to create sshClient: Connection to bastion host (ssh://user@host:22/run/user/.../podman/podman.sock) failed.: ssh: handshake failed: ssh: unable to authenticate, attempted methods [none publickey], no supported methods remain`
 
 In some situations where the client is not on the same machine as where the podman daemon is running the client key could be using a cipher not supported by the host. This indicates an issue with one's SSH config. Until remedied using podman over ssh
 with a pre-shared key will be impossible.
@@ -766,7 +766,7 @@ And now this should work:
 $ podman-remote info
 ```
 
-### 28) Rootless CNI networking fails in RHEL with Podman v2.2.1 to v3.0.1.
+### 29) Rootless CNI networking fails in RHEL with Podman v2.2.1 to v3.0.1.
 
 A failure is encountered when trying to use networking on a rootless
 container in Podman v2.2.1 through v3.0.1 on RHEL.  This error does not
@@ -785,7 +785,7 @@ instructions for building the Infra container image can be found for
 v2.2.1 [here](https://github.com/containers/podman/tree/v2.2.1-rhel/contrib/rootless-cni-infra),
 and for v3.0.1 [here](https://github.com/containers/podman/tree/v3.0.1-rhel/contrib/rootless-cni-infra).
 
-### 29) Container related firewall rules are lost after reloading firewalld
+### 30) Container related firewall rules are lost after reloading firewalld
 Container network can't be reached after `firewall-cmd --reload` and `systemctl restart firewalld` Running `podman network reload` will fix it but it has to be done manually.
 
 #### Symptom
@@ -923,7 +923,7 @@ if __name__ == "__main__":
     signal_listener()
 ```
 
-### 30) Podman run fails with `ERRO[0000] XDG_RUNTIME_DIR directory "/run/user/0" is not owned by the current user` or `Error: error creating tmpdir: mkdir /run/user/1000: permission denied`.
+### 31) Podman run fails with `ERRO[0000] XDG_RUNTIME_DIR directory "/run/user/0" is not owned by the current user` or `Error: error creating tmpdir: mkdir /run/user/1000: permission denied`.
 
 A failure is encountered when performing `podman run` with a warning `XDG_RUNTIME_DIR is pointing to a path which is not writable. Most likely podman will fail.`
 
@@ -965,7 +965,7 @@ Alternatives:
 
 * Before invoking Podman command create a valid login session for your rootless user using `loginctl enable-linger <username>`
 
-### 31) 127.0.0.1:7777 port already bound
+### 32) 127.0.0.1:7777 port already bound
 
 After deleting a VM on macOS, the initialization of subsequent VMs fails.
 
@@ -977,7 +977,7 @@ After deleting a client VM on macOS via `podman machine stop` && `podman machine
 
 You will need to remove the hanging gv-proxy process bound to the port in question. For example, if the port mentioned in the error message is 127.0.0.1:7777, you can use the command `kill -9 $(lsof -i:7777)` in order to identify and remove the hanging process which prevents you from starting a new VM on that default port.
 
-### 32) The sshd process fails to run inside of the container.
+### 33) The sshd process fails to run inside of the container.
 
 #### Symptom
 
@@ -996,7 +996,7 @@ then using podman -remote to start the container or simply by running
 something like `systemd-run podman run ...`.  In this case the
 container will only need `CAP_AUDIT_WRITE`.
 
-### 33) Container creates a file that is not owned by the user's regular UID
+### 34) Container creates a file that is not owned by the user's regular UID
 
 After running a container with rootless Podman, the non-root user sees a numerical UID and GID instead of a username and groupname.
 
@@ -1111,7 +1111,7 @@ Another variant of the same problem could occur when using
 in some way (e.g by creating them themselves, or switching the effective UID to
 a rootless user and then creates files).
 
-### 34) Passed-in devices or files can't be accessed in rootless container (UID/GID mapping problem)
+### 35) Passed-in devices or files can't be accessed in rootless container (UID/GID mapping problem)
 
 As a non-root user you have access rights to devices, files and directories that you
 want to pass into a rootless container with `--device=...`, `--volume=...` or `--mount=..`.
@@ -1208,7 +1208,7 @@ can sometimes be an alternative solution, but it forces the regular
 user's host UID to be mapped to the same UID inside the container
 so it provides less flexibility than using `--uidmap` and `--gidmap`.
 
-### 35) Images in the additional stores can be deleted even if there are containers using them
+### 36) Images in the additional stores can be deleted even if there are containers using them
 
 When an image in an additional store is used, it is not locked thus it
 can be deleted even if there are containers using it.
@@ -1223,7 +1223,7 @@ It is the user responsibility to make sure images in an additional
 store are not deleted while being used by containers in another
 store.
 
-### 36) Syncing bugfixes for podman-remote or setups using Podman API
+### 37) Syncing bugfixes for podman-remote or setups using Podman API
 
 After upgrading Podman to a newer version an issue with the earlier version of Podman still presents itself while using podman-remote.
 
@@ -1237,7 +1237,7 @@ When upgrading Podman to a particular version for the required fixes, users ofte
 
 Example: If a particular bug was fixed in `v4.1.0` then the Podman client must have version `v4.1.0` as well the Podman server must have version `v4.1.0`.
 
-### 37) Unexpected carriage returns are outputted on the terminal
+### 38) Unexpected carriage returns are outputted on the terminal
 
 When using the __--tty__ (__-t__) flag, unexpected carriage returns are outputted on the terminal.
 
