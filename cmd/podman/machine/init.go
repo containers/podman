@@ -42,7 +42,6 @@ func init() {
 	})
 	flags := initCmd.Flags()
 	cfg := registry.PodmanConfig()
-	initOpts.Username = cfg.Config.Machine.User
 
 	cpusFlagName := "cpus"
 	flags.Uint64Var(
@@ -88,6 +87,10 @@ func init() {
 		"process was rexeced",
 	)
 	_ = flags.MarkHidden("reexec")
+
+	UsernameFlagName := "username"
+	flags.StringVar(&initOpts.Username, UsernameFlagName, cfg.Machine.User, "Username used in qcow image")
+	_ = initCmd.RegisterFlagCompletionFunc(UsernameFlagName, completion.AutocompleteDefault)
 
 	ImagePathFlagName := "image-path"
 	flags.StringVar(&initOpts.ImagePath, ImagePathFlagName, cfg.Machine.Image, "Path to qcow image")
