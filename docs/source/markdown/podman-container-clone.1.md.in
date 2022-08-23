@@ -40,6 +40,8 @@ Set a number of CPUs for the container that overrides the original containers CP
 This is shorthand
 for **--cpu-period** and **--cpu-quota**, so only **--cpus** or either both the **--cpu-period** and **--cpu-quota** options can be set.
 
+This option is not supported on cgroups V1 rootless systems.
+
 @@option cpuset-cpus
 
 If none are specified, the original container's CPUset is used.
@@ -54,9 +56,13 @@ If none are specified, the original container's CPU memory nodes are used.
 
 Limit read rate (bytes per second) from a device (e.g. --device-read-bps=/dev/sda:1mb).
 
+This option is not supported on cgroups V1 rootless systems.
+
 #### **--device-write-bps**=*path*
 
 Limit write rate (bytes per second) to a device (e.g. --device-write-bps=/dev/sda:1mb)
+
+This option is not supported on cgroups V1 rootless systems.
 
 #### **--force**, **-f**
 
@@ -74,6 +80,8 @@ system's page size (the value would be very large, that's millions of trillions)
 
 If no memory limits are specified, the original container's will be used.
 
+This option is not supported on cgroups V1 rootless systems.
+
 #### **--memory-reservation**=*limit*
 
 Memory soft limit (format: `<number>[<unit>]`, where unit = b (bytes), k (kibibytes), m (mebibytes), or g (gibibytes))
@@ -83,6 +91,8 @@ or low memory, containers are forced to restrict their consumption to their
 reservation. So you should always set the value below **--memory**, otherwise the
 hard limit will take precedence. By default, memory reservation will be the same
 as memory limit from the container being cloned.
+
+This option is not supported on cgroups V1 rootless systems.
 
 #### **--memory-swap**=*limit*
 
@@ -94,6 +104,8 @@ the value of --memory if specified. Otherwise, the container being cloned will b
 The format of `LIMIT` is `<number>[<unit>]`. Unit can be `b` (bytes),
 `k` (kibibytes), `m` (mebibytes), or `g` (gibibytes). If you don't specify a
 unit, `b` is used. Set LIMIT to `-1` to enable unlimited swap.
+
+This option is not supported on cgroups V1 rootless systems.
 
 @@option memory-swappiness
 

@@ -131,6 +131,8 @@ On some systems, changing the CPU limits may not be allowed for non-root
 users. For more details, see
 https://github.com/containers/podman/blob/main/troubleshooting.md#26-running-containers-with-cpu-limits-fails-with-a-permissions-error
 
+This option is not supported on cgroups V1 rootless systems.
+
 @@option cpuset-cpus
 
 @@option cpuset-mems
@@ -165,17 +167,25 @@ Add a rule to the cgroup allowed devices list. The rule is expected to be in the
 
 Limit read rate (bytes per second) from a device (e.g. --device-read-bps=/dev/sda:1mb)
 
+This option is not supported on cgroups V1 rootless systems.
+
 #### **--device-read-iops**=*path*
 
 Limit read rate (IO per second) from a device (e.g. --device-read-iops=/dev/sda:1000)
+
+This option is not supported on cgroups V1 rootless systems.
 
 #### **--device-write-bps**=*path*
 
 Limit write rate (bytes per second) to a device (e.g. --device-write-bps=/dev/sda:1mb)
 
+This option is not supported on cgroups V1 rootless systems.
+
 #### **--device-write-iops**=*path*
 
 Limit write rate (IO per second) to a device (e.g. --device-write-iops=/dev/sda:1000)
+
+This option is not supported on cgroups V1 rootless systems.
 
 #### **--disable-content-trust**
 
@@ -366,6 +376,8 @@ RAM. If a limit of 0 is specified (not using **-m**), the container's memory is
 not limited. The actual limit may be rounded up to a multiple of the operating
 system's page size (the value would be very large, that's millions of trillions).
 
+This option is not supported on cgroups V1 rootless systems.
+
 #### **--memory-reservation**=*limit*
 
 Memory soft limit (format: `<number>[<unit>]`, where unit = b (bytes), k (kibibytes), m (mebibytes), or g (gibibytes))
@@ -375,6 +387,8 @@ or low memory, containers are forced to restrict their consumption to their
 reservation. So you should always set the value below **--memory**, otherwise the
 hard limit will take precedence. By default, memory reservation will be the same
 as memory limit.
+
+This option is not supported on cgroups V1 rootless systems.
 
 #### **--memory-swap**=*limit*
 
@@ -386,6 +400,8 @@ the value of --memory.
 The format of `LIMIT` is `<number>[<unit>]`. Unit can be `b` (bytes),
 `k` (kibibytes), `m` (mebibytes), or `g` (gibibytes). If you don't specify a
 unit, `b` is used. Set LIMIT to `-1` to enable unlimited swap.
+
+This option is not supported on cgroups V1 rootless systems.
 
 @@option memory-swappiness
 
