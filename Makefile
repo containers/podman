@@ -196,7 +196,7 @@ endif
 # include this lightweight helper binary.
 #
 GV_GITURL=https://github.com/containers/gvisor-tap-vsock.git
-GV_SHA=1382207678c2da7bc6be7d9dcf6806e862e424f8
+GV_SHA=aab0ac9367fc5142f5857c36ac2352bcb3c60ab7
 
 ###
 ### Primary entry-point targets
@@ -764,11 +764,9 @@ gvproxy: test/version/version
          git init; \
          git remote add origin $(GV_GITURL); \
          git fetch --depth 1 origin $(GV_SHA); \
-         git checkout FETCH_HEAD; make gvproxy win-sshproxy)
+         git checkout FETCH_HEAD; make win-gvproxy win-sshproxy)
 	mkdir -p bin/windows/
 	cp tmp-gv/bin/win-sshproxy.exe bin/windows/
-# workaround the build artifact naming
-	cp tmp-gv/bin/gvproxy tmp-gv/bin/gvproxy.exe
 	cp tmp-gv/bin/gvproxy.exe bin/windows/
 	rm -rf tmp-gv
 
