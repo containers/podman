@@ -149,7 +149,8 @@ func removeContainers(namesOrIDs []string, rmOptions entities.RmOptions, setExit
 		return err
 	}
 	for _, r := range responses {
-		if r.Err != nil {
+		switch {
+		case r.Err != nil:
 			if errors.Is(r.Err, define.ErrWillDeadlock) {
 				logrus.Errorf("Potential deadlock detected - please run 'podman system renumber' to resolve")
 			}
@@ -160,8 +161,10 @@ func removeContainers(namesOrIDs []string, rmOptions entities.RmOptions, setExit
 				setExitCode(r.Err)
 			}
 			errs = append(errs, r.Err)
-		} else {
+		case r.RawInput != "":
 			fmt.Println(r.RawInput)
+		default:
+			fmt.Println(r.Id)
 		}
 	}
 	return errs.PrintErrors()
