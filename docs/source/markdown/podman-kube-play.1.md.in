@@ -4,13 +4,14 @@
 podman-kube-play - Create containers, pods and volumes based on Kubernetes YAML
 
 ## SYNOPSIS
-**podman kube play** [*options*] *file.yml|-*
+**podman kube play** [*options*] *file.yml|-|https://website.io/file.yml*
 
 ## DESCRIPTION
 **podman kube play** will read in a structured file of Kubernetes YAML.  It will then recreate the containers, pods or volumes described in the YAML.  Containers within a pod are then started and the ID of the new Pod or the name of the new Volume is output. If the yaml file is specified as "-" then `podman kube play` will read the YAML file from stdin.
 Using the `--down` command line option, it is also capable of tearing down the pods created by a previous run of `podman kube play`.
 Using the `--replace` command line option, it will tear down the pods(if any) created by a previous run of `podman kube play` and recreate the pods with the Kubernetes YAML file.
 Ideally the input file would be one created by Podman (see podman-kube-generate(1)).  This would guarantee a smooth import and expected results.
+The input can also be a URL that points to a YAML file such as https://podman.io/demo.yml. `podman kube play` will read the YAML from the URL and create pods and containers from it.
 
 Currently, the supported Kubernetes kinds are:
 - Pod
@@ -300,8 +301,23 @@ Create a pod connected to two networks (called net1 and net2) with a static ip
 $ podman kube play demo.yml --network net1:ip=10.89.1.5 --network net2:ip=10.89.10.10
 52182811df2b1e73f36476003a66ec872101ea59034ac0d4d3a7b40903b955a6
 ```
-
 Please take into account that networks must be created first using podman-network-create(1).
+
+Create and teardown from a URL pointing to a YAML file
+```
+$ podman kube play https://podman.io/demo.yml
+52182811df2b1e73f36476003a66ec872101ea59034ac0d4d3a7b40903b955a6
+
+$ podman kube play --down https://podman.io/demo.yml
+Pods stopped:
+52182811df2b1e73f36476003a66ec872101ea59034ac0d4d3a7b40903b955a6
+Pods removed:
+52182811df2b1e73f36476003a66ec872101ea59034ac0d4d3a7b40903b955a6
+```
+`podman kube play --down` will not work with a URL if the YAML file the URL points to
+has been changed or altered.
+
+
 
 ## SEE ALSO
 **[podman(1)](podman.1.md)**, **[podman-kube(1)](podman-kube.1.md)**, **[podman-kube-down(1)](podman-kube-down.1.md)**, **[podman-network-create(1)](podman-network-create.1.md)**, **[podman-kube-generate(1)](podman-kube-generate.1.md)**, **[containers-certs.d(5)](https://github.com/containers/image/blob/main/docs/containers-certs.d.5.md)**
