@@ -66,11 +66,7 @@ Specifies the compression format to use.  Supported values are: `gzip`, `zstd` a
 
 After copying the image, write the digest of the resulting image to the file.  (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
 
-#### **--disable-content-trust**
-
-This is a Docker specific option to disable image verification to a Docker
-registry and is not supported by Podman.  This flag is a NOOP and provided
-solely for scripting compatibility.
+@@option disable-content-trust
 
 #### **--format**, **-f**=*format*
 
