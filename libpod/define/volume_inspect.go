@@ -57,7 +57,7 @@ type InspectVolumeData struct {
 	// UID/GID.
 	NeedsChown bool `json:"NeedsChown,omitempty"`
 	// Timeout is the specified driver timeout if given
-	Timeout int `json:"Timeout,omitempty"`
+	Timeout uint `json:"Timeout,omitempty"`
 }
 
 type VolumeReload struct {

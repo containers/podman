@@ -19,6 +19,7 @@ import (
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/storage/pkg/lockfile"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/sys/unix"
 )
 
 type cniNetwork struct {
@@ -62,6 +63,8 @@ type InitConfig struct {
 	CNIConfigDir string
 	// CNIPluginDirs is a list of directories where cni should look for the plugins.
 	CNIPluginDirs []string
+	// RunDir is a directory where temporary files can be stored.
+	RunDir string
 
 	// DefaultNetwork is the name for the default network.
 	DefaultNetwork string
@@ -81,7 +84,16 @@ func NewCNINetworkInterface(conf *InitConfig) (types.ContainerNetwork, error) {
 	// TODO: consider using a shared memory lock
 	lock, err := lockfile.GetLockfile(filepath.Join(conf.CNIConfigDir, "cni.lock"))
 	if err != nil {
-		return nil, err
+		// If we're on a read-only filesystem, there is no risk of
+		// contention. Fall back to a local lockfile.
+		if errors.Is(err, unix.EROFS) {
+			lock, err = lockfile.GetLockfile(filepath.Join(conf.RunDir, "cni.lock"))
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			return nil, err
+		}
 	}
 
 	defaultNetworkName := conf.DefaultNetwork
