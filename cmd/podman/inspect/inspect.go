@@ -201,7 +201,7 @@ func (i *inspector) inspect(namesOrIDs []string) error {
 		err = printJSON(data)
 	default:
 		// Landing here implies user has given a custom --format
-		row := inspectNormalize(i.options.Format)
+		row := inspectNormalize(i.options.Format, tmpType)
 		row = report.NormalizeFormat(row)
 		row = report.EnforceRange(row)
 		err = printTmpl(tmpType, row, data)
@@ -300,7 +300,7 @@ func (i *inspector) inspectAll(ctx context.Context, namesOrIDs []string) ([]inte
 	return data, allErrs, nil
 }
 
-func inspectNormalize(row string) string {
+func inspectNormalize(row string, inspectType string) string {
 	m := regexp.MustCompile(`{{\s*\.Id\s*}}`)
 	row = m.ReplaceAllString(row, "{{.ID}}")
 
@@ -309,5 +309,18 @@ func inspectNormalize(row string) string {
 		".Dst", ".Destination",
 		".ImageID", ".Image",
 	)
+
+	// If inspect type is `image` we need to replace
+	// certain additional fields like `.Config.HealthCheck`
+	// but don't want to replace them for other inspect types.
+	if inspectType == common.ImageType {
+		r = strings.NewReplacer(
+			".Src", ".Source",
+			".Dst", ".Destination",
+			".ImageID", ".Image",
+			".Config.Healthcheck", ".HealthCheck",
+		)
+	}
+
 	return r.Replace(row)
 }
