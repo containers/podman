@@ -87,6 +87,7 @@ var _ = Describe("Podman container clone", func() {
 	})
 
 	It("podman container clone resource limits override", func() {
+		SkipIfRootlessCgroupsV1("Not supported for rootless + CgroupsV1")
 		create := podmanTest.Podman([]string{"create", "--cpus=5", ALPINE})
 		create.WaitWithDefaultTimeout()
 		Expect(create).To(Exit(0))
