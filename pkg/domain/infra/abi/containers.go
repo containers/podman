@@ -381,7 +381,7 @@ func (ic *ContainerEngine) ContainerRm(ctx context.Context, namesOrIds []string,
 	// this will fail and code will fall through to removing the container from libpod.`
 	tmpNames := []string{}
 	for _, ctr := range names {
-		report := reports.RmReport{Id: ctr, RawInput: ctr}
+		report := reports.RmReport{Id: ctr}
 		report.Err = ic.Libpod.RemoveStorageContainer(ctr, options.Force)
 		//nolint:gocritic
 		if report.Err == nil {
@@ -938,13 +938,15 @@ func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []stri
 	if err != nil {
 		return nil, err
 	}
+	idToRawInput := map[string]string{}
+	if len(rawInputs) == len(ctrs) {
+		for i := range ctrs {
+			idToRawInput[ctrs[i].ID()] = rawInputs[i]
+		}
+	}
 	// There can only be one container if attach was used
 	for i := range ctrs {
 		ctr := ctrs[i]
-		rawInput := ctr.ID()
-		if !options.All {
-			rawInput = rawInputs[i]
-		}
 		ctrState, err := ctr.State()
 		if err != nil {
 			return nil, err
@@ -958,7 +960,7 @@ func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []stri
 				// Exit cleanly immediately
 				reports = append(reports, &entities.ContainerStartReport{
 					Id:       ctr.ID(),
-					RawInput: rawInput,
+					RawInput: idToRawInput[ctr.ID()],
 					Err:      nil,
 					ExitCode: 0,
 				})
@@ -969,7 +971,7 @@ func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []stri
 				logrus.Debugf("Deadlock error: %v", err)
 				reports = append(reports, &entities.ContainerStartReport{
 					Id:       ctr.ID(),
-					RawInput: rawInput,
+					RawInput: idToRawInput[ctr.ID()],
 					Err:      err,
 					ExitCode: define.ExitCode(err),
 				})
@@ -979,7 +981,7 @@ func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []stri
 			if ctrRunning {
 				reports = append(reports, &entities.ContainerStartReport{
 					Id:       ctr.ID(),
-					RawInput: rawInput,
+					RawInput: idToRawInput[ctr.ID()],
 					Err:      nil,
 					ExitCode: 0,
 				})
@@ -989,7 +991,7 @@ func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []stri
 			if err != nil {
 				reports = append(reports, &entities.ContainerStartReport{
 					Id:       ctr.ID(),
-					RawInput: rawInput,
+					RawInput: idToRawInput[ctr.ID()],
 					Err:      err,
 					ExitCode: exitCode,
 				})
@@ -1004,7 +1006,7 @@ func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []stri
 			exitCode = ic.GetContainerExitCode(ctx, ctr)
 			reports = append(reports, &entities.ContainerStartReport{
 				Id:       ctr.ID(),
-				RawInput: rawInput,
+				RawInput: idToRawInput[ctr.ID()],
 				Err:      err,
 				ExitCode: exitCode,
 			})
@@ -1017,7 +1019,7 @@ func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []stri
 			// If the container is in a pod, also set to recursively start dependencies
 			report := &entities.ContainerStartReport{
 				Id:       ctr.ID(),
-				RawInput: rawInput,
+				RawInput: idToRawInput[ctr.ID()],
 				ExitCode: 125,
 			}
 			if err := ctr.Start(ctx, true); err != nil {
