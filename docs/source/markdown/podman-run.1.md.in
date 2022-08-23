@@ -206,11 +206,7 @@ Limit write rate (in IO operations per second) to a device (e.g. **--device-writ
 
 This option is not supported on cgroups V1 rootless systems.
 
-#### **--disable-content-trust**
-
-This is a Docker specific option to disable image verification to a Docker
-registry and is not supported by Podman. This flag is a NOOP and provided
-solely for scripting compatibility.
+@@option disable-content-trust
 
 #### **--dns**=*ipaddr*
 

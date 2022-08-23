@@ -57,11 +57,7 @@ All tagged images in the repository will be pulled.
 
 @@option creds
 
-#### **--disable-content-trust**
-
-This is a Docker specific option to disable image verification to a Docker
-registry and is not supported by Podman.  This flag is a NOOP and provided
-solely for scripting compatibility.
+@@option disable-content-trust
 
 #### **--help**, **-h**
 

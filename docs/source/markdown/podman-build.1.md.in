@@ -230,11 +230,7 @@ registries, and images being written to local storage would only need to be
 decompressed again to be stored.  Compression can be forced in all cases by
 specifying **--disable-compression=false**.
 
-#### **--disable-content-trust**
-
-This is a Docker specific option to disable image verification to a container
-registry and is not supported by Podman.  This option is a NOOP and provided
-solely for scripting compatibility. (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
+@@option disable-content-trust
 
 #### **--dns**=*dns*
 
