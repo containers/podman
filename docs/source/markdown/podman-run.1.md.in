@@ -178,9 +178,7 @@ Podman may load kernel modules required for using the specified
 device. The devices that Podman will load modules when necessary are:
 /dev/fuse.
 
-#### **--device-cgroup-rule**=*rule*
-
-Add a rule to the cgroup allowed devices list
+@@option device-cgroup-rule
 
 #### **--device-read-bps**=*path:rate*
 
