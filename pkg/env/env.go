@@ -37,6 +37,22 @@ func Slice(m map[string]string) []string {
 	return env
 }
 
+// Map transforms the specified slice of environment variables into a
+// map.
+func Map(slice []string) map[string]string {
+	envmap := make(map[string]string, len(slice))
+	for _, val := range slice {
+		data := strings.SplitN(val, "=", 2)
+
+		if len(data) > 1 {
+			envmap[data[0]] = data[1]
+		} else {
+			envmap[data[0]] = ""
+		}
+	}
+	return envmap
+}
+
 // Join joins the two environment maps with override overriding base.
 func Join(base map[string]string, override map[string]string) map[string]string {
 	if len(base) == 0 {
@@ -87,10 +103,6 @@ func parseEnv(env map[string]string, line string) error {
 	}
 	// trim the front of a variable, but nothing else
 	name := strings.TrimLeft(data[0], whiteSpaces)
-	if strings.ContainsAny(name, whiteSpaces) {
-		return fmt.Errorf("name %q has white spaces, poorly formatted name", name)
-	}
-
 	if len(data) > 1 {
 		env[name] = data[1]
 	} else {

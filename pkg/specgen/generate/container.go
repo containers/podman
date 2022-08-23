@@ -139,10 +139,8 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 	}
 	// First transform the os env into a map. We need it for the labels later in
 	// any case.
-	osEnv, err := envLib.ParseSlice(os.Environ())
-	if err != nil {
-		return nil, fmt.Errorf("error parsing host environment variables: %w", err)
-	}
+	osEnv := envLib.Map(os.Environ())
+
 	// Caller Specified defaults
 	if s.EnvHost {
 		defaultEnvs = envLib.Join(defaultEnvs, osEnv)
