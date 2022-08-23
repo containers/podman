@@ -1,5 +1,5 @@
-//go:build !darwin && !windows
-// +build !darwin,!windows
+//go:build !darwin
+// +build !darwin
 
 package qemu
 
