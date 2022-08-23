@@ -19,11 +19,7 @@ Remove all pods.  Can be used in conjunction with \-f as well.
 
 Stop running containers and delete all stopped containers before removal of pod.
 
-#### **--ignore**, **-i**
-
-Ignore errors when specified pods are not in the container store.  A user might
-have decided to manually remove a pod which would lead to a failure during the
-ExecStop directive of a systemd service referencing that pod.
+@@option ignore
 
 #### **--latest**, **-l**
 
