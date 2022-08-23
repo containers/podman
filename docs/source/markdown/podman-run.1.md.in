@@ -120,9 +120,7 @@ each of **stdin**, **stdout**, and **stderr**.
 
 @@option chrootdirs
 
-#### **--cidfile**=*file*
-
-Write the container ID to *file*.
+@@option cidfile.write
 
 @@option conmon-pidfile
 
