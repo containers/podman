@@ -3,6 +3,7 @@ podman-build.1.md
 podman-container-clone.1.md
 podman-container-runlabel.1.md
 podman-create.1.md
+podman-exec.1.md
 podman-image-sign.1.md
 podman-kill.1.md
 podman-kube-play.1.md
