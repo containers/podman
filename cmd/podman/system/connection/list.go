@@ -105,8 +105,9 @@ func inspect(cmd *cobra.Command, args []string) error {
 		r := namedDestination{
 			Name: k,
 			Destination: config.Destination{
-				Identity: v.Identity,
-				URI:      v.URI,
+				Identity:  v.Identity,
+				URI:       v.URI,
+				IsMachine: v.IsMachine,
 			},
 			Default: def,
 		}

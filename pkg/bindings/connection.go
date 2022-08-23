@@ -59,7 +59,7 @@ func JoinURL(elements ...string) string {
 
 // NewConnection creates a new service connection without an identity
 func NewConnection(ctx context.Context, uri string) (context.Context, error) {
-	return NewConnectionWithIdentity(ctx, uri, "")
+	return NewConnectionWithIdentity(ctx, uri, "", false)
 }
 
 // NewConnectionWithIdentity takes a URI as a string and returns a context with the
@@ -70,7 +70,7 @@ func NewConnection(ctx context.Context, uri string) (context.Context, error) {
 // For example tcp://localhost:<port>
 // or unix:///run/podman/podman.sock
 // or ssh://<user>@<host>[:port]/run/podman/podman.sock?secure=True
-func NewConnectionWithIdentity(ctx context.Context, uri string, identity string) (context.Context, error) {
+func NewConnectionWithIdentity(ctx context.Context, uri string, identity string, machine bool) (context.Context, error) {
 	var (
 		err error
 	)
@@ -96,10 +96,11 @@ func NewConnectionWithIdentity(ctx context.Context, uri string, identity string)
 			return nil, err
 		}
 		conn, err := ssh.Dial(&ssh.ConnectionDialOptions{
-			Host:     uri,
-			Identity: identity,
-			User:     _url.User,
-			Port:     port,
+			Host:                        uri,
+			Identity:                    identity,
+			User:                        _url.User,
+			Port:                        port,
+			InsecureIsMachineConnection: machine,
 		}, "golang")
 		if err != nil {
 			return nil, err

@@ -27,12 +27,13 @@ type ConnectionCreateOptions struct {
 }
 
 type ConnectionDialOptions struct {
-	Host     string
-	Identity string
-	User     *url.Userinfo
-	Port     int
-	Auth     []string
-	Timeout  time.Duration
+	Host                        string
+	Identity                    string
+	User                        *url.Userinfo
+	Port                        int
+	Auth                        []string
+	Timeout                     time.Duration
+	InsecureIsMachineConnection bool
 }
 
 type ConnectionDialReport struct {

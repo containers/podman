@@ -3,6 +3,7 @@ package ssh
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -70,7 +71,7 @@ func golangConnectionDial(options ConnectionDialOptions) (*ConnectionDialReport,
 	if err != nil {
 		return nil, err
 	}
-	cfg, err := ValidateAndConfigure(uri, options.Identity)
+	cfg, err := ValidateAndConfigure(uri, options.Identity, options.InsecureIsMachineConnection)
 	if err != nil {
 		return nil, err
 	}
@@ -84,12 +85,15 @@ func golangConnectionDial(options ConnectionDialOptions) (*ConnectionDialReport,
 }
 
 func golangConnectionExec(options ConnectionExecOptions) (*ConnectionExecReport, error) {
+	if !strings.HasPrefix(options.Host, "ssh://") {
+		options.Host = "ssh://" + options.Host
+	}
 	_, uri, err := Validate(options.User, options.Host, options.Port, options.Identity)
 	if err != nil {
 		return nil, err
 	}
 
-	cfg, err := ValidateAndConfigure(uri, options.Identity)
+	cfg, err := ValidateAndConfigure(uri, options.Identity, false)
 	if err != nil {
 		return nil, err
 	}
@@ -111,11 +115,15 @@ func golangConnectionScp(options ConnectionScpOptions) (*ConnectionScpReport, er
 		return nil, err
 	}
 
+	// removed for parsing
+	if !strings.HasPrefix(host, "ssh://") {
+		host = "ssh://" + host
+	}
 	_, uri, err := Validate(options.User, host, options.Port, options.Identity)
 	if err != nil {
 		return nil, err
 	}
-	cfg, err := ValidateAndConfigure(uri, options.Identity)
+	cfg, err := ValidateAndConfigure(uri, options.Identity, false)
 	if err != nil {
 		return nil, err
 	}
@@ -209,7 +217,7 @@ func GetUserInfo(uri *url.URL) (*url.Userinfo, error) {
 // ValidateAndConfigure will take a ssh url and an identity key (rsa and the like) and ensure the information given is valid
 // iden iden can be blank to mean no identity key
 // once the function validates the information it creates and returns an ssh.ClientConfig.
-func ValidateAndConfigure(uri *url.URL, iden string) (*ssh.ClientConfig, error) {
+func ValidateAndConfigure(uri *url.URL, iden string, insecureIsMachineConnection bool) (*ssh.ClientConfig, error) {
 	var signers []ssh.Signer
 	passwd, passwdSet := uri.User.Password()
 	if iden != "" { // iden might be blank if coming from image scp or if no validation is needed
@@ -272,23 +280,61 @@ func ValidateAndConfigure(uri *url.URL, iden string) (*ssh.ClientConfig, error) 
 	if err != nil {
 		return nil, err
 	}
-	keyFilePath := filepath.Join(homedir.Get(), ".ssh", "known_hosts")
-	known, err := knownhosts.New(keyFilePath)
-	if err != nil {
-		return nil, fmt.Errorf("creating host key callback function for %s: %w", keyFilePath, err)
+
+	var callback ssh.HostKeyCallback
+	if insecureIsMachineConnection {
+		callback = ssh.InsecureIgnoreHostKey()
+	} else {
+		callback = ssh.HostKeyCallback(func(host string, remote net.Addr, pubKey ssh.PublicKey) error {
+			keyFilePath := filepath.Join(homedir.Get(), ".ssh", "known_hosts")
+			known, err := knownhosts.New(keyFilePath)
+			if err != nil {
+				if errors.Is(err, os.ErrNotExist) {
+					logrus.Warn("please create a known_hosts file. The next time this host is connected to, podman will add it to known_hosts")
+					return nil
+				}
+				return err
+			}
+			// we need to check if there is an error from reading known hosts for this public key and if there is an error, what is it, and why is it happening?
+			// if it is a key mismatch we want to error since we know the host using another key
+			// however, if it is a general error not because of a known key, we want to add our key to the known_hosts file
+			hErr := known(host, remote, pubKey)
+			var keyErr *knownhosts.KeyError
+			// if keyErr.Want is not empty, we are receiving a different key meaning the host is known but we are using the wrong key
+			as := errors.As(hErr, &keyErr)
+			switch {
+			case as && len(keyErr.Want) > 0:
+				logrus.Warnf("ssh host key mismatch for host %s, got key %s of type %s", host, ssh.FingerprintSHA256(pubKey), pubKey.Type())
+				return keyErr
+			// if keyErr.Want is empty that just means we do not know this host yet, add it.
+			case as && len(keyErr.Want) == 0:
+				// write to known_hosts
+				err := addKnownHostsEntry(host, pubKey)
+				if err != nil {
+					if os.IsNotExist(err) {
+						logrus.Warn("podman will soon require a known_hosts file to function properly.")
+						return nil
+					}
+					return err
+				}
+			case hErr != nil:
+				return hErr
+			}
+			return nil
+		})
 	}
 
 	cfg := &ssh.ClientConfig{
 		User:            uri.User.Username(),
 		Auth:            authMethods,
-		HostKeyCallback: known,
+		HostKeyCallback: callback,
 		Timeout:         tick,
 	}
 	return cfg, nil
 }
 
 func getUDS(uri *url.URL, iden string) (string, error) {
-	cfg, err := ValidateAndConfigure(uri, iden)
+	cfg, err := ValidateAndConfigure(uri, iden, false)
 	if err != nil {
 		return "", fmt.Errorf("failed to validate: %w", err)
 	}
@@ -323,4 +369,21 @@ func getUDS(uri *url.URL, iden string) (string, error) {
 		return "", fmt.Errorf("remote podman %q failed to report its UDS socket", uri.Host)
 	}
 	return info.Host.RemoteSocket.Path, nil
+}
+
+// addKnownHostsEntry adds (host, pubKey) to user’s known_hosts.
+func addKnownHostsEntry(host string, pubKey ssh.PublicKey) error {
+	hd := homedir.Get()
+	known := filepath.Join(hd, ".ssh", "known_hosts")
+	f, err := os.OpenFile(known, os.O_APPEND|os.O_WRONLY, 0o600)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	l := knownhosts.Line([]string{host}, pubKey)
+	if _, err = f.WriteString("\n" + l + "\n"); err != nil {
+		return err
+	}
+	logrus.Infof("key %s added to %s", ssh.FingerprintSHA256(pubKey), known)
+	return nil
 }

@@ -63,6 +63,9 @@ func toPlatformString(os, arch, variant string) string {
 //  * 2) a bool indicating whether architecture, os or variant were set (some callers need that to decide whether they need to throw an error)
 //  * 3) a fatal error that occurred prior to check for matches (e.g., storage errors etc.)
 func (i *Image) matchesPlatform(ctx context.Context, os, arch, variant string) (error, bool, error) {
+	if err := i.isCorrupted(""); err != nil {
+		return err, false, nil
+	}
 	inspectInfo, err := i.inspectInfo(ctx)
 	if err != nil {
 		return nil, false, fmt.Errorf("inspecting image: %w", err)

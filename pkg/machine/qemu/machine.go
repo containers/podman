@@ -405,6 +405,7 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 		WritePath: v.getIgnitionFile(),
 		UID:       v.UID,
 	}
+
 	err = machine.NewIgnitionFile(ign)
 	return err == nil, err
 }
@@ -1033,7 +1034,7 @@ func (v *MachineVM) SSH(_ string, opts machine.SSHOptions) error {
 	sshDestination := username + "@localhost"
 	port := strconv.Itoa(v.Port)
 
-	args := []string{"-i", v.IdentityPath, "-p", port, sshDestination, "-o", "UserKnownHostsFile=/dev/null",
+	args := []string{"-i", v.IdentityPath, "-p", port, sshDestination,
 		"-o", "StrictHostKeyChecking=no", "-o", "LogLevel=ERROR", "-o", "SetEnv=LC_ALL="}
 	if len(opts.Args) > 0 {
 		args = append(args, opts.Args...)
