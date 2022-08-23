@@ -3,6 +3,7 @@ package plugin
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -13,8 +14,7 @@ import (
 	"sync"
 	"time"
 
-	"errors"
-
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/docker/go-plugins-helpers/sdk"
 	"github.com/docker/go-plugins-helpers/volume"
@@ -40,7 +40,6 @@ var (
 )
 
 const (
-	defaultTimeout   = 5 * time.Second
 	volumePluginType = "VolumeDriver"
 )
 
@@ -129,7 +128,7 @@ func validatePlugin(newPlugin *VolumePlugin) error {
 
 // GetVolumePlugin gets a single volume plugin, with the given name, at the
 // given path.
-func GetVolumePlugin(name string, path string, timeout int) (*VolumePlugin, error) {
+func GetVolumePlugin(name string, path string, timeout *uint, cfg *config.Config) (*VolumePlugin, error) {
 	pluginsLock.Lock()
 	defer pluginsLock.Unlock()
 
@@ -152,13 +151,11 @@ func GetVolumePlugin(name string, path string, timeout int) (*VolumePlugin, erro
 	// Need an HTTP client to force a Unix connection.
 	// And since we can reuse it, might as well cache it.
 	client := new(http.Client)
-	client.Timeout = defaultTimeout
-	// if the user specified a non-zero timeout, use their value. Else, keep the default.
-	if timeout != 0 {
-		if time.Duration(timeout)*time.Second < defaultTimeout {
-			logrus.Warnf("the default timeout for volume creation is %d seconds, setting a time less than that may break this feature.", defaultTimeout)
-		}
-		client.Timeout = time.Duration(timeout) * time.Second
+	client.Timeout = 5 * time.Second
+	if timeout != nil {
+		client.Timeout = time.Duration(*timeout) * time.Second
+	} else if cfg != nil {
+		client.Timeout = time.Duration(cfg.Engine.VolumePluginTimeout) * time.Second
 	}
 	// This bit borrowed from pkg/bindings/connection.go
 	client.Transport = &http.Transport{

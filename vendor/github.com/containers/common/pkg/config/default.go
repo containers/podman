@@ -168,6 +168,8 @@ const (
 	SeccompOverridePath = _etcDir + "/containers/seccomp.json"
 	// SeccompDefaultPath defines the default seccomp path.
 	SeccompDefaultPath = _installPrefix + "/share/containers/seccomp.json"
+	// DefaultVolumePluginTimeout is the default volume plugin timeout, in seconds
+	DefaultVolumePluginTimeout = 5
 )
 
 // DefaultConfig defines the default values from containers.conf.
@@ -264,7 +266,7 @@ func defaultMachineConfig() MachineConfig {
 		Image:    getDefaultMachineImage(),
 		Memory:   2048,
 		User:     getDefaultMachineUser(),
-		Volumes:  []string{"$HOME:$HOME"},
+		Volumes:  getDefaultMachineVolumes(),
 	}
 }
 
@@ -303,6 +305,8 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 	c.ImageCopyTmpDir = getDefaultTmpDir()
 	c.StaticDir = filepath.Join(storeOpts.GraphRoot, "libpod")
 	c.VolumePath = filepath.Join(storeOpts.GraphRoot, "volumes")
+
+	c.VolumePluginTimeout = DefaultVolumePluginTimeout
 
 	c.HelperBinariesDir = defaultHelperBinariesDir
 	if additionalHelperBinariesDir != "" {

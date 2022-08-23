@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"sort"
 	"strings"
 	"sync"
@@ -27,6 +28,8 @@ const (
 	_configPath = "containers/containers.conf"
 	// UserOverrideContainersConfig holds the containers config path overridden by the rootless user
 	UserOverrideContainersConfig = ".config/" + _configPath
+	// Token prefix for looking for helper binary under $BINDIR
+	bindirPrefix = "$BINDIR"
 )
 
 // RuntimeStateStore is a constant indicating which state store implementation
@@ -454,6 +457,13 @@ type EngineConfig struct {
 	// may not be by other drivers.
 	VolumePath string `toml:"volume_path,omitempty"`
 
+	// VolumePluginTimeout sets the default timeout, in seconds, for
+	// operations that must contact a volume plugin. Plugins are external
+	// programs accessed via REST API; this sets a timeout for requests to
+	// that API.
+	// A value of 0 is treated as no timeout.
+	VolumePluginTimeout uint `toml:"volume_plugin_timeout,omitempty,omitzero"`
+
 	// VolumePlugins is a set of plugins that can be used as the backend for
 	// Podman named volumes. Each volume is specified as a name (what Podman
 	// will refer to the plugin as) mapped to a path, which must point to a
@@ -813,6 +823,18 @@ func (c *Config) Validate() error {
 	}
 
 	return nil
+}
+
+// URI returns the URI Path to the machine image
+func (m *MachineConfig) URI() string {
+	uri := m.Image
+	for _, val := range []string{"$ARCH", "$arch"} {
+		uri = strings.Replace(uri, val, runtime.GOARCH, 1)
+	}
+	for _, val := range []string{"$OS", "$os"} {
+		uri = strings.Replace(uri, val, runtime.GOOS, 1)
+	}
+	return uri
 }
 
 func (c *EngineConfig) findRuntime() string {
@@ -1241,10 +1263,37 @@ func (c *Config) ActiveDestination() (uri, identity string, err error) {
 	return "", "", errors.New("no service destination configured")
 }
 
+var (
+	bindirFailed = false
+	bindirCached = ""
+)
+
+func findBindir() string {
+	if bindirCached != "" || bindirFailed {
+		return bindirCached
+	}
+	execPath, err := os.Executable()
+	if err == nil {
+		// Resolve symbolic links to find the actual binary file path.
+		execPath, err = filepath.EvalSymlinks(execPath)
+	}
+	if err != nil {
+		// If failed to find executable (unlikely to happen), warn about it.
+		// The bindirFailed flag will track this, so we only warn once.
+		logrus.Warnf("Failed to find $BINDIR: %v", err)
+		bindirFailed = true
+		return ""
+	}
+	bindirCached = filepath.Dir(execPath)
+	return bindirCached
+}
+
 // FindHelperBinary will search the given binary name in the configured directories.
 // If searchPATH is set to true it will also search in $PATH.
 func (c *Config) FindHelperBinary(name string, searchPATH bool) (string, error) {
 	dirList := c.Engine.HelperBinariesDir
+	bindirPath := ""
+	bindirSearched := false
 
 	// If set, search this directory first. This is used in testing.
 	if dir, found := os.LookupEnv("CONTAINERS_HELPER_BINARY_DIR"); found {
@@ -1252,6 +1301,24 @@ func (c *Config) FindHelperBinary(name string, searchPATH bool) (string, error) 
 	}
 
 	for _, path := range dirList {
+		if path == bindirPrefix || strings.HasPrefix(path, bindirPrefix+string(filepath.Separator)) {
+			// Calculate the path to the executable first time we encounter a $BINDIR prefix.
+			if !bindirSearched {
+				bindirSearched = true
+				bindirPath = findBindir()
+			}
+			// If there's an error, don't stop the search for the helper binary.
+			// findBindir() will have warned once during the first failure.
+			if bindirPath == "" {
+				continue
+			}
+			// Replace the $BINDIR prefix with the path to the directory of the current binary.
+			if path == bindirPrefix {
+				path = bindirPath
+			} else {
+				path = filepath.Join(bindirPath, strings.TrimPrefix(path, bindirPrefix+string(filepath.Separator)))
+			}
+		}
 		fullpath := filepath.Join(path, name)
 		if fi, err := os.Stat(fullpath); err == nil && fi.Mode().IsRegular() {
 			return fullpath, nil
