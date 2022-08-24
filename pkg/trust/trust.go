@@ -18,7 +18,7 @@ type Policy struct {
 
 // PolicyDescription returns an user-focused description of the policy in policyPath and registries.d data from registriesDirPath.
 func PolicyDescription(policyPath, registriesDirPath string) ([]*Policy, error) {
-	policyContentStruct, err := GetPolicy(policyPath)
+	policyContentStruct, err := getPolicy(policyPath)
 	if err != nil {
 		return nil, fmt.Errorf("could not read trust policies: %w", err)
 	}
@@ -29,10 +29,10 @@ func PolicyDescription(policyPath, registriesDirPath string) ([]*Policy, error) 
 	return res, nil
 }
 
-func getPolicyShowOutput(policyContentStruct PolicyContent, systemRegistriesDirPath string) ([]*Policy, error) {
+func getPolicyShowOutput(policyContentStruct policyContent, systemRegistriesDirPath string) ([]*Policy, error) {
 	var output []*Policy
 
-	registryConfigs, err := LoadAndMergeConfig(systemRegistriesDirPath)
+	registryConfigs, err := loadAndMergeConfig(systemRegistriesDirPath)
 	if err != nil {
 		return nil, err
 	}
@@ -61,15 +61,15 @@ func getPolicyShowOutput(policyContentStruct PolicyContent, systemRegistriesDirP
 			uids := []string{}
 			for _, repoele := range repoval {
 				if len(repoele.KeyPath) > 0 {
-					uids = append(uids, GetGPGIdFromKeyPath(repoele.KeyPath)...)
+					uids = append(uids, getGPGIdFromKeyPath(repoele.KeyPath)...)
 				}
 				if len(repoele.KeyData) > 0 {
-					uids = append(uids, GetGPGIdFromKeyData(repoele.KeyData)...)
+					uids = append(uids, getGPGIdFromKeyData(repoele.KeyData)...)
 				}
 			}
 			tempTrustShowOutput.GPGId = strings.Join(uids, ", ")
 
-			registryNamespace := HaveMatchRegistry(repo, registryConfigs)
+			registryNamespace := haveMatchRegistry(repo, registryConfigs)
 			if registryNamespace != nil {
 				tempTrustShowOutput.SignatureStore = registryNamespace.SigStore
 			}
