@@ -250,7 +250,7 @@ github.com/containers/ocicrypt/keywrap/pkcs7
 github.com/containers/ocicrypt/spec
 github.com/containers/ocicrypt/utils
 github.com/containers/ocicrypt/utils/keyprovider
-# github.com/containers/psgo v1.7.2
+# github.com/containers/psgo v1.7.3
 ## explicit
 github.com/containers/psgo
 github.com/containers/psgo/internal/capabilities
@@ -789,7 +789,7 @@ golang.org/x/net/trace
 ## explicit
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
-# golang.org/x/sys v0.0.0-20220811171246-fbc7d0a398ab
+# golang.org/x/sys v0.0.0-20220823224334-20c2bfdbfe24
 ## explicit
 golang.org/x/sys/cpu
 golang.org/x/sys/execabs
