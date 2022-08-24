@@ -169,6 +169,7 @@ func getCniInterface(conf *config.Config) (types.ContainerNetwork, error) {
 	return cni.NewCNINetworkInterface(&cni.InitConfig{
 		CNIConfigDir:       confDir,
 		CNIPluginDirs:      conf.Network.CNIPluginDirs,
+		RunDir:             conf.Engine.TmpDir,
 		DefaultNetwork:     conf.Network.DefaultNetwork,
 		DefaultSubnet:      conf.Network.DefaultSubnet,
 		DefaultsubnetPools: conf.Network.DefaultSubnetPools,

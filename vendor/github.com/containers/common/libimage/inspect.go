@@ -190,7 +190,7 @@ func (i *Image) Inspect(ctx context.Context, options *InspectOptions) (*ImageDat
 		// NOTE: Health checks may be listed in the container config or
 		// the config.
 		data.HealthCheck = dockerManifest.ContainerConfig.Healthcheck
-		if data.HealthCheck == nil {
+		if data.HealthCheck == nil && dockerManifest.Config != nil {
 			data.HealthCheck = dockerManifest.Config.Healthcheck
 		}
 	}

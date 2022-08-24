@@ -1695,14 +1695,22 @@ func withSetAnon() VolumeCreateOption {
 	}
 }
 
-// WithVolumeDriverTimeout sets the volume creation timeout period
-func WithVolumeDriverTimeout(timeout int) VolumeCreateOption {
+// WithVolumeDriverTimeout sets the volume creation timeout period.
+// Only usable if a non-local volume driver is in use.
+func WithVolumeDriverTimeout(timeout uint) VolumeCreateOption {
 	return func(volume *Volume) error {
 		if volume.valid {
 			return define.ErrVolumeFinalized
 		}
 
-		volume.config.Timeout = timeout
+		if volume.config.Driver == "" || volume.config.Driver == define.VolumeDriverLocal {
+			return fmt.Errorf("Volume driver timeout can only be used with non-local volume drivers: %w", define.ErrInvalidArg)
+		}
+
+		tm := timeout
+
+		volume.config.Timeout = &tm
+
 		return nil
 	}
 }

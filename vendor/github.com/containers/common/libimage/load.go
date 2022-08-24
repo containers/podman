@@ -99,7 +99,7 @@ func (r *Runtime) Load(ctx context.Context, path string, options *LoadOptions) (
 }
 
 // loadMultiImageDockerArchive loads the docker archive specified by ref.  In
-// case the path@reference notation was used, only the specifiec image will be
+// case the path@reference notation was used, only the specified image will be
 // loaded.  Otherwise, all images will be loaded.
 func (r *Runtime) loadMultiImageDockerArchive(ctx context.Context, ref types.ImageReference, options *CopyOptions) ([]string, error) {
 	// If we cannot stat the path, it either does not exist OR the correct

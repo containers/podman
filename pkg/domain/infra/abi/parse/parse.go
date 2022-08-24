@@ -86,8 +86,11 @@ func VolumeOptions(opts map[string]string) ([]libpod.VolumeCreateOption, error) 
 					if err != nil {
 						return nil, fmt.Errorf("cannot convert Timeout %s to an integer: %w", splitO[1], err)
 					}
+					if intTimeout < 0 {
+						return nil, fmt.Errorf("volume timeout cannot be negative (got %d)", intTimeout)
+					}
 					logrus.Debugf("Removing timeout from options and adding WithTimeout for Timeout %d", intTimeout)
-					libpodOptions = append(libpodOptions, libpod.WithVolumeDriverTimeout(intTimeout))
+					libpodOptions = append(libpodOptions, libpod.WithVolumeDriverTimeout(uint(intTimeout)))
 				default:
 					finalVal = append(finalVal, o)
 				}
