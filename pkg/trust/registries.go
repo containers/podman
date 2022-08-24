@@ -101,22 +101,22 @@ func loadAndMergeConfig(dirPath string) (*registryConfiguration, error) {
 	return &mergedConfig, nil
 }
 
-// haveMatchRegistry returns configuration from registryConfigs that is configured for key.
-func haveMatchRegistry(key string, registryConfigs *registryConfiguration) *registryNamespace {
-	searchKey := key
-	if !strings.Contains(searchKey, "/") {
-		val, exists := registryConfigs.Docker[searchKey]
+// registriesDConfigurationForScope returns registries.d configuration for the provided scope.
+func registriesDConfigurationForScope(registryConfigs *registryConfiguration, scope string) *registryNamespace {
+	searchScope := scope
+	if !strings.Contains(searchScope, "/") {
+		val, exists := registryConfigs.Docker[searchScope]
 		if exists {
 			return &val
 		}
 	}
-	for range strings.Split(key, "/") {
-		val, exists := registryConfigs.Docker[searchKey]
+	for range strings.Split(scope, "/") {
+		val, exists := registryConfigs.Docker[searchScope]
 		if exists {
 			return &val
 		}
-		if strings.Contains(searchKey, "/") {
-			searchKey = searchKey[:strings.LastIndex(searchKey, "/")]
+		if strings.Contains(searchScope, "/") {
+			searchScope = searchScope[:strings.LastIndex(searchScope, "/")]
 		}
 	}
 	return registryConfigs.DefaultDocker

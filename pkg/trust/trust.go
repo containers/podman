@@ -98,7 +98,7 @@ func descriptionsOfPolicyRequirements(reqs []repoContent, template Policy, regis
 	}
 	entry.GPGId = strings.Join(uids, ", ")
 
-	registryNamespace := haveMatchRegistry(scope, registryConfigs)
+	registryNamespace := registriesDConfigurationForScope(registryConfigs, scope)
 	if registryNamespace != nil {
 		if registryNamespace.Lookaside != "" {
 			entry.SignatureStore = registryNamespace.Lookaside
