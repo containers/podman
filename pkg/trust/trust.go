@@ -96,21 +96,21 @@ func descriptionsOfPolicyRequirements(reqs []repoContent, template Policy, regis
 		}
 	}
 
-	entry := template
-	entry.Type = trustTypeDescription(reqs[0].Type)
-	uids := []string{}
 	for _, repoele := range reqs {
+		entry := template
+		entry.Type = trustTypeDescription(repoele.Type)
+
+		uids := []string{}
 		if len(repoele.KeyPath) > 0 {
 			uids = append(uids, idReader(repoele.KeyPath)...)
 		}
 		if len(repoele.KeyData) > 0 {
 			uids = append(uids, getGPGIdFromKeyData(idReader, repoele.KeyData)...)
 		}
+		entry.GPGId = strings.Join(uids, ", ")
+		entry.SignatureStore = lookasidePath
+		res = append(res, &entry)
 	}
-	entry.GPGId = strings.Join(uids, ", ")
-	entry.SignatureStore = lookasidePath
-
-	res = append(res, &entry)
 
 	return res
 }
