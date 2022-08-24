@@ -1541,7 +1541,7 @@ func sendmsgN(fd int, iov []Iovec, oob []byte, ptr unsafe.Pointer, salen _Sockle
 	var dummy byte
 	var empty bool
 	if len(oob) > 0 {
-		empty := emptyIovecs(iov)
+		empty = emptyIovecs(iov)
 		if empty {
 			var sockType int
 			sockType, err = GetsockoptInt(fd, SOL_SOCKET, SO_TYPE)
