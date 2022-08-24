@@ -142,16 +142,12 @@ func getPolicyShowOutput(policyContentStruct trust.PolicyContent, systemRegistri
 				Transport: transport,
 				Type:      trustTypeDescription(repoval[0].Type),
 			}
-			// TODO - keyarr is not used and I don't know its intent; commenting out for now for someone to fix later
-			// keyarr := []string{}
 			uids := []string{}
 			for _, repoele := range repoval {
 				if len(repoele.KeyPath) > 0 {
-					// keyarr = append(keyarr, repoele.KeyPath)
 					uids = append(uids, trust.GetGPGIdFromKeyPath(repoele.KeyPath)...)
 				}
 				if len(repoele.KeyData) > 0 {
-					// keyarr = append(keyarr, string(repoele.KeyData))
 					uids = append(uids, trust.GetGPGIdFromKeyData(repoele.KeyData)...)
 				}
 			}
