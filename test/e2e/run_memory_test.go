@@ -66,6 +66,24 @@ var _ = Describe("Podman run memory", func() {
 		Expect(session.OutputToString()).To(Equal("41943040"))
 	})
 
+	It("podman run memory-swap test", func() {
+		var (
+			session *PodmanSessionIntegration
+			expect  string
+		)
+
+		if CGROUPSV2 {
+			session = podmanTest.Podman([]string{"run", "--memory=20m", "--memory-swap=30M", "--net=none", ALPINE, "sh", "-c", "cat /sys/fs/cgroup/$(sed -e 's|0::||' < /proc/self/cgroup)/memory.swap.max"})
+			expect = "10485760"
+		} else {
+			session = podmanTest.Podman([]string{"run", "--memory=20m", "--memory-swap=30M", ALPINE, "cat", "/sys/fs/cgroup/memory/memory.memsw.limit_in_bytes"})
+			expect = "31457280"
+		}
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).To(Equal(expect))
+	})
+
 	for _, limit := range []string{"0", "15", "100"} {
 		limit := limit // Keep this value in a proper scope
 		testName := fmt.Sprintf("podman run memory-swappiness test(%s)", limit)
