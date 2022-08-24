@@ -44,13 +44,12 @@ func getPolicyShowOutput(policyContentStruct policyContent, systemRegistriesDirP
 	}
 
 	if len(policyContentStruct.Default) > 0 {
-		defaultPolicyStruct := Policy{
+		template := Policy{
 			Transport: "all",
 			Name:      "* (default)",
 			RepoName:  "default",
-			Type:      trustTypeDescription(policyContentStruct.Default[0].Type),
 		}
-		output = append(output, &defaultPolicyStruct)
+		output = append(output, descriptionsOfPolicyRequirements(policyContentStruct.Default, template, registryConfigs, "", idReader)...)
 	}
 	// FIXME: This should use x/exp/maps.Keys after we update to Go 1.18.
 	transports := []string{}
@@ -83,7 +82,7 @@ func getPolicyShowOutput(policyContentStruct policyContent, systemRegistriesDirP
 	return output, nil
 }
 
-// descriptionsOfPolicyRequirements turns reqs into user-readable policy entries, with Transport/Name/Reponame coming from template, potentially looking up scope in registryConfigs.
+// descriptionsOfPolicyRequirements turns reqs into user-readable policy entries, with Transport/Name/Reponame coming from template, potentially looking up scope (which may be "") in registryConfigs.
 func descriptionsOfPolicyRequirements(reqs []repoContent, template Policy, registryConfigs *registryConfiguration, scope string, idReader gpgIDReader) []*Policy {
 	entry := template
 	entry.Type = trustTypeDescription(reqs[0].Type)

@@ -79,6 +79,24 @@ func TestPolicyDescription(t *testing.T) {
 				},
 			},
 		},
+		{
+			&signature.Policy{
+				Default: signature.PolicyRequirements{
+					xNewPRSignedByKeyPath(t, "/1.pub", signature.NewPRMMatchRepoDigestOrExact()),
+					xNewPRSignedByKeyPath(t, "/2,3.pub", signature.NewPRMMatchRepoDigestOrExact()),
+				},
+			},
+			[]*Policy{
+				{
+					Transport:      "all",
+					Name:           "* (default)",
+					RepoName:       "default",
+					Type:           "signed",
+					SignatureStore: "",
+					GPGId:          "1, 2, 3",
+				},
+			},
+		},
 	} {
 		policyJSON, err := json.Marshal(c.policy)
 		require.NoError(t, err)
