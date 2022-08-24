@@ -23,6 +23,12 @@ type policyContent struct {
 	Transports transportsContent `json:"transports,omitempty"`
 }
 
+// transportsContent contains policies for individual transports (= c/image/v5/signature.Policy.Transports)
+type transportsContent map[string]repoMap
+
+// repoMap maps a scope name to requirements that apply to that scope (= c/image/v5/signature.PolicyTransportScopes)
+type repoMap map[string][]repoContent
+
 // repoContent is a single policy requirement (one of possibly several for a scope), representing all of the individual alternatives in a single merged struct
 // (= c/image/v5/signature.{PolicyRequirement,pr*})
 type repoContent struct {
@@ -33,12 +39,6 @@ type repoContent struct {
 	KeyData        string          `json:"keyData,omitempty"`
 	SignedIdentity json.RawMessage `json:"signedIdentity,omitempty"`
 }
-
-// repoMap maps a scope name to requirements that apply to that scope (= c/image/v5/signature.PolicyTransportScopes)
-type repoMap map[string][]repoContent
-
-// transportsContent contains policies for individual transports (= c/image/v5/signature.Policy.Transports)
-type transportsContent map[string]repoMap
 
 // DefaultPolicyPath returns a path to the default policy of the system.
 func DefaultPolicyPath(sys *types.SystemContext) string {
