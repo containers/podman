@@ -56,9 +56,7 @@ Limit read rate (bytes per second) from a device (e.g. --device-read-bps=/dev/sd
 
 Limit write rate (bytes per second) to a device (e.g. --device-write-bps=/dev/sda:1mb)
 
-#### **--gidmap**=*pod_gid:host_gid:amount*
-
-GID map for the user namespace. Using this flag will run all containers in the pod with user namespace enabled. It conflicts with the `--userns` and `--subgidname` flags.
+@@option gidmap.pod
 
 #### **--help**, **-h**
 

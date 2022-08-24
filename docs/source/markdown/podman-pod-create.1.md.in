@@ -94,9 +94,7 @@ Set the exit policy of the pod when the last container exits.  Supported policie
 | *continue*         | The pod continues running, by keeping its infra container alive, when the last container exits. Used by default.           |
 | *stop*             | The pod (including its infra container) is stopped when the last container exits. Used in `kube play`.                     |
 
-#### **--gidmap**=*container_gid:host_gid:amount*
-
-GID map for the user namespace. Using this flag will run the container with user namespace enabled. It conflicts with the `--userns` and `--subgidname` flags.
+@@option gidmap.pod
 
 #### **--help**, **-h**
 
