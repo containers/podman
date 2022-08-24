@@ -53,14 +53,6 @@ type RegistryNamespace struct {
 	SigStoreStaging string `json:"sigstore-staging"` // For writing only.
 }
 
-// ShowOutput keep the fields for image trust show command
-type ShowOutput struct {
-	Repo      string
-	Trusttype string
-	GPGid     string
-	Sigstore  string
-}
-
 // systemRegistriesDirPath is the path to registries.d.
 const systemRegistriesDirPath = "/etc/containers/registries.d"
 
