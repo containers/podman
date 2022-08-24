@@ -233,6 +233,7 @@ done
 %{_userunitdir}/%{name}-restart.service
 %{_userunitdir}/%{name}-kube@.service
 %{_tmpfilesdir}/%{name}.conf
+%{_user_tmpfilesdir}/%{name}-docker.conf
 %if 0%{?fedora} >= 36
 %{_modulesloaddir}/%{name}-iptables.conf
 %endif
