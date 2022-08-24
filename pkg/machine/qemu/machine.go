@@ -870,7 +870,7 @@ func NewQMPMonitor(network, name string, timeout time.Duration) (Monitor, error)
 	if err != nil {
 		return Monitor{}, err
 	}
-	if !rootless.IsRootless() {
+	if isRootful() {
 		rtDir = "/run"
 	}
 	rtDir = filepath.Join(rtDir, "podman")
@@ -1371,7 +1371,7 @@ func (v *MachineVM) setPIDSocket() error {
 	if err != nil {
 		return err
 	}
-	if !rootless.IsRootless() {
+	if isRootful() {
 		rtPath = "/run"
 	}
 	socketDir := filepath.Join(rtPath, "podman")
@@ -1397,7 +1397,7 @@ func (v *MachineVM) getSocketandPid() (string, string, error) {
 	if err != nil {
 		return "", "", err
 	}
-	if !rootless.IsRootless() {
+	if isRootful() {
 		rtPath = "/run"
 	}
 	socketDir := filepath.Join(rtPath, "podman")
@@ -1734,4 +1734,12 @@ func isProcessAlive(pid int) bool {
 
 func (p *Provider) VMType() string {
 	return vmtype
+}
+
+func isRootful() bool {
+	// Rootless is not relevant on Windows. In the future rootless.IsRootless
+	// could be switched to return true on Windows, and other codepaths migrated
+	// for now will check additionally for valid os.Getuid
+
+	return !rootless.IsRootless() && os.Getuid() != -1
 }
