@@ -162,7 +162,7 @@ type ExecStartConfig struct {
 
 func ImageDataToImageInspect(ctx context.Context, l *libimage.Image) (*ImageInspect, error) {
 	options := &libimage.InspectOptions{WithParent: true, WithSize: true}
-	info, err := l.Inspect(context.Background(), options)
+	info, err := l.Inspect(ctx, options)
 	if err != nil {
 		return nil, err
 	}
