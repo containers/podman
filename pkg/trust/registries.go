@@ -102,21 +102,24 @@ func loadAndMergeConfig(dirPath string) (*registryConfiguration, error) {
 }
 
 // registriesDConfigurationForScope returns registries.d configuration for the provided scope.
+// scope can be "" to return only the global default configuration entry.
 func registriesDConfigurationForScope(registryConfigs *registryConfiguration, scope string) *registryNamespace {
 	searchScope := scope
-	if !strings.Contains(searchScope, "/") {
-		val, exists := registryConfigs.Docker[searchScope]
-		if exists {
-			return &val
+	if searchScope != "" {
+		if !strings.Contains(searchScope, "/") {
+			val, exists := registryConfigs.Docker[searchScope]
+			if exists {
+				return &val
+			}
 		}
-	}
-	for range strings.Split(scope, "/") {
-		val, exists := registryConfigs.Docker[searchScope]
-		if exists {
-			return &val
-		}
-		if strings.Contains(searchScope, "/") {
-			searchScope = searchScope[:strings.LastIndex(searchScope, "/")]
+		for range strings.Split(scope, "/") {
+			val, exists := registryConfigs.Docker[searchScope]
+			if exists {
+				return &val
+			}
+			if strings.Contains(searchScope, "/") {
+				searchScope = searchScope[:strings.LastIndex(searchScope, "/")]
+			}
 		}
 	}
 	return registryConfigs.DefaultDocker
