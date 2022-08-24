@@ -117,6 +117,13 @@ func xNewPRSignedByKeyPath(t *testing.T, keyPath string, signedIdentity signatur
 	return pr
 }
 
+// xNewPRSignedByKeyPaths is a wrapper for NewPRSignedByKeyPaths which must not fail.
+func xNewPRSignedByKeyPaths(t *testing.T, keyPaths []string, signedIdentity signature.PolicyReferenceMatch) signature.PolicyRequirement {
+	pr, err := signature.NewPRSignedByKeyPaths(signature.SBKeyTypeGPGKeys, keyPaths, signedIdentity)
+	require.NoError(t, err)
+	return pr
+}
+
 // xNewPRSigstoreSignedKeyPath is a wrapper for NewPRSigstoreSignedKeyPath which must not fail.
 func xNewPRSigstoreSignedKeyPath(t *testing.T, keyPath string, signedIdentity signature.PolicyReferenceMatch) signature.PolicyRequirement {
 	pr, err := signature.NewPRSigstoreSignedKeyPath(keyPath, signedIdentity)

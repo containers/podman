@@ -107,6 +107,9 @@ func descriptionsOfPolicyRequirements(reqs []repoContent, template Policy, regis
 			if len(repoele.KeyPath) > 0 {
 				uids = append(uids, idReader(repoele.KeyPath)...)
 			}
+			for _, path := range repoele.KeyPaths {
+				uids = append(uids, idReader(path)...)
+			}
 			if len(repoele.KeyData) > 0 {
 				uids = append(uids, getGPGIdFromKeyData(idReader, repoele.KeyData)...)
 			}

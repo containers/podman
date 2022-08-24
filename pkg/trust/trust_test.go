@@ -41,6 +41,9 @@ func TestPolicyDescription(t *testing.T) {
 						"registry.redhat.io": {
 							xNewPRSignedByKeyPath(t, "/redhat.pub", signature.NewPRMMatchRepoDigestOrExact()),
 						},
+						"registry.access.redhat.com": {
+							xNewPRSignedByKeyPaths(t, []string{"/redhat.pub", "/redhat-beta.pub"}, signature.NewPRMMatchRepoDigestOrExact()),
+						},
 						"quay.io/multi-signed": {
 							xNewPRSignedByKeyPath(t, "/1.pub", signature.NewPRMMatchRepoDigestOrExact()),
 							xNewPRSignedByKeyPath(t, "/2,3.pub", signature.NewPRMMatchRepoDigestOrExact()),
@@ -98,6 +101,13 @@ func TestPolicyDescription(t *testing.T) {
 					GPGId:          "N/A",
 				},
 				{
+					Transport:      "repository",
+					Name:           "registry.access.redhat.com",
+					RepoName:       "registry.access.redhat.com",
+					Type:           "signed",
+					SignatureStore: "https://registry.redhat.io/containers/sigstore",
+					GPGId:          "redhat, redhat-beta",
+				}, {
 					Transport:      "repository",
 					Name:           "registry.redhat.io",
 					RepoName:       "registry.redhat.io",
@@ -212,6 +222,22 @@ func TestDescriptionsOfPolicyRequirements(t *testing.T) {
 			},
 		},
 		{
+			"registry.access.redhat.com",
+			signature.PolicyRequirements{
+				xNewPRSignedByKeyPaths(t, []string{"/redhat.pub", "/redhat-beta.pub"}, signature.NewPRMMatchRepoDigestOrExact()),
+			},
+			[]*Policy{
+				{
+					Transport:      "transport",
+					Name:           "name",
+					RepoName:       "repoName",
+					Type:           "signed",
+					SignatureStore: "https://registry.redhat.io/containers/sigstore",
+					GPGId:          "redhat, redhat-beta",
+				},
+			},
+		},
+		{
 			"quay.io/multi-signed",
 			signature.PolicyRequirements{
 				xNewPRSignedByKeyPath(t, "/1.pub", signature.NewPRMMatchRepoDigestOrExact()),
@@ -266,6 +292,7 @@ func TestDescriptionsOfPolicyRequirements(t *testing.T) {
 				signature.NewPRReject(),
 				signature.NewPRInsecureAcceptAnything(),
 				xNewPRSignedByKeyPath(t, "/redhat.pub", signature.NewPRMMatchRepoDigestOrExact()),
+				xNewPRSignedByKeyPaths(t, []string{"/redhat.pub", "/redhat-beta.pub"}, signature.NewPRMMatchRepoDigestOrExact()),
 				xNewPRSignedByKeyPath(t, "/1.pub", signature.NewPRMMatchRepoDigestOrExact()),
 				xNewPRSignedByKeyPath(t, "/2,3.pub", signature.NewPRMMatchRepoDigestOrExact()),
 				xNewPRSigstoreSignedKeyPath(t, "/1.pub", signature.NewPRMMatchRepoDigestOrExact()),
@@ -293,6 +320,14 @@ func TestDescriptionsOfPolicyRequirements(t *testing.T) {
 					Type:           "signed",
 					SignatureStore: "https://registry.redhat.io/containers/sigstore",
 					GPGId:          "redhat",
+				},
+				{
+					Transport:      "transport",
+					Name:           "name",
+					RepoName:       "repoName",
+					Type:           "signed",
+					SignatureStore: "https://registry.redhat.io/containers/sigstore",
+					GPGId:          "redhat, redhat-beta",
 				},
 				{
 					Transport:      "transport",
