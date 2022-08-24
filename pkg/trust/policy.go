@@ -40,6 +40,18 @@ type repoContent struct {
 	SignedIdentity json.RawMessage `json:"signedIdentity,omitempty"`
 }
 
+// genericPolicyContent is the overall structure of a policy.json file (= c/image/v5/signature.Policy), using generic data for individual requirements.
+type genericPolicyContent struct {
+	Default    json.RawMessage          `json:"default"`
+	Transports genericTransportsContent `json:"transports,omitempty"`
+}
+
+// genericTransportsContent contains policies for individual transports (= c/image/v5/signature.Policy.Transports), using generic data for individual requirements.
+type genericTransportsContent map[string]genericRepoMap
+
+// genericRepoMap maps a scope name to requirements that apply to that scope (= c/image/v5/signature.PolicyTransportScopes)
+type genericRepoMap map[string]json.RawMessage
+
 // DefaultPolicyPath returns a path to the default policy of the system.
 func DefaultPolicyPath(sys *types.SystemContext) string {
 	systemDefaultPolicyPath := "/etc/containers/policy.json"
@@ -152,7 +164,7 @@ type AddPolicyEntriesInput struct {
 // AddPolicyEntries adds one or more policy entries necessary to implement AddPolicyEntriesInput.
 func AddPolicyEntries(policyPath string, input AddPolicyEntriesInput) error {
 	var (
-		policyContentStruct policyContent
+		policyContentStruct genericPolicyContent
 		newReposContent     []repoContent
 	)
 	trustType := input.Type
@@ -188,8 +200,12 @@ func AddPolicyEntries(policyPath string, input AddPolicyEntriesInput) error {
 	default:
 		return fmt.Errorf("unknown trust type %q", input.Type)
 	}
+	newReposJSON, err := json.Marshal(newReposContent)
+	if err != nil {
+		return err
+	}
 
-	_, err := os.Stat(policyPath)
+	_, err = os.Stat(policyPath)
 	if !os.IsNotExist(err) {
 		policyContent, err := ioutil.ReadFile(policyPath)
 		if err != nil {
@@ -200,7 +216,7 @@ func AddPolicyEntries(policyPath string, input AddPolicyEntriesInput) error {
 		}
 	}
 	if input.Scope == "default" {
-		policyContentStruct.Default = newReposContent
+		policyContentStruct.Default = json.RawMessage(newReposJSON)
 	} else {
 		if len(policyContentStruct.Default) == 0 {
 			return errors.New("default trust policy must be set")
@@ -209,18 +225,18 @@ func AddPolicyEntries(policyPath string, input AddPolicyEntriesInput) error {
 		for transport, transportval := range policyContentStruct.Transports {
 			_, registryExists = transportval[input.Scope]
 			if registryExists {
-				policyContentStruct.Transports[transport][input.Scope] = newReposContent
+				policyContentStruct.Transports[transport][input.Scope] = json.RawMessage(newReposJSON)
 				break
 			}
 		}
 		if !registryExists {
 			if policyContentStruct.Transports == nil {
-				policyContentStruct.Transports = make(map[string]repoMap)
+				policyContentStruct.Transports = make(map[string]genericRepoMap)
 			}
 			if policyContentStruct.Transports["docker"] == nil {
-				policyContentStruct.Transports["docker"] = make(map[string][]repoContent)
+				policyContentStruct.Transports["docker"] = make(map[string]json.RawMessage)
 			}
-			policyContentStruct.Transports["docker"][input.Scope] = append(policyContentStruct.Transports["docker"][input.Scope], newReposContent...)
+			policyContentStruct.Transports["docker"][input.Scope] = json.RawMessage(newReposJSON)
 		}
 	}
 

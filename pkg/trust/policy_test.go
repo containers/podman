@@ -108,6 +108,70 @@ func TestAddPolicyEntries(t *testing.T) {
 			},
 		},
 	}, parsedPolicy)
+
+	// Test that completely unknown JSON is preserved
+	jsonWithUnknownData := `{
+    "default": [
+        {
+            "type": "this is unknown",
+			"unknown field": "should be preserved"
+        }
+    ],
+    "transports":
+        {
+            "docker-daemon":
+                {
+                    "": [{
+						"type":"this is unknown 2",
+						"unknown field 2": "should be preserved 2"
+						}]
+                }
+        }
+}`
+	err = os.WriteFile(policyPath, []byte(jsonWithUnknownData), 0600)
+	require.NoError(t, err)
+	err = AddPolicyEntries(policyPath, AddPolicyEntriesInput{
+		Scope:       "quay.io/innocuous",
+		Type:        "signedBy",
+		PubKeyFiles: []string{"/1.pub"},
+	})
+	require.NoError(t, err)
+	updatedJSONWithUnknownData, err := os.ReadFile(policyPath)
+	require.NoError(t, err)
+	// Decode updatedJSONWithUnknownData so that this test does not depend on details of the encoding.
+	// To reduce noise in the constants below:
+	type a = []interface{}
+	type m = map[string]interface{}
+	var parsedUpdatedJSON m
+	err = json.Unmarshal(updatedJSONWithUnknownData, &parsedUpdatedJSON)
+	require.NoError(t, err)
+	assert.Equal(t, m{
+		"default": a{
+			m{
+				"type":          "this is unknown",
+				"unknown field": "should be preserved",
+			},
+		},
+		"transports": m{
+			"docker-daemon": m{
+				"": a{
+					m{
+						"type":            "this is unknown 2",
+						"unknown field 2": "should be preserved 2",
+					},
+				},
+			},
+			"docker": m{
+				"quay.io/innocuous": a{
+					m{
+						"type":    "signedBy",
+						"keyType": "GPGKeys",
+						"keyPath": "/1.pub",
+					},
+				},
+			},
+		},
+	}, parsedUpdatedJSON)
 }
 
 // xNewPRSignedByKeyPath is a wrapper for NewPRSignedByKeyPath which must not fail.
