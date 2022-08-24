@@ -46,6 +46,11 @@ func (ir *ImageEngine) ShowTrust(ctx context.Context, args []string, options ent
 }
 
 func (ir *ImageEngine) SetTrust(ctx context.Context, args []string, options entities.SetTrustOptions) error {
+	if len(args) != 1 {
+		return fmt.Errorf("SetTrust called with unexpected %d args", len(args))
+	}
+	scope := args[0]
+
 	var (
 		policyContentStruct trust.PolicyContent
 		newReposContent     []trust.RepoContent
@@ -81,7 +86,7 @@ func (ir *ImageEngine) SetTrust(ctx context.Context, args []string, options enti
 	} else {
 		newReposContent = append(newReposContent, trust.RepoContent{Type: trustType})
 	}
-	if args[0] == "default" {
+	if scope == "default" {
 		policyContentStruct.Default = newReposContent
 	} else {
 		if len(policyContentStruct.Default) == 0 {
@@ -89,9 +94,9 @@ func (ir *ImageEngine) SetTrust(ctx context.Context, args []string, options enti
 		}
 		registryExists := false
 		for transport, transportval := range policyContentStruct.Transports {
-			_, registryExists = transportval[args[0]]
+			_, registryExists = transportval[scope]
 			if registryExists {
-				policyContentStruct.Transports[transport][args[0]] = newReposContent
+				policyContentStruct.Transports[transport][scope] = newReposContent
 				break
 			}
 		}
@@ -102,7 +107,7 @@ func (ir *ImageEngine) SetTrust(ctx context.Context, args []string, options enti
 			if policyContentStruct.Transports["docker"] == nil {
 				policyContentStruct.Transports["docker"] = make(map[string][]trust.RepoContent)
 			}
-			policyContentStruct.Transports["docker"][args[0]] = append(policyContentStruct.Transports["docker"][args[0]], newReposContent...)
+			policyContentStruct.Transports["docker"][scope] = append(policyContentStruct.Transports["docker"][scope], newReposContent...)
 		}
 	}
 
