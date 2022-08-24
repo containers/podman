@@ -143,10 +143,22 @@ func AddPolicyEntries(policyPath string, input AddPolicyEntriesInput) error {
 	if trustType == "accept" {
 		trustType = "insecureAcceptAnything"
 	}
-
 	pubkeysfile := input.PubKeyFiles
-	if len(pubkeysfile) == 0 && trustType == "signedBy" {
-		return errors.New("at least one public key must be defined for type 'signedBy'")
+
+	// The error messages in validation failures use input.Type instead of trustType to match the user’s input.
+	switch trustType {
+	case "insecureAcceptAnything", "reject":
+		if len(pubkeysfile) != 0 {
+			return fmt.Errorf("%d public keys unexpectedly provided for trust type %v", len(pubkeysfile), input.Type)
+		}
+
+	case "signedBy":
+		if len(pubkeysfile) == 0 {
+			return errors.New("at least one public key must be defined for type 'signedBy'")
+		}
+
+	default:
+		return fmt.Errorf("unknown trust type %q", input.Type)
 	}
 
 	_, err := os.Stat(policyPath)
