@@ -161,6 +161,14 @@ func AddPolicyEntries(policyPath string, input AddPolicyEntriesInput) error {
 			newReposContent = append(newReposContent, RepoContent{Type: trustType, KeyType: "GPGKeys", KeyPath: filepath})
 		}
 
+	case "sigstoreSigned":
+		if len(pubkeysfile) == 0 {
+			return errors.New("at least one public key must be defined for type 'sigstoreSigned'")
+		}
+		for _, filepath := range pubkeysfile {
+			newReposContent = append(newReposContent, RepoContent{Type: trustType, KeyPath: filepath})
+		}
+
 	default:
 		return fmt.Errorf("unknown trust type %q", input.Type)
 	}
