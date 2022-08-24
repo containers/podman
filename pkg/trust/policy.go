@@ -29,6 +29,7 @@ type repoContent struct {
 	Type           string          `json:"type"`
 	KeyType        string          `json:"keyType,omitempty"`
 	KeyPath        string          `json:"keyPath,omitempty"`
+	KeyPaths       []string        `json:"keyPaths,omitempty"`
 	KeyData        string          `json:"keyData,omitempty"`
 	SignedIdentity json.RawMessage `json:"signedIdentity,omitempty"`
 }
