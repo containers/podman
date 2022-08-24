@@ -125,6 +125,16 @@ func GetPolicy(policyPath string) (PolicyContent, error) {
 	return policyContentStruct, nil
 }
 
+var typeDescription = map[string]string{"insecureAcceptAnything": "accept", "signedBy": "signed", "reject": "reject"}
+
+func trustTypeDescription(trustType string) string {
+	trustDescription, exist := typeDescription[trustType]
+	if !exist {
+		logrus.Warnf("Invalid trust type %s", trustType)
+	}
+	return trustDescription
+}
+
 // AddPolicyEntriesInput collects some parameters to AddPolicyEntries,
 // primarily so that the callers use named values instead of just strings in a sequence.
 type AddPolicyEntriesInput struct {
