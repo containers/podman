@@ -34,6 +34,7 @@ func (c *Container) newContainerEvent(status events.Status) {
 
 	e.Details = events.Details{
 		ID:         e.ID,
+		PodID:      c.PodID(),
 		Attributes: c.Labels(),
 	}
 
@@ -59,6 +60,7 @@ func (c *Container) newContainerExitedEvent(exitCode int32) {
 	e.Name = c.Name()
 	e.Image = c.config.RootfsImageName
 	e.Type = events.Container
+	e.PodID = c.PodID()
 	e.ContainerExitCode = int(exitCode)
 
 	e.Details = events.Details{

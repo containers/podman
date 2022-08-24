@@ -50,6 +50,8 @@ type Event struct {
 type Details struct {
 	// ID is the event ID
 	ID string
+	// PodID is the ID of the pod associated with the container.
+	PodID string `json:",omitempty"`
 	// Attributes can be used to describe specifics about the event
 	// in the case of a container event, labels for example
 	Attributes map[string]string

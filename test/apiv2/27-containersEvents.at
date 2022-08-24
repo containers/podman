@@ -20,7 +20,7 @@ t GET "libpod/events?stream=false&since=$START"  200  \
 
 t GET "libpod/events?stream=false&since=$START" 200 \
     'select(.status | contains("start")).Action=start' \
-    'select(.status | contains("start")).HealthStatus='\
+    'select(.status | contains("start")).HealthStatus=null'\
 
 # compat api, uses status=die (#12643)
 t GET "events?stream=false&since=$START"  200  \

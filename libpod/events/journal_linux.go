@@ -50,6 +50,9 @@ func (e EventJournalD) Write(ee Event) error {
 		if ee.ContainerExitCode != 0 {
 			m["PODMAN_EXIT_CODE"] = strconv.Itoa(ee.ContainerExitCode)
 		}
+		if ee.PodID != "" {
+			m["PODMAN_POD_ID"] = ee.PodID
+		}
 		// If we have container labels, we need to convert them to a string so they
 		// can be recorded with the event
 		if len(ee.Details.Attributes) > 0 {
@@ -161,6 +164,7 @@ func newEventFromJournalEntry(entry *sdjournal.JournalEntry) (*Event, error) {
 	case Container, Pod:
 		newEvent.ID = entry.Fields["PODMAN_ID"]
 		newEvent.Image = entry.Fields["PODMAN_IMAGE"]
+		newEvent.PodID = entry.Fields["PODMAN_POD_ID"]
 		if code, ok := entry.Fields["PODMAN_EXIT_CODE"]; ok {
 			intCode, err := strconv.Atoi(code)
 			if err != nil {
@@ -179,7 +183,7 @@ func newEventFromJournalEntry(entry *sdjournal.JournalEntry) (*Event, error) {
 
 			// if we have labels, add them to the event
 			if len(labels) > 0 {
-				newEvent.Details = Details{Attributes: labels}
+				newEvent.Attributes = labels
 			}
 		}
 		newEvent.HealthStatus = entry.Fields["PODMAN_HEALTH_STATUS"]
