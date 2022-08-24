@@ -151,10 +151,14 @@ func AddPolicyEntries(policyPath string, input AddPolicyEntriesInput) error {
 		if len(pubkeysfile) != 0 {
 			return fmt.Errorf("%d public keys unexpectedly provided for trust type %v", len(pubkeysfile), input.Type)
 		}
+		newReposContent = append(newReposContent, RepoContent{Type: trustType})
 
 	case "signedBy":
 		if len(pubkeysfile) == 0 {
 			return errors.New("at least one public key must be defined for type 'signedBy'")
+		}
+		for _, filepath := range pubkeysfile {
+			newReposContent = append(newReposContent, RepoContent{Type: trustType, KeyType: "GPGKeys", KeyPath: filepath})
 		}
 
 	default:
@@ -170,13 +174,6 @@ func AddPolicyEntries(policyPath string, input AddPolicyEntriesInput) error {
 		if err := json.Unmarshal(policyContent, &policyContentStruct); err != nil {
 			return errors.New("could not read trust policies")
 		}
-	}
-	if len(pubkeysfile) != 0 {
-		for _, filepath := range pubkeysfile {
-			newReposContent = append(newReposContent, RepoContent{Type: trustType, KeyType: "GPGKeys", KeyPath: filepath})
-		}
-	} else {
-		newReposContent = append(newReposContent, RepoContent{Type: trustType})
 	}
 	if input.Scope == "default" {
 		policyContentStruct.Default = newReposContent
