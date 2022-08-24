@@ -17,14 +17,15 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// PolicyContent struct for policy.json file
-type PolicyContent struct {
-	Default    []RepoContent     `json:"default"`
-	Transports TransportsContent `json:"transports,omitempty"`
+// policyContent is the overall structure of a policy.json file (= c/image/v5/signature.Policy)
+type policyContent struct {
+	Default    []repoContent     `json:"default"`
+	Transports transportsContent `json:"transports,omitempty"`
 }
 
-// RepoContent struct used under each repo
-type RepoContent struct {
+// repoContent is a single policy requirement (one of possibly several for a scope), representing all of the individual alternatives in a single merged struct
+// (= c/image/v5/signature.{PolicyRequirement,pr*})
+type repoContent struct {
 	Type           string          `json:"type"`
 	KeyType        string          `json:"keyType,omitempty"`
 	KeyPath        string          `json:"keyPath,omitempty"`
@@ -32,11 +33,11 @@ type RepoContent struct {
 	SignedIdentity json.RawMessage `json:"signedIdentity,omitempty"`
 }
 
-// RepoMap map repo name to policycontent for each repo
-type RepoMap map[string][]RepoContent
+// repoMap maps a scope name to requirements that apply to that scope (= c/image/v5/signature.PolicyTransportScopes)
+type repoMap map[string][]repoContent
 
-// TransportsContent struct for content under "transports"
-type TransportsContent map[string]RepoMap
+// transportsContent contains policies for individual transports (= c/image/v5/signature.Policy.Transports)
+type transportsContent map[string]repoMap
 
 // DefaultPolicyPath returns a path to the default policy of the system.
 func DefaultPolicyPath(sys *types.SystemContext) string {
@@ -66,8 +67,8 @@ func createTmpFile(dir, pattern string, content []byte) (string, error) {
 	return tmpfile.Name(), nil
 }
 
-// GetGPGIdFromKeyPath return user keyring from key path
-func GetGPGIdFromKeyPath(path string) []string {
+// getGPGIdFromKeyPath returns GPG key IDs of keys stored at the provided path.
+func getGPGIdFromKeyPath(path string) []string {
 	cmd := exec.Command("gpg2", "--with-colons", path)
 	results, err := cmd.Output()
 	if err != nil {
@@ -77,8 +78,8 @@ func GetGPGIdFromKeyPath(path string) []string {
 	return parseUids(results)
 }
 
-// GetGPGIdFromKeyData return user keyring from keydata
-func GetGPGIdFromKeyData(key string) []string {
+// getGPGIdFromKeyData returns GPG key IDs of keys in the provided keyring.
+func getGPGIdFromKeyData(key string) []string {
 	decodeKey, err := base64.StdEncoding.DecodeString(key)
 	if err != nil {
 		logrus.Errorf("%s, error decoding key data", err)
@@ -89,7 +90,7 @@ func GetGPGIdFromKeyData(key string) []string {
 		logrus.Errorf("Creating key date temp file %s", err)
 	}
 	defer os.Remove(tmpfileName)
-	return GetGPGIdFromKeyPath(tmpfileName)
+	return getGPGIdFromKeyPath(tmpfileName)
 }
 
 func parseUids(colonDelimitKeys []byte) []string {
@@ -112,9 +113,9 @@ func parseUids(colonDelimitKeys []byte) []string {
 	return parseduids
 }
 
-// GetPolicy parse policy.json into PolicyContent struct
-func GetPolicy(policyPath string) (PolicyContent, error) {
-	var policyContentStruct PolicyContent
+// getPolicy parses policy.json into policyContent.
+func getPolicy(policyPath string) (policyContent, error) {
+	var policyContentStruct policyContent
 	policyContent, err := ioutil.ReadFile(policyPath)
 	if err != nil {
 		return policyContentStruct, fmt.Errorf("unable to read policy file: %w", err)
@@ -146,8 +147,8 @@ type AddPolicyEntriesInput struct {
 // AddPolicyEntries adds one or more policy entries necessary to implement AddPolicyEntriesInput.
 func AddPolicyEntries(policyPath string, input AddPolicyEntriesInput) error {
 	var (
-		policyContentStruct PolicyContent
-		newReposContent     []RepoContent
+		policyContentStruct policyContent
+		newReposContent     []repoContent
 	)
 	trustType := input.Type
 	if trustType == "accept" {
@@ -161,14 +162,14 @@ func AddPolicyEntries(policyPath string, input AddPolicyEntriesInput) error {
 		if len(pubkeysfile) != 0 {
 			return fmt.Errorf("%d public keys unexpectedly provided for trust type %v", len(pubkeysfile), input.Type)
 		}
-		newReposContent = append(newReposContent, RepoContent{Type: trustType})
+		newReposContent = append(newReposContent, repoContent{Type: trustType})
 
 	case "signedBy":
 		if len(pubkeysfile) == 0 {
 			return errors.New("at least one public key must be defined for type 'signedBy'")
 		}
 		for _, filepath := range pubkeysfile {
-			newReposContent = append(newReposContent, RepoContent{Type: trustType, KeyType: "GPGKeys", KeyPath: filepath})
+			newReposContent = append(newReposContent, repoContent{Type: trustType, KeyType: "GPGKeys", KeyPath: filepath})
 		}
 
 	case "sigstoreSigned":
@@ -176,7 +177,7 @@ func AddPolicyEntries(policyPath string, input AddPolicyEntriesInput) error {
 			return errors.New("at least one public key must be defined for type 'sigstoreSigned'")
 		}
 		for _, filepath := range pubkeysfile {
-			newReposContent = append(newReposContent, RepoContent{Type: trustType, KeyPath: filepath})
+			newReposContent = append(newReposContent, repoContent{Type: trustType, KeyPath: filepath})
 		}
 
 	default:
@@ -209,10 +210,10 @@ func AddPolicyEntries(policyPath string, input AddPolicyEntriesInput) error {
 		}
 		if !registryExists {
 			if policyContentStruct.Transports == nil {
-				policyContentStruct.Transports = make(map[string]RepoMap)
+				policyContentStruct.Transports = make(map[string]repoMap)
 			}
 			if policyContentStruct.Transports["docker"] == nil {
-				policyContentStruct.Transports["docker"] = make(map[string][]RepoContent)
+				policyContentStruct.Transports["docker"] = make(map[string][]repoContent)
 			}
 			policyContentStruct.Transports["docker"][input.Scope] = append(policyContentStruct.Transports["docker"][input.Scope], newReposContent...)
 		}

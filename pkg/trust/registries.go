@@ -12,16 +12,16 @@ import (
 	"github.com/ghodss/yaml"
 )
 
-// RegistryConfiguration is one of the files in registriesDirPath configuring lookaside locations, or the result of merging them all.
+// registryConfiguration is one of the files in registriesDirPath configuring lookaside locations, or the result of merging them all.
 // NOTE: Keep this in sync with docs/registries.d.md!
-type RegistryConfiguration struct {
-	DefaultDocker *RegistryNamespace `json:"default-docker"`
+type registryConfiguration struct {
+	DefaultDocker *registryNamespace `json:"default-docker"`
 	// The key is a namespace, using fully-expanded Docker reference format or parent namespaces (per dockerReference.PolicyConfiguration*),
-	Docker map[string]RegistryNamespace `json:"docker"`
+	Docker map[string]registryNamespace `json:"docker"`
 }
 
-// RegistryNamespace defines lookaside locations for a single namespace.
-type RegistryNamespace struct {
+// registryNamespace defines lookaside locations for a single namespace.
+type registryNamespace struct {
 	SigStore        string `json:"sigstore"`         // For reading, and if SigStoreStaging is not present, for writing.
 	SigStoreStaging string `json:"sigstore-staging"` // For writing only.
 }
@@ -48,9 +48,9 @@ func RegistriesDirPath(sys *types.SystemContext) string {
 	return systemRegistriesDirPath
 }
 
-// LoadAndMergeConfig loads configuration files in dirPath
-func LoadAndMergeConfig(dirPath string) (*RegistryConfiguration, error) {
-	mergedConfig := RegistryConfiguration{Docker: map[string]RegistryNamespace{}}
+// loadAndMergeConfig loads registries.d configuration files in dirPath
+func loadAndMergeConfig(dirPath string) (*registryConfiguration, error) {
+	mergedConfig := registryConfiguration{Docker: map[string]registryNamespace{}}
 	dockerDefaultMergedFrom := ""
 	nsMergedFrom := map[string]string{}
 
@@ -74,7 +74,7 @@ func LoadAndMergeConfig(dirPath string) (*RegistryConfiguration, error) {
 		if err != nil {
 			return nil, err
 		}
-		var config RegistryConfiguration
+		var config registryConfiguration
 		err = yaml.Unmarshal(configBytes, &config)
 		if err != nil {
 			return nil, fmt.Errorf("error parsing %s: %w", configPath, err)
@@ -99,8 +99,8 @@ func LoadAndMergeConfig(dirPath string) (*RegistryConfiguration, error) {
 	return &mergedConfig, nil
 }
 
-// HaveMatchRegistry checks if trust settings for the registry have been configured in yaml file
-func HaveMatchRegistry(key string, registryConfigs *RegistryConfiguration) *RegistryNamespace {
+// haveMatchRegistry returns configuration from registryConfigs that is configured for key.
+func haveMatchRegistry(key string, registryConfigs *registryConfiguration) *registryNamespace {
 	searchKey := key
 	if !strings.Contains(searchKey, "/") {
 		val, exists := registryConfigs.Docker[searchKey]
