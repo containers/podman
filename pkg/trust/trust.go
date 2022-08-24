@@ -100,15 +100,23 @@ func descriptionsOfPolicyRequirements(reqs []repoContent, template Policy, regis
 		entry := template
 		entry.Type = trustTypeDescription(repoele.Type)
 
-		uids := []string{}
-		if len(repoele.KeyPath) > 0 {
-			uids = append(uids, idReader(repoele.KeyPath)...)
+		var gpgIDString string
+		switch repoele.Type {
+		case "signedBy":
+			uids := []string{}
+			if len(repoele.KeyPath) > 0 {
+				uids = append(uids, idReader(repoele.KeyPath)...)
+			}
+			if len(repoele.KeyData) > 0 {
+				uids = append(uids, getGPGIdFromKeyData(idReader, repoele.KeyData)...)
+			}
+			gpgIDString = strings.Join(uids, ", ")
+
+		case "sigstoreSigned":
+			gpgIDString = "N/A" // We could potentially return key fingerprints here, but they would not be _GPG_ fingerprints.
 		}
-		if len(repoele.KeyData) > 0 {
-			uids = append(uids, getGPGIdFromKeyData(idReader, repoele.KeyData)...)
-		}
-		entry.GPGId = strings.Join(uids, ", ")
-		entry.SignatureStore = lookasidePath
+		entry.GPGId = gpgIDString
+		entry.SignatureStore = lookasidePath // We do this even for sigstoreSigned and things like type: reject, to show that the sigstore is being read.
 		res = append(res, &entry)
 	}
 
