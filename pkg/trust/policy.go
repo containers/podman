@@ -51,8 +51,8 @@ func DefaultPolicyPath(sys *types.SystemContext) string {
 	return systemDefaultPolicyPath
 }
 
-// CreateTmpFile creates a temp file under dir and writes the content into it
-func CreateTmpFile(dir, pattern string, content []byte) (string, error) {
+// createTmpFile creates a temp file under dir and writes the content into it
+func createTmpFile(dir, pattern string, content []byte) (string, error) {
 	tmpfile, err := ioutil.TempFile(dir, pattern)
 	if err != nil {
 		return "", err
@@ -83,7 +83,7 @@ func GetGPGIdFromKeyData(key string) []string {
 		logrus.Errorf("%s, error decoding key data", err)
 		return nil
 	}
-	tmpfileName, err := CreateTmpFile("", "", decodeKey)
+	tmpfileName, err := createTmpFile("", "", decodeKey)
 	if err != nil {
 		logrus.Errorf("Creating key date temp file %s", err)
 	}
