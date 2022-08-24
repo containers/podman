@@ -2,11 +2,8 @@ package abi
 
 import (
 	"context"
-	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
-	"os"
 	"strings"
 
 	"github.com/containers/podman/v4/pkg/domain/entities"
@@ -51,71 +48,16 @@ func (ir *ImageEngine) SetTrust(ctx context.Context, args []string, options enti
 	}
 	scope := args[0]
 
-	var (
-		policyContentStruct trust.PolicyContent
-		newReposContent     []trust.RepoContent
-	)
-	trustType := options.Type
-	if trustType == "accept" {
-		trustType = "insecureAcceptAnything"
-	}
-
-	pubkeysfile := options.PubKeysFile
-	if len(pubkeysfile) == 0 && trustType == "signedBy" {
-		return errors.New("at least one public key must be defined for type 'signedBy'")
-	}
-
 	policyPath := trust.DefaultPolicyPath(ir.Libpod.SystemContext())
 	if len(options.PolicyPath) > 0 {
 		policyPath = options.PolicyPath
 	}
-	_, err := os.Stat(policyPath)
-	if !os.IsNotExist(err) {
-		policyContent, err := ioutil.ReadFile(policyPath)
-		if err != nil {
-			return err
-		}
-		if err := json.Unmarshal(policyContent, &policyContentStruct); err != nil {
-			return errors.New("could not read trust policies")
-		}
-	}
-	if len(pubkeysfile) != 0 {
-		for _, filepath := range pubkeysfile {
-			newReposContent = append(newReposContent, trust.RepoContent{Type: trustType, KeyType: "GPGKeys", KeyPath: filepath})
-		}
-	} else {
-		newReposContent = append(newReposContent, trust.RepoContent{Type: trustType})
-	}
-	if scope == "default" {
-		policyContentStruct.Default = newReposContent
-	} else {
-		if len(policyContentStruct.Default) == 0 {
-			return errors.New("default trust policy must be set")
-		}
-		registryExists := false
-		for transport, transportval := range policyContentStruct.Transports {
-			_, registryExists = transportval[scope]
-			if registryExists {
-				policyContentStruct.Transports[transport][scope] = newReposContent
-				break
-			}
-		}
-		if !registryExists {
-			if policyContentStruct.Transports == nil {
-				policyContentStruct.Transports = make(map[string]trust.RepoMap)
-			}
-			if policyContentStruct.Transports["docker"] == nil {
-				policyContentStruct.Transports["docker"] = make(map[string][]trust.RepoContent)
-			}
-			policyContentStruct.Transports["docker"][scope] = append(policyContentStruct.Transports["docker"][scope], newReposContent...)
-		}
-	}
 
-	data, err := json.MarshalIndent(policyContentStruct, "", "    ")
-	if err != nil {
-		return fmt.Errorf("error setting trust policy: %w", err)
-	}
-	return ioutil.WriteFile(policyPath, data, 0644)
+	return trust.AddPolicyEntries(policyPath, trust.AddPolicyEntriesInput{
+		Scope:       scope,
+		Type:        options.Type,
+		PubKeyFiles: options.PubKeysFile,
+	})
 }
 
 func getPolicyShowOutput(policyContentStruct trust.PolicyContent, systemRegistriesDirPath string) ([]*trust.Policy, error) {
