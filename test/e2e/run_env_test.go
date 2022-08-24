@@ -58,6 +58,13 @@ var _ = Describe("Podman run", func() {
 		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(ContainSubstring("/bin"))
 
+		// Verify environ keys with spaces do not blow up podman command
+		os.Setenv("FOO BAR", "BAZ")
+		session = podmanTest.Podman([]string{"run", "--rm", ALPINE, "true"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		os.Unsetenv("FOO BAR")
+
 		os.Setenv("FOO", "BAR")
 		session = podmanTest.Podman([]string{"run", "--rm", "--env", "FOO", ALPINE, "printenv", "FOO"})
 		session.WaitWithDefaultTimeout()
