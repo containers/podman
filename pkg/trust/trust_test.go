@@ -66,7 +66,7 @@ func TestPolicyDescription(t *testing.T) {
 					Name:           "quay.io/multi-signed",
 					RepoName:       "quay.io/multi-signed",
 					Type:           "signed",
-					SignatureStore: "",
+					SignatureStore: "https://quay.example.com/sigstore",
 					GPGId:          "1, 2, 3",
 				},
 				{
