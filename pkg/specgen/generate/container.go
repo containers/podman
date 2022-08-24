@@ -19,6 +19,7 @@ import (
 	"github.com/containers/podman/v4/pkg/signal"
 	"github.com/containers/podman/v4/pkg/specgen"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/openshift/imagebuilder"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
@@ -129,6 +130,17 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 			return nil, fmt.Errorf("env fields from image failed to parse: %w", err)
 		}
 		defaultEnvs = envLib.Join(envLib.DefaultEnvVariables(), envLib.Join(defaultEnvs, envs))
+	}
+
+	for _, e := range s.EnvMerge {
+		processedWord, err := imagebuilder.ProcessWord(e, envLib.Slice(defaultEnvs))
+		if err != nil {
+			return nil, fmt.Errorf("unable to process variables for --env-merge %s: %w", e, err)
+		}
+		splitWord := strings.Split(processedWord, "=")
+		if _, ok := defaultEnvs[splitWord[0]]; ok {
+			defaultEnvs[splitWord[0]] = splitWord[1]
+		}
 	}
 
 	for _, e := range s.UnsetEnv {

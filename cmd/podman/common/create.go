@@ -124,6 +124,14 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 			"This is a Docker specific option and is a NOOP",
 		)
 
+		envMergeFlagName := "env-merge"
+		createFlags.StringArrayVar(
+			&cf.EnvMerge,
+			envMergeFlagName, []string{},
+			"Preprocess environment variables from image before injecting them into the container",
+		)
+		_ = cmd.RegisterFlagCompletionFunc(envMergeFlagName, completion.AutocompleteNone)
+
 		envFlagName := "env"
 		createFlags.StringArrayP(
 			envFlagName, "e", Env(),

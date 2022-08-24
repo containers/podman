@@ -243,6 +243,8 @@ Read in a line delimited file of environment variables. See **Environment** note
 
 @@option env-host
 
+@@option env-merge
+
 @@option expose
 
 @@option gidmap.container

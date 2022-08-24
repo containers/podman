@@ -839,6 +839,9 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 	if !s.Volatile {
 		s.Volatile = c.Rm
 	}
+	if len(s.EnvMerge) == 0 || len(c.EnvMerge) != 0 {
+		s.EnvMerge = c.EnvMerge
+	}
 	if len(s.UnsetEnv) == 0 || len(c.UnsetEnv) != 0 {
 		s.UnsetEnv = c.UnsetEnv
 	}
