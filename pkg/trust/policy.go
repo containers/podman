@@ -130,7 +130,7 @@ func getPolicy(policyPath string) (policyContent, error) {
 	return policyContentStruct, nil
 }
 
-var typeDescription = map[string]string{"insecureAcceptAnything": "accept", "signedBy": "signed", "reject": "reject"}
+var typeDescription = map[string]string{"insecureAcceptAnything": "accept", "signedBy": "signed", "sigstoreSigned": "sigstoreSigned", "reject": "reject"}
 
 func trustTypeDescription(trustType string) string {
 	trustDescription, exist := typeDescription[trustType]
