@@ -25,6 +25,38 @@ func TestAddPolicyEntries(t *testing.T) {
 	err = os.WriteFile(policyPath, minimalPolicyJSON, 0600)
 	require.NoError(t, err)
 
+	// Invalid input:
+	for _, invalid := range []AddPolicyEntriesInput{
+		{
+			Scope:       "default",
+			Type:        "accept",
+			PubKeyFiles: []string{"/does-not-make-sense"},
+		},
+		{
+			Scope:       "default",
+			Type:        "insecureAcceptAnything",
+			PubKeyFiles: []string{"/does-not-make-sense"},
+		},
+		{
+			Scope:       "default",
+			Type:        "reject",
+			PubKeyFiles: []string{"/does-not-make-sense"},
+		},
+		{
+			Scope:       "default",
+			Type:        "signedBy",
+			PubKeyFiles: []string{}, // A key is missing
+		},
+		{
+			Scope:       "default",
+			Type:        "this-is-unknown",
+			PubKeyFiles: []string{},
+		},
+	} {
+		err := AddPolicyEntries(policyPath, invalid)
+		assert.Error(t, err, "%#v", invalid)
+	}
+
 	err = AddPolicyEntries(policyPath, AddPolicyEntriesInput{
 		Scope: "default",
 		Type:  "reject",
