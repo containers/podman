@@ -53,6 +53,10 @@ func DefaultPolicyPath(sys *types.SystemContext) string {
 	return systemDefaultPolicyPath
 }
 
+// gpgIDReader returns GPG key IDs of keys stored at the provided path.
+// It exists only for tests, production code should always use getGPGIdFromKeyPath.
+type gpgIDReader func(string) []string
+
 // createTmpFile creates a temp file under dir and writes the content into it
 func createTmpFile(dir, pattern string, content []byte) (string, error) {
 	tmpfile, err := ioutil.TempFile(dir, pattern)
@@ -79,7 +83,7 @@ func getGPGIdFromKeyPath(path string) []string {
 }
 
 // getGPGIdFromKeyData returns GPG key IDs of keys in the provided keyring.
-func getGPGIdFromKeyData(key string) []string {
+func getGPGIdFromKeyData(idReader gpgIDReader, key string) []string {
 	decodeKey, err := base64.StdEncoding.DecodeString(key)
 	if err != nil {
 		logrus.Errorf("%s, error decoding key data", err)
@@ -90,7 +94,7 @@ func getGPGIdFromKeyData(key string) []string {
 		logrus.Errorf("Creating key date temp file %s", err)
 	}
 	defer os.Remove(tmpfileName)
-	return getGPGIdFromKeyPath(tmpfileName)
+	return idReader(tmpfileName)
 }
 
 func parseUids(colonDelimitKeys []byte) []string {
