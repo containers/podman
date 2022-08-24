@@ -22,8 +22,10 @@ type registryConfiguration struct {
 
 // registryNamespace defines lookaside locations for a single namespace.
 type registryNamespace struct {
-	SigStore        string `json:"sigstore"`         // For reading, and if SigStoreStaging is not present, for writing.
-	SigStoreStaging string `json:"sigstore-staging"` // For writing only.
+	Lookaside        string `json:"lookaside"`         // For reading, and if LookasideStaging is not present, for writing.
+	LookasideStaging string `json:"lookaside-staging"` // For writing only.
+	SigStore         string `json:"sigstore"`          // For reading, and if SigStoreStaging is not present, for writing.
+	SigStoreStaging  string `json:"sigstore-staging"`  // For writing only.
 }
 
 // systemRegistriesDirPath is the path to registries.d.

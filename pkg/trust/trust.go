@@ -91,7 +91,11 @@ func getPolicyShowOutput(policyContentStruct policyContent, systemRegistriesDirP
 
 			registryNamespace := haveMatchRegistry(repo, registryConfigs)
 			if registryNamespace != nil {
-				tempTrustShowOutput.SignatureStore = registryNamespace.SigStore
+				if registryNamespace.Lookaside != "" {
+					tempTrustShowOutput.SignatureStore = registryNamespace.Lookaside
+				} else { // incl. registryNamespace.SigStore == ""
+					tempTrustShowOutput.SignatureStore = registryNamespace.SigStore
+				}
 			}
 			output = append(output, &tempTrustShowOutput)
 		}
