@@ -72,33 +72,39 @@ func getPolicyShowOutput(policyContentStruct policyContent, systemRegistriesDirP
 		sort.Strings(scopes)
 		for _, repo := range scopes {
 			repoval := transval[repo]
-			tempTrustShowOutput := Policy{
+			template := Policy{
+				Transport: transport,
 				Name:      repo,
 				RepoName:  repo,
-				Transport: transport,
-				Type:      trustTypeDescription(repoval[0].Type),
 			}
-			uids := []string{}
-			for _, repoele := range repoval {
-				if len(repoele.KeyPath) > 0 {
-					uids = append(uids, idReader(repoele.KeyPath)...)
-				}
-				if len(repoele.KeyData) > 0 {
-					uids = append(uids, getGPGIdFromKeyData(idReader, repoele.KeyData)...)
-				}
-			}
-			tempTrustShowOutput.GPGId = strings.Join(uids, ", ")
-
-			registryNamespace := haveMatchRegistry(repo, registryConfigs)
-			if registryNamespace != nil {
-				if registryNamespace.Lookaside != "" {
-					tempTrustShowOutput.SignatureStore = registryNamespace.Lookaside
-				} else { // incl. registryNamespace.SigStore == ""
-					tempTrustShowOutput.SignatureStore = registryNamespace.SigStore
-				}
-			}
-			output = append(output, &tempTrustShowOutput)
+			output = append(output, descriptionsOfPolicyRequirements(repoval, template, registryConfigs, repo, idReader)...)
 		}
 	}
 	return output, nil
+}
+
+// descriptionsOfPolicyRequirements turns reqs into user-readable policy entries, with Transport/Name/Reponame coming from template, potentially looking up scope in registryConfigs.
+func descriptionsOfPolicyRequirements(reqs []repoContent, template Policy, registryConfigs *registryConfiguration, scope string, idReader gpgIDReader) []*Policy {
+	tempTrustShowOutput := template
+	tempTrustShowOutput.Type = trustTypeDescription(reqs[0].Type)
+	uids := []string{}
+	for _, repoele := range reqs {
+		if len(repoele.KeyPath) > 0 {
+			uids = append(uids, idReader(repoele.KeyPath)...)
+		}
+		if len(repoele.KeyData) > 0 {
+			uids = append(uids, getGPGIdFromKeyData(idReader, repoele.KeyData)...)
+		}
+	}
+	tempTrustShowOutput.GPGId = strings.Join(uids, ", ")
+
+	registryNamespace := haveMatchRegistry(scope, registryConfigs)
+	if registryNamespace != nil {
+		if registryNamespace.Lookaside != "" {
+			tempTrustShowOutput.SignatureStore = registryNamespace.Lookaside
+		} else { // incl. registryNamespace.SigStore == ""
+			tempTrustShowOutput.SignatureStore = registryNamespace.SigStore
+		}
+	}
+	return []*Policy{&tempTrustShowOutput}
 }
