@@ -90,3 +90,98 @@ func TestPolicyDescription(t *testing.T) {
 		assert.Equal(t, c.expected, res)
 	}
 }
+
+func TestDescriptionsOfPolicyRequirements(t *testing.T) {
+	// Override getGPGIdFromKeyPath because we don't want to bother with (and spend the unit-test time on) generating valid GPG keys, and running the real GPG binary.
+	// Instead of reading the files at all, just expect file names like /id1,id2,...,idN.pub
+	idReader := func(keyPath string) []string {
+		require.True(t, strings.HasPrefix(keyPath, "/"))
+		require.True(t, strings.HasSuffix(keyPath, ".pub"))
+		return strings.Split(keyPath[1:len(keyPath)-4], ",")
+	}
+
+	template := Policy{
+		Transport: "transport",
+		Name:      "name",
+		RepoName:  "repoName",
+	}
+	registryConfigs, err := loadAndMergeConfig("./testdata")
+	require.NoError(t, err)
+
+	for _, c := range []struct {
+		scope    string
+		reqs     signature.PolicyRequirements
+		expected []*Policy
+	}{
+		{
+			"",
+			signature.PolicyRequirements{
+				signature.NewPRReject(),
+			},
+			[]*Policy{
+				{
+					Transport: "transport",
+					Name:      "name",
+					RepoName:  "repoName",
+					Type:      "reject",
+				},
+			},
+		},
+		{
+			"quay.io/accepted",
+			signature.PolicyRequirements{
+				signature.NewPRInsecureAcceptAnything(),
+			},
+			[]*Policy{
+				{
+					Transport: "transport",
+					Name:      "name",
+					RepoName:  "repoName",
+					Type:      "accept",
+				},
+			},
+		},
+		{
+			"registry.redhat.io",
+			signature.PolicyRequirements{
+				xNewPRSignedByKeyPath(t, "/redhat.pub", signature.NewPRMMatchRepoDigestOrExact()),
+			},
+			[]*Policy{
+				{
+					Transport:      "transport",
+					Name:           "name",
+					RepoName:       "repoName",
+					Type:           "signed",
+					SignatureStore: "https://registry.redhat.io/containers/sigstore",
+					GPGId:          "redhat",
+				},
+			},
+		},
+		{
+			"quay.io/multi-signed",
+			signature.PolicyRequirements{
+				xNewPRSignedByKeyPath(t, "/1.pub", signature.NewPRMMatchRepoDigestOrExact()),
+				xNewPRSignedByKeyPath(t, "/2,3.pub", signature.NewPRMMatchRepoDigestOrExact()),
+			},
+			[]*Policy{
+				{
+					Transport:      "transport",
+					Name:           "name",
+					RepoName:       "repoName",
+					Type:           "signed",
+					SignatureStore: "https://quay.example.com/sigstore",
+					GPGId:          "1, 2, 3",
+				},
+			},
+		},
+	} {
+		reqsJSON, err := json.Marshal(c.reqs)
+		require.NoError(t, err)
+		var parsedRegs []repoContent
+		err = json.Unmarshal(reqsJSON, &parsedRegs)
+		require.NoError(t, err)
+
+		res := descriptionsOfPolicyRequirements(parsedRegs, template, registryConfigs, c.scope, idReader)
+		assert.Equal(t, c.expected, res)
+	}
+}
