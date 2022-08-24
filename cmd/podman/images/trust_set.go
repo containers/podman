@@ -53,7 +53,7 @@ File(s) must exist before using this command`)
 }
 
 func setTrust(cmd *cobra.Command, args []string) error {
-	validTrustTypes := []string{"accept", "insecureAcceptAnything", "reject", "signedBy"}
+	validTrustTypes := []string{"accept", "insecureAcceptAnything", "reject", "signedBy", "sigstoreSigned"}
 
 	valid, err := isValidImageURI(args[0])
 	if err != nil || !valid {
@@ -61,7 +61,7 @@ func setTrust(cmd *cobra.Command, args []string) error {
 	}
 
 	if !util.StringInSlice(setOptions.Type, validTrustTypes) {
-		return fmt.Errorf("invalid choice: %s (choose from 'accept', 'reject', 'signedBy')", setOptions.Type)
+		return fmt.Errorf("invalid choice: %s (choose from 'accept', 'reject', 'signedBy', 'sigstoreSigned')", setOptions.Type)
 	}
 	return registry.ImageEngine().SetTrust(registry.Context(), args, setOptions)
 }

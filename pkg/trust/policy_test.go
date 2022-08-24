@@ -49,6 +49,11 @@ func TestAddPolicyEntries(t *testing.T) {
 		},
 		{
 			Scope:       "default",
+			Type:        "sigstoreSigned",
+			PubKeyFiles: []string{}, // A key is missing
+		},
+		{
+			Scope:       "default",
 			Type:        "this-is-unknown",
 			PubKeyFiles: []string{},
 		},
@@ -73,6 +78,12 @@ func TestAddPolicyEntries(t *testing.T) {
 		PubKeyFiles: []string{"/1.pub", "/2.pub"},
 	})
 	assert.NoError(t, err)
+	err = AddPolicyEntries(policyPath, AddPolicyEntriesInput{
+		Scope:       "quay.io/sigstore-signed",
+		Type:        "sigstoreSigned",
+		PubKeyFiles: []string{"/1.pub", "/2.pub"},
+	})
+	assert.NoError(t, err)
 
 	// Test that the outcome is consumable, and compare it with the expected values.
 	parsedPolicy, err := signature.NewPolicyFromFile(policyPath)
@@ -90,6 +101,10 @@ func TestAddPolicyEntries(t *testing.T) {
 					xNewPRSignedByKeyPath(t, "/1.pub", signature.NewPRMMatchRepoDigestOrExact()),
 					xNewPRSignedByKeyPath(t, "/2.pub", signature.NewPRMMatchRepoDigestOrExact()),
 				},
+				"quay.io/sigstore-signed": {
+					xNewPRSigstoreSignedKeyPath(t, "/1.pub", signature.NewPRMMatchRepoDigestOrExact()),
+					xNewPRSigstoreSignedKeyPath(t, "/2.pub", signature.NewPRMMatchRepoDigestOrExact()),
+				},
 			},
 		},
 	}, parsedPolicy)
@@ -98,6 +113,13 @@ func TestAddPolicyEntries(t *testing.T) {
 // xNewPRSignedByKeyPath is a wrapper for NewPRSignedByKeyPath which must not fail.
 func xNewPRSignedByKeyPath(t *testing.T, keyPath string, signedIdentity signature.PolicyReferenceMatch) signature.PolicyRequirement {
 	pr, err := signature.NewPRSignedByKeyPath(signature.SBKeyTypeGPGKeys, keyPath, signedIdentity)
+	require.NoError(t, err)
+	return pr
+}
+
+// xNewPRSigstoreSignedKeyPath is a wrapper for NewPRSigstoreSignedKeyPath which must not fail.
+func xNewPRSigstoreSignedKeyPath(t *testing.T, keyPath string, signedIdentity signature.PolicyReferenceMatch) signature.PolicyRequirement {
+	pr, err := signature.NewPRSigstoreSignedKeyPath(keyPath, signedIdentity)
 	require.NoError(t, err)
 	return pr
 }
