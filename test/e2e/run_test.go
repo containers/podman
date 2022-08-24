@@ -1235,8 +1235,7 @@ USER mail`, BB)
 	})
 
 	It("podman run --mount type=bind,bind-nonrecursive", func() {
-		// crun: mount `/` to `/host`: Invalid argument
-		SkipIfRootless("FIXME: rootless users are not allowed to mount bind-nonrecursive (Could this be a Kernel bug?")
+		SkipIfRootless("FIXME: rootless users are not allowed to mount bind-nonrecursive")
 		session := podmanTest.Podman([]string{"run", "--mount", "type=bind,bind-nonrecursive,slave,src=/,target=/host", fedoraMinimal, "findmnt", "-nR", "/host"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
