@@ -408,6 +408,7 @@ func cliOpts(cc handlers.CreateContainerConfig, rtc *config.Config) (*entities.C
 		Systemd:           "true", // podman default
 		TmpFS:             parsedTmp,
 		TTY:               cc.Config.Tty,
+		EnvMerge:          cc.EnvMerge,
 		UnsetEnv:          cc.UnsetEnv,
 		UnsetEnvAll:       cc.UnsetEnvAll,
 		User:              cc.Config.User,

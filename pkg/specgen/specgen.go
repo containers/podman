@@ -204,6 +204,9 @@ type ContainerBasicConfig struct {
 	// The execution domain system allows Linux to provide limited support
 	// for binaries compiled under other UNIX-like operating systems.
 	Personality *spec.LinuxPersonality `json:"personality,omitempty"`
+	// EnvMerge takes the specified environment variables from image and preprocess them before injecting them into the
+	// container.
+	EnvMerge []string `json:"envmerge,omitempty"`
 	// UnsetEnv unsets the specified default environment variables from the image or from buildin or containers.conf
 	// Optional.
 	UnsetEnv []string `json:"unsetenv,omitempty"`

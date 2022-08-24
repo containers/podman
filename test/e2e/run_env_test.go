@@ -82,6 +82,17 @@ var _ = Describe("Podman run", func() {
 		Expect(session.OutputToString()).To(ContainSubstring("HOSTNAME"))
 	})
 
+	It("podman run with --env-merge", func() {
+		dockerfile := `FROM quay.io/libpod/alpine:latest
+ENV hello=world
+`
+		podmanTest.BuildImage(dockerfile, "test", "false")
+		session := podmanTest.Podman([]string{"run", "--rm", "--env-merge", "hello=${hello}-earth", "test", "env"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).To(ContainSubstring("world-earth"))
+	})
+
 	It("podman run --env-host environment test", func() {
 		env := append(os.Environ(), "FOO=BAR")
 		session := podmanTest.PodmanAsUser([]string{"run", "--rm", "--env-host", ALPINE, "/bin/printenv", "FOO"}, 0, 0, "", env)
