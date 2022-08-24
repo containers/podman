@@ -2,6 +2,7 @@ package trust
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 )
 
@@ -46,12 +47,26 @@ func getPolicyShowOutput(policyContentStruct policyContent, systemRegistriesDirP
 		}
 		output = append(output, &defaultPolicyStruct)
 	}
-	for transport, transval := range policyContentStruct.Transports {
+	// FIXME: This should use x/exp/maps.Keys after we update to Go 1.18.
+	transports := []string{}
+	for t := range policyContentStruct.Transports {
+		transports = append(transports, t)
+	}
+	sort.Strings(transports)
+	for _, transport := range transports {
+		transval := policyContentStruct.Transports[transport]
 		if transport == "docker" {
 			transport = "repository"
 		}
 
-		for repo, repoval := range transval {
+		// FIXME: This should use x/exp/maps.Keys after we update to Go 1.18.
+		scopes := []string{}
+		for s := range transval {
+			scopes = append(scopes, s)
+		}
+		sort.Strings(scopes)
+		for _, repo := range scopes {
+			repoval := transval[repo]
 			tempTrustShowOutput := Policy{
 				Name:      repo,
 				RepoName:  repo,
