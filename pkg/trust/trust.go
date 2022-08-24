@@ -84,6 +84,18 @@ func getPolicyShowOutput(policyContentStruct policyContent, systemRegistriesDirP
 
 // descriptionsOfPolicyRequirements turns reqs into user-readable policy entries, with Transport/Name/Reponame coming from template, potentially looking up scope (which may be "") in registryConfigs.
 func descriptionsOfPolicyRequirements(reqs []repoContent, template Policy, registryConfigs *registryConfiguration, scope string, idReader gpgIDReader) []*Policy {
+	res := []*Policy{}
+
+	var lookasidePath string
+	registryNamespace := registriesDConfigurationForScope(registryConfigs, scope)
+	if registryNamespace != nil {
+		if registryNamespace.Lookaside != "" {
+			lookasidePath = registryNamespace.Lookaside
+		} else { // incl. registryNamespace.SigStore == ""
+			lookasidePath = registryNamespace.SigStore
+		}
+	}
+
 	entry := template
 	entry.Type = trustTypeDescription(reqs[0].Type)
 	uids := []string{}
@@ -96,14 +108,9 @@ func descriptionsOfPolicyRequirements(reqs []repoContent, template Policy, regis
 		}
 	}
 	entry.GPGId = strings.Join(uids, ", ")
+	entry.SignatureStore = lookasidePath
 
-	registryNamespace := registriesDConfigurationForScope(registryConfigs, scope)
-	if registryNamespace != nil {
-		if registryNamespace.Lookaside != "" {
-			entry.SignatureStore = registryNamespace.Lookaside
-		} else { // incl. registryNamespace.SigStore == ""
-			entry.SignatureStore = registryNamespace.SigStore
-		}
-	}
-	return []*Policy{&entry}
+	res = append(res, &entry)
+
+	return res
 }
