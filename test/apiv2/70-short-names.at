@@ -33,18 +33,8 @@ RUN  touch /foo
 EOF
     tar --format=posix -C $TMPD -cvf ${CONTAINERFILE_TAR} containerfile &> /dev/null
 
-    curl -XPOST --data-binary @<(cat $CONTAINERFILE_TAR) \
-        -H "content-type: application/x-tar" \
-        --dump-header "${TMPD}/headers.txt" \
-        -o "${TMPD}/response.txt" \
-        "http://$HOST:$PORT/build?dockerfile=containerfile&t=$tag" &> /dev/null
-
-    if ! grep -q '200 OK' "${TMPD}/headers.txt"; then
-        cat "${TMPD}/headers.txt"
-        cat "${TMPD}/response.txt"
-        echo -e "${red}NOK: Image build from tar failed response was not 200 OK (application/x-tar)"
-        exit 1
-    fi
+    t POST "/build?dockerfile=containerfile&t=$tag" $CONTAINERFILE_TAR 200 \
+      .stream~".*Successfully tagged .*"
 
     rm -rf $TMPD
     t DELETE "images/$fqn" 200

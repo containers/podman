@@ -134,23 +134,17 @@ t GET libpod/pods/json?filters='{"label":["testl' 400 \
 t DELETE  libpod/pods/foo 200
 t DELETE "libpod/pods/foo (pod has already been deleted)" 404
 
-t_timeout 5 GET "libpod/pods/stats?stream=true&delay=1" 200
+# Expect this to time out
+APIV2_TEST_EXPECT_TIMEOUT=5 t GET "libpod/pods/stats?stream=true&delay=1" 999
 
 podman pod create --name=specgen
 
 TMPD=$(mktemp -d podman-apiv2-test.build.XXXXXXXX)
 
-podman generate spec -f ${TMPD}/input.txt -c specgen
+podman generate spec -f ${TMPD}/myspec.json -c specgen
 
-curl -XPOST -o ${TMPD}/response.txt --dump-header ${TMPD}/headers.txt -H content-type:application/json http://$HOST:$PORT/v4.0.0/libpod/pods/create -d "@${TMPD}/input.txt"
-
-if ! grep -q '201 Created' "${TMPD}/headers.txt"; then
-    cat "${TMPD}/headers.txt"
-    cat "${TMPD}/response.txt"
-    echo -e "${red}NOK: pod create failed"
-    rm -rf $TMPD
-    exit 1
-fi
+t POST libpod/pods/create ${TMPD}/myspec.json 201 \
+  .Id~[0-9a-f]\\{64\\}
 
 rm -rf $TMPD
 

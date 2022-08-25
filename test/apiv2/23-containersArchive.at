@@ -3,9 +3,6 @@
 # test more container-related endpoints
 #
 
-red='\e[31m'
-nc='\e[0m'
-
 podman pull $IMAGE &>/dev/null
 
 # Ensure clean slate

@@ -3,9 +3,6 @@
 # test more container-related endpoints
 #
 
-red='\e[31m'
-nc='\e[0m'
-
 podman pull "${IMAGE}" &>/dev/null
 
 # Ensure clean slate
@@ -21,29 +18,29 @@ t POST "containers/${CTR}/wait?condition=non-existent-cond" 400
 
 t POST "containers/${CTR}/wait?condition=not-running" 200
 
+# Test waiting for EXIT (need to start a background trigger first)
+(sleep 2;podman start "${CTR}") &
+child_pid=$!
+
+# This will block until the background job completes
 t POST "containers/${CTR}/wait?condition=next-exit" 200 \
   .StatusCode=0 \
-  .Error=null &
-child_pid=$!
-podman start "${CTR}"
+  .Error=null
 wait "${child_pid}"
 
-
-# check if headers are sent in advance before body
-WAIT_TEST_ERROR=""
-curl -I -X POST "http://$HOST:$PORT/containers/${CTR}/wait?condition=next-exit" &> "/dev/null" &
-child_pid=$!
-sleep 0.5
-if kill -2 "${child_pid}" 2> "/dev/null"; then
-  echo -e "${red}NOK: Failed to get response headers immediately.${nc}"  1>&2;
-  WAIT_TEST_ERROR="1"
+# Test that headers are sent before body. (We should actually never get a body)
+APIV2_TEST_EXPECT_TIMEOUT=2 t POST "containers/${CTR}/wait?condition=next-exit" 999
+like "$(<$WORKDIR/curl.headers.out)" ".*HTTP.* 200 OK.*" \
+     "Received headers from /wait"
+if [[ -e $WORKDIR/curl.result.out ]]; then
+    _show_ok 0 "UNEXPECTED: curl on /wait returned results"
 fi
 
-t POST "containers/${CTR}/wait?condition=removed" 200 &
+# Test waiting for REMOVE. Like above, start a background trigger.
+(sleep 2;podman container rm "${CTR}") &
 child_pid=$!
-podman container rm "${CTR}"
+
+t POST "containers/${CTR}/wait?condition=removed" 200 \
+  .StatusCode=0 \
+  .Error=null
 wait "${child_pid}"
-
-if [[ "${WAIT_TEST_ERROR}" ]] ; then
-  exit 1;
-fi
