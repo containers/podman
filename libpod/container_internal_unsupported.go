@@ -69,21 +69,21 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 
 // getHostsEntries returns the container ip host entries for the correct netmode
 func (c *Container) getHostsEntries() (etchosts.HostEntries, error) {
-	return nil, errors.New("unspported (*Container) getHostsEntries")
+	return nil, errors.New("unsupported (*Container) getHostsEntries")
 }
 
 // Fix ownership and permissions of the specified volume if necessary.
 func (c *Container) fixVolumePermissions(v *ContainerNamedVolume) error {
-	return errors.New("unspported (*Container) fixVolumePermissions")
+	return errors.New("unsupported (*Container) fixVolumePermissions")
 }
 
 func (c *Container) expectPodCgroup() (bool, error) {
-	return false, errors.New("unspported (*Container) expectPodCgroup")
+	return false, errors.New("unsupported (*Container) expectPodCgroup")
 }
 
 // Get cgroup path in a format suitable for the OCI spec
 func (c *Container) getOCICgroupPath() (string, error) {
-	return "", errors.New("unspported (*Container) getOCICgroupPath")
+	return "", errors.New("unsupported (*Container) getOCICgroupPath")
 }
 
 func getLocalhostHostEntry(c *Container) etchosts.HostEntries {
