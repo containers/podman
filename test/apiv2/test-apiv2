@@ -24,7 +24,7 @@ REGISTRY_IMAGE="${PODMAN_TEST_IMAGE_REGISTRY}/${PODMAN_TEST_IMAGE_USER}/registry
 # BEGIN setup
 
 USER=$PODMAN_ROOTLESS_USER
-UID=$PODMAN_ROOTLESS_UID
+MYUID=$PODMAN_ROOTLESS_UID
 TMPDIR=${TMPDIR:-/tmp}
 WORKDIR=$(mktemp --tmpdir -d $ME.tmp.XXXXXX)
 
@@ -135,7 +135,8 @@ function like() {
 ##############
 function _show_ok() {
     local ok=$1
-    local testname=$2
+    # Exec tests include control characters; filter them out
+    local testname=$(tr -d \\012 <<<"$2"|cat -vT)
 
     # If output is a tty, colorize pass/fail
     local red=
@@ -254,14 +255,24 @@ function t() {
     # Slurp the command line until we see a 3-digit status code.
     if [[ $method = "POST" || $method == "PUT" || $method = "DELETE" ]]; then
         local -a post_args
+
+        if [[ $method = "POST" ]]; then
+            function _add_curl_args() { curl_args+=(--data-binary @$1); }
+        else
+            function _add_curl_args() { curl_args+=(--upload-file $1); }
+        fi
+
         for arg; do
             case "$arg" in
                 *=*)              post_args+=("$arg");
                                   shift;;
-                *.tar)            curl_args+=(--data-binary @$arg);
+                *.json)           _add_curl_args $arg;
+                                  content_type="application/json";
+                                  shift;;
+                *.tar)            _add_curl_args $arg;
                                   content_type="application/x-tar";
                                   shift;;
-                *.yaml)           curl_args+=(--data-binary @$arg);
+                *.yaml)           _add_curl_args $arg;
                                   shift;;
                 application/*)    content_type="$arg";
                                   shift;;

@@ -63,7 +63,7 @@ podman pull -q $IMAGE
 
 # test podman image SCP
 # ssh needs to work so we can validate that the failure is past argument parsing
-podman system connection add --default test ssh://$USER@localhost/run/user/$UID/podman/podman.sock
+podman system connection add --default test ssh://$USER@localhost/run/user/$MYUID/podman/podman.sock
 # should fail but need to check the output...
 # status 125 here means that the save/load fails due to
 # cirrus weirdness with exec.Command. All of the args have been parsed successfully.
