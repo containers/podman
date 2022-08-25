@@ -146,13 +146,9 @@ When size is `0`, there is no limit on the amount of memory used for IPC by the 
 When set to true, this flag starts the newly created pod after the
 clone process has completed. All containers within the pod are started.
 
-#### **--subgidname**=*name*
+@@option subgidname
 
-Name for GID map from the `/etc/subgid` file. Using this flag will run the container with user namespace enabled. This flag conflicts with `--userns` and `--gidmap`.
-
-#### **--subuidname**=*name*
-
-Name for UID map from the `/etc/subuid` file. Using this flag will run the container with user namespace enabled. This flag conflicts with `--userns` and `--uidmap`.
+@@option subuidname
 
 #### **--sysctl**=*name=value*
 
