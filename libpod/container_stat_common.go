@@ -15,25 +15,6 @@ import (
 	"github.com/containers/podman/v4/pkg/copy"
 )
 
-// statInsideMount stats the specified path *inside* the container's mount and PID
-// namespace.  It returns the file info along with the resolved root ("/") and
-// the resolved path (relative to the root).
-func (c *Container) statInsideMount(containerPath string) (*copier.StatForItem, string, string, error) {
-	resolvedRoot := "/"
-	resolvedPath := c.pathAbs(containerPath)
-	var statInfo *copier.StatForItem
-
-	err := c.joinMountAndExec(
-		func() error {
-			var statErr error
-			statInfo, statErr = secureStat(resolvedRoot, resolvedPath)
-			return statErr
-		},
-	)
-
-	return statInfo, resolvedRoot, resolvedPath, err
-}
-
 // statOnHost stats the specified path *on the host*.  It returns the file info
 // along with the resolved root and the resolved path.  Both paths are absolute
 // to the host's root.  Note that the paths may resolved outside the
@@ -72,16 +53,7 @@ func (c *Container) stat(containerMountPoint string, containerPath string) (*def
 		return nil, "", "", copy.ErrENOENT
 	}
 
-	if c.state.State == define.ContainerStateRunning {
-		// If the container is running, we need to join it's mount namespace
-		// and stat there.
-		statInfo, resolvedRoot, resolvedPath, statErr = c.statInsideMount(containerPath)
-	} else {
-		// If the container is NOT running, we need to resolve the path
-		// on the host.
-		statInfo, resolvedRoot, resolvedPath, statErr = c.statOnHost(containerMountPoint, containerPath)
-	}
-
+	statInfo, resolvedRoot, resolvedPath, statErr = c.statInContainer(containerMountPoint, containerPath)
 	if statErr != nil {
 		if statInfo == nil {
 			return nil, "", "", statErr
