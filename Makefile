@@ -285,8 +285,9 @@ vendor:
 
 .PHONY: vendor-in-container
 vendor-in-container:
-	podman run --privileged --rm --env HOME=/root \
+	podman run --rm --env HOME=/root \
 		-v $(CURDIR):/src -w /src \
+		--security-opt label=disable \
 		docker.io/library/golang:1.17 \
 		make vendor
 
