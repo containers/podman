@@ -88,6 +88,13 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 		}
 		params.Set("additionalbuildcontexts", string(additionalBuildContextMap))
 	}
+	if options.IDMappingOptions != nil {
+		idmappingsOptions, err := jsoniter.Marshal(options.IDMappingOptions)
+		if err != nil {
+			return nil, err
+		}
+		params.Set("idmappingoptions", string(idmappingsOptions))
+	}
 	if buildArgs := options.Args; len(buildArgs) > 0 {
 		bArgs, err := jsoniter.MarshalToString(buildArgs)
 		if err != nil {
