@@ -282,9 +282,9 @@ func Search(ctx context.Context, term string, options *SearchOptions) ([]entitie
 	}
 	params.Set("term", term)
 
-	// Note: we have to verify if skipped is false.
+	// SkipTLSVerify is special.  It's not being serialized by ToParams()
+	// because we need to flip the boolean.
 	if options.SkipTLSVerify != nil {
-		params.Del("SkipTLSVerify")
 		params.Set("tlsVerify", strconv.FormatBool(!options.GetSkipTLSVerify()))
 	}
 

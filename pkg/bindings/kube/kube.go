@@ -40,8 +40,10 @@ func PlayWithBody(ctx context.Context, body io.Reader, options *PlayOptions) (*e
 	if err != nil {
 		return nil, err
 	}
+	// SkipTLSVerify is special.  It's not being serialized by ToParams()
+	// because we need to flip the boolean.
 	if options.SkipTLSVerify != nil {
-		params.Set("tlsVerify", strconv.FormatBool(options.GetSkipTLSVerify()))
+		params.Set("tlsVerify", strconv.FormatBool(!options.GetSkipTLSVerify()))
 	}
 	if options.Start != nil {
 		params.Set("start", strconv.FormatBool(options.GetStart()))
