@@ -267,6 +267,8 @@ func GenerateKubeServiceFromV1Pod(pod *v1.Pod, servicePorts []v1.ServicePort) (Y
 	}
 	service.Spec = serviceSpec
 	service.ObjectMeta = pod.ObjectMeta
+	// Reset the annotations for the service as the pod annotations are not needed for the service
+	service.ObjectMeta.Annotations = nil
 	tm := v12.TypeMeta{
 		Kind:       "Service",
 		APIVersion: pod.TypeMeta.APIVersion,
