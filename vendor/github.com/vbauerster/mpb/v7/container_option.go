@@ -31,7 +31,7 @@ func WithWidth(width int) ContainerOption {
 	}
 }
 
-// WithRefreshRate overrides default 120ms refresh rate.
+// WithRefreshRate overrides default 150ms refresh rate.
 func WithRefreshRate(d time.Duration) ContainerOption {
 	return func(s *pState) {
 		s.rr = d
