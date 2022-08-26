@@ -58,7 +58,7 @@ require (
 	github.com/syndtr/gocapability v0.0.0-20200815063812-42c35b437635
 	github.com/uber/jaeger-client-go v2.30.0+incompatible
 	github.com/ulikunitz/xz v0.5.10
-	github.com/vbauerster/mpb/v7 v7.4.2
+	github.com/vbauerster/mpb/v7 v7.5.2
 	github.com/vishvananda/netlink v1.1.1-0.20220115184804-dd687eb2f2d4
 	go.etcd.io/bbolt v1.3.6
 	golang.org/x/sync v0.0.0-20220601150217-0de741cfad7f

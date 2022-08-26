@@ -29,7 +29,7 @@ type Bar struct {
 	recoveredPanic interface{}
 }
 
-type extenderFunc func(in io.Reader, reqWidth int, st decor.Statistics) (out io.Reader, lines int)
+type extenderFunc func(rows []io.Reader, width int, stat decor.Statistics) []io.Reader
 
 // bState is actual bar's state.
 type bState struct {
@@ -57,14 +57,15 @@ type bState struct {
 	extender          extenderFunc
 	debugOut          io.Writer
 
-	afterBar *Bar // key for (*pState).queueBars
-	sync     bool
+	wait struct {
+		bar  *Bar // key for (*pState).queueBars
+		sync bool
+	}
 }
 
 type renderFrame struct {
-	reader   io.Reader
-	lines    int
-	shutdown bool
+	rows     []io.Reader
+	shutdown int
 }
 
 func newBar(container *Progress, bs *bState) *Bar {
@@ -339,8 +340,8 @@ func (b *Bar) Wait() {
 
 func (b *Bar) serve(ctx context.Context, bs *bState) {
 	defer b.container.bwg.Done()
-	if bs.afterBar != nil && bs.sync {
-		bs.afterBar.Wait()
+	if bs.wait.bar != nil && bs.wait.sync {
+		bs.wait.bar.Wait()
 	}
 	for {
 		select {
@@ -359,48 +360,58 @@ func (b *Bar) serve(ctx context.Context, bs *bState) {
 func (b *Bar) render(tw int) {
 	select {
 	case b.operateState <- func(s *bState) {
-		var reader io.Reader
-		var lines int
+		var rows []io.Reader
 		stat := newStatistics(tw, s)
 		defer func() {
 			// recovering if user defined decorator panics for example
 			if p := recover(); p != nil {
 				if s.debugOut != nil {
-					fmt.Fprintln(s.debugOut, p)
-					_, _ = s.debugOut.Write(debug.Stack())
+					for _, fn := range []func() (int, error){
+						func() (int, error) {
+							return fmt.Fprintln(s.debugOut, p)
+						},
+						func() (int, error) {
+							return s.debugOut.Write(debug.Stack())
+						},
+					} {
+						if _, err := fn(); err != nil {
+							panic(err)
+						}
+					}
 				}
 				s.aborted = !s.completed
 				s.extender = makePanicExtender(p)
-				reader, lines = s.extender(nil, s.reqWidth, stat)
 				b.recoveredPanic = p
 			}
-			frame := renderFrame{
-				reader:   reader,
-				lines:    lines + 1,
-				shutdown: s.completed || s.aborted,
+			if fn := s.extender; fn != nil {
+				rows = fn(rows, s.reqWidth, stat)
 			}
-			if frame.shutdown {
+			frame := &renderFrame{
+				rows: rows,
+			}
+			if s.completed || s.aborted {
 				b.cancel()
+				frame.shutdown++
 			}
-			b.frameCh <- &frame
+			b.frameCh <- frame
 		}()
 		if b.recoveredPanic == nil {
-			reader = s.draw(stat)
+			rows = append(rows, s.draw(stat))
 		}
-		reader, lines = s.extender(reader, s.reqWidth, stat)
 	}:
 	case <-b.done:
-		var reader io.Reader
-		var lines int
-		stat, s := newStatistics(tw, b.bs), b.bs
+		var rows []io.Reader
+		s, stat := b.bs, newStatistics(tw, b.bs)
 		if b.recoveredPanic == nil {
-			reader = s.draw(stat)
+			rows = append(rows, s.draw(stat))
 		}
-		reader, lines = s.extender(reader, s.reqWidth, stat)
-		b.frameCh <- &renderFrame{
-			reader: reader,
-			lines:  lines + 1,
+		if fn := s.extender; fn != nil {
+			rows = fn(rows, s.reqWidth, stat)
 		}
+		frame := &renderFrame{
+			rows: rows,
+		}
+		b.frameCh <- frame
 	}
 }
 
@@ -446,7 +457,7 @@ func (b *Bar) wSyncTable() [][]chan int {
 
 func (s *bState) draw(stat decor.Statistics) io.Reader {
 	bufP, bufB, bufA := s.buffers[0], s.buffers[1], s.buffers[2]
-	nlr := strings.NewReader("\n")
+	nlr := bytes.NewReader([]byte("\n"))
 	tw := stat.AvailableWidth
 	for _, d := range s.pDecorators {
 		str := d.Decor(stat)
@@ -596,11 +607,11 @@ func extractBaseDecorator(d decor.Decorator) decor.Decorator {
 
 func makePanicExtender(p interface{}) extenderFunc {
 	pstr := fmt.Sprint(p)
-	return func(_ io.Reader, _ int, st decor.Statistics) (io.Reader, int) {
-		mr := io.MultiReader(
-			strings.NewReader(runewidth.Truncate(pstr, st.AvailableWidth, "…")),
-			strings.NewReader("\n"),
+	return func(rows []io.Reader, _ int, stat decor.Statistics) []io.Reader {
+		r := io.MultiReader(
+			strings.NewReader(runewidth.Truncate(pstr, stat.AvailableWidth, "…")),
+			bytes.NewReader([]byte("\n")),
 		)
-		return mr, 0
+		return append(rows, r)
 	}
 }

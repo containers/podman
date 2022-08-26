@@ -1593,8 +1593,9 @@ github.com/valyala/quicktemplate v1.7.0/go.mod h1:sqKJnoaOF88V07vkO+9FL8fb9uZg/V
 github.com/valyala/tcplisten v1.0.0/go.mod h1:T0xQ8SeCZGxckz9qRXTfG43PvQ/mcWh7FwZEA7Ioqkc=
 github.com/vbatts/tar-split v0.11.2 h1:Via6XqJr0hceW4wff3QRzD5gAk/tatMw/4ZA7cTlIME=
 github.com/vbatts/tar-split v0.11.2/go.mod h1:vV3ZuO2yWSVsz+pfFzDG/upWH1JhjOiEaWq6kXyQ3VI=
-github.com/vbauerster/mpb/v7 v7.4.2 h1:n917F4d8EWdUKc9c81wFkksyG6P6Mg7IETfKCE1Xqng=
 github.com/vbauerster/mpb/v7 v7.4.2/go.mod h1:UmOiIUI8aPqWXIps0ciik3RKMdzx7+ooQpq+fBcXwBA=
+github.com/vbauerster/mpb/v7 v7.5.2 h1:Ph3JvpBcoIwzIG1QwbUq97KQifrTRbKcMXN9rN5BYAs=
+github.com/vbauerster/mpb/v7 v7.5.2/go.mod h1:UmOiIUI8aPqWXIps0ciik3RKMdzx7+ooQpq+fBcXwBA=
 github.com/viki-org/dnscache v0.0.0-20130720023526-c70c1f23c5d8/go.mod h1:dniwbG03GafCjFohMDmz6Zc6oCuiqgH6tGNyXTkHzXE=
 github.com/vishvananda/netlink v0.0.0-20181108222139-023a6dafdcdf/go.mod h1:+SR5DhBJrl6ZM7CoCKvpw5BKroDKQ+PJqOg65H/2ktk=
 github.com/vishvananda/netlink v1.1.0/go.mod h1:cTgwzPIzzgDAYoQrMm0EdrjRUBkTqKYppBueQtXaqoE=
