@@ -228,7 +228,7 @@ var _ = Describe("Podman restart", func() {
 		Expect(beforeRestart.OutputToString()).To(Equal(afterRestart.OutputToString()))
 	})
 
-	It("podman restart all stoped containers with --all", func() {
+	It("podman restart all stopped containers with --all", func() {
 		session := podmanTest.RunTopContainer("")
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
