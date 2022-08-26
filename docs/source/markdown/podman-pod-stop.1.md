@@ -35,20 +35,20 @@ Seconds to wait before forcibly stopping the containers in the pod.
 
 ## EXAMPLE
 
-Stop a pod called *mywebserverpod*
+Stop pod with a given name
 ```
 $ podman pod stop mywebserverpod
 cc8f0bea67b1a1a11aec1ecd38102a1be4b145577f21fc843c7c83b77fc28907
 ```
 
-Stop two pods by their short IDs.
+Stop multiple pods with given IDs.
 ```
 $ podman pod stop 490eb 3557fb
 490eb241aaf704d4dd2629904410fe4aa31965d9310a735f8755267f4ded1de5
 3557fbea6ad61569de0506fe037479bd9896603c31d3069a6677f23833916fab
 ```
 
-Stop the most recent pod
+Stop the last created pod
 ```
 $ podman pod stop --latest
 3557fbea6ad61569de0506fe037479bd9896603c31d3069a6677f23833916fab
@@ -71,7 +71,7 @@ $ podman pod stop --pod-id-file file1 --pod-id-file file2
 cc8f0bea67b1a1a11aec1ecd38102a1be4b145577f21fc843c7c83b77fc28907
 ```
 
-Stop all pods with a timeout of 1 second.
+Stop all pods with a timeout of 1 second
 ```
 $ podman pod stop -a -t 1
 3557fbea6ad61569de0506fe037479bd9896603c31d3069a6677f23833916fab
