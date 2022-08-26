@@ -33,7 +33,7 @@ env:
     # Image identifiers
     IMAGE_SUFFIX: "c6211193021923328"
     # EC2 images
-    FEDORA_AMI: "fedora-aws-${IMAGE_SUFFIX}"
+    FEDORA_AMI: "ami-06a41d8a81ab56afa"
     # GCP Images
     FEDORA_CACHE_IMAGE_NAME: "fedora-${IMAGE_SUFFIX}"
     PRIOR_FEDORA_CACHE_IMAGE_NAME: "prior-fedora-${IMAGE_SUFFIX}"
@@ -841,7 +841,7 @@ meta_task:
     container:
         cpu: 2
         memory: 2
-        image: quay.io/libpod/imgts:$IMAGE_SUFFIX
+        image: quay.io/libpod/imgts:latest
     env:
         # Space-separated list of images used by this repository state
         IMGNAMES: >-
@@ -849,8 +849,10 @@ meta_task:
             ${PRIOR_FEDORA_CACHE_IMAGE_NAME}
             ${UBUNTU_CACHE_IMAGE_NAME}
             build-push-${IMAGE_SUFFIX}
+        EC2IMGNAMES: ${FEDORA_AMI}
         BUILDID: "${CIRRUS_BUILD_ID}"
         REPOREF: "${CIRRUS_REPO_NAME}"
+        AWSINI: ENCRYPTED[21b2db557171b11eb5abdbccae593f48c9caeba86dfcc4d4ff109edee9b4656ab6720a110dadfcd51e88cc59a71cc7af]
         GCPJSON: ENCRYPTED[3a198350077849c8df14b723c0f4c9fece9ebe6408d35982e7adf2105a33f8e0e166ed3ed614875a0887e1af2b8775f4]
         GCPNAME: ENCRYPTED[2f9738ef295a706f66a13891b40e8eaa92a89e0e87faf8bed66c41eca72bf76cfd190a6f2d0e8444c631fdf15ed32ef6]
         GCPPROJECT: libpod-218412
