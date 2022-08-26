@@ -89,6 +89,12 @@ func GetEvents(w http.ResponseWriter, r *http.Request) {
 			}
 
 			e := entities.ConvertToEntitiesEvent(*evt)
+			// Some events differ between Libpod and Docker endpoints.
+			// Handle these differences for Docker-compat.
+			if !utils.IsLibpodRequest(r) && e.Type == "image" && e.Status == "remove" {
+				e.Status = "delete"
+				e.Action = "delete"
+			}
 			if !utils.IsLibpodRequest(r) && e.Status == "died" {
 				e.Status = "die"
 				e.Action = "die"

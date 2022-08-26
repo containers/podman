@@ -239,4 +239,23 @@ fi
 
 cleanBuildTest
 
+# compat API vs libpod API event differences:
+# on image removal, libpod produces 'remove' events.
+# compat produces 'delete' events.
+podman image build -t test:test -<<EOF
+from $IMAGE
+EOF
+
+START=$(date +%s)
+
+t DELETE libpod/images/test:test 200
+# HACK HACK HACK There is a race around events being added to the journal
+# This sleep seems to avoid the race.
+# If it fails and begins to flake, investigate a retry loop.
+sleep 1
+t GET "libpod/events?stream=false&since=$START"  200  \
+  'select(.status | contains("remove")).Action=remove'
+t GET "events?stream=false&since=$START"  200  \
+  'select(.status | contains("delete")).Action=delete'
+
 # vim: filetype=sh
