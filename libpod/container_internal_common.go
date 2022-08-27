@@ -1567,3 +1567,31 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 
 	return criuStatistics, runtimeRestoreDuration, c.save()
 }
+
+// Retrieves a container's "root" net namespace container dependency.
+func (c *Container) getRootNetNsDepCtr() (depCtr *Container, err error) {
+	containersVisited := map[string]int{c.config.ID: 1}
+	nextCtr := c.config.NetNsCtr
+	for nextCtr != "" {
+		// Make sure we aren't in a loop
+		if _, visited := containersVisited[nextCtr]; visited {
+			return nil, errors.New("loop encountered while determining net namespace container")
+		}
+		containersVisited[nextCtr] = 1
+
+		depCtr, err = c.runtime.state.Container(nextCtr)
+		if err != nil {
+			return nil, fmt.Errorf("error fetching dependency %s of container %s: %w", c.config.NetNsCtr, c.ID(), err)
+		}
+		// This should never happen without an error
+		if depCtr == nil {
+			break
+		}
+		nextCtr = depCtr.config.NetNsCtr
+	}
+
+	if depCtr == nil {
+		return nil, errors.New("unexpected error depCtr is nil without reported error from runtime state")
+	}
+	return depCtr, nil
+}
