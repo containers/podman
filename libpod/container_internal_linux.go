@@ -11,6 +11,7 @@ import (
 	"strings"
 	"sync"
 	"syscall"
+	"time"
 
 	"github.com/containernetworking/plugins/pkg/ns"
 	"github.com/containers/common/libnetwork/types"
@@ -633,4 +634,13 @@ func (c *Container) hasNetNone() bool {
 		}
 	}
 	return false
+}
+
+func setVolumeAtime(mountPoint string, st os.FileInfo) error {
+	stat := st.Sys().(*syscall.Stat_t)
+	atime := time.Unix(int64(stat.Atim.Sec), int64(stat.Atim.Nsec)) //nolint: unconvert
+	if err := os.Chtimes(mountPoint, atime, st.ModTime()); err != nil {
+		return err
+	}
+	return nil
 }

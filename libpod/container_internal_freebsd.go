@@ -274,3 +274,12 @@ func (c *Container) isSlirp4netnsIPv6() (bool, error) {
 func (c *Container) hasNetNone() bool {
 	return c.state.NetworkJail == ""
 }
+
+func setVolumeAtime(mountPoint string, st os.FileInfo) error {
+	stat := st.Sys().(*syscall.Stat_t)
+	atime := time.Unix(int64(stat.Atimespec.Sec), int64(stat.Atimespec.Nsec)) //nolint: unconvert
+	if err := os.Chtimes(mountPoint, atime, st.ModTime()); err != nil {
+		return err
+	}
+	return nil
+}

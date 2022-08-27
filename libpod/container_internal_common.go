@@ -2654,9 +2654,7 @@ func (c *Container) fixVolumePermissions(v *ContainerNamedVolume) error {
 			if err := os.Chmod(mountPoint, st.Mode()); err != nil {
 				return err
 			}
-			stat := st.Sys().(*syscall.Stat_t)
-			atime := time.Unix(int64(stat.Atim.Sec), int64(stat.Atim.Nsec)) //nolint: unconvert
-			if err := os.Chtimes(mountPoint, atime, st.ModTime()); err != nil {
+			if err := setVolumeAtime(mountPoint, st); err != nil {
 				return err
 			}
 		} else if !os.IsNotExist(err) {
