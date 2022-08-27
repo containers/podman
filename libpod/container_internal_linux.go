@@ -56,6 +56,10 @@ import (
 	"golang.org/x/sys/unix"
 )
 
+var (
+	bindOptions = []string{"bind", "rprivate"}
+)
+
 func (c *Container) mountSHM(shmOptions string) error {
 	if err := unix.Mount("shm", c.config.ShmDir, "tmpfs", unix.MS_NOEXEC|unix.MS_NOSUID|unix.MS_NODEV,
 		label.FormatMountLabel(shmOptions, c.config.MountLabel)); err != nil {

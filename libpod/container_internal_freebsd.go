@@ -51,6 +51,10 @@ import (
 	"golang.org/x/sys/unix"
 )
 
+var (
+	bindOptions = []string{}
+)
+
 // Network stubs to decouple container_internal_freebsd.go from
 // networking_freebsd.go so they can be reviewed separately.
 func (r *Runtime) createNetNS(ctr *Container) (netJail string, q map[string]types.StatusBlock, retErr error) {

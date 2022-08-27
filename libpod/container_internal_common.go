@@ -18,6 +18,7 @@ import (
 	butil "github.com/containers/buildah/util"
 	"github.com/containers/common/pkg/apparmor"
 	cutil "github.com/containers/common/pkg/util"
+	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/annotations"
 	"github.com/containers/podman/v4/pkg/lookup"
 	"github.com/containers/podman/v4/pkg/rootless"
@@ -174,7 +175,7 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 			g.AddMount(overlayMount)
 		} else {
 			volMount := spec.Mount{
-				Type:        "bind",
+				Type:        define.TypeBind,
 				Source:      mountPoint,
 				Destination: namedVol.Dest,
 				Options:     namedVol.Options,
@@ -220,10 +221,10 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 	// Add bind mounts to container
 	for dstPath, srcPath := range c.state.BindMounts {
 		newMount := spec.Mount{
-			Type:        "bind",
+			Type:        define.TypeBind,
 			Source:      srcPath,
 			Destination: dstPath,
-			Options:     []string{"bind", "rprivate"},
+			Options:     bindOptions,
 		}
 		if c.IsReadOnly() && dstPath != "/dev/shm" {
 			newMount.Options = append(newMount.Options, "ro", "nosuid", "noexec", "nodev")
