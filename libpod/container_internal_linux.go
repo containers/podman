@@ -220,38 +220,6 @@ func (c *Container) reloadNetwork() error {
 	return c.save()
 }
 
-// mountNotifySocket mounts the NOTIFY_SOCKET into the container if it's set
-// and if the sdnotify mode is set to container.  It also sets c.notifySocket
-// to avoid redundantly looking up the env variable.
-func (c *Container) mountNotifySocket(g generate.Generator) error {
-	if c.config.SdNotifySocket == "" {
-		return nil
-	}
-	if c.config.SdNotifyMode != define.SdNotifyModeContainer {
-		return nil
-	}
-
-	notifyDir := filepath.Join(c.bundlePath(), "notify")
-	logrus.Debugf("Checking notify %q dir", notifyDir)
-	if err := os.MkdirAll(notifyDir, 0755); err != nil {
-		if !os.IsExist(err) {
-			return fmt.Errorf("unable to create notify %q dir: %w", notifyDir, err)
-		}
-	}
-	if err := label.Relabel(notifyDir, c.MountLabel(), true); err != nil {
-		return fmt.Errorf("relabel failed %q: %w", notifyDir, err)
-	}
-	logrus.Debugf("Add bindmount notify %q dir", notifyDir)
-	if _, ok := c.state.BindMounts["/run/notify"]; !ok {
-		c.state.BindMounts["/run/notify"] = notifyDir
-	}
-
-	// Set the container's notify socket to the proxy socket created by conmon
-	g.AddProcessEnv("NOTIFY_SOCKET", "/run/notify/notify.sock")
-
-	return nil
-}
-
 // systemd expects to have /run, /run/lock and /tmp on tmpfs
 // It also expects to be able to write to /sys/fs/cgroup/systemd and /var/log/journal
 func (c *Container) setupSystemd(mounts []spec.Mount, g generate.Generator) error {
