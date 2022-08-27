@@ -93,7 +93,7 @@ func init() {
 
 func restore(cmd *cobra.Command, args []string) error {
 	var (
-		e    error
+		err  error
 		errs utils.OutputErrors
 	)
 	podmanStart := time.Now()
@@ -104,9 +104,9 @@ func restore(cmd *cobra.Command, args []string) error {
 	// Check if the container exists (#15055)
 	exists := &entities.BoolReport{Value: false}
 	for _, ctr := range args {
-		exists, e = registry.ContainerEngine().ContainerExists(registry.GetContext(), ctr, entities.ContainerExistsOptions{})
-		if e != nil {
-			return e
+		exists, err = registry.ContainerEngine().ContainerExists(registry.GetContext(), ctr, entities.ContainerExistsOptions{})
+		if err != nil {
+			return err
 		}
 		if exists.Value {
 			break
@@ -115,9 +115,9 @@ func restore(cmd *cobra.Command, args []string) error {
 
 	if !exists.Value {
 		// Find out if this is an image
-		restoreOptions.CheckpointImage, e = utils.IsCheckpointImage(context.Background(), args)
-		if e != nil {
-			return e
+		restoreOptions.CheckpointImage, err = utils.IsCheckpointImage(context.Background(), args)
+		if err != nil {
+			return err
 		}
 	}
 
