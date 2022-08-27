@@ -1,0 +1,42 @@
+# latest/Containerfile
+#
+# Build a Podman container image from the latest
+# stable version of Podman and Fedora minimal.
+# This image is around 100MB smaller than Fedora
+# and supports the native overlay driver.
+# https://bodhi.fedoraproject.org/updates/?search=podman
+# This image can be used to create a secured container
+# that runs safely with privileges within the container.
+#
+FROM registry.fedoraproject.org/fedora-minimal:latest
+
+# microdnf is a lightweight package manager for Fedora minimal
+RUN microdnf -y install podman shadow-utils && \
+    microdnf clean all && \
+    rm -rf /var/cache /var/log/dnf* /var/log/yum.* /var/lib/dnf/history.*
+
+RUN useradd podman; \
+echo -e "podman:1:999\npodman:1001:64535" > /etc/subuid; \
+echo -e "podman:1:999\npodman:1001:64535" > /etc/subgid;
+
+ARG _REPO_URL="https://raw.githubusercontent.com/containers/podman/main/contrib/podmanimage/stable"
+ADD $_REPO_URL/containers.conf /etc/containers/containers.conf
+ADD $_REPO_URL/podman-containers.conf /home/podman/.config/containers/containers.conf
+
+RUN mkdir -p /home/podman/.local/share/containers && \
+    chown podman:podman -R /home/podman && \
+    chmod 644 /etc/containers/containers.conf
+
+COPY ./storage.conf /etc/containers/storage.conf
+RUN chmod 644 /etc/containers/storage.conf
+
+RUN mkdir -p /var/lib/shared/overlay-images \
+             /var/lib/shared/overlay-layers \
+             /var/lib/shared/vfs-images \
+             /var/lib/shared/vfs-layers && \
+    touch /var/lib/shared/overlay-images/images.lock && \
+    touch /var/lib/shared/overlay-layers/layers.lock && \
+    touch /var/lib/shared/vfs-images/images.lock && \
+    touch /var/lib/shared/vfs-layers/layers.lock
+
+ENV _CONTAINERS_USERNS_CONFIGURED=""
