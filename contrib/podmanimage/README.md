@@ -5,7 +5,7 @@
 ## Overview
 
 This directory contains the Containerfiles necessary to create the podmanimage container
-images that are housed on quay.io under the Podman account.  All repositories where
+images that are housed on quay.io under the Podman account. All repositories where
 the images live are public and can be pulled without credentials.  These container images are secured and the
 resulting containers can run safely with privileges within the container.
 
