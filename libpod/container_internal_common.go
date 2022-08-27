@@ -14,6 +14,7 @@ import (
 	"time"
 
 	cdi "github.com/container-orchestrated-devices/container-device-interface/pkg/cdi"
+	"github.com/containers/buildah/pkg/chrootuser"
 	"github.com/containers/buildah/pkg/overlay"
 	butil "github.com/containers/buildah/util"
 	"github.com/containers/common/pkg/apparmor"
@@ -479,4 +480,116 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 	}
 
 	return g.Config, nil
+}
+
+// isWorkDirSymlink returns true if resolved workdir is symlink or a chain of symlinks,
+// and final resolved target is present either on  volume, mount or inside of container
+// otherwise it returns false. Following function is meant for internal use only and
+// can change at any point of time.
+func (c *Container) isWorkDirSymlink(resolvedPath string) bool {
+	// We cannot create workdir since explicit --workdir is
+	// set in config but workdir could also be a symlink.
+	// If it's a symlink, check if the resolved target is present in the container.
+	// If so, that's a valid use case: return nil.
+
+	maxSymLinks := 0
+	for {
+		// Linux only supports a chain of 40 links.
+		// Reference: https://github.com/torvalds/linux/blob/master/include/linux/namei.h#L13
+		if maxSymLinks > 40 {
+			break
+		}
+		resolvedSymlink, err := os.Readlink(resolvedPath)
+		if err != nil {
+			// End sym-link resolution loop.
+			break
+		}
+		if resolvedSymlink != "" {
+			_, resolvedSymlinkWorkdir, err := c.resolvePath(c.state.Mountpoint, resolvedSymlink)
+			if isPathOnVolume(c, resolvedSymlinkWorkdir) || isPathOnBindMount(c, resolvedSymlinkWorkdir) {
+				// Resolved symlink exists on external volume or mount
+				return true
+			}
+			if err != nil {
+				// Could not resolve path so end sym-link resolution loop.
+				break
+			}
+			if resolvedSymlinkWorkdir != "" {
+				resolvedPath = resolvedSymlinkWorkdir
+				_, err := os.Stat(resolvedSymlinkWorkdir)
+				if err == nil {
+					// Symlink resolved successfully and resolved path exists on container,
+					// this is a valid use-case so return nil.
+					logrus.Debugf("Workdir is a symlink with target to %q and resolved symlink exists on container", resolvedSymlink)
+					return true
+				}
+			}
+		}
+		maxSymLinks++
+	}
+	return false
+}
+
+// resolveWorkDir resolves the container's workdir and, depending on the
+// configuration, will create it, or error out if it does not exist.
+// Note that the container must be mounted before.
+func (c *Container) resolveWorkDir() error {
+	workdir := c.WorkingDir()
+
+	// If the specified workdir is a subdir of a volume or mount,
+	// we don't need to do anything.  The runtime is taking care of
+	// that.
+	if isPathOnVolume(c, workdir) || isPathOnBindMount(c, workdir) {
+		logrus.Debugf("Workdir %q resolved to a volume or mount", workdir)
+		return nil
+	}
+
+	_, resolvedWorkdir, err := c.resolvePath(c.state.Mountpoint, workdir)
+	if err != nil {
+		return err
+	}
+	logrus.Debugf("Workdir %q resolved to host path %q", workdir, resolvedWorkdir)
+
+	st, err := os.Stat(resolvedWorkdir)
+	if err == nil {
+		if !st.IsDir() {
+			return fmt.Errorf("workdir %q exists on container %s, but is not a directory", workdir, c.ID())
+		}
+		return nil
+	}
+	if !c.config.CreateWorkingDir {
+		// No need to create it (e.g., `--workdir=/foo`), so let's make sure
+		// the path exists on the container.
+		if err != nil {
+			if os.IsNotExist(err) {
+				// If resolved Workdir path gets marked as a valid symlink,
+				// return nil cause this is valid use-case.
+				if c.isWorkDirSymlink(resolvedWorkdir) {
+					return nil
+				}
+				return fmt.Errorf("workdir %q does not exist on container %s", workdir, c.ID())
+			}
+			// This might be a serious error (e.g., permission), so
+			// we need to return the full error.
+			return fmt.Errorf("error detecting workdir %q on container %s: %w", workdir, c.ID(), err)
+		}
+		return nil
+	}
+	if err := os.MkdirAll(resolvedWorkdir, 0755); err != nil {
+		if os.IsExist(err) {
+			return nil
+		}
+		return fmt.Errorf("error creating container %s workdir: %w", c.ID(), err)
+	}
+
+	// Ensure container entrypoint is created (if required).
+	uid, gid, _, err := chrootuser.GetUser(c.state.Mountpoint, c.User())
+	if err != nil {
+		return fmt.Errorf("error looking up %s inside of the container %s: %w", c.User(), c.ID(), err)
+	}
+	if err := os.Chown(resolvedWorkdir, int(uid), int(gid)); err != nil {
+		return fmt.Errorf("error chowning container %s workdir to container root: %w", c.ID(), err)
+	}
+
+	return nil
 }
