@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"math"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -26,6 +27,7 @@ import (
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/containers/storage/pkg/idtools"
 	securejoin "github.com/cyphar/filepath-securejoin"
+	runcuser "github.com/opencontainers/runc/libcontainer/user"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
@@ -592,4 +594,53 @@ func (c *Container) resolveWorkDir() error {
 	}
 
 	return nil
+}
+
+func (c *Container) getUserOverrides() *lookup.Overrides {
+	var hasPasswdFile, hasGroupFile bool
+	overrides := lookup.Overrides{}
+	for _, m := range c.config.Spec.Mounts {
+		if m.Destination == "/etc/passwd" {
+			overrides.ContainerEtcPasswdPath = m.Source
+			hasPasswdFile = true
+		}
+		if m.Destination == "/etc/group" {
+			overrides.ContainerEtcGroupPath = m.Source
+			hasGroupFile = true
+		}
+		if m.Destination == "/etc" {
+			if !hasPasswdFile {
+				overrides.ContainerEtcPasswdPath = filepath.Join(m.Source, "passwd")
+			}
+			if !hasGroupFile {
+				overrides.ContainerEtcGroupPath = filepath.Join(m.Source, "group")
+			}
+		}
+	}
+	if path, ok := c.state.BindMounts["/etc/passwd"]; ok {
+		overrides.ContainerEtcPasswdPath = path
+	}
+	return &overrides
+}
+
+func lookupHostUser(name string) (*runcuser.ExecUser, error) {
+	var execUser runcuser.ExecUser
+	// Look up User on host
+	u, err := util.LookupUser(name)
+	if err != nil {
+		return &execUser, err
+	}
+	uid, err := strconv.ParseUint(u.Uid, 8, 32)
+	if err != nil {
+		return &execUser, err
+	}
+
+	gid, err := strconv.ParseUint(u.Gid, 8, 32)
+	if err != nil {
+		return &execUser, err
+	}
+	execUser.Uid = int(uid)
+	execUser.Gid = int(gid)
+	execUser.Home = u.HomeDir
+	return &execUser, nil
 }
