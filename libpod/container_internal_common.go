@@ -1313,15 +1313,8 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 	}
 
 	// We want to have the same network namespace as before.
-	if c.config.CreateNetNS {
-		netNSPath := ""
-		if !c.config.PostConfigureNetNS {
-			netNSPath = c.state.NetNS.Path()
-		}
-
-		if err := g.AddOrReplaceLinuxNamespace(string(spec.NetworkNamespace), netNSPath); err != nil {
-			return nil, 0, err
-		}
+	if err := c.addNetworkNamespace(&g); err != nil {
+		return nil, 0, err
 	}
 
 	if options.Pod != "" {
