@@ -89,16 +89,8 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 	}
 
 	// If network namespace was requested, add it now
-	if c.config.CreateNetNS {
-		if c.config.PostConfigureNetNS {
-			if err := g.AddOrReplaceLinuxNamespace(string(spec.NetworkNamespace), ""); err != nil {
-				return nil, err
-			}
-		} else {
-			if err := g.AddOrReplaceLinuxNamespace(string(spec.NetworkNamespace), c.state.NetNS.Path()); err != nil {
-				return nil, err
-			}
-		}
+	if err := c.addNetworkNamespace(&g); err != nil {
+		return nil, err
 	}
 
 	// Apply AppArmor checks and load the default profile if needed.
@@ -222,8 +214,8 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 		m.Options = options
 	}
 
-	g.SetProcessSelinuxLabel(c.ProcessLabel())
-	g.SetLinuxMountLabel(c.MountLabel())
+	c.setProcessLabel(&g)
+	c.setMountLabel(&g)
 
 	// Add bind mounts to container
 	for dstPath, srcPath := range c.state.BindMounts {
@@ -351,10 +343,8 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 		}
 	}
 
-	if c.Systemd() {
-		if err := c.setupSystemd(g.Mounts(), g); err != nil {
-			return nil, fmt.Errorf("error adding systemd-specific mounts: %w", err)
-		}
+	if err := c.addSystemdMounts(&g); err != nil {
+		return nil, err
 	}
 
 	// Look up and add groups the user belongs to, if a group wasn't directly specified
@@ -400,106 +390,8 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 	}
 
 	// Add shared namespaces from other containers
-	if c.config.IPCNsCtr != "" {
-		if err := c.addNamespaceContainer(&g, IPCNS, c.config.IPCNsCtr, spec.IPCNamespace); err != nil {
-			return nil, err
-		}
-	}
-	if c.config.MountNsCtr != "" {
-		if err := c.addNamespaceContainer(&g, MountNS, c.config.MountNsCtr, spec.MountNamespace); err != nil {
-			return nil, err
-		}
-	}
-	if c.config.NetNsCtr != "" {
-		if err := c.addNamespaceContainer(&g, NetNS, c.config.NetNsCtr, spec.NetworkNamespace); err != nil {
-			return nil, err
-		}
-	}
-	if c.config.PIDNsCtr != "" {
-		if err := c.addNamespaceContainer(&g, PIDNS, c.config.PIDNsCtr, spec.PIDNamespace); err != nil {
-			return nil, err
-		}
-	}
-	if c.config.UserNsCtr != "" {
-		if err := c.addNamespaceContainer(&g, UserNS, c.config.UserNsCtr, spec.UserNamespace); err != nil {
-			return nil, err
-		}
-		if len(g.Config.Linux.UIDMappings) == 0 {
-			// runc complains if no mapping is specified, even if we join another ns.  So provide a dummy mapping
-			g.AddLinuxUIDMapping(uint32(0), uint32(0), uint32(1))
-			g.AddLinuxGIDMapping(uint32(0), uint32(0), uint32(1))
-		}
-	}
-
-	availableUIDs, availableGIDs, err := rootless.GetAvailableIDMaps()
-	if err != nil {
-		if os.IsNotExist(err) {
-			// The kernel-provided files only exist if user namespaces are supported
-			logrus.Debugf("User or group ID mappings not available: %s", err)
-		} else {
-			return nil, err
-		}
-	} else {
-		g.Config.Linux.UIDMappings = rootless.MaybeSplitMappings(g.Config.Linux.UIDMappings, availableUIDs)
-		g.Config.Linux.GIDMappings = rootless.MaybeSplitMappings(g.Config.Linux.GIDMappings, availableGIDs)
-	}
-
-	// Hostname handling:
-	// If we have a UTS namespace, set Hostname in the OCI spec.
-	// Set the HOSTNAME environment variable unless explicitly overridden by
-	// the user (already present in OCI spec). If we don't have a UTS ns,
-	// set it to the host's hostname instead.
-	hostname := c.Hostname()
-	foundUTS := false
-
-	for _, i := range c.config.Spec.Linux.Namespaces {
-		if i.Type == spec.UTSNamespace && i.Path == "" {
-			foundUTS = true
-			g.SetHostname(hostname)
-			break
-		}
-	}
-	if !foundUTS {
-		tmpHostname, err := os.Hostname()
-		if err != nil {
-			return nil, err
-		}
-		hostname = tmpHostname
-	}
-	needEnv := true
-	for _, checkEnv := range g.Config.Process.Env {
-		if strings.SplitN(checkEnv, "=", 2)[0] == "HOSTNAME" {
-			needEnv = false
-			break
-		}
-	}
-	if needEnv {
-		g.AddProcessEnv("HOSTNAME", hostname)
-	}
-
-	if c.config.UTSNsCtr != "" {
-		if err := c.addNamespaceContainer(&g, UTSNS, c.config.UTSNsCtr, spec.UTSNamespace); err != nil {
-			return nil, err
-		}
-	}
-	if c.config.CgroupNsCtr != "" {
-		if err := c.addNamespaceContainer(&g, CgroupNS, c.config.CgroupNsCtr, spec.CgroupNamespace); err != nil {
-			return nil, err
-		}
-	}
-
-	if c.config.UserNsCtr == "" && c.config.IDMappings.AutoUserNs {
-		if err := g.AddOrReplaceLinuxNamespace(string(spec.UserNamespace), ""); err != nil {
-			return nil, err
-		}
-		g.ClearLinuxUIDMappings()
-		for _, uidmap := range c.config.IDMappings.UIDMap {
-			g.AddLinuxUIDMapping(uint32(uidmap.HostID), uint32(uidmap.ContainerID), uint32(uidmap.Size))
-		}
-		g.ClearLinuxGIDMappings()
-		for _, gidmap := range c.config.IDMappings.GIDMap {
-			g.AddLinuxGIDMapping(uint32(gidmap.HostID), uint32(gidmap.ContainerID), uint32(gidmap.Size))
-		}
+	if err := c.addSharedNamespaces(&g); err != nil {
+		return nil, err
 	}
 
 	g.SetRootPath(c.state.Mountpoint)
@@ -510,12 +402,9 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 		g.AddAnnotation(annotations.ContainerManager, annotations.ContainerManagerLibpod)
 	}
 
-	cgroupPath, err := c.getOCICgroupPath()
-	if err != nil {
+	if err := c.setCgroupsPath(&g); err != nil {
 		return nil, err
 	}
-
-	g.SetLinuxCgroupsPath(cgroupPath)
 
 	// Warning: CDI may alter g.Config in place.
 	if len(c.config.CDIDevices) > 0 {
@@ -535,14 +424,6 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 	mounts := sortMounts(g.Mounts())
 	g.ClearMounts()
 
-	// Determine property of RootPropagation based on volume properties. If
-	// a volume is shared, then keep root propagation shared. This should
-	// work for slave and private volumes too.
-	//
-	// For slave volumes, it can be either [r]shared/[r]slave.
-	//
-	// For private volumes any root propagation value should work.
-	rootPropagation := ""
 	for _, m := range mounts {
 		// We need to remove all symlinks from tmpfs mounts.
 		// Runc and other runtimes may choke on them.
@@ -557,25 +438,10 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 			m.Destination = trimmedPath
 		}
 		g.AddMount(m)
-		for _, opt := range m.Options {
-			switch opt {
-			case MountShared, MountRShared:
-				if rootPropagation != MountShared && rootPropagation != MountRShared {
-					rootPropagation = MountShared
-				}
-			case MountSlave, MountRSlave:
-				if rootPropagation != MountShared && rootPropagation != MountRShared && rootPropagation != MountSlave && rootPropagation != MountRSlave {
-					rootPropagation = MountRSlave
-				}
-			}
-		}
 	}
 
-	if rootPropagation != "" {
-		logrus.Debugf("Set root propagation to %q", rootPropagation)
-		if err := g.SetLinuxRootPropagation(rootPropagation); err != nil {
-			return nil, err
-		}
+	if err := c.addRootPropagation(&g, mounts); err != nil {
+		return nil, err
 	}
 
 	// Warning: precreate hooks may alter g.Config in place.

@@ -2666,3 +2666,181 @@ func (c *Container) setupRootlessNetwork() error {
 func openDirectory(path string) (fd int, err error) {
 	return unix.Open(path, unix.O_RDONLY|unix.O_PATH, 0)
 }
+
+func (c *Container) addNetworkNamespace(g *generate.Generator) error {
+	if c.config.CreateNetNS {
+		if c.config.PostConfigureNetNS {
+			if err := g.AddOrReplaceLinuxNamespace(string(spec.NetworkNamespace), ""); err != nil {
+				return err
+			}
+		} else {
+			if err := g.AddOrReplaceLinuxNamespace(string(spec.NetworkNamespace), c.state.NetNS.Path()); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (c *Container) addSystemdMounts(g *generate.Generator) error {
+	if c.Systemd() {
+		if err := c.setupSystemd(g.Mounts(), *g); err != nil {
+			return fmt.Errorf("error adding systemd-specific mounts: %w", err)
+		}
+	}
+	return nil
+}
+
+func (c *Container) addSharedNamespaces(g *generate.Generator) error {
+	if c.config.IPCNsCtr != "" {
+		if err := c.addNamespaceContainer(g, IPCNS, c.config.IPCNsCtr, spec.IPCNamespace); err != nil {
+			return err
+		}
+	}
+	if c.config.MountNsCtr != "" {
+		if err := c.addNamespaceContainer(g, MountNS, c.config.MountNsCtr, spec.MountNamespace); err != nil {
+			return err
+		}
+	}
+	if c.config.NetNsCtr != "" {
+		if err := c.addNamespaceContainer(g, NetNS, c.config.NetNsCtr, spec.NetworkNamespace); err != nil {
+			return err
+		}
+	}
+	if c.config.PIDNsCtr != "" {
+		if err := c.addNamespaceContainer(g, PIDNS, c.config.PIDNsCtr, spec.PIDNamespace); err != nil {
+			return err
+		}
+	}
+	if c.config.UserNsCtr != "" {
+		if err := c.addNamespaceContainer(g, UserNS, c.config.UserNsCtr, spec.UserNamespace); err != nil {
+			return err
+		}
+		if len(g.Config.Linux.UIDMappings) == 0 {
+			// runc complains if no mapping is specified, even if we join another ns.  So provide a dummy mapping
+			g.AddLinuxUIDMapping(uint32(0), uint32(0), uint32(1))
+			g.AddLinuxGIDMapping(uint32(0), uint32(0), uint32(1))
+		}
+	}
+
+	availableUIDs, availableGIDs, err := rootless.GetAvailableIDMaps()
+	if err != nil {
+		if os.IsNotExist(err) {
+			// The kernel-provided files only exist if user namespaces are supported
+			logrus.Debugf("User or group ID mappings not available: %s", err)
+		} else {
+			return err
+		}
+	} else {
+		g.Config.Linux.UIDMappings = rootless.MaybeSplitMappings(g.Config.Linux.UIDMappings, availableUIDs)
+		g.Config.Linux.GIDMappings = rootless.MaybeSplitMappings(g.Config.Linux.GIDMappings, availableGIDs)
+	}
+
+	// Hostname handling:
+	// If we have a UTS namespace, set Hostname in the OCI spec.
+	// Set the HOSTNAME environment variable unless explicitly overridden by
+	// the user (already present in OCI spec). If we don't have a UTS ns,
+	// set it to the host's hostname instead.
+	hostname := c.Hostname()
+	foundUTS := false
+
+	for _, i := range c.config.Spec.Linux.Namespaces {
+		if i.Type == spec.UTSNamespace && i.Path == "" {
+			foundUTS = true
+			g.SetHostname(hostname)
+			break
+		}
+	}
+	if !foundUTS {
+		tmpHostname, err := os.Hostname()
+		if err != nil {
+			return err
+		}
+		hostname = tmpHostname
+	}
+	needEnv := true
+	for _, checkEnv := range g.Config.Process.Env {
+		if strings.SplitN(checkEnv, "=", 2)[0] == "HOSTNAME" {
+			needEnv = false
+			break
+		}
+	}
+	if needEnv {
+		g.AddProcessEnv("HOSTNAME", hostname)
+	}
+
+	if c.config.UTSNsCtr != "" {
+		if err := c.addNamespaceContainer(g, UTSNS, c.config.UTSNsCtr, spec.UTSNamespace); err != nil {
+			return err
+		}
+	}
+	if c.config.CgroupNsCtr != "" {
+		if err := c.addNamespaceContainer(g, CgroupNS, c.config.CgroupNsCtr, spec.CgroupNamespace); err != nil {
+			return err
+		}
+	}
+
+	if c.config.UserNsCtr == "" && c.config.IDMappings.AutoUserNs {
+		if err := g.AddOrReplaceLinuxNamespace(string(spec.UserNamespace), ""); err != nil {
+			return err
+		}
+		g.ClearLinuxUIDMappings()
+		for _, uidmap := range c.config.IDMappings.UIDMap {
+			g.AddLinuxUIDMapping(uint32(uidmap.HostID), uint32(uidmap.ContainerID), uint32(uidmap.Size))
+		}
+		g.ClearLinuxGIDMappings()
+		for _, gidmap := range c.config.IDMappings.GIDMap {
+			g.AddLinuxGIDMapping(uint32(gidmap.HostID), uint32(gidmap.ContainerID), uint32(gidmap.Size))
+		}
+	}
+	return nil
+}
+
+func (c *Container) addRootPropagation(g *generate.Generator, mounts []spec.Mount) error {
+	// Determine property of RootPropagation based on volume properties. If
+	// a volume is shared, then keep root propagation shared. This should
+	// work for slave and private volumes too.
+	//
+	// For slave volumes, it can be either [r]shared/[r]slave.
+	//
+	// For private volumes any root propagation value should work.
+	rootPropagation := ""
+	for _, m := range mounts {
+		for _, opt := range m.Options {
+			switch opt {
+			case MountShared, MountRShared:
+				if rootPropagation != MountShared && rootPropagation != MountRShared {
+					rootPropagation = MountShared
+				}
+			case MountSlave, MountRSlave:
+				if rootPropagation != MountShared && rootPropagation != MountRShared && rootPropagation != MountSlave && rootPropagation != MountRSlave {
+					rootPropagation = MountRSlave
+				}
+			}
+		}
+	}
+	if rootPropagation != "" {
+		logrus.Debugf("Set root propagation to %q", rootPropagation)
+		if err := g.SetLinuxRootPropagation(rootPropagation); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (c *Container) setProcessLabel(g *generate.Generator) {
+	g.SetProcessSelinuxLabel(c.ProcessLabel())
+}
+
+func (c *Container) setMountLabel(g *generate.Generator) {
+	g.SetLinuxMountLabel(c.MountLabel())
+}
+
+func (c *Container) setCgroupsPath(g *generate.Generator) error {
+	cgroupPath, err := c.getOCICgroupPath()
+	if err != nil {
+		return err
+	}
+	g.SetLinuxCgroupsPath(cgroupPath)
+	return nil
+}

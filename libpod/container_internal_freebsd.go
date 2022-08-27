@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"math"
 	"os"
 	"os/user"
 	"path"
@@ -22,10 +21,8 @@ import (
 
 	metadata "github.com/checkpoint-restore/checkpointctl/lib"
 	"github.com/checkpoint-restore/go-criu/v5/stats"
-	cdi "github.com/container-orchestrated-devices/container-device-interface/pkg/cdi"
 	"github.com/containers/buildah/pkg/chrootuser"
 	"github.com/containers/buildah/pkg/overlay"
-	butil "github.com/containers/buildah/util"
 	"github.com/containers/common/libnetwork/etchosts"
 	"github.com/containers/common/libnetwork/resolvconf"
 	"github.com/containers/common/libnetwork/types"
@@ -33,10 +30,8 @@ import (
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/common/pkg/subscriptions"
 	"github.com/containers/common/pkg/umask"
-	cutil "github.com/containers/common/pkg/util"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/libpod/events"
-	"github.com/containers/podman/v4/pkg/annotations"
 	"github.com/containers/podman/v4/pkg/checkpoint/crutils"
 	"github.com/containers/podman/v4/pkg/criu"
 	"github.com/containers/podman/v4/pkg/lookup"
@@ -2128,4 +2123,81 @@ func (c *Container) ChangeHostPathOwnership(src string, recurse bool, uid, gid i
 func openDirectory(path string) (fd int, err error) {
 	const O_PATH = 0x00400000
 	return unix.Open(path, unix.O_RDONLY|O_PATH, 0)
+}
+
+func (c *Container) addNetworkNamespace(g *generate.Generator) error {
+	if c.config.CreateNetNS {
+		g.AddAnnotation("org.freebsd.parentJail", c.state.NetworkJail)
+	}
+	return nil
+}
+
+func (c *Container) addSystemdMounts(g *generate.Generator) error {
+	return nil
+}
+
+func (c *Container) addSharedNamespaces(g *generate.Generator) error {
+	if c.config.NetNsCtr != "" {
+		if err := c.addNetworkContainer(g, c.config.NetNsCtr); err != nil {
+			return err
+		}
+	}
+
+	availableUIDs, availableGIDs, err := rootless.GetAvailableIDMaps()
+	if err != nil {
+		if os.IsNotExist(err) {
+			// The kernel-provided files only exist if user namespaces are supported
+			logrus.Debugf("User or group ID mappings not available: %s", err)
+		} else {
+			return err
+		}
+	} else {
+		g.Config.Linux.UIDMappings = rootless.MaybeSplitMappings(g.Config.Linux.UIDMappings, availableUIDs)
+		g.Config.Linux.GIDMappings = rootless.MaybeSplitMappings(g.Config.Linux.GIDMappings, availableGIDs)
+	}
+
+	// Hostname handling:
+	// If we have a UTS namespace, set Hostname in the OCI spec.
+	// Set the HOSTNAME environment variable unless explicitly overridden by
+	// the user (already present in OCI spec). If we don't have a UTS ns,
+	// set it to the host's hostname instead.
+	hostname := c.Hostname()
+	foundUTS := false
+
+	// TODO: make this optional, needs progress on adding FreeBSD section to the spec
+	foundUTS = true
+	g.SetHostname(hostname)
+
+	if !foundUTS {
+		tmpHostname, err := os.Hostname()
+		if err != nil {
+			return err
+		}
+		hostname = tmpHostname
+	}
+	needEnv := true
+	for _, checkEnv := range g.Config.Process.Env {
+		if strings.SplitN(checkEnv, "=", 2)[0] == "HOSTNAME" {
+			needEnv = false
+			break
+		}
+	}
+	if needEnv {
+		g.AddProcessEnv("HOSTNAME", hostname)
+	}
+	return nil
+}
+
+func (c *Container) addRootPropagation(g *generate.Generator, mounts []spec.Mount) error {
+	return nil
+}
+
+func (c *Container) setProcessLabel(g *generate.Generator) {
+}
+
+func (c *Container) setMountLabel(g *generate.Generator) {
+}
+
+func (c *Container) setCgroupsPath(g *generate.Generator) error {
+	return nil
 }
