@@ -6,25 +6,16 @@ package libpod
 import (
 	"errors"
 	"fmt"
-	"io"
 	"os"
-	"path/filepath"
 	"strings"
 	"sync"
 	"syscall"
+	"time"
 
-	"github.com/containers/buildah/pkg/overlay"
 	"github.com/containers/common/libnetwork/types"
-	"github.com/containers/common/pkg/chown"
-	"github.com/containers/common/pkg/umask"
-	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/rootless"
-	"github.com/containers/storage/pkg/idtools"
-	securejoin "github.com/cyphar/filepath-securejoin"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
-	"github.com/opencontainers/selinux/go-selinux"
-	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
@@ -187,200 +178,6 @@ func (c *Container) expectPodCgroup() (bool, error) {
 
 func (c *Container) getOCICgroupPath() (string, error) {
 	return "", nil
-}
-
-func (c *Container) copyTimezoneFile(zonePath string) (string, error) {
-	var localtimeCopy string = filepath.Join(c.state.RunDir, "localtime")
-	file, err := os.Stat(zonePath)
-	if err != nil {
-		return "", err
-	}
-	if file.IsDir() {
-		return "", errors.New("Invalid timezone: is a directory")
-	}
-	src, err := os.Open(zonePath)
-	if err != nil {
-		return "", err
-	}
-	defer src.Close()
-	dest, err := os.Create(localtimeCopy)
-	if err != nil {
-		return "", err
-	}
-	defer dest.Close()
-	_, err = io.Copy(dest, src)
-	if err != nil {
-		return "", err
-	}
-	if err := c.relabel(localtimeCopy, c.config.MountLabel, false); err != nil {
-		return "", err
-	}
-	if err := dest.Chown(c.RootUID(), c.RootGID()); err != nil {
-		return "", err
-	}
-	return localtimeCopy, err
-}
-
-func (c *Container) cleanupOverlayMounts() error {
-	return overlay.CleanupContent(c.config.StaticDir)
-}
-
-// Check if a file exists at the given path in the container's root filesystem.
-// Container must already be mounted for this to be used.
-func (c *Container) checkFileExistsInRootfs(file string) (bool, error) {
-	checkPath, err := securejoin.SecureJoin(c.state.Mountpoint, file)
-	if err != nil {
-		return false, fmt.Errorf("cannot create path to container %s file %q: %w", c.ID(), file, err)
-	}
-	stat, err := os.Stat(checkPath)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return false, nil
-		}
-		return false, fmt.Errorf("container %s: %w", c.ID(), err)
-	}
-	if stat.IsDir() {
-		return false, nil
-	}
-	return true, nil
-}
-
-// Creates and mounts an empty dir to mount secrets into, if it does not already exist
-func (c *Container) createSecretMountDir() error {
-	src := filepath.Join(c.state.RunDir, "/run/secrets")
-	_, err := os.Stat(src)
-	if os.IsNotExist(err) {
-		oldUmask := umask.Set(0)
-		defer umask.Set(oldUmask)
-
-		if err := os.MkdirAll(src, 0755); err != nil {
-			return err
-		}
-		if err := label.Relabel(src, c.config.MountLabel, false); err != nil {
-			return err
-		}
-		if err := os.Chown(src, c.RootUID(), c.RootGID()); err != nil {
-			return err
-		}
-		c.state.BindMounts["/run/secrets"] = src
-		return nil
-	}
-
-	return err
-}
-
-// Fix ownership and permissions of the specified volume if necessary.
-func (c *Container) fixVolumePermissions(v *ContainerNamedVolume) error {
-	vol, err := c.runtime.state.Volume(v.Name)
-	if err != nil {
-		return fmt.Errorf("error retrieving named volume %s for container %s: %w", v.Name, c.ID(), err)
-	}
-
-	vol.lock.Lock()
-	defer vol.lock.Unlock()
-
-	// The volume may need a copy-up. Check the state.
-	if err := vol.update(); err != nil {
-		return err
-	}
-
-	// TODO: For now, I've disabled chowning volumes owned by non-Podman
-	// drivers. This may be safe, but it's really going to be a case-by-case
-	// thing, I think - safest to leave disabled now and re-enable later if
-	// there is a demand.
-	if vol.state.NeedsChown && !vol.UsesVolumeDriver() {
-		vol.state.NeedsChown = false
-
-		uid := int(c.config.Spec.Process.User.UID)
-		gid := int(c.config.Spec.Process.User.GID)
-
-		if c.config.IDMappings.UIDMap != nil {
-			p := idtools.IDPair{
-				UID: uid,
-				GID: gid,
-			}
-			mappings := idtools.NewIDMappingsFromMaps(c.config.IDMappings.UIDMap, c.config.IDMappings.GIDMap)
-			newPair, err := mappings.ToHost(p)
-			if err != nil {
-				return fmt.Errorf("error mapping user %d:%d: %w", uid, gid, err)
-			}
-			uid = newPair.UID
-			gid = newPair.GID
-		}
-
-		vol.state.UIDChowned = uid
-		vol.state.GIDChowned = gid
-
-		if err := vol.save(); err != nil {
-			return err
-		}
-
-		mountPoint, err := vol.MountPoint()
-		if err != nil {
-			return err
-		}
-
-		if err := os.Lchown(mountPoint, uid, gid); err != nil {
-			return err
-		}
-
-		// Make sure the new volume matches the permissions of the target directory.
-		// https://github.com/containers/podman/issues/10188
-		st, err := os.Lstat(filepath.Join(c.state.Mountpoint, v.Dest))
-		if err == nil {
-			if stat, ok := st.Sys().(*syscall.Stat_t); ok {
-				if err := os.Lchown(mountPoint, int(stat.Uid), int(stat.Gid)); err != nil {
-					return err
-				}
-			}
-			if err := os.Chmod(mountPoint, st.Mode()); err != nil {
-				return err
-			}
-			/*
-				stat := st.Sys().(*syscall.Stat_t)
-				atime := time.Unix(int64(stat.Atim.Sec), int64(stat.Atim.Nsec))
-				if err := os.Chtimes(mountPoint, atime, st.ModTime()); err != nil {
-					return err
-				}*/
-		} else if !os.IsNotExist(err) {
-			return err
-		}
-	}
-	return nil
-}
-
-func (c *Container) relabel(src, mountLabel string, recurse bool) error {
-	if !selinux.GetEnabled() || mountLabel == "" {
-		return nil
-	}
-	// only relabel on initial creation of container
-	if !c.ensureState(define.ContainerStateConfigured, define.ContainerStateUnknown) {
-		label, err := label.FileLabel(src)
-		if err != nil {
-			return err
-		}
-		// If labels are different, might be on a tmpfs
-		if label == mountLabel {
-			return nil
-		}
-	}
-	return label.Relabel(src, mountLabel, recurse)
-}
-
-func (c *Container) ChangeHostPathOwnership(src string, recurse bool, uid, gid int) error {
-	// only chown on initial creation of container
-	if !c.ensureState(define.ContainerStateConfigured, define.ContainerStateUnknown) {
-		st, err := os.Stat(src)
-		if err != nil {
-			return err
-		}
-
-		// If labels are different, might be on a tmpfs
-		if int(st.Sys().(*syscall.Stat_t).Uid) == uid && int(st.Sys().(*syscall.Stat_t).Gid) == gid {
-			return nil
-		}
-	}
-	return chown.ChangeHostPathOwnership(src, recurse, uid, gid)
 }
 
 func openDirectory(path string) (fd int, err error) {
