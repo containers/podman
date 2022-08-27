@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/containers/common/pkg/parse"
+	"github.com/containers/podman/v4/libpod/define"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 )
@@ -159,7 +160,7 @@ func GenVolumeMounts(volumeFlag []string) (map[string]spec.Mount, map[string]*Na
 			} else {
 				newMount := spec.Mount{
 					Destination: dest,
-					Type:        "bind",
+					Type:        define.TypeBind,
 					Source:      src,
 					Options:     options,
 				}
