@@ -7,24 +7,37 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"math"
 	"os"
+	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
 
+	metadata "github.com/checkpoint-restore/checkpointctl/lib"
+	"github.com/checkpoint-restore/go-criu/v5/stats"
 	cdi "github.com/container-orchestrated-devices/container-device-interface/pkg/cdi"
+	"github.com/containers/buildah"
 	"github.com/containers/buildah/pkg/chrootuser"
 	"github.com/containers/buildah/pkg/overlay"
 	butil "github.com/containers/buildah/util"
+	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/common/pkg/apparmor"
 	cutil "github.com/containers/common/pkg/util"
+	is "github.com/containers/image/v5/storage"
 	"github.com/containers/podman/v4/libpod/define"
+	"github.com/containers/podman/v4/libpod/events"
 	"github.com/containers/podman/v4/pkg/annotations"
+	"github.com/containers/podman/v4/pkg/checkpoint/crutils"
+	"github.com/containers/podman/v4/pkg/criu"
 	"github.com/containers/podman/v4/pkg/lookup"
 	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/containers/podman/v4/pkg/util"
+	"github.com/containers/podman/v4/version"
+	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/idtools"
 	securejoin "github.com/cyphar/filepath-securejoin"
 	runcuser "github.com/opencontainers/runc/libcontainer/user"
@@ -675,4 +688,889 @@ func (c *Container) mountNotifySocket(g generate.Generator) error {
 	g.AddProcessEnv("NOTIFY_SOCKET", "/run/notify/notify.sock")
 
 	return nil
+}
+
+func (c *Container) addCheckpointImageMetadata(importBuilder *buildah.Builder) error {
+	// Get information about host environment
+	hostInfo, err := c.Runtime().hostInfo()
+	if err != nil {
+		return fmt.Errorf("getting host info: %v", err)
+	}
+
+	criuVersion, err := criu.GetCriuVersion()
+	if err != nil {
+		return fmt.Errorf("getting criu version: %v", err)
+	}
+
+	rootfsImageID, rootfsImageName := c.Image()
+
+	// Add image annotations with information about the container and the host.
+	// This information is useful to check compatibility before restoring the checkpoint
+
+	checkpointImageAnnotations := map[string]string{
+		define.CheckpointAnnotationName:                c.config.Name,
+		define.CheckpointAnnotationRawImageName:        c.config.RawImageName,
+		define.CheckpointAnnotationRootfsImageID:       rootfsImageID,
+		define.CheckpointAnnotationRootfsImageName:     rootfsImageName,
+		define.CheckpointAnnotationPodmanVersion:       version.Version.String(),
+		define.CheckpointAnnotationCriuVersion:         strconv.Itoa(criuVersion),
+		define.CheckpointAnnotationRuntimeName:         hostInfo.OCIRuntime.Name,
+		define.CheckpointAnnotationRuntimeVersion:      hostInfo.OCIRuntime.Version,
+		define.CheckpointAnnotationConmonVersion:       hostInfo.Conmon.Version,
+		define.CheckpointAnnotationHostArch:            hostInfo.Arch,
+		define.CheckpointAnnotationHostKernel:          hostInfo.Kernel,
+		define.CheckpointAnnotationCgroupVersion:       hostInfo.CgroupsVersion,
+		define.CheckpointAnnotationDistributionVersion: hostInfo.Distribution.Version,
+		define.CheckpointAnnotationDistributionName:    hostInfo.Distribution.Distribution,
+	}
+
+	for key, value := range checkpointImageAnnotations {
+		importBuilder.SetAnnotation(key, value)
+	}
+
+	return nil
+}
+
+func (c *Container) resolveCheckpointImageName(options *ContainerCheckpointOptions) error {
+	if options.CreateImage == "" {
+		return nil
+	}
+
+	// Resolve image name
+	resolvedImageName, err := c.runtime.LibimageRuntime().ResolveName(options.CreateImage)
+	if err != nil {
+		return err
+	}
+
+	options.CreateImage = resolvedImageName
+	return nil
+}
+
+func (c *Container) createCheckpointImage(ctx context.Context, options ContainerCheckpointOptions) error {
+	if options.CreateImage == "" {
+		return nil
+	}
+	logrus.Debugf("Create checkpoint image %s", options.CreateImage)
+
+	// Create storage reference
+	imageRef, err := is.Transport.ParseStoreReference(c.runtime.store, options.CreateImage)
+	if err != nil {
+		return errors.New("failed to parse image name")
+	}
+
+	// Build an image scratch
+	builderOptions := buildah.BuilderOptions{
+		FromImage: "scratch",
+	}
+	importBuilder, err := buildah.NewBuilder(ctx, c.runtime.store, builderOptions)
+	if err != nil {
+		return err
+	}
+	// Clean up buildah working container
+	defer func() {
+		if err := importBuilder.Delete(); err != nil {
+			logrus.Errorf("Image builder delete failed: %v", err)
+		}
+	}()
+
+	if err := c.prepareCheckpointExport(); err != nil {
+		return err
+	}
+
+	// Export checkpoint into temporary tar file
+	tmpDir, err := ioutil.TempDir("", "checkpoint_image_")
+	if err != nil {
+		return err
+	}
+	defer os.RemoveAll(tmpDir)
+
+	options.TargetFile = path.Join(tmpDir, "checkpoint.tar")
+
+	if err := c.exportCheckpoint(options); err != nil {
+		return err
+	}
+
+	// Copy checkpoint from temporary tar file in the image
+	addAndCopyOptions := buildah.AddAndCopyOptions{}
+	if err := importBuilder.Add("", true, addAndCopyOptions, options.TargetFile); err != nil {
+		return err
+	}
+
+	if err := c.addCheckpointImageMetadata(importBuilder); err != nil {
+		return err
+	}
+
+	commitOptions := buildah.CommitOptions{
+		Squash:        true,
+		SystemContext: c.runtime.imageContext,
+	}
+
+	// Create checkpoint image
+	id, _, _, err := importBuilder.Commit(ctx, imageRef, commitOptions)
+	if err != nil {
+		return err
+	}
+	logrus.Debugf("Created checkpoint image: %s", id)
+	return nil
+}
+
+func (c *Container) exportCheckpoint(options ContainerCheckpointOptions) error {
+	if len(c.Dependencies()) == 1 {
+		// Check if the dependency is an infra container. If it is we can checkpoint
+		// the container out of the Pod.
+		if c.config.Pod == "" {
+			return errors.New("cannot export checkpoints of containers with dependencies")
+		}
+
+		pod, err := c.runtime.state.Pod(c.config.Pod)
+		if err != nil {
+			return fmt.Errorf("container %s is in pod %s, but pod cannot be retrieved: %w", c.ID(), c.config.Pod, err)
+		}
+		infraID, err := pod.InfraContainerID()
+		if err != nil {
+			return fmt.Errorf("cannot retrieve infra container ID for pod %s: %w", c.config.Pod, err)
+		}
+		if c.Dependencies()[0] != infraID {
+			return errors.New("cannot export checkpoints of containers with dependencies")
+		}
+	}
+	if len(c.Dependencies()) > 1 {
+		return errors.New("cannot export checkpoints of containers with dependencies")
+	}
+	logrus.Debugf("Exporting checkpoint image of container %q to %q", c.ID(), options.TargetFile)
+
+	includeFiles := []string{
+		"artifacts",
+		metadata.DevShmCheckpointTar,
+		metadata.ConfigDumpFile,
+		metadata.SpecDumpFile,
+		metadata.NetworkStatusFile,
+		stats.StatsDump,
+	}
+
+	if c.LogDriver() == define.KubernetesLogging ||
+		c.LogDriver() == define.JSONLogging {
+		includeFiles = append(includeFiles, "ctr.log")
+	}
+	if options.PreCheckPoint {
+		includeFiles = append(includeFiles, preCheckpointDir)
+	} else {
+		includeFiles = append(includeFiles, metadata.CheckpointDirectory)
+	}
+	// Get root file-system changes included in the checkpoint archive
+	var addToTarFiles []string
+	if !options.IgnoreRootfs {
+		// To correctly track deleted files, let's go through the output of 'podman diff'
+		rootFsChanges, err := c.runtime.GetDiff("", c.ID(), define.DiffContainer)
+		if err != nil {
+			return fmt.Errorf("error exporting root file-system diff for %q: %w", c.ID(), err)
+		}
+
+		addToTarFiles, err := crutils.CRCreateRootFsDiffTar(&rootFsChanges, c.state.Mountpoint, c.bundlePath())
+		if err != nil {
+			return err
+		}
+
+		includeFiles = append(includeFiles, addToTarFiles...)
+	}
+
+	// Folder containing archived volumes that will be included in the export
+	expVolDir := filepath.Join(c.bundlePath(), metadata.CheckpointVolumesDirectory)
+
+	// Create an archive for each volume associated with the container
+	if !options.IgnoreVolumes {
+		if err := os.MkdirAll(expVolDir, 0700); err != nil {
+			return fmt.Errorf("error creating volumes export directory %q: %w", expVolDir, err)
+		}
+
+		for _, v := range c.config.NamedVolumes {
+			volumeTarFilePath := filepath.Join(metadata.CheckpointVolumesDirectory, v.Name+".tar")
+			volumeTarFileFullPath := filepath.Join(c.bundlePath(), volumeTarFilePath)
+
+			volumeTarFile, err := os.Create(volumeTarFileFullPath)
+			if err != nil {
+				return fmt.Errorf("error creating %q: %w", volumeTarFileFullPath, err)
+			}
+
+			volume, err := c.runtime.GetVolume(v.Name)
+			if err != nil {
+				return err
+			}
+
+			mp, err := volume.MountPoint()
+			if err != nil {
+				return err
+			}
+			if mp == "" {
+				return fmt.Errorf("volume %s is not mounted, cannot export: %w", volume.Name(), define.ErrInternal)
+			}
+
+			input, err := archive.TarWithOptions(mp, &archive.TarOptions{
+				Compression:      archive.Uncompressed,
+				IncludeSourceDir: true,
+			})
+			if err != nil {
+				return fmt.Errorf("error reading volume directory %q: %w", v.Dest, err)
+			}
+
+			_, err = io.Copy(volumeTarFile, input)
+			if err != nil {
+				return err
+			}
+			volumeTarFile.Close()
+
+			includeFiles = append(includeFiles, volumeTarFilePath)
+		}
+	}
+
+	input, err := archive.TarWithOptions(c.bundlePath(), &archive.TarOptions{
+		Compression:      options.Compression,
+		IncludeSourceDir: true,
+		IncludeFiles:     includeFiles,
+	})
+
+	if err != nil {
+		return fmt.Errorf("error reading checkpoint directory %q: %w", c.ID(), err)
+	}
+
+	outFile, err := os.Create(options.TargetFile)
+	if err != nil {
+		return fmt.Errorf("error creating checkpoint export file %q: %w", options.TargetFile, err)
+	}
+	defer outFile.Close()
+
+	if err := os.Chmod(options.TargetFile, 0600); err != nil {
+		return err
+	}
+
+	_, err = io.Copy(outFile, input)
+	if err != nil {
+		return err
+	}
+
+	for _, file := range addToTarFiles {
+		os.Remove(filepath.Join(c.bundlePath(), file))
+	}
+
+	if !options.IgnoreVolumes {
+		os.RemoveAll(expVolDir)
+	}
+
+	return nil
+}
+
+func (c *Container) checkpointRestoreSupported(version int) error {
+	if !criu.CheckForCriu(version) {
+		return fmt.Errorf("checkpoint/restore requires at least CRIU %d", version)
+	}
+	if !c.ociRuntime.SupportsCheckpoint() {
+		return errors.New("configured runtime does not support checkpoint/restore")
+	}
+	return nil
+}
+
+func (c *Container) checkpoint(ctx context.Context, options ContainerCheckpointOptions) (*define.CRIUCheckpointRestoreStatistics, int64, error) {
+	if err := c.checkpointRestoreSupported(criu.MinCriuVersion); err != nil {
+		return nil, 0, err
+	}
+
+	if c.state.State != define.ContainerStateRunning {
+		return nil, 0, fmt.Errorf("%q is not running, cannot checkpoint: %w", c.state.State, define.ErrCtrStateInvalid)
+	}
+
+	if c.AutoRemove() && options.TargetFile == "" {
+		return nil, 0, errors.New("cannot checkpoint containers that have been started with '--rm' unless '--export' is used")
+	}
+
+	if err := c.resolveCheckpointImageName(&options); err != nil {
+		return nil, 0, err
+	}
+
+	if err := crutils.CRCreateFileWithLabel(c.bundlePath(), "dump.log", c.MountLabel()); err != nil {
+		return nil, 0, err
+	}
+
+	// Setting CheckpointLog early in case there is a failure.
+	c.state.CheckpointLog = path.Join(c.bundlePath(), "dump.log")
+	c.state.CheckpointPath = c.CheckpointPath()
+
+	runtimeCheckpointDuration, err := c.ociRuntime.CheckpointContainer(c, options)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// Keep the content of /dev/shm directory
+	if c.config.ShmDir != "" && c.state.BindMounts["/dev/shm"] == c.config.ShmDir {
+		shmDirTarFileFullPath := filepath.Join(c.bundlePath(), metadata.DevShmCheckpointTar)
+
+		shmDirTarFile, err := os.Create(shmDirTarFileFullPath)
+		if err != nil {
+			return nil, 0, err
+		}
+		defer shmDirTarFile.Close()
+
+		input, err := archive.TarWithOptions(c.config.ShmDir, &archive.TarOptions{
+			Compression:      archive.Uncompressed,
+			IncludeSourceDir: true,
+		})
+		if err != nil {
+			return nil, 0, err
+		}
+
+		if _, err = io.Copy(shmDirTarFile, input); err != nil {
+			return nil, 0, err
+		}
+	}
+
+	// Save network.status. This is needed to restore the container with
+	// the same IP. Currently limited to one IP address in a container
+	// with one interface.
+	// FIXME: will this break something?
+	if _, err := metadata.WriteJSONFile(c.getNetworkStatus(), c.bundlePath(), metadata.NetworkStatusFile); err != nil {
+		return nil, 0, err
+	}
+
+	defer c.newContainerEvent(events.Checkpoint)
+
+	// There is a bug from criu: https://github.com/checkpoint-restore/criu/issues/116
+	// We have to change the symbolic link from absolute path to relative path
+	if options.WithPrevious {
+		os.Remove(path.Join(c.CheckpointPath(), "parent"))
+		if err := os.Symlink("../pre-checkpoint", path.Join(c.CheckpointPath(), "parent")); err != nil {
+			return nil, 0, err
+		}
+	}
+
+	if options.TargetFile != "" {
+		if err := c.exportCheckpoint(options); err != nil {
+			return nil, 0, err
+		}
+	} else {
+		if err := c.createCheckpointImage(ctx, options); err != nil {
+			return nil, 0, err
+		}
+	}
+
+	logrus.Debugf("Checkpointed container %s", c.ID())
+
+	if !options.KeepRunning && !options.PreCheckPoint {
+		c.state.State = define.ContainerStateStopped
+		c.state.Checkpointed = true
+		c.state.CheckpointedTime = time.Now()
+		c.state.Restored = false
+		c.state.RestoredTime = time.Time{}
+
+		// Clean up Storage and Network
+		if err := c.cleanup(ctx); err != nil {
+			return nil, 0, err
+		}
+	}
+
+	criuStatistics, err := func() (*define.CRIUCheckpointRestoreStatistics, error) {
+		if !options.PrintStats {
+			return nil, nil
+		}
+		statsDirectory, err := os.Open(c.bundlePath())
+		if err != nil {
+			return nil, fmt.Errorf("not able to open %q: %w", c.bundlePath(), err)
+		}
+
+		dumpStatistics, err := stats.CriuGetDumpStats(statsDirectory)
+		if err != nil {
+			return nil, fmt.Errorf("displaying checkpointing statistics not possible: %w", err)
+		}
+
+		return &define.CRIUCheckpointRestoreStatistics{
+			FreezingTime: dumpStatistics.GetFreezingTime(),
+			FrozenTime:   dumpStatistics.GetFrozenTime(),
+			MemdumpTime:  dumpStatistics.GetMemdumpTime(),
+			MemwriteTime: dumpStatistics.GetMemwriteTime(),
+			PagesScanned: dumpStatistics.GetPagesScanned(),
+			PagesWritten: dumpStatistics.GetPagesWritten(),
+		}, nil
+	}()
+	if err != nil {
+		return nil, 0, err
+	}
+
+	if !options.Keep && !options.PreCheckPoint {
+		cleanup := []string{
+			"dump.log",
+			stats.StatsDump,
+			metadata.ConfigDumpFile,
+			metadata.SpecDumpFile,
+		}
+		for _, del := range cleanup {
+			file := filepath.Join(c.bundlePath(), del)
+			if err := os.Remove(file); err != nil {
+				logrus.Debugf("Unable to remove file %s", file)
+			}
+		}
+		// The file has been deleted. Do not mention it.
+		c.state.CheckpointLog = ""
+	}
+
+	c.state.FinishedTime = time.Now()
+	return criuStatistics, runtimeCheckpointDuration, c.save()
+}
+
+func (c *Container) generateContainerSpec() error {
+	// Make sure the newly created config.json exists on disk
+
+	// NewFromSpec() is deprecated according to its comment
+	// however the recommended replace just causes a nil map panic
+	//nolint:staticcheck
+	g := generate.NewFromSpec(c.config.Spec)
+
+	if err := c.saveSpec(g.Config); err != nil {
+		return fmt.Errorf("saving imported container specification for restore failed: %w", err)
+	}
+
+	return nil
+}
+
+func (c *Container) importCheckpointImage(ctx context.Context, imageID string) error {
+	img, _, err := c.Runtime().LibimageRuntime().LookupImage(imageID, nil)
+	if err != nil {
+		return err
+	}
+
+	mountPoint, err := img.Mount(ctx, nil, "")
+	defer func() {
+		if err := c.unmount(true); err != nil {
+			logrus.Errorf("Failed to unmount container: %v", err)
+		}
+	}()
+	if err != nil {
+		return err
+	}
+
+	// Import all checkpoint files except ConfigDumpFile and SpecDumpFile. We
+	// generate new container config files to enable to specifying a new
+	// container name.
+	checkpoint := []string{
+		"artifacts",
+		metadata.CheckpointDirectory,
+		metadata.CheckpointVolumesDirectory,
+		metadata.DevShmCheckpointTar,
+		metadata.RootFsDiffTar,
+		metadata.DeletedFilesFile,
+		metadata.PodOptionsFile,
+		metadata.PodDumpFile,
+	}
+
+	for _, name := range checkpoint {
+		src := filepath.Join(mountPoint, name)
+		dst := filepath.Join(c.bundlePath(), name)
+		if err := archive.NewDefaultArchiver().CopyWithTar(src, dst); err != nil {
+			logrus.Debugf("Can't import '%s' from checkpoint image", name)
+		}
+	}
+
+	return c.generateContainerSpec()
+}
+
+func (c *Container) importCheckpointTar(input string) error {
+	if err := crutils.CRImportCheckpointWithoutConfig(c.bundlePath(), input); err != nil {
+		return err
+	}
+
+	return c.generateContainerSpec()
+}
+
+func (c *Container) importPreCheckpoint(input string) error {
+	archiveFile, err := os.Open(input)
+	if err != nil {
+		return fmt.Errorf("failed to open pre-checkpoint archive for import: %w", err)
+	}
+
+	defer archiveFile.Close()
+
+	err = archive.Untar(archiveFile, c.bundlePath(), nil)
+	if err != nil {
+		return fmt.Errorf("unpacking of pre-checkpoint archive %s failed: %w", input, err)
+	}
+	return nil
+}
+
+func (c *Container) restore(ctx context.Context, options ContainerCheckpointOptions) (criuStatistics *define.CRIUCheckpointRestoreStatistics, runtimeRestoreDuration int64, retErr error) {
+	minCriuVersion := func() int {
+		if options.Pod == "" {
+			return criu.MinCriuVersion
+		}
+		return criu.PodCriuVersion
+	}()
+	if err := c.checkpointRestoreSupported(minCriuVersion); err != nil {
+		return nil, 0, err
+	}
+
+	if options.Pod != "" && !crutils.CRRuntimeSupportsPodCheckpointRestore(c.ociRuntime.Path()) {
+		return nil, 0, fmt.Errorf("runtime %s does not support pod restore", c.ociRuntime.Path())
+	}
+
+	if !c.ensureState(define.ContainerStateConfigured, define.ContainerStateExited) {
+		return nil, 0, fmt.Errorf("container %s is running or paused, cannot restore: %w", c.ID(), define.ErrCtrStateInvalid)
+	}
+
+	if options.ImportPrevious != "" {
+		if err := c.importPreCheckpoint(options.ImportPrevious); err != nil {
+			return nil, 0, err
+		}
+	}
+
+	if options.TargetFile != "" {
+		if err := c.importCheckpointTar(options.TargetFile); err != nil {
+			return nil, 0, err
+		}
+	} else if options.CheckpointImageID != "" {
+		if err := c.importCheckpointImage(ctx, options.CheckpointImageID); err != nil {
+			return nil, 0, err
+		}
+	}
+
+	// Let's try to stat() CRIU's inventory file. If it does not exist, it makes
+	// no sense to try a restore. This is a minimal check if a checkpoint exist.
+	if _, err := os.Stat(filepath.Join(c.CheckpointPath(), "inventory.img")); os.IsNotExist(err) {
+		return nil, 0, fmt.Errorf("a complete checkpoint for this container cannot be found, cannot restore: %w", err)
+	}
+
+	if err := crutils.CRCreateFileWithLabel(c.bundlePath(), "restore.log", c.MountLabel()); err != nil {
+		return nil, 0, err
+	}
+
+	// Setting RestoreLog early in case there is a failure.
+	c.state.RestoreLog = path.Join(c.bundlePath(), "restore.log")
+	c.state.CheckpointPath = c.CheckpointPath()
+
+	// Read network configuration from checkpoint
+	var netStatus map[string]types.StatusBlock
+	_, err := metadata.ReadJSONFile(&netStatus, c.bundlePath(), metadata.NetworkStatusFile)
+	if err != nil {
+		logrus.Infof("Failed to unmarshal network status, cannot restore the same ip/mac: %v", err)
+	}
+	// If the restored container should get a new name, the IP address of
+	// the container will not be restored. This assumes that if a new name is
+	// specified, the container is restored multiple times.
+	// TODO: This implicit restoring with or without IP depending on an
+	//       unrelated restore parameter (--name) does not seem like the
+	//       best solution.
+	if err == nil && options.Name == "" && (!options.IgnoreStaticIP || !options.IgnoreStaticMAC) {
+		// The file with the network.status does exist. Let's restore the
+		// container with the same networks settings as during checkpointing.
+		networkOpts, err := c.networks()
+		if err != nil {
+			return nil, 0, err
+		}
+
+		netOpts := make(map[string]types.PerNetworkOptions, len(netStatus))
+		for network, perNetOpts := range networkOpts {
+			// unset mac and ips before we start adding the ones from the status
+			perNetOpts.StaticMAC = nil
+			perNetOpts.StaticIPs = nil
+			for name, netInt := range netStatus[network].Interfaces {
+				perNetOpts.InterfaceName = name
+				if !options.IgnoreStaticIP {
+					perNetOpts.StaticMAC = netInt.MacAddress
+				}
+				if !options.IgnoreStaticIP {
+					for _, netAddress := range netInt.Subnets {
+						perNetOpts.StaticIPs = append(perNetOpts.StaticIPs, netAddress.IPNet.IP)
+					}
+				}
+				// Normally interfaces have a length of 1, only for some special cni configs we could get more.
+				// For now just use the first interface to get the ips this should be good enough for most cases.
+				break
+			}
+			netOpts[network] = perNetOpts
+		}
+		c.perNetworkOpts = netOpts
+	}
+
+	defer func() {
+		if retErr != nil {
+			if err := c.cleanup(ctx); err != nil {
+				logrus.Errorf("Cleaning up container %s: %v", c.ID(), err)
+			}
+		}
+	}()
+
+	if err := c.prepare(); err != nil {
+		return nil, 0, err
+	}
+
+	// Read config
+	jsonPath := filepath.Join(c.bundlePath(), "config.json")
+	logrus.Debugf("generate.NewFromFile at %v", jsonPath)
+	g, err := generate.NewFromFile(jsonPath)
+	if err != nil {
+		logrus.Debugf("generate.NewFromFile failed with %v", err)
+		return nil, 0, err
+	}
+
+	// Restoring from an import means that we are doing migration
+	if options.TargetFile != "" || options.CheckpointImageID != "" {
+		g.SetRootPath(c.state.Mountpoint)
+	}
+
+	// We want to have the same network namespace as before.
+	if c.config.CreateNetNS {
+		netNSPath := ""
+		if !c.config.PostConfigureNetNS {
+			netNSPath = c.state.NetNS.Path()
+		}
+
+		if err := g.AddOrReplaceLinuxNamespace(string(spec.NetworkNamespace), netNSPath); err != nil {
+			return nil, 0, err
+		}
+	}
+
+	if options.Pod != "" {
+		// Running in a Pod means that we have to change all namespace settings to
+		// the ones from the infrastructure container.
+		pod, err := c.runtime.LookupPod(options.Pod)
+		if err != nil {
+			return nil, 0, fmt.Errorf("pod %q cannot be retrieved: %w", options.Pod, err)
+		}
+
+		infraContainer, err := pod.InfraContainer()
+		if err != nil {
+			return nil, 0, fmt.Errorf("cannot retrieved infra container from pod %q: %w", options.Pod, err)
+		}
+
+		infraContainer.lock.Lock()
+		if err := infraContainer.syncContainer(); err != nil {
+			infraContainer.lock.Unlock()
+			return nil, 0, fmt.Errorf("error syncing infrastructure container %s status: %w", infraContainer.ID(), err)
+		}
+		if infraContainer.state.State != define.ContainerStateRunning {
+			if err := infraContainer.initAndStart(ctx); err != nil {
+				infraContainer.lock.Unlock()
+				return nil, 0, fmt.Errorf("error starting infrastructure container %s status: %w", infraContainer.ID(), err)
+			}
+		}
+		infraContainer.lock.Unlock()
+
+		if c.config.IPCNsCtr != "" {
+			nsPath, err := infraContainer.namespacePath(IPCNS)
+			if err != nil {
+				return nil, 0, fmt.Errorf("cannot retrieve IPC namespace path for Pod %q: %w", options.Pod, err)
+			}
+			if err := g.AddOrReplaceLinuxNamespace(string(spec.IPCNamespace), nsPath); err != nil {
+				return nil, 0, err
+			}
+		}
+
+		if c.config.NetNsCtr != "" {
+			nsPath, err := infraContainer.namespacePath(NetNS)
+			if err != nil {
+				return nil, 0, fmt.Errorf("cannot retrieve network namespace path for Pod %q: %w", options.Pod, err)
+			}
+			if err := g.AddOrReplaceLinuxNamespace(string(spec.NetworkNamespace), nsPath); err != nil {
+				return nil, 0, err
+			}
+		}
+
+		if c.config.PIDNsCtr != "" {
+			nsPath, err := infraContainer.namespacePath(PIDNS)
+			if err != nil {
+				return nil, 0, fmt.Errorf("cannot retrieve PID namespace path for Pod %q: %w", options.Pod, err)
+			}
+			if err := g.AddOrReplaceLinuxNamespace(string(spec.PIDNamespace), nsPath); err != nil {
+				return nil, 0, err
+			}
+		}
+
+		if c.config.UTSNsCtr != "" {
+			nsPath, err := infraContainer.namespacePath(UTSNS)
+			if err != nil {
+				return nil, 0, fmt.Errorf("cannot retrieve UTS namespace path for Pod %q: %w", options.Pod, err)
+			}
+			if err := g.AddOrReplaceLinuxNamespace(string(spec.UTSNamespace), nsPath); err != nil {
+				return nil, 0, err
+			}
+		}
+
+		if c.config.CgroupNsCtr != "" {
+			nsPath, err := infraContainer.namespacePath(CgroupNS)
+			if err != nil {
+				return nil, 0, fmt.Errorf("cannot retrieve Cgroup namespace path for Pod %q: %w", options.Pod, err)
+			}
+			if err := g.AddOrReplaceLinuxNamespace(string(spec.CgroupNamespace), nsPath); err != nil {
+				return nil, 0, err
+			}
+		}
+	}
+
+	if err := c.makeBindMounts(); err != nil {
+		return nil, 0, err
+	}
+
+	if options.TargetFile != "" || options.CheckpointImageID != "" {
+		for dstPath, srcPath := range c.state.BindMounts {
+			newMount := spec.Mount{
+				Type:        "bind",
+				Source:      srcPath,
+				Destination: dstPath,
+				Options:     []string{"bind", "private"},
+			}
+			if c.IsReadOnly() && dstPath != "/dev/shm" {
+				newMount.Options = append(newMount.Options, "ro", "nosuid", "noexec", "nodev")
+			}
+			if dstPath == "/dev/shm" && c.state.BindMounts["/dev/shm"] == c.config.ShmDir {
+				newMount.Options = append(newMount.Options, "nosuid", "noexec", "nodev")
+			}
+			if !MountExists(g.Mounts(), dstPath) {
+				g.AddMount(newMount)
+			}
+		}
+	}
+
+	// Restore /dev/shm content
+	if c.config.ShmDir != "" && c.state.BindMounts["/dev/shm"] == c.config.ShmDir {
+		shmDirTarFileFullPath := filepath.Join(c.bundlePath(), metadata.DevShmCheckpointTar)
+		if _, err := os.Stat(shmDirTarFileFullPath); err != nil {
+			logrus.Debug("Container checkpoint doesn't contain dev/shm: ", err.Error())
+		} else {
+			shmDirTarFile, err := os.Open(shmDirTarFileFullPath)
+			if err != nil {
+				return nil, 0, err
+			}
+			defer shmDirTarFile.Close()
+
+			if err := archive.UntarUncompressed(shmDirTarFile, c.config.ShmDir, nil); err != nil {
+				return nil, 0, err
+			}
+		}
+	}
+
+	// Cleanup for a working restore.
+	if err := c.removeConmonFiles(); err != nil {
+		return nil, 0, err
+	}
+
+	// Save the OCI spec to disk
+	if err := c.saveSpec(g.Config); err != nil {
+		return nil, 0, err
+	}
+
+	// When restoring from an imported archive, allow restoring the content of volumes.
+	// Volumes are created in setupContainer()
+	if !options.IgnoreVolumes && (options.TargetFile != "" || options.CheckpointImageID != "") {
+		for _, v := range c.config.NamedVolumes {
+			volumeFilePath := filepath.Join(c.bundlePath(), metadata.CheckpointVolumesDirectory, v.Name+".tar")
+
+			volumeFile, err := os.Open(volumeFilePath)
+			if err != nil {
+				return nil, 0, fmt.Errorf("failed to open volume file %s: %w", volumeFilePath, err)
+			}
+			defer volumeFile.Close()
+
+			volume, err := c.runtime.GetVolume(v.Name)
+			if err != nil {
+				return nil, 0, fmt.Errorf("failed to retrieve volume %s: %w", v.Name, err)
+			}
+
+			mountPoint, err := volume.MountPoint()
+			if err != nil {
+				return nil, 0, err
+			}
+			if mountPoint == "" {
+				return nil, 0, fmt.Errorf("unable to import volume %s as it is not mounted: %w", volume.Name(), err)
+			}
+			if err := archive.UntarUncompressed(volumeFile, mountPoint, nil); err != nil {
+				return nil, 0, fmt.Errorf("failed to extract volume %s to %s: %w", volumeFilePath, mountPoint, err)
+			}
+		}
+	}
+
+	// Before actually restarting the container, apply the root file-system changes
+	if !options.IgnoreRootfs {
+		if err := crutils.CRApplyRootFsDiffTar(c.bundlePath(), c.state.Mountpoint); err != nil {
+			return nil, 0, err
+		}
+
+		if err := crutils.CRRemoveDeletedFiles(c.ID(), c.bundlePath(), c.state.Mountpoint); err != nil {
+			return nil, 0, err
+		}
+	}
+
+	runtimeRestoreDuration, err = c.ociRuntime.CreateContainer(c, &options)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	criuStatistics, err = func() (*define.CRIUCheckpointRestoreStatistics, error) {
+		if !options.PrintStats {
+			return nil, nil
+		}
+		statsDirectory, err := os.Open(c.bundlePath())
+		if err != nil {
+			return nil, fmt.Errorf("not able to open %q: %w", c.bundlePath(), err)
+		}
+
+		restoreStatistics, err := stats.CriuGetRestoreStats(statsDirectory)
+		if err != nil {
+			return nil, fmt.Errorf("displaying restore statistics not possible: %w", err)
+		}
+
+		return &define.CRIUCheckpointRestoreStatistics{
+			PagesCompared:   restoreStatistics.GetPagesCompared(),
+			PagesSkippedCow: restoreStatistics.GetPagesSkippedCow(),
+			ForkingTime:     restoreStatistics.GetForkingTime(),
+			RestoreTime:     restoreStatistics.GetRestoreTime(),
+			PagesRestored:   restoreStatistics.GetPagesRestored(),
+		}, nil
+	}()
+	if err != nil {
+		return nil, 0, err
+	}
+
+	logrus.Debugf("Restored container %s", c.ID())
+
+	c.state.State = define.ContainerStateRunning
+	c.state.Checkpointed = false
+	c.state.Restored = true
+	c.state.CheckpointedTime = time.Time{}
+	c.state.RestoredTime = time.Now()
+
+	if !options.Keep {
+		// Delete all checkpoint related files. At this point, in theory, all files
+		// should exist. Still ignoring errors for now as the container should be
+		// restored and running. Not erroring out just because some cleanup operation
+		// failed. Starting with the checkpoint directory
+		err = os.RemoveAll(c.CheckpointPath())
+		if err != nil {
+			logrus.Debugf("Non-fatal: removal of checkpoint directory (%s) failed: %v", c.CheckpointPath(), err)
+		}
+		c.state.CheckpointPath = ""
+		err = os.RemoveAll(c.PreCheckPointPath())
+		if err != nil {
+			logrus.Debugf("Non-fatal: removal of pre-checkpoint directory (%s) failed: %v", c.PreCheckPointPath(), err)
+		}
+		err = os.RemoveAll(c.CheckpointVolumesPath())
+		if err != nil {
+			logrus.Debugf("Non-fatal: removal of checkpoint volumes directory (%s) failed: %v", c.CheckpointVolumesPath(), err)
+		}
+		cleanup := [...]string{
+			"restore.log",
+			"dump.log",
+			stats.StatsDump,
+			stats.StatsRestore,
+			metadata.DevShmCheckpointTar,
+			metadata.NetworkStatusFile,
+			metadata.RootFsDiffTar,
+			metadata.DeletedFilesFile,
+		}
+		for _, del := range cleanup {
+			file := filepath.Join(c.bundlePath(), del)
+			err = os.Remove(file)
+			if err != nil {
+				logrus.Debugf("Non-fatal: removal of checkpoint file (%s) failed: %v", file, err)
+			}
+		}
+		c.state.CheckpointLog = ""
+		c.state.RestoreLog = ""
+	}
+
+	return criuStatistics, runtimeRestoreDuration, c.save()
 }
