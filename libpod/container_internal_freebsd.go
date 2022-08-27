@@ -464,3 +464,16 @@ func (c *Container) setMountLabel(g *generate.Generator) {
 func (c *Container) setCgroupsPath(g *generate.Generator) error {
 	return nil
 }
+
+func (c *Container) addSlirp4netnsDNS(nameservers []string) []string {
+	return nameservers
+}
+
+func (c *Container) isSlirp4netnsIPv6() (bool, error) {
+	return false, nil
+}
+
+// check for net=none
+func (c *Container) hasNetNone() bool {
+	return c.state.NetworkJail == ""
+}

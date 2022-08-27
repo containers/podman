@@ -5,6 +5,7 @@ package libpod
 
 import (
 	"errors"
+	"net"
 	"path/filepath"
 
 	"github.com/containers/common/libnetwork/types"
@@ -83,4 +84,8 @@ func (r *Runtime) GetRootlessNetNs(new bool) (*RootlessNetNS, error) {
 // For machine the HostIP must only be used by gvproxy and never in the VM.
 func (c *Container) convertPortMappings() []types.PortMapping {
 	return []types.PortMapping{}
+}
+
+func GetSlirp4netnsIP(subnet *net.IPNet) (*net.IP, error) {
+	return nil, errors.New("not implemented GetSlirp4netnsIP")
 }

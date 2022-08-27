@@ -770,3 +770,46 @@ func (c *Container) setCgroupsPath(g *generate.Generator) error {
 	g.SetLinuxCgroupsPath(cgroupPath)
 	return nil
 }
+
+func (c *Container) addSlirp4netnsDNS(nameservers []string) []string {
+	// slirp4netns has a built in DNS forwarder.
+	if c.config.NetMode.IsSlirp4netns() {
+		slirp4netnsDNS, err := GetSlirp4netnsDNS(c.slirp4netnsSubnet)
+		if err != nil {
+			logrus.Warn("Failed to determine Slirp4netns DNS: ", err.Error())
+		} else {
+			nameservers = append(nameservers, slirp4netnsDNS.String())
+		}
+	}
+	return nameservers
+}
+
+func (c *Container) isSlirp4netnsIPv6() (bool, error) {
+	if c.config.NetMode.IsSlirp4netns() {
+		ctrNetworkSlipOpts := []string{}
+		if c.config.NetworkOptions != nil {
+			ctrNetworkSlipOpts = append(ctrNetworkSlipOpts, c.config.NetworkOptions["slirp4netns"]...)
+		}
+		slirpOpts, err := parseSlirp4netnsNetworkOptions(c.runtime, ctrNetworkSlipOpts)
+		if err != nil {
+			return false, err
+		}
+		return slirpOpts.enableIPv6, nil
+	}
+
+	return false, nil
+}
+
+// check for net=none
+func (c *Container) hasNetNone() bool {
+	if !c.config.CreateNetNS {
+		for _, ns := range c.config.Spec.Linux.Namespaces {
+			if ns.Type == spec.NetworkNamespace {
+				if ns.Path == "" {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}

@@ -1919,14 +1919,7 @@ func (c *Container) generateResolvConf() error {
 		// when we add network dns server we also have to add the search domains
 		search = networkSearchDomains
 		// slirp4netns has a built in DNS forwarder.
-		if c.config.NetMode.IsSlirp4netns() {
-			slirp4netnsDNS, err := GetSlirp4netnsDNS(c.slirp4netnsSubnet)
-			if err != nil {
-				logrus.Warn("Failed to determine Slirp4netns DNS: ", err.Error())
-			} else {
-				nameservers = append(nameservers, slirp4netnsDNS.String())
-			}
-		}
+		nameservers = c.addSlirp4netnsDNS(nameservers)
 	}
 
 	if len(c.config.DNSSearch) > 0 || len(c.runtime.config.Containers.DNSSearches) > 0 {
@@ -1970,19 +1963,7 @@ func (c *Container) checkForIPv6(netStatus map[string]types.StatusBlock) (bool, 
 		}
 	}
 
-	if c.config.NetMode.IsSlirp4netns() {
-		ctrNetworkSlipOpts := []string{}
-		if c.config.NetworkOptions != nil {
-			ctrNetworkSlipOpts = append(ctrNetworkSlipOpts, c.config.NetworkOptions["slirp4netns"]...)
-		}
-		slirpOpts, err := parseSlirp4netnsNetworkOptions(c.runtime, ctrNetworkSlipOpts)
-		if err != nil {
-			return false, err
-		}
-		return slirpOpts.enableIPv6, nil
-	}
-
-	return false, nil
+	return c.isSlirp4netnsIPv6()
 }
 
 // Add a new nameserver to the container's resolv.conf, ensuring that it is the
@@ -2046,16 +2027,8 @@ func (c *Container) getHostsEntries() (etchosts.HostEntries, error) {
 		}
 		entries = etchosts.HostEntries{{IP: ip.String(), Names: names}}
 	default:
-		// check for net=none
-		if !c.config.CreateNetNS {
-			for _, ns := range c.config.Spec.Linux.Namespaces {
-				if ns.Type == spec.NetworkNamespace {
-					if ns.Path == "" {
-						entries = etchosts.HostEntries{{IP: "127.0.0.1", Names: names}}
-					}
-					break
-				}
-			}
+		if c.hasNetNone() {
+			entries = etchosts.HostEntries{{IP: "127.0.0.1", Names: names}}
 		}
 	}
 	return entries, nil
