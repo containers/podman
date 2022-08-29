@@ -63,7 +63,7 @@ class TestApi(unittest.TestCase):
                 podman(),
                 "system",
                 "service",
-                "tcp:localhost:8080",
+                "tcp://localhost:8080",
                 "--log-level=debug",
                 "--time=0",
             ],

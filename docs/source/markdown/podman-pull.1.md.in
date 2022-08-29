@@ -51,30 +51,13 @@ All tagged images in the repository will be pulled.
 
 @@option arch
 
-#### **--authfile**=*path*
+@@option authfile
 
-Path of the authentication file. If the authorization state is not found there, `$HOME/.docker/config.json` is checked, which is set using `docker login`.
+@@option cert-dir
 
-Default is `${XDG\_RUNTIME\_DIR}/containers/auth.json`, which is set using `podman login`.
+@@option creds
 
-*IMPORTANT: The default path of the authentication file can be overwritten by setting the `REGISTRY\_AUTH\_FILE` environment variable. `export REGISTRY_AUTH_FILE=path`*
-
-#### **--cert-dir**=*path*
-
-Use certificates at *path* (\*.crt, \*.cert, \*.key) to connect to the registry. (Default: /etc/containers/certs.d)
-Please refer to **[containers-certs.d(5)](https://github.com/containers/image/blob/main/docs/containers-certs.d.5.md)** for details. (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
-
-#### **--creds**=*[username[:password]]*
-
-The [username[:password]] to use to authenticate with the registry if required.
-If one or both values are not supplied, a command line prompt will appear and the
-value can be entered.  The password is entered without echo.
-
-#### **--disable-content-trust**
-
-This is a Docker specific option to disable image verification to a Docker
-registry and is not supported by Podman.  This flag is a NOOP and provided
-solely for scripting compatibility.
+@@option disable-content-trust
 
 #### **--help**, **-h**
 
@@ -83,6 +66,7 @@ Print the usage statement.
 #### **--os**=*OS*
 
 Override the OS, defaults to hosts, of the image to be pulled. For example, `windows`.
+Unless overridden, subsequent lookups of the same image in the local storage will match this OS, regardless of the host.
 
 @@option platform
 

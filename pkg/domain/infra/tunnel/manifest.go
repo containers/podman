@@ -15,7 +15,7 @@ import (
 
 // ManifestCreate implements manifest create via ImageEngine
 func (ir *ImageEngine) ManifestCreate(ctx context.Context, name string, images []string, opts entities.ManifestCreateOptions) (string, error) {
-	options := new(manifests.CreateOptions).WithAll(opts.All)
+	options := new(manifests.CreateOptions).WithAll(opts.All).WithAmend(opts.Amend)
 	imageID, err := manifests.Create(ir.ClientCtx, name, images, options)
 	if err != nil {
 		return imageID, fmt.Errorf("error creating manifest: %w", err)

@@ -26,7 +26,7 @@ therefore the overridden default value._
 A Kubernetes YAML can be executed in systemd via the `podman-kube@.service` systemd template.  The template's argument is the path to the YAML file.  Given a `workload.yaml` file in the home directory, it can be executed as follows:
 
 ```
-$ escaped=$(systemd-escape ~/sysadmin.yaml)
+$ escaped=$(systemd-escape ~/workload.yaml)
 $ systemctl --user start podman-kube@$escaped.service
 $ systemctl --user is-active podman-kube@$escaped.service
 active

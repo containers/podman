@@ -19,6 +19,7 @@ import (
 	"github.com/containers/podman/v4/pkg/signal"
 	"github.com/containers/podman/v4/pkg/specgen"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/openshift/imagebuilder"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
@@ -131,6 +132,17 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 		defaultEnvs = envLib.Join(envLib.DefaultEnvVariables(), envLib.Join(defaultEnvs, envs))
 	}
 
+	for _, e := range s.EnvMerge {
+		processedWord, err := imagebuilder.ProcessWord(e, envLib.Slice(defaultEnvs))
+		if err != nil {
+			return nil, fmt.Errorf("unable to process variables for --env-merge %s: %w", e, err)
+		}
+		splitWord := strings.Split(processedWord, "=")
+		if _, ok := defaultEnvs[splitWord[0]]; ok {
+			defaultEnvs[splitWord[0]] = splitWord[1]
+		}
+	}
+
 	for _, e := range s.UnsetEnv {
 		delete(defaultEnvs, e)
 	}
@@ -140,10 +152,8 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 	}
 	// First transform the os env into a map. We need it for the labels later in
 	// any case.
-	osEnv, err := envLib.ParseSlice(os.Environ())
-	if err != nil {
-		return nil, fmt.Errorf("error parsing host environment variables: %w", err)
-	}
+	osEnv := envLib.Map(os.Environ())
+
 	// Caller Specified defaults
 	if s.EnvHost {
 		defaultEnvs = envLib.Join(defaultEnvs, osEnv)
@@ -347,9 +357,21 @@ func ConfigToSpec(rt *libpod.Runtime, specg *specgen.SpecGenerator, contaierID s
 	conf.Systemd = tmpSystemd
 	conf.Mounts = tmpMounts
 
-	if conf.Spec != nil && conf.Spec.Linux != nil && conf.Spec.Linux.Resources != nil {
-		if specg.ResourceLimits == nil {
-			specg.ResourceLimits = conf.Spec.Linux.Resources
+	if conf.Spec != nil {
+		if conf.Spec.Linux != nil && conf.Spec.Linux.Resources != nil {
+			if specg.ResourceLimits == nil {
+				specg.ResourceLimits = conf.Spec.Linux.Resources
+			}
+		}
+		if conf.Spec.Process != nil && conf.Spec.Process.Env != nil {
+			env := make(map[string]string)
+			for _, entry := range conf.Spec.Process.Env {
+				split := strings.Split(entry, "=")
+				if len(split) == 2 {
+					env[split[0]] = split[1]
+				}
+			}
+			specg.Env = env
 		}
 	}
 

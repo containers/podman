@@ -179,6 +179,9 @@ var (
 	// ErrNetworkInUse indicates the requested operation failed because the network was in use
 	ErrNetworkInUse = errors.New("network is being used")
 
+	// ErrNetworkConnected indicates that the required operation failed because the container is already a network endpoint
+	ErrNetworkConnected = errors.New("network is already connected")
+
 	// ErrStoreNotInitialized indicates that the container storage was never
 	// initialized.
 	ErrStoreNotInitialized = errors.New("the container storage was never initialized")

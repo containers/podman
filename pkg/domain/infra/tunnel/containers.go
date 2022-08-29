@@ -183,17 +183,22 @@ func (ic *ContainerEngine) ContainerRestart(ctx context.Context, namesOrIds []st
 	if to := opts.Timeout; to != nil {
 		options.WithTimeout(int(*to))
 	}
-	ctrs, err := getContainersByContext(ic.ClientCtx, opts.All, false, namesOrIds)
+	ctrs, rawInputs, err := getContainersAndInputByContext(ic.ClientCtx, opts.All, false, namesOrIds, opts.Filters)
 	if err != nil {
 		return nil, err
+	}
+	idToRawInput := map[string]string{}
+	for i := range ctrs {
+		idToRawInput[ctrs[i].ID] = rawInputs[i]
 	}
 	for _, c := range ctrs {
 		if opts.Running && c.State != define.ContainerStateRunning.String() {
 			continue
 		}
 		reports = append(reports, &entities.RestartReport{
-			Id:  c.ID,
-			Err: containers.Restart(ic.ClientCtx, c.ID, options),
+			Id:       c.ID,
+			Err:      containers.Restart(ic.ClientCtx, c.ID, options),
+			RawInput: idToRawInput[c.ID],
 		})
 	}
 	return reports, nil
@@ -667,9 +672,15 @@ func logIfRmError(id string, err error, reports []*reports.RmReport) {
 func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []string, options entities.ContainerStartOptions) ([]*entities.ContainerStartReport, error) {
 	reports := []*entities.ContainerStartReport{}
 	var exitCode = define.ExecErrorCodeGeneric
-	ctrs, namesOrIds, err := getContainersAndInputByContext(ic.ClientCtx, options.All, false, namesOrIds, options.Filters)
+	ctrs, rawInputs, err := getContainersAndInputByContext(ic.ClientCtx, options.All, false, namesOrIds, options.Filters)
 	if err != nil {
 		return nil, err
+	}
+	idToRawInput := map[string]string{}
+	if len(rawInputs) == len(ctrs) {
+		for i := range ctrs {
+			idToRawInput[ctrs[i].ID] = rawInputs[i]
+		}
 	}
 	removeOptions := new(containers.RemoveOptions).WithVolumes(true).WithForce(false)
 	removeContainer := func(id string) {
@@ -678,15 +689,11 @@ func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []stri
 	}
 
 	// There can only be one container if attach was used
-	for i, ctr := range ctrs {
+	for _, ctr := range ctrs {
 		name := ctr.ID
-		rawInput := ctr.ID
-		if !options.All {
-			rawInput = namesOrIds[i]
-		}
 		report := entities.ContainerStartReport{
 			Id:       name,
-			RawInput: rawInput,
+			RawInput: idToRawInput[name],
 			ExitCode: exitCode,
 		}
 		ctrRunning := ctr.State == define.ContainerStateRunning.String()

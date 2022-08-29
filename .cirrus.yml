@@ -33,7 +33,7 @@ env:
     UBUNTU_NAME: "ubuntu-2204"
 
     # Image identifiers
-    IMAGE_SUFFIX: "c5495735033528320"
+    IMAGE_SUFFIX: "c5823947156488192"
     # EC2 images
     FEDORA_AMI: "fedora-aws-${IMAGE_SUFFIX}"
     FEDORA_AARCH64_AMI: "fedora-podman-aws-arm64-${IMAGE_SUFFIX}"
@@ -431,7 +431,7 @@ alt_build_task:
       - env:
             ALT_NAME: 'Build Without CGO'
       - env:
-            ALT_NAME: 'Test build RPM'
+            ALT_NAME: 'Test build podman-next Copr RPM'
       - env:
             ALT_NAME: 'Alt Arch. Cross'
     # This task cannot make use of the shared repo.tbz artifact.
@@ -681,11 +681,6 @@ podman_machine_task:
     # Required_pr_labels does not apply to non-PRs.
     # Do not run on tags, branches, [CI:BUILD], or [CI:DOCS].
     only_if: *not_tag_branch_build_docs
-    # This task costs about $4 per attempt to execute.
-    # Only run it if a magic PR label is present.
-    # DO NOT ADD THIS TASK AS DEPENDENCY FOR `success_task`
-    # it will cause an infinate-block / never completing build.
-    required_pr_labels: test_podman_machine
     depends_on:
         - build
         - local_integration_test
@@ -703,6 +698,31 @@ podman_machine_task:
       DISTRO_NV: "${FEDORA_NAME}"
       VM_IMAGE_NAME: "${FEDORA_AMI}"
     clone_script: *get_gosrc
+    setup_script: *setup
+    main_script: *main
+    always: *int_logs_artifacts
+
+
+podman_machine_aarch64_task:
+    name: *std_name_fmt
+    alias: podman_machine_aarch64
+    only_if: *not_tag_branch_build_docs
+    depends_on:
+        - build_aarch64
+        - validate_aarch64
+        - local_integration_test
+        - remote_integration_test
+        - container_integration_test
+        - rootless_integration_test
+    ec2_instance:
+        <<: *standard_build_ec2_aarch64
+    env:
+        TEST_FLAVOR: "machine"
+        EC2_INST_TYPE: c6g.metal
+        PRIV_NAME: "rootless"  # intended use-case
+        DISTRO_NV: "${FEDORA_AARCH64_NAME}"
+        VM_IMAGE_NAME: "${FEDORA_AARCH64_AMI}"
+    clone_script: *get_gosrc_aarch64
     setup_script: *setup
     main_script: *main
     always: *int_logs_artifacts
@@ -966,8 +986,12 @@ meta_task:
             ${FEDORA_CACHE_IMAGE_NAME}
             ${UBUNTU_CACHE_IMAGE_NAME}
             build-push-${IMAGE_SUFFIX}
+        EC2IMGNAMES: >-
+          ${FEDORA_AARCH64_AMI}
+          ${FEDORA_AMI}
         BUILDID: "${CIRRUS_BUILD_ID}"
         REPOREF: "${CIRRUS_REPO_NAME}"
+        AWSINI: ENCRYPTED[21b2db557171b11eb5abdbccae593f48c9caeba86dfcc4d4ff109edee9b4656ab6720a110dadfcd51e88cc59a71cc7af]
         GCPJSON: ENCRYPTED[3a198350077849c8df14b723c0f4c9fece9ebe6408d35982e7adf2105a33f8e0e166ed3ed614875a0887e1af2b8775f4]
         GCPNAME: ENCRYPTED[2f9738ef295a706f66a13891b40e8eaa92a89e0e87faf8bed66c41eca72bf76cfd190a6f2d0e8444c631fdf15ed32ef6]
         GCPPROJECT: libpod-218412
@@ -1003,9 +1027,8 @@ success_task:
         - remote_integration_test
         - container_integration_test
         - rootless_integration_test
-        # Label triggered task. If made automatic, remove line below
-        # AND bypass in contrib/cirrus/cirrus_yaml_test.py for this name.
-        # - podman_machine
+        - podman_machine
+        - podman_machine_aarch64
         - local_system_test
         - local_system_test_aarch64
         - remote_system_test

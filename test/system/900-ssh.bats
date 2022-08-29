@@ -46,7 +46,7 @@ function _run_podman_remote() {
 
     ${PODMAN%%-remote*} --root ${PODMAN_TMPDIR}/root \
                         --runroot ${PODMAN_TMPDIR}/runroot \
-                        system service -t 99 tcp:localhost:$_SERVICE_PORT &
+                        system service -t 99 tcp://localhost:$_SERVICE_PORT &
     _SERVICE_PID=$!
     wait_for_port localhost $_SERVICE_PORT
 

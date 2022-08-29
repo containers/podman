@@ -38,6 +38,7 @@ MANDIR ?= ${PREFIX}/share/man
 SHAREDIR_CONTAINERS ?= ${PREFIX}/share/containers
 ETCDIR ?= ${PREFIX}/etc
 TMPFILESDIR ?= ${PREFIX}/lib/tmpfiles.d
+USERTMPFILESDIR ?= ${PREFIX}/share/user-tmpfiles.d
 MODULESLOADDIR ?= ${PREFIX}/lib/modules-load.d
 SYSTEMDDIR ?= ${PREFIX}/lib/systemd/system
 USERSYSTEMDDIR ?= ${PREFIX}/lib/systemd/user
@@ -266,7 +267,7 @@ test/version/version: version/version.go
 
 .PHONY: codespell
 codespell:
-	codespell -S bin,vendor,.git,go.sum,.cirrus.yml,"RELEASE_NOTES.md,*.xz,*.gz,*.ps1,*.tar,swagger.yaml,*.tgz,bin2img,*ico,*.png,*.1,*.5,copyimg,*.orig,apidoc.go" -L pullrequest,uint,iff,od,seeked,splitted,marge,erro,hist,ether -w
+	codespell -S bin,vendor,.git,go.sum,.cirrus.yml,"RELEASE_NOTES.md,*.xz,*.gz,*.ps1,*.tar,swagger.yaml,*.tgz,bin2img,*ico,*.png,*.1,*.5,copyimg,*.orig,apidoc.go" -L clos,ans,pullrequest,uint,iff,od,seeked,splitted,marge,erro,hist,ether -w
 
 .PHONY: validate
 validate: lint .gitvalidation validate.completions man-page-check swagger-check tests-included tests-expect-exit pr-removes-fixed-skips
@@ -795,8 +796,9 @@ install.completions:
 install.docker:
 	install ${SELINUXOPT} -d -m 755 $(DESTDIR)$(BINDIR)
 	install ${SELINUXOPT} -m 755 docker $(DESTDIR)$(BINDIR)/docker
-	install ${SELINUXOPT} -m 755 -d ${DESTDIR}${SYSTEMDDIR}  ${DESTDIR}${USERSYSTEMDDIR} ${DESTDIR}${TMPFILESDIR}
+	install ${SELINUXOPT} -m 755 -d ${DESTDIR}${SYSTEMDDIR}  ${DESTDIR}${USERSYSTEMDDIR} ${DESTDIR}${TMPFILESDIR} ${DESTDIR}${USERTMPFILESDIR}
 	install ${SELINUXOPT} -m 644 contrib/systemd/system/podman-docker.conf -t ${DESTDIR}${TMPFILESDIR}
+	install ${SELINUXOPT} -m 644 contrib/systemd/system/podman-docker.conf -t ${DESTDIR}${USERTMPFILESDIR}
 
 .PHONY: install.docker-docs
 install.docker-docs:

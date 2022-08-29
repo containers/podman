@@ -36,6 +36,7 @@ func ManifestCreate(w http.ResponseWriter, r *http.Request) {
 		Name   string   `schema:"name"`
 		Images []string `schema:"images"`
 		All    bool     `schema:"all"`
+		Amend  bool     `schema:"amend"`
 	}{
 		// Add defaults here once needed.
 	}
@@ -70,7 +71,7 @@ func ManifestCreate(w http.ResponseWriter, r *http.Request) {
 
 	imageEngine := abi.ImageEngine{Libpod: runtime}
 
-	createOptions := entities.ManifestCreateOptions{All: query.All}
+	createOptions := entities.ManifestCreateOptions{All: query.All, Amend: query.Amend}
 	manID, err := imageEngine.ManifestCreate(r.Context(), query.Name, query.Images, createOptions)
 	if err != nil {
 		utils.InternalServerError(w, err)
@@ -292,7 +293,7 @@ func ManifestPushV3(w http.ResponseWriter, r *http.Request) {
 		options.SkipTLSVerify = types.NewOptionalBool(!query.TLSVerify)
 	}
 	imageEngine := abi.ImageEngine{Libpod: runtime}
-	digest, err := imageEngine.ManifestPush(context.Background(), source, query.Destination, options)
+	digest, err := imageEngine.ManifestPush(r.Context(), source, query.Destination, options)
 	if err != nil {
 		utils.Error(w, http.StatusBadRequest, fmt.Errorf("error pushing image %q: %w", query.Destination, err))
 		return
@@ -366,7 +367,7 @@ func ManifestPush(w http.ResponseWriter, r *http.Request) {
 
 	// Let's keep thing simple when running in quiet mode and push directly.
 	if query.Quiet {
-		digest, err := imageEngine.ManifestPush(context.Background(), source, destination, options)
+		digest, err := imageEngine.ManifestPush(r.Context(), source, destination, options)
 		if err != nil {
 			utils.Error(w, http.StatusBadRequest, fmt.Errorf("error pushing image %q: %w", destination, err))
 			return

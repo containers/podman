@@ -101,6 +101,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		ForceRm                 bool     `schema:"forcerm"`
 		From                    string   `schema:"from"`
 		HTTPProxy               bool     `schema:"httpproxy"`
+		IDMappingOptions        string   `schema:"idmappingoptions"`
 		IdentityLabel           bool     `schema:"identitylabel"`
 		Ignore                  bool     `schema:"ignore"`
 		Isolation               string   `schema:"isolation"`
@@ -389,6 +390,14 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	var idMappingOptions buildahDefine.IDMappingOptions
+	if _, found := r.URL.Query()["idmappingoptions"]; found {
+		if err := json.Unmarshal([]byte(query.IDMappingOptions), &idMappingOptions); err != nil {
+			utils.BadRequest(w, "idmappingoptions", query.IDMappingOptions, err)
+			return
+		}
+	}
+
 	var cacheFrom reference.Named
 	if _, found := r.URL.Query()["cachefrom"]; found {
 		cacheFrom, err = parse.RepoNameToNamedReference(query.CacheFrom)
@@ -644,6 +653,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		Excludes:                       excludes,
 		ForceRmIntermediateCtrs:        query.ForceRm,
 		From:                           fromImage,
+		IDMappingOptions:               &idMappingOptions,
 		IgnoreUnrecognizedInstructions: query.Ignore,
 		Isolation:                      isolation,
 		Jobs:                           &jobs,
@@ -694,7 +704,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		success bool
 	)
 
-	runCtx, cancel := context.WithCancel(context.Background())
+	runCtx, cancel := context.WithCancel(r.Context())
 	go func() {
 		defer cancel()
 		imageID, _, err = runtime.Build(r.Context(), buildOptions, containerFiles...)

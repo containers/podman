@@ -41,6 +41,7 @@ var _ = Describe("Podman generate spec", func() {
 	})
 
 	It("podman generate spec basic usage", func() {
+		SkipIfRootlessCgroupsV1("Not supported for rootless + CgroupsV1")
 		session := podmanTest.Podman([]string{"create", "--cpus", "5", "--name", "specgen", ALPINE})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
@@ -51,6 +52,7 @@ var _ = Describe("Podman generate spec", func() {
 	})
 
 	It("podman generate spec file", func() {
+		SkipIfRootlessCgroupsV1("Not supported for rootless + CgroupsV1")
 		session := podmanTest.Podman([]string{"create", "--cpus", "5", "--name", "specgen", ALPINE})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))

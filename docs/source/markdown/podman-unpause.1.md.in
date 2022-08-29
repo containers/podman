@@ -1,0 +1,83 @@
+% podman-unpause(1)
+
+## NAME
+podman\-unpause - Unpause one or more containers
+
+## SYNOPSIS
+**podman unpause** [*options*]|[*container* ...]
+
+**podman container unpause** [*options*]|[*container* ...]
+
+## DESCRIPTION
+Unpauses the processes in one or more containers.  You may use container IDs or names as input.
+
+## OPTIONS
+
+#### **--all**, **-a**
+
+Unpause all paused containers.
+
+@@option cidfile.read
+
+#### **--filter**, **-f**=*filter*
+
+Filter what containers unpause.
+Multiple filters can be given with multiple uses of the --filter flag.
+Filters with the same key work inclusive with the only exception being
+`label` which is exclusive. Filters with different keys always work exclusive.
+
+Valid filters are listed below:
+
+| **Filter**      | **Description**                                                                  |
+| --------------- | -------------------------------------------------------------------------------- |
+| id              | [ID] Container's ID (accepts regex)                                              |
+| name            | [Name] Container's name (accepts regex)                                          |
+| label           | [Key] or [Key=Value] Label assigned to a container                               |
+| exited          | [Int] Container's exit code                                                      |
+| status          | [Status] Container's status: 'created', 'exited', 'paused', 'running', 'unknown' |
+| ancestor        | [ImageName] Image or descendant used to create container                         |
+| before          | [ID] or [Name] Containers created before this container                          |
+| since           | [ID] or [Name] Containers created since this container                           |
+| volume          | [VolumeName] or [MountpointDestination] Volume mounted in container              |
+| health          | [Status] healthy or unhealthy                                                    |
+| pod             | [Pod] name or full or partial ID of pod                                          |
+| network         | [Network] name or full ID of network                                             |
+
+#### **--latest**, **-l**
+
+Instead of providing the container name or ID, use the last created container. If you use methods other than Podman
+to run containers such as CRI-O, the last started container could be from either of those methods. (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
+
+## EXAMPLE
+
+Unpause container called 'mywebserver'
+```
+podman unpause mywebserver
+```
+
+Unpause container by a partial container ID.
+```
+podman unpause 860a4b23
+```
+
+Unpause all **paused** containers.
+```
+podman unpause --all
+```
+
+Unpause container using ID specified in a given files.
+```
+podman unpause --cidfile /home/user/cidfile-1
+podman unpause --cidfile /home/user/cidfile-1 --cidfile ./cidfile-2
+```
+
+Unpause the latest container created by Podman.
+```
+podman unpause --latest
+```
+
+## SEE ALSO
+**[podman(1)](podman.1.md)**, **[podman-pause(1)](podman-pause.1.md)**
+
+## HISTORY
+September 2017, Originally compiled by Dan Walsh <dwalsh@redhat.com>

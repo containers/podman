@@ -36,20 +36,6 @@ fi
 # That way individual tests can override with their own setup/teardown,
 # while retaining the ability to include these if they so desire.
 
-# Some CI systems set this to runc, overriding the default crun.
-if [[ -n $OCI_RUNTIME ]]; then
-    if [[ -z $CONTAINERS_CONF ]]; then
-        # FIXME: BATS provides no mechanism for end-of-run cleanup[1]; how
-        # can we avoid leaving this file behind when we finish?
-        #   [1] https://github.com/bats-core/bats-core/issues/39
-        export CONTAINERS_CONF=$(mktemp --tmpdir=${BATS_TMPDIR:-/tmp} podman-bats-XXXXXXX.containers.conf)
-        cat >$CONTAINERS_CONF <<EOF
-[engine]
-runtime="$OCI_RUNTIME"
-EOF
-    fi
-fi
-
 # Setup helper: establish a test environment with exactly the images needed
 function basic_setup() {
     # Clean up all containers

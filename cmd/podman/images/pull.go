@@ -155,6 +155,11 @@ func imagePull(cmd *cobra.Command, args []string) error {
 		pullOptions.Username = creds.Username
 		pullOptions.Password = creds.Password
 	}
+
+	if !pullOptions.Quiet {
+		pullOptions.Writer = os.Stderr
+	}
+
 	// Let's do all the remaining Yoga in the API to prevent us from
 	// scattering logic across (too) many parts of the code.
 	var errs utils.OutputErrors

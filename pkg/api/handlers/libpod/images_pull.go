@@ -82,16 +82,31 @@ func ImagesPull(w http.ResponseWriter, r *http.Request) {
 		pullOptions.IdentityToken = authConf.IdentityToken
 	}
 
-	writer := channel.NewWriter(make(chan []byte))
-	defer writer.Close()
-
-	pullOptions.Writer = writer
-
 	pullPolicy, err := config.ParsePullPolicy(query.PullPolicy)
 	if err != nil {
 		utils.Error(w, http.StatusBadRequest, err)
 		return
 	}
+
+	// Let's keep thing simple when running in quiet mode and pull directly.
+	if query.Quiet {
+		images, err := runtime.LibimageRuntime().Pull(r.Context(), query.Reference, pullPolicy, pullOptions)
+		var report entities.ImagePullReport
+		if err != nil {
+			report.Error = err.Error()
+		}
+		for _, image := range images {
+			report.Images = append(report.Images, image.ID())
+			// Pull last ID from list and publish in 'id' stanza.  This maintains previous API contract
+			report.ID = image.ID()
+		}
+		utils.WriteResponse(w, http.StatusOK, report)
+		return
+	}
+
+	writer := channel.NewWriter(make(chan []byte))
+	defer writer.Close()
+	pullOptions.Writer = writer
 
 	var pulledImages []*libimage.Image
 	var pullError error
@@ -118,10 +133,8 @@ func ImagesPull(w http.ResponseWriter, r *http.Request) {
 		select {
 		case s := <-writer.Chan():
 			report.Stream = string(s)
-			if !query.Quiet {
-				if err := enc.Encode(report); err != nil {
-					logrus.Warnf("Failed to encode json: %v", err)
-				}
+			if err := enc.Encode(report); err != nil {
+				logrus.Warnf("Failed to encode json: %v", err)
 			}
 			flush()
 		case <-runCtx.Done():

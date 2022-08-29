@@ -5,7 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net"
+	"net/http"
 	"os"
 	"strings"
 
@@ -13,6 +15,7 @@ import (
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v4/cmd/podman/common"
+	"github.com/containers/podman/v4/cmd/podman/parse"
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/containers/podman/v4/cmd/podman/utils"
 	"github.com/containers/podman/v4/libpod/define"
@@ -52,7 +55,8 @@ var (
 		ValidArgsFunction: common.AutocompleteDefaultOneArg,
 		Example: `podman kube play nginx.yml
   cat nginx.yml | podman kube play -
-  podman kube play --creds user:password --seccomp-profile-root /custom/path apache.yml`,
+  podman kube play --creds user:password --seccomp-profile-root /custom/path apache.yml
+  podman kube play https://example.com/nginx.yml`,
 	}
 )
 
@@ -67,7 +71,8 @@ var (
 		ValidArgsFunction: common.AutocompleteDefaultOneArg,
 		Example: `podman play kube nginx.yml
   cat nginx.yml | podman play kube -
-  podman play kube --creds user:password --seccomp-profile-root /custom/path apache.yml`,
+  podman play kube --creds user:password --seccomp-profile-root /custom/path apache.yml
+  podman play kube https://example.com/nginx.yml`,
 	}
 )
 
@@ -167,7 +172,7 @@ func playFlags(cmd *cobra.Command) {
 		_ = cmd.RegisterFlagCompletionFunc(contextDirFlagName, completion.AutocompleteDefault)
 
 		// NOTE: The service-container flag is marked as hidden as it
-		// is purely designed for running kube-play in systemd units.
+		// is purely designed for running kube-play or play-kube in systemd units.
 		// It is not something users should need to know or care about.
 		//
 		// Having a flag rather than an env variable is cleaner.
@@ -255,6 +260,7 @@ func play(cmd *cobra.Command, args []string) error {
 			return err
 		}
 	}
+
 	return kubeplay(reader)
 }
 
@@ -263,8 +269,22 @@ func playKube(cmd *cobra.Command, args []string) error {
 }
 
 func readerFromArg(fileName string) (*bytes.Reader, error) {
+	errURL := parse.ValidURL(fileName)
 	if fileName == "-" { // Read from stdin
 		data, err := io.ReadAll(os.Stdin)
+		if err != nil {
+			return nil, err
+		}
+		return bytes.NewReader(data), nil
+	}
+	if errURL == nil {
+		response, err := http.Get(fileName)
+		if err != nil {
+			return nil, err
+		}
+		defer response.Body.Close()
+
+		data, err := ioutil.ReadAll(response.Body)
 		if err != nil {
 			return nil, err
 		}

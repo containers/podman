@@ -32,7 +32,15 @@ func (ir *ImageEngine) ManifestCreate(ctx context.Context, name string, images [
 
 	manifestList, err := ir.Libpod.LibimageRuntime().CreateManifestList(name)
 	if err != nil {
-		return "", err
+		if errors.Is(err, storage.ErrDuplicateName) && opts.Amend {
+			amendList, amendErr := ir.Libpod.LibimageRuntime().LookupManifestList(name)
+			if amendErr != nil {
+				return "", err
+			}
+			manifestList = amendList
+		} else {
+			return "", err
+		}
 	}
 
 	addOptions := &libimage.ManifestListAddOptions{All: opts.All}

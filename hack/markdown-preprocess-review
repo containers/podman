@@ -114,8 +114,60 @@ for my $i (0..$#all_opts) {
     next if $ans =~ /^n/i;
     exit 0 if $ans =~ /^q/i;
 
-    system("diffuse", "-w", glob("*")) == 0
-        or die "Diffuse failed\n";
+    # Try to cull the files (remove identical ones)
+    my @files = glob("*");
+    my $winner = pop @files;
+
+    for my $f (@files) {
+        system('cmp', '-s', $f, $winner);
+        if ($? == 0) {
+            print "[ $f is the one we went with; removing from list ]\n";
+            unlink $f;
+            next;
+        }
+
+        system('wdiff', '-1', '-2', '-3', $f, $winner);
+        if ($? == 0) {
+            print "[ $f is whitespace-identical with what we went with ]\n";
+            unlink $f;
+            next;
+        }
+    }
+
+    # Recompute @files, in case some were deleted above
+    @files = glob("*"); pop @files;
+
+    for (my $i=0; $i < $#files; $i++) {
+        my $f1 = $files[$i];
+        next unless -e $f1;
+
+        for (my $j=$i+1; $j <= $#files; $j++) {
+            my $f2 = $files[$j];
+            next unless -e $f2;
+
+            system('wdiff', '-1', '-2', '-3', $f1, $f2);
+            if ($? == 0) {
+                print "[ $f2 : removing, it =~ $f1 ]\n";
+                unlink $f2;
+            }
+        }
+    }
+
+    # Recompute @files, in case some were deleted above
+    @files = glob("*");
+
+    # diffuse works great for 3-4 files, passable for 5, not at all for >5
+    if (@files <= 5) {
+        system("diffuse", "-w", @files) == 0
+            or die "Diffuse failed\n";
+    }
+    else {
+        # Too many files. Go by threes.
+        my $winner = pop @files;
+        for (my $i=0; $i < @files; $i += 3) {
+            system("diffuse", "-w", @files[$i..$i+2], $winner);
+        }
+    }
 }
 
 

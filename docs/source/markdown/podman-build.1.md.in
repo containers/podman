@@ -65,19 +65,11 @@ discarded when writing images in Docker formats.
 
 Set the architecture of the image to be built, and that of the base image to be
 pulled, if the build uses one, to the provided value instead of using the
-architecture of the build host. (Examples: arm, arm64, 386, amd64, ppc64le,
-s390x)
+architecture of the build host. Unless overridden, subsequent lookups of the
+same image in the local storage will match this architecture, regardless of the
+host. (Examples: arm, arm64, 386, amd64, ppc64le, s390x)
 
-#### **--authfile**=*path*
-
-Path of the authentication file. Default is
-${XDG\_RUNTIME\_DIR}/containers/auth.json, which is set using `podman login`.
-If the authorization state is not found there, $HOME/.docker/config.json is
-checked, which is set using `docker login`.
-
-Note: You can also override the default path of the authentication file by
-setting the REGISTRY\_AUTH\_FILE environment variable.
-`export REGISTRY_AUTH_FILE=path`
+@@option authfile
 
 #### **--build-arg**=*arg=value*
 
@@ -173,10 +165,7 @@ If a capability is specified to both the **--cap-add** and **--cap-drop**
 options, it will be dropped, regardless of the order in which the options were
 given.
 
-#### **--cert-dir**=*path*
-
-Use certificates at *path* (\*.crt, \*.cert, \*.key) to connect to the registry. (Default: /etc/containers/certs.d)
-Please refer to containers-certs.d(5) for details. (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
+@@option cert-dir
 
 @@option cgroup-parent
 
@@ -207,11 +196,7 @@ Set additional flags to pass to the C Preprocessor cpp(1). Containerfiles ending
 
 @@option cpuset-mems
 
-#### **--creds**=*creds*
-
-The [username[:password]] to use to authenticate with the registry if required.
-If one or both values are not supplied, a command line prompt will appear and
-the value can be entered.  The password is entered without echo.
+@@option creds
 
 #### **--decryption-key**=*key[:passphrase]*
 
@@ -245,11 +230,7 @@ registries, and images being written to local storage would only need to be
 decompressed again to be stored.  Compression can be forced in all cases by
 specifying **--disable-compression=false**.
 
-#### **--disable-content-trust**
-
-This is a Docker specific option to disable image verification to a container
-registry and is not supported by Podman.  This option is a NOOP and provided
-solely for scripting compatibility. (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
+@@option disable-content-trust
 
 #### **--dns**=*dns*
 
@@ -311,6 +292,12 @@ environment variable.  `export BUILDAH_FORMAT=docker`
 
 Overrides the first `FROM` instruction within the Containerfile.  If there are multiple
 FROM instructions in a Containerfile, only the first is changed.
+
+With the remote podman client, not all container transports will work as
+expected. For example, oci-archive:/x.tar will reference /x.tar on the remote
+machine instead of on the client. If you need to support remote podman clients,
+it is best to restrict yourself to containers-storage: and docker://
+transports.
 
 #### **--help**, **-h**
 
@@ -463,7 +450,8 @@ do not include `History` information in their images.
 
 Set the OS of the image to be built, and that of the base image to be pulled,
 if the build uses one, instead of using the current operating system of the
-build host.
+build host. Unless overridden, subsequent lookups of the same image in the
+local storage will match this OS, regardless of the host.
 
 #### **--os-feature**=*feature*
 
@@ -515,9 +503,12 @@ process.
 
 Set the *os/arch* of the built image (and its base image, if your build uses one)
 to the provided value instead of using the current operating system and
-architecture of the host (for example `linux/arm`). If `--platform` is set,
-then the values of the `--arch`, `--os`, and `--variant` options will be
-overridden.
+architecture of the host (for example `linux/arm`).  Unless overridden,
+subsequent lookups of the same image in the local storage will match this
+platform, regardless of the host.
+
+If `--platform` is set, then the values of the `--arch`, `--os`, and
+`--variant` options will be overridden.
 
 The `--platform` option can be specified more than once, or given a
 comma-separated list of values as its argument.  When more than one platform is

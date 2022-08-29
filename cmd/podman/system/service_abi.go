@@ -105,7 +105,9 @@ func restService(flags *pflag.FlagSet, cfg *entities.PodmanConfig, opts entities
 	}
 
 	if err := utils.MaybeMoveToSubCgroup(); err != nil {
-		return err
+		// it is a best effort operation, so just print the
+		// error for debugging purposes.
+		logrus.Debugf("Could not move to subcgroup: %v", err)
 	}
 
 	servicereaper.Start()

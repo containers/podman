@@ -175,7 +175,7 @@ func (rc RemoteConnectionType) MakeSSHURL(host, path, port, userName string) url
 	return uri
 }
 
-// GetCacheDir returns the dir where VM images are downladed into when pulled
+// GetCacheDir returns the dir where VM images are downloaded into when pulled
 func GetCacheDir(vmType string) (string, error) {
 	dataDir, err := GetDataDir(vmType)
 	if err != nil {

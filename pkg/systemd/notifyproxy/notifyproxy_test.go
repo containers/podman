@@ -37,7 +37,7 @@ func TestWaitAndClose(t *testing.T) {
 	time.Sleep(250 * time.Millisecond)
 	select {
 	case err := <-ch:
-		t.Fatalf("Should stil be waiting but received %v", err)
+		t.Fatalf("Should still be waiting but received %v", err)
 	default:
 	}
 

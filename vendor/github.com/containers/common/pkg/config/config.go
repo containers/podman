@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"sort"
 	"strings"
 	"sync"
@@ -27,6 +28,8 @@ const (
 	_configPath = "containers/containers.conf"
 	// UserOverrideContainersConfig holds the containers config path overridden by the rootless user
 	UserOverrideContainersConfig = ".config/" + _configPath
+	// Token prefix for looking for helper binary under $BINDIR
+	bindirPrefix = "$BINDIR"
 )
 
 // RuntimeStateStore is a constant indicating which state store implementation
@@ -233,6 +236,10 @@ type EngineConfig struct {
 	// ConmonPath is the path to the Conmon binary used for managing containers.
 	// The first path pointing to a valid file will be used.
 	ConmonPath []string `toml:"conmon_path,omitempty"`
+
+	// ConmonRsPath is the path to the Conmon-rs binary used for managing containers.
+	// The first path pointing to a valid file will be used.
+	ConmonRsPath []string `toml:"conmonrs_path,omitempty"`
 
 	// CompatAPIEnforceDockerHub enforces using docker.io for completing
 	// short names in Podman's compatibility REST API.  Note that this will
@@ -449,6 +456,13 @@ type EngineConfig struct {
 	// under. This convention is followed by the default volume driver, but
 	// may not be by other drivers.
 	VolumePath string `toml:"volume_path,omitempty"`
+
+	// VolumePluginTimeout sets the default timeout, in seconds, for
+	// operations that must contact a volume plugin. Plugins are external
+	// programs accessed via REST API; this sets a timeout for requests to
+	// that API.
+	// A value of 0 is treated as no timeout.
+	VolumePluginTimeout uint `toml:"volume_plugin_timeout,omitempty,omitzero"`
 
 	// VolumePlugins is a set of plugins that can be used as the backend for
 	// Podman named volumes. Each volume is specified as a name (what Podman
@@ -811,6 +825,18 @@ func (c *Config) Validate() error {
 	return nil
 }
 
+// URI returns the URI Path to the machine image
+func (m *MachineConfig) URI() string {
+	uri := m.Image
+	for _, val := range []string{"$ARCH", "$arch"} {
+		uri = strings.Replace(uri, val, runtime.GOARCH, 1)
+	}
+	for _, val := range []string{"$OS", "$os"} {
+		uri = strings.Replace(uri, val, runtime.GOOS, 1)
+	}
+	return uri
+}
+
 func (c *EngineConfig) findRuntime() string {
 	// Search for crun first followed by runc, kata, runsc
 	for _, name := range []string{"crun", "runc", "runj", "kata", "runsc"} {
@@ -915,8 +941,12 @@ func (c *NetworkConfig) Validate() error {
 // to first (version) matching conmon binary. If non is found, we try
 // to do a path lookup of "conmon".
 func (c *Config) FindConmon() (string, error) {
+	return findConmonPath(c.Engine.ConmonPath, "conmon", _conmonMinMajorVersion, _conmonMinMinorVersion, _conmonMinPatchVersion)
+}
+
+func findConmonPath(paths []string, binaryName string, major int, minor int, patch int) (string, error) {
 	foundOutdatedConmon := false
-	for _, path := range c.Engine.ConmonPath {
+	for _, path := range paths {
 		stat, err := os.Stat(path)
 		if err != nil {
 			continue
@@ -934,7 +964,7 @@ func (c *Config) FindConmon() (string, error) {
 	}
 
 	// Search the $PATH as last fallback
-	if path, err := exec.LookPath("conmon"); err == nil {
+	if path, err := exec.LookPath(binaryName); err == nil {
 		if err := probeConmon(path); err != nil {
 			logrus.Warnf("Conmon at %s is invalid: %v", path, err)
 			foundOutdatedConmon = true
@@ -946,11 +976,18 @@ func (c *Config) FindConmon() (string, error) {
 
 	if foundOutdatedConmon {
 		return "", fmt.Errorf("please update to v%d.%d.%d or later: %w",
-			_conmonMinMajorVersion, _conmonMinMinorVersion, _conmonMinPatchVersion, ErrConmonOutdated)
+			major, minor, patch, ErrConmonOutdated)
 	}
 
 	return "", fmt.Errorf("could not find a working conmon binary (configured options: %v: %w)",
-		c.Engine.ConmonPath, ErrInvalidArg)
+		paths, ErrInvalidArg)
+}
+
+// FindConmonRs iterates over (*Config).ConmonRsPath and returns the path
+// to first (version) matching conmonrs binary. If non is found, we try
+// to do a path lookup of "conmonrs".
+func (c *Config) FindConmonRs() (string, error) {
+	return findConmonPath(c.Engine.ConmonRsPath, "conmonrs", _conmonrsMinMajorVersion, _conmonrsMinMinorVersion, _conmonrsMinPatchVersion)
 }
 
 // GetDefaultEnv returns the environment variables for the container.
@@ -1226,10 +1263,37 @@ func (c *Config) ActiveDestination() (uri, identity string, err error) {
 	return "", "", errors.New("no service destination configured")
 }
 
+var (
+	bindirFailed = false
+	bindirCached = ""
+)
+
+func findBindir() string {
+	if bindirCached != "" || bindirFailed {
+		return bindirCached
+	}
+	execPath, err := os.Executable()
+	if err == nil {
+		// Resolve symbolic links to find the actual binary file path.
+		execPath, err = filepath.EvalSymlinks(execPath)
+	}
+	if err != nil {
+		// If failed to find executable (unlikely to happen), warn about it.
+		// The bindirFailed flag will track this, so we only warn once.
+		logrus.Warnf("Failed to find $BINDIR: %v", err)
+		bindirFailed = true
+		return ""
+	}
+	bindirCached = filepath.Dir(execPath)
+	return bindirCached
+}
+
 // FindHelperBinary will search the given binary name in the configured directories.
 // If searchPATH is set to true it will also search in $PATH.
 func (c *Config) FindHelperBinary(name string, searchPATH bool) (string, error) {
 	dirList := c.Engine.HelperBinariesDir
+	bindirPath := ""
+	bindirSearched := false
 
 	// If set, search this directory first. This is used in testing.
 	if dir, found := os.LookupEnv("CONTAINERS_HELPER_BINARY_DIR"); found {
@@ -1237,6 +1301,24 @@ func (c *Config) FindHelperBinary(name string, searchPATH bool) (string, error) 
 	}
 
 	for _, path := range dirList {
+		if path == bindirPrefix || strings.HasPrefix(path, bindirPrefix+string(filepath.Separator)) {
+			// Calculate the path to the executable first time we encounter a $BINDIR prefix.
+			if !bindirSearched {
+				bindirSearched = true
+				bindirPath = findBindir()
+			}
+			// If there's an error, don't stop the search for the helper binary.
+			// findBindir() will have warned once during the first failure.
+			if bindirPath == "" {
+				continue
+			}
+			// Replace the $BINDIR prefix with the path to the directory of the current binary.
+			if path == bindirPrefix {
+				path = bindirPath
+			} else {
+				path = filepath.Join(bindirPath, strings.TrimPrefix(path, bindirPrefix+string(filepath.Separator)))
+			}
+		}
 		fullpath := filepath.Join(path, name)
 		if fi, err := os.Stat(fullpath); err == nil && fi.Mode().IsRegular() {
 			return fullpath, nil

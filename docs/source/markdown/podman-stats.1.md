@@ -61,6 +61,10 @@ Do not clear the terminal/screen in between reporting intervals
 
 Disable streaming stats and only pull the first result, default setting is false
 
+#### **--no-trunc**
+
+Do not truncate output
+
 ## EXAMPLE
 
 ```
@@ -74,6 +78,12 @@ a9f807ffaacd   frosty_hodgkin    --      3.092MB / 16.7GB    0.02%   -- / --   -
 # podman stats --no-stream a9f80
 ID             NAME             CPU %   MEM USAGE / LIMIT   MEM %   NET IO    BLOCK IO   PIDS
 a9f807ffaacd   frosty_hodgkin   --      3.092MB / 16.7GB    0.02%   -- / --   -- / --    2
+```
+
+```
+$ podman stats --no-trunc 3667 --format 'table {{ .ID }} {{ .MemUsage }}'
+ID                                                                MEM USAGE / LIMIT
+3667c6aacb06aac2eaffce914c01736420023d56ef9b0f4cfe58b6d6a78b7503  49.15kB / 67.17GB
 ```
 
 ```

@@ -56,7 +56,12 @@ echo $rand        |   0 | $rand
 
 @test "podman run --memory=0 runtime option" {
     run_podman run --memory=0 --rm $IMAGE echo hello
-    is "$output" "hello" "failed to run when --memory is set to 0"
+    if is_rootless && ! is_cgroupsv2; then
+        is "${lines[0]}" "Resource limits are not supported and ignored on cgroups V1 rootless systems" "--memory is not supported"
+        is "${lines[1]}" "hello" "--memory is ignored"
+    else
+        is "$output" "hello" "failed to run when --memory is set to 0"
+    fi
 }
 
 # 'run --preserve-fds' passes a number of additional file descriptors into the container

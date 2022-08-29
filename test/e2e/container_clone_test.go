@@ -87,6 +87,7 @@ var _ = Describe("Podman container clone", func() {
 	})
 
 	It("podman container clone resource limits override", func() {
+		SkipIfRootlessCgroupsV1("Not supported for rootless + CgroupsV1")
 		create := podmanTest.Podman([]string{"create", "--cpus=5", ALPINE})
 		create.WaitWithDefaultTimeout()
 		Expect(create).To(Exit(0))
@@ -290,6 +291,22 @@ var _ = Describe("Podman container clone", func() {
 		Expect(inspect.InspectContainerToJSON()[0].NetworkSettings.Networks).To(HaveLen(2))
 		_, ok := inspect.InspectContainerToJSON()[0].NetworkSettings.Networks["testing123"]
 		Expect(ok).To(BeTrue())
+
+	})
+
+	It("podman container clone env test", func() {
+		session := podmanTest.Podman([]string{"run", "--name", "env_ctr", "-e", "ENV_TEST=123", ALPINE, "printenv", "ENV_TEST"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"container", "clone", "env_ctr"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"start", "-a", "env_ctr-clone"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).Should(ContainSubstring("123"))
 
 	})
 })

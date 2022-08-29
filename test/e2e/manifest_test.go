@@ -46,9 +46,23 @@ var _ = Describe("Podman manifest", func() {
 		processTestResult(f)
 	})
 	It("create w/o image", func() {
-		session := podmanTest.Podman([]string{"manifest", "create", "foo"})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		for _, amend := range []string{"--amend", "-a"} {
+			session := podmanTest.Podman([]string{"manifest", "create", "foo"})
+			session.WaitWithDefaultTimeout()
+			Expect(session).Should(Exit(0))
+
+			session = podmanTest.Podman([]string{"manifest", "create", "foo"})
+			session.WaitWithDefaultTimeout()
+			Expect(session).To(ExitWithError())
+
+			session = podmanTest.Podman([]string{"manifest", "create", amend, "foo"})
+			session.WaitWithDefaultTimeout()
+			Expect(session).Should(Exit(0))
+
+			session = podmanTest.Podman([]string{"manifest", "rm", "foo"})
+			session.WaitWithDefaultTimeout()
+			Expect(session).Should(Exit(0))
+		}
 	})
 
 	It("create w/ image", func() {
@@ -334,6 +348,33 @@ var _ = Describe("Podman manifest", func() {
 			}
 		}
 		Expect(foundZstdFile).To(BeTrue())
+	})
+
+	It("push progress", func() {
+		SkipIfRemote("manifest push to dir not supported in remote mode")
+
+		session := podmanTest.Podman([]string{"manifest", "create", "foo", imageList})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		dest := filepath.Join(podmanTest.TempDir, "pushed")
+		err := os.MkdirAll(dest, os.ModePerm)
+		Expect(err).To(BeNil())
+		defer func() {
+			os.RemoveAll(dest)
+		}()
+
+		session = podmanTest.Podman([]string{"push", "foo", "-q", "dir:" + dest})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.ErrorToString()).To(BeEmpty())
+
+		session = podmanTest.Podman([]string{"push", "foo", "dir:" + dest})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		output := session.ErrorToString()
+		Expect(output).To(ContainSubstring("Writing manifest list to image destination"))
+		Expect(output).To(ContainSubstring("Storing list signatures"))
 	})
 
 	It("authenticated push", func() {

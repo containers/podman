@@ -40,7 +40,7 @@ var _ = Describe("Podman secret", func() {
 		err := ioutil.WriteFile(secretFilePath, []byte("mysecret"), 0755)
 		Expect(err).To(BeNil())
 
-		session := podmanTest.Podman([]string{"secret", "create", "--driver-opts", "opt1=val", "a", secretFilePath})
+		session := podmanTest.Podman([]string{"secret", "create", "-d", "file", "--driver-opts", "opt1=val", "a", secretFilePath})
 		session.WaitWithDefaultTimeout()
 		secrID := session.OutputToString()
 		Expect(session).Should(Exit(0))
@@ -49,7 +49,7 @@ var _ = Describe("Podman secret", func() {
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect).Should(Exit(0))
 		Expect(inspect.OutputToString()).To(Equal(secrID))
-		inspect = podmanTest.Podman([]string{"secret", "inspect", "--format", "{{.Spec.Driver.Options}}", secrID})
+		inspect = podmanTest.Podman([]string{"secret", "inspect", "-f", "{{.Spec.Driver.Options}}", secrID})
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect).Should(Exit(0))
 		Expect(inspect.OutputToString()).To(ContainSubstring("opt1:val"))
@@ -142,6 +142,36 @@ var _ = Describe("Podman secret", func() {
 		list.WaitWithDefaultTimeout()
 		Expect(list).Should(Exit(0))
 		Expect(list.OutputToStringArray()).To(HaveLen(2))
+
+	})
+
+	It("podman secret ls --quiet", func() {
+		secretFilePath := filepath.Join(podmanTest.TempDir, "secret")
+		err := ioutil.WriteFile(secretFilePath, []byte("mysecret"), 0755)
+		Expect(err).To(BeNil())
+
+		secretName := "a"
+
+		session := podmanTest.Podman([]string{"secret", "create", secretName, secretFilePath})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		secretID := session.OutputToString()
+
+		list := podmanTest.Podman([]string{"secret", "ls", "-q"})
+		list.WaitWithDefaultTimeout()
+		Expect(list).Should(Exit(0))
+		Expect(list.OutputToString()).To(Equal(secretID))
+
+		list = podmanTest.Podman([]string{"secret", "ls", "--quiet"})
+		list.WaitWithDefaultTimeout()
+		Expect(list).Should(Exit(0))
+		Expect(list.OutputToString()).To(Equal(secretID))
+
+		// Prefer format over quiet
+		list = podmanTest.Podman([]string{"secret", "ls", "-q", "--format", "{{.Name}}"})
+		list.WaitWithDefaultTimeout()
+		Expect(list).Should(Exit(0))
+		Expect(list.OutputToString()).To(Equal(secretName))
 
 	})
 

@@ -58,6 +58,13 @@ var _ = Describe("Podman run", func() {
 		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(ContainSubstring("/bin"))
 
+		// Verify environ keys with spaces do not blow up podman command
+		os.Setenv("FOO BAR", "BAZ")
+		session = podmanTest.Podman([]string{"run", "--rm", ALPINE, "true"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		os.Unsetenv("FOO BAR")
+
 		os.Setenv("FOO", "BAR")
 		session = podmanTest.Podman([]string{"run", "--rm", "--env", "FOO", ALPINE, "printenv", "FOO"})
 		session.WaitWithDefaultTimeout()
@@ -80,6 +87,17 @@ var _ = Describe("Podman run", func() {
 		session.Wait(10)
 		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(ContainSubstring("HOSTNAME"))
+	})
+
+	It("podman run with --env-merge", func() {
+		dockerfile := `FROM quay.io/libpod/alpine:latest
+ENV hello=world
+`
+		podmanTest.BuildImage(dockerfile, "test", "false")
+		session := podmanTest.Podman([]string{"run", "--rm", "--env-merge", "hello=${hello}-earth", "test", "env"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).To(ContainSubstring("world-earth"))
 	})
 
 	It("podman run --env-host environment test", func() {

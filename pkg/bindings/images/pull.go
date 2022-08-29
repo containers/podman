@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"strconv"
@@ -57,10 +56,14 @@ func Pull(ctx context.Context, rawImage string, options *PullOptions) ([]string,
 		return nil, response.Process(err)
 	}
 
-	// Historically pull writes status to stderr
-	stderr := io.Writer(os.Stderr)
+	var writer io.Writer
 	if options.GetQuiet() {
-		stderr = ioutil.Discard
+		writer = io.Discard
+	} else if progressWriter := options.GetProgressWriter(); progressWriter != nil {
+		writer = progressWriter
+	} else {
+		// Historically push writes status to stderr
+		writer = os.Stderr
 	}
 
 	dec := json.NewDecoder(response.Body)
@@ -84,7 +87,7 @@ func Pull(ctx context.Context, rawImage string, options *PullOptions) ([]string,
 
 		switch {
 		case report.Stream != "":
-			fmt.Fprint(stderr, report.Stream)
+			fmt.Fprint(writer, report.Stream)
 		case report.Error != "":
 			pullErrors = append(pullErrors, errors.New(report.Error))
 		case len(report.Images) > 0:

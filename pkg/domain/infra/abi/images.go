@@ -237,8 +237,9 @@ func (ir *ImageEngine) Pull(ctx context.Context, rawImage string, options entiti
 	pullOptions.Variant = options.Variant
 	pullOptions.SignaturePolicyPath = options.SignaturePolicy
 	pullOptions.InsecureSkipTLSVerify = options.SkipTLSVerify
+	pullOptions.Writer = options.Writer
 
-	if !options.Quiet {
+	if !options.Quiet && pullOptions.Writer == nil {
 		pullOptions.Writer = os.Stderr
 	}
 

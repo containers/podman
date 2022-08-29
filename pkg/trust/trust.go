@@ -1,243 +1,127 @@
 package trust
 
 import (
-	"bufio"
-	"bytes"
-	"encoding/base64"
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"os"
-	"os/exec"
-	"path/filepath"
+	"sort"
 	"strings"
-
-	"github.com/containers/image/v5/types"
-	"github.com/docker/docker/pkg/homedir"
-	"github.com/ghodss/yaml"
-	"github.com/sirupsen/logrus"
 )
 
-// PolicyContent struct for policy.json file
-type PolicyContent struct {
-	Default    []RepoContent     `json:"default"`
-	Transports TransportsContent `json:"transports,omitempty"`
+// Policy describes a basic trust policy configuration
+type Policy struct {
+	Transport      string   `json:"transport"`
+	Name           string   `json:"name,omitempty"`
+	RepoName       string   `json:"repo_name,omitempty"`
+	Keys           []string `json:"keys,omitempty"`
+	SignatureStore string   `json:"sigstore,omitempty"`
+	Type           string   `json:"type"`
+	GPGId          string   `json:"gpg_id,omitempty"`
 }
 
-// RepoContent struct used under each repo
-type RepoContent struct {
-	Type           string          `json:"type"`
-	KeyType        string          `json:"keyType,omitempty"`
-	KeyPath        string          `json:"keyPath,omitempty"`
-	KeyData        string          `json:"keyData,omitempty"`
-	SignedIdentity json.RawMessage `json:"signedIdentity,omitempty"`
+// PolicyDescription returns an user-focused description of the policy in policyPath and registries.d data from registriesDirPath.
+func PolicyDescription(policyPath, registriesDirPath string) ([]*Policy, error) {
+	return policyDescriptionWithGPGIDReader(policyPath, registriesDirPath, getGPGIdFromKeyPath)
 }
 
-// RepoMap map repo name to policycontent for each repo
-type RepoMap map[string][]RepoContent
-
-// TransportsContent struct for content under "transports"
-type TransportsContent map[string]RepoMap
-
-// RegistryConfiguration is one of the files in registriesDirPath configuring lookaside locations, or the result of merging them all.
-// NOTE: Keep this in sync with docs/registries.d.md!
-type RegistryConfiguration struct {
-	DefaultDocker *RegistryNamespace `json:"default-docker"`
-	// The key is a namespace, using fully-expanded Docker reference format or parent namespaces (per dockerReference.PolicyConfiguration*),
-	Docker map[string]RegistryNamespace `json:"docker"`
-}
-
-// RegistryNamespace defines lookaside locations for a single namespace.
-type RegistryNamespace struct {
-	SigStore        string `json:"sigstore"`         // For reading, and if SigStoreStaging is not present, for writing.
-	SigStoreStaging string `json:"sigstore-staging"` // For writing only.
-}
-
-// ShowOutput keep the fields for image trust show command
-type ShowOutput struct {
-	Repo      string
-	Trusttype string
-	GPGid     string
-	Sigstore  string
-}
-
-// systemRegistriesDirPath is the path to registries.d.
-const systemRegistriesDirPath = "/etc/containers/registries.d"
-
-// userRegistriesDir is the path to the per user registries.d.
-var userRegistriesDir = filepath.FromSlash(".config/containers/registries.d")
-
-// DefaultPolicyPath returns a path to the default policy of the system.
-func DefaultPolicyPath(sys *types.SystemContext) string {
-	systemDefaultPolicyPath := "/etc/containers/policy.json"
-	if sys != nil {
-		if sys.SignaturePolicyPath != "" {
-			return sys.SignaturePolicyPath
-		}
-		if sys.RootForImplicitAbsolutePaths != "" {
-			return filepath.Join(sys.RootForImplicitAbsolutePaths, systemDefaultPolicyPath)
-		}
-	}
-	return systemDefaultPolicyPath
-}
-
-// RegistriesDirPath returns a path to registries.d
-func RegistriesDirPath(sys *types.SystemContext) string {
-	if sys != nil && sys.RegistriesDirPath != "" {
-		return sys.RegistriesDirPath
-	}
-	userRegistriesDirPath := filepath.Join(homedir.Get(), userRegistriesDir)
-	if _, err := os.Stat(userRegistriesDirPath); err == nil {
-		return userRegistriesDirPath
-	}
-	if sys != nil && sys.RootForImplicitAbsolutePaths != "" {
-		return filepath.Join(sys.RootForImplicitAbsolutePaths, systemRegistriesDirPath)
-	}
-
-	return systemRegistriesDirPath
-}
-
-// LoadAndMergeConfig loads configuration files in dirPath
-func LoadAndMergeConfig(dirPath string) (*RegistryConfiguration, error) {
-	mergedConfig := RegistryConfiguration{Docker: map[string]RegistryNamespace{}}
-	dockerDefaultMergedFrom := ""
-	nsMergedFrom := map[string]string{}
-
-	dir, err := os.Open(dirPath)
+// policyDescriptionWithGPGIDReader is PolicyDescription with a gpgIDReader parameter. It exists only to make testing easier.
+func policyDescriptionWithGPGIDReader(policyPath, registriesDirPath string, idReader gpgIDReader) ([]*Policy, error) {
+	policyContentStruct, err := getPolicy(policyPath)
 	if err != nil {
-		if os.IsNotExist(err) {
-			return &mergedConfig, nil
-		}
-		return nil, err
+		return nil, fmt.Errorf("could not read trust policies: %w", err)
 	}
-	configNames, err := dir.Readdirnames(0)
+	res, err := getPolicyShowOutput(policyContentStruct, registriesDirPath, idReader)
+	if err != nil {
+		return nil, fmt.Errorf("could not show trust policies: %w", err)
+	}
+	return res, nil
+}
+
+func getPolicyShowOutput(policyContentStruct policyContent, systemRegistriesDirPath string, idReader gpgIDReader) ([]*Policy, error) {
+	var output []*Policy
+
+	registryConfigs, err := loadAndMergeConfig(systemRegistriesDirPath)
 	if err != nil {
 		return nil, err
 	}
-	for _, configName := range configNames {
-		if !strings.HasSuffix(configName, ".yaml") {
-			continue
+
+	if len(policyContentStruct.Default) > 0 {
+		template := Policy{
+			Transport: "all",
+			Name:      "* (default)",
+			RepoName:  "default",
 		}
-		configPath := filepath.Join(dirPath, configName)
-		configBytes, err := ioutil.ReadFile(configPath)
-		if err != nil {
-			return nil, err
+		output = append(output, descriptionsOfPolicyRequirements(policyContentStruct.Default, template, registryConfigs, "", idReader)...)
+	}
+	// FIXME: This should use x/exp/maps.Keys after we update to Go 1.18.
+	transports := []string{}
+	for t := range policyContentStruct.Transports {
+		transports = append(transports, t)
+	}
+	sort.Strings(transports)
+	for _, transport := range transports {
+		transval := policyContentStruct.Transports[transport]
+		if transport == "docker" {
+			transport = "repository"
 		}
-		var config RegistryConfiguration
-		err = yaml.Unmarshal(configBytes, &config)
-		if err != nil {
-			return nil, fmt.Errorf("error parsing %s: %w", configPath, err)
+
+		// FIXME: This should use x/exp/maps.Keys after we update to Go 1.18.
+		scopes := []string{}
+		for s := range transval {
+			scopes = append(scopes, s)
 		}
-		if config.DefaultDocker != nil {
-			if mergedConfig.DefaultDocker != nil {
-				return nil, fmt.Errorf(`error parsing signature storage configuration: "default-docker" defined both in "%s" and "%s"`,
-					dockerDefaultMergedFrom, configPath)
+		sort.Strings(scopes)
+		for _, repo := range scopes {
+			repoval := transval[repo]
+			template := Policy{
+				Transport: transport,
+				Name:      repo,
+				RepoName:  repo,
 			}
-			mergedConfig.DefaultDocker = config.DefaultDocker
-			dockerDefaultMergedFrom = configPath
+			output = append(output, descriptionsOfPolicyRequirements(repoval, template, registryConfigs, repo, idReader)...)
 		}
-		for nsName, nsConfig := range config.Docker { // includes config.Docker == nil
-			if _, ok := mergedConfig.Docker[nsName]; ok {
-				return nil, fmt.Errorf(`error parsing signature storage configuration: "docker" namespace "%s" defined both in "%s" and "%s"`,
-					nsName, nsMergedFrom[nsName], configPath)
+	}
+	return output, nil
+}
+
+// descriptionsOfPolicyRequirements turns reqs into user-readable policy entries, with Transport/Name/Reponame coming from template, potentially looking up scope (which may be "") in registryConfigs.
+func descriptionsOfPolicyRequirements(reqs []repoContent, template Policy, registryConfigs *registryConfiguration, scope string, idReader gpgIDReader) []*Policy {
+	res := []*Policy{}
+
+	var lookasidePath string
+	registryNamespace := registriesDConfigurationForScope(registryConfigs, scope)
+	if registryNamespace != nil {
+		if registryNamespace.Lookaside != "" {
+			lookasidePath = registryNamespace.Lookaside
+		} else { // incl. registryNamespace.SigStore == ""
+			lookasidePath = registryNamespace.SigStore
+		}
+	}
+
+	for _, repoele := range reqs {
+		entry := template
+		entry.Type = trustTypeDescription(repoele.Type)
+
+		var gpgIDString string
+		switch repoele.Type {
+		case "signedBy":
+			uids := []string{}
+			if len(repoele.KeyPath) > 0 {
+				uids = append(uids, idReader(repoele.KeyPath)...)
 			}
-			mergedConfig.Docker[nsName] = nsConfig
-			nsMergedFrom[nsName] = configPath
-		}
-	}
-	return &mergedConfig, nil
-}
-
-// HaveMatchRegistry checks if trust settings for the registry have been configured in yaml file
-func HaveMatchRegistry(key string, registryConfigs *RegistryConfiguration) *RegistryNamespace {
-	searchKey := key
-	if !strings.Contains(searchKey, "/") {
-		val, exists := registryConfigs.Docker[searchKey]
-		if exists {
-			return &val
-		}
-	}
-	for range strings.Split(key, "/") {
-		val, exists := registryConfigs.Docker[searchKey]
-		if exists {
-			return &val
-		}
-		if strings.Contains(searchKey, "/") {
-			searchKey = searchKey[:strings.LastIndex(searchKey, "/")]
-		}
-	}
-	return registryConfigs.DefaultDocker
-}
-
-// CreateTmpFile creates a temp file under dir and writes the content into it
-func CreateTmpFile(dir, pattern string, content []byte) (string, error) {
-	tmpfile, err := ioutil.TempFile(dir, pattern)
-	if err != nil {
-		return "", err
-	}
-	defer tmpfile.Close()
-
-	if _, err := tmpfile.Write(content); err != nil {
-		return "", err
-	}
-	return tmpfile.Name(), nil
-}
-
-// GetGPGIdFromKeyPath return user keyring from key path
-func GetGPGIdFromKeyPath(path string) []string {
-	cmd := exec.Command("gpg2", "--with-colons", path)
-	results, err := cmd.Output()
-	if err != nil {
-		logrus.Errorf("Getting key identity: %s", err)
-		return nil
-	}
-	return parseUids(results)
-}
-
-// GetGPGIdFromKeyData return user keyring from keydata
-func GetGPGIdFromKeyData(key string) []string {
-	decodeKey, err := base64.StdEncoding.DecodeString(key)
-	if err != nil {
-		logrus.Errorf("%s, error decoding key data", err)
-		return nil
-	}
-	tmpfileName, err := CreateTmpFile("", "", decodeKey)
-	if err != nil {
-		logrus.Errorf("Creating key date temp file %s", err)
-	}
-	defer os.Remove(tmpfileName)
-	return GetGPGIdFromKeyPath(tmpfileName)
-}
-
-func parseUids(colonDelimitKeys []byte) []string {
-	var parseduids []string
-	scanner := bufio.NewScanner(bytes.NewReader(colonDelimitKeys))
-	for scanner.Scan() {
-		line := scanner.Text()
-		if strings.HasPrefix(line, "uid:") || strings.HasPrefix(line, "pub:") {
-			uid := strings.Split(line, ":")[9]
-			if uid == "" {
-				continue
+			for _, path := range repoele.KeyPaths {
+				uids = append(uids, idReader(path)...)
 			}
-			parseduid := uid
-			if strings.Contains(uid, "<") && strings.Contains(uid, ">") {
-				parseduid = strings.SplitN(strings.SplitAfterN(uid, "<", 2)[1], ">", 2)[0]
+			if len(repoele.KeyData) > 0 {
+				uids = append(uids, getGPGIdFromKeyData(idReader, repoele.KeyData)...)
 			}
-			parseduids = append(parseduids, parseduid)
-		}
-	}
-	return parseduids
-}
+			gpgIDString = strings.Join(uids, ", ")
 
-// GetPolicy parse policy.json into PolicyContent struct
-func GetPolicy(policyPath string) (PolicyContent, error) {
-	var policyContentStruct PolicyContent
-	policyContent, err := ioutil.ReadFile(policyPath)
-	if err != nil {
-		return policyContentStruct, fmt.Errorf("unable to read policy file: %w", err)
+		case "sigstoreSigned":
+			gpgIDString = "N/A" // We could potentially return key fingerprints here, but they would not be _GPG_ fingerprints.
+		}
+		entry.GPGId = gpgIDString
+		entry.SignatureStore = lookasidePath // We do this even for sigstoreSigned and things like type: reject, to show that the sigstore is being read.
+		res = append(res, &entry)
 	}
-	if err := json.Unmarshal(policyContent, &policyContentStruct); err != nil {
-		return policyContentStruct, fmt.Errorf("could not parse trust policies from %s: %w", policyPath, err)
-	}
-	return policyContentStruct, nil
+
+	return res
 }

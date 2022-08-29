@@ -182,12 +182,14 @@ func Push(ctx context.Context, name, destination string, options *images.PushOpt
 		return "", response.Process(err)
 	}
 
-	// Historically push writes status to stderr
-	writer := io.Writer(os.Stderr)
+	var writer io.Writer
 	if options.GetQuiet() {
 		writer = io.Discard
 	} else if progressWriter := options.GetProgressWriter(); progressWriter != nil {
 		writer = progressWriter
+	} else {
+		// Historically push writes status to stderr
+		writer = os.Stderr
 	}
 
 	dec := json.NewDecoder(response.Body)

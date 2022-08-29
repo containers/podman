@@ -7,4 +7,4 @@ Period of 1,000,000us and Runtime of 950,000us means that this container could c
 
 The sum of all runtimes across containers cannot exceed the amount allotted to the parent cgroup.
 
-This option is not supported on cgroups V2 systems.
+This option is only supported on cgroups V1 rootful systems.

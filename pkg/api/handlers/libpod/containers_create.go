@@ -1,7 +1,6 @@
 package libpod
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -63,12 +62,12 @@ func CreateContainer(w http.ResponseWriter, r *http.Request) {
 		utils.InternalServerError(w, err)
 		return
 	}
-	rtSpec, spec, opts, err := generate.MakeContainer(context.Background(), runtime, &sg, false, nil)
+	rtSpec, spec, opts, err := generate.MakeContainer(r.Context(), runtime, &sg, false, nil)
 	if err != nil {
 		utils.InternalServerError(w, err)
 		return
 	}
-	ctr, err := generate.ExecuteCreate(context.Background(), runtime, rtSpec, spec, false, opts...)
+	ctr, err := generate.ExecuteCreate(r.Context(), runtime, rtSpec, spec, false, opts...)
 	if err != nil {
 		utils.InternalServerError(w, err)
 		return

@@ -293,20 +293,8 @@ func (c *Container) handleRestartPolicy(ctx context.Context) (_ bool, retErr err
 	}
 
 	// set up slirp4netns again because slirp4netns will die when conmon exits
-	if c.config.NetMode.IsSlirp4netns() {
-		err := c.runtime.setupSlirp4netns(c, c.state.NetNS)
-		if err != nil {
-			return false, err
-		}
-	}
-
-	// set up rootlesskit port forwarder again since it dies when conmon exits
-	// we use rootlesskit port forwarder only as rootless and when bridge network is used
-	if rootless.IsRootless() && c.config.NetMode.IsBridge() && len(c.config.PortMappings) > 0 {
-		err := c.runtime.setupRootlessPortMappingViaRLK(c, c.state.NetNS.Path(), c.state.NetworkStatus)
-		if err != nil {
-			return false, err
-		}
+	if err := c.setupRootlessNetwork(); err != nil {
+		return false, err
 	}
 
 	if c.state.State == define.ContainerStateStopped {
@@ -1557,7 +1545,7 @@ func (c *Container) mountStorage() (_ string, deferredErr error) {
 
 	rootUID, rootGID := c.RootUID(), c.RootGID()
 
-	dirfd, err := unix.Open(mountPoint, unix.O_RDONLY|unix.O_PATH, 0)
+	dirfd, err := openDirectory(mountPoint)
 	if err != nil {
 		return "", fmt.Errorf("open mount point: %w", err)
 	}
@@ -1580,7 +1568,7 @@ func (c *Container) mountStorage() (_ string, deferredErr error) {
 		return "", fmt.Errorf("resolve /etc in the container: %w", err)
 	}
 
-	etcInTheContainerFd, err := unix.Open(etcInTheContainerPath, unix.O_RDONLY|unix.O_PATH, 0)
+	etcInTheContainerFd, err := openDirectory(etcInTheContainerPath)
 	if err != nil {
 		return "", fmt.Errorf("open /etc in the container: %w", err)
 	}

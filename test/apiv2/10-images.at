@@ -203,7 +203,7 @@ t POST "build?dockerfile=containerfile" $CONTAINERFILE_TAR application/json 200 
 
 # Libpod: allow building from url: https://github.com/alpinelinux/docker-alpine.git and must ignore any provided tar
 t POST "libpod/build?remote=https%3A%2F%2Fgithub.com%2Falpinelinux%2Fdocker-alpine.git" $CONTAINERFILE_TAR 200 \
-  .stream~"STEP 1/5: FROM alpine:3.14"
+  .stream~"STEP 1/5: FROM alpine:"
 
 # Build api response header must contain Content-type: application/json
 t POST "build?dockerfile=containerfile" $CONTAINERFILE_TAR application/json 200
@@ -238,5 +238,24 @@ if [[ ${response_output} == *"some error"* ]];then
 fi
 
 cleanBuildTest
+
+# compat API vs libpod API event differences:
+# on image removal, libpod produces 'remove' events.
+# compat produces 'delete' events.
+podman image build -t test:test -<<EOF
+from $IMAGE
+EOF
+
+START=$(date +%s)
+
+t DELETE libpod/images/test:test 200
+# HACK HACK HACK There is a race around events being added to the journal
+# This sleep seems to avoid the race.
+# If it fails and begins to flake, investigate a retry loop.
+sleep 1
+t GET "libpod/events?stream=false&since=$START"  200  \
+  'select(.status | contains("remove")).Action=remove'
+t GET "events?stream=false&since=$START"  200  \
+  'select(.status | contains("delete")).Action=delete'
 
 # vim: filetype=sh

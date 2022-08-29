@@ -9,6 +9,7 @@ import (
 
 	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/common/pkg/sysinfo"
+	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/containers/podman/v4/pkg/specgen"
 	"github.com/containers/podman/v4/utils"
 )
@@ -18,6 +19,11 @@ func verifyContainerResourcesCgroupV1(s *specgen.SpecGenerator) ([]string, error
 	warnings := []string{}
 
 	sysInfo := sysinfo.New(true)
+
+	if s.ResourceLimits != nil && rootless.IsRootless() {
+		s.ResourceLimits = nil
+		warnings = append(warnings, "Resource limits are not supported and ignored on cgroups V1 rootless systems")
+	}
 
 	if s.ResourceLimits == nil {
 		return warnings, nil

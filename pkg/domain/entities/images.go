@@ -156,6 +156,8 @@ type ImagePullOptions struct {
 	SkipTLSVerify types.OptionalBool
 	// PullPolicy whether to pull new image
 	PullPolicy config.PullPolicy
+	// Writer is used to display copy information including progress bars.
+	Writer io.Writer
 }
 
 // ImagePullReport is the response from pulling one or more images.

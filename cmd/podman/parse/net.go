@@ -151,15 +151,6 @@ func parseEnvOrLabelFile(envOrLabel map[string]string, filename, configType stri
 	return scanner.Err()
 }
 
-// ValidateFileName returns an error if filename contains ":"
-// as it is currently not supported
-func ValidateFileName(filename string) error {
-	if strings.Contains(filename, ":") {
-		return fmt.Errorf("invalid filename (should not contain ':') %q", filename)
-	}
-	return nil
-}
-
 // ValidURL checks a string urlStr is a url or not
 func ValidURL(urlStr string) error {
 	url, err := url.ParseRequestURI(urlStr)

@@ -19,18 +19,18 @@ At present, only containers are supported; pods and volumes cannot be renamed.
 
 ## EXAMPLES
 
+Rename container with a given name
 ```
-# Rename a container by name
 $ podman rename oldContainer aNewName
 ```
 
+Rename container with a given ID
 ```
-# Rename a container by ID
 $ podman rename 717716c00a6b testcontainer
 ```
 
+Create an alias for container with a given ID
 ```
-# Use the container rename alias
 $ podman container rename 6e7514b47180 databaseCtr
 ```
 

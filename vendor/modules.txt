@@ -11,7 +11,7 @@ github.com/Microsoft/go-winio/backuptar
 github.com/Microsoft/go-winio/pkg/guid
 github.com/Microsoft/go-winio/pkg/security
 github.com/Microsoft/go-winio/vhd
-# github.com/Microsoft/hcsshim v0.9.3
+# github.com/Microsoft/hcsshim v0.9.4
 github.com/Microsoft/hcsshim
 github.com/Microsoft/hcsshim/computestorage
 github.com/Microsoft/hcsshim/internal/cow
@@ -67,7 +67,7 @@ github.com/container-orchestrated-devices/container-device-interface/pkg/cdi
 github.com/container-orchestrated-devices/container-device-interface/specs-go
 # github.com/containerd/cgroups v1.0.3
 github.com/containerd/cgroups/stats/v1
-# github.com/containerd/containerd v1.6.6
+# github.com/containerd/containerd v1.6.8
 github.com/containerd/containerd/errdefs
 github.com/containerd/containerd/log
 github.com/containerd/containerd/pkg/userns
@@ -114,7 +114,7 @@ github.com/containers/buildah/pkg/rusage
 github.com/containers/buildah/pkg/sshagent
 github.com/containers/buildah/pkg/util
 github.com/containers/buildah/util
-# github.com/containers/common v0.49.2-0.20220809074359-b0ea008ba661
+# github.com/containers/common v0.49.2-0.20220823130605-72a7da3358ac
 ## explicit
 github.com/containers/common/libimage
 github.com/containers/common/libimage/define
@@ -250,7 +250,7 @@ github.com/containers/ocicrypt/keywrap/pkcs7
 github.com/containers/ocicrypt/spec
 github.com/containers/ocicrypt/utils
 github.com/containers/ocicrypt/utils/keyprovider
-# github.com/containers/psgo v1.7.2
+# github.com/containers/psgo v1.7.3
 ## explicit
 github.com/containers/psgo
 github.com/containers/psgo/internal/capabilities
@@ -620,6 +620,7 @@ github.com/opencontainers/selinux/go-selinux/label
 github.com/opencontainers/selinux/pkg/pwalk
 github.com/opencontainers/selinux/pkg/pwalkdir
 # github.com/openshift/imagebuilder v1.2.4-0.20220711175835-4151e43600df
+## explicit
 github.com/openshift/imagebuilder
 github.com/openshift/imagebuilder/dockerfile/command
 github.com/openshift/imagebuilder/dockerfile/parser
@@ -719,7 +720,7 @@ github.com/ulikunitz/xz/lzma
 github.com/vbatts/tar-split/archive/tar
 github.com/vbatts/tar-split/tar/asm
 github.com/vbatts/tar-split/tar/storage
-# github.com/vbauerster/mpb/v7 v7.4.2
+# github.com/vbauerster/mpb/v7 v7.5.2
 ## explicit
 github.com/vbauerster/mpb/v7
 github.com/vbauerster/mpb/v7/cwriter
@@ -788,7 +789,7 @@ golang.org/x/net/trace
 ## explicit
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
-# golang.org/x/sys v0.0.0-20220811171246-fbc7d0a398ab
+# golang.org/x/sys v0.0.0-20220823224334-20c2bfdbfe24
 ## explicit
 golang.org/x/sys/cpu
 golang.org/x/sys/execabs

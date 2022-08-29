@@ -61,7 +61,7 @@ function teardown() {
 
 
 @test "podman pod create - custom infra image" {
-    skip_if_remote "CONTAINERS_CONF only effects server side"
+    skip_if_remote "CONTAINERS_CONF only affects server side"
     image="i.do/not/exist:image"
     tmpdir=$PODMAN_TMPDIR/pod-test
     mkdir -p $tmpdir
@@ -478,7 +478,6 @@ spec:
 }
 
 @test "pod resource limits" {
-    # FIXME: #15074 - possible flake on aarch64
     skip_if_remote "resource limits only implemented on non-remote"
     skip_if_rootless "resource limits only work with root"
     skip_if_cgroupsv1 "resource limits only meaningful on cgroups V2"
@@ -493,30 +492,24 @@ spec:
     lomajmin=$(losetup -l --noheadings --output MAJ:MIN $LOOPDEVICE | tr -d ' ')
     run grep -w bfq /sys/block/$(basename ${LOOPDEVICE})/queue/scheduler
     if [ $status -ne 0 ]; then
+        losetup -d $LOOPDEVICE
+        LOOPDEVICE=
         skip "BFQ scheduler is not supported on the system"
-        if [ -f ${lofile} ]; then
-            run_podman '?' rm -t 0 --all --force --ignore
-
-            while read path dev; do
-                if [[ "$path" == "$lofile" ]]; then
-                    losetup -d $dev
-                fi
-            done < <(losetup -l --noheadings --output BACK-FILE,NAME)
-            rm ${lofile}
-        fi
     fi
     echo bfq > /sys/block/$(basename ${LOOPDEVICE})/queue/scheduler
 
+    # FIXME: #15464: blkio-weight-device not working
     expected_limits="
 cpu.max         | 500000 100000
 memory.max      | 5242880
 memory.swap.max | 1068498944
+io.bfq.weight   | default 50
 io.max          | $lomajmin rbps=1048576 wbps=1048576 riops=max wiops=max
 "
 
     for cgm in systemd cgroupfs; do
         local name=resources-$cgm
-        run_podman --cgroup-manager=$cgm pod create --name=$name --cpus=5 --memory=5m --memory-swap=1g --cpu-shares=1000 --cpuset-cpus=0 --cpuset-mems=0 --device-read-bps=${LOOPDEVICE}:1mb --device-write-bps=${LOOPDEVICE}:1mb --blkio-weight-device=${LOOPDEVICE}:123 --blkio-weight=50
+        run_podman --cgroup-manager=$cgm pod create --name=$name --cpus=5 --memory=5m --memory-swap=1g --cpu-shares=1000 --cpuset-cpus=0 --cpuset-mems=0 --device-read-bps=${LOOPDEVICE}:1mb --device-write-bps=${LOOPDEVICE}:1mb --blkio-weight=50
         run_podman --cgroup-manager=$cgm pod start $name
         run_podman pod inspect --format '{{.CgroupPath}}' $name
         local cgroup_path="$output"

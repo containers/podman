@@ -12,11 +12,11 @@ require (
 	github.com/containernetworking/cni v1.1.2
 	github.com/containernetworking/plugins v1.1.1
 	github.com/containers/buildah v1.27.0
-	github.com/containers/common v0.49.2-0.20220809074359-b0ea008ba661
+	github.com/containers/common v0.49.2-0.20220823130605-72a7da3358ac
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/image/v5 v5.22.0
 	github.com/containers/ocicrypt v1.1.5
-	github.com/containers/psgo v1.7.2
+	github.com/containers/psgo v1.7.3
 	github.com/containers/storage v1.42.0
 	github.com/coreos/go-systemd/v22 v22.3.2
 	github.com/coreos/stream-metadata-go v0.0.0-20210225230131-70edb9eb47b3
@@ -49,6 +49,7 @@ require (
 	github.com/opencontainers/runtime-spec v1.0.3-0.20211214071223-8958f93039ab
 	github.com/opencontainers/runtime-tools v0.9.1-0.20220714195903-17b3287fafb7
 	github.com/opencontainers/selinux v1.10.1
+	github.com/openshift/imagebuilder v1.2.4-0.20220711175835-4151e43600df
 	github.com/rootless-containers/rootlesskit v1.0.1
 	github.com/sirupsen/logrus v1.9.0
 	github.com/spf13/cobra v1.5.0
@@ -57,11 +58,11 @@ require (
 	github.com/syndtr/gocapability v0.0.0-20200815063812-42c35b437635
 	github.com/uber/jaeger-client-go v2.30.0+incompatible
 	github.com/ulikunitz/xz v0.5.10
-	github.com/vbauerster/mpb/v7 v7.4.2
+	github.com/vbauerster/mpb/v7 v7.5.2
 	github.com/vishvananda/netlink v1.1.1-0.20220115184804-dd687eb2f2d4
 	go.etcd.io/bbolt v1.3.6
 	golang.org/x/sync v0.0.0-20220601150217-0de741cfad7f
-	golang.org/x/sys v0.0.0-20220811171246-fbc7d0a398ab
+	golang.org/x/sys v0.0.0-20220823224334-20c2bfdbfe24
 	golang.org/x/term v0.0.0-20220526004731-065cf7ba2467
 	golang.org/x/text v0.3.7
 	google.golang.org/protobuf v1.28.1

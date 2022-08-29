@@ -34,7 +34,7 @@ func init() {
 	})
 	flags := inspectCmd.Flags()
 	formatFlagName := "format"
-	flags.StringVar(&format, formatFlagName, "", "Format volume output using Go template")
+	flags.StringVarP(&format, formatFlagName, "f", "", "Format volume output using Go template")
 	_ = inspectCmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(&entities.SecretInfoReport{}))
 }
 

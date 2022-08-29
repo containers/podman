@@ -162,19 +162,4 @@ var _ = Describe("Podman volume create", func() {
 		Expect(inspectOpts).Should(Exit(0))
 		Expect(inspectOpts.OutputToString()).To(Equal(optionStrFormatExpect))
 	})
-
-	It("podman create volume with o=timeout", func() {
-		volName := "testVol"
-		timeout := 10
-		timeoutStr := "10"
-		session := podmanTest.Podman([]string{"volume", "create", "--opt", fmt.Sprintf("o=timeout=%d", timeout), volName})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
-
-		inspectTimeout := podmanTest.Podman([]string{"volume", "inspect", "--format", "{{ .Timeout }}", volName})
-		inspectTimeout.WaitWithDefaultTimeout()
-		Expect(inspectTimeout).Should(Exit(0))
-		Expect(inspectTimeout.OutputToString()).To(Equal(timeoutStr))
-
-	})
 })

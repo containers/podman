@@ -19,7 +19,8 @@ var (
 		Args:              cobra.ExactArgs(1),
 		ValidArgsFunction: common.AutocompleteDefaultOneArg,
 		Example: `podman kube down nginx.yml
-   cat nginx.yml | podman kube down -`,
+   cat nginx.yml | podman kube down -
+   podman kube down https://example.com/nginx.yml`,
 	}
 )
 

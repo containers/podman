@@ -61,7 +61,7 @@ func newPodmanConfig() {
 	switch runtime.GOOS {
 	case "darwin", "windows":
 		mode = entities.TunnelMode
-	case "linux":
+	case "linux", "freebsd":
 		// Some linux clients might only be compiled without ABI
 		// support (e.g., podman-remote).
 		if abiSupport && !IsRemote() {

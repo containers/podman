@@ -3,9 +3,6 @@
 # Tests for more image-related endpoints
 #
 
-red='\e[31m'
-nc='\e[0m'
-
 start_registry
 
 podman pull -q $IMAGE
@@ -63,7 +60,9 @@ podman pull -q $IMAGE
 
 # test podman image SCP
 # ssh needs to work so we can validate that the failure is past argument parsing
-podman system connection add --default test ssh://$USER@localhost/run/user/$UID/podman/podman.sock
+conn=apiv2test-temp-connection
+podman system connection add --default $conn \
+       ssh://$USER@localhost/run/user/$UID/podman/podman.sock
 # should fail but need to check the output...
 # status 125 here means that the save/load fails due to
 # cirrus weirdness with exec.Command. All of the args have been parsed successfully.
@@ -71,5 +70,8 @@ t POST "libpod/images/scp/$IMAGE?destination=QA::" 500 \
     .cause="exit status 125"
 t DELETE libpod/images/$IMAGE 200 \
   .ExitCode=0
+
+# Clean up
+podman system connection rm $conn
 
 stop_registry

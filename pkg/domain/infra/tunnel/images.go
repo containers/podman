@@ -110,6 +110,7 @@ func (ir *ImageEngine) Pull(ctx context.Context, rawImage string, opts entities.
 	options.WithAllTags(opts.AllTags).WithAuthfile(opts.Authfile).WithArch(opts.Arch).WithOS(opts.OS)
 	options.WithVariant(opts.Variant).WithPassword(opts.Password)
 	options.WithQuiet(opts.Quiet).WithUsername(opts.Username).WithPolicy(opts.PullPolicy.String())
+	options.WithProgressWriter(opts.Writer)
 	if s := opts.SkipTLSVerify; s != types.OptionalBoolUndefined {
 		if s == types.OptionalBoolTrue {
 			options.WithSkipTLSVerify(true)

@@ -20,7 +20,7 @@ class APITestCase(unittest.TestCase):
 
         APITestCase.podman = Podman()
         APITestCase.service = APITestCase.podman.open(
-            "system", "service", "tcp:localhost:8080", "--time=0"
+            "system", "service", "tcp://localhost:8080", "--time=0"
         )
         # give the service some time to be ready...
         time.sleep(2)

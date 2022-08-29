@@ -361,3 +361,28 @@ status: {}
     run_podman pod rm -a
     run_podman rm -a
 }
+
+@test "podman kube play - URL" {
+    TESTDIR=$PODMAN_TMPDIR/testdir
+    mkdir -p $TESTDIR
+    echo "$testYaml" | sed "s|TESTDIR|${TESTDIR}|g" > $PODMAN_TMPDIR/test.yaml
+
+    HOST_PORT=$(random_free_port)
+    SERVER=http://127.0.0.1:$HOST_PORT
+
+    run_podman run -d --name myyaml -p "$HOST_PORT:80" \
+    -v $PODMAN_TMPDIR/test.yaml:/var/www/testpod.yaml:Z \
+    -w /var/www \
+    $IMAGE /bin/busybox-extras httpd -f -p 80
+
+    run_podman kube play $SERVER/testpod.yaml
+    run_podman inspect test_pod-test --format "{{.State.Running}}"
+    is "$output" "true"
+    run_podman kube down $SERVER/testpod.yaml
+    run_podman 125 inspect test_pod-test
+    is "$output" ".*Error: inspecting object: no such object: \"test_pod-test\""
+
+    run_podman pod rm -a -f
+    run_podman rm -a -f
+    run_podman rm -f -t0 myyaml
+}
