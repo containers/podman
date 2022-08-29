@@ -550,6 +550,11 @@ var _ = Describe("Podman generate kube", func() {
 
 	It("podman generate kube on pod with ports", func() {
 		podName := "test"
+
+		lock4 := GetPortLock("4000")
+		defer lock4.Unlock()
+		lock5 := GetPortLock("5000")
+		defer lock5.Unlock()
 		podSession := podmanTest.Podman([]string{"pod", "create", "--name", podName, "-p", "4000:4000", "-p", "5000:5000"})
 		podSession.WaitWithDefaultTimeout()
 		Expect(podSession).Should(Exit(0))

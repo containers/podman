@@ -153,6 +153,9 @@ var _ = Describe("Podman save", func() {
 		defer os.Setenv("GNUPGHOME", origGNUPGHOME)
 
 		port := 5000
+		portlock := GetPortLock(strconv.Itoa(port))
+		defer portlock.Unlock()
+
 		session := podmanTest.Podman([]string{"run", "-d", "--name", "registry", "-p", strings.Join([]string{strconv.Itoa(port), strconv.Itoa(port)}, ":"), REGISTRY_IMAGE})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
