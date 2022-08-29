@@ -9,7 +9,7 @@ t POST "images/create?fromImage=quay.io/libpod/alpine:latest" 200 .error~null .s
 # 14291 - let a short-name resolve to a *local* non Docker-Hub image.
 t POST containers/create Image=alpine 201 .Id~[0-9a-f]\\{64\\}
 cid=$(jq -r '.Id' <<<"$output")
-t GET containers/$cid/json 200 .Image="quay.io/libpod/alpine:latest"
+t GET containers/$cid/json 200 .Config.Image="quay.io/libpod/alpine:latest" .Image~sha256:[0-9a-f]\\{64\\}
 podman rm -f $cid
 
 ########## TAG
