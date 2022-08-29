@@ -218,14 +218,9 @@ is the case the **--dns** flag is necessary for every run.
 The special value **none** can be specified to disable creation of _/etc/resolv.conf_ in the container by Podman.
 The _/etc/resolv.conf_ file in the image will be used without changes.
 
-#### **--dns-opt**=*option*
+@@option dns-opt.container
 
-Set custom DNS options. Invalid if using **--dns-opt** with **--network** that is set to **none** or **container:**_id_.
-
-#### **--dns-search**=*domain*
-
-Set custom DNS search domains. Invalid if using **--dns-search** and **--network** that is set to **none** or **container:**_id_.
-Use **--dns-search=.** if you don't wish to set the search domain.
+@@option dns-search.container
 
 @@option entrypoint
 
