@@ -161,6 +161,14 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 		params.Add("dnssearch", c)
 	}
 
+	if ociHooksDir := options.CommonBuildOpts.OCIHooksDir; len(ociHooksDir) > 0 {
+		c, err := jsoniter.MarshalToString(ociHooksDir)
+		if err != nil {
+			return nil, err
+		}
+		params.Add("ocihooksdir", c)
+	}
+
 	if caps := options.DropCapabilities; len(caps) > 0 {
 		c, err := jsoniter.MarshalToString(caps)
 		if err != nil {

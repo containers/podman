@@ -115,6 +115,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		Memory                  int64    `schema:"memory"`
 		NamespaceOptions        string   `schema:"nsoptions"`
 		NoCache                 bool     `schema:"nocache"`
+		OCIHooksDir             string   `schema:"ocihooksdir"`
 		OmitHistory             bool     `schema:"omithistory"`
 		OSFeatures              []string `schema:"osfeature"`
 		OSVersion               string   `schema:"osversion"`
@@ -294,6 +295,16 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		dnssearch = m
+	}
+
+	var ociHooksDir = []string{}
+	if _, found := r.URL.Query()["ocihooksdir"]; found {
+		var m = []string{}
+		if err := json.Unmarshal([]byte(query.OCIHooksDir), &m); err != nil {
+			utils.BadRequest(w, "ocihooksdir", query.OCIHooksDir, err)
+			return
+		}
+		ociHooksDir = m
 	}
 
 	var secrets = []string{}
@@ -637,6 +648,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 			LabelOpts:          labelOpts,
 			Memory:             query.Memory,
 			MemorySwap:         query.MemSwap,
+			OCIHooksDir:        ociHooksDir,
 			OmitHistory:        query.OmitHistory,
 			SeccompProfilePath: seccomp,
 			ShmSize:            strconv.Itoa(query.ShmSize),

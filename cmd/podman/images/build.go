@@ -192,6 +192,7 @@ func buildFlags(cmd *cobra.Command) {
 		_ = flags.MarkHidden("volume")
 		_ = flags.MarkHidden("output")
 		_ = flags.MarkHidden("logsplit")
+		_ = flags.MarkHidden("hooks-dir")
 	}
 }
 
