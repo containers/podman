@@ -266,8 +266,6 @@ EOF
 
     # Generate a healthy image that will run correctly.
     run_podman build -t quay.io/libpod/$image -f $dockerfile1
-    podman image inspect --format "{{.ID}}" $image
-    oldID="$output"
 
     generate_service $image local /runme --sdnotify=container noTag
     _wait_service_ready container-$cname.service
@@ -277,7 +275,7 @@ EOF
 
     # Generate an unhealthy image that will fail.
     run_podman build -t quay.io/libpod/$image -f $dockerfile2
-    podman image inspect --format "{{.ID}}" $image
+    run_podman image inspect --format "{{.ID}}" $image
     newID="$output"
 
     run_podman auto-update --dry-run --format "{{.Unit}},{{.Image}},{{.Updated}},{{.Policy}}"
@@ -407,6 +405,99 @@ EOF
     fi
 
     _confirm_update $cname $ori_image
+}
+
+@test "podman-kube@.service template with rollback" {
+    # sdnotify fails with runc 1.0.0-3-dev2 on Ubuntu. Let's just
+    # assume that we work only with crun, nothing else.
+    # [copied from 260-sdnotify.bats]
+    runtime=$(podman_runtime)
+    if [[ "$runtime" != "crun" ]]; then
+        skip "this test only works with crun, not $runtime"
+    fi
+
+    install_kube_template
+
+    dockerfile1=$PODMAN_TMPDIR/Dockerfile.1
+    cat >$dockerfile1 <<EOF
+FROM quay.io/libpod/fedora:31
+RUN echo -e "#!/bin/sh\n\
+printenv NOTIFY_SOCKET; echo READY; systemd-notify --ready;\n\
+trap 'echo Received SIGTERM, finishing; exit' SIGTERM; echo WAITING; while :; do sleep 0.1; done" \
+>> /runme
+RUN chmod +x /runme
+EOF
+
+    dockerfile2=$PODMAN_TMPDIR/Dockerfile.2
+    cat >$dockerfile2 <<EOF
+FROM quay.io/libpod/fedora:31
+RUN echo -e "#!/bin/sh\n\
+exit 1" >> /runme
+RUN chmod +x /runme
+EOF
+    local_image=localhost/image:$(random_string 10)
+
+    # Generate a healthy image that will run correctly.
+    run_podman build -t $local_image -f $dockerfile1
+    run_podman image inspect --format "{{.ID}}" $local_image
+    oldID="$output"
+
+    # Create the YAMl file
+    yaml_source="$PODMAN_TMPDIR/test.yaml"
+    cat >$yaml_source <<EOF
+apiVersion: v1
+kind: Pod
+metadata:
+  annotations:
+      io.containers.autoupdate: "registry"
+      io.containers.autoupdate/b: "local"
+      io.containers.sdnotify/b: "container"
+  labels:
+    app: test
+  name: test_pod
+spec:
+  containers:
+  - command:
+    - top
+    image: $IMAGE
+    name: a
+  - command:
+    - /runme
+    image: $local_image
+    name: b
+EOF
+
+    # Dispatch the YAML file
+    service_name="podman-kube@$(systemd-escape $yaml_source).service"
+    systemctl start $service_name
+    systemctl is-active $service_name
+
+    # Make sure the containers are properly configured
+    run_podman auto-update --dry-run --format "{{.Unit}},{{.Container}},{{.Image}},{{.Updated}},{{.Policy}}"
+    is "$output" ".*$service_name,.* (test_pod-a),$IMAGE,false,registry.*" "global auto-update policy gets applied"
+    is "$output" ".*$service_name,.* (test_pod-b),$local_image,false,local.*" "container-specified auto-update policy gets applied"
+
+    # Generate a broken image that will fail.
+    run_podman build -t $local_image -f $dockerfile2
+    run_podman image inspect --format "{{.ID}}" $local_image
+    newID="$output"
+
+    assert "$oldID" != "$newID" "broken image really is a new one"
+
+    # Make sure container b sees the new image
+    run_podman auto-update --dry-run --format "{{.Unit}},{{.Container}},{{.Image}},{{.Updated}},{{.Policy}}"
+    is "$output" ".*$service_name,.* (test_pod-a),$IMAGE,false,registry.*" "global auto-update policy gets applied"
+    is "$output" ".*$service_name,.* (test_pod-b),$local_image,pending,local.*" "container b sees the new image"
+
+    # Now update and check for the rollback
+    run_podman auto-update --format "{{.Unit}},{{.Container}},{{.Image}},{{.Updated}},{{.Policy}}"
+    is "$output" ".*$service_name,.* (test_pod-a),$IMAGE,rolled back,registry.*" "container a was rolled back as the update of b failed"
+    is "$output" ".*$service_name,.* (test_pod-b),$local_image,rolled back,local.*" "container b was rolled back as its update has failed"
+
+    # Clean up
+    systemctl stop $service_name
+    run_podman rmi -f $(pause_image) $local_image $newID $oldID
+    rm -f $UNIT_DIR/$unit_name
 }
 
 # vim: filetype=sh

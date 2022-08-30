@@ -301,24 +301,16 @@ LISTEN_FDNAMES=listen_fdnames" | sort)
 }
 
 @test "podman-kube@.service template" {
-    # If running from a podman source directory, build and use the source
-    # version of the play-kube-@ unit file
-    unit_name="podman-kube@.service"
-    unit_file="contrib/systemd/system/${unit_name}"
-    if [[ -e ${unit_file}.in ]]; then
-        echo "# [Building & using $unit_name from source]" >&3
-        # Force regenerating unit file (existing one may have /usr/bin path)
-        rm -f $unit_file
-        BINDIR=$(dirname $PODMAN) make $unit_file
-        cp $unit_file $UNIT_DIR/$unit_name
-    fi
-
+    install_kube_template
     # Create the YAMl file
     yaml_source="$PODMAN_TMPDIR/test.yaml"
     cat >$yaml_source <<EOF
 apiVersion: v1
 kind: Pod
 metadata:
+  annotations:
+      io.containers.autoupdate: "local"
+      io.containers.autoupdate/b: "registry"
   labels:
     app: test
   name: test_pod
@@ -327,8 +319,11 @@ spec:
   - command:
     - top
     image: $IMAGE
-    name: test
-    resources: {}
+    name: a
+  - command:
+    - top
+    image: $IMAGE
+    name: b
 EOF
 
     # Dispatch the YAML file
@@ -348,6 +343,12 @@ EOF
     # Check for an error when trying to remove the service container
     run_podman 125 container rm $service_container
     is "$output" "Error: container .* is the service container of pod(s) .* and cannot be removed without removing the pod(s)"
+
+    # Add a simple `auto-update --dry-run` test here to avoid too much redundancy
+    # with 255-auto-update.bats
+    run_podman auto-update --dry-run --format "{{.Unit}},{{.Container}},{{.Image}},{{.Updated}},{{.Policy}}"
+    is "$output" ".*$service_name,.* (test_pod-a),$IMAGE,false,local.*" "global auto-update policy gets applied"
+    is "$output" ".*$service_name,.* (test_pod-b),$IMAGE,false,registry.*" "container-specified auto-update policy gets applied"
 
     # Kill the pod and make sure the service is not running.
     # The restart policy is set to "never" since there is no

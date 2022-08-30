@@ -188,13 +188,8 @@ func AutoUpdate(ctx context.Context, runtime *libpod.Runtime, options entities.A
 // updateUnit auto updates the tasks in the specified systemd unit.
 func (u *updater) updateUnit(ctx context.Context, unit string, tasks []*task) []error {
 	var errors []error
-	// Sanity check: we'll support that in the future.
-	if len(tasks) != 1 {
-		errors = append(errors, fmt.Errorf("only 1 task per unit supported but unit %s has %d", unit, len(tasks)))
-		return errors
-	}
-
 	tasksUpdated := false
+
 	for _, task := range tasks {
 		err := func() error { // Use an anonymous function to avoid spaghetti continue's
 			updateAvailable, err := task.updateAvailable(ctx)
@@ -255,6 +250,9 @@ func (u *updater) updateUnit(ctx context.Context, unit string, tasks []*task) []
 	}
 
 	if err := u.restartSystemdUnit(ctx, unit); err != nil {
+		for _, task := range tasks {
+			task.status = statusFailed
+		}
 		err = fmt.Errorf("restarting unit %s during rollback: %w", unit, err)
 		errors = append(errors, err)
 		return errors
@@ -283,7 +281,16 @@ func (t *task) report() *entities.AutoUpdateReport {
 func (t *task) updateAvailable(ctx context.Context) (bool, error) {
 	switch t.policy {
 	case PolicyRegistryImage:
-		return t.registryUpdateAvailable(ctx)
+		// Errors checking for updates only should not be fatal.
+		// Especially on Edge systems, connection may be limited or
+		// there may just be a temporary downtime of the registry.
+		// But make sure to leave some breadcrumbs in the debug logs
+		// such that potential issues _can_ be analyzed if needed.
+		available, err := t.registryUpdateAvailable(ctx)
+		if err != nil {
+			logrus.Debugf("Error checking updates for image %s: %v (ignoring error)", t.rawImageName, err)
+		}
+		return available, nil
 	case PolicyLocalImage:
 		return t.localUpdateAvailable()
 	default:

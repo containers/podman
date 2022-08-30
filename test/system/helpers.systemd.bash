@@ -32,3 +32,17 @@ journalctl() {
 systemd-run() {
     command systemd-run $_DASHUSER "$@";
 }
+
+install_kube_template() {
+    # If running from a podman source directory, build and use the source
+    # version of the play-kube-@ unit file
+    unit_name="podman-kube@.service"
+    unit_file="contrib/systemd/system/${unit_name}"
+    if [[ -e ${unit_file}.in ]]; then
+        echo "# [Building & using $unit_name from source]" >&3
+        # Force regenerating unit file (existing one may have /usr/bin path)
+        rm -f $unit_file
+        BINDIR=$(dirname $PODMAN) make $unit_file
+        cp $unit_file $UNIT_DIR/$unit_name
+    fi
+}

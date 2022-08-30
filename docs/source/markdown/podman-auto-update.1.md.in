@@ -29,6 +29,18 @@ This data is then being used in the auto-update sequence to instruct systemd (vi
 Note that **podman auto-update** relies on systemd. The systemd units are expected to be generated with **[podman-generate-systemd --new](podman-generate-systemd.1.md#--new)**, or similar units that create new containers in order to run the updated images.
 Systemd units that start and stop a container cannot run a new image.
 
+### Auto Updates and Kubernetes YAML
+
+Podman supports auto updates for Kubernetes workloads.  As mentioned above, `podman auto-update` requires the containers to be running systemd.  Podman ships with a systemd template that can be instantiated with a Kubernetes YAML file, see podman-generate-systemd(1).
+
+To enable auto updates for containers running in a Kubernetes workload, set the following Podman-specific annotations in the YAML:
+ * `io.containers.autoupdate: "registry|local"` to apply the auto-update policy to all containers
+ * `io.containers.autoupdate/$container: "registry|local"` to apply the auto-update policy to `$container` only
+ * `io.containers.sdnotify: "conmon|container"` to apply the sdnotify policy to all containers
+ * `io.containers.sdnotify/$container: "conmon|container"` to apply the sdnotify policy to `$container` only
+
+By default, the autoupdate policy is set to "disabled", the sdnotify policy is set to "conmon".
+
 ### Systemd Unit and Timer
 
 Podman ships with a `podman-auto-update.service` systemd unit. This unit is triggered daily at midnight by the `podman-auto-update.timer` systemd timer.  The timer can be altered for custom time-based updates if desired.  The unit can further be invoked by other systemd units (e.g., via the dependency tree) or manually via **systemctl start podman-auto-update.service**.
