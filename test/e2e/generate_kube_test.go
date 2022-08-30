@@ -71,6 +71,8 @@ var _ = Describe("Podman generate kube", func() {
 		Expect(pod.Spec.Containers[0]).To(HaveField("WorkingDir", ""))
 		Expect(pod.Spec.Containers[0].Env).To(BeNil())
 		Expect(pod).To(HaveField("Name", "top-pod"))
+		enableServiceLinks := false
+		Expect(pod.Spec).To(HaveField("EnableServiceLinks", &enableServiceLinks))
 
 		numContainers := 0
 		for range pod.Spec.Containers {
@@ -165,6 +167,8 @@ var _ = Describe("Podman generate kube", func() {
 		err := yaml.Unmarshal(kube.Out.Contents(), pod)
 		Expect(err).To(BeNil())
 		Expect(pod.Spec).To(HaveField("HostNetwork", false))
+		enableServiceLinks := false
+		Expect(pod.Spec).To(HaveField("EnableServiceLinks", &enableServiceLinks))
 
 		numContainers := 0
 		for range pod.Spec.Containers {
