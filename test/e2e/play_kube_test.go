@@ -2482,7 +2482,7 @@ spec:
 
 	It("podman play kube test with network portbindings", func() {
 		ip := "127.0.0.100"
-		port := "5000"
+		port := "8087"
 		ctr := getCtr(withHostIP(ip, port), withImage(BB))
 
 		pod := getPod(withCtr(ctr))
@@ -2496,7 +2496,7 @@ spec:
 		inspect := podmanTest.Podman([]string{"port", getCtrNameInPod(pod)})
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect).Should(Exit(0))
-		Expect(inspect.OutputToString()).To(Equal("5000/tcp -> 127.0.0.100:5000"))
+		Expect(inspect.OutputToString()).To(Equal("8087/tcp -> 127.0.0.100:8087"))
 	})
 
 	It("podman play kube test with nonexistent empty HostPath type volume", func() {
