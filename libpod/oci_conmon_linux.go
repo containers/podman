@@ -337,15 +337,6 @@ func (r *ConmonOCIRuntime) UpdateContainerStatus(ctr *Container) error {
 			ctr.ID(), state.Status, define.ErrInternal)
 	}
 
-	// Only grab exit status if we were not already stopped
-	// If we were, it should already be in the database
-	if ctr.state.State == define.ContainerStateStopped && oldState != define.ContainerStateStopped {
-		if _, err := ctr.Wait(context.Background()); err != nil {
-			logrus.Errorf("Waiting for container %s to exit: %v", ctr.ID(), err)
-		}
-		return nil
-	}
-
 	// Handle ContainerStateStopping - keep it unless the container
 	// transitioned to no longer running.
 	if oldState == define.ContainerStateStopping && (ctr.state.State == define.ContainerStatePaused || ctr.state.State == define.ContainerStateRunning) {
