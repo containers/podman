@@ -11,6 +11,7 @@ import (
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v4/libpod"
 	"github.com/containers/podman/v4/libpod/define"
+	"github.com/containers/podman/v4/pkg/namespaces"
 	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/containers/podman/v4/pkg/specgen"
 	"github.com/containers/podman/v4/pkg/util"
@@ -198,12 +199,18 @@ func namespaceOptions(s *specgen.SpecGenerator, rt *libpod.Runtime, pod *libpod.
 		if !rootless.IsRootless() {
 			return nil, errors.New("keep-id is only supported in rootless mode")
 		}
-		toReturn = append(toReturn, libpod.WithAddCurrentUserPasswdEntry())
+		opts, err := namespaces.UsernsMode(s.UserNS.String()).GetKeepIDOptions()
+		if err != nil {
+			return nil, err
+		}
+		if opts.UID == nil && opts.GID == nil {
+			toReturn = append(toReturn, libpod.WithAddCurrentUserPasswdEntry())
+		}
 
 		// If user is not overridden, set user in the container
 		// to user running Podman.
 		if s.User == "" {
-			_, uid, gid, err := util.GetKeepIDMapping()
+			_, uid, gid, err := util.GetKeepIDMapping(opts)
 			if err != nil {
 				return nil, err
 			}

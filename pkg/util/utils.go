@@ -342,7 +342,7 @@ func ParseSignal(rawSignal string) (syscall.Signal, error) {
 }
 
 // GetKeepIDMapping returns the mappings and the user to use when keep-id is used
-func GetKeepIDMapping() (*stypes.IDMappingOptions, int, int, error) {
+func GetKeepIDMapping(opts *namespaces.KeepIDUserNsOptions) (*stypes.IDMappingOptions, int, int, error) {
 	if !rootless.IsRootless() {
 		return nil, -1, -1, errors.New("keep-id is only supported in rootless mode")
 	}
@@ -359,6 +359,12 @@ func GetKeepIDMapping() (*stypes.IDMappingOptions, int, int, error) {
 
 	uid := rootless.GetRootlessUID()
 	gid := rootless.GetRootlessGID()
+	if opts.UID != nil {
+		uid = int(*opts.UID)
+	}
+	if opts.GID != nil {
+		gid = int(*opts.GID)
+	}
 
 	uids, gids, err := rootless.GetConfiguredMappings()
 	if err != nil {

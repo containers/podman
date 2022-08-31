@@ -113,6 +113,16 @@ var _ = Describe("Podman UserNS support", func() {
 		Expect(session).Should(Exit(0))
 		uid := fmt.Sprintf("%d", os.Geteuid())
 		Expect(session.OutputToString()).To(ContainSubstring(uid))
+
+		session = podmanTest.Podman([]string{"run", "--userns=keep-id:uid=10,gid=12", "alpine", "sh", "-c", "echo $(id -u):$(id -g)"})
+		session.WaitWithDefaultTimeout()
+		if os.Geteuid() == 0 {
+			Expect(session).Should(Exit(125))
+			return
+		}
+
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).To(ContainSubstring("10:12"))
 	})
 
 	It("podman --userns=keep-id check passwd", func() {
