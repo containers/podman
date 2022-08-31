@@ -1413,9 +1413,10 @@ func WithNamedVolumes(volumes []*ContainerNamedVolume) CtrCreateOption {
 			}
 
 			ctr.config.NamedVolumes = append(ctr.config.NamedVolumes, &ContainerNamedVolume{
-				Name:    vol.Name,
-				Dest:    vol.Dest,
-				Options: mountOpts,
+				Name:        vol.Name,
+				Dest:        vol.Dest,
+				Options:     mountOpts,
+				IsAnonymous: vol.IsAnonymous,
 			})
 		}
 

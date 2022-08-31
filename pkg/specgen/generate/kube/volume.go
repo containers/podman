@@ -32,6 +32,7 @@ const (
 	KubeVolumeTypeBlockDevice
 	KubeVolumeTypeCharDevice
 	KubeVolumeTypeSecret
+	KubeVolumeTypeEmptyDir
 )
 
 //nolint:revive
@@ -219,8 +220,13 @@ func VolumeFromConfigMap(configMapVolumeSource *v1.ConfigMapVolumeSource, config
 	return kv, nil
 }
 
+// Create a kubeVolume for an emptyDir volume
+func VolumeFromEmptyDir(emptyDirVolumeSource *v1.EmptyDirVolumeSource, name string) (*KubeVolume, error) {
+	return &KubeVolume{Type: KubeVolumeTypeEmptyDir, Source: name}, nil
+}
+
 // Create a KubeVolume from one of the supported VolumeSource
-func VolumeFromSource(volumeSource v1.VolumeSource, configMaps []v1.ConfigMap, secretsManager *secrets.SecretsManager) (*KubeVolume, error) {
+func VolumeFromSource(volumeSource v1.VolumeSource, configMaps []v1.ConfigMap, secretsManager *secrets.SecretsManager, volName string) (*KubeVolume, error) {
 	switch {
 	case volumeSource.HostPath != nil:
 		return VolumeFromHostPath(volumeSource.HostPath)
@@ -230,8 +236,10 @@ func VolumeFromSource(volumeSource v1.VolumeSource, configMaps []v1.ConfigMap, s
 		return VolumeFromConfigMap(volumeSource.ConfigMap, configMaps)
 	case volumeSource.Secret != nil:
 		return VolumeFromSecret(volumeSource.Secret, secretsManager)
+	case volumeSource.EmptyDir != nil:
+		return VolumeFromEmptyDir(volumeSource.EmptyDir, volName)
 	default:
-		return nil, errors.New("HostPath, ConfigMap, and PersistentVolumeClaim are currently the only supported VolumeSource")
+		return nil, errors.New("HostPath, ConfigMap, EmptyDir, and PersistentVolumeClaim are currently the only supported VolumeSource")
 	}
 }
 
@@ -240,7 +248,7 @@ func InitializeVolumes(specVolumes []v1.Volume, configMaps []v1.ConfigMap, secre
 	volumes := make(map[string]*KubeVolume)
 
 	for _, specVolume := range specVolumes {
-		volume, err := VolumeFromSource(specVolume.VolumeSource, configMaps, secretsManager)
+		volume, err := VolumeFromSource(specVolume.VolumeSource, configMaps, secretsManager, specVolume.Name)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create volume %q: %w", specVolume.Name, err)
 		}

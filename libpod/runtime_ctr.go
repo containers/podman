@@ -474,6 +474,11 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 				return nil, fmt.Errorf("error retrieving named volume %s for new container: %w", vol.Name, err)
 			}
 		}
+		if vol.IsAnonymous {
+			// If SetAnonymous is true, make this an anonymous volume
+			// this is needed for emptyDir volumes from kube yamls
+			isAnonymous = true
+		}
 
 		logrus.Debugf("Creating new volume %s for container", vol.Name)
 
@@ -814,11 +819,11 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force, remo
 					// Ignore error, since podman will report original error
 					volumesFrom, _ := c.volumesFrom()
 					if len(volumesFrom) > 0 {
-						logrus.Debugf("Cleaning up volume not possible since volume is in use (%s)", v)
+						logrus.Debugf("Cleaning up volume not possible since volume is in use (%s)", v.Name)
 						continue
 					}
 				}
-				logrus.Errorf("Cleaning up volume (%s): %v", v, err)
+				logrus.Errorf("Cleaning up volume (%s): %v", v.Name, err)
 			}
 		}
 	}
@@ -968,7 +973,7 @@ func (r *Runtime) evictContainer(ctx context.Context, idOrName string, removeVol
 				continue
 			}
 			if err := r.removeVolume(ctx, volume, false, timeout, false); err != nil && err != define.ErrNoSuchVolume && err != define.ErrVolumeBeingUsed {
-				logrus.Errorf("Cleaning up volume (%s): %v", v, err)
+				logrus.Errorf("Cleaning up volume (%s): %v", v.Name, err)
 			}
 		}
 	}

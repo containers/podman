@@ -406,8 +406,15 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 				Name:    volumeSource.Source,
 				Options: options,
 			}
-
 			s.Volumes = append(s.Volumes, &secretVolume)
+		case KubeVolumeTypeEmptyDir:
+			emptyDirVolume := specgen.NamedVolume{
+				Dest:        volume.MountPath,
+				Name:        volumeSource.Source,
+				Options:     options,
+				IsAnonymous: true,
+			}
+			s.Volumes = append(s.Volumes, &emptyDirVolume)
 		default:
 			return nil, errors.New("unsupported volume source type")
 		}
