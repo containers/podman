@@ -64,28 +64,15 @@ Force removal of the original container that we are cloning. Can only be used in
 
 If no memory limits are specified, the original container's will be used.
 
-#### **--memory-reservation**=*limit*
+@@option memory-reservation
 
-Memory soft limit (format: `<number>[<unit>]`, where unit = b (bytes), k (kibibytes), m (mebibytes), or g (gibibytes))
+If unspecified, memory reservation will be the same as memory limit from the
+container being cloned.
 
-After setting memory reservation, when the system detects memory contention
-or low memory, containers are forced to restrict their consumption to their
-reservation. So you should always set the value below **--memory**, otherwise the
-hard limit will take precedence. By default, memory reservation will be the same
-as memory limit from the container being cloned.
+@@option memory-swap
 
-#### **--memory-swap**=*limit*
-
-A limit value equal to memory plus swap. Must be used with the  **-m**
-(**--memory**) flag. The swap `LIMIT` should always be larger than **-m**
-(**--memory**) value. By default, the swap `LIMIT` will be set to double
-the value of --memory if specified. Otherwise, the container being cloned will be used to derive the swap value.
-
-The format of `LIMIT` is `<number>[<unit>]`. Unit can be `b` (bytes),
-`k` (kibibytes), `m` (mebibytes), or `g` (gibibytes). If you don't specify a
-unit, `b` is used. Set LIMIT to `-1` to enable unlimited swap.
-
-This option is not supported on cgroups V1 rootless systems.
+If unspecified, the container being cloned will be used to derive
+the swap value.
 
 @@option memory-swappiness
 
