@@ -4,17 +4,56 @@
 upstream_package_name: podman
 downstream_package_name: podman
 
-actions:
-  post-upstream-clone:
-    - "curl -O https://src.fedoraproject.org/rpms/podman/raw/main/f/podman.spec"
-  fix-spec-file:
-    - bash .packit.sh
-
 jobs:
-  - job: production_build
+  - job: copr_build
+    # Run on every PR
     trigger: pull_request
-    targets: &production_dist_targets
-      - fedora-36
-      - fedora-37
-      - fedora-rawhide
-    scratch: true
+    # Defaults to x86_64 unless architecture is explicitly specified
+    targets:
+      - fedora-rawhide-aarch64
+      - fedora-rawhide-i386
+      - fedora-rawhide-ppc64le
+      - fedora-rawhide-s390x
+      - fedora-rawhide-x86_64
+    actions:
+      post-upstream-clone:
+        - "curl -O https://src.fedoraproject.org/rpms/podman/raw/rawhide/f/podman.spec"
+      fix-spec-file:
+        - bash .packit.sh
+
+  - job: copr_build
+    trigger: pull_request
+    targets:
+      - fedora-37-aarch64
+      - fedora-37-i386
+      - fedora-37-ppc64le
+      - fedora-37-s390x
+      - fedora-37-x86_64
+    actions:
+      post-upstream-clone:
+        - "curl -O https://src.fedoraproject.org/rpms/podman/raw/f37/f/podman.spec"
+      fix-spec-file:
+        - bash .packit.sh
+
+  - job: copr_build
+    trigger: pull_request
+    targets:
+      - fedora-36-aarch64
+      - fedora-36-i386
+      - fedora-36-ppc64le
+      - fedora-36-s390x
+      - fedora-36-x86_64
+    actions:
+      post-upstream-clone:
+        - "curl -O https://src.fedoraproject.org/rpms/podman/raw/f36/f/podman.spec"
+      fix-spec-file:
+        - bash .packit.sh
+
+        # Disable production_build until we realize a good place to use it
+        #- job: production_build
+        #trigger: release
+        #targets: &production_dist_targets
+        #- fedora-36
+        #- fedora-37
+        #- fedora-rawhide
+        #scratch: true
