@@ -638,13 +638,13 @@ func installScripts(dist string) error {
 }
 
 func checkAndInstallWSL(opts machine.InitOptions) (bool, error) {
-	if isWSLInstalled() {
+	if IsWSLInstalled() {
 		return true, nil
 	}
 
 	admin := hasAdminRights()
 
-	if !isWSLFeatureEnabled() {
+	if !IsWSLFeatureEnabled() {
 		return false, attemptFeatureInstall(opts, admin)
 	}
 
@@ -1105,9 +1105,10 @@ func waitPipeExists(pipeName string, retries int, checkFailure func() error) err
 	return err
 }
 
-func isWSLInstalled() bool {
-	cmd := exec.Command("wsl", "--status")
+func IsWSLInstalled() bool {
+	cmd := SilentExecCmd("wsl", "--status")
 	out, err := cmd.StdoutPipe()
+	cmd.Stderr = nil
 	if err != nil {
 		return false
 	}
@@ -1131,9 +1132,8 @@ func isWSLInstalled() bool {
 	return true
 }
 
-func isWSLFeatureEnabled() bool {
-	cmd := exec.Command("wsl", "--set-default-version", "2")
-	return cmd.Run() == nil
+func IsWSLFeatureEnabled() bool {
+	return SilentExec("wsl", "--set-default-version", "2") == nil
 }
 
 func isWSLRunning(dist string) (bool, error) {

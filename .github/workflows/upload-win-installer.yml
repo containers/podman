@@ -1,0 +1,96 @@
+name: Upload Windows Installer
+
+on:
+  release:
+    types: [created, published, edited]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version to build and upload (e.g. "4.2.1")'
+        required: true
+jobs:
+  build:
+    runs-on: windows-latest
+    env:
+        FETCH_BASE_URL: ${{ github.server_url }}/${{ github.repository }}
+    steps:
+    - name: Determine version
+      id: getversion
+      run: |
+        $version = "${{ inputs.version }}"
+        if ($version.Length -lt 1) {
+          $version = "${{ github.event.release.tag_name }}"
+          if ($version.Length -lt 1) {
+            Write-Host "Could not determine version!"
+            Exit 1
+          }
+        }
+        Write-Output "::set-output name=version::$version"
+    - uses: actions/checkout@v3
+    - name: Check
+      id: check
+      run: |
+        Push-Location contrib\win-installer
+        .\check.ps1 ${{steps.getversion.outputs.version}}
+        $code = $LASTEXITCODE
+        if ($code -eq 2) {
+          Write-Output "::set-output name=already-exists::true"
+          Pop-Location
+          Exit 0
+        }
+        Write-Output "UPLOAD_ASSET_NAME=$env:UPLOAD_ASSET_NAME" | Out-File -FilePath $env:GITHUB_ENV -Append
+        Pop-Location
+        Exit $code
+    - name: Set up Go
+      uses: actions/setup-go@v3
+      if: steps.check.outputs.already-exists != 'true'
+      with:
+        go-version: 1.18
+    - name: Setup Signature Tooling
+      if: steps.Check.outputs.already-exists != 'true'
+      run: |
+          dotnet tool install --global AzureSignTool --version 3.0.0
+          echo "CERT_NAME=${{secrets.AZ_CERT_NAME}}" | Out-File -FilePath $env:GITHUB_ENV -Append
+          echo "VAULT_ID=${{secrets.AZ_VAULT_ID}}" | Out-File -FilePath $env:GITHUB_ENV -Append
+          echo "APP_ID=${{secrets.AZ_APP_ID}}" | Out-File -FilePath $env:GITHUB_ENV -Append
+          echo "TENANT_ID=${{secrets.AZ_TENANT_ID}}" | Out-File -FilePath $env:GITHUB_ENV -Append
+          echo "CLIENT_SECRET=${{secrets.AZ_CLIENT_SECRET}}" | Out-File -FilePath $env:GITHUB_ENV -Append
+    - name: Build
+      id: build
+      if: steps.check.outputs.already-exists != 'true'
+      run: |
+        Push-Location contrib\win-installer
+        .\build.ps1 ${{steps.getversion.outputs.version}} prod
+        $code = $LASTEXITCODE
+        if ($code -eq 2) {
+          Write-Output "::set-output name=artifact-missing::true"
+          Pop-Location
+          Exit 0
+        }
+        Pop-Location
+        Exit $code
+    - name: Upload
+      if: steps.check.outputs.already-exists != 'true' && steps.build.outputs.artifact-missing != 'true'
+      env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        Push-Location contrib\win-installer
+        $version = "${{ steps.getversion.outputs.version }}"
+        if ($version[0] -ne "v") {
+          $version = "v$version"
+        }
+        gh release upload $version $ENV:UPLOAD_ASSET_NAME
+        if ($LASTEXITCODE -ne 0) {
+          .\check.ps1 $version
+          if ($LASTEXITCODE -eq 2) {
+            Write-Host "Another job uploaded before us, skipping"
+            Pop-Location
+            Exit 0
+          }
+          Pop-Location
+          Exit 1
+        }
+        if (Test-Path -Path shasums) {
+          gh release upload --clobber $version shasums
+        }
+        Pop-Location

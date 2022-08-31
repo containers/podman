@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi" xmlns:bal="http://schemas.microsoft.com/wix/BalExtension" xmlns:util="http://schemas.microsoft.com/wix/UtilExtension">
+  <?ifndef var.VERSION?>
+     <?error VERSION must be defined via command line argument?>
+  <?endif?>
+  <Bundle Name="Podman" Version="$(var.VERSION)" Manufacturer="Red Hat"
+          UpgradeCode="f3e1f40a-a791-49b7-9bc6-050975293353" IconSourceFile="resources\podman-logo.ico"
+          Compressed="yes">
+    <BootstrapperApplicationRef Id="WixStandardBootstrapperApplication.HyperlinkSidebarLicense">
+      <bal:WixStandardBootstrapperApplication LicenseUrl=""
+                                              ThemeFile="podman-theme.xml"
+                                              LocalizationFile="podman-theme.wxl"
+                                              LogoFile="resources\podman-banner2.png"
+                                              LogoSideFile="resources\podman-sidebar.png"
+                                              SuppressOptionsUI="yes"
+                                              ShowVersion="yes"/>
+    </BootstrapperApplicationRef>
+    <Variable Name='InstallFolder' Type='string' Value='[ProgramFiles64Folder]RedHat\Podman'/>
+    <Variable Name="VERSION" Value="$(var.VERSION)"/>
+    <Variable Name="WSLCheckbox" Type="numeric" Value="1" bal:Overridable="yes"/>
+    <Variable Name="AllowOldWin" Type="numeric" Value="0" bal:Overridable="yes"/>
+    <Variable Name="LaunchTarget" Value="explorer.exe"/>
+    <Variable Name="LaunchArguments" Value="&quot;[InstallFolder]\podman-for-windows.html&quot;"/>
+
+    <util:RegistrySearch Id="PreviousVersionSearch" Variable="PreviousVersion"  Result="value" Root="HKLM"  Key="SOFTWARE\[WixBundleManufacturer]\Updates\[WixBundleName]" Value="PackageVersion"/>
+    <util:RegistrySearch Id="PreviousInstallFolderSearch" Root="HKLM" Key="SOFTWARE\[WixBundleManufacturer]\[WixBundleName]" Value="InstallDir" Variable="PreviousInstallFolder"/>
+    <util:RegistrySearch Id="CurrentBuild" Variable="CBNumber" Result="value" Root="HKLM" Key="SOFTWARE\Microsoft\Windows NT\CurrentVersion" Value="CurrentBuildNumber"/>
+    <bal:Condition Message="Windows 10 (19041) or later is required to run this application.">
+      <![CDATA[VersionNT >= v10.0 AND (CBNumber >= 19041 OR AllowOldWin = 1)]]>
+    </bal:Condition>
+    <bal:Condition Message="You have an installed development, pre-release version, or alternative build identifying as the same version of this installer. You must uninstall the existing version of Podman first, before proceeding.">
+       <![CDATA[WixBundleAction <> 5 OR WixBundleInstalled OR WixBundleForcedRestartPackage OR PreviousVersion <> VERSION]]>
+    </bal:Condition>
+    <Chain>
+      <MsiPackage Id="Setup" SourceFile="podman.msi" Vital="yes">
+        <MsiProperty Name="INSTALLDIR" Value="[InstallFolder]" />
+        <MsiProperty Name="WITH_WSL" Value="[WSLCheckbox]"/>
+      </MsiPackage>
+      <ExePackage DisplayName="WSL Kernel Install" InstallCondition="WSLCheckbox = 1" SourceFile="artifacts\podman-wslkerninst.exe"/>
+    </Chain>
+    <OptionalUpdateRegistration/>
+  </Bundle>
+</Wix>
