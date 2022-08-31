@@ -241,25 +241,6 @@ bindings_task:
     always: *runner_stats
 
 
-# Build the "libpod" API documentation `swagger.yaml` for eventual
-# publishing along side the official podman documentation.
-swagger_task:
-    name: "Test Swagger"
-    alias: swagger
-    depends_on:
-        - build
-    container: *smallcontainer
-    env:
-        <<: *stdenvars
-        TEST_FLAVOR: swagger
-        TEST_ENVIRON: container
-        CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
-    clone_script: *full_clone  # build-cache not available to container tasks
-    setup_script: *setup
-    main_script: *main
-    always: *binary_artifacts
-
-
 # Check that all included go modules from other sources match
 # what is expected in `vendor/modules.txt` vs `go.mod`.  Also
 # make sure that the generated bindings in pkg/bindings/...
@@ -522,7 +503,6 @@ success_task:
         - build
         - validate
         - bindings
-        - swagger
         - consistency
         - alt_build
         - unit_test
