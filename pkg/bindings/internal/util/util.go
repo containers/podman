@@ -74,6 +74,9 @@ func ToParams(o interface{}) (url.Values, error) {
 		}
 		paramName := fieldName
 		if pn, ok := sType.Field(i).Tag.Lookup("schema"); ok {
+			if pn == "-" {
+				continue
+			}
 			paramName = pn
 		}
 		switch {

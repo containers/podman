@@ -32,7 +32,7 @@ type AddOptions struct {
 	Authfile      *string
 	Password      *string
 	Username      *string
-	SkipTLSVerify *bool
+	SkipTLSVerify *bool `schema:"-"`
 }
 
 //go:generate go run ../generator/generator.go RemoveOptions
@@ -60,5 +60,5 @@ type ModifyOptions struct {
 	Authfile      *string
 	Password      *string
 	Username      *string
-	SkipTLSVerify *bool
+	SkipTLSVerify *bool `schema:"-"`
 }

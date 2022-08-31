@@ -38,10 +38,9 @@ func Push(ctx context.Context, source string, destination string, options *PushO
 	if err != nil {
 		return err
 	}
-	// SkipTLSVerify is special.  We need to delete the param added by
-	// toparams and change the key and flip the bool
+	// SkipTLSVerify is special.  It's not being serialized by ToParams()
+	// because we need to flip the boolean.
 	if options.SkipTLSVerify != nil {
-		params.Del("SkipTLSVerify")
 		params.Set("tlsVerify", strconv.FormatBool(!options.GetSkipTLSVerify()))
 	}
 	params.Set("destination", destination)

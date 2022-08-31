@@ -136,9 +136,9 @@ type PushOptions struct {
 	// ProgressWriter is a writer where push progress are sent.
 	// Since API handler for image push is quiet by default, WithQuiet(false) is necessary for
 	// the writer to receive progress messages.
-	ProgressWriter *io.Writer
+	ProgressWriter *io.Writer `schema:"-"`
 	// SkipTLSVerify to skip HTTPS and certificate verification.
-	SkipTLSVerify *bool
+	SkipTLSVerify *bool `schema:"-"`
 	// RemoveSignatures Discard any pre-existing signatures in the image.
 	RemoveSignatures *bool
 	// Username for authenticating against the registry.
@@ -158,7 +158,7 @@ type SearchOptions struct {
 	// Limit the number of results.
 	Limit *int
 	// SkipTLSVerify to skip  HTTPS and certificate verification.
-	SkipTLSVerify *bool
+	SkipTLSVerify *bool `schema:"-"`
 	// ListTags search the available tags of the repository
 	ListTags *bool
 }
@@ -183,12 +183,12 @@ type PullOptions struct {
 	// Password for authenticating against the registry.
 	Password *string
 	// ProgressWriter is a writer where pull progress are sent.
-	ProgressWriter *io.Writer
+	ProgressWriter *io.Writer `schema:"-"`
 	// Quiet can be specified to suppress pull progress when pulling.  Ignored
 	// for remote calls.
 	Quiet *bool
 	// SkipTLSVerify to skip HTTPS and certificate verification.
-	SkipTLSVerify *bool
+	SkipTLSVerify *bool `schema:"-"`
 	// Username for authenticating against the registry.
 	Username *string
 	// Variant will overwrite the local variant for image pulls.

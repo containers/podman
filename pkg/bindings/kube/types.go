@@ -27,7 +27,7 @@ type PlayOptions struct {
 	SignaturePolicy *string
 	// SkipTLSVerify - skip https and certificate validation when
 	// contacting container registries.
-	SkipTLSVerify *bool
+	SkipTLSVerify *bool `schema:"-"`
 	// SeccompProfileRoot - path to a directory containing seccomp
 	// profiles.
 	SeccompProfileRoot *string

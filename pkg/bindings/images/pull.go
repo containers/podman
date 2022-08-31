@@ -35,9 +35,9 @@ func Pull(ctx context.Context, rawImage string, options *PullOptions) ([]string,
 	}
 	params.Set("reference", rawImage)
 
+	// SkipTLSVerify is special.  It's not being serialized by ToParams()
+	// because we need to flip the boolean.
 	if options.SkipTLSVerify != nil {
-		params.Del("SkipTLSVerify")
-		// Note: we have to verify if skipped is false.
 		params.Set("tlsVerify", strconv.FormatBool(!options.GetSkipTLSVerify()))
 	}
 
