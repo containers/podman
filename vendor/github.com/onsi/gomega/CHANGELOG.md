@@ -1,3 +1,15 @@
+## 1.20.1
+
+## Fixes
+- fix false positive gleaks when using ginkgo -p (#577) [cb46517]
+- Fix typos in gomega_dsl.go (#569) [5f71ed2]
+- don't panic on Eventually(nil), fixing #555 (#567) [9d1186f]
+- vet optional description args in assertions, fixing #560 (#566) [8e37808]
+
+## Maintenance
+- test: add new Go 1.19 to test matrix (#571) [40d7efe]
+- Bump tzinfo from 1.2.9 to 1.2.10 in /docs (#564) [5f26371]
+
 ## 1.20.0
 
 ## Features
