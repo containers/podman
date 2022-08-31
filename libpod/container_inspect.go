@@ -158,8 +158,6 @@ func (c *Container) getContainerInspectData(size bool, driverData *define.Driver
 		Driver:          driverData.Name,
 		MountLabel:      config.MountLabel,
 		ProcessLabel:    config.ProcessLabel,
-		EffectiveCaps:   ctrSpec.Process.Capabilities.Effective,
-		BoundingCaps:    ctrSpec.Process.Capabilities.Bounding,
 		AppArmorProfile: ctrSpec.Process.ApparmorProfile,
 		ExecIDs:         execIDs,
 		GraphDriver:     driverData,
@@ -167,6 +165,10 @@ func (c *Container) getContainerInspectData(size bool, driverData *define.Driver
 		Dependencies:    c.Dependencies(),
 		IsInfra:         c.IsInfra(),
 		IsService:       c.IsService(),
+	}
+	if ctrSpec.Process.Capabilities != nil {
+		data.EffectiveCaps = ctrSpec.Process.Capabilities.Effective
+		data.BoundingCaps = ctrSpec.Process.Capabilities.Bounding
 	}
 
 	if c.state.ConfigPath != "" {
