@@ -158,9 +158,9 @@ setup_rootless() {
     msg "************************************************************"
     cd $GOSRC || exit 1
     # Guarantee independence from specific values
-    rootless_uid=$[RANDOM+1000]
+    rootless_uid=$((1500 + RANDOM % 5000))
     ROOTLESS_UID=$rootless_uid
-    rootless_gid=$[RANDOM+1000]
+    rootless_gid=$((1500 + RANDOM % 5000))
     msg "creating $rootless_uid:$rootless_gid $ROOTLESS_USER user"
     groupadd -g $rootless_gid $ROOTLESS_USER
     useradd -g $rootless_gid -u $rootless_uid --no-user-group --create-home $ROOTLESS_USER
