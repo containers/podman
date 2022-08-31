@@ -64,7 +64,7 @@ load helpers
     run_podman --events-backend=file tag $IMAGE $tag
     run_podman --events-backend=file untag $IMAGE $tag
     run_podman --events-backend=file tag $IMAGE $tag
-    run_podman --events-backend=file rmi $tag
+    run_podman --events-backend=file rmi -f $imageID
 
     run_podman --events-backend=file events --stream=false --filter type=image --since $t0
     is "$output" ".*image push $imageID dir:$pushedDir
@@ -74,7 +74,8 @@ load helpers
 .*image tag $imageID $tag
 .*image untag $imageID $tag:latest
 .*image tag $imageID $tag
-.*image remove $imageID $tag.*" \
+.*image untag $imageID $tag:latest
+.*image remove $imageID $imageID" \
        "podman events"
 }
 

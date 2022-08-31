@@ -475,7 +475,11 @@ func (i *Image) removeRecursive(ctx context.Context, rmMap map[string]*RemoveIma
 		}
 		return processedIDs, err
 	}
+
 	report.Untagged = append(report.Untagged, i.Names()...)
+	for _, name := range i.Names() {
+		i.runtime.writeEvent(&Event{ID: i.ID(), Name: name, Time: time.Now(), Type: EventTypeImageUntag})
+	}
 
 	if !hasChildren {
 		report.Removed = true
