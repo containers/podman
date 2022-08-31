@@ -1278,7 +1278,7 @@ func (s *BoltState) NetworkConnect(ctr *Container, network string, opts types.Pe
 		}
 		netConnected := ctrNetworksBkt.Get([]byte(network))
 		if netConnected != nil {
-			return fmt.Errorf("container %s is already connected to network %q: %w", ctr.ID(), network, define.ErrNetworkExists)
+			return fmt.Errorf("container %s is already connected to network %q: %w", ctr.ID(), network, define.ErrNetworkConnected)
 		}
 
 		// Add the network
