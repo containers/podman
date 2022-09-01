@@ -87,9 +87,7 @@ each of stdin, stdout, and stderr.
 
 @@option blkio-weight
 
-#### **--blkio-weight-device**=*device:weight*
-
-Block IO relative device weight.
+@@option blkio-weight-device
 
 @@option cap-add
 
@@ -148,27 +146,11 @@ device. The devices that podman will load modules when necessary are:
 
 #### **--device-read-bps**=*path*
 
-Limit read rate (bytes per second) from a device (e.g. --device-read-bps=/dev/sda:1mb)
+@@option device-read-iops
 
-This option is not supported on cgroups V1 rootless systems.
+@@option device-write-bps
 
-#### **--device-read-iops**=*path*
-
-Limit read rate (IO per second) from a device (e.g. --device-read-iops=/dev/sda:1000)
-
-This option is not supported on cgroups V1 rootless systems.
-
-#### **--device-write-bps**=*path*
-
-Limit write rate (bytes per second) to a device (e.g. --device-write-bps=/dev/sda:1mb)
-
-This option is not supported on cgroups V1 rootless systems.
-
-#### **--device-write-iops**=*path*
-
-Limit write rate (IO per second) to a device (e.g. --device-write-iops=/dev/sda:1000)
-
-This option is not supported on cgroups V1 rootless systems.
+@@option device-write-iops
 
 @@option disable-content-trust
 
@@ -307,42 +289,11 @@ This option is currently supported only by the **journald** log driver.
 
 @@option mac-address
 
-#### **--memory**, **-m**=*limit*
+@@option memory
 
-Memory limit (format: `<number>[<unit>]`, where unit = b (bytes), k (kibibytes), m (mebibytes), or g (gibibytes))
+@@option memory-reservation
 
-Allows you to constrain the memory available to a container. If the host
-supports swap memory, then the **-m** memory setting can be larger than physical
-RAM. If a limit of 0 is specified (not using **-m**), the container's memory is
-not limited. The actual limit may be rounded up to a multiple of the operating
-system's page size (the value would be very large, that's millions of trillions).
-
-This option is not supported on cgroups V1 rootless systems.
-
-#### **--memory-reservation**=*limit*
-
-Memory soft limit (format: `<number>[<unit>]`, where unit = b (bytes), k (kibibytes), m (mebibytes), or g (gibibytes))
-
-After setting memory reservation, when the system detects memory contention
-or low memory, containers are forced to restrict their consumption to their
-reservation. So you should always set the value below **--memory**, otherwise the
-hard limit will take precedence. By default, memory reservation will be the same
-as memory limit.
-
-This option is not supported on cgroups V1 rootless systems.
-
-#### **--memory-swap**=*limit*
-
-A limit value equal to memory plus swap. Must be used with the  **-m**
-(**--memory**) flag. The swap `LIMIT` should always be larger than **-m**
-(**--memory**) value. By default, the swap `LIMIT` will be set to double
-the value of --memory.
-
-The format of `LIMIT` is `<number>[<unit>]`. Unit can be `b` (bytes),
-`k` (kibibytes), `m` (mebibytes), or `g` (gibibytes). If you don't specify a
-unit, `b` is used. Set LIMIT to `-1` to enable unlimited swap.
-
-This option is not supported on cgroups V1 rootless systems.
+@@option memory-swap
 
 @@option memory-swappiness
 

@@ -547,6 +547,21 @@ t GET libpod/containers/$cname/json 200 \
   .ImageName=$IMAGE \
   .Name=$cname
 
+if root; then
+  podman run -dt --name=updateCtr alpine
+  echo '{"Memory":{"Limit":500000}, "CPU":{"Shares":123}}' >${TMPD}/update.json
+  t POST libpod/containers/updateCtr/update ${TMPD}/update.json 201
+
+  # Verify
+  echo '{ "AttachStdout":true,"Cmd":["cat","/sys/fs/cgroup/cpu.weight"]}' >${TMPD}/exec.json
+  t POST containers/updateCtr/exec ${TMPD}/exec.json 201 .Id~[0-9a-f]\\{64\\}
+  eid=$(jq -r '.Id' <<<"$output")
+  # 002 is the byte length
+  t POST exec/$eid/start 200 $'\001\0025'
+
+  podman rm -f updateCtr
+fi
+
 rm -rf $TMPD
 
 podman container rm -fa

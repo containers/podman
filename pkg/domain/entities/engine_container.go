@@ -51,6 +51,7 @@ type ContainerEngine interface {
 	ContainerTop(ctx context.Context, options TopOptions) (*StringSliceReport, error)
 	ContainerUnmount(ctx context.Context, nameOrIDs []string, options ContainerUnmountOptions) ([]*ContainerUnmountReport, error)
 	ContainerUnpause(ctx context.Context, namesOrIds []string, options PauseUnPauseOptions) ([]*PauseUnpauseReport, error)
+	ContainerUpdate(ctx context.Context, options *ContainerUpdateOptions) (string, error)
 	ContainerWait(ctx context.Context, namesOrIds []string, options WaitOptions) ([]WaitReport, error)
 	Diff(ctx context.Context, namesOrIds []string, options DiffOptions) (*DiffReport, error)
 	Events(ctx context.Context, opts EventsOptions) error

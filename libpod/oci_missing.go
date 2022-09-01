@@ -8,6 +8,7 @@ import (
 
 	"github.com/containers/common/pkg/resize"
 	"github.com/containers/podman/v4/libpod/define"
+	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 )
 
@@ -77,6 +78,11 @@ func (r *MissingRuntime) UpdateContainerStatus(ctr *Container) error {
 
 // StartContainer is not available as the runtime is missing
 func (r *MissingRuntime) StartContainer(ctr *Container) error {
+	return r.printError()
+}
+
+// UpdateContainer is not available as the runtime is missing
+func (r *MissingRuntime) UpdateContainer(ctr *Container, resources *spec.LinuxResources) error {
 	return r.printError()
 }
 

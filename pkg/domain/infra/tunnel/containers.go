@@ -1024,3 +1024,16 @@ func (ic *ContainerEngine) ContainerRename(ctx context.Context, nameOrID string,
 func (ic *ContainerEngine) ContainerClone(ctx context.Context, ctrCloneOpts entities.ContainerCloneOptions) (*entities.ContainerCreateReport, error) {
 	return nil, errors.New("cloning a container is not supported on the remote client")
 }
+
+// ContainerUpdate finds and updates the given container's cgroup config with the specified options
+func (ic *ContainerEngine) ContainerUpdate(ctx context.Context, updateOptions *entities.ContainerUpdateOptions) (string, error) {
+	err := specgen.WeightDevices(updateOptions.Specgen)
+	if err != nil {
+		return "", err
+	}
+	err = specgen.FinishThrottleDevices(updateOptions.Specgen)
+	if err != nil {
+		return "", err
+	}
+	return containers.Update(ic.ClientCtx, updateOptions)
+}

@@ -11,6 +11,7 @@ import (
 	dockerContainer "github.com/docker/docker/api/types/container"
 	dockerNetwork "github.com/docker/docker/api/types/network"
 	"github.com/docker/go-connections/nat"
+	"github.com/opencontainers/runtime-spec/specs-go"
 )
 
 type AuthConfig struct {
@@ -62,6 +63,12 @@ type LibpodContainersRmReport struct {
 	// x-omitempty: true
 	// x-nullable: true
 	RmError string `json:"Err,omitempty"`
+}
+
+// UpdateEntities used to wrap the oci resource spec in a swagger model
+// swagger:model
+type UpdateEntities struct {
+	Resources *specs.LinuxResources
 }
 
 type Info struct {

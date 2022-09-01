@@ -44,7 +44,7 @@ func cloneFlags(cmd *cobra.Command) {
 	_ = podCloneCommand.RegisterFlagCompletionFunc(nameFlagName, completion.AutocompleteNone)
 
 	common.DefineCreateDefaults(&podClone.InfraOptions)
-	common.DefineCreateFlags(cmd, &podClone.InfraOptions, true, false)
+	common.DefineCreateFlags(cmd, &podClone.InfraOptions, entities.InfraMode)
 
 	podClone.InfraOptions.MemorySwappiness = -1 // this is not implemented for pods yet, need to set -1 default manually
 

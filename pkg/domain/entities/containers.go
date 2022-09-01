@@ -495,3 +495,9 @@ type ContainerCloneOptions struct {
 	Run          bool
 	Force        bool
 }
+
+// ContainerUpdateOptions containers options for updating an existing containers cgroup configuration
+type ContainerUpdateOptions struct {
+	NameOrID string
+	Specgen  *specgen.SpecGenerator
+}

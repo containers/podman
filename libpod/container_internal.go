@@ -2352,3 +2352,12 @@ func (c *Container) extractSecretToCtrStorage(secr *ContainerSecret) error {
 	}
 	return nil
 }
+
+// update calls the ociRuntime update function to modify a cgroup config after container creation
+func (c *Container) update(resources *spec.LinuxResources) error {
+	if err := c.ociRuntime.UpdateContainer(c, resources); err != nil {
+		return err
+	}
+	logrus.Debugf("updated container %s", c.ID())
+	return nil
+}

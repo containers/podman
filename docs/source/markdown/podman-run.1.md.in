@@ -180,29 +180,13 @@ device. The devices that Podman will load modules when necessary are:
 
 @@option device-cgroup-rule
 
-#### **--device-read-bps**=*path:rate*
+@@option device-read-bps
 
-Limit read rate (in bytes per second) from a device (e.g. **--device-read-bps=/dev/sda:1mb**).
+@@option device-read-iops
 
-This option is not supported on cgroups V1 rootless systems.
+@@option device-write-bps
 
-#### **--device-read-iops**=*path:rate*
-
-Limit read rate (in IO operations per second) from a device (e.g. **--device-read-iops=/dev/sda:1000**).
-
-This option is not supported on cgroups V1 rootless systems.
-
-#### **--device-write-bps**=*path:rate*
-
-Limit write rate (in bytes per second) to a device (e.g. **--device-write-bps=/dev/sda:1mb**).
-
-This option is not supported on cgroups V1 rootless systems.
-
-#### **--device-write-iops**=*path:rate*
-
-Limit write rate (in IO operations per second) to a device (e.g. **--device-write-iops=/dev/sda:1000**).
-
-This option is not supported on cgroups V1 rootless systems.
+@@option device-write-iops
 
 @@option disable-content-trust
 
@@ -335,33 +319,9 @@ RAM. If a limit of 0 is specified (not using **-m**), the container's memory is
 not limited. The actual limit may be rounded up to a multiple of the operating
 system's page size (the value would be very large, that's millions of trillions).
 
-This option is not supported on cgroups V1 rootless systems.
+@@option memory-reservation
 
-#### **--memory-reservation**=*number[unit]*
-
-Memory soft limit. A _unit_ can be **b** (bytes), **k** (kibibytes), **m** (mebibytes), or **g** (gibibytes).
-
-After setting memory reservation, when the system detects memory contention
-or low memory, containers are forced to restrict their consumption to their
-reservation. So you should always set the value below **--memory**, otherwise the
-hard limit will take precedence. By default, memory reservation will be the same
-as memory limit.
-
-This option is not supported on cgroups V1 rootless systems.
-
-#### **--memory-swap**=*number[unit]*
-
-A limit value equal to memory plus swap.
-A _unit_ can be **b** (bytes), **k** (kibibytes), **m** (mebibytes), or **g** (gibibytes).
-
-Must be used with the **-m** (**--memory**) flag.
-The argument value should always be larger than that of
- **-m** (**--memory**) By default, it is set to double
-the value of **--memory**.
-
-Set _number_ to **-1** to enable unlimited swap.
-
-This option is not supported on cgroups V1 rootless systems.
+@@option memory-swap
 
 @@option memory-swappiness
 
