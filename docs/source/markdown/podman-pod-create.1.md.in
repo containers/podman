@@ -130,9 +130,7 @@ The address must be within the network's IPv6 address pool.
 
 To specify multiple static IPv6 addresses per pod, set multiple networks using the **--network** option with a static IPv6 address specified for each using the `ip6` mode for that option.
 
-#### **--label**, **-l**=*label*
-
-Add metadata to a pod (e.g., --label com.example.key=value).
+@@option label
 
 @@option label-file
 

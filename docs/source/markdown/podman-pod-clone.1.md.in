@@ -66,9 +66,7 @@ Print usage statement.
 
 @@option infra-name
 
-#### **--label**, **-l**=*label*
-
-Add metadata to a pod (e.g., --label com.example.key=value).
+@@option label
 
 @@option label-file
 
