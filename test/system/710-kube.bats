@@ -78,11 +78,6 @@ status                           | =  | null
         assert "$actual" $op "$expect" ".$key"
     done < <(parse_table "$expect")
 
-    if ! is_remote; then
-        count=$(egrep -c "$kubernetes_63" <<<"$output")
-        assert "$count" = 1 "1 instance of the Kubernetes-63-char warning"
-    fi
-
     run_podman rm $cname
 }
 
@@ -156,12 +151,6 @@ status  | =  | {}
         actual=$(jq -r -c ".$key" <<<"$json")
         assert "$actual" $op "$expect" ".$key"
     done < <(parse_table "$expect")
-
-    # Why 4? Maybe two for each container?
-    if ! is_remote; then
-        count=$(egrep -c "$kubernetes_63" <<<"$output")
-        assert "$count" = 4 "instances of the Kubernetes-63-char warning"
-    fi
 
     run_podman rm $cname1 $cname2
     run_podman pod rm $pname
