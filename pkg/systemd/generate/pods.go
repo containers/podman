@@ -266,6 +266,16 @@ func setPodExitPolicy(cmd []string) []string {
 	return append(cmd, "--exit-policy=stop")
 }
 
+// Make sure the name is specified by the --name argument
+func convertNameArg(cmd []string) []string {
+	for _, arg := range cmd {
+                if strings.HasPrefix(arg, "--name=") || arg == "--name" {
+                        return cmd
+                }
+        }
+	return append(cmd[:len(cmd)-1], "--name", cmd[len(cmd)-1])
+}
+
 // executePodTemplate executes the pod template on the specified podInfo.  Note
 // that the podInfo is also post processed and completed, which allows for an
 // easier unit testing.
@@ -363,8 +373,8 @@ func executePodTemplate(info *podInfo, options entities.GenerateSystemdOptions) 
 			}
 			podCreateArgs = append(podCreateArgs, "--replace")
 		}
-
 		startCommand = append(startCommand, podCreateArgs...)
+		startCommand = convertNameArg(startCommand)
 		startCommand = setPodExitPolicy(startCommand)
 		startCommand = escapeSystemdArguments(startCommand)
 
