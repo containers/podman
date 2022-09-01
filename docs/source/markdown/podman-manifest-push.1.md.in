@@ -29,9 +29,7 @@ Specifies the compression format to use.  Supported values are: `gzip`, `zstd` a
 
 @@option creds
 
-#### **--digestfile**=*Digestfile*
-
-After copying the image, write the digest of the resulting image to the file.
+@@option digestfile
 
 #### **--format**, **-f**=*format*
 
