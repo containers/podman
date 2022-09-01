@@ -468,12 +468,15 @@ func newPodObject(podName string, annotations map[string]string, initCtrs, conta
 		CreationTimestamp: v12.Now(),
 		Annotations:       annotations,
 	}
+	// Set enableServiceLinks to false as podman doesn't use the service port environment variables
+	enableServiceLinks := false
 	ps := v1.PodSpec{
-		Containers:     containers,
-		Hostname:       hostname,
-		HostNetwork:    hostNetwork,
-		InitContainers: initCtrs,
-		Volumes:        volumes,
+		Containers:         containers,
+		Hostname:           hostname,
+		HostNetwork:        hostNetwork,
+		InitContainers:     initCtrs,
+		Volumes:            volumes,
+		EnableServiceLinks: &enableServiceLinks,
 	}
 	if dnsOptions != nil && (len(dnsOptions.Nameservers)+len(dnsOptions.Searches)+len(dnsOptions.Options) > 0) {
 		ps.DNSConfig = dnsOptions
