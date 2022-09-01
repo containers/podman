@@ -708,7 +708,7 @@ var _ = Describe("Podman generate kube", func() {
 		pod := new(v1.Pod)
 		err = yaml.Unmarshal(b, pod)
 		Expect(err).To(BeNil())
-		Expect(pod.Annotations).To(HaveKeyWithValue(define.BindMountPrefix+vol1, HaveSuffix("z")))
+		Expect(pod.Annotations).To(HaveKeyWithValue(define.BindMountPrefix, vol1+":"+"z"))
 
 		rm := podmanTest.Podman([]string{"pod", "rm", "-t", "0", "-f", "test1"})
 		rm.WaitWithDefaultTimeout()

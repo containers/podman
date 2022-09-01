@@ -385,7 +385,7 @@ func (p *Pod) podWithContainers(ctx context.Context, containers []*Container, po
 				return nil, err
 			}
 			for k, v := range annotations {
-				podAnnotations[define.BindMountPrefix+k] = TruncateKubeAnnotation(v)
+				podAnnotations[define.BindMountPrefix] = TruncateKubeAnnotation(k + ":" + v)
 			}
 			// Since port bindings for the pod are handled by the
 			// infra container, wipe them here only if we are sharing the net namespace
@@ -526,7 +526,7 @@ func simplePodWithV1Containers(ctx context.Context, ctrs []*Container) (*v1.Pod,
 			return nil, err
 		}
 		for k, v := range annotations {
-			kubeAnnotations[define.BindMountPrefix+k] = TruncateKubeAnnotation(v)
+			kubeAnnotations[define.BindMountPrefix] = TruncateKubeAnnotation(k + ":" + v)
 		}
 		if isInit {
 			kubeInitCtrs = append(kubeInitCtrs, kubeCtr)
