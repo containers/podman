@@ -309,7 +309,9 @@ t POST containers/create Image=${MultiTagName} 201 \
   .Id~[0-9a-f]\\{64\\}
 cid=$(jq -r '.Id' <<<"$output")
 t GET containers/$cid/json 200 \
-  .Image=${MultiTagName}
+  .Config.Image=${MultiTagName} \
+  .Image~sha256:[0-9a-f]\\{64\\}
+
 t DELETE containers/$cid 204
 t DELETE images/${MultiTagName} 200
 # vim: filetype=sh
