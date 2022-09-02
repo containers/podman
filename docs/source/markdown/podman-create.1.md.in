@@ -144,7 +144,7 @@ device. The devices that podman will load modules when necessary are:
 
 @@option device-cgroup-rule
 
-#### **--device-read-bps**=*path*
+@@option device-read-bps
 
 @@option device-read-iops
 
