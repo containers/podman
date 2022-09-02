@@ -85,4 +85,4 @@ const PassthroughLogging = "passthrough"
 const RLimitDefaultValue = uint64(1048576)
 
 // BindMountPrefix distinguishes its annotations from others
-const BindMountPrefix = "bind-mount-options:"
+const BindMountPrefix = "bind-mount-options"
