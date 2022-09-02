@@ -398,6 +398,7 @@ func specConfigureNamespaces(s *specgen.SpecGenerator, g *generate.Generator, rt
 		}
 		g.SetProcessUID(uint32(uid))
 		g.SetProcessGID(uint32(gid))
+		g.AddProcessAdditionalGid(uint32(gid))
 		fallthrough
 	case specgen.Private:
 		if err := g.AddOrReplaceLinuxNamespace(string(spec.UserNamespace), ""); err != nil {
