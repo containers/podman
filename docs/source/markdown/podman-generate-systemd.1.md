@@ -44,6 +44,12 @@ User-defined dependencies will be appended to the generated unit file, but any e
 
 Set the systemd unit name prefix for containers. The default is *container*.
 
+#### **--env**, **-e**=*env*
+
+Set environment variables to the systemd unit files.
+
+If an environment variable is specified without a value, Podman will check the host environment for a value and set the variable only if it is set on the host. As a special case, if an environment variable ending in __*__ is specified without a value, Podman will search the host environment for variables starting with the prefix and will add those variables to the systemd unit files.
+
 #### **--files**, **-f**
 
 Generate files instead of printing to stdout.  The generated files are named {container,pod}-{ID,name}.service and will be placed in the current working directory.
