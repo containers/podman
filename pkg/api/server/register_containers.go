@@ -212,7 +212,6 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//  - in: query
 	//    name: signal
 	//    type: string
-	//    default: TERM
 	//    description: signal to be sent to container
 	//    default: SIGKILL
 	// produces:
@@ -723,6 +722,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//    type: boolean
 	//    description: Include namespace information
 	//    default: false
+	//  - in: query
 	//    name: pod
 	//    type: boolean
 	//    default: false
