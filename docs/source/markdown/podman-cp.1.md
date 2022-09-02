@@ -1,4 +1,4 @@
-% podman-cp(1)
+% podman-cp 1
 
 ## NAME
 podman\-cp - Copy files/folders between a container and the local filesystem

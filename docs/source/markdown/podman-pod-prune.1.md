@@ -1,4 +1,4 @@
-% podman-pod-prune(1)
+% podman-pod-prune 1
 
 ## NAME
 podman-pod-prune - Remove all stopped pods and their containers

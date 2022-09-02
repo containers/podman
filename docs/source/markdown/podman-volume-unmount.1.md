@@ -1,4 +1,4 @@
-% podman-volume-unmount(1)
+% podman-volume-unmount 1
 
 ## NAME
 podman\-volume\-unmount - Unmount a volume

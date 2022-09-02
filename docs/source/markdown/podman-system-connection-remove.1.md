@@ -1,4 +1,4 @@
-% podman-system-connection-remove(1)
+% podman-system-connection-remove 1
 
 ## NAME
 podman\-system\-connection\-remove - Delete named destination

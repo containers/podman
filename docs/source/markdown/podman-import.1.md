@@ -1,4 +1,4 @@
-% podman-import(1)
+% podman-import 1
 
 ## NAME
 podman\-import - Import a tarball and save it as a filesystem image

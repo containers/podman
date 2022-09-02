@@ -1,4 +1,4 @@
-% podman-generate-systemd(1)
+% podman-generate-systemd 1
 
 ## NAME
 podman\-generate\-systemd - Generate systemd unit file(s) for a container or pod

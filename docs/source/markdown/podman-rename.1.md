@@ -1,4 +1,4 @@
-% podman-rename(1)
+% podman-rename 1
 
 ## NAME
 podman\-rename - Rename an existing container

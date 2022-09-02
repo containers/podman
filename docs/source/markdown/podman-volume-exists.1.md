@@ -1,4 +1,4 @@
-% podman-volume-exists(1)
+% podman-volume-exists 1
 
 ## NAME
 podman\-volume\-exists - Check if the given volume exists

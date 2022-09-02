@@ -1,4 +1,4 @@
-% podman-secret-rm(1)
+% podman-secret-rm 1
 
 ## NAME
 podman\-secret\-rm - Remove one or more secrets

@@ -1,4 +1,4 @@
-% podman-machine-stop(1)
+% podman-machine-stop 1
 
 ## NAME
 podman\-machine\-stop - Stop a virtual machine

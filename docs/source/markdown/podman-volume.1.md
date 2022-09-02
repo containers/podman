@@ -1,4 +1,4 @@
-% podman-volume(1)
+% podman-volume 1
 
 ## NAME
 podman\-volume - Simple management tool for volumes

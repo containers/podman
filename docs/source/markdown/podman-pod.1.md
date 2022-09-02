@@ -1,4 +1,4 @@
-% podman-pod(1)
+% podman-pod 1
 
 ## NAME
 podman\-pod - Management tool for groups of containers, called pods

@@ -1,4 +1,4 @@
-% podman-manifest-inspect(1)
+% podman-manifest-inspect 1
 
 ## NAME
 podman\-manifest\-inspect - Display a manifest list or image index

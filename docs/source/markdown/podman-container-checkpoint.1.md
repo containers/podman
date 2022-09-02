@@ -1,4 +1,4 @@
-% podman-container-checkpoint(1)
+% podman-container-checkpoint 1
 
 ## NAME
 podman\-container\-checkpoint - Checkpoints one or more running containers

@@ -1,4 +1,4 @@
-% podman-volume-rm(1)
+% podman-volume-rm 1
 
 ## NAME
 podman\-volume\-rm - Remove one or more volumes

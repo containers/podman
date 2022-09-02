@@ -1,4 +1,4 @@
-% podman-volume-export(1)
+% podman-volume-export 1
 
 ## NAME
 podman\-volume\-export - Exports volume to external tar

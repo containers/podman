@@ -1,4 +1,4 @@
-% podman-image-sign(1)
+% podman-image-sign 1
 
 ## NAME
 podman-image-sign - Create a signature for an image

@@ -1,4 +1,4 @@
-% podman-network(1)
+% podman-network 1
 
 ## NAME
 podman\-network - Manage Podman networks

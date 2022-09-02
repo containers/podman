@@ -1,4 +1,4 @@
-% podman-kube-play(1)
+% podman-kube-play 1
 
 ## NAME
 podman-kube-play - Create containers, pods and volumes based on Kubernetes YAML

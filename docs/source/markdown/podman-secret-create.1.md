@@ -1,4 +1,4 @@
-% podman-secret-create(1)
+% podman-secret-create 1
 
 ## NAME
 podman\-secret\-create - Create a new secret

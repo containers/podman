@@ -1,4 +1,4 @@
-% podman-volume-prune(1)
+% podman-volume-prune 1
 
 ## NAME
 podman\-volume\-prune - Remove all unused volumes

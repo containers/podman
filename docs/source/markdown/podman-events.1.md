@@ -1,4 +1,4 @@
-% podman-events(1)
+% podman-events 1
 
 ## NAME
 podman\-events - Monitor Podman events

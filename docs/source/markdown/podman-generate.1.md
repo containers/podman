@@ -1,4 +1,4 @@
-% podman-generate(1)
+% podman-generate 1
 
 ## NAME
 podman\-generate - Generate structured data based on containers, pods or volumes

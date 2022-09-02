@@ -1,4 +1,4 @@
-% podman-secret-ls(1)
+% podman-secret-ls 1
 
 ## NAME
 podman\-secret\-ls - List all available secrets

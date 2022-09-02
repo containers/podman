@@ -1,4 +1,4 @@
-% podman-container-runlabel(1)
+% podman-container-runlabel 1
 
 ## NAME
 podman-container-runlabel - Executes a command as described by a container-image label

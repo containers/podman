@@ -1,4 +1,4 @@
-% podman-remote(1)
+% podman-remote 1
 
 ## NAME
 podman-remote - A remote CLI for Podman: A Simple management tool for pods, containers and images.

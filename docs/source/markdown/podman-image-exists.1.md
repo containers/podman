@@ -1,4 +1,4 @@
-% podman-image-exists(1)
+% podman-image-exists 1
 
 ## NAME
 podman-image-exists - Check if an image exists in local storage

@@ -1,4 +1,4 @@
-% podman-manifest-annotate(1)
+% podman-manifest-annotate 1
 
 ## NAME
 podman\-manifest\-annotate - Add or update information about an entry in a manifest list or image index

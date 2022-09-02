@@ -1,4 +1,4 @@
-% podman-pod-exists(1)
+% podman-pod-exists 1
 
 ## NAME
 podman-pod-exists - Check if a pod exists in local storage

@@ -1,4 +1,4 @@
-% podman-top(1)
+% podman-top 1
 
 ## NAME
 podman\-top - Display the running processes of a container

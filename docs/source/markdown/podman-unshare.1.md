@@ -1,4 +1,4 @@
-% podman-unshare(1)
+% podman-unshare 1
 
 ## NAME
 podman\-unshare - Run a command inside of a modified user namespace

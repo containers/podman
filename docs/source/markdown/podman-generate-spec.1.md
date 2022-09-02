@@ -1,4 +1,4 @@
-% podman-generate-spec(1)
+% podman-generate-spec 1
 
 ## NAME
 podman\-generate\-spec - Generate Specgen JSON based on containers or pods

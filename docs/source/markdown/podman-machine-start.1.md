@@ -1,4 +1,4 @@
-% podman-machine-start(1)
+% podman-machine-start 1
 
 ## NAME
 podman\-machine\-start - Start a virtual machine

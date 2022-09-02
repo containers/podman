@@ -1,4 +1,4 @@
-% podman-container-clone(1)
+% podman-container-clone 1
 
 ## NAME
 podman\-container\-clone - Creates a copy of an existing container

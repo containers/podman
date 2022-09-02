@@ -1,4 +1,4 @@
-% podman-system-df(1)
+% podman-system-df 1
 
 ## NAME
 podman\-system\-df - Show podman disk usage

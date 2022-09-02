@@ -1,4 +1,4 @@
-% podman-network-inspect(1)
+% podman-network-inspect 1
 
 ## NAME
 podman\-network\-inspect - Displays the network configuration for one or more networks

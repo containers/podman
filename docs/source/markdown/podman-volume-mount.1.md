@@ -1,4 +1,4 @@
-% podman-volume-mount(1)
+% podman-volume-mount 1
 
 ## NAME
 podman\-volume\-mount - Mount a volume filesystem

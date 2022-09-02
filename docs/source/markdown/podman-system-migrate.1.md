@@ -1,4 +1,4 @@
-% podman-system-migrate(1)
+% podman-system-migrate 1
 
 ## NAME
 podman\-system\-migrate - Migrate existing containers to a new podman version

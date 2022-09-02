@@ -1,4 +1,4 @@
-% podman-volume-create(1)
+% podman-volume-create 1
 
 ## NAME
 podman\-volume\-create - Create a new volume

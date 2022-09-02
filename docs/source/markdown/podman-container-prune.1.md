@@ -1,4 +1,4 @@
-% podman-container-prune(1)
+% podman-container-prune 1
 
 ## NAME
 podman\-container\-prune - Remove all stopped containers from local storage

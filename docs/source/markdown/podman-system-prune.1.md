@@ -1,4 +1,4 @@
-% podman-system-prune(1)
+% podman-system-prune 1
 
 ## NAME
 podman\-system\-prune - Remove all unused pods, containers, images, networks, and volume data

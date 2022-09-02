@@ -1,4 +1,4 @@
-% podman-auto-update(1)
+% podman-auto-update 1
 
 ## NAME
 podman\-auto-update - Auto update containers according to their auto-update policy

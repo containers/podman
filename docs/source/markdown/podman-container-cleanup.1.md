@@ -1,4 +1,4 @@
-% podman-container-cleanup(1)
+% podman-container-cleanup 1
 
 ## NAME
 podman\-container\-cleanup - Clean up the container's network and mountpoints

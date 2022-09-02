@@ -1,4 +1,4 @@
-% podman-manifest-remove(1)
+% podman-manifest-remove 1
 
 ## NAME
 podman\-manifest\-remove - Remove an image from a manifest list or image index

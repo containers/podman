@@ -1,4 +1,4 @@
-% podman-wait(1)
+% podman-wait 1
 
 ## NAME
 podman\-wait - Wait on one or more containers to stop and print their exit codes

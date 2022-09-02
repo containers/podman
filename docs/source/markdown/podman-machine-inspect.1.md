@@ -1,4 +1,4 @@
-% podman-machine-inspect(1)
+% podman-machine-inspect 1
 
 ## NAME
 podman\-machine\-inspect - Inspect one or more virtual machines

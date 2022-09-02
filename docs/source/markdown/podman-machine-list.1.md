@@ -1,4 +1,4 @@
-% podman-machine-ls(1)
+% podman-machine-ls 1
 
 ## NAME
 podman\-machine\-list - List virtual machines

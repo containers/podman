@@ -1,4 +1,4 @@
-% podman-machine-init(1)
+% podman-machine-init 1
 
 ## NAME
 podman\-machine\-init - Initialize a new virtual machine

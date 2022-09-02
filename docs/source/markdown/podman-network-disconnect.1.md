@@ -1,4 +1,4 @@
-% podman-network-disconnect(1)
+% podman-network-disconnect 1
 
 ## NAME
 podman\-network\-disconnect - Disconnect a container from a network

@@ -1,4 +1,4 @@
-% podman-machine-ssh(1)
+% podman-machine-ssh 1
 
 ## NAME
 podman\-machine\-ssh - SSH into a virtual machine

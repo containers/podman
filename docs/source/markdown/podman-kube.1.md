@@ -1,4 +1,4 @@
-% podman-kube(1)
+% podman-kube 1
 
 ## NAME
 podman\-kube - Play containers, pods or volumes based on a structured input file

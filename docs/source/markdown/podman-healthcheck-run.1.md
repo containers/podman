@@ -1,4 +1,4 @@
-% podman-healthcheck-run(1)
+% podman-healthcheck-run 1
 
 ## NAME
 podman\-healthcheck\-run - Run a container healthcheck

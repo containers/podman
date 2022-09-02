@@ -1,4 +1,4 @@
-% podman-save(1)
+% podman-save 1
 
 ## NAME
 podman\-save - Save image(s) to an archive

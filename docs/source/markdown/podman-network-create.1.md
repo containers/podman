@@ -1,4 +1,4 @@
-% podman-network-create(1)
+% podman-network-create 1
 
 ## NAME
 podman\-network-create - Create a Podman network

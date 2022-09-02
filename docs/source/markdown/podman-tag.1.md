@@ -1,4 +1,4 @@
-% podman-tag(1)
+% podman-tag 1
 
 ## NAME
 podman\-tag - Add an additional name to a local image

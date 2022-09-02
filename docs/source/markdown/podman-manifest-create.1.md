@@ -1,4 +1,4 @@
-% podman-manifest-create(1)
+% podman-manifest-create 1
 
 ## NAME
 podman\-manifest\-create - Create a manifest list or image index

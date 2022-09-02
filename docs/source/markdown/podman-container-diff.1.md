@@ -1,4 +1,4 @@
-% podman-container-diff(1)
+% podman-container-diff 1
 
 ## NAME
 podman\-container\-diff - Inspect changes on a container's filesystem
