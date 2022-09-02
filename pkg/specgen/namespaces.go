@@ -363,6 +363,7 @@ func SetupUserNS(idmappings *storage.IDMappingOptions, userns Namespace, g *gene
 		idmappings = mappings
 		g.SetProcessUID(uint32(uid))
 		g.SetProcessGID(uint32(gid))
+		g.AddProcessAdditionalGid(uint32(gid))
 		user = fmt.Sprintf("%d:%d", uid, gid)
 		fallthrough
 	case Private:
