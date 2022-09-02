@@ -54,7 +54,6 @@ func (s *APIServer) registerSecretHandlers(r *mux.Router) error {
 	//        - `id=[id]` Matches for full or partial ID.
 	// produces:
 	// - application/json
-	// parameters:
 	// responses:
 	//   '200':
 	//     "$ref": "#/responses/SecretListResponse"
@@ -128,7 +127,6 @@ func (s *APIServer) registerSecretHandlers(r *mux.Router) error {
 	//        - `id=[id]` Matches for full or partial ID.
 	// produces:
 	// - application/json
-	// parameters:
 	// responses:
 	//   '200':
 	//     "$ref": "#/responses/SecretListCompatResponse"
