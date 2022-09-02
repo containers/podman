@@ -592,6 +592,7 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 		// User and Group must go together
 		g.SetProcessUID(uint32(execUser.Uid))
 		g.SetProcessGID(uint32(execUser.Gid))
+		g.AddProcessAdditionalGid(uint32(execUser.Gid))
 	}
 
 	if c.config.Umask != "" {
