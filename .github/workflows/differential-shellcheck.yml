@@ -1,0 +1,31 @@
+---
+# Doc: https://github.com/redhat-plumbers-in-action/differential-shellcheck#readme
+
+name: Differential ShellCheck
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+
+    # The following permissions are required for uploading SARIF and creating comments on PRs.
+    # https://docs.github.com/en/rest/code-scanning#upload-an-analysis-as-sarif-data
+    permissions:
+      security-events: write
+      pull-requests: write
+
+    steps:
+      - name: Repository checkout
+        uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b # v3.0.2
+        with:
+          fetch-depth: 0
+
+      - name: Differential ShellCheck
+        uses: redhat-plumbers-in-action/differential-shellcheck@94fb4dd1977847df7503bdcc7cb1ddbe021ee9e0 # v3.1.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
