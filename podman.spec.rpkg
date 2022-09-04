@@ -5,6 +5,11 @@
 
 %global with_debug 1
 
+# _user_tmpfiles.d currently undefined on rhel
+%if 0%{?rhel}
+%global _user_tmpfilesdir %{_datadir}/user-tmpfiles.d
+%endif
+
 %if 0%{?with_debug}
 %global _find_debuginfo_dwz_opts %{nil}
 %global _dwz_low_mem_die_limit 0
