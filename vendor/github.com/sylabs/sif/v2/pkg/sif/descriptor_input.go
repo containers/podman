@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Sylabs Inc. All rights reserved.
+// Copyright (c) 2021-2022, Sylabs Inc. All rights reserved.
 // This software is licensed under a 3-clause BSD license. Please consult the
 // LICENSE file distributed with the sources of this project regarding your
 // rights to use or distribute this software.
@@ -10,7 +10,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"os"
 	"time"
 )
 
@@ -248,8 +247,9 @@ const DefaultObjectGroup = 1
 // this behavior, use OptNoGroup or OptGroupID. To link this data object, use OptLinkedID or
 // OptLinkedGroupID.
 //
-// By default, the data object will be aligned according to the system's memory page size. To
-// override this behavior, consider using OptObjectAlignment.
+// By default, the data object will not be aligned unless it is of type DataPartition, in which
+// case it will be aligned on a 4096 byte boundary. To override this behavior, consider using
+// OptObjectAlignment.
 //
 // By default, no name is set for data object. To set a name, use OptObjectName.
 //
@@ -258,8 +258,11 @@ const DefaultObjectGroup = 1
 // image modification time. To override this behavior, consider using OptObjectTime.
 func NewDescriptorInput(t DataType, r io.Reader, opts ...DescriptorInputOpt) (DescriptorInput, error) {
 	dopts := descriptorOpts{
-		groupID:   DefaultObjectGroup,
-		alignment: os.Getpagesize(),
+		groupID: DefaultObjectGroup,
+	}
+
+	if t == DataPartition {
+		dopts.alignment = 4096
 	}
 
 	for _, opt := range opts {

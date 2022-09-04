@@ -1,7 +1,7 @@
 package config
 
 func getDefaultCgroupsMode() string {
-	return "disabled"
+	return "enabled"
 }
 
 // In theory, FreeBSD should be able to use shm locks but in practice,

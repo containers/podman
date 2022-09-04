@@ -242,8 +242,8 @@ func (i *Image) recomputeDigests() error {
 		if !bigDataNameIsManifest(name) {
 			continue
 		}
-		if digest.Validate() != nil {
-			return fmt.Errorf("validating digest %q for big data item %q: %w", string(digest), name, digest.Validate())
+		if err := digest.Validate(); err != nil {
+			return fmt.Errorf("validating digest %q for big data item %q: %w", string(digest), name, err)
 		}
 		// Deduplicate the digest values.
 		if _, known := digests[digest]; !known {

@@ -256,7 +256,7 @@ func addSubscriptionsFromMountsFile(filePath, mountLabel, containerRunDir string
 				}
 				for _, s := range data {
 					if err := s.saveTo(ctrDirOrFileOnHost); err != nil {
-						return nil, fmt.Errorf("error saving data to container filesystem on host %q: %w", ctrDirOrFileOnHost, err)
+						return nil, fmt.Errorf("saving data to container filesystem on host %q: %w", ctrDirOrFileOnHost, err)
 					}
 				}
 			case mode.IsRegular():
@@ -278,7 +278,7 @@ func addSubscriptionsFromMountsFile(filePath, mountLabel, containerRunDir string
 
 			err = label.Relabel(ctrDirOrFileOnHost, mountLabel, false)
 			if err != nil {
-				return nil, fmt.Errorf("error applying correct labels: %w", err)
+				return nil, fmt.Errorf("applying correct labels: %w", err)
 			}
 			if uid != 0 || gid != 0 {
 				if err := rchown(ctrDirOrFileOnHost, uid, gid); err != nil {

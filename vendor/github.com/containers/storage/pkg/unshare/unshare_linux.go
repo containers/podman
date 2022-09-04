@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -387,10 +388,39 @@ const (
 	UsernsEnvName = "_CONTAINERS_USERNS_CONFIGURED"
 )
 
+// hasFullUsersMappings checks whether the current user namespace has all the IDs mapped.
+func hasFullUsersMappings() (bool, error) {
+	content, err := ioutil.ReadFile("/proc/self/uid_map")
+	if err != nil {
+		return false, err
+	}
+	// if the uid_map contains 4294967295, the entire IDs space is available in the
+	// user namespace, so it is likely the initial user namespace.
+	return bytes.Contains(content, []byte("4294967295")), nil
+}
+
 // IsRootless tells us if we are running in rootless mode
 func IsRootless() bool {
 	isRootlessOnce.Do(func() {
 		isRootless = getRootlessUID() != 0 || getenv(UsernsEnvName) != ""
+		if !isRootless {
+			hasCapSysAdmin, err := HasCapSysAdmin()
+			if err != nil {
+				logrus.Warnf("Failed to read CAP_SYS_ADMIN presence for the current process")
+			}
+			if err == nil && !hasCapSysAdmin {
+				isRootless = true
+			}
+		}
+		if !isRootless {
+			hasMappings, err := hasFullUsersMappings()
+			if err != nil {
+				logrus.Warnf("Failed to read current user namespace mappings")
+			}
+			if err == nil && !hasMappings {
+				isRootless = true
+			}
+		}
 	})
 	return isRootless
 }

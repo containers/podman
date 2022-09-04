@@ -4,6 +4,7 @@ package features
 
 import (
 	"fmt"
+	"strings"
 	"sync"
 )
 
@@ -18,6 +19,7 @@ const (
 	StoreIssuerInfo
 	StreamlineOrderAndAuthzs
 	V1DisableNewValidations
+	ExpirationMailerDontLookTwice
 
 	//   Currently in-use features
 	// Check CAA and respect validationmethods parameter.
@@ -77,6 +79,32 @@ const (
 	//   with the certificate's keypair, the cert will be revoked with reason
 	//   keyCompromise, regardless of what revocation reason they request.
 	MozRevocationReasons
+	// OldTLSOutbound allows the VA to negotiate TLS 1.0 and TLS 1.1 during
+	// HTTPS redirects. When it is set to false, the VA will only connect to
+	// HTTPS servers that support TLS 1.2 or above.
+	OldTLSOutbound
+	// OldTLSInbound controls whether the WFE rejects inbound requests using
+	// TLS 1.0 and TLS 1.1. Because WFE does not terminate TLS in production,
+	// we rely on the TLS-Version header (set by our reverse proxy).
+	OldTLSInbound
+	// SHA1CSRs controls whether the /acme/finalize endpoint rejects CSRs that
+	// are self-signed using SHA1.
+	SHA1CSRs
+	// AllowUnrecognizedFeatures is internal to the features package: if true,
+	// skip error when unrecognized feature flag names are passed.
+	AllowUnrecognizedFeatures
+	// RejectDuplicateCSRExtensions enables verification that submitted CSRs do
+	// not contain duplicate extensions. This behavior will be on by default in
+	// go1.19.
+	RejectDuplicateCSRExtensions
+
+	// ROCSPStage1 enables querying Redis, live-signing response, and storing
+	// to Redis, but doesn't serve responses from Redis.
+	ROCSPStage1
+	// ROCSPStage2 enables querying Redis, live-signing a response, and storing
+	// to Redis, and does serve responses from Redis when appropriate (when
+	// they are fresh, and agree with MariaDB's status for the certificate).
+	ROCSPStage2
 )
 
 // List of features and their default value, protected by fMu
@@ -104,6 +132,14 @@ var features = map[FeatureFlag]bool{
 	CheckFailedAuthorizationsFirst: false,
 	AllowReRevocation:              false,
 	MozRevocationReasons:           false,
+	OldTLSOutbound:                 true,
+	OldTLSInbound:                  true,
+	SHA1CSRs:                       true,
+	AllowUnrecognizedFeatures:      false,
+	ExpirationMailerDontLookTwice:  false,
+	RejectDuplicateCSRExtensions:   false,
+	ROCSPStage1:                    false,
+	ROCSPStage2:                    false,
 }
 
 var fMu = new(sync.RWMutex)
@@ -120,17 +156,24 @@ func init() {
 }
 
 // Set accepts a list of features and whether they should
-// be enabled or disabled, it will return a error if passed
-// a feature name that it doesn't know
+// be enabled or disabled. In the presence of unrecognized
+// flags, it will return an error or not depending on the
+// value of AllowUnrecognizedFeatures.
 func Set(featureSet map[string]bool) error {
 	fMu.Lock()
 	defer fMu.Unlock()
+	var unknown []string
 	for n, v := range featureSet {
 		f, present := nameToFeature[n]
-		if !present {
-			return fmt.Errorf("feature '%s' doesn't exist", n)
+		if present {
+			features[f] = v
+		} else {
+			unknown = append(unknown, n)
 		}
-		features[f] = v
+	}
+	if len(unknown) > 0 && !features[AllowUnrecognizedFeatures] {
+		return fmt.Errorf("unrecognized feature flag names: %s",
+			strings.Join(unknown, ", "))
 	}
 	return nil
 }

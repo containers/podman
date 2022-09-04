@@ -2,6 +2,7 @@
 // tarballs and an optional template configuration.
 //
 // An example:
+//
 //	package main
 //
 //	import (

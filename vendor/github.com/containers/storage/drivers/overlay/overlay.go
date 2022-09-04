@@ -1608,7 +1608,7 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 			diffDir := path.Join(id, "diff")
 			opts = fmt.Sprintf("lowerdir=%s,upperdir=%s,workdir=%s", strings.Join(relLowers, ":"), diffDir, workdir)
 		} else {
-			opts = fmt.Sprintf("lowerdir=%s", strings.Join(relLowers, ":"))
+			opts = fmt.Sprintf("lowerdir=%s:%s", diffDir, strings.Join(relLowers, ":"))
 		}
 		if len(optsList) > 0 {
 			opts = fmt.Sprintf("%s,%s", opts, strings.Join(optsList, ","))

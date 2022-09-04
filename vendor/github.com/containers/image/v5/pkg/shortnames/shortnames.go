@@ -20,9 +20,9 @@ import (
 // short names.
 //
 // Examples:
-//  * short names: "image:tag", "library/fedora"
-//  * not short names: "quay.io/image", "localhost/image:tag",
-//                     "server.org:5000/lib/image", "image@sha256:..."
+//   - short names: "image:tag", "library/fedora"
+//   - not short names: "quay.io/image", "localhost/image:tag",
+//     "server.org:5000/lib/image", "image@sha256:..."
 func IsShortName(input string) bool {
 	isShort, _, _ := parseUnnormalizedShortName(input)
 	return isShort
@@ -402,9 +402,9 @@ func Resolve(ctx *types.SystemContext, name string) (*Resolved, error) {
 // not a short name), it is returned as is.  In case, it's a short name, the
 // returned slice of named references looks as follows:
 //
-//  1) If present, the short-name alias
-//  2) "localhost/" as used by many container engines such as Podman and Buildah
-//  3) Unqualified-search registries from the registries.conf files
+//  1. If present, the short-name alias
+//  2. "localhost/" as used by many container engines such as Podman and Buildah
+//  3. Unqualified-search registries from the registries.conf files
 //
 // Note that tags and digests are stripped from the specified name before
 // looking up an alias. Stripped off tags and digests are later on appended to

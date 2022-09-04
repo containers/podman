@@ -12,12 +12,12 @@ require (
 	github.com/containernetworking/cni v1.1.2
 	github.com/containernetworking/plugins v1.1.1
 	github.com/containers/buildah v1.27.0
-	github.com/containers/common v0.49.2-0.20220826180622-c2dcb4e70340
+	github.com/containers/common v0.49.2-0.20220902113118-d70271644c46
 	github.com/containers/conmon v2.0.20+incompatible
-	github.com/containers/image/v5 v5.22.0
+	github.com/containers/image/v5 v5.22.1-0.20220902195630-3aed33741846
 	github.com/containers/ocicrypt v1.1.5
 	github.com/containers/psgo v1.7.3
-	github.com/containers/storage v1.42.0
+	github.com/containers/storage v1.42.1-0.20220902113655-8aa3b3aef02f
 	github.com/coreos/go-systemd/v22 v22.3.2
 	github.com/coreos/stream-metadata-go v0.0.0-20210225230131-70edb9eb47b3
 	github.com/cyphar/filepath-securejoin v0.2.3
@@ -26,7 +26,7 @@ require (
 	github.com/docker/docker v20.10.17+incompatible
 	github.com/docker/go-connections v0.4.1-0.20210727194412-58542c764a11
 	github.com/docker/go-plugins-helpers v0.0.0-20211224144127-6eecb7beb651
-	github.com/docker/go-units v0.4.0
+	github.com/docker/go-units v0.5.0
 	github.com/fsnotify/fsnotify v1.5.4
 	github.com/ghodss/yaml v1.0.0
 	github.com/godbus/dbus/v5 v5.1.0
@@ -42,10 +42,10 @@ require (
 	github.com/moby/term v0.0.0-20210619224110-3f7ff695adc6
 	github.com/nxadm/tail v1.4.8
 	github.com/onsi/ginkgo v1.16.5
-	github.com/onsi/gomega v1.20.0
+	github.com/onsi/gomega v1.20.2
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.0.3-0.20220114050600-8b9d41f48198
-	github.com/opencontainers/runc v1.1.3
+	github.com/opencontainers/runc v1.1.4
 	github.com/opencontainers/runtime-spec v1.0.3-0.20211214071223-8958f93039ab
 	github.com/opencontainers/runtime-tools v0.9.1-0.20220714195903-17b3287fafb7
 	github.com/opencontainers/selinux v1.10.1
@@ -61,7 +61,7 @@ require (
 	github.com/vbauerster/mpb/v7 v7.5.2
 	github.com/vishvananda/netlink v1.1.1-0.20220115184804-dd687eb2f2d4
 	go.etcd.io/bbolt v1.3.6
-	golang.org/x/sync v0.0.0-20220601150217-0de741cfad7f
+	golang.org/x/sync v0.0.0-20220722155255-886fb9371eb4
 	golang.org/x/sys v0.0.0-20220823224334-20c2bfdbfe24
 	golang.org/x/term v0.0.0-20220526004731-065cf7ba2467
 	golang.org/x/text v0.3.7

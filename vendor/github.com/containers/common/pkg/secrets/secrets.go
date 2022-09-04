@@ -183,12 +183,12 @@ func (s *SecretsManager) Store(name string, data []byte, driverType string, driv
 	}
 	err = driver.Store(secr.ID, data)
 	if err != nil {
-		return "", fmt.Errorf("error creating secret %s: %w", name, err)
+		return "", fmt.Errorf("creating secret %s: %w", name, err)
 	}
 
 	err = s.store(secr)
 	if err != nil {
-		return "", fmt.Errorf("error creating secret %s: %w", name, err)
+		return "", fmt.Errorf("creating secret %s: %w", name, err)
 	}
 
 	return secr.ID, nil
@@ -218,12 +218,12 @@ func (s *SecretsManager) Delete(nameOrID string) (string, error) {
 
 	err = driver.Delete(secretID)
 	if err != nil {
-		return "", fmt.Errorf("error deleting secret %s: %w", nameOrID, err)
+		return "", fmt.Errorf("deleting secret %s: %w", nameOrID, err)
 	}
 
 	err = s.delete(secretID)
 	if err != nil {
-		return "", fmt.Errorf("error deleting secret %s: %w", nameOrID, err)
+		return "", fmt.Errorf("deleting secret %s: %w", nameOrID, err)
 	}
 	return secretID, nil
 }

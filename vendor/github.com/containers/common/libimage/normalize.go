@@ -18,7 +18,7 @@ func NormalizeName(name string) (reference.Named, error) {
 	// NOTE: this code is in symmetrie with containers/image/pkg/shortnames.
 	ref, err := reference.Parse(name)
 	if err != nil {
-		return nil, fmt.Errorf("error normalizing name %q: %w", name, err)
+		return nil, fmt.Errorf("normalizing name %q: %w", name, err)
 	}
 
 	named, ok := ref.(reference.Named)

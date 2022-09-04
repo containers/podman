@@ -10,7 +10,7 @@ import (
 
 	"github.com/letsencrypt/boulder/core"
 
-	yaml "gopkg.in/yaml.v2"
+	yaml "gopkg.in/yaml.v3"
 )
 
 // blockedKeys is a type for maintaining a map of SHA256 hashes

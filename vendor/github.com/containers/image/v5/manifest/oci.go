@@ -212,6 +212,7 @@ func (m *OCI1) Inspect(configGetter func(types.BlobInfo) ([]byte, error)) (*type
 	if err := json.Unmarshal(config, d1); err != nil {
 		return nil, err
 	}
+	layerInfos := m.LayerInfos()
 	i := &types.ImageInspectInfo{
 		Tag:           "",
 		Created:       v1.Created,
@@ -219,8 +220,10 @@ func (m *OCI1) Inspect(configGetter func(types.BlobInfo) ([]byte, error)) (*type
 		Labels:        v1.Config.Labels,
 		Architecture:  v1.Architecture,
 		Os:            v1.OS,
-		Layers:        layerInfosToStrings(m.LayerInfos()),
+		Layers:        layerInfosToStrings(layerInfos),
+		LayersData:    imgInspectLayersFromLayerInfos(layerInfos),
 		Env:           v1.Config.Env,
+		Author:        v1.Author,
 	}
 	return i, nil
 }

@@ -177,24 +177,25 @@ type BICReplacementCandidate struct {
 // BlobInfoCache records data useful for reusing blobs, or substituting equivalent ones, to avoid unnecessary blob copies.
 //
 // It records two kinds of data:
-// - Sets of corresponding digest vs. uncompressed digest ("DiffID") pairs:
-//   One of the two digests is known to be uncompressed, and a single uncompressed digest may correspond to more than one compressed digest.
-//   This allows matching compressed layer blobs to existing local uncompressed layers (to avoid unnecessary download and decompression),
-//   or uncompressed layer blobs to existing remote compressed layers (to avoid unnecessary compression and upload)/
 //
-//   It is allowed to record an (uncompressed digest, the same uncompressed digest) correspondence, to express that the digest is known
-//   to be uncompressed (i.e. that a conversion from schema1 does not have to decompress the blob to compute a DiffID value).
+//   - Sets of corresponding digest vs. uncompressed digest ("DiffID") pairs:
+//     One of the two digests is known to be uncompressed, and a single uncompressed digest may correspond to more than one compressed digest.
+//     This allows matching compressed layer blobs to existing local uncompressed layers (to avoid unnecessary download and decompression),
+//     or uncompressed layer blobs to existing remote compressed layers (to avoid unnecessary compression and upload)/
 //
-//   This mapping is primarily maintained in generic copy.Image code, but transports may want to contribute more data points if they independently
-//   compress/decompress blobs for their own purposes.
+//     It is allowed to record an (uncompressed digest, the same uncompressed digest) correspondence, to express that the digest is known
+//     to be uncompressed (i.e. that a conversion from schema1 does not have to decompress the blob to compute a DiffID value).
 //
-// - Known blob locations, managed by individual transports:
-//   The transports call RecordKnownLocation when encountering a blob that could possibly be reused (typically in GetBlob/PutBlob/TryReusingBlob),
-//   recording transport-specific information that allows the transport to reuse the blob in the future;
-//   then, TryReusingBlob implementations can call CandidateLocations to look up previously recorded blob locations that could be reused.
+//     This mapping is primarily maintained in generic copy.Image code, but transports may want to contribute more data points if they independently
+//     compress/decompress blobs for their own purposes.
 //
-//   Each transport defines its own “scopes” within which blob reuse is possible (e.g. in, the docker/distribution case, blobs
-//   can be directly reused within a registry, or mounted across registries within a registry server.)
+//   - Known blob locations, managed by individual transports:
+//     The transports call RecordKnownLocation when encountering a blob that could possibly be reused (typically in GetBlob/PutBlob/TryReusingBlob),
+//     recording transport-specific information that allows the transport to reuse the blob in the future;
+//     then, TryReusingBlob implementations can call CandidateLocations to look up previously recorded blob locations that could be reused.
+//
+//     Each transport defines its own “scopes” within which blob reuse is possible (e.g. in, the docker/distribution case, blobs
+//     can be directly reused within a registry, or mounted across registries within a registry server.)
 //
 // None of the methods return an error indication: errors when neither reading from, nor writing to, the cache, should be fatal;
 // users of the cache should just fall back to copying the blobs the usual way.
@@ -465,7 +466,17 @@ type ImageInspectInfo struct {
 	Variant       string
 	Os            string
 	Layers        []string
+	LayersData    []ImageInspectLayer
 	Env           []string
+	Author        string
+}
+
+// ImageInspectLayer is a set of metadata describing an image layers' detail
+type ImageInspectLayer struct {
+	MIMEType    string // "" if unknown.
+	Digest      digest.Digest
+	Size        int64 // -1 if unknown.
+	Annotations map[string]string
 }
 
 // DockerAuthConfig contains authorization information for connecting to a registry.
