@@ -945,7 +945,7 @@ echo -n %s >%s
 		session := podmanTest.Podman([]string{"run", "--rm", "--user=1234", ALPINE, "id"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.OutputToString()).To(Equal("uid=1234(1234) gid=0(root)"))
+		Expect(session.OutputToString()).To(Equal("uid=1234(1234) gid=0(root) groups=0(root)"))
 	})
 
 	It("podman run with user (integer, in /etc/passwd)", func() {
@@ -966,14 +966,14 @@ echo -n %s >%s
 		session := podmanTest.Podman([]string{"run", "--rm", "--user=mail:21", ALPINE, "id"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.OutputToString()).To(Equal("uid=8(mail) gid=21(ftp)"))
+		Expect(session.OutputToString()).To(Equal("uid=8(mail) gid=21(ftp) groups=21(ftp)"))
 	})
 
 	It("podman run with user:group (integer:groupname)", func() {
 		session := podmanTest.Podman([]string{"run", "--rm", "--user=8:ftp", ALPINE, "id"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.OutputToString()).To(Equal("uid=8(mail) gid=21(ftp)"))
+		Expect(session.OutputToString()).To(Equal("uid=8(mail) gid=21(ftp) groups=21(ftp)"))
 	})
 
 	It("podman run with user, verify caps dropped", func() {
@@ -982,6 +982,14 @@ echo -n %s >%s
 		Expect(session).Should(Exit(0))
 		capEff := strings.Split(session.OutputToString(), " ")
 		Expect("0000000000000000").To(Equal(capEff[1]))
+	})
+
+	It("podman run with user, verify group added", func() {
+		session := podmanTest.Podman([]string{"run", "--rm", "--user=1000:1000", ALPINE, "grep", "Groups:", "/proc/self/status"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		groups := strings.Split(session.OutputToString(), " ")[1]
+		Expect("1000").To(Equal(groups))
 	})
 
 	It("podman run with attach stdin outputs container ID", func() {
