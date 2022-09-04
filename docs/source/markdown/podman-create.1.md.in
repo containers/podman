@@ -260,9 +260,7 @@ To specify multiple static IPv6 addresses per container, set multiple networks u
 
 @@option ipc
 
-#### **--label**, **-l**=*label*
-
-Add metadata to a container (e.g., --label com.example.key=value)
+@@option label
 
 @@option label-file
 
