@@ -12,7 +12,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/containers/common/pkg/capabilities"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/common/pkg/resize"
 	cutil "github.com/containers/common/pkg/util"
@@ -386,7 +385,7 @@ func (r *ConmonOCIRuntime) startExec(c *Container, sessionID string, options *Ex
 		finalEnv = append(finalEnv, fmt.Sprintf("%s=%s", k, v))
 	}
 
-	processFile, err := prepareProcessExec(c, options, finalEnv, sessionID)
+	processFile, err := c.prepareProcessExec(options, finalEnv, sessionID)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -665,7 +664,7 @@ func attachExecHTTP(c *Container, sessionID string, r *http.Request, w http.Resp
 
 // prepareProcessExec returns the path of the process.json used in runc exec -p
 // caller is responsible to close the returned *os.File if needed.
-func prepareProcessExec(c *Container, options *ExecOptions, env []string, sessionID string) (*os.File, error) {
+func (c *Container) prepareProcessExec(options *ExecOptions, env []string, sessionID string) (*os.File, error) {
 	f, err := ioutil.TempFile(c.execBundlePath(sessionID), "exec-process-")
 	if err != nil {
 		return nil, err
@@ -745,33 +744,8 @@ func prepareProcessExec(c *Container, options *ExecOptions, env []string, sessio
 		pspec.User = processUser
 	}
 
-	ctrSpec, err := c.specFromState()
-	if err != nil {
+	if err := c.setProcessCapabilitiesExec(options, user, execUser, pspec); err != nil {
 		return nil, err
-	}
-
-	allCaps, err := capabilities.BoundingSet()
-	if err != nil {
-		return nil, err
-	}
-	if options.Privileged {
-		pspec.Capabilities.Bounding = allCaps
-	} else {
-		pspec.Capabilities.Bounding = ctrSpec.Process.Capabilities.Bounding
-	}
-
-	// Always unset the inheritable capabilities similarly to what the Linux kernel does
-	// They are used only when using capabilities with uid != 0.
-	pspec.Capabilities.Inheritable = []string{}
-
-	if execUser.Uid == 0 {
-		pspec.Capabilities.Effective = pspec.Capabilities.Bounding
-		pspec.Capabilities.Permitted = pspec.Capabilities.Bounding
-	} else if user == c.config.User {
-		pspec.Capabilities.Effective = ctrSpec.Process.Capabilities.Effective
-		pspec.Capabilities.Inheritable = ctrSpec.Process.Capabilities.Effective
-		pspec.Capabilities.Permitted = ctrSpec.Process.Capabilities.Effective
-		pspec.Capabilities.Ambient = ctrSpec.Process.Capabilities.Effective
 	}
 
 	hasHomeSet := false
