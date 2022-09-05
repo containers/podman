@@ -62,7 +62,8 @@ func reset(cmd *cobra.Command, args []string) {
         - all images
         - all networks
         - all build cache
-        - all machines`)
+        - all machines
+        - all volumes`)
 
 		if len(listCtn) > 0 {
 			fmt.Println(`WARNING! The following external containers will be purged:`)
