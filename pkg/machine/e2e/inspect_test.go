@@ -75,5 +75,13 @@ var _ = Describe("podman machine stop", func() {
 		Expect(err).To(BeNil())
 		Expect(inspectSession).To(Exit(0))
 		Expect(inspectSession.Bytes()).To(ContainSubstring(name))
+
+		// check invalid template returns error
+		inspect = new(inspectMachine)
+		inspect = inspect.withFormat("{{.Abcde}}")
+		inspectSession, err = mb.setName(name).setCmd(inspect).run()
+		Expect(err).To(BeNil())
+		Expect(inspectSession).To(Exit(125))
+		Expect(inspectSession.errorToString()).To(ContainSubstring("can't evaluate field Abcde in type machine.InspectInfo"))
 	})
 })
