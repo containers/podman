@@ -153,6 +153,13 @@ var _ = Describe("Podman events", func() {
 		event = events.Event{}
 		err = json.Unmarshal([]byte(jsonArr[0]), &event)
 		Expect(err).ToNot(HaveOccurred())
+
+		test = podmanTest.Podman([]string{"events", "--stream=false", "--filter=type=container", "--format", "ID: {{.ID}}"})
+		test.WaitWithDefaultTimeout()
+		Expect(test).To(Exit(0))
+		arr := test.OutputToStringArray()
+		Expect(len(arr)).To(BeNumerically(">", 1))
+		Expect(arr[0]).To(MatchRegexp("ID: [a-fA-F0-9]{64}"))
 	})
 
 	It("podman events --until future", func() {
