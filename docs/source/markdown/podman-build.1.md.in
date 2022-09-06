@@ -391,28 +391,9 @@ This option is not supported on the remote client, including Mac and Windows
 Name of the manifest list to which the image will be added. Creates the manifest list
 if it does not exist. This option is useful for building multi architecture images.
 
-#### **--memory**, **-m**=*LIMIT*
+@@option memory
 
-Memory limit (format: `<number>[<unit>]`, where unit = b (bytes), k (kibibytes),
-m (mebibytes), or g (gibibytes))
-
-Allows you to constrain the memory available to a container. If the host
-supports swap memory, then the **-m** memory setting can be larger than physical
-RAM. If a limit of 0 is specified (not using **-m**), the container's memory is
-not limited. The actual limit may be rounded up to a multiple of the operating
-system's page size (the value would be very large, that's millions of
-trillions).
-
-#### **--memory-swap**=*LIMIT*
-
-A limit value equal to memory plus swap. Must be used with the  **-m**
-(**--memory**) option. The swap `LIMIT` should always be larger than **-m**
-(**--memory**) value.  By default, the swap `LIMIT` will be set to double
-the value of --memory.
-
-The format of `LIMIT` is `<number>[<unit>]`. Unit can be `b` (bytes),
-`k` (kibibytes), `m` (mebibytes), or `g` (gibibytes). If you don't specify a
-unit, `b` is used. Set LIMIT to `-1` to enable unlimited swap.
+@@option memory-swap
 
 #### **--network**=*mode*, **--net**
 
