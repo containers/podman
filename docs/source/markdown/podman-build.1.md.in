@@ -205,16 +205,7 @@ keys and/or certificates. Decryption will be tried with all keys. If the key is
 protected by a passphrase, it is required to be passed in the argument and
 omitted otherwise.
 
-#### **--device**=*host-device[:container-device][:permissions]*
-
-Add a host device to the container. Optional *permissions* parameter
-can be used to specify device permissions, it is combination of
-**r** for read, **w** for write, and **m** for **mknod**(2).
-
-Example: **--device=/dev/sdc:/dev/xvdc:rwm**.
-
-Note: if *host-device* is a symbolic link then it will be resolved first.
-The container will only store the major and minor numbers of the host device.
+@@option device
 
 Note: if the user only has access rights via a group, accessing the device
 from inside a rootless container will fail. The **[crun(1)](https://github.com/containers/crun/tree/main/crun.1.md)** runtime offers a
