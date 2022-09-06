@@ -61,7 +61,7 @@ env:
     # Curl-command prefix for downloading task artifacts, simply add the
     # the url-encoded task name, artifact name, and path as a suffix.
     ARTCURL: >-
-        curl --fail --location -O
+        curl --retry 5 --retry-delay 8 --fail --location -O
         --url https://api.cirrus-ci.com/v1/artifact/build/${CIRRUS_BUILD_ID}
 
 
