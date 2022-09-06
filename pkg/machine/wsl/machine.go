@@ -44,7 +44,6 @@ const containersConf = `[containers]
 
 [engine]
 cgroup_manager = "cgroupfs"
-events_logger = "file"
 `
 
 const appendPort = `grep -q Port\ %d /etc/ssh/sshd_config || echo Port %d >> /etc/ssh/sshd_config`
