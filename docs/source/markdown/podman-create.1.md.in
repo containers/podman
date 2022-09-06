@@ -500,21 +500,7 @@ When size is `0`, there is no limit on the amount of memory used for IPC by the 
 
 @@option subuidname
 
-#### **--sysctl**=*SYSCTL*
-
-Configure namespaced kernel parameters at runtime
-
-IPC Namespace - current sysctls allowed:
-
-kernel.msgmax, kernel.msgmnb, kernel.msgmni, kernel.sem, kernel.shmall, kernel.shmmax, kernel.shmmni, kernel.shm_rmid_forced
-Sysctls beginning with fs.mqueue.*
-
-Note: if you use the --ipc=host option these sysctls will not be allowed.
-
-Network Namespace - current sysctls allowed:
-    Sysctls beginning with net.*
-
-Note: if you use the --network=host option these sysctls will not be allowed.
+@@option sysctl
 
 @@option systemd
 

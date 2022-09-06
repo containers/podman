@@ -542,29 +542,7 @@ Sets whether the signals sent to the **podman run** command are proxied to the c
 
 @@option subuidname
 
-#### **--sysctl**=*name=value*
-
-Configure namespaced kernel parameters at runtime.
-
-For the IPC namespace, the following sysctls are allowed:
-
-- kernel.msgmax
-- kernel.msgmnb
-- kernel.msgmni
-- kernel.sem
-- kernel.shmall
-- kernel.shmmax
-- kernel.shmmni
-- kernel.shm_rmid_forced
-- Sysctls beginning with fs.mqueue.\*
-
-Note: if you use the **--ipc=host** option, the above sysctls will not be allowed.
-
-For the network namespace, the following sysctls are allowed:
-
-- Sysctls beginning with net.\*
-
-Note: if you use the **--network=host** option, these sysctls will not be allowed.
+@@option sysctl
 
 @@option systemd
 
