@@ -446,7 +446,7 @@ func (w *watch) setup(dirs []string, dirErrors map[string]error) {
 
 // Start watching Spec directories for relevant changes.
 func (w *watch) start(m *sync.Mutex, refresh func() error, dirErrors map[string]error) {
-	go w.watch(m, refresh, dirErrors)
+	go w.watch(w.watcher, m, refresh, dirErrors)
 }
 
 // Stop watching directories.
@@ -460,8 +460,8 @@ func (w *watch) stop() {
 }
 
 // Watch Spec directory changes, triggering a refresh if necessary.
-func (w *watch) watch(m *sync.Mutex, refresh func() error, dirErrors map[string]error) {
-	watch := w.watcher
+func (w *watch) watch(fsw *fsnotify.Watcher, m *sync.Mutex, refresh func() error, dirErrors map[string]error) {
+	watch := fsw
 	if watch == nil {
 		return
 	}
