@@ -653,7 +653,7 @@ func attachExecHTTP(c *Container, sessionID string, r *http.Request, w http.Resp
 				return err
 			}
 			// copy stdin is done, close it
-			if connErr := conn.CloseWrite(); connErr != nil {
+			if connErr := socketCloseWrite(conn); connErr != nil {
 				logrus.Errorf("Unable to close conn: %v", connErr)
 			}
 		case <-cancel:

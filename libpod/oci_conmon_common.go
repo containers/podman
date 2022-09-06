@@ -477,6 +477,16 @@ func (r *ConmonOCIRuntime) UnpauseContainer(ctr *Container) error {
 	return utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, env, r.path, append(r.runtimeFlags, "resume", ctr.ID())...)
 }
 
+// This filters out ENOTCONN errors which can happen on FreeBSD if the
+// other side of the connection is already closed.
+func socketCloseWrite(conn *net.UnixConn) error {
+	err := conn.CloseWrite()
+	if err != nil && errors.Is(err, syscall.ENOTCONN) {
+		return nil
+	}
+	return err
+}
+
 // HTTPAttach performs an attach for the HTTP API.
 // The caller must handle closing the HTTP connection after this returns.
 // The cancel channel is not closed; it is up to the caller to do so after
@@ -689,7 +699,7 @@ func (r *ConmonOCIRuntime) HTTPAttach(ctr *Container, req *http.Request, w http.
 				return err
 			}
 			// copy stdin is done, close it
-			if connErr := conn.CloseWrite(); connErr != nil {
+			if connErr := socketCloseWrite(conn); connErr != nil {
 				logrus.Errorf("Unable to close conn: %v", connErr)
 			}
 		case <-cancel:
