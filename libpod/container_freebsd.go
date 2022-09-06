@@ -10,3 +10,13 @@ type containerPlatformState struct {
 	// namespace.
 	NetworkJail string `json:"-"`
 }
+
+func networkDisabled(c *Container) (bool, error) {
+	if c.config.CreateNetNS {
+		return false, nil
+	}
+	if !c.config.PostConfigureNetNS {
+		return c.state.NetworkJail == "", nil
+	}
+	return false, nil
+}

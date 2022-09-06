@@ -1133,20 +1133,6 @@ func (c *Container) NetworkDisabled() (bool, error) {
 	return networkDisabled(c)
 }
 
-func networkDisabled(c *Container) (bool, error) {
-	if c.config.CreateNetNS {
-		return false, nil
-	}
-	if !c.config.PostConfigureNetNS {
-		for _, ns := range c.config.Spec.Linux.Namespaces {
-			if ns.Type == spec.NetworkNamespace {
-				return ns.Path == "", nil
-			}
-		}
-	}
-	return false, nil
-}
-
 func (c *Container) HostNetwork() bool {
 	if c.config.CreateNetNS || c.config.NetNsCtr != "" {
 		return false
