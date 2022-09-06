@@ -375,6 +375,12 @@ After=network-online.target
 [Service]
 Type=oneshot
 ExecStart=/usr/bin/podman auto-update
+Environment="http_proxy=${http_proxy}"
+Environment="HTTP_PROXY=${HTTP_PROXY}"
+Environment="https_proxy=${https_proxy}"
+Environment="HTTPS_PROXY=${HTTPS_PROXY}"
+Environment="no_proxy=${no_proxy}"
+Environment="NO_PROXY=${NO_PROXY}"
 
 [Install]
 WantedBy=default.target

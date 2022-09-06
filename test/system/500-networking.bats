@@ -61,9 +61,9 @@ load helpers
     is "$output" "$random_2" "curl 127.0.0.1:/index2.txt"
 
     # Verify http contents: wget from a second container
-    run_podman run --rm --net=host $IMAGE wget -qO - $SERVER/index.txt
+    run_podman run --rm --net=host --http-proxy=false $IMAGE wget -qO - $SERVER/index.txt
     is "$output" "$random_1" "podman wget /index.txt"
-    run_podman run --rm --net=host $IMAGE wget -qO - $SERVER/index2.txt
+    run_podman run --rm --net=host --http-proxy=false $IMAGE wget -qO - $SERVER/index2.txt
     is "$output" "$random_2" "podman wget /index2.txt"
 
     # Tests #4889 - two-argument form of "podman ports" was broken
