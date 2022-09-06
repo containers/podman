@@ -194,3 +194,22 @@ EOF
     is "$(wc -l <$eventsFile)" "$(wc -l <<<$output)" "all events are returned"
     is "${lines[-2]}" ".* log-rotation $eventsFile"
 }
+
+# Prior to #15633, container labels would not appear in 'die' log events
+@test "events - labels included in container die" {
+    skip_if_remote "remote does not support --events-backend"
+    local cname=c$(random_string 15)
+    local lname=l$(random_string 10)
+    local lvalue="v$(random_string 10) $(random_string 5)"
+
+    run_podman 17 --events-backend=file run --rm \
+               --name=$cname \
+               --label=$lname="$lvalue" \
+               $IMAGE sh -c 'exit 17'
+    run_podman --events-backend=file events \
+               --filter=container=$cname \
+               --filter=status=died \
+               --stream=false \
+               --format="{{.Attributes.$lname}}"
+    assert "$output" = "$lvalue" "podman-events output includes container label"
+}
