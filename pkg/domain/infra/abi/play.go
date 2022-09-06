@@ -661,9 +661,10 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 
 		opts = append(opts, libpod.WithSdNotifyMode(sdNotifyMode))
 
+		var proxy *notifyproxy.NotifyProxy
 		// Create a notify proxy for the container.
 		if sdNotifyMode != "" && sdNotifyMode != define.SdNotifyModeIgnore {
-			proxy, err := notifyproxy.New("")
+			proxy, err = notifyproxy.New("")
 			if err != nil {
 				return nil, err
 			}
@@ -674,6 +675,9 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 		ctr, err := generate.ExecuteCreate(ctx, ic.Libpod, rtSpec, spec, false, opts...)
 		if err != nil {
 			return nil, err
+		}
+		if proxy != nil {
+			proxy.AddContainer(ctr)
 		}
 		containers = append(containers, ctr)
 	}
@@ -774,20 +778,25 @@ func (ic *ContainerEngine) getImageAndLabelInfo(ctx context.Context, cwd string,
 	}
 
 	// Handle kube annotations
-	for k, v := range annotations {
-		switch k {
-		// Auto update annotation without container name will apply to
-		// all containers within the pod
-		case autoupdate.Label, autoupdate.AuthfileLabel:
-			labels[k] = v
-		// Auto update annotation with container name will apply only
-		// to the specified container
-		case fmt.Sprintf("%s/%s", autoupdate.Label, container.Name),
-			fmt.Sprintf("%s/%s", autoupdate.AuthfileLabel, container.Name):
-			prefixAndCtr := strings.Split(k, "/")
-			labels[prefixAndCtr[0]] = v
+	setLabel := func(label string) {
+		var result string
+		ctrSpecific := fmt.Sprintf("%s/%s", label, container.Name)
+		for k, v := range annotations {
+			switch k {
+			case label:
+				result = v
+			case ctrSpecific:
+				labels[label] = v
+				return
+			}
+		}
+		if result != "" {
+			labels[label] = result
 		}
 	}
+
+	setLabel(autoupdate.Label)
+	setLabel(autoupdate.AuthfileLabel)
 
 	return pulledImage, labels, nil
 }

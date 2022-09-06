@@ -153,18 +153,19 @@ func AutoUpdate(ctx context.Context, runtime *libpod.Runtime, options entities.A
 	}
 
 	// Find auto-update tasks and assemble them by unit.
-	errors := auto.assembleTasks(ctx)
+	allErrors := auto.assembleTasks(ctx)
 
 	// Nothing to do.
 	if len(auto.unitToTasks) == 0 {
-		return nil, errors
+		return nil, allErrors
 	}
 
 	// Connect to DBUS.
 	conn, err := systemd.ConnectToDBUS()
 	if err != nil {
 		logrus.Errorf(err.Error())
-		return nil, []error{err}
+		allErrors = append(allErrors, err)
+		return nil, allErrors
 	}
 	defer conn.Close()
 	auto.conn = conn
@@ -174,72 +175,94 @@ func AutoUpdate(ctx context.Context, runtime *libpod.Runtime, options entities.A
 	// Update all images/container according to their auto-update policy.
 	var allReports []*entities.AutoUpdateReport
 	for unit, tasks := range auto.unitToTasks {
-		// Sanity check: we'll support that in the future.
-		if len(tasks) != 1 {
-			errors = append(errors, fmt.Errorf("only 1 task per unit supported but unit %s has %d", unit, len(tasks)))
-			return nil, errors
-		}
-
+		unitErrors := auto.updateUnit(ctx, unit, tasks)
+		allErrors = append(allErrors, unitErrors...)
 		for _, task := range tasks {
-			err := func() error {
-				// Transition from state to state.  Will be
-				// split into multiple loops in the future to
-				// support more than one container/task per
-				// unit.
-				updateAvailable, err := task.updateAvailable(ctx)
-				if err != nil {
-					task.status = statusFailed
-					return fmt.Errorf("checking image updates for container %s: %w", task.container.ID(), err)
-				}
-
-				if !updateAvailable {
-					task.status = statusNotUpdated
-					return nil
-				}
-
-				if options.DryRun {
-					task.status = statusPending
-					return nil
-				}
-
-				if err := task.update(ctx); err != nil {
-					task.status = statusFailed
-					return fmt.Errorf("updating image for container %s: %w", task.container.ID(), err)
-				}
-
-				updateError := auto.restartSystemdUnit(ctx, unit)
-				if updateError == nil {
-					task.status = statusUpdated
-					return nil
-				}
-
-				if !options.Rollback {
-					task.status = statusFailed
-					return fmt.Errorf("restarting unit %s for container %s: %w", task.unit, task.container.ID(), err)
-				}
-
-				if err := task.rollbackImage(); err != nil {
-					task.status = statusFailed
-					return fmt.Errorf("rolling back image for container %s: %w", task.container.ID(), err)
-				}
-
-				if err := auto.restartSystemdUnit(ctx, unit); err != nil {
-					task.status = statusFailed
-					return fmt.Errorf("restarting unit %s for container %s during rollback: %w", task.unit, task.container.ID(), err)
-				}
-
-				task.status = statusRolledBack
-				return nil
-			}()
-
-			if err != nil {
-				errors = append(errors, err)
-			}
 			allReports = append(allReports, task.report())
 		}
 	}
 
-	return allReports, errors
+	return allReports, allErrors
+}
+
+// updateUnit auto updates the tasks in the specified systemd unit.
+func (u *updater) updateUnit(ctx context.Context, unit string, tasks []*task) []error {
+	var errors []error
+	tasksUpdated := false
+
+	for _, task := range tasks {
+		err := func() error { // Use an anonymous function to avoid spaghetti continue's
+			updateAvailable, err := task.updateAvailable(ctx)
+			if err != nil {
+				task.status = statusFailed
+				return fmt.Errorf("checking image updates for container %s: %w", task.container.ID(), err)
+			}
+
+			if !updateAvailable {
+				task.status = statusNotUpdated
+				return nil
+			}
+
+			if u.options.DryRun {
+				task.status = statusPending
+				return nil
+			}
+
+			if err := task.update(ctx); err != nil {
+				task.status = statusFailed
+				return fmt.Errorf("updating image for container %s: %w", task.container.ID(), err)
+			}
+
+			tasksUpdated = true
+			return nil
+		}()
+
+		if err != nil {
+			errors = append(errors, err)
+		}
+	}
+
+	// If no task has been updated, we can jump directly to the next unit.
+	if !tasksUpdated {
+		return errors
+	}
+
+	updateError := u.restartSystemdUnit(ctx, unit)
+	for _, task := range tasks {
+		if updateError == nil {
+			task.status = statusUpdated
+		} else {
+			task.status = statusFailed
+		}
+	}
+
+	// Jump to the next unit on successful update or if rollbacks are disabled.
+	if updateError == nil || !u.options.Rollback {
+		return errors
+	}
+
+	// The update has failed and rollbacks are enabled.
+	for _, task := range tasks {
+		if err := task.rollbackImage(); err != nil {
+			err = fmt.Errorf("rolling back image for container %s in unit %s: %w", task.container.ID(), unit, err)
+			errors = append(errors, err)
+		}
+	}
+
+	if err := u.restartSystemdUnit(ctx, unit); err != nil {
+		for _, task := range tasks {
+			task.status = statusFailed
+		}
+		err = fmt.Errorf("restarting unit %s during rollback: %w", unit, err)
+		errors = append(errors, err)
+		return errors
+	}
+
+	for _, task := range tasks {
+		task.status = statusRolledBack
+	}
+
+	return errors
 }
 
 // report creates an auto-update report for the task.
@@ -258,7 +281,16 @@ func (t *task) report() *entities.AutoUpdateReport {
 func (t *task) updateAvailable(ctx context.Context) (bool, error) {
 	switch t.policy {
 	case PolicyRegistryImage:
-		return t.registryUpdateAvailable(ctx)
+		// Errors checking for updates only should not be fatal.
+		// Especially on Edge systems, connection may be limited or
+		// there may just be a temporary downtime of the registry.
+		// But make sure to leave some breadcrumbs in the debug logs
+		// such that potential issues _can_ be analyzed if needed.
+		available, err := t.registryUpdateAvailable(ctx)
+		if err != nil {
+			logrus.Debugf("Error checking updates for image %s: %v (ignoring error)", t.rawImageName, err)
+		}
+		return available, nil
 	case PolicyLocalImage:
 		return t.localUpdateAvailable()
 	default:

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math"
 	"net"
+	"os"
 	"regexp"
 	"runtime"
 	"strconv"
@@ -26,6 +27,7 @@ import (
 	"github.com/containers/podman/v4/pkg/k8s.io/apimachinery/pkg/api/resource"
 	"github.com/containers/podman/v4/pkg/specgen"
 	"github.com/containers/podman/v4/pkg/specgen/generate"
+	systemdDefine "github.com/containers/podman/v4/pkg/systemd/define"
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/docker/docker/pkg/system"
 	"github.com/docker/go-units"
@@ -443,6 +445,12 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 		for k, v := range opts.Labels {
 			s.Labels[k] = v
 		}
+	}
+
+	// Make sure the container runs in a systemd unit which is
+	// stored as a label at container creation.
+	if unit := os.Getenv(systemdDefine.EnvVariable); unit != "" {
+		s.Labels[systemdDefine.EnvVariable] = unit
 	}
 
 	return s, nil

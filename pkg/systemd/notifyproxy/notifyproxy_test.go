@@ -41,7 +41,7 @@ func TestWaitAndClose(t *testing.T) {
 	default:
 	}
 
-	sendMessage(t, proxy, daemon.SdNotifyReady+"\nsomething else")
+	sendMessage(t, proxy, daemon.SdNotifyReady+"\nsomething else\n")
 	done := func() bool {
 		for i := 0; i < 10; i++ {
 			select {
