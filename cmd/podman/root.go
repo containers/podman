@@ -73,6 +73,7 @@ var (
 
 	defaultLogLevel = "warn"
 	logLevel        = defaultLogLevel
+	dockerConfig    = ""
 	debug           bool
 
 	useSyslog      bool
@@ -85,6 +86,7 @@ func init() {
 		loggingHook,
 		syslogHook,
 		earlyInitHook,
+		configHook,
 	)
 
 	rootFlags(rootCmd, registry.PodmanConfig())
@@ -311,6 +313,12 @@ func persistentPostRunE(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
+func configHook() {
+	if dockerConfig != "" {
+		logrus.Warn("The --config flag is ignored by Podman. Exists for Docker compatibility")
+	}
+}
+
 func loggingHook() {
 	var found bool
 	if debug {
@@ -363,6 +371,8 @@ func rootFlags(cmd *cobra.Command, opts *entities.PodmanConfig) {
 	lFlags.StringVarP(&opts.URI, "host", "H", uri, "Used for Docker compatibility")
 	_ = lFlags.MarkHidden("host")
 
+	lFlags.StringVar(&dockerConfig, "config", "", "Ignored for Docker compatibility")
+	_ = lFlags.MarkHidden("config")
 	// Context option added just for compatibility with DockerCLI.
 	lFlags.String("context", "default", "Name of the context to use to connect to the daemon (This flag is a NOOP and provided solely for scripting compatibility.)")
 	_ = lFlags.MarkHidden("context")
