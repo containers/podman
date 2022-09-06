@@ -1,4 +1,4 @@
-% podman-network-connect(1)
+% podman-network-connect 1
 
 ## NAME
 podman\-network\-connect - Connect a container to a network

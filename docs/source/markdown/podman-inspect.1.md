@@ -1,4 +1,4 @@
-% podman-inspect(1)
+% podman-inspect 1
 
 ## NAME
 podman\-inspect - Display a container, image, volume, network, or pod's configuration

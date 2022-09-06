@@ -1,4 +1,4 @@
-% podman-system-connection-rename(1)
+% podman-system-connection-rename 1
 
 ## NAME
 podman\-system\-connection\-rename - Rename the destination for Podman service

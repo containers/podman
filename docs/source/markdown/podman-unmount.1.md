@@ -1,4 +1,4 @@
-% podman-unmount(1)
+% podman-unmount 1
 
 ## NAME
 podman\-unmount - Unmount a working container's root filesystem

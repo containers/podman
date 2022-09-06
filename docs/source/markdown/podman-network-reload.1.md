@@ -1,4 +1,4 @@
-% podman-network-reload(1)
+% podman-network-reload 1
 
 ## NAME
 podman\-network\-reload - Reload network configuration for containers

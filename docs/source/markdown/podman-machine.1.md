@@ -1,4 +1,4 @@
-% podman-machine(1)
+% podman-machine 1
 
 ## NAME
 podman\-machine - Manage Podman's virtual machine

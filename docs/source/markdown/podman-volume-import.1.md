@@ -1,4 +1,4 @@
-% podman-volume-import(1)
+% podman-volume-import 1
 
 ## NAME
 podman\-volume\-import - Import tarball contents into an existing podman volume

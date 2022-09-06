@@ -1,4 +1,4 @@
-% podman-completion(1)
+% podman-completion 1
 
 ## NAME
 podman\-completion - Generate shell completion scripts

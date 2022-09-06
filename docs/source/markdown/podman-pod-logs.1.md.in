@@ -1,4 +1,4 @@
-% podman-pod-logs(1)
+% podman-pod-logs 1
 
 ## NAME
 podman\-pod\-logs - Displays logs for pod with one or more containers

@@ -1,4 +1,4 @@
-% podman-secret-inspect(1)
+% podman-secret-inspect 1
 
 ## NAME
 podman\-secret\-inspect - Display detailed information on one or more secrets

@@ -1,4 +1,4 @@
-% podman-system-reset(1)
+% podman-system-reset 1
 
 ## NAME
 podman\-system\-reset - Reset storage back to initial state

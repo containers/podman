@@ -1,4 +1,4 @@
-% podman-network-prune(1)
+% podman-network-prune 1
 
 ## NAME
 podman\-network\-prune - Remove all unused networks

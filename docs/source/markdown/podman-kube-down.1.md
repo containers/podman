@@ -1,4 +1,4 @@
-% podman-kube-down(1)
+% podman-kube-down 1
 
 ## NAME
 podman-kube-down - Remove containers and pods based on Kubernetes YAML

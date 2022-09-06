@@ -1,4 +1,4 @@
-% podman-image-inspect(1)
+% podman-image-inspect 1
 
 ## NAME
 podman\-image\-inspect - Display an image's configuration

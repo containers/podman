@@ -1,4 +1,4 @@
-% podman-load(1)
+% podman-load 1
 
 ## NAME
 podman\-load - Load image(s) from a tar archive into container storage

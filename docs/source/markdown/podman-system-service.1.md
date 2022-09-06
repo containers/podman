@@ -1,4 +1,4 @@
-% podman-service(1)
+% podman-service 1
 
 ## NAME
 podman\-system\-service - Run an API service

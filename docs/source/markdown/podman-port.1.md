@@ -1,4 +1,4 @@
-% podman-port(1)
+% podman-port 1
 
 ## NAME
 podman\-port - List port mappings for a container

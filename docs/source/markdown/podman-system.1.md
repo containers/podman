@@ -1,4 +1,4 @@
-% podman-system(1)
+% podman-system 1
 
 ## NAME
 podman\-system - Manage podman

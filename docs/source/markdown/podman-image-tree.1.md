@@ -1,4 +1,4 @@
-% podman-image-tree(1)
+% podman-image-tree 1
 
 ## NAME
 podman\-image\-tree - Prints layer hierarchy of an image in a tree format

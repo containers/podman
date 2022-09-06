@@ -1,4 +1,4 @@
-% podman-system-connection(1)
+% podman-system-connection 1
 
 ## NAME
 podman\-system\-connection - Manage the destination(s) for Podman service(s)

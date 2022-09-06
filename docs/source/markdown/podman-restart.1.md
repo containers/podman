@@ -1,4 +1,4 @@
-% podman-restart(1)
+% podman-restart 1
 
 ## NAME
 podman\-restart - Restart one or more containers

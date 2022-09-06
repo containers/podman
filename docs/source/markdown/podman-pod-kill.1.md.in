@@ -1,4 +1,4 @@
-% podman-pod-kill(1)
+% podman-pod-kill 1
 
 ## NAME
 podman\-pod\-kill - Kill the main process of each container in one or more pods

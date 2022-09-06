@@ -1,4 +1,4 @@
-% podman-image-prune(1)
+% podman-image-prune 1
 
 ## NAME
 podman-image-prune - Remove all unused images from the local store

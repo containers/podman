@@ -1,4 +1,4 @@
-% podman-untag(1)
+% podman-untag 1
 
 ## NAME
 podman\-untag - Removes one or more names from a locally-stored image

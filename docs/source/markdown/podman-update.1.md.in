@@ -1,4 +1,4 @@
-% podman-update(1)
+% podman-update 1
 
 ## NAME
 podman\-update - Updates the cgroup configuration of a given container

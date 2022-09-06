@@ -1,4 +1,4 @@
-% podman-manifest-exists(1)
+% podman-manifest-exists 1
 
 ## NAME
 podman\-manifest\-exists - Check if the given manifest list exists in local storage

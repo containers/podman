@@ -1,4 +1,4 @@
-% podman-container-restore(1)
+% podman-container-restore 1
 
 ## NAME
 podman\-container\-restore - Restores one or more containers from a checkpoint

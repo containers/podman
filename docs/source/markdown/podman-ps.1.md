@@ -1,4 +1,4 @@
-% podman-ps(1)
+% podman-ps 1
 
 ## NAME
 podman\-ps - Prints out information about containers

@@ -1,4 +1,4 @@
-% podman-commit(1)
+% podman-commit 1
 
 ## NAME
 podman\-commit - Create new image based on the changed container

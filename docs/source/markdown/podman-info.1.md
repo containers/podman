@@ -1,4 +1,4 @@
-% podman-info(1)
+% podman-info 1
 
 ## NAME
 podman\-info - Displays Podman related system information

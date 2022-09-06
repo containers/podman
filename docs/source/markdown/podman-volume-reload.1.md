@@ -1,4 +1,4 @@
-% podman-volume-reload(1)
+% podman-volume-reload 1
 
 ## NAME
 podman\-volume\-reload - Reload all volumes from volumes plugins

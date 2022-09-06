@@ -1,4 +1,4 @@
-% podman-mount(1)
+% podman-mount 1
 
 ## NAME
 podman\-mount - Mount a working container's root filesystem

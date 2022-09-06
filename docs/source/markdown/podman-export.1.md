@@ -1,4 +1,4 @@
-% podman-export(1)
+% podman-export 1
 
 ## NAME
 podman\-export - Export a container's filesystem contents as a tar archive

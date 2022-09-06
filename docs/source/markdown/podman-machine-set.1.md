@@ -1,4 +1,4 @@
-% podman-machine-set(1)
+% podman-machine-set 1
 
 ## NAME
 podman\-machine\-set - Sets a virtual machine setting

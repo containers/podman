@@ -1,4 +1,4 @@
-% podman-image(1)
+% podman-image 1
 
 ## NAME
 podman\-image - Manage images

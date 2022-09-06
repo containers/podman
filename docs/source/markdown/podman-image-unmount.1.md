@@ -1,4 +1,4 @@
-% podman-image-unmount(1)
+% podman-image-unmount 1
 
 ## NAME
 podman\-image\-unmount - Unmount an image's root filesystem

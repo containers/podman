@@ -1,4 +1,4 @@
-% podman-system-renumber(1)
+% podman-system-renumber 1
 
 ## NAME
 podman\-system\-renumber - Migrate lock numbers to handle a change in maximum number of locks

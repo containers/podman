@@ -1,4 +1,4 @@
-% podman-machine-info(1)
+% podman-machine-info 1
 
 ## NAME
 podman\-machine\-info - Display machine host info

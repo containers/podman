@@ -1,4 +1,4 @@
-% podman-network-rm(1)
+% podman-network-rm 1
 
 ## NAME
 podman\-network\-rm - Remove one or more networks

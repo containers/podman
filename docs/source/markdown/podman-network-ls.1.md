@@ -1,4 +1,4 @@
-% podman-network-ls(1)
+% podman-network-ls 1
 
 ## NAME
 podman\-network\-ls - Display a summary of networks

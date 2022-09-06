@@ -1,4 +1,4 @@
-% podman-system-connection-default(1)
+% podman-system-connection-default 1
 
 ## NAME
 podman\-system\-connection\-default - Set named destination as default for the Podman service

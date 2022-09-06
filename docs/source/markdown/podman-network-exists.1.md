@@ -1,4 +1,4 @@
-% podman-network-exists(1)
+% podman-network-exists 1
 
 ## NAME
 podman\-network\-exists - Check if the given network exists

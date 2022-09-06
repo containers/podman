@@ -1,4 +1,4 @@
-% podman-version(1)
+% podman-version 1
 
 ## NAME
 podman\-version - Display the Podman version information

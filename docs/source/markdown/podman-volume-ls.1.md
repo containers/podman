@@ -1,4 +1,4 @@
-% podman-volume-ls(1)
+% podman-volume-ls 1
 
 ## NAME
 podman\-volume\-ls - List all the available volumes

@@ -1,4 +1,4 @@
-% podman-manifest-push(1)
+% podman-manifest-push 1
 
 ## NAME
 podman\-manifest\-push - Push a manifest list or image index to a registry

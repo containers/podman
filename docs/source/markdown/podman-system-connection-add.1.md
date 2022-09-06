@@ -1,4 +1,4 @@
-% podman-system-connection-add(1)
+% podman-system-connection-add 1
 
 ## NAME
 podman\-system\-connection\-add - Record destination for the Podman service

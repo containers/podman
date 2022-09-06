@@ -1,4 +1,4 @@
-% podman-pod-clone(1)
+% podman-pod-clone 1
 
 ## NAME
 podman\-pod\-clone - Creates a copy of an existing pod

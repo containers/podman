@@ -1,4 +1,4 @@
-% podman-image-scp(1)
+% podman-image-scp 1
 
 ## NAME
 podman-image-scp - Securely copy an image from one host to another

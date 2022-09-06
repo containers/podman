@@ -1,4 +1,4 @@
-% podman-stats(1)
+% podman-stats 1
 
 ## NAME
 podman\-stats - Display a live stream of one or more container's resource usage statistics

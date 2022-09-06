@@ -1,4 +1,4 @@
-% podman-secret(1)
+% podman-secret 1
 
 ## NAME
 podman\-secret - Manage podman secrets

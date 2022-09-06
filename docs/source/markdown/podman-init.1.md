@@ -1,4 +1,4 @@
-% podman-init(1)
+% podman-init 1
 
 ## NAME
 podman\-init - Initialize one or more containers

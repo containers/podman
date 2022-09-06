@@ -1,4 +1,4 @@
-% podman-manifest-add(1)
+% podman-manifest-add 1
 
 ## NAME
 podman\-manifest\-add - Add an image to a manifest list or image index

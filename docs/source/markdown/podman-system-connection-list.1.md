@@ -1,4 +1,4 @@
-% podman-system-connection-list(1)
+% podman-system-connection-list 1
 
 ## NAME
 podman\-system\-connection\-list - List the destination for the Podman service(s)

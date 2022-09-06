@@ -1,4 +1,4 @@
-% podman-image-mount(1)
+% podman-image-mount 1
 
 ## NAME
 podman\-image\-mount - Mount an image's root filesystem

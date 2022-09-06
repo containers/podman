@@ -1,4 +1,4 @@
-% podman-image-diff(1)
+% podman-image-diff 1
 
 ## NAME
 podman-image-diff - Inspect changes on an image's filesystem

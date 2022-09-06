@@ -1,4 +1,4 @@
-% podman-container-exists(1)
+% podman-container-exists 1
 
 ## NAME
 podman\-container\-exists - Check if a container exists in local storage

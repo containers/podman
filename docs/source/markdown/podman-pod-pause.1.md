@@ -1,4 +1,4 @@
-% podman-pod-pause(1)
+% podman-pod-pause 1
 
 ## NAME
 podman\-pod\-pause - Pause one or more pods

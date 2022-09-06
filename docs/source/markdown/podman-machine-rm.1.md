@@ -1,4 +1,4 @@
-% podman-machine-rm(1)
+% podman-machine-rm 1
 
 ## NAME
 podman\-machine\-rm - Remove a virtual machine
