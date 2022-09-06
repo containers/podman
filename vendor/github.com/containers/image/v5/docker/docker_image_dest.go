@@ -244,7 +244,7 @@ func (d *dockerImageDestination) blobExists(ctx context.Context, repo reference.
 		logrus.Debugf("... not present")
 		return false, -1, nil
 	default:
-		return false, -1, fmt.Errorf("failed to read from destination repository %s: %d (%s)", reference.Path(d.ref.ref), res.StatusCode, http.StatusText(res.StatusCode))
+		return false, -1, fmt.Errorf("checking whether a blob %s exists in %s: %w", digest, repo.Name(), registryHTTPResponseToError(res))
 	}
 }
 
@@ -487,15 +487,10 @@ func successStatus(status int) bool {
 	return status >= 200 && status <= 399
 }
 
-// isManifestInvalidError returns true iff err from client.HandleErrorResponse is a “manifest invalid” error.
+// isManifestInvalidError returns true iff err from registryHTTPResponseToError is a “manifest invalid” error.
 func isManifestInvalidError(err error) bool {
-	errors, ok := err.(errcode.Errors)
-	if !ok || len(errors) == 0 {
-		return false
-	}
-	err = errors[0]
-	ec, ok := err.(errcode.ErrorCoder)
-	if !ok {
+	var ec errcode.ErrorCoder
+	if ok := errors.As(err, &ec); !ok {
 		return false
 	}
 

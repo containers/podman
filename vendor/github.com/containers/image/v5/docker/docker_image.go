@@ -77,8 +77,8 @@ func GetRepositoryTags(ctx context.Context, sys *types.SystemContext, ref types.
 			return nil, err
 		}
 		defer res.Body.Close()
-		if err := httpResponseToError(res, "fetching tags list"); err != nil {
-			return nil, err
+		if res.StatusCode != http.StatusOK {
+			return nil, fmt.Errorf("fetching tags list: %w", registryHTTPResponseToError(res))
 		}
 
 		var tagsHolder struct {

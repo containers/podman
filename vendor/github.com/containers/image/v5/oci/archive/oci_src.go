@@ -17,6 +17,17 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// ImageNotFoundError is used when the OCI structure, in principle, exists and seems valid enough,
+// but nothing matches the “image” part of the provided reference.
+type ImageNotFoundError struct {
+	ref ociArchiveReference
+	// We may make members public, or add methods, in the future.
+}
+
+func (e ImageNotFoundError) Error() string {
+	return fmt.Sprintf("no descriptor found for reference %q", e.ref.image)
+}
+
 type ociArchiveImageSource struct {
 	impl.Compat
 
@@ -35,6 +46,10 @@ func newImageSource(ctx context.Context, sys *types.SystemContext, ref ociArchiv
 
 	unpackedSrc, err := tempDirRef.ociRefExtracted.NewImageSource(ctx, sys)
 	if err != nil {
+		var notFound ocilayout.ImageNotFoundError
+		if errors.As(err, &notFound) {
+			err = ImageNotFoundError{ref: ref}
+		}
 		if err := tempDirRef.deleteTempDir(); err != nil {
 			return nil, fmt.Errorf("deleting temp directory %q: %w", tempDirRef.tempDirectory, err)
 		}

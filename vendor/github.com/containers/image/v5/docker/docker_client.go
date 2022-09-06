@@ -313,8 +313,14 @@ func CheckAuth(ctx context.Context, sys *types.SystemContext, username, password
 		return err
 	}
 	defer resp.Body.Close()
-
-	return httpResponseToError(resp, "")
+	if resp.StatusCode != http.StatusOK {
+		err := registryHTTPResponseToError(resp)
+		if resp.StatusCode == http.StatusUnauthorized {
+			err = ErrUnauthorizedForCredentials{Err: err}
+		}
+		return err
+	}
+	return nil
 }
 
 // SearchResult holds the information of each matching image
@@ -411,7 +417,7 @@ func SearchRegistry(ctx context.Context, sys *types.SystemContext, registry, ima
 		}
 		defer resp.Body.Close()
 		if resp.StatusCode != http.StatusOK {
-			err := httpResponseToError(resp, "")
+			err := registryHTTPResponseToError(resp)
 			logrus.Errorf("error getting search results from v2 endpoint %q: %v", registry, err)
 			return nil, fmt.Errorf("couldn't search registry %q: %w", registry, err)
 		}
@@ -816,7 +822,7 @@ func (c *dockerClient) detectPropertiesHelper(ctx context.Context) error {
 		defer resp.Body.Close()
 		logrus.Debugf("Ping %s status %d", url.Redacted(), resp.StatusCode)
 		if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusUnauthorized {
-			return httpResponseToError(resp, "")
+			return registryHTTPResponseToError(resp)
 		}
 		c.challenges = parseAuthHeader(resp.Header)
 		c.scheme = scheme
@@ -956,9 +962,10 @@ func (c *dockerClient) getBlob(ctx context.Context, ref dockerReference, info ty
 	if err != nil {
 		return nil, 0, err
 	}
-	if err := httpResponseToError(res, "Error fetching blob"); err != nil {
+	if res.StatusCode != http.StatusOK {
+		err := registryHTTPResponseToError(res)
 		res.Body.Close()
-		return nil, 0, err
+		return nil, 0, fmt.Errorf("fetching blob: %w", err)
 	}
 	cache.RecordKnownLocation(ref.Transport(), bicTransportScope(ref), info.Digest, newBICLocationReference(ref))
 	return res.Body, getBlobSize(res), nil
@@ -982,13 +989,8 @@ func (c *dockerClient) getOCIDescriptorContents(ctx context.Context, ref dockerR
 
 // isManifestUnknownError returns true iff err from fetchManifest is a “manifest unknown” error.
 func isManifestUnknownError(err error) bool {
-	var errs errcode.Errors
-	if !errors.As(err, &errs) || len(errs) == 0 {
-		return false
-	}
-	err = errs[0]
-	ec, ok := err.(errcode.ErrorCoder)
-	if !ok {
+	var ec errcode.ErrorCoder
+	if !errors.As(err, &ec) {
 		return false
 	}
 	return ec.ErrorCode() == v2.ErrorCodeManifestUnknown
@@ -1037,9 +1039,8 @@ func (c *dockerClient) getExtensionsSignatures(ctx context.Context, ref dockerRe
 		return nil, err
 	}
 	defer res.Body.Close()
-
 	if res.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("downloading signatures for %s in %s: %w", manifestDigest, ref.ref.Name(), handleErrorResponse(res))
+		return nil, fmt.Errorf("downloading signatures for %s in %s: %w", manifestDigest, ref.ref.Name(), registryHTTPResponseToError(res))
 	}
 
 	body, err := iolimits.ReadAtMost(res.Body, iolimits.MaxSignatureListBodySize)
