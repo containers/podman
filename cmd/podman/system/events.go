@@ -85,7 +85,9 @@ func eventsCmd(cmd *cobra.Command, _ []string) error {
 		doJSON = report.IsJSON(eventFormat)
 		if !doJSON {
 			var err error
-			rpt, err = report.New(os.Stdout, cmd.Name()).Parse(report.OriginUser, eventFormat)
+			// Use OriginUnknown so it does not add an extra range since it
+			// will only be called for each single element and not a slice.
+			rpt, err = report.New(os.Stdout, cmd.Name()).Parse(report.OriginUnknown, eventFormat)
 			if err != nil {
 				return err
 			}

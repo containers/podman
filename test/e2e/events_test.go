@@ -42,10 +42,7 @@ var _ = Describe("Podman events", func() {
 	// Perhaps a future version of this test would put events in a go func and send output back over a channel
 	// while events occur.
 
-	// These tests are only known to work on Fedora ATM.  Other distributions
-	// will be skipped.
 	It("podman events", func() {
-		SkipIfNotFedora()
 		_, ec, _ := podmanTest.RunLsContainer("")
 		Expect(ec).To(Equal(0))
 		result := podmanTest.Podman([]string{"events", "--stream=false"})
@@ -54,7 +51,6 @@ var _ = Describe("Podman events", func() {
 	})
 
 	It("podman events with an event filter", func() {
-		SkipIfNotFedora()
 		_, ec, _ := podmanTest.RunLsContainer("")
 		Expect(ec).To(Equal(0))
 		result := podmanTest.Podman([]string{"events", "--stream=false", "--filter", "event=start"})
@@ -81,7 +77,6 @@ var _ = Describe("Podman events", func() {
 	})
 
 	It("podman events with a type and filter container=id", func() {
-		SkipIfNotFedora()
 		_, ec, cid := podmanTest.RunLsContainer("")
 		Expect(ec).To(Equal(0))
 		result := podmanTest.Podman([]string{"events", "--stream=false", "--filter", "type=pod", "--filter", fmt.Sprintf("container=%s", cid)})
@@ -91,7 +86,6 @@ var _ = Describe("Podman events", func() {
 	})
 
 	It("podman events with a type", func() {
-		SkipIfNotFedora()
 		setup := podmanTest.Podman([]string{"run", "-dt", "--pod", "new:foobarpod", ALPINE, "top"})
 		setup.WaitWithDefaultTimeout()
 		stop := podmanTest.Podman([]string{"pod", "stop", "foobarpod"})
@@ -110,7 +104,6 @@ var _ = Describe("Podman events", func() {
 	})
 
 	It("podman events --since", func() {
-		SkipIfNotFedora()
 		_, ec, _ := podmanTest.RunLsContainer("")
 		Expect(ec).To(Equal(0))
 		result := podmanTest.Podman([]string{"events", "--stream=false", "--since", "1m"})
@@ -119,7 +112,6 @@ var _ = Describe("Podman events", func() {
 	})
 
 	It("podman events --until", func() {
-		SkipIfNotFedora()
 		_, ec, _ := podmanTest.RunLsContainer("")
 		Expect(ec).To(Equal(0))
 		result := podmanTest.Podman([]string{"events", "--stream=false", "--until", "1h"})
@@ -128,7 +120,6 @@ var _ = Describe("Podman events", func() {
 	})
 
 	It("podman events format", func() {
-		SkipIfNotFedora()
 		_, ec, _ := podmanTest.RunLsContainer("")
 		Expect(ec).To(Equal(0))
 
@@ -153,6 +144,13 @@ var _ = Describe("Podman events", func() {
 		event = events.Event{}
 		err = json.Unmarshal([]byte(jsonArr[0]), &event)
 		Expect(err).ToNot(HaveOccurred())
+
+		test = podmanTest.Podman([]string{"events", "--stream=false", "--filter=type=container", "--format", "ID: {{.ID}}"})
+		test.WaitWithDefaultTimeout()
+		Expect(test).To(Exit(0))
+		arr := test.OutputToStringArray()
+		Expect(len(arr)).To(BeNumerically(">", 1))
+		Expect(arr[0]).To(MatchRegexp("ID: [a-fA-F0-9]{64}"))
 	})
 
 	It("podman events --until future", func() {
