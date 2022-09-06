@@ -34,9 +34,8 @@ function teardown() {
 # Helper to start a systemd service running a container
 function service_setup() {
     run_podman generate systemd \
-               -e http_proxy -e HTTP_PROXY \
-               -e https_proxy -e HTTPS_PROXY \
-               -e no_proxy -e NO_PROXY \
+               -e http_proxy -e https_proxy -e no_proxy \
+               -e HTTP_PROXY -e HTTPS_PROXY -e NO_PROXY \
                --new $cname
     echo "$output" > "$UNIT_FILE"
     run_podman rm $cname

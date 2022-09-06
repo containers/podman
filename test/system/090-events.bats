@@ -22,24 +22,25 @@ load helpers
 
     # Now filter just by container name, no label
     run_podman events --filter type=container --filter container=$cname --filter event=start --stream=false
-    is "$output" "$expect" "filtering just by label"
+    is "$output" "$expect" "filtering just by container"
 }
 
 @test "truncate events" {
     cname=test-$(random_string 30 | tr A-Z a-z)
-    labelname=$(random_string 10)
-    labelvalue=$(random_string 15)
 
     run_podman run -d --name=$cname --rm $IMAGE echo hi
     id="$output"
 
-    expect="$id"
     run_podman events --filter container=$cname --filter event=start --stream=false
     is "$output" ".* $id " "filtering by container name full id"
 
-    truncID=$(expr substr "$id" 1 12)
+    truncID=${id:0:12}
     run_podman events --filter container=$cname --filter event=start --stream=false --no-trunc=false
     is "$output" ".* $truncID " "filtering by container name trunc id"
+
+    # --no-trunc does not affect --format; we always get the full ID
+    run_podman events --filter container=$cname --filter event=died --stream=false --format='{{.ID}}--{{.Image}}' --no-trunc=false
+    assert "$output" = "${id}--${IMAGE}"
 }
 
 @test "image events" {
@@ -65,6 +66,7 @@ load helpers
     run_podman --events-backend=file untag $IMAGE $tag
     run_podman --events-backend=file tag $IMAGE $tag
     run_podman --events-backend=file rmi -f $imageID
+    run_podman --events-backend=file load -i $tarball
 
     run_podman --events-backend=file events --stream=false --filter type=image --since $t0
     is "$output" ".*image push $imageID dir:$pushedDir
@@ -78,6 +80,25 @@ load helpers
 .*image untag $imageID $tag:latest
 .*image remove $imageID $imageID" \
        "podman events"
+
+    # With --format we can check the _exact_ output, not just substrings
+    local -a expect=("push--dir:$pushedDir"
+                     "save--$tarball"
+                     "loadfromarchive--$tarball"
+                     "pull--docker-archive:$tarball"
+                     "tag--$tag"
+                     "untag--$tag:latest"
+                     "tag--$tag"
+                     "untag--$IMAGE"
+                     "untag--$tag:latest"
+                     "remove--$imageID"
+                     "loadfromarchive--$tarball"
+                    )
+    run_podman --events-backend=file events --stream=false --filter type=image --since $t0 --format '{{.Status}}--{{.Name}}'
+    for i in $(seq 0 ${#expect[@]}); do
+        assert "${lines[$i]}" = "${expect[$i]}" "events, line $i"
+    done
+    assert "${#lines[@]}" = "${#expect[@]}" "Total lines of output"
 }
 
 function _events_disjunctive_filters() {
@@ -111,7 +132,8 @@ function _events_disjunctive_filters() {
     is "$output" "hi" "Should support events-backend=file"
 
     run_podman 125 --events-backend=file logs --follow test
-    is "$output" "Error: using --follow with the journald --log-driver but without the journald --events-backend (file) is not supported" "Should fail with reasonable error message when events-backend and events-logger do not match"
+    is "$output" "Error: using --follow with the journald --log-driver but without the journald --events-backend (file) is not supported" \
+       "Should fail with reasonable error message when events-backend and events-logger do not match"
 
 }
 
@@ -136,7 +158,7 @@ function _populate_events_file() {
     local events_file=$1
     truncate --size=0 $events_file
     for i in {0..99}; do
-    printf '{"Name":"busybox","Status":"pull","Time":"2022-04-06T11:26:42.7236679%02d+02:00","Type":"image","Attributes":null}\n' $i >> $events_file
+        printf '{"Name":"busybox","Status":"pull","Time":"2022-04-06T11:26:42.7236679%02d+02:00","Type":"image","Attributes":null}\n' $i >> $events_file
     done
 }
 
@@ -196,7 +218,7 @@ EOF
     # Make sure that `podman events` can read the file, and that it returns the
     # same amount of events.  We checked the contents before.
     CONTAINERS_CONF=$containersConf run_podman events --stream=false --since="2022-03-06T11:26:42.723667984+02:00"
-    is "$(wc -l <$eventsFile)" "$(wc -l <<<$output)" "all events are returned"
+    assert "${#lines[@]}" = 51 "Number of events returned"
     is "${lines[-2]}" ".* log-rotation $eventsFile"
 }
 
