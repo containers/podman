@@ -38,4 +38,6 @@ type SystemdOptions struct {
 	After *[]string
 	// Requires - systemd requires list for the container or pods
 	Requires *[]string
+	// AdditionalEnvVariables - Sets environment variables to a systemd unit file
+	AdditionalEnvVariables *[]string
 }

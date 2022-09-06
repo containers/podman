@@ -600,4 +600,75 @@ var _ = Describe("Podman generate systemd", func() {
 		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(ContainSubstring(" --label key={{someval}}"))
 	})
+
+	It("podman generate systemd --env", func() {
+		session := podmanTest.RunTopContainer("test")
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"generate", "systemd", "--env", "foo=bar", "-e", "hoge=fuga", "test"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).To(ContainSubstring("Environment=foo=bar"))
+		Expect(session.OutputToString()).To(ContainSubstring("Environment=hoge=fuga"))
+
+		session = podmanTest.Podman([]string{"generate", "systemd", "--env", "=bar", "-e", "hoge=fuga", "test"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(125))
+		Expect(session.ErrorToString()).To(ContainSubstring("invalid environment variable"))
+
+		// Use -e/--env option with --new option
+		session = podmanTest.Podman([]string{"generate", "systemd", "--env", "foo=bar", "-e", "hoge=fuga", "--new", "test"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).To(ContainSubstring("Environment=foo=bar"))
+		Expect(session.OutputToString()).To(ContainSubstring("Environment=hoge=fuga"))
+
+		session = podmanTest.Podman([]string{"generate", "systemd", "--env", "foo=bar", "-e", "=fuga", "--new", "test"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(125))
+		Expect(session.ErrorToString()).To(ContainSubstring("invalid environment variable"))
+
+		// Escape systemd arguments
+		session = podmanTest.Podman([]string{"generate", "systemd", "--env", "BAR=my test", "-e", "USER=%a", "test"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).To(ContainSubstring("\"BAR=my test\""))
+		Expect(session.OutputToString()).To(ContainSubstring("USER=%%a"))
+
+		session = podmanTest.Podman([]string{"generate", "systemd", "--env", "BAR=my test", "-e", "USER=%a", "--new", "test"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).To(ContainSubstring("\"BAR=my test\""))
+		Expect(session.OutputToString()).To(ContainSubstring("USER=%%a"))
+
+		// Specify the environment variables without a value
+		os.Setenv("FOO1", "BAR1")
+		os.Setenv("FOO2", "BAR2")
+		os.Setenv("FOO3", "BAR3")
+		defer os.Unsetenv("FOO1")
+		defer os.Unsetenv("FOO2")
+		defer os.Unsetenv("FOO3")
+
+		session = podmanTest.Podman([]string{"generate", "systemd", "--env", "FOO1", "test"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).To(ContainSubstring("BAR1"))
+		Expect(session.OutputToString()).NotTo(ContainSubstring("BAR2"))
+		Expect(session.OutputToString()).NotTo(ContainSubstring("BAR3"))
+
+		session = podmanTest.Podman([]string{"generate", "systemd", "--env", "FOO*", "test"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).To(ContainSubstring("BAR1"))
+		Expect(session.OutputToString()).To(ContainSubstring("BAR2"))
+		Expect(session.OutputToString()).To(ContainSubstring("BAR3"))
+
+		session = podmanTest.Podman([]string{"generate", "systemd", "--env", "FOO*", "--new", "test"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).To(ContainSubstring("BAR1"))
+		Expect(session.OutputToString()).To(ContainSubstring("BAR2"))
+		Expect(session.OutputToString()).To(ContainSubstring("BAR3"))
+	})
 })

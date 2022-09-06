@@ -93,6 +93,13 @@ func (s *APIServer) registerGenerateHandlers(r *mux.Router) error {
 	//        type: string
 	//    default: []
 	//    description: Systemd Requires list for the container or pods.
+	//  - in: query
+	//    name: additionalEnvVariables
+	//    type: array
+	//    items:
+	//        type: string
+	//    default: []
+	//    description: Set environment variables to the systemd unit files.
 	// produces:
 	// - application/json
 	// responses:

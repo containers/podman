@@ -17,20 +17,21 @@ func GenerateSystemd(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
 	query := struct {
-		Name             bool     `schema:"useName"`
-		New              bool     `schema:"new"`
-		NoHeader         bool     `schema:"noHeader"`
-		TemplateUnitFile bool     `schema:"templateUnitFile"`
-		RestartPolicy    *string  `schema:"restartPolicy"`
-		RestartSec       uint     `schema:"restartSec"`
-		StopTimeout      uint     `schema:"stopTimeout"`
-		StartTimeout     uint     `schema:"startTimeout"`
-		ContainerPrefix  *string  `schema:"containerPrefix"`
-		PodPrefix        *string  `schema:"podPrefix"`
-		Separator        *string  `schema:"separator"`
-		Wants            []string `schema:"wants"`
-		After            []string `schema:"after"`
-		Requires         []string `schema:"requires"`
+		Name                   bool     `schema:"useName"`
+		New                    bool     `schema:"new"`
+		NoHeader               bool     `schema:"noHeader"`
+		TemplateUnitFile       bool     `schema:"templateUnitFile"`
+		RestartPolicy          *string  `schema:"restartPolicy"`
+		RestartSec             uint     `schema:"restartSec"`
+		StopTimeout            uint     `schema:"stopTimeout"`
+		StartTimeout           uint     `schema:"startTimeout"`
+		ContainerPrefix        *string  `schema:"containerPrefix"`
+		PodPrefix              *string  `schema:"podPrefix"`
+		Separator              *string  `schema:"separator"`
+		Wants                  []string `schema:"wants"`
+		After                  []string `schema:"after"`
+		Requires               []string `schema:"requires"`
+		AdditionalEnvVariables []string `schema:"additionalEnvVariables"`
 	}{
 		StartTimeout: 0,
 		StopTimeout:  util.DefaultContainerConfig().Engine.StopTimeout,
@@ -58,20 +59,21 @@ func GenerateSystemd(w http.ResponseWriter, r *http.Request) {
 
 	containerEngine := abi.ContainerEngine{Libpod: runtime}
 	options := entities.GenerateSystemdOptions{
-		Name:             query.Name,
-		New:              query.New,
-		NoHeader:         query.NoHeader,
-		TemplateUnitFile: query.TemplateUnitFile,
-		RestartPolicy:    query.RestartPolicy,
-		StartTimeout:     &query.StartTimeout,
-		StopTimeout:      &query.StopTimeout,
-		ContainerPrefix:  ContainerPrefix,
-		PodPrefix:        PodPrefix,
-		Separator:        Separator,
-		RestartSec:       &query.RestartSec,
-		Wants:            query.Wants,
-		After:            query.After,
-		Requires:         query.Requires,
+		Name:                   query.Name,
+		New:                    query.New,
+		NoHeader:               query.NoHeader,
+		TemplateUnitFile:       query.TemplateUnitFile,
+		RestartPolicy:          query.RestartPolicy,
+		StartTimeout:           &query.StartTimeout,
+		StopTimeout:            &query.StopTimeout,
+		ContainerPrefix:        ContainerPrefix,
+		PodPrefix:              PodPrefix,
+		Separator:              Separator,
+		RestartSec:             &query.RestartSec,
+		Wants:                  query.Wants,
+		After:                  query.After,
+		Requires:               query.Requires,
+		AdditionalEnvVariables: query.AdditionalEnvVariables,
 	}
 
 	report, err := containerEngine.GenerateSystemd(r.Context(), utils.GetName(r), options)

@@ -19,7 +19,8 @@ func (ic *ContainerEngine) GenerateSystemd(ctx context.Context, nameOrID string,
 		WithSeparator(opts.Separator).
 		WithWants(opts.Wants).
 		WithAfter(opts.After).
-		WithRequires(opts.Requires)
+		WithRequires(opts.Requires).
+		WithAdditionalEnvVariables(opts.AdditionalEnvVariables)
 
 	if opts.StartTimeout != nil {
 		options.WithStartTimeout(*opts.StartTimeout)
