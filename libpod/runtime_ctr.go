@@ -798,7 +798,7 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force, remo
 
 	// Deallocate the container's lock
 	if err := c.lock.Free(); err != nil {
-		if cleanupErr == nil {
+		if cleanupErr == nil && !os.IsNotExist(err) {
 			cleanupErr = fmt.Errorf("error freeing lock for container %s: %w", c.ID(), err)
 		} else {
 			logrus.Errorf("Free container lock: %v", err)
