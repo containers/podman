@@ -1939,11 +1939,16 @@ func (c *Container) generateResolvConf() error {
 
 	destPath := filepath.Join(c.state.RunDir, "resolv.conf")
 
+	var namespaces []spec.LinuxNamespace
+	if c.config.Spec.Linux != nil {
+		namespaces = c.config.Spec.Linux.Namespaces
+	}
+
 	if err := resolvconf.New(&resolvconf.Params{
 		IPv6Enabled:     ipv6,
 		KeepHostServers: keepHostServers,
 		Nameservers:     nameservers,
-		Namespaces:      c.config.Spec.Linux.Namespaces,
+		Namespaces:      namespaces,
 		Options:         options,
 		Path:            destPath,
 		Searches:        search,
