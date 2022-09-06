@@ -4,7 +4,6 @@
 package libpod
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -23,20 +22,6 @@ import (
 var (
 	bindOptions = []string{}
 )
-
-// Network stubs to decouple container_internal_freebsd.go from
-// networking_freebsd.go so they can be reviewed separately.
-func (r *Runtime) createNetNS(ctr *Container) (netJail *jailNetNS, q map[string]types.StatusBlock, retErr error) {
-	return nil, nil, errors.New("not implemented (*Runtime) createNetNS")
-}
-
-func (r *Runtime) teardownNetNS(ctr *Container) error {
-	return errors.New("not implemented (*Runtime) teardownNetNS")
-}
-
-func (r *Runtime) reloadContainerNetwork(ctr *Container) (map[string]types.StatusBlock, error) {
-	return nil, errors.New("not implemented (*Runtime) reloadContainerNetwork")
-}
 
 func (c *Container) mountSHM(shmOptions string) error {
 	return nil
