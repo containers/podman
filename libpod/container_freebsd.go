@@ -4,11 +4,20 @@
 package libpod
 
 type containerPlatformState struct {
-	// NetworkJail is the name of the container's network VNET
+	// NetNS is the name of the container's network VNET
 	// jail.  Will only be set if config.CreateNetNS is true, or
 	// the container was told to join another container's network
 	// namespace.
-	NetworkJail string `json:"-"`
+	NetNS *jailNetNS `json:"-"`
+}
+
+type jailNetNS struct {
+	Name string `json:"-"`
+}
+
+func (ns *jailNetNS) Path() string {
+	// The jail name approximately corresponds to the Linux netns path
+	return ns.Name
 }
 
 func networkDisabled(c *Container) (bool, error) {
@@ -16,7 +25,7 @@ func networkDisabled(c *Container) (bool, error) {
 		return false, nil
 	}
 	if !c.config.PostConfigureNetNS {
-		return c.state.NetworkJail == "", nil
+		return c.state.NetNS != nil, nil
 	}
 	return false, nil
 }
