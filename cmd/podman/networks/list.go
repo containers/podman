@@ -122,36 +122,27 @@ func templateOut(cmd *cobra.Command, responses []types.Network) error {
 		"ID":     "network id",
 	})
 
-	renderHeaders := report.HasTable(networkListOptions.Format)
-	var row string
+	rpt := report.New(os.Stdout, cmd.Name())
+	defer rpt.Flush()
+
+	var err error
 	switch {
-	case cmd.Flags().Changed("format"):
-		row = report.NormalizeFormat(networkListOptions.Format)
+	case cmd.Flag("format").Changed:
+		rpt, err = rpt.Parse(report.OriginUser, networkListOptions.Format)
 	default:
-		// 'podman network ls' equivalent to 'podman network ls --format="table {{.ID}} {{.Name}} {{.Version}} {{.Plugins}}" '
-		row = "{{.ID}}\t{{.Name}}\t{{.Driver}}\n"
-		renderHeaders = true
+		rpt, err = rpt.Parse(report.OriginPodman, "{{range .}}{{.ID}}\t{{.Name}}\t{{.Driver}}\n{{end -}}")
 	}
-	format := report.EnforceRange(row)
-
-	tmpl, err := report.NewTemplate("list").Parse(format)
 	if err != nil {
 		return err
 	}
-
-	w, err := report.NewWriterDefault(os.Stdout)
-	if err != nil {
-		return err
-	}
-	defer w.Flush()
 
 	noHeading, _ := cmd.Flags().GetBool("noheading")
-	if !noHeading && renderHeaders {
-		if err := tmpl.Execute(w, headers); err != nil {
-			return err
+	if rpt.RenderHeaders && !noHeading {
+		if err := rpt.Execute(headers); err != nil {
+			return fmt.Errorf("failed to write report column headers: %w", err)
 		}
 	}
-	return tmpl.Execute(w, nlprs)
+	return rpt.Execute(nlprs)
 }
 
 // ListPrintReports returns the network list report
