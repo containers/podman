@@ -114,27 +114,7 @@ clone process has completed. All containers within the pod are started.
 
 @@option subuidname
 
-#### **--sysctl**=*name=value*
-
-Configure namespace kernel parameters for all containers in the new pod.
-
-For the IPC namespace, the following sysctls are allowed:
-
-- kernel.msgmax
-- kernel.msgmnb
-- kernel.msgmni
-- kernel.sem
-- kernel.shmall
-- kernel.shmmax
-- kernel.shmmni
-- kernel.shm_rmid_forced
-- Sysctls beginning with fs.mqueue.\*
-
-Note: if the ipc namespace is not shared within the pod, these sysctls are not allowed.
-
-For the network namespace, only sysctls beginning with net.\* are allowed.
-
-Note: if the network namespace is not shared within the pod, these sysctls are not allowed.
+@@option sysctl
 
 @@option uidmap.pod
 
