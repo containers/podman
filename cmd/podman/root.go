@@ -475,8 +475,8 @@ func rootFlags(cmd *cobra.Command, opts *entities.PodmanConfig) {
 	pFlags.StringVar(&logLevel, logLevelFlagName, logLevel, fmt.Sprintf("Log messages above specified level (%s)", strings.Join(common.LogLevels, ", ")))
 	_ = rootCmd.RegisterFlagCompletionFunc(logLevelFlagName, common.AutocompleteLogLevel)
 
-	pFlags.BoolVar(&debug, "debug", false, "Docker compatibility, force setting of log-level")
-	_ = pFlags.MarkHidden("debug")
+	lFlags.BoolVarP(&debug, "debug", "D", false, "Docker compatibility, force setting of log-level")
+	_ = lFlags.MarkHidden("debug")
 
 	// Only create these flags for ABI connections
 	if !registry.IsRemote() {
