@@ -36,8 +36,9 @@ func Events(ctx context.Context, eventChan chan entities.Event, cancelChan chan 
 	if cancelChan != nil {
 		go func() {
 			<-cancelChan
-			err = response.Body.Close()
-			logrus.Errorf("Unable to close event response body: %v", err)
+			if err := response.Body.Close(); err != nil {
+				logrus.Errorf("Unable to close event response body: %v", err)
+			}
 		}()
 	}
 
