@@ -9,6 +9,7 @@ import (
 	"github.com/containers/common/libimage"
 	nettypes "github.com/containers/common/libnetwork/types"
 	"github.com/containers/image/v5/manifest"
+	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/storage/types"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 )
@@ -533,7 +534,8 @@ type ContainerResourceConfig struct {
 // ContainerHealthCheckConfig describes a container healthcheck with attributes
 // like command, retries, interval, start period, and timeout.
 type ContainerHealthCheckConfig struct {
-	HealthConfig *manifest.Schema2HealthConfig `json:"healthconfig,omitempty"`
+	HealthConfig               *manifest.Schema2HealthConfig     `json:"healthconfig,omitempty"`
+	HealthCheckOnFailureAction define.HealthCheckOnFailureAction `json:"health_check_on_failure_action,omitempty"`
 }
 
 // SpecGenerator creates an OCI spec and Libpod configuration options to create

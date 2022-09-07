@@ -137,5 +137,9 @@ func (c *Container) validate() error {
 	if c.config.SdNotifyMode == define.SdNotifyModeIgnore && len(c.config.SdNotifySocket) > 0 {
 		return fmt.Errorf("cannot set sd-notify socket %q with sd-notify mode %q", c.config.SdNotifySocket, c.config.SdNotifyMode)
 	}
+
+	if c.config.HealthCheckOnFailureAction != define.HealthCheckOnFailureActionNone && c.config.HealthCheckConfig == nil {
+		return fmt.Errorf("cannot set on-failure action to %s without a health check", c.config.HealthCheckOnFailureAction.String())
+	}
 	return nil
 }
