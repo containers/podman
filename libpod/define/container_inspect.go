@@ -55,6 +55,8 @@ type InspectContainerConfig struct {
 	StopSignal uint `json:"StopSignal"`
 	// Configured healthcheck for the container
 	Healthcheck *manifest.Schema2HealthConfig `json:"Healthcheck,omitempty"`
+	// HealthcheckOnFailureAction defines an action to take once the container turns unhealthy.
+	HealthcheckOnFailureAction string `json:"HealthcheckOnFailureAction,omitempty"`
 	// CreateCommand is the full command plus arguments of the process the
 	// container has been created with.
 	CreateCommand []string `json:"CreateCommand,omitempty"`

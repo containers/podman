@@ -1,6 +1,8 @@
 package libpod
 
 import (
+	"fmt"
+
 	"github.com/containers/podman/v4/libpod/define"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
@@ -125,6 +127,10 @@ func (c *Container) validate() error {
 	// passed and if no pod is passed
 	if len(c.config.InitContainerType) > 0 && len(c.config.Pod) < 1 {
 		return errors.Wrap(define.ErrInvalidArg, "init containers must be created in a pod")
+	}
+
+	if c.config.HealthCheckOnFailureAction != define.HealthCheckOnFailureActionNone && c.config.HealthCheckConfig == nil {
+		return fmt.Errorf("cannot set on-failure action to %s without a health check", c.config.HealthCheckOnFailureAction.String())
 	}
 	return nil
 }

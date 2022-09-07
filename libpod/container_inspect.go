@@ -389,6 +389,8 @@ func (c *Container) generateInspectContainerConfig(spec *spec.Spec) *define.Insp
 	// leak.
 	ctrConfig.Healthcheck = c.config.HealthCheckConfig
 
+	ctrConfig.HealthcheckOnFailureAction = c.config.HealthCheckOnFailureAction.String()
+
 	ctrConfig.CreateCommand = c.config.CreateCommand
 
 	ctrConfig.Timezone = c.config.Timezone

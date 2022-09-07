@@ -286,6 +286,14 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		)
 		_ = cmd.RegisterFlagCompletionFunc(healthTimeoutFlagName, completion.AutocompleteNone)
 
+		healthOnFailureFlagName := "health-on-failure"
+		createFlags.StringVar(
+			&cf.HealthOnFailure,
+			healthOnFailureFlagName, "none",
+			"action to take once the container turns unhealthy",
+		)
+		_ = cmd.RegisterFlagCompletionFunc(healthOnFailureFlagName, AutocompleteHealthOnFailure)
+
 		createFlags.BoolVar(
 			&cf.HTTPProxy,
 			"http-proxy", containerConfig.Containers.HTTPProxy,

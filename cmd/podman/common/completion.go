@@ -1308,3 +1308,8 @@ func AutocompleteCompressionFormat(cmd *cobra.Command, args []string, toComplete
 	types := []string{"gzip", "zstd", "zstd:chunked"}
 	return types, cobra.ShellCompDirectiveNoFileComp
 }
+
+// AutocompleteHealthOnFailure - action to take once the container turns unhealthy.
+func AutocompleteHealthOnFailure(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	return define.SupportedHealthCheckOnFailureActions, cobra.ShellCompDirectiveNoFileComp
+}

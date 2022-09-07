@@ -190,6 +190,7 @@ type ContainerCreateOptions struct {
 	HealthRetries     uint
 	HealthStartPeriod string
 	HealthTimeout     string
+	HealthOnFailure   string
 	Hostname          string `json:"hostname,omitempty"`
 	HTTPProxy         bool
 	HostUsers         []string
