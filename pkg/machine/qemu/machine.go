@@ -1,5 +1,5 @@
-//go:build (amd64 && !windows) || (arm64 && !windows)
-// +build amd64,!windows arm64,!windows
+//go:build amd64 || arm64
+// +build amd64 arm64
 
 package qemu
 
@@ -33,7 +33,6 @@ import (
 	"github.com/digitalocean/go-qemu/qmp"
 	"github.com/docker/go-units"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/sys/unix"
 )
 
 var (
@@ -125,7 +124,7 @@ func (p *Provider) NewMachine(opts machine.InitOptions) (machine.VM, error) {
 		return nil, err
 	}
 	vm.QMPMonitor = monitor
-	cmd = append(cmd, []string{"-qmp", monitor.Network + ":/" + monitor.Address.GetPath() + ",server=on,wait=off"}...)
+	cmd = append(cmd, []string{"-qmp", monitor.Network + ":" + monitor.Address.GetPath() + ",server=on,wait=off"}...)
 
 	// Add network
 	// Right now the mac address is hardcoded so that the host networking gives it a specific IP address.  This is
@@ -545,12 +544,12 @@ func (v *MachineVM) Start(name string, _ machine.StartOptions) error {
 		return err
 	}
 	defer fd.Close()
-	dnr, err := os.OpenFile("/dev/null", os.O_RDONLY, 0755)
+	dnr, err := os.OpenFile(os.DevNull, os.O_RDONLY, 0755)
 	if err != nil {
 		return err
 	}
 	defer dnr.Close()
-	dnw, err := os.OpenFile("/dev/null", os.O_WRONLY, 0755)
+	dnw, err := os.OpenFile(os.DevNull, os.O_WRONLY, 0755)
 	if err != nil {
 		return err
 	}
@@ -629,14 +628,9 @@ func (v *MachineVM) Start(name string, _ machine.StartOptions) error {
 			break
 		}
 		// check if qemu is still alive
-		var status syscall.WaitStatus
-		pid, err := syscall.Wait4(cmd.Process.Pid, &status, syscall.WNOHANG, nil)
+		err := checkProcessStatus("qemu", cmd.Process.Pid, stderrBuf)
 		if err != nil {
-			return fmt.Errorf("failed to read qemu process status: %w", err)
-		}
-		if pid > 0 {
-			// child exited
-			return fmt.Errorf("qemu exited unexpectedly with exit code %d, stderr: %s", status.ExitStatus(), stderrBuf.String())
+			return err
 		}
 		time.Sleep(wait)
 		wait++
@@ -870,7 +864,7 @@ func NewQMPMonitor(network, name string, timeout time.Duration) (Monitor, error)
 	if err != nil {
 		return Monitor{}, err
 	}
-	if !rootless.IsRootless() {
+	if isRootful() {
 		rtDir = "/run"
 	}
 	rtDir = filepath.Join(rtDir, "podman")
@@ -1216,11 +1210,11 @@ func (v *MachineVM) startHostNetworking() (string, apiForwardingState, error) {
 	}
 
 	attr := new(os.ProcAttr)
-	dnr, err := os.OpenFile("/dev/null", os.O_RDONLY, 0755)
+	dnr, err := os.OpenFile(os.DevNull, os.O_RDONLY, 0755)
 	if err != nil {
 		return "", noForwarding, err
 	}
-	dnw, err := os.OpenFile("/dev/null", os.O_WRONLY, 0755)
+	dnw, err := os.OpenFile(os.DevNull, os.O_WRONLY, 0755)
 	if err != nil {
 		return "", noForwarding, err
 	}
@@ -1371,7 +1365,7 @@ func (v *MachineVM) setPIDSocket() error {
 	if err != nil {
 		return err
 	}
-	if !rootless.IsRootless() {
+	if isRootful() {
 		rtPath = "/run"
 	}
 	socketDir := filepath.Join(rtPath, "podman")
@@ -1397,7 +1391,7 @@ func (v *MachineVM) getSocketandPid() (string, string, error) {
 	if err != nil {
 		return "", "", err
 	}
-	if !rootless.IsRootless() {
+	if isRootful() {
 		rtPath = "/run"
 	}
 	socketDir := filepath.Join(rtPath, "podman")
@@ -1724,14 +1718,14 @@ func (p *Provider) RemoveAndCleanMachines() error {
 	return prevErr
 }
 
-func isProcessAlive(pid int) bool {
-	err := unix.Kill(pid, syscall.Signal(0))
-	if err == nil || err == unix.EPERM {
-		return true
-	}
-	return false
-}
-
 func (p *Provider) VMType() string {
 	return vmtype
+}
+
+func isRootful() bool {
+	// Rootless is not relevant on Windows. In the future rootless.IsRootless
+	// could be switched to return true on Windows, and other codepaths migrated
+	// for now will check additionally for valid os.Getuid
+
+	return !rootless.IsRootless() && os.Getuid() != -1
 }

@@ -1,5 +1,37 @@
 # Release Notes
 
+## 4.2.1
+### Features
+- Added support for Sigstore signatures (`sigstoreSigned`) to the `podman image trust set` and `podman image trust show` commands.`
+- The `podman image trust show` command now recognizes new `lookaside` field names.
+- The `podman image trust show` command now recognizes `keyPaths` in `signedBy` entries.
+
+### Changes
+- BREAKING CHANGE: `podman image trust show` may now show multiple entries for the same scope, to better represent separate requirements. GPG IDs on a single row now always represent alternative keys, only one of which is required; if multiple sets of keys are required, each is represented by a single line.
+- The `podman generate kube` command no longer adds the `bind-mount-options` annotation to generated Service YAML ([#15208](https://github.com/containers/podman/issues/15208)).
+
+### Bugfixes
+- Fixed a bug where Podman could deadlock when using `podman kill` to send signals to containers ([#15492](https://github.com/containers/podman/issues/15492)).
+- Fixed a bug where the `podman image trust set` command would silently discard unknown fields.
+- Fixed a bug where the `podman image trust show` command would not show signature enforcement configuration for the default scope.
+- Fixed a bug where the `podman image trust show` command would silently ignore multiple kinds of requirements in a single scope.
+- Fixed a bug where a typo in the `podman-kube@.service` unit file would cause warnings when running `systemctl status` on the unit.
+- Fixed a bug where the `--compress` option to `podman image save` was incorrectly allowed with the `oci-dir` format.
+- Fixed a bug where the `podman container clone` command did not properly clone environment variables ([#15242](https://github.com/containers/podman/issues/15242)).
+- Fixed a bug where Podman would not accept environment variables with whitespace in their keys ([#15251](https://github.com/containers/podman/issues/15251)).
+- Fixed a bug where Podman would not accept file paths containing the `:` character, preventing some commands from being used with `podman machine` on Windows ([#15247](https://github.com/containers/podman/issues/15247)).
+- Fixed a bug where the `podman top` command would report new capabilities as unknown.
+- Fixed a bug where running Podman in a container could cause fatal errors about an inability to create cgroups ([#15498](https://github.com/containers/podman/issues/15498)).
+- Fixed a bug where the `podman generate kube` command could generate incorrect YAML when the `bind-mount-options` was used ([#15170](https://github.com/containers/podman/issues/15170)).
+- Fixed a bug where generated container names were deterministic, instead of random ([#15569](https://github.com/containers/podman/issues/15569)).
+- Fixed a bug where the `podman events` command would not work with custom `--format` specifiers ([#15648](https://github.com/containers/podman/issues/15648)).
+
+### API
+- Fixed a bug where the Compat List endpoint for Containers did not sort the `HostConfig.Binds` field as Docker does.
+- Fixed a bug where the Compat List endpoint for Containers send the name (instead of ID) of the image the container was based on.
+- Fixed a bug where the Compat Connect endpoint for Networks would return an error (instead of 200) when attempting to connect a container to a network it was already connected to ([#15499](https://github.com/containers/podman/issues/15499)).
+- Fixed a bug where the Compat Events endpoint set an incorrect status for image removal events (`remove` instead of `delete`) ([#15485](https://github.com/containers/podman/issues/15485)).
+
 ## 4.2.0
 ### Features
 - Podman now supports the Gitlab Runner (using the Docker executor), allowing its use in Gitlab CI/CD pipelines.

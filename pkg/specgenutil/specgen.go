@@ -355,10 +355,7 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 
 	// First transform the os env into a map. We need it for the labels later in
 	// any case.
-	osEnv, err := envLib.ParseSlice(os.Environ())
-	if err != nil {
-		return fmt.Errorf("error parsing host environment variables: %w", err)
-	}
+	osEnv := envLib.Map(os.Environ())
 
 	if !s.EnvHost {
 		s.EnvHost = c.EnvHost

@@ -407,7 +407,7 @@ func convertSecondaryIPPrefixLen(input *define.InspectNetworkSettings, output *t
 }
 
 func LibpodToContainerJSON(l *libpod.Container, sz bool) (*types.ContainerJSON, error) {
-	_, imageName := l.Image()
+	imageID, imageName := l.Image()
 	inspect, err := l.Inspect(sz)
 	if err != nil {
 		return nil, err
@@ -467,6 +467,7 @@ func LibpodToContainerJSON(l *libpod.Container, sz bool) (*types.ContainerJSON, 
 	if err := json.Unmarshal(h, &hc); err != nil {
 		return nil, err
 	}
+	sort.Strings(hc.Binds)
 
 	// k8s-file == json-file
 	if hc.LogConfig.Type == define.KubernetesLogging {
@@ -487,7 +488,7 @@ func LibpodToContainerJSON(l *libpod.Container, sz bool) (*types.ContainerJSON, 
 		Path:            inspect.Path,
 		Args:            inspect.Args,
 		State:           &state,
-		Image:           imageName,
+		Image:           "sha256:" + imageID,
 		ResolvConfPath:  inspect.ResolvConfPath,
 		HostnamePath:    inspect.HostnamePath,
 		HostsPath:       inspect.HostsPath,

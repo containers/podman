@@ -27,6 +27,7 @@ import (
 	cutil "github.com/containers/common/pkg/util"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/libpod/events"
+	"github.com/containers/podman/v4/libpod/shutdown"
 	"github.com/containers/podman/v4/pkg/ctime"
 	"github.com/containers/podman/v4/pkg/lookup"
 	"github.com/containers/podman/v4/pkg/rootless"
@@ -1049,6 +1050,13 @@ func (c *Container) init(ctx context.Context, retainRetries bool) error {
 		}
 	}
 
+	// To ensure that we don't lose track of Conmon if hit by a SIGTERM
+	// in the middle of setting up the container, inhibit shutdown signals
+	// until after we save Conmon's PID to the state.
+	// TODO: This can likely be removed once conmon-rs support merges.
+	shutdown.Inhibit()
+	defer shutdown.Uninhibit()
+
 	// With the spec complete, do an OCI create
 	if _, err = c.ociRuntime.CreateContainer(c, nil); err != nil {
 		return err
@@ -1084,6 +1092,7 @@ func (c *Container) init(ctx context.Context, retainRetries bool) error {
 	if err := c.save(); err != nil {
 		return err
 	}
+
 	if c.config.HealthCheckConfig != nil {
 		if err := c.createTimer(); err != nil {
 			logrus.Error(err)

@@ -44,7 +44,6 @@ const containersConf = `[containers]
 
 [engine]
 cgroup_manager = "cgroupfs"
-events_logger = "file"
 `
 
 const appendPort = `grep -q Port\ %d /etc/ssh/sshd_config || echo Port %d >> /etc/ssh/sshd_config`
@@ -1063,7 +1062,7 @@ func launchWinProxy(v *MachineVM) (bool, string, error) {
 	}
 
 	return globalName, pipePrefix + waitPipe, waitPipeExists(waitPipe, 30, func() error {
-		active, exitCode := getProcessState(cmd.Process.Pid)
+		active, exitCode := machine.GetProcessState(cmd.Process.Pid)
 		if !active {
 			return fmt.Errorf("win-sshproxy.exe failed to start, exit code: %d (see windows event logs)", exitCode)
 		}

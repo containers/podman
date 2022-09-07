@@ -169,8 +169,8 @@ more.
 
 When executing RUN instructions, run the command specified in the instruction
 with the specified capability removed from its capability set.
-The CAP\_AUDIT\_WRITE, CAP\_CHOWN, CAP\_DAC\_OVERRIDE, CAP\_FOWNER,
-CAP\_FSETID, CAP\_KILL, CAP\_MKNOD, CAP\_NET\_BIND\_SERVICE, CAP\_SETFCAP,
+The CAP\_CHOWN, CAP\_DAC\_OVERRIDE, CAP\_FOWNER,
+CAP\_FSETID, CAP\_KILL, CAP\_NET\_BIND\_SERVICE, CAP\_SETFCAP,
 CAP\_SETGID, CAP\_SETPCAP, CAP\_SETUID, and CAP\_SYS\_CHROOT capabilities are
 granted by default; this option can be used to remove them.
 
@@ -385,6 +385,12 @@ environment variable.  `export BUILDAH_FORMAT=docker`
 
 Overrides the first `FROM` instruction within the Containerfile.  If there are multiple
 FROM instructions in a Containerfile, only the first is changed.
+
+With the remote podman client, not all container transports will work as
+expected. For example, oci-archive:/x.tar will reference /x.tar on the remote
+machine instead of on the client. If you need to support remote podman clients,
+it is best to restrict yourself to containers-storage: and docker://
+transports.
 
 #### **--help**, **-h**
 

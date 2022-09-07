@@ -297,6 +297,10 @@ struct ltchars {
 #define SOL_NETLINK	270
 #endif
 
+#ifndef SOL_SMC
+#define SOL_SMC 286
+#endif
+
 #ifdef SOL_BLUETOOTH
 // SPARC includes this in /usr/include/sparc64-linux-gnu/bits/socket.h
 // but it is already in bluetooth_linux.go

@@ -267,6 +267,8 @@ func GenerateKubeServiceFromV1Pod(pod *v1.Pod, servicePorts []v1.ServicePort) (Y
 	}
 	service.Spec = serviceSpec
 	service.ObjectMeta = pod.ObjectMeta
+	// Reset the annotations for the service as the pod annotations are not needed for the service
+	service.ObjectMeta.Annotations = nil
 	tm := v12.TypeMeta{
 		Kind:       "Service",
 		APIVersion: pod.TypeMeta.APIVersion,
@@ -383,7 +385,7 @@ func (p *Pod) podWithContainers(ctx context.Context, containers []*Container, po
 				return nil, err
 			}
 			for k, v := range annotations {
-				podAnnotations[define.BindMountPrefix+k] = TruncateKubeAnnotation(v)
+				podAnnotations[define.BindMountPrefix] = TruncateKubeAnnotation(k + ":" + v)
 			}
 			// Since port bindings for the pod are handled by the
 			// infra container, wipe them here only if we are sharing the net namespace
@@ -524,7 +526,7 @@ func simplePodWithV1Containers(ctx context.Context, ctrs []*Container) (*v1.Pod,
 			return nil, err
 		}
 		for k, v := range annotations {
-			kubeAnnotations[define.BindMountPrefix+k] = TruncateKubeAnnotation(v)
+			kubeAnnotations[define.BindMountPrefix] = TruncateKubeAnnotation(k + ":" + v)
 		}
 		if isInit {
 			kubeInitCtrs = append(kubeInitCtrs, kubeCtr)

@@ -357,8 +357,11 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 			// a selinux mount option exists for it
 			for k, v := range opts.Annotations {
 				// Make sure the z/Z option is not already there (from editing the YAML)
-				if strings.Replace(k, define.BindMountPrefix, "", 1) == volumeSource.Source && !cutil.StringInSlice("z", options) && !cutil.StringInSlice("Z", options) {
-					options = append(options, v)
+				if k == define.BindMountPrefix {
+					lastIndex := strings.LastIndex(v, ":")
+					if v[:lastIndex] == volumeSource.Source && !cutil.StringInSlice("z", options) && !cutil.StringInSlice("Z", options) {
+						options = append(options, v[lastIndex+1:])
+					}
 				}
 			}
 			mount := spec.Mount{
