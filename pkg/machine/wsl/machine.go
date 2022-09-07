@@ -1061,7 +1061,7 @@ func launchWinProxy(v *MachineVM) (bool, string, error) {
 		return globalName, "", err
 	}
 
-	return globalName, pipePrefix + waitPipe, waitPipeExists(waitPipe, 30, func() error {
+	return globalName, pipePrefix + waitPipe, waitPipeExists(waitPipe, 80, func() error {
 		active, exitCode := machine.GetProcessState(cmd.Process.Pid)
 		if !active {
 			return fmt.Errorf("win-sshproxy.exe failed to start, exit code: %d (see windows event logs)", exitCode)
@@ -1099,7 +1099,7 @@ func waitPipeExists(pipeName string, retries int, checkFailure func() error) err
 		if fail := checkFailure(); fail != nil {
 			return fail
 		}
-		time.Sleep(100 * time.Millisecond)
+		time.Sleep(250 * time.Millisecond)
 	}
 
 	return err
