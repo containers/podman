@@ -1628,3 +1628,8 @@ func AutocompleteClone(cmd *cobra.Command, args []string, toComplete string) ([]
 	}
 	return nil, cobra.ShellCompDirectiveNoFileComp
 }
+
+// AutocompleteHealthOnFailure - action to take once the container turns unhealthy.
+func AutocompleteHealthOnFailure(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	return define.SupportedHealthCheckOnFailureActions, cobra.ShellCompDirectiveNoFileComp
+}

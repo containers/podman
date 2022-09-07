@@ -401,6 +401,15 @@ as an argument to `/bin/sh -c`.
 
 Set an interval for the healthchecks (a value of `disable` results in no automatic timer setup) (default "30s")
 
+#### **--health-on-failure**=*action*
+
+Action to take once the container transitions to an unhealthy state.  The default is **none**.
+
+- **none**: Take no action.
+- **kill**: Kill the container.
+- **restart**: Restart the container.  Do not combine the `restart` action with the `--restart` flag.  When running inside of a systemd unit, consider using the `kill` or `stop` action instead to make use of systemd's restart policy.
+- **stop**: Stop the container.
+
 #### **--health-retries**=*retries*
 
 The number of retries allowed before a healthcheck is considered to be unhealthy. The default value is `3`.
