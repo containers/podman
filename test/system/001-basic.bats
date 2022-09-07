@@ -190,7 +190,9 @@ See 'podman version --help'" "podman version --remote"
     run_podman --log-level=error   info
     run_podman --log-level=fatal   info
     run_podman --log-level=panic   info
+    # docker compat
     run_podman --debug   info
+    run_podman -D        info
     run_podman 1 --debug --log-level=panic info
     is "$output" "Setting --log-level and --debug is not allowed"
 }
