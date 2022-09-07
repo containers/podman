@@ -15,7 +15,6 @@ import (
 	"github.com/containers/podman/v4/cmd/podman/common"
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/containers/podman/v4/cmd/podman/validate"
-	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -55,18 +54,10 @@ type inspector struct {
 	containerEngine entities.ContainerEngine
 	imageEngine     entities.ImageEngine
 	options         entities.InspectOptions
-	podOptions      entities.PodInspectOptions
 }
 
 // newInspector creates a new inspector based on the specified options.
 func newInspector(options entities.InspectOptions) (*inspector, error) {
-	switch options.Type {
-	case common.ImageType, common.ContainerType, common.AllType, common.PodType, common.NetworkType, common.VolumeType:
-		// Valid types.
-	default:
-		return nil, fmt.Errorf("invalid type %q: must be %q, %q, %q, %q, %q, or %q", options.Type,
-			common.ImageType, common.ContainerType, common.PodType, common.NetworkType, common.VolumeType, common.AllType)
-	}
 	if options.Type == common.ImageType {
 		if options.Latest {
 			return nil, fmt.Errorf("latest is not supported for type %q", common.ImageType)
@@ -78,15 +69,10 @@ func newInspector(options entities.InspectOptions) (*inspector, error) {
 	if options.Type == common.PodType && options.Size {
 		return nil, fmt.Errorf("size is not supported for type %q", common.PodType)
 	}
-	podOpts := entities.PodInspectOptions{
-		Latest: options.Latest,
-		Format: options.Format,
-	}
 	return &inspector{
 		containerEngine: registry.ContainerEngine(),
 		imageEngine:     registry.ImageEngine(),
 		options:         options,
-		podOptions:      podOpts,
 	}, nil
 }
 
@@ -140,34 +126,16 @@ func (i *inspector) inspect(namesOrIDs []string) error {
 		for i := range ctrData {
 			data = append(data, ctrData[i])
 		}
-	case common.PodType:
-		for _, pod := range namesOrIDs {
-			i.podOptions.NameOrID = pod
-			podData, err := i.containerEngine.PodInspect(ctx, i.podOptions)
-			if err != nil {
-				if !strings.Contains(err.Error(), define.ErrNoSuchPod.Error()) {
-					errs = []error{err}
-				} else {
-					return err
-				}
-			} else {
-				errs = nil
-				data = append(data, podData)
-			}
+	case common.PodType, common.PodLegacyType:
+		podData, allErrs, err := i.containerEngine.PodInspect(ctx, namesOrIDs, i.options)
+		if err != nil {
+			return err
 		}
-		if i.podOptions.Latest { // latest means there are no names in the namesOrID array
-			podData, err := i.containerEngine.PodInspect(ctx, i.podOptions)
-			if err != nil {
-				if !strings.Contains(err.Error(), define.ErrNoSuchPod.Error()) {
-					errs = []error{err}
-				} else {
-					return err
-				}
-			} else {
-				errs = nil
-				data = append(data, podData)
-			}
+		errs = allErrs
+		for i := range podData {
+			data = append(data, podData[i])
 		}
+
 	case common.NetworkType:
 		networkData, allErrs, err := registry.ContainerEngine().NetworkInspect(ctx, namesOrIDs, i.options)
 		if err != nil {
@@ -198,7 +166,14 @@ func (i *inspector) inspect(namesOrIDs []string) error {
 	var err error
 	switch {
 	case report.IsJSON(i.options.Format) || i.options.Format == "":
-		err = printJSON(data)
+		if i.options.Type == common.PodLegacyType && len(data) == 1 {
+			// We need backwards compat with the old podman pod inspect behavior.
+			// https://github.com/containers/podman/pull/15675
+			// TODO (5.0): consider removing this to better match other commands.
+			err = printJSON(data[0])
+		} else {
+			err = printJSON(data)
+		}
 	default:
 		// Landing here implies user has given a custom --format
 		row := inspectNormalize(i.options.Format, tmpType)
@@ -221,7 +196,7 @@ func (i *inspector) inspect(namesOrIDs []string) error {
 	return nil
 }
 
-func printJSON(data []interface{}) error {
+func printJSON(data interface{}) error {
 	enc := json.NewEncoder(os.Stdout)
 	// by default, json marshallers will force utf=8 from
 	// a string. this breaks healthchecks that use <,>, &&.
@@ -282,14 +257,13 @@ func (i *inspector) inspectAll(ctx context.Context, namesOrIDs []string) ([]inte
 			data = append(data, networkData[0])
 			continue
 		}
-		i.podOptions.NameOrID = name
-		podData, err := i.containerEngine.PodInspect(ctx, i.podOptions)
+
+		podData, errs, err := i.containerEngine.PodInspect(ctx, []string{name}, i.options)
 		if err != nil {
-			if !strings.Contains(err.Error(), define.ErrNoSuchPod.Error()) {
-				return nil, nil, err
-			}
-		} else {
-			data = append(data, podData)
+			return nil, nil, err
+		}
+		if len(errs) == 0 {
+			data = append(data, podData[0])
 			continue
 		}
 		if len(errs) > 0 {

@@ -3,10 +3,12 @@ package tunnel
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/bindings/pods"
 	"github.com/containers/podman/v4/pkg/domain/entities"
+	"github.com/containers/podman/v4/pkg/errorhandling"
 	"github.com/containers/podman/v4/pkg/util"
 )
 
@@ -223,14 +225,25 @@ func (ic *ContainerEngine) PodPs(ctx context.Context, opts entities.PodPSOptions
 	return pods.List(ic.ClientCtx, options)
 }
 
-func (ic *ContainerEngine) PodInspect(ctx context.Context, options entities.PodInspectOptions) (*entities.PodInspectReport, error) {
-	switch {
-	case options.Latest:
-		return nil, errors.New("latest is not supported")
-	case options.NameOrID == "":
-		return nil, errors.New("NameOrID must be specified")
+func (ic *ContainerEngine) PodInspect(ctx context.Context, namesOrIDs []string, options entities.InspectOptions) ([]*entities.PodInspectReport, []error, error) {
+	var errs []error
+	podReport := make([]*entities.PodInspectReport, 0, len(namesOrIDs))
+	for _, name := range namesOrIDs {
+		inspect, err := pods.Inspect(ic.ClientCtx, name, nil)
+		if err != nil {
+			errModel, ok := err.(*errorhandling.ErrorModel)
+			if !ok {
+				return nil, nil, err
+			}
+			if errModel.ResponseCode == 404 {
+				errs = append(errs, fmt.Errorf("no such pod %q", name))
+				continue
+			}
+			return nil, nil, err
+		}
+		podReport = append(podReport, inspect)
 	}
-	return pods.Inspect(ic.ClientCtx, options.NameOrID, nil)
+	return podReport, errs, nil
 }
 
 func (ic *ContainerEngine) PodStats(ctx context.Context, namesOrIds []string, opts entities.PodStatsOptions) ([]*entities.PodStatsReport, error) {

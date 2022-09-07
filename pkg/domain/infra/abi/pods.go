@@ -505,23 +505,49 @@ func (ic *ContainerEngine) PodPs(ctx context.Context, options entities.PodPSOpti
 	return reports, nil
 }
 
-func (ic *ContainerEngine) PodInspect(ctx context.Context, options entities.PodInspectOptions) (*entities.PodInspectReport, error) {
-	var (
-		pod *libpod.Pod
-		err error
-	)
-	// Look up the pod.
+func (ic *ContainerEngine) PodInspect(ctx context.Context, nameOrIDs []string, options entities.InspectOptions) ([]*entities.PodInspectReport, []error, error) {
 	if options.Latest {
-		pod, err = ic.Libpod.GetLatestPod()
-	} else {
-		pod, err = ic.Libpod.LookupPod(options.NameOrID)
+		pod, err := ic.Libpod.GetLatestPod()
+		if err != nil {
+			return nil, nil, err
+		}
+		inspect, err := pod.Inspect()
+		if err != nil {
+			return nil, nil, err
+		}
+
+		return []*entities.PodInspectReport{
+			{
+				InspectPodData: inspect,
+			},
+		}, nil, nil
 	}
-	if err != nil {
-		return nil, fmt.Errorf("unable to look up requested container: %w", err)
+
+	var errs []error
+	podReport := make([]*entities.PodInspectReport, 0, len(nameOrIDs))
+	for _, name := range nameOrIDs {
+		pod, err := ic.Libpod.LookupPod(name)
+		if err != nil {
+			// ErrNoSuchPod is non-fatal, other errors will be
+			// treated as fatal.
+			if errors.Is(err, define.ErrNoSuchPod) {
+				errs = append(errs, fmt.Errorf("no such pod %s", name))
+				continue
+			}
+			return nil, nil, err
+		}
+
+		inspect, err := pod.Inspect()
+		if err != nil {
+			// ErrNoSuchPod is non-fatal, other errors will be
+			// treated as fatal.
+			if errors.Is(err, define.ErrNoSuchPod) {
+				errs = append(errs, fmt.Errorf("no such pod %s", name))
+				continue
+			}
+			return nil, nil, err
+		}
+		podReport = append(podReport, &entities.PodInspectReport{InspectPodData: inspect})
 	}
-	inspect, err := pod.Inspect()
-	if err != nil {
-		return nil, err
-	}
-	return &entities.PodInspectReport{InspectPodData: inspect}, nil
+	return podReport, errs, nil
 }
