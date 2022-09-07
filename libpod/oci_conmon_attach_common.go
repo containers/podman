@@ -280,20 +280,20 @@ func readStdio(conn *net.UnixConn, streams *define.AttachStreams, receiveStdoutE
 	var err error
 	select {
 	case err = <-receiveStdoutError:
-		if err := conn.CloseWrite(); err != nil {
+		if err := socketCloseWrite(conn); err != nil {
 			logrus.Errorf("Failed to close stdin: %v", err)
 		}
 		return err
 	case err = <-stdinDone:
 		if err == define.ErrDetach {
-			if err := conn.CloseWrite(); err != nil {
+			if err := socketCloseWrite(conn); err != nil {
 				logrus.Errorf("Failed to close stdin: %v", err)
 			}
 			return err
 		}
 		if err == nil {
 			// copy stdin is done, close it
-			if connErr := conn.CloseWrite(); connErr != nil {
+			if connErr := socketCloseWrite(conn); connErr != nil {
 				logrus.Errorf("Unable to close conn: %v", connErr)
 			}
 		}
