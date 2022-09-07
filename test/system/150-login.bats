@@ -180,7 +180,7 @@ EOF
     run_podman 125 push --authfile=$authfile \
         --tls-verify=false $IMAGE \
         localhost:${PODMAN_LOGIN_REGISTRY_PORT}/badpush:1
-    is "$output" ".*: unauthorized: authentication required" \
+    is "$output" ".* checking whether a blob .* exists in localhost:${PODMAN_LOGIN_REGISTRY_PORT}/badpush: authentication required" \
        "auth error on push"
 }
 
@@ -253,7 +253,7 @@ function _test_skopeo_credential_sharing() {
     run skopeo inspect "$@" --tls-verify=false docker://$registry/$destname
     echo "$output"
     is "$status" "1" "skopeo inspect - exit status"
-    is "$output" ".*: unauthorized: authentication required" \
+    is "$output" ".*: authentication required" \
        "auth error on skopeo inspect"
 }
 
