@@ -32,9 +32,6 @@ def process(infile):
     if '-pod-' in infile or '-kube-' in infile:
         pod_or_container = 'pod'
 
-    # Sometimes a man page includes the subcommand.
-    subcommand = podman_subcommand(infile)
-
     # foo.md.in -> foo.md -- but always write to a tmpfile
     outfile = os.path.splitext(infile)[0]
     outfile_tmp = outfile + '.tmp.' + str(os.getpid())
@@ -57,7 +54,8 @@ def process(infile):
                 with open(optionfile, 'r') as fh_optfile:
                     for opt_line in fh_optfile:
                         opt_line = replace_type(opt_line, pod_or_container)
-                        opt_line = opt_line.replace('<<subcommand>>', subcommand)
+                        opt_line = opt_line.replace('<<subcommand>>', podman_subcommand(infile))
+                        opt_line = opt_line.replace('<<fullsubcommand>>', podman_subcommand(infile, 'full'))
                         fh_out.write(opt_line)
                 fh_out.write("\n[//]: # (END   included file " + optionfile + ")\n")
             else:
@@ -67,10 +65,11 @@ def process(infile):
     os.rename(outfile_tmp, outfile)
 
 # Given a file path of the form podman-foo-bar.1.md.in, return "foo bar"
-def podman_subcommand(string: str) -> str:
+def podman_subcommand(string: str, full=None) -> str:
     # Special case: 'podman-pod-start' becomes just 'start'
-    if string.startswith("podman-pod-"):
-        string = string[len("podman-pod-"):]
+    if not full:
+        if string.startswith("podman-pod-"):
+            string = string[len("podman-pod-"):]
     if string.startswith("podman-"):
         string = string[len("podman-"):]
     if string.endswith(".1.md.in"):
