@@ -47,20 +47,15 @@ func inspect(cmd *cobra.Command, args []string) error {
 	}
 
 	if cmd.Flags().Changed("format") {
-		row := report.NormalizeFormat(format)
-		formatted := report.EnforceRange(row)
+		rpt := report.New(os.Stdout, cmd.Name())
+		defer rpt.Flush()
 
-		tmpl, err := report.NewTemplate("inspect").Parse(formatted)
+		rpt, err := rpt.Parse(report.OriginUser, format)
 		if err != nil {
 			return err
 		}
 
-		w, err := report.NewWriterDefault(os.Stdout)
-		if err != nil {
-			return err
-		}
-		defer w.Flush()
-		if err := tmpl.Execute(w, inspected); err != nil {
+		if err := rpt.Execute(inspected); err != nil {
 			return err
 		}
 	} else {
