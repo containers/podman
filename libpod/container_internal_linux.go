@@ -4,6 +4,7 @@
 package libpod
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path"
@@ -266,9 +267,15 @@ func (c *Container) setupSystemd(mounts []spec.Mount, g generate.Generator) erro
 		g.AddMount(systemdMnt)
 	} else {
 		mountOptions := []string{"bind", "rprivate"}
+		skipMount := false
 
 		var statfs unix.Statfs_t
 		if err := unix.Statfs("/sys/fs/cgroup/systemd", &statfs); err != nil {
+			if errors.Is(err, os.ErrNotExist) {
+				// If the mount is missing on the host, we cannot bind mount it so
+				// just skip it.
+				skipMount = true
+			}
 			mountOptions = append(mountOptions, "nodev", "noexec", "nosuid")
 		} else {
 			if statfs.Flags&unix.MS_NODEV == unix.MS_NODEV {
@@ -284,15 +291,16 @@ func (c *Container) setupSystemd(mounts []spec.Mount, g generate.Generator) erro
 				mountOptions = append(mountOptions, "ro")
 			}
 		}
-
-		systemdMnt := spec.Mount{
-			Destination: "/sys/fs/cgroup/systemd",
-			Type:        "bind",
-			Source:      "/sys/fs/cgroup/systemd",
-			Options:     mountOptions,
+		if !skipMount {
+			systemdMnt := spec.Mount{
+				Destination: "/sys/fs/cgroup/systemd",
+				Type:        "bind",
+				Source:      "/sys/fs/cgroup/systemd",
+				Options:     mountOptions,
+			}
+			g.AddMount(systemdMnt)
+			g.AddLinuxMaskedPaths("/sys/fs/cgroup/systemd/release_agent")
 		}
-		g.AddMount(systemdMnt)
-		g.AddLinuxMaskedPaths("/sys/fs/cgroup/systemd/release_agent")
 	}
 
 	return nil
