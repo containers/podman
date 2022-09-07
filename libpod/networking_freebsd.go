@@ -260,49 +260,7 @@ func (c *Container) joinedNetworkNSPath() string {
 func (c *Container) inspectJoinedNetworkNS(networkns string) (q types.StatusBlock, retErr error) {
 	// TODO: extract interface information from the vnet jail
 	return types.StatusBlock{}, nil
-}
 
-// resultToBasicNetworkConfig produces an InspectBasicNetworkConfig from a CNI
-// result
-func resultToBasicNetworkConfig(result types.StatusBlock) define.InspectBasicNetworkConfig {
-	config := define.InspectBasicNetworkConfig{}
-	interfaceNames := make([]string, 0, len(result.Interfaces))
-	for interfaceName := range result.Interfaces {
-		interfaceNames = append(interfaceNames, interfaceName)
-	}
-	// ensure consistent inspect results by sorting
-	sort.Strings(interfaceNames)
-	for _, interfaceName := range interfaceNames {
-		netInt := result.Interfaces[interfaceName]
-		for _, netAddress := range netInt.Subnets {
-			size, _ := netAddress.IPNet.Mask.Size()
-			if netAddress.IPNet.IP.To4() != nil {
-				// ipv4
-				if config.IPAddress == "" {
-					config.IPAddress = netAddress.IPNet.IP.String()
-					config.IPPrefixLen = size
-					config.Gateway = netAddress.Gateway.String()
-				} else {
-					config.SecondaryIPAddresses = append(config.SecondaryIPAddresses, define.Address{Addr: netAddress.IPNet.IP.String(), PrefixLength: size})
-				}
-			} else {
-				// ipv6
-				if config.GlobalIPv6Address == "" {
-					config.GlobalIPv6Address = netAddress.IPNet.IP.String()
-					config.GlobalIPv6PrefixLen = size
-					config.IPv6Gateway = netAddress.Gateway.String()
-				} else {
-					config.SecondaryIPv6Addresses = append(config.SecondaryIPv6Addresses, define.Address{Addr: netAddress.IPNet.IP.String(), PrefixLength: size})
-				}
-			}
-		}
-		if config.MacAddress == "" {
-			config.MacAddress = netInt.MacAddress.String()
-		} else {
-			config.AdditionalMacAddresses = append(config.AdditionalMacAddresses, netInt.MacAddress.String())
-		}
-	}
-	return config
 }
 
 // NetworkDisconnect removes a container from the network
