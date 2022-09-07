@@ -11,14 +11,12 @@ import (
 	"net"
 	"os/exec"
 	"path/filepath"
-	"regexp"
 	"sort"
 
 	"github.com/containers/buildah/pkg/jail"
 	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/libpod/events"
-	"github.com/containers/podman/v4/pkg/namespaces"
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/containers/storage/pkg/lockfile"
 	"github.com/sirupsen/logrus"
@@ -211,72 +209,6 @@ func (r *Runtime) teardownNetNS(ctr *Container) error {
 	}
 
 	return nil
-}
-
-// isBridgeNetMode checks if the given network mode is bridge.
-// It returns nil when it is set to bridge and an error otherwise.
-func isBridgeNetMode(n namespaces.NetworkMode) error {
-	if !n.IsBridge() {
-		return fmt.Errorf("%q is not supported: %w", n, define.ErrNetworkModeInvalid)
-	}
-	return nil
-}
-
-// Reload only works with containers with a configured network.
-// It will tear down, and then reconfigure, the network of the container.
-// This is mainly used when a reload of firewall rules wipes out existing
-// firewall configuration.
-// Efforts will be made to preserve MAC and IP addresses, but this only works if
-// the container only joined a single CNI network, and was only assigned a
-// single MAC or IP.
-// Only works on root containers at present, though in the future we could
-// extend this to stop + restart slirp4netns
-func (r *Runtime) reloadContainerNetwork(ctr *Container) (map[string]types.StatusBlock, error) {
-	if ctr.state.NetNS == nil {
-		return nil, fmt.Errorf("container %s network is not configured, refusing to reload: %w", ctr.ID(), define.ErrCtrStateInvalid)
-	}
-	if err := isBridgeNetMode(ctr.config.NetMode); err != nil {
-		return nil, err
-	}
-	logrus.Infof("Going to reload container %s network", ctr.ID())
-
-	err := r.teardownCNI(ctr)
-	if err != nil {
-		// teardownCNI will error if the iptables rules do not exists and this is the case after
-		// a firewall reload. The purpose of network reload is to recreate the rules if they do
-		// not exists so we should not log this specific error as error. This would confuse users otherwise.
-		// iptables-legacy and iptables-nft will create different errors make sure to match both.
-		b, rerr := regexp.MatchString("Couldn't load target `CNI-[a-f0-9]{24}':No such file or directory|Chain 'CNI-[a-f0-9]{24}' does not exist", err.Error())
-		if rerr == nil && !b {
-			logrus.Error(err)
-		} else {
-			logrus.Info(err)
-		}
-	}
-
-	networkOpts, err := ctr.networks()
-	if err != nil {
-		return nil, err
-	}
-
-	// Set the same network settings as before..
-	netStatus := ctr.getNetworkStatus()
-	for network, perNetOpts := range networkOpts {
-		for name, netInt := range netStatus[network].Interfaces {
-			perNetOpts.InterfaceName = name
-			perNetOpts.StaticMAC = netInt.MacAddress
-			for _, netAddress := range netInt.Subnets {
-				perNetOpts.StaticIPs = append(perNetOpts.StaticIPs, netAddress.IPNet.IP)
-			}
-			// Normally interfaces have a length of 1, only for some special cni configs we could get more.
-			// For now just use the first interface to get the ips this should be good enough for most cases.
-			break
-		}
-		networkOpts[network] = perNetOpts
-	}
-	ctr.perNetworkOpts = networkOpts
-
-	return r.configureNetNS(ctr, ctr.state.NetNS)
 }
 
 func getContainerNetIO(ctr *Container) (*LinkStatistics64, error) {
