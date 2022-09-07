@@ -55,6 +55,12 @@ func (c *Container) newContainerExitedEvent(exitCode int32) {
 	e.Image = c.config.RootfsImageName
 	e.Type = events.Container
 	e.ContainerExitCode = int(exitCode)
+
+	e.Details = events.Details{
+		ID:         e.ID,
+		Attributes: c.Labels(),
+	}
+
 	if err := c.runtime.eventer.Write(e); err != nil {
 		logrus.Errorf("Unable to write container exited event: %q", err)
 	}
@@ -70,6 +76,12 @@ func (c *Container) newExecDiedEvent(sessionID string, exitCode int) {
 	e.ContainerExitCode = exitCode
 	e.Attributes = make(map[string]string)
 	e.Attributes["execID"] = sessionID
+
+	e.Details = events.Details{
+		ID:         e.ID,
+		Attributes: c.Labels(),
+	}
+
 	if err := c.runtime.eventer.Write(e); err != nil {
 		logrus.Errorf("Unable to write exec died event: %q", err)
 	}
