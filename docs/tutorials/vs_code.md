@@ -1,7 +1,7 @@
 ![PODMAN logo](../../logo/podman-logo-source.svg)
 
 # Podman in VS Code
-This tutorial shows you how to set up **development containers** inside VS Code to achieve reproducible builds. In this example we will use a ``devcontainer.json` file that also makes your project compatible with GitHub Codespaces and GitHub Actions, however, these instructions can also work for other project hosting and continuous integration services.
+This tutorial shows you how to set up **development containers** inside VS Code to achieve reproducible builds. In this example we will use a `devcontainer.json` file that also makes your project compatible with GitHub Codespaces and GitHub Actions, however, these instructions can also work for other project hosting and continuous integration services.
 
 In this example we will be using the common scenario of with GitHub Pages to host your blog using Jekyll.
 
