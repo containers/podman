@@ -15,7 +15,6 @@ import (
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/containers/podman/v4/cmd/podman/validate"
 	"github.com/containers/podman/v4/pkg/domain/entities"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -186,7 +185,7 @@ func (i *inspector) inspect(namesOrIDs []string) error {
 		err = rpt.Execute(data)
 	}
 	if err != nil {
-		logrus.Errorf("Printing inspect output: %v", err)
+		errs = append(errs, fmt.Errorf("printing inspect output: %w", err))
 	}
 
 	if len(errs) > 0 {
