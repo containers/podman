@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	"text/template"
 
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/common/pkg/report"
@@ -12,6 +11,7 @@ import (
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/containers/podman/v4/cmd/podman/validate"
 	"github.com/containers/podman/v4/pkg/domain/entities"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -53,22 +53,25 @@ func version(cmd *cobra.Command, args []string) error {
 	}
 
 	if cmd.Flag("format").Changed {
-		// Cannot use report.New() as it enforces {{range .}} for OriginUser templates
-		tmpl := template.New(cmd.Name()).Funcs(template.FuncMap(report.DefaultFuncs))
+		rpt := report.New(os.Stdout, cmd.Name())
+		defer rpt.Flush()
 
-		versionFormat = report.NormalizeFormat(versionFormat)
-		tmpl, err := tmpl.Parse(versionFormat)
+		// Use OriginUnknown so it does not add an extra range since it
+		// will only be called for a single element and not a slice.
+		rpt, err = rpt.Parse(report.OriginUnknown, versionFormat)
 		if err != nil {
 			return err
 		}
-		if err := tmpl.Execute(os.Stdout, versions); err != nil {
+		if err := rpt.Execute(versions); err != nil {
+			// only log at debug since we fall back to the client only template
+			logrus.Debugf("Failed to execute template: %v", err)
 			// On Failure, assume user is using older version of podman version --format and check client
 			versionFormat = strings.ReplaceAll(versionFormat, ".Server.", ".")
-			tmpl, err := tmpl.Parse(versionFormat)
+			rpt, err := rpt.Parse(report.OriginUnknown, versionFormat)
 			if err != nil {
 				return err
 			}
-			if err := tmpl.Execute(os.Stdout, versions.Client); err != nil {
+			if err := rpt.Execute(versions.Client); err != nil {
 				return err
 			}
 		}
