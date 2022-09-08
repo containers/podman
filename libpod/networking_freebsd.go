@@ -249,6 +249,19 @@ func getContainerNetIO(ctr *Container) (*LinkStatistics64, error) {
 	return &LinkStatistics64{}, nil
 }
 
+func (c *Container) joinedNetworkNSPath() string {
+	if c.state.NetNS != nil {
+		return c.state.NetNS.Name
+	} else {
+		return ""
+	}
+}
+
+func (c *Container) inspectJoinedNetworkNS(networkns string) (q types.StatusBlock, retErr error) {
+	// TODO: extract interface information from the vnet jail
+	return types.StatusBlock{}, nil
+}
+
 // resultToBasicNetworkConfig produces an InspectBasicNetworkConfig from a CNI
 // result
 func resultToBasicNetworkConfig(result types.StatusBlock) define.InspectBasicNetworkConfig {
