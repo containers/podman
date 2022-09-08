@@ -20,7 +20,6 @@ function teardown() {
 # remove the entire lines, except for pod-inspect, just remove the SKIP
 # but leave "mypod")
 extra_args_table="
-machine info      | SKIP
 version           | SKIP
 
 history           | $IMAGE
