@@ -25,7 +25,6 @@ import (
 	"github.com/containers/storage/pkg/system"
 	"github.com/containers/storage/pkg/unshare"
 	gzip "github.com/klauspost/pgzip"
-	"github.com/opencontainers/runc/libcontainer/userns"
 	"github.com/sirupsen/logrus"
 	"github.com/ulikunitz/xz"
 )
@@ -1159,7 +1158,7 @@ func (archiver *Archiver) TarUntar(src, dst string) error {
 		GIDMaps:     tarMappings.GIDs(),
 		Compression: Uncompressed,
 		CopyPass:    true,
-		InUserNS:    userns.RunningInUserNS(),
+		InUserNS:    unshare.IsRootless(),
 	}
 	archive, err := TarWithOptions(src, options)
 	if err != nil {
@@ -1174,7 +1173,7 @@ func (archiver *Archiver) TarUntar(src, dst string) error {
 		UIDMaps:   untarMappings.UIDs(),
 		GIDMaps:   untarMappings.GIDs(),
 		ChownOpts: archiver.ChownOpts,
-		InUserNS:  userns.RunningInUserNS(),
+		InUserNS:  unshare.IsRootless(),
 	}
 	return archiver.Untar(archive, dst, options)
 }
@@ -1194,7 +1193,7 @@ func (archiver *Archiver) UntarPath(src, dst string) error {
 		UIDMaps:   untarMappings.UIDs(),
 		GIDMaps:   untarMappings.GIDs(),
 		ChownOpts: archiver.ChownOpts,
-		InUserNS:  userns.RunningInUserNS(),
+		InUserNS:  unshare.IsRootless(),
 	}
 	return archiver.Untar(archive, dst, options)
 }
@@ -1294,7 +1293,7 @@ func (archiver *Archiver) CopyFileWithTar(src, dst string) (err error) {
 		UIDMaps:              archiver.UntarIDMappings.UIDs(),
 		GIDMaps:              archiver.UntarIDMappings.GIDs(),
 		ChownOpts:            archiver.ChownOpts,
-		InUserNS:             userns.RunningInUserNS(),
+		InUserNS:             unshare.IsRootless(),
 		NoOverwriteDirNonDir: true,
 	}
 	err = archiver.Untar(r, filepath.Dir(dst), options)
@@ -1472,7 +1471,7 @@ func CopyFileWithTarAndChown(chownOpts *idtools.IDPair, hasher io.Writer, uidmap
 				err = fmt.Errorf("extracting data to %q while copying: %w", dest, err)
 			}
 			hashWorker.Wait()
-			if err == nil {
+			if err == nil && hashError != nil {
 				err = fmt.Errorf("calculating digest of data for %q while copying: %w", dest, hashError)
 			}
 			return err

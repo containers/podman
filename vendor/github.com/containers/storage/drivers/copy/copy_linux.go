@@ -27,7 +27,6 @@ import (
 	"github.com/containers/storage/pkg/pools"
 	"github.com/containers/storage/pkg/system"
 	"github.com/containers/storage/pkg/unshare"
-	"github.com/opencontainers/runc/libcontainer/userns"
 	"golang.org/x/sys/unix"
 )
 
@@ -207,7 +206,7 @@ func DirCopy(srcDir, dstDir string, copyMode Mode, copyXattrs bool) error {
 			s.Close()
 
 		case mode&os.ModeDevice != 0:
-			if userns.RunningInUserNS() {
+			if unshare.IsRootless() {
 				// cannot create a device if running in user namespace
 				return nil
 			}

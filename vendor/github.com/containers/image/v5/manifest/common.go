@@ -228,3 +228,16 @@ func compressionVariantsRecognizeMIMEType(variantTable []compressionMIMETypeSet,
 	variants := findCompressionMIMETypeSet(variantTable, mimeType)
 	return variants != nil // Alternatively, this could be len(variants) > 1, but really the caller should ask about a specific algorithm.
 }
+
+// imgInspectLayersFromLayerInfos converts a list of layer infos, presumably obtained from a Manifest.LayerInfos()
+// method call, into a format suitable for inclusion in a types.ImageInspectInfo structure.
+func imgInspectLayersFromLayerInfos(infos []LayerInfo) []types.ImageInspectLayer {
+	layers := make([]types.ImageInspectLayer, len(infos))
+	for i, info := range infos {
+		layers[i].MIMEType = info.MediaType
+		layers[i].Digest = info.Digest
+		layers[i].Size = info.Size
+		layers[i].Annotations = info.Annotations
+	}
+	return layers
+}

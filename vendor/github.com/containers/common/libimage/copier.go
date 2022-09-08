@@ -413,7 +413,7 @@ func checkRegistrySourcesAllows(dest types.ImageReference) (insecure *bool, err 
 		AllowedRegistries  []string `json:"allowedRegistries,omitempty"`
 	}
 	if err := json.Unmarshal([]byte(registrySources), &sources); err != nil {
-		return nil, fmt.Errorf("error parsing $BUILD_REGISTRY_SOURCES (%q) as JSON: %w", registrySources, err)
+		return nil, fmt.Errorf("parsing $BUILD_REGISTRY_SOURCES (%q) as JSON: %w", registrySources, err)
 	}
 	blocked := false
 	if len(sources.BlockedRegistries) > 0 {

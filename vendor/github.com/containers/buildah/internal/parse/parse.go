@@ -18,6 +18,7 @@ import (
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/lockfile"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
+	selinux "github.com/opencontainers/selinux/go-selinux"
 )
 
 const (
@@ -185,9 +186,10 @@ func GetCacheMount(args []string, store storage.Store, imageMountLabel string, a
 	var mode uint64
 	lockedTargets := make([]string, 0)
 	var (
-		setDest     bool
-		setShared   bool
-		setReadOnly bool
+		setDest           bool
+		setShared         bool
+		setReadOnly       bool
+		foundSElinuxLabel bool
 	)
 	fromStage := ""
 	newMount := specs.Mount{
@@ -217,7 +219,10 @@ func GetCacheMount(args []string, store storage.Store, imageMountLabel string, a
 			// Alias for "ro"
 			newMount.Options = append(newMount.Options, "ro")
 			setReadOnly = true
-		case "shared", "rshared", "private", "rprivate", "slave", "rslave", "Z", "z", "U":
+		case "Z", "z":
+			newMount.Options = append(newMount.Options, kv[0])
+			foundSElinuxLabel = true
+		case "shared", "rshared", "private", "rprivate", "slave", "rslave", "U":
 			newMount.Options = append(newMount.Options, kv[0])
 			setShared = true
 		case "sharing":
@@ -278,6 +283,12 @@ func GetCacheMount(args []string, store storage.Store, imageMountLabel string, a
 		default:
 			return newMount, lockedTargets, fmt.Errorf("%v: %w", kv[0], errBadMntOption)
 		}
+	}
+
+	// If selinux is enabled and no selinux option was configured
+	// default to `z` i.e shared content label.
+	if !foundSElinuxLabel && (selinux.EnforceMode() != selinux.Disabled) && fromStage == "" {
+		newMount.Options = append(newMount.Options, "z")
 	}
 
 	if !setDest {

@@ -87,16 +87,10 @@ func (b *Buffer) Write(p []byte) (n int, err error) {
 /*
 Read implements the io.Reader interface. It advances the
 cursor as it reads.
-
-Returns an error if called after Close.
 */
 func (b *Buffer) Read(d []byte) (int, error) {
 	b.lock.Lock()
 	defer b.lock.Unlock()
-
-	if b.closed {
-		return 0, errors.New("attempt to read from closed buffer")
-	}
 
 	if uint64(len(b.contents)) <= b.readCursor {
 		return 0, io.EOF

@@ -52,7 +52,13 @@ func UnmarshalPEMToPublicKey(pemBytes []byte) (crypto.PublicKey, error) {
 	if derBytes == nil {
 		return nil, errors.New("PEM decoding failed")
 	}
-	return x509.ParsePKIXPublicKey(derBytes.Bytes)
+	switch derBytes.Type {
+	case string(PublicKeyPEMType):
+		return x509.ParsePKIXPublicKey(derBytes.Bytes)
+	default:
+		return nil, fmt.Errorf("unknown Public key PEM file type: %v. Are you passing the correct public key?",
+			derBytes.Type)
+	}
 }
 
 // MarshalPublicKeyToDER converts a crypto.PublicKey into a PKIX, ASN.1 DER byte slice

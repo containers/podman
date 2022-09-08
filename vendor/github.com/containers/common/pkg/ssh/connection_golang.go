@@ -275,7 +275,7 @@ func ValidateAndConfigure(uri *url.URL, iden string) (*ssh.ClientConfig, error) 
 	keyFilePath := filepath.Join(homedir.Get(), ".ssh", "known_hosts")
 	known, err := knownhosts.New(keyFilePath)
 	if err != nil {
-		return nil, fmt.Errorf("error creating host key callback function for %s: %w", keyFilePath, err)
+		return nil, fmt.Errorf("creating host key callback function for %s: %w", keyFilePath, err)
 	}
 
 	cfg := &ssh.ClientConfig{

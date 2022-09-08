@@ -10,7 +10,7 @@ import (
 	"github.com/containers/storage/pkg/chrootarchive"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/ioutils"
-	"github.com/opencontainers/runc/libcontainer/userns"
+	"github.com/containers/storage/pkg/unshare"
 	"github.com/sirupsen/logrus"
 )
 
@@ -179,7 +179,7 @@ func (gdw *NaiveDiffDriver) ApplyDiff(id, parent string, options ApplyDiffOpts) 
 	}
 
 	tarOptions := &archive.TarOptions{
-		InUserNS:          userns.RunningInUserNS(),
+		InUserNS:          unshare.IsRootless(),
 		IgnoreChownErrors: options.IgnoreChownErrors,
 		ForceMask:         forceMask,
 	}

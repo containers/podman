@@ -58,7 +58,7 @@ func Reference(ref types.ImageReference, supplemental []types.ImageReference, mu
 func (s *supplementedImageReference) NewImage(ctx context.Context, sys *types.SystemContext) (types.ImageCloser, error) {
 	src, err := s.NewImageSource(ctx, sys)
 	if err != nil {
-		return nil, fmt.Errorf("error building a new Image using an ImageSource: %w", err)
+		return nil, fmt.Errorf("building a new Image using an ImageSource: %w", err)
 	}
 	return image.FromSource(ctx, sys, src)
 }
@@ -75,7 +75,7 @@ func (s *supplementedImageReference) NewImageSource(ctx context.Context, sys *ty
 	// Open the default instance for reading.
 	top, err := s.ImageReference.NewImageSource(ctx, sys)
 	if err != nil {
-		return nil, fmt.Errorf("error opening %q as image source: %w", transports.ImageName(s.ImageReference), err)
+		return nil, fmt.Errorf("opening %q as image source: %w", transports.ImageName(s.ImageReference), err)
 	}
 
 	defer func() {
@@ -105,14 +105,14 @@ func (s *supplementedImageReference) NewImageSource(ctx context.Context, sys *ty
 		// Mark this instance as being associated with this ImageSource.
 		manifestDigest, err := manifest.Digest(manifestBytes)
 		if err != nil {
-			return fmt.Errorf("error computing digest over manifest %q: %w", string(manifestBytes), err)
+			return fmt.Errorf("computing digest over manifest %q: %w", string(manifestBytes), err)
 		}
 		sources[manifestDigest] = src
 
 		// Parse the manifest as a single image.
 		man, err := manifest.FromBlob(manifestBytes, manifestType)
 		if err != nil {
-			return fmt.Errorf("error parsing manifest %q: %w", string(manifestBytes), err)
+			return fmt.Errorf("parsing manifest %q: %w", string(manifestBytes), err)
 		}
 
 		// Log the config blob's digest and the blobs of its layers as associated with this manifest.
@@ -135,14 +135,14 @@ func (s *supplementedImageReference) NewImageSource(ctx context.Context, sys *ty
 		// Mark this instance as being associated with this ImageSource.
 		manifestDigest, err := manifest.Digest(manifestBytes)
 		if err != nil {
-			return fmt.Errorf("error computing manifest digest: %w", err)
+			return fmt.Errorf("computing manifest digest: %w", err)
 		}
 		sources[manifestDigest] = src
 
 		// Parse the manifest as a list of images.
 		list, err := manifest.ListFromBlob(manifestBytes, manifestType)
 		if err != nil {
-			return fmt.Errorf("error parsing manifest blob %q as a %q: %w", string(manifestBytes), manifestType, err)
+			return fmt.Errorf("parsing manifest blob %q as a %q: %w", string(manifestBytes), manifestType, err)
 		}
 
 		// Figure out which of its instances we want to look at.
@@ -151,7 +151,7 @@ func (s *supplementedImageReference) NewImageSource(ctx context.Context, sys *ty
 		case cp.CopySystemImage:
 			instance, err := list.ChooseInstance(sys)
 			if err != nil {
-				return fmt.Errorf("error selecting appropriate instance from list: %w", err)
+				return fmt.Errorf("selecting appropriate instance from list: %w", err)
 			}
 			chaseInstances = []digest.Digest{instance}
 		case cp.CopySpecificImages:
@@ -194,14 +194,14 @@ func (s *supplementedImageReference) NewImageSource(ctx context.Context, sys *ty
 		} else {
 			src, err = ref.NewImageSource(ctx, sys)
 			if err != nil {
-				return nil, fmt.Errorf("error opening %q as image source: %w", transports.ImageName(ref), err)
+				return nil, fmt.Errorf("opening %q as image source: %w", transports.ImageName(ref), err)
 			}
 		}
 
 		// Read the default manifest for the image.
 		manifestBytes, manifestType, err := src.GetManifest(ctx, nil)
 		if err != nil {
-			return nil, fmt.Errorf("error reading default manifest from image %q: %w", transports.ImageName(ref), err)
+			return nil, fmt.Errorf("reading default manifest from image %q: %w", transports.ImageName(ref), err)
 		}
 
 		// If this is the first image, mark it as our starting point.
@@ -223,18 +223,18 @@ func (s *supplementedImageReference) NewImageSource(ctx context.Context, sys *ty
 		// Record the digest of the ImageSource's default instance's manifest.
 		manifestDigest, err := manifest.Digest(manifestBytes)
 		if err != nil {
-			return nil, fmt.Errorf("error computing digest of manifest from image %q: %w", transports.ImageName(ref), err)
+			return nil, fmt.Errorf("computing digest of manifest from image %q: %w", transports.ImageName(ref), err)
 		}
 		sis.sourceDefaultInstances[src] = manifestDigest
 
 		// If the ImageSource's default manifest is a list, parse each of its instances.
 		if manifest.MIMETypeIsMultiImage(manifestType) {
 			if err = addMulti(manifestBytes, manifestType, src); err != nil {
-				return nil, fmt.Errorf("error adding multi-image %q: %w", transports.ImageName(ref), err)
+				return nil, fmt.Errorf("adding multi-image %q: %w", transports.ImageName(ref), err)
 			}
 		} else {
 			if err = addSingle(manifestBytes, manifestType, src); err != nil {
-				return nil, fmt.Errorf("error adding single image %q: %w", transports.ImageName(ref), err)
+				return nil, fmt.Errorf("adding single image %q: %w", transports.ImageName(ref), err)
 			}
 		}
 	}
@@ -261,18 +261,18 @@ func (s *supplementedImageReference) NewImageSource(ctx context.Context, sys *ty
 			// Trust that we either don't need it, or that it's in another reference.
 			// continue
 			// }
-			return nil, fmt.Errorf("error reading manifest for instance %q: %w", manifestToRead.instance, err)
+			return nil, fmt.Errorf("reading manifest for instance %q: %w", manifestToRead.instance, err)
 		}
 
 		if manifest.MIMETypeIsMultiImage(manifestType) {
 			// Add the list's contents.
 			if err = addMulti(manifestBytes, manifestType, manifestToRead.src); err != nil {
-				return nil, fmt.Errorf("error adding single image instance %q: %w", manifestToRead.instance, err)
+				return nil, fmt.Errorf("adding single image instance %q: %w", manifestToRead.instance, err)
 			}
 		} else {
 			// Add the single image's contents.
 			if err = addSingle(manifestBytes, manifestType, manifestToRead.src); err != nil {
-				return nil, fmt.Errorf("error adding single image instance %q: %w", manifestToRead.instance, err)
+				return nil, fmt.Errorf("adding single image instance %q: %w", manifestToRead.instance, err)
 			}
 		}
 	}
@@ -313,17 +313,17 @@ func (s *supplementedImageSource) GetManifest(ctx context.Context, instanceDiges
 		}
 		return sourceInstance.GetManifest(ctx, requestInstanceDigest)
 	}
-	return nil, "", fmt.Errorf("error getting manifest for digest %q: %w", *instanceDigest, ErrDigestNotFound)
+	return nil, "", fmt.Errorf("getting manifest for digest %q: %w", *instanceDigest, ErrDigestNotFound)
 }
 
 func (s *supplementedImageSource) GetBlob(ctx context.Context, blob types.BlobInfo, bic types.BlobInfoCache) (io.ReadCloser, int64, error) {
 	sourceInstance, ok := s.instancesByBlobDigest[blob.Digest]
 	if !ok {
-		return nil, -1, fmt.Errorf("error blob %q in known instances: %w", blob.Digest, ErrBlobNotFound)
+		return nil, -1, fmt.Errorf("blob %q in known instances: %w", blob.Digest, ErrBlobNotFound)
 	}
 	src, ok := s.sourceInstancesByInstance[sourceInstance]
 	if !ok {
-		return nil, -1, fmt.Errorf("error getting image source for instance %q: %w", sourceInstance, ErrDigestNotFound)
+		return nil, -1, fmt.Errorf("getting image source for instance %q: %w", sourceInstance, ErrDigestNotFound)
 	}
 	return src.GetBlob(ctx, blob, bic)
 }
@@ -364,7 +364,7 @@ func (s *supplementedImageSource) GetSignatures(ctx context.Context, instanceDig
 	if src != nil {
 		return src.GetSignatures(ctx, requestInstanceDigest)
 	}
-	return nil, fmt.Errorf("error finding instance for instance digest %q to read signatures: %w", digest, ErrDigestNotFound)
+	return nil, fmt.Errorf("finding instance for instance digest %q to read signatures: %w", digest, ErrDigestNotFound)
 }
 
 func (s *supplementedImageSource) LayerInfosForCopy(ctx context.Context, instanceDigest *digest.Digest) ([]types.BlobInfo, error) {
@@ -387,7 +387,7 @@ func (s *supplementedImageSource) LayerInfosForCopy(ctx context.Context, instanc
 	if src != nil {
 		blobInfos, err := src.LayerInfosForCopy(ctx, requestInstanceDigest)
 		if err != nil {
-			return nil, fmt.Errorf("error reading layer infos for copy from instance %q: %w", instanceDigest, err)
+			return nil, fmt.Errorf("reading layer infos for copy from instance %q: %w", instanceDigest, err)
 		}
 		var manifestDigest digest.Digest
 		if instanceDigest != nil {
@@ -398,5 +398,5 @@ func (s *supplementedImageSource) LayerInfosForCopy(ctx context.Context, instanc
 		}
 		return blobInfos, nil
 	}
-	return nil, fmt.Errorf("error finding instance for instance digest %q to copy layers: %w", errMsgDigest, ErrDigestNotFound)
+	return nil, fmt.Errorf("finding instance for instance digest %q to copy layers: %w", errMsgDigest, ErrDigestNotFound)
 }

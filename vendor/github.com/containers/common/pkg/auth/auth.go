@@ -158,7 +158,7 @@ func Login(ctx context.Context, systemContext *types.SystemContext, opts *LoginO
 	}
 	if unauthorized, ok := err.(docker.ErrUnauthorizedForCredentials); ok {
 		logrus.Debugf("error logging into %q: %v", key, unauthorized)
-		return fmt.Errorf("error logging into %q: invalid username/password", key)
+		return fmt.Errorf("logging into %q: invalid username/password", key)
 	}
 	return fmt.Errorf("authenticating creds for %q: %w", key, err)
 }

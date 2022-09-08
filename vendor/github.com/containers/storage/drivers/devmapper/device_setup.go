@@ -166,9 +166,10 @@ func readLVMConfig(root string) (directLVMConfig, error) {
 	if len(b) == 0 {
 		return cfg, nil
 	}
-
-	err = json.Unmarshal(b, &cfg)
-	return cfg, fmt.Errorf("unmarshaling previous device setup config: %w", err)
+	if err := json.Unmarshal(b, &cfg); err != nil {
+		return cfg, fmt.Errorf("unmarshaling previous device setup config: %w", err)
+	}
+	return cfg, nil
 }
 
 func writeLVMConfig(root string, cfg directLVMConfig) error {

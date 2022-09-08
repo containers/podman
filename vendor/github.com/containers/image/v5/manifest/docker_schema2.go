@@ -271,6 +271,7 @@ func (m *Schema2) Inspect(configGetter func(types.BlobInfo) ([]byte, error)) (*t
 	if err := json.Unmarshal(config, s2); err != nil {
 		return nil, err
 	}
+	layerInfos := m.LayerInfos()
 	i := &types.ImageInspectInfo{
 		Tag:           "",
 		Created:       &s2.Created,
@@ -278,7 +279,9 @@ func (m *Schema2) Inspect(configGetter func(types.BlobInfo) ([]byte, error)) (*t
 		Architecture:  s2.Architecture,
 		Variant:       s2.Variant,
 		Os:            s2.OS,
-		Layers:        layerInfosToStrings(m.LayerInfos()),
+		Layers:        layerInfosToStrings(layerInfos),
+		LayersData:    imgInspectLayersFromLayerInfos(layerInfos),
+		Author:        s2.Author,
 	}
 	if s2.Config != nil {
 		i.Labels = s2.Config.Labels

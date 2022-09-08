@@ -423,6 +423,15 @@ func (r *layerStore) Load() error {
 		}
 	}
 
+	info, statErr := os.Stat(r.layerspath())
+	if statErr != nil && !os.IsNotExist(statErr) {
+		return statErr
+	}
+
+	if info != nil {
+		r.layerspathModified = info.ModTime()
+	}
+
 	return err
 }
 
@@ -1924,7 +1933,6 @@ func (r *layerStore) Modified() (bool, error) {
 	}
 	if info != nil {
 		tmodified = info.ModTime() != r.layerspathModified
-		r.layerspathModified = info.ModTime()
 	}
 
 	return tmodified, nil

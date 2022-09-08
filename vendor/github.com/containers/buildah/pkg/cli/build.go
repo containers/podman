@@ -310,6 +310,14 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 			return options, nil, nil, fmt.Errorf("unable to parse value provided %q as --cache-ttl: %w", iopts.CacheTTL, err)
 		}
 	}
+	var pullPushRetryDelay time.Duration
+	pullPushRetryDelay, err = time.ParseDuration(iopts.RetryDelay)
+	if err != nil {
+		return options, nil, nil, fmt.Errorf("unable to parse value provided %q as --retry-delay: %w", iopts.RetryDelay, err)
+	}
+	// Following log line is used in integration test.
+	logrus.Debugf("Setting MaxPullPushRetries to %d and PullPushRetryDelay to %v", iopts.Retry, pullPushRetryDelay)
+
 	options = define.BuildOptions{
 		AddCapabilities:         iopts.CapAdd,
 		AdditionalBuildContexts: additionalBuildContext,
@@ -349,7 +357,7 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 		LogRusage:               iopts.LogRusage,
 		LogSplitByPlatform:      iopts.LogSplitByPlatform,
 		Manifest:                iopts.Manifest,
-		MaxPullPushRetries:      MaxPullPushRetries,
+		MaxPullPushRetries:      iopts.Retry,
 		NamespaceOptions:        namespaceOptions,
 		NoCache:                 iopts.NoCache,
 		OS:                      systemContext.OSChoice,
@@ -361,7 +369,7 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 		OutputFormat:            format,
 		Platforms:               platforms,
 		PullPolicy:              pullPolicy,
-		PullPushRetryDelay:      PullPushRetryDelay,
+		PullPushRetryDelay:      pullPushRetryDelay,
 		Quiet:                   iopts.Quiet,
 		RemoveIntermediateCtrs:  iopts.Rm,
 		ReportWriter:            reporter,

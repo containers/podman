@@ -3,6 +3,7 @@ package docker
 // Based on github.com/docker/distribution/registry/client/auth/authchallenge.go, primarily stripping unnecessary dependencies.
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 )
@@ -68,6 +69,18 @@ func parseAuthHeader(header http.Header) []challenge {
 		}
 	}
 	return challenges
+}
+
+// parseAuthScope parses an authentication scope string of the form `$resource:$remote:$actions`
+func parseAuthScope(scopeStr string) (*authScope, error) {
+	if parts := strings.Split(scopeStr, ":"); len(parts) == 3 {
+		return &authScope{
+			resourceType: parts[0],
+			remoteName:   parts[1],
+			actions:      parts[2],
+		}, nil
+	}
+	return nil, fmt.Errorf("error parsing auth scope: '%s'", scopeStr)
 }
 
 // NOTE: This is not a fully compliant parser per RFC 7235:

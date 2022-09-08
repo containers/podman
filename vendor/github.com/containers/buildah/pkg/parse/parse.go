@@ -345,6 +345,15 @@ func SystemContextFromFlagSet(flags *pflag.FlagSet, findFlagFunc func(name strin
 		ctx.OCIInsecureSkipTLSVerify = !tlsVerify
 		ctx.DockerDaemonInsecureSkipTLSVerify = !tlsVerify
 	}
+	insecure, err := flags.GetBool("insecure")
+	if err == nil && findFlagFunc("insecure").Changed {
+		if ctx.DockerInsecureSkipTLSVerify != types.OptionalBoolUndefined {
+			return nil, errors.New("--insecure may not be used with --tls-verify")
+		}
+		ctx.DockerInsecureSkipTLSVerify = types.NewOptionalBool(insecure)
+		ctx.OCIInsecureSkipTLSVerify = insecure
+		ctx.DockerDaemonInsecureSkipTLSVerify = insecure
+	}
 	disableCompression, err := flags.GetBool("disable-compression")
 	if err == nil {
 		if disableCompression {

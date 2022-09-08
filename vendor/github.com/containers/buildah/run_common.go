@@ -262,6 +262,7 @@ func (b *Builder) configureUIDGID(g *generate.Generator, mountPoint string, opti
 	}
 	g.SetProcessUID(user.UID)
 	g.SetProcessGID(user.GID)
+	g.AddProcessAdditionalGid(user.GID)
 	for _, gid := range user.AdditionalGids {
 		g.AddProcessAdditionalGid(gid)
 	}

@@ -59,16 +59,22 @@ type Formatter struct {
 func (f *Formatter) Parse(origin Origin, text string) (*Formatter, error) {
 	f.Origin = origin
 
+	// docker tries to be smart and replaces \n with the actual newline character.
+	// For compat we do the same but this will break formats such as '{{printf "\n"}}'
+	// To be backwards compatible with the previous behavior we try to replace and
+	// parse the template. If it fails use the original text and parse again.
+	var normText string
 	switch {
 	case strings.HasPrefix(text, "table "):
 		f.RenderTable = true
-		text = "{{range .}}" + NormalizeFormat(text) + "{{end -}}"
+		normText = "{{range .}}" + NormalizeFormat(text) + "{{end -}}"
+		text = "{{range .}}" + text + "{{end -}}"
 	case OriginUser == origin:
-		text = EnforceRange(NormalizeFormat(text))
+		normText = EnforceRange(NormalizeFormat(text))
+		text = EnforceRange(text)
 	default:
-		text = NormalizeFormat(text)
+		normText = NormalizeFormat(text)
 	}
-	f.text = text
 
 	if f.RenderTable || origin == OriginPodman {
 		tw := tabwriter.NewWriter(f.writer, 12, 2, 2, ' ', tabwriter.StripEscape)
@@ -77,10 +83,14 @@ func (f *Formatter) Parse(origin Origin, text string) (*Formatter, error) {
 		f.RenderHeaders = true
 	}
 
-	tmpl, err := f.template.Funcs(template.FuncMap(DefaultFuncs)).Parse(text)
+	tmpl, err := f.template.Funcs(template.FuncMap(DefaultFuncs)).Parse(normText)
 	if err != nil {
+		tmpl, err = f.template.Funcs(template.FuncMap(DefaultFuncs)).Parse(text)
+		f.template = tmpl
+		f.text = text
 		return f, err
 	}
+	f.text = normText
 	f.template = tmpl
 	return f, nil
 }

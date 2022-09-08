@@ -374,17 +374,17 @@ func (b *Builder) Commit(ctx context.Context, dest types.ImageReference, options
 	}
 	if err == nil {
 		imgID = img.ID
-		prunedNames := make([]string, 0, len(img.Names))
+		toPruneNames := make([]string, 0, len(img.Names))
 		for _, name := range img.Names {
-			if !(nameToRemove != "" && strings.Contains(name, nameToRemove)) {
-				prunedNames = append(prunedNames, name)
+			if nameToRemove != "" && strings.Contains(name, nameToRemove) {
+				toPruneNames = append(toPruneNames, name)
 			}
 		}
-		if len(prunedNames) < len(img.Names) {
-			if err = b.store.SetNames(imgID, prunedNames); err != nil {
-				return imgID, nil, "", fmt.Errorf("failed to prune temporary name from image %q: %w", imgID, err)
+		if len(toPruneNames) > 0 {
+			if err = b.store.RemoveNames(imgID, toPruneNames); err != nil {
+				return imgID, nil, "", fmt.Errorf("failed to remove temporary name from image %q: %w", imgID, err)
 			}
-			logrus.Debugf("reassigned names %v to image %q", prunedNames, img.ID)
+			logrus.Debugf("removing %v from assigned names to image %q", nameToRemove, img.ID)
 			dest2, err := is.Transport.ParseStoreReference(b.store, "@"+imgID)
 			if err != nil {
 				return imgID, nil, "", fmt.Errorf("error creating unnamed destination reference for image: %w", err)
