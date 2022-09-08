@@ -244,18 +244,17 @@ spelled with complete minutiae.
       $ make podman-remote-release-darwin_amd64.zip \
           podman-remote-release-darwin_arm64.zip \
           podman-remote-release-windows_amd64.zip \
-          podman.msi \
           podman-remote-static
       $ mv podman-* bin/
       $ cd bin/
       $ tar -cvzf podman-remote-static.tar.gz podman-remote-static
-      $ sha256sum *.zip *.msi *.tar.gz > shasums
+      $ sha256sum *.zip *.tar.gz > shasums
       ```
 
    1. The `podman-vX.Y.Z.dmg` file is produced manually by someone in
       possession of a developer signing key.
    1. In the directory where you downloaded the archives, run
-      `sha256sum *.tar.gz *.zip *.msi > shasums` to generate SHA sums.
+      `sha256sum *.tar.gz *.zip > shasums` to generate SHA sums.
    1. Go to `https://github.com/containers/podman/releases/tag/vX.Y.Z` and
       press the "Edit Release" button.  Change the name to the form `vX.Y.Z`
    1. If this is a release candidate be certain to click the pre-release
@@ -273,4 +272,34 @@ spelled with complete minutiae.
       * podman-vX.Y.Z.msi
       * podman-remote-static.tar.gz
       * shasums
-   1. Save the release.
+   1. Click the Publish button to make the release (or pre-release)
+      available.
+   1. Check the "Actions" tab, after the publish you should see a job
+      automatically launch to build the windows installer (named after
+      the release). There may be more than one running due to the multiple
+      event states triggered, but this can be ignored, as any duplicates
+      will gracefully back-off. The job takes 5-6 minutes to complete.
+   1. Confirm the podman-[version]-setup.exe file is now on the release
+      page. This might not be the case if you accidentally published the
+      release before uploading the binaries, as the job may look before
+      they are available. If that happens, you can either manually kick
+      off the job (see below), or just make a harmless edit to the
+      release (e.g. add an extra whitespace character somewhere). As
+      long as the body content is different in some way, a new run will
+      be triggered.
+
+      ## Manually Triggering Windows Installer Build & Upload
+
+
+      ### *CLI Approach*
+      1. Install the GitHub CLI (e.g. `sudo dnf install gh`)
+      1. Run (replacing below version number to release version)
+         ```
+         gh workflow run "Upload Windows Installer" -F version="4.2.0"
+         ```
+      ### *GUI Approach*
+      1. Go to the "Actions" tab
+      1. On the left pick the "Update Windows Installer" category
+      1. A blue box will appear above the job list with a right side drop
+         -down. Click the drop-down and specify the version number in the
+         dialog that appears

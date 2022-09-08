@@ -690,6 +690,9 @@ podman-remote-release-%.zip: test/version/version ## Build podman-remote for %=$
 	else \
 		$(MAKE) $(GOPLAT) podman-remote; \
 	fi
+	if [[ "$(GOOS)" == "windows" ]]; then \
+		$(MAKE) $(GOPLAT) TMPDIR="" win-sshproxy; \
+	fi
 	cp -r ./docs/build/remote/$(GOOS) "$(TMPDIR)/$(SUBDIR)/docs/"
 	cp ./contrib/remote/containers.conf "$(TMPDIR)/$(SUBDIR)/"
 	$(MAKE) $(GOPLAT) $(_DSTARGS) SELINUXOPT="" install.remote
@@ -752,6 +755,8 @@ install.remote:
 	install ${SELINUXOPT} -d -m 755 $(DESTDIR)$(BINDIR)
 	install ${SELINUXOPT} -m 755 $(SRCBINDIR)/podman$(BINSFX) \
 		$(DESTDIR)$(BINDIR)/podman$(BINSFX)
+	test "${GOOS}" != "windows" || \
+		install -m 755 $(SRCBINDIR)/win-sshproxy.exe $(DESTDIR)$(BINDIR)
 	test -z "${SELINUXOPT}" || \
 		chcon --verbose --reference=$(DESTDIR)$(BINDIR)/podman-remote \
 		bin/podman-remote

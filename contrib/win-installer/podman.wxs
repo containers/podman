@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi"
+     xmlns:PanelSW="http://schemas.panel-sw.co.il/wix/WixExtension">
+
+  <?ifndef var.VERSION?>
+  <?error VERSION must be defined via command line argument?>
+  <?endif?>
+
+  <Product Name="Podman $(var.VERSION)" Id="*" UpgradeCode="696BAB5D-CA1F-4B05-B123-320F245B8D6D" Version="$(var.VERSION)" Language="1033" Manufacturer="Red Hat Inc.">
+
+    <Package Id="*" Platform="x64" Keywords="Installer" Description="Red Hat's Podman $(var.VERSION) Installer" Comments="Apache 2.0 License" Manufacturer="Red Hat Inc." InstallScope="perMachine" InstallerVersion="200" Compressed="yes"/>
+
+    <Media Id="1" Cabinet="Podman.cab" EmbedCab="yes"/>
+    <MajorUpgrade AllowDowngrades="yes"/>
+    <Property Id="DiskPrompt" Value="Red Hat's Podman $(var.VERSION) Installation"/>
+    <SetProperty Id="WSL_INSTALL" Before="AppSearch" Value="1" Sequence="first">NOT (WITH_WSL = 0)</SetProperty>
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="ProgramFiles64Folder" Name="PFiles">
+        <Directory Id="RedHatPFiles" Name="RedHat">
+          <Directory Id="INSTALLDIR" Name="Podman">
+            <Component Id="INSTALLDIR_Component" Guid="14B310C4-9B5D-4DA5-ADF9-B9D008E4CD82" Win64="yes">
+              <CreateFolder/>
+            </Component>
+            <Component Id="MainExecutable" Guid="73752F94-6589-4C7B-ABED-39D655A19714" Win64="yes">
+              <File Id="MainExecutableFile" Name="podman.exe" Source="artifacts/podman.exe" KeyPath="yes"/>
+            </Component>
+            <Component Id="WinSshProxyExecutable" Guid="0DA730AB-2F97-40E8-A8FC-356E88EAA4D2" Win64="yes">
+              <File Id="WinSshProxyExecutableFile" Name="win-sshproxy.exe" Source="artifacts/win-sshproxy.exe" KeyPath="yes"/>
+            </Component>
+            <Component Id="GuideHTMLComponent" Guid="8B23C76B-F7D4-4030-8C46-1B5729E616B5" Win64="yes">
+              <File Id="GuideHTMLFile"  Name="welcome-podman.html" Source="docs/podman-for-windows.html" KeyPath="yes"/>
+            </Component>
+          </Directory>
+        </Directory>
+      </Directory>
+      <Directory Id="EnvEntries">
+        <Component Id="EnvEntriesComponent" Guid="b662ec43-0e0e-4018-8bf3-061904bb8f5b" Win64="yes">
+          <CreateFolder />
+          <Environment Id='UpdatePath' Name='PATH' Action='set' Permanent='no' System='yes' Part='last' Value='[INSTALLDIR]' />
+        </Component>
+      </Directory>
+    </Directory>
+
+    <CustomAction Id="OpenGuide" BinaryKey="WixCA" DllEntry="WixShellExec" Impersonate="yes" />
+    <CustomAction Id="CheckWSL" BinaryKey="PodmanHooks" Execute="immediate" DllEntry="CheckWSL" />
+    <CustomActionRef Id="WixBroadcastEnvironmentChange" />
+    <ComponentGroup Id="WSLFeature" Directory="INSTALLDIR">
+      <Component>
+        <Condition>(NOT Installed) AND WSL_INSTALL = 1 AND HAS_WSLFEATURE = 0</Condition>
+        <File Source="$(sys.SOURCEFILEPATH)"/>
+        <PanelSW:Dism EnableFeature="VirtualMachinePlatform" ErrorHandling="prompt"/>
+        <PanelSW:Dism EnableFeature="Microsoft-Windows-Subsystem-Linux" ErrorHandling="prompt"/>
+      </Component>
+    </ComponentGroup>
+    <Feature Id="Complete" Level="1">
+      <ComponentRef Id="INSTALLDIR_Component"/>
+      <ComponentRef Id="EnvEntriesComponent"/>
+      <ComponentRef Id="MainExecutable"/>
+      <ComponentRef Id="WinSshProxyExecutable"/>
+      <ComponentRef Id="GuideHTMLComponent"/>
+      <ComponentGroupRef Id="ManFiles"/>
+      <ComponentGroupRef Id="WSLFeature"/>
+    </Feature>
+
+    <Icon Id="podman.ico" SourceFile="resources/podman-logo.ico"/>
+    <Property Id="ARPPRODUCTICON" Value="podman.ico"/>
+    <Property Id="WixShellExecTarget" Value="[#GuideHTMLFile]" />
+    <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT" Value="Show Getting Started Guide" />
+    <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOX" Value="1" />
+    <WixVariable Id="WixUIBannerBmp" Value="resources\podman-banner.png" />
+    <WixVariable Id="WixUIDialogBmp" Value="resources\podman-dialog.png" />
+    <UIRef Id="PodmanUI"/>
+    <UI>
+      <Publish Dialog="ExitDialog" Control="Finish" Event="DoAction"
+               Value="OpenGuide">WIXUI_EXITDIALOGOPTIONALCHECKBOX = 1 and NOT Installed</Publish>
+    </UI>
+
+    <InstallExecuteSequence>
+      <Custom Action="CheckWSL" After="SetWSL_INSTALL">WSL_INSTALL = 1</Custom>
+      <ForceReboot Before="StopServices">(NOT Installed) AND WSL_INSTALL = 1 AND HAS_WSLFEATURE = 0 AND NOT AFTERREBOOT</ForceReboot>
+    </InstallExecuteSequence>
+    <Binary Id="PodmanHooks" SourceFile="artifacts/podman-msihooks.dll" />
+  </Product>
+</Wix>

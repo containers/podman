@@ -14,6 +14,8 @@ env:
     GOPATH: &gopath "/var/tmp/go"
     GOCACHE: "${GOPATH}/cache"
     GOSRC: &gosrc "/var/tmp/go/src/github.com/containers/podman"
+    # Store the unaltered default location, for tasks that need it
+    CIRRUS_DEFAULT_WORK: ${CIRRUS_WORKING_DIR}
     CIRRUS_WORKING_DIR: *gosrc
     # The default is 'sh' if unspecified
     CIRRUS_SHELL: "/bin/bash"
@@ -60,9 +62,10 @@ env:
 
     # Curl-command prefix for downloading task artifacts, simply add the
     # the url-encoded task name, artifact name, and path as a suffix.
+    ART_URL: https://api.cirrus-ci.com/v1/artifact/build/${CIRRUS_BUILD_ID}
     ARTCURL: >-
         curl --retry 5 --retry-delay 8 --fail --location -O
-        --url https://api.cirrus-ci.com/v1/artifact/build/${CIRRUS_BUILD_ID}
+        --url ${ART_URL}
 
 
 # Default timeout for each task
@@ -1019,6 +1022,7 @@ success_task:
         - consistency_aarch64
         - alt_build
         - osx_alt_build
+        - win_installer
         - docker-py_test
         - unit_test
         - apiv2_test
@@ -1101,6 +1105,24 @@ artifacts_task:
       binary_artifacts:
           path: ./*
           type: application/octet-stream
+
+
+win_installer_task:
+    name: "Verify Win Installer Build"
+    alias: win_installer
+    depends_on:
+      - alt_build
+    windows_container:
+        image: cirrusci/windowsservercore:2019
+    env:
+        PATH: "${PATH};C:\\ProgramData\\chocolatey\\bin"
+        CIRRUS_SHELL: powershell
+        CIRRUS_CLONE_DEPTH: 1
+        # Fake version, we are only testing the installer functions, so version doesn't matter
+        WIN_INST_VER: 9.9.9
+        CIRRUS_WORKING_DIR: "${CIRRUS_DEFAULT_WORK}"
+    install_script: '.\contrib\cirrus\win-installer-install.ps1'
+    main_script: '.\contrib\cirrus\win-installer-main.ps1'
 
 
 # When a new tag is pushed, confirm that the code and commits
