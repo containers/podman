@@ -34,7 +34,7 @@ ps                | -a
 image search      | sdfsdf
 search            | sdfsdf
 
-pod inspect       | mypod SKIP
+pod inspect       | mypod
 
 container stats   | --no-stream
 pod stats         | --no-stream
@@ -92,11 +92,6 @@ function check_subcommand() {
         if [[ -n "$extra" ]]; then
             # Cross off our list
             unset extra_args["$command_string"]
-        fi
-
-        # FIXME: you can remove this once you're finished with #15673
-        if [[ "$extra" =~ SKIP ]]; then
-            continue
         fi
 
         # This is what does the work. We should never see the unterminated err
