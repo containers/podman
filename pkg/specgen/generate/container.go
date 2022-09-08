@@ -18,7 +18,6 @@ import (
 	envLib "github.com/containers/podman/v4/pkg/env"
 	"github.com/containers/podman/v4/pkg/signal"
 	"github.com/containers/podman/v4/pkg/specgen"
-	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/openshift/imagebuilder"
 	"github.com/sirupsen/logrus"
 )
@@ -272,19 +271,7 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 	}
 
 	// If caller did not specify Pids Limits load default
-	if s.ResourceLimits == nil || s.ResourceLimits.Pids == nil {
-		if s.CgroupsMode != "disabled" {
-			limit := rtc.PidsLimit()
-			if limit != 0 {
-				if s.ResourceLimits == nil {
-					s.ResourceLimits = &spec.LinuxResources{}
-				}
-				s.ResourceLimits.Pids = &spec.LinuxPids{
-					Limit: limit,
-				}
-			}
-		}
-	}
+	s.InitResourceLimits(rtc)
 
 	if s.LogConfiguration == nil {
 		s.LogConfiguration = &specgen.LogConfig{}
