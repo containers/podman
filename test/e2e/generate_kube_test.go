@@ -3,6 +3,7 @@ package integration
 import (
 	"io/ioutil"
 	"os"
+	"os/user"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -268,6 +269,39 @@ var _ = Describe("Podman generate kube", func() {
 
 		numContainers = len(pod.Spec.Containers) + len(pod.Spec.InitContainers)
 		Expect(numContainers).To(Equal(1))
+	})
+
+	It("podman generate kube on pod with user namespace", func() {
+		u, err := user.Current()
+		Expect(err).To(BeNil())
+		name := u.Name
+		if name == "root" {
+			name = "containers"
+		}
+		content, err := ioutil.ReadFile("/etc/subuid")
+		if err != nil {
+			Skip("cannot read /etc/subuid")
+		}
+		if !strings.Contains(string(content), name) {
+			Skip("cannot find mappings for the current user")
+		}
+		podSession := podmanTest.Podman([]string{"pod", "create", "--name", "testPod", "--userns=auto"})
+		podSession.WaitWithDefaultTimeout()
+		Expect(podSession).Should(Exit(0))
+
+		session := podmanTest.Podman([]string{"create", "--name", "topcontainer", "--pod", "testPod", ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		kube := podmanTest.Podman([]string{"generate", "kube", "testPod"})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		pod := new(v1.Pod)
+		err = yaml.Unmarshal(kube.Out.Contents(), pod)
+		Expect(err).To(BeNil())
+		expected := false
+		Expect(pod.Spec).To(HaveField("HostUsers", &expected))
 	})
 
 	It("podman generate kube on pod with host network", func() {

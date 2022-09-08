@@ -62,6 +62,7 @@ func (p *Pod) GenerateForKube(ctx context.Context) (*v1.Pod, []v1.ServicePort, e
 
 	extraHost := make([]v1.HostAlias, 0)
 	hostNetwork := false
+	hostUsers := true
 	if p.HasInfraContainer() {
 		infraContainer, err := p.getInfraContainer()
 		if err != nil {
@@ -87,8 +88,9 @@ func (p *Pod) GenerateForKube(ctx context.Context) (*v1.Pod, []v1.ServicePort, e
 			return nil, servicePorts, err
 		}
 		hostNetwork = infraContainer.NetworkMode() == string(namespaces.NetworkMode(specgen.Host))
+		hostUsers = infraContainer.IDMappings().HostUIDMapping && infraContainer.IDMappings().HostGIDMapping
 	}
-	pod, err := p.podWithContainers(ctx, allContainers, ports, hostNetwork)
+	pod, err := p.podWithContainers(ctx, allContainers, ports, hostNetwork, hostUsers)
 	if err != nil {
 		return nil, servicePorts, err
 	}
@@ -348,7 +350,7 @@ func containersToServicePorts(containers []v1.Container) ([]v1.ServicePort, erro
 	return sps, nil
 }
 
-func (p *Pod) podWithContainers(ctx context.Context, containers []*Container, ports []v1.ContainerPort, hostNetwork bool) (*v1.Pod, error) {
+func (p *Pod) podWithContainers(ctx context.Context, containers []*Container, ports []v1.ContainerPort, hostNetwork, hostUsers bool) (*v1.Pod, error) {
 	deDupPodVolumes := make(map[string]*v1.Volume)
 	first := true
 	podContainers := make([]v1.Container, 0, len(containers))
@@ -446,10 +448,11 @@ func (p *Pod) podWithContainers(ctx context.Context, containers []*Container, po
 		podVolumes,
 		&dnsInfo,
 		hostNetwork,
+		hostUsers,
 		hostname), nil
 }
 
-func newPodObject(podName string, annotations map[string]string, initCtrs, containers []v1.Container, volumes []v1.Volume, dnsOptions *v1.PodDNSConfig, hostNetwork bool, hostname string) *v1.Pod {
+func newPodObject(podName string, annotations map[string]string, initCtrs, containers []v1.Container, volumes []v1.Volume, dnsOptions *v1.PodDNSConfig, hostNetwork, hostUsers bool, hostname string) *v1.Pod {
 	tm := v12.TypeMeta{
 		Kind:       "Pod",
 		APIVersion: "v1",
@@ -481,6 +484,9 @@ func newPodObject(podName string, annotations map[string]string, initCtrs, conta
 		EnableServiceLinks:           &enableServiceLinks,
 		AutomountServiceAccountToken: &automountServiceAccountToken,
 	}
+	if !hostUsers {
+		ps.HostUsers = &hostUsers
+	}
 	if dnsOptions != nil && (len(dnsOptions.Nameservers)+len(dnsOptions.Searches)+len(dnsOptions.Options) > 0) {
 		ps.DNSConfig = dnsOptions
 	}
@@ -498,6 +504,7 @@ func simplePodWithV1Containers(ctx context.Context, ctrs []*Container) (*v1.Pod,
 	kubeCtrs := make([]v1.Container, 0, len(ctrs))
 	kubeInitCtrs := []v1.Container{}
 	kubeVolumes := make([]v1.Volume, 0)
+	hostUsers := true
 	hostNetwork := true
 	podDNS := v1.PodDNSConfig{}
 	kubeAnnotations := make(map[string]string)
@@ -526,6 +533,9 @@ func simplePodWithV1Containers(ctx context.Context, ctrs []*Container) (*v1.Pod,
 
 		if !ctr.HostNetwork() {
 			hostNetwork = false
+		}
+		if !(ctr.IDMappings().HostUIDMapping && ctr.IDMappings().HostGIDMapping) {
+			hostUsers = false
 		}
 		kubeCtr, kubeVols, ctrDNS, annotations, err := containerToV1Container(ctx, ctr)
 		if err != nil {
@@ -588,6 +598,7 @@ func simplePodWithV1Containers(ctx context.Context, ctrs []*Container) (*v1.Pod,
 		kubeVolumes,
 		&podDNS,
 		hostNetwork,
+		hostUsers,
 		hostname), nil
 }
 
