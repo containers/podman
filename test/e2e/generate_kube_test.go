@@ -501,7 +501,7 @@ var _ = Describe("Podman generate kube", func() {
 		Expect(podSession).Should(Exit(0))
 
 		ctr1Name := "ctr1"
-		ctr1Session := podmanTest.Podman([]string{"create", "--name", ctr1Name, "--pod", podName, "--memory", "10Mi", ALPINE, "top"})
+		ctr1Session := podmanTest.Podman([]string{"create", "--name", ctr1Name, "--pod", podName, "--memory", "10M", ALPINE, "top"})
 		ctr1Session.WaitWithDefaultTimeout()
 		Expect(ctr1Session).Should(Exit(0))
 
