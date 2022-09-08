@@ -438,15 +438,6 @@ type PodPSOptions struct {
 	Sort      string
 }
 
-type PodInspectOptions struct {
-	Latest bool
-
-	// Options for the API.
-	NameOrID string
-
-	Format string
-}
-
 type PodInspectReport struct {
 	*define.InspectPodData
 }

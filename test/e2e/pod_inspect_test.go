@@ -118,4 +118,21 @@ var _ = Describe("Podman pod inspect", func() {
 
 		Expect(inspectOut.OutputToString()).To(ContainSubstring(macAddr))
 	})
+
+	It("podman inspect two pods", func() {
+		_, ec, podid1 := podmanTest.CreatePod(nil)
+		Expect(ec).To(Equal(0))
+
+		_, ec, podid2 := podmanTest.CreatePod(nil)
+		Expect(ec).To(Equal(0))
+
+		inspect := podmanTest.Podman([]string{"pod", "inspect", podid1, podid2})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).Should(Exit(0))
+		Expect(inspect.OutputToString()).To(BeValidJSON())
+		podData := inspect.InspectPodArrToJSON()
+		Expect(podData).To(HaveLen(2))
+		Expect(podData[0]).To(HaveField("ID", podid1))
+		Expect(podData[1]).To(HaveField("ID", podid2))
+	})
 })

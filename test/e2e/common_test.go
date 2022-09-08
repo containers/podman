@@ -571,7 +571,7 @@ func (s *PodmanSessionIntegration) InspectContainerToJSON() []define.InspectCont
 func (s *PodmanSessionIntegration) InspectPodToJSON() define.InspectPodData {
 	var i define.InspectPodData
 	err := jsoniter.Unmarshal(s.Out.Contents(), &i)
-	Expect(err).To(BeNil())
+	Expect(err).ToNot(HaveOccurred())
 	return i
 }
 
