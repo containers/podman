@@ -380,6 +380,9 @@ spec:
   restartPolicy: {{ .RestartPolicy }}
   hostname: {{ .Hostname }}
   hostNetwork: {{ .HostNetwork }}
+{{ if .HostUsers }}
+  hostUsers: {{ .HostUsers }}
+{{ end }}
   hostAliases:
 {{ range .HostAliases }}
   - hostnames:
@@ -844,6 +847,7 @@ type Pod struct {
 	RestartPolicy   string
 	Hostname        string
 	HostNetwork     bool
+	HostUsers       *bool
 	HostAliases     []HostAlias
 	Ctrs            []*Ctr
 	InitCtrs        []*Ctr
@@ -965,6 +969,12 @@ func withVolume(v *Volume) podOption {
 func withHostNetwork() podOption {
 	return func(pod *Pod) {
 		pod.HostNetwork = true
+	}
+}
+
+func withHostUsers(val bool) podOption {
+	return func(pod *Pod) {
+		pod.HostUsers = &val
 	}
 }
 
@@ -3783,8 +3793,7 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 		Expect((inspect.InspectContainerToJSON()[0]).HostConfig.LogConfig.Tag).To(Equal("{{.ImageName}}"))
 	})
 
-	// Check that --userns=auto creates a user namespace
-	It("podman play kube --userns=auto", func() {
+	It("podman play kube using a user namespace", func() {
 		u, err := user.Current()
 		Expect(err).To(BeNil())
 		name := u.Name
@@ -3831,6 +3840,26 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 		usernsInCtr.WaitWithDefaultTimeout()
 		Expect(usernsInCtr).Should(Exit(0))
 		Expect(string(usernsInCtr.Out.Contents())).To(Not(Equal(string(initialUsernsConfig))))
+
+		// Now try with hostUsers in the pod spec
+		for _, hostUsers := range []bool{true, false} {
+			pod = getPod(withHostUsers(hostUsers))
+			err = generateKubeYaml("pod", pod, kubeYaml)
+			Expect(err).To(BeNil())
+
+			kube = podmanTest.PodmanNoCache([]string{"play", "kube", "--replace", kubeYaml})
+			kube.WaitWithDefaultTimeout()
+			Expect(kube).Should(Exit(0))
+
+			usernsInCtr = podmanTest.Podman([]string{"exec", getCtrNameInPod(pod), "cat", "/proc/self/uid_map"})
+			usernsInCtr.WaitWithDefaultTimeout()
+			Expect(usernsInCtr).Should(Exit(0))
+			if hostUsers {
+				Expect(string(usernsInCtr.Out.Contents())).To(Equal(string(initialUsernsConfig)))
+			} else {
+				Expect(string(usernsInCtr.Out.Contents())).To(Not(Equal(string(initialUsernsConfig))))
+			}
+		}
 	})
 
 	// Check the block devices are exposed inside container

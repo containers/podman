@@ -355,6 +355,11 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 
 	if options.Userns == "" {
 		options.Userns = "host"
+		if podYAML.Spec.HostUsers != nil && !*podYAML.Spec.HostUsers {
+			options.Userns = "auto"
+		}
+	} else if podYAML.Spec.HostUsers != nil {
+		logrus.Info("overriding the user namespace mode in the pod spec")
 	}
 
 	// Validate the userns modes supported.
