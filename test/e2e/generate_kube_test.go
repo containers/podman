@@ -73,6 +73,8 @@ var _ = Describe("Podman generate kube", func() {
 		Expect(pod).To(HaveField("Name", "top-pod"))
 		enableServiceLinks := false
 		Expect(pod.Spec).To(HaveField("EnableServiceLinks", &enableServiceLinks))
+		automountServiceAccountToken := false
+		Expect(pod.Spec).To(HaveField("AutomountServiceAccountToken", &automountServiceAccountToken))
 
 		numContainers := 0
 		for range pod.Spec.Containers {
@@ -169,6 +171,8 @@ var _ = Describe("Podman generate kube", func() {
 		Expect(pod.Spec).To(HaveField("HostNetwork", false))
 		enableServiceLinks := false
 		Expect(pod.Spec).To(HaveField("EnableServiceLinks", &enableServiceLinks))
+		automountServiceAccountToken := false
+		Expect(pod.Spec).To(HaveField("AutomountServiceAccountToken", &automountServiceAccountToken))
 
 		numContainers := 0
 		for range pod.Spec.Containers {
