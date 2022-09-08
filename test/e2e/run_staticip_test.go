@@ -105,6 +105,13 @@ var _ = Describe("Podman run with --ip flag", func() {
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
 
+		// We need to set "no_proxy" in proxy environment
+		if env, found := os.LookupEnv("no_proxy"); found {
+			defer os.Setenv("no_proxy", env)
+		} else {
+			defer os.Unsetenv("no_proxy")
+		}
+		os.Setenv("no_proxy", ip)
 		for retries := 20; retries > 0; retries-- {
 			response, err := http.Get(fmt.Sprintf("http://%s", ip))
 			if err == nil && response.StatusCode == http.StatusOK {
