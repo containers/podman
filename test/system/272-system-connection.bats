@@ -56,8 +56,22 @@ function _run_podman_remote() {
     c1="c1_$(random_string 15)"
     c2="c2_$(random_string 15)"
 
-    run_podman system connection add           $c1 tcp://localhost:12345
-    run_podman system connection add --default $c2 tcp://localhost:54321
+    run_podman system connection add $c1 tcp://localhost:12345
+    run_podman context create --docker "host=tcp://localhost:54321" $c2
+    run_podman system connection ls
+    is "$output" \
+       ".*$c1[ ]\+tcp://localhost:12345[ ]\+true
+$c2[ ]\+tcp://localhost:54321[ ]\+false" \
+       "system connection ls"
+    run_podman system connection ls -q
+    is "$(echo $(sort <<<$output))" \
+       "$c1 $c2" \
+       "system connection ls -q should show two names"
+    run_podman context ls -q
+    is "$(echo $(sort <<<$output))" \
+       "$c1 $c2" \
+       "context ls -q should show two names"
+    run_podman context use $c2
     run_podman system connection ls
     is "$output" \
        ".*$c1[ ]\+tcp://localhost:12345[ ]\+false
@@ -66,11 +80,11 @@ $c2[ ]\+tcp://localhost:54321[ ]\+true" \
 
     # Remove default connection; the remaining one should still not be default
     run_podman system connection rm $c2
-    run_podman system connection ls
+    run_podman context ls
     is "$output" ".*$c1[ ]\+tcp://localhost:12345[ ]\+false" \
        "system connection ls (after removing default connection)"
 
-    run_podman system connection rm $c1
+    run_podman context rm $c1
 }
 
 # Test tcp socket; requires starting a local server

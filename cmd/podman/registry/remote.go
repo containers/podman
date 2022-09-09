@@ -32,6 +32,8 @@ func IsRemote() bool {
 		fs.BoolVarP(&remoteFromCLI.Value, "remote", "r", remote, "")
 		connectionFlagName := "connection"
 		fs.StringP(connectionFlagName, "c", "", "")
+		contextFlagName := "context"
+		fs.String(contextFlagName, "", "")
 		hostFlagName := "host"
 		fs.StringP(hostFlagName, "H", "", "")
 		urlFlagName := "url"
@@ -46,7 +48,7 @@ func IsRemote() bool {
 		}
 		_ = fs.Parse(os.Args[start:])
 		// --connection or --url implies --remote
-		remoteFromCLI.Value = remoteFromCLI.Value || fs.Changed(connectionFlagName) || fs.Changed(urlFlagName) || fs.Changed(hostFlagName)
+		remoteFromCLI.Value = remoteFromCLI.Value || fs.Changed(connectionFlagName) || fs.Changed(urlFlagName) || fs.Changed(hostFlagName) || fs.Changed(contextFlagName)
 	})
 	return podmanOptions.EngineMode == entities.TunnelMode || remoteFromCLI.Value
 }
