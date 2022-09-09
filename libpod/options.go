@@ -1473,6 +1473,17 @@ func WithHealthCheck(healthCheck *manifest.Schema2HealthConfig) CtrCreateOption 
 	}
 }
 
+// WithHealthCheckOnFailureAction adds an on-failure action to health-check config
+func WithHealthCheckOnFailureAction(action define.HealthCheckOnFailureAction) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return define.ErrCtrFinalized
+		}
+		ctr.config.HealthCheckOnFailureAction = action
+		return nil
+	}
+}
+
 // WithPreserveFDs forwards from the process running Libpod into the container
 // the given number of extra FDs (starting after the standard streams) to the created container
 func WithPreserveFDs(fd uint) CtrCreateOption {

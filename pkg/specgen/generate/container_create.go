@@ -515,6 +515,10 @@ func createContainerOptions(rt *libpod.Runtime, s *specgen.SpecGenerator, pod *l
 		logrus.Debugf("New container has a health check")
 	}
 
+	if s.ContainerHealthCheckConfig.HealthCheckOnFailureAction != define.HealthCheckOnFailureActionNone {
+		options = append(options, libpod.WithHealthCheckOnFailureAction(s.ContainerHealthCheckConfig.HealthCheckOnFailureAction))
+	}
+
 	if len(s.Secrets) != 0 {
 		manager, err := rt.SecretsManager()
 		if err != nil {

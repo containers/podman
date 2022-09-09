@@ -185,6 +185,8 @@ Read in a line delimited file of environment variables. See **Environment** note
 
 @@option health-interval
 
+@@option health-on-failure
+
 @@option health-retries
 
 @@option health-start-period
