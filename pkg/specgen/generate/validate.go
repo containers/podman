@@ -82,7 +82,7 @@ func verifyContainerResourcesCgroupV1(s *specgen.SpecGenerator) ([]string, error
 		}
 	}
 
-	// CPU Checks
+	// CPU checks
 	if s.ResourceLimits.CPU != nil {
 		cpu := s.ResourceLimits.CPU
 		if cpu.Shares != nil && !sysInfo.CPUShares {
@@ -169,6 +169,7 @@ func verifyContainerResourcesCgroupV2(s *specgen.SpecGenerator) ([]string, error
 		return warnings, nil
 	}
 
+	// Memory checks
 	if s.ResourceLimits.Memory != nil && s.ResourceLimits.Memory.Swap != nil {
 		own, err := utils.GetOwnCgroup()
 		if err != nil {
@@ -196,6 +197,19 @@ func verifyContainerResourcesCgroupV2(s *specgen.SpecGenerator) ([]string, error
 		if errMemoryMax == nil && errMemorySwapMax != nil {
 			warnings = append(warnings, "Your kernel does not support swap limit capabilities or the cgroup is not mounted. Memory limited without swap.")
 			s.ResourceLimits.Memory.Swap = nil
+		}
+	}
+
+	// CPU checks
+	if s.ResourceLimits.CPU != nil {
+		cpu := s.ResourceLimits.CPU
+		if cpu.RealtimePeriod != nil {
+			warnings = append(warnings, "Realtime period not supported on cgroups V2 systems")
+			cpu.RealtimePeriod = nil
+		}
+		if cpu.RealtimeRuntime != nil {
+			warnings = append(warnings, "Realtime runtime not supported on cgroups V2 systems")
+			cpu.RealtimeRuntime = nil
 		}
 	}
 	return warnings, nil
