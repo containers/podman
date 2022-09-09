@@ -46,10 +46,12 @@ func (ic *ContainerEngine) SecretCreate(ctx context.Context, name string, reader
 	storeOpts := secrets.StoreOptions{
 		DriverOpts: options.DriverOpts,
 	}
+
 	secretID, err := manager.Store(name, data, options.Driver, storeOpts)
 	if err != nil {
 		return nil, err
 	}
+
 	return &entities.SecretCreateReport{
 		ID: secretID,
 	}, nil
