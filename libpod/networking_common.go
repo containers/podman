@@ -40,3 +40,38 @@ func (c *Container) getNetworkOptions(networkOpts map[string]types.PerNetworkOpt
 	}
 	return opts
 }
+
+// setUpNetwork will set up the the networks, on error it will also tear down the cni
+// networks. If rootless it will join/create the rootless network namespace.
+func (r *Runtime) setUpNetwork(ns string, opts types.NetworkOptions) (map[string]types.StatusBlock, error) {
+	rootlessNetNS, err := r.GetRootlessNetNs(true)
+	if err != nil {
+		return nil, err
+	}
+	var results map[string]types.StatusBlock
+	setUpPod := func() error {
+		results, err = r.network.Setup(ns, types.SetupOptions{NetworkOptions: opts})
+		return err
+	}
+	// rootlessNetNS is nil if we are root
+	if rootlessNetNS != nil {
+		// execute the setup in the rootless net ns
+		err = rootlessNetNS.Do(setUpPod)
+		rootlessNetNS.Lock.Unlock()
+	} else {
+		err = setUpPod()
+	}
+	return results, err
+}
+
+// getCNIPodName return the pod name (hostname) used by CNI and the dnsname plugin.
+// If we are in the pod network namespace use the pod name otherwise the container name
+func getCNIPodName(c *Container) string {
+	if c.config.NetMode.IsPod() || c.IsInfra() {
+		pod, err := c.runtime.state.Pod(c.PodID())
+		if err == nil {
+			return pod.Name()
+		}
+	}
+	return c.Name()
+}

@@ -121,24 +121,6 @@ func (r *Runtime) setupNetNS(ctr *Container) error {
 	return errors.New("not implemented (*Runtime) setupNetNS")
 }
 
-// setUpNetwork will set up the the networks, on error it will also tear down the cni
-// networks. If rootless it will join/create the rootless network namespace.
-func (r *Runtime) setUpNetwork(ns string, opts types.NetworkOptions) (map[string]types.StatusBlock, error) {
-	return r.network.Setup(ns, types.SetupOptions{NetworkOptions: opts})
-}
-
-// getCNIPodName return the pod name (hostname) used by CNI and the dnsname plugin.
-// If we are in the pod network namespace use the pod name otherwise the container name
-func getCNIPodName(c *Container) string {
-	if c.config.NetMode.IsPod() || c.IsInfra() {
-		pod, err := c.runtime.state.Pod(c.PodID())
-		if err == nil {
-			return pod.Name()
-		}
-	}
-	return c.Name()
-}
-
 // Create and configure a new network namespace for a container
 func (r *Runtime) configureNetNS(ctr *Container, ctrNS *jailNetNS) (status map[string]types.StatusBlock, rerr error) {
 	if err := r.exposeMachinePorts(ctr.config.PortMappings); err != nil {
