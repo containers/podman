@@ -4,8 +4,11 @@
 package libpod
 
 import (
+	"fmt"
+
 	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/common/pkg/machine"
+	"github.com/sirupsen/logrus"
 )
 
 // convertPortMappings will remove the HostIP part from the ports when running inside podman machine.
@@ -74,4 +77,54 @@ func getCNIPodName(c *Container) string {
 		}
 	}
 	return c.Name()
+}
+
+// Tear down a container's network configuration and joins the
+// rootless net ns as rootless user
+func (r *Runtime) teardownNetwork(ns string, opts types.NetworkOptions) error {
+	rootlessNetNS, err := r.GetRootlessNetNs(false)
+	if err != nil {
+		return err
+	}
+	tearDownPod := func() error {
+		if err := r.network.Teardown(ns, types.TeardownOptions{NetworkOptions: opts}); err != nil {
+			return fmt.Errorf("tearing down network namespace configuration for container %s: %w", opts.ContainerID, err)
+		}
+		return nil
+	}
+
+	// rootlessNetNS is nil if we are root
+	if rootlessNetNS != nil {
+		// execute the cni setup in the rootless net ns
+		err = rootlessNetNS.Do(tearDownPod)
+		if cerr := rootlessNetNS.Cleanup(r); cerr != nil {
+			logrus.WithError(err).Error("failed to clean up rootless netns")
+		}
+		rootlessNetNS.Lock.Unlock()
+	} else {
+		err = tearDownPod()
+	}
+	return err
+}
+
+// Tear down a container's CNI network configuration, but do not tear down the
+// namespace itself.
+func (r *Runtime) teardownCNI(ctr *Container) error {
+	if ctr.state.NetNS == nil {
+		// The container has no network namespace, we're set
+		return nil
+	}
+
+	logrus.Debugf("Tearing down network namespace at %s for container %s", ctr.state.NetNS.Path(), ctr.ID())
+
+	networks, err := ctr.networks()
+	if err != nil {
+		return err
+	}
+
+	if !ctr.config.NetMode.IsSlirp4netns() && len(networks) > 0 {
+		netOpts := ctr.getNetworkOptions(networks)
+		return r.teardownNetwork(ctr.state.NetNS.Path(), netOpts)
+	}
+	return nil
 }
