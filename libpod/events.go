@@ -133,11 +133,7 @@ func (v *Volume) newVolumeEvent(status events.Status) {
 // Events is a wrapper function for everyone to begin tailing the events log
 // with options
 func (r *Runtime) Events(ctx context.Context, options events.ReadOptions) error {
-	eventer, err := r.newEventer()
-	if err != nil {
-		return err
-	}
-	return eventer.Read(ctx, options)
+	return r.eventer.Read(ctx, options)
 }
 
 // GetEvents reads the event log and returns events based on input filters
@@ -148,10 +144,6 @@ func (r *Runtime) GetEvents(ctx context.Context, filters []string) ([]*events.Ev
 		Filters:      filters,
 		FromStart:    true,
 		Stream:       false,
-	}
-	eventer, err := r.newEventer()
-	if err != nil {
-		return nil, err
 	}
 
 	logEvents := make([]*events.Event, 0, len(eventChannel))
@@ -164,7 +156,7 @@ func (r *Runtime) GetEvents(ctx context.Context, filters []string) ([]*events.Ev
 		readLock.Unlock()
 	}()
 
-	readErr := eventer.Read(ctx, options)
+	readErr := r.eventer.Read(ctx, options)
 	readLock.Lock() // Wait for the events to be consumed.
 	return logEvents, readErr
 }
