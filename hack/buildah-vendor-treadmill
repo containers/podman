@@ -38,10 +38,6 @@ our $Treadmill_PR_Title = 'DO NOT MERGE: buildah vendor treadmill';
 # Github API; this is where we query to find out the active treadmill PR
 our $API_URL = 'https://api.github.com/graphql';
 
-# Temporary file used to preserve current treadmill patches. This file
-# should only exist very briefly while we perform branch operations.
-our $Patch_File = "0000-$ME.patch";
-
 # Use colors if available and if stdout is a tty
 our $C_Highlight = '';
 our $C_Warning = '';
@@ -66,14 +62,14 @@ eval '
 
 sub usage {
     print  <<"END_USAGE";
-Usage: $ME [OPTIONS] [--sync | --pick | --reset ]
+Usage: $ME [OPTIONS] [--sync | --pick [PR] | --reset ]
 
 $ME is (2022-04-20) **EXPERIMENTAL**
 
 $ME is intended to solve the problem of vendoring
 buildah into podman.
 
-Call me with one of two options:
+Call me with one of three options:
 
     --sync  The usual case. Mostly used by Ed. Called from a
             development branch, this just updates everything so
@@ -81,7 +77,8 @@ Call me with one of two options:
             latest-podman (main). With a few sanity checks.
 
     --pick  Used for really-truly vendoring in a new buildah; will
-            cherry-pick a commit on your buildah-vendor working branch
+            cherry-pick a commit on your buildah-vendor working branch.
+            Optional PR arg is the ID of the treadmill PR on github.
 
     --reset Used after vendoring buildah into main, when there
             really aren't any buildah patches to keep rolling.
@@ -103,6 +100,7 @@ END_USAGE
 our %action;
 our $debug   = 0;
 our $force_old_main = 0;        # in --pick, proceeds even if main is old
+our $force_retry = 0;           # in --sync, continue despite saved checkpoint
 our $force_testing = 0;         # in --sync, test even no podman/buildah changes
 our $verbose = 0;
 our $NOT     = '';              # print "blahing the blah$NOT\n" if $debug
@@ -114,6 +112,7 @@ sub handle_opts {
         'reset'      => sub { $action{reset}++ },
 
         'force-old-main'  => \$force_old_main,
+        'force-retry'     => \$force_retry,
         'force-testing'   => \$force_testing,
 
         'debug!'     => \$debug,
@@ -140,11 +139,6 @@ sub main {
     # and there's no clean way to make it use @_.
     handle_opts();                      # will set package globals
 
-    # Fetch command-line arguments.  Barf if too many.
-    # FIXME: if called with arg, that's the --sync branch?
-    # FIXME: if called with --pick + arg, that's the PR?
-    die "$ME: Too many arguments; try $ME --help\n"                 if @ARGV;
-
     my @action = keys(%action);
     die "$ME: Please invoke me with one of --sync or --pick\n"
         if ! @action;
@@ -158,13 +152,15 @@ sub main {
     # that repo is clean. None of our actions can be run on a dirty repo.
     assert_clean_repo();
 
-    $handler->();
+    $handler->(@ARGV);
 }
 
 ###############################################################################
 # BEGIN sync and its helpers
 
 sub do_sync {
+    die "$ME: --sync takes no arguments; try $ME --help\n" if @_;
+
     # Preserve current branch name, so we can come back after switching to main
     my $current_branch = git_current_branch();
 
@@ -188,11 +184,13 @@ sub do_sync {
     pull_main();
     git('checkout', '-q', $current_branch);
 
-    # Preserve local patches. --always will generate empty patches (e.g.,
-    # after a buildah vendor when everything is copacetic); --no-signature
-    # prevents a buildup of "-- 2.35" (git version) lines at the end.
-    git('format-patch', '--always', '--no-signature', "--output=$Patch_File", 'HEAD^');
-    progress("Treadmill patches saved to $Patch_File");
+    # Make a temporary copy of this branch
+    my $temp_branch = strftime("__buildah-treadmill-checkpoint/%Y%m%d-%H%M%S", localtime);
+    git('branch', $temp_branch, $current_branch);
+    progress("Current branch preserved as $temp_branch");
+
+    # Get the hash of the top (treadmill) commit, to cherry-pick later
+    my $treadmill_commit = git('rev-parse', 'HEAD');
 
     #
     # Danger Will Robinson! This is where it gets scary: a failure here
@@ -207,7 +205,11 @@ This is not something I can recover from. Your human judgment is needed.
 You will need to recover from this manually. Your best option is to
 look at the source code for this script.
 
-Your treadmill patches are here: $Patch_File
+Treadmill branch copy is preserved in $temp_branch
+
+To restore state to where you were before this sync:
+    \$ git checkout main
+    \$ git branch -f $current_branch $treadmill_commit
 END_FAIL_INSTRUCTIONS
 
         exit 1;
@@ -260,12 +262,34 @@ END_FAIL_INSTRUCTIONS
     git_commit_buildah($buildah_new);
 
     # And, finally, this has the highest possibility of failing
-    progress('Reapplying preserved patches');
-    git('am', '--empty=keep', $Patch_File);
+    local $SIG{__DIE__} = sub {
+        print STDERR $C_Warning, "@_", <<"END_FAIL_INSTRUCTIONS";
 
-    # It worked! Clean up: remove our local die() handler and the patch file
+This is not something I can recover from. Your human judgment is needed.
+
+Chances are, you might be able to run 'git status', look for
+merge conflicts, manually resolve those, 'git add', then
+'git cherry-pick --continue'. If that works, run this script
+again (you will probably need the --force-retry option).
+
+If that DOES NOT work, your only option is to look at the source code
+for this script. Sorry. There's only so much that can be done automatically.
+
+Treadmill branch copy is preserved in $temp_branch
+
+To restore state to where you were before this sync:
+    \$ git checkout main
+    \$ git branch -f $current_branch $treadmill_commit
+END_FAIL_INSTRUCTIONS
+
+        exit 1;
+    };
+    progress('Reapplying treadmill patches');
+    git('cherry-pick', '--allow-empty', $treadmill_commit);
+
+    # It worked! Clean up: remove our local die() handler and the saved branch
     undef $SIG{__DIE__};
-    unlink $Patch_File;
+    git('branch', '-D', $temp_branch);
 
     # if buildah is unchanged, and we did not pull main, exit cleanly
     my $change_message = '';
@@ -295,6 +319,13 @@ END_FAIL_INSTRUCTIONS
 
     progress("All OK. It's now up to you to 'git push --force'");
     progress(" --- Reminder: $change_message");
+
+    # Kind of kludgy. If user had to retry a prior failed attempt, and
+    # things are now successful, remind them to delete old checkpoints.
+    # ($force_retry is a 'git branch -D' command string at this point.)
+    if ($force_retry) {
+        progress(" --- Retry worked! You may now $force_retry");
+    }
 }
 
 ###############
@@ -429,8 +460,9 @@ sub do_pick {
     assert_buildah_vendor_commit('HEAD');
     progress("HEAD is a buildah vendor commit. Good.");
 
-    # Identify and pull the treadmill PR
-    my $treadmill_pr = treadmill_pr();
+    # Identify and pull the treadmill PR.
+    my $treadmill_pr = shift || treadmill_pr();
+
     my $treadmill_branch = "$ME/pr$treadmill_pr/tmp$$";
     progress("Fetching treadmill PR $treadmill_pr into $treadmill_branch");
     git('fetch', '-q', git_upstream(), "pull/$treadmill_pr/head:$treadmill_branch");
@@ -465,6 +497,26 @@ sub do_pick {
 #  treadmill_pr  #  Returns ID of open podman PR with the desired subject
 ##################
 sub treadmill_pr {
+    # Github API (or maybe just the search endpoint???) is restricted.
+    my $token = $ENV{GITHUB_TOKEN}
+        or do {
+            warn <<"END_NEED_PR";
+$ME: Cannot proceed without PR ID.
+
+If you have a github API token, please: export GITHUB_TOKEN=.......
+and re-run me.
+
+If you do not have a github API token, please go here:
+
+   https://github.com/containers/podman/pulls?q=is%3Apr+is%3Aopen+%22buildah+vendor+treadmill%22
+
+...then reinvoke me, adding that PR ID to the command line args.
+
+As of 2022-09-12 the treadmill PR is 13808, but that may change over time.
+END_NEED_PR
+            exit 1;
+        };
+
     my $query = <<'END_QUERY';
 {
   search(
@@ -481,16 +533,10 @@ END_QUERY
     $ua->agent("$ME " . $ua->agent);              # Identify ourself
 
     my %headers = (
+        'Authorization' => "bearer $token",
         'Accept'        => "application/vnd.github.antiope-preview+json",
         'Content-Type'  => "application/json",
     );
-
-    # Use github token if available, but don't require it. (All it does is
-    # bump up our throttling limit, which shouldn't be an issue) (unless
-    # someone invokes this script hundreds of times per minute).
-    if (my $token = $ENV{GITHUB_TOKEN}) {
-        $headers{Authorization} = "bearer $token";
-    }
     $ua->default_header($_ => $headers{$_}) for keys %headers;
 
     # Massage the query: escape quotes, put it all in one line, collapse spaces
@@ -503,7 +549,9 @@ END_QUERY
     print $postquery, "\n"            if $debug;
     my $res = $ua->post($API_URL, Content => $postquery);
     if ((my $code = $res->code) != 200) {
-        print $code, " ", $res->message, "\n";
+        warn "$ME: GraphQL request failed on $API_URL:\n";
+        print STDERR "  ", $code, " ", $res->message, "\n";
+        warn "Cannot continue.\n";
         exit 1;
     }
 
@@ -621,8 +669,8 @@ from the buildah vendor treadmill PR, #%s
 EOF
 
 # Strip the "DO NOT MERGE" header from the treadmill PR, print only
-# the "Changes as of YYYY-MM-DD" and subsequent lines
-sed -ne '/^Changes as of/,$ p' <$msgfile >>$tmpfile
+# the "Changes since YYYY-MM-DD" and subsequent lines
+sed -ne '/^Changes since /,$ p' <$msgfile >>$tmpfile
 mv $tmpfile $msgfile
 
 END_EDIT_SCRIPT
@@ -639,6 +687,8 @@ END_EDIT_SCRIPT
 # BEGIN reset and its helpers
 
 sub do_reset {
+    die "$ME: --sync takes no arguments; try $ME --help\n" if @_;
+
     my $current_branch = git_current_branch();
 
     # Make sure side branch == main (i.e., there are no commits on the branch)
@@ -681,20 +731,46 @@ sub progress {
 #  assert_clean_repo  #  Don't even think of running with local changes
 #######################
 sub assert_clean_repo {
-    # Our patch file should only exist for brief moments during a sync run.
-    # If it exists at any other time, something has gone very wrong.
-    if (-e $Patch_File) {
-        warn <<"END_WARN";
-$ME: File exists: $Patch_File
+    # During --sync we create a temporary copy of the treadmill branch,
+    # in case something goes wrong. The branch is deleted on success.
+    # If one exists, it means we may have lost work.
+    my @relics = grep {
+        m!^__buildah-treadmill-checkpoint/\d+-\d+$!
+    } git('branch', '--list', '--format=%(refname:lstrip=2)');
+    if (@relics) {
+        if ($force_retry) {
+            warn <<"END_WARN";
+$ME: WARNING: leftover checkpoint(s): @relics
+
+   ...continuing due to --force-retry.
+
+   If things work out, you can 'git branch -D @relics'
+END_WARN
+
+            # OK, ugly override of a binary flag, but it's OK because
+            # it helps with user-friendliness: offer a reminder upon
+            # successful completion of the script.
+            $force_retry = "git branch -D @relics";
+        }
+        else {
+            warn <<"END_WARN";
+$ME: FATAL: leftover checkpoint: @relics
 
    This means that something went very wrong during an earlier sync run.
    Your git branch may be in an inconsistent state. Your work to date
-   may be lost. This file may be your only hope of recovering it.
+   may be lost. This branch may be your only hope of recovering it.
 
    This is not something a script can resolve. You need to look at this
-   file, compare to your git HEAD, and manually reconcile any differences.
+   branch, compare to your git HEAD, and manually reconcile any differences.
+
+   If you really know what you're doing, i.e., if you've reconciled
+   merge conflicts and have a pretty secure branch structure, try
+   rerunning me with --force-retry. Or, if that checkpoint is a
+   remnant from a past run, and you're ultra-certain that you don't
+   need it, you can git branch -D @relics
 END_WARN
-        exit 1;
+            exit 1;
+        }
     }
 
     # OK so far. Now check for modified files.
@@ -727,7 +803,15 @@ sub git_current_branch() {
 #  git_forkpoint  #  Hash at which branch (default: cur) branched from main
 ###################
 sub git_forkpoint {
-    return git('merge-base', '--fork-point', 'main', @_);
+    # '--fork-point vendor-branch' fails silently on Paul's git tree,
+    # but plain merge-base works fine. My head hurts from trying to
+    # understand the docs, so I give up. Just try fork-point first,
+    # and if it fails, try without. #cargocult #gitishard
+    my $forkpoint = eval { git('merge-base', '--fork-point', 'main', @_) };
+    if ($@) {
+        $forkpoint = git('merge-base', 'main', @_);
+    }
+    return $forkpoint;
 }
 
 #####################
