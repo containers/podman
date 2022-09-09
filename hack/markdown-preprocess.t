@@ -71,6 +71,7 @@ class TestPodmanSubcommand(unittest.TestCase):
         self.assertEqual(mp.podman_subcommand("podman-foo.1.md.in"), "foo")
         self.assertEqual(mp.podman_subcommand("podman-foo-bar.1.md.in"), "foo bar")
         self.assertEqual(mp.podman_subcommand("podman-pod-rm.1.md.in"), "rm")
+        self.assertEqual(mp.podman_subcommand("podman-pod-rm.1.md.in", "full"), "pod rm")
 
 
 if __name__ == '__main__':

@@ -43,4 +43,5 @@ This allows the shared use of examples in the option file:
     Example: podman <<subcommand>> --foo --bar
 ```
 As a special case, `podman-pod-X` becomes just `X` (the "pod" is removed).
-This makes the `pod-id-file` man page more useful.
+This makes the `pod-id-file` man page more useful. To get the full
+subcommand including 'pod', use `<<fullsubcommand>>`.
