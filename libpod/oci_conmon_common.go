@@ -429,13 +429,11 @@ func (r *ConmonOCIRuntime) StopContainer(ctr *Container, timeout uint, all bool)
 		}
 	}
 
-	if err := r.KillContainer(ctr, 9, all); err != nil {
+	if err := r.KillContainer(ctr, uint(unix.SIGKILL), all); err != nil {
 		// Again, check if the container is gone. If it is, exit cleanly.
-		err := unix.Kill(ctr.state.PID, 0)
-		if err == unix.ESRCH {
+		if aliveErr := unix.Kill(ctr.state.PID, 0); errors.Is(aliveErr, unix.ESRCH) {
 			return nil
 		}
-
 		return fmt.Errorf("error sending SIGKILL to container %s: %w", ctr.ID(), err)
 	}
 
