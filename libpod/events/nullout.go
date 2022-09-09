@@ -16,13 +16,12 @@ func (e EventToNull) Write(ee Event) error {
 
 // Read does nothing and returns an error.
 func (e EventToNull) Read(ctx context.Context, options ReadOptions) error {
-	defer close(options.EventChannel)
 	return errors.New("cannot read events with the \"none\" backend")
 }
 
-// NewNullEventer returns a new null eventer.  You should only do this for
+// newNullEventer returns a new null eventer.  You should only do this for
 // the purposes of internal libpod testing.
-func NewNullEventer() Eventer {
+func newNullEventer() Eventer {
 	return EventToNull{}
 }
 
