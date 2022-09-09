@@ -29,6 +29,12 @@ function setup() {
     local built=$(expr "$output" : ".*Built: \+\(.*\)" | head -n1)
     local built_t=$(date --date="$built" +%s)
     assert "$built_t" -gt 1546300800 "Preposterous 'Built' time in podman version"
+
+    run_podman -v
+    is "$output" "podman.*version \+"               "'Version line' in output"
+
+    run_podman --config foobar version
+    is "$output" ".*The --config flag is ignored by Podman. Exists for Docker compatibility\+"		  "verify warning for --config option"
 }
 
 @test "podman info" {

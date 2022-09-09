@@ -33,6 +33,7 @@ type PodmanConfig struct {
 	*config.Config
 	*pflag.FlagSet
 
+	DockerConfig   string     // Used for Docker compatibility
 	CgroupUsage    string     // rootless code determines Usage message
 	ConmonPath     string     // --conmon flag will set Engine.ConmonPath
 	CPUProfile     string     // Hidden: Should CPU profile be taken
