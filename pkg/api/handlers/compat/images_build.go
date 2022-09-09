@@ -130,6 +130,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		Secrets                 string   `schema:"secrets"`
 		SecurityOpt             string   `schema:"securityopt"`
 		ShmSize                 int      `schema:"shmsize"`
+		SkipUnusedStages        bool     `schema:"skipunusedstages"`
 		Squash                  bool     `schema:"squash"`
 		TLSVerify               bool     `schema:"tlsVerify"`
 		Tags                    []string `schema:"t"`
@@ -138,12 +139,13 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		Ulimits                 string   `schema:"ulimits"`
 		UnsetEnvs               []string `schema:"unsetenv"`
 	}{
-		Dockerfile:    "Dockerfile",
-		IdentityLabel: true,
-		Registry:      "docker.io",
-		Rm:            true,
-		ShmSize:       64 * 1024 * 1024,
-		TLSVerify:     true,
+		Dockerfile:       "Dockerfile",
+		IdentityLabel:    true,
+		Registry:         "docker.io",
+		Rm:               true,
+		ShmSize:          64 * 1024 * 1024,
+		TLSVerify:        true,
+		SkipUnusedStages: true,
 	}
 
 	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
@@ -675,6 +677,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		RemoveIntermediateCtrs:         query.Rm,
 		ReportWriter:                   reporter,
 		RusageLogFile:                  query.RusageLogFile,
+		SkipUnusedStages:               types.NewOptionalBool(query.SkipUnusedStages),
 		Squash:                         query.Squash,
 		SystemContext:                  systemContext,
 		Target:                         query.Target,
