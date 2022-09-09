@@ -280,8 +280,6 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 	}
 	c.TmpDir = tmp
 
-	c.EventsLogFilePath = filepath.Join(c.TmpDir, "events", "events.log")
-
 	c.EventsLogFileMaxSize = eventsLogMaxSize(DefaultEventsLogSizeMax)
 
 	c.CompatAPIEnforceDockerHub = true

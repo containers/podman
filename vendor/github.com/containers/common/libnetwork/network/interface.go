@@ -132,29 +132,41 @@ func defaultNetworkBackend(store storage.Store, conf *config.Config) (backend ty
 		return types.CNI, nil
 	}
 
-	// now check if there are already containers, images and CNI networks (new install?)
+	// If there are any containers then return CNI
 	cons, err := store.Containers()
 	if err != nil {
 		return "", err
 	}
-	if len(cons) == 0 {
-		imgs, err := store.Images()
-		if err != nil {
-			return "", err
-		}
-		if len(imgs) == 0 {
-			cniInterface, err := getCniInterface(conf)
-			if err == nil {
-				nets, err := cniInterface.NetworkList()
-				// there is always a default network so check <= 1
-				if err == nil && len(nets) <= 1 {
-					// we have a fresh system so use netavark
-					return types.Netavark, nil
-				}
-			}
+	if len(cons) != 0 {
+		return types.CNI, nil
+	}
+
+	// If there are any non ReadOnly images then return CNI
+	imgs, err := store.Images()
+	if err != nil {
+		return "", err
+	}
+	for _, i := range imgs {
+		if !i.ReadOnly {
+			return types.CNI, nil
 		}
 	}
-	return types.CNI, nil
+
+	// If there are CNI Networks then return CNI
+	cniInterface, err := getCniInterface(conf)
+	if err == nil {
+		nets, err := cniInterface.NetworkList()
+		// there is always a default network so check > 1
+		if err != nil && !errors.Is(err, os.ErrNotExist) {
+			return "", err
+		}
+
+		if len(nets) > 1 {
+			// we do not have a fresh system so use CNI
+			return types.CNI, nil
+		}
+	}
+	return types.Netavark, nil
 }
 
 func getCniInterface(conf *config.Config) (types.ContainerNetwork, error) {
