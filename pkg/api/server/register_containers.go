@@ -897,7 +897,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//  - in: query
 	//    name: signal
 	//    type: string
-	//    default: TERM
+	//    default: SIGKILL
 	//    description: signal to be sent to container, either by integer or SIG_ name
 	// produces:
 	// - application/json
@@ -1290,11 +1290,6 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//    type: string
 	//    required: true
 	//    description: the name or ID of the container
-	//  - in: query
-	//    name: all
-	//    type: boolean
-	//    default: false
-	//    description: Stop all containers
 	//  - in: query
 	//    name: timeout
 	//    type: integer
