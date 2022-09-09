@@ -217,3 +217,12 @@ EOF
                --format="{{.Attributes.$lname}}"
     assert "$output" = "$lvalue" "podman-events output includes container label"
 }
+
+@test "events - backend none should error" {
+    skip_if_remote "remote does not support --events-backend"
+
+    run_podman 125 --events-backend none events
+    is "$output" "Error: cannot read events with the \"none\" backend" "correct error message"
+    run_podman 125 --events-backend none events --stream=false
+    is "$output" "Error: cannot read events with the \"none\" backend" "correct error message"
+}

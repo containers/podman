@@ -99,25 +99,28 @@ func eventsCmd(cmd *cobra.Command, _ []string) error {
 		errChannel <- err
 	}()
 
-	for event := range eventChannel {
-		switch {
-		case event == nil:
-			// no-op
-		case doJSON:
-			jsonStr, err := event.ToJSONString()
-			if err != nil {
-				return err
+	for {
+		select {
+		case err := <-errChannel:
+			return err
+		case event := <-eventChannel:
+			switch {
+			case event == nil:
+				// no-op
+			case doJSON:
+				jsonStr, err := event.ToJSONString()
+				if err != nil {
+					return err
+				}
+				fmt.Println(jsonStr)
+			case cmd.Flags().Changed("format"):
+				if err := rpt.Execute(event); err != nil {
+					return err
+				}
+				os.Stdout.WriteString("\n")
+			default:
+				fmt.Println(event.ToHumanReadable(!noTrunc))
 			}
-			fmt.Println(jsonStr)
-		case cmd.Flags().Changed("format"):
-			if err := rpt.Execute(event); err != nil {
-				return err
-			}
-			os.Stdout.WriteString("\n")
-		default:
-			fmt.Println(event.ToHumanReadable(!noTrunc))
 		}
 	}
-
-	return <-errChannel
 }
