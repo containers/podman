@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/containers/common/pkg/secrets"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/domain/utils"
 )
@@ -42,10 +43,15 @@ func (ic *ContainerEngine) SecretCreate(ctx context.Context, name string, reader
 		}
 	}
 
-	secretID, err := manager.Store(name, data, options.Driver, options.DriverOpts, nil)
+	storeOpts := secrets.StoreOptions{
+		DriverOpts: options.DriverOpts,
+	}
+
+	secretID, err := manager.Store(name, data, options.Driver, storeOpts)
 	if err != nil {
 		return nil, err
 	}
+
 	return &entities.SecretCreateReport{
 		ID: secretID,
 	}, nil

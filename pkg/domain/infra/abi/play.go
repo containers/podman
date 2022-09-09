@@ -16,6 +16,7 @@ import (
 	"github.com/containers/common/libimage"
 	nettypes "github.com/containers/common/libnetwork/types"
 	"github.com/containers/common/pkg/config"
+	"github.com/containers/common/pkg/secrets"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v4/libpod"
 	"github.com/containers/podman/v4/libpod/define"
@@ -1110,7 +1111,13 @@ func (ic *ContainerEngine) playKubeSecret(secret *v1.Secret) (*entities.SecretCr
 	if secret.Immutable != nil && *secret.Immutable {
 		meta["immutable"] = "true"
 	}
-	secretID, err := secretsManager.Store(secret.Name, data, "file", opts, meta)
+
+	storeOpts := secrets.StoreOptions{
+		DriverOpts: opts,
+		Metadata:   meta,
+	}
+
+	secretID, err := secretsManager.Store(secret.Name, data, "file", storeOpts)
 	if err != nil {
 		return nil, err
 	}
