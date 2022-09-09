@@ -122,7 +122,7 @@ function setup() {
                --password-stdin \
                $registry <<< "x${PODMAN_LOGIN_PASS}"
     is "$output" \
-       "Error: error logging into \"$registry\": invalid username/password" \
+       "Error: logging into \"$registry\": invalid username/password" \
        'output from podman login'
 }
 

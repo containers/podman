@@ -4,7 +4,7 @@ package unshare
 
 // #cgo CFLAGS: -Wall -Wextra
 // extern void _containers_unshare(void);
-// void __attribute__((constructor)) init(void) {
+// static void __attribute__((constructor)) init(void) {
 //   _containers_unshare();
 // }
 import "C"

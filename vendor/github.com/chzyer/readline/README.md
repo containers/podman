@@ -11,7 +11,7 @@
 <img src="https://raw.githubusercontent.com/chzyer/readline/assets/logo_f.png" />
 </p>
 
-A powerful readline library in `Linux` `macOS` `Windows` `Solaris`
+A powerful readline library in `Linux` `macOS` `Windows` `Solaris` `AIX`
 
 ## Guide
 

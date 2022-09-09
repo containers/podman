@@ -4,8 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-
-	"github.com/docker/distribution/registry/client"
 )
 
 var (
@@ -35,7 +33,7 @@ func httpResponseToError(res *http.Response, context string) error {
 	case http.StatusTooManyRequests:
 		return ErrTooManyRequests
 	case http.StatusUnauthorized:
-		err := client.HandleErrorResponse(res)
+		err := handleErrorResponse(res)
 		return ErrUnauthorizedForCredentials{Err: err}
 	default:
 		if context != "" {
@@ -48,8 +46,8 @@ func httpResponseToError(res *http.Response, context string) error {
 // registryHTTPResponseToError creates a Go error from an HTTP error response of a docker/distribution
 // registry
 func registryHTTPResponseToError(res *http.Response) error {
-	err := client.HandleErrorResponse(res)
-	if e, ok := err.(*client.UnexpectedHTTPResponseError); ok {
+	err := handleErrorResponse(res)
+	if e, ok := err.(*unexpectedHTTPResponseError); ok {
 		response := string(e.Response)
 		if len(response) > 50 {
 			response = response[:50] + "..."

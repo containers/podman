@@ -93,3 +93,9 @@ message Order {
   int64 created = 10;
   repeated int64 v2Authorizations = 11;
 }
+
+message CRLEntry {
+  string serial = 1;
+  int32 reason = 2;
+  int64 revokedAt = 3; // Unix timestamp (nanoseconds)
+}

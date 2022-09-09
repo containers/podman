@@ -124,10 +124,10 @@ func (sd *SignedData) AddSigner(ee *x509.Certificate, pkey crypto.PrivateKey, co
 // The signature algorithm used to hash the data is the one of the end-entity
 // certificate.
 func (sd *SignedData) AddSignerChain(ee *x509.Certificate, pkey crypto.PrivateKey, parents []*x509.Certificate, config SignerInfoConfig) error {
-// Following RFC 2315, 9.2 SignerInfo type, the distinguished name of
-// the issuer of the end-entity signer is stored in the issuerAndSerialNumber
-// section of the SignedData.SignerInfo, alongside the serial number of
-// the end-entity.
+	// Following RFC 2315, 9.2 SignerInfo type, the distinguished name of
+	// the issuer of the end-entity signer is stored in the issuerAndSerialNumber
+	// section of the SignedData.SignerInfo, alongside the serial number of
+	// the end-entity.
 	var ias issuerAndSerial
 	ias.SerialNumber = ee.SerialNumber
 	if len(parents) == 0 {

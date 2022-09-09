@@ -235,6 +235,10 @@ skip_if_remote "envariables do not automatically work with -remote." \
 skip_if_remote "FIXME FIXME FIXME: does this test make sense in remote?" \
                "build-test with OCI prestart hook"
 
+# 2022-08-17 buildah PR 4190
+skip_if_remote "Explicit request in buildah PR 4190 to skip this on remote" \
+               "build: test race in updating image name while performing parallel commits"
+
 ###############################################################################
 # BEGIN tests which are skipped due to actual podman or podman-remote bugs.
 

@@ -34,7 +34,6 @@ import (
 	units "github.com/docker/go-units"
 	"github.com/hashicorp/go-multierror"
 	digest "github.com/opencontainers/go-digest"
-	"github.com/opencontainers/runc/libcontainer/userns"
 	"github.com/opencontainers/selinux/go-selinux"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/sirupsen/logrus"
@@ -1346,7 +1345,11 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 	}
 	if !d.usingMetacopy {
 		if hasMetacopyOption(optsList) {
-			logrus.StandardLogger().Logf(logLevel, "Ignoring global metacopy option, not supported with booted kernel")
+			if d.options.mountProgram == "" {
+				logrus.StandardLogger().Logf(logLevel, "Ignoring global metacopy option, not supported with booted kernel")
+			} else {
+				logrus.Debugf("Ignoring global metacopy option, the mount program doesn't support it")
+			}
 		}
 		optsList = stripOption(optsList, "metacopy=on")
 	}
@@ -1608,7 +1611,7 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 			diffDir := path.Join(id, "diff")
 			opts = fmt.Sprintf("lowerdir=%s,upperdir=%s,workdir=%s", strings.Join(relLowers, ":"), diffDir, workdir)
 		} else {
-			opts = fmt.Sprintf("lowerdir=%s", strings.Join(relLowers, ":"))
+			opts = fmt.Sprintf("lowerdir=%s:%s", diffDir, strings.Join(relLowers, ":"))
 		}
 		if len(optsList) > 0 {
 			opts = fmt.Sprintf("%s,%s", opts, strings.Join(optsList, ","))
@@ -1826,7 +1829,7 @@ func (d *Driver) ApplyDiffWithDiffer(id, parent string, options *graphdriver.App
 		GIDMaps:           idMappings.GIDs(),
 		IgnoreChownErrors: d.options.ignoreChownErrors,
 		WhiteoutFormat:    d.getWhiteoutFormat(),
-		InUserNS:          userns.RunningInUserNS(),
+		InUserNS:          unshare.IsRootless(),
 	})
 	out.Target = applyDir
 	return out, err
@@ -1884,7 +1887,7 @@ func (d *Driver) ApplyDiff(id, parent string, options graphdriver.ApplyDiffOpts)
 		IgnoreChownErrors: d.options.ignoreChownErrors,
 		ForceMask:         d.options.forceMask,
 		WhiteoutFormat:    d.getWhiteoutFormat(),
-		InUserNS:          userns.RunningInUserNS(),
+		InUserNS:          unshare.IsRootless(),
 	}); err != nil {
 		return 0, err
 	}

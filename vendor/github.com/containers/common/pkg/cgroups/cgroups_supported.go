@@ -80,7 +80,7 @@ func UserOwnsCurrentSystemdCgroup() (bool, error) {
 		}
 		s := st.Sys()
 		if s == nil {
-			return false, fmt.Errorf("error stat cgroup path %s", cgroupPath)
+			return false, fmt.Errorf("stat cgroup path %s", cgroupPath)
 		}
 
 		if int(s.(*syscall.Stat_t).Uid) != uid {

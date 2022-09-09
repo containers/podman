@@ -430,6 +430,16 @@ func (i *containerImageRef) NewImageSource(ctx context.Context, sc *types.System
 			return nil, fmt.Errorf("error compressing %s: %w", what, err)
 		}
 		writer := io.MultiWriter(writeCloser, srcHasher.Hash())
+		// Scrub any local user names that might correspond to UIDs or GIDs of
+		// files in this layer.
+		{
+			nestedWriteCloser := ioutils.NewWriteCloserWrapper(writer, writeCloser.Close)
+			writeCloser = newTarFilterer(nestedWriteCloser, func(hdr *tar.Header) (bool, bool, io.Reader) {
+				hdr.Uname, hdr.Gname = "", ""
+				return false, false, nil
+			})
+			writer = io.Writer(writeCloser)
+		}
 		// Use specified timestamps in the layer, if we're doing that for
 		// history entries.
 		if i.created != nil {

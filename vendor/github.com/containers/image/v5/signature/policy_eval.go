@@ -172,10 +172,10 @@ func (pc *PolicyContext) requirementsForImageRef(ref types.ImageReference) Polic
 // but it does not necessarily mean that the contents of the signature are
 // consistent with local policy.
 // For example:
-// - Do not use a an existence of an accepted signature to determine whether to run
-//   a container based on this image; use IsRunningImageAllowed instead.
-// - Just because a signature is accepted does not automatically mean the contents of the
-//   signature are authorized to run code as root, or to affect system or cluster configuration.
+//   - Do not use a an existence of an accepted signature to determine whether to run
+//     a container based on this image; use IsRunningImageAllowed instead.
+//   - Just because a signature is accepted does not automatically mean the contents of the
+//     signature are authorized to run code as root, or to affect system or cluster configuration.
 func (pc *PolicyContext) GetSignaturesWithAcceptedAuthor(ctx context.Context, publicImage types.UnparsedImage) (sigs []*Signature, finalErr error) {
 	if err := pc.changeState(pcReady, pcInUse); err != nil {
 		return nil, err

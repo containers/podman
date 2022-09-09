@@ -12,9 +12,9 @@ import (
 //
 //   - always: the docker daemon will always restart the container
 //   - on-failure: the docker daemon will restart the container on failures, at
-//                 most MaximumRetryCount times
+//     most MaximumRetryCount times
 //   - unless-stopped: the docker daemon will always restart the container except
-//                 when user has manually stopped the container
+//     when user has manually stopped the container
 //   - no: the docker daemon will not restart the container automatically
 type RestartPolicy struct {
 	Name              string `json:"Name,omitempty" yaml:"Name,omitempty" toml:"Name,omitempty"`

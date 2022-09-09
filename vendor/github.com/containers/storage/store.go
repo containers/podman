@@ -410,7 +410,7 @@ type Store interface {
 	SetImageBigData(id, key string, data []byte, digestManifest func([]byte) (digest.Digest, error)) error
 
 	// ListLayerBigData retrieves a list of the (possibly large) chunks of
-	// named data associated with an layer.
+	// named data associated with a layer.
 	ListLayerBigData(id string) ([]string, error)
 
 	// LayerBigData retrieves a (possibly large) chunk of named data

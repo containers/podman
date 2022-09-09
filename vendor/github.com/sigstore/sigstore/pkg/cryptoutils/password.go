@@ -27,10 +27,8 @@ import (
 // PassFunc is a type of function that takes a boolean (representing whether confirmation is desired) and returns the password as read, along with an error if one occurred
 type PassFunc func(bool) ([]byte, error)
 
-var (
-	// Read is for fuzzing
-	Read = readPasswordFn
-)
+// Read is for fuzzing
+var Read = readPasswordFn
 
 // readPasswordFn reads the password from the following sources, in order of preference:
 //
