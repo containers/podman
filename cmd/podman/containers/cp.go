@@ -51,14 +51,16 @@ var (
 )
 
 var (
-	cpOpts entities.ContainerCpOptions
-	chown  bool
+	cpOpts     entities.ContainerCpOptions
+	chown      bool
+	followLink bool
 )
 
 func cpFlags(cmd *cobra.Command) {
 	flags := cmd.Flags()
 	flags.BoolVar(&cpOpts.OverwriteDirNonDir, "overwrite", false, "Allow to overwrite directories with non-directories and vice versa")
 	flags.BoolVarP(&chown, "archive", "a", true, `Chown copied files to the primary uid/gid of the destination container.`)
+	flags.BoolVarP(&followLink, "follow-link", "L", true, `Always follow symbol link in SRC_PATH`)
 
 	// Deprecated flags (both are NOPs): exist for backwards compat
 	flags.BoolVar(&cpOpts.Extract, "extract", false, "Deprecated...")
@@ -93,6 +95,12 @@ func cp(cmd *cobra.Command, args []string) error {
 		return copyFromContainer(sourceContainerStr, sourcePath, destPath)
 	}
 
+	if followLink {
+		sourcePath, err = filepath.EvalSymlinks(sourcePath)
+		if err != nil {
+			return err
+		}
+	}
 	return copyToContainer(destContainerStr, destPath, sourcePath)
 }
 
