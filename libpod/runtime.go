@@ -466,14 +466,6 @@ func makeRuntime(runtime *Runtime) (retErr error) {
 		}
 	}
 
-	// Create events log dir
-	if err := os.MkdirAll(filepath.Dir(runtime.config.Engine.EventsLogFilePath), 0700); err != nil {
-		// The directory is allowed to exist
-		if !errors.Is(err, os.ErrExist) {
-			return fmt.Errorf("creating events dirs: %w", err)
-		}
-	}
-
 	// Get us at least one working OCI runtime.
 	runtime.ociRuntimes = make(map[string]OCIRuntime)
 
