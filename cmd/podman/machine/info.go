@@ -57,7 +57,7 @@ func info(cmd *cobra.Command, args []string) error {
 	info := entities.MachineInfo{}
 	version, err := define.GetVersion()
 	if err != nil {
-		return fmt.Errorf("error getting version info %w", err)
+		return fmt.Errorf("getting version info %w", err)
 	}
 	info.Version = version
 

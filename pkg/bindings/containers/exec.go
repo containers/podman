@@ -33,7 +33,7 @@ func ExecCreate(ctx context.Context, nameOrID string, config *handlers.ExecCreat
 
 	requestJSON, err := json.Marshal(config)
 	if err != nil {
-		return "", fmt.Errorf("error marshalling exec config to JSON: %w", err)
+		return "", fmt.Errorf("marshalling exec config to JSON: %w", err)
 	}
 	jsonReader := strings.NewReader(string(requestJSON))
 

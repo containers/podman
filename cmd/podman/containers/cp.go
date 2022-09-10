@@ -172,7 +172,7 @@ func copyContainerToContainer(sourceContainer string, sourcePath string, destCon
 			return err
 		}
 		if err := copyFunc(); err != nil {
-			return fmt.Errorf("error copying from container: %w", err)
+			return fmt.Errorf("copying from container: %w", err)
 		}
 		return nil
 	}
@@ -192,7 +192,7 @@ func copyContainerToContainer(sourceContainer string, sourcePath string, destCon
 			return err
 		}
 		if err := copyFunc(); err != nil {
-			return fmt.Errorf("error copying to container: %w", err)
+			return fmt.Errorf("copying to container: %w", err)
 		}
 		return nil
 	}
@@ -315,7 +315,7 @@ func copyFromContainer(container string, containerPath string, hostPath string) 
 			dir = filepath.Dir(dir)
 		}
 		if err := buildahCopiah.Put(dir, "", putOptions, reader); err != nil {
-			return fmt.Errorf("error copying to host: %w", err)
+			return fmt.Errorf("copying to host: %w", err)
 		}
 		return nil
 	}
@@ -327,7 +327,7 @@ func copyFromContainer(container string, containerPath string, hostPath string) 
 			return err
 		}
 		if err := copyFunc(); err != nil {
-			return fmt.Errorf("error copying from container: %w", err)
+			return fmt.Errorf("copying from container: %w", err)
 		}
 		return nil
 	}
@@ -424,7 +424,7 @@ func copyToContainer(container string, containerPath string, hostPath string) er
 			getOptions.Rename = map[string]string{filepath.Base(hostTarget): containerBaseName}
 		}
 		if err := buildahCopiah.Get("/", "", getOptions, []string{hostTarget}, writer); err != nil {
-			return fmt.Errorf("error copying from host: %w", err)
+			return fmt.Errorf("copying from host: %w", err)
 		}
 		return nil
 	}
@@ -441,7 +441,7 @@ func copyToContainer(container string, containerPath string, hostPath string) er
 			return err
 		}
 		if err := copyFunc(); err != nil {
-			return fmt.Errorf("error copying to container: %w", err)
+			return fmt.Errorf("copying to container: %w", err)
 		}
 		return nil
 	}

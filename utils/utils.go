@@ -128,7 +128,7 @@ func moveProcessPIDFileToScope(pidPath, slice, scope string) error {
 		if os.IsNotExist(err) {
 			return nil
 		}
-		return fmt.Errorf("cannot read pid file %s: %w", pidPath, err)
+		return fmt.Errorf("cannot read pid file: %w", err)
 	}
 	pid, err := strconv.ParseUint(string(data), 10, 0)
 	if err != nil {

@@ -36,14 +36,14 @@ func (r *Runtime) NewPod(ctx context.Context, p specgen.PodSpecGenerator, option
 
 	for _, option := range options {
 		if err := option(pod); err != nil {
-			return nil, fmt.Errorf("error running pod create option: %w", err)
+			return nil, fmt.Errorf("running pod create option: %w", err)
 		}
 	}
 
 	// Allocate a lock for the pod
 	lock, err := r.lockManager.AllocateLock()
 	if err != nil {
-		return nil, fmt.Errorf("error allocating lock for new pod: %w", err)
+		return nil, fmt.Errorf("allocating lock for new pod: %w", err)
 	}
 	pod.lock = lock
 	pod.config.LockID = pod.lock.ID()
@@ -160,7 +160,7 @@ func (r *Runtime) NewPod(ctx context.Context, p specgen.PodSpecGenerator, option
 		}
 	}
 	if addPodErr != nil {
-		return nil, fmt.Errorf("error adding pod to state: %w", addPodErr)
+		return nil, fmt.Errorf("adding pod to state: %w", addPodErr)
 	}
 
 	return pod, nil
@@ -286,7 +286,7 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool,
 		case config.SystemdCgroupsManager:
 			if err := deleteSystemdCgroup(p.state.CgroupPath, p.ResourceLim()); err != nil {
 				if removalErr == nil {
-					removalErr = fmt.Errorf("error removing pod %s cgroup: %w", p.ID(), err)
+					removalErr = fmt.Errorf("removing pod %s cgroup: %w", p.ID(), err)
 				} else {
 					logrus.Errorf("Deleting pod %s cgroup %s: %v", p.ID(), p.state.CgroupPath, err)
 				}
@@ -300,7 +300,7 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool,
 			conmonCgroup, err := cgroups.Load(conmonCgroupPath)
 			if err != nil && err != cgroups.ErrCgroupDeleted && err != cgroups.ErrCgroupV1Rootless {
 				if removalErr == nil {
-					removalErr = fmt.Errorf("error retrieving pod %s conmon cgroup: %w", p.ID(), err)
+					removalErr = fmt.Errorf("retrieving pod %s conmon cgroup: %w", p.ID(), err)
 				} else {
 					logrus.Debugf("Error retrieving pod %s conmon cgroup %s: %v", p.ID(), conmonCgroupPath, err)
 				}
@@ -308,7 +308,7 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool,
 			if err == nil {
 				if err = conmonCgroup.Delete(); err != nil {
 					if removalErr == nil {
-						removalErr = fmt.Errorf("error removing pod %s conmon cgroup: %w", p.ID(), err)
+						removalErr = fmt.Errorf("removing pod %s conmon cgroup: %w", p.ID(), err)
 					} else {
 						logrus.Errorf("Deleting pod %s conmon cgroup %s: %v", p.ID(), conmonCgroupPath, err)
 					}
@@ -317,7 +317,7 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool,
 			cgroup, err := cgroups.Load(p.state.CgroupPath)
 			if err != nil && err != cgroups.ErrCgroupDeleted && err != cgroups.ErrCgroupV1Rootless {
 				if removalErr == nil {
-					removalErr = fmt.Errorf("error retrieving pod %s cgroup: %w", p.ID(), err)
+					removalErr = fmt.Errorf("retrieving pod %s cgroup: %w", p.ID(), err)
 				} else {
 					logrus.Errorf("Retrieving pod %s cgroup %s: %v", p.ID(), p.state.CgroupPath, err)
 				}
@@ -325,7 +325,7 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool,
 			if err == nil {
 				if err := cgroup.Delete(); err != nil {
 					if removalErr == nil {
-						removalErr = fmt.Errorf("error removing pod %s cgroup: %w", p.ID(), err)
+						removalErr = fmt.Errorf("removing pod %s cgroup: %w", p.ID(), err)
 					} else {
 						logrus.Errorf("Deleting pod %s cgroup %s: %v", p.ID(), p.state.CgroupPath, err)
 					}
@@ -362,7 +362,7 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool,
 	// Deallocate the pod lock
 	if err := p.lock.Free(); err != nil {
 		if removalErr == nil {
-			removalErr = fmt.Errorf("error freeing pod %s lock: %w", p.ID(), err)
+			removalErr = fmt.Errorf("freeing pod %s lock: %w", p.ID(), err)
 		} else {
 			logrus.Errorf("Freeing pod %s lock: %v", p.ID(), err)
 		}

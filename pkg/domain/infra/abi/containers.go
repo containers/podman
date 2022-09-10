@@ -822,7 +822,7 @@ func (ic *ContainerEngine) ContainerAttach(ctx context.Context, nameOrID string,
 	// If the container is in a pod, also set to recursively start dependencies
 	err = terminal.StartAttachCtr(ctx, ctr, options.Stdout, options.Stderr, options.Stdin, options.DetachKeys, options.SigProxy, false)
 	if err != nil && !errors.Is(err, define.ErrDetach) {
-		return fmt.Errorf("error attaching to container %s: %w", ctr.ID(), err)
+		return fmt.Errorf("attaching to container %s: %w", ctr.ID(), err)
 	}
 	os.Stdout.WriteString("\n")
 	return nil
@@ -844,12 +844,12 @@ func makeExecConfig(options entities.ExecOptions, rt *libpod.Runtime) (*libpod.E
 	storageConfig := rt.StorageConfig()
 	runtimeConfig, err := rt.GetConfig()
 	if err != nil {
-		return nil, fmt.Errorf("error retrieving Libpod configuration to build exec exit command: %w", err)
+		return nil, fmt.Errorf("retrieving Libpod configuration to build exec exit command: %w", err)
 	}
 	// TODO: Add some ability to toggle syslog
 	exitCommandArgs, err := specgenutil.CreateExitCommandArgs(storageConfig, runtimeConfig, logrus.IsLevelEnabled(logrus.DebugLevel), false, true)
 	if err != nil {
-		return nil, fmt.Errorf("error constructing exit command for exec session: %w", err)
+		return nil, fmt.Errorf("constructing exit command for exec session: %w", err)
 	}
 	execConfig.ExitCommand = exitCommandArgs
 
@@ -1449,7 +1449,7 @@ func (ic *ContainerEngine) ContainerUnmount(ctx context.Context, nameOrIDs []str
 				logrus.Debugf("Error umounting container %s, storage.ErrLayerNotMounted", ctr.ID())
 				continue
 			}
-			report.Err = fmt.Errorf("error unmounting container %s: %w", ctr.ID(), err)
+			report.Err = fmt.Errorf("unmounting container %s: %w", ctr.ID(), err)
 		}
 		reports = append(reports, &report)
 	}

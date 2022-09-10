@@ -91,7 +91,7 @@ func PushImage(w http.ResponseWriter, r *http.Request) {
 	// Let's keep thing simple when running in quiet mode and push directly.
 	if query.Quiet {
 		if err := imageEngine.Push(r.Context(), source, destination, options); err != nil {
-			utils.Error(w, http.StatusBadRequest, fmt.Errorf("error pushing image %q: %w", destination, err))
+			utils.Error(w, http.StatusBadRequest, fmt.Errorf("pushing image %q: %w", destination, err))
 			return
 		}
 		utils.WriteResponse(w, http.StatusOK, "")

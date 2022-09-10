@@ -409,7 +409,7 @@ Copying blob f7277927d38a done
 Copying config 5e13f8dd4c done
 Writing manifest to image destination
 Storing signatures
-Error: error creating build container: Error committing the finished image: error adding layer with blob "sha256:8d3eac894db4dc4154377ad28643dfe6625ff0e54bcfa63e0d04921f1a8ef7f8": Error processing tar file(exit status 1): operation not permitted
+Error: creating build container: Error committing the finished image: error adding layer with blob "sha256:8d3eac894db4dc4154377ad28643dfe6625ff0e54bcfa63e0d04921f1a8ef7f8": Error processing tar file(exit status 1): operation not permitted
 $ podman build .
 ERRO[0014] Error while applying layer: ApplyLayer exit status 1 stdout:  stderr: open /root/.bash_logout: permission denied
 error creating build container: Error committing the finished image: error adding layer with blob "sha256:a02a4930cb5d36f3290eb84f4bfa30668ef2e9fe3a1fb73ec015fc58b9958b17": ApplyLayer exit status 1 stdout:  stderr: open /root/.bash_logout: permission denied
@@ -923,7 +923,7 @@ if __name__ == "__main__":
     signal_listener()
 ```
 
-### 31) Podman run fails with `ERRO[0000] XDG_RUNTIME_DIR directory "/run/user/0" is not owned by the current user` or `Error: error creating tmpdir: mkdir /run/user/1000: permission denied`.
+### 31) Podman run fails with `ERRO[0000] XDG_RUNTIME_DIR directory "/run/user/0" is not owned by the current user` or `Error: creating tmpdir: mkdir /run/user/1000: permission denied`.
 
 A failure is encountered when performing `podman run` with a warning `XDG_RUNTIME_DIR is pointing to a path which is not writable. Most likely podman will fail.`
 
@@ -938,7 +938,7 @@ ERRO[0000] XDG_RUNTIME_DIR directory "/run/user/0" is not owned by the current u
 ```
 ```console
 # su - user1 -c 'podman images'
-Error: error creating tmpdir: mkdir /run/user/1000: permission denied
+Error: creating tmpdir: mkdir /run/user/1000: permission denied
 ```
 
 #### Solution

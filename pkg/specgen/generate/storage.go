@@ -175,7 +175,7 @@ func finalizeMounts(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Ru
 		if mount.Type == define.TypeBind {
 			absSrc, err := filepath.Abs(mount.Source)
 			if err != nil {
-				return nil, nil, nil, fmt.Errorf("error getting absolute path of %s: %w", mount.Source, err)
+				return nil, nil, nil, fmt.Errorf("getting absolute path of %s: %w", mount.Source, err)
 			}
 			mount.Source = absSrc
 		}
@@ -208,7 +208,7 @@ func getImageVolumes(ctx context.Context, img *libimage.Image, s *specgen.SpecGe
 
 	inspect, err := img.Inspect(ctx, nil)
 	if err != nil {
-		return nil, nil, fmt.Errorf("error inspecting image to get image volumes: %w", err)
+		return nil, nil, fmt.Errorf("inspecting image to get image volumes: %w", err)
 	}
 	for volume := range inspect.Config.Volumes {
 		logrus.Debugf("Image has volume at %q", volume)
@@ -269,7 +269,7 @@ func getVolumesFrom(volumesFrom []string, runtime *libpod.Runtime) (map[string]s
 
 		ctr, err := runtime.LookupContainer(splitVol[0])
 		if err != nil {
-			return nil, nil, fmt.Errorf("error looking up container %q for volumes-from: %w", splitVol[0], err)
+			return nil, nil, fmt.Errorf("looking up container %q for volumes-from: %w", splitVol[0], err)
 		}
 
 		logrus.Debugf("Adding volumes from container %s", ctr.ID())

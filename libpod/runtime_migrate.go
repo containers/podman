@@ -92,7 +92,7 @@ func (r *Runtime) migrate() error {
 
 		if needsWrite {
 			if err := r.state.RewriteContainerConfig(ctr, ctr.config); err != nil {
-				return fmt.Errorf("error rewriting config for container %s: %w", ctr.ID(), err)
+				return fmt.Errorf("rewriting config for container %s: %w", ctr.ID(), err)
 			}
 		}
 	}

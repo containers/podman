@@ -684,7 +684,7 @@ func (c *Container) Cleanup(ctx context.Context) error {
 			// When the container has already been removed, the OCI runtime directory remain.
 			if errors.Is(err, define.ErrNoSuchCtr) || errors.Is(err, define.ErrCtrRemoved) {
 				if err := c.cleanupRuntime(ctx); err != nil {
-					return fmt.Errorf("error cleaning up container %s from OCI runtime: %w", c.ID(), err)
+					return fmt.Errorf("cleaning up container %s from OCI runtime: %w", c.ID(), err)
 				}
 				return nil
 			}

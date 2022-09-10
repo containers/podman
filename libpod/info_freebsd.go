@@ -21,7 +21,7 @@ func timeToPercent(time uint64, total uint64) float64 {
 func getCPUUtilization() (*define.CPUUsage, error) {
 	buf, err := unix.SysctlRaw("kern.cp_time")
 	if err != nil {
-		return nil, fmt.Errorf("error reading sysctl kern.cp_time: %w", err)
+		return nil, fmt.Errorf("reading sysctl kern.cp_time: %w", err)
 	}
 
 	var total uint64 = 0

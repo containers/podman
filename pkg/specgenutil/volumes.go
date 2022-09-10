@@ -125,7 +125,7 @@ func parseVolumes(volumeFlag, mountFlag, tmpfsFlag []string, addReadOnlyTmpfs bo
 		if mount.Type == define.TypeBind {
 			absSrc, err := specgen.ConvertWinMountPath(mount.Source)
 			if err != nil {
-				return nil, nil, nil, nil, fmt.Errorf("error getting absolute path of %s: %w", mount.Source, err)
+				return nil, nil, nil, nil, fmt.Errorf("getting absolute path of %s: %w", mount.Source, err)
 			}
 			mount.Source = absSrc
 		}

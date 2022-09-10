@@ -762,7 +762,7 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 			}
 			retries, err := strconv.Atoi(splitRestart[1])
 			if err != nil {
-				return fmt.Errorf("error parsing restart policy retry count: %w", err)
+				return fmt.Errorf("parsing restart policy retry count: %w", err)
 			}
 			if retries < 0 {
 				return errors.New("must specify restart policy retry count as a number greater than 0")

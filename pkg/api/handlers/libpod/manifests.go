@@ -295,7 +295,7 @@ func ManifestPushV3(w http.ResponseWriter, r *http.Request) {
 	imageEngine := abi.ImageEngine{Libpod: runtime}
 	digest, err := imageEngine.ManifestPush(r.Context(), source, query.Destination, options)
 	if err != nil {
-		utils.Error(w, http.StatusBadRequest, fmt.Errorf("error pushing image %q: %w", query.Destination, err))
+		utils.Error(w, http.StatusBadRequest, fmt.Errorf("pushing image %q: %w", query.Destination, err))
 		return
 	}
 	utils.WriteResponse(w, http.StatusOK, entities.IDResponse{ID: digest})
@@ -369,7 +369,7 @@ func ManifestPush(w http.ResponseWriter, r *http.Request) {
 	if query.Quiet {
 		digest, err := imageEngine.ManifestPush(r.Context(), source, destination, options)
 		if err != nil {
-			utils.Error(w, http.StatusBadRequest, fmt.Errorf("error pushing image %q: %w", destination, err))
+			utils.Error(w, http.StatusBadRequest, fmt.Errorf("pushing image %q: %w", destination, err))
 			return
 		}
 		utils.WriteResponse(w, http.StatusOK, entities.ManifestPushReport{ID: digest})

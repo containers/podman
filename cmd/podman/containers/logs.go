@@ -126,7 +126,7 @@ func logs(_ *cobra.Command, args []string) error {
 		// parse time, error out if something is wrong
 		since, err := util.ParseInputTime(logsOptions.SinceRaw, true)
 		if err != nil {
-			return fmt.Errorf("error parsing --since %q: %w", logsOptions.SinceRaw, err)
+			return fmt.Errorf("parsing --since %q: %w", logsOptions.SinceRaw, err)
 		}
 		logsOptions.Since = since
 	}
@@ -134,7 +134,7 @@ func logs(_ *cobra.Command, args []string) error {
 		// parse time, error out if something is wrong
 		until, err := util.ParseInputTime(logsOptions.UntilRaw, false)
 		if err != nil {
-			return fmt.Errorf("error parsing --until %q: %w", logsOptions.UntilRaw, err)
+			return fmt.Errorf("parsing --until %q: %w", logsOptions.UntilRaw, err)
 		}
 		logsOptions.Until = until
 	}

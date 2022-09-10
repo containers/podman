@@ -43,7 +43,7 @@ func (c *Container) mountSHM(shmOptions string) error {
 func (c *Container) unmountSHM(mount string) error {
 	if err := unix.Unmount(mount, 0); err != nil {
 		if err != syscall.EINVAL && err != syscall.ENOENT {
-			return fmt.Errorf("error unmounting container %s SHM mount %s: %w", c.ID(), mount, err)
+			return fmt.Errorf("unmounting container %s SHM mount %s: %w", c.ID(), mount, err)
 		}
 		// If it's just an EINVAL or ENOENT, debug logs only
 		logrus.Debugf("Container %s failed to unmount %s : %v", c.ID(), mount, err)
@@ -122,7 +122,7 @@ func (c *Container) prepare() error {
 			// createErr is guaranteed non-nil, so print
 			// unconditionally
 			logrus.Errorf("Preparing container %s: %v", c.ID(), createErr)
-			createErr = fmt.Errorf("error unmounting storage for container %s after network create failure: %w", c.ID(), err)
+			createErr = fmt.Errorf("unmounting storage for container %s after network create failure: %w", c.ID(), err)
 		}
 	}
 
@@ -131,7 +131,7 @@ func (c *Container) prepare() error {
 	if createErr != nil {
 		if err := c.cleanupNetwork(); err != nil {
 			logrus.Errorf("Preparing container %s: %v", c.ID(), createErr)
-			createErr = fmt.Errorf("error cleaning up container %s network after setup failure: %w", c.ID(), err)
+			createErr = fmt.Errorf("cleaning up container %s network after setup failure: %w", c.ID(), err)
 		}
 	}
 
@@ -310,7 +310,7 @@ func (c *Container) setupSystemd(mounts []spec.Mount, g generate.Generator) erro
 func (c *Container) addNamespaceContainer(g *generate.Generator, ns LinuxNS, ctr string, specNS spec.LinuxNamespaceType) error {
 	nsCtr, err := c.runtime.state.Container(ctr)
 	if err != nil {
-		return fmt.Errorf("error retrieving dependency %s of container %s from state: %w", ctr, c.ID(), err)
+		return fmt.Errorf("retrieving dependency %s of container %s from state: %w", ctr, c.ID(), err)
 	}
 
 	if specNS == spec.UTSNamespace {
@@ -441,7 +441,7 @@ func (c *Container) addNetworkNamespace(g *generate.Generator) error {
 func (c *Container) addSystemdMounts(g *generate.Generator) error {
 	if c.Systemd() {
 		if err := c.setupSystemd(g.Mounts(), *g); err != nil {
-			return fmt.Errorf("error adding systemd-specific mounts: %w", err)
+			return fmt.Errorf("adding systemd-specific mounts: %w", err)
 		}
 	}
 	return nil

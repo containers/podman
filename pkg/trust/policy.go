@@ -242,7 +242,7 @@ func AddPolicyEntries(policyPath string, input AddPolicyEntriesInput) error {
 
 	data, err := json.MarshalIndent(policyContentStruct, "", "    ")
 	if err != nil {
-		return fmt.Errorf("error setting trust policy: %w", err)
+		return fmt.Errorf("setting trust policy: %w", err)
 	}
 	return ioutil.WriteFile(policyPath, data, 0644)
 }

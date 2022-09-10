@@ -65,7 +65,7 @@ func (ic *ContainerEngine) SecretInspect(ctx context.Context, nameOrIDs []string
 				errs = append(errs, err)
 				continue
 			} else {
-				return nil, nil, fmt.Errorf("error inspecting secret %s: %w", nameOrID, err)
+				return nil, nil, fmt.Errorf("inspecting secret %s: %w", nameOrID, err)
 			}
 		}
 		report := &entities.SecretInfoReport{

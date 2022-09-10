@@ -343,7 +343,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 	if len(tags) > 0 {
 		possiblyNormalizedName, err := utils.NormalizeToDockerHub(r, tags[0])
 		if err != nil {
-			utils.Error(w, http.StatusInternalServerError, fmt.Errorf("error normalizing image: %w", err))
+			utils.Error(w, http.StatusInternalServerError, fmt.Errorf("normalizing image: %w", err))
 			return
 		}
 		output = possiblyNormalizedName
@@ -376,7 +376,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 	for i := 1; i < len(tags); i++ {
 		possiblyNormalizedTag, err := utils.NormalizeToDockerHub(r, tags[i])
 		if err != nil {
-			utils.Error(w, http.StatusInternalServerError, fmt.Errorf("error normalizing image: %w", err))
+			utils.Error(w, http.StatusInternalServerError, fmt.Errorf("normalizing image: %w", err))
 			return
 		}
 		additionalTags = append(additionalTags, possiblyNormalizedTag)
@@ -578,7 +578,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 	if fromImage != "" {
 		possiblyNormalizedName, err := utils.NormalizeToDockerHub(r, fromImage)
 		if err != nil {
-			utils.Error(w, http.StatusInternalServerError, fmt.Errorf("error normalizing image: %w", err))
+			utils.Error(w, http.StatusInternalServerError, fmt.Errorf("normalizing image: %w", err))
 			return
 		}
 		fromImage = possiblyNormalizedName

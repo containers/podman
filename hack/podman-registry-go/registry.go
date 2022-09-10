@@ -57,7 +57,7 @@ func StartWithOptions(options *Options) (*Registry, error) {
 	// Start a registry.
 	out, err := utils.ExecCmd(binary, args...)
 	if err != nil {
-		return nil, fmt.Errorf("error running %q: %s: %w", binary, out, err)
+		return nil, fmt.Errorf("running %q: %s: %w", binary, out, err)
 	}
 
 	// Parse the output.
@@ -112,7 +112,7 @@ func (r *Registry) Stop() error {
 		return nil
 	}
 	if _, err := utils.ExecCmd(binary, "-P", r.Port, "stop"); err != nil {
-		return fmt.Errorf("error stopping registry (%v) with %q: %w", *r, binary, err)
+		return fmt.Errorf("stopping registry (%v) with %q: %w", *r, binary, err)
 	}
 	r.running = false
 	return nil

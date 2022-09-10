@@ -590,7 +590,7 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 func nTar(excludes []string, sources ...string) (io.ReadCloser, error) {
 	pm, err := fileutils.NewPatternMatcher(excludes)
 	if err != nil {
-		return nil, fmt.Errorf("error processing excludes list %v: %w", excludes, err)
+		return nil, fmt.Errorf("processing excludes list %v: %w", excludes, err)
 	}
 
 	if len(sources) == 0 {
@@ -639,7 +639,7 @@ func nTar(excludes []string, sources ...string) (io.ReadCloser, error) {
 
 				excluded, err := pm.Matches(name) //nolint:staticcheck
 				if err != nil {
-					return fmt.Errorf("error checking if %q is excluded: %w", name, err)
+					return fmt.Errorf("checking if %q is excluded: %w", name, err)
 				}
 				if excluded {
 					// Note: filepath.SkipDir is not possible to use given .dockerignore semantics.
@@ -742,7 +742,7 @@ func parseDockerignore(root string) ([]string, error) {
 		var dockerIgnoreErr error
 		ignore, dockerIgnoreErr = ioutil.ReadFile(filepath.Join(root, ".dockerignore"))
 		if dockerIgnoreErr != nil && !os.IsNotExist(dockerIgnoreErr) {
-			return nil, fmt.Errorf("error reading .containerignore: '%s': %w", root, err)
+			return nil, err
 		}
 	}
 	rawexcludes := strings.Split(string(ignore), "\n")

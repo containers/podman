@@ -238,10 +238,10 @@ func authConfigsToAuthFile(authConfigs map[string]types.DockerAuthConfig) (strin
 		return "", err
 	}
 	if _, err := tmpFile.Write([]byte{'{', '}'}); err != nil {
-		return "", fmt.Errorf("error initializing temporary auth file: %w", err)
+		return "", fmt.Errorf("initializing temporary auth file: %w", err)
 	}
 	if err := tmpFile.Close(); err != nil {
-		return "", fmt.Errorf("error closing temporary auth file: %w", err)
+		return "", fmt.Errorf("closing temporary auth file: %w", err)
 	}
 	authFilePath := tmpFile.Name()
 
@@ -255,7 +255,7 @@ func authConfigsToAuthFile(authConfigs map[string]types.DockerAuthConfig) (strin
 		// that all credentials are valid. They'll be used on demand
 		// later.
 		if err := imageAuth.SetAuthentication(&sys, key, config.Username, config.Password); err != nil {
-			return "", fmt.Errorf("error storing credentials in temporary auth file (key: %q / %q, user: %q): %w", authFileKey, key, config.Username, err)
+			return "", fmt.Errorf("storing credentials in temporary auth file (key: %q / %q, user: %q): %w", authFileKey, key, config.Username, err)
 		}
 	}
 

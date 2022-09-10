@@ -423,7 +423,7 @@ json-file | f
 
     # Invalid log-driver argument
     run_podman 125 run --log-driver=InvalidDriver $IMAGE true
-    is "$output" "Error: error running container create option: invalid log driver: invalid argument" \
+    is "$output" "Error: running container create option: invalid log driver: invalid argument" \
        "--log-driver InvalidDriver"
 }
 

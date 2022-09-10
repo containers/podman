@@ -353,14 +353,14 @@ func (c *Container) specFromState() (*spec.Spec, error) {
 		returnSpec = new(spec.Spec)
 		content, err := ioutil.ReadAll(f)
 		if err != nil {
-			return nil, fmt.Errorf("error reading container config: %w", err)
+			return nil, fmt.Errorf("reading container config: %w", err)
 		}
 		if err := json.Unmarshal(content, &returnSpec); err != nil {
-			return nil, fmt.Errorf("error unmarshalling container config: %w", err)
+			return nil, fmt.Errorf("unmarshalling container config: %w", err)
 		}
 	} else if !os.IsNotExist(err) {
 		// ignore when the file does not exist
-		return nil, fmt.Errorf("error opening container config: %w", err)
+		return nil, fmt.Errorf("opening container config: %w", err)
 	}
 
 	return returnSpec, nil
@@ -703,7 +703,7 @@ func (c *Container) Mounted() (bool, string, error) {
 		c.lock.Lock()
 		defer c.lock.Unlock()
 		if err := c.syncContainer(); err != nil {
-			return false, "", fmt.Errorf("error updating container %s state: %w", c.ID(), err)
+			return false, "", fmt.Errorf("updating container %s state: %w", c.ID(), err)
 		}
 	}
 	// We cannot directly return c.state.Mountpoint as it is not guaranteed
@@ -733,7 +733,7 @@ func (c *Container) StartedTime() (time.Time, error) {
 		c.lock.Lock()
 		defer c.lock.Unlock()
 		if err := c.syncContainer(); err != nil {
-			return time.Time{}, fmt.Errorf("error updating container %s state: %w", c.ID(), err)
+			return time.Time{}, fmt.Errorf("updating container %s state: %w", c.ID(), err)
 		}
 	}
 	return c.state.StartedTime, nil
@@ -745,7 +745,7 @@ func (c *Container) FinishedTime() (time.Time, error) {
 		c.lock.Lock()
 		defer c.lock.Unlock()
 		if err := c.syncContainer(); err != nil {
-			return time.Time{}, fmt.Errorf("error updating container %s state: %w", c.ID(), err)
+			return time.Time{}, fmt.Errorf("updating container %s state: %w", c.ID(), err)
 		}
 	}
 	return c.state.FinishedTime, nil
@@ -760,7 +760,7 @@ func (c *Container) ExitCode() (int32, bool, error) {
 		c.lock.Lock()
 		defer c.lock.Unlock()
 		if err := c.syncContainer(); err != nil {
-			return 0, false, fmt.Errorf("error updating container %s state: %w", c.ID(), err)
+			return 0, false, fmt.Errorf("updating container %s state: %w", c.ID(), err)
 		}
 	}
 	return c.state.ExitCode, c.state.Exited, nil
@@ -772,7 +772,7 @@ func (c *Container) OOMKilled() (bool, error) {
 		c.lock.Lock()
 		defer c.lock.Unlock()
 		if err := c.syncContainer(); err != nil {
-			return false, fmt.Errorf("error updating container %s state: %w", c.ID(), err)
+			return false, fmt.Errorf("updating container %s state: %w", c.ID(), err)
 		}
 	}
 	return c.state.OOMKilled, nil
@@ -859,7 +859,7 @@ func (c *Container) ExecSession(id string) (*ExecSession, error) {
 
 	returnSession := new(ExecSession)
 	if err := JSONDeepCopy(session, returnSession); err != nil {
-		return nil, fmt.Errorf("error copying contents of container %s exec session %s: %w", c.ID(), session.ID(), err)
+		return nil, fmt.Errorf("copying contents of container %s exec session %s: %w", c.ID(), session.ID(), err)
 	}
 
 	return returnSession, nil
@@ -919,7 +919,7 @@ func (c *Container) NamespacePath(linuxNS LinuxNS) (string, error) { //nolint:in
 		c.lock.Lock()
 		defer c.lock.Unlock()
 		if err := c.syncContainer(); err != nil {
-			return "", fmt.Errorf("error updating container %s state: %w", c.ID(), err)
+			return "", fmt.Errorf("updating container %s state: %w", c.ID(), err)
 		}
 	}
 
@@ -957,7 +957,7 @@ func (c *Container) CgroupPath() (string, error) {
 		c.lock.Lock()
 		defer c.lock.Unlock()
 		if err := c.syncContainer(); err != nil {
-			return "", fmt.Errorf("error updating container %s state: %w", c.ID(), err)
+			return "", fmt.Errorf("updating container %s state: %w", c.ID(), err)
 		}
 	}
 	return c.cGroupPath()
@@ -1057,7 +1057,7 @@ func (c *Container) RootFsSize() (int64, error) {
 		c.lock.Lock()
 		defer c.lock.Unlock()
 		if err := c.syncContainer(); err != nil {
-			return -1, fmt.Errorf("error updating container %s state: %w", c.ID(), err)
+			return -1, fmt.Errorf("updating container %s state: %w", c.ID(), err)
 		}
 	}
 	return c.rootFsSize()
@@ -1069,7 +1069,7 @@ func (c *Container) RWSize() (int64, error) {
 		c.lock.Lock()
 		defer c.lock.Unlock()
 		if err := c.syncContainer(); err != nil {
-			return -1, fmt.Errorf("error updating container %s state: %w", c.ID(), err)
+			return -1, fmt.Errorf("updating container %s state: %w", c.ID(), err)
 		}
 	}
 	return c.rwSize()
@@ -1157,7 +1157,7 @@ func (c *Container) ContainerState() (*ContainerState, error) {
 	}
 	returnConfig := new(ContainerState)
 	if err := JSONDeepCopy(c.state, returnConfig); err != nil {
-		return nil, fmt.Errorf("error copying container %s state: %w", c.ID(), err)
+		return nil, fmt.Errorf("copying container %s state: %w", c.ID(), err)
 	}
 	return c.state, nil
 }

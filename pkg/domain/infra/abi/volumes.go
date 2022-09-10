@@ -96,7 +96,7 @@ func (ic *ContainerEngine) VolumeInspect(ctx context.Context, namesOrIds []strin
 					errs = append(errs, fmt.Errorf("no such volume %s", v))
 					continue
 				} else {
-					return nil, nil, fmt.Errorf("error inspecting volume %s: %w", v, err)
+					return nil, nil, fmt.Errorf("inspecting volume %s: %w", v, err)
 				}
 			}
 			vols = append(vols, vol)

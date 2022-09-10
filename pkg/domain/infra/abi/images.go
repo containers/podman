@@ -597,7 +597,7 @@ func (ir *ImageEngine) Shutdown(_ context.Context) {
 func (ir *ImageEngine) Sign(ctx context.Context, names []string, options entities.SignOptions) (*entities.SignReport, error) {
 	mech, err := signature.NewGPGSigningMechanism()
 	if err != nil {
-		return nil, fmt.Errorf("error initializing GPG: %w", err)
+		return nil, fmt.Errorf("initializing GPG: %w", err)
 	}
 	defer mech.Close()
 	if err := mech.SupportsSigning(); err != nil {
@@ -611,11 +611,11 @@ func (ir *ImageEngine) Sign(ctx context.Context, names []string, options entitie
 		err = func() error {
 			srcRef, err := alltransports.ParseImageName(signimage)
 			if err != nil {
-				return fmt.Errorf("error parsing image name: %w", err)
+				return fmt.Errorf("parsing image name: %w", err)
 			}
 			rawSource, err := srcRef.NewImageSource(ctx, sc)
 			if err != nil {
-				return fmt.Errorf("error getting image source: %w", err)
+				return fmt.Errorf("getting image source: %w", err)
 			}
 			defer func() {
 				if err = rawSource.Close(); err != nil {
@@ -624,7 +624,7 @@ func (ir *ImageEngine) Sign(ctx context.Context, names []string, options entitie
 			}()
 			topManifestBlob, manifestType, err := rawSource.GetManifest(ctx, nil)
 			if err != nil {
-				return fmt.Errorf("error getting manifest blob: %w", err)
+				return fmt.Errorf("getting manifest blob: %w", err)
 			}
 			dockerReference := rawSource.Reference().DockerReference()
 			if dockerReference == nil {
@@ -658,7 +658,7 @@ func (ir *ImageEngine) Sign(ctx context.Context, names []string, options entitie
 				}
 				list, err := manifest.ListFromBlob(topManifestBlob, manifestType)
 				if err != nil {
-					return fmt.Errorf("error parsing manifest list %q: %w", string(topManifestBlob), err)
+					return fmt.Errorf("parsing manifest list %q: %w", string(topManifestBlob), err)
 				}
 				instanceDigests := list.Instances()
 				for _, instanceDigest := range instanceDigests {
@@ -668,13 +668,13 @@ func (ir *ImageEngine) Sign(ctx context.Context, names []string, options entitie
 						return err
 					}
 					if err = putSignature(man, mech, sigStoreDir, instanceDigest, dockerReference, options); err != nil {
-						return fmt.Errorf("error storing signature for %s, %v: %w", dockerReference.String(), instanceDigest, err)
+						return fmt.Errorf("storing signature for %s, %v: %w", dockerReference.String(), instanceDigest, err)
 					}
 				}
 				return nil
 			}
 			if err = putSignature(topManifestBlob, mech, sigStoreDir, manifestDigest, dockerReference, options); err != nil {
-				return fmt.Errorf("error storing signature for %s, %v: %w", dockerReference.String(), manifestDigest, err)
+				return fmt.Errorf("storing signature for %s, %v: %w", dockerReference.String(), manifestDigest, err)
 			}
 			return nil
 		}()

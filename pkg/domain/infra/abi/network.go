@@ -61,7 +61,7 @@ func (ic *ContainerEngine) NetworkInspect(ctx context.Context, namesOrIds []stri
 				errs = append(errs, fmt.Errorf("network %s: %w", name, err))
 				continue
 			} else {
-				return nil, nil, fmt.Errorf("error inspecting network %s: %w", name, err)
+				return nil, nil, fmt.Errorf("inspecting network %s: %w", name, err)
 			}
 		}
 		networks = append(networks, net)

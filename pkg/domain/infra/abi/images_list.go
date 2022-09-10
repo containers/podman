@@ -32,7 +32,7 @@ func (ir *ImageEngine) List(ctx context.Context, opts entities.ImageListOptions)
 		}
 		isDangling, err := img.IsDangling(ctx)
 		if err != nil {
-			return nil, fmt.Errorf("error checking if image %q is dangling: %w", img.ID(), err)
+			return nil, fmt.Errorf("checking if image %q is dangling: %w", img.ID(), err)
 		}
 
 		e := entities.ImageSummary{
@@ -49,18 +49,18 @@ func (ir *ImageEngine) List(ctx context.Context, opts entities.ImageListOptions)
 		}
 		e.Labels, err = img.Labels(ctx)
 		if err != nil {
-			return nil, fmt.Errorf("error retrieving label for image %q: you may need to remove the image to resolve the error: %w", img.ID(), err)
+			return nil, fmt.Errorf("retrieving label for image %q: you may need to remove the image to resolve the error: %w", img.ID(), err)
 		}
 
 		ctnrs, err := img.Containers()
 		if err != nil {
-			return nil, fmt.Errorf("error retrieving containers for image %q: you may need to remove the image to resolve the error: %w", img.ID(), err)
+			return nil, fmt.Errorf("retrieving containers for image %q: you may need to remove the image to resolve the error: %w", img.ID(), err)
 		}
 		e.Containers = len(ctnrs)
 
 		sz, err := img.Size()
 		if err != nil {
-			return nil, fmt.Errorf("error retrieving size of image %q: you may need to remove the image to resolve the error: %w", img.ID(), err)
+			return nil, fmt.Errorf("retrieving size of image %q: you may need to remove the image to resolve the error: %w", img.ID(), err)
 		}
 		e.Size = sz
 		// This is good enough for now, but has to be
@@ -69,7 +69,7 @@ func (ir *ImageEngine) List(ctx context.Context, opts entities.ImageListOptions)
 
 		parent, err := img.Parent(ctx)
 		if err != nil {
-			return nil, fmt.Errorf("error retrieving parent of image %q: you may need to remove the image to resolve the error: %w", img.ID(), err)
+			return nil, fmt.Errorf("retrieving parent of image %q: you may need to remove the image to resolve the error: %w", img.ID(), err)
 		}
 		if parent != nil {
 			e.ParentId = parent.ID()

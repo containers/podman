@@ -16,7 +16,7 @@ func HistoryImage(w http.ResponseWriter, r *http.Request) {
 
 	possiblyNormalizedName, err := utils.NormalizeToDockerHub(r, name)
 	if err != nil {
-		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("error normalizing image: %w", err))
+		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("normalizing image: %w", err))
 		return
 	}
 

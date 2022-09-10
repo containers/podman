@@ -39,7 +39,7 @@ func (v *Volume) Inspect() (*define.InspectVolumeData, error) {
 		req.Name = v.Name()
 		resp, err := v.plugin.GetVolume(req)
 		if err != nil {
-			return nil, fmt.Errorf("error retrieving volume %s information from plugin %s: %w", v.Name(), v.Driver(), err)
+			return nil, fmt.Errorf("retrieving volume %s information from plugin %s: %w", v.Name(), v.Driver(), err)
 		}
 		if resp != nil {
 			data.Status = resp.Status

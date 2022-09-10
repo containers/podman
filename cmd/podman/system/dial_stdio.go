@@ -97,7 +97,7 @@ func copier(to halfWriteCloser, from halfReadCloser, debugDescription string) er
 		}
 	}()
 	if _, err := io.Copy(to, from); err != nil {
-		return fmt.Errorf("error while Copy (%s): %w", debugDescription, err)
+		return fmt.Errorf("while Copy (%s): %w", debugDescription, err)
 	}
 	return nil
 }

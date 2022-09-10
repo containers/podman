@@ -491,7 +491,7 @@ func executeContainerTemplate(info *containerInfo, options entities.GenerateSyst
 	// template execution.
 	templ, err := template.New("container_template").Delims("{{{{", "}}}}").Parse(containerTemplate)
 	if err != nil {
-		return "", fmt.Errorf("error parsing systemd service template: %w", err)
+		return "", fmt.Errorf("parsing systemd service template: %w", err)
 	}
 
 	var buf bytes.Buffer
@@ -502,7 +502,7 @@ func executeContainerTemplate(info *containerInfo, options entities.GenerateSyst
 	// Now parse the generated template (i.e., buf) and execute it.
 	templ, err = template.New("container_template").Delims("{{{{", "}}}}").Parse(buf.String())
 	if err != nil {
-		return "", fmt.Errorf("error parsing systemd service template: %w", err)
+		return "", fmt.Errorf("parsing systemd service template: %w", err)
 	}
 
 	buf = bytes.Buffer{}

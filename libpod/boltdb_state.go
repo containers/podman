@@ -85,7 +85,7 @@ func NewBoltState(path string, runtime *Runtime) (State, error) {
 
 	db, err := bolt.Open(path, 0600, nil)
 	if err != nil {
-		return nil, fmt.Errorf("error opening database %s: %w", path, err)
+		return nil, fmt.Errorf("opening database %s: %w", path, err)
 	}
 	// Everywhere else, we use s.deferredCloseDBCon(db) to ensure the state's DB
 	// mutex is also unlocked.
@@ -123,7 +123,7 @@ func NewBoltState(path string, runtime *Runtime) (State, error) {
 		return nil
 	})
 	if err != nil {
-		return nil, fmt.Errorf("error checking DB schema: %w", err)
+		return nil, fmt.Errorf("checking DB schema: %w", err)
 	}
 
 	if !needsUpdate {
@@ -135,13 +135,13 @@ func NewBoltState(path string, runtime *Runtime) (State, error) {
 	err = db.Update(func(tx *bolt.Tx) error {
 		for _, bkt := range createBuckets {
 			if _, err := tx.CreateBucketIfNotExists(bkt); err != nil {
-				return fmt.Errorf("error creating bucket %s: %w", string(bkt), err)
+				return fmt.Errorf("creating bucket %s: %w", string(bkt), err)
 			}
 		}
 		return nil
 	})
 	if err != nil {
-		return nil, fmt.Errorf("error creating buckets for DB: %w", err)
+		return nil, fmt.Errorf("creating buckets for DB: %w", err)
 	}
 
 	state.valid = true
@@ -220,11 +220,11 @@ func (s *BoltState) Refresh() error {
 			return nil
 		})
 		if err != nil {
-			return fmt.Errorf("error reading exit codes bucket: %w", err)
+			return fmt.Errorf("reading exit codes bucket: %w", err)
 		}
 		for _, id := range toRemoveExitCodes {
 			if err := exitCodeBucket.Delete([]byte(id)); err != nil {
-				return fmt.Errorf("error removing exit code for ID %s: %w", id, err)
+				return fmt.Errorf("removing exit code for ID %s: %w", id, err)
 			}
 		}
 
@@ -276,7 +276,7 @@ func (s *BoltState) Refresh() error {
 				state := new(podState)
 
 				if err := json.Unmarshal(stateBytes, state); err != nil {
-					return fmt.Errorf("error unmarshalling state for pod %s: %w", string(id), err)
+					return fmt.Errorf("unmarshalling state for pod %s: %w", string(id), err)
 				}
 
 				// Clear the Cgroup path
@@ -284,11 +284,11 @@ func (s *BoltState) Refresh() error {
 
 				newStateBytes, err := json.Marshal(state)
 				if err != nil {
-					return fmt.Errorf("error marshalling modified state for pod %s: %w", string(id), err)
+					return fmt.Errorf("marshalling modified state for pod %s: %w", string(id), err)
 				}
 
 				if err := podBkt.Put(stateKey, newStateBytes); err != nil {
-					return fmt.Errorf("error updating state for pod %s in DB: %w", string(id), err)
+					return fmt.Errorf("updating state for pod %s in DB: %w", string(id), err)
 				}
 
 				// It's not a container, nothing to do
@@ -297,7 +297,7 @@ func (s *BoltState) Refresh() error {
 
 			// First, delete the network namespace
 			if err := ctrBkt.Delete(netNSKey); err != nil {
-				return fmt.Errorf("error removing network namespace for container %s: %w", string(id), err)
+				return fmt.Errorf("removing network namespace for container %s: %w", string(id), err)
 			}
 
 			stateBytes := ctrBkt.Get(stateKey)
@@ -309,18 +309,18 @@ func (s *BoltState) Refresh() error {
 			state := new(ContainerState)
 
 			if err := json.Unmarshal(stateBytes, state); err != nil {
-				return fmt.Errorf("error unmarshalling state for container %s: %w", string(id), err)
+				return fmt.Errorf("unmarshalling state for container %s: %w", string(id), err)
 			}
 
 			resetState(state)
 
 			newStateBytes, err := json.Marshal(state)
 			if err != nil {
-				return fmt.Errorf("error marshalling modified state for container %s: %w", string(id), err)
+				return fmt.Errorf("marshalling modified state for container %s: %w", string(id), err)
 			}
 
 			if err := ctrBkt.Put(stateKey, newStateBytes); err != nil {
-				return fmt.Errorf("error updating state for container %s in DB: %w", string(id), err)
+				return fmt.Errorf("updating state for container %s in DB: %w", string(id), err)
 			}
 
 			// Delete all exec sessions, if there are any
@@ -338,7 +338,7 @@ func (s *BoltState) Refresh() error {
 				}
 				for _, execID := range toRemove {
 					if err := ctrExecBkt.Delete([]byte(execID)); err != nil {
-						return fmt.Errorf("error removing exec session %s from container %s: %w", execID, string(id), err)
+						return fmt.Errorf("removing exec session %s from container %s: %w", execID, string(id), err)
 					}
 				}
 			}
@@ -358,12 +358,12 @@ func (s *BoltState) Refresh() error {
 				if testID := namesBucket.Get(name); testID != nil {
 					logrus.Infof("Found dangling name %s (ID %s) in database", string(name), id)
 					if err := namesBucket.Delete(name); err != nil {
-						return fmt.Errorf("error removing dangling name %s (ID %s) from database: %w", string(name), id, err)
+						return fmt.Errorf("removing dangling name %s (ID %s) from database: %w", string(name), id, err)
 					}
 				}
 			}
 			if err := idBucket.Delete([]byte(id)); err != nil {
-				return fmt.Errorf("error removing dangling ID %s from database: %w", id, err)
+				return fmt.Errorf("removing dangling ID %s from database: %w", id, err)
 			}
 		}
 
@@ -384,7 +384,7 @@ func (s *BoltState) Refresh() error {
 			oldState := new(VolumeState)
 
 			if err := json.Unmarshal(volStateBytes, oldState); err != nil {
-				return fmt.Errorf("error unmarshalling state for volume %s: %w", string(id), err)
+				return fmt.Errorf("unmarshalling state for volume %s: %w", string(id), err)
 			}
 
 			// Reset mount count to 0
@@ -393,11 +393,11 @@ func (s *BoltState) Refresh() error {
 
 			newState, err := json.Marshal(oldState)
 			if err != nil {
-				return fmt.Errorf("error marshalling state for volume %s: %w", string(id), err)
+				return fmt.Errorf("marshalling state for volume %s: %w", string(id), err)
 			}
 
 			if err := dbVol.Put(stateKey, newState); err != nil {
-				return fmt.Errorf("error storing new state for volume %s: %w", string(id), err)
+				return fmt.Errorf("storing new state for volume %s: %w", string(id), err)
 			}
 
 			return nil
@@ -421,7 +421,7 @@ func (s *BoltState) Refresh() error {
 
 		for _, execSession := range toRemoveExec {
 			if err := execBucket.Delete([]byte(execSession)); err != nil {
-				return fmt.Errorf("error deleting exec session %s registry from database: %w", execSession, err)
+				return fmt.Errorf("deleting exec session %s registry from database: %w", execSession, err)
 			}
 		}
 
@@ -841,7 +841,7 @@ func (s *BoltState) UpdateContainer(ctr *Container) error {
 		}
 
 		if err := json.Unmarshal(newStateBytes, newState); err != nil {
-			return fmt.Errorf("error unmarshalling container %s state: %w", ctr.ID(), err)
+			return fmt.Errorf("unmarshalling container %s state: %w", ctr.ID(), err)
 		}
 
 		netNSBytes := ctrToUpdate.Get(netNSKey)
@@ -886,7 +886,7 @@ func (s *BoltState) SaveContainer(ctr *Container) error {
 
 	stateJSON, err := json.Marshal(ctr.state)
 	if err != nil {
-		return fmt.Errorf("error marshalling container %s state to JSON: %w", ctr.ID(), err)
+		return fmt.Errorf("marshalling container %s state to JSON: %w", ctr.ID(), err)
 	}
 	netNSPath := getNetNSPath(ctr)
 
@@ -912,17 +912,17 @@ func (s *BoltState) SaveContainer(ctr *Container) error {
 
 		// Update the state
 		if err := ctrToSave.Put(stateKey, stateJSON); err != nil {
-			return fmt.Errorf("error updating container %s state in DB: %w", ctr.ID(), err)
+			return fmt.Errorf("updating container %s state in DB: %w", ctr.ID(), err)
 		}
 
 		if netNSPath != "" {
 			if err := ctrToSave.Put(netNSKey, []byte(netNSPath)); err != nil {
-				return fmt.Errorf("error updating network namespace path for container %s in DB: %w", ctr.ID(), err)
+				return fmt.Errorf("updating network namespace path for container %s in DB: %w", ctr.ID(), err)
 			}
 		} else {
 			// Delete the existing network namespace
 			if err := ctrToSave.Delete(netNSKey); err != nil {
-				return fmt.Errorf("error removing network namespace path for container %s in DB: %w", ctr.ID(), err)
+				return fmt.Errorf("removing network namespace path for container %s in DB: %w", ctr.ID(), err)
 			}
 		}
 
@@ -1142,7 +1142,7 @@ func (s *BoltState) GetNetworks(ctr *Container) (map[string]types.PerNetworkOpti
 			if ctrNetworkBkt == nil {
 				ctrNetworkBkt, err = dbCtr.CreateBucket(networksBkt)
 				if err != nil {
-					return fmt.Errorf("error creating networks bucket for container %s: %w", ctr.ID(), err)
+					return fmt.Errorf("creating networks bucket for container %s: %w", ctr.ID(), err)
 				}
 				// the container has no networks in the db lookup config and write to the db
 				networkList = ctr.config.NetworksDeprecated
@@ -1249,7 +1249,7 @@ func (s *BoltState) NetworkConnect(ctr *Container, network string, opts types.Pe
 
 	optBytes, err := json.Marshal(opts)
 	if err != nil {
-		return fmt.Errorf("error marshalling network options JSON for container %s: %w", ctr.ID(), err)
+		return fmt.Errorf("marshalling network options JSON for container %s: %w", ctr.ID(), err)
 	}
 
 	ctrID := []byte(ctr.ID())
@@ -1283,7 +1283,7 @@ func (s *BoltState) NetworkConnect(ctr *Container, network string, opts types.Pe
 
 		// Add the network
 		if err := ctrNetworksBkt.Put([]byte(network), optBytes); err != nil {
-			return fmt.Errorf("error adding container %s to network %s in DB: %w", ctr.ID(), network, err)
+			return fmt.Errorf("adding container %s to network %s in DB: %w", ctr.ID(), network, err)
 		}
 
 		return nil
@@ -1340,7 +1340,7 @@ func (s *BoltState) NetworkDisconnect(ctr *Container, network string) error {
 		}
 
 		if err := ctrNetworksBkt.Delete([]byte(network)); err != nil {
-			return fmt.Errorf("error removing container %s from network %s: %w", ctr.ID(), network, err)
+			return fmt.Errorf("removing container %s from network %s: %w", ctr.ID(), network, err)
 		}
 
 		if ctrAliasesBkt != nil {
@@ -1350,7 +1350,7 @@ func (s *BoltState) NetworkDisconnect(ctr *Container, network string) error {
 			}
 
 			if err := ctrAliasesBkt.DeleteBucket([]byte(network)); err != nil {
-				return fmt.Errorf("error removing container %s network aliases for network %s: %w", ctr.ID(), network, err)
+				return fmt.Errorf("removing container %s network aliases for network %s: %w", ctr.ID(), network, err)
 			}
 		}
 
@@ -1626,7 +1626,7 @@ func (s *BoltState) AddExecSession(ctr *Container, session *ExecSession) error {
 
 		ctrExecSessionBucket, err := dbCtr.CreateBucketIfNotExists(execBkt)
 		if err != nil {
-			return fmt.Errorf("error creating exec sessions bucket for container %s: %w", ctr.ID(), err)
+			return fmt.Errorf("creating exec sessions bucket for container %s: %w", ctr.ID(), err)
 		}
 
 		execExists := execBucket.Get(sessionID)
@@ -1635,11 +1635,11 @@ func (s *BoltState) AddExecSession(ctr *Container, session *ExecSession) error {
 		}
 
 		if err := execBucket.Put(sessionID, ctrID); err != nil {
-			return fmt.Errorf("error adding exec session %s to DB: %w", session.ID(), err)
+			return fmt.Errorf("adding exec session %s to DB: %w", session.ID(), err)
 		}
 
 		if err := ctrExecSessionBucket.Put(sessionID, ctrID); err != nil {
-			return fmt.Errorf("error adding exec session %s to container %s in DB: %w", session.ID(), ctr.ID(), err)
+			return fmt.Errorf("adding exec session %s to container %s in DB: %w", session.ID(), ctr.ID(), err)
 		}
 
 		return nil
@@ -1716,7 +1716,7 @@ func (s *BoltState) RemoveExecSession(session *ExecSession) error {
 		}
 
 		if err := execBucket.Delete(sessionID); err != nil {
-			return fmt.Errorf("error removing exec session %s from database: %w", session.ID(), err)
+			return fmt.Errorf("removing exec session %s from database: %w", session.ID(), err)
 		}
 
 		dbCtr := ctrBucket.Bucket(containerID)
@@ -1739,7 +1739,7 @@ func (s *BoltState) RemoveExecSession(session *ExecSession) error {
 		ctrSessionExists := ctrExecBucket.Get(sessionID)
 		if ctrSessionExists != nil {
 			if err := ctrExecBucket.Delete(sessionID); err != nil {
-				return fmt.Errorf("error removing exec session %s from container %s in database: %w", session.ID(), session.ContainerID(), err)
+				return fmt.Errorf("removing exec session %s from container %s in database: %w", session.ID(), session.ContainerID(), err)
 			}
 		}
 
@@ -1847,7 +1847,7 @@ func (s *BoltState) RemoveContainerExecSessions(ctr *Container) error {
 
 		for _, session := range sessions {
 			if err := ctrExecSessions.Delete([]byte(session)); err != nil {
-				return fmt.Errorf("error removing container %s exec session %s from database: %w", ctr.ID(), session, err)
+				return fmt.Errorf("removing container %s exec session %s from database: %w", ctr.ID(), session, err)
 			}
 			// Check if the session exists in the global table
 			// before removing. It should, but in cases where the DB
@@ -1861,7 +1861,7 @@ func (s *BoltState) RemoveContainerExecSessions(ctr *Container) error {
 				return fmt.Errorf("database mismatch: exec session %s is associated with containers %s and %s: %w", session, ctr.ID(), string(sessionExists), define.ErrInternal)
 			}
 			if err := execBucket.Delete([]byte(session)); err != nil {
-				return fmt.Errorf("error removing container %s exec session %s from exec sessions: %w", ctr.ID(), session, err)
+				return fmt.Errorf("removing container %s exec session %s from exec sessions: %w", ctr.ID(), session, err)
 			}
 		}
 
@@ -1884,7 +1884,7 @@ func (s *BoltState) RewriteContainerConfig(ctr *Container, newCfg *ContainerConf
 
 	newCfgJSON, err := json.Marshal(newCfg)
 	if err != nil {
-		return fmt.Errorf("error marshalling new configuration JSON for container %s: %w", ctr.ID(), err)
+		return fmt.Errorf("marshalling new configuration JSON for container %s: %w", ctr.ID(), err)
 	}
 
 	db, err := s.getDBCon()
@@ -1906,7 +1906,7 @@ func (s *BoltState) RewriteContainerConfig(ctr *Container, newCfg *ContainerConf
 		}
 
 		if err := ctrDB.Put(configKey, newCfgJSON); err != nil {
-			return fmt.Errorf("error updating container %s config JSON: %w", ctr.ID(), err)
+			return fmt.Errorf("updating container %s config JSON: %w", ctr.ID(), err)
 		}
 
 		return nil
@@ -1937,7 +1937,7 @@ func (s *BoltState) SafeRewriteContainerConfig(ctr *Container, oldName, newName 
 
 	newCfgJSON, err := json.Marshal(newCfg)
 	if err != nil {
-		return fmt.Errorf("error marshalling new configuration JSON for container %s: %w", ctr.ID(), err)
+		return fmt.Errorf("marshalling new configuration JSON for container %s: %w", ctr.ID(), err)
 	}
 
 	db, err := s.getDBCon()
@@ -1978,16 +1978,16 @@ func (s *BoltState) SafeRewriteContainerConfig(ctr *Container, oldName, newName 
 				// buckets are ID-indexed so we just need to
 				// overwrite the values there.
 				if err := namesBkt.Delete([]byte(oldName)); err != nil {
-					return fmt.Errorf("error deleting container %s old name from DB for rename: %w", ctr.ID(), err)
+					return fmt.Errorf("deleting container %s old name from DB for rename: %w", ctr.ID(), err)
 				}
 				if err := idBkt.Put([]byte(ctr.ID()), []byte(newName)); err != nil {
-					return fmt.Errorf("error renaming container %s in ID bucket in DB: %w", ctr.ID(), err)
+					return fmt.Errorf("renaming container %s in ID bucket in DB: %w", ctr.ID(), err)
 				}
 				if err := namesBkt.Put([]byte(newName), []byte(ctr.ID())); err != nil {
-					return fmt.Errorf("error adding new name %s for container %s in DB: %w", newName, ctr.ID(), err)
+					return fmt.Errorf("adding new name %s for container %s in DB: %w", newName, ctr.ID(), err)
 				}
 				if err := allCtrsBkt.Put([]byte(ctr.ID()), []byte(newName)); err != nil {
-					return fmt.Errorf("error renaming container %s in all containers bucket in DB: %w", ctr.ID(), err)
+					return fmt.Errorf("renaming container %s in all containers bucket in DB: %w", ctr.ID(), err)
 				}
 				if ctr.config.Pod != "" {
 					podsBkt, err := getPodBucket(tx)
@@ -2003,7 +2003,7 @@ func (s *BoltState) SafeRewriteContainerConfig(ctr *Container, oldName, newName 
 						return fmt.Errorf("pod %s does not have a containers bucket: %w", ctr.config.Pod, define.ErrInternal)
 					}
 					if err := podCtrBkt.Put([]byte(ctr.ID()), []byte(newName)); err != nil {
-						return fmt.Errorf("error renaming container %s in pod %s members bucket: %w", ctr.ID(), ctr.config.Pod, err)
+						return fmt.Errorf("renaming container %s in pod %s members bucket: %w", ctr.ID(), ctr.config.Pod, err)
 					}
 				}
 			}
@@ -2021,7 +2021,7 @@ func (s *BoltState) SafeRewriteContainerConfig(ctr *Container, oldName, newName 
 		}
 
 		if err := ctrDB.Put(configKey, newCfgJSON); err != nil {
-			return fmt.Errorf("error updating container %s config JSON: %w", ctr.ID(), err)
+			return fmt.Errorf("updating container %s config JSON: %w", ctr.ID(), err)
 		}
 
 		return nil
@@ -2043,7 +2043,7 @@ func (s *BoltState) RewritePodConfig(pod *Pod, newCfg *PodConfig) error {
 
 	newCfgJSON, err := json.Marshal(newCfg)
 	if err != nil {
-		return fmt.Errorf("error marshalling new configuration JSON for pod %s: %w", pod.ID(), err)
+		return fmt.Errorf("marshalling new configuration JSON for pod %s: %w", pod.ID(), err)
 	}
 
 	db, err := s.getDBCon()
@@ -2065,7 +2065,7 @@ func (s *BoltState) RewritePodConfig(pod *Pod, newCfg *PodConfig) error {
 		}
 
 		if err := podDB.Put(configKey, newCfgJSON); err != nil {
-			return fmt.Errorf("error updating pod %s config JSON: %w", pod.ID(), err)
+			return fmt.Errorf("updating pod %s config JSON: %w", pod.ID(), err)
 		}
 
 		return nil
@@ -2087,7 +2087,7 @@ func (s *BoltState) RewriteVolumeConfig(volume *Volume, newCfg *VolumeConfig) er
 
 	newCfgJSON, err := json.Marshal(newCfg)
 	if err != nil {
-		return fmt.Errorf("error marshalling new configuration JSON for volume %q: %w", volume.Name(), err)
+		return fmt.Errorf("marshalling new configuration JSON for volume %q: %w", volume.Name(), err)
 	}
 
 	db, err := s.getDBCon()
@@ -2109,7 +2109,7 @@ func (s *BoltState) RewriteVolumeConfig(volume *Volume, newCfg *VolumeConfig) er
 		}
 
 		if err := volDB.Put(configKey, newCfgJSON); err != nil {
-			return fmt.Errorf("error updating volume %q config JSON: %w", volume.Name(), err)
+			return fmt.Errorf("updating volume %q config JSON: %w", volume.Name(), err)
 		}
 
 		return nil
@@ -2522,7 +2522,7 @@ func (s *BoltState) AddVolume(volume *Volume) error {
 
 	volConfigJSON, err := json.Marshal(volume.config)
 	if err != nil {
-		return fmt.Errorf("error marshalling volume %s config to JSON: %w", volume.Name(), err)
+		return fmt.Errorf("marshalling volume %s config to JSON: %w", volume.Name(), err)
 	}
 
 	// Volume state is allowed to not exist
@@ -2530,7 +2530,7 @@ func (s *BoltState) AddVolume(volume *Volume) error {
 	if volume.state != nil {
 		volStateJSON, err = json.Marshal(volume.state)
 		if err != nil {
-			return fmt.Errorf("error marshalling volume %s state to JSON: %w", volume.Name(), err)
+			return fmt.Errorf("marshalling volume %s state to JSON: %w", volume.Name(), err)
 		}
 	}
 
@@ -2561,27 +2561,27 @@ func (s *BoltState) AddVolume(volume *Volume) error {
 		// Make a bucket for it
 		newVol, err := volBkt.CreateBucket(volName)
 		if err != nil {
-			return fmt.Errorf("error creating bucket for volume %s: %w", volume.Name(), err)
+			return fmt.Errorf("creating bucket for volume %s: %w", volume.Name(), err)
 		}
 
 		// Make a subbucket for the containers using the volume. Dependent container IDs will be addedremoved to
 		// this bucket in addcontainer/removeContainer
 		if _, err := newVol.CreateBucket(volDependenciesBkt); err != nil {
-			return fmt.Errorf("error creating bucket for containers using volume %s: %w", volume.Name(), err)
+			return fmt.Errorf("creating bucket for containers using volume %s: %w", volume.Name(), err)
 		}
 
 		if err := newVol.Put(configKey, volConfigJSON); err != nil {
-			return fmt.Errorf("error storing volume %s configuration in DB: %w", volume.Name(), err)
+			return fmt.Errorf("storing volume %s configuration in DB: %w", volume.Name(), err)
 		}
 
 		if volStateJSON != nil {
 			if err := newVol.Put(stateKey, volStateJSON); err != nil {
-				return fmt.Errorf("error storing volume %s state in DB: %w", volume.Name(), err)
+				return fmt.Errorf("storing volume %s state in DB: %w", volume.Name(), err)
 			}
 		}
 
 		if err := allVolsBkt.Put(volName, volName); err != nil {
-			return fmt.Errorf("error storing volume %s in all volumes bucket in DB: %w", volume.Name(), err)
+			return fmt.Errorf("storing volume %s in all volumes bucket in DB: %w", volume.Name(), err)
 		}
 
 		return nil
@@ -2650,7 +2650,7 @@ func (s *BoltState) RemoveVolume(volume *Volume) error {
 				return nil
 			})
 			if err != nil {
-				return fmt.Errorf("error getting list of dependencies from dependencies bucket for volumes %q: %w", volume.Name(), err)
+				return fmt.Errorf("getting list of dependencies from dependencies bucket for volumes %q: %w", volume.Name(), err)
 			}
 			if len(deps) > 0 {
 				return fmt.Errorf("volume %s is being used by container(s) %s: %w", volume.Name(), strings.Join(deps, ","), define.ErrVolumeBeingUsed)
@@ -2660,10 +2660,10 @@ func (s *BoltState) RemoveVolume(volume *Volume) error {
 		// volume is ready for removal
 		// Let's kick it out
 		if err := allVolsBkt.Delete(volName); err != nil {
-			return fmt.Errorf("error removing volume %s from all volumes bucket in DB: %w", volume.Name(), err)
+			return fmt.Errorf("removing volume %s from all volumes bucket in DB: %w", volume.Name(), err)
 		}
 		if err := volBkt.DeleteBucket(volName); err != nil {
-			return fmt.Errorf("error removing volume %s from DB: %w", volume.Name(), err)
+			return fmt.Errorf("removing volume %s from DB: %w", volume.Name(), err)
 		}
 
 		return nil
@@ -2710,7 +2710,7 @@ func (s *BoltState) UpdateVolume(volume *Volume) error {
 		}
 
 		if err := json.Unmarshal(stateBytes, newState); err != nil {
-			return fmt.Errorf("error unmarshalling volume %s state: %w", volume.Name(), err)
+			return fmt.Errorf("unmarshalling volume %s state: %w", volume.Name(), err)
 		}
 
 		return nil
@@ -2740,7 +2740,7 @@ func (s *BoltState) SaveVolume(volume *Volume) error {
 	if volume.state != nil {
 		stateJSON, err := json.Marshal(volume.state)
 		if err != nil {
-			return fmt.Errorf("error marshalling volume %s state to JSON: %w", volume.Name(), err)
+			return fmt.Errorf("marshalling volume %s state to JSON: %w", volume.Name(), err)
 		}
 		newStateJSON = stateJSON
 	}
@@ -3060,12 +3060,12 @@ func (s *BoltState) AddPod(pod *Pod) error {
 
 	podConfigJSON, err := json.Marshal(pod.config)
 	if err != nil {
-		return fmt.Errorf("error marshalling pod %s config to JSON: %w", pod.ID(), err)
+		return fmt.Errorf("marshalling pod %s config to JSON: %w", pod.ID(), err)
 	}
 
 	podStateJSON, err := json.Marshal(pod.state)
 	if err != nil {
-		return fmt.Errorf("error marshalling pod %s state to JSON: %w", pod.ID(), err)
+		return fmt.Errorf("marshalling pod %s state to JSON: %w", pod.ID(), err)
 	}
 
 	db, err := s.getDBCon()
@@ -3122,40 +3122,40 @@ func (s *BoltState) AddPod(pod *Pod) error {
 		// Make a bucket for it
 		newPod, err := podBkt.CreateBucket(podID)
 		if err != nil {
-			return fmt.Errorf("error creating bucket for pod %s: %w", pod.ID(), err)
+			return fmt.Errorf("creating bucket for pod %s: %w", pod.ID(), err)
 		}
 
 		// Make a subbucket for pod containers
 		if _, err := newPod.CreateBucket(containersBkt); err != nil {
-			return fmt.Errorf("error creating bucket for pod %s containers: %w", pod.ID(), err)
+			return fmt.Errorf("creating bucket for pod %s containers: %w", pod.ID(), err)
 		}
 
 		if err := newPod.Put(configKey, podConfigJSON); err != nil {
-			return fmt.Errorf("error storing pod %s configuration in DB: %w", pod.ID(), err)
+			return fmt.Errorf("storing pod %s configuration in DB: %w", pod.ID(), err)
 		}
 
 		if err := newPod.Put(stateKey, podStateJSON); err != nil {
-			return fmt.Errorf("error storing pod %s state JSON in DB: %w", pod.ID(), err)
+			return fmt.Errorf("storing pod %s state JSON in DB: %w", pod.ID(), err)
 		}
 
 		if podNamespace != nil {
 			if err := newPod.Put(namespaceKey, podNamespace); err != nil {
-				return fmt.Errorf("error storing pod %s namespace in DB: %w", pod.ID(), err)
+				return fmt.Errorf("storing pod %s namespace in DB: %w", pod.ID(), err)
 			}
 			if err := nsBkt.Put(podID, podNamespace); err != nil {
-				return fmt.Errorf("error storing pod %s namespace in DB: %w", pod.ID(), err)
+				return fmt.Errorf("storing pod %s namespace in DB: %w", pod.ID(), err)
 			}
 		}
 
 		// Add us to the ID and names buckets
 		if err := idsBkt.Put(podID, podName); err != nil {
-			return fmt.Errorf("error storing pod %s ID in DB: %w", pod.ID(), err)
+			return fmt.Errorf("storing pod %s ID in DB: %w", pod.ID(), err)
 		}
 		if err := namesBkt.Put(podName, podID); err != nil {
-			return fmt.Errorf("error storing pod %s name in DB: %w", pod.Name(), err)
+			return fmt.Errorf("storing pod %s name in DB: %w", pod.Name(), err)
 		}
 		if err := allPodsBkt.Put(podID, podName); err != nil {
-			return fmt.Errorf("error storing pod %s in all pods bucket in DB: %w", pod.ID(), err)
+			return fmt.Errorf("storing pod %s in all pods bucket in DB: %w", pod.ID(), err)
 		}
 
 		return nil
@@ -3240,19 +3240,19 @@ func (s *BoltState) RemovePod(pod *Pod) error {
 		// Pod is empty, and ready for removal
 		// Let's kick it out
 		if err := idsBkt.Delete(podID); err != nil {
-			return fmt.Errorf("error removing pod %s ID from DB: %w", pod.ID(), err)
+			return fmt.Errorf("removing pod %s ID from DB: %w", pod.ID(), err)
 		}
 		if err := namesBkt.Delete(podName); err != nil {
-			return fmt.Errorf("error removing pod %s name (%s) from DB: %w", pod.ID(), pod.Name(), err)
+			return fmt.Errorf("removing pod %s name (%s) from DB: %w", pod.ID(), pod.Name(), err)
 		}
 		if err := nsBkt.Delete(podID); err != nil {
-			return fmt.Errorf("error removing pod %s namespace from DB: %w", pod.ID(), err)
+			return fmt.Errorf("removing pod %s namespace from DB: %w", pod.ID(), err)
 		}
 		if err := allPodsBkt.Delete(podID); err != nil {
-			return fmt.Errorf("error removing pod %s ID from all pods bucket in DB: %w", pod.ID(), err)
+			return fmt.Errorf("removing pod %s ID from all pods bucket in DB: %w", pod.ID(), err)
 		}
 		if err := podBkt.DeleteBucket(podID); err != nil {
-			return fmt.Errorf("error removing pod %s from DB: %w", pod.ID(), err)
+			return fmt.Errorf("removing pod %s from DB: %w", pod.ID(), err)
 		}
 
 		return nil
@@ -3353,19 +3353,19 @@ func (s *BoltState) RemovePodContainers(pod *Pod) error {
 			// Dependencies are set, we're clear to remove
 
 			if err := ctrBkt.DeleteBucket(id); err != nil {
-				return fmt.Errorf("error deleting container %s from DB: %w", string(id), define.ErrInternal)
+				return fmt.Errorf("deleting container %s from DB: %w", string(id), define.ErrInternal)
 			}
 
 			if err := idsBkt.Delete(id); err != nil {
-				return fmt.Errorf("error deleting container %s ID in DB: %w", string(id), err)
+				return fmt.Errorf("deleting container %s ID in DB: %w", string(id), err)
 			}
 
 			if err := namesBkt.Delete(name); err != nil {
-				return fmt.Errorf("error deleting container %s name in DB: %w", string(id), err)
+				return fmt.Errorf("deleting container %s name in DB: %w", string(id), err)
 			}
 
 			if err := allCtrsBkt.Delete(id); err != nil {
-				return fmt.Errorf("error deleting container %s ID from all containers bucket in DB: %w", string(id), err)
+				return fmt.Errorf("deleting container %s ID from all containers bucket in DB: %w", string(id), err)
 			}
 
 			return nil
@@ -3376,10 +3376,10 @@ func (s *BoltState) RemovePodContainers(pod *Pod) error {
 
 		// Delete and recreate the bucket to empty it
 		if err := podDB.DeleteBucket(containersBkt); err != nil {
-			return fmt.Errorf("error removing pod %s containers bucket: %w", pod.ID(), err)
+			return fmt.Errorf("removing pod %s containers bucket: %w", pod.ID(), err)
 		}
 		if _, err := podDB.CreateBucket(containersBkt); err != nil {
-			return fmt.Errorf("error recreating pod %s containers bucket: %w", pod.ID(), err)
+			return fmt.Errorf("recreating pod %s containers bucket: %w", pod.ID(), err)
 		}
 
 		return nil
@@ -3496,7 +3496,7 @@ func (s *BoltState) UpdatePod(pod *Pod) error {
 		}
 
 		if err := json.Unmarshal(podStateBytes, newState); err != nil {
-			return fmt.Errorf("error unmarshalling pod %s state JSON: %w", pod.ID(), err)
+			return fmt.Errorf("unmarshalling pod %s state JSON: %w", pod.ID(), err)
 		}
 
 		return nil
@@ -3526,7 +3526,7 @@ func (s *BoltState) SavePod(pod *Pod) error {
 
 	stateJSON, err := json.Marshal(pod.state)
 	if err != nil {
-		return fmt.Errorf("error marshalling pod %s state to JSON: %w", pod.ID(), err)
+		return fmt.Errorf("marshalling pod %s state to JSON: %w", pod.ID(), err)
 	}
 
 	db, err := s.getDBCon()
@@ -3551,7 +3551,7 @@ func (s *BoltState) SavePod(pod *Pod) error {
 
 		// Set the pod state JSON
 		if err := podDB.Put(stateKey, stateJSON); err != nil {
-			return fmt.Errorf("error updating pod %s state in database: %w", pod.ID(), err)
+			return fmt.Errorf("updating pod %s state in database: %w", pod.ID(), err)
 		}
 
 		return nil

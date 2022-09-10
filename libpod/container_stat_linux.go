@@ -168,7 +168,7 @@ func secureStat(root string, path string) (*copier.StatForItem, error) {
 		if stat.IsSymlink {
 			target, err := copier.Eval(root, path, copier.EvalOptions{})
 			if err != nil {
-				return nil, fmt.Errorf("error evaluating symlink in container: %w", err)
+				return nil, fmt.Errorf("evaluating symlink in container: %w", err)
 			}
 			// Need to make sure the symlink is relative to the root!
 			target = strings.TrimPrefix(target, root)

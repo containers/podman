@@ -207,7 +207,7 @@ func newRuntimeFromConfig(conf *config.Config, options ...RuntimeOption) (*Runti
 	// Overwrite config with user-given configuration options
 	for _, opt := range options {
 		if err := opt(runtime); err != nil {
-			return nil, fmt.Errorf("error configuring runtime: %w", err)
+			return nil, fmt.Errorf("configuring runtime: %w", err)
 		}
 	}
 
@@ -223,7 +223,7 @@ func newRuntimeFromConfig(conf *config.Config, options ...RuntimeOption) (*Runti
 	}
 
 	if err := shutdown.Start(); err != nil {
-		return nil, fmt.Errorf("error starting shutdown signal handler: %w", err)
+		return nil, fmt.Errorf("starting shutdown signal handler: %w", err)
 	}
 
 	if err := makeRuntime(runtime); err != nil {
@@ -280,7 +280,7 @@ func getLockManager(runtime *Runtime) (lock.Manager, error) {
 				// Since we're renumbering, this is not fatal.
 				// Remove the earlier set of locks and recreate.
 				if err := os.Remove(filepath.Join("/dev/shm", lockPath)); err != nil {
-					return nil, fmt.Errorf("error removing libpod locks file %s: %w", lockPath, err)
+					return nil, fmt.Errorf("removing libpod locks file %s: %w", lockPath, err)
 				}
 
 				manager, err = lock.NewSHMLockManager(lockPath, runtime.config.Engine.NumLocks)
@@ -318,7 +318,7 @@ func makeRuntime(runtime *Runtime) (retErr error) {
 	if err := os.MkdirAll(runtime.config.Engine.StaticDir, 0700); err != nil {
 		// The directory is allowed to exist
 		if !errors.Is(err, os.ErrExist) {
-			return fmt.Errorf("error creating runtime static files directory: %w", err)
+			return fmt.Errorf("creating runtime static files directory: %w", err)
 		}
 	}
 
@@ -362,7 +362,7 @@ func makeRuntime(runtime *Runtime) (retErr error) {
 			}
 		}
 
-		return fmt.Errorf("error retrieving runtime configuration from database: %w", err)
+		return fmt.Errorf("retrieving runtime configuration from database: %w", err)
 	}
 
 	runtime.mergeDBConfig(dbConfig)
@@ -405,7 +405,7 @@ func makeRuntime(runtime *Runtime) (retErr error) {
 	}
 
 	if err := runtime.state.SetNamespace(runtime.config.Engine.Namespace); err != nil {
-		return fmt.Errorf("error setting libpod namespace in state: %w", err)
+		return fmt.Errorf("setting libpod namespace in state: %w", err)
 	}
 	logrus.Debugf("Set libpod namespace to %q", runtime.config.Engine.Namespace)
 
@@ -462,7 +462,7 @@ func makeRuntime(runtime *Runtime) (retErr error) {
 	if err := os.MkdirAll(runtime.config.Engine.TmpDir, 0751); err != nil {
 		// The directory is allowed to exist
 		if !errors.Is(err, os.ErrExist) {
-			return fmt.Errorf("error creating tmpdir: %w", err)
+			return fmt.Errorf("creating tmpdir: %w", err)
 		}
 	}
 
@@ -470,7 +470,7 @@ func makeRuntime(runtime *Runtime) (retErr error) {
 	if err := os.MkdirAll(filepath.Dir(runtime.config.Engine.EventsLogFilePath), 0700); err != nil {
 		// The directory is allowed to exist
 		if !errors.Is(err, os.ErrExist) {
-			return fmt.Errorf("error creating events dirs: %w", err)
+			return fmt.Errorf("creating events dirs: %w", err)
 		}
 	}
 
@@ -528,7 +528,7 @@ func makeRuntime(runtime *Runtime) (retErr error) {
 	if err := os.MkdirAll(runtime.config.Engine.TmpDir, 0755); err != nil {
 		// The directory is allowed to exist
 		if !errors.Is(err, os.ErrExist) {
-			return fmt.Errorf("error creating runtime temporary files directory: %w", err)
+			return fmt.Errorf("creating runtime temporary files directory: %w", err)
 		}
 	}
 
@@ -549,7 +549,7 @@ func makeRuntime(runtime *Runtime) (retErr error) {
 	runtimeAliveFile := filepath.Join(runtime.config.Engine.TmpDir, "alive")
 	aliveLock, err := storage.GetLockfile(runtimeAliveLock)
 	if err != nil {
-		return fmt.Errorf("error acquiring runtime init lock: %w", err)
+		return fmt.Errorf("acquiring runtime init lock: %w", err)
 	}
 	// Acquire the lock and hold it until we return
 	// This ensures that no two processes will be in runtime.refresh at once
@@ -603,7 +603,7 @@ func makeRuntime(runtime *Runtime) (retErr error) {
 		if errors.Is(err, os.ErrNotExist) {
 			doRefresh = true
 		} else {
-			return fmt.Errorf("error reading runtime status file %s: %w", runtimeAliveFile, err)
+			return fmt.Errorf("reading runtime status file %s: %w", runtimeAliveFile, err)
 		}
 	}
 
@@ -695,7 +695,7 @@ func (r *Runtime) GetConfig() (*config.Config, error) {
 
 	// Copy so the caller won't be able to modify the actual config
 	if err := JSONDeepCopy(rtConfig, config); err != nil {
-		return nil, fmt.Errorf("error copying config: %w", err)
+		return nil, fmt.Errorf("copying config: %w", err)
 	}
 
 	return config, nil
@@ -806,7 +806,7 @@ func (r *Runtime) Shutdown(force bool) error {
 
 		// Note that the libimage runtime shuts down the store.
 		if err := r.libimageRuntime.Shutdown(force); err != nil {
-			lastError = fmt.Errorf("error shutting down container storage: %w", err)
+			lastError = fmt.Errorf("shutting down container storage: %w", err)
 		}
 	}
 	if err := r.state.Close(); err != nil {
@@ -838,15 +838,15 @@ func (r *Runtime) refresh(alivePath string) error {
 	// Containers, pods, and volumes must also reacquire their locks.
 	ctrs, err := r.state.AllContainers()
 	if err != nil {
-		return fmt.Errorf("error retrieving all containers from state: %w", err)
+		return fmt.Errorf("retrieving all containers from state: %w", err)
 	}
 	pods, err := r.state.AllPods()
 	if err != nil {
-		return fmt.Errorf("error retrieving all pods from state: %w", err)
+		return fmt.Errorf("retrieving all pods from state: %w", err)
 	}
 	vols, err := r.state.AllVolumes()
 	if err != nil {
-		return fmt.Errorf("error retrieving all volumes from state: %w", err)
+		return fmt.Errorf("retrieving all volumes from state: %w", err)
 	}
 	// No locks are taken during pod, volume, and container refresh.
 	// Furthermore, the pod/volume/container refresh() functions are not
@@ -874,7 +874,7 @@ func (r *Runtime) refresh(alivePath string) error {
 	// Create a file indicating the runtime is alive and ready
 	file, err := os.OpenFile(alivePath, os.O_RDONLY|os.O_CREATE, 0644)
 	if err != nil {
-		return fmt.Errorf("error creating runtime status file: %w", err)
+		return fmt.Errorf("creating runtime status file: %w", err)
 	}
 	defer file.Close()
 

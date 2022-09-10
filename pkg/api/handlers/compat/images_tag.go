@@ -17,7 +17,7 @@ func TagImage(w http.ResponseWriter, r *http.Request) {
 	name := utils.GetName(r)
 	possiblyNormalizedName, err := utils.NormalizeToDockerHub(r, name)
 	if err != nil {
-		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("error normalizing image: %w", err))
+		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("normalizing image: %w", err))
 		return
 	}
 
@@ -42,7 +42,7 @@ func TagImage(w http.ResponseWriter, r *http.Request) {
 
 	possiblyNormalizedTag, err := utils.NormalizeToDockerHub(r, tagName)
 	if err != nil {
-		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("error normalizing image: %w", err))
+		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("normalizing image: %w", err))
 		return
 	}
 

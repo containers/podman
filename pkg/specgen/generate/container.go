@@ -115,7 +115,7 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 	// Get Default Environment from containers.conf
 	defaultEnvs, err := envLib.ParseSlice(rtc.GetDefaultEnvEx(s.EnvHost, s.HTTPProxy))
 	if err != nil {
-		return nil, fmt.Errorf("error parsing fields in containers.conf: %w", err)
+		return nil, fmt.Errorf("parsing fields in containers.conf: %w", err)
 	}
 	var envs map[string]string
 

@@ -29,7 +29,7 @@ func systemdSliceFromPath(parent, name string, resources *spec.LinuxResources) (
 	logrus.Debugf("Created cgroup path %s for parent %s and name %s", cgroupPath, parent, name)
 
 	if err := makeSystemdCgroup(cgroupPath, resources); err != nil {
-		return "", fmt.Errorf("error creating cgroup %s: %w", cgroupPath, err)
+		return "", fmt.Errorf("creating cgroup %s: %w", cgroupPath, err)
 	}
 
 	logrus.Debugf("Created cgroup %s", cgroupPath)
@@ -112,17 +112,17 @@ var lvpReleaseLabel = label.ReleaseLabel
 func LabelVolumePath(path string) error {
 	_, mountLabel, err := lvpInitLabels([]string{})
 	if err != nil {
-		return fmt.Errorf("error getting default mountlabels: %w", err)
+		return fmt.Errorf("getting default mountlabels: %w", err)
 	}
 	if err := lvpReleaseLabel(mountLabel); err != nil {
-		return fmt.Errorf("error releasing label %q: %w", mountLabel, err)
+		return fmt.Errorf("releasing label %q: %w", mountLabel, err)
 	}
 
 	if err := lvpRelabel(path, mountLabel, true); err != nil {
 		if err == syscall.ENOTSUP {
 			logrus.Debugf("Labeling not supported on %q", path)
 		} else {
-			return fmt.Errorf("error setting selinux label for %s to %q as shared: %w", path, mountLabel, err)
+			return fmt.Errorf("setting selinux label for %s to %q as shared: %w", path, mountLabel, err)
 		}
 	}
 	return nil

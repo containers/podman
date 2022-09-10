@@ -331,7 +331,7 @@ func (ic *ContainerEngine) ContainerCommit(ctx context.Context, nameOrID string,
 	if len(opts.ImageName) > 0 {
 		ref, err := reference.Parse(opts.ImageName)
 		if err != nil {
-			return nil, fmt.Errorf("error parsing reference %q: %w", opts.ImageName, err)
+			return nil, fmt.Errorf("parsing reference %q: %w", opts.ImageName, err)
 		}
 		if t, ok := ref.(reference.Tagged); ok {
 			tag = t.Tag()

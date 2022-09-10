@@ -107,7 +107,7 @@ func stop(cmd *cobra.Command, args []string) error {
 	for _, cidFile := range stopCidFiles {
 		content, err := ioutil.ReadFile(cidFile)
 		if err != nil {
-			return fmt.Errorf("error reading CIDFile: %w", err)
+			return fmt.Errorf("reading CIDFile: %w", err)
 		}
 		id := strings.Split(string(content), "\n")[0]
 		args = append(args, id)

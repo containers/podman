@@ -107,7 +107,7 @@ func (r *Runtime) Build(ctx context.Context, options buildahDefine.BuildOptions,
 func DownloadFromFile(reader *os.File) (string, error) {
 	outFile, err := ioutil.TempFile(util.Tmpdir(), "import")
 	if err != nil {
-		return "", fmt.Errorf("error creating file: %w", err)
+		return "", fmt.Errorf("creating file: %w", err)
 	}
 	defer outFile.Close()
 
@@ -115,7 +115,7 @@ func DownloadFromFile(reader *os.File) (string, error) {
 
 	_, err = io.Copy(outFile, reader)
 	if err != nil {
-		return "", fmt.Errorf("error saving %s to %s: %w", reader.Name(), outFile.Name(), err)
+		return "", fmt.Errorf("saving %s to %s: %w", reader.Name(), outFile.Name(), err)
 	}
 
 	return outFile.Name(), nil

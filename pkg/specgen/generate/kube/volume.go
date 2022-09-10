@@ -63,13 +63,13 @@ func VolumeFromHostPath(hostPath *v1.HostPathVolumeSource) (*KubeVolume, error) 
 			}
 			// Label a newly created volume
 			if err := libpod.LabelVolumePath(hostPath.Path); err != nil {
-				return nil, fmt.Errorf("error giving %s a label: %w", hostPath.Path, err)
+				return nil, fmt.Errorf("giving %s a label: %w", hostPath.Path, err)
 			}
 		case v1.HostPathFileOrCreate:
 			if _, err := os.Stat(hostPath.Path); os.IsNotExist(err) {
 				f, err := os.OpenFile(hostPath.Path, os.O_RDONLY|os.O_CREATE, kubeFilePermission)
 				if err != nil {
-					return nil, fmt.Errorf("error creating HostPath: %w", err)
+					return nil, fmt.Errorf("creating HostPath: %w", err)
 				}
 				if err := f.Close(); err != nil {
 					logrus.Warnf("Error in closing newly created HostPath file: %v", err)
@@ -77,12 +77,12 @@ func VolumeFromHostPath(hostPath *v1.HostPathVolumeSource) (*KubeVolume, error) 
 			}
 			// unconditionally label a newly created volume
 			if err := libpod.LabelVolumePath(hostPath.Path); err != nil {
-				return nil, fmt.Errorf("error giving %s a label: %w", hostPath.Path, err)
+				return nil, fmt.Errorf("giving %s a label: %w", hostPath.Path, err)
 			}
 		case v1.HostPathSocket:
 			st, err := os.Stat(hostPath.Path)
 			if err != nil {
-				return nil, fmt.Errorf("error checking HostPathSocket: %w", err)
+				return nil, fmt.Errorf("checking HostPathSocket: %w", err)
 			}
 			if st.Mode()&os.ModeSocket != os.ModeSocket {
 				return nil, fmt.Errorf("checking HostPathSocket: path %s is not a socket", hostPath.Path)
@@ -90,7 +90,7 @@ func VolumeFromHostPath(hostPath *v1.HostPathVolumeSource) (*KubeVolume, error) 
 		case v1.HostPathBlockDev:
 			dev, err := os.Stat(hostPath.Path)
 			if err != nil {
-				return nil, fmt.Errorf("error checking HostPathBlockDevice: %w", err)
+				return nil, fmt.Errorf("checking HostPathBlockDevice: %w", err)
 			}
 			if dev.Mode()&os.ModeCharDevice == os.ModeCharDevice {
 				return nil, fmt.Errorf("checking HostPathDevice: path %s is not a block device", hostPath.Path)
@@ -102,7 +102,7 @@ func VolumeFromHostPath(hostPath *v1.HostPathVolumeSource) (*KubeVolume, error) 
 		case v1.HostPathCharDev:
 			dev, err := os.Stat(hostPath.Path)
 			if err != nil {
-				return nil, fmt.Errorf("error checking HostPathCharDevice: %w", err)
+				return nil, fmt.Errorf("checking HostPathCharDevice: %w", err)
 			}
 			if dev.Mode()&os.ModeCharDevice != os.ModeCharDevice {
 				return nil, fmt.Errorf("checking HostPathCharDevice: path %s is not a character device", hostPath.Path)
@@ -122,7 +122,7 @@ func VolumeFromHostPath(hostPath *v1.HostPathVolumeSource) (*KubeVolume, error) 
 	}
 
 	if err := parse.ValidateVolumeHostDir(hostPath.Path); err != nil {
-		return nil, fmt.Errorf("error in parsing HostPath in YAML: %w", err)
+		return nil, fmt.Errorf("in parsing HostPath in YAML: %w", err)
 	}
 
 	return &KubeVolume{

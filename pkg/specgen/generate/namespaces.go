@@ -112,12 +112,12 @@ func namespaceOptions(s *specgen.SpecGenerator, rt *libpod.Runtime, pod *libpod.
 		if err != nil {
 			// This is likely to be of the fatal kind (pod was
 			// removed) so hard fail
-			return nil, fmt.Errorf("error looking up pod %s infra container: %w", pod.ID(), err)
+			return nil, fmt.Errorf("looking up pod %s infra container: %w", pod.ID(), err)
 		}
 		if infraID != "" {
 			ctr, err := rt.GetContainer(infraID)
 			if err != nil {
-				return nil, fmt.Errorf("error retrieving pod %s infra container %s: %w", pod.ID(), infraID, err)
+				return nil, fmt.Errorf("retrieving pod %s infra container %s: %w", pod.ID(), infraID, err)
 			}
 			infraCtr = ctr
 		}
@@ -135,7 +135,7 @@ func namespaceOptions(s *specgen.SpecGenerator, rt *libpod.Runtime, pod *libpod.
 	case specgen.FromContainer:
 		pidCtr, err := rt.LookupContainer(s.PidNS.Value)
 		if err != nil {
-			return nil, fmt.Errorf("error looking up container to share pid namespace with: %w", err)
+			return nil, fmt.Errorf("looking up container to share pid namespace with: %w", err)
 		}
 		toReturn = append(toReturn, libpod.WithPIDNSFrom(pidCtr))
 	}
@@ -154,7 +154,7 @@ func namespaceOptions(s *specgen.SpecGenerator, rt *libpod.Runtime, pod *libpod.
 	case specgen.FromContainer:
 		ipcCtr, err := rt.LookupContainer(s.IpcNS.Value)
 		if err != nil {
-			return nil, fmt.Errorf("error looking up container to share ipc namespace with: %w", err)
+			return nil, fmt.Errorf("looking up container to share ipc namespace with: %w", err)
 		}
 		if ipcCtr.ConfigNoCopy().NoShmShare {
 			return nil, fmt.Errorf("joining IPC of container %s is not allowed: non-shareable IPC (hint: use IpcMode:shareable for the donor container)", ipcCtr.ID())
@@ -186,7 +186,7 @@ func namespaceOptions(s *specgen.SpecGenerator, rt *libpod.Runtime, pod *libpod.
 	case specgen.FromContainer:
 		utsCtr, err := rt.LookupContainer(s.UtsNS.Value)
 		if err != nil {
-			return nil, fmt.Errorf("error looking up container to share uts namespace with: %w", err)
+			return nil, fmt.Errorf("looking up container to share uts namespace with: %w", err)
 		}
 		toReturn = append(toReturn, libpod.WithUTSNSFrom(utsCtr))
 	}
@@ -227,7 +227,7 @@ func namespaceOptions(s *specgen.SpecGenerator, rt *libpod.Runtime, pod *libpod.
 	case specgen.FromContainer:
 		userCtr, err := rt.LookupContainer(s.UserNS.Value)
 		if err != nil {
-			return nil, fmt.Errorf("error looking up container to share user namespace with: %w", err)
+			return nil, fmt.Errorf("looking up container to share user namespace with: %w", err)
 		}
 		toReturn = append(toReturn, libpod.WithUserNSFrom(userCtr))
 	}
@@ -259,7 +259,7 @@ func namespaceOptions(s *specgen.SpecGenerator, rt *libpod.Runtime, pod *libpod.
 	case specgen.FromContainer:
 		cgroupCtr, err := rt.LookupContainer(s.CgroupNS.Value)
 		if err != nil {
-			return nil, fmt.Errorf("error looking up container to share cgroup namespace with: %w", err)
+			return nil, fmt.Errorf("looking up container to share cgroup namespace with: %w", err)
 		}
 		toReturn = append(toReturn, libpod.WithCgroupNSFrom(cgroupCtr))
 	}
@@ -287,7 +287,7 @@ func namespaceOptions(s *specgen.SpecGenerator, rt *libpod.Runtime, pod *libpod.
 	case specgen.FromContainer:
 		netCtr, err := rt.LookupContainer(s.NetNS.Value)
 		if err != nil {
-			return nil, fmt.Errorf("error looking up container to share net namespace with: %w", err)
+			return nil, fmt.Errorf("looking up container to share net namespace with: %w", err)
 		}
 		toReturn = append(toReturn, libpod.WithNetNSFrom(netCtr))
 	case specgen.Slirp:

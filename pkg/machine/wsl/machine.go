@@ -939,7 +939,7 @@ func (v *MachineVM) Set(_ string, opts machine.SetOptions) ([]error, error) {
 	if opts.Rootful != nil && v.Rootful != *opts.Rootful {
 		err := v.setRootful(*opts.Rootful)
 		if err != nil {
-			setErrors = append(setErrors, fmt.Errorf("error setting rootful option: %w", err))
+			setErrors = append(setErrors, fmt.Errorf("setting rootful option: %w", err))
 		} else {
 			v.Rootful = *opts.Rootful
 		}

@@ -126,7 +126,7 @@ func exec(_ *cobra.Command, args []string) error {
 
 	cliEnv, err := envLib.ParseSlice(envInput)
 	if err != nil {
-		return fmt.Errorf("error parsing environment variables: %w", err)
+		return fmt.Errorf("parsing environment variables: %w", err)
 	}
 
 	execOpts.Envs = envLib.Join(execOpts.Envs, cliEnv)

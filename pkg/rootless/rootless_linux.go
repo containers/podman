@@ -401,12 +401,13 @@ func becomeRootInUserNS(pausePid, fileToRead string, fileOutput *os.File) (_ boo
 		// Try to join it.
 		data, err := ioutil.ReadFile(pausePid)
 		if err == nil {
-			pid, err := strconv.ParseUint(string(data), 10, 0)
+			var pid uint64
+			pid, err = strconv.ParseUint(string(data), 10, 0)
 			if err == nil {
 				return joinUserAndMountNS(uint(pid), "")
 			}
 		}
-		return false, -1, errors.New("setting up the process")
+		return false, -1, fmt.Errorf("setting up the process: %w", err)
 	}
 
 	if b[0] != '0' {

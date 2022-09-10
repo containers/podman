@@ -18,7 +18,7 @@ func (ir *ImageEngine) ManifestCreate(ctx context.Context, name string, images [
 	options := new(manifests.CreateOptions).WithAll(opts.All).WithAmend(opts.Amend)
 	imageID, err := manifests.Create(ir.ClientCtx, name, images, options)
 	if err != nil {
-		return imageID, fmt.Errorf("error creating manifest: %w", err)
+		return imageID, fmt.Errorf("creating manifest: %w", err)
 	}
 	return imageID, err
 }
@@ -36,12 +36,12 @@ func (ir *ImageEngine) ManifestExists(ctx context.Context, name string) (*entiti
 func (ir *ImageEngine) ManifestInspect(_ context.Context, name string) ([]byte, error) {
 	list, err := manifests.Inspect(ir.ClientCtx, name, nil)
 	if err != nil {
-		return nil, fmt.Errorf("error getting content of manifest list or image %s: %w", name, err)
+		return nil, fmt.Errorf("getting content of manifest list or image %s: %w", name, err)
 	}
 
 	buf, err := json.MarshalIndent(list, "", "    ")
 	if err != nil {
-		return buf, fmt.Errorf("error rendering manifest for display: %w", err)
+		return buf, fmt.Errorf("rendering manifest for display: %w", err)
 	}
 	return buf, err
 }
@@ -72,7 +72,7 @@ func (ir *ImageEngine) ManifestAdd(_ context.Context, name string, imageNames []
 
 	id, err := manifests.Add(ir.ClientCtx, name, options)
 	if err != nil {
-		return id, fmt.Errorf("error adding to manifest list %s: %w", name, err)
+		return id, fmt.Errorf("adding to manifest list %s: %w", name, err)
 	}
 	return id, nil
 }
@@ -86,7 +86,7 @@ func (ir *ImageEngine) ManifestAnnotate(ctx context.Context, name, images string
 func (ir *ImageEngine) ManifestRemoveDigest(ctx context.Context, name string, image string) (string, error) {
 	updatedListID, err := manifests.Remove(ir.ClientCtx, name, image, nil)
 	if err != nil {
-		return updatedListID, fmt.Errorf("error removing from manifest %s: %w", name, err)
+		return updatedListID, fmt.Errorf("removing from manifest %s: %w", name, err)
 	}
 	return fmt.Sprintf("%s :%s\n", updatedListID, image), nil
 }
@@ -110,12 +110,12 @@ func (ir *ImageEngine) ManifestPush(ctx context.Context, name, destination strin
 	}
 	digest, err := manifests.Push(ir.ClientCtx, name, destination, options)
 	if err != nil {
-		return "", fmt.Errorf("error adding to manifest list %s: %w", name, err)
+		return "", fmt.Errorf("adding to manifest list %s: %w", name, err)
 	}
 
 	if opts.Rm {
 		if _, rmErrors := ir.Remove(ctx, []string{name}, entities.ImageRemoveOptions{LookupManifest: true}); len(rmErrors) > 0 {
-			return "", fmt.Errorf("error removing manifest after push: %w", rmErrors[0])
+			return "", fmt.Errorf("removing manifest after push: %w", rmErrors[0])
 		}
 	}
 

@@ -95,7 +95,7 @@ func (ir *ImageEngine) ManifestInspect(ctx context.Context, name string) ([]byte
 
 	var b bytes.Buffer
 	if err := json.Indent(&b, rawSchema2List, "", "    "); err != nil {
-		return nil, fmt.Errorf("error rendering manifest %s for display: %w", name, err)
+		return nil, fmt.Errorf("rendering manifest %s for display: %w", name, err)
 	}
 	return b.Bytes(), nil
 }
@@ -158,7 +158,7 @@ func (ir *ImageEngine) remoteManifestInspect(ctx context.Context, name string) (
 		logrus.Warnf("The manifest type %s is not a manifest list but a single image.", manType)
 		schema2Manifest, err := manifest.Schema2FromManifest(result)
 		if err != nil {
-			return nil, fmt.Errorf("error parsing manifest blob %q as a %q: %w", string(result), manType, err)
+			return nil, fmt.Errorf("parsing manifest blob %q as a %q: %w", string(result), manType, err)
 		}
 		if result, err = schema2Manifest.Serialize(); err != nil {
 			return nil, err
@@ -166,7 +166,7 @@ func (ir *ImageEngine) remoteManifestInspect(ctx context.Context, name string) (
 	default:
 		listBlob, err := manifest.ListFromBlob(result, manType)
 		if err != nil {
-			return nil, fmt.Errorf("error parsing manifest blob %q as a %q: %w", string(result), manType, err)
+			return nil, fmt.Errorf("parsing manifest blob %q as a %q: %w", string(result), manType, err)
 		}
 		list, err := listBlob.ConvertToMIMEType(manifest.DockerV2ListMediaType)
 		if err != nil {
@@ -178,7 +178,7 @@ func (ir *ImageEngine) remoteManifestInspect(ctx context.Context, name string) (
 	}
 
 	if err = json.Indent(&b, result, "", "    "); err != nil {
-		return nil, fmt.Errorf("error rendering manifest %s for display: %w", name, err)
+		return nil, fmt.Errorf("rendering manifest %s for display: %w", name, err)
 	}
 	return b.Bytes(), nil
 }
@@ -301,7 +301,7 @@ func (ir *ImageEngine) ManifestRm(ctx context.Context, names []string) (report *
 func (ir *ImageEngine) ManifestPush(ctx context.Context, name, destination string, opts entities.ImagePushOptions) (string, error) {
 	manifestList, err := ir.Libpod.LibimageRuntime().LookupManifestList(name)
 	if err != nil {
-		return "", fmt.Errorf("error retrieving local image from image name %s: %w", name, err)
+		return "", fmt.Errorf("retrieving local image from image name %s: %w", name, err)
 	}
 
 	var manifestType string
@@ -362,7 +362,7 @@ func (ir *ImageEngine) ManifestPush(ctx context.Context, name, destination strin
 	if opts.Rm {
 		rmOpts := &libimage.RemoveImagesOptions{LookupManifest: true}
 		if _, rmErrors := ir.Libpod.LibimageRuntime().RemoveImages(ctx, []string{manifestList.ID()}, rmOpts); len(rmErrors) > 0 {
-			return "", fmt.Errorf("error removing manifest after push: %w", rmErrors[0])
+			return "", fmt.Errorf("removing manifest after push: %w", rmErrors[0])
 		}
 	}
 
