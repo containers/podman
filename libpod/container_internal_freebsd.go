@@ -283,3 +283,7 @@ func setVolumeAtime(mountPoint string, st os.FileInfo) error {
 	}
 	return nil
 }
+
+func (c *Container) makePlatformBindMounts() error {
+	return nil
+}

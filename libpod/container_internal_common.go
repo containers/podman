@@ -1766,16 +1766,6 @@ func (c *Container) makeBindMounts() error {
 		}
 	}
 
-	// Make /etc/hostname
-	// This should never change, so no need to recreate if it exists
-	if _, ok := c.state.BindMounts["/etc/hostname"]; !ok {
-		hostnamePath, err := c.writeStringToRundir("hostname", c.Hostname())
-		if err != nil {
-			return fmt.Errorf("creating hostname file for container %s: %w", c.ID(), err)
-		}
-		c.state.BindMounts["/etc/hostname"] = hostnamePath
-	}
-
 	// Make /etc/localtime
 	ctrTimezone := c.Timezone()
 	if ctrTimezone != "" {
@@ -1879,7 +1869,7 @@ rootless=%d
 		}
 	}
 
-	return nil
+	return c.makePlatformBindMounts()
 }
 
 // generateResolvConf generates a containers resolv.conf
