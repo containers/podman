@@ -207,12 +207,9 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 	s.SeccompProfilePath = opts.SeccompPaths.FindForContainer(opts.Container.Name)
 
 	s.ResourceLimits = &spec.LinuxResources{}
-	milliCPU, err := quantityToInt64(opts.Container.Resources.Limits.Cpu())
-	if err != nil {
-		return nil, fmt.Errorf("failed to set CPU quota: %w", err)
-	}
+	milliCPU := opts.Container.Resources.Limits.Cpu().MilliValue()
 	if milliCPU > 0 {
-		period, quota := util.CoresToPeriodAndQuota(float64(milliCPU))
+		period, quota := util.CoresToPeriodAndQuota(float64(milliCPU) / 1000)
 		s.ResourceLimits.CPU = &spec.LinuxCPU{
 			Quota:  &quota,
 			Period: &period,
