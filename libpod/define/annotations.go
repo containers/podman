@@ -46,6 +46,11 @@ const (
 	// If an annotation with this key is found in the OCI spec, it will be
 	// used in the output of Inspect().
 	InspectAnnotationLabel = "io.podman.annotations.label"
+	// InspectAnnotationPodName is used by Inspect to identify containers with
+	// their pod name.
+	// If an annotation with this key is found in the OCI spec, it will be
+	// used in the output of Inspect().
+	InspectAnnotationPodName = "io.podman.annotations.podname"
 	// InspectAnnotationSeccomp is used by Inspect to identify containers
 	// with special Seccomp-related settings. It is used to populate the
 	// output of the SecurityOpt setting in Inspect.

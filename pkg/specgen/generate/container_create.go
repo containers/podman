@@ -44,6 +44,7 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 				return nil, nil, nil, err
 			}
 		}
+		s.Annotations[define.InspectAnnotationPodName] = pod.Name()
 	}
 
 	options := []libpod.CtrCreateOption{}

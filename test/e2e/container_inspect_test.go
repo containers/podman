@@ -33,6 +33,19 @@ var _ = Describe("Podman container inspect", func() {
 		processTestResult(f)
 	})
 
+	It("podman inspect a pod container for the podName in annotation", func() {
+		const podName = "test-pod-1"
+		setup, _, podID := podmanTest.CreatePod(map[string][]string{"--name": {podName}})
+		Expect(setup).Should(Exit(0))
+		const testContainer = "container-in-a-pod"
+		setup = podmanTest.RunTopContainerInPod(testContainer, podID)
+		setup.WaitWithDefaultTimeout()
+		Expect(setup).Should(Exit(0))
+		data := podmanTest.InspectContainer(testContainer)
+		Expect(data[0].Pod).To(Equal(podID))
+		Expect(data[0].Config.Annotations[define.InspectAnnotationPodName]).To(Equal(podName))
+	})
+
 	It("podman inspect a container for the container manager annotation", func() {
 		const testContainer = "container-inspect-test-1"
 		setup := podmanTest.RunTopContainer(testContainer)
