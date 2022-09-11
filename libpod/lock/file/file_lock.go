@@ -2,7 +2,6 @@ package file
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -129,7 +128,7 @@ func (locks *FileLocks) DeallocateAllLocks() error {
 	if !locks.valid {
 		return fmt.Errorf("locks have already been closed: %w", syscall.EINVAL)
 	}
-	files, err := ioutil.ReadDir(locks.lockPath)
+	files, err := os.ReadDir(locks.lockPath)
 	if err != nil {
 		return fmt.Errorf("error reading directory %s: %w", locks.lockPath, err)
 	}

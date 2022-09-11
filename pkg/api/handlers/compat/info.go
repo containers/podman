@@ -2,7 +2,6 @@ package compat
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
 	goRuntime "runtime"
@@ -198,7 +197,7 @@ func getRuntimes(configInfo *config.Config) map[string]docker.Runtime {
 
 func getFdCount() (count int) {
 	count = -1
-	if entries, err := ioutil.ReadDir("/proc/self/fd"); err == nil {
+	if entries, err := os.ReadDir("/proc/self/fd"); err == nil {
 		count = len(entries)
 	}
 	return

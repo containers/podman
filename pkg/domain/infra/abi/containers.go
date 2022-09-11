@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strconv"
 	"sync"
@@ -858,7 +857,7 @@ func makeExecConfig(options entities.ExecOptions, rt *libpod.Runtime) (*libpod.E
 
 func checkExecPreserveFDs(options entities.ExecOptions) error {
 	if options.PreserveFDs > 0 {
-		entries, err := ioutil.ReadDir("/proc/self/fd")
+		entries, err := os.ReadDir("/proc/self/fd")
 		if err != nil {
 			return err
 		}

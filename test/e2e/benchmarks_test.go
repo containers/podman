@@ -99,7 +99,7 @@ var _ = Describe("Podman Benchmark Suite", func() {
 	}
 
 	totalMemoryInKb := func() (total uint64) {
-		files, err := ioutil.ReadDir(timedir)
+		files, err := os.ReadDir(timedir)
 		if err != nil {
 			Fail(fmt.Sprintf("Error reading timing dir: %v", err))
 		}

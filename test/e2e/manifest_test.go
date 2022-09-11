@@ -332,7 +332,7 @@ var _ = Describe("Podman manifest", func() {
 
 		blobsDir := filepath.Join(dest, "blobs", "sha256")
 
-		blobs, err := ioutil.ReadDir(blobsDir)
+		blobs, err := os.ReadDir(blobsDir)
 		Expect(err).To(BeNil())
 
 		for _, f := range blobs {

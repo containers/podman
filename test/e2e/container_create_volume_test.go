@@ -58,7 +58,7 @@ func checkDataVolumeContainer(pTest *PodmanTestIntegration, image, cont, dest, d
 	Expect(volList.OutputToStringArray()[0]).To(Equal(mntName))
 
 	// Check the mount source directory
-	files, err := ioutil.ReadDir(mntSource)
+	files, err := os.ReadDir(mntSource)
 	Expect(err).To(BeNil())
 
 	if data == "" {

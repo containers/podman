@@ -1,7 +1,6 @@
 package integration
 
 import (
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -69,7 +68,7 @@ var _ = Describe("Podman image sign", func() {
 		session := podmanTest.Podman([]string{"image", "sign", "--all", "--directory", sigDir, "--sign-by", "foo@bar.com", "docker://library/alpine"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		fInfos, err := ioutil.ReadDir(filepath.Join(sigDir, "library"))
+		fInfos, err := os.ReadDir(filepath.Join(sigDir, "library"))
 		Expect(err).To(BeNil())
 		Expect(len(fInfos)).To(BeNumerically(">", 1), "len(fInfos)")
 	})
