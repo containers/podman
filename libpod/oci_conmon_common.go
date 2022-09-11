@@ -1266,9 +1266,14 @@ func (r *ConmonOCIRuntime) configureConmonEnv(runtimeDir string) []string {
 			env = append(env, e)
 		}
 	}
-	conf, ok := os.LookupEnv("CONTAINERS_CONF")
-	if ok {
+	if path, ok := os.LookupEnv("PATH"); ok {
+		env = append(env, fmt.Sprintf("PATH=%s", path))
+	}
+	if conf, ok := os.LookupEnv("CONTAINERS_CONF"); ok {
 		env = append(env, fmt.Sprintf("CONTAINERS_CONF=%s", conf))
+	}
+	if conf, ok := os.LookupEnv("CONTAINERS_HELPER_BINARY_DIR"); ok {
+		env = append(env, fmt.Sprintf("CONTAINERS_HELPER_BINARY_DIR=%s", conf))
 	}
 	env = append(env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", runtimeDir))
 	env = append(env, fmt.Sprintf("_CONTAINERS_USERNS_CONFIGURED=%s", os.Getenv("_CONTAINERS_USERNS_CONFIGURED")))
