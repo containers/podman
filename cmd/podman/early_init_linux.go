@@ -14,11 +14,11 @@ func setRLimits() error {
 	rlimits.Max = define.RLimitDefaultValue
 	if err := syscall.Setrlimit(syscall.RLIMIT_NOFILE, rlimits); err != nil {
 		if err := syscall.Getrlimit(syscall.RLIMIT_NOFILE, rlimits); err != nil {
-			return fmt.Errorf("error getting rlimits: %w", err)
+			return fmt.Errorf("getting rlimits: %w", err)
 		}
 		rlimits.Cur = rlimits.Max
 		if err := syscall.Setrlimit(syscall.RLIMIT_NOFILE, rlimits); err != nil {
-			return fmt.Errorf("error setting new rlimits: %w", err)
+			return fmt.Errorf("setting new rlimits: %w", err)
 		}
 	}
 	return nil

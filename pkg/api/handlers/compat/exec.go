@@ -26,7 +26,7 @@ func ExecCreateHandler(w http.ResponseWriter, r *http.Request) {
 
 	input := new(handlers.ExecCreateConfig)
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-		utils.InternalServerError(w, fmt.Errorf("error decoding request body as JSON: %w", err))
+		utils.InternalServerError(w, fmt.Errorf("decoding request body as JSON: %w", err))
 		return
 	}
 
@@ -114,7 +114,7 @@ func ExecInspectHandler(w http.ResponseWriter, r *http.Request) {
 
 	session, err := sessionCtr.ExecSession(sessionID)
 	if err != nil {
-		utils.InternalServerError(w, fmt.Errorf("error retrieving exec session %s from container %s: %w", sessionID, sessionCtr.ID(), err))
+		utils.InternalServerError(w, fmt.Errorf("retrieving exec session %s from container %s: %w", sessionID, sessionCtr.ID(), err))
 		return
 	}
 
@@ -174,7 +174,7 @@ func ExecStartHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	logErr := func(e error) {
-		logrus.Error(fmt.Errorf("error attaching to container %s exec session %s: %w", sessionCtr.ID(), sessionID, e))
+		logrus.Error(fmt.Errorf("attaching to container %s exec session %s: %w", sessionCtr.ID(), sessionID, e))
 	}
 
 	var size *resize.TerminalSize

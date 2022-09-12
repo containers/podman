@@ -103,7 +103,7 @@ func KubePlay(w http.ResponseWriter, r *http.Request) {
 	report, err := containerEngine.PlayKube(r.Context(), r.Body, options)
 	_ = r.Body.Close()
 	if err != nil {
-		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("error playing YAML file: %w", err))
+		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("playing YAML file: %w", err))
 		return
 	}
 	utils.WriteResponse(w, http.StatusOK, report)
@@ -116,7 +116,7 @@ func KubePlayDown(w http.ResponseWriter, r *http.Request) {
 	report, err := containerEngine.PlayKubeDown(r.Context(), r.Body, *options)
 	_ = r.Body.Close()
 	if err != nil {
-		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("error tearing down YAML file: %w", err))
+		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("tearing down YAML file: %w", err))
 		return
 	}
 	utils.WriteResponse(w, http.StatusOK, report)

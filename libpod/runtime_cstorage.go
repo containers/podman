@@ -39,7 +39,7 @@ func (r *Runtime) ListStorageContainers() ([]*StorageContainer, error) {
 		// Look up if container is in state
 		hasCtr, err := r.state.HasContainer(ctr.ID)
 		if err != nil {
-			return nil, fmt.Errorf("error looking up container %s in state: %w", ctr.ID, err)
+			return nil, fmt.Errorf("looking up container %s in state: %w", ctr.ID, err)
 		}
 
 		storageCtr.PresentInLibpod = hasCtr
@@ -64,7 +64,7 @@ func (r *Runtime) RemoveStorageContainer(idOrName string, force bool) error {
 		if errors.Is(err, storage.ErrLayerUnknown) {
 			return fmt.Errorf("no container with ID or name %q found: %w", idOrName, define.ErrNoSuchCtr)
 		}
-		return fmt.Errorf("error looking up container %q: %w", idOrName, err)
+		return fmt.Errorf("looking up container %q: %w", idOrName, err)
 	}
 
 	// Lookup returns an ID but it's not guaranteed to be a container ID.
@@ -74,7 +74,7 @@ func (r *Runtime) RemoveStorageContainer(idOrName string, force bool) error {
 		if errors.Is(err, storage.ErrContainerUnknown) {
 			return fmt.Errorf("%q does not refer to a container: %w", idOrName, define.ErrNoSuchCtr)
 		}
-		return fmt.Errorf("error retrieving container %q: %w", idOrName, err)
+		return fmt.Errorf("retrieving container %q: %w", idOrName, err)
 	}
 
 	// Error out if the container exists in libpod
@@ -115,7 +115,7 @@ func (r *Runtime) RemoveStorageContainer(idOrName string, force bool) error {
 			logrus.Infof("Storage for container %s already removed", ctr.ID)
 			return nil
 		}
-		return fmt.Errorf("error removing storage for container %q: %w", idOrName, err)
+		return fmt.Errorf("removing storage for container %q: %w", idOrName, err)
 	}
 
 	return nil

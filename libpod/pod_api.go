@@ -92,7 +92,7 @@ func (p *Pod) Start(ctx context.Context) (map[string]error, error) {
 	// Build a dependency graph of containers in the pod
 	graph, err := BuildContainerGraph(allCtrs)
 	if err != nil {
-		return nil, fmt.Errorf("error generating dependency graph for pod %s: %w", p.ID(), err)
+		return nil, fmt.Errorf("generating dependency graph for pod %s: %w", p.ID(), err)
 	}
 	// If there are no containers without dependencies, we can't start
 	// Error out
@@ -109,7 +109,7 @@ func (p *Pod) Start(ctx context.Context) (map[string]error, error) {
 	}
 
 	if len(ctrErrors) > 0 {
-		return ctrErrors, fmt.Errorf("error starting some containers: %w", define.ErrPodPartialFail)
+		return ctrErrors, fmt.Errorf("starting some containers: %w", define.ErrPodPartialFail)
 	}
 	defer p.newPodEvent(events.Start)
 	return nil, nil
@@ -201,7 +201,7 @@ func (p *Pod) stopWithTimeout(ctx context.Context, cleanup bool, timeout int) (m
 	}
 
 	if len(ctrErrors) > 0 {
-		return ctrErrors, fmt.Errorf("error stopping some containers: %w", define.ErrPodPartialFail)
+		return ctrErrors, fmt.Errorf("stopping some containers: %w", define.ErrPodPartialFail)
 	}
 
 	if err := p.maybeStopServiceContainer(); err != nil {
@@ -305,7 +305,7 @@ func (p *Pod) Cleanup(ctx context.Context) (map[string]error, error) {
 	}
 
 	if len(ctrErrors) > 0 {
-		return ctrErrors, fmt.Errorf("error cleaning up some containers: %w", define.ErrPodPartialFail)
+		return ctrErrors, fmt.Errorf("cleaning up some containers: %w", define.ErrPodPartialFail)
 	}
 
 	if err := p.maybeStopServiceContainer(); err != nil {
@@ -376,7 +376,7 @@ func (p *Pod) Pause(ctx context.Context) (map[string]error, error) {
 	}
 
 	if len(ctrErrors) > 0 {
-		return ctrErrors, fmt.Errorf("error pausing some containers: %w", define.ErrPodPartialFail)
+		return ctrErrors, fmt.Errorf("pausing some containers: %w", define.ErrPodPartialFail)
 	}
 	return nil, nil
 }
@@ -432,7 +432,7 @@ func (p *Pod) Unpause(ctx context.Context) (map[string]error, error) {
 	}
 
 	if len(ctrErrors) > 0 {
-		return ctrErrors, fmt.Errorf("error unpausing some containers: %w", define.ErrPodPartialFail)
+		return ctrErrors, fmt.Errorf("unpausing some containers: %w", define.ErrPodPartialFail)
 	}
 	return nil, nil
 }
@@ -470,7 +470,7 @@ func (p *Pod) Restart(ctx context.Context) (map[string]error, error) {
 	// Build a dependency graph of containers in the pod
 	graph, err := BuildContainerGraph(allCtrs)
 	if err != nil {
-		return nil, fmt.Errorf("error generating dependency graph for pod %s: %w", p.ID(), err)
+		return nil, fmt.Errorf("generating dependency graph for pod %s: %w", p.ID(), err)
 	}
 
 	ctrErrors := make(map[string]error)
@@ -488,7 +488,7 @@ func (p *Pod) Restart(ctx context.Context) (map[string]error, error) {
 	}
 
 	if len(ctrErrors) > 0 {
-		return ctrErrors, fmt.Errorf("error stopping some containers: %w", define.ErrPodPartialFail)
+		return ctrErrors, fmt.Errorf("stopping some containers: %w", define.ErrPodPartialFail)
 	}
 	p.newPodEvent(events.Stop)
 	p.newPodEvent(events.Start)
@@ -547,7 +547,7 @@ func (p *Pod) Kill(ctx context.Context, signal uint) (map[string]error, error) {
 	}
 
 	if len(ctrErrors) > 0 {
-		return ctrErrors, fmt.Errorf("error killing some containers: %w", define.ErrPodPartialFail)
+		return ctrErrors, fmt.Errorf("killing some containers: %w", define.ErrPodPartialFail)
 	}
 
 	if err := p.maybeStopServiceContainer(); err != nil {

@@ -28,20 +28,20 @@ func (r *Runtime) info() (*define.Info, error) {
 	info := define.Info{}
 	versionInfo, err := define.GetVersion()
 	if err != nil {
-		return nil, fmt.Errorf("error getting version info: %w", err)
+		return nil, fmt.Errorf("getting version info: %w", err)
 	}
 	info.Version = versionInfo
 	// get host information
 	hostInfo, err := r.hostInfo()
 	if err != nil {
-		return nil, fmt.Errorf("error getting host info: %w", err)
+		return nil, fmt.Errorf("getting host info: %w", err)
 	}
 	info.Host = hostInfo
 
 	// get store information
 	storeInfo, err := r.storeInfo()
 	if err != nil {
-		return nil, fmt.Errorf("error getting store info: %w", err)
+		return nil, fmt.Errorf("getting store info: %w", err)
 	}
 	info.Store = storeInfo
 	registries := make(map[string]interface{})
@@ -49,14 +49,14 @@ func (r *Runtime) info() (*define.Info, error) {
 	sys := r.SystemContext()
 	data, err := sysregistriesv2.GetRegistries(sys)
 	if err != nil {
-		return nil, fmt.Errorf("error getting registries: %w", err)
+		return nil, fmt.Errorf("getting registries: %w", err)
 	}
 	for _, reg := range data {
 		registries[reg.Prefix] = reg
 	}
 	regs, err := sysregistriesv2.UnqualifiedSearchRegistries(sys)
 	if err != nil {
-		return nil, fmt.Errorf("error getting registries: %w", err)
+		return nil, fmt.Errorf("getting registries: %w", err)
 	}
 	if len(regs) > 0 {
 		registries["search"] = regs
@@ -80,19 +80,19 @@ func (r *Runtime) hostInfo() (*define.HostInfo, error) {
 	// lets say OS, arch, number of cpus, amount of memory, maybe os distribution/version, hostname, kernel version, uptime
 	mi, err := system.ReadMemInfo()
 	if err != nil {
-		return nil, fmt.Errorf("error reading memory info: %w", err)
+		return nil, fmt.Errorf("reading memory info: %w", err)
 	}
 
 	hostDistributionInfo := r.GetHostDistributionInfo()
 
 	kv, err := util.ReadKernelVersion()
 	if err != nil {
-		return nil, fmt.Errorf("error reading kernel version: %w", err)
+		return nil, fmt.Errorf("reading kernel version: %w", err)
 	}
 
 	host, err := os.Hostname()
 	if err != nil {
-		return nil, fmt.Errorf("error getting hostname: %w", err)
+		return nil, fmt.Errorf("getting hostname: %w", err)
 	}
 
 	cpuUtil, err := getCPUUtilization()
@@ -131,7 +131,7 @@ func (r *Runtime) hostInfo() (*define.HostInfo, error) {
 
 	duration, err := util.ReadUptime()
 	if err != nil {
-		return nil, fmt.Errorf("error reading up time: %w", err)
+		return nil, fmt.Errorf("reading up time: %w", err)
 	}
 
 	uptime := struct {
@@ -201,7 +201,7 @@ func (r *Runtime) storeInfo() (*define.StoreInfo, error) {
 	}
 	images, err := r.store.Images()
 	if err != nil {
-		return nil, fmt.Errorf("error getting number of images: %w", err)
+		return nil, fmt.Errorf("getting number of images: %w", err)
 	}
 	conInfo, err := r.getContainerStoreInfo()
 	if err != nil {

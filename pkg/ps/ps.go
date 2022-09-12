@@ -283,7 +283,7 @@ func ListStorageContainer(rt *libpod.Runtime, ctr storage.Container) (entities.L
 
 	buildahCtr, err := rt.IsBuildahContainer(ctr.ID)
 	if err != nil {
-		return ps, fmt.Errorf("error determining buildah container for container %s: %w", ctr.ID, err)
+		return ps, fmt.Errorf("determining buildah container for container %s: %w", ctr.ID, err)
 	}
 
 	if buildahCtr {
@@ -312,7 +312,7 @@ func ListStorageContainer(rt *libpod.Runtime, ctr storage.Container) (entities.L
 func getNamespaceInfo(path string) (string, error) {
 	val, err := os.Readlink(path)
 	if err != nil {
-		return "", fmt.Errorf("error getting info from %q: %w", path, err)
+		return "", fmt.Errorf("getting info from %q: %w", path, err)
 	}
 	return getStrFromSquareBrackets(val), nil
 }

@@ -435,7 +435,7 @@ EOF
     run_podman pod rm $podID
 
     run_podman 125 pod create --exit-policy invalid
-    is "$output" "Error: .*error running pod create option: invalid pod exit policy: \"invalid\"" "invalid exit policy"
+    is "$output" "Error: .*running pod create option: invalid pod exit policy: \"invalid\"" "invalid exit policy"
 
     # Test exit-policy behaviour
     run_podman pod create --exit-policy continue

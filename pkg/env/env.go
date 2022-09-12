@@ -70,7 +70,7 @@ func ParseFile(path string) (_ map[string]string, err error) {
 	env := make(map[string]string)
 	defer func() {
 		if err != nil {
-			err = fmt.Errorf("error parsing env file %q: %w", path, err)
+			err = fmt.Errorf("parsing env file %q: %w", path, err)
 		}
 	}()
 

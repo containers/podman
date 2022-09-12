@@ -70,7 +70,7 @@ func (c *Container) Top(descriptors []string) ([]string, error) {
 
 	output, err = c.execPS(psDescriptors)
 	if err != nil {
-		return nil, fmt.Errorf("error executing ps(1) in the container: %w", err)
+		return nil, fmt.Errorf("executing ps(1) in the container: %w", err)
 	}
 
 	// Trick: filter the ps command from the output instead of

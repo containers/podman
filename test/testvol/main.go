@@ -80,7 +80,7 @@ func startServer(socketPath string) error {
 	if config.path == "" {
 		path, err := ioutil.TempDir("", "test_volume_plugin")
 		if err != nil {
-			return fmt.Errorf("error getting directory for plugin: %w", err)
+			return fmt.Errorf("getting directory for plugin: %w", err)
 		}
 		config.path = path
 	} else {
@@ -98,7 +98,7 @@ func startServer(socketPath string) error {
 
 	server := volume.NewHandler(handle)
 	if err := server.ServeUnix(socketPath, 0); err != nil {
-		return fmt.Errorf("error starting server: %w", err)
+		return fmt.Errorf("starting server: %w", err)
 	}
 	return nil
 }
@@ -161,7 +161,7 @@ func (d *DirDriver) Create(opts *volume.CreateRequest) error {
 
 	volPath := filepath.Join(d.volumesPath, opts.Name)
 	if err := os.Mkdir(volPath, 0755); err != nil {
-		return fmt.Errorf("error making volume directory: %w", err)
+		return fmt.Errorf("making volume directory: %w", err)
 	}
 	newVol.path = volPath
 
@@ -240,7 +240,7 @@ func (d *DirDriver) Remove(req *volume.RemoveRequest) error {
 	delete(d.volumes, req.Name)
 
 	if err := os.RemoveAll(vol.path); err != nil {
-		return fmt.Errorf("error removing mountpoint of volume %s: %w", req.Name, err)
+		return fmt.Errorf("removing mountpoint of volume %s: %w", req.Name, err)
 	}
 
 	logrus.Debugf("Removed volume %s", req.Name)

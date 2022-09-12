@@ -402,7 +402,7 @@ func executePodTemplate(info *podInfo, options entities.GenerateSystemdOptions) 
 	// template execution.
 	templ, err := template.New("pod_template").Delims("{{{{", "}}}}").Parse(podTemplate)
 	if err != nil {
-		return "", fmt.Errorf("error parsing systemd service template: %w", err)
+		return "", fmt.Errorf("parsing systemd service template: %w", err)
 	}
 
 	var buf bytes.Buffer
@@ -413,7 +413,7 @@ func executePodTemplate(info *podInfo, options entities.GenerateSystemdOptions) 
 	// Now parse the generated template (i.e., buf) and execute it.
 	templ, err = template.New("pod_template").Delims("{{{{", "}}}}").Parse(buf.String())
 	if err != nil {
-		return "", fmt.Errorf("error parsing systemd service template: %w", err)
+		return "", fmt.Errorf("parsing systemd service template: %w", err)
 	}
 
 	buf = bytes.Buffer{}

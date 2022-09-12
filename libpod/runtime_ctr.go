@@ -86,7 +86,7 @@ func (r *Runtime) RestoreContainer(ctx context.Context, rSpec *spec.Spec, config
 
 	ctr, err := r.initContainerVariables(rSpec, config)
 	if err != nil {
-		return nil, fmt.Errorf("error initializing container variables: %w", err)
+		return nil, fmt.Errorf("initializing container variables: %w", err)
 	}
 	// For an imported checkpoint no one has ever set the StartedTime. Set it now.
 	ctr.state.StartedTime = time.Now()
@@ -126,7 +126,7 @@ func (r *Runtime) RenameContainer(ctx context.Context, ctr *Container, newName s
 	// the config was re-written.
 	newConf, err := r.state.GetContainerConfig(ctr.ID())
 	if err != nil {
-		return nil, fmt.Errorf("error retrieving container %s configuration from DB to remove: %w", ctr.ID(), err)
+		return nil, fmt.Errorf("retrieving container %s configuration from DB to remove: %w", ctr.ID(), err)
 	}
 	ctr.config = newConf
 
@@ -143,7 +143,7 @@ func (r *Runtime) RenameContainer(ctx context.Context, ctr *Container, newName s
 		// Set config back to the old name so reflect what is actually
 		// present in the DB.
 		ctr.config.Name = oldName
-		return nil, fmt.Errorf("error renaming container %s: %w", ctr.ID(), err)
+		return nil, fmt.Errorf("renaming container %s: %w", ctr.ID(), err)
 	}
 
 	// Step 3: rename the container in c/storage.
@@ -189,7 +189,7 @@ func (r *Runtime) initContainerVariables(rSpec *spec.Spec, config *ContainerConf
 		// This is a restore from an imported checkpoint
 		ctr.restoreFromCheckpoint = true
 		if err := JSONDeepCopy(config, ctr.config); err != nil {
-			return nil, fmt.Errorf("error copying container config for restore: %w", err)
+			return nil, fmt.Errorf("copying container config for restore: %w", err)
 		}
 		// If the ID is empty a new name for the restored container was requested
 		if ctr.config.ID == "" {
@@ -229,12 +229,12 @@ func (r *Runtime) newContainer(ctx context.Context, rSpec *spec.Spec, options ..
 	ctr, err = r.initContainerVariables(rSpec, nil)
 
 	if err != nil {
-		return nil, fmt.Errorf("error initializing container variables: %w", err)
+		return nil, fmt.Errorf("initializing container variables: %w", err)
 	}
 
 	for _, option := range options {
 		if err := option(ctr); err != nil {
-			return nil, fmt.Errorf("error running container create option: %w", err)
+			return nil, fmt.Errorf("running container create option: %w", err)
 		}
 	}
 
@@ -301,7 +301,7 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 	// Allocate a lock for the container
 	lock, err := r.lockManager.AllocateLock()
 	if err != nil {
-		return nil, fmt.Errorf("error allocating lock for new container: %w", err)
+		return nil, fmt.Errorf("allocating lock for new container: %w", err)
 	}
 	ctr.lock = lock
 	ctr.config.LockID = ctr.lock.ID()
@@ -355,7 +355,7 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 				if pod != nil && pod.config.UsePodCgroup && !ctr.IsInfra() {
 					podCgroup, err := pod.CgroupPath()
 					if err != nil {
-						return nil, fmt.Errorf("error retrieving pod %s cgroup: %w", pod.ID(), err)
+						return nil, fmt.Errorf("retrieving pod %s cgroup: %w", pod.ID(), err)
 					}
 					expectPodCgroup, err := ctr.expectPodCgroup()
 					if err != nil {
@@ -380,7 +380,7 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 				case pod != nil && pod.config.UsePodCgroup && !ctr.IsInfra():
 					podCgroup, err := pod.CgroupPath()
 					if err != nil {
-						return nil, fmt.Errorf("error retrieving pod %s cgroup: %w", pod.ID(), err)
+						return nil, fmt.Errorf("retrieving pod %s cgroup: %w", pod.ID(), err)
 					}
 					ctr.config.CgroupParent = podCgroup
 				case rootless.IsRootless() && ctr.config.CgroupsMode != cgroupSplit:
@@ -432,7 +432,7 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 	defer func() {
 		if retErr != nil {
 			if err := ctr.teardownStorage(); err != nil {
-				logrus.Errorf("Removing partially-created container root filesystem: %s", err)
+				logrus.Errorf("Removing partially-created container root filesystem: %v", err)
 			}
 		}
 	}()
@@ -476,7 +476,7 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 				// The volume exists, we're good
 				continue
 			} else if !errors.Is(err, define.ErrNoSuchVolume) {
-				return nil, fmt.Errorf("error retrieving named volume %s for new container: %w", vol.Name, err)
+				return nil, fmt.Errorf("retrieving named volume %s for new container: %w", vol.Name, err)
 			}
 		}
 		if vol.IsAnonymous {
@@ -514,7 +514,7 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 		}
 		newVol, err := r.newVolume(false, volOptions...)
 		if err != nil {
-			return nil, fmt.Errorf("error creating named volume %q: %w", vol.Name, err)
+			return nil, fmt.Errorf("creating named volume %q: %w", vol.Name, err)
 		}
 
 		ctrNamedVolumes = append(ctrNamedVolumes, newVol)
@@ -606,7 +606,7 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force, remo
 	// exist once we're done.
 	newConf, err := r.state.GetContainerConfig(c.ID())
 	if err != nil {
-		return fmt.Errorf("error retrieving container %s configuration from DB to remove: %w", c.ID(), err)
+		return fmt.Errorf("retrieving container %s configuration from DB to remove: %w", c.ID(), err)
 	}
 	c.config = newConf
 
@@ -727,7 +727,7 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force, remo
 		if ok, _ := r.state.HasContainer(c.ID()); !ok {
 			// When the container has already been removed, the OCI runtime directory remain.
 			if err := c.cleanupRuntime(ctx); err != nil {
-				return fmt.Errorf("error cleaning up container %s from OCI runtime: %w", c.ID(), err)
+				return fmt.Errorf("cleaning up container %s from OCI runtime: %w", c.ID(), err)
 			}
 			return nil
 		}
@@ -739,7 +739,7 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force, remo
 	// Do this before we set ContainerStateRemoving, to ensure that we can
 	// actually remove from the OCI runtime.
 	if err := c.cleanup(ctx); err != nil {
-		cleanupErr = fmt.Errorf("error cleaning up container %s: %w", c.ID(), err)
+		cleanupErr = fmt.Errorf("cleaning up container %s: %w", c.ID(), err)
 	}
 
 	// Set ContainerStateRemoving
@@ -799,7 +799,7 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force, remo
 	// Deallocate the container's lock
 	if err := c.lock.Free(); err != nil {
 		if cleanupErr == nil && !os.IsNotExist(err) {
-			cleanupErr = fmt.Errorf("error freeing lock for container %s: %w", c.ID(), err)
+			cleanupErr = fmt.Errorf("freeing lock for container %s: %w", c.ID(), err)
 		} else {
 			logrus.Errorf("Free container lock: %v", err)
 		}
@@ -1227,7 +1227,7 @@ func (r *Runtime) MountStorageContainer(id string) (string, error) {
 	}
 	mountPoint, err := r.store.Mount(container.ID, "")
 	if err != nil {
-		return "", fmt.Errorf("error mounting storage for container %s: %w", id, err)
+		return "", fmt.Errorf("mounting storage for container %s: %w", id, err)
 	}
 	return mountPoint, nil
 }
@@ -1275,7 +1275,7 @@ func (r *Runtime) StorageContainers() ([]storage.Container, error) {
 
 	storeContainers, err := r.store.Containers()
 	if err != nil {
-		return nil, fmt.Errorf("error reading list of all storage containers: %w", err)
+		return nil, fmt.Errorf("reading list of all storage containers: %w", err)
 	}
 	retCtrs := []storage.Container{}
 	for _, container := range storeContainers {

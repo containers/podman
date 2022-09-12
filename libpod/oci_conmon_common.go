@@ -150,7 +150,7 @@ func newConmonOCIRuntime(name string, paths []string, conmonPath string, runtime
 	if err := os.MkdirAll(runtime.exitsDir, 0750); err != nil {
 		// The directory is allowed to exist
 		if !os.IsExist(err) {
-			return nil, fmt.Errorf("error creating OCI runtime exit files directory: %w", err)
+			return nil, fmt.Errorf("creating OCI runtime exit files directory: %w", err)
 		}
 	}
 	return runtime, nil
@@ -234,7 +234,7 @@ func (r *ConmonOCIRuntime) UpdateContainerStatus(ctr *Container) error {
 	if err := cmd.Start(); err != nil {
 		out, err2 := ioutil.ReadAll(errPipe)
 		if err2 != nil {
-			return fmt.Errorf("error getting container %s state: %w", ctr.ID(), err)
+			return fmt.Errorf("getting container %s state: %w", ctr.ID(), err)
 		}
 		if strings.Contains(string(out), "does not exist") || strings.Contains(string(out), "No such file") {
 			if err := ctr.removeConmonFiles(); err != nil {
@@ -245,7 +245,7 @@ func (r *ConmonOCIRuntime) UpdateContainerStatus(ctr *Container) error {
 			ctr.state.State = define.ContainerStateExited
 			return ctr.runtime.state.AddContainerExitCode(ctr.ID(), ctr.state.ExitCode)
 		}
-		return fmt.Errorf("error getting container %s state. stderr/out: %s: %w", ctr.ID(), out, err)
+		return fmt.Errorf("getting container %s state. stderr/out: %s: %w", ctr.ID(), out, err)
 	}
 	defer func() {
 		_ = cmd.Wait()
@@ -256,10 +256,10 @@ func (r *ConmonOCIRuntime) UpdateContainerStatus(ctr *Container) error {
 	}
 	out, err := ioutil.ReadAll(outPipe)
 	if err != nil {
-		return fmt.Errorf("error reading stdout: %s: %w", ctr.ID(), err)
+		return fmt.Errorf("reading stdout: %s: %w", ctr.ID(), err)
 	}
 	if err := json.NewDecoder(bytes.NewBuffer(out)).Decode(state); err != nil {
-		return fmt.Errorf("error decoding container status for container %s: %w", ctr.ID(), err)
+		return fmt.Errorf("decoding container status for container %s: %w", ctr.ID(), err)
 	}
 	ctr.state.PID = state.Pid
 
@@ -379,7 +379,7 @@ func (r *ConmonOCIRuntime) KillContainer(ctr *Container, signal uint, all bool) 
 		if ctr.ensureState(define.ContainerStateStopped, define.ContainerStateExited) {
 			return define.ErrCtrStateInvalid
 		}
-		return fmt.Errorf("error sending signal to container %s: %w", ctr.ID(), err)
+		return fmt.Errorf("sending signal to container %s: %w", ctr.ID(), err)
 	}
 
 	return nil
@@ -434,7 +434,7 @@ func (r *ConmonOCIRuntime) StopContainer(ctr *Container, timeout uint, all bool)
 		if aliveErr := unix.Kill(ctr.state.PID, 0); errors.Is(aliveErr, unix.ESRCH) {
 			return nil
 		}
-		return fmt.Errorf("error sending SIGKILL to container %s: %w", ctr.ID(), err)
+		return fmt.Errorf("sending SIGKILL to container %s: %w", ctr.ID(), err)
 	}
 
 	// Give runtime a few seconds to make it happen
@@ -554,7 +554,7 @@ func (r *ConmonOCIRuntime) HTTPAttach(ctr *Container, req *http.Request, w http.
 
 	httpCon, httpBuf, err := hijacker.Hijack()
 	if err != nil {
-		return fmt.Errorf("error hijacking connection: %w", err)
+		return fmt.Errorf("hijacking connection: %w", err)
 	}
 
 	hijackDone <- true
@@ -563,7 +563,7 @@ func (r *ConmonOCIRuntime) HTTPAttach(ctr *Container, req *http.Request, w http.
 
 	// Force a flush after the header is written.
 	if err := httpBuf.Flush(); err != nil {
-		return fmt.Errorf("error flushing HTTP hijack header: %w", err)
+		return fmt.Errorf("flushing HTTP hijack header: %w", err)
 	}
 
 	defer func() {
@@ -838,7 +838,7 @@ func (r *ConmonOCIRuntime) CheckConmonRunning(ctr *Container) (bool, error) {
 		if err == unix.ESRCH {
 			return false, nil
 		}
-		return false, fmt.Errorf("error pinging container %s conmon with signal 0: %w", ctr.ID(), err)
+		return false, fmt.Errorf("pinging container %s conmon with signal 0: %w", ctr.ID(), err)
 	}
 	return true, nil
 }
@@ -890,11 +890,11 @@ func (r *ConmonOCIRuntime) RuntimeInfo() (*define.ConmonInfo, *define.OCIRuntime
 	conmonPackage := packageVersion(r.conmonPath)
 	runtimeVersion, err := r.getOCIRuntimeVersion()
 	if err != nil {
-		return nil, nil, fmt.Errorf("error getting version of OCI runtime %s: %w", r.name, err)
+		return nil, nil, fmt.Errorf("getting version of OCI runtime %s: %w", r.name, err)
 	}
 	conmonVersion, err := r.getConmonVersion()
 	if err != nil {
-		return nil, nil, fmt.Errorf("error getting conmon version: %w", err)
+		return nil, nil, fmt.Errorf("getting conmon version: %w", err)
 	}
 
 	conmon := define.ConmonInfo{
@@ -1001,13 +1001,13 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 
 	parentSyncPipe, childSyncPipe, err := newPipe()
 	if err != nil {
-		return 0, fmt.Errorf("error creating socket pair: %w", err)
+		return 0, fmt.Errorf("creating socket pair: %w", err)
 	}
 	defer errorhandling.CloseQuiet(parentSyncPipe)
 
 	childStartPipe, parentStartPipe, err := newPipe()
 	if err != nil {
-		return 0, fmt.Errorf("error creating socket pair for start pipe: %w", err)
+		return 0, fmt.Errorf("creating socket pair for start pipe: %w", err)
 	}
 
 	defer errorhandling.CloseQuiet(parentStartPipe)

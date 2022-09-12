@@ -561,7 +561,7 @@ func getCerts(certsDir string, isDir bool) []File {
 func prepareCertFile(path string, name string) (File, error) {
 	b, err := ioutil.ReadFile(path)
 	if err != nil {
-		logrus.Warnf("Unable to read cert file %s", err.Error())
+		logrus.Warnf("Unable to read cert file %v", err)
 		return File{}, err
 	}
 

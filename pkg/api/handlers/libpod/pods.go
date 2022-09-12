@@ -51,7 +51,7 @@ func PodCreate(w http.ResponseWriter, r *http.Request) {
 		}
 		err = specgenutil.FillOutSpecGen(psg.InfraContainerSpec, &infraOptions, []string{}) // necessary for default values in many cases (userns, idmappings)
 		if err != nil {
-			utils.Error(w, http.StatusInternalServerError, fmt.Errorf("error filling out specgen: %w", err))
+			utils.Error(w, http.StatusInternalServerError, fmt.Errorf("filling out specgen: %w", err))
 			return
 		}
 		out, err := json.Marshal(psg) // marshal our spec so the matching options can be unmarshaled into infra
@@ -178,7 +178,7 @@ func PodStop(w http.ResponseWriter, r *http.Request) {
 
 	report := entities.PodStopReport{Id: pod.ID()}
 	for id, err := range responses {
-		report.Errs = append(report.Errs, fmt.Errorf("error stopping container %s: %w", id, err))
+		report.Errs = append(report.Errs, fmt.Errorf("stopping container %s: %w", id, err))
 	}
 
 	code := http.StatusOK
@@ -214,7 +214,7 @@ func PodStart(w http.ResponseWriter, r *http.Request) {
 
 	report := entities.PodStartReport{Id: pod.ID()}
 	for id, err := range responses {
-		report.Errs = append(report.Errs, fmt.Errorf("%v: %w", "error starting container "+id, err))
+		report.Errs = append(report.Errs, fmt.Errorf("%v: %w", "starting container "+id, err))
 	}
 
 	code := http.StatusOK
@@ -270,7 +270,7 @@ func PodRestart(w http.ResponseWriter, r *http.Request) {
 
 	report := entities.PodRestartReport{Id: pod.ID()}
 	for id, err := range responses {
-		report.Errs = append(report.Errs, fmt.Errorf("error restarting container %s: %w", id, err))
+		report.Errs = append(report.Errs, fmt.Errorf("restarting container %s: %w", id, err))
 	}
 
 	code := http.StatusOK
@@ -321,7 +321,7 @@ func PodPause(w http.ResponseWriter, r *http.Request) {
 
 	report := entities.PodPauseReport{Id: pod.ID()}
 	for id, v := range responses {
-		report.Errs = append(report.Errs, fmt.Errorf("error pausing container %s: %w", id, v))
+		report.Errs = append(report.Errs, fmt.Errorf("pausing container %s: %w", id, v))
 	}
 
 	code := http.StatusOK
@@ -347,7 +347,7 @@ func PodUnpause(w http.ResponseWriter, r *http.Request) {
 
 	report := entities.PodUnpauseReport{Id: pod.ID()}
 	for id, v := range responses {
-		report.Errs = append(report.Errs, fmt.Errorf("error unpausing container %s: %w", id, v))
+		report.Errs = append(report.Errs, fmt.Errorf("unpausing container %s: %w", id, v))
 	}
 
 	code := http.StatusOK

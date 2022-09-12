@@ -160,7 +160,7 @@ func detectCycles(graph *ContainerGraph) (bool, error) {
 			// Popped item is no longer on the stack, mark as such
 			topInfo, ok := nodes[topOfStack.id]
 			if !ok {
-				return false, fmt.Errorf("error finding node info for %s: %w", topOfStack.id, define.ErrInternal)
+				return false, fmt.Errorf("finding node info for %s: %w", topOfStack.id, define.ErrInternal)
 			}
 			topInfo.onStack = false
 

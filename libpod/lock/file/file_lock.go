@@ -102,7 +102,7 @@ func (locks *FileLocks) AllocateGivenLock(lck uint32) error {
 
 	f, err := os.OpenFile(locks.getLockPath(lck), os.O_RDWR|os.O_CREATE|os.O_EXCL, 0666)
 	if err != nil {
-		return fmt.Errorf("error creating lock %d: %w", lck, err)
+		return fmt.Errorf("creating lock %d: %w", lck, err)
 	}
 	f.Close()
 
@@ -130,7 +130,7 @@ func (locks *FileLocks) DeallocateAllLocks() error {
 	}
 	files, err := os.ReadDir(locks.lockPath)
 	if err != nil {
-		return fmt.Errorf("error reading directory %s: %w", locks.lockPath, err)
+		return fmt.Errorf("reading directory %s: %w", locks.lockPath, err)
 	}
 	var lastErr error
 	for _, f := range files {
@@ -152,7 +152,7 @@ func (locks *FileLocks) LockFileLock(lck uint32) error {
 
 	l, err := storage.GetLockfile(locks.getLockPath(lck))
 	if err != nil {
-		return fmt.Errorf("error acquiring lock: %w", err)
+		return fmt.Errorf("acquiring lock: %w", err)
 	}
 
 	l.Lock()
@@ -166,7 +166,7 @@ func (locks *FileLocks) UnlockFileLock(lck uint32) error {
 	}
 	l, err := storage.GetLockfile(locks.getLockPath(lck))
 	if err != nil {
-		return fmt.Errorf("error acquiring lock: %w", err)
+		return fmt.Errorf("acquiring lock: %w", err)
 	}
 
 	l.Unlock()

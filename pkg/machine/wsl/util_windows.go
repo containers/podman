@@ -263,19 +263,19 @@ func obtainShutdownPrivilege() error {
 
 	var hToken uintptr
 	if ret, _, err := OpenProcessToken.Call(uintptr(proc), TOKEN_ADJUST_PRIVILEGES|TOKEN_QUERY, uintptr(unsafe.Pointer(&hToken))); ret != 1 {
-		return fmt.Errorf("error opening process token: %w", err)
+		return fmt.Errorf("opening process token: %w", err)
 	}
 
 	var privs TokenPrivileges
 	if ret, _, err := LookupPrivilegeValue.Call(uintptr(0), uintptr(unsafe.Pointer(syscall.StringToUTF16Ptr(SeShutdownName))), uintptr(unsafe.Pointer(&(privs.privileges[0].luid)))); ret != 1 {
-		return fmt.Errorf("error looking up shutdown privilege: %w", err)
+		return fmt.Errorf("looking up shutdown privilege: %w", err)
 	}
 
 	privs.privilegeCount = 1
 	privs.privileges[0].attributes = SE_PRIVILEGE_ENABLED
 
 	if ret, _, err := AdjustTokenPrivileges.Call(hToken, 0, uintptr(unsafe.Pointer(&privs)), 0, uintptr(0), 0); ret != 1 {
-		return fmt.Errorf("error enabling shutdown privilege on token: %w", err)
+		return fmt.Errorf("enabling shutdown privilege on token: %w", err)
 	}
 
 	return nil

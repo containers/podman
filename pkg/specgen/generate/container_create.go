@@ -36,7 +36,7 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 	if s.Pod != "" {
 		pod, err = rt.LookupPod(s.Pod)
 		if err != nil {
-			return nil, nil, nil, fmt.Errorf("error retrieving pod %s: %w", s.Pod, err)
+			return nil, nil, nil, fmt.Errorf("retrieving pod %s: %w", s.Pod, err)
 		}
 		if pod.HasInfraContainer() {
 			infra, err = pod.InfraContainer()
@@ -344,7 +344,7 @@ func createContainerOptions(rt *libpod.Runtime, s *specgen.SpecGenerator, pod *l
 		if s.StopSignal == nil {
 			stopSignal, err := util.ParseSignal("RTMIN+3")
 			if err != nil {
-				return nil, fmt.Errorf("error parsing systemd signal: %w", err)
+				return nil, fmt.Errorf("parsing systemd signal: %w", err)
 			}
 			s.StopSignal = &stopSignal
 		}

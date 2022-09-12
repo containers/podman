@@ -298,7 +298,7 @@ func (ic *ContainerEngine) playKubeDeployment(ctx context.Context, deploymentYAM
 		podName := fmt.Sprintf("%s-pod-%d", deploymentName, i)
 		podReport, err := ic.playKubePod(ctx, podName, &podSpec, options, ipIndex, deploymentYAML.Annotations, configMaps, serviceContainer)
 		if err != nil {
-			return nil, fmt.Errorf("error encountered while bringing up pod %s: %w", podName, err)
+			return nil, fmt.Errorf("encountered while bringing up pod %s: %w", podName, err)
 		}
 		report.Pods = append(report.Pods, podReport.Pods...)
 	}
@@ -694,7 +694,7 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 			return nil, err
 		}
 		for id, err := range podStartErrors {
-			playKubePod.ContainerErrors = append(playKubePod.ContainerErrors, fmt.Errorf("error starting container %s: %w", id, err).Error())
+			playKubePod.ContainerErrors = append(playKubePod.ContainerErrors, fmt.Errorf("starting container %s: %w", id, err).Error())
 			fmt.Println(playKubePod.ContainerErrors)
 		}
 

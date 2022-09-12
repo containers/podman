@@ -225,7 +225,7 @@ func (r *ConmonOCIRuntime) ExecStopContainer(ctr *Container, sessionID string, t
 		if err == unix.ESRCH {
 			return nil
 		}
-		return fmt.Errorf("error pinging container %s exec session %s PID %d with signal 0: %w", ctr.ID(), sessionID, pid, err)
+		return fmt.Errorf("pinging container %s exec session %s PID %d with signal 0: %w", ctr.ID(), sessionID, pid, err)
 	}
 
 	if timeout > 0 {
@@ -235,7 +235,7 @@ func (r *ConmonOCIRuntime) ExecStopContainer(ctr *Container, sessionID string, t
 			if err == unix.ESRCH {
 				return nil
 			}
-			return fmt.Errorf("error killing container %s exec session %s PID %d with SIGTERM: %w", ctr.ID(), sessionID, pid, err)
+			return fmt.Errorf("killing container %s exec session %s PID %d with SIGTERM: %w", ctr.ID(), sessionID, pid, err)
 		}
 
 		// Wait for the PID to stop
@@ -253,7 +253,7 @@ func (r *ConmonOCIRuntime) ExecStopContainer(ctr *Container, sessionID string, t
 		if err == unix.ESRCH {
 			return nil
 		}
-		return fmt.Errorf("error killing container %s exec session %s PID %d with SIGKILL: %w", ctr.ID(), sessionID, pid, err)
+		return fmt.Errorf("killing container %s exec session %s PID %d with SIGKILL: %w", ctr.ID(), sessionID, pid, err)
 	}
 
 	// Wait for the PID to stop
@@ -279,7 +279,7 @@ func (r *ConmonOCIRuntime) ExecUpdateStatus(ctr *Container, sessionID string) (b
 		if err == unix.ESRCH {
 			return false, nil
 		}
-		return false, fmt.Errorf("error pinging container %s exec session %s PID %d with signal 0: %w", ctr.ID(), sessionID, pid, err)
+		return false, fmt.Errorf("pinging container %s exec session %s PID %d with signal 0: %w", ctr.ID(), sessionID, pid, err)
 	}
 
 	return true, nil
@@ -338,7 +338,7 @@ func (r *ConmonOCIRuntime) startExec(c *Container, sessionID string, options *Ex
 	// create sync pipe to receive the pid
 	parentSyncPipe, childSyncPipe, err := newPipe()
 	if err != nil {
-		return nil, nil, fmt.Errorf("error creating socket pair: %w", err)
+		return nil, nil, fmt.Errorf("creating socket pair: %w", err)
 	}
 	pipes.syncPipe = parentSyncPipe
 
@@ -352,7 +352,7 @@ func (r *ConmonOCIRuntime) startExec(c *Container, sessionID string, options *Ex
 	// attachToExec is responsible for closing parentStartPipe
 	childStartPipe, parentStartPipe, err := newPipe()
 	if err != nil {
-		return nil, nil, fmt.Errorf("error creating socket pair: %w", err)
+		return nil, nil, fmt.Errorf("creating socket pair: %w", err)
 	}
 	pipes.startPipe = parentStartPipe
 
@@ -362,7 +362,7 @@ func (r *ConmonOCIRuntime) startExec(c *Container, sessionID string, options *Ex
 	// attachToExec is responsible for closing parentAttachPipe
 	parentAttachPipe, childAttachPipe, err := newPipe()
 	if err != nil {
-		return nil, nil, fmt.Errorf("error creating socket pair: %w", err)
+		return nil, nil, fmt.Errorf("creating socket pair: %w", err)
 	}
 	pipes.attachPipe = parentAttachPipe
 
@@ -564,7 +564,7 @@ func attachExecHTTP(c *Container, sessionID string, r *http.Request, w http.Resp
 	httpCon, httpBuf, err := hijacker.Hijack()
 	if err != nil {
 		conmonPipeDataChan <- conmonPipeData{-1, err}
-		return fmt.Errorf("error hijacking connection: %w", err)
+		return fmt.Errorf("hijacking connection: %w", err)
 	}
 
 	hijackDone <- true
@@ -575,7 +575,7 @@ func attachExecHTTP(c *Container, sessionID string, r *http.Request, w http.Resp
 	// Force a flush after the header is written.
 	if err := httpBuf.Flush(); err != nil {
 		conmonPipeDataChan <- conmonPipeData{-1, err}
-		return fmt.Errorf("error flushing HTTP hijack header: %w", err)
+		return fmt.Errorf("flushing HTTP hijack header: %w", err)
 	}
 
 	go func() {
@@ -723,7 +723,7 @@ func (c *Container) prepareProcessExec(options *ExecOptions, env []string, sessi
 	if len(addGroups) > 0 {
 		sgids, err = lookup.GetContainerGroups(addGroups, c.state.Mountpoint, overrides)
 		if err != nil {
-			return nil, fmt.Errorf("error looking up supplemental groups for container %s exec session %s: %w", c.ID(), sessionID, err)
+			return nil, fmt.Errorf("looking up supplemental groups for container %s exec session %s: %w", c.ID(), sessionID, err)
 		}
 	}
 

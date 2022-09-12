@@ -222,7 +222,7 @@ func build(cmd *cobra.Command, args []string) error {
 		// The context directory could be a URL.  Try to handle that.
 		tempDir, subDir, err := buildahDefine.TempDirForURL("", "buildah", args[0])
 		if err != nil {
-			return fmt.Errorf("error prepping temporary context directory: %w", err)
+			return fmt.Errorf("prepping temporary context directory: %w", err)
 		}
 		if tempDir != "" {
 			// We had to download it to a temporary directory.
@@ -237,7 +237,7 @@ func build(cmd *cobra.Command, args []string) error {
 			// Nope, it was local.  Use it as is.
 			absDir, err := filepath.Abs(args[0])
 			if err != nil {
-				return fmt.Errorf("error determining path to directory %q: %w", args[0], err)
+				return fmt.Errorf("determining path to directory %q: %w", args[0], err)
 			}
 			contextDir = absDir
 		}
@@ -253,7 +253,7 @@ func build(cmd *cobra.Command, args []string) error {
 			}
 			absFile, err := filepath.Abs(containerFiles[i])
 			if err != nil {
-				return fmt.Errorf("error determining path to file %q: %w", containerFiles[i], err)
+				return fmt.Errorf("determining path to file %q: %w", containerFiles[i], err)
 			}
 			contextDir = filepath.Dir(absFile)
 			containerFiles[i] = absFile

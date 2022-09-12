@@ -354,7 +354,7 @@ func (r *RootlessNetNS) Cleanup(runtime *Runtime) error {
 		}
 	}
 	if err != nil {
-		logrus.Errorf("Failed to kill slirp4netns process: %s", err)
+		logrus.Errorf("Failed to kill slirp4netns process: %v", err)
 	}
 	err = os.RemoveAll(r.dir)
 	if err != nil {
@@ -411,13 +411,13 @@ func (r *Runtime) GetRootlessNetNs(new bool) (*RootlessNetNS, error) {
 	if err != nil {
 		if !new {
 			// return a error if we could not get the namespace and should no create one
-			return nil, fmt.Errorf("error getting rootless network namespace: %w", err)
+			return nil, fmt.Errorf("getting rootless network namespace: %w", err)
 		}
 		// create a new namespace
 		logrus.Debugf("creating rootless network namespace with name %q", netnsName)
 		ns, err = netns.NewNSWithName(netnsName)
 		if err != nil {
-			return nil, fmt.Errorf("error creating rootless network namespace: %w", err)
+			return nil, fmt.Errorf("creating rootless network namespace: %w", err)
 		}
 		// set up slirp4netns here
 		path := r.config.Engine.NetworkCmdPath
@@ -442,7 +442,7 @@ func (r *Runtime) GetRootlessNetNs(new bool) (*RootlessNetNS, error) {
 		}
 		slirpFeatures, err := checkSlirpFlags(path)
 		if err != nil {
-			return nil, fmt.Errorf("error checking slirp4netns binary %s: %q: %w", path, err, err)
+			return nil, fmt.Errorf("checking slirp4netns binary %s: %q: %w", path, err, err)
 		}
 		cmdArgs, err := createBasicSlirp4netnsCmdArgs(netOptions, slirpFeatures)
 		if err != nil {
@@ -675,7 +675,7 @@ func (r *Runtime) configureNetNS(ctr *Container, ctrNS ns.NetNS) (status map[str
 func (r *Runtime) createNetNS(ctr *Container) (n ns.NetNS, q map[string]types.StatusBlock, retErr error) {
 	ctrNS, err := netns.NewNS()
 	if err != nil {
-		return nil, nil, fmt.Errorf("error creating network namespace for container %s: %w", ctr.ID(), err)
+		return nil, nil, fmt.Errorf("creating network namespace for container %s: %w", ctr.ID(), err)
 	}
 	defer func() {
 		if retErr != nil {
@@ -742,7 +742,7 @@ func (r *Runtime) setupNetNS(ctr *Container) error {
 func joinNetNS(path string) (ns.NetNS, error) {
 	netNS, err := ns.GetNS(path)
 	if err != nil {
-		return nil, fmt.Errorf("error retrieving network namespace at %s: %w", path, err)
+		return nil, fmt.Errorf("retrieving network namespace at %s: %w", path, err)
 	}
 
 	return netNS, nil
@@ -758,7 +758,7 @@ func (r *Runtime) closeNetNS(ctr *Container) error {
 	}
 
 	if err := ctr.state.NetNS.Close(); err != nil {
-		return fmt.Errorf("error closing network namespace for container %s: %w", ctr.ID(), err)
+		return fmt.Errorf("closing network namespace for container %s: %w", ctr.ID(), err)
 	}
 
 	ctr.state.NetNS = nil
@@ -775,7 +775,7 @@ func (r *Runtime) teardownNetwork(ns string, opts types.NetworkOptions) error {
 	}
 	tearDownPod := func() error {
 		if err := r.network.Teardown(ns, types.TeardownOptions{NetworkOptions: opts}); err != nil {
-			return fmt.Errorf("error tearing down network namespace configuration for container %s: %w", opts.ContainerID, err)
+			return fmt.Errorf("tearing down network namespace configuration for container %s: %w", opts.ContainerID, err)
 		}
 		return nil
 	}
@@ -828,12 +828,12 @@ func (r *Runtime) teardownNetNS(ctr *Container) error {
 
 	// First unmount the namespace
 	if err := netns.UnmountNS(ctr.state.NetNS); err != nil {
-		return fmt.Errorf("error unmounting network namespace for container %s: %w", ctr.ID(), err)
+		return fmt.Errorf("unmounting network namespace for container %s: %w", ctr.ID(), err)
 	}
 
 	// Now close the open file descriptor
 	if err := ctr.state.NetNS.Close(); err != nil {
-		return fmt.Errorf("error closing network namespace for container %s: %w", ctr.ID(), err)
+		return fmt.Errorf("closing network namespace for container %s: %w", ctr.ID(), err)
 	}
 
 	ctr.state.NetNS = nil

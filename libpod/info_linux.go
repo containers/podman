@@ -21,19 +21,19 @@ import (
 func (r *Runtime) setPlatformHostInfo(info *define.HostInfo) error {
 	seccompProfilePath, err := DefaultSeccompPath()
 	if err != nil {
-		return fmt.Errorf("error getting Seccomp profile path: %w", err)
+		return fmt.Errorf("getting Seccomp profile path: %w", err)
 	}
 
 	// Cgroups version
 	unified, err := cgroups.IsCgroup2UnifiedMode()
 	if err != nil {
-		return fmt.Errorf("error reading cgroups mode: %w", err)
+		return fmt.Errorf("reading cgroups mode: %w", err)
 	}
 
 	// Get Map of all available controllers
 	availableControllers, err := cgroups.GetAvailableControllers(nil, unified)
 	if err != nil {
-		return fmt.Errorf("error getting available cgroup controllers: %w", err)
+		return fmt.Errorf("getting available cgroup controllers: %w", err)
 	}
 
 	info.CgroupManager = r.config.Engine.CgroupManager
@@ -75,11 +75,11 @@ func (r *Runtime) setPlatformHostInfo(info *define.HostInfo) error {
 	if rootless.IsRootless() {
 		uidmappings, err := rootless.ReadMappingsProc("/proc/self/uid_map")
 		if err != nil {
-			return fmt.Errorf("error reading uid mappings: %w", err)
+			return fmt.Errorf("reading uid mappings: %w", err)
 		}
 		gidmappings, err := rootless.ReadMappingsProc("/proc/self/gid_map")
 		if err != nil {
-			return fmt.Errorf("error reading gid mappings: %w", err)
+			return fmt.Errorf("reading gid mappings: %w", err)
 		}
 		idmappings := define.IDMappings{
 			GIDMap: gidmappings,

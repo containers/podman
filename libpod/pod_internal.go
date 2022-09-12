@@ -38,7 +38,7 @@ func (p *Pod) updatePod() error {
 // Save pod state to database
 func (p *Pod) save() error {
 	if err := p.runtime.state.SavePod(p); err != nil {
-		return fmt.Errorf("error saving pod %s state: %w", p.ID(), err)
+		return fmt.Errorf("saving pod %s state: %w", p.ID(), err)
 	}
 
 	return nil
@@ -60,7 +60,7 @@ func (p *Pod) refresh() error {
 	// Retrieve the pod's lock
 	lock, err := p.runtime.lockManager.AllocateAndRetrieveLock(p.config.LockID)
 	if err != nil {
-		return fmt.Errorf("error retrieving lock %d for pod %s: %w", p.config.LockID, p.ID(), err)
+		return fmt.Errorf("retrieving lock %d for pod %s: %w", p.config.LockID, p.ID(), err)
 	}
 	p.lock = lock
 

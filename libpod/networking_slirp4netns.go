@@ -243,7 +243,7 @@ func (r *Runtime) setupSlirp4netns(ctr *Container, netns ns.NetNS) error {
 	}
 	slirpFeatures, err := checkSlirpFlags(path)
 	if err != nil {
-		return fmt.Errorf("error checking slirp4netns binary %s: %q: %w", path, err, err)
+		return fmt.Errorf("checking slirp4netns binary %s: %q: %w", path, err, err)
 	}
 	cmdArgs, err := createBasicSlirp4netnsCmdArgs(netOptions, slirpFeatures)
 	if err != nil {
@@ -405,7 +405,7 @@ func GetSlirp4netnsIP(subnet *net.IPNet) (*net.IP, error) {
 	}
 	expectedIP, err := addToIP(slirpSubnet, uint32(100))
 	if err != nil {
-		return nil, fmt.Errorf("error calculating expected ip for slirp4netns: %w", err)
+		return nil, fmt.Errorf("calculating expected ip for slirp4netns: %w", err)
 	}
 	return expectedIP, nil
 }
@@ -419,7 +419,7 @@ func GetSlirp4netnsGateway(subnet *net.IPNet) (*net.IP, error) {
 	}
 	expectedGatewayIP, err := addToIP(slirpSubnet, uint32(2))
 	if err != nil {
-		return nil, fmt.Errorf("error calculating expected gateway ip for slirp4netns: %w", err)
+		return nil, fmt.Errorf("calculating expected gateway ip for slirp4netns: %w", err)
 	}
 	return expectedGatewayIP, nil
 }
@@ -433,7 +433,7 @@ func GetSlirp4netnsDNS(subnet *net.IPNet) (*net.IP, error) {
 	}
 	expectedDNSIP, err := addToIP(slirpSubnet, uint32(3))
 	if err != nil {
-		return nil, fmt.Errorf("error calculating expected dns ip for slirp4netns: %w", err)
+		return nil, fmt.Errorf("calculating expected dns ip for slirp4netns: %w", err)
 	}
 	return expectedDNSIP, nil
 }
@@ -465,7 +465,7 @@ func waitForSync(syncR *os.File, cmd *exec.Cmd, logFile io.ReadSeeker, timeout t
 	b := make([]byte, 16)
 	for {
 		if err := syncR.SetDeadline(time.Now().Add(timeout)); err != nil {
-			return fmt.Errorf("error setting %s pipe timeout: %w", prog, err)
+			return fmt.Errorf("setting %s pipe timeout: %w", prog, err)
 		}
 		// FIXME: return err as soon as proc exits, without waiting for timeout
 		if _, err := syncR.Read(b); err == nil {
@@ -676,7 +676,7 @@ func openSlirp4netnsPort(apiSocket, proto, hostip string, hostport, guestport ui
 	// successful.
 	var y map[string]interface{}
 	if err := json.Unmarshal(buf[0:readLength], &y); err != nil {
-		return fmt.Errorf("error parsing error status from slirp4netns: %w", err)
+		return fmt.Errorf("parsing error status from slirp4netns: %w", err)
 	}
 	if e, found := y["error"]; found {
 		return fmt.Errorf("from slirp4netns while setting up port redirection: %v", e)

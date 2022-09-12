@@ -150,7 +150,7 @@ func systemd(cmd *cobra.Command, args []string) error {
 	if cmd.Flags().Changed(envFlagName) {
 		cliEnv, err := envLib.ParseSlice(envInput)
 		if err != nil {
-			return fmt.Errorf("error parsing environment variables: %w", err)
+			return fmt.Errorf("parsing environment variables: %w", err)
 		}
 		systemdOptions.AdditionalEnvVariables = envLib.Slice(cliEnv)
 	}
@@ -169,7 +169,7 @@ func systemd(cmd *cobra.Command, args []string) error {
 	if files {
 		cwd, err := os.Getwd()
 		if err != nil {
-			return fmt.Errorf("error getting current working directory: %w", err)
+			return fmt.Errorf("getting current working directory: %w", err)
 		}
 		for name, content := range reports.Units {
 			path := filepath.Join(cwd, fmt.Sprintf("%s.service", name))

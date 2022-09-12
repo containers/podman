@@ -77,7 +77,7 @@ func (ic *ContainerEngine) PodKill(ctx context.Context, namesOrIds []string, opt
 		}
 		if len(conErrs) > 0 {
 			for id, err := range conErrs {
-				report.Errs = append(report.Errs, fmt.Errorf("error killing container %s: %w", id, err))
+				report.Errs = append(report.Errs, fmt.Errorf("killing container %s: %w", id, err))
 			}
 			reports = append(reports, &report)
 			continue
@@ -143,7 +143,7 @@ func (ic *ContainerEngine) PodPause(ctx context.Context, namesOrIds []string, op
 		}
 		if len(errs) > 0 {
 			for id, v := range errs {
-				report.Errs = append(report.Errs, fmt.Errorf("error pausing container %s: %w", id, v))
+				report.Errs = append(report.Errs, fmt.Errorf("pausing container %s: %w", id, v))
 			}
 			reports = append(reports, &report)
 			continue
@@ -177,7 +177,7 @@ func (ic *ContainerEngine) PodUnpause(ctx context.Context, namesOrIds []string, 
 		}
 		if len(errs) > 0 {
 			for id, v := range errs {
-				report.Errs = append(report.Errs, fmt.Errorf("error unpausing container %s: %w", id, v))
+				report.Errs = append(report.Errs, fmt.Errorf("unpausing container %s: %w", id, v))
 			}
 			reports = append(reports, &report)
 			continue
@@ -203,7 +203,7 @@ func (ic *ContainerEngine) PodStop(ctx context.Context, namesOrIds []string, opt
 		}
 		if len(errs) > 0 {
 			for id, v := range errs {
-				report.Errs = append(report.Errs, fmt.Errorf("error stopping container %s: %w", id, v))
+				report.Errs = append(report.Errs, fmt.Errorf("stopping container %s: %w", id, v))
 			}
 			reports = append(reports, &report)
 			continue
@@ -229,7 +229,7 @@ func (ic *ContainerEngine) PodRestart(ctx context.Context, namesOrIds []string, 
 		}
 		if len(errs) > 0 {
 			for id, v := range errs {
-				report.Errs = append(report.Errs, fmt.Errorf("error restarting container %s: %w", id, v))
+				report.Errs = append(report.Errs, fmt.Errorf("restarting container %s: %w", id, v))
 			}
 			reports = append(reports, &report)
 			continue
@@ -256,7 +256,7 @@ func (ic *ContainerEngine) PodStart(ctx context.Context, namesOrIds []string, op
 		}
 		if len(errs) > 0 {
 			for id, v := range errs {
-				report.Errs = append(report.Errs, fmt.Errorf("error starting container %s: %w", id, v))
+				report.Errs = append(report.Errs, fmt.Errorf("starting container %s: %w", id, v))
 			}
 			reports = append(reports, &report)
 			continue

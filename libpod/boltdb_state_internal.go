@@ -195,7 +195,7 @@ func checkRuntimeConfig(db *bolt.DB, rt *Runtime) error {
 			}
 
 			if err := configBkt.Put(missing.key, dbValue); err != nil {
-				return fmt.Errorf("error updating %s in DB runtime config: %w", missing.name, err)
+				return fmt.Errorf("updating %s in DB runtime config: %w", missing.name, err)
 			}
 		}
 
@@ -254,7 +254,7 @@ func (s *BoltState) getDBCon() (*bolt.DB, error) {
 
 	db, err := bolt.Open(s.dbPath, 0600, nil)
 	if err != nil {
-		return nil, fmt.Errorf("error opening database %s: %w", s.dbPath, err)
+		return nil, fmt.Errorf("opening database %s: %w", s.dbPath, err)
 	}
 
 	return db, nil
@@ -403,7 +403,7 @@ func (s *BoltState) getContainerConfigFromDB(id []byte, config *ContainerConfig,
 	}
 
 	if err := json.Unmarshal(configBytes, config); err != nil {
-		return fmt.Errorf("error unmarshalling container %s config: %w", string(id), err)
+		return fmt.Errorf("unmarshalling container %s config: %w", string(id), err)
 	}
 
 	// convert ports to the new format if needed
@@ -426,7 +426,7 @@ func (s *BoltState) getContainerFromDB(id []byte, ctr *Container, ctrsBkt *bolt.
 	// Get the lock
 	lock, err := s.runtime.lockManager.RetrieveLock(ctr.config.LockID)
 	if err != nil {
-		return fmt.Errorf("error retrieving lock for container %s: %w", string(id), err)
+		return fmt.Errorf("retrieving lock for container %s: %w", string(id), err)
 	}
 	ctr.lock = lock
 
@@ -489,13 +489,13 @@ func (s *BoltState) getPodFromDB(id []byte, pod *Pod, podBkt *bolt.Bucket) error
 	}
 
 	if err := json.Unmarshal(podConfigBytes, pod.config); err != nil {
-		return fmt.Errorf("error unmarshalling pod %s config from DB: %w", string(id), err)
+		return fmt.Errorf("unmarshalling pod %s config from DB: %w", string(id), err)
 	}
 
 	// Get the lock
 	lock, err := s.runtime.lockManager.RetrieveLock(pod.config.LockID)
 	if err != nil {
-		return fmt.Errorf("error retrieving lock for pod %s: %w", string(id), err)
+		return fmt.Errorf("retrieving lock for pod %s: %w", string(id), err)
 	}
 	pod.lock = lock
 
@@ -517,14 +517,14 @@ func (s *BoltState) getVolumeFromDB(name []byte, volume *Volume, volBkt *bolt.Bu
 	}
 
 	if err := json.Unmarshal(volConfigBytes, volume.config); err != nil {
-		return fmt.Errorf("error unmarshalling volume %s config from DB: %w", string(name), err)
+		return fmt.Errorf("unmarshalling volume %s config from DB: %w", string(name), err)
 	}
 
 	// Volume state is allowed to be nil for legacy compatibility
 	volStateBytes := volDB.Get(stateKey)
 	if volStateBytes != nil {
 		if err := json.Unmarshal(volStateBytes, volume.state); err != nil {
-			return fmt.Errorf("error unmarshalling volume %s state from DB: %w", string(name), err)
+			return fmt.Errorf("unmarshalling volume %s state from DB: %w", string(name), err)
 		}
 	}
 
@@ -546,7 +546,7 @@ func (s *BoltState) getVolumeFromDB(name []byte, volume *Volume, volBkt *bolt.Bu
 	// Get the lock
 	lock, err := s.runtime.lockManager.RetrieveLock(volume.config.LockID)
 	if err != nil {
-		return fmt.Errorf("error retrieving lock for volume %q: %w", string(name), err)
+		return fmt.Errorf("retrieving lock for volume %q: %w", string(name), err)
 	}
 	volume.lock = lock
 
@@ -572,11 +572,11 @@ func (s *BoltState) addContainer(ctr *Container, pod *Pod) error {
 	// JSON container structs to insert into DB
 	configJSON, err := json.Marshal(ctr.config)
 	if err != nil {
-		return fmt.Errorf("error marshalling container %s config to JSON: %w", ctr.ID(), err)
+		return fmt.Errorf("marshalling container %s config to JSON: %w", ctr.ID(), err)
 	}
 	stateJSON, err := json.Marshal(ctr.state)
 	if err != nil {
-		return fmt.Errorf("error marshalling container %s state to JSON: %w", ctr.ID(), err)
+		return fmt.Errorf("marshalling container %s state to JSON: %w", ctr.ID(), err)
 	}
 	netNSPath := getNetNSPath(ctr)
 	dependsCtrs := ctr.Dependencies()
@@ -603,7 +603,7 @@ func (s *BoltState) addContainer(ctr *Container, pod *Pod) error {
 		opts.Aliases = append(opts.Aliases, ctr.config.ID[:12])
 		optBytes, err := json.Marshal(opts)
 		if err != nil {
-			return fmt.Errorf("error marshalling network options JSON for container %s: %w", ctr.ID(), err)
+			return fmt.Errorf("marshalling network options JSON for container %s: %w", ctr.ID(), err)
 		}
 		networks[net] = optBytes
 	}
@@ -694,60 +694,60 @@ func (s *BoltState) addContainer(ctr *Container, pod *Pod) error {
 		// No overlapping containers
 		// Add the new container to the DB
 		if err := idsBucket.Put(ctrID, ctrName); err != nil {
-			return fmt.Errorf("error adding container %s ID to DB: %w", ctr.ID(), err)
+			return fmt.Errorf("adding container %s ID to DB: %w", ctr.ID(), err)
 		}
 		if err := namesBucket.Put(ctrName, ctrID); err != nil {
-			return fmt.Errorf("error adding container %s name (%s) to DB: %w", ctr.ID(), ctr.Name(), err)
+			return fmt.Errorf("adding container %s name (%s) to DB: %w", ctr.ID(), ctr.Name(), err)
 		}
 		if ctrNamespace != nil {
 			if err := nsBucket.Put(ctrID, ctrNamespace); err != nil {
-				return fmt.Errorf("error adding container %s namespace (%q) to DB: %w", ctr.ID(), ctr.Namespace(), err)
+				return fmt.Errorf("adding container %s namespace (%q) to DB: %w", ctr.ID(), ctr.Namespace(), err)
 			}
 		}
 		if err := allCtrsBucket.Put(ctrID, ctrName); err != nil {
-			return fmt.Errorf("error adding container %s to all containers bucket in DB: %w", ctr.ID(), err)
+			return fmt.Errorf("adding container %s to all containers bucket in DB: %w", ctr.ID(), err)
 		}
 
 		newCtrBkt, err := ctrBucket.CreateBucket(ctrID)
 		if err != nil {
-			return fmt.Errorf("error adding container %s bucket to DB: %w", ctr.ID(), err)
+			return fmt.Errorf("adding container %s bucket to DB: %w", ctr.ID(), err)
 		}
 
 		if err := newCtrBkt.Put(configKey, configJSON); err != nil {
-			return fmt.Errorf("error adding container %s config to DB: %w", ctr.ID(), err)
+			return fmt.Errorf("adding container %s config to DB: %w", ctr.ID(), err)
 		}
 		if err := newCtrBkt.Put(stateKey, stateJSON); err != nil {
-			return fmt.Errorf("error adding container %s state to DB: %w", ctr.ID(), err)
+			return fmt.Errorf("adding container %s state to DB: %w", ctr.ID(), err)
 		}
 		if ctrNamespace != nil {
 			if err := newCtrBkt.Put(namespaceKey, ctrNamespace); err != nil {
-				return fmt.Errorf("error adding container %s namespace to DB: %w", ctr.ID(), err)
+				return fmt.Errorf("adding container %s namespace to DB: %w", ctr.ID(), err)
 			}
 		}
 		if pod != nil {
 			if err := newCtrBkt.Put(podIDKey, []byte(pod.ID())); err != nil {
-				return fmt.Errorf("error adding container %s pod to DB: %w", ctr.ID(), err)
+				return fmt.Errorf("adding container %s pod to DB: %w", ctr.ID(), err)
 			}
 		}
 		if netNSPath != "" {
 			if err := newCtrBkt.Put(netNSKey, []byte(netNSPath)); err != nil {
-				return fmt.Errorf("error adding container %s netns path to DB: %w", ctr.ID(), err)
+				return fmt.Errorf("adding container %s netns path to DB: %w", ctr.ID(), err)
 			}
 		}
 		if len(networks) > 0 {
 			ctrNetworksBkt, err := newCtrBkt.CreateBucket(networksBkt)
 			if err != nil {
-				return fmt.Errorf("error creating networks bucket for container %s: %w", ctr.ID(), err)
+				return fmt.Errorf("creating networks bucket for container %s: %w", ctr.ID(), err)
 			}
 			for network, opts := range networks {
 				if err := ctrNetworksBkt.Put([]byte(network), opts); err != nil {
-					return fmt.Errorf("error adding network %q to networks bucket for container %s: %w", network, ctr.ID(), err)
+					return fmt.Errorf("adding network %q to networks bucket for container %s: %w", network, ctr.ID(), err)
 				}
 			}
 		}
 
 		if _, err := newCtrBkt.CreateBucket(dependenciesBkt); err != nil {
-			return fmt.Errorf("error creating dependencies bucket for container %s: %w", ctr.ID(), err)
+			return fmt.Errorf("creating dependencies bucket for container %s: %w", ctr.ID(), err)
 		}
 
 		// Add dependencies for the container
@@ -784,14 +784,14 @@ func (s *BoltState) addContainer(ctr *Container, pod *Pod) error {
 				return fmt.Errorf("container %s does not have a dependencies bucket: %w", dependsCtr, define.ErrInternal)
 			}
 			if err := depCtrDependsBkt.Put(ctrID, ctrName); err != nil {
-				return fmt.Errorf("error adding ctr %s as dependency of container %s: %w", ctr.ID(), dependsCtr, err)
+				return fmt.Errorf("adding ctr %s as dependency of container %s: %w", ctr.ID(), dependsCtr, err)
 			}
 		}
 
 		// Add ctr to pod
 		if pod != nil && podCtrs != nil {
 			if err := podCtrs.Put(ctrID, ctrName); err != nil {
-				return fmt.Errorf("error adding container %s to pod %s: %w", ctr.ID(), pod.ID(), err)
+				return fmt.Errorf("adding container %s to pod %s: %w", ctr.ID(), pod.ID(), err)
 			}
 		}
 
@@ -804,11 +804,11 @@ func (s *BoltState) addContainer(ctr *Container, pod *Pod) error {
 
 			ctrDepsBkt, err := volDB.CreateBucketIfNotExists(volDependenciesBkt)
 			if err != nil {
-				return fmt.Errorf("error creating volume %s dependencies bucket to add container %s: %w", vol.Name, ctr.ID(), err)
+				return fmt.Errorf("creating volume %s dependencies bucket to add container %s: %w", vol.Name, ctr.ID(), err)
 			}
 			if depExists := ctrDepsBkt.Get(ctrID); depExists == nil {
 				if err := ctrDepsBkt.Put(ctrID, ctrID); err != nil {
-					return fmt.Errorf("error adding container %s to volume %s dependencies: %w", ctr.ID(), vol.Name, err)
+					return fmt.Errorf("adding container %s to volume %s dependencies: %w", ctr.ID(), vol.Name, err)
 				}
 			}
 		}
@@ -902,7 +902,7 @@ func (s *BoltState) removeContainer(ctr *Container, pod *Pod, tx *bolt.Tx) error
 				return fmt.Errorf("container %s is not in pod %s: %w", ctr.ID(), pod.ID(), define.ErrNoSuchCtr)
 			}
 			if err := podCtrs.Delete(ctrID); err != nil {
-				return fmt.Errorf("error removing container %s from pod %s: %w", ctr.ID(), pod.ID(), err)
+				return fmt.Errorf("removing container %s from pod %s: %w", ctr.ID(), pod.ID(), err)
 			}
 		}
 	}
@@ -943,21 +943,21 @@ func (s *BoltState) removeContainer(ctr *Container, pod *Pod, tx *bolt.Tx) error
 	}
 
 	if err := ctrBucket.DeleteBucket(ctrID); err != nil {
-		return fmt.Errorf("error deleting container %s from DB: %w", ctr.ID(), define.ErrInternal)
+		return fmt.Errorf("deleting container %s from DB: %w", ctr.ID(), define.ErrInternal)
 	}
 
 	if err := idsBucket.Delete(ctrID); err != nil {
-		return fmt.Errorf("error deleting container %s ID in DB: %w", ctr.ID(), err)
+		return fmt.Errorf("deleting container %s ID in DB: %w", ctr.ID(), err)
 	}
 
 	if err := namesBucket.Delete(ctrName); err != nil {
-		return fmt.Errorf("error deleting container %s name in DB: %w", ctr.ID(), err)
+		return fmt.Errorf("deleting container %s name in DB: %w", ctr.ID(), err)
 	}
 	if err := nsBucket.Delete(ctrID); err != nil {
-		return fmt.Errorf("error deleting container %s namespace in DB: %w", ctr.ID(), err)
+		return fmt.Errorf("deleting container %s namespace in DB: %w", ctr.ID(), err)
 	}
 	if err := allCtrsBucket.Delete(ctrID); err != nil {
-		return fmt.Errorf("error deleting container %s from all containers bucket in DB: %w", ctr.ID(), err)
+		return fmt.Errorf("deleting container %s from all containers bucket in DB: %w", ctr.ID(), err)
 	}
 
 	depCtrs := ctr.Dependencies()
@@ -986,7 +986,7 @@ func (s *BoltState) removeContainer(ctr *Container, pod *Pod, tx *bolt.Tx) error
 		}
 
 		if err := depCtrDependsBkt.Delete(ctrID); err != nil {
-			return fmt.Errorf("error removing container %s as a dependency of container %s: %w", ctr.ID(), depCtr, err)
+			return fmt.Errorf("removing container %s as a dependency of container %s: %w", ctr.ID(), depCtr, err)
 		}
 	}
 
@@ -1005,7 +1005,7 @@ func (s *BoltState) removeContainer(ctr *Container, pod *Pod, tx *bolt.Tx) error
 		}
 		if depExists := ctrDepsBkt.Get(ctrID); depExists == nil {
 			if err := ctrDepsBkt.Delete(ctrID); err != nil {
-				return fmt.Errorf("error deleting container %s dependency on volume %s: %w", ctr.ID(), vol.Name, err)
+				return fmt.Errorf("deleting container %s dependency on volume %s: %w", ctr.ID(), vol.Name, err)
 			}
 		}
 	}

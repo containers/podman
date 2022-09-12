@@ -231,7 +231,7 @@ func DefaultSeccompPath() (string, error) {
 func checkDependencyContainer(depCtr, ctr *Container) error {
 	state, err := depCtr.State()
 	if err != nil {
-		return fmt.Errorf("error accessing dependency container %s state: %w", depCtr.ID(), err)
+		return fmt.Errorf("accessing dependency container %s state: %w", depCtr.ID(), err)
 	}
 	if state == define.ContainerStateRemoving {
 		return fmt.Errorf("cannot use container %s as a dependency as it is being removed: %w", depCtr.ID(), define.ErrCtrStateInvalid)

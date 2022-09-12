@@ -354,7 +354,7 @@ func createPortMappings(s *specgen.SpecGenerator, imageData *libimage.ImageData)
 			}
 			protocols, err := checkProtocol(proto, false)
 			if err != nil {
-				return nil, nil, fmt.Errorf("error validating protocols for exposed port %d: %w", port, err)
+				return nil, nil, fmt.Errorf("validating protocols for exposed port %d: %w", port, err)
 			}
 			toExpose[port] = appendProtocolsNoDuplicates(toExpose[port], protocols)
 		}

@@ -78,7 +78,7 @@ func GenerateSystemd(w http.ResponseWriter, r *http.Request) {
 
 	report, err := containerEngine.GenerateSystemd(r.Context(), utils.GetName(r), options)
 	if err != nil {
-		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("error generating systemd units: %w", err))
+		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("generating systemd units: %w", err))
 		return
 	}
 
@@ -104,7 +104,7 @@ func GenerateKube(w http.ResponseWriter, r *http.Request) {
 	options := entities.GenerateKubeOptions{Service: query.Service}
 	report, err := containerEngine.GenerateKube(r.Context(), query.Names, options)
 	if err != nil {
-		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("error generating YAML: %w", err))
+		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("generating YAML: %w", err))
 		return
 	}
 

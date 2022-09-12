@@ -1187,7 +1187,7 @@ func (p *Provider) IsValidVMName(name string) (bool, error) {
 func (p *Provider) CheckExclusiveActiveVM() (bool, string, error) {
 	vms, err := getVMInfos()
 	if err != nil {
-		return false, "", fmt.Errorf("error checking VM active: %w", err)
+		return false, "", fmt.Errorf("checking VM active: %w", err)
 	}
 	for _, vm := range vms {
 		if vm.Running || vm.Starting {

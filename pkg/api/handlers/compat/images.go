@@ -59,7 +59,7 @@ func ExportImage(w http.ResponseWriter, r *http.Request) {
 	name := utils.GetName(r)
 	possiblyNormalizedName, err := utils.NormalizeToDockerHub(r, name)
 	if err != nil {
-		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("error normalizing image: %w", err))
+		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("normalizing image: %w", err))
 		return
 	}
 
@@ -155,7 +155,7 @@ func CommitContainer(w http.ResponseWriter, r *http.Request) {
 		destImage = fmt.Sprintf("%s:%s", query.Repo, query.Tag)
 		possiblyNormalizedName, err := utils.NormalizeToDockerHub(r, destImage)
 		if err != nil {
-			utils.Error(w, http.StatusInternalServerError, fmt.Errorf("error normalizing image: %w", err))
+			utils.Error(w, http.StatusInternalServerError, fmt.Errorf("normalizing image: %w", err))
 			return
 		}
 		destImage = possiblyNormalizedName
@@ -209,7 +209,7 @@ func CreateImageFromSrc(w http.ResponseWriter, r *http.Request) {
 	if query.Repo != "" {
 		possiblyNormalizedName, err := utils.NormalizeToDockerHub(r, reference)
 		if err != nil {
-			utils.Error(w, http.StatusInternalServerError, fmt.Errorf("error normalizing image: %w", err))
+			utils.Error(w, http.StatusInternalServerError, fmt.Errorf("normalizing image: %w", err))
 			return
 		}
 		reference = possiblyNormalizedName
@@ -272,7 +272,7 @@ func CreateImageFromImage(w http.ResponseWriter, r *http.Request) {
 
 	possiblyNormalizedName, err := utils.NormalizeToDockerHub(r, mergeNameAndTagOrDigest(query.FromImage, query.Tag))
 	if err != nil {
-		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("error normalizing image: %w", err))
+		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("normalizing image: %w", err))
 		return
 	}
 
@@ -390,7 +390,7 @@ func GetImage(w http.ResponseWriter, r *http.Request) {
 	name := utils.GetName(r)
 	possiblyNormalizedName, err := utils.NormalizeToDockerHub(r, name)
 	if err != nil {
-		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("error normalizing image: %w", err))
+		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("normalizing image: %w", err))
 		return
 	}
 
@@ -541,7 +541,7 @@ func ExportImages(w http.ResponseWriter, r *http.Request) {
 	for i, img := range query.Names {
 		possiblyNormalizedName, err := utils.NormalizeToDockerHub(r, img)
 		if err != nil {
-			utils.Error(w, http.StatusInternalServerError, fmt.Errorf("error normalizing image: %w", err))
+			utils.Error(w, http.StatusInternalServerError, fmt.Errorf("normalizing image: %w", err))
 			return
 		}
 		images[i] = possiblyNormalizedName

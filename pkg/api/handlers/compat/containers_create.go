@@ -64,7 +64,7 @@ func CreateContainer(w http.ResponseWriter, r *http.Request) {
 
 	imageName, err := utils.NormalizeToDockerHub(r, body.Config.Image)
 	if err != nil {
-		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("error normalizing image: %w", err))
+		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("normalizing image: %w", err))
 		return
 	}
 	body.Config.Image = imageName
@@ -76,7 +76,7 @@ func CreateContainer(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("error looking up image: %w", err))
+		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("looking up image: %w", err))
 		return
 	}
 
@@ -480,7 +480,7 @@ func cliOpts(cc handlers.CreateContainerConfig, rtc *config.Config) (*entities.C
 		}
 		if err := os.MkdirAll(vol, 0o755); err != nil {
 			if !os.IsExist(err) {
-				return nil, nil, fmt.Errorf("error making volume mountpoint for volume %s: %w", vol, err)
+				return nil, nil, fmt.Errorf("making volume mountpoint for volume %s: %w", vol, err)
 			}
 		}
 	}
