@@ -115,6 +115,7 @@ function _confirm_update() {
     # Image has already been pulled, so this shouldn't take too long
     local timeout=5
     while [[ $timeout -gt 0 ]]; do
+        sleep 1
         run_podman '?' inspect --format "{{.Image}}" $cname
         if [[ $status != 0 ]]; then
             if [[ $output =~ (no such object|does not exist in database): ]]; then
@@ -126,7 +127,7 @@ function _confirm_update() {
         elif [[ $output != $old_iid ]]; then
             return
         fi
-        sleep 1
+        timeout=$((timeout - 1))
     done
 
     die "Timed out waiting for $cname to update; old IID=$old_iid"
