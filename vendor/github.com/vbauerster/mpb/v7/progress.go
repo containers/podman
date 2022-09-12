@@ -254,19 +254,25 @@ func (s *pState) render(cw *cwriter.Writer) error {
 }
 
 func (s *pState) flush(cw *cwriter.Writer, height int) error {
+	var wg sync.WaitGroup
 	var popCount int
 	rows := make([]io.Reader, 0, height)
 	pool := make([]*Bar, 0, s.bHeap.Len())
 	for s.bHeap.Len() > 0 {
-		var frameRowsUsed int
+		var usedRows int
 		b := heap.Pop(&s.bHeap).(*Bar)
 		frame := <-b.frameCh
 		for i := len(frame.rows) - 1; i >= 0; i-- {
-			if len(rows) == height {
-				break
+			if row := frame.rows[i]; len(rows) < height {
+				rows = append(rows, row)
+				usedRows++
+			} else {
+				wg.Add(1)
+				go func() {
+					_, _ = io.Copy(io.Discard, row)
+					wg.Done()
+				}()
 			}
-			rows = append(rows, frame.rows[i])
-			frameRowsUsed++
 		}
 		if frame.shutdown != 0 {
 			b.Wait() // waiting for b.done, so it's safe to read b.bs
@@ -278,7 +284,7 @@ func (s *pState) flush(cw *cwriter.Writer, height int) error {
 				drop = true
 			} else if s.popCompleted && !b.bs.noPop {
 				if frame.shutdown > 1 {
-					popCount += frameRowsUsed
+					popCount += usedRows
 					drop = true
 				} else {
 					s.popPriority++
@@ -300,10 +306,12 @@ func (s *pState) flush(cw *cwriter.Writer, height int) error {
 	for i := len(rows) - 1; i >= 0; i-- {
 		_, err := cw.ReadFrom(rows[i])
 		if err != nil {
+			wg.Wait()
 			return err
 		}
 	}
 
+	wg.Wait()
 	return cw.Flush(len(rows) - popCount)
 }
 
