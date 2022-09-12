@@ -344,6 +344,14 @@ func (r *layerStore) layerspath() string {
 func (r *layerStore) Load() error {
 	shouldSave := false
 	rpath := r.layerspath()
+	info, err := os.Stat(rpath)
+	if err != nil {
+		if !os.IsNotExist(err) {
+			return err
+		}
+	} else {
+		r.layerspathModified = info.ModTime()
+	}
 	data, err := ioutil.ReadFile(rpath)
 	if err != nil && !os.IsNotExist(err) {
 		return err
@@ -421,15 +429,6 @@ func (r *layerStore) Load() error {
 		if shouldSave {
 			return r.saveLayers()
 		}
-	}
-
-	info, statErr := os.Stat(r.layerspath())
-	if statErr != nil && !os.IsNotExist(statErr) {
-		return statErr
-	}
-
-	if info != nil {
-		r.layerspathModified = info.ModTime()
 	}
 
 	return err
