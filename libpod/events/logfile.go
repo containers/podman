@@ -38,7 +38,7 @@ func newLogFileEventer(options EventerOptions) (*EventLogFile, error) {
 	// https://github.com/containers/podman/issues/15688
 	fd, err := os.OpenFile(options.LogFilePath, os.O_RDONLY|os.O_CREATE, 0700)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create event log file: %w", err)
 	}
 	return &EventLogFile{options: options}, fd.Close()
 }

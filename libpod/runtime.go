@@ -1030,9 +1030,6 @@ func (r *Runtime) mergeDBConfig(dbConfig *DBConfig) {
 			logrus.Debugf("Overriding tmp dir %q with %q from database", c.TmpDir, dbConfig.LibpodTmp)
 		}
 		c.TmpDir = dbConfig.LibpodTmp
-		if c.EventsLogFilePath == "" {
-			c.EventsLogFilePath = filepath.Join(dbConfig.LibpodTmp, "events", "events.log")
-		}
 	}
 
 	if !r.storageSet.VolumePathSet && dbConfig.VolumePath != "" {
