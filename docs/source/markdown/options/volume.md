@@ -1,7 +1,7 @@
 #### **--volume**, **-v**=*[[SOURCE-VOLUME|HOST-DIR:]CONTAINER-DIR[:OPTIONS]]*
 
 Create a bind mount. If `-v /HOST-DIR:/CONTAINER-DIR` is specified, Podman
-bind mounts `/HOST-DIR` in the host to `/CONTAINER-DIR` in the Podman
+bind mounts `/HOST-DIR` from the host into `/CONTAINER-DIR` in the Podman
 container. Similarly, `-v SOURCE-VOLUME:/CONTAINER-DIR` will mount the named
 volume from the host into the container. If no such named volume exists, Podman will
 create one. (Note when using the remote client, including Mac and Windows (excluding WSL2) machines, the volumes will be mounted from the remote server, not necessarily the client machine.)
