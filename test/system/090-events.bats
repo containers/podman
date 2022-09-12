@@ -74,6 +74,7 @@ load helpers
 .*image tag $imageID $tag
 .*image untag $imageID $tag:latest
 .*image tag $imageID $tag
+.*image untag $imageID $IMAGE
 .*image untag $imageID $tag:latest
 .*image remove $imageID $imageID" \
        "podman events"
