@@ -869,7 +869,7 @@ func execTransferPodman(execUser *user.User, command []string, needToTag bool) (
 
 func getSigFilename(sigStoreDirPath string) (string, error) {
 	sigFileSuffix := 1
-	sigFiles, err := ioutil.ReadDir(sigStoreDirPath)
+	sigFiles, err := os.ReadDir(sigStoreDirPath)
 	if err != nil {
 		return "", err
 	}

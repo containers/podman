@@ -1671,7 +1671,7 @@ func (c *Container) mountNamedVolume(v *ContainerNamedVolume, mountpoint string)
 		// a bizarre issue where something copier.Get will ENOENT on
 		// empty directories and sometimes it will not.
 		// RHBZ#1928643
-		srcContents, err := ioutil.ReadDir(srcDir)
+		srcContents, err := os.ReadDir(srcDir)
 		if err != nil {
 			return nil, fmt.Errorf("error reading contents of source directory for copy up into volume %s: %w", vol.Name(), err)
 		}
@@ -1681,7 +1681,7 @@ func (c *Container) mountNamedVolume(v *ContainerNamedVolume, mountpoint string)
 
 		// If the volume is not empty, we should not copy up.
 		volMount := vol.mountPoint()
-		contents, err := ioutil.ReadDir(volMount)
+		contents, err := os.ReadDir(volMount)
 		if err != nil {
 			return nil, fmt.Errorf("error listing contents of volume %s mountpoint when copying up from container %s: %w", vol.Name(), c.ID(), err)
 		}

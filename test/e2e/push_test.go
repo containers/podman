@@ -78,7 +78,7 @@ var _ = Describe("Podman push", func() {
 
 		blobsDir := filepath.Join(bbdir, "blobs/sha256")
 
-		blobs, err := ioutil.ReadDir(blobsDir)
+		blobs, err := os.ReadDir(blobsDir)
 		Expect(err).To(BeNil())
 
 		for _, f := range blobs {
