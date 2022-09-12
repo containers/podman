@@ -4,6 +4,7 @@
 package system
 
 import (
+	"errors"
 	"fmt"
 	"unsafe"
 
