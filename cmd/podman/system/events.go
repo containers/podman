@@ -117,7 +117,6 @@ func eventsCmd(cmd *cobra.Command, _ []string) error {
 				if err := rpt.Execute(event); err != nil {
 					return err
 				}
-				os.Stdout.WriteString("\n")
 			default:
 				fmt.Println(event.ToHumanReadable(!noTrunc))
 			}
