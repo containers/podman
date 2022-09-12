@@ -581,7 +581,7 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 // be removed also if and only if the container is the sole user
 // Otherwise, RemoveContainer will return an error if the container is running
 func (r *Runtime) RemoveContainer(ctx context.Context, c *Container, force bool, removeVolume bool, timeout *uint) error {
-	return r.removeContainer(ctx, c, force, removeVolume, false, timeout)
+	return r.removeContainer(ctx, c, force, removeVolume, false, false, timeout)
 }
 
 // Internal function to remove a container.
@@ -589,7 +589,9 @@ func (r *Runtime) RemoveContainer(ctx context.Context, c *Container, force bool,
 // removePod is used only when removing pods. It instructs Podman to ignore
 // infra container protections, and *not* remove from the database (as pod
 // remove will handle that).
-func (r *Runtime) removeContainer(ctx context.Context, c *Container, force, removeVolume, removePod bool, timeout *uint) error {
+// ignoreDeps is *DANGEROUS* and should not be used outside of a very specific
+// context (alternate pod removal code, where graph traversal is not possible).
+func (r *Runtime) removeContainer(ctx context.Context, c *Container, force, removeVolume, removePod, ignoreDeps bool, timeout *uint) error {
 	if !c.valid {
 		if ok, _ := r.state.HasContainer(c.ID()); !ok {
 			// Container probably already removed
@@ -618,25 +620,27 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force, remo
 	// pod.
 	var pod *Pod
 	runtime := c.runtime
-	if c.config.Pod != "" && !removePod {
+	if c.config.Pod != "" {
 		pod, err = r.state.Pod(c.config.Pod)
 		if err != nil {
 			return fmt.Errorf("container %s is in pod %s, but pod cannot be retrieved: %w", c.ID(), pod.ID(), err)
 		}
 
-		// Lock the pod while we're removing container
-		if pod.config.LockID == c.config.LockID {
-			return fmt.Errorf("container %s and pod %s share lock ID %d: %w", c.ID(), pod.ID(), c.config.LockID, define.ErrWillDeadlock)
-		}
-		pod.lock.Lock()
-		defer pod.lock.Unlock()
-		if err := pod.updatePod(); err != nil {
-			return err
-		}
+		if !removePod {
+			// Lock the pod while we're removing container
+			if pod.config.LockID == c.config.LockID {
+				return fmt.Errorf("container %s and pod %s share lock ID %d: %w", c.ID(), pod.ID(), c.config.LockID, define.ErrWillDeadlock)
+			}
+			pod.lock.Lock()
+			defer pod.lock.Unlock()
+			if err := pod.updatePod(); err != nil {
+				return err
+			}
 
-		infraID := pod.state.InfraContainerID
-		if c.ID() == infraID {
-			return fmt.Errorf("container %s is the infra container of pod %s and cannot be removed without removing the pod", c.ID(), pod.ID())
+			infraID := pod.state.InfraContainerID
+			if c.ID() == infraID {
+				return fmt.Errorf("container %s is the infra container of pod %s and cannot be removed without removing the pod", c.ID(), pod.ID())
+			}
 		}
 	}
 
@@ -696,7 +700,7 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force, remo
 	// Check that no other containers depend on the container.
 	// Only used if not removing a pod - pods guarantee that all
 	// deps will be evicted at the same time.
-	if !removePod {
+	if !ignoreDeps {
 		deps, err := r.state.ContainerInUse(c)
 		if err != nil {
 			return err
@@ -777,13 +781,11 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force, remo
 	if c.config.Pod != "" {
 		// If we're removing the pod, the container will be evicted
 		// from the state elsewhere
-		if !removePod {
-			if err := r.state.RemoveContainerFromPod(pod, c); err != nil {
-				if cleanupErr == nil {
-					cleanupErr = err
-				} else {
-					logrus.Errorf("Removing container %s from database: %v", c.ID(), err)
-				}
+		if err := r.state.RemoveContainerFromPod(pod, c); err != nil {
+			if cleanupErr == nil {
+				cleanupErr = err
+			} else {
+				logrus.Errorf("Removing container %s from database: %v", c.ID(), err)
 			}
 		}
 	} else {
@@ -872,7 +874,7 @@ func (r *Runtime) evictContainer(ctx context.Context, idOrName string, removeVol
 	if err == nil {
 		logrus.Infof("Container %s successfully retrieved from state, attempting normal removal", id)
 		// Assume force = true for the evict case
-		err = r.removeContainer(ctx, tmpCtr, true, removeVolume, false, timeout)
+		err = r.removeContainer(ctx, tmpCtr, true, removeVolume, false, false, timeout)
 		if !tmpCtr.valid {
 			// If the container is marked invalid, remove succeeded
 			// in kicking it out of the state - no need to continue.
@@ -1034,7 +1036,7 @@ func (r *Runtime) RemoveDepend(ctx context.Context, rmCtr *Container, force bool
 	}
 
 	report := reports.RmReport{Id: rmCtr.ID(), RawInput: rmCtr.ID()}
-	report.Err = r.removeContainer(ctx, rmCtr, force, removeVolume, false, timeout)
+	report.Err = r.removeContainer(ctx, rmCtr, force, removeVolume, false, false, timeout)
 	return append(rmReports, &report), nil
 }
 

@@ -47,7 +47,7 @@ func (r *Runtime) RemoveContainersForImageCallback(ctx context.Context) libimage
 					return fmt.Errorf("removing image %s: container %s using image could not be removed: %w", imageID, ctr.ID(), err)
 				}
 			} else {
-				if err := r.removeContainer(ctx, ctr, true, false, false, timeout); err != nil {
+				if err := r.removeContainer(ctx, ctr, true, false, false, false, timeout); err != nil {
 					return fmt.Errorf("removing image %s: container %s using image could not be removed: %w", imageID, ctr.ID(), err)
 				}
 			}
