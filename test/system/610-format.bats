@@ -7,8 +7,9 @@
 load helpers
 
 function teardown() {
-    # In case test fails: standard teardown does not wipe machines
+    # In case test fails: standard teardown does not wipe machines or secrets
     run_podman '?' machine rm -f mymachine
+    run_podman '?' secret rm mysecret
 
     basic_teardown
 }
@@ -23,11 +24,11 @@ extra_args_table="
 history           | $IMAGE
 image history     | $IMAGE
 image inspect     | $IMAGE
-container inspect | no-such-container
+container inspect | mycontainer
 machine inspect   | mymachine
 
 volume inspect    | -a
-secret inspect    | -a
+secret inspect    | mysecret
 network inspect   | podman
 ps                | -a
 
@@ -49,6 +50,14 @@ events            | --stream=false --events-backend=file
 #        > run the command with --format '{{"\n"}}' and make sure it passes
 function check_subcommand() {
     for cmd in $(_podman_commands "$@"); do
+        # Special case: 'podman machine' can't be run as root. No override.
+        if [[ "$cmd" = "machine" ]]; then
+            if ! is_rootless; then
+                unset extra_args["podman machine inspect"]
+                continue
+            fi
+        fi
+
         # Human-readable podman command string, with multiple spaces collapsed
         command_string="podman $* $cmd"
         command_string=${command_string//  / }  # 'podman  x' -> 'podman x'
@@ -94,25 +103,35 @@ function check_subcommand() {
             unset extra_args["$command_string"]
         fi
 
-        # This is what does the work. We should never see the unterminated err
+        # This is what does the work. We run with '?' so we can offer
+        # better error messages than just "exited with error status".
         run_podman '?' "$@" "$cmd" $extra --format '{{"\n"}}'
-        assert "$output" !~ "unterminated quoted string" \
-               "$command_string --format <newline>"
 
-        # This will (probably) only trigger if we get a new podman subcommand.
-        # It means someone needs to figure out the right magic args to use
-        # when invoking the subcommand.
-        if [[ $status -ne 0 ]]; then
-            if [[ -z "$extra" ]]; then
-                die "'$command_string' barfed with '$output'. You probably need to special-case this command in extra_args_table in this script."
-            fi
-        fi
+        # Output must always be empty.
+        #
+        #  - If you see "unterminated quoted string" here, there's a
+        #    regression, and you need to fix --format (see PR #15673)
+        #
+        #  - If you see any other error, it probably means that someone
+        #    added a new podman subcommand that supports --format but
+        #    needs some sort of option or argument to actually run.
+        #    See 'extra_args_table' at the top of this script.
+        #
+        assert "$output" = "" "$command_string --format '{{\"\n\"}}'"
+
+        # *Now* check exit status. This should never, ever, ever trigger!
+        # If it does, it means the podman command failed without an err msg!
+        assert "$status" = "0" \
+               "$command_string --format '{{\"\n\"}}' failed with no output!"
     done
 }
 
 # Test entry point
 @test "check Go template formatting" {
     skip_if_remote
+    if is_ubuntu; then
+        skip 'ubuntu VMs do not have qemu (exec: "qemu-system-x86_64": executable file not found in $PATH)'
+    fi
 
     # Convert the table at top to an associative array, keyed on subcommand
     declare -A extra_args
@@ -120,9 +139,13 @@ function check_subcommand() {
         extra_args["podman $subcommand"]=$extra
     done < <(parse_table "$extra_args_table")
 
-    # Setup: 'pod ps' needs an actual pod; 'machine inspect' needs a machine
+    # Setup: some commands need a container, pod, machine, or secret
+    run_podman run -d --name mycontainer $IMAGE top
     run_podman pod create mypod
-    run_podman machine init --image-path=/dev/null mymachine
+    run_podman secret create mysecret /etc/hosts
+    if is_rootless; then
+        run_podman machine init --image-path=/dev/null mymachine
+    fi
 
     # Run the test
     check_subcommand
@@ -130,7 +153,11 @@ function check_subcommand() {
     # Clean up
     run_podman pod rm mypod
     run_podman rmi $(pause_image)
-    run_podman machine rm -f mymachine
+    run_podman rm -f -t0 mycontainer
+    run_podman secret rm mysecret
+    if is_rootless; then
+        run_podman machine rm -f mymachine
+    fi
 
     # Make sure there are no leftover commands in our table - this would
     # indicate a typo in the table, or a flaw in our logic such that
