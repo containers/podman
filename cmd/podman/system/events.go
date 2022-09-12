@@ -99,25 +99,33 @@ func eventsCmd(cmd *cobra.Command, _ []string) error {
 		errChannel <- err
 	}()
 
-	for event := range eventChannel {
-		switch {
-		case event == nil:
-			// no-op
-		case doJSON:
-			jsonStr, err := event.ToJSONString()
+	for {
+		select {
+		case event, ok := <-eventChannel:
+			if !ok {
+				// channel was closed we can exit
+				return nil
+			}
+			switch {
+			case doJSON:
+				jsonStr, err := event.ToJSONString()
+				if err != nil {
+					return err
+				}
+				fmt.Println(jsonStr)
+			case cmd.Flags().Changed("format"):
+				if err := rpt.Execute(event); err != nil {
+					return err
+				}
+			default:
+				fmt.Println(event.ToHumanReadable(!noTrunc))
+			}
+		case err := <-errChannel:
+			// only exit in case of an error,
+			// otherwise keep reading events until the event channel is closed
 			if err != nil {
 				return err
 			}
-			fmt.Println(jsonStr)
-		case cmd.Flags().Changed("format"):
-			if err := rpt.Execute(event); err != nil {
-				return err
-			}
-			os.Stdout.WriteString("\n")
-		default:
-			fmt.Println(event.ToHumanReadable(!noTrunc))
 		}
 	}
-
-	return <-errChannel
 }

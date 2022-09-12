@@ -43,8 +43,8 @@ Remote connections use local containers.conf for default.
 #### **--events-backend**=*type*
 
 Backend to use for storing events. Allowed values are **file**, **journald**, and
-**none**. When *file* is specified, the events are stored under a subdirectory
-of the *tmpdir* location (see **--tmpdir** below).
+**none**. When *file* is specified, the events are stored under
+`<tmpdir>/events/events.log` (see **--tmpdir** below).
 
 #### **--help**, **-h**
 
@@ -158,7 +158,7 @@ On remote clients, including Mac and Windows (excluding WSL2) machines, logging 
 
 #### **--tmpdir**
 
-Path to the tmp directory, for libpod runtime content.
+Path to the tmp directory, for libpod runtime content. Defaults to `$XDG\_RUNTIME\_DIR/libpod/tmp` as rootless and `run/libpod/tmp` as rootful.
 
 NOTE --tmpdir is not used for the temporary storage of downloaded images.  Use the environment variable `TMPDIR` to change the temporary storage location of downloaded container images. Podman defaults to use `/var/tmp`.
 

@@ -466,14 +466,6 @@ func makeRuntime(runtime *Runtime) (retErr error) {
 		}
 	}
 
-	// Create events log dir
-	if err := os.MkdirAll(filepath.Dir(runtime.config.Engine.EventsLogFilePath), 0700); err != nil {
-		// The directory is allowed to exist
-		if !errors.Is(err, os.ErrExist) {
-			return fmt.Errorf("creating events dirs: %w", err)
-		}
-	}
-
 	// Get us at least one working OCI runtime.
 	runtime.ociRuntimes = make(map[string]OCIRuntime)
 
@@ -1038,9 +1030,6 @@ func (r *Runtime) mergeDBConfig(dbConfig *DBConfig) {
 			logrus.Debugf("Overriding tmp dir %q with %q from database", c.TmpDir, dbConfig.LibpodTmp)
 		}
 		c.TmpDir = dbConfig.LibpodTmp
-		if c.EventsLogFilePath == "" {
-			c.EventsLogFilePath = filepath.Join(dbConfig.LibpodTmp, "events", "events.log")
-		}
 	}
 
 	if !r.storageSet.VolumePathSet && dbConfig.VolumePath != "" {

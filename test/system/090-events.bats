@@ -74,6 +74,7 @@ load helpers
 .*image tag $imageID $tag
 .*image untag $imageID $tag:latest
 .*image tag $imageID $tag
+.*image untag $imageID $IMAGE
 .*image untag $imageID $tag:latest
 .*image remove $imageID $imageID" \
        "podman events"
@@ -147,13 +148,17 @@ function _populate_events_file() {
 
     # Config without a limit
     eventsFile=$PODMAN_TMPDIR/events.txt
-    _populate_events_file $eventsFile
     containersConf=$PODMAN_TMPDIR/containers.conf
     cat >$containersConf <<EOF
 [engine]
 events_logger="file"
 events_logfile_path="$eventsFile"
 EOF
+
+    # Check that a non existing event file does not cause a hang (#15688)
+    CONTAINERS_CONF=$containersConf run_podman events --stream=false
+
+    _populate_events_file $eventsFile
 
     # Create events *without* a limit and make sure that it has not been
     # rotated/truncated.
@@ -212,4 +217,13 @@ EOF
                --stream=false \
                --format="{{.Attributes.$lname}}"
     assert "$output" = "$lvalue" "podman-events output includes container label"
+}
+
+@test "events - backend none should error" {
+    skip_if_remote "remote does not support --events-backend"
+
+    run_podman 125 --events-backend none events
+    is "$output" "Error: cannot read events with the \"none\" backend" "correct error message"
+    run_podman 125 --events-backend none events --stream=false
+    is "$output" "Error: cannot read events with the \"none\" backend" "correct error message"
 }
