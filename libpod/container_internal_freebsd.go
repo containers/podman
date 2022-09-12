@@ -4,7 +4,6 @@
 package libpod
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -24,20 +23,6 @@ var (
 	bindOptions = []string{}
 )
 
-// Network stubs to decouple container_internal_freebsd.go from
-// networking_freebsd.go so they can be reviewed separately.
-func (r *Runtime) createNetNS(ctr *Container) (netJail string, q map[string]types.StatusBlock, retErr error) {
-	return "", nil, errors.New("not implemented (*Runtime) createNetNS")
-}
-
-func (r *Runtime) teardownNetNS(ctr *Container) error {
-	return errors.New("not implemented (*Runtime) teardownNetNS")
-}
-
-func (r *Runtime) reloadContainerNetwork(ctr *Container) (map[string]types.StatusBlock, error) {
-	return nil, errors.New("not implemented (*Runtime) reloadContainerNetwork")
-}
-
 func (c *Container) mountSHM(shmOptions string) error {
 	return nil
 }
@@ -51,7 +36,7 @@ func (c *Container) unmountSHM(path string) error {
 func (c *Container) prepare() error {
 	var (
 		wg                              sync.WaitGroup
-		jailName                        string
+		ctrNS                           *jailNetNS
 		networkStatus                   map[string]types.StatusBlock
 		createNetNSErr, mountStorageErr error
 		mountPoint                      string
@@ -63,9 +48,9 @@ func (c *Container) prepare() error {
 	go func() {
 		defer wg.Done()
 		// Set up network namespace if not already set up
-		noNetNS := c.state.NetworkJail == ""
+		noNetNS := c.state.NetNS == nil
 		if c.config.CreateNetNS && noNetNS && !c.config.PostConfigureNetNS {
-			jailName, networkStatus, createNetNSErr = c.runtime.createNetNS(c)
+			ctrNS, networkStatus, createNetNSErr = c.runtime.createNetNS(c)
 			if createNetNSErr != nil {
 				return
 			}
@@ -74,7 +59,7 @@ func (c *Container) prepare() error {
 			defer tmpStateLock.Unlock()
 
 			// Assign NetNS attributes to container
-			c.state.NetworkJail = jailName
+			c.state.NetNS = ctrNS
 			c.state.NetworkStatus = networkStatus
 		}
 	}()
@@ -164,7 +149,7 @@ func (c *Container) addNetworkContainer(g *generate.Generator, ctr string) error
 	if err != nil {
 		return fmt.Errorf("retrieving dependency %s of container %s from state: %w", ctr, c.ID(), err)
 	}
-	g.AddAnnotation("org.freebsd.parentJail", nsCtr.state.NetworkJail)
+	g.AddAnnotation("org.freebsd.parentJail", nsCtr.state.NetNS.Name)
 	return nil
 }
 
@@ -187,7 +172,7 @@ func openDirectory(path string) (fd int, err error) {
 
 func (c *Container) addNetworkNamespace(g *generate.Generator) error {
 	if c.config.CreateNetNS {
-		g.AddAnnotation("org.freebsd.parentJail", c.state.NetworkJail)
+		g.AddAnnotation("org.freebsd.parentJail", c.state.NetNS.Name)
 	}
 	return nil
 }
@@ -272,7 +257,7 @@ func (c *Container) isSlirp4netnsIPv6() (bool, error) {
 
 // check for net=none
 func (c *Container) hasNetNone() bool {
-	return c.state.NetworkJail == ""
+	return c.state.NetNS == nil
 }
 
 func setVolumeAtime(mountPoint string, st os.FileInfo) error {
@@ -281,5 +266,9 @@ func setVolumeAtime(mountPoint string, st os.FileInfo) error {
 	if err := os.Chtimes(mountPoint, atime, st.ModTime()); err != nil {
 		return err
 	}
+	return nil
+}
+
+func (c *Container) makePlatformBindMounts() error {
 	return nil
 }
