@@ -70,7 +70,7 @@ func (c *Container) startTimer() error {
 
 	startFile := fmt.Sprintf("%s.service", c.ID())
 	startChan := make(chan string)
-	if _, err := conn.StartUnitContext(context.Background(), startFile, "fail", startChan); err != nil {
+	if _, err := conn.RestartUnitContext(context.Background(), startFile, "fail", startChan); err != nil {
 		return err
 	}
 	if err := systemdOpSuccessful(startChan); err != nil {

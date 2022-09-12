@@ -106,8 +106,7 @@ Log[-1].Output   | \"Uh-oh on stdout!\\\nUh-oh on stderr!\"
 
         # healthcheck should now fail, with exit status 1 and 'unhealthy' output
         run_podman 1 healthcheck run $ctr
-	# FIXME: #15691 - `healthcheck run` may emit an error log that the timer already exists
-        is "$output" ".*unhealthy.*" "output from 'podman healthcheck run'"
+        is "$output" "unhealthy" "output from 'podman healthcheck run'"
 
         run_podman inspect $ctr --format "{{.State.Status}} {{.Config.HealthcheckOnFailureAction}}"
 	if [[ $policy == "restart" ]];then
@@ -118,8 +117,7 @@ Log[-1].Output   | \"Uh-oh on stdout!\\\nUh-oh on stderr!\"
             # Container is still running and health check still broken
             is "$output" "running $policy" "container continued running"
             run_podman 1 healthcheck run $ctr
-	    # FIXME: #15691 - `healthcheck run` may emit an error log that the timer already exists
-            is "$output" ".*unhealthy.*" "output from 'podman healthcheck run'"
+            is "$output" "unhealthy" "output from 'podman healthcheck run'"
 	else
 	    # kill and stop yield the container into a non-running state
             is "$output" ".* $policy" "container was stopped/killed"
