@@ -45,6 +45,7 @@ func (ic *ContainerEngine) SecretCreate(ctx context.Context, name string, reader
 
 	storeOpts := secrets.StoreOptions{
 		DriverOpts: options.DriverOpts,
+		Labels:     options.Labels,
 	}
 
 	secretID, err := manager.Store(name, data, options.Driver, storeOpts)
@@ -74,6 +75,9 @@ func (ic *ContainerEngine) SecretInspect(ctx context.Context, nameOrIDs []string
 				return nil, nil, fmt.Errorf("inspecting secret %s: %w", nameOrID, err)
 			}
 		}
+		if secret.Labels == nil {
+			secret.Labels = make(map[string]string)
+		}
 		report := &entities.SecretInfoReport{
 			ID:        secret.ID,
 			CreatedAt: secret.CreatedAt,
@@ -84,6 +88,7 @@ func (ic *ContainerEngine) SecretInspect(ctx context.Context, nameOrIDs []string
 					Name:    secret.Driver,
 					Options: secret.DriverOptions,
 				},
+				Labels: secret.Labels,
 			},
 		}
 		reports = append(reports, report)

@@ -10,6 +10,7 @@ import (
 
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/podman/v4/cmd/podman/common"
+	"github.com/containers/podman/v4/cmd/podman/parse"
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/spf13/cobra"
@@ -31,6 +32,7 @@ var (
 var (
 	createOpts = entities.SecretCreateOptions{}
 	env        = false
+	labels     []string
 )
 
 func init() {
@@ -38,21 +40,24 @@ func init() {
 		Command: createCmd,
 		Parent:  secretCmd,
 	})
+	cfg := registry.PodmanConfig()
 
 	flags := createCmd.Flags()
 
 	driverFlagName := "driver"
-	optsFlagName := "driver-opts"
-
-	cfg := registry.PodmanConfig()
-
 	flags.StringVarP(&createOpts.Driver, driverFlagName, "d", cfg.Secrets.Driver, "Specify secret driver")
-	flags.StringToStringVar(&createOpts.DriverOpts, optsFlagName, cfg.Secrets.Opts, "Specify driver specific options")
 	_ = createCmd.RegisterFlagCompletionFunc(driverFlagName, completion.AutocompleteNone)
+
+	optsFlagName := "driver-opts"
+	flags.StringToStringVar(&createOpts.DriverOpts, optsFlagName, cfg.Secrets.Opts, "Specify driver specific options")
 	_ = createCmd.RegisterFlagCompletionFunc(optsFlagName, completion.AutocompleteNone)
 
 	envFlagName := "env"
 	flags.BoolVar(&env, envFlagName, false, "Read secret data from environment variable")
+
+	labelFlagName := "label"
+	flags.StringArrayVarP(&labels, labelFlagName, "l", nil, "Specify labels on the secret")
+	_ = createCmd.RegisterFlagCompletionFunc(labelFlagName, completion.AutocompleteNone)
 }
 
 func create(cmd *cobra.Command, args []string) error {
@@ -85,6 +90,11 @@ func create(cmd *cobra.Command, args []string) error {
 		}
 		defer file.Close()
 		reader = file
+	}
+
+	createOpts.Labels, err = parse.GetAllLabels([]string{}, labels)
+	if err != nil {
+		return fmt.Errorf("unable to process labels: %w", err)
 	}
 
 	report, err := registry.ContainerEngine().SecretCreate(context.Background(), name, reader, createOpts)

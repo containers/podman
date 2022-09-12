@@ -111,14 +111,11 @@ func CreateSecret(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("Decode(): %w", err))
 		return
 	}
-	if len(createParams.Labels) > 0 {
-		utils.Error(w, http.StatusBadRequest, fmt.Errorf("labels not supported: %w", errors.New("bad parameter")))
-		return
-	}
 
 	decoded, _ := base64.StdEncoding.DecodeString(createParams.Data)
 	reader := bytes.NewReader(decoded)
 	opts.Driver = createParams.Driver.Name
+	opts.Labels = createParams.Labels
 
 	ic := abi.ContainerEngine{Libpod: runtime}
 	report, err := ic.SecretCreate(r.Context(), createParams.Name, reader, opts)
