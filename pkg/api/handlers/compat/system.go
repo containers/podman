@@ -76,7 +76,7 @@ func GetDiskUsage(w http.ResponseWriter, r *http.Request) {
 			Scope:      "local",
 			Status:     nil,
 			UsageData: &docker.VolumeUsageData{
-				RefCount: 1,
+				RefCount: int64(o.Links),
 				Size:     o.Size,
 			},
 		}

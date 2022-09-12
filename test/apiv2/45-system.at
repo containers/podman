@@ -25,6 +25,24 @@ t GET system/df 200 '.Volumes[0].Name=foo1'
 
 t GET libpod/system/df 200 '.Volumes[0].VolumeName=foo1'
 
+# Verify that no containers reference the volume
+t GET system/df 200 '.Volumes[0].UsageData.RefCount=0'
+
+# Make a container using the volume
+podman pull $IMAGE &>/dev/null
+t POST containers/create Image=$IMAGE Volumes='{"/test":{}}' HostConfig='{"Binds":["foo1:/test"]}' 201 \
+  .Id~[0-9a-f]\\{64\\}
+cid=$(jq -r '.Id' <<<"$output")
+
+# Verify that one container references the volume
+t GET system/df 200 '.Volumes[0].UsageData.RefCount=1'
+
+# Remove the container
+t DELETE containers/$cid?v=true 204
+
+# Verify that no containers reference the volume
+t GET system/df 200 '.Volumes[0].UsageData.RefCount=0'
+
 # Create two more volumes to test pruneing
 t POST libpod/volumes/create \
   Name=foo2 \
