@@ -3,6 +3,7 @@ package libpod
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 	"sync"
 
 	"github.com/containers/podman/v4/libpod/events"
@@ -11,6 +12,10 @@ import (
 
 // newEventer returns an eventer that can be used to read/write events
 func (r *Runtime) newEventer() (events.Eventer, error) {
+	if r.config.Engine.EventsLogFilePath == "" {
+		// default, use path under tmpdir when none was explicitly set by the user
+		r.config.Engine.EventsLogFilePath = filepath.Join(r.config.Engine.TmpDir, "events", "events.log")
+	}
 	options := events.EventerOptions{
 		EventerType:    r.config.Engine.EventsLogger,
 		LogFilePath:    r.config.Engine.EventsLogFilePath,
