@@ -148,6 +148,18 @@ func generateContainerInfo(ctr *libpod.Container, options entities.GenerateSyste
 		return nil, errors.New("conmon PID file path is empty, try to recreate the container with --conmon-pidfile flag")
 	}
 
+	// #15284: old units generated without --new can lead to issues on
+	// shutdown when the containers are created with a custom restart
+	// policy.
+	if !options.New {
+		switch config.RestartPolicy {
+		case libpodDefine.RestartPolicyNo, libpodDefine.RestartPolicyNone:
+			// All good
+		default:
+			logrus.Warnf("Container %s has restart policy %q which can lead to issues on shutdown: consider recreating the container without a restart policy and use systemd's restart mechanism instead", ctr.ID(), config.RestartPolicy)
+		}
+	}
+
 	createCommand := []string{}
 	if config.CreateCommand != nil {
 		createCommand = config.CreateCommand

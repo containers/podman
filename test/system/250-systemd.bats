@@ -81,6 +81,13 @@ function service_cleanup() {
         skip "FIXME: 2022-09-01: requires conmon-2.1.4, ubuntu has 2.1.3"
     fi
 
+    # Warn when a custom restart policy is used without --new (see #15284)
+    run_podman create --restart=always $IMAGE
+    cid="$output"
+    run_podman generate systemd $cid
+    is "$output" ".*Container $cid has restart policy .*always.* which can lead to issues on shutdown.*" "generate systemd emits warning"
+    run_podman rm -f $cid
+
     cname=$(random_string)
     # See #7407 for --pull=always.
     run_podman create --pull=always --name $cname --label "io.containers.autoupdate=registry" $IMAGE \
