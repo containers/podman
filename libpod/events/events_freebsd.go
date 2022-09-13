@@ -14,7 +14,7 @@ func NewEventer(options EventerOptions) (Eventer, error) {
 	case strings.ToUpper(LogFile.String()):
 		return EventLogFile{options}, nil
 	case strings.ToUpper(Null.String()):
-		return NewNullEventer(), nil
+		return newNullEventer(), nil
 	case strings.ToUpper(Memory.String()):
 		return NewMemoryEventer(), nil
 	default:
