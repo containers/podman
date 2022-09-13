@@ -3,6 +3,7 @@ package integration
 import (
 	"io/ioutil"
 	"os"
+	"strings"
 
 	. "github.com/containers/podman/v4/test/utils"
 	. "github.com/onsi/ginkgo"
@@ -220,19 +221,20 @@ var _ = Describe("Podman generate systemd", func() {
 		Expect(session).Should(Exit(0))
 
 		// Grepping the output (in addition to unit tests)
-		Expect(session.OutputToString()).To(ContainSubstring("# pod-foo.service"))
-		Expect(session.OutputToString()).To(ContainSubstring("Requires=container-foo-1.service container-foo-2.service"))
-		Expect(session.OutputToString()).To(ContainSubstring("# container-foo-1.service"))
-		Expect(session.OutputToString()).To(ContainSubstring(" start foo-1"))
-		Expect(session.OutputToString()).To(ContainSubstring("-infra")) // infra container
-		Expect(session.OutputToString()).To(ContainSubstring("# container-foo-2.service"))
-		Expect(session.OutputToString()).To(ContainSubstring(" stop -t 42 foo-2"))
-		Expect(session.OutputToString()).To(ContainSubstring("BindsTo=pod-foo.service"))
-		Expect(session.OutputToString()).To(ContainSubstring("PIDFile="))
-		Expect(session.OutputToString()).To(ContainSubstring("/userdata/conmon.pid"))
-
+		output := session.OutputToString()
+		Expect(output).To(ContainSubstring("# pod-foo.service"))
+		Expect(output).To(ContainSubstring("Wants=container-foo-1.service container-foo-2.service"))
+		Expect(output).To(ContainSubstring("# container-foo-1.service"))
+		Expect(output).To(ContainSubstring(" start foo-1"))
+		Expect(output).To(ContainSubstring("-infra")) // infra container
+		Expect(output).To(ContainSubstring("# container-foo-2.service"))
+		Expect(output).To(ContainSubstring(" stop -t 42 foo-2"))
+		Expect(output).To(ContainSubstring("BindsTo=pod-foo.service"))
+		Expect(output).To(ContainSubstring("PIDFile="))
+		Expect(output).To(ContainSubstring("/userdata/conmon.pid"))
+		Expect(strings.Count(output, "RequiresMountsFor="+podmanTest.RunRoot)).To(Equal(3))
 		// The podman commands in the unit should not contain the root flags
-		Expect(session.OutputToString()).ToNot(ContainSubstring(" --runroot"))
+		Expect(output).ToNot(ContainSubstring(" --runroot"))
 	})
 
 	It("podman generate systemd pod --name --files", func() {
@@ -468,7 +470,7 @@ var _ = Describe("Podman generate systemd", func() {
 
 		// Grepping the output (in addition to unit tests)
 		Expect(session.OutputToString()).To(ContainSubstring("# p-foo.service"))
-		Expect(session.OutputToString()).To(ContainSubstring("Requires=container-foo-1.service container-foo-2.service"))
+		Expect(session.OutputToString()).To(ContainSubstring("Wants=container-foo-1.service container-foo-2.service"))
 		Expect(session.OutputToString()).To(ContainSubstring("# container-foo-1.service"))
 		Expect(session.OutputToString()).To(ContainSubstring("BindsTo=p-foo.service"))
 	})
@@ -492,7 +494,7 @@ var _ = Describe("Podman generate systemd", func() {
 
 		// Grepping the output (in addition to unit tests)
 		Expect(session.OutputToString()).To(ContainSubstring("# p_foo.service"))
-		Expect(session.OutputToString()).To(ContainSubstring("Requires=con_foo-1.service con_foo-2.service"))
+		Expect(session.OutputToString()).To(ContainSubstring("Wants=con_foo-1.service con_foo-2.service"))
 		Expect(session.OutputToString()).To(ContainSubstring("# con_foo-1.service"))
 		Expect(session.OutputToString()).To(ContainSubstring("# con_foo-2.service"))
 		Expect(session.OutputToString()).To(ContainSubstring("BindsTo=p_foo.service"))
@@ -518,7 +520,7 @@ var _ = Describe("Podman generate systemd", func() {
 
 		// Grepping the output (in addition to unit tests)
 		Expect(session1.OutputToString()).To(ContainSubstring("# foo.service"))
-		Expect(session1.OutputToString()).To(ContainSubstring("Requires=container-foo-1.service container-foo-2.service"))
+		Expect(session1.OutputToString()).To(ContainSubstring("Wants=container-foo-1.service container-foo-2.service"))
 		Expect(session1.OutputToString()).To(ContainSubstring("# container-foo-1.service"))
 		Expect(session1.OutputToString()).To(ContainSubstring("BindsTo=foo.service"))
 
@@ -529,7 +531,7 @@ var _ = Describe("Podman generate systemd", func() {
 
 		// Grepping the output (in addition to unit tests)
 		Expect(session2.OutputToString()).To(ContainSubstring("# foo.service"))
-		Expect(session2.OutputToString()).To(ContainSubstring("Requires=foo-1.service foo-2.service"))
+		Expect(session2.OutputToString()).To(ContainSubstring("Wants=foo-1.service foo-2.service"))
 		Expect(session2.OutputToString()).To(ContainSubstring("# foo-1.service"))
 		Expect(session2.OutputToString()).To(ContainSubstring("# foo-2.service"))
 		Expect(session2.OutputToString()).To(ContainSubstring("BindsTo=foo.service"))
@@ -560,7 +562,7 @@ var _ = Describe("Podman generate systemd", func() {
 
 		// Grepping the output (in addition to unit tests)
 		Expect(session.OutputToString()).To(ContainSubstring("# pod-foo.service"))
-		Expect(session.OutputToString()).To(ContainSubstring("Requires=container-foo-1.service container-foo-2.service"))
+		Expect(session.OutputToString()).To(ContainSubstring("Wants=container-foo-1.service container-foo-2.service"))
 		Expect(session.OutputToString()).To(ContainSubstring("BindsTo=pod-foo.service"))
 		Expect(session.OutputToString()).To(ContainSubstring("pod create --infra-conmon-pidfile %t/pod-foo.pid --pod-id-file %t/pod-foo.pod-id --name foo"))
 		Expect(session.OutputToString()).To(ContainSubstring("ExecStartPre=/bin/rm -f %t/pod-foo.pid %t/pod-foo.pod-id"))
