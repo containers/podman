@@ -376,7 +376,7 @@ var _ = Describe("Podman logs", func() {
 			skipIfJournaldInContainer()
 
 			cname := "log-test"
-			content := stringid.GenerateNonCryptoID()
+			content := stringid.GenerateRandomID()
 			// use printf to print no extra newline
 			logc := podmanTest.Podman([]string{"run", "--log-driver", log, "--name", cname, ALPINE, "printf", content})
 			logc.WaitWithDefaultTimeout()
