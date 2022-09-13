@@ -27,7 +27,7 @@ function teardown() {
     run_podman system df --format '{{ .Type }}:{{ .Total }}:{{ .Active }}'
     is "${lines[0]}" "Images:1:1"        "system df : Images line"
     is "${lines[1]}" "Containers:2:1"    "system df : Containers line"
-    is "${lines[2]}" "Local Volumes:2:1" "system df : Volumes line"
+    is "${lines[2]}" "Local Volumes:2:2" "system df : Volumes line"
 
     # Try -v. (Grrr. No way to specify individual formats)
     #

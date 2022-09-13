@@ -11,7 +11,6 @@ import (
 
 	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/common/pkg/config"
-	cutil "github.com/containers/common/pkg/util"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/domain/entities/reports"
@@ -321,19 +320,9 @@ func (ic *ContainerEngine) SystemDf(ctx context.Context, options entities.System
 		return nil, err
 	}
 
-	running, err := ic.Libpod.GetRunningContainers()
-	if err != nil {
-		return nil, err
-	}
-	runningContainers := make([]string, 0, len(running))
-	for _, c := range running {
-		runningContainers = append(runningContainers, c.ID())
-	}
-
 	dfVolumes := make([]*entities.SystemDfVolumeReport, 0, len(vols))
 	for _, v := range vols {
 		var reclaimableSize uint64
-		var consInUse int
 		mountPoint, err := v.MountPoint()
 		if err != nil {
 			return nil, err
@@ -355,14 +344,9 @@ func (ic *ContainerEngine) SystemDf(ctx context.Context, options entities.System
 		if len(inUse) == 0 {
 			reclaimableSize = volSize
 		}
-		for _, viu := range inUse {
-			if cutil.StringInSlice(viu, runningContainers) {
-				consInUse++
-			}
-		}
 		report := entities.SystemDfVolumeReport{
 			VolumeName:      v.Name(),
-			Links:           consInUse,
+			Links:           len(inUse),
 			Size:            int64(volSize),
 			ReclaimableSize: int64(reclaimableSize),
 		}
