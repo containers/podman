@@ -85,7 +85,9 @@ Set the systemd unit requires (`Requires=`) option. Similar to wants, but declar
 #### **--restart-policy**=*policy*
 
 Set the systemd restart policy.  The restart-policy must be one of: "no", "on-success", "on-failure", "on-abnormal",
-"on-watchdog", "on-abort", or "always".  The default policy is *on-failure*.
+"on-watchdog", "on-abort", or "always".  The default policy is *on-failure* unless the container was created with a custom restart policy.
+
+Note that generating a unit without `--new` on a container with a custom restart policy can lead to issues on shutdown; systemd will attempt to stop the unit while Podman tries to restart it.  It is recommended to to create the container without `--restart` and use the `--restart-policy` option instead when generating the unit file.
 
 #### **--restart-sec**=*time*
 
