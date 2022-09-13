@@ -1119,7 +1119,6 @@ win_installer_task:
     env:
         PATH: "${PATH};C:\\ProgramData\\chocolatey\\bin"
         CIRRUS_SHELL: powershell
-        CIRRUS_CLONE_DEPTH: 1
         # Fake version, we are only testing the installer functions, so version doesn't matter
         WIN_INST_VER: 9.9.9
         CIRRUS_WORKING_DIR: "${CIRRUS_DEFAULT_WORK}"
