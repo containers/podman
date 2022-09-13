@@ -2,7 +2,6 @@ package mpb
 
 import (
 	"io"
-	"io/ioutil"
 	"sync"
 	"time"
 )
@@ -74,7 +73,7 @@ func WithShutdownNotifier(ch chan struct{}) ContainerOption {
 func WithOutput(w io.Writer) ContainerOption {
 	return func(s *pState) {
 		if w == nil {
-			s.output = ioutil.Discard
+			s.output = io.Discard
 			s.outputDiscarded = true
 			return
 		}
