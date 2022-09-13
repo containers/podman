@@ -872,7 +872,7 @@ rootless_gitlab_test_task:
     name: *std_name_fmt
     alias: rootless_gitlab_test
     # Docs: ./contrib/cirrus/CIModes.md
-    only_if: *not_tag_branch_build_docs
+    only_if: &cirrus_cron "${CIRRUS_CRON} == 'main'"
     # Community-maintained downstream test may fail unexpectedly.
     # Ref. repository: https://gitlab.com/gitlab-org/gitlab-runner
     # If necessary, uncomment the next line and file issue(s) with details.
