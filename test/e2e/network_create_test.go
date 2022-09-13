@@ -118,7 +118,7 @@ var _ = Describe("Podman network create", func() {
 			results []network.NcList
 		)
 
-		netName := "inspectnet-" + stringid.GenerateNonCryptoID()
+		netName := "inspectnet-" + stringid.GenerateRandomID()
 		nc := podmanTest.Podman([]string{"network", "create", netName})
 		nc.WaitWithDefaultTimeout()
 		defer podmanTest.removeCNINetwork(netName)
@@ -138,7 +138,7 @@ var _ = Describe("Podman network create", func() {
 		var (
 			results []network.NcList
 		)
-		netName := "subnet-" + stringid.GenerateNonCryptoID()
+		netName := "subnet-" + stringid.GenerateRandomID()
 		nc := podmanTest.Podman([]string{"network", "create", "--subnet", "10.11.12.0/24", netName})
 		nc.WaitWithDefaultTimeout()
 		defer podmanTest.removeCNINetwork(netName)
@@ -181,7 +181,7 @@ var _ = Describe("Podman network create", func() {
 		var (
 			results []network.NcList
 		)
-		netName := "ipv6-" + stringid.GenerateNonCryptoID()
+		netName := "ipv6-" + stringid.GenerateRandomID()
 		nc := podmanTest.Podman([]string{"network", "create", "--subnet", "fd00:1:2:3:4::/64", netName})
 		nc.WaitWithDefaultTimeout()
 		defer podmanTest.removeCNINetwork(netName)
@@ -222,7 +222,7 @@ var _ = Describe("Podman network create", func() {
 		var (
 			results []network.NcList
 		)
-		netName := "dual-" + stringid.GenerateNonCryptoID()
+		netName := "dual-" + stringid.GenerateRandomID()
 		nc := podmanTest.Podman([]string{"network", "create", "--subnet", "fd00:4:3:2:1::/64", "--ipv6", netName})
 		nc.WaitWithDefaultTimeout()
 		defer podmanTest.removeCNINetwork(netName)
@@ -261,7 +261,7 @@ var _ = Describe("Podman network create", func() {
 
 		// create a second network to check the auto assigned ipv4 subnet does not overlap
 		// https://github.com/containers/podman/issues/11032
-		netName2 := "dual-" + stringid.GenerateNonCryptoID()
+		netName2 := "dual-" + stringid.GenerateRandomID()
 		nc = podmanTest.Podman([]string{"network", "create", "--subnet", "fd00:6:3:2:1::/64", "--ipv6", netName2})
 		nc.WaitWithDefaultTimeout()
 		defer podmanTest.removeCNINetwork(netName2)
@@ -315,37 +315,37 @@ var _ = Describe("Podman network create", func() {
 	})
 
 	It("podman network create with invalid subnet", func() {
-		nc := podmanTest.Podman([]string{"network", "create", "--subnet", "10.11.12.0/17000", stringid.GenerateNonCryptoID()})
+		nc := podmanTest.Podman([]string{"network", "create", "--subnet", "10.11.12.0/17000", stringid.GenerateRandomID()})
 		nc.WaitWithDefaultTimeout()
 		Expect(nc).To(ExitWithError())
 	})
 
 	It("podman network create with ipv4 subnet and ipv6 flag", func() {
-		nc := podmanTest.Podman([]string{"network", "create", "--subnet", "10.11.12.0/24", "--ipv6", stringid.GenerateNonCryptoID()})
+		nc := podmanTest.Podman([]string{"network", "create", "--subnet", "10.11.12.0/24", "--ipv6", stringid.GenerateRandomID()})
 		nc.WaitWithDefaultTimeout()
 		Expect(nc).To(ExitWithError())
 	})
 
 	It("podman network create with empty subnet and ipv6 flag", func() {
-		nc := podmanTest.Podman([]string{"network", "create", "--ipv6", stringid.GenerateNonCryptoID()})
+		nc := podmanTest.Podman([]string{"network", "create", "--ipv6", stringid.GenerateRandomID()})
 		nc.WaitWithDefaultTimeout()
 		Expect(nc).To(ExitWithError())
 	})
 
 	It("podman network create with invalid IP", func() {
-		nc := podmanTest.Podman([]string{"network", "create", "--subnet", "10.11.0/17000", stringid.GenerateNonCryptoID()})
+		nc := podmanTest.Podman([]string{"network", "create", "--subnet", "10.11.0/17000", stringid.GenerateRandomID()})
 		nc.WaitWithDefaultTimeout()
 		Expect(nc).To(ExitWithError())
 	})
 
 	It("podman network create with invalid gateway for subnet", func() {
-		nc := podmanTest.Podman([]string{"network", "create", "--subnet", "10.11.12.0/24", "--gateway", "192.168.1.1", stringid.GenerateNonCryptoID()})
+		nc := podmanTest.Podman([]string{"network", "create", "--subnet", "10.11.12.0/24", "--gateway", "192.168.1.1", stringid.GenerateRandomID()})
 		nc.WaitWithDefaultTimeout()
 		Expect(nc).To(ExitWithError())
 	})
 
 	It("podman network create two networks with same name should fail", func() {
-		netName := "same-" + stringid.GenerateNonCryptoID()
+		netName := "same-" + stringid.GenerateRandomID()
 		nc := podmanTest.Podman([]string{"network", "create", netName})
 		nc.WaitWithDefaultTimeout()
 		defer podmanTest.removeCNINetwork(netName)
@@ -357,13 +357,13 @@ var _ = Describe("Podman network create", func() {
 	})
 
 	It("podman network create two networks with same subnet should fail", func() {
-		netName1 := "sub1-" + stringid.GenerateNonCryptoID()
+		netName1 := "sub1-" + stringid.GenerateRandomID()
 		nc := podmanTest.Podman([]string{"network", "create", "--subnet", "10.11.13.0/24", netName1})
 		nc.WaitWithDefaultTimeout()
 		defer podmanTest.removeCNINetwork(netName1)
 		Expect(nc).Should(Exit(0))
 
-		netName2 := "sub2-" + stringid.GenerateNonCryptoID()
+		netName2 := "sub2-" + stringid.GenerateRandomID()
 		ncFail := podmanTest.Podman([]string{"network", "create", "--subnet", "10.11.13.0/24", netName2})
 		ncFail.WaitWithDefaultTimeout()
 		defer podmanTest.removeCNINetwork(netName2)
@@ -372,13 +372,13 @@ var _ = Describe("Podman network create", func() {
 
 	It("podman network create two IPv6 networks with same subnet should fail", func() {
 		SkipIfRootless("FIXME It needs the ip6tables modules loaded")
-		netName1 := "subipv61-" + stringid.GenerateNonCryptoID()
+		netName1 := "subipv61-" + stringid.GenerateRandomID()
 		nc := podmanTest.Podman([]string{"network", "create", "--subnet", "fd00:4:4:4:4::/64", "--ipv6", netName1})
 		nc.WaitWithDefaultTimeout()
 		defer podmanTest.removeCNINetwork(netName1)
 		Expect(nc).Should(Exit(0))
 
-		netName2 := "subipv62-" + stringid.GenerateNonCryptoID()
+		netName2 := "subipv62-" + stringid.GenerateRandomID()
 		ncFail := podmanTest.Podman([]string{"network", "create", "--subnet", "fd00:4:4:4:4::/64", "--ipv6", netName2})
 		ncFail.WaitWithDefaultTimeout()
 		defer podmanTest.removeCNINetwork(netName2)
@@ -392,7 +392,7 @@ var _ = Describe("Podman network create", func() {
 	})
 
 	It("podman network create with mtu option", func() {
-		net := "mtu-test" + stringid.GenerateNonCryptoID()
+		net := "mtu-test" + stringid.GenerateRandomID()
 		nc := podmanTest.Podman([]string{"network", "create", "--opt", "mtu=9000", net})
 		nc.WaitWithDefaultTimeout()
 		defer podmanTest.removeCNINetwork(net)
@@ -405,7 +405,7 @@ var _ = Describe("Podman network create", func() {
 	})
 
 	It("podman network create with vlan option", func() {
-		net := "vlan-test" + stringid.GenerateNonCryptoID()
+		net := "vlan-test" + stringid.GenerateRandomID()
 		nc := podmanTest.Podman([]string{"network", "create", "--opt", "vlan=9", net})
 		nc.WaitWithDefaultTimeout()
 		defer podmanTest.removeCNINetwork(net)
@@ -418,7 +418,7 @@ var _ = Describe("Podman network create", func() {
 	})
 
 	It("podman network create with invalid option", func() {
-		net := "invalid-test" + stringid.GenerateNonCryptoID()
+		net := "invalid-test" + stringid.GenerateRandomID()
 		nc := podmanTest.Podman([]string{"network", "create", "--opt", "foo=bar", net})
 		nc.WaitWithDefaultTimeout()
 		defer podmanTest.removeCNINetwork(net)
@@ -426,7 +426,7 @@ var _ = Describe("Podman network create", func() {
 	})
 
 	It("podman network create with internal should not have dnsname", func() {
-		net := "internal-test" + stringid.GenerateNonCryptoID()
+		net := "internal-test" + stringid.GenerateRandomID()
 		nc := podmanTest.Podman([]string{"network", "create", "--internal", net})
 		nc.WaitWithDefaultTimeout()
 		defer podmanTest.removeCNINetwork(net)
@@ -441,5 +441,4 @@ var _ = Describe("Podman network create", func() {
 		Expect(nc).Should(Exit(0))
 		Expect(nc.OutputToString()).ToNot(ContainSubstring("dnsname"))
 	})
-
 })

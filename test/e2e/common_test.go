@@ -291,7 +291,7 @@ func PodmanTestCreateUtil(tempDir string, remote bool) *PodmanTestIntegration {
 	}
 	if remote {
 		p.PodmanTest.RemotePodmanBinary = podmanRemoteBinary
-		uuid := stringid.GenerateNonCryptoID()
+		uuid := stringid.GenerateRandomID()
 		if !rootless.IsRootless() {
 			p.RemoteSocket = fmt.Sprintf("unix:/run/podman/podman-%s.sock", uuid)
 		} else {
@@ -785,7 +785,7 @@ func removeConf(confPath string) {
 // it returns the network name and the filepath
 func generateNetworkConfig(p *PodmanTestIntegration) (string, string) {
 	// generate a random name to prevent conflicts with other tests
-	name := "net" + stringid.GenerateNonCryptoID()
+	name := "net" + stringid.GenerateRandomID()
 	path := filepath.Join(p.CNIConfigDir, fmt.Sprintf("%s.conflist", name))
 	conf := fmt.Sprintf(`{
 		"cniVersion": "0.3.0",

@@ -649,7 +649,7 @@ var _ = Describe("Podman run networking", func() {
 	})
 
 	It("podman run in custom CNI network with --static-ip", func() {
-		netName := stringid.GenerateNonCryptoID()
+		netName := stringid.GenerateRandomID()
 		ipAddr := "10.25.30.128"
 		create := podmanTest.Podman([]string{"network", "create", "--subnet", "10.25.30.0/24", netName})
 		create.WaitWithDefaultTimeout()
@@ -663,7 +663,7 @@ var _ = Describe("Podman run networking", func() {
 	})
 
 	It("podman cni network works across user ns", func() {
-		netName := stringid.GenerateNonCryptoID()
+		netName := stringid.GenerateRandomID()
 		create := podmanTest.Podman([]string{"network", "create", netName})
 		create.WaitWithDefaultTimeout()
 		Expect(create).Should(Exit(0))
@@ -687,7 +687,7 @@ var _ = Describe("Podman run networking", func() {
 	})
 
 	It("podman run with new:pod and static-ip", func() {
-		netName := stringid.GenerateNonCryptoID()
+		netName := stringid.GenerateRandomID()
 		ipAddr := "10.25.40.128"
 		podname := "testpod"
 		create := podmanTest.Podman([]string{"network", "create", "--subnet", "10.25.40.0/24", netName})
@@ -766,7 +766,7 @@ var _ = Describe("Podman run networking", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
-		net := "IntTest" + stringid.GenerateNonCryptoID()
+		net := "IntTest" + stringid.GenerateRandomID()
 		session = podmanTest.Podman([]string{"network", "create", net})
 		session.WaitWithDefaultTimeout()
 		defer podmanTest.removeCNINetwork(net)
@@ -796,7 +796,7 @@ var _ = Describe("Podman run networking", func() {
 	})
 
 	It("podman run check dnsname adds dns search domain", func() {
-		net := "dnsname" + stringid.GenerateNonCryptoID()
+		net := "dnsname" + stringid.GenerateRandomID()
 		session := podmanTest.Podman([]string{"network", "create", net})
 		session.WaitWithDefaultTimeout()
 		defer podmanTest.removeCNINetwork(net)

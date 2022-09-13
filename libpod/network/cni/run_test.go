@@ -122,7 +122,7 @@ var _ = Describe("run CNI", func() {
 				intName := "eth0"
 				setupOpts := types.SetupOptions{
 					NetworkOptions: types.NetworkOptions{
-						ContainerID: stringid.GenerateNonCryptoID(),
+						ContainerID: stringid.GenerateRandomID(),
 						Networks: map[string]types.PerNetworkOptions{
 							defNet: {InterfaceName: intName},
 						},
@@ -152,7 +152,7 @@ var _ = Describe("run CNI", func() {
 				ip := net.ParseIP("10.88.5.5")
 				setupOpts := types.SetupOptions{
 					NetworkOptions: types.NetworkOptions{
-						ContainerID: stringid.GenerateNonCryptoID(),
+						ContainerID: stringid.GenerateRandomID(),
 						Networks: map[string]types.PerNetworkOptions{
 							defNet: {
 								InterfaceName: intName,
@@ -183,12 +183,12 @@ var _ = Describe("run CNI", func() {
 			protocol := proto
 			It("run with exposed ports protocol "+protocol, func() {
 				runTest(func() {
-					testdata := stringid.GenerateNonCryptoID()
+					testdata := stringid.GenerateRandomID()
 					defNet := types.DefaultNetworkName
 					intName := "eth0"
 					setupOpts := types.SetupOptions{
 						NetworkOptions: types.NetworkOptions{
-							ContainerID: stringid.GenerateNonCryptoID(),
+							ContainerID: stringid.GenerateRandomID(),
 							PortMappings: []types.PortMapping{{
 								Protocol:      protocol,
 								HostIP:        "127.0.0.1",
@@ -241,7 +241,7 @@ var _ = Describe("run CNI", func() {
 					intName := "eth0"
 					setupOpts := types.SetupOptions{
 						NetworkOptions: types.NetworkOptions{
-							ContainerID: stringid.GenerateNonCryptoID(),
+							ContainerID: stringid.GenerateRandomID(),
 							PortMappings: []types.PortMapping{{
 								Protocol:      protocol,
 								HostIP:        "127.0.0.1",
@@ -272,7 +272,7 @@ var _ = Describe("run CNI", func() {
 						port := p
 						var wg sync.WaitGroup
 						wg.Add(1)
-						testdata := stringid.GenerateNonCryptoID()
+						testdata := stringid.GenerateRandomID()
 						// start a listener in the container ns
 						err = netNSContainer.Do(func(_ ns.NetNS) error {
 							defer GinkgoRecover()
@@ -303,7 +303,7 @@ var _ = Describe("run CNI", func() {
 				intName := "eth0"
 				setupOpts := types.SetupOptions{
 					NetworkOptions: types.NetworkOptions{
-						ContainerID: stringid.GenerateNonCryptoID(),
+						ContainerID: stringid.GenerateRandomID(),
 						PortMappings: []types.PortMapping{{
 							Protocol:      "tcp,udp",
 							HostIP:        "127.0.0.1",
@@ -328,7 +328,7 @@ var _ = Describe("run CNI", func() {
 					// copy proto to extra var to keep correct references in the goroutines
 					protocol := proto
 
-					testdata := stringid.GenerateNonCryptoID()
+					testdata := stringid.GenerateRandomID()
 					var wg sync.WaitGroup
 					wg.Add(1)
 					// start tcp listener in the container ns
@@ -363,7 +363,7 @@ var _ = Describe("run CNI", func() {
 				intName1 := "eth0"
 				netName1 := network1.Name
 
-				containerID := stringid.GenerateNonCryptoID()
+				containerID := stringid.GenerateRandomID()
 
 				setupOpts := types.SetupOptions{
 					NetworkOptions: types.NetworkOptions{
@@ -554,7 +554,7 @@ var _ = Describe("run CNI", func() {
 
 				setupOpts := types.SetupOptions{
 					NetworkOptions: types.NetworkOptions{
-						ContainerID: stringid.GenerateNonCryptoID(),
+						ContainerID: stringid.GenerateRandomID(),
 						Networks: map[string]types.PerNetworkOptions{
 							netName1: {
 								InterfaceName: intName1,
@@ -681,7 +681,7 @@ var _ = Describe("run CNI", func() {
 				setupOpts := types.SetupOptions{
 					NetworkOptions: types.NetworkOptions{
 						ContainerName: "mycon",
-						ContainerID:   stringid.GenerateNonCryptoID(),
+						ContainerID:   stringid.GenerateRandomID(),
 						Networks: map[string]types.PerNetworkOptions{
 							netName: {
 								InterfaceName: interfaceName,
@@ -778,7 +778,7 @@ var _ = Describe("run CNI", func() {
 				intName := "eth0"
 				setupOpts := types.SetupOptions{
 					NetworkOptions: types.NetworkOptions{
-						ContainerID: stringid.GenerateNonCryptoID(),
+						ContainerID: stringid.GenerateRandomID(),
 						Networks: map[string]types.PerNetworkOptions{
 							netName: {
 								InterfaceName: intName,
@@ -865,7 +865,7 @@ var _ = Describe("run CNI", func() {
 				netName := "dualstack"
 				setupOpts := types.SetupOptions{
 					NetworkOptions: types.NetworkOptions{
-						ContainerID:   stringid.GenerateNonCryptoID(),
+						ContainerID:   stringid.GenerateRandomID(),
 						ContainerName: containerName,
 						Networks: map[string]types.PerNetworkOptions{
 							netName: {
@@ -973,7 +973,7 @@ var _ = Describe("run CNI", func() {
 				ip := "1.1.1.1"
 				setupOpts := types.SetupOptions{
 					NetworkOptions: types.NetworkOptions{
-						ContainerID: stringid.GenerateNonCryptoID(),
+						ContainerID: stringid.GenerateRandomID(),
 						Networks: map[string]types.PerNetworkOptions{
 							defNet: {
 								InterfaceName: intName,
@@ -994,7 +994,7 @@ var _ = Describe("run CNI", func() {
 				intName := "eth0"
 				setupOpts := types.SetupOptions{
 					NetworkOptions: types.NetworkOptions{
-						ContainerID: stringid.GenerateNonCryptoID(),
+						ContainerID: stringid.GenerateRandomID(),
 						Networks: map[string]types.PerNetworkOptions{
 							defNet: {
 								InterfaceName: intName,
@@ -1014,7 +1014,7 @@ var _ = Describe("run CNI", func() {
 				intName := "eth0"
 				setupOpts := types.SetupOptions{
 					NetworkOptions: types.NetworkOptions{
-						ContainerID: stringid.GenerateNonCryptoID(),
+						ContainerID: stringid.GenerateRandomID(),
 						Networks: map[string]types.PerNetworkOptions{
 							defNet: {
 								InterfaceName: intName,
@@ -1054,7 +1054,7 @@ var _ = Describe("run CNI", func() {
 				intName := "eth0"
 				setupOpts := types.SetupOptions{
 					NetworkOptions: types.NetworkOptions{
-						ContainerID: stringid.GenerateNonCryptoID(),
+						ContainerID: stringid.GenerateRandomID(),
 						Networks: map[string]types.PerNetworkOptions{
 							defNet: {
 								InterfaceName: intName,
@@ -1073,7 +1073,7 @@ var _ = Describe("run CNI", func() {
 			runTest(func() {
 				setupOpts := types.SetupOptions{
 					NetworkOptions: types.NetworkOptions{
-						ContainerID: stringid.GenerateNonCryptoID(),
+						ContainerID: stringid.GenerateRandomID(),
 					},
 				}
 				_, err := libpodNet.Setup(netNSContainer.Path(), setupOpts)
@@ -1087,7 +1087,7 @@ var _ = Describe("run CNI", func() {
 				defNet := types.DefaultNetworkName
 				setupOpts := types.SetupOptions{
 					NetworkOptions: types.NetworkOptions{
-						ContainerID: stringid.GenerateNonCryptoID(),
+						ContainerID: stringid.GenerateRandomID(),
 						Networks: map[string]types.PerNetworkOptions{
 							defNet: {
 								InterfaceName: "",
@@ -1128,7 +1128,7 @@ var _ = Describe("run CNI", func() {
 
 				setupOpts := types.SetupOptions{
 					NetworkOptions: types.NetworkOptions{
-						ContainerID: stringid.GenerateNonCryptoID(),
+						ContainerID: stringid.GenerateRandomID(),
 						Networks: map[string]types.PerNetworkOptions{
 							netName1: {
 								InterfaceName: intName1,
@@ -1173,7 +1173,7 @@ var _ = Describe("run CNI", func() {
 				intName := "eth0"
 				setupOpts := types.SetupOptions{
 					NetworkOptions: types.NetworkOptions{
-						ContainerID: stringid.GenerateNonCryptoID(),
+						ContainerID: stringid.GenerateRandomID(),
 						PortMappings: []types.PortMapping{{
 							Protocol:      "someproto",
 							HostIP:        "127.0.0.1",
@@ -1197,7 +1197,7 @@ var _ = Describe("run CNI", func() {
 				intName := "eth0"
 				setupOpts := types.SetupOptions{
 					NetworkOptions: types.NetworkOptions{
-						ContainerID: stringid.GenerateNonCryptoID(),
+						ContainerID: stringid.GenerateRandomID(),
 						PortMappings: []types.PortMapping{{
 							Protocol:      "",
 							HostIP:        "127.0.0.1",
@@ -1221,7 +1221,7 @@ var _ = Describe("run CNI", func() {
 				intName := "eth0"
 				setupOpts := types.SetupOptions{
 					NetworkOptions: types.NetworkOptions{
-						ContainerID: stringid.GenerateNonCryptoID(),
+						ContainerID: stringid.GenerateRandomID(),
 						Networks: map[string]types.PerNetworkOptions{
 							defNet: {InterfaceName: intName},
 						},
@@ -1239,7 +1239,7 @@ var _ = Describe("run CNI", func() {
 				netName := "somenet"
 				teardownOpts := types.TeardownOptions{
 					NetworkOptions: types.NetworkOptions{
-						ContainerID: stringid.GenerateNonCryptoID(),
+						ContainerID: stringid.GenerateRandomID(),
 						Networks: map[string]types.PerNetworkOptions{
 							netName: {
 								InterfaceName: interfaceName,
@@ -1266,7 +1266,7 @@ var _ = Describe("run CNI", func() {
 				netName := network1.Name
 				teardownOpts := types.TeardownOptions{
 					NetworkOptions: types.NetworkOptions{
-						ContainerID: stringid.GenerateNonCryptoID(),
+						ContainerID: stringid.GenerateRandomID(),
 						Networks: map[string]types.PerNetworkOptions{
 							netName: {
 								InterfaceName: interfaceName,
