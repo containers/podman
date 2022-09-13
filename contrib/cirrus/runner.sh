@@ -19,21 +19,6 @@ set -eo pipefail
 # shellcheck source=contrib/cirrus/lib.sh
 source $(dirname $0)/lib.sh
 
-function _run_ext_svc() {
-    $SCRIPT_BASE/ext_svc_check.sh
-}
-
-function _run_automation() {
-    $SCRIPT_BASE/cirrus_yaml_test.py
-
-    req_env_vars CI DEST_BRANCH IMAGE_SUFFIX TEST_FLAVOR TEST_ENVIRON \
-                 PODBIN_NAME PRIV_NAME DISTRO_NV CONTAINER USER HOME \
-                 UID AUTOMATION_LIB_PATH SCRIPT_BASE OS_RELEASE_ID \
-                 CG_FS_TYPE
-    bigto ooe.sh dnf install -y ShellCheck  # small/quick addition
-    $SCRIPT_BASE/shellcheck.sh
-}
-
 function _run_validate() {
     # TODO: aarch64 images need python3-devel installed
     # https://github.com/containers/automation_images/issues/159
@@ -423,6 +408,8 @@ function _bail_if_test_can_be_skipped() {
         return 0
     fi
 
+    # Defined by Cirrus-CI for all tasks
+    # shellcheck disable=SC2154
     head=$CIRRUS_CHANGE_IN_REPO
     base=$(git merge-base $DEST_BRANCH $head)
     diffs=$(git diff --name-only $base $head)

@@ -228,13 +228,11 @@ esac
 # Required to be defined by caller: The primary type of testing that will be performed
 # shellcheck disable=SC2154
 case "$TEST_FLAVOR" in
-    ext_svc) ;;
     validate)
         dnf install -y $PACKAGE_DOWNLOAD_DIR/python3*.rpm
         # For some reason, this is also needed for validation
         make .install.pre-commit .install.gitvalidation
         ;;
-    automation) ;;
     altbuild)
         # Defined in .cirrus.yml
         # shellcheck disable=SC2154
