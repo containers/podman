@@ -627,10 +627,7 @@ timestamp.
 
 If the only instruction in a Containerfile is `FROM`, this flag has no effect.
 
-#### **--tls-verify**
-
-Require HTTPS and verify certificates when talking to container registries
-(defaults to true). (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
+@@option tls-verify
 
 #### **--ulimit**=*type=soft-limit[:hard-limit]*
 

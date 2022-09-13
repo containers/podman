@@ -28,9 +28,7 @@ If a manifest list named *listnameorindexname* already exists, modify the
 preexisting list instead of exiting with an error.  The contents of
 *listnameorindexname* are not modified if no *imagename*s are given.
 
-#### **--tls-verify**
-
-Require HTTPS and verify certificates when talking to container registries. (defaults to true)
+@@option tls-verify
 
 ## EXAMPLES
 

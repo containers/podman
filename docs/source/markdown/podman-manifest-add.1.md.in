@@ -56,9 +56,7 @@ configuration information.
 Specify the OS version which the list or index records as a requirement for the
 image.  This option is rarely used.
 
-#### **--tls-verify**
-
-Require HTTPS and verify certificates when talking to container registries (defaults to true).
+@@option tls-verify
 
 #### **--variant**
 
