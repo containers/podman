@@ -215,7 +215,7 @@ func (r *Runtime) initContainerVariables(rSpec *spec.Spec, config *ContainerConf
 	ctr.state = new(ContainerState)
 
 	if config == nil {
-		ctr.config.ID = stringid.GenerateNonCryptoID()
+		ctr.config.ID = stringid.GenerateRandomID()
 		size, err := units.FromHumanSize(r.config.Containers.ShmSize)
 		if err != nil {
 			return nil, errors.Wrapf(err, "converting containers.conf ShmSize %s to an int", r.config.Containers.ShmSize)
@@ -231,7 +231,7 @@ func (r *Runtime) initContainerVariables(rSpec *spec.Spec, config *ContainerConf
 		}
 		// If the ID is empty a new name for the restored container was requested
 		if ctr.config.ID == "" {
-			ctr.config.ID = stringid.GenerateNonCryptoID()
+			ctr.config.ID = stringid.GenerateRandomID()
 			// Fixup ExitCommand with new ID
 			ctr.config.ExitCommand[len(ctr.config.ExitCommand)-1] = ctr.config.ID
 		}
@@ -435,7 +435,7 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 		if vol.Name == "" {
 			// Anonymous volume. We'll need to create it.
 			// It needs a name first.
-			vol.Name = stringid.GenerateNonCryptoID()
+			vol.Name = stringid.GenerateRandomID()
 			isAnonymous = true
 		} else {
 			// Check if it exists already

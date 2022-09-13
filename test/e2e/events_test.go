@@ -155,9 +155,9 @@ var _ = Describe("Podman events", func() {
 	})
 
 	It("podman events --until future", func() {
-		name1 := stringid.GenerateNonCryptoID()
-		name2 := stringid.GenerateNonCryptoID()
-		name3 := stringid.GenerateNonCryptoID()
+		name1 := stringid.GenerateRandomID()
+		name2 := stringid.GenerateRandomID()
+		name3 := stringid.GenerateRandomID()
 		session := podmanTest.Podman([]string{"create", "--name", name1, ALPINE})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))

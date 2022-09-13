@@ -629,7 +629,7 @@ var _ = Describe("Podman run networking", func() {
 
 	It("podman run in custom CNI network with --static-ip", func() {
 		SkipIfRootless("rootless CNI is tech preview in RHEL 8.3.1")
-		netName := stringid.GenerateNonCryptoID()
+		netName := stringid.GenerateRandomID()
 		ipAddr := "10.25.30.128"
 		create := podmanTest.Podman([]string{"network", "create", "--subnet", "10.25.30.0/24", netName})
 		create.WaitWithDefaultTimeout()
@@ -645,7 +645,7 @@ var _ = Describe("Podman run networking", func() {
 	It("podman rootless fails custom CNI network with --uidmap", func() {
 		SkipIfNotRootless("The configuration works with rootless")
 
-		netName := stringid.GenerateNonCryptoID()
+		netName := stringid.GenerateRandomID()
 		create := podmanTest.Podman([]string{"network", "create", netName})
 		create.WaitWithDefaultTimeout()
 		Expect(create.ExitCode()).To(BeZero())
@@ -662,7 +662,7 @@ var _ = Describe("Podman run networking", func() {
 
 	It("podman run with new:pod and static-ip", func() {
 		SkipIfRootless("rootless CNI is tech preview in RHEL 8.3.1")
-		netName := stringid.GenerateNonCryptoID()
+		netName := stringid.GenerateRandomID()
 		ipAddr := "10.25.40.128"
 		podname := "testpod"
 		create := podmanTest.Podman([]string{"network", "create", "--subnet", "10.25.40.0/24", netName})
@@ -741,7 +741,7 @@ var _ = Describe("Podman run networking", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(BeZero())
 
-		net := "IntTest" + stringid.GenerateNonCryptoID()
+		net := "IntTest" + stringid.GenerateRandomID()
 		session = podmanTest.Podman([]string{"network", "create", net})
 		session.WaitWithDefaultTimeout()
 		defer podmanTest.removeCNINetwork(net)
