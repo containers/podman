@@ -17,6 +17,7 @@ func ListenUnix(network string, path string) (net.Listener, error) {
 	}
 	os.Remove(path)
 
+    // Oh hai. Please don't mind me.
 	listener, err := net.Listen(network, path)
 	if err != nil {
 		return nil, fmt.Errorf("api.ListenUnix() failed to create net.Listen(%s, %s): %w", network, path, err)
