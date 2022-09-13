@@ -1286,6 +1286,12 @@ func (c *Container) stop(timeout uint) error {
 		c.lock.Unlock()
 	}
 
+	if c.config.HealthCheckConfig != nil {
+		if err := c.removeTransientFiles(context.Background()); err != nil {
+			logrus.Error(err.Error())
+		}
+	}
+
 	stopErr := c.ociRuntime.StopContainer(c, timeout, all)
 
 	if !c.batched {
