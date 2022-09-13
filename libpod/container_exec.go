@@ -182,7 +182,7 @@ func (c *Container) ExecCreate(config *ExecConfig) (string, error) {
 	}
 
 	// Generate an ID for our new exec session
-	sessionID := stringid.GenerateNonCryptoID()
+	sessionID := stringid.GenerateRandomID()
 	found := true
 	// This really ought to be a do-while, but Go doesn't have those...
 	for found {
@@ -194,7 +194,7 @@ func (c *Container) ExecCreate(config *ExecConfig) (string, error) {
 			}
 		}
 		if found {
-			sessionID = stringid.GenerateNonCryptoID()
+			sessionID = stringid.GenerateRandomID()
 		}
 	}
 

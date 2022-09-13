@@ -294,7 +294,7 @@ var _ = Describe("Podman ps", func() {
 	})
 
 	It("podman pod ps filter network", func() {
-		net := stringid.GenerateNonCryptoID()
+		net := stringid.GenerateRandomID()
 		session := podmanTest.Podman([]string{"network", "create", net})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
@@ -333,12 +333,12 @@ var _ = Describe("Podman ps", func() {
 			Expect(session.OutputToString()).To(Equal("podman"))
 		}
 
-		net1 := stringid.GenerateNonCryptoID()
+		net1 := stringid.GenerateRandomID()
 		session = podmanTest.Podman([]string{"network", "create", net1})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		defer podmanTest.removeNetwork(net1)
-		net2 := stringid.GenerateNonCryptoID()
+		net2 := stringid.GenerateRandomID()
 		session = podmanTest.Podman([]string{"network", "create", net2})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
