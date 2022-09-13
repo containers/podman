@@ -1,0 +1,4 @@
+# Add labels based on file paths in PR
+#   https://github.com/actions/labeler
+kind/api-change:
+  - pkg/api/**/*
