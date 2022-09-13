@@ -5,7 +5,6 @@ package machine
 
 import (
 	"fmt"
-	"html/template"
 	"os"
 	"runtime"
 
@@ -75,13 +74,16 @@ func info(cmd *cobra.Command, args []string) error {
 		}
 		fmt.Println(string(b))
 	case cmd.Flags().Changed("format"):
-		tmpl := template.New(cmd.Name()).Funcs(template.FuncMap(report.DefaultFuncs))
-		inFormat = report.NormalizeFormat(inFormat)
-		tmpl, err := tmpl.Parse(inFormat)
+		rpt := report.New(os.Stdout, cmd.Name())
+		defer rpt.Flush()
+
+		// Use OriginUnknown so it does not add an extra range since it
+		// will only be called for a single element and not a slice.
+		rpt, err = rpt.Parse(report.OriginUnknown, inFormat)
 		if err != nil {
 			return err
 		}
-		return tmpl.Execute(os.Stdout, info)
+		return rpt.Execute(info)
 	default:
 		b, err := yaml.Marshal(info)
 		if err != nil {

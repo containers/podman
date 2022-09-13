@@ -53,7 +53,7 @@ func init() {
 
 	flags := lsCmd.Flags()
 	formatFlagName := "format"
-	flags.StringVar(&listFlag.format, formatFlagName, "{{.Name}}\t{{.VMType}}\t{{.Created}}\t{{.LastUp}}\t{{.CPUs}}\t{{.Memory}}\t{{.DiskSize}}\n", "Format volume output using JSON or a Go template")
+	flags.StringVar(&listFlag.format, formatFlagName, "{{range .}}{{.Name}}\t{{.VMType}}\t{{.Created}}\t{{.LastUp}}\t{{.CPUs}}\t{{.Memory}}\t{{.DiskSize}}\n{{end -}}", "Format volume output using JSON or a Go template")
 	_ = lsCmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(&entities.ListReporter{}))
 	flags.BoolVar(&listFlag.noHeading, "noheading", false, "Do not print headers")
 	flags.BoolVarP(&listFlag.quiet, "quiet", "q", false, "Show only machine names")
@@ -65,10 +65,6 @@ func list(cmd *cobra.Command, args []string) error {
 		listResponse []*machine.ListResponse
 		err          error
 	)
-
-	if listFlag.quiet {
-		listFlag.format = "{{.Name}}\n"
-	}
 
 	provider := GetSystemDefaultProvider()
 	listResponse, err = provider.List(opts)
@@ -115,37 +111,29 @@ func outputTemplate(cmd *cobra.Command, responses []*entities.ListReporter) erro
 		"Memory":   "MEMORY",
 		"DiskSize": "DISK SIZE",
 	})
-	printHeader := !listFlag.noHeading
-	if listFlag.quiet {
-		printHeader = false
-	}
-	var row string
+
+	rpt := report.New(os.Stdout, cmd.Name())
+	defer rpt.Flush()
+
+	var err error
 	switch {
-	case cmd.Flags().Changed("format"):
-		row = cmd.Flag("format").Value.String()
-		printHeader = report.HasTable(row)
-		row = report.NormalizeFormat(row)
+	case cmd.Flag("format").Changed:
+		rpt, err = rpt.Parse(report.OriginUser, listFlag.format)
+	case listFlag.quiet:
+		rpt, err = rpt.Parse(report.OriginUser, "{{.Name}}\n")
 	default:
-		row = cmd.Flag("format").Value.String()
+		rpt, err = rpt.Parse(report.OriginPodman, listFlag.format)
 	}
-	format := report.EnforceRange(row)
-
-	tmpl, err := report.NewTemplate("list").Parse(format)
 	if err != nil {
 		return err
 	}
 
-	w, err := report.NewWriterDefault(os.Stdout)
-	if err != nil {
-		return err
-	}
-	defer w.Flush()
-	if printHeader {
-		if err := tmpl.Execute(w, headers); err != nil {
+	if rpt.RenderHeaders && !listFlag.noHeading {
+		if err := rpt.Execute(headers); err != nil {
 			return fmt.Errorf("failed to write report column headers: %w", err)
 		}
 	}
-	return tmpl.Execute(w, responses)
+	return rpt.Execute(responses)
 }
 
 func strTime(t time.Time) string {

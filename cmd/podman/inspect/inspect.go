@@ -8,7 +8,6 @@ import (
 	"os"
 	"regexp"
 	"strings"
-	"text/template"
 
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/common/pkg/report"
@@ -16,7 +15,6 @@ import (
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/containers/podman/v4/cmd/podman/validate"
 	"github.com/containers/podman/v4/pkg/domain/entities"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -176,13 +174,18 @@ func (i *inspector) inspect(namesOrIDs []string) error {
 		}
 	default:
 		// Landing here implies user has given a custom --format
-		row := inspectNormalize(i.options.Format, tmpType)
-		row = report.NormalizeFormat(row)
-		row = report.EnforceRange(row)
-		err = printTmpl(tmpType, row, data)
+		var rpt *report.Formatter
+		format := inspectNormalize(i.options.Format, i.options.Type)
+		rpt, err = report.New(os.Stdout, "inspect").Parse(report.OriginUser, format)
+		if err != nil {
+			return err
+		}
+		defer rpt.Flush()
+
+		err = rpt.Execute(data)
 	}
 	if err != nil {
-		logrus.Errorf("Printing inspect output: %v", err)
+		errs = append(errs, fmt.Errorf("printing inspect output: %w", err))
 	}
 
 	if len(errs) > 0 {
@@ -203,22 +206,6 @@ func printJSON(data interface{}) error {
 	enc.SetEscapeHTML(false)
 	enc.SetIndent("", "     ")
 	return enc.Encode(data)
-}
-
-func printTmpl(typ, row string, data []interface{}) error {
-	// We cannot use c/common/reports here, too many levels of interface{}
-	t, err := template.New(typ + " inspect").Funcs(template.FuncMap(report.DefaultFuncs)).Parse(row)
-	if err != nil {
-		return err
-	}
-
-	w, err := report.NewWriterDefault(os.Stdout)
-	if err != nil {
-		return err
-	}
-	err = t.Execute(w, data)
-	w.Flush()
-	return err
 }
 
 func (i *inspector) inspectAll(ctx context.Context, namesOrIDs []string) ([]interface{}, []error, error) {

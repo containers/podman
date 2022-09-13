@@ -75,7 +75,10 @@ var _ = Describe("Podman volume ls", func() {
 		session.WaitWithDefaultTimeout()
 
 		Expect(session).Should(Exit(0))
-		Expect(session.OutputToStringArray()).To(HaveLen(1), session.OutputToString())
+		arr := session.OutputToStringArray()
+		Expect(arr).To(HaveLen(2))
+		Expect(arr[0]).To(ContainSubstring("NAME"))
+		Expect(arr[1]).To(ContainSubstring("myvol"))
 	})
 
 	It("podman ls volume with --filter flag", func() {

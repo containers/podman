@@ -46,7 +46,7 @@ func init() {
 	flags := lsCmd.Flags()
 
 	formatFlagName := "format"
-	flags.StringVar(&listFlag.format, formatFlagName, "{{.ID}}\t{{.Name}}\t{{.Driver}}\t{{.CreatedAt}}\t{{.UpdatedAt}}\t\n", "Format volume output using Go template")
+	flags.StringVar(&listFlag.format, formatFlagName, "{{range .}}{{.ID}}\t{{.Name}}\t{{.Driver}}\t{{.CreatedAt}}\t{{.UpdatedAt}}\n{{end -}}", "Format volume output using Go template")
 	_ = lsCmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(&entities.SecretInfoReport{}))
 
 	filterFlagName := "filter"
@@ -105,31 +105,25 @@ func outputTemplate(cmd *cobra.Command, responses []*entities.SecretListReport) 
 		"UpdatedAt": "UPDATED",
 	})
 
-	row := cmd.Flag("format").Value.String()
-	if cmd.Flags().Changed("format") {
-		row = report.NormalizeFormat(row)
-	}
-	format := report.EnforceRange(row)
+	rpt := report.New(os.Stdout, cmd.Name())
+	defer rpt.Flush()
 
-	tmpl, err := report.NewTemplate("list").Parse(format)
+	var err error
+	switch {
+	case cmd.Flag("format").Changed:
+		rpt, err = rpt.Parse(report.OriginUser, listFlag.format)
+	default:
+		rpt, err = rpt.Parse(report.OriginPodman, listFlag.format)
+	}
 	if err != nil {
 		return err
 	}
 
-	w, err := report.NewWriterDefault(os.Stdout)
-	if err != nil {
-		return err
-	}
-	defer w.Flush()
-
-	if cmd.Flags().Changed("format") && !report.HasTable(listFlag.format) {
-		listFlag.noHeading = true
-	}
-
-	if !listFlag.noHeading {
-		if err := tmpl.Execute(w, headers); err != nil {
+	noHeading, _ := cmd.Flags().GetBool("noheading")
+	if rpt.RenderHeaders && !noHeading {
+		if err := rpt.Execute(headers); err != nil {
 			return fmt.Errorf("failed to write report column headers: %w", err)
 		}
 	}
-	return tmpl.Execute(w, responses)
+	return rpt.Execute(responses)
 }
