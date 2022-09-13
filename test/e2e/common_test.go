@@ -304,7 +304,7 @@ func PodmanTestCreateUtil(tempDir string, remote bool) *PodmanTestIntegration {
 		// happens. So, use a podman-%s.sock-lock empty file as a marker.
 		tries := 0
 		for {
-			uuid := stringid.GenerateNonCryptoID()
+			uuid := stringid.GenerateRandomID()
 			lockPath := fmt.Sprintf("%s-%s.sock-lock", pathPrefix, uuid)
 			lockFile, err := os.OpenFile(lockPath, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0700)
 			if err == nil {
@@ -904,7 +904,7 @@ func generateNetworkConfig(p *PodmanTestIntegration) (string, string) {
 		conf string
 	)
 	// generate a random name to prevent conflicts with other tests
-	name := "net" + stringid.GenerateNonCryptoID()
+	name := "net" + stringid.GenerateRandomID()
 	if p.NetworkBackend != Netavark {
 		path = filepath.Join(p.NetworkConfigDir, fmt.Sprintf("%s.conflist", name))
 		conf = fmt.Sprintf(`{
@@ -1040,5 +1040,5 @@ func ncz(port int) bool {
 }
 
 func createNetworkName(name string) string {
-	return name + stringid.GenerateNonCryptoID()[:10]
+	return name + stringid.GenerateRandomID()[:10]
 }
