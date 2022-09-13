@@ -16,57 +16,33 @@ import (
 	"github.com/containers/podman/v4/libpod/define"
 )
 
-// GetContainerStats gets the running stats for a given container.
-// The previousStats is used to correctly calculate cpu percentages. You
-// should pass nil if there is no previous stat for this container.
-func (c *Container) GetContainerStats(previousStats *define.ContainerStats) (*define.ContainerStats, error) {
-	stats := new(define.ContainerStats)
-	stats.ContainerID = c.ID()
-	stats.Name = c.Name()
-
+// getPlatformContainerStats gets the platform-specific running stats
+// for a given container.  The previousStats is used to correctly
+// calculate cpu percentages. You should pass nil if there is no
+// previous stat for this container.
+func (c *Container) getPlatformContainerStats(stats *define.ContainerStats, previousStats *define.ContainerStats) error {
 	if c.config.NoCgroups {
-		return nil, fmt.Errorf("cannot run top on container %s as it did not create a cgroup: %w", c.ID(), define.ErrNoCgroups)
-	}
-
-	if !c.batched {
-		c.lock.Lock()
-		defer c.lock.Unlock()
-		if err := c.syncContainer(); err != nil {
-			return stats, err
-		}
-	}
-
-	// returns stats with the fields' default values respective of their type
-	if c.state.State != define.ContainerStateRunning && c.state.State != define.ContainerStatePaused {
-		return stats, nil
-	}
-
-	if previousStats == nil {
-		previousStats = &define.ContainerStats{
-			// if we have no prev stats use the container start time as prev time
-			// otherwise we cannot correctly calculate the CPU percentage
-			SystemNano: uint64(c.state.StartedTime.UnixNano()),
-		}
+		return fmt.Errorf("cannot run top on container %s as it did not create a cgroup: %w", c.ID(), define.ErrNoCgroups)
 	}
 
 	cgroupPath, err := c.cGroupPath()
 	if err != nil {
-		return nil, err
+		return err
 	}
 	cgroup, err := cgroups.Load(cgroupPath)
 	if err != nil {
-		return stats, fmt.Errorf("unable to load cgroup at %s: %w", cgroupPath, err)
+		return fmt.Errorf("unable to load cgroup at %s: %w", cgroupPath, err)
 	}
 
 	// Ubuntu does not have swap memory in cgroups because swap is often not enabled.
 	cgroupStats, err := cgroup.Stat()
 	if err != nil {
-		return stats, fmt.Errorf("unable to obtain cgroup stats: %w", err)
+		return fmt.Errorf("unable to obtain cgroup stats: %w", err)
 	}
 	conState := c.state.State
 	netStats, err := getContainerNetIO(c)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	// If the current total usage in the cgroup is less than what was previously
@@ -103,7 +79,7 @@ func (c *Container) GetContainerStats(previousStats *define.ContainerStats) (*de
 		stats.NetOutput = 0
 	}
 
-	return stats, nil
+	return nil
 }
 
 // getMemory limit returns the memory limit for a container
@@ -133,7 +109,9 @@ func (c *Container) getMemLimit() uint64 {
 
 // calculateCPUPercent calculates the cpu usage using the latest measurement in stats.
 // previousCPU is the last value of stats.CPU.Usage.Total measured at the time previousSystem.
-//  (now - previousSystem) is the time delta in nanoseconds, between the measurement in previousCPU
+//
+//	(now - previousSystem) is the time delta in nanoseconds, between the measurement in previousCPU
+//
 // and the updated value in stats.
 func calculateCPUPercent(stats *runccgroup.Stats, previousCPU, now, previousSystem uint64) float64 {
 	var (
