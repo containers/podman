@@ -198,7 +198,7 @@ var _ = Describe("Podman run", func() {
 	It("podman run a container with a --rootfs", func() {
 		rootfs := filepath.Join(tempdir, "rootfs")
 		uls := filepath.Join("/", "usr", "local", "share")
-		uniqueString := stringid.GenerateNonCryptoID()
+		uniqueString := stringid.GenerateRandomID()
 		testFilePath := filepath.Join(uls, uniqueString)
 		tarball := filepath.Join(tempdir, "rootfs.tar")
 
@@ -827,7 +827,7 @@ USER bin`, BB)
 		err = ioutil.WriteFile(hookJSONPath, []byte(hookJSON), 0644)
 		Expect(err).ToNot(HaveOccurred())
 
-		random := stringid.GenerateNonCryptoID()
+		random := stringid.GenerateRandomID()
 
 		hookScript := fmt.Sprintf(`#!/bin/sh
 echo -n %s >%s

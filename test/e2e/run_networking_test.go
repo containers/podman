@@ -869,7 +869,7 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 	})
 
 	It("podman run in custom CNI network with --static-ip", func() {
-		netName := stringid.GenerateNonCryptoID()
+		netName := stringid.GenerateRandomID()
 		ipAddr := "10.25.30.128"
 		create := podmanTest.Podman([]string{"network", "create", "--subnet", "10.25.30.0/24", netName})
 		create.WaitWithDefaultTimeout()
@@ -884,7 +884,7 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 
 	It("podman CNI network works across user ns", func() {
 		SkipIfNetavark(podmanTest)
-		netName := stringid.GenerateNonCryptoID()
+		netName := stringid.GenerateRandomID()
 		create := podmanTest.Podman([]string{"network", "create", netName})
 		create.WaitWithDefaultTimeout()
 		Expect(create).Should(Exit(0))
@@ -933,7 +933,7 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 	})
 
 	It("podman run with new:pod and static-ip", func() {
-		netName := stringid.GenerateNonCryptoID()
+		netName := stringid.GenerateRandomID()
 		ipAddr := "10.25.40.128"
 		podname := "testpod"
 		create := podmanTest.Podman([]string{"network", "create", "--subnet", "10.25.40.0/24", netName})
@@ -1121,7 +1121,7 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 
 	// see https://github.com/containers/podman/issues/12972
 	It("podman run check network-alias works on networks without dns", func() {
-		net := "dns" + stringid.GenerateNonCryptoID()
+		net := "dns" + stringid.GenerateRandomID()
 		session := podmanTest.Podman([]string{"network", "create", "--disable-dns", net})
 		session.WaitWithDefaultTimeout()
 		defer podmanTest.removeNetwork(net)
@@ -1135,7 +1135,7 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 	It("podman run with ipam none driver", func() {
 		// Test fails, issue #13931
 		SkipIfNetavark(podmanTest)
-		net := "ipam" + stringid.GenerateNonCryptoID()
+		net := "ipam" + stringid.GenerateRandomID()
 		session := podmanTest.Podman([]string{"network", "create", "--ipam-driver=none", net})
 		session.WaitWithDefaultTimeout()
 		defer podmanTest.removeNetwork(net)

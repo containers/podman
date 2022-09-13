@@ -41,7 +41,7 @@ func (r *Runtime) newVolume(noCreatePluginVolume bool, options ...VolumeCreateOp
 	}
 
 	if volume.config.Name == "" {
-		volume.config.Name = stringid.GenerateNonCryptoID()
+		volume.config.Name = stringid.GenerateRandomID()
 	}
 	if volume.config.Driver == "" {
 		volume.config.Driver = define.VolumeDriverLocal

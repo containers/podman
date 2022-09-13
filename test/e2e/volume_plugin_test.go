@@ -212,19 +212,19 @@ testvol5 = "/run/docker/plugins/testvol5.sock"`), 0o644)
 		plugin.WaitWithDefaultTimeout()
 		Expect(plugin).Should(Exit(0))
 
-		localvol := "local-" + stringid.GenerateNonCryptoID()
+		localvol := "local-" + stringid.GenerateRandomID()
 		// create local volume
 		session := podmanTest.Podman([]string{"volume", "create", localvol})
 		session.WaitWithDefaultTimeout()
 		Expect(session).To(Exit(0))
 
-		vol1 := "vol1-" + stringid.GenerateNonCryptoID()
+		vol1 := "vol1-" + stringid.GenerateRandomID()
 		session = podmanTest.Podman([]string{"volume", "create", "--driver", pluginName, vol1})
 		session.WaitWithDefaultTimeout()
 		Expect(session).To(Exit(0))
 
 		// now create volume in plugin without podman
-		vol2 := "vol2-" + stringid.GenerateNonCryptoID()
+		vol2 := "vol2-" + stringid.GenerateRandomID()
 		plugin = podmanTest.Podman([]string{"exec", ctrName, "/usr/local/bin/testvol", "--sock-name", pluginName, "create", vol2})
 		plugin.WaitWithDefaultTimeout()
 		Expect(plugin).Should(Exit(0))

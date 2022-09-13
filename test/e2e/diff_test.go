@@ -93,9 +93,9 @@ var _ = Describe("Podman diff", func() {
 	})
 
 	It("podman image diff", func() {
-		file1 := "/" + stringid.GenerateNonCryptoID()
-		file2 := "/" + stringid.GenerateNonCryptoID()
-		file3 := "/" + stringid.GenerateNonCryptoID()
+		file1 := "/" + stringid.GenerateRandomID()
+		file2 := "/" + stringid.GenerateRandomID()
+		file3 := "/" + stringid.GenerateRandomID()
 
 		// Create container image with the files
 		containerfile := fmt.Sprintf(`
@@ -152,8 +152,8 @@ RUN echo test
 	})
 
 	It("podman diff container and image with same name", func() {
-		imagefile := "/" + stringid.GenerateNonCryptoID()
-		confile := "/" + stringid.GenerateNonCryptoID()
+		imagefile := "/" + stringid.GenerateRandomID()
+		confile := "/" + stringid.GenerateRandomID()
 
 		// Create container image with the files
 		containerfile := fmt.Sprintf(`

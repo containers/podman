@@ -2266,7 +2266,7 @@ spec:
 		err := generateKubeYaml("deployment", deployment, kubeYaml)
 		Expect(err).To(BeNil())
 
-		net := "playkube" + stringid.GenerateNonCryptoID()
+		net := "playkube" + stringid.GenerateRandomID()
 		session := podmanTest.Podman([]string{"network", "create", "--subnet", "10.25.31.0/24", net})
 		session.WaitWithDefaultTimeout()
 		defer podmanTest.removeNetwork(net)
@@ -2308,8 +2308,8 @@ spec:
 		err := generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).To(BeNil())
 
-		net1 := "net1" + stringid.GenerateNonCryptoID()
-		net2 := "net2" + stringid.GenerateNonCryptoID()
+		net1 := "net1" + stringid.GenerateRandomID()
+		net2 := "net2" + stringid.GenerateRandomID()
 
 		net := podmanTest.Podman([]string{"network", "create", "--subnet", "10.0.11.0/24", net1})
 		net.WaitWithDefaultTimeout()
