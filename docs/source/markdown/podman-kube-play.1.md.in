@@ -219,11 +219,7 @@ Directory path for seccomp profiles (default: "/var/lib/kubelet/seccomp"). (This
 
 Start the pod after creating it, set to false to only create it.
 
-#### **--tls-verify**
-
-Require HTTPS and verify certificates when contacting registries (default: true). If explicitly set to true,
-then TLS verification will be used. If set to false, then TLS verification will not be used. If not specified,
-TLS verification will be used unless the target registry is listed as an insecure registry in registries.conf.
+@@option tls-verify
 
 @@option userns.container
 ## EXAMPLES

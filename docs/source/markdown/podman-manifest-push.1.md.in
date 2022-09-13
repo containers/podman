@@ -59,9 +59,7 @@ Sign the pushed images with a sigstore signature using a private key at the spec
 
 If signing the image (using either **--sign-by** or **--sign-by-sigstore-private-key**), read the passphrase to use from the specified path.
 
-#### **--tls-verify**
-
-Require HTTPS and verify certificates when talking to container registries. (defaults to true)
+@@option tls-verify
 
 ## DESTINATION
 

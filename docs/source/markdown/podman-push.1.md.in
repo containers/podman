@@ -90,11 +90,7 @@ Add a sigstore signature at the destination using a private key at the specified
 
 If signing the image (using either **--sign-by** or **--sign-by-sigstore-private-key**), read the passphrase to use from the specified path.
 
-#### **--tls-verify**
-
-Require HTTPS and verify certificates when contacting registries (default: true). If explicitly set to true,
-then TLS verification will be used. If set to false, then TLS verification will not be used. If not specified,
-TLS verification will be used unless the target registry is listed as an insecure registry in registries.conf.
+@@option tls-verify
 
 ## EXAMPLE
 
