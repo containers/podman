@@ -256,14 +256,14 @@ func generatePodInfo(pod *libpod.Pod, options entities.GenerateSystemdOptions) (
 	return &info, nil
 }
 
-// Unless already specified, the pod's exit policy to "stop".
-func setPodExitPolicy(cmd []string) []string {
+// Determine whether the command array includes an exit-policy setting
+func hasPodExitPolicy(cmd []string) bool {
 	for _, arg := range cmd {
 		if strings.HasPrefix(arg, "--exit-policy=") || arg == "--exit-policy" {
-			return cmd
+			return true
 		}
 	}
-	return append(cmd, "--exit-policy=stop")
+	return false
 }
 
 // executePodTemplate executes the pod template on the specified podInfo.  Note
@@ -364,8 +364,10 @@ func executePodTemplate(info *podInfo, options entities.GenerateSystemdOptions) 
 			podCreateArgs = append(podCreateArgs, "--replace")
 		}
 
+		if !hasPodExitPolicy(append(startCommand, podCreateArgs...)) {
+			startCommand = append(startCommand, "--exit-policy=stop")
+		}
 		startCommand = append(startCommand, podCreateArgs...)
-		startCommand = setPodExitPolicy(startCommand)
 		startCommand = escapeSystemdArguments(startCommand)
 
 		info.ExecStartPre1 = "/bin/rm -f {{{{.PIDFile}}}} {{{{.PodIDFile}}}}"
