@@ -450,14 +450,7 @@ When size is `0`, there is no limit on the amount of memory used for IPC by the 
 
 @@option unsetenv-all
 
-#### **--user**, **-u**=*user*
-
-Sets the username or UID used and optionally the groupname or GID for the specified command.
-
-The following examples are all valid:
---user [user | user:group | uid | uid:gid | user:gid | uid:group ]
-
-Without this argument the command will be run as root in the container.
+@@option user
 
 @@option userns.container
 
