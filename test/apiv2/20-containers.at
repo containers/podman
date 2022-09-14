@@ -117,6 +117,17 @@ if root; then
     podman rm -f $CTRNAME
 fi
 
+# Issue #15765: make sure the memory limit is capped
+if root; then
+    CTRNAME=ctr-with-limit
+    podman run --name $CTRNAME -d -m 512m -v /tmp:/tmp $IMAGE top
+
+    t GET libpod/containers/$CTRNAME/stats?stream=false 200 \
+    .memory_stats.limit!=18446744073709552000
+
+    podman rm -f $CTRNAME
+fi
+
 # Issue #6799: it should be possible to start a container, even w/o args.
 t POST libpod/containers/create?name=test_noargs Image=${IMAGE} 201 \
   .Id~[0-9a-f]\\{64\\}
