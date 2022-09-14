@@ -531,7 +531,7 @@ func (c *Container) isWorkDirSymlink(resolvedPath string) bool {
 		}
 		if resolvedSymlink != "" {
 			_, resolvedSymlinkWorkdir, err := c.resolvePath(c.state.Mountpoint, resolvedSymlink)
-			if isPathOnVolume(c, resolvedSymlinkWorkdir) || isPathOnBindMount(c, resolvedSymlinkWorkdir) {
+			if isPathOnVolume(c, resolvedSymlinkWorkdir) || isPathOnMount(c, resolvedSymlinkWorkdir) {
 				// Resolved symlink exists on external volume or mount
 				return true
 			}
@@ -564,7 +564,7 @@ func (c *Container) resolveWorkDir() error {
 	// If the specified workdir is a subdir of a volume or mount,
 	// we don't need to do anything.  The runtime is taking care of
 	// that.
-	if isPathOnVolume(c, workdir) || isPathOnBindMount(c, workdir) {
+	if isPathOnVolume(c, workdir) || isPathOnMount(c, workdir) {
 		logrus.Debugf("Workdir %q resolved to a volume or mount", workdir)
 		return nil
 	}
