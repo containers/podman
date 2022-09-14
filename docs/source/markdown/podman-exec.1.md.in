@@ -31,24 +31,18 @@ This option allows arbitrary environment variables that are available for the pr
 
 Read in a line delimited file of environment variables.
 
-#### **--interactive**, **-i**
-
-When set to true, keep stdin open even if not attached. The default is *false*.
+@@option interactive
 
 #### **--latest**, **-l**
 
 Instead of providing the container name or ID, use the last created container. If you use methods other than Podman
 to run containers such as CRI-O, the last started container could be from either of those methods. (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
 
-#### **--preserve-fds**=*N*
-
-Pass down to the process N additional file descriptors (in addition to 0, 1, 2).  The total FDs will be 3+N.
+@@option preserve-fds
 
 @@option privileged
 
-#### **--tty**, **-t**
-
-Allocate a pseudo-TTY.
+@@option tty
 
 #### **--user**, **-u**
 

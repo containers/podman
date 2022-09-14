@@ -224,9 +224,7 @@ pod when that pod is not running.
 
 @@option init-path
 
-#### **--interactive**, **-i**
-
-Keep STDIN open even if not attached. The default is *false*.
+@@option interactive
 
 @@option ip
 
@@ -438,16 +436,7 @@ When size is `0`, there is no limit on the amount of memory used for IPC by the 
 
 @@option tmpfs
 
-#### **--tty**, **-t**
-
-Allocate a pseudo-TTY. The default is *false*.
-
-When set to true Podman will allocate a pseudo-tty and attach to the standard
-input of the container. This can be used, for example, to run a throwaway
-interactive shell. The default is false.
-
-Note: The **-t** option is incompatible with a redirection of the Podman client
-standard input.
+@@option tty
 
 @@option tz
 

@@ -245,9 +245,7 @@ Print usage statement
 
 @@option init-path
 
-#### **--interactive**, **-i**
-
-When set to **true**, keep stdin open even if not attached. The default is **false**.
+@@option interactive
 
 @@option ip
 
@@ -366,10 +364,7 @@ If a container is run with a pod, and the pod has an infra-container, the infra-
 
 @@option pod-id-file.container
 
-#### **--preserve-fds**=*N*
-
-Pass down to the process N additional file descriptors (in addition to 0, 1, 2).
-The total FDs will be 3+N. (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
+@@option preserve-fds
 
 @@option privileged
 
@@ -478,15 +473,7 @@ Sets whether the signals sent to the **podman run** command are proxied to the c
 
 @@option tmpfs
 
-#### **--tty**, **-t**
-
-Allocate a pseudo-TTY. The default is **false**.
-
-When set to **true**, Podman will allocate a pseudo-tty and attach to the standard
-input of the container. This can be used, for example, to run a throwaway
-interactive shell. The default is **false**.
-
-**NOTE**: The --tty flag prevents redirection of standard output.  It combines STDOUT and STDERR, it can insert control characters, and it can hang pipes. This option should only be used when run interactively in a terminal. When feeding input to Podman, use -i only, not -it.
+@@option tty
 
 ```
 echo "asdf" | podman run --rm -i someimage /bin/cat
