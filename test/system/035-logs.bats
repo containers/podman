@@ -36,13 +36,28 @@ function _log_test_tail() {
     run_podman run -d --log-driver=$driver $IMAGE sh -c "echo test1; echo test2"
     cid="$output"
 
-    run_podman logs --tail 1 $cid
-    is "$output" "test2"  "logs should only show last line"
+    run_podman wait $cid
+    run_podman logs --tail 1 --timestamps $cid
+    log1="$output"
+    assert "$log1" =~ "^[0-9-]+T[0-9:.]+([\+-][0-9:]+|Z) test2" \
+           "logs should only show last line"
+
+    # Sigh. I hate doing this, but podman-remote --timestamp only has 1-second
+    # resolution (regular podman has sub-second). For the timestamps-differ
+    # check below, we need to force a different second.
+    if is_remote; then
+        sleep 2
+    fi
 
     run_podman restart $cid
+    run_podman wait $cid
 
-    run_podman logs --tail 1 $cid
-    is "$output" "test2"  "logs should only show last line after restart"
+    run_podman logs -t --tail 1 $cid
+    log2="$output"
+    assert "$log2" =~ "^[0-9-]+T[0-9:.]+([\+-][0-9:]+|Z) test2" \
+           "logs, after restart, shows only last line"
+
+    assert "$log2" != "$log1" "log timestamps should differ"
 
     run_podman rm $cid
 }

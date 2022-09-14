@@ -517,7 +517,7 @@ func (ic *ContainerEngine) ContainerLogs(_ context.Context, nameOrIDs []string, 
 	stdout := opts.StdoutWriter != nil
 	stderr := opts.StderrWriter != nil
 	options := new(containers.LogOptions).WithFollow(opts.Follow).WithSince(since).WithUntil(until).WithStderr(stderr)
-	options.WithStdout(stdout).WithTail(tail)
+	options.WithStdout(stdout).WithTail(tail).WithTimestamps(opts.Timestamps)
 
 	var err error
 	stdoutCh := make(chan string)
