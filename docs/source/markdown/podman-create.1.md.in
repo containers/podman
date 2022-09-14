@@ -141,17 +141,9 @@ flag to pass the user's supplementary group access into the container.
 
 @@option disable-content-trust
 
-#### **--dns**=*dns*
+@@option dns
 
-Set custom DNS servers. Invalid if using **--dns** and **--network** that is set to 'none' or `container:<name|id>`.
-
-This option can be used to override the DNS
-configuration passed to the container. Typically this is necessary when the
-host DNS configuration is invalid for the container (e.g., 127.0.0.1). When this
-is the case the **--dns** flag is necessary for every run.
-
-The special value **none** can be specified to disable creation of **/etc/resolv.conf** in the container by Podman.
-The **/etc/resolv.conf** file in the image will be used without changes.
+This option cannot be combined with **--network** that is set to **none** or **container:**_id_.
 
 @@option dns-opt.container
 
