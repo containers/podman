@@ -47,7 +47,6 @@ of this document, it's not possible to override the behavior of `$CIRRUS_PR`.
 + validate
 + bindings
 + swagger
-+ consistency
 + *alt_build*
 + osx_alt_build
 + docker-py_test
@@ -77,7 +76,6 @@ of this document, it's not possible to override the behavior of `$CIRRUS_PR`.
 + *build*
 + validate
 + swagger
-+ consistency
 + meta
 + success
 
@@ -85,14 +83,12 @@ of this document, it's not possible to override the behavior of `$CIRRUS_PR`.
 + *build*
 + validate
 + swagger
-+ consistency
 + meta
 + success
 
 ### Intend `[CI:BUILD]` PR Tasks:
 + *build*
 + validate
-+ consistency
 + *alt_build*
 + osx_alt_build
 + test_image_build
@@ -101,6 +97,7 @@ of this document, it's not possible to override the behavior of `$CIRRUS_PR`.
 + artifacts
 
 ### Intended Branch tasks (and Cirrus-cron jobs, except "multiarch"):
++ *build*
 + swagger
 + *alt_build*
 + osx_alt_build

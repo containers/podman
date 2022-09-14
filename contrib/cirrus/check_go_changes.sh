@@ -36,6 +36,8 @@ then
     exit 0
 fi
 
+# Defined by/in Cirrus-CI config.
+# shellcheck disable=SC2154
 base=$(git merge-base $DEST_BRANCH $CIRRUS_CHANGE_IN_REPO)
 diffs=$(git diff $base $CIRRUS_CHANGE_IN_REPO -- '*.go' ':^vendor/')
 

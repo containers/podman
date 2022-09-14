@@ -211,16 +211,6 @@ eof
     rm -f $envvarsfile
 }
 
-function _run_consistency() {
-    make vendor
-    SUGGESTION="run 'make vendor' and commit all changes" ./hack/tree_status.sh
-    make generate-bindings
-    SUGGESTION="run 'make generate-bindings' and commit all changes" ./hack/tree_status.sh
-    make completions
-    SUGGESTION="run 'make completions' and commit all changes" ./hack/tree_status.sh
-    $SCRIPT_BASE/check_go_changes.sh
-}
-
 function _run_build() {
     # Ensure always start from clean-slate with all vendor modules downloaded
     make clean

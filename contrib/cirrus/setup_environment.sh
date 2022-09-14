@@ -364,10 +364,6 @@ case "$TEST_FLAVOR" in
             docker.io/gitlab/gitlab-runner-helper:x86_64-latest-pwsh
         ;;
     swagger) ;&  # use next item
-    consistency)
-        make clean
-        make .install.goimports
-        ;;
     release) ;;
     *) die_unknown TEST_FLAVOR
 esac

@@ -148,6 +148,8 @@ build_task:
     # all required external/3rd-party services are available and functional.
     # Standard main execution stage call, used by nearly every task in CI.
     main_script: &main '/usr/bin/time --verbose --output="$STATS_LOGFILE" $GOSRC/$SCRIPT_BASE/runner.sh'
+    # Attempt to catch code-quality and vendoring problems early.
+    postbuild_script: &postbuild $SCRIPT_BASE/postbuild.sh
     # Cirrus-CI is very slow uploading one file at time, and the repo contains
     # thousands of files.  Speed this up by archiving into tarball first.
     repo_prep_script: &repo_prep >-
@@ -159,7 +161,6 @@ build_task:
         runner_stats_artifacts:
             path: ./*-${STATS_LOGFILE_SFX}
             type: text/plain
-
 
 build_aarch64_task:
     alias: 'build_aarch64'
@@ -182,6 +183,7 @@ build_aarch64_task:
     clone_script: *full_clone
     prebuild_script: *prebuild
     setup_script: *setup
+    postbuild_script: *postbuild
     main_script: *main
     # Cirrus-CI is very slow uploading one file at time, and the repo contains
     # thousands of files.  Speed this up by archiving into tarball first.
@@ -323,56 +325,6 @@ swagger_task:
         swagger_artifacts:
             path: ./swagger.yaml
             type: text/plain
-
-
-# Check that all included go modules from other sources match
-# what is expected in `vendor/modules.txt` vs `go.mod`.  Also
-# make sure that the generated bindings in pkg/bindings/...
-# are in sync with the code.
-consistency_task:
-    name: "Test Code Consistency"
-    alias: consistency
-    # Docs: ./contrib/cirrus/CIModes.md
-    only_if: *is_pr
-    depends_on:
-        - build
-    container: &smallcontainer
-        image: ${CTR_FQIN}
-        # Resources are limited across ALL currently executing tasks
-        # ref: https://cirrus-ci.org/guide/linux/#linux-containers
-        cpu: 2
-        memory: 2
-    env:
-        <<: *stdenvars
-        TEST_FLAVOR: consistency
-        TEST_ENVIRON: container
-        CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
-    clone_script: *get_gosrc
-    setup_script: *setup
-    main_script: *main
-    always: *runner_stats
-
-
-# Check that all included go modules from other sources match
-# what is expected in `vendor/modules.txt` vs `go.mod`.  Also
-# make sure that the generated bindings in pkg/bindings/...
-# are in sync with the code.
-consistency_aarch64_task:
-    name: "Test Code Consistency (aarch64)"
-    alias: consistency_aarch64
-    # Docs: ./contrib/cirrus/CIModes.md
-    only_if: *is_pr
-    depends_on:
-        - build_aarch64
-    ec2_instance: *standard_build_ec2_aarch64
-    env:
-        <<: *stdenvars_aarch64
-        TEST_FLAVOR: consistency
-        TEST_ENVIRON: container
-    clone_script: *get_gosrc_aarch64
-    setup_script: *setup
-    main_script: *main
-    always: *runner_stats
 
 
 # There are several other important variations of podman which
@@ -978,8 +930,6 @@ success_task:
         - validate_aarch64
         - bindings
         - swagger
-        - consistency
-        - consistency_aarch64
         - alt_build
         - osx_alt_build
         - win_installer
@@ -1004,7 +954,12 @@ success_task:
         - upgrade_test
         - image_build
         - meta
-    container: *smallcontainer
+    container: &smallcontainer
+        image: ${CTR_FQIN}
+        # Resources are limited across ALL currently executing tasks
+        # ref: https://cirrus-ci.org/guide/linux/#linux-containers
+        cpu: 2
+        memory: 2
     env:
         CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
         TEST_ENVIRON: container

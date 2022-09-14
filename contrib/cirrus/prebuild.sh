@@ -17,26 +17,27 @@ req_env_vars CI DEST_BRANCH IMAGE_SUFFIX TEST_FLAVOR TEST_ENVIRON \
              SCRIPT_BASE CIRRUS_WORKING_DIR FEDORA_NAME UBUNTU_NAME \
              VM_IMAGE_NAME
 
-# There's no need to perform further checks on more than one
-# CI platform.  These variables are defined in .cirrus.yml
+# Defined by the CI system
 # shellcheck disable=SC2154
-if [[ ! "${DISTRO_NV}" =~ ${FEDORA_NAME} ]]; then
-    echo "Skipping additional checks on $DISTRO_NV"
-    exit 0
+cd $CIRRUS_WORKING_DIR
+
+# Defined by CI config.
+# shellcheck disable=SC2154
+showrun $SCRIPT_BASE/cirrus_yaml_test.py
+
+# Defined by CI config.
+# shellcheck disable=SC2154
+if [[ "${DISTRO_NV}" =~ fedora ]]; then
+    showrun ooe.sh dnf install -y ShellCheck  # small/quick addition
+    showrun shellcheck --color=always --format=tty \
+        --shell=bash --external-sources \
+        --enable add-default-case,avoid-nullary-conditions,check-unassigned-uppercase \
+        --exclude SC2046,SC2034,SC2090,SC2064 \
+        --wiki-link-count=0 --severity=warning \
+        $SCRIPT_BASE/*.sh hack/get_ci_vm.sh
 fi
 
-# shellcheck disable=SC2154
-$SCRIPT_BASE/cirrus_yaml_test.py
-
-ooe.sh dnf install -y ShellCheck  # small/quick addition
-
-shellcheck --color=always --format=tty \
-    --shell=bash --external-sources \
-    --enable add-default-case,avoid-nullary-conditions,check-unassigned-uppercase \
-    --exclude SC2046,SC2034,SC2090,SC2064 \
-    --wiki-link-count=0 --severity=warning \
-    $SCRIPT_BASE/*.sh hack/get_ci_vm.sh
-
+msg "Checking 3rd party network service connectivity"
 # shellcheck disable=SC2154
 cat ${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/required_host_ports.txt | \
     while read host port
@@ -66,9 +67,11 @@ TEST_IMGS=(\
     cirros:latest
 )
 
-echo "Checking quay.io test image accessibility"
+msg "Checking quay.io test image accessibility"
 for testimg in "${TEST_IMGS[@]}"; do
     fqin="quay.io/libpod/$testimg"
     echo "    $fqin"
+    # Belt-and-suspenders: Catch skopeo (somehow) returning False or null
+    # in addition to "bad" (invalid) JSON.
     skopeo inspect --retry-times 5 "docker://$fqin" | jq -e . > /dev/null
 done
