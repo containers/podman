@@ -96,6 +96,23 @@ var _ = Describe("Podman secret", func() {
 		Expect(inspect.OutputToString()).To(Equal(secrID))
 	})
 
+	It("podman secret inspect with --pretty", func() {
+		secretFilePath := filepath.Join(podmanTest.TempDir, "secret")
+		err := os.WriteFile(secretFilePath, []byte("mysecret"), 0755)
+		Expect(err).To(BeNil())
+
+		session := podmanTest.Podman([]string{"secret", "create", "a", secretFilePath})
+		session.WaitWithDefaultTimeout()
+		secrID := session.OutputToString()
+		Expect(session).Should(Exit(0))
+
+		inspect := podmanTest.Podman([]string{"secret", "inspect", "--pretty", secrID})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).Should(Exit(0))
+		Expect(inspect.OutputToString()).To(ContainSubstring("Name:"))
+		Expect(inspect.OutputToString()).To(ContainSubstring(secrID))
+	})
+
 	It("podman secret inspect multiple secrets", func() {
 		secretFilePath := filepath.Join(podmanTest.TempDir, "secret")
 		err := os.WriteFile(secretFilePath, []byte("mysecret"), 0755)
@@ -125,7 +142,6 @@ var _ = Describe("Podman secret", func() {
 		inspect := podmanTest.Podman([]string{"secret", "inspect", "bogus"})
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect).To(ExitWithError())
-
 	})
 
 	It("podman secret ls", func() {

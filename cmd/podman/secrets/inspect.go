@@ -25,7 +25,23 @@ var (
 	}
 )
 
-var format string
+var (
+	format string
+	pretty bool
+)
+
+const (
+	prettyTemplate = `ID:              {{.ID}}
+Name:              {{.Spec.Name}}
+{{- if .Spec.Labels }}
+Labels:
+{{- range $k, $v := .Spec.Labels }}
+ - {{ $k }}{{if $v }}={{ $v }}{{ end }}
+{{- end }}{{ end }}
+Driver:            {{.Spec.Driver.Name}}
+Created at:        {{.CreatedAt}}
+Updated at:        {{.UpdatedAt}}`
+)
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
@@ -34,8 +50,11 @@ func init() {
 	})
 	flags := inspectCmd.Flags()
 	formatFlagName := "format"
-	flags.StringVarP(&format, formatFlagName, "f", "", "Format volume output using Go template")
+	flags.StringVarP(&format, formatFlagName, "f", "", "Format inspect output using Go template")
 	_ = inspectCmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(&entities.SecretInfoReport{}))
+
+	prettyFlagName := "pretty"
+	flags.BoolVar(&pretty, prettyFlagName, false, "Print inspect output in human-readable format")
 }
 
 func inspect(cmd *cobra.Command, args []string) error {
@@ -46,7 +65,21 @@ func inspect(cmd *cobra.Command, args []string) error {
 		inspected = []*entities.SecretInfoReport{}
 	}
 
-	if cmd.Flags().Changed("format") {
+	switch {
+	case cmd.Flags().Changed("pretty"):
+		rpt := report.New(os.Stdout, cmd.Name())
+		defer rpt.Flush()
+
+		rpt, err := rpt.Parse(report.OriginUser, prettyTemplate)
+		if err != nil {
+			return err
+		}
+
+		if err := rpt.Execute(inspected); err != nil {
+			return err
+		}
+
+	case cmd.Flags().Changed("format"):
 		rpt := report.New(os.Stdout, cmd.Name())
 		defer rpt.Flush()
 
@@ -58,7 +91,8 @@ func inspect(cmd *cobra.Command, args []string) error {
 		if err := rpt.Execute(inspected); err != nil {
 			return err
 		}
-	} else {
+
+	default:
 		buf, err := json.MarshalIndent(inspected, "", "    ")
 		if err != nil {
 			return err
