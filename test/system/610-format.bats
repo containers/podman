@@ -25,23 +25,25 @@ history           | $IMAGE
 image history     | $IMAGE
 image inspect     | $IMAGE
 container inspect | mycontainer
-machine inspect   | mymachine
 
 volume inspect    | -a
 secret inspect    | mysecret
 network inspect   | podman
 ps                | -a
 
-image search      | sdfsdf
-search            | sdfsdf
+image search      | $IMAGE
+search            | $IMAGE
 
 pod inspect       | mypod
 
-container stats   | --no-stream
-pod stats         | --no-stream
-stats             | --no-stream
 events            | --stream=false --events-backend=file
 "
+
+# podman machine is finicky. Assume we can't run it, but see below for more.
+can_run_podman_machine=
+
+# podman stats, too
+can_run_stats=
 
 # Main test loop. Recursively runs 'podman [subcommand] help', looks for:
 #    > '[command]', which indicates, recurse; or
@@ -50,12 +52,12 @@ events            | --stream=false --events-backend=file
 #        > run the command with --format '{{"\n"}}' and make sure it passes
 function check_subcommand() {
     for cmd in $(_podman_commands "$@"); do
-        # Special case: 'podman machine' can't be run as root. No override.
-        if [[ "$cmd" = "machine" ]]; then
-            if ! is_rootless; then
-                unset extra_args["podman machine inspect"]
-                continue
-            fi
+        # Special case: 'podman machine' can only be run under ideal conditions
+        if [[ "$cmd" = "machine" ]] && [[ -z "$can_run_podman_machine" ]]; then
+            continue
+        fi
+        if [[ "$cmd" = "stats" ]] && [[ -z "$can_run_stats" ]]; then
+            continue
         fi
 
         # Human-readable podman command string, with multiple spaces collapsed
@@ -129,8 +131,31 @@ function check_subcommand() {
 # Test entry point
 @test "check Go template formatting" {
     skip_if_remote
-    if is_ubuntu; then
-        skip 'ubuntu VMs do not have qemu (exec: "qemu-system-x86_64": executable file not found in $PATH)'
+
+    # Setup: some commands need a container, pod, secret, ...
+    run_podman run -d --name mycontainer $IMAGE top
+    run_podman pod create mypod
+    run_podman secret create mysecret /etc/hosts
+
+    # ...or machine. But podman machine is ultra-finicky, it fails as root
+    # or if qemu is missing. Instead of checking for all the possible ways
+    # to skip it, just try running init. If it works, we can test it.
+    run_podman '?' machine init --image-path=/dev/null mymachine
+    if [[ $status -eq 0 ]]; then
+        can_run_podman_machine=true
+        extra_args_table+="
+machine inspect   | mymachine
+"
+    fi
+
+    # Similarly, 'stats' cannot run rootless under cgroups v1
+    if ! is_rootless || is_cgroupsv2; then
+        can_run_stats=true
+        extra_args_table+="
+container stats   | --no-stream
+pod stats         | --no-stream
+stats             | --no-stream
+"
     fi
 
     # Convert the table at top to an associative array, keyed on subcommand
@@ -138,14 +163,6 @@ function check_subcommand() {
     while read subcommand extra; do
         extra_args["podman $subcommand"]=$extra
     done < <(parse_table "$extra_args_table")
-
-    # Setup: some commands need a container, pod, machine, or secret
-    run_podman run -d --name mycontainer $IMAGE top
-    run_podman pod create mypod
-    run_podman secret create mysecret /etc/hosts
-    if is_rootless; then
-        run_podman machine init --image-path=/dev/null mymachine
-    fi
 
     # Run the test
     check_subcommand
@@ -155,9 +172,7 @@ function check_subcommand() {
     run_podman rmi $(pause_image)
     run_podman rm -f -t0 mycontainer
     run_podman secret rm mysecret
-    if is_rootless; then
-        run_podman machine rm -f mymachine
-    fi
+    run_podman '?' machine rm -f mymachine
 
     # Make sure there are no leftover commands in our table - this would
     # indicate a typo in the table, or a flaw in our logic such that
