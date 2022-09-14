@@ -20,6 +20,7 @@ podman-pod-kill.1.md
 podman-pod-logs.1.md
 podman-pod-rm.1.md
 podman-pod-start.1.md
+podman-pod-stats.1.md
 podman-pod-stop.1.md
 podman-pull.1.md
 podman-push.1.md
@@ -27,6 +28,7 @@ podman-rm.1.md
 podman-run.1.md
 podman-search.1.md
 podman-start.1.md
+podman-stats.1.md
 podman-stop.1.md
 podman-unpause.1.md
 podman-update.1.md
