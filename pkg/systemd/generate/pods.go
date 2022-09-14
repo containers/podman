@@ -92,7 +92,7 @@ type podInfo struct {
 	Requires []string
 }
 
-const podTemplate = headerTemplate + `Requires={{{{- range $index, $value := .RequiredServices -}}}}{{{{if $index}}}} {{{{end}}}}{{{{ $value }}}}.service{{{{end}}}}
+const podTemplate = headerTemplate + `Wants={{{{- range $index, $value := .RequiredServices -}}}}{{{{if $index}}}} {{{{end}}}}{{{{ $value }}}}.service{{{{end}}}}
 Before={{{{- range $index, $value := .RequiredServices -}}}}{{{{if $index}}}} {{{{end}}}}{{{{ $value }}}}.service{{{{end}}}}
 {{{{- if or .Wants .After .Requires }}}}
 
@@ -252,6 +252,7 @@ func generatePodInfo(pod *libpod.Pod, options entities.GenerateSystemdOptions) (
 		StopTimeout:       stopTimeout,
 		GenerateTimestamp: true,
 		CreateCommand:     createCommand,
+		RunRoot:           infraCtr.Runtime().RunRoot(),
 	}
 	return &info, nil
 }

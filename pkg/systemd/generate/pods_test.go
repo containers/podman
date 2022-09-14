@@ -71,7 +71,7 @@ Documentation=man:podman-generate-systemd(1)
 Wants=network-online.target
 After=network-online.target
 RequiresMountsFor=/var/run/containers/storage
-Requires=container-1.service container-2.service
+Wants=container-1.service container-2.service
 Before=container-1.service container-2.service
 
 [Service]
@@ -99,7 +99,7 @@ Documentation=man:podman-generate-systemd(1)
 Wants=network-online.target
 After=network-online.target
 RequiresMountsFor=/var/run/containers/storage
-Requires=container-1.service container-2.service
+Wants=container-1.service container-2.service
 Before=container-1.service container-2.service
 
 [Service]
@@ -125,7 +125,7 @@ Documentation=man:podman-generate-systemd(1)
 Wants=network-online.target
 After=network-online.target
 RequiresMountsFor=/var/run/containers/storage
-Requires=container-1.service container-2.service
+Wants=container-1.service container-2.service
 Before=container-1.service container-2.service
 
 # User-defined dependencies
@@ -153,7 +153,7 @@ Documentation=man:podman-generate-systemd(1)
 Wants=network-online.target
 After=network-online.target
 RequiresMountsFor=/var/run/containers/storage
-Requires=container-1.service container-2.service
+Wants=container-1.service container-2.service
 Before=container-1.service container-2.service
 
 # User-defined dependencies
@@ -181,7 +181,7 @@ Documentation=man:podman-generate-systemd(1)
 Wants=network-online.target
 After=network-online.target
 RequiresMountsFor=/var/run/containers/storage
-Requires=container-1.service container-2.service
+Wants=container-1.service container-2.service
 Before=container-1.service container-2.service
 
 # User-defined dependencies
@@ -209,7 +209,7 @@ Documentation=man:podman-generate-systemd(1)
 Wants=network-online.target
 After=network-online.target
 RequiresMountsFor=/var/run/containers/storage
-Requires=container-1.service container-2.service
+Wants=container-1.service container-2.service
 Before=container-1.service container-2.service
 
 # User-defined dependencies
@@ -267,7 +267,7 @@ Documentation=man:podman-generate-systemd(1)
 Wants=network-online.target
 After=network-online.target
 RequiresMountsFor=/var/run/containers/storage
-Requires=container-1.service container-2.service
+Wants=container-1.service container-2.service
 Before=container-1.service container-2.service
 
 [Service]
@@ -294,7 +294,7 @@ Documentation=man:podman-generate-systemd(1)
 Wants=network-online.target
 After=network-online.target
 RequiresMountsFor=/var/run/containers/storage
-Requires=container-1.service container-2.service
+Wants=container-1.service container-2.service
 Before=container-1.service container-2.service
 
 [Service]
@@ -322,7 +322,7 @@ Documentation=man:podman-generate-systemd(1)
 Wants=network-online.target
 After=network-online.target
 RequiresMountsFor=/var/run/containers/storage
-Requires=container-1.service container-2.service
+Wants=container-1.service container-2.service
 Before=container-1.service container-2.service
 
 [Service]
@@ -350,7 +350,7 @@ Documentation=man:podman-generate-systemd(1)
 Wants=network-online.target
 After=network-online.target
 RequiresMountsFor=/var/run/containers/storage
-Requires=container-1.service container-2.service
+Wants=container-1.service container-2.service
 Before=container-1.service container-2.service
 
 [Service]
@@ -378,7 +378,7 @@ Documentation=man:podman-generate-systemd(1)
 Wants=network-online.target
 After=network-online.target
 RequiresMountsFor=/var/run/containers/storage
-Requires=container-1.service container-2.service
+Wants=container-1.service container-2.service
 Before=container-1.service container-2.service
 
 [Service]
