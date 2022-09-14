@@ -34,7 +34,7 @@ var _ = Describe("Podman volume exists", func() {
 	})
 
 	It("podman volume exists", func() {
-		vol := "vol" + stringid.GenerateNonCryptoID()
+		vol := "vol" + stringid.GenerateRandomID()
 		session := podmanTest.Podman([]string{"volume", "create", vol})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
@@ -43,7 +43,7 @@ var _ = Describe("Podman volume exists", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
-		session = podmanTest.Podman([]string{"volume", "exists", stringid.GenerateNonCryptoID()})
+		session = podmanTest.Podman([]string{"volume", "exists", stringid.GenerateRandomID()})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(1))
 	})
