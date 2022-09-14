@@ -119,15 +119,29 @@ func findVolume(c *Container, containerPath string) (*Volume, error) {
 	return nil, nil
 }
 
+// isSubDir checks whether path is a subdirectory of root.
+func isSubDir(path, root string) bool {
+	// check if the specified container path is below a bind mount.
+	rel, err := filepath.Rel(root, path)
+	if err != nil {
+		return false
+	}
+	return rel != ".." && !strings.HasPrefix(rel, "../")
+}
+
 // isPathOnVolume returns true if the specified containerPath is a subdir of any
 // Volume's destination.
 func isPathOnVolume(c *Container, containerPath string) bool {
 	cleanedContainerPath := filepath.Clean(containerPath)
 	for _, vol := range c.config.NamedVolumes {
-		if cleanedContainerPath == filepath.Clean(vol.Dest) {
+		cleanedDestination := filepath.Clean(vol.Dest)
+		if cleanedContainerPath == cleanedDestination {
 			return true
 		}
-		for dest := vol.Dest; dest != "/" && dest != "."; dest = filepath.Dir(dest) {
+		if isSubDir(cleanedContainerPath, cleanedDestination) {
+			return true
+		}
+		for dest := cleanedDestination; dest != "/" && dest != "."; dest = filepath.Dir(dest) {
 			if cleanedContainerPath == dest {
 				return true
 			}
@@ -152,15 +166,19 @@ func findBindMount(c *Container, containerPath string) *specs.Mount {
 	return nil
 }
 
-/// isPathOnBindMount returns true if the specified containerPath is a subdir of any
+/// isPathOnMount returns true if the specified containerPath is a subdir of any
 // Mount's destination.
-func isPathOnBindMount(c *Container, containerPath string) bool {
+func isPathOnMount(c *Container, containerPath string) bool {
 	cleanedContainerPath := filepath.Clean(containerPath)
 	for _, m := range c.config.Spec.Mounts {
-		if cleanedContainerPath == filepath.Clean(m.Destination) {
+		cleanedDestination := filepath.Clean(m.Destination)
+		if cleanedContainerPath == cleanedDestination {
 			return true
 		}
-		for dest := m.Destination; dest != "/" && dest != "."; dest = filepath.Dir(dest) {
+		if isSubDir(cleanedContainerPath, cleanedDestination) {
+			return true
+		}
+		for dest := cleanedDestination; dest != "/" && dest != "."; dest = filepath.Dir(dest) {
 			if cleanedContainerPath == dest {
 				return true
 			}
