@@ -46,7 +46,6 @@ type containerInfo struct {
 	ExecStart              string
 	TimeoutStartSec        uint
 	TimeoutStopSec         uint
-	ExecStop               string
 	ExecStopPost           string
 	GenerateNoHeader       bool
 	Pod                    *podInfo
@@ -98,9 +97,6 @@ TimeoutStopSec={{{{.TimeoutStopSec}}}}
 ExecStartPre={{{{.ExecStartPre}}}}
 {{{{- end}}}}
 ExecStart={{{{.ExecStart}}}}
-{{{{- if .ExecStop}}}}
-ExecStop={{{{.ExecStop}}}}
-{{{{- end}}}}
 {{{{- if .ExecStopPost}}}}
 ExecStopPost={{{{.ExecStopPost}}}}
 {{{{- end}}}}
@@ -294,7 +290,6 @@ func executeContainerTemplate(info *containerInfo, options entities.GenerateSyst
 	info.Type = "forking"
 	info.EnvVariable = define.EnvVariable
 	info.ExecStart = "{{{{.Executable}}}} start {{{{.ContainerNameOrID}}}}"
-	info.ExecStop = "{{{{.Executable}}}} stop {{{{if (ge .StopTimeout 0)}}}}-t {{{{.StopTimeout}}}}{{{{end}}}} {{{{.ContainerNameOrID}}}}"
 	info.ExecStopPost = "{{{{.Executable}}}} stop {{{{if (ge .StopTimeout 0)}}}}-t {{{{.StopTimeout}}}}{{{{end}}}} {{{{.ContainerNameOrID}}}}"
 	for i, env := range info.AdditionalEnvVariables {
 		info.AdditionalEnvVariables[i] = escapeSystemdArg(env)
@@ -313,7 +308,6 @@ func executeContainerTemplate(info *containerInfo, options entities.GenerateSyst
 		info.PIDFile = ""
 		info.ContainerIDFile = "%t/%n.ctr-id"
 		info.ExecStartPre = "/bin/rm -f {{{{.ContainerIDFile}}}}"
-		info.ExecStop = "{{{{.Executable}}}} stop --ignore --cidfile={{{{.ContainerIDFile}}}}"
 		info.ExecStopPost = "{{{{.Executable}}}} rm -f --ignore --cidfile={{{{.ContainerIDFile}}}}"
 		// The create command must at least have three arguments:
 		// 	/usr/bin/podman run $IMAGE
