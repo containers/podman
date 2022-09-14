@@ -40,6 +40,8 @@ load helpers
 @test "podman start --filter - start only containers that match the filter" {
     run_podman run -d $IMAGE /bin/true
     cid="$output"
+    run_podman wait $cid
+
     run_podman start --filter restart-policy=always $cid
     is "$output" "" "CID of restart-policy=always container"
 
