@@ -46,6 +46,15 @@ var _ = Describe("Podman run", func() {
 		Expect(session).Should(Exit(126))
 	})
 
+	It("podman run a container using a --workdir under a bind mount", func() {
+		volume, err := CreateTempDirInTempDir()
+		Expect(err).To(BeNil())
+
+		session := podmanTest.Podman([]string{"run", "--volume", fmt.Sprintf("%s:/var_ovl/:O", volume), "--workdir", "/var_ovl/log", ALPINE, "true"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+	})
+
 	It("podman run a container on an image with a workdir", func() {
 		dockerfile := fmt.Sprintf(`FROM %s
 RUN  mkdir -p /home/foobar /etc/foobar; chown bin:bin /etc/foobar
