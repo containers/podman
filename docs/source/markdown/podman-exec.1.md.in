@@ -44,11 +44,7 @@ to run containers such as CRI-O, the last started container could be from either
 
 @@option tty
 
-#### **--user**, **-u**
-
-Sets the username or UID used and optionally the groupname or GID for the specified command.
-The following examples are all valid:
---user [user | user:group | uid | uid:gid | user:gid | uid:group ]
+@@option user
 
 @@option workdir
 
