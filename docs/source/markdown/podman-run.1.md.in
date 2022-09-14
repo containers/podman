@@ -439,9 +439,9 @@ Note: Labeling can be disabled for all containers by setting **label=false** in 
 
 @@option shm-size
 
-#### **--sig-proxy**
+@@option sig-proxy
 
-Sets whether the signals sent to the **podman run** command are proxied to the container process. SIGCHLD, SIGSTOP, and SIGKILL are not proxied. The default is **true**.
+The default is **true**.
 
 @@option stop-signal
 
