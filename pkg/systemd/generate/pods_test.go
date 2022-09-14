@@ -239,7 +239,7 @@ Documentation=man:podman-generate-systemd(1)
 Wants=network-online.target
 After=network-online.target
 RequiresMountsFor=/var/run/containers/storage
-Requires=
+Wants=
 Before=
 
 [Service]
