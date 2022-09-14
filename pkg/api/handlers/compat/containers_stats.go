@@ -177,7 +177,7 @@ streamLabel: // A label to flatten the scope
 				PreCPUStats: preCPUStats,
 				MemoryStats: docker.MemoryStats{
 					Usage:             cgroupStat.MemoryStats.Usage.Usage,
-					MaxUsage:          cgroupStat.MemoryStats.Usage.Limit,
+					MaxUsage:          cgroupStat.MemoryStats.Usage.MaxUsage,
 					Stats:             nil,
 					Failcnt:           0,
 					Limit:             memoryLimit,
