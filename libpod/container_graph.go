@@ -281,3 +281,94 @@ func startNode(ctx context.Context, node *containerNode, setError bool, ctrError
 		startNode(ctx, successor, ctrErrored, ctrErrors, ctrsVisited, restart)
 	}
 }
+
+// Visit a node on the container graph and remove it, or set an error if it
+// failed to remove. Only intended for use in pod removal; do *not* use when
+// removing individual containers.
+// All containers are assumed to be *UNLOCKED* on running this function.
+// Container locks will be acquired as necessary.
+// Pod and infraID are optional. If a pod is given it must be *LOCKED*.
+func removeNode(ctx context.Context, node *containerNode, pod *Pod, force bool, timeout *uint, setError bool, ctrErrors map[string]error, ctrsVisited map[string]bool, ctrNamedVolumes map[string]*ContainerNamedVolume) {
+	// If we already visited this node, we're done.
+	if ctrsVisited[node.id] {
+		return
+	}
+
+	// Someone who depends on us failed.
+	// Mark us as failed and recurse.
+	if setError {
+		ctrsVisited[node.id] = true
+		ctrErrors[node.id] = fmt.Errorf("a container that depends on container %s could not be removed: %w", node.id, define.ErrCtrStateInvalid)
+
+		// Hit anyone who depends on us, set errors there as well.
+		for _, successor := range node.dependsOn {
+			removeNode(ctx, successor, pod, force, timeout, true, ctrErrors, ctrsVisited, ctrNamedVolumes)
+		}
+	}
+
+	// Does anyone still depend on us?
+	// Cannot remove if true. Once all our dependencies have been removed,
+	// we will be removed.
+	for _, dep := range node.dependedOn {
+		// The container that depends on us hasn't been removed yet.
+		// OK to continue on
+		if ok := ctrsVisited[dep.id]; !ok {
+			return
+		}
+	}
+
+	// Going to try to remove the node, mark us as visited
+	ctrsVisited[node.id] = true
+
+	ctrErrored := false
+
+	// Verify that all that depend on us are gone.
+	// Graph traversal should guarantee this is true, but this isn't that
+	// expensive, and it's better to be safe.
+	for _, dep := range node.dependedOn {
+		if _, err := node.container.runtime.GetContainer(dep.id); err == nil {
+			ctrErrored = true
+			ctrErrors[node.id] = fmt.Errorf("a container that depends on container %s still exists: %w", node.id, define.ErrDepExists)
+		}
+	}
+
+	// Lock the container
+	node.container.lock.Lock()
+
+	// Gate all subsequent bits behind a ctrErrored check - we don't want to
+	// proceed if a previous step failed.
+	if !ctrErrored {
+		if err := node.container.syncContainer(); err != nil {
+			ctrErrored = true
+			ctrErrors[node.id] = err
+		}
+	}
+
+	if !ctrErrored {
+		for _, vol := range node.container.config.NamedVolumes {
+			ctrNamedVolumes[vol.Name] = vol
+		}
+
+		if pod != nil && pod.state.InfraContainerID == node.id {
+			pod.state.InfraContainerID = ""
+			if err := pod.save(); err != nil {
+				ctrErrored = true
+				ctrErrors[node.id] = fmt.Errorf("error removing infra container %s from pod %s: %w", node.id, pod.ID(), err)
+			}
+		}
+	}
+
+	if !ctrErrored {
+		if err := node.container.runtime.removeContainer(ctx, node.container, force, false, true, false, timeout); err != nil {
+			ctrErrored = true
+			ctrErrors[node.id] = err
+		}
+	}
+
+	node.container.lock.Unlock()
+
+	// Recurse to anyone who we depend on and remove them
+	for _, successor := range node.dependsOn {
+		removeNode(ctx, successor, pod, force, timeout, ctrErrored, ctrErrors, ctrsVisited, ctrNamedVolumes)
+	}
+}

@@ -17,6 +17,7 @@ import (
 	"github.com/containers/podman/v4/libpod/events"
 	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/containers/podman/v4/pkg/specgen"
+	"github.com/hashicorp/go-multierror"
 	"github.com/sirupsen/logrus"
 )
 
@@ -191,29 +192,9 @@ func (r *Runtime) SavePod(pod *Pod) error {
 	return nil
 }
 
-func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool, timeout *uint) error {
-	if err := p.updatePod(); err != nil {
-		return err
-	}
-
-	ctrs, err := r.state.PodContainers(p)
-	if err != nil {
-		return err
-	}
-	numCtrs := len(ctrs)
-
-	// If the only running container in the pod is the pause container, remove the pod and container unconditionally.
-	pauseCtrID := p.state.InfraContainerID
-	if numCtrs == 1 && ctrs[0].ID() == pauseCtrID {
-		removeCtrs = true
-		force = true
-	}
-	if !removeCtrs && numCtrs > 0 {
-		return fmt.Errorf("pod %s contains containers and cannot be removed: %w", p.ID(), define.ErrCtrExists)
-	}
-
-	ctrNamedVolumes := make(map[string]*ContainerNamedVolume)
-
+// DO NOT USE THIS FUNCTION DIRECTLY. Use removePod(), below. It will call
+// removeMalformedPod() if necessary.
+func (r *Runtime) removeMalformedPod(ctx context.Context, p *Pod, ctrs []*Container, force bool, timeout *uint, ctrNamedVolumes map[string]*ContainerNamedVolume) error {
 	var removalErr error
 	for _, ctr := range ctrs {
 		err := func() error {
@@ -231,7 +212,7 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool,
 				ctrNamedVolumes[vol.Name] = vol
 			}
 
-			return r.removeContainer(ctx, ctr, force, false, true, timeout)
+			return r.removeContainer(ctx, ctr, force, false, true, true, timeout)
 		}()
 
 		if removalErr == nil {
@@ -259,6 +240,69 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool,
 		// The containers in the pod are unusable, but they still exist,
 		// so pod removal will fail.
 		return err
+	}
+
+	return nil
+}
+
+func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool, timeout *uint) error {
+	if err := p.updatePod(); err != nil {
+		return err
+	}
+
+	ctrs, err := r.state.PodContainers(p)
+	if err != nil {
+		return err
+	}
+	numCtrs := len(ctrs)
+
+	// If the only running container in the pod is the pause container, remove the pod and container unconditionally.
+	pauseCtrID := p.state.InfraContainerID
+	if numCtrs == 1 && ctrs[0].ID() == pauseCtrID {
+		removeCtrs = true
+		force = true
+	}
+	if !removeCtrs && numCtrs > 0 {
+		return fmt.Errorf("pod %s contains containers and cannot be removed: %w", p.ID(), define.ErrCtrExists)
+	}
+
+	var removalErr error
+	ctrNamedVolumes := make(map[string]*ContainerNamedVolume)
+
+	// Build a graph of all containers in the pod.
+	graph, err := BuildContainerGraph(ctrs)
+	if err != nil {
+		// We have to allow the pod to be removed.
+		// But let's only do it if force is set.
+		if !force {
+			return fmt.Errorf("cannot create container graph for pod %s: %w", p.ID(), err)
+		}
+
+		removalErr = fmt.Errorf("creating container graph for pod %s failed, fell back to loop removal: %w", p.ID(), err)
+
+		if err := r.removeMalformedPod(ctx, p, ctrs, force, timeout, ctrNamedVolumes); err != nil {
+			logrus.Errorf("Error creating container graph for pod %s: %v. Falling back to loop removal.", p.ID(), err)
+			return err
+		}
+	} else {
+		ctrErrors := make(map[string]error)
+		ctrsVisited := make(map[string]bool)
+
+		for _, node := range graph.notDependedOnNodes {
+			removeNode(ctx, node, p, force, timeout, false, ctrErrors, ctrsVisited, ctrNamedVolumes)
+		}
+
+		// This is gross, but I don't want to change the signature on
+		// removePod - especially since any change here eventually has
+		// to map down to one error unless we want to make a breaking
+		// API change.
+		if len(ctrErrors) > 0 {
+			var allErrs error
+			for id, err := range ctrErrors {
+				allErrs = multierror.Append(allErrs, fmt.Errorf("removing container %s from pod %s: %w", id, p.ID(), err))
+			}
+			return allErrs
+		}
 	}
 
 	for volName := range ctrNamedVolumes {

@@ -318,4 +318,31 @@ var _ = Describe("Podman pod rm", func() {
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
 	})
+
+	It("podman pod rm pod with infra container and running container", func() {
+		podName := "testPod"
+		ctrName := "testCtr"
+
+		ctrAndPod := podmanTest.Podman([]string{"run", "-d", "--pod", fmt.Sprintf("new:%s", podName), "--name", ctrName, ALPINE, "top"})
+		ctrAndPod.WaitWithDefaultTimeout()
+		Expect(ctrAndPod).Should(Exit(0))
+
+		removePod := podmanTest.Podman([]string{"pod", "rm", "-a"})
+		removePod.WaitWithDefaultTimeout()
+		Expect(removePod).Should(Not(Exit(0)))
+
+		ps := podmanTest.Podman([]string{"pod", "ps"})
+		ps.WaitWithDefaultTimeout()
+		Expect(ps).Should(Exit(0))
+		Expect(ps.OutputToString()).To(ContainSubstring(podName))
+
+		removePodForce := podmanTest.Podman([]string{"pod", "rm", "-af"})
+		removePodForce.WaitWithDefaultTimeout()
+		Expect(removePodForce).Should(Exit(0))
+
+		ps2 := podmanTest.Podman([]string{"pod", "ps"})
+		ps2.WaitWithDefaultTimeout()
+		Expect(ps2).Should(Exit(0))
+		Expect(ps2.OutputToString()).To(Not(ContainSubstring(podName)))
+	})
 })
