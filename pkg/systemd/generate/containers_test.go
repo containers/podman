@@ -57,6 +57,7 @@ Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=on-failure
 TimeoutStopSec=82
 ExecStart=/usr/bin/podman start 639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401
+ExecStop=/usr/bin/podman stop -t 22 639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401
 ExecStopPost=/usr/bin/podman stop -t 22 639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401
 PIDFile=/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid
 Type=forking
@@ -82,6 +83,7 @@ Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=on-failure
 TimeoutStopSec=70
 ExecStart=/usr/bin/podman start foobar
+ExecStop=/usr/bin/podman stop -t 10 foobar
 ExecStopPost=/usr/bin/podman stop -t 10 foobar
 PIDFile=/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid
 Type=forking
@@ -105,6 +107,7 @@ Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=on-failure
 TimeoutStopSec=70
 ExecStart=/usr/bin/podman start foobar
+ExecStop=/usr/bin/podman stop -t 10 foobar
 ExecStopPost=/usr/bin/podman stop -t 10 foobar
 PIDFile=/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid
 Type=forking
@@ -131,6 +134,7 @@ Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=on-failure
 TimeoutStopSec=70
 ExecStart=/usr/bin/podman start foobar
+ExecStop=/usr/bin/podman stop -t 10 foobar
 ExecStopPost=/usr/bin/podman stop -t 10 foobar
 PIDFile=/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid
 Type=forking
@@ -157,6 +161,7 @@ Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=on-failure
 TimeoutStopSec=70
 ExecStart=/usr/bin/podman start foobar
+ExecStop=/usr/bin/podman stop -t 10 foobar
 ExecStopPost=/usr/bin/podman stop -t 10 foobar
 PIDFile=/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid
 Type=forking
@@ -183,6 +188,7 @@ Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=on-failure
 TimeoutStopSec=70
 ExecStart=/usr/bin/podman start foobar
+ExecStop=/usr/bin/podman stop -t 10 foobar
 ExecStopPost=/usr/bin/podman stop -t 10 foobar
 PIDFile=/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid
 Type=forking
@@ -211,6 +217,7 @@ Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=on-failure
 TimeoutStopSec=70
 ExecStart=/usr/bin/podman start foobar
+ExecStop=/usr/bin/podman stop -t 10 foobar
 ExecStopPost=/usr/bin/podman stop -t 10 foobar
 PIDFile=/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid
 Type=forking
@@ -236,6 +243,7 @@ Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=on-failure
 TimeoutStopSec=70
 ExecStart=/usr/bin/podman start foobar
+ExecStop=/usr/bin/podman stop -t 10 foobar
 ExecStopPost=/usr/bin/podman stop -t 10 foobar
 PIDFile=/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid
 Type=forking
@@ -268,6 +276,7 @@ ExecStart=/usr/bin/podman container run \
 	--replace \
 	--name jadda-jadda \
 	--hostname hello-world awesome-image:latest command arg1 ... argN "foo=arg \"with \" space"
+ExecStop=/usr/bin/podman stop --ignore --cidfile=%t/%n.ctr-id
 ExecStopPost=/usr/bin/podman rm -f --ignore --cidfile=%t/%n.ctr-id
 Type=notify
 NotifyAccess=all
@@ -300,6 +309,7 @@ ExecStart=/usr/bin/podman container run \
 	--sdnotify=container \
 	--name jadda-jadda \
 	--hostname hello-world awesome-image:latest command arg1 ... argN "foo=arg \"with \" space"
+ExecStop=/usr/bin/podman stop --ignore --cidfile=%t/%n.ctr-id
 ExecStopPost=/usr/bin/podman rm -f --ignore --cidfile=%t/%n.ctr-id
 Type=notify
 NotifyAccess=all
@@ -332,6 +342,7 @@ ExecStart=/usr/bin/podman container run \
 	--replace \
 	--name jadda-jadda \
 	--hostname hello-world awesome-image:latest command arg1 ... argN "foo=arg \"with \" space"
+ExecStop=/usr/bin/podman stop --ignore --cidfile=%t/%n.ctr-id
 ExecStopPost=/usr/bin/podman rm -f --ignore --cidfile=%t/%n.ctr-id
 Type=notify
 NotifyAccess=all
@@ -364,6 +375,7 @@ ExecStart=/usr/bin/podman run \
 	-d \
 	--name jadda-jadda \
 	--hostname hello-world awesome-image:latest command arg1 ... argN
+ExecStop=/usr/bin/podman stop --ignore --cidfile=%t/%n.ctr-id
 ExecStopPost=/usr/bin/podman rm -f --ignore --cidfile=%t/%n.ctr-id
 Type=notify
 NotifyAccess=all
@@ -397,6 +409,7 @@ ExecStart=/usr/bin/podman run \
 	-d \
 	--name jadda-jadda \
 	--hostname hello-world awesome-image:latest command arg1 ... argN
+ExecStop=/usr/bin/podman stop --ignore --cidfile=%t/%n.ctr-id
 ExecStopPost=/usr/bin/podman rm -f --ignore --cidfile=%t/%n.ctr-id
 Type=notify
 NotifyAccess=all
@@ -429,6 +442,7 @@ ExecStart=/usr/bin/podman run \
 	--detach \
 	--name jadda-jadda \
 	--hostname hello-world awesome-image:latest command arg1 ... argN
+ExecStop=/usr/bin/podman stop --ignore --cidfile=%t/%n.ctr-id
 ExecStopPost=/usr/bin/podman rm -f --ignore --cidfile=%t/%n.ctr-id
 Type=notify
 NotifyAccess=all
@@ -458,6 +472,7 @@ ExecStart=/usr/bin/podman run \
 	--rm \
 	--sdnotify=conmon \
 	-d awesome-image:latest
+ExecStop=/usr/bin/podman stop --ignore --cidfile=%t/%n.ctr-id
 ExecStopPost=/usr/bin/podman rm -f --ignore --cidfile=%t/%n.ctr-id
 Type=notify
 NotifyAccess=all
@@ -490,6 +505,7 @@ ExecStart=/usr/bin/podman run \
 	` +
 			detachparam +
 			` awesome-image:latest
+ExecStop=/usr/bin/podman stop --ignore --cidfile=%t/%n.ctr-id
 ExecStopPost=/usr/bin/podman rm -f --ignore --cidfile=%t/%n.ctr-id
 Type=notify
 NotifyAccess=all
@@ -525,6 +541,7 @@ ExecStart=/usr/bin/podman run \
 	--name test \
 	-p 80:80 awesome-image:latest somecmd \
 	--detach=false
+ExecStop=/usr/bin/podman stop --ignore --cidfile=%t/%n.ctr-id
 ExecStopPost=/usr/bin/podman rm -f --ignore --cidfile=%t/%n.ctr-id
 Type=notify
 NotifyAccess=all
@@ -556,6 +573,7 @@ ExecStart=/usr/bin/podman \
 	--rm \
 	--sdnotify=conmon \
 	-d awesome-image:latest
+ExecStop=/usr/bin/podman stop --ignore --cidfile=%t/%n.ctr-id
 ExecStopPost=/usr/bin/podman rm -f --ignore --cidfile=%t/%n.ctr-id
 Type=notify
 NotifyAccess=all
@@ -585,6 +603,7 @@ ExecStart=/usr/bin/podman container run \
 	--rm \
 	--sdnotify=conmon \
 	-d awesome-image:latest
+ExecStop=/usr/bin/podman stop --ignore --cidfile=%t/%n.ctr-id
 ExecStopPost=/usr/bin/podman rm -f --ignore --cidfile=%t/%n.ctr-id
 Type=notify
 NotifyAccess=all
@@ -618,6 +637,7 @@ ExecStart=/usr/bin/podman run \
 	--name test \
 	--log-driver=journald \
 	--log-opt=tag={{.Name}} awesome-image:latest
+ExecStop=/usr/bin/podman stop --ignore --cidfile=%t/%n.ctr-id
 ExecStopPost=/usr/bin/podman rm -f --ignore --cidfile=%t/%n.ctr-id
 Type=notify
 NotifyAccess=all
@@ -650,6 +670,7 @@ ExecStart=/usr/bin/podman run \
 	--replace \
 	--name test awesome-image:latest sh \
 	-c "kill $$$$ && echo %%\\"
+ExecStop=/usr/bin/podman stop --ignore --cidfile=%t/%n.ctr-id
 ExecStopPost=/usr/bin/podman rm -f --ignore --cidfile=%t/%n.ctr-id
 Type=notify
 NotifyAccess=all
@@ -683,6 +704,7 @@ ExecStart=/usr/bin/podman run \
 	--cgroups=foo \
 	--conmon-pidfile=foo \
 	--cidfile=foo alpine
+ExecStop=/usr/bin/podman stop --ignore --cidfile=%t/%n.ctr-id
 ExecStopPost=/usr/bin/podman rm -f --ignore --cidfile=%t/%n.ctr-id
 Type=notify
 NotifyAccess=all
@@ -718,6 +740,7 @@ ExecStart=/usr/bin/podman run \
 	--conmon-pidfile=foo \
 	--cidfile=foo \
 	--pod-id-file /tmp/pod-foobar.pod-id-file alpine
+ExecStop=/usr/bin/podman stop --ignore --cidfile=%t/%n.ctr-id
 ExecStopPost=/usr/bin/podman rm -f --ignore --cidfile=%t/%n.ctr-id
 Type=notify
 NotifyAccess=all
@@ -752,6 +775,7 @@ ExecStart=/usr/bin/podman run \
 	--env=BAR \
 	--env=MYENV=2 \
 	-e USER awesome-image:latest
+ExecStop=/usr/bin/podman stop --ignore --cidfile=%t/%n.ctr-id
 ExecStopPost=/usr/bin/podman rm -f --ignore --cidfile=%t/%n.ctr-id
 Type=notify
 NotifyAccess=all
@@ -778,6 +802,7 @@ Environment=USER=%%a
 Restart=on-failure
 TimeoutStopSec=70
 ExecStart=/usr/bin/podman start foobar
+ExecStop=/usr/bin/podman stop -t 10 foobar
 ExecStopPost=/usr/bin/podman stop -t 10 foobar
 PIDFile=/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid
 Type=forking
@@ -808,6 +833,7 @@ ExecStart=/usr/bin/podman run \
 	--rm \
 	--sdnotify=conmon \
 	-d awesome-image:latest
+ExecStop=/usr/bin/podman stop --ignore --cidfile=%t/%n.ctr-id
 ExecStopPost=/usr/bin/podman rm -f --ignore --cidfile=%t/%n.ctr-id
 Type=notify
 NotifyAccess=all
@@ -838,6 +864,7 @@ ExecStart=/usr/bin/podman run \
 	--sdnotify=conmon \
 	-d \
 	-h hostname awesome-image:latest
+ExecStop=/usr/bin/podman stop --ignore --cidfile=%t/%n.ctr-id
 ExecStopPost=/usr/bin/podman rm -f --ignore --cidfile=%t/%n.ctr-id
 Type=notify
 NotifyAccess=all
@@ -869,6 +896,7 @@ ExecStart=/usr/bin/podman run \
 	--rm \
 	--sdnotify=conmon \
 	-d awesome-image:latest
+ExecStop=/usr/bin/podman stop --ignore --cidfile=%t/%n.ctr-id
 ExecStopPost=/usr/bin/podman rm -f --ignore --cidfile=%t/%n.ctr-id
 Type=notify
 NotifyAccess=all
