@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 
 	buildahDefine "github.com/containers/buildah/define"
 	"github.com/containers/common/libimage"
@@ -699,9 +700,24 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 			fmt.Println(playKubePod.ContainerErrors)
 		}
 
-		// Wait for each proxy to receive a READY message.
-		for _, proxy := range sdNotifyProxies {
-			if err := proxy.WaitAndClose(); err != nil {
+		// Wait for each proxy to receive a READY message. Use a wait
+		// group to prevent the potential for ABBA kinds of deadlocks.
+		var wg sync.WaitGroup
+		errors := make([]error, len(sdNotifyProxies))
+		for i := range sdNotifyProxies {
+			wg.Add(1)
+			go func(i int) {
+				err := sdNotifyProxies[i].WaitAndClose()
+				if err != nil {
+					err = fmt.Errorf("waiting for sd-notify proxy: %w", err)
+				}
+				errors[i] = err
+				wg.Done()
+			}(i)
+		}
+		wg.Wait()
+		for _, err := range errors {
+			if err != nil {
 				return nil, err
 			}
 		}
