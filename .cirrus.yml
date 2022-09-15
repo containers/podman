@@ -27,23 +27,23 @@ env:
     #### Cache-image names to test with (double-quotes around names are critical)
     #### Comment out fedora-35 for podman 4.x branches.
     ####
-    FEDORA_NAME: "fedora-36"
+    FEDORA_NAME: "fedora-37"
     FEDORA_AARCH64_NAME: "${FEDORA_NAME}-aarch64"
-    #PRIOR_FEDORA_NAME: "fedora-35"
+    PRIOR_FEDORA_NAME: "fedora-36"
     UBUNTU_NAME: "ubuntu-2204"
 
     # Image identifiers
-    IMAGE_SUFFIX: "c4678746211876864"
+    IMAGE_SUFFIX: "c5178639502278656"
     # EC2 images
     FEDORA_AMI: "fedora-aws-${IMAGE_SUFFIX}"
     FEDORA_AARCH64_AMI: "fedora-podman-aws-arm64-${IMAGE_SUFFIX}"
     # GCP Images
     FEDORA_CACHE_IMAGE_NAME: "fedora-${IMAGE_SUFFIX}"
-    #PRIOR_FEDORA_CACHE_IMAGE_NAME: "prior-fedora-${IMAGE_SUFFIX}"
+    PRIOR_FEDORA_CACHE_IMAGE_NAME: "prior-fedora-${IMAGE_SUFFIX}"
     UBUNTU_CACHE_IMAGE_NAME: "ubuntu-${IMAGE_SUFFIX}"
     # Container FQIN's
     FEDORA_CONTAINER_FQIN: "quay.io/libpod/fedora_podman:${IMAGE_SUFFIX}"
-    #PRIOR_FEDORA_CONTAINER_FQIN: "quay.io/libpod/prior-fedora_podman:${IMAGE_SUFFIX}"
+    PRIOR_FEDORA_CONTAINER_FQIN: "quay.io/libpod/prior-fedora_podman:${IMAGE_SUFFIX}"
     UBUNTU_CONTAINER_FQIN: "quay.io/libpod/ubuntu_podman:${IMAGE_SUFFIX}"
     WINDOWS_AMI: "win-server-wsl-c5138587457421312" # Replace with IMAGE_SUFFIX when aligned
     ####
@@ -104,11 +104,11 @@ build_task:
               CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
               # ID for re-use of build output
               CI_DESIRED_RUNTIME: crun
-        #- env: &priorfedora_envvars
-        #      DISTRO_NV: ${PRIOR_FEDORA_NAME}
-        #      VM_IMAGE_NAME: ${PRIOR_FEDORA_CACHE_IMAGE_NAME}
-        #      CTR_FQIN: ${PRIOR_FEDORA_CONTAINER_FQIN}
-        #      CI_DESIRED_RUNTIME: crun
+        - env: &priorfedora_envvars
+              DISTRO_NV: ${PRIOR_FEDORA_NAME}
+              VM_IMAGE_NAME: ${PRIOR_FEDORA_CACHE_IMAGE_NAME}
+              CTR_FQIN: ${PRIOR_FEDORA_CONTAINER_FQIN}
+              CI_DESIRED_RUNTIME: crun
         - env: &ubuntu_envvars
               DISTRO_NV: ${UBUNTU_NAME}
               VM_IMAGE_NAME: ${UBUNTU_CACHE_IMAGE_NAME}
@@ -592,10 +592,11 @@ container_integration_test_task:
               VM_IMAGE_NAME: ${FEDORA_CACHE_IMAGE_NAME}
               CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
               CI_DESIRED_RUNTIME: crun
-        #- env:
-        #      DISTRO_NV: ${PRIOR_FEDORA_NAME}
-        #      VM_IMAGE_NAME: ${PRIOR_FEDORA_CACHE_IMAGE_NAME}
-        #      CTR_FQIN: ${PRIOR_FEDORA_CONTAINER_FQIN}
+        - env:
+              DISTRO_NV: ${PRIOR_FEDORA_NAME}
+              VM_IMAGE_NAME: ${PRIOR_FEDORA_CACHE_IMAGE_NAME}
+              CTR_FQIN: ${PRIOR_FEDORA_CONTAINER_FQIN}
+              CI_DESIRED_RUNTIME: crun
     gce_instance: *standardvm
     timeout_in: 90m
     env:
@@ -949,9 +950,9 @@ meta_task:
         image: quay.io/libpod/imgts:latest
     env:
         # Space-separated list of images used by this repository state
-        # Disabled ${PRIOR_FEDORA_CACHE_IMAGE_NAME} for Fedora 35
         IMGNAMES: >-
             ${FEDORA_CACHE_IMAGE_NAME}
+            ${PRIOR_FEDORA_CACHE_IMAGE_NAME}
             ${UBUNTU_CACHE_IMAGE_NAME}
             build-push-${IMAGE_SUFFIX}
         EC2IMGNAMES: >-
