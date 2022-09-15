@@ -86,12 +86,12 @@ def convert_markdown_title(app, docname, source):
     if docpath.endswith(".md"):
         # Convert pandoc title line into eval_rst block for myst_parser
         #
-        # Remove the ending "(1)" to avoid it from being displayed
+        # Remove the ending " 1" (section) to avoid it from being displayed
         # in the web tab. Often such a text indicates that
         # a web page got an update. For instance GitHub issues
         # shows the number of new comments that have been written
         # after the user's last visit.
-        source[0] = re.sub(r"^% (.*)(\(\d\))", r"```{title} \g<1>\n```", source[0])
+        source[0] = re.sub(r"^% (.*)\s(\d)", r"```{title} \g<1>\n```", source[0])
 
 def setup(app):
     app.connect("source-read", convert_markdown_title)
