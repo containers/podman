@@ -413,7 +413,7 @@ func (ic *ContainerEngine) ContainerCheckpoint(ctx context.Context, namesOrIds [
 		if err != nil {
 			reports = append(reports, &entities.CheckpointReport{Id: c.ID, Err: err})
 		} else {
-			report.RawInput = idToRawInput[report.Id]
+			report.RawInput = idToRawInput[c.ID]
 			reports = append(reports, report)
 		}
 	}

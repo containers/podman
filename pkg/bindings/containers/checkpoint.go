@@ -39,7 +39,7 @@ func Checkpoint(ctx context.Context, nameOrID string, options *CheckpointOptions
 	}
 	defer response.Body.Close()
 
-	if !export {
+	if response.StatusCode != http.StatusOK || !export {
 		return &report, response.Process(&report)
 	}
 
