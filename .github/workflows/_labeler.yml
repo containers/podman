@@ -1,0 +1,27 @@
+---
+
+# This workflow is not intended to be used directly.  Please
+# see `labeler.yml` comments to understand why.
+on: workflow_call
+
+jobs:
+    triage:
+      permissions:
+        contents: read
+        # **WARNING** **WARNING** **WARNING** **WARNING** **WARNING**
+        #
+        # This workflow uses pull-request --> WRITE <-- Permissions.
+        # Please carefully review any/all changes proposed below,
+        # that they do not attempt to to perform a PR merge.
+        #
+        # **WARNING** **WARNING** **WARNING** **WARNING** **WARNING**
+        pull-requests: write
+      runs-on: ubuntu-latest
+      steps:
+        # https://github.com/actions/labeler
+        - uses: actions/labeler@v4
+          # The v4 code of this action reads the glob-YAML from the triggering
+          # PR context (via the `$GITHUB_SHA` value):
+          # https://github.com/actions/labeler/blob/v4/src/labeler.ts#L119
+          with:
+            repo-token: "${{secrets.GITHUB_TOKEN}}"

@@ -1,15 +1,25 @@
-# https://github.com/actions/labeler
 name: "Pull Request Labeler"
 on:
-- pull_request_target
+    # IMPORTANT NOTE: The actual workflow YAML used for a run may not
+    # be what you expect!  Specifically, the `pull_request_target`
+    # trigger uses the workflow YAML as-is on the `main` branch at
+    # the time.
+    - pull_request_target
 
 jobs:
-  triage:
-    permissions:
-      contents: read
-      pull-requests: write
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/labeler@v4
-      with:
-        repo-token: "${{ secrets.GITHUB_TOKEN }}"
+    # Avoid any label-semantic conflicts between `main` and any PR's target
+    # branch, by redirecting execution to the workflow YAML as defined
+    # in the branch targeted by the PR (`github.base_ref`).  This also
+    # implies PR's cannot directly modify the workflow YAML (which has
+    # repository-write permissions) before being merged into a branch.
+    # Ref: https://docs.github.com/en/actions/using-workflows/reusing-workflows
+    triage:
+        # Note `github.base_ref` is: "The base_ref or target branch of the pull
+        # request in a workflow run. This property is only available when the
+        # event that triggers a workflow run is either pull_request or
+        # pull_request_target"
+        uses: ${{github.repository}}/.github/workflows/_labeler.yml@${{github.base_ref}}
+        secrets: inherit
+        permissions:
+            contents: read
+            pull-requests: write
