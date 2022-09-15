@@ -564,13 +564,7 @@ container
 - `seccomp=profile.json` :  White listed syscalls seccomp Json file to be used
 as a seccomp filter
 
-#### **--shm-size**=*size*
-
-Size of `/dev/shm`. The format is `<number><unit>`. `number` must be greater
-than `0`.
-Unit is optional and can be `b` (bytes), `k` (kibibytes), `m`(mebibytes), or
-`g` (gibibytes). If you omit the unit, the system uses bytes. If you omit the
-size entirely, the system uses `64m`.
+@@option shm-size
 
 #### **--sign-by**=*fingerprint*
 
