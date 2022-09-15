@@ -79,6 +79,7 @@ Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=on-failure
 TimeoutStopSec=102
 ExecStart=/usr/bin/podman start jadda-jadda-infra
+ExecStop=/usr/bin/podman stop -t 42 jadda-jadda-infra
 ExecStopPost=/usr/bin/podman stop -t 42 jadda-jadda-infra
 PIDFile=/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid
 Type=forking
@@ -106,6 +107,7 @@ Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=on-failure
 TimeoutStopSec=102
 ExecStart=/usr/bin/podman start jadda-jadda-infra
+ExecStop=/usr/bin/podman stop -t 42 jadda-jadda-infra
 ExecStopPost=/usr/bin/podman stop -t 42 jadda-jadda-infra
 PIDFile=/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid
 Type=forking
@@ -134,6 +136,7 @@ Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=on-failure
 TimeoutStopSec=102
 ExecStart=/usr/bin/podman start jadda-jadda-infra
+ExecStop=/usr/bin/podman stop -t 42 jadda-jadda-infra
 ExecStopPost=/usr/bin/podman stop -t 42 jadda-jadda-infra
 PIDFile=/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid
 Type=forking
@@ -161,6 +164,7 @@ Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=on-failure
 TimeoutStopSec=102
 ExecStart=/usr/bin/podman start jadda-jadda-infra
+ExecStop=/usr/bin/podman stop -t 42 jadda-jadda-infra
 ExecStopPost=/usr/bin/podman stop -t 42 jadda-jadda-infra
 PIDFile=/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid
 Type=forking
@@ -188,6 +192,7 @@ Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=on-failure
 TimeoutStopSec=102
 ExecStart=/usr/bin/podman start jadda-jadda-infra
+ExecStop=/usr/bin/podman stop -t 42 jadda-jadda-infra
 ExecStopPost=/usr/bin/podman stop -t 42 jadda-jadda-infra
 PIDFile=/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid
 Type=forking
@@ -217,6 +222,7 @@ Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=on-failure
 TimeoutStopSec=102
 ExecStart=/usr/bin/podman start jadda-jadda-infra
+ExecStop=/usr/bin/podman stop -t 42 jadda-jadda-infra
 ExecStopPost=/usr/bin/podman stop -t 42 jadda-jadda-infra
 PIDFile=/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid
 Type=forking
@@ -243,6 +249,7 @@ TimeoutStopSec=70
 ExecStartPre=/bin/rm -f %t/pod-123abc.pid %t/pod-123abc.pod-id
 ExecStartPre=/usr/bin/podman pod create --infra-conmon-pidfile %t/pod-123abc.pid --pod-id-file %t/pod-123abc.pod-id --exit-policy=stop foo
 ExecStart=/usr/bin/podman pod start --pod-id-file %t/pod-123abc.pod-id
+ExecStop=/usr/bin/podman pod stop --ignore --pod-id-file %t/pod-123abc.pod-id -t 10
 ExecStopPost=/usr/bin/podman pod rm --ignore -f --pod-id-file %t/pod-123abc.pod-id
 PIDFile=%t/pod-123abc.pid
 Type=forking
@@ -269,6 +276,7 @@ Restart=on-failure
 RestartSec=15
 TimeoutStopSec=102
 ExecStart=/usr/bin/podman start jadda-jadda-infra
+ExecStop=/usr/bin/podman stop -t 42 jadda-jadda-infra
 ExecStopPost=/usr/bin/podman stop -t 42 jadda-jadda-infra
 PIDFile=/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401/userdata/conmon.pid
 Type=forking
@@ -296,6 +304,7 @@ TimeoutStopSec=70
 ExecStartPre=/bin/rm -f %t/pod-123abc.pid %t/pod-123abc.pod-id
 ExecStartPre=/usr/bin/podman pod create --infra-conmon-pidfile %t/pod-123abc.pid --pod-id-file %t/pod-123abc.pod-id --exit-policy=stop --name foo "bar=arg with space" --replace
 ExecStart=/usr/bin/podman pod start --pod-id-file %t/pod-123abc.pod-id
+ExecStop=/usr/bin/podman pod stop --ignore --pod-id-file %t/pod-123abc.pod-id -t 10
 ExecStopPost=/usr/bin/podman pod rm --ignore -f --pod-id-file %t/pod-123abc.pod-id
 PIDFile=%t/pod-123abc.pid
 Type=forking
@@ -323,6 +332,7 @@ TimeoutStopSec=70
 ExecStartPre=/bin/rm -f %t/pod-123abc.pid %t/pod-123abc.pod-id
 ExecStartPre=/usr/bin/podman --events-backend none --runroot /root pod create --infra-conmon-pidfile %t/pod-123abc.pid --pod-id-file %t/pod-123abc.pod-id --exit-policy=stop --name foo "bar=arg with space" --replace
 ExecStart=/usr/bin/podman --events-backend none --runroot /root pod start --pod-id-file %t/pod-123abc.pod-id
+ExecStop=/usr/bin/podman --events-backend none --runroot /root pod stop --ignore --pod-id-file %t/pod-123abc.pod-id -t 10
 ExecStopPost=/usr/bin/podman --events-backend none --runroot /root pod rm --ignore -f --pod-id-file %t/pod-123abc.pod-id
 PIDFile=%t/pod-123abc.pid
 Type=forking
@@ -350,6 +360,7 @@ TimeoutStopSec=70
 ExecStartPre=/bin/rm -f %t/pod-123abc.pid %t/pod-123abc.pod-id
 ExecStartPre=/usr/bin/podman pod create --infra-conmon-pidfile %t/pod-123abc.pid --pod-id-file %t/pod-123abc.pod-id --exit-policy=stop --name foo --replace
 ExecStart=/usr/bin/podman pod start --pod-id-file %t/pod-123abc.pod-id
+ExecStop=/usr/bin/podman pod stop --ignore --pod-id-file %t/pod-123abc.pod-id -t 10
 ExecStopPost=/usr/bin/podman pod rm --ignore -f --pod-id-file %t/pod-123abc.pod-id
 PIDFile=%t/pod-123abc.pid
 Type=forking
@@ -377,6 +388,7 @@ TimeoutStopSec=70
 ExecStartPre=/bin/rm -f %t/pod-123abc.pid %t/pod-123abc.pod-id
 ExecStartPre=/usr/bin/podman pod create --infra-conmon-pidfile %t/pod-123abc.pid --pod-id-file %t/pod-123abc.pod-id --name foo --label key={{someval}} --exit-policy=continue --replace
 ExecStart=/usr/bin/podman pod start --pod-id-file %t/pod-123abc.pod-id
+ExecStop=/usr/bin/podman pod stop --ignore --pod-id-file %t/pod-123abc.pod-id -t 10
 ExecStopPost=/usr/bin/podman pod rm --ignore -f --pod-id-file %t/pod-123abc.pod-id
 PIDFile=%t/pod-123abc.pid
 Type=forking

@@ -566,6 +566,7 @@ var _ = Describe("Podman generate systemd", func() {
 		Expect(session.OutputToString()).To(ContainSubstring("BindsTo=pod-foo.service"))
 		Expect(session.OutputToString()).To(ContainSubstring("pod create --infra-conmon-pidfile %t/pod-foo.pid --pod-id-file %t/pod-foo.pod-id --exit-policy=stop --name foo"))
 		Expect(session.OutputToString()).To(ContainSubstring("ExecStartPre=/bin/rm -f %t/pod-foo.pid %t/pod-foo.pod-id"))
+		Expect(session.OutputToString()).To(ContainSubstring("pod stop --ignore --pod-id-file %t/pod-foo.pod-id -t 10"))
 		Expect(session.OutputToString()).To(ContainSubstring("pod rm --ignore -f --pod-id-file %t/pod-foo.pod-id"))
 	})
 
