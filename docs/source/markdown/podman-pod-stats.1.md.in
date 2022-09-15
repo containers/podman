@@ -40,13 +40,9 @@ When using a GO template, you may precede the format with `table` to print heade
 
 Instead of providing the pod name or ID, use the last created pod. (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
 
-#### **--no-reset**
+@@option no-reset
 
-Do not clear the terminal/screen in between reporting intervals
-
-#### **--no-stream**
-
-Disable streaming pod stats and only pull the first result, default setting is false
+@@option no-stream
 
 ## EXAMPLE
 
