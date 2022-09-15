@@ -145,7 +145,7 @@ flag to pass the user's supplementary group access into the container.
 
 This option cannot be combined with **--network** that is set to **none** or **container:**_id_.
 
-@@option dns-opt.container
+@@option dns-option.container
 
 @@option dns-search.container
 
@@ -265,7 +265,7 @@ This option is currently supported only by the **journald** log driver.
 
 #### **--network**=*mode*, **--net**
 
-Set the network mode for the container. Invalid if using **--dns**, **--dns-opt**, or **--dns-search** with **--network** set to **none** or **container:**_id_. If used together with **--pod**, the container will not join the pod's network namespace.
+Set the network mode for the container. Invalid if using **--dns**, **--dns-option**, or **--dns-search** with **--network** set to **none** or **container:**_id_. If used together with **--pod**, the container will not join the pod's network namespace.
 
 Valid _mode_ values are:
 

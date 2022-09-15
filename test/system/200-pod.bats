@@ -221,7 +221,7 @@ EOF
                --add-host   "$add_host_n:$add_host_ip"   \
                --dns        "$dns_server"                \
                --dns-search "$dns_search"                \
-               --dns-opt    "$dns_opt"                   \
+               --dns-option "$dns_opt"                   \
                --publish    "$port_out:$port_in"         \
                --label      "${labelname}=${labelvalue}" \
                --infra-image   "$infra_image"            \
@@ -262,7 +262,7 @@ EOF
     run_podman run --rm --pod mypod $IMAGE cat /etc/resolv.conf
     is "$output" ".*nameserver $dns_server"  "--dns [server] was added"
     is "$output" ".*search $dns_search"      "--dns-search was added"
-    is "$output" ".*options $dns_opt"        "--dns-opt was added"
+    is "$output" ".*options $dns_opt"        "--dns-option was added"
 
     # pod inspect
     run_podman pod inspect --format '{{.Name}}: {{.ID}} : {{.NumContainers}} : {{.Labels}}' mypod

@@ -33,18 +33,12 @@ func DefineNetFlags(cmd *cobra.Command) {
 	)
 	_ = cmd.RegisterFlagCompletionFunc(dnsFlagName, completion.AutocompleteNone)
 
-	dnsOptFlagName := "dns-opt"
+	dnsOptFlagName := "dns-option"
 	netFlags.StringSlice(
 		dnsOptFlagName, containerConfig.DNSOptions(),
 		"Set custom DNS options",
 	)
 	_ = cmd.RegisterFlagCompletionFunc(dnsOptFlagName, completion.AutocompleteNone)
-	netFlags.StringSlice(
-		"dns-option", containerConfig.DNSOptions(),
-		"Docker compatibility option== --dns-opt",
-	)
-	_ = netFlags.MarkHidden("dns-option")
-
 	dnsSearchFlagName := "dns-search"
 	netFlags.StringSlice(
 		dnsSearchFlagName, containerConfig.DNSSearches(),
@@ -143,20 +137,12 @@ func NetFlagsToNetOptions(opts *entities.NetOptions, flags pflag.FlagSet) (*enti
 		}
 	}
 
-	if flags.Changed("dns-opt") {
-		options, err := flags.GetStringSlice("dns-opt")
-		if err != nil {
-			return nil, err
-		}
-		opts.DNSOptions = options
-	}
-
 	if flags.Changed("dns-option") {
 		options, err := flags.GetStringSlice("dns-option")
 		if err != nil {
 			return nil, err
 		}
-		opts.DNSOptions = append(opts.DNSOptions, options...)
+		opts.DNSOptions = options
 	}
 
 	if flags.Changed("dns-search") {

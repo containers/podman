@@ -912,7 +912,7 @@ var _ = Describe("Podman generate kube", func() {
 	})
 
 	It("podman generate kube on a container with dns options", func() {
-		top := podmanTest.Podman([]string{"run", "-dt", "--name", "top", "--dns", "8.8.8.8", "--dns-search", "foobar.com", "--dns-opt", "color:blue", ALPINE, "top"})
+		top := podmanTest.Podman([]string{"run", "-dt", "--name", "top", "--dns", "8.8.8.8", "--dns-search", "foobar.com", "--dns-option", "color:blue", ALPINE, "top"})
 		top.WaitWithDefaultTimeout()
 		Expect(top).Should(Exit(0))
 
