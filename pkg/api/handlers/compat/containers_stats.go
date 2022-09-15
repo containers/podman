@@ -11,6 +11,7 @@ import (
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/api/handlers/utils"
 	api "github.com/containers/podman/v4/pkg/api/types"
+	"github.com/containers/storage/pkg/system"
 	docker "github.com/docker/docker/api/types"
 	"github.com/gorilla/schema"
 	runccgroups "github.com/opencontainers/runc/libcontainer/cgroups"
@@ -139,6 +140,16 @@ streamLabel: // A label to flatten the scope
 			memoryLimit = uint64(*cfg.Spec.Linux.Resources.Memory.Limit)
 		}
 
+		memInfo, err := system.ReadMemInfo()
+		if err != nil {
+			logrus.Errorf("Unable to get cgroup stats: %v", err)
+			return
+		}
+		// cap the memory limit to the available memory.
+		if memInfo.MemTotal > 0 && memoryLimit > uint64(memInfo.MemTotal) {
+			memoryLimit = uint64(memInfo.MemTotal)
+		}
+
 		systemUsage, _ := cgroups.GetSystemCPUUsage()
 		s := StatsJSON{
 			Stats: Stats{
@@ -177,7 +188,7 @@ streamLabel: // A label to flatten the scope
 				PreCPUStats: preCPUStats,
 				MemoryStats: docker.MemoryStats{
 					Usage:             cgroupStat.MemoryStats.Usage.Usage,
-					MaxUsage:          cgroupStat.MemoryStats.Usage.Limit,
+					MaxUsage:          cgroupStat.MemoryStats.Usage.MaxUsage,
 					Stats:             nil,
 					Failcnt:           0,
 					Limit:             memoryLimit,
