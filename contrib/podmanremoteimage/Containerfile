@@ -1,0 +1,10 @@
+FROM registry.access.redhat.com/ubi8/go-toolset:latest AS builder
+WORKDIR /opt/app-root/src
+COPY . .
+RUN make podman-remote-static
+RUN GOOS=windows make podman-remote
+RUN GOOS=darwin make podman-remote
+
+FROM scratch
+COPY --from=builder /opt/app-root/src/bin .
+ENTRYPOINT ["/podman-remote-static"]
