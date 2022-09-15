@@ -208,6 +208,7 @@ use_cni() {
     export -n NETWORK_BACKEND
     unset NETWORK_BACKEND
     msg "Installing default CNI configuration"
+    dnf install -y $PACKAGE_DOWNLOAD_DIR/podman-plugins*
     cd $GOSRC || exit 1
     rm -rvf /etc/cni/net.d
     mkdir -p /etc/cni/net.d

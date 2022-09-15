@@ -126,19 +126,19 @@ case "$OS_RELEASE_ID" in
             setsebool container_manage_cgroup true
         fi
 
-        # For release 36 and later, netavark/aardvark is the default
-        # networking stack for podman.  All previous releases only have
-        # CNI networking available.  Upgrading from one to the other is
-        # not supported at this time.  Support execution of the upgrade
-        # tests in F36 and later, by disabling Netavark and enabling CNI.
+        # For the latest Fedora CI VM images, netavark/aardvark is the
+        # intended networking stack for podman.  All previous VM images
+        # should use CNI networking.  Upgrading from one to the other is
+        # not supported at this time.  The only exception in CI is
+        # the "upgrade tests" which must always use CNI.
         #
         # OS_RELEASE_VER is defined by automation-library
         # shellcheck disable=SC2154
-        if [[ "$OS_RELEASE_VER" -ge 36 ]] && \
+        if [[ "$DISTRO_NV" != "$PRIOR_FEDORA_NAME" ]] && \
            [[ "$TEST_FLAVOR" != "upgrade_test" ]];
         then
             use_netavark
-        else # Fedora < 36, or upgrade testing.
+        else # Fedora N-1 or upgrade testing.
             use_cni
         fi
         ;;
