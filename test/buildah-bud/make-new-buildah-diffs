@@ -17,7 +17,7 @@ if [[ ! $whereami =~ test-buildah-v ]]; then
 fi
 
 # FIXME: check that git repo is buildah
-git remote -v | grep -q [BUILDAHREPO] \
+git remote -v | grep -q '[BUILDAHREPO]' \
     || die "This does not look like a buildah repo (git remote -v)"
 
 # We could do the commit automatically, but it's prudent to require human

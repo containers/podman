@@ -106,7 +106,7 @@ export PODMAN_ROOTLESS_USER=$(id -un)
 
 # Root
 if [ -z "$ROOTLESS_ONLY" ]; then
-    echo "# bats ${bats_filter[@]} $TESTS"
+    echo "# bats ${bats_filter[*]} $TESTS"
     sudo    --preserve-env=PODMAN \
             --preserve-env=PODMAN_TEST_DEBUG \
             --preserve-env=OCI_RUNTIME \
@@ -119,7 +119,7 @@ fi
 # Rootless. (Only if we're not already root)
 if [[ -z "$ROOT_ONLY" && "$(id -u)" != 0 ]]; then
     echo "--------------------------------------------------"
-    echo "\$ bats ${bats_filter[@]} $TESTS"
+    echo "\$ bats ${bats_filter[*]} $TESTS"
     bats "${bats_opts[@]}" "${bats_filter[@]}" $TESTS
     rc=$((rc | $?))
 fi

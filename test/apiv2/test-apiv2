@@ -272,8 +272,8 @@ function t() {
             esac
         done
         if [[ -z "$curl_args" ]]; then
-            curl_args=(-d $(jsonify ${post_args[@]}))
-            testname="$testname [${curl_args[@]}]"
+            curl_args=(-d $(jsonify ${post_args[*]}))
+            testname="$testname [${curl_args[*]}]"
         fi
     fi
 
@@ -336,7 +336,7 @@ function t() {
 
     # Any error from curl is instant bad news, from which we can't recover
     if [[ $rc -ne 0 ]]; then
-        die "curl failure ($rc) on $url - cannot continue"
+        die "curl failure ($rc) on $url - cannot continue. args=${curl_args[*]}"
     fi
 
     # Show returned headers (without trailing ^M or empty lines) in log file.
@@ -384,7 +384,7 @@ function t() {
 
     # Special case: if response code does not match, dump the response body
     # and skip all further subtests.
-    if [[ $actual_code != $expected_code ]]; then
+    if [[ "$actual_code" != "$expected_code" ]]; then
         echo -e "#  response: $output"
         for i; do
             _show_ok skip "$testname: $i # skip - wrong return code"
@@ -671,11 +671,11 @@ echo -e "collected ${#tests_to_run[@]} items\n"
 
 start_service
 
-for i in ${tests_to_run[@]}; do
+for i in "${tests_to_run[@]}"; do
     TEST_CONTEXT="[$(basename $i .at)]"
 
     # Clear output from 'podman' helper
-    >| $WORKDIR/output.log
+    truncate --size=0 $WORKDIR/output.log
 
     source $i
 done

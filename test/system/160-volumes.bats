@@ -315,11 +315,11 @@ EOF
 
     # List available volumes for pruning after using 1,2,3
     run_podman volume prune <<< N
-    is "$(echo $(sort <<<${lines[@]:1:3}))" "${v[4]} ${v[5]} ${v[6]}" "volume prune, with 1,2,3 in use, lists 4,5,6"
+    is "$(echo $(sort <<<${lines[*]:1:3}))" "${v[4]} ${v[5]} ${v[6]}" "volume prune, with 1,2,3 in use, lists 4,5,6"
 
     # List available volumes for pruning after using 1,2,3 and filtering; see #8913
     run_podman volume prune --filter label=mylabel <<< N
-    is "$(echo $(sort <<<${lines[@]:1:2}))" "${v[5]} ${v[6]}" "volume prune, with 1,2,3 in use and 4 filtered out, lists 5,6"
+    is "$(echo $(sort <<<${lines[*]:1:2}))" "${v[5]} ${v[6]}" "volume prune, with 1,2,3 in use and 4 filtered out, lists 5,6"
 
     # prune should remove v4
     run_podman volume prune --force

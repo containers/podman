@@ -64,7 +64,7 @@ function is() {
     local expect=$2
     local testname=$3
 
-    if [[ $actual = $expect ]]; then
+    if [[ "$actual" = "$expect" ]]; then
         # On success, include expected value; this helps readers understand
         _show_ok 1 "$testname=$expect"
         return
@@ -303,12 +303,12 @@ n_tests=0
 # We aren't really TAP 13; this helps logformatter recognize our output as BATS
 echo "TAP version 13"
 
-for t in ${tests_to_run[@]}; do
+for t in "${tests_to_run[@]}"; do
     testdir="$(dirname $t)"
     testname="$(basename $testdir)"
 
     if [ -e $test_dir/SKIP ]; then
-        local reason="$(<$test_dir/SKIP)"
+        reason="$(<$test_dir/SKIP)"
         if [ -n "$reason" ]; then
             reason=" - $reason"
         fi

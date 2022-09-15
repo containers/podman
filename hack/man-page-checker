@@ -87,7 +87,7 @@ function compare_usage() {
 
     # strip off command name from both
     from_man=$(sed -e "s/\*\*$cmd\*\*[[:space:]]*//" <<<"$from_man")
-    from_help=$(sed -e "s/^[[:space:]]*$cmd[[:space:]]*//" <<<"$from_help")
+    from_help=$(sed -e "s/^[[:space:]]*${cmd}[[:space:]]*//" <<<"$from_help")
 
     # man page lists 'foo [*options*]', help msg shows 'foo [flags]'.
     # Make sure if one has it, the other does too.
@@ -153,7 +153,7 @@ for md in *.1.md;do
         # special case: the command is "auto-update", with a hyphen
         md_nodash='podman auto-update'
     fi
-    if [ "$cmd" != "$md_nodash" -a "$cmd" != "podman-remote" ]; then
+    if [[ "$cmd" != "$md_nodash" ]] && [[ "$cmd" != "podman-remote" ]]; then
         echo
         printf "Inconsistent program name in SYNOPSIS in %s:\n" $md
         printf "  SYNOPSIS = %s (expected: '%s')\n" "$cmd" "$md_nodash"
