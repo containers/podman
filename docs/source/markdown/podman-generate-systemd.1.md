@@ -141,7 +141,8 @@ RequiresMountsFor=/var/run/container/storage
 [Service]
 Restart=always
 ExecStart=/usr/bin/podman start de1e3223b1b888bc02d0962dd6cb5855eb00734061013ffdd3479d225abacdc6
-ExecStop=/usr/bin/podman stop -t 1 de1e3223b1b888bc02d0962dd6cb5855eb00734061013ffdd3479d225abacdc6
+ExecStop=/usr/bin/podman stop \
+        -t 1 de1e3223b1b888bc02d0962dd6cb5855eb00734061013ffdd3479d225abacdc6
 KillMode=none
 Type=forking
 PIDFile=/run/user/1000/overlay-containers/de1e3223b1b888bc02d0962dd6cb5855eb00734061013ffdd3479d225abacdc6/userdata/conmon.pid
@@ -171,14 +172,19 @@ RequiresMountsFor=/var/run/container/storage
 Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=on-failure
 ExecStartPre=/bin/rm -f %t/%n-pid %t/%n-cid
-ExecStart=/usr/local/bin/podman run
-	--conmon-pidfile %t/%n-pid
-	--cidfile %t/%n-cid
-	--cgroups=no-conmon
-	-d
+ExecStart=/usr/local/bin/podman run \
+        --conmon-pidfile %t/%n-pid \
+	--cidfile %t/%n-cid \
+	--cgroups=no-conmon \
+	-d \
 	-dit alpine
-ExecStop=/usr/local/bin/podman stop --ignore --cidfile %t/%n-cid -t 10
-ExecStopPost=/usr/local/bin/podman rm --ignore -f --cidfile %t/%n-cid
+ExecStop=/usr/local/bin/podman stop \
+        --ignore \
+        --cidfile %t/%n-cid -t 10
+ExecStopPost=/usr/local/bin/podman rm \
+        --ignore \
+        -f \
+	--cidfile %t/%n-cid
 PIDFile=%t/%n-pid
 KillMode=none
 Type=forking
@@ -217,7 +223,8 @@ RequiresMountsFor=/var/run/container/storage
 [Service]
 Restart=on-failure
 ExecStart=/usr/bin/podman start 77a818221650-infra
-ExecStop=/usr/bin/podman stop -t 10 77a818221650-infra
+ExecStop=/usr/bin/podman stop \
+        -t 10 77a818221650-infra
 KillMode=none
 Type=forking
 PIDFile=/run/user/1000/overlay-containers/ccfd5c71a088768774ca7bd05888d55cc287698dde06f475c8b02f696a25adcd/userdata/conmon.pid

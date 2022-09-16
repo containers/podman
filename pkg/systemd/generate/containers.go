@@ -78,7 +78,7 @@ Requires={{{{- range $index, $value := .Requires }}}}{{{{ if $index}}}} {{{{end}
 {{{{- end}}}}
 
 [Service]
-Environment={{{{.EnvVariable}}}}=%n{{{{- if (eq .IdentifySpecifier true) }}}}-%i{{{{- end}}}}
+Environment={{{{.EnvVariable}}}}=%n{{{{- if (eq .IdentifySpecifier true) }}}}-%i {{{{- end}}}}
 {{{{- if .ExtraEnvs}}}}
 Environment={{{{- range $index, $value := .ExtraEnvs -}}}}{{{{if $index}}}} {{{{end}}}}{{{{ $value }}}}{{{{end}}}}
 {{{{- end}}}}
@@ -254,6 +254,10 @@ func setContainerNameForTemplate(startCommand []string, info *containerInfo) ([]
 	return startCommand, nil
 }
 
+func formatOptionsString(cmd string) string {
+	return formatOptions(strings.Split(cmd, " "))
+}
+
 func formatOptions(options []string) string {
 	var formatted strings.Builder
 	if len(options) == 0 {
@@ -294,8 +298,8 @@ func executeContainerTemplate(info *containerInfo, options entities.GenerateSyst
 	info.Type = "forking"
 	info.EnvVariable = define.EnvVariable
 	info.ExecStart = "{{{{.Executable}}}} start {{{{.ContainerNameOrID}}}}"
-	info.ExecStop = "{{{{.Executable}}}} stop {{{{if (ge .StopTimeout 0)}}}}-t {{{{.StopTimeout}}}}{{{{end}}}} {{{{.ContainerNameOrID}}}}"
-	info.ExecStopPost = "{{{{.Executable}}}} stop {{{{if (ge .StopTimeout 0)}}}}-t {{{{.StopTimeout}}}}{{{{end}}}} {{{{.ContainerNameOrID}}}}"
+	info.ExecStop = formatOptionsString("{{{{.Executable}}}} stop {{{{if (ge .StopTimeout 0)}}}} -t {{{{.StopTimeout}}}}{{{{end}}}} {{{{.ContainerNameOrID}}}}")
+	info.ExecStopPost = formatOptionsString("{{{{.Executable}}}} stop {{{{if (ge .StopTimeout 0)}}}} -t {{{{.StopTimeout}}}}{{{{end}}}} {{{{.ContainerNameOrID}}}}")
 	for i, env := range info.AdditionalEnvVariables {
 		info.AdditionalEnvVariables[i] = escapeSystemdArg(env)
 	}
@@ -312,9 +316,9 @@ func executeContainerTemplate(info *containerInfo, options entities.GenerateSyst
 		info.NotifyAccess = "all"
 		info.PIDFile = ""
 		info.ContainerIDFile = "%t/%n.ctr-id"
-		info.ExecStartPre = "/bin/rm -f {{{{.ContainerIDFile}}}}"
-		info.ExecStop = "{{{{.Executable}}}} stop --ignore --cidfile={{{{.ContainerIDFile}}}}"
-		info.ExecStopPost = "{{{{.Executable}}}} rm -f --ignore --cidfile={{{{.ContainerIDFile}}}}"
+		info.ExecStartPre = formatOptionsString("/bin/rm -f {{{{.ContainerIDFile}}}}")
+		info.ExecStop = formatOptionsString("{{{{.Executable}}}} stop --ignore --cidfile={{{{.ContainerIDFile}}}}")
+		info.ExecStopPost = formatOptionsString("{{{{.Executable}}}} rm -f --ignore --cidfile={{{{.ContainerIDFile}}}}")
 		// The create command must at least have three arguments:
 		// 	/usr/bin/podman run $IMAGE
 		index := 0
