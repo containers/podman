@@ -308,5 +308,18 @@ var _ = Describe("Podman container clone", func() {
 		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).Should(ContainSubstring("123"))
 
+		session = podmanTest.Podman([]string{"run", "--name", "env_ctr2", "-e", "ENV_TEST=12=3", ALPINE, "printenv", "ENV_TEST"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"container", "clone", "env_ctr2"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"start", "-a", "env_ctr2-clone"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).Should(ContainSubstring("12=3"))
+
 	})
 })
