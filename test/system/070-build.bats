@@ -541,7 +541,7 @@ Labels.$label_name | $label_value
          this-file-does-not-match-anything-in-ignore-file
          comment
     )
-    for f in ${files[@]}; do
+    for f in "${files[@]}"; do
         # The magic '##-' strips off the '-' prefix
         echo "$f" > $tmpdir/${f##-}
     done

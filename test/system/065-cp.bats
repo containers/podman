@@ -436,7 +436,7 @@ load helpers
         run_podman cp cpcontainer:$src $destdir$dest
         is "$(< $destdir$dest_fullname/containerfile0)" "${randomcontent[0]}" "$description"
         is "$(< $destdir$dest_fullname/containerfile1)" "${randomcontent[1]}" "$description"
-        rm -rf $destdir/*
+        rm -rf ${destdir:?}/*
     done < <(parse_table "$tests")
     run_podman kill cpcontainer
     run_podman rm -t 0 -f cpcontainer
@@ -456,7 +456,7 @@ load helpers
         run_podman cp cpcontainer:$src $destdir$dest
         is "$(< $destdir$dest_fullname/containerfile0)" "${randomcontent[0]}" "$description"
         is "$(< $destdir$dest_fullname/containerfile1)" "${randomcontent[1]}" "$description"
-        rm -rf $destdir/*
+        rm -rf ${destdir:?}/*
     done < <(parse_table "$tests")
 
     touch $destdir/testfile
