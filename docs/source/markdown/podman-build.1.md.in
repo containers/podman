@@ -223,18 +223,12 @@ specifying **--disable-compression=false**.
 
 @@option disable-content-trust
 
-#### **--dns**=*dns*
+@@option dns
 
-Set custom DNS servers to be used during the build.
+This option cannot be combined with **--network** that is set to **none**.
 
-This option can be used to override the DNS configuration passed to the
-container. Typically this is necessary when the host DNS configuration is
-invalid for the container (e.g., 127.0.0.1). When this is the case the `--dns`
-option is necessary for every run.
-
-The special value **none** can be specified to disable creation of
-/etc/resolv.conf in the container by Podman. The /etc/resolv.conf file in the
-image will be used without changes.
+Note: this option takes effect only during *RUN* instructions in the build.
+It does not affect _/etc/resolv.conf_ in the final image.
 
 #### **--dns-option**=*option*
 
