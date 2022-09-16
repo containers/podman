@@ -620,6 +620,9 @@ func (ic *ContainerEngine) ContainerExecDetached(ctx context.Context, nameOrID s
 }
 
 func startAndAttach(ic *ContainerEngine, name string, detachKeys *string, input, output, errput *os.File) error {
+	if output == nil && errput == nil {
+		fmt.Printf("%s\n", name)
+	}
 	attachErr := make(chan error)
 	attachReady := make(chan bool)
 	options := new(containers.AttachOptions).WithStream(true)
