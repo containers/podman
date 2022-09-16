@@ -14,6 +14,7 @@ type GenerateSystemdOptions struct {
 	PodPrefix              string
 	Separator              string
 	NoHeader               bool
+	Header                 string
 	TemplateUnitFile       bool
 	Wants                  []string
 	After                  []string

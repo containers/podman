@@ -14,6 +14,7 @@ func (ic *ContainerEngine) GenerateSystemd(ctx context.Context, nameOrID string,
 		WithUseName(opts.Name).
 		WithContainerPrefix(opts.ContainerPrefix).
 		WithNew(opts.New).WithNoHeader(opts.NoHeader).
+		WithHeader(opts.Header).
 		WithTemplateUnitFile(opts.TemplateUnitFile).
 		WithPodPrefix(opts.PodPrefix).
 		WithSeparator(opts.Separator).

@@ -81,6 +81,10 @@ func init() {
 	flags.BoolVar(&systemdOptions.New, newFlagName, false, "Create a new container or pod instead of starting an existing one")
 	flags.BoolVarP(&systemdOptions.NoHeader, "no-header", "", false, "Skip header generation")
 
+	headerFlagName := "header"
+	flags.StringVar(&systemdOptions.Header, headerFlagName, "", "Append the specified header")
+	_ = systemdCmd.RegisterFlagCompletionFunc(headerFlagName, completion.AutocompleteNone)
+
 	containerPrefixFlagName := "container-prefix"
 	flags.StringVar(&systemdOptions.ContainerPrefix, containerPrefixFlagName, "container", "Systemd unit name prefix for containers")
 	_ = systemdCmd.RegisterFlagCompletionFunc(containerPrefixFlagName, completion.AutocompleteNone)

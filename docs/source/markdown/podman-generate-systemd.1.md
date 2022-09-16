@@ -60,6 +60,10 @@ Note: On a system with SELinux enabled, the generated files will inherit context
 
 Print the created units in specified format (json). If `--files` is specified the paths to the created files will be printed instead of the unit content.
 
+#### **--header**=*header*
+
+Append the specified header. This option can be used with `--no-header` to generate the specified header only.
+
 #### **--name**, **-n**
 
 Use the name of the container for the start, stop, and description in the unit file

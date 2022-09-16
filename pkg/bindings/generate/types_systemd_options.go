@@ -62,6 +62,21 @@ func (o *SystemdOptions) GetNoHeader() bool {
 	return *o.NoHeader
 }
 
+// WithHeader set field Header to given value
+func (o *SystemdOptions) WithHeader(value string) *SystemdOptions {
+	o.Header = &value
+	return o
+}
+
+// GetHeader returns value of field Header
+func (o *SystemdOptions) GetHeader() string {
+	if o.Header == nil {
+		var z string
+		return z
+	}
+	return *o.Header
+}
+
 // WithTemplateUnitFile set field TemplateUnitFile to given value
 func (o *SystemdOptions) WithTemplateUnitFile(value bool) *SystemdOptions {
 	o.TemplateUnitFile = &value

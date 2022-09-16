@@ -20,6 +20,7 @@ func GenerateSystemd(w http.ResponseWriter, r *http.Request) {
 		Name                   bool     `schema:"useName"`
 		New                    bool     `schema:"new"`
 		NoHeader               bool     `schema:"noHeader"`
+		Header                 *string  `schema:"header"`
 		TemplateUnitFile       bool     `schema:"templateUnitFile"`
 		RestartPolicy          *string  `schema:"restartPolicy"`
 		RestartSec             uint     `schema:"restartSec"`

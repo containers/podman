@@ -48,7 +48,8 @@ type containerInfo struct {
 	TimeoutStopSec         uint
 	ExecStop               string
 	ExecStopPost           string
-	GenerateNoHeader       bool
+	NoDefaultHeader        bool
+	Header                 string
 	Pod                    *podInfo
 	GraphRoot              string
 	RunRoot                string
@@ -483,9 +484,10 @@ func executeContainerTemplate(info *containerInfo, options entities.GenerateSyst
 	}
 
 	if options.NoHeader {
-		info.GenerateNoHeader = true
+		info.NoDefaultHeader = true
 		info.GenerateTimestamp = false
 	}
+	info.Header = options.Header
 
 	if info.GenerateTimestamp {
 		info.TimeStamp = fmt.Sprintf("%v", time.Now().Format(time.UnixDate))
