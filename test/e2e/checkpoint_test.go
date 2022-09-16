@@ -95,13 +95,15 @@ var _ = Describe("Podman checkpoint", func() {
 	It("podman checkpoint bogus container", func() {
 		session := podmanTest.Podman([]string{"container", "checkpoint", "foobar"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError())
+		Expect(session).Should(Exit(125))
+		Expect(session.ErrorToString()).To(ContainSubstring("no such container"))
 	})
 
 	It("podman restore bogus container", func() {
 		session := podmanTest.Podman([]string{"container", "restore", "foobar"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError())
+		Expect(session).Should(Exit(125))
+		Expect(session.ErrorToString()).To(ContainSubstring("no such container or image"))
 	})
 
 	It("podman checkpoint a running container by id", func() {
@@ -585,6 +587,7 @@ var _ = Describe("Podman checkpoint", func() {
 		// As the container has been started with '--rm' it will be completely
 		// cleaned up after checkpointing.
 		Expect(result).Should(Exit(0))
+		Expect(result.OutputToString()).To(ContainSubstring(cid))
 		fixmeFixme14653(podmanTest, cid)
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
 		Expect(podmanTest.NumberOfContainers()).To(Equal(0))
@@ -604,6 +607,7 @@ var _ = Describe("Podman checkpoint", func() {
 		// As the container has been started with '--rm' it will be completely
 		// cleaned up after checkpointing.
 		Expect(result).Should(Exit(0))
+		Expect(result.OutputToString()).To(ContainSubstring(cid))
 		fixmeFixme14653(podmanTest, cid)
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
 		Expect(podmanTest.NumberOfContainers()).To(Equal(0))
@@ -623,6 +627,7 @@ var _ = Describe("Podman checkpoint", func() {
 		// As the container has been started with '--rm' it will be completely
 		// cleaned up after checkpointing.
 		Expect(result).Should(Exit(0))
+		Expect(result.OutputToString()).To(ContainSubstring(cid))
 		fixmeFixme14653(podmanTest, cid)
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
 		Expect(podmanTest.NumberOfContainers()).To(Equal(0))
@@ -642,6 +647,7 @@ var _ = Describe("Podman checkpoint", func() {
 		// As the container has been started with '--rm' it will be completely
 		// cleaned up after checkpointing.
 		Expect(result).Should(Exit(0))
+		Expect(result.OutputToString()).To(ContainSubstring(cid))
 		fixmeFixme14653(podmanTest, cid)
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
 		Expect(podmanTest.NumberOfContainers()).To(Equal(0))
@@ -659,6 +665,7 @@ var _ = Describe("Podman checkpoint", func() {
 		result.WaitWithDefaultTimeout()
 
 		Expect(result).Should(Exit(125))
+		Expect(result.ErrorToString()).To(ContainSubstring("not supported"))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
 		Expect(podmanTest.NumberOfContainers()).To(Equal(1))
 
@@ -704,6 +711,7 @@ var _ = Describe("Podman checkpoint", func() {
 		result.WaitWithDefaultTimeout()
 
 		Expect(result).Should(Exit(0))
+		Expect(result.OutputToString()).To(ContainSubstring(cid))
 		fixmeFixme14653(podmanTest, cid)
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
 		Expect(podmanTest.NumberOfContainers()).To(Equal(0))
@@ -754,6 +762,7 @@ var _ = Describe("Podman checkpoint", func() {
 		result.WaitWithDefaultTimeout()
 
 		Expect(result).Should(Exit(0))
+		Expect(result.OutputToString()).To(ContainSubstring(cid))
 		fixmeFixme14653(podmanTest, cid)
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
 		Expect(podmanTest.NumberOfContainers()).To(Equal(0))
@@ -796,6 +805,7 @@ var _ = Describe("Podman checkpoint", func() {
 		result.WaitWithDefaultTimeout()
 
 		Expect(result).Should(Exit(0))
+		Expect(result.OutputToString()).To(ContainSubstring(cid))
 		fixmeFixme14653(podmanTest, cid)
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
 		Expect(podmanTest.NumberOfContainers()).To(Equal(0))
@@ -834,6 +844,7 @@ var _ = Describe("Podman checkpoint", func() {
 		result.WaitWithDefaultTimeout()
 
 		Expect(result).Should(Exit(0))
+		Expect(result.OutputToString()).To(ContainSubstring(cid))
 		fixmeFixme14653(podmanTest, cid)
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
 		Expect(podmanTest.NumberOfContainers()).To(Equal(0))
@@ -884,6 +895,7 @@ var _ = Describe("Podman checkpoint", func() {
 		// As the container has been started with '--rm' it will be completely
 		// cleaned up after checkpointing.
 		Expect(result).Should(Exit(0))
+		Expect(result.OutputToString()).To(ContainSubstring(cid))
 		fixmeFixme14653(podmanTest, cid)
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
 		Expect(podmanTest.NumberOfContainers()).To(Equal(0))
@@ -954,6 +966,7 @@ var _ = Describe("Podman checkpoint", func() {
 		result = podmanTest.Podman([]string{"container", "checkpoint", cid, "-e", checkpointFileName})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
+		Expect(result.OutputToString()).To(ContainSubstring(cid))
 		fixmeFixme14653(podmanTest, cid)
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
 		Expect(podmanTest.NumberOfContainers()).To(Equal(0))
@@ -1057,6 +1070,7 @@ var _ = Describe("Podman checkpoint", func() {
 		result.WaitWithDefaultTimeout()
 
 		Expect(result).Should(Exit(0))
+		Expect(result.OutputToString()).To(ContainSubstring(cid))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
 		Expect(podmanTest.GetContainerStatus()).To(ContainSubstring("Exited"))
 
@@ -1103,6 +1117,7 @@ var _ = Describe("Podman checkpoint", func() {
 		// As the container has been started with '--rm' it will be completely
 		// cleaned up after checkpointing.
 		Expect(result).Should(Exit(0))
+		Expect(result.OutputToString()).To(ContainSubstring(cid))
 		fixmeFixme14653(podmanTest, cid)
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
 		Expect(podmanTest.NumberOfContainers()).To(Equal(0))
@@ -1317,6 +1332,7 @@ var _ = Describe("Podman checkpoint", func() {
 		// As the container has been started with '--rm' it will be completely
 		// cleaned up after checkpointing.
 		Expect(result).Should(Exit(0))
+		Expect(result.OutputToString()).To(ContainSubstring(cid))
 		fixmeFixme14653(podmanTest, cid)
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
 		Expect(podmanTest.NumberOfContainers()).To(Equal(0))
@@ -1648,6 +1664,7 @@ var _ = Describe("Podman checkpoint", func() {
 		// As the container has been started with '--rm' it will be completely
 		// cleaned up after checkpointing.
 		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).To(ContainSubstring(cid))
 		fixmeFixme14653(podmanTest, cid)
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
 		Expect(podmanTest.NumberOfContainers()).To(Equal(0))
@@ -1802,6 +1819,7 @@ var _ = Describe("Podman checkpoint", func() {
 		// As the container has been started with '--rm' it will be completely
 		// cleaned up after checkpointing.
 		Expect(result).Should(Exit(0))
+		Expect(result.OutputToString()).To(ContainSubstring(cid))
 		fixmeFixme14653(podmanTest, cid)
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
 		Expect(podmanTest.NumberOfContainers()).To(Equal(0))

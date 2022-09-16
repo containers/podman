@@ -266,16 +266,16 @@ func Checkpoint(w http.ResponseWriter, r *http.Request) {
 		utils.InternalServerError(w, err)
 		return
 	}
+	if len(reports) != 1 {
+		utils.InternalServerError(w, fmt.Errorf("expected 1 restore report but got %d", len(reports)))
+		return
+	}
+	if reports[0].Err != nil {
+		utils.InternalServerError(w, reports[0].Err)
+		return
+	}
 
 	if !query.Export {
-		if len(reports) != 1 {
-			utils.InternalServerError(w, fmt.Errorf("expected 1 restore report but got %d", len(reports)))
-			return
-		}
-		if reports[0].Err != nil {
-			utils.InternalServerError(w, reports[0].Err)
-			return
-		}
 		utils.WriteResponse(w, http.StatusOK, reports[0])
 		return
 	}
