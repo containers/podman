@@ -60,7 +60,7 @@ Note: the pod implements devices by storing the initial configuration passed by 
 
 Set custom DNS servers in the /etc/resolv.conf file that will be shared between all containers in the pod. A special option, "none" is allowed which disables creation of /etc/resolv.conf for the pod.
 
-#### **--dns-opt**=*option*
+#### **--dns-option**=*option*
 
 Set custom DNS options in the /etc/resolv.conf file that will be shared between all containers in the pod.
 
@@ -119,7 +119,7 @@ Assign a name to the pod.
 
 #### **--network**=*mode*, **--net**
 
-Set the network mode for the pod. Invalid if using **--dns**, **--dns-opt**, or **--dns-search** with **--network** that is set to **none** or **container:**_id_.
+Set the network mode for the pod. Invalid if using **--dns**, **--dns-option**, or **--dns-search** with **--network** that is set to **none** or **container:**_id_.
 
 Valid _mode_ values are:
 

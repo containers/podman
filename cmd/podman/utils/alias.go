@@ -5,6 +5,8 @@ import "github.com/spf13/pflag"
 // AliasFlags is a function to handle backwards compatibility with old flags
 func AliasFlags(f *pflag.FlagSet, name string) pflag.NormalizedName {
 	switch name {
+	case "dns-opt":
+		name = "dns-option"
 	case "healthcheck-command":
 		name = "health-cmd"
 	case "healthcheck-interval":
