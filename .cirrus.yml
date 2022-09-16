@@ -503,8 +503,7 @@ docker-py_test_task:
     always: *runner_stats
 
 
-# Does exactly what it says, execute the podman unit-tests on all primary
-# platforms and release versions.
+# Does exactly what it says, execute the podman unit-tests on Fedora.
 unit_test_task:
     name: "Unit tests on $DISTRO_NV"
     alias: unit_test
@@ -515,9 +514,6 @@ unit_test_task:
         - validate
     matrix:
         - env: *stdenvars
-        # Fedora 35 skipped for podman4
-        #- env: *priorfedora_envvars
-        - env: *ubuntu_envvars
         # Special-case: Rootless on latest Fedora (standard) VM
         - name: "Rootless unit on $DISTRO_NV"
           env:
