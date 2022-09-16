@@ -15,6 +15,7 @@ import (
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/libpod/events"
 	volplugin "github.com/containers/podman/v4/libpod/plugin"
+	"github.com/containers/storage"
 	"github.com/containers/storage/drivers/quota"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/stringid"
@@ -22,18 +23,20 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const volumeSuffix = "+volume"
+
 // NewVolume creates a new empty volume
 func (r *Runtime) NewVolume(ctx context.Context, options ...VolumeCreateOption) (*Volume, error) {
 	if !r.valid {
 		return nil, define.ErrRuntimeStopped
 	}
-	return r.newVolume(false, options...)
+	return r.newVolume(ctx, false, options...)
 }
 
 // newVolume creates a new empty volume with the given options.
 // The createPluginVolume can be set to true to make it not create the volume in the volume plugin,
 // this is required for the UpdateVolumePlugins() function. If you are not sure, set this to false.
-func (r *Runtime) newVolume(noCreatePluginVolume bool, options ...VolumeCreateOption) (_ *Volume, deferredErr error) {
+func (r *Runtime) newVolume(ctx context.Context, noCreatePluginVolume bool, options ...VolumeCreateOption) (_ *Volume, deferredErr error) {
 	volume := newVolume(r)
 	for _, option := range options {
 		if err := option(volume); err != nil {
@@ -83,6 +86,50 @@ func (r *Runtime) newVolume(noCreatePluginVolume bool, options ...VolumeCreateOp
 				return nil, fmt.Errorf("invalid mount option %s for driver 'local': %w", key, define.ErrInvalidArg)
 			}
 		}
+	} else if volume.config.Driver == define.VolumeDriverImage && !volume.UsesVolumeDriver() {
+		logrus.Debugf("Creating image-based volume")
+		var imgString string
+		// Validate options
+		for key, val := range volume.config.Options {
+			switch strings.ToLower(key) {
+			case "image":
+				imgString = val
+			default:
+				return nil, fmt.Errorf("invalid mount option %s for driver 'image': %w", key, define.ErrInvalidArg)
+			}
+		}
+
+		if imgString == "" {
+			return nil, fmt.Errorf("must provide an image name when creating a volume with the image driver: %w", define.ErrInvalidArg)
+		}
+
+		// Look up the image
+		image, _, err := r.libimageRuntime.LookupImage(imgString, nil)
+		if err != nil {
+			return nil, fmt.Errorf("looking up image %s to create volume failed: %w", imgString, err)
+		}
+
+		// Generate a c/storage name and ID for the volume.
+		// Use characters Podman does not allow for the name, to ensure
+		// no collision with containers.
+		volume.config.StorageID = stringid.GenerateRandomID()
+		volume.config.StorageName = volume.config.Name + volumeSuffix
+		volume.config.StorageImageID = image.ID()
+
+		// Create a backing container in c/storage.
+		storageConfig := storage.ContainerOptions{
+			LabelOpts: []string{"filetype:container_file_t:s0"},
+		}
+		if _, err := r.storageService.CreateContainerStorage(ctx, r.imageContext, imgString, image.ID(), volume.config.StorageName, volume.config.StorageID, storageConfig); err != nil {
+			return nil, fmt.Errorf("creating backing storage for image driver: %w", err)
+		}
+		defer func() {
+			if deferredErr != nil {
+				if err := r.storageService.DeleteContainer(volume.config.StorageID); err != nil {
+					logrus.Errorf("Error removing volume %s backing storage: %v", volume.config.Name, err)
+				}
+			}
+		}()
 	}
 
 	// Now we get conditional: we either need to make the volume in the
@@ -196,7 +243,7 @@ func (r *Runtime) UpdateVolumePlugins(ctx context.Context) *define.VolumeReload 
 		}
 		for _, vol := range vols {
 			allPluginVolumes[vol.Name] = struct{}{}
-			if _, err := r.newVolume(true, WithVolumeName(vol.Name), WithVolumeDriver(driverName)); err != nil {
+			if _, err := r.newVolume(ctx, true, WithVolumeName(vol.Name), WithVolumeDriver(driverName)); err != nil {
 				// If the volume exists this is not an error, just ignore it and log. It is very likely
 				// that the volume from the plugin was already in our db.
 				if !errors.Is(err, define.ErrVolumeExists) {
@@ -374,6 +421,14 @@ func (r *Runtime) removeVolume(ctx context.Context, v *Volume, force bool, timeo
 			if err := v.plugin.RemoveVolume(req); err != nil {
 				return fmt.Errorf("volume %s could not be removed from plugin %s: %w", v.Name(), v.Driver(), err)
 			}
+		}
+	} else if v.config.Driver == define.VolumeDriverImage {
+		if err := v.runtime.storageService.DeleteContainer(v.config.StorageID); err != nil {
+			// Storage container is already gone, no problem.
+			if !(errors.Is(err, storage.ErrNotAContainer) || errors.Is(err, storage.ErrContainerUnknown)) {
+				return fmt.Errorf("removing volume %s storage: %w", v.Name(), err)
+			}
+			logrus.Infof("Storage for volume %s already removed", v.Name())
 		}
 	}
 

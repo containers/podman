@@ -66,6 +66,15 @@ func (v *Volume) mount() error {
 		v.state.MountCount++
 		v.state.MountPoint = mountPoint
 		return v.save()
+	} else if v.config.Driver == define.VolumeDriverImage {
+		mountPoint, err := v.runtime.storageService.MountContainerImage(v.config.StorageID)
+		if err != nil {
+			return fmt.Errorf("mounting volume %s image failed: %w", v.Name(), err)
+		}
+
+		v.state.MountCount++
+		v.state.MountPoint = mountPoint
+		return v.save()
 	}
 
 	volDevice := v.config.Options["device"]
@@ -157,6 +166,13 @@ func (v *Volume) unmount(force bool) error {
 			req.ID = pseudoCtrID
 			if err := v.plugin.UnmountVolume(req); err != nil {
 				return err
+			}
+
+			v.state.MountPoint = ""
+			return v.save()
+		} else if v.config.Driver == define.VolumeDriverImage {
+			if _, err := v.runtime.storageService.UnmountContainerImage(v.config.StorageID, force); err != nil {
+				return fmt.Errorf("unmounting volume %s image: %w", v.Name(), err)
 			}
 
 			v.state.MountPoint = ""

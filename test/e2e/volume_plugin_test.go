@@ -60,7 +60,8 @@ var _ = Describe("Podman volume plugins", func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		// Keep this distinct within tests to avoid multiple tests using the same plugin.
-		pluginName := "testvol1"
+		// This one verifies that the "image" plugin uses a volume plugin, not the "image" driver.
+		pluginName := "image"
 		plugin := podmanTest.Podman([]string{"run", "--security-opt", "label=disable", "-v", "/run/docker/plugins:/run/docker/plugins", "-v", fmt.Sprintf("%v:%v", pluginStatePath, pluginStatePath), "-d", volumeTest, "--sock-name", pluginName, "--path", pluginStatePath})
 		plugin.WaitWithDefaultTimeout()
 		Expect(plugin).Should(Exit(0))
@@ -76,6 +77,12 @@ var _ = Describe("Podman volume plugins", func() {
 		arrOutput := ls1.OutputToStringArray()
 		Expect(arrOutput).To(HaveLen(1))
 		Expect(arrOutput[0]).To(ContainSubstring(volName))
+
+		// Verify this is not an image volume.
+		inspect := podmanTest.Podman([]string{"volume", "inspect", volName, "--format", "{{.StorageID}}"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).Should(Exit(0))
+		Expect(inspect.OutputToString()).To(BeEmpty())
 
 		remove := podmanTest.Podman([]string{"volume", "rm", volName})
 		remove.WaitWithDefaultTimeout()

@@ -109,6 +109,7 @@ func NewBoltState(path string, runtime *Runtime) (State, error) {
 		runtimeConfigBkt,
 		exitCodeBkt,
 		exitCodeTimeStampBkt,
+		volCtrsBkt,
 	}
 
 	// Does the DB need an update?
@@ -2551,6 +2552,11 @@ func (s *BoltState) AddVolume(volume *Volume) error {
 			return err
 		}
 
+		volCtrsBkt, err := getVolumeContainersBucket(tx)
+		if err != nil {
+			return err
+		}
+
 		// Check if we already have a volume with the given name
 		volExists := allVolsBkt.Get(volName)
 		if volExists != nil {
@@ -2577,6 +2583,12 @@ func (s *BoltState) AddVolume(volume *Volume) error {
 		if volStateJSON != nil {
 			if err := newVol.Put(stateKey, volStateJSON); err != nil {
 				return fmt.Errorf("storing volume %s state in DB: %w", volume.Name(), err)
+			}
+		}
+
+		if volume.config.StorageID != "" {
+			if err := volCtrsBkt.Put([]byte(volume.config.StorageID), volName); err != nil {
+				return fmt.Errorf("storing volume %s container ID in DB: %w", volume.Name(), err)
 			}
 		}
 
@@ -2615,6 +2627,11 @@ func (s *BoltState) RemoveVolume(volume *Volume) error {
 		}
 
 		ctrBkt, err := getCtrBucket(tx)
+		if err != nil {
+			return err
+		}
+
+		volCtrIDBkt, err := getVolumeContainersBucket(tx)
 		if err != nil {
 			return err
 		}
@@ -2664,6 +2681,11 @@ func (s *BoltState) RemoveVolume(volume *Volume) error {
 		}
 		if err := volBkt.DeleteBucket(volName); err != nil {
 			return fmt.Errorf("removing volume %s from DB: %w", volume.Name(), err)
+		}
+		if volume.config.StorageID != "" {
+			if err := volCtrIDBkt.Delete([]byte(volume.config.StorageID)); err != nil {
+				return fmt.Errorf("removing volume %s container ID from DB: %w", volume.Name(), err)
+			}
 		}
 
 		return nil
@@ -3617,4 +3639,35 @@ func (s *BoltState) AllPods() ([]*Pod, error) {
 	}
 
 	return pods, nil
+}
+
+// ContainerIDIsVolume checks if the given c/storage container ID is used as
+// backing storage for a volume.
+func (s *BoltState) ContainerIDIsVolume(id string) (bool, error) {
+	if !s.valid {
+		return false, define.ErrDBClosed
+	}
+
+	isVol := false
+
+	db, err := s.getDBCon()
+	if err != nil {
+		return false, err
+	}
+	defer s.deferredCloseDBCon(db)
+
+	err = db.View(func(tx *bolt.Tx) error {
+		volCtrsBkt, err := getVolumeContainersBucket(tx)
+		if err != nil {
+			return err
+		}
+
+		volName := volCtrsBkt.Get([]byte(id))
+		if volName != nil {
+			isVol = true
+		}
+
+		return nil
+	})
+	return isVol, err
 }

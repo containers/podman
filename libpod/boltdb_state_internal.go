@@ -28,6 +28,7 @@ const (
 	execName          = "exec"
 	aliasesName       = "aliases"
 	runtimeConfigName = "runtime-config"
+	volumeCtrsName    = "volume-ctrs"
 
 	exitCodeName          = "exit-code"
 	exitCodeTimeStampName = "exit-code-time-stamp"
@@ -67,6 +68,7 @@ var (
 	dependenciesBkt    = []byte(dependenciesName)
 	volDependenciesBkt = []byte(volCtrDependencies)
 	networksBkt        = []byte(networksName)
+	volCtrsBkt         = []byte(volumeCtrsName)
 
 	exitCodeBkt          = []byte(exitCodeName)
 	exitCodeTimeStampBkt = []byte(exitCodeTimeStampName)
@@ -384,6 +386,14 @@ func getExitCodeTimeStampBucket(tx *bolt.Tx) (*bolt.Bucket, error) {
 	return bkt, nil
 }
 
+func getVolumeContainersBucket(tx *bolt.Tx) (*bolt.Bucket, error) {
+	bkt := tx.Bucket(volCtrsBkt)
+	if bkt == nil {
+		return nil, fmt.Errorf("volume containers bucket not found in DB: %w", define.ErrDBBadConfig)
+	}
+	return bkt, nil
+}
+
 func (s *BoltState) getContainerConfigFromDB(id []byte, config *ContainerConfig, ctrsBkt *bolt.Bucket) error {
 	ctrBkt := ctrsBkt.Bucket(id)
 	if ctrBkt == nil {
@@ -528,6 +538,9 @@ func (s *BoltState) getVolumeFromDB(name []byte, volume *Volume, volBkt *bolt.Bu
 		}
 	}
 
+	// Need this for UsesVolumeDriver() so set it now.
+	volume.runtime = s.runtime
+
 	// Retrieve volume driver
 	if volume.UsesVolumeDriver() {
 		plugin, err := s.runtime.getVolumePlugin(volume.config)
@@ -550,7 +563,6 @@ func (s *BoltState) getVolumeFromDB(name []byte, volume *Volume, volBkt *bolt.Bu
 	}
 	volume.lock = lock
 
-	volume.runtime = s.runtime
 	volume.valid = true
 
 	return nil

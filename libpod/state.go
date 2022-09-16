@@ -144,6 +144,14 @@ type State interface {
 	// As with RemoveExecSession, container state will not be modified.
 	RemoveContainerExecSessions(ctr *Container) error
 
+	// ContainerIDIsVolume checks if the given container ID is in use by a
+	// volume.
+	// Some volumes are backed by a c/storage container. These do not have a
+	// corresponding Container struct in Libpod, but rather a Volume.
+	// This determines if a given ID from c/storage is used as a backend by
+	// a Podman volume.
+	ContainerIDIsVolume(id string) (bool, error)
+
 	// PLEASE READ FULL DESCRIPTION BEFORE USING.
 	// Rewrite a container's configuration.
 	// This function breaks libpod's normal prohibition on a read-only

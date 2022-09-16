@@ -51,6 +51,23 @@ func (r *Runtime) RemoveContainersForImageCallback(ctx context.Context) libimage
 				}
 			}
 		}
+
+		// Need to handle volumes with the image driver
+		vols, err := r.state.AllVolumes()
+		if err != nil {
+			return err
+		}
+		for _, vol := range vols {
+			if vol.config.Driver != define.VolumeDriverImage || vol.config.StorageImageID != imageID {
+				continue
+			}
+			// Do a force removal of the volume, and all containers
+			// using it.
+			if err := r.RemoveVolume(ctx, vol, true, nil); err != nil {
+				return fmt.Errorf("removing image %s: volume %s backed by image could not be removed: %w", imageID, vol.Name(), err)
+			}
+		}
+
 		// Note that `libimage` will take care of removing any leftover
 		// containers from the storage.
 		return nil
@@ -72,6 +89,10 @@ func (r *Runtime) IsExternalContainerCallback(_ context.Context) libimage.IsExte
 			return false, nil
 		}
 		if errors.Is(err, define.ErrNoSuchCtr) {
+			return true, nil
+		}
+		isVol, err := r.state.ContainerIDIsVolume(idOrName)
+		if err == nil && !isVol {
 			return true, nil
 		}
 		return false, nil

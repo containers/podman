@@ -86,6 +86,17 @@ func (r *Runtime) RemoveStorageContainer(idOrName string, force bool) error {
 		return fmt.Errorf("refusing to remove %q as it exists in libpod as container %s: %w", idOrName, ctr.ID, define.ErrCtrExists)
 	}
 
+	// Error out if this is an image-backed volume
+	allVols, err := r.state.AllVolumes()
+	if err != nil {
+		return err
+	}
+	for _, vol := range allVols {
+		if vol.config.Driver == define.VolumeDriverImage && vol.config.StorageID == ctr.ID {
+			return fmt.Errorf("refusing to remove %q as it exists in libpod as an image-backed volume %s: %w", idOrName, vol.Name(), define.ErrCtrExists)
+		}
+	}
+
 	if !force {
 		timesMounted, err := r.store.Mounted(ctr.ID)
 		if err != nil {

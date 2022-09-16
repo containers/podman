@@ -17,7 +17,13 @@ driver options can be set using the **--opt** flag.
 
 #### **--driver**=*driver*
 
-Specify the volume driver name (default **local**). Setting this to a value other than **local** Podman attempts to create the volume using a volume plugin with the given name. Such plugins must be defined in the **volume_plugins** section of the **[containers.conf(5)](https://github.com/containers/common/blob/main/docs/containers.conf.5.md)** configuration file.
+Specify the volume driver name (default **local**).
+There are two drivers supported by Podman itself: **local** and **image**.
+The **local** driver uses a directory on disk as the backend by default, but can also use the **mount(8)** command to mount a filesystem as the volume if **--opt** is specified.
+The **image** driver uses an image as the backing store of for the volume.
+An overlay filesystem will be created, which allows changes to the volume to be committed as a new layer on top of the image.
+Using a value other than **local or **image**, Podman will attempt to create the volume using a volume plugin with the given name.
+Such plugins must be defined in the **volume_plugins** section of the **[containers.conf(5)](https://github.com/containers/common/blob/main/docs/containers.conf.5.md)** configuration file.
 
 #### **--help**
 
@@ -43,7 +49,10 @@ The `o` option sets options for the mount, and is equivalent to the `-o` flag to
   - The `o` option supports using volume options other than the UID/GID options with the **local** driver and requires root privileges.
   - The `o` options supports the `timeout` option which allows users to set a driver specific timeout in seconds before volume creation fails. For example, **--opts=o=timeout=10** sets a driver timeout of 10 seconds.
 
-When not using the **local** driver, the given options are passed directly to the volume plugin. In this case, supported options are dictated by the plugin in question, not Podman.
+For the **image** driver, the only supported option is `image`, which specifies the image the volume is based on.
+This option is mandatory when using the **image** driver.
+
+When not using the **local** and **image** drivers, the given options are passed directly to the volume plugin. In this case, supported options are dictated by the plugin in question, not Podman.
 
 ## EXAMPLES
 
@@ -57,6 +66,8 @@ $ podman volume create --label foo=bar myvol
 # podman volume create --opt device=tmpfs --opt type=tmpfs --opt o=nodev,noexec myvol
 
 # podman volume create --opt device=tmpfs --opt type=tmpfs --opt o=uid=1000,gid=1000 testvol
+
+# podman volume create --driver image --opt image=fedora:latest fedoraVol
 ```
 
 ## QUOTAS

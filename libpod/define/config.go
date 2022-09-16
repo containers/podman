@@ -40,6 +40,10 @@ type InfoData struct {
 // itself.
 const VolumeDriverLocal = "local"
 
+// VolumeDriverImage is the "image" volume driver. It is managed by Libpod and
+// uses volumes backed by an image.
+const VolumeDriverImage = "image"
+
 const (
 	OCIManifestDir  = "oci-dir"
 	OCIArchive      = "oci-archive"
