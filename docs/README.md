@@ -13,7 +13,6 @@ link on that page.
 | ------------------------------------ | --------------------------- |
 | Markdown source for man pages        | docs/source/markdown/       |
 | man pages aliases as .so files       | docs/source/markdown/links/ |
-| restructured text for readthedocs.io | docs/rst/                   |
 | target for output                    | docs/build                  |
 | man pages                            | docs/build/man              |
 | remote linux man pages               | docs/build/remote/linux     |
@@ -60,16 +59,24 @@ incorrect, or the file isn't accessible for some other reason.
 
 ## Local Testing
 
-Assuming that you have the [dependencies](https://podman.io/getting-started/installation#build-and-run-dependencies)
+To build standard man pages, run `make docs`. Results will be in `docs/build/man`.
+
+To build HTMLized man pages: Assuming that you have the
+[dependencies](https://podman.io/getting-started/installation#build-and-run-dependencies)
 installed, then also install (showing Fedora in the example):
 
 ```
-# dnf install python3-sphinx python3-recommonmark
-# pip install sphinx-markdown-tables
+$ sudo dnf install python3-sphinx python3-recommonmark
+$ pip install sphinx-markdown-tables myst_parser
 ```
+(The above dependencies are current as of 2022-09-15. If you experience problems,
+please see [requirements.txt](requirements.txt) in this directory, it will almost
+certainly be more up-to-date than this README.)
+
 After that completes, cd to the `docs` directory in your Podman sandbox and then do `make html`.
 
 You can then preview the html files in `docs/build/html` with:
 ```
 python -m http.server 8000 --directory build/html
 ```
+...and point your web browser at `http://localhost:8000/`
