@@ -18,22 +18,42 @@ Change the default output format.  This can be of a supported type like 'json'
 or a Go template.
 Valid placeholders for the Go template are listed below:
 
-| **Placeholder**   | **Description**                                                               |
-| ----------------- | ----------------------------------------------------------------------------- |
-| .ID               | Pod   ID                                                                      |
-| .Name             | Pod   name                                                                    |
-| .State            | Pod   state                                                                   |
-| .Hostname         | Pod   hostname                                                                |
-| .Labels           | Pod   labels                                                                  |
-| .Created          | Time when the pod was created                                                 |
-| .CreateCgroup     | Whether cgroup was created                                                    |
-| .CgroupParent     | Pod   cgroup parent                                                           |
-| .CgroupPath       | Pod   cgroup path                                                             |
-| .CreateInfra      | Whether infrastructure created                                                |
-| .InfraContainerID | Pod   infrastructure ID                                                       |
-| .SharedNamespaces | Pod   shared namespaces                                                       |
-| .NumContainers    | Number of containers in the pod                                               |
-| .Containers       | Pod   containers                                                              |
+| **Placeholder**      | **Description**                             |
+|----------------------|---------------------------------------------|
+| .BlkioDeviceReadBps  | Block I/O Device Read, in bytes/sec         |
+| .BlkioDeviceWriteBps | Block I/O Device Read, in bytes/sec         |
+| .BlkioWeight         | Block I/O Weight                            |
+| .BlkioWeightDevice   | Block I/O Device Weight                     |
+| .CgroupParent        | Pod cgroup parent                           |
+| .CgroupPath          | Pod cgroup path                             |
+| .Containers          | Pod containers                              |
+| .CPUPeriod           | CPU period                                  |
+| .CPUQuota            | CPU quota                                   |
+| .CPUSetCPUs          | CPU Set CPUs                                |
+| .CPUSetMems          | CPU Set Mems                                |
+| .CPUShares           | CPU Shares                                  |
+| .CreateCgroup        | Whether cgroup was created                  |
+| .CreateCommand       | Create command                              |
+| .Created             | Time when the pod was created               |
+| .CreateInfra         | Whether infrastructure created              |
+| .Devices             | Devices                                     |
+| .ExitPolicy          | Exit policy                                 |
+| .Hostname            | Pod hostname                                |
+| .ID                  | Pod ID                                      |
+| .InfraConfig ...     | Infra config (contains further fields)      |
+| .InfraContainerID    | Pod infrastructure ID                       |
+| .InspectPodData ...  | Nested structure, for experts only          |
+| .Labels              | Pod labels                                  |
+| .MemoryLimit         | Memory limit, bytes                         |
+| .MemorySwap          | Memory swap limit, in bytes                 |
+| .Mounts              | Mounts                                      |
+| .Name                | Pod name                                    |
+| .Namespace           | Namespace                                   |
+| .NumContainers       | Number of containers in the pod             |
+| .SecurityOpts        | Security options                            |
+| .SharedNamespaces    | Pod shared namespaces                       |
+| .State               | Pod state                                   |
+| .VolumesFrom         | Volumes from                                |
 
 #### **--latest**, **-l**
 
