@@ -266,7 +266,7 @@ github.com/containers/psgo/internal/dev
 github.com/containers/psgo/internal/host
 github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
-# github.com/containers/storage v1.42.1-0.20220911223137-e11b246de159
+# github.com/containers/storage v1.42.1-0.20220911223137-e11b246de159 => github.com/tyler92/storage v0.0.0-20220921131108-4211ae441eb9
 ## explicit; go 1.16
 github.com/containers/storage
 github.com/containers/storage/drivers
@@ -534,9 +534,9 @@ github.com/mattn/go-shellwords
 # github.com/miekg/pkcs11 v1.1.1
 ## explicit; go 1.12
 github.com/miekg/pkcs11
-# github.com/mistifyio/go-zfs v2.1.2-0.20190413222219-f784269be439+incompatible
-## explicit
-github.com/mistifyio/go-zfs
+# github.com/mistifyio/go-zfs/v3 v3.0.0
+## explicit; go 1.14
+github.com/mistifyio/go-zfs/v3
 # github.com/moby/sys/mount v0.3.3
 ## explicit; go 1.16
 github.com/moby/sys/mount
@@ -974,3 +974,4 @@ gopkg.in/yaml.v3
 ## explicit; go 1.12
 sigs.k8s.io/yaml
 # github.com/opencontainers/runc => github.com/opencontainers/runc v1.1.1-0.20220617142545-8b9452f75cbc
+# github.com/containers/storage => github.com/tyler92/storage v0.0.0-20220921131108-4211ae441eb9

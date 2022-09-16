@@ -3,7 +3,6 @@ package types
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -75,7 +74,7 @@ func getRootlessRuntimeDirIsolated(env rootlessRuntimeDirEnvironment) (string, e
 		return runtimeDir, nil
 	}
 
-	initCommand, err := ioutil.ReadFile(env.getProcCommandFile())
+	initCommand, err := os.ReadFile(env.getProcCommandFile())
 	if err != nil || string(initCommand) == "systemd" {
 		runUserDir := env.getRunUserDir()
 		if isRootlessRuntimeDirOwner(runUserDir, env) {

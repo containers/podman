@@ -65,19 +65,19 @@ func newLastWriterID() []byte {
 }
 
 // openLock opens the file at path and returns the corresponding file
-// descriptor.  Note that the path is opened read-only when ro is set.  If ro
-// is unset, openLock will open the path read-write and create the file if
-// necessary.
+// descriptor. The path is opened either read-only or read-write,
+// depending on the value of ro argument.
+//
+// openLock will create the file and its parent directories,
+// if necessary.
 func openLock(path string, ro bool) (fd int, err error) {
+	flags := unix.O_CLOEXEC | os.O_CREATE
 	if ro {
-		fd, err = unix.Open(path, os.O_RDONLY|unix.O_CLOEXEC|os.O_CREATE, 0)
+		flags |= os.O_RDONLY
 	} else {
-		fd, err = unix.Open(path,
-			os.O_RDWR|unix.O_CLOEXEC|os.O_CREATE,
-			unix.S_IRUSR|unix.S_IWUSR|unix.S_IRGRP|unix.S_IROTH,
-		)
+		flags |= os.O_RDWR
 	}
-
+	fd, err = unix.Open(path, flags, 0o644)
 	if err == nil {
 		return
 	}
@@ -91,7 +91,7 @@ func openLock(path string, ro bool) (fd int, err error) {
 		return openLock(path, ro)
 	}
 
-	return
+	return fd, &os.PathError{Op: "open", Path: path, Err: err}
 }
 
 // createLockerForPath returns a Locker object, possibly (depending on the platform)
@@ -158,7 +158,7 @@ func (l *lockfile) lock(lType int16, recursive bool) {
 		// If we're the first reference on the lock, we need to open the file again.
 		fd, err := openLock(l.file, l.ro)
 		if err != nil {
-			panic(fmt.Sprintf("error opening %q: %v", l.file, err))
+			panic(err)
 		}
 		l.fd = uintptr(fd)
 

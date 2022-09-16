@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -483,7 +482,7 @@ func newTarAppender(idMapping *idtools.IDMappings, writer io.Writer, chownOpts *
 }
 
 // canonicalTarName provides a platform-independent and consistent posix-style
-//path for files and directories to be archived regardless of the platform.
+// path for files and directories to be archived regardless of the platform.
 func canonicalTarName(name string, isDir bool) (string, error) {
 	name, err := CanonicalTarNameForPath(name)
 	if err != nil {
@@ -1106,7 +1105,9 @@ loop:
 // Untar reads a stream of bytes from `archive`, parses it as a tar archive,
 // and unpacks it into the directory at `dest`.
 // The archive may be compressed with one of the following algorithms:
-//  identity (uncompressed), gzip, bzip2, xz.
+//
+//	identity (uncompressed), gzip, bzip2, xz.
+//
 // FIXME: specify behavior when target path exists vs. doesn't exist.
 func Untar(tarArchive io.Reader, dest string, options *TarOptions) error {
 	return untarHandler(tarArchive, dest, options, true)
@@ -1347,7 +1348,7 @@ func remapIDs(readIDMappings, writeIDMappings *idtools.IDMappings, chownOpts *id
 // of that file as an archive. The archive can only be read once - as soon as reading completes,
 // the file will be deleted.
 func NewTempArchive(src io.Reader, dir string) (*TempArchive, error) {
-	f, err := ioutil.TempFile(dir, "")
+	f, err := os.CreateTemp(dir, "")
 	if err != nil {
 		return nil, err
 	}

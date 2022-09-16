@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -390,7 +389,7 @@ const (
 
 // hasFullUsersMappings checks whether the current user namespace has all the IDs mapped.
 func hasFullUsersMappings() (bool, error) {
-	content, err := ioutil.ReadFile("/proc/self/uid_map")
+	content, err := os.ReadFile("/proc/self/uid_map")
 	if err != nil {
 		return false, err
 	}

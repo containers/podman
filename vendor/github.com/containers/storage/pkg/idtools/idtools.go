@@ -3,7 +3,6 @@ package idtools
 import (
 	"bufio"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/user"
 	"runtime"
@@ -219,7 +218,7 @@ func getOverflowUID() int {
 	overflowUIDOnce.Do(func() {
 		// 65534 is the value on older kernels where /proc/sys/kernel/overflowuid is not present
 		overflowUID = 65534
-		if content, err := ioutil.ReadFile("/proc/sys/kernel/overflowuid"); err == nil {
+		if content, err := os.ReadFile("/proc/sys/kernel/overflowuid"); err == nil {
 			if tmp, err := strconv.Atoi(string(content)); err == nil {
 				overflowUID = tmp
 			}
@@ -233,7 +232,7 @@ func getOverflowGID() int {
 	overflowGIDOnce.Do(func() {
 		// 65534 is the value on older kernels where /proc/sys/kernel/overflowgid is not present
 		overflowGID = 65534
-		if content, err := ioutil.ReadFile("/proc/sys/kernel/overflowgid"); err == nil {
+		if content, err := os.ReadFile("/proc/sys/kernel/overflowgid"); err == nil {
 			if tmp, err := strconv.Atoi(string(content)); err == nil {
 				overflowGID = tmp
 			}

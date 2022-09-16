@@ -2,7 +2,6 @@ package chrootarchive
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net"
 	"os"
 	"os/user"
@@ -51,7 +50,7 @@ func chroot(path string) (err error) {
 	}
 
 	// setup oldRoot for pivot_root
-	pivotDir, err := ioutil.TempDir(path, ".pivot_root")
+	pivotDir, err := os.MkdirTemp(path, ".pivot_root")
 	if err != nil {
 		return fmt.Errorf("setting up pivot dir: %w", err)
 	}
