@@ -2659,7 +2659,7 @@ func (c *Container) fixVolumePermissions(v *ContainerNamedVolume) error {
 	return nil
 }
 
-func (c *Container) relabel(src, mountLabel string, recurse bool) error {
+func (c *Container) relabel(src, mountLabel string, shared bool) error {
 	if !selinux.GetEnabled() || mountLabel == "" {
 		return nil
 	}
@@ -2674,7 +2674,7 @@ func (c *Container) relabel(src, mountLabel string, recurse bool) error {
 			return nil
 		}
 	}
-	return label.Relabel(src, mountLabel, recurse)
+	return label.Relabel(src, mountLabel, shared)
 }
 
 func (c *Container) ChangeHostPathOwnership(src string, recurse bool, uid, gid int) error {
