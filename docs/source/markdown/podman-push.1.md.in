@@ -86,6 +86,10 @@ Add a “simple signing” signature at the destination using the specified key.
 
 Add a sigstore signature at the destination using a private key at the specified path. (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
 
+#### **--sign-passphrase**=*passphrase*
+
+If signing the image with **--sign-by**, set the signing passphrase. Conflicts with **-sign-passphrase-file** below.
+
 #### **--sign-passphrase-file**=*path*
 
 If signing the image (using either **--sign-by** or **--sign-by-sigstore-private-key**), read the passphrase to use from the specified path.

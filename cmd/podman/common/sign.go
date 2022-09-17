@@ -12,6 +12,15 @@ import (
 // and validates pushOpts.Sign* consistency.
 // It may interactively prompt for a passphrase if one is required and wasn’t provided otherwise.
 func PrepareSigningPassphrase(pushOpts *entities.ImagePushOptions, signPassphraseFile string) error {
+	// Allow users to specify passphrase directly
+	if pushOpts.SignPassphrase != "" {
+		if signPassphraseFile != "" {
+			return fmt.Errorf("only one of --sign-passphrase or --sign-passphrase-file can be used")
+		}
+
+		pushOpts.SignSigstorePrivateKeyPassphrase = []byte(pushOpts.SignPassphrase)
+		return nil
+	}
 	// c/common/libimage.Image does allow creating both simple signing and sigstore signatures simultaneously,
 	// with independent passphrases, but that would make the CLI probably too confusing.
 	// For now, use the passphrase with either, but only one of them.

@@ -115,6 +115,10 @@ func pushFlags(cmd *cobra.Command) {
 	flags.StringVar(&pushOptions.SignPassphraseFileCLI, signPassphraseFileFlagName, "", "Read a passphrase for signing an image from `PATH`")
 	_ = cmd.RegisterFlagCompletionFunc(signPassphraseFileFlagName, completion.AutocompleteDefault)
 
+	signPassphraseFlagName := "sign-passphrase"
+	flags.StringVar(&pushOptions.SignPassphrase, signPassphraseFlagName, "", "Passphrase to use for signing an image, overrides 'sign-passphrase-file'")
+	_ = pushCmd.RegisterFlagCompletionFunc(signPassphraseFlagName, completion.AutocompleteDefault)
+
 	flags.BoolVar(&pushOptions.TLSVerifyCLI, "tls-verify", true, "Require HTTPS and verify certificates when contacting registries")
 
 	compressionFormat := "compression-format"
@@ -128,6 +132,7 @@ func pushFlags(cmd *cobra.Command) {
 		_ = flags.MarkHidden("quiet")
 		_ = flags.MarkHidden(signByFlagName)
 		_ = flags.MarkHidden(signBySigstorePrivateKeyFlagName)
+		_ = flags.MarkHidden(signPassphraseFlagName)
 		_ = flags.MarkHidden(signPassphraseFileFlagName)
 	}
 	if !registry.IsRemote() {

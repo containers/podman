@@ -165,7 +165,26 @@ var _ = Describe("Podman push", func() {
 				Expect(pull).To(ExitWithError())
 				Expect(pull.ErrorToString()).To(ContainSubstring("A signature was required, but no signature exists"))
 
+				pass, err := os.ReadFile("testdata/sigstore-key.key.pass")
+				Expect(err).ShouldNot(HaveOccurred())
+				passString := strings.TrimSpace(string(pass))
+
+				// Verify that setting --sign-passphrase and --sign-passphrase-file is rejected
+				push = podmanTest.Podman([]string{"push", "-q", "--tls-verify=false", "--remove-signatures", "--sign-by-sigstore-private-key", "testdata/sigstore-key.key", "--sign-passphrase", string(pass), "--sign-passphrase-file", "tesdata/signstore-key.key.pass", ALPINE, "localhost:5000/sigstore-signed"})
+				push.WaitWithDefaultTimeout()
+				Expect(push).Should(Exit(-1))
+
 				// Sign an image, and verify it is accepted.
+				push = podmanTest.Podman([]string{"push", "-q", "--tls-verify=false", "--remove-signatures", "--sign-by-sigstore-private-key", "testdata/sigstore-key.key", "--sign-passphrase", passString, ALPINE, "localhost:5000/sigstore-signed"})
+				push.WaitWithDefaultTimeout()
+				Expect(push).Should(Exit(0))
+				Expect(len(push.ErrorToString())).To(Equal(0))
+
+				pull = podmanTest.Podman([]string{"pull", "-q", "--tls-verify=false", "--signature-policy", "sign/policy.json", "localhost:5000/sigstore-signed"})
+				pull.WaitWithDefaultTimeout()
+				Expect(pull).Should(Exit(0))
+
+				// Sign an image with a file, and verify it is accepted.
 				push = podmanTest.Podman([]string{"push", "-q", "--tls-verify=false", "--remove-signatures", "--sign-by-sigstore-private-key", "testdata/sigstore-key.key", "--sign-passphrase-file", "testdata/sigstore-key.key.pass", ALPINE, "localhost:5000/sigstore-signed"})
 				push.WaitWithDefaultTimeout()
 				Expect(push).Should(Exit(0))

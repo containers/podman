@@ -83,6 +83,10 @@ func init() {
 	flags.StringVar(&manifestPushOpts.SignPassphraseFileCLI, signPassphraseFileFlagName, "", "Read a passphrase for signing an image from `PATH`")
 	_ = pushCmd.RegisterFlagCompletionFunc(signPassphraseFileFlagName, completion.AutocompleteDefault)
 
+	signPassphraseFlagName := "sign-passphrase"
+	flags.StringVar(&manifestPushOpts.SignPassphrase, signPassphraseFlagName, "", "Passphrase to use for signing an image, overrides 'sign-passphrase-file'")
+	_ = pushCmd.RegisterFlagCompletionFunc(signPassphraseFlagName, completion.AutocompleteDefault)
+
 	flags.BoolVar(&manifestPushOpts.TLSVerifyCLI, "tls-verify", true, "require HTTPS and verify certificates when accessing the registry")
 	flags.BoolVar(&manifestPushOpts.Insecure, "insecure", false, "neither require HTTPS nor verify certificates when accessing the registry")
 	_ = flags.MarkHidden("insecure")
@@ -97,6 +101,7 @@ func init() {
 		_ = flags.MarkHidden("cert-dir")
 		_ = flags.MarkHidden(signByFlagName)
 		_ = flags.MarkHidden(signBySigstorePrivateKeyFlagName)
+		_ = flags.MarkHidden(signPassphraseFlagName)
 		_ = flags.MarkHidden(signPassphraseFileFlagName)
 	}
 }
