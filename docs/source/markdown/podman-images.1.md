@@ -73,16 +73,32 @@ Change the default output format.  This can be of a supported type like 'json'
 or a Go template.
 Valid placeholders for the Go template are listed below:
 
-| **Placeholder** | **Description**                                                               |
-| --------------- | ----------------------------------------------------------------------------- |
-| .ID             | Image ID                                                                      |
-| .Repository     | Image repository                                                              |
-| .Tag            | Image tag                                                                     |
-| .Digest         | Image digest                                                                  |
-| .CreatedSince   | Elapsed time since the image was created			     					  |
-| .CreatedAt      | Time when the image was created                                               |
-| .Size           | Size of layer on disk                                                         |
-| .History        | History of the image layer                                                    |
+| **Placeholder** | **Description**                                            |
+|-----------------|------------------------------------------------------------|
+| .Containers     | Number of containers using this image                      |
+| .Created        | Elapsed time since the image was created                   |
+| .CreatedAt      | Time when the image was created, YYYY-MM-DD HH:MM:SS +nnnn |
+| .CreatedSince   | Same as .Created                                           |
+| .CreatedTime    | Same as .CreatedAt                                         |
+| .Dangling       | Same as .IsDangling                                        |
+| .Digest         | Image digest                                               |
+| .History        | History of the image layer                                 |
+| .ID             | Image ID (truncated)                                       |
+| .Id             | Image ID (full SHA)                                        |
+| .ImageSummary   | Internal data structure, not actually useful               |
+| .IsDangling     | Is image dangling? (true/false)                            |
+| .IsReadOnly     | Is unage read-only? (true/false)                           |
+| .Labels         | map[] of labels                                            |
+| .Names          | Image FQIN                                                 |
+| .ParentId       | Full SHA of parent image ID, or null (string)              |
+| .ReadOnly       | Same as .IsReadOnly                                        |
+| .RepoDigests    | map[] of zero or more repo/name@sha256:SHA strings         |
+| .Repository     | Image repository                                           |
+| .RepoTags       | map[] of zero or more FQIN strings for this image          |
+| .SharedSize     | Always seems to be 0                                       |
+| .Size           | Size of layer on disk (human-friendly string)              |
+| .Tag            | Image tag                                                  |
+| .VirtualSize    | Size of layer on disk (bytes)                              |
 
 #### **--history**
 
