@@ -56,14 +56,17 @@ function setup() {
 
 
 @test "podman --context emits reasonable output" {
+    if ! is_remote; then
+        skip "only applicable on podman-remote"
+    fi
     # All we care about here is that the command passes
     run_podman --context=default version
 
     # This one must fail
     run_podman 125 --context=swarm version
     is "$output" \
-       "Error: podman does not support swarm, the only --context value allowed is \"default\"" \
-       "--context=default or fail"
+       "Error: failed to resolve active destination: \"swarm\" service destination not found" \
+       "--context=swarm should fail"
 }
 
 @test "podman can pull an image" {

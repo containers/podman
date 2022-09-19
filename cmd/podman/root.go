@@ -174,11 +174,7 @@ func persistentPreRunE(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	// --connection is not as "special" as --remote so we can wait and process it here
-	conn := cmd.Root().LocalFlags().Lookup("connection")
-	if conn != nil && conn.Changed {
-		cfg.Engine.ActiveService = conn.Value.String()
-
+	setupConnection := func() error {
 		var err error
 		cfg.URI, cfg.Identity, err = cfg.ActiveDestination()
 		if err != nil {
@@ -191,6 +187,29 @@ func persistentPreRunE(cmd *cobra.Command, args []string) error {
 
 		if err := cmd.Root().LocalFlags().Set("identity", cfg.Identity); err != nil {
 			return fmt.Errorf("failed to override --identity flag: %w", err)
+		}
+		return nil
+	}
+
+	// --connection is not as "special" as --remote so we can wait and process it here
+	contextConn := cmd.Root().LocalFlags().Lookup("context")
+	conn := cmd.Root().LocalFlags().Lookup("connection")
+	if conn != nil && conn.Changed {
+		if contextConn != nil && contextConn.Changed {
+			return fmt.Errorf("use of --connection and --context at the same time is not allowed")
+		}
+		cfg.Engine.ActiveService = conn.Value.String()
+		if err := setupConnection(); err != nil {
+			return err
+		}
+	}
+	if contextConn != nil && contextConn.Changed {
+		service := contextConn.Value.String()
+		if service != "default" {
+			cfg.Engine.ActiveService = service
+			if err := setupConnection(); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -232,10 +251,6 @@ func persistentPreRunE(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	context := cmd.Root().LocalFlags().Lookup("context")
-	if context.Value.String() != "default" {
-		return errors.New("podman does not support swarm, the only --context value allowed is \"default\"")
-	}
 	if !registry.IsRemote() {
 		if cmd.Flag("cpu-profile").Changed {
 			f, err := os.Create(cfg.CPUProfile)
@@ -362,7 +377,7 @@ func rootFlags(cmd *cobra.Command, opts *entities.PodmanConfig) {
 	_ = cmd.RegisterFlagCompletionFunc(sshFlagName, common.AutocompleteSSH)
 
 	connectionFlagName := "connection"
-	lFlags.StringVarP(&opts.Engine.ActiveService, connectionFlagName, "c", srv, "Connection to use for remote Podman service")
+	lFlags.StringP(connectionFlagName, "c", srv, "Connection to use for remote Podman service")
 	_ = cmd.RegisterFlagCompletionFunc(connectionFlagName, common.AutocompleteSystemConnections)
 
 	urlFlagName := "url"

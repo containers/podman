@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"os"
 	"regexp"
+	"strings"
 
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/common/pkg/config"
@@ -37,6 +38,17 @@ var (
   `,
 	}
 
+	createCmd = &cobra.Command{
+		Use:               "create [options] NAME DESTINATION",
+		Args:              cobra.ExactArgs(1),
+		Short:             addCmd.Short,
+		Long:              addCmd.Long,
+		RunE:              create,
+		ValidArgsFunction: completion.AutocompleteNone,
+	}
+
+	dockerPath string
+
 	cOpts = struct {
 		Identity string
 		Port     int
@@ -50,7 +62,6 @@ func init() {
 		Command: addCmd,
 		Parent:  system.ConnectionCmd,
 	})
-
 	flags := addCmd.Flags()
 
 	portFlagName := "port"
@@ -66,6 +77,21 @@ func init() {
 	_ = addCmd.RegisterFlagCompletionFunc(socketPathFlagName, completion.AutocompleteDefault)
 
 	flags.BoolVarP(&cOpts.Default, "default", "d", false, "Set connection to be default")
+
+	registry.Commands = append(registry.Commands, registry.CliCommand{
+		Command: createCmd,
+		Parent:  system.ContextCmd,
+	})
+
+	flags = createCmd.Flags()
+	dockerFlagName := "docker"
+	flags.StringVar(&dockerPath, dockerFlagName, "", "Description of the context")
+
+	_ = createCmd.RegisterFlagCompletionFunc(dockerFlagName, completion.AutocompleteNone)
+	flags.String("description", "", "Ignored.  Just for script compatibility")
+	flags.String("from", "", "Ignored.  Just for script compatibility")
+	flags.String("kubernetes", "", "Ignored.  Just for script compatibility")
+	flags.String("default-stack-orchestrator", "", "Ignored.  Just for script compatibility")
 }
 
 func add(cmd *cobra.Command, args []string) error {
@@ -170,4 +196,60 @@ func add(cmd *cobra.Command, args []string) error {
 		cfg.Engine.ServiceDestinations[args[0]] = dst
 	}
 	return cfg.Write()
+}
+
+func create(cmd *cobra.Command, args []string) error {
+	dest, err := translateDest(dockerPath)
+	if err != nil {
+		return err
+	}
+	if match, err := regexp.Match("^[A-Za-z][A-Za-z0-9+.-]*://", []byte(dest)); err != nil {
+		return fmt.Errorf("invalid destination: %w", err)
+	} else if !match {
+		dest = "ssh://" + dest
+	}
+
+	uri, err := url.Parse(dest)
+	if err != nil {
+		return err
+	}
+
+	cfg, err := config.ReadCustomConfig()
+	if err != nil {
+		return err
+	}
+
+	dst := config.Destination{
+		URI: uri.String(),
+	}
+
+	if cfg.Engine.ServiceDestinations == nil {
+		cfg.Engine.ServiceDestinations = map[string]config.Destination{
+			args[0]: dst,
+		}
+		cfg.Engine.ActiveService = args[0]
+	} else {
+		cfg.Engine.ServiceDestinations[args[0]] = dst
+	}
+	return cfg.Write()
+}
+
+func translateDest(path string) (string, error) {
+	if path == "" {
+		return "", nil
+	}
+	split := strings.SplitN(path, "=", 2)
+	if len(split) == 1 {
+		return split[0], nil
+	}
+	if split[0] != "host" {
+		return "", fmt.Errorf("\"host\" is requited for --docker option")
+	}
+	// "host=tcp://myserver:2376,ca=~/ca-file,cert=~/cert-file,key=~/key-file"
+	vals := strings.Split(split[1], ",")
+	if len(vals) > 1 {
+		return "", fmt.Errorf("--docker additional options %q not supported", strings.Join(vals[1:], ","))
+	}
+	// for now we ignore other fields specified on command line
+	return vals[0], nil
 }

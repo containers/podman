@@ -31,11 +31,19 @@ var (
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Command: rmCmd,
+		Parent:  system.ContextCmd,
+	})
+
+	registry.Commands = append(registry.Commands, registry.CliCommand{
+		Command: rmCmd,
 		Parent:  system.ConnectionCmd,
 	})
 
 	flags := rmCmd.Flags()
 	flags.BoolVarP(&rmOpts.All, "all", "a", false, "Remove all connections")
+
+	flags.BoolP("force", "f", false, "Ignored: for Docker compatibility")
+	_ = flags.MarkHidden("force")
 }
 
 func rm(cmd *cobra.Command, args []string) error {

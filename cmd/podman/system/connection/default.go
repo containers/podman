@@ -21,9 +21,23 @@ var (
 		RunE:              defaultRunE,
 		Example:           `podman system connection default testing`,
 	}
+
+	useCmd = &cobra.Command{
+		Use:               "use NAME",
+		Args:              cobra.ExactArgs(1),
+		Short:             dfltCmd.Short,
+		Long:              dfltCmd.Long,
+		ValidArgsFunction: dfltCmd.ValidArgsFunction,
+		RunE:              dfltCmd.RunE,
+		Example:           `podman context use testing`,
+	}
 )
 
 func init() {
+	registry.Commands = append(registry.Commands, registry.CliCommand{
+		Command: useCmd,
+		Parent:  system.ContextCmd,
+	})
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Command: dfltCmd,
 		Parent:  system.ConnectionCmd,
