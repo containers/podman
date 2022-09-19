@@ -221,11 +221,6 @@ ifeq ("$(wildcard $(GOPKGDIR))","")
 endif
 	touch $@
 
-.PHONY: .gitvalidation
-.gitvalidation: .gopathok
-	@echo "Validating vs commit '$(call err_if_empty,EPOCH_TEST_COMMIT)'"
-	GIT_CHECK_EXCLUDE="./vendor:docs/make.bat:test/buildah-bud/buildah-tests.diff" $(GOBIN)/git-validation -run DCO,short-subject,dangling-whitespace -range $(EPOCH_TEST_COMMIT)..$(HEAD)
-
 .PHONY: lint
 lint: golangci-lint
 	@echo "Linting vs commit '$(call err_if_empty,EPOCH_TEST_COMMIT)'"
@@ -271,7 +266,7 @@ codespell:
 	codespell -S bin,vendor,.git,go.sum,.cirrus.yml,"RELEASE_NOTES.md,*.xz,*.gz,*.ps1,*.tar,*.tgz,bin2img,*ico,*.png,*.1,*.5,copyimg,*.orig,apidoc.go" -L uint,iff,od,seeked,splitted,marge,ERRO,hist,ether -w
 
 .PHONY: validate
-validate: gofmt lint .gitvalidation validate.completions man-page-check swagger-check tests-included tests-expect-exit
+validate: gofmt lint validate.completions man-page-check swagger-check tests-included tests-expect-exit
 
 .PHONY: build-all-new-commits
 build-all-new-commits:
@@ -760,7 +755,7 @@ install.systemd:
 endif
 
 .PHONY: install.tools
-install.tools: .install.goimports .install.gitvalidation .install.md2man .install.ginkgo .install.golangci-lint .install.bats ## Install needed tools
+install.tools: .install.goimports .install.md2man .install.ginkgo .install.golangci-lint .install.bats ## Install needed tools
 
 .install.goimports: .gopathok
 	if [ ! -x "$(GOBIN)/goimports" ]; then \
@@ -772,12 +767,6 @@ install.tools: .install.goimports .install.gitvalidation .install.md2man .instal
 .install.ginkgo: .gopathok
 	if [ ! -x "$(GOBIN)/ginkgo" ]; then \
 		$(GO) install $(BUILDFLAGS) ./vendor/github.com/onsi/ginkgo/ginkgo ; \
-	fi
-
-.PHONY: .install.gitvalidation
-.install.gitvalidation: .gopathok
-	if [ ! -x "$(GOBIN)/git-validation" ]; then \
-		$(call go-get,github.com/vbatts/git-validation); \
 	fi
 
 .PHONY: .install.golangci-lint
