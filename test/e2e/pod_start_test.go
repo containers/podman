@@ -2,7 +2,6 @@ package integration
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strconv"
 	"strings"
@@ -175,7 +174,7 @@ var _ = Describe("Podman pod start", func() {
 	})
 
 	It("podman pod start single pod via --pod-id-file", func() {
-		tmpDir, err := ioutil.TempDir("", "")
+		tmpDir, err := os.MkdirTemp("", "")
 		Expect(err).To(BeNil())
 		tmpFile := tmpDir + "podID"
 		defer os.RemoveAll(tmpDir)
@@ -199,7 +198,7 @@ var _ = Describe("Podman pod start", func() {
 	})
 
 	It("podman pod start multiple pods via --pod-id-file", func() {
-		tmpDir, err := ioutil.TempDir("", "")
+		tmpDir, err := os.MkdirTemp("", "")
 		Expect(err).To(BeNil())
 		defer os.RemoveAll(tmpDir)
 
@@ -231,7 +230,7 @@ var _ = Describe("Podman pod start", func() {
 	})
 
 	It("podman pod create --infra-conmon-pod create + start", func() {
-		tmpDir, err := ioutil.TempDir("", "")
+		tmpDir, err := os.MkdirTemp("", "")
 		Expect(err).To(BeNil())
 		tmpFile := tmpDir + "podID"
 		defer os.RemoveAll(tmpDir)
@@ -248,7 +247,7 @@ var _ = Describe("Podman pod start", func() {
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1)) // infra
 
 		readFirstLine := func(path string) string {
-			content, err := ioutil.ReadFile(path)
+			content, err := os.ReadFile(path)
 			Expect(err).To(BeNil())
 			return strings.Split(string(content), "\n")[0]
 		}

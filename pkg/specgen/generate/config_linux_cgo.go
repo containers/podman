@@ -7,7 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"os"
 
 	"github.com/containers/common/libimage"
 	goSeccomp "github.com/containers/common/pkg/seccomp"
@@ -47,7 +47,7 @@ func getSeccompConfig(s *specgen.SpecGenerator, configSpec *spec.Spec, img *libi
 
 	if s.SeccompProfilePath != "" {
 		logrus.Debugf("Loading seccomp profile from %q", s.SeccompProfilePath)
-		seccompProfile, err := ioutil.ReadFile(s.SeccompProfilePath)
+		seccompProfile, err := os.ReadFile(s.SeccompProfilePath)
 		if err != nil {
 			return nil, fmt.Errorf("opening seccomp profile failed: %w", err)
 		}

@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"strings"
@@ -248,7 +247,7 @@ func Checkpoint(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if query.Export {
-		f, err := ioutil.TempFile("", "checkpoint")
+		f, err := os.CreateTemp("", "checkpoint")
 		if err != nil {
 			utils.InternalServerError(w, err)
 			return
@@ -329,7 +328,7 @@ func Restore(w http.ResponseWriter, r *http.Request) {
 
 	var names []string
 	if query.Import {
-		t, err := ioutil.TempFile("", "restore")
+		t, err := os.CreateTemp("", "restore")
 		if err != nil {
 			utils.InternalServerError(w, err)
 			return

@@ -2,7 +2,6 @@ package integration
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/user"
 	"path/filepath"
@@ -332,7 +331,7 @@ var _ = Describe("Podman pod create", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
-		id, _ := ioutil.ReadFile(targetFile)
+		id, _ := os.ReadFile(targetFile)
 		check := podmanTest.Podman([]string{"pod", "inspect", "abc"})
 		check.WaitWithDefaultTimeout()
 		data := check.InspectPodToJSON()
@@ -707,7 +706,7 @@ ENTRYPOINT ["sleep","99999"]
 			name = "containers"
 		}
 
-		content, err := ioutil.ReadFile("/etc/subuid")
+		content, err := os.ReadFile("/etc/subuid")
 		if err != nil {
 			Skip("cannot read /etc/subuid")
 		}
@@ -742,7 +741,7 @@ ENTRYPOINT ["sleep","99999"]
 			name = "containers"
 		}
 
-		content, err := ioutil.ReadFile("/etc/subuid")
+		content, err := os.ReadFile("/etc/subuid")
 		if err != nil {
 			Skip("cannot read /etc/subuid")
 		}
@@ -778,7 +777,7 @@ ENTRYPOINT ["sleep","99999"]
 			name = "containers"
 		}
 
-		content, err := ioutil.ReadFile("/etc/subuid")
+		content, err := os.ReadFile("/etc/subuid")
 		if err != nil {
 			Skip("cannot read /etc/subuid")
 		}
@@ -815,7 +814,7 @@ ENTRYPOINT ["sleep","99999"]
 			name = "containers"
 		}
 
-		content, err := ioutil.ReadFile("/etc/subuid")
+		content, err := os.ReadFile("/etc/subuid")
 		if err != nil {
 			Skip("cannot read /etc/subuid")
 		}

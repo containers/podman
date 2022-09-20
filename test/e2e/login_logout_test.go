@@ -3,7 +3,6 @@ package integration
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -101,7 +100,7 @@ var _ = Describe("Podman login and logout", func() {
 	})
 
 	readAuthInfo := func(filePath string) map[string]interface{} {
-		authBytes, err := ioutil.ReadFile(filePath)
+		authBytes, err := os.ReadFile(filePath)
 		Expect(err).To(BeNil())
 
 		var authInfo map[string]interface{}
@@ -137,12 +136,12 @@ var _ = Describe("Podman login and logout", func() {
 	})
 
 	It("podman login and logout without registry parameter", func() {
-		registriesConf, err := ioutil.TempFile("", "TestLoginWithoutParameter")
+		registriesConf, err := os.CreateTemp("", "TestLoginWithoutParameter")
 		Expect(err).To(BeNil())
 		defer registriesConf.Close()
 		defer os.Remove(registriesConf.Name())
 
-		err = ioutil.WriteFile(registriesConf.Name(), registriesConfWithSearch, os.ModePerm)
+		err = os.WriteFile(registriesConf.Name(), registriesConfWithSearch, os.ModePerm)
 		Expect(err).To(BeNil())
 
 		// Environment is per-process, so this looks very unsafe; actually it seems fine because tests are not
@@ -448,7 +447,7 @@ var _ = Describe("Podman login and logout", func() {
 	It("podman login and logout with repository push with invalid auth.json credentials", func() {
 		authFile := filepath.Join(podmanTest.TempDir, "auth.json")
 		// only `server` contains the correct login data
-		err := ioutil.WriteFile(authFile, []byte(fmt.Sprintf(`{"auths": {
+		err := os.WriteFile(authFile, []byte(fmt.Sprintf(`{"auths": {
 			"%s/podmantest": { "auth": "cG9kbWFudGVzdDp3cm9uZw==" },
 			"%s": { "auth": "cG9kbWFudGVzdDp0ZXN0" }
 		}}`, server, server)), 0644)
@@ -494,7 +493,7 @@ var _ = Describe("Podman login and logout", func() {
 		Expect(session).Should(Exit(0))
 
 		// only `server + /podmantest` and `server` have the correct login data
-		err := ioutil.WriteFile(authFile, []byte(fmt.Sprintf(`{"auths": {
+		err := os.WriteFile(authFile, []byte(fmt.Sprintf(`{"auths": {
 			"%s/podmantest/test-alpine": { "auth": "cG9kbWFudGVzdDp3cm9uZw==" },
 			"%s/podmantest": { "auth": "cG9kbWFudGVzdDp0ZXN0" },
 			"%s": { "auth": "cG9kbWFudGVzdDp0ZXN0" }

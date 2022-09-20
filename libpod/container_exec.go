@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -928,7 +927,7 @@ func (c *Container) readExecExitCode(sessionID string) (int, error) {
 	if err != nil {
 		return -1, err
 	}
-	ec, err := ioutil.ReadFile(exitFile)
+	ec, err := os.ReadFile(exitFile)
 	if err != nil {
 		return -1, err
 	}

@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"strings"
 
 	"github.com/containers/common/pkg/completion"
@@ -108,7 +108,7 @@ func rm(cmd *cobra.Command, args []string) error {
 		rmOptions.Timeout = &stopTimeout
 	}
 	for _, cidFile := range rmCidFiles {
-		content, err := ioutil.ReadFile(cidFile)
+		content, err := os.ReadFile(cidFile)
 		if err != nil {
 			return fmt.Errorf("reading CIDFile: %w", err)
 		}

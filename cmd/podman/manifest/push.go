@@ -3,7 +3,6 @@ package manifest
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 
 	"github.com/containers/common/pkg/auth"
@@ -149,7 +148,7 @@ func push(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	if manifestPushOpts.DigestFile != "" {
-		if err := ioutil.WriteFile(manifestPushOpts.DigestFile, []byte(digest), 0644); err != nil {
+		if err := os.WriteFile(manifestPushOpts.DigestFile, []byte(digest), 0644); err != nil {
 			return err
 		}
 	}

@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"regexp"
@@ -131,7 +130,7 @@ func readCapped(reader io.Reader) string {
 	// Cap output
 	buffer := make([]byte, 2048)
 	n, _ := io.ReadFull(reader, buffer)
-	_, _ = io.Copy(ioutil.Discard, reader)
+	_, _ = io.Copy(io.Discard, reader)
 	if n > 0 {
 		return string(buffer[:n])
 	}

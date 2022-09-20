@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -27,7 +26,7 @@ func CreateSSHKeys(writeLocation string) (string, error) {
 	if err := generatekeys(writeLocation); err != nil {
 		return "", err
 	}
-	b, err := ioutil.ReadFile(writeLocation + ".pub")
+	b, err := os.ReadFile(writeLocation + ".pub")
 	if err != nil {
 		return "", err
 	}
@@ -45,7 +44,7 @@ func CreateSSHKeysPrefix(dir string, file string, passThru bool, skipExisting bo
 	} else {
 		fmt.Println("Keys already exist, reusing")
 	}
-	b, err := ioutil.ReadFile(filepath.Join(dir, file) + ".pub")
+	b, err := os.ReadFile(filepath.Join(dir, file) + ".pub")
 	if err != nil {
 		return "", err
 	}

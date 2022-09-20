@@ -2,7 +2,6 @@ package integration
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -86,12 +85,12 @@ var _ = Describe("Podman run with --cgroup-parent", func() {
 		containerCgroup := strings.TrimRight(strings.ReplaceAll(exec.OutputToString(), "0::", ""), "\n")
 
 		// Move the container process to a sub cgroup
-		content, err := ioutil.ReadFile(filepath.Join(cgroupRoot, containerCgroup, "cgroup.procs"))
+		content, err := os.ReadFile(filepath.Join(cgroupRoot, containerCgroup, "cgroup.procs"))
 		Expect(err).To(BeNil())
 		oldSubCgroupPath := filepath.Join(cgroupRoot, containerCgroup, "old-container")
 		err = os.MkdirAll(oldSubCgroupPath, 0755)
 		Expect(err).To(BeNil())
-		err = ioutil.WriteFile(filepath.Join(oldSubCgroupPath, "cgroup.procs"), content, 0644)
+		err = os.WriteFile(filepath.Join(oldSubCgroupPath, "cgroup.procs"), content, 0644)
 		Expect(err).To(BeNil())
 
 		newCgroup := fmt.Sprintf("%s/new-container", containerCgroup)

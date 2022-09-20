@@ -3,7 +3,6 @@
 package parse
 
 import (
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -15,7 +14,7 @@ var (
 )
 
 func createTmpFile(content []byte) (string, error) {
-	tmpfile, err := ioutil.TempFile(os.TempDir(), "unittest")
+	tmpfile, err := os.CreateTemp(os.TempDir(), "unittest")
 	if err != nil {
 		return "", err
 	}

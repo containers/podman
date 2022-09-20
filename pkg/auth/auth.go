@@ -4,7 +4,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"strings"
@@ -233,7 +232,7 @@ func encodeMultiAuthConfigs(authConfigs map[string]types.DockerAuthConfig) (stri
 // TMPDIR will be used.
 func authConfigsToAuthFile(authConfigs map[string]types.DockerAuthConfig) (string, error) {
 	// Initialize an empty temporary JSON file.
-	tmpFile, err := ioutil.TempFile("", "auth.json.")
+	tmpFile, err := os.CreateTemp("", "auth.json.")
 	if err != nil {
 		return "", err
 	}

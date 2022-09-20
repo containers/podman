@@ -1,7 +1,6 @@
 package integration
 
 import (
-	"io/ioutil"
 	"os"
 	"os/user"
 	"path/filepath"
@@ -278,7 +277,7 @@ var _ = Describe("Podman generate kube", func() {
 		if name == "root" {
 			name = "containers"
 		}
-		content, err := ioutil.ReadFile("/etc/subuid")
+		content, err := os.ReadFile("/etc/subuid")
 		if err != nil {
 			Skip("cannot read /etc/subuid")
 		}
@@ -752,7 +751,7 @@ var _ = Describe("Podman generate kube", func() {
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(Exit(0))
 
-		b, err := ioutil.ReadFile(outputFile)
+		b, err := os.ReadFile(outputFile)
 		Expect(err).ShouldNot(HaveOccurred())
 		pod := new(v1.Pod)
 		err = yaml.Unmarshal(b, pod)
@@ -1045,7 +1044,7 @@ ENTRYPOINT ["sleep"]`
 		targetPath, err := CreateTempDirInTempDir()
 		Expect(err).To(BeNil())
 		containerfilePath := filepath.Join(targetPath, "Containerfile")
-		err = ioutil.WriteFile(containerfilePath, []byte(containerfile), 0644)
+		err = os.WriteFile(containerfilePath, []byte(containerfile), 0644)
 		Expect(err).To(BeNil())
 
 		image := "generatekube:test"
@@ -1135,7 +1134,7 @@ USER test1`
 		targetPath, err := CreateTempDirInTempDir()
 		Expect(err).To(BeNil())
 		containerfilePath := filepath.Join(targetPath, "Containerfile")
-		err = ioutil.WriteFile(containerfilePath, []byte(containerfile), 0644)
+		err = os.WriteFile(containerfilePath, []byte(containerfile), 0644)
 		Expect(err).To(BeNil())
 
 		image := "generatekube:test"

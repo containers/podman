@@ -2,7 +2,6 @@ package trust
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -72,7 +71,7 @@ func loadAndMergeConfig(dirPath string) (*registryConfiguration, error) {
 			continue
 		}
 		configPath := filepath.Join(dirPath, configName)
-		configBytes, err := ioutil.ReadFile(configPath)
+		configBytes, err := os.ReadFile(configPath)
 		if err != nil {
 			return nil, err
 		}

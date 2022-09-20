@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"path/filepath"
 	"strings"
 
@@ -14,7 +13,7 @@ import (
 )
 
 func (ic *ContainerEngine) SecretCreate(ctx context.Context, name string, reader io.Reader, options entities.SecretCreateOptions) (*entities.SecretCreateReport, error) {
-	data, _ := ioutil.ReadAll(reader)
+	data, _ := io.ReadAll(reader)
 	secretsPath := ic.Libpod.GetSecretsStorageDir()
 	manager, err := ic.Libpod.SecretsManager()
 	if err != nil {

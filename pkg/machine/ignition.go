@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/fs"
-	"io/ioutil"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -227,7 +226,7 @@ WantedBy=sysinit.target
 	if err != nil {
 		return err
 	}
-	return ioutil.WriteFile(ign.WritePath, b, 0644)
+	return os.WriteFile(ign.WritePath, b, 0644)
 }
 
 func getDirs(usrName string) []Directory {
@@ -559,7 +558,7 @@ func getCerts(certsDir string, isDir bool) []File {
 }
 
 func prepareCertFile(path string, name string) (File, error) {
-	b, err := ioutil.ReadFile(path)
+	b, err := os.ReadFile(path)
 	if err != nil {
 		logrus.Warnf("Unable to read cert file %v", err)
 		return File{}, err

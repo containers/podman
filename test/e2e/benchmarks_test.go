@@ -5,7 +5,6 @@ package integration
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 	"strconv"
@@ -108,7 +107,7 @@ var _ = Describe("Podman Benchmark Suite", func() {
 			if f.IsDir() {
 				continue
 			}
-			raw, err := ioutil.ReadFile(path.Join(timedir, f.Name()))
+			raw, err := os.ReadFile(path.Join(timedir, f.Name()))
 			if err != nil {
 				Fail(fmt.Sprintf("Error reading timing file: %v", err))
 			}

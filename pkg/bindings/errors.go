@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 
 	"github.com/containers/podman/v4/pkg/errorhandling"
 )
@@ -29,7 +29,7 @@ func (h APIResponse) Process(unmarshalInto interface{}) error {
 // ProcessWithError drains the response body, and processes the HTTP status code
 // Note: Closing the response.Body is left to the caller
 func (h APIResponse) ProcessWithError(unmarshalInto interface{}, unmarshalErrorInto interface{}) error {
-	data, err := ioutil.ReadAll(h.Response.Body)
+	data, err := io.ReadAll(h.Response.Body)
 	if err != nil {
 		return fmt.Errorf("unable to process API response: %w", err)
 	}

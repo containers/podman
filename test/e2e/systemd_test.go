@@ -2,7 +2,6 @@ package integration
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -51,7 +50,7 @@ WantedBy=default.target
 		SkipIfRootless("rootless can not write to /etc")
 		SkipIfContainerized("test does not have systemd as pid 1")
 
-		sysFile := ioutil.WriteFile("/etc/systemd/system/redis.service", []byte(systemdUnitFile), 0644)
+		sysFile := os.WriteFile("/etc/systemd/system/redis.service", []byte(systemdUnitFile), 0644)
 		Expect(sysFile).To(BeNil())
 		defer func() {
 			stop := SystemExec("bash", []string{"-c", "systemctl stop redis"})
@@ -137,7 +136,7 @@ RUN mkdir -p /usr/lib/systemd/; touch /usr/lib/systemd/systemd
 CMD /usr/lib/systemd/systemd`, ALPINE)
 
 		containerfilePath := filepath.Join(podmanTest.TempDir, "Containerfile")
-		err := ioutil.WriteFile(containerfilePath, []byte(containerfile), 0755)
+		err := os.WriteFile(containerfilePath, []byte(containerfile), 0755)
 		Expect(err).To(BeNil())
 		session := podmanTest.Podman([]string{"build", "-t", "systemd", "--file", containerfilePath, podmanTest.TempDir})
 		session.WaitWithDefaultTimeout()
@@ -167,7 +166,7 @@ CMD /usr/lib/systemd/systemd`, ALPINE)
 		Expect(session).Should(Exit(0))
 
 		pidFile := strings.TrimSuffix(session.OutputToString(), "\n")
-		_, err := ioutil.ReadFile(pidFile)
+		_, err := os.ReadFile(pidFile)
 		Expect(err).To(BeNil())
 	})
 

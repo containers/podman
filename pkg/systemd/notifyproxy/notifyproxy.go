@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"os"
 	"strings"
@@ -49,7 +48,7 @@ type NotifyProxy struct {
 
 // New creates a NotifyProxy.  The specified temp directory can be left empty.
 func New(tmpDir string) (*NotifyProxy, error) {
-	tempFile, err := ioutil.TempFile(tmpDir, "-podman-notify-proxy.sock")
+	tempFile, err := os.CreateTemp(tmpDir, "-podman-notify-proxy.sock")
 	if err != nil {
 		return nil, err
 	}

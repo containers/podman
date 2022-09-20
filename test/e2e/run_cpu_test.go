@@ -1,7 +1,6 @@
 package integration
 
 import (
-	"io/ioutil"
 	"os"
 
 	. "github.com/containers/podman/v4/test/utils"
@@ -26,7 +25,7 @@ var _ = Describe("Podman run cpu", func() {
 		}
 
 		if CGROUPSV2 {
-			if err := ioutil.WriteFile("/sys/fs/cgroup/cgroup.subtree_control", []byte("+cpuset"), 0644); err != nil {
+			if err := os.WriteFile("/sys/fs/cgroup/cgroup.subtree_control", []byte("+cpuset"), 0644); err != nil {
 				Skip("cpuset controller not available on the current kernel")
 			}
 		}

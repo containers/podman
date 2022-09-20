@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"strconv"
@@ -182,7 +181,7 @@ func ExportImage(w http.ResponseWriter, r *http.Request) {
 
 	switch query.Format {
 	case define.OCIArchive, define.V2s2Archive:
-		tmpfile, err := ioutil.TempFile("", "api.tar")
+		tmpfile, err := os.CreateTemp("", "api.tar")
 		if err != nil {
 			utils.Error(w, http.StatusInternalServerError, fmt.Errorf("unable to create tempfile: %w", err))
 			return
@@ -193,7 +192,7 @@ func ExportImage(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	case define.OCIManifestDir, define.V2s2ManifestDir:
-		tmpdir, err := ioutil.TempDir("", "save")
+		tmpdir, err := os.MkdirTemp("", "save")
 		if err != nil {
 			utils.Error(w, http.StatusInternalServerError, fmt.Errorf("unable to create tempdir: %w", err))
 			return
@@ -279,7 +278,7 @@ func ExportImages(w http.ResponseWriter, r *http.Request) {
 
 	switch query.Format {
 	case define.V2s2Archive, define.OCIArchive:
-		tmpfile, err := ioutil.TempFile("", "api.tar")
+		tmpfile, err := os.CreateTemp("", "api.tar")
 		if err != nil {
 			utils.Error(w, http.StatusInternalServerError, fmt.Errorf("unable to create tempfile: %w", err))
 			return
@@ -290,7 +289,7 @@ func ExportImages(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	case define.OCIManifestDir, define.V2s2ManifestDir:
-		tmpdir, err := ioutil.TempDir("", "save")
+		tmpdir, err := os.MkdirTemp("", "save")
 		if err != nil {
 			utils.Error(w, http.StatusInternalServerError, fmt.Errorf("unable to create tmpdir: %w", err))
 			return
@@ -329,7 +328,7 @@ func ExportImages(w http.ResponseWriter, r *http.Request) {
 func ImagesLoad(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 
-	tmpfile, err := ioutil.TempFile("", "libpod-images-load.tar")
+	tmpfile, err := os.CreateTemp("", "libpod-images-load.tar")
 	if err != nil {
 		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("unable to create tempfile: %w", err))
 		return
@@ -378,7 +377,7 @@ func ImagesImport(w http.ResponseWriter, r *http.Request) {
 	// Check if we need to load the image from a URL or from the request's body.
 	source := query.URL
 	if len(query.URL) == 0 {
-		tmpfile, err := ioutil.TempFile("", "libpod-images-import.tar")
+		tmpfile, err := os.CreateTemp("", "libpod-images-import.tar")
 		if err != nil {
 			utils.Error(w, http.StatusInternalServerError, fmt.Errorf("unable to create tempfile: %w", err))
 			return

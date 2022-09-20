@@ -2,7 +2,6 @@ package integration
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net/url"
 	"os"
 	"os/exec"
@@ -27,7 +26,7 @@ var _ = Describe("podman system connection", func() {
 
 	BeforeEach(func() {
 		ConfPath.Value, ConfPath.IsSet = os.LookupEnv("CONTAINERS_CONF")
-		conf, err := ioutil.TempFile("", "containersconf")
+		conf, err := os.CreateTemp("", "containersconf")
 		Expect(err).ToNot(HaveOccurred())
 		os.Setenv("CONTAINERS_CONF", conf.Name())
 

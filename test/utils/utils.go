@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"math/rand"
 	"os"
 	"os/exec"
@@ -100,7 +99,7 @@ func (p *PodmanTest) PodmanAsUserBase(args []string, uid, gid uint32, cwd string
 	}
 
 	if timeDir := os.Getenv(EnvTimeDir); timeDir != "" {
-		timeFile, err := ioutil.TempFile(timeDir, ".time")
+		timeFile, err := os.CreateTemp(timeDir, ".time")
 		if err != nil {
 			Fail(fmt.Sprintf("Error creating time file: %v", err))
 		}
@@ -374,7 +373,7 @@ func (s *PodmanSession) WaitWithTimeout(timeout int) {
 
 // CreateTempDirInTempDir create a temp dir with prefix podman_test
 func CreateTempDirInTempDir() (string, error) {
-	return ioutil.TempDir("", "podman_test")
+	return os.MkdirTemp("", "podman_test")
 }
 
 // SystemExec is used to exec a system command to check its exit code or output
@@ -497,7 +496,7 @@ func WriteJSONFile(data []byte, filePath string) error {
 	if err != nil {
 		return err
 	}
-	return ioutil.WriteFile(filePath, formatJSON, 0644)
+	return os.WriteFile(filePath, formatJSON, 0644)
 }
 
 // Containerized check the podman command run inside container
@@ -506,7 +505,7 @@ func Containerized() bool {
 	if container != "" {
 		return true
 	}
-	b, err := ioutil.ReadFile(ProcessOneCgroupPath)
+	b, err := os.ReadFile(ProcessOneCgroupPath)
 	if err != nil {
 		// shrug, if we cannot read that file, return false
 		return false

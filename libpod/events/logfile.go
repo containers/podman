@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -204,11 +203,11 @@ func truncate(filePath string) error {
 	size := origFinfo.Size()
 	threshold := size / 2
 
-	tmp, err := ioutil.TempFile(path.Dir(filePath), "")
+	tmp, err := os.CreateTemp(path.Dir(filePath), "")
 	if err != nil {
 		// Retry in /tmp in case creating a tmp file in the same
 		// directory has failed.
-		tmp, err = ioutil.TempFile("", "")
+		tmp, err = os.CreateTemp("", "")
 		if err != nil {
 			return err
 		}

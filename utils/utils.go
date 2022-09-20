@@ -5,7 +5,6 @@ import (
 	"crypto/rand"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"strconv"
@@ -114,7 +113,7 @@ var (
 // RunsOnSystemd returns whether the system is using systemd
 func RunsOnSystemd() bool {
 	runsOnSystemdOnce.Do(func() {
-		initCommand, err := ioutil.ReadFile("/proc/1/comm")
+		initCommand, err := os.ReadFile("/proc/1/comm")
 		// On errors, default to systemd
 		runsOnSystemd = err != nil || strings.TrimRight(string(initCommand), "\n") == "systemd"
 	})
@@ -122,7 +121,7 @@ func RunsOnSystemd() bool {
 }
 
 func moveProcessPIDFileToScope(pidPath, slice, scope string) error {
-	data, err := ioutil.ReadFile(pidPath)
+	data, err := os.ReadFile(pidPath)
 	if err != nil {
 		// do not raise an error if the file doesn't exist
 		if os.IsNotExist(err) {

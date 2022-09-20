@@ -1,7 +1,6 @@
 package ctime
 
 import (
-	"io/ioutil"
 	"os"
 	"testing"
 	"time"
@@ -10,13 +9,13 @@ import (
 func TestCreated(t *testing.T) {
 	before := time.Now()
 
-	fileA, err := ioutil.TempFile("", "ctime-test-")
+	fileA, err := os.CreateTemp("", "ctime-test-")
 	if err != nil {
 		t.Error(err)
 	}
 	defer os.Remove(fileA.Name())
 
-	fileB, err := ioutil.TempFile("", "ctime-test-")
+	fileB, err := os.CreateTemp("", "ctime-test-")
 	if err != nil {
 		t.Error(err)
 	}

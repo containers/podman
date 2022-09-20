@@ -3,7 +3,6 @@ package e2e_test
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	url2 "net/url"
 	"os"
 	"path"
@@ -77,7 +76,7 @@ var _ = SynchronizedAfterSuite(func() {},
 
 func setup() (string, *machineTestBuilder) {
 	// Set TMPDIR if this needs a new directory
-	homeDir, err := ioutil.TempDir("", "podman_test")
+	homeDir, err := os.MkdirTemp("", "podman_test")
 	if err != nil {
 		Fail(fmt.Sprintf("failed to create home directory: %q", err))
 	}

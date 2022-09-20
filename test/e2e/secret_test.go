@@ -2,7 +2,6 @@ package integration
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -37,7 +36,7 @@ var _ = Describe("Podman secret", func() {
 
 	It("podman secret create", func() {
 		secretFilePath := filepath.Join(podmanTest.TempDir, "secret")
-		err := ioutil.WriteFile(secretFilePath, []byte("mysecret"), 0755)
+		err := os.WriteFile(secretFilePath, []byte("mysecret"), 0755)
 		Expect(err).To(BeNil())
 
 		session := podmanTest.Podman([]string{"secret", "create", "-d", "file", "--driver-opts", "opt1=val", "a", secretFilePath})
@@ -57,7 +56,7 @@ var _ = Describe("Podman secret", func() {
 
 	It("podman secret create bad name should fail", func() {
 		secretFilePath := filepath.Join(podmanTest.TempDir, "secret")
-		err := ioutil.WriteFile(secretFilePath, []byte("mysecret"), 0755)
+		err := os.WriteFile(secretFilePath, []byte("mysecret"), 0755)
 		Expect(err).To(BeNil())
 
 		session := podmanTest.Podman([]string{"secret", "create", "?!", secretFilePath})
@@ -67,7 +66,7 @@ var _ = Describe("Podman secret", func() {
 
 	It("podman secret inspect", func() {
 		secretFilePath := filepath.Join(podmanTest.TempDir, "secret")
-		err := ioutil.WriteFile(secretFilePath, []byte("mysecret"), 0755)
+		err := os.WriteFile(secretFilePath, []byte("mysecret"), 0755)
 		Expect(err).To(BeNil())
 
 		session := podmanTest.Podman([]string{"secret", "create", "a", secretFilePath})
@@ -83,7 +82,7 @@ var _ = Describe("Podman secret", func() {
 
 	It("podman secret inspect with --format", func() {
 		secretFilePath := filepath.Join(podmanTest.TempDir, "secret")
-		err := ioutil.WriteFile(secretFilePath, []byte("mysecret"), 0755)
+		err := os.WriteFile(secretFilePath, []byte("mysecret"), 0755)
 		Expect(err).To(BeNil())
 
 		session := podmanTest.Podman([]string{"secret", "create", "a", secretFilePath})
@@ -99,7 +98,7 @@ var _ = Describe("Podman secret", func() {
 
 	It("podman secret inspect multiple secrets", func() {
 		secretFilePath := filepath.Join(podmanTest.TempDir, "secret")
-		err := ioutil.WriteFile(secretFilePath, []byte("mysecret"), 0755)
+		err := os.WriteFile(secretFilePath, []byte("mysecret"), 0755)
 		Expect(err).To(BeNil())
 
 		session := podmanTest.Podman([]string{"secret", "create", "a", secretFilePath})
@@ -120,7 +119,7 @@ var _ = Describe("Podman secret", func() {
 
 	It("podman secret inspect bogus", func() {
 		secretFilePath := filepath.Join(podmanTest.TempDir, "secret")
-		err := ioutil.WriteFile(secretFilePath, []byte("mysecret"), 0755)
+		err := os.WriteFile(secretFilePath, []byte("mysecret"), 0755)
 		Expect(err).To(BeNil())
 
 		inspect := podmanTest.Podman([]string{"secret", "inspect", "bogus"})
@@ -131,7 +130,7 @@ var _ = Describe("Podman secret", func() {
 
 	It("podman secret ls", func() {
 		secretFilePath := filepath.Join(podmanTest.TempDir, "secret")
-		err := ioutil.WriteFile(secretFilePath, []byte("mysecret"), 0755)
+		err := os.WriteFile(secretFilePath, []byte("mysecret"), 0755)
 		Expect(err).To(BeNil())
 
 		session := podmanTest.Podman([]string{"secret", "create", "a", secretFilePath})
@@ -147,7 +146,7 @@ var _ = Describe("Podman secret", func() {
 
 	It("podman secret ls --quiet", func() {
 		secretFilePath := filepath.Join(podmanTest.TempDir, "secret")
-		err := ioutil.WriteFile(secretFilePath, []byte("mysecret"), 0755)
+		err := os.WriteFile(secretFilePath, []byte("mysecret"), 0755)
 		Expect(err).To(BeNil())
 
 		secretName := "a"
@@ -177,7 +176,7 @@ var _ = Describe("Podman secret", func() {
 
 	It("podman secret ls with filters", func() {
 		secretFilePath := filepath.Join(podmanTest.TempDir, "secret")
-		err := ioutil.WriteFile(secretFilePath, []byte("mysecret"), 0755)
+		err := os.WriteFile(secretFilePath, []byte("mysecret"), 0755)
 		Expect(err).To(BeNil())
 
 		secret1 := "Secret1"
@@ -231,7 +230,7 @@ var _ = Describe("Podman secret", func() {
 
 	It("podman secret ls with Go template", func() {
 		secretFilePath := filepath.Join(podmanTest.TempDir, "secret")
-		err := ioutil.WriteFile(secretFilePath, []byte("mysecret"), 0755)
+		err := os.WriteFile(secretFilePath, []byte("mysecret"), 0755)
 		Expect(err).To(BeNil())
 
 		session := podmanTest.Podman([]string{"secret", "create", "a", secretFilePath})
@@ -247,7 +246,7 @@ var _ = Describe("Podman secret", func() {
 
 	It("podman secret rm", func() {
 		secretFilePath := filepath.Join(podmanTest.TempDir, "secret")
-		err := ioutil.WriteFile(secretFilePath, []byte("mysecret"), 0755)
+		err := os.WriteFile(secretFilePath, []byte("mysecret"), 0755)
 		Expect(err).To(BeNil())
 
 		session := podmanTest.Podman([]string{"secret", "create", "a", secretFilePath})
@@ -268,7 +267,7 @@ var _ = Describe("Podman secret", func() {
 
 	It("podman secret rm --all", func() {
 		secretFilePath := filepath.Join(podmanTest.TempDir, "secret")
-		err := ioutil.WriteFile(secretFilePath, []byte("mysecret"), 0755)
+		err := os.WriteFile(secretFilePath, []byte("mysecret"), 0755)
 		Expect(err).To(BeNil())
 
 		session := podmanTest.Podman([]string{"secret", "create", "a", secretFilePath})

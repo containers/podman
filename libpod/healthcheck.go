@@ -5,7 +5,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -208,7 +207,7 @@ func (c *Container) updateHealthStatus(status string) error {
 	if err != nil {
 		return fmt.Errorf("unable to marshall healthchecks for writing status: %w", err)
 	}
-	return ioutil.WriteFile(c.healthCheckLogPath(), newResults, 0700)
+	return os.WriteFile(c.healthCheckLogPath(), newResults, 0700)
 }
 
 // UpdateHealthCheckLog parses the health check results and writes the log
@@ -242,7 +241,7 @@ func (c *Container) updateHealthCheckLog(hcl define.HealthCheckLog, inStartPerio
 	if err != nil {
 		return fmt.Errorf("unable to marshall healthchecks for writing: %w", err)
 	}
-	return ioutil.WriteFile(c.healthCheckLogPath(), newResults, 0700)
+	return os.WriteFile(c.healthCheckLogPath(), newResults, 0700)
 }
 
 // HealthCheckLogPath returns the path for where the health check log is
@@ -259,7 +258,7 @@ func (c *Container) getHealthCheckLog() (define.HealthCheckResults, error) {
 	if _, err := os.Stat(c.healthCheckLogPath()); os.IsNotExist(err) {
 		return healthCheck, nil
 	}
-	b, err := ioutil.ReadFile(c.healthCheckLogPath())
+	b, err := os.ReadFile(c.healthCheckLogPath())
 	if err != nil {
 		return healthCheck, fmt.Errorf("failed to read health check log file: %w", err)
 	}

@@ -1,7 +1,6 @@
 package libpod
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -35,7 +34,7 @@ var (
 
 // Get an empty BoltDB state for use in tests
 func getEmptyBoltState() (_ State, _ string, _ lock.Manager, retErr error) {
-	tmpDir, err := ioutil.TempDir("", tmpDirPrefix)
+	tmpDir, err := os.MkdirTemp("", tmpDirPrefix)
 	if err != nil {
 		return nil, "", nil, err
 	}

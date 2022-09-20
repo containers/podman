@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -237,7 +236,7 @@ func CRRuntimeSupportsPodCheckpointRestore(runtimePath string) bool {
 // given checkpoint archive and returns the runtime used to create
 // the given checkpoint archive.
 func CRGetRuntimeFromArchive(input string) (*string, error) {
-	dir, err := ioutil.TempDir("", "checkpoint")
+	dir, err := os.MkdirTemp("", "checkpoint")
 	if err != nil {
 		return nil, err
 	}

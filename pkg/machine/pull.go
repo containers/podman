@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	url2 "net/url"
 	"os"
@@ -191,7 +190,7 @@ func Decompress(localPath, uncompressedPath string) error {
 	if err != nil {
 		return err
 	}
-	sourceFile, err := ioutil.ReadFile(localPath)
+	sourceFile, err := os.ReadFile(localPath)
 	if err != nil {
 		return err
 	}

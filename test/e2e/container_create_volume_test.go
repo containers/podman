@@ -2,7 +2,6 @@ package integration
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -15,7 +14,7 @@ import (
 func buildDataVolumeImage(pTest *PodmanTestIntegration, image, data, dest string) {
 	// Create a dummy file for data volume
 	dummyFile := filepath.Join(pTest.TempDir, data)
-	err := ioutil.WriteFile(dummyFile, []byte(data), 0644)
+	err := os.WriteFile(dummyFile, []byte(data), 0644)
 	Expect(err).To(BeNil())
 
 	// Create a data volume container image but no CMD binary in it
@@ -29,7 +28,7 @@ VOLUME %s/`, data, dest, dest)
 func createContainersConfFile(pTest *PodmanTestIntegration) {
 	configPath := filepath.Join(pTest.TempDir, "containers.conf")
 	containersConf := []byte("[containers]\nprepare_volume_on_create = true\n")
-	err := ioutil.WriteFile(configPath, containersConf, os.ModePerm)
+	err := os.WriteFile(configPath, containersConf, os.ModePerm)
 	Expect(err).To(BeNil())
 
 	// Set custom containers.conf file

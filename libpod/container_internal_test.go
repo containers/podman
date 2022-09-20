@@ -3,7 +3,7 @@ package libpod
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"runtime"
 	"testing"
@@ -60,7 +60,7 @@ func TestPostDeleteHooks(t *testing.T) {
 	for _, p := range []string{statePath, copyPath} {
 		path := p
 		t.Run(path, func(t *testing.T) {
-			content, err := ioutil.ReadFile(path)
+			content, err := os.ReadFile(path)
 			if err != nil {
 				t.Fatal(err)
 			}

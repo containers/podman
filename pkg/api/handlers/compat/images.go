@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"strings"
@@ -49,7 +48,7 @@ func ExportImage(w http.ResponseWriter, r *http.Request) {
 	// 500 server
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 
-	tmpfile, err := ioutil.TempFile("", "api.tar")
+	tmpfile, err := os.CreateTemp("", "api.tar")
 	if err != nil {
 		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("unable to create tempfile: %w", err))
 		return
@@ -193,7 +192,7 @@ func CreateImageFromSrc(w http.ResponseWriter, r *http.Request) {
 	// fromSrc – Source to import. The value may be a URL from which the image can be retrieved or - to read the image from the request body. This parameter may only be used when importing an image.
 	source := query.FromSrc
 	if source == "-" {
-		f, err := ioutil.TempFile("", "api_load.tar")
+		f, err := os.CreateTemp("", "api_load.tar")
 		if err != nil {
 			utils.Error(w, http.StatusInternalServerError, fmt.Errorf("failed to create tempfile: %w", err))
 			return
@@ -480,7 +479,7 @@ func LoadImages(w http.ResponseWriter, r *http.Request) {
 
 	// First write the body to a temporary file that we can later attempt
 	// to load.
-	f, err := ioutil.TempFile("", "api_load.tar")
+	f, err := os.CreateTemp("", "api_load.tar")
 	if err != nil {
 		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("failed to create tempfile: %w", err))
 		return
@@ -547,7 +546,7 @@ func ExportImages(w http.ResponseWriter, r *http.Request) {
 		images[i] = possiblyNormalizedName
 	}
 
-	tmpfile, err := ioutil.TempFile("", "api.tar")
+	tmpfile, err := os.CreateTemp("", "api.tar")
 	if err != nil {
 		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("unable to create tempfile: %w", err))
 		return

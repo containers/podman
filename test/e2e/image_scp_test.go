@@ -1,7 +1,6 @@
 package integration
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -25,7 +24,7 @@ var _ = Describe("podman image scp", func() {
 
 	BeforeEach(func() {
 		ConfPath.Value, ConfPath.IsSet = os.LookupEnv("CONTAINERS_CONF")
-		conf, err := ioutil.TempFile("", "containersconf")
+		conf, err := os.CreateTemp("", "containersconf")
 		Expect(err).ToNot(HaveOccurred())
 
 		os.Setenv("CONTAINERS_CONF", conf.Name())

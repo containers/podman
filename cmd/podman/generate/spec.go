@@ -2,7 +2,7 @@ package generate
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/podman/v4/cmd/podman/common"
@@ -59,7 +59,7 @@ func spec(cmd *cobra.Command, args []string) error {
 	// if we are looking to print the output, do not mess it up by printing the path
 	// if we are using -v the user probably expects to pipe the output somewhere else
 	if len(opts.FileName) > 0 {
-		err = ioutil.WriteFile(opts.FileName, report.Data, 0644)
+		err = os.WriteFile(opts.FileName, report.Data, 0644)
 		if err != nil {
 			return err
 		}

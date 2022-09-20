@@ -1,7 +1,6 @@
 package integration
 
 import (
-	"io/ioutil"
 	"os"
 	"strings"
 
@@ -539,7 +538,7 @@ var _ = Describe("Podman generate systemd", func() {
 	})
 
 	It("podman generate systemd pod with containers --new", func() {
-		tmpDir, err := ioutil.TempDir("", "")
+		tmpDir, err := os.MkdirTemp("", "")
 		Expect(err).To(BeNil())
 		tmpFile := tmpDir + "podID"
 		defer os.RemoveAll(tmpDir)

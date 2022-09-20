@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"math/rand"
 	"net"
 	"net/url"
@@ -144,7 +143,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 		}
 		f.Close()
 	}
-	path, err := ioutil.TempDir("", "libpodlock")
+	path, err := os.MkdirTemp("", "libpodlock")
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -875,7 +874,7 @@ func writeConf(conf []byte, confPath string) {
 			fmt.Println(err)
 		}
 	}
-	if err := ioutil.WriteFile(confPath, conf, 0o777); err != nil {
+	if err := os.WriteFile(confPath, conf, 0o777); err != nil {
 		fmt.Println(err)
 	}
 }
@@ -967,7 +966,7 @@ func (s *PodmanSessionIntegration) jq(jqCommand string) (string, error) {
 
 func (p *PodmanTestIntegration) buildImage(dockerfile, imageName string, layers string, label string) string {
 	dockerfilePath := filepath.Join(p.TempDir, "Dockerfile")
-	err := ioutil.WriteFile(dockerfilePath, []byte(dockerfile), 0755)
+	err := os.WriteFile(dockerfilePath, []byte(dockerfile), 0755)
 	Expect(err).To(BeNil())
 	cmd := []string{"build", "--pull-never", "--layers=" + layers, "--file", dockerfilePath}
 	if label != "" {

@@ -10,7 +10,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"os"
@@ -232,7 +231,7 @@ func (r *ConmonOCIRuntime) UpdateContainerStatus(ctr *Container) error {
 	}
 
 	if err := cmd.Start(); err != nil {
-		out, err2 := ioutil.ReadAll(errPipe)
+		out, err2 := io.ReadAll(errPipe)
 		if err2 != nil {
 			return fmt.Errorf("getting container %s state: %w", ctr.ID(), err)
 		}
@@ -254,7 +253,7 @@ func (r *ConmonOCIRuntime) UpdateContainerStatus(ctr *Container) error {
 	if err := errPipe.Close(); err != nil {
 		return err
 	}
-	out, err := ioutil.ReadAll(outPipe)
+	out, err := io.ReadAll(outPipe)
 	if err != nil {
 		return fmt.Errorf("reading stdout: %s: %w", ctr.ID(), err)
 	}
@@ -335,7 +334,7 @@ func generateResourceFile(res *spec.LinuxResources) (string, []string, error) {
 		return "", flags, nil
 	}
 
-	f, err := ioutil.TempFile("", "podman")
+	f, err := os.CreateTemp("", "podman")
 	if err != nil {
 		return "", nil, err
 	}
@@ -1398,7 +1397,7 @@ func newPipe() (*os.File, *os.File, error) {
 func readConmonPidFile(pidFile string) (int, error) {
 	// Let's try reading the Conmon pid at the same time.
 	if pidFile != "" {
-		contents, err := ioutil.ReadFile(pidFile)
+		contents, err := os.ReadFile(pidFile)
 		if err != nil {
 			return -1, err
 		}
@@ -1447,7 +1446,7 @@ func readConmonPipeData(runtimeName string, pipe *os.File, ociLog string) (int, 
 	case ss := <-ch:
 		if ss.err != nil {
 			if ociLog != "" {
-				ociLogData, err := ioutil.ReadFile(ociLog)
+				ociLogData, err := os.ReadFile(ociLog)
 				if err == nil {
 					var ociErr ociError
 					if err := json.Unmarshal(ociLogData, &ociErr); err == nil {
@@ -1460,7 +1459,7 @@ func readConmonPipeData(runtimeName string, pipe *os.File, ociLog string) (int, 
 		logrus.Debugf("Received: %d", ss.si.Data)
 		if ss.si.Data < 0 {
 			if ociLog != "" {
-				ociLogData, err := ioutil.ReadFile(ociLog)
+				ociLogData, err := os.ReadFile(ociLog)
 				if err == nil {
 					var ociErr ociError
 					if err := json.Unmarshal(ociLogData, &ociErr); err == nil {

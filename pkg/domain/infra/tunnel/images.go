@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strconv"
 	"strings"
@@ -264,7 +263,7 @@ func (ir *ImageEngine) Save(ctx context.Context, nameOrID string, tags []string,
 
 	switch opts.Format {
 	case "oci-dir", "docker-dir":
-		f, err = ioutil.TempFile("", "podman_save")
+		f, err = os.CreateTemp("", "podman_save")
 		if err == nil {
 			defer func() { _ = os.Remove(f.Name()) }()
 		}

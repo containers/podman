@@ -3,7 +3,6 @@ package integration
 import (
 	"fmt"
 	"io/fs"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -235,7 +234,7 @@ var _ = Describe("Podman pod rm", func() {
 	})
 
 	It("podman pod start/remove single pod via --pod-id-file", func() {
-		tmpDir, err := ioutil.TempDir("", "")
+		tmpDir, err := os.MkdirTemp("", "")
 		Expect(err).To(BeNil())
 		tmpFile := tmpDir + "podID"
 		defer os.RemoveAll(tmpDir)
@@ -264,7 +263,7 @@ var _ = Describe("Podman pod rm", func() {
 	})
 
 	It("podman pod start/remove multiple pods via --pod-id-file", func() {
-		tmpDir, err := ioutil.TempDir("", "")
+		tmpDir, err := os.MkdirTemp("", "")
 		Expect(err).To(BeNil())
 		defer os.RemoveAll(tmpDir)
 

@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"os"
 	"os/exec"
@@ -50,7 +49,7 @@ func main() {
 }
 
 func loadConfig(r io.Reader) (*rootlessport.Config, io.ReadCloser, io.WriteCloser, error) {
-	stdin, err := ioutil.ReadAll(r)
+	stdin, err := io.ReadAll(r)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -92,7 +91,7 @@ func parent() error {
 	}
 
 	// create the parent driver
-	stateDir, err := ioutil.TempDir(cfg.TmpDir, "rootlessport")
+	stateDir, err := os.MkdirTemp(cfg.TmpDir, "rootlessport")
 	if err != nil {
 		return err
 	}
@@ -240,7 +239,7 @@ outer:
 
 	// wait for ExitFD to be closed
 	logrus.Info("Waiting for exitfd to be closed")
-	if _, err := ioutil.ReadAll(exitR); err != nil {
+	if _, err := io.ReadAll(exitR); err != nil {
 		return err
 	}
 	return nil
@@ -357,7 +356,7 @@ func child() error {
 	}()
 
 	// wait for stdin to be closed
-	if _, err := ioutil.ReadAll(os.Stdin); err != nil {
+	if _, err := io.ReadAll(os.Stdin); err != nil {
 		return err
 	}
 	return nil

@@ -3,7 +3,6 @@ package auth
 import (
 	"encoding/base64"
 	"encoding/json"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"testing"
@@ -37,10 +36,10 @@ func systemContextForAuthFile(t *testing.T, fileContents string) (*types.SystemC
 		return nil, func() {}
 	}
 
-	f, err := ioutil.TempFile("", "auth.json")
+	f, err := os.CreateTemp("", "auth.json")
 	require.NoError(t, err)
 	path := f.Name()
-	err = ioutil.WriteFile(path, []byte(fileContents), 0700)
+	err = os.WriteFile(path, []byte(fileContents), 0700)
 	require.NoError(t, err)
 	return &types.SystemContext{AuthFilePath: path}, func() { os.Remove(path) }
 }
@@ -347,7 +346,7 @@ func TestAuthConfigsToAuthFile(t *testing.T) {
 			assert.Empty(t, filePath)
 		} else {
 			assert.NoError(t, err)
-			content, err := ioutil.ReadFile(filePath)
+			content, err := os.ReadFile(filePath)
 			require.NoError(t, err)
 			assert.Contains(t, string(content), tc.expectedContains)
 			os.Remove(filePath)

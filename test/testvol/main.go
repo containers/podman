@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sync"
@@ -78,7 +77,7 @@ func startServer(socketPath string) error {
 	logrus.Debugf("Starting server...")
 
 	if config.path == "" {
-		path, err := ioutil.TempDir("", "test_volume_plugin")
+		path, err := os.MkdirTemp("", "test_volume_plugin")
 		if err != nil {
 			return fmt.Errorf("getting directory for plugin: %w", err)
 		}

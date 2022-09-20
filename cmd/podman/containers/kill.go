@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"strings"
 
 	"github.com/containers/common/pkg/completion"
@@ -96,7 +96,7 @@ func kill(_ *cobra.Command, args []string) error {
 		return errors.New("valid signals are 1 through 64")
 	}
 	for _, cidFile := range killCidFiles {
-		content, err := ioutil.ReadFile(cidFile)
+		content, err := os.ReadFile(cidFile)
 		if err != nil {
 			return fmt.Errorf("reading CIDFile: %w", err)
 		}

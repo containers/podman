@@ -3,7 +3,6 @@ package images
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -16,7 +15,7 @@ import (
 // the caller should use the returned function to clean up the pipeDir
 func setupPipe() (string, func() <-chan error, error) {
 	errc := make(chan error)
-	pipeDir, err := ioutil.TempDir(os.TempDir(), "pipeDir")
+	pipeDir, err := os.MkdirTemp(os.TempDir(), "pipeDir")
 	if err != nil {
 		return "", nil, err
 	}

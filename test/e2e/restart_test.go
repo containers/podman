@@ -2,7 +2,6 @@ package integration
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"time"
 
@@ -251,7 +250,7 @@ var _ = Describe("Podman restart", func() {
 	})
 
 	It("podman restart --cidfile", func() {
-		tmpDir, err := ioutil.TempDir("", "")
+		tmpDir, err := os.MkdirTemp("", "")
 		Expect(err).To(BeNil())
 		tmpFile := tmpDir + "cid"
 
@@ -274,7 +273,7 @@ var _ = Describe("Podman restart", func() {
 	})
 
 	It("podman restart multiple --cidfile", func() {
-		tmpDir, err := ioutil.TempDir("", "")
+		tmpDir, err := os.MkdirTemp("", "")
 		Expect(err).To(BeNil())
 		tmpFile1 := tmpDir + "cid-1"
 		tmpFile2 := tmpDir + "cid-2"

@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
-	"io/ioutil"
 	"net/url"
 	"os"
 	"os/exec"
@@ -340,7 +339,7 @@ func (ir *ImageEngine) Push(ctx context.Context, source string, destination stri
 				return err
 			}
 
-			if err := ioutil.WriteFile(options.DigestFile, []byte(manifestDigest.String()), 0644); err != nil {
+			if err := os.WriteFile(options.DigestFile, []byte(manifestDigest.String()), 0644); err != nil {
 				return err
 			}
 		}
@@ -910,5 +909,5 @@ func putSignature(manifestBlob []byte, mech signature.SigningMechanism, sigStore
 	if err != nil {
 		return err
 	}
-	return ioutil.WriteFile(filepath.Join(signatureDir, sigFilename), newSig, 0644)
+	return os.WriteFile(filepath.Join(signatureDir, sigFilename), newSig, 0644)
 }

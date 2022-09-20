@@ -3,7 +3,7 @@ package abi
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"os"
 
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/trust"
@@ -18,7 +18,7 @@ func (ir *ImageEngine) ShowTrust(ctx context.Context, args []string, options ent
 	if len(options.PolicyPath) > 0 {
 		policyPath = options.PolicyPath
 	}
-	report.Raw, err = ioutil.ReadFile(policyPath)
+	report.Raw, err = os.ReadFile(policyPath)
 	if err != nil {
 		return nil, err
 	}

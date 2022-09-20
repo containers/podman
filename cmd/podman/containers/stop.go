@@ -3,7 +3,7 @@ package containers
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"strings"
 
 	"github.com/containers/common/pkg/completion"
@@ -105,7 +105,7 @@ func stop(cmd *cobra.Command, args []string) error {
 		stopOptions.Timeout = &stopTimeout
 	}
 	for _, cidFile := range stopCidFiles {
-		content, err := ioutil.ReadFile(cidFile)
+		content, err := os.ReadFile(cidFile)
 		if err != nil {
 			return fmt.Errorf("reading CIDFile: %w", err)
 		}

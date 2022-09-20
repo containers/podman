@@ -3,7 +3,7 @@ package utils_test
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"reflect"
 	"strings"
@@ -113,7 +113,7 @@ var _ = Describe("Common functions test", func() {
 		Expect(err).To(BeNil(), "Can not find the JSON file after we write it.")
 		defer read.Close()
 
-		bytes, err := ioutil.ReadAll(read)
+		bytes, err := io.ReadAll(read)
 		Expect(err).ToNot(HaveOccurred())
 		err = json.Unmarshal(bytes, compareData)
 		Expect(err).ToNot(HaveOccurred())

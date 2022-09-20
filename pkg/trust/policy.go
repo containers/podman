@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -72,7 +71,7 @@ type gpgIDReader func(string) []string
 
 // createTmpFile creates a temp file under dir and writes the content into it
 func createTmpFile(dir, pattern string, content []byte) (string, error) {
-	tmpfile, err := ioutil.TempFile(dir, pattern)
+	tmpfile, err := os.CreateTemp(dir, pattern)
 	if err != nil {
 		return "", err
 	}
@@ -133,7 +132,7 @@ func parseUids(colonDelimitKeys []byte) []string {
 // getPolicy parses policy.json into policyContent.
 func getPolicy(policyPath string) (policyContent, error) {
 	var policyContentStruct policyContent
-	policyContent, err := ioutil.ReadFile(policyPath)
+	policyContent, err := os.ReadFile(policyPath)
 	if err != nil {
 		return policyContentStruct, fmt.Errorf("unable to read policy file: %w", err)
 	}
@@ -207,7 +206,7 @@ func AddPolicyEntries(policyPath string, input AddPolicyEntriesInput) error {
 
 	_, err = os.Stat(policyPath)
 	if !os.IsNotExist(err) {
-		policyContent, err := ioutil.ReadFile(policyPath)
+		policyContent, err := os.ReadFile(policyPath)
 		if err != nil {
 			return err
 		}
@@ -244,5 +243,5 @@ func AddPolicyEntries(policyPath string, input AddPolicyEntriesInput) error {
 	if err != nil {
 		return fmt.Errorf("setting trust policy: %w", err)
 	}
-	return ioutil.WriteFile(policyPath, data, 0644)
+	return os.WriteFile(policyPath, data, 0644)
 }

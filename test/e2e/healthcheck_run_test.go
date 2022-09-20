@@ -2,7 +2,6 @@ package integration
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"time"
@@ -303,7 +302,7 @@ var _ = Describe("Podman healthcheck run", func() {
 		containerfile := fmt.Sprintf(`FROM %s
 HEALTHCHECK CMD ls -l / 2>&1`, ALPINE)
 		containerfilePath := filepath.Join(targetPath, "Containerfile")
-		err = ioutil.WriteFile(containerfilePath, []byte(containerfile), 0644)
+		err = os.WriteFile(containerfilePath, []byte(containerfile), 0644)
 		Expect(err).To(BeNil())
 		defer func() {
 			Expect(os.Chdir(cwd)).To(BeNil())

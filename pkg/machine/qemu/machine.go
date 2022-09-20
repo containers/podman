@@ -12,7 +12,6 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"net/url"
@@ -391,11 +390,11 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 	// If the user provides an ignition file, we need to
 	// copy it into the conf dir
 	if len(opts.IgnitionPath) > 0 {
-		inputIgnition, err := ioutil.ReadFile(opts.IgnitionPath)
+		inputIgnition, err := os.ReadFile(opts.IgnitionPath)
 		if err != nil {
 			return false, err
 		}
-		return false, ioutil.WriteFile(v.getIgnitionFile(), inputIgnition, 0644)
+		return false, os.WriteFile(v.getIgnitionFile(), inputIgnition, 0644)
 	}
 	// Write the ignition file
 	ign := machine.DynamicIgnition{
@@ -1109,7 +1108,7 @@ func getVMInfos() ([]*machine.ListResponse, error) {
 		vm := new(MachineVM)
 		if strings.HasSuffix(d.Name(), ".json") {
 			fullPath := filepath.Join(vmConfigDir, d.Name())
-			b, err := ioutil.ReadFile(fullPath)
+			b, err := os.ReadFile(fullPath)
 			if err != nil {
 				return err
 			}
@@ -1539,7 +1538,7 @@ func (v *MachineVM) writeConfig() error {
 	if err != nil {
 		return err
 	}
-	if err := ioutil.WriteFile(v.ConfigPath.GetPath(), b, 0644); err != nil {
+	if err := os.WriteFile(v.ConfigPath.GetPath(), b, 0644); err != nil {
 		return err
 	}
 	return nil

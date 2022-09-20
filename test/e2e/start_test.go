@@ -2,7 +2,6 @@ package integration
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strconv"
 	"strings"
@@ -204,7 +203,7 @@ var _ = Describe("Podman start", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		readFirstLine := func(path string) string {
-			content, err := ioutil.ReadFile(path)
+			content, err := os.ReadFile(path)
 			Expect(err).To(BeNil())
 			return strings.Split(string(content), "\n")[0]
 		}

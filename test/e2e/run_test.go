@@ -2,7 +2,6 @@ package integration
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net"
 	"os"
 	"os/exec"
@@ -638,7 +637,7 @@ USER bin`, BB)
 		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(Equal("111"))
 
-		currentOOMScoreAdj, err := ioutil.ReadFile("/proc/self/oom_score_adj")
+		currentOOMScoreAdj, err := os.ReadFile("/proc/self/oom_score_adj")
 		Expect(err).To(BeNil())
 		session = podmanTest.Podman([]string{"run", "--rm", fedoraMinimal, "cat", "/proc/self/oom_score_adj"})
 		session.WaitWithDefaultTimeout()
@@ -845,7 +844,7 @@ USER bin`, BB)
 	"stage" : [ "prestart" ]
 }
 `, hookScriptPath)
-		err = ioutil.WriteFile(hookJSONPath, []byte(hookJSON), 0644)
+		err = os.WriteFile(hookJSONPath, []byte(hookJSON), 0644)
 		Expect(err).ToNot(HaveOccurred())
 
 		random := stringid.GenerateRandomID()
@@ -853,14 +852,14 @@ USER bin`, BB)
 		hookScript := fmt.Sprintf(`#!/bin/sh
 echo -n %s >%s
 `, random, targetFile)
-		err = ioutil.WriteFile(hookScriptPath, []byte(hookScript), 0755)
+		err = os.WriteFile(hookScriptPath, []byte(hookScript), 0755)
 		Expect(err).ToNot(HaveOccurred())
 
 		session := podmanTest.Podman([]string{"--hooks-dir", hooksDir, "run", ALPINE, "ls"})
 		session.Wait(10)
 		Expect(session).Should(Exit(0))
 
-		b, err := ioutil.ReadFile(targetFile)
+		b, err := os.ReadFile(targetFile)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(string(b)).To(Equal(random))
 	})
@@ -877,19 +876,19 @@ echo -n %s >%s
 
 		mountsFile := filepath.Join(containersDir, "mounts.conf")
 		mountString := secretsDir + ":/run/secrets"
-		err = ioutil.WriteFile(mountsFile, []byte(mountString), 0755)
+		err = os.WriteFile(mountsFile, []byte(mountString), 0755)
 		Expect(err).To(BeNil())
 
 		secretsFile := filepath.Join(secretsDir, "test.txt")
 		secretsString := "Testing secrets mount. I am mounted!"
-		err = ioutil.WriteFile(secretsFile, []byte(secretsString), 0755)
+		err = os.WriteFile(secretsFile, []byte(secretsString), 0755)
 		Expect(err).To(BeNil())
 
 		targetDir := tempdir + "/symlink/target"
 		err = os.MkdirAll(targetDir, 0755)
 		Expect(err).To(BeNil())
 		keyFile := filepath.Join(targetDir, "key.pem")
-		err = ioutil.WriteFile(keyFile, []byte(mountString), 0755)
+		err = os.WriteFile(keyFile, []byte(mountString), 0755)
 		Expect(err).To(BeNil())
 		execSession := SystemExec("ln", []string{"-s", targetDir, filepath.Join(secretsDir, "mysymlink")})
 		Expect(execSession).Should(Exit(0))
@@ -908,7 +907,7 @@ echo -n %s >%s
 	It("podman run with FIPS mode secrets", func() {
 		SkipIfRootless("rootless can not manipulate system-fips file")
 		fipsFile := "/etc/system-fips"
-		err = ioutil.WriteFile(fipsFile, []byte{}, 0755)
+		err = os.WriteFile(fipsFile, []byte{}, 0755)
 		Expect(err).To(BeNil())
 
 		session := podmanTest.Podman([]string{"run", "--rm", ALPINE, "ls", "/run/secrets"})
@@ -1070,7 +1069,7 @@ USER mail`, BB)
 		filename := "test.txt"
 		volFile := filepath.Join(vol, filename)
 		data := "Testing --volumes-from!!!"
-		err = ioutil.WriteFile(volFile, []byte(data), 0755)
+		err = os.WriteFile(volFile, []byte(data), 0755)
 		Expect(err).To(BeNil())
 		mountpoint := "/myvol/"
 
@@ -1102,7 +1101,7 @@ USER mail`, BB)
 		filename := "test.txt"
 		volFile := filepath.Join(vol, filename)
 		data := "Testing --volumes-from!!!"
-		err = ioutil.WriteFile(volFile, []byte(data), 0755)
+		err = os.WriteFile(volFile, []byte(data), 0755)
 		Expect(err).To(BeNil())
 		mountpoint := "/myvol/"
 
@@ -1469,7 +1468,7 @@ USER mail`, BB)
 			return strings.TrimSuffix(i, "\n")
 		}
 
-		curCgroupsBytes, err := ioutil.ReadFile("/proc/self/cgroup")
+		curCgroupsBytes, err := os.ReadFile("/proc/self/cgroup")
 		Expect(err).ShouldNot(HaveOccurred())
 		curCgroups := trim(string(curCgroupsBytes))
 		fmt.Printf("Output:\n%s\n", curCgroups)
@@ -1492,7 +1491,7 @@ USER mail`, BB)
 			Skip("Test only works on crun")
 		}
 
-		curCgroupsBytes, err := ioutil.ReadFile("/proc/self/cgroup")
+		curCgroupsBytes, err := os.ReadFile("/proc/self/cgroup")
 		Expect(err).To(BeNil())
 		var curCgroups string = string(curCgroupsBytes)
 		fmt.Printf("Output:\n%s\n", curCgroups)
@@ -1509,7 +1508,7 @@ USER mail`, BB)
 		pid := inspectOut[0].State.Pid
 		Expect(pid).To(Not(Equal(0)))
 
-		ctrCgroupsBytes, err := ioutil.ReadFile(fmt.Sprintf("/proc/%d/cgroup", pid))
+		ctrCgroupsBytes, err := os.ReadFile(fmt.Sprintf("/proc/%d/cgroup", pid))
 		Expect(err).To(BeNil())
 		var ctrCgroups string = string(ctrCgroupsBytes)
 		fmt.Printf("Output\n:%s\n", ctrCgroups)
@@ -1740,7 +1739,7 @@ WORKDIR /madethis`, BB)
 	It("podman run --secret", func() {
 		secretsString := "somesecretdata"
 		secretFilePath := filepath.Join(podmanTest.TempDir, "secret")
-		err := ioutil.WriteFile(secretFilePath, []byte(secretsString), 0755)
+		err := os.WriteFile(secretFilePath, []byte(secretsString), 0755)
 		Expect(err).To(BeNil())
 
 		session := podmanTest.Podman([]string{"secret", "create", "mysecret", secretFilePath})
@@ -1762,7 +1761,7 @@ WORKDIR /madethis`, BB)
 	It("podman run --secret source=mysecret,type=mount", func() {
 		secretsString := "somesecretdata"
 		secretFilePath := filepath.Join(podmanTest.TempDir, "secret")
-		err := ioutil.WriteFile(secretFilePath, []byte(secretsString), 0755)
+		err := os.WriteFile(secretFilePath, []byte(secretsString), 0755)
 		Expect(err).To(BeNil())
 
 		session := podmanTest.Podman([]string{"secret", "create", "mysecret", secretFilePath})
@@ -1784,7 +1783,7 @@ WORKDIR /madethis`, BB)
 	It("podman run --secret source=mysecret,type=mount with target", func() {
 		secretsString := "somesecretdata"
 		secretFilePath := filepath.Join(podmanTest.TempDir, "secret")
-		err := ioutil.WriteFile(secretFilePath, []byte(secretsString), 0755)
+		err := os.WriteFile(secretFilePath, []byte(secretsString), 0755)
 		Expect(err).To(BeNil())
 
 		session := podmanTest.Podman([]string{"secret", "create", "mysecret_target", secretFilePath})
@@ -1806,7 +1805,7 @@ WORKDIR /madethis`, BB)
 	It("podman run --secret source=mysecret,type=mount with target at /tmp", func() {
 		secretsString := "somesecretdata"
 		secretFilePath := filepath.Join(podmanTest.TempDir, "secret")
-		err := ioutil.WriteFile(secretFilePath, []byte(secretsString), 0755)
+		err := os.WriteFile(secretFilePath, []byte(secretsString), 0755)
 		Expect(err).To(BeNil())
 
 		session := podmanTest.Podman([]string{"secret", "create", "mysecret_target2", secretFilePath})
@@ -1828,7 +1827,7 @@ WORKDIR /madethis`, BB)
 	It("podman run --secret source=mysecret,type=env", func() {
 		secretsString := "somesecretdata"
 		secretFilePath := filepath.Join(podmanTest.TempDir, "secret")
-		err := ioutil.WriteFile(secretFilePath, []byte(secretsString), 0755)
+		err := os.WriteFile(secretFilePath, []byte(secretsString), 0755)
 		Expect(err).To(BeNil())
 
 		session := podmanTest.Podman([]string{"secret", "create", "mysecret", secretFilePath})
@@ -1844,7 +1843,7 @@ WORKDIR /madethis`, BB)
 	It("podman run --secret target option", func() {
 		secretsString := "somesecretdata"
 		secretFilePath := filepath.Join(podmanTest.TempDir, "secret")
-		err := ioutil.WriteFile(secretFilePath, []byte(secretsString), 0755)
+		err := os.WriteFile(secretFilePath, []byte(secretsString), 0755)
 		Expect(err).To(BeNil())
 
 		session := podmanTest.Podman([]string{"secret", "create", "mysecret", secretFilePath})
@@ -1860,7 +1859,7 @@ WORKDIR /madethis`, BB)
 	It("podman run --secret mount with uid, gid, mode options", func() {
 		secretsString := "somesecretdata"
 		secretFilePath := filepath.Join(podmanTest.TempDir, "secret")
-		err := ioutil.WriteFile(secretFilePath, []byte(secretsString), 0755)
+		err := os.WriteFile(secretFilePath, []byte(secretsString), 0755)
 		Expect(err).To(BeNil())
 
 		session := podmanTest.Podman([]string{"secret", "create", "mysecret", secretFilePath})
@@ -1887,7 +1886,7 @@ WORKDIR /madethis`, BB)
 	It("podman run --secret with --user", func() {
 		secretsString := "somesecretdata"
 		secretFilePath := filepath.Join(podmanTest.TempDir, "secret")
-		err := ioutil.WriteFile(secretFilePath, []byte(secretsString), 0755)
+		err := os.WriteFile(secretFilePath, []byte(secretsString), 0755)
 		Expect(err).To(BeNil())
 
 		session := podmanTest.Podman([]string{"secret", "create", "mysecret", secretFilePath})
@@ -1903,7 +1902,7 @@ WORKDIR /madethis`, BB)
 	It("podman run invalid secret option", func() {
 		secretsString := "somesecretdata"
 		secretFilePath := filepath.Join(podmanTest.TempDir, "secret")
-		err := ioutil.WriteFile(secretFilePath, []byte(secretsString), 0755)
+		err := os.WriteFile(secretFilePath, []byte(secretsString), 0755)
 		Expect(err).To(BeNil())
 
 		session := podmanTest.Podman([]string{"secret", "create", "mysecret", secretFilePath})
@@ -1968,7 +1967,7 @@ WORKDIR /madethis`, BB)
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		readFirstLine := func(path string) string {
-			content, err := ioutil.ReadFile(path)
+			content, err := os.ReadFile(path)
 			Expect(err).To(BeNil())
 			return strings.Split(string(content), "\n")[0]
 		}
