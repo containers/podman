@@ -406,6 +406,7 @@ func (ir *ImageEngine) Save(ctx context.Context, nameOrID string, tags []string,
 	saveOptions := &libimage.SaveOptions{}
 	saveOptions.DirForceCompress = options.Compress
 	saveOptions.OciAcceptUncompressedLayers = options.OciAcceptUncompressedLayers
+	saveOptions.SignaturePolicyPath = options.SignaturePolicy
 
 	// Force signature removal to preserve backwards compat.
 	// See https://github.com/containers/podman/pull/11669#issuecomment-925250264

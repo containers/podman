@@ -46,6 +46,15 @@ var _ = Describe("Podman save", func() {
 		Expect(save).Should(Exit(0))
 	})
 
+	It("podman save signature-policy flag", func() {
+		SkipIfRemote("--signature-policy N/A for remote")
+		outfile := filepath.Join(podmanTest.TempDir, "alpine.tar")
+
+		save := podmanTest.Podman([]string{"save", "--signature-policy", "/etc/containers/policy.json", "-o", outfile, ALPINE})
+		save.WaitWithDefaultTimeout()
+		Expect(save).Should(Exit(0))
+	})
+
 	It("podman save oci flag", func() {
 		outfile := filepath.Join(podmanTest.TempDir, "alpine.tar")
 
