@@ -108,7 +108,7 @@ var _ = Describe("Podman generate systemd", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(ContainSubstring("TimeoutStopSec=1294"))
-		Expect(session.OutputToString()).To(ContainSubstring(" stop -t 1234 "))
+		Expect(session.OutputToString()).To(ContainSubstring("-t 1234"))
 	})
 
 	It("podman generate systemd", func() {
@@ -149,14 +149,15 @@ var _ = Describe("Podman generate systemd", func() {
 		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(ContainSubstring("TimeoutStopSec=65"))
 		Expect(session.OutputToString()).ToNot(ContainSubstring("TimeoutStartSec="))
-		Expect(session.OutputToString()).To(ContainSubstring("podman stop -t 5"))
+		Expect(session.OutputToString()).To(ContainSubstring("podman stop"))
+		Expect(session.OutputToString()).To(ContainSubstring("-t 5"))
 
 		session = podmanTest.Podman([]string{"generate", "systemd", "--stop-timeout", "5", "--start-timeout", "123", "nginx"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(ContainSubstring("TimeoutStartSec=123"))
 		Expect(session.OutputToString()).To(ContainSubstring("TimeoutStopSec=65"))
-		Expect(session.OutputToString()).To(ContainSubstring("podman stop -t 5"))
+		Expect(session.OutputToString()).To(ContainSubstring("-t 5"))
 	})
 
 	It("podman generate systemd with user-defined dependencies", func() {
@@ -228,7 +229,8 @@ var _ = Describe("Podman generate systemd", func() {
 		Expect(output).To(ContainSubstring(" start foo-1"))
 		Expect(output).To(ContainSubstring("-infra")) // infra container
 		Expect(output).To(ContainSubstring("# container-foo-2.service"))
-		Expect(output).To(ContainSubstring(" stop -t 42 foo-2"))
+		Expect(output).To(ContainSubstring("podman stop"))
+		Expect(output).To(ContainSubstring("-t 42 foo-2"))
 		Expect(output).To(ContainSubstring("BindsTo=pod-foo.service"))
 		Expect(output).To(ContainSubstring("PIDFile="))
 		Expect(output).To(ContainSubstring("/userdata/conmon.pid"))
@@ -564,10 +566,21 @@ var _ = Describe("Podman generate systemd", func() {
 		Expect(session.OutputToString()).To(ContainSubstring("# pod-foo.service"))
 		Expect(session.OutputToString()).To(ContainSubstring("Wants=container-foo-1.service container-foo-2.service"))
 		Expect(session.OutputToString()).To(ContainSubstring("BindsTo=pod-foo.service"))
-		Expect(session.OutputToString()).To(ContainSubstring("pod create --infra-conmon-pidfile %t/pod-foo.pid --pod-id-file %t/pod-foo.pod-id --exit-policy=stop --name foo"))
-		Expect(session.OutputToString()).To(ContainSubstring("ExecStartPre=/bin/rm -f %t/pod-foo.pid %t/pod-foo.pod-id"))
-		Expect(session.OutputToString()).To(ContainSubstring("pod stop --ignore --pod-id-file %t/pod-foo.pod-id -t 10"))
-		Expect(session.OutputToString()).To(ContainSubstring("pod rm --ignore -f --pod-id-file %t/pod-foo.pod-id"))
+		Expect(session.OutputToString()).To(ContainSubstring("pod create"))
+		Expect(session.OutputToString()).To(ContainSubstring("--infra-conmon-pidfile %t/pod-foo.pid"))
+		Expect(session.OutputToString()).To(ContainSubstring("--pod-id-file %t/pod-foo.pod-id"))
+		Expect(session.OutputToString()).To(ContainSubstring("--exit-policy=stop"))
+		Expect(session.OutputToString()).To(ContainSubstring("--name foo"))
+		Expect(session.OutputToString()).To(ContainSubstring("ExecStartPre=/bin/rm"))
+		Expect(session.OutputToString()).To(ContainSubstring("-f %t/pod-foo.pid %t/pod-foo.pod-id"))
+		Expect(session.OutputToString()).To(ContainSubstring("pod stop"))
+		Expect(session.OutputToString()).To(ContainSubstring("--ignore"))
+		Expect(session.OutputToString()).To(ContainSubstring("--pod-id-file %t/pod-foo.pod-id"))
+		Expect(session.OutputToString()).To(ContainSubstring("-t 10"))
+		Expect(session.OutputToString()).To(ContainSubstring("pod rm"))
+		Expect(session.OutputToString()).To(ContainSubstring("--ignore"))
+		Expect(session.OutputToString()).To(ContainSubstring("-f"))
+		Expect(session.OutputToString()).To(ContainSubstring("--pod-id-file %t/pod-foo.pod-id"))
 	})
 
 	It("podman generate systemd --format json", func() {

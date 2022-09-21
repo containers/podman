@@ -294,9 +294,9 @@ func executePodTemplate(info *podInfo, options entities.GenerateSystemdOptions) 
 	}
 
 	info.EnvVariable = define.EnvVariable
-	info.ExecStart = "{{{{.Executable}}}} start {{{{.InfraNameOrID}}}}"
-	info.ExecStop = "{{{{.Executable}}}} stop {{{{if (ge .StopTimeout 0)}}}}-t {{{{.StopTimeout}}}}{{{{end}}}} {{{{.InfraNameOrID}}}}"
-	info.ExecStopPost = "{{{{.Executable}}}} stop {{{{if (ge .StopTimeout 0)}}}}-t {{{{.StopTimeout}}}}{{{{end}}}} {{{{.InfraNameOrID}}}}"
+	info.ExecStart = formatOptionsString("{{{{.Executable}}}} start {{{{.InfraNameOrID}}}}")
+	info.ExecStop = formatOptionsString("{{{{.Executable}}}} stop {{{{if (ge .StopTimeout 0)}}}} -t {{{{.StopTimeout}}}}{{{{end}}}} {{{{.InfraNameOrID}}}}")
+	info.ExecStopPost = formatOptionsString("{{{{.Executable}}}} stop {{{{if (ge .StopTimeout 0)}}}} -t {{{{.StopTimeout}}}}{{{{end}}}} {{{{.InfraNameOrID}}}}")
 
 	// Assemble the ExecStart command when creating a new pod.
 	//
@@ -371,11 +371,11 @@ func executePodTemplate(info *podInfo, options entities.GenerateSystemdOptions) 
 		startCommand = append(startCommand, podCreateArgs...)
 		startCommand = escapeSystemdArguments(startCommand)
 
-		info.ExecStartPre1 = "/bin/rm -f {{{{.PIDFile}}}} {{{{.PodIDFile}}}}"
-		info.ExecStartPre2 = strings.Join(startCommand, " ")
-		info.ExecStart = "{{{{.Executable}}}} {{{{if .RootFlags}}}}{{{{ .RootFlags}}}} {{{{end}}}}pod start --pod-id-file {{{{.PodIDFile}}}}"
-		info.ExecStop = "{{{{.Executable}}}} {{{{if .RootFlags}}}}{{{{ .RootFlags}}}} {{{{end}}}}pod stop --ignore --pod-id-file {{{{.PodIDFile}}}} {{{{if (ge .StopTimeout 0)}}}}-t {{{{.StopTimeout}}}}{{{{end}}}}"
-		info.ExecStopPost = "{{{{.Executable}}}} {{{{if .RootFlags}}}}{{{{ .RootFlags}}}} {{{{end}}}}pod rm --ignore -f --pod-id-file {{{{.PodIDFile}}}}"
+		info.ExecStartPre1 = formatOptionsString("/bin/rm -f {{{{.PIDFile}}}} {{{{.PodIDFile}}}}")
+		info.ExecStartPre2 = formatOptions(startCommand)
+		info.ExecStart = formatOptionsString("{{{{.Executable}}}} {{{{if .RootFlags}}}}{{{{ .RootFlags}}}} {{{{end}}}}pod start --pod-id-file {{{{.PodIDFile}}}}")
+		info.ExecStop = formatOptionsString("{{{{.Executable}}}} {{{{if .RootFlags}}}}{{{{ .RootFlags}}}} {{{{end}}}}pod stop --ignore --pod-id-file {{{{.PodIDFile}}}} {{{{if (ge .StopTimeout 0)}}}} -t {{{{.StopTimeout}}}}{{{{end}}}}")
+		info.ExecStopPost = formatOptionsString("{{{{.Executable}}}} {{{{if .RootFlags}}}}{{{{ .RootFlags}}}} {{{{end}}}}pod rm --ignore -f --pod-id-file {{{{.PodIDFile}}}}")
 	}
 	info.TimeoutStopSec = minTimeoutStopSec + info.StopTimeout
 
