@@ -25,6 +25,14 @@ func (s *APIServer) registerSecretHandlers(r *mux.Router) error {
 	//     type: string
 	//     description: Secret driver
 	//     default: "file"
+	//   - in: query
+	//     name: driveropts
+	//     type: string
+	//     description: Secret driver options
+	//   - in: query
+	//     name: labels
+	//     type: string
+	//     description: Labels on the secret
 	//   - in: body
 	//     name: request
 	//     description: Secret

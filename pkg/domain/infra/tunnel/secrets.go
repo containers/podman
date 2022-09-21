@@ -14,7 +14,8 @@ func (ic *ContainerEngine) SecretCreate(ctx context.Context, name string, reader
 	opts := new(secrets.CreateOptions).
 		WithDriver(options.Driver).
 		WithDriverOpts(options.DriverOpts).
-		WithName(name)
+		WithName(name).
+		WithLabels(options.Labels)
 	created, err := secrets.Create(ic.ClientCtx, reader, opts)
 	if err != nil {
 		return nil, err

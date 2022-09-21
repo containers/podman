@@ -22,6 +22,7 @@ func CreateSecret(w http.ResponseWriter, r *http.Request) {
 		Name       string            `schema:"name"`
 		Driver     string            `schema:"driver"`
 		DriverOpts map[string]string `schema:"driveropts"`
+		Labels     map[string]string `schema:"labels"`
 	}{
 		// override any golang type defaults
 	}
@@ -33,6 +34,7 @@ func CreateSecret(w http.ResponseWriter, r *http.Request) {
 
 	opts.Driver = query.Driver
 	opts.DriverOpts = query.DriverOpts
+	opts.Labels = query.Labels
 
 	ic := abi.ContainerEngine{Libpod: runtime}
 	report, err := ic.SecretCreate(r.Context(), query.Name, r.Body, opts)
