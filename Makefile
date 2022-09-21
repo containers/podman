@@ -850,11 +850,19 @@ endif
 
 .PHONY: install.tools
 install.tools: .install.ginkgo .install.golangci-lint ## Install needed tools
-	make -C test/tools
+	$(MAKE) -C test/tools
+
+.PHONY: .install.goimports
+.install.goimports:
+	$(MAKE) -C test/tools build/goimports
 
 .PHONY: .install.ginkgo
 .install.ginkgo:
 	$(GO) install $(BUILDFLAGS) ./vendor/github.com/onsi/ginkgo/ginkgo
+
+.PHONY: .install.gitvalidation
+.install.gitvalidation:
+	$(MAKE) -C test/tools build/git-validation
 
 .PHONY: .install.golangci-lint
 .install.golangci-lint:
@@ -863,7 +871,7 @@ install.tools: .install.ginkgo .install.golangci-lint ## Install needed tools
 .PHONY: .install.md2man
 .install.md2man:
 	if [ ! -x "$(GOMD2MAN)" ]; then \
-		make -C test/tools build/go-md2man ; \
+		$(MAKE) -C test/tools build/go-md2man ; \
 	fi
 
 .PHONY: .install.pre-commit
