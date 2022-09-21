@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"strconv"
@@ -109,7 +108,7 @@ func makeMachineRequest(ctx context.Context, client *http.Client, url string, bu
 }
 
 func annotateGvproxyResponseError(r io.Reader) error {
-	b, err := ioutil.ReadAll(r)
+	b, err := io.ReadAll(r)
 	if err == nil && len(b) > 0 {
 		return fmt.Errorf("something went wrong with the request: %q", string(b))
 	}

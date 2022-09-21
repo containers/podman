@@ -1,7 +1,6 @@
 package e2e_test
 
 import (
-	"io/ioutil"
 	"os"
 	"strconv"
 	"time"
@@ -138,9 +137,9 @@ var _ = Describe("podman machine init", func() {
 	})
 
 	It("machine init with volume", func() {
-		tmpDir, err := ioutil.TempDir("", "")
+		tmpDir, err := os.MkdirTemp("", "")
 		Expect(err).To(BeNil())
-		_, err = ioutil.TempFile(tmpDir, "example")
+		_, err = os.CreateTemp(tmpDir, "example")
 		Expect(err).To(BeNil())
 		mount := tmpDir + ":/testmountdir"
 		defer os.RemoveAll(tmpDir)

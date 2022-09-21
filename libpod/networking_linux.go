@@ -8,7 +8,6 @@ import (
 	"crypto/sha256"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"os"
 	"os/exec"
@@ -303,7 +302,7 @@ func (r *RootlessNetNS) Cleanup(runtime *Runtime) error {
 	if err != nil {
 		logrus.Error(err)
 	}
-	b, err := ioutil.ReadFile(r.getPath(rootlessNetNsSilrp4netnsPidFile))
+	b, err := os.ReadFile(r.getPath(rootlessNetNsSilrp4netnsPidFile))
 	if err == nil {
 		var i int
 		i, err = strconv.Atoi(string(b))
@@ -445,7 +444,7 @@ func (r *Runtime) GetRootlessNetNs(new bool) (*RootlessNetNS, error) {
 		// create pid file for the slirp4netns process
 		// this is need to kill the process in the cleanup
 		pid := strconv.Itoa(cmd.Process.Pid)
-		err = ioutil.WriteFile(filepath.Join(rootlessNetNsDir, rootlessNetNsSilrp4netnsPidFile), []byte(pid), 0700)
+		err = os.WriteFile(filepath.Join(rootlessNetNsDir, rootlessNetNsSilrp4netnsPidFile), []byte(pid), 0700)
 		if err != nil {
 			return nil, fmt.Errorf("unable to write rootless-netns slirp4netns pid file: %w", err)
 		}

@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -182,7 +181,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 	dockerFileSet := false
 	if utils.IsLibpodRequest(r) && query.Remote != "" {
 		// The context directory could be a URL.  Try to handle that.
-		anchorDir, err := ioutil.TempDir(parse.GetTempDir(), "libpod_builder")
+		anchorDir, err := os.MkdirTemp(parse.GetTempDir(), "libpod_builder")
 		if err != nil {
 			utils.InternalServerError(w, err)
 		}
@@ -730,7 +729,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 	if logrus.IsLevelEnabled(logrus.DebugLevel) {
 		if v, found := os.LookupEnv("PODMAN_RETAIN_BUILD_ARTIFACT"); found {
 			if keep, _ := strconv.ParseBool(v); keep {
-				t, _ := ioutil.TempFile("", "build_*_server")
+				t, _ := os.CreateTemp("", "build_*_server")
 				defer t.Close()
 				body = io.MultiWriter(t, w)
 			}
@@ -852,7 +851,7 @@ func parseLibPodIsolation(isolation string) (buildah.Isolation, error) {
 
 func extractTarFile(r *http.Request) (string, error) {
 	// build a home for the request body
-	anchorDir, err := ioutil.TempDir("", "libpod_builder")
+	anchorDir, err := os.MkdirTemp("", "libpod_builder")
 	if err != nil {
 		return "", err
 	}

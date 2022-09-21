@@ -5,7 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net"
 	"net/http"
 	"os"
@@ -95,7 +95,7 @@ func validatePlugin(newPlugin *VolumePlugin) error {
 	}
 
 	// Read and decode the body so we can tell if this is a volume plugin.
-	respBytes, err := ioutil.ReadAll(resp.Body)
+	respBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return fmt.Errorf("reading activation response body from plugin %s: %w", newPlugin.Name, err)
 	}
@@ -252,7 +252,7 @@ func (p *VolumePlugin) handleErrorResponse(resp *http.Response, endpoint, volNam
 	// Let's interpret anything other than 200 as an error.
 	// If there isn't an error, don't even bother decoding the response.
 	if resp.StatusCode != 200 {
-		errResp, err := ioutil.ReadAll(resp.Body)
+		errResp, err := io.ReadAll(resp.Body)
 		if err != nil {
 			return fmt.Errorf("reading response body from volume plugin %s: %w", p.Name, err)
 		}
@@ -307,7 +307,7 @@ func (p *VolumePlugin) ListVolumes() ([]*volume.Volume, error) {
 		return nil, err
 	}
 
-	volumeRespBytes, err := ioutil.ReadAll(resp.Body)
+	volumeRespBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("reading response body from volume plugin %s: %w", p.Name, err)
 	}
@@ -342,7 +342,7 @@ func (p *VolumePlugin) GetVolume(req *volume.GetRequest) (*volume.Volume, error)
 		return nil, err
 	}
 
-	getRespBytes, err := ioutil.ReadAll(resp.Body)
+	getRespBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("reading response body from volume plugin %s: %w", p.Name, err)
 	}
@@ -398,7 +398,7 @@ func (p *VolumePlugin) GetVolumePath(req *volume.PathRequest) (string, error) {
 		return "", err
 	}
 
-	pathRespBytes, err := ioutil.ReadAll(resp.Body)
+	pathRespBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", fmt.Errorf("reading response body from volume plugin %s: %w", p.Name, err)
 	}
@@ -435,7 +435,7 @@ func (p *VolumePlugin) MountVolume(req *volume.MountRequest) (string, error) {
 		return "", err
 	}
 
-	mountRespBytes, err := ioutil.ReadAll(resp.Body)
+	mountRespBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", fmt.Errorf("reading response body from volume plugin %s: %w", p.Name, err)
 	}

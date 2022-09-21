@@ -4,7 +4,6 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -209,7 +208,7 @@ func reboot() error {
 		return fmt.Errorf("could not create data directory: %w", err)
 	}
 	commFile := filepath.Join(dataDir, "podman-relaunch.dat")
-	if err := ioutil.WriteFile(commFile, []byte(encoded), 0600); err != nil {
+	if err := os.WriteFile(commFile, []byte(encoded), 0600); err != nil {
 		return fmt.Errorf("could not serialize command state: %w", err)
 	}
 

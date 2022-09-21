@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 
 	metadata "github.com/checkpoint-restore/checkpointctl/lib"
@@ -26,7 +25,7 @@ import (
 func CRImportCheckpointTar(ctx context.Context, runtime *libpod.Runtime, restoreOptions entities.RestoreOptions) ([]*libpod.Container, error) {
 	// First get the container definition from the
 	// tarball to a temporary directory
-	dir, err := ioutil.TempDir("", "checkpoint")
+	dir, err := os.MkdirTemp("", "checkpoint")
 	if err != nil {
 		return nil, err
 	}

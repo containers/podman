@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -635,7 +634,7 @@ func getDecryptConfig(decryptionKeys []string) (*encconfig.DecryptConfig, error)
 
 func parseDockerignore(ignoreFile string) ([]string, error) {
 	excludes := []string{}
-	ignore, err := ioutil.ReadFile(ignoreFile)
+	ignore, err := os.ReadFile(ignoreFile)
 	if err != nil {
 		return excludes, err
 	}

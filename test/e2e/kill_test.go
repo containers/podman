@@ -1,7 +1,6 @@
 package integration
 
 import (
-	"io/ioutil"
 	"os"
 
 	. "github.com/containers/podman/v4/test/utils"
@@ -150,7 +149,7 @@ var _ = Describe("Podman kill", func() {
 	})
 
 	It("podman kill --cidfile", func() {
-		tmpDir, err := ioutil.TempDir("", "")
+		tmpDir, err := os.MkdirTemp("", "")
 		Expect(err).To(BeNil())
 		tmpFile := tmpDir + "cid"
 		defer os.RemoveAll(tmpDir)
@@ -170,12 +169,12 @@ var _ = Describe("Podman kill", func() {
 	})
 
 	It("podman kill multiple --cidfile", func() {
-		tmpDir1, err := ioutil.TempDir("", "")
+		tmpDir1, err := os.MkdirTemp("", "")
 		Expect(err).To(BeNil())
 		tmpFile1 := tmpDir1 + "cid"
 		defer os.RemoveAll(tmpDir1)
 
-		tmpDir2, err := ioutil.TempDir("", "")
+		tmpDir2, err := os.MkdirTemp("", "")
 		Expect(err).To(BeNil())
 		tmpFile2 := tmpDir2 + "cid"
 		defer os.RemoveAll(tmpDir2)

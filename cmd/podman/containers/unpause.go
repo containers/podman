@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"strings"
 
 	"github.com/containers/common/pkg/cgroups"
@@ -99,7 +99,7 @@ func unpause(cmd *cobra.Command, args []string) error {
 	}
 
 	for _, cidFile := range unpauseCidFiles {
-		content, err := ioutil.ReadFile(cidFile)
+		content, err := os.ReadFile(cidFile)
 		if err != nil {
 			return fmt.Errorf("reading CIDFile: %w", err)
 		}

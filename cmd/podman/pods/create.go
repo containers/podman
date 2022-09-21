@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"runtime"
 	"sort"
@@ -300,7 +299,7 @@ func create(cmd *cobra.Command, args []string) error {
 	}
 
 	if len(podIDFile) > 0 {
-		if err = ioutil.WriteFile(podIDFile, []byte(response.Id), 0644); err != nil {
+		if err = os.WriteFile(podIDFile, []byte(response.Id), 0644); err != nil {
 			return fmt.Errorf("failed to write pod ID to file: %w", err)
 		}
 	}

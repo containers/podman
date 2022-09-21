@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -83,7 +83,7 @@ func ManifestCreate(w http.ResponseWriter, r *http.Request) {
 		status = http.StatusCreated
 	}
 
-	buffer, err := ioutil.ReadAll(r.Body)
+	buffer, err := io.ReadAll(r.Body)
 	if err != nil {
 		utils.InternalServerError(w, err)
 		return

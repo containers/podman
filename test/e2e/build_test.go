@@ -3,7 +3,6 @@ package integration
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -219,10 +218,10 @@ var _ = Describe("Podman build", func() {
 		}
 
 		fakeFile := filepath.Join(os.TempDir(), "Containerfile")
-		Expect(ioutil.WriteFile(fakeFile, []byte(fmt.Sprintf("FROM %s", ALPINE)), 0755)).To(BeNil())
+		Expect(os.WriteFile(fakeFile, []byte(fmt.Sprintf("FROM %s", ALPINE)), 0755)).To(BeNil())
 
 		targetFile := filepath.Join(targetPath, "Containerfile")
-		Expect(ioutil.WriteFile(targetFile, []byte("FROM scratch"), 0755)).To(BeNil())
+		Expect(os.WriteFile(targetFile, []byte("FROM scratch"), 0755)).To(BeNil())
 
 		defer func() {
 			Expect(os.RemoveAll(fakeFile)).To(BeNil())
@@ -257,7 +256,7 @@ var _ = Describe("Podman build", func() {
 		session := podmanTest.Podman([]string{"build", "--pull-never", "build/basicalpine", "--iidfile", targetFile})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		id, _ := ioutil.ReadFile(targetFile)
+		id, _ := os.ReadFile(targetFile)
 
 		// Verify that id is correct
 		inspect := podmanTest.Podman([]string{"inspect", string(id)})
@@ -311,7 +310,7 @@ var _ = Describe("Podman build", func() {
 RUN printenv http_proxy`, ALPINE)
 
 		dockerfilePath := filepath.Join(podmanTest.TempDir, "Dockerfile")
-		err := ioutil.WriteFile(dockerfilePath, []byte(dockerfile), 0755)
+		err := os.WriteFile(dockerfilePath, []byte(dockerfile), 0755)
 		Expect(err).To(BeNil())
 		session := podmanTest.Podman([]string{"build", "--pull-never", "--http-proxy", "--file", dockerfilePath, podmanTest.TempDir})
 		session.Wait(120)
@@ -330,7 +329,7 @@ RUN printenv http_proxy`, ALPINE)
 RUN exit 5`, ALPINE)
 
 		dockerfilePath := filepath.Join(podmanTest.TempDir, "Dockerfile")
-		err := ioutil.WriteFile(dockerfilePath, []byte(dockerfile), 0755)
+		err := os.WriteFile(dockerfilePath, []byte(dockerfile), 0755)
 		Expect(err).To(BeNil())
 		session := podmanTest.Podman([]string{"build", "-t", "error-test", "--file", dockerfilePath, podmanTest.TempDir})
 		session.Wait(120)
@@ -388,7 +387,7 @@ RUN exit 5`, ALPINE)
 		err = os.Mkdir(targetSubPath, 0755)
 		Expect(err).To(BeNil())
 		dummyFile := filepath.Join(targetSubPath, "dummy")
-		err = ioutil.WriteFile(dummyFile, []byte("dummy"), 0644)
+		err = os.WriteFile(dummyFile, []byte("dummy"), 0644)
 		Expect(err).To(BeNil())
 
 		containerfile := fmt.Sprintf(`FROM %s
@@ -396,7 +395,7 @@ ADD . /test
 RUN find /test`, ALPINE)
 
 		containerfilePath := filepath.Join(targetPath, "Containerfile")
-		err = ioutil.WriteFile(containerfilePath, []byte(containerfile), 0644)
+		err = os.WriteFile(containerfilePath, []byte(containerfile), 0644)
 		Expect(err).To(BeNil())
 
 		defer func() {
@@ -437,7 +436,7 @@ RUN find /test`, ALPINE)
 		containerfile := fmt.Sprintf("FROM %s", ALPINE)
 
 		containerfilePath := filepath.Join(targetSubPath, "Containerfile")
-		err = ioutil.WriteFile(containerfilePath, []byte(containerfile), 0644)
+		err = os.WriteFile(containerfilePath, []byte(containerfile), 0644)
 		Expect(err).To(BeNil())
 
 		defer func() {
@@ -476,7 +475,7 @@ ADD . /testfilter/
 RUN find /testfilter/`, ALPINE)
 
 		containerfilePath := filepath.Join(targetPath, "Containerfile")
-		err = ioutil.WriteFile(containerfilePath, []byte(containerfile), 0644)
+		err = os.WriteFile(containerfilePath, []byte(containerfile), 0644)
 		Expect(err).To(BeNil())
 
 		targetSubPath := filepath.Join(targetPath, "subdir")
@@ -484,15 +483,15 @@ RUN find /testfilter/`, ALPINE)
 		Expect(err).To(BeNil())
 
 		dummyFile1 := filepath.Join(targetPath, "dummy1")
-		err = ioutil.WriteFile(dummyFile1, []byte("dummy1"), 0644)
+		err = os.WriteFile(dummyFile1, []byte("dummy1"), 0644)
 		Expect(err).To(BeNil())
 
 		dummyFile2 := filepath.Join(targetPath, "dummy2")
-		err = ioutil.WriteFile(dummyFile2, []byte("dummy2"), 0644)
+		err = os.WriteFile(dummyFile2, []byte("dummy2"), 0644)
 		Expect(err).To(BeNil())
 
 		dummyFile3 := filepath.Join(targetSubPath, "dummy3")
-		err = ioutil.WriteFile(dummyFile3, []byte("dummy3"), 0644)
+		err = os.WriteFile(dummyFile3, []byte("dummy3"), 0644)
 		Expect(err).To(BeNil())
 
 		defer func() {
@@ -509,7 +508,7 @@ subdir**`
 
 		// test .dockerignore
 		By("Test .dockererignore")
-		err = ioutil.WriteFile(dockerignoreFile, []byte(dockerignoreContent), 0644)
+		err = os.WriteFile(dockerignoreFile, []byte(dockerignoreContent), 0644)
 		Expect(err).To(BeNil())
 
 		session := podmanTest.Podman([]string{"build", "-t", "test", "."})
@@ -540,18 +539,18 @@ subdir**`
 		contents.WriteString("RUN find /testfilter/ -print\n")
 
 		containerfile := filepath.Join(tempdir, "Containerfile")
-		Expect(ioutil.WriteFile(containerfile, contents.Bytes(), 0644)).ToNot(HaveOccurred())
+		Expect(os.WriteFile(containerfile, contents.Bytes(), 0644)).ToNot(HaveOccurred())
 
 		contextDir, err := CreateTempDirInTempDir()
 		Expect(err).ToNot(HaveOccurred())
 		defer os.RemoveAll(contextDir)
 
-		Expect(ioutil.WriteFile(filepath.Join(contextDir, "expected"), contents.Bytes(), 0644)).
+		Expect(os.WriteFile(filepath.Join(contextDir, "expected"), contents.Bytes(), 0644)).
 			ToNot(HaveOccurred())
 
 		subdirPath := filepath.Join(contextDir, "subdir")
 		Expect(os.MkdirAll(subdirPath, 0755)).ToNot(HaveOccurred())
-		Expect(ioutil.WriteFile(filepath.Join(subdirPath, "extra"), contents.Bytes(), 0644)).
+		Expect(os.WriteFile(filepath.Join(subdirPath, "extra"), contents.Bytes(), 0644)).
 			ToNot(HaveOccurred())
 		randomFile := filepath.Join(subdirPath, "randomFile")
 		dd := exec.Command("dd", "if=/dev/urandom", "of="+randomFile, "bs=1G", "count=1")
@@ -567,7 +566,7 @@ subdir**`
 		}()
 
 		By("Test .containerignore filtering subdirectory")
-		err = ioutil.WriteFile(filepath.Join(contextDir, ".containerignore"), []byte(`subdir/`), 0644)
+		err = os.WriteFile(filepath.Join(contextDir, ".containerignore"), []byte(`subdir/`), 0644)
 		Expect(err).ToNot(HaveOccurred())
 
 		session := podmanTest.Podman([]string{"build", "-f", containerfile, contextDir})
@@ -597,7 +596,7 @@ subdir**`
 		err = os.Mkdir(targetSubPath, 0755)
 		Expect(err).To(BeNil())
 		dummyFile := filepath.Join(targetSubPath, "dummy")
-		err = ioutil.WriteFile(dummyFile, []byte("dummy"), 0644)
+		err = os.WriteFile(dummyFile, []byte("dummy"), 0644)
 		Expect(err).To(BeNil())
 
 		emptyDir := filepath.Join(targetSubPath, "emptyDir")
@@ -612,7 +611,7 @@ RUN find /test
 RUN [[ -L /test/dummy-symlink ]] && echo SYMLNKOK || echo SYMLNKERR`, ALPINE)
 
 		containerfilePath := filepath.Join(targetSubPath, "Containerfile")
-		err = ioutil.WriteFile(containerfilePath, []byte(containerfile), 0644)
+		err = os.WriteFile(containerfilePath, []byte(containerfile), 0644)
 		Expect(err).To(BeNil())
 
 		defer func() {
@@ -641,7 +640,7 @@ RUN [[ -L /test/dummy-symlink ]] && echo SYMLNKOK || echo SYMLNKERR`, ALPINE)
 RUN cat /etc/hosts
 RUN grep CapEff /proc/self/status`
 
-		Expect(ioutil.WriteFile(containerFile, []byte(content), 0755)).To(BeNil())
+		Expect(os.WriteFile(containerFile, []byte(content), 0755)).To(BeNil())
 
 		defer func() {
 			Expect(os.RemoveAll(containerFile)).To(BeNil())
@@ -668,7 +667,7 @@ RUN grep CapEff /proc/self/status`
 		Expect(err).To(BeNil())
 
 		containerFile := filepath.Join(targetPath, "Containerfile")
-		Expect(ioutil.WriteFile(containerFile, []byte(fmt.Sprintf("FROM %s", ALPINE)), 0755)).To(BeNil())
+		Expect(os.WriteFile(containerFile, []byte(fmt.Sprintf("FROM %s", ALPINE)), 0755)).To(BeNil())
 
 		defer func() {
 			Expect(os.RemoveAll(containerFile)).To(BeNil())
@@ -712,7 +711,7 @@ RUN grep CapEff /proc/self/status`
 RUN echo hello`, ALPINE)
 
 		containerfilePath := filepath.Join(podmanTest.TempDir, "Containerfile")
-		err := ioutil.WriteFile(containerfilePath, []byte(containerfile), 0755)
+		err := os.WriteFile(containerfilePath, []byte(containerfile), 0755)
 		Expect(err).To(BeNil())
 		session := podmanTest.Podman([]string{"build", "--pull-never", "-t", "test", "--timestamp", "0", "--file", containerfilePath, podmanTest.TempDir})
 		session.WaitWithDefaultTimeout()
@@ -730,7 +729,7 @@ RUN echo hello`, ALPINE)
 		containerFile := filepath.Join(targetPath, "Containerfile")
 		content := `FROM scratch`
 
-		Expect(ioutil.WriteFile(containerFile, []byte(content), 0755)).To(BeNil())
+		Expect(os.WriteFile(containerFile, []byte(content), 0755)).To(BeNil())
 
 		session := podmanTest.Podman([]string{"build", "--log-rusage", "--pull-never", targetPath})
 		session.WaitWithDefaultTimeout()
@@ -743,7 +742,7 @@ RUN echo hello`, ALPINE)
 	It("podman build --arch --os flag", func() {
 		containerfile := `FROM scratch`
 		containerfilePath := filepath.Join(podmanTest.TempDir, "Containerfile")
-		err := ioutil.WriteFile(containerfilePath, []byte(containerfile), 0755)
+		err := os.WriteFile(containerfilePath, []byte(containerfile), 0755)
 		Expect(err).To(BeNil())
 		session := podmanTest.Podman([]string{"build", "--pull-never", "-t", "test", "--arch", "foo", "--os", "bar", "--file", containerfilePath, podmanTest.TempDir})
 		session.WaitWithDefaultTimeout()
@@ -762,7 +761,7 @@ RUN echo hello`, ALPINE)
 	It("podman build --os windows flag", func() {
 		containerfile := `FROM scratch`
 		containerfilePath := filepath.Join(podmanTest.TempDir, "Containerfile")
-		err := ioutil.WriteFile(containerfilePath, []byte(containerfile), 0755)
+		err := os.WriteFile(containerfilePath, []byte(containerfile), 0755)
 		Expect(err).To(BeNil())
 		session := podmanTest.Podman([]string{"build", "--pull-never", "-t", "test", "--os", "windows", "--file", containerfilePath, podmanTest.TempDir})
 		session.WaitWithDefaultTimeout()
@@ -785,7 +784,7 @@ RUN echo hello`, ALPINE)
 		containerfile := fmt.Sprintf(`FROM %s
 RUN ls /dev/fuse`, ALPINE)
 		containerfilePath := filepath.Join(podmanTest.TempDir, "Containerfile")
-		err := ioutil.WriteFile(containerfilePath, []byte(containerfile), 0755)
+		err := os.WriteFile(containerfilePath, []byte(containerfile), 0755)
 		Expect(err).To(BeNil())
 		session := podmanTest.Podman([]string{"build", "--pull-never", "-t", "test", "--file", containerfilePath, podmanTest.TempDir})
 		session.WaitWithDefaultTimeout()
@@ -801,7 +800,7 @@ RUN ls /dev/fuse`, ALPINE)
 		containerfile := fmt.Sprintf(`FROM %s
 RUN ls /dev/test1`, ALPINE)
 		containerfilePath := filepath.Join(podmanTest.TempDir, "Containerfile")
-		err := ioutil.WriteFile(containerfilePath, []byte(containerfile), 0755)
+		err := os.WriteFile(containerfilePath, []byte(containerfile), 0755)
 		Expect(err).To(BeNil())
 		session := podmanTest.Podman([]string{"build", "--pull-never", "-t", "test", "--file", containerfilePath, podmanTest.TempDir})
 		session.WaitWithDefaultTimeout()
@@ -822,7 +821,7 @@ RUN ls /dev/test1`, ALPINE)
 		Expect(err).To(BeNil())
 		err = os.Mkdir(buildRoot, 0755)
 		Expect(err).To(BeNil())
-		err = ioutil.WriteFile(containerFilePath, []byte(containerFile), 0755)
+		err = os.WriteFile(containerFilePath, []byte(containerFile), 0755)
 		Expect(err).To(BeNil())
 		build := podmanTest.Podman([]string{"build", "-f", containerFilePath, buildRoot})
 		build.WaitWithDefaultTimeout()

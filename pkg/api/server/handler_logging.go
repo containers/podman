@@ -2,7 +2,6 @@ package server
 
 import (
 	"io"
-	"io/ioutil"
 	"net/http"
 	"time"
 
@@ -41,7 +40,7 @@ func loggingHandler() mux.MiddlewareFunc {
 				"API":            "request",
 				"X-Reference-Id": r.Header.Get("X-Reference-Id"),
 			})
-			r.Body = ioutil.NopCloser(
+			r.Body = io.NopCloser(
 				io.TeeReader(r.Body, annotated.WriterLevel(logrus.TraceLevel)))
 
 			w = responseWriter{ResponseWriter: w}

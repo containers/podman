@@ -5,7 +5,6 @@ package machine
 
 import (
 	"errors"
-	"io/ioutil"
 	"net"
 	"net/url"
 	"os"
@@ -283,7 +282,7 @@ func (m *VMFile) Delete() error {
 
 // Read the contents of a given file and return in []bytes
 func (m *VMFile) Read() ([]byte, error) {
-	return ioutil.ReadFile(m.GetPath())
+	return os.ReadFile(m.GetPath())
 }
 
 // NewMachineFile is a constructor for VMFile

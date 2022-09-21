@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -116,7 +115,7 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, body io.Reader, options
 	validKinds := 0
 
 	// read yaml document
-	content, err := ioutil.ReadAll(body)
+	content, err := io.ReadAll(body)
 	if err != nil {
 		return nil, err
 	}
@@ -873,7 +872,7 @@ func (ic *ContainerEngine) playKubePVC(ctx context.Context, pvcYAML *v1.Persiste
 func readConfigMapFromFile(r io.Reader) (v1.ConfigMap, error) {
 	var cm v1.ConfigMap
 
-	content, err := ioutil.ReadAll(r)
+	content, err := io.ReadAll(r)
 	if err != nil {
 		return cm, fmt.Errorf("unable to read ConfigMap YAML content: %w", err)
 	}
@@ -1005,7 +1004,7 @@ func (ic *ContainerEngine) PlayKubeDown(ctx context.Context, body io.Reader, _ e
 	reports := new(entities.PlayKubeReport)
 
 	// read yaml document
-	content, err := ioutil.ReadAll(body)
+	content, err := io.ReadAll(body)
 	if err != nil {
 		return nil, err
 	}

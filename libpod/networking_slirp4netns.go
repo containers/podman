@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"os"
 	"os/exec"
@@ -324,7 +323,7 @@ func (r *Runtime) setupSlirp4netns(ctr *Container, netns ns.NetNS) error {
 				// correct value assigned so DAD is disabled for it
 				// Also make sure to change this value back to the original after slirp4netns
 				// is ready in case users rely on this sysctl.
-				orgValue, err := ioutil.ReadFile(ipv6ConfDefaultAcceptDadSysctl)
+				orgValue, err := os.ReadFile(ipv6ConfDefaultAcceptDadSysctl)
 				if err != nil {
 					netnsReadyWg.Done()
 					// on ipv6 disabled systems the sysctl does not exists
@@ -334,7 +333,7 @@ func (r *Runtime) setupSlirp4netns(ctr *Container, netns ns.NetNS) error {
 					}
 					return err
 				}
-				err = ioutil.WriteFile(ipv6ConfDefaultAcceptDadSysctl, []byte("0"), 0644)
+				err = os.WriteFile(ipv6ConfDefaultAcceptDadSysctl, []byte("0"), 0644)
 				netnsReadyWg.Done()
 				if err != nil {
 					return err
@@ -342,7 +341,7 @@ func (r *Runtime) setupSlirp4netns(ctr *Container, netns ns.NetNS) error {
 
 				// wait until slirp4nets is ready before resetting this value
 				slirpReadyWg.Wait()
-				return ioutil.WriteFile(ipv6ConfDefaultAcceptDadSysctl, orgValue, 0644)
+				return os.WriteFile(ipv6ConfDefaultAcceptDadSysctl, orgValue, 0644)
 			})
 			if err != nil {
 				logrus.Warnf("failed to set net.ipv6.conf.default.accept_dad sysctl: %v", err)
@@ -486,7 +485,7 @@ func waitForSync(syncR *os.File, cmd *exec.Cmd, logFile io.ReadSeeker, timeout t
 					if _, err := logFile.Seek(0, 0); err != nil {
 						logrus.Errorf("Could not seek log file: %q", err)
 					}
-					logContent, err := ioutil.ReadAll(logFile)
+					logContent, err := io.ReadAll(logFile)
 					if err != nil {
 						return fmt.Errorf("%s failed: %w", prog, err)
 					}
@@ -730,7 +729,7 @@ func (c *Container) reloadRootlessRLKPortMapping() error {
 	if err != nil {
 		return fmt.Errorf("port reloading failed: %w", err)
 	}
-	b, err := ioutil.ReadAll(conn)
+	b, err := io.ReadAll(conn)
 	if err != nil {
 		return fmt.Errorf("port reloading failed: %w", err)
 	}

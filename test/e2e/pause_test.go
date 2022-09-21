@@ -2,7 +2,6 @@ package integration
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -31,7 +30,7 @@ var _ = Describe("Podman pause", func() {
 		}
 
 		if CGROUPSV2 {
-			b, err := ioutil.ReadFile("/proc/self/cgroup")
+			b, err := os.ReadFile("/proc/self/cgroup")
 			if err != nil {
 				Skip("cannot read self cgroup")
 			}
@@ -336,7 +335,7 @@ var _ = Describe("Podman pause", func() {
 	})
 
 	It("podman pause --cidfile", func() {
-		tmpDir, err := ioutil.TempDir("", "")
+		tmpDir, err := os.MkdirTemp("", "")
 		Expect(err).To(BeNil())
 		tmpFile := tmpDir + "cid"
 
@@ -365,7 +364,7 @@ var _ = Describe("Podman pause", func() {
 	})
 
 	It("podman pause multiple --cidfile", func() {
-		tmpDir, err := ioutil.TempDir("", "")
+		tmpDir, err := os.MkdirTemp("", "")
 		Expect(err).To(BeNil())
 		tmpFile1 := tmpDir + "cid-1"
 		tmpFile2 := tmpDir + "cid-2"

@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	gosignal "os/signal"
@@ -224,7 +223,7 @@ func GetConfiguredMappings() ([]idtools.IDMap, []idtools.IDMap, error) {
 }
 
 func copyMappings(from, to string) error {
-	content, err := ioutil.ReadFile(from)
+	content, err := os.ReadFile(from)
 	if err != nil {
 		return err
 	}
@@ -235,7 +234,7 @@ func copyMappings(from, to string) error {
 	if bytes.Contains(content, []byte("4294967295")) {
 		content = []byte("0 0 1\n1 1 4294967294\n")
 	}
-	return ioutil.WriteFile(to, content, 0600)
+	return os.WriteFile(to, content, 0600)
 }
 
 func becomeRootInUserNS(pausePid, fileToRead string, fileOutput *os.File) (_ bool, _ int, retErr error) {
@@ -343,13 +342,13 @@ func becomeRootInUserNS(pausePid, fileToRead string, fileOutput *os.File) (_ boo
 	if !uidsMapped {
 		logrus.Warnf("Using rootless single mapping into the namespace. This might break some images. Check /etc/subuid and /etc/subgid for adding sub*ids if not using a network user")
 		setgroups := fmt.Sprintf("/proc/%d/setgroups", pid)
-		err = ioutil.WriteFile(setgroups, []byte("deny\n"), 0666)
+		err = os.WriteFile(setgroups, []byte("deny\n"), 0666)
 		if err != nil {
 			return false, -1, fmt.Errorf("cannot write setgroups file: %w", err)
 		}
 		logrus.Debugf("write setgroups file exited with 0")
 
-		err = ioutil.WriteFile(uidMap, []byte(fmt.Sprintf("%d %d 1\n", 0, os.Geteuid())), 0666)
+		err = os.WriteFile(uidMap, []byte(fmt.Sprintf("%d %d 1\n", 0, os.Geteuid())), 0666)
 		if err != nil {
 			return false, -1, fmt.Errorf("cannot write uid_map: %w", err)
 		}
@@ -369,7 +368,7 @@ func becomeRootInUserNS(pausePid, fileToRead string, fileOutput *os.File) (_ boo
 		gidsMapped = err == nil
 	}
 	if !gidsMapped {
-		err = ioutil.WriteFile(gidMap, []byte(fmt.Sprintf("%d %d 1\n", 0, os.Getegid())), 0666)
+		err = os.WriteFile(gidMap, []byte(fmt.Sprintf("%d %d 1\n", 0, os.Getegid())), 0666)
 		if err != nil {
 			return false, -1, fmt.Errorf("cannot write gid_map: %w", err)
 		}
@@ -399,7 +398,7 @@ func becomeRootInUserNS(pausePid, fileToRead string, fileOutput *os.File) (_ boo
 		// We have lost the race for writing the PID file, as probably another
 		// process created a namespace and wrote the PID.
 		// Try to join it.
-		data, err := ioutil.ReadFile(pausePid)
+		data, err := os.ReadFile(pausePid)
 		if err == nil {
 			var pid uint64
 			pid, err = strconv.ParseUint(string(data), 10, 0)
@@ -469,7 +468,7 @@ func TryJoinFromFilePaths(pausePidPath string, needNewNamespace bool, paths []st
 
 	for _, path := range paths {
 		if !needNewNamespace {
-			data, err := ioutil.ReadFile(path)
+			data, err := os.ReadFile(path)
 			if err != nil {
 				lastErr = err
 				continue

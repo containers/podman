@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math"
 	"os"
 	"os/user"
@@ -788,7 +787,7 @@ func (c *Container) createCheckpointImage(ctx context.Context, options Container
 	}
 
 	// Export checkpoint into temporary tar file
-	tmpDir, err := ioutil.TempDir("", "checkpoint_image_")
+	tmpDir, err := os.MkdirTemp("", "checkpoint_image_")
 	if err != nil {
 		return err
 	}
@@ -2442,7 +2441,7 @@ func (c *Container) generatePasswdAndGroup() (string, string, error) {
 			if err != nil {
 				return "", "", fmt.Errorf("creating path to container %s /etc/passwd: %w", c.ID(), err)
 			}
-			orig, err := ioutil.ReadFile(originPasswdFile)
+			orig, err := os.ReadFile(originPasswdFile)
 			if err != nil && !os.IsNotExist(err) {
 				return "", "", err
 			}
@@ -2488,7 +2487,7 @@ func (c *Container) generatePasswdAndGroup() (string, string, error) {
 			if err != nil {
 				return "", "", fmt.Errorf("creating path to container %s /etc/group: %w", c.ID(), err)
 			}
-			orig, err := ioutil.ReadFile(originGroupFile)
+			orig, err := os.ReadFile(originGroupFile)
 			if err != nil && !os.IsNotExist(err) {
 				return "", "", err
 			}

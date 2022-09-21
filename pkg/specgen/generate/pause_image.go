@@ -3,7 +3,6 @@ package generate
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 
 	buildahDefine "github.com/containers/buildah/define"
@@ -62,7 +61,7 @@ func buildPauseImage(rt *libpod.Runtime, rtConfig *config.Config) (string, error
 COPY %s /catatonit
 ENTRYPOINT ["/catatonit", "-P"]`, catatonitPath)
 
-	tmpF, err := ioutil.TempFile("", "pause.containerfile")
+	tmpF, err := os.CreateTemp("", "pause.containerfile")
 	if err != nil {
 		return "", err
 	}

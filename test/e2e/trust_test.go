@@ -2,7 +2,6 @@ package integration
 
 import (
 	"encoding/json"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -57,7 +56,7 @@ var _ = Describe("Podman trust", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		var teststruct map[string][]map[string]string
-		policyContent, err := ioutil.ReadFile(policyJSON)
+		policyContent, err := os.ReadFile(policyJSON)
 		if err != nil {
 			os.Exit(1)
 		}
@@ -111,7 +110,7 @@ var _ = Describe("Podman trust", func() {
 		session := podmanTest.Podman([]string{"image", "trust", "show", "--policypath", filepath.Join(INTEGRATION_ROOT, "test/policy.json"), "--raw"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		contents, err := ioutil.ReadFile(filepath.Join(INTEGRATION_ROOT, "test/policy.json"))
+		contents, err := os.ReadFile(filepath.Join(INTEGRATION_ROOT, "test/policy.json"))
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(session.OutputToString()).To(BeValidJSON())
 		Expect(string(session.Out.Contents())).To(Equal(string(contents) + "\n"))

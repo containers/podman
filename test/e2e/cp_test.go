@@ -1,7 +1,6 @@
 package integration
 
 import (
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"os/user"
@@ -43,13 +42,13 @@ var _ = Describe("Podman cp", func() {
 	// Copy a file to the container, then back to the host and make sure
 	// that the contents match.
 	It("podman cp file", func() {
-		srcFile, err := ioutil.TempFile("", "")
+		srcFile, err := os.CreateTemp("", "")
 		Expect(err).To(BeNil())
 		defer srcFile.Close()
 		defer os.Remove(srcFile.Name())
 
 		originalContent := []byte("podman cp file test")
-		err = ioutil.WriteFile(srcFile.Name(), originalContent, 0644)
+		err = os.WriteFile(srcFile.Name(), originalContent, 0644)
 		Expect(err).To(BeNil())
 
 		// Create a container. NOTE that container mustn't be running for copying.
@@ -72,7 +71,7 @@ var _ = Describe("Podman cp", func() {
 
 		// Copy FROM the container.
 
-		destFile, err := ioutil.TempFile("", "")
+		destFile, err := os.CreateTemp("", "")
 		Expect(err).To(BeNil())
 		defer destFile.Close()
 		defer os.Remove(destFile.Name())
@@ -86,7 +85,7 @@ var _ = Describe("Podman cp", func() {
 		Expect(session).Should(Exit(0))
 
 		// Now make sure the content matches.
-		roundtripContent, err := ioutil.ReadFile(destFile.Name())
+		roundtripContent, err := os.ReadFile(destFile.Name())
 		Expect(err).To(BeNil())
 		Expect(roundtripContent).To(Equal(originalContent))
 	})
@@ -94,13 +93,13 @@ var _ = Describe("Podman cp", func() {
 	// Copy a file to the container, then back to the host in --pid=host
 	It("podman cp --pid=host file", func() {
 		SkipIfRootlessCgroupsV1("Not supported for rootless + CgroupsV1")
-		srcFile, err := ioutil.TempFile("", "")
+		srcFile, err := os.CreateTemp("", "")
 		Expect(err).To(BeNil())
 		defer srcFile.Close()
 		defer os.Remove(srcFile.Name())
 
 		originalContent := []byte("podman cp file test")
-		err = ioutil.WriteFile(srcFile.Name(), originalContent, 0644)
+		err = os.WriteFile(srcFile.Name(), originalContent, 0644)
 		Expect(err).To(BeNil())
 
 		// Create a container. NOTE that container mustn't be running for copying.
@@ -120,7 +119,7 @@ var _ = Describe("Podman cp", func() {
 
 		// Copy FROM the container.
 
-		destFile, err := ioutil.TempFile("", "")
+		destFile, err := os.CreateTemp("", "")
 		Expect(err).To(BeNil())
 		defer destFile.Close()
 		defer os.Remove(destFile.Name())
@@ -130,7 +129,7 @@ var _ = Describe("Podman cp", func() {
 		Expect(session).Should(Exit(0))
 
 		// Now make sure the content matches.
-		roundtripContent, err := ioutil.ReadFile(destFile.Name())
+		roundtripContent, err := os.ReadFile(destFile.Name())
 		Expect(err).To(BeNil())
 		Expect(roundtripContent).To(Equal(originalContent))
 	})
@@ -139,13 +138,13 @@ var _ = Describe("Podman cp", func() {
 	// make sure that the link and the resolved path are accessible and
 	// give the right content.
 	It("podman cp symlink", func() {
-		srcFile, err := ioutil.TempFile("", "")
+		srcFile, err := os.CreateTemp("", "")
 		Expect(err).To(BeNil())
 		defer srcFile.Close()
 		defer os.Remove(srcFile.Name())
 
 		originalContent := []byte("podman cp symlink test")
-		err = ioutil.WriteFile(srcFile.Name(), originalContent, 0644)
+		err = os.WriteFile(srcFile.Name(), originalContent, 0644)
 		Expect(err).To(BeNil())
 
 		session := podmanTest.Podman([]string{"run", "-d", ALPINE, "top"})
@@ -178,13 +177,13 @@ var _ = Describe("Podman cp", func() {
 	// the path to the volume's mount point on the host, and 3) copy the
 	// data to the volume and not the container.
 	It("podman cp volume", func() {
-		srcFile, err := ioutil.TempFile("", "")
+		srcFile, err := os.CreateTemp("", "")
 		Expect(err).To(BeNil())
 		defer srcFile.Close()
 		defer os.Remove(srcFile.Name())
 
 		originalContent := []byte("podman cp volume")
-		err = ioutil.WriteFile(srcFile.Name(), originalContent, 0644)
+		err = os.WriteFile(srcFile.Name(), originalContent, 0644)
 		Expect(err).To(BeNil())
 		session := podmanTest.Podman([]string{"volume", "create", "data"})
 		session.WaitWithDefaultTimeout()
@@ -205,7 +204,7 @@ var _ = Describe("Podman cp", func() {
 		Expect(session).Should(Exit(0))
 
 		volumeMountPoint := session.OutputToString()
-		copiedContent, err := ioutil.ReadFile(filepath.Join(volumeMountPoint, "file.txt"))
+		copiedContent, err := os.ReadFile(filepath.Join(volumeMountPoint, "file.txt"))
 		Expect(err).To(BeNil())
 		Expect(copiedContent).To(Equal(originalContent))
 	})
@@ -214,7 +213,7 @@ var _ = Describe("Podman cp", func() {
 	// it to the host and back to the container and make sure that we can
 	// access it, and (roughly) the right users own it.
 	It("podman cp from ctr chown ", func() {
-		srcFile, err := ioutil.TempFile("", "")
+		srcFile, err := os.CreateTemp("", "")
 		Expect(err).To(BeNil())
 		defer srcFile.Close()
 		defer os.Remove(srcFile.Name())
@@ -265,7 +264,7 @@ var _ = Describe("Podman cp", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
-		tmpDir, err := ioutil.TempDir("", "")
+		tmpDir, err := os.MkdirTemp("", "")
 		Expect(err).To(BeNil())
 
 		session = podmanTest.Podman([]string{"cp", container + ":/", tmpDir})

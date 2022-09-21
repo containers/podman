@@ -1,7 +1,6 @@
 package events
 
 import (
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -29,7 +28,7 @@ func TestRotateLog(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		tmp, err := ioutil.TempFile("", "log-rotation-")
+		tmp, err := os.CreateTemp("", "log-rotation-")
 		require.NoError(t, err)
 		defer os.Remove(tmp.Name())
 		defer tmp.Close()
@@ -84,7 +83,7 @@ func TestTruncationOutput(t *testing.T) {
 10
 `
 	// Create dummy file
-	tmp, err := ioutil.TempFile("", "log-rotation")
+	tmp, err := os.CreateTemp("", "log-rotation")
 	require.NoError(t, err)
 	defer os.Remove(tmp.Name())
 	defer tmp.Close()
@@ -94,11 +93,11 @@ func TestTruncationOutput(t *testing.T) {
 	require.NoError(t, err)
 
 	// Truncate the file
-	beforeTruncation, err := ioutil.ReadFile(tmp.Name())
+	beforeTruncation, err := os.ReadFile(tmp.Name())
 	require.NoError(t, err)
 	err = truncate(tmp.Name())
 	require.NoError(t, err)
-	afterTruncation, err := ioutil.ReadFile(tmp.Name())
+	afterTruncation, err := os.ReadFile(tmp.Name())
 	require.NoError(t, err)
 
 	// Test if rotation was successful
@@ -116,9 +115,9 @@ func TestRenameLog(t *testing.T) {
 5
 `
 	// Create two dummy files
-	source, err := ioutil.TempFile("", "removing")
+	source, err := os.CreateTemp("", "removing")
 	require.NoError(t, err)
-	target, err := ioutil.TempFile("", "renaming")
+	target, err := os.CreateTemp("", "renaming")
 	require.NoError(t, err)
 
 	// Write to source dummy file
@@ -126,11 +125,11 @@ func TestRenameLog(t *testing.T) {
 	require.NoError(t, err)
 
 	// Rename the files
-	beforeRename, err := ioutil.ReadFile(source.Name())
+	beforeRename, err := os.ReadFile(source.Name())
 	require.NoError(t, err)
 	err = renameLog(source.Name(), target.Name())
 	require.NoError(t, err)
-	afterRename, err := ioutil.ReadFile(target.Name())
+	afterRename, err := os.ReadFile(target.Name())
 	require.NoError(t, err)
 
 	// Test if renaming was successful

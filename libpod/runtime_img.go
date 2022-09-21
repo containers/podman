@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 
 	buildahDefine "github.com/containers/buildah/define"
@@ -105,7 +104,7 @@ func (r *Runtime) Build(ctx context.Context, options buildahDefine.BuildOptions,
 // DownloadFromFile reads all of the content from the reader and temporarily
 // saves in it $TMPDIR/importxyz, which is deleted after the image is imported
 func DownloadFromFile(reader *os.File) (string, error) {
-	outFile, err := ioutil.TempFile(util.Tmpdir(), "import")
+	outFile, err := os.CreateTemp(util.Tmpdir(), "import")
 	if err != nil {
 		return "", fmt.Errorf("creating file: %w", err)
 	}

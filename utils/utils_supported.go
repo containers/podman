@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -181,7 +180,7 @@ func moveUnderCgroup(cgroup, subtree string, processes []uint32) error {
 				}
 			}
 		} else {
-			processesData, err := ioutil.ReadFile(filepath.Join(cgroupRoot, parts[2], "cgroup.procs"))
+			processesData, err := os.ReadFile(filepath.Join(cgroupRoot, parts[2], "cgroup.procs"))
 			if err != nil {
 				return err
 			}

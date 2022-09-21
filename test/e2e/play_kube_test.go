@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"net/url"
 	"os"
@@ -767,7 +766,7 @@ func generateMultiDocKubeYaml(kubeObjects []string, pathname string) error {
 
 func createSecret(podmanTest *PodmanTestIntegration, name string, value []byte) { //nolint:unparam
 	secretFilePath := filepath.Join(podmanTest.TempDir, "secret")
-	err := ioutil.WriteFile(secretFilePath, value, 0755)
+	err := os.WriteFile(secretFilePath, value, 0755)
 	Expect(err).To(BeNil())
 
 	secret := podmanTest.Podman([]string{"secret", "create", name, secretFilePath})
@@ -1442,7 +1441,7 @@ var _ = Describe("Podman play kube", func() {
 		conffile := filepath.Join(podmanTest.TempDir, "container.conf")
 
 		infraImage := "k8s.gcr.io/pause:3.2"
-		err := ioutil.WriteFile(conffile, []byte(fmt.Sprintf("[engine]\ninfra_image=\"%s\"\n", infraImage)), 0644)
+		err := os.WriteFile(conffile, []byte(fmt.Sprintf("[engine]\ninfra_image=\"%s\"\n", infraImage)), 0644)
 		Expect(err).To(BeNil())
 
 		os.Setenv("CONTAINERS_CONF", conffile)
@@ -2370,7 +2369,7 @@ spec:
 		tempdir, err = CreateTempDirInTempDir()
 		Expect(err).To(BeNil())
 
-		err := ioutil.WriteFile(conffile, []byte(testyaml), 0755)
+		err := os.WriteFile(conffile, []byte(testyaml), 0755)
 		Expect(err).To(BeNil())
 
 		kube := podmanTest.Podman([]string{"play", "kube", conffile})
@@ -3800,7 +3799,7 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 		if name == "root" {
 			name = "containers"
 		}
-		content, err := ioutil.ReadFile("/etc/subuid")
+		content, err := os.ReadFile("/etc/subuid")
 		if err != nil {
 			Skip("cannot read /etc/subuid")
 		}
@@ -3808,7 +3807,7 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 			Skip("cannot find mappings for the current user")
 		}
 
-		initialUsernsConfig, err := ioutil.ReadFile("/proc/self/uid_map")
+		initialUsernsConfig, err := os.ReadFile("/proc/self/uid_map")
 		Expect(err).To(BeNil())
 		if os.Geteuid() != 0 {
 			unshare := podmanTest.Podman([]string{"unshare", "cat", "/proc/self/uid_map"})

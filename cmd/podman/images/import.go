@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"strings"
 
@@ -116,7 +115,7 @@ func importCon(cmd *cobra.Command, args []string) error {
 	}
 
 	if source == "-" {
-		outFile, err := ioutil.TempFile("", "podman")
+		outFile, err := os.CreateTemp("", "podman")
 		if err != nil {
 			return fmt.Errorf("creating file %v", err)
 		}

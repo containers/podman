@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -201,7 +200,7 @@ func (c *Container) waitForExitFileAndSync() error {
 // This assumes the exit file already exists.
 func (c *Container) handleExitFile(exitFile string, fi os.FileInfo) error {
 	c.state.FinishedTime = ctime.Created(fi)
-	statusCodeStr, err := ioutil.ReadFile(exitFile)
+	statusCodeStr, err := os.ReadFile(exitFile)
 	if err != nil {
 		return fmt.Errorf("failed to read exit file for container %s: %w", c.ID(), err)
 	}
@@ -2089,7 +2088,7 @@ func (c *Container) saveSpec(spec *spec.Spec) error {
 	if err != nil {
 		return fmt.Errorf("exporting runtime spec for container %s to JSON: %w", c.ID(), err)
 	}
-	if err := ioutil.WriteFile(jsonPath, fileJSON, 0644); err != nil {
+	if err := os.WriteFile(jsonPath, fileJSON, 0644); err != nil {
 		return fmt.Errorf("writing runtime spec JSON for container %s to disk: %w", c.ID(), err)
 	}
 
@@ -2343,7 +2342,7 @@ func (c *Container) extractSecretToCtrStorage(secr *ContainerSecret) error {
 	if err != nil {
 		return fmt.Errorf("unable to extract secret: %w", err)
 	}
-	err = ioutil.WriteFile(secretFile, data, 0644)
+	err = os.WriteFile(secretFile, data, 0644)
 	if err != nil {
 		return fmt.Errorf("unable to create %s: %w", secretFile, err)
 	}

@@ -1,7 +1,7 @@
 package integration
 
 import (
-	"io/ioutil"
+	"io"
 	"net"
 	"net/http"
 	"net/url"
@@ -89,7 +89,7 @@ var _ = Describe("podman system service", func() {
 			defer resp.Body.Close()
 			Expect(resp).To(HaveHTTPStatus(http.StatusOK))
 
-			body, err := ioutil.ReadAll(resp.Body)
+			body, err := io.ReadAll(resp.Body)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(body).ShouldNot(BeEmpty())
 

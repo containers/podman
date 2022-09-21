@@ -3,7 +3,7 @@ package libpod
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net"
 	"os"
 	"strings"
@@ -351,7 +351,7 @@ func (c *Container) specFromState() (*spec.Spec, error) {
 
 	if f, err := os.Open(c.state.ConfigPath); err == nil {
 		returnSpec = new(spec.Spec)
-		content, err := ioutil.ReadAll(f)
+		content, err := io.ReadAll(f)
 		if err != nil {
 			return nil, fmt.Errorf("reading container config: %w", err)
 		}
@@ -990,7 +990,7 @@ func (c *Container) cGroupPath() (string, error) {
 	// the lookup.
 	// See #10602 for more details.
 	procPath := fmt.Sprintf("/proc/%d/cgroup", c.state.PID)
-	lines, err := ioutil.ReadFile(procPath)
+	lines, err := os.ReadFile(procPath)
 	if err != nil {
 		// If the file doesn't exist, it means the container could have been terminated
 		// so report it.

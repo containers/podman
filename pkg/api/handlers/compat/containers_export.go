@@ -2,7 +2,6 @@ package compat
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
 
@@ -19,7 +18,7 @@ func ExportContainer(w http.ResponseWriter, r *http.Request) {
 		utils.ContainerNotFound(w, name, err)
 		return
 	}
-	tmpfile, err := ioutil.TempFile("", "api.tar")
+	tmpfile, err := os.CreateTemp("", "api.tar")
 	if err != nil {
 		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("unable to create tempfile: %w", err))
 		return

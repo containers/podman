@@ -3,7 +3,6 @@ package containers
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/user"
 	"path/filepath"
@@ -379,7 +378,7 @@ func copyToContainer(container string, containerPath string, hostPath string) er
 		// Copy from stdin to a temporary file *before* throwing it
 		// over the wire.  This allows for proper client-side error
 		// reporting.
-		tmpFile, err := ioutil.TempFile("", "")
+		tmpFile, err := os.CreateTemp("", "")
 		if err != nil {
 			return err
 		}

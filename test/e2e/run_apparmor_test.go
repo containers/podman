@@ -5,7 +5,6 @@ package integration
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -104,7 +103,7 @@ profile aa-test-profile flags=(attach_disconnected,mediate_deleted) {
 }
 `
 		aaFile := filepath.Join(os.TempDir(), "aaFile")
-		Expect(ioutil.WriteFile(aaFile, []byte(aaProfile), 0755)).To(BeNil())
+		Expect(os.WriteFile(aaFile, []byte(aaProfile), 0755)).To(BeNil())
 		parse := SystemExec("apparmor_parser", []string{"-Kr", aaFile})
 		Expect(parse).Should(Exit(0))
 

@@ -3,7 +3,6 @@ package specgenutil
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"os"
 	"strconv"
@@ -18,7 +17,7 @@ import (
 // ReadPodIDFile reads the specified file and returns its content (i.e., first
 // line).
 func ReadPodIDFile(path string) (string, error) {
-	content, err := ioutil.ReadFile(path)
+	content, err := os.ReadFile(path)
 	if err != nil {
 		return "", fmt.Errorf("reading pod ID file: %w", err)
 	}

@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
-	"io/ioutil"
 	"net/url"
 	"os"
 	"os/exec"
@@ -423,7 +422,7 @@ func (v *MachineVM) writeConfig() error {
 	if err != nil {
 		return err
 	}
-	if err := ioutil.WriteFile(jsonFile, b, 0644); err != nil {
+	if err := os.WriteFile(jsonFile, b, 0644); err != nil {
 		return fmt.Errorf("could not write machine json config: %w", err)
 	}
 
@@ -1285,7 +1284,7 @@ func readWinProxyTid(v *MachineVM) (uint32, uint32, string, error) {
 	}
 
 	tidFile := filepath.Join(stateDir, winSshProxyTid)
-	contents, err := ioutil.ReadFile(tidFile)
+	contents, err := os.ReadFile(tidFile)
 	if err != nil {
 		return 0, 0, "", err
 	}

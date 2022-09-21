@@ -2,7 +2,6 @@ package utils
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net/url"
 	"os"
 	"os/exec"
@@ -29,7 +28,7 @@ func ExecuteTransfer(src, dst string, parentFlags []string, quiet bool, sshMode 
 		return nil, nil, nil, nil, err
 	}
 
-	f, err := ioutil.TempFile("", "podman") // open temp file for load/save output
+	f, err := os.CreateTemp("", "podman") // open temp file for load/save output
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}

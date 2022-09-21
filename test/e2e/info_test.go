@@ -2,7 +2,6 @@ package integration
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"os/user"
@@ -104,7 +103,7 @@ var _ = Describe("Podman Info", func() {
 		driver := `"overlay"`
 		storageOpt := `"/usr/bin/fuse-overlayfs"`
 		storageConf := []byte(fmt.Sprintf("[storage]\ndriver=%s\nrootless_storage_path=%s\n[storage.options]\nmount_program=%s", driver, rootlessStoragePath, storageOpt))
-		err = ioutil.WriteFile(configPath, storageConf, os.ModePerm)
+		err = os.WriteFile(configPath, storageConf, os.ModePerm)
 		Expect(err).To(BeNil())
 
 		u, err := user.Current()

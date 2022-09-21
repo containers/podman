@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"strings"
 
@@ -93,7 +92,7 @@ func load(cmd *cobra.Command, args []string) error {
 		if term.IsTerminal(int(os.Stdin.Fd())) {
 			return errors.New("cannot read from terminal, use command-line redirection or the --input flag")
 		}
-		outFile, err := ioutil.TempFile(util.Tmpdir(), "podman")
+		outFile, err := os.CreateTemp(util.Tmpdir(), "podman")
 		if err != nil {
 			return fmt.Errorf("creating file %v", err)
 		}

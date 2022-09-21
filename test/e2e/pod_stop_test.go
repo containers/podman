@@ -1,7 +1,6 @@
 package integration
 
 import (
-	"io/ioutil"
 	"os"
 
 	. "github.com/containers/podman/v4/test/utils"
@@ -181,7 +180,7 @@ var _ = Describe("Podman pod stop", func() {
 	})
 
 	It("podman pod start/stop single pod via --pod-id-file", func() {
-		tmpDir, err := ioutil.TempDir("", "")
+		tmpDir, err := os.MkdirTemp("", "")
 		Expect(err).To(BeNil())
 		tmpFile := tmpDir + "podID"
 		defer os.RemoveAll(tmpDir)
@@ -210,7 +209,7 @@ var _ = Describe("Podman pod stop", func() {
 	})
 
 	It("podman pod start/stop multiple pods via --pod-id-file", func() {
-		tmpDir, err := ioutil.TempDir("", "")
+		tmpDir, err := os.MkdirTemp("", "")
 		Expect(err).To(BeNil())
 		defer os.RemoveAll(tmpDir)
 
