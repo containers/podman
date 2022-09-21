@@ -576,13 +576,8 @@ uninstall:
 	rm -f ${DESTDIR}${USERSYSTEMDDIR}/podman.socket
 	rm -f ${DESTDIR}${USERSYSTEMDDIR}/podman.service
 
-.PHONY: .gitvalidation
-.gitvalidation: .gopathok
-	@echo "Validating vs commit '$(call err_if_empty,EPOCH_TEST_COMMIT)'"
-	GIT_CHECK_EXCLUDE="./vendor:docs/make.bat" $(GOBIN)/git-validation -run DCO,short-subject,dangling-whitespace -range $(EPOCH_TEST_COMMIT)..$(HEAD)
-
 .PHONY: install.tools
-install.tools: .install.goimports .install.gitvalidation .install.md2man .install.ginkgo .install.golangci-lint .install.bats ## Install needed tools
+install.tools: .install.goimports .install.md2man .install.ginkgo .install.golangci-lint .install.bats ## Install needed tools
 
 define go-get
 	env GO111MODULE=off \
@@ -599,12 +594,6 @@ endef
 .install.ginkgo: .gopathok
 	if [ ! -x "$(GOBIN)/ginkgo" ]; then \
 		$(GO) install $(BUILDFLAGS) ./vendor/github.com/onsi/ginkgo/ginkgo ; \
-	fi
-
-.PHONY: .install.gitvalidation
-.install.gitvalidation: .gopathok
-	if [ ! -x "$(GOBIN)/git-validation" ]; then \
-		$(call go-get,github.com/vbatts/git-validation); \
 	fi
 
 .PHONY: .install.golangci-lint
@@ -644,7 +633,7 @@ validate.completions:
 	if [ -x /bin/fish ]; then /bin/fish completions/fish/podman.fish; fi
 
 .PHONY: validate
-validate: gofmt lint .gitvalidation validate.completions man-page-check swagger-check
+validate: gofmt lint validate.completions man-page-check swagger-check
 
 .PHONY: build-all-new-commits
 build-all-new-commits:
