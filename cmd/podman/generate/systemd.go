@@ -64,6 +64,7 @@ func init() {
 	})
 	flags := systemdCmd.Flags()
 	flags.BoolVarP(&systemdOptions.Name, "name", "n", false, "Use container/pod names instead of IDs")
+	flags.BoolVarP(&systemdOptions.Pull, "pull", "p", false, "Add ExecStartPre directive to pull the image (for updates)")
 	flags.BoolVarP(&files, "files", "f", false, "Generate .service files instead of printing to stdout")
 	flags.BoolVar(&systemdOptions.TemplateUnitFile, "template", false, "Make it a template file and use %i and %I specifiers. Working only for containers")
 
@@ -132,6 +133,10 @@ func systemd(cmd *cobra.Command, args []string) error {
 	}
 	if !systemdOptions.New && systemdOptions.TemplateUnitFile {
 		systemdOptions.New = true
+	}
+
+	if systemdOptions.Pull && !systemdOptions.New {
+		return errors.New("--pull cannot be used without --new")
 	}
 
 	if cmd.Flags().Changed(restartSecFlagName) {

@@ -6,6 +6,7 @@ import "io"
 type GenerateSystemdOptions struct {
 	Name                   bool
 	New                    bool
+	Pull                   bool
 	RestartPolicy          *string
 	RestartSec             *uint
 	StartTimeout           *uint

@@ -70,6 +70,12 @@ Using this flag will yield unit files that do not expect containers and pods to 
 
 Note that `--new` only works on containers and pods created directly via Podman (i.e., `podman [container] {create,run}` or `podman pod create`).  It does not work on containers or pods created via the REST API or via `podman kube play`.
 
+#### **--pull**
+
+Using this flag will add an `ExecStartPre` option to pull the image before starting it. This can only be used in conjunction with `--new`. The same precautions apply with `--new`; please review the generated files carefully before using them in production.
+
+Be warned that this can end up with being ratelimited by dockerhub if a container fails to start - it may be best to limit restarts if using this flag.
+
 #### **--no-header**
 
 Do not generate the header including meta data such as the Podman version and the timestamp.
