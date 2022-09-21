@@ -311,7 +311,7 @@ var _ = Describe("Podman secret", func() {
 
 	It("podman secret with labels", func() {
 		secretFilePath := filepath.Join(podmanTest.TempDir, "secret")
-		err := ioutil.WriteFile(secretFilePath, []byte("mysecret"), 0755)
+		err := os.WriteFile(secretFilePath, []byte("mysecret"), 0755)
 		Expect(err).To(BeNil())
 
 		session := podmanTest.Podman([]string{"secret", "create", "--label", "foo=bar", "a", secretFilePath})
