@@ -892,4 +892,14 @@ $IMAGE--c_ok" \
     run_podman container rm -f -t 0 c_ok c_fail_no_rm
 }
 
+@test "podman run --attach stdin prints container ID" {
+    ctr_name="container-$(random_string 5)"
+    run_podman run --name $ctr_name --attach stdin $IMAGE echo hello
+    run_output=$output
+    run_podman inspect --format "{{.Id}}" $ctr_name
+    ctr_id=$output
+    is "$run_output" "$ctr_id" "Did not find container ID in the output"
+    run_podman rm $ctr_name
+}
+
 # vim: filetype=sh
