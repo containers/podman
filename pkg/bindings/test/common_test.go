@@ -3,7 +3,6 @@ package bindings_test
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -146,7 +145,7 @@ func newBindingTest() *bindingTest {
 
 // createTempDirinTempDir create a temp dir with prefix podman_test
 func createTempDirInTempDir() (string, error) {
-	return ioutil.TempDir("", "libpod_api")
+	return os.MkdirTemp("", "libpod_api")
 }
 
 func (b *bindingTest) startAPIService() *gexec.Session {
@@ -264,7 +263,7 @@ var _ = ginkgo.SynchronizedBeforeSuite(func() []byte {
 	// If running localized tests, the cache dir is created and populated. if the
 	// tests are remote, this is a no-op
 	createCache()
-	path, err := ioutil.TempDir("", "libpodlock")
+	path, err := os.MkdirTemp("", "libpodlock")
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)

@@ -12,7 +12,6 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"strings"
@@ -72,7 +71,7 @@ func main() {
 	)
 	srcFile := os.Getenv("GOFILE")
 	inputStructName := os.Args[1]
-	b, err := ioutil.ReadFile(srcFile)
+	b, err := os.ReadFile(srcFile)
 	if err != nil {
 		panic(err)
 	}

@@ -1,7 +1,6 @@
 package bindings_test
 
 import (
-	"io/ioutil"
 	"os"
 	"time"
 
@@ -76,7 +75,7 @@ var _ = Describe("Podman images", func() {
 		imageRef := imageRep + ":" + imageTag
 
 		// Create a temporary authentication file.
-		tmpFile, err := ioutil.TempFile("", "auth.json.")
+		tmpFile, err := os.CreateTemp("", "auth.json.")
 		Expect(err).To(BeNil())
 		_, err = tmpFile.Write([]byte{'{', '}'})
 		Expect(err).To(BeNil())
