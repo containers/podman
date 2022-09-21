@@ -70,7 +70,7 @@ func FindDeviceNodes() (map[string]string, error) {
 	return nodes, nil
 }
 
-func AddPrivilegedDevices(g *generate.Generator) error {
+func AddPrivilegedDevices(g *generate.Generator, systemdMode bool) error {
 	hostDevices, err := getDevices("/dev")
 	if err != nil {
 		return err
@@ -104,6 +104,9 @@ func AddPrivilegedDevices(g *generate.Generator) error {
 		}
 	} else {
 		for _, d := range hostDevices {
+			if systemdMode && strings.HasPrefix(d.Path, "/dev/tty") {
+				continue
+			}
 			g.AddDevice(d)
 		}
 		// Add resources device - need to clear the existing one first.

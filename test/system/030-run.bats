@@ -901,4 +901,22 @@ $IMAGE--c_ok" \
     run_podman rm $ctr_name
 }
 
+@test "podman run --privileged as root with systemd will not mount /dev/tty" {
+    skip_if_rootless "this test only makes sense as root"
+
+    ctr_name="container-$(random_string 5)"
+    run_podman run --rm -d --privileged --systemd=always --name "$ctr_name" "$IMAGE" /home/podman/pause
+
+    TTYs=$(ls /dev/tty*|sed '/^\/dev\/tty$/d')
+
+    if [[ $TTYs = "" ]]; then
+        die "Did not find any /dev/ttyN devices on local host"
+    else
+        run_podman exec "$ctr_name" ls /dev/
+        assert "$(grep tty <<<$output)" = "tty" "There must be no /dev/ttyN devices in the container"
+    fi
+
+    run_podman stop "$ctr_name"
+}
+
 # vim: filetype=sh
