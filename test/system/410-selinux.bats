@@ -39,12 +39,10 @@ function check_label() {
 }
 
 @test "podman selinux: container with label=disable" {
-    skip_if_aarch64 "FIXME: #15074 - fails on aarch64"
     check_label "--security-opt label=disable" "spc_t"
 }
 
 @test "podman selinux: privileged container" {
-    skip_if_aarch64 "FIXME: #15074 - fails on aarch64"
     check_label "--privileged --userns=host" "spc_t"
 }
 
@@ -65,7 +63,6 @@ function check_label() {
 }
 
 @test "podman selinux: pid=host" {
-    skip_if_aarch64 "FIXME: #15074 - fails on aarch64"
     # FIXME this test fails when run rootless with runc:
     #   Error: container_linux.go:367: starting container process caused: process_linux.go:495: container init caused: readonly path /proc/asound: operation not permitted: OCI permission denied
     if is_rootless; then
