@@ -579,7 +579,7 @@ function skip_if_root_ubuntu {
 
 function skip_if_aarch64 {
     if is_aarch64; then
-        skip "${msg:-Cannot run this test on aarch64 systems}"
+        echo "# HEADS-UP: this test is usually skipped on aarch64" >&3
     fi
 }
 
