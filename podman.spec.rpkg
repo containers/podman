@@ -6,7 +6,7 @@
 %global with_debug 1
 
 # _user_tmpfiles.d currently undefined on rhel
-%if 0%{?rhel}
+%if 0%{?fedora} <= 35 || 0%{?rhel}
 %global _user_tmpfilesdir %{_datadir}/user-tmpfiles.d
 %endif
 
