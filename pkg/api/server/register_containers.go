@@ -1516,6 +1516,10 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//    name: printStats
 	//    type: boolean
 	//    description: add restore statistics to the returned RestoreReport
+	//  - in: query
+	//    name: pod
+	//    type: string
+	//    description: pod to restore into
 	// produces:
 	// - application/json
 	// responses:
