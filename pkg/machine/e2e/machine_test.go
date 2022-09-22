@@ -128,7 +128,7 @@ func teardown(origHomeDir string, testDir string, mb *machineTestBuilder) {
 			fmt.Printf("error occurred rm'ing machine: %q\n", err)
 		}
 	}
-	if err := os.RemoveAll(testDir); err != nil {
+	if err := machine.GuardedRemoveAll(testDir); err != nil {
 		Fail(fmt.Sprintf("failed to remove test dir: %q", err))
 	}
 	// this needs to be last in teardown
