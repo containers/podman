@@ -3,7 +3,6 @@
 load helpers
 
 @test "podman run - basic tests" {
-    skip_if_aarch64 "FIXME: #15074 - fails on aarch64"
     rand=$(random_string 30)
 
     err_no_such_cmd="Error:.*/no/such/command.*[Nn]o such file or directory"
