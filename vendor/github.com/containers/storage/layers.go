@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -352,7 +351,7 @@ func (r *layerStore) Load() error {
 	} else {
 		r.layerspathModified = info.ModTime()
 	}
-	data, err := ioutil.ReadFile(rpath)
+	data, err := os.ReadFile(rpath)
 	if err != nil && !os.IsNotExist(err) {
 		return err
 	}
@@ -443,7 +442,7 @@ func (r *layerStore) LoadLocked() error {
 func (r *layerStore) loadMounts() error {
 	mounts := make(map[string]*Layer)
 	mpath := r.mountspath()
-	data, err := ioutil.ReadFile(mpath)
+	data, err := os.ReadFile(mpath)
 	if err != nil && !os.IsNotExist(err) {
 		return err
 	}
@@ -754,7 +753,7 @@ func (r *layerStore) Put(id string, parentLayer *Layer, names []string, mountLab
 		templateUncompressedDigest, templateUncompressedSize = templateLayer.UncompressedDigest, templateLayer.UncompressedSize
 		templateCompressionType = templateLayer.CompressionType
 		templateUIDs, templateGIDs = append([]uint32{}, templateLayer.UIDs...), append([]uint32{}, templateLayer.GIDs...)
-		templateTSdata, tserr = ioutil.ReadFile(r.tspath(templateLayer.ID))
+		templateTSdata, tserr = os.ReadFile(r.tspath(templateLayer.ID))
 		if tserr != nil && !os.IsNotExist(tserr) {
 			return nil, -1, tserr
 		}
@@ -1389,6 +1388,9 @@ func (r *layerStore) Wipe() error {
 	for id := range r.byid {
 		ids = append(ids, id)
 	}
+	sort.Slice(ids, func(i, j int) bool {
+		return r.byid[ids[i]].Created.After(r.byid[ids[j]].Created)
+	})
 	for _, id := range ids {
 		if err := r.Delete(id); err != nil {
 			return err
@@ -1668,7 +1670,7 @@ func (r *layerStore) applyDiffWithOptions(to string, layerOptions *LayerOptions,
 	if compressedDigester != nil {
 		compressedWriter = compressedDigester.Hash()
 	} else {
-		compressedWriter = ioutil.Discard
+		compressedWriter = io.Discard
 	}
 	compressedCounter := ioutils.NewWriteCounter(compressedWriter)
 	defragmented = io.TeeReader(defragmented, compressedCounter)

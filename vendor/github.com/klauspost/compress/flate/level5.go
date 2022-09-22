@@ -191,14 +191,21 @@ func (e *fastEncL5) Encode(dst *tokens, src []byte) {
 
 		// Try to locate a better match by checking the end of best match...
 		if sAt := s + l; l < 30 && sAt < sLimit {
+			// Allow some bytes at the beginning to mismatch.
+			// Sweet spot is 2/3 bytes depending on input.
+			// 3 is only a little better when it is but sometimes a lot worse.
+			// The skipped bytes are tested in Extend backwards,
+			// and still picked up as part of the match if they do.
+			const skipBeginning = 2
 			eLong := e.bTable[hash7(load6432(src, sAt), tableBits)].Cur.offset
-			// Test current
-			t2 := eLong - e.cur - l
-			off := s - t2
+			t2 := eLong - e.cur - l + skipBeginning
+			s2 := s + skipBeginning
+			off := s2 - t2
 			if t2 >= 0 && off < maxMatchOffset && off > 0 {
-				if l2 := e.matchlenLong(s, t2, src); l2 > l {
+				if l2 := e.matchlenLong(s2, t2, src); l2 > l {
 					t = t2
 					l = l2
+					s = s2
 				}
 			}
 		}

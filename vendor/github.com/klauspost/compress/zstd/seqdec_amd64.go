@@ -32,18 +32,22 @@ type decodeSyncAsmContext struct {
 // sequenceDecs_decodeSync_amd64 implements the main loop of sequenceDecs.decodeSync in x86 asm.
 //
 // Please refer to seqdec_generic.go for the reference implementation.
+//
 //go:noescape
 func sequenceDecs_decodeSync_amd64(s *sequenceDecs, br *bitReader, ctx *decodeSyncAsmContext) int
 
 // sequenceDecs_decodeSync_bmi2 implements the main loop of sequenceDecs.decodeSync in x86 asm with BMI2 extensions.
+//
 //go:noescape
 func sequenceDecs_decodeSync_bmi2(s *sequenceDecs, br *bitReader, ctx *decodeSyncAsmContext) int
 
 // sequenceDecs_decodeSync_safe_amd64 does the same as above, but does not write more than output buffer.
+//
 //go:noescape
 func sequenceDecs_decodeSync_safe_amd64(s *sequenceDecs, br *bitReader, ctx *decodeSyncAsmContext) int
 
 // sequenceDecs_decodeSync_safe_bmi2 does the same as above, but does not write more than output buffer.
+//
 //go:noescape
 func sequenceDecs_decodeSync_safe_bmi2(s *sequenceDecs, br *bitReader, ctx *decodeSyncAsmContext) int
 
@@ -201,20 +205,24 @@ const errorNotEnoughSpace = 5
 // sequenceDecs_decode implements the main loop of sequenceDecs in x86 asm.
 //
 // Please refer to seqdec_generic.go for the reference implementation.
+//
 //go:noescape
 func sequenceDecs_decode_amd64(s *sequenceDecs, br *bitReader, ctx *decodeAsmContext) int
 
 // sequenceDecs_decode implements the main loop of sequenceDecs in x86 asm.
 //
 // Please refer to seqdec_generic.go for the reference implementation.
+//
 //go:noescape
 func sequenceDecs_decode_56_amd64(s *sequenceDecs, br *bitReader, ctx *decodeAsmContext) int
 
 // sequenceDecs_decode implements the main loop of sequenceDecs in x86 asm with BMI2 extensions.
+//
 //go:noescape
 func sequenceDecs_decode_bmi2(s *sequenceDecs, br *bitReader, ctx *decodeAsmContext) int
 
 // sequenceDecs_decode implements the main loop of sequenceDecs in x86 asm with BMI2 extensions.
+//
 //go:noescape
 func sequenceDecs_decode_56_bmi2(s *sequenceDecs, br *bitReader, ctx *decodeAsmContext) int
 
@@ -308,10 +316,12 @@ type executeAsmContext struct {
 // Returns false if a match offset is too big.
 //
 // Please refer to seqdec_generic.go for the reference implementation.
+//
 //go:noescape
 func sequenceDecs_executeSimple_amd64(ctx *executeAsmContext) bool
 
 // Same as above, but with safe memcopies
+//
 //go:noescape
 func sequenceDecs_executeSimple_safe_amd64(ctx *executeAsmContext) bool
 

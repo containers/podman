@@ -199,6 +199,7 @@ type NetAddress struct {
 // PerNetworkOptions are options which should be set on a per network basis.
 type PerNetworkOptions struct {
 	// StaticIPs for this container. Optional.
+	// swagger:type []string
 	StaticIPs []net.IP `json:"static_ips,omitempty"`
 	// Aliases contains a list of names which the dns server should resolve
 	// to this container. Should only be set when DNSEnabled is true on the Network.
@@ -207,6 +208,7 @@ type PerNetworkOptions struct {
 	// Optional.
 	Aliases []string `json:"aliases,omitempty"`
 	// StaticMac for this container. Optional.
+	// swagger:strfmt string
 	StaticMAC HardwareAddr `json:"static_mac,omitempty"`
 	// InterfaceName for this container. Required in the backend.
 	// Optional in the frontend. Will be filled with ethX (where X is a integer) when empty.

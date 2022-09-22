@@ -8,7 +8,6 @@ import (
 	"bufio"
 	"encoding/base64"
 	"io"
-	"io/ioutil"
 
 	"github.com/containers/storage/pkg/chunked/internal"
 	"github.com/containers/storage/pkg/ioutils"
@@ -21,9 +20,7 @@ const holesThreshold = int64(1 << 10)
 
 type holesFinder struct {
 	reader    *bufio.Reader
-	fileOff   int64
 	zeros     int64
-	from      int64
 	threshold int64
 
 	state int
@@ -432,7 +429,7 @@ func zstdChunkedWriterWithLevel(out io.Writer, metadata map[string]string, level
 
 	go func() {
 		ch <- writeZstdChunkedStream(out, metadata, r, level)
-		io.Copy(ioutil.Discard, r)
+		io.Copy(io.Discard, r)
 		r.Close()
 		close(ch)
 	}()

@@ -123,11 +123,11 @@ func TempDirForURL(dir, prefix, url string) (name string, subdir string, err err
 	}
 	name, err = ioutil.TempDir(dir, prefix)
 	if err != nil {
-		return "", "", fmt.Errorf("error creating temporary directory for %q: %w", url, err)
+		return "", "", fmt.Errorf("creating temporary directory for %q: %w", url, err)
 	}
 	urlParsed, err := urlpkg.Parse(url)
 	if err != nil {
-		return "", "", fmt.Errorf("error parsing url %q: %w", url, err)
+		return "", "", fmt.Errorf("parsing url %q: %w", url, err)
 	}
 	if strings.HasPrefix(url, "git://") || strings.HasSuffix(urlParsed.Path, ".git") {
 		combinedOutput, gitSubDir, err := cloneToDirectory(url, name)

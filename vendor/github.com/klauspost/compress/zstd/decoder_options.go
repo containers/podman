@@ -20,6 +20,7 @@ type decoderOptions struct {
 	maxWindowSize  uint64
 	dicts          []dict
 	ignoreChecksum bool
+	limitToCap     bool
 }
 
 func (o *decoderOptions) setDefault() {
@@ -110,6 +111,17 @@ func WithDecoderMaxWindow(size uint64) DOption {
 			return errors.New("WithMaxWindowSize must be less than (1<<41) + 7*(1<<38) ~ 3.75TB")
 		}
 		o.maxWindowSize = size
+		return nil
+	}
+}
+
+// WithDecodeAllCapLimit will limit DecodeAll to decoding cap(dst)-len(dst) bytes,
+// or any size set in WithDecoderMaxMemory.
+// This can be used to limit decoding to a specific maximum output size.
+// Disabled by default.
+func WithDecodeAllCapLimit(b bool) DOption {
+	return func(o *decoderOptions) error {
+		o.limitToCap = b
 		return nil
 	}
 }

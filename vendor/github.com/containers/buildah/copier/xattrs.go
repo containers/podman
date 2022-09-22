@@ -54,7 +54,7 @@ func Lgetxattrs(path string) (map[string]string, error) {
 				list = list[:0]
 				break
 			}
-			return nil, fmt.Errorf("error listing extended attributes of %q: %w", path, err)
+			return nil, fmt.Errorf("listing extended attributes of %q: %w", path, err)
 		}
 		list = list[:size]
 		break
@@ -75,7 +75,7 @@ func Lgetxattrs(path string) (map[string]string, error) {
 						attributeSize *= 2
 						continue
 					}
-					return nil, fmt.Errorf("error getting value of extended attribute %q on %q: %w", attribute, path, err)
+					return nil, fmt.Errorf("getting value of extended attribute %q on %q: %w", attribute, path, err)
 				}
 				m[attribute] = string(attributeValue[:size])
 				break
@@ -93,7 +93,7 @@ func Lsetxattrs(path string, xattrs map[string]string) error {
 	for attribute, value := range xattrs {
 		if isRelevantXattr(attribute) {
 			if err := unix.Lsetxattr(path, attribute, []byte(value), 0); err != nil {
-				return fmt.Errorf("error setting value of extended attribute %q on %q: %w", attribute, path, err)
+				return fmt.Errorf("setting value of extended attribute %q on %q: %w", attribute, path, err)
 			}
 		}
 	}

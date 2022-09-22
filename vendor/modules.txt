@@ -97,7 +97,7 @@ github.com/containernetworking/cni/pkg/version
 # github.com/containernetworking/plugins v1.1.1
 ## explicit; go 1.17
 github.com/containernetworking/plugins/pkg/ns
-# github.com/containers/buildah v1.27.1-0.20220907121344-97a52b13bb27
+# github.com/containers/buildah v1.27.1-0.20220921131114-d3064796af36
 ## explicit; go 1.17
 github.com/containers/buildah
 github.com/containers/buildah/bind
@@ -120,7 +120,7 @@ github.com/containers/buildah/pkg/rusage
 github.com/containers/buildah/pkg/sshagent
 github.com/containers/buildah/pkg/util
 github.com/containers/buildah/util
-# github.com/containers/common v0.49.2-0.20220909190843-e5685792b5d7
+# github.com/containers/common v0.49.2-0.20220920205255-8062f81c5497
 ## explicit; go 1.17
 github.com/containers/common/libimage
 github.com/containers/common/libimage/define
@@ -174,7 +174,7 @@ github.com/containers/common/version
 # github.com/containers/conmon v2.0.20+incompatible
 ## explicit
 github.com/containers/conmon/runner/config
-# github.com/containers/image/v5 v5.22.1-0.20220907162003-651744379993
+# github.com/containers/image/v5 v5.22.1-0.20220919112403-fe51f7ffca50
 ## explicit; go 1.17
 github.com/containers/image/v5/copy
 github.com/containers/image/v5/directory
@@ -266,7 +266,7 @@ github.com/containers/psgo/internal/dev
 github.com/containers/psgo/internal/host
 github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
-# github.com/containers/storage v1.42.1-0.20220911223137-e11b246de159
+# github.com/containers/storage v1.42.1-0.20220919112236-8a581aac3bdf
 ## explicit; go 1.16
 github.com/containers/storage
 github.com/containers/storage/drivers
@@ -438,7 +438,7 @@ github.com/golang/protobuf/ptypes
 github.com/golang/protobuf/ptypes/any
 github.com/golang/protobuf/ptypes/duration
 github.com/golang/protobuf/ptypes/timestamp
-# github.com/google/go-cmp v0.5.8
+# github.com/google/go-cmp v0.5.9
 ## explicit; go 1.13
 github.com/google/go-cmp/cmp
 github.com/google/go-cmp/cmp/internal/diff
@@ -476,8 +476,6 @@ github.com/hashicorp/errwrap
 # github.com/hashicorp/go-multierror v1.1.1
 ## explicit; go 1.13
 github.com/hashicorp/go-multierror
-# github.com/honeycombio/libhoney-go v1.15.8
-## explicit; go 1.14
 # github.com/imdario/mergo v0.3.13
 ## explicit; go 1.13
 github.com/imdario/mergo
@@ -490,8 +488,8 @@ github.com/jinzhu/copier
 # github.com/json-iterator/go v1.1.12
 ## explicit; go 1.12
 github.com/json-iterator/go
-# github.com/klauspost/compress v1.15.9
-## explicit; go 1.16
+# github.com/klauspost/compress v1.15.10
+## explicit; go 1.17
 github.com/klauspost/compress
 github.com/klauspost/compress/flate
 github.com/klauspost/compress/fse
@@ -534,9 +532,9 @@ github.com/mattn/go-shellwords
 # github.com/miekg/pkcs11 v1.1.1
 ## explicit; go 1.12
 github.com/miekg/pkcs11
-# github.com/mistifyio/go-zfs v2.1.2-0.20190413222219-f784269be439+incompatible
-## explicit
-github.com/mistifyio/go-zfs
+# github.com/mistifyio/go-zfs/v3 v3.0.0
+## explicit; go 1.14
+github.com/mistifyio/go-zfs/v3
 # github.com/moby/sys/mount v0.3.3
 ## explicit; go 1.16
 github.com/moby/sys/mount
@@ -692,7 +690,7 @@ github.com/rootless-containers/rootlesskit/pkg/port/portutil
 # github.com/seccomp/libseccomp-golang v0.10.0
 ## explicit; go 1.14
 github.com/seccomp/libseccomp-golang
-# github.com/sigstore/sigstore v1.4.0
+# github.com/sigstore/sigstore v1.4.1
 ## explicit; go 1.17
 github.com/sigstore/sigstore/pkg/cryptoutils
 github.com/sigstore/sigstore/pkg/signature
@@ -724,7 +722,7 @@ github.com/syndtr/gocapability/capability
 # github.com/tchap/go-patricia v2.3.0+incompatible
 ## explicit
 github.com/tchap/go-patricia/patricia
-# github.com/theupdateframework/go-tuf v0.4.0
+# github.com/theupdateframework/go-tuf v0.5.0
 ## explicit; go 1.18
 github.com/theupdateframework/go-tuf/encrypted
 # github.com/titanous/rocacheck v0.0.0-20171023193734-afe73141d399
@@ -762,6 +760,8 @@ github.com/vishvananda/netlink/nl
 # github.com/vishvananda/netns v0.0.0-20210104183010-2eb08e3e575f
 ## explicit; go 1.12
 github.com/vishvananda/netns
+# github.com/vmihailenco/msgpack/v5 v5.3.5
+## explicit; go 1.11
 # github.com/xeipuuv/gojsonpointer v0.0.0-20190905194746-02993c407bfb
 ## explicit
 github.com/xeipuuv/gojsonpointer
@@ -784,7 +784,7 @@ go.opencensus.io/internal
 go.opencensus.io/trace
 go.opencensus.io/trace/internal
 go.opencensus.io/trace/tracestate
-# golang.org/x/crypto v0.0.0-20220722155217-630584e8d5aa
+# golang.org/x/crypto v0.0.0-20220829220503-c86fa9a7ed90
 ## explicit; go 1.17
 golang.org/x/crypto/blowfish
 golang.org/x/crypto/cast5
@@ -792,8 +792,8 @@ golang.org/x/crypto/chacha20
 golang.org/x/crypto/curve25519
 golang.org/x/crypto/curve25519/internal/field
 golang.org/x/crypto/ed25519
+golang.org/x/crypto/internal/alias
 golang.org/x/crypto/internal/poly1305
-golang.org/x/crypto/internal/subtle
 golang.org/x/crypto/nacl/secretbox
 golang.org/x/crypto/ocsp
 golang.org/x/crypto/openpgp
@@ -810,7 +810,7 @@ golang.org/x/crypto/ssh
 golang.org/x/crypto/ssh/agent
 golang.org/x/crypto/ssh/internal/bcrypt_pbkdf
 golang.org/x/crypto/ssh/knownhosts
-# golang.org/x/net v0.0.0-20220722155237-a158d28d115b
+# golang.org/x/net v0.0.0-20220826154423-83b083e8dc8b
 ## explicit; go 1.17
 golang.org/x/net/context
 golang.org/x/net/html

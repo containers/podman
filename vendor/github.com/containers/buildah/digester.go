@@ -75,7 +75,7 @@ func (t *tarFilterer) Close() error {
 	err := t.pipeWriter.Close()
 	t.wg.Wait()
 	if err != nil {
-		return fmt.Errorf("error closing filter pipe: %w", err)
+		return fmt.Errorf("closing filter pipe: %w", err)
 	}
 	return t.err
 }
@@ -110,7 +110,7 @@ func newTarFilterer(writeCloser io.WriteCloser, filter func(hdr *tar.Header) (sk
 				if !skip {
 					err = tarWriter.WriteHeader(hdr)
 					if err != nil {
-						err = fmt.Errorf("error filtering tar header for %q: %w", hdr.Name, err)
+						err = fmt.Errorf("filtering tar header for %q: %w", hdr.Name, err)
 						break
 					}
 					if hdr.Size != 0 {
@@ -122,11 +122,11 @@ func newTarFilterer(writeCloser io.WriteCloser, filter func(hdr *tar.Header) (sk
 							n, copyErr = io.Copy(tarWriter, tarReader)
 						}
 						if copyErr != nil {
-							err = fmt.Errorf("error copying content for %q: %w", hdr.Name, copyErr)
+							err = fmt.Errorf("copying content for %q: %w", hdr.Name, copyErr)
 							break
 						}
 						if n != hdr.Size {
-							err = fmt.Errorf("error filtering content for %q: expected %d bytes, got %d bytes", hdr.Name, hdr.Size, n)
+							err = fmt.Errorf("filtering content for %q: expected %d bytes, got %d bytes", hdr.Name, hdr.Size, n)
 							break
 						}
 					}
@@ -134,7 +134,7 @@ func newTarFilterer(writeCloser io.WriteCloser, filter func(hdr *tar.Header) (sk
 				hdr, err = tarReader.Next()
 			}
 			if err != io.EOF {
-				filterer.err = fmt.Errorf("error reading tar archive: %w", err)
+				filterer.err = fmt.Errorf("reading tar archive: %w", err)
 				break
 			}
 			filterer.closedLock.Lock()

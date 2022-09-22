@@ -23,7 +23,7 @@ func customConfigFile() (string, error) {
 	if path, found := os.LookupEnv("CONTAINERS_CONF"); found {
 		return path, nil
 	}
-	if unshare.IsRootless() {
+	if unshare.GetRootlessUID() > 0 {
 		path, err := rootlessConfigPath()
 		if err != nil {
 			return "", err
@@ -34,7 +34,7 @@ func customConfigFile() (string, error) {
 }
 
 func ifRootlessConfigPath() (string, error) {
-	if unshare.IsRootless() {
+	if unshare.GetRootlessUID() > 0 {
 		path, err := rootlessConfigPath()
 		if err != nil {
 			return "", err

@@ -17,7 +17,7 @@ func get() (Rusage, error) {
 	var rusage syscall.Rusage
 	err := syscall.Getrusage(syscall.RUSAGE_CHILDREN, &rusage)
 	if err != nil {
-		return Rusage{}, fmt.Errorf("error getting resource usage: %w", err)
+		return Rusage{}, fmt.Errorf("getting resource usage: %w", err)
 	}
 	r := Rusage{
 		Date:     time.Now(),

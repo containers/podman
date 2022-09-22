@@ -1,7 +1,6 @@
 package chunked
 
 import (
-	"fmt"
 	"io"
 )
 
@@ -22,5 +21,5 @@ type ErrBadRequest struct {
 }
 
 func (e ErrBadRequest) Error() string {
-	return fmt.Sprintf("bad request")
+	return "bad request"
 }

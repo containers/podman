@@ -131,7 +131,8 @@ func (d *compressor) fillDeflate(b []byte) int {
 	s := d.state
 	if s.index >= 2*windowSize-(minMatchLength+maxMatchLength) {
 		// shift the window by windowSize
-		copy(d.window[:], d.window[windowSize:2*windowSize])
+		//copy(d.window[:], d.window[windowSize:2*windowSize])
+		*(*[windowSize]byte)(d.window) = *(*[windowSize]byte)(d.window[windowSize:])
 		s.index -= windowSize
 		d.windowEnd -= windowSize
 		if d.blockStart >= windowSize {

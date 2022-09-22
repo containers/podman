@@ -29,7 +29,6 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path"
@@ -170,7 +169,7 @@ func Init(home string, options graphdriver.Options) (graphdriver.Driver, error) 
 
 	for _, path := range []string{"mnt", "diff"} {
 		p := filepath.Join(home, path)
-		entries, err := ioutil.ReadDir(p)
+		entries, err := os.ReadDir(p)
 		if err != nil {
 			logger.WithError(err).WithField("dir", p).Error("error reading dir entries")
 			continue
@@ -730,14 +729,14 @@ func (a *Driver) aufsMount(ro []string, rw, target string, options graphdriver.M
 // version of aufs.
 func useDirperm() bool {
 	enableDirpermLock.Do(func() {
-		base, err := ioutil.TempDir("", "storage-aufs-base")
+		base, err := os.MkdirTemp("", "storage-aufs-base")
 		if err != nil {
 			logrus.Errorf("Checking dirperm1: %v", err)
 			return
 		}
 		defer os.RemoveAll(base)
 
-		union, err := ioutil.TempDir("", "storage-aufs-union")
+		union, err := os.MkdirTemp("", "storage-aufs-union")
 		if err != nil {
 			logrus.Errorf("Checking dirperm1: %v", err)
 			return

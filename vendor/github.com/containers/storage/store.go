@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -36,6 +35,13 @@ const (
 	setNames updateNameOperation = iota
 	addNames
 	removeNames
+)
+
+const (
+	volatileFlag     = "Volatile"
+	mountLabelFlag   = "MountLabel"
+	processLabelFlag = "ProcessLabel"
+	mountOptsFlag    = "MountOpts"
 )
 
 var (
@@ -632,16 +638,17 @@ type store struct {
 // If StoreOptions `options` haven't been fully populated, then DefaultStoreOptions are used.
 //
 // These defaults observe environment variables:
-//  * `STORAGE_DRIVER` for the name of the storage driver to attempt to use
-//  * `STORAGE_OPTS` for the string of options to pass to the driver
+//   - `STORAGE_DRIVER` for the name of the storage driver to attempt to use
+//   - `STORAGE_OPTS` for the string of options to pass to the driver
 //
 // Note that we do some of this work in a child process.  The calling process's
 // main() function needs to import our pkg/reexec package and should begin with
 // something like this in order to allow us to properly start that child
 // process:
-//   if reexec.Init() {
-//       return
-//   }
+//
+//	if reexec.Init() {
+//	    return
+//	}
 func GetStore(options types.StoreOptions) (Store, error) {
 	defaultOpts, err := types.Options()
 	if err != nil {
@@ -1399,11 +1406,10 @@ func (s *store) CreateContainer(id string, names []string, image, layer, metadat
 	if options.Flags == nil {
 		options.Flags = make(map[string]interface{})
 	}
-	plabel, _ := options.Flags["ProcessLabel"].(string)
-	mlabel, _ := options.Flags["MountLabel"].(string)
-	if (plabel == "" && mlabel != "") ||
-		(plabel != "" && mlabel == "") {
-		return nil, errors.New("processLabel and Mountlabel must either not be specified or both specified")
+	plabel, _ := options.Flags[processLabelFlag].(string)
+	mlabel, _ := options.Flags[mountLabelFlag].(string)
+	if (plabel == "" && mlabel != "") || (plabel != "" && mlabel == "") {
+		return nil, errors.New("ProcessLabel and Mountlabel must either not be specified or both specified")
 	}
 
 	if plabel == "" {
@@ -1411,11 +1417,12 @@ func (s *store) CreateContainer(id string, names []string, image, layer, metadat
 		if err != nil {
 			return nil, err
 		}
-		options.Flags["ProcessLabel"] = processLabel
-		options.Flags["MountLabel"] = mountLabel
+		mlabel = mountLabel
+		options.Flags[processLabelFlag] = processLabel
+		options.Flags[mountLabelFlag] = mountLabel
 	}
 
-	clayer, err := rlstore.Create(layer, imageTopLayer, nil, options.Flags["MountLabel"].(string), options.StorageOpt, layerOptions, true)
+	clayer, err := rlstore.Create(layer, imageTopLayer, nil, mlabel, options.StorageOpt, layerOptions, true)
 	if err != nil {
 		return nil, err
 	}
@@ -2790,8 +2797,10 @@ func (s *store) Mount(id, mountLabel string) (string, error) {
 		options.GidMaps = container.GIDMap
 		options.Options = container.MountOpts()
 		if !s.disableVolatile {
-			if v, found := container.Flags["Volatile"]; found {
-				options.Volatile = v.(bool)
+			if v, found := container.Flags[volatileFlag]; found {
+				if b, ok := v.(bool); ok {
+					options.Volatile = b
+				}
 			}
 		}
 	}
@@ -3541,7 +3550,7 @@ func (s *store) FromContainerDirectory(id, file string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return ioutil.ReadFile(filepath.Join(dir, file))
+	return os.ReadFile(filepath.Join(dir, file))
 }
 
 func (s *store) SetContainerRunDirectoryFile(id, file string, data []byte) error {
@@ -3561,7 +3570,7 @@ func (s *store) FromContainerRunDirectory(id, file string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return ioutil.ReadFile(filepath.Join(dir, file))
+	return os.ReadFile(filepath.Join(dir, file))
 }
 
 func (s *store) Shutdown(force bool) ([]string, error) {

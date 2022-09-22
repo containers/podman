@@ -16,12 +16,12 @@ func GetRootlessRuntimeDir(rootlessUID int) (string, error) {
 	return types.GetRootlessRuntimeDir(rootlessUID)
 }
 
-// DefaultStoreOptionsAutoDetectUID returns the default storage ops for containers
+// DefaultStoreOptionsAutoDetectUID returns the default storage options for containers
 func DefaultStoreOptionsAutoDetectUID() (types.StoreOptions, error) {
 	return types.DefaultStoreOptionsAutoDetectUID()
 }
 
-// DefaultStoreOptions returns the default storage ops for containers
+// DefaultStoreOptions returns the default storage options for containers
 func DefaultStoreOptions(rootless bool, rootlessUID int) (types.StoreOptions, error) {
 	return types.DefaultStoreOptions(rootless, rootlessUID)
 }

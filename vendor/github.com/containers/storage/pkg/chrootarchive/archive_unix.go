@@ -9,7 +9,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -111,7 +110,7 @@ func invokeUnpack(decompressedArchive io.Reader, dest string, options *archive.T
 		// when `xz -d -c -q | storage-untar ...` failed on storage-untar side,
 		// we need to exhaust `xz`'s output, otherwise the `xz` side will be
 		// pending on write pipe forever
-		io.Copy(ioutil.Discard, decompressedArchive)
+		io.Copy(io.Discard, decompressedArchive)
 
 		return fmt.Errorf("processing tar file(%s): %w", output, err)
 	}

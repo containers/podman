@@ -10,7 +10,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sync"
@@ -651,7 +650,7 @@ func (b *blockDec) prepareSequences(in []byte, hist *history) (err error) {
 		fatalErr(binary.Write(&buf, binary.LittleEndian, hist.decoders.matchLengths.fse))
 		fatalErr(binary.Write(&buf, binary.LittleEndian, hist.decoders.offsets.fse))
 		buf.Write(in)
-		ioutil.WriteFile(filepath.Join("testdata", "seqs", fn), buf.Bytes(), os.ModePerm)
+		os.WriteFile(filepath.Join("testdata", "seqs", fn), buf.Bytes(), os.ModePerm)
 	}
 
 	return nil

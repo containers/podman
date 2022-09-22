@@ -17,6 +17,12 @@ This package provides various compression algorithms.
 
 # changelog
 
+* July 21, 2022 (v1.15.9)
+
+	* zstd: Fix decoder crash on amd64 (no BMI) on invalid input https://github.com/klauspost/compress/pull/645
+	* zstd: Disable decoder extended memory copies (amd64) due to possible crashes https://github.com/klauspost/compress/pull/644
+	* zstd: Allow single segments up to "max decoded size" by @klauspost in https://github.com/klauspost/compress/pull/643
+
 * July 13, 2022 (v1.15.8)
 
 	* gzip: fix stack exhaustion bug in Reader.Read https://github.com/klauspost/compress/pull/641

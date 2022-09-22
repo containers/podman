@@ -226,7 +226,7 @@ func (s *store) getAutoUserNS(options *types.AutoUserNsOptions, image *Image) ([
 		return nil, nil, fmt.Errorf("cannot read mappings: %w", err)
 	}
 
-	// Look every container that is using a user namespace and store
+	// Look at every container that is using a user namespace and store
 	// the intervals that are already used.
 	containers, err := s.Containers()
 	if err != nil {

@@ -312,6 +312,7 @@ func (d *Decoder) DecodeAll(input, dst []byte) ([]byte, error) {
 	// Grab a block decoder and frame decoder.
 	block := <-d.decoders
 	frame := block.localFrame
+	initialSize := len(dst)
 	defer func() {
 		if debugDecoder {
 			printf("re-adding decoder: %p", block)
@@ -354,7 +355,16 @@ func (d *Decoder) DecodeAll(input, dst []byte) ([]byte, error) {
 			return dst, ErrWindowSizeExceeded
 		}
 		if frame.FrameContentSize != fcsUnknown {
-			if frame.FrameContentSize > d.o.maxDecodedSize-uint64(len(dst)) {
+			if frame.FrameContentSize > d.o.maxDecodedSize-uint64(len(dst)-initialSize) {
+				if debugDecoder {
+					println("decoder size exceeded; fcs:", frame.FrameContentSize, "> mcs:", d.o.maxDecodedSize-uint64(len(dst)-initialSize), "len:", len(dst))
+				}
+				return dst, ErrDecoderSizeExceeded
+			}
+			if d.o.limitToCap && frame.FrameContentSize > uint64(cap(dst)-len(dst)) {
+				if debugDecoder {
+					println("decoder size exceeded; fcs:", frame.FrameContentSize, "> (cap-len)", cap(dst)-len(dst))
+				}
 				return dst, ErrDecoderSizeExceeded
 			}
 			if cap(dst)-len(dst) < int(frame.FrameContentSize) {
@@ -364,7 +374,7 @@ func (d *Decoder) DecodeAll(input, dst []byte) ([]byte, error) {
 			}
 		}
 
-		if cap(dst) == 0 {
+		if cap(dst) == 0 && !d.o.limitToCap {
 			// Allocate len(input) * 2 by default if nothing is provided
 			// and we didn't get frame content size.
 			size := len(input) * 2
@@ -381,6 +391,9 @@ func (d *Decoder) DecodeAll(input, dst []byte) ([]byte, error) {
 		dst, err = frame.runDecoder(dst, block)
 		if err != nil {
 			return dst, err
+		}
+		if uint64(len(dst)-initialSize) > d.o.maxDecodedSize {
+			return dst, ErrDecoderSizeExceeded
 		}
 		if len(frame.bBuf) == 0 {
 			if debugDecoder {
@@ -852,6 +865,10 @@ decodeStream:
 			}
 		}
 		if err == nil && d.frame.WindowSize > d.o.maxWindowSize {
+			if debugDecoder {
+				println("decoder size exceeded, fws:", d.frame.WindowSize, "> mws:", d.o.maxWindowSize)
+			}
+
 			err = ErrDecoderSizeExceeded
 		}
 		if err != nil {

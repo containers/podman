@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"hash"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -657,7 +656,7 @@ func (c *chunkedDiffer) prepareCompressedStreamToFile(partCompression compressed
 		// Only the missing chunk in the requested part refers to a hole.
 		// The received data must be discarded.
 		limitReader := io.LimitReader(from, mf.CompressedSize)
-		_, err := io.CopyBuffer(ioutil.Discard, limitReader, c.copyBuffer)
+		_, err := io.CopyBuffer(io.Discard, limitReader, c.copyBuffer)
 		return fileTypeHole, err
 	case partCompression == fileTypeZstdChunked:
 		c.rawReader = io.LimitReader(from, mf.CompressedSize)
@@ -856,7 +855,7 @@ func (c *chunkedDiffer) storeMissingFiles(streams chan io.ReadCloser, errs chan 
 		for _, mf := range missingPart.Chunks {
 			if mf.Gap > 0 {
 				limitReader := io.LimitReader(part, mf.Gap)
-				_, err := io.CopyBuffer(ioutil.Discard, limitReader, c.copyBuffer)
+				_, err := io.CopyBuffer(io.Discard, limitReader, c.copyBuffer)
 				if err != nil {
 					Err = err
 					goto exit
@@ -906,7 +905,7 @@ func (c *chunkedDiffer) storeMissingFiles(streams chan io.ReadCloser, errs chan 
 				goto exit
 			}
 			if c.rawReader != nil {
-				if _, err := io.CopyBuffer(ioutil.Discard, c.rawReader, c.copyBuffer); err != nil {
+				if _, err := io.CopyBuffer(io.Discard, c.rawReader, c.copyBuffer); err != nil {
 					Err = err
 					goto exit
 				}

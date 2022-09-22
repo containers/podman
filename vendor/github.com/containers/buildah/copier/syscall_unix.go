@@ -17,13 +17,13 @@ var canChroot = os.Getuid() == 0
 func chroot(root string) (bool, error) {
 	if canChroot {
 		if err := os.Chdir(root); err != nil {
-			return false, fmt.Errorf("error changing to intended-new-root directory %q: %w", root, err)
+			return false, fmt.Errorf("changing to intended-new-root directory %q: %w", root, err)
 		}
 		if err := unix.Chroot(root); err != nil {
-			return false, fmt.Errorf("error chrooting to directory %q: %w", root, err)
+			return false, fmt.Errorf("chrooting to directory %q: %w", root, err)
 		}
 		if err := os.Chdir(string(os.PathSeparator)); err != nil {
-			return false, fmt.Errorf("error changing to just-became-root directory %q: %w", root, err)
+			return false, fmt.Errorf("changing to just-became-root directory %q: %w", root, err)
 		}
 		return true, nil
 	}

@@ -167,7 +167,7 @@ func (i *containerImageRef) extractRootfs(opts ExtractRootfsOptions) (io.ReadClo
 	var uidMap, gidMap []idtools.IDMap
 	mountPoint, err := i.store.Mount(i.containerID, i.mountLabel)
 	if err != nil {
-		return nil, nil, fmt.Errorf("error mounting container %q: %w", i.containerID, err)
+		return nil, nil, fmt.Errorf("mounting container %q: %w", i.containerID, err)
 	}
 	pipeReader, pipeWriter := io.Pipe()
 	errChan := make(chan error, 1)
@@ -190,11 +190,11 @@ func (i *containerImageRef) extractRootfs(opts ExtractRootfsOptions) (io.ReadClo
 	}()
 	return ioutils.NewReadCloserWrapper(pipeReader, func() error {
 		if err = pipeReader.Close(); err != nil {
-			err = fmt.Errorf("error closing tar archive of container %q: %w", i.containerID, err)
+			err = fmt.Errorf("closing tar archive of container %q: %w", i.containerID, err)
 		}
 		if _, err2 := i.store.Unmount(i.containerID, false); err == nil {
 			if err2 != nil {
-				err2 = fmt.Errorf("error unmounting container %q: %w", i.containerID, err2)
+				err2 = fmt.Errorf("unmounting container %q: %w", i.containerID, err2)
 			}
 			err = err2
 		}
@@ -311,7 +311,7 @@ func (i *containerImageRef) NewImageSource(ctx context.Context, sc *types.System
 	// Make a temporary directory to hold blobs.
 	path, err := ioutil.TempDir(os.TempDir(), define.Package)
 	if err != nil {
-		return nil, fmt.Errorf("error creating temporary directory to hold layer blobs: %w", err)
+		return nil, fmt.Errorf("creating temporary directory to hold layer blobs: %w", err)
 	}
 	logrus.Debugf("using %q to hold temporary data", path)
 	defer func() {
@@ -400,7 +400,7 @@ func (i *containerImageRef) NewImageSource(ctx context.Context, sc *types.System
 			// Extract this layer, one of possibly many.
 			rc, err = i.store.Diff("", layerID, diffOptions)
 			if err != nil {
-				return nil, fmt.Errorf("error extracting %s: %w", what, err)
+				return nil, fmt.Errorf("extracting %s: %w", what, err)
 			}
 		}
 		srcHasher := digest.Canonical.Digester()
@@ -408,7 +408,7 @@ func (i *containerImageRef) NewImageSource(ctx context.Context, sc *types.System
 		layerFile, err := os.OpenFile(filepath.Join(path, "layer"), os.O_CREATE|os.O_WRONLY, 0600)
 		if err != nil {
 			rc.Close()
-			return nil, fmt.Errorf("error opening file for %s: %w", what, err)
+			return nil, fmt.Errorf("opening file for %s: %w", what, err)
 		}
 
 		counter := ioutils.NewWriteCounter(layerFile)
@@ -427,7 +427,7 @@ func (i *containerImageRef) NewImageSource(ctx context.Context, sc *types.System
 		if err != nil {
 			layerFile.Close()
 			rc.Close()
-			return nil, fmt.Errorf("error compressing %s: %w", what, err)
+			return nil, fmt.Errorf("compressing %s: %w", what, err)
 		}
 		writer := io.MultiWriter(writeCloser, srcHasher.Hash())
 		// Scrub any local user names that might correspond to UIDs or GIDs of
@@ -478,11 +478,11 @@ func (i *containerImageRef) NewImageSource(ctx context.Context, sc *types.System
 		}
 
 		if err != nil {
-			return nil, fmt.Errorf("error storing %s to file: %w", what, err)
+			return nil, fmt.Errorf("storing %s to file: %w", what, err)
 		}
 		if i.compression == archive.Uncompressed {
 			if size != counter.Count {
-				return nil, fmt.Errorf("error storing %s to file: inconsistent layer size (copied %d, wrote %d)", what, size, counter.Count)
+				return nil, fmt.Errorf("storing %s to file: inconsistent layer size (copied %d, wrote %d)", what, size, counter.Count)
 			}
 		} else {
 			size = counter.Count
@@ -491,7 +491,7 @@ func (i *containerImageRef) NewImageSource(ctx context.Context, sc *types.System
 		// Rename the layer so that we can more easily find it by digest later.
 		finalBlobName := filepath.Join(path, destHasher.Digest().String())
 		if err = os.Rename(filepath.Join(path, "layer"), finalBlobName); err != nil {
-			return nil, fmt.Errorf("error storing %s to file while renaming %q to %q: %w", what, filepath.Join(path, "layer"), finalBlobName, err)
+			return nil, fmt.Errorf("storing %s to file while renaming %q to %q: %w", what, filepath.Join(path, "layer"), finalBlobName, err)
 		}
 		// Add a note in the manifest about the layer.  The blobs are identified by their possibly-
 		// compressed blob digests.
@@ -596,7 +596,7 @@ func (i *containerImageRef) NewImageSource(ctx context.Context, sc *types.System
 	// Encode the image configuration blob.
 	oconfig, err := json.Marshal(&oimage)
 	if err != nil {
-		return nil, fmt.Errorf("error encoding %#v as json: %w", oimage, err)
+		return nil, fmt.Errorf("encoding %#v as json: %w", oimage, err)
 	}
 	logrus.Debugf("OCIv1 config = %s", oconfig)
 
@@ -608,14 +608,14 @@ func (i *containerImageRef) NewImageSource(ctx context.Context, sc *types.System
 	// Encode the manifest.
 	omanifestbytes, err := json.Marshal(&omanifest)
 	if err != nil {
-		return nil, fmt.Errorf("error encoding %#v as json: %w", omanifest, err)
+		return nil, fmt.Errorf("encoding %#v as json: %w", omanifest, err)
 	}
 	logrus.Debugf("OCIv1 manifest = %s", omanifestbytes)
 
 	// Encode the image configuration blob.
 	dconfig, err := json.Marshal(&dimage)
 	if err != nil {
-		return nil, fmt.Errorf("error encoding %#v as json: %w", dimage, err)
+		return nil, fmt.Errorf("encoding %#v as json: %w", dimage, err)
 	}
 	logrus.Debugf("Docker v2s2 config = %s", dconfig)
 
@@ -627,7 +627,7 @@ func (i *containerImageRef) NewImageSource(ctx context.Context, sc *types.System
 	// Encode the manifest.
 	dmanifestbytes, err := json.Marshal(&dmanifest)
 	if err != nil {
-		return nil, fmt.Errorf("error encoding %#v as json: %w", dmanifest, err)
+		return nil, fmt.Errorf("encoding %#v as json: %w", dmanifest, err)
 	}
 	logrus.Debugf("Docker v2s2 manifest = %s", dmanifestbytes)
 
@@ -698,7 +698,7 @@ func (i *containerImageRef) Transport() types.ImageTransport {
 func (i *containerImageSource) Close() error {
 	err := os.RemoveAll(i.path)
 	if err != nil {
-		return fmt.Errorf("error removing layer blob directory: %w", err)
+		return fmt.Errorf("removing layer blob directory: %w", err)
 	}
 	return nil
 }
@@ -764,13 +764,13 @@ func (i *containerImageSource) GetBlob(ctx context.Context, blob types.BlobInfo,
 	}
 	if err != nil || layerReadCloser == nil || size == -1 {
 		logrus.Debugf("error reading layer %q: %v", blob.Digest.String(), err)
-		return nil, -1, fmt.Errorf("error opening layer blob: %w", err)
+		return nil, -1, fmt.Errorf("opening layer blob: %w", err)
 	}
 	logrus.Debugf("reading layer %q", blob.Digest.String())
 	closer := func() error {
 		logrus.Debugf("finished reading layer %q", blob.Digest.String())
 		if err := layerReadCloser.Close(); err != nil {
-			return fmt.Errorf("error closing layer %q after reading: %w", blob.Digest.String(), err)
+			return fmt.Errorf("closing layer %q after reading: %w", blob.Digest.String(), err)
 		}
 		return nil
 	}
@@ -781,7 +781,7 @@ func (b *Builder) makeContainerImageRef(options CommitOptions) (*containerImageR
 	var name reference.Named
 	container, err := b.store.Container(b.ContainerID)
 	if err != nil {
-		return nil, fmt.Errorf("error locating container %q: %w", b.ContainerID, err)
+		return nil, fmt.Errorf("locating container %q: %w", b.ContainerID, err)
 	}
 	if len(container.Names) > 0 {
 		if parsed, err2 := reference.ParseNamed(container.Names[0]); err2 == nil {
@@ -798,11 +798,11 @@ func (b *Builder) makeContainerImageRef(options CommitOptions) (*containerImageR
 	}
 	oconfig, err := json.Marshal(&b.OCIv1)
 	if err != nil {
-		return nil, fmt.Errorf("error encoding OCI-format image configuration %#v: %w", b.OCIv1, err)
+		return nil, fmt.Errorf("encoding OCI-format image configuration %#v: %w", b.OCIv1, err)
 	}
 	dconfig, err := json.Marshal(&b.Docker)
 	if err != nil {
-		return nil, fmt.Errorf("error encoding docker-format image configuration %#v: %w", b.Docker, err)
+		return nil, fmt.Errorf("encoding docker-format image configuration %#v: %w", b.Docker, err)
 	}
 	var created *time.Time
 	if options.HistoryTimestamp != nil {
@@ -858,7 +858,7 @@ func (b *Builder) makeContainerImageRef(options CommitOptions) (*containerImageR
 func (b *Builder) ExtractRootfs(options CommitOptions, opts ExtractRootfsOptions) (io.ReadCloser, chan error, error) {
 	src, err := b.makeContainerImageRef(options)
 	if err != nil {
-		return nil, nil, fmt.Errorf("error creating image reference for container %q to extract its contents: %w", b.ContainerID, err)
+		return nil, nil, fmt.Errorf("creating image reference for container %q to extract its contents: %w", b.ContainerID, err)
 	}
 	return src.extractRootfs(opts)
 }

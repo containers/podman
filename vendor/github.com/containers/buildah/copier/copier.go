@@ -463,7 +463,7 @@ func convertToRelSubdirectory(root, directory string) (relative string, err erro
 	}
 	rel, err := filepath.Rel(root, directory)
 	if err != nil {
-		return "", fmt.Errorf("error computing path of %q relative to %q: %w", directory, root, err)
+		return "", fmt.Errorf("computing path of %q relative to %q: %w", directory, root, err)
 	}
 	return cleanerReldirectory(rel), nil
 }
@@ -471,7 +471,7 @@ func convertToRelSubdirectory(root, directory string) (relative string, err erro
 func currentVolumeRoot() (string, error) {
 	cwd, err := os.Getwd()
 	if err != nil {
-		return "", fmt.Errorf("error getting current working directory: %w", err)
+		return "", fmt.Errorf("getting current working directory: %w", err)
 	}
 	return filepath.VolumeName(cwd) + string(os.PathSeparator), nil
 }
@@ -479,7 +479,7 @@ func currentVolumeRoot() (string, error) {
 func isVolumeRoot(candidate string) (bool, error) {
 	abs, err := filepath.Abs(candidate)
 	if err != nil {
-		return false, fmt.Errorf("error converting %q to an absolute path: %w", candidate, err)
+		return false, fmt.Errorf("converting %q to an absolute path: %w", candidate, err)
 	}
 	return abs == filepath.VolumeName(abs)+string(os.PathSeparator), nil
 }
@@ -493,7 +493,7 @@ func copier(bulkReader io.Reader, bulkWriter io.Writer, req request) (*response,
 		if req.Root == "" {
 			wd, err := os.Getwd()
 			if err != nil {
-				return nil, fmt.Errorf("error getting current working directory: %w", err)
+				return nil, fmt.Errorf("getting current working directory: %w", err)
 			}
 			req.Directory = wd
 		} else {
@@ -503,19 +503,19 @@ func copier(bulkReader io.Reader, bulkWriter io.Writer, req request) (*response,
 	if req.Root == "" {
 		root, err := currentVolumeRoot()
 		if err != nil {
-			return nil, fmt.Errorf("error determining root of current volume: %w", err)
+			return nil, fmt.Errorf("determining root of current volume: %w", err)
 		}
 		req.Root = root
 	}
 	if filepath.IsAbs(req.Directory) {
 		_, err := convertToRelSubdirectory(req.Root, req.Directory)
 		if err != nil {
-			return nil, fmt.Errorf("error rewriting %q to be relative to %q: %w", req.Directory, req.Root, err)
+			return nil, fmt.Errorf("rewriting %q to be relative to %q: %w", req.Directory, req.Root, err)
 		}
 	}
 	isAlreadyRoot, err := isVolumeRoot(req.Root)
 	if err != nil {
-		return nil, fmt.Errorf("error checking if %q is a root directory: %w", req.Root, err)
+		return nil, fmt.Errorf("checking if %q is a root directory: %w", req.Root, err)
 	}
 	if !isAlreadyRoot && canChroot {
 		return copierWithSubprocess(bulkReader, bulkWriter, req)
@@ -610,7 +610,7 @@ func copierWithSubprocess(bulkReader io.Reader, bulkWriter io.Writer, req reques
 	cmd.Stderr = &errorBuffer
 	cmd.ExtraFiles = []*os.File{bulkReaderRead, bulkWriterWrite}
 	if err = cmd.Start(); err != nil {
-		return nil, fmt.Errorf("error starting subprocess: %w", err)
+		return nil, fmt.Errorf("starting subprocess: %w", err)
 	}
 	cmdToWaitFor := cmd
 	defer func() {
@@ -632,7 +632,7 @@ func copierWithSubprocess(bulkReader io.Reader, bulkWriter io.Writer, req reques
 	bulkWriterWrite = nil
 	killAndReturn := func(err error, step string) (*response, error) { // nolint: unparam
 		if err2 := cmd.Process.Kill(); err2 != nil {
-			return nil, fmt.Errorf("error killing subprocess: %v; %s: %w", err2, step, err)
+			return nil, fmt.Errorf("killing subprocess: %v; %s: %w", err2, step, err)
 		}
 		return nil, fmt.Errorf("%v: %w", step, err)
 	}
@@ -690,10 +690,10 @@ func copierWithSubprocess(bulkReader io.Reader, bulkWriter io.Writer, req reques
 		}
 	}
 	if readError != nil {
-		return nil, fmt.Errorf("error passing bulk input to subprocess: %w", readError)
+		return nil, fmt.Errorf("passing bulk input to subprocess: %w", readError)
 	}
 	if writeError != nil {
-		return nil, fmt.Errorf("error passing bulk output from subprocess: %w", writeError)
+		return nil, fmt.Errorf("passing bulk output from subprocess: %w", writeError)
 	}
 	return resp, nil
 }
@@ -845,7 +845,7 @@ func copierHandler(bulkReader io.Reader, bulkWriter io.Writer, req request) (*re
 	excludes := req.Excludes()
 	pm, err := fileutils.NewPatternMatcher(excludes)
 	if err != nil {
-		return nil, nil, fmt.Errorf("error processing excludes list %v: %w", excludes, err)
+		return nil, nil, fmt.Errorf("processing excludes list %v: %w", excludes, err)
 	}
 
 	var idMappings *idtools.IDMappings
@@ -915,7 +915,7 @@ func pathIsExcluded(root, path string, pm *fileutils.PatternMatcher) (string, bo
 func resolvePath(root, path string, evaluateFinalComponent bool, pm *fileutils.PatternMatcher) (string, error) {
 	rel, err := convertToRelSubdirectory(root, path)
 	if err != nil {
-		return "", fmt.Errorf("error making path %q relative to %q", path, root)
+		return "", fmt.Errorf("making path %q relative to %q", path, root)
 	}
 	workingPath := root
 	followed := 0
@@ -952,7 +952,7 @@ func resolvePath(root, path string, evaluateFinalComponent bool, pm *fileutils.P
 				// resolve the remaining components
 				rel, err := convertToRelSubdirectory(root, filepath.Join(workingPath, target))
 				if err != nil {
-					return "", fmt.Errorf("error making path %q relative to %q", filepath.Join(workingPath, target), root)
+					return "", fmt.Errorf("making path %q relative to %q", filepath.Join(workingPath, target), root)
 				}
 				workingPath = root
 				components = append(strings.Split(filepath.Clean(string(os.PathSeparator)+rel), string(os.PathSeparator)), components[1:]...)
@@ -1357,7 +1357,7 @@ func copierHandlerGetOne(srcfi os.FileInfo, symlinkTarget, name, contentPath str
 	// build the header using the name provided
 	hdr, err := tar.FileInfoHeader(srcfi, symlinkTarget)
 	if err != nil {
-		return fmt.Errorf("error generating tar header for %s (%s): %w", contentPath, symlinkTarget, err)
+		return fmt.Errorf("generating tar header for %s (%s): %w", contentPath, symlinkTarget, err)
 	}
 	if name != "" {
 		hdr.Name = filepath.ToSlash(name)
@@ -1379,7 +1379,7 @@ func copierHandlerGetOne(srcfi os.FileInfo, symlinkTarget, name, contentPath str
 	if !options.StripXattrs {
 		xattrs, err = Lgetxattrs(contentPath)
 		if err != nil {
-			return fmt.Errorf("error getting extended attributes for %q: %w", contentPath, err)
+			return fmt.Errorf("getting extended attributes for %q: %w", contentPath, err)
 		}
 	}
 	hdr.Xattrs = xattrs // nolint:staticcheck
@@ -1391,12 +1391,12 @@ func copierHandlerGetOne(srcfi os.FileInfo, symlinkTarget, name, contentPath str
 		if options.ExpandArchives && isArchivePath(contentPath) {
 			f, err := os.Open(contentPath)
 			if err != nil {
-				return fmt.Errorf("error opening file for reading archive contents: %w", err)
+				return fmt.Errorf("opening file for reading archive contents: %w", err)
 			}
 			defer f.Close()
 			rc, _, err := compression.AutoDecompress(f)
 			if err != nil {
-				return fmt.Errorf("error decompressing %s: %w", contentPath, err)
+				return fmt.Errorf("decompressing %s: %w", contentPath, err)
 			}
 			defer rc.Close()
 			tr := tar.NewReader(rc)
@@ -1406,22 +1406,22 @@ func copierHandlerGetOne(srcfi os.FileInfo, symlinkTarget, name, contentPath str
 					hdr.Name = handleRename(options.Rename, hdr.Name)
 				}
 				if err = tw.WriteHeader(hdr); err != nil {
-					return fmt.Errorf("error writing tar header from %q to pipe: %w", contentPath, err)
+					return fmt.Errorf("writing tar header from %q to pipe: %w", contentPath, err)
 				}
 				if hdr.Size != 0 {
 					n, err := io.Copy(tw, tr)
 					if err != nil {
-						return fmt.Errorf("error extracting content from archive %s: %s: %w", contentPath, hdr.Name, err)
+						return fmt.Errorf("extracting content from archive %s: %s: %w", contentPath, hdr.Name, err)
 					}
 					if n != hdr.Size {
-						return fmt.Errorf("error extracting contents of archive %s: incorrect length for %q", contentPath, hdr.Name)
+						return fmt.Errorf("extracting contents of archive %s: incorrect length for %q", contentPath, hdr.Name)
 					}
 					tw.Flush()
 				}
 				hdr, err = tr.Next()
 			}
 			if err != io.EOF {
-				return fmt.Errorf("error extracting contents of archive %s: %w", contentPath, err)
+				return fmt.Errorf("extracting contents of archive %s: %w", contentPath, err)
 			}
 			return nil
 		}
@@ -1443,7 +1443,7 @@ func copierHandlerGetOne(srcfi os.FileInfo, symlinkTarget, name, contentPath str
 		hostPair := idtools.IDPair{UID: hdr.Uid, GID: hdr.Gid}
 		hdr.Uid, hdr.Gid, err = idMappings.ToContainer(hostPair)
 		if err != nil {
-			return fmt.Errorf("error mapping host filesystem owners %#v to container filesystem owners: %w", hostPair, err)
+			return fmt.Errorf("mapping host filesystem owners %#v to container filesystem owners: %w", hostPair, err)
 		}
 	}
 	// force ownership and/or permissions, if requested
@@ -1467,29 +1467,29 @@ func copierHandlerGetOne(srcfi os.FileInfo, symlinkTarget, name, contentPath str
 		// open the file first so that we don't write a header for it if we can't actually read it
 		f, err = os.Open(contentPath)
 		if err != nil {
-			return fmt.Errorf("error opening file for adding its contents to archive: %w", err)
+			return fmt.Errorf("opening file for adding its contents to archive: %w", err)
 		}
 		defer f.Close()
 	} else if hdr.Typeflag == tar.TypeDir {
 		// open the directory file first to make sure we can access it.
 		f, err = os.Open(contentPath)
 		if err != nil {
-			return fmt.Errorf("error opening directory for adding its contents to archive: %w", err)
+			return fmt.Errorf("opening directory for adding its contents to archive: %w", err)
 		}
 		defer f.Close()
 	}
 	// output the header
 	if err = tw.WriteHeader(hdr); err != nil {
-		return fmt.Errorf("error writing header for %s (%s): %w", contentPath, hdr.Name, err)
+		return fmt.Errorf("writing header for %s (%s): %w", contentPath, hdr.Name, err)
 	}
 	if hdr.Typeflag == tar.TypeReg {
 		// output the content
 		n, err := io.Copy(tw, f)
 		if err != nil {
-			return fmt.Errorf("error copying %s: %w", contentPath, err)
+			return fmt.Errorf("copying %s: %w", contentPath, err)
 		}
 		if n != hdr.Size {
-			return fmt.Errorf("error copying %s: incorrect size (expected %d bytes, read %d bytes)", contentPath, n, hdr.Size)
+			return fmt.Errorf("copying %s: incorrect size (expected %d bytes, read %d bytes)", contentPath, n, hdr.Size)
 		}
 		tw.Flush()
 	}
@@ -1671,7 +1671,7 @@ func copierHandlerPut(bulkReader io.Reader, req request, idMappings *idtools.IDM
 				containerPair := idtools.IDPair{UID: hdr.Uid, GID: hdr.Gid}
 				hostPair, err := idMappings.ToHost(containerPair)
 				if err != nil {
-					return fmt.Errorf("error mapping container filesystem owner 0,0 to host filesystem owners: %w", err)
+					return fmt.Errorf("mapping container filesystem owner 0,0 to host filesystem owners: %w", err)
 				}
 				hdr.Uid, hdr.Gid = hostPair.UID, hostPair.GID
 			}
@@ -1736,7 +1736,7 @@ func copierHandlerPut(bulkReader io.Reader, req request, idMappings *idtools.IDM
 					hdr.Linkname = handleRename(req.PutOptions.Rename, hdr.Linkname)
 				}
 				if linkTarget, err = resolvePath(targetDirectory, filepath.Join(req.Root, filepath.FromSlash(hdr.Linkname)), true, nil); err != nil {
-					return fmt.Errorf("error resolving hardlink target path %q under root %q", hdr.Linkname, req.Root)
+					return fmt.Errorf("resolving hardlink target path %q under root %q", hdr.Linkname, req.Root)
 				}
 				if err = os.Link(linkTarget, path); err != nil && errors.Is(err, os.ErrExist) {
 					if req.PutOptions.NoOverwriteDirNonDir {
@@ -1869,7 +1869,7 @@ func copierHandlerPut(bulkReader io.Reader, req request, idMappings *idtools.IDM
 					mode |= syscall.S_ISVTX
 				}
 				if err = syscall.Chmod(path, uint32(mode)); err != nil {
-					return fmt.Errorf("error setting additional permissions on %q to 0%o: %w", path, mode, err)
+					return fmt.Errorf("setting additional permissions on %q to 0%o: %w", path, mode, err)
 				}
 			}
 			// set xattrs, including some that might have been reset by chown()
@@ -1885,13 +1885,13 @@ func copierHandlerPut(bulkReader io.Reader, req request, idMappings *idtools.IDM
 				hdr.AccessTime = hdr.ModTime
 			}
 			if err = lutimes(hdr.Typeflag == tar.TypeSymlink, path, hdr.AccessTime, hdr.ModTime); err != nil {
-				return fmt.Errorf("error setting access and modify timestamps on %q to %s and %s: %w", path, hdr.AccessTime, hdr.ModTime, err)
+				return fmt.Errorf("setting access and modify timestamps on %q to %s and %s: %w", path, hdr.AccessTime, hdr.ModTime, err)
 			}
 		nextHeader:
 			hdr, err = tr.Next()
 		}
 		if err != io.EOF {
-			return fmt.Errorf("error reading tar stream: expected EOF: %w", err)
+			return fmt.Errorf("reading tar stream: expected EOF: %w", err)
 		}
 		return nil
 	}

@@ -35,22 +35,22 @@ func SetupIntermediateMountNamespace(spec *specs.Spec, bundlePath string) (unmou
 
 	// Create a new mount namespace in which to do the things we're doing.
 	if err := unix.Unshare(unix.CLONE_NEWNS); err != nil {
-		return nil, fmt.Errorf("error creating new mount namespace for %v: %w", spec.Process.Args, err)
+		return nil, fmt.Errorf("creating new mount namespace for %v: %w", spec.Process.Args, err)
 	}
 
 	// Make all of our mounts private to our namespace.
 	if err := mount.MakeRPrivate("/"); err != nil {
-		return nil, fmt.Errorf("error making mounts private to mount namespace for %v: %w", spec.Process.Args, err)
+		return nil, fmt.Errorf("making mounts private to mount namespace for %v: %w", spec.Process.Args, err)
 	}
 
 	// Make sure the bundle directory is searchable.  We created it with
 	// TempDir(), so it should have started with permissions set to 0700.
 	info, err := os.Stat(bundlePath)
 	if err != nil {
-		return nil, fmt.Errorf("error checking permissions on %q: %w", bundlePath, err)
+		return nil, fmt.Errorf("checking permissions on %q: %w", bundlePath, err)
 	}
 	if err = os.Chmod(bundlePath, info.Mode()|0111); err != nil {
-		return nil, fmt.Errorf("error loosening permissions on %q: %w", bundlePath, err)
+		return nil, fmt.Errorf("loosening permissions on %q: %w", bundlePath, err)
 	}
 
 	// Figure out who needs to be able to reach these bind mounts in order
@@ -117,23 +117,23 @@ func SetupIntermediateMountNamespace(spec *specs.Spec, bundlePath string) (unmou
 	// access.
 	mnt := filepath.Join(bundlePath, "mnt")
 	if err = idtools.MkdirAndChown(mnt, 0100, idtools.IDPair{UID: int(rootUID), GID: int(rootGID)}); err != nil {
-		return unmountAll, fmt.Errorf("error creating %q owned by the container's root user: %w", mnt, err)
+		return unmountAll, fmt.Errorf("creating %q owned by the container's root user: %w", mnt, err)
 	}
 
 	// Make that directory private, and add it to the list of locations we
 	// unmount at cleanup time.
 	if err = mount.MakeRPrivate(mnt); err != nil {
-		return unmountAll, fmt.Errorf("error marking filesystem at %q as private: %w", mnt, err)
+		return unmountAll, fmt.Errorf("marking filesystem at %q as private: %w", mnt, err)
 	}
 	unmount = append([]string{mnt}, unmount...)
 
 	// Create a bind mount for the root filesystem and add it to the list.
 	rootfs := filepath.Join(mnt, "rootfs")
 	if err = os.Mkdir(rootfs, 0000); err != nil {
-		return unmountAll, fmt.Errorf("error creating directory %q: %w", rootfs, err)
+		return unmountAll, fmt.Errorf("creating directory %q: %w", rootfs, err)
 	}
 	if err = unix.Mount(rootPath, rootfs, "", unix.MS_BIND|unix.MS_REC|unix.MS_PRIVATE, ""); err != nil {
-		return unmountAll, fmt.Errorf("error bind mounting root filesystem from %q to %q: %w", rootPath, rootfs, err)
+		return unmountAll, fmt.Errorf("bind mounting root filesystem from %q to %q: %w", rootPath, rootfs, err)
 	}
 	logrus.Debugf("bind mounted %q to %q", rootPath, rootfs)
 	unmount = append([]string{rootfs}, unmount...)
@@ -154,28 +154,28 @@ func SetupIntermediateMountNamespace(spec *specs.Spec, bundlePath string) (unmou
 				logrus.Warnf("couldn't find %q on host to bind mount into container", spec.Mounts[i].Source)
 				continue
 			}
-			return unmountAll, fmt.Errorf("error checking if %q is a directory: %w", spec.Mounts[i].Source, err)
+			return unmountAll, fmt.Errorf("checking if %q is a directory: %w", spec.Mounts[i].Source, err)
 		}
 		stage := filepath.Join(mnt, fmt.Sprintf("buildah-bind-target-%d", i))
 		if info.IsDir() {
 			// If the source is a directory, make one to use as the
 			// mount target.
 			if err = os.Mkdir(stage, 0000); err != nil {
-				return unmountAll, fmt.Errorf("error creating directory %q: %w", stage, err)
+				return unmountAll, fmt.Errorf("creating directory %q: %w", stage, err)
 			}
 		} else {
 			// If the source is not a directory, create an empty
 			// file to use as the mount target.
 			file, err := os.OpenFile(stage, os.O_WRONLY|os.O_CREATE, 0000)
 			if err != nil {
-				return unmountAll, fmt.Errorf("error creating file %q: %w", stage, err)
+				return unmountAll, fmt.Errorf("creating file %q: %w", stage, err)
 			}
 			file.Close()
 		}
 		// Bind mount the source from wherever it is to a place where
 		// we know the runtime helper will be able to get to it...
 		if err = unix.Mount(spec.Mounts[i].Source, stage, "", unix.MS_BIND|unix.MS_REC|unix.MS_PRIVATE, ""); err != nil {
-			return unmountAll, fmt.Errorf("error bind mounting bind object from %q to %q: %w", spec.Mounts[i].Source, stage, err)
+			return unmountAll, fmt.Errorf("bind mounting bind object from %q to %q: %w", spec.Mounts[i].Source, stage, err)
 		}
 		logrus.Debugf("bind mounted %q to %q", spec.Mounts[i].Source, stage)
 		spec.Mounts[i].Source = stage
@@ -209,7 +209,7 @@ func leaveBindMountAlone(mount specs.Mount) bool {
 func UnmountMountpoints(mountpoint string, mountpointsToRemove []string) error {
 	mounts, err := mount.GetMounts()
 	if err != nil {
-		return fmt.Errorf("error retrieving list of mounts: %w", err)
+		return fmt.Errorf("retrieving list of mounts: %w", err)
 	}
 	// getChildren returns the list of mount IDs that hang off of the
 	// specified ID.
@@ -273,7 +273,7 @@ func UnmountMountpoints(mountpoint string, mountpointsToRemove []string) error {
 				logrus.Debugf("mountpoint %q is not present(?), skipping", mount.Mountpoint)
 				continue
 			}
-			return fmt.Errorf("error checking if %q is mounted: %w", mount.Mountpoint, err)
+			return fmt.Errorf("checking if %q is mounted: %w", mount.Mountpoint, err)
 		}
 		if uint64(mount.Major) != uint64(st.Dev) || uint64(mount.Minor) != uint64(st.Dev) { //nolint:unconvert // (required for some OS/arch combinations)
 			logrus.Debugf("%q is apparently not really mounted, skipping", mount.Mountpoint)
@@ -296,7 +296,7 @@ func UnmountMountpoints(mountpoint string, mountpointsToRemove []string) error {
 		// if we're also supposed to remove this thing, do that, too
 		if cutil.StringInSlice(mount.Mountpoint, mountpointsToRemove) {
 			if err := os.Remove(mount.Mountpoint); err != nil {
-				return fmt.Errorf("error removing %q: %w", mount.Mountpoint, err)
+				return fmt.Errorf("removing %q: %w", mount.Mountpoint, err)
 			}
 		}
 	}

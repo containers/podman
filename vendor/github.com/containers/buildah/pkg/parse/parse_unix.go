@@ -20,7 +20,7 @@ func DeviceFromPath(device string) (define.ContainerDevices, error) {
 	}
 	srcInfo, err := os.Stat(src)
 	if err != nil {
-		return nil, fmt.Errorf("error getting info of source device %s: %w", src, err)
+		return nil, fmt.Errorf("getting info of source device %s: %w", src, err)
 	}
 
 	if !srcInfo.IsDir() {
@@ -37,7 +37,7 @@ func DeviceFromPath(device string) (define.ContainerDevices, error) {
 	// If source device is a directory
 	srcDevices, err := devices.GetDevices(src)
 	if err != nil {
-		return nil, fmt.Errorf("error getting source devices from directory %s: %w", src, err)
+		return nil, fmt.Errorf("getting source devices from directory %s: %w", src, err)
 	}
 	for _, d := range srcDevices {
 		d.Path = filepath.Join(dst, filepath.Base(d.Path))

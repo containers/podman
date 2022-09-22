@@ -7,13 +7,13 @@ import "fmt"
 func (b *Builder) Mount(label string) (string, error) {
 	mountpoint, err := b.store.Mount(b.ContainerID, label)
 	if err != nil {
-		return "", fmt.Errorf("error mounting build container %q: %w", b.ContainerID, err)
+		return "", fmt.Errorf("mounting build container %q: %w", b.ContainerID, err)
 	}
 	b.MountPoint = mountpoint
 
 	err = b.Save()
 	if err != nil {
-		return "", fmt.Errorf("error saving updated state for build container %q: %w", b.ContainerID, err)
+		return "", fmt.Errorf("saving updated state for build container %q: %w", b.ContainerID, err)
 	}
 	return mountpoint, nil
 }
@@ -21,7 +21,7 @@ func (b *Builder) Mount(label string) (string, error) {
 func (b *Builder) setMountPoint(mountPoint string) error {
 	b.MountPoint = mountPoint
 	if err := b.Save(); err != nil {
-		return fmt.Errorf("error saving updated state for build container %q: %w", b.ContainerID, err)
+		return fmt.Errorf("saving updated state for build container %q: %w", b.ContainerID, err)
 	}
 	return nil
 }
@@ -30,17 +30,17 @@ func (b *Builder) setMountPoint(mountPoint string) error {
 func (b *Builder) Mounted() (bool, error) {
 	mountCnt, err := b.store.Mounted(b.ContainerID)
 	if err != nil {
-		return false, fmt.Errorf("error determining if mounting build container %q is mounted: %w", b.ContainerID, err)
+		return false, fmt.Errorf("determining if mounting build container %q is mounted: %w", b.ContainerID, err)
 	}
 	mounted := mountCnt > 0
 	if mounted && b.MountPoint == "" {
 		ctr, err := b.store.Container(b.ContainerID)
 		if err != nil {
-			return mountCnt > 0, fmt.Errorf("error determining if mounting build container %q is mounted: %w", b.ContainerID, err)
+			return mountCnt > 0, fmt.Errorf("determining if mounting build container %q is mounted: %w", b.ContainerID, err)
 		}
 		layer, err := b.store.Layer(ctr.LayerID)
 		if err != nil {
-			return mountCnt > 0, fmt.Errorf("error determining if mounting build container %q is mounted: %w", b.ContainerID, err)
+			return mountCnt > 0, fmt.Errorf("determining if mounting build container %q is mounted: %w", b.ContainerID, err)
 		}
 		return mounted, b.setMountPoint(layer.MountPoint)
 	}

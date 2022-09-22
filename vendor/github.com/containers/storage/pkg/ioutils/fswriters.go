@@ -2,7 +2,6 @@ package ioutils
 
 import (
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 )
@@ -28,7 +27,7 @@ func SetDefaultOptions(opts AtomicFileWriterOptions) {
 // temporary file and closing it atomically changes the temporary file to
 // destination path. Writing and closing concurrently is not allowed.
 func NewAtomicFileWriterWithOpts(filename string, perm os.FileMode, opts *AtomicFileWriterOptions) (io.WriteCloser, error) {
-	f, err := ioutil.TempFile(filepath.Dir(filename), ".tmp-"+filepath.Base(filename))
+	f, err := os.CreateTemp(filepath.Dir(filename), ".tmp-"+filepath.Base(filename))
 	if err != nil {
 		return nil, err
 	}
@@ -124,7 +123,7 @@ type AtomicWriteSet struct {
 // commit. If no temporary directory is given the system
 // default is used.
 func NewAtomicWriteSet(tmpDir string) (*AtomicWriteSet, error) {
-	td, err := ioutil.TempDir(tmpDir, "write-set-")
+	td, err := os.MkdirTemp(tmpDir, "write-set-")
 	if err != nil {
 		return nil, err
 	}

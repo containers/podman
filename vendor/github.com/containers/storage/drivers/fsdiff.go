@@ -33,10 +33,11 @@ type NaiveDiffDriver struct {
 // NewNaiveDiffDriver returns a fully functional driver that wraps the
 // given ProtoDriver and adds the capability of the following methods which
 // it may or may not support on its own:
-//     Diff(id string, idMappings *idtools.IDMappings, parent string, parentMappings *idtools.IDMappings, mountLabel string) (io.ReadCloser, error)
-//     Changes(id string, idMappings *idtools.IDMappings, parent string, parentMappings *idtools.IDMappings, mountLabel string) ([]archive.Change, error)
-//     ApplyDiff(id, parent string, options ApplyDiffOpts) (size int64, err error)
-//     DiffSize(id string, idMappings *idtools.IDMappings, parent, parentMappings *idtools.IDMappings, mountLabel string) (size int64, err error)
+//
+//	Diff(id string, idMappings *idtools.IDMappings, parent string, parentMappings *idtools.IDMappings, mountLabel string) (io.ReadCloser, error)
+//	Changes(id string, idMappings *idtools.IDMappings, parent string, parentMappings *idtools.IDMappings, mountLabel string) ([]archive.Change, error)
+//	ApplyDiff(id, parent string, options ApplyDiffOpts) (size int64, err error)
+//	DiffSize(id string, idMappings *idtools.IDMappings, parent, parentMappings *idtools.IDMappings, mountLabel string) (size int64, err error)
 func NewNaiveDiffDriver(driver ProtoDriver, updater LayerIDMapUpdater) Driver {
 	return &NaiveDiffDriver{ProtoDriver: driver, LayerIDMapUpdater: updater}
 }
@@ -109,7 +110,7 @@ func (gdw *NaiveDiffDriver) Diff(id string, idMappings *idtools.IDMappings, pare
 		// are extracted from tar's with full second precision on modified time.
 		// We need this hack here to make sure calls within same second receive
 		// correct result.
-		time.Sleep(startTime.Truncate(time.Second).Add(time.Second).Sub(time.Now()))
+		time.Sleep(time.Until(startTime.Truncate(time.Second).Add(time.Second)))
 		return err
 	}), nil
 }

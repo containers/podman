@@ -168,13 +168,18 @@ func (h *huffmanEncoder) canReuseBits(freq []uint16) int {
 // The cases of 0, 1, and 2 literals are handled by special case code.
 //
 // list  An array of the literals with non-zero frequencies
-//             and their associated frequencies. The array is in order of increasing
-//             frequency, and has as its last element a special element with frequency
-//             MaxInt32
+//
+//	and their associated frequencies. The array is in order of increasing
+//	frequency, and has as its last element a special element with frequency
+//	MaxInt32
+//
 // maxBits     The maximum number of bits that should be used to encode any literal.
-//             Must be less than 16.
+//
+//	Must be less than 16.
+//
 // return      An integer array in which array[i] indicates the number of literals
-//             that should be encoded in i bits.
+//
+//	that should be encoded in i bits.
 func (h *huffmanEncoder) bitCounts(list []literalNode, maxBits int32) []int32 {
 	if maxBits >= maxBitsLimit {
 		panic("flate: maxBits too large")

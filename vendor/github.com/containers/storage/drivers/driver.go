@@ -48,7 +48,7 @@ type CreateOpts struct {
 	ignoreChownErrors bool
 }
 
-// MountOpts contains optional arguments for LayerStope.Mount() methods.
+// MountOpts contains optional arguments for Driver.Get() methods.
 type MountOpts struct {
 	// Mount label is the MAC Labels to assign to mount point (SELINUX)
 	MountLabel string

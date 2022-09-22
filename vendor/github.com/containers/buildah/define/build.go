@@ -186,6 +186,10 @@ type BuildOptions struct {
 	// specified, indicating that the shared, system-wide default policy
 	// should be used.
 	SignaturePolicyPath string
+	// SkipUnusedStages allows users to skip stages in a multi-stage builds
+	// which do not contribute anything to the target stage. Expected default
+	// value is true.
+	SkipUnusedStages types.OptionalBool
 	// ReportWriter is an io.Writer which will be used to report the
 	// progress of the (possible) pulling of the source image and the
 	// writing of the new image.
