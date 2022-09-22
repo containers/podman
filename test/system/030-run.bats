@@ -901,22 +901,35 @@ $IMAGE--c_ok" \
     run_podman rm $ctr_name
 }
 
+# 15895: --privileged + --systemd = hide /dev/ttyNN
 @test "podman run --privileged as root with systemd will not mount /dev/tty" {
     skip_if_rootless "this test only makes sense as root"
 
-    ctr_name="container-$(random_string 5)"
-    run_podman run --rm -d --privileged --systemd=always --name "$ctr_name" "$IMAGE" /home/podman/pause
+    # First, confirm that we _have_ /dev/ttyNN devices on the host.
+    # ('skip' would be nicer in some sense... but could hide a regression.
+    # Fedora, RHEL, Debian, Ubuntu, Gentoo, all have /dev/ttyN, so if
+    # this ever triggers, it means a real problem we should know about.)
+    assert "$(ls /dev/tty* | grep -vx /dev/tty)" != "" \
+           "Expected at least one /dev/ttyN device on host"
 
-    TTYs=$(ls /dev/tty*|sed '/^\/dev\/tty$/d')
+    # Ok now confirm that without --systemd, podman exposes ttyNN devices
+    run_podman run --rm -d --privileged $IMAGE ./pause
+    cid="$output"
 
-    if [[ $TTYs = "" ]]; then
-        die "Did not find any /dev/ttyN devices on local host"
-    else
-        run_podman exec "$ctr_name" ls /dev/
-        assert "$(grep tty <<<$output)" = "tty" "There must be no /dev/ttyN devices in the container"
-    fi
+    run_podman exec $cid sh -c 'ls /dev/tty*'
+    assert "$output" != "/dev/tty" \
+           "ls /dev/tty* without systemd; should have lots of ttyN devices"
+    run_podman stop -t 0 $cid
 
-    run_podman stop "$ctr_name"
+    # Actual test for 15895: with --systemd, no ttyN devices are passed through
+    run_podman run --rm -d --privileged --systemd=always $IMAGE ./pause
+    cid="$output"
+
+    run_podman exec $cid sh -c 'ls /dev/tty*'
+    assert "$output" = "/dev/tty" \
+           "ls /dev/tty* with --systemd=always: should have no ttyN devices"
+
+    run_podman stop -t 0 $cid
 }
 
 # vim: filetype=sh
