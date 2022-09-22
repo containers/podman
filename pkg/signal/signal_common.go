@@ -9,6 +9,10 @@ import (
 	"syscall"
 )
 
+// Make sure the signal buffer is sufficiently big.
+// runc is using the same value.
+const SignalBufferSize = 2048
+
 // ParseSignal translates a string to a valid syscall signal.
 // It returns an error if the signal map doesn't include the given signal.
 func ParseSignal(rawSignal string) (syscall.Signal, error) {
@@ -55,4 +59,15 @@ func CatchAll(sigc chan os.Signal) {
 func StopCatch(sigc chan os.Signal) {
 	signal.Stop(sigc)
 	close(sigc)
+}
+
+// ParseSysSignalToName translates syscall.Signal to its name in the operating system.
+// For example, syscall.Signal(9) will return "KILL" on Linux system.
+func ParseSysSignalToName(s syscall.Signal) (string, error) {
+	for k, v := range SignalMap {
+		if v == s {
+			return k, nil
+		}
+	}
+	return "", fmt.Errorf("unknown syscall signal: %s", s)
 }

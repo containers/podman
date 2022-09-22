@@ -828,6 +828,13 @@ func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.Conta
 	}
 
 	// Attach
+	if opts.SigProxy {
+		remoteProxySignals(con.ID, func(signal string) error {
+			killOpts := entities.KillOptions{All: false, Latest: false, Signal: signal}
+			_, err := ic.ContainerKill(ctx, []string{con.ID}, killOpts)
+			return err
+		})
+	}
 	if err := startAndAttach(ic, con.ID, &opts.DetachKeys, opts.InputStream, opts.OutputStream, opts.ErrorStream); err != nil {
 		if err == define.ErrDetach {
 			return &report, nil
