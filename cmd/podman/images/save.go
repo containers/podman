@@ -96,6 +96,11 @@ func saveFlags(cmd *cobra.Command) {
 
 	flags.BoolVarP(&saveOpts.Quiet, "quiet", "q", false, "Suppress the output")
 	flags.BoolVarP(&saveOpts.MultiImageArchive, "multi-image-archive", "m", containerConfig.Engine.MultiImageArchive, "Interpret additional arguments as images not tags and create a multi-image-archive (only for docker-archive)")
+
+	if !registry.IsRemote() {
+		flags.StringVar(&saveOpts.SignaturePolicy, "signature-policy", "", "Path to a signature-policy file")
+		_ = flags.MarkHidden("signature-policy")
+	}
 }
 
 func save(cmd *cobra.Command, args []string) (finalErr error) {

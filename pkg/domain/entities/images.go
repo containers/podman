@@ -335,7 +335,8 @@ type ImageSaveOptions struct {
 	// Output - write image to the specified path.
 	Output string
 	// Quiet - suppress output when copying images
-	Quiet bool
+	Quiet           bool
+	SignaturePolicy string
 }
 
 // ImageScpOptions provide options for securely copying images to and from a remote host
