@@ -58,6 +58,9 @@ type InspectVolumeData struct {
 	NeedsChown bool `json:"NeedsChown,omitempty"`
 	// Timeout is the specified driver timeout if given
 	Timeout uint `json:"Timeout,omitempty"`
+	// StorageID is the ID of the container backing the volume in c/storage.
+	// Only used with Image Volumes.
+	StorageID string `json:"StorageID,omitempty"`
 }
 
 type VolumeReload struct {

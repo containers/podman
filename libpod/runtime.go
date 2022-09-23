@@ -1091,6 +1091,9 @@ func (r *Runtime) getVolumePlugin(volConfig *VolumeConfig) (*plugin.VolumePlugin
 
 	pluginPath, ok := r.config.Engine.VolumePlugins[name]
 	if !ok {
+		if name == define.VolumeDriverImage {
+			return nil, nil
+		}
 		return nil, fmt.Errorf("no volume plugin with name %s available: %w", name, define.ErrMissingPlugin)
 	}
 

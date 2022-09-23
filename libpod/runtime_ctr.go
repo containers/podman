@@ -512,7 +512,7 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 				volOptions = append(volOptions, parsedOptions...)
 			}
 		}
-		newVol, err := r.newVolume(false, volOptions...)
+		newVol, err := r.newVolume(ctx, false, volOptions...)
 		if err != nil {
 			return nil, fmt.Errorf("creating named volume %q: %w", vol.Name, err)
 		}

@@ -39,6 +39,11 @@ func (v *Volume) needsMount() bool {
 		return true
 	}
 
+	// Image driver always needs mount
+	if v.config.Driver == define.VolumeDriverImage {
+		return true
+	}
+
 	// Commit 28138dafcc added the UID and GID options to this map
 	// However we should only mount when options other than uid and gid are set.
 	// see https://github.com/containers/podman/issues/10620
