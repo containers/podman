@@ -14,7 +14,7 @@ type Event struct {
 	// TODO: it would be nice to have full control over the types at some
 	// point and fork such Docker types.
 	dockerEvents.Message
-	HealthStatus string
+	HealthStatus string `json:",omitempty"`
 }
 
 // ConvertToLibpodEvent converts an entities event to a libpod one.
@@ -34,6 +34,7 @@ func ConvertToLibpodEvent(e Event) *libpodEvents.Event {
 	image := e.Actor.Attributes["image"]
 	name := e.Actor.Attributes["name"]
 	details := e.Actor.Attributes
+	podID := e.Actor.Attributes["podId"]
 	delete(details, "image")
 	delete(details, "name")
 	delete(details, "containerExitCode")
@@ -47,6 +48,7 @@ func ConvertToLibpodEvent(e Event) *libpodEvents.Event {
 		Type:              t,
 		HealthStatus:      e.HealthStatus,
 		Details: libpodEvents.Details{
+			PodID:      podID,
 			Attributes: details,
 		},
 	}
@@ -61,6 +63,7 @@ func ConvertToEntitiesEvent(e libpodEvents.Event) *Event {
 	attributes["image"] = e.Image
 	attributes["name"] = e.Name
 	attributes["containerExitCode"] = strconv.Itoa(e.ContainerExitCode)
+	attributes["podId"] = e.PodID
 	message := dockerEvents.Message{
 		// Compatibility with clients that still look for deprecated API elements
 		Status: e.Status.String(),

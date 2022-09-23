@@ -212,6 +212,16 @@ var _ = Describe("Podman events", func() {
 		Expect(result).Should(Exit(0))
 		Expect(result.OutputToStringArray()).To(HaveLen(1))
 		Expect(result.OutputToString()).To(ContainSubstring("create"))
+
+		ctrName := "testCtr"
+		run := podmanTest.Podman([]string{"create", "--pod", id, "--name", ctrName, ALPINE, "top"})
+		run.WaitWithDefaultTimeout()
+		Expect(run).Should(Exit(0))
+
+		result2 := podmanTest.Podman([]string{"events", "--stream=false", "--filter", fmt.Sprintf("container=%s", ctrName), "--since", "30s"})
+		result2.WaitWithDefaultTimeout()
+		Expect(result2).Should(Exit(0))
+		Expect(result2.OutputToString()).To(ContainSubstring(fmt.Sprintf("pod_id=%s", id)))
 	})
 
 	It("podman events health_status generated", func() {
@@ -229,7 +239,7 @@ var _ = Describe("Podman events", func() {
 			time.Sleep(1 * time.Second)
 		}
 
-		result := podmanTest.Podman([]string{"events", "--stream=false", "--filter", "event=health_status"})
+		result := podmanTest.Podman([]string{"events", "--stream=false", "--filter", "event=health_status", "--since", "1m"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
 		Expect(len(result.OutputToStringArray())).To(BeNumerically(">=", 1), "Number of health_status events")
