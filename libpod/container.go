@@ -357,7 +357,9 @@ func (c *Container) specFromState() (*spec.Spec, error) {
 			return nil, fmt.Errorf("error reading container config: %w", err)
 		}
 		if err := json.Unmarshal(content, &returnSpec); err != nil {
-			return nil, fmt.Errorf("error unmarshalling container config: %w", err)
+			// Malformed spec, just use c.config.Spec instead
+			logrus.Warnf("Error unmarshalling container %s config: %v", c.ID(), err)
+			return c.config.Spec, nil
 		}
 	} else if !os.IsNotExist(err) {
 		// ignore when the file does not exist
