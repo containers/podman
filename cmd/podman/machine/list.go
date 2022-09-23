@@ -177,6 +177,7 @@ func toMachineFormat(vms []*machine.ListResponse) ([]*entities.ListReporter, err
 		response.Port = vm.Port
 		response.RemoteUsername = vm.RemoteUsername
 		response.IdentityPath = vm.IdentityPath
+		response.Starting = vm.Starting
 
 		machineResponses = append(machineResponses, response)
 	}
