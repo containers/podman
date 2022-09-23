@@ -776,4 +776,19 @@ EOF
     is "$output" ".*options ${dns_opt}" "--dns-option was added"
 }
 
+@test "podman rootless netns works when XDG_RUNTIME_DIR includes symlinks" {
+    # regression test for https://github.com/containers/podman/issues/14606
+    is_rootless || skip "only meaningful for rootless"
+
+    # Create a tmpdir symlink pointing to /run, and use it briefly
+    ln -s /run $PODMAN_TMPDIR/run
+    local tmp_run=$PODMAN_TMPDIR/run/user/$(id -u)
+    test -d $tmp_run || skip "/run/user/MYUID unavailable"
+
+    # This 'run' would previously fail with:
+    #    IPAM error: failed to open database ....
+    XDG_RUNTIME_DIR=$tmp_run run_podman run --network bridge --rm $IMAGE ip a
+    assert "$output" =~ "eth0"
+}
+
 # vim: filetype=sh
