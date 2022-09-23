@@ -34,6 +34,10 @@ Format secret output using Go template.
 
 Print usage statement.
 
+#### **--pretty**
+
+Print inspect output in human-readable format
+
 
 ## EXAMPLES
 
