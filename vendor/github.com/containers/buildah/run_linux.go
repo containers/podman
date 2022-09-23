@@ -88,7 +88,7 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 
 	gp, err := generate.New("linux")
 	if err != nil {
-		return fmt.Errorf("error generating new 'linux' runtime spec: %w", err)
+		return fmt.Errorf("generating new 'linux' runtime spec: %w", err)
 	}
 	g := &gp
 
@@ -122,7 +122,7 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 	setupSelinux(g, b.ProcessLabel, b.MountLabel)
 	mountPoint, err := b.Mount(b.MountLabel)
 	if err != nil {
-		return fmt.Errorf("error mounting container %q: %w", b.ContainerID, err)
+		return fmt.Errorf("mounting container %q: %w", b.ContainerID, err)
 	}
 	defer func() {
 		if err := b.Unmount(); err != nil {
@@ -327,7 +327,7 @@ rootless=%d
 
 	runArtifacts, err := b.setupMounts(mountPoint, spec, path, options.Mounts, bindFiles, volumes, b.CommonBuildOpts.Volumes, options.RunMounts, runMountInfo)
 	if err != nil {
-		return fmt.Errorf("error resolving mountpoints for container %q: %w", b.ContainerID, err)
+		return fmt.Errorf("resolving mountpoints for container %q: %w", b.ContainerID, err)
 	}
 	if runArtifacts.SSHAuthSock != "" {
 		sshenv := "SSH_AUTH_SOCK=" + runArtifacts.SSHAuthSock
@@ -506,7 +506,7 @@ func setupRootlessNetwork(pid int) (teardown func(), err error) {
 	b := make([]byte, 1)
 	for {
 		if err := rootlessSlirpSyncR.SetDeadline(time.Now().Add(1 * time.Second)); err != nil {
-			return nil, fmt.Errorf("error setting slirp4netns pipe timeout: %w", err)
+			return nil, fmt.Errorf("setting slirp4netns pipe timeout: %w", err)
 		}
 		if _, err := rootlessSlirpSyncR.Read(b); err == nil {
 			break
@@ -552,7 +552,7 @@ func (b *Builder) runConfigureNetwork(pid int, isolation define.Isolation, optio
 	netns := fmt.Sprintf("/proc/%d/ns/net", pid)
 	netFD, err := unix.Open(netns, unix.O_RDONLY, 0)
 	if err != nil {
-		return nil, nil, fmt.Errorf("error opening network namespace: %w", err)
+		return nil, nil, fmt.Errorf("opening network namespace: %w", err)
 	}
 	mynetns := fmt.Sprintf("/proc/%d/fd/%d", unix.Getpid(), netFD)
 
@@ -589,17 +589,17 @@ func runMakeStdioPipe(uid, gid int) ([][]int, error) {
 	for i := range stdioPipe {
 		stdioPipe[i] = make([]int, 2)
 		if err := unix.Pipe(stdioPipe[i]); err != nil {
-			return nil, fmt.Errorf("error creating pipe for container FD %d: %w", i, err)
+			return nil, fmt.Errorf("creating pipe for container FD %d: %w", i, err)
 		}
 	}
 	if err := unix.Fchown(stdioPipe[unix.Stdin][0], uid, gid); err != nil {
-		return nil, fmt.Errorf("error setting owner of stdin pipe descriptor: %w", err)
+		return nil, fmt.Errorf("setting owner of stdin pipe descriptor: %w", err)
 	}
 	if err := unix.Fchown(stdioPipe[unix.Stdout][1], uid, gid); err != nil {
-		return nil, fmt.Errorf("error setting owner of stdout pipe descriptor: %w", err)
+		return nil, fmt.Errorf("setting owner of stdout pipe descriptor: %w", err)
 	}
 	if err := unix.Fchown(stdioPipe[unix.Stderr][1], uid, gid); err != nil {
-		return nil, fmt.Errorf("error setting owner of stderr pipe descriptor: %w", err)
+		return nil, fmt.Errorf("setting owner of stderr pipe descriptor: %w", err)
 	}
 	return stdioPipe, nil
 }
@@ -633,20 +633,20 @@ func setupNamespaces(logger *logrus.Logger, g *generate.Generator, namespaceOpti
 		}
 		if namespaceOption.Host {
 			if err := g.RemoveLinuxNamespace(namespaceOption.Name); err != nil {
-				return false, nil, false, fmt.Errorf("error removing %q namespace for run: %w", namespaceOption.Name, err)
+				return false, nil, false, fmt.Errorf("removing %q namespace for run: %w", namespaceOption.Name, err)
 			}
 		} else if err := g.AddOrReplaceLinuxNamespace(namespaceOption.Name, namespaceOption.Path); err != nil {
 			if namespaceOption.Path == "" {
-				return false, nil, false, fmt.Errorf("error adding new %q namespace for run: %w", namespaceOption.Name, err)
+				return false, nil, false, fmt.Errorf("adding new %q namespace for run: %w", namespaceOption.Name, err)
 			}
-			return false, nil, false, fmt.Errorf("error adding %q namespace %q for run: %w", namespaceOption.Name, namespaceOption.Path, err)
+			return false, nil, false, fmt.Errorf("adding %q namespace %q for run: %w", namespaceOption.Name, namespaceOption.Path, err)
 		}
 	}
 
 	// If we've got mappings, we're going to have to create a user namespace.
 	if len(idmapOptions.UIDMap) > 0 || len(idmapOptions.GIDMap) > 0 || configureUserns {
 		if err := g.AddOrReplaceLinuxNamespace(string(specs.UserNamespace), ""); err != nil {
-			return false, nil, false, fmt.Errorf("error adding new %q namespace for run: %w", string(specs.UserNamespace), err)
+			return false, nil, false, fmt.Errorf("adding new %q namespace for run: %w", string(specs.UserNamespace), err)
 		}
 		hostUidmap, hostGidmap, err := unshare.GetHostIDMappings("")
 		if err != nil {
@@ -670,17 +670,17 @@ func setupNamespaces(logger *logrus.Logger, g *generate.Generator, namespaceOpti
 		}
 		if !specifiedNetwork {
 			if err := g.AddOrReplaceLinuxNamespace(string(specs.NetworkNamespace), ""); err != nil {
-				return false, nil, false, fmt.Errorf("error adding new %q namespace for run: %w", string(specs.NetworkNamespace), err)
+				return false, nil, false, fmt.Errorf("adding new %q namespace for run: %w", string(specs.NetworkNamespace), err)
 			}
 			configureNetwork = (policy != define.NetworkDisabled)
 		}
 	} else {
 		if err := g.RemoveLinuxNamespace(string(specs.UserNamespace)); err != nil {
-			return false, nil, false, fmt.Errorf("error removing %q namespace for run: %w", string(specs.UserNamespace), err)
+			return false, nil, false, fmt.Errorf("removing %q namespace for run: %w", string(specs.UserNamespace), err)
 		}
 		if !specifiedNetwork {
 			if err := g.RemoveLinuxNamespace(string(specs.NetworkNamespace)); err != nil {
-				return false, nil, false, fmt.Errorf("error removing %q namespace for run: %w", string(specs.NetworkNamespace), err)
+				return false, nil, false, fmt.Errorf("removing %q namespace for run: %w", string(specs.NetworkNamespace), err)
 			}
 		}
 	}
@@ -726,7 +726,9 @@ func (b *Builder) configureNamespaces(g *generate.Generator, options *RunOptions
 			options.ConfigureNetwork = networkPolicy
 		}
 	}
-
+	if networkPolicy == NetworkDisabled {
+		namespaceOptions.AddOrReplace(define.NamespaceOptions{{Name: string(specs.NetworkNamespace), Host: false}}...)
+	}
 	configureNetwork, configureNetworks, configureUTS, err := setupNamespaces(options.Logger, g, namespaceOptions, b.IDMappingOptions, networkPolicy)
 	if err != nil {
 		return false, nil, err
@@ -796,10 +798,10 @@ func (b *Builder) runSetupVolumeMounts(mountLabel string, volumeMounts []string,
 	// Make sure the overlay directory is clean before running
 	containerDir, err := b.store.ContainerDirectory(b.ContainerID)
 	if err != nil {
-		return nil, fmt.Errorf("error looking up container directory for %s: %w", b.ContainerID, err)
+		return nil, fmt.Errorf("looking up container directory for %s: %w", b.ContainerID, err)
 	}
 	if err := overlay.CleanupContent(containerDir); err != nil {
-		return nil, fmt.Errorf("error cleaning up overlay content for %s: %w", b.ContainerID, err)
+		return nil, fmt.Errorf("cleaning up overlay content for %s: %w", b.ContainerID, err)
 	}
 
 	parseMount := func(mountType, host, container string, options []string) (specs.Mount, error) {
@@ -966,16 +968,16 @@ func setupReadOnlyPaths(g *generate.Generator) {
 func setupCapAdd(g *generate.Generator, caps ...string) error {
 	for _, cap := range caps {
 		if err := g.AddProcessCapabilityBounding(cap); err != nil {
-			return fmt.Errorf("error adding %q to the bounding capability set: %w", cap, err)
+			return fmt.Errorf("adding %q to the bounding capability set: %w", cap, err)
 		}
 		if err := g.AddProcessCapabilityEffective(cap); err != nil {
-			return fmt.Errorf("error adding %q to the effective capability set: %w", cap, err)
+			return fmt.Errorf("adding %q to the effective capability set: %w", cap, err)
 		}
 		if err := g.AddProcessCapabilityPermitted(cap); err != nil {
-			return fmt.Errorf("error adding %q to the permitted capability set: %w", cap, err)
+			return fmt.Errorf("adding %q to the permitted capability set: %w", cap, err)
 		}
 		if err := g.AddProcessCapabilityAmbient(cap); err != nil {
-			return fmt.Errorf("error adding %q to the ambient capability set: %w", cap, err)
+			return fmt.Errorf("adding %q to the ambient capability set: %w", cap, err)
 		}
 	}
 	return nil
@@ -984,16 +986,16 @@ func setupCapAdd(g *generate.Generator, caps ...string) error {
 func setupCapDrop(g *generate.Generator, caps ...string) error {
 	for _, cap := range caps {
 		if err := g.DropProcessCapabilityBounding(cap); err != nil {
-			return fmt.Errorf("error removing %q from the bounding capability set: %w", cap, err)
+			return fmt.Errorf("removing %q from the bounding capability set: %w", cap, err)
 		}
 		if err := g.DropProcessCapabilityEffective(cap); err != nil {
-			return fmt.Errorf("error removing %q from the effective capability set: %w", cap, err)
+			return fmt.Errorf("removing %q from the effective capability set: %w", cap, err)
 		}
 		if err := g.DropProcessCapabilityPermitted(cap); err != nil {
-			return fmt.Errorf("error removing %q from the permitted capability set: %w", cap, err)
+			return fmt.Errorf("removing %q from the permitted capability set: %w", cap, err)
 		}
 		if err := g.DropProcessCapabilityAmbient(cap); err != nil {
-			return fmt.Errorf("error removing %q from the ambient capability set: %w", cap, err)
+			return fmt.Errorf("removing %q from the ambient capability set: %w", cap, err)
 		}
 	}
 	return nil

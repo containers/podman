@@ -180,7 +180,7 @@ func DefaultConfig() (*Config, error) {
 	}
 
 	defaultEngineConfig.SignaturePolicyPath = DefaultSignaturePolicyPath
-	if unshare.IsRootless() {
+	if unshare.GetRootlessUID() > 0 {
 		configHome, err := homedir.GetConfigHome()
 		if err != nil {
 			return nil, err
@@ -289,7 +289,7 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 			return nil, err
 		}
 	}
-	storeOpts, err := types.DefaultStoreOptions(unshare.IsRootless(), unshare.GetRootlessUID())
+	storeOpts, err := types.DefaultStoreOptions(unshare.GetRootlessUID() > 0, unshare.GetRootlessUID())
 	if err != nil {
 		return nil, err
 	}
@@ -427,7 +427,7 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 }
 
 func defaultTmpDir() (string, error) {
-	if !unshare.IsRootless() {
+	if unshare.GetRootlessUID() == 0 {
 		return getLibpodTmpDir(), nil
 	}
 

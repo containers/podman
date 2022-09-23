@@ -82,6 +82,7 @@ type Executor struct {
 	out                            io.Writer
 	err                            io.Writer
 	signaturePolicyPath            string
+	skipUnusedStages               types.OptionalBool
 	systemContext                  *types.SystemContext
 	reportWriter                   io.Writer
 	isolation                      define.Isolation
@@ -151,7 +152,7 @@ type imageTypeAndHistoryAndDiffIDs struct {
 }
 
 // newExecutor creates a new instance of the imagebuilder.Executor interface.
-func newExecutor(logger *logrus.Logger, logPrefix string, store storage.Store, options define.BuildOptions, mainNode *parser.Node) (*Executor, error) {
+func newExecutor(logger *logrus.Logger, logPrefix string, store storage.Store, options define.BuildOptions, mainNode *parser.Node, containerFiles []string) (*Executor, error) {
 	defaultContainerConfig, err := config.Default()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get container config: %w", err)
@@ -159,7 +160,7 @@ func newExecutor(logger *logrus.Logger, logPrefix string, store storage.Store, o
 
 	excludes := options.Excludes
 	if len(excludes) == 0 {
-		excludes, options.IgnoreFile, err = parse.ContainerIgnoreFile(options.ContextDirectory, options.IgnoreFile)
+		excludes, options.IgnoreFile, err = parse.ContainerIgnoreFile(options.ContextDirectory, options.IgnoreFile, containerFiles)
 		if err != nil {
 			return nil, err
 		}
@@ -237,6 +238,7 @@ func newExecutor(logger *logrus.Logger, logPrefix string, store storage.Store, o
 		outputFormat:                   options.OutputFormat,
 		additionalTags:                 options.AdditionalTags,
 		signaturePolicyPath:            options.SignaturePolicyPath,
+		skipUnusedStages:               options.SkipUnusedStages,
 		systemContext:                  options.SystemContext,
 		log:                            options.Log,
 		in:                             options.In,
@@ -402,7 +404,7 @@ func (b *Executor) waitForStage(ctx context.Context, name string, stages imagebu
 		b.stagesSemaphore.Release(1)
 		time.Sleep(time.Millisecond * 10)
 		if err := b.stagesSemaphore.Acquire(ctx, 1); err != nil {
-			return true, fmt.Errorf("error reacquiring job semaphore: %w", err)
+			return true, fmt.Errorf("reacquiring job semaphore: %w", err)
 		}
 	}
 }
@@ -417,20 +419,20 @@ func (b *Executor) getImageTypeAndHistoryAndDiffIDs(ctx context.Context, imageID
 	}
 	imageRef, err := is.Transport.ParseStoreReference(b.store, "@"+imageID)
 	if err != nil {
-		return "", nil, nil, fmt.Errorf("error getting image reference %q: %w", imageID, err)
+		return "", nil, nil, fmt.Errorf("getting image reference %q: %w", imageID, err)
 	}
 	ref, err := imageRef.NewImage(ctx, nil)
 	if err != nil {
-		return "", nil, nil, fmt.Errorf("error creating new image from reference to image %q: %w", imageID, err)
+		return "", nil, nil, fmt.Errorf("creating new image from reference to image %q: %w", imageID, err)
 	}
 	defer ref.Close()
 	oci, err := ref.OCIConfig(ctx)
 	if err != nil {
-		return "", nil, nil, fmt.Errorf("error getting possibly-converted OCI config of image %q: %w", imageID, err)
+		return "", nil, nil, fmt.Errorf("getting possibly-converted OCI config of image %q: %w", imageID, err)
 	}
 	manifestBytes, manifestFormat, err := ref.Manifest(ctx)
 	if err != nil {
-		return "", nil, nil, fmt.Errorf("error getting manifest of image %q: %w", imageID, err)
+		return "", nil, nil, fmt.Errorf("getting manifest of image %q: %w", imageID, err)
 	}
 	if manifestFormat == "" && len(manifestBytes) > 0 {
 		manifestFormat = manifest.GuessMIMEType(manifestBytes)
@@ -539,7 +541,7 @@ func markDependencyStagesForTarget(dependencyMap map[string]*stageDependencyInfo
 // over each of the one or more parsed Dockerfiles and stages.
 func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) (imageID string, ref reference.Canonical, err error) {
 	if len(stages) == 0 {
-		return "", nil, errors.New("error building: no stages to build")
+		return "", nil, errors.New("building: no stages to build")
 	}
 	var cleanupImages []string
 	cleanupStages := make(map[int]*StageExecutor)
@@ -792,9 +794,10 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) (image
 					return
 				}
 				// Skip stage if it is not needed by TargetStage
-				// or any of its dependency stages.
+				// or any of its dependency stages and `SkipUnusedStages`
+				// is not set to `false`.
 				if stageDependencyInfo, ok := dependencyMap[stages[index].Name]; ok {
-					if !stageDependencyInfo.NeededByTarget {
+					if !stageDependencyInfo.NeededByTarget && b.skipUnusedStages != types.OptionalBoolFalse {
 						logrus.Debugf("Skipping stage with Name %q and index %d since its not needed by the target stage", stages[index].Name, index)
 						ch <- Result{
 							Index: index,
@@ -873,18 +876,18 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) (image
 		case is.Transport.Name():
 			img, err := is.Transport.GetStoreImage(b.store, dest)
 			if err != nil {
-				return imageID, ref, fmt.Errorf("error locating just-written image %q: %w", transports.ImageName(dest), err)
+				return imageID, ref, fmt.Errorf("locating just-written image %q: %w", transports.ImageName(dest), err)
 			}
 			if len(b.additionalTags) > 0 {
 				if err = util.AddImageNames(b.store, "", b.systemContext, img, b.additionalTags); err != nil {
-					return imageID, ref, fmt.Errorf("error setting image names to %v: %w", append(img.Names, b.additionalTags...), err)
+					return imageID, ref, fmt.Errorf("setting image names to %v: %w", append(img.Names, b.additionalTags...), err)
 				}
 				logrus.Debugf("assigned names %v to image %q", img.Names, img.ID)
 			}
 			// Report back the caller the tags applied, if any.
 			img, err = is.Transport.GetStoreImage(b.store, dest)
 			if err != nil {
-				return imageID, ref, fmt.Errorf("error locating just-written image %q: %w", transports.ImageName(dest), err)
+				return imageID, ref, fmt.Errorf("locating just-written image %q: %w", transports.ImageName(dest), err)
 			}
 			for _, name := range img.Names {
 				fmt.Fprintf(b.out, "Successfully tagged %s\n", name)

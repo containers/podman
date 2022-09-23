@@ -70,7 +70,10 @@ function _skip() {
     for t in "$@"; do
         if fgrep -qx "@test \"$t\" {" $BUD; then
             $ECHO "@test \"$t\" : $skip \"$reason\""
+            # Escape slash in test name, 'custom files in /run/'
             t=${t//\//\\/}
+            # Escape star in test name, 'bud with --dns* flags'
+            t=${t//\*/\\\*}
             sed -i -e "/^\@test \"$t\" {/ a \ \ $skip \"$reason\"" $BUD
         else
             warn "[$skip] Did not find test \"$t\" in $BUD"

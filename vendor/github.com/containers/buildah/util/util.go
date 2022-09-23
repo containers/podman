@@ -118,18 +118,18 @@ func ExpandNames(names []string, systemContext *types.SystemContext, store stora
 		var name reference.Named
 		nameList, _, err := resolveName(n, systemContext, store)
 		if err != nil {
-			return nil, fmt.Errorf("error parsing name %q: %w", n, err)
+			return nil, fmt.Errorf("parsing name %q: %w", n, err)
 		}
 		if len(nameList) == 0 {
 			named, err := reference.ParseNormalizedNamed(n)
 			if err != nil {
-				return nil, fmt.Errorf("error parsing name %q: %w", n, err)
+				return nil, fmt.Errorf("parsing name %q: %w", n, err)
 			}
 			name = named
 		} else {
 			named, err := reference.ParseNormalizedNamed(nameList[0])
 			if err != nil {
-				return nil, fmt.Errorf("error parsing name %q: %w", nameList[0], err)
+				return nil, fmt.Errorf("parsing name %q: %w", nameList[0], err)
 			}
 			name = named
 		}
@@ -169,7 +169,7 @@ func ResolveNameToReferences(
 ) (refs []types.ImageReference, err error) {
 	names, transport, err := resolveName(image, systemContext, store)
 	if err != nil {
-		return nil, fmt.Errorf("error parsing name %q: %w", image, err)
+		return nil, fmt.Errorf("parsing name %q: %w", image, err)
 	}
 
 	if transport != DefaultTransport {
@@ -185,7 +185,7 @@ func ResolveNameToReferences(
 		refs = append(refs, ref)
 	}
 	if len(refs) == 0 {
-		return nil, fmt.Errorf("error locating images with names %v", names)
+		return nil, fmt.Errorf("locating images with names %v", names)
 	}
 	return refs, nil
 }
@@ -206,7 +206,7 @@ func AddImageNames(store storage.Store, firstRegistry string, systemContext *typ
 
 	for _, tag := range addNames {
 		if err := localImage.Tag(tag); err != nil {
-			return fmt.Errorf("error tagging image %s: %w", image.ID, err)
+			return fmt.Errorf("tagging image %s: %w", image.ID, err)
 		}
 	}
 

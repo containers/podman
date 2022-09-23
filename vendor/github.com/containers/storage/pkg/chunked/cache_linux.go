@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"sort"
 	"strconv"
@@ -128,7 +127,7 @@ func (c *layersCache) load() error {
 		}
 		defer manifestReader.Close()
 
-		manifest, err := ioutil.ReadAll(manifestReader)
+		manifest, err := io.ReadAll(manifestReader)
 		if err != nil {
 			return fmt.Errorf("open manifest file for layer %q: %w", r.ID, err)
 		}
@@ -334,7 +333,7 @@ func writeCache(manifest []byte, id string, dest setBigData) (*metadata, error) 
 	}()
 	defer pipeReader.Close()
 
-	counter := ioutils.NewWriteCounter(ioutil.Discard)
+	counter := ioutils.NewWriteCounter(io.Discard)
 
 	r := io.TeeReader(pipeReader, counter)
 

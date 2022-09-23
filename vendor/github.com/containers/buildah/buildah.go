@@ -408,7 +408,7 @@ func OpenBuilder(store storage.Store, container string) (*Builder, error) {
 	}
 	b := &Builder{}
 	if err = json.Unmarshal(buildstate, &b); err != nil {
-		return nil, fmt.Errorf("error parsing %q, read from %q: %w", string(buildstate), filepath.Join(cdir, stateFile), err)
+		return nil, fmt.Errorf("parsing %q, read from %q: %w", string(buildstate), filepath.Join(cdir, stateFile), err)
 	}
 	if b.Type != containerType {
 		return nil, fmt.Errorf("container %q is not a %s container (is a %q container)", container, define.Package, b.Type)
@@ -484,7 +484,7 @@ func OpenAllBuilders(store storage.Store) (builders []*Builder, err error) {
 		buildstate, err := ioutil.ReadFile(filepath.Join(cdir, stateFile))
 		if err != nil {
 			if errors.Is(err, os.ErrNotExist) {
-				logrus.Debugf("error reading %q: %v, ignoring container %q", filepath.Join(cdir, stateFile), err, container.ID)
+				logrus.Debugf("%v, ignoring container %q", err, container.ID)
 				continue
 			}
 			return nil, err
@@ -520,7 +520,7 @@ func (b *Builder) Save() error {
 		return err
 	}
 	if err = ioutils.AtomicWriteFile(filepath.Join(cdir, stateFile), buildstate, 0600); err != nil {
-		return fmt.Errorf("error saving builder state to %q: %w", filepath.Join(cdir, stateFile), err)
+		return fmt.Errorf("saving builder state to %q: %w", filepath.Join(cdir, stateFile), err)
 	}
 	return nil
 }

@@ -28,7 +28,7 @@ import (
 func unmarshalConvertedConfig(ctx context.Context, dest interface{}, img types.Image, wantedManifestMIMEType string) error {
 	_, actualManifestMIMEType, err := img.Manifest(ctx)
 	if err != nil {
-		return fmt.Errorf("error getting manifest MIME type for %q: %w", transports.ImageName(img.Reference()), err)
+		return fmt.Errorf("getting manifest MIME type for %q: %w", transports.ImageName(img.Reference()), err)
 	}
 	if wantedManifestMIMEType != actualManifestMIMEType {
 		layerInfos := img.LayerInfos()
@@ -46,16 +46,16 @@ func unmarshalConvertedConfig(ctx context.Context, dest interface{}, img types.I
 			ManifestMIMEType: wantedManifestMIMEType,
 		})
 		if err != nil {
-			return fmt.Errorf("error converting image %q from %q to %q: %w", transports.ImageName(img.Reference()), actualManifestMIMEType, wantedManifestMIMEType, err)
+			return fmt.Errorf("converting image %q from %q to %q: %w", transports.ImageName(img.Reference()), actualManifestMIMEType, wantedManifestMIMEType, err)
 		}
 		img = secondUpdatedImg
 	}
 	config, err := img.ConfigBlob(ctx)
 	if err != nil {
-		return fmt.Errorf("error reading %s config from %q: %w", wantedManifestMIMEType, transports.ImageName(img.Reference()), err)
+		return fmt.Errorf("reading %s config from %q: %w", wantedManifestMIMEType, transports.ImageName(img.Reference()), err)
 	}
 	if err := json.Unmarshal(config, dest); err != nil {
-		return fmt.Errorf("error parsing %s configuration %q from %q: %w", wantedManifestMIMEType, string(config), transports.ImageName(img.Reference()), err)
+		return fmt.Errorf("parsing %s configuration %q from %q: %w", wantedManifestMIMEType, string(config), transports.ImageName(img.Reference()), err)
 	}
 	return nil
 }
@@ -64,11 +64,11 @@ func (b *Builder) initConfig(ctx context.Context, img types.Image, sys *types.Sy
 	if img != nil { // A pre-existing image, as opposed to a "FROM scratch" new one.
 		rawManifest, manifestMIMEType, err := img.Manifest(ctx)
 		if err != nil {
-			return fmt.Errorf("error reading image manifest for %q: %w", transports.ImageName(img.Reference()), err)
+			return fmt.Errorf("reading image manifest for %q: %w", transports.ImageName(img.Reference()), err)
 		}
 		rawConfig, err := img.ConfigBlob(ctx)
 		if err != nil {
-			return fmt.Errorf("error reading image configuration for %q: %w", transports.ImageName(img.Reference()), err)
+			return fmt.Errorf("reading image configuration for %q: %w", transports.ImageName(img.Reference()), err)
 		}
 		b.Manifest = rawManifest
 		b.Config = rawConfig
@@ -89,7 +89,7 @@ func (b *Builder) initConfig(ctx context.Context, img types.Image, sys *types.Sy
 			// Attempt to recover format-specific data from the manifest.
 			v1Manifest := ociv1.Manifest{}
 			if err := json.Unmarshal(b.Manifest, &v1Manifest); err != nil {
-				return fmt.Errorf("error parsing OCI manifest %q: %w", string(b.Manifest), err)
+				return fmt.Errorf("parsing OCI manifest %q: %w", string(b.Manifest), err)
 			}
 			for k, v := range v1Manifest.Annotations {
 				// NOTE: do not override annotations that are

@@ -265,9 +265,9 @@ func (w *huffmanBitWriter) writeBytes(bytes []byte) {
 // Codes 0-15 are single byte codes. Codes 16-18 are followed by additional
 // information. Code badCode is an end marker
 //
-//  numLiterals      The number of literals in literalEncoding
-//  numOffsets       The number of offsets in offsetEncoding
-//  litenc, offenc   The literal and offset encoder to use
+//	numLiterals      The number of literals in literalEncoding
+//	numOffsets       The number of offsets in offsetEncoding
+//	litenc, offenc   The literal and offset encoder to use
 func (w *huffmanBitWriter) generateCodegen(numLiterals int, numOffsets int, litEnc, offEnc *huffmanEncoder) {
 	for i := range w.codegenFreq {
 		w.codegenFreq[i] = 0
@@ -460,9 +460,9 @@ func (w *huffmanBitWriter) writeOutBits() {
 
 // Write the header of a dynamic Huffman block to the output stream.
 //
-//  numLiterals  The number of literals specified in codegen
-//  numOffsets   The number of offsets specified in codegen
-//  numCodegens  The number of codegens used in codegen
+//	numLiterals  The number of literals specified in codegen
+//	numOffsets   The number of offsets specified in codegen
+//	numCodegens  The number of codegens used in codegen
 func (w *huffmanBitWriter) writeDynamicHeader(numLiterals int, numOffsets int, numCodegens int, isEof bool) {
 	if w.err != nil {
 		return
@@ -790,9 +790,11 @@ func (w *huffmanBitWriter) fillTokens() {
 // and offsetEncoding.
 // The number of literal and offset tokens is returned.
 func (w *huffmanBitWriter) indexTokens(t *tokens, filled bool) (numLiterals, numOffsets int) {
-	copy(w.literalFreq[:], t.litHist[:])
-	copy(w.literalFreq[256:], t.extraHist[:])
-	copy(w.offsetFreq[:], t.offHist[:offsetCodeCount])
+	//copy(w.literalFreq[:], t.litHist[:])
+	*(*[256]uint16)(w.literalFreq[:]) = t.litHist
+	//copy(w.literalFreq[256:], t.extraHist[:])
+	*(*[32]uint16)(w.literalFreq[256:]) = t.extraHist
+	w.offsetFreq = t.offHist
 
 	if t.n == 0 {
 		return

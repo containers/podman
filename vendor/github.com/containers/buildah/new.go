@@ -190,12 +190,12 @@ func newBuilder(ctx context.Context, store storage.Store, options BuilderOptions
 	if ref != nil {
 		srcSrc, err := ref.NewImageSource(ctx, systemContext)
 		if err != nil {
-			return nil, fmt.Errorf("error instantiating image for %q: %w", transports.ImageName(ref), err)
+			return nil, fmt.Errorf("instantiating image for %q: %w", transports.ImageName(ref), err)
 		}
 		defer srcSrc.Close()
 		manifestBytes, manifestType, err := srcSrc.GetManifest(ctx, nil)
 		if err != nil {
-			return nil, fmt.Errorf("error loading image manifest for %q: %w", transports.ImageName(ref), err)
+			return nil, fmt.Errorf("loading image manifest for %q: %w", transports.ImageName(ref), err)
 		}
 		if manifestDigest, err := manifest.Digest(manifestBytes); err == nil {
 			imageDigest = manifestDigest.String()
@@ -204,17 +204,17 @@ func newBuilder(ctx context.Context, store storage.Store, options BuilderOptions
 		if manifest.MIMETypeIsMultiImage(manifestType) {
 			list, err := manifest.ListFromBlob(manifestBytes, manifestType)
 			if err != nil {
-				return nil, fmt.Errorf("error parsing image manifest for %q as list: %w", transports.ImageName(ref), err)
+				return nil, fmt.Errorf("parsing image manifest for %q as list: %w", transports.ImageName(ref), err)
 			}
 			instance, err := list.ChooseInstance(systemContext)
 			if err != nil {
-				return nil, fmt.Errorf("error finding an appropriate image in manifest list %q: %w", transports.ImageName(ref), err)
+				return nil, fmt.Errorf("finding an appropriate image in manifest list %q: %w", transports.ImageName(ref), err)
 			}
 			instanceDigest = &instance
 		}
 		src, err = image.FromUnparsedImage(ctx, systemContext, image.UnparsedInstance(srcSrc, instanceDigest))
 		if err != nil {
-			return nil, fmt.Errorf("error instantiating image for %q instance %q: %w", transports.ImageName(ref), instanceDigest, err)
+			return nil, fmt.Errorf("instantiating image for %q instance %q: %w", transports.ImageName(ref), instanceDigest, err)
 		}
 	}
 
@@ -263,7 +263,7 @@ func newBuilder(ctx context.Context, store storage.Store, options BuilderOptions
 			break
 		}
 		if !errors.Is(err, storage.ErrDuplicateName) || options.Container != "" {
-			return nil, fmt.Errorf("error creating container: %w", err)
+			return nil, fmt.Errorf("creating container: %w", err)
 		}
 		tmpName = fmt.Sprintf("%s-%d", name, rand.Int()%conflict)
 		conflict = conflict * 10
@@ -333,16 +333,16 @@ func newBuilder(ctx context.Context, store storage.Store, options BuilderOptions
 	if options.Mount {
 		_, err = builder.Mount(container.MountLabel())
 		if err != nil {
-			return nil, fmt.Errorf("error mounting build container %q: %w", builder.ContainerID, err)
+			return nil, fmt.Errorf("mounting build container %q: %w", builder.ContainerID, err)
 		}
 	}
 
 	if err := builder.initConfig(ctx, src, systemContext); err != nil {
-		return nil, fmt.Errorf("error preparing image configuration: %w", err)
+		return nil, fmt.Errorf("preparing image configuration: %w", err)
 	}
 	err = builder.Save()
 	if err != nil {
-		return nil, fmt.Errorf("error saving builder state for container %q: %w", builder.ContainerID, err)
+		return nil, fmt.Errorf("saving builder state for container %q: %w", builder.ContainerID, err)
 	}
 
 	return builder, nil

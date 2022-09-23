@@ -52,7 +52,6 @@ struct fsxattr {
 import "C"
 import (
 	"fmt"
-	"io/ioutil"
 	"math"
 	"os"
 	"path"
@@ -123,11 +122,9 @@ func generateUniqueProjectID(path string) (uint32, error) {
 // This is a way to prevent xfs_quota management from conflicting with
 // containers/storage.
 
-//
 // Then try to create a test directory with the next project id and set a quota
 // on it. If that works, continue to scan existing containers to map allocated
 // project ids.
-//
 func NewControl(basePath string) (*Control, error) {
 	//
 	// Get project id of parent dir as minimal id to be used by driver
@@ -336,7 +333,7 @@ func setProjectID(targetPath string, projectID uint32) error {
 // findNextProjectID - find the next project id to be used for containers
 // by scanning driver home directory to find used project ids
 func (q *Control) findNextProjectID(home string) error {
-	files, err := ioutil.ReadDir(home)
+	files, err := os.ReadDir(home)
 	if err != nil {
 		return fmt.Errorf("read directory failed : %s", home)
 	}

@@ -18,7 +18,7 @@ package cryptoutils
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 
 	"golang.org/x/term"
@@ -50,7 +50,7 @@ func readPasswordFn() func() ([]byte, error) {
 	}
 	// Handle piped in passwords.
 	return func() ([]byte, error) {
-		return ioutil.ReadAll(os.Stdin)
+		return io.ReadAll(os.Stdin)
 	}
 }
 

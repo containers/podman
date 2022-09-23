@@ -683,7 +683,7 @@ func findCredentialsInFile(key, registry, path string, legacyFormat bool) (types
 	// keys we prefer exact matches as well.
 	for _, key := range keys {
 		if val, exists := auths.AuthConfigs[key]; exists {
-			return decodeDockerAuth(val)
+			return decodeDockerAuth(path, key, val)
 		}
 	}
 
@@ -698,7 +698,7 @@ func findCredentialsInFile(key, registry, path string, legacyFormat bool) (types
 	registry = normalizeRegistry(registry)
 	for k, v := range auths.AuthConfigs {
 		if normalizeAuthFileKey(k, legacyFormat) == registry {
-			return decodeDockerAuth(v)
+			return decodeDockerAuth(path, k, v)
 		}
 	}
 
@@ -729,9 +729,9 @@ func authKeysForKey(key string) (res []string) {
 	return res
 }
 
-// decodeDockerAuth decodes the username and password, which is
-// encoded in base64.
-func decodeDockerAuth(conf dockerAuthConfig) (types.DockerAuthConfig, error) {
+// decodeDockerAuth decodes the username and password from conf,
+// which is entry key in path.
+func decodeDockerAuth(path, key string, conf dockerAuthConfig) (types.DockerAuthConfig, error) {
 	decoded, err := base64.StdEncoding.DecodeString(conf.Auth)
 	if err != nil {
 		return types.DockerAuthConfig{}, err
@@ -740,6 +740,11 @@ func decodeDockerAuth(conf dockerAuthConfig) (types.DockerAuthConfig, error) {
 	parts := strings.SplitN(string(decoded), ":", 2)
 	if len(parts) != 2 {
 		// if it's invalid just skip, as docker does
+		if len(decoded) > 0 { // Docker writes "auths": { "$host": {} } entries if a credential helper is used, don’t warn about those
+			logrus.Warnf(`Error parsing the "auth" field of a credential entry %q in %q, missing semicolon`, key, path) // Don’t include the text of decoded, because that might put secrets into a log.
+		} else {
+			logrus.Debugf("Found an empty credential entry %q in %q (an unhandled credential helper marker?), moving on", key, path)
+		}
 		return types.DockerAuthConfig{}, nil
 	}
 

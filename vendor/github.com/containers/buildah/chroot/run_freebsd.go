@@ -82,7 +82,7 @@ func createPlatformContainer(options runUsingChrootExecSubprocOptions) error {
 	jconf.Set("enforce_statfs", 1)
 	_, err := jail.CreateAndAttach(jconf)
 	if err != nil {
-		return fmt.Errorf("error creating jail: %w", err)
+		return fmt.Errorf("creating jail: %w", err)
 	}
 	return nil
 }
@@ -97,7 +97,7 @@ func makeReadOnly(mntpoint string, flags uintptr) error {
 	var fs unix.Statfs_t
 	// Make sure it's read-only.
 	if err := unix.Statfs(mntpoint, &fs); err != nil {
-		return fmt.Errorf("error checking if directory %q was bound read-only: %w", mntpoint, err)
+		return fmt.Errorf("checking if directory %q was bound read-only: %w", mntpoint, err)
 	}
 	return nil
 }
@@ -174,14 +174,14 @@ func setupChrootBindMounts(spec *specs.Spec, bundlePath string) (undoBinds func(
 		case "nullfs":
 			srcinfo, err = os.Stat(m.Source)
 			if err != nil {
-				return undoBinds, fmt.Errorf("error examining %q for mounting in mount namespace: %w", m.Source, err)
+				return undoBinds, fmt.Errorf("examining %q for mounting in mount namespace: %w", m.Source, err)
 			}
 		}
 		target := filepath.Join(spec.Root.Path, m.Destination)
 		if _, err := os.Stat(target); err != nil {
 			// If the target can't be stat()ted, check the error.
 			if !os.IsNotExist(err) {
-				return undoBinds, fmt.Errorf("error examining %q for mounting in mount namespace: %w", target, err)
+				return undoBinds, fmt.Errorf("examining %q for mounting in mount namespace: %w", target, err)
 			}
 			// The target isn't there yet, so create it, and make a
 			// note to remove it later.
@@ -189,12 +189,12 @@ func setupChrootBindMounts(spec *specs.Spec, bundlePath string) (undoBinds func(
 			// Leaving it here since I plan to add this to FreeBSD's nullfs.
 			if m.Type != "nullfs" || srcinfo.IsDir() {
 				if err = os.MkdirAll(target, 0111); err != nil {
-					return undoBinds, fmt.Errorf("error creating mountpoint %q in mount namespace: %w", target, err)
+					return undoBinds, fmt.Errorf("creating mountpoint %q in mount namespace: %w", target, err)
 				}
 				removes = append(removes, target)
 			} else {
 				if err = os.MkdirAll(filepath.Dir(target), 0111); err != nil {
-					return undoBinds, fmt.Errorf("error ensuring parent of mountpoint %q (%q) is present in mount namespace: %w", target, filepath.Dir(target), err)
+					return undoBinds, fmt.Errorf("ensuring parent of mountpoint %q (%q) is present in mount namespace: %w", target, filepath.Dir(target), err)
 				}
 				// Don't do this until we can support file mounts in nullfs
 				/*var file *os.File
@@ -219,7 +219,7 @@ func setupChrootBindMounts(spec *specs.Spec, bundlePath string) (undoBinds func(
 							err = os.MkdirAll(save, 0111)
 						}
 						if err != nil {
-							return undoBinds, fmt.Errorf("error creating file mount save directory %q: %w", save, err)
+							return undoBinds, fmt.Errorf("creating file mount save directory %q: %w", save, err)
 						}
 						removes = append(removes, save)
 					}
@@ -227,7 +227,7 @@ func setupChrootBindMounts(spec *specs.Spec, bundlePath string) (undoBinds func(
 					if _, err := os.Stat(target); err == nil {
 						logrus.Debugf("moving %q to %q", target, savePath)
 						if err := os.Rename(target, savePath); err != nil {
-							return undoBinds, fmt.Errorf("error moving %q to %q: %w", target, savePath, err)
+							return undoBinds, fmt.Errorf("moving %q to %q: %w", target, savePath, err)
 						}
 						renames = append(renames, rename{
 							from: target,
@@ -238,12 +238,12 @@ func setupChrootBindMounts(spec *specs.Spec, bundlePath string) (undoBinds func(
 					removes = append(removes, target)
 				}
 				if err := copyFile(m.Source, target); err != nil {
-					return undoBinds, fmt.Errorf("error copying %q to %q: %w", m.Source, target, err)
+					return undoBinds, fmt.Errorf("copying %q to %q: %w", m.Source, target, err)
 				}
 			} else {
 				logrus.Debugf("bind mounting %q on %q", m.Destination, filepath.Join(spec.Root.Path, m.Destination))
 				if err := mount.Mount(m.Source, target, "nullfs", strings.Join(m.Options, ",")); err != nil {
-					return undoBinds, fmt.Errorf("error bind mounting %q from host to %q in mount namespace (%q): %w", m.Source, m.Destination, target, err)
+					return undoBinds, fmt.Errorf("bind mounting %q from host to %q in mount namespace (%q): %w", m.Source, m.Destination, target, err)
 				}
 				logrus.Debugf("bind mounted %q to %q", m.Source, target)
 				unmounts = append(unmounts, target)
@@ -251,7 +251,7 @@ func setupChrootBindMounts(spec *specs.Spec, bundlePath string) (undoBinds func(
 		case "devfs", "fdescfs", "tmpfs":
 			// Mount /dev, /dev/fd.
 			if err := mount.Mount(m.Source, target, m.Type, strings.Join(m.Options, ",")); err != nil {
-				return undoBinds, fmt.Errorf("error mounting %q to %q in mount namespace (%q, %q): %w", m.Type, m.Destination, target, strings.Join(m.Options, ","), err)
+				return undoBinds, fmt.Errorf("mounting %q to %q in mount namespace (%q, %q): %w", m.Type, m.Destination, target, strings.Join(m.Options, ","), err)
 			}
 			logrus.Debugf("mounted a %q to %q", m.Type, target)
 			unmounts = append(unmounts, target)

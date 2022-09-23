@@ -74,7 +74,7 @@ func RunUsingChroot(spec *specs.Spec, bundlePath, homeDir string, stdin io.Reade
 		return err
 	}
 	if err = ioutils.AtomicWriteFile(filepath.Join(bundlePath, "config.json"), specbytes, 0600); err != nil {
-		return fmt.Errorf("error storing runtime configuration: %w", err)
+		return fmt.Errorf("storing runtime configuration: %w", err)
 	}
 	logrus.Debugf("config = %v", string(specbytes))
 
@@ -92,14 +92,14 @@ func RunUsingChroot(spec *specs.Spec, bundlePath, homeDir string, stdin io.Reade
 	// Create a pipe for passing configuration down to the next process.
 	preader, pwriter, err := os.Pipe()
 	if err != nil {
-		return fmt.Errorf("error creating configuration pipe: %w", err)
+		return fmt.Errorf("creating configuration pipe: %w", err)
 	}
 	config, conferr := json.Marshal(runUsingChrootSubprocOptions{
 		Spec:       spec,
 		BundlePath: bundlePath,
 	})
 	if conferr != nil {
-		return fmt.Errorf("error encoding configuration for %q: %w", runUsingChrootCommand, conferr)
+		return fmt.Errorf("encoding configuration for %q: %w", runUsingChrootCommand, conferr)
 	}
 
 	// Set our terminal's mode to raw, to pass handling of special
@@ -488,7 +488,7 @@ func runUsingChroot(spec *specs.Spec, bundlePath string, ctty *os.File, stdin io
 	// Create a pipe for passing configuration down to the next process.
 	preader, pwriter, err := os.Pipe()
 	if err != nil {
-		return 1, fmt.Errorf("error creating configuration pipe: %w", err)
+		return 1, fmt.Errorf("creating configuration pipe: %w", err)
 	}
 	config, conferr := json.Marshal(runUsingChrootExecSubprocOptions{
 		Spec:       spec,
@@ -514,7 +514,7 @@ func runUsingChroot(spec *specs.Spec, bundlePath string, ctty *os.File, stdin io
 	}
 	cmd.ExtraFiles = append([]*os.File{preader}, cmd.ExtraFiles...)
 	if err := setPlatformUnshareOptions(spec, cmd); err != nil {
-		return 1, fmt.Errorf("error setting platform unshare options: %w", err)
+		return 1, fmt.Errorf("setting platform unshare options: %w", err)
 
 	}
 	interrupted := make(chan os.Signal, 100)
@@ -778,7 +778,7 @@ func parseRlimits(spec *specs.Spec) (map[int]unix.Rlimit, error) {
 	for _, limit := range spec.Process.Rlimits {
 		resource, recognized := rlimitsMap[strings.ToUpper(limit.Type)]
 		if !recognized {
-			return nil, fmt.Errorf("error parsing limit type %q", limit.Type)
+			return nil, fmt.Errorf("parsing limit type %q", limit.Type)
 		}
 		parsed[resource] = makeRlimit(limit)
 	}
@@ -795,7 +795,7 @@ func setRlimits(spec *specs.Spec, onlyLower, onlyRaise bool) error {
 	for resource, desired := range limits {
 		var current unix.Rlimit
 		if err := unix.Getrlimit(resource, &current); err != nil {
-			return fmt.Errorf("error reading %q limit: %w", rlimitsReverseMap[resource], err)
+			return fmt.Errorf("reading %q limit: %w", rlimitsReverseMap[resource], err)
 		}
 		if desired.Max > current.Max && onlyLower {
 			// this would raise a hard limit, and we're only here to lower them
@@ -806,7 +806,7 @@ func setRlimits(spec *specs.Spec, onlyLower, onlyRaise bool) error {
 			continue
 		}
 		if err := unix.Setrlimit(resource, &desired); err != nil {
-			return fmt.Errorf("error setting %q limit to soft=%d,hard=%d (was soft=%d,hard=%d): %w", rlimitsReverseMap[resource], desired.Cur, desired.Max, current.Cur, current.Max, err)
+			return fmt.Errorf("setting %q limit to soft=%d,hard=%d (was soft=%d,hard=%d): %w", rlimitsReverseMap[resource], desired.Cur, desired.Max, current.Cur, current.Max, err)
 		}
 	}
 	return nil

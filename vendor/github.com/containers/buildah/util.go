@@ -151,7 +151,7 @@ func ReserveSELinuxLabels(store storage.Store, id string) error {
 	if selinuxGetEnabled() {
 		containers, err := store.Containers()
 		if err != nil {
-			return fmt.Errorf("error getting list of containers: %w", err)
+			return fmt.Errorf("getting list of containers: %w", err)
 		}
 
 		for _, c := range containers {
@@ -169,7 +169,7 @@ func ReserveSELinuxLabels(store storage.Store, id string) error {
 				}
 				// Prevent different containers from using same MCS label
 				if err := label.ReserveLabel(b.ProcessLabel); err != nil {
-					return fmt.Errorf("error reserving SELinux label %q: %w", b.ProcessLabel, err)
+					return fmt.Errorf("reserving SELinux label %q: %w", b.ProcessLabel, err)
 				}
 			}
 		}
@@ -219,10 +219,10 @@ func extractWithTar(root, src, dest string) error {
 	wg.Wait()
 
 	if getErr != nil {
-		return fmt.Errorf("error reading %q: %w", src, getErr)
+		return fmt.Errorf("reading %q: %w", src, getErr)
 	}
 	if putErr != nil {
-		return fmt.Errorf("error copying contents of %q to %q: %w", src, dest, putErr)
+		return fmt.Errorf("copying contents of %q to %q: %w", src, dest, putErr)
 	}
 	return nil
 }

@@ -105,7 +105,7 @@ func getURL(src string, chown *idtools.IDPair, mountpoint, renameTarget string, 
 	if lastModified != "" {
 		d, err := time.Parse(time.RFC1123, lastModified)
 		if err != nil {
-			return fmt.Errorf("error parsing last-modified time: %w", err)
+			return fmt.Errorf("parsing last-modified time: %w", err)
 		}
 		date = d
 	}
@@ -117,17 +117,17 @@ func getURL(src string, chown *idtools.IDPair, mountpoint, renameTarget string, 
 		// we can figure out how much content there is.
 		f, err := ioutil.TempFile(mountpoint, "download")
 		if err != nil {
-			return fmt.Errorf("error creating temporary file to hold %q: %w", src, err)
+			return fmt.Errorf("creating temporary file to hold %q: %w", src, err)
 		}
 		defer os.Remove(f.Name())
 		defer f.Close()
 		size, err = io.Copy(f, response.Body)
 		if err != nil {
-			return fmt.Errorf("error writing %q to temporary file %q: %w", src, f.Name(), err)
+			return fmt.Errorf("writing %q to temporary file %q: %w", src, f.Name(), err)
 		}
 		_, err = f.Seek(0, io.SeekStart)
 		if err != nil {
-			return fmt.Errorf("error setting up to read %q from temporary file %q: %w", src, f.Name(), err)
+			return fmt.Errorf("setting up to read %q from temporary file %q: %w", src, f.Name(), err)
 		}
 		responseBody = f
 	}
@@ -155,11 +155,11 @@ func getURL(src string, chown *idtools.IDPair, mountpoint, renameTarget string, 
 	}
 	err = tw.WriteHeader(&hdr)
 	if err != nil {
-		return fmt.Errorf("error writing header: %w", err)
+		return fmt.Errorf("writing header: %w", err)
 	}
 
 	if _, err := io.Copy(tw, responseBody); err != nil {
-		return fmt.Errorf("error writing content from %q to tar stream: %w", src, err)
+		return fmt.Errorf("writing content from %q to tar stream: %w", src, err)
 	}
 
 	return nil
@@ -208,13 +208,13 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 		contextDir = string(os.PathSeparator)
 		currentDir, err = os.Getwd()
 		if err != nil {
-			return fmt.Errorf("error determining current working directory: %w", err)
+			return fmt.Errorf("determining current working directory: %w", err)
 		}
 	} else {
 		if !filepath.IsAbs(options.ContextDir) {
 			contextDir, err = filepath.Abs(options.ContextDir)
 			if err != nil {
-				return fmt.Errorf("error converting context directory path %q to an absolute path: %w", options.ContextDir, err)
+				return fmt.Errorf("converting context directory path %q to an absolute path: %w", options.ContextDir, err)
 			}
 		}
 	}
@@ -273,14 +273,14 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 	if options.Chown != "" {
 		userUID, userGID, err = b.userForCopy(mountPoint, options.Chown)
 		if err != nil {
-			return fmt.Errorf("error looking up UID/GID for %q: %w", options.Chown, err)
+			return fmt.Errorf("looking up UID/GID for %q: %w", options.Chown, err)
 		}
 	}
 	var chmodDirsFiles *os.FileMode
 	if options.Chmod != "" {
 		p, err := strconv.ParseUint(options.Chmod, 8, 32)
 		if err != nil {
-			return fmt.Errorf("error parsing chmod %q: %w", options.Chmod, err)
+			return fmt.Errorf("parsing chmod %q: %w", options.Chmod, err)
 		}
 		perm := os.FileMode(p)
 		chmodDirsFiles = &perm
@@ -332,7 +332,7 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 	}
 	destStats, err := copier.Stat(mountPoint, filepath.Join(mountPoint, b.WorkDir()), statOptions, []string{extractDirectory})
 	if err != nil {
-		return fmt.Errorf("error checking on destination %v: %w", extractDirectory, err)
+		return fmt.Errorf("checking on destination %v: %w", extractDirectory, err)
 	}
 	if (len(destStats) == 0 || len(destStats[0].Globbed) == 0) && !destMustBeDirectory && destCanBeFile {
 		// destination doesn't exist - extract to parent and rename the incoming file to the destination's name
@@ -357,7 +357,7 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 
 	pm, err := fileutils.NewPatternMatcher(options.Excludes)
 	if err != nil {
-		return fmt.Errorf("error processing excludes list %v: %w", options.Excludes, err)
+		return fmt.Errorf("processing excludes list %v: %w", options.Excludes, err)
 	}
 
 	// Make sure that, if it's a symlink, we'll chroot to the target of the link;
@@ -365,7 +365,7 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 	evalOptions := copier.EvalOptions{}
 	evaluated, err := copier.Eval(mountPoint, extractDirectory, evalOptions)
 	if err != nil {
-		return fmt.Errorf("error checking on destination %v: %w", extractDirectory, err)
+		return fmt.Errorf("checking on destination %v: %w", extractDirectory, err)
 	}
 	extractDirectory = evaluated
 
@@ -383,7 +383,7 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 		ChownNew: chownDirs,
 	}
 	if err := copier.Mkdir(mountPoint, extractDirectory, mkdirOptions); err != nil {
-		return fmt.Errorf("error ensuring target directory exists: %w", err)
+		return fmt.Errorf("ensuring target directory exists: %w", err)
 	}
 
 	// Copy each source in turn.
@@ -427,10 +427,10 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 			}()
 			wg.Wait()
 			if getErr != nil {
-				getErr = fmt.Errorf("error reading %q: %w", src, getErr)
+				getErr = fmt.Errorf("reading %q: %w", src, getErr)
 			}
 			if putErr != nil {
-				putErr = fmt.Errorf("error storing %q: %w", src, putErr)
+				putErr = fmt.Errorf("storing %q: %w", src, putErr)
 			}
 			multiErr = multierror.Append(getErr, putErr)
 			if multiErr != nil && multiErr.ErrorOrNil() != nil {
@@ -459,7 +459,7 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 		for _, glob := range localSourceStat.Globbed {
 			rel, err := filepath.Rel(contextDir, glob)
 			if err != nil {
-				return fmt.Errorf("error computing path of %q relative to %q: %w", glob, contextDir, err)
+				return fmt.Errorf("computing path of %q relative to %q: %w", glob, contextDir, err)
 			}
 			if strings.HasPrefix(rel, ".."+string(os.PathSeparator)) {
 				return fmt.Errorf("possible escaping context directory error: %q is outside of %q", glob, contextDir)
@@ -468,7 +468,7 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 			if rel != "." {
 				excluded, err := pm.Matches(filepath.ToSlash(rel)) // nolint:staticcheck
 				if err != nil {
-					return fmt.Errorf("error checking if %q(%q) is excluded: %w", glob, rel, err)
+					return fmt.Errorf("checking if %q(%q) is excluded: %w", glob, rel, err)
 				}
 				if excluded {
 					// non-directories that are excluded are excluded, no question, but
@@ -562,16 +562,16 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 			}()
 			wg.Wait()
 			if getErr != nil {
-				getErr = fmt.Errorf("error reading %q: %w", src, getErr)
+				getErr = fmt.Errorf("reading %q: %w", src, getErr)
 			}
 			if closeErr != nil {
-				closeErr = fmt.Errorf("error closing %q: %w", src, closeErr)
+				closeErr = fmt.Errorf("closing %q: %w", src, closeErr)
 			}
 			if renameErr != nil {
-				renameErr = fmt.Errorf("error renaming %q: %w", src, renameErr)
+				renameErr = fmt.Errorf("renaming %q: %w", src, renameErr)
 			}
 			if putErr != nil {
-				putErr = fmt.Errorf("error storing %q: %w", src, putErr)
+				putErr = fmt.Errorf("storing %q: %w", src, putErr)
 			}
 			multiErr = multierror.Append(getErr, closeErr, renameErr, putErr)
 			if multiErr != nil && multiErr.ErrorOrNil() != nil {

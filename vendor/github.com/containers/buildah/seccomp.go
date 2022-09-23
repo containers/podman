@@ -24,7 +24,7 @@ func setupSeccomp(spec *specs.Spec, seccompProfilePath string) error {
 	default:
 		seccompProfile, err := ioutil.ReadFile(seccompProfilePath)
 		if err != nil {
-			return fmt.Errorf("opening seccomp profile (%s) failed: %w", seccompProfilePath, err)
+			return fmt.Errorf("opening seccomp profile failed: %w", err)
 		}
 		seccompConfig, err := seccomp.LoadProfile(string(seccompProfile), spec)
 		if err != nil {

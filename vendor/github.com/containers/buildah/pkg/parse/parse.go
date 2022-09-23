@@ -18,6 +18,7 @@ import (
 	"github.com/containers/buildah/define"
 	internalParse "github.com/containers/buildah/internal/parse"
 	"github.com/containers/buildah/pkg/sshagent"
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/common/pkg/parse"
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/types"
@@ -35,9 +36,9 @@ import (
 
 const (
 	// SeccompDefaultPath defines the default seccomp path
-	SeccompDefaultPath = "/usr/share/containers/seccomp.json"
+	SeccompDefaultPath = config.SeccompDefaultPath
 	// SeccompOverridePath if this exists it overrides the default seccomp path
-	SeccompOverridePath = "/etc/crio/seccomp.json"
+	SeccompOverridePath = config.SeccompOverridePath
 	// TypeBind is the type for mounting host dir
 	TypeBind = "bind"
 	// TypeTmpfs is the type for mounting tmpfs
@@ -811,15 +812,15 @@ func parseIDMap(spec []string) (m [][3]uint32, err error) {
 		for len(args) >= 3 {
 			cid, err := strconv.ParseUint(args[0], 10, 32)
 			if err != nil {
-				return nil, fmt.Errorf("error parsing container ID %q from mapping %q as a number: %w", args[0], s, err)
+				return nil, fmt.Errorf("parsing container ID %q from mapping %q as a number: %w", args[0], s, err)
 			}
 			hostid, err := strconv.ParseUint(args[1], 10, 32)
 			if err != nil {
-				return nil, fmt.Errorf("error parsing host ID %q from mapping %q as a number: %w", args[1], s, err)
+				return nil, fmt.Errorf("parsing host ID %q from mapping %q as a number: %w", args[1], s, err)
 			}
 			size, err := strconv.ParseUint(args[2], 10, 32)
 			if err != nil {
-				return nil, fmt.Errorf("error parsing %q from mapping %q as a number: %w", args[2], s, err)
+				return nil, fmt.Errorf("parsing %q from mapping %q as a number: %w", args[2], s, err)
 			}
 			m = append(m, [3]uint32{uint32(cid), uint32(hostid), uint32(size)})
 			args = args[3:]
@@ -1074,10 +1075,31 @@ func SSH(sshSources []string) (map[string]*sshagent.Source, error) {
 	return parsed, nil
 }
 
-func ContainerIgnoreFile(contextDir, path string) ([]string, string, error) {
+// ContainerIgnoreFile consumes path to `dockerignore` or `containerignore`
+// and returns list of files to exclude along with the path to processed ignore
+// file. Deprecated since this might become internal only, please avoid relying
+// on this function.
+func ContainerIgnoreFile(contextDir, path string, containerFiles []string) ([]string, string, error) {
 	if path != "" {
 		excludes, err := imagebuilder.ParseIgnore(path)
 		return excludes, path, err
+	}
+	// If path was not supplied give priority to `<containerfile>.containerignore` first.
+	for _, containerfile := range containerFiles {
+		if !filepath.IsAbs(containerfile) {
+			containerfile = filepath.Join(contextDir, containerfile)
+		}
+		containerfileIgnore := ""
+		if _, err := os.Stat(containerfile + ".containerignore"); err == nil {
+			containerfileIgnore = containerfile + ".containerignore"
+		}
+		if _, err := os.Stat(containerfile + ".dockerignore"); err == nil {
+			containerfileIgnore = containerfile + ".dockerignore"
+		}
+		if containerfileIgnore != "" {
+			excludes, err := imagebuilder.ParseIgnore(containerfileIgnore)
+			return excludes, containerfileIgnore, err
+		}
 	}
 	path = filepath.Join(contextDir, ".containerignore")
 	excludes, err := imagebuilder.ParseIgnore(path)

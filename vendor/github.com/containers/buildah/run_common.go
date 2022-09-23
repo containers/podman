@@ -98,7 +98,7 @@ func (b *Builder) addResolvConf(rdir string, chownOpts *idtools.IDPair, dnsServe
 		Searches:        searches,
 		Options:         options,
 	}); err != nil {
-		return "", fmt.Errorf("error building resolv.conf for container %s: %w", b.ContainerID, err)
+		return "", fmt.Errorf("building resolv.conf for container %s: %w", b.ContainerID, err)
 	}
 
 	uid := 0
@@ -165,7 +165,7 @@ func (b *Builder) generateHostname(rdir, hostname string, chownOpts *idtools.IDP
 
 	cfile := filepath.Join(rdir, filepath.Base(hostnamePath))
 	if err = ioutils.AtomicWriteFile(cfile, hostnameBuffer.Bytes(), 0644); err != nil {
-		return "", fmt.Errorf("error writing /etc/hostname into the container: %w", err)
+		return "", fmt.Errorf("writing /etc/hostname into the container: %w", err)
 	}
 
 	uid := 0
@@ -419,10 +419,10 @@ func runUsingRuntime(options RunOptions, configureNetwork bool, moreCreateArgs [
 	// Write the runtime configuration.
 	specbytes, err := json.Marshal(spec)
 	if err != nil {
-		return 1, fmt.Errorf("error encoding configuration %#v as json: %w", spec, err)
+		return 1, fmt.Errorf("encoding configuration %#v as json: %w", spec, err)
 	}
 	if err = ioutils.AtomicWriteFile(filepath.Join(bundlePath, "config.json"), specbytes, 0600); err != nil {
-		return 1, fmt.Errorf("error storing runtime configuration: %w", err)
+		return 1, fmt.Errorf("storing runtime configuration: %w", err)
 	}
 
 	logrus.Debugf("config = %v", string(specbytes))
@@ -451,7 +451,7 @@ func runUsingRuntime(options RunOptions, configureNetwork bool, moreCreateArgs [
 	copyPipes := false
 	finishCopy := make([]int, 2)
 	if err = unix.Pipe(finishCopy); err != nil {
-		return 1, fmt.Errorf("error creating pipe for notifying to stop stdio: %w", err)
+		return 1, fmt.Errorf("creating pipe for notifying to stop stdio: %w", err)
 	}
 	finishedCopy := make(chan struct{}, 1)
 	var pargs []string
@@ -463,7 +463,7 @@ func runUsingRuntime(options RunOptions, configureNetwork bool, moreCreateArgs [
 			socketPath := filepath.Join(bundlePath, "console.sock")
 			consoleListener, err = net.ListenUnix("unix", &net.UnixAddr{Name: socketPath, Net: "unix"})
 			if err != nil {
-				return 1, fmt.Errorf("error creating socket %q to receive terminal descriptor: %w", consoleListener.Addr(), err)
+				return 1, fmt.Errorf("creating socket %q to receive terminal descriptor: %w", consoleListener.Addr(), err)
 			}
 			// Add console socket arguments.
 			moreCreateArgs = append(moreCreateArgs, "--console-socket", socketPath)
@@ -542,13 +542,13 @@ func runUsingRuntime(options RunOptions, configureNetwork bool, moreCreateArgs [
 	logrus.Debugf("Running %q", create.Args)
 	err = create.Run()
 	if err != nil {
-		return 1, fmt.Errorf("error from %s creating container for %v: %s: %w", runtime, pargs, runCollectOutput(options.Logger, errorFds, closeBeforeReadingErrorFds), err)
+		return 1, fmt.Errorf("from %s creating container for %v: %s: %w", runtime, pargs, runCollectOutput(options.Logger, errorFds, closeBeforeReadingErrorFds), err)
 	}
 	defer func() {
 		err2 := del.Run()
 		if err2 != nil {
 			if err == nil {
-				err = fmt.Errorf("error deleting container: %w", err2)
+				err = fmt.Errorf("deleting container: %w", err2)
 			} else {
 				options.Logger.Infof("error from %s deleting container: %v", runtime, err2)
 			}
@@ -562,7 +562,7 @@ func runUsingRuntime(options RunOptions, configureNetwork bool, moreCreateArgs [
 	}
 	pid, err := strconv.Atoi(strings.TrimSpace(string(pidValue)))
 	if err != nil {
-		return 1, fmt.Errorf("error parsing pid %s as a number: %w", string(pidValue), err)
+		return 1, fmt.Errorf("parsing pid %s as a number: %w", string(pidValue), err)
 	}
 	var stopped uint32
 	var reaping sync.WaitGroup
@@ -608,7 +608,7 @@ func runUsingRuntime(options RunOptions, configureNetwork bool, moreCreateArgs [
 	logrus.Debugf("Running %q", start.Args)
 	err = start.Run()
 	if err != nil {
-		return 1, fmt.Errorf("error from %s starting container: %w", runtime, err)
+		return 1, fmt.Errorf("from %s starting container: %w", runtime, err)
 	}
 	defer func() {
 		if atomic.LoadUint32(&stopped) == 0 {
@@ -642,10 +642,10 @@ func runUsingRuntime(options RunOptions, configureNetwork bool, moreCreateArgs [
 				// container exited
 				break
 			}
-			return 1, fmt.Errorf("error reading container state from %s (got output: %q): %w", runtime, string(stateOutput), err)
+			return 1, fmt.Errorf("reading container state from %s (got output: %q): %w", runtime, string(stateOutput), err)
 		}
 		if err = json.Unmarshal(stateOutput, &state); err != nil {
-			return 1, fmt.Errorf("error parsing container state %q from %s: %w", string(stateOutput), runtime, err)
+			return 1, fmt.Errorf("parsing container state %q from %s: %w", string(stateOutput), runtime, err)
 		}
 		switch state.Status {
 		case "running":
@@ -964,7 +964,7 @@ func runAcceptTerminal(logger *logrus.Logger, consoleListener *net.UnixListener,
 	defer consoleListener.Close()
 	c, err := consoleListener.AcceptUnix()
 	if err != nil {
-		return -1, fmt.Errorf("error accepting socket descriptor connection: %w", err)
+		return -1, fmt.Errorf("accepting socket descriptor connection: %w", err)
 	}
 	defer c.Close()
 	// Expect a control message over our new connection.
@@ -972,7 +972,7 @@ func runAcceptTerminal(logger *logrus.Logger, consoleListener *net.UnixListener,
 	oob := make([]byte, 8192)
 	n, oobn, _, _, err := c.ReadMsgUnix(b, oob)
 	if err != nil {
-		return -1, fmt.Errorf("error reading socket descriptor: %w", err)
+		return -1, fmt.Errorf("reading socket descriptor: %w", err)
 	}
 	if n > 0 {
 		logrus.Debugf("socket descriptor is for %q", string(b[:n]))
@@ -983,7 +983,7 @@ func runAcceptTerminal(logger *logrus.Logger, consoleListener *net.UnixListener,
 	// Parse the control message.
 	scm, err := unix.ParseSocketControlMessage(oob[:oobn])
 	if err != nil {
-		return -1, fmt.Errorf("error parsing out-of-bound data as a socket control message: %w", err)
+		return -1, fmt.Errorf("parsing out-of-bound data as a socket control message: %w", err)
 	}
 	logrus.Debugf("control messages: %v", scm)
 	// Expect to get a descriptor.
@@ -991,7 +991,7 @@ func runAcceptTerminal(logger *logrus.Logger, consoleListener *net.UnixListener,
 	for i := range scm {
 		fds, err := unix.ParseUnixRights(&scm[i])
 		if err != nil {
-			return -1, fmt.Errorf("error parsing unix rights control message: %v: %w", &scm[i], err)
+			return -1, fmt.Errorf("parsing unix rights control message: %v: %w", &scm[i], err)
 		}
 		logrus.Debugf("fds: %v", fds)
 		if len(fds) == 0 {
@@ -1106,7 +1106,7 @@ func (b *Builder) runUsingRuntimeSubproc(isolation define.Isolation, options Run
 		Isolation:        isolation,
 	})
 	if conferr != nil {
-		return fmt.Errorf("error encoding configuration for %q: %w", runUsingRuntimeCommand, conferr)
+		return fmt.Errorf("encoding configuration for %q: %w", runUsingRuntimeCommand, conferr)
 	}
 	cmd := reexec.Command(runUsingRuntimeCommand)
 	setPdeathsig(cmd)
@@ -1126,13 +1126,13 @@ func (b *Builder) runUsingRuntimeSubproc(isolation define.Isolation, options Run
 	cmd.Env = util.MergeEnv(os.Environ(), []string{fmt.Sprintf("LOGLEVEL=%d", logrus.GetLevel())})
 	preader, pwriter, err := os.Pipe()
 	if err != nil {
-		return fmt.Errorf("error creating configuration pipe: %w", err)
+		return fmt.Errorf("creating configuration pipe: %w", err)
 	}
 	confwg.Add(1)
 	go func() {
 		_, conferr = io.Copy(pwriter, bytes.NewReader(config))
 		if conferr != nil {
-			conferr = fmt.Errorf("error while copying configuration down pipe to child process: %w", conferr)
+			conferr = fmt.Errorf("while copying configuration down pipe to child process: %w", conferr)
 		}
 		confwg.Done()
 	}()
@@ -1143,14 +1143,14 @@ func (b *Builder) runUsingRuntimeSubproc(isolation define.Isolation, options Run
 	if configureNetwork {
 		containerCreateR.file, containerCreateW.file, err = os.Pipe()
 		if err != nil {
-			return fmt.Errorf("error creating container create pipe: %w", err)
+			return fmt.Errorf("creating container create pipe: %w", err)
 		}
 		defer containerCreateR.Close()
 		defer containerCreateW.Close()
 
 		containerStartR.file, containerStartW.file, err = os.Pipe()
 		if err != nil {
-			return fmt.Errorf("error creating container start pipe: %w", err)
+			return fmt.Errorf("creating container start pipe: %w", err)
 		}
 		defer containerStartR.Close()
 		defer containerStartW.Close()
@@ -1161,7 +1161,7 @@ func (b *Builder) runUsingRuntimeSubproc(isolation define.Isolation, options Run
 	defer preader.Close()
 	defer pwriter.Close()
 	if err := cmd.Start(); err != nil {
-		return fmt.Errorf("error while starting runtime: %w", err)
+		return fmt.Errorf("while starting runtime: %w", err)
 	}
 
 	interrupted := make(chan os.Signal, 100)
@@ -1191,7 +1191,7 @@ func (b *Builder) runUsingRuntimeSubproc(isolation define.Isolation, options Run
 			}
 			pid, err := strconv.Atoi(strings.TrimSpace(string(pidValue)))
 			if err != nil {
-				return fmt.Errorf("error parsing pid %s as a number: %w", string(pidValue), err)
+				return fmt.Errorf("parsing pid %s as a number: %w", string(pidValue), err)
 			}
 
 			teardown, netstatus, err := b.runConfigureNetwork(pid, isolation, options, configureNetworks, containerName)
@@ -1227,7 +1227,7 @@ func (b *Builder) runUsingRuntimeSubproc(isolation define.Isolation, options Run
 	}
 
 	if err := cmd.Wait(); err != nil {
-		return fmt.Errorf("error while running runtime: %w", err)
+		return fmt.Errorf("while running runtime: %w", err)
 	}
 	confwg.Wait()
 	signal.Stop(interrupted)
@@ -1280,7 +1280,7 @@ func (b *Builder) setupMounts(mountPoint string, spec *specs.Spec, bundlePath st
 	// After this point we need to know the per-container persistent storage directory.
 	cdir, err := b.store.ContainerDirectory(b.ContainerID)
 	if err != nil {
-		return nil, fmt.Errorf("error determining work directory for container %q: %w", b.ContainerID, err)
+		return nil, fmt.Errorf("determining work directory for container %q: %w", b.ContainerID, err)
 	}
 
 	// Figure out which UID and GID to tell the subscriptions package to use
@@ -1408,7 +1408,7 @@ func runSetupBuiltinVolumes(mountLabel, mountPoint, containerDir string, builtin
 			}
 			logrus.Debugf("populating directory %q for volume %q using contents of %q", volumePath, volume, srcPath)
 			if err = extractWithTar(mountPoint, srcPath, volumePath); err != nil && !errors.Is(err, os.ErrNotExist) {
-				return nil, fmt.Errorf("error populating directory %q for volume %q using contents of %q: %w", volumePath, volume, srcPath, err)
+				return nil, fmt.Errorf("populating directory %q for volume %q using contents of %q: %w", volumePath, volume, srcPath, err)
 			}
 		}
 		// Add the bind mount.
@@ -1445,6 +1445,8 @@ func cleanableDestinationListFromMounts(mounts []spec.Mount) []string {
 
 // runSetupRunMounts sets up mounts that exist only in this RUN, not in subsequent runs
 func (b *Builder) runSetupRunMounts(mounts []string, sources runMountInfo, idMaps IDMaps) ([]spec.Mount, *runMountArtifacts, error) {
+	// If `type` is not set default to "bind"
+	mountType := internalParse.TypeBind
 	mountTargets := make([]string, 0, 10)
 	tmpFiles := make([]string, 0, len(mounts))
 	mountImages := make([]string, 0, 10)
@@ -1452,20 +1454,19 @@ func (b *Builder) runSetupRunMounts(mounts []string, sources runMountInfo, idMap
 	agents := make([]*sshagent.AgentServer, 0, len(mounts))
 	sshCount := 0
 	defaultSSHSock := ""
-	tokens := []string{}
 	lockedTargets := []string{}
 	for _, mount := range mounts {
-		arr := strings.SplitN(mount, ",", 2)
-
-		kv := strings.Split(arr[0], "=")
-		if len(kv) != 2 || kv[0] != "type" {
-			return nil, nil, errors.New("invalid mount type")
+		tokens := strings.Split(mount, ",")
+		for _, field := range tokens {
+			if strings.HasPrefix(field, "type=") {
+				kv := strings.Split(field, "=")
+				if len(kv) != 2 {
+					return nil, nil, errors.New("invalid mount type")
+				}
+				mountType = kv[1]
+			}
 		}
-		if len(arr) == 2 {
-			tokens = strings.Split(arr[1], ",")
-		}
-
-		switch kv[1] {
+		switch mountType {
 		case "secret":
 			mount, envFile, err := b.getSecretMount(tokens, sources.Secrets, idMaps)
 			if err != nil {
@@ -1520,7 +1521,7 @@ func (b *Builder) runSetupRunMounts(mounts []string, sources runMountInfo, idMap
 			mountTargets = append(mountTargets, mount.Destination)
 			lockedTargets = lockedPaths
 		default:
-			return nil, nil, fmt.Errorf("invalid mount type %q", kv[1])
+			return nil, nil, fmt.Errorf("invalid mount type %q", mountType)
 		}
 	}
 	artifacts := &runMountArtifacts{
@@ -1578,6 +1579,9 @@ func (b *Builder) getSecretMount(tokens []string, secrets map[string]define.Secr
 	for _, val := range tokens {
 		kv := strings.SplitN(val, "=", 2)
 		switch kv[0] {
+		case "type":
+			// This is already processed
+			continue
 		case "id":
 			id = kv[1]
 		case "target", "dst", "destination":
@@ -1698,6 +1702,9 @@ func (b *Builder) getSSHMount(tokens []string, count int, sshsources map[string]
 			return nil, nil, errInvalidSyntax
 		}
 		switch kv[0] {
+		case "type":
+			// This is already processed
+			continue
 		case "id":
 			id = kv[1]
 		case "target", "dst", "destination":
