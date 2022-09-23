@@ -996,6 +996,24 @@ then using podman -remote to start the container or simply by running
 something like `systemd-run podman run ...`.  In this case the
 container will only need `CAP_AUDIT_WRITE`.
 
+Another way to solve this problem is:
+
+Edit the /etc/ssh/sshd_confilg file and find the following line:
+
+**SyslogFacility AUTHPRIV**
+
+and change it to
+
+**SyslogFacility AUTH**
+
+Then, sshd no longer requires AUDIT_WRITE.
+
+Add the following line to the Containerfile to make this change on builds.
+
+```
+RUN sed -i -e 's/^\s*SyslogFacility\s\+AUTHPRIV\s*$/SyslogFacility AUTH/' /etc/ssh/sshd_config
+```
+
 ### 34) Container creates a file that is not owned by the user's regular UID
 
 After running a container with rootless Podman, the non-root user sees a numerical UID and GID instead of a username and groupname.
