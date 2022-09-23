@@ -233,25 +233,7 @@ function _run_consistency() {
     SUGGESTION="run 'make generate-bindings' and commit all changes" ./hack/tree_status.sh
     make completions
     SUGGESTION="run 'make completions' and commit all changes" ./hack/tree_status.sh
-
-    if  [[ -z "$CIRRUS_TAG" ]] && \
-        req_env_vars CIRRUS_CHANGE_IN_REPO CIRRUS_PR DEST_BRANCH
-    then
-        local base diffs regex i
-        # Prevent this check from detecting itself
-        i=i
-        msg "#####"
-        msg "Verifying no change adds new calls to ${i}o/${i}outil."
-        base=$(git merge-base $DEST_BRANCH $CIRRUS_CHANGE_IN_REPO)
-        diffs=$(git diff $base $CIRRUS_CHANGE_IN_REPO -- '*.go' ':^vendor/')
-        regex=$(echo -e "^(\\+.+${i}o/${i}outil)|(\\+.+${i}outil\\..+)")
-        if egrep -q "$regex"<<<"$diffs"; then
-            die "Found attempted use of deprecated ${i}outils:
-$(egrep -B 5 -A 5 "$regex"<<<"$diffs")"
-        fi
-    else
-        msg "Skipping check for ${i}o/${i}outil addition."
-    fi
+    $SCRIPT_BASE/check_go_changes.sh
 }
 
 function _run_build() {
