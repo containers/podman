@@ -23,9 +23,7 @@ Specify the key sequence for detaching a container. Format is a single character
 
 @@option env
 
-#### **--env-file**=*file*
-
-Read in a line delimited file of environment variables.
+@@option env-file
 
 @@option interactive
 
