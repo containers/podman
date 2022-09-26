@@ -118,6 +118,11 @@ func convertLibpodNetworktoDockerNetwork(runtime *libpod.Runtime, network *netty
 	if changeDefaultName && name == runtime.Network().DefaultNetworkName() {
 		name = nettypes.BridgeNetworkDriver
 	}
+	options := network.Options
+	// bridge always has isolate set in the compat API but we should not return it to not confuse callers
+	// https://github.com/containers/podman/issues/15580
+	delete(options, nettypes.IsolateOption)
+
 	report := types.NetworkResource{
 		Name:       name,
 		ID:         network.ID,
@@ -126,7 +131,7 @@ func convertLibpodNetworktoDockerNetwork(runtime *libpod.Runtime, network *netty
 		Internal:   network.Internal,
 		EnableIPv6: network.IPv6Enabled,
 		Labels:     network.Labels,
-		Options:    network.Options,
+		Options:    options,
 		IPAM:       ipam,
 		Scope:      "local",
 		Attachable: false,
