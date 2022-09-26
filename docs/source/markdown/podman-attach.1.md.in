@@ -28,9 +28,8 @@ The default is **false**.\
 
 Do not attach STDIN. The default is **false**.
 
-#### **--sig-proxy**
+@@option sig-proxy
 
-Proxy received signals to the process (non-TTY mode only). SIGCHLD, SIGSTOP, and SIGKILL are not proxied.\
 The default is **true**.
 
 ## EXAMPLES
