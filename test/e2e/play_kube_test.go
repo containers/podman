@@ -133,8 +133,6 @@ spec:
   containers:
   - name: podnameEqualsContainerNameYaml
     image: quay.io/libpod/alpine:latest
-    ports:
-    - containerPort: 80
 `
 
 var podWithoutAName = `
@@ -239,8 +237,6 @@ spec:
         - "1.5"
         name: alpine
         image: quay.io/libpod/alpine:latest
-        ports:
-        - containerPort: 80
         livenessProbe:
           exec:
             command:
@@ -274,8 +270,6 @@ spec:
         - "1.5"
         name: alpine
         image: quay.io/libpod/alpine:latest
-        ports:
-        - containerPort: 80
         livenessProbe:
           exec:
             command:
