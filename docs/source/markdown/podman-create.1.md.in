@@ -155,9 +155,9 @@ This option cannot be combined with **--network** that is set to **none** or **c
 
 See [**Environment**](#environment) note below for precedence and examples.
 
-#### **--env-file**=*file*
+@@option env-file
 
-Read in a line delimited file of environment variables. See **Environment** note below for precedence.
+See [**Environment**](#environment) note below for precedence and examples.
 
 @@option env-host
 
