@@ -3,6 +3,9 @@ package libpod
 import (
 	"fmt"
 
+	"github.com/containers/image/v5/docker"
+	"github.com/containers/image/v5/pkg/shortnames"
+	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/podman/v4/libpod/define"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 )
@@ -140,6 +143,36 @@ func (c *Container) validate() error {
 
 	if c.config.HealthCheckOnFailureAction != define.HealthCheckOnFailureActionNone && c.config.HealthCheckConfig == nil {
 		return fmt.Errorf("cannot set on-failure action to %s without a health check", c.config.HealthCheckOnFailureAction.String())
+	}
+
+	if value, exists := c.config.Labels[define.AutoUpdateLabel]; exists {
+		// TODO: we cannot reference pkg/autoupdate here due to
+		// circular dependencies.  It's worth considering moving the
+		// auto-update logic into the libpod package.
+		if value == "registry" || value == "image" {
+			if err := validateAutoUpdateImageReference(c.config.RawImageName); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+// validateAutoUpdateImageReference checks if the specified imageName is a
+// fully-qualified image reference to the docker transport. Such a reference
+// includes a domain, name and tag (e.g., quay.io/podman/stable:latest).  The
+// reference may also be prefixed with "docker://" explicitly indicating that
+// it's a reference to the docker transport.
+func validateAutoUpdateImageReference(imageName string) error {
+	// Make sure the input image is a docker.
+	imageRef, err := alltransports.ParseImageName(imageName)
+	if err == nil && imageRef.Transport().Name() != docker.Transport.Name() {
+		return fmt.Errorf("auto updates require the docker image transport but image is of transport %q", imageRef.Transport().Name())
+	} else if err != nil {
+		if shortnames.IsShortName(imageName) {
+			return fmt.Errorf("short name: auto updates require fully-qualified image reference: %q", imageName)
+		}
 	}
 	return nil
 }

@@ -133,6 +133,26 @@ function _confirm_update() {
     die "Timed out waiting for $cname to update; old IID=$old_iid"
 }
 
+@test "podman auto-update - validate input" {
+    # Fully-qualified image reference is required
+    run_podman create --label io.containers.autoupdate=registry $IMAGE
+    run_podman rm -f "$output"
+
+    # Short name does not work
+    shortname="shortname:latest"
+    run_podman image tag $IMAGE $shortname
+    run_podman 125 create --label io.containers.autoupdate=registry $shortname
+    is "$output" "Error: short name: auto updates require fully-qualified image reference: \"$shortname\""
+
+    # Requires docker (or no) transport
+    archive=$PODMAN_TMPDIR/archive.tar
+    run_podman save -o $archive $IMAGE
+    run_podman 125 create --label io.containers.autoupdate=registry docker-archive:$archive
+    is "$output" ".*Error: auto updates require the docker image transport but image is of transport \"docker-archive\""
+
+    run_podman rmi $shortname
+}
+
 # This test can fail in dev. environment because of SELinux.
 # quick fix: chcon -t container_runtime_exec_t ./bin/podman
 @test "podman auto-update - label io.containers.autoupdate=image" {

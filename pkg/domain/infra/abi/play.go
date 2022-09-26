@@ -19,7 +19,6 @@ import (
 	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v4/libpod"
 	"github.com/containers/podman/v4/libpod/define"
-	"github.com/containers/podman/v4/pkg/autoupdate"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	v1apps "github.com/containers/podman/v4/pkg/k8s.io/api/apps/v1"
 	v1 "github.com/containers/podman/v4/pkg/k8s.io/api/core/v1"
@@ -800,8 +799,8 @@ func (ic *ContainerEngine) getImageAndLabelInfo(ctx context.Context, cwd string,
 		}
 	}
 
-	setLabel(autoupdate.Label)
-	setLabel(autoupdate.AuthfileLabel)
+	setLabel(define.AutoUpdateLabel)
+	setLabel(define.AutoUpdateAuthfileLabel)
 
 	return pulledImage, labels, nil
 }

@@ -9,8 +9,6 @@ import (
 	"github.com/containers/common/libimage"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/docker"
-	"github.com/containers/image/v5/docker/reference"
-	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/podman/v4/libpod"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/libpod/events"
@@ -20,14 +18,6 @@ import (
 	"github.com/coreos/go-systemd/v22/dbus"
 	"github.com/sirupsen/logrus"
 )
-
-// Label denotes the container/pod label key to specify auto-update policies in
-// container labels.
-const Label = "io.containers.autoupdate"
-
-// Label denotes the container label key to specify authfile in
-// container labels.
-const AuthfileLabel = "io.containers.autoupdate.authfile"
 
 // Policy represents an auto-update policy.
 type Policy string
@@ -102,32 +92,7 @@ func LookupPolicy(s string) (Policy, error) {
 	return "", fmt.Errorf("invalid auto-update policy %q: valid policies are %+q", s, keys)
 }
 
-// ValidateImageReference checks if the specified imageName is a fully-qualified
-// image reference to the docker transport (without digest).  Such a reference
-// includes a domain, name and tag (e.g., quay.io/podman/stable:latest).  The
-// reference may also be prefixed with "docker://" explicitly indicating that
-// it's a reference to the docker transport.
-func ValidateImageReference(imageName string) error {
-	// Make sure the input image is a docker.
-	imageRef, err := alltransports.ParseImageName(imageName)
-	if err == nil && imageRef.Transport().Name() != docker.Transport.Name() {
-		return fmt.Errorf("auto updates require the docker image transport but image is of transport %q", imageRef.Transport().Name())
-	} else if err != nil {
-		repo, err := reference.Parse(imageName)
-		if err != nil {
-			return fmt.Errorf("enforcing fully-qualified docker transport reference for auto updates: %w", err)
-		}
-		if _, ok := repo.(reference.NamedTagged); !ok {
-			return fmt.Errorf("auto updates require fully-qualified image references (no tag): %q", imageName)
-		}
-		if _, ok := repo.(reference.Digested); ok {
-			return fmt.Errorf("auto updates require fully-qualified image references without digest: %q", imageName)
-		}
-	}
-	return nil
-}
-
-// AutoUpdate looks up containers with a specified auto-update policy and acts
+/// AutoUpdate looks up containers with a specified auto-update policy and acts
 // accordingly.
 //
 // If the policy is set to PolicyRegistryImage, it checks if the image
@@ -418,7 +383,7 @@ func (u *updater) assembleTasks(ctx context.Context) []error {
 		// Check the container's auto-update policy which is configured
 		// as a label.
 		labels := ctr.Labels()
-		value, exists := labels[Label]
+		value, exists := labels[define.AutoUpdateLabel]
 		if !exists {
 			continue
 		}
@@ -454,7 +419,7 @@ func (u *updater) assembleTasks(ctx context.Context) []error {
 		}
 
 		t := task{
-			authfile:     labels[AuthfileLabel],
+			authfile:     labels[define.AutoUpdateAuthfileLabel],
 			auto:         u,
 			container:    ctr,
 			policy:       policy,
