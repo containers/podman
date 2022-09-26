@@ -292,6 +292,15 @@ sub podman_man {
         chomp $line;
         next unless $line;		# skip empty lines
 
+        # First line (page title) must match the command name.
+        if ($line =~ /^%\s+/) {
+            my $expect = "% $command 1";
+            if ($line ne $expect) {
+                warn "$ME: $subpath:$.: wrong title line '$line'; should be '$expect'\n";
+                ++$Errs;
+            }
+        }
+
         # .md files designate sections with leading double hash
         if ($line =~ /^##\s*(GLOBAL\s+)?OPTIONS/) {
             $section = 'flags';
