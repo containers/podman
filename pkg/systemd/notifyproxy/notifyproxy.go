@@ -1,6 +1,7 @@
 package notifyproxy
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -109,48 +110,75 @@ func (p *NotifyProxy) WaitAndClose() error {
 		}
 	}()
 
-	const bufferSize = 1024
-	sBuilder := strings.Builder{}
-	for {
-		// Set a read deadline of one second such that we achieve a
-		// non-blocking read and can check if the container has already
-		// stopped running; in that case no READY message will be send
-		// and we're done.
-		if err := p.connection.SetReadDeadline(time.Now().Add(time.Second)); err != nil {
-			return err
-		}
+	// Since reading from the connection is blocking, we need to spin up two
+	// goroutines.  One waiting for the `READY` message, the other waiting
+	// for the container to stop running.
+	errorChan := make(chan error, 1)
+	readyChan := make(chan bool, 1)
 
+	go func() {
+		// Read until the `READY` message is received or the connection
+		// is closed.
+		const bufferSize = 1024
+		sBuilder := strings.Builder{}
 		for {
-			buffer := make([]byte, bufferSize)
-			num, err := p.connection.Read(buffer)
-			if err != nil {
-				if !errors.Is(err, os.ErrDeadlineExceeded) && !errors.Is(err, io.EOF) {
-					return err
+			for {
+				buffer := make([]byte, bufferSize)
+				num, err := p.connection.Read(buffer)
+				if err != nil {
+					if !errors.Is(err, io.EOF) {
+						errorChan <- err
+						return
+					}
+				}
+				sBuilder.Write(buffer[:num])
+				if num != bufferSize || buffer[num-1] == '\n' {
+					// Break as we read an entire line that
+					// we can inspect for the `READY`
+					// message.
+					break
 				}
 			}
-			sBuilder.Write(buffer[:num])
-			if num != bufferSize || buffer[num-1] == '\n' {
-				break
+
+			for _, line := range strings.Split(sBuilder.String(), "\n") {
+				if line == daemon.SdNotifyReady {
+					readyChan <- true
+					return
+				}
 			}
+			sBuilder.Reset()
 		}
+	}()
 
-		for _, line := range strings.Split(sBuilder.String(), "\n") {
-			if line == daemon.SdNotifyReady {
-				return nil
+	if p.container != nil {
+		// Create a cancellable context to make sure the goroutine
+		// below terminates.
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		go func() {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				state, err := p.container.State()
+				if err != nil {
+					errorChan <- err
+					return
+				}
+				if state != define.ContainerStateRunning {
+					errorChan <- fmt.Errorf("%w: %s", ErrNoReadyMessage, p.container.ID())
+					return
+				}
+				time.Sleep(time.Second)
 			}
-		}
-		sBuilder.Reset()
+		}()
+	}
 
-		if p.container == nil {
-			continue
-		}
-
-		state, err := p.container.State()
-		if err != nil {
-			return err
-		}
-		if state != define.ContainerStateRunning {
-			return fmt.Errorf("%w: %s", ErrNoReadyMessage, p.container.ID())
-		}
+	// Wait for the ready/error channel.
+	select {
+	case <-readyChan:
+		return nil
+	case err := <-errorChan:
+		return err
 	}
 }
