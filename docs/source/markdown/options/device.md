@@ -12,3 +12,11 @@ The <<container|pod>> will only store the major and minor numbers of the host de
 Podman may load kernel modules required for using the specified
 device. The devices that Podman will load modules for when necessary are:
 /dev/fuse.
+
+In rootless mode, the new device is bind mounted in the container from the host
+rather than Podman creating it within the container space. Because the bind
+mount retains its SELinux label on SELinux systems, the container can get
+permission denied when accessing the mounted device. Modify SELinux settings to
+allow containers to use all device labels via the following command:
+
+$ sudo setsebool -P  container_use_devices=true
