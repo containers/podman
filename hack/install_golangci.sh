@@ -6,7 +6,7 @@ die() { echo "${1:-No error message given} (from $(basename $0))"; exit 1; }
 
 function install() {
     echo "Installing golangci-lint v$VERSION into $BIN"
-    curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v$VERSION
+    curl -sSL --retry 5 https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v$VERSION
 }
 
 # Undocumented behavior: golangci-lint installer requires $BINDIR in env,

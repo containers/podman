@@ -232,8 +232,7 @@ case "$TEST_FLAVOR" in
     validate)
         dnf install -y $PACKAGE_DOWNLOAD_DIR/python3*.rpm
         # For some reason, this is also needed for validation
-        make install.tools
-        make .install.pre-commit
+        make .install.pre-commit .install.gitvalidation
         ;;
     automation) ;;
     altbuild)
@@ -242,11 +241,9 @@ case "$TEST_FLAVOR" in
         if [[ "$ALT_NAME" =~ RPM ]]; then
             bigto dnf install -y glibc-minimal-langpack go-rpm-macros rpkg rpm-build shadow-utils-subid-devel
         fi
-        make install.tools
         ;;
     docker-py)
         remove_packaged_podman_files
-        make install.tools
         make install PREFIX=/usr ETCDIR=/etc
 
         msg "Installing previously downloaded/cached packages"
@@ -258,16 +255,14 @@ case "$TEST_FLAVOR" in
         ;;
     build) make clean ;;
     unit)
-        make install.tools
+        make .install.ginkgo
         ;;
     compose_v2)
-        make install.tools
         dnf -y remove docker-compose
         curl -SL https://github.com/docker/compose/releases/download/v2.2.3/docker-compose-linux-x86_64 -o /usr/local/bin/docker-compose
         chmod +x /usr/local/bin/docker-compose
         ;& # Continue with next item
     apiv2)
-        make install.tools
         msg "Installing previously downloaded/cached packages"
         dnf install -y $PACKAGE_DOWNLOAD_DIR/python3*.rpm
         virtualenv .venv/requests
@@ -276,16 +271,16 @@ case "$TEST_FLAVOR" in
         pip install --requirement $GOSRC/test/apiv2/python/requirements.txt
         ;&  # continue with next item
     compose)
-        make install.tools
         dnf install -y $PACKAGE_DOWNLOAD_DIR/podman-docker*
         ;&  # continue with next item
-    int) ;&
+    int)
+        make .install.ginkgo
+        ;&
     sys) ;&
     upgrade_test) ;&
     bud) ;&
     bindings) ;&
     endpoint)
-        make install.tools
         # Use existing host bits when testing is to happen inside a container
         # since this script will run again in that environment.
         # shellcheck disable=SC2154
@@ -309,7 +304,6 @@ case "$TEST_FLAVOR" in
     machine)
         dnf install -y $PACKAGE_DOWNLOAD_DIR/podman-gvproxy*
         remove_packaged_podman_files
-        make install.tools
         make install PREFIX=/usr ETCDIR=/etc
         install_test_configs
         ;;
@@ -374,7 +368,7 @@ case "$TEST_FLAVOR" in
     swagger) ;&  # use next item
     consistency)
         make clean
-        make install.tools
+        make .install.goimports
         ;;
     release) ;;
     *) die_unknown TEST_FLAVOR
