@@ -11,6 +11,8 @@ import (
 	v1 "github.com/containers/podman/v4/pkg/k8s.io/api/core/v1"
 	"github.com/containers/podman/v4/pkg/k8s.io/apimachinery/pkg/api/resource"
 	v12 "github.com/containers/podman/v4/pkg/k8s.io/apimachinery/pkg/apis/meta/v1"
+	"github.com/containers/podman/v4/pkg/k8s.io/apimachinery/pkg/util/intstr"
+	"github.com/containers/podman/v4/pkg/specgen"
 	"github.com/docker/docker/pkg/system"
 	"github.com/stretchr/testify/assert"
 )
@@ -858,3 +860,60 @@ var (
 		},
 	}
 )
+
+func TestHttpLivenessProbe(t *testing.T) {
+	tests := []struct {
+		name          string
+		specGenerator specgen.SpecGenerator
+		container     v1.Container
+		restartPolicy string
+		succeed       bool
+		expectedURL   string
+	}{
+		{
+			"HttpLivenessProbeUrlSetCorrectly",
+			specgen.SpecGenerator{},
+			v1.Container{
+				LivenessProbe: &v1.Probe{
+					Handler: v1.Handler{
+						HTTPGet: &v1.HTTPGetAction{
+							Scheme: "http",
+							Host:   "127.0.0.1",
+							Port:   intstr.FromInt(8080),
+							Path:   "/health",
+						},
+					},
+				},
+			},
+			"always",
+			true,
+			"http://127.0.0.1:8080/health",
+		},
+		{
+			"HttpLivenessProbeUrlUsesDefaults",
+			specgen.SpecGenerator{},
+			v1.Container{
+				LivenessProbe: &v1.Probe{
+					Handler: v1.Handler{
+						HTTPGet: &v1.HTTPGetAction{
+							Port: intstr.FromInt(80),
+							Path: "/",
+						},
+					},
+				},
+			},
+			"always",
+			true,
+			"http://localhost:80/",
+		},
+	}
+
+	for _, test := range tests {
+		test := test
+		t.Run(test.name, func(t *testing.T) {
+			err := setupLivenessProbe(&test.specGenerator, test.container, test.restartPolicy)
+			assert.Equal(t, err == nil, test.succeed)
+			assert.Contains(t, test.specGenerator.ContainerHealthCheckConfig.HealthConfig.Test, test.expectedURL)
+		})
+	}
+}

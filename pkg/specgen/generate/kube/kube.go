@@ -500,26 +500,32 @@ func setupLivenessProbe(s *specgen.SpecGenerator, containerYAML v1.Container, re
 		probe := containerYAML.LivenessProbe
 		probeHandler := probe.Handler
 
-		// append `exit 1` to `cmd` so healthcheck can be marked as `unhealthy`.
-		// append `kill 1` to `cmd` if appropriate restart policy is configured.
-		if restartPolicy == "always" || restartPolicy == "onfailure" {
-			// container will be restarted so we can kill init.
-			failureCmd = "kill 1"
-		}
-
 		// configure healthcheck on the basis of Handler Actions.
 		switch {
 		case probeHandler.Exec != nil:
 			execString := strings.Join(probeHandler.Exec.Command, " ")
 			commandString = fmt.Sprintf("%s || %s", execString, failureCmd)
 		case probeHandler.HTTPGet != nil:
-			commandString = fmt.Sprintf("curl %s://%s:%d/%s  || %s", probeHandler.HTTPGet.Scheme, probeHandler.HTTPGet.Host, probeHandler.HTTPGet.Port.IntValue(), probeHandler.HTTPGet.Path, failureCmd)
+			// set defaults as in https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#http-probes
+			var uriScheme v1.URIScheme = "http"
+			if probeHandler.HTTPGet.Scheme != "" {
+				uriScheme = probeHandler.HTTPGet.Scheme
+			}
+			host := "localhost" // Kubernetes default is host IP, but with Podman there is only one node
+			if probeHandler.HTTPGet.Host != "" {
+				host = probeHandler.HTTPGet.Host
+			}
+			commandString = fmt.Sprintf("curl -f %s://%s:%d%s || %s", uriScheme, host, probeHandler.HTTPGet.Port.IntValue(), probeHandler.HTTPGet.Path, failureCmd)
 		case probeHandler.TCPSocket != nil:
 			commandString = fmt.Sprintf("nc -z -v %s %d || %s", probeHandler.TCPSocket.Host, probeHandler.TCPSocket.Port.IntValue(), failureCmd)
 		}
 		s.HealthConfig, err = makeHealthCheck(commandString, probe.PeriodSeconds, probe.FailureThreshold, probe.TimeoutSeconds, probe.InitialDelaySeconds)
 		if err != nil {
 			return err
+		}
+		// if restart policy is in place, ensure the health check enforces it
+		if restartPolicy == "always" || restartPolicy == "onfailure" {
+			s.HealthCheckOnFailureAction = define.HealthCheckOnFailureActionRestart
 		}
 		return nil
 	}
