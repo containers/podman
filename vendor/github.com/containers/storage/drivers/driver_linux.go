@@ -7,6 +7,7 @@ import (
 
 	"github.com/containers/storage/pkg/mount"
 	"golang.org/x/sys/unix"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -94,6 +95,10 @@ func GetFSMagic(rootpath string) (FsMagic, error) {
 	var buf unix.Statfs_t
 	if err := unix.Statfs(filepath.Dir(rootpath), &buf); err != nil {
 		return 0, err
+	}
+
+	if _, ok := FsNames[FsMagic(buf.Type)]; ok != true {
+		logrus.Debugf("Unknown file system type: %#x", buf.Type)
 	}
 	return FsMagic(buf.Type), nil
 }
