@@ -24,7 +24,7 @@ func TestParseSignal(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "Case doesnt matter",
+			name: "Case does not matter",
 			args: args{
 				rawSignal: "kIlL",
 			},

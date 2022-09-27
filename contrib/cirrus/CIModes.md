@@ -19,7 +19,7 @@ outdated) example of it's output can be seen below:
   While it's arguably easier to read that `only_if`, it leads to a cluttered
   status output that's harder to page through when reviewing PRs.  As opposed
   to `only_if` which will bypass creation of the task (at runtime) completely.
-  Also, by sticking to one conditional style, it's easer to re-use the YAML
+  Also, by sticking to one conditional style, it's easier to re-use the YAML
   statements across multiple tasks.
 
 + The only variables which can be used as part of conditions are defined by

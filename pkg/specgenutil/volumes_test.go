@@ -21,7 +21,7 @@ func Test_validChownFlag(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "U true case doesnt matter",
+			name: "U true case does not matter",
 			args: args{
 				flag: "u=True",
 			},

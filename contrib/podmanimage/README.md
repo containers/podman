@@ -1,6 +1,6 @@
 [comment]: <> (***ATTENTION*** ***WARNING*** ***ALERT*** ***CAUTION*** ***DANGER***)
 [comment]: <> ()
-[comment]: <> (ANY changes made to this file, once commited/merged must)
+[comment]: <> (ANY changes made to this file, once committed/merged must)
 [comment]: <> (be manually copy/pasted -in markdown- into the description)
 [comment]: <> (field on Quay at the following locations:)
 [comment]: <> ()
