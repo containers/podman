@@ -101,7 +101,7 @@ func remoteConnectionUsername() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	dest, _, err := cfg.ActiveDestination()
+	dest, _, _, err := cfg.ActiveDestination()
 	if err != nil {
 		return "", err
 	}

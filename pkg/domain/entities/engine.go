@@ -54,4 +54,5 @@ type PodmanConfig struct {
 	StorageDriver string
 	StorageOpts   []string
 	SSHMode       string
+	MachineMode   bool
 }

@@ -25,7 +25,8 @@ func AddConnection(uri fmt.Stringer, name, identity string, isDefault bool) erro
 		cfg.Engine.ActiveService = name
 	}
 	dst := config.Destination{
-		URI: uri.String(),
+		URI:       uri.String(),
+		IsMachine: true,
 	}
 	dst.Identity = identity
 	if cfg.Engine.ServiceDestinations == nil {

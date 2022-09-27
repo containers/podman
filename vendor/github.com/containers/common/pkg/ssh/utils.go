@@ -21,6 +21,7 @@ func Validate(user *url.Userinfo, path string, port int, identity string) (*conf
 	if strings.Contains(path, "/run") {
 		sock = strings.Split(path, "/run")[1]
 	}
+	// url.Parse NEEDS ssh://, if this ever fails or returns some nonsense, that is why.
 	uri, err := url.Parse(path)
 	if err != nil {
 		return nil, nil, err
@@ -33,9 +34,9 @@ func Validate(user *url.Userinfo, path string, port int, identity string) (*conf
 
 	if uri.Port() == "" {
 		if port != 0 {
-			uri.Host = net.JoinHostPort(uri.Hostname(), strconv.Itoa(port))
+			uri.Host = net.JoinHostPort(uri.Host, strconv.Itoa(port))
 		} else {
-			uri.Host = net.JoinHostPort(uri.Hostname(), "22")
+			uri.Host = net.JoinHostPort(uri.Host, "22")
 		}
 	}
 

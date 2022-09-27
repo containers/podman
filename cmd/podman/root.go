@@ -176,7 +176,7 @@ func persistentPreRunE(cmd *cobra.Command, args []string) error {
 
 	setupConnection := func() error {
 		var err error
-		cfg.URI, cfg.Identity, err = cfg.ActiveDestination()
+		cfg.URI, cfg.Identity, cfg.MachineMode, err = cfg.ActiveDestination()
 		if err != nil {
 			return fmt.Errorf("failed to resolve active destination: %w", err)
 		}
@@ -368,9 +368,12 @@ func loggingHook() {
 
 func rootFlags(cmd *cobra.Command, opts *entities.PodmanConfig) {
 	cfg := opts.Config
-	srv, uri, ident := resolveDestination()
+	srv, uri, ident, machine := resolveDestination()
 
 	lFlags := cmd.Flags()
+
+	// non configurable option to help ssh dialing
+	opts.MachineMode = machine
 
 	sshFlagName := "ssh"
 	lFlags.StringVar(&opts.SSHMode, sshFlagName, string(ssh.GolangMode), "define the ssh mode")
@@ -513,26 +516,26 @@ func rootFlags(cmd *cobra.Command, opts *entities.PodmanConfig) {
 	}
 }
 
-func resolveDestination() (string, string, string) {
+func resolveDestination() (string, string, string, bool) {
 	if uri, found := os.LookupEnv("CONTAINER_HOST"); found {
 		var ident string
 		if v, found := os.LookupEnv("CONTAINER_SSHKEY"); found {
 			ident = v
 		}
-		return "", uri, ident
+		return "", uri, ident, false
 	}
 
 	cfg, err := config.ReadCustomConfig()
 	if err != nil {
 		logrus.Warning(fmt.Errorf("unable to read local containers.conf: %w", err))
-		return "", registry.DefaultAPIAddress(), ""
+		return "", registry.DefaultAPIAddress(), "", false
 	}
 
-	uri, ident, err := cfg.ActiveDestination()
+	uri, ident, machine, err := cfg.ActiveDestination()
 	if err != nil {
-		return "", registry.DefaultAPIAddress(), ""
+		return "", registry.DefaultAPIAddress(), "", false
 	}
-	return cfg.Engine.ActiveService, uri, ident
+	return cfg.Engine.ActiveService, uri, ident, machine
 }
 
 func formatError(err error) string {
