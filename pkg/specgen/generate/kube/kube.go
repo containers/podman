@@ -914,6 +914,9 @@ func getPodPorts(containers []v1.Container) []types.PortMapping {
 			if p.HostPort != 0 && p.ContainerPort == 0 {
 				p.ContainerPort = p.HostPort
 			}
+			if p.HostPort == 0 && p.ContainerPort != 0 {
+				p.HostPort = p.ContainerPort
+			}
 			if p.Protocol == "" {
 				p.Protocol = "tcp"
 			}

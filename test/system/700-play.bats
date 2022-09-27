@@ -386,3 +386,27 @@ status: {}
     run_podman rm -a -f
     run_podman rm -f -t0 myyaml
 }
+
+@test "podman kube play - hostport" {
+    HOST_PORT=$(random_free_port)
+    echo "
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app: test
+  name: test_pod
+spec:
+  containers:
+    - name: server
+      image: $IMAGE
+      ports:
+        - name: hostp
+          containerPort: $HOST_PORT
+" > $PODMAN_TMPDIR/testpod.yaml
+
+    run_podman kube play $PODMAN_TMPDIR/testpod.yaml
+    run_podman pod inspect test_pod --format "{{.InfraConfig.PortBindings}}"
+    assert "$output" = "map[$HOST_PORT/tcp:[{ $HOST_PORT}]]"
+    run_podman kube down $PODMAN_TMPDIR/testpod.yaml
+}
