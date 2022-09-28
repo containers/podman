@@ -292,4 +292,55 @@ LISTEN_FDNAMES=listen_fdnames" | sort)
     run_podman network rm -f $netname
 }
 
+@test "podman create --health-on-failure=kill" {
+    img="healthcheck_i"
+    _build_health_check_image $img
+
+    cname=$(random_string)
+    run_podman create --name $cname      \
+               --health-cmd /healthcheck \
+               --health-on-failure=kill  \
+               --restart=on-failure      \
+               $img
+
+    # run container in systemd unit
+    service_setup
+
+    run_podman container inspect $cname --format "{{.ID}}"
+    oldID="$output"
+
+    run_podman healthcheck run $cname
+
+    # Now cause the healthcheck to fail
+    run_podman exec $cname touch /uh-oh
+
+    # healthcheck should now fail, with exit status 1 and 'unhealthy' output
+    run_podman 1 healthcheck run $cname
+    is "$output" "unhealthy" "output from 'podman healthcheck run'"
+
+    # What is expected to happen now:
+    #  1) The container gets killed as the health check has failed
+    #  2) Systemd restarts the service as the restart policy is set to "on-failure"
+    #  3) The /uh-oh file is gone and $cname has another ID
+
+    # Wait at most 10 seconds for the service to be restarted
+    local timeout=10
+    while [[ $timeout -gt 1 ]]; do
+        run_podman '?' container inspect $cname
+        if [[ $status == 0 ]]; then
+            if [[ "$output" != "$oldID" ]]; then
+                break
+            fi
+        fi
+        sleep 1
+        let timeout=$timeout-1
+    done
+
+    run_podman healthcheck run $cname
+
+    # stop systemd container
+    service_cleanup
+    run_podman rmi -f $img
+}
+
 # vim: filetype=sh

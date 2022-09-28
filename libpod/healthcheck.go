@@ -2,6 +2,8 @@ package libpod
 
 import (
 	"bufio"
+	"context"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -11,6 +13,7 @@ import (
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/sys/unix"
 )
 
 const (
@@ -28,9 +31,14 @@ func (r *Runtime) HealthCheck(name string) (define.HealthCheckStatus, error) {
 	if err != nil {
 		return define.HealthCheckContainerNotFound, errors.Wrapf(err, "unable to lookup %s to perform a health check", name)
 	}
+
 	hcStatus, err := checkHealthCheckCanBeRun(container)
 	if err == nil {
-		return container.runHealthCheck()
+		hcStatus, err := container.runHealthCheck()
+		if err := container.processHealthCheckStatus(hcStatus); err != nil {
+			return hcStatus, err
+		}
+		return hcStatus, err
 	}
 	return hcStatus, err
 }
@@ -127,11 +135,43 @@ func (c *Container) runHealthCheck() (define.HealthCheckStatus, error) {
 		hcResult = define.HealthCheckFailure
 		hcErr = errors.Errorf("healthcheck command exceeded timeout of %s", c.HealthCheckConfig().Timeout.String())
 	}
+
 	hcl := newHealthCheckLog(timeStart, timeEnd, returnCode, eventLog)
 	if err := c.updateHealthCheckLog(hcl, inStartPeriod); err != nil {
 		return hcResult, errors.Wrapf(err, "unable to update health check log %s for %s", c.healthCheckLogPath(), c.ID())
 	}
+
 	return hcResult, hcErr
+}
+
+func (c *Container) processHealthCheckStatus(status define.HealthCheckStatus) error {
+	if status == define.HealthCheckSuccess {
+		return nil
+	}
+
+	switch c.config.HealthCheckOnFailureAction {
+	case define.HealthCheckOnFailureActionNone: // Nothing to do
+
+	case define.HealthCheckOnFailureActionKill:
+		if err := c.Kill(uint(unix.SIGKILL)); err != nil {
+			return fmt.Errorf("killing container health-check turned unhealthy: %w", err)
+		}
+
+	case define.HealthCheckOnFailureActionRestart:
+		if err := c.RestartWithTimeout(context.Background(), c.config.StopTimeout); err != nil {
+			return fmt.Errorf("restarting container after health-check turned unhealthy: %w", err)
+		}
+
+	case define.HealthCheckOnFailureActionStop:
+		if err := c.Stop(); err != nil {
+			return fmt.Errorf("stopping container after health-check turned unhealthy: %w", err)
+		}
+
+	default: // Should not happen but better be safe than sorry
+		return fmt.Errorf("unsupported on-failure action %d", c.config.HealthCheckOnFailureAction)
+	}
+
+	return nil
 }
 
 func checkHealthCheckCanBeRun(c *Container) (define.HealthCheckStatus, error) {

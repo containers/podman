@@ -257,6 +257,13 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 			Test: []string{"NONE"},
 		}
 	}
+
+	onFailureAction, err := define.ParseHealthCheckOnFailureAction(c.HealthOnFailure)
+	if err != nil {
+		return err
+	}
+	s.HealthCheckOnFailureAction = onFailureAction
+
 	if err := setNamespaces(s, c); err != nil {
 		return err
 	}
