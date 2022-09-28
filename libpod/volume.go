@@ -280,3 +280,7 @@ func (v *Volume) Unmount() error {
 	defer v.lock.Unlock()
 	return v.unmount(false)
 }
+
+func (v *Volume) NeedsMount() bool {
+	return v.needsMount()
+}

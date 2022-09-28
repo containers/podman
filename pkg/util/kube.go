@@ -13,4 +13,6 @@ const (
 	VolumeGIDAnnotation = "volume.podman.io/gid"
 	// Kube annotation for podman volume mount options.
 	VolumeMountOptsAnnotation = "volume.podman.io/mount-options"
+	// Kube annotation for podman volume import source.
+	VolumeImportSourceAnnotation = "volume.podman.io/import-source"
 )

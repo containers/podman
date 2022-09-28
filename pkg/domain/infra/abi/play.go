@@ -18,6 +18,7 @@ import (
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/common/pkg/secrets"
 	"github.com/containers/image/v5/types"
+	"github.com/containers/podman/v4/cmd/podman/parse"
 	"github.com/containers/podman/v4/libpod"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/domain/entities"
@@ -29,6 +30,7 @@ import (
 	"github.com/containers/podman/v4/pkg/specgenutil"
 	"github.com/containers/podman/v4/pkg/systemd/notifyproxy"
 	"github.com/containers/podman/v4/pkg/util"
+	"github.com/containers/podman/v4/utils"
 	"github.com/coreos/go-systemd/v22/daemon"
 	"github.com/ghodss/yaml"
 	"github.com/opencontainers/go-digest"
@@ -231,6 +233,19 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, body io.Reader, options
 
 			if err := yaml.Unmarshal(document, &pvcYAML); err != nil {
 				return nil, fmt.Errorf("unable to read YAML as Kube PersistentVolumeClaim: %w", err)
+			}
+
+			for name, val := range options.Annotations {
+				if pvcYAML.Annotations == nil {
+					pvcYAML.Annotations = make(map[string]string)
+				}
+				pvcYAML.Annotations[name] = val
+			}
+
+			if options.IsRemote {
+				if _, ok := pvcYAML.Annotations[util.VolumeImportSourceAnnotation]; ok {
+					return nil, fmt.Errorf("importing volumes is not supported for remote requests")
+				}
 			}
 
 			r, err := ic.playKubePVC(ctx, &pvcYAML)
@@ -859,6 +874,7 @@ func (ic *ContainerEngine) playKubePVC(ctx context.Context, pvcYAML *v1.Persiste
 	// Get pvc annotations and create remaining podman volume options if available.
 	// These are podman volume options that do not match any of the persistent volume claim
 	// attributes, so they can be configured using annotations since they will not affect k8s.
+	var importFrom string
 	for k, v := range pvcYAML.Annotations {
 		switch k {
 		case util.VolumeDriverAnnotation:
@@ -883,9 +899,27 @@ func (ic *ContainerEngine) playKubePVC(ctx context.Context, pvcYAML *v1.Persiste
 			opts["GID"] = v
 		case util.VolumeMountOptsAnnotation:
 			opts["o"] = v
+		case util.VolumeImportSourceAnnotation:
+			importFrom = v
 		}
 	}
 	volOptions = append(volOptions, libpod.WithVolumeOptions(opts))
+
+	// Validate the file and open it before creating the volume for fast-fail
+	var tarFile *os.File
+	if len(importFrom) > 0 {
+		err := parse.ValidateFileName(importFrom)
+		if err != nil {
+			return nil, err
+		}
+
+		// open tar file
+		tarFile, err = os.Open(importFrom)
+		if err != nil {
+			return nil, err
+		}
+		defer tarFile.Close()
+	}
 
 	// Create volume.
 	vol, err := ic.Libpod.NewVolume(ctx, volOptions...)
@@ -893,11 +927,58 @@ func (ic *ContainerEngine) playKubePVC(ctx context.Context, pvcYAML *v1.Persiste
 		return nil, err
 	}
 
+	if tarFile != nil {
+		err = ic.importVolume(ctx, vol, tarFile)
+		if err != nil {
+			// Remove the volume to avoid partial success
+			if rmErr := ic.Libpod.RemoveVolume(ctx, vol, true, nil); rmErr != nil {
+				logrus.Debug(rmErr)
+			}
+			return nil, err
+		}
+	}
+
 	report.Volumes = append(report.Volumes, entities.PlayKubeVolume{
 		Name: vol.Name(),
 	})
 
 	return &report, nil
+}
+
+func (ic *ContainerEngine) importVolume(ctx context.Context, vol *libpod.Volume, tarFile *os.File) error {
+	volumeConfig, err := vol.Config()
+	if err != nil {
+		return err
+	}
+
+	mountPoint := volumeConfig.MountPoint
+	if len(mountPoint) == 0 {
+		return errors.New("volume is not mounted anywhere on host")
+	}
+
+	driver := volumeConfig.Driver
+	volumeOptions := volumeConfig.Options
+	volumeMountStatus, err := ic.VolumeMounted(ctx, vol.Name())
+	if err != nil {
+		return err
+	}
+
+	// Check if volume needs a mount and export only if volume is mounted
+	if vol.NeedsMount() && !volumeMountStatus.Value {
+		return fmt.Errorf("volume needs to be mounted but is not mounted on %s", mountPoint)
+	}
+
+	// Check if volume is using `local` driver and has mount options type other than tmpfs
+	if len(driver) == 0 || driver == define.VolumeDriverLocal {
+		if mountOptionType, ok := volumeOptions["type"]; ok {
+			if mountOptionType != "tmpfs" && !volumeMountStatus.Value {
+				return fmt.Errorf("volume is using a driver %s and volume is not mounted on %s", driver, mountPoint)
+			}
+		}
+	}
+
+	// dont care if volume is mounted or not we are gonna import everything to mountPoint
+	return utils.UntarToFileSystem(mountPoint, tarFile, nil)
 }
 
 // readConfigMapFromFile returns a kubernetes configMap obtained from --configmap flag

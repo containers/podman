@@ -93,6 +93,7 @@ func KubePlay(w http.ResponseWriter, r *http.Request) {
 		LogOptions:  query.LogOptions,
 		StaticIPs:   staticIPs,
 		StaticMACs:  staticMACs,
+		IsRemote:    true,
 	}
 	if _, found := r.URL.Query()["tlsVerify"]; found {
 		options.SkipTLSVerify = types.NewOptionalBool(!query.TLSVerify)
