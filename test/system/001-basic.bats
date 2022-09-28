@@ -215,46 +215,11 @@ See 'podman version --help'" "podman version --remote"
     run_podman --log-level=warn    info
     assert "$output" !~ " level=" "log-level=warn shows no logs at all"
 
-    # Force a warning (local podman only; podman-remote doesn't check versions)
-    if ! is_remote; then
-        run_podman --log-level=warn --storage-opt=mount_program=/bin/false info
-        assert "$output" =~ " level=warning msg=\"Failed to retrieve " \
-               "log-level=warn"
-
-        # confirm that default level is "warn", by invoking without --log-level
-        run_podman --storage-opt=mount_program=/bin/false info
-        assert "$output" =~ " level=warning msg=\"Failed to retrieve " \
-               "default log level includes warning messages"
-    fi
-
     run_podman --log-level=warning info
     assert "$output" !~ " level=" "log-level=warning shows no logs at all"
 
     run_podman --log-level=error   info
     assert "$output" !~ " level=" "log-level=error shows no logs at all"
-
-    # error, fatal, panic:
-    if is_remote; then
-        # podman-remote does not grok --runtime; all we can do is test parsing
-        for level in error fatal panic; do
-            run_podman --log-level=$level info
-            assert "$output" !~ " level=" \
-                   "log-level=$level shows no logs at all"
-        done
-    else
-        # local podman only
-        run_podman --log-level=error --storage-opt=mount_program=/bin/false --runtime=/bin/false info
-        assert "$output" =~ " level=error msg=\"Getting info on OCI runtime " \
-               "log-level=error shows "
-        assert "$output" !~ " level=warn" \
-               "log-level=error does not show warnings"
-
-        run_podman --log-level=fatal --storage-opt=mount_program=/bin/false --runtime=/bin/false info
-        assert "$output" !~ " level=" "log-level=fatal shows no logs at all"
-
-        run_podman --log-level=panic --storage-opt=mount_program=/bin/false --runtime=/bin/false info
-        assert "$output" !~ " level=" "log-level=panic shows no logs at all"
-    fi
 
     # docker compat
     run_podman --debug   info
