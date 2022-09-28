@@ -507,7 +507,7 @@ func setupLivenessProbe(s *specgen.SpecGenerator, containerYAML v1.Container, re
 			commandString = fmt.Sprintf("%s || %s", execString, failureCmd)
 		case probeHandler.HTTPGet != nil:
 			// set defaults as in https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#http-probes
-			var uriScheme v1.URIScheme = "http"
+			uriScheme := v1.URISchemeHTTP
 			if probeHandler.HTTPGet.Scheme != "" {
 				uriScheme = probeHandler.HTTPGet.Scheme
 			}
@@ -515,7 +515,11 @@ func setupLivenessProbe(s *specgen.SpecGenerator, containerYAML v1.Container, re
 			if probeHandler.HTTPGet.Host != "" {
 				host = probeHandler.HTTPGet.Host
 			}
-			commandString = fmt.Sprintf("curl -f %s://%s:%d%s || %s", uriScheme, host, probeHandler.HTTPGet.Port.IntValue(), probeHandler.HTTPGet.Path, failureCmd)
+			path := "/"
+			if probeHandler.HTTPGet.Path != "" {
+				path = probeHandler.HTTPGet.Path
+			}
+			commandString = fmt.Sprintf("curl -f %s://%s:%d%s || %s", uriScheme, host, probeHandler.HTTPGet.Port.IntValue(), path, failureCmd)
 		case probeHandler.TCPSocket != nil:
 			commandString = fmt.Sprintf("nc -z -v %s %d || %s", probeHandler.TCPSocket.Host, probeHandler.TCPSocket.Port.IntValue(), failureCmd)
 		}

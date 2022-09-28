@@ -897,7 +897,6 @@ func TestHttpLivenessProbe(t *testing.T) {
 					Handler: v1.Handler{
 						HTTPGet: &v1.HTTPGetAction{
 							Port: intstr.FromInt(80),
-							Path: "/",
 						},
 					},
 				},

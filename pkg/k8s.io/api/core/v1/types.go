@@ -939,15 +939,15 @@ type HTTPHeader struct {
 
 // HTTPGetAction describes an action based on HTTP Get requests.
 type HTTPGetAction struct {
-	// Path to access on the HTTP server.
+	// Path to access on the HTTP server. Defaults to /.
 	// +optional
 	Path string `json:"path,omitempty"`
 	// Name or number of the port to access on the container.
 	// Number must be in the range 1 to 65535.
 	// Name must be an IANA_SVC_NAME.
 	Port intstr.IntOrString `json:"port"`
-	// Host name to connect to, defaults to the pod IP. You probably want to set
-	// "Host" in httpHeaders instead.
+	// Host name to connect to. You probably want to set "Host" in httpHeaders instead.
+	// Defaults to the pod IP in Kubernetes, in case of Podman to localhost.
 	// +optional
 	Host string `json:"host,omitempty"`
 	// Scheme to use for connecting to the host.
@@ -964,9 +964,9 @@ type URIScheme string
 
 const (
 	// URISchemeHTTP means that the scheme used will be http://
-	URISchemeHTTP URIScheme = "HTTP"
+	URISchemeHTTP URIScheme = "http"
 	// URISchemeHTTPS means that the scheme used will be https://
-	URISchemeHTTPS URIScheme = "HTTPS"
+	URISchemeHTTPS URIScheme = "https"
 )
 
 // TCPSocketAction describes an action based on opening a socket
