@@ -64,7 +64,7 @@ github.com/checkpoint-restore/go-criu/v5/stats
 # github.com/chzyer/readline v1.5.1
 ## explicit; go 1.15
 github.com/chzyer/readline
-# github.com/container-orchestrated-devices/container-device-interface v0.5.1
+# github.com/container-orchestrated-devices/container-device-interface v0.5.2
 ## explicit; go 1.17
 github.com/container-orchestrated-devices/container-device-interface/pkg/cdi
 github.com/container-orchestrated-devices/container-device-interface/specs-go
