@@ -77,79 +77,11 @@ gcp_credentials: ENCRYPTED[a28959877b2c9c36f151781b0a05407218cda646c7d047fc556e4
 aws_credentials: ENCRYPTED[4ca070bffe28eb9b27d63c568b52970dd46f119c3a83b8e443241e895dbf1737580b4d84eed27a311a2b74287ef9f79f]
 
 
-# Attempt to prevent flakes by confirming all required external/3rd-party
-# services are available and functional.
-ext_svc_check_task:
-    alias: 'ext_svc_check'  # int. ref. name - required for depends_on reference
-    name: "Ext. services"  # Displayed Title - has no other significance
-    # Don't create this task for new tags so release process is more reliable
-    # Docs: ./contrib/cirrus/CIModes.md
-    only_if: $CIRRUS_TAG == ''
-    # Default/small container image to execute tasks with
-    container: &smallcontainer
-        image: ${CTR_FQIN}
-        # Resources are limited across ALL currently executing tasks
-        # ref: https://cirrus-ci.org/guide/linux/#linux-containers
-        cpu: 2
-        memory: 2
-    env:
-        TEST_FLAVOR: ext_svc
-        CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
-    # NOTE: The default way Cirrus-CI clones is *NOT* compatible with
-    #       environment expectations in contrib/cirrus/lib.sh.  Specifically
-    #       the 'origin' remote must be defined, and all remote branches/tags
-    #       must be available for reference from CI scripts.
-    clone_script: &full_clone |
-          cd /
-          rm -rf $CIRRUS_WORKING_DIR
-          mkdir -p $CIRRUS_WORKING_DIR
-          git clone --recursive --branch=$DEST_BRANCH https://x-access-token:${CIRRUS_REPO_CLONE_TOKEN}@github.com/${CIRRUS_REPO_FULL_NAME}.git $CIRRUS_WORKING_DIR
-          cd $CIRRUS_WORKING_DIR
-          git remote update origin
-          if [[ -n "$CIRRUS_PR" ]]; then # running for a PR
-              git fetch origin pull/$CIRRUS_PR/head:pull/$CIRRUS_PR
-              git checkout pull/$CIRRUS_PR
-          else
-              git reset --hard $CIRRUS_CHANGE_IN_REPO
-          fi
-          # Some test operations & checks require a git "identity"
-          _gc='git config --file /root/.gitconfig'
-          $_gc user.email "TMcTestFace@example.com"
-          $_gc user.name "Testy McTestface"
-
-    setup_script: &setup '$GOSRC/$SCRIPT_BASE/setup_environment.sh'
-    main_script: &main '/usr/bin/time --verbose --output="$STATS_LOGFILE" $GOSRC/$SCRIPT_BASE/runner.sh'
-    always: &runner_stats
-        runner_stats_artifacts:
-            path: ./*-${STATS_LOGFILE_SFX}
-            type: text/plain
-
-
-# Execute some quick checks to confirm this YAML file and all
-# automation-related shell scripts are sane.
-automation_task:
-    alias: 'automation'
-    name: "Check Automation"
-    # This task is not needed for branches, tags, or cron runs.
-    # Docs: ./contrib/cirrus/CIModes.md
-    only_if: &is_pr "$CIRRUS_PR != ''"
-    container: *smallcontainer
-    env:
-        TEST_FLAVOR: automation
-        CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
-        TEST_ENVIRON: container
-    clone_script: *full_clone
-    setup_script: *setup
-    main_script: *main
-    always: *runner_stats
-
-
-# N/B: The two following tasks are critical. They build all binaries for all supported
-# OS platforms and versions on x86_64 and aarch64. On success, the contents of the repository
-# are preserved as an artifact.  This saves most subsequent tasks about
-# 3 minutes of otherwise duplicative effort.  It also ensures that the
-# exact same binaries used throughout CI testing, are available for
-# future consumption|inspection by the final 'artifacts' task.
+# N/B: This matrix of build tasks are critical to CI, along with the following
+# aarch64 task. They build binaries for all CI platforms, and versions. On
+# success, the contents of the repository are preserved as an artifact for
+# consumption by most subsequent CI tasks.  This saves about 3-5 minutes of
+# otherwise duplicative effort in most tasks.
 build_task:
     alias: 'build'
     name: 'Build for $DISTRO_NV'
@@ -175,10 +107,10 @@ build_task:
               # ID for re-use of build output
               CI_DESIRED_RUNTIME: crun
         #- env: &priorfedora_envvars
-        #DISTRO_NV: ${PRIOR_FEDORA_NAME}
-        #VM_IMAGE_NAME: ${PRIOR_FEDORA_CACHE_IMAGE_NAME}
-        #CTR_FQIN: ${PRIOR_FEDORA_CONTAINER_FQIN}
-        #CI_DESIRED_RUNTIME: crun
+        #      DISTRO_NV: ${PRIOR_FEDORA_NAME}
+        #      VM_IMAGE_NAME: ${PRIOR_FEDORA_CACHE_IMAGE_NAME}
+        #      CTR_FQIN: ${PRIOR_FEDORA_CONTAINER_FQIN}
+        #      CI_DESIRED_RUNTIME: crun
         - env: &ubuntu_envvars
               DISTRO_NV: ${UBUNTU_NAME}
               VM_IMAGE_NAME: ${UBUNTU_CACHE_IMAGE_NAME}
@@ -186,9 +118,38 @@ build_task:
               CI_DESIRED_RUNTIME: runc
     env:
         TEST_FLAVOR: build
-    clone_script: *full_clone
-    setup_script: *setup
-    main_script: *main
+    # NOTE: The default way Cirrus-CI clones is *NOT* compatible with
+    #       environment expectations in contrib/cirrus/lib.sh.  Specifically
+    #       the 'origin' remote must be defined, and all remote branches/tags
+    #       must be available for reference from CI scripts.
+    clone_script: &full_clone |
+          cd /
+          rm -rf $CIRRUS_WORKING_DIR
+          mkdir -p $CIRRUS_WORKING_DIR
+          git clone --recursive --branch=$DEST_BRANCH https://x-access-token:${CIRRUS_REPO_CLONE_TOKEN}@github.com/${CIRRUS_REPO_FULL_NAME}.git $CIRRUS_WORKING_DIR
+          cd $CIRRUS_WORKING_DIR
+          git remote update origin
+          if [[ -n "$CIRRUS_PR" ]]; then # running for a PR
+              git fetch origin pull/$CIRRUS_PR/head:pull/$CIRRUS_PR
+              git checkout pull/$CIRRUS_PR
+          else
+              git reset --hard $CIRRUS_CHANGE_IN_REPO
+          fi
+          # Some test operations & checks require a git "identity"
+          _gc='git config --file /root/.gitconfig'
+          $_gc user.email "TMcTestFace@example.com"
+          $_gc user.name "Testy McTestface"
+    # Attempt to prevent flakes by confirming basic environment expectations,
+    # network service connectivity and essential container image availability.
+    prebuild_script: &prebuild $SCRIPT_BASE/prebuild.sh
+    # Standard setup stage call, used by nearly every task in CI.
+    setup_script: &setup '$GOSRC/$SCRIPT_BASE/setup_environment.sh'
+    # Attempt to prevent flakes by confirming automation environment and
+    # all required external/3rd-party services are available and functional.
+    # Standard main execution stage call, used by nearly every task in CI.
+    main_script: &main '/usr/bin/time --verbose --output="$STATS_LOGFILE" $GOSRC/$SCRIPT_BASE/runner.sh'
+    # Attempt to catch code-quality and vendoring problems early.
+    postbuild_script: &postbuild $SCRIPT_BASE/postbuild.sh
     # Cirrus-CI is very slow uploading one file at time, and the repo contains
     # thousands of files.  Speed this up by archiving into tarball first.
     repo_prep_script: &repo_prep >-
@@ -196,8 +157,10 @@ build_task:
     repo_artifacts: &repo_artifacts
         path: ./repo.tbz
         type: application/octet-stream
-    always: *runner_stats
-
+    always: &runner_stats
+        runner_stats_artifacts:
+            path: ./*-${STATS_LOGFILE_SFX}
+            type: text/plain
 
 build_aarch64_task:
     alias: 'build_aarch64'
@@ -218,7 +181,9 @@ build_aarch64_task:
         CI_DESIRED_RUNTIME: crun
         TEST_FLAVOR: build
     clone_script: *full_clone
+    prebuild_script: *prebuild
     setup_script: *setup
+    postbuild_script: *postbuild
     main_script: *main
     # Cirrus-CI is very slow uploading one file at time, and the repo contains
     # thousands of files.  Speed this up by archiving into tarball first.
@@ -242,10 +207,8 @@ validate_task:
     # to nonsequential PR merging practices, will be caught on a future PR,
     # build or test task failures.
     # Docs: ./contrib/cirrus/CIModes.md
-    only_if: *is_pr
+    only_if: &is_pr "$CIRRUS_PR != ''"
     depends_on:
-        - ext_svc_check
-        - automation
         - build
     # golangci-lint is a very, very hungry beast.
     gce_instance: &bigvm
@@ -281,8 +244,6 @@ validate_aarch64_task:
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: *is_pr
     depends_on:
-        - ext_svc_check
-        - automation
         - build_aarch64
     # golangci-lint is a very, very hungry beast.
     ec2_instance: *standard_build_ec2_aarch64
@@ -364,51 +325,6 @@ swagger_task:
         swagger_artifacts:
             path: ./swagger.yaml
             type: text/plain
-
-
-# Check that all included go modules from other sources match
-# what is expected in `vendor/modules.txt` vs `go.mod`.  Also
-# make sure that the generated bindings in pkg/bindings/...
-# are in sync with the code.
-consistency_task:
-    name: "Test Code Consistency"
-    alias: consistency
-    # Docs: ./contrib/cirrus/CIModes.md
-    only_if: *is_pr
-    depends_on:
-        - build
-    container: *smallcontainer
-    env:
-        <<: *stdenvars
-        TEST_FLAVOR: consistency
-        TEST_ENVIRON: container
-        CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
-    clone_script: *get_gosrc
-    setup_script: *setup
-    main_script: *main
-    always: *runner_stats
-
-
-# Check that all included go modules from other sources match
-# what is expected in `vendor/modules.txt` vs `go.mod`.  Also
-# make sure that the generated bindings in pkg/bindings/...
-# are in sync with the code.
-consistency_aarch64_task:
-    name: "Test Code Consistency (aarch64)"
-    alias: consistency_aarch64
-    # Docs: ./contrib/cirrus/CIModes.md
-    only_if: *is_pr
-    depends_on:
-        - build_aarch64
-    ec2_instance: *standard_build_ec2_aarch64
-    env:
-        <<: *stdenvars_aarch64
-        TEST_FLAVOR: consistency
-        TEST_ENVIRON: container
-    clone_script: *get_gosrc_aarch64
-    setup_script: *setup
-    main_script: *main
-    always: *runner_stats
 
 
 # There are several other important variations of podman which
@@ -643,9 +559,9 @@ container_integration_test_task:
               CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
               CI_DESIRED_RUNTIME: crun
         #- env:
-        #DISTRO_NV: ${PRIOR_FEDORA_NAME}
-        #VM_IMAGE_NAME: ${PRIOR_FEDORA_CACHE_IMAGE_NAME}
-        #CTR_FQIN: ${PRIOR_FEDORA_CONTAINER_FQIN}
+        #      DISTRO_NV: ${PRIOR_FEDORA_NAME}
+        #      VM_IMAGE_NAME: ${PRIOR_FEDORA_CACHE_IMAGE_NAME}
+        #      CTR_FQIN: ${PRIOR_FEDORA_CONTAINER_FQIN}
     gce_instance: *standardvm
     timeout_in: 90m
     env:
@@ -929,8 +845,6 @@ image_build_task: &image-build
     # this task to a specific Cirrus-Cron entry with this name.
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: $CIRRUS_CRON == 'multiarch'
-    depends_on:
-        - ext_svc_check
     timeout_in: 120m  # emulation is sssllllooooowwww
     gce_instance:
         <<: *standardvm
@@ -1010,16 +924,12 @@ success_task:
     alias: success
     # N/B: ALL tasks must be listed here, minus their '_task' suffix.
     depends_on:
-        - ext_svc_check
-        - automation
         - build
         - build_aarch64
         - validate
         - validate_aarch64
         - bindings
         - swagger
-        - consistency
-        - consistency_aarch64
         - alt_build
         - osx_alt_build
         - win_installer
@@ -1044,7 +954,12 @@ success_task:
         - upgrade_test
         - image_build
         - meta
-    container: *smallcontainer
+    container: &smallcontainer
+        image: ${CTR_FQIN}
+        # Resources are limited across ALL currently executing tasks
+        # ref: https://cirrus-ci.org/guide/linux/#linux-containers
+        cpu: 2
+        memory: 2
     env:
         CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
         TEST_ENVIRON: container

@@ -228,13 +228,11 @@ esac
 # Required to be defined by caller: The primary type of testing that will be performed
 # shellcheck disable=SC2154
 case "$TEST_FLAVOR" in
-    ext_svc) ;;
     validate)
         dnf install -y $PACKAGE_DOWNLOAD_DIR/python3*.rpm
         # For some reason, this is also needed for validation
         make .install.pre-commit .install.gitvalidation
         ;;
-    automation) ;;
     altbuild)
         # Defined in .cirrus.yml
         # shellcheck disable=SC2154
@@ -366,10 +364,6 @@ case "$TEST_FLAVOR" in
             docker.io/gitlab/gitlab-runner-helper:x86_64-latest-pwsh
         ;;
     swagger) ;&  # use next item
-    consistency)
-        make clean
-        make .install.goimports
-        ;;
     release) ;;
     *) die_unknown TEST_FLAVOR
 esac
