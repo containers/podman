@@ -706,7 +706,7 @@ var _ = Describe("Podman network", func() {
 	})
 
 	It("podman network prune --filter", func() {
-		// set custom cni directory to prevent flakes
+		// set custom network directory to prevent flakes since the dir is shared with all tests by default
 		podmanTest.NetworkConfigDir = tempdir
 		if IsRemote() {
 			podmanTest.RestartRemoteService()
@@ -754,7 +754,7 @@ var _ = Describe("Podman network", func() {
 	})
 
 	It("podman network prune", func() {
-		// set custom cni directory to prevent flakes
+		// set custom network directory to prevent flakes since the dir is shared with all tests by default
 		podmanTest.NetworkConfigDir = tempdir
 		if IsRemote() {
 			podmanTest.RestartRemoteService()
