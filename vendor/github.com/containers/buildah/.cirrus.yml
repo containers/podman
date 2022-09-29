@@ -6,7 +6,7 @@ env:
     #### Global variables used for all tasks
     ####
     # Name of the ultimate destination branch for this CI run, PR or post-merge.
-    DEST_BRANCH: "main"
+    DEST_BRANCH: "release-1.24"
     GOPATH: "/var/tmp/go"
     GOSRC: "${GOPATH}/src/github.com/containers/buildah"
     # Overrides default location (/tmp/cirrus) for repo clone
@@ -29,7 +29,7 @@ env:
     PRIOR_FEDORA_NAME: "fedora-34"
     UBUNTU_NAME: "ubuntu-2110"
 
-    IMAGE_SUFFIX: "c4764556961513472"
+    IMAGE_SUFFIX: "c5814666029957120"
     FEDORA_CACHE_IMAGE_NAME: "fedora-${IMAGE_SUFFIX}"
     PRIOR_FEDORA_CACHE_IMAGE_NAME: "prior-fedora-${IMAGE_SUFFIX}"
     UBUNTU_CACHE_IMAGE_NAME: "ubuntu-${IMAGE_SUFFIX}"
@@ -64,7 +64,7 @@ meta_task:
     alias: meta
 
     container:
-        image: "quay.io/libpod/imgts:${IMAGE_SUFFIX}"  # see contrib/imgts
+        image: "quay.io/libpod/imgts:latest"
         cpu: 1
         memory: 1
 
@@ -88,21 +88,11 @@ smoke_task:
     alias: 'smoke'
     name: "Smoke Test"
 
-    gce_instance:
-        memory: "12Gb"
-
-    # N/B: Skip running this on branches due to multiple bugs in
-    # the git-validate tool which are difficult to debug and fix.
-    skip: $CIRRUS_PR == ''
-
-    timeout_in: 30m
-
     setup_script: '${SCRIPT_BASE}/setup.sh |& ${_TIMESTAMP}'
     build_script: '${SCRIPT_BASE}/build.sh |& ${_TIMESTAMP}'
-    validate_test_script: '${SCRIPT_BASE}/test.sh validate |& ${_TIMESTAMP}'
 
     binary_artifacts:
-        path: ./bin/*
+        path: "./bin/*"
 
 # Check that all included go modules from other sources match
 # # what is expected in `vendor/modules.txt` vs `go.mod`.
@@ -136,17 +126,18 @@ cross_build_task:
 
     osx_instance:
         image: 'big-sur-base'
-
+    env:
+        PATH: "/usr/local/opt/go@1.18/bin:$PATH"
     script:
         - brew update
-        - brew install go
+        - brew install go@1.18
         - brew install go-md2man
         - brew install gpgme
         - go version
         - make cross CGO_ENABLED=0
 
     binary_artifacts:
-        path: ./bin/*
+        path: "./bin/*"
 
 
 unit_task:
@@ -171,7 +162,7 @@ unit_task:
     unit_test_script: '${SCRIPT_BASE}/test.sh unit |& ${_TIMESTAMP}'
 
     binary_artifacts:
-        path: ./bin/*
+        path: "./bin/*"
 
 
 conformance_task:
@@ -238,7 +229,7 @@ integration_task:
     integration_test_script: '${SCRIPT_BASE}/test.sh integration |& ${_TIMESTAMP}'
 
     binary_artifacts:
-        path: ./bin/*
+        path: "./bin/*"
 
     always: &standardlogs
         audit_log_script: '$GOSRC/$SCRIPT_BASE/logcollector.sh audit'
@@ -269,7 +260,7 @@ in_podman_task:
     integration_test_script: '${SCRIPT_BASE}/test.sh integration |& ${_TIMESTAMP}'
 
     binary_artifacts:
-        path: ./bin/*
+        path: "./bin/*"
 
     always:
         <<: *standardlogs

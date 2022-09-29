@@ -324,8 +324,8 @@ github.com/containernetworking/plugins v0.8.6/go.mod h1:qnw5mN19D8fIwkqW7oHHYDHV
 github.com/containernetworking/plugins v0.9.1/go.mod h1:xP/idU2ldlzN6m4p5LmGiwRDjeJr6FLK6vuiUwoH7P8=
 github.com/containernetworking/plugins v1.0.1 h1:wwCfYbTCj5FC0EJgyzyjTXmqysOiJE9r712Z+2KVZAk=
 github.com/containernetworking/plugins v1.0.1/go.mod h1:QHCfGpaTwYTbbH+nZXKVTxNBDZcxSOplJT5ico8/FLE=
-github.com/containers/buildah v1.24.4 h1:cHHNnOuFvdccnuYYxhjwDjToEENBjWLAIMwbGZa6Q+U=
-github.com/containers/buildah v1.24.4/go.mod h1:K4WDxEtO0guZJoUbDZUw0dcXEM2zsJxa2eK4iJairyM=
+github.com/containers/buildah v1.24.6 h1:mjqUCygn4jwECnZyML9BHJ8VtYIQ6NMykFFFIKCNH5E=
+github.com/containers/buildah v1.24.6/go.mod h1:7eNXqJUGYGSWx77o020hTNjSu0Y8h2ipCO/Ms72I/xQ=
 github.com/containers/common v0.47.5 h1:Qm9o+wVPO9sbggTKubN3xYMtPRaPv7dmcrJQgongHHw=
 github.com/containers/common v0.47.5/go.mod h1:HgX0mFXyB0Tbe2REEIp9x9CxET6iSzmHfwR6S/t2LZc=
 github.com/containers/conmon v2.0.20+incompatible h1:YbCVSFSCqFjjVwHTPINGdMX1F6JXHGTUje2ZYobNrkg=
@@ -348,8 +348,9 @@ github.com/containers/storage v1.37.0/go.mod h1:kqeJeS0b7DO2ZT1nVWs0XufrmPFbgV3c
 github.com/containers/storage v1.38.0/go.mod h1:lBzt28gAk5ADZuRtwdndRJyqX22vnRaXmlF+7ktfMYc=
 github.com/containers/storage v1.38.2/go.mod h1:INP0RPLHWBxx+pTsO5uiHlDUGHDFvWZPWprAbAlQWPQ=
 github.com/containers/storage v1.38.3/go.mod h1:INP0RPLHWBxx+pTsO5uiHlDUGHDFvWZPWprAbAlQWPQ=
-github.com/containers/storage v1.38.4 h1:w/emRXxoQlRjA/tdH6ol7w5pdJ+jpN1h08gyIx3pmOU=
 github.com/containers/storage v1.38.4/go.mod h1:INP0RPLHWBxx+pTsO5uiHlDUGHDFvWZPWprAbAlQWPQ=
+github.com/containers/storage v1.38.5 h1:gymwFRLMvFAqiGcDJ0+OxaN6ZqQkv3FQSbhN7a2JBW0=
+github.com/containers/storage v1.38.5/go.mod h1:INP0RPLHWBxx+pTsO5uiHlDUGHDFvWZPWprAbAlQWPQ=
 github.com/coreos/bbolt v1.3.2/go.mod h1:iRUV2dpdMOn7Bo10OQBFzIJO9kkE559Wcmn+qkEiiKk=
 github.com/coreos/etcd v3.3.10+incompatible/go.mod h1:uF7uidLiAD3TWHmW31ZFd/JWoc32PjwdhPthX9715RE=
 github.com/coreos/go-etcd v2.0.0+incompatible/go.mod h1:Jez6KQU2B/sWsbdaef3ED8NzMklzPG4d5KIOhIy30Tk=
