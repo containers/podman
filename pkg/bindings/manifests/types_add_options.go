@@ -33,15 +33,15 @@ func (o *AddOptions) GetAll() bool {
 }
 
 // WithAnnotation set field Annotation to given value
-func (o *AddOptions) WithAnnotation(value map[string]string) *AddOptions {
+func (o *AddOptions) WithAnnotation(value []string) *AddOptions {
 	o.Annotation = value
 	return o
 }
 
 // GetAnnotation returns value of field Annotation
-func (o *AddOptions) GetAnnotation() map[string]string {
+func (o *AddOptions) GetAnnotation() []string {
 	if o.Annotation == nil {
-		var z map[string]string
+		var z []string
 		return z
 	}
 	return o.Annotation
