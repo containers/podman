@@ -12,12 +12,12 @@ require (
 	github.com/containernetworking/cni v1.1.2
 	github.com/containernetworking/plugins v1.1.1
 	github.com/containers/buildah v1.27.1-0.20220921131114-d3064796af36
-	github.com/containers/common v0.49.2-0.20220926195839-590004b80685
+	github.com/containers/common v0.49.2-0.20220929111928-2d1b45ae2423
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/image/v5 v5.22.1-0.20220919112403-fe51f7ffca50
 	github.com/containers/ocicrypt v1.1.5
 	github.com/containers/psgo v1.7.3
-	github.com/containers/storage v1.42.1-0.20220919112236-8a581aac3bdf
+	github.com/containers/storage v1.43.0
 	github.com/coreos/go-systemd/v22 v22.4.0
 	github.com/coreos/stream-metadata-go v0.0.0-20210225230131-70edb9eb47b3
 	github.com/cyphar/filepath-securejoin v0.2.3
@@ -48,7 +48,7 @@ require (
 	github.com/opencontainers/runc v1.1.4
 	github.com/opencontainers/runtime-spec v1.0.3-0.20211214071223-8958f93039ab
 	github.com/opencontainers/runtime-tools v0.9.1-0.20220714195903-17b3287fafb7
-	github.com/opencontainers/selinux v1.10.1
+	github.com/opencontainers/selinux v1.10.2
 	github.com/openshift/imagebuilder v1.2.4-0.20220711175835-4151e43600df
 	github.com/rootless-containers/rootlesskit v1.0.1
 	github.com/sirupsen/logrus v1.9.0

@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/containers/storage/pkg/mount"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
 
@@ -127,8 +128,13 @@ var (
 // GetFSMagic returns the filesystem id given the path.
 func GetFSMagic(rootpath string) (FsMagic, error) {
 	var buf unix.Statfs_t
-	if err := unix.Statfs(filepath.Dir(rootpath), &buf); err != nil {
+	path := filepath.Dir(rootpath)
+	if err := unix.Statfs(path, &buf); err != nil {
 		return 0, err
+	}
+
+	if _, ok := FsNames[FsMagic(buf.Type)]; !ok {
+		logrus.Debugf("Unknown filesystem type %#x reported for %s", buf.Type, path)
 	}
 	return FsMagic(buf.Type), nil
 }

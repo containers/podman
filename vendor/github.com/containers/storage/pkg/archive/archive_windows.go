@@ -78,3 +78,8 @@ func getFileUIDGID(stat interface{}) (idtools.IDPair, error) {
 	// no notion of file ownership mapping yet on Windows
 	return idtools.IDPair{0, 0}, nil
 }
+
+// Hardlink without following symlinks
+func handleLLink(targetPath string, path string) error {
+	return os.Link(targetPath, path)
+}

@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"syscall"
+	"unsafe"
 
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/system"
@@ -111,16 +112,18 @@ func handleLChmod(hdr *tar.Header, path string, hdrInfo os.FileInfo, forceMask *
 	if forceMask != nil {
 		permissionsMask = *forceMask
 	}
-	if hdr.Typeflag == tar.TypeLink {
-		if fi, err := os.Lstat(hdr.Linkname); err == nil && (fi.Mode()&os.ModeSymlink == 0) {
-			if err := os.Chmod(path, permissionsMask); err != nil {
-				return err
-			}
-		}
-	} else if hdr.Typeflag != tar.TypeSymlink {
-		if err := os.Chmod(path, permissionsMask); err != nil {
-			return err
-		}
+	p, err := unix.BytePtrFromString(path)
+	if err != nil {
+		return err
+	}
+	_, _, e1 := unix.Syscall(unix.SYS_LCHMOD, uintptr(unsafe.Pointer(p)), uintptr(permissionsMask), 0)
+	if e1 != 0 {
+		return e1
 	}
 	return nil
+}
+
+// Hardlink without following symlinks
+func handleLLink(targetPath string, path string) error {
+	return unix.Linkat(unix.AT_FDCWD, targetPath, unix.AT_FDCWD, path, 0)
 }

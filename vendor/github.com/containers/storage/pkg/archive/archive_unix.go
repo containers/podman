@@ -1,3 +1,4 @@
+//go:build !windows && !freebsd
 // +build !windows,!freebsd
 
 package archive
@@ -97,7 +98,7 @@ func handleTarTypeBlockCharFifo(hdr *tar.Header, path string) error {
 		mode |= unix.S_IFIFO
 	}
 
-	return system.Mknod(path, mode, int(system.Mkdev(hdr.Devmajor, hdr.Devminor)))
+	return system.Mknod(path, mode, system.Mkdev(hdr.Devmajor, hdr.Devminor))
 }
 
 func handleLChmod(hdr *tar.Header, path string, hdrInfo os.FileInfo, forceMask *os.FileMode) error {
@@ -117,4 +118,14 @@ func handleLChmod(hdr *tar.Header, path string, hdrInfo os.FileInfo, forceMask *
 		}
 	}
 	return nil
+}
+
+// Hardlink without symlinks
+func handleLLink(targetPath, path string) error {
+	// Note: on Linux, the link syscall will not follow symlinks.
+	// This behavior is implementation-dependent since
+	// POSIX.1-2008 so to make it clear that we need non-symlink
+	// following here we use the linkat syscall which has a flags
+	// field to select symlink following or not.
+	return unix.Linkat(unix.AT_FDCWD, targetPath, unix.AT_FDCWD, path, 0)
 }
