@@ -48,7 +48,7 @@ require (
 	github.com/opencontainers/runc v1.1.4
 	github.com/opencontainers/runtime-spec v1.0.3-0.20211214071223-8958f93039ab
 	github.com/opencontainers/runtime-tools v0.9.1-0.20220714195903-17b3287fafb7
-	github.com/opencontainers/selinux v1.10.1
+	github.com/opencontainers/selinux v1.10.2
 	github.com/openshift/imagebuilder v1.2.4-0.20220711175835-4151e43600df
 	github.com/rootless-containers/rootlesskit v1.0.1
 	github.com/sirupsen/logrus v1.9.0
