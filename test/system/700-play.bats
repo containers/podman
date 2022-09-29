@@ -165,8 +165,14 @@ EOF
     TESTDIR=$PODMAN_TMPDIR/testdir
     mkdir -p $TESTDIR
     echo "$testYaml" | sed "s|TESTDIR|${TESTDIR}|g" > $PODMAN_TMPDIR/test.yaml
-    run_podman 125 kube play --network host $PODMAN_TMPDIR/test.yaml
-    is "$output" ".*invalid value passed to --network: bridge or host networking must be configured in YAML" "podman plan-network should fail with --network host"
+    run_podman kube play --network host $PODMAN_TMPDIR/test.yaml
+    is "$output" "Pod:.*" "podman kube play should work with --network host"
+
+    run_podman pod inspect --format "{{.InfraConfig.HostNetwork}}" test_pod
+    is "$output" "true" ".InfraConfig.HostNetwork"
+    run_podman stop -a -t 0
+    run_podman pod rm -t 0 -f test_pod
+
     run_podman kube play --network slirp4netns:port_handler=slirp4netns $PODMAN_TMPDIR/test.yaml
     run_podman pod inspect --format {{.InfraContainerID}} "${lines[1]}"
     infraID="$output"
