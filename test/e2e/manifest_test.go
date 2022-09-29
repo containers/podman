@@ -165,6 +165,20 @@ var _ = Describe("Podman manifest", func() {
 			))
 	})
 
+	It("add --annotation", func() {
+		session := podmanTest.Podman([]string{"manifest", "create", "foo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		session = podmanTest.Podman([]string{"manifest", "add", "--annotation", "hoge=fuga", "foo", imageList})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		session = podmanTest.Podman([]string{"manifest", "inspect", "foo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).To(ContainSubstring(`"annotations"`))
+		Expect(session.OutputToString()).To(ContainSubstring(`"hoge": "fuga"`))
+	})
+
 	It("add --os", func() {
 		session := podmanTest.Podman([]string{"manifest", "create", "foo"})
 		session.WaitWithDefaultTimeout()

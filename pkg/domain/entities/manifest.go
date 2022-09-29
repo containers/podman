@@ -36,7 +36,7 @@ type ManifestAddOptions struct {
 // ManifestAnnotateOptions provides model for annotating manifest list
 type ManifestAnnotateOptions struct {
 	// Annotation to add to manifest list
-	Annotation []string `json:"annotation" schema:"annotation"`
+	Annotation []string `json:"annotations" schema:"annotations"`
 	// Arch overrides the architecture for the image
 	Arch string `json:"arch" schema:"arch"`
 	// Feature list for the image
