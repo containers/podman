@@ -48,15 +48,15 @@ func (o *ModifyOptions) GetAll() bool {
 }
 
 // WithAnnotations set annotations to add to manifest list
-func (o *ModifyOptions) WithAnnotations(value []string) *ModifyOptions {
+func (o *ModifyOptions) WithAnnotations(value map[string]string) *ModifyOptions {
 	o.Annotations = value
 	return o
 }
 
 // GetAnnotations returns value of annotations to add to manifest list
-func (o *ModifyOptions) GetAnnotations() []string {
+func (o *ModifyOptions) GetAnnotations() map[string]string {
 	if o.Annotations == nil {
-		var z []string
+		var z map[string]string
 		return z
 	}
 	return o.Annotations

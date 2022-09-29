@@ -11,7 +11,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/containers/common/libimage"
+	"github.com/containers/image/v5/manifest"
 	imageTypes "github.com/containers/image/v5/types"
 	"github.com/containers/podman/v4/pkg/auth"
 	"github.com/containers/podman/v4/pkg/bindings"
@@ -71,7 +71,7 @@ func Exists(ctx context.Context, name string, options *ExistsOptions) (bool, err
 }
 
 // Inspect returns a manifest list for a given name.
-func Inspect(ctx context.Context, name string, _ *InspectOptions) (*libimage.ManifestListData, error) {
+func Inspect(ctx context.Context, name string, _ *InspectOptions) (*manifest.Schema2List, error) {
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err
@@ -83,7 +83,7 @@ func Inspect(ctx context.Context, name string, _ *InspectOptions) (*libimage.Man
 	}
 	defer response.Body.Close()
 
-	var list libimage.ManifestListData
+	var list manifest.Schema2List
 	return &list, response.Process(&list)
 }
 
