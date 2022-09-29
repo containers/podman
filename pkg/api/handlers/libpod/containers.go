@@ -305,6 +305,7 @@ func Restore(w http.ResponseWriter, r *http.Request) {
 		PrintStats      bool   `schema:"printStats"`
 		FileLocks       bool   `schema:"fileLocks"`
 		PublishPorts    string `schema:"publishPorts"`
+		Pod             string `schema:"pod"`
 	}{
 		// override any golang type defaults
 	}
@@ -324,6 +325,7 @@ func Restore(w http.ResponseWriter, r *http.Request) {
 		PrintStats:      query.PrintStats,
 		FileLocks:       query.FileLocks,
 		PublishPorts:    strings.Fields(query.PublishPorts),
+		Pod:             query.Pod,
 	}
 
 	var names []string
