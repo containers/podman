@@ -11,8 +11,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/containers/common/libimage"
 	"github.com/containers/image/v5/docker/reference"
+	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v4/libpod"
 	"github.com/containers/podman/v4/pkg/api/handlers"
@@ -148,7 +148,7 @@ func ManifestInspect(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var schema2List libimage.ManifestListData
+	var schema2List manifest.Schema2List
 	if err := json.Unmarshal(rawManifest, &schema2List); err != nil {
 		utils.Error(w, http.StatusInternalServerError, err)
 		return
