@@ -35,6 +35,9 @@ func EnsureRemoveAll(dir string) error {
 	}
 
 	for {
+		if err := resetFileFlags(dir); err != nil {
+			return fmt.Errorf("resetting file flags: %w", err)
+		}
 		err := os.RemoveAll(dir)
 		if err == nil {
 			return nil

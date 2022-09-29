@@ -563,6 +563,8 @@ func (s *store) newLayerStore(rundir string, layerdir string, driver drivers.Dri
 		uidMap:         copyIDMap(s.uidMap),
 		gidMap:         copyIDMap(s.gidMap),
 	}
+	rlstore.Lock()
+	defer rlstore.Unlock()
 	if err := rlstore.Load(); err != nil {
 		return nil, err
 	}
@@ -584,6 +586,8 @@ func newROLayerStore(rundir string, layerdir string, driver drivers.Driver) (ROL
 		bymount:        make(map[string]*Layer),
 		byname:         make(map[string]*Layer),
 	}
+	rlstore.RLock()
+	defer rlstore.Unlock()
 	if err := rlstore.Load(); err != nil {
 		return nil, err
 	}

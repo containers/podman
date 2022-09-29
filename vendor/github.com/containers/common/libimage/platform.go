@@ -6,6 +6,7 @@ import (
 	"runtime"
 
 	"github.com/containerd/containerd/platforms"
+	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/sirupsen/logrus"
 )
 
@@ -20,9 +21,18 @@ const (
 )
 
 // NormalizePlatform normalizes (according to the OCI spec) the specified os,
-// arch and variant.  If left empty, the individual item will not be normalized.
+// arch and variant.  If left empty, the individual item will be normalized.
 func NormalizePlatform(rawOS, rawArch, rawVariant string) (os, arch, variant string) {
-	rawPlatform := toPlatformString(rawOS, rawArch, rawVariant)
+	platformSpec := v1.Platform{
+		OS:           rawOS,
+		Architecture: rawArch,
+		Variant:      rawVariant,
+	}
+	normalizedSpec := platforms.Normalize(platformSpec)
+	if normalizedSpec.Variant == "" && rawVariant != "" {
+		normalizedSpec.Variant = rawVariant
+	}
+	rawPlatform := toPlatformString(normalizedSpec.OS, normalizedSpec.Architecture, normalizedSpec.Variant)
 	normalizedPlatform, err := platforms.Parse(rawPlatform)
 	if err != nil {
 		logrus.Debugf("Error normalizing platform: %v", err)
@@ -38,7 +48,7 @@ func NormalizePlatform(rawOS, rawArch, rawVariant string) (os, arch, variant str
 		arch = normalizedPlatform.Architecture
 	}
 	variant = rawVariant
-	if rawVariant != "" {
+	if rawVariant != "" || (rawVariant == "" && normalizedPlatform.Variant != "") {
 		variant = normalizedPlatform.Variant
 	}
 	return os, arch, variant
