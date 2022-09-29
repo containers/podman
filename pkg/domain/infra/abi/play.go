@@ -344,10 +344,6 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 			return nil, err
 		}
 
-		if (ns.IsBridge() && len(networks) == 0) || ns.IsHost() {
-			return nil, fmt.Errorf("invalid value passed to --network: bridge or host networking must be configured in YAML")
-		}
-
 		podOpt.Net.Network = ns
 		podOpt.Net.Networks = networks
 		podOpt.Net.NetworkOptions = netOpts
