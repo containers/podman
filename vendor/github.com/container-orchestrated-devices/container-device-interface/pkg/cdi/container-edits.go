@@ -27,8 +27,6 @@ import (
 	"github.com/container-orchestrated-devices/container-device-interface/specs-go"
 	oci "github.com/opencontainers/runtime-spec/specs-go"
 	ocigen "github.com/opencontainers/runtime-tools/generate"
-
-	runc "github.com/opencontainers/runc/libcontainer/devices"
 )
 
 const (
@@ -287,37 +285,6 @@ func ensureOCIHooks(spec *oci.Spec) {
 	if spec.Hooks == nil {
 		spec.Hooks = &oci.Hooks{}
 	}
-}
-
-// fillMissingInfo fills in missing mandatory attributes from the host device.
-func (d *DeviceNode) fillMissingInfo() error {
-	if d.HostPath == "" {
-		d.HostPath = d.Path
-	}
-
-	if d.Type != "" && (d.Major != 0 || d.Type == "p") {
-		return nil
-	}
-
-	hostDev, err := runc.DeviceFromPath(d.HostPath, "rwm")
-	if err != nil {
-		return errors.Wrapf(err, "failed to stat CDI host device %q", d.HostPath)
-	}
-
-	if d.Type == "" {
-		d.Type = string(hostDev.Type)
-	} else {
-		if d.Type != string(hostDev.Type) {
-			return errors.Errorf("CDI device (%q, %q), host type mismatch (%s, %s)",
-				d.Path, d.HostPath, d.Type, string(hostDev.Type))
-		}
-	}
-	if d.Major == 0 && d.Type != "p" {
-		d.Major = hostDev.Major
-		d.Minor = hostDev.Minor
-	}
-
-	return nil
 }
 
 // sortMounts sorts the mounts in the given OCI Spec.

@@ -21,6 +21,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"sync"
 
 	oci "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
@@ -41,6 +42,7 @@ var (
 
 	// Externally set CDI Spec validation function.
 	specValidator func(*cdi.Spec) error
+	validatorLock sync.RWMutex
 )
 
 // Spec represents a single CDI Spec. It is usually loaded from a
@@ -249,11 +251,16 @@ func ParseSpec(data []byte) (*cdi.Spec, error) {
 // is used for extra CDI Spec content validation whenever a Spec file
 // loaded (using ReadSpec() or NewSpec()) or written (Spec.Write()).
 func SetSpecValidator(fn func(*cdi.Spec) error) {
+	validatorLock.Lock()
+	defer validatorLock.Unlock()
 	specValidator = fn
 }
 
 // validateSpec validates the Spec using the extneral validator.
 func validateSpec(raw *cdi.Spec) error {
+	validatorLock.RLock()
+	defer validatorLock.RUnlock()
+
 	if specValidator == nil {
 		return nil
 	}
