@@ -5,5 +5,5 @@ import (
 )
 
 func detachUnmount(mountPoint string) error {
-	return unix.Unmount(mountPoint, unix.MNT_DETACH)
+	return unix.Unmount(mountPoint, unix.MNT_FORCE)
 }
