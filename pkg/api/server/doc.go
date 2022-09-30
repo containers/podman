@@ -5,7 +5,7 @@
 //
 // To start the service and keep it running for 5,000 seconds (-t 0 runs forever):
 //
-//    podman system service -t 5000 &
+//	podman system service -t 5000 &
 //
 // You can then use cURL on the socket using requests documented below.
 //
@@ -23,44 +23,44 @@
 //
 // See podman-service(1) for more information.
 //
-//  Quick Examples:
+//	Quick Examples:
 //
-//   'podman info'
+//	 'podman info'
 //
-//      curl --unix-socket /run/podman/podman.sock http://d/v4.0.0/libpod/info
+//	    curl --unix-socket /run/podman/podman.sock http://d/v4.0.0/libpod/info
 //
-//   'podman pull quay.io/containers/podman'
+//	 'podman pull quay.io/containers/podman'
 //
-//      curl -XPOST --unix-socket /run/podman/podman.sock -v 'http://d/v4.0.0/images/create?fromImage=quay.io%2Fcontainers%2Fpodman'
+//	    curl -XPOST --unix-socket /run/podman/podman.sock -v 'http://d/v4.0.0/images/create?fromImage=quay.io%2Fcontainers%2Fpodman'
 //
-//   'podman list images'
+//	 'podman list images'
 //
-//      curl --unix-socket /run/podman/podman.sock -v 'http://d/v4.0.0/libpod/images/json' | jq
+//	    curl --unix-socket /run/podman/podman.sock -v 'http://d/v4.0.0/libpod/images/json' | jq
 //
 // Terms Of Service:
 //
 // https://github.com/containers/podman/blob/913caaa9b1de2b63692c9bae15120208194c9eb3/LICENSE
 //
-//     Schemes: http, https
-//     Host: podman.io
-//     BasePath: /
-//     Version: 4.0.0
-//     License: Apache-2.0 https://opensource.org/licenses/Apache-2.0
-//     Contact: Podman <podman@lists.podman.io> https://podman.io/community/
+//	Schemes: http, https
+//	Host: podman.io
+//	BasePath: /
+//	Version: 4.0.0
+//	License: Apache-2.0 https://opensource.org/licenses/Apache-2.0
+//	Contact: Podman <podman@lists.podman.io> https://podman.io/community/
 //
-//     InfoExtensions:
-//     x-logo:
-//       - url: https://raw.githubusercontent.com/containers/libpod/main/logo/podman-logo.png
-//       - altText: "Podman logo"
+//	InfoExtensions:
+//	x-logo:
+//	  - url: https://raw.githubusercontent.com/containers/libpod/main/logo/podman-logo.png
+//	  - altText: "Podman logo"
 //
-//     Produces:
-//     - application/json
-//     - application/octet-stream
-//     - text/plain
+//	Produces:
+//	- application/json
+//	- application/octet-stream
+//	- text/plain
 //
-//     Consumes:
-//     - application/json
-//     - application/x-tar
+//	Consumes:
+//	- application/json
+//	- application/x-tar
 //
 // swagger:meta
 package server

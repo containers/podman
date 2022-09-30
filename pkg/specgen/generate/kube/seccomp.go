@@ -11,6 +11,7 @@ import (
 
 // KubeSeccompPaths holds information about a pod YAML's seccomp configuration
 // it holds both container and pod seccomp paths
+//
 //nolint:revive
 type KubeSeccompPaths struct {
 	containerPaths map[string]string

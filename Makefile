@@ -866,7 +866,7 @@ install.tools: .install.ginkgo .install.golangci-lint .install.swagger ## Instal
 
 .PHONY: .install.golangci-lint
 .install.golangci-lint:
-	VERSION=1.46.2 ./hack/install_golangci.sh
+	VERSION=1.49.0 ./hack/install_golangci.sh
 
 .PHONY: .install.swagger
 .install.swagger:

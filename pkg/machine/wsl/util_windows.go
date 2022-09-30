@@ -19,7 +19,7 @@ import (
 	"github.com/containers/storage/pkg/homedir"
 )
 
-//nolint
+// nolint
 type SHELLEXECUTEINFO struct {
 	cbSize         uint32
 	fMask          uint32
@@ -38,7 +38,7 @@ type SHELLEXECUTEINFO struct {
 	hProcess       syscall.Handle
 }
 
-//nolint
+// nolint
 type Luid struct {
 	lowPart  uint32
 	highPart int32
@@ -54,7 +54,7 @@ type TokenPrivileges struct {
 	privileges     [1]LuidAndAttributes
 }
 
-//nolint // Cleaner to refer to the official OS constant names, and consistent with syscall
+// nolint // Cleaner to refer to the official OS constant names, and consistent with syscall
 const (
 	SEE_MASK_NOCLOSEPROCESS         = 0x40
 	EWX_FORCEIFHUNG                 = 0x10

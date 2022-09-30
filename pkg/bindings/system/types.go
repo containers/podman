@@ -1,7 +1,8 @@
 package system
 
-//go:generate go run ../generator/generator.go EventsOptions
 // EventsOptions are optional options for monitoring events
+//
+//go:generate go run ../generator/generator.go EventsOptions
 type EventsOptions struct {
 	Filters map[string][]string
 	Since   *string
@@ -9,26 +10,30 @@ type EventsOptions struct {
 	Until   *string
 }
 
-//go:generate go run ../generator/generator.go PruneOptions
 // PruneOptions are optional options for pruning
+//
+//go:generate go run ../generator/generator.go PruneOptions
 type PruneOptions struct {
 	All     *bool
 	Filters map[string][]string
 	Volumes *bool
 }
 
-//go:generate go run ../generator/generator.go VersionOptions
 // VersionOptions are optional options for getting version info
+//
+//go:generate go run ../generator/generator.go VersionOptions
 type VersionOptions struct {
 }
 
-//go:generate go run ../generator/generator.go DiskOptions
 // DiskOptions are optional options for getting storage consumption
+//
+//go:generate go run ../generator/generator.go DiskOptions
 type DiskOptions struct {
 }
 
-//go:generate go run ../generator/generator.go InfoOptions
 // InfoOptions are optional options for getting info
 // about libpod
+//
+//go:generate go run ../generator/generator.go InfoOptions
 type InfoOptions struct {
 }

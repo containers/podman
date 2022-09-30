@@ -92,7 +92,7 @@ func LookupPolicy(s string) (Policy, error) {
 	return "", fmt.Errorf("invalid auto-update policy %q: valid policies are %+q", s, keys)
 }
 
-/// AutoUpdate looks up containers with a specified auto-update policy and acts
+// / AutoUpdate looks up containers with a specified auto-update policy and acts
 // accordingly.
 //
 // If the policy is set to PolicyRegistryImage, it checks if the image

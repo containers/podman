@@ -14,6 +14,7 @@ linters:
   disable:
     # All these break for one reason or another
     - tagliatelle # too many JSON keys cannot be changed due to compat
+    - nosnakecase # too many false positives due to the `unix` package
     - gocognit
     - testpackage
     - goerr113
