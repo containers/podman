@@ -1,9 +1,12 @@
 package utils
 
 import (
+	"context"
 	"fmt"
 	"os"
 
+	"github.com/containers/podman/v4/cmd/podman/registry"
+	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/domain/entities/reports"
 )
@@ -98,4 +101,41 @@ func PrintNetworkPruneResults(networkPruneReport []*entities.NetworkPruneReport,
 		}
 	}
 	return errs.PrintErrors()
+}
+
+// IsCheckpointImage returns true with no error only if all values in
+// namesOrIDs correspond to checkpoint images AND these images are
+// compatible with the container runtime that is currently in use,
+// e.g., crun or runc.
+//
+// IsCheckpointImage returns false with no error when none of the values
+// in namesOrIDs corresponds to an ID or name of an image.
+//
+// Otherwise, IsCheckpointImage returns false with appropriate error.
+func IsCheckpointImage(ctx context.Context, namesOrIDs []string) (bool, error) {
+	inspectOpts := entities.InspectOptions{}
+	imgData, _, err := registry.ImageEngine().Inspect(ctx, namesOrIDs, inspectOpts)
+	if err != nil {
+		return false, err
+	}
+	if len(imgData) == 0 {
+		return false, nil
+	}
+	imgID := imgData[0].ID
+
+	hostInfo, err := registry.ContainerEngine().Info(ctx)
+	if err != nil {
+		return false, err
+	}
+
+	for i := range imgData {
+		checkpointRuntimeName, found := imgData[i].Annotations[define.CheckpointAnnotationRuntimeName]
+		if !found {
+			return false, fmt.Errorf("image is not a checkpoint: %s", imgID)
+		}
+		if hostInfo.Host.OCIRuntime.Name != checkpointRuntimeName {
+			return false, fmt.Errorf("container image \"%s\" requires runtime: \"%s\"", imgID, checkpointRuntimeName)
+		}
+	}
+	return true, nil
 }

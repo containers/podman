@@ -295,4 +295,52 @@ var _ = Describe("Podman checkpoint", func() {
 		Expect(result).Should(Exit(0))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
 	})
+
+	It("podman run checkpoint image to restore container", func() {
+		SkipIfContainerized("FIXME: #15015. All checkpoint tests hang when containerized.")
+		// Container image must be lowercase
+		checkpointImage := "alpine-checkpoint-" + strings.ToLower(RandomString(6))
+		containerName := "alpine-container-" + RandomString(6)
+
+		// Create container
+		localRunString := []string{"run", "-d", "--name", containerName, ALPINE, "top"}
+		session := podmanTest.Podman(localRunString)
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		containerID1 := session.OutputToString()
+
+		// Checkpoint container, create checkpoint image
+		result := podmanTest.Podman([]string{"container", "checkpoint", "--create-image", checkpointImage, "--keep", containerID1})
+		result.WaitWithDefaultTimeout()
+		Expect(result).Should(Exit(0))
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
+
+		// Remove existing container
+		result = podmanTest.Podman([]string{"rm", "-t", "1", "-f", containerName})
+		result.WaitWithDefaultTimeout()
+		Expect(result).Should(Exit(0))
+
+		// Restore containers from image using `podman run`
+		result = podmanTest.Podman([]string{"run", checkpointImage})
+		result.WaitWithDefaultTimeout()
+		Expect(result).Should(Exit(0))
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
+
+		// Check if the container is running
+		status := podmanTest.Podman([]string{"inspect", containerName, "--format={{.State.Status}}"})
+		status.WaitWithDefaultTimeout()
+		Expect(status).Should(Exit(0))
+		Expect(status.OutputToString()).To(Equal("running"))
+
+		// Clean-up
+		result = podmanTest.Podman([]string{"rm", "-t", "0", "-fa"})
+		result.WaitWithDefaultTimeout()
+		Expect(result).Should(Exit(0))
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
+
+		result = podmanTest.Podman([]string{"rmi", checkpointImage})
+		result.WaitWithDefaultTimeout()
+		Expect(result).Should(Exit(0))
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
+	})
 })

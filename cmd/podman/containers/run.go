@@ -148,6 +148,35 @@ func run(cmd *cobra.Command, args []string) error {
 		imageName = name
 	}
 
+	// If this is a checkpoint image, invoke container restore.
+	// We do not return `err` when checkpointImage is false, because the value
+	// of `err` could be "image is not a checkpoint". In this case, the run
+	// command should continue as usual, preserving backwards compatibility.
+	checkpointImage, err := utils.IsCheckpointImage(registry.GetContext(), []string{imageName})
+	if checkpointImage {
+		if err != nil {
+			return err
+		}
+		var restoreOptions entities.RestoreOptions
+		responses, err := registry.ContainerEngine().ContainerRestore(registry.GetContext(), []string{imageName}, restoreOptions)
+		if err != nil {
+			return err
+		}
+
+		var errs utils.OutputErrors
+		for _, r := range responses {
+			switch {
+			case r.Err != nil:
+				errs = append(errs, r.Err)
+			case r.RawInput != "":
+				fmt.Println(r.RawInput)
+			default:
+				fmt.Println(r.Id)
+			}
+		}
+		return errs.PrintErrors()
+	}
+
 	if cliVals.Replace {
 		if err := replaceContainer(cliVals.Name); err != nil {
 			return err
