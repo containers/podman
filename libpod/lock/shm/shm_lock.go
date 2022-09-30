@@ -29,7 +29,7 @@ var (
 
 // SHMLocks is a struct enabling POSIX semaphore locking in a shared memory
 // segment.
-type SHMLocks struct {
+type SHMLocks struct { //nolint:revive // linter complains about stutter
 	lockStruct *C.shm_struct_t
 	maxLocks   uint32
 	valid      bool

@@ -14,7 +14,8 @@ type ChoiceValue struct {
 // Value may be used in cobra FlagSet methods Var/VarP/VarPF() to select from a set of values
 //
 // Example:
-// 	created := validate.ChoiceValue(&opts.Sort, "command", "created", "id", "image", "names", "runningfor", "size", "status")
+//
+//	created := validate.ChoiceValue(&opts.Sort, "command", "created", "id", "image", "names", "runningfor", "size", "status")
 //	flags.Var(created, "sort", "Sort output by: "+created.Choices())
 func Value(p *string, choices ...string) *ChoiceValue {
 	return &ChoiceValue{

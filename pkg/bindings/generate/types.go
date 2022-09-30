@@ -1,14 +1,16 @@
 package generate
 
-//go:generate go run ../generator/generator.go KubeOptions
 // KubeOptions are optional options for generating kube YAML files
+//
+//go:generate go run ../generator/generator.go KubeOptions
 type KubeOptions struct {
 	// Service - generate YAML for a Kubernetes _service_ object.
 	Service *bool
 }
 
-//go:generate go run ../generator/generator.go SystemdOptions
 // SystemdOptions are optional options for generating systemd files
+//
+//go:generate go run ../generator/generator.go SystemdOptions
 type SystemdOptions struct {
 	// Name - use container/pod name instead of its ID.
 	UseName *bool
