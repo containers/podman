@@ -55,9 +55,7 @@ Sign the pushed images with a “simple signing” signature using the specified
 
 Sign the pushed images with a sigstore signature using a private key at the specified path. (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
 
-#### **--sign-passphrase-file**=*path*
-
-If signing the image (using either **--sign-by** or **--sign-by-sigstore-private-key**), read the passphrase to use from the specified path.
+@@option sign-passphrase-file
 
 @@option tls-verify
 
