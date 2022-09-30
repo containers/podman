@@ -498,7 +498,7 @@ github.com/klauspost/compress/internal/cpuinfo
 github.com/klauspost/compress/internal/snapref
 github.com/klauspost/compress/zstd
 github.com/klauspost/compress/zstd/internal/xxhash
-# github.com/klauspost/pgzip v1.2.5
+# github.com/klauspost/pgzip v1.2.6-0.20220930104621-17e8dac29df8
 ## explicit
 github.com/klauspost/pgzip
 # github.com/kr/fs v0.1.0
