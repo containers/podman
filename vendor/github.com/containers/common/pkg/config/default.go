@@ -180,7 +180,7 @@ func DefaultConfig() (*Config, error) {
 	}
 
 	defaultEngineConfig.SignaturePolicyPath = DefaultSignaturePolicyPath
-	if unshare.GetRootlessUID() > 0 {
+	if useUserConfigLocations() {
 		configHome, err := homedir.GetConfigHome()
 		if err != nil {
 			return nil, err
@@ -289,7 +289,7 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 			return nil, err
 		}
 	}
-	storeOpts, err := types.DefaultStoreOptions(unshare.GetRootlessUID() > 0, unshare.GetRootlessUID())
+	storeOpts, err := types.DefaultStoreOptions(useUserConfigLocations(), unshare.GetRootlessUID())
 	if err != nil {
 		return nil, err
 	}
@@ -427,7 +427,7 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 }
 
 func defaultTmpDir() (string, error) {
-	if unshare.GetRootlessUID() == 0 {
+	if !useUserConfigLocations() {
 		return getLibpodTmpDir(), nil
 	}
 
@@ -679,3 +679,10 @@ func getDefaultSSHConfig() string {
 	dirname := homedir.Get()
 	return filepath.Join(dirname, ".ssh", "config")
 }
+
+func useUserConfigLocations() bool {
+	// NOTE: For now we want Windows to use system locations.
+	// GetRootlessUID == -1 on Windows, so exclude negative range
+	return unshare.GetRootlessUID() > 0
+}
+

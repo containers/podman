@@ -214,11 +214,6 @@ esac
 			if [ "$GOOSARCH" == "aix_ppc64" ]; then
 				# aix/ppc64 script generates files instead of writing to stdin.
 				echo "$mksyscall -tags $GOOS,$GOARCH $syscall_goos $GOOSARCH_in && gofmt -w zsyscall_$GOOSARCH.go && gofmt -w zsyscall_"$GOOSARCH"_gccgo.go && gofmt -w zsyscall_"$GOOSARCH"_gc.go " ;
-			elif [ "$GOOS" == "darwin" ]; then
-			        # 1.12 and later, syscalls via libSystem
-				echo "$mksyscall -tags $GOOS,$GOARCH,go1.12 $syscall_goos $GOOSARCH_in |gofmt >zsyscall_$GOOSARCH.go";
-				# 1.13 and later, syscalls via libSystem (including syscallPtr)
-				echo "$mksyscall -tags $GOOS,$GOARCH,go1.13 syscall_darwin.1_13.go |gofmt >zsyscall_$GOOSARCH.1_13.go";
 			elif [ "$GOOS" == "illumos" ]; then
 			        # illumos code generation requires a --illumos switch
 			        echo "$mksyscall -illumos -tags illumos,$GOARCH syscall_illumos.go |gofmt > zsyscall_illumos_$GOARCH.go";

@@ -226,6 +226,24 @@ func OptSignatureMetadata(ht crypto.Hash, fp []byte) DescriptorInputOpt {
 	}
 }
 
+// OptSBOMMetadata sets metadata for a SBOM data object. The SBOM format is set to f.
+//
+// If this option is applied to a data object with an incompatible type, an error is returned.
+func OptSBOMMetadata(f SBOMFormat) DescriptorInputOpt {
+	return func(t DataType, opts *descriptorOpts) error {
+		if got, want := t, DataSBOM; got != want {
+			return &unexpectedDataTypeError{got, []DataType{want}}
+		}
+
+		s := sbom{
+			Format: f,
+		}
+
+		opts.extra = s
+		return nil
+	}
+}
+
 // DescriptorInput describes a new data object.
 type DescriptorInput struct {
 	dt   DataType
@@ -241,7 +259,7 @@ const DefaultObjectGroup = 1
 //
 // It is possible (and often necessary) to store additional metadata related to certain types of
 // data objects. Consider supplying options such as OptCryptoMessageMetadata, OptPartitionMetadata,
-// and OptSignatureMetadata for this purpose.
+// OptSignatureMetadata, and OptSBOMMetadata for this purpose.
 //
 // By default, the data object will be placed in the default data object group (1). To override
 // this behavior, use OptNoGroup or OptGroupID. To link this data object, use OptLinkedID or

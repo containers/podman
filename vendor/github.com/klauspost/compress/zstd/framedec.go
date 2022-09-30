@@ -343,7 +343,7 @@ func (d *frameDec) consumeCRC() error {
 	return nil
 }
 
-// runDecoder will create a sync decoder that will decode a block of data.
+// runDecoder will run the decoder for the remainder of the frame.
 func (d *frameDec) runDecoder(dst []byte, dec *blockDec) ([]byte, error) {
 	saved := d.history.b
 
@@ -369,7 +369,7 @@ func (d *frameDec) runDecoder(dst []byte, dec *blockDec) ([]byte, error) {
 		if debugDecoder {
 			println("maxSyncLen:", d.history.decoders.maxSyncLen)
 		}
-		if !d.o.limitToCap && uint64(cap(dst)-len(dst)) < d.history.decoders.maxSyncLen {
+		if !d.o.limitToCap && uint64(cap(dst)) < d.history.decoders.maxSyncLen {
 			// Alloc for output
 			dst2 := make([]byte, len(dst), d.history.decoders.maxSyncLen+compressedBlockOverAlloc)
 			copy(dst2, dst)

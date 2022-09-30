@@ -35,6 +35,7 @@ type Decoder struct {
 		br           readerWrapper
 		enabled      bool
 		inFrame      bool
+		dstBuf       []byte
 	}
 
 	frame *frameDec
@@ -187,21 +188,23 @@ func (d *Decoder) Reset(r io.Reader) error {
 	}
 
 	// If bytes buffer and < 5MB, do sync decoding anyway.
-	if bb, ok := r.(byter); ok && bb.Len() < 5<<20 {
+	if bb, ok := r.(byter); ok && bb.Len() < d.o.decodeBufsBelow && !d.o.limitToCap {
 		bb2 := bb
 		if debugDecoder {
 			println("*bytes.Buffer detected, doing sync decode, len:", bb.Len())
 		}
 		b := bb2.Bytes()
 		var dst []byte
-		if cap(d.current.b) > 0 {
-			dst = d.current.b
+		if cap(d.syncStream.dstBuf) > 0 {
+			dst = d.syncStream.dstBuf[:0]
 		}
 
-		dst, err := d.DecodeAll(b, dst[:0])
+		dst, err := d.DecodeAll(b, dst)
 		if err == nil {
 			err = io.EOF
 		}
+		// Save output buffer
+		d.syncStream.dstBuf = dst
 		d.current.b = dst
 		d.current.err = err
 		d.current.flushed = true
@@ -216,6 +219,7 @@ func (d *Decoder) Reset(r io.Reader) error {
 	d.current.err = nil
 	d.current.flushed = false
 	d.current.d = nil
+	d.syncStream.dstBuf = nil
 
 	// Ensure no-one else is still running...
 	d.streamWg.Wait()
@@ -680,6 +684,7 @@ func (d *Decoder) startStreamDecoder(ctx context.Context, r io.Reader, output ch
 				if debugDecoder {
 					println("Async 1: new history, recent:", block.async.newHist.recentOffsets)
 				}
+				hist.reset()
 				hist.decoders = block.async.newHist.decoders
 				hist.recentOffsets = block.async.newHist.recentOffsets
 				hist.windowSize = block.async.newHist.windowSize
@@ -711,6 +716,7 @@ func (d *Decoder) startStreamDecoder(ctx context.Context, r io.Reader, output ch
 			seqExecute <- block
 		}
 		close(seqExecute)
+		hist.reset()
 	}()
 
 	var wg sync.WaitGroup
@@ -734,6 +740,7 @@ func (d *Decoder) startStreamDecoder(ctx context.Context, r io.Reader, output ch
 				if debugDecoder {
 					println("Async 2: new history")
 				}
+				hist.reset()
 				hist.windowSize = block.async.newHist.windowSize
 				hist.allocFrameBuffer = block.async.newHist.allocFrameBuffer
 				if block.async.newHist.dict != nil {
@@ -815,13 +822,14 @@ func (d *Decoder) startStreamDecoder(ctx context.Context, r io.Reader, output ch
 		if debugDecoder {
 			println("decoder goroutines finished")
 		}
+		hist.reset()
 	}()
 
+	var hist history
 decodeStream:
 	for {
-		var hist history
 		var hasErr bool
-
+		hist.reset()
 		decodeBlock := func(block *blockDec) {
 			if hasErr {
 				if block != nil {
@@ -937,5 +945,6 @@ decodeStream:
 	}
 	close(seqDecode)
 	wg.Wait()
+	hist.reset()
 	d.frame.history.b = frameHistCache
 }
