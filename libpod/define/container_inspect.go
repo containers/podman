@@ -659,6 +659,7 @@ type InspectContainerData struct {
 	Args            []string                    `json:"Args"`
 	State           *InspectContainerState      `json:"State"`
 	Image           string                      `json:"Image"`
+	ImageDigest     string                      `json:"ImageDigest"`
 	ImageName       string                      `json:"ImageName"`
 	Rootfs          string                      `json:"Rootfs"`
 	Pod             string                      `json:"Pod"`

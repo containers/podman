@@ -548,9 +548,21 @@ json-file | f
     # prior to #8623 `podman run` would error out on untagged images with:
     # Error: both RootfsImageName and RootfsImageID must be set if either is set: invalid argument
     run_podman untag $IMAGE
-    run_podman run --rm $imageID ls
 
+    run_podman run --rm $randomname $imageID true
     run_podman tag $imageID $IMAGE
+}
+
+@test "podman inspect includes image data" {
+    randomname=$(random_string 30)
+
+    run_podman inspect $IMAGE --format "{{.ID}} {{.Digest}}"
+    expected="$IMAGE $output"
+
+    run_podman run --name $randomname $IMAGE true
+    run_podman container inspect $randomname --format "{{.ImageName}} {{.Image}} {{.ImageDigest}}"
+    is "$output" "$expected"
+    run_podman rm -f -t0 $randomname
 }
 
 @test "Verify /run/.containerenv exist" {
@@ -620,10 +632,15 @@ json-file | f
         run_podman image mount $IMAGE
         romount="$output"
 
+        randomname=$(random_string 30)
         # FIXME FIXME FIXME: Remove :O once (if) #14504 is fixed!
-        run_podman run --rm --rootfs $romount:O echo "Hello world"
+        run_podman run --name=$randomname --rootfs $romount:O echo "Hello world"
         is "$output" "Hello world"
 
+	run_podman container inspect $randomname --format "{{.ImageDigest}}"
+	is "$output" "" "Empty image digest for --rootfs container"
+
+	run_podman rm -f -t0 $randomname
         run_podman image unmount $IMAGE
     fi
 }

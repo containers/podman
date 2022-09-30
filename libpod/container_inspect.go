@@ -166,6 +166,15 @@ func (c *Container) getContainerInspectData(size bool, driverData *define.Driver
 		IsInfra:         c.IsInfra(),
 		IsService:       c.IsService(),
 	}
+
+	if config.RootfsImageID != "" { // May not be set if the container was created with --rootfs
+		image, _, err := c.runtime.libimageRuntime.LookupImage(config.RootfsImageID, nil)
+		if err != nil {
+			return nil, err
+		}
+		data.ImageDigest = image.Digest().String()
+	}
+
 	if ctrSpec.Process.Capabilities != nil {
 		data.EffectiveCaps = ctrSpec.Process.Capabilities.Effective
 		data.BoundingCaps = ctrSpec.Process.Capabilities.Bounding
