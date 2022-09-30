@@ -201,7 +201,7 @@ var _ = Describe("Podman kill", func() {
 		Expect(wait).Should(Exit(0))
 	})
 
-	It("podman stop --all", func() {
+	It("podman kill --all", func() {
 		session := podmanTest.RunTopContainer("")
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))

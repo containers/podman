@@ -321,7 +321,7 @@ var _ = Describe("Podman restart", func() {
 		Expect(result.ErrorToString()).To(ContainSubstring("cannot be used together"))
 	})
 
-	It("podman pause --filter", func() {
+	It("podman restart --filter", func() {
 		session1 := podmanTest.RunTopContainer("")
 		session1.WaitWithDefaultTimeout()
 		Expect(session1).Should(Exit(0))
