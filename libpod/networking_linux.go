@@ -695,23 +695,31 @@ func (r *Runtime) teardownNetNS(ctr *Container) error {
 		// do not return an error otherwise we would prevent network cleanup
 		logrus.Errorf("failed to free gvproxy machine ports: %v", err)
 	}
-	if err := r.teardownCNI(ctr); err != nil {
-		return err
-	}
+
+	// Do not check the error here, we want to always umount the netns
+	// This will ensure that the container interface will be deleted
+	// even when there is a CNI or netavark bug.
+	prevErr := r.teardownCNI(ctr)
 
 	// First unmount the namespace
 	if err := netns.UnmountNS(ctr.state.NetNS); err != nil {
+		if prevErr != nil {
+			logrus.Error(prevErr)
+		}
 		return fmt.Errorf("unmounting network namespace for container %s: %w", ctr.ID(), err)
 	}
 
 	// Now close the open file descriptor
 	if err := ctr.state.NetNS.Close(); err != nil {
+		if prevErr != nil {
+			logrus.Error(prevErr)
+		}
 		return fmt.Errorf("closing network namespace for container %s: %w", ctr.ID(), err)
 	}
 
 	ctr.state.NetNS = nil
 
-	return nil
+	return prevErr
 }
 
 func getContainerNetNS(ctr *Container) (string, *Container, error) {
