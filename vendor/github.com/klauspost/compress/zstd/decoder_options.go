@@ -14,21 +14,23 @@ type DOption func(*decoderOptions) error
 
 // options retains accumulated state of multiple options.
 type decoderOptions struct {
-	lowMem         bool
-	concurrent     int
-	maxDecodedSize uint64
-	maxWindowSize  uint64
-	dicts          []dict
-	ignoreChecksum bool
-	limitToCap     bool
+	lowMem          bool
+	concurrent      int
+	maxDecodedSize  uint64
+	maxWindowSize   uint64
+	dicts           []dict
+	ignoreChecksum  bool
+	limitToCap      bool
+	decodeBufsBelow int
 }
 
 func (o *decoderOptions) setDefault() {
 	*o = decoderOptions{
 		// use less ram: true for now, but may change.
-		lowMem:        true,
-		concurrent:    runtime.GOMAXPROCS(0),
-		maxWindowSize: MaxWindowSize,
+		lowMem:          true,
+		concurrent:      runtime.GOMAXPROCS(0),
+		maxWindowSize:   MaxWindowSize,
+		decodeBufsBelow: 128 << 10,
 	}
 	if o.concurrent > 4 {
 		o.concurrent = 4
@@ -122,6 +124,18 @@ func WithDecoderMaxWindow(size uint64) DOption {
 func WithDecodeAllCapLimit(b bool) DOption {
 	return func(o *decoderOptions) error {
 		o.limitToCap = b
+		return nil
+	}
+}
+
+// WithDecodeBuffersBelow will fully decode readers that have a
+// `Bytes() []byte` and `Len() int` interface similar to bytes.Buffer.
+// This typically uses less allocations but will have the full decompressed object in memory.
+// Note that DecodeAllCapLimit will disable this, as well as giving a size of 0 or less.
+// Default is 128KiB.
+func WithDecodeBuffersBelow(size int) DOption {
+	return func(o *decoderOptions) error {
+		o.decodeBufsBelow = size
 		return nil
 	}
 }

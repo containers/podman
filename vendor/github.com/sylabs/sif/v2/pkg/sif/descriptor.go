@@ -56,6 +56,11 @@ type cryptoMessage struct {
 	Messagetype MessageType
 }
 
+// sbom represents the SIF SBOM data object descriptor.
+type sbom struct {
+	Format SBOMFormat
+}
+
 var errNameTooLarge = errors.New("name value too large")
 
 // setName encodes name into the name field of d.
@@ -228,6 +233,22 @@ func (d Descriptor) CryptoMessageMetadata() (FormatType, MessageType, error) {
 	}
 
 	return m.Formattype, m.Messagetype, nil
+}
+
+// SBOMMetadata gets metadata for a SBOM data object.
+func (d Descriptor) SBOMMetadata() (SBOMFormat, error) {
+	if got, want := d.raw.DataType, DataSBOM; got != want {
+		return 0, &unexpectedDataTypeError{got, []DataType{want}}
+	}
+
+	var s sbom
+
+	b := bytes.NewReader(d.raw.Extra[:])
+	if err := binary.Read(b, binary.LittleEndian, &s); err != nil {
+		return 0, fmt.Errorf("%w", err)
+	}
+
+	return s.Format, nil
 }
 
 // GetData returns the data object associated with descriptor d.

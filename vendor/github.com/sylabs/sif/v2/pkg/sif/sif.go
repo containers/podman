@@ -132,6 +132,7 @@ const (
 	DataGenericJSON                            // generic JSON meta-data
 	DataGeneric                                // generic / raw data
 	DataCryptoMessage                          // cryptographic message data object
+	DataSBOM                                   // software bill of materials
 )
 
 // String returns a human-readable representation of t.
@@ -153,6 +154,8 @@ func (t DataType) String() string {
 		return "Generic/Raw"
 	case DataCryptoMessage:
 		return "Cryptographic Message"
+	case DataSBOM:
+		return "SBOM"
 	}
 	return "Unknown"
 }
@@ -265,6 +268,44 @@ func (t MessageType) String() string {
 		return "RSA-OAEP"
 	}
 	return "Unknown"
+}
+
+// SBOMFormat represents the format used to store an SBOM object.
+type SBOMFormat int32
+
+// List of supported SBOM formats.
+const (
+	SBOMFormatCycloneDXJSON SBOMFormat = iota + 1 // CycloneDX (JSON)
+	SBOMFormatCycloneDXXML                        // CycloneDX (XML)
+	SBOMFormatGitHubJSON                          // GitHub dependency snapshot (JSON)
+	SBOMFormatSPDXJSON                            // SPDX (JSON)
+	SBOMFormatSPDXRDF                             // SPDX (RDF/xml)
+	SBOMFormatSPDXTagValue                        // SPDX (tag/value)
+	SBOMFormatSPDXYAML                            // SPDX (YAML)
+	SBOMFormatSyftJSON                            // Syft (JSON)
+)
+
+// String returns a human-readable representation of f.
+func (f SBOMFormat) String() string {
+	switch f {
+	case SBOMFormatCycloneDXJSON:
+		return "cyclonedx-json"
+	case SBOMFormatCycloneDXXML:
+		return "cyclonedx-xml"
+	case SBOMFormatGitHubJSON:
+		return "github-json"
+	case SBOMFormatSPDXJSON:
+		return "spdx-json"
+	case SBOMFormatSPDXRDF:
+		return "spdx-rdf"
+	case SBOMFormatSPDXTagValue:
+		return "spdx-tag-value"
+	case SBOMFormatSPDXYAML:
+		return "spdx-yaml"
+	case SBOMFormatSyftJSON:
+		return "syft-json"
+	}
+	return "unknown"
 }
 
 // header describes a loaded SIF file.

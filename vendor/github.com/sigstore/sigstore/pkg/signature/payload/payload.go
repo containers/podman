@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package payload TODO: add meaningfull description
+// Package payload defines a container image
 package payload
 
 import (

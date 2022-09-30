@@ -139,7 +139,7 @@ func (s *sequenceDecs) decodeSyncSimple(hist []byte) (bool, error) {
 		if debugDecoder {
 			println("msl:", s.maxSyncLen, "cap", cap(s.out), "bef:", startSize, "sz:", size-startSize, "mbs:", maxBlockSize, "outsz:", cap(s.out)-startSize)
 		}
-		return true, fmt.Errorf("output (%d) bigger than max block size (%d)", size-startSize, maxBlockSize)
+		return true, fmt.Errorf("output bigger than max block size (%d)", maxBlockSize)
 
 	default:
 		return true, fmt.Errorf("sequenceDecs_decode returned erronous code %d", errCode)
@@ -147,7 +147,8 @@ func (s *sequenceDecs) decodeSyncSimple(hist []byte) (bool, error) {
 
 	s.seqSize += ctx.litRemain
 	if s.seqSize > maxBlockSize {
-		return true, fmt.Errorf("output (%d) bigger than max block size (%d)", s.seqSize, maxBlockSize)
+		return true, fmt.Errorf("output bigger than max block size (%d)", maxBlockSize)
+
 	}
 	err := br.close()
 	if err != nil {
@@ -289,7 +290,7 @@ func (s *sequenceDecs) decode(seqs []seqVals) error {
 
 	s.seqSize += ctx.litRemain
 	if s.seqSize > maxBlockSize {
-		return fmt.Errorf("output (%d) bigger than max block size (%d)", s.seqSize, maxBlockSize)
+		return fmt.Errorf("output bigger than max block size (%d)", maxBlockSize)
 	}
 	err := br.close()
 	if err != nil {

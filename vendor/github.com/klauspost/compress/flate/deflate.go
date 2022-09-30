@@ -374,6 +374,12 @@ func hash4(b []byte) uint32 {
 	return hash4u(binary.LittleEndian.Uint32(b), hashBits)
 }
 
+// hash4 returns the hash of u to fit in a hash table with h bits.
+// Preferably h should be a constant and should always be <32.
+func hash4u(u uint32, h uint8) uint32 {
+	return (u * prime4bytes) >> (32 - h)
+}
+
 // bulkHash4 will compute hashes using the same
 // algorithm as hash4
 func bulkHash4(b []byte, dst []uint32) {
