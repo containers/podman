@@ -1,3 +1,16 @@
+[comment]: <> (***ATTENTION*** ***WARNING*** ***ALERT*** ***CAUTION*** ***DANGER***)
+[comment]: <> ()
+[comment]: <> (ANY changes made to this file, once commited/merged must)
+[comment]: <> (be manually copy/pasted -in markdown- into the description)
+[comment]: <> (field on Quay at the following locations:)
+[comment]: <> ()
+[comment]: <> (https://quay.io/repository/containers/podman)
+[comment]: <> (https://quay.io/repository/podman/stable)
+[comment]: <> (https://quay.io/repository/podman/testing)
+[comment]: <> (https://quay.io/repository/podman/upstream)
+[comment]: <> ()
+[comment]: <> (***ATTENTION*** ***WARNING*** ***ALERT*** ***CAUTION*** ***DANGER***)
+
 ![PODMAN logo](https://raw.githubusercontent.com/containers/common/main/logos/podman-logo-full-vert.png)
 
 # podmanimage
