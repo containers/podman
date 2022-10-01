@@ -61,7 +61,7 @@ Briefly describe the problem you are having in a few paragraphs.
 (paste your output here)
 ```
 
-**Package info (e.g. output of `rpm -q podman` or `apt list podman`):**
+**Package info (e.g. output of `rpm -q podman` or `apt list podman` or `brew info podman`):**
 
 ```
 (paste your output here)
