@@ -336,7 +336,7 @@ func ReloadConfigurationFile(configFile string, storeOptions *StoreOptions) erro
 		}
 	} else {
 		if !os.IsNotExist(err) {
-			fmt.Printf("Failed to read %s %v\n", configFile, err.Error())
+			logrus.Warningf("Failed to read %s %v\n", configFile, err.Error())
 			return err
 		}
 	}
@@ -399,7 +399,7 @@ func ReloadConfigurationFile(configFile string, storeOptions *StoreOptions) erro
 	if config.Storage.Options.RemapUser != "" && config.Storage.Options.RemapGroup != "" {
 		mappings, err := idtools.NewIDMappings(config.Storage.Options.RemapUser, config.Storage.Options.RemapGroup)
 		if err != nil {
-			fmt.Printf("Error initializing ID mappings for %s:%s %v\n", config.Storage.Options.RemapUser, config.Storage.Options.RemapGroup, err)
+			logrus.Warningf("Error initializing ID mappings for %s:%s %v\n", config.Storage.Options.RemapUser, config.Storage.Options.RemapGroup, err)
 			return err
 		}
 		storeOptions.UIDMap = mappings.UIDs()

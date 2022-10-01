@@ -1,5 +1,5 @@
-//go:build !windows && !freebsd
-// +build !windows,!freebsd
+//go:build !windows
+// +build !windows
 
 package archive
 
@@ -50,8 +50,8 @@ func setHeaderForSpecialDevice(hdr *tar.Header, name string, stat interface{}) (
 		// Currently go does not fill in the major/minors
 		if s.Mode&unix.S_IFBLK != 0 ||
 			s.Mode&unix.S_IFCHR != 0 {
-			hdr.Devmajor = int64(major(uint64(s.Rdev))) // nolint: unconvert
-			hdr.Devminor = int64(minor(uint64(s.Rdev))) // nolint: unconvert
+			hdr.Devmajor = int64(major(uint64(s.Rdev))) //nolint: unconvert
+			hdr.Devminor = int64(minor(uint64(s.Rdev))) //nolint: unconvert
 		}
 	}
 
@@ -99,25 +99,6 @@ func handleTarTypeBlockCharFifo(hdr *tar.Header, path string) error {
 	}
 
 	return system.Mknod(path, mode, system.Mkdev(hdr.Devmajor, hdr.Devminor))
-}
-
-func handleLChmod(hdr *tar.Header, path string, hdrInfo os.FileInfo, forceMask *os.FileMode) error {
-	permissionsMask := hdrInfo.Mode()
-	if forceMask != nil {
-		permissionsMask = *forceMask
-	}
-	if hdr.Typeflag == tar.TypeLink {
-		if fi, err := os.Lstat(hdr.Linkname); err == nil && (fi.Mode()&os.ModeSymlink == 0) {
-			if err := os.Chmod(path, permissionsMask); err != nil {
-				return err
-			}
-		}
-	} else if hdr.Typeflag != tar.TypeSymlink {
-		if err := os.Chmod(path, permissionsMask); err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 // Hardlink without symlinks

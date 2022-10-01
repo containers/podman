@@ -189,3 +189,22 @@ func GetFileOwner(path string) (uint32, uint32, uint32, error) {
 	}
 	return 0, 0, uint32(f.Mode()), nil
 }
+
+func handleLChmod(hdr *tar.Header, path string, hdrInfo os.FileInfo, forceMask *os.FileMode) error {
+	permissionsMask := hdrInfo.Mode()
+	if forceMask != nil {
+		permissionsMask = *forceMask
+	}
+	if hdr.Typeflag == tar.TypeLink {
+		if fi, err := os.Lstat(hdr.Linkname); err == nil && (fi.Mode()&os.ModeSymlink == 0) {
+			if err := os.Chmod(path, permissionsMask); err != nil {
+				return err
+			}
+		}
+	} else if hdr.Typeflag != tar.TypeSymlink {
+		if err := os.Chmod(path, permissionsMask); err != nil {
+			return err
+		}
+	}
+	return nil
+}

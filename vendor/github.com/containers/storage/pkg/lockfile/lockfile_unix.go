@@ -79,7 +79,7 @@ func openLock(path string, ro bool) (fd int, err error) {
 	}
 	fd, err = unix.Open(path, flags, 0o644)
 	if err == nil {
-		return
+		return fd, nil
 	}
 
 	// the directory of the lockfile seems to be removed, try to create it
@@ -134,7 +134,7 @@ func createLockerForPath(path string, ro bool) (Locker, error) {
 func (l *lockfile) lock(lType int16, recursive bool) {
 	lk := unix.Flock_t{
 		Type:   lType,
-		Whence: int16(os.SEEK_SET),
+		Whence: int16(unix.SEEK_SET),
 		Start:  0,
 		Len:    0,
 	}
@@ -203,7 +203,7 @@ func (l *lockfile) RLock() {
 // Unlock unlocks the lockfile.
 func (l *lockfile) Unlock() {
 	l.stateMutex.Lock()
-	if l.locked == false {
+	if !l.locked {
 		// Panic when unlocking an unlocked lock.  That's a violation
 		// of the lock semantics and will reveal such.
 		panic("calling Unlock on unlocked lock")

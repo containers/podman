@@ -27,6 +27,7 @@ import (
 	"github.com/hashicorp/go-multierror"
 	digest "github.com/opencontainers/go-digest"
 	"github.com/opencontainers/selinux/go-selinux/label"
+	"github.com/sirupsen/logrus"
 )
 
 type updateNameOperation int
@@ -1444,7 +1445,13 @@ func (s *store) CreateContainer(id string, names []string, image, layer, metadat
 	}
 	container, err := rcstore.Create(id, names, imageID, layer, metadata, options)
 	if err != nil || container == nil {
-		rlstore.Delete(layer)
+		if err2 := rlstore.Delete(layer); err2 != nil {
+			if err == nil {
+				err = fmt.Errorf("deleting layer %#v: %w", layer, err2)
+			} else {
+				logrus.Errorf("While recovering from a failure to create a container, error deleting layer %#v: %v", layer, err2)
+			}
+		}
 	}
 	return container, err
 }
@@ -1565,7 +1572,7 @@ func (s *store) ListImageBigData(id string) ([]string, error) {
 		}
 		bigDataNames, err := store.BigDataNames(id)
 		if err == nil {
-			return bigDataNames, err
+			return bigDataNames, nil
 		}
 	}
 	return nil, fmt.Errorf("locating image with ID %q: %w", id, ErrImageUnknown)
@@ -3391,6 +3398,7 @@ func (s *store) ImagesByTopLayer(id string) ([]*Image, error) {
 			return nil, err
 		}
 		for _, image := range imageList {
+			image := image
 			if image.TopLayer == layer.ID || stringutils.InSlice(image.MappedTopLayers, layer.ID) {
 				images = append(images, &image)
 			}
@@ -3618,11 +3626,23 @@ func (s *store) Shutdown(force bool) ([]string, error) {
 	}
 	if err == nil {
 		err = s.graphDriver.Cleanup()
-		s.graphLock.Touch()
+		if err2 := s.graphLock.Touch(); err2 != nil {
+			if err == nil {
+				err = err2
+			} else {
+				err = fmt.Errorf("(graphLock.Touch failed: %v) %w", err2, err)
+			}
+		}
 		modified = true
 	}
 	if modified {
-		rlstore.Touch()
+		if err2 := rlstore.Touch(); err2 != nil {
+			if err == nil {
+				err = err2
+			} else {
+				err = fmt.Errorf("rlstore.Touch failed: %v) %w", err2, err)
+			}
+		}
 	}
 	return mounted, err
 }
@@ -3710,9 +3730,10 @@ const AutoUserNsMaxSize = 65536
 // creating a user namespace.
 const RootAutoUserNsUser = "containers"
 
-// SetDefaultConfigFilePath sets the default configuration to the specified path
+// SetDefaultConfigFilePath sets the default configuration to the specified path, and loads the file.
+// Deprecated: Use types.SetDefaultConfigFilePath, which can return an error.
 func SetDefaultConfigFilePath(path string) {
-	types.SetDefaultConfigFilePath(path)
+	_ = types.SetDefaultConfigFilePath(path)
 }
 
 // DefaultConfigFile returns the path to the storage config file used
@@ -3722,8 +3743,9 @@ func DefaultConfigFile(rootless bool) (string, error) {
 
 // ReloadConfigurationFile parses the specified configuration file and overrides
 // the configuration in storeOptions.
+// Deprecated: Use types.ReloadConfigurationFile, which can return an error.
 func ReloadConfigurationFile(configFile string, storeOptions *types.StoreOptions) {
-	types.ReloadConfigurationFile(configFile, storeOptions)
+	_ = types.ReloadConfigurationFile(configFile, storeOptions)
 }
 
 // GetDefaultMountOptions returns the default mountoptions defined in container/storage

@@ -400,6 +400,12 @@ func hasFullUsersMappings() (bool, error) {
 	return bytes.Contains(content, []byte("4294967295")), nil
 }
 
+var (
+	hasCapSysAdminOnce sync.Once
+	hasCapSysAdminRet  bool
+	hasCapSysAdminErr  error
+)
+
 // IsRootless tells us if we are running in rootless mode
 func IsRootless() bool {
 	isRootlessOnce.Do(func() {
@@ -443,6 +449,17 @@ func RootlessEnv() []string {
 
 type Runnable interface {
 	Run() error
+}
+
+func bailOnError(err error, format string, a ...interface{}) { // nolint: golint,goprintffuncname
+	if err != nil {
+		if format != "" {
+			logrus.Errorf("%s: %v", fmt.Sprintf(format, a...), err)
+		} else {
+			logrus.Errorf("%v", err)
+		}
+		os.Exit(1)
+	}
 }
 
 // MaybeReexecUsingUserNamespace re-exec the process in a new namespace

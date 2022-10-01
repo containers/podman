@@ -299,7 +299,7 @@ func (r *imageStore) Load() error {
 		return ErrDuplicateImageNames
 	}
 	r.images = images
-	r.idindex = truncindex.NewTruncIndex(idlist)
+	r.idindex = truncindex.NewTruncIndex(idlist) // Invalid values in idlist are ignored: they are not a reason to refuse processing the whole store.
 	r.byid = ids
 	r.byname = names
 	r.bydigest = digests
@@ -324,8 +324,10 @@ func (r *imageStore) Save() error {
 	if err != nil {
 		return err
 	}
-	defer r.Touch()
-	return ioutils.AtomicWriteFile(rpath, jdata, 0600)
+	if err := ioutils.AtomicWriteFile(rpath, jdata, 0600); err != nil {
+		return err
+	}
+	return r.Touch()
 }
 
 func newImageStore(dir string) (ImageStore, error) {
@@ -336,8 +338,6 @@ func newImageStore(dir string) (ImageStore, error) {
 	if err != nil {
 		return nil, err
 	}
-	lockfile.Lock()
-	defer lockfile.Unlock()
 	istore := imageStore{
 		lockfile: lockfile,
 		dir:      dir,
@@ -346,6 +346,8 @@ func newImageStore(dir string) (ImageStore, error) {
 		byname:   make(map[string]*Image),
 		bydigest: make(map[digest.Digest][]*Image),
 	}
+	istore.Lock()
+	defer istore.Unlock()
 	if err := istore.Load(); err != nil {
 		return nil, err
 	}
@@ -357,8 +359,6 @@ func newROImageStore(dir string) (ROImageStore, error) {
 	if err != nil {
 		return nil, err
 	}
-	lockfile.RLock()
-	defer lockfile.Unlock()
 	istore := imageStore{
 		lockfile: lockfile,
 		dir:      dir,
@@ -367,6 +367,8 @@ func newROImageStore(dir string) (ROImageStore, error) {
 		byname:   make(map[string]*Image),
 		bydigest: make(map[digest.Digest][]*Image),
 	}
+	istore.RLock()
+	defer istore.Unlock()
 	if err := istore.Load(); err != nil {
 		return nil, err
 	}
@@ -455,7 +457,9 @@ func (r *imageStore) Create(id string, names []string, layer, metadata string, c
 		return nil, fmt.Errorf("validating digests for new image: %w", err)
 	}
 	r.images = append(r.images, image)
-	r.idindex.Add(id)
+	// This can only fail on duplicate IDs, which shouldn’t happen — and in that case the index is already in the desired state anyway.
+	// Implementing recovery from an unlikely and unimportant failure here would be too risky.
+	_ = r.idindex.Add(id)
 	r.byid[id] = image
 	for _, name := range names {
 		r.byname[name] = image
@@ -572,7 +576,9 @@ func (r *imageStore) Delete(id string) error {
 		}
 	}
 	delete(r.byid, id)
-	r.idindex.Delete(id)
+	// This can only fail if the ID is already missing, which shouldn’t happen — and in that case the index is already in the desired state anyway.
+	// The store’s Delete method is used on various paths to recover from failures, so this should be robust against partially missing data.
+	_ = r.idindex.Delete(id)
 	for _, name := range image.Names {
 		delete(r.byname, name)
 	}

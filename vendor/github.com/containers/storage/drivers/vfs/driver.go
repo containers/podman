@@ -28,7 +28,7 @@ var (
 const defaultPerms = os.FileMode(0555)
 
 func init() {
-	graphdriver.Register("vfs", Init)
+	graphdriver.MustRegister("vfs", Init)
 }
 
 // Init returns a new VFS driver.
@@ -98,7 +98,7 @@ func (d *Driver) Status() [][2]string {
 
 // Metadata is used for implementing the graphdriver.ProtoDriver interface. VFS does not currently have any meta data.
 func (d *Driver) Metadata(id string) (map[string]string, error) {
-	return nil, nil
+	return nil, nil //nolint: nilnil
 }
 
 // Cleanup is used to implement graphdriver.ProtoDriver. There is no cleanup required for this driver.
@@ -194,7 +194,7 @@ func (d *Driver) create(id, parent string, opts *graphdriver.CreateOpts, ro bool
 	if parent != "" {
 		parentDir, err := d.Get(parent, graphdriver.MountOpts{})
 		if err != nil {
-			return fmt.Errorf("%s: %s", parent, err)
+			return fmt.Errorf("%s: %w", parent, err)
 		}
 		if err := dirCopy(parentDir, dir); err != nil {
 			return err

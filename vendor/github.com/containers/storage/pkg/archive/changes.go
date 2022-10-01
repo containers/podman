@@ -56,7 +56,7 @@ func (change *Change) String() string {
 	return fmt.Sprintf("%s %s", change.Kind, change.Path)
 }
 
-// for sort.Sort
+// changesByPath implements sort.Interface.
 type changesByPath []Change
 
 func (c changesByPath) Less(i, j int) bool { return c[i].Path < c[j].Path }

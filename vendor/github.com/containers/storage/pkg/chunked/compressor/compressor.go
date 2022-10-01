@@ -33,11 +33,11 @@ const (
 	holesFinderStateEOF
 )
 
-// ReadByte reads a single byte from the underlying reader.
+// readByte reads a single byte from the underlying reader.
 // If a single byte is read, the return value is (0, RAW-BYTE-VALUE, nil).
 // If there are at least f.THRESHOLD consecutive zeros, then the
 // return value is (N_CONSECUTIVE_ZEROS, '\x00').
-func (f *holesFinder) ReadByte() (int64, byte, error) {
+func (f *holesFinder) readByte() (int64, byte, error) {
 	for {
 		switch f.state {
 		// reading the file stream
@@ -78,7 +78,7 @@ func (f *holesFinder) ReadByte() (int64, byte, error) {
 					f.state = holesFinderStateFound
 				}
 			} else {
-				if f.reader.UnreadByte(); err != nil {
+				if err := f.reader.UnreadByte(); err != nil {
 					return 0, 0, err
 				}
 				f.state = holesFinderStateRead
@@ -95,7 +95,7 @@ func (f *holesFinder) ReadByte() (int64, byte, error) {
 				return holeLen, 0, nil
 			}
 			if b != 0 {
-				if f.reader.UnreadByte(); err != nil {
+				if err := f.reader.UnreadByte(); err != nil {
 					return 0, 0, err
 				}
 				f.state = holesFinderStateRead
@@ -159,7 +159,7 @@ func (rc *rollingChecksumReader) Read(b []byte) (bool, int, error) {
 	}
 
 	for i := 0; i < len(b); i++ {
-		holeLen, n, err := rc.reader.ReadByte()
+		holeLen, n, err := rc.reader.readByte()
 		if err != nil {
 			if err == io.EOF {
 				rc.closed = true
@@ -429,7 +429,7 @@ func zstdChunkedWriterWithLevel(out io.Writer, metadata map[string]string, level
 
 	go func() {
 		ch <- writeZstdChunkedStream(out, metadata, r, level)
-		io.Copy(io.Discard, r)
+		_, _ = io.Copy(io.Discard, r) // Ordinarily writeZstdChunkedStream consumes all of r. If it fails, ensure the write end never blocks and eventually terminates.
 		r.Close()
 		close(ch)
 	}()

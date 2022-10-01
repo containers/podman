@@ -63,7 +63,7 @@ func StickRuntimeDirContents(files []string) ([]string, error) {
 	runtimeDir, err := GetRuntimeDir()
 	if err != nil {
 		// ignore error if runtimeDir is empty
-		return nil, nil
+		return nil, nil //nolint: nilerr
 	}
 	runtimeDir, err = filepath.Abs(runtimeDir)
 	if err != nil {

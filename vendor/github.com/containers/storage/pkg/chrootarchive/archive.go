@@ -82,7 +82,7 @@ func untarHandler(tarArchive io.Reader, dest string, options *archive.TarOptions
 		}
 	}
 
-	r := io.NopCloser(tarArchive)
+	r := tarArchive
 	if decompress {
 		decompressedArchive, err := archive.DecompressStream(tarArchive)
 		if err != nil {

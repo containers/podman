@@ -27,13 +27,13 @@ func applyLayerHandler(dest string, layer io.Reader, options *archive.TarOptions
 
 	tmpDir, err := os.MkdirTemp(os.Getenv("temp"), "temp-storage-extract")
 	if err != nil {
-		return 0, fmt.Errorf("ApplyLayer failed to create temp-storage-extract under %s. %s", dest, err)
+		return 0, fmt.Errorf("ApplyLayer failed to create temp-storage-extract under %s: %w", dest, err)
 	}
 
 	s, err := archive.UnpackLayer(dest, layer, options)
 	os.RemoveAll(tmpDir)
 	if err != nil {
-		return 0, fmt.Errorf("ApplyLayer %s failed UnpackLayer to %s: %s", layer, dest, err)
+		return 0, fmt.Errorf("ApplyLayer %s failed UnpackLayer to %s: %w", layer, dest, err)
 	}
 
 	return s, nil
