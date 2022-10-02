@@ -3000,6 +3000,21 @@ MemoryReservation: {{ .HostConfig.MemoryReservation }}`})
 		Expect(logs.OutputToString()).To(Equal(netns))
 	})
 
+	It("podman play kube test with kube default network", func() {
+		pod := getPod()
+		err := generateKubeYaml("pod", pod, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		inspect := podmanTest.Podman([]string{"inspect", pod.Name, "--format", "{{ .InfraConfig.Networks }}"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).Should(Exit(0))
+		Expect(inspect.OutputToString()).To(Equal("[podman-default-kube-network]"))
+	})
+
 	It("podman play kube persistentVolumeClaim", func() {
 		volName := "myvol"
 		volDevice := "tmpfs"

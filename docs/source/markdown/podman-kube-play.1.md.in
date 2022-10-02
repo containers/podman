@@ -155,7 +155,7 @@ Note: When joining multiple networks you should use the **--network name:mac=\<m
 
 @@option network
 
-The *host* network mode should be configured in the YAML file.
+When no network option is specified and *host* network mode is not configured in the YAML file, a new network stack is created and pods are attached to it making possible pod to pod communication.
 
 @@option no-hosts
 
