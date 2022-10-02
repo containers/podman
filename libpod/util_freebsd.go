@@ -19,6 +19,11 @@ func systemdSliceFromPath(parent, name string, resources *spec.LinuxResources) (
 	return "", errors.New("not implemented systemdSliceFromPath")
 }
 
+// deleteSystemdCgroup deletes the systemd cgroup at the given location
+func deleteSystemdCgroup(path string, resources *spec.LinuxResources) error {
+	return nil
+}
+
 // No equivalent on FreeBSD?
 func LabelVolumePath(path string) error {
 	return nil
