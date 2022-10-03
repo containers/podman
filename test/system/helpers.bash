@@ -316,8 +316,10 @@ function random_free_port_range() {
 }
 
 function port_is_free() {
-     local port=${1?Usage: port_is_free PORT}
-    ! { exec {unused_fd}<> /dev/tcp/127.0.0.1/$port; } &>/dev/null
+     local port=${1?Usage: port_is_free PORT [ADDRESS]}
+    local address="${2:-127.0.0.1}"
+
+    ! { exec {unused_fd}<> /dev/tcp/"${address}"/$port; } &>/dev/null
 }
 
 ###################
@@ -330,7 +332,7 @@ function wait_for_port() {
 
     # Wait
     while [ $_timeout -gt 0 ]; do
-        { exec {unused_fd}<> /dev/tcp/$host/$port; } &>/dev/null && return
+        port_is_free ${port} "${host}" && return
         sleep 1
         _timeout=$(( $_timeout - 1 ))
     done
