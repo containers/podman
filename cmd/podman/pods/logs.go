@@ -121,5 +121,10 @@ func logs(_ *cobra.Command, args []string) error {
 
 	logsPodOptions.StdoutWriter = os.Stdout
 	logsPodOptions.StderrWriter = os.Stderr
-	return registry.ContainerEngine().PodLogs(registry.GetContext(), args[0], logsPodOptions.PodLogsOptions)
+
+	podName := ""
+	if len(args) > 0 {
+		podName = args[0]
+	}
+	return registry.ContainerEngine().PodLogs(registry.GetContext(), podName, logsPodOptions.PodLogsOptions)
 }

@@ -36,7 +36,7 @@ import (
 
 // getContainersAndInputByContext gets containers whether all, latest, or a slice of names/ids
 // is specified.  It also returns a list of the corresponding input name used to lookup each container.
-func getContainersAndInputByContext(all, latest bool, names []string, filters map[string][]string, runtime *libpod.Runtime) (ctrs []*libpod.Container, rawInput []string, err error) {
+func getContainersAndInputByContext(all, latest, isPod bool, names []string, filters map[string][]string, runtime *libpod.Runtime) (ctrs []*libpod.Container, rawInput []string, err error) {
 	var ctr *libpod.Container
 	var filteredCtrs []*libpod.Container
 	ctrs = []*libpod.Container{}
@@ -77,10 +77,23 @@ func getContainersAndInputByContext(all, latest bool, names []string, filters ma
 			}
 		}
 	case latest:
-		ctr, err = runtime.GetLatestContainer()
-		if err == nil {
-			rawInput = append(rawInput, ctr.ID())
-			ctrs = append(ctrs, ctr)
+		if isPod {
+			pod, err := runtime.GetLatestPod()
+			if err == nil {
+				podCtrs, err := pod.AllContainers()
+				if err == nil {
+					for _, c := range podCtrs {
+						rawInput = append(rawInput, c.ID())
+					}
+					ctrs = podCtrs
+				}
+			}
+		} else {
+			ctr, err = runtime.GetLatestContainer()
+			if err == nil {
+				rawInput = append(rawInput, ctr.ID())
+				ctrs = append(ctrs, ctr)
+			}
 		}
 	default:
 		for _, n := range names {
@@ -102,8 +115,8 @@ func getContainersAndInputByContext(all, latest bool, names []string, filters ma
 
 // getContainersByContext gets containers whether all, latest, or a slice of names/ids
 // is specified.
-func getContainersByContext(all, latest bool, names []string, runtime *libpod.Runtime) (ctrs []*libpod.Container, err error) {
-	ctrs, _, err = getContainersAndInputByContext(all, latest, names, nil, runtime)
+func getContainersByContext(all, latest, isPod bool, names []string, runtime *libpod.Runtime) (ctrs []*libpod.Container, err error) {
+	ctrs, _, err = getContainersAndInputByContext(all, latest, isPod, names, nil, runtime)
 	return
 }
 
@@ -125,7 +138,7 @@ func (ic *ContainerEngine) ContainerExists(ctx context.Context, nameOrID string,
 }
 
 func (ic *ContainerEngine) ContainerWait(ctx context.Context, namesOrIds []string, options entities.WaitOptions) ([]entities.WaitReport, error) {
-	ctrs, err := getContainersByContext(false, options.Latest, namesOrIds, ic.Libpod)
+	ctrs, err := getContainersByContext(false, options.Latest, false, namesOrIds, ic.Libpod)
 	if err != nil {
 		return nil, err
 	}
@@ -147,7 +160,7 @@ func (ic *ContainerEngine) ContainerWait(ctx context.Context, namesOrIds []strin
 }
 
 func (ic *ContainerEngine) ContainerPause(ctx context.Context, namesOrIds []string, options entities.PauseUnPauseOptions) ([]*entities.PauseUnpauseReport, error) {
-	ctrs, rawInputs, err := getContainersAndInputByContext(options.All, options.Latest, namesOrIds, options.Filters, ic.Libpod)
+	ctrs, rawInputs, err := getContainersAndInputByContext(options.All, options.Latest, false, namesOrIds, options.Filters, ic.Libpod)
 	if err != nil {
 		return nil, err
 	}
@@ -174,7 +187,7 @@ func (ic *ContainerEngine) ContainerPause(ctx context.Context, namesOrIds []stri
 }
 
 func (ic *ContainerEngine) ContainerUnpause(ctx context.Context, namesOrIds []string, options entities.PauseUnPauseOptions) ([]*entities.PauseUnpauseReport, error) {
-	ctrs, rawInputs, err := getContainersAndInputByContext(options.All, options.Latest, namesOrIds, options.Filters, ic.Libpod)
+	ctrs, rawInputs, err := getContainersAndInputByContext(options.All, options.Latest, false, namesOrIds, options.Filters, ic.Libpod)
 	if err != nil {
 		return nil, err
 	}
@@ -201,7 +214,7 @@ func (ic *ContainerEngine) ContainerUnpause(ctx context.Context, namesOrIds []st
 }
 func (ic *ContainerEngine) ContainerStop(ctx context.Context, namesOrIds []string, options entities.StopOptions) ([]*entities.StopReport, error) {
 	names := namesOrIds
-	ctrs, rawInputs, err := getContainersAndInputByContext(options.All, options.Latest, names, options.Filters, ic.Libpod)
+	ctrs, rawInputs, err := getContainersAndInputByContext(options.All, options.Latest, false, names, options.Filters, ic.Libpod)
 	if err != nil && !(options.Ignore && errors.Is(err, define.ErrNoSuchCtr)) {
 		return nil, err
 	}
@@ -280,7 +293,7 @@ func (ic *ContainerEngine) ContainerKill(ctx context.Context, namesOrIds []strin
 	if err != nil {
 		return nil, err
 	}
-	ctrs, rawInputs, err := getContainersAndInputByContext(options.All, options.Latest, namesOrIds, nil, ic.Libpod)
+	ctrs, rawInputs, err := getContainersAndInputByContext(options.All, options.Latest, false, namesOrIds, nil, ic.Libpod)
 	if err != nil {
 		return nil, err
 	}
@@ -323,7 +336,7 @@ func (ic *ContainerEngine) ContainerRestart(ctx context.Context, namesOrIds []st
 			return nil, err
 		}
 	} else {
-		ctrs, rawInputs, err = getContainersAndInputByContext(options.All, options.Latest, namesOrIds, options.Filters, ic.Libpod)
+		ctrs, rawInputs, err = getContainersAndInputByContext(options.All, options.Latest, false, namesOrIds, options.Filters, ic.Libpod)
 		if err != nil {
 			return nil, err
 		}
@@ -401,7 +414,7 @@ func (ic *ContainerEngine) ContainerRm(ctx context.Context, namesOrIds []string,
 	}
 	names = tmpNames
 
-	ctrs, rawInputs, err := getContainersAndInputByContext(options.All, options.Latest, names, options.Filters, ic.Libpod)
+	ctrs, rawInputs, err := getContainersAndInputByContext(options.All, options.Latest, false, names, options.Filters, ic.Libpod)
 	if err != nil && !(options.Ignore && errors.Is(err, define.ErrNoSuchCtr)) {
 		return nil, err
 	}
@@ -661,7 +674,7 @@ func (ic *ContainerEngine) ContainerCheckpoint(ctx context.Context, namesOrIds [
 			return nil, err
 		}
 	} else {
-		ctrs, rawInputs, err = getContainersAndInputByContext(false, options.Latest, namesOrIds, nil, ic.Libpod)
+		ctrs, rawInputs, err = getContainersAndInputByContext(false, options.Latest, false, namesOrIds, nil, ic.Libpod)
 		if err != nil {
 			return nil, err
 		}
@@ -721,7 +734,7 @@ func (ic *ContainerEngine) ContainerRestore(ctx context.Context, namesOrIds []st
 	case options.All:
 		ctrs, err = ic.Libpod.GetContainers(filterFuncs...)
 	case options.Latest:
-		ctrs, err = getContainersByContext(false, options.Latest, namesOrIds, ic.Libpod)
+		ctrs, err = getContainersByContext(false, options.Latest, false, namesOrIds, ic.Libpod)
 	default:
 		for _, nameOrID := range namesOrIds {
 			logrus.Debugf("look up container: %q", nameOrID)
@@ -805,7 +818,7 @@ func (ic *ContainerEngine) ContainerCreate(ctx context.Context, s *specgen.SpecG
 }
 
 func (ic *ContainerEngine) ContainerAttach(ctx context.Context, nameOrID string, options entities.AttachOptions) error {
-	ctrs, err := getContainersByContext(false, options.Latest, []string{nameOrID}, ic.Libpod)
+	ctrs, err := getContainersByContext(false, options.Latest, false, []string{nameOrID}, ic.Libpod)
 	if err != nil {
 		return err
 	}
@@ -886,7 +899,7 @@ func (ic *ContainerEngine) ContainerExec(ctx context.Context, nameOrID string, o
 	if err != nil {
 		return ec, err
 	}
-	ctrs, err := getContainersByContext(false, options.Latest, []string{nameOrID}, ic.Libpod)
+	ctrs, err := getContainersByContext(false, options.Latest, false, []string{nameOrID}, ic.Libpod)
 	if err != nil {
 		return ec, err
 	}
@@ -906,7 +919,7 @@ func (ic *ContainerEngine) ContainerExecDetached(ctx context.Context, nameOrID s
 	if err != nil {
 		return "", err
 	}
-	ctrs, err := getContainersByContext(false, options.Latest, []string{nameOrID}, ic.Libpod)
+	ctrs, err := getContainersByContext(false, options.Latest, false, []string{nameOrID}, ic.Libpod)
 	if err != nil {
 		return "", err
 	}
@@ -933,7 +946,7 @@ func (ic *ContainerEngine) ContainerExecDetached(ctx context.Context, nameOrID s
 func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []string, options entities.ContainerStartOptions) ([]*entities.ContainerStartReport, error) {
 	reports := []*entities.ContainerStartReport{}
 	var exitCode = define.ExecErrorCodeGeneric
-	ctrs, rawInputs, err := getContainersAndInputByContext(options.All, options.Latest, namesOrIds, options.Filters, ic.Libpod)
+	ctrs, rawInputs, err := getContainersAndInputByContext(options.All, options.Latest, false, namesOrIds, options.Filters, ic.Libpod)
 	if err != nil {
 		return nil, err
 	}
@@ -1188,7 +1201,19 @@ func (ic *ContainerEngine) ContainerLogs(ctx context.Context, containers []strin
 
 	var wg sync.WaitGroup
 
-	ctrs, err := getContainersByContext(false, options.Latest, containers, ic.Libpod)
+	isPod := false
+	for _, c := range containers {
+		ctr, err := ic.Libpod.LookupContainer(c)
+		if err != nil {
+			return err
+		}
+		if ctr.IsInfra() {
+			isPod = true
+			break
+		}
+	}
+
+	ctrs, err := getContainersByContext(false, options.Latest, isPod, containers, ic.Libpod)
 	if err != nil {
 		return err
 	}
@@ -1229,7 +1254,7 @@ func (ic *ContainerEngine) ContainerLogs(ctx context.Context, containers []strin
 }
 
 func (ic *ContainerEngine) ContainerCleanup(ctx context.Context, namesOrIds []string, options entities.ContainerCleanupOptions) ([]*entities.ContainerCleanupReport, error) {
-	ctrs, rawInputs, err := getContainersAndInputByContext(options.All, options.Latest, namesOrIds, nil, ic.Libpod)
+	ctrs, rawInputs, err := getContainersAndInputByContext(options.All, options.Latest, false, namesOrIds, nil, ic.Libpod)
 	if err != nil {
 		return nil, err
 	}
@@ -1283,7 +1308,7 @@ func (ic *ContainerEngine) ContainerCleanup(ctx context.Context, namesOrIds []st
 }
 
 func (ic *ContainerEngine) ContainerInit(ctx context.Context, namesOrIds []string, options entities.ContainerInitOptions) ([]*entities.ContainerInitReport, error) {
-	ctrs, rawInputs, err := getContainersAndInputByContext(options.All, options.Latest, namesOrIds, nil, ic.Libpod)
+	ctrs, rawInputs, err := getContainersAndInputByContext(options.All, options.Latest, false, namesOrIds, nil, ic.Libpod)
 	if err != nil {
 		return nil, err
 	}
@@ -1337,7 +1362,7 @@ func (ic *ContainerEngine) ContainerMount(ctx context.Context, nameOrIDs []strin
 		}
 	}
 
-	ctrs, err := getContainersByContext(options.All, options.Latest, names, ic.Libpod)
+	ctrs, err := getContainersByContext(options.All, options.Latest, false, names, ic.Libpod)
 	if err != nil {
 		return nil, err
 	}
@@ -1375,7 +1400,7 @@ func (ic *ContainerEngine) ContainerMount(ctx context.Context, nameOrIDs []strin
 	}
 
 	// No containers were passed, so we send back what is mounted
-	ctrs, err = getContainersByContext(true, false, []string{}, ic.Libpod)
+	ctrs, err = getContainersByContext(true, false, false, []string{}, ic.Libpod)
 	if err != nil {
 		return nil, err
 	}
@@ -1427,7 +1452,7 @@ func (ic *ContainerEngine) ContainerUnmount(ctx context.Context, nameOrIDs []str
 			reports = append(reports, &report)
 		}
 	}
-	ctrs, err := getContainersByContext(options.All, options.Latest, names, ic.Libpod)
+	ctrs, err := getContainersByContext(options.All, options.Latest, false, names, ic.Libpod)
 	if err != nil {
 		return nil, err
 	}
@@ -1461,7 +1486,7 @@ func (ic *ContainerEngine) Config(_ context.Context) (*config.Config, error) {
 }
 
 func (ic *ContainerEngine) ContainerPort(ctx context.Context, nameOrID string, options entities.ContainerPortOptions) ([]*entities.ContainerPortReport, error) {
-	ctrs, err := getContainersByContext(options.All, options.Latest, []string{nameOrID}, ic.Libpod)
+	ctrs, err := getContainersByContext(options.All, options.Latest, false, []string{nameOrID}, ic.Libpod)
 	if err != nil {
 		return nil, err
 	}
@@ -1725,7 +1750,7 @@ func (ic *ContainerEngine) ContainerUpdate(ctx context.Context, updateOptions *e
 	if err != nil {
 		return "", err
 	}
-	ctrs, err := getContainersByContext(false, false, []string{updateOptions.NameOrID}, ic.Libpod)
+	ctrs, err := getContainersByContext(false, false, false, []string{updateOptions.NameOrID}, ic.Libpod)
 	if err != nil {
 		return "", err
 	}

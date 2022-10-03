@@ -70,7 +70,7 @@ func (ic *ContainerEngine) NetworkInspect(ctx context.Context, namesOrIds []stri
 }
 
 func (ic *ContainerEngine) NetworkReload(ctx context.Context, names []string, options entities.NetworkReloadOptions) ([]*entities.NetworkReloadReport, error) {
-	ctrs, err := getContainersByContext(options.All, options.Latest, names, ic.Libpod)
+	ctrs, err := getContainersByContext(options.All, options.Latest, false, names, ic.Libpod)
 	if err != nil {
 		return nil, err
 	}

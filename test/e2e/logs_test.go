@@ -391,6 +391,78 @@ var _ = Describe("Podman logs", func() {
 			// see comment above
 			Expect(string(logs.Out.Contents())).To(Equal(content))
 		})
+
+		It("podman pod logs -l with newer container created: "+log, func() {
+			skipIfJournaldInContainer()
+
+			podName := "testPod"
+			containerName1 := "container1"
+			containerName2 := "container2"
+			containerName3 := "container3"
+
+			testPod := podmanTest.Podman([]string{"pod", "create", fmt.Sprintf("--name=%s", podName)})
+			testPod.WaitWithDefaultTimeout()
+			Expect(testPod).To(Exit(0))
+
+			log1 := podmanTest.Podman([]string{"run", "--log-driver", log, "--name", containerName1, "-d", "--pod", podName, BB, "/bin/sh", "-c", "echo log1"})
+			log1.WaitWithDefaultTimeout()
+			Expect(log1).To(Exit(0))
+
+			log2 := podmanTest.Podman([]string{"run", "--log-driver", log, "--name", containerName2, "-d", "--pod", podName, BB, "/bin/sh", "-c", "echo log2"})
+			log2.WaitWithDefaultTimeout()
+			Expect(log2).To(Exit(0))
+
+			ctr := podmanTest.Podman([]string{"run", "--log-driver", log, "--name", containerName3, "-d", BB, "date"})
+			ctr.WaitWithDefaultTimeout()
+			Expect(ctr).To(Exit(0))
+
+			results := podmanTest.Podman([]string{"pod", "logs", "-l"})
+			results.WaitWithDefaultTimeout()
+			if IsRemote() {
+				Expect(results).To(Exit(125))
+			} else {
+				Expect(results).To(Exit(0))
+				podOutput := results.OutputToString()
+
+				results = podmanTest.Podman([]string{"logs", "-l"})
+				results.WaitWithDefaultTimeout()
+				Expect(results).To(Exit(0))
+				ctrOutput := results.OutputToString()
+
+				Expect(podOutput).ToNot(Equal(ctrOutput))
+			}
+		})
+
+		It("podman pod logs -l: "+log, func() {
+			skipIfJournaldInContainer()
+
+			podName := "testPod"
+			containerName1 := "container1"
+			containerName2 := "container2"
+
+			testPod := podmanTest.Podman([]string{"pod", "create", fmt.Sprintf("--name=%s", podName)})
+			testPod.WaitWithDefaultTimeout()
+			Expect(testPod).To(Exit(0))
+
+			log1 := podmanTest.Podman([]string{"run", "--log-driver", log, "--name", containerName1, "-d", "--pod", podName, BB, "/bin/sh", "-c", "echo log1"})
+			log1.WaitWithDefaultTimeout()
+			Expect(log1).To(Exit(0))
+
+			log2 := podmanTest.Podman([]string{"run", "--log-driver", log, "--name", containerName2, "-d", "--pod", podName, BB, "/bin/sh", "-c", "echo log2"})
+			log2.WaitWithDefaultTimeout()
+			Expect(log2).To(Exit(0))
+
+			results := podmanTest.Podman([]string{"pod", "logs", "-l"})
+			results.WaitWithDefaultTimeout()
+			if IsRemote() {
+				Expect(results).To(Exit(125))
+			} else {
+				Expect(results).To(Exit(0))
+				output := results.OutputToString()
+				Expect(output).To(ContainSubstring("log1"))
+				Expect(output).To(ContainSubstring("log2"))
+			}
+		})
 	}
 
 	It("using journald for container with container tag", func() {
@@ -490,4 +562,5 @@ var _ = Describe("Podman logs", func() {
 		Expect(output[0]).To(MatchRegexp(`\x1b\[3[0-9a-z ]+\x1b\[0m`))
 		Expect(output[1]).To(MatchRegexp(`\x1b\[3[0-9a-z ]+\x1b\[0m`))
 	})
+
 })
