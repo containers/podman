@@ -1,0 +1,27 @@
+## assert-podman-final-args imagename
+## assert-podman-args "--name=systemd-%N"
+## assert-podman-args "--cidfile=%t/%N.cid"
+## assert-podman-args "--rm"
+## assert-podman-args "--replace"
+## assert-podman-args "-d"
+## assert-podman-args "--log-driver" "journald"
+## assert-podman-args "--pull=never"
+## assert-podman-args "--init"
+## assert-podman-args "--runtime" "/usr/bin/crun"
+## assert-podman-args "--cgroups=split"
+## assert-podman-args "--sdnotify=conmon"
+## assert-podman-args "--security-opt=no-new-privileges"
+## assert-podman-args "--cap-drop=all"
+## assert-podman-args "--tmpfs" "/tmp:rw,size=512M,mode=1777"
+## assert-key-is "Unit" "RequiresMountsFor" "%t/containers"
+## assert-key-is "Service" "KillMode" "mixed"
+## assert-key-is "Service" "Delegate" "yes"
+## assert-key-is "Service" "Type" "notify"
+## assert-key-is "Service" "NotifyAccess" "all"
+## assert-key-is "Service" "SyslogIdentifier" "%N"
+## assert-key-is "Service" "ExecStartPre" "-rm -f %t/%N.cid"
+## assert-key-is "Service" "ExecStopPost" "-/usr/bin/podman rm -f -i --cidfile=%t/%N.cid" "-rm -f %t/%N.cid"
+## assert-key-is "Service" "Environment" "PODMAN_SYSTEMD_UNIT=%n"
+
+[Container]
+Image=imagename

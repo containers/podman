@@ -1,0 +1,28 @@
+# This is an non-user-remapped container, but the user is mapped (uid
+# 1000 in container is uid 90 on host). This means the result should
+# map those particular ids to each other, but map all other container
+# ids to the same as the host.
+
+# There is some additional complexity, as the host uid (90) that the
+# container uid is mapped to can't also be mapped to itself, as ids
+# can only be mapped once, so it has to be unmapped.
+
+## assert-podman-args --user 1000:1001
+
+## assert-podman-args --uidmap 0:0:90
+## assert-podman-args --uidmap 91:91:909
+## assert-podman-args --uidmap 1000:90:1
+## assert-podman-args --uidmap 1001:1001:4294966294
+
+## assert-podman-args --gidmap 0:0:91
+## assert-podman-args --gidmap 92:92:909
+## assert-podman-args --gidmap 1001:91:1
+## assert-podman-args --gidmap 1002:1002:4294966293
+
+[Container]
+Image=imagename
+RemapUsers=no
+User=1000
+Group=1001
+HostUser=90
+HostGroup=91
