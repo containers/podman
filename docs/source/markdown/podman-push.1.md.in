@@ -56,9 +56,7 @@ $ podman push myimage oci-archive:/tmp/myimage
 Compress tarball image layers when pushing to a directory using the 'dir' transport. (default is same compression type, compressed or uncompressed, as source)
 Note: This flag can only be set when using the **dir** transport
 
-#### **--compression-format**=**gzip** | *zstd* | *zstd:chunked*
-
-Specifies the compression format to use.  Supported values are: `gzip`, `zstd` and `zstd:chunked`.  The default is `gzip` unless overridden in the containers.conf file.
+@@option compression-format
 
 @@option creds
 

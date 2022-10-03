@@ -23,9 +23,7 @@ the list or index itself. (Default true)
 
 @@option cert-dir
 
-#### **--compression-format**=**gzip** | *zstd* | *zstd:chunked*
-
-Specifies the compression format to use.  Supported values are: `gzip`, `zstd` and `zstd:chunked`.  The default is `gzip` unless overridden in the containers.conf file.
+@@option compression-format
 
 @@option creds
 
