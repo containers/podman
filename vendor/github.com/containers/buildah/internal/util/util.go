@@ -15,6 +15,7 @@ import (
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/chrootarchive"
 	"github.com/containers/storage/pkg/unshare"
+	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
 // LookupImage returns *Image to corresponding imagename or id
@@ -32,6 +33,22 @@ func LookupImage(ctx *types.SystemContext, store storage.Store, image string) (*
 		return nil, err
 	}
 	return localImage, nil
+}
+
+// NormalizePlatform validates and translate the platform to the canonical value.
+//
+// For example, if "Aarch64" is encountered, we change it to "arm64" or if
+// "x86_64" is encountered, it becomes "amd64".
+//
+// Wrapper around libimage.NormalizePlatform to return and consume
+// v1.Platform instead of independent os, arch and variant.
+func NormalizePlatform(platform v1.Platform) v1.Platform {
+	os, arch, variant := libimage.NormalizePlatform(platform.OS, platform.Architecture, platform.Variant)
+	return v1.Platform{
+		OS:           os,
+		Architecture: arch,
+		Variant:      variant,
+	}
 }
 
 // GetTempDir returns base for a temporary directory on host.

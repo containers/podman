@@ -17,6 +17,7 @@ import (
 
 	"github.com/containerd/containerd/platforms"
 	"github.com/containers/buildah/define"
+	internalUtil "github.com/containers/buildah/internal/util"
 	"github.com/containers/buildah/util"
 	"github.com/containers/common/libimage"
 	"github.com/containers/common/pkg/config"
@@ -216,12 +217,12 @@ func BuildDockerfiles(ctx context.Context, store storage.Store, options define.B
 	systemContext := options.SystemContext
 	for _, platform := range options.Platforms {
 		platformContext := *systemContext
-		platformSpec := platforms.Normalize(v1.Platform{
+		platformSpec := internalUtil.NormalizePlatform(v1.Platform{
 			OS:           platform.OS,
 			Architecture: platform.Arch,
 			Variant:      platform.Variant,
 		})
-		// platforms.Normalize converts an empty os value to GOOS
+		// internalUtil.NormalizePlatform converts an empty os value to GOOS
 		// so we have to check the original value here to not overwrite the default for no reason
 		if platform.OS != "" {
 			platformContext.OSChoice = platformSpec.OS
@@ -248,7 +249,7 @@ func BuildDockerfiles(ctx context.Context, store storage.Store, options define.B
 			loggerPerPlatform := logger
 			if platformOptions.LogFile != "" && platformOptions.LogSplitByPlatform {
 				logFile := platformOptions.LogFile + "_" + platformOptions.OS + "_" + platformOptions.Architecture
-				f, err := os.OpenFile(logFile, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0600)
+				f, err := os.OpenFile(logFile, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o600)
 				if err != nil {
 					return fmt.Errorf("opening logfile: %q: %w", logFile, err)
 				}
@@ -285,7 +286,7 @@ func BuildDockerfiles(ctx context.Context, store storage.Store, options define.B
 		return "", nil, merr.ErrorOrNil()
 	}
 
-	// Reasons for this id, ref assigment w.r.t to use-case:
+	// Reasons for this id, ref assignment w.r.t to use-case:
 	//
 	// * Single-platform build: On single platform build we only
 	//   have one built instance i.e on indice 0 of built instances,
@@ -294,7 +295,7 @@ func BuildDockerfiles(ctx context.Context, store storage.Store, options define.B
 	// * Multi-platform build with manifestList: If this is a build for
 	//   multiple platforms ( more than one platform ) and --manifest
 	//   option then this assignment is insignificant since it will be
-	//   overriden anyways with the id and ref of manifest list later in
+	//   overridden anyways with the id and ref of manifest list later in
 	//   in this code.
 	//
 	// * Multi-platform build without manifest list: If this is a build for
@@ -377,8 +378,6 @@ func buildDockerfilesOnce(ctx context.Context, store storage.Store, logger *logr
 		return "", nil, fmt.Errorf("parsing main Dockerfile: %s: %w", containerFiles[0], err)
 	}
 
-	warnOnUnsetBuildArgs(logger, mainNode, options.Args)
-
 	// --platform was explicitly selected for this build
 	// so set correct TARGETPLATFORM in args if it is not
 	// already selected by the user.
@@ -412,6 +411,8 @@ func buildDockerfilesOnce(ctx context.Context, store storage.Store, logger *logr
 			}
 		}
 	}
+
+	warnOnUnsetBuildArgs(logger, mainNode, options.Args)
 
 	for i, d := range dockerfilecontents[1:] {
 		additionalNode, err := imagebuilder.ParseDockerfile(bytes.NewReader(d))
@@ -622,7 +623,7 @@ func platformsForBaseImages(ctx context.Context, logger *logrus.Logger, dockerfi
 				if instance.Platform == nil {
 					continue
 				}
-				platform := platforms.Normalize(*instance.Platform)
+				platform := internalUtil.NormalizePlatform(*instance.Platform)
 				targetPlatforms[platforms.Format(platform)] = struct{}{}
 				logger.Debugf("image %q supports %q", baseImage, platforms.Format(platform))
 			}
@@ -633,7 +634,7 @@ func platformsForBaseImages(ctx context.Context, logger *logrus.Logger, dockerfi
 				if instance.Platform == nil {
 					continue
 				}
-				platform := platforms.Normalize(*instance.Platform)
+				platform := internalUtil.NormalizePlatform(*instance.Platform)
 				imagePlatforms[platforms.Format(platform)] = struct{}{}
 				logger.Debugf("image %q supports %q", baseImage, platforms.Format(platform))
 			}
