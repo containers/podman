@@ -30,9 +30,17 @@ $(egrep -B 5 -A 5 "$regex"<<<"$diffs")"
     fi
 }
 
-if [[ -n "$CIRRUS_TAG" ]] || ! req_env_vars CIRRUS_CHANGE_IN_REPO CIRRUS_PR DEST_BRANCH
-then
-    warn "Skipping: Golang code checks cannot run in this context"
+# Defined by Cirrus-CI
+# shellcheck disable=SC2154
+if [[ "$CIRRUS_BRANCH" =~ pull ]]; then
+    for var in CIRRUS_CHANGE_IN_REPO CIRRUS_PR DEST_BRANCH; do
+        if [[ -z "${!var}" ]]; then
+            warn "Skipping: Golang code checks require non-empty '\$$var'"
+            exit 0
+        fi
+    done
+else
+    warn "Skipping: Golang code checks in tag and branch contexts"
     exit 0
 fi
 
