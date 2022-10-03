@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/containerd/containerd/platforms"
+	internalUtil "github.com/containers/buildah/internal/util"
 	putil "github.com/containers/buildah/pkg/util"
 	"github.com/containers/buildah/util"
 	"github.com/containers/storage"
@@ -43,7 +43,7 @@ func Info(store storage.Store) ([]InfoData, error) {
 
 func hostInfo() map[string]interface{} {
 	info := map[string]interface{}{}
-	ps := platforms.Normalize(v1.Platform{OS: runtime.GOOS, Architecture: runtime.GOARCH})
+	ps := internalUtil.NormalizePlatform(v1.Platform{OS: runtime.GOOS, Architecture: runtime.GOARCH})
 	info["os"] = ps.OS
 	info["arch"] = ps.Architecture
 	info["variant"] = ps.Variant
