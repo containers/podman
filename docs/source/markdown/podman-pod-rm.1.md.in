@@ -27,9 +27,9 @@ Instead of providing the pod name or ID, remove the last created pod. (This opti
 
 @@option pod-id-file.pod
 
-#### **--time**, **-t**=*seconds*
+@@option time
 
-Seconds to wait before forcibly stopping running containers within the pod. The --force option must be specified to use the --time option.
+The --force option must be specified to use the --time option.
 
 ## EXAMPLE
 
