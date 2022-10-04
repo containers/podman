@@ -23,10 +23,7 @@ the image.  This is usually automatically retrieved from the image's
 configuration information, so it is rarely necessary to use this option.
 
 
-#### **--features**
-
-Specify the features list which the list or index records as requirements for
-the image.  This option is rarely used.
+@@option features
 
 #### **--os**
 
