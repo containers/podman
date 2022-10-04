@@ -59,5 +59,5 @@ class TestDependsOn(TestCaseBase):
         """Ensure no task is named 'task'"""
         self.assertNotIn('task', self.ALL_TASK_NAMES)
 
-if __name__ == "__main__":
+if __name__ == "__ma_":
     unittest.main()

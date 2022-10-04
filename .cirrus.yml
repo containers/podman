@@ -318,6 +318,7 @@ swagger_task:
     alias: swagger
     # Don't create task for [CI:BUILD] or multiarch builds
     # Docs: ./contrib/cirrus/CIModes.md
+    skip: $CI == $CI
     only_if: >-
         $CIRRUS_CHANGE_TITLE !=~ '.*CI:BUILD.*' &&
         $CIRRUS_CRON != 'multiarch'
@@ -350,6 +351,7 @@ alt_build_task:
     # Don't create task for [CI:DOCS] or multiarch builds
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: $CIRRUS_CRON != 'multiarch'
+    skip: $CI == $CI
     depends_on:
         - build
     env:
@@ -383,6 +385,7 @@ osx_alt_build_task:
     alias: osx_alt_build
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: $CIRRUS_CRON != 'multiarch'
+    skip: $CI == $CI
     depends_on:
         - build
     env:
@@ -418,6 +421,7 @@ docker-py_test_task:
     # Don't create task for tags, branches, or PRs w/ [CI:DOCS] or [CI:BUILD]
     # N/B: for PRs $CIRRUS_BRANCH == 'pull/<number>'
     # Docs: ./contrib/cirrus/CIModes.md
+    skip: $CI == $CI
     only_if: &not_tag_branch_build_docs >-
         $CIRRUS_PR != '' &&
         $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*' &&
@@ -443,6 +447,7 @@ unit_test_task:
     alias: unit_test
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: *not_tag_branch_build_docs
+    skip: $CI == $CI
     depends_on:
         - build
         - validate
@@ -467,6 +472,7 @@ apiv2_test_task:
     alias: apiv2_test
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: *not_tag_branch_build_docs
+    skip: $CI == $CI
     depends_on:
         - build
         - validate
@@ -492,6 +498,7 @@ compose_test_task:
     name: "$TEST_FLAVOR test on $DISTRO_NV ($PRIV_NAME)"
     alias: compose_test
     # Docs: ./contrib/cirrus/CIModes.md
+    skip: $CI == $CI
     only_if: *not_tag_branch_build_docs
     depends_on:
         - build
@@ -527,6 +534,7 @@ local_integration_test_task: &local_integration_test_task
     alias: local_integration_test
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: *not_tag_branch_build_docs
+    skip: $CI == $CI
     depends_on:
         - build
         - unit_test
@@ -551,6 +559,7 @@ local_integration_test_task: &local_integration_test_task
 remote_integration_test_task:
     <<: *local_integration_test_task
     alias: remote_integration_test
+    skip: $CI == $CI
     env:
         TEST_FLAVOR: int
         PODBIN_NAME: remote
@@ -595,7 +604,6 @@ rootless_integration_test_task:
     only_if: *not_tag_branch_build_docs
     depends_on:
         - build
-        - unit_test
     matrix: *platform_axis
     gce_instance: *standardvm
     timeout_in: 90m
@@ -614,6 +622,7 @@ podman_machine_task:
     # Required_pr_labels does not apply to non-PRs.
     # Do not run on tags, branches, [CI:BUILD], or [CI:DOCS].
     only_if: *not_tag_branch_build_docs
+    skip: $CI == $CI
     depends_on:
         - build
         - local_integration_test
@@ -955,36 +964,7 @@ success_task:
     alias: success
     # N/B: ALL tasks must be listed here, minus their '_task' suffix.
     depends_on:
-        - build
-        - build_aarch64
-        - validate
-        - validate_aarch64
-        - bindings
-        - swagger
-        - alt_build
-        - osx_alt_build
-        - win_installer
-        - docker-py_test
-        - unit_test
-        - apiv2_test
-        - compose_test
-        - local_integration_test
-        - remote_integration_test
-        - container_integration_test
         - rootless_integration_test
-        - podman_machine
-        - podman_machine_aarch64
-        - local_system_test
-        - local_system_test_aarch64
-        - remote_system_test
-        - remote_system_test_aarch64
-        - rootless_system_test
-        - rootless_remote_system_test
-        - minikube_test
-        - buildah_bud_test
-        - rootless_gitlab_test
-        - upgrade_test
-        - image_build
         - meta
     container: &smallcontainer
         image: ${CTR_FQIN}

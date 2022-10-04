@@ -1566,6 +1566,17 @@ USER mail`, BB)
 	})
 
 	It("podman run --preserve-fds invalid fd", func() {
+		// FIXME FIXME FIXME: temporary
+		pid := os.Getpid()
+		cmd := exec.Command("ls", "-l", fmt.Sprintf("/proc/%d/fd", pid))
+		res, _ := cmd.Output()
+		Expect(err).To(BeNil())
+		fmt.Println(string(res))
+
+		cmd = exec.Command("lsof", "-p", fmt.Sprintf("%d", pid))
+		res, _ = cmd.Output()
+		fmt.Println(string(res))
+
 		session := podmanTest.Podman([]string{"run", "--preserve-fds", "2", ALPINE})
 		session.WaitWithDefaultTimeout()
 		Expect(session).To(ExitWithError())

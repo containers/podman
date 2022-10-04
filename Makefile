@@ -539,7 +539,7 @@ test: localunit localintegration remoteintegration localsystem remotesystem  ## 
 .PHONY: ginkgo-run
 ginkgo-run:
 	ACK_GINKGO_RC=true ginkgo version
-	ACK_GINKGO_RC=true ginkgo -v $(TESTFLAGS) -tags "$(TAGS)" $(GINKGOTIMEOUT) -cover -flakeAttempts 3 -progress -trace -noColor -nodes $(GINKGONODES) -debug $(GINKGOWHAT) $(HACK)
+	ACK_GINKGO_RC=true ginkgo -v $(TESTFLAGS) -tags "$(TAGS)" $(GINKGOTIMEOUT) -cover -flakeAttempts 3 -progress -trace -noColor -focus "stop podman.service" -focus "preserve-fds" -nodes $(GINKGONODES) -debug $(GINKGOWHAT) $(HACK)
 
 .PHONY: ginkgo
 ginkgo:
