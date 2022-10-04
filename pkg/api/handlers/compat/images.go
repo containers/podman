@@ -404,7 +404,7 @@ func GetImage(w http.ResponseWriter, r *http.Request) {
 	}
 	inspect, err := handlers.ImageDataToImageInspect(r.Context(), newImage)
 	if err != nil {
-		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("failed to convert ImageData to ImageInspect '%s': %w", inspect.ID, err))
+		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("failed to convert ImageData to ImageInspect '%s': %w", name, err))
 		return
 	}
 	utils.WriteResponse(w, http.StatusOK, inspect)
