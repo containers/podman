@@ -26,6 +26,7 @@ podman-pod-stats.1.md
 podman-pod-stop.1.md
 podman-pull.1.md
 podman-push.1.md
+podman-restart.1.md
 podman-rm.1.md
 podman-run.1.md
 podman-search.1.md
