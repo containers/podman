@@ -26,8 +26,8 @@ type Artifact struct {
 	// Blobs is a collection of blobs referenced by this manifest.
 	Blobs []Descriptor `json:"blobs,omitempty"`
 
-	// Refers is an optional link to any existing manifest within the repository.
-	Refers *Descriptor `json:"refers,omitempty"`
+	// Subject (reference) is an optional link from the artifact to another manifest forming an association between the artifact and the other manifest.
+	Subject *Descriptor `json:"subject,omitempty"`
 
 	// Annotations contains arbitrary metadata for the artifact manifest.
 	Annotations map[string]string `json:"annotations,omitempty"`

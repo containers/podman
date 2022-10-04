@@ -30,8 +30,8 @@ type Manifest struct {
 	// Layers is an indexed list of layers referenced by the manifest.
 	Layers []Descriptor `json:"layers"`
 
-	// Refers is an optional link to any existing manifest within the repository.
-	Refers *Descriptor `json:"refers,omitempty"`
+	// Subject is an optional link from the image manifest to another manifest forming an association between the image manifest and the other manifest.
+	Subject *Descriptor `json:"subject,omitempty"`
 
 	// Annotations contains arbitrary metadata for the image manifest.
 	Annotations map[string]string `json:"annotations,omitempty"`
