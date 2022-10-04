@@ -1415,8 +1415,9 @@ github.com/opencontainers/image-spec v1.0.2-0.20211117181255-693428a734f5/go.mod
 github.com/opencontainers/image-spec v1.0.2/go.mod h1:BtxoFyWECRxE4U/7sNtV5W15zMzWCbyJoFRP3s7yZA0=
 github.com/opencontainers/image-spec v1.0.3-0.20211202183452-c5a74bcca799/go.mod h1:BtxoFyWECRxE4U/7sNtV5W15zMzWCbyJoFRP3s7yZA0=
 github.com/opencontainers/image-spec v1.0.3-0.20220114050600-8b9d41f48198/go.mod h1:j4h1pJW6ZcJTgMZWP3+7RlG3zTaP02aDZ/Qw0sppK7Q=
-github.com/opencontainers/image-spec v1.1.0-rc1 h1:lfG+OTa7V8PD3PKvkocSG9KAcA9MANqJn53m31Fvwkc=
 github.com/opencontainers/image-spec v1.1.0-rc1/go.mod h1:3OVijpioIKYWTqjiG0zfF6wvoJ4fAXGbjdZuI2NgsRQ=
+github.com/opencontainers/image-spec v1.1.0-rc2 h1:2zx/Stx4Wc5pIPDvIxHXvXtQFW/7XWJGmnM7r3wg034=
+github.com/opencontainers/image-spec v1.1.0-rc2/go.mod h1:3OVijpioIKYWTqjiG0zfF6wvoJ4fAXGbjdZuI2NgsRQ=
 github.com/opencontainers/runc v1.1.1-0.20220617142545-8b9452f75cbc h1:qjkUzmFsOFbQyjObybk40mRida83j5IHRaKzLGdBbEU=
 github.com/opencontainers/runc v1.1.1-0.20220617142545-8b9452f75cbc/go.mod h1:wUOQGsiKae6VzA/UvlCK3cO+pHk8F2VQHlIoITEfMM8=
 github.com/opencontainers/runtime-spec v0.1.2-0.20190507144316-5b71a03e2700/go.mod h1:jwyrGlmzljRJv/Fgzds9SsS/C5hL+LL3ko9hs6T5lQ0=
