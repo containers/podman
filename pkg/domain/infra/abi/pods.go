@@ -195,7 +195,7 @@ func (ic *ContainerEngine) PodStop(ctx context.Context, namesOrIds []string, opt
 	}
 	for _, p := range pods {
 		report := entities.PodStopReport{Id: p.ID()}
-		errs, err := p.StopWithTimeout(ctx, false, options.Timeout)
+		errs, err := p.StopWithTimeout(ctx, true, options.Timeout)
 		if err != nil && !errors.Is(err, define.ErrPodPartialFail) {
 			report.Errs = []error{err}
 			reports = append(reports, &report)
