@@ -39,10 +39,7 @@ retrieved from the image's configuration information.
 
 @@option creds
 
-#### **--features**
-
-Specify the features list which the list or index records as requirements for
-the image.  This option is rarely used.
+@@option features
 
 #### **--os**
 
