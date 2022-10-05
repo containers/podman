@@ -276,10 +276,7 @@ This option conflicts with **--add-host**.
 
 @@option platform
 
-#### **--pod**=*name*
-
-Run container in an existing pod. If you want Podman to make the pod for you, preference the pod name with `new:`.
-To make a pod with more granular options, use the `podman pod create` command before creating a container.
+@@option pod.run
 
 @@option pod-id-file.container
 
