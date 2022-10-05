@@ -40,6 +40,9 @@ import (
 // container-specific sd-notify modes.
 const sdNotifyAnnotation = "io.containers.sdnotify"
 
+// default network created/used by kube
+const kubeDefaultNetwork = "podman-default-kube-network"
+
 // createServiceContainer creates a container that can later on
 // be associated with the pods of a K8s yaml.  It will be started along with
 // the first pod.
@@ -113,6 +116,19 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, body io.Reader, options
 
 	report := &entities.PlayKubeReport{}
 	validKinds := 0
+
+	// when no network options are specified, create a common network for all the pods
+	if len(options.Networks) == 0 {
+		_, err := ic.NetworkCreate(
+			ctx, nettypes.Network{
+				Name:       kubeDefaultNetwork,
+				DNSEnabled: true,
+			},
+		)
+		if err != nil && !errors.Is(err, nettypes.ErrNetworkExists) {
+			return nil, err
+		}
+	}
 
 	// read yaml document
 	content, err := io.ReadAll(body)
@@ -336,6 +352,11 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 	podOpt, err = kube.ToPodOpt(ctx, podName, podOpt, podYAML)
 	if err != nil {
 		return nil, err
+	}
+
+	// add kube default network if no network is explicitly added
+	if podOpt.Net.Network.NSMode != "host" && len(options.Networks) == 0 {
+		options.Networks = []string{kubeDefaultNetwork}
 	}
 
 	if len(options.Networks) > 0 {
