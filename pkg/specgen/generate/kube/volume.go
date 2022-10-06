@@ -56,10 +56,8 @@ func VolumeFromHostPath(hostPath *v1.HostPathVolumeSource) (*KubeVolume, error) 
 	if hostPath.Type != nil {
 		switch *hostPath.Type {
 		case v1.HostPathDirectoryOrCreate:
-			if _, err := os.Stat(hostPath.Path); os.IsNotExist(err) {
-				if err := os.Mkdir(hostPath.Path, kubeDirectoryPermission); err != nil {
-					return nil, err
-				}
+			if err := os.MkdirAll(hostPath.Path, kubeDirectoryPermission); err != nil {
+				return nil, err
 			}
 			// Label a newly created volume
 			if err := libpod.LabelVolumePath(hostPath.Path); err != nil {

@@ -2604,6 +2604,36 @@ spec:
 		Expect(st.Mode().IsDir()).To(Equal(true))
 	})
 
+	It("podman play kube test with DirectoryOrCreate HostPath type volume and non-existent directory path", func() {
+		hostPathLocation := filepath.Join(filepath.Join(tempdir, "dir1"), "dir2")
+
+		pod := getPod(withVolume(getHostPathVolume("DirectoryOrCreate", hostPathLocation)))
+		err := generateKubeYaml("pod", pod, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		// the full path should have been created
+		st, err := os.Stat(hostPathLocation)
+		Expect(err).To(BeNil())
+		Expect(st.Mode().IsDir()).To(Equal(true))
+	})
+
+	It("podman play kube test with DirectoryOrCreate HostPath type volume and existent directory path", func() {
+		hostPathLocation := filepath.Join(filepath.Join(tempdir, "dir1"), "dir2")
+		Expect(os.MkdirAll(hostPathLocation, os.ModePerm)).To(BeNil())
+
+		pod := getPod(withVolume(getHostPathVolume("DirectoryOrCreate", hostPathLocation)))
+		err := generateKubeYaml("pod", pod, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+	})
+
 	It("podman play kube test with Socket HostPath type volume should fail if not socket", func() {
 		hostPathLocation := filepath.Join(tempdir, "file")
 		f, err := os.Create(hostPathLocation)
