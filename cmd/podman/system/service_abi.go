@@ -89,7 +89,7 @@ func restService(flags *pflag.FlagSet, cfg *entities.PodmanConfig, opts entities
 				return fmt.Errorf("unable to create socket %v: %w", host, err)
 			}
 		default:
-			logrus.Debugf("Attempting API Service endpoint scheme %q", uri.Scheme)
+			return fmt.Errorf("API Service endpoint scheme %q is not supported. Try tcp://%s or unix:/%s", uri.Scheme, opts.URI, opts.URI)
 		}
 		libpodRuntime.SetRemoteURI(uri.String())
 	}
