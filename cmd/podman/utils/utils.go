@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/containers/podman/v4/libpod/define"
@@ -123,17 +124,14 @@ func IsCheckpointImage(ctx context.Context, namesOrIDs []string) (bool, error) {
 	}
 	imgID := imgData[0].ID
 
-	hostInfo, err := registry.ContainerEngine().Info(ctx)
-	if err != nil {
-		return false, err
-	}
+	runtimeName := filepath.Base(registry.PodmanConfig().RuntimePath)
 
 	for i := range imgData {
 		checkpointRuntimeName, found := imgData[i].Annotations[define.CheckpointAnnotationRuntimeName]
 		if !found {
 			return false, fmt.Errorf("image is not a checkpoint: %s", imgID)
 		}
-		if hostInfo.Host.OCIRuntime.Name != checkpointRuntimeName {
+		if runtimeName != checkpointRuntimeName {
 			return false, fmt.Errorf("container image \"%s\" requires runtime: \"%s\"", imgID, checkpointRuntimeName)
 		}
 	}
