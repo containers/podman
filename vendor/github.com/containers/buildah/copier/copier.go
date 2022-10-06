@@ -1794,7 +1794,9 @@ func copierHandlerPut(bulkReader io.Reader, req request, idMappings *idtools.IDM
 					}
 				}
 			case tar.TypeDir:
-				if err = os.Mkdir(path, 0700); err != nil && errors.Is(err, os.ErrExist) {
+				// FreeBSD can return EISDIR for "mkdir /":
+				// https://bugs.freebsd.org/bugzilla/show_bug.cgi?id=59739.
+				if err = os.Mkdir(path, 0700); err != nil && (errors.Is(err, os.ErrExist) || errors.Is(err, syscall.EISDIR)) {
 					if st, stErr := os.Lstat(path); stErr == nil && !st.IsDir() {
 						if req.PutOptions.NoOverwriteNonDirDir {
 							break

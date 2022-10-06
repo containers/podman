@@ -1677,7 +1677,7 @@ func (s *StageExecutor) tagExistingImage(ctx context.Context, cacheID, output st
 // generateCacheKey returns a computed digest for the current STEP
 // running its history and diff against a hash algorithm and this
 // generated CacheKey is further used by buildah to lock and decide
-// tag for the intermeidate image which can be pushed and pulled to/from
+// tag for the intermediate image which can be pushed and pulled to/from
 // the remote repository.
 func (s *StageExecutor) generateCacheKey(ctx context.Context, currNode *parser.Node, addedContentDigest string, buildAddsLayer bool) (string, error) {
 	hash := sha256.New()
