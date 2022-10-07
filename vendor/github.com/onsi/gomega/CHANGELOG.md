@@ -1,3 +1,26 @@
+## v1.21.1
+
+### Features
+- Eventually and Consistently that are passed a SpecContext can provide reports when an interrupt occurs [0d063c9]
+
+## 1.21.0
+
+### Features
+- Eventually and Consistently can take a context.Context [65c01bc]
+  This enables integration with Ginkgo 2.3.0's interruptible nodes and node timeouts.
+- Introduces Eventually.Within.ProbeEvery with tests and documentation (#591) [f633800]
+- New BeKeyOf matcher with documentation and unit tests (#590) [fb586b3]
+    
+## Fixes
+- Cover the entire gmeasure suite with leak detection [8c54344]
+- Fix gmeasure leak [119d4ce]
+- Ignore new Ginkgo ProgressSignal goroutine in gleak [ba548e2]
+
+## Maintenance
+
+- Fixes crashes on newer Ruby 3 installations by upgrading github-pages gem dependency (#596) [12469a0]
+
+
 ## 1.20.2
 
 ## Fixes

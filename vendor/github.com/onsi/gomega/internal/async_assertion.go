@@ -1,10 +1,12 @@
 package internal
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"reflect"
 	"runtime"
+	"sync"
 	"time"
 
 	"github.com/onsi/gomega/types"
@@ -26,16 +28,18 @@ type AsyncAssertion struct {
 
 	timeoutInterval time.Duration
 	pollingInterval time.Duration
+	ctx             context.Context
 	offset          int
 	g               *Gomega
 }
 
-func NewAsyncAssertion(asyncType AsyncAssertionType, actualInput interface{}, g *Gomega, timeoutInterval time.Duration, pollingInterval time.Duration, offset int) *AsyncAssertion {
+func NewAsyncAssertion(asyncType AsyncAssertionType, actualInput interface{}, g *Gomega, timeoutInterval time.Duration, pollingInterval time.Duration, ctx context.Context, offset int) *AsyncAssertion {
 	out := &AsyncAssertion{
 		asyncType:       asyncType,
 		timeoutInterval: timeoutInterval,
 		pollingInterval: pollingInterval,
 		offset:          offset,
+		ctx:             ctx,
 		g:               g,
 	}
 
@@ -102,6 +106,21 @@ func (assertion *AsyncAssertion) WithPolling(interval time.Duration) types.Async
 	return assertion
 }
 
+func (assertion *AsyncAssertion) Within(timeout time.Duration) types.AsyncAssertion {
+	assertion.timeoutInterval = timeout
+	return assertion
+}
+
+func (assertion *AsyncAssertion) ProbeEvery(interval time.Duration) types.AsyncAssertion {
+	assertion.pollingInterval = interval
+	return assertion
+}
+
+func (assertion *AsyncAssertion) WithContext(ctx context.Context) types.AsyncAssertion {
+	assertion.ctx = ctx
+	return assertion
+}
+
 func (assertion *AsyncAssertion) Should(matcher types.GomegaMatcher, optionalDescription ...interface{}) bool {
 	assertion.g.THelper()
 	vetOptionalDescription("Asynchronous assertion", optionalDescription...)
@@ -154,13 +173,19 @@ func (assertion *AsyncAssertion) matcherMayChange(matcher types.GomegaMatcher, v
 	return types.MatchMayChangeInTheFuture(matcher, value)
 }
 
+type contextWithAttachProgressReporter interface {
+	AttachProgressReporter(func() string) func()
+}
+
 func (assertion *AsyncAssertion) match(matcher types.GomegaMatcher, desiredMatch bool, optionalDescription ...interface{}) bool {
 	timer := time.Now()
 	timeout := time.After(assertion.timeoutInterval)
+	lock := sync.Mutex{}
 
 	var matches bool
 	var err error
 	mayChange := true
+
 	value, err := assertion.pollActual()
 	if err == nil {
 		mayChange = assertion.matcherMayChange(matcher, value)
@@ -169,7 +194,10 @@ func (assertion *AsyncAssertion) match(matcher types.GomegaMatcher, desiredMatch
 
 	assertion.g.THelper()
 
-	fail := func(preamble string) {
+	messageGenerator := func() string {
+		// can be called out of band by Ginkgo if the user requests a progress report
+		lock.Lock()
+		defer lock.Unlock()
 		errMsg := ""
 		message := ""
 		if err != nil {
@@ -181,9 +209,22 @@ func (assertion *AsyncAssertion) match(matcher types.GomegaMatcher, desiredMatch
 				message = matcher.NegatedFailureMessage(value)
 			}
 		}
-		assertion.g.THelper()
 		description := assertion.buildDescription(optionalDescription...)
-		assertion.g.Fail(fmt.Sprintf("%s after %.3fs.\n%s%s%s", preamble, time.Since(timer).Seconds(), description, message, errMsg), 3+assertion.offset)
+		return fmt.Sprintf("%s%s%s", description, message, errMsg)
+	}
+
+	fail := func(preamble string) {
+		assertion.g.THelper()
+		assertion.g.Fail(fmt.Sprintf("%s after %.3fs.\n%s", preamble, time.Since(timer).Seconds(), messageGenerator()), 3+assertion.offset)
+	}
+
+	var contextDone <-chan struct{}
+	if assertion.ctx != nil {
+		contextDone = assertion.ctx.Done()
+		if v, ok := assertion.ctx.Value("GINKGO_SPEC_CONTEXT").(contextWithAttachProgressReporter); ok {
+			detach := v.AttachProgressReporter(messageGenerator)
+			defer detach()
+		}
 	}
 
 	if assertion.asyncType == AsyncAssertionTypeEventually {
@@ -199,11 +240,20 @@ func (assertion *AsyncAssertion) match(matcher types.GomegaMatcher, desiredMatch
 
 			select {
 			case <-time.After(assertion.pollingInterval):
-				value, err = assertion.pollActual()
+				v, e := assertion.pollActual()
+				lock.Lock()
+				value, err = v, e
+				lock.Unlock()
 				if err == nil {
 					mayChange = assertion.matcherMayChange(matcher, value)
-					matches, err = matcher.Match(value)
+					matches, e = matcher.Match(value)
+					lock.Lock()
+					err = e
+					lock.Unlock()
 				}
+			case <-contextDone:
+				fail("Context was cancelled")
+				return false
 			case <-timeout:
 				fail("Timed out")
 				return false
@@ -222,11 +272,20 @@ func (assertion *AsyncAssertion) match(matcher types.GomegaMatcher, desiredMatch
 
 			select {
 			case <-time.After(assertion.pollingInterval):
-				value, err = assertion.pollActual()
+				v, e := assertion.pollActual()
+				lock.Lock()
+				value, err = v, e
+				lock.Unlock()
 				if err == nil {
 					mayChange = assertion.matcherMayChange(matcher, value)
-					matches, err = matcher.Match(value)
+					matches, e = matcher.Match(value)
+					lock.Lock()
+					err = e
+					lock.Unlock()
 				}
+			case <-contextDone:
+				fail("Context was cancelled")
+				return false
 			case <-timeout:
 				return true
 			}
