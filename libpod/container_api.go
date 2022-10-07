@@ -17,6 +17,7 @@ import (
 	"github.com/containers/storage/pkg/archive"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/sys/unix"
 )
 
 // Init creates a container in the OCI runtime, moving a container from
@@ -515,6 +516,22 @@ func (c *Container) WaitForExit(ctx context.Context, pollInterval time.Duration)
 	var conmonTimer time.Timer
 	conmonTimerSet := false
 
+	conmonPidFd := -1
+	conmonPidFdTriggered := false
+
+	if c.state.ConmonPID != 0 {
+		// Track lifetime of conmon precisely using pidfd_open + poll.
+		// There are many cases for this to fail, for instance conmon is dead
+		// or pidfd_open is not supported (pre linux 5.3), so fall back to the
+		// traditional loop with poll + sleep
+		if fd, err := unix.PidfdOpen(c.state.ConmonPID, 0); err == nil {
+			conmonPidFd = fd
+			defer unix.Close(conmonPidFd)
+		} else if err != unix.ENOSYS && err != unix.ESRCH {
+			logrus.Debugf("PidfdOpen(%d) failed: %v", c.state.ConmonPID, err)
+		}
+	}
+
 	getExitCode := func() (bool, int32, error) {
 		containerRemoved := false
 		if !c.batched {
@@ -582,7 +599,18 @@ func (c *Container) WaitForExit(ctx context.Context, pollInterval time.Duration)
 		case <-ctx.Done():
 			return -1, fmt.Errorf("waiting for exit code of container %s canceled", id)
 		default:
-			time.Sleep(pollInterval)
+			if conmonPidFd != -1 && !conmonPidFdTriggered {
+				// If possible (pidfd works), the first cycle we block until conmon dies
+				// If this happens, and we fall back to the old poll delay
+				// There is a deadlock in the cleanup code for "play kube" which causes
+				// conmon to not exit, so unfortunately we have to use the poll interval
+				// timeout here to avoid hanging.
+				fds := []unix.PollFd{{Fd: int32(conmonPidFd), Events: unix.POLLIN}}
+				_, _ = unix.Poll(fds, int(pollInterval.Milliseconds()))
+				conmonPidFdTriggered = true
+			} else {
+				time.Sleep(pollInterval)
+			}
 		}
 	}
 }
