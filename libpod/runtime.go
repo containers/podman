@@ -722,9 +722,10 @@ func (r *Runtime) libimageEvents() {
 
 	eventChannel := r.libimageRuntime.EventChannel()
 	go func() {
+		sawShutdown := false
 		for {
 			// Make sure to read and write all events before
-			// checking if we're about to shutdown.
+			// shutting down.
 			for len(eventChannel) > 0 {
 				libimageEvent := <-eventChannel
 				e := events.Event{
@@ -739,12 +740,15 @@ func (r *Runtime) libimageEvents() {
 				}
 			}
 
+			if sawShutdown {
+				close(r.libimageEventsShutdown)
+				return
+			}
+
 			select {
 			case <-r.libimageEventsShutdown:
-				return
-
-			default:
-				time.Sleep(100 * time.Millisecond)
+				sawShutdown = true
+			case <-time.After(100 * time.Millisecond):
 			}
 		}
 	}()
@@ -793,7 +797,10 @@ func (r *Runtime) Shutdown(force bool) error {
 	if r.store != nil {
 		// Wait for the events to be written.
 		if r.libimageEventsShutdown != nil {
+			// Tell loop to shutdown
 			r.libimageEventsShutdown <- true
+			// Wait for close to signal shutdown
+			<-r.libimageEventsShutdown
 		}
 
 		// Note that the libimage runtime shuts down the store.
