@@ -300,6 +300,7 @@ LISTEN_FDNAMES=listen_fdnames" | sort)
     run_podman create --name $cname      \
                --health-cmd /healthcheck \
                --health-on-failure=kill  \
+               --health-retries=1        \
                --restart=on-failure      \
                $img
 
