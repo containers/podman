@@ -32,18 +32,19 @@ func (r *Runtime) HealthCheck(name string) (define.HealthCheckStatus, error) {
 	}
 
 	hcStatus, err := checkHealthCheckCanBeRun(container)
-	if err == nil {
-		hcStatus, err := container.runHealthCheck()
-		if err := container.processHealthCheckStatus(hcStatus); err != nil {
-			return hcStatus, err
-		}
+	if err != nil {
+		return hcStatus, err
+	}
+
+	hcStatus, logStatus, err := container.runHealthCheck()
+	if err := container.processHealthCheckStatus(logStatus); err != nil {
 		return hcStatus, err
 	}
 	return hcStatus, err
 }
 
 // runHealthCheck runs the health check as defined by the container
-func (c *Container) runHealthCheck() (define.HealthCheckStatus, error) {
+func (c *Container) runHealthCheck() (define.HealthCheckStatus, string, error) {
 	var (
 		newCommand    []string
 		returnCode    int
@@ -51,11 +52,11 @@ func (c *Container) runHealthCheck() (define.HealthCheckStatus, error) {
 	)
 	hcCommand := c.HealthCheckConfig().Test
 	if len(hcCommand) < 1 {
-		return define.HealthCheckNotDefined, fmt.Errorf("container %s has no defined healthcheck", c.ID())
+		return define.HealthCheckNotDefined, "", fmt.Errorf("container %s has no defined healthcheck", c.ID())
 	}
 	switch hcCommand[0] {
 	case "", define.HealthConfigTestNone:
-		return define.HealthCheckNotDefined, fmt.Errorf("container %s has no defined healthcheck", c.ID())
+		return define.HealthCheckNotDefined, "", fmt.Errorf("container %s has no defined healthcheck", c.ID())
 	case define.HealthConfigTestCmd:
 		newCommand = hcCommand[1:]
 	case define.HealthConfigTestCmdShell:
@@ -66,11 +67,11 @@ func (c *Container) runHealthCheck() (define.HealthCheckStatus, error) {
 		newCommand = hcCommand
 	}
 	if len(newCommand) < 1 || newCommand[0] == "" {
-		return define.HealthCheckNotDefined, fmt.Errorf("container %s has no defined healthcheck", c.ID())
+		return define.HealthCheckNotDefined, "", fmt.Errorf("container %s has no defined healthcheck", c.ID())
 	}
 	rPipe, wPipe, err := os.Pipe()
 	if err != nil {
-		return define.HealthCheckInternalError, fmt.Errorf("unable to create pipe for healthcheck session: %w", err)
+		return define.HealthCheckInternalError, "", fmt.Errorf("unable to create pipe for healthcheck session: %w", err)
 	}
 	defer wPipe.Close()
 	defer rPipe.Close()
@@ -135,15 +136,16 @@ func (c *Container) runHealthCheck() (define.HealthCheckStatus, error) {
 	}
 
 	hcl := newHealthCheckLog(timeStart, timeEnd, returnCode, eventLog)
-	if err := c.updateHealthCheckLog(hcl, inStartPeriod); err != nil {
-		return hcResult, fmt.Errorf("unable to update health check log %s for %s: %w", c.healthCheckLogPath(), c.ID(), err)
+	logStatus, err := c.updateHealthCheckLog(hcl, inStartPeriod)
+	if err != nil {
+		return hcResult, "", fmt.Errorf("unable to update health check log %s for %s: %w", c.healthCheckLogPath(), c.ID(), err)
 	}
 
-	return hcResult, hcErr
+	return hcResult, logStatus, hcErr
 }
 
-func (c *Container) processHealthCheckStatus(status define.HealthCheckStatus) error {
-	if status == define.HealthCheckSuccess {
+func (c *Container) processHealthCheckStatus(status string) error {
+	if status != define.HealthCheckUnhealthy {
 		return nil
 	}
 
@@ -211,10 +213,13 @@ func (c *Container) updateHealthStatus(status string) error {
 }
 
 // UpdateHealthCheckLog parses the health check results and writes the log
-func (c *Container) updateHealthCheckLog(hcl define.HealthCheckLog, inStartPeriod bool) error {
+func (c *Container) updateHealthCheckLog(hcl define.HealthCheckLog, inStartPeriod bool) (string, error) {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
 	healthCheck, err := c.getHealthCheckLog()
 	if err != nil {
-		return err
+		return "", err
 	}
 	if hcl.ExitCode == 0 {
 		//	set status to healthy, reset failing state to 0
@@ -239,9 +244,9 @@ func (c *Container) updateHealthCheckLog(hcl define.HealthCheckLog, inStartPerio
 	}
 	newResults, err := json.Marshal(healthCheck)
 	if err != nil {
-		return fmt.Errorf("unable to marshall healthchecks for writing: %w", err)
+		return "", fmt.Errorf("unable to marshall healthchecks for writing: %w", err)
 	}
-	return os.WriteFile(c.healthCheckLogPath(), newResults, 0700)
+	return healthCheck.Status, os.WriteFile(c.healthCheckLogPath(), newResults, 0700)
 }
 
 // HealthCheckLogPath returns the path for where the health check log is
