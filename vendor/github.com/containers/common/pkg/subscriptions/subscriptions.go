@@ -372,7 +372,7 @@ func mountExists(mounts []rspec.Mount, dest string) bool {
 	return false
 }
 
-// resolveSymbolicLink resolves a possbile symlink path. If the path is a symlink, returns resolved
+// resolveSymbolicLink resolves symlink paths. If the path is a symlink, returns resolved
 // path; if not, returns the original path.
 func resolveSymbolicLink(path string) (string, error) {
 	info, err := os.Lstat(path)

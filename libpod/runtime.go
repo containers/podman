@@ -1208,7 +1208,7 @@ func (r *Runtime) getVolumePlugin(volConfig *VolumeConfig) (*plugin.VolumePlugin
 		return nil, fmt.Errorf("no volume plugin with name %s available: %w", name, define.ErrMissingPlugin)
 	}
 
-	return plugin.GetVolumePlugin(name, pluginPath, timeout)
+	return plugin.GetVolumePlugin(name, pluginPath, timeout, r.config)
 }
 
 // GetSecretsStorageDir returns the directory that the secrets manager should take
