@@ -59,7 +59,7 @@ func (r *Runtime) newVolume(noCreatePluginVolume bool, options ...VolumeCreateOp
 
 	// Plugin can be nil if driver is local, but that's OK - superfluous
 	// assignment doesn't hurt much.
-	plugin, err := r.getVolumePlugin(volume.config.Driver)
+	plugin, err := r.getVolumePlugin(volume.config)
 	if err != nil {
 		return nil, errors.Wrapf(err, "volume %s uses volume plugin %s but it could not be retrieved", volume.config.Name, volume.config.Driver)
 	}
@@ -183,7 +183,7 @@ func (r *Runtime) UpdateVolumePlugins(ctx context.Context) *define.VolumeReload 
 	)
 
 	for driverName, socket := range r.config.Engine.VolumePlugins {
-		driver, err := volplugin.GetVolumePlugin(driverName, socket)
+		driver, err := volplugin.GetVolumePlugin(driverName, socket, nil, r.config)
 		if err != nil {
 			errs = append(errs, err)
 			continue

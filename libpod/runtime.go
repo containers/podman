@@ -1129,9 +1129,11 @@ func (r *Runtime) reloadStorageConf() error {
 	return nil
 }
 
-// getVolumePlugin gets a specific volume plugin given its name.
-func (r *Runtime) getVolumePlugin(name string) (*plugin.VolumePlugin, error) {
+// getVolumePlugin gets a specific volume plugin.
+func (r *Runtime) getVolumePlugin(volConfig *VolumeConfig) (*plugin.VolumePlugin, error) {
 	// There is no plugin for local.
+	name := volConfig.Driver
+	timeout := volConfig.Timeout
 	if name == define.VolumeDriverLocal || name == "" {
 		return nil, nil
 	}
@@ -1141,7 +1143,7 @@ func (r *Runtime) getVolumePlugin(name string) (*plugin.VolumePlugin, error) {
 		return nil, errors.Wrapf(define.ErrMissingPlugin, "no volume plugin with name %s available", name)
 	}
 
-	return plugin.GetVolumePlugin(name, pluginPath)
+	return plugin.GetVolumePlugin(name, pluginPath, timeout, r.config)
 }
 
 // GetSecretsStorageDir returns the directory that the secrets manager should take
