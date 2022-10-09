@@ -279,3 +279,11 @@ func (c *Container) getConmonPidFd() int {
 	// keeping things simple for now.
 	return -1
 }
+
+func (c *Container) jailName() string {
+	if c.state.NetNS != nil {
+		return c.state.NetNS.Name + "." + c.ID()
+	} else {
+		return c.ID()
+	}
+}

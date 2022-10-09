@@ -20,13 +20,9 @@ import (
 func (c *Container) getPlatformContainerStats(stats *define.ContainerStats, previousStats *define.ContainerStats) error {
 	now := uint64(time.Now().UnixNano())
 
-	jailName := c.ID()
-	if c.state.NetNS != nil {
-		jailName = c.state.NetNS.Name + "." + jailName
-	}
-	entries, err := rctl.GetRacct("jail:" + jailName)
+	entries, err := rctl.GetRacct("jail:" + c.jailName())
 	if err != nil {
-		return fmt.Errorf("unable to read accounting for %s: %w", jailName, err)
+		return fmt.Errorf("unable to read accounting for %s: %w", c.jailName(), err)
 	}
 
 	// If the current total usage is less than what was previously
