@@ -486,7 +486,7 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 					return nil, fmt.Errorf("cannot create file %q at volume mountpoint %q: %w", k, mountPoint, err)
 				}
 				defer f.Close()
-				_, err = f.WriteString(v)
+				_, err = f.Write(v)
 				if err != nil {
 					return nil, err
 				}
