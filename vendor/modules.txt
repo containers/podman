@@ -239,7 +239,7 @@ github.com/containers/image/v5/version
 # github.com/containers/libtrust v0.0.0-20200511145503-9c3a6c22cd9a
 ## explicit
 github.com/containers/libtrust
-# github.com/containers/ocicrypt v1.1.5
+# github.com/containers/ocicrypt v1.1.6
 ## explicit; go 1.12
 github.com/containers/ocicrypt
 github.com/containers/ocicrypt/blockcipher
