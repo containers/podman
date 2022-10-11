@@ -1412,6 +1412,11 @@ func (c *Container) restartWithTimeout(ctx context.Context, timeout uint) (retEr
 		if err := c.stop(timeout); err != nil {
 			return err
 		}
+		if c.config.HealthCheckConfig != nil {
+			if err := c.removeTransientFiles(context.Background()); err != nil {
+				logrus.Error(err.Error())
+			}
+		}
 		// Old versions of conmon have a bug where they create the exit file before
 		// closing open file descriptors causing a race condition when restarting
 		// containers with open ports since we cannot bind the ports as they're not
