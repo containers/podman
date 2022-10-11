@@ -580,8 +580,8 @@ uninstall:
 install.tools: .install.goimports .install.md2man .install.ginkgo .install.golangci-lint .install.bats ## Install needed tools
 
 define go-get
-	env GO111MODULE=off \
-		$(GO) get -u ${1}
+	env GO111MODULE=on \
+		$(GO) get ${1}
 endef
 
 .install.goimports: .gopathok

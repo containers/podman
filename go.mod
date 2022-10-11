@@ -64,7 +64,7 @@ require (
 	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d // indirect
 	golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9
-	golang.org/x/sys v0.0.0-20210119212857-b64e53b001e4
+	golang.org/x/sys v0.0.0-20201018230417-eeed37f84f13
 	google.golang.org/appengine v1.6.6 // indirect
 	gopkg.in/square/go-jose.v2 v2.5.1 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776 // indirect
@@ -72,3 +72,9 @@ require (
 	k8s.io/apimachinery v0.20.2
 	k8s.io/client-go v0.0.0-20190620085101-78d2af792bab
 )
+
+replace golang.org/x/sys => golang.org/x/sys v0.0.0-20201018230417-eeed37f84f13
+
+replace github.com/sirupsen/logrus => github.com/sirupsen/logrus v1.7.0
+
+replace github.com/stretchr/testify => github.com/stretchr/testify v1.6.1
