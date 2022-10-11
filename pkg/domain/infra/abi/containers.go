@@ -1690,10 +1690,8 @@ func (ic *ContainerEngine) ContainerClone(ctx context.Context, ctrCloneOpts enti
 		return nil, err
 	}
 
-	conf := c.Config()
-	if conf.Spec != nil && conf.Spec.Process != nil && conf.Spec.Process.Terminal { // if we do not pass term, running ctrs exit
-		spec.Terminal = true
-	}
+	// if we do not pass term, running ctrs exit
+	spec.Terminal = c.Terminal()
 
 	// Print warnings
 	if len(out) > 0 {

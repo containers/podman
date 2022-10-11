@@ -680,6 +680,14 @@ func (c *Container) WorkingDir() string {
 	return "/"
 }
 
+// Terminal returns true if the container has a terminal
+func (c *Container) Terminal() bool {
+	if c.config.Spec != nil && c.config.Spec.Process != nil {
+		return c.config.Spec.Process.Terminal
+	}
+	return false
+}
+
 // State Accessors
 // Require locking
 

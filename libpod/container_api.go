@@ -274,7 +274,7 @@ func (c *Container) Attach(streams *define.AttachStreams, keys string, resize <-
 	// Send a SIGWINCH after attach succeeds so that most programs will
 	// redraw the screen for the new attach session.
 	attachRdy := make(chan bool, 1)
-	if c.config.Spec.Process != nil && c.config.Spec.Process.Terminal {
+	if c.Terminal() {
 		go func() {
 			<-attachRdy
 			if err := c.ociRuntime.KillContainer(c, uint(signal.SIGWINCH), false); err != nil {
