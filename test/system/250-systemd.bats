@@ -342,8 +342,8 @@ LISTEN_FDNAMES=listen_fdnames" | sort)
     #  2) Systemd restarts the service as the restart policy is set to "on-failure"
     #  3) The /uh-oh file is gone and $cname has another ID
 
-    # Wait at most 10 seconds for the service to be restarted
-    local timeout=10
+    # Wait at most 20 seconds for the service to be restarted
+    local timeout=20
     while [[ $timeout -gt 1 ]]; do
         run_podman '?' container inspect $cname
         if [[ $status == 0 ]]; then
