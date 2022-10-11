@@ -493,10 +493,7 @@ func socketCloseWrite(conn *net.UnixConn) error {
 // Returns any errors that occurred, and whether the connection was successfully
 // hijacked before that error occurred.
 func (r *ConmonOCIRuntime) HTTPAttach(ctr *Container, req *http.Request, w http.ResponseWriter, streams *HTTPAttachStreams, detachKeys *string, cancel <-chan bool, hijackDone chan<- bool, streamAttach, streamLogs bool) (deferredErr error) {
-	isTerminal := false
-	if ctr.config.Spec.Process != nil {
-		isTerminal = ctr.config.Spec.Process.Terminal
-	}
+	isTerminal := ctr.Terminal()
 
 	if streams != nil {
 		if !streams.Stdin && !streams.Stdout && !streams.Stderr {
@@ -1038,7 +1035,7 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 		args = append(args, fmt.Sprintf("--sdnotify-socket=%s", ctr.config.SdNotifySocket))
 	}
 
-	if ctr.config.Spec.Process.Terminal {
+	if ctr.Terminal() {
 		args = append(args, "-t")
 	} else if ctr.config.Stdin {
 		args = append(args, "-i")
@@ -1135,7 +1132,7 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	if ctr.config.Spec.Process.Terminal {
+	if ctr.Terminal() {
 		cmd.Stderr = &stderrBuf
 	}
 

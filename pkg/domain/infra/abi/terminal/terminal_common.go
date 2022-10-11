@@ -49,7 +49,8 @@ func StartAttachCtr(ctx context.Context, ctr *libpod.Container, stdout, stderr, 
 
 	// Check if we are attached to a terminal. If we are, generate resize
 	// events, and set the terminal to raw mode
-	if haveTerminal && ctr.Spec().Process.Terminal {
+
+	if haveTerminal && ctr.Terminal() {
 		cancel, oldTermState, err := handleTerminalAttach(ctx, resize)
 		if err != nil {
 			return err
