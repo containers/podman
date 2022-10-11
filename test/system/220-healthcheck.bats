@@ -123,6 +123,8 @@ Log[-1].Output   | \"Uh-oh on stdout!\\\nUh-oh on stderr!\"
 	    # kill and stop yield the container into a non-running state
             is "$output" ".* $policy" "container was stopped/killed"
             assert "$output" != "running $policy"
+            # also make sure that it's not stuck in the stopping state
+            assert "$output" != "stopping $policy"
         fi
 
         run_podman rm -f -t0 $ctr
