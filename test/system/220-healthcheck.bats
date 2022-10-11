@@ -127,6 +127,9 @@ Log[-1].Output   | \"Uh-oh on stdout!\\\nUh-oh on stderr!\"
             if [[ "$output" == "running $policy" ]]; then
                 die "container is still in running mode"
             fi
+            if [[ "$output" == "stopping $policy" ]]; then
+                die "container should not be in stopping state"
+            fi
         fi
 
         run_podman rm -f -t0 $ctr
