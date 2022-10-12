@@ -299,7 +299,7 @@ LISTEN_FDNAMES=listen_fdnames" | sort)
     img="healthcheck_i"
     _build_health_check_image $img
 
-    cname=$(random_string)
+    cname=c_$(random_string)
     run_podman create --name $cname      \
                --health-cmd /healthcheck \
                --health-on-failure=kill  \
@@ -330,7 +330,11 @@ LISTEN_FDNAMES=listen_fdnames" | sort)
     # Wait at most 10 seconds for the service to be restarted
     local timeout=10
     while [[ $timeout -gt 1 ]]; do
-        run_podman '?' container inspect $cname
+        # Possible outcomes:
+        #  - status 0, old container is still terminating: sleep and retry
+        #  - status 0, new CID: yay, break
+        #  - status 1, container not found: sleep and retry
+        run_podman '?' container inspect $cname --format '{{.ID}}'
         if [[ $status == 0 ]]; then
             if [[ "$output" != "$oldID" ]]; then
                 break
