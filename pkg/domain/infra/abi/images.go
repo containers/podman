@@ -88,6 +88,19 @@ func (ir *ImageEngine) Prune(ctx context.Context, opts entities.ImagePruneOption
 		numPreviouslyRemovedImages = numRemovedImages
 	}
 
+	removedLayers, rmErrors := ir.Libpod.LibimageRuntime().RemoveDanglingLayers(ctx)
+	if rmErrors != nil {
+		return nil, errorhandling.JoinErrors(rmErrors)
+	}
+
+	for _, rmReport := range removedLayers {
+		r := *rmReport
+		pruneReports = append(pruneReports, &reports.PruneReport{
+			Id:   "partial:" + r.ID,
+			Size: uint64(r.Size),
+		})
+	}
+
 	return pruneReports, nil
 }
 

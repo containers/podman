@@ -746,3 +746,71 @@ func (r *Runtime) RemoveImages(ctx context.Context, names []string, options *Rem
 
 	return reports, rmErrors
 }
+
+// RemoveLayerReport is the assembled date from removing *one* layer
+type RemoveLayerReport struct {
+	// ID of the layer
+	ID string
+	// Size of the removed layer.
+	Size int64
+}
+
+func (r *Runtime) RemoveDanglingLayers(ctx context.Context) (reports []*RemoveLayerReport, rmErrors []error) {
+	appendError := func(err error) {
+		rmErrors = append(rmErrors, err)
+	}
+
+	layers, err := r.store.Layers()
+
+	if err != nil {
+		appendError(err)
+		return nil, rmErrors
+	}
+
+	for {
+		didRemove := false
+		toCheck := []storage.Layer{}
+
+		for _, l := range layers {
+			err = r.store.DeleteLayer(l.ID)
+
+			// Is already gone, skip
+			if errors.Is(err, storage.ErrNotALayer) {
+				continue
+			}
+
+			// Is properly referenced, skip
+			if errors.Is(err, storage.ErrLayerUsedByImage) || errors.Is(err, storage.ErrLayerUsedByContainer) {
+				continue
+			}
+
+			// Is a parent, we may delete a child later so
+			// we need to revisit it again
+			if errors.Is(err, storage.ErrLayerHasChildren) {
+				toCheck = append(toCheck, l)
+				continue
+			}
+
+			// Unknown error
+			if err != nil {
+				appendError(err)
+				continue
+			}
+
+			// Remove did succeed
+			didRemove = true
+			reports = append(reports, &RemoveLayerReport{
+				ID:   l.ID,
+				Size: l.UncompressedSize,
+			})
+		}
+
+		if len(toCheck) == 0 || !didRemove {
+			break
+		}
+
+		layers = toCheck
+	}
+
+	return reports, rmErrors
+}
