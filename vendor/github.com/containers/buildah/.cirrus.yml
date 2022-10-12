@@ -124,25 +124,12 @@ gce_instance:
         - './hack/tree_status.sh'
 
 
-'cirrus-ci/only_prs/conformance_task':
-    depends_on:
-        - 'cirrus-ci/only_prs/vendor'
-    gce_instance:  # Only need to specify differences from defaults (above)
-        image_name: "${UBUNTU_CACHE_IMAGE_NAME}"
-
-    timeout_in: 20m
-
-    setup_script: '${SCRIPT_BASE}/setup.sh |& ${_TIMESTAMP}'
-    conformance_test_script: '${SCRIPT_BASE}/test.sh conformance |& ${_TIMESTAMP}'
-
-
 'cirrus-ci/success_task':
 
     depends_on:
         - 'cirrus-ci/only_prs/meta'
         - 'cirrus-ci/only_prs/gate'
         - 'cirrus-ci/only_prs/vendor'
-        - 'cirrus-ci/only_prs/conformance'
 
     env:
         CIRRUS_SHELL: direct  # execute command directly
