@@ -688,6 +688,14 @@ func (c *Container) Terminal() bool {
 	return false
 }
 
+// LinuxResources return the containers Linux Resources (if any)
+func (c *Container) LinuxResources() *spec.LinuxResources {
+	if c.config.Spec != nil && c.config.Spec.Linux != nil {
+		return c.config.Spec.Linux.Resources
+	}
+	return nil
+}
+
 // State Accessors
 // Require locking
 
