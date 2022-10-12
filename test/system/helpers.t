@@ -224,5 +224,22 @@ check_result "$found" "16700" "random_free_port"
 
 # END   random_free_port
 ###############################################################################
+# BEGIN ipv6_to_procfs
+
+# Table of IPv6 short forms and their procfs equivalents. For readability,
+# spaces separate each 16-bit word. Spaces are removed when testing.
+table="
+2b06::1     | 2B06 0000 0000 0000 0000 0000 0000 0001
+::1         | 0000 0000 0000 0000 0000 0000 0000 0001
+0::1        | 0000 0000 0000 0000 0000 0000 0000 0001
+"
+
+while read shortform expect; do
+    actual=$(ipv6_to_procfs $shortform)
+    check_result "$actual" "${expect// }" "ipv6_to_procfs $shortform"
+done < <(parse_table "$table")
+
+# END   ipv6_to_procfs
+###############################################################################
 
 exit $rc
