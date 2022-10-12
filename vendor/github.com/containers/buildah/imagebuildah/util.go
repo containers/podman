@@ -43,6 +43,9 @@ func downloadToDirectory(url, dir string) error {
 		return err
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusBadRequest {
+		return fmt.Errorf("invalid response status %d", resp.StatusCode)
+	}
 	if resp.ContentLength == 0 {
 		return errors.Errorf("no contents in %q", url)
 	}
