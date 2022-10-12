@@ -226,7 +226,7 @@ var _ = Describe("Podman ps", func() {
 		session := podmanTest.RunTopContainer("test1")
 		session.WaitWithDefaultTimeout()
 
-		result := podmanTest.Podman([]string{"ps", "-a", "--namespace", "--format",
+		result := podmanTest.Podman([]string{"ps", "-a", "--ns", "--format",
 			"{{with .Namespaces}}{{.Cgroup}}:{{.IPC}}:{{.MNT}}:{{.NET}}:{{.PIDNS}}:{{.User}}:{{.UTS}}{{end}}"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))

@@ -13,6 +13,7 @@ import (
 	"github.com/containers/common/pkg/report"
 	"github.com/containers/podman/v4/cmd/podman/common"
 	"github.com/containers/podman/v4/cmd/podman/registry"
+	"github.com/containers/podman/v4/cmd/podman/utils"
 	"github.com/containers/podman/v4/cmd/podman/validate"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/docker/go-units"
@@ -59,7 +60,6 @@ func init() {
 	_ = psCmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(&ListPodReporter{}))
 
 	flags.Bool("noheading", false, "Do not print headers")
-	flags.BoolVar(&psInput.Namespace, "namespace", false, "Display namespace information of the pod")
 	flags.BoolVar(&psInput.Namespace, "ns", false, "Display namespace information of the pod")
 	flags.BoolVar(&noTrunc, "no-trunc", false, "Do not truncate pod and container IDs")
 	flags.BoolVarP(&psInput.Quiet, "quiet", "q", false, "Print the numeric IDs of the pods only")
@@ -69,6 +69,8 @@ func init() {
 	_ = psCmd.RegisterFlagCompletionFunc(sortFlagName, common.AutocompletePodPsSort)
 
 	validate.AddLatestFlag(psCmd, &psInput.Latest)
+
+	flags.SetNormalizeFunc(utils.AliasFlags)
 }
 
 func pods(cmd *cobra.Command, _ []string) error {
