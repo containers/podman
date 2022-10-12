@@ -288,7 +288,7 @@ func getVolumesFrom(volumesFrom []string, runtime *libpod.Runtime) (map[string]s
 
 		// Now we get the container's spec and loop through its volumes
 		// and append them in if we can find them.
-		spec := ctr.Spec()
+		spec := ctr.ConfigNoCopy().Spec
 		if spec == nil {
 			return nil, nil, fmt.Errorf("retrieving container %s spec for volumes-from", ctr.ID())
 		}

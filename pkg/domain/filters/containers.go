@@ -84,19 +84,19 @@ func GenerateContainerFilterFuncs(filter string, filterValues []string, r *libpo
 		// - ancestor=(<image-name>[:tag]|<image-id>| ⟨image@digest⟩) - containers created from an image or a descendant.
 		return func(c *libpod.Container) bool {
 			for _, filterValue := range filterValues {
-				containerConfig := c.Config()
+				rootfsImageID, rootfsImageName := c.Image()
 				var imageTag string
 				var imageNameWithoutTag string
 				// Compare with ImageID, ImageName
 				// Will match ImageName if running image has tag latest for other tags exact complete filter must be given
-				imageNameSlice := strings.SplitN(containerConfig.RootfsImageName, ":", 2)
+				imageNameSlice := strings.SplitN(rootfsImageName, ":", 2)
 				if len(imageNameSlice) == 2 {
 					imageNameWithoutTag = imageNameSlice[0]
 					imageTag = imageNameSlice[1]
 				}
 
-				if (containerConfig.RootfsImageID == filterValue) ||
-					(containerConfig.RootfsImageName == filterValue) ||
+				if (rootfsImageID == filterValue) ||
+					(rootfsImageName == filterValue) ||
 					(imageNameWithoutTag == filterValue && imageTag == "latest") {
 					return true
 				}
@@ -110,14 +110,12 @@ func GenerateContainerFilterFuncs(filter string, filterValues []string, r *libpo
 			if err != nil {
 				return nil, err
 			}
-			containerConfig := ctr.Config()
-			if createTime.IsZero() || createTime.After(containerConfig.CreatedTime) {
-				createTime = containerConfig.CreatedTime
+			if createTime.IsZero() || createTime.After(ctr.CreatedTime()) {
+				createTime = ctr.CreatedTime()
 			}
 		}
 		return func(c *libpod.Container) bool {
-			cc := c.Config()
-			return createTime.After(cc.CreatedTime)
+			return createTime.After(c.CreatedTime())
 		}, nil
 	case "since":
 		var createTime time.Time
@@ -126,19 +124,17 @@ func GenerateContainerFilterFuncs(filter string, filterValues []string, r *libpo
 			if err != nil {
 				return nil, err
 			}
-			containerConfig := ctr.Config()
-			if createTime.IsZero() || createTime.After(containerConfig.CreatedTime) {
-				createTime = containerConfig.CreatedTime
+			if createTime.IsZero() || createTime.After(ctr.CreatedTime()) {
+				createTime = ctr.CreatedTime()
 			}
 		}
 		return func(c *libpod.Container) bool {
-			cc := c.Config()
-			return createTime.Before(cc.CreatedTime)
+			return createTime.Before(c.CreatedTime())
 		}, nil
 	case "volume":
 		//- volume=(<volume-name>|<mount-point-destination>)
 		return func(c *libpod.Container) bool {
-			containerConfig := c.Config()
+			containerConfig := c.ConfigNoCopy()
 			var dest string
 			for _, filterValue := range filterValues {
 				arr := strings.SplitN(filterValue, ":", 2)

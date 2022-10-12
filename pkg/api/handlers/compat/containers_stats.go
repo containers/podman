@@ -134,10 +134,10 @@ streamLabel: // A label to flatten the scope
 			InstanceID: "",
 		}
 
-		cfg := ctnr.Config()
+		resources := ctnr.LinuxResources()
 		memoryLimit := cgroupStat.MemoryStats.Usage.Limit
-		if cfg.Spec.Linux != nil && cfg.Spec.Linux.Resources != nil && cfg.Spec.Linux.Resources.Memory != nil && *cfg.Spec.Linux.Resources.Memory.Limit > 0 {
-			memoryLimit = uint64(*cfg.Spec.Linux.Resources.Memory.Limit)
+		if resources != nil && resources.Memory != nil && *resources.Memory.Limit > 0 {
+			memoryLimit = uint64(*resources.Memory.Limit)
 		}
 
 		memInfo, err := system.ReadMemInfo()

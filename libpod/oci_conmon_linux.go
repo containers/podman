@@ -133,8 +133,7 @@ func (r *ConmonOCIRuntime) moveConmonToCgroupAndSignal(ctr *Container, cmd *exec
 		// there are only 2 valid cgroup managers
 		cgroupParent := ctr.CgroupParent()
 		cgroupPath := filepath.Join(ctr.config.CgroupParent, "conmon")
-		Resource := ctr.Spec().Linux.Resources
-		cgroupResources, err := GetLimits(Resource)
+		cgroupResources, err := GetLimits(ctr.LinuxResources())
 		if err != nil {
 			logrus.StandardLogger().Log(logLevel, "Could not get ctr resources")
 		}

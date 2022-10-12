@@ -136,7 +136,7 @@ func (ic *ContainerEngine) SetupRootless(_ context.Context, noMoveProcess bool) 
 
 	paths := []string{}
 	for _, ctr := range ctrs {
-		paths = append(paths, ctr.Config().ConmonPidFile)
+		paths = append(paths, ctr.ConfigNoCopy().ConmonPidFile)
 	}
 
 	if len(paths) > 0 {

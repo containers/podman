@@ -474,7 +474,7 @@ func ConfigToSpec(rt *libpod.Runtime, specg *specgen.SpecGenerator, contaierID s
 		}
 	}
 	specg.OverlayVolumes = overlay
-	_, mounts := c.SortUserVolumes(c.Spec())
+	_, mounts := c.SortUserVolumes(c.ConfigNoCopy().Spec)
 	specg.Mounts = mounts
 	specg.HostDeviceList = conf.DeviceHostSrc
 	specg.Networks = conf.Networks
