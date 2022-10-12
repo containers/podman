@@ -10,7 +10,7 @@ filter __podman-remote_escapeStringWithSpecialChars {
     $_ -replace '\s|#|@|\$|;|,|''|\{|\}|\(|\)|"|`|\||<|>|&','`$&'
 }
 
-Register-ArgumentCompleter -CommandName 'podman-remote' -ScriptBlock {
+[scriptblock]$__podman_remoteCompleterBlock = {
     param(
             $WordToComplete,
             $CommandAst,
@@ -226,5 +226,7 @@ Register-ArgumentCompleter -CommandName 'podman-remote' -ScriptBlock {
 
     }
 }
+
+Register-ArgumentCompleter -CommandName 'podman-remote' -ScriptBlock $__podman_remoteCompleterBlock
 
 # This file is generated with "podman-remote completion"; see: podman-completion(1)

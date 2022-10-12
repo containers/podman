@@ -10,7 +10,7 @@ filter __podman_escapeStringWithSpecialChars {
     $_ -replace '\s|#|@|\$|;|,|''|\{|\}|\(|\)|"|`|\||<|>|&','`$&'
 }
 
-Register-ArgumentCompleter -CommandName 'podman' -ScriptBlock {
+[scriptblock]$__podmanCompleterBlock = {
     param(
             $WordToComplete,
             $CommandAst,
@@ -226,5 +226,7 @@ Register-ArgumentCompleter -CommandName 'podman' -ScriptBlock {
 
     }
 }
+
+Register-ArgumentCompleter -CommandName 'podman' -ScriptBlock $__podmanCompleterBlock
 
 # This file is generated with "podman completion"; see: podman-completion(1)
