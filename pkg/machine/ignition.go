@@ -10,6 +10,8 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"regexp"
+	"strings"
 
 	"github.com/containers/common/pkg/config"
 	"github.com/sirupsen/logrus"
@@ -50,6 +52,7 @@ func getNodeGrp(grpName string) NodeGroup {
 type DynamicIgnition struct {
 	Name      string
 	Key       string
+	Mounts    []Mount
 	TimeZone  string
 	UID       int
 	VMName    string
@@ -184,38 +187,43 @@ ExecStartPost=/usr/bin/systemctl daemon-reload
 WantedBy=sysinit.target
 `
 	_ = ready
-	ignSystemd := Systemd{
-		Units: []Unit{
-			{
-				Enabled: boolToPtr(true),
-				Name:    "podman.socket",
-			},
-			{
-				Enabled:  boolToPtr(true),
-				Name:     "ready.service",
-				Contents: strToPtr(fmt.Sprintf(ready, "vport1p1", "vport1p1")),
-			},
-			{
-				Enabled: boolToPtr(false),
-				Name:    "docker.service",
-				Mask:    boolToPtr(true),
-			},
-			{
-				Enabled: boolToPtr(false),
-				Name:    "docker.socket",
-				Mask:    boolToPtr(true),
-			},
-			{
-				Enabled:  boolToPtr(true),
-				Name:     "remove-moby.service",
-				Contents: &deMoby,
-			},
-			{
-				Enabled:  boolToPtr(true),
-				Name:     "envset-fwcfg.service",
-				Contents: &envset,
-			},
-		}}
+	units := []Unit{
+		{
+			Enabled: boolToPtr(true),
+			Name:    "podman.socket",
+		},
+		{
+			Enabled:  boolToPtr(true),
+			Name:     "ready.service",
+			Contents: strToPtr(fmt.Sprintf(ready, "vport1p1", "vport1p1")),
+		},
+		{
+			Enabled: boolToPtr(false),
+			Name:    "docker.service",
+			Mask:    boolToPtr(true),
+		},
+		{
+			Enabled: boolToPtr(false),
+			Name:    "docker.socket",
+			Mask:    boolToPtr(true),
+		},
+		{
+			Enabled:  boolToPtr(true),
+			Name:     "remove-moby.service",
+			Contents: &deMoby,
+		},
+		{
+			Enabled:  boolToPtr(true),
+			Name:     "envset-fwcfg.service",
+			Contents: &envset,
+		},
+	}
+	mountUnits := buildMountUnits(ign)
+	logrus.Trace("Appending mount systemd units")
+	units = append(units, mountUnits...)
+	logrus.Tracef("%+v", units)
+	ignSystemd := Systemd{Units: units}
+
 	ignConfig := Config{
 		Ignition: ignVersion,
 		Passwd:   ignPassword,
@@ -622,4 +630,90 @@ func getLinks(usrName string) []Link {
 
 func encodeDataURLPtr(contents string) *string {
 	return strToPtr(fmt.Sprintf("data:,%s", url.PathEscape(contents)))
+}
+
+func buildMountUnits(ign DynamicIgnition) []Unit {
+	mountUnits := []Unit{}
+	systemdMountTemplate := `[Unit]
+Description=UserVolume Mount
+Restart=on-failure
+
+[Mount]
+What=%s
+Where=%s
+Type=%s
+Options=defaults
+DirectoryMode=0755
+
+[Install]
+WantedBy=default.target`
+
+	volumeMountPointTemplate := `[Unit]
+Description=Ensures %s Mountpoint
+Before=%s
+
+[Service]
+ExecStart=sh -c 'chattr -i / ; mkdir -p %s ; chattr +i / ;'
+
+[Install]
+WantedBy=default.target`
+
+	if ign.Mounts == nil {
+		return mountUnits
+	}
+
+	for _, mount := range ign.Mounts {
+		systemdName := fsPathToMountName(mount.Target)
+		mountUnitName := fmt.Sprintf("%s.mount", systemdName)
+
+		if !strings.HasPrefix(mount.Target, "/home") && !strings.HasPrefix(mount.Target, "/mnt") {
+			mkdirUnit := Unit{
+				Enabled: boolToPtr(true),
+				Name:    fmt.Sprintf("%s.service", mount.Tag),
+				Contents: strToPtr(fmt.Sprintf(
+					volumeMountPointTemplate,
+					mount.Tag,
+					mountUnitName,
+					mount.Target,
+				)),
+			}
+
+			mountUnits = append(mountUnits, mkdirUnit)
+		}
+
+		unit := Unit{
+			Enabled: boolToPtr(true),
+			Name:    mountUnitName,
+			Contents: strToPtr(fmt.Sprintf(
+				systemdMountTemplate,
+				mount.Tag,
+				mount.Target,
+				mount.Type,
+			)),
+		}
+
+		mountUnits = append(mountUnits, unit)
+	}
+	return mountUnits
+}
+
+func fsPathToMountName(path string) string {
+	// according to the systemd docs we need
+	// to replace the slashes with dashes
+	// and drop proceeding slashes so
+	// /var/lib/podman would become
+	// var-lib-podman
+	if path[0:1] == "/" {
+		path = path[1:]
+	}
+	// also lets drop any trailing slashes
+	if path[len(path)-1:] == "/" {
+		path = path[0 : len(path)-1]
+	}
+
+	// replace with dashes
+	re := regexp.MustCompile(`/+`)
+	path = re.ReplaceAllString(path, "-")
+
+	return path
 }
