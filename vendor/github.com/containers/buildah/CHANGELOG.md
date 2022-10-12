@@ -1,6 +1,13 @@
 ![buildah logo](https://cdn.rawgit.com/containers/buildah/master/logos/buildah-logo_large.png)
 
 # Changelog
+## v1.19.10 (2022-09-09)
+  * [release-1.19] github.com/prometheus/client_golang to v1.11.1
+  * [release-1.19]Bump c/storage to 1.24.10
+  * Tests: disable three gating-test failures
+  * [release-1.19] CVE-2022-27651: do not set the inheritable capabilities
+  * Cirrus: Disable conformance test
+  * chroot isolation: environment value leakage to intermediate processes
 
 ## v1.19.9 (2021-06-21)
   * chroot: fix environment value leakage to intermediate processes
