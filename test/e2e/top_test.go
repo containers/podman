@@ -2,6 +2,7 @@ package integration
 
 import (
 	"os"
+	"os/user"
 
 	. "github.com/containers/podman/v4/test/utils"
 	. "github.com/onsi/ginkgo"
@@ -89,6 +90,23 @@ var _ = Describe("Podman top", func() {
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
 		Expect(len(result.OutputToStringArray())).To(BeNumerically(">", 1))
+
+		result = podmanTest.Podman([]string{"container", "top", session.OutputToString(), "uid"})
+		result.WaitWithDefaultTimeout()
+		Expect(result).Should(Exit(0))
+		Expect(len(result.OutputToStringArray())).To(BeNumerically(">", 1))
+		Expect(result.OutputToStringArray()[1]).To(Equal("0"))
+
+		user, err := user.Current()
+		if err != nil {
+			os.Exit(1)
+		}
+
+		result = podmanTest.Podman([]string{"container", "top", session.OutputToString(), "huid"})
+		result.WaitWithDefaultTimeout()
+		Expect(result).Should(Exit(0))
+		Expect(len(result.OutputToStringArray())).To(BeNumerically(">", 1))
+		Expect(result.OutputToStringArray()[1]).To(Equal(user.Uid))
 	})
 
 	It("podman top with ps(1) options", func() {
