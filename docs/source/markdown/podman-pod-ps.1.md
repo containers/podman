@@ -97,6 +97,10 @@ Print usage statement
 
 Show the latest pod created (all states) (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
 
+#### **--namespace**, **--ns**
+
+Display namespace information of the pod
+
 #### **--no-trunc**
 
 Do not truncate the output (default *false*).
@@ -104,10 +108,6 @@ Do not truncate the output (default *false*).
 #### **--noheading**
 
 Omit the table headings from the listing of pods.
-
-#### **--ns**
-
-Display namespace information of the pod
 
 #### **--quiet**, **-q**
 
