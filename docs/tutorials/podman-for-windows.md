@@ -132,7 +132,7 @@ Port Forwarding
 
 Port forwarding also works as expected; ports will be bound against localhost
 (127.0.0.1). Note: When running as rootless (the default), you must use a port
-greater than 1023. See the Rooftull and Rootless section for more details.
+greater than 1023. See the Rootful and Rootless section for more details.
 
 To launch httpd, you can run:
 
@@ -194,12 +194,12 @@ PS C:\Users\User>.\docker.exe version --format '{{(index .Server.Components 0).N
 Podman Engine
 ```
 
-Rootfull & Rootless
--------------------
+Rootful & Rootless
+------------------
 
 On the embedded WSL Linux distro, podman can either be run under the root user
 (rootful) or a non-privileged user (rootless). For behavioral consistency with
-Podman on Linux, rootless is the default. Note: Rootfull and Rootless
+Podman on Linux, rootless is the default. Note: Rootful and Rootless
 containers are distinct and isolated from one another. Podman commands against
 one (e.g., podman ps) will not represent results/state for the other.
 
