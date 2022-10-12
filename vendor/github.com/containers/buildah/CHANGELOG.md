@@ -1,6 +1,11 @@
 ![buildah logo](https://cdn.rawgit.com/containers/buildah/master/logos/buildah-logo_large.png)
 
 # Changelog
+## v1.19.11 (2022-10-12)
+  * run: add container gid to additional groups
+  * imagebuilder.util.downloadToDirectory: fail early if bad HTTP response
+  * add: fail on bad http response instead of writing to container
+
 ## v1.19.10 (2022-09-09)
   * [release-1.19] github.com/prometheus/client_golang to v1.11.1
   * [release-1.19]Bump c/storage to 1.24.10
