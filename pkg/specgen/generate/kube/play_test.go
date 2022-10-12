@@ -41,6 +41,200 @@ func createSecrets(t *testing.T, d string) *secrets.SecretsManager {
 	return secretsManager
 }
 
+func TestConfigMapVolumes(t *testing.T) {
+	yes := true
+	tests := []struct {
+		name          string
+		volume        v1.Volume
+		configmaps    []v1.ConfigMap
+		errorMessage  string
+		expectedItems map[string][]byte
+	}{
+		{
+			"VolumeFromConfigmap",
+			v1.Volume{
+				Name: "test-volume",
+				VolumeSource: v1.VolumeSource{
+					ConfigMap: &v1.ConfigMapVolumeSource{
+						LocalObjectReference: v1.LocalObjectReference{
+							Name: "bar",
+						},
+					},
+				},
+			},
+			configMapList,
+			"",
+			map[string][]byte{"myvar": []byte("bar")},
+		},
+		{
+			"VolumeFromBinaryConfigmap",
+			v1.Volume{
+				Name: "test-volume",
+				VolumeSource: v1.VolumeSource{
+					ConfigMap: &v1.ConfigMapVolumeSource{
+						LocalObjectReference: v1.LocalObjectReference{
+							Name: "binary-bar",
+						},
+					},
+				},
+			},
+			configMapList,
+			"",
+			map[string][]byte{"myvar": []byte("bin-bar")},
+		},
+		{
+			"ConfigmapMissing",
+			v1.Volume{
+				Name: "test-volume",
+				VolumeSource: v1.VolumeSource{
+					ConfigMap: &v1.ConfigMapVolumeSource{
+						LocalObjectReference: v1.LocalObjectReference{
+							Name: "fizz",
+						},
+					},
+				},
+			},
+			configMapList,
+			`no such ConfigMap "fizz"`,
+			map[string][]byte{},
+		},
+		{
+			"ConfigmapMissingOptional",
+			v1.Volume{
+				Name: "test-volume",
+				VolumeSource: v1.VolumeSource{
+					ConfigMap: &v1.ConfigMapVolumeSource{
+						LocalObjectReference: v1.LocalObjectReference{
+							Name: "fizz",
+						},
+						Optional: &yes,
+					},
+				},
+			},
+			configMapList,
+			"",
+			map[string][]byte{},
+		},
+		{
+			"MultiValue",
+			v1.Volume{
+				Name: "test-volume",
+				VolumeSource: v1.VolumeSource{
+					ConfigMap: &v1.ConfigMapVolumeSource{
+						LocalObjectReference: v1.LocalObjectReference{
+							Name: "multi-item",
+						},
+						Optional: &yes,
+					},
+				},
+			},
+			configMapList,
+			"",
+			map[string][]byte{"foo": []byte("bar"), "fizz": []byte("buzz")},
+		},
+		{
+			"SpecificValue",
+			v1.Volume{
+				Name: "test-volume",
+				VolumeSource: v1.VolumeSource{
+					ConfigMap: &v1.ConfigMapVolumeSource{
+						LocalObjectReference: v1.LocalObjectReference{
+							Name: "multi-item",
+						},
+						Optional: &yes,
+						Items:    []v1.KeyToPath{{Key: "fizz", Path: "/custom/path"}},
+					},
+				},
+			},
+			configMapList,
+			"",
+			map[string][]byte{"/custom/path": []byte("buzz")},
+		},
+		{
+			"MultiValueBinary",
+			v1.Volume{
+				Name: "test-volume",
+				VolumeSource: v1.VolumeSource{
+					ConfigMap: &v1.ConfigMapVolumeSource{
+						LocalObjectReference: v1.LocalObjectReference{
+							Name: "multi-binary-item",
+						},
+						Optional: &yes,
+					},
+				},
+			},
+			configMapList,
+			"",
+			map[string][]byte{"foo": []byte("bin-bar"), "fizz": []byte("bin-buzz")},
+		},
+		{
+			"SpecificValueBinary",
+			v1.Volume{
+				Name: "test-volume",
+				VolumeSource: v1.VolumeSource{
+					ConfigMap: &v1.ConfigMapVolumeSource{
+						LocalObjectReference: v1.LocalObjectReference{
+							Name: "multi-binary-item",
+						},
+						Optional: &yes,
+						Items:    []v1.KeyToPath{{Key: "fizz", Path: "/custom/path"}},
+					},
+				},
+			},
+			configMapList,
+			"",
+			map[string][]byte{"/custom/path": []byte("bin-buzz")},
+		},
+		{
+			"DuplicateValues",
+			v1.Volume{
+				Name: "test-volume",
+				VolumeSource: v1.VolumeSource{
+					ConfigMap: &v1.ConfigMapVolumeSource{
+						LocalObjectReference: v1.LocalObjectReference{
+							Name: "dupe",
+						},
+					},
+				},
+			},
+			configMapList,
+			`the ConfigMap "dupe" is invalid: duplicate key "foo" present in data and binaryData`,
+			map[string][]byte{},
+		},
+		{
+			"DuplicateValuesSpecific",
+			v1.Volume{
+				Name: "test-volume",
+				VolumeSource: v1.VolumeSource{
+					ConfigMap: &v1.ConfigMapVolumeSource{
+						LocalObjectReference: v1.LocalObjectReference{
+							Name: "dupe",
+						},
+						Items: []v1.KeyToPath{{Key: "fizz", Path: "/custom/path"}},
+					},
+				},
+			},
+			configMapList,
+			`the ConfigMap "dupe" is invalid: duplicate key "foo" present in data and binaryData`,
+			map[string][]byte{},
+		},
+	}
+
+	for _, test := range tests {
+		test := test
+		t.Run(test.name, func(t *testing.T) {
+			result, err := VolumeFromConfigMap(test.volume.ConfigMap, test.configmaps)
+			if test.errorMessage == "" {
+				assert.NoError(t, err)
+				assert.Equal(t, test.expectedItems, result.Items)
+			} else {
+				assert.Error(t, err)
+				assert.Equal(t, test.errorMessage, err.Error())
+			}
+		})
+	}
+}
+
 func TestEnvVarsFrom(t *testing.T) {
 	d := t.TempDir()
 	secretsManager := createSecrets(t, d)
@@ -811,6 +1005,56 @@ var (
 			},
 			Data: map[string]string{
 				"myvar": "foo",
+			},
+		},
+		{
+			TypeMeta: v12.TypeMeta{
+				Kind: "ConfigMap",
+			},
+			ObjectMeta: v12.ObjectMeta{
+				Name: "binary-bar",
+			},
+			BinaryData: map[string][]byte{
+				"myvar": []byte("bin-bar"),
+			},
+		},
+		{
+			TypeMeta: v12.TypeMeta{
+				Kind: "ConfigMap",
+			},
+			ObjectMeta: v12.ObjectMeta{
+				Name: "multi-item",
+			},
+			Data: map[string]string{
+				"foo":  "bar",
+				"fizz": "buzz",
+			},
+		},
+		{
+			TypeMeta: v12.TypeMeta{
+				Kind: "ConfigMap",
+			},
+			ObjectMeta: v12.ObjectMeta{
+				Name: "multi-binary-item",
+			},
+			BinaryData: map[string][]byte{
+				"foo":  []byte("bin-bar"),
+				"fizz": []byte("bin-buzz"),
+			},
+		},
+		{
+			TypeMeta: v12.TypeMeta{
+				Kind: "ConfigMap",
+			},
+			ObjectMeta: v12.ObjectMeta{
+				Name: "dupe",
+			},
+			BinaryData: map[string][]byte{
+				"fiz": []byte("bin-buzz"),
+				"foo": []byte("bin-bar"),
+			},
+			Data: map[string]string{
+				"foo": "bar",
 			},
 		},
 	}
