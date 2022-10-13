@@ -108,7 +108,11 @@ NOTE: :warning: :warning::warning::warning:warning::warning:  :    THIS PART OF 
 
 Use VS Code to open your project folder on your desktop.
 
-VS Code should ask you if you want to start up a development container for this project. Click YES and wait for the container to build.
+VS Code should ask you if you want to start up a development container for this project.
+
+> Folder contains a Dev Container configuration file. Reopen folder to develop in a container (learn more).
+
+Click YES and wait for the container to build.
 
 Use COMMAND-~ to open the terminal (which is inside the container) and run this command to serve your blog using Jekyll:
 
