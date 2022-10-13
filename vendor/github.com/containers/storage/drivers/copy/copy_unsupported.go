@@ -1,6 +1,7 @@
+//go:build !linux || !cgo
 // +build !linux !cgo
 
-package copy
+package copy //nolint: predeclared
 
 import (
 	"io"
@@ -24,7 +25,7 @@ func DirCopy(srcDir, dstDir string, _ Mode, _ bool) error {
 }
 
 // CopyRegularToFile copies the content of a file to another
-func CopyRegularToFile(srcPath string, dstFile *os.File, fileinfo os.FileInfo, copyWithFileRange, copyWithFileClone *bool) error {
+func CopyRegularToFile(srcPath string, dstFile *os.File, fileinfo os.FileInfo, copyWithFileRange, copyWithFileClone *bool) error { //nolint: revive // "func name will be used as copy.CopyRegularToFile by other packages, and that stutters"
 	f, err := os.Open(srcPath)
 	if err != nil {
 		return err
@@ -35,6 +36,6 @@ func CopyRegularToFile(srcPath string, dstFile *os.File, fileinfo os.FileInfo, c
 }
 
 // CopyRegular copies the content of a file to another
-func CopyRegular(srcPath, dstPath string, fileinfo os.FileInfo, copyWithFileRange, copyWithFileClone *bool) error {
+func CopyRegular(srcPath, dstPath string, fileinfo os.FileInfo, copyWithFileRange, copyWithFileClone *bool) error { //nolint:revive // "func name will be used as copy.CopyRegular by other packages, and that stutters"
 	return chrootarchive.NewArchiver(nil).CopyWithTar(srcPath, dstPath)
 }

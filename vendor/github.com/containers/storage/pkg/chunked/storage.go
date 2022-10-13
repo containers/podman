@@ -17,7 +17,7 @@ type ImageSourceSeekable interface {
 }
 
 // ErrBadRequest is returned when the request is not valid
-type ErrBadRequest struct {
+type ErrBadRequest struct { //nolint: errname
 }
 
 func (e ErrBadRequest) Error() string {

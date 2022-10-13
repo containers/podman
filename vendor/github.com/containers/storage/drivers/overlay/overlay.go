@@ -140,8 +140,8 @@ var (
 )
 
 func init() {
-	graphdriver.Register("overlay", Init)
-	graphdriver.Register("overlay2", Init)
+	graphdriver.MustRegister("overlay", Init)
+	graphdriver.MustRegister("overlay2", Init)
 }
 
 func hasMetacopyOption(opts []string) bool {
@@ -309,9 +309,11 @@ func Init(home string, options graphdriver.Options) (graphdriver.Driver, error) 
 	if err != nil {
 		return nil, err
 	}
-	if fsName, ok := graphdriver.FsNames[fsMagic]; ok {
-		backingFs = fsName
+	fsName, ok := graphdriver.FsNames[fsMagic]
+	if !ok {
+		return nil, fmt.Errorf("filesystem type %#x reported for %s is not supported with 'overlay': %w", fsMagic, filepath.Dir(home), graphdriver.ErrIncompatibleFS)
 	}
+	backingFs = fsName
 
 	runhome := filepath.Join(options.RunRoot, filepath.Base(home))
 	rootUID, rootGID, err := idtools.GetRootUIDGID(options.UIDMaps, options.GIDMaps)
