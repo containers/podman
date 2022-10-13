@@ -2,112 +2,142 @@
 #
 # markdown-preprocess - filter *.md.in files, convert to .md
 #
+"""
+Simpleminded include mechanism for podman man pages.
+"""
 
 import glob
 import os
 import re
 import sys
 
+class Preprocessor():
+    """
+    Doesn't really merit a whole OO approach, except we have a lot
+    of state variables to pass around, and self is a convenient
+    way to do that. Better than globals, anyway.
+    """
+    def __init__(self):
+        self.infile = ''
+        self.pod_or_container = ''
+
+    def process(self, infile:str):
+        """
+        Main calling point: preprocesses one file
+        """
+        self.infile = infile
+        # Some options are the same between containers and pods; determine
+        # which description to use from the name of the source man page.
+        self.pod_or_container = 'container'
+        if '-pod-' in infile or '-kube-' in infile:
+            self.pod_or_container = 'pod'
+
+        # foo.md.in -> foo.md -- but always write to a tmpfile
+        outfile = os.path.splitext(infile)[0]
+        outfile_tmp = outfile + '.tmp.' + str(os.getpid())
+
+        with open(infile, 'r') as fh_in, open(outfile_tmp, 'w') as fh_out:
+            for line in fh_in:
+                # '@@option foo' -> include file options/foo.md
+                if line.startswith('@@option '):
+                    _, optionname = line.strip().split(" ")
+                    optionfile = os.path.join("options", optionname + '.md')
+                    self.insert_file(fh_out, optionfile)
+                else:
+                    fh_out.write(line)
+
+        os.chmod(outfile_tmp, 0o444)
+        os.rename(outfile_tmp, outfile)
+
+    def insert_file(self, fh_out, path: str):
+        """
+        Reads one option file, writes it out to the given output filehandle
+        """
+        # Comment intended to help someone viewing the .md file.
+        # Leading newline is important because if two lines are
+        # consecutive without a break, sphinx (but not go-md2man)
+        # treats them as one line and will unwantedly render the
+        # comment in its output.
+        fh_out.write("\n[//]: # (BEGIN included file " + path + ")\n")
+        with open(path, 'r') as fh_included:
+            for opt_line in fh_included:
+                opt_line = self.replace_type(opt_line)
+                opt_line = opt_line.replace('<<subcommand>>', self.podman_subcommand())
+                opt_line = opt_line.replace('<<fullsubcommand>>', self.podman_subcommand('full'))
+                fh_out.write(opt_line)
+            fh_out.write("\n[//]: # (END   included file " + path + ")\n")
+
+    def podman_subcommand(self, full=None) -> str:
+        """
+        Returns the string form of the podman command, based on man page name;
+        e.g., 'foo bar' for podman-foo-bar.1.md.in
+        """
+        subcommand = self.infile
+        # Special case: 'podman-pod-start' becomes just 'start'
+        if not full:
+            if subcommand.startswith("podman-pod-"):
+                subcommand = subcommand[len("podman-pod-"):]
+        if subcommand.startswith("podman-"):
+            subcommand = subcommand[len("podman-"):]
+        if subcommand.endswith(".1.md.in"):
+            subcommand = subcommand[:-len(".1.md.in")]
+        return subcommand.replace("-", " ")
+
+    def replace_type(self, line: str) -> str:
+        """
+        Replace instances of '<<pod string|container string>>' with the
+        appropriate one based on whether this is a pod-related man page
+        or not.
+        """
+        # Internal helper function: determines the desired half of the <a|b> string
+        def replwith(matchobj):
+            lhs, rhs = matchobj[0].split('|')
+            # Strip off '<<' and '>>'
+            lhs = lhs[2:]
+            rhs = rhs[:len(rhs)-2]
+
+            # Check both sides for 'pod' followed by (non-"m" or end-of-string).
+            # The non-m prevents us from triggering on 'podman', which could
+            # conceivably be present in both sides. And we check for 'pod',
+            # not 'container', because it's possible to have something like
+            # <<container in pod|container>>.
+            if re.match('.*pod([^m]|$)', lhs, re.IGNORECASE):
+                if re.match('.*pod([^m]|$)', rhs, re.IGNORECASE):
+                    raise Exception(f"'{matchobj[0]}' matches 'pod' in both left and right sides")
+                # Only left-hand side has "pod"
+                if self.pod_or_container == 'pod':
+                    return lhs
+                return rhs
+
+            # 'pod' not in lhs, must be in rhs
+            if not re.match('.*pod([^m]|$)', rhs, re.IGNORECASE):
+                raise Exception(f"'{matchobj[0]}' does not match 'pod' in either side")
+            if self.pod_or_container == 'pod':
+                return rhs
+            return lhs
+
+        return re.sub(r'<<[^\|>]*\|[^\|>]*>>', replwith, line)
+
+
 def main():
+    "script entry point"
     script_dir = os.path.abspath(os.path.dirname(__file__))
     man_dir = os.path.join(script_dir,"../docs/source/markdown")
 
     try:
         os.chdir(man_dir)
-    except FileNotFoundError:
-        raise Exception("Please invoke me from the base repo dir")
+    except FileNotFoundError as ex:
+        raise Exception("Please invoke me from the base repo dir") from ex
 
     # If called with args, process only those files
     infiles = [ os.path.basename(x) for x in sys.argv[1:] ]
     if len(infiles) == 0:
         # Called without args: process all *.md.in files
         infiles = glob.glob('*.md.in')
+
+    preprocessor = Preprocessor()
     for infile in infiles:
-        process(infile)
-
-def process(infile):
-    # Some options are the same between containers and pods; determine
-    # which description to use from the name of the source man page.
-    pod_or_container = 'container'
-    if '-pod-' in infile or '-kube-' in infile:
-        pod_or_container = 'pod'
-
-    # foo.md.in -> foo.md -- but always write to a tmpfile
-    outfile = os.path.splitext(infile)[0]
-    outfile_tmp = outfile + '.tmp.' + str(os.getpid())
-
-#    print("got here: ",infile, " -> ", outfile)
-
-    with open(infile, 'r') as fh_in, open(outfile_tmp, 'w') as fh_out:
-        for line in fh_in:
-            # '@@option foo' -> include file options/foo.md
-            if line.startswith('@@option '):
-                _, optionname = line.strip().split(" ")
-                optionfile = os.path.join("options", optionname + '.md')
-
-                # Comment intended to help someone viewing the .md file.
-                # Leading newline is important because if two lines are
-                # consecutive without a break, sphinx (but not go-md2man)
-                # treats them as one line and will unwantedly render the
-                # comment in its output.
-                fh_out.write("\n[//]: # (BEGIN included file " + optionfile + ")\n")
-                with open(optionfile, 'r') as fh_optfile:
-                    for opt_line in fh_optfile:
-                        opt_line = replace_type(opt_line, pod_or_container)
-                        opt_line = opt_line.replace('<<subcommand>>', podman_subcommand(infile))
-                        opt_line = opt_line.replace('<<fullsubcommand>>', podman_subcommand(infile, 'full'))
-                        fh_out.write(opt_line)
-                fh_out.write("\n[//]: # (END   included file " + optionfile + ")\n")
-            else:
-                fh_out.write(line)
-
-    os.chmod(outfile_tmp, 0o444)
-    os.rename(outfile_tmp, outfile)
-
-# Given a file path of the form podman-foo-bar.1.md.in, return "foo bar"
-def podman_subcommand(string: str, full=None) -> str:
-    # Special case: 'podman-pod-start' becomes just 'start'
-    if not full:
-        if string.startswith("podman-pod-"):
-            string = string[len("podman-pod-"):]
-    if string.startswith("podman-"):
-        string = string[len("podman-"):]
-    if string.endswith(".1.md.in"):
-        string = string[:-len(".1.md.in")]
-    return string.replace("-", " ")
-
-# Replace instances of '<<pod|container>>' with the desired one (based on
-# 'type' which is 'pod' or 'container').
-def replace_type(line: str, type: str) -> str:
-    # Internal helper function: determines the desired half of the <a|b> string
-    def replwith(matchobj):
-        lhs, rhs = matchobj[0].split('|')
-        # Strip off '<<' and '>>'
-        lhs = lhs[2:]
-        rhs = rhs[:len(rhs)-2]
-
-        # Check both sides for 'pod' followed by (non-"m" or end-of-string).
-        # The non-m prevents us from triggering on 'podman', which could
-        # conceivably be present in both sides. And we check for 'pod',
-        # not 'container', because it's possible to have something like
-        # <<container in pod|container>>.
-        if re.match('.*pod([^m]|$)', lhs, re.IGNORECASE):
-            if re.match('.*pod([^m]|$)', rhs, re.IGNORECASE):
-                raise Exception("'%s' matches 'pod' in both left and right sides" % matchobj[0])
-            # Only left-hand side has "pod"
-            if type == 'pod':
-                return lhs
-            else:
-                return rhs
-        else:
-            if not re.match('.*pod([^m]|$)', rhs, re.IGNORECASE):
-                raise Exception("'%s' does not match 'pod' in either side" % matchobj[0])
-            if type == 'pod':
-                return rhs
-            else:
-                return lhs
-
-    return re.sub('<<[^\|>]*\|[^\|>]*>>', replwith, line)
+        preprocessor.process(infile)
 
 if __name__ == "__main__":
     main()

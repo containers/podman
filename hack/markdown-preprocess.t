@@ -14,65 +14,73 @@ spec = spec_from_loader("mp", SourceFileLoader("mp", "hack/markdown-preprocess")
 mp = module_from_spec(spec)
 spec.loader.exec_module(mp)
 
+pp = mp.Preprocessor()
+
 class TestPodReplacer(unittest.TestCase):
+    def check_4_way(self, containerstring: str, podstring: str):
+        types = ['container', 'pod']
+        strings = [ containerstring, podstring ]
+        for i in 0, 1:
+            pp.pod_or_container = types[i]
+            for j in 0, 1:
+                s = '<<' + strings[j] + '|' + strings[(j+1)%2] + '>>'
+                self.assertEqual(pp.replace_type(s), strings[i])
+
     def test_basic(self):
         """basic pod|container and vice-versa"""
-        s = '<<container|pod>>'
-        self.assertEqual(mp.replace_type(s, 'pod'), 'pod')
-        self.assertEqual(mp.replace_type(s, 'container'), 'container')
-        s = '<<container|pod>>'
-        self.assertEqual(mp.replace_type(s, 'pod'), 'pod')
-        self.assertEqual(mp.replace_type(s, 'container'), 'container')
+        self.check_4_way('container', 'pod')
 
     def test_case_insensitive(self):
         """test case-insensitive replacement of Pod, Container"""
-        s = '<<Pod|Container>>'
-        self.assertEqual(mp.replace_type(s, 'pod'), 'Pod')
-        self.assertEqual(mp.replace_type(s, 'container'), 'Container')
-        s = '<<Container|Pod>>'
-        self.assertEqual(mp.replace_type(s, 'pod'), 'Pod')
-        self.assertEqual(mp.replace_type(s, 'container'), 'Container')
+        self.check_4_way('Container', 'Pod')
 
     def test_dont_care_about_podman(self):
         """we ignore 'podman'"""
-        self.assertEqual(mp.replace_type('<<podman container|pod in podman>>', 'container'), 'podman container')
+        self.check_4_way('podman container', 'pod in podman')
 
     def test_not_at_beginning(self):
         """oops - test for 'pod' other than at beginning of string"""
-        s = '<<container|container or pod>>'
-        self.assertEqual(mp.replace_type(s, 'container'), 'container')
-        self.assertEqual(mp.replace_type(s, 'pod'), 'container or pod')
-        s = '<<container or pod|container>>'
-        self.assertEqual(mp.replace_type(s, 'container'), 'container')
-        self.assertEqual(mp.replace_type(s, 'pod'), 'container or pod')
+        self.check_4_way('container', 'container or pod')
 
     def test_blank(self):
         """test that either side of '|' can be empty"""
-        s = 'abc container<<| or pod>> def'
-        self.assertEqual(mp.replace_type(s, 'container'), 'abc container def')
-        self.assertEqual(mp.replace_type(s, 'pod'), 'abc container or pod def')
-        s = 'abc container<< or pod|>> def'
-        self.assertEqual(mp.replace_type(s, 'container'), 'abc container def')
-        self.assertEqual(mp.replace_type(s, 'pod'), 'abc container or pod def')
+        s_lblank = 'abc container<<| or pod>> def'
+        s_rblank = 'abc container<< or pod|>> def'
+
+        pp.pod_or_container = 'container'
+        self.assertEqual(pp.replace_type(s_lblank), 'abc container def')
+        self.assertEqual(pp.replace_type(s_rblank), 'abc container def')
+
+        pp.pod_or_container = 'pod'
+        self.assertEqual(pp.replace_type(s_lblank), 'abc container or pod def')
+        self.assertEqual(pp.replace_type(s_rblank), 'abc container or pod def')
 
     def test_exception_both(self):
         """test that 'pod' on both sides raises exception"""
-        with self.assertRaisesRegex(Exception, "in both left and right sides"):
-            mp.replace_type('<<pod 123|pod 321>>', 'pod')
+        for word in ['pod', 'container']:
+            pp.pod_or_container = word
+            with self.assertRaisesRegex(Exception, "in both left and right sides"):
+                pp.replace_type('<<pod 123|pod 321>>')
 
     def test_exception_neither(self):
         """test that 'pod' on neither side raises exception"""
-        with self.assertRaisesRegex(Exception, "in either side"):
-            mp.replace_type('<<container 123|container 321>>', 'pod')
+        for word in ['pod', 'container']:
+            pp.pod_or_container = word
+            with self.assertRaisesRegex(Exception, "in either side"):
+                pp.replace_type('<<container 123|container 321>>')
 
 class TestPodmanSubcommand(unittest.TestCase):
     def test_basic(self):
         """podman subcommand basic test"""
-        self.assertEqual(mp.podman_subcommand("podman-foo.1.md.in"), "foo")
-        self.assertEqual(mp.podman_subcommand("podman-foo-bar.1.md.in"), "foo bar")
-        self.assertEqual(mp.podman_subcommand("podman-pod-rm.1.md.in"), "rm")
-        self.assertEqual(mp.podman_subcommand("podman-pod-rm.1.md.in", "full"), "pod rm")
+        pp.infile = 'podman-foo.1.md.in'
+        self.assertEqual(pp.podman_subcommand(), "foo")
 
+        pp.infile = 'podman-foo-bar.1.md.in'
+        self.assertEqual(pp.podman_subcommand(), "foo bar")
+
+        pp.infile = 'podman-pod-rm.1.md.in'
+        self.assertEqual(pp.podman_subcommand(), "rm")
+        self.assertEqual(pp.podman_subcommand("full"), "pod rm")
 
 if __name__ == '__main__':
     unittest.main()
