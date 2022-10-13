@@ -42,11 +42,11 @@ env:
     # GCP Images
     FEDORA_CACHE_IMAGE_NAME: "fedora-${IMAGE_SUFFIX}"
     PRIOR_FEDORA_CACHE_IMAGE_NAME: "prior-fedora-${IMAGE_SUFFIX}"
-    UBUNTU_CACHE_IMAGE_NAME: "ubuntu-${IMAGE_SUFFIX}"
+    #UBUNTU_CACHE_IMAGE_NAME: "ubuntu-${IMAGE_SUFFIX}"
     # Container FQIN's
     FEDORA_CONTAINER_FQIN: "quay.io/libpod/fedora_podman:${IMAGE_SUFFIX}"
     PRIOR_FEDORA_CONTAINER_FQIN: "quay.io/libpod/prior-fedora_podman:${IMAGE_SUFFIX}"
-    UBUNTU_CONTAINER_FQIN: "quay.io/libpod/ubuntu_podman:${IMAGE_SUFFIX}"
+    #UBUNTU_CONTAINER_FQIN: "quay.io/libpod/ubuntu_podman:${IMAGE_SUFFIX}"
 
     ####
     #### Control variables that determine what to run and how to run it.
@@ -111,11 +111,11 @@ build_task:
               VM_IMAGE_NAME: ${PRIOR_FEDORA_CACHE_IMAGE_NAME}
               CTR_FQIN: ${PRIOR_FEDORA_CONTAINER_FQIN}
               CI_DESIRED_RUNTIME: crun
-        - env: &ubuntu_envvars
-              DISTRO_NV: ${UBUNTU_NAME}
-              VM_IMAGE_NAME: ${UBUNTU_CACHE_IMAGE_NAME}
-              CTR_FQIN: ${UBUNTU_CONTAINER_FQIN}
-              CI_DESIRED_RUNTIME: runc
+        #- env: &ubuntu_envvars
+        #      DISTRO_NV: ${UBUNTU_NAME}
+        #      VM_IMAGE_NAME: ${UBUNTU_CACHE_IMAGE_NAME}
+        #      CTR_FQIN: ${UBUNTU_CONTAINER_FQIN}
+        #      CI_DESIRED_RUNTIME: runc
     env:
         TEST_FLAVOR: build
     # NOTE: The default way Cirrus-CI clones is *NOT* compatible with
@@ -801,32 +801,32 @@ buildah_bud_test_task:
     always: *int_logs_artifacts
 
 
-rootless_gitlab_test_task:
-    name: *std_name_fmt
-    alias: rootless_gitlab_test
-    # Docs: ./contrib/cirrus/CIModes.md
-    only_if: &cirrus_cron "${CIRRUS_CRON} == 'main'"
-    # Community-maintained downstream test may fail unexpectedly.
-    # Ref. repository: https://gitlab.com/gitlab-org/gitlab-runner
-    # If necessary, uncomment the next line and file issue(s) with details.
-    # allow_failures: $CI == $CI
-    depends_on:
-        - build
-        - rootless_integration_test
-    gce_instance: *standardvm
-    env:
-        <<: *ubuntu_envvars
-        TEST_FLAVOR: 'gitlab'
-        PRIV_NAME: rootless
-    clone_script: *get_gosrc
-    setup_script: *setup
-    main_script: *main
-    always:
-        <<: *logs_artifacts
-        junit_artifacts:
-            path: gitlab-runner-podman.xml
-            type: text/xml
-            format: junit
+#rootless_gitlab_test_task:
+#    name: *std_name_fmt
+#    alias: rootless_gitlab_test
+#    # Docs: ./contrib/cirrus/CIModes.md
+#    only_if: &cirrus_cron "${CIRRUS_CRON} == 'main'"
+#    # Community-maintained downstream test may fail unexpectedly.
+#    # Ref. repository: https://gitlab.com/gitlab-org/gitlab-runner
+#    # If necessary, uncomment the next line and file issue(s) with details.
+#    # allow_failures: $CI == $CI
+#    depends_on:
+#        - build
+#        - rootless_integration_test
+#    gce_instance: *standardvm
+#    env:
+#        <<: *ubuntu_envvars
+#        TEST_FLAVOR: 'gitlab'
+#        PRIV_NAME: rootless
+#    clone_script: *get_gosrc
+#    setup_script: *setup
+#    main_script: *main
+#    always:
+#        <<: *logs_artifacts
+#        junit_artifacts:
+#            path: gitlab-runner-podman.xml
+#            type: text/xml
+#            format: junit
 
 
 upgrade_test_task:
@@ -915,10 +915,11 @@ meta_task:
         image: quay.io/libpod/imgts:latest
     env:
         # Space-separated list of images used by this repository state
+        # DISABLED:
+        #   ${UBUNTU_CACHE_IMAGE_NAME}
         IMGNAMES: >-
             ${FEDORA_CACHE_IMAGE_NAME}
             ${PRIOR_FEDORA_CACHE_IMAGE_NAME}
-            ${UBUNTU_CACHE_IMAGE_NAME}
             build-push-${IMAGE_SUFFIX}
         EC2IMGNAMES: >-
           ${FEDORA_AARCH64_AMI}
@@ -967,7 +968,7 @@ success_task:
         - rootless_system_test
         - rootless_remote_system_test
         - buildah_bud_test
-        - rootless_gitlab_test
+        #- rootless_gitlab_test
         - upgrade_test
         - image_build
         - meta
