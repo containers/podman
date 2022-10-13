@@ -64,6 +64,33 @@ function teardown() {
 }
 
 
+@test "podman volume duplicates" {
+    vol1=${PODMAN_TMPDIR}/v1_$(random_string)
+    vol2=${PODMAN_TMPDIR}/v2_$(random_string)
+    mkdir $vol1 $vol2
+
+    # if volumes source and dest match then pass
+    run_podman run --rm -v $vol1:/vol1 -v $vol1:/vol1 $IMAGE /bin/true
+    run_podman 125 run --rm -v $vol1:$vol1 -v $vol2:$vol1 $IMAGE /bin/true
+    is "$output" "Error: $vol1: duplicate mount destination"  "diff volumes mounted on same dest should fail"
+
+    # if named volumes source and dest match then pass
+    run_podman run --rm -v vol1:/vol1 -v vol1:/vol1 $IMAGE /bin/true
+    run_podman 125 run --rm -v vol1:/vol1 -v vol2:/vol1 $IMAGE /bin/true
+    is "$output" "Error: /vol1: duplicate mount destination"  "diff named volumes mounted on same dest should fail"
+
+    # if tmpfs volumes source and dest match then pass
+    run_podman run --rm --tmpfs /vol1 --tmpfs /vol1 $IMAGE /bin/true
+    run_podman 125 run --rm --tmpfs $vol1 --tmpfs $vol1:ro $IMAGE /bin/true
+    is "$output" "Error: $vol1: duplicate mount destination"  "diff named volumes and tmpfs mounted on same dest should fail"
+
+    run_podman 125 run --rm -v vol2:/vol2 --tmpfs /vol2 $IMAGE /bin/true
+    is "$output" "Error: /vol2: duplicate mount destination"  "diff named volumes and tmpfs mounted on same dest should fail"
+
+    run_podman 125 run --rm -v $vol1:/vol1 --tmpfs /vol1 $IMAGE /bin/true
+    is "$output" "Error: /vol1: duplicate mount destination"  "diff named volumes and tmpfs mounted on same dest should fail"
+}
+
 # Filter volumes by name
 @test "podman volume filter --name" {
     suffix=$(random_string)
