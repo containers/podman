@@ -376,7 +376,7 @@ func (r *ConmonOCIRuntime) KillContainer(ctr *Container, signal uint, all bool) 
 			logrus.Infof("Error updating status for container %s: %v", ctr.ID(), err2)
 		}
 		if ctr.ensureState(define.ContainerStateStopped, define.ContainerStateExited) {
-			return define.ErrCtrStateInvalid
+			return fmt.Errorf("%w: %s", define.ErrCtrStateInvalid, ctr.state.State)
 		}
 		return fmt.Errorf("sending signal to container %s: %w", ctr.ID(), err)
 	}
