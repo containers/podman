@@ -467,7 +467,7 @@ func (v *MachineVM) Set(_ string, opts machine.SetOptions) ([]error, error) {
 }
 
 // Start executes the qemu command line and forks it
-func (v *MachineVM) Start(name string, _ machine.StartOptions) error {
+func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
 	var (
 		conn           net.Conn
 		err            error
@@ -613,7 +613,11 @@ func (v *MachineVM) Start(name string, _ machine.StartOptions) error {
 		}
 	}
 	defer cmd.Process.Release() //nolint:errcheck
-	fmt.Println("Waiting for VM ...")
+
+	if !opts.Quiet {
+		fmt.Println("Waiting for VM ...")
+	}
+
 	socketPath, err := getRuntimeDir()
 	if err != nil {
 		return err
@@ -659,7 +663,9 @@ func (v *MachineVM) Start(name string, _ machine.StartOptions) error {
 		}
 	}
 	for _, mount := range v.Mounts {
-		fmt.Printf("Mounting volume... %s:%s\n", mount.Source, mount.Target)
+		if !opts.Quiet {
+			fmt.Printf("Mounting volume... %s:%s\n", mount.Source, mount.Target)
+		}
 		// create mountpoint directory if it doesn't exist
 		// because / is immutable, we have to monkey around with permissions
 		// if we dont mount in /home or /mnt
@@ -692,7 +698,7 @@ func (v *MachineVM) Start(name string, _ machine.StartOptions) error {
 		}
 	}
 
-	v.waitAPIAndPrintInfo(forwardState, forwardSock)
+	v.waitAPIAndPrintInfo(forwardState, forwardSock, opts.NoInfo)
 	return nil
 }
 
@@ -1439,7 +1445,7 @@ func waitAndPingAPI(sock string) {
 	}
 }
 
-func (v *MachineVM) waitAPIAndPrintInfo(forwardState apiForwardingState, forwardSock string) {
+func (v *MachineVM) waitAPIAndPrintInfo(forwardState apiForwardingState, forwardSock string, noInfo bool) {
 	suffix := ""
 	if v.Name != machine.DefaultMachineName {
 		suffix = " " + v.Name
@@ -1467,38 +1473,41 @@ func (v *MachineVM) waitAPIAndPrintInfo(forwardState apiForwardingState, forward
 	}
 
 	waitAndPingAPI(forwardSock)
-	if !v.Rootful {
-		fmt.Printf("\nThis machine is currently configured in rootless mode. If your containers\n")
-		fmt.Printf("require root permissions (e.g. ports < 1024), or if you run into compatibility\n")
-		fmt.Printf("issues with non-podman clients, you can switch using the following command: \n")
-		fmt.Printf("\n\tpodman machine set --rootful%s\n\n", suffix)
-	}
 
-	fmt.Printf("API forwarding listening on: %s\n", forwardSock)
-	if forwardState == dockerGlobal {
-		fmt.Printf("Docker API clients default to this address. You do not need to set DOCKER_HOST.\n\n")
-	} else {
-		stillString := "still "
-		switch forwardState {
-		case notInstalled:
-			fmt.Printf("\nThe system helper service is not installed; the default Docker API socket\n")
-			fmt.Printf("address can't be used by podman. ")
-			if helper := findClaimHelper(); len(helper) > 0 {
-				fmt.Printf("If you would like to install it run the\nfollowing commands:\n")
-				fmt.Printf("\n\tsudo %s install\n", helper)
-				fmt.Printf("\tpodman machine stop%s; podman machine start%s\n\n", suffix, suffix)
-			}
-		case machineLocal:
-			fmt.Printf("\nAnother process was listening on the default Docker API socket address.\n")
-		case claimUnsupported:
-			fallthrough
-		default:
-			stillString = ""
+	if !noInfo {
+		if !v.Rootful {
+			fmt.Printf("\nThis machine is currently configured in rootless mode. If your containers\n")
+			fmt.Printf("require root permissions (e.g. ports < 1024), or if you run into compatibility\n")
+			fmt.Printf("issues with non-podman clients, you can switch using the following command: \n")
+			fmt.Printf("\n\tpodman machine set --rootful%s\n\n", suffix)
 		}
 
-		fmt.Printf("You can %sconnect Docker API clients by setting DOCKER_HOST using the\n", stillString)
-		fmt.Printf("following command in your terminal session:\n")
-		fmt.Printf("\n\texport DOCKER_HOST='unix://%s'\n\n", forwardSock)
+		fmt.Printf("API forwarding listening on: %s\n", forwardSock)
+		if forwardState == dockerGlobal {
+			fmt.Printf("Docker API clients default to this address. You do not need to set DOCKER_HOST.\n\n")
+		} else {
+			stillString := "still "
+			switch forwardState {
+			case notInstalled:
+				fmt.Printf("\nThe system helper service is not installed; the default Docker API socket\n")
+				fmt.Printf("address can't be used by podman. ")
+				if helper := findClaimHelper(); len(helper) > 0 {
+					fmt.Printf("If you would like to install it run the\nfollowing commands:\n")
+					fmt.Printf("\n\tsudo %s install\n", helper)
+					fmt.Printf("\tpodman machine stop%s; podman machine start%s\n\n", suffix, suffix)
+				}
+			case machineLocal:
+				fmt.Printf("\nAnother process was listening on the default Docker API socket address.\n")
+			case claimUnsupported:
+				fallthrough
+			default:
+				stillString = ""
+			}
+
+			fmt.Printf("You can %sconnect Docker API clients by setting DOCKER_HOST using the\n", stillString)
+			fmt.Printf("following command in your terminal session:\n")
+			fmt.Printf("\n\texport DOCKER_HOST='unix://%s'\n\n", forwardSock)
+		}
 	}
 }
 

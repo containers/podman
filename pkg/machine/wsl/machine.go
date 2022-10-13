@@ -577,7 +577,7 @@ func configureSystem(v *MachineVM, dist string) error {
 	return nil
 }
 
-func configureProxy(dist string, useProxy bool) error {
+func configureProxy(dist string, useProxy bool, quiet bool) error {
 	if !useProxy {
 		_ = wslInvoke(dist, "sh", "-c", clearProxySettings)
 		return nil
@@ -598,8 +598,9 @@ func configureProxy(dist string, useProxy bool) error {
 		if exitErr, isExit := err.(*exec.ExitError); isExit && exitErr.ExitCode() != 42 {
 			return fmt.Errorf("%v: %w", failMessage, err)
 		}
-
-		fmt.Println("Installing proxy support")
+		if !quiet {
+			fmt.Println("Installing proxy support")
+		}
 		_ = wslPipe(proxyConfigSetup, dist, "sh", "-c",
 			"cat > /usr/local/bin/proxyinit; chmod 755 /usr/local/bin/proxyinit")
 
@@ -981,14 +982,14 @@ func (v *MachineVM) Set(_ string, opts machine.SetOptions) ([]error, error) {
 	return setErrors, v.writeConfig()
 }
 
-func (v *MachineVM) Start(name string, _ machine.StartOptions) error {
+func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
 	if v.isRunning() {
 		return fmt.Errorf("%q is already running", name)
 	}
 
 	dist := toDist(name)
 	useProxy := setupWslProxyEnv()
-	if err := configureProxy(dist, useProxy); err != nil {
+	if err := configureProxy(dist, useProxy, opts.Quiet); err != nil {
 		return err
 	}
 
@@ -997,7 +998,7 @@ func (v *MachineVM) Start(name string, _ machine.StartOptions) error {
 		return fmt.Errorf("the WSL bootstrap script failed: %w", err)
 	}
 
-	if !v.Rootful {
+	if !v.Rootful && !opts.NoInfo {
 		fmt.Printf("\nThis machine is currently configured in rootless mode. If your containers\n")
 		fmt.Printf("require root permissions (e.g. ports < 1024), or if you run into compatibility\n")
 		fmt.Printf("issues with non-podman clients, you can switch using the following command: \n")
@@ -1010,22 +1011,24 @@ func (v *MachineVM) Start(name string, _ machine.StartOptions) error {
 	}
 
 	globalName, pipeName, err := launchWinProxy(v)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "API forwarding for Docker API clients is not available due to the following startup failures.")
-		fmt.Fprintf(os.Stderr, "\t%s\n", err.Error())
-		fmt.Fprintln(os.Stderr, "\nPodman clients are still able to connect.")
-	} else {
-		fmt.Printf("API forwarding listening on: %s\n", pipeName)
-		if globalName {
-			fmt.Printf("\nDocker API clients default to this address. You do not need to set DOCKER_HOST.\n")
+	if !opts.NoInfo {
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "API forwarding for Docker API clients is not available due to the following startup failures.")
+			fmt.Fprintf(os.Stderr, "\t%s\n", err.Error())
+			fmt.Fprintln(os.Stderr, "\nPodman clients are still able to connect.")
 		} else {
-			fmt.Printf("\nAnother process was listening on the default Docker API pipe address.\n")
-			fmt.Printf("You can still connect Docker API clients by setting DOCKER HOST using the\n")
-			fmt.Printf("following powershell command in your terminal session:\n")
-			fmt.Printf("\n\t$Env:DOCKER_HOST = '%s'\n", pipeName)
-			fmt.Printf("\nOr in a classic CMD prompt:\n")
-			fmt.Printf("\n\tset DOCKER_HOST = '%s'\n", pipeName)
-			fmt.Printf("\nAlternatively terminate the other process and restart podman machine.\n")
+			fmt.Printf("API forwarding listening on: %s\n", pipeName)
+			if globalName {
+				fmt.Printf("\nDocker API clients default to this address. You do not need to set DOCKER_HOST.\n")
+			} else {
+				fmt.Printf("\nAnother process was listening on the default Docker API pipe address.\n")
+				fmt.Printf("You can still connect Docker API clients by setting DOCKER HOST using the\n")
+				fmt.Printf("following powershell command in your terminal session:\n")
+				fmt.Printf("\n\t$Env:DOCKER_HOST = '%s'\n", pipeName)
+				fmt.Printf("\nOr in a classic CMD prompt:\n")
+				fmt.Printf("\n\tset DOCKER_HOST = '%s'\n", pipeName)
+				fmt.Printf("\nAlternatively terminate the other process and restart podman machine.\n")
+			}
 		}
 	}
 

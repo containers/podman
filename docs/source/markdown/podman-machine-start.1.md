@@ -28,6 +28,14 @@ Only one Podman managed VM can be active at a time. If a VM is already running,
 
 Print usage statement.
 
+#### **--no-info**
+
+Suppress informational tips.
+
+#### **--quiet**, **-q**
+
+Suppress machine starting status output.
+
 ## EXAMPLES
 
 ```

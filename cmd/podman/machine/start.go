@@ -14,7 +14,7 @@ import (
 
 var (
 	startCmd = &cobra.Command{
-		Use:               "start [MACHINE]",
+		Use:               "start [options] [MACHINE]",
 		Short:             "Start an existing machine",
 		Long:              "Start a managed virtual machine ",
 		PersistentPreRunE: rootlessOnly,
@@ -23,6 +23,7 @@ var (
 		Example:           `podman machine start myvm`,
 		ValidArgsFunction: autocompleteMachine,
 	}
+	startOpts = machine.StartOptions{}
 )
 
 func init() {
@@ -30,6 +31,13 @@ func init() {
 		Command: startCmd,
 		Parent:  machineCmd,
 	})
+
+	flags := startCmd.Flags()
+	noInfoFlagName := "no-info"
+	flags.BoolVar(&startOpts.NoInfo, noInfoFlagName, false, "Suppress informational tips")
+
+	quietFlagName := "quiet"
+	flags.BoolVarP(&startOpts.Quiet, quietFlagName, "q", false, "Suppress machine starting status output")
 }
 
 func start(_ *cobra.Command, args []string) error {
@@ -37,6 +45,9 @@ func start(_ *cobra.Command, args []string) error {
 		err error
 		vm  machine.VM
 	)
+
+	startOpts.NoInfo = startOpts.Quiet || startOpts.NoInfo
+
 	vmName := defaultMachineName
 	if len(args) > 0 && len(args[0]) > 0 {
 		vmName = args[0]
@@ -58,8 +69,10 @@ func start(_ *cobra.Command, args []string) error {
 		}
 		return fmt.Errorf("cannot start VM %s. VM %s is currently running or starting: %w", vmName, activeName, machine.ErrMultipleActiveVM)
 	}
-	fmt.Printf("Starting machine %q\n", vmName)
-	if err := vm.Start(vmName, machine.StartOptions{}); err != nil {
+	if !startOpts.Quiet {
+		fmt.Printf("Starting machine %q\n", vmName)
+	}
+	if err := vm.Start(vmName, startOpts); err != nil {
 		return err
 	}
 	fmt.Printf("Machine %q started successfully\n", vmName)

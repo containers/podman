@@ -34,7 +34,6 @@ var _ = Describe("podman machine stop", func() {
 		Expect(session).To(Exit(0))
 
 		stop := new(stopMachine)
-		// Removing a running machine should fail
 		stopSession, err := mb.setCmd(stop).run()
 		Expect(err).To(BeNil())
 		Expect(stopSession).To(Exit(0))
