@@ -14,8 +14,6 @@ env:
     GOPATH: &gopath "/var/tmp/go"
     GOCACHE: "${GOPATH}/cache"
     GOSRC: &gosrc "/var/tmp/go/src/github.com/containers/podman"
-    # Store the unaltered default location, for tasks that need it
-    CIRRUS_DEFAULT_WORK: ${CIRRUS_WORKING_DIR}
     CIRRUS_WORKING_DIR: *gosrc
     # The default is 'sh' if unspecified
     CIRRUS_SHELL: "/bin/bash"
@@ -1037,7 +1035,7 @@ win_installer_task:
         CIRRUS_SHELL: powershell
         # Fake version, we are only testing the installer functions, so version doesn't matter
         WIN_INST_VER: 9.9.9
-        CIRRUS_WORKING_DIR: "${CIRRUS_DEFAULT_WORK}"
+        CIRRUS_WORKING_DIR: "${LOCALAPPDATA}\\Temp\\cirrus-ci-build"
     install_script: '.\contrib\cirrus\win-installer-install.ps1'
     main_script: '.\contrib\cirrus\win-installer-main.ps1'
 
