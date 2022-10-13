@@ -43,6 +43,10 @@ class Preprocessor():
                     _, optionname = line.strip().split(" ")
                     optionfile = os.path.join("options", optionname + '.md')
                     self.insert_file(fh_out, optionfile)
+                # '@@include relative-path/must-exist.md'
+                elif line.startswith('@@include '):
+                    _, path = line.strip().split(" ")
+                    self.insert_file(fh_out, path)
                 else:
                     fh_out.write(line)
 
