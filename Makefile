@@ -849,7 +849,7 @@ install.systemd:
 endif
 
 .PHONY: install.tools
-install.tools: .install.ginkgo .install.golangci-lint ## Install needed tools
+install.tools: .install.ginkgo .install.golangci-lint .install.swagger ## Install needed tools
 	$(MAKE) -C test/tools
 
 .PHONY: .install.goimports
@@ -867,6 +867,14 @@ install.tools: .install.ginkgo .install.golangci-lint ## Install needed tools
 .PHONY: .install.golangci-lint
 .install.golangci-lint:
 	VERSION=1.46.2 ./hack/install_golangci.sh
+
+.PHONY: .install.swagger
+.install.swagger:
+	env VERSION=0.30.3 \
+		BINDIR=$(BINDIR) \
+		GOOS=$(GOOS) \
+		GOARCH=$(GOARCH) \
+		./hack/install_swagger.sh
 
 .PHONY: .install.md2man
 .install.md2man:

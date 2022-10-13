@@ -363,7 +363,9 @@ case "$TEST_FLAVOR" in
         showrun $ssh podman tag $helper_fqin \
             docker.io/gitlab/gitlab-runner-helper:x86_64-latest-pwsh
         ;;
-    swagger) ;&  # use next item
+    swagger)
+        make .install.swagger
+        ;;
     release) ;;
     *) die_unknown TEST_FLAVOR
 esac
