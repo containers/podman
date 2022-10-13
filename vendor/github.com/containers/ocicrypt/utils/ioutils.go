@@ -18,9 +18,9 @@ package utils
 
 import (
 	"bytes"
+	"github.com/pkg/errors"
 	"io"
 	"os/exec"
-	"github.com/pkg/errors"
 )
 
 // FillBuffer fills the given buffer with as many bytes from the reader as possible. It returns
