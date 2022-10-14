@@ -21,6 +21,17 @@ import (
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
+// ImageNotFoundError is used when the OCI structure, in principle, exists and seems valid enough,
+// but nothing matches the “image” part of the provided reference.
+type ImageNotFoundError struct {
+	ref ociReference
+	// We may make members public, or add methods, in the future.
+}
+
+func (e ImageNotFoundError) Error() string {
+	return fmt.Sprintf("no descriptor found for reference %q", e.ref.image)
+}
+
 type ociImageSource struct {
 	impl.Compat
 	impl.PropertyMethodsInitialize

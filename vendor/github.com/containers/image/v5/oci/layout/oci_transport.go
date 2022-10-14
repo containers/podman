@@ -205,7 +205,7 @@ func (ref ociReference) getManifestDescriptor() (imgspecv1.Descriptor, error) {
 		}
 	}
 	if d == nil {
-		return imgspecv1.Descriptor{}, fmt.Errorf("no descriptor found for reference %q", ref.image)
+		return imgspecv1.Descriptor{}, ImageNotFoundError{ref}
 	}
 	return *d, nil
 }
