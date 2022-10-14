@@ -1,7 +1,6 @@
 package machine
 
 import (
-	"fmt"
 	"testing"
 )
 
@@ -27,7 +26,7 @@ func TestFSPathToMountName(t *testing.T) {
 	for _, test := range tests {
 		got := fsPathToMountName(test.given)
 		if got != test.expected {
-			t.Error(fmt.Sprintf("Expected %s got %s", test.expected, got))
+			t.Errorf("Expected %s got %s", test.expected, got)
 		}
 	}
 }
