@@ -6,7 +6,7 @@ The following describes the process for building the Podman client on macOS.
 Podman requires brew -- a package manager for macOS.  This will allow additional packages to be installed that are
 needed by Podman.  See the [brew project page](https://brew.sh/) for installation instructions.
 
-##Install build dependencies
+## Install build dependencies
 Podman requires some software from brew to be able to build.  This can be done using brew from a macOS terminal:
 
 ```
