@@ -120,6 +120,7 @@ fi
 case "$OS_RELEASE_ID" in
     ubuntu) ;;
     fedora)
+        yum upgrade -y
         if ((CONTAINER==0)); then
             # All SELinux distros need this for systemd-in-a-container
             msg "Enabling container_manage_cgroup"
