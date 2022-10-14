@@ -1325,7 +1325,10 @@ func (c *Container) stop(timeout uint) error {
 
 	c.newContainerEvent(events.Stop)
 	c.state.StoppedByUser = true
+	return c.waitForConmonToExitAndSave()
+}
 
+func (c *Container) waitForConmonToExitAndSave() error {
 	conmonAlive, err := c.ociRuntime.CheckConmonRunning(c)
 	if err != nil {
 		return err
