@@ -193,7 +193,7 @@ func reloadConfigurationFileIfNeeded(configFile string, storeOptions *StoreOptio
 	fi, err := os.Stat(configFile)
 	if err != nil {
 		if !os.IsNotExist(err) {
-			fmt.Printf("Failed to read %s %v\n", configFile, err.Error())
+			logrus.Warningf("Failed to read %s %v\n", configFile, err.Error())
 		}
 		return
 	}

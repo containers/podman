@@ -124,12 +124,8 @@ func parseMountedFiles(containerMount, passwdFile, groupFile string) uint32 {
 
 // getMaxSizeFromImage returns the maximum ID used by the specified image.
 // The layer stores must be already locked.
-func (s *store) getMaxSizeFromImage(image *Image, passwdFile, groupFile string) (uint32, error) {
-	lstore, err := s.LayerStore()
-	if err != nil {
-		return 0, err
-	}
-	lstores, err := s.ROLayerStores()
+func (s *store) getMaxSizeFromImage(image *Image, passwdFile, groupFile string) (_ uint32, retErr error) {
+	layerStores, err := s.allLayerStores()
 	if err != nil {
 		return 0, err
 	}
@@ -140,7 +136,7 @@ func (s *store) getMaxSizeFromImage(image *Image, passwdFile, groupFile string) 
 	layerName := image.TopLayer
 outer:
 	for {
-		for _, ls := range append([]ROLayerStore{lstore}, lstores...) {
+		for _, ls := range layerStores {
 			layer, err := ls.Get(layerName)
 			if err != nil {
 				continue
@@ -167,7 +163,7 @@ outer:
 		return 0, fmt.Errorf("cannot find layer %q", layerName)
 	}
 
-	rlstore, err := s.LayerStore()
+	rlstore, err := s.getLayerStore()
 	if err != nil {
 		return 0, err
 	}
@@ -187,7 +183,15 @@ outer:
 	if err != nil {
 		return 0, err
 	}
-	defer rlstore.Delete(clayer.ID)
+	defer func() {
+		if err2 := rlstore.Delete(clayer.ID); err2 != nil {
+			if retErr == nil {
+				retErr = fmt.Errorf("deleting temporary layer %#v: %w", clayer.ID, err2)
+			} else {
+				logrus.Errorf("Error deleting temporary layer %#v: %v", clayer.ID, err2)
+			}
+		}
+	}()
 
 	mountOptions := drivers.MountOpts{
 		MountLabel: "",
@@ -200,7 +204,15 @@ outer:
 	if err != nil {
 		return 0, err
 	}
-	defer rlstore.Unmount(clayer.ID, true)
+	defer func() {
+		if _, err2 := rlstore.Unmount(clayer.ID, true); err2 != nil {
+			if retErr == nil {
+				retErr = fmt.Errorf("unmounting temporary layer %#v: %w", clayer.ID, err2)
+			} else {
+				logrus.Errorf("Error unmounting temporary layer %#v: %v", clayer.ID, err2)
+			}
+		}
+	}()
 
 	userFilesSize := parseMountedFiles(mountpoint, passwdFile, groupFile)
 	if userFilesSize > size {

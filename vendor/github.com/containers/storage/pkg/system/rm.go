@@ -3,7 +3,6 @@ package system
 import (
 	"fmt"
 	"os"
-	"syscall"
 	"time"
 
 	"github.com/containers/storage/pkg/mount"
@@ -65,7 +64,7 @@ func EnsureRemoveAll(dir string) error {
 			continue
 		}
 
-		if pe.Err != syscall.EBUSY {
+		if !IsEBUSY(pe.Err) {
 			return err
 		}
 

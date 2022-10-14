@@ -17,10 +17,6 @@ type Locker interface {
 	// - tried to lock a read-only lock-file
 	Lock()
 
-	// Acquire a writer lock recursively, allowing for recursive acquisitions
-	// within the same process space.
-	RecursiveLock()
-
 	// Unlock the lock.
 	// The default unix implementation panics if:
 	// - unlocking an unlocked lock

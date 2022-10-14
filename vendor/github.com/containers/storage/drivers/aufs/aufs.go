@@ -67,7 +67,7 @@ var (
 const defaultPerms = os.FileMode(0555)
 
 func init() {
-	graphdriver.Register("aufs", Init)
+	graphdriver.MustRegister("aufs", Init)
 }
 
 // Driver contains information about the filesystem mounted.

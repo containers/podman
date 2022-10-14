@@ -1,5 +1,5 @@
-//go:build !windows && !freebsd
-// +build !windows,!freebsd
+//go:build !windows
+// +build !windows
 
 package archive
 
@@ -99,25 +99,6 @@ func handleTarTypeBlockCharFifo(hdr *tar.Header, path string) error {
 	}
 
 	return system.Mknod(path, mode, system.Mkdev(hdr.Devmajor, hdr.Devminor))
-}
-
-func handleLChmod(hdr *tar.Header, path string, hdrInfo os.FileInfo, forceMask *os.FileMode) error {
-	permissionsMask := hdrInfo.Mode()
-	if forceMask != nil {
-		permissionsMask = *forceMask
-	}
-	if hdr.Typeflag == tar.TypeLink {
-		if fi, err := os.Lstat(hdr.Linkname); err == nil && (fi.Mode()&os.ModeSymlink == 0) {
-			if err := os.Chmod(path, permissionsMask); err != nil {
-				return err
-			}
-		}
-	} else if hdr.Typeflag != tar.TypeSymlink {
-		if err := os.Chmod(path, permissionsMask); err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 // Hardlink without symlinks

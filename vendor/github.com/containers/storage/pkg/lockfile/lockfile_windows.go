@@ -1,3 +1,4 @@
+//go:build windows
 // +build windows
 
 package lockfile
@@ -34,12 +35,6 @@ type lockfile struct {
 func (l *lockfile) Lock() {
 	l.mu.Lock()
 	l.locked = true
-}
-
-func (l *lockfile) RecursiveLock() {
-	// We don't support Windows but a recursive writer-lock in one process-space
-	// is really a writer lock, so just panic.
-	panic("not supported")
 }
 
 func (l *lockfile) RLock() {

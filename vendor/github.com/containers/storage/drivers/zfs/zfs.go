@@ -33,7 +33,7 @@ type zfsOptions struct {
 const defaultPerms = os.FileMode(0555)
 
 func init() {
-	graphdriver.Register("zfs", Init)
+	graphdriver.MustRegister("zfs", Init)
 }
 
 // Logger returns a zfs logger implementation.

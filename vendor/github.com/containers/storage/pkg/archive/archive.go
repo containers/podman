@@ -874,7 +874,7 @@ func TarWithOptions(srcPath string, options *TarOptions) (io.ReadCloser, error) 
 				if err != nil || (!options.IncludeSourceDir && relFilePath == "." && d.IsDir()) {
 					// Error getting relative path OR we are looking
 					// at the source directory path. Skip in both situations.
-					return nil
+					return nil //nolint: nilerr
 				}
 
 				if options.IncludeSourceDir && include == "." && relFilePath != "." {

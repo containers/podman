@@ -78,7 +78,7 @@ func (f *holesFinder) ReadByte() (int64, byte, error) {
 					f.state = holesFinderStateFound
 				}
 			} else {
-				if f.reader.UnreadByte(); err != nil {
+				if err := f.reader.UnreadByte(); err != nil {
 					return 0, 0, err
 				}
 				f.state = holesFinderStateRead
@@ -95,7 +95,7 @@ func (f *holesFinder) ReadByte() (int64, byte, error) {
 				return holeLen, 0, nil
 			}
 			if b != 0 {
-				if f.reader.UnreadByte(); err != nil {
+				if err := f.reader.UnreadByte(); err != nil {
 					return 0, 0, err
 				}
 				f.state = holesFinderStateRead
@@ -429,7 +429,7 @@ func zstdChunkedWriterWithLevel(out io.Writer, metadata map[string]string, level
 
 	go func() {
 		ch <- writeZstdChunkedStream(out, metadata, r, level)
-		io.Copy(io.Discard, r)
+		_, _ = io.Copy(io.Discard, r) // Ordinarily writeZstdChunkedStream consumes all of r. If it fails, ensure the write end never blocks and eventually terminates.
 		r.Close()
 		close(ch)
 	}()
