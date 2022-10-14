@@ -1901,10 +1901,36 @@ func (c *Container) generateResolvConf() error {
 		return err
 	}
 
+	foundNetworkWithDNSEnabled := false
+	// get all the networks this container is attached to
+	networkInfo, err := c.getContainerNetworkInfo()
+	if err != nil {
+		return err
+	}
+	for networkName := range networkInfo.Networks {
+		netInfo, err := c.runtime.Network().NetworkInspect(networkName)
+		if err != nil {
+			return err
+		}
+		if netInfo.DNSEnabled {
+			foundNetworkWithDNSEnabled = true
+			break
+		}
+	}
 	nameservers := make([]string, 0, len(c.runtime.config.Containers.DNSServers)+len(c.config.DNSServer))
-	nameservers = append(nameservers, c.runtime.config.Containers.DNSServers...)
-	for _, ip := range c.config.DNSServer {
-		nameservers = append(nameservers, ip.String())
+	// Docker parity: If container is connected to any network
+	// where dns_enabled is `true` then do not populate `/etc/resolv.conf`
+	// with custom dns server since DNS resolver ( aardvark-dns, dnsname )
+	// will take care of using custom dns server.
+	if !foundNetworkWithDNSEnabled {
+		// Docker parity: If foundNetworkWithDNSEnabled is `false`
+		// means no network was found where DNS is enabled, is such
+		// case honor `--dns` or `dns_servers` from config and populate
+		// `/etc/resolv.conf` inside container.
+		nameservers = append(nameservers, c.runtime.config.Containers.DNSServers...)
+		for _, ip := range c.config.DNSServer {
+			nameservers = append(nameservers, ip.String())
+		}
 	}
 	// If the user provided dns, it trumps all; then dns masq; then resolv.conf
 	var search []string
