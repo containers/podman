@@ -665,11 +665,12 @@ WantedBy=default.target`
 	for _, mount := range ign.Mounts {
 		systemdName := fsPathToMountName(mount.Target)
 		mountUnitName := fmt.Sprintf("%s.mount", systemdName)
+		serviceUnitName := fmt.Sprintf("%s.service", systemdName)
 
 		if !strings.HasPrefix(mount.Target, "/home") && !strings.HasPrefix(mount.Target, "/mnt") {
 			mkdirUnit := Unit{
 				Enabled: boolToPtr(true),
-				Name:    fmt.Sprintf("%s.service", mount.Tag),
+				Name:    serviceUnitName,
 				Contents: strToPtr(fmt.Sprintf(
 					volumeMountPointTemplate,
 					mount.Tag,
