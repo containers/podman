@@ -244,7 +244,12 @@ func (c *Container) Kill(signal uint) error {
 
 	c.newContainerEvent(events.Kill)
 
-	return c.save()
+	// Make sure to wait for the container to exit in case of SIGKILL.
+	if signal == uint(unix.SIGKILL) {
+		return c.waitForConmonToExitAndSave()
+	}
+
+	return nil
 }
 
 // Attach attaches to a container.
