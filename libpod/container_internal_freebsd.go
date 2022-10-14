@@ -272,3 +272,10 @@ func setVolumeAtime(mountPoint string, st os.FileInfo) error {
 func (c *Container) makePlatformBindMounts() error {
 	return nil
 }
+
+func (c *Container) getConmonPidFd() int {
+	// Note: kqueue(2) could be used here but that would require
+	// factoring out the call to unix.PollFd from WaitForExit so
+	// keeping things simple for now.
+	return -1
+}
