@@ -82,6 +82,7 @@ var _ = Describe("Podman attach", func() {
 		Expect(results.OutputToString()).To(ContainSubstring("test"))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
 	})
+
 	It("podman attach to the latest container", func() {
 		session := podmanTest.Podman([]string{"run", "-d", "--name", "test1", ALPINE, "/bin/sh", "-c", "while true; do echo test1; sleep 1; done"})
 		session.WaitWithDefaultTimeout()
