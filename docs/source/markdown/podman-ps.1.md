@@ -52,7 +52,7 @@ Valid filters are listed below:
 | label           | [Key] or [Key=Value] Label assigned to a container                               |
 | exited          | [Int] Container's exit code                                                      |
 | status          | [Status] Container's status: 'created', 'exited', 'paused', 'running', 'unknown' |
-| ancestor        | [ImageName] Image or descendant used to create container                         |
+| ancestor        | [ImageName] Image or descendant used to create container (accepts regex)         |
 | before          | [ID] or [Name] Containers created before this container                          |
 | since           | [ID] or [Name] Containers created since this container                           |
 | volume          | [VolumeName] or [MountpointDestination] Volume mounted in container              |
