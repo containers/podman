@@ -294,11 +294,11 @@ ExecStart=/usr/bin/podman container run \
 	--name jadda-jadda \
 	--hostname hello-world awesome-image:latest command arg1 ... argN "foo=arg \"with \" space"
 ExecStop=/usr/bin/podman stop \
-	--ignore \
+	--ignore -t 10 \
 	--cidfile=%t/%n.ctr-id
 ExecStopPost=/usr/bin/podman rm \
 	-f \
-	--ignore \
+	--ignore -t 10 \
 	--cidfile=%t/%n.ctr-id
 Type=notify
 NotifyAccess=all
@@ -333,11 +333,11 @@ ExecStart=/usr/bin/podman container run \
 	--name jadda-jadda \
 	--hostname hello-world awesome-image:latest command arg1 ... argN "foo=arg \"with \" space"
 ExecStop=/usr/bin/podman stop \
-	--ignore \
+	--ignore -t 10 \
 	--cidfile=%t/%n.ctr-id
 ExecStopPost=/usr/bin/podman rm \
 	-f \
-	--ignore \
+	--ignore -t 10 \
 	--cidfile=%t/%n.ctr-id
 Type=notify
 NotifyAccess=all
@@ -372,11 +372,11 @@ ExecStart=/usr/bin/podman container run \
 	--name jadda-jadda \
 	--hostname hello-world awesome-image:latest command arg1 ... argN "foo=arg \"with \" space"
 ExecStop=/usr/bin/podman stop \
-	--ignore \
+	--ignore -t 10 \
 	--cidfile=%t/%n.ctr-id
 ExecStopPost=/usr/bin/podman rm \
 	-f \
-	--ignore \
+	--ignore -t 10 \
 	--cidfile=%t/%n.ctr-id
 Type=notify
 NotifyAccess=all
@@ -411,11 +411,11 @@ ExecStart=/usr/bin/podman run \
 	--name jadda-jadda \
 	--hostname hello-world awesome-image:latest command arg1 ... argN
 ExecStop=/usr/bin/podman stop \
-	--ignore \
+	--ignore -t 10 \
 	--cidfile=%t/%n.ctr-id
 ExecStopPost=/usr/bin/podman rm \
 	-f \
-	--ignore \
+	--ignore -t 10 \
 	--cidfile=%t/%n.ctr-id
 Type=notify
 NotifyAccess=all
@@ -451,11 +451,11 @@ ExecStart=/usr/bin/podman run \
 	--name jadda-jadda \
 	--hostname hello-world awesome-image:latest command arg1 ... argN
 ExecStop=/usr/bin/podman stop \
-	--ignore \
+	--ignore -t 10 \
 	--cidfile=%t/%n.ctr-id
 ExecStopPost=/usr/bin/podman rm \
 	-f \
-	--ignore \
+	--ignore -t 10 \
 	--cidfile=%t/%n.ctr-id
 Type=notify
 NotifyAccess=all
@@ -490,11 +490,11 @@ ExecStart=/usr/bin/podman run \
 	--name jadda-jadda \
 	--hostname hello-world awesome-image:latest command arg1 ... argN
 ExecStop=/usr/bin/podman stop \
-	--ignore \
+	--ignore -t 10 \
 	--cidfile=%t/%n.ctr-id
 ExecStopPost=/usr/bin/podman rm \
 	-f \
-	--ignore \
+	--ignore -t 10 \
 	--cidfile=%t/%n.ctr-id
 Type=notify
 NotifyAccess=all
@@ -526,11 +526,11 @@ ExecStart=/usr/bin/podman run \
 	--sdnotify=conmon \
 	-d awesome-image:latest
 ExecStop=/usr/bin/podman stop \
-	--ignore \
+	--ignore -t 10 \
 	--cidfile=%t/%n.ctr-id
 ExecStopPost=/usr/bin/podman rm \
 	-f \
-	--ignore \
+	--ignore -t 10 \
 	--cidfile=%t/%n.ctr-id
 Type=notify
 NotifyAccess=all
@@ -565,11 +565,11 @@ ExecStart=/usr/bin/podman run \
 			detachparam +
 			` awesome-image:latest
 ExecStop=/usr/bin/podman stop \
-	--ignore \
+	--ignore -t 42 \
 	--cidfile=%t/%n.ctr-id
 ExecStopPost=/usr/bin/podman rm \
 	-f \
-	--ignore \
+	--ignore -t 42 \
 	--cidfile=%t/%n.ctr-id
 Type=notify
 NotifyAccess=all
@@ -607,11 +607,11 @@ ExecStart=/usr/bin/podman run \
 	-p 80:80 awesome-image:latest somecmd \
 	--detach=false
 ExecStop=/usr/bin/podman stop \
-	--ignore \
+	--ignore -t 42 \
 	--cidfile=%t/%n.ctr-id
 ExecStopPost=/usr/bin/podman rm \
 	-f \
-	--ignore \
+	--ignore -t 42 \
 	--cidfile=%t/%n.ctr-id
 Type=notify
 NotifyAccess=all
@@ -645,11 +645,11 @@ ExecStart=/usr/bin/podman \
 	--sdnotify=conmon \
 	-d awesome-image:latest
 ExecStop=/usr/bin/podman stop \
-	--ignore \
+	--ignore -t 42 \
 	--cidfile=%t/%n.ctr-id
 ExecStopPost=/usr/bin/podman rm \
 	-f \
-	--ignore \
+	--ignore -t 42 \
 	--cidfile=%t/%n.ctr-id
 Type=notify
 NotifyAccess=all
@@ -681,11 +681,11 @@ ExecStart=/usr/bin/podman container run \
 	--sdnotify=conmon \
 	-d awesome-image:latest
 ExecStop=/usr/bin/podman stop \
-	--ignore \
+	--ignore -t 10 \
 	--cidfile=%t/%n.ctr-id
 ExecStopPost=/usr/bin/podman rm \
 	-f \
-	--ignore \
+	--ignore -t 10 \
 	--cidfile=%t/%n.ctr-id
 Type=notify
 NotifyAccess=all
@@ -721,11 +721,11 @@ ExecStart=/usr/bin/podman run \
 	--log-driver=journald \
 	--log-opt=tag={{.Name}} awesome-image:latest
 ExecStop=/usr/bin/podman stop \
-	--ignore \
+	--ignore -t 10 \
 	--cidfile=%t/%n.ctr-id
 ExecStopPost=/usr/bin/podman rm \
 	-f \
-	--ignore \
+	--ignore -t 10 \
 	--cidfile=%t/%n.ctr-id
 Type=notify
 NotifyAccess=all
@@ -760,11 +760,11 @@ ExecStart=/usr/bin/podman run \
 	--name test awesome-image:latest sh \
 	-c "kill $$$$ && echo %%\\"
 ExecStop=/usr/bin/podman stop \
-	--ignore \
+	--ignore -t 10 \
 	--cidfile=%t/%n.ctr-id
 ExecStopPost=/usr/bin/podman rm \
 	-f \
-	--ignore \
+	--ignore -t 10 \
 	--cidfile=%t/%n.ctr-id
 Type=notify
 NotifyAccess=all
@@ -800,11 +800,11 @@ ExecStart=/usr/bin/podman run \
 	--conmon-pidfile=foo \
 	--cidfile=foo alpine
 ExecStop=/usr/bin/podman stop \
-	--ignore \
+	--ignore -t 10 \
 	--cidfile=%t/%n.ctr-id
 ExecStopPost=/usr/bin/podman rm \
 	-f \
-	--ignore \
+	--ignore -t 10 \
 	--cidfile=%t/%n.ctr-id
 Type=notify
 NotifyAccess=all
@@ -842,11 +842,11 @@ ExecStart=/usr/bin/podman run \
 	--cidfile=foo \
 	--pod-id-file /tmp/pod-foobar.pod-id-file alpine
 ExecStop=/usr/bin/podman stop \
-	--ignore \
+	--ignore -t 10 \
 	--cidfile=%t/%n.ctr-id
 ExecStopPost=/usr/bin/podman rm \
 	-f \
-	--ignore \
+	--ignore -t 10 \
 	--cidfile=%t/%n.ctr-id
 Type=notify
 NotifyAccess=all
@@ -883,11 +883,11 @@ ExecStart=/usr/bin/podman run \
 	--env=MYENV=2 \
 	-e USER awesome-image:latest
 ExecStop=/usr/bin/podman stop \
-	--ignore \
+	--ignore -t 10 \
 	--cidfile=%t/%n.ctr-id
 ExecStopPost=/usr/bin/podman rm \
 	-f \
-	--ignore \
+	--ignore -t 10 \
 	--cidfile=%t/%n.ctr-id
 Type=notify
 NotifyAccess=all
@@ -949,11 +949,11 @@ ExecStart=/usr/bin/podman run \
 	--sdnotify=conmon \
 	-d awesome-image:latest
 ExecStop=/usr/bin/podman stop \
-	--ignore \
+	--ignore -t 10 \
 	--cidfile=%t/%n.ctr-id
 ExecStopPost=/usr/bin/podman rm \
 	-f \
-	--ignore \
+	--ignore -t 10 \
 	--cidfile=%t/%n.ctr-id
 Type=notify
 NotifyAccess=all
@@ -986,11 +986,11 @@ ExecStart=/usr/bin/podman run \
 	-d \
 	-h hostname awesome-image:latest
 ExecStop=/usr/bin/podman stop \
-	--ignore \
+	--ignore -t 10 \
 	--cidfile=%t/%n.ctr-id
 ExecStopPost=/usr/bin/podman rm \
 	-f \
-	--ignore \
+	--ignore -t 10 \
 	--cidfile=%t/%n.ctr-id
 Type=notify
 NotifyAccess=all
@@ -1024,11 +1024,11 @@ ExecStart=/usr/bin/podman run \
 	--sdnotify=conmon \
 	-d awesome-image:latest
 ExecStop=/usr/bin/podman stop \
-	--ignore \
+	--ignore -t 10 \
 	--cidfile=%t/%n.ctr-id
 ExecStopPost=/usr/bin/podman rm \
 	-f \
-	--ignore \
+	--ignore -t 10 \
 	--cidfile=%t/%n.ctr-id
 Type=notify
 NotifyAccess=all

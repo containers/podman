@@ -317,8 +317,8 @@ func executeContainerTemplate(info *containerInfo, options entities.GenerateSyst
 		info.PIDFile = ""
 		info.ContainerIDFile = "%t/%n.ctr-id"
 		info.ExecStartPre = formatOptionsString("/bin/rm -f {{{{.ContainerIDFile}}}}")
-		info.ExecStop = formatOptionsString("{{{{.Executable}}}} stop --ignore --cidfile={{{{.ContainerIDFile}}}}")
-		info.ExecStopPost = formatOptionsString("{{{{.Executable}}}} rm -f --ignore --cidfile={{{{.ContainerIDFile}}}}")
+		info.ExecStop = formatOptionsString("{{{{.Executable}}}} stop --ignore {{{{if (ge .StopTimeout 0)}}}}-t {{{{.StopTimeout}}}}{{{{end}}}} --cidfile={{{{.ContainerIDFile}}}}")
+		info.ExecStopPost = formatOptionsString("{{{{.Executable}}}} rm -f --ignore {{{{if (ge .StopTimeout 0)}}}}-t {{{{.StopTimeout}}}}{{{{end}}}} --cidfile={{{{.ContainerIDFile}}}}")
 		// The create command must at least have three arguments:
 		// 	/usr/bin/podman run $IMAGE
 		index := 0
