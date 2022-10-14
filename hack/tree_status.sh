@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-SUGGESTION="${SUGGESTION:-sync the vendor.conf and commit all changes.}"
+SUGGESTION="${SUGGESTION:-run \"make vendor\" and commit all changes.}"
 
 STATUS=$(git status --porcelain)
 if [[ -z $STATUS ]]
@@ -11,5 +11,9 @@ else
 	echo "tree is dirty, please $SUGGESTION"
 	echo ""
 	echo "$STATUS"
+	echo ""
+	echo "---------------------- Diff below ----------------------"
+	echo ""
+	git --no-pager diff
 	exit 1
 fi
