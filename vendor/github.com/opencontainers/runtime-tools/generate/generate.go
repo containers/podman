@@ -1621,6 +1621,12 @@ func (g *Generator) SetDefaultSeccompActionForce(action string) error {
 	return seccomp.ParseDefaultActionForce(action, g.Config.Linux.Seccomp)
 }
 
+// SetDomainName sets g.Config.Domainname
+func (g *Generator) SetDomainName(domain string) {
+	g.initConfig()
+	g.Config.Domainname = domain
+}
+
 // SetSeccompArchitecture sets the supported seccomp architectures
 func (g *Generator) SetSeccompArchitecture(architecture string) error {
 	g.initConfigLinuxSeccomp()

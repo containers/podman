@@ -105,7 +105,7 @@ func newImageDestination(sys *types.SystemContext, ref dirReference) (private.Im
 			AcceptsForeignLayerURLs:        false,
 			MustMatchRuntimeOS:             false,
 			IgnoresEmbeddedDockerReference: false, // N/A, DockerReference() returns nil.
-			HasThreadSafePutBlob:           false,
+			HasThreadSafePutBlob:           true,
 		}),
 		NoPutBlobPartialInitialize: stubs.NoPutBlobPartial(ref),
 

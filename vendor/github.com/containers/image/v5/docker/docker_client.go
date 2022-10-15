@@ -1,6 +1,7 @@
 package docker
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
 	"encoding/json"
@@ -989,11 +990,22 @@ func (c *dockerClient) getOCIDescriptorContents(ctx context.Context, ref dockerR
 
 // isManifestUnknownError returns true iff err from fetchManifest is a “manifest unknown” error.
 func isManifestUnknownError(err error) bool {
+	// docker/distribution, and as defined in the spec
 	var ec errcode.ErrorCoder
-	if !errors.As(err, &ec) {
-		return false
+	if errors.As(err, &ec) && ec.ErrorCode() == v2.ErrorCodeManifestUnknown {
+		return true
 	}
-	return ec.ErrorCode() == v2.ErrorCodeManifestUnknown
+	// registry.redhat.io as of October 2022
+	var e errcode.Error
+	if errors.As(err, &e) && e.ErrorCode() == errcode.ErrorCodeUnknown && e.Message == "Not Found" {
+		return true
+	}
+	// ALSO registry.redhat.io as of October 2022
+	var unexpected *unexpectedHTTPResponseError
+	if errors.As(err, &unexpected) && unexpected.StatusCode == http.StatusNotFound && bytes.Contains(unexpected.Response, []byte("Not found")) {
+		return true
+	}
+	return false
 }
 
 // getSigstoreAttachmentManifest loads and parses the manifest for sigstore attachments for

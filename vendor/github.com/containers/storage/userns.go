@@ -123,12 +123,9 @@ func parseMountedFiles(containerMount, passwdFile, groupFile string) uint32 {
 }
 
 // getMaxSizeFromImage returns the maximum ID used by the specified image.
-// The layer stores must be already locked.
-func (s *store) getMaxSizeFromImage(image *Image, passwdFile, groupFile string) (_ uint32, retErr error) {
-	layerStores, err := s.allLayerStores()
-	if err != nil {
-		return 0, err
-	}
+// On entry, rlstore must be locked for writing, and lstores must be locked for reading.
+func (s *store) getMaxSizeFromImage(image *Image, rlstore rwLayerStore, lstores []roLayerStore, passwdFile, groupFile string) (_ uint32, retErr error) {
+	layerStores := append([]roLayerStore{rlstore}, lstores...)
 
 	size := uint32(0)
 
@@ -161,11 +158,6 @@ outer:
 			continue outer
 		}
 		return 0, fmt.Errorf("cannot find layer %q", layerName)
-	}
-
-	rlstore, err := s.getLayerStore()
-	if err != nil {
-		return 0, err
 	}
 
 	layerOptions := &LayerOptions{
@@ -223,7 +215,8 @@ outer:
 }
 
 // getAutoUserNS creates an automatic user namespace
-func (s *store) getAutoUserNS(options *types.AutoUserNsOptions, image *Image) ([]idtools.IDMap, []idtools.IDMap, error) {
+// If image != nil, On entry, rlstore must be locked for writing, and lstores must be locked for reading.
+func (s *store) getAutoUserNS(options *types.AutoUserNsOptions, image *Image, rlstore rwLayerStore, lstores []roLayerStore) ([]idtools.IDMap, []idtools.IDMap, error) {
 	requestedSize := uint32(0)
 	initialSize := uint32(1)
 	if options.Size > 0 {
@@ -262,7 +255,7 @@ func (s *store) getAutoUserNS(options *types.AutoUserNsOptions, image *Image) ([
 			size = s.autoNsMinSize
 		}
 		if image != nil {
-			sizeFromImage, err := s.getMaxSizeFromImage(image, options.PasswdFile, options.GroupFile)
+			sizeFromImage, err := s.getMaxSizeFromImage(image, rlstore, lstores, options.PasswdFile, options.GroupFile)
 			if err != nil {
 				return nil, nil, err
 			}

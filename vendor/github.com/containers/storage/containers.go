@@ -81,18 +81,8 @@ type rwContainerStore interface {
 	// convenience of the caller, nothing more.
 	Create(id string, names []string, image, layer, metadata string, options *ContainerOptions) (*Container, error)
 
-	// SetNames updates the list of names associated with the container
-	// with the specified ID.
-	// Deprecated: Prone to race conditions, suggested alternatives are `AddNames` and `RemoveNames`.
-	SetNames(id string, names []string) error
-
-	// AddNames adds the supplied values to the list of names associated with the container with
-	// the specified id.
-	AddNames(id string, names []string) error
-
-	// RemoveNames removes the supplied values from the list of names associated with the container with
-	// the specified id.
-	RemoveNames(id string, names []string) error
+	// updateNames modifies names associated with a  container based on (op, names).
+	updateNames(id string, names []string, op updateNameOperation) error
 
 	// Get retrieves information about a container given an ID or name.
 	Get(id string) (*Container, error)
@@ -386,19 +376,6 @@ func (r *containerStore) SetMetadata(id, metadata string) error {
 
 func (r *containerStore) removeName(container *Container, name string) {
 	container.Names = stringSliceWithoutValue(container.Names, name)
-}
-
-// Deprecated: Prone to race conditions, suggested alternatives are `AddNames` and `RemoveNames`.
-func (r *containerStore) SetNames(id string, names []string) error {
-	return r.updateNames(id, names, setNames)
-}
-
-func (r *containerStore) AddNames(id string, names []string) error {
-	return r.updateNames(id, names, addNames)
-}
-
-func (r *containerStore) RemoveNames(id string, names []string) error {
-	return r.updateNames(id, names, removeNames)
 }
 
 func (r *containerStore) updateNames(id string, names []string, op updateNameOperation) error {
