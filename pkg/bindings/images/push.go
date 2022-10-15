@@ -67,6 +67,7 @@ func Push(ctx context.Context, source string, destination string, options *PushO
 	}
 
 	dec := json.NewDecoder(response.Body)
+LOOP:
 	for {
 		var report entities.ImagePushReport
 		if err := dec.Decode(&report); err != nil {
@@ -78,7 +79,7 @@ func Push(ctx context.Context, source string, destination string, options *PushO
 
 		select {
 		case <-response.Request.Context().Done():
-			break
+			break LOOP
 		default:
 			// non-blocking select
 		}

@@ -199,7 +199,7 @@ func Push(ctx context.Context, name, destination string, options *images.PushOpt
 
 		select {
 		case <-response.Request.Context().Done():
-			break
+			return "", context.Canceled
 		default:
 			// non-blocking select
 		}
