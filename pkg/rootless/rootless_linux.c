@@ -506,15 +506,15 @@ create_pause_process (const char *pause_pid_file_path, char **argv)
   if (pid)
     {
       char b;
-      int r;
+      int r, r2;
 
       close (p[1]);
       /* Block until we write the pid file.  */
       r = TEMP_FAILURE_RETRY (read (p[0], &b, 1));
       close (p[0]);
 
-      r = reexec_in_user_namespace_wait (pid, 0);
-      if (r != 0)
+      r2 = reexec_in_user_namespace_wait (pid, 0);
+      if (r2 != 0)
 	return -1;
 
       return r == 1 && b == '0' ? 0 : -1;
