@@ -1,6 +1,51 @@
 # -*- bash -*-
 
 
+### Feature Checks #############################################################
+
+# has_ipv4() - Check if one default route is available for IPv4
+function has_ipv4() {
+    [ -n "$(ip -j -4 route show | jq -rM '.[] | select(.dst == "default")')" ]
+}
+
+# has_ipv6() - Check if one default route is available for IPv6
+function has_ipv6() {
+    [ -n "$(ip -j -6 route show | jq -rM '.[] | select(.dst == "default")')" ]
+}
+
+# skip_if_no_ipv4() - Skip current test if IPv4 traffic can't be routed
+# $1:	Optional message to display
+function skip_if_no_ipv4() {
+    if ! has_ipv4; then
+        local msg=$(_add_label_if_missing "$1" "IPv4")
+        skip "${msg:-not applicable with no routable IPv4}"
+    fi
+}
+
+# skip_if_no_ipv6() - Skip current test if IPv6 traffic can't be routed
+# $1:	Optional message to display
+function skip_if_no_ipv6() {
+    if ! has_ipv6; then
+        local msg=$(_add_label_if_missing "$1" "IPv6")
+        skip "${msg:-not applicable with no routable IPv6}"
+    fi
+}
+
+# has_pasta() - Check if the pasta(1) command is available
+function has_pasta() {
+    command -v pasta >/dev/null
+}
+
+# skip_if_no_pasta() - Skip current test if pasta(1) is not available
+# $1:	Optional message to display
+function skip_if_no_pasta() {
+    if ! has_pasta; then
+        local msg=$(_add_label_if_missing "$1" "pasta")
+        skip "${msg:-not applicable with no pasta binary}"
+    fi
+}
+
+
 ### procfs access ##############################################################
 
 # ipv6_to_procfs() - RFC 5952 IPv6 address text representation to procfs format
@@ -52,7 +97,21 @@ function ipv4_to_procfs() {
 }
 
 
-### Addresses ##################################################################
+### Addresses, Routes, Links ###################################################
+
+# ipv4_get_addr_global() - Print first global IPv4 address reported by netlink
+# $1:	Optional output of 'ip -j -4 address show' from a different context
+function ipv4_get_addr_global() {
+    local expr='[.[].addr_info[] | select(.scope=="global")] | .[0].local'
+    echo "${1:-$(ip -j -4 address show)}" | jq -rM "${expr}"
+}
+
+# ipv6_get_addr_global() - Print first global IPv6 address reported by netlink
+# $1:	Optional output of 'ip -j -6 address show' from a different context
+function ipv6_get_addr_global() {
+    local expr='[.[].addr_info[] | select(.scope=="global")] | .[0].local'
+    echo "${1:-$(ip -j -6 address show)}" | jq -rM "${expr}"
+}
 
 # random_rfc1918_subnet() - Pseudorandom unused subnet in 172.16/12 prefix
 #
@@ -78,6 +137,34 @@ function random_rfc1918_subnet() {
     done
 
     die "Could not find a random not-in-use rfc1918 subnet"
+}
+
+# ipv4_get_route_default() - Print first default IPv4 route reported by netlink
+# $1:	Optional output of 'ip -j -4 route show' from a different context
+function ipv4_get_route_default() {
+    local jq_expr='[.[] | select(.dst == "default").gateway] | .[0]'
+    echo "${1:-$(ip -j -4 route show)}" | jq -rM "${jq_expr}"
+}
+
+# ipv6_get_route_default() - Print first default IPv6 route reported by netlink
+# $1:	Optional output of 'ip -j -6 route show' from a different context
+function ipv6_get_route_default() {
+    local jq_expr='[.[] | select(.dst == "default").gateway] | .[0]'
+    echo "${1:-$(ip -j -6 route show)}" | jq -rM "${jq_expr}"
+}
+
+# ether_get_mtu() - Get MTU of first Ethernet-like link
+# $1:	Optional output of 'ip -j link show' from a different context
+function ether_get_mtu() {
+    local jq_expr='[.[] | select(.link_type == "ether").mtu] | .[0]'
+    echo "${1:-$(ip -j link show)}" | jq -rM "${jq_expr}"
+}
+
+# ether_get_name() - Get name of first Ethernet-like interface
+# $1:	Optional output of 'ip -j link show' from a different context
+function ether_get_name() {
+    local jq_expr='[.[] | select(.link_type == "ether").ifname] | .[0]'
+    echo "${1:-$(ip -j link show)}" | jq -rM "${jq_expr}"
 }
 
 
