@@ -129,21 +129,10 @@ type rwImageStore interface {
 	// read-only) layer.  That layer can be referenced by multiple images.
 	Create(id string, names []string, layer, metadata string, created time.Time, searchableDigest digest.Digest) (*Image, error)
 
-	// SetNames replaces the list of names associated with an image with the
-	// supplied values.  The values are expected to be valid normalized
+	// updateNames modifies names associated with an image based on (op, names).
+	// The values are expected to be valid normalized
 	// named image references.
-	// Deprecated: Prone to race conditions, suggested alternatives are `AddNames` and `RemoveNames`.
-	SetNames(id string, names []string) error
-
-	// AddNames adds the supplied values to the list of names associated with the image with
-	// the specified id. The values are expected to be valid normalized
-	// named image references.
-	AddNames(id string, names []string) error
-
-	// RemoveNames removes the supplied values from the list of names associated with the image with
-	// the specified id.  The values are expected to be valid normalized
-	// named image references.
-	RemoveNames(id string, names []string) error
+	updateNames(id string, names []string, op updateNameOperation) error
 
 	// Delete removes the record of the image.
 	Delete(id string) error
@@ -514,19 +503,6 @@ func (r *imageStore) removeName(image *Image, name string) {
 
 func (i *Image) addNameToHistory(name string) {
 	i.NamesHistory = dedupeNames(append([]string{name}, i.NamesHistory...))
-}
-
-// Deprecated: Prone to race conditions, suggested alternatives are `AddNames` and `RemoveNames`.
-func (r *imageStore) SetNames(id string, names []string) error {
-	return r.updateNames(id, names, setNames)
-}
-
-func (r *imageStore) AddNames(id string, names []string) error {
-	return r.updateNames(id, names, addNames)
-}
-
-func (r *imageStore) RemoveNames(id string, names []string) error {
-	return r.updateNames(id, names, removeNames)
 }
 
 func (r *imageStore) updateNames(id string, names []string, op updateNameOperation) error {

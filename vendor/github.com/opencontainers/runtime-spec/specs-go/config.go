@@ -12,6 +12,8 @@ type Spec struct {
 	Root *Root `json:"root,omitempty"`
 	// Hostname configures the container's hostname.
 	Hostname string `json:"hostname,omitempty"`
+	// Domainname configures the container's domainname.
+	Domainname string `json:"domainname,omitempty"`
 	// Mounts configures additional mounts (on top of Root).
 	Mounts []Mount `json:"mounts,omitempty"`
 	// Hooks configures callbacks for container lifecycle events.
@@ -117,6 +119,11 @@ type Mount struct {
 	Source string `json:"source,omitempty"`
 	// Options are fstab style mount options.
 	Options []string `json:"options,omitempty"`
+
+	// UID/GID mappings used for changing file owners w/o calling chown, fs should support it.
+	// Every mount point could have its own mapping.
+	UIDMappings []LinuxIDMapping `json:"uidMappings,omitempty" platform:"linux"`
+	GIDMappings []LinuxIDMapping `json:"gidMappings,omitempty" platform:"linux"`
 }
 
 // Hook specifies a command that is run at a particular event in the lifecycle of a container
@@ -252,8 +259,8 @@ type LinuxInterfacePriority struct {
 	Priority uint32 `json:"priority"`
 }
 
-// linuxBlockIODevice holds major:minor format supported in blkio cgroup
-type linuxBlockIODevice struct {
+// LinuxBlockIODevice holds major:minor format supported in blkio cgroup
+type LinuxBlockIODevice struct {
 	// Major is the device's major number.
 	Major int64 `json:"major"`
 	// Minor is the device's minor number.
@@ -262,7 +269,7 @@ type linuxBlockIODevice struct {
 
 // LinuxWeightDevice struct holds a `major:minor weight` pair for weightDevice
 type LinuxWeightDevice struct {
-	linuxBlockIODevice
+	LinuxBlockIODevice
 	// Weight is the bandwidth rate for the device.
 	Weight *uint16 `json:"weight,omitempty"`
 	// LeafWeight is the bandwidth rate for the device while competing with the cgroup's child cgroups, CFQ scheduler only
@@ -271,7 +278,7 @@ type LinuxWeightDevice struct {
 
 // LinuxThrottleDevice struct holds a `major:minor rate_per_second` pair
 type LinuxThrottleDevice struct {
-	linuxBlockIODevice
+	LinuxBlockIODevice
 	// Rate is the IO rate limit per cgroup per device
 	Rate uint64 `json:"rate"`
 }
@@ -330,6 +337,8 @@ type LinuxCPU struct {
 	Cpus string `json:"cpus,omitempty"`
 	// List of memory nodes in the cpuset. Default is to use any available memory node.
 	Mems string `json:"mems,omitempty"`
+	// cgroups are configured with minimum weight, 0: default behavior, 1: SCHED_IDLE.
+	Idle *int64 `json:"idle,omitempty"`
 }
 
 // LinuxPids for Linux cgroup 'pids' resource management (Linux 4.3)
@@ -524,11 +533,21 @@ type WindowsMemoryResources struct {
 
 // WindowsCPUResources contains CPU resource management settings.
 type WindowsCPUResources struct {
-	// Number of CPUs available to the container.
+	// Count is the number of CPUs available to the container. It represents the
+	// fraction of the configured processor `count` in a container in relation
+	// to the processors available in the host. The fraction ultimately
+	// determines the portion of processor cycles that the threads in a
+	// container can use during each scheduling interval, as the number of
+	// cycles per 10,000 cycles.
 	Count *uint64 `json:"count,omitempty"`
-	// CPU shares (relative weight to other containers with cpu shares).
+	// Shares limits the share of processor time given to the container relative
+	// to other workloads on the processor. The processor `shares` (`weight` at
+	// the platform level) is a value between 0 and 10000.
 	Shares *uint16 `json:"shares,omitempty"`
-	// Specifies the portion of processor cycles that this container can use as a percentage times 100.
+	// Maximum determines the portion of processor cycles that the threads in a
+	// container can use during each scheduling interval, as the number of
+	// cycles per 10,000 cycles. Set processor `maximum` to a percentage times
+	// 100.
 	Maximum *uint16 `json:"maximum,omitempty"`
 }
 
@@ -614,6 +633,19 @@ type Arch string
 
 // LinuxSeccompFlag is a flag to pass to seccomp(2).
 type LinuxSeccompFlag string
+
+const (
+	// LinuxSeccompFlagLog is a seccomp flag to request all returned
+	// actions except SECCOMP_RET_ALLOW to be logged. An administrator may
+	// override this filter flag by preventing specific actions from being
+	// logged via the /proc/sys/kernel/seccomp/actions_logged file. (since
+	// Linux 4.14)
+	LinuxSeccompFlagLog LinuxSeccompFlag = "SECCOMP_FILTER_FLAG_LOG"
+
+	// LinuxSeccompFlagSpecAllow can be used to disable Speculative Store
+	// Bypass mitigation. (since Linux 4.17)
+	LinuxSeccompFlagSpecAllow LinuxSeccompFlag = "SECCOMP_FILTER_FLAG_SPEC_ALLOW"
+)
 
 // Additional architectures permitted to be used for system calls
 // By default only the native architecture of the kernel is permitted
