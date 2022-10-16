@@ -1,6 +1,7 @@
 #!/usr/bin/env bats
 
 load helpers
+load helpers.network
 
 @test "podman run - basic tests" {
     rand=$(random_string 30)

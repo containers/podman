@@ -4,6 +4,7 @@
 #
 
 load helpers
+load helpers.network
 
 ###############################################################################
 # BEGIN one-time envariable setup

@@ -7,6 +7,7 @@
 #
 
 source "$(dirname $0)"/helpers.bash
+source "$(dirname $0)"/helpers.network.bash
 
 die() {
     echo "$(basename $0): $*" >&2

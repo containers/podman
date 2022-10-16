@@ -1,6 +1,7 @@
 # -*- bash -*-
 
 load "../system/helpers"
+load "../system/helpers.network"	# For random_free_port()
 
 setup() {
     :
