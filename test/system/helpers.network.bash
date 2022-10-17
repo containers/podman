@@ -286,3 +286,12 @@ function wait_for_port() {
 
     die "Timed out waiting for $host:$port"
 }
+
+# tcp_port_probe() - Check if a TCP port has an active listener
+# $1:	Port number
+# $2:	Optional address, 0.0.0.0 by default
+function tcp_port_probe() {
+    local address="${2:-0.0.0.0}"
+
+    : | nc "${address}" "${1}"
+}
