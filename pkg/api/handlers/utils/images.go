@@ -8,6 +8,7 @@ import (
 
 	"github.com/containers/common/libimage"
 	"github.com/containers/image/v5/docker"
+	"github.com/containers/image/v5/docker/reference"
 	storageTransport "github.com/containers/image/v5/storage"
 	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/image/v5/types"
@@ -15,7 +16,6 @@ import (
 	api "github.com/containers/podman/v4/pkg/api/types"
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/containers/storage"
-	"github.com/docker/distribution/reference"
 )
 
 // NormalizeToDockerHub normalizes the specified nameOrID to Docker Hub if the
