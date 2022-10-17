@@ -97,7 +97,6 @@ func (p *Provider) NewMachine(opts machine.InitOptions) (machine.VM, error) {
 	vm.DiskSize = opts.DiskSize
 
 	vm.Created = time.Now()
-
 	// Find the qemu executable
 	cfg, err := config.Default()
 	if err != nil {
@@ -659,39 +658,6 @@ func (v *MachineVM) Start(name string, _ machine.StartOptions) error {
 			listening = v.isListening()
 		}
 	}
-	// for _, mount := range v.Mounts {
-	// 	fmt.Printf("Mounting volume... %s:%s\n", mount.Source, mount.Target)
-	// 	// create mountpoint directory if it doesn't exist
-	// 	// because / is immutable, we have to monkey around with permissions
-	// 	// if we dont mount in /home or /mnt
-	// 	args := []string{"-q", "--"}
-	// 	if !strings.HasPrefix(mount.Target, "/home") && !strings.HasPrefix(mount.Target, "/mnt") {
-	// 		args = append(args, "sudo", "chattr", "-i", "/", ";")
-	// 	}
-	// 	args = append(args, "sudo", "mkdir", "-p", mount.Target)
-	// 	if !strings.HasPrefix(mount.Target, "/home") && !strings.HasPrefix(mount.Target, "/mnt") {
-	// 		args = append(args, ";", "sudo", "chattr", "+i", "/", ";")
-	// 	}
-	// 	err = v.SSH(name, machine.SSHOptions{Args: args})
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// 	switch mount.Type {
-	// 	case MountType9p:
-	// 		mountOptions := []string{"-t", "9p"}
-	// 		mountOptions = append(mountOptions, []string{"-o", "trans=virtio", mount.Tag, mount.Target}...)
-	// 		mountOptions = append(mountOptions, []string{"-o", "version=9p2000.L,msize=131072"}...)
-	// 		if mount.ReadOnly {
-	// 			mountOptions = append(mountOptions, []string{"-o", "ro"}...)
-	// 		}
-	// 		err = v.SSH(name, machine.SSHOptions{Args: append([]string{"-q", "--", "sudo", "mount"}, mountOptions...)})
-	// 		if err != nil {
-	// 			return err
-	// 		}
-	// 	default:
-	// 		return fmt.Errorf("unknown mount type: %s", mount.Type)
-	// 	}
-	// }
 
 	v.waitAPIAndPrintInfo(forwardState, forwardSock)
 	return nil

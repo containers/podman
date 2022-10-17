@@ -13,7 +13,6 @@ func buildMountUnits(mounts []Mount) []Unit {
 	// This creates the path.mount file, which actually mounts the target.
 	systemdMountTemplate := `[Unit]
 Description=UserVolume Mount
-Restart=on-failure
 
 [Mount]
 What=%s
@@ -32,7 +31,11 @@ Description=Ensures %s Mountpoint
 Before=%s
 
 [Service]
-ExecStart=sh -c 'chattr -i / ; mkdir -p %s ; chattr +i / ;'
+Type=oneshot
+ExecStart=sh -c 'chattr -i /'
+ExecStart=sh -c 'mkdir -p %s'
+ExecStart=sh -c 'chattr +i /'
+RemainAfterExit=yes
 
 [Install]
 WantedBy=default.target`
@@ -51,6 +54,7 @@ WantedBy=default.target`
 					mount.Tag,
 					mountUnitName,
 					mount.Target,
+					mountUnitName,
 				)),
 			}
 
