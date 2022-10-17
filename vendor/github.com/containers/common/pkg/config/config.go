@@ -579,6 +579,7 @@ type SecretConfig struct {
 // ConfigMapConfig represents the "configmap" TOML config table
 //
 // revive does not like the name because the package is already called config
+//
 //nolint:revive
 type ConfigMapConfig struct {
 	// Driver specifies the configmap driver to use.
@@ -1037,10 +1038,11 @@ func (c *Config) Capabilities(user string, addCapabilities, dropCapabilities []s
 
 // Device parses device mapping string to a src, dest & permissions string
 // Valid values for device looklike:
-//    '/dev/sdc"
-//    '/dev/sdc:/dev/xvdc"
-//    '/dev/sdc:/dev/xvdc:rwm"
-//    '/dev/sdc:rm"
+//
+//	'/dev/sdc"
+//	'/dev/sdc:/dev/xvdc"
+//	'/dev/sdc:/dev/xvdc:rwm"
+//	'/dev/sdc:rm"
 func Device(device string) (src, dst, permissions string, err error) {
 	permissions = "rwm"
 	split := strings.Split(device, ":")

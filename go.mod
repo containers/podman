@@ -12,12 +12,12 @@ require (
 	github.com/containernetworking/cni v1.1.2
 	github.com/containernetworking/plugins v1.1.1
 	github.com/containers/buildah v1.28.0
-	github.com/containers/common v0.50.2-0.20221014181637-a6a9c521b6a5
+	github.com/containers/common v0.50.2-0.20221018104440-95c452ec992c
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/image/v5 v5.23.1-0.20221015133641-1921a1993c67
 	github.com/containers/ocicrypt v1.1.6
 	github.com/containers/psgo v1.8.0
-	github.com/containers/storage v1.43.1-0.20221014174544-ebf857fda6f3
+	github.com/containers/storage v1.43.1-0.20221018232308-33c396d1aacf
 	github.com/coreos/go-systemd/v22 v22.4.0
 	github.com/coreos/stream-metadata-go v0.0.0-20210225230131-70edb9eb47b3
 	github.com/cyphar/filepath-securejoin v0.2.3
@@ -79,7 +79,7 @@ require (
 	github.com/chzyer/readline v1.5.1 // indirect
 	github.com/containerd/cgroups v1.0.4 // indirect
 	github.com/containerd/containerd v1.6.8 // indirect
-	github.com/containerd/stargz-snapshotter/estargz v0.12.0 // indirect
+	github.com/containerd/stargz-snapshotter/estargz v0.12.1 // indirect
 	github.com/containers/libtrust v0.0.0-20200511145503-9c3a6c22cd9a // indirect
 	github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
@@ -147,3 +147,5 @@ require (
 )
 
 replace github.com/opencontainers/runc => github.com/opencontainers/runc v1.1.1-0.20220617142545-8b9452f75cbc
+
+replace github.com/containers/storage => github.com/containers/storage v1.43.1-0.20221014174544-ebf857fda6f3

@@ -226,6 +226,9 @@ type NetworkOptions struct {
 	// Networks contains all networks with the PerNetworkOptions.
 	// The map should contain at least one element.
 	Networks map[string]PerNetworkOptions `json:"networks"`
+	// List of custom DNS server for podman's DNS resolver.
+	// Priority order will be kept as defined by user in the configuration.
+	DNSServers []string `json:"dns_servers,omitempty"`
 }
 
 // PortMapping is one or more ports that will be mapped into the container.

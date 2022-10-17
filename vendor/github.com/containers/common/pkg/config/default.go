@@ -685,4 +685,3 @@ func useUserConfigLocations() bool {
 	// GetRootlessUID == -1 on Windows, so exclude negative range
 	return unshare.GetRootlessUID() > 0
 }
-

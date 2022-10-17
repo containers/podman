@@ -8,7 +8,7 @@ t POST 'libpod/system/prune?volumes=true&all=true' params='' 200
 
 ## podman system df
 t GET system/df 200 '{"LayersSize":0,"Images":[],"Containers":[],"Volumes":[],"BuildCache":[],"BuilderSize":0}'
-t GET libpod/system/df 200 '{"Images":[],"Containers":[],"Volumes":[]}'
+t GET libpod/system/df 200 '{"ImagesSize":0,"Images":[],"Containers":[],"Volumes":[]}'
 
 # Create volume. We expect df to report this volume next invocation of system/df
 t GET libpod/info 200

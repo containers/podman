@@ -47,6 +47,7 @@ type SystemDfOptions struct {
 
 // SystemDfReport describes the response for df information
 type SystemDfReport struct {
+	ImagesSize int64
 	Images     []*SystemDfImageReport
 	Containers []*SystemDfContainerReport
 	Volumes    []*SystemDfVolumeReport

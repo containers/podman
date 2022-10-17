@@ -3,7 +3,6 @@ package ssh
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"net/url"
 	"os"
@@ -106,7 +105,7 @@ func ReadPassword(prompt string) (pw []byte, err error) {
 }
 
 func PublicKey(path string, passphrase []byte) (ssh.Signer, error) {
-	key, err := ioutil.ReadFile(path)
+	key, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}

@@ -52,10 +52,39 @@ function teardown() {
     is "${lines[10]}" "[0-9a-f]\{64\} *[01] * 0B" \
        "system df -v, 'Volumes', second line"
 
-    # Clean up
+    # Make sure that the return image "raw" size is correct
+    run_podman image inspect $IMAGE --format "{{.Size}}"
+    expectedSize="$output"
+
+    run_podman system df --format "{{.RawSize}}"
+    is "${lines[0]}" "$expectedSize" "raw image size is correct"
+
+    # Clean up and check reclaimable image data
+    run_podman system df --format '{{.Reclaimable}}'
+    is "${lines[0]}" "0B (0%)" "cannot reclaim image data as it's still used by the containers"
+
     run_podman exec c2 touch /stop
     run_podman wait c2
+
+    # Create a second image by committing a container.
+    run_podman container commit -q c1
+    image="$output"
+
+    run_podman system df --format '{{.Reclaimable}}'
+    is "${lines[0]}" ".* (100%)" "100 percent of image data is reclaimable because $IMAGE has unique size of 0"
+
+    # Make sure the unique size is now really 0.  We cannot use --format for
+    # that unfortunately but we can exploit the fact that $IMAGE is used by
+    # two containers.
+    run_podman system df -v
+    is "$output" ".*0B\\s\\+2.*"
+
     run_podman rm c1 c2
+
+    run_podman system df --format '{{.Reclaimable}}'
+    is "${lines[0]}" ".* (100%)" "100 percent of image data is reclaimable because all containers are gone"
+
+    run_podman rmi $image
     run_podman volume rm -a
 }
 
