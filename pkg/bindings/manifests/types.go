@@ -1,25 +1,29 @@
 package manifests
 
-//go:generate go run ../generator/generator.go InspectOptions
 // InspectOptions are optional options for inspecting manifests
+//
+//go:generate go run ../generator/generator.go InspectOptions
 type InspectOptions struct {
 }
 
-//go:generate go run ../generator/generator.go CreateOptions
 // CreateOptions are optional options for creating manifests
+//
+//go:generate go run ../generator/generator.go CreateOptions
 type CreateOptions struct {
 	All   *bool
 	Amend *bool
 }
 
-//go:generate go run ../generator/generator.go ExistsOptions
 // ExistsOptions are optional options for checking
 // if a manifest list exists
+//
+//go:generate go run ../generator/generator.go ExistsOptions
 type ExistsOptions struct {
 }
 
-//go:generate go run ../generator/generator.go AddOptions
 // AddOptions are optional options for adding manifest lists
+//
+//go:generate go run ../generator/generator.go AddOptions
 type AddOptions struct {
 	All           *bool
 	Annotation    map[string]string
@@ -35,13 +39,15 @@ type AddOptions struct {
 	SkipTLSVerify *bool `schema:"-"`
 }
 
-//go:generate go run ../generator/generator.go RemoveOptions
 // RemoveOptions are optional options for removing manifest lists
+//
+//go:generate go run ../generator/generator.go RemoveOptions
 type RemoveOptions struct {
 }
 
-//go:generate go run ../generator/generator.go ModifyOptions
 // ModifyOptions are optional options for modifying manifest lists
+//
+//go:generate go run ../generator/generator.go ModifyOptions
 type ModifyOptions struct {
 	// Operation values are "update", "remove" and "annotate". This allows the service to
 	//   efficiently perform each update on a manifest list.

@@ -8,7 +8,8 @@ import (
 )
 
 // ListenUnix follows stdlib net.Listen() API, providing a unix listener for given path
-//   ListenUnix will delete and create files/directories as needed
+//
+//	ListenUnix will delete and create files/directories as needed
 func ListenUnix(network string, path string) (net.Listener, error) {
 	// set up custom listener for API server
 	err := os.MkdirAll(filepath.Dir(path), 0770)

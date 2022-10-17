@@ -34,7 +34,8 @@ var Version = semver.MustParse("4.3.0-dev")
 
 // APIVersion provides the current and minimal API versions for compat and libpod endpoint trees
 // Note: GET|HEAD /_ping is never versioned and provides the API-Version and Libpod-API-Version headers to allow
-//       clients to shop for the Version they wish to support
+//
+//	clients to shop for the Version they wish to support
 var APIVersion = map[Tree]map[Level]semver.Version{
 	Libpod: {
 		CurrentAPI: Version,

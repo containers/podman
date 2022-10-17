@@ -74,7 +74,7 @@ type activateResponse struct {
 func validatePlugin(newPlugin *VolumePlugin) error {
 	// It's a socket. Is it a plugin?
 	// Hit the Activate endpoint to find out if it is, and if so what kind
-	req, err := http.NewRequest("POST", "http://plugin"+activatePath, nil)
+	req, err := http.NewRequest(http.MethodPost, "http://plugin"+activatePath, nil)
 	if err != nil {
 		return fmt.Errorf("making request to volume plugin %s activation endpoint: %w", newPlugin.Name, err)
 	}
@@ -90,7 +90,7 @@ func validatePlugin(newPlugin *VolumePlugin) error {
 
 	// Response code MUST be 200. Anything else, we have to assume it's not
 	// a valid plugin.
-	if resp.StatusCode != 200 {
+	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("got status code %d from activation endpoint for plugin %s: %w", resp.StatusCode, newPlugin.Name, ErrNotPlugin)
 	}
 
@@ -216,7 +216,7 @@ func (p *VolumePlugin) sendRequest(toJSON interface{}, endpoint string) (*http.R
 		}
 	}
 
-	req, err := http.NewRequest("POST", "http://plugin"+endpoint, bytes.NewReader(reqJSON))
+	req, err := http.NewRequest(http.MethodPost, "http://plugin"+endpoint, bytes.NewReader(reqJSON))
 	if err != nil {
 		return nil, fmt.Errorf("making request to volume plugin %s endpoint %s: %w", p.Name, endpoint, err)
 	}
@@ -251,7 +251,7 @@ func (p *VolumePlugin) handleErrorResponse(resp *http.Response, endpoint, volNam
 	// errors, but I don't think we can guarantee all plugins do that.
 	// Let's interpret anything other than 200 as an error.
 	// If there isn't an error, don't even bother decoding the response.
-	if resp.StatusCode != 200 {
+	if resp.StatusCode != http.StatusOK {
 		errResp, err := io.ReadAll(resp.Body)
 		if err != nil {
 			return fmt.Errorf("reading response body from volume plugin %s: %w", p.Name, err)

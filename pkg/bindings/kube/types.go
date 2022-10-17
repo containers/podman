@@ -4,8 +4,9 @@ import (
 	"net"
 )
 
-//go:generate go run ../generator/generator.go PlayOptions
 // PlayOptions are optional options for replaying kube YAML files
+//
+//go:generate go run ../generator/generator.go PlayOptions
 type PlayOptions struct {
 	// Annotations - Annotations to add to Pods
 	Annotations map[string]string

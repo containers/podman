@@ -103,17 +103,28 @@ func (r *ConmonOCIRuntime) Attach(c *Container, params *AttachOptions) error {
 	return readStdio(conn, params.Streams, receiveStdoutError, stdinDone)
 }
 
-// Attach to the given container's exec session
-// attachFd and startFd must be open file descriptors
-// attachFd must be the output side of the fd. attachFd is used for two things:
-//  conmon will first send a nonce value across the pipe indicating it has set up its side of the console socket
-//    this ensures attachToExec gets all of the output of the called process
-//  conmon will then send the exit code of the exec process, or an error in the exec session
+// Attach to the given container's exec session.
+//
+// attachFd and startFd must be open file descriptors. attachFd must be the
+// output side of the fd and is used for two things:
+//
+//  1. conmon will first send a nonce value across the pipe indicating it has
+//     set up its side of the console socket this ensures attachToExec gets all of
+//     the output of the called process.
+//
+//  2. conmon will then send the exit code of the exec process, or an error in the exec session.
+//
 // startFd must be the input side of the fd.
-// newSize resizes the tty to this size before the process is started, must be nil if the exec session has no tty
-//   conmon will wait to start the exec session until the parent process has set up the console socket.
-//   Once attachToExec successfully attaches to the console socket, the child conmon process responsible for calling runtime exec
-//     will read from the output side of start fd, thus learning to start the child process.
+//
+// newSize resizes the tty to this size before the process is started, must be
+// nil if the exec session has no tty
+//
+// conmon will wait to start the exec session until the parent process has set up the console socket.
+//
+// Once attachToExec successfully attaches to the console socket, the child
+// conmon process responsible for calling runtime exec will read from the
+// output side of start fd, thus learning to start the child process.
+//
 // Thus, the order goes as follow:
 // 1. conmon parent process sets up its console socket. sends on attachFd
 // 2. attachToExec attaches to the console socket after reading on attachFd and resizes the tty

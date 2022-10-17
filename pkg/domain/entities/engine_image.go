@@ -8,7 +8,7 @@ import (
 	"github.com/containers/podman/v4/pkg/domain/entities/reports"
 )
 
-type ImageEngine interface {
+type ImageEngine interface { //nolint:interfacebloat
 	Build(ctx context.Context, containerFiles []string, opts BuildOptions) (*BuildReport, error)
 	Config(ctx context.Context) (*config.Config, error)
 	Exists(ctx context.Context, nameOrID string) (*BoolReport, error)

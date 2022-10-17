@@ -25,11 +25,13 @@ func (o OutputErrors) PrintErrors() (lastError error) {
 	return
 }
 
-/* For remote client, server does not returns error with exit code
-   instead returns a message and we cast it to a new error.
+/*
+For remote client, server does not returns error with exit code
 
-   Following function performs parsing on build error and returns
-   exit status which was expected for this current build
+	instead returns a message and we cast it to a new error.
+
+	Following function performs parsing on build error and returns
+	exit status which was expected for this current build
 */
 func ExitCodeFromBuildError(errorMsg string) (int, error) {
 	if strings.Contains(errorMsg, "exit status") {
