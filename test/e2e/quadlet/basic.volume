@@ -1,0 +1,8 @@
+## assert-key-is Unit RequiresMountsFor "%t/containers"
+## assert-key-is Service Type oneshot
+## assert-key-is Service RemainAfterExit yes
+## assert-key-is Service ExecCondition '/usr/bin/bash -c "! /usr/bin/podman volume exists systemd-basic"'
+## assert-key-is Service ExecStart "/usr/bin/podman volume create systemd-basic"
+## assert-key-is Service SyslogIdentifier "%N"
+
+[Volume]

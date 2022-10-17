@@ -1,0 +1,4 @@
+## assert-failed
+## assert-stderr-contains "No Image key specified"
+
+[Container]

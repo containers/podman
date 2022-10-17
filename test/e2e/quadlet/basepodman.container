@@ -1,0 +1,12 @@
+## assert-podman-final-args run --name=systemd-%N --cidfile=%t/%N.cid --replace --rm -d --log-driver journald --pull=never --runtime /usr/bin/crun --cgroups=split --sdnotify=conmon imagename
+
+[Container]
+Image=imagename
+
+# Disable all default features to get as empty podman run command as we can
+RemapUsers=no
+NoNewPrivileges=no
+DropCapability=
+RunInit=no
+VolatileTmp=no
+Timezone=

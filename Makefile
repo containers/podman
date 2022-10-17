@@ -30,6 +30,7 @@ HEAD ?= HEAD
 PROJECT := github.com/containers/podman
 GIT_BASE_BRANCH ?= origin/main
 LIBPOD_INSTANCE := libpod_dev
+QUADLET_USER ?= quadlet
 PREFIX ?= /usr/local
 BINDIR ?= ${PREFIX}/bin
 LIBEXECDIR ?= ${PREFIX}/libexec
@@ -42,6 +43,8 @@ USERTMPFILESDIR ?= ${PREFIX}/share/user-tmpfiles.d
 MODULESLOADDIR ?= ${PREFIX}/lib/modules-load.d
 SYSTEMDDIR ?= ${PREFIX}/lib/systemd/system
 USERSYSTEMDDIR ?= ${PREFIX}/lib/systemd/user
+SYSTEMDGENERATORSDIR ?= ${PREFIX}/lib/systemd/system-generators
+USERSYSTEMDGENERATORSDIR ?= ${PREFIX}/lib/systemd/user-generators
 REMOTETAGS ?= remote exclude_graphdriver_btrfs btrfs_noversion exclude_graphdriver_devicemapper containers_image_openpgp
 BUILDTAGS ?= \
 	$(shell hack/apparmor_tag.sh) \
@@ -109,6 +112,7 @@ LDFLAGS_PODMAN ?= \
 	-X $(LIBPOD)/config._installPrefix=$(PREFIX) \
 	-X $(LIBPOD)/config._etcDir=$(ETCDIR) \
 	-X github.com/containers/common/pkg/config.additionalHelperBinariesDir=$(HELPER_BINARIES_DIR)\
+	-X $(PROJECT)/v4/pkg/quadlet.QuadletUserName=$(QUADLET_USER) \
 	$(EXTRA_LDFLAGS)
 LDFLAGS_PODMAN_STATIC ?= \
 	$(LDFLAGS_PODMAN) \
@@ -206,7 +210,7 @@ all: binaries docs
 ifeq ($(shell uname -s),FreeBSD)
 binaries: podman podman-remote ## Build podman and podman-remote binaries
 else
-binaries: podman podman-remote rootlessport ## Build podman, podman-remote and rootlessport binaries
+binaries: podman podman-remote rootlessport quadlet ## Build podman, podman-remote and rootlessport binaries quadlet
 endif
 
 # Extract text following double-# for targets, as their description for
@@ -336,6 +340,16 @@ podman: bin/podman
 # This will map to the right thing on Linux, Windows, and Mac.
 .PHONY: podman-remote
 podman-remote: $(SRCBINDIR)/podman$(BINSFX)
+
+$(SRCBINDIR)/quadlet: $(SOURCES) go.mod go.sum
+	$(GOCMD) build \
+		$(BUILDFLAGS) \
+		$(GO_LDFLAGS) '$(LDFLAGS_PODMAN)' \
+		-tags "${BUILDTAGS}" \
+		-o $@ ./cmd/quadlet
+
+.PHONY: quadlet
+quadlet: bin/quadlet
 
 PHONY: podman-remote-static
 podman-remote-static: $(SRCBINDIR)/podman-remote-static
@@ -771,6 +785,11 @@ ifneq ($(shell uname -s),FreeBSD)
 	install ${SELINUXOPT} -m 755 bin/rootlessport $(DESTDIR)$(LIBEXECPODMAN)/rootlessport
 endif
 	test -z "${SELINUXOPT}" || chcon --verbose --reference=$(DESTDIR)$(LIBEXECPODMAN)/rootlessport bin/rootlessport
+	install ${SELINUXOPT} -m 755 bin/quadlet $(DESTDIR)$(LIBEXECPODMAN)/quadlet
+	install ${SELINUXOPT} -d -m 755 $(DESTDIR)$(SYSTEMDGENERATORSDIR)
+	ln -sfr $(DESTDIR)$(LIBEXECPODMAN)/quadlet $(DESTDIR)$(SYSTEMDGENERATORSDIR)/podman-system-generator
+	install ${SELINUXOPT} -d -m 755 $(DESTDIR)$(USERSYSTEMDGENERATORSDIR)
+	ln -sfr $(DESTDIR)$(LIBEXECPODMAN)/quadlet $(DESTDIR)$(USERSYSTEMDGENERATORSDIR)/podman-user-generator
 	install ${SELINUXOPT} -m 755 -d ${DESTDIR}${TMPFILESDIR}
 	install ${SELINUXOPT} -m 644 contrib/tmpfile/podman.conf ${DESTDIR}${TMPFILESDIR}/podman.conf
 

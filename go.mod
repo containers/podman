@@ -39,6 +39,7 @@ require (
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/json-iterator/go v1.1.12
 	github.com/mattn/go-isatty v0.0.16
+	github.com/mattn/go-shellwords v1.0.12
 	github.com/moby/term v0.0.0-20210619224110-3f7ff695adc6
 	github.com/nxadm/tail v1.4.8
 	github.com/onsi/ginkgo v1.16.5
@@ -105,7 +106,6 @@ require (
 	github.com/letsencrypt/boulder v0.0.0-20220723181115-27de4befb95e // indirect
 	github.com/manifoldco/promptui v0.9.0 // indirect
 	github.com/mattn/go-runewidth v0.0.13 // indirect
-	github.com/mattn/go-shellwords v1.0.12 // indirect
 	github.com/miekg/pkcs11 v1.1.1 // indirect
 	github.com/mistifyio/go-zfs/v3 v3.0.0 // indirect
 	github.com/moby/sys/mount v0.3.3 // indirect

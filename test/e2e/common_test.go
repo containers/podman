@@ -47,6 +47,7 @@ var (
 type PodmanTestIntegration struct {
 	PodmanTest
 	ConmonBinary        string
+	QuadletBinary       string
 	Root                string
 	NetworkConfigDir    string
 	OCIRuntime          string
@@ -212,6 +213,11 @@ func PodmanTestCreateUtil(tempDir string, remote bool) *PodmanTestIntegration {
 		podmanRemoteBinary = os.Getenv("PODMAN_REMOTE_BINARY")
 	}
 
+	quadletBinary := filepath.Join(cwd, "../../bin/quadlet")
+	if os.Getenv("QUADLET_BINARY") != "" {
+		quadletBinary = os.Getenv("QUADLET_BINARY")
+	}
+
 	conmonBinary := "/usr/libexec/podman/conmon"
 	altConmonBinary := "/usr/bin/conmon"
 	if _, err := os.Stat(conmonBinary); os.IsNotExist(err) {
@@ -280,6 +286,7 @@ func PodmanTestCreateUtil(tempDir string, remote bool) *PodmanTestIntegration {
 			NetworkBackend:     networkBackend,
 		},
 		ConmonBinary:        conmonBinary,
+		QuadletBinary:       quadletBinary,
 		Root:                root,
 		TmpDir:              tempDir,
 		NetworkConfigDir:    networkConfigDir,
@@ -511,6 +518,19 @@ func (p *PodmanTestIntegration) PodmanPID(args []string) (*PodmanSessionIntegrat
 	}
 	podmanSession := &PodmanSession{Session: session}
 	return &PodmanSessionIntegration{podmanSession}, command.Process.Pid
+}
+
+func (p *PodmanTestIntegration) Quadlet(args []string, sourceDir string) *PodmanSessionIntegration {
+	fmt.Printf("Running: %s %s with QUADLET_UNIT_DIRS=%s\n", p.QuadletBinary, strings.Join(args, " "), sourceDir)
+
+	command := exec.Command(p.QuadletBinary, args...)
+	command.Env = []string{fmt.Sprintf("QUADLET_UNIT_DIRS=%s", sourceDir)}
+	session, err := Start(command, GinkgoWriter, GinkgoWriter)
+	if err != nil {
+		Fail("unable to run quadlet command: " + strings.Join(args, " "))
+	}
+	quadletSession := &PodmanSession{Session: session}
+	return &PodmanSessionIntegration{quadletSession}
 }
 
 // Cleanup cleans up the temporary store
