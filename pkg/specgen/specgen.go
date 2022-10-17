@@ -581,6 +581,8 @@ var (
 	// ErrNoStaticMACRootless is used when a rootless user requests to assign a static MAC address
 	// to a pod or container
 	ErrNoStaticMACRootless = errors.New("rootless containers and pods cannot be assigned static MAC addresses")
+	// Multiple volume mounts to the same destination is not allowed
+	ErrDuplicateDest = errors.New("duplicate mount destination")
 )
 
 // NewSpecGenerator returns a SpecGenerator struct given one of two mandatory inputs
@@ -606,4 +608,16 @@ func NewSpecGenerator(arg string, rootfs bool) *SpecGenerator {
 func NewSpecGeneratorWithRootfs(rootfs string) *SpecGenerator {
 	csc := ContainerStorageConfig{Rootfs: rootfs}
 	return &SpecGenerator{ContainerStorageConfig: csc}
+}
+
+func StringSlicesEqual(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i, v := range a {
+		if v != b[i] {
+			return false
+		}
+	}
+	return true
 }
