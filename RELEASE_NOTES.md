@@ -6,7 +6,7 @@
 - A new command, `podman update`, has been added,which makes changes to the resource limits of existing containers. Please note that these changes do not persist if the container is restarted ([#15067](https://github.com/containers/podman/issues/15067)).
 - A new command, `podman kube down`, has been added, which removes pods and containers created by the given Kubernetes YAML (functionality is identical to `podman kube play --down`, but it now has its own command).
 - The `podman kube play` command now supports Kubernetes secrets using Podman's secrets backend.
-- Systemd-managed pods created by the `podman kube play` command now integrates with sd-notify, using the `io.containers.sdnotify` annotation (or `io.containers.sdnotify/$name` for specific containers).
+- Systemd-managed pods created by the `podman kube play` command now integrate with sd-notify, using the `io.containers.sdnotify` annotation (or `io.containers.sdnotify/$name` for specific containers).
 - Systemd-managed pods created by `podman kube play` can now be auto-updated, using the `io.containers.auto-update` annotation (or `io.containers.auto-update/$name` for specific containers).
 - The `podman kube play` command can now read YAML from URLs, e.g. `podman kube play https://example.com/demo.yml` ([#14955](https://github.com/containers/podman/issues/14955)).
 - The `podman kube play` command now supports the `emptyDir` volume type ([#13309](https://github.com/containers/podman/issues/13309)).
@@ -40,13 +40,13 @@
 - The remote Podman client now supports proxying signals for attach sessions when the `--sig-proxy` option is set ([#14707](https://github.com/containers/podman/issues/14707)).
 
 ### Changes
-- Duplicate volume mounts are now allowed, so long as source, destination, and options all match ([#4217](https://github.com/containers/podman/issues/4217)).
+- Duplicate volume mounts are now allowed with the `-v` option to `podman run`, `podman create`, and `podman pod create`, so long as source, destination, and options all match ([#4217](https://github.com/containers/podman/issues/4217)).
 - The `podman generate kube` and `podman play kube` commands have been renamed to `podman kube generate` and `podman kube play` to group Kubernetes-related commands. Aliases have been added to ensure the old command names still function.
 - A number of Podman commands (`podman init`, `podman container checkpoint`, `podman container restore`, `podman container cleanup`) now print the user-inputted name of the container, instead of its full ID, on success.
 - When an unsupported option (e.g. resource limit) is specified for a rootless container on a cgroups v1 system, a warning message is now printed that the limit will not be honored.
 - The installer for the Windows Podman client has been improved.
 - The `--cpu-rt-period` and `--cpu-rt-runtime` options to `podman run` and `podman create` now print a warning and are ignored on cgroups v2 systems (cgroups v2 having dropped support for these controllers) ([#15666](https://github.com/containers/podman/issues/15666)).
-- Privileged containers running systemd will no longer mount `/dev/tty*` into the container ([#15878](https://github.com/containers/podman/issues/15878)).
+- Privileged containers running systemd will no longer mount `/dev/tty*` devices other than `/dev/tty` itself into the container ([#15878](https://github.com/containers/podman/issues/15878)).
 - Events for containers that are part of a pod now include the ID of the pod in the event.
 - SSH functionality for `podman machine` commands has seen a thorough rework, addressing many issues about authentication.
 - The `--network` option to `podman kube play` now allows passing `host` to set the pod to use host networking, even if the YAML does not request this.
@@ -54,12 +54,12 @@
 - Pods created by `podman play kube` are now, by default, placed into a network named `podman-kube`. If the `podman-kube` network does not exist, it will be created. This ensures pods can connect to each other by their names, as the network has DNS enabled.
 
 ### Bugfixes
-- Fixed a bug where the `podman network prune` and `podman container prune` commands did not properly support the `--filer label!=` option ([#14182](https://github.com/containers/podman/issues/14182)).
+- Fixed a bug where the `podman network prune` and `podman container prune` commands did not properly support the `--filter label!=` option ([#14182](https://github.com/containers/podman/issues/14182)).
 - Fixed a bug where the `podman kube generate` command added an unnecessary `Secret: null` line to generated YAML ([#15156](https://github.com/containers/podman/issues/15156)).
 - Fixed a bug where the `podman kube generate` command did not set `enableServiceLinks` and `automountServiceAccountToken` to false in generated YAML ([#15478](https://github.com/containers/podman/issues/15478) and [#15243](https://github.com/containers/podman/issues/15243)).
 - Fixed a bug where the `podman kube play` command did not properly handle CPU limits ([#15726](https://github.com/containers/podman/issues/15726)).
 - Fixed a bug where the `podman kube play` command did not respect default values for liveness probes ([#15855](https://github.com/containers/podman/issues/15855)).
-- Fixed a bug where the `podman kube play` command did not bind ports if `hostPort` was not specified but `containerPort` was not ([#15942](https://github.com/containers/podman/issues/15942)).
+- Fixed a bug where the `podman kube play` command did not bind ports if `hostPort` was not specified but `containerPort` was ([#15942](https://github.com/containers/podman/issues/15942)).
 - Fixed a bug where the `podman kube play` command sometimes did not create directories on the host for `hostPath` volumes.
 - Fixed a bug where the remote Podman client's `podman manifest push` command did not display progress.
 - Fixed a bug where the `--filter "{{.Config.Healthcheck}}"` option to `podman image inspect` did not print the image's configured healthcheck ([#14661](https://github.com/containers/podman/issues/14661)).
@@ -68,12 +68,12 @@
 - Fixed a bug where API forwarding with `podman machine` VMs on windows could sometimes fail because the pipe was not created in time ([#14811](https://github.com/containers/podman/issues/14811)).
 - Fixed a bug where the `podman pod rm` command could error if removal of a container in the pod was interrupted by a reboot.
 - Fixed a bug where the `exited` and `exec died` events for containers did not include the container's labels ([#15617](https://github.com/containers/podman/issues/15617)).
-- Fixed a bug where running Systemd containers on a systemd not using Systemd as PID 1 could fail ([#15647](https://github.com/containers/podman/issues/15647)).
+- Fixed a bug where running Systemd containers on a system not using Systemd as PID 1 could fail ([#15647](https://github.com/containers/podman/issues/15647)).
 - Fixed a bug where Podman did not pass all necessary environment variables (including `$PATH`) to Conmon when starting containers ([#15707](https://github.com/containers/podman/issues/15707)).
 - Fixed a bug where the `podman events` command could function improperly when no events were present ([#15688](https://github.com/containers/podman/issues/15688)).
 - Fixed a bug where the `--format` flag to various Podman commands did not properly handle template strings including a newline (`\n`) ([#13446](https://github.com/containers/podman/issues/13446)).
 - Fixed a bug where Systemd-managed pods would kill every container in a pod when a single container exited ([#14546](https://github.com/containers/podman/issues/14546)).
-- Fixed a bug where the `podman generate systemd` command would generate incorrect yAML for pods created without the `--name` option.
+- Fixed a bug where the `podman generate systemd` command would generate incorrect YAML for pods created without the `--name` option.
 - Fixed a bug where the `podman generate systemd --new` command did not properly set stop timeout ([#16149](https://github.com/containers/podman/issues/16149)).
 - Fixed a bug where a broken OCI spec resulting from the system rebooting while a container is being started could cause the `podman inspect` command to be unable to inspect the container until it was restarted.
 - Fixed a bug where creating a container with a working directory on an overlay volume would result in the container being unable to start ([#15789](https://github.com/containers/podman/issues/15789)).
@@ -84,16 +84,16 @@
 - Fixed a bug where the `podman machine list --format json` command did not properly show machine starting status.
 - Fixed a bug where automatic updates would not error when attempting to update a container with a non-fully qualified image name ([#15879](https://github.com/containers/podman/issues/15879)).
 - Fixed a bug where the `podman pod logs --latest` command could panic ([#15556](https://github.com/containers/podman/issues/15556)).
-- Fixed a bug where Podman could leave lingering network namespace mounts on the system if cleaning up the network failed for an unrelated reason.
+- Fixed a bug where Podman could leave lingering network namespace mounts on the system if cleaning up the network failed.
 - Fixed a bug where specifying an unsupported URI scheme for `podman system service` to listen at would result in a panic.
 - Fixed a bug where the `podman kill` command would sometimes not transition containers to the exited state ([#16142](https://github.com/containers/podman/issues/16142)).
 
 ### API
 - Fixed a bug where the Compat DF endpoint reported incorrect reference counts for volumes ([#15720](https://github.com/containers/podman/issues/15720)).
-- Fixed a bug where the Compat Inspect endpoint for Networks where an incorrect network option was displayed, causing issues with `docker-compose` ([#15580](https://github.com/containers/podman/issues/15580)).
+- Fixed a bug in the Compat Inspect endpoint for Networks where an incorrect network option was displayed, causing issues with `docker-compose` ([#15580](https://github.com/containers/podman/issues/15580)).
 - The Libpod Restore endpoint for Containers now features a new query parameter, `pod`, to set the pod that the container will be restored into ([#15018](https://github.com/containers/podman/issues/15018)).
 - Fixed a bug where the REST API could panic while retrieving images.
-- Fixed a bug where a cancelled connection to several endpoints could, potentially, induce a memory leak.
+- Fixed a bug where a cancelled connection to several endpoints could induce a memory leak.
 
 ### Misc
 - Error messages when attempting to remove an image used by a non-Podman container have been improved ([#15006](https://github.com/containers/podman/issues/15006)).
