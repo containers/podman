@@ -34,7 +34,6 @@ import (
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/openshift/imagebuilder"
-	"github.com/openshift/imagebuilder/dockerfile/parser"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/semaphore"
 )
@@ -412,8 +411,6 @@ func buildDockerfilesOnce(ctx context.Context, store storage.Store, logger *logr
 		}
 	}
 
-	warnOnUnsetBuildArgs(logger, mainNode, options.Args)
-
 	for i, d := range dockerfilecontents[1:] {
 		additionalNode, err := imagebuilder.ParseDockerfile(bytes.NewReader(d))
 		if err != nil {
@@ -473,31 +470,6 @@ func buildDockerfilesOnce(ctx context.Context, store storage.Store, logger *logr
 		stages = stagesTargeted
 	}
 	return exec.Build(ctx, stages)
-}
-
-func warnOnUnsetBuildArgs(logger *logrus.Logger, node *parser.Node, args map[string]string) {
-	argFound := make(map[string]bool)
-	for _, child := range node.Children {
-		switch strings.ToUpper(child.Value) {
-		case "ARG":
-			argName := child.Next.Value
-			if strings.Contains(argName, "=") {
-				res := strings.Split(argName, "=")
-				if res[1] != "" {
-					argFound[res[0]] = true
-				}
-			}
-			argHasValue := true
-			if !strings.Contains(argName, "=") {
-				argHasValue = argFound[argName]
-			}
-			if _, ok := args[argName]; !argHasValue && !ok {
-				logger.Warnf("missing %q build argument. Try adding %q to the command line", argName, fmt.Sprintf("--build-arg %s=<VALUE>", argName))
-			}
-		default:
-			continue
-		}
-	}
 }
 
 // preprocessContainerfileContents runs CPP(1) in preprocess-only mode on the input

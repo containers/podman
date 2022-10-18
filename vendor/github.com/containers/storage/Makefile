@@ -120,6 +120,6 @@ vendor-in-container:
 	podman run --privileged --rm --env HOME=/root -v `pwd`:/src -w /src golang make vendor
 
 vendor:
-	$(GO) mod tidy
+	$(GO) mod tidy -compat=1.17
 	$(GO) mod vendor
 	$(GO) mod verify

@@ -547,8 +547,9 @@ func makeRuntime(runtime *Runtime) (retErr error) {
 	// This ensures that no two processes will be in runtime.refresh at once
 	aliveLock.Lock()
 	doRefresh := false
+	aliveLockLocked := true
 	defer func() {
-		if aliveLock.Locked() {
+		if aliveLockLocked {
 			aliveLock.Unlock()
 		}
 	}()
@@ -569,6 +570,7 @@ func makeRuntime(runtime *Runtime) (retErr error) {
 				}
 			}
 			aliveLock.Unlock() // Unlock to avoid deadlock as BecomeRootInUserNS will reexec.
+			aliveLockLocked = false
 			pausePid, err := util.GetRootlessPauseProcessPidPathGivenDir(runtime.config.Engine.TmpDir)
 			if err != nil {
 				return fmt.Errorf("could not get pause process pid file path: %w", err)

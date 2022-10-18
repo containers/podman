@@ -73,21 +73,23 @@ const (
 // or root directory. Mounts are always done relative to root and
 // referencing the symbolic links in order to ensure the number of
 // lower directories can fit in a single page for making the mount
-// syscall. A hard upper limit of 128 lower layers is enforced to ensure
+// syscall. A hard upper limit of 500 lower layers is enforced to ensure
 // that mounts do not fail due to length.
 
 const (
 	linkDir   = "l"
 	lowerFile = "lower"
-	maxDepth  = 128
+	maxDepth  = 500
 
 	// idLength represents the number of random characters
 	// which can be used to create the unique link identifier
 	// for every layer. If this value is too long then the
 	// page size limit for the mount command may be exceeded.
 	// The idLength should be selected such that following equation
-	// is true (512 is a buffer for label metadata).
-	// ((idLength + len(linkDir) + 1) * maxDepth) <= (pageSize - 512)
+	// is true (512 is a buffer for label metadata, 128 is the
+	// number of lowers we want to be able to use without having
+	// to use bind mounts to get all the way to the kernel limit).
+	// ((idLength + len(linkDir) + 1) * 128) <= (pageSize - 512)
 	idLength = 26
 )
 
@@ -1378,7 +1380,8 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 
 	// absLowers is the list of lowers as absolute paths, which works well with additional stores.
 	absLowers := []string{}
-	// relLowers is the list of lowers as paths relative to the driver's home directory.
+	// relLowers is the list of lowers as paths relative to the driver's home directory.  If
+	// additional stores are being used, some of these will still be absolute paths.
 	relLowers := []string{}
 
 	// Check if $link/../diff{1-*} exist.  If they do, add them, in order, as the front of the lowers
@@ -1435,6 +1438,7 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 						perms = os.FileMode(st2.Mode())
 						permsKnown = true
 					}
+					l = lower
 					break
 				}
 				lower = ""
@@ -1606,13 +1610,12 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 			return nil
 		}
 	} else if len(mountData) >= pageSize {
-		// Use relative paths and mountFrom when the mount data has exceeded
+		// Use (possibly) relative paths and mountFrom when the mount data has exceeded
 		// the page size. The mount syscall fails if the mount data cannot
 		// fit within a page and relative links make the mount data much
-		// smaller at the expense of requiring a fork exec to chroot.
+		// smaller at the expense of requiring a fork exec to chdir().
 
 		workdir = path.Join(id, "work")
-		//FIXME: We need to figure out to get this to work with additional stores
 		if readWrite {
 			diffDir := path.Join(id, "diff")
 			opts = fmt.Sprintf("lowerdir=%s,upperdir=%s,workdir=%s", strings.Join(relLowers, ":"), diffDir, workdir)
@@ -1623,11 +1626,8 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 			opts = fmt.Sprintf("%s,%s", opts, strings.Join(optsList, ","))
 		}
 		mountData = label.FormatMountLabel(opts, options.MountLabel)
-		if len(mountData) >= pageSize {
-			return "", fmt.Errorf("cannot mount layer, mount label %q too large %d >= page size %d", options.MountLabel, len(mountData), pageSize)
-		}
 		mountFunc = func(source string, target string, mType string, flags uintptr, label string) error {
-			return mountFrom(d.home, source, target, mType, flags, label)
+			return mountOverlayFrom(d.home, source, target, mType, flags, label)
 		}
 		mountTarget = path.Join(id, "merged")
 	}

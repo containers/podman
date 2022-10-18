@@ -864,7 +864,7 @@ func TarWithOptions(srcPath string, options *TarOptions) (io.ReadCloser, error) 
 			rebaseName := options.RebaseNames[include]
 
 			walkRoot := getWalkRoot(srcPath, include)
-			filepath.WalkDir(walkRoot, func(filePath string, d fs.DirEntry, err error) error {
+			if err := filepath.WalkDir(walkRoot, func(filePath string, d fs.DirEntry, err error) error {
 				if err != nil {
 					logrus.Errorf("Tar: Can't stat file %s to tar: %s", srcPath, err)
 					return nil
@@ -891,8 +891,7 @@ func TarWithOptions(srcPath string, options *TarOptions) (io.ReadCloser, error) 
 				if include != relFilePath {
 					matches, err := pm.IsMatch(relFilePath)
 					if err != nil {
-						logrus.Errorf("Matching %s: %v", relFilePath, err)
-						return err
+						return fmt.Errorf("matching %s: %w", relFilePath, err)
 					}
 					skip = matches
 				}
@@ -955,7 +954,10 @@ func TarWithOptions(srcPath string, options *TarOptions) (io.ReadCloser, error) 
 					}
 				}
 				return nil
-			})
+			}); err != nil {
+				logrus.Errorf("%s", err)
+				return
+			}
 		}
 	}()
 
