@@ -54,7 +54,8 @@ func registryHTTPResponseToError(res *http.Response) error {
 		if len(response) > 50 {
 			response = response[:50] + "..."
 		}
-		err = fmt.Errorf("StatusCode: %d, %s", e.StatusCode, response)
+		// %.0w makes e visible to error.Unwrap() without including any text
+		err = fmt.Errorf("StatusCode: %d, %s%.0w", e.StatusCode, response, e)
 	}
 	return err
 }
