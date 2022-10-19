@@ -41,7 +41,9 @@ function teardown() {
 function _start_socat() {
     _SOCAT_LOG="$PODMAN_TMPDIR/socat.log"
 
+    # Reset socat logfile to empty
     rm -f $_SOCAT_LOG
+    touch $_SOCAT_LOG
     # Execute in subshell so we can close fd3 (which BATS uses).
     # This is a superstitious ritual to try to avoid leaving processes behind,
     # and thus prevent CI hangs.
