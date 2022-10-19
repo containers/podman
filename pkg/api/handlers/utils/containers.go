@@ -69,7 +69,7 @@ func WaitContainerDocker(w http.ResponseWriter, r *http.Request) {
 	// In docker compatibility mode we have to send headers in advance,
 	// otherwise docker client would freeze.
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
+	w.WriteHeader(http.StatusOK)
 	if flusher, ok := w.(http.Flusher); ok {
 		flusher.Flush()
 	}

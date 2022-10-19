@@ -605,11 +605,37 @@ func runMakeStdioPipe(uid, gid int) ([][]int, error) {
 }
 
 func setupNamespaces(logger *logrus.Logger, g *generate.Generator, namespaceOptions define.NamespaceOptions, idmapOptions define.IDMappingOptions, policy define.NetworkConfigurationPolicy) (configureNetwork bool, configureNetworks []string, configureUTS bool, err error) {
+	defaultContainerConfig, err := config.Default()
+	if err != nil {
+		return false, nil, false, fmt.Errorf("failed to get container config: %w", err)
+	}
+
+	addSysctl := func(prefixes []string) error {
+		for _, sysctl := range defaultContainerConfig.Sysctls() {
+			splitn := strings.SplitN(sysctl, "=", 2)
+			if len(splitn) > 2 {
+				return fmt.Errorf("sysctl %q defined in containers.conf must be formatted name=value", sysctl)
+			}
+			for _, prefix := range prefixes {
+				if strings.HasPrefix(splitn[0], prefix) {
+					g.AddLinuxSysctl(splitn[0], splitn[1])
+				}
+			}
+		}
+		return nil
+	}
+
 	// Set namespace options in the container configuration.
 	configureUserns := false
 	specifiedNetwork := false
 	for _, namespaceOption := range namespaceOptions {
 		switch namespaceOption.Name {
+		case string(specs.IPCNamespace):
+			if !namespaceOption.Host {
+				if err := addSysctl([]string{"fs.mqueue"}); err != nil {
+					return false, nil, false, err
+				}
+			}
 		case string(specs.UserNamespace):
 			configureUserns = false
 			if !namespaceOption.Host && namespaceOption.Path == "" {
@@ -627,8 +653,13 @@ func setupNamespaces(logger *logrus.Logger, g *generate.Generator, namespaceOpti
 			}
 		case string(specs.UTSNamespace):
 			configureUTS = false
-			if !namespaceOption.Host && namespaceOption.Path == "" {
-				configureUTS = true
+			if !namespaceOption.Host {
+				if namespaceOption.Path == "" {
+					configureUTS = true
+				}
+				if err := addSysctl([]string{"kernel.hostname", "kernel.domainame"}); err != nil {
+					return false, nil, false, err
+				}
 			}
 		}
 		if namespaceOption.Host {
@@ -684,7 +715,10 @@ func setupNamespaces(logger *logrus.Logger, g *generate.Generator, namespaceOpti
 			}
 		}
 	}
-	if configureNetwork && !unshare.IsRootless() {
+	if configureNetwork {
+		if err := addSysctl([]string{"net"}); err != nil {
+			return false, nil, false, err
+		}
 		for name, val := range define.DefaultNetworkSysctl {
 			// Check that the sysctl we are adding is actually supported
 			// by the kernel

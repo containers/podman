@@ -29,7 +29,8 @@ func NewAPIDecoder() *schema.Decoder {
 }
 
 // On client:
-// 	v := map[string][]string{
+//
+//	v := map[string][]string{
 //		"dangling": {"true"},
 //	}
 //

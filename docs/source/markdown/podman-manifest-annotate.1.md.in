@@ -12,9 +12,7 @@ Adds or updates information about an image included in a manifest list or image 
 
 ## OPTIONS
 
-#### **--annotation**=*annotation=value*
-
-Set an annotation on the entry for the specified image.
+@@option annotation.manifest
 
 #### **--arch**
 
@@ -36,10 +34,7 @@ information, so it is rarely necessary to use this option.
 Specify the OS features list which the list or index records as requirements
 for the image.  This option is rarely used.
 
-#### **--os-version**
-
-Specify the OS version which the list or index records as a requirement for the
-image.  This option is rarely used.
+@@option os-version
 
 @@option variant.manifest
 

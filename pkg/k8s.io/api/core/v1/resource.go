@@ -26,6 +26,7 @@ func (rn ResourceName) String() string {
 }
 
 // Cpu returns the Cpu limit if specified.
+//
 //nolint:revive,stylecheck
 func (rl *ResourceList) Cpu() *resource.Quantity {
 	return rl.Name(ResourceCPU, resource.DecimalSI)

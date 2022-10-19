@@ -13,7 +13,7 @@ import (
 
 type ContainerCopyFunc func() error
 
-type ContainerEngine interface {
+type ContainerEngine interface { //nolint:interfacebloat
 	AutoUpdate(ctx context.Context, options AutoUpdateOptions) ([]*AutoUpdateReport, []error)
 	Config(ctx context.Context) (*config.Config, error)
 	ContainerAttach(ctx context.Context, nameOrID string, options AttachOptions) error

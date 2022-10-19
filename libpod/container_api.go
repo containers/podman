@@ -17,6 +17,7 @@ import (
 	"github.com/containers/storage/pkg/archive"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/sys/unix"
 )
 
 // Init creates a container in the OCI runtime, moving a container from
@@ -243,7 +244,12 @@ func (c *Container) Kill(signal uint) error {
 
 	c.newContainerEvent(events.Kill)
 
-	return c.save()
+	// Make sure to wait for the container to exit in case of SIGKILL.
+	if signal == uint(unix.SIGKILL) {
+		return c.waitForConmonToExitAndSave()
+	}
+
+	return nil
 }
 
 // Attach attaches to a container.
@@ -273,7 +279,7 @@ func (c *Container) Attach(streams *define.AttachStreams, keys string, resize <-
 	// Send a SIGWINCH after attach succeeds so that most programs will
 	// redraw the screen for the new attach session.
 	attachRdy := make(chan bool, 1)
-	if c.config.Spec.Process != nil && c.config.Spec.Process.Terminal {
+	if c.Terminal() {
 		go func() {
 			<-attachRdy
 			if err := c.ociRuntime.KillContainer(c, uint(signal.SIGWINCH), false); err != nil {
@@ -515,6 +521,12 @@ func (c *Container) WaitForExit(ctx context.Context, pollInterval time.Duration)
 	var conmonTimer time.Timer
 	conmonTimerSet := false
 
+	conmonPidFd := c.getConmonPidFd()
+	if conmonPidFd != -1 {
+		defer unix.Close(conmonPidFd)
+	}
+	conmonPidFdTriggered := false
+
 	getExitCode := func() (bool, int32, error) {
 		containerRemoved := false
 		if !c.batched {
@@ -582,7 +594,18 @@ func (c *Container) WaitForExit(ctx context.Context, pollInterval time.Duration)
 		case <-ctx.Done():
 			return -1, fmt.Errorf("waiting for exit code of container %s canceled", id)
 		default:
-			time.Sleep(pollInterval)
+			if conmonPidFd != -1 && !conmonPidFdTriggered {
+				// If possible (pidfd works), the first cycle we block until conmon dies
+				// If this happens, and we fall back to the old poll delay
+				// There is a deadlock in the cleanup code for "play kube" which causes
+				// conmon to not exit, so unfortunately we have to use the poll interval
+				// timeout here to avoid hanging.
+				fds := []unix.PollFd{{Fd: int32(conmonPidFd), Events: unix.POLLIN}}
+				_, _ = unix.Poll(fds, int(pollInterval.Milliseconds()))
+				conmonPidFdTriggered = true
+			} else {
+				time.Sleep(pollInterval)
+			}
 		}
 	}
 }

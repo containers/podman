@@ -49,10 +49,10 @@ func MakePod(p *entities.PodSpec, rt *libpod.Runtime) (*libpod.Pod, error) {
 		if err != nil {
 			return nil, err
 		}
-		if p.PodSpecGen.InfraContainerSpec.ResourceLimits.BlockIO != nil {
+		if p.PodSpecGen.InfraContainerSpec.ResourceLimits != nil &&
+			p.PodSpecGen.InfraContainerSpec.ResourceLimits.BlockIO != nil {
 			p.PodSpecGen.ResourceLimits.BlockIO = p.PodSpecGen.InfraContainerSpec.ResourceLimits.BlockIO
 		}
-
 		err = specgen.WeightDevices(p.PodSpecGen.InfraContainerSpec)
 		if err != nil {
 			return nil, err

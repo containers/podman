@@ -45,7 +45,7 @@ type KubeVolume struct {
 	// This is only used when there are volumes in the yaml that refer to a configmap
 	// Example: if configmap has data "SPECIAL_LEVEL: very" then the file name is "SPECIAL_LEVEL" and the
 	// data in that file is "very".
-	Items map[string]string
+	Items map[string][]byte
 	// If the volume is optional, we can move on if it is not found
 	// Only used when there are volumes in a yaml that refer to a configmap
 	Optional bool
@@ -56,10 +56,8 @@ func VolumeFromHostPath(hostPath *v1.HostPathVolumeSource) (*KubeVolume, error) 
 	if hostPath.Type != nil {
 		switch *hostPath.Type {
 		case v1.HostPathDirectoryOrCreate:
-			if _, err := os.Stat(hostPath.Path); os.IsNotExist(err) {
-				if err := os.Mkdir(hostPath.Path, kubeDirectoryPermission); err != nil {
-					return nil, err
-				}
+			if err := os.MkdirAll(hostPath.Path, kubeDirectoryPermission); err != nil {
+				return nil, err
 			}
 			// Label a newly created volume
 			if err := libpod.LabelVolumePath(hostPath.Path); err != nil {
@@ -165,11 +163,11 @@ func VolumeFromSecret(secretSource *v1.SecretVolumeSource, secretsManager *secre
 	kv.Type = KubeVolumeTypeSecret
 	kv.Source = secretSource.SecretName
 	kv.Optional = *secretSource.Optional
-	kv.Items = make(map[string]string)
+	kv.Items = make(map[string][]byte)
 
 	// add key: value pairs to the items array
 	for key, entry := range data.Data {
-		kv.Items[key] = entry
+		kv.Items[key] = []byte(entry)
 	}
 	return kv, nil
 }
@@ -184,7 +182,10 @@ func VolumeFromPersistentVolumeClaim(claim *v1.PersistentVolumeClaimVolumeSource
 
 func VolumeFromConfigMap(configMapVolumeSource *v1.ConfigMapVolumeSource, configMaps []v1.ConfigMap) (*KubeVolume, error) {
 	var configMap *v1.ConfigMap
-	kv := &KubeVolume{Type: KubeVolumeTypeConfigMap, Items: map[string]string{}}
+	kv := &KubeVolume{
+		Type:  KubeVolumeTypeConfigMap,
+		Items: map[string][]byte{},
+	}
 	for _, cm := range configMaps {
 		if cm.Name == configMapVolumeSource.Name {
 			matchedCM := cm
@@ -205,15 +206,27 @@ func VolumeFromConfigMap(configMapVolumeSource *v1.ConfigMapVolumeSource, config
 		return nil, fmt.Errorf("no such ConfigMap %q", configMapVolumeSource.Name)
 	}
 
+	// don't allow keys from "data" and "binaryData" to overlap
+	for k := range configMap.Data {
+		if _, ok := configMap.BinaryData[k]; ok {
+			return nil, fmt.Errorf("the ConfigMap %q is invalid: duplicate key %q present in data and binaryData", configMap.Name, k)
+		}
+	}
+
 	// If there are Items specified in the volumeSource, that overwrites the Data from the configmap
 	if len(configMapVolumeSource.Items) > 0 {
 		for _, item := range configMapVolumeSource.Items {
 			if val, ok := configMap.Data[item.Key]; ok {
+				kv.Items[item.Path] = []byte(val)
+			} else if val, ok := configMap.BinaryData[item.Key]; ok {
 				kv.Items[item.Path] = val
 			}
 		}
 	} else {
 		for k, v := range configMap.Data {
+			kv.Items[k] = []byte(v)
+		}
+		for k, v := range configMap.BinaryData {
 			kv.Items[k] = v
 		}
 	}

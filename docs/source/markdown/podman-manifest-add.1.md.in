@@ -22,9 +22,7 @@ index, add all of the contents to the local list.  By default, only one image
 from such a list or index will be added to the list or index.  Combining
 *--all* with any of the other options described below is NOT recommended.
 
-#### **--annotation**=*annotation=value*
-
-Set an annotation on the entry for the newly-added image.
+@@option annotation.manifest
 
 #### **--arch**
 
@@ -48,10 +46,7 @@ If *imagename* refers to a manifest list or image index, the OS information
 will be retrieved from it.  Otherwise, it will be retrieved from the image's
 configuration information.
 
-#### **--os-version**
-
-Specify the OS version which the list or index records as a requirement for the
-image.  This option is rarely used.
+@@option os-version
 
 @@option tls-verify
 

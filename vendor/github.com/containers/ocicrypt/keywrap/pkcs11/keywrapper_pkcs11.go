@@ -139,7 +139,7 @@ func addPubKeys(dc *config.DecryptConfig, pubKeys [][]byte) ([]interface{}, erro
 	return pkcs11Keys, nil
 }
 
-func p11confFromParameters(dcparameters map[string][][]byte) (*pkcs11.Pkcs11Config, error){
+func p11confFromParameters(dcparameters map[string][][]byte) (*pkcs11.Pkcs11Config, error) {
 	if _, ok := dcparameters["pkcs11-config"]; ok {
 		return pkcs11.ParsePkcs11ConfigFile(dcparameters["pkcs11-config"][0])
 	}

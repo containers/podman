@@ -698,7 +698,7 @@ func containerToV1Container(ctx context.Context, c *Container) (v1.Container, []
 	// container.EnvFromSource =
 	kubeContainer.SecurityContext = kubeSec
 	kubeContainer.StdinOnce = false
-	kubeContainer.TTY = c.config.Spec.Process.Terminal
+	kubeContainer.TTY = c.Terminal()
 
 	if c.config.Spec.Linux != nil &&
 		c.config.Spec.Linux.Resources != nil {

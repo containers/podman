@@ -56,9 +56,7 @@ to run containers such as CRI-O, the last started container could be from either
 
 Restart all containers that are already in the *running* state.
 
-#### **--time**, **-t**=*seconds*
-
-Seconds to wait before forcibly stopping the container.
+@@option time
 
 ## EXAMPLES
 

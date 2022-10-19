@@ -32,10 +32,10 @@ func NewTracker(idle time.Duration) *Tracker {
 }
 
 // ConnState is called on HTTP connection state changes.
-// - Once StateHijacked, StateClose is _NOT_ called on that connection
-// - There are two "idle" timeouts, the http idle connection (not to be confused with the TCP/IP idle socket timeout)
-//   and the API idle window.  The caller should set the http idle timeout to 2x the time provided to NewTacker() which
-//   is the API idle window.
+//   - Once StateHijacked, StateClose is _NOT_ called on that connection
+//   - There are two "idle" timeouts, the http idle connection (not to be confused with the TCP/IP idle socket timeout)
+//     and the API idle window.  The caller should set the http idle timeout to 2x the time provided to NewTacker() which
+//     is the API idle window.
 func (t *Tracker) ConnState(conn net.Conn, state http.ConnState) {
 	t.mux.Lock()
 	defer t.mux.Unlock()

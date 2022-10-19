@@ -15,7 +15,7 @@ import "github.com/containers/common/libnetwork/types"
 // retrieved after they are pulled from the database.
 // Generally speaking, the syncContainer() call should be run at the beginning
 // of all API operations, which will silently handle this.
-type State interface {
+type State interface { //nolint:interfacebloat
 	// Close performs any pre-exit cleanup (e.g. closing database
 	// connections) that may be required
 	Close() error

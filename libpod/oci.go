@@ -16,7 +16,7 @@ import (
 // The code calling the OCIRuntime will manage this.
 // TODO: May want to move the conmon cleanup code here - it depends on
 // Conmon being in use.
-type OCIRuntime interface {
+type OCIRuntime interface { //nolint:interfacebloat
 	// Name returns the name of the runtime.
 	Name() string
 	// Path returns the path to the runtime executable.

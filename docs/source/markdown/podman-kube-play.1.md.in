@@ -233,7 +233,7 @@ Pods removed:
 `podman kube play --down` will not work with a URL if the YAML file the URL points to
 has been changed or altered.
 
-
+@@include ../../kubernetes_support.md
 
 ## SEE ALSO
 **[podman(1)](podman.1.md)**, **[podman-kube(1)](podman-kube.1.md)**, **[podman-kube-down(1)](podman-kube-down.1.md)**, **[podman-network-create(1)](podman-network-create.1.md)**, **[podman-kube-generate(1)](podman-kube-generate.1.md)**, **[containers-certs.d(5)](https://github.com/containers/image/blob/main/docs/containers-certs.d.5.md)**

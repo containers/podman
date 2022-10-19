@@ -28,10 +28,11 @@ function _check_health {
                --health-cmd /healthcheck   \
                --health-interval 1s        \
                --health-retries 3          \
+               --health-on-failure=kill    \
                healthcheck_i
 
     run_podman inspect healthcheck_c --format "{{.Config.HealthcheckOnFailureAction}}"
-    is "$output" "none" "default on-failure action is none"
+    is "$output" "kill" "on-failure action is set to kill"
 
     # We can't check for 'starting' because a 1-second interval is too
     # short; it could run healthcheck before we get to our first check.
@@ -67,9 +68,8 @@ Log[-1].ExitCode | 1
 Log[-1].Output   | \"Uh-oh on stdout!\\\nUh-oh on stderr!\"
 "
 
-    # healthcheck should now fail, with exit status 1 and 'unhealthy' output
-    run_podman 1 healthcheck run healthcheck_c
-    is "$output" "unhealthy" "output from 'podman healthcheck run'"
+    # now the on-failure should kick in and kill the container
+    podman wait healthcheck_c
 
     # Clean up
     run_podman rm -t 0 -f healthcheck_c
@@ -95,6 +95,7 @@ Log[-1].Output   | \"Uh-oh on stdout!\\\nUh-oh on stderr!\"
         # Run that healthcheck image.
         run_podman run -d --name $ctr      \
                --health-cmd /healthcheck   \
+               --health-retries=1          \
                --health-on-failure=$policy \
                $img
 
@@ -122,6 +123,8 @@ Log[-1].Output   | \"Uh-oh on stdout!\\\nUh-oh on stderr!\"
 	    # kill and stop yield the container into a non-running state
             is "$output" ".* $policy" "container was stopped/killed"
             assert "$output" != "running $policy"
+            # also make sure that it's not stuck in the stopping state
+            assert "$output" != "stopping $policy"
         fi
 
         run_podman rm -f -t0 $ctr

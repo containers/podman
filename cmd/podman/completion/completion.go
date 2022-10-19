@@ -26,7 +26,7 @@ var (
 		Short:     "Generate shell autocompletions",
 		Long:      completionDescription,
 		ValidArgs: shells,
-		Args:      cobra.ExactValidArgs(1),
+		Args:      cobra.MatchAll(cobra.ExactArgs(1), cobra.OnlyValidArgs),
 		RunE:      completion,
 		Example: `podman completion bash
   podman completion zsh -f _podman

@@ -55,7 +55,8 @@ func joinTwoPortsToRangePortIfPossible(ports *[]types.PortMapping, allHostPorts,
 }
 
 // joinTwoContainerPortsToRangePortIfPossible will expect two ports with both no host port set,
-//  the previous port one must have a lower or equal containerPort than the current port.
+//
+//	the previous port one must have a lower or equal containerPort than the current port.
 func joinTwoContainerPortsToRangePortIfPossible(ports *[]types.PortMapping, allHostPorts, allContainerPorts, currentHostPorts *[65536]bool,
 	previousPort *types.PortMapping, port types.PortMapping) (*types.PortMapping, error) {
 	// no previous port just return the current one

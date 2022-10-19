@@ -1285,12 +1285,6 @@ func (c *Container) stop(timeout uint) error {
 		c.lock.Unlock()
 	}
 
-	if c.config.HealthCheckConfig != nil {
-		if err := c.removeTransientFiles(context.Background()); err != nil {
-			logrus.Error(err.Error())
-		}
-	}
-
 	stopErr := c.ociRuntime.StopContainer(c, timeout, all)
 
 	if !c.batched {
@@ -1331,7 +1325,10 @@ func (c *Container) stop(timeout uint) error {
 
 	c.newContainerEvent(events.Stop)
 	c.state.StoppedByUser = true
+	return c.waitForConmonToExitAndSave()
+}
 
+func (c *Container) waitForConmonToExitAndSave() error {
 	conmonAlive, err := c.ociRuntime.CheckConmonRunning(c)
 	if err != nil {
 		return err
@@ -1414,6 +1411,11 @@ func (c *Container) restartWithTimeout(ctx context.Context, timeout uint) (retEr
 		conmonPID := c.state.ConmonPID
 		if err := c.stop(timeout); err != nil {
 			return err
+		}
+		if c.config.HealthCheckConfig != nil {
+			if err := c.removeTransientFiles(context.Background()); err != nil {
+				logrus.Error(err.Error())
+			}
 		}
 		// Old versions of conmon have a bug where they create the exit file before
 		// closing open file descriptors causing a race condition when restarting
