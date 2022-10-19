@@ -846,8 +846,8 @@ rootless_gitlab_test_task:
 upgrade_test_task:
     name: "Upgrade test: from $PODMAN_UPGRADE_FROM"
     alias: upgrade_test
-    # Docs: ./contrib/cirrus/CIModes.md
-    only_if: *not_tag_branch_build_docs
+    # Only run under Cirrus-Cron, for a regular branches.
+    only_if: $CIRRUS_CRON == $CIRRUS_BRANCH
     depends_on:
         - build
         - local_system_test
