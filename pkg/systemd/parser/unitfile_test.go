@@ -1,4 +1,4 @@
-package systemdparser
+package parser
 
 import (
 	"testing"

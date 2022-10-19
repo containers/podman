@@ -8,7 +8,7 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/containers/podman/v4/pkg/systemdparser"
+	"github.com/containers/podman/v4/pkg/systemd/parser"
 )
 
 // Overwritten at build time:
@@ -152,7 +152,7 @@ func isPortRange(port string) bool {
 	return validPortRange.MatchString(port)
 }
 
-func checkForUnknownKeys(unit *systemdparser.UnitFile, groupName string, supportedKeys map[string]bool) error {
+func checkForUnknownKeys(unit *parser.UnitFile, groupName string, supportedKeys map[string]bool) error {
 	keys := unit.ListKeys(groupName)
 	for _, key := range keys {
 		if !supportedKeys[key] {
@@ -162,7 +162,7 @@ func checkForUnknownKeys(unit *systemdparser.UnitFile, groupName string, support
 	return nil
 }
 
-func lookupRanges(unit *systemdparser.UnitFile, groupName string, key string, nameLookup func(string) *Ranges, defaultValue *Ranges) *Ranges {
+func lookupRanges(unit *parser.UnitFile, groupName string, key string, nameLookup func(string) *Ranges, defaultValue *Ranges) *Ranges {
 	v, ok := unit.Lookup(groupName, key)
 	if !ok {
 		if defaultValue != nil {
@@ -277,7 +277,7 @@ func addIDMaps(podman *PodmanCmdline, argPrefix string, containerID, hostID, rem
 // service file (unit file with Service group) based on the options in the
 // Container group.
 // The original Container group is kept around as X-Container.
-func ConvertContainer(container *systemdparser.UnitFile, isUser bool) (*systemdparser.UnitFile, error) {
+func ConvertContainer(container *parser.UnitFile, isUser bool) (*parser.UnitFile, error) {
 	service := container.Dup()
 	service.Filename = replaceExtension(container.Filename, ".service", "", "")
 
@@ -643,7 +643,7 @@ func ConvertContainer(container *systemdparser.UnitFile, isUser bool) (*systemdp
 // service file (unit file with Service group) based on the options in the
 // Volume group.
 // The original Container group is kept around as X-Container.
-func ConvertVolume(volume *systemdparser.UnitFile, name string) (*systemdparser.UnitFile, error) {
+func ConvertVolume(volume *parser.UnitFile, name string) (*parser.UnitFile, error) {
 	service := volume.Dup()
 	service.Filename = replaceExtension(volume.Filename, ".service", "", "-volume")
 

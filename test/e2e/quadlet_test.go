@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/containers/podman/v4/pkg/systemdparser"
+	"github.com/containers/podman/v4/pkg/systemd/parser"
 	"github.com/mattn/go-shellwords"
 
 	. "github.com/containers/podman/v4/test/utils"
@@ -83,7 +83,7 @@ func (t *quadletTestcase) assertStdErrContains(args []string, session *PodmanSes
 	return strings.Contains(session.OutputToString(), args[0])
 }
 
-func (t *quadletTestcase) assertKeyIs(args []string, unit *systemdparser.UnitFile) bool {
+func (t *quadletTestcase) assertKeyIs(args []string, unit *parser.UnitFile) bool {
 	group := args[0]
 	key := args[1]
 	values := args[2:]
@@ -101,7 +101,7 @@ func (t *quadletTestcase) assertKeyIs(args []string, unit *systemdparser.UnitFil
 	return true
 }
 
-func (t *quadletTestcase) assertKeyContains(args []string, unit *systemdparser.UnitFile) bool {
+func (t *quadletTestcase) assertKeyContains(args []string, unit *parser.UnitFile) bool {
 	group := args[0]
 	key := args[1]
 	value := args[2]
@@ -110,12 +110,12 @@ func (t *quadletTestcase) assertKeyContains(args []string, unit *systemdparser.U
 	return ok && strings.Contains(realValue, value)
 }
 
-func (t *quadletTestcase) assertPodmanArgs(args []string, unit *systemdparser.UnitFile) bool {
+func (t *quadletTestcase) assertPodmanArgs(args []string, unit *parser.UnitFile) bool {
 	podmanArgs, _ := unit.LookupLastArgs("Service", "ExecStart")
 	return findSublist(podmanArgs, args) != -1
 }
 
-func (t *quadletTestcase) assertFinalArgs(args []string, unit *systemdparser.UnitFile) bool {
+func (t *quadletTestcase) assertFinalArgs(args []string, unit *parser.UnitFile) bool {
 	podmanArgs, _ := unit.LookupLastArgs("Service", "ExecStart")
 	if len(podmanArgs) < len(args) {
 		return false
@@ -123,7 +123,7 @@ func (t *quadletTestcase) assertFinalArgs(args []string, unit *systemdparser.Uni
 	return matchSublistAt(podmanArgs, len(podmanArgs)-len(args), args)
 }
 
-func (t *quadletTestcase) assertSymlink(args []string, unit *systemdparser.UnitFile) bool {
+func (t *quadletTestcase) assertSymlink(args []string, unit *parser.UnitFile) bool {
 	symlink := args[0]
 	expectedTarget := args[1]
 
@@ -135,7 +135,7 @@ func (t *quadletTestcase) assertSymlink(args []string, unit *systemdparser.UnitF
 	return expectedTarget == target
 }
 
-func (t *quadletTestcase) doAssert(check []string, unit *systemdparser.UnitFile, session *PodmanSessionIntegration) error {
+func (t *quadletTestcase) doAssert(check []string, unit *parser.UnitFile, session *PodmanSessionIntegration) error {
 	op := check[0]
 	args := make([]string, 0)
 	for _, a := range check[1:] {
@@ -193,7 +193,7 @@ func (t *quadletTestcase) check(generateDir string, session *PodmanSessionIntegr
 		return // Successful fail
 	}
 
-	unit, err := systemdparser.ParseUnitFile(file)
+	unit, err := parser.ParseUnitFile(file)
 	Expect(err).To(BeNil())
 
 	for _, check := range t.checks {
