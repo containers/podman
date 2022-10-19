@@ -299,6 +299,14 @@ case "$TEST_FLAVOR" in
 
         install_test_configs
         ;;
+    minikube)
+        dnf install -y $PACKAGE_DOWNLOAD_DIR/minikube-latest*
+        remove_packaged_podman_files
+        make install.tools
+        make install PREFIX=/usr ETCDIR=/etc
+        minikube config set driver podman
+        install_test_configs
+        ;;
     machine)
         dnf install -y $PACKAGE_DOWNLOAD_DIR/podman-gvproxy*
         remove_packaged_podman_files

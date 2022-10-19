@@ -118,6 +118,12 @@ function _run_endpoint() {
     make endpoint
 }
 
+function _run_minikube() {
+    _bail_if_test_can_be_skipped test/minikube
+    msg "Testing  minikube."
+    bats test/minikube |& logformatter
+}
+
 exec_container() {
     local var_val
     local cmd
