@@ -73,7 +73,8 @@ func (r *Runtime) filterImages(ctx context.Context, images []*Image, options *Li
 
 // compileImageFilters creates `filterFunc`s for the specified filters.  The
 // required format is `key=value` with the following supported keys:
-//           after, since, before, containers, dangling, id, label, readonly, reference, intermediate
+//
+//	after, since, before, containers, dangling, id, label, readonly, reference, intermediate
 func (r *Runtime) compileImageFilters(ctx context.Context, options *ListImagesOptions) (map[string][]filterFunc, error) {
 	logrus.Tracef("Parsing image filters %s", options.Filters)
 

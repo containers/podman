@@ -88,10 +88,11 @@ func truncateWithLength(source string, length int) string {
 // Array of map is returned to support range templates
 // Note: unexported fields can be supported by adding field to overrides
 // Note: It is left to the developer to write out said headers
-//       Podman commands use the general rules of:
-//       1) unchanged --format includes headers
-//       2) --format '{{.ID}"        # no headers
-//       3) --format 'table {{.ID}}' # includes headers
+//
+//	Podman commands use the general rules of:
+//	1) unchanged --format includes headers
+//	2) --format '{{.ID}"        # no headers
+//	3) --format 'table {{.ID}}' # includes headers
 func Headers(object interface{}, overrides map[string]string) []map[string]string {
 	value := reflect.ValueOf(object)
 	if value.Kind() == reflect.Ptr {

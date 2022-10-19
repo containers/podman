@@ -56,6 +56,7 @@ var secretNameRegexp = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9_.-]*$`)
 // SecretsManager holds information on handling secrets
 //
 // revive does not like the name because the package is already called secrets
+//
 //nolint:revive
 type SecretsManager struct {
 	// secretsPath is the path to the db file where secrets are stored
@@ -90,6 +91,7 @@ type Secret struct {
 // Currently only the unencrypted filedriver is implemented.
 //
 // revive does not like the name because the package is already called secrets
+//
 //nolint:revive
 type SecretsDriver interface {
 	// List lists all secret ids in the secrets data store

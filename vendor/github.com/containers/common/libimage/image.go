@@ -775,6 +775,7 @@ func (i *Image) Unmount(force bool) error {
 
 // Size computes the size of the image layers and associated data.
 func (i *Image) Size() (int64, error) {
+	// TODO: cache the result to optimize performance of subsequent calls
 	return i.runtime.store.ImageSize(i.ID())
 }
 

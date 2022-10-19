@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -174,7 +173,7 @@ func (n *netavarkNetwork) loadNetworks() error {
 	n.networks = nil
 	n.modTime = modTime
 
-	files, err := ioutil.ReadDir(n.networkConfigDir)
+	files, err := os.ReadDir(n.networkConfigDir)
 	if err != nil && !errors.Is(err, os.ErrNotExist) {
 		return err
 	}

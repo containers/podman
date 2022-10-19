@@ -2,7 +2,6 @@ package config
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strconv"
 	"strings"
@@ -37,7 +36,7 @@ func getDefaultProcessLimits() []string {
 	rlim := unix.Rlimit{Cur: oldMaxSize, Max: oldMaxSize}
 	oldrlim := rlim
 	// Attempt to set file limit and process limit to pid_max in OS
-	dat, err := ioutil.ReadFile("/proc/sys/kernel/pid_max")
+	dat, err := os.ReadFile("/proc/sys/kernel/pid_max")
 	if err == nil {
 		val := strings.TrimSuffix(string(dat), "\n")
 		max, err := strconv.ParseUint(val, 10, 64)

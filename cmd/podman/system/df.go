@@ -63,26 +63,29 @@ func df(cmd *cobra.Command, args []string) error {
 
 func printSummary(cmd *cobra.Command, reports *entities.SystemDfReport) error {
 	var (
-		dfSummaries       []*dfSummary
-		active            int
-		size, reclaimable int64
+		dfSummaries []*dfSummary
+		active      int
+		used        int64
 	)
 
+	visitedImages := make(map[string]bool)
 	for _, i := range reports.Images {
+		if _, ok := visitedImages[i.ImageID]; ok {
+			continue
+		}
+		visitedImages[i.ImageID] = true
 		if i.Containers > 0 {
 			active++
-		}
-		size += i.Size
-		if i.Containers < 1 {
-			reclaimable += i.Size
+			used += i.UniqueSize
 		}
 	}
+
 	imageSummary := dfSummary{
 		Type:           "Images",
 		Total:          len(reports.Images),
 		Active:         active,
-		RawSize:        size,
-		RawReclaimable: reclaimable,
+		RawSize:        reports.ImagesSize,        // The "raw" size is the sum of all layer sizes
+		RawReclaimable: reports.ImagesSize - used, // We can reclaim the date of "unused" images (i.e., the ones without containers)
 	}
 	dfSummaries = append(dfSummaries, &imageSummary)
 

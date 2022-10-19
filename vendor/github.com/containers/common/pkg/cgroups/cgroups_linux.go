@@ -8,7 +8,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"math"
 	"os"
 	"path/filepath"
@@ -96,7 +95,7 @@ func getAvailableControllers(exclude map[string]controllerHandler, cgroup2 bool)
 			basePath := cgroupRoot + userSlice
 			controllersFile = fmt.Sprintf("%s/cgroup.controllers", basePath)
 		}
-		controllersFileBytes, err := ioutil.ReadFile(controllersFile)
+		controllersFileBytes, err := os.ReadFile(controllersFile)
 		if err != nil {
 			return nil, fmt.Errorf("failed while reading controllers for cgroup v2: %w", err)
 		}
@@ -247,7 +246,7 @@ func (c *CgroupControl) initialize() (err error) {
 }
 
 func readFileAsUint64(path string) (uint64, error) {
-	data, err := ioutil.ReadFile(path)
+	data, err := os.ReadFile(path)
 	if err != nil {
 		return 0, err
 	}
@@ -263,7 +262,7 @@ func readFileAsUint64(path string) (uint64, error) {
 }
 
 func readFileByKeyAsUint64(path, key string) (uint64, error) {
-	content, err := ioutil.ReadFile(path)
+	content, err := os.ReadFile(path)
 	if err != nil {
 		return 0, err
 	}
@@ -516,7 +515,7 @@ func (c *CgroupControl) AddPid(pid int) error {
 			continue
 		}
 		p := filepath.Join(c.getCgroupv1Path(n), "tasks")
-		if err := ioutil.WriteFile(p, pidString, 0o644); err != nil {
+		if err := os.WriteFile(p, pidString, 0o644); err != nil {
 			return fmt.Errorf("write %s: %w", p, err)
 		}
 	}

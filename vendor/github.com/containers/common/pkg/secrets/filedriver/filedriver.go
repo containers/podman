@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"path/filepath"
 	"sort"
@@ -96,7 +96,7 @@ func (d *Driver) Store(id string, data []byte) error {
 	if err != nil {
 		return err
 	}
-	err = ioutil.WriteFile(d.secretsDataFilePath, marshalled, 0o600)
+	err = os.WriteFile(d.secretsDataFilePath, marshalled, 0o600)
 	if err != nil {
 		return err
 	}
@@ -120,7 +120,7 @@ func (d *Driver) Delete(id string) error {
 	if err != nil {
 		return err
 	}
-	err = ioutil.WriteFile(d.secretsDataFilePath, marshalled, 0o600)
+	err = os.WriteFile(d.secretsDataFilePath, marshalled, 0o600)
 	if err != nil {
 		return err
 	}
@@ -145,7 +145,7 @@ func (d *Driver) getAllData() (map[string][]byte, error) {
 	}
 	defer file.Close()
 
-	byteValue, err := ioutil.ReadAll(file)
+	byteValue, err := io.ReadAll(file)
 	if err != nil {
 		return nil, err
 	}
