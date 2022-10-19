@@ -61,6 +61,8 @@ chmod 755 pause
 # alpine because it's small and light and reliable
 #    - check for updates @ https://hub.docker.com/_/alpine
 # busybox-extras provides httpd needed in 500-networking.bats
+# iproute2 provides JSON output (not in busybox) for 505-networking-pasta.bats
+# socat offers convenient UDP test termination in 505-networking-pasta.bats
 #
 # Two Containerfiles, because we have to do the image build in two parts,
 # which I think are easier to describe in reverse order:
@@ -71,9 +73,10 @@ chmod 755 pause
 #
 cat >Containerfile1 <<EOF
 ARG REPO=please-override-repo
-FROM docker.io/\${REPO}/alpine:3.16.0
-RUN apk add busybox-extras
+FROM docker.io/\${REPO}/alpine:3.16.2
+RUN apk add busybox-extras iproute2 socat
 ADD testimage-id pause /home/podman/
+RUN rm -f /var/cache/apk/*
 EOF
 
 cat >Containerfile2 <<EOF
