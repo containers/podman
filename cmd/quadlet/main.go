@@ -9,8 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/containers/podman/v4/pkg/quadlet"
-	"github.com/containers/podman/v4/pkg/systemdparser"
+	"github.com/containers/podman/v4/pkg/systemd/parser"
+	"github.com/containers/podman/v4/pkg/systemd/quadlet"
 )
 
 // This commandline app is the systemd generator (system and user,
@@ -103,7 +103,7 @@ func getUnitDirs(user bool) []string {
 	return dirs
 }
 
-func loadUnitsFromDir(sourcePath string, units map[string]*systemdparser.UnitFile) {
+func loadUnitsFromDir(sourcePath string, units map[string]*parser.UnitFile) {
 	files, err := os.ReadDir(sourcePath)
 	if err != nil {
 		if !errors.Is(err, os.ErrNotExist) {
@@ -121,7 +121,7 @@ func loadUnitsFromDir(sourcePath string, units map[string]*systemdparser.UnitFil
 
 			Debugf("Loading source unit file %s", path)
 
-			if f, err := systemdparser.ParseUnitFile(path); err != nil {
+			if f, err := parser.ParseUnitFile(path); err != nil {
 				Logf("Error loading '%s', ignoring: %s", path, err)
 			} else {
 				units[name] = f
@@ -130,7 +130,7 @@ func loadUnitsFromDir(sourcePath string, units map[string]*systemdparser.UnitFil
 	}
 }
 
-func generateServiceFile(service *systemdparser.UnitFile) error {
+func generateServiceFile(service *parser.UnitFile) error {
 	Debugf("writing '%s'", service.Path)
 
 	service.PrependComment("",
@@ -161,7 +161,7 @@ func generateServiceFile(service *systemdparser.UnitFile) error {
 // symlinks to get systemd to start the newly generated file as needed.
 // In a traditional setup this is done by "systemctl enable", but that doesn't
 // work for auto-generated files like these.
-func enableServiceFile(outputPath string, service *systemdparser.UnitFile) {
+func enableServiceFile(outputPath string, service *parser.UnitFile) {
 	symlinks := make([]string, 0)
 
 	aliases := service.LookupAllStrv(quadlet.InstallGroup, "Alias")
@@ -230,7 +230,7 @@ func main() {
 
 	sourcePaths := getUnitDirs(isUser)
 
-	units := make(map[string]*systemdparser.UnitFile)
+	units := make(map[string]*parser.UnitFile)
 	for _, d := range sourcePaths {
 		loadUnitsFromDir(d, units)
 	}
@@ -242,7 +242,7 @@ func main() {
 	}
 
 	for name, unit := range units {
-		var service *systemdparser.UnitFile
+		var service *parser.UnitFile
 		var err error
 
 		switch {
