@@ -652,6 +652,7 @@ func (d *dockerImageDestination) putSignaturesToSigstoreAttachments(ctx context.
 			Digest:    "", // We will fill this in later.
 			Size:      0,
 		}, nil)
+		ociConfig.RootFS.Type = "layers"
 	} else {
 		logrus.Debugf("Fetching sigstore attachment config %s", ociManifest.Config.Digest.String())
 		// We don’t benefit from a real BlobInfoCache here because we never try to reuse/mount configs.
