@@ -836,7 +836,7 @@ golang.org/x/sys/windows/svc/eventlog
 # golang.org/x/term v0.0.0-20220526004731-065cf7ba2467
 ## explicit; go 1.17
 golang.org/x/term
-# golang.org/x/text v0.3.8
+# golang.org/x/text v0.4.0
 ## explicit; go 1.17
 golang.org/x/text/encoding
 golang.org/x/text/encoding/charmap
