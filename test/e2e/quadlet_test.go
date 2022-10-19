@@ -291,6 +291,7 @@ var _ = Describe("quadlet system generator", func() {
 		Entry("readwrite.container", "readwrite.container"),
 		Entry("readwrite-notmpfs.container", "readwrite-notmpfs.container"),
 		Entry("seccomp.container", "seccomp.container"),
+		Entry("shortname.container", "shortname.container"),
 		Entry("timezone.container", "timezone.container"),
 		Entry("user.container", "user.container"),
 		Entry("user-host.container", "user-host.container"),

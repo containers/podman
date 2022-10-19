@@ -14,7 +14,7 @@
 # This means container root must map to something else
 
 [Container]
-Image=imagename
+Image=localhost/imagename
 User=1000
 # Also test name parsing
 HostUser=root

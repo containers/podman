@@ -1,5 +1,5 @@
 ## assert-podman-args "--name=foobar"
 
 [Container]
-Image=imagename
+Image=localhost/imagename
 ContainerName=foobar

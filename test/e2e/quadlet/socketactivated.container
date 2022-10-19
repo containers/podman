@@ -5,5 +5,5 @@
 ## assert-key-is "Service" "NotifyAccess" "all"
 
 [Container]
-Image=imagename
+Image=localhost/imagename
 SocketActivated=yes

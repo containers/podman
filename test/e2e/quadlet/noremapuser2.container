@@ -20,7 +20,7 @@
 ## assert-podman-args --gidmap 1002:1002:4294966293
 
 [Container]
-Image=imagename
+Image=localhost/imagename
 RemapUsers=no
 User=1000
 Group=1001

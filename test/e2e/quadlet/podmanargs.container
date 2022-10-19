@@ -3,7 +3,7 @@
 ## assert-podman-args "--also"
 
 [Container]
-Image=imagename
+Image=localhost/imagename
 PodmanArgs="--foo" \
   --bar
 PodmanArgs=--also

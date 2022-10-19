@@ -1,4 +1,4 @@
-## assert-podman-final-args imagename
+## assert-podman-final-args localhost/imagename
 
 [Container]
-Image=imagename
+Image=localhost/imagename

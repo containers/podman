@@ -4,7 +4,7 @@
 ## assert-podman-args "--cap-add=cap_ipc_owner"
 
 [Container]
-Image=imagename
+Image=localhost/imagename
 # Verify that we can reset to the default cap set
 DropCapability=
 AddCapability=CAP_DAC_OVERRIDE CAP_AUDIT_WRITE

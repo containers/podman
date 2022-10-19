@@ -9,7 +9,7 @@
 ## assert-symlink req3.service.requires/install.service ../install.service
 
 [Container]
-Image=imagename
+Image=localhost/imagename
 
 [Install]
 Alias=alias.service \

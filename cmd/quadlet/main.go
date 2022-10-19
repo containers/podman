@@ -8,6 +8,7 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+	"unicode"
 
 	"github.com/containers/podman/v4/pkg/systemd/parser"
 	"github.com/containers/podman/v4/pkg/systemd/quadlet"
@@ -210,6 +211,71 @@ func enableServiceFile(outputPath string, service *parser.UnitFile) {
 	}
 }
 
+func isImageID(imageName string) bool {
+	// All sha25:... names are assumed by podman to be fully specified
+	if strings.HasPrefix(imageName, "sha256:") {
+		return true
+	}
+
+	// However, podman also accepts image ids as pure hex strings,
+	// but only those of length 64 are unambigous image ids
+	if len(imageName) != 64 {
+		return false
+	}
+
+	for _, c := range imageName {
+		if !unicode.Is(unicode.Hex_Digit, c) {
+			return false
+		}
+	}
+
+	return true
+}
+
+func isUnambiguousName(imageName string) bool {
+	// Fully specified image ids are unambigous
+	if isImageID(imageName) {
+		return true
+	}
+
+	// Otherwise we require a fully qualified name
+	firstSlash := strings.Index(imageName, "/")
+	if firstSlash == -1 {
+		// No domain or path, not fully qualified
+		return false
+	}
+
+	// What is before the first slash can be a domain or a path
+	domain := imageName[:firstSlash]
+
+	// If its a a domain (has dot or port or is "localhost") it is considered fq
+	if strings.ContainsAny(domain, ".:") || domain == "localhost" {
+		return true
+	}
+
+	return false
+}
+
+// warns if input is an ambigious name, i.e. a partial image id or a short
+// name (i.e. is missing a registry)
+//
+// Examples:
+//   - short names: "image:tag", "library/fedora"
+//   - fully qualified names: "quay.io/image", "localhost/image:tag",
+//     "server.org:5000/lib/image", "sha256:..."
+//
+// We implement a simple version of this from scratch here to avoid
+// a huge dependency in the generator just for a warning.
+func warnIfAmbigiousName(container *parser.UnitFile) {
+	imageName, ok := container.Lookup(quadlet.ContainerGroup, quadlet.KeyImage)
+	if !ok {
+		return
+	}
+	if !isUnambiguousName(imageName) {
+		Logf("Warning: %s specifies the image \"%s\" which not a fully qualified image name. This is not ideal for performance and security reasons. See the podman-pull manpage discussion of short-name-aliases.conf for details.", container.Filename, imageName)
+	}
+}
+
 func main() {
 	prgname := path.Base(os.Args[0])
 	isUser = strings.Contains(prgname, "user")
@@ -252,6 +318,7 @@ func main() {
 
 		switch {
 		case strings.HasSuffix(name, ".container"):
+			warnIfAmbigiousName(unit)
 			service, err = quadlet.ConvertContainer(unit, isUser)
 		case strings.HasSuffix(name, ".volume"):
 			service, err = quadlet.ConvertVolume(unit, name)
