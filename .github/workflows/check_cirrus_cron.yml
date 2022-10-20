@@ -42,24 +42,7 @@ jobs:
 
             - if: steps.cron.outputs.failures > 0
               shell: bash
-              # Must be inline, since context expressions are used.
-              # Ref: https://docs.github.com/en/free-pro-team@latest/actions/reference/context-and-expression-syntax-for-github-actions
-              run: |
-                set -eo pipefail
-                (
-                echo "Detected one or more Cirrus-CI cron-triggered jobs have failed recently:"
-                echo ""
-
-                while read -r NAME BID; do
-                    echo "Cron build '$NAME' Failed: https://cirrus-ci.com/build/$BID"
-                done < "$NAME_ID_FILEPATH"
-
-                echo ""
-                echo "# Source: ${{ github.workflow }} workflow on ${{ github.repository }}."
-                # Separate content from sendgrid.com automatic footer.
-                echo ""
-                echo ""
-                ) > ./artifacts/email_body.txt
+              run: './.github/actions/check_cirrus_cron/make_email_body'
 
             - if: steps.cron.outputs.failures > 0
               name: Send failure notification e-mail

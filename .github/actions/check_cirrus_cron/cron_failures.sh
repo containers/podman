@@ -5,11 +5,7 @@ set -eo pipefail
 # Intended to be executed from a github action workflow step.
 # Outputs the Cirrus cron names and IDs of any failed builds
 
-err() {
-    # Ref: https://docs.github.com/en/free-pro-team@latest/actions/reference/workflow-commands-for-github-actions
-    echo "::error file=${BASH_SOURCE[0]},line=${BASH_LINENO[0]}::${1:-No error message given}"
-    exit 1
-}
+source $(dirname "${BASH_SOURCE[0]}")/lib.sh
 
 _errfmt="Expecting %s value to not be empty"
 if [[ -z "$GITHUB_REPOSITORY" ]]; then
@@ -118,5 +114,5 @@ cat "$NAME_ID_FILEPATH"
 records=$(wc --words "$NAME_ID_FILEPATH" | cut -d ' ' -f 1)
 # Always two words per record
 failures=$((records/2))
-echo "::set-output name=failures::$failures"
+echo "failures::$failures" >> $GITHUB_OUTPUT
 echo "Total failed Cirrus-CI cron builds: $failures"
