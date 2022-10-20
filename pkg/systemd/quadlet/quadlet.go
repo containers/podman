@@ -353,8 +353,7 @@ func ConvertContainer(container *parser.UnitFile, isUser bool) (*parser.UnitFile
 		"-d",
 
 		// But we still want output to the journal, so use the log driver.
-		// TODO: Once available we want to use the passthrough log-driver instead.
-		"--log-driver", "journald",
+		"--log-driver", "passthrough",
 
 		// Never try to pull the image during service start
 		"--pull=never")
