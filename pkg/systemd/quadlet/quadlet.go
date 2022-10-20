@@ -70,6 +70,7 @@ const (
 	KeyRunInit         = "RunInit"
 	KeyVolatileTmp     = "VolatileTmp"
 	KeyTimezone        = "Timezone"
+	KeySeccompProfile  = "SeccompProfile"
 )
 
 // Supported keys in "Container" group
@@ -102,6 +103,7 @@ var supportedContainerKeys = map[string]bool{
 	KeyRunInit:         true,
 	KeyVolatileTmp:     true,
 	KeyTimezone:        true,
+	KeySeccompProfile:  true,
 }
 
 // Supported keys in "Volume" group
@@ -392,6 +394,12 @@ func ConvertContainer(container *parser.UnitFile, isUser bool) (*parser.UnitFile
 	noNewPrivileges := container.LookupBoolean(ContainerGroup, KeyNoNewPrivileges, true)
 	if noNewPrivileges {
 		podman.add("--security-opt=no-new-privileges")
+	}
+
+	// Default to no higher level privileges or caps
+	seccompProfile, hasSeccompProfile := container.Lookup(ContainerGroup, KeySeccompProfile)
+	if hasSeccompProfile {
+		podman.add("--security-opt", fmt.Sprintf("seccomp=%s", seccompProfile))
 	}
 
 	dropCaps := []string{"all"} // Default

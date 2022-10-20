@@ -154,6 +154,11 @@ If enabled, makes image read-only, with /var/tmp, /tmp and /run a tmpfs (unless 
 
 **NOTE:** Podman will automatically copy any content from the image onto the tmpfs
 
+#### `SeccompProfile=`
+
+Set the seccomp profile to use in the container. If unset, the default podman profile is used.
+Set to either the pathname of a json file, or `unconfined` to disable the seccomp filters.
+
 #### `RemapUsers=` (defaults to `no`)
 
 If this is enabled, then host user and group ids are remapped in the container, such that all the uids
