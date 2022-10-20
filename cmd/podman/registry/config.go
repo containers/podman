@@ -51,7 +51,7 @@ func newPodmanConfig() {
 		os.Exit(1)
 	}
 
-	cfg, err := config.NewConfig("")
+	cfg, err := config.Default()
 	if err != nil {
 		fmt.Fprint(os.Stderr, "Failed to obtain podman configuration: "+err.Error())
 		os.Exit(1)

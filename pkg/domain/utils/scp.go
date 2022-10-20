@@ -17,7 +17,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func ExecuteTransfer(src, dst string, parentFlags []string, quiet bool, sshMode ssh.EngineMode) (*entities.ImageLoadReport, *entities.ImageScpOptions, *entities.ImageScpOptions, []string, error) {
+func ExecuteTransfer(src, dst string, parentFlags []string, quiet bool, sshMode ssh.EngineMode, conf *config.Config) (*entities.ImageLoadReport, *entities.ImageScpOptions, *entities.ImageScpOptions, []string, error) {
 	source := entities.ImageScpOptions{}
 	dest := entities.ImageScpOptions{}
 	sshInfo := entities.ImageScpConnections{}
@@ -31,11 +31,6 @@ func ExecuteTransfer(src, dst string, parentFlags []string, quiet bool, sshMode 
 	f, err := os.CreateTemp("", "podman") // open temp file for load/save output
 	if err != nil {
 		return nil, nil, nil, nil, err
-	}
-
-	confR, err := config.NewConfig("") // create a hand made config for the remote engine since we might use remote and native at once
-	if err != nil {
-		return nil, nil, nil, nil, fmt.Errorf("could not make config: %w", err)
 	}
 
 	locations := []*entities.ImageScpOptions{}
@@ -94,7 +89,7 @@ func ExecuteTransfer(src, dst string, parentFlags []string, quiet bool, sshMode 
 		return nil, nil, nil, nil, err
 	}
 
-	confR.Engine = config.EngineConfig{Remote: true, CgroupManager: "cgroupfs", ServiceDestinations: serv} // pass the service dest (either remote or something else) to engine
+	conf.Engine = config.EngineConfig{Remote: true, CgroupManager: "cgroupfs", ServiceDestinations: serv} // pass the service dest (either remote or something else) to engine
 	saveCmd, loadCmd := CreateCommands(source, dest, parentFlags, podman)
 
 	switch {

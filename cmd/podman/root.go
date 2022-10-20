@@ -449,7 +449,7 @@ func rootFlags(cmd *cobra.Command, opts *entities.PodmanConfig) {
 		_ = pFlags.MarkHidden(networkBackendFlagName)
 
 		rootFlagName := "root"
-		pFlags.StringVar(&cfg.Engine.StaticDir, rootFlagName, "", "Path to the root directory in which data, including images, is stored")
+		pFlags.StringVar(&cfg.Engine.StaticDir, rootFlagName, cfg.Engine.StaticDir, "Path to the root directory in which data, including images, is stored")
 		_ = cmd.RegisterFlagCompletionFunc(rootFlagName, completion.AutocompleteDefault)
 
 		pFlags.StringVar(&opts.RegistriesConf, "registries-conf", "", "Path to a registries.conf to use for image processing")
@@ -468,13 +468,13 @@ func rootFlags(cmd *cobra.Command, opts *entities.PodmanConfig) {
 		_ = cmd.RegisterFlagCompletionFunc(storageDriverFlagName, completion.AutocompleteNone)
 
 		tmpdirFlagName := "tmpdir"
-		pFlags.StringVar(&opts.Engine.TmpDir, tmpdirFlagName, "", "Path to the tmp directory for libpod state content.\n\nNote: use the environment variable 'TMPDIR' to change the temporary storage location for container images, '/var/tmp'.\n")
+		pFlags.StringVar(&opts.Engine.TmpDir, tmpdirFlagName, opts.Engine.TmpDir, "Path to the tmp directory for libpod state content.\n\nNote: use the environment variable 'TMPDIR' to change the temporary storage location for container images, '/var/tmp'.\n")
 		_ = cmd.RegisterFlagCompletionFunc(tmpdirFlagName, completion.AutocompleteDefault)
 
 		pFlags.BoolVar(&opts.Trace, "trace", false, "Enable opentracing output (default false)")
 
 		volumePathFlagName := "volumepath"
-		pFlags.StringVar(&opts.Engine.VolumePath, volumePathFlagName, "", "Path to the volume directory in which volume data is stored")
+		pFlags.StringVar(&opts.Engine.VolumePath, volumePathFlagName, opts.Engine.VolumePath, "Path to the volume directory in which volume data is stored")
 		_ = cmd.RegisterFlagCompletionFunc(volumePathFlagName, completion.AutocompleteDefault)
 
 		// Hide these flags for both ABI and Tunneling

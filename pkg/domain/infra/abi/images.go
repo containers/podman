@@ -685,7 +685,7 @@ func (ir *ImageEngine) Sign(ctx context.Context, names []string, options entitie
 }
 
 func (ir *ImageEngine) Scp(ctx context.Context, src, dst string, parentFlags []string, quiet bool, sshMode ssh.EngineMode) error {
-	rep, source, dest, flags, err := domainUtils.ExecuteTransfer(src, dst, parentFlags, quiet, sshMode)
+	rep, source, dest, flags, err := domainUtils.ExecuteTransfer(src, dst, parentFlags, quiet, sshMode, ir.Libpod.Config())
 	if err != nil {
 		return err
 	}

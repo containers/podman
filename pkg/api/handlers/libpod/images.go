@@ -604,6 +604,7 @@ func ImagesRemove(w http.ResponseWriter, r *http.Request) {
 }
 
 func ImageScp(w http.ResponseWriter, r *http.Request) {
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
 	query := struct {
 		Destination string `schema:"destination"`
@@ -618,7 +619,7 @@ func ImageScp(w http.ResponseWriter, r *http.Request) {
 
 	sourceArg := utils.GetName(r)
 
-	rep, source, dest, _, err := domainUtils.ExecuteTransfer(sourceArg, query.Destination, []string{}, query.Quiet, ssh.GolangMode)
+	rep, source, dest, _, err := domainUtils.ExecuteTransfer(sourceArg, query.Destination, []string{}, query.Quiet, ssh.GolangMode, runtime.Config())
 	if err != nil {
 		utils.Error(w, http.StatusInternalServerError, err)
 		return
