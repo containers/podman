@@ -56,7 +56,6 @@ const (
 	KeyRemapUIDRanges  = "RemapUidRanges"
 	KeyRemapGIDRanges  = "RemapGidRanges"
 	KeyNotify          = "Notify"
-	KeySocketActivated = "SocketActivated"
 	KeyExposeHostPort  = "ExposeHostPort"
 	KeyPublishPort     = "PublishPort"
 	KeyKeepID          = "KeepId"
@@ -89,7 +88,6 @@ var supportedContainerKeys = map[string]bool{
 	KeyRemapUIDRanges:  true,
 	KeyRemapGIDRanges:  true,
 	KeyNotify:          true,
-	KeySocketActivated: true,
 	KeyExposeHostPort:  true,
 	KeyPublishPort:     true,
 	KeyKeepID:          true,
@@ -426,18 +424,6 @@ func ConvertContainer(container *parser.UnitFile, isUser bool) (*parser.UnitFile
 	} else if readOnly {
 		/* !volatileTmp, disable the default tmpfs from --read-only */
 		podman.add("--read-only-tmpfs=false")
-	}
-
-	socketActivated := container.LookupBoolean(ContainerGroup, KeySocketActivated, false)
-	if socketActivated {
-		// TODO: This will not be needed with later podman versions that support activation directly:
-		//  https://github.com/containers/podman/pull/11316
-		podman.add("--preserve-fds=1")
-		podmanEnv["LISTEN_FDS"] = "1"
-
-		// TODO: This will not be 2 when catatonit forwards fds:
-		//  https://github.com/openSUSE/catatonit/pull/15
-		podmanEnv["LISTEN_PID"] = "2"
 	}
 
 	defaultContainerUID := uint32(0)
