@@ -14,8 +14,7 @@ if [[ -z "$GITHUB_REPOSITORY" ]]; then
 elif [[ -z "$GITHUB_WORKFLOW" ]]; then
     err $(printf "$_errfmt" "\$GITHUB_WORKFLOW")
 elif [[ ! -r "$NAME_ID_FILEPATH" ]]; then
-    _errfmt="Expecting %s value to be a readable file"
-    err $(printf "$_errfmt" "\$NAME_ID_FILEPATH")
+    err "Expecting \$NAME_ID_FILEPATH value ($NAME_ID_FILEPATH) to be a readable file"
 fi
 
 mkdir -p artifacts
