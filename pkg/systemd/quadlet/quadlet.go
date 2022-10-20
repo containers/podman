@@ -373,9 +373,11 @@ func ConvertContainer(container *parser.UnitFile, isUser bool) (*parser.UnitFile
 		podman.addf("--tz=%s", timezone)
 	}
 
-	network, ok := container.Lookup(ContainerGroup, KeyNetwork)
-	if ok && len(network) > 0 {
-		podman.addf("--network=%s", network)
+	networks := container.LookupAll(ContainerGroup, KeyNetwork)
+	for _, network := range networks {
+		if len(network) > 0 {
+			podman.addf("--network=%s", network)
+		}
 	}
 
 	// Run with a pid1 init to reap zombies by default (as most apps don't do that)

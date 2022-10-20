@@ -240,6 +240,8 @@ Specify a custom network for the container. This has the same format as the `--n
 to `podman run`. For example, use `host` to use the host network in the container, or `none` to
 not set up networking in the container.
 
+This key can be listed multiple times.
+
 #### `ExposeHostPort=`
 
 Exposes a port, or a range of ports (e.g. `50-59`), from the host to the container. Equivalent
