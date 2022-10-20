@@ -396,7 +396,7 @@ func ConvertContainer(container *parser.UnitFile, isUser bool) (*parser.UnitFile
 
 	dropCaps := []string{"all"} // Default
 	if container.HasKey(ContainerGroup, KeyDropCapability) {
-		dropCaps = container.LookupAll(ContainerGroup, KeyDropCapability)
+		dropCaps = container.LookupAllStrv(ContainerGroup, KeyDropCapability)
 	}
 
 	for _, caps := range dropCaps {
@@ -404,7 +404,7 @@ func ConvertContainer(container *parser.UnitFile, isUser bool) (*parser.UnitFile
 	}
 
 	// But allow overrides with AddCapability
-	addCaps := container.LookupAll(ContainerGroup, KeyAddCapability)
+	addCaps := container.LookupAllStrv(ContainerGroup, KeyAddCapability)
 	for _, caps := range addCaps {
 		podman.addf("--cap-add=%s", strings.ToLower(caps))
 	}

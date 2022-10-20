@@ -128,13 +128,25 @@ setuid and file capabilities.
 
 Drop these capabilities from the default container capability set. The default is `all`, allowing
 addition of capabilities with `AddCapability`. Set this to empty to drop no capabilities.
-This can be listed multiple times.
+
+This is a space separated list of capabilities. This key can be listed multiple times.
+
+For example:
+```
+DropCapability=CAP_DAC_OVERRIDE CAP_IPC_OWNER
+```
 
 #### `AddCapability=`
 
 By default, the container runs with no capabilities (due to DropCapabilities='all'). If any specific
 caps are needed, then add them with this key. For example using `AddCapability=CAP_DAC_OVERRIDE`.
-This can be listed multiple times.
+
+This is a space separated list of capabilities. This key can be listed multiple times.
+
+For example:
+```
+AddCapability=CAP_DAC_OVERRIDE CAP_IPC_OWNER
+```
 
 #### `ReadOnly=` (defaults to `yes`)
 
