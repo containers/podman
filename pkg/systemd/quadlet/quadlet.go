@@ -72,6 +72,7 @@ const (
 	KeyTimezone        = "Timezone"
 	KeySeccompProfile  = "SeccompProfile"
 	KeyAddDevice       = "AddDevice"
+	KeyNetwork         = "Network"
 )
 
 // Supported keys in "Container" group
@@ -106,6 +107,7 @@ var supportedContainerKeys = map[string]bool{
 	KeyTimezone:        true,
 	KeySeccompProfile:  true,
 	KeyAddDevice:       true,
+	KeyNetwork:         true,
 }
 
 // Supported keys in "Volume" group
@@ -369,6 +371,11 @@ func ConvertContainer(container *parser.UnitFile, isUser bool) (*parser.UnitFile
 	timezone, ok := container.Lookup(ContainerGroup, KeyTimezone)
 	if ok && len(timezone) > 0 {
 		podman.addf("--tz=%s", timezone)
+	}
+
+	network, ok := container.Lookup(ContainerGroup, KeyNetwork)
+	if ok && len(network) > 0 {
+		podman.addf("--network=%s", network)
 	}
 
 	// Run with a pid1 init to reap zombies by default (as most apps don't do that)

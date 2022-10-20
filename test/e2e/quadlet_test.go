@@ -278,6 +278,7 @@ var _ = Describe("quadlet system generator", func() {
 		Entry("install.container", "install.container"),
 		Entry("label.container", "label.container"),
 		Entry("name.container", "name.container"),
+		Entry("network.container", "network.container"),
 		Entry("noimage.container", "noimage.container"),
 		Entry("noremapuser2.container", "noremapuser2.container"),
 		Entry("noremapuser.container", "noremapuser.container"),
