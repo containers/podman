@@ -174,7 +174,10 @@ func (t *quadletTestcase) doAssert(check []string, unit *parser.UnitFile, sessio
 	}
 
 	if !ok {
-		s, _ := unit.ToString()
+		s := "(nil)"
+		if unit != nil {
+			s, _ = unit.ToString()
+		}
 		return fmt.Errorf("Failed assertion for %s: %s\n\n%s", t.serviceName, strings.Join(check, " "), s)
 	}
 	return nil
@@ -189,12 +192,18 @@ func (t *quadletTestcase) check(generateDir string, session *PodmanSessionIntegr
 	}
 
 	file := filepath.Join(generateDir, t.serviceName)
-	if _, err := os.Stat(file); os.IsNotExist(err) && expectFail {
-		return // Successful fail
+	_, err := os.Stat(file)
+	if expectFail {
+		Expect(err).To(MatchError(os.ErrNotExist))
+	} else {
+		Expect(err).ToNot(HaveOccurred())
 	}
 
-	unit, err := parser.ParseUnitFile(file)
-	Expect(err).To(BeNil())
+	var unit *parser.UnitFile
+	if !expectFail {
+		unit, err = parser.ParseUnitFile(file)
+		Expect(err).To(BeNil())
+	}
 
 	for _, check := range t.checks {
 		err := t.doAssert(check, unit, session)
