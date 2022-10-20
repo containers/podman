@@ -38,7 +38,7 @@ jobs:
 
             - name: Get failed cron names and Build IDs
               id: cron
-              run: './.github/actions/${{ github.workflow }}/${{ github.job }}.sh'
+              run: './.github/actions/check_cirrus_cron/cron_failures.sh'
 
             - if: steps.cron.outputs.failures > 0
               shell: bash
