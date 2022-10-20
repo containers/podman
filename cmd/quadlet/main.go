@@ -23,6 +23,7 @@ import (
 
 var (
 	verboseFlag bool // True if -v passed
+	noKmsgFlag  bool
 	isUser      bool // True if run as quadlet-user-generator executable
 )
 
@@ -219,6 +220,10 @@ func main() {
 		enableDebug()
 	}
 
+	if noKmsgFlag {
+		noKmsg = true
+	}
+
 	if flag.NArg() < 1 {
 		Logf("Missing output directory argument")
 		os.Exit(1)
@@ -270,4 +275,5 @@ func main() {
 
 func init() {
 	flag.BoolVar(&verboseFlag, "v", false, "Print debug information")
+	flag.BoolVar(&noKmsgFlag, "no-kmsg-log", false, "Don't log to kmsg")
 }

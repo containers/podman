@@ -253,7 +253,7 @@ var _ = Describe("quadlet system generator", func() {
 			Expect(err).To(BeNil())
 
 			// Run quadlet to convert the file
-			session := podmanTest.Quadlet([]string{generatedDir}, quadletDir)
+			session := podmanTest.Quadlet([]string{"-no-kmsg-log", generatedDir}, quadletDir)
 			session.WaitWithDefaultTimeout()
 			Expect(session).Should(Exit(0))
 
