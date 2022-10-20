@@ -1,3 +1,7 @@
+####> This option file is used in:
+####>   podman build, create, pod clone, pod create, run
+####> If you edit this file, make sure your changes
+####> are applicable to all of those.
 #### **--shm-size**=*number[unit]*
 
 Size of _/dev/shm_. A _unit_ can be **b** (bytes), **k** (kibibytes), **m** (mebibytes), or **g** (gibibytes).

@@ -438,7 +438,7 @@ pkg/api/swagger.yaml:
 	make -C pkg/api
 
 $(MANPAGES_MD_GENERATED): %.md: %.md.in $(MANPAGES_SOURCE_DIR)/options/*.md
-	hack/markdown-preprocess $<
+	hack/markdown-preprocess
 
 $(MANPAGES): %: %.md .install.md2man docdir
 

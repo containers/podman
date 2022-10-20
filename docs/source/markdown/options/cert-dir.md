@@ -1,3 +1,7 @@
+####> This option file is used in:
+####>   podman build, container runlabel, image sign, kube play, login, manifest add, manifest push, pull, push
+####> If you edit this file, make sure your changes
+####> are applicable to all of those.
 #### **--cert-dir**=*path*
 
 Use certificates at *path* (\*.crt, \*.cert, \*.key) to connect to the registry. (Default: /etc/containers/certs.d)

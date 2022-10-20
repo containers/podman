@@ -1,3 +1,7 @@
+####> This option file is used in:
+####>   podman create, pod create, run
+####> If you edit this file, make sure your changes
+####> are applicable to all of those.
 #### **--network-alias**=*alias*
 
 Add a network-scoped alias for the <<container|pod>>, setting the alias for all networks that the container joins. To set a

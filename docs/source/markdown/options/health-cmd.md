@@ -1,3 +1,7 @@
+####> This option file is used in:
+####>   podman create, run
+####> If you edit this file, make sure your changes
+####> are applicable to all of those.
 #### **--health-cmd**=*"command"* | *'["command", "arg1", ...]'*
 
 Set or alter a healthcheck command for a container. The command is a command to be executed inside your

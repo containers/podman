@@ -1,3 +1,7 @@
+####> This option file is used in:
+####>   podman create, run
+####> If you edit this file, make sure your changes
+####> are applicable to all of those.
 #### **--sdnotify**=**container** | *conmon* | *ignore*
 
 Determines how to use the NOTIFY_SOCKET, as passed with systemd and Type=notify.

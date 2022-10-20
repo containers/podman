@@ -1,3 +1,7 @@
+####> This option file is used in:
+####>   podman container clone, create, pod clone, pod create, run, update
+####> If you edit this file, make sure your changes
+####> are applicable to all of those.
 #### **--device-write-bps**=*path:rate*
 
 Limit write rate (in bytes per second) to a device (e.g. **--device-write-bps=/dev/sda:1mb**).
