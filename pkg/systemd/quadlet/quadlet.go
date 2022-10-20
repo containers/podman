@@ -71,6 +71,7 @@ const (
 	KeyVolatileTmp     = "VolatileTmp"
 	KeyTimezone        = "Timezone"
 	KeySeccompProfile  = "SeccompProfile"
+	KeyAddDevice       = "AddDevice"
 )
 
 // Supported keys in "Container" group
@@ -104,6 +105,7 @@ var supportedContainerKeys = map[string]bool{
 	KeyVolatileTmp:     true,
 	KeyTimezone:        true,
 	KeySeccompProfile:  true,
+	KeyAddDevice:       true,
 }
 
 // Supported keys in "Volume" group
@@ -394,6 +396,12 @@ func ConvertContainer(container *parser.UnitFile, isUser bool) (*parser.UnitFile
 	noNewPrivileges := container.LookupBoolean(ContainerGroup, KeyNoNewPrivileges, true)
 	if noNewPrivileges {
 		podman.add("--security-opt=no-new-privileges")
+	}
+
+	// But allow overrides with AddCapability
+	devices := container.LookupAllStrv(ContainerGroup, KeyAddDevice)
+	for _, device := range devices {
+		podman.addf("--device=%s", device)
 	}
 
 	// Default to no higher level privileges or caps

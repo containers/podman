@@ -258,6 +258,16 @@ allocated port can be found with the `podman port` command.
 
 This key can be listed multiple times.
 
+#### `AddDevice=`
+
+Adds a device node from the host into the container. The format of this is
+`HOST-DEVICE[:CONTAINER-DEVICE][:PERMISSIONS]`, where `HOST-DEVICE` is the path of
+the device node on the host, `CONTAINER-DEVICE` is the path of the device node in
+the container, and `PERMISSIONS` is a list of permissions combining 'r' for read,
+'w' for write, and 'm' for mknod(2).
+
+This key can be listed multiple times.
+
 #### `PodmanArgs=`
 
 This key contains a list of arguments passed directly to the end of the `podman run` command

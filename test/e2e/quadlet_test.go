@@ -270,6 +270,7 @@ var _ = Describe("quadlet system generator", func() {
 		Entry("basepodman.container", "basepodman.container"),
 		Entry("capabilities.container", "capabilities.container"),
 		Entry("capabilities2.container", "capabilities2.container"),
+		Entry("devices.container", "devices.container"),
 		Entry("env.container", "env.container"),
 		Entry("escapes.container", "escapes.container"),
 		Entry("exec.container", "exec.container"),
