@@ -1,6 +1,7 @@
 package system
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"os"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/common/pkg/report"
+	"github.com/containers/podman/v4/cmd/podman/common"
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/containers/podman/v4/cmd/podman/validate"
 	"github.com/containers/podman/v4/pkg/domain/entities"
@@ -46,13 +48,17 @@ func init() {
 
 	formatFlagName := "format"
 	flags.StringVar(&dfOptions.Format, formatFlagName, "", "Pretty-print images using a Go template")
-	_ = dfSystemCommand.RegisterFlagCompletionFunc(formatFlagName, completion.AutocompleteNone)
+	_ = dfSystemCommand.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(&dfSummary{}))
 }
 
 func df(cmd *cobra.Command, args []string) error {
 	reports, err := registry.ContainerEngine().SystemDf(registry.Context(), dfOptions)
 	if err != nil {
 		return err
+	}
+
+	if dfOptions.Format != "" && dfOptions.Verbose {
+		return errors.New("cannot combine --format and --verbose flags")
 	}
 
 	if dfOptions.Verbose {
@@ -142,6 +148,9 @@ func printSummary(cmd *cobra.Command, reports *entities.SystemDfReport) error {
 
 	var err error
 	if cmd.Flags().Changed("format") {
+		if report.IsJSON(dfOptions.Format) {
+			return printJSON(dfSummaries)
+		}
 		rpt, err = rpt.Parse(report.OriginUser, dfOptions.Format)
 	} else {
 		row := "{{range . }}{{.Type}}\t{{.Total}}\t{{.Active}}\t{{.Size}}\t{{.Reclaimable}}\n{{end -}}"
@@ -151,6 +160,16 @@ func printSummary(cmd *cobra.Command, reports *entities.SystemDfReport) error {
 		return err
 	}
 	return writeTemplate(rpt, hdrs, dfSummaries)
+}
+
+func printJSON(data interface{}) error {
+	bytes, err := json.MarshalIndent(data, "", "    ")
+	if err != nil {
+		return err
+	}
+
+	fmt.Println(string(bytes))
+	return nil
 }
 
 func printVerbose(cmd *cobra.Command, reports *entities.SystemDfReport) error { //nolint:interfacer
