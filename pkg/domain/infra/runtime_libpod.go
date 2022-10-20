@@ -146,7 +146,7 @@ func getRuntime(ctx context.Context, fs *flag.FlagSet, opts *engineOpts) (*libpo
 
 	if fs.Changed("root") {
 		storageSet = true
-		storageOpts.GraphRoot = cfg.Engine.StaticDir
+		storageOpts.GraphRoot = cfg.ContainersConf.Engine.StaticDir
 		storageOpts.GraphDriverOptions = []string{}
 	}
 	if fs.Changed("runroot") {
@@ -205,8 +205,8 @@ func getRuntime(ctx context.Context, fs *flag.FlagSet, opts *engineOpts) (*libpo
 	// TODO CLI flags for image config?
 	// TODO CLI flag for signature policy?
 
-	if len(cfg.Engine.Namespace) > 0 {
-		options = append(options, libpod.WithNamespace(cfg.Engine.Namespace))
+	if len(cfg.ContainersConf.Engine.Namespace) > 0 {
+		options = append(options, libpod.WithNamespace(cfg.ContainersConf.Engine.Namespace))
 	}
 
 	if fs.Changed("runtime") {
@@ -217,25 +217,25 @@ func getRuntime(ctx context.Context, fs *flag.FlagSet, opts *engineOpts) (*libpo
 		options = append(options, libpod.WithConmonPath(cfg.ConmonPath))
 	}
 	if fs.Changed("tmpdir") {
-		options = append(options, libpod.WithTmpDir(cfg.Engine.TmpDir))
+		options = append(options, libpod.WithTmpDir(cfg.ContainersConf.Engine.TmpDir))
 	}
 	if fs.Changed("network-cmd-path") {
-		options = append(options, libpod.WithNetworkCmdPath(cfg.Engine.NetworkCmdPath))
+		options = append(options, libpod.WithNetworkCmdPath(cfg.ContainersConf.Engine.NetworkCmdPath))
 	}
 	if fs.Changed("network-backend") {
-		options = append(options, libpod.WithNetworkBackend(cfg.Network.NetworkBackend))
+		options = append(options, libpod.WithNetworkBackend(cfg.ContainersConf.Network.NetworkBackend))
 	}
 
 	if fs.Changed("events-backend") {
-		options = append(options, libpod.WithEventsLogger(cfg.Engine.EventsLogger))
+		options = append(options, libpod.WithEventsLogger(cfg.ContainersConf.Engine.EventsLogger))
 	}
 
 	if fs.Changed("volumepath") {
-		options = append(options, libpod.WithVolumePath(cfg.Engine.VolumePath))
+		options = append(options, libpod.WithVolumePath(cfg.ContainersConf.Engine.VolumePath))
 	}
 
 	if fs.Changed("cgroup-manager") {
-		options = append(options, libpod.WithCgroupManager(cfg.Engine.CgroupManager))
+		options = append(options, libpod.WithCgroupManager(cfg.ContainersConf.Engine.CgroupManager))
 	} else {
 		unified, err := cgroups.IsCgroup2UnifiedMode()
 		if err != nil {
@@ -250,13 +250,13 @@ func getRuntime(ctx context.Context, fs *flag.FlagSet, opts *engineOpts) (*libpo
 	// TODO flag to set libpod tmp dir?
 
 	if fs.Changed("network-config-dir") {
-		options = append(options, libpod.WithCNIConfigDir(cfg.Network.NetworkConfigDir))
+		options = append(options, libpod.WithCNIConfigDir(cfg.ContainersConf.Network.NetworkConfigDir))
 	}
 	if fs.Changed("default-mounts-file") {
-		options = append(options, libpod.WithDefaultMountsFile(cfg.Containers.DefaultMountsFile))
+		options = append(options, libpod.WithDefaultMountsFile(cfg.ContainersConf.Containers.DefaultMountsFile))
 	}
 	if fs.Changed("hooks-dir") {
-		options = append(options, libpod.WithHooksDir(cfg.Engine.HooksDir...))
+		options = append(options, libpod.WithHooksDir(cfg.ContainersConf.Engine.HooksDir...))
 	}
 	if fs.Changed("registries-conf") {
 		options = append(options, libpod.WithRegistriesConf(cfg.RegistriesConf))

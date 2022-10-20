@@ -57,7 +57,7 @@ func init() {
 	cfg := registry.PodmanConfig()
 
 	timeFlagName := "time"
-	flags.UintVarP(&srvArgs.Timeout, timeFlagName, "t", cfg.Engine.ServiceTimeout,
+	flags.UintVarP(&srvArgs.Timeout, timeFlagName, "t", cfg.ContainersConfDefaultsRO.Engine.ServiceTimeout,
 		"Time until the service session expires in seconds.  Use 0 to disable the timeout")
 	_ = srvCmd.RegisterFlagCompletionFunc(timeFlagName, completion.AutocompleteNone)
 	flags.SetNormalizeFunc(aliasTimeoutFlag)

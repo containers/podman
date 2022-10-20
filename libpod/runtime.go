@@ -165,7 +165,7 @@ func SetXdgDirs() error {
 // NewRuntime creates a new container runtime
 // Options can be passed to override the default configuration for the runtime
 func NewRuntime(ctx context.Context, options ...RuntimeOption) (*Runtime, error) {
-	conf, err := config.NewConfig("")
+	conf, err := config.Default()
 	if err != nil {
 		return nil, err
 	}

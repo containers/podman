@@ -504,11 +504,11 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *buil
 		runtimeFlags = append(runtimeFlags, "--"+arg)
 	}
 
-	containerConfig := registry.PodmanConfig()
-	for _, arg := range containerConfig.RuntimeFlags {
+	podmanConfig := registry.PodmanConfig()
+	for _, arg := range podmanConfig.RuntimeFlags {
 		runtimeFlags = append(runtimeFlags, "--"+arg)
 	}
-	if containerConfig.Engine.CgroupManager == config.SystemdCgroupsManager {
+	if podmanConfig.ContainersConf.Engine.CgroupManager == config.SystemdCgroupsManager {
 		runtimeFlags = append(runtimeFlags, "--systemd-cgroup")
 	}
 
@@ -576,7 +576,7 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *buil
 		ConfigureNetwork:        networkPolicy,
 		ContextDirectory:        contextDir,
 		CPPFlags:                flags.CPPFlags,
-		DefaultMountsFilePath:   containerConfig.Containers.DefaultMountsFile,
+		DefaultMountsFilePath:   podmanConfig.ContainersConfDefaultsRO.Containers.DefaultMountsFile,
 		Devices:                 flags.Devices,
 		DropCapabilities:        flags.CapDrop,
 		Envs:                    flags.Envs,
@@ -608,7 +608,7 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *buil
 		Quiet:                   flags.Quiet,
 		RemoveIntermediateCtrs:  flags.Rm,
 		ReportWriter:            reporter,
-		Runtime:                 containerConfig.RuntimePath,
+		Runtime:                 podmanConfig.RuntimePath,
 		RuntimeArgs:             runtimeFlags,
 		RusageLogFile:           flags.RusageLogFile,
 		SignBy:                  flags.SignBy,
