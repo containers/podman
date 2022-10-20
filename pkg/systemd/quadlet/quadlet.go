@@ -412,7 +412,7 @@ func ConvertContainer(container *parser.UnitFile, isUser bool) (*parser.UnitFile
 		podman.addf("--cap-add=%s", strings.ToLower(caps))
 	}
 
-	readOnly := container.LookupBoolean(ContainerGroup, KeyReadOnly, false)
+	readOnly := container.LookupBoolean(ContainerGroup, KeyReadOnly, true)
 	if readOnly {
 		podman.add("--read-only")
 	}
