@@ -80,7 +80,7 @@ func findSublist(full []string, sublist []string) int {
 }
 
 func (t *quadletTestcase) assertStdErrContains(args []string, session *PodmanSessionIntegration) bool {
-	return strings.Contains(session.OutputToString(), args[0])
+	return strings.Contains(session.ErrorToString(), args[0])
 }
 
 func (t *quadletTestcase) assertKeyIs(args []string, unit *parser.UnitFile) bool {
