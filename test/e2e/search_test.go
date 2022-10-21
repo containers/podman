@@ -76,7 +76,7 @@ registries = ['{{.Host}}:{{.Port}}']`
 		search.WaitWithDefaultTimeout()
 		Expect(search).Should(Exit(0))
 		Expect(len(search.OutputToStringArray())).To(BeNumerically(">", 1))
-		Expect(search.OutputToString()).To(ContainSubstring("docker.io/library/alpine"))
+		Expect(search.OutputToString()).To(ContainSubstring("alpine"))
 	})
 
 	It("podman search single registry flag", func() {
