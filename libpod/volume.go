@@ -17,10 +17,11 @@ type Volume struct {
 	config *VolumeConfig
 	state  *VolumeState
 
-	valid   bool
-	plugin  *plugin.VolumePlugin
-	runtime *Runtime
-	lock    lock.Locker
+	ignoreIfExists bool
+	valid          bool
+	plugin         *plugin.VolumePlugin
+	runtime        *Runtime
+	lock           lock.Locker
 }
 
 // VolumeConfig holds the volume's immutable configuration.

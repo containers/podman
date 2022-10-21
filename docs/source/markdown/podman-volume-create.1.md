@@ -29,6 +29,10 @@ Such plugins must be defined in the **volume_plugins** section of the **[contain
 
 Print usage statement
 
+#### **--ignore**
+
+Don't fail if the named volume already exists, instead just print the name. Note that the new options are not applied to the existing volume.
+
 #### **--label**, **-l**=*label*
 
 Set metadata for a volume (e.g., --label mykey=value).

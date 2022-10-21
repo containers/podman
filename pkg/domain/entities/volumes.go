@@ -19,6 +19,8 @@ type VolumeCreateOptions struct {
 	Labels map[string]string `schema:"labels"`
 	// Mapping of driver options and values.
 	Options map[string]string `schema:"opts"`
+	// Ignore existing volumes
+	IgnoreIfExists bool `schema:"ignoreIfExist"`
 }
 
 type VolumeConfigResponse struct {

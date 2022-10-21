@@ -1551,6 +1551,17 @@ func WithCreateWorkingDir() CtrCreateOption {
 
 // Volume Creation Options
 
+func WithVolumeIgnoreIfExist() VolumeCreateOption {
+	return func(volume *Volume) error {
+		if volume.valid {
+			return define.ErrVolumeFinalized
+		}
+		volume.ignoreIfExists = true
+
+		return nil
+	}
+}
+
 // WithVolumeName sets the name of the volume.
 func WithVolumeName(name string) VolumeCreateOption {
 	return func(volume *Volume) error {
