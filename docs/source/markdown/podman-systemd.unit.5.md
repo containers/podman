@@ -126,8 +126,8 @@ setuid and file capabilities.
 
 #### `DropCapability=` (defaults to `all`)
 
-Drop these capabilities from the default container capability set. The default is `all`, allowing
-addition of capabilities with `AddCapability`. Set this to empty to drop no capabilities.
+Drop these capabilities from the default podman capability set, or `all` for all capabilities. The default if no
+`DropCapability` is set is `all`. Set this to empty (i.e. `DropCapability=`) to use the default podman capability set.
 
 This is a space separated list of capabilities. This key can be listed multiple times.
 
