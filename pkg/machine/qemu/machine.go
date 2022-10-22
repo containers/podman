@@ -19,6 +19,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"syscall"
@@ -306,6 +307,10 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 		target := source
 		readonly := false
 		securityModel := "mapped-xattr"
+		if runtime.GOOS == "darwin" {
+			// see https://github.com/containers/podman/discussions/16102
+			securityModel = "none"
+		}
 		if len(paths) > 1 {
 			target = paths[1]
 		}
