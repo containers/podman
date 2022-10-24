@@ -56,7 +56,7 @@ case $1 in
                 cat /etc/fedora-release
                 PKG_LST_CMD='rpm -q --qf=%{N}-%{V}-%{R}-%{ARCH}\n'
                 PKG_NAMES+=(\
-                    aardvark
+                    aardvark-dns
                     container-selinux
                     libseccomp
                     netavark
