@@ -71,7 +71,7 @@ func (md *MetaData) Keys() []Key {
 // Undecoded returns all keys that have not been decoded in the order in which
 // they appear in the original TOML document.
 //
-// This includes keys that haven't been decoded because of a Primitive value.
+// This includes keys that haven't been decoded because of a [Primitive] value.
 // Once the Primitive value is decoded, the keys will be considered decoded.
 //
 // Also note that decoding into an empty interface will result in no decoding,
@@ -89,7 +89,7 @@ func (md *MetaData) Undecoded() []Key {
 	return undecoded
 }
 
-// Key represents any TOML key, including key groups. Use (MetaData).Keys to get
+// Key represents any TOML key, including key groups. Use [MetaData.Keys] to get
 // values of this type.
 type Key []string
 

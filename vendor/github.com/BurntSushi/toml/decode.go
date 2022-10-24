@@ -21,7 +21,9 @@ type Unmarshaler interface {
 	UnmarshalTOML(interface{}) error
 }
 
-// Unmarshal decodes the contents of `data` in TOML format into a pointer `v`.
+// Unmarshal decodes the contents of data in TOML format into a pointer v.
+//
+// See [Decoder] for a description of the decoding process.
 func Unmarshal(data []byte, v interface{}) error {
 	_, err := NewDecoder(bytes.NewReader(data)).Decode(v)
 	return err
@@ -29,13 +31,12 @@ func Unmarshal(data []byte, v interface{}) error {
 
 // Decode the TOML data in to the pointer v.
 //
-// See the documentation on Decoder for a description of the decoding process.
+// See [Decoder] for a description of the decoding process.
 func Decode(data string, v interface{}) (MetaData, error) {
 	return NewDecoder(strings.NewReader(data)).Decode(v)
 }
 
-// DecodeFile is just like Decode, except it will automatically read the
-// contents of the file at path and decode it for you.
+// DecodeFile reads the contents of a file and decodes it with [Decode].
 func DecodeFile(path string, v interface{}) (MetaData, error) {
 	fp, err := os.Open(path)
 	if err != nil {
@@ -48,7 +49,7 @@ func DecodeFile(path string, v interface{}) (MetaData, error) {
 // Primitive is a TOML value that hasn't been decoded into a Go value.
 //
 // This type can be used for any value, which will cause decoding to be delayed.
-// You can use the PrimitiveDecode() function to "manually" decode these values.
+// You can use [PrimitiveDecode] to "manually" decode these values.
 //
 // NOTE: The underlying representation of a `Primitive` value is subject to
 // change. Do not rely on it.
@@ -70,15 +71,15 @@ const (
 
 // Decoder decodes TOML data.
 //
-// TOML tables correspond to Go structs or maps (dealer's choice – they can be
-// used interchangeably).
+// TOML tables correspond to Go structs or maps; they can be used
+// interchangeably, but structs offer better type safety.
 //
 // TOML table arrays correspond to either a slice of structs or a slice of maps.
 //
-// TOML datetimes correspond to Go time.Time values. Local datetimes are parsed
-// in the local timezone.
+// TOML datetimes correspond to [time.Time]. Local datetimes are parsed in the
+// local timezone.
 //
-// time.Duration types are treated as nanoseconds if the TOML value is an
+// [time.Duration] types are treated as nanoseconds if the TOML value is an
 // integer, or they're parsed with time.ParseDuration() if they're strings.
 //
 // All other TOML types (float, string, int, bool and array) correspond to the
@@ -90,7 +91,7 @@ const (
 // UnmarshalText method. See the Unmarshaler example for a demonstration with
 // email addresses.
 //
-// Key mapping
+// ### Key mapping
 //
 // TOML keys can map to either keys in a Go map or field names in a Go struct.
 // The special `toml` struct tag can be used to map TOML keys to struct fields
@@ -168,17 +169,16 @@ func (dec *Decoder) Decode(v interface{}) (MetaData, error) {
 	return md, md.unify(p.mapping, rv)
 }
 
-// PrimitiveDecode is just like the other `Decode*` functions, except it
-// decodes a TOML value that has already been parsed. Valid primitive values
-// can *only* be obtained from values filled by the decoder functions,
-// including this method. (i.e., `v` may contain more `Primitive`
-// values.)
+// PrimitiveDecode is just like the other Decode* functions, except it decodes a
+// TOML value that has already been parsed. Valid primitive values can *only* be
+// obtained from values filled by the decoder functions, including this method.
+// (i.e., v may contain more [Primitive] values.)
 //
-// Meta data for primitive values is included in the meta data returned by
-// the `Decode*` functions with one exception: keys returned by the Undecoded
-// method will only reflect keys that were decoded. Namely, any keys hidden
-// behind a Primitive will be considered undecoded. Executing this method will
-// update the undecoded keys in the meta data. (See the example.)
+// Meta data for primitive values is included in the meta data returned by the
+// Decode* functions with one exception: keys returned by the Undecoded method
+// will only reflect keys that were decoded. Namely, any keys hidden behind a
+// Primitive will be considered undecoded. Executing this method will update the
+// undecoded keys in the meta data. (See the example.)
 func (md *MetaData) PrimitiveDecode(primValue Primitive, v interface{}) error {
 	md.context = primValue.context
 	defer func() { md.context = nil }()
