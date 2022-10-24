@@ -1,3 +1,7 @@
+####> This option file is used in:
+####>   podman create, run
+####> If you edit this file, make sure your changes
+####> are applicable to all of those.
 #### **--group-add**=*group* | *keep-groups*
 
 Assign additional groups to the primary user running within the container process.

@@ -1,3 +1,7 @@
+####> This option file is used in:
+####>   podman create, run
+####> If you edit this file, make sure your changes
+####> are applicable to all of those.
 #### **--read-only**
 
 Mount the container's root filesystem as read-only.

@@ -1,3 +1,7 @@
+####> This option file is used in:
+####>   podman build, container clone, create, pod clone, pod create, run, update
+####> If you edit this file, make sure your changes
+####> are applicable to all of those.
 #### **--memory**, **-m**=*number[unit]*
 
 Memory limit. A _unit_ can be **b** (bytes), **k** (kibibytes), **m** (mebibytes), or **g** (gibibytes).

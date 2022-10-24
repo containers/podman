@@ -1,3 +1,7 @@
+####> This option file is used in:
+####>   podman create, run
+####> If you edit this file, make sure your changes
+####> are applicable to all of those.
 #### **--gidmap**=*container_gid:host_gid:amount*
 
 Run the container in a new user namespace using the supplied GID mapping. This

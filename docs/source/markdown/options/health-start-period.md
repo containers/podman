@@ -1,3 +1,7 @@
+####> This option file is used in:
+####>   podman create, run
+####> If you edit this file, make sure your changes
+####> are applicable to all of those.
 #### **--health-start-period**=*period*
 
 The initialization time needed for a container to bootstrap. The value can be expressed in time format like

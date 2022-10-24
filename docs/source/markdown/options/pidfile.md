@@ -1,3 +1,7 @@
+####> This option file is used in:
+####>   podman create, run
+####> If you edit this file, make sure your changes
+####> are applicable to all of those.
 #### **--pidfile**=*path*
 
 When the pidfile location is specified, the container process' PID will be written to the pidfile. (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)

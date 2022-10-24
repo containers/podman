@@ -1,3 +1,7 @@
+####> This option file is used in:
+####>   podman build, container clone, create, pod clone, pod create, run, update
+####> If you edit this file, make sure your changes
+####> are applicable to all of those.
 #### **--cpuset-cpus**=*number*
 
 CPUs in which to allow execution. Can be specified as a comma-separated list

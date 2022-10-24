@@ -1,3 +1,7 @@
+####> This option file is used in:
+####>   podman create, pod create, run
+####> If you edit this file, make sure your changes
+####> are applicable to all of those.
 #### **--mac-address**=*address*
 
 <<Container|Pod>> network interface MAC address (e.g. 92:d0:c6:0a:29:33)

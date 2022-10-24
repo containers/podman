@@ -1,3 +1,7 @@
+####> This option file is used in:
+####>   podman create, run
+####> If you edit this file, make sure your changes
+####> are applicable to all of those.
 #### **--entrypoint**=*"command"* | *'["command", "arg1", ...]'*
 
 Overwrite the default ENTRYPOINT of the image.

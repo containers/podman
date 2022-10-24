@@ -1,3 +1,7 @@
+####> This option file is used in:
+####>   podman create, pod clone, pod create, run
+####> If you edit this file, make sure your changes
+####> are applicable to all of those.
 #### **--volumes-from**=*CONTAINER[:OPTIONS]*
 
 Mount volumes from the specified container(s). Used to share volumes between

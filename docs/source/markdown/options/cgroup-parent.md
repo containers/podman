@@ -1,3 +1,7 @@
+####> This option file is used in:
+####>   podman build, create, pod clone, pod create, run
+####> If you edit this file, make sure your changes
+####> are applicable to all of those.
 #### **--cgroup-parent**=*path*
 
 Path to cgroups under which the cgroup for the <<container|pod>> will be created. If the

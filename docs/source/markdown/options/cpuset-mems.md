@@ -1,3 +1,7 @@
+####> This option file is used in:
+####>   podman build, container clone, create, pod clone, pod create, run, update
+####> If you edit this file, make sure your changes
+####> are applicable to all of those.
 #### **--cpuset-mems**=*nodes*
 
 Memory nodes (MEMs) in which to allow execution (0-3, 0,1). Only effective on

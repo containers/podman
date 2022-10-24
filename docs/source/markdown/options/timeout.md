@@ -1,3 +1,7 @@
+####> This option file is used in:
+####>   podman create, run
+####> If you edit this file, make sure your changes
+####> are applicable to all of those.
 #### **--timeout**=*seconds*
 
 Maximum time a container is allowed to run before conmon sends it the kill

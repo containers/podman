@@ -1,3 +1,7 @@
+####> This option file is used in:
+####>   podman exec, run
+####> If you edit this file, make sure your changes
+####> are applicable to all of those.
 #### **--preserve-fds**=*N*
 
 Pass down to the process N additional file descriptors (in addition to 0, 1, 2).

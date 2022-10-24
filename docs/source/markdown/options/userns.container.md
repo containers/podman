@@ -1,3 +1,7 @@
+####> This option file is used in:
+####>   podman create, kube play, run
+####> If you edit this file, make sure your changes
+####> are applicable to all of those.
 #### **--userns**=*mode*
 
 Set the user namespace mode for the container. It defaults to the **PODMAN_USERNS** environment variable. An empty value ("") means user namespaces are disabled unless an explicit mapping is set with the **--uidmap** and **--gidmap** options.

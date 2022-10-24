@@ -1,3 +1,7 @@
+####> This option file is used in:
+####>   podman create, run
+####> If you edit this file, make sure your changes
+####> are applicable to all of those.
 #### **--pod**=*name*
 
 Run container in an existing pod. If you want Podman to make the pod for you, prefix the pod name with **new:**.

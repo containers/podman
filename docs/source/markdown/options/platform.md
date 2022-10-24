@@ -1,3 +1,7 @@
+####> This option file is used in:
+####>   podman create, pull, run
+####> If you edit this file, make sure your changes
+####> are applicable to all of those.
 #### **--platform**=*OS/ARCH*
 
 Specify the platform for selecting the image.  (Conflicts with --arch and --os)
