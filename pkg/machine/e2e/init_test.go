@@ -142,7 +142,7 @@ var _ = Describe("podman machine init", func() {
 		_, err = os.CreateTemp(tmpDir, "example")
 		Expect(err).To(BeNil())
 		mount := tmpDir + ":/testmountdir"
-		defer os.RemoveAll(tmpDir)
+		defer func() { _ = machine.GuardedRemoveAll(tmpDir) }()
 
 		name := randomString()
 		i := new(initMachine)
