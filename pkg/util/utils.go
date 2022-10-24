@@ -682,18 +682,15 @@ func DefaultContainerConfig() *config.Config {
 	return containerConfig
 }
 
-func CreateCidFile(cidfile string, id string) error {
-	cidFile, err := OpenExclusiveFile(cidfile)
+func CreateIDFile(path string, id string) error {
+	idFile, err := os.Create(path)
 	if err != nil {
-		if os.IsExist(err) {
-			return fmt.Errorf("container id file exists. Ensure another container is not using it or delete %s", cidfile)
-		}
-		return fmt.Errorf("opening cidfile %s", cidfile)
+		return fmt.Errorf("creating idfile: %w", err)
 	}
-	if _, err = cidFile.WriteString(id); err != nil {
-		logrus.Error(err)
+	defer idFile.Close()
+	if _, err = idFile.WriteString(id); err != nil {
+		return fmt.Errorf("writing idfile: %w", err)
 	}
-	cidFile.Close()
 	return nil
 }
 

@@ -61,10 +61,8 @@ type podInfo struct {
 	PodCreateCommand string
 	// EnvVariable is generate.EnvVariable and must not be set.
 	EnvVariable string
-	// ExecStartPre1 of the unit.
-	ExecStartPre1 string
-	// ExecStartPre2 of the unit.
-	ExecStartPre2 string
+	// ExecStartPre of the unit.
+	ExecStartPre string
 	// ExecStart of the unit.
 	ExecStart string
 	// TimeoutStopSec of the unit.
@@ -115,11 +113,8 @@ Restart={{{{.RestartPolicy}}}}
 RestartSec={{{{.RestartSec}}}}
 {{{{- end}}}}
 TimeoutStopSec={{{{.TimeoutStopSec}}}}
-{{{{- if .ExecStartPre1}}}}
-ExecStartPre={{{{.ExecStartPre1}}}}
-{{{{- end}}}}
-{{{{- if .ExecStartPre2}}}}
-ExecStartPre={{{{.ExecStartPre2}}}}
+{{{{- if .ExecStartPre}}}}
+ExecStartPre={{{{.ExecStartPre}}}}
 {{{{- end}}}}
 ExecStart={{{{.ExecStart}}}}
 ExecStop={{{{.ExecStop}}}}
@@ -371,8 +366,7 @@ func executePodTemplate(info *podInfo, options entities.GenerateSystemdOptions) 
 		startCommand = append(startCommand, podCreateArgs...)
 		startCommand = escapeSystemdArguments(startCommand)
 
-		info.ExecStartPre1 = formatOptionsString("/bin/rm -f {{{{.PIDFile}}}} {{{{.PodIDFile}}}}")
-		info.ExecStartPre2 = formatOptions(startCommand)
+		info.ExecStartPre = formatOptions(startCommand)
 		info.ExecStart = formatOptionsString("{{{{.Executable}}}} {{{{if .RootFlags}}}}{{{{ .RootFlags}}}} {{{{end}}}}pod start --pod-id-file {{{{.PodIDFile}}}}")
 		info.ExecStop = formatOptionsString("{{{{.Executable}}}} {{{{if .RootFlags}}}}{{{{ .RootFlags}}}} {{{{end}}}}pod stop --ignore --pod-id-file {{{{.PodIDFile}}}} {{{{if (ge .StopTimeout 0)}}}} -t {{{{.StopTimeout}}}}{{{{end}}}}")
 		info.ExecStopPost = formatOptionsString("{{{{.Executable}}}} {{{{if .RootFlags}}}}{{{{ .RootFlags}}}} {{{{end}}}}pod rm --ignore -f --pod-id-file {{{{.PodIDFile}}}}")

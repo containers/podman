@@ -169,7 +169,7 @@ func create(cmd *cobra.Command, args []string) error {
 	}
 
 	if cliVals.CIDFile != "" {
-		if err := util.CreateCidFile(cliVals.CIDFile, report.Id); err != nil {
+		if err := util.CreateIDFile(cliVals.CIDFile, report.Id); err != nil {
 			return err
 		}
 	}
