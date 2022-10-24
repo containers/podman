@@ -79,12 +79,12 @@ type Marshaler interface {
 // Encoder encodes a Go to a TOML document.
 //
 // The mapping between Go values and TOML values should be precisely the same as
-// for the Decode* functions.
+// for [Decode].
 //
 // time.Time is encoded as a RFC 3339 string, and time.Duration as its string
 // representation.
 //
-// The toml.Marshaler and encoder.TextMarshaler interfaces are supported to
+// The [Marshaler] and [encoding.TextMarshaler] interfaces are supported to
 // encoding the value as custom TOML.
 //
 // If you want to write arbitrary binary data then you will need to use
@@ -130,7 +130,7 @@ func NewEncoder(w io.Writer) *Encoder {
 	}
 }
 
-// Encode writes a TOML representation of the Go value to the Encoder's writer.
+// Encode writes a TOML representation of the Go value to the [Encoder]'s writer.
 //
 // An error is returned if the value given cannot be encoded to a valid TOML
 // document.
@@ -261,7 +261,7 @@ func (enc *Encoder) eElement(rv reflect.Value) {
 			enc.eElement(reflect.ValueOf(v))
 			return
 		}
-		encPanic(errors.New(fmt.Sprintf("Unable to convert \"%s\" to neither int64 nor float64", n)))
+		encPanic(fmt.Errorf("unable to convert %q to int64 or float64", n))
 	}
 
 	switch rv.Kind() {
@@ -504,7 +504,8 @@ func (enc *Encoder) eStruct(key Key, rv reflect.Value, inline bool) {
 			if opts.name != "" {
 				keyName = opts.name
 			}
-			if opts.omitempty && isEmpty(fieldVal) {
+
+			if opts.omitempty && enc.isEmpty(fieldVal) {
 				continue
 			}
 			if opts.omitzero && isZero(fieldVal) {
@@ -648,12 +649,26 @@ func isZero(rv reflect.Value) bool {
 	return false
 }
 
-func isEmpty(rv reflect.Value) bool {
+func (enc *Encoder) isEmpty(rv reflect.Value) bool {
 	switch rv.Kind() {
 	case reflect.Array, reflect.Slice, reflect.Map, reflect.String:
 		return rv.Len() == 0
 	case reflect.Struct:
-		return reflect.Zero(rv.Type()).Interface() == rv.Interface()
+		if rv.Type().Comparable() {
+			return reflect.Zero(rv.Type()).Interface() == rv.Interface()
+		}
+		// Need to also check if all the fields are empty, otherwise something
+		// like this with uncomparable types will always return true:
+		//
+		//   type a struct{ field b }
+		//   type b struct{ s []string }
+		//   s := a{field: b{s: []string{"AAA"}}}
+		for i := 0; i < rv.NumField(); i++ {
+			if !enc.isEmpty(rv.Field(i)) {
+				return false
+			}
+		}
+		return true
 	case reflect.Bool:
 		return !rv.Bool()
 	}
@@ -668,16 +683,15 @@ func (enc *Encoder) newline() {
 
 // Write a key/value pair:
 //
-//   key = <any value>
+//	key = <any value>
 //
 // This is also used for "k = v" in inline tables; so something like this will
 // be written in three calls:
 //
-//     ┌────────────────────┐
-//     │      ┌───┐  ┌─────┐│
-//     v      v   v  v     vv
-//     key = {k = v, k2 = v2}
-//
+//	┌───────────────────┐
+//	│      ┌───┐  ┌────┐│
+//	v      v   v  v    vv
+//	key = {k = 1, k2 = 2}
 func (enc *Encoder) writeKeyValue(key Key, val reflect.Value, inline bool) {
 	if len(key) == 0 {
 		encPanic(errNoKey)
