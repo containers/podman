@@ -313,8 +313,20 @@ var _ = Describe("Podman ps", func() {
 		Expect(result).Should(Exit(0))
 		Expect(result.OutputToString()).To(Equal(cid))
 
-		// Query by truncated image name should not match ( should return empty output )
+		// Query by truncated image name should match (regexp match)
 		result = podmanTest.Podman([]string{"ps", "-q", "--no-trunc", "-a", "--filter", "ancestor=quay.io/libpod/alpi"})
+		result.WaitWithDefaultTimeout()
+		Expect(result).Should(Exit(0))
+		Expect(result.OutputToString()).To(Equal(cid))
+
+		// Query using regex by truncated image name should match (regexp match)
+		result = podmanTest.Podman([]string{"ps", "-q", "--no-trunc", "-a", "--filter", "ancestor=^(quay.io|docker.io)/libpod/alpine:[a-zA-Z]+"})
+		result.WaitWithDefaultTimeout()
+		Expect(result).Should(Exit(0))
+		Expect(result.OutputToString()).To(Equal(cid))
+
+		// Query for an non-existing image using regex should not match anything
+		result = podmanTest.Podman([]string{"ps", "-q", "--no-trunc", "-a", "--filter", "ancestor=^quai.io/libpod/alpi"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
 		Expect(result.OutputToString()).To(Equal(""))

@@ -96,8 +96,8 @@ func GenerateContainerFilterFuncs(filter string, filterValues []string, r *libpo
 				}
 
 				if (rootfsImageID == filterValue) ||
-					(rootfsImageName == filterValue) ||
-					(imageNameWithoutTag == filterValue && imageTag == "latest") {
+					util.StringMatchRegexSlice(rootfsImageName, filterValues) ||
+					(util.StringMatchRegexSlice(imageNameWithoutTag, filterValues) && imageTag == "latest") {
 					return true
 				}
 			}
