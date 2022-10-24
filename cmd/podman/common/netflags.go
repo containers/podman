@@ -28,20 +28,20 @@ func DefineNetFlags(cmd *cobra.Command) {
 
 	dnsFlagName := "dns"
 	netFlags.StringSlice(
-		dnsFlagName, containerConfig.DNSServers(),
+		dnsFlagName, podmanConfig.ContainersConf.DNSServers(),
 		"Set custom DNS servers",
 	)
 	_ = cmd.RegisterFlagCompletionFunc(dnsFlagName, completion.AutocompleteNone)
 
 	dnsOptFlagName := "dns-option"
 	netFlags.StringSlice(
-		dnsOptFlagName, containerConfig.DNSOptions(),
+		dnsOptFlagName, podmanConfig.ContainersConf.DNSOptions(),
 		"Set custom DNS options",
 	)
 	_ = cmd.RegisterFlagCompletionFunc(dnsOptFlagName, completion.AutocompleteNone)
 	dnsSearchFlagName := "dns-search"
 	netFlags.StringSlice(
-		dnsSearchFlagName, containerConfig.DNSSearches(),
+		dnsSearchFlagName, podmanConfig.ContainersConf.DNSSearches(),
 		"Set custom DNS search domains",
 	)
 	_ = cmd.RegisterFlagCompletionFunc(dnsSearchFlagName, completion.AutocompleteNone)
@@ -89,7 +89,7 @@ func DefineNetFlags(cmd *cobra.Command) {
 	_ = cmd.RegisterFlagCompletionFunc(publishFlagName, completion.AutocompleteNone)
 
 	netFlags.Bool(
-		"no-hosts", containerConfig.Containers.NoHosts,
+		"no-hosts", podmanConfig.ContainersConfDefaultsRO.Containers.NoHosts,
 		"Do not create /etc/hosts within the container, instead use the version from the image",
 	)
 }

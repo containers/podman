@@ -45,11 +45,11 @@ func init() {
 	flags := createCmd.Flags()
 
 	driverFlagName := "driver"
-	flags.StringVarP(&createOpts.Driver, driverFlagName, "d", cfg.Secrets.Driver, "Specify secret driver")
+	flags.StringVarP(&createOpts.Driver, driverFlagName, "d", cfg.ContainersConfDefaultsRO.Secrets.Driver, "Specify secret driver")
 	_ = createCmd.RegisterFlagCompletionFunc(driverFlagName, completion.AutocompleteNone)
 
 	optsFlagName := "driver-opts"
-	flags.StringToStringVar(&createOpts.DriverOpts, optsFlagName, cfg.Secrets.Opts, "Specify driver specific options")
+	flags.StringToStringVar(&createOpts.DriverOpts, optsFlagName, cfg.ContainersConfDefaultsRO.Secrets.Opts, "Specify driver specific options")
 	_ = createCmd.RegisterFlagCompletionFunc(optsFlagName, completion.AutocompleteNone)
 
 	envFlagName := "env"

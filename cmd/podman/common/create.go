@@ -14,7 +14,7 @@ import (
 
 const sizeWithUnitFormat = "(format: `<number>[<unit>]`, where unit = b (bytes), k (kibibytes), m (mebibytes), or g (gibibytes))"
 
-var containerConfig = registry.PodmanConfig()
+var podmanConfig = registry.PodmanConfig()
 
 // ContainerToPodOptions takes the Container and Pod Create options, assigning the matching values back to podCreate for the purpose of the libpod API
 // For this function to succeed, the JSON tags in PodCreateOptions and ContainerCreateOptions need to match due to the Marshaling and Unmarshaling done.
@@ -218,7 +218,7 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 
 		createFlags.BoolVar(
 			&cf.HTTPProxy,
-			"http-proxy", containerConfig.Containers.HTTPProxy,
+			"http-proxy", podmanConfig.ContainersConfDefaultsRO.Containers.HTTPProxy,
 			"Set proxy environment variables in the container based on the host proxy vars",
 		)
 

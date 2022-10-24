@@ -86,12 +86,6 @@ type SystemDfVolumeReport struct {
 	ReclaimableSize int64
 }
 
-// SystemResetOptions describes the options for resetting your
-// container runtime storage, etc
-type SystemResetOptions struct {
-	Force bool
-}
-
 // SystemVersionReport describes version information about the running Podman service
 type SystemVersionReport struct {
 	// Always populated

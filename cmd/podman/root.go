@@ -126,8 +126,8 @@ func persistentPreRunE(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	cfg := registry.PodmanConfig()
-	if cfg.NoOut {
+	podmanConfig := registry.PodmanConfig()
+	if podmanConfig.NoOut {
 		null, _ := os.Open(os.DevNull)
 		os.Stdout = null
 	}
@@ -161,14 +161,14 @@ func persistentPreRunE(cmd *cobra.Command, args []string) error {
 				}
 				runtimeFlag.Changed = true
 				logrus.Debugf("Checkpoint was created using '%s'. Restore will use the same runtime", *runtime)
-			} else if cfg.RuntimePath != *runtime {
+			} else if podmanConfig.RuntimePath != *runtime {
 				// If the user selected a runtime on the command-line this checks if
 				// it is the same then during checkpointing and errors out if not.
 				return fmt.Errorf(
 					"checkpoint archive %s was created with runtime '%s' and cannot be restored with runtime '%s'",
 					cmd.Flag("import").Value.String(),
 					*runtime,
-					cfg.RuntimePath,
+					podmanConfig.RuntimePath,
 				)
 			}
 		}
@@ -176,16 +176,16 @@ func persistentPreRunE(cmd *cobra.Command, args []string) error {
 
 	setupConnection := func() error {
 		var err error
-		cfg.URI, cfg.Identity, cfg.MachineMode, err = cfg.ActiveDestination()
+		podmanConfig.URI, podmanConfig.Identity, podmanConfig.MachineMode, err = podmanConfig.ContainersConf.ActiveDestination()
 		if err != nil {
 			return fmt.Errorf("failed to resolve active destination: %w", err)
 		}
 
-		if err := cmd.Root().LocalFlags().Set("url", cfg.URI); err != nil {
+		if err := cmd.Root().LocalFlags().Set("url", podmanConfig.URI); err != nil {
 			return fmt.Errorf("failed to override --url flag: %w", err)
 		}
 
-		if err := cmd.Root().LocalFlags().Set("identity", cfg.Identity); err != nil {
+		if err := cmd.Root().LocalFlags().Set("identity", podmanConfig.Identity); err != nil {
 			return fmt.Errorf("failed to override --identity flag: %w", err)
 		}
 		return nil
@@ -198,7 +198,7 @@ func persistentPreRunE(cmd *cobra.Command, args []string) error {
 		if contextConn != nil && contextConn.Changed {
 			return fmt.Errorf("use of --connection and --context at the same time is not allowed")
 		}
-		cfg.Engine.ActiveService = conn.Value.String()
+		podmanConfig.ContainersConf.Engine.ActiveService = conn.Value.String()
 		if err := setupConnection(); err != nil {
 			return err
 		}
@@ -206,7 +206,7 @@ func persistentPreRunE(cmd *cobra.Command, args []string) error {
 	if contextConn != nil && contextConn.Changed {
 		service := contextConn.Value.String()
 		if service != "default" {
-			cfg.Engine.ActiveService = service
+			podmanConfig.ContainersConf.Engine.ActiveService = service
 			if err := setupConnection(); err != nil {
 				return err
 			}
@@ -244,7 +244,7 @@ func persistentPreRunE(cmd *cobra.Command, args []string) error {
 
 	// Hard code TMPDIR functions to use /var/tmp, if user did not override
 	if _, ok := os.LookupEnv("TMPDIR"); !ok {
-		if tmpdir, err := cfg.ImageCopyTmpDir(); err != nil {
+		if tmpdir, err := podmanConfig.ContainersConfDefaultsRO.ImageCopyTmpDir(); err != nil {
 			logrus.Warnf("Failed to retrieve default tmp dir: %s", err.Error())
 		} else {
 			os.Setenv("TMPDIR", tmpdir)
@@ -253,7 +253,7 @@ func persistentPreRunE(cmd *cobra.Command, args []string) error {
 
 	if !registry.IsRemote() {
 		if cmd.Flag("cpu-profile").Changed {
-			f, err := os.Create(cfg.CPUProfile)
+			f, err := os.Create(podmanConfig.CPUProfile)
 			if err != nil {
 				return err
 			}
@@ -273,10 +273,10 @@ func persistentPreRunE(cmd *cobra.Command, args []string) error {
 			}
 		}
 
-		if cfg.MaxWorks <= 0 {
-			return fmt.Errorf("maximum workers must be set to a positive number (got %d)", cfg.MaxWorks)
+		if podmanConfig.MaxWorks <= 0 {
+			return fmt.Errorf("maximum workers must be set to a positive number (got %d)", podmanConfig.MaxWorks)
 		}
-		if err := parallel.SetMaxThreads(uint(cfg.MaxWorks)); err != nil {
+		if err := parallel.SetMaxThreads(uint(podmanConfig.MaxWorks)); err != nil {
 			return err
 		}
 	}
@@ -366,17 +366,16 @@ func loggingHook() {
 	}
 }
 
-func rootFlags(cmd *cobra.Command, opts *entities.PodmanConfig) {
-	cfg := opts.Config
+func rootFlags(cmd *cobra.Command, podmanConfig *entities.PodmanConfig) {
 	srv, uri, ident, machine := resolveDestination()
 
 	lFlags := cmd.Flags()
 
 	// non configurable option to help ssh dialing
-	opts.MachineMode = machine
+	podmanConfig.MachineMode = machine
 
 	sshFlagName := "ssh"
-	lFlags.StringVar(&opts.SSHMode, sshFlagName, string(ssh.GolangMode), "define the ssh mode")
+	lFlags.StringVar(&podmanConfig.SSHMode, sshFlagName, string(ssh.GolangMode), "define the ssh mode")
 	_ = cmd.RegisterFlagCompletionFunc(sshFlagName, common.AutocompleteSSH)
 
 	connectionFlagName := "connection"
@@ -384,9 +383,9 @@ func rootFlags(cmd *cobra.Command, opts *entities.PodmanConfig) {
 	_ = cmd.RegisterFlagCompletionFunc(connectionFlagName, common.AutocompleteSystemConnections)
 
 	urlFlagName := "url"
-	lFlags.StringVar(&opts.URI, urlFlagName, uri, "URL to access Podman service (CONTAINER_HOST)")
+	lFlags.StringVar(&podmanConfig.URI, urlFlagName, uri, "URL to access Podman service (CONTAINER_HOST)")
 	_ = cmd.RegisterFlagCompletionFunc(urlFlagName, completion.AutocompleteDefault)
-	lFlags.StringVarP(&opts.URI, "host", "H", uri, "Used for Docker compatibility")
+	lFlags.StringVarP(&podmanConfig.URI, "host", "H", uri, "Used for Docker compatibility")
 	_ = lFlags.MarkHidden("host")
 
 	lFlags.StringVar(&dockerConfig, "config", "", "Ignored for Docker compatibility")
@@ -396,85 +395,85 @@ func rootFlags(cmd *cobra.Command, opts *entities.PodmanConfig) {
 	_ = lFlags.MarkHidden("context")
 
 	identityFlagName := "identity"
-	lFlags.StringVar(&opts.Identity, identityFlagName, ident, "path to SSH identity file, (CONTAINER_SSHKEY)")
+	lFlags.StringVar(&podmanConfig.Identity, identityFlagName, ident, "path to SSH identity file, (CONTAINER_SSHKEY)")
 	_ = cmd.RegisterFlagCompletionFunc(identityFlagName, completion.AutocompleteDefault)
 
-	lFlags.BoolVar(&opts.NoOut, "noout", false, "do not output to stdout")
-	lFlags.BoolVarP(&opts.Remote, "remote", "r", registry.IsRemote(), "Access remote Podman service")
+	lFlags.BoolVar(&podmanConfig.NoOut, "noout", false, "do not output to stdout")
+	lFlags.BoolVarP(&podmanConfig.Remote, "remote", "r", registry.IsRemote(), "Access remote Podman service")
 	pFlags := cmd.PersistentFlags()
 	if registry.IsRemote() {
 		if err := lFlags.MarkHidden("remote"); err != nil {
 			logrus.Warnf("Unable to mark --remote flag as hidden: %s", err.Error())
 		}
-		opts.Remote = true
+		podmanConfig.Remote = true
 	} else {
 		cgroupManagerFlagName := "cgroup-manager"
-		pFlags.StringVar(&cfg.Engine.CgroupManager, cgroupManagerFlagName, cfg.Engine.CgroupManager, "Cgroup manager to use (\"cgroupfs\"|\"systemd\")")
+		pFlags.StringVar(&podmanConfig.ContainersConf.Engine.CgroupManager, cgroupManagerFlagName, podmanConfig.ContainersConfDefaultsRO.Engine.CgroupManager, "Cgroup manager to use (\"cgroupfs\"|\"systemd\")")
 		_ = cmd.RegisterFlagCompletionFunc(cgroupManagerFlagName, common.AutocompleteCgroupManager)
 
-		pFlags.StringVar(&opts.CPUProfile, "cpu-profile", "", "Path for the cpu-profiling results")
-		pFlags.StringVar(&opts.MemoryProfile, "memory-profile", "", "Path for the memory-profiling results")
+		pFlags.StringVar(&podmanConfig.CPUProfile, "cpu-profile", "", "Path for the cpu-profiling results")
+		pFlags.StringVar(&podmanConfig.MemoryProfile, "memory-profile", "", "Path for the memory-profiling results")
 
 		conmonFlagName := "conmon"
-		pFlags.StringVar(&opts.ConmonPath, conmonFlagName, "", "Path of the conmon binary")
+		pFlags.StringVar(&podmanConfig.ConmonPath, conmonFlagName, "", "Path of the conmon binary")
 		_ = cmd.RegisterFlagCompletionFunc(conmonFlagName, completion.AutocompleteDefault)
 
 		networkCmdPathFlagName := "network-cmd-path"
-		pFlags.StringVar(&cfg.Engine.NetworkCmdPath, networkCmdPathFlagName, cfg.Engine.NetworkCmdPath, "Path to the command for configuring the network")
+		pFlags.StringVar(&podmanConfig.ContainersConf.Engine.NetworkCmdPath, networkCmdPathFlagName, podmanConfig.ContainersConfDefaultsRO.Engine.NetworkCmdPath, "Path to the command for configuring the network")
 		_ = cmd.RegisterFlagCompletionFunc(networkCmdPathFlagName, completion.AutocompleteDefault)
 
 		networkConfigDirFlagName := "network-config-dir"
-		pFlags.StringVar(&cfg.Network.NetworkConfigDir, networkConfigDirFlagName, cfg.Network.NetworkConfigDir, "Path of the configuration directory for networks")
+		pFlags.StringVar(&podmanConfig.ContainersConf.Network.NetworkConfigDir, networkConfigDirFlagName, podmanConfig.ContainersConfDefaultsRO.Network.NetworkConfigDir, "Path of the configuration directory for networks")
 		_ = cmd.RegisterFlagCompletionFunc(networkConfigDirFlagName, completion.AutocompleteDefault)
 
-		pFlags.StringVar(&cfg.Containers.DefaultMountsFile, "default-mounts-file", cfg.Containers.DefaultMountsFile, "Path to default mounts file")
+		pFlags.StringVar(&podmanConfig.ContainersConf.Containers.DefaultMountsFile, "default-mounts-file", podmanConfig.ContainersConfDefaultsRO.Containers.DefaultMountsFile, "Path to default mounts file")
 
 		eventsBackendFlagName := "events-backend"
-		pFlags.StringVar(&cfg.Engine.EventsLogger, eventsBackendFlagName, cfg.Engine.EventsLogger, `Events backend to use ("file"|"journald"|"none")`)
+		pFlags.StringVar(&podmanConfig.ContainersConf.Engine.EventsLogger, eventsBackendFlagName, podmanConfig.ContainersConfDefaultsRO.Engine.EventsLogger, `Events backend to use ("file"|"journald"|"none")`)
 		_ = cmd.RegisterFlagCompletionFunc(eventsBackendFlagName, common.AutocompleteEventBackend)
 
 		hooksDirFlagName := "hooks-dir"
-		pFlags.StringSliceVar(&cfg.Engine.HooksDir, hooksDirFlagName, cfg.Engine.HooksDir, "Set the OCI hooks directory path (may be set multiple times)")
+		pFlags.StringSliceVar(&podmanConfig.ContainersConf.Engine.HooksDir, hooksDirFlagName, podmanConfig.ContainersConfDefaultsRO.Engine.HooksDir, "Set the OCI hooks directory path (may be set multiple times)")
 		_ = cmd.RegisterFlagCompletionFunc(hooksDirFlagName, completion.AutocompleteDefault)
 
-		pFlags.IntVar(&opts.MaxWorks, "max-workers", (runtime.NumCPU()*3)+1, "The maximum number of workers for parallel operations")
+		pFlags.IntVar(&podmanConfig.MaxWorks, "max-workers", (runtime.NumCPU()*3)+1, "The maximum number of workers for parallel operations")
 
 		namespaceFlagName := "namespace"
-		pFlags.StringVar(&cfg.Engine.Namespace, namespaceFlagName, cfg.Engine.Namespace, "Set the libpod namespace, used to create separate views of the containers and pods on the system")
+		pFlags.StringVar(&podmanConfig.ContainersConf.Engine.Namespace, namespaceFlagName, podmanConfig.ContainersConfDefaultsRO.Engine.Namespace, "Set the libpod namespace, used to create separate views of the containers and pods on the system")
 		_ = cmd.RegisterFlagCompletionFunc(namespaceFlagName, completion.AutocompleteNone)
 
 		networkBackendFlagName := "network-backend"
-		pFlags.StringVar(&cfg.Network.NetworkBackend, networkBackendFlagName, cfg.Network.NetworkBackend, `Network backend to use ("cni"|"netavark")`)
+		pFlags.StringVar(&podmanConfig.ContainersConf.Network.NetworkBackend, networkBackendFlagName, podmanConfig.ContainersConfDefaultsRO.Network.NetworkBackend, `Network backend to use ("cni"|"netavark")`)
 		_ = cmd.RegisterFlagCompletionFunc(networkBackendFlagName, common.AutocompleteNetworkBackend)
 		_ = pFlags.MarkHidden(networkBackendFlagName)
 
 		rootFlagName := "root"
-		pFlags.StringVar(&cfg.Engine.StaticDir, rootFlagName, "", "Path to the root directory in which data, including images, is stored")
+		pFlags.StringVar(&podmanConfig.ContainersConf.Engine.StaticDir, rootFlagName, podmanConfig.ContainersConfDefaultsRO.Engine.StaticDir, "Path to the root directory in which data, including images, is stored")
 		_ = cmd.RegisterFlagCompletionFunc(rootFlagName, completion.AutocompleteDefault)
 
-		pFlags.StringVar(&opts.RegistriesConf, "registries-conf", "", "Path to a registries.conf to use for image processing")
+		pFlags.StringVar(&podmanConfig.RegistriesConf, "registries-conf", "", "Path to a registries.conf to use for image processing")
 
 		runrootFlagName := "runroot"
-		pFlags.StringVar(&opts.Runroot, runrootFlagName, "", "Path to the 'run directory' where all state information is stored")
+		pFlags.StringVar(&podmanConfig.Runroot, runrootFlagName, "", "Path to the 'run directory' where all state information is stored")
 		_ = cmd.RegisterFlagCompletionFunc(runrootFlagName, completion.AutocompleteDefault)
 
 		runtimeFlagName := "runtime"
-		pFlags.StringVar(&opts.RuntimePath, runtimeFlagName, cfg.Engine.OCIRuntime, "Path to the OCI-compatible binary used to run containers.")
+		pFlags.StringVar(&podmanConfig.RuntimePath, runtimeFlagName, podmanConfig.ContainersConfDefaultsRO.Engine.OCIRuntime, "Path to the OCI-compatible binary used to run containers.")
 		_ = cmd.RegisterFlagCompletionFunc(runtimeFlagName, completion.AutocompleteDefault)
 
 		// -s is deprecated due to conflict with -s on subcommands
 		storageDriverFlagName := "storage-driver"
-		pFlags.StringVar(&opts.StorageDriver, storageDriverFlagName, "", "Select which storage driver is used to manage storage of images and containers")
+		pFlags.StringVar(&podmanConfig.StorageDriver, storageDriverFlagName, "", "Select which storage driver is used to manage storage of images and containers")
 		_ = cmd.RegisterFlagCompletionFunc(storageDriverFlagName, completion.AutocompleteNone)
 
 		tmpdirFlagName := "tmpdir"
-		pFlags.StringVar(&opts.Engine.TmpDir, tmpdirFlagName, "", "Path to the tmp directory for libpod state content.\n\nNote: use the environment variable 'TMPDIR' to change the temporary storage location for container images, '/var/tmp'.\n")
+		pFlags.StringVar(&podmanConfig.ContainersConf.Engine.TmpDir, tmpdirFlagName, podmanConfig.ContainersConfDefaultsRO.Engine.TmpDir, "Path to the tmp directory for libpod state content.\n\nNote: use the environment variable 'TMPDIR' to change the temporary storage location for container images, '/var/tmp'.\n")
 		_ = cmd.RegisterFlagCompletionFunc(tmpdirFlagName, completion.AutocompleteDefault)
 
-		pFlags.BoolVar(&opts.Trace, "trace", false, "Enable opentracing output (default false)")
+		pFlags.BoolVar(&podmanConfig.Trace, "trace", false, "Enable opentracing output (default false)")
 
 		volumePathFlagName := "volumepath"
-		pFlags.StringVar(&opts.Engine.VolumePath, volumePathFlagName, "", "Path to the volume directory in which volume data is stored")
+		pFlags.StringVar(&podmanConfig.ContainersConf.Engine.VolumePath, volumePathFlagName, podmanConfig.ContainersConfDefaultsRO.Engine.VolumePath, "Path to the volume directory in which volume data is stored")
 		_ = cmd.RegisterFlagCompletionFunc(volumePathFlagName, completion.AutocompleteDefault)
 
 		// Hide these flags for both ABI and Tunneling
@@ -492,7 +491,7 @@ func rootFlags(cmd *cobra.Command, opts *entities.PodmanConfig) {
 		}
 	}
 	storageOptFlagName := "storage-opt"
-	pFlags.StringArrayVar(&opts.StorageOpts, storageOptFlagName, []string{}, "Used to pass an option to the storage driver")
+	pFlags.StringArrayVar(&podmanConfig.StorageOpts, storageOptFlagName, []string{}, "Used to pass an option to the storage driver")
 	_ = cmd.RegisterFlagCompletionFunc(storageOptFlagName, completion.AutocompleteNone)
 
 	// Override default --help information of `--help` global flag
@@ -509,7 +508,7 @@ func rootFlags(cmd *cobra.Command, opts *entities.PodmanConfig) {
 	// Only create these flags for ABI connections
 	if !registry.IsRemote() {
 		runtimeflagFlagName := "runtime-flag"
-		pFlags.StringArrayVar(&opts.RuntimeFlags, runtimeflagFlagName, []string{}, "add global flags for the container runtime")
+		pFlags.StringArrayVar(&podmanConfig.RuntimeFlags, runtimeflagFlagName, []string{}, "add global flags for the container runtime")
 		_ = rootCmd.RegisterFlagCompletionFunc(runtimeflagFlagName, completion.AutocompleteNone)
 
 		pFlags.BoolVar(&useSyslog, "syslog", false, "Output logging information to syslog as well as the console (default false)")
@@ -525,17 +524,19 @@ func resolveDestination() (string, string, string, bool) {
 		return "", uri, ident, false
 	}
 
-	cfg, err := config.ReadCustomConfig()
+	// FIXME: Why are we not using the Default() one?
+	//        Why are we ignoring errors?
+	podmanConfig, err := config.ReadCustomConfig()
 	if err != nil {
 		logrus.Warning(fmt.Errorf("unable to read local containers.conf: %w", err))
 		return "", registry.DefaultAPIAddress(), "", false
 	}
 
-	uri, ident, machine, err := cfg.ActiveDestination()
+	uri, ident, machine, err := podmanConfig.ActiveDestination()
 	if err != nil {
 		return "", registry.DefaultAPIAddress(), "", false
 	}
-	return cfg.Engine.ActiveService, uri, ident, machine
+	return podmanConfig.Engine.ActiveService, uri, ident, machine
 }
 
 func formatError(err error) string {
