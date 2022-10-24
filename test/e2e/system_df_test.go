@@ -106,8 +106,29 @@ var _ = Describe("podman system df", func() {
 		session = podmanTest.Podman([]string{"system", "df", "--format", "{{ json . }}"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.LineInOutputContains("Size"))
-		Expect(session.LineInOutputContains("Reclaimable"))
-		Expect(session.IsJSONOutputValid())
+		Expect(session.OutputToString()).To(ContainSubstring("Size"))
+		Expect(session.OutputToString()).To(ContainSubstring("Reclaimable"))
+		Expect(session.OutputToString()).To(BeValidJSON())
 	})
+
+	It("podman system df --format with --verbose", func() {
+		session := podmanTest.Podman([]string{"system", "df", "--format", "json", "--verbose"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).To(ExitWithError())
+		Expect(session.ErrorToString()).To(Equal("Error: cannot combine --format and --verbose flags"))
+	})
+
+	It("podman system df --format json", func() {
+		session := podmanTest.Podman([]string{"create", ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"system", "df", "--format", "json"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).To(ContainSubstring("Size"))
+		Expect(session.OutputToString()).To(ContainSubstring("Reclaimable"))
+		Expect(session.OutputToString()).To(BeValidJSON())
+	})
+
 })
