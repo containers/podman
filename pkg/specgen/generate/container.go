@@ -301,7 +301,7 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 	if (s.NetNS.NSMode == specgen.Host || s.NetNS.NSMode == specgen.FromContainer ||
 		s.NetNS.NSMode == specgen.FromPod || s.NetNS.NSMode == specgen.NoNetwork) &&
 		len(s.PortMappings) > 0 {
-		warnings = append(warnings, "Port mappings have been discarded as one of the Host, Container, Pod, and None network modes are in use")
+		warnings = append(warnings, "Port mappings have been discarded as one of the Host, Container, Pod, or None network modes are in use")
 	}
 
 	return warnings, nil
