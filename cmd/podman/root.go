@@ -198,6 +198,8 @@ func persistentPreRunE(cmd *cobra.Command, args []string) error {
 		if contextConn != nil && contextConn.Changed {
 			return fmt.Errorf("use of --connection and --context at the same time is not allowed")
 		}
+		// need to give our blank containers.conf all of the service destinations if we are using one.
+		podmanConfig.ContainersConf.Engine.ServiceDestinations = podmanConfig.ContainersConfDefaultsRO.Engine.ServiceDestinations
 		podmanConfig.ContainersConf.Engine.ActiveService = conn.Value.String()
 		if err := setupConnection(); err != nil {
 			return err
