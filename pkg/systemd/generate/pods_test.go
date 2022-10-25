@@ -258,8 +258,6 @@ Before=
 Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=on-failure
 TimeoutStopSec=70
-ExecStartPre=/bin/rm \
-	-f %t/pod-123abc.pid %t/pod-123abc.pod-id
 ExecStartPre=/usr/bin/podman pod create \
 	--infra-conmon-pidfile %t/pod-123abc.pid \
 	--pod-id-file %t/pod-123abc.pod-id \
@@ -326,8 +324,6 @@ Before=container-1.service container-2.service
 Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=on-failure
 TimeoutStopSec=70
-ExecStartPre=/bin/rm \
-	-f %t/pod-123abc.pid %t/pod-123abc.pod-id
 ExecStartPre=/usr/bin/podman pod create \
 	--infra-conmon-pidfile %t/pod-123abc.pid \
 	--pod-id-file %t/pod-123abc.pod-id \
@@ -367,8 +363,6 @@ Before=container-1.service container-2.service
 Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=on-failure
 TimeoutStopSec=70
-ExecStartPre=/bin/rm \
-	-f %t/pod-123abc.pid %t/pod-123abc.pod-id
 ExecStartPre=/usr/bin/podman \
 	--events-backend none \
 	--runroot /root pod create \
@@ -410,8 +404,6 @@ Before=container-1.service container-2.service
 Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=on-failure
 TimeoutStopSec=70
-ExecStartPre=/bin/rm \
-	-f %t/pod-123abc.pid %t/pod-123abc.pod-id
 ExecStartPre=/usr/bin/podman pod create \
 	--infra-conmon-pidfile %t/pod-123abc.pid \
 	--pod-id-file %t/pod-123abc.pod-id \
@@ -451,8 +443,6 @@ Before=container-1.service container-2.service
 Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=on-failure
 TimeoutStopSec=70
-ExecStartPre=/bin/rm \
-	-f %t/pod-123abc.pid %t/pod-123abc.pod-id
 ExecStartPre=/usr/bin/podman pod create \
 	--infra-conmon-pidfile %t/pod-123abc.pid \
 	--pod-id-file %t/pod-123abc.pod-id \

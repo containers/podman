@@ -19,7 +19,6 @@ import (
 	"github.com/containers/podman/v4/cmd/podman/utils"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/domain/entities"
-	"github.com/containers/podman/v4/pkg/errorhandling"
 	"github.com/containers/podman/v4/pkg/specgen"
 	"github.com/containers/podman/v4/pkg/specgenutil"
 	"github.com/containers/podman/v4/pkg/util"
@@ -104,7 +103,6 @@ func init() {
 func create(cmd *cobra.Command, args []string) error {
 	var (
 		err          error
-		podIDFD      *os.File
 		imageName    string
 		rawImageName string
 		podName      string
@@ -186,18 +184,6 @@ func create(cmd *cobra.Command, args []string) error {
 			return err
 		}
 		createOptions.Name = podName
-	}
-
-	if cmd.Flag("pod-id-file").Changed {
-		podIDFD, err = util.OpenExclusiveFile(podIDFile)
-		if err != nil && os.IsExist(err) {
-			return fmt.Errorf("pod id file exists. Ensure another pod is not using it or delete %s", podIDFile)
-		}
-		if err != nil {
-			return fmt.Errorf("opening pod-id-file %s", podIDFile)
-		}
-		defer errorhandling.CloseQuiet(podIDFD)
-		defer errorhandling.SyncQuiet(podIDFD)
 	}
 
 	if len(createOptions.Net.PublishPorts) > 0 {
@@ -299,7 +285,7 @@ func create(cmd *cobra.Command, args []string) error {
 	}
 
 	if len(podIDFile) > 0 {
-		if err = os.WriteFile(podIDFile, []byte(response.Id), 0644); err != nil {
+		if err := util.CreateIDFile(podIDFile, response.Id); err != nil {
 			return fmt.Errorf("failed to write pod ID to file: %w", err)
 		}
 	}

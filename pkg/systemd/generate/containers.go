@@ -42,10 +42,10 @@ type containerInfo struct {
 	ExtraEnvs              []string
 	EnvVariable            string
 	AdditionalEnvVariables []string
-	ExecStartPre           string
 	ExecStart              string
 	TimeoutStartSec        uint
 	TimeoutStopSec         uint
+	ExecStartPre           string
 	ExecStop               string
 	ExecStopPost           string
 	GenerateNoHeader       bool
@@ -94,9 +94,6 @@ StartLimitBurst={{{{.StartLimitBurst}}}}
 TimeoutStartSec={{{{.TimeoutStartSec}}}}
 {{{{- end}}}}
 TimeoutStopSec={{{{.TimeoutStopSec}}}}
-{{{{- if .ExecStartPre}}}}
-ExecStartPre={{{{.ExecStartPre}}}}
-{{{{- end}}}}
 ExecStart={{{{.ExecStart}}}}
 {{{{- if .ExecStop}}}}
 ExecStop={{{{.ExecStop}}}}
@@ -316,7 +313,6 @@ func executeContainerTemplate(info *containerInfo, options entities.GenerateSyst
 		info.NotifyAccess = "all"
 		info.PIDFile = ""
 		info.ContainerIDFile = "%t/%n.ctr-id"
-		info.ExecStartPre = formatOptionsString("/bin/rm -f {{{{.ContainerIDFile}}}}")
 		info.ExecStop = formatOptionsString("{{{{.Executable}}}} stop --ignore {{{{if (ge .StopTimeout 0)}}}}-t {{{{.StopTimeout}}}}{{{{end}}}} --cidfile={{{{.ContainerIDFile}}}}")
 		info.ExecStopPost = formatOptionsString("{{{{.Executable}}}} rm -f --ignore {{{{if (ge .StopTimeout 0)}}}}-t {{{{.StopTimeout}}}}{{{{end}}}} --cidfile={{{{.ContainerIDFile}}}}")
 		// The create command must at least have three arguments:

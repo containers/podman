@@ -192,6 +192,10 @@ echo $rand        |   0 | $rand
     pidfile=${PODMAN_TMPDIR}/pidfile
     cidfile=${PODMAN_TMPDIR}/cidfile
 
+    # Write random content to the cidfile to make sure its content is truncated
+    # on write.
+    echo "$(random_string 120)" > $cidfile
+
     cname=$(random_string)
     run_podman run --name $cname \
                --conmon-pidfile=$pidfile \
@@ -218,12 +222,6 @@ echo $rand        |   0 | $rand
 
     # All OK. Kill container.
     run_podman rm -f $cid
-
-    # Podman must not overwrite existing cid file.
-    # (overwriting conmon-pidfile is OK, so don't test that)
-    run_podman 125 run --cidfile=$cidfile $IMAGE true
-    is "$output" "Error: container id file exists. .* delete $cidfile" \
-       "podman will not overwrite existing cidfile"
 }
 
 @test "podman run docker-archive" {

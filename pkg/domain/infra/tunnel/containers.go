@@ -804,7 +804,7 @@ func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.Conta
 	}
 
 	if opts.CIDFile != "" {
-		if err := util.CreateCidFile(opts.CIDFile, con.ID); err != nil {
+		if err := util.CreateIDFile(opts.CIDFile, con.ID); err != nil {
 			// If you fail to create CIDFile then remove the container
 			_ = removeContainer(con.ID, true)
 			return nil, err
