@@ -222,6 +222,11 @@ load helpers
     is "$output" ".* inet ${mysubnet}\.2/24 brd ${mysubnet}\.255 " \
        "sdfsdf"
 
+    # FIXME: TEMPORARY: debugging for #16289 (bind: EADDRINUSE).
+    # Try to find out who's using the port. '||true' because usually noone is.
+    echo "$_LOG_PROMPT lsof -i $myport"
+    lsof -i :$myport || true
+
     run_podman run -d --network $mynetname -p 127.0.0.1:$myport:$myport \
 	       $IMAGE nc -l -n -v -p $myport
     cid="$output"
