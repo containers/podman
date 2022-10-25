@@ -12,7 +12,7 @@ load helpers
     rand3=$(random_string 30)
     cat >$containerfile <<EOF
 FROM $IMAGE
-LABEL  INSTALL  /usr/bin/podman  run  -t  -i  --rm  \\\${OPT1}  --privileged  -v /:/host --net=host --ipc=host --pid=host -e HOST=/host -e NAME=\\\${NAME} -e IMAGE=\\\${IMAGE} -e CONFDIR=/etc/\\\${NAME} -e LOGDIR=/var/log/\\\${NAME} -e DATADIR=/var/lib/\\\${NAME} \\\${IMAGE} \\\${OPT2} /bin/install.sh \\\${OPT3}
+LABEL  INSTALL  podman  run  -t  -i  --rm  \\\${OPT1}  --privileged  -v /:/host --net=host --ipc=host --pid=host -e HOST=/host -e NAME=\\\${NAME} -e IMAGE=\\\${IMAGE} -e CONFDIR=/etc/\\\${NAME} -e LOGDIR=/var/log/\\\${NAME} -e DATADIR=/var/lib/\\\${NAME} \\\${IMAGE} \\\${OPT2} /bin/install.sh \\\${OPT3}
 EOF
 
     run_podman build -t runlabel_image $tmpdir
