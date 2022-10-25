@@ -563,9 +563,6 @@ func (r *Runtime) configureNetNS(ctr *Container, ctrNS ns.NetNS) (status map[str
 	if ctr.config.NetMode.IsSlirp4netns() {
 		return nil, r.setupSlirp4netns(ctr, ctrNS)
 	}
-	if ctr.config.NetMode.IsWireGuard() {
-            panic("WireGuard network detected")
-	}
 	networks, err := ctr.networks()
 	if err != nil {
 		return nil, err

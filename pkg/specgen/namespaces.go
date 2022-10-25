@@ -472,7 +472,18 @@ func parseBridgeNetworkOptions(opts string) (types.PerNetworkOptions, error) {
 				return netOpts, errors.New("interface_name cannot be empty")
 			}
 			netOpts.InterfaceName = split[1]
-
+		case "options":
+			if netOpts.Options == nil {
+				netOpts.Options = map[string]string{}
+			}
+			if split[1] == "" {
+				return netOpts, errors.New("cannot be empty")
+			}
+			optionSplit := strings.SplitN(split[1], "=", 2)
+			if optionSplit[1] == "" {
+				return netOpts, errors.New(fmt.Sprintf("value for %s cannot be empty", optionSplit[0]))
+			}
+			netOpts.Options[optionSplit[0]] = optionSplit[1]
 		default:
 			return netOpts, fmt.Errorf("unknown bridge network option: %s", split[0])
 		}
