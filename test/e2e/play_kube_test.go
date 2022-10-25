@@ -3,6 +3,7 @@ package integration
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"net"
 	"net/url"
@@ -19,6 +20,7 @@ import (
 	"github.com/containers/podman/v4/pkg/bindings/play"
 	"github.com/containers/podman/v4/pkg/util"
 	. "github.com/containers/podman/v4/test/utils"
+	"github.com/containers/podman/v4/utils"
 	"github.com/containers/storage/pkg/stringid"
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
@@ -1324,6 +1326,36 @@ type EnvFrom struct {
 func milliCPUToQuota(milliCPU string) int {
 	milli, _ := strconv.Atoi(strings.Trim(milliCPU, "m"))
 	return milli * defaultCPUPeriod
+}
+
+func createSourceTarFile(fileName, fileContent, tarFilePath string) error {
+	dir, err := os.MkdirTemp("", "podmanTest")
+	if err != nil {
+		return err
+	}
+
+	file, err := os.Create(filepath.Join(dir, fileName))
+	if err != nil {
+		return err
+	}
+
+	_, err = file.Write([]byte(fileContent))
+	if err != nil {
+		return err
+	}
+
+	err = file.Close()
+	if err != nil {
+		return err
+	}
+
+	tarFile, err := os.Create(tarFilePath)
+	if err != nil {
+		return err
+	}
+	defer tarFile.Close()
+
+	return utils.TarToFilesystem(dir, tarFile)
 }
 
 var _ = Describe("Podman play kube", func() {
@@ -3073,6 +3105,46 @@ o: {{ .Options.o }}`})
 		Expect(inspect.OutputToString()).To(ContainSubstring("Device: " + volDevice))
 		Expect(inspect.OutputToString()).To(ContainSubstring("Type: " + volType))
 		Expect(inspect.OutputToString()).To(ContainSubstring("o: " + volOpts))
+	})
+
+	It("podman play kube persistentVolumeClaim with source", func() {
+		fileName := "data"
+		expectedFileContent := "Test"
+		tarFilePath := filepath.Join(os.TempDir(), "podmanVolumeSource.tgz")
+		err := createSourceTarFile(fileName, expectedFileContent, tarFilePath)
+		Expect(err).To(BeNil())
+
+		volName := "myVolWithStorage"
+		pvc := getPVC(withPVCName(volName),
+			withPVCAnnotations(util.VolumeImportSourceAnnotation, tarFilePath),
+		)
+		err = generateKubeYaml("persistentVolumeClaim", pvc, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		if IsRemote() {
+			Expect(kube).Error()
+			Expect(kube.ErrorToString()).To(ContainSubstring("importing volumes is not supported for remote requests"))
+			return
+		}
+		Expect(kube).Should(Exit(0))
+
+		inspect := podmanTest.Podman([]string{"inspect", volName, "--format", `
+{
+	"Name": "{{ .Name }}",
+	"Mountpoint": "{{ .Mountpoint }}"
+}`})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).Should(Exit(0))
+		mp := make(map[string]string)
+		err = json.Unmarshal([]byte(inspect.OutputToString()), &mp)
+		Expect(err).To(BeNil())
+		Expect(mp["Name"]).To(Equal(volName))
+		files, err := os.ReadDir(mp["Mountpoint"])
+		Expect(err).To(BeNil())
+		Expect(len(files)).To(Equal(1))
+		Expect(files[0].Name()).To(Equal(fileName))
 	})
 
 	// Multi doc related tests

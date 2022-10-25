@@ -46,6 +46,9 @@ A Kubernetes PersistentVolumeClaim represents a Podman named volume. Only the Pe
 - volume.podman.io/uid
 - volume.podman.io/gid
 - volume.podman.io/mount-options
+- volume.podman.io/import-source
+
+Use `volume.podman.io/import-source` to import the contents of the tarball (.tar, .tar.gz, .tgz, .bzip, .tar.xz, .txz) specified in the annotation's value into the created Podman volume
 
 Kube play is capable of building images on the fly given the correct directory layout and Containerfiles. This
 option is not available for remote clients, including Mac and Windows (excluding WSL2) machines, yet. Consider the following excerpt from a YAML file:

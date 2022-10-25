@@ -58,6 +58,8 @@ type PlayKubeOptions struct {
 	ServiceContainer bool
 	// Userns - define the user namespace to use.
 	Userns string
+	// IsRemote - was the request triggered by running podman-remote
+	IsRemote bool
 }
 
 // PlayKubePod represents a single pod and associated containers created by play kube
