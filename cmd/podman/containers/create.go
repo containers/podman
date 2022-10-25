@@ -21,9 +21,9 @@ import (
 	"github.com/containers/podman/v4/pkg/specgen"
 	"github.com/containers/podman/v4/pkg/specgenutil"
 	"github.com/containers/podman/v4/pkg/util"
-	"github.com/mattn/go-isatty"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"golang.org/x/term"
 )
 
 var (
@@ -206,7 +206,7 @@ func CreateInit(c *cobra.Command, vals entities.ContainerCreateOptions, isInfra 
 	}
 
 	if cliVals.LogDriver == define.PassthroughLogging {
-		if isatty.IsTerminal(0) || isatty.IsTerminal(1) || isatty.IsTerminal(2) {
+		if term.IsTerminal(0) || term.IsTerminal(1) || term.IsTerminal(2) {
 			return vals, errors.New("the '--log-driver passthrough' option cannot be used on a TTY")
 		}
 		if registry.IsRemote() {
