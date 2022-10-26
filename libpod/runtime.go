@@ -1019,8 +1019,8 @@ func (r *Runtime) mergeDBConfig(dbConfig *DBConfig) {
 	if !r.storageSet.GraphDriverNameSet && dbConfig.GraphDriver != "" {
 		if r.storageConfig.GraphDriverName != dbConfig.GraphDriver &&
 			r.storageConfig.GraphDriverName != "" {
-			logrus.Errorf("User-selected graph driver %q overwritten by graph driver %q from database - delete libpod local files to resolve.  May prevent use of images created by other tools",
-				r.storageConfig.GraphDriverName, dbConfig.GraphDriver)
+			logrus.Errorf("User-selected graph driver %q overwritten by graph driver %q from database - delete libpod local files (%q) to resolve.  May prevent use of images created by other tools",
+				r.storageConfig.GraphDriverName, dbConfig.GraphDriver, r.storageConfig.GraphRoot)
 		}
 		r.storageConfig.GraphDriverName = dbConfig.GraphDriver
 	}
