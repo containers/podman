@@ -56,7 +56,6 @@ const (
 	KeyRemapUIDRanges  = "RemapUidRanges"
 	KeyRemapGIDRanges  = "RemapGidRanges"
 	KeyNotify          = "Notify"
-	KeySocketActivated = "SocketActivated"
 	KeyExposeHostPort  = "ExposeHostPort"
 	KeyPublishPort     = "PublishPort"
 	KeyKeepID          = "KeepId"
@@ -71,6 +70,9 @@ const (
 	KeyRunInit         = "RunInit"
 	KeyVolatileTmp     = "VolatileTmp"
 	KeyTimezone        = "Timezone"
+	KeySeccompProfile  = "SeccompProfile"
+	KeyAddDevice       = "AddDevice"
+	KeyNetwork         = "Network"
 )
 
 // Supported keys in "Container" group
@@ -89,7 +91,6 @@ var supportedContainerKeys = map[string]bool{
 	KeyRemapUIDRanges:  true,
 	KeyRemapGIDRanges:  true,
 	KeyNotify:          true,
-	KeySocketActivated: true,
 	KeyExposeHostPort:  true,
 	KeyPublishPort:     true,
 	KeyKeepID:          true,
@@ -104,6 +105,9 @@ var supportedContainerKeys = map[string]bool{
 	KeyRunInit:         true,
 	KeyVolatileTmp:     true,
 	KeyTimezone:        true,
+	KeySeccompProfile:  true,
+	KeyAddDevice:       true,
+	KeyNetwork:         true,
 }
 
 // Supported keys in "Volume" group
@@ -353,8 +357,7 @@ func ConvertContainer(container *parser.UnitFile, isUser bool) (*parser.UnitFile
 		"-d",
 
 		// But we still want output to the journal, so use the log driver.
-		// TODO: Once available we want to use the passthrough log-driver instead.
-		"--log-driver", "journald",
+		"--log-driver", "passthrough",
 
 		// Never try to pull the image during service start
 		"--pull=never")
@@ -368,6 +371,13 @@ func ConvertContainer(container *parser.UnitFile, isUser bool) (*parser.UnitFile
 	timezone, ok := container.Lookup(ContainerGroup, KeyTimezone)
 	if ok && len(timezone) > 0 {
 		podman.addf("--tz=%s", timezone)
+	}
+
+	networks := container.LookupAll(ContainerGroup, KeyNetwork)
+	for _, network := range networks {
+		if len(network) > 0 {
+			podman.addf("--network=%s", network)
+		}
 	}
 
 	// Run with a pid1 init to reap zombies by default (as most apps don't do that)
@@ -397,9 +407,21 @@ func ConvertContainer(container *parser.UnitFile, isUser bool) (*parser.UnitFile
 		podman.add("--security-opt=no-new-privileges")
 	}
 
+	// But allow overrides with AddCapability
+	devices := container.LookupAllStrv(ContainerGroup, KeyAddDevice)
+	for _, device := range devices {
+		podman.addf("--device=%s", device)
+	}
+
+	// Default to no higher level privileges or caps
+	seccompProfile, hasSeccompProfile := container.Lookup(ContainerGroup, KeySeccompProfile)
+	if hasSeccompProfile {
+		podman.add("--security-opt", fmt.Sprintf("seccomp=%s", seccompProfile))
+	}
+
 	dropCaps := []string{"all"} // Default
 	if container.HasKey(ContainerGroup, KeyDropCapability) {
-		dropCaps = container.LookupAll(ContainerGroup, KeyDropCapability)
+		dropCaps = container.LookupAllStrv(ContainerGroup, KeyDropCapability)
 	}
 
 	for _, caps := range dropCaps {
@@ -407,12 +429,12 @@ func ConvertContainer(container *parser.UnitFile, isUser bool) (*parser.UnitFile
 	}
 
 	// But allow overrides with AddCapability
-	addCaps := container.LookupAll(ContainerGroup, KeyAddCapability)
+	addCaps := container.LookupAllStrv(ContainerGroup, KeyAddCapability)
 	for _, caps := range addCaps {
 		podman.addf("--cap-add=%s", strings.ToLower(caps))
 	}
 
-	readOnly := container.LookupBoolean(ContainerGroup, KeyReadOnly, false)
+	readOnly := container.LookupBoolean(ContainerGroup, KeyReadOnly, true)
 	if readOnly {
 		podman.add("--read-only")
 	}
@@ -427,18 +449,6 @@ func ConvertContainer(container *parser.UnitFile, isUser bool) (*parser.UnitFile
 	} else if readOnly {
 		/* !volatileTmp, disable the default tmpfs from --read-only */
 		podman.add("--read-only-tmpfs=false")
-	}
-
-	socketActivated := container.LookupBoolean(ContainerGroup, KeySocketActivated, false)
-	if socketActivated {
-		// TODO: This will not be needed with later podman versions that support activation directly:
-		//  https://github.com/containers/podman/pull/11316
-		podman.add("--preserve-fds=1")
-		podmanEnv["LISTEN_FDS"] = "1"
-
-		// TODO: This will not be 2 when catatonit forwards fds:
-		//  https://github.com/openSUSE/catatonit/pull/15
-		podmanEnv["LISTEN_PID"] = "2"
 	}
 
 	defaultContainerUID := uint32(0)

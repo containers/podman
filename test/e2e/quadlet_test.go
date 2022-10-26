@@ -80,7 +80,7 @@ func findSublist(full []string, sublist []string) int {
 }
 
 func (t *quadletTestcase) assertStdErrContains(args []string, session *PodmanSessionIntegration) bool {
-	return strings.Contains(session.OutputToString(), args[0])
+	return strings.Contains(session.ErrorToString(), args[0])
 }
 
 func (t *quadletTestcase) assertKeyIs(args []string, unit *parser.UnitFile) bool {
@@ -174,7 +174,10 @@ func (t *quadletTestcase) doAssert(check []string, unit *parser.UnitFile, sessio
 	}
 
 	if !ok {
-		s, _ := unit.ToString()
+		s := "(nil)"
+		if unit != nil {
+			s, _ = unit.ToString()
+		}
 		return fmt.Errorf("Failed assertion for %s: %s\n\n%s", t.serviceName, strings.Join(check, " "), s)
 	}
 	return nil
@@ -189,12 +192,18 @@ func (t *quadletTestcase) check(generateDir string, session *PodmanSessionIntegr
 	}
 
 	file := filepath.Join(generateDir, t.serviceName)
-	if _, err := os.Stat(file); os.IsNotExist(err) && expectFail {
-		return // Successful fail
+	_, err := os.Stat(file)
+	if expectFail {
+		Expect(err).To(MatchError(os.ErrNotExist))
+	} else {
+		Expect(err).ToNot(HaveOccurred())
 	}
 
-	unit, err := parser.ParseUnitFile(file)
-	Expect(err).To(BeNil())
+	var unit *parser.UnitFile
+	if !expectFail {
+		unit, err = parser.ParseUnitFile(file)
+		Expect(err).To(BeNil())
+	}
 
 	for _, check := range t.checks {
 		err := t.doAssert(check, unit, session)
@@ -244,7 +253,7 @@ var _ = Describe("quadlet system generator", func() {
 			Expect(err).To(BeNil())
 
 			// Run quadlet to convert the file
-			session := podmanTest.Quadlet([]string{generatedDir}, quadletDir)
+			session := podmanTest.Quadlet([]string{"-no-kmsg-log", generatedDir}, quadletDir)
 			session.WaitWithDefaultTimeout()
 			Expect(session).Should(Exit(0))
 
@@ -260,6 +269,8 @@ var _ = Describe("quadlet system generator", func() {
 		Entry("annotation.container", "annotation.container"),
 		Entry("basepodman.container", "basepodman.container"),
 		Entry("capabilities.container", "capabilities.container"),
+		Entry("capabilities2.container", "capabilities2.container"),
+		Entry("devices.container", "devices.container"),
 		Entry("env.container", "env.container"),
 		Entry("escapes.container", "escapes.container"),
 		Entry("exec.container", "exec.container"),
@@ -267,6 +278,7 @@ var _ = Describe("quadlet system generator", func() {
 		Entry("install.container", "install.container"),
 		Entry("label.container", "label.container"),
 		Entry("name.container", "name.container"),
+		Entry("network.container", "network.container"),
 		Entry("noimage.container", "noimage.container"),
 		Entry("noremapuser2.container", "noremapuser2.container"),
 		Entry("noremapuser.container", "noremapuser.container"),
@@ -275,7 +287,10 @@ var _ = Describe("quadlet system generator", func() {
 		Entry("podmanargs.container", "podmanargs.container"),
 		Entry("ports.container", "ports.container"),
 		Entry("ports_ipv6.container", "ports_ipv6.container"),
-		Entry("socketactivated.container", "socketactivated.container"),
+		Entry("readonly-notmpfs.container", "readonly-notmpfs.container"),
+		Entry("readwrite.container", "readwrite.container"),
+		Entry("readwrite-notmpfs.container", "readwrite-notmpfs.container"),
+		Entry("seccomp.container", "seccomp.container"),
 		Entry("timezone.container", "timezone.container"),
 		Entry("user.container", "user.container"),
 		Entry("user-host.container", "user-host.container"),

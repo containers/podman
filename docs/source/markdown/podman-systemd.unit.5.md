@@ -126,21 +126,38 @@ setuid and file capabilities.
 
 #### `DropCapability=` (defaults to `all`)
 
-Drop these capabilities from the default container capability set. The default is `all`, allowing
-addition of capabilities with `AddCapability`. Set this to empty to drop no capabilities.
-This can be listed multiple times.
+Drop these capabilities from the default podman capability set, or `all` for all capabilities. The default if no
+`DropCapability` is set is `all`. Set this to empty (i.e. `DropCapability=`) to use the default podman capability set.
+
+This is a space separated list of capabilities. This key can be listed multiple times.
+
+For example:
+```
+DropCapability=CAP_DAC_OVERRIDE CAP_IPC_OWNER
+```
 
 #### `AddCapability=`
 
 By default, the container runs with no capabilities (due to DropCapabilities='all'). If any specific
 caps are needed, then add them with this key. For example using `AddCapability=CAP_DAC_OVERRIDE`.
-This can be listed multiple times.
 
-#### `ReadOnly=` (defaults to `no`)
+This is a space separated list of capabilities. This key can be listed multiple times.
+
+For example:
+```
+AddCapability=CAP_DAC_OVERRIDE CAP_IPC_OWNER
+```
+
+#### `ReadOnly=` (defaults to `yes`)
 
 If enabled, makes image read-only, with /var/tmp, /tmp and /run a tmpfs (unless disabled by `VolatileTmp=no`).
 
 **NOTE:** Podman will automatically copy any content from the image onto the tmpfs
+
+#### `SeccompProfile=`
+
+Set the seccomp profile to use in the container. If unset, the default podman profile is used.
+Set to either the pathname of a json file, or `unconfined` to disable the seccomp filters.
 
 #### `RemapUsers=` (defaults to `no`)
 
@@ -217,6 +234,14 @@ created by using a `$name.volume` quadlet file.
 
 This key can be listed multiple times.
 
+#### `Network=`
+
+Specify a custom network for the container. This has the same format as the `--network` option
+to `podman run`. For example, use `host` to use the host network in the container, or `none` to
+not set up networking in the container.
+
+This key can be listed multiple times.
+
 #### `ExposeHostPort=`
 
 Exposes a port, or a range of ports (e.g. `50-59`), from the host to the container. Equivalent
@@ -238,6 +263,16 @@ the host; use [::] for IPv6.
 Note that not listing a host port means that Podman will automatically select one, and it
 may be different for each invocation of service. This makes that a less useful option. The
 allocated port can be found with the `podman port` command.
+
+This key can be listed multiple times.
+
+#### `AddDevice=`
+
+Adds a device node from the host into the container. The format of this is
+`HOST-DEVICE[:CONTAINER-DEVICE][:PERMISSIONS]`, where `HOST-DEVICE` is the path of
+the device node on the host, `CONTAINER-DEVICE` is the path of the device node in
+the container, and `PERMISSIONS` is a list of permissions combining 'r' for read,
+'w' for write, and 'm' for mknod(2).
 
 This key can be listed multiple times.
 

@@ -1,0 +1,7 @@
+## assert-podman-args --device=/dev/fuse
+## assert-podman-args --device=/dev/loop0:r
+
+[Container]
+Image=localhost/imagename
+AddDevice=/dev/fuse
+AddDevice=/dev/loop0:r
