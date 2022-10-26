@@ -241,9 +241,8 @@ function _confirm_update() {
 @test "podman auto-update - label io.containers.autoupdate=local" {
     generate_service localtest local
     image=quay.io/libpod/localtest:latest
-    podman commit --change CMD=/bin/bash $cname $image
-    podman image inspect --format "{{.ID}}" $image
-    imageID="$output"
+    run_podman commit --change CMD=/bin/bash $cname $image
+    run_podman image inspect --format "{{.ID}}" $image
 
     _wait_service_ready container-$cname.service
     run_podman auto-update --dry-run --format "{{.Unit}},{{.Image}},{{.Updated}},{{.Policy}}"
@@ -393,7 +392,7 @@ After=network-online.target
 
 [Service]
 Type=oneshot
-ExecStart=/usr/bin/podman auto-update
+ExecStart=$PODMAN auto-update
 Environment="http_proxy=${http_proxy}"
 Environment="HTTP_PROXY=${HTTP_PROXY}"
 Environment="https_proxy=${https_proxy}"

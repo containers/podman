@@ -97,6 +97,7 @@ EOF
     run_podman rm c_mount
 
     run_podman rm c_uidmap c_uidmap_v
+    run_podman volume rm foo
 }
 
 
