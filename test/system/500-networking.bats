@@ -205,8 +205,7 @@ load helpers
 
 # "network create" now works rootless, with the help of a special container
 @test "podman network create" {
-    # Deliberately use a fixed port, not random_open_port, because of #10806
-    myport=54322
+    myport=$(random_free_port)
 
     local mynetname=testnet-$(random_string 10)
     local mysubnet=$(random_rfc1918_subnet)
