@@ -33,6 +33,11 @@ func (ic *ContainerEngine) VolumeCreate(ctx context.Context, opts entities.Volum
 		}
 		volumeOptions = append(volumeOptions, parsedOptions...)
 	}
+
+	if opts.IgnoreIfExists {
+		volumeOptions = append(volumeOptions, libpod.WithVolumeIgnoreIfExist())
+	}
+
 	vol, err := ic.Libpod.NewVolume(ctx, volumeOptions...)
 	if err != nil {
 		return nil, err

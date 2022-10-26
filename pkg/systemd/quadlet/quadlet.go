@@ -669,11 +669,9 @@ func ConvertVolume(volume *parser.UnitFile, name string) (*parser.UnitFile, erro
 	// Need the containers filesystem mounted to start podman
 	service.Add(UnitGroup, "RequiresMountsFor", "%t/containers")
 
-	execCond := fmt.Sprintf("/usr/bin/bash -c \"! /usr/bin/podman volume exists %s\"", volumeName)
-
 	labels := volume.LookupAllKeyVal(VolumeGroup, "Label")
 
-	podman := NewPodmanCmdline("volume", "create")
+	podman := NewPodmanCmdline("volume", "create", "--ignore")
 
 	var opts strings.Builder
 	opts.WriteString("o=")
@@ -706,7 +704,6 @@ func ConvertVolume(volume *parser.UnitFile, name string) (*parser.UnitFile, erro
 	service.Setv(ServiceGroup,
 		"Type", "oneshot",
 		"RemainAfterExit", "yes",
-		"ExecCondition", execCond,
 
 		// The default syslog identifier is the exec basename (podman) which isn't very useful here
 		"SyslogIdentifier", "%N")

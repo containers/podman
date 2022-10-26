@@ -58,6 +58,28 @@ var _ = Describe("Podman volume create", func() {
 		Expect(check.OutputToStringArray()).To(HaveLen(1))
 	})
 
+	It("podman create volume with existing name fails", func() {
+		session := podmanTest.Podman([]string{"volume", "create", "myvol"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"volume", "create", "myvol"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).To(ExitWithError())
+	})
+
+	It("podman create volume --ignore", func() {
+		session := podmanTest.Podman([]string{"volume", "create", "myvol"})
+		session.WaitWithDefaultTimeout()
+		volName := session.OutputToString()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"volume", "create", "--ignore", "myvol"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).To(Equal(volName))
+	})
+
 	It("podman create and export volume", func() {
 		if podmanTest.RemoteTest {
 			Skip("Volume export check does not work with a remote client")

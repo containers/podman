@@ -53,12 +53,14 @@ func (r *Runtime) newVolume(ctx context.Context, noCreatePluginVolume bool, opti
 	volume.config.CreatedTime = time.Now()
 
 	// Check if volume with given name exists.
-	exists, err := r.state.HasVolume(volume.config.Name)
-	if err != nil {
-		return nil, fmt.Errorf("checking if volume with name %s exists: %w", volume.config.Name, err)
-	}
-	if exists {
-		return nil, fmt.Errorf("volume with name %s already exists: %w", volume.config.Name, define.ErrVolumeExists)
+	if !volume.ignoreIfExists {
+		exists, err := r.state.HasVolume(volume.config.Name)
+		if err != nil {
+			return nil, fmt.Errorf("checking if volume with name %s exists: %w", volume.config.Name, err)
+		}
+		if exists {
+			return nil, fmt.Errorf("volume with name %s already exists: %w", volume.config.Name, define.ErrVolumeExists)
+		}
 	}
 
 	// Plugin can be nil if driver is local, but that's OK - superfluous
@@ -209,6 +211,13 @@ func (r *Runtime) newVolume(ctx context.Context, noCreatePluginVolume bool, opti
 
 	// Add the volume to state
 	if err := r.state.AddVolume(volume); err != nil {
+		if volume.ignoreIfExists && errors.Is(err, define.ErrVolumeExists) {
+			existingVolume, err := r.state.Volume(volume.config.Name)
+			if err != nil {
+				return nil, fmt.Errorf("reading volume from state: %w", err)
+			}
+			return existingVolume, nil
+		}
 		return nil, fmt.Errorf("adding volume to state: %w", err)
 	}
 	defer volume.newVolumeEvent(events.Create)
