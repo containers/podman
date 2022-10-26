@@ -27,16 +27,16 @@ var _ = Describe("Podman systemd", func() {
 		}
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.Setup()
-		systemdUnitFile = `[Unit]
+		systemdUnitFile = fmt.Sprintf(`[Unit]
 Description=redis container
 [Service]
 Restart=always
-ExecStart=/usr/bin/podman start -a redis
-ExecStop=/usr/bin/podman stop -t 10 redis
+ExecStart=%s start -a redis
+ExecStop=%s stop -t 10 redis
 KillMode=process
 [Install]
 WantedBy=default.target
-`
+`, podmanTest.PodmanBinary, podmanTest.PodmanBinary)
 	})
 
 	AfterEach(func() {

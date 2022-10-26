@@ -253,6 +253,16 @@ var _ = Describe("podman system connection", func() {
 			u, err := user.Current()
 			Expect(err).ShouldNot(HaveOccurred())
 
+			// Ensure that the remote end uses our built podman
+			if os.Getenv("PODMAN_BINARY") == "" {
+				err = os.Setenv("PODMAN_BINARY", podmanTest.PodmanBinary)
+				Expect(err).ShouldNot(HaveOccurred())
+
+				defer func() {
+					os.Unsetenv("PODMAN_BINARY")
+				}()
+			}
+
 			cmd := exec.Command(podmanTest.RemotePodmanBinary,
 				"system", "connection", "add",
 				"--default",
