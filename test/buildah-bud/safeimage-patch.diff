@@ -1,0 +1,85 @@
+From 7aa34b86fb2e6282f29f78e64537f5f2683d605f Mon Sep 17 00:00:00 2001
+From: Ed Santiago <santiago@redhat.com>
+Date: Wed, 26 Oct 2022 05:58:14 -0600
+Subject: [PATCH] Define and use a safe, reliable test image
+
+The ubi8 image changed some architecture string yesterday and
+broke all our CI on all branches, including podman because
+it too runs bud.bats tests.
+
+Solution: use a safe, reliable, trustworthy test image (the
+one built and used for podman). Because that image does not
+have the same labels, confirm pull using .Architecture
+instead.
+
+We should stop using ubi8 and registry.redhat (#4318). They
+are unreliable. This PR doesn't fix that; it's just an
+emergency patch for one specific CI break. We can use
+this as a basis for future removals of ubi8.
+
+Signed-off-by: Ed Santiago <santiago@redhat.com>
+---
+ tests/bud.bats     | 22 +++++++++++-----------
+ tests/helpers.bash |  7 +++++++
+ 2 files changed, 18 insertions(+), 11 deletions(-)
+
+diff --git a/tests/bud.bats b/tests/bud.bats
+index 78b4e133..c347fff2 100644
+--- a/tests/bud.bats
++++ b/tests/bud.bats
+@@ -4227,24 +4227,24 @@ _EOF
+   mytmpdir=${TEST_SCRATCH_DIR}/my-dir
+   mkdir -p ${mytmpdir}
+ cat > $mytmpdir/Containerfile << _EOF
+-FROM registry.access.redhat.com/ubi8-minimal
++FROM $SAFEIMAGE
+ _EOF
+-  run_buildah build -f Containerfile --pull=false -q --arch=amd64 -t image-amd $WITH_POLICY_JSON ${mytmpdir}
+-  run_buildah inspect --format '{{ index .Docker.Config.Labels "architecture" }}' image-amd
+-  expect_output --substring x86_64
++  run_buildah build --pull=false -q --arch=amd64 -t image-amd $WITH_POLICY_JSON ${mytmpdir}
++  run_buildah inspect --format '{{ .OCIv1.Architecture }}' image-amd
++  expect_output amd64
+
+-  # Tag the image to localhost/ubi8-minimal to make sure that the image gets
++  # Tag the image to localhost/safeimage to make sure that the image gets
+   # pulled since the local one does not match the requested architecture.
+-  run_buildah tag image-amd localhost/ubi8-minimal
+-  run_buildah build -f Containerfile --pull=false -q --arch=arm64 -t image-arm $WITH_POLICY_JSON ${mytmpdir}
+-  run_buildah inspect --format '{{ index .Docker.Config.Labels "architecture" }}' image-arm
+-  expect_output --substring arm64
++  run_buildah tag image-amd localhost/${SAFEIMAGE_NAME}:${SAFEIMAGE_TAG}
++  run_buildah build --pull=false -q --arch=arm64 -t image-arm $WITH_POLICY_JSON ${mytmpdir}
++  run_buildah inspect --format '{{ .OCIv1.Architecture }}' image-arm
++  expect_output arm64
+
+   run_buildah inspect --format '{{ .FromImageID }}' image-arm
+   fromiid=$output
+
+-  run_buildah inspect --format '{{ index .OCIv1.Architecture  }}'  $fromiid
+-  expect_output --substring arm64
++  run_buildah inspect --format '{{ .OCIv1.Architecture  }}'  $fromiid
++  expect_output arm64
+ }
+
+ @test "bud --file with directory" {
+diff --git a/tests/helpers.bash b/tests/helpers.bash
+index f415d534..aab3f72e 100644
+--- a/tests/helpers.bash
++++ b/tests/helpers.bash
+@@ -13,5 +13,12 @@ OCI=$(${BUILDAH_BINARY} info --format '{{.host.OCIRuntime}}' || command -v runc
+ # Default timeout for a buildah command.
+ BUILDAH_TIMEOUT=${BUILDAH_TIMEOUT:-300}
+
++# Safe reliable unchanging test image
++SAFEIMAGE_REGISTRY=${SAFEIMAGE_REGISTRY:-quay.io}
++SAFEIMAGE_USER=${SAFEIMAGE_USER:-libpod}
++SAFEIMAGE_NAME=${SAFEIMAGE_NAME:-testimage}
++SAFEIMAGE_TAG=${SAFEIMAGE_TAG:-20221018}
++SAFEIMAGE="${SAFEIMAGE:-$SAFEIMAGE_REGISTRY/$SAFEIMAGE_USER/$SAFEIMAGE_NAME:$SAFEIMAGE_TAG}"
++
+ # Shortcut for directory containing Containerfiles for bud.bats
+ BUDFILES=${TEST_SOURCES}/bud
+
+--
+2.37.3
