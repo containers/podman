@@ -95,6 +95,7 @@ function basic_teardown() {
     run_podman '?' pod rm -t 0 --all --force --ignore
     run_podman '?'     rm -t 0 --all --force --ignore
     run_podman '?' network prune --force
+    run_podman '?' volume rm -a -f
 
     command rm -rf $PODMAN_TMPDIR
 }

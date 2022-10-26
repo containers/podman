@@ -69,7 +69,7 @@ Log[-1].Output   | \"Uh-oh on stdout!\\\nUh-oh on stderr!\"
 "
 
     # now the on-failure should kick in and kill the container
-    podman wait healthcheck_c
+    run_podman wait healthcheck_c
 
     # Clean up
     run_podman rm -t 0 -f healthcheck_c
