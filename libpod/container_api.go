@@ -282,6 +282,8 @@ func (c *Container) Attach(streams *define.AttachStreams, keys string, resize <-
 	if c.Terminal() {
 		go func() {
 			<-attachRdy
+			c.lock.Lock()
+			defer c.lock.Unlock()
 			if err := c.ociRuntime.KillContainer(c, uint(signal.SIGWINCH), false); err != nil {
 				logrus.Warnf("Unable to send SIGWINCH to container %s after attach: %v", c.ID(), err)
 			}
