@@ -366,13 +366,11 @@ func GetKeepIDMapping(opts *namespaces.KeepIDUserNsOptions) (*stypes.IDMappingOp
 		gid = int(*opts.GID)
 	}
 
-	uids, gids, err := rootless.GetConfiguredMappings(false)
+	uids, gids, err := rootless.GetConfiguredMappings(true)
 	if err != nil {
 		return nil, -1, -1, fmt.Errorf("cannot read mappings: %w", err)
 	}
-	if len(uids) == 0 || len(gids) == 0 {
-		return nil, -1, -1, fmt.Errorf("keep-id requires additional UIDs or GIDs defined in /etc/subuid and /etc/subgid to function correctly: %w", err)
-	}
+
 	maxUID, maxGID := 0, 0
 	for _, u := range uids {
 		maxUID += u.Size
@@ -383,13 +381,17 @@ func GetKeepIDMapping(opts *namespaces.KeepIDUserNsOptions) (*stypes.IDMappingOp
 
 	options.UIDMap, options.GIDMap = nil, nil
 
-	options.UIDMap = append(options.UIDMap, idtools.IDMap{ContainerID: 0, HostID: 1, Size: min(uid, maxUID)})
+	if len(uids) > 0 {
+		options.UIDMap = append(options.UIDMap, idtools.IDMap{ContainerID: 0, HostID: 1, Size: min(uid, maxUID)})
+	}
 	options.UIDMap = append(options.UIDMap, idtools.IDMap{ContainerID: uid, HostID: 0, Size: 1})
 	if maxUID > uid {
 		options.UIDMap = append(options.UIDMap, idtools.IDMap{ContainerID: uid + 1, HostID: uid + 1, Size: maxUID - uid})
 	}
 
-	options.GIDMap = append(options.GIDMap, idtools.IDMap{ContainerID: 0, HostID: 1, Size: min(gid, maxGID)})
+	if len(gids) > 0 {
+		options.GIDMap = append(options.GIDMap, idtools.IDMap{ContainerID: 0, HostID: 1, Size: min(gid, maxGID)})
+	}
 	options.GIDMap = append(options.GIDMap, idtools.IDMap{ContainerID: gid, HostID: 0, Size: 1})
 	if maxGID > gid {
 		options.GIDMap = append(options.GIDMap, idtools.IDMap{ContainerID: gid + 1, HostID: gid + 1, Size: maxGID - gid})
