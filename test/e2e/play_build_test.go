@@ -1,5 +1,5 @@
-//go:build !remote
-// +build !remote
+//go:build !remote_testing
+// +build !remote_testing
 
 // build for play kube is not supported on remote yet.
 
