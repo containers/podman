@@ -142,7 +142,9 @@ will wait for the command to exit then return the entirety of Out's contents.
 Wait uses eventually under the hood and accepts the same timeout/polling intervals that eventually does.
 */
 func (s *Session) Wait(timeout ...interface{}) *Session {
-	EventuallyWithOffset(1, s, timeout...).Should(Exit())
+	args := []any{s}
+	args = append(args, timeout...)
+	EventuallyWithOffset(1, args...).Should(Exit())
 	return s
 }
 
