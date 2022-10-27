@@ -78,7 +78,7 @@ func openLock(path string, ro bool) (fd int, err error) {
 	}
 	fd, err = unix.Open(path, flags, 0o644)
 	if err == nil {
-		return
+		return fd, nil
 	}
 
 	// the directory of the lockfile seems to be removed, try to create it
@@ -133,7 +133,7 @@ func createLockerForPath(path string, ro bool) (Locker, error) {
 func (l *lockfile) lock(lType int16) {
 	lk := unix.Flock_t{
 		Type:   lType,
-		Whence: int16(os.SEEK_SET),
+		Whence: int16(unix.SEEK_SET),
 		Start:  0,
 		Len:    0,
 	}
@@ -184,7 +184,7 @@ func (l *lockfile) RLock() {
 // Unlock unlocks the lockfile.
 func (l *lockfile) Unlock() {
 	l.stateMutex.Lock()
-	if l.locked == false {
+	if !l.locked {
 		// Panic when unlocking an unlocked lock.  That's a violation
 		// of the lock semantics and will reveal such.
 		panic("calling Unlock on unlocked lock")
@@ -213,11 +213,33 @@ func (l *lockfile) Unlock() {
 	l.stateMutex.Unlock()
 }
 
-// Locked checks if lockfile is locked for writing by a thread in this process.
-func (l *lockfile) Locked() bool {
-	l.stateMutex.Lock()
-	defer l.stateMutex.Unlock()
-	return l.locked && (l.locktype == unix.F_WRLCK)
+func (l *lockfile) AssertLocked() {
+	// DO NOT provide a variant that returns the value of l.locked.
+	//
+	// If the caller does not hold the lock, l.locked might nevertheless be true because another goroutine does hold it, and
+	// we can’t tell the difference.
+	//
+	// Hence, this “AssertLocked” method, which exists only for sanity checks.
+
+	// Don’t even bother with l.stateMutex: The caller is expected to hold the lock, and in that case l.locked is constant true
+	// with no possible writers.
+	// If the caller does not hold the lock, we are violating the locking/memory model anyway, and accessing the data
+	// without the lock is more efficient for callers, and potentially more visible to lock analysers for incorrect callers.
+	if !l.locked {
+		panic("internal error: lock is not held by the expected owner")
+	}
+}
+
+func (l *lockfile) AssertLockedForWriting() {
+	// DO NOT provide a variant that returns the current lock state.
+	//
+	// The same caveats as for AssertLocked apply equally.
+
+	l.AssertLocked()
+	// Like AssertLocked, don’t even bother with l.stateMutex.
+	if l.locktype != unix.F_WRLCK {
+		panic("internal error: lock is not held for writing")
+	}
 }
 
 // Touch updates the lock file with the UID of the user.
@@ -246,14 +268,15 @@ func (l *lockfile) Modified() (bool, error) {
 		panic("attempted to check last-writer in lockfile without locking it first")
 	}
 	defer l.stateMutex.Unlock()
-	currentLW := make([]byte, len(l.lw))
+	currentLW := make([]byte, lastWriterIDSize)
 	n, err := unix.Pread(int(l.fd), currentLW, 0)
 	if err != nil {
 		return true, err
 	}
-	if n != len(l.lw) {
-		return true, nil
-	}
+	// It is important to handle the partial read case, because
+	// the initial size of the lock file is zero, which is a valid
+	// state (no writes yet)
+	currentLW = currentLW[:n]
 	oldLW := l.lw
 	l.lw = currentLW
 	return !bytes.Equal(currentLW, oldLW), nil

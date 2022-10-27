@@ -174,7 +174,7 @@ func (gdw *NaiveDiffDriver) ApplyDiff(id, parent string, options ApplyDiffOpts) 
 	defer driverPut(driver, id, &err)
 
 	defaultForceMask := os.FileMode(0700)
-	var forceMask *os.FileMode = nil
+	var forceMask *os.FileMode // = nil
 	if runtime.GOOS == "darwin" {
 		forceMask = &defaultForceMask
 	}

@@ -64,7 +64,7 @@ func NewWriter(sys *types.SystemContext, path string) (*Writer, error) {
 	}, nil
 }
 
-// imageCommitted notifies the Writer that at least one image was successfully commited to the stream.
+// imageCommitted notifies the Writer that at least one image was successfully committed to the stream.
 func (w *Writer) imageCommitted() {
 	w.mutex.Lock()
 	defer w.mutex.Unlock()

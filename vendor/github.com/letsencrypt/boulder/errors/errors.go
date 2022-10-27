@@ -128,6 +128,13 @@ func FailedValidationError(msg string, args ...interface{}) error {
 	}
 }
 
+func RegistrationsPerIPError(msg string, args ...interface{}) error {
+	return &BoulderError{
+		Type:   RateLimit,
+		Detail: fmt.Sprintf(msg+": see https://letsencrypt.org/docs/too-many-registrations-for-this-ip/", args...),
+	}
+}
+
 func RejectedIdentifierError(msg string, args ...interface{}) error {
 	return New(RejectedIdentifier, msg, args...)
 }

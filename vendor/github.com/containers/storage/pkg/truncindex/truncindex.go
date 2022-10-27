@@ -14,7 +14,7 @@ import (
 
 var (
 	// ErrEmptyPrefix is an error returned if the prefix was empty.
-	ErrEmptyPrefix = errors.New("Prefix can't be empty")
+	ErrEmptyPrefix = errors.New("prefix can't be empty")
 
 	// ErrIllegalChar is returned when a space is in the ID
 	ErrIllegalChar = errors.New("illegal character: ' '")

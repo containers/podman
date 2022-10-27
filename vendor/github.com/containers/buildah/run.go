@@ -8,6 +8,7 @@ import (
 	"github.com/containers/buildah/internal"
 	"github.com/containers/buildah/pkg/sshagent"
 	"github.com/containers/image/v5/types"
+	"github.com/containers/storage/pkg/lockfile"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
@@ -176,8 +177,8 @@ type runMountArtifacts struct {
 	Agents []*sshagent.AgentServer
 	// SSHAuthSock is the path to the ssh auth sock inside the container
 	SSHAuthSock string
-	// LockedTargets to be unlocked if there are any.
-	LockedTargets []string
+	// TargetLocks to be unlocked if there are any.
+	TargetLocks []lockfile.Locker
 }
 
 // RunMountInfo are the available run mounts for this run

@@ -170,6 +170,11 @@ func createMacvlan(network *types.Network) error {
 		}
 	}
 
+	// always turn dns off with macvlan, it is not implemented in netavark
+	// and makes little sense to support with macvlan
+	// see https://github.com/containers/netavark/pull/467
+	network.DNSEnabled = false
+
 	// we already validated the drivers before so we just have to set the default here
 	switch network.IPAMOptions[types.Driver] {
 	case "":

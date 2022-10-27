@@ -67,14 +67,14 @@ func newOpenshiftClient(ref openshiftReference) (*openshiftClient, error) {
 
 // doRequest performs a correctly authenticated request to a specified path, and returns response body or an error object.
 func (c *openshiftClient) doRequest(ctx context.Context, method, path string, requestBody []byte) ([]byte, error) {
-	url := *c.baseURL
-	url.Path = path
+	requestURL := *c.baseURL
+	requestURL.Path = path
 	var requestBodyReader io.Reader
 	if requestBody != nil {
 		logrus.Debugf("Will send body: %s", requestBody)
 		requestBodyReader = bytes.NewReader(requestBody)
 	}
-	req, err := http.NewRequestWithContext(ctx, method, url.String(), requestBodyReader)
+	req, err := http.NewRequestWithContext(ctx, method, requestURL.String(), requestBodyReader)
 	if err != nil {
 		return nil, err
 	}
@@ -90,7 +90,7 @@ func (c *openshiftClient) doRequest(ctx context.Context, method, path string, re
 		req.Header.Set("Content-Type", "application/json")
 	}
 
-	logrus.Debugf("%s %s", method, url.Redacted())
+	logrus.Debugf("%s %s", method, requestURL.Redacted())
 	res, err := c.httpClient.Do(req)
 	if err != nil {
 		return nil, err

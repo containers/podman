@@ -485,7 +485,7 @@ default_sysctls = [
 # List of the OCI runtimes that support --format=json. When json is supported
 # engine will use it for reporting nicer errors.
 #
-#runtime_supports_json = ["crun", "runc", "kata", "runsc", "krun"]
+#runtime_supports_json = ["crun", "runc", "kata", "runsc", "youki", "krun"]
 
 # List of the OCI runtimes that supports running containers with KVM Separation.
 #
@@ -588,6 +588,13 @@ default_sysctls = [
 #  "/bin/runsc",
 #  "/sbin/runsc",
 #  "/run/current-system/sw/bin/runsc",
+#]
+
+#youki = [
+#  "/usr/local/bin/youki",
+#  "/usr/bin/youki",
+#  "/bin/youki",
+#  "/run/current-system/sw/bin/youki",
 #]
 
 #krun = [

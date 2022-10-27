@@ -322,7 +322,7 @@ in_podman_task:
 
 
 image_build_task: &image-build
-    name: "Build multi-arch $CTXDIR"
+    name: "Build multi-arch $FLAVOR"
     alias: image_build
     # Some of these container images take > 1h to build, limit
     # this task to a specific Cirrus-Cron entry with this name.
@@ -337,11 +337,11 @@ image_build_task: &image-build
         type: "n2-standard-4"
     matrix:
         - env:
-            CTXDIR: contrib/buildahimage/upstream
+            FLAVOR: upstream
         - env:
-            CTXDIR: contrib/buildahimage/testing
+            FLAVOR: testing
         - env:
-            CTXDIR: contrib/buildahimage/stable
+            FLAVOR: stable
     env:
         DISTRO_NV: "${FEDORA_NAME}"  # Required for repo cache extraction
         BUILDAH_USERNAME: ENCRYPTED[70e1d4f026cba5d82fc067944baab10f7c71c64bb6b75fce4eeb5c106694b3bbc8e08f8a1b926d6e03e85cf4e21833bb]
@@ -350,7 +350,7 @@ image_build_task: &image-build
         CONTAINERS_PASSWORD: ENCRYPTED[886cf4cc126e50b2fd7f2792235a22bb79e4b81db43f803a6214a38d3fd6c04cd4e64570b562cb32b04e5fbc435404b6]
     main_script:
         - source /etc/automation_environment
-        - main.sh $CIRRUS_REPO_CLONE_URL $CTXDIR
+        - main.sh $CIRRUS_REPO_CLONE_URL contrib/buildahimage $FLAVOR
 
 
 test_image_build_task:

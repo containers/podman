@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"golang.org/x/crypto/ocsp"
 	"gopkg.in/square/go-jose.v2"
 
 	"github.com/letsencrypt/boulder/identifier"
@@ -77,6 +78,11 @@ const (
 	OCSPStatusGood    = OCSPStatus("good")
 	OCSPStatusRevoked = OCSPStatus("revoked")
 )
+
+var OCSPStatusToInt = map[OCSPStatus]int{
+	OCSPStatusGood:    ocsp.Good,
+	OCSPStatusRevoked: ocsp.Revoked,
+}
 
 // DNSPrefix is attached to DNS names in DNS challenges
 const DNSPrefix = "_acme-challenge"
@@ -533,4 +539,35 @@ type SuggestedWindow struct {
 // endpoint specified in draft-aaron-ari.
 type RenewalInfo struct {
 	SuggestedWindow SuggestedWindow `json:"suggestedWindow"`
+}
+
+// RenewalInfoSimple constructs a `RenewalInfo` object and suggested window
+// using a very simple renewal calculation: calculate a point 2/3rds of the way
+// through the validity period, then give a 2-day window around that. Both the
+// `issued` and `expires` timestamps are expected to be UTC.
+func RenewalInfoSimple(issued time.Time, expires time.Time) RenewalInfo {
+	validity := expires.Add(time.Second).Sub(issued)
+	renewalOffset := validity / time.Duration(3)
+	idealRenewal := expires.Add(-renewalOffset)
+	return RenewalInfo{
+		SuggestedWindow: SuggestedWindow{
+			Start: idealRenewal.Add(-24 * time.Hour),
+			End:   idealRenewal.Add(24 * time.Hour),
+		},
+	}
+}
+
+// RenewalInfoImmediate constructs a `RenewalInfo` object with a suggested
+// window in the past. Per the draft-ietf-acme-ari-00 spec, clients should
+// attempt to renew immediately if the suggested window is in the past. The
+// passed `now` is assumed to be a timestamp representing the current moment in
+// time.
+func RenewalInfoImmediate(now time.Time) RenewalInfo {
+	oneHourAgo := now.Add(-1 * time.Hour)
+	return RenewalInfo{
+		SuggestedWindow: SuggestedWindow{
+			Start: oneHourAgo,
+			End:   oneHourAgo.Add(time.Minute * 30),
+		},
+	}
 }

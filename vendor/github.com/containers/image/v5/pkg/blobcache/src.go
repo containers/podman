@@ -138,7 +138,7 @@ func (s *blobCacheSource) LayerInfosForCopy(ctx context.Context, instanceDigest 
 			var replaceDigest []byte
 			var err error
 			blobFile := s.reference.blobPath(info.Digest, false)
-			alternate := ""
+			var alternate string
 			switch s.reference.compress {
 			case types.Compress:
 				alternate = blobFile + compressedNote

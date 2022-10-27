@@ -59,8 +59,6 @@ func parseUnnormalizedShortName(input string) (bool, reference.Named, error) {
 // the tag or digest and stores it in the return values so that both can be
 // re-added to a possible resolved alias' or USRs at a later point.
 func splitUserInput(named reference.Named) (isTagged bool, isDigested bool, normalized reference.Named, tag string, digest digest.Digest) {
-	normalized = named
-
 	tagged, isT := named.(reference.NamedTagged)
 	if isT {
 		isTagged = true
@@ -170,7 +168,7 @@ func (r *Resolved) Description() string {
 // Note that nil is returned if len(pullErrors) == 0.  Otherwise, the amount of
 // pull errors must equal the amount of pull candidates.
 func (r *Resolved) FormatPullErrors(pullErrors []error) error {
-	if len(pullErrors) >= 0 && len(pullErrors) != len(r.PullCandidates) {
+	if len(pullErrors) > 0 && len(pullErrors) != len(r.PullCandidates) {
 		pullErrors = append(pullErrors,
 			fmt.Errorf("internal error: expected %d instead of %d errors for %d pull candidates",
 				len(r.PullCandidates), len(pullErrors), len(r.PullCandidates)))

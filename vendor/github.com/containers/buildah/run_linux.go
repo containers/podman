@@ -34,6 +34,7 @@ import (
 	hooksExec "github.com/containers/common/pkg/hooks/exec"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/ioutils"
+	"github.com/containers/storage/pkg/lockfile"
 	"github.com/containers/storage/pkg/stringid"
 	"github.com/containers/storage/pkg/unshare"
 	"github.com/docker/go-units"
@@ -1196,18 +1197,26 @@ func checkIdsGreaterThan5(ids []spec.LinuxIDMapping) bool {
 	return false
 }
 
-func (b *Builder) getCacheMount(tokens []string, stageMountPoints map[string]internal.StageMountDetails, idMaps IDMaps) (*spec.Mount, []string, error) {
+// If this function succeeds and returns a non-nil lockfile.Locker, the caller must unlock it (when??).
+func (b *Builder) getCacheMount(tokens []string, stageMountPoints map[string]internal.StageMountDetails, idMaps IDMaps) (*spec.Mount, lockfile.Locker, error) {
 	var optionMounts []specs.Mount
-	mount, lockedTargets, err := internalParse.GetCacheMount(tokens, b.store, b.MountLabel, stageMountPoints)
+	mount, targetLock, err := internalParse.GetCacheMount(tokens, b.store, b.MountLabel, stageMountPoints)
 	if err != nil {
-		return nil, lockedTargets, err
+		return nil, nil, err
 	}
+	succeeded := false
+	defer func() {
+		if !succeeded && targetLock != nil {
+			targetLock.Unlock()
+		}
+	}()
 	optionMounts = append(optionMounts, mount)
 	volumes, err := b.runSetupVolumeMounts(b.MountLabel, nil, optionMounts, idMaps)
 	if err != nil {
-		return nil, lockedTargets, err
+		return nil, nil, err
 	}
-	return &volumes[0], lockedTargets, nil
+	succeeded = true
+	return &volumes[0], targetLock, nil
 }
 
 // setPdeathsig sets a parent-death signal for the process

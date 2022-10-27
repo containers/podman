@@ -527,6 +527,9 @@ func (ta *tarAppender) addTarFile(path, name string) error {
 	if err := ReadUserXattrToTarHeader(path, hdr); err != nil {
 		return err
 	}
+	if err := ReadFileFlagsToTarHeader(path, hdr); err != nil {
+		return err
+	}
 	if ta.CopyPass {
 		copyPassHeader(hdr)
 	}
@@ -770,6 +773,15 @@ func createTarFile(path, extractDir string, hdr *tar.Header, reader io.Reader, L
 
 	}
 
+	// We defer setting flags on directories until the end of
+	// Unpack or UnpackLayer in case setting them makes the
+	// directory immutable.
+	if hdr.Typeflag != tar.TypeDir {
+		if err := WriteFileFlagsFromTarHeader(path, hdr); err != nil {
+			return err
+		}
+	}
+
 	if len(errs) > 0 {
 		logrus.WithFields(logrus.Fields{
 			"errors": errs,
@@ -864,7 +876,7 @@ func TarWithOptions(srcPath string, options *TarOptions) (io.ReadCloser, error) 
 			rebaseName := options.RebaseNames[include]
 
 			walkRoot := getWalkRoot(srcPath, include)
-			filepath.WalkDir(walkRoot, func(filePath string, d fs.DirEntry, err error) error {
+			if err := filepath.WalkDir(walkRoot, func(filePath string, d fs.DirEntry, err error) error {
 				if err != nil {
 					logrus.Errorf("Tar: Can't stat file %s to tar: %s", srcPath, err)
 					return nil
@@ -891,8 +903,7 @@ func TarWithOptions(srcPath string, options *TarOptions) (io.ReadCloser, error) 
 				if include != relFilePath {
 					matches, err := pm.IsMatch(relFilePath)
 					if err != nil {
-						logrus.Errorf("Matching %s: %v", relFilePath, err)
-						return err
+						return fmt.Errorf("matching %s: %w", relFilePath, err)
 					}
 					skip = matches
 				}
@@ -955,7 +966,10 @@ func TarWithOptions(srcPath string, options *TarOptions) (io.ReadCloser, error) 
 					}
 				}
 				return nil
-			})
+			}); err != nil {
+				logrus.Errorf("%s", err)
+				return
+			}
 		}
 	}()
 
@@ -1097,6 +1111,9 @@ loop:
 		path := filepath.Join(dest, hdr.Name)
 
 		if err := system.Chtimes(path, hdr.AccessTime, hdr.ModTime); err != nil {
+			return err
+		}
+		if err := WriteFileFlagsFromTarHeader(path, hdr); err != nil {
 			return err
 		}
 	}

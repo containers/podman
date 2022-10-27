@@ -1302,6 +1302,24 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 				if err != nil {
 					return "", nil, fmt.Errorf("checking if cached image exists from a previous build: %w", err)
 				}
+				// All the best effort to find cache on localstorage have failed try pulling
+				// cache from remote repo if `--cache-from` was configured and cacheKey was
+				// generated again after adding content summary.
+				if cacheID == "" && s.executor.cacheFrom != nil {
+					// only attempt to use cache again if pulling was successful
+					// otherwise do nothing and attempt to run the step, err != nil
+					// is ignored and will be automatically logged for --log-level debug
+					if id, err := s.pullCache(ctx, cacheKey); id != "" && err == nil {
+						logCachePulled(cacheKey)
+						cacheID, err = s.intermediateImageExists(ctx, node, addedContentSummary, s.stepRequiresLayer(step))
+						if err != nil {
+							return "", nil, fmt.Errorf("checking if cached image exists from a previous build: %w", err)
+						}
+						if cacheID != "" {
+							pulledAndUsedCacheImage = true
+						}
+					}
+				}
 			}
 		} else {
 			// This log line is majorly here so we can verify in tests

@@ -33,11 +33,11 @@ const (
 	holesFinderStateEOF
 )
 
-// ReadByte reads a single byte from the underlying reader.
+// readByte reads a single byte from the underlying reader.
 // If a single byte is read, the return value is (0, RAW-BYTE-VALUE, nil).
 // If there are at least f.THRESHOLD consecutive zeros, then the
 // return value is (N_CONSECUTIVE_ZEROS, '\x00').
-func (f *holesFinder) ReadByte() (int64, byte, error) {
+func (f *holesFinder) readByte() (int64, byte, error) {
 	for {
 		switch f.state {
 		// reading the file stream
@@ -159,7 +159,7 @@ func (rc *rollingChecksumReader) Read(b []byte) (bool, int, error) {
 	}
 
 	for i := 0; i < len(b); i++ {
-		holeLen, n, err := rc.reader.ReadByte()
+		holeLen, n, err := rc.reader.readByte()
 		if err != nil {
 			if err == io.EOF {
 				rc.closed = true

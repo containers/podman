@@ -945,15 +945,16 @@ func (t *http2Server) streamContextErr(s *Stream) error {
 
 // WriteHeader sends the header metadata md back to the client.
 func (t *http2Server) WriteHeader(s *Stream, md metadata.MD) error {
-	if s.updateHeaderSent() {
-		return ErrIllegalHeaderWrite
-	}
-
+	s.hdrMu.Lock()
+	defer s.hdrMu.Unlock()
 	if s.getState() == streamDone {
 		return t.streamContextErr(s)
 	}
 
-	s.hdrMu.Lock()
+	if s.updateHeaderSent() {
+		return ErrIllegalHeaderWrite
+	}
+
 	if md.Len() > 0 {
 		if s.header.Len() > 0 {
 			s.header = metadata.Join(s.header, md)
@@ -962,10 +963,8 @@ func (t *http2Server) WriteHeader(s *Stream, md metadata.MD) error {
 		}
 	}
 	if err := t.writeHeaderLocked(s); err != nil {
-		s.hdrMu.Unlock()
 		return status.Convert(err).Err()
 	}
-	s.hdrMu.Unlock()
 	return nil
 }
 
@@ -1013,17 +1012,19 @@ func (t *http2Server) writeHeaderLocked(s *Stream) error {
 // TODO(zhaoq): Now it indicates the end of entire stream. Revisit if early
 // OK is adopted.
 func (t *http2Server) WriteStatus(s *Stream, st *status.Status) error {
+	s.hdrMu.Lock()
+	defer s.hdrMu.Unlock()
+
 	if s.getState() == streamDone {
 		return nil
 	}
-	s.hdrMu.Lock()
+
 	// TODO(mmukhi): Benchmark if the performance gets better if count the metadata and other header fields
 	// first and create a slice of that exact size.
 	headerFields := make([]hpack.HeaderField, 0, 2) // grpc-status and grpc-message will be there if none else.
 	if !s.updateHeaderSent() {                      // No headers have been sent.
 		if len(s.header) > 0 { // Send a separate header frame.
 			if err := t.writeHeaderLocked(s); err != nil {
-				s.hdrMu.Unlock()
 				return err
 			}
 		} else { // Send a trailer only response.
@@ -1052,7 +1053,7 @@ func (t *http2Server) WriteStatus(s *Stream, st *status.Status) error {
 		endStream: true,
 		onWrite:   t.setResetPingStrikes,
 	}
-	s.hdrMu.Unlock()
+
 	success, err := t.controlBuf.execute(t.checkForHeaderListSize, trailingHeader)
 	if !success {
 		if err != nil {

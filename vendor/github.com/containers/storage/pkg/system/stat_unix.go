@@ -1,3 +1,4 @@
+//go:build !windows
 // +build !windows
 
 package system
@@ -17,6 +18,7 @@ type StatT struct {
 	rdev uint64
 	size int64
 	mtim syscall.Timespec
+	platformStatT
 }
 
 // Mode returns file's permission mode.

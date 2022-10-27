@@ -46,6 +46,8 @@ type Image struct {
 		ociv1Image *ociv1.Image
 		// Names() parsed into references.
 		namesReferences []reference.Reference
+		// Calculating the Size() is expensive, so cache it.
+		size *int64
 	}
 }
 
@@ -62,6 +64,7 @@ func (i *Image) reload() error {
 	i.cached.completeInspectData = nil
 	i.cached.ociv1Image = nil
 	i.cached.namesReferences = nil
+	i.cached.size = nil
 	return nil
 }
 
@@ -775,8 +778,13 @@ func (i *Image) Unmount(force bool) error {
 
 // Size computes the size of the image layers and associated data.
 func (i *Image) Size() (int64, error) {
-	// TODO: cache the result to optimize performance of subsequent calls
-	return i.runtime.store.ImageSize(i.ID())
+	if i.cached.size != nil {
+		return *i.cached.size, nil
+	}
+
+	size, err := i.runtime.store.ImageSize(i.ID())
+	i.cached.size = &size
+	return size, err
 }
 
 // HasDifferentDigestOptions allows for customizing the check if another
