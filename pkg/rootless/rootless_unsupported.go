@@ -57,7 +57,7 @@ func ConfigurationMatches() (bool, error) {
 }
 
 // GetConfiguredMappings returns the additional IDs configured for the current user.
-func GetConfiguredMappings() ([]idtools.IDMap, []idtools.IDMap, error) {
+func GetConfiguredMappings(quiet bool) ([]idtools.IDMap, []idtools.IDMap, error) {
 	return nil, nil, errors.New("this function is not supported on this os")
 }
 

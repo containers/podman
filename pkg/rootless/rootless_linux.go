@@ -193,7 +193,7 @@ func joinUserAndMountNS(pid uint, pausePid string) (bool, int, error) {
 }
 
 // GetConfiguredMappings returns the additional IDs configured for the current user.
-func GetConfiguredMappings() ([]idtools.IDMap, []idtools.IDMap, error) {
+func GetConfiguredMappings(quiet bool) ([]idtools.IDMap, []idtools.IDMap, error) {
 	var uids, gids []idtools.IDMap
 	username := os.Getenv("USER")
 	if username == "" {
@@ -211,7 +211,7 @@ func GetConfiguredMappings() ([]idtools.IDMap, []idtools.IDMap, error) {
 	mappings, err := idtools.NewIDMappings(username, username)
 	if err != nil {
 		logLevel := logrus.ErrorLevel
-		if os.Geteuid() == 0 && GetRootlessUID() == 0 {
+		if quiet || (os.Geteuid() == 0 && GetRootlessUID() == 0) {
 			logLevel = logrus.DebugLevel
 		}
 		logrus.StandardLogger().Logf(logLevel, "cannot find UID/GID for user %s: %v - check rootless mode in man pages.", username, err)
@@ -317,7 +317,7 @@ func becomeRootInUserNS(pausePid, fileToRead string, fileOutput *os.File) (_ boo
 		return false, -1, fmt.Errorf("cannot re-exec process")
 	}
 
-	uids, gids, err := GetConfiguredMappings()
+	uids, gids, err := GetConfiguredMappings(false)
 	if err != nil {
 		return false, -1, err
 	}
@@ -592,7 +592,7 @@ func ConfigurationMatches() (bool, error) {
 		return true, nil
 	}
 
-	uids, gids, err := GetConfiguredMappings()
+	uids, gids, err := GetConfiguredMappings(false)
 	if err != nil {
 		return false, err
 	}

@@ -366,7 +366,7 @@ func GetKeepIDMapping(opts *namespaces.KeepIDUserNsOptions) (*stypes.IDMappingOp
 		gid = int(*opts.GID)
 	}
 
-	uids, gids, err := rootless.GetConfiguredMappings()
+	uids, gids, err := rootless.GetConfiguredMappings(false)
 	if err != nil {
 		return nil, -1, -1, fmt.Errorf("cannot read mappings: %w", err)
 	}
@@ -407,7 +407,7 @@ func GetNoMapMapping() (*stypes.IDMappingOptions, int, int, error) {
 		HostUIDMapping: false,
 		HostGIDMapping: false,
 	}
-	uids, gids, err := rootless.GetConfiguredMappings()
+	uids, gids, err := rootless.GetConfiguredMappings(false)
 	if err != nil {
 		return nil, -1, -1, fmt.Errorf("cannot read mappings: %w", err)
 	}
