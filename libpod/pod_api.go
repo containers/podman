@@ -581,20 +581,15 @@ func (p *Pod) Status() (map[string]define.ContainerStatus, error) {
 }
 
 func containerStatusFromContainers(allCtrs []*Container) (map[string]define.ContainerStatus, error) {
-	// We need to lock all the containers
-	for _, ctr := range allCtrs {
-		ctr.lock.Lock()
-		defer ctr.lock.Unlock()
-	}
-
-	// Now that all containers are locked, get their status
 	status := make(map[string]define.ContainerStatus, len(allCtrs))
 	for _, ctr := range allCtrs {
-		if err := ctr.syncContainer(); err != nil {
+		state, err := ctr.State()
+
+		if err != nil {
 			return nil, err
 		}
 
-		status[ctr.ID()] = ctr.state.State
+		status[ctr.ID()] = state
 	}
 
 	return status, nil
