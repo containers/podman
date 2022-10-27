@@ -1307,7 +1307,15 @@ func (c *Container) stop(timeout uint) error {
 
 	// We have to check stopErr *after* we lock again - otherwise, we have a
 	// change of panicking on a double-unlock. Ref: GH Issue 9615
-	if stopErr != nil {
+	if errors.Is(stopErr, errSendingSignal) {
+		// Maybe sending the signal has failed because the container
+		// exited after unlocking above?  So let's check the state.
+		if !c.ensureState(define.ContainerStateStopped, define.ContainerStateExited) {
+			// Return the error unless the container has been
+			// stopped or exited.
+			return stopErr
+		}
+	} else if stopErr != nil {
 		return stopErr
 	}
 

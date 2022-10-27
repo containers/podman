@@ -352,6 +352,8 @@ func generateResourceFile(res *spec.LinuxResources) (string, []string, error) {
 	return f.Name(), flags, nil
 }
 
+var errSendingSignal = errors.New("sending signal to container")
+
 // KillContainer sends the given signal to the given container.
 // If all is set, send to all PIDs in the container.
 // All is only supported if the container created cgroups.
@@ -370,15 +372,7 @@ func (r *ConmonOCIRuntime) KillContainer(ctr *Container, signal uint, all bool) 
 		args = append(args, "kill", ctr.ID(), fmt.Sprintf("%d", signal))
 	}
 	if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, env, r.path, args...); err != nil {
-		// Update container state - there's a chance we failed because
-		// the container exited in the meantime.
-		if err2 := r.UpdateContainerStatus(ctr); err2 != nil {
-			logrus.Infof("Error updating status for container %s: %v", ctr.ID(), err2)
-		}
-		if ctr.ensureState(define.ContainerStateStopped, define.ContainerStateExited) {
-			return fmt.Errorf("%w: %s", define.ErrCtrStateInvalid, ctr.state.State)
-		}
-		return fmt.Errorf("sending signal to container %s: %w", ctr.ID(), err)
+		return fmt.Errorf("%w %s: %v", errSendingSignal, ctr.ID(), err)
 	}
 
 	return nil
@@ -407,15 +401,14 @@ func (r *ConmonOCIRuntime) StopContainer(ctr *Container, timeout uint, all bool)
 
 	if timeout > 0 {
 		if err := r.KillContainer(ctr, stopSignal, all); err != nil {
-			// Is the container gone?
-			// If so, it probably died between the first check and
-			// our sending the signal
-			// The container is stopped, so exit cleanly
-			err := unix.Kill(ctr.state.PID, 0)
-			if err == unix.ESRCH {
+			if !errors.Is(err, errSendingSignal) {
+				return err
+			}
+			// Maybe sending the signal has failed because the
+			// container is already gone.
+			if goneErr := unix.Kill(ctr.state.PID, 0); goneErr == unix.ESRCH {
 				return nil
 			}
-
 			return err
 		}
 
