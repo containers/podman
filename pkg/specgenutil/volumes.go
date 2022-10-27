@@ -584,6 +584,12 @@ func getNamedVolume(args []string) (*specgen.NamedVolume, error) {
 			}
 			newVolume.Dest = unixPathClean(kv[1])
 			setDest = true
+		case "idmap":
+			if len(kv) > 1 {
+				newVolume.Options = append(newVolume.Options, fmt.Sprintf("idmap=%s", kv[1]))
+			} else {
+				newVolume.Options = append(newVolume.Options, "idmap")
+			}
 		case "U", "chown":
 			if setOwnership {
 				return newVolume, fmt.Errorf("cannot pass 'U' or 'chown' option more than once: %w", errOptionArg)
