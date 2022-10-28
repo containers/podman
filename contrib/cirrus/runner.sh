@@ -146,7 +146,7 @@ exec_container() {
     # VM Images and Container images are built using (nearly) identical operations.
     set -x
     # shellcheck disable=SC2154
-    exec podman run --rm --privileged --net=host --cgroupns=host \
+    exec bin/podman run --rm --privileged --net=host --cgroupns=host \
         -v `mktemp -d -p /var/tmp`:/tmp:Z \
         -v /dev/fuse:/dev/fuse \
         -v "$GOPATH:$GOPATH:Z" \
@@ -187,7 +187,7 @@ function _run_swagger() {
 
     # Swagger validation takes a significant amount of time
     msg "Pulling \$CTR_FQIN '$CTR_FQIN' (background process)"
-    podman pull --quiet $CTR_FQIN &
+    bin/podman pull --quiet $CTR_FQIN &
 
     cd $GOSRC
     make swagger
@@ -209,7 +209,7 @@ eof
 
     msg "Waiting for backgrounded podman pull to complete..."
     wait %%
-    podman run -it --rm --security-opt label=disable \
+    bin/podman run -it --rm --security-opt label=disable \
         --env-file=$envvarsfile \
         -v $GOSRC:$GOSRC:ro \
         --workdir $GOSRC \
@@ -374,6 +374,14 @@ dotest() {
     case "$PODBIN_NAME" in
         podman)  localremote="local" ;;
     esac
+
+    # We've had some oopsies where tests invoke 'podman' instead of
+    # /path/to/built/podman. Let's catch those.
+    sudo rm -f /usr/bin/podman /usr/bin/podman-remote
+    fallback_podman=$(type -p podman || true)
+    if [[ -n "$fallback_podman" ]]; then
+        die "Found fallback podman '$fallback_podman' in \$PATH; tests require none, as a guarantee that we're testing the right binary."
+    fi
 
     make ${localremote}${testsuite} PODMAN_SERVER_LOG=$PODMAN_SERVER_LOG \
         |& logformatter
