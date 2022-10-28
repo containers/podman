@@ -69,6 +69,7 @@ var _ = Describe("podman system reset", func() {
 		Expect(session).Should(Exit(0))
 
 		Expect(session.ErrorToString()).To(Not(ContainSubstring("Failed to add pause process")))
+		Expect(session.ErrorToString()).To(Not(ContainSubstring("/usr/share/containers/storage.conf")))
 
 		session = podmanTest.Podman([]string{"images", "-n"})
 		session.WaitWithDefaultTimeout()

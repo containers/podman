@@ -253,10 +253,6 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 		jconf.Set("devfs_ruleset", 4)
 		jconf.Set("allow.raw_sockets", true)
 		jconf.Set("allow.chflags", true)
-		jconf.Set("allow.mount", true)
-		jconf.Set("allow.mount.devfs", true)
-		jconf.Set("allow.mount.nullfs", true)
-		jconf.Set("allow.mount.fdescfs", true)
 		jconf.Set("securelevel", -1)
 		netjail, err := jail.Create(jconf)
 		if err != nil {
