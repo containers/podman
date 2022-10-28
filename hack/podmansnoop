@@ -1,0 +1,98 @@
+#!/usr/bin/env python
+from __future__ import print_function
+
+# Based on the `exitsnoop` scripts at https://github.com/iovisor/bcc/blob/master/tools/exitsnoop.py
+
+import argparse
+import os
+import platform
+import re
+import signal
+import sys
+
+from bcc import BPF
+from datetime import datetime
+from time import strftime
+
+bpf_src = """
+#include <uapi/linux/ptrace.h>
+#include <linux/sched.h>
+
+#define ARGSIZE  128
+
+struct data_t {
+    u64 start_time;
+    u64 exit_time;
+    u32 pid;
+    u32 tid;
+    u32 ppid;
+    u32 sig_info;
+    char task[TASK_COMM_LEN];
+    char argv[ARGSIZE];
+};
+
+BPF_PERF_OUTPUT(events);
+
+TRACEPOINT_PROBE(sched, sched_process_exit)
+{
+    struct task_struct *task = (typeof(task))bpf_get_current_task();
+    if (task->pid != task->tgid) { return 0; }
+
+    struct data_t data = {};
+
+    data.start_time = task->start_time,
+    data.exit_time = bpf_ktime_get_ns(),
+    data.pid = task->tgid,
+    data.tid = task->pid,
+    data.ppid = task->real_parent->tgid,
+    data.sig_info = task->exit_code & 0xFF,
+    bpf_get_current_comm(&data.task, sizeof(data.task));
+
+    events.perf_submit(args, &data, sizeof(data));
+    return 0;
+}
+"""
+
+def _print_header():
+    print("%-16s %-7s %-7s %-7s %-7s" %
+              ("PCOMM", "PID", "PPID", "TID", "AGE(ms)"))
+
+buffer = None
+
+def _print_event(cpu, data, size): # callback
+    """Print the exit event."""
+    global buffer
+    e = buffer["events"].event(data)
+
+    task = e.task.decode()
+    if task == "3":
+        # For absolutely unknown reasons, 'crun' appears as '3'.
+        task = "crun"
+
+    if task not in ["podman", "crun", "runc", "conmon", "netavark", "aardvark-dns"]:
+        return
+
+    age = (e.exit_time - e.start_time) / 1e6
+    print("%-16s %-7d %-7d %-7d %-7.2f " %
+              (task, e.pid, e.ppid, e.tid, age), end="")
+    print()
+
+def snoop(bpf, event_handler):
+    bpf["events"].open_perf_buffer(event_handler)
+    while True:
+        bpf.perf_buffer_poll()
+
+def main():
+    global buffer
+    try:
+        buffer = BPF(text=bpf_src)
+        _print_header()
+        snoop(buffer, _print_event)
+    except KeyboardInterrupt:
+        print()
+        sys.exit()
+
+    return 0
+
+if __name__ == '__main__':
+    main()
