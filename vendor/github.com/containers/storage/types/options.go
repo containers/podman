@@ -35,6 +35,14 @@ const (
 var (
 	defaultStoreOptionsOnce    sync.Once
 	loadDefaultStoreOptionsErr error
+	once                       sync.Once
+	storeOptions               StoreOptions
+	storeError                 error
+	defaultConfigFileSet       bool
+	// defaultConfigFile path to the system wide storage.conf file
+	defaultConfigFile = SystemConfigFile
+	// DefaultStoreOptions is a reasonable default set of options.
+	defaultStoreOptions StoreOptions
 )
 
 func loadDefaultStoreOptions() {
@@ -167,13 +175,28 @@ func defaultStoreOptionsIsolated(rootless bool, rootlessUID int, storageConf str
 	return storageOpts, nil
 }
 
-// DefaultStoreOptions returns the default storage ops for containers
-func DefaultStoreOptions(rootless bool, rootlessUID int) (StoreOptions, error) {
+// loadStoreOptions returns the default storage ops for containers
+func loadStoreOptions(rootless bool, rootlessUID int) (StoreOptions, error) {
 	storageConf, err := DefaultConfigFile(rootless && rootlessUID != 0)
 	if err != nil {
 		return defaultStoreOptions, err
 	}
 	return defaultStoreOptionsIsolated(rootless, rootlessUID, storageConf)
+}
+
+// UpdateOptions should be called iff container engine recieved a SIGHUP,
+// otherwise use DefaultStoreOptions
+func UpdateStoreOptions(rootless bool, rootlessUID int) (StoreOptions, error) {
+	storeOptions, storeError = loadStoreOptions(rootless, rootlessUID)
+	return storeOptions, storeError
+}
+
+// DefaultStoreOptions returns the default storage ops for containers
+func DefaultStoreOptions(rootless bool, rootlessUID int) (StoreOptions, error) {
+	once.Do(func() {
+		storeOptions, storeError = loadStoreOptions(rootless, rootlessUID)
+	})
+	return storeOptions, storeError
 }
 
 // StoreOptions is used for passing initialization options to GetStore(), for

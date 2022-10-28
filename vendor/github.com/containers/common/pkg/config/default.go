@@ -364,9 +364,18 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 			"/sbin/runsc",
 			"/run/current-system/sw/bin/runsc",
 		},
+		"youki": {
+			"/usr/local/bin/youki",
+			"/usr/bin/youki",
+			"/bin/youki",
+			"/run/current-system/sw/bin/youki",
+		},
 		"krun": {
 			"/usr/bin/krun",
 			"/usr/local/bin/krun",
+		},
+		"ocijail": {
+			"/usr/local/bin/ocijail",
 		},
 	}
 	// Needs to be called after populating c.OCIRuntimes.
@@ -401,6 +410,7 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 		"runc",
 		"kata",
 		"runsc",
+		"youki",
 		"krun",
 	}
 	c.RuntimeSupportsNoCgroups = []string{"crun", "krun"}

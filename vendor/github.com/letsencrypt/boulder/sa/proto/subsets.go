@@ -34,6 +34,7 @@ type StorageAuthorityGetterClient interface {
 	KeyBlocked(ctx context.Context, in *KeyBlockedRequest, opts ...grpc.CallOption) (*Exists, error)
 	GetOrder(ctx context.Context, in *OrderRequest, opts ...grpc.CallOption) (*proto.Order, error)
 	GetOrderForNames(ctx context.Context, in *GetOrderForNamesRequest, opts ...grpc.CallOption) (*proto.Order, error)
+	IncidentsForSerial(ctx context.Context, in *Serial, opts ...grpc.CallOption) (*Incidents, error)
 }
 
 // StorageAuthorityCertificateClient is a subset of the sapb.StorageAuthorityClient interface that only reads and writes certificates

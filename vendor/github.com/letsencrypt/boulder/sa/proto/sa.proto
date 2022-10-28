@@ -5,6 +5,7 @@ option go_package = "github.com/letsencrypt/boulder/sa/proto";
 
 import "core/proto/core.proto";
 import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
 
 service StorageAuthority {
   // Getters
@@ -14,6 +15,7 @@ service StorageAuthority {
   rpc GetCertificate(Serial) returns (core.Certificate) {}
   rpc GetPrecertificate(Serial) returns (core.Certificate) {}
   rpc GetCertificateStatus(Serial) returns (core.CertificateStatus) {}
+  rpc GetRevocationStatus(Serial) returns (RevocationStatus) {}
   rpc CountCertificatesByNames(CountCertificatesByNamesRequest) returns (CountByNames) {}
   rpc CountRegistrationsByIP(CountRegistrationsByIPRequest) returns (Count) {}
   rpc CountRegistrationsByIPRange(CountRegistrationsByIPRequest) returns (Count) {}
@@ -34,6 +36,7 @@ service StorageAuthority {
   rpc KeyBlocked(KeyBlockedRequest) returns (Exists) {}
   rpc SerialsForIncident (SerialsForIncidentRequest) returns (stream IncidentSerial) {}
   rpc GetRevokedCerts(GetRevokedCertsRequest) returns (stream core.CRLEntry) {}
+  rpc IncidentsForSerial(Serial) returns (Incidents) {}
   // Adders
   rpc NewRegistration(core.Registration) returns (core.Registration) {}
   rpc UpdateRegistration(core.Registration) returns (google.protobuf.Empty) {}
@@ -287,6 +290,10 @@ message Incident {
   bool enabled = 5;
 }
 
+message Incidents {
+  repeated Incident incidents = 1;
+}
+
 message SerialsForIncidentRequest {
   string incidentTable = 1;
 }
@@ -303,4 +310,10 @@ message GetRevokedCertsRequest {
   int64 expiresAfter = 2; // Unix timestamp (nanoseconds), inclusive
   int64 expiresBefore = 3; // Unix timestamp (nanoseconds), exclusive
   int64 revokedBefore = 4; // Unix timestamp (nanoseconds)
+}
+
+message RevocationStatus {
+  int64 status = 1;
+  int64 revokedReason = 2;
+  google.protobuf.Timestamp revokedDate = 3; // Unix timestamp (nanoseconds)
 }

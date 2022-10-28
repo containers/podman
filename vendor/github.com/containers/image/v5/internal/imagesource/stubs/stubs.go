@@ -15,7 +15,7 @@
 //
 // Second, there are stubs with a constructor, like NoGetBlobAtInitialize. The Initialize marker
 // means that a constructor must be called:
-
+//
 //	type yourSource struct {
 //		stubs.NoGetBlobAtInitialize
 //		…

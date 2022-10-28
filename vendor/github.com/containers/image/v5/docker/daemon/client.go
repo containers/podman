@@ -30,13 +30,13 @@ func newDockerClient(sys *types.SystemContext) (*dockerclient.Client, error) {
 	//
 	// Similarly, if we want to communicate over plain HTTP on a TCP socket, we also need to set
 	// TLSClientConfig to nil. This can be achieved by using the form `http://`
-	url, err := dockerclient.ParseHostURL(host)
+	serverURL, err := dockerclient.ParseHostURL(host)
 	if err != nil {
 		return nil, err
 	}
 	var httpClient *http.Client
-	if url.Scheme != "unix" {
-		if url.Scheme == "http" {
+	if serverURL.Scheme != "unix" {
+		if serverURL.Scheme == "http" {
 			httpClient = httpConfig()
 		} else {
 			hc, err := tlsConfig(sys)

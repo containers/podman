@@ -456,8 +456,8 @@ func (s *dockerImageSource) getSignaturesFromLookaside(ctx context.Context, inst
 			return nil, fmt.Errorf("server provided %d signatures, assuming that's unreasonable and a server error", maxLookasideSignatures)
 		}
 
-		url := lookasideStorageURL(s.c.signatureBase, manifestDigest, i)
-		signature, missing, err := s.getOneSignature(ctx, url)
+		sigURL := lookasideStorageURL(s.c.signatureBase, manifestDigest, i)
+		signature, missing, err := s.getOneSignature(ctx, sigURL)
 		if err != nil {
 			return nil, err
 		}
@@ -469,14 +469,14 @@ func (s *dockerImageSource) getSignaturesFromLookaside(ctx context.Context, inst
 	return signatures, nil
 }
 
-// getOneSignature downloads one signature from url, and returns (signature, false, nil)
+// getOneSignature downloads one signature from sigURL, and returns (signature, false, nil)
 // If it successfully determines that the signature does not exist, returns (nil, true, nil).
 // NOTE: Keep this in sync with docs/signature-protocols.md!
-func (s *dockerImageSource) getOneSignature(ctx context.Context, url *url.URL) (signature.Signature, bool, error) {
-	switch url.Scheme {
+func (s *dockerImageSource) getOneSignature(ctx context.Context, sigURL *url.URL) (signature.Signature, bool, error) {
+	switch sigURL.Scheme {
 	case "file":
-		logrus.Debugf("Reading %s", url.Path)
-		sigBlob, err := os.ReadFile(url.Path)
+		logrus.Debugf("Reading %s", sigURL.Path)
+		sigBlob, err := os.ReadFile(sigURL.Path)
 		if err != nil {
 			if os.IsNotExist(err) {
 				return nil, true, nil
@@ -485,13 +485,13 @@ func (s *dockerImageSource) getOneSignature(ctx context.Context, url *url.URL) (
 		}
 		sig, err := signature.FromBlob(sigBlob)
 		if err != nil {
-			return nil, false, fmt.Errorf("parsing signature %q: %w", url.Path, err)
+			return nil, false, fmt.Errorf("parsing signature %q: %w", sigURL.Path, err)
 		}
 		return sig, false, nil
 
 	case "http", "https":
-		logrus.Debugf("GET %s", url.Redacted())
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, url.String(), nil)
+		logrus.Debugf("GET %s", sigURL.Redacted())
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, sigURL.String(), nil)
 		if err != nil {
 			return nil, false, err
 		}
@@ -504,12 +504,12 @@ func (s *dockerImageSource) getOneSignature(ctx context.Context, url *url.URL) (
 			logrus.Debugf("... got status 404, as expected = end of signatures")
 			return nil, true, nil
 		} else if res.StatusCode != http.StatusOK {
-			return nil, false, fmt.Errorf("reading signature from %s: status %d (%s)", url.Redacted(), res.StatusCode, http.StatusText(res.StatusCode))
+			return nil, false, fmt.Errorf("reading signature from %s: status %d (%s)", sigURL.Redacted(), res.StatusCode, http.StatusText(res.StatusCode))
 		}
 
 		contentType := res.Header.Get("Content-Type")
 		if mimeType := simplifyContentType(contentType); mimeType == "text/html" {
-			logrus.Warnf("Signature %q has Content-Type %q, unexpected for a signature", url.Redacted(), contentType)
+			logrus.Warnf("Signature %q has Content-Type %q, unexpected for a signature", sigURL.Redacted(), contentType)
 			// Don’t immediately fail; the lookaside spec does not place any requirements on Content-Type.
 			// If the content really is HTML, it’s going to fail in signature.FromBlob.
 		}
@@ -520,12 +520,12 @@ func (s *dockerImageSource) getOneSignature(ctx context.Context, url *url.URL) (
 		}
 		sig, err := signature.FromBlob(sigBlob)
 		if err != nil {
-			return nil, false, fmt.Errorf("parsing signature %s: %w", url.Redacted(), err)
+			return nil, false, fmt.Errorf("parsing signature %s: %w", sigURL.Redacted(), err)
 		}
 		return sig, false, nil
 
 	default:
-		return nil, false, fmt.Errorf("Unsupported scheme when reading signature from %s", url.Redacted())
+		return nil, false, fmt.Errorf("Unsupported scheme when reading signature from %s", sigURL.Redacted())
 	}
 }
 
@@ -649,8 +649,8 @@ func deleteImage(ctx context.Context, sys *types.SystemContext, ref dockerRefere
 	}
 
 	for i := 0; ; i++ {
-		url := lookasideStorageURL(c.signatureBase, manifestDigest, i)
-		missing, err := c.deleteOneSignature(url)
+		sigURL := lookasideStorageURL(c.signatureBase, manifestDigest, i)
+		missing, err := c.deleteOneSignature(sigURL)
 		if err != nil {
 			return err
 		}

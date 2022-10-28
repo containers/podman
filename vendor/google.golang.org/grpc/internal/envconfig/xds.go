@@ -41,7 +41,6 @@ const (
 	clientSideSecuritySupportEnv = "GRPC_XDS_EXPERIMENTAL_SECURITY_SUPPORT"
 	aggregateAndDNSSupportEnv    = "GRPC_XDS_EXPERIMENTAL_ENABLE_AGGREGATE_AND_LOGICAL_DNS_CLUSTER"
 	rbacSupportEnv               = "GRPC_XDS_EXPERIMENTAL_RBAC"
-	outlierDetectionSupportEnv   = "GRPC_EXPERIMENTAL_ENABLE_OUTLIER_DETECTION"
 	federationEnv                = "GRPC_EXPERIMENTAL_XDS_FEDERATION"
 	rlsInXDSEnv                  = "GRPC_EXPERIMENTAL_XDS_RLS_LB"
 
@@ -86,7 +85,7 @@ var (
 	// XDSOutlierDetection indicates whether outlier detection support is
 	// enabled, which can be enabled by setting the environment variable
 	// "GRPC_EXPERIMENTAL_ENABLE_OUTLIER_DETECTION" to "true".
-	XDSOutlierDetection = strings.EqualFold(os.Getenv(outlierDetectionSupportEnv), "true")
+	XDSOutlierDetection = false
 	// XDSFederation indicates whether federation support is enabled.
 	XDSFederation = strings.EqualFold(os.Getenv(federationEnv), "true")
 

@@ -111,6 +111,7 @@ type Executor struct {
 	blobDirectory           string
 	excludes                []string
 	ignoreFile              string
+	args                    map[string]string
 	unusedArgs              map[string]struct{}
 	capabilities            []string
 	devices                 define.ContainerDevices
@@ -216,6 +217,7 @@ func newExecutor(logger *logrus.Logger, logPrefix string, store storage.Store, o
 	}
 
 	exec := Executor{
+		args:                           options.Args,
 		cacheFrom:                      options.CacheFrom,
 		cacheTo:                        options.CacheTo,
 		cacheTTL:                       options.CacheTTL,
@@ -537,6 +539,45 @@ func markDependencyStagesForTarget(dependencyMap map[string]*stageDependencyInfo
 	}
 }
 
+func (b *Executor) warnOnUnsetBuildArgs(stages imagebuilder.Stages, dependencyMap map[string]*stageDependencyInfo, args map[string]string) {
+	argFound := make(map[string]bool)
+	for _, stage := range stages {
+		node := stage.Node // first line
+		for node != nil {  // each line
+			for _, child := range node.Children {
+				switch strings.ToUpper(child.Value) {
+				case "ARG":
+					argName := child.Next.Value
+					if strings.Contains(argName, "=") {
+						res := strings.Split(argName, "=")
+						if res[1] != "" {
+							argFound[res[0]] = true
+						}
+					}
+					argHasValue := true
+					if !strings.Contains(argName, "=") {
+						argHasValue = argFound[argName]
+					}
+					if _, ok := args[argName]; !argHasValue && !ok {
+						shouldWarn := true
+						if stageDependencyInfo, ok := dependencyMap[stage.Name]; ok {
+							if !stageDependencyInfo.NeededByTarget && b.skipUnusedStages != types.OptionalBoolFalse {
+								shouldWarn = false
+							}
+						}
+						if shouldWarn {
+							b.logger.Warnf("missing %q build argument. Try adding %q to the command line", argName, fmt.Sprintf("--build-arg %s=<VALUE>", argName))
+						}
+					}
+				default:
+					continue
+				}
+			}
+			node = node.Next
+		}
+	}
+}
+
 // Build takes care of the details of running Prepare/Execute/Commit/Delete
 // over each of the one or more parsed Dockerfiles and stages.
 func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) (imageID string, ref reference.Canonical, err error) {
@@ -716,6 +757,8 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) (image
 										// add base to current stage's dependency tree
 										// but also confirm if this is not in additional context.
 										if _, ok := b.additionalBuildContexts[mountFrom]; !ok {
+											// Treat from as a rootfs we need to preserve
+											b.rootfsMap[mountFrom] = true
 											if _, ok := dependencyMap[mountFrom]; ok {
 												// update current stage's dependency info
 												currentStageInfo := dependencyMap[stage.Name]
@@ -741,6 +784,7 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) (image
 			markDependencyStagesForTarget(dependencyMap, stage.Name)
 		}
 	}
+	b.warnOnUnsetBuildArgs(stages, dependencyMap, b.args)
 
 	type Result struct {
 		Index   int

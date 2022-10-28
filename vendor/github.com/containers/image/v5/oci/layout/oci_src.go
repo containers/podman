@@ -107,7 +107,7 @@ func (s *ociImageSource) GetManifest(ctx context.Context, instanceDigest *digest
 	var err error
 
 	if instanceDigest == nil {
-		dig = digest.Digest(s.descriptor.Digest)
+		dig = s.descriptor.Digest
 		mimeType = s.descriptor.MediaType
 	} else {
 		dig = *instanceDigest

@@ -140,13 +140,13 @@ type ClientStream interface {
 // To ensure resources are not leaked due to the stream returned, one of the following
 // actions must be performed:
 //
-//      1. Call Close on the ClientConn.
-//      2. Cancel the context provided.
-//      3. Call RecvMsg until a non-nil error is returned. A protobuf-generated
-//         client-streaming RPC, for instance, might use the helper function
-//         CloseAndRecv (note that CloseSend does not Recv, therefore is not
-//         guaranteed to release all resources).
-//      4. Receive a non-nil, non-io.EOF error from Header or SendMsg.
+//  1. Call Close on the ClientConn.
+//  2. Cancel the context provided.
+//  3. Call RecvMsg until a non-nil error is returned. A protobuf-generated
+//     client-streaming RPC, for instance, might use the helper function
+//     CloseAndRecv (note that CloseSend does not Recv, therefore is not
+//     guaranteed to release all resources).
+//  4. Receive a non-nil, non-io.EOF error from Header or SendMsg.
 //
 // If none of the above happen, a goroutine and a context will be leaked, and grpc
 // will not call the optionally-configured stats handler with a stats.End message.
@@ -302,12 +302,6 @@ func newClientStreamWithParams(ctx context.Context, desc *StreamDesc, cc *Client
 		cs.retryThrottler = cc.retryThrottler.Load().(*retryThrottler)
 	}
 	cs.binlog = binarylog.GetMethodLogger(method)
-
-	cs.attempt, err = cs.newAttemptLocked(false /* isTransparent */)
-	if err != nil {
-		cs.finish(err)
-		return nil, err
-	}
 
 	// Pick the transport to use and create a new stream on the transport.
 	// Assign cs.attempt upon success.
@@ -703,6 +697,18 @@ func (cs *clientStream) withRetry(op func(a *csAttempt) error, onSuccess func())
 			// error to allow for further inspection; all other errors should
 			// already be status errors.
 			return toRPCErr(op(cs.attempt))
+		}
+		if len(cs.buffer) == 0 {
+			// For the first op, which controls creation of the stream and
+			// assigns cs.attempt, we need to create a new attempt inline
+			// before executing the first op.  On subsequent ops, the attempt
+			// is created immediately before replaying the ops.
+			var err error
+			if cs.attempt, err = cs.newAttemptLocked(false /* isTransparent */); err != nil {
+				cs.mu.Unlock()
+				cs.finish(err)
+				return err
+			}
 		}
 		a := cs.attempt
 		cs.mu.Unlock()

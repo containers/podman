@@ -194,7 +194,7 @@ func (d *Driver) create(id, parent string, opts *graphdriver.CreateOpts, ro bool
 	if parent != "" {
 		parentDir, err := d.Get(parent, graphdriver.MountOpts{})
 		if err != nil {
-			return fmt.Errorf("%s: %s", parent, err)
+			return fmt.Errorf("%s: %w", parent, err)
 		}
 		if err := dirCopy(parentDir, dir); err != nil {
 			return err

@@ -547,9 +547,10 @@ func makeRuntime(runtime *Runtime) (retErr error) {
 	// This ensures that no two processes will be in runtime.refresh at once
 	aliveLock.Lock()
 	doRefresh := false
+	unLockFunc := aliveLock.Unlock
 	defer func() {
-		if aliveLock.Locked() {
-			aliveLock.Unlock()
+		if unLockFunc != nil {
+			unLockFunc()
 		}
 	}()
 
@@ -568,7 +569,8 @@ func makeRuntime(runtime *Runtime) (retErr error) {
 					logrus.Debug("Invalid systemd user session for current user")
 				}
 			}
-			aliveLock.Unlock() // Unlock to avoid deadlock as BecomeRootInUserNS will reexec.
+			unLockFunc()
+			unLockFunc = nil
 			pausePid, err := util.GetRootlessPauseProcessPidPathGivenDir(runtime.config.Engine.TmpDir)
 			if err != nil {
 				return fmt.Errorf("could not get pause process pid file path: %w", err)

@@ -15,7 +15,7 @@ type AtomicFileWriterOptions struct {
 	NoSync bool
 }
 
-var defaultWriterOptions AtomicFileWriterOptions = AtomicFileWriterOptions{}
+var defaultWriterOptions = AtomicFileWriterOptions{}
 
 // SetDefaultOptions overrides the default options used when creating an
 // atomic file writer.

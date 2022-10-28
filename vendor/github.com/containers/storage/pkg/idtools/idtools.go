@@ -2,6 +2,7 @@ package idtools
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"os"
 	"os/user"
@@ -359,7 +360,8 @@ func parseSubidFile(path, username string) (ranges, error) {
 }
 
 func checkChownErr(err error, name string, uid, gid int) error {
-	if e, ok := err.(*os.PathError); ok && e.Err == syscall.EINVAL {
+	var e *os.PathError
+	if errors.As(err, &e) && e.Err == syscall.EINVAL {
 		return fmt.Errorf("potentially insufficient UIDs or GIDs available in user namespace (requested %d:%d for %s): Check /etc/subuid and /etc/subgid if configured locally and run podman-system-migrate: %w", uid, gid, name, err)
 	}
 	return err

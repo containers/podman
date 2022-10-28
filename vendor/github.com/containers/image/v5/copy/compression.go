@@ -238,7 +238,7 @@ func (d *bpCompressionStepData) updateCompressionEdits(operation *types.LayerCom
 }
 
 // recordValidatedBlobData updates b.blobInfoCache with data about the created uploadedInfo adnd the original srcInfo.
-// This must ONLY be called if all data has been validated by OUR code, and is not comming from third parties.
+// This must ONLY be called if all data has been validated by OUR code, and is not coming from third parties.
 func (d *bpCompressionStepData) recordValidatedDigestData(c *copier, uploadedInfo types.BlobInfo, srcInfo types.BlobInfo,
 	encryptionStep *bpEncryptionStepData, decryptionStep *bpDecryptionStepData) error {
 	// Don’t record any associations that involve encrypted data. This is a bit crude,

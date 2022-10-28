@@ -54,7 +54,7 @@ type Network struct {
 	// to public or other Networks.
 	Internal bool `json:"internal"`
 	// DNSEnabled is whether name resolution is active for container on
-	// this Network.
+	// this Network. Only supported with the bridge driver.
 	DNSEnabled bool `json:"dns_enabled"`
 	// Labels is a set of key-value labels that have been applied to the
 	// Network.

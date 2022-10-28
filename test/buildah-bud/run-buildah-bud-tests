@@ -18,9 +18,15 @@ usage="Usage: $ME [--help] [--no-checkout] [--no-test] [--filter=TESTNAME]
 
 Flags, useful for manual debugging:
 
-  --no-checkout   Skip checkout step, go directly to running tests
-  --no-test       Do checkout only, but do not run tests
+  --no-checkout   Skip checkout step, go directly to running tests.
+                  Useful when rerunning tests.
+
+  --no-test       Do checkout only, but do not run tests. Useful when
+                  testing the apply-podman-deltas script.
+
   --filter=NAME   Passed on to bats; runs only tests that match NAME
+
+  --remote        Test with podman-remote. Will start its own server.
 "
 
 # Parse command-line options (used in development only, not in CI)
@@ -33,7 +39,8 @@ for i; do
         --no-checkout)  do_checkout= ; shift;;
         --no-test)      do_test=     ; shift;;
         --filter=*)     bats_filter=("--filter" "$value"); shift;;
-        -h|--help)      echo "$usage"; exit 0;;
+        --remote)       PODBIN_NAME=remote;;
+       -h|--help)       echo "$usage"; exit 0;;
         *)              echo "$ME: Unrecognized option '$i'" >&2; exit 1;;
     esac
 done
@@ -183,19 +190,7 @@ You will want to:
 "
     (set -x;git am --reject <$PATCHES)
 
-    # FIXME FIXME FIXME! Remove this once buildah 4377 has made its way
-    # into this podman branch.
-    if ! grep -q SAFEIMAGE tests/helpers.bash; then
-        failhint="
-You are vendoring a new buildah. Please edit $0
-and remove the block between the FIXMEs.
-Also remove safeimage-patch.diff.
-"
-        (set -x;git am --reject <${BUD_TEST_DIR}/safeimage-patch.diff)
-    fi
-    # FIXME FIXME FIXME! Remove down to here.
-
-    # Now apply our custom skips and error-message changes. This is maintained
+   # Now apply our custom skips and error-message changes. This is maintained
     # in a custom script, not a .diff file, because diffs are WAY too hard for
     # humans to read and update.
     APPLY=apply-podman-deltas
