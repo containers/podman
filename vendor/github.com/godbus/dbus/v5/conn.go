@@ -76,7 +76,6 @@ func SessionBus() (conn *Conn, err error) {
 func getSessionBusAddress(autolaunch bool) (string, error) {
 	if address := os.Getenv("DBUS_SESSION_BUS_ADDRESS"); address != "" && address != "autolaunch:" {
 		return address, nil
-
 	} else if address := tryDiscoverDbusSessionBusAddress(); address != "" {
 		os.Setenv("DBUS_SESSION_BUS_ADDRESS", address)
 		return address, nil
@@ -630,7 +629,7 @@ func (conn *Conn) AddMatchSignal(options ...MatchOption) error {
 
 // AddMatchSignalContext acts like AddMatchSignal but takes a context.
 func (conn *Conn) AddMatchSignalContext(ctx context.Context, options ...MatchOption) error {
-	options = append([]MatchOption{withMatchType("signal")}, options...)
+	options = append([]MatchOption{withMatchTypeSignal()}, options...)
 	return conn.busObj.CallWithContext(
 		ctx,
 		"org.freedesktop.DBus.AddMatch", 0,
@@ -645,7 +644,7 @@ func (conn *Conn) RemoveMatchSignal(options ...MatchOption) error {
 
 // RemoveMatchSignalContext acts like RemoveMatchSignal but takes a context.
 func (conn *Conn) RemoveMatchSignalContext(ctx context.Context, options ...MatchOption) error {
-	options = append([]MatchOption{withMatchType("signal")}, options...)
+	options = append([]MatchOption{withMatchTypeSignal()}, options...)
 	return conn.busObj.CallWithContext(
 		ctx,
 		"org.freedesktop.DBus.RemoveMatch", 0,
@@ -740,9 +739,7 @@ type transport interface {
 	SendMessage(*Message) error
 }
 
-var (
-	transports = make(map[string]func(string) (transport, error))
-)
+var transports = make(map[string]func(string) (transport, error))
 
 func getTransport(address string) (transport, error) {
 	var err error
@@ -853,16 +850,19 @@ type nameTracker struct {
 func newNameTracker() *nameTracker {
 	return &nameTracker{names: map[string]struct{}{}}
 }
+
 func (tracker *nameTracker) acquireUniqueConnectionName(name string) {
 	tracker.lck.Lock()
 	defer tracker.lck.Unlock()
 	tracker.unique = name
 }
+
 func (tracker *nameTracker) acquireName(name string) {
 	tracker.lck.Lock()
 	defer tracker.lck.Unlock()
 	tracker.names[name] = struct{}{}
 }
+
 func (tracker *nameTracker) loseName(name string) {
 	tracker.lck.Lock()
 	defer tracker.lck.Unlock()
@@ -874,12 +874,14 @@ func (tracker *nameTracker) uniqueNameIsKnown() bool {
 	defer tracker.lck.RUnlock()
 	return tracker.unique != ""
 }
+
 func (tracker *nameTracker) isKnownName(name string) bool {
 	tracker.lck.RLock()
 	defer tracker.lck.RUnlock()
 	_, ok := tracker.names[name]
 	return ok || name == tracker.unique
 }
+
 func (tracker *nameTracker) listKnownNames() []string {
 	tracker.lck.RLock()
 	defer tracker.lck.RUnlock()
@@ -938,17 +940,6 @@ func (tracker *callTracker) handleSendError(msg *Message, err error) {
 	tracker.lck.RUnlock()
 	if ok {
 		tracker.finalizeWithError(msg.serial, NoSequence, err)
-	}
-}
-
-// finalize was the only func that did not strobe Done
-func (tracker *callTracker) finalize(sn uint32) {
-	tracker.lck.Lock()
-	defer tracker.lck.Unlock()
-	c, ok := tracker.calls[sn]
-	if ok {
-		delete(tracker.calls, sn)
-		c.ContextCancel()
 	}
 }
 
