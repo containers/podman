@@ -1033,8 +1033,8 @@ globbing, you need to wrap the command with `bash -c`, e.g.
 `podman unshare bash -c 'ls $HOME/dir1/a*'`.
 
 Would it have been possible to run Podman in another way so that your regular
-user would have become the owner of the file? Yes, you can use the options
-__--uidmap__ and __--gidmap__ to change how UIDs and GIDs are mapped
+user would have become the owner of the file? Yes, you can use the option
+`--userns keep-id:uid=$uid,gid=$gid` to change how UIDs and GIDs are mapped
 between the container and the host. Let's try it out.
 
 In the example above `ls -l` shows the UID 102002 and GID 102002. Set shell variables
@@ -1074,19 +1074,12 @@ or the `--user` option is not used.
 Run the container again but now with UIDs and GIDs mapped
 
 ```console
-$ subuidSize=$(( $(podman info --format "{{ range .Host.IDMappings.UIDMap }}+{{.Size }}{{end }}" ) - 1 ))
-$ subgidSize=$(( $(podman info --format "{{ range .Host.IDMappings.GIDMap }}+{{.Size }}{{end }}" ) - 1 ))
 $ mkdir dir1
 $ chmod 777 dir1
 $ podman run --rm
   -v ./dir1:/dir1:Z \
   --user $uid:$gid \
-  --uidmap $uid:0:1 \
-  --uidmap 0:1:$uid \
-  --uidmap $(($uid+1)):$(($uid+1)):$(($subuidSize-$uid)) \
-  --gidmap $gid:0:1 \
-  --gidmap 0:1:$gid \
-  --gidmap $(($gid+1)):$(($gid+1)):$(($subgidSize-$gid)) \
+  --userns keep-id:uid=$uid,gid=$gid \
      docker.io/library/ubuntu bash -c "touch /dir1/a; chmod 600 /dir1/a"
 $ id -u
 tester
@@ -1110,6 +1103,10 @@ Another variant of the same problem could occur when using
 `--user=root:root` (the default), but where the root user creates non-root owned files
 in some way (e.g by creating them themselves, or switching the effective UID to
 a rootless user and then creates files).
+
+See also the troubleshooting tip:
+
+[_Podman run fails with "Error: unrecognized namespace mode keep-id:uid=1000,gid=1000 passed"_](#39-podman-run-fails-with-error-unrecognized-namespace-mode-keep-iduid1000gid1000-passed)
 
 ### 35) Passed-in devices or files can't be accessed in rootless container (UID/GID mapping problem)
 
@@ -1141,7 +1138,7 @@ ls: cannot open directory '/dir1': Permission denied
 We follow essentially the same solution as in the previous
 troubleshooting tip:
 
-    Container creates a file that is not owned by the regular UID
+[_Container creates a file that is not owned by the user's regular UID_](#34-container-creates-a-file-that-is-not-owned-by-the-users-regular-uid)
 
 but for this problem the container UID and GID can't be as
 easily computed by mere addition and subtraction.
@@ -1188,25 +1185,17 @@ and run
 $ mkdir dir1
 $ echo hello > dir1/file.txt
 $ chmod 700 dir1/file.txt
-$ subuidSize=$(( $(podman info --format "{{ range .Host.IDMappings.UIDMap }}+{{.Size }}{{end }}" ) - 1 ))
-$ subgidSize=$(( $(podman info --format "{{ range .Host.IDMappings.GIDMap }}+{{.Size }}{{end }}" ) - 1 ))
 $ podman run --rm \
   -v ./dir1:/dir1:Z \
   --user $uid:$gid \
-  --uidmap $uid:0:1 \
-  --uidmap 0:1:$uid \
-  --uidmap $(($uid+1)):$(($uid+1)):$(($subuidSize-$uid)) \
-  --gidmap $gid:0:1 \
-  --gidmap 0:1:$gid \
-  --gidmap $(($gid+1)):$(($gid+1)):$(($subgidSize-$gid)) \
+  --userns keep-id:uid=$uid,gid=$gid \
   docker.io/library/alpine cat /dir1/file.txt
 hello
 ```
 
-A side-note: Using [__--userns=keep-id__](https://docs.podman.io/en/latest/markdown/podman-run.1.html#userns-mode)
-can sometimes be an alternative solution, but it forces the regular
-user's host UID to be mapped to the same UID inside the container
-so it provides less flexibility than using `--uidmap` and `--gidmap`.
+See also the troubleshooting tip:
+
+[_Podman run fails with "Error: unrecognized namespace mode keep-id:uid=1000,gid=1000 passed"_](#39-podman-run-fails-with-error-unrecognized-namespace-mode-keep-iduid1000gid1000-passed)
 
 ### 36) Images in the additional stores can be deleted even if there are containers using them
 
@@ -1291,3 +1280,67 @@ $ podman run --rm -t fedora /bin/sh -c "stty -onlcr && echo abc" | od -c
 0000000   a   b   c  \n
 0000004
 ```
+
+### 39) Podman run fails with "Error: unrecognized namespace mode keep-id:uid=1000,gid=1000 passed"
+
+Podman 4.3.0 introduced the options _uid_ and _gid_ that can be given to `--userns keep-id` which are not recognized by older versions of Podman.
+
+#### Symptom
+
+When using a Podman version older than 4.3.0, the options _uid_ and _gid_ are not recognized, and an "unrecognized namespace mode" error is raised.
+
+```
+$ uid=1000
+$ gid=1000
+$ podman run --rm
+  --user $uid:$gid \
+  --userns keep-id:uid=$uid,gid=$gid \
+     docker.io/library/ubuntu /bin/cat /proc/self/uid_map
+Error: unrecognized namespace mode keep-id:uid=1000,gid=1000 passed
+$
+```
+
+#### Solution
+
+Use __--uidmap__ and __--gidmap__ options to describe the same UID and GID mapping.
+
+Run
+
+```
+$ uid=1000
+$ gid=1000
+$ subuidSize=$(( $(podman info --format "{{ range \
+   .Host.IDMappings.UIDMap }}+{{.Size }}{{end }}" ) - 1 ))
+$ subgidSize=$(( $(podman info --format "{{ range \
+   .Host.IDMappings.GIDMap }}+{{.Size }}{{end }}" ) - 1 ))
+$ podman run --rm \
+  --user $uid:$gid \
+  --uidmap 0:1:$uid \
+  --uidmap $uid:0:1 \
+  --uidmap $(($uid+1)):$(($uid+1)):$(($subuidSize-$uid)) \
+  --gidmap 0:1:$gid \
+  --gidmap $gid:0:1 \
+  --gidmap $(($gid+1)):$(($gid+1)):$(($subgidSize-$gid)) \
+     docker.io/library/ubuntu /bin/cat /proc/self/uid_map
+         0          1       1000
+      1000          0          1
+      1001       1001      64536
+```
+
+which uses the same UID and GID mapping as when specifying
+`--userns keep-id:uid=$uid,gid=$gid` with Podman 4.3.0 (or greater)
+
+```
+$ uid=1000
+$ gid=1000
+$ podman run --rm \
+  --user $uid:$gid \
+  --userns keep-id:uid=$uid,gid=$gid \
+     docker.io/library/ubuntu /bin/cat /proc/self/uid_map
+         0          1       1000
+      1000          0          1
+      1001       1001      64536
+```
+
+Replace `/bin/cat /proc/self/uid_map` with
+`/bin/cat /proc/self/gid_map` to show the GID mapping.
