@@ -14,6 +14,7 @@ import (
 	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/containers/storage"
+	stypes "github.com/containers/storage/types"
 	"github.com/sirupsen/logrus"
 )
 
@@ -215,9 +216,14 @@ func (r *Runtime) reset(ctx context.Context) error {
 		}
 	}
 	if storageConfPath, err := storage.DefaultConfigFile(rootless.IsRootless()); err == nil {
-		if _, err = os.Stat(storageConfPath); err == nil {
-			fmt.Printf("A storage.conf file exists at %s\n", storageConfPath)
-			fmt.Println("You should remove this file if you did not modify the configuration.")
+		switch storageConfPath {
+		case stypes.SystemConfigFile:
+			break
+		default:
+			if _, err = os.Stat(storageConfPath); err == nil {
+				fmt.Printf(" A %q config file exists.\n", storageConfPath)
+				fmt.Println("Remove this file if you did not modify the configuration.")
+			}
 		}
 	} else {
 		if prevError != nil {

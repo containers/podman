@@ -254,11 +254,6 @@ skip_if_remote "FIXME FIXME FIXME: find a way to clean up their podman calls" \
                "bud with run should not leave mounts behind cleanup test" \
                "bud with custom files in /run/ should persist cleanup test"
 
-# Under podman-remote, the "Ignoring <stdin>:5:2: error: #error" message
-# is never seen. (Not even as stdout/stderr on the server; Ed checked).
-skip_if_remote "FIXME FIXME FIXME: 'Ignoring' warning is never seen" \
-               "bud with preprocessor error"
-
 # END   tests which are skipped due to actual podman or podman-remote bugs.
 ###############################################################################
 
