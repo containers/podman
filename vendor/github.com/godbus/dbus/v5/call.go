@@ -2,10 +2,7 @@ package dbus
 
 import (
 	"context"
-	"errors"
 )
-
-var errSignature = errors.New("dbus: mismatched signature")
 
 // Call represents a pending or completed method call.
 type Call struct {
