@@ -12,7 +12,7 @@ By default, the command will print the content of the unit files to stdout.
 
 Generating unit files for a pod requires the pod to be created with an infra container (see `--infra=true`).  An infra container runs across the entire lifespan of a pod and is hence required for systemd to manage the life cycle of the pod's main unit.
 
-_Note: If you use this command with the remote client, including Mac and Windows (excluding WSL2) machines, you would still have to place the generated units on the remote system.  Moreover, please make sure that the XDG_RUNTIME_DIR environment variable is set.  If unset, you may set it via `export XDG_RUNTIME_DIR=/run/user/$(id -u)`._
+_Note: If you use this command with the remote client, including Mac and Windows (excluding WSL2) machines, you would still have to place the generated units on the remote system.  Moreover, please make sure that the `XDG_RUNTIME_DIR` environment variable is set.  If unset, you may set it via `export XDG_RUNTIME_DIR=/run/user/$(id -u)`._
 
 _Note: The generated `podman run` command contains an `--sdnotify` option with the value taken from the container.
 If the container does not have any explicitly set value or the value is set to __ignore__, the value __conmon__ is used.

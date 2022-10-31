@@ -353,7 +353,7 @@ Security Options
 - **label=role:**_ROLE_: Set the label role for the container processes
 - **label=type:**_TYPE_: Set the label process type for the container processes
 - **label=level:**_LEVEL_: Set the label level for the container processes
-- **label=filetype:**TYPE_: Set the label file type for the container files
+- **label=filetype:**_TYPE_: Set the label file type for the container files
 - **label=disable**: Turn off label separation for the container
 
 Note: Labeling can be disabled for all containers by setting label=false in the **containers.conf** (`/etc/containers/containers.conf` or `$HOME/.config/containers/containers.conf`) file.

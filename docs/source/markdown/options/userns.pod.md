@@ -4,7 +4,7 @@
 ####> are applicable to all of those.
 #### **--userns**=*mode*
 
-Set the user namespace mode for all the containers in a pod. It defaults to the **PODMAN_USERNS** environment variable. An empty value ("") means user namespaces are disabled.
+Set the user namespace mode for all the containers in a pod. It defaults to the `PODMAN_USERNS` environment variable. An empty value ("") means user namespaces are disabled.
 
 Rootless user --userns=Key mappings:
 
@@ -19,11 +19,11 @@ Valid _mode_ values are:
 
   - *auto[:*_OPTIONS,..._*]*: automatically create a namespace. It is possible to specify these options to `auto`:
 
-  - *gidmapping=*_CONTAINER_GID:HOST_GID:SIZE_ to force a GID mapping to be present in the user namespace.
+  - *gidmapping=*_CONTAINER\_GID:HOST\_GID:SIZE_ to force a GID mapping to be present in the user namespace.
 
   - *size=*_SIZE_: to specify an explicit size for the automatic user namespace. e.g. `--userns=auto:size=8192`. If `size` is not specified, `auto` will estimate a size for the user namespace.
 
-  - *uidmapping=*_CONTAINER_UID:HOST_UID:SIZE_ to force a UID mapping to be present in the user namespace.
+  - *uidmapping=*_CONTAINER\_UID:HOST\_UID:SIZE_ to force a UID mapping to be present in the user namespace.
 
   - *host*: run in the user namespace of the caller. The processes running in the container will have the same privileges on the host as any other process launched by the calling user (default).
 
