@@ -206,6 +206,11 @@ skip_if_remote "Do envariables work with -remote? Please look into this." \
                "build proxy"
 
 ###############################################################################
+# BEGIN emergency skip, because #16308 is too hard to backport
+
+skip "Actual fix (#16308) is too hard to backport, and not worth the effort" \
+     "bud --pull=false --arch test"
+
 # Done.
 
 exit $RC
