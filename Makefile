@@ -151,7 +151,9 @@ CROSS_BUILD_TARGETS := \
 	bin/podman.cross.linux.mips \
 	bin/podman.cross.linux.mipsle \
 	bin/podman.cross.linux.mips64 \
-	bin/podman.cross.linux.mips64le
+	bin/podman.cross.linux.mips64le \
+	bin/podman.cross.freebsd.amd64 \
+	bin/podman.cross.freebsd.arm64
 
 # Dereference variable $(1), return value if non-empty, otherwise raise an error.
 err_if_empty = $(if $(strip $($(1))),$(strip $($(1))),$(error Required variable $(1) value is undefined, whitespace, or empty))
