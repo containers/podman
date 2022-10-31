@@ -105,6 +105,10 @@ func setXdgDirs() error {
 	if _, found := os.LookupEnv("DBUS_SESSION_BUS_ADDRESS"); !found {
 		sessionAddr := filepath.Join(os.Getenv("XDG_RUNTIME_DIR"), "bus")
 		if _, err := os.Stat(sessionAddr); err == nil {
+			sessionAddr, err = filepath.EvalSymlinks(sessionAddr)
+			if err != nil {
+				return err
+			}
 			os.Setenv("DBUS_SESSION_BUS_ADDRESS", "unix:path="+sessionAddr)
 		}
 	}

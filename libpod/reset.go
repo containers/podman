@@ -157,7 +157,13 @@ func (r *Runtime) reset(ctx context.Context) error {
 		}
 	}
 
-	xdgRuntimeDir := filepath.Clean(os.Getenv("XDG_RUNTIME_DIR"))
+	xdgRuntimeDir := os.Getenv("XDG_RUNTIME_DIR")
+	if xdgRuntimeDir != "" {
+		xdgRuntimeDir, err = filepath.EvalSymlinks(xdgRuntimeDir)
+		if err != nil {
+			return err
+		}
+	}
 	_, prevError := r.store.Shutdown(true)
 	graphRoot := filepath.Clean(r.store.GraphRoot())
 	if graphRoot == xdgRuntimeDir {
