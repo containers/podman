@@ -156,9 +156,9 @@ Output logging information to syslog as well as the console (default *false*).
 
 On remote clients, including Mac and Windows (excluding WSL2) machines, logging is directed to the file $HOME/.config/containers/podman.log.
 
-#### **--tmpdir**
+#### **--tmpdir**=*path*
 
-Path to the tmp directory, for libpod runtime content. Defaults to `$XDG\_RUNTIME\_DIR/libpod/tmp` as rootless and `run/libpod/tmp` as rootful.
+Path to the tmp directory, for libpod runtime content. Defaults to `$XDG_RUNTIME_DIR/libpod/tmp` as rootless and `/run/libpod/tmp` as rootful.
 
 NOTE --tmpdir is not used for the temporary storage of downloaded images.  Use the environment variable `TMPDIR` to change the temporary storage location of downloaded container images. Podman defaults to use `/var/tmp`.
 
