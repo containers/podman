@@ -332,3 +332,13 @@ func (r *Reader) Read(p []byte) (n int, err error) {
 	}
 	return n, nil
 }
+
+type Writer struct {
+	io.Writer
+	buf []byte
+}
+
+func (w *Writer) Write(b []byte) (int, error) {
+	w.buf = Pack(w.buf[:0], b)
+	return w.Writer.Write(w.buf)
+}

@@ -28,4 +28,7 @@ type FlowLimiter interface {
 	//
 	// StartMessage must be safe to call from multiple goroutines.
 	StartMessage(ctx context.Context, size uint64) (gotResponse func(), err error)
+
+	// Release releases any resources used by the FlowLimiter.
+	Release()
 }

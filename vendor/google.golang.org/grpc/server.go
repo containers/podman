@@ -1902,12 +1902,12 @@ func (s *Server) getCodec(contentSubtype string) baseCodec {
 // When called multiple times, all the provided metadata will be merged.  All
 // the metadata will be sent out when one of the following happens:
 //
-// - grpc.SendHeader is called, or for streaming handlers, stream.SendHeader.
-// - The first response message is sent.  For unary handlers, this occurs when
-//   the handler returns; for streaming handlers, this can happen when stream's
-//   SendMsg method is called.
-// - An RPC status is sent out (error or success).  This occurs when the handler
-//   returns.
+//   - grpc.SendHeader is called, or for streaming handlers, stream.SendHeader.
+//   - The first response message is sent.  For unary handlers, this occurs when
+//     the handler returns; for streaming handlers, this can happen when stream's
+//     SendMsg method is called.
+//   - An RPC status is sent out (error or success).  This occurs when the handler
+//     returns.
 //
 // SetHeader will fail if called after any of the events above.
 //

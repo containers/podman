@@ -6,7 +6,6 @@ package libpod
 import (
 	"bufio"
 	"bytes"
-	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -17,17 +16,14 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"sync"
 	"syscall"
 	"text/template"
 	"time"
 
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/common/pkg/resize"
-	cutil "github.com/containers/common/pkg/util"
 	conmonConfig "github.com/containers/conmon/runner/config"
 	"github.com/containers/podman/v4/libpod/define"
-	"github.com/containers/podman/v4/libpod/logs"
 	"github.com/containers/podman/v4/pkg/checkpoint/crutils"
 	"github.com/containers/podman/v4/pkg/errorhandling"
 	"github.com/containers/podman/v4/pkg/rootless"
@@ -208,102 +204,13 @@ func (r *ConmonOCIRuntime) CreateContainer(ctr *Container, restoreOptions *Conta
 // status, but will instead only check for the existence of the conmon exit file
 // and update state to stopped if it exists.
 func (r *ConmonOCIRuntime) UpdateContainerStatus(ctr *Container) error {
-	runtimeDir, err := util.GetRuntimeDir()
-	if err != nil {
-		return err
-	}
-
-	// Store old state so we know if we were already stopped
-	oldState := ctr.state.State
-
-	state := new(spec.State)
-
-	cmd := exec.Command(r.path, "state", ctr.ID())
-	cmd.Env = append(cmd.Env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", runtimeDir))
-
-	outPipe, err := cmd.StdoutPipe()
-	if err != nil {
-		return fmt.Errorf("getting stdout pipe: %w", err)
-	}
-	errPipe, err := cmd.StderrPipe()
-	if err != nil {
-		return fmt.Errorf("getting stderr pipe: %w", err)
-	}
-
-	if err := cmd.Start(); err != nil {
-		out, err2 := io.ReadAll(errPipe)
-		if err2 != nil {
-			return fmt.Errorf("getting container %s state: %w", ctr.ID(), err)
-		}
-		if strings.Contains(string(out), "does not exist") || strings.Contains(string(out), "No such file") {
-			if err := ctr.removeConmonFiles(); err != nil {
-				logrus.Debugf("unable to remove conmon files for container %s", ctr.ID())
-			}
-			ctr.state.ExitCode = -1
-			ctr.state.FinishedTime = time.Now()
-			ctr.state.State = define.ContainerStateExited
-			return ctr.runtime.state.AddContainerExitCode(ctr.ID(), ctr.state.ExitCode)
-		}
-		return fmt.Errorf("getting container %s state. stderr/out: %s: %w", ctr.ID(), out, err)
-	}
-	defer func() {
-		_ = cmd.Wait()
-	}()
-
-	if err := errPipe.Close(); err != nil {
-		return err
-	}
-	out, err := io.ReadAll(outPipe)
-	if err != nil {
-		return fmt.Errorf("reading stdout: %s: %w", ctr.ID(), err)
-	}
-	if err := json.NewDecoder(bytes.NewBuffer(out)).Decode(state); err != nil {
-		return fmt.Errorf("decoding container status for container %s: %w", ctr.ID(), err)
-	}
-	ctr.state.PID = state.Pid
-
-	switch state.Status {
-	case "created":
-		ctr.state.State = define.ContainerStateCreated
-	case "paused":
-		ctr.state.State = define.ContainerStatePaused
-	case "running":
-		ctr.state.State = define.ContainerStateRunning
-	case "stopped":
-		ctr.state.State = define.ContainerStateStopped
-	default:
-		return fmt.Errorf("unrecognized status returned by runtime for container %s: %s: %w",
-			ctr.ID(), state.Status, define.ErrInternal)
-	}
-
-	// Handle ContainerStateStopping - keep it unless the container
-	// transitioned to no longer running.
-	if oldState == define.ContainerStateStopping && (ctr.state.State == define.ContainerStatePaused || ctr.state.State == define.ContainerStateRunning) {
-		ctr.state.State = define.ContainerStateStopping
-	}
-
-	return nil
+	return updateContainerStatus(r.path, ctr)
 }
 
 // StartContainer starts the given container.
 // Sets time the container was started, but does not save it.
 func (r *ConmonOCIRuntime) StartContainer(ctr *Container) error {
-	// TODO: streams should probably *not* be our STDIN/OUT/ERR - redirect to buffers?
-	runtimeDir, err := util.GetRuntimeDir()
-	if err != nil {
-		return err
-	}
-	env := []string{fmt.Sprintf("XDG_RUNTIME_DIR=%s", runtimeDir)}
-	if path, ok := os.LookupEnv("PATH"); ok {
-		env = append(env, fmt.Sprintf("PATH=%s", path))
-	}
-	if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, env, r.path, append(r.runtimeFlags, "start", ctr.ID())...); err != nil {
-		return err
-	}
-
-	ctr.state.StartedTime = time.Now()
-
-	return nil
+	return startContainer(ctr, r.path, r.runtimeFlags)
 }
 
 // UpdateContainer updates the given container's cgroup configuration
@@ -356,32 +263,7 @@ func generateResourceFile(res *spec.LinuxResources) (string, []string, error) {
 // If all is set, send to all PIDs in the container.
 // All is only supported if the container created cgroups.
 func (r *ConmonOCIRuntime) KillContainer(ctr *Container, signal uint, all bool) error {
-	logrus.Debugf("Sending signal %d to container %s", signal, ctr.ID())
-	runtimeDir, err := util.GetRuntimeDir()
-	if err != nil {
-		return err
-	}
-	env := []string{fmt.Sprintf("XDG_RUNTIME_DIR=%s", runtimeDir)}
-	var args []string
-	args = append(args, r.runtimeFlags...)
-	if all {
-		args = append(args, "kill", "--all", ctr.ID(), fmt.Sprintf("%d", signal))
-	} else {
-		args = append(args, "kill", ctr.ID(), fmt.Sprintf("%d", signal))
-	}
-	if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, env, r.path, args...); err != nil {
-		// Update container state - there's a chance we failed because
-		// the container exited in the meantime.
-		if err2 := r.UpdateContainerStatus(ctr); err2 != nil {
-			logrus.Infof("Error updating status for container %s: %v", ctr.ID(), err2)
-		}
-		if ctr.ensureState(define.ContainerStateStopped, define.ContainerStateExited) {
-			return fmt.Errorf("%w: %s", define.ErrCtrStateInvalid, ctr.state.State)
-		}
-		return fmt.Errorf("sending signal to container %s: %w", ctr.ID(), err)
-	}
-
-	return nil
+	return killContainer(all, ctr, signal, r.runtimeFlags, r.path)
 }
 
 // StopContainer stops a container, first using its given stop signal (or
@@ -391,87 +273,22 @@ func (r *ConmonOCIRuntime) KillContainer(ctr *Container, signal uint, all bool) 
 // Does not set finished time for container, assumes you will run updateStatus
 // after to pull the exit code.
 func (r *ConmonOCIRuntime) StopContainer(ctr *Container, timeout uint, all bool) error {
-	logrus.Debugf("Stopping container %s (PID %d)", ctr.ID(), ctr.state.PID)
-
-	// Ping the container to see if it's alive
-	// If it's not, it's already stopped, return
-	err := unix.Kill(ctr.state.PID, 0)
-	if err == unix.ESRCH {
-		return nil
-	}
-
-	stopSignal := ctr.config.StopSignal
-	if stopSignal == 0 {
-		stopSignal = uint(syscall.SIGTERM)
-	}
-
-	if timeout > 0 {
-		if err := r.KillContainer(ctr, stopSignal, all); err != nil {
-			// Is the container gone?
-			// If so, it probably died between the first check and
-			// our sending the signal
-			// The container is stopped, so exit cleanly
-			err := unix.Kill(ctr.state.PID, 0)
-			if err == unix.ESRCH {
-				return nil
-			}
-
-			return err
-		}
-
-		if err := waitContainerStop(ctr, time.Duration(timeout)*time.Second); err != nil {
-			logrus.Debugf("Timed out stopping container %s with %s, resorting to SIGKILL: %v", ctr.ID(), unix.SignalName(syscall.Signal(stopSignal)), err)
-			logrus.Warnf("StopSignal %s failed to stop container %s in %d seconds, resorting to SIGKILL", unix.SignalName(syscall.Signal(stopSignal)), ctr.Name(), timeout)
-		} else {
-			// No error, the container is dead
-			return nil
-		}
-	}
-
-	if err := r.KillContainer(ctr, uint(unix.SIGKILL), all); err != nil {
-		// Again, check if the container is gone. If it is, exit cleanly.
-		if aliveErr := unix.Kill(ctr.state.PID, 0); errors.Is(aliveErr, unix.ESRCH) {
-			return nil
-		}
-		return fmt.Errorf("sending SIGKILL to container %s: %w", ctr.ID(), err)
-	}
-
-	// Give runtime a few seconds to make it happen
-	if err := waitContainerStop(ctr, killContainerTimeout); err != nil {
-		return err
-	}
-
-	return nil
+	return stopContainer(ctr, all, timeout, r.runtimeFlags, r.path)
 }
 
 // DeleteContainer deletes a container from the OCI runtime.
 func (r *ConmonOCIRuntime) DeleteContainer(ctr *Container) error {
-	runtimeDir, err := util.GetRuntimeDir()
-	if err != nil {
-		return err
-	}
-	env := []string{fmt.Sprintf("XDG_RUNTIME_DIR=%s", runtimeDir)}
-	return utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, env, r.path, append(r.runtimeFlags, "delete", "--force", ctr.ID())...)
+	return deleteContainer(ctr, r.path, r.runtimeFlags)
 }
 
 // PauseContainer pauses the given container.
 func (r *ConmonOCIRuntime) PauseContainer(ctr *Container) error {
-	runtimeDir, err := util.GetRuntimeDir()
-	if err != nil {
-		return err
-	}
-	env := []string{fmt.Sprintf("XDG_RUNTIME_DIR=%s", runtimeDir)}
-	return utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, env, r.path, append(r.runtimeFlags, "pause", ctr.ID())...)
+	return pauseContainer(ctr, r.path, r.runtimeFlags)
 }
 
 // UnpauseContainer unpauses the given container.
 func (r *ConmonOCIRuntime) UnpauseContainer(ctr *Container) error {
-	runtimeDir, err := util.GetRuntimeDir()
-	if err != nil {
-		return err
-	}
-	env := []string{fmt.Sprintf("XDG_RUNTIME_DIR=%s", runtimeDir)}
-	return utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, env, r.path, append(r.runtimeFlags, "resume", ctr.ID())...)
+	return unpauseContainer(ctr, r.path, r.runtimeFlags)
 }
 
 // This filters out ENOTCONN errors which can happen on FreeBSD if the
@@ -493,213 +310,11 @@ func socketCloseWrite(conn *net.UnixConn) error {
 // Returns any errors that occurred, and whether the connection was successfully
 // hijacked before that error occurred.
 func (r *ConmonOCIRuntime) HTTPAttach(ctr *Container, req *http.Request, w http.ResponseWriter, streams *HTTPAttachStreams, detachKeys *string, cancel <-chan bool, hijackDone chan<- bool, streamAttach, streamLogs bool) (deferredErr error) {
-	isTerminal := ctr.Terminal()
-
-	if streams != nil {
-		if !streams.Stdin && !streams.Stdout && !streams.Stderr {
-			return fmt.Errorf("must specify at least one stream to attach to: %w", define.ErrInvalidArg)
-		}
-	}
-
-	attachSock, err := r.AttachSocketPath(ctr)
+	sock, err := r.AttachSocketPath(ctr)
 	if err != nil {
 		return err
 	}
-
-	var conn *net.UnixConn
-	if streamAttach {
-		newConn, err := openUnixSocket(attachSock)
-		if err != nil {
-			return fmt.Errorf("failed to connect to container's attach socket: %v: %w", attachSock, err)
-		}
-		conn = newConn
-		defer func() {
-			if err := conn.Close(); err != nil {
-				logrus.Errorf("Unable to close container %s attach socket: %q", ctr.ID(), err)
-			}
-		}()
-
-		logrus.Debugf("Successfully connected to container %s attach socket %s", ctr.ID(), attachSock)
-	}
-
-	detachString := ctr.runtime.config.Engine.DetachKeys
-	if detachKeys != nil {
-		detachString = *detachKeys
-	}
-	detach, err := processDetachKeys(detachString)
-	if err != nil {
-		return err
-	}
-
-	attachStdout := true
-	attachStderr := true
-	attachStdin := true
-	if streams != nil {
-		attachStdout = streams.Stdout
-		attachStderr = streams.Stderr
-		attachStdin = streams.Stdin
-	}
-
-	logrus.Debugf("Going to hijack container %s attach connection", ctr.ID())
-
-	// Alright, let's hijack.
-	hijacker, ok := w.(http.Hijacker)
-	if !ok {
-		return fmt.Errorf("unable to hijack connection")
-	}
-
-	httpCon, httpBuf, err := hijacker.Hijack()
-	if err != nil {
-		return fmt.Errorf("hijacking connection: %w", err)
-	}
-
-	hijackDone <- true
-
-	writeHijackHeader(req, httpBuf)
-
-	// Force a flush after the header is written.
-	if err := httpBuf.Flush(); err != nil {
-		return fmt.Errorf("flushing HTTP hijack header: %w", err)
-	}
-
-	defer func() {
-		hijackWriteErrorAndClose(deferredErr, ctr.ID(), isTerminal, httpCon, httpBuf)
-	}()
-
-	logrus.Debugf("Hijack for container %s attach session done, ready to stream", ctr.ID())
-
-	// TODO: This is gross. Really, really gross.
-	// I want to say we should read all the logs into an array before
-	// calling this, in container_api.go, but that could take a lot of
-	// memory...
-	// On the whole, we need to figure out a better way of doing this,
-	// though.
-	logSize := 0
-	if streamLogs {
-		logrus.Debugf("Will stream logs for container %s attach session", ctr.ID())
-
-		// Get all logs for the container
-		logChan := make(chan *logs.LogLine)
-		logOpts := new(logs.LogOptions)
-		logOpts.Tail = -1
-		logOpts.WaitGroup = new(sync.WaitGroup)
-		errChan := make(chan error)
-		go func() {
-			var err error
-			// In non-terminal mode we need to prepend with the
-			// stream header.
-			logrus.Debugf("Writing logs for container %s to HTTP attach", ctr.ID())
-			for logLine := range logChan {
-				if !isTerminal {
-					device := logLine.Device
-					var header []byte
-					headerLen := uint32(len(logLine.Msg))
-					logSize += len(logLine.Msg)
-					switch strings.ToLower(device) {
-					case "stdin":
-						header = makeHTTPAttachHeader(0, headerLen)
-					case "stdout":
-						header = makeHTTPAttachHeader(1, headerLen)
-					case "stderr":
-						header = makeHTTPAttachHeader(2, headerLen)
-					default:
-						logrus.Errorf("Unknown device for log line: %s", device)
-						header = makeHTTPAttachHeader(1, headerLen)
-					}
-					_, err = httpBuf.Write(header)
-					if err != nil {
-						break
-					}
-				}
-				_, err = httpBuf.Write([]byte(logLine.Msg))
-				if err != nil {
-					break
-				}
-				if !logLine.Partial() {
-					_, err = httpBuf.Write([]byte("\n"))
-					if err != nil {
-						break
-					}
-				}
-				err = httpBuf.Flush()
-				if err != nil {
-					break
-				}
-			}
-			errChan <- err
-		}()
-		if err := ctr.ReadLog(context.Background(), logOpts, logChan, 0); err != nil {
-			return err
-		}
-		go func() {
-			logOpts.WaitGroup.Wait()
-			close(logChan)
-		}()
-		logrus.Debugf("Done reading logs for container %s, %d bytes", ctr.ID(), logSize)
-		if err := <-errChan; err != nil {
-			return err
-		}
-	}
-	if !streamAttach {
-		logrus.Debugf("Done streaming logs for container %s attach, exiting as attach streaming not requested", ctr.ID())
-		return nil
-	}
-
-	logrus.Debugf("Forwarding attach output for container %s", ctr.ID())
-
-	stdoutChan := make(chan error)
-	stdinChan := make(chan error)
-
-	// Handle STDOUT/STDERR
-	go func() {
-		var err error
-		if isTerminal {
-			// Hack: return immediately if attachStdout not set to
-			// emulate Docker.
-			// Basically, when terminal is set, STDERR goes nowhere.
-			// Everything does over STDOUT.
-			// Therefore, if not attaching STDOUT - we'll never copy
-			// anything from here.
-			logrus.Debugf("Performing terminal HTTP attach for container %s", ctr.ID())
-			if attachStdout {
-				err = httpAttachTerminalCopy(conn, httpBuf, ctr.ID())
-			}
-		} else {
-			logrus.Debugf("Performing non-terminal HTTP attach for container %s", ctr.ID())
-			err = httpAttachNonTerminalCopy(conn, httpBuf, ctr.ID(), attachStdin, attachStdout, attachStderr)
-		}
-		stdoutChan <- err
-		logrus.Debugf("STDOUT/ERR copy completed")
-	}()
-	// Next, STDIN. Avoid entirely if attachStdin unset.
-	if attachStdin {
-		go func() {
-			_, err := cutil.CopyDetachable(conn, httpBuf, detach)
-			logrus.Debugf("STDIN copy completed")
-			stdinChan <- err
-		}()
-	}
-
-	for {
-		select {
-		case err := <-stdoutChan:
-			if err != nil {
-				return err
-			}
-
-			return nil
-		case err := <-stdinChan:
-			if err != nil {
-				return err
-			}
-			// copy stdin is done, close it
-			if connErr := socketCloseWrite(conn); connErr != nil {
-				logrus.Errorf("Unable to close conn: %v", connErr)
-			}
-		case <-cancel:
-			return nil
-		}
-	}
+	return httpAttach(sock, ctr, req, w, streams, detachKeys, cancel, hijackDone, streamAttach, streamLogs)
 }
 
 // isRetryable returns whether the error was caused by a blocked syscall or the
@@ -884,11 +499,11 @@ func (r *ConmonOCIRuntime) ExitFilePath(ctr *Container) (string, error) {
 func (r *ConmonOCIRuntime) RuntimeInfo() (*define.ConmonInfo, *define.OCIRuntimeInfo, error) {
 	runtimePackage := packageVersion(r.path)
 	conmonPackage := packageVersion(r.conmonPath)
-	runtimeVersion, err := r.getOCIRuntimeVersion()
+	runtimeVersion, err := getOCIRuntimeVersion(r.path)
 	if err != nil {
 		return nil, nil, fmt.Errorf("getting version of OCI runtime %s: %w", r.name, err)
 	}
-	conmonVersion, err := r.getConmonVersion()
+	conmonVersion, err := getConmonVersion(r.conmonPath)
 	if err != nil {
 		return nil, nil, fmt.Errorf("getting conmon version: %w", err)
 	}
@@ -1491,25 +1106,6 @@ func formatRuntimeOpts(opts ...string) []string {
 		args = append(args, "--runtime-opt", o)
 	}
 	return args
-}
-
-// getConmonVersion returns a string representation of the conmon version.
-func (r *ConmonOCIRuntime) getConmonVersion() (string, error) {
-	output, err := utils.ExecCmd(r.conmonPath, "--version")
-	if err != nil {
-		return "", err
-	}
-	return strings.TrimSuffix(strings.Replace(output, "\n", ", ", 1), "\n"), nil
-}
-
-// getOCIRuntimeVersion returns a string representation of the OCI runtime's
-// version.
-func (r *ConmonOCIRuntime) getOCIRuntimeVersion() (string, error) {
-	output, err := utils.ExecCmd(r.path, "--version")
-	if err != nil {
-		return "", err
-	}
-	return strings.TrimSuffix(output, "\n"), nil
 }
 
 // Copy data from container to HTTP connection, for terminal attach.

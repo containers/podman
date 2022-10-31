@@ -110,7 +110,7 @@ func NewSingleSegmentMessage(b []byte) (msg *Message, first *Segment) {
 	return msg, first
 }
 
-// Analagous to NewSingleSegmentMessage, but using MutliSegment.
+// Analogous to NewSingleSegmentMessage, but using MutliSegment.
 func NewMultiSegmentMessage(b [][]byte) (msg *Message, first *Segment) {
 	msg, first, err := NewMessage(MultiSegment(b))
 	if err != nil {
@@ -770,9 +770,6 @@ type Encoder struct {
 	w      io.Writer
 	hdrbuf []byte
 	bufs   [][]byte
-
-	packed  bool
-	packbuf []byte
 }
 
 // NewEncoder creates a new Cap'n Proto framer that writes to w.
@@ -783,7 +780,7 @@ func NewEncoder(w io.Writer) *Encoder {
 // NewPackedEncoder creates a new Cap'n Proto framer that writes to a
 // packed stream w.
 func NewPackedEncoder(w io.Writer) *Encoder {
-	return &Encoder{w: w, packed: true}
+	return NewEncoder(&packed.Writer{Writer: w})
 }
 
 // Encode writes a message to the encoder stream.
@@ -816,25 +813,11 @@ func (e *Encoder) Encode(m *Message) error {
 		e.hdrbuf = appendUint32(e.hdrbuf, 0)
 	}
 	e.bufs[0] = e.hdrbuf
-	if e.packed {
-		if err := e.writePacked(e.bufs); err != nil {
-			return errorf("encode: %v", err)
-		}
-		return nil
-	}
+
 	if err := e.write(e.bufs); err != nil {
 		return errorf("encode: %v", err)
 	}
-	return nil
-}
 
-func (e *Encoder) writePacked(bufs [][]byte) error {
-	for _, b := range bufs {
-		e.packbuf = packed.Pack(e.packbuf[:0], b)
-		if _, err := e.w.Write(e.packbuf); err != nil {
-			return err
-		}
-	}
 	return nil
 }
 

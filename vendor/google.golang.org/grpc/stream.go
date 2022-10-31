@@ -310,12 +310,6 @@ func newClientStreamWithParams(ctx context.Context, desc *StreamDesc, cc *Client
 		}
 	}
 
-	cs.attempt, err = cs.newAttemptLocked(false /* isTransparent */)
-	if err != nil {
-		cs.finish(err)
-		return nil, err
-	}
-
 	// Pick the transport to use and create a new stream on the transport.
 	// Assign cs.attempt upon success.
 	op := func(a *csAttempt) error {
@@ -423,12 +417,12 @@ func (cs *clientStream) newAttemptLocked(isTransparent bool) (*csAttempt, error)
 	}
 
 	return &csAttempt{
-		ctx:          ctx,
-		beginTime:    beginTime,
-		cs:           cs,
-		dc:           cs.cc.dopts.dc,
-		statsHandler: sh,
-		trInfo:       trInfo,
+		ctx:           ctx,
+		beginTime:     beginTime,
+		cs:            cs,
+		dc:            cs.cc.dopts.dc,
+		statsHandlers: shs,
+		trInfo:        trInfo,
 	}, nil
 }
 
@@ -545,8 +539,8 @@ type csAttempt struct {
 	// and cleared when the finish method is called.
 	trInfo *traceInfo
 
-	statsHandler stats.Handler
-	beginTime    time.Time
+	statsHandlers []stats.Handler
+	beginTime     time.Time
 
 	// set for newStream errors that may be transparently retried
 	allowTransparentRetry bool

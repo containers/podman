@@ -118,7 +118,7 @@ func canonicalList(dst *Segment, l List) (List, error) {
 			return List{}, errorf("list: %v", err)
 		}
 		for i := 0; i < l.Len(); i++ {
-			p, err := PointerList{l}.At(i)
+			p, err := PointerList(l).At(i)
 			if err != nil {
 				return List{}, errorf("list element %d: %v", i, err)
 			}
@@ -130,7 +130,7 @@ func canonicalList(dst *Segment, l List) (List, error) {
 				return List{}, errorf("list element %d: %v", i, err)
 			}
 		}
-		return cl.List, nil
+		return List(cl), nil
 	}
 
 	// Struct/composite list

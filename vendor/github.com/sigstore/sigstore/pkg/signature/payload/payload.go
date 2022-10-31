@@ -13,6 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package payload defines a container image
 package payload
 
 import (
@@ -26,7 +27,7 @@ import (
 const CosignSignatureType = "cosign container image signature"
 
 // SimpleContainerImage describes the structure of a basic container image signature payload, as defined at:
-//  https://github.com/containers/image/blob/master/docs/containers-signature.5.md#json-data-format
+// https://github.com/containers/image/blob/master/docs/containers-signature.5.md#json-data-format
 type SimpleContainerImage struct {
 	Critical Critical               `json:"critical"` // Critical data critical to correctly evaluating the validity of the signature
 	Optional map[string]interface{} `json:"optional"` // Optional optional metadata about the image

@@ -296,33 +296,33 @@ func codeOrderFields(s schema.Node_structNode) []schema.Field {
 func (enc *Encoder) marshalList(elem schema.Type, l capnp.List) error {
 	switch elem.Which() {
 	case schema.Type_Which_void:
-		enc.w.WriteString(capnp.VoidList{List: l}.String())
+		enc.w.WriteString(capnp.VoidList(l).String())
 	case schema.Type_Which_bool:
-		enc.w.WriteString(capnp.BitList{List: l}.String())
+		enc.w.WriteString(capnp.BitList(l).String())
 	case schema.Type_Which_int8:
-		enc.w.WriteString(capnp.Int8List{List: l}.String())
+		enc.w.WriteString(capnp.Int8List(l).String())
 	case schema.Type_Which_int16:
-		enc.w.WriteString(capnp.Int16List{List: l}.String())
+		enc.w.WriteString(capnp.Int16List(l).String())
 	case schema.Type_Which_int32:
-		enc.w.WriteString(capnp.Int32List{List: l}.String())
+		enc.w.WriteString(capnp.Int32List(l).String())
 	case schema.Type_Which_int64:
-		enc.w.WriteString(capnp.Int64List{List: l}.String())
+		enc.w.WriteString(capnp.Int64List(l).String())
 	case schema.Type_Which_uint8:
-		enc.w.WriteString(capnp.UInt8List{List: l}.String())
+		enc.w.WriteString(capnp.UInt8List(l).String())
 	case schema.Type_Which_uint16:
-		enc.w.WriteString(capnp.UInt16List{List: l}.String())
+		enc.w.WriteString(capnp.UInt16List(l).String())
 	case schema.Type_Which_uint32:
-		enc.w.WriteString(capnp.UInt32List{List: l}.String())
+		enc.w.WriteString(capnp.UInt32List(l).String())
 	case schema.Type_Which_uint64:
-		enc.w.WriteString(capnp.UInt64List{List: l}.String())
+		enc.w.WriteString(capnp.UInt64List(l).String())
 	case schema.Type_Which_float32:
-		enc.w.WriteString(capnp.Float32List{List: l}.String())
+		enc.w.WriteString(capnp.Float32List(l).String())
 	case schema.Type_Which_float64:
-		enc.w.WriteString(capnp.Float64List{List: l}.String())
+		enc.w.WriteString(capnp.Float64List(l).String())
 	case schema.Type_Which_data:
-		enc.w.WriteString(capnp.DataList{List: l}.String())
+		enc.w.WriteString(capnp.DataList(l).String())
 	case schema.Type_Which_text:
-		enc.w.WriteString(capnp.TextList{List: l}.String())
+		enc.w.WriteString(capnp.TextList(l).String())
 	case schema.Type_Which_structType:
 		enc.w.WriteByte('[')
 		for i := 0; i < l.Len(); i++ {
@@ -345,7 +345,7 @@ func (enc *Encoder) marshalList(elem schema.Type, l capnp.List) error {
 			if i > 0 {
 				enc.w.WriteString(", ")
 			}
-			p, err := capnp.PointerList{List: l}.At(i)
+			p, err := capnp.PointerList(l).At(i)
 			if err != nil {
 				return err
 			}
@@ -357,7 +357,7 @@ func (enc *Encoder) marshalList(elem schema.Type, l capnp.List) error {
 		enc.w.WriteByte(']')
 	case schema.Type_Which_enum:
 		enc.w.WriteByte('[')
-		il := capnp.UInt16List{List: l}
+		il := capnp.UInt16List(l)
 		typ := elem.Enum().TypeId()
 		// TODO(light): only search for node once
 		for i := 0; i < il.Len(); i++ {
@@ -373,7 +373,7 @@ func (enc *Encoder) marshalList(elem schema.Type, l capnp.List) error {
 			if i > 0 {
 				enc.w.WriteString(", ")
 			}
-			p, err := capnp.PointerList{List: l}.At(i)
+			p, err := capnp.PointerList(l).At(i)
 			if err != nil {
 				return err
 			}

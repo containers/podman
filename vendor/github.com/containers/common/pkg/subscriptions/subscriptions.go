@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -258,7 +257,7 @@ func addSubscriptionsFromMountsFile(filePath, mountLabel, containerRunDir string
 				}
 				for _, s := range data {
 					if err := s.saveTo(ctrDirOrFileOnHost); err != nil {
-						return nil, fmt.Errorf("error saving data to container filesystem on host %q: %w", ctrDirOrFileOnHost, err)
+						return nil, fmt.Errorf("saving data to container filesystem on host %q: %w", ctrDirOrFileOnHost, err)
 					}
 				}
 			case mode.IsRegular():
@@ -270,7 +269,7 @@ func addSubscriptionsFromMountsFile(filePath, mountLabel, containerRunDir string
 					if err := os.MkdirAll(filepath.Dir(ctrDirOrFileOnHost), s.dirMode); err != nil {
 						return nil, err
 					}
-					if err := ioutil.WriteFile(ctrDirOrFileOnHost, s.data, s.mode); err != nil {
+					if err := os.WriteFile(ctrDirOrFileOnHost, s.data, s.mode); err != nil {
 						return nil, fmt.Errorf("saving data to container filesystem: %w", err)
 					}
 				}
@@ -280,7 +279,7 @@ func addSubscriptionsFromMountsFile(filePath, mountLabel, containerRunDir string
 
 			err = label.Relabel(ctrDirOrFileOnHost, mountLabel, false)
 			if err != nil {
-				return nil, fmt.Errorf("error applying correct labels: %w", err)
+				return nil, fmt.Errorf("applying correct labels: %w", err)
 			}
 			if uid != 0 || gid != 0 {
 				if err := rchown(ctrDirOrFileOnHost, uid, gid); err != nil {

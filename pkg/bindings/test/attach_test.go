@@ -3,6 +3,7 @@ package bindings_test
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"time"
 
 	"github.com/containers/podman/v4/libpod/define"
@@ -97,7 +98,7 @@ var _ = Describe("Podman containers attach", func() {
 		go func() {
 			defer GinkgoRecover()
 			options := new(containers.AttachOptions).WithStream(true)
-			err := containers.Attach(bt.conn, ctnr.ID, stdin, stdout, stderr, nil, options)
+			err := containers.Attach(bt.conn, ctnr.ID, io.NopCloser(stdin), stdout, stderr, nil, options)
 			Expect(err).ShouldNot(HaveOccurred())
 		}()
 

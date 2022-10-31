@@ -163,7 +163,7 @@ func (r *Runtime) Pull(ctx context.Context, name string, pullPolicy config.PullP
 	for _, name := range pulledImages {
 		image, _, err := r.LookupImage(name, nil)
 		if err != nil {
-			return nil, fmt.Errorf("error locating pulled image %q name in containers storage: %w", name, err)
+			return nil, fmt.Errorf("locating pulled image %q name in containers storage: %w", name, err)
 		}
 
 		// Note that we can ignore the 2nd return value here. Some
@@ -318,7 +318,7 @@ func (r *Runtime) storageReferencesReferencesFromArchiveReader(ctx context.Conte
 	for _, destName := range destNames {
 		destRef, err := storageTransport.Transport.ParseStoreReference(r.store, destName)
 		if err != nil {
-			return nil, nil, fmt.Errorf("error parsing dest reference name %#v: %w", destName, err)
+			return nil, nil, fmt.Errorf("parsing dest reference name %#v: %w", destName, err)
 		}
 		references = append(references, destRef)
 	}
@@ -399,7 +399,7 @@ func (r *Runtime) copyFromRegistry(ctx context.Context, ref types.ImageReference
 		}
 		tagged, err := reference.WithTag(named, tag)
 		if err != nil {
-			return nil, fmt.Errorf("error creating tagged reference (name %s, tag %s): %w", named.String(), tag, err)
+			return nil, fmt.Errorf("creating tagged reference (name %s, tag %s): %w", named.String(), tag, err)
 		}
 		pulled, err := r.copySingleImageFromRegistry(ctx, tagged.String(), pullPolicy, options)
 		if err != nil {

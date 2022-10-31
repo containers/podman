@@ -22,13 +22,14 @@ type Compat struct {
 // for implementations of private.ImageDestination.
 //
 // Use it like this:
-// type yourDestination struct {
-//     impl.Compat
-//     …
-// }
-// dest := &yourDestination{…}
-// dest.Compat = impl.AddCompat(dest)
 //
+//	type yourDestination struct {
+//		impl.Compat
+//		…
+//	}
+//
+//	dest := &yourDestination{…}
+//	dest.Compat = impl.AddCompat(dest)
 func AddCompat(dest private.ImageDestinationInternalOnly) Compat {
 	return Compat{dest}
 }

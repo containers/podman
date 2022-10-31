@@ -97,12 +97,12 @@ func (s *Segment) root() PointerList {
 	if !s.regionInBounds(0, sz.totalSize()) {
 		return PointerList{}
 	}
-	return PointerList{List{
+	return PointerList{
 		seg:        s,
 		length:     1,
 		size:       sz,
 		depthLimit: s.msg.depthLimit(),
-	}}
+	}
 }
 
 func (s *Segment) lookupSegment(id SegmentID) (*Segment, error) {

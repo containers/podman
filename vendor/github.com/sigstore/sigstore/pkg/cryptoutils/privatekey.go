@@ -31,7 +31,11 @@ import (
 
 const (
 	// PrivateKeyPEMType is the string "PRIVATE KEY" to be used during PEM encoding and decoding
-	PrivateKeyPEMType                PEMType = "PRIVATE KEY"
+	PrivateKeyPEMType PEMType = "PRIVATE KEY"
+	// ECPrivateKeyPEMType is the string "EC PRIVATE KEY" used to parse SEC 1 EC private keys
+	ECPrivateKeyPEMType PEMType = "EC PRIVATE KEY"
+	// PKCS1PrivateKeyPEMType is the string "RSA PRIVATE KEY" used to parse PKCS#1-encoded private keys
+	PKCS1PrivateKeyPEMType           PEMType = "RSA PRIVATE KEY"
 	encryptedCosignPrivateKeyPEMType PEMType = "ENCRYPTED COSIGN PRIVATE KEY"
 	// EncryptedSigstorePrivateKeyPEMType is the string "ENCRYPTED SIGSTORE PRIVATE KEY" to be used during PEM encoding and decoding
 	EncryptedSigstorePrivateKeyPEMType PEMType = "ENCRYPTED SIGSTORE PRIVATE KEY"
@@ -106,6 +110,10 @@ func UnmarshalPEMToPrivateKey(pemBytes []byte, pf PassFunc) (crypto.PrivateKey, 
 	switch derBlock.Type {
 	case string(PrivateKeyPEMType):
 		return x509.ParsePKCS8PrivateKey(derBlock.Bytes)
+	case string(PKCS1PrivateKeyPEMType):
+		return x509.ParsePKCS1PrivateKey(derBlock.Bytes)
+	case string(ECPrivateKeyPEMType):
+		return x509.ParseECPrivateKey(derBlock.Bytes)
 	case string(EncryptedSigstorePrivateKeyPEMType), string(encryptedCosignPrivateKeyPEMType):
 		derBytes := derBlock.Bytes
 		if pf != nil {
@@ -123,7 +131,7 @@ func UnmarshalPEMToPrivateKey(pemBytes []byte, pf PassFunc) (crypto.PrivateKey, 
 
 		return x509.ParsePKCS8PrivateKey(derBytes)
 	}
-	return nil, fmt.Errorf("unknown PEM file type: %v", derBlock.Type)
+	return nil, fmt.Errorf("unknown private key PEM file type: %v", derBlock.Type)
 }
 
 // MarshalPrivateKeyToDER converts a crypto.PrivateKey into a PKCS8 ASN.1 DER byte slice
@@ -134,7 +142,7 @@ func MarshalPrivateKeyToDER(priv crypto.PrivateKey) ([]byte, error) {
 	return x509.MarshalPKCS8PrivateKey(priv)
 }
 
-// MarshalPrivateKeyToPEM converts a crypto.PrivateKey into a PEM-encoded byte slice
+// MarshalPrivateKeyToPEM converts a crypto.PrivateKey into a PKCS#8 PEM-encoded byte slice
 func MarshalPrivateKeyToPEM(priv crypto.PrivateKey) ([]byte, error) {
 	derBytes, err := MarshalPrivateKeyToDER(priv)
 	if err != nil {

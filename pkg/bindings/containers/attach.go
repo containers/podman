@@ -30,7 +30,7 @@ type CloseWriter interface {
 }
 
 // Attach attaches to a running container
-func Attach(ctx context.Context, nameOrID string, stdin io.Reader, stdout io.Writer, stderr io.Writer, attachReady chan bool, options *AttachOptions) error {
+func Attach(ctx context.Context, nameOrID string, stdin io.ReadCloser, stdout io.Writer, stderr io.Writer, attachReady chan bool, options *AttachOptions) error {
 	if options == nil {
 		options = new(AttachOptions)
 	}
@@ -45,7 +45,7 @@ func Attach(ctx context.Context, nameOrID string, stdin io.Reader, stdout io.Wri
 	}
 	// Ensure golang can determine that interfaces are "really" nil
 	if !isSet.stdin {
-		stdin = (io.Reader)(nil)
+		stdin = (io.ReadCloser)(nil)
 	}
 	if !isSet.stdout {
 		stdout = (io.Writer)(nil)
@@ -497,7 +497,7 @@ func ExecStartAndAttach(ctx context.Context, sessionID string, options *ExecStar
 	if options.GetAttachInput() {
 		go func() {
 			logrus.Debugf("Copying STDIN to socket")
-			_, err := util.CopyDetachable(socket, options.InputStream, []byte{})
+			_, err := util.CopyDetachable(socket, *options.InputStream, []byte{})
 			if err != nil {
 				logrus.Errorf("Failed to write input to service: %v", err)
 			}

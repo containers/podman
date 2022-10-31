@@ -4,7 +4,6 @@
 package terminal
 
 import (
-	"bufio"
 	"context"
 	"fmt"
 	"os"
@@ -66,7 +65,7 @@ func StartAttachCtr(ctx context.Context, ctr *libpod.Container, stdout, stderr, 
 	streams := new(define.AttachStreams)
 	streams.OutputStream = stdout
 	streams.ErrorStream = stderr
-	streams.InputStream = bufio.NewReader(stdin)
+	streams.InputStream = stdin
 	streams.AttachOutput = true
 	streams.AttachError = true
 	streams.AttachInput = true

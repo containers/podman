@@ -21,7 +21,7 @@ import (
 	"crypto/ed25519"
 	"crypto/rsa"
 	"errors"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
@@ -57,7 +57,7 @@ func LoadSignerVerifier(privateKey crypto.PrivateKey, hashFunc crypto.Hash) (Sig
 // RSAPSSSignerVerifier is desired instead, use the LoadRSAPSSSignerVerifier() and
 // cryptoutils.UnmarshalPEMToPrivateKey() methods directly.
 func LoadSignerVerifierFromPEMFile(path string, hashFunc crypto.Hash, pf cryptoutils.PassFunc) (SignerVerifier, error) {
-	fileBytes, err := ioutil.ReadFile(filepath.Clean(path))
+	fileBytes, err := os.ReadFile(filepath.Clean(path))
 	if err != nil {
 		return nil, err
 	}

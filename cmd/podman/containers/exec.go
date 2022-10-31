@@ -1,7 +1,6 @@
 package containers
 
 import (
-	"bufio"
 	"errors"
 	"fmt"
 	"os"
@@ -142,7 +141,7 @@ func exec(_ *cobra.Command, args []string) error {
 		streams.OutputStream = os.Stdout
 		streams.ErrorStream = os.Stderr
 		if execOpts.Interactive {
-			streams.InputStream = bufio.NewReader(os.Stdin)
+			streams.InputStream = os.Stdin
 			streams.AttachInput = true
 		}
 		streams.AttachOutput = true

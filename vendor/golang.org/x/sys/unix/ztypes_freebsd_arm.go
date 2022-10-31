@@ -312,6 +312,18 @@ type __Siginfo struct {
 	_      [32]byte
 }
 
+type __PtraceSiginfo struct {
+	Signo  int32
+	Errno  int32
+	Code   int32
+	Pid    int32
+	Uid    uint32
+	Status int32
+	Addr   uintptr
+	Value  [4]byte
+	_      [32]byte
+}
+
 type Sigset_t struct {
 	Val [4]uint32
 }

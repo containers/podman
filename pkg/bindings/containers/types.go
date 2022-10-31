@@ -1,7 +1,6 @@
 package containers
 
 import (
-	"bufio"
 	"io"
 
 	"github.com/containers/podman/v4/libpod/define"
@@ -293,7 +292,7 @@ type ExecStartAndAttachOptions struct {
 	// ErrorStream will be attached to container's STDERR
 	ErrorStream *io.WriteCloser
 	// InputStream will be attached to container's STDIN
-	InputStream *bufio.Reader
+	InputStream *io.ReadCloser
 	// AttachOutput is whether to attach to STDOUT
 	// If false, stdout will not be attached
 	AttachOutput *bool

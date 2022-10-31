@@ -37,6 +37,8 @@ import (
 const (
 	// PublicKeyPEMType is the string "PUBLIC KEY" to be used during PEM encoding and decoding
 	PublicKeyPEMType PEMType = "PUBLIC KEY"
+	// PKCS1PublicKeyPEMType is the string "RSA PUBLIC KEY" used to parse PKCS#1-encoded public keys
+	PKCS1PublicKeyPEMType PEMType = "RSA PUBLIC KEY"
 )
 
 // subjectPublicKeyInfo is used to construct a subject key ID.
@@ -52,7 +54,15 @@ func UnmarshalPEMToPublicKey(pemBytes []byte) (crypto.PublicKey, error) {
 	if derBytes == nil {
 		return nil, errors.New("PEM decoding failed")
 	}
-	return x509.ParsePKIXPublicKey(derBytes.Bytes)
+	switch derBytes.Type {
+	case string(PublicKeyPEMType):
+		return x509.ParsePKIXPublicKey(derBytes.Bytes)
+	case string(PKCS1PublicKeyPEMType):
+		return x509.ParsePKCS1PublicKey(derBytes.Bytes)
+	default:
+		return nil, fmt.Errorf("unknown Public key PEM file type: %v. Are you passing the correct public key?",
+			derBytes.Type)
+	}
 }
 
 // MarshalPublicKeyToDER converts a crypto.PublicKey into a PKIX, ASN.1 DER byte slice

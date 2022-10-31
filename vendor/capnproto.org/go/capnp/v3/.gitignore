@@ -3,6 +3,7 @@
 TAGS
 *~
 *.swp
+*.out
 
 # Bazel
 /bazel-bin

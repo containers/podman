@@ -3,8 +3,9 @@ package flowcontrol
 import (
 	"context"
 	"fmt"
-	"golang.org/x/sync/semaphore"
 	"math"
+
+	"golang.org/x/sync/semaphore"
 )
 
 // Returns a FlowLimiter that enforces a fixed limit on the total size of
@@ -32,3 +33,5 @@ func (fl *fixedLimiter) StartMessage(ctx context.Context, size uint64) (gotRespo
 		w.Release(int64(size))
 	}, nil
 }
+
+func (fixedLimiter) Release() {}

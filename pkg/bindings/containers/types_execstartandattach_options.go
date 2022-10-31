@@ -2,7 +2,6 @@
 package containers
 
 import (
-	"bufio"
 	"io"
 	"net/url"
 
@@ -50,15 +49,15 @@ func (o *ExecStartAndAttachOptions) GetErrorStream() io.WriteCloser {
 }
 
 // WithInputStream set field InputStream to given value
-func (o *ExecStartAndAttachOptions) WithInputStream(value bufio.Reader) *ExecStartAndAttachOptions {
+func (o *ExecStartAndAttachOptions) WithInputStream(value io.ReadCloser) *ExecStartAndAttachOptions {
 	o.InputStream = &value
 	return o
 }
 
 // GetInputStream returns value of field InputStream
-func (o *ExecStartAndAttachOptions) GetInputStream() bufio.Reader {
+func (o *ExecStartAndAttachOptions) GetInputStream() io.ReadCloser {
 	if o.InputStream == nil {
-		var z bufio.Reader
+		var z io.ReadCloser
 		return z
 	}
 	return *o.InputStream

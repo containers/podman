@@ -2,6 +2,7 @@ package capnp
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 	"sync"
 
@@ -53,14 +54,14 @@ type Promise struct {
 	// After decrementing ongoingCalls, callsStopped should be closed if
 	// ongoingCalls is zero to wake up the goroutine.
 	//
-	// Only Fulfill, Reject, or Join will set callsStopped.
+	// Only Fulfill or Reject will set callsStopped.
 	callsStopped chan struct{}
 
 	// clients is a table of promised clients created to proxy the eventual
 	// result's clients.  Even after resolution, this table may still have
 	// entries until the clients are released. Cannot be read or written
-	// in either of the pending states.
-	clients map[clientPath][]clientAndPromise
+	// in the pending state.
+	clients map[clientPath]*clientAndPromise
 
 	// releasedClients is true after ReleaseClients has been called on this
 	// promise.  Only the receiver of ReleaseClients should set this to true.
@@ -126,12 +127,7 @@ func (p *Promise) resolution() resolution {
 // PipelineCaller to yield Answers and any pipelined clients to be
 // fulfilled.
 func (p *Promise) Fulfill(result Ptr) {
-	defer p.mu.Unlock()
-	p.mu.Lock()
-	if !p.isUnresolved() {
-		panic("Promise.Fulfill called after Fulfill, Reject, or Join")
-	}
-	p.resolve(result, nil)
+	p.Resolve(result, nil)
 }
 
 // Reject resolves the promise with a failure.
@@ -143,12 +139,7 @@ func (p *Promise) Reject(e error) {
 	if e == nil {
 		panic("Promise.Reject(nil)")
 	}
-	defer p.mu.Unlock()
-	p.mu.Lock()
-	if !p.isUnresolved() {
-		panic("Promise.Reject called after Fulfill, Reject, or Join")
-	}
-	p.resolve(Ptr{}, e)
+	p.Resolve(Ptr{}, e)
 }
 
 // Resolve resolves the promise.
@@ -156,48 +147,70 @@ func (p *Promise) Reject(e error) {
 // If e != nil, then this is equivalent to p.Reject(e).
 // Otherwise, it is equivalent to p.Fulfill(r).
 func (p *Promise) Resolve(r Ptr, e error) {
-	if e != nil {
-		p.Reject(e)
-	} else {
-		p.Fulfill(r)
+	var shutdownPromises []*ClientPromise
+	syncutil.With(&p.mu, func() {
+		if e != nil {
+			p.requireUnresolved("Reject")
+		} else {
+			p.requireUnresolved("Fulfill")
+		}
+		p.caller = nil
+
+		if len(p.clients) > 0 || p.ongoingCalls > 0 {
+			// Pending resolution state: wait for clients to be fulfilled
+			// and calls to have answers.  p.clients cannot be touched in the
+			// pending resolution state, so we have exclusive access to the
+			// variable.
+			if p.ongoingCalls > 0 {
+				p.callsStopped = make(chan struct{})
+			}
+			syncutil.Without(&p.mu, func() {
+				res := resolution{p.method, r, e}
+				for path, cp := range p.clients {
+					t := path.transform()
+					cp.promise.fulfill(res.client(t))
+					shutdownPromises = append(shutdownPromises, cp.promise)
+					cp.promise = nil
+				}
+				if p.callsStopped != nil {
+					<-p.callsStopped
+				}
+			})
+		}
+
+		// Move p into resolved state.
+		p.callsStopped = nil
+		p.result, p.err = r, e
+		for _, f := range p.signals {
+			f()
+		}
+		p.signals = nil
+	})
+	for _, promise := range shutdownPromises {
+		promise.shutdown()
 	}
 }
 
-// resolve moves p into the resolved state from unresolved.  The caller
-// must be holding onto p.mu.
-func (p *Promise) resolve(r Ptr, e error) {
-	p.caller = nil
-
-	if len(p.clients) > 0 || p.ongoingCalls > 0 {
-		// Pending resolution state: wait for clients to be fulfilled
-		// and calls to have answers.  p.clients cannot be touched in the
-		// pending resolution state, so we have exclusive access to the
-		// variable.
-		if p.ongoingCalls > 0 {
-			p.callsStopped = make(chan struct{})
+// requireUnresolved is a helper method for checking for duplicate
+// calls to Fulfill() or Reject(); panics if the promise is not in
+// the unresolved state.
+//
+// The callerMethod argument should be the name of the method which
+// is invoking requireUnresolved. The panic message will report this
+// value as well as the method that originally resolved the promise,
+// and which method (Fulfill or Reject) was used to resolve it.
+func (p *Promise) requireUnresolved(callerMethod string) {
+	if !p.isUnresolved() {
+		var prevMethod string
+		if p.err == nil {
+			prevMethod = "Fulfill"
+		} else {
+			prevMethod = fmt.Sprintf("Reject (error = %q)", p.err)
 		}
-		syncutil.Without(&p.mu, func() {
-			res := resolution{p.method, r, e}
-			for path, row := range p.clients {
-				t := path.transform()
-				for i := range row {
-					row[i].promise.Fulfill(res.client(t))
-					row[i].promise = nil
-				}
-			}
-			if p.callsStopped != nil {
-				<-p.callsStopped
-			}
-		})
-	}
 
-	// Move p into resolved state.
-	p.callsStopped = nil
-	p.result, p.err = r, e
-	for _, f := range p.signals {
-		f()
+		panic("Promise." + callerMethod +
+			" called after previous call to " + prevMethod)
 	}
-	p.signals = nil
 }
 
 // Answer returns a read-only view of the promise.
@@ -224,10 +237,8 @@ func (p *Promise) ReleaseClients() {
 	clients := p.clients
 	p.clients = nil
 	p.mu.Unlock()
-	for _, row := range clients {
-		for _, cp := range row {
-			cp.client.Release()
-		}
+	for _, cp := range clients {
+		cp.client.Release()
 	}
 }
 
@@ -422,7 +433,7 @@ func (f *Future) Struct() (Struct, error) {
 // Client returns the future as a client.  If the answer's originating
 // call has not completed, then calls will be queued until the original
 // call's completion.  The client reference is borrowed: the caller
-// should not call Close.
+// should not call Release.
 func (f *Future) Client() Client {
 	p := f.promise
 	p.mu.Lock()
@@ -430,17 +441,17 @@ func (f *Future) Client() Client {
 	case p.isUnresolved():
 		ft := f.transform()
 		cpath := clientPathFromTransform(ft)
-		if row := p.clients[cpath]; len(row) > 0 {
-			return row[0].client
+		if cp := p.clients[cpath]; cp != nil {
+			return cp.client
 		}
 		c, pr := NewPromisedClient(PipelineClient{
 			p:         p,
 			transform: ft,
 		})
 		if p.clients == nil {
-			p.clients = make(map[clientPath][]clientAndPromise)
+			p.clients = make(map[clientPath]*clientAndPromise)
 		}
-		p.clients[cpath] = []clientAndPromise{{c, pr}}
+		p.clients[cpath] = &clientAndPromise{c, pr}
 		p.mu.Unlock()
 		return c
 	case p.isPendingResolution():

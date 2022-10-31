@@ -941,15 +941,16 @@ func (t *http2Server) streamContextErr(s *Stream) error {
 
 // WriteHeader sends the header metadata md back to the client.
 func (t *http2Server) WriteHeader(s *Stream, md metadata.MD) error {
-	if s.updateHeaderSent() {
-		return ErrIllegalHeaderWrite
-	}
-
+	s.hdrMu.Lock()
+	defer s.hdrMu.Unlock()
 	if s.getState() == streamDone {
 		return t.streamContextErr(s)
 	}
 
-	s.hdrMu.Lock()
+	if s.updateHeaderSent() {
+		return ErrIllegalHeaderWrite
+	}
+
 	if md.Len() > 0 {
 		if s.header.Len() > 0 {
 			s.header = metadata.Join(s.header, md)
@@ -958,7 +959,6 @@ func (t *http2Server) WriteHeader(s *Stream, md metadata.MD) error {
 		}
 	}
 	if err := t.writeHeaderLocked(s); err != nil {
-		s.hdrMu.Unlock()
 		return status.Convert(err).Err()
 	}
 	return nil

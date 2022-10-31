@@ -15,3 +15,5 @@ type nopLimiter struct{}
 func (nopLimiter) StartMessage(context.Context, uint64) (func(), error) {
 	return func() {}, nil
 }
+
+func (nopLimiter) Release() {}

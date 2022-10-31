@@ -123,7 +123,9 @@ func (c *Conn) newReturn(ctx context.Context) (rpccp.Return, func(), capnp.Relea
 			send:    send,
 			release: release,
 			callback: func(err error) {
-				c.er.ReportError(fmt.Errorf("send return: %w", err))
+				if err != nil {
+					c.er.ReportError(fmt.Errorf("send return: %w", err))
+				}
 			},
 		})
 	}, release, nil
@@ -232,7 +234,9 @@ func (ans *answer) sendReturn() (releaseList, error) {
 
 	var err error
 	ans.exportRefs, err = ans.c.fillPayloadCapTable(ans.results, ans.resultCapTable)
-	ans.c.er.ReportError(rpcerr.Annotate(err, "send return")) // nop if err == nil
+	if err != nil {
+		ans.c.er.ReportError(rpcerr.Annotate(err, "send return"))
+	}
 	// Continue.  Don't fail to send return if cap table isn't fully filled.
 
 	select {

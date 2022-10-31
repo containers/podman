@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path"
@@ -1262,7 +1261,7 @@ func (d *Driver) recreateSymlinks() error {
 		linkDirFullPath := filepath.Join(d.home, "l")
 		// Now check if we somehow lost a "link" file, by making sure
 		// that each symlink we have corresponds to one.
-		links, err := ioutil.ReadDir(linkDirFullPath)
+		links, err := os.ReadDir(linkDirFullPath)
 		if err != nil {
 			errs = multierror.Append(errs, err)
 			continue
@@ -1296,7 +1295,7 @@ func (d *Driver) recreateSymlinks() error {
 			if err != nil || string(data) != link.Name() {
 				// NOTE: If two or more links point to the same target, we will update linkFile
 				// with every value of link.Name(), and set madeProgress = true every time.
-				if err := ioutil.WriteFile(linkFile, []byte(link.Name()), 0644); err != nil {
+				if err := os.WriteFile(linkFile, []byte(link.Name()), 0644); err != nil {
 					errs = multierror.Append(errs, fmt.Errorf("correcting link for layer %s: %w", targetID, err))
 					continue
 				}
@@ -1383,22 +1382,6 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 	// absLowers is the list of lowers as absolute paths.
 	absLowers := []string{}
 
-	// Check if $link/../diff{1-*} exist.  If they do, add them, in order, as the front of the lowers
-	// lists that we're building.  "diff" itself is the upper, so it won't be in the lists.
-	link, err := ioutil.ReadFile(path.Join(dir, "link"))
-	if err != nil {
-		if !os.IsNotExist(err) {
-			return "", err
-		}
-		logrus.Warnf("Can't read parent link %q because it does not exist. Going through storage to recreate the missing links.", path.Join(dir, "link"))
-		if err := d.recreateSymlinks(); err != nil {
-			return "", fmt.Errorf("recreating the links: %w", err)
-		}
-		link, err = ioutil.ReadFile(path.Join(dir, "link"))
-		if err != nil {
-			return "", err
-		}
-	}
 	diffN := 1
 	perms := defaultPerms
 	if d.options.forceMask != nil {

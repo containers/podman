@@ -3,6 +3,7 @@ package libpod
 import (
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"os/exec"
@@ -602,11 +603,12 @@ func attachExecHTTP(c *Container, sessionID string, r *http.Request, w http.Resp
 	stdoutChan := make(chan error)
 	stdinChan := make(chan error)
 
+	reader := io.NopCloser(httpBuf)
 	// Next, STDIN. Avoid entirely if attachStdin unset.
 	if attachStdin {
 		go func() {
 			logrus.Debugf("Beginning STDIN copy")
-			_, err := cutil.CopyDetachable(conn, httpBuf, detachKeys)
+			_, err := cutil.CopyDetachable(conn, reader, detachKeys)
 			logrus.Debugf("STDIN copy completed")
 			stdinChan <- err
 		}()

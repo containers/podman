@@ -200,6 +200,15 @@ func SamePtr(p, q Ptr) bool {
 	return p.seg == q.seg && p.off == q.off
 }
 
+// EncodeAsPtr returns the receiver; for implementing TypeParam.
+// The segment argument is ignored.
+func (p Ptr) EncodeAsPtr(*Segment) Ptr { return p }
+
+// DecodeFromPtr returns its argument; for implementing TypeParam.
+func (Ptr) DecodeFromPtr(p Ptr) Ptr { return p }
+
+var _ TypeParam[Ptr] = Ptr{}
+
 func unmarshalDefault(def []byte) (Ptr, error) {
 	msg, err := Unmarshal(def)
 	if err != nil {

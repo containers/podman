@@ -1,7 +1,12 @@
 package capnp
 
 // Struct is a pointer to a struct.
-type Struct struct {
+type Struct StructKind
+
+// The underlying type of Struct. We expose this so that
+// we can use ~StructKind as a constraint in generics to
+// capture any struct type.
+type StructKind = struct {
 	seg        *Segment
 	off        address
 	size       ObjectSize
@@ -135,7 +140,7 @@ func (p Struct) SetNewText(i uint16, v string) error {
 	if err != nil {
 		return err
 	}
-	return p.SetPtr(i, t.List.ToPtr())
+	return p.SetPtr(i, t.ToPtr())
 }
 
 // SetTextFromBytes sets the i'th pointer to a newly allocated text or null if v is nil.
@@ -147,7 +152,7 @@ func (p Struct) SetTextFromBytes(i uint16, v []byte) error {
 	if err != nil {
 		return err
 	}
-	return p.SetPtr(i, t.List.ToPtr())
+	return p.SetPtr(i, t.ToPtr())
 }
 
 // SetData sets the i'th pointer to a newly allocated data or null if v is nil.
@@ -159,7 +164,7 @@ func (p Struct) SetData(i uint16, v []byte) error {
 	if err != nil {
 		return err
 	}
-	return p.SetPtr(i, d.List.ToPtr())
+	return p.SetPtr(i, d.ToPtr())
 }
 
 func (p Struct) pointerAddress(i uint16) address {
@@ -345,3 +350,13 @@ func copyStruct(dst, src Struct) error {
 
 	return nil
 }
+
+// s.EncodeAsPtr is equivalent to s.ToPtr(); for implementing TypeParam.
+// The segment argument is ignored.
+func (s Struct) EncodeAsPtr(*Segment) Ptr { return s.ToPtr() }
+
+// DecodeFromPtr(p) is equivalent to p.Struct() (the receiver is ignored).
+// for implementing TypeParam.
+func (Struct) DecodeFromPtr(p Ptr) Struct { return p.Struct() }
+
+var _ TypeParam[Struct] = Struct{}

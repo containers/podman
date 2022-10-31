@@ -34,7 +34,7 @@ func newImageDestination(sys *types.SystemContext, ref archiveReference) (privat
 		writer = w
 		closeWriter = true
 	}
-	tarDest := tarfile.NewDestination(sys, archive, ref.Transport().Name(), ref.ref)
+	tarDest := tarfile.NewDestination(sys, writer.archive, ref.Transport().Name(), ref.ref)
 	if sys != nil && sys.DockerArchiveAdditionalTags != nil {
 		tarDest.AddRepoTags(sys.DockerArchiveAdditionalTags)
 	}

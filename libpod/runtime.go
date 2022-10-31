@@ -2,12 +2,16 @@ package libpod
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
 	"math/rand"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"syscall"
@@ -39,6 +43,17 @@ import (
 	"github.com/docker/docker/pkg/namesgenerator"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
+)
+
+const (
+	// conmonMinMajorVersion is the major version required for conmon.
+	conmonMinMajorVersion = 2
+
+	// conmonMinMinorVersion is the minor version required for conmon.
+	conmonMinMinorVersion = 0
+
+	// conmonMinPatchVersion is the sub-minor version required for conmon.
+	conmonMinPatchVersion = 24
 )
 
 // A RuntimeOption is a functional option which alters the Runtime created by

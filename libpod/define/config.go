@@ -1,7 +1,6 @@
 package define
 
 import (
-	"bufio"
 	"io"
 	"regexp"
 
@@ -58,7 +57,7 @@ type AttachStreams struct {
 	// ErrorStream will be attached to container's STDERR
 	ErrorStream io.WriteCloser
 	// InputStream will be attached to container's STDIN
-	InputStream *bufio.Reader
+	InputStream io.ReadCloser
 	// AttachOutput is whether to attach to STDOUT
 	// If false, stdout will not be attached
 	AttachOutput bool

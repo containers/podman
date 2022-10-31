@@ -92,7 +92,7 @@ func (c *Container) runHealthCheck(ctx context.Context, isStartup bool) (define.
 
 	streams := new(define.AttachStreams)
 
-	streams.InputStream = bufio.NewReader(os.Stdin)
+	streams.InputStream = os.Stdin
 	streams.OutputStream = wPipe
 	streams.ErrorStream = wPipe
 	streams.AttachOutput = true

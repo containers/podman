@@ -144,7 +144,7 @@ func getAvailableControllers(exclude map[string]controllerHandler, cgroup2 bool)
 		}
 		controllersFileBytes, err := os.ReadFile(controllersFile)
 		if err != nil {
-			return nil, fmt.Errorf("failed while reading controllers for cgroup v2 from %q: %w", controllersFile, err)
+			return nil, fmt.Errorf("failed while reading controllers for cgroup v2: %w", err)
 		}
 		for _, controllerName := range strings.Fields(string(controllersFileBytes)) {
 			c := controller{
@@ -263,7 +263,7 @@ func (c *CgroupControl) initialize() (err error) {
 	}()
 	if c.cgroup2 {
 		if err := createCgroupv2Path(filepath.Join(cgroupRoot, c.path)); err != nil {
-			return fmt.Errorf("error creating cgroup path %s: %w", c.path, err)
+			return fmt.Errorf("creating cgroup path %s: %w", c.path, err)
 		}
 	}
 	for name, handler := range handlers {
@@ -284,7 +284,7 @@ func (c *CgroupControl) initialize() (err error) {
 			}
 			path := c.getCgroupv1Path(ctr.name)
 			if err := os.MkdirAll(path, 0o755); err != nil {
-				return fmt.Errorf("error creating cgroup path for %s: %w", ctr.name, err)
+				return fmt.Errorf("creating cgroup path for %s: %w", ctr.name, err)
 			}
 		}
 	}
@@ -532,7 +532,7 @@ func (c *CgroupControl) AddPid(pid int) error {
 
 	if c.cgroup2 {
 		p := filepath.Join(cgroupRoot, c.path, "cgroup.procs")
-		if err := ioutil.WriteFile(p, pidString, 0o644); err != nil {
+		if err := os.WriteFile(p, pidString, 0o644); err != nil {
 			return fmt.Errorf("write %s: %w", p, err)
 		}
 		return nil
@@ -555,7 +555,7 @@ func (c *CgroupControl) AddPid(pid int) error {
 			continue
 		}
 		p := filepath.Join(c.getCgroupv1Path(n), "tasks")
-		if err := ioutil.WriteFile(p, pidString, 0o644); err != nil {
+		if err := os.WriteFile(p, pidString, 0o644); err != nil {
 			return fmt.Errorf("write %s: %w", p, err)
 		}
 	}
