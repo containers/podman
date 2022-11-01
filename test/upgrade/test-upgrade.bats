@@ -320,6 +320,10 @@ failed    | exited     | 17
     run_podman pod start mypod
     is "$output" "[0-9a-f]\\{64\\}" "podman pod start"
 
+    # run a container in an existing pod
+    run_podman run --pod=mypod --ipc=host --rm $IMAGE echo it works
+    is "$output" ".*it works.*" "podman run --pod"
+
     run_podman pod ps
     is "$output" ".*mypod.*" "podman pod ps shows name"
     is "$output" ".*Running.*" "podman pod ps shows running state"

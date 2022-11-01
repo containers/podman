@@ -382,6 +382,13 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 					if err != nil {
 						return nil, fmt.Errorf("retrieving pod %s cgroup: %w", pod.ID(), err)
 					}
+					expectPodCgroup, err := ctr.expectPodCgroup()
+					if err != nil {
+						return nil, err
+					}
+					if expectPodCgroup && podCgroup == "" {
+						return nil, fmt.Errorf("pod %s cgroup is not set: %w", pod.ID(), define.ErrInternal)
+					}
 					ctr.config.CgroupParent = podCgroup
 				case rootless.IsRootless() && ctr.config.CgroupsMode != cgroupSplit:
 					ctr.config.CgroupParent = SystemdDefaultRootlessCgroupParent
