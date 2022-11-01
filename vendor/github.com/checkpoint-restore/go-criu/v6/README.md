@@ -4,19 +4,20 @@
 
 ## go-criu -- Go bindings for CRIU
 
-This repository provides Go bindings for [CRIU](https://criu.org/). The code is based on the Go-based PHaul
-implementation from the CRIU repository. For easier inclusion into other Go projects the
-CRIU Go bindings have been moved to this repository.
+This repository provides Go bindings for [CRIU](https://criu.org/).
+The code is based on the Go-based PHaul implementation from the CRIU repository.
+For easier inclusion into other Go projects, the CRIU Go bindings have been moved to this repository.
 
-The Go bindings provide an easy way to use the CRIU RPC calls from Go without the need
-to set up all the infrastructure to make the actual RPC connection to CRIU.
+### CRIU
+The Go bindings provide an easy way to use the CRIU RPC calls from Go without
+the need to set up all the infrastructure to make the actual RPC connection to CRIU.
 
 The following example would print the version of CRIU:
 ```go
 import (
 	"log"
 
-	"github.com/checkpoint-restore/go-criu/v5"
+	"github.com/checkpoint-restore/go-criu/v6"
 )
 
 func main() {
@@ -36,6 +37,13 @@ or to just check if at least a certain CRIU version is installed:
 	result, err := c.IsCriuAtLeast(31100)
 ```
 
+### CRIT
+
+The `crit` package provides bindings to decode, encode, and manipulate
+CRIU image files natively within Go. It also provides a CLI tool similar
+to the original CRIT Python tool. To get started with this, see the docs
+at https://criu.org/CRIT_(Go_library).
+
 ## Releases
 
 The first go-criu release was 3.11 based on CRIU 3.11. The initial plan
@@ -50,7 +58,8 @@ The following table shows the relation between go-criu and criu versions:
 
 | Major version  | Latest release | CRIU version |
 | -------------- | -------------- | ------------ |
-| v5             | 5.2.0          | 3.16         |
+| v6             | 6.2.0          | 3.17         |
+| v5             | 5.3.0          | 3.16         |
 | v5             | 5.0.0          | 3.15         |
 | v4             | 4.1.0          | 3.14         |
 
@@ -86,7 +95,7 @@ by adding a "Signed-off-by" line containing the contributor's name and e-mail
 to every commit message. Your signature certifies that you wrote the patch or
 otherwise have the right to pass it on as an open-source patch.
 
-### License and copyright
+## License and copyright
 
 Unless mentioned otherwise in a specific file's header, all code in
 this project is released under the Apache 2.0 license.

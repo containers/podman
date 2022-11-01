@@ -7,7 +7,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/checkpoint-restore/go-criu/v5/magic"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -17,18 +16,18 @@ func readStatisticsFile(imgDir *os.File, fileName string) (*StatsEntry, error) {
 		return nil, err
 	}
 
-	if binary.LittleEndian.Uint32(buf[magic.PrimaryMagicOffset:magic.SecondaryMagicOffset]) != magic.ImgServiceMagic {
+	if binary.LittleEndian.Uint32(buf[PrimaryMagicOffset:SecondaryMagicOffset]) != ImgServiceMagic {
 		return nil, errors.New("Primary magic not found")
 	}
 
-	if binary.LittleEndian.Uint32(buf[magic.SecondaryMagicOffset:magic.SizeOffset]) != magic.StatsMagic {
+	if binary.LittleEndian.Uint32(buf[SecondaryMagicOffset:SizeOffset]) != StatsMagic {
 		return nil, errors.New("Secondary magic not found")
 	}
 
-	payloadSize := binary.LittleEndian.Uint32(buf[magic.SizeOffset:magic.PayloadOffset])
+	payloadSize := binary.LittleEndian.Uint32(buf[SizeOffset:PayloadOffset])
 
 	st := &StatsEntry{}
-	if err := proto.Unmarshal(buf[magic.PayloadOffset:magic.PayloadOffset+payloadSize], st); err != nil {
+	if err := proto.Unmarshal(buf[PayloadOffset:PayloadOffset+payloadSize], st); err != nil {
 		return nil, err
 	}
 

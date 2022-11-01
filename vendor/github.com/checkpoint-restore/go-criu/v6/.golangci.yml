@@ -1,12 +1,10 @@
-run:
-  skip_dirs:
-    - rpc
-    - stats
-
 linters:
-  disable-all: false
   presets:
     - bugs
     - performance
     - unused
     - format
+
+linters-settings:
+  exhaustive:
+    default-signifies-exhaustive: true

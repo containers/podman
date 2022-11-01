@@ -53,12 +53,11 @@ github.com/buger/goterm
 # github.com/checkpoint-restore/checkpointctl v0.0.0-20220321135231-33f4a66335f0
 ## explicit; go 1.15
 github.com/checkpoint-restore/checkpointctl/lib
-# github.com/checkpoint-restore/go-criu/v5 v5.3.0
-## explicit; go 1.13
-github.com/checkpoint-restore/go-criu/v5
-github.com/checkpoint-restore/go-criu/v5/magic
-github.com/checkpoint-restore/go-criu/v5/rpc
-github.com/checkpoint-restore/go-criu/v5/stats
+# github.com/checkpoint-restore/go-criu/v6 v6.3.0
+## explicit; go 1.16
+github.com/checkpoint-restore/go-criu/v6
+github.com/checkpoint-restore/go-criu/v6/rpc
+github.com/checkpoint-restore/go-criu/v6/stats
 # github.com/chzyer/readline v1.5.1
 ## explicit; go 1.15
 github.com/chzyer/readline
