@@ -32,7 +32,7 @@ jobs:
     cron_failures:
         runs-on: ubuntu-latest
         steps:
-            - uses: actions/checkout@629c2de402a417ea7690ca6ce3f33229e27606a5 # v2
+            - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # v3.1.0
               with:
                   persist-credentials: false
 
@@ -76,7 +76,7 @@ jobs:
                 body: file://./artifacts/email_body.txt
 
             - if: always()
-              uses: actions/upload-artifact@82c141cc518b40d92cc801eee768e7aafc9c2fa2 # v2
+              uses: actions/upload-artifact@83fd05a356d7e2593de66fc9913b3002723633cb # v3.1.1
               with:
                   name: ${{ github.job }}_artifacts
                   path: artifacts/*
