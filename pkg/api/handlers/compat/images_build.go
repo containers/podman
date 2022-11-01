@@ -804,6 +804,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 					if err := enc.Encode(m); err != nil {
 						logrus.Warnf("failed to json encode error %v", err)
 					}
+					flush()
 					m.Aux = nil
 					m.Stream = fmt.Sprintf("Successfully built %12.12s\n", imageID)
 					if err := enc.Encode(m); err != nil {
