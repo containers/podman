@@ -1,0 +1,16 @@
+#!/bin/bash
+
+set -e
+
+unset _debug_args
+if [[ -n "$PODMAN_RUNNER_DEBUG" ]]; then
+    _debug_args="--log-level=$PODMAN_RUNNER_DEBUG"
+fi
+
+if [[ "$1" == "run" ]] && [[ ! -S "/tmp/podman-run-1000/podman/podman.sock" ]]; then
+    podman $_debug_args system service -t 0 &
+    # Prevent SIGHUP propigation to podman process
+    disown -ar
+fi
+
+exec gitlab-runner "$@"

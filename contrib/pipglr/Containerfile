@@ -1,0 +1,144 @@
+# pipglr/Containerfile
+#
+# Builds a Podman-in-Podman Gitlab-Runner image for
+# executing Gitlab CI/CD jobs.  Requires configuration
+# steps specific to Gitlab projects. For more info. see
+# https://docs.gitlab.com/runner/executors/docker.html#use-podman-to-run-docker-commands
+#
+
+ARG FLAVOR="stable"
+ARG BASE_TAG="latest"
+FROM quay.io/podman/$FLAVOR:$BASE_TAG
+
+# This is a list of packages to remove and/or exclude from the image.
+# Primarily this is done for security reasons, should a runner process
+# escape confinement.  Having fewer things to poke, lowers the attack
+# surface-area.
+#
+# This list was formed manually by running these commands in the base image:
+#   for package in $(rpm -qa); do \
+#       if dnf erase $package; then echo "$package" >> exclude; fi; \
+#   done; \
+#   cat exclude
+#
+# After adding those packages to this file, the container build was run
+# and package list adjusted, untill no dependency errors were raised.
+ARG EXCLUDE_PACKAGES="\
+    fedora-repos-modular \
+    findutils \
+    libxcrypt-compat \
+    openldap-compat \
+    podman-gvproxy \
+    rootfiles \
+    sudo \
+    vim-minimal \
+    yum"
+
+# Base-image runs as user 'podman', temporarily switch to root
+# for installation/setup.
+USER root
+# Not a real build-arg.  Avoiding addition of an env. layer
+# only to help prevent some extra typing.
+ARG dnfcmd="dnf --setopt=tsflags=nodocs -y"
+# During install, excluding packages is meaningless if already installed
+RUN set -x && \
+    rm -f /etc/dnf/protected.d/sudo.conf && \
+    rm -f /etc/dnf/protected.d/yum.conf && \
+    $dnfcmd remove ${EXCLUDE_PACKAGES} && \
+    dnf clean all && \
+    rm -rf /var/cache/dnf
+
+# Enable callers to customize the runner version as needed, otherwise
+# assume this image will be version-tagged, so it's fine to grab the latest.
+ARG RUNNER_VERSION="latest"
+# When building a multi-arch manifest-list, this buid-arg is set automatically.
+ARG TARGETARCH="amd64"
+ENV RUNNER_RPM_URL=https://gitlab-runner-downloads.s3.amazonaws.com/${RUNNER_VERSION}/rpm/gitlab-runner_${TARGETARCH}.rpm
+RUN for rpm in ${EXCLUDE_PACKAGES}; do x+="--exclude=$rpm "; done && \
+    set -x && \
+    $dnfcmd update && \
+    $dnfcmd install $x $RUNNER_RPM_URL && \
+    $dnfcmd upgrade && \
+    dnf clean all && \
+    rm -rf /var/cache/dnf
+
+# In case of a runner escape, prevent easy installation of packages.
+RUN rm -f /etc/dnf/protected.d/* && \
+    rpm -e dnf && \
+    rm -f $(type -P rpm)
+
+ADD /config.toml /home/podman/.gitlab-runner/config.toml
+# The global "listen_address" option is used for metrics and
+# debugging.  Disable it by default since use requires special/
+# additional host configuration.
+# Ref: https://docs.gitlab.com/runner/configuration/advanced-configuration.html#the-global-section
+ARG RUNNER_LISTEN_ADDRESS="disabled"
+ENV RUNNER_LISTEN_ADDRESS=$RUNNER_LISTEN_ADDRESS
+RUN if [[ "$RUNNER_LISTEN_ADDRESS" == "disabled" ]]; then \
+        sed -i -r \
+            -e "s/.*@@RUNNER_LISTEN_ADDRESS@@.*//g" \
+            /home/podman/.gitlab-runner/config.toml; \
+    else \
+        sed -i -r \
+            -e "s/@@RUNNER_LISTEN_ADDRESS@@/$RUNNER_LISTEN_ADDRESS/g" \
+            /home/podman/.gitlab-runner/config.toml; \
+    fi
+
+# A small wrapper is needed to launch a background podman system service
+# process for the gitlab-runner to connect to.
+ADD /gitlab-runner-wrapper /usr/local/bin/
+# Base image UTS NS configuration causes runner to break when launching
+# nested rootless containers.
+RUN sed -i -r \
+        -e 's/^utsns.+host.*/utsns="private"/' \
+        /etc/containers/containers.conf && \
+    chmod +x /usr/local/bin/gitlab-runner-wrapper && \
+    chown -R podman.podman /home/podman && \
+    rm -f /home/podman/.bash* && \
+    echo DOCKER_HOST="unix:///tmp/podman-run-1000/podman/podman.sock" > /etc/profile.d/podman.sh
+
+# Runtime rootless-mode configuration
+USER podman
+VOLUME ["/home/podman/.local/share/containers/storage/",\
+        "/home/podman/.gitlab-runner/"]
+WORKDIR /home/podman
+ENTRYPOINT ["/usr/local/bin/gitlab-runner-wrapper"]
+
+# Gitlab-runner configuration options.  Default to unprivileged (nested)
+# runner.  Privileged is required to permit nested container image building.
+ARG PRIVILEGED_RUNNER="false"
+# Tags allow pinning jobs to specific runners, comma-separated list of
+# tags to add to runner (no spaces!)
+ARG RUNNER_TAGS="podman_in_podman"
+# Permit running jobs without any tag at all
+ARG RUNNER_UNTAGGED="true"
+ENV REGISTER_NON_INTERACTIVE="true" \
+    RUNNER_TAG_LIST="$RUNNER_TAGS" \
+    REGISTER_RUN_UNTAGGED="$RUNNER_UNTAGGED" \
+    REGISTER_ACCESS_LEVEL="ref_protected" \
+    REGISTER_MAXIMUM_TIMEOUT="3600" \
+    CI_SERVER_URL="https://gitlab.com/" \
+    RUNNER_EXECUTOR="docker" \
+    RUNNER_SHELL="bash" \
+    REGISTER_MAINTENANCE_NOTE="Podman-in-Podman containerized runner" \
+    DOCKER_HOST="unix:///tmp/podman-run-1000/podman/podman.sock" \
+    DOCKER_DEVICES="/dev/fuse" \
+    DOCKER_IMAGE="registry.fedoraproject.org/fedora-minimal:latest" \
+    DOCKER_CACHE_DIR="/home/podman/.cache/gitlab-runner" \
+    DOCKER_NETWORK_MODE="host" \
+    DOCKER_PRIVILEGED="$PRIVILEGED_RUNNER"
+
+# Not a real build-arg.  Simply here to save lots of typing.
+ARG _pm="--systemd=true --device=/dev/fuse --security-opt label=disable --user podman -v gitlab-runner-storage:/home/podman/.local/share/containers/storage:Z,U -v gitlab-runner-cache:/home/podman/.cache/gitlab-runner:Z,U -v gitlab-runner-config:/home/podman/.gitlab-runner:Z,U -e PODMAN_RUNNER_DEBUG"
+
+# These labels simply make it easier to register and execute the runner.
+# Define them last so they are absent should a image-build failure occur.
+LABEL register="podman run -it --rm $_pm --secret REGISTRATION_TOKEN,type=env \$IMAGE register"
+
+# TODO: Figure out what's needed to run w/o --privileged.  When unspecified,
+# conmon fails with this error (from podman debug output):
+#
+# DEBU[0019] running conmon: /usr/bin/conmon args="[--api-version 1 -c 289...c08 -u 289...c08 -r /usr/bin/crun -b /home/podman/.local/share/containers/storage/overlay-containers/289...c08/userdata -p /tmp/podman-run-1000/containers/overlay-containers/289...c08/userdata/pidfile -n runner-8pxm3xb-project-19009784-concurrent-0-a71b53d132a29e56-predefined-0 --exit-dir /tmp/podman-run-1000/libpod/tmp/exits --full-attach -l k8s-file:/home/podman/.local/share/containers/storage/overlay-containers/289...c08/userdata/ctr.log --log-level debug --syslog --runtime-arg --cgroup-manager --runtime-arg disabled -i --conmon-pidfile /tmp/podman-run-1000/containers/overlay-containers/289...c08/userdata/conmon.pid --exit-command /usr/bin/podman --exit-command-arg --root --exit-command-arg /home/podman/.local/share/containers/storage --exit-command-arg --runroot --exit-command-arg /tmp/podman-run-1000/containers --exit-command-arg --log-level --exit-command-arg debug --exit-command-arg --cgroup-manager --exit-command-arg cgroupfs --exit-command-arg --tmpdir --exit-command-arg /tmp/podman-run-1000/libpod/tmp --exit-command-arg --network-config-dir --exit-command-arg  --exit-command-arg --network-backend --exit-command-arg netavark --exit-command-arg --volumepath --exit-command-arg /home/podman/.local/share/containers/storage/volumes --exit-command-arg --runtime --exit-command-arg crun --exit-command-arg --storage-driver --exit-command-arg overlay --exit-command-arg --events-backend --exit-command-arg file --exit-command-arg --syslog --exit-command-arg container --exit-command-arg cleanup --exit-command-arg 289...c08]"
+# [conmon:d]: failed to write to /proc/self/oom_score_adj: Permission denied
+
+LABEL run="podman run -d --privileged --name gitlab-runner $_pm -p $RUNNER_SESSION_PORT:$RUNNER_SESSION_PORT \$IMAGE run"

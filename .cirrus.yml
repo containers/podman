@@ -891,6 +891,10 @@ image_build_task: &image-build
             CTXDIR: contrib/podmanimage/stable
         - env:
             CTXDIR: contrib/hello
+        - env:
+            CTXDIR: contrib/pipglr
+            FLAVOR: stable
+            REPO_FQIN: "quay.io/containers/pipglr"
     env:
         DISTRO_NV: "${FEDORA_NAME}"  # Required for repo cache extraction
         PODMAN_USERNAME: ENCRYPTED[b9f0f2550029dd2196e086d9dd6c2d1fec7e328630b15990d9bb610f9fcccb5baab8b64a8c3e72b0c1d0f5917cf65aa1]
@@ -898,7 +902,7 @@ image_build_task: &image-build
         CONTAINERS_USERNAME: ENCRYPTED[54a372d5f22f424173c114c6fb25c3214956cad323d5b285c7393a71041884ce96471d0ff733774e5dab9fa5a3c8795c]
         CONTAINERS_PASSWORD: ENCRYPTED[4ecc3fb534935095a99fb1f2e320ac6bc87f3e7e186746e41cbcc4b5f5379a014b9fc8cc90e1f3d5abdbaf31580a4ab9]
     main_script:
-        - set -a; source /etc/automation_environment; set +a
+        - source /etc/automation_environment
         - main.sh $CIRRUS_REPO_CLONE_URL $CTXDIR
 
 

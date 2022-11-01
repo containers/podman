@@ -1,0 +1,7 @@
+
+# Ref: https://docs.gitlab.com/runner/configuration/advanced-configuration.html
+
+concurrent = 8
+# N/B: This is DIVIDED among the number of registered runners
+check_interval = 10
+listen_address = "@@RUNNER_LISTEN_ADDRESS@@"  # Will be removed if undefined
