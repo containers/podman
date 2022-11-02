@@ -63,7 +63,6 @@ BuildRequires: go-md2man
 BuildRequires: go-rpm-macros
 %endif
 %if 0%{?rhel} <= 8
-BuildRequires: pkgconfig(devmapper)
 BuildRequires: python3
 %endif
 BuildRequires: gpgme-devel
@@ -171,9 +170,14 @@ CGO_CFLAGS=$(echo $CGO_CFLAGS | sed 's/-specs=\/usr\/lib\/rpm\/redhat\/redhat-an
 export CGO_CFLAGS+=" -m64 -mtune=generic -fcf-protection=full"
 %endif
 
+# exclude_graphdriver_devicemapper doesn't work anymore with golang v1.19. Get
+# rid of this file instead.
+rm -rf vendor/github.com/containers/storage/drivers/register/register_devicemapper.go
+
 %if 0%{?rhel}
 rm -rf vendor/github.com/containers/storage/drivers/register/register_btrfs.go
 %endif
+
 
 # build date. FIXME: Makefile uses '/v2/libpod', that doesn't work here?
 LDFLAGS="-X ./libpod/define.buildInfo=$(date +%s)"
@@ -182,7 +186,7 @@ LDFLAGS="-X ./libpod/define.buildInfo=$(date +%s)"
 %gobuild -o bin/rootlessport ./cmd/rootlessport
 
 # set base buildtags common to both %%{name} and %%{name}-remote
-export BASEBUILDTAGS="seccomp exclude_graphdriver_devicemapper $(hack/selinux_tag.sh) $(hack/systemd_tag.sh) $(hack/libsubid_tag.sh)"
+export BASEBUILDTAGS="seccomp $(hack/selinux_tag.sh) $(hack/systemd_tag.sh) $(hack/libsubid_tag.sh)"
 
 # build %%{name}
 export BUILDTAGS="$BASEBUILDTAGS $(hack/btrfs_installed_tag.sh) $(hack/btrfs_tag.sh)"
