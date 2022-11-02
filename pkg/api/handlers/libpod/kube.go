@@ -126,3 +126,29 @@ func KubePlayDown(w http.ResponseWriter, r *http.Request) {
 func KubeGenerate(w http.ResponseWriter, r *http.Request) {
 	GenerateKube(w, r)
 }
+
+func KubeApply(w http.ResponseWriter, r *http.Request) {
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
+	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
+	query := struct {
+		CACertFile string `schema:"caCertFile"`
+		Kubeconfig string `schema:"kubeconfig"`
+		Namespace  string `schema:"namespace"`
+	}{
+		// Defaults would go here.
+	}
+
+	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
+		utils.Error(w, http.StatusBadRequest, fmt.Errorf("failed to parse parameters for %s: %w", r.URL.String(), err))
+		return
+	}
+
+	containerEngine := abi.ContainerEngine{Libpod: runtime}
+	options := entities.ApplyOptions{CACertFile: query.CACertFile, Kubeconfig: query.Kubeconfig, Namespace: query.Namespace}
+	if err := containerEngine.KubeApply(r.Context(), r.Body, options); err != nil {
+		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("error applying YAML to k8s cluster: %w", err))
+		return
+	}
+
+	utils.WriteResponse(w, http.StatusOK, "Deployed!")
+}
