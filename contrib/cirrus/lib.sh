@@ -207,6 +207,14 @@ use_cni() {
     echo "unset NETWORK_BACKEND" >> /etc/ci_environment
     export -n NETWORK_BACKEND
     unset NETWORK_BACKEND
+    # While it's possible a user may want both installed, for CNI CI testing
+    # purposes we only care about backward-compatibility, not forward.
+    # If both CNI & netavark are present, in some situations where --root
+    # is used it's possible for podman to pick the "wrong" networking stack.
+    msg "Force-removing netavark and aardvark-dns"
+    # Other packages depend on nv/av, but we're testing with podman
+    # binaries built from source, so it's safe to ignore these deps.
+    rpm -e --nodeps netavark aardvark-dns
     msg "Installing default CNI configuration"
     dnf install -y $PACKAGE_DOWNLOAD_DIR/podman-plugins*
     cd $GOSRC || exit 1
@@ -228,6 +236,9 @@ use_netavark() {
     export NETWORK_BACKEND=netavark  # needed for install_test_configs()
     msg "Removing any/all CNI configuration"
     rm -rvf /etc/cni/net.d/*
+    # N/B: The netavark/aardvark-dns packages are still installed and
+    # available.  This is on purpose, since CI needs to verify the
+    # selection mechanisms are functional when both are available.
 }
 
 # Remove all files provided by the distro version of podman.
