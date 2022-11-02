@@ -394,7 +394,7 @@ EOF
 
     # Dispatch the YAML file
     service_name="podman-kube@$(systemd-escape $yaml_source).service"
-    systemctl start $service_name
+    systemctl start --property=Restart=on-failure $service_name
     systemctl is-active $service_name
 
     # The name of the service container is predictable: the first 12 characters
