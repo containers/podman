@@ -351,7 +351,7 @@ $ podman run -it --rm -e EPOCH_TEST_COMMIT -v $PWD:/usr/src/libpod:ro \
     validate
 ```
 
-### Integration Tests
+### Integration and Other Tests
 
 Our primary means of performing integration testing for Podman is with the
 [Ginkgo](https://github.com/onsi/ginkgo) BDD testing framework. This allows
@@ -360,7 +360,7 @@ between Ginkgo and the Go test framework.  Adequate test cases are expected to
 be provided with PRs.
 
 For details on how to run the tests for Podman in your test environment, see the
-Integration Tests [README.md](test/README.md).
+testing [README.md](test/README.md).
 
 ## Continuous Integration
 

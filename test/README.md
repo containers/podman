@@ -133,6 +133,10 @@ Make sure that `bats` binary (`bin/bats` in the repository) is in your `PATH`, i
 PATH=$PATH:~/tools/bats/bin
 ```
 
+System tests also rely on `jq`, `socat`, `nmap`, and other tools. For a
+comprehensive list, see the `%package tests` section in the
+[fedora specfile](https://src.fedoraproject.org/rpms/podman/blob/main/f/podman.spec).
+
 ## Running system tests
 When `bats` is installed and is in your `PATH`, you can run the test suite with following command:
 
