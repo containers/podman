@@ -125,24 +125,17 @@ case "$OS_RELEASE_ID" in
             msg "Enabling container_manage_cgroup"
             setsebool container_manage_cgroup true
         fi
-
-        # For the latest Fedora CI VM images, netavark/aardvark is the
-        # intended networking stack for podman.  All previous VM images
-        # should use CNI networking.  Upgrading from one to the other is
-        # not supported at this time.  The only exception in CI is
-        # the "upgrade tests" which must always use CNI.
-        #
-        # OS_RELEASE_VER is defined by automation-library
-        # shellcheck disable=SC2154
-        if [[ "$DISTRO_NV" != "$PRIOR_FEDORA_NAME" ]] && \
-           [[ "$TEST_FLAVOR" != "upgrade_test" ]];
-        then
-            use_netavark
-        else # Fedora N-1 or upgrade testing.
-            use_cni
-        fi
         ;;
     *) die_unknown OS_RELEASE_ID
+esac
+
+# Networking: force CNI or Netavark as requested in .cirrus.yml
+# (this variable is mandatory).
+# shellcheck disable=SC2154
+case "$CI_DESIRED_NETWORK" in
+    netavark)   use_netavark ;;
+    cni)        use_cni ;;
+    *)          die_unknown CI_DESIRED_NETWORK ;;
 esac
 
 # Required to be defined by caller: The environment where primary testing happens
@@ -196,6 +189,7 @@ esac
 # Required to be defined by caller: Are we testing as root or a regular user
 case "$PRIV_NAME" in
     root)
+        # shellcheck disable=SC2154
         if [[ "$TEST_FLAVOR" = "sys" || "$TEST_FLAVOR" = "apiv2" ]]; then
             # Used in local image-scp testing
             setup_rootless
@@ -212,6 +206,7 @@ case "$PRIV_NAME" in
     *) die_unknown PRIV_NAME
 esac
 
+# shellcheck disable=SC2154
 if [[ -n "$ROOTLESS_USER" ]]; then
     echo "ROOTLESS_USER=$ROOTLESS_USER" >> /etc/ci_environment
     echo "ROOTLESS_UID=$ROOTLESS_UID" >> /etc/ci_environment

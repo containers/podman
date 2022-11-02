@@ -103,16 +103,19 @@ build_task:
               CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
               # ID for re-use of build output
               CI_DESIRED_RUNTIME: crun
+              CI_DESIRED_NETWORK: netavark
         - env: &priorfedora_envvars
               DISTRO_NV: ${PRIOR_FEDORA_NAME}
               VM_IMAGE_NAME: ${PRIOR_FEDORA_CACHE_IMAGE_NAME}
               CTR_FQIN: ${PRIOR_FEDORA_CONTAINER_FQIN}
               CI_DESIRED_RUNTIME: crun
+              CI_DESIRED_NETWORK: cni
         #- env: &ubuntu_envvars
         #      DISTRO_NV: ${UBUNTU_NAME}
         #      VM_IMAGE_NAME: ${UBUNTU_CACHE_IMAGE_NAME}
         #      CTR_FQIN: ${UBUNTU_CONTAINER_FQIN}
         #      CI_DESIRED_RUNTIME: runc
+        #      CI_DESIRED_NETWORK: whatever
     env:
         TEST_FLAVOR: build
     # NOTE: The default way Cirrus-CI clones is *NOT* compatible with
@@ -192,6 +195,7 @@ build_aarch64_task:
         VM_IMAGE_NAME: ${FEDORA_AARCH64_AMI}
         CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
         CI_DESIRED_RUNTIME: crun
+        CI_DESIRED_NETWORK: netavark
         TEST_FLAVOR: build
     clone_script: *full_clone
     prebuild_script: *prebuild
@@ -591,11 +595,13 @@ container_integration_test_task:
               VM_IMAGE_NAME: ${FEDORA_CACHE_IMAGE_NAME}
               CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
               CI_DESIRED_RUNTIME: crun
+              CI_DESIRED_NETWORK: netavark
         - env:
               DISTRO_NV: ${PRIOR_FEDORA_NAME}
               VM_IMAGE_NAME: ${PRIOR_FEDORA_CACHE_IMAGE_NAME}
               CTR_FQIN: ${PRIOR_FEDORA_CONTAINER_FQIN}
               CI_DESIRED_RUNTIME: crun
+              CI_DESIRED_NETWORK: cni
     gce_instance: *standardvm
     timeout_in: 90m
     env:
@@ -650,6 +656,7 @@ podman_machine_task:
       PRIV_NAME: "rootless"  # intended use-case
       DISTRO_NV: "${FEDORA_NAME}"
       VM_IMAGE_NAME: "${FEDORA_AMI}"
+      CI_DESIRED_NETWORK: netavark
     clone_script: *get_gosrc
     setup_script: *setup
     main_script: *main
@@ -675,6 +682,7 @@ podman_machine_aarch64_task:
         PRIV_NAME: "rootless"  # intended use-case
         DISTRO_NV: "${FEDORA_AARCH64_NAME}"
         VM_IMAGE_NAME: "${FEDORA_AARCH64_AMI}"
+        CI_DESIRED_NETWORK: netavark
     clone_script: *get_gosrc_aarch64
     setup_script: *setup
     main_script: *main
@@ -760,6 +768,7 @@ rootless_remote_system_test_task:
               VM_IMAGE_NAME: ${FEDORA_CACHE_IMAGE_NAME}
               CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
               CI_DESIRED_RUNTIME: crun
+              CI_DESIRED_NETWORK: netavark
     <<: *local_system_test_task
     alias: rootless_remote_system_test
     depends_on:
@@ -822,6 +831,7 @@ buildah_bud_test_task:
         # Not used here, is used in other tasks
         VM_IMAGE_NAME: ${FEDORA_CACHE_IMAGE_NAME}
         CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
+        CI_DESIRED_NETWORK: netavark
     matrix:
         - env:
             PODBIN_NAME: podman
@@ -874,10 +884,13 @@ upgrade_test_task:
     matrix:
         - env:
               PODMAN_UPGRADE_FROM: v2.1.1
+              CI_DESIRED_NETWORK: cni
         - env:
               PODMAN_UPGRADE_FROM: v3.1.2
+              CI_DESIRED_NETWORK: cni
         - env:
               PODMAN_UPGRADE_FROM: v3.4.4
+              CI_DESIRED_NETWORK: cni
     gce_instance: *standardvm
     env:
         TEST_FLAVOR: upgrade_test
