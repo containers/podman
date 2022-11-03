@@ -89,6 +89,10 @@ function skip_if_remote() {
     _skip "skip_if_remote" "$@"
 }
 
+function skip_if_rootless() {
+    _skip "skip_if_rootless_environment" "$@"
+}
+
 function skip_if_rootless_remote() {
     _skip "skip_if_rootless_remote" "$@"
 }
@@ -244,6 +248,9 @@ skip_if_remote "FIXME FIXME FIXME: does this test make sense in remote?" \
 # 2022-08-17 buildah PR 4190
 skip_if_remote "Explicit request in buildah PR 4190 to skip this on remote" \
                "build: test race in updating image name while performing parallel commits"
+# 2023-04-20 flakes on rootless, too.
+skip_if_rootless "Flakes when run rootless, too. See Buildah PR 4190" \
+                 "build: test race in updating image name while performing parallel commits"
 
 ###############################################################################
 # BEGIN tests which are skipped due to actual podman or podman-remote bugs.
