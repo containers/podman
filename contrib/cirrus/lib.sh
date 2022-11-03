@@ -214,6 +214,9 @@ use_cni() {
     msg "Force-removing netavark and aardvark-dns"
     # Other packages depend on nv/av, but we're testing with podman
     # binaries built from source, so it's safe to ignore these deps.
+    #
+    # FIXME FIXME FIXME: if/when we bring back Ubuntu (or use Debian),
+    #       someone will have to conditionalize these rpm/dnf commands
     rpm -e --nodeps netavark aardvark-dns
     msg "Installing default CNI configuration"
     dnf install -y $PACKAGE_DOWNLOAD_DIR/podman-plugins*
@@ -236,9 +239,9 @@ use_netavark() {
     export NETWORK_BACKEND=netavark  # needed for install_test_configs()
     msg "Removing any/all CNI configuration"
     rm -rvf /etc/cni/net.d/*
-    # N/B: The netavark/aardvark-dns packages are still installed and
-    # available.  This is on purpose, since CI needs to verify the
-    # selection mechanisms are functional when both are available.
+    # N/B: The CNI packages are still installed and available. This is
+    # on purpose, since CI needs to verify the selection mechanisms are
+    # functional when both are available.
 }
 
 # Remove all files provided by the distro version of podman.
