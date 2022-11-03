@@ -1040,7 +1040,9 @@ success_task:
     clone_script: *noop
     script: *noop
 
-
+# WARNING: Most of the artifacts captured here are also have their
+# permalinks present in the `DOWNLOADS.md` file.  Any changes made
+# here, should probably be reflected in that document.
 artifacts_task:
     name: "Artifacts"
     alias: artifacts
