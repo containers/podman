@@ -314,7 +314,10 @@ EOF
 
     # Clean up
     run_podman rm $cid
-    run_podman pod rm -t 0 -f mypod
+    run_podman pod rm -t 0 -f --pod-id-file $pod_id_file
+    if [[ -e $pod_id_file ]]; then
+        die "pod-id-file $pod_id_file should be removed along with pod"
+    fi
     run_podman rmi $infra_image
 }
 

@@ -222,6 +222,9 @@ echo $rand        |   0 | $rand
 
     # All OK. Kill container.
     run_podman rm -f $cid
+    if [[ -e $cidfile ]]; then
+        die "cidfile $cidfile should be removed along with container"
+    fi
 }
 
 @test "podman run docker-archive" {

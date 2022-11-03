@@ -57,6 +57,8 @@ In addition, forcing can be used to remove unusable containers, e.g. containers
 whose OCI runtime has become unavailable.
 
 @@option ignore
+Further ignore when the specified `--cidfile` does not exist as it may have
+already been removed along with the container.
 
 #### **--latest**, **-l**
 
