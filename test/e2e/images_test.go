@@ -165,7 +165,7 @@ var _ = Describe("Podman images", func() {
 
 	It("podman images filter before image", func() {
 		dockerfile := `FROM quay.io/libpod/alpine:latest
-RUN apk update && apk add strace
+RUN echo hello > /hello
 `
 		podmanTest.BuildImage(dockerfile, "foobar.com/before:latest", "false")
 		result := podmanTest.Podman([]string{"images", "-q", "-f", "before=foobar.com/before:latest"})

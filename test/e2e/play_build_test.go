@@ -78,13 +78,11 @@ status: {}
 
 	var playBuildFile = `
 FROM quay.io/libpod/alpine_nginx:latest
-RUN apk update && apk add strace
 LABEL homer=dad
 COPY copyfile /copyfile
 `
 	var prebuiltImage = `
 FROM quay.io/libpod/alpine_nginx:latest
-RUN apk update && apk add strace
 LABEL marge=mom
 `
 

@@ -13,8 +13,8 @@ import (
 var pruneImage = fmt.Sprintf(`
 FROM  %s
 LABEL RUN podman --version
-RUN apk update
-RUN apk add bash`, ALPINE)
+RUN echo hello > /hello
+RUN echo hello2 > /hello2`, ALPINE)
 
 var emptyPruneImage = `
 FROM scratch
