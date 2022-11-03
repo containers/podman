@@ -470,9 +470,10 @@ content. Installing packages into _/usr_, for example. In production,
 applications seldom need to write to the image.  Container applications write
 to volumes if they need to write to file systems at all. Applications can be
 made more secure by running them in read-only mode using the **--read-only** switch.
-This protects the container's image from modification. Read-only containers may
-still need to write temporary data. The best way to handle this is to mount
-tmpfs directories on _/run_ and _/tmp_.
+This protects the container's image from modification. By default read-only
+containers can write to temporary data. Podman mounts a tmpfs on _/run_ and
+_/tmp_ within the container. If the container should not write to any file
+system within the container, including tmpfs, set --read-only-tmpfs=false.
 
 ```
 $ podman run --read-only -i -t fedora /bin/bash
