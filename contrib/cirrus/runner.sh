@@ -236,14 +236,16 @@ function _run_build() {
 }
 
 function _run_altbuild() {
-    # We can skip all these steps for test-only PRs, but not doc-only ones
-    _bail_if_test_can_be_skipped docs
+    # Subsequent windows-based tasks require a build.  Var. defined in .cirrus.yml
+    # shellcheck disable=SC2154
+    if [[ ! "$ALT_NAME" =~ Windows ]]; then
+        # We can skip all these steps for test-only PRs, but not doc-only ones
+        _bail_if_test_can_be_skipped docs
+    fi
 
     local -a arches
     local arch
     req_env_vars ALT_NAME
-    # Defined in .cirrus.yml
-    # shellcheck disable=SC2154
     msg "Performing alternate build: $ALT_NAME"
     msg "************************************************************"
     set -x
