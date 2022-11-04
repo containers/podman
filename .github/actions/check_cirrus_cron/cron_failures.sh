@@ -32,14 +32,11 @@ EOF
 # https://cirrus-ci.com/explorer
 owner=$(cut -d '/' -f 1 <<<"$GITHUB_REPOSITORY")
 repo=$(cut -d '/' -f 2 <<<"$GITHUB_REPOSITORY")
-sed -i -r -e "s/@@OWNER@@/$owner/g" -e "s/@@REPO@@/$repo/g" ./artifacts/query_raw.json
-
-# Easier to debug in error-reply when query is compacted
-tr -d '\n' < ./artifacts/query_raw.json | tr -s ' ' | tee ./artifacts/query.json | \
-    jq --indent 4 --color-output .
+sed -r -e "s/@@OWNER@@/$owner/g" -e "s/@@REPO@@/$repo/g" \
+    ./artifacts/query_raw.json > ./artifacts/query.json
 
 if grep -q '@@' ./artifacts/query.json; then
-    err "Found unreplaced substitution token in raw query JSON"
+    err "Found unreplaced substitution token in query JSON"
 fi
 
 # The query should never ever return an empty-list, unless there are no cirrus-cron
@@ -47,7 +44,7 @@ fi
 # be running anyway.
 filt_head='.data.ownerRepository.cronSettings'
 
-gql $(./artifacts/query.json) "$filt_head" > ./artifacts/reply.json
+gql "$(<./artifacts/query.json)" "$filt_head" > ./artifacts/reply.json
 # e.x. reply.json
 # {
 #   "data": {

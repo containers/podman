@@ -32,7 +32,7 @@ jobs:
     cron_failures:
         runs-on: ubuntu-latest
         steps:
-            - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # v3.1.0
+            - uses: actions/checkout@v3
               with:
                   persist-credentials: false
 
@@ -47,7 +47,7 @@ jobs:
             - if: steps.cron.outputs.failures > 0
               name: Send failure notification e-mail
               # Ref: https://github.com/dawidd6/action-send-mail
-              uses: dawidd6/action-send-mail@a80d851dc950256421f1d1d735a2dc1ef314ac8f # v2.2.2
+              uses: dawidd6/action-send-mail@v3.7.1
               with:
                 server_address: ${{secrets.ACTION_MAIL_SERVER}}
                 server_port: 465
@@ -59,14 +59,14 @@ jobs:
                 body: file://./artifacts/email_body.txt
 
             - if: always()
-              uses: actions/upload-artifact@83fd05a356d7e2593de66fc9913b3002723633cb # v3.1.1
+              uses: actions/upload-artifact@v3
               with:
                   name: ${{ github.job }}_artifacts
                   path: artifacts/*
 
             - if: failure()
               name: Send error notification e-mail
-              uses: dawidd6/action-send-mail@a80d851dc950256421f1d1d735a2dc1ef314ac8f # v2.2.2
+              uses: dawidd6/action-send-mail@3.7.1
               with:
                 server_address: ${{secrets.ACTION_MAIL_SERVER}}
                 server_port: 465

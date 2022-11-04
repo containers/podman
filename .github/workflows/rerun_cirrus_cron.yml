@@ -14,6 +14,7 @@ on:
     # Debug: Allow triggering job manually in github-actions WebUI
     workflow_dispatch: {}
 
+
 env:
     # Debug-mode can reveal secrets, only enable by a secret value.
     # Ref: https://help.github.com/en/actions/configuring-and-managing-workflows/managing-a-workflow-run#enabling-step-debug-logging
@@ -28,7 +29,7 @@ permissions:
   contents: read
 
 jobs:
-    cron_failures:
+    cron_rerun:
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@629c2de402a417ea7690ca6ce3f33229e27606a5 # v2
