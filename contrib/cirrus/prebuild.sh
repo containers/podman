@@ -21,6 +21,7 @@ req_env_vars CI DEST_BRANCH IMAGE_SUFFIX TEST_FLAVOR TEST_ENVIRON \
 # shellcheck disable=SC2154
 cd $CIRRUS_WORKING_DIR
 
+msg "Checking Cirrus YAML"
 # Defined by CI config.
 # shellcheck disable=SC2154
 showrun $SCRIPT_BASE/cirrus_yaml_test.py
@@ -28,13 +29,16 @@ showrun $SCRIPT_BASE/cirrus_yaml_test.py
 # Defined by CI config.
 # shellcheck disable=SC2154
 if [[ "${DISTRO_NV}" =~ fedora ]]; then
+    msg "Checking shell scripts"
     showrun ooe.sh dnf install -y ShellCheck  # small/quick addition
     showrun shellcheck --color=always --format=tty \
         --shell=bash --external-sources \
         --enable add-default-case,avoid-nullary-conditions,check-unassigned-uppercase \
         --exclude SC2046,SC2034,SC2090,SC2064 \
         --wiki-link-count=0 --severity=warning \
-        $SCRIPT_BASE/*.sh ./.github/actions/* hack/get_ci_vm.sh
+        $SCRIPT_BASE/*.sh \
+        ./.github/actions/check_cirrus_cron/* \
+        hack/get_ci_vm.sh
 fi
 
 msg "Checking 3rd party network service connectivity"
