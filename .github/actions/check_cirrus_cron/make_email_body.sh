@@ -9,13 +9,15 @@ set -eo pipefail
 source $(dirname "${BASH_SOURCE[0]}")/lib.sh
 
 _errfmt="Expecting %s value to not be empty"
+# NAME_ID_FILEPATH is defined by workflow YAML
+# shellcheck disable=SC2154
 if [[ -z "$GITHUB_REPOSITORY" ]]; then
     err $(printf "$_errfmt" "\$GITHUB_REPOSITORY")
-elif [[ -z "$GITHUB_WORKFLOW" ]]; then
-    err $(printf "$_errfmt" "\$GITHUB_WORKFLOW")
 elif [[ ! -r "$NAME_ID_FILEPATH" ]]; then
     err "Expecting \$NAME_ID_FILEPATH value ($NAME_ID_FILEPATH) to be a readable file"
 fi
+
+confirm_gha_environment
 
 mkdir -p artifacts
 (
@@ -27,6 +29,8 @@ mkdir -p artifacts
     done < "$NAME_ID_FILEPATH"
 
     echo ""
+    # Defined by github-actions
+    # shellcheck disable=SC2154
     echo "# Source: ${GITHUB_WORKFLOW} workflow on ${GITHUB_REPOSITORY}."
     # Separate content from sendgrid.com automatic footer.
     echo ""

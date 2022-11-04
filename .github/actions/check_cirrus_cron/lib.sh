@@ -8,8 +8,25 @@ msg() {
 # Must be called from top-level of script, not another function.
 err() {
     # Ref: https://docs.github.com/en/free-pro-team@latest/actions/reference/workflow-commands-for-github-actions
-    msg "::error file=${BASH_SOURCE[1]},line=${BASH_LINENO[0]}::$@"
+    msg "::error file=${BASH_SOURCE[1]},line=${BASH_LINENO[0]}::$*"
     exit 1
+}
+
+confirm_gha_environment() {
+    _errfmt="I don't seem to be running from a github-actions workflow"
+    # These are all defined by github-actions
+    # shellcheck disable=SC2154
+    if [[ -z "$GITHUB_OUTPUT" ]]; then
+        err "$_errfmt, \$GITHUB_OUTPUT is empty"
+    elif [[ -z "$GITHUB_WORKFLOW" ]]; then
+        err "$_errfmt, \$GITHUB_WORKFLOW is empty"
+    elif [[ ! -d "$GITHUB_WORKSPACE" ]]; then
+        # Defined by github-actions
+        # shellcheck disable=SC2154
+        err "$_errfmt, \$GITHUB_WORKSPACE='$GITHUB_WORKSPACE' isn't a directory"
+    fi
+
+    cd "$GITHUB_WORKSPACE" || false
 }
 
 # Using python3 here is a compromise for readability and
@@ -45,6 +62,8 @@ gql() {
         msg "::error file=${BASH_SOURCE[1]},line=${BASH_LINENO[0]}::Invalid query JSON: $query"
         return 1
     fi
+    # SECRET_CIRRUS_API_KEY is defined github secret
+    # shellcheck disable=SC2154
     if output=$(curl \
               --request POST \
               --silent \

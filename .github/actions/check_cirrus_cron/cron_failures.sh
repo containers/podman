@@ -14,7 +14,9 @@ elif [[ -z "$NAME_ID_FILEPATH" ]]; then  # output filepath
     err $(printf "$_errfmt" "\$NAME_ID_FILEPATH")
 fi
 
-mkdir -p artifacts
+confirm_gha_environment
+
+mkdir -p ./artifacts
 cat > ./artifacts/query_raw.json << "EOF"
 query {
   ownerRepository(platform: "LINUX", owner: "@@OWNER@@", name: "@@REPO@@") {
@@ -84,5 +86,6 @@ records=$(wc --words "$NAME_ID_FILEPATH" | cut -d ' ' -f 1)
 failures=$((records/2))
 # Set the output of this step.
 # Ref: https://docs.github.com/en/actions/using-workflows/workflow-commands-for-github-actions#setting-an-output-parameter
+# shellcheck disable=SC2154
 echo "failures::$failures" >> $GITHUB_OUTPUT
 echo "Total failed Cirrus-CI cron builds: $failures"

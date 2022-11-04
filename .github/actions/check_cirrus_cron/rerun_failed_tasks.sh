@@ -25,11 +25,15 @@ set -eo pipefail
 source $(dirname "${BASH_SOURCE[0]}")/lib.sh
 
 _errfmt="Expecting %s value to not be empty"
+# NAME_ID_FILEPATH is defined by workflow YAML
+# shellcheck disable=SC2154
 if [[ -z "$SECRET_CIRRUS_API_KEY" ]]; then
     err $(printf "$_errfmt" "\$SECRET_CIRRUS_API_KEY")
 elif [[ ! -r "$NAME_ID_FILEPATH" ]]; then  # output from cron_failures.sh
     err $(printf "Expecting %s value to be a readable file" "\$NAME_ID_FILEPATH")
 fi
+
+confirm_gha_environment
 
 mkdir -p artifacts
 # If there are no tasks, don't fail reading the file
@@ -92,7 +96,7 @@ cat "$NAME_ID_FILEPATH" | \
         # Check-value returned if the gql call was successful
         canary=$(uuidgen)
         # Ensure the trailing ',' is stripped from the end (would be invalid JSON)
-        task_ids=$(printf '[%s]' $(printf '"%s",' ${rerun_tasks[@]} | head -c -1))
+        task_ids=$(printf '[%s]' $(printf '"%s",' ${rerun_tasks[*]} | head -c -1))
         rerun_m="
             mutation {
               batchReRun(input: {
@@ -107,6 +111,6 @@ cat "$NAME_ID_FILEPATH" | \
         filter='.data.batchReRun.clientMutationId'
         result=$(gql "$rerun_m" "$filter")
         if [[ $(jq -r -e "$filter"<<<"$result") != "$canary" ]]; then
-            err "Attempt to re-run tasks for build $BID failed: ${rerun_tasks[@]}"
+            err "Attempt to re-run tasks for build $BID failed: ${rerun_tasks[*]}"
         fi
     done
