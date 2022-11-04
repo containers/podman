@@ -34,7 +34,7 @@ if [[ "${DISTRO_NV}" =~ fedora ]]; then
         --enable add-default-case,avoid-nullary-conditions,check-unassigned-uppercase \
         --exclude SC2046,SC2034,SC2090,SC2064 \
         --wiki-link-count=0 --severity=warning \
-        $SCRIPT_BASE/*.sh hack/get_ci_vm.sh
+        $SCRIPT_BASE/*.sh ./.github/actions/* hack/get_ci_vm.sh
 fi
 
 msg "Checking 3rd party network service connectivity"
