@@ -17,6 +17,7 @@ import (
 	"github.com/containers/image/v5/pkg/shortnames"
 	"github.com/containers/image/v5/transports"
 	"github.com/containers/image/v5/transports/alltransports"
+	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/storage"
 	"github.com/opencontainers/go-digest"
@@ -67,7 +68,7 @@ func (ir *ImageEngine) ManifestExists(ctx context.Context, name string) (*entiti
 }
 
 // ManifestInspect returns the content of a manifest list or image
-func (ir *ImageEngine) ManifestInspect(ctx context.Context, name string) ([]byte, error) {
+func (ir *ImageEngine) ManifestInspect(ctx context.Context, name string, opts entities.ManifestInspectOptions) ([]byte, error) {
 	// NOTE: we have to do a bit of a limbo here as `podman manifest
 	// inspect foo` wants to do a remote-inspect of foo iff "foo" in the
 	// containers storage is an ordinary image but not a manifest list.
@@ -77,7 +78,7 @@ func (ir *ImageEngine) ManifestInspect(ctx context.Context, name string) ([]byte
 		if errors.Is(err, storage.ErrImageUnknown) || errors.Is(err, libimage.ErrNotAManifestList) {
 			// Do a remote inspect if there's no local image or if the
 			// local image is not a manifest list.
-			return ir.remoteManifestInspect(ctx, name)
+			return ir.remoteManifestInspect(ctx, name, opts)
 		}
 
 		return nil, err
@@ -101,8 +102,13 @@ func (ir *ImageEngine) ManifestInspect(ctx context.Context, name string) ([]byte
 }
 
 // inspect a remote manifest list.
-func (ir *ImageEngine) remoteManifestInspect(ctx context.Context, name string) ([]byte, error) {
+func (ir *ImageEngine) remoteManifestInspect(ctx context.Context, name string, opts entities.ManifestInspectOptions) ([]byte, error) {
 	sys := ir.Libpod.SystemContext()
+
+	sys.DockerInsecureSkipTLSVerify = opts.SkipTLSVerify
+	if opts.SkipTLSVerify == types.OptionalBoolTrue {
+		sys.OCIInsecureSkipTLSVerify = true
+	}
 
 	resolved, err := shortnames.Resolve(sys, name)
 	if err != nil {

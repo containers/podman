@@ -34,7 +34,7 @@ type ImageEngine interface { //nolint:interfacebloat
 	Untag(ctx context.Context, nameOrID string, tags []string, options ImageUntagOptions) error
 	ManifestCreate(ctx context.Context, name string, images []string, opts ManifestCreateOptions) (string, error)
 	ManifestExists(ctx context.Context, name string) (*BoolReport, error)
-	ManifestInspect(ctx context.Context, name string) ([]byte, error)
+	ManifestInspect(ctx context.Context, name string, opts ManifestInspectOptions) ([]byte, error)
 	ManifestAdd(ctx context.Context, listName string, imageNames []string, opts ManifestAddOptions) (string, error)
 	ManifestAnnotate(ctx context.Context, names, image string, opts ManifestAnnotateOptions) (string, error)
 	ManifestRemoveDigest(ctx context.Context, names, image string) (string, error)
