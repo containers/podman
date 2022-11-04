@@ -26,6 +26,7 @@ Stop running containers and delete all stopped containers before removal of pod.
 Instead of providing the pod name or ID, remove the last created pod. (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
 
 @@option pod-id-file.pod
+If specified, the pod-id-file will be removed along with the pod.
 
 @@option time
 

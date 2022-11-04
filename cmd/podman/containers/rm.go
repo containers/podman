@@ -110,6 +110,9 @@ func rm(cmd *cobra.Command, args []string) error {
 	for _, cidFile := range rmCidFiles {
 		content, err := os.ReadFile(cidFile)
 		if err != nil {
+			if rmOptions.Ignore && errors.Is(err, os.ErrNotExist) {
+				continue
+			}
 			return fmt.Errorf("reading CIDFile: %w", err)
 		}
 		id := strings.Split(string(content), "\n")[0]

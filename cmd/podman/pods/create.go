@@ -301,5 +301,6 @@ func replacePod(name string) error {
 		Force:  true, // stop and remove pod
 		Ignore: true, // ignore if pod doesn't exist
 	}
-	return removePods([]string{name}, rmOptions, false)
+	errs := removePods([]string{name}, rmOptions, false)
+	return errs.PrintErrors()
 }

@@ -777,6 +777,16 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force, remo
 		}
 	}
 
+	// Remove the container's CID file on container removal.
+	if cidFile, ok := c.config.Spec.Annotations[define.InspectAnnotationCIDFile]; ok {
+		if err := os.Remove(cidFile); err != nil {
+			if cleanupErr == nil {
+				cleanupErr = err
+			} else {
+				logrus.Errorf("Cleaning up CID file: %v", err)
+			}
+		}
+	}
 	// Remove the container from the state
 	if c.config.Pod != "" {
 		// If we're removing the pod, the container will be evicted
