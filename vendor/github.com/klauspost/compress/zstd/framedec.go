@@ -261,11 +261,16 @@ func (d *frameDec) reset(br byteBuffer) error {
 	}
 	d.history.windowSize = int(d.WindowSize)
 	if !d.o.lowMem || d.history.windowSize < maxBlockSize {
-		// Alloc 2x window size if not low-mem, or very small window size.
+		// Alloc 2x window size if not low-mem, or window size below 2MB.
 		d.history.allocFrameBuffer = d.history.windowSize * 2
 	} else {
-		// Alloc with one additional block
-		d.history.allocFrameBuffer = d.history.windowSize + maxBlockSize
+		if d.o.lowMem {
+			// Alloc with 1MB extra.
+			d.history.allocFrameBuffer = d.history.windowSize + maxBlockSize/2
+		} else {
+			// Alloc with 2MB extra.
+			d.history.allocFrameBuffer = d.history.windowSize + maxBlockSize
+		}
 	}
 
 	if debugDecoder {

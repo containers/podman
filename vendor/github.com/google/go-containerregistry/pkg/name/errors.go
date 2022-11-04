@@ -28,6 +28,12 @@ func (e *ErrBadName) Error() string {
 	return e.info
 }
 
+// Is reports whether target is an error of type ErrBadName
+func (e *ErrBadName) Is(target error) bool {
+	var berr *ErrBadName
+	return errors.As(target, &berr)
+}
+
 // newErrBadName returns a ErrBadName which returns the given formatted string from Error().
 func newErrBadName(fmtStr string, args ...interface{}) *ErrBadName {
 	return &ErrBadName{fmt.Sprintf(fmtStr, args...)}

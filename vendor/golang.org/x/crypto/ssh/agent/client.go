@@ -93,7 +93,7 @@ type ExtendedAgent interface {
 type ConstraintExtension struct {
 	// ExtensionName consist of a UTF-8 string suffixed by the
 	// implementation domain following the naming scheme defined
-	// in Section 4.2 of [RFC4251], e.g.  "foo@example.com".
+	// in Section 4.2 of RFC 4251, e.g.  "foo@example.com".
 	ExtensionName string
 	// ExtensionDetails contains the actual content of the extended
 	// constraint.
@@ -731,7 +731,7 @@ func (c *client) insertCert(s interface{}, cert *ssh.Certificate, comment string
 	if err != nil {
 		return err
 	}
-	if bytes.Compare(cert.Key.Marshal(), signer.PublicKey().Marshal()) != 0 {
+	if !bytes.Equal(cert.Key.Marshal(), signer.PublicKey().Marshal()) {
 		return errors.New("agent: signer and cert have different public key")
 	}
 

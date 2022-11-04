@@ -770,7 +770,7 @@ func (d *Decoder) startStreamDecoder(ctx context.Context, r io.Reader, output ch
 					if block.lowMem {
 						block.dst = make([]byte, block.RLESize)
 					} else {
-						block.dst = make([]byte, maxBlockSize)
+						block.dst = make([]byte, maxCompressedBlockSize)
 					}
 				}
 				block.dst = block.dst[:block.RLESize]

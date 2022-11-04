@@ -1,3 +1,15 @@
+## 1.24.0
+
+### Features
+
+Introducting [gcustom](https://onsi.github.io/gomega/#gcustom-a-convenient-mechanism-for-buildling-custom-matchers) - a convenient mechanism for building custom matchers.
+
+This is an RC release for `gcustom`.  The external API may be tweaked in response to feedback however it is expected to remain mostly stable.
+
+### Maintenance
+
+- Update BeComparableTo documentation [756eaa0]
+
 ## 1.23.0
 
 ### Features

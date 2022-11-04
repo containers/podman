@@ -96,5 +96,5 @@ func (i *Image) matchesPlatform(ctx context.Context, os, arch, variant string) (
 		return nil, customPlatform, nil
 	}
 
-	return fmt.Errorf("image platform (%s) does not match the expected platform (%s)", fromImage, expected), customPlatform, nil
+	return fmt.Errorf("image platform (%s) does not match the expected platform (%s)", platforms.Format(fromImage), platforms.Format(expected)), customPlatform, nil
 }
