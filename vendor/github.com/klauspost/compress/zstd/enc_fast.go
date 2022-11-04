@@ -304,7 +304,7 @@ func (e *fastEncoder) EncodeNoHist(blk *blockEnc, src []byte) {
 		minNonLiteralBlockSize = 1 + 1 + inputMargin
 	)
 	if debugEncoder {
-		if len(src) > maxBlockSize {
+		if len(src) > maxCompressedBlockSize {
 			panic("src too big")
 		}
 	}

@@ -251,7 +251,7 @@ type algorithmOpenSSHCertSigner struct {
 // private key is held by signer. It returns an error if the public key in cert
 // doesn't match the key used by signer.
 func NewCertSigner(cert *Certificate, signer Signer) (Signer, error) {
-	if bytes.Compare(cert.Key.Marshal(), signer.PublicKey().Marshal()) != 0 {
+	if !bytes.Equal(cert.Key.Marshal(), signer.PublicKey().Marshal()) {
 		return nil, errors.New("ssh: signer and cert have different public key")
 	}
 

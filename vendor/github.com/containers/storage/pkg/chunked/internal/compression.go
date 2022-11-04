@@ -88,8 +88,8 @@ func GetType(t byte) (string, error) {
 }
 
 const (
-	ManifestChecksumKey = "io.containers.zstd-chunked.manifest-checksum"
-	ManifestInfoKey     = "io.containers.zstd-chunked.manifest-position"
+	ManifestChecksumKey = "io.github.containers.zstd-chunked.manifest-checksum"
+	ManifestInfoKey     = "io.github.containers.zstd-chunked.manifest-position"
 
 	// ManifestTypeCRFS is a manifest file compatible with the CRFS TOC file.
 	ManifestTypeCRFS = 1

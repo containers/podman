@@ -1,3 +1,4 @@
+//go:build linux && cgo && gccgo
 // +build linux,cgo,gccgo
 
 package unshare

@@ -465,7 +465,7 @@ func bailOnError(err error, format string, a ...interface{}) { // nolint: golint
 // MaybeReexecUsingUserNamespace re-exec the process in a new namespace
 func MaybeReexecUsingUserNamespace(evenForRoot bool) {
 	// If we've already been through this once, no need to try again.
-	if os.Geteuid() == 0 && IsRootless() {
+	if os.Geteuid() == 0 && GetRootlessUID() > 0 {
 		return
 	}
 

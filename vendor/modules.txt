@@ -14,7 +14,7 @@ github.com/Microsoft/go-winio/internal/socket
 github.com/Microsoft/go-winio/pkg/guid
 github.com/Microsoft/go-winio/pkg/security
 github.com/Microsoft/go-winio/vhd
-# github.com/Microsoft/hcsshim v0.9.4
+# github.com/Microsoft/hcsshim v0.9.5
 ## explicit; go 1.13
 github.com/Microsoft/hcsshim
 github.com/Microsoft/hcsshim/computestorage
@@ -118,7 +118,7 @@ github.com/containers/buildah/pkg/rusage
 github.com/containers/buildah/pkg/sshagent
 github.com/containers/buildah/pkg/util
 github.com/containers/buildah/util
-# github.com/containers/common v0.50.2-0.20221027091852-54845c3325e3
+# github.com/containers/common v0.50.2-0.20221104122933-582fadb8228b
 ## explicit; go 1.17
 github.com/containers/common/libimage
 github.com/containers/common/libimage/define
@@ -172,7 +172,7 @@ github.com/containers/common/version
 # github.com/containers/conmon v2.0.20+incompatible
 ## explicit
 github.com/containers/conmon/runner/config
-# github.com/containers/image/v5 v5.23.1-0.20221027111947-5f02f763c564
+# github.com/containers/image/v5 v5.23.1-0.20221101011818-2f770d6d5a0c
 ## explicit; go 1.17
 github.com/containers/image/v5/copy
 github.com/containers/image/v5/directory
@@ -264,7 +264,7 @@ github.com/containers/psgo/internal/dev
 github.com/containers/psgo/internal/host
 github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
-# github.com/containers/storage v1.43.1-0.20221027113344-232bf398bd68
+# github.com/containers/storage v1.43.1-0.20221104122514-74e37433a2a0
 ## explicit; go 1.17
 github.com/containers/storage
 github.com/containers/storage/drivers
@@ -443,7 +443,7 @@ github.com/google/go-cmp/cmp/internal/diff
 github.com/google/go-cmp/cmp/internal/flags
 github.com/google/go-cmp/cmp/internal/function
 github.com/google/go-cmp/cmp/internal/value
-# github.com/google/go-containerregistry v0.11.0
+# github.com/google/go-containerregistry v0.12.0
 ## explicit; go 1.17
 github.com/google/go-containerregistry/pkg/name
 # github.com/google/go-intervals v0.0.2
@@ -486,7 +486,7 @@ github.com/jinzhu/copier
 # github.com/json-iterator/go v1.1.12
 ## explicit; go 1.12
 github.com/json-iterator/go
-# github.com/klauspost/compress v1.15.11
+# github.com/klauspost/compress v1.15.12
 ## explicit; go 1.17
 github.com/klauspost/compress
 github.com/klauspost/compress/flate
@@ -587,7 +587,7 @@ github.com/onsi/ginkgo/reporters/stenographer
 github.com/onsi/ginkgo/reporters/stenographer/support/go-colorable
 github.com/onsi/ginkgo/reporters/stenographer/support/go-isatty
 github.com/onsi/ginkgo/types
-# github.com/onsi/gomega v1.23.0
+# github.com/onsi/gomega v1.24.0
 ## explicit; go 1.18
 github.com/onsi/gomega
 github.com/onsi/gomega/format
@@ -683,7 +683,7 @@ github.com/rootless-containers/rootlesskit/pkg/port/portutil
 # github.com/seccomp/libseccomp-golang v0.10.0
 ## explicit; go 1.14
 github.com/seccomp/libseccomp-golang
-# github.com/sigstore/sigstore v1.4.4
+# github.com/sigstore/sigstore v1.4.5
 ## explicit; go 1.18
 github.com/sigstore/sigstore/pkg/cryptoutils
 github.com/sigstore/sigstore/pkg/signature
@@ -775,7 +775,7 @@ go.opencensus.io/internal
 go.opencensus.io/trace
 go.opencensus.io/trace/internal
 go.opencensus.io/trace/tracestate
-# golang.org/x/crypto v0.0.0-20220926161630-eccd6366d1be
+# golang.org/x/crypto v0.1.0
 ## explicit; go 1.17
 golang.org/x/crypto/blowfish
 golang.org/x/crypto/cast5
@@ -801,7 +801,7 @@ golang.org/x/crypto/ssh
 golang.org/x/crypto/ssh/agent
 golang.org/x/crypto/ssh/internal/bcrypt_pbkdf
 golang.org/x/crypto/ssh/knownhosts
-# golang.org/x/mod v0.6.0-dev.0.20220419223038-86c51ed26bb4
+# golang.org/x/mod v0.6.0
 ## explicit; go 1.17
 golang.org/x/mod/semver
 # golang.org/x/net v0.1.0
@@ -816,7 +816,7 @@ golang.org/x/net/http2/hpack
 golang.org/x/net/idna
 golang.org/x/net/internal/timeseries
 golang.org/x/net/trace
-# golang.org/x/sync v0.0.0-20220929204114-8fcdb60fdcc0
+# golang.org/x/sync v0.1.0
 ## explicit
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
@@ -872,10 +872,10 @@ golang.org/x/tools/internal/gocommand
 golang.org/x/tools/internal/packagesinternal
 golang.org/x/tools/internal/typeparams
 golang.org/x/tools/internal/typesinternal
-# google.golang.org/genproto v0.0.0-20220929141241-1ce7b20da813
+# google.golang.org/genproto v0.0.0-20221014213838-99cd37c6964a
 ## explicit; go 1.19
 google.golang.org/genproto/googleapis/rpc/status
-# google.golang.org/grpc v1.49.0
+# google.golang.org/grpc v1.50.1
 ## explicit; go 1.17
 google.golang.org/grpc
 google.golang.org/grpc/attributes

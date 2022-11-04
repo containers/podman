@@ -92,7 +92,7 @@ local-test-integration: local-binary ## run the integration tests on the host (r
 test-integration: local-binary ## run the integration tests using VMs
 	$(RUNINVM) $(MAKE) local-$@
 
-local-validate: ## validate DCO and gofmt on the host
+local-validate: install.tools ## validate DCO and gofmt on the host
 	@./hack/git-validation.sh
 	@./hack/gofmt.sh
 
