@@ -13,17 +13,18 @@ err() {
 }
 
 confirm_gha_environment() {
-    _errfmt="I don't seem to be running from a github-actions workflow"
+    local _err_fmt
+    _err_fmt="I don't seem to be running from a github-actions workflow"
     # These are all defined by github-actions
     # shellcheck disable=SC2154
     if [[ -z "$GITHUB_OUTPUT" ]]; then
-        err "$_errfmt, \$GITHUB_OUTPUT is empty"
+        err "$_err_fmt, \$GITHUB_OUTPUT is empty"
     elif [[ -z "$GITHUB_WORKFLOW" ]]; then
-        err "$_errfmt, \$GITHUB_WORKFLOW is empty"
+        err "$_err_fmt, \$GITHUB_WORKFLOW is empty"
     elif [[ ! -d "$GITHUB_WORKSPACE" ]]; then
         # Defined by github-actions
         # shellcheck disable=SC2154
-        err "$_errfmt, \$GITHUB_WORKSPACE='$GITHUB_WORKSPACE' isn't a directory"
+        err "$_err_fmt, \$GITHUB_WORKSPACE='$GITHUB_WORKSPACE' isn't a directory"
     fi
 
     cd "$GITHUB_WORKSPACE" || false

@@ -9,8 +9,10 @@ set -eo pipefail
 # prevent wasting time on tests that can't succeed due to some
 # outage, failure, or missed expectation.
 
+set -a
 source /etc/automation_environment
 source $AUTOMATION_LIB_PATH/common_lib.sh
+set +a
 
 req_env_vars CI DEST_BRANCH IMAGE_SUFFIX TEST_FLAVOR TEST_ENVIRON \
              PODBIN_NAME PRIV_NAME DISTRO_NV AUTOMATION_LIB_PATH \
@@ -39,6 +41,9 @@ if [[ "${DISTRO_NV}" =~ fedora ]]; then
         $SCRIPT_BASE/*.sh \
         ./.github/actions/check_cirrus_cron/* \
         hack/get_ci_vm.sh
+
+    export PREBUILD=1
+    showrun bash ${CIRRUS_WORKING_DIR}/.github/actions/check_cirrus_cron/test.sh
 fi
 
 msg "Checking 3rd party network service connectivity"

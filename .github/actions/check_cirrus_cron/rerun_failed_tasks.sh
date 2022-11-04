@@ -96,6 +96,8 @@ cat "$NAME_ID_FILEPATH" | \
         # Check-value returned if the gql call was successful
         canary=$(uuidgen)
         # Ensure the trailing ',' is stripped from the end (would be invalid JSON)
+        # Rely on shell word-splitting in this case.
+        # shellcheck disable=SC2048
         task_ids=$(printf '[%s]' $(printf '"%s",' ${rerun_tasks[*]} | head -c -1))
         rerun_m="
             mutation {
@@ -109,8 +111,12 @@ cat "$NAME_ID_FILEPATH" | \
             }
         "
         filter='.data.batchReRun.clientMutationId'
-        result=$(gql "$rerun_m" "$filter")
-        if [[ $(jq -r -e "$filter"<<<"$result") != "$canary" ]]; then
-            err "Attempt to re-run tasks for build $BID failed: ${rerun_tasks[*]}"
+        if [[ ! "$NAME" =~ "testing" ]]; then # see test.sh
+            result=$(gql "$rerun_m" "$filter")
+            if [[ $(jq -r -e "$filter"<<<"$result") != "$canary" ]]; then
+                err "Attempt to re-run tasks for build $BID failed: ${rerun_tasks[*]}"
+            fi
+        else
+            warn "Test-mode: Would have sent GraphQL request: '$rerun_m'"
         fi
     done
