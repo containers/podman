@@ -1,7 +1,9 @@
-package magic
+package stats
 
 const (
-	ImgCommonMagic  = 0x54564319 /* Sarov (a.k.a. Arzamas-16) */
+	StatsDump    = "stats-dump"
+	StatsRestore = "stats-restore"
+
 	ImgServiceMagic = 0x55105940 /* Zlatoust */
 	StatsMagic      = 0x57093306 /* Ostashkov */
 
