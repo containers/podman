@@ -4,6 +4,7 @@ Integration tests for exercising docker-py against Podman Service.
 import io
 import os
 import unittest
+import json
 
 from docker import errors
 
@@ -125,6 +126,14 @@ class TestImages(common.DockerTestCase):
         self.assertEqual(image.labels["apple"], labels["apple"])
         self.assertEqual(image.labels["grape"], labels["grape"])
 
+    def test_build_image_via_api_client(self):
+        api_client = self.docker.api
+        for line in api_client.build(path="test/python/docker/build_labels"):
+            try:
+                parsed = json.loads(line.decode("utf-8"))
+            except json.JSONDecodeError as e:
+                raise IOError(f"Line '{line}' was not JSON parsable")
+            assert "errorDetail" not in parsed
 
 if __name__ == "__main__":
     # Setup temporary space
