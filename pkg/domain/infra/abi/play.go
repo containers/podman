@@ -869,6 +869,7 @@ func (ic *ContainerEngine) playKubePVC(ctx context.Context, pvcYAML *v1.Persiste
 	volOptions := []libpod.VolumeCreateOption{
 		libpod.WithVolumeName(name),
 		libpod.WithVolumeLabels(pvcYAML.Labels),
+		libpod.WithVolumeIgnoreIfExist(),
 	}
 
 	// Get pvc annotations and create remaining podman volume options if available.
@@ -1110,9 +1111,10 @@ func getBuildFile(imageName string, cwd string) (string, error) {
 	return "", err
 }
 
-func (ic *ContainerEngine) PlayKubeDown(ctx context.Context, body io.Reader, _ entities.PlayKubeDownOptions) (*entities.PlayKubeReport, error) {
+func (ic *ContainerEngine) PlayKubeDown(ctx context.Context, body io.Reader, options entities.PlayKubeDownOptions) (*entities.PlayKubeReport, error) {
 	var (
-		podNames []string
+		podNames    []string
+		volumeNames []string
 	)
 	reports := new(entities.PlayKubeReport)
 
@@ -1162,6 +1164,12 @@ func (ic *ContainerEngine) PlayKubeDown(ctx context.Context, body io.Reader, _ e
 				podName := fmt.Sprintf("%s-pod-%d", deploymentName, i)
 				podNames = append(podNames, podName)
 			}
+		case "PersistentVolumeClaim":
+			var pvcYAML v1.PersistentVolumeClaim
+			if err := yaml.Unmarshal(document, &pvcYAML); err != nil {
+				return nil, fmt.Errorf("unable to read YAML as Kube PersistentVolumeClaim: %w", err)
+			}
+			volumeNames = append(volumeNames, pvcYAML.Name)
 		default:
 			continue
 		}
@@ -1176,6 +1184,13 @@ func (ic *ContainerEngine) PlayKubeDown(ctx context.Context, body io.Reader, _ e
 	reports.RmReport, err = ic.PodRm(ctx, podNames, entities.PodRmOptions{})
 	if err != nil {
 		return nil, err
+	}
+
+	if options.Force {
+		reports.VolumeRmReport, err = ic.VolumeRm(ctx, volumeNames, entities.VolumeRmOptions{})
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return reports, nil

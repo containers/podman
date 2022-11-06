@@ -3420,7 +3420,7 @@ invalid kube kind
 		Expect(teardown).Should(Exit(125))
 	})
 
-	It("podman play kube teardown with volume", func() {
+	It("podman play kube teardown with volume without force delete", func() {
 
 		volName := RandomString(12)
 		volDevice := "tmpfs"
@@ -3450,6 +3450,74 @@ invalid kube kind
 		exists = podmanTest.Podman([]string{"volume", "exists", volName})
 		exists.WaitWithDefaultTimeout()
 		Expect(exists).To(Exit(0))
+	})
+
+	It("podman play kube teardown with volume force delete", func() {
+
+		volName := RandomString(12)
+		volDevice := "tmpfs"
+		volType := "tmpfs"
+		volOpts := "nodev,noexec"
+
+		pvc := getPVC(withPVCName(volName),
+			withPVCAnnotations(util.VolumeDeviceAnnotation, volDevice),
+			withPVCAnnotations(util.VolumeTypeAnnotation, volType),
+			withPVCAnnotations(util.VolumeMountOptsAnnotation, volOpts))
+		err = generateKubeYaml("persistentVolumeClaim", pvc, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		exists := podmanTest.Podman([]string{"volume", "exists", volName})
+		exists.WaitWithDefaultTimeout()
+		Expect(exists).To(Exit(0))
+
+		teardown := podmanTest.Podman([]string{"play", "kube", "--down", "--force", kubeYaml})
+		teardown.WaitWithDefaultTimeout()
+		Expect(teardown).To(Exit(0))
+
+		// volume should not be deleted on teardown
+		exists = podmanTest.Podman([]string{"volume", "exists", volName})
+		exists.WaitWithDefaultTimeout()
+		Expect(exists).To(Exit(1))
+	})
+
+	It("podman play kube after teardown with volume reuse", func() {
+
+		volName := RandomString(12)
+		volDevice := "tmpfs"
+		volType := "tmpfs"
+		volOpts := "nodev,noexec"
+
+		pvc := getPVC(withPVCName(volName),
+			withPVCAnnotations(util.VolumeDeviceAnnotation, volDevice),
+			withPVCAnnotations(util.VolumeTypeAnnotation, volType),
+			withPVCAnnotations(util.VolumeMountOptsAnnotation, volOpts))
+		err = generateKubeYaml("persistentVolumeClaim", pvc, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		exists := podmanTest.Podman([]string{"volume", "exists", volName})
+		exists.WaitWithDefaultTimeout()
+		Expect(exists).To(Exit(0))
+
+		teardown := podmanTest.Podman([]string{"play", "kube", "--down", kubeYaml})
+		teardown.WaitWithDefaultTimeout()
+		Expect(teardown).To(Exit(0))
+
+		// volume should not be deleted on teardown
+		exists = podmanTest.Podman([]string{"volume", "exists", volName})
+		exists.WaitWithDefaultTimeout()
+		Expect(exists).To(Exit(0))
+
+		restart := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		restart.WaitWithDefaultTimeout()
+		Expect(restart).To(Exit(0))
 	})
 
 	It("podman play kube use network mode from config", func() {

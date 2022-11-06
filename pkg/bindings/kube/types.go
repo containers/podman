@@ -46,6 +46,8 @@ type PlayOptions struct {
 	Start *bool
 	// Userns - define the user namespace to use.
 	Userns *string
+	// Force - remove volumes on --down
+	Force *bool
 }
 
 // ApplyOptions are optional options for applying kube YAML files to a k8s cluster
@@ -62,4 +64,12 @@ type ApplyOptions struct {
 	File *string
 	// Service - creates a service for the container being deployed.
 	Service *bool
+}
+
+// DownOptions are optional options for tearing down kube YAML files to a k8s cluster
+//
+//go:generate go run ../generator/generator.go DownOptions
+type DownOptions struct {
+	// Force - remove volumes on --down
+	Force *bool
 }
