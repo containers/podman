@@ -391,7 +391,7 @@ func (f *UnitFile) Parse(data string) error {
 		line, data = nextLine(data, 0)
 
 		// Handle multi-line continuations
-		// Note: This doesn't support coments in the middle of the continuation, which systemd does
+		// Note: This doesn't support comments in the middle of the continuation, which systemd does
 		if lineIsKeyValuePair(line) {
 			for len(data) > 0 && line[len(line)-1] == '\\' {
 				line, data = nextLine(origdata, len(line)+1)
@@ -437,7 +437,7 @@ func (g *unitGroup) write(w io.Writer) error {
 	}
 
 	if g.name == "" {
-		// Empty name groups are not valid, but used interally to handle comments in empty files
+		// Empty name groups are not valid, but used internally to handle comments in empty files
 		return nil
 	}
 
@@ -454,7 +454,7 @@ func (g *unitGroup) write(w io.Writer) error {
 	return nil
 }
 
-// Covert a UnitFile back to data, writing to the io.Writer w
+// Convert a UnitFile back to data, writing to the io.Writer w
 func (f *UnitFile) Write(w io.Writer) error {
 	for i, g := range f.groups {
 		// We always add a newline between groups, and strip one if it exists during
@@ -474,7 +474,7 @@ func (f *UnitFile) Write(w io.Writer) error {
 	return nil
 }
 
-// Covert a UnitFile back to data, as a string
+// Convert a UnitFile back to data, as a string
 func (f *UnitFile) ToString() (string, error) {
 	var str strings.Builder
 	if err := f.Write(&str); err != nil {
