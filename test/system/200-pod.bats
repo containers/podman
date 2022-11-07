@@ -303,6 +303,7 @@ EOF
     echo "$teststring" | nc 127.0.0.1 $port_out
 
     # Confirm that the container log output is the string we sent it.
+    run_podman wait $cid
     run_podman logs $cid
     is "$output" "$teststring" "test string received on container"
 
