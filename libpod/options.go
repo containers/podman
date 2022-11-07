@@ -142,6 +142,17 @@ func WithOCIRuntime(runtime string) RuntimeOption {
 	}
 }
 
+// WithCtrOCIRuntime specifies an OCI runtime in container's config.
+func WithCtrOCIRuntime(runtime string) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return define.ErrCtrFinalized
+		}
+		ctr.config.OCIRuntime = runtime
+		return nil
+	}
+}
+
 // WithConmonPath specifies the path to the conmon binary which manages the
 // runtime.
 func WithConmonPath(path string) RuntimeOption {

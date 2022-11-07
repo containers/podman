@@ -122,6 +122,16 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 	if err != nil {
 		return nil, nil, nil, err
 	}
+
+	if imageData != nil {
+		ociRuntimeVariant := rtc.Engine.ImagePlatformToRuntime(imageData.Os, imageData.Architecture)
+		// Don't unnecessarily set and invoke additional libpod
+		// option if OCI runtime is still default.
+		if ociRuntimeVariant != rtc.Engine.OCIRuntime {
+			options = append(options, libpod.WithCtrOCIRuntime(ociRuntimeVariant))
+		}
+	}
+
 	if newImage != nil {
 		// If the input name changed, we could properly resolve the
 		// image. Otherwise, it must have been an ID where we're
