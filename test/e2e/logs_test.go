@@ -65,7 +65,11 @@ var _ = Describe("Podman logs", func() {
 			Expect(logc).To(Exit(0))
 			cid := logc.OutputToString()
 
-			results := podmanTest.Podman([]string{"logs", cid})
+			results := podmanTest.Podman([]string{"wait", cid})
+			results.WaitWithDefaultTimeout()
+			Expect(results).To(Exit(0))
+
+			results = podmanTest.Podman([]string{"logs", cid})
 			results.WaitWithDefaultTimeout()
 			Expect(results).To(Exit(0))
 			Expect(results.OutputToStringArray()).To(HaveLen(3))
