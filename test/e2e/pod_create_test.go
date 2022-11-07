@@ -500,11 +500,42 @@ entrypoint ["/fromimage"]
 		podCreate.WaitWithDefaultTimeout()
 		Expect(podCreate).Should(Exit(125))
 		Expect(podCreate.ErrorToString()).To(ContainSubstring("pods presently do not support network mode container"))
+	})
 
-		podCreate = podmanTest.Podman([]string{"pod", "create", "--network", "ns:/does/not/matter"})
+	It("podman pod create with namespace path networking", func() {
+		SkipIfRootless("ip netns is not supported for rootless users")
+		SkipIfContainerized("ip netns cannot be run within a container.")
+
+		podName := "netnspod"
+		netNsName := "test1"
+		networkMode := fmt.Sprintf("ns:/var/run/netns/%s", netNsName)
+
+		addNetns := SystemExec("ip", []string{"netns", "add", netNsName})
+		Expect(addNetns).Should(Exit(0))
+		defer func() {
+			delNetns := SystemExec("ip", []string{"netns", "delete", netNsName})
+			Expect(delNetns).Should(Exit(0))
+		}()
+
+		podCreate := podmanTest.Podman([]string{"pod", "create", "--name", podName, "--network", networkMode})
 		podCreate.WaitWithDefaultTimeout()
-		Expect(podCreate).Should(Exit(125))
-		Expect(podCreate.ErrorToString()).To(ContainSubstring("pods presently do not support network mode path"))
+		Expect(podCreate).Should(Exit(0))
+
+		podStart := podmanTest.Podman([]string{"pod", "start", podName})
+		podStart.WaitWithDefaultTimeout()
+		Expect(podStart).Should(Exit(0))
+
+		inspectPod := podmanTest.Podman([]string{"pod", "inspect", podName})
+		inspectPod.WaitWithDefaultTimeout()
+		Expect(inspectPod).Should(Exit(0))
+		inspectPodJSON := inspectPod.InspectPodToJSON()
+
+		inspectInfraContainer := podmanTest.Podman([]string{"inspect", inspectPodJSON.InfraContainerID})
+		inspectInfraContainer.WaitWithDefaultTimeout()
+		Expect(inspectInfraContainer).Should(Exit(0))
+		inspectInfraContainerJSON := inspectInfraContainer.InspectContainerToJSON()
+
+		Expect(inspectInfraContainerJSON[0].HostConfig.NetworkMode).To(Equal(networkMode))
 	})
 
 	It("podman pod create with --net=none", func() {
