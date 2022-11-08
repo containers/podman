@@ -11,8 +11,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/containers/common/libimage"
 	"github.com/containers/image/v5/docker/reference"
-	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v4/libpod"
 	"github.com/containers/podman/v4/pkg/api/handlers"
@@ -22,6 +22,7 @@ import (
 	"github.com/containers/podman/v4/pkg/channel"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/domain/infra/abi"
+	envLib "github.com/containers/podman/v4/pkg/env"
 	"github.com/containers/podman/v4/pkg/errorhandling"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/schema"
@@ -164,7 +165,7 @@ func ManifestInspect(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var schema2List manifest.Schema2List
+	var schema2List libimage.ManifestListData
 	if err := json.Unmarshal(rawManifest, &schema2List); err != nil {
 		utils.Error(w, http.StatusInternalServerError, err)
 		return
@@ -458,6 +459,24 @@ func ManifestModify(w http.ResponseWriter, r *http.Request) {
 	if _, err := runtime.LibimageRuntime().LookupManifestList(name); err != nil {
 		utils.Error(w, http.StatusNotFound, err)
 		return
+	}
+
+	if len(body.ManifestAddOptions.Annotation) != 0 {
+		if len(body.ManifestAddOptions.Annotations) != 0 {
+			utils.Error(w, http.StatusBadRequest, fmt.Errorf("can not set both Annotation and Annotations"))
+			return
+		}
+		annotations := make(map[string]string)
+		for _, annotationSpec := range body.ManifestAddOptions.Annotation {
+			spec := strings.SplitN(annotationSpec, "=", 2)
+			if len(spec) != 2 {
+				utils.Error(w, http.StatusBadRequest, fmt.Errorf("no value given for annotation %q", spec[0]))
+				return
+			}
+			annotations[spec[0]] = spec[1]
+		}
+		body.ManifestAddOptions.Annotations = envLib.Join(body.ManifestAddOptions.Annotations, annotations)
+		body.ManifestAddOptions.Annotation = nil
 	}
 
 	if tlsVerify, ok := r.URL.Query()["tlsVerify"]; ok {

@@ -1,10 +1,12 @@
 package integration
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"github.com/containers/common/libimage"
 	podmanRegistry "github.com/containers/podman/v4/hack/podman-registry-go"
 	. "github.com/containers/podman/v4/test/utils"
 	"github.com/containers/storage/pkg/archive"
@@ -163,6 +165,27 @@ var _ = Describe("Podman manifest", func() {
 				ContainSubstring(imageListPPC64LEInstanceDigest),
 				ContainSubstring(imageListS390XInstanceDigest),
 			))
+	})
+
+	It("add --annotation", func() {
+		session := podmanTest.Podman([]string{"manifest", "create", "foo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		session = podmanTest.Podman([]string{"manifest", "add", "--annotation", "hoge", "foo", imageList})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(125))
+		Expect(session.ErrorToString()).To(ContainSubstring("no value given for annotation"))
+		session = podmanTest.Podman([]string{"manifest", "add", "--annotation", "hoge=fuga", "foo", imageList})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		session = podmanTest.Podman([]string{"manifest", "inspect", "foo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		var inspect libimage.ManifestListData
+		err := json.Unmarshal(session.Out.Contents(), &inspect)
+		Expect(err).To(BeNil())
+		Expect(inspect.Manifests[0].Annotations).To(Equal(map[string]string{"hoge": "fuga"}))
 	})
 
 	It("add --os", func() {

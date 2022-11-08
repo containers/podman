@@ -11,6 +11,7 @@ import (
 	"github.com/containers/podman/v4/pkg/bindings/images"
 	"github.com/containers/podman/v4/pkg/bindings/manifests"
 	"github.com/containers/podman/v4/pkg/domain/entities"
+	envLib "github.com/containers/podman/v4/pkg/env"
 )
 
 // ManifestCreate implements manifest create via ImageEngine
@@ -43,7 +44,7 @@ func (ir *ImageEngine) ManifestInspect(ctx context.Context, name string, opts en
 		}
 	}
 
-	list, err := manifests.Inspect(ir.ClientCtx, name, options)
+	list, err := manifests.InspectListData(ir.ClientCtx, name, options)
 	if err != nil {
 		return nil, fmt.Errorf("getting content of manifest list or image %s: %w", name, err)
 	}
@@ -60,6 +61,7 @@ func (ir *ImageEngine) ManifestAdd(_ context.Context, name string, imageNames []
 	options := new(manifests.AddOptions).WithAll(opts.All).WithArch(opts.Arch).WithVariant(opts.Variant)
 	options.WithFeatures(opts.Features).WithImages(imageNames).WithOS(opts.OS).WithOSVersion(opts.OSVersion)
 	options.WithUsername(opts.Username).WithPassword(opts.Password).WithAuthfile(opts.Authfile)
+
 	if len(opts.Annotation) != 0 {
 		annotations := make(map[string]string)
 		for _, annotationSpec := range opts.Annotation {
@@ -69,8 +71,10 @@ func (ir *ImageEngine) ManifestAdd(_ context.Context, name string, imageNames []
 			}
 			annotations[spec[0]] = spec[1]
 		}
-		options.WithAnnotation(annotations)
+		opts.Annotations = envLib.Join(opts.Annotations, annotations)
 	}
+	options.WithAnnotation(opts.Annotations)
+
 	if s := opts.SkipTLSVerify; s != types.OptionalBoolUndefined {
 		if s == types.OptionalBoolTrue {
 			options.WithSkipTLSVerify(true)

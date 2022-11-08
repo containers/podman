@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/containers/common/libimage"
 	"github.com/containers/image/v5/manifest"
 	imageTypes "github.com/containers/image/v5/types"
 	"github.com/containers/podman/v4/pkg/auth"
@@ -98,6 +99,39 @@ func Inspect(ctx context.Context, name string, options *InspectOptions) (*manife
 	defer response.Body.Close()
 
 	var list manifest.Schema2List
+	return &list, response.Process(&list)
+}
+
+// InspectListData returns a manifest list for a given name.
+// Contains exclusive field like `annotations` which is only
+// present in OCI spec and not in docker image spec.
+func InspectListData(ctx context.Context, name string, options *InspectOptions) (*libimage.ManifestListData, error) {
+	conn, err := bindings.GetClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if options == nil {
+		options = new(InspectOptions)
+	}
+
+	params, err := options.ToParams()
+	if err != nil {
+		return nil, err
+	}
+	// SkipTLSVerify is special.  We need to delete the param added by
+	// ToParams() and change the key and flip the bool
+	if options.SkipTLSVerify != nil {
+		params.Del("SkipTLSVerify")
+		params.Set("tlsVerify", strconv.FormatBool(!options.GetSkipTLSVerify()))
+	}
+
+	response, err := conn.DoRequest(ctx, nil, http.MethodGet, "/manifests/%s/json", params, nil, name)
+	if err != nil {
+		return nil, err
+	}
+	defer response.Body.Close()
+
+	var list libimage.ManifestListData
 	return &list, response.Process(&list)
 }
 
