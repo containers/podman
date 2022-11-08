@@ -18,10 +18,10 @@ func KubeWithBody(ctx context.Context, body io.Reader, options *KubeOptions) (*e
 	return kube.PlayWithBody(ctx, body, options)
 }
 
-func Down(ctx context.Context, path string) (*entities.PlayKubeReport, error) {
-	return kube.Down(ctx, path)
+func Down(ctx context.Context, path string, options kube.DownOptions) (*entities.PlayKubeReport, error) {
+	return kube.Down(ctx, path, options)
 }
 
-func DownWithBody(ctx context.Context, body io.Reader) (*entities.PlayKubeReport, error) {
-	return kube.DownWithBody(ctx, body)
+func DownWithBody(ctx context.Context, body io.Reader, options kube.DownOptions) (*entities.PlayKubeReport, error) {
+	return kube.DownWithBody(ctx, body, options)
 }

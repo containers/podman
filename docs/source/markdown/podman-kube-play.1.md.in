@@ -138,6 +138,10 @@ Use *path* as the build context directory for each image. Requires --build optio
 
 @@option creds
 
+#### **--force**
+
+Tear down the volumes linked to the PersistentVolumeClaims as part of --down
+
 #### **--help**, **-h**
 
 Print usage statement
@@ -185,6 +189,7 @@ Start the pod after creating it, set to false to only create it.
 @@option tls-verify
 
 @@option userns.container
+
 ## EXAMPLES
 
 Recreate the pod and containers as described in a file called `demo.yml`

@@ -4,14 +4,21 @@
 podman-kube-down - Remove containers and pods based on Kubernetes YAML
 
 ## SYNOPSIS
-**podman kube down** *file.yml|-|https://website.io/file.yml*
+**podman kube down** [*options*] *file.yml|-|https://website.io/file.yml*
 
 ## DESCRIPTION
 **podman kube down** reads a specified Kubernetes YAML file, tearing down pods that were created by the `podman kube play` command via the same Kubernetes YAML
-file. Any volumes that were created by the previous `podman kube play` command remain intact. If the YAML file is specified as `-`, `podman kube down` reads the
-YAML from stdin. The input can also be a URL that points to a YAML file such as https://podman.io/demo.yml. `podman kube down` will then teardown the pods and
-containers created by `podman kube play` via the same Kubernetes YAML from the URL. However, `podman kube down` will not work with a URL if the YAML file the URL
-points to has been changed or altered since the creation of the pods and containers using `podman kube play`.
+file. Any volumes that were created by the previous `podman kube play` command remain intact unless the `--force` options is used. If the YAML file is
+specified as `-`, `podman kube down` reads the YAML from stdin. The input can also be a URL that points to a YAML file such as https://podman.io/demo.yml.
+`podman kube down` will then teardown the pods and containers created by `podman kube play` via the same Kubernetes YAML from the URL. However,
+`podman kube down` will not work with a URL if the YAML file the URL points to has been changed or altered since the creation of the pods and containers using
+`podman kube play`.
+
+## OPTIONS
+
+#### **--force**
+
+Tear down the volumes linked to the PersistentVolumeClaims as part --down
 
 ## EXAMPLES
 

@@ -138,6 +138,7 @@ func playFlags(cmd *cobra.Command) {
 	flags.BoolVarP(&playOptions.Quiet, "quiet", "q", false, "Suppress output information when pulling images")
 	flags.BoolVar(&playOptions.TLSVerifyCLI, "tls-verify", true, "Require HTTPS and verify certificates when contacting registries")
 	flags.BoolVar(&playOptions.StartCLI, "start", true, "Start the pod after creating it")
+	flags.BoolVar(&playOptions.Force, "force", false, "Remove volumes as part of --down")
 
 	authfileFlagName := "authfile"
 	flags.StringVar(&playOptions.Authfile, authfileFlagName, auth.GetDefaultAuthFile(), "Path of the authentication file. Use REGISTRY_AUTH_FILE environment variable to override")
@@ -242,17 +243,21 @@ func play(cmd *cobra.Command, args []string) error {
 		playOptions.StaticMACs = append(playOptions.StaticMACs, m)
 	}
 
+	if playOptions.Force && !playOptions.Down {
+		return errors.New("--force may be specified only with --down")
+	}
+
 	reader, err := readerFromArg(args[0])
 	if err != nil {
 		return err
 	}
 
 	if playOptions.Down {
-		return teardown(reader)
+		return teardown(reader, entities.PlayKubeDownOptions{Force: playOptions.Force})
 	}
 
 	if playOptions.Replace {
-		if err := teardown(reader); err != nil && !errorhandling.Contains(err, define.ErrNoSuchPod) {
+		if err := teardown(reader, entities.PlayKubeDownOptions{Force: playOptions.Force}); err != nil && !errorhandling.Contains(err, define.ErrNoSuchPod) {
 			return err
 		}
 		if _, err := reader.Seek(0, 0); err != nil {
@@ -302,13 +307,13 @@ func readerFromArg(fileName string) (*bytes.Reader, error) {
 	return bytes.NewReader(data), nil
 }
 
-func teardown(body io.Reader) error {
+func teardown(body io.Reader, options entities.PlayKubeDownOptions) error {
 	var (
 		podStopErrors utils.OutputErrors
 		podRmErrors   utils.OutputErrors
+		volRmErrors   utils.OutputErrors
 	)
-	options := new(entities.PlayKubeDownOptions)
-	reports, err := registry.ContainerEngine().PlayKubeDown(registry.GetContext(), body, *options)
+	reports, err := registry.ContainerEngine().PlayKubeDown(registry.GetContext(), body, options)
 	if err != nil {
 		return err
 	}
@@ -338,7 +343,22 @@ func teardown(body io.Reader) error {
 		}
 	}
 
-	return podRmErrors.PrintErrors()
+	lastPodRmError := podRmErrors.PrintErrors()
+	if lastPodRmError != nil {
+		fmt.Fprintf(os.Stderr, "Error: %s\n", lastPodRmError)
+	}
+
+	// Output rm'd volumes
+	fmt.Println("Volumes removed:")
+	for _, removed := range reports.VolumeRmReport {
+		if removed.Err == nil {
+			fmt.Println(removed.Id)
+		} else {
+			volRmErrors = append(volRmErrors, removed.Err)
+		}
+	}
+
+	return volRmErrors.PrintErrors()
 }
 
 func kubeplay(body io.Reader) error {

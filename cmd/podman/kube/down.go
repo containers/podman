@@ -3,8 +3,14 @@ package kube
 import (
 	"github.com/containers/podman/v4/cmd/podman/common"
 	"github.com/containers/podman/v4/cmd/podman/registry"
+	"github.com/containers/podman/v4/cmd/podman/utils"
+	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/spf13/cobra"
 )
+
+type downKubeOptions struct {
+	Force bool
+}
 
 var (
 	downDescription = `Reads in a structured file of Kubernetes YAML.
@@ -12,7 +18,7 @@ var (
   Removes pods that have been based on the Kubernetes kind described in the YAML.`
 
 	downCmd = &cobra.Command{
-		Use:               "down KUBEFILE|-",
+		Use:               "down [options] KUBEFILE|-",
 		Short:             "Remove pods based on Kubernetes YAML.",
 		Long:              downDescription,
 		RunE:              down,
@@ -22,6 +28,8 @@ var (
    cat nginx.yml | podman kube down -
    podman kube down https://example.com/nginx.yml`,
 	}
+
+	downOptions = downKubeOptions{}
 )
 
 func init() {
@@ -29,6 +37,14 @@ func init() {
 		Command: downCmd,
 		Parent:  kubeCmd,
 	})
+	downFlags(downCmd)
+}
+
+func downFlags(cmd *cobra.Command) {
+	flags := cmd.Flags()
+	flags.SetNormalizeFunc(utils.AliasFlags)
+
+	flags.BoolVar(&downOptions.Force, "force", false, "remove volumes")
 }
 
 func down(cmd *cobra.Command, args []string) error {
@@ -36,5 +52,5 @@ func down(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	return teardown(reader)
+	return teardown(reader, entities.PlayKubeDownOptions{Force: downOptions.Force})
 }

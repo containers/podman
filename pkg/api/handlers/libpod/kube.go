@@ -112,9 +112,20 @@ func KubePlay(w http.ResponseWriter, r *http.Request) {
 
 func KubePlayDown(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
+	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
+	query := struct {
+		Force bool `schema:"force"`
+	}{
+		Force: false,
+	}
+
+	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
+		utils.Error(w, http.StatusBadRequest, fmt.Errorf("failed to parse parameters for %s: %w", r.URL.String(), err))
+		return
+	}
+
 	containerEngine := abi.ContainerEngine{Libpod: runtime}
-	options := new(entities.PlayKubeDownOptions)
-	report, err := containerEngine.PlayKubeDown(r.Context(), r.Body, *options)
+	report, err := containerEngine.PlayKubeDown(r.Context(), r.Body, entities.PlayKubeDownOptions{Force: query.Force})
 	_ = r.Body.Close()
 	if err != nil {
 		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("tearing down YAML file: %w", err))

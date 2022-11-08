@@ -69,6 +69,12 @@ func (s *APIServer) registerKubeHandlers(r *mux.Router) error {
 	//  - pods
 	// summary: Remove pods from kube play
 	// description: Tears down pods defined in a YAML file
+	// parameters:
+	//  - in: query
+	//    name: force
+	//    type: boolean
+	//    default: false
+	//    description: Remove volumes.
 	// produces:
 	// - application/json
 	// responses:

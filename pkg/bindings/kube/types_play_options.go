@@ -287,3 +287,18 @@ func (o *PlayOptions) GetUserns() string {
 	}
 	return *o.Userns
 }
+
+// WithForce set field Force to given value
+func (o *PlayOptions) WithForce(value bool) *PlayOptions {
+	o.Force = &value
+	return o
+}
+
+// GetForce returns value of field Force
+func (o *PlayOptions) GetForce() bool {
+	if o.Force == nil {
+		var z bool
+		return z
+	}
+	return *o.Force
+}
