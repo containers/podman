@@ -245,10 +245,12 @@ var _ = Describe("Podman ps", func() {
 		_, ec, _ := podmanTest.RunLsContainer("test1")
 		Expect(ec).To(Equal(0))
 
-		result := podmanTest.Podman([]string{"ps", "-a", "--ns", "--format", "json"})
+		result := podmanTest.Podman([]string{"ps", "-a", "--ns", "--format", "{{ json . }}"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
 		Expect(result.OutputToString()).To(BeValidJSON())
+		// https://github.com/containers/podman/issues/16436
+		Expect(result.OutputToString()).To(HavePrefix("{"), "test for single json object and not array see #16436")
 	})
 
 	It("podman ps json format Created field is int64", func() {

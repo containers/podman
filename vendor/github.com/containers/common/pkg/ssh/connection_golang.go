@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"os"
 	"os/user"
+	"path"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -289,11 +290,24 @@ func ValidateAndConfigure(uri *url.URL, iden string, insecureIsMachineConnection
 			keyFilePath := filepath.Join(homedir.Get(), ".ssh", "known_hosts")
 			known, err := knownhosts.New(keyFilePath)
 			if err != nil {
-				if errors.Is(err, os.ErrNotExist) {
-					logrus.Warn("please create a known_hosts file. The next time this host is connected to, podman will add it to known_hosts")
-					return nil
+				if !errors.Is(err, os.ErrNotExist) {
+					return err
 				}
-				return err
+				keyDir := path.Dir(keyFilePath)
+				if _, err := os.Stat(keyDir); errors.Is(err, os.ErrNotExist) {
+					if err := os.Mkdir(keyDir, 0o700); err != nil {
+						return err
+					}
+				}
+				k, err := os.OpenFile(keyFilePath, os.O_RDWR|os.O_CREATE, 0o600)
+				if err != nil {
+					return err
+				}
+				k.Close()
+				known, err = knownhosts.New(keyFilePath)
+				if err != nil {
+					return err
+				}
 			}
 			// we need to check if there is an error from reading known hosts for this public key and if there is an error, what is it, and why is it happening?
 			// if it is a key mismatch we want to error since we know the host using another key
