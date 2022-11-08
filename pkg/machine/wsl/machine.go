@@ -36,13 +36,16 @@ var (
 const (
 	ErrorSuccessRebootInitiated = 1641
 	ErrorSuccessRebootRequired  = 3010
-	currentMachineVersion       = 2
+	currentMachineVersion       = 3
 )
 
 const containersConf = `[containers]
 
 [engine]
 cgroup_manager = "cgroupfs"
+`
+
+const registriesConf = `unqualified-search-registries=["docker.io"]
 `
 
 const appendPort = `grep -q Port\ %d /etc/ssh/sshd_config || echo Port %d >> /etc/ssh/sshd_config`
@@ -314,6 +317,11 @@ func (v *MachineVM) migrateMachine(configPath string) error {
 		return err
 	}
 
+	// Update older machines missing unqualified search config
+	if err := configureRegistries(v, toDist(v.Name)); err != nil {
+		return err
+	}
+
 	v.Version = currentMachineVersion
 	return v.writeConfig()
 }
@@ -554,6 +562,10 @@ func configureSystem(v *MachineVM, dist string) error {
 		return fmt.Errorf("could not create containers.conf for guest OS: %w", err)
 	}
 
+	if err := configureRegistries(v, dist); err != nil {
+		return err
+	}
+
 	if err := wslInvoke(dist, "sh", "-c", "echo wsl > /etc/containers/podman-machine"); err != nil {
 		return fmt.Errorf("could not create podman-machine file for guest OS: %w", err)
 	}
@@ -603,6 +615,15 @@ func enableUserLinger(v *MachineVM, dist string) error {
 	lingerCmd := "mkdir -p /var/lib/systemd/linger; touch /var/lib/systemd/linger/" + v.RemoteUsername
 	if err := wslInvoke(dist, "sh", "-c", lingerCmd); err != nil {
 		return fmt.Errorf("could not enable linger for remote user on guest OS: %w", err)
+	}
+
+	return nil
+}
+
+func configureRegistries(v *MachineVM, dist string) error {
+	cmd := "cat > /etc/containers/registries.conf.d/999-podman-machine.conf"
+	if err := wslPipe(registriesConf, dist, "sh", "-c", cmd); err != nil {
+		return fmt.Errorf("could not configure registries on guest OS: %w", err)
 	}
 
 	return nil
