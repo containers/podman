@@ -135,6 +135,9 @@ ${cid[0]} d"   "Sequential output from logs"
 function _log_test_restarted() {
     local driver=$1
     local events_backend=$(_additional_events_backend $driver)
+    if [[ -n "${events_backend}" ]]; then
+        skip_if_remote "remote does not support --events-backend"
+    fi
     run_podman run --log-driver=$driver ${events_backend} --name logtest $IMAGE sh -c 'start=0; if test -s log; then start=`tail -n 1 log`; fi; seq `expr $start + 1` `expr $start + 10` | tee -a log'
     # FIXME: #9597
     # run/start is flaking for remote so let's wait for the container condition
