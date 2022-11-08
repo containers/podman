@@ -1,5 +1,9 @@
 # Release Notes
 
+## 4.3.1
+### Bugfixes
+- Fix a deadlock between `podman ps` and `podman container inspect` commands
+
 ## 4.3.0
 ### Features
 - A new command, `podman generate spec`, has been added, which creates a JSON struct based on a given container that can be used with the Podman REST API to create containers.
