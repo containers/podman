@@ -394,6 +394,9 @@ dotest() {
 }
 
 _run_machine() {
+    # This environment is convenient for executing some benchmarking
+    localbenchmarks
+
     # N/B: Can't use _bail_if_test_can_be_skipped here b/c content isn't under test/
     make localmachine |& logformatter
 }

@@ -577,11 +577,11 @@ localintegration: test-binaries ginkgo
 remoteintegration: test-binaries ginkgo-remote
 
 .PHONY: localmachine
-localmachine: test-binaries
+localmachine: test-binaries .install.ginkgo
 	$(MAKE) ginkgo-run GINKGONODES=1 GINKGOWHAT=pkg/machine/e2e/. HACK=
 
 .PHONY: localbenchmarks
-localbenchmarks: test-binaries
+localbenchmarks: install.tools test-binaries
 	PATH=$(PATH):$(shell pwd)/hack ACK_GINKGO_RC=true $(GINKGO) \
 		      -focus "Podman Benchmark Suite" \
 		      -tags "$(BUILDTAGS) benchmarks" -noColor \
