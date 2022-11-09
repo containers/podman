@@ -44,7 +44,7 @@ func init() {
 	flags := createCommand.Flags()
 
 	driverFlagName := "driver"
-	flags.StringVar(&createOpts.Driver, driverFlagName, "local", "Specify volume driver name")
+	flags.StringVarP(&createOpts.Driver, driverFlagName, "d", "local", "Specify volume driver name")
 	_ = createCommand.RegisterFlagCompletionFunc(driverFlagName, completion.AutocompleteNone)
 
 	labelFlagName := "label"
