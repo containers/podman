@@ -339,7 +339,11 @@ func makeRuntime(runtime *Runtime) (retErr error) {
 	case config.SQLiteStateStore:
 		return fmt.Errorf("SQLite state is currently disabled: %w", define.ErrInvalidArg)
 	case config.BoltDBStateStore:
-		dbPath := filepath.Join(runtime.config.Engine.StaticDir, "bolt_state.db")
+		baseDir := runtime.config.Engine.StaticDir
+		if runtime.storageConfig.TransientStore {
+			baseDir = runtime.config.Engine.TmpDir
+		}
+		dbPath := filepath.Join(baseDir, "bolt_state.db")
 
 		state, err := NewBoltState(dbPath, runtime)
 		if err != nil {
