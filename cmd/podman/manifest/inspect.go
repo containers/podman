@@ -30,7 +30,7 @@ func init() {
 	})
 	flags := inspectCmd.Flags()
 
-	flags.Bool("verbose", false, "Added for Docker compatibility")
+	flags.BoolP("verbose", "v", false, "Added for Docker compatibility")
 	_ = flags.MarkHidden("verbose")
 	flags.BoolVar(&tlsVerifyCLI, "tls-verify", true, "require HTTPS and verify certificates when accessing the registry")
 	flags.Bool("insecure", false, "Purely for Docker compatibility")
