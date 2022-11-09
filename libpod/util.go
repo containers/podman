@@ -171,11 +171,12 @@ func queryPackageVersion(cmdArg ...string) string {
 func packageVersion(program string) string { // program is full path
 	packagers := [][]string{
 		{"/usr/bin/rpm", "-q", "-f"},
-		{"/usr/bin/dpkg", "-S"},     // Debian, Ubuntu
-		{"/usr/bin/pacman", "-Qo"},  // Arch
-		{"/usr/bin/qfile", "-qv"},   // Gentoo (quick)
-		{"/usr/bin/equery", "b"},    // Gentoo (slow)
-		{"/sbin/apk", "info", "-W"}, // Alpine
+		{"/usr/bin/dpkg", "-S"},                // Debian, Ubuntu
+		{"/usr/bin/pacman", "-Qo"},             // Arch
+		{"/usr/bin/qfile", "-qv"},              // Gentoo (quick)
+		{"/usr/bin/equery", "b"},               // Gentoo (slow)
+		{"/sbin/apk", "info", "-W"},            // Alpine
+		{"/usr/local/sbin/pkg", "which", "-q"}, // FreeBSD
 	}
 
 	for _, cmd := range packagers {
