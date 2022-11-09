@@ -163,8 +163,8 @@ github.com/cncf/udpa/go v0.0.0-20200629203442-efcf912fb354/go.mod h1:WmhPx2Nbnht
 github.com/cncf/udpa/go v0.0.0-20201120205902-5459f2c99403/go.mod h1:WmhPx2Nbnhtbo57+VJT5O0JRkEi1Wbu0z5j0R8u5Hbk=
 github.com/cncf/xds/go v0.0.0-20210312221358-fbca930ec8ed/go.mod h1:eXthEFrGJvWHgFFCl3hGmgk+/aYT6PnTQLykKQRLhEs=
 github.com/cockroachdb/datadriven v0.0.0-20190809214429-80d97fb3cbaa/go.mod h1:zn76sxSg3SzpJ0PPJaLDCu+Bu0Lg3sKTORVIj19EIF8=
-github.com/container-orchestrated-devices/container-device-interface v0.5.2 h1:Bf/Zq8UBhbSBtB+pFBVIQ2Rh7sNK/x2ZEr6uW5YjNv8=
-github.com/container-orchestrated-devices/container-device-interface v0.5.2/go.mod h1:ZToWfSyUH5l9Rk7/bjkUUkNLz4b1mE+CVUVafuikDPY=
+github.com/container-orchestrated-devices/container-device-interface v0.5.3 h1:4v6FMaa1Pn8SS0IBwgsvCsno8HRXoQvI87Uj1Zu7Tw4=
+github.com/container-orchestrated-devices/container-device-interface v0.5.3/go.mod h1:SQohok453ewi9dItvUcO0MrP7K1CEQTxPDNd7OV+nxI=
 github.com/containerd/aufs v0.0.0-20200908144142-dab0cbea06f4/go.mod h1:nukgQABAEopAHvB6j7cnP5zJ+/3aVcE7hCYqvIwAHyE=
 github.com/containerd/aufs v0.0.0-20201003224125-76a6863f2989/go.mod h1:AkGGQs9NM2vtYHaUen+NljV0/baGCAPELGm2q9ZXpWU=
 github.com/containerd/aufs v0.0.0-20210316121734-20793ff83c97/go.mod h1:kL5kd6KM5TzQjR79jljyi4olc1Vrx6XBlcyj3gNv2PU=

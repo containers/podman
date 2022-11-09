@@ -21,6 +21,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	oci "github.com/opencontainers/runtime-spec/specs-go"
@@ -28,6 +29,14 @@ import (
 	"sigs.k8s.io/yaml"
 
 	cdi "github.com/container-orchestrated-devices/container-device-interface/specs-go"
+)
+
+const (
+	// CurrentVersion is the current vesion of the CDI Spec.
+	CurrentVersion = cdi.CurrentVersion
+
+	// defaultSpecExt is the file extension for the default encoding.
+	defaultSpecExt = ".yaml"
 )
 
 var (
@@ -80,7 +89,7 @@ func ReadSpec(path string, priority int) (*Spec, error) {
 		return nil, errors.Errorf("failed to parse CDI Spec %q, no Spec data", path)
 	}
 
-	spec, err := NewSpec(raw, path, priority)
+	spec, err := newSpec(raw, path, priority)
 	if err != nil {
 		return nil, err
 	}
@@ -88,11 +97,11 @@ func ReadSpec(path string, priority int) (*Spec, error) {
 	return spec, nil
 }
 
-// NewSpec creates a new Spec from the given CDI Spec data. The
+// newSpec creates a new Spec from the given CDI Spec data. The
 // Spec is marked as loaded from the given path with the given
-// priority. If Spec data validation fails NewSpec returns a nil
+// priority. If Spec data validation fails newSpec returns a nil
 // Spec and an error.
-func NewSpec(raw *cdi.Spec, path string, priority int) (*Spec, error) {
+func newSpec(raw *cdi.Spec, path string, priority int) (*Spec, error) {
 	err := validateSpec(raw)
 	if err != nil {
 		return nil, err
@@ -102,6 +111,10 @@ func NewSpec(raw *cdi.Spec, path string, priority int) (*Spec, error) {
 		Spec:     raw,
 		path:     filepath.Clean(path),
 		priority: priority,
+	}
+
+	if ext := filepath.Ext(spec.path); ext != ".yaml" && ext != ".json" {
+		spec.path += defaultSpecExt
 	}
 
 	spec.vendor, spec.class = ParseQualifier(spec.Kind)
@@ -114,8 +127,8 @@ func NewSpec(raw *cdi.Spec, path string, priority int) (*Spec, error) {
 }
 
 // Write the CDI Spec to the file associated with it during instantiation
-// by NewSpec() or ReadSpec().
-func (s *Spec) Write(overwrite bool) error {
+// by newSpec() or ReadSpec().
+func (s *Spec) write(overwrite bool) error {
 	var (
 		data []byte
 		dir  string
@@ -249,7 +262,7 @@ func ParseSpec(data []byte) (*cdi.Spec, error) {
 
 // SetSpecValidator sets a CDI Spec validator function. This function
 // is used for extra CDI Spec content validation whenever a Spec file
-// loaded (using ReadSpec() or NewSpec()) or written (Spec.Write()).
+// loaded (using ReadSpec() or written (using WriteSpec()).
 func SetSpecValidator(fn func(*cdi.Spec) error) {
 	validatorLock.Lock()
 	defer validatorLock.Unlock()
@@ -269,4 +282,69 @@ func validateSpec(raw *cdi.Spec) error {
 		return errors.Wrap(err, "Spec validation failed")
 	}
 	return nil
+}
+
+// GenerateSpecName generates a vendor+class scoped Spec file name. The
+// name can be passed to WriteSpec() to write a Spec file to the file
+// system.
+//
+// vendor and class should match the vendor and class of the CDI Spec.
+// The file name is generated without a ".json" or ".yaml" extension.
+// The caller can append the desired extension to choose a particular
+// encoding. Otherwise WriteSpec() will use its default encoding.
+//
+// This function always returns the same name for the same vendor/class
+// combination. Therefore it cannot be used as such to generate multiple
+// Spec file names for a single vendor and class.
+func GenerateSpecName(vendor, class string) string {
+	return vendor + "-" + class
+}
+
+// GenerateTransientSpecName generates a vendor+class scoped transient
+// Spec file name. The name can be passed to WriteSpec() to write a Spec
+// file to the file system.
+//
+// Transient Specs are those whose lifecycle is tied to that of some
+// external entity, for instance a container. vendor and class should
+// match the vendor and class of the CDI Spec. transientID should be
+// unique among all CDI users on the same host that might generate
+// transient Spec files using the same vendor/class combination. If
+// the external entity to which the lifecycle of the tranient Spec
+// is tied to has a unique ID of its own, then this is usually a
+// good choice for transientID.
+//
+// The file name is generated without a ".json" or ".yaml" extension.
+// The caller can append the desired extension to choose a particular
+// encoding. Otherwise WriteSpec() will use its default encoding.
+func GenerateTransientSpecName(vendor, class, transientID string) string {
+	transientID = strings.ReplaceAll(transientID, "/", "_")
+	return GenerateSpecName(vendor, class) + "_" + transientID
+}
+
+// GenerateNameForSpec generates a name for the given Spec using
+// GenerateSpecName with the vendor and class taken from the Spec.
+// On success it returns the generated name and a nil error. If
+// the Spec does not contain a valid vendor or class, it returns
+// an empty name and a non-nil error.
+func GenerateNameForSpec(raw *cdi.Spec) (string, error) {
+	vendor, class := ParseQualifier(raw.Kind)
+	if vendor == "" {
+		return "", errors.Errorf("invalid vendor/class %q in Spec", raw.Kind)
+	}
+
+	return GenerateSpecName(vendor, class), nil
+}
+
+// GenerateNameForTransientSpec generates a name for the given transient
+// Spec using GenerateTransientSpecName with the vendor and class taken
+// from the Spec. On success it returns the generated name and a nil error.
+// If the Spec does not contain a valid vendor or class, it returns an
+// an empty name and a non-nil error.
+func GenerateNameForTransientSpec(raw *cdi.Spec, transientID string) (string, error) {
+	vendor, class := ParseQualifier(raw.Kind)
+	if vendor == "" {
+		return "", errors.Errorf("invalid vendor/class %q in Spec", raw.Kind)
+	}
+
+	return GenerateTransientSpecName(vendor, class, transientID), nil
 }

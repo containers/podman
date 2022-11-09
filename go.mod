@@ -8,7 +8,7 @@ require (
 	github.com/buger/goterm v1.0.4
 	github.com/checkpoint-restore/checkpointctl v0.0.0-20220321135231-33f4a66335f0
 	github.com/checkpoint-restore/go-criu/v6 v6.3.0
-	github.com/container-orchestrated-devices/container-device-interface v0.5.2
+	github.com/container-orchestrated-devices/container-device-interface v0.5.3
 	github.com/containernetworking/cni v1.1.2
 	github.com/containernetworking/plugins v1.1.1
 	github.com/containers/buildah v1.28.1-0.20221029151733-c2cf9fa47ab6
