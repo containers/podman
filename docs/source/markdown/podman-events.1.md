@@ -6,6 +6,8 @@ podman\-events - Monitor Podman events
 ## SYNOPSIS
 **podman events** [*options*]
 
+**podman system events** [*options*]
+
 ## DESCRIPTION
 
 Monitor and print events that occur in Podman. Each event will include a timestamp,

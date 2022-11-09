@@ -16,13 +16,13 @@ import (
 )
 
 var (
-	eventsDescription = `Monitor podman events.
+	eventsDescription = `Monitor podman system events.
 
   By default, streaming mode is used, printing new events as they occur.  Previous events can be listed via --since and --until.`
 	eventsCommand = &cobra.Command{
 		Use:               "events [options]",
 		Args:              validate.NoArgs,
-		Short:             "Show podman events",
+		Short:             "Show podman system events",
 		Long:              eventsDescription,
 		RunE:              eventsCmd,
 		ValidArgsFunction: completion.AutocompleteNone,
@@ -30,6 +30,16 @@ var (
   podman events --filter event=create
   podman events --format {{.Image}}
   podman events --since 1h30s`,
+	}
+
+	systemEventsCommand = &cobra.Command{
+		Args:              eventsCommand.Args,
+		Use:               eventsCommand.Use,
+		Short:             eventsCommand.Short,
+		Long:              eventsCommand.Long,
+		RunE:              eventsCommand.RunE,
+		ValidArgsFunction: eventsCommand.ValidArgsFunction,
+		Example:           `podman system events`,
 	}
 )
 
@@ -41,29 +51,38 @@ var (
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
+		Command: systemEventsCommand,
+		Parent:  systemCmd,
+	})
+	eventsFlags(systemEventsCommand)
+	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Command: eventsCommand,
 	})
-	flags := eventsCommand.Flags()
+	eventsFlags(eventsCommand)
+}
+
+func eventsFlags(cmd *cobra.Command) {
+	flags := cmd.Flags()
 
 	filterFlagName := "filter"
 	flags.StringArrayVarP(&eventOptions.Filter, filterFlagName, "f", []string{}, "filter output")
-	_ = eventsCommand.RegisterFlagCompletionFunc(filterFlagName, common.AutocompleteEventFilter)
+	_ = cmd.RegisterFlagCompletionFunc(filterFlagName, common.AutocompleteEventFilter)
 
 	formatFlagName := "format"
 	flags.StringVar(&eventFormat, formatFlagName, "", "format the output using a Go template")
-	_ = eventsCommand.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(&events.Event{}))
+	_ = cmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(&events.Event{}))
 
 	flags.BoolVar(&eventOptions.Stream, "stream", true, "stream new events; for testing only")
 
 	sinceFlagName := "since"
 	flags.StringVar(&eventOptions.Since, sinceFlagName, "", "show all events created since timestamp")
-	_ = eventsCommand.RegisterFlagCompletionFunc(sinceFlagName, completion.AutocompleteNone)
+	_ = cmd.RegisterFlagCompletionFunc(sinceFlagName, completion.AutocompleteNone)
 
 	flags.BoolVar(&noTrunc, "no-trunc", true, "do not truncate the output")
 
 	untilFlagName := "until"
 	flags.StringVar(&eventOptions.Until, untilFlagName, "", "show all events until timestamp")
-	_ = eventsCommand.RegisterFlagCompletionFunc(untilFlagName, completion.AutocompleteNone)
+	_ = cmd.RegisterFlagCompletionFunc(untilFlagName, completion.AutocompleteNone)
 
 	_ = flags.MarkHidden("stream")
 }

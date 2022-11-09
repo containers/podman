@@ -37,6 +37,7 @@ search            | $IMAGE
 pod inspect       | mypod
 
 events            | --stream=false --events-backend=file
+system events     | --stream=false --events-backend=file
 "
 
 # podman machine is finicky. Assume we can't run it, but see below for more.
