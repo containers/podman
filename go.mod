@@ -18,7 +18,7 @@ require (
 	github.com/containers/ocicrypt v1.1.6
 	github.com/containers/psgo v1.8.0
 	github.com/containers/storage v1.43.1-0.20221104122514-74e37433a2a0
-	github.com/coreos/go-systemd/v22 v22.4.0
+	github.com/coreos/go-systemd/v22 v22.5.0
 	github.com/coreos/stream-metadata-go v0.0.0-20210225230131-70edb9eb47b3
 	github.com/cyphar/filepath-securejoin v0.2.3
 	github.com/digitalocean/go-qemu v0.0.0-20210326154740-ac9e0b687001
