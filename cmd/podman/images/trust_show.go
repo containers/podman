@@ -33,6 +33,10 @@ var (
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Command: showTrustCommand,
+		Parent:  trustxCmd,
+	})
+	registry.Commands = append(registry.Commands, registry.CliCommand{
+		Command: showTrustCommand,
 		Parent:  trustCmd,
 	})
 	showFlags := showTrustCommand.Flags()

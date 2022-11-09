@@ -16,9 +16,21 @@ var (
 		Long:        trustDescription,
 		RunE:        validate.SubCommandExists,
 	}
+
+	trustxCmd = &cobra.Command{
+		Annotations: trustCmd.Annotations,
+		Use:         trustCmd.Use,
+		Short:       trustCmd.Short,
+		Long:        trustCmd.Long,
+		RunE:        trustCmd.RunE,
+		Hidden:      true,
+	}
 )
 
 func init() {
+	registry.Commands = append(registry.Commands, registry.CliCommand{
+		Command: trustxCmd,
+	})
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Command: trustCmd,
 		Parent:  imageCmd,

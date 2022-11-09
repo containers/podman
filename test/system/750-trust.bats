@@ -15,8 +15,8 @@ load helpers
       run_podman image trust show --policypath=$policypath
       is "$output" ".*all  *default  *accept" "default policy should be accept"
 
-      run_podman image trust set --policypath=$policypath --type=reject default
-      run_podman image trust show --policypath=$policypath
+      run_podman trust set --policypath=$policypath --type=reject default
+      run_podman trust show --policypath=$policypath
       is "$output" ".*all  *default  *reject" "default policy should be reject"
 
       run_podman image trust set --policypath=$policypath --type=reject docker.io
