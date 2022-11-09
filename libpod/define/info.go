@@ -118,6 +118,7 @@ type StoreInfo struct {
 	ImageStore      ImageStore        `json:"imageStore"`
 	RunRoot         string            `json:"runRoot"`
 	VolumePath      string            `json:"volumePath"`
+	TransientStore  bool              `json:"transientStore"`
 }
 
 // ImageStore describes the image store.  Right now only the number

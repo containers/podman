@@ -396,6 +396,7 @@ func makeRuntime(runtime *Runtime) (retErr error) {
 	logrus.Debugf("Using static dir %s", runtime.config.Engine.StaticDir)
 	logrus.Debugf("Using tmp dir %s", runtime.config.Engine.TmpDir)
 	logrus.Debugf("Using volume path %s", runtime.config.Engine.VolumePath)
+	logrus.Debugf("Using transient store: %v", runtime.storageConfig.TransientStore)
 
 	// Validate our config against the database, now that we've set our
 	// final storage configuration

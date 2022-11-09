@@ -146,6 +146,7 @@ store:
   imageStore:
     number: 5
   runRoot: /run/user/3267/containers
+  transientStore: false
   volumePath: /home/dwalsh/.local/share/containers/storage/volumes
 version:
   APIVersion: 4.0.0
@@ -263,7 +264,8 @@ $ podman info --format json
       "number": 5
     },
     "runRoot": "/run/user/3267/containers",
-    "volumePath": "/home/dwalsh/.local/share/containers/storage/volumes"
+    "volumePath": "/home/dwalsh/.local/share/containers/storage/volumes",
+    "transientStore": false
   },
   "registries": {
     "search": [

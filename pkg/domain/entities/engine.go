@@ -50,9 +50,10 @@ type PodmanConfig struct {
 	Trace                    bool           // Hidden: Trace execution
 	URI                      string         // URI to RESTful API Service
 
-	Runroot       string
-	StorageDriver string
-	StorageOpts   []string
-	SSHMode       string
-	MachineMode   bool
+	Runroot        string
+	StorageDriver  string
+	StorageOpts    []string
+	SSHMode        string
+	MachineMode    bool
+	TransientStore bool
 }

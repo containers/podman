@@ -162,6 +162,14 @@ Path to the tmp directory, for libpod runtime content. Defaults to `$XDG_RUNTIME
 
 NOTE --tmpdir is not used for the temporary storage of downloaded images.  Use the environment variable `TMPDIR` to change the temporary storage location of downloaded container images. Podman defaults to use `/var/tmp`.
 
+#### **--transient-store**
+
+Enables a global transient storaga mode where all container metadata is stored on non-persistant media (i.e. in the location specified by `--runroot`).
+This mode allows starting containers faster, as well as guaranteeing a fresh state on boot in case of unclean shutdowns or other problems. However
+it is not compabible with a traditional model where containers persist across reboots.
+
+Default value for this is configured in `/etc/containers/storage.conf`.
+
 #### **--url**=*value*
 URL to access Podman service (default from `containers.conf`, rootless `unix://run/user/$UID/podman/podman.sock` or as root `unix://run/podman/podman.sock`).
 Setting this option will switch the **--remote** option to true.
