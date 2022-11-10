@@ -124,10 +124,15 @@
 //
 // Generated Spec Files, Multiple Directories, Device Precedence
 //
-// There are systems where the set of available or usable CDI devices
-// changes dynamically and this needs to be reflected in the CDI Specs.
-// This is done by dynamically regenerating CDI Spec files which are
-// affected by these changes.
+// It is often necessary to generate Spec files dynamically. On some
+// systems the available or usable set of CDI devices might change
+// dynamically which then needs to be reflected in CDI Specs. For
+// some device classes it makes sense to enumerate the available
+// devices at every boot and generate Spec file entries for each
+// device found. Some CDI devices might need special client- or
+// request-specific configuration which can only be fulfilled by
+// dynamically generated client-specific entries in transient Spec
+// files.
 //
 // CDI can collect Spec files from multiple directories. Spec files are
 // automatically assigned priorities according to which directory they
@@ -141,7 +146,111 @@
 // separating dynamically generated CDI Spec files from static ones.
 // The default directories are '/etc/cdi' and '/var/run/cdi'. By putting
 // dynamically generated Spec files under '/var/run/cdi', those take
-// precedence over static ones in '/etc/cdi'.
+// precedence over static ones in '/etc/cdi'. With this scheme, static
+// Spec files, typically installed by distro-specific packages, go into
+// '/etc/cdi' while all the dynamically generated Spec files, transient
+// or other, go into '/var/run/cdi'.
+//
+// Spec File Generation
+//
+// CDI offers two functions for writing and removing dynamically generated
+// Specs from CDI Spec directories. These functions, WriteSpec() and
+// RemoveSpec() implicitly follow the principle of separating dynamic Specs
+// from the rest and therefore always write to and remove Specs from the
+// last configured directory.
+//
+// Corresponding functions are also provided for generating names for Spec
+// files. These functions follow a simple naming convention to ensure that
+// multiple entities generating Spec files simultaneously on the same host
+// do not end up using conflicting Spec file names. GenerateSpecName(),
+// GenerateNameForSpec(), GenerateTransientSpecName(), and
+// GenerateTransientNameForSpec() all generate names which can be passed
+// as such to WriteSpec() and subsequently to RemoveSpec().
+//
+// Generating a Spec file for a vendor/device class can be done with a
+// code snippet similar to the following:
+//
+// import (
+//     "fmt"
+//     ...
+//     "github.com/container-orchestrated-devices/container-device-interface/specs-go"
+//     "github.com/container-orchestrated-devices/container-device-interface/pkg/cdi"
+// )
+//
+// func generateDeviceSpecs() error {
+//     registry := cdi.GetRegistry()
+//     spec := &specs.Spec{
+//         Version: specs.CurrentVersion,
+//         Kind:    vendor+"/"+class,
+//     }
+//
+//     for _, dev := range enumerateDevices() {
+//         spec.Devices = append(spec.Devices, specs.Device{
+//             Name: dev.Name,
+//             ContainerEdits: getContainerEditsForDevice(dev),
+//         })
+//     }
+//
+//     specName, err := cdi.GenerateNameForSpec(spec)
+//     if err != nil {
+//         return fmt.Errorf("failed to generate Spec name: %w", err)
+//     }
+//
+//     return registry.WriteSpec(spec, specName)
+// }
+//
+// Similary, generating and later cleaning up transient Spec files can be
+// done with code fragments similar to the following. These transient Spec
+// files are temporary Spec files with container-specific parametrization.
+// They are typically created before the associated container is created
+// and removed once that container is removed.
+//
+// import (
+//     "fmt"
+//     ...
+//     "github.com/container-orchestrated-devices/container-device-interface/specs-go"
+//     "github.com/container-orchestrated-devices/container-device-interface/pkg/cdi"
+// )
+//
+// func generateTransientSpec(ctr Container) error {
+//     registry := cdi.GetRegistry()
+//     devices := getContainerDevs(ctr, vendor, class)
+//     spec := &specs.Spec{
+//         Version: specs.CurrentVersion,
+//         Kind:    vendor+"/"+class,
+//     }
+//
+//     for _, dev := range devices {
+//         spec.Devices = append(spec.Devices, specs.Device{
+//             // the generated name needs to be unique within the
+//             // vendor/class domain on the host/node.
+//             Name: generateUniqueDevName(dev, ctr),
+//             ContainerEdits: getEditsForContainer(dev),
+//         })
+//     }
+//
+//     // transientID is expected to guarantee that the Spec file name
+//     // generated using <vendor, class, transientID> is unique within
+//     // the host/node. If more than one device is allocated with the
+//     // same vendor/class domain, either all generated Spec entries
+//     // should go to a single Spec file (like in this sample snippet),
+//     // or transientID should be unique for each generated Spec file.
+//     transientID := getSomeSufficientlyUniqueIDForContainer(ctr)
+//     specName, err := cdi.GenerateNameForTransientSpec(vendor, class, transientID)
+//     if err != nil {
+//         return fmt.Errorf("failed to generate Spec name: %w", err)
+//     }
+//
+//     return registry.WriteSpec(spec, specName)
+// }
+//
+// func removeTransientSpec(ctr Container) error {
+//     registry := cdi.GetRegistry()
+//     transientID := getSomeSufficientlyUniqueIDForContainer(ctr)
+//     specName := cdi.GenerateNameForTransientSpec(vendor, class, transientID)
+//
+//     return registry.RemoveSpec(specName)
+// }
 //
 // CDI Spec Validation
 //

@@ -107,6 +107,7 @@ type RegistrySpecDB interface {
 	GetVendorSpecs(vendor string) []*Spec
 	GetSpecErrors(*Spec) []error
 	WriteSpec(raw *cdi.Spec, name string) error
+	RemoveSpec(name string) error
 }
 
 type registry struct {

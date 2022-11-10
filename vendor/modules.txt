@@ -61,8 +61,9 @@ github.com/checkpoint-restore/go-criu/v6/stats
 # github.com/chzyer/readline v1.5.1
 ## explicit; go 1.15
 github.com/chzyer/readline
-# github.com/container-orchestrated-devices/container-device-interface v0.5.2
+# github.com/container-orchestrated-devices/container-device-interface v0.5.3
 ## explicit; go 1.17
+github.com/container-orchestrated-devices/container-device-interface/internal/multierror
 github.com/container-orchestrated-devices/container-device-interface/pkg/cdi
 github.com/container-orchestrated-devices/container-device-interface/specs-go
 # github.com/containerd/cgroups v1.0.4
@@ -312,7 +313,7 @@ github.com/containers/storage/types
 # github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f
 ## explicit
 github.com/coreos/go-systemd/activation
-# github.com/coreos/go-systemd/v22 v22.4.0
+# github.com/coreos/go-systemd/v22 v22.5.0
 ## explicit; go 1.12
 github.com/coreos/go-systemd/v22/activation
 github.com/coreos/go-systemd/v22/daemon
@@ -819,7 +820,7 @@ golang.org/x/net/trace
 ## explicit
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
-# golang.org/x/sys v0.1.0
+# golang.org/x/sys v0.2.0
 ## explicit; go 1.17
 golang.org/x/sys/cpu
 golang.org/x/sys/execabs
@@ -829,7 +830,7 @@ golang.org/x/sys/unix
 golang.org/x/sys/windows
 golang.org/x/sys/windows/registry
 golang.org/x/sys/windows/svc/eventlog
-# golang.org/x/term v0.1.0
+# golang.org/x/term v0.2.0
 ## explicit; go 1.17
 golang.org/x/term
 # golang.org/x/text v0.4.0
