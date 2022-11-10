@@ -6,10 +6,12 @@ Podman (the POD MANager) is a tool for managing containers and images, volumes m
 Podman runs containers on Linux, but can also be used on Mac and Windows systems using a Podman-managed virtual machine.
 Podman is based on libpod, a library for container lifecycle management that is also contained in this repository. The libpod library provides APIs for managing containers, pods, container images, and volumes.
 
-* [Latest Version: 4.3.0](https://github.com/containers/podman/releases/tag/v4.3.0)
+* [Latest Version: 4.3.1](https://github.com/containers/podman/releases/tag/v4.3.1)
   * Latest Remote client for Windows
   * Latest Remote client for macOS
   * Latest Static Remote client for Linux
+
+All releases are GPG signed. Public keys of members of the team approved to make releases are located [here](https://github.com/containers/release-keys/tree/main/podman).
 
 * Continuous Integration: [![Build Status](https://api.cirrus-ci.com/github/containers/podman.svg)](https://cirrus-ci.com/github/containers/podman/master)
 * [GoDoc: ![GoDoc](https://godoc.org/github.com/containers/podman/libpod?status.svg)](https://godoc.org/github.com/containers/podman/libpod)
