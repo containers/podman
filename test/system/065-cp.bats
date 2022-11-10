@@ -1047,6 +1047,44 @@ ${randomcontent[1]}" "$description"
     run_podman rm -t 0 -f ctr-file ctr-dir
 }
 
+@test "podman cp - dot notation - host to container" {
+    srcdir=$PODMAN_TMPDIR/src
+    mkdir -p $srcdir
+    mkdir -p $srcdir/test1. $srcdir/test2
+    touch $srcdir/test1./file1 $srcdir/test2/file2
+
+    run_podman run -d --name=test-ctr --rm $IMAGE sleep infinity
+    run_podman cp $srcdir/test1. test-ctr:/tmp/foo
+    run_podman exec test-ctr stat /tmp/foo/file1
+
+    run_podman rm -f -t0 test-ctr
+}
+
+@test "podman cp - dot notation - container to host" {
+    dstdir=$PODMAN_TMPDIR/dst
+    mkdir -p $dstdir
+
+    run_podman run -d --name=test-ctr --rm $IMAGE sh -c "mkdir -p /foo/test1. /foo/test2; touch /foo/test1./file1 /foo/test2/file2; sleep infinity"
+    run_podman cp test-ctr:/foo/test1. $dstdir/foo
+    run stat $dstdir/foo/test1.
+    if [[ -e $dstdir/foo/test2 ]]; then
+        die "the test2 directory should not have been copied over"
+    fi
+
+    run_podman rm -f -t0 test-ctr
+}
+
+@test "podman cp - dot notation - container to container" {
+    run_podman run -d --name=src-ctr --rm $IMAGE sh -c "mkdir -p /foo/test1. /foo/test2; touch /foo/test1./file1 /foo/test2/file2; sleep infinity"
+    run_podman run -d --name=dest-ctr --rm $IMAGE sleep infinity
+    run_podman cp src-ctr:/foo/test1. dest-ctr:/foo
+
+    run_podman exec dest-ctr find /foo
+    run_podman exec dest-ctr stat /foo/file1
+
+    run_podman rm -f -t0 src-ctr dest-ctr
+}
+
 function teardown() {
     # In case any test fails, clean up the container we left behind
     run_podman rm -t 0 -f --ignore cpcontainer
