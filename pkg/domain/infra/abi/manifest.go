@@ -19,6 +19,7 @@ import (
 	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v4/pkg/domain/entities"
+	envLib "github.com/containers/podman/v4/pkg/env"
 	"github.com/containers/storage"
 	"github.com/opencontainers/go-digest"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
@@ -231,8 +232,9 @@ func (ir *ImageEngine) ManifestAdd(ctx context.Context, name string, images []st
 				}
 				annotations[spec[0]] = spec[1]
 			}
-			annotateOptions.Annotations = annotations
+			opts.Annotations = envLib.Join(opts.Annotations, annotations)
 		}
+		annotateOptions.Annotations = opts.Annotations
 
 		if err := manifestList.AnnotateInstance(instanceDigest, annotateOptions); err != nil {
 			return "", err
@@ -269,8 +271,9 @@ func (ir *ImageEngine) ManifestAnnotate(ctx context.Context, name, image string,
 			}
 			annotations[spec[0]] = spec[1]
 		}
-		annotateOptions.Annotations = annotations
+		opts.Annotations = envLib.Join(opts.Annotations, annotations)
 	}
+	annotateOptions.Annotations = opts.Annotations
 
 	if err := manifestList.AnnotateInstance(instanceDigest, annotateOptions); err != nil {
 		return "", err

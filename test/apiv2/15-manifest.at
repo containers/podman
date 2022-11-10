@@ -28,7 +28,16 @@ EOF
 )
 
 t POST /v3.4.0/libpod/manifests/$id_abc/add images="[\"containers-storage:$id_abc_image\"]" 200
-t PUT /v4.0.0/libpod/manifests/$id_xyz operation='update' images="[\"containers-storage:$id_xyz_image\"]" 200
+t PUT /v4.0.0/libpod/manifests/$id_xyz operation='update' images="[\"containers-storage:$id_xyz_image\"]" annotations="{\"foo\":\"bar\"}" annotation="[\"hoge=fuga\"]" 400 \
+    .cause='can not set both Annotation and Annotations'
+
+t PUT /v4.0.0/libpod/manifests/$id_xyz operation='update' images="[\"containers-storage:$id_xyz_image\"]" annotations="{\"foo\":\"bar\"}" 200
+t GET /v4.0.0/libpod/manifests/$id_xyz/json 200 \
+    .manifests[0].annotations.foo="bar"
+
+t PUT /v4.0.0/libpod/manifests/$id_xyz operation='update' images="[\"containers-storage:$id_xyz_image\"]" annotation="[\"hoge=fuga\"]" 200
+t GET /v4.0.0/libpod/manifests/$id_xyz/json 200 \
+    .manifests[0].annotations.hoge="fuga"
 
 t POST "/v3.4.0/libpod/manifests/abc:latest/push?destination=localhost:$REGISTRY_PORT%2Fabc:latest&tlsVerify=false&all=true" 200
 t POST "/v4.0.0/libpod/manifests/xyz:latest/registry/localhost:$REGISTRY_PORT%2Fxyz:latest?all=true" 400 \
