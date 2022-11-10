@@ -87,5 +87,5 @@ failures=$((records/2))
 # Set the output of this step.
 # Ref: https://docs.github.com/en/actions/using-workflows/workflow-commands-for-github-actions#setting-an-output-parameter
 # shellcheck disable=SC2154
-echo "failures::$failures" >> $GITHUB_OUTPUT
+echo "failures=$failures" >> $GITHUB_OUTPUT
 echo "Total failed Cirrus-CI cron builds: $failures"
