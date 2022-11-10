@@ -1,0 +1,115 @@
+#!/bin/bash
+#
+# docs/version-check - cross-check that doc pages link to latest version
+#
+# As of 2022-11-10 this is only useful for Windows, but I think it'd be
+# nice to be able to auto-update more pages with up-to-date links. If
+# we do that, there are some exe assumptions that need to be cleaned up.
+#
+ME=$(basename $0)
+
+URLBASE="https://github.com/containers/podman"
+
+docfiles=(
+    docs/tutorials/mac_win_client.md
+    docs/tutorials/podman-for-windows.md
+)
+
+set -eo pipefail
+
+function warn() {
+    echo "$ME: $*" >&2
+}
+
+# Setup check: exit gracefully unless we're in the desired environment
+if [[ -n "$CIRRUS_PR" ]]; then
+    warn "we don't run on PRs"
+    exit 0
+fi
+
+if [[ -n "$CIRRUS_CRON" ]]; then
+    if [[ "$CIRRUS_CRON" != "nightly" ]]; then
+        warn "Only meaningful when CIRRUS_CRON=nightly (it is '$CIRRUS_CRON')"
+        exit 0
+    fi
+fi
+
+# No sense running on release branches
+current_branch=$(git rev-parse --abbrev-ref HEAD)
+if [[ "$current_branch" != "main" ]]; then
+    warn "only meaningful on 'main' (current branch is '$current_branch')"
+    if [[ ! -t 0 ]]; then
+        exit 0
+    fi
+fi
+
+# Okay. Fetch the highest-sorting tag. THIS MAY NOT BE THE SAME AS THE NEWEST!
+LATEST=$(git ls-remote --tags --refs --sort="v:refname" "${URLBASE}.git" \
+             | sed 's/.*\///' \
+             | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' \
+             | tail -n1)
+
+echo LATEST=$LATEST
+
+# The "#v" thing strips leading "v", because filename is numbers only
+exe="${URLBASE}/releases/download/${LATEST}/podman-${LATEST#v}-setup.exe"
+
+# EXE must exist. The convoluted {}||: is to handle errors gracefully
+rc=
+{
+    found=$(curl --head --silent -o /dev/null --write-out '%{http_code}' $exe)
+    rc=$?
+} || :
+
+if [[ $rc -ne 0 ]]; then
+    warn "FATAL: curl failed, rc=$rc, on $exe"
+    exit 1
+fi
+
+if [[ $found = 404 ]]; then
+    warn "FATAL: Windows EXE missing: $exe"
+    exit 1
+fi
+
+# Expect 200 or 3xx; anything else is an error
+if [[ ! $found =~ ^[23] ]]; then
+    warn "FATAL: Windows EXE: HTTP code $found on $exe"
+    exit 1
+fi
+
+# Cross-check all doc files for an up-to-date "latest version is" line.
+fail=0
+as_of='^As of .* the latest version is'
+for md in ${docfiles[*]}; do
+    as_of_match=$(grep -E "$as_of" $md)
+    if [[ -z "$as_of_match" ]]; then
+        warn "$md does not have an 'As of ... the latest version is' line"
+        fail=1
+        continue
+    fi
+
+    md_latest=$(sed -ne 's;^.* version is \[\(.*\)\](.*;\1;' <<<"$as_of_match")
+    if [[ -n "$md_latest" ]]; then
+        warn "$md: No version found in '$as_of_match'"
+        fail=1
+        continue
+    fi
+
+    if [[ "$md_latest" != "$LATEST" ]]; then
+        warn "$md: needs updating."
+        # Running interactively? Do it.
+        if [[ -t 0 ]]; then
+            today=$(date --iso-8601=date)
+            sed -i "s;$as_of.*\$;As of $today the latest version is \[$LATEST\]\($exe\).;" $md
+        else
+            warn "Please run this script in an interactive shell, and I'll fix it."
+            fail=1
+        fi
+    fi
+done
+
+if [[ $fail -ne 0 ]] && [[ -t 0 ]]; then
+    git status --untracked=no
+fi
+
+exit $fail
