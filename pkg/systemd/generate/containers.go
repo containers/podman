@@ -28,6 +28,7 @@ type containerInfo struct {
 	NotifyAccess           string
 	StopTimeout            uint
 	RestartPolicy          string
+	RestartSec             uint
 	StartLimitBurst        string
 	PIDFile                string
 	ContainerIDFile        string
@@ -87,6 +88,9 @@ Environment={{{{- range $index, $value := .ExtraEnvs -}}}}{{{{if $index}}}} {{{{
 Environment={{{{ $value }}}}{{{{end}}}}
 {{{{- end}}}}
 Restart={{{{.RestartPolicy}}}}
+{{{{- if .RestartSec}}}}
+RestartSec={{{{.RestartSec}}}}
+{{{{- end}}}}
 {{{{- if .StartLimitBurst}}}}
 StartLimitBurst={{{{.StartLimitBurst}}}}
 {{{{- end}}}}
@@ -280,6 +284,10 @@ func executeContainerTemplate(info *containerInfo, options entities.GenerateSyst
 			return "", err
 		}
 		info.RestartPolicy = *options.RestartPolicy
+	}
+
+	if options.RestartSec != nil {
+		info.RestartSec = *options.RestartSec
 	}
 
 	// Make sure the executable is set.
