@@ -42,7 +42,7 @@ jobs:
 
             - if: steps.cron.outputs.failures > 0
               shell: bash
-              run: './.github/actions/check_cirrus_cron/make_email_body'
+              run: './.github/actions/check_cirrus_cron/make_email_body.sh'
 
             - if: steps.cron.outputs.failures > 0
               name: Send failure notification e-mail
