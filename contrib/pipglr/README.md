@@ -31,9 +31,23 @@ configuration, please edit the config.toml file within the
 
 Note: These commands assume you have both `podman` and `jq` available.
 
+Assuming you want to register four runners:
+```bash
+$ echo '<registration token>' | podman secret create REGISTRATION_TOKEN -
+$ podman container runlabel register quay.io/FIXME/FIXME
+$ podman container runlabel register quay.io/FIXME/FIXME
+$ podman container runlabel register quay.io/FIXME/FIXME
+$ podman container runlabel register quay.io/FIXME/FIXME
+```
+
+For older podman releases, without `container runlabel` support, you
+may simulate it with:
 ```bash
 $ echo '<registration token>' | podman secret create REGISTRATION_TOKEN -
 $ export IMAGE=<image FQIN:TAG>
+$ eval $(podman inspect --format=json $IMAGE | jq -r .[].Labels.register)
+$ eval $(podman inspect --format=json $IMAGE | jq -r .[].Labels.register)
+$ eval $(podman inspect --format=json $IMAGE | jq -r .[].Labels.register)
 $ eval $(podman inspect --format=json $IMAGE | jq -r .[].Labels.register)
 ```
 
@@ -52,9 +66,9 @@ debugging (or any other supported log level) to stdout.
 $ eval $(podman inspect --format=json $IMAGE | jq -r .[].Labels.run)
 ```
 
-## Building
+## Building locally
 
-This image may be built simply with:
+This image may be built locally simply with:
 
 `podman build -t runner .`
 
@@ -67,7 +81,7 @@ Assuming the host supports foreign-architecture emulation.  The
 `Containerfile` may be used to produce a multi-arch manifest-list.
 For example:
 
-`podman build --jobs 4 --platform linux/s390x,linux/ppc64le,linux/amd64 --manifest runner .`
+`podman build --jobs 4 --platform linux/amd64,linux/arm64 --manifest runner .`
 
 ### Build-args
 
