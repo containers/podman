@@ -267,7 +267,8 @@ func cliOpts(cc handlers.CreateContainerConfig, rtc *config.Config) (*entities.C
 	if netmode == "" || netmode == "default" {
 		netmode = "bridge"
 	}
-	nsmode, networks, netOpts, err := specgen.ParseNetworkFlag([]string{netmode})
+
+	nsmode, networks, netOpts, err := specgen.ParseNetworkFlag([]string{netmode}, false)
 	if err != nil {
 		return nil, nil, err
 	}

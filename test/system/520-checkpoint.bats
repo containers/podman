@@ -4,6 +4,7 @@
 #
 
 load helpers
+load helpers.network
 
 CHECKED_ROOTLESS=
 function setup() {

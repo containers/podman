@@ -133,7 +133,8 @@ func (r *Runtime) teardownCNI(ctr *Container) error {
 		return err
 	}
 
-	if !ctr.config.NetMode.IsSlirp4netns() && len(networks) > 0 {
+	if !ctr.config.NetMode.IsSlirp4netns() &&
+		!ctr.config.NetMode.IsPasta() && len(networks) > 0 {
 		netOpts := ctr.getNetworkOptions(networks)
 		return r.teardownNetwork(ctr.state.NetNS.Path(), netOpts)
 	}

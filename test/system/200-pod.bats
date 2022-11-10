@@ -1,6 +1,7 @@
 #!/usr/bin/env bats
 
 load helpers
+load helpers.network
 
 LOOPDEVICE=
 

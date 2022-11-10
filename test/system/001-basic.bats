@@ -4,6 +4,7 @@
 #
 
 load helpers
+load helpers.network
 
 # Override standard setup! We don't yet trust podman-images or podman-rm
 function setup() {

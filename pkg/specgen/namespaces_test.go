@@ -241,7 +241,7 @@ func TestParseNetworkFlag(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			got, got1, got2, err := ParseNetworkFlag(tt.args)
+			got, got1, got2, err := ParseNetworkFlag(tt.args, false)
 			if tt.err != "" {
 				assert.EqualError(t, err, tt.err, tt.name)
 			} else {

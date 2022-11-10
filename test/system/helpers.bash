@@ -279,72 +279,6 @@ function wait_for_ready {
     wait_for_output 'READY' "$@"
 }
 
-######################
-#  random_free_port  #  Pick an available port within a specified range
-######################
-function random_free_port() {
-    local range=${1:-5000-5999}
-
-    local port
-    for port in $(shuf -i ${range}); do
-        if port_is_free $port; then
-            echo $port
-            return
-        fi
-    done
-
-    die "Could not find open port in range $range"
-}
-
-function random_free_port_range() {
-    local size=${1?Usage: random_free_port_range SIZE (as in, number of ports)}
-
-    local maxtries=10
-    while [[ $maxtries -gt 0 ]]; do
-        local firstport=$(random_free_port)
-        local lastport=
-        for i in $(seq 1 $((size - 1))); do
-            lastport=$((firstport + i))
-            if ! port_is_free $lastport; then
-                echo "# port $lastport is in use; trying another." >&3
-                lastport=
-                break
-            fi
-        done
-        if [[ -n "$lastport" ]]; then
-            echo "$firstport-$lastport"
-            return
-        fi
-
-        maxtries=$((maxtries - 1))
-    done
-
-    die "Could not find free port range with size $size"
-}
-
-function port_is_free() {
-     local port=${1?Usage: port_is_free PORT}
-    ! { exec {unused_fd}<> /dev/tcp/127.0.0.1/$port; } &>/dev/null
-}
-
-###################
-#  wait_for_port  #  Returns once port is available on host
-###################
-function wait_for_port() {
-    local host=$1                      # Probably "localhost"
-    local port=$2                      # Numeric port
-    local _timeout=${3:-5}              # Optional; default to 5 seconds
-
-    # Wait
-    while [ $_timeout -gt 0 ]; do
-        { exec {unused_fd}<> /dev/tcp/$host/$port; } &>/dev/null && return
-        sleep 1
-        _timeout=$(( $_timeout - 1 ))
-    done
-
-    die "Timed out waiting for $host:$port"
-}
-
 ###################
 #  wait_for_file  #  Returns once file is available on host
 ###################
@@ -502,7 +436,6 @@ function skip_if_no_ssh() {
         skip "${msg:-not applicable with no ssh binary}"
     fi
 }
-
 
 ######################
 #  skip_if_rootless  #  ...with an optional message
@@ -820,36 +753,6 @@ function random_string() {
 
     head /dev/urandom | tr -dc a-zA-Z0-9 | head -c$length
 }
-
-
-###########################
-#  random_rfc1918_subnet  #
-###########################
-#
-# Use the class B set, because much of our CI environment (Google, RH)
-# already uses up much of the class A, and it's really hard to test
-# if a block is in use.
-#
-# This returns THREE OCTETS! It is up to our caller to append .0/24, .255, &c.
-#
-function random_rfc1918_subnet() {
-    local retries=1024
-
-    while [ "$retries" -gt 0 ];do
-        local cidr=172.$(( 16 + $RANDOM % 16 )).$(( $RANDOM & 255 ))
-
-        in_use=$(ip route list | fgrep $cidr)
-        if [ -z "$in_use" ]; then
-            echo "$cidr"
-            return
-        fi
-
-        retries=$(( retries - 1 ))
-    done
-
-    die "Could not find a random not-in-use rfc1918 subnet"
-}
-
 
 #########################
 #  find_exec_pid_files  #  Returns nothing or exec_pid hash files

@@ -4,6 +4,7 @@
 #
 
 load helpers
+load helpers.network
 
 ###############################################################################
 # BEGIN one-time envariable setup
@@ -343,7 +344,7 @@ function _test_skopeo_credential_sharing() {
     fi
 
     # Make sure socket is closed
-    if ! port_is_free $PODMAN_LOGIN_REGISTRY_PORT; then
+    if tcp_port_probe $PODMAN_LOGIN_REGISTRY_PORT; then
         die "Socket still seems open"
     fi
 }

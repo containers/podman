@@ -421,7 +421,7 @@ type ContainerNetworkConfig struct {
 	// Mandatory.
 	NetNS Namespace `json:"netns,omitempty"`
 	// PortBindings is a set of ports to map into the container.
-	// Only available if NetNS is set to bridge or slirp.
+	// Only available if NetNS is set to bridge, slirp, or pasta.
 	// Optional.
 	PortMappings []nettypes.PortMapping `json:"portmappings,omitempty"`
 	// PublishExposedPorts will publish ports specified in the image to

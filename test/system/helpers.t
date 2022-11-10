@@ -7,6 +7,7 @@
 #
 
 source "$(dirname $0)"/helpers.bash
+source "$(dirname $0)"/helpers.network.bash
 
 die() {
     echo "$(basename $0): $*" >&2
@@ -223,6 +224,23 @@ found=$(random_free_port 16700-16700)
 check_result "$found" "16700" "random_free_port"
 
 # END   random_free_port
+###############################################################################
+# BEGIN ipv6_to_procfs
+
+# Table of IPv6 short forms and their procfs equivalents. For readability,
+# spaces separate each 16-bit word. Spaces are removed when testing.
+table="
+2b06::1     | 2B06 0000 0000 0000 0000 0000 0000 0001
+::1         | 0000 0000 0000 0000 0000 0000 0000 0001
+0::1        | 0000 0000 0000 0000 0000 0000 0000 0001
+"
+
+while read shortform expect; do
+    actual=$(ipv6_to_procfs $shortform)
+    check_result "$actual" "${expect// }" "ipv6_to_procfs $shortform"
+done < <(parse_table "$table")
+
+# END   ipv6_to_procfs
 ###############################################################################
 
 exit $rc
