@@ -28,6 +28,7 @@ type containerInfo struct {
 	NotifyAccess           string
 	StopTimeout            uint
 	RestartPolicy          string
+	RestartSec             uint
 	StartLimitBurst        string
 	PIDFile                string
 	ContainerIDFile        string
@@ -87,6 +88,9 @@ Environment={{{{- range $index, $value := .ExtraEnvs -}}}}{{{{if $index}}}} {{{{
 Environment={{{{ $value }}}}{{{{end}}}}
 {{{{- end}}}}
 Restart={{{{.RestartPolicy}}}}
+{{{{- if .RestartSec}}}}
+RestartSec={{{{.RestartSec}}}}
+{{{{- end}}}}
 {{{{- if .StartLimitBurst}}}}
 StartLimitBurst={{{{.StartLimitBurst}}}}
 {{{{- end}}}}
@@ -156,6 +160,10 @@ func generateContainerInfo(ctr *libpod.Container, options entities.GenerateSyste
 			logrus.Warnf("Container %s has restart policy %q which can lead to issues on shutdown: consider recreating the container without a restart policy and use systemd's restart mechanism instead", ctr.ID(), config.RestartPolicy)
 		}
 	}
+	RestartSec := uint(0)
+	if options.RestartSec != nil {
+		RestartSec = *options.RestartSec
+	}
 
 	createCommand := []string{}
 	if config.CreateCommand != nil {
@@ -182,6 +190,7 @@ func generateContainerInfo(ctr *libpod.Container, options entities.GenerateSyste
 		ServiceName:            serviceName,
 		ContainerNameOrID:      nameOrID,
 		RestartPolicy:          define.DefaultRestartPolicy,
+		RestartSec:             RestartSec,
 		PIDFile:                conmonPidFile,
 		TimeoutStartSec:        startTimeout,
 		StopTimeout:            stopTimeout,
@@ -446,6 +455,10 @@ func executeContainerTemplate(info *containerInfo, options entities.GenerateSyst
 				}
 				info.RestartPolicy = restartPolicy
 			}
+		}
+
+		if options.RestartSec != nil {
+			info.RestartSec = *options.RestartSec
 		}
 
 		envs, err := fs.GetStringArray("env")
