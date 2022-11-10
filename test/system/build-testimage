@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # build-testimage - script for producing a test image for podman CI
 #
@@ -11,6 +11,76 @@
 # Unfortunately, "small" is incompatible with "systemd" so tests
 # still need a fedora image for that.
 #
+
+if [ "$(uname -s)" = "Linux" ]; then
+    testimg_base=quay.io/libpod/testimage
+    arch_list="amd64 arm64 ppc64le s390x"
+
+    function busyboximg {
+        local repo=$1
+        echo docker.io/$repo/busybox:1.34.1
+    }
+
+    function build_containerfile {
+        # alpine because it's small and light and reliable
+        #    - check for updates @ https://hub.docker.com/_/alpine
+        # busybox-extras provides httpd needed in 500-networking.bats
+        # iproute2 provides JSON output (not in busybox) for 505-networking-pasta.bats
+        # socat offers convenient UDP test termination in 505-networking-pasta.bats
+        cat <<EOF
+ARG REPO=please-override-repo
+FROM docker.io/\${REPO}/alpine:3.16.2
+RUN apk add busybox-extras iproute2 socat
+ADD testimage-id pause /home/podman/
+RUN rm -f /var/cache/apk/*
+EOF
+    }
+
+    # docker.io repo is usually the same name as the desired arch; except
+    # for arm64, where podman needs to have the arch be 'arm64' but the
+    # image lives in 'arm64v8'.
+    function repo_for_arch {
+        local arch=$1
+        if [[ $repo = "arm64" ]]; then
+            echo ${repo}v8
+        else
+            echo ${repo}
+        fi
+    }
+elif [ "$(uname -s)" = "FreeBSD" ]; then
+    testimg_base=quay.io/dougrabson/testimage
+    arch_list="amd64 arm64"
+    busybox=quay.io/dougrabson/busybox:1.36.1
+
+    function date {
+        gdate "$@"
+    }
+    function mktemp {
+        gmktemp "$@"
+    }
+    function touch {
+        gtouch "$@"
+    }
+
+    function busyboximg {
+        echo quay.io/dougrabson/busybox:1.36.1
+    }
+
+    function build_containerfile {
+        # busybox because it's small and has a command set which is close to what
+        # the test suite needs.
+        cat <<EOF
+FROM ${busybox}
+ADD testimage-id pause /home/podman/
+RUN mkdir /usr
+RUN mkdir /srv
+EOF
+    }
+
+    function repo_for_arch {
+        echo dougrabson
+    }
+fi
 
 # Podman binary to use
 PODMAN=${PODMAN:-$(pwd)/bin/podman}
@@ -26,7 +96,7 @@ fi
 
 # Creation timestamp, Zulu time
 create_time_t=$(date +%s)
-create_time_z=$(env TZ=UTC date --date=@$create_time_t +'%Y-%m-%dT%H:%M:%SZ')
+create_time_z=$(TZ=UTC date --date=@$create_time_t +'%Y-%m-%dT%H:%M:%SZ')
 
 set -ex
 
@@ -58,12 +128,6 @@ done
 EOF
 chmod 755 pause
 
-# alpine because it's small and light and reliable
-#    - check for updates @ https://hub.docker.com/_/alpine
-# busybox-extras provides httpd needed in 500-networking.bats
-# iproute2 provides JSON output (not in busybox) for 505-networking-pasta.bats
-# socat offers convenient UDP test termination in 505-networking-pasta.bats
-#
 # Two Containerfiles, because we have to do the image build in two parts,
 # which I think are easier to describe in reverse order:
 #    2) The second build has to be run with --timestamp=CONSTANT, otherwise
@@ -71,13 +135,7 @@ chmod 755 pause
 #    1) the timestamp of the testimage-id file must be preserved (see above),
 #       and 'build --timestamp' clobbers all file timestamps.
 #
-cat >Containerfile1 <<EOF
-ARG REPO=please-override-repo
-FROM docker.io/\${REPO}/alpine:3.16.2
-RUN apk add busybox-extras iproute2 socat
-ADD testimage-id pause /home/podman/
-RUN rm -f /var/cache/apk/*
-EOF
+build_containerfile >Containerfile1
 
 cat >Containerfile2 <<EOF
 FROM localhost/interim-image:latest
@@ -88,7 +146,6 @@ CMD ["/bin/echo", "This container is intended for podman CI testing"]
 EOF
 
 # Start from scratch
-testimg_base=quay.io/libpod/testimage
 testimg=${testimg_base}:$YMD
 $PODMAN rmi -f $testimg &> /dev/null || true
 
@@ -109,15 +166,9 @@ zerotag_next=$(printf "%08d" $((zerotag_latest + 1)))
 zeroimg=${testimg_base}:${zerotag_next}
 $PODMAN manifest create $zeroimg
 
-# Arch emulation on Fedora requires the qemu-user-static package.
-for arch in amd64 arm64 ppc64le s390x;do
-    # docker.io repo is usually the same name as the desired arch; except
-    # for arm64, where podman needs to have the arch be 'arm64' but the
-    # image lives in 'arm64v8'.
-    repo=$arch
-    if [[ $repo = "arm64" ]]; then
-        repo="${repo}v8"
-    fi
+# Arch emulation on Fedora or FreeBSD requires the qemu-user-static package.
+for arch in ${arch_list};do
+    repo=$(repo_for_arch $arch)
 
     # First build defines REPO, but does not have --timestamp
     $PODMAN build \
@@ -142,9 +193,15 @@ for arch in amd64 arm64 ppc64le s390x;do
     # No longer need the interim image
     $PODMAN rmi interim-image
 
-    # The zero-tag image
-    $PODMAN pull --arch $arch     docker.io/$repo/busybox:1.34.1
-    $PODMAN manifest add $zeroimg docker.io/$repo/busybox:1.34.1
+    # The zero-tag image.
+    busybox=$(busyboximg $repo)
+    # If the repo has a multi-arch manifest, then manifest add picks the first
+    # arch listed in the manifest instead of the specific arch we wanted. To get
+    # around this, retag the image to include the arch name so that manifest add
+    # has no choice about which image to add.
+    $PODMAN pull --arch=${arch} ${busybox}
+    $PODMAN image tag ${busybox} ${busybox}-${arch}
+    $PODMAN manifest add $zeroimg containers-storage:${busybox}-${arch}
 done
 
 # Clean up
