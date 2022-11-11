@@ -87,6 +87,7 @@ There are other equivalents for these tools
 | `docker stop`    | [`podman stop`](./docs/source/markdown/podman-stop.1.md)        |
 | `docker system ` | [`podman system`](./docs/source/markdown/podman-system.1.md)    |
 | `docker system df`     | [`podman system df`](./docs/source/markdown/podman-system-df.1.md)      |
+| `docker system events`   | [`podman system events`](./docs/source/markdown/podman-events.1.md)  |
 | `docker system info`   | [`podman system info`](./docs/source/markdown/podman-system-info.1.md)  |
 | `docker system prune`  | [`podman system prune`](./docs/source/markdown/podman-system-prune.1.md)|
 | `docker tag`     | [`podman tag`](./docs/source/markdown/podman-tag.1.md)          |

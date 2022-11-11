@@ -90,6 +90,7 @@
 | [podman-stop(1)](https://podman.readthedocs.io/en/latest/markdown/podman-stop.1.html)                                 | Stops one or more running containers                                       |
 | [podman-system(1)](https://podman.readthedocs.io/en/latest/system.html)                                               | Manage podman                                                              |
 | [podman-system-df(1)](https://podman.readthedocs.io/en/latest/markdown/podman-system-df.1.html)                       | Show podman disk usage.                                                    |
+| [podman-system-events(1)](https://podman.readthedocs.io/en/latest/markdown/podman-events.1.html)                          | Displays Podman related system events.                                |
 | [podman-system-info(1)](https://podman.readthedocs.io/en/latest/markdown/podman-info.1.html)                          | Displays Podman related system information.                                |
 | [podman-system-migrate(1)](https://podman.readthedocs.io/en/latest/markdown/podman-system-migrate.1.html)             | Migrate existing containers to a new podman version                        |
 | [podman-system-prune(1)](https://podman.readthedocs.io/en/latest/markdown/podman-system-prune.1.html)                 | Remove all unused container, image and volume data                         |
