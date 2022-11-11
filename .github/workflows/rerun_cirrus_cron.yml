@@ -10,7 +10,7 @@ on:
     schedule:
         # N/B: This should fire about an hour prior to check_cirrus_cron
         # so the re-runs have a chance to complete.
-        - cron:  '59 22 * * 1-5'
+        - cron:  '05 22 * * 1-5'
     # Debug: Allow triggering job manually in github-actions WebUI
     workflow_dispatch: {}
 
@@ -42,6 +42,8 @@ jobs:
 
             - if: steps.cron.outputs.failures > 0
               shell: bash
+              env:
+                SECRET_CIRRUS_API_KEY: ${{ secrets.SECRET_CIRRUS_API_KEY }}
               run: './.github/actions/check_cirrus_cron/rerun_failed_tasks.sh'
 
             - uses: actions/upload-artifact@82c141cc518b40d92cc801eee768e7aafc9c2fa2 # v2
