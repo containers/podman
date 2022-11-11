@@ -108,7 +108,12 @@ var _ = Describe("podman system df", func() {
 		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(ContainSubstring("Size"))
 		Expect(session.OutputToString()).To(ContainSubstring("Reclaimable"))
-		Expect(session.OutputToString()).To(BeValidJSON())
+
+		// Note: {{ json . }} returns one json object per line, this matches docker!
+		for i, out := range session.OutputToStringArray() {
+			Expect(out).To(BeValidJSON(), "line %d failed to be parsed", i)
+		}
+
 	})
 
 	It("podman system df --format with --verbose", func() {
