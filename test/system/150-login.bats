@@ -229,6 +229,11 @@ function _push_search_test() {
                --creds ${PODMAN_LOGIN_USER}:${PODMAN_LOGIN_PASS} \
                localhost:${PODMAN_LOGIN_REGISTRY_PORT}/$destname
 
+    # Yay! Pull it back
+    run_podman 125 pull --tls-verify=true \
+               --creds ${PODMAN_LOGIN_USER}:${PODMAN_LOGIN_PASS} \
+               localhost:${PODMAN_LOGIN_REGISTRY_PORT}/$destname
+
     # Compare to original image
     run_podman inspect --format '{{.Id}}' $destname
     is "$output" "$iid" "Image ID of pulled image == original IID"

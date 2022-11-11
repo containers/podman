@@ -260,10 +260,12 @@ func CreateImageFromImage(w http.ResponseWriter, r *http.Request) {
 
 	query := struct {
 		FromImage string `schema:"fromImage"`
-		Tag       string `schema:"tag"`
 		Platform  string `schema:"platform"`
+		TLSVerify bool   `schema:"tlsVerify"`
+		Tag       string `schema:"tag"`
 	}{
 		// This is where you can override the golang default value for one of fields
+		TLSVerify: true,
 	}
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
 		utils.Error(w, http.StatusBadRequest, fmt.Errorf("failed to parse parameters for %s: %w", r.URL.String(), err))
@@ -291,6 +293,12 @@ func CreateImageFromImage(w http.ResponseWriter, r *http.Request) {
 		pullOptions.IdentityToken = authConf.IdentityToken
 	}
 	pullOptions.Writer = os.Stderr // allows for debugging on the server
+
+	if utils.IsLibpodRequest(r) {
+		if _, found := r.URL.Query()["tlsVerify"]; found {
+			pullOptions.InsecureSkipTLSVerify = types.NewOptionalBool(!query.TLSVerify)
+		}
+	}
 
 	// Handle the platform.
 	platformSpecs := strings.Split(query.Platform, "/")
