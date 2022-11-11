@@ -36,6 +36,10 @@ import (
 const (
 	tarSplitSuffix = ".tar-split.gz"
 	incompleteFlag = "incomplete"
+	// maxLayerStoreCleanupIterations is the number of times we try to clean up inconsistent layer store state
+	// in readers (which, for implementation reasons, gives other writers the opportunity to create more inconsistent state)
+	// until we just give up.
+	maxLayerStoreCleanupIterations = 3
 )
 
 // A Layer is a record of a copy-on-write layer that's stored by the lower
@@ -331,7 +335,7 @@ func (r *layerStore) startWritingWithReload(canReload bool) error {
 	}()
 
 	if canReload {
-		if err := r.reloadIfChanged(true); err != nil {
+		if _, err := r.reloadIfChanged(true); err != nil {
 			return err
 		}
 	}
@@ -358,20 +362,46 @@ func (r *layerStore) stopWriting() {
 // should use startReading() instead.
 func (r *layerStore) startReadingWithReload(canReload bool) error {
 	r.lockfile.RLock()
-	succeeded := false
+	unlockFn := r.lockfile.Unlock // A function to call to clean up, or nil
 	defer func() {
-		if !succeeded {
-			r.lockfile.Unlock()
+		if unlockFn != nil {
+			unlockFn()
 		}
 	}()
 
 	if canReload {
-		if err := r.reloadIfChanged(false); err != nil {
-			return err
+		cleanupsDone := 0
+		for {
+			tryLockedForWriting, err := r.reloadIfChanged(false)
+			if err == nil {
+				break
+			}
+			if !tryLockedForWriting {
+				return err
+			}
+			if cleanupsDone >= maxLayerStoreCleanupIterations {
+				return fmt.Errorf("(even after %d cleanup attempts:) %w", cleanupsDone, err)
+			}
+			unlockFn()
+			unlockFn = nil
+
+			r.lockfile.Lock()
+			unlockFn = r.lockfile.Unlock
+			if _, err := r.load(true); err != nil {
+				return err
+			}
+			unlockFn()
+			unlockFn = nil
+
+			r.lockfile.RLock()
+			unlockFn = r.lockfile.Unlock
+			// We need to check for a reload reload again because the on-disk state could have been modified
+			// after we released the lock.
+			cleanupsDone++
 		}
 	}
 
-	succeeded = true
+	unlockFn = nil
 	return nil
 }
 
@@ -424,15 +454,23 @@ func (r *layerStore) Modified() (bool, error) {
 //
 // The caller must hold r.lockfile for reading _or_ writing; lockedForWriting is true
 // if it is held for writing.
-func (r *layerStore) reloadIfChanged(lockedForWriting bool) error {
+//
+// If !lockedForWriting and this function fails, the return value indicates whether
+// retrying with lockedForWriting could succeed. In that case the caller MUST
+// call load(), not reloadIfChanged() (because the “if changed” state will not
+// be detected again).
+func (r *layerStore) reloadIfChanged(lockedForWriting bool) (bool, error) {
 	r.loadMut.Lock()
 	defer r.loadMut.Unlock()
 
 	modified, err := r.Modified()
-	if err == nil && modified {
+	if err != nil {
+		return false, err
+	}
+	if modified {
 		return r.load(lockedForWriting)
 	}
-	return err
+	return false, nil
 }
 
 func (r *layerStore) Layers() ([]Layer, error) {
@@ -455,26 +493,28 @@ func (r *layerStore) layerspath() string {
 //
 // The caller must hold r.lockfile for reading _or_ writing; lockedForWriting is true
 // if it is held for writing.
-func (r *layerStore) load(lockedForWriting bool) error {
-	shouldSave := false
+//
+// If !lockedForWriting and this function fails, the return value indicates whether
+// retrying with lockedForWriting could succeed.
+func (r *layerStore) load(lockedForWriting bool) (bool, error) {
 	rpath := r.layerspath()
 	info, err := os.Stat(rpath)
 	if err != nil {
 		if !os.IsNotExist(err) {
-			return err
+			return false, err
 		}
 	} else {
 		r.layerspathModified = info.ModTime()
 	}
 	data, err := os.ReadFile(rpath)
 	if err != nil && !os.IsNotExist(err) {
-		return err
+		return false, err
 	}
 
 	layers := []*Layer{}
 	if len(data) != 0 {
 		if err := json.Unmarshal(data, &layers); err != nil {
-			return fmt.Errorf("loading %q: %w", rpath, err)
+			return false, fmt.Errorf("loading %q: %w", rpath, err)
 		}
 	}
 	idlist := make([]string, 0, len(layers))
@@ -482,6 +522,7 @@ func (r *layerStore) load(lockedForWriting bool) error {
 	names := make(map[string]*Layer)
 	compressedsums := make(map[digest.Digest][]string)
 	uncompressedsums := make(map[digest.Digest][]string)
+	var errorToResolveBySaving error // == nil; if there are multiple errors, this is one of them.
 	if r.lockfile.IsReadWrite() {
 		selinux.ClearLabels()
 	}
@@ -491,7 +532,7 @@ func (r *layerStore) load(lockedForWriting bool) error {
 		for _, name := range layer.Names {
 			if conflict, ok := names[name]; ok {
 				r.removeName(conflict, name)
-				shouldSave = true
+				errorToResolveBySaving = ErrDuplicateLayerNames
 			}
 			names[name] = layers[n]
 		}
@@ -505,11 +546,22 @@ func (r *layerStore) load(lockedForWriting bool) error {
 			selinux.ReserveLabel(layer.MountLabel)
 		}
 		layer.ReadOnly = !r.lockfile.IsReadWrite()
+		// The r.lockfile.IsReadWrite() condition maintains past practice:
+		// Incomplete layers in a read-only store are not treated as a reason to refuse to use other layers from that store
+		// (OTOH creating child layers on top would probably lead to problems?).
+		// We do remove incomplete layers in read-write stores so that we don’t build on top of them.
+		if layerHasIncompleteFlag(layer) && r.lockfile.IsReadWrite() {
+			errorToResolveBySaving = errors.New("an incomplete layer exists and can't be cleaned up")
+		}
 	}
 
-	if shouldSave && (!r.lockfile.IsReadWrite() || !lockedForWriting) {
-		// Eventually, the callers should be modified to retry with a write lock if IsReadWrite && !lockedForWriting, instead.
-		return ErrDuplicateLayerNames
+	if errorToResolveBySaving != nil {
+		if !r.lockfile.IsReadWrite() {
+			return false, errorToResolveBySaving
+		}
+		if !lockedForWriting {
+			return true, errorToResolveBySaving
+		}
 	}
 	r.layers = layers
 	r.idindex = truncindex.NewTruncIndex(idlist) // Invalid values in idlist are ignored: they are not a reason to refuse processing the whole store.
@@ -523,42 +575,42 @@ func (r *layerStore) load(lockedForWriting bool) error {
 		r.mountsLockfile.RLock()
 		defer r.mountsLockfile.Unlock()
 		if err := r.loadMounts(); err != nil {
-			return err
+			return false, err
 		}
+	}
 
-		// Last step: as we’re writable, try to remove anything that a previous
+	if errorToResolveBySaving != nil {
+		if !r.lockfile.IsReadWrite() {
+			return false, fmt.Errorf("internal error: layerStore.load has shouldSave but !r.lockfile.IsReadWrite")
+		}
+		// Last step: try to remove anything that a previous
 		// user of this storage area marked for deletion but didn't manage to
 		// actually delete.
 		var incompleteDeletionErrors error // = nil
-		if lockedForWriting {
-			for _, layer := range r.layers {
-				if layer.Flags == nil {
-					layer.Flags = make(map[string]interface{})
-				}
-				if layerHasIncompleteFlag(layer) {
-					logrus.Warnf("Found incomplete layer %#v, deleting it", layer.ID)
-					err = r.deleteInternal(layer.ID)
-					if err != nil {
-						// Don't return the error immediately, because deleteInternal does not saveLayers();
-						// Even if deleting one incomplete layer fails, call saveLayers() so that other possible successfully
-						// deleted incomplete layers have their metadata correctly removed.
-						incompleteDeletionErrors = multierror.Append(incompleteDeletionErrors,
-							fmt.Errorf("deleting layer %#v: %w", layer.ID, err))
-					}
-					shouldSave = true
+		for _, layer := range r.layers {
+			if layer.Flags == nil {
+				layer.Flags = make(map[string]interface{})
+			}
+			if layerHasIncompleteFlag(layer) {
+				logrus.Warnf("Found incomplete layer %#v, deleting it", layer.ID)
+				err = r.deleteInternal(layer.ID)
+				if err != nil {
+					// Don't return the error immediately, because deleteInternal does not saveLayers();
+					// Even if deleting one incomplete layer fails, call saveLayers() so that other possible successfully
+					// deleted incomplete layers have their metadata correctly removed.
+					incompleteDeletionErrors = multierror.Append(incompleteDeletionErrors,
+						fmt.Errorf("deleting layer %#v: %w", layer.ID, err))
 				}
 			}
 		}
-		if shouldSave {
-			if err := r.saveLayers(); err != nil {
-				return err
-			}
+		if err := r.saveLayers(); err != nil {
+			return false, err
 		}
 		if incompleteDeletionErrors != nil {
-			return incompleteDeletionErrors
+			return false, incompleteDeletionErrors
 		}
 	}
-	return nil
+	return false, nil
 }
 
 func (r *layerStore) loadMounts() error {
@@ -689,7 +741,7 @@ func (s *store) newLayerStore(rundir string, layerdir string, driver drivers.Dri
 		return nil, err
 	}
 	defer rlstore.stopWriting()
-	if err := rlstore.load(true); err != nil {
+	if _, err := rlstore.load(true); err != nil {
 		return nil, err
 	}
 	return &rlstore, nil
@@ -714,7 +766,7 @@ func newROLayerStore(rundir string, layerdir string, driver drivers.Driver) (roL
 		return nil, err
 	}
 	defer rlstore.stopReading()
-	if err := rlstore.load(false); err != nil {
+	if _, err := rlstore.load(false); err != nil {
 		return nil, err
 	}
 	return &rlstore, nil

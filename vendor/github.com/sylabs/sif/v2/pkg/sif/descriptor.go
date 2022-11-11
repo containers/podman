@@ -214,6 +214,11 @@ func (d Descriptor) SignatureMetadata() (ht crypto.Hash, fp []byte, err error) {
 	}
 
 	fp = make([]byte, 20)
+
+	if bytes.Equal(s.Entity[:len(fp)], fp) {
+		return ht, nil, nil // Fingerprint not present.
+	}
+
 	copy(fp, s.Entity[:])
 
 	return ht, fp, nil

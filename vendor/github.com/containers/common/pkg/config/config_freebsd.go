@@ -10,6 +10,10 @@ const (
 
 	// DefaultContainersConfig holds the default containers config path
 	DefaultContainersConfig = "/usr/local/share/" + _configPath
+
+	// DefaultSignaturePolicyPath is the default value for the
+	// policy.json file.
+	DefaultSignaturePolicyPath = "/usr/local/etc/containers/policy.json"
 )
 
 // podman remote clients on freebsd cannot use unshare.isRootless() to determine the configuration file locations.

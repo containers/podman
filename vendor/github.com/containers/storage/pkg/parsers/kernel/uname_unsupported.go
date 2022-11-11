@@ -1,13 +1,14 @@
-//go:build freebsd || openbsd
-// +build freebsd openbsd
+//go:build openbsd
+// +build openbsd
 
 package kernel
 
 import (
-	"errors"
+	"fmt"
+	"runtime"
 )
 
 // A stub called by kernel_unix.go .
 func uname() (*Utsname, error) {
-	return nil, errors.New("Kernel version detection is available only on linux")
+	return nil, fmt.Errorf("Kernel version detection is not available on %s", runtime.GOOS)
 }
