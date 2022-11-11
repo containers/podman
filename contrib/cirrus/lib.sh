@@ -185,6 +185,8 @@ setup_rootless() {
     chmod -R 700 "$HOME/.ssh"
     chmod -R 700 "/home/$ROOTLESS_USER/.ssh"
     chown -R $ROOTLESS_USER:$ROOTLESS_USER "/home/$ROOTLESS_USER/.ssh"
+    cp /etc/ssh/ssh_config $HOME/.ssh/config
+    cp /etc/ssh/ssh_config /home/$ROOTLESS_USER/.ssh/config
 
     # N/B: We're clobbering the known_hosts here on purpose.  There should
     # never be any non-localhost connections made from tests (using strict-mode).

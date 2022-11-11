@@ -1,11 +1,5 @@
 package ssh
 
-import (
-	"fmt"
-
-	"golang.org/x/crypto/ssh"
-)
-
 func Create(options *ConnectionCreateOptions, kind EngineMode) error {
 	if kind == NativeMode {
 		return nativeConnectionCreate(*options)
@@ -13,17 +7,18 @@ func Create(options *ConnectionCreateOptions, kind EngineMode) error {
 	return golangConnectionCreate(*options)
 }
 
-func Dial(options *ConnectionDialOptions, kind EngineMode) (*ssh.Client, error) {
+func Dial(options *ConnectionDialOptions, kind EngineMode) (*ConnectionDialReport, error) {
 	var rep *ConnectionDialReport
 	var err error
 	if kind == NativeMode {
-		return nil, fmt.Errorf("ssh dial failed: you cannot create a dial-able client with native ssh")
+		rep, err = nativeConnectionDial(*options)
+	} else {
+		rep, err = golangConnectionDial(*options)
 	}
-	rep, err = golangConnectionDial(*options)
 	if err != nil {
 		return nil, err
 	}
-	return rep.Client, nil
+	return rep, nil
 }
 
 func Exec(options *ConnectionExecOptions, kind EngineMode) (string, error) {
@@ -31,14 +26,11 @@ func Exec(options *ConnectionExecOptions, kind EngineMode) (string, error) {
 	var err error
 	if kind == NativeMode {
 		rep, err = nativeConnectionExec(*options)
-		if err != nil {
-			return "", err
-		}
 	} else {
 		rep, err = golangConnectionExec(*options)
-		if err != nil {
-			return "", err
-		}
+	}
+	if err != nil {
+		return "", err
 	}
 	return rep.Response, nil
 }

@@ -60,7 +60,7 @@ func JoinURL(elements ...string) string {
 
 // NewConnection creates a new service connection without an identity
 func NewConnection(ctx context.Context, uri string) (context.Context, error) {
-	return NewConnectionWithIdentity(ctx, uri, "", false)
+	return NewConnectionWithIdentity(ctx, uri, "", false, "golang")
 }
 
 // NewConnectionWithIdentity takes a URI as a string and returns a context with the
@@ -71,7 +71,7 @@ func NewConnection(ctx context.Context, uri string) (context.Context, error) {
 // For example tcp://localhost:<port>
 // or unix:///run/podman/podman.sock
 // or ssh://<user>@<host>[:port]/run/podman/podman.sock?secure=True
-func NewConnectionWithIdentity(ctx context.Context, uri string, identity string, machine bool) (context.Context, error) {
+func NewConnectionWithIdentity(ctx context.Context, uri string, identity string, machine bool, sshMode string) (context.Context, error) {
 	var (
 		err error
 	)
@@ -99,21 +99,26 @@ func NewConnectionWithIdentity(ctx context.Context, uri string, identity string,
 				return nil, err
 			}
 		}
-		conn, err := ssh.Dial(&ssh.ConnectionDialOptions{
+		report, err := ssh.Dial(&ssh.ConnectionDialOptions{
 			Host:                        uri,
+			Unix:                        _url,
 			Identity:                    identity,
 			User:                        _url.User,
 			Port:                        port,
 			InsecureIsMachineConnection: machine,
-		}, "golang")
+		}, ssh.EngineMode(sshMode))
 		if err != nil {
 			return nil, err
 		}
+
 		connection = Connection{URI: _url}
 		connection.Client = &http.Client{
 			Transport: &http.Transport{
 				DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
-					return ssh.DialNet(conn, "unix", _url)
+					if report.Conn != nil {
+						return report.Conn, nil
+					}
+					return ssh.DialNet(report.Client, "unix", _url)
 				},
 			}}
 	case "unix":

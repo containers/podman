@@ -262,7 +262,6 @@ var _ = Describe("podman system connection", func() {
 					os.Unsetenv("PODMAN_BINARY")
 				}()
 			}
-
 			cmd := exec.Command(podmanTest.RemotePodmanBinary,
 				"system", "connection", "add",
 				"--default",
@@ -272,9 +271,14 @@ var _ = Describe("podman system connection", func() {
 
 			session, err := Start(cmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).ToNot(HaveOccurred(), fmt.Sprintf("%q failed to execute", podmanTest.RemotePodmanBinary))
-			Eventually(session, DefaultWaitTimeout).Should(Exit(0))
+			Eventually(session, DefaultWaitTimeout).Should(Exit(0), string(session.Err.Contents())+" "+string(session.Out.Contents()))
 			Expect(session.Out.Contents()).Should(BeEmpty())
 			Expect(session.Err.Contents()).Should(BeEmpty())
+
+			cmd = exec.Command(podmanTest.RemotePodmanBinary,
+				"--ssh", "native", "--connection", "QA", "ps")
+			_, err = Start(cmd, GinkgoWriter, GinkgoWriter)
+			Expect(err).ToNot(HaveOccurred())
 
 			cmd = exec.Command(podmanTest.RemotePodmanBinary,
 				"--connection", "QA", "ps")

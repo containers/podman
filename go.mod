@@ -144,3 +144,5 @@ require (
 )
 
 replace github.com/opencontainers/runc => github.com/opencontainers/runc v1.1.1-0.20220617142545-8b9452f75cbc
+
+replace github.com/containers/common => github.com/cdoern/common v0.38.5-0.20221221153746-3e46d5c7cc75

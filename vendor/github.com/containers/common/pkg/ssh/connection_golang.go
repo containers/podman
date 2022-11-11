@@ -82,7 +82,7 @@ func golangConnectionDial(options ConnectionDialOptions) (*ConnectionDialReport,
 		return nil, fmt.Errorf("failed to connect: %w", err)
 	}
 
-	return &ConnectionDialReport{dial}, nil
+	return &ConnectionDialReport{Client: dial}, nil
 }
 
 func golangConnectionExec(options ConnectionExecOptions) (*ConnectionExecReport, error) {

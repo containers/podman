@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"net"
 	"os/exec"
 	"regexp"
 	"strings"
@@ -179,4 +180,57 @@ func nativeConnectionScp(options ConnectionScpOptions) (*ConnectionScpReport, er
 	}
 
 	return &ConnectionScpReport{Response: remotePath}, nil
+}
+
+func nativeConnectionDial(options ConnectionDialOptions) (*ConnectionDialReport, error) {
+	dst, uri, err := Validate(options.User, options.Host, options.Port, options.Identity)
+	if err != nil {
+		return nil, err
+	}
+	_, err = ValidateAndConfigure(uri, options.Identity, options.InsecureIsMachineConnection)
+	if err != nil {
+		return nil, err
+	}
+
+	ssh, err := exec.LookPath("ssh")
+	if err != nil {
+		return nil, fmt.Errorf("no ssh binary found")
+	}
+
+	output := &bytes.Buffer{}
+	errors := &bytes.Buffer{}
+	if strings.Contains(uri.Host, "/run") {
+		uri.Host = strings.Split(uri.Host, "/run")[0]
+	}
+
+	sshArgs := []string{uri.User.String() + "@" + uri.Hostname(), "podman", "info"}
+	conf, err := config.Default()
+	if err != nil {
+		return nil, err
+	}
+
+	args := []string{}
+	if len(dst.Identity) > 0 {
+		args = append(args, "-i", dst.Identity)
+	}
+	if len(conf.Engine.SSHConfig) > 0 {
+		args = append(args, "-F", conf.Engine.SSHConfig)
+	}
+	args = append(args, sshArgs...)
+	info := exec.Command(ssh, args...)
+	info.Stdout = output
+	info.Stderr = errors
+	err = info.Run()
+	if err != nil {
+		return nil, err
+	}
+
+	// now we have connected.
+
+	conn, err := net.Dial("unix", options.Unix.Path)
+	if err != nil {
+		return nil, err
+	}
+
+	return &ConnectionDialReport{Conn: conn}, nil
 }

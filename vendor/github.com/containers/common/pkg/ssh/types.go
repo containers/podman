@@ -1,6 +1,7 @@
 package ssh
 
 import (
+	"net"
 	"net/url"
 	"time"
 
@@ -28,6 +29,7 @@ type ConnectionCreateOptions struct {
 
 type ConnectionDialOptions struct {
 	Host                        string
+	Unix                        *url.URL
 	Identity                    string
 	User                        *url.Userinfo
 	Port                        int
@@ -37,6 +39,7 @@ type ConnectionDialOptions struct {
 }
 
 type ConnectionDialReport struct {
+	Conn   net.Conn
 	Client *ssh.Client
 }
 
