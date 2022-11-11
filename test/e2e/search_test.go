@@ -125,13 +125,13 @@ registries = ['{{.Host}}:{{.Port}}']`
 	})
 
 	It("podman search format json list tags", func() {
-		search := podmanTest.Podman([]string{"search", "--list-tags", "--format", "json", "alpine"})
+		search := podmanTest.Podman([]string{"search", "--list-tags", "--format", "json", ALPINE})
 		search.WaitWithDefaultTimeout()
 		Expect(search.ExitCode()).To(Equal(0))
 		Expect(search.IsJSONOutputValid()).To(BeTrue())
-		Expect(search.OutputToString()).To(ContainSubstring("docker.io/library/alpine"))
-		Expect(search.OutputToString()).To(ContainSubstring("3.10"))
-		Expect(search.OutputToString()).To(ContainSubstring("2.7"))
+		Expect(search.OutputToString()).To(ContainSubstring("quay.io/libpod/alpine"))
+		Expect(search.OutputToString()).To(ContainSubstring("3.10.2"))
+		Expect(search.OutputToString()).To(ContainSubstring("3.2"))
 	})
 
 	It("podman search no-trunc flag", func() {
