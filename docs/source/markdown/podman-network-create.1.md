@@ -15,6 +15,9 @@ If no options are provided, Podman will assign a free subnet and name for your n
 
 Upon completion of creating the network, Podman will display the name of the newly added network.
 
+NOTE: The support for the network name pasta is deprecated and will be removed in the next major
+release because it is used as a special network mode in **podman run/create --network**.
+
 ## OPTIONS
 #### **--disable-dns**
 
