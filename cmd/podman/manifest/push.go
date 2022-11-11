@@ -47,6 +47,8 @@ func init() {
 	flags := pushCmd.Flags()
 	flags.BoolVar(&manifestPushOpts.Rm, "rm", false, "remove the manifest list if push succeeds")
 	flags.BoolVar(&manifestPushOpts.All, "all", true, "also push the images in the list")
+	flags.BoolVarP(&manifestPushOpts.Rm, "purge", "p", false, "remove the local manifest list after push")
+	_ = flags.MarkHidden("purge")
 
 	authfileFlagName := "authfile"
 	flags.StringVar(&manifestPushOpts.Authfile, authfileFlagName, auth.GetDefaultAuthFile(), "path of the authentication file. Use REGISTRY_AUTH_FILE environment variable to override")
