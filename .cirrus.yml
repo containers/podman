@@ -678,34 +678,6 @@ rootless_system_test_task:
     always: *logs_artifacts
 
 
-rootless_gitlab_test_task:
-    name: *std_name_fmt
-    alias: rootless_gitlab_test
-    skip: *tags
-    only_if: *not_build
-    # Community-maintained downstream test may fail unexpectedly.
-    # Ref. repository: https://gitlab.com/gitlab-org/gitlab-runner
-    # If necessary, uncomment the next line and file issue(s) with details.
-    # allow_failures: $CI == $CI
-    depends_on:
-      - rootless_integration_test
-    gce_instance: *standardvm
-    env:
-        <<: *ubuntu_envvars
-        TEST_FLAVOR: 'gitlab'
-        PRIV_NAME: rootless
-    clone_script: *noop  # Comes from cache
-    gopath_cache: *ro_gopath_cache
-    setup_script: *setup
-    main_script: *main
-    always:
-        <<: *logs_artifacts
-        junit_artifacts:
-            path: gitlab-runner-podman.xml
-            type: text/xml
-            format: junit
-
-
 upgrade_test_task:
     name: "Upgrade test: from $PODMAN_UPGRADE_FROM"
     alias: upgrade_test
@@ -791,7 +763,6 @@ success_task:
         - remote_system_test
         - rootless_system_test
         - rootless_remote_system_test
-        - rootless_gitlab_test
         - upgrade_test
         - buildah_bud_test
         - meta
