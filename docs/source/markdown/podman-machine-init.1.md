@@ -100,7 +100,7 @@ if and how the 9p filesystem translates some filesystem operations before
 actual storage on the host.
 
 In order to allow symlinks to work, on MacOS the default security model is
- *none*, while on the other platforms being *mapped-xattr*.
+ *none*, while on other platforms the default is *mapped-xattr*.
 
 The value of *mapped-xattr* specifies that 9p store symlinks and some file
 attributes as extended attributes on the host. This is suitable when the host
