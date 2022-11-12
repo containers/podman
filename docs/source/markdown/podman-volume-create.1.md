@@ -15,7 +15,7 @@ driver options can be set using the **--opt** flag.
 
 ## OPTIONS
 
-#### **--driver**=*driver*
+#### **--driver**, **-d**=*driver*
 
 Specify the volume driver name (default **local**).
 There are two drivers supported by Podman itself: **local** and **image**.

@@ -120,7 +120,7 @@ function teardown() {
     mylabel=$(random_string)
 
     # Create a named volume
-    run_podman volume create --label l=$mylabel  $myvolume
+    run_podman volume create -d local --label l=$mylabel  $myvolume
     is "$output" "$myvolume" "output from volume create"
 
     # Confirm that it shows up in 'volume ls', and confirm values
@@ -246,7 +246,7 @@ EOF
 # Podman volume import test
 @test "podman volume import test" {
     skip_if_remote "volumes import is not applicable on podman-remote"
-    run_podman volume create my_vol
+    run_podman volume create --driver local my_vol
     run_podman run --rm -v my_vol:/data $IMAGE sh -c "echo hello >> /data/test"
     run_podman volume create my_vol2
 
