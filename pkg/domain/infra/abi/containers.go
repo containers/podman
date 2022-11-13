@@ -870,7 +870,7 @@ func makeExecConfig(options entities.ExecOptions, rt *libpod.Runtime) (*libpod.E
 
 func checkExecPreserveFDs(options entities.ExecOptions) error {
 	if options.PreserveFDs > 0 {
-		entries, err := os.ReadDir("/proc/self/fd")
+		entries, err := os.ReadDir(processFileDescriptorsPath)
 		if err != nil {
 			return err
 		}
@@ -879,7 +879,7 @@ func checkExecPreserveFDs(options entities.ExecOptions) error {
 		for _, e := range entries {
 			i, err := strconv.Atoi(e.Name())
 			if err != nil {
-				return fmt.Errorf("cannot parse %s in /proc/self/fd: %w", e.Name(), err)
+				return fmt.Errorf("cannot parse %s in %s: %w", e.Name(), processFileDescriptorsPath, err)
 			}
 			m[i] = true
 		}
