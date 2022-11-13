@@ -1,23 +1,20 @@
-//go:build !(linux || freebsd) || !cgo
-// +build !linux,!freebsd !cgo
+//go:build freebsd && cgo
+// +build freebsd,cgo
 
 package rootless
 
 import (
 	"errors"
-	"os"
 
 	"github.com/containers/storage/pkg/idtools"
 )
 
+// extern int is_fd_inherited(int fd);
+import "C"
+
 // IsRootless returns whether the user is rootless
 func IsRootless() bool {
-	uid := os.Geteuid()
-	// os.Geteuid() on Windows returns -1
-	if uid == -1 {
-		return false
-	}
-	return uid != 0
+	return false
 }
 
 // BecomeRootInUserNS re-exec podman in a new userNS.  It returns whether podman was re-executed
@@ -68,5 +65,5 @@ func ReadMappingsProc(path string) ([]idtools.IDMap, error) {
 
 // IsFdInherited checks whether the fd is opened and valid to use
 func IsFdInherited(fd int) bool {
-	return false
+	return int(C.is_fd_inherited(C.int(fd))) > 0
 }
