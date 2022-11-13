@@ -191,7 +191,7 @@ func (r *containerStore) startWritingWithReload(canReload bool) error {
 	}()
 
 	if canReload {
-		if err := r.reloadIfChanged(true); err != nil {
+		if _, err := r.reloadIfChanged(true); err != nil {
 			return err
 		}
 	}
@@ -215,18 +215,41 @@ func (r *containerStore) stopWriting() {
 // If this succeeds, the caller MUST call stopReading().
 func (r *containerStore) startReading() error {
 	r.lockfile.RLock()
-	succeeded := false
+	unlockFn := r.lockfile.Unlock // A function to call to clean up, or nil
 	defer func() {
-		if !succeeded {
-			r.lockfile.Unlock()
+		if unlockFn != nil {
+			unlockFn()
 		}
 	}()
 
-	if err := r.reloadIfChanged(false); err != nil {
-		return err
+	if tryLockedForWriting, err := r.reloadIfChanged(false); err != nil {
+		if !tryLockedForWriting {
+			return err
+		}
+		unlockFn()
+		unlockFn = nil
+
+		r.lockfile.Lock()
+		unlockFn = r.lockfile.Unlock
+		if _, err := r.load(true); err != nil {
+			return err
+		}
+		unlockFn()
+		unlockFn = nil
+
+		r.lockfile.RLock()
+		unlockFn = r.lockfile.Unlock
+		// We need to check for a reload reload once more because the on-disk state could have been modified
+		// after we released the lock.
+		// If that, _again_, finds inconsistent state, just give up.
+		// We could, plausibly, retry a few times, but that inconsistent state (duplicate container names)
+		// shouldn’t be saved (by correct implementations) in the first place.
+		if _, err := r.reloadIfChanged(false); err != nil {
+			return fmt.Errorf("(even after successfully cleaning up once:) %w", err)
+		}
 	}
 
-	succeeded = true
+	unlockFn = nil
 	return nil
 }
 
@@ -239,15 +262,23 @@ func (r *containerStore) stopReading() {
 //
 // The caller must hold r.lockfile for reading _or_ writing; lockedForWriting is true
 // if it is held for writing.
-func (r *containerStore) reloadIfChanged(lockedForWriting bool) error {
+//
+// If !lockedForWriting and this function fails, the return value indicates whether
+// load() with lockedForWriting could succeed. In that case the caller MUST
+// call load(), not reloadIfChanged() (because the “if changed” state will not
+// be detected again).
+func (r *containerStore) reloadIfChanged(lockedForWriting bool) (bool, error) {
 	r.loadMut.Lock()
 	defer r.loadMut.Unlock()
 
 	modified, err := r.lockfile.Modified()
-	if err == nil && modified {
+	if err != nil {
+		return false, err
+	}
+	if modified {
 		return r.load(lockedForWriting)
 	}
-	return err
+	return false, nil
 }
 
 func (r *containerStore) Containers() ([]Container, error) {
@@ -274,24 +305,27 @@ func (r *containerStore) datapath(id, key string) string {
 //
 // The caller must hold r.lockfile for reading _or_ writing; lockedForWriting is true
 // if it is held for writing.
-func (r *containerStore) load(lockedForWriting bool) error {
-	needSave := false
+//
+// If !lockedForWriting and this function fails, the return value indicates whether
+// retrying with lockedForWriting could succeed.
+func (r *containerStore) load(lockedForWriting bool) (bool, error) {
 	rpath := r.containerspath()
 	data, err := os.ReadFile(rpath)
 	if err != nil && !os.IsNotExist(err) {
-		return err
+		return false, err
 	}
 
 	containers := []*Container{}
 	if len(data) != 0 {
 		if err := json.Unmarshal(data, &containers); err != nil {
-			return fmt.Errorf("loading %q: %w", rpath, err)
+			return false, fmt.Errorf("loading %q: %w", rpath, err)
 		}
 	}
 	idlist := make([]string, 0, len(containers))
 	layers := make(map[string]*Container)
 	ids := make(map[string]*Container)
 	names := make(map[string]*Container)
+	var errorToResolveBySaving error // == nil
 	for n, container := range containers {
 		idlist = append(idlist, container.ID)
 		ids[container.ID] = containers[n]
@@ -299,7 +333,7 @@ func (r *containerStore) load(lockedForWriting bool) error {
 		for _, name := range container.Names {
 			if conflict, ok := names[name]; ok {
 				r.removeName(conflict, name)
-				needSave = true
+				errorToResolveBySaving = errors.New("container store is inconsistent and the current caller does not hold a write lock")
 			}
 			names[name] = containers[n]
 		}
@@ -310,14 +344,13 @@ func (r *containerStore) load(lockedForWriting bool) error {
 	r.byid = ids
 	r.bylayer = layers
 	r.byname = names
-	if needSave {
+	if errorToResolveBySaving != nil {
 		if !lockedForWriting {
-			// Eventually, the callers should be modified to retry with a write lock, instead.
-			return errors.New("container store is inconsistent and the current caller does not hold a write lock")
+			return true, errorToResolveBySaving
 		}
-		return r.Save()
+		return false, r.Save()
 	}
-	return nil
+	return false, nil
 }
 
 // Save saves the contents of the store to disk.  It should be called with
@@ -358,7 +391,7 @@ func newContainerStore(dir string) (rwContainerStore, error) {
 		return nil, err
 	}
 	defer cstore.stopWriting()
-	if err := cstore.load(true); err != nil {
+	if _, err := cstore.load(true); err != nil {
 		return nil, err
 	}
 	return &cstore, nil
