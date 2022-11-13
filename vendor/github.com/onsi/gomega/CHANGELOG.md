@@ -1,3 +1,15 @@
+## 1.24.1
+
+### Fixes
+- maintain backward compatibility for Eventually and Consisntetly's signatures [4c7df5e]
+- fix small typo (#601) [ea0ebe6]
+
+### Maintenance
+- Bump golang.org/x/net from 0.1.0 to 0.2.0 (#603) [1ba8372]
+- Bump github.com/onsi/ginkgo/v2 from 2.4.0 to 2.5.0 (#602) [f9426cb]
+- fix label-filter in test.yml [d795db6]
+- stop running flakey tests and rely on external network dependencies in CI [7133290]
+
 ## 1.24.0
 
 ### Features
