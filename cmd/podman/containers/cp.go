@@ -158,7 +158,7 @@ func copyContainerToContainer(sourceContainer string, sourcePath string, destCon
 	// Hence, whenever "." is the source and the destination does not
 	// exist, we copy the source's parent and let the copier package create
 	// the destination via the Rename option.
-	if destResolvedToParentDir && sourceContainerInfo.IsDir && strings.HasSuffix(sourcePath, ".") {
+	if destResolvedToParentDir && sourceContainerInfo.IsDir && filepath.Base(sourcePath) == "." {
 		sourceContainerTarget = filepath.Dir(sourceContainerTarget)
 	}
 
@@ -261,7 +261,7 @@ func copyFromContainer(container string, containerPath string, hostPath string) 
 	// we copy the source's parent and let the copier package create the
 	// destination via the Rename option.
 	containerTarget := containerInfo.LinkTarget
-	if resolvedToHostParentDir && containerInfo.IsDir && strings.HasSuffix(containerTarget, ".") {
+	if resolvedToHostParentDir && containerInfo.IsDir && filepath.Base(containerTarget) == "." {
 		containerTarget = filepath.Dir(containerTarget)
 	}
 
@@ -365,7 +365,7 @@ func copyToContainer(container string, containerPath string, hostPath string) er
 	// exist, we copy the source's parent and let the copier package create
 	// the destination via the Rename option.
 	hostTarget := hostInfo.LinkTarget
-	if containerResolvedToParentDir && hostInfo.IsDir && strings.HasSuffix(hostTarget, ".") {
+	if containerResolvedToParentDir && hostInfo.IsDir && filepath.Base(hostTarget) == "." {
 		hostTarget = filepath.Dir(hostTarget)
 	}
 
