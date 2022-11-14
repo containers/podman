@@ -13,6 +13,10 @@ const (
 
 	// DefaultContainersConfig holds the default containers config path
 	DefaultContainersConfig = "/usr/share/" + _configPath
+
+	// DefaultSignaturePolicyPath is the default value for the
+	// policy.json file.
+	DefaultSignaturePolicyPath = "/etc/containers/policy.json"
 )
 
 func selinuxEnabled() bool {

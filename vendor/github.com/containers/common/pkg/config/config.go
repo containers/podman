@@ -358,6 +358,9 @@ type EngineConfig struct {
 	// OCIRuntimes are the set of configured OCI runtimes (default is runc).
 	OCIRuntimes map[string][]string `toml:"runtimes,omitempty"`
 
+	// PlatformToOCIRuntime requests specific OCI runtime for a specified platform of image.
+	PlatformToOCIRuntime map[string]string `toml:"platform_to_oci_runtime,omitempty"`
+
 	// PodExitPolicy determines the behaviour when the last container of a pod exits.
 	PodExitPolicy PodExitPolicy `toml:"pod_exit_policy,omitempty"`
 
@@ -617,6 +620,16 @@ type Destination struct {
 
 	// isMachine describes if the remote destination is a machine.
 	IsMachine bool `toml:"is_machine,omitempty"`
+}
+
+// Consumes container image's os and arch and returns if any dedicated runtime was
+// configured otherwise returns default runtime.
+func (c *EngineConfig) ImagePlatformToRuntime(os string, arch string) string {
+	platformString := os + "/" + arch
+	if val, ok := c.PlatformToOCIRuntime[platformString]; ok {
+		return val
+	}
+	return c.OCIRuntime
 }
 
 // NewConfig creates a new Config. It starts with an empty config and, if

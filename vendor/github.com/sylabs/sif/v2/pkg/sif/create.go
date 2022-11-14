@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2021, Sylabs Inc. All rights reserved.
+// Copyright (c) 2018-2022, Sylabs Inc. All rights reserved.
 // Copyright (c) 2017, SingularityWare, LLC. All rights reserved.
 // Copyright (c) 2017, Yannick Cote <yhcote@gmail.com> All rights reserved.
 // This software is licensed under a 3-clause BSD license. Please consult the
@@ -104,7 +104,7 @@ func (f *FileImage) writeDescriptors() error {
 	return binary.Write(f.rw, binary.LittleEndian, f.rds)
 }
 
-// writeHeader writes the the global header in f to backing storage.
+// writeHeader writes the global header in f to backing storage.
 func (f *FileImage) writeHeader() error {
 	if _, err := f.rw.Seek(0, io.SeekStart); err != nil {
 		return err

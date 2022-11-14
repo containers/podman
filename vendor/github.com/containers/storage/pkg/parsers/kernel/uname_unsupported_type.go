@@ -1,5 +1,5 @@
-//go:build !linux && !solaris
-// +build !linux,!solaris
+//go:build !linux && !solaris && !freebsd
+// +build !linux,!solaris,!freebsd
 
 package kernel
 

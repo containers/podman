@@ -149,9 +149,6 @@ const (
 	DefaultPidsLimit = 2048
 	// DefaultPullPolicy pulls the image if it does not exist locally.
 	DefaultPullPolicy = "missing"
-	// DefaultSignaturePolicyPath is the default value for the
-	// policy.json file.
-	DefaultSignaturePolicyPath = "/etc/containers/policy.json"
 	// DefaultSubnet is the subnet that will be used for the default
 	// network.
 	DefaultSubnet = "10.88.0.0/16"
@@ -332,6 +329,15 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 			"/bin/crun",
 			"/run/current-system/sw/bin/crun",
 		},
+		"crun-wasm": {
+			"/usr/bin/crun-wasm",
+			"/usr/sbin/crun-wasm",
+			"/usr/local/bin/crun-wasm",
+			"/usr/local/sbin/crun-wasm",
+			"/sbin/crun-wasm",
+			"/bin/crun-wasm",
+			"/run/current-system/sw/bin/crun-wasm",
+		},
 		"runc": {
 			"/usr/bin/runc",
 			"/usr/sbin/runc",
@@ -377,6 +383,11 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 		"ocijail": {
 			"/usr/local/bin/ocijail",
 		},
+	}
+	c.PlatformToOCIRuntime = map[string]string{
+		"wasi/wasm":   "crun-wasm",
+		"wasi/wasm32": "crun-wasm",
+		"wasi/wasm64": "crun-wasm",
 	}
 	// Needs to be called after populating c.OCIRuntimes.
 	c.OCIRuntime = c.findRuntime()
