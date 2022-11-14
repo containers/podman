@@ -118,7 +118,7 @@ github.com/containers/buildah/pkg/rusage
 github.com/containers/buildah/pkg/sshagent
 github.com/containers/buildah/pkg/util
 github.com/containers/buildah/util
-# github.com/containers/common v0.50.2-0.20221109162103-1e40f47dd90b
+# github.com/containers/common v0.50.2-0.20221111184705-791b83e1cdf1
 ## explicit; go 1.17
 github.com/containers/common/libimage
 github.com/containers/common/libimage/define
@@ -775,7 +775,7 @@ go.opencensus.io/internal
 go.opencensus.io/trace
 go.opencensus.io/trace/internal
 go.opencensus.io/trace/tracestate
-# golang.org/x/crypto v0.1.0
+# golang.org/x/crypto v0.2.0
 ## explicit; go 1.17
 golang.org/x/crypto/blowfish
 golang.org/x/crypto/cast5
