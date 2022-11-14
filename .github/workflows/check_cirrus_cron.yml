@@ -14,11 +14,22 @@ on:
         - cron:  '59 23 * * 1-5'
     # Debug: Allow triggering job manually in github-actions WebUI
     workflow_dispatch: {}
+    # Allow re-use of this workflow by other repositories
+    # Ref: https://docs.github.com/en/actions/using-workflows/reusing-workflows
+    workflow_call:
+      secrets:
+        SECRET_CIRRUS_API_KEY:
+          required : true
+        ACTION_MAIL_SERVER:
+          required: true
+        ACTION_MAIL_USERNAME:
+          required: true
+        ACTION_MAIL_PASSWORD:
+          required: true
+        ACTION_MAIL_SENDER:
+          required: true
 
 env:
-    # Debug-mode can reveal secrets, only enable by a secret value.
-    # Ref: https://help.github.com/en/actions/configuring-and-managing-workflows/managing-a-workflow-run#enabling-step-debug-logging
-    ACTIONS_STEP_DEBUG: '${{ secrets.ACTIONS_STEP_DEBUG }}'
     # CSV listing of e-mail addresses for delivery failure or error notices
     RCPTCSV: rh.container.bot@gmail.com,podman-monitor@lists.podman.io
     # Filename for table of cron-name to build-id data
@@ -32,8 +43,11 @@ jobs:
     cron_failures:
         runs-on: ubuntu-latest
         steps:
+            # This is where the scripts live
             - uses: actions/checkout@v3
               with:
+                  repository: containers/podman
+                  ref: 'main'
                   persist-credentials: false
 
             - name: Get failed cron names and Build IDs
