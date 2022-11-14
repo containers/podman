@@ -2,6 +2,7 @@ package libpod
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -20,6 +21,7 @@ import (
 	"github.com/containers/storage"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/sys/unix"
 )
 
 // CgroupfsDefaultCgroupParent is the cgroup parent for CgroupFS in libpod
@@ -1009,8 +1011,9 @@ func (c *Container) cGroupPath() (string, error) {
 	lines, err := os.ReadFile(procPath)
 	if err != nil {
 		// If the file doesn't exist, it means the container could have been terminated
-		// so report it.
-		if os.IsNotExist(err) {
+		// so report it.  Also check for ESRCH, which means the container could have been
+		// terminated after the file under /proc was opened but before it was read.
+		if errors.Is(err, os.ErrNotExist) || errors.Is(err, unix.ESRCH) {
 			return "", fmt.Errorf("cannot get cgroup path unless container %s is running: %w", c.ID(), define.ErrCtrStopped)
 		}
 		return "", err
