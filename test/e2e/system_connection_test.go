@@ -276,6 +276,11 @@ var _ = Describe("podman system connection", func() {
 			Expect(session.Out.Contents()).Should(BeEmpty())
 			Expect(session.Err.Contents()).Should(BeEmpty())
 
+			cmd = exec.Command(podmanTest.RemotePodmanBinary,
+				"--connection", "QA", "ps")
+			_, err = Start(cmd, GinkgoWriter, GinkgoWriter)
+			Expect(err).ToNot(HaveOccurred())
+
 			uri := url.URL{
 				Scheme: "ssh",
 				User:   url.User(u.Username),
