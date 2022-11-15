@@ -18,7 +18,15 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func MakePod(p *entities.PodSpec, rt *libpod.Runtime) (*libpod.Pod, error) {
+func MakePod(p *entities.PodSpec, rt *libpod.Runtime) (_ *libpod.Pod, finalErr error) {
+	var createdPod *libpod.Pod
+	defer func() {
+		if finalErr != nil && createdPod != nil {
+			if err := rt.RemovePod(context.Background(), createdPod, true, true, nil); err != nil {
+				logrus.Errorf("Removing pod: %v", err)
+			}
+		}
+	}()
 	if err := p.PodSpecGen.Validate(); err != nil {
 		return nil, err
 	}
@@ -69,6 +77,8 @@ func MakePod(p *entities.PodSpec, rt *libpod.Runtime) (*libpod.Pod, error) {
 	if err != nil {
 		return nil, err
 	}
+	createdPod = pod
+
 	if !p.PodSpecGen.NoInfra && p.PodSpecGen.InfraContainerSpec != nil {
 		if p.PodSpecGen.InfraContainerSpec.Name == "" {
 			p.PodSpecGen.InfraContainerSpec.Name = pod.ID()[:12] + "-infra"
