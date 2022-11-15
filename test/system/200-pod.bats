@@ -554,4 +554,17 @@ io.max          | $lomajmin rbps=1048576 wbps=1048576 riops=max wiops=max
     is "$output" "" "Should print no output"
 }
 
+@test "podman pod create on failure" {
+    podname=pod$(random_string)
+    nwname=pod$(random_string)
+
+    run_podman 125 pod create --network $nwname --name $podname
+    # FIXME: podman and podman-remote do not return the same error message
+    # but consistency would be nice
+    is "$output" "Error: .*unable to find network with name or ID $nwname: network not found"
+
+    # Make sure the pod doesn't get created on failure
+    run_podman 1 pod exists $podname
+}
+
 # vim: filetype=sh
