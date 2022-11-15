@@ -281,6 +281,15 @@ var _ = Describe("podman system connection", func() {
 			_, err = Start(cmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).ToNot(HaveOccurred())
 
+			// export the container_host env var and try again
+			err = os.Setenv("CONTAINER_HOST", fmt.Sprintf("ssh://%s@localhost", u.Username))
+			Expect(err).ToNot(HaveOccurred())
+			defer os.Unsetenv("CONTAINER_HOST")
+
+			cmd = exec.Command(podmanTest.RemotePodmanBinary, "ps")
+			_, err = Start(cmd, GinkgoWriter, GinkgoWriter)
+			Expect(err).ToNot(HaveOccurred())
+
 			uri := url.URL{
 				Scheme: "ssh",
 				User:   url.User(u.Username),
