@@ -33,7 +33,7 @@ env:
     UBUNTU_NAME: "ubuntu-2204"
 
     # Image identifiers
-    IMAGE_SUFFIX: "c5069932136759296"
+    IMAGE_SUFFIX: "c6447802205601792"
     # EC2 images
     FEDORA_AMI: "fedora-aws-${IMAGE_SUFFIX}"
     FEDORA_AARCH64_AMI: "fedora-podman-aws-arm64-${IMAGE_SUFFIX}"
@@ -44,8 +44,7 @@ env:
     # Container FQIN's
     FEDORA_CONTAINER_FQIN: "quay.io/libpod/fedora_podman:${IMAGE_SUFFIX}"
     PRIOR_FEDORA_CONTAINER_FQIN: "quay.io/libpod/prior-fedora_podman:${IMAGE_SUFFIX}"
-    # FIXME, replace override with common suffix once everything is in sync
-    WINDOWS_AMI: "win-server-wsl-c6447802205601792"
+    WINDOWS_AMI: "win-server-wsl-${IMAGE_SUFFIX}"
     ####
     #### Control variables that determine what to run and how to run it.
     #### N/B: Required ALL of these are set for every single task.
