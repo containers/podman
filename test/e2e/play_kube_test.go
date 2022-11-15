@@ -1784,6 +1784,10 @@ var _ = Describe("Podman play kube", func() {
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(Exit(0))
 
+		wait := podmanTest.Podman([]string{"wait", getCtrNameInPod(p)})
+		wait.WaitWithDefaultTimeout()
+		Expect(wait).Should(Exit(0))
+
 		logs := podmanTest.Podman([]string{"logs", getCtrNameInPod(p)})
 		logs.WaitWithDefaultTimeout()
 		Expect(logs).Should(Exit(0))
@@ -1801,6 +1805,10 @@ var _ = Describe("Podman play kube", func() {
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(Exit(0))
 
+		wait := podmanTest.Podman([]string{"wait", getCtrNameInPod(p)})
+		wait.WaitWithDefaultTimeout()
+		Expect(wait).Should(Exit(0))
+
 		logs := podmanTest.Podman([]string{"pod", "logs", p.Name})
 		logs.WaitWithDefaultTimeout()
 		Expect(logs).Should(Exit(0))
@@ -1817,6 +1825,10 @@ var _ = Describe("Podman play kube", func() {
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(Exit(0))
+
+		wait := podmanTest.Podman([]string{"wait", getCtrNameInPod(p)})
+		wait.WaitWithDefaultTimeout()
+		Expect(wait).Should(Exit(0))
 
 		logs := podmanTest.Podman([]string{"pod", "logs", "-c", getCtrNameInPod(p), p.Name})
 		logs.WaitWithDefaultTimeout()
