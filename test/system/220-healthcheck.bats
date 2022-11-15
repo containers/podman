@@ -97,6 +97,7 @@ Log[-1].Output   | \"Uh-oh on stdout!\\\nUh-oh on stderr!\"
                --health-cmd /healthcheck   \
                --health-retries=1          \
                --health-on-failure=$policy \
+               --health-interval=disable   \
                $img
 
         # healthcheck should succeed
@@ -107,7 +108,7 @@ Log[-1].Output   | \"Uh-oh on stdout!\\\nUh-oh on stderr!\"
 
         # healthcheck should now fail, with exit status 1 and 'unhealthy' output
         run_podman 1 healthcheck run $ctr
-        is "$output" "unhealthy" "output from 'podman healthcheck run'"
+        is "$output" "unhealthy" "output from 'podman healthcheck run' (policy: $policy)"
 
         run_podman inspect $ctr --format "{{.State.Status}} {{.Config.HealthcheckOnFailureAction}}"
 	if [[ $policy == "restart" ]];then
@@ -118,10 +119,10 @@ Log[-1].Output   | \"Uh-oh on stdout!\\\nUh-oh on stderr!\"
             # Container is still running and health check still broken
             is "$output" "running $policy" "container continued running"
             run_podman 1 healthcheck run $ctr
-            is "$output" "unhealthy" "output from 'podman healthcheck run'"
+            is "$output" "unhealthy" "output from 'podman healthcheck run' (policy: $policy)"
 	else
 	    # kill and stop yield the container into a non-running state
-            is "$output" ".* $policy" "container was stopped/killed"
+            is "$output" ".* $policy" "container was stopped/killed (policy: $policy)"
             assert "$output" != "running $policy"
             # also make sure that it's not stuck in the stopping state
             assert "$output" != "stopping $policy"
