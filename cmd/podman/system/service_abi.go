@@ -1,5 +1,6 @@
-//go:build linux && !remote
-// +build linux,!remote
+//go:build (linux || freebsd) && !remote
+// +build linux freebsd
+// +build !remote
 
 package system
 
@@ -12,7 +13,6 @@ import (
 	"path/filepath"
 
 	"github.com/containers/common/pkg/cgroups"
-	"github.com/containers/common/pkg/servicereaper"
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	api "github.com/containers/podman/v4/pkg/api/server"
 	"github.com/containers/podman/v4/pkg/domain/entities"
@@ -119,7 +119,7 @@ func restService(flags *pflag.FlagSet, cfg *entities.PodmanConfig, opts entities
 		logrus.Debugf("Could not move to subcgroup: %v", err)
 	}
 
-	servicereaper.Start()
+	maybeStartServiceReaper()
 	infra.StartWatcher(libpodRuntime)
 	server, err := api.NewServerWithSettings(libpodRuntime, listener, opts)
 	if err != nil {
