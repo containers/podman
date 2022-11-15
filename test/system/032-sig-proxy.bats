@@ -24,7 +24,7 @@ load helpers
 
     # Signal, and wait for container to exit
     kill -INT $kidpid
-    local timeout=5
+    local timeout=10
     while :;do
           sleep 0.5
           run_podman logs foo
