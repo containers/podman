@@ -232,4 +232,10 @@ See 'podman version --help'" "podman version --remote"
     is "$output" "Setting --log-level and --debug is not allowed"
 }
 
+# Tests --noout for commands that do not enter the engine
+@test "podman --noout properly supresses output" {
+run_podman --noout system connection ls
+    is "$output" "" "output should be empty"
+}
+
 # vim: filetype=sh

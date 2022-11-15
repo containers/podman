@@ -78,6 +78,7 @@ var (
 
 	useSyslog      bool
 	requireCleanup = true
+	noOut          = false
 )
 
 func init() {
@@ -87,6 +88,7 @@ func init() {
 		syslogHook,
 		earlyInitHook,
 		configHook,
+		noOutHook,
 	)
 
 	rootFlags(rootCmd, registry.PodmanConfig())
@@ -127,10 +129,6 @@ func persistentPreRunE(cmd *cobra.Command, args []string) error {
 	}
 
 	podmanConfig := registry.PodmanConfig()
-	if podmanConfig.NoOut {
-		null, _ := os.Open(os.DevNull)
-		os.Stdout = null
-	}
 
 	// Currently it is only possible to restore a container with the same runtime
 	// as used for checkpointing. It should be possible to make crun and runc
@@ -368,6 +366,13 @@ func loggingHook() {
 	}
 }
 
+func noOutHook() {
+	if noOut {
+		null, _ := os.Open(os.DevNull)
+		os.Stdout = null
+	}
+}
+
 func rootFlags(cmd *cobra.Command, podmanConfig *entities.PodmanConfig) {
 	srv, uri, ident, machine := resolveDestination()
 
@@ -400,7 +405,7 @@ func rootFlags(cmd *cobra.Command, podmanConfig *entities.PodmanConfig) {
 	lFlags.StringVar(&podmanConfig.Identity, identityFlagName, ident, "path to SSH identity file, (CONTAINER_SSHKEY)")
 	_ = cmd.RegisterFlagCompletionFunc(identityFlagName, completion.AutocompleteDefault)
 
-	lFlags.BoolVar(&podmanConfig.NoOut, "noout", false, "do not output to stdout")
+	lFlags.BoolVar(&noOut, "noout", false, "do not output to stdout")
 	lFlags.BoolVarP(&podmanConfig.Remote, "remote", "r", registry.IsRemote(), "Access remote Podman service")
 	pFlags := cmd.PersistentFlags()
 	if registry.IsRemote() {
