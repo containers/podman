@@ -114,7 +114,11 @@ type SSHOptions struct {
 	Username string
 	Args     []string
 }
-type StartOptions struct{}
+
+type StartOptions struct {
+	NoInfo bool
+	Quiet  bool
+}
 
 type StopOptions struct{}
 

@@ -33,5 +33,25 @@ var _ = Describe("podman machine start", func() {
 		Expect(err).To(BeNil())
 		Expect(ec).To(BeZero())
 		Expect(info[0].State).To(Equal(machine.Running))
+
+		stop := new(stopMachine)
+		stopSession, err := mb.setCmd(stop).run()
+		Expect(err).To(BeNil())
+		Expect(stopSession).To(Exit(0))
+
+		// suppress output
+		startSession, err = mb.setCmd(s.withNoInfo()).run()
+		Expect(err).To(BeNil())
+		Expect(startSession).To(Exit(0))
+		Expect(startSession.outputToString()).ToNot(ContainSubstring("API forwarding"))
+
+		stopSession, err = mb.setCmd(stop).run()
+		Expect(err).To(BeNil())
+		Expect(stopSession).To(Exit(0))
+
+		startSession, err = mb.setCmd(s.withQuiet()).run()
+		Expect(err).To(BeNil())
+		Expect(startSession).To(Exit(0))
+		Expect(len(startSession.outputToStringSlice())).To(Equal(1))
 	})
 })
