@@ -62,7 +62,7 @@ var _ = Describe("Podman restart", func() {
 		startTime := podmanTest.Podman([]string{"inspect", "--format='{{.State.StartedAt}}'", cid})
 		startTime.WaitWithDefaultTimeout()
 
-		startSession := podmanTest.Podman([]string{"start", cid})
+		startSession := podmanTest.Podman([]string{"start", "--attach", cid})
 		startSession.WaitWithDefaultTimeout()
 		Expect(startSession).Should(Exit(0))
 
