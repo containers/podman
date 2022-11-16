@@ -85,6 +85,9 @@ func (c *Container) prepare() error {
 	wg.Wait()
 
 	var createErr error
+	if createNetNSErr != nil {
+		createErr = createNetNSErr
+	}
 	if mountStorageErr != nil {
 		if createErr != nil {
 			logrus.Errorf("Preparing container %s: %v", c.ID(), createErr)
@@ -92,7 +95,23 @@ func (c *Container) prepare() error {
 		createErr = mountStorageErr
 	}
 
+	// Only trigger storage cleanup if mountStorage was successful.
+	// Otherwise, we may mess up mount counters.
 	if createErr != nil {
+		if mountStorageErr == nil {
+			if err := c.cleanupStorage(); err != nil {
+				// createErr is guaranteed non-nil, so print
+				// unconditionally
+				logrus.Errorf("Preparing container %s: %v", c.ID(), createErr)
+				createErr = fmt.Errorf("unmounting storage for container %s after network create failure: %w", c.ID(), err)
+			}
+		}
+		// It's OK to unconditionally trigger network cleanup. If the network
+		// isn't ready it will do nothing.
+		if err := c.cleanupNetwork(); err != nil {
+			logrus.Errorf("Preparing container %s: %v", c.ID(), createErr)
+			createErr = fmt.Errorf("cleaning up container %s network after setup failure: %w", c.ID(), err)
+		}
 		return createErr
 	}
 

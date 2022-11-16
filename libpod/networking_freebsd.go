@@ -166,14 +166,23 @@ func (r *Runtime) createNetNS(ctr *Container) (n *jailNetNS, q map[string]types.
 	jconf.Set("allow.raw_sockets", true)
 	jconf.Set("allow.chflags", true)
 	jconf.Set("securelevel", -1)
-	if _, err := jail.Create(jconf); err != nil {
-		logrus.Debugf("Failed to create vnet jail %s for container %s", ctrNS.Name, ctr.ID())
+	j, err := jail.Create(jconf)
+	if err != nil {
+		return nil, nil, fmt.Errorf("Failed to create vnet jail %s for container %s: %w", ctrNS.Name, ctr.ID(), err)
 	}
 
 	logrus.Debugf("Created vnet jail %s for container %s", ctrNS.Name, ctr.ID())
 
 	var networkStatus map[string]types.StatusBlock
 	networkStatus, err = r.configureNetNS(ctr, ctrNS)
+	if err != nil {
+		jconf := jail.NewConfig()
+		jconf.Set("persist", false)
+		if err := j.Set(jconf); err != nil {
+			// Log this error and return the error from configureNetNS
+			logrus.Errorf("failed to destroy vnet jail %s: %w", ctrNS.Name, err)
+		}
+	}
 	return ctrNS, networkStatus, err
 }
 
