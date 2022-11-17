@@ -530,13 +530,13 @@ func ManifestModify(w http.ResponseWriter, r *http.Request) {
 		}
 	case strings.EqualFold("annotate", body.Operation):
 		options := entities.ManifestAnnotateOptions{
-			Annotation: body.Annotation,
-			Arch:       body.Arch,
-			Features:   body.Features,
-			OS:         body.OS,
-			OSFeatures: body.OSFeatures,
-			OSVersion:  body.OSVersion,
-			Variant:    body.Variant,
+			Annotations: body.Annotations,
+			Arch:        body.Arch,
+			Features:    body.Features,
+			OS:          body.OS,
+			OSFeatures:  body.OSFeatures,
+			OSVersion:   body.OSVersion,
+			Variant:     body.Variant,
 		}
 		for _, image := range body.Images {
 			id, err := imageEngine.ManifestAnnotate(r.Context(), name, image, options)

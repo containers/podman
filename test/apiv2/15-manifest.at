@@ -4,6 +4,7 @@
 
 start_registry
 
+# Creates the manifest list
 t POST /v3.4.0/libpod/manifests/create?name=abc 200 \
     .Id~[0-9a-f]\\{64\\}
 id_abc=$(jq -r '.Id' <<<"$output")
@@ -27,6 +28,7 @@ RUN >file2
 EOF
 )
 
+# manifest add --anotation tests
 t POST /v3.4.0/libpod/manifests/$id_abc/add images="[\"containers-storage:$id_abc_image\"]" 200
 t PUT /v4.0.0/libpod/manifests/$id_xyz operation='update' images="[\"containers-storage:$id_xyz_image\"]" annotations="{\"foo\":\"bar\"}" annotation="[\"hoge=fuga\"]" 400 \
     .cause='can not set both Annotation and Annotations'
@@ -39,6 +41,22 @@ t PUT /v4.0.0/libpod/manifests/$id_xyz operation='update' images="[\"containers-
 t GET /v4.0.0/libpod/manifests/$id_xyz/json 200 \
     .manifests[0].annotations.hoge="fuga"
 
+# manifest annotate tests
+t GET /v4.0.0/libpod/manifests/$id_xyz/json 200
+xyz_digest=$(jq -r '.manifests[0].digest' <<<"$output")
+
+t PUT /v4.0.0/libpod/manifests/$id_xyz operation='annotate' images="[\"containers-storage:$id_xyz_image\"]" annotations="{\"foo2\":\"bar2\"}" annotation="[\"hoge2=fuga2\"]" 400 \
+    .cause='can not set both Annotation and Annotations'
+
+t PUT /v4.0.0/libpod/manifests/$id_xyz operation='annotate' images="[\"$xyz_digest\"]" annotations="{\"foo2\":\"bar2\"}" 200
+t GET /v4.0.0/libpod/manifests/$id_xyz/json 200 \
+    .manifests[0].annotations.foo2="bar2"
+
+t PUT /v4.0.0/libpod/manifests/$id_xyz operation='annotate' images="[\"$xyz_digest\"]" annotation="[\"hoge2=fuga2\"]" 200
+t GET /v4.0.0/libpod/manifests/$id_xyz/json 200 \
+    .manifests[0].annotations.hoge2="fuga2"
+
+# registry-related tests
 t POST "/v3.4.0/libpod/manifests/abc:latest/push?destination=localhost:$REGISTRY_PORT%2Fabc:latest&tlsVerify=false&all=true" 200
 t POST "/v4.0.0/libpod/manifests/xyz:latest/registry/localhost:$REGISTRY_PORT%2Fxyz:latest?all=true" 400 \
   .cause='x509: certificate signed by unknown authority'

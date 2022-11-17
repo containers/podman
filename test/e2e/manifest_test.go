@@ -202,7 +202,6 @@ var _ = Describe("Podman manifest", func() {
 	})
 
 	It("annotate", func() {
-		SkipIfRemote("Not supporting annotate on remote connections")
 		session := podmanTest.Podman([]string{"manifest", "create", "foo"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))

@@ -3,7 +3,6 @@ package tunnel
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"strings"
 
@@ -92,7 +91,27 @@ func (ir *ImageEngine) ManifestAdd(_ context.Context, name string, imageNames []
 
 // ManifestAnnotate updates an entry of the manifest list
 func (ir *ImageEngine) ManifestAnnotate(ctx context.Context, name, images string, opts entities.ManifestAnnotateOptions) (string, error) {
-	return "", errors.New("not implemented")
+	options := new(manifests.ModifyOptions).WithArch(opts.Arch).WithVariant(opts.Variant)
+	options.WithFeatures(opts.Features).WithOS(opts.OS).WithOSVersion(opts.OSVersion)
+
+	if len(opts.Annotation) != 0 {
+		annotations := make(map[string]string)
+		for _, annotationSpec := range opts.Annotation {
+			spec := strings.SplitN(annotationSpec, "=", 2)
+			if len(spec) != 2 {
+				return "", fmt.Errorf("no value given for annotation %q", spec[0])
+			}
+			annotations[spec[0]] = spec[1]
+		}
+		opts.Annotations = envLib.Join(opts.Annotations, annotations)
+	}
+	options.WithAnnotations(opts.Annotations)
+
+	id, err := manifests.Annotate(ir.ClientCtx, name, []string{images}, options)
+	if err != nil {
+		return id, fmt.Errorf("annotating to manifest list %s: %w", name, err)
+	}
+	return id, nil
 }
 
 // ManifestRemoveDigest removes the digest from manifest list
