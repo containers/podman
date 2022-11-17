@@ -257,6 +257,13 @@ function wait_for_output {
         if [ $output != "true" ]; then
             run_podman inspect --format '{{.State.ExitCode}}' $cid
             exitcode=$output
+
+            # One last chance: maybe the container exited just after logs cmd
+            run_podman logs $cid
+            if expr "$logs" : ".*$expect" >/dev/null; then
+                return
+            fi
+
             die "Container exited (status: $exitcode) before we saw '$expect': $logs"
         fi
 
