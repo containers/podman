@@ -204,7 +204,7 @@ type CheckpointOptions struct {
 type CheckpointReport struct {
 	Err             error                                   `json:"-"`
 	Id              string                                  `json:"Id"` //nolint:revive,stylecheck
-	RawInput        string                                  `json:"RawInput"`
+	RawInput        string                                  `json:"-"`
 	RuntimeDuration int64                                   `json:"runtime_checkpoint_duration"`
 	CRIUStatistics  *define.CRIUCheckpointRestoreStatistics `json:"criu_statistics"`
 }
@@ -231,7 +231,7 @@ type RestoreOptions struct {
 type RestoreReport struct {
 	Err             error                                   `json:"-"`
 	Id              string                                  `json:"Id"` //nolint:revive,stylecheck
-	RawInput        string                                  `json:"RawInput"`
+	RawInput        string                                  `json:"-"`
 	RuntimeDuration int64                                   `json:"runtime_restore_duration"`
 	CRIUStatistics  *define.CRIUCheckpointRestoreStatistics `json:"criu_statistics"`
 }
