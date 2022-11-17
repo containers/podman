@@ -435,7 +435,7 @@ func (p *Pod) podWithContainers(ctx context.Context, containers []*Container, po
 			}
 		}
 	}
-	podVolumes := make([]v1.Volume, 0, len(deDupPodVolumes))
+	podVolumes := []v1.Volume{}
 	for _, vol := range deDupPodVolumes {
 		podVolumes = append(podVolumes, *vol)
 	}
@@ -471,18 +471,12 @@ func newPodObject(podName string, annotations map[string]string, initCtrs, conta
 		CreationTimestamp: v12.Now(),
 		Annotations:       annotations,
 	}
-	// Set enableServiceLinks to false as podman doesn't use the service port environment variables
-	enableServiceLinks := false
-	// Set automountServiceAccountToken to false as podman doesn't use service account tokens
-	automountServiceAccountToken := false
 	ps := v1.PodSpec{
-		Containers:                   containers,
-		Hostname:                     hostname,
-		HostNetwork:                  hostNetwork,
-		InitContainers:               initCtrs,
-		Volumes:                      volumes,
-		EnableServiceLinks:           &enableServiceLinks,
-		AutomountServiceAccountToken: &automountServiceAccountToken,
+		Containers:     containers,
+		Hostname:       hostname,
+		HostNetwork:    hostNetwork,
+		InitContainers: initCtrs,
+		Volumes:        volumes,
 	}
 	if !hostUsers {
 		ps.HostUsers = &hostUsers
@@ -894,34 +888,45 @@ func generateKubeVolumeMount(m specs.Mount) (v1.VolumeMount, v1.Volume, error) {
 	vm := v1.VolumeMount{}
 	vo := v1.Volume{}
 
-	name, err := convertVolumePathToName(m.Source)
-	if err != nil {
-		return vm, vo, err
+	var (
+		name string
+		err  error
+	)
+	if m.Type == define.TypeTmpfs {
+		name = "tmp"
+		vo.EmptyDir = &v1.EmptyDirVolumeSource{
+			Medium: v1.StorageMediumMemory,
+		}
+		vo.Name = name
+	} else {
+		name, err = convertVolumePathToName(m.Source)
+		if err != nil {
+			return vm, vo, err
+		}
+		// To avoid naming conflicts with any persistent volume mounts, add a unique suffix to the volume's name.
+		name += "-host"
+		vo.Name = name
+		vo.HostPath = &v1.HostPathVolumeSource{}
+		vo.HostPath.Path = m.Source
+		isDir, err := isHostPathDirectory(m.Source)
+		// neither a directory or a file lives here, default to creating a directory
+		// TODO should this be an error instead?
+		var hostPathType v1.HostPathType
+		switch {
+		case err != nil:
+			hostPathType = v1.HostPathDirectoryOrCreate
+		case isDir:
+			hostPathType = v1.HostPathDirectory
+		default:
+			hostPathType = v1.HostPathFile
+		}
+		vo.HostPath.Type = &hostPathType
 	}
-	// To avoid naming conflicts with any persistent volume mounts, add a unique suffix to the volume's name.
-	name += "-host"
 	vm.Name = name
 	vm.MountPath = m.Destination
 	if cutil.StringInSlice("ro", m.Options) {
 		vm.ReadOnly = true
 	}
-
-	vo.Name = name
-	vo.HostPath = &v1.HostPathVolumeSource{}
-	vo.HostPath.Path = m.Source
-	isDir, err := isHostPathDirectory(m.Source)
-	// neither a directory or a file lives here, default to creating a directory
-	// TODO should this be an error instead?
-	var hostPathType v1.HostPathType
-	switch {
-	case err != nil:
-		hostPathType = v1.HostPathDirectoryOrCreate
-	case isDir:
-		hostPathType = v1.HostPathDirectory
-	default:
-		hostPathType = v1.HostPathFile
-	}
-	vo.HostPath.Type = &hostPathType
 
 	return vm, vo, nil
 }

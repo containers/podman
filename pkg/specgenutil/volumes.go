@@ -26,7 +26,7 @@ var (
 // Does not handle image volumes, init, and --volumes-from flags.
 // Can also add tmpfs mounts from read-only tmpfs.
 // TODO: handle options parsing/processing via containers/storage/pkg/mount
-func parseVolumes(volumeFlag, mountFlag, tmpfsFlag []string, addReadOnlyTmpfs bool) ([]spec.Mount, []*specgen.NamedVolume, []*specgen.OverlayVolume, []*specgen.ImageVolume, error) {
+func parseVolumes(volumeFlag, mountFlag, tmpfsFlag []string) ([]spec.Mount, []*specgen.NamedVolume, []*specgen.OverlayVolume, []*specgen.ImageVolume, error) {
 	// Get mounts from the --mounts flag.
 	unifiedMounts, unifiedVolumes, unifiedImageVolumes, err := Mounts(mountFlag)
 	if err != nil {
@@ -76,26 +76,6 @@ func parseVolumes(volumeFlag, mountFlag, tmpfsFlag []string, addReadOnlyTmpfs bo
 			continue
 		}
 		unifiedMounts[dest] = tmpfs
-	}
-
-	// If requested, add tmpfs filesystems for read-only containers.
-	if addReadOnlyTmpfs {
-		readonlyTmpfs := []string{"/tmp", "/var/tmp", "/run"}
-		options := []string{"rw", "rprivate", "nosuid", "nodev", "tmpcopyup"}
-		for _, dest := range readonlyTmpfs {
-			if _, ok := unifiedMounts[dest]; ok {
-				continue
-			}
-			if _, ok := unifiedVolumes[dest]; ok {
-				continue
-			}
-			unifiedMounts[dest] = spec.Mount{
-				Destination: dest,
-				Type:        define.TypeTmpfs,
-				Source:      "tmpfs",
-				Options:     options,
-			}
-		}
 	}
 
 	// Check for conflicts between named volumes, overlay & image volumes,
@@ -722,4 +702,27 @@ func validChownFlag(flag string) (bool, error) {
 // Use path instead of filepath to preserve Unix style paths on Windows
 func unixPathClean(p string) string {
 	return path.Clean(p)
+}
+
+func addReadOnlyMounts(mounts []spec.Mount) []spec.Mount {
+	readonlyTmpfs := []string{"/tmp", "/var/tmp", "/run"}
+	options := []string{"rw", "rprivate", "nosuid", "nodev", "tmpcopyup"}
+	for _, dest := range readonlyTmpfs {
+		for _, m := range mounts {
+			if m.Destination == dest {
+				continue
+			}
+		}
+		mnt := spec.Mount{
+			Destination: dest,
+			Type:        define.TypeTmpfs,
+			Source:      define.TypeTmpfs,
+			Options:     options,
+		}
+		if dest != "/run" {
+			mnt.Options = append(mnt.Options, "noexec")
+		}
+		mounts = append(mounts, mnt)
+	}
+	return mounts
 }

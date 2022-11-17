@@ -20,6 +20,7 @@ import (
 	"github.com/containers/common/pkg/secrets"
 	cutil "github.com/containers/common/pkg/util"
 	"github.com/containers/image/v5/manifest"
+	itypes "github.com/containers/image/v5/types"
 	"github.com/containers/podman/v4/libpod/define"
 	ann "github.com/containers/podman/v4/pkg/annotations"
 	"github.com/containers/podman/v4/pkg/domain/entities"
@@ -119,6 +120,8 @@ type CtrSpecGenOptions struct {
 	ConfigMaps []v1.ConfigMap
 	// SeccompPaths for finding the seccomp profile path
 	SeccompPaths *KubeSeccompPaths
+	// ReadOnly make all containers root file system readonly
+	ReadOnly itypes.OptionalBool
 	// RestartPolicy defines the restart policy of the container
 	RestartPolicy string
 	// NetNSIsHost tells the container to use the host netns
@@ -442,6 +445,10 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 		for k, v := range opts.Labels {
 			s.Labels[k] = v
 		}
+	}
+
+	if ro := opts.ReadOnly; ro != itypes.OptionalBoolUndefined {
+		s.ReadOnlyFilesystem = (ro == itypes.OptionalBoolTrue)
 	}
 
 	// Make sure the container runs in a systemd unit which is
