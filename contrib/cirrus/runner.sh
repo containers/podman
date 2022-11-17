@@ -497,6 +497,12 @@ if [[ "$PRIV_NAME" == "rootless" ]] && [[ "$UID" -eq 0 ]]; then
 fi
 # else: not running rootless, do nothing special
 
+# Dump important package versions. Before 2022-11-16 this took place as
+# a separate .cirrus.yml step, but it really belongs here.
+$(dirname $0)/logcollector.sh packages
+msg "************************************************************"
+
+
 cd "${GOSRC}/"
 
 handler="_run_${TEST_FLAVOR}"

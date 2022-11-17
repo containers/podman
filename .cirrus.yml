@@ -306,7 +306,6 @@ bindings_task:
         html_artifacts:
             path: ./*.html
             type: text/html
-        package_versions_script: '$SCRIPT_BASE/logcollector.sh packages'
         df_script: '$SCRIPT_BASE/logcollector.sh df'
         audit_log_script: '$SCRIPT_BASE/logcollector.sh audit'
         journal_script: '$SCRIPT_BASE/logcollector.sh journal'
