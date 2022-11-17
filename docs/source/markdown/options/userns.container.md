@@ -12,10 +12,11 @@ Rootless user --userns=Key mappings:
 
 Key       | Host User |  Container User
 ----------|---------------|---------------------
-""        |$UID           |0 (Default User account mapped to root user in container.)
-keep-id   |$UID           |$UID (Map user account to same UID within container.)
-auto      |$UID           | nil (Host User UID is not mapped into container.)
-nomap     |$UID           | nil (Host User UID is not mapped into container.)
+""        |$UID         |0 (Default User account mapped to root user in container.)
+keep-id   |$UID         |$UID (Map user account to same UID within container.)
+keep-id:uid=200,gid=210 |$UID| 200:210 (Map user account to specified uid, gid value within container.)
+auto      |$UID         | nil (Host User UID is not mapped into container.)
+nomap     |$UID         | nil (Host User UID is not mapped into container.)
 
 Valid _mode_ values are:
 
