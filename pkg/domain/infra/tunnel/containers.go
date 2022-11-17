@@ -273,6 +273,7 @@ func (ic *ContainerEngine) ContainerRm(ctx context.Context, namesOrIds []string,
 		}
 		for i := range newReports {
 			alreadyRemoved[newReports[i].Id] = true
+			newReports[i].RawInput = idToRawInput[newReports[i].Id]
 			rmReports = append(rmReports, newReports[i])
 		}
 	}
