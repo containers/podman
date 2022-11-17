@@ -91,9 +91,12 @@ func NewConnectionWithIdentity(ctx context.Context, uri string, identity string,
 	var connection Connection
 	switch _url.Scheme {
 	case "ssh":
-		port, err := strconv.Atoi(_url.Port())
-		if err != nil {
-			return nil, err
+		port := 22
+		if _url.Port() != "" {
+			port, err = strconv.Atoi(_url.Port())
+			if err != nil {
+				return nil, err
+			}
 		}
 		conn, err := ssh.Dial(&ssh.ConnectionDialOptions{
 			Host:                        uri,
