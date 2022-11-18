@@ -26,6 +26,14 @@ func (r *Runtime) newEventer() (events.Eventer, error) {
 
 // newContainerEvent creates a new event based on a container
 func (c *Container) newContainerEvent(status events.Status) {
+	if err := c.newContainerEventWithInspectData(status, false); err != nil {
+		logrus.Errorf("Unable to write container event: %v", err)
+	}
+}
+
+// newContainerEventWithInspectData creates a new event and sets the
+// ContainerInspectData field if inspectData is set.
+func (c *Container) newContainerEventWithInspectData(status events.Status, inspectData bool) error {
 	e := events.NewEvent(status)
 	e.ID = c.ID()
 	e.Name = c.Name()
@@ -38,6 +46,24 @@ func (c *Container) newContainerEvent(status events.Status) {
 		Attributes: c.Labels(),
 	}
 
+	if inspectData {
+		err := func() error {
+			data, err := c.inspectLocked(true)
+			if err != nil {
+				return err
+			}
+			rawData, err := json.Marshal(data)
+			if err != nil {
+				return err
+			}
+			e.Details.ContainerInspectData = string(rawData)
+			return nil
+		}()
+		if err != nil {
+			return fmt.Errorf("adding inspect data to container-create event: %v", err)
+		}
+	}
+
 	// if the current event is a HealthStatus event, we need to get the current
 	// status of the container to pass to the event
 	if status == events.HealthStatus {
@@ -48,9 +74,7 @@ func (c *Container) newContainerEvent(status events.Status) {
 		e.HealthStatus = containerHealthStatus
 	}
 
-	if err := c.runtime.eventer.Write(e); err != nil {
-		logrus.Errorf("Unable to write pod event: %q", err)
-	}
+	return c.runtime.eventer.Write(e)
 }
 
 // newContainerExitedEvent creates a new event for a container's death
