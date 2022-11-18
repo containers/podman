@@ -35,7 +35,7 @@ func (ic *ContainerEngine) Info(ctx context.Context) (*define.Info, error) {
 	// we are reporting the default systemd activation socket path as we cannot know if a future
 	// service may be run with another URI.
 	if ic.Libpod.RemoteURI() == "" {
-		xdg := "/run"
+		xdg := defaultRunPath
 		if path, err := util.GetRuntimeDir(); err != nil {
 			// Info is as good as we can guess...
 			return info, err

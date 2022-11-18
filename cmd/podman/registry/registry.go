@@ -12,9 +12,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// DefaultRootAPIPath is the default path of the REST socket
-const DefaultRootAPIPath = "/run/podman/podman.sock"
-
 // DefaultRootAPIAddress is the default address of the REST socket with unix: prefix
 const DefaultRootAPIAddress = "unix:" + DefaultRootAPIPath
 
