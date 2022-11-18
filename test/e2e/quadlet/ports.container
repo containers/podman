@@ -1,5 +1,5 @@
 [Container]
-Image=imagename
+Image=localhost/imagename
 ## assert-podman-args --expose=1000
 ExposeHostPort=1000
 ## assert-podman-args --expose=2000-3000

@@ -1,4 +1,4 @@
-## assert-podman-final-args imagename
+## assert-podman-final-args localhost/imagename
 ## assert-podman-args "--name=systemd-%N"
 ## assert-podman-args "--cidfile=%t/%N.cid"
 ## assert-podman-args "--rm"
@@ -25,4 +25,4 @@
 ## assert-key-is "Service" "Environment" "PODMAN_SYSTEMD_UNIT=%n"
 
 [Container]
-Image=imagename
+Image=localhost/imagename

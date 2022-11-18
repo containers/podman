@@ -10,7 +10,7 @@
 # Map container uid root to host root
 
 [Container]
-Image=imagename
+Image=localhost/imagename
 User=0
 # Also test name parsing
 HostUser=root
