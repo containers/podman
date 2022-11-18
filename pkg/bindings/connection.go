@@ -17,6 +17,7 @@ import (
 	"github.com/containers/common/pkg/ssh"
 	"github.com/containers/podman/v4/version"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/net/proxy"
 )
 
 type APIResponse struct {
@@ -126,7 +127,11 @@ func NewConnectionWithIdentity(ctx context.Context, uri string, identity string,
 		if !strings.HasPrefix(uri, "tcp://") {
 			return nil, errors.New("tcp URIs should begin with tcp://")
 		}
-		connection = tcpClient(_url)
+		conn, err := tcpClient(_url)
+		if err != nil {
+			return nil, err
+		}
+		connection = conn
 	default:
 		return nil, fmt.Errorf("unable to create connection. %q is not a supported schema", _url.Scheme)
 	}
@@ -143,19 +148,45 @@ func NewConnectionWithIdentity(ctx context.Context, uri string, identity string,
 	return ctx, nil
 }
 
-func tcpClient(_url *url.URL) Connection {
+func tcpClient(_url *url.URL) (Connection, error) {
 	connection := Connection{
 		URI: _url,
 	}
+	dialContext := func(ctx context.Context, _, _ string) (net.Conn, error) {
+		return net.Dial("tcp", _url.Host)
+	}
+	// use proxy if env `CONTAINER_PROXY` set
+	if proxyURI, found := os.LookupEnv("CONTAINER_PROXY"); found {
+		proxyURL, err := url.Parse(proxyURI)
+		if err != nil {
+			return connection, fmt.Errorf("value of CONTAINER_PROXY is not a valid url: %s: %w", proxyURI, err)
+		}
+		proxyDialer, err := proxy.FromURL(proxyURL, proxy.Direct)
+		if err != nil {
+			return connection, fmt.Errorf("unable to dial to proxy %s, %w", proxyURI, err)
+		}
+		dialContext = func(ctx context.Context, _, _ string) (net.Conn, error) {
+			logrus.Debugf("use proxy %s, but proxy dialer does not support dial timeout", proxyURI)
+			return proxyDialer.Dial("tcp", _url.Host)
+		}
+		if f, ok := proxyDialer.(proxy.ContextDialer); ok {
+			dialContext = func(ctx context.Context, _, _ string) (net.Conn, error) {
+				// the default tcp dial timeout seems to be 75s, podman-remote will retry 3 times before exit.
+				// here we change proxy dial timeout to 3s
+				logrus.Debugf("use proxy %s with dial timeout 3s", proxyURI)
+				ctx, cancel := context.WithTimeout(ctx, time.Second*3)
+				defer cancel() // It's safe to cancel, `f.DialContext` only use ctx for returning the Conn, not the lifetime of the Conn.
+				return f.DialContext(ctx, "tcp", _url.Host)
+			}
+		}
+	}
 	connection.Client = &http.Client{
 		Transport: &http.Transport{
-			DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
-				return net.Dial("tcp", _url.Host)
-			},
+			DialContext:        dialContext,
 			DisableCompression: true,
 		},
 	}
-	return connection
+	return connection, nil
 }
 
 // pingNewConnection pings to make sure the RESTFUL service is up
