@@ -168,7 +168,7 @@ func tcpClient(_url *url.URL) (Connection, error) {
 		}
 		if f, ok := proxyDialer.(proxy.ContextDialer); ok {
 			dialContext = func(ctx context.Context, _, _ string) (net.Conn, error) {
-				// the default tcp dial timeout seems to be 75s, podman-remote will retry 3 times bofere exit.
+				// the default tcp dial timeout seems to be 75s, podman-remote will retry 3 times before exit.
 				// here we change proxy dial timeout to 3s
 				logrus.Debugf("use proxy %s with dial timeout 3s", proxyURI)
 				ctx, cancel := context.WithTimeout(ctx, time.Second*3)
