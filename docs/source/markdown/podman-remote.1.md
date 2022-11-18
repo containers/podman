@@ -60,7 +60,7 @@ URL to access Podman service (default from `containers.conf`, rootless "unix://r
 Details:
  - `schema` is one of:
    * `ssh` (default): a local unix(7) socket on the named `host` and `port`, reachable via SSH
-   * `tcp`: an unencrypted, unauthenticated TCP connection to the named `host` and `port`, can work with proxy if `CONTAINER_PROXY` set
+   * `tcp`: an unencrypted, unauthenticated TCP connection to the named `host` and `port`, can work with proxy if `CONTAINER_PROXY` is set
    * `unix`: a local unix(7) socket at the specified `path`, or the default for the user
  - `user` will default to either `root` or the current running user (`ssh` only)
  - `password` has no default (`ssh` only)
