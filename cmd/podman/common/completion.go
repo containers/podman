@@ -1409,10 +1409,18 @@ func AutocompleteManifestFormat(cmd *cobra.Command, args []string, toComplete st
 }
 
 // AutocompleteNetworkDriver - Autocomplete network driver option.
-// -> "bridge", "macvlan"
 func AutocompleteNetworkDriver(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	drivers := []string{types.BridgeNetworkDriver, types.MacVLANNetworkDriver, types.IPVLANNetworkDriver}
-	return drivers, cobra.ShellCompDirectiveNoFileComp
+	engine, err := setupContainerEngine(cmd)
+	if err != nil {
+		cobra.CompErrorln(err.Error())
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	}
+	info, err := engine.Info(registry.Context())
+	if err != nil {
+		cobra.CompErrorln(err.Error())
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	}
+	return info.Plugins.Network, cobra.ShellCompDirectiveNoFileComp
 }
 
 // AutocompleteNetworkIPAMDriver - Autocomplete network ipam driver option.
