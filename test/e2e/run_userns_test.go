@@ -94,7 +94,7 @@ var _ = Describe("Podman UserNS support", func() {
 		Expect(session.OutputToString()).To(ContainSubstring("hello"))
 	})
 
-	It("podman uidmapping and gidmapping with a idmapped volume", func() {
+	It("podman uidmapping and gidmapping with an idmapped volume", func() {
 		session := podmanTest.Podman([]string{"run", "--uidmap=0:1:500", "--gidmap=0:200:5000", "-v", "my-foo-volume:/foo:Z,idmap", "alpine", "echo", "hello"})
 		session.WaitWithDefaultTimeout()
 		if strings.Contains(session.ErrorToString(), "Operation not permitted") {

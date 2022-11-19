@@ -244,7 +244,7 @@ type ContainerNamedVolume struct {
 	IsAnonymous bool `json:"setAnonymous,omitempty"`
 }
 
-// ContainerOverlayVolume is a overlay volume that will be mounted into the
+// ContainerOverlayVolume is an overlay volume that will be mounted into the
 // container. Each volume is a libpod Volume present in the state.
 type ContainerOverlayVolume struct {
 	// Destination is the absolute path where the mount will be placed in the container.

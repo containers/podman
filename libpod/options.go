@@ -1842,7 +1842,7 @@ func WithHostUsers(hostUsers []string) CtrCreateOption {
 	}
 }
 
-// WithInitCtrType indicates the container is a initcontainer
+// WithInitCtrType indicates the container is an initcontainer
 func WithInitCtrType(containerType string) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {

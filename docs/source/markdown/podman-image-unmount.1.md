@@ -13,7 +13,7 @@ Unmounts the specified images' root file system, if no other processes
 are using it.
 
 Image storage increments a mount counter each time an image is mounted.
-When a image is unmounted, the mount counter is decremented, and the
+When an image is unmounted, the mount counter is decremented, and the
 image's root filesystem is physically unmounted only when the mount
 counter reaches zero indicating no other processes are using the mount.
 An unmount can be forced with the --force flag.

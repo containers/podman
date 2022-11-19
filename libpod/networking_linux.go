@@ -368,7 +368,7 @@ func (r *Runtime) GetRootlessNetNs(new bool) (*RootlessNetNS, error) {
 	ns, err := ns.GetNS(path)
 	if err != nil {
 		if !new {
-			// return a error if we could not get the namespace and should no create one
+			// return an error if we could not get the namespace and should no create one
 			return nil, fmt.Errorf("getting rootless network namespace: %w", err)
 		}
 		// create a new namespace
@@ -498,7 +498,7 @@ func (r *Runtime) GetRootlessNetNs(new bool) (*RootlessNetNS, error) {
 			return nil, fmt.Errorf("failed to create rootless netns resolv.conf: %w", err)
 		}
 		// create cni directories to store files
-		// they will be bind mounted to the correct location in a extra mount ns
+		// they will be bind mounted to the correct location in an extra mount ns
 		err = os.MkdirAll(filepath.Join(rootlessNetNsDir, persistentCNIDir), 0700)
 		if err != nil {
 			return nil, fmt.Errorf("could not create rootless-netns var directory: %w", err)

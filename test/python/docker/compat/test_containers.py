@@ -31,7 +31,7 @@ class TestContainers(common.DockerTestCase):
 
     def test_start_container(self):
         # Podman docs says it should give a 304 but returns with no response
-        # # Start a already started container should return 304
+        # # Start an already started container should return 304
         # response = self.docker.api.start(container=self.top_container_id)
         # self.assertEqual(error.exception.response.status_code, 304)
 
