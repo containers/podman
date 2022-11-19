@@ -227,7 +227,7 @@ func encodeMultiAuthConfigs(authConfigs map[string]types.DockerAuthConfig) (stri
 }
 
 // authConfigsToAuthFile stores the specified auth configs in a temporary files
-// and returns its path. The file can later be used an auth file for contacting
+// and returns its path. The file can later be used as an auth file for contacting
 // one or more container registries.  If tmpDir is empty, the system's default
 // TMPDIR will be used.
 func authConfigsToAuthFile(authConfigs map[string]types.DockerAuthConfig) (string, error) {
@@ -284,7 +284,7 @@ func normalizeAuthFileKey(authFileKey string) string {
 // dockerAuthToImageAuth converts a docker auth config to one we're using
 // internally from c/image.  Note that the Docker types look slightly
 // different, so we need to convert to be extra sure we're not running into
-// undesired side-effects when unmarhalling directly to our types.
+// undesired side-effects when unmarshalling directly to our types.
 func dockerAuthToImageAuth(authConfig dockerAPITypes.AuthConfig) types.DockerAuthConfig {
 	return types.DockerAuthConfig{
 		Username:      authConfig.Username,

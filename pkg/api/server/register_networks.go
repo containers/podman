@@ -274,7 +274,7 @@ func (s *APIServer) registerNetworkHandlers(r *mux.Router) error {
 	//        - `id=[id]` Matches for full or partial ID.
 	//        - `driver=[driver]` Only bridge is supported.
 	//        - `label=[key]` or `label=[key=value]` Matches networks based on the presence of a label alone or a label and a value.
-	//        - `until=[timestamp]` Matches all networks that were create before the given timestamp.
+	//        - `until=[timestamp]` Matches all networks that were created before the given timestamp.
 	// produces:
 	// - application/json
 	// responses:

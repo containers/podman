@@ -733,7 +733,7 @@ func IDtoolsToRuntimeSpec(idMaps []idtools.IDMap) (convertedIDMap []specs.LinuxI
 }
 
 func LookupUser(name string) (*user.User, error) {
-	// Assume UID look up first, if it fails lookup by username
+	// Assume UID lookup first, if it fails look up by username
 	if u, err := user.LookupId(name); err == nil {
 		return u, nil
 	}

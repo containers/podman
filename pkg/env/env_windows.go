@@ -8,7 +8,7 @@ func ParseSlice(s []string) (map[string]string, error) {
 		if len(e) > 0 && e[0] == '=' {
 			// The legacy Windows CMD command interpreter uses a hack, where to emulate
 			// DOS semantics, it uses an illegal (by windows definition) env name for
-			// state storage to avoid conlficting with user defined env names. This is
+			// state storage to avoid conflicting with user defined env names. This is
 			// used to preserve drive letter paths. E.g., typing c: from another drive
 			// will remember the last CWD because CMD stores it in an env named "=C:".
 			// Since these are illegal, they are filtered from standard user access but

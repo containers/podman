@@ -201,7 +201,7 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 			}
 			resources := runtimeSpec.Linux.Resources
 
-			// resources get overwrritten similarly to pod inheritance, manually assign here if there is a new value
+			// resources get overwritten similarly to pod inheritance, manually assign here if there is a new value
 			marshalRes, err := json.Marshal(resources)
 			if err != nil {
 				return nil, nil, nil, err

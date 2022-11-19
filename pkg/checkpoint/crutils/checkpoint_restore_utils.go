@@ -15,7 +15,7 @@ import (
 	"github.com/opencontainers/selinux/go-selinux/label"
 )
 
-// This file mainly exist to make the checkpoint/restore functions
+// This file mainly exists to make the checkpoint/restore functions
 // available for other users. One possible candidate would be CRI-O.
 
 // CRImportCheckpointWithoutConfig imports the checkpoint archive (input)
@@ -207,7 +207,7 @@ func CRCreateFileWithLabel(directory, fileName, fileLabel string) error {
 
 // CRRuntimeSupportsCheckpointRestore tests if the given runtime at 'runtimePath'
 // supports checkpointing. The checkpoint restore interface has no definition
-// but crun implements all commands just as runc does. Whathh runc does it the
+// but crun implements all commands just as runc does. What runc does is the
 // official definition of the checkpoint/restore interface.
 func CRRuntimeSupportsCheckpointRestore(runtimePath string) bool {
 	// Check if the runtime implements checkpointing. Currently only

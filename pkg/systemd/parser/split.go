@@ -229,7 +229,7 @@ func extractFirstWord(in string, separators string, flags SplitFlags) (string, s
 	backslash := false // whether we've just seen a backslash
 
 	// The string handling in this function is a bit weird, using
-	// 0 bytes to mark end-of-string. This is because its a direct
+	// 0 bytes to mark end-of-string. This is because it is a direct
 	// conversion of the C in systemd, and w want to ensure
 	// exactly the same behaviour of some complex code
 

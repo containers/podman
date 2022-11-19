@@ -42,7 +42,7 @@ const (
 	// None indicates the IPC namespace is created without mounting /dev/shm
 	None NamespaceMode = "none"
 	// NoNetwork indicates no network namespace should
-	// be joined.  loopback should still exists.
+	// be joined.  loopback should still exist.
 	// Only used with the network namespace, invalid otherwise.
 	NoNetwork NamespaceMode = "none"
 	// Bridge indicates that a CNI network stack

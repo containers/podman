@@ -117,7 +117,7 @@ func CRImportCheckpoint(ctx context.Context, runtime *libpod.Runtime, restoreOpt
 
 		// According to podman pod create a pod can share the following namespaces:
 		// cgroup, ipc, net, pid, uts
-		// Let's make sure we a restoring into a pod with the same shared namespaces.
+		// Let's make sure we are restoring into a pod with the same shared namespaces.
 		pod, err := runtime.LookupPod(ctrConfig.Pod)
 		if err != nil {
 			return nil, fmt.Errorf("pod %q cannot be retrieved: %w", ctrConfig.Pod, err)
@@ -128,7 +128,7 @@ func CRImportCheckpoint(ctx context.Context, runtime *libpod.Runtime, restoreOpt
 			return nil, fmt.Errorf("cannot retrieve infra container from pod %q: %w", ctrConfig.Pod, err)
 		}
 
-		// If a namespaces was shared (!= "") it needs to be set to the new infrastructure container
+		// If a namespace was shared (!= "") it needs to be set to the new infrastructure container.
 		// If the infrastructure container does not share the same namespaces as the to be restored
 		// container we abort.
 		if ctrConfig.IPCNsCtr != "" {
