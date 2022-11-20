@@ -1993,10 +1993,21 @@ func (c *Container) generateResolvConf() error {
 		return err
 	}
 
+	networkBackend := c.runtime.config.Network.NetworkBackend
 	nameservers := make([]string, 0, len(c.runtime.config.Containers.DNSServers)+len(c.config.DNSServer))
-	nameservers = append(nameservers, c.runtime.config.Containers.DNSServers...)
-	for _, ip := range c.config.DNSServer {
-		nameservers = append(nameservers, ip.String())
+
+	// If NetworkBackend is `netavark` do not populate `/etc/resolv.conf`
+	// with custom dns server since after https://github.com/containers/netavark/pull/452
+	// netavark will always set required `nameservers` in statsBlock and libpod
+	// will correctly populate `networkNameServers`. Also see https://github.com/containers/podman/issues/16172
+
+	// Exception: Populate `/etc/resolv.conf` if container is not connected to any network
+	// ( i.e len(netStatus)==0 ) since in such case netavark is not invoked at all.
+	if networkBackend != string(types.Netavark) || len(netStatus) == 0 {
+		nameservers = append(nameservers, c.runtime.config.Containers.DNSServers...)
+		for _, ip := range c.config.DNSServer {
+			nameservers = append(nameservers, ip.String())
+		}
 	}
 	// If the user provided dns, it trumps all; then dns masq; then resolv.conf
 	var search []string

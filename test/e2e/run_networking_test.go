@@ -126,6 +126,37 @@ var _ = Describe("Podman run networking", func() {
 		Expect(session).Should(Exit(0))
 	})
 
+	It("podman verify resolv.conf with --dns + --network", func() {
+		// Following test is only functional with netavark and aardvark
+		// since new behaviour depends upon output from of statusBlock
+		SkipIfCNI(podmanTest)
+		net := createNetworkName("IntTest")
+		session := podmanTest.Podman([]string{"network", "create", net})
+		session.WaitWithDefaultTimeout()
+		defer podmanTest.removeNetwork(net)
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"run", "--name", "con1", "--dns", "1.1.1.1", "--network", net, ALPINE, "cat", "/etc/resolv.conf"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		// Must not contain custom dns server in containers
+		// `/etc/resolv.conf` since custom dns-server is
+		// already expected to be present and processed by
+		// Podman's DNS resolver i.e ( aarvark-dns or dnsname ).
+		Expect(session.OutputToString()).ToNot(ContainSubstring("nameserver 1.1.1.1"))
+		// But /etc/resolve.conf must contain othe nameserver
+		// i.e dns server configured for network.
+		Expect(session.OutputToString()).To(ContainSubstring("nameserver"))
+
+		session = podmanTest.Podman([]string{"run", "--name", "con2", "--dns", "1.1.1.1", ALPINE, "cat", "/etc/resolv.conf"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		// All the networks being used by following container
+		// don't have dns_enabled in such scenario `/etc/resolv.conf`
+		// must contain nameserver which were specified via `--dns`.
+		Expect(session.OutputToString()).To(ContainSubstring("nameserver 1.1.1.1"))
+	})
+
 	It("podman run network expose port 222", func() {
 		SkipIfRootless("iptables is not supported for rootless users")
 		session := podmanTest.Podman([]string{"run", "-dt", "--expose", "222-223", "-P", ALPINE, "/bin/sh"})
