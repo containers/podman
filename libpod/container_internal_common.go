@@ -2022,7 +2022,6 @@ func (c *Container) generateResolvConf() error {
 		keepHostServers = true
 		// first add the nameservers from the networks status
 		nameservers = networkNameServers
-
 		// slirp4netns has a built in DNS forwarder.
 		// If in userns the network is not setup here, instead we need to do that in
 		// c.completeNetworkSetup() which knows the actual slirp dns ip only at that point
