@@ -69,8 +69,13 @@ func (c *Container) convertPortMappings() []types.PortMapping {
 }
 
 func (c *Container) getNetworkOptions(networkOpts map[string]types.PerNetworkOptions) types.NetworkOptions {
+<<<<<<< HEAD
 	nameservers := make([]string, 0, len(c.runtime.config.Containers.DNSServers.Get())+len(c.config.DNSServer))
 	nameservers = append(nameservers, c.runtime.config.Containers.DNSServers.Get()...)
+=======
+	nameservers := make([]string, 0, len(c.runtime.config.Containers.DNSServers)+len(c.config.DNSServer))
+	nameservers = append(nameservers, c.runtime.config.Containers.DNSServers...)
+>>>>>>> 366e1686a0 (podman: relay custom DNS servers to network stack)
 	for _, ip := range c.config.DNSServer {
 		nameservers = append(nameservers, ip.String())
 	}
