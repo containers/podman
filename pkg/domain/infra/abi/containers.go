@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"reflect"
 	"strconv"
 	"sync"
 	"time"
@@ -1108,6 +1109,44 @@ func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.Conta
 	// Print warnings
 	for _, w := range warn {
 		fmt.Fprintf(os.Stderr, "%s\n", w)
+	}
+
+	if opts.Spec != nil && !reflect.ValueOf(opts.Spec).IsNil() {
+		// If this is a checkpoint image, restore it.
+		img, resolvedImageName := opts.Spec.GetImage()
+		if img != nil && resolvedImageName != "" {
+			imgData, err := img.Inspect(ctx, nil)
+			if err != nil {
+				return nil, err
+			}
+			if imgData != nil {
+				_, isCheckpointImage := imgData.Annotations[define.CheckpointAnnotationRuntimeName]
+				if isCheckpointImage {
+					var restoreOptions entities.RestoreOptions
+					restoreOptions.Name = opts.Spec.Name
+					restoreOptions.Pod = opts.Spec.Pod
+					responses, err := ic.ContainerRestore(ctx, []string{resolvedImageName}, restoreOptions)
+					if err != nil {
+						return nil, err
+					}
+
+					report := entities.ContainerRunReport{}
+					for _, r := range responses {
+						report.Id = r.Id
+						report.ExitCode = 0
+						if r.Err != nil {
+							logrus.Errorf("Failed to restore checkpoint image %s: %v", resolvedImageName, r.Err)
+							report.ExitCode = 126
+						}
+						if r.RawInput != "" {
+							logrus.Errorf("Failed to restore checkpoint image %s: %v", resolvedImageName, r.RawInput)
+							report.ExitCode = 126
+						}
+					}
+					return &report, nil
+				}
+			}
+		}
 	}
 
 	rtSpec, spec, optsN, err := generate.MakeContainer(ctx, ic.Libpod, opts.Spec, false, nil)
