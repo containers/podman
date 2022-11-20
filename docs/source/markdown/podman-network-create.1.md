@@ -62,7 +62,7 @@ You can see the driver in the **podman network inspect** output under the `ipam_
 
 #### **--ipv6**
 
-Enable IPv6 (Dual Stack) networking. If not subnets are given it will allocate a ipv4 and ipv6 subnet.
+Enable IPv6 (Dual Stack) networking. If not subnets are given it will allocate an ipv4 and an ipv6 subnet.
 
 #### **--label**
 

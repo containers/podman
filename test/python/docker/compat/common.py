@@ -14,7 +14,7 @@ from test.python.docker.compat import constant
 
 
 def run_top_container(client: DockerClient):
-    """Run top command in a alpine container."""
+    """Run top command in an alpine container."""
     ctnr = client.containers.create(
         constant.ALPINE,
         command="top",

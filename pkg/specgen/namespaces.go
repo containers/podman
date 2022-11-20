@@ -284,7 +284,7 @@ func ParseCgroupNamespace(ns string) (Namespace, error) {
 	return toReturn, nil
 }
 
-// ParseIPCNamespace parses a ipc namespace specification in string
+// ParseIPCNamespace parses an ipc namespace specification in string
 // form.
 func ParseIPCNamespace(ns string) (Namespace, error) {
 	toReturn := Namespace{}

@@ -198,7 +198,7 @@ EOF
 }
 
 @test "info" {
-    # check network backend, since this is a old version we should use CNI
+    # check network backend, since this is an old version we should use CNI
     # when we start testing from 4.0 we should have netavark as backend
     run_podman info --format '{{.Host.NetworkBackend}}'
     is "$output" "cni" "correct network backend"

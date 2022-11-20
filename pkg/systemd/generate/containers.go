@@ -461,7 +461,7 @@ func executeContainerTemplate(info *containerInfo, options entities.GenerateSyst
 			return "", err
 		}
 		for _, env := range envs {
-			// if env arg does not contain a equal sign we have to add the envar to the unit
+			// if env arg does not contain an equal sign we have to add the envar to the unit
 			// because it does try to red the value from the environment
 			if !strings.Contains(env, "=") {
 				for _, containerEnv := range info.containerEnv {

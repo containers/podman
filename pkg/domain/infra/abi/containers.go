@@ -240,7 +240,7 @@ func (ic *ContainerEngine) ContainerStop(ctx context.Context, namesOrIds []strin
 			// container never created in OCI runtime
 			// docker parity: do nothing just return container id
 			case errors.Is(err, define.ErrCtrStateInvalid):
-				logrus.Debugf("Container %s is either not created on runtime or is in a invalid state", c.ID())
+				logrus.Debugf("Container %s is either not created on runtime or is in an invalid state", c.ID())
 			default:
 				return err
 			}

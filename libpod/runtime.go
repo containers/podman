@@ -476,7 +476,7 @@ func makeRuntime(runtime *Runtime) (retErr error) {
 			// Don't fatally error.
 			// This will allow us to ship configs including optional
 			// runtimes that might not be installed (crun, kata).
-			// Only a infof so default configs don't spec errors.
+			// Only an infof so default configs don't spec errors.
 			logrus.Debugf("Configured OCI runtime %s initialization failed: %v", name, err)
 			continue
 		}

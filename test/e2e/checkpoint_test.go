@@ -230,7 +230,7 @@ var _ = Describe("Podman checkpoint", func() {
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
 		Expect(podmanTest.GetContainerStatus()).To(ContainSubstring("Up"))
 
-		// Restore a container which name is equal to a image name (#15055)
+		// Restore a container which name is equal to an image name (#15055)
 		localRunString = getRunString([]string{"--name", "alpine", "quay.io/libpod/alpine:latest", "top"})
 		session = podmanTest.Podman(localRunString)
 		session.WaitWithDefaultTimeout()

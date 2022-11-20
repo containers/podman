@@ -117,7 +117,7 @@ func (ic *ContainerEngine) NetworkRm(ctx context.Context, namesOrIds []string, o
 					return reports, fmt.Errorf("%q has associated containers with it. Use -f to forcibly delete containers and pods: %w", name, define.ErrNetworkInUse)
 				}
 				if c.IsInfra() {
-					// if we have a infra container we need to remove the pod
+					// if we have an infra container we need to remove the pod
 					pod, err := ic.Libpod.GetPod(c.PodID())
 					if err != nil {
 						return reports, err

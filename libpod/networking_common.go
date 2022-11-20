@@ -645,7 +645,7 @@ func (r *Runtime) ConnectContainerToNetwork(nameOrID, netName string, netOpts ty
 }
 
 // normalizeNetworkName takes a network name, a partial or a full network ID and returns the network name.
-// If the network is not found a errors is returned.
+// If the network is not found an error is returned.
 func (r *Runtime) normalizeNetworkName(nameOrID string) (string, error) {
 	net, err := r.network.NetworkInspect(nameOrID)
 	if err != nil {
