@@ -218,7 +218,7 @@ func migrateVM(configPath string, config []byte, vm *MachineVM) error {
 	}
 	// Write the config file
 	if err := vm.writeConfig(); err != nil {
-		// If the config file fails to be written, put the origina
+		// If the config file fails to be written, put the original
 		// config file back before erroring
 		if renameError := os.Rename(configPath+".orig", configPath); renameError != nil {
 			logrus.Warn(renameError)
@@ -1390,7 +1390,7 @@ func (v *MachineVM) setPIDSocket() error {
 	return nil
 }
 
-// Deprecated: getSocketandPid is being replace by setPIDSocket and
+// Deprecated: getSocketandPid is being replaced by setPIDSocket and
 // machinefiles.
 func (v *MachineVM) getSocketandPid() (string, string, error) {
 	rtPath, err := getRuntimeDir()

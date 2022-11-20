@@ -536,7 +536,7 @@ same containers would survive the logout and continue running.
 #### Solution
 
 When systemd notes that a session that started a Podman container has exited,
-it will also stop any containers that has been associated with it.  To avoid
+it will also stop any containers that have been associated with it.  To avoid
 this, use the following command before logging out: `loginctl enable-linger`.
 To later revert the linger functionality, use `loginctl disable-linger`.
 

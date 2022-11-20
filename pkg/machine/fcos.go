@@ -94,7 +94,7 @@ type FcosDownloadInfo struct {
 func (f FcosDownload) HasUsableCache() (bool, error) {
 	//	 check the sha of the local image if it exists
 	//  get the sha of the remote image
-	// == dont bother to pull
+	// == do not bother to pull
 	if _, err := os.Stat(f.LocalPath); os.IsNotExist(err) {
 		return false, nil
 	}

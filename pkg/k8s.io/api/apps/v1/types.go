@@ -525,7 +525,7 @@ type RollingUpdateDaemonSet struct {
 	MaxUnavailable *intstr.IntOrString `json:"maxUnavailable,omitempty"`
 
 	// The maximum number of nodes with an existing available DaemonSet pod that
-	// can have an updated DaemonSet pod during during an update.
+	// can have an updated DaemonSet pod during an update.
 	// Value can be an absolute number (ex: 5) or a percentage of desired pods (ex: 10%).
 	// This can not be 0 if MaxUnavailable is 0.
 	// Absolute number is calculated from percentage by rounding up to a minimum of 1.
@@ -537,7 +537,7 @@ type RollingUpdateDaemonSet struct {
 	// pod is available (Ready for at least minReadySeconds) the old DaemonSet pod
 	// on that node is marked deleted. If the old pod becomes unavailable for any
 	// reason (Ready transitions to false, is evicted, or is drained) an updated
-	// pod is immediatedly created on that node without considering surge limits.
+	// pod is immediately created on that node without considering surge limits.
 	// Allowing surge implies the possibility that the resources consumed by the
 	// daemonset on any given node can double if the readiness check fails, and
 	// so resource intensive daemonsets should take into account that they may
@@ -777,7 +777,7 @@ type ReplicaSetSpec struct {
 
 // ReplicaSetStatus represents the current status of a ReplicaSet.
 type ReplicaSetStatus struct {
-	// Replicas is the most recently oberved number of replicas.
+	// Replicas is the most recently observed number of replicas.
 	// More info: https://kubernetes.io/docs/concepts/workloads/controllers/replicationcontroller/#what-is-a-replicationcontroller
 	Replicas int32 `json:"replicas"`
 

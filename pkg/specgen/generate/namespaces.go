@@ -233,7 +233,7 @@ func namespaceOptions(s *specgen.SpecGenerator, rt *libpod.Runtime, pod *libpod.
 	}
 
 	// This wipes the UserNS settings that get set from the infra container
-	// when we are inheritting from the pod. So only apply this if the container
+	// when we are inheriting from the pod. So only apply this if the container
 	// is not being created in a pod.
 	if s.IDMappings != nil {
 		if pod == nil {

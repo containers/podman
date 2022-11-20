@@ -188,7 +188,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//        A JSON encoded value of the filters (a `map[string][]string`) to process on the images list. Available filters:
 	//        - `is-automated=(true|false)`
 	//        - `is-official=(true|false)`
-	//        - `stars=<number>` Matches images that has at least 'number' stars.
+	//        - `stars=<number>` Matches images that have at least 'number' stars.
 	//  - in: query
 	//    name: tlsVerify
 	//    type: boolean
@@ -503,7 +503,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//    name: t
 	//    type: string
 	//    default: latest
-	//    description: A name and optional tag to apply to the image in the `name:tag` format. If you omit the tag the default latest value is assumed. You can provide several t parameters.
+	//    description: A name and optional tag to apply to the image in the `name:tag` format. If you omit the tag, the default latest value is assumed. You can provide several t parameters.
 	//  - in: query
 	//    name: extrahosts
 	//    type: string
@@ -1116,7 +1116,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//        A JSON encoded value of the filters (a `map[string][]string`) to process on the images list. Available filters:
 	//        - `is-automated=(true|false)`
 	//        - `is-official=(true|false)`
-	//        - `stars=<number>` Matches images that has at least 'number' stars.
+	//        - `stars=<number>` Matches images that have at least 'number' stars.
 	//  - in: query
 	//    name: tlsVerify
 	//    type: boolean
@@ -1406,7 +1406,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//    name: t
 	//    type: string
 	//    default: latest
-	//    description: A name and optional tag to apply to the image in the `name:tag` format.  If you omit the tag the default latest value is assumed. You can provide several t parameters.
+	//    description: A name and optional tag to apply to the image in the `name:tag` format.  If you omit the tag, the default latest value is assumed. You can provide several t parameters.
 	//  - in: query
 	//    name: allplatforms
 	//    type: boolean

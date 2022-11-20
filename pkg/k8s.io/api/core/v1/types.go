@@ -324,7 +324,7 @@ const (
 	PersistentVolumeClaimFileSystemResizePending PersistentVolumeClaimConditionType = "FileSystemResizePending"
 )
 
-// PersistentVolumeClaimCondition contails details about state of pvc
+// PersistentVolumeClaimCondition contains details about state of pvc
 type PersistentVolumeClaimCondition struct {
 	Type   PersistentVolumeClaimConditionType `json:"type"`
 	Status ConditionStatus                    `json:"status"`
@@ -1249,7 +1249,7 @@ type Container struct {
 	// sessions. If stdinOnce is set to true, stdin is opened on container start, is empty until the
 	// first client attaches to stdin, and then remains open and accepts data until the client disconnects,
 	// at which time stdin is closed and remains closed until the container is restarted. If this
-	// flag is false, a container processes that reads from stdin will never receive an EOF.
+	// flag is false, a container process that reads from stdin will never receive an EOF.
 	// Default is false
 	// +optional
 	StdinOnce bool `json:"stdinOnce,omitempty"`
@@ -2367,7 +2367,7 @@ type EphemeralContainerCommon struct {
 	// sessions. If stdinOnce is set to true, stdin is opened on container start, is empty until the
 	// first client attaches to stdin, and then remains open and accepts data until the client disconnects,
 	// at which time stdin is closed and remains closed until the container is restarted. If this
-	// flag is false, a container processes that reads from stdin will never receive an EOF.
+	// flag is false, a container process that reads from stdin will never receive an EOF.
 	// Default is false
 	// +optional
 	StdinOnce bool `json:"stdinOnce,omitempty"`
@@ -2393,7 +2393,7 @@ var _ = Container(EphemeralContainerCommon{})
 type EphemeralContainer struct {
 	// Ephemeral containers have all of the fields of Container, plus additional fields
 	// specific to ephemeral containers. Fields in common with Container are in the
-	// following inlined struct so than an EphemeralContainer may easily be converted
+	// following inlined struct so that an EphemeralContainer may easily be converted
 	// to a Container.
 	EphemeralContainerCommon `json:",inline"`
 
@@ -2639,7 +2639,7 @@ type ReplicationControllerSpec struct {
 // ReplicationControllerStatus represents the current status of a replication
 // controller.
 type ReplicationControllerStatus struct {
-	// Replicas is the most recently oberved number of replicas.
+	// Replicas is the most recently observed number of replicas.
 	// More info: https://kubernetes.io/docs/concepts/workloads/controllers/replicationcontroller#what-is-a-replicationcontroller
 	Replicas int32 `json:"replicas"`
 
