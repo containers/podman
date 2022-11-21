@@ -6,3 +6,5 @@ echo "/opt/podman/bin" > /etc/paths.d/podman-pkg
 
 ln -s /opt/podman/bin/podman-mac-helper /opt/podman/qemu/bin/podman-mac-helper
 ln -s /opt/podman/bin/gvproxy /opt/podman/qemu/bin/gvproxy
+
+/opt/podman/bin/podman-mac-helper install
