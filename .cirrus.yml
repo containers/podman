@@ -375,7 +375,7 @@ osx_alt_build_task:
         TEST_FLAVOR: "altbuild"
         ALT_NAME: 'OSX Cross'
     osx_instance:
-        image: 'big-sur-base'
+        image: ghcr.io/cirruslabs/macos-ventura-base:latest
     setup_script:
         - brew install go
         - brew install go-md2man
