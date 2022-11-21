@@ -264,7 +264,7 @@ github.com/containers/psgo/internal/dev
 github.com/containers/psgo/internal/host
 github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
-# github.com/containers/storage v1.44.1-0.20230101110555-a747b27fe4ca
+# github.com/containers/storage v1.44.1-0.20230101110555-a747b27fe4ca => github.com/mtrmac/storage v0.0.0-20230103232939-ffeaed8fa4f7
 ## explicit; go 1.17
 github.com/containers/storage
 github.com/containers/storage/drivers
@@ -483,7 +483,7 @@ github.com/jinzhu/copier
 # github.com/json-iterator/go v1.1.12
 ## explicit; go 1.12
 github.com/json-iterator/go
-# github.com/klauspost/compress v1.15.13
+# github.com/klauspost/compress v1.15.14
 ## explicit; go 1.17
 github.com/klauspost/compress
 github.com/klauspost/compress/flate
@@ -971,3 +971,4 @@ gopkg.in/yaml.v3
 ## explicit; go 1.12
 sigs.k8s.io/yaml
 # github.com/opencontainers/runc => github.com/opencontainers/runc v1.1.1-0.20220617142545-8b9452f75cbc
+# github.com/containers/storage => github.com/mtrmac/storage v0.0.0-20230103232939-ffeaed8fa4f7
