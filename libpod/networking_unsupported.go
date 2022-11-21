@@ -15,7 +15,7 @@ import (
 
 type RootlessNetNS struct {
 	dir  string
-	Lock lockfile.Locker
+	Lock *lockfile.LockFile
 }
 
 // ocicniPortsToNetTypesPorts convert the old port format to the new one

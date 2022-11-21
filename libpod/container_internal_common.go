@@ -1685,7 +1685,7 @@ func (c *Container) makeBindMounts() error {
 			hostsPath, exists := bindMounts[config.DefaultHostsFile]
 			if !c.config.UseImageHosts && exists {
 				// we cannot use the dependency container lock due ABBA deadlocks in cleanup()
-				lock, err := lockfile.GetLockfile(hostsPath)
+				lock, err := lockfile.GetLockFile(hostsPath)
 				if err != nil {
 					return fmt.Errorf("failed to lock hosts file: %w", err)
 				}

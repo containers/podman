@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"syscall"
 
-	"github.com/containers/storage"
+	"github.com/containers/storage/pkg/lockfile"
 	"github.com/sirupsen/logrus"
 )
 
@@ -150,7 +150,7 @@ func (locks *FileLocks) LockFileLock(lck uint32) error {
 		return fmt.Errorf("locks have already been closed: %w", syscall.EINVAL)
 	}
 
-	l, err := storage.GetLockfile(locks.getLockPath(lck))
+	l, err := lockfile.GetLockFile(locks.getLockPath(lck))
 	if err != nil {
 		return fmt.Errorf("acquiring lock: %w", err)
 	}
@@ -164,7 +164,7 @@ func (locks *FileLocks) UnlockFileLock(lck uint32) error {
 	if !locks.valid {
 		return fmt.Errorf("locks have already been closed: %w", syscall.EINVAL)
 	}
-	l, err := storage.GetLockfile(locks.getLockPath(lck))
+	l, err := lockfile.GetLockFile(locks.getLockPath(lck))
 	if err != nil {
 		return fmt.Errorf("acquiring lock: %w", err)
 	}

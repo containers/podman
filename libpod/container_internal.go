@@ -1884,7 +1884,7 @@ func (c *Container) cleanup(ctx context.Context) error {
 		if hoststFile, ok := c.state.BindMounts[config.DefaultHostsFile]; ok {
 			if _, err := os.Stat(hoststFile); err == nil {
 				// we cannot use the dependency container lock due ABBA deadlocks
-				if lock, err := lockfile.GetLockfile(hoststFile); err == nil {
+				if lock, err := lockfile.GetLockFile(hoststFile); err == nil {
 					lock.Lock()
 					// make sure to ignore ENOENT error in case the netns container was cleaned up before this one
 					if err := etchosts.Remove(hoststFile, getLocalhostHostEntry(c)); err != nil && !errors.Is(err, os.ErrNotExist) {

@@ -23,7 +23,7 @@ import (
 	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/containers/podman/v4/pkg/util"
 	. "github.com/containers/podman/v4/test/utils"
-	"github.com/containers/storage"
+	"github.com/containers/storage/pkg/lockfile"
 	"github.com/containers/storage/pkg/reexec"
 	"github.com/containers/storage/pkg/stringid"
 	jsoniter "github.com/json-iterator/go"
@@ -402,9 +402,9 @@ func processTestResult(f GinkgoTestDescription) {
 	testResultsMutex.Unlock()
 }
 
-func GetPortLock(port string) storage.Locker {
+func GetPortLock(port string) *lockfile.LockFile {
 	lockFile := filepath.Join(LockTmpDir, port)
-	lock, err := storage.GetLockfile(lockFile)
+	lock, err := lockfile.GetLockFile(lockFile)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)

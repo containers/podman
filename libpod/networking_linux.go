@@ -53,7 +53,7 @@ const (
 type RootlessNetNS struct {
 	ns   ns.NetNS
 	dir  string
-	Lock lockfile.Locker
+	Lock *lockfile.LockFile
 }
 
 // getPath will join the given path to the rootless netns dir
@@ -333,7 +333,7 @@ func (r *Runtime) GetRootlessNetNs(new bool) (*RootlessNetNS, error) {
 	runDir := r.config.Engine.TmpDir
 
 	lfile := filepath.Join(runDir, "rootless-netns.lock")
-	lock, err := lockfile.GetLockfile(lfile)
+	lock, err := lockfile.GetLockFile(lfile)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get rootless-netns lockfile: %w", err)
 	}

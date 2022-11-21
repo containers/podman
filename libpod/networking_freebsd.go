@@ -75,7 +75,7 @@ type LinkStatistics64 struct {
 
 type RootlessNetNS struct {
 	dir  string
-	Lock lockfile.Locker
+	Lock *lockfile.LockFile
 }
 
 // getPath will join the given path to the rootless netns dir
