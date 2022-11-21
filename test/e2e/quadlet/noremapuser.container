@@ -1,6 +1,0 @@
-## !assert-podman-args --uidmap
-## !assert-podman-args --gidmap
-
-[Container]
-Image=localhost/imagename
-RemapUsers=no

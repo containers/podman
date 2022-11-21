@@ -42,13 +42,6 @@ func (c *PodmanCmdline) addAnnotations(annotations map[string]string) {
 	c.addKeys("--annotation", annotations)
 }
 
-func (c *PodmanCmdline) addIDMap(argPrefix string, containerIDStart, hostIDStart, numIDs uint32) {
-	if numIDs != 0 {
-		c.add(argPrefix)
-		c.addf("%d:%d:%d", containerIDStart, hostIDStart, numIDs)
-	}
-}
-
 func NewPodmanCmdline(args ...string) *PodmanCmdline {
 	c := &PodmanCmdline{
 		Args: make([]string, 0),
