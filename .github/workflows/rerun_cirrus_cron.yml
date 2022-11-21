@@ -44,6 +44,9 @@ jobs:
         steps:
             - uses: actions/checkout@v3
               with:
+                  # All scripts used by this workflow live in podman repo.
+                  repository: "containers/podman"
+                  ref: "main"
                   persist-credentials: false
 
             - name: Get failed cron names and Build IDs
