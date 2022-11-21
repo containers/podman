@@ -109,6 +109,9 @@ type ProtoDriver interface {
 	// Exists returns whether a filesystem layer with the specified
 	// ID exists on this driver.
 	Exists(id string) bool
+	// Returns a list of layer ids that exist on this driver (does not include
+	// additional storage layers). Not supported by all backends.
+	ListLayers() ([]string, error)
 	// Status returns a set of key-value pairs which give low
 	// level diagnostic status about this driver.
 	Status() [][2]string

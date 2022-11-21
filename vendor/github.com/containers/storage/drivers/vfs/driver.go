@@ -8,6 +8,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"unicode"
 
 	graphdriver "github.com/containers/storage/drivers"
 	"github.com/containers/storage/pkg/archive"
@@ -263,6 +264,40 @@ func (d *Driver) ReadWriteDiskUsage(id string) (*directory.DiskUsage, error) {
 func (d *Driver) Exists(id string) bool {
 	_, err := os.Stat(d.dir(id))
 	return err == nil
+}
+
+func nameLooksLikeID(name string) bool {
+	if len(name) != 64 {
+		return false
+	}
+	for _, c := range name {
+		if !unicode.Is(unicode.ASCII_Hex_Digit, c) {
+			return false
+		}
+	}
+	return true
+}
+
+// List layers (not including additional image stores)
+func (d *Driver) ListLayers() ([]string, error) {
+	entries, err := os.ReadDir(d.homes[0])
+	if err != nil {
+		return nil, err
+	}
+
+	layers := make([]string, 0)
+
+	for _, entry := range entries {
+		id := entry.Name()
+		// Does it look like a datadir directory?
+		if !entry.IsDir() || !nameLooksLikeID(id) {
+			continue
+		}
+
+		layers = append(layers, id)
+	}
+
+	return layers, err
 }
 
 // AdditionalImageStores returns additional image stores supported by the driver

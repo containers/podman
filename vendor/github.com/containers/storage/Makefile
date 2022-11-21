@@ -60,7 +60,7 @@ local-gccgo: ## build using gccgo on the host
 	GCCGO=$(PWD)/hack/gccgo-wrapper.sh $(GO) build $(MOD_VENDOR) -compiler gccgo $(BUILDFLAGS) -o containers-storage.gccgo ./cmd/containers-storage
 
 local-cross: ## cross build the binaries for arm, darwin, and freebsd
-	@for target in linux/amd64 linux/386 linux/arm linux/arm64 linux/ppc64 linux/ppc64le darwin/amd64 windows/amd64 freebsd/amd64 freebsd/arm64 ; do \
+	@for target in linux/amd64 linux/386 linux/arm linux/arm64 linux/ppc64 linux/ppc64le linux/s390x linux/mips linux/mipsle linux/mips64 linux/mips64le darwin/amd64 windows/amd64 freebsd/amd64 freebsd/arm64 ; do \
 		os=`echo $${target} | cut -f1 -d/` ; \
 		arch=`echo $${target} | cut -f2 -d/` ; \
 		suffix=$${os}.$${arch} ; \
@@ -117,7 +117,7 @@ help: ## this help
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-z A-Z_-]+:.*?## / {gsub(" ",",",$$1);gsub("\\\\n",sprintf("\n%22c"," "), $$2);printf "\033[36m%-21s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
 vendor-in-container:
-	podman run --privileged --rm --env HOME=/root -v `pwd`:/src -w /src golang make vendor
+	podman run --privileged --rm --env HOME=/root -v `pwd`:/src -w /src golang:1.17 make vendor
 
 vendor:
 	$(GO) mod tidy -compat=1.17

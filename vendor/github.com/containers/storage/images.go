@@ -148,6 +148,9 @@ type rwImageStore interface {
 	// Delete removes the record of the image.
 	Delete(id string) error
 
+	addMappedTopLayer(id, layer string) error
+	removeMappedTopLayer(id, layer string) error
+
 	// Wipe removes records of all images.
 	Wipe() error
 }
@@ -763,10 +766,7 @@ func (r *imageStore) BigDataSize(id, key string) (int64, error) {
 	if !ok {
 		return -1, fmt.Errorf("locating image with ID %q: %w", id, ErrImageUnknown)
 	}
-	if image.BigDataSizes == nil {
-		image.BigDataSizes = make(map[string]int64)
-	}
-	if size, ok := image.BigDataSizes[key]; ok {
+	if size, ok := image.BigDataSizes[key]; ok { // This is valid, and returns ok == false, for BigDataSizes == nil.
 		return size, nil
 	}
 	if data, err := r.BigData(id, key); err == nil && data != nil {
@@ -783,10 +783,7 @@ func (r *imageStore) BigDataDigest(id, key string) (digest.Digest, error) {
 	if !ok {
 		return "", fmt.Errorf("locating image with ID %q: %w", id, ErrImageUnknown)
 	}
-	if image.BigDataDigests == nil {
-		image.BigDataDigests = make(map[string]digest.Digest)
-	}
-	if d, ok := image.BigDataDigests[key]; ok {
+	if d, ok := image.BigDataDigests[key]; ok { // This is valid, and returns ok == false, for BigDataDigests == nil.
 		return d, nil
 	}
 	return "", ErrDigestUnknown

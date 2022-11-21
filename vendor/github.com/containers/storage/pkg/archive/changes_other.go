@@ -43,7 +43,12 @@ func collectFileInfoForChanges(oldDir, newDir string, oldIDMap, newIDMap *idtool
 func collectFileInfo(sourceDir string, idMappings *idtools.IDMappings) (*FileInfo, error) {
 	root := newRootFileInfo(idMappings)
 
-	err := filepath.WalkDir(sourceDir, func(path string, d fs.DirEntry, err error) error {
+	sourceStat, err := system.Lstat(sourceDir)
+	if err != nil {
+		return nil, err
+	}
+
+	err = filepath.WalkDir(sourceDir, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -86,8 +91,12 @@ func collectFileInfo(sourceDir string, idMappings *idtools.IDMappings) (*FileInf
 		if err != nil {
 			return err
 		}
-		info.stat = s
 
+		if s.Dev() != sourceStat.Dev() {
+			return filepath.SkipDir
+		}
+
+		info.stat = s
 		info.capability, _ = system.Lgetxattr(path, "security.capability")
 
 		parent.children[info.name] = info
