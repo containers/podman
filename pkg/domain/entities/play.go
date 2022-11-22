@@ -62,6 +62,8 @@ type PlayKubeOptions struct {
 	IsRemote bool
 	// Force - remove volumes on --down
 	Force bool
+	// PodDefaults - path to a YAML file with defaults values for pods
+	PodDefaults string
 }
 
 // PlayKubePod represents a single pod and associated containers created by play kube

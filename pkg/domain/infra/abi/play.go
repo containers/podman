@@ -132,6 +132,18 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, body io.Reader, options
 		}
 	}
 
+	defaultPodYAML, err := readPodDefaultsYAML(options.PodDefaults)
+	if err != nil {
+		return nil, err
+	}
+	if defaultPodYAML != nil {
+		for name, val := range defaultPodYAML.Annotations {
+			if len(val) > define.MaxKubeAnnotation {
+				return nil, fmt.Errorf("pod defaults invalid annotation %q=%q value length exceeds Kubernetetes max %d", name, val, define.MaxKubeAnnotation)
+			}
+		}
+	}
+
 	// read yaml document
 	content, err := io.ReadAll(body)
 	if err != nil {
@@ -198,14 +210,12 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, body io.Reader, options
 					return nil, fmt.Errorf("invalid annotation %q=%q value length exceeds Kubernetetes max %d", name, val, define.MaxKubeAnnotation)
 				}
 			}
-			for name, val := range options.Annotations {
-				if podYAML.Annotations == nil {
-					podYAML.Annotations = make(map[string]string)
-				}
-				podYAML.Annotations[name] = val
+			var defaultAnnotations map[string]string
+			if defaultPodYAML != nil {
+				defaultAnnotations = defaultPodYAML.Annotations
 			}
-
-			r, err := ic.playKubePod(ctx, podTemplateSpec.ObjectMeta.Name, &podTemplateSpec, options, &ipIndex, podYAML.Annotations, configMaps, serviceContainer)
+			annotations := mergeAnnotations(defaultAnnotations, podYAML.Annotations, options.Annotations)
+			r, err := ic.playKubePod(ctx, podTemplateSpec.ObjectMeta.Name, &podTemplateSpec, options, &ipIndex, annotations, configMaps, serviceContainer)
 			if err != nil {
 				return nil, err
 			}
@@ -303,6 +313,49 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, body io.Reader, options
 	}
 
 	return report, nil
+}
+
+func readPodDefaultsYAML(podDefaults string) (*v1.Pod, error) {
+	if len(podDefaults) == 0 {
+		return nil, nil
+	}
+
+	reader, err := utils.ReaderFromArg(podDefaults)
+	if err != nil {
+		return nil, err
+	}
+
+	content, err := io.ReadAll(reader)
+	if err != nil {
+		return nil, err
+	}
+
+	var podYAML v1.Pod
+	if err := yaml.Unmarshal(content, &podYAML); err != nil {
+		return nil, fmt.Errorf("unable to read Pod Defaults YAML as Kube Pod: %w", err)
+	}
+
+	return &podYAML, nil
+}
+
+func mergeAnnotations(defaults, pod, options map[string]string) map[string]string {
+	mapSize := len(defaults) + len(pod) + len(options)
+	if mapSize == 0 {
+		return nil
+	}
+
+	annotations := make(map[string]string, mapSize)
+	for key, value := range defaults {
+		annotations[key] = value
+	}
+	for key, value := range pod {
+		annotations[key] = value
+	}
+	for key, value := range options {
+		annotations[key] = value
+	}
+
+	return annotations
 }
 
 func (ic *ContainerEngine) playKubeDeployment(ctx context.Context, deploymentYAML *v1apps.Deployment, options entities.PlayKubeOptions, ipIndex *int, configMaps []v1.ConfigMap, serviceContainer *libpod.Container) (*entities.PlayKubeReport, error) {

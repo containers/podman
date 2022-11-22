@@ -5,6 +5,7 @@ import (
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/containers/podman/v4/cmd/podman/utils"
 	"github.com/containers/podman/v4/pkg/domain/entities"
+	gUtils "github.com/containers/podman/v4/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -48,7 +49,7 @@ func downFlags(cmd *cobra.Command) {
 }
 
 func down(cmd *cobra.Command, args []string) error {
-	reader, err := readerFromArg(args[0])
+	reader, err := gUtils.ReaderFromArg(args[0])
 	if err != nil {
 		return err
 	}

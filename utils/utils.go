@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/rand"
 	"fmt"
+	"net/http"
 	"io"
 	"os"
 	"os/exec"
@@ -12,6 +13,7 @@ import (
 	"sync"
 
 	"github.com/containers/common/pkg/cgroups"
+	"github.com/containers/podman/v4/cmd/podman/parse"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/godbus/dbus/v5"
 	"github.com/sirupsen/logrus"
@@ -218,4 +220,39 @@ func MaybeMoveToSubCgroup() error {
 		}
 	})
 	return maybeMoveToSubCgroupSyncErr
+}
+
+func ReaderFromArg(fileName string) (*bytes.Reader, error) {
+	errURL := parse.ValidURL(fileName)
+	if fileName == "-" { // Read from stdin
+		data, err := io.ReadAll(os.Stdin)
+		if err != nil {
+			return nil, err
+		}
+		return bytes.NewReader(data), nil
+	}
+	if errURL == nil {
+		response, err := http.Get(fileName)
+		if err != nil {
+			return nil, err
+		}
+		defer response.Body.Close()
+
+		data, err := io.ReadAll(response.Body)
+		if err != nil {
+			return nil, err
+		}
+		return bytes.NewReader(data), nil
+	}
+	f, err := os.Open(fileName)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	data, err := io.ReadAll(f)
+	if err != nil {
+		return nil, err
+	}
+	return bytes.NewReader(data), nil
 }

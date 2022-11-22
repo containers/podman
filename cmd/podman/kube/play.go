@@ -1,12 +1,10 @@
 package kube
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"io"
 	"net"
-	"net/http"
 	"os"
 	"strings"
 
@@ -14,13 +12,13 @@ import (
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v4/cmd/podman/common"
-	"github.com/containers/podman/v4/cmd/podman/parse"
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/containers/podman/v4/cmd/podman/utils"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/errorhandling"
 	"github.com/containers/podman/v4/pkg/util"
+	gUtils "github.com/containers/podman/v4/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -183,6 +181,9 @@ func playFlags(cmd *cobra.Command) {
 		flags.StringVar(&playOptions.SignaturePolicy, "signature-policy", "", "`Pathname` of signature policy file (not usually used)")
 
 		_ = flags.MarkHidden("signature-policy")
+
+		podDefaultsFlagName := "pod-defaults"
+		flags.StringVar(&playOptions.PodDefaults, podDefaultsFlagName, "", "`Pathname` of a YAML file containing a kubernetes pod spec with default values")
 	}
 }
 
@@ -247,7 +248,7 @@ func play(cmd *cobra.Command, args []string) error {
 		return errors.New("--force may be specified only with --down")
 	}
 
-	reader, err := readerFromArg(args[0])
+	reader, err := gUtils.ReaderFromArg(args[0])
 	if err != nil {
 		return err
 	}
@@ -270,41 +271,6 @@ func play(cmd *cobra.Command, args []string) error {
 
 func playKube(cmd *cobra.Command, args []string) error {
 	return play(cmd, args)
-}
-
-func readerFromArg(fileName string) (*bytes.Reader, error) {
-	errURL := parse.ValidURL(fileName)
-	if fileName == "-" { // Read from stdin
-		data, err := io.ReadAll(os.Stdin)
-		if err != nil {
-			return nil, err
-		}
-		return bytes.NewReader(data), nil
-	}
-	if errURL == nil {
-		response, err := http.Get(fileName)
-		if err != nil {
-			return nil, err
-		}
-		defer response.Body.Close()
-
-		data, err := io.ReadAll(response.Body)
-		if err != nil {
-			return nil, err
-		}
-		return bytes.NewReader(data), nil
-	}
-	f, err := os.Open(fileName)
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
-
-	data, err := io.ReadAll(f)
-	if err != nil {
-		return nil, err
-	}
-	return bytes.NewReader(data), nil
 }
 
 func teardown(body io.Reader, options entities.PlayKubeDownOptions) error {
