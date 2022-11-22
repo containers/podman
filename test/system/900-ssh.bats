@@ -1,62 +1,41 @@
 #!/usr/bin/env bats
 #
-# Simplest set of podman tests. If any of these fail, we have serious problems.
+# Tests for podman system connection using native ssh
 #
 
 load helpers
 load helpers.network
 
-# Override standard setup! We don't yet trust podman-images or podman-rm
 function setup() {
-    if ! is_remote; then
-        skip "only applicable on podman-remote"
-    fi
+    is_remote || skip "only applicable on podman-remote"
 
     basic_setup
 }
 
 function teardown() {
-    if ! is_remote; then
-        return
-    fi
-
-    # In case test function failed to clean up
-    if [[ -n $_SERVICE_PID ]]; then
-        run kill $_SERVICE_PID
-    fi
-
-    # see test/system/272-system-connection.bats for why this is needed
-    mount \
-        | grep $PODMAN_TMPDIR \
-        | awk '{print $3}' \
-        | xargs -l1 --no-run-if-empty umount
-
-    run_podman system connection rm --all
+    run_podman system connection rm testing
 
     basic_teardown
 }
 
-function _run_podman_remote() {
-    PODMAN=${PODMAN%%--url*} run_podman "$@"
-}
-
 @test "podman --ssh test" {
-    skip_if_no_ssh "cannot run these tests without an ssh binary"
-    # Start server
-    _SERVICE_PORT=$(random_free_port 63000-64999)
+    type -P ssh || skip "no ssh binary available on host"
 
-    ${PODMAN%%-remote*} --root ${PODMAN_TMPDIR}/root \
-                        --runroot ${PODMAN_TMPDIR}/runroot \
-                        system service -t 99 tcp://localhost:$_SERVICE_PORT &
-    _SERVICE_PID=$!
-    wait_for_port localhost $_SERVICE_PORT
+    skip "FIXME: this is not an actual test of anything"
 
-    notme=${PODMAN_ROOTLESS_USER}
+    # FIXME: original code used misleading variable name "notme", even though
+    # the target user was always the same.
+    test -n "$PODMAN_ROOTLESS_USER" || skip "\$PODMAN_ROOTLESS_USER is undefined"
 
-    uid=$(id -u $notme)
+    rootless_uid=$(id -u $PODMAN_ROOTLESS_USER)
 
-    run_podman 125 --ssh=native system connection add testing ssh://$notme@localhost:22/run/user/$uid/podman/podman.sock
+    # FIXME FIXME FIXME: someone needs to add a comment here explaining what
+    # this is supposed to test
+    run_podman 125 --ssh=native system connection add testing \
+               ssh://${PODMAN_ROOTLESS_USER}@localhost:22/run/user/${rootless_uid}/podman/podman.sock
+    # FIXME FIXME FIXME: this is not an acceptable error message
     is "$output" "Error: exit status 255"
 
+    # FIXME FIXME FIXME: it is not clear what the message below means
     # need to figure out how to podman remote test with the new ssh
 }

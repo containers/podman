@@ -301,10 +301,6 @@ function wait_for_file() {
 # BEGIN miscellaneous tools
 
 # Shortcuts for common needs:
-function no_ssh() {
-    [ "$(man ssh)" -ne 0 ]
-}
-
 function is_ubuntu() {
     grep -qiw ubuntu /etc/os-release
 }
