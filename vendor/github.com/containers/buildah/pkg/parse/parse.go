@@ -222,13 +222,14 @@ func GetAdditionalBuildContext(value string) (define.AdditionalBuildContext, err
 func parseSecurityOpts(securityOpts []string, commonOpts *define.CommonBuildOptions) error {
 	for _, opt := range securityOpts {
 		if opt == "no-new-privileges" {
-			return errors.New("no-new-privileges is not supported")
+			commonOpts.NoNewPrivileges = true
+			continue
 		}
+
 		con := strings.SplitN(opt, "=", 2)
 		if len(con) != 2 {
 			return fmt.Errorf("invalid --security-opt name=value pair: %q", opt)
 		}
-
 		switch con[0] {
 		case "label":
 			commonOpts.LabelOpts = append(commonOpts.LabelOpts, con[1])
@@ -928,10 +929,11 @@ func IsolationOption(isolation string) (define.Isolation, error) {
 
 // Device parses device mapping string to a src, dest & permissions string
 // Valid values for device look like:
-//    '/dev/sdc"
-//    '/dev/sdc:/dev/xvdc"
-//    '/dev/sdc:/dev/xvdc:rwm"
-//    '/dev/sdc:rm"
+//
+//	'/dev/sdc"
+//	'/dev/sdc:/dev/xvdc"
+//	'/dev/sdc:/dev/xvdc:rwm"
+//	'/dev/sdc:rm"
 func Device(device string) (string, string, string, error) {
 	src := ""
 	dst := ""

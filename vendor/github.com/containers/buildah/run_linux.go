@@ -210,6 +210,8 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 		return err
 	}
 
+	g.SetProcessNoNewPrivileges(b.CommonBuildOpts.NoNewPrivileges)
+
 	g.SetProcessApparmorProfile(b.CommonBuildOpts.ApparmorProfile)
 
 	// Now grab the spec from the generator.  Set the generator to nil so that future contributors

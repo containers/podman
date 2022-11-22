@@ -67,6 +67,8 @@ type CommonBuildOptions struct {
 	// NoHosts tells the builder not to create /etc/hosts content when running
 	// containers.
 	NoHosts bool
+	// NoNewPrivileges removes the ability for the container to gain privileges
+	NoNewPrivileges bool
 	// OmitTimestamp forces epoch 0 as created timestamp to allow for
 	// deterministic, content-addressable builds.
 	OmitTimestamp bool

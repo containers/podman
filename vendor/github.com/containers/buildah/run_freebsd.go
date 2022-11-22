@@ -357,8 +357,7 @@ func (b *Builder) runSetupVolumeMounts(mountLabel string, volumeMounts []string,
 		if len(spliti) > 2 {
 			options = strings.Split(spliti[2], ",")
 		}
-		options = append(options, "bind")
-		mount, err := parseMount("bind", spliti[0], spliti[1], options)
+		mount, err := parseMount("nullfs", spliti[0], spliti[1], options)
 		if err != nil {
 			return nil, err
 		}

@@ -17,6 +17,7 @@ import (
 	"strings"
 	"sync"
 	"syscall"
+	"unicode"
 
 	graphdriver "github.com/containers/storage/drivers"
 	"github.com/containers/storage/drivers/overlayutils"
@@ -356,9 +357,9 @@ func Init(home string, options graphdriver.Options) (graphdriver.Driver, error) 
 		if opts.forceMask != nil {
 			return nil, errors.New("'force_mask' is supported only with 'mount_program'")
 		}
-		// check if they are running over btrfs, aufs, zfs, overlay, or ecryptfs
+		// check if they are running over btrfs, aufs, overlay, or ecryptfs
 		switch fsMagic {
-		case graphdriver.FsMagicAufs, graphdriver.FsMagicZfs, graphdriver.FsMagicOverlay, graphdriver.FsMagicEcryptfs:
+		case graphdriver.FsMagicAufs, graphdriver.FsMagicOverlay, graphdriver.FsMagicEcryptfs:
 			return nil, fmt.Errorf("'overlay' is not supported over %s, a mount_program is required: %w", backingFs, graphdriver.ErrIncompatibleFS)
 		}
 		if unshare.IsRootless() && isNetworkFileSystem(fsMagic) {
@@ -1695,6 +1696,40 @@ func (d *Driver) Put(id string) error {
 func (d *Driver) Exists(id string) bool {
 	_, err := os.Stat(d.dir(id))
 	return err == nil
+}
+
+func nameLooksLikeID(name string) bool {
+	if len(name) != 64 {
+		return false
+	}
+	for _, c := range name {
+		if !unicode.Is(unicode.ASCII_Hex_Digit, c) {
+			return false
+		}
+	}
+	return true
+}
+
+// List layers (not including additional image stores)
+func (d *Driver) ListLayers() ([]string, error) {
+	entries, err := os.ReadDir(d.home)
+	if err != nil {
+		return nil, err
+	}
+
+	layers := make([]string, 0)
+
+	for _, entry := range entries {
+		id := entry.Name()
+		// Does it look like a datadir directory?
+		if !entry.IsDir() || !nameLooksLikeID(id) {
+			continue
+		}
+
+		layers = append(layers, id)
+	}
+
+	return layers, err
 }
 
 // isParent returns if the passed in parent is the direct parent of the passed in layer

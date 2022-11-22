@@ -11,13 +11,13 @@ require (
 	github.com/container-orchestrated-devices/container-device-interface v0.5.3
 	github.com/containernetworking/cni v1.1.2
 	github.com/containernetworking/plugins v1.1.1
-	github.com/containers/buildah v1.28.1-0.20221029151733-c2cf9fa47ab6
-	github.com/containers/common v0.50.2-0.20221111184705-791b83e1cdf1
+	github.com/containers/buildah v1.28.1-0.20221122135051-c9f30d81ae37
+	github.com/containers/common v0.50.2-0.20221121202831-385be9a25125
 	github.com/containers/conmon v2.0.20+incompatible
-	github.com/containers/image/v5 v5.23.1-0.20221109193300-0d85878d7a77
+	github.com/containers/image/v5 v5.23.1-0.20221121174826-d8eb9dd60533
 	github.com/containers/ocicrypt v1.1.6
 	github.com/containers/psgo v1.8.0
-	github.com/containers/storage v1.44.1-0.20221110192950-67e9778710f8
+	github.com/containers/storage v1.44.1-0.20221121144727-71fd3e87df7a
 	github.com/coreos/go-systemd/v22 v22.5.0
 	github.com/coreos/stream-metadata-go v0.0.0-20210225230131-70edb9eb47b3
 	github.com/cyphar/filepath-securejoin v0.2.3
@@ -78,8 +78,8 @@ require (
 	github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d // indirect
 	github.com/chzyer/readline v1.5.1 // indirect
 	github.com/containerd/cgroups v1.0.4 // indirect
-	github.com/containerd/containerd v1.6.9 // indirect
-	github.com/containerd/stargz-snapshotter/estargz v0.12.1 // indirect
+	github.com/containerd/containerd v1.6.10 // indirect
+	github.com/containerd/stargz-snapshotter/estargz v0.13.0 // indirect
 	github.com/containers/libtrust v0.0.0-20200511145503-9c3a6c22cd9a // indirect
 	github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
@@ -133,7 +133,7 @@ require (
 	github.com/xeipuuv/gojsonschema v1.2.0 // indirect
 	go.mozilla.org/pkcs7 v0.0.0-20210826202110-33d05740a352 // indirect
 	go.opencensus.io v0.23.0 // indirect
-	golang.org/x/crypto v0.2.0 // indirect
+	golang.org/x/crypto v0.3.0 // indirect
 	golang.org/x/mod v0.6.0 // indirect
 	golang.org/x/tools v0.2.0 // indirect
 	google.golang.org/genproto v0.0.0-20221014213838-99cd37c6964a // indirect

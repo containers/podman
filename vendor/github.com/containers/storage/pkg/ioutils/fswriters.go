@@ -61,8 +61,8 @@ func NewAtomicFileWriter(filename string, perm os.FileMode) (io.WriteCloser, err
 }
 
 // AtomicWriteFile atomically writes data to a file named by filename.
-func AtomicWriteFile(filename string, data []byte, perm os.FileMode) error {
-	f, err := newAtomicFileWriter(filename, perm, nil)
+func AtomicWriteFileWithOpts(filename string, data []byte, perm os.FileMode, opts *AtomicFileWriterOptions) error {
+	f, err := newAtomicFileWriter(filename, perm, opts)
 	if err != nil {
 		return err
 	}
@@ -75,6 +75,10 @@ func AtomicWriteFile(filename string, data []byte, perm os.FileMode) error {
 		err = err1
 	}
 	return err
+}
+
+func AtomicWriteFile(filename string, data []byte, perm os.FileMode) error {
+	return AtomicWriteFileWithOpts(filename, data, perm, nil)
 }
 
 type atomicFileWriter struct {

@@ -251,6 +251,11 @@ func (a *Driver) Exists(id string) bool {
 	return true
 }
 
+// List layers (not including additional image stores)
+func (a *Driver) ListLayers() ([]string, error) {
+	return nil, graphdriver.ErrNotSupported
+}
+
 // AdditionalImageStores returns additional image stores supported by the driver
 func (a *Driver) AdditionalImageStores() []string {
 	return nil

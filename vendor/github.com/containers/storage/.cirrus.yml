@@ -73,6 +73,8 @@ fedora_testing_task: &fedora_testing
         - env:
             TEST_DRIVER: "overlay"
         - env:
+            TEST_DRIVER: "overlay-transient"
+        - env:
             TEST_DRIVER: "fuse-overlay"
         - env:
             TEST_DRIVER: "fuse-overlay-whiteout"

@@ -1455,8 +1455,8 @@ func cleanableDestinationListFromMounts(mounts []spec.Mount) []string {
 //
 // If this function succeeds, the caller must unlock runMountArtifacts.TargetLocks (when??)
 func (b *Builder) runSetupRunMounts(mounts []string, sources runMountInfo, idMaps IDMaps) ([]spec.Mount, *runMountArtifacts, error) {
-	// If `type` is not set default to "bind"
-	mountType := internalParse.TypeBind
+	// If `type` is not set default to TypeBind
+	mountType := define.TypeBind
 	mountTargets := make([]string, 0, 10)
 	tmpFiles := make([]string, 0, len(mounts))
 	mountImages := make([]string, 0, 10)
@@ -1510,7 +1510,7 @@ func (b *Builder) runSetupRunMounts(mounts []string, sources runMountInfo, idMap
 				// Count is needed as the default destination of the ssh sock inside the container is  /run/buildkit/ssh_agent.{i}
 				sshCount++
 			}
-		case "bind":
+		case define.TypeBind:
 			mount, image, err := b.getBindMount(tokens, sources.SystemContext, sources.ContextDir, sources.StageMountPoints, idMaps)
 			if err != nil {
 				return nil, nil, err

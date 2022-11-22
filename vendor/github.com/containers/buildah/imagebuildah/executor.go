@@ -690,7 +690,12 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) (image
 									base = child.Next.Value
 								}
 							}
+							headingArgs := argsMapToSlice(stage.Builder.HeadingArgs)
 							userArgs := argsMapToSlice(stage.Builder.Args)
+							// append heading args so if --build-arg key=value is not
+							// specified but default value is set in Containerfile
+							// via `ARG key=value` so default value can be used.
+							userArgs = append(headingArgs, userArgs...)
 							baseWithArg, err := imagebuilder.ProcessWord(base, userArgs)
 							if err != nil {
 								return "", nil, fmt.Errorf("while replacing arg variables with values for format %q: %w", base, err)
