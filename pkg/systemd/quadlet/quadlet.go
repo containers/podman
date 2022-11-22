@@ -22,6 +22,8 @@ const (
 	XContainerGroup = "X-Container"
 	VolumeGroup     = "Volume"
 	XVolumeGroup    = "X-Volume"
+	KubeGroup       = "Kube"
+	XKubeGroup      = "X-Kube"
 )
 
 var validPortRange = regexp.MustCompile(`\d+(-\d+)?(/udp|/tcp)?$`)
@@ -55,6 +57,7 @@ const (
 	KeySeccompProfile  = "SeccompProfile"
 	KeyAddDevice       = "AddDevice"
 	KeyNetwork         = "Network"
+	KeyYaml            = "Yaml"
 )
 
 // Supported keys in "Container" group
@@ -93,6 +96,11 @@ var supportedVolumeKeys = map[string]bool{
 	KeyUser:  true,
 	KeyGroup: true,
 	KeyLabel: true,
+}
+
+// Supported keys in "Kube" group
+var supportedKubeKeys = map[string]bool{
+	KeyYaml: true,
 }
 
 func replaceExtension(name string, extension string, extraPrefix string, extraSuffix string) string {
@@ -590,6 +598,68 @@ func ConvertVolume(volume *parser.UnitFile, name string) (*parser.UnitFile, erro
 
 		// The default syslog identifier is the exec basename (podman) which isn't very useful here
 		"SyslogIdentifier", "%N")
+
+	return service, nil
+}
+
+func ConvertKube(kube *parser.UnitFile) (*parser.UnitFile, error) {
+	service := kube.Dup()
+	service.Filename = replaceExtension(kube.Filename, ".service", "", "")
+
+	if kube.Path != "" {
+		service.Add(UnitGroup, "SourcePath", kube.Path)
+	}
+
+	if err := checkForUnknownKeys(kube, KubeGroup, supportedKubeKeys); err != nil {
+		return nil, err
+	}
+
+	// Rename old Kube group to x-Kube so that systemd ignores it
+	service.RenameGroup(KubeGroup, XKubeGroup)
+
+	yamlPath, ok := kube.Lookup(KubeGroup, KeyYaml)
+	if !ok || len(yamlPath) == 0 {
+		return nil, fmt.Errorf("no Yaml key specified")
+	}
+
+	// Only allow mixed or control-group, as nothing else works well
+	killMode, ok := service.Lookup(ServiceGroup, "KillMode")
+	if !ok || !(killMode == "mixed" || killMode == "control-group") {
+		if ok {
+			return nil, fmt.Errorf("invalid KillMode '%s'", killMode)
+		}
+
+		// We default to mixed instead of control-group, because it lets conmon do its thing
+		service.Set(ServiceGroup, "KillMode", "mixed")
+	}
+
+	// Set PODMAN_SYSTEMD_UNIT so that podman auto-update can restart the service.
+	service.Add(ServiceGroup, "Environment", "PODMAN_SYSTEMD_UNIT=%n")
+
+	// Need the containers filesystem mounted to start podman
+	service.Add(UnitGroup, "RequiresMountsFor", "%t/containers")
+
+	service.Setv(ServiceGroup,
+		"Type", "notify",
+		"NotifyAccess", "all")
+
+	execStart := NewPodmanCmdline("kube", "play")
+
+	execStart.add(
+		// Replace any previous container with the same name, not fail
+		"--replace",
+
+		// Use a service container
+		"--service-container=true",
+	)
+
+	execStart.add(yamlPath)
+
+	service.AddCmdline(ServiceGroup, "ExecStart", execStart.Args)
+
+	execStop := NewPodmanCmdline("kube", "down")
+	execStop.add(yamlPath)
+	service.AddCmdline(ServiceGroup, "ExecStop", execStop.Args)
 
 	return service, nil
 }
