@@ -30,7 +30,6 @@ HEAD ?= HEAD
 PROJECT := github.com/containers/podman
 GIT_BASE_BRANCH ?= origin/main
 LIBPOD_INSTANCE := libpod_dev
-QUADLET_USER ?= quadlet
 PREFIX ?= /usr/local
 BINDIR ?= ${PREFIX}/bin
 LIBEXECDIR ?= ${PREFIX}/libexec
@@ -112,7 +111,6 @@ LDFLAGS_PODMAN ?= \
 	-X $(LIBPOD)/config._installPrefix=$(PREFIX) \
 	-X $(LIBPOD)/config._etcDir=$(ETCDIR) \
 	-X github.com/containers/common/pkg/config.additionalHelperBinariesDir=$(HELPER_BINARIES_DIR)\
-	-X $(PROJECT)/v4/pkg/quadlet.QuadletUserName=$(QUADLET_USER) \
 	$(EXTRA_LDFLAGS)
 LDFLAGS_PODMAN_STATIC ?= \
 	$(LDFLAGS_PODMAN) \

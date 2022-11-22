@@ -2,18 +2,10 @@ package quadlet
 
 import (
 	"fmt"
-	"math"
-	"os"
 	"regexp"
 	"strings"
-	"unicode"
 
 	"github.com/containers/podman/v4/pkg/systemd/parser"
-)
-
-// Overwritten at build time:
-var (
-	QuadletUserName = "quadlet" // Name of user used to look up subuid/subgid for remap uids
 )
 
 const (
@@ -30,12 +22,6 @@ const (
 	XContainerGroup = "X-Container"
 	VolumeGroup     = "Volume"
 	XVolumeGroup    = "X-Volume"
-
-	// Fallbacks uid/gid ranges if the above username doesn't exist or has no subuids
-	FallbackUIDStart  = 1879048192
-	FallbackUIDLength = 165536
-	FallbackGIDStart  = 1879048192
-	FallbackGIDLength = 165536
 )
 
 var validPortRange = regexp.MustCompile(`\d+(-\d+)?(/udp|/tcp)?$`)
@@ -51,18 +37,14 @@ const (
 	KeyAddCapability   = "AddCapability"
 	KeyReadOnly        = "ReadOnly"
 	KeyRemapUsers      = "RemapUsers"
-	KeyRemapUIDStart   = "RemapUidStart"
-	KeyRemapGIDStart   = "RemapGidStart"
-	KeyRemapUIDRanges  = "RemapUidRanges"
-	KeyRemapGIDRanges  = "RemapGidRanges"
+	KeyRemapUID        = "RemapUid"
+	KeyRemapGID        = "RemapGid"
+	KeyRemapUIDSize    = "RemapUidSize"
 	KeyNotify          = "Notify"
 	KeyExposeHostPort  = "ExposeHostPort"
 	KeyPublishPort     = "PublishPort"
-	KeyKeepID          = "KeepId"
 	KeyUser            = "User"
 	KeyGroup           = "Group"
-	KeyHostUser        = "HostUser"
-	KeyHostGroup       = "HostGroup"
 	KeyVolume          = "Volume"
 	KeyPodmanArgs      = "PodmanArgs"
 	KeyLabel           = "Label"
@@ -86,18 +68,14 @@ var supportedContainerKeys = map[string]bool{
 	KeyAddCapability:   true,
 	KeyReadOnly:        true,
 	KeyRemapUsers:      true,
-	KeyRemapUIDStart:   true,
-	KeyRemapGIDStart:   true,
-	KeyRemapUIDRanges:  true,
-	KeyRemapGIDRanges:  true,
+	KeyRemapUID:        true,
+	KeyRemapGID:        true,
+	KeyRemapUIDSize:    true,
 	KeyNotify:          true,
 	KeyExposeHostPort:  true,
 	KeyPublishPort:     true,
-	KeyKeepID:          true,
 	KeyUser:            true,
 	KeyGroup:           true,
-	KeyHostUser:        true,
-	KeyHostGroup:       true,
 	KeyVolume:          true,
 	KeyPodmanArgs:      true,
 	KeyLabel:           true,
@@ -128,30 +106,6 @@ func replaceExtension(name string, extension string, extraPrefix string, extraSu
 	return extraPrefix + baseName + extraSuffix + extension
 }
 
-var defaultRemapUIDs, defaultRemapGIDs *Ranges
-
-func getDefaultRemapUids() *Ranges {
-	if defaultRemapUIDs == nil {
-		defaultRemapUIDs = lookupHostSubuid(QuadletUserName)
-		if defaultRemapUIDs == nil {
-			defaultRemapUIDs =
-				NewRanges(FallbackUIDStart, FallbackUIDLength)
-		}
-	}
-	return defaultRemapUIDs
-}
-
-func getDefaultRemapGids() *Ranges {
-	if defaultRemapGIDs == nil {
-		defaultRemapGIDs = lookupHostSubgid(QuadletUserName)
-		if defaultRemapGIDs == nil {
-			defaultRemapGIDs =
-				NewRanges(FallbackGIDStart, FallbackGIDLength)
-		}
-	}
-	return defaultRemapGIDs
-}
-
 func isPortRange(port string) bool {
 	return validPortRange.MatchString(port)
 }
@@ -164,33 +118,6 @@ func checkForUnknownKeys(unit *parser.UnitFile, groupName string, supportedKeys 
 		}
 	}
 	return nil
-}
-
-func lookupRanges(unit *parser.UnitFile, groupName string, key string, nameLookup func(string) *Ranges, defaultValue *Ranges) *Ranges {
-	v, ok := unit.Lookup(groupName, key)
-	if !ok {
-		if defaultValue != nil {
-			return defaultValue.Copy()
-		}
-
-		return NewRangesEmpty()
-	}
-
-	if len(v) == 0 {
-		return NewRangesEmpty()
-	}
-
-	if !unicode.IsDigit(rune(v[0])) {
-		if nameLookup != nil {
-			r := nameLookup(v)
-			if r != nil {
-				return r
-			}
-		}
-		return NewRangesEmpty()
-	}
-
-	return ParseRanges(v)
 }
 
 func splitPorts(ports string) []string {
@@ -222,59 +149,19 @@ func splitPorts(ports string) []string {
 	return parts
 }
 
-func addIDMaps(podman *PodmanCmdline, argPrefix string, containerID, hostID, remapStartID uint32, availableHostIDs *Ranges) {
-	if availableHostIDs == nil {
-		// Map everything by default
-		availableHostIDs = NewRangesEmpty()
+func usernsOpts(kind string, opts []string) string {
+	var res strings.Builder
+	res.WriteString(kind)
+	if len(opts) > 0 {
+		res.WriteString(":")
 	}
-
-	// Map the first ids up to remapStartID to the host equivalent
-	unmappedIds := NewRanges(0, remapStartID)
-
-	// The rest we want to map to availableHostIDs. Note that this
-	// overlaps unmappedIds, because below we may remove ranges from
-	// unmapped ids and we want to backfill those.
-	mappedIds := NewRanges(0, math.MaxUint32)
-
-	// Always map specified uid to specified host_uid
-	podman.addIDMap(argPrefix, containerID, hostID, 1)
-
-	// We no longer want to map this container id as its already mapped
-	mappedIds.Remove(containerID, 1)
-	unmappedIds.Remove(containerID, 1)
-
-	// But also, we don't want to use the *host* id again, as we can only map it once
-	unmappedIds.Remove(hostID, 1)
-	availableHostIDs.Remove(hostID, 1)
-
-	// Map unmapped ids to equivalent host range, and remove from mappedIds to avoid double-mapping
-	for _, r := range unmappedIds.Ranges {
-		start := r.Start
-		length := r.Length
-
-		podman.addIDMap(argPrefix, start, start, length)
-		mappedIds.Remove(start, length)
-		availableHostIDs.Remove(start, length)
-	}
-
-	for cIdx := 0; cIdx < len(mappedIds.Ranges) && len(availableHostIDs.Ranges) > 0; cIdx++ {
-		cRange := &mappedIds.Ranges[cIdx]
-		cStart := cRange.Start
-		cLength := cRange.Length
-
-		for cLength > 0 && len(availableHostIDs.Ranges) > 0 {
-			hRange := &availableHostIDs.Ranges[0]
-			hStart := hRange.Start
-			hLength := hRange.Length
-
-			nextLength := minUint32(hLength, cLength)
-
-			podman.addIDMap(argPrefix, cStart, hStart, nextLength)
-			availableHostIDs.Remove(hStart, nextLength)
-			cStart += nextLength
-			cLength -= nextLength
+	for i, opt := range opts {
+		if i != 0 {
+			res.WriteString(",")
 		}
+		res.WriteString(opt)
 	}
+	return res.String()
 }
 
 // Convert a quadlet container file (unit file with a Container group) to a systemd
@@ -451,66 +338,62 @@ func ConvertContainer(container *parser.UnitFile, isUser bool) (*parser.UnitFile
 		podman.add("--read-only-tmpfs=false")
 	}
 
-	defaultContainerUID := uint32(0)
-	defaultContainerGID := uint32(0)
+	hasUser := container.HasKey(ContainerGroup, KeyUser)
+	hasGroup := container.HasKey(ContainerGroup, KeyGroup)
+	if hasUser || hasGroup {
+		uid := container.LookupUint32(ContainerGroup, KeyUser, 0)
+		gid := container.LookupUint32(ContainerGroup, KeyGroup, 0)
 
-	keepID := container.LookupBoolean(ContainerGroup, KeyKeepID, false)
-	if keepID {
-		if isUser {
-			defaultContainerUID = uint32(os.Getuid())
-			defaultContainerGID = uint32(os.Getgid())
-			podman.add("--userns", "keep-id")
-		} else {
-			return nil, fmt.Errorf("key 'KeepId' in '%s' unsupported for system units", container.Path)
-		}
-	}
-
-	uid := container.LookupUint32(ContainerGroup, KeyUser, defaultContainerUID)
-	gid := container.LookupUint32(ContainerGroup, KeyGroup, defaultContainerGID)
-
-	hostUID, err := container.LookupUID(ContainerGroup, KeyHostUser, uid)
-	if err != nil {
-		return nil, fmt.Errorf("key 'HostUser' invalid: %s", err)
-	}
-
-	hostGID, err := container.LookupGID(ContainerGroup, KeyHostGroup, gid)
-	if err != nil {
-		return nil, fmt.Errorf("key 'HostGroup' invalid: %s", err)
-	}
-
-	if uid != defaultContainerUID || gid != defaultContainerGID {
 		podman.add("--user")
-		if gid == defaultContainerGID {
-			podman.addf("%d", uid)
-		} else {
+		if hasGroup {
 			podman.addf("%d:%d", uid, gid)
+		} else {
+			podman.addf("%d", uid)
 		}
 	}
 
-	var remapUsers bool
-	if isUser {
-		remapUsers = false
-	} else {
-		remapUsers = container.LookupBoolean(ContainerGroup, KeyRemapUsers, false)
-	}
+	uidMaps := container.LookupAllStrv(ContainerGroup, KeyRemapUID)
+	gidMaps := container.LookupAllStrv(ContainerGroup, KeyRemapGID)
 
-	if !remapUsers {
-		// No remapping of users, although we still need maps if the
-		//   main user/group is remapped, even if most ids map one-to-one.
-		if uid != hostUID {
-			addIDMaps(podman, "--uidmap", uid, hostUID, math.MaxUint32, nil)
-		}
-		if gid != hostGID {
-			addIDMaps(podman, "--gidmap", gid, hostGID, math.MaxUint32, nil)
-		}
-	} else {
-		uidRemapIDs := lookupRanges(container, ContainerGroup, KeyRemapUIDRanges, lookupHostSubuid, getDefaultRemapUids())
-		gidRemapIDs := lookupRanges(container, ContainerGroup, KeyRemapGIDRanges, lookupHostSubgid, getDefaultRemapGids())
-		remapUIDStart := container.LookupUint32(ContainerGroup, KeyRemapUIDStart, 1)
-		remapGIDStart := container.LookupUint32(ContainerGroup, KeyRemapGIDStart, 1)
+	remapUsers, ok := container.LookupLast(ContainerGroup, KeyRemapUsers)
+	if ok && remapUsers != "" {
+		switch remapUsers {
+		case "":
+			if len(uidMaps) > 0 {
+				return nil, fmt.Errorf("UidMap set without RemapUsers")
+			}
+			if len(gidMaps) > 0 {
+				return nil, fmt.Errorf("GidMap set without RemapUsers")
+			}
+		case "manual":
+			for _, uidMap := range uidMaps {
+				podman.addf("--uidmap=%s", uidMap)
+			}
+			for _, gidMap := range gidMaps {
+				podman.addf("--gidmap=%s", gidMap)
+			}
+		case "auto":
+			autoOpts := make([]string, 0)
+			for _, uidMap := range uidMaps {
+				autoOpts = append(autoOpts, "uidmapping="+uidMap)
+			}
+			for _, gidMap := range gidMaps {
+				autoOpts = append(autoOpts, "gidmapping="+gidMap)
+			}
+			uidSize := container.LookupUint32(ContainerGroup, KeyRemapUIDSize, 0)
+			if uidSize > 0 {
+				autoOpts = append(autoOpts, fmt.Sprintf("size=%v", uidSize))
+			}
 
-		addIDMaps(podman, "--uidmap", uid, hostUID, remapUIDStart, uidRemapIDs)
-		addIDMaps(podman, "--gidmap", gid, hostGID, remapGIDStart, gidRemapIDs)
+			podman.addf("--userns=" + usernsOpts("auto", autoOpts))
+		case "keep-id":
+			if !isUser {
+				return nil, fmt.Errorf("RemapUsers=keep-id is unsupported for system units")
+			}
+			podman.addf("--userns=keep-id")
+		default:
+			return nil, fmt.Errorf("unsupported RemapUsers option '%s'", remapUsers)
+		}
 	}
 
 	volumes := container.LookupAll(ContainerGroup, KeyVolume)

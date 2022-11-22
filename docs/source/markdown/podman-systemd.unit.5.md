@@ -102,22 +102,12 @@ default entry point of the container image is used. The format is the same as fo
 #### `User=`
 
 The (numeric) uid to run as inside the container. This does not need to match the uid on the host,
-which can be set with `HostUser`, but if that is not specified, this uid is also used on the host.
-
-#### `HostUser=`
-
-The host uid (numeric or a username) to run the container as. If this differs from the uid in `User`,
-then user namespaces are used to map the ids. If unspecified, this defaults to what was specified in `User`.
+which can be modified with `RemapUsers`, but if that is not specified, this uid is also used on the host.
 
 #### `Group=`
 
 The (numeric) gid to run as inside the container. This does not need to match the gid on the host,
-which can be set with `HostGroup`, but if that is not specified, this gid is also used on the host.
-
-#### `HostGroup=`
-
-The host gid (numeric or group name) to run the container as. If this differs from the gid in `Group`,
-then user namespaces are used to map the ids. If unspecified, this defaults to what was specified in `Group`.
+which can be modified with `RemapUsers`, but if that is not specified, this gid is also used on the host.
 
 #### `NoNewPrivileges=` (defaults to `yes`)
 
@@ -159,44 +149,33 @@ If enabled, makes image read-only, with /var/tmp, /tmp and /run a tmpfs (unless 
 Set the seccomp profile to use in the container. If unset, the default podman profile is used.
 Set to either the pathname of a json file, or `unconfined` to disable the seccomp filters.
 
-#### `RemapUsers=` (defaults to `no`)
+#### `RemapUsers=`
 
-If this is enabled, then host user and group ids are remapped in the container, such that all the uids
-starting at `RemapUidStart` (and gids starting at `RemapGidStart`) in the container are chosen from the
-available host uids specified by `RemapUidRanges` (and `RemapGidRanges`).
+If this is set, then host user and group ids are remapped in the container. It currently
+supports values: `auto`, `manual` and `keep-id`.
 
-#### `RemapUidStart=` (defaults to `1`)
+In `manual` mode, the `RemapUid` and `RemapGid` options can define an
+exact mapping of uids from host to container. You must specify these.
 
-If `RemapUsers` is enabled, this is the first uid that is remapped, and all lower uids are mapped
-to the equivalent host uid. This defaults to 1 so that the host root uid is in the container, because
-this means a lot less file ownership remapping in the container image.
+In `auto` mode mode, the subuids and subgids allocated to the `containers` user is used to allocate
+host uids/gids to use for the container. By default this will try to estimate a count of the ids
+to remap, but you can set RemapUidSize to use an explicit size. You can also Use `RemapUid` and
+`RemapGid` key to force a particular host uid to be mapped to the container.
 
-#### `RemapGidStart=` (defaults to `1`)
+In `keep-id` mode, the running user is mapped to the same id in the container. This is supported
+only on user systemd units.
 
-If `RemapUsers` is enabled, this is the first gid that is remapped, and all lower gids are mapped
-to the equivalent host gid. This defaults to 1 so that the host root gid is in the container, because
-this means a lot less file ownership remapping in the container image.
+#### `RemapUid=`
 
-#### `RemapUidRanges=`
+If `RemapUsers` is enabled, this specifies a uid mapping of the form `container_uid:from_uid:amount`,
+which will map `amount` number of uids on the host starting at `from_uid` into the container, starting
+at `container_uid`.
 
-This specifies a comma-separated list of ranges (like `10000-20000,40000-50000`) of available host
-uids to use to remap container uids in `RemapUsers`. Alternatively, it can be a username, which means
-the available subuids of that user will be used.
+#### `RemapGid=`
 
-If not specified, the default ranges are chosen as the subuids of the `quadlet` user.
-
-#### `RemapGidRanges=`
-
-This specifies a comma-separated list of ranges (like `10000-20000,40000-50000`) of available host
-gids to use to remap container gids in `RemapUsers`. Alternatively, it can be a username, which means
-the available subgids of that user will be used.
-
-If not specified, the default ranges are chosen as the subgids of the `quadlet` user.
-
-#### `KeepId=` (defaults to `no`, only works for user units)
-
-If this is enabled, then the user uid will be mapped to itself in the container, otherwise it is
-mapped to root. This is ignored for system units.
+If `RemapUsers` is enabled, this specifies a gid mapping of the form `container_gid:from_gid:amount`,
+which will map `amount` number of gids on the host starting at `from_gid` into the container, starting
+at `container_gid`.
 
 #### `Notify=` (defaults to `no`)
 

@@ -193,7 +193,7 @@ export BUILDTAGS="$BASEBUILDTAGS exclude_graphdriver_btrfs btrfs_noversion remot
 %gobuild -o bin/%{name}-remote ./cmd/%{name}
 
 # build quadlet
-export BUILDTAGS="$BASEBUILDTAGS $(hack/btrfs_installed_tag.sh) $(hack/btrfs_tag.sh) -X $(PROJECT)/v4/pkg/quadlet.QuadletUserName=quadlet"
+export BUILDTAGS="$BASEBUILDTAGS $(hack/btrfs_installed_tag.sh) $(hack/btrfs_tag.sh)"
 %gobuild -o bin/quadlet ./cmd/quadlet
 
 make docs docker-docs
@@ -220,17 +220,6 @@ cp -pav test/system %{buildroot}/%{_datadir}/%{name}/test/
 for file in `find %{buildroot}%{_mandir}/man[15] -type f | sed "s,%{buildroot},," | grep -v -e remote -e docker`; do
     echo "$file*" >> podman.file-list
 done
-
-%pre quadlet
-# We create a quadlet user so that we can get subuids and subgids allocated.
-# It really is a system user, but Unfortunately useradd  doesn't create subuids
-# for system users, so we manually make it system-like and start at a higher
-# min uid to avoid conflicts with common uid nrs around 1000
-getent passwd quadlet >/dev/null || \
-    useradd -M -U -K SUB_UID_COUNT=65536 -K UID_MIN=50000 \
-    -s /sbin/nologin -d /nonexisting \
-    -c "User for quadlet" quadlet
-exit 0
 
 # This lists all the files that are included in the rpm package and that
 # are going to be installed into target system where the rpm is installed.
