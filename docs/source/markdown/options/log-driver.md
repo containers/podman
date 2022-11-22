@@ -1,7 +1,7 @@
 ####> This option file is used in:
 ####>   podman create, run
 ####> If you edit this file, make sure your changes
-####> are applicable to all of those.
+####> are applicable to all of those files.
 #### **--log-driver**=*driver*
 
 Logging driver for the container. Currently available options are **k8s-file**, **journald**, **none** and **passthrough**, with **json-file** aliased to **k8s-file** for scripting compatibility. (Default **journald**).

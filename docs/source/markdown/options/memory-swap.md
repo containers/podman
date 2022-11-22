@@ -1,7 +1,7 @@
 ####> This option file is used in:
 ####>   podman build, container clone, create, pod clone, pod create, run, update
 ####> If you edit this file, make sure your changes
-####> are applicable to all of those.
+####> are applicable to all of those files.
 #### **--memory-swap**=*number[unit]*
 
 A limit value equal to memory plus swap.

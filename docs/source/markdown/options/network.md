@@ -1,7 +1,7 @@
 ####> This option file is used in:
 ####>   podman create, kube play, pod create, run
 ####> If you edit this file, make sure your changes
-####> are applicable to all of those.
+####> are applicable to all of those files.
 #### **--network**=*mode*, **--net**
 
 Set the network mode for the <<container|pod>>.

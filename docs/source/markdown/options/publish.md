@@ -1,7 +1,7 @@
 ####> This option file is used in:
 ####>   podman create, pod create, run
 ####> If you edit this file, make sure your changes
-####> are applicable to all of those.
+####> are applicable to all of those files.
 #### **--publish**, **-p**=*[[ip:][hostPort]:]containerPort[/protocol]*
 
 Publish a container's port, or range of ports,<<| within this pod>> to the host.

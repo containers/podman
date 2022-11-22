@@ -1,7 +1,7 @@
 ####> This option file is used in:
 ####>   podman create, run, update
 ####> If you edit this file, make sure your changes
-####> are applicable to all of those.
+####> are applicable to all of those files.
 #### **--device-write-iops**=*path:rate*
 
 Limit write rate (in IO operations per second) to a device (e.g. **--device-write-iops=/dev/sda:1000**).

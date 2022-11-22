@@ -1,7 +1,7 @@
 ####> This option file is used in:
 ####>   podman build, create, run
 ####> If you edit this file, make sure your changes
-####> are applicable to all of those.
+####> are applicable to all of those files.
 #### **--dns**=*ipaddr*
 
 Set custom DNS servers.

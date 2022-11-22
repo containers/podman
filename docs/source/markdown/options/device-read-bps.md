@@ -1,7 +1,7 @@
 ####> This option file is used in:
 ####>   podman container clone, create, pod clone, pod create, run, update
 ####> If you edit this file, make sure your changes
-####> are applicable to all of those.
+####> are applicable to all of those files.
 #### **--device-read-bps**=*path:rate*
 
 Limit read rate (in bytes per second) from a device (e.g. **--device-read-bps=/dev/sda:1mb**).

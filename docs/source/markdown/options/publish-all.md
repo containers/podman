@@ -1,7 +1,7 @@
 ####> This option file is used in:
 ####>   podman create, run
 ####> If you edit this file, make sure your changes
-####> are applicable to all of those.
+####> are applicable to all of those files.
 #### **--publish-all**, **-P**
 
 Publish all exposed ports to random ports on the host interfaces. The default is **false**.

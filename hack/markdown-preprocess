@@ -76,7 +76,7 @@ class Preprocessor():
                 used_by = ', '.join(x for x in self.used_by[optionfile])
                 fh_out.write(f"####>   podman {used_by}\n")
                 fh_out.write("####> If you edit this file, make sure your changes\n")
-                fh_out.write("####> are applicable to all of those.\n")
+                fh_out.write("####> are applicable to all of those files.\n")
                 for line in fh_in:
                     if not line.startswith('####>'):
                         fh_out.write(line)

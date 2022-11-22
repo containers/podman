@@ -1,7 +1,7 @@
 ####> This option file is used in:
 ####>   podman create, exec, run
 ####> If you edit this file, make sure your changes
-####> are applicable to all of those.
+####> are applicable to all of those files.
 #### **--user**, **-u**=*user[:group]*
 
 Sets the username or UID used and, optionally, the groupname or GID for the specified command. Both *user* and *group* may be symbolic or numeric.

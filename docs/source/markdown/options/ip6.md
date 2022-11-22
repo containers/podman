@@ -1,7 +1,7 @@
 ####> This option file is used in:
 ####>   podman create, pod create, run
 ####> If you edit this file, make sure your changes
-####> are applicable to all of those.
+####> are applicable to all of those files.
 #### **--ip6**=*ipv6*
 
 Specify a static IPv6 address for the <<container|pod>>, for example **fd46:db93:aa76:ac37::10**.

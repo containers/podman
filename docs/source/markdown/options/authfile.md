@@ -1,7 +1,7 @@
 ####> This option file is used in:
 ####>   podman auto update, build, container runlabel, create, image sign, kube play, login, logout, manifest add, manifest push, pull, push, run, search
 ####> If you edit this file, make sure your changes
-####> are applicable to all of those.
+####> are applicable to all of those files.
 #### **--authfile**=*path*
 
 Path of the authentication file. Default is `${XDG_RUNTIME_DIR}/containers/auth.json`, which is set using **[podman login](podman-login.1.md)**.

@@ -1,7 +1,7 @@
 ####> This option file is used in:
 ####>   podman create, pod clone, pod create, run
 ####> If you edit this file, make sure your changes
-####> are applicable to all of those.
+####> are applicable to all of those files.
 #### **--volume**, **-v**=*[[SOURCE-VOLUME|HOST-DIR:]CONTAINER-DIR[:OPTIONS]]*
 
 Create a bind mount. If `-v /HOST-DIR:/CONTAINER-DIR` is specified, Podman

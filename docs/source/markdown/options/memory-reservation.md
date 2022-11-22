@@ -1,7 +1,7 @@
 ####> This option file is used in:
 ####>   podman container clone, create, run, update
 ####> If you edit this file, make sure your changes
-####> are applicable to all of those.
+####> are applicable to all of those files.
 #### **--memory-reservation**=*number[unit]*
 
 Memory soft limit. A _unit_ can be **b** (bytes), **k** (kibibytes), **m** (mebibytes), or **g** (gibibytes).
