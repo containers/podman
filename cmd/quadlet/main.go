@@ -34,6 +34,15 @@ var (
 	kmsgFile *os.File
 )
 
+var (
+	void                struct{}
+	supportedExtensions = map[string]struct{}{
+		".container": void,
+		".volume":    void,
+		".kube":      void,
+	}
+)
+
 // We log directly to /dev/kmsg, because that is the only way to get information out
 // of the generator into the system logs.
 func logToKmsg(s string) bool {
@@ -105,6 +114,12 @@ func getUnitDirs(user bool) []string {
 	return dirs
 }
 
+func isExtSupported(filename string) bool {
+	ext := filepath.Ext(filename)
+	_, ok := supportedExtensions[ext]
+	return ok
+}
+
 func loadUnitsFromDir(sourcePath string, units map[string]*parser.UnitFile) {
 	files, err := os.ReadDir(sourcePath)
 	if err != nil {
@@ -116,9 +131,7 @@ func loadUnitsFromDir(sourcePath string, units map[string]*parser.UnitFile) {
 
 	for _, file := range files {
 		name := file.Name()
-		if units[name] == nil &&
-			(strings.HasSuffix(name, ".container") ||
-				strings.HasSuffix(name, ".volume")) {
+		if units[name] == nil && isExtSupported(name) {
 			path := path.Join(sourcePath, name)
 
 			Debugf("Loading source unit file %s", path)
@@ -322,6 +335,8 @@ func main() {
 			service, err = quadlet.ConvertContainer(unit, isUser)
 		case strings.HasSuffix(name, ".volume"):
 			service, err = quadlet.ConvertVolume(unit, name)
+		case strings.HasSuffix(name, ".kube"):
+			service, err = quadlet.ConvertKube(unit)
 		default:
 			Logf("Unsupported file type '%s'", name)
 			continue

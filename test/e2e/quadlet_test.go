@@ -110,17 +110,33 @@ func (t *quadletTestcase) assertKeyContains(args []string, unit *parser.UnitFile
 	return ok && strings.Contains(realValue, value)
 }
 
-func (t *quadletTestcase) assertPodmanArgs(args []string, unit *parser.UnitFile) bool {
-	podmanArgs, _ := unit.LookupLastArgs("Service", "ExecStart")
+func (t *quadletTestcase) assertPodmanArgs(args []string, unit *parser.UnitFile, key string) bool {
+	podmanArgs, _ := unit.LookupLastArgs("Service", key)
 	return findSublist(podmanArgs, args) != -1
 }
 
-func (t *quadletTestcase) assertFinalArgs(args []string, unit *parser.UnitFile) bool {
-	podmanArgs, _ := unit.LookupLastArgs("Service", "ExecStart")
+func (t *quadletTestcase) assertPodmanFinalArgs(args []string, unit *parser.UnitFile, key string) bool {
+	podmanArgs, _ := unit.LookupLastArgs("Service", key)
 	if len(podmanArgs) < len(args) {
 		return false
 	}
 	return matchSublistAt(podmanArgs, len(podmanArgs)-len(args), args)
+}
+
+func (t *quadletTestcase) assertStartPodmanArgs(args []string, unit *parser.UnitFile) bool {
+	return t.assertPodmanArgs(args, unit, "ExecStart")
+}
+
+func (t *quadletTestcase) assertStartPodmanFinalArgs(args []string, unit *parser.UnitFile) bool {
+	return t.assertPodmanFinalArgs(args, unit, "ExecStart")
+}
+
+func (t *quadletTestcase) assertStopPodmanArgs(args []string, unit *parser.UnitFile) bool {
+	return t.assertPodmanArgs(args, unit, "ExecStop")
+}
+
+func (t *quadletTestcase) assertStopPodmanFinalArgs(args []string, unit *parser.UnitFile) bool {
+	return t.assertPodmanFinalArgs(args, unit, "ExecStop")
 }
 
 func (t *quadletTestcase) assertSymlink(args []string, unit *parser.UnitFile) bool {
@@ -161,11 +177,15 @@ func (t *quadletTestcase) doAssert(check []string, unit *parser.UnitFile, sessio
 	case "assert-key-contains":
 		ok = t.assertKeyContains(args, unit)
 	case "assert-podman-args":
-		ok = t.assertPodmanArgs(args, unit)
+		ok = t.assertStartPodmanArgs(args, unit)
 	case "assert-podman-final-args":
-		ok = t.assertFinalArgs(args, unit)
+		ok = t.assertStartPodmanFinalArgs(args, unit)
 	case "assert-symlink":
 		ok = t.assertSymlink(args, unit)
+	case "assert-podman-stop-args":
+		ok = t.assertStopPodmanArgs(args, unit)
+	case "assert-podman-stop-final-args":
+		ok = t.assertStopPodmanFinalArgs(args, unit)
 	default:
 		return fmt.Errorf("Unsupported assertion %s", op)
 	}
@@ -300,6 +320,8 @@ var _ = Describe("quadlet system generator", func() {
 		Entry("basic.volume", "basic.volume"),
 		Entry("label.volume", "label.volume"),
 		Entry("uid.volume", "uid.volume"),
+
+		Entry("Basic kube", "basic.kube"),
 	)
 
 })
