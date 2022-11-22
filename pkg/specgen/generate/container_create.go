@@ -88,8 +88,11 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 			return nil, nil, nil, err
 		}
 		s.UserNS = defaultNS
-
-		mappings, err := util.ParseIDMapping(namespaces.UsernsMode(s.UserNS.NSMode), nil, nil, "", "")
+		value := string(s.UserNS.NSMode)
+		if s.UserNS.Value != "" {
+			value = value + ":" + s.UserNS.Value
+		}
+		mappings, err := util.ParseIDMapping(namespaces.UsernsMode(value), nil, nil, "", "")
 		if err != nil {
 			return nil, nil, nil, err
 		}
