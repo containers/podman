@@ -19,7 +19,8 @@ clean:
 $(BUILDDIR): \
 	$(BUILDDIR)/goimports \
 	$(BUILDDIR)/go-md2man \
-	$(BUILDDIR)/git-validation
+	$(BUILDDIR)/git-validation \
+	$(BUILDDIR)/ginkgo
 
 $(BUILDDIR)/goimports:
 	$(GO_BUILD) -o $@ ./vendor/golang.org/x/tools/cmd/goimports
@@ -29,3 +30,6 @@ $(BUILDDIR)/go-md2man:
 
 $(BUILDDIR)/git-validation:
 	$(GO_BUILD) -o $@ ./vendor/github.com/vbatts/git-validation
+
+$(BUILDDIR)/ginkgo:
+	$(GO_BUILD) -o $@ ./vendor/github.com/onsi/ginkgo/ginkgo

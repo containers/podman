@@ -4,7 +4,7 @@
 set -e
 
 declare -A BUILD_TAGS
-BUILD_TAGS[default]="apparmor,seccomp,selinux,linter"
+BUILD_TAGS[default]="apparmor,seccomp,selinux"
 BUILD_TAGS[abi]="${BUILD_TAGS[default]},systemd"
 BUILD_TAGS[tunnel]="${BUILD_TAGS[default]},remote"
 
