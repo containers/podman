@@ -27,7 +27,7 @@ type initMachine struct {
 	memory       *uint
 	now          bool
 	timezone     string
-	rootful      bool //nolint:unused,structcheck
+	rootful      bool //nolint:unused
 	volumes      []string
 
 	cmd []string
