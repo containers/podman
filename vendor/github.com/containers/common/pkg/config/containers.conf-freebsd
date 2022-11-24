@@ -212,12 +212,6 @@ default_sysctls = [
 #
 #userns = "host"
 
-# Number of UIDs to allocate for the automatic container creation.
-# UIDs are allocated from the "container" UIDs listed in
-# /etc/subuid & /etc/subgid
-#
-#userns_size = 65536
-
 # Default way to to create a UTS namespace for the container
 # Options are:
 # `private`        Create private UTS Namespace for the container.

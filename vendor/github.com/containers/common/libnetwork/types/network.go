@@ -56,6 +56,10 @@ type Network struct {
 	// DNSEnabled is whether name resolution is active for container on
 	// this Network. Only supported with the bridge driver.
 	DNSEnabled bool `json:"dns_enabled"`
+	// List of custom DNS server for podman's DNS resolver at network level,
+	// all the containers attached to this network will consider resolvers
+	// configured at network level.
+	NetworkDNSServers []string `json:"network_dns_servers,omitempty"`
 	// Labels is a set of key-value labels that have been applied to the
 	// Network.
 	Labels map[string]string `json:"labels,omitempty"`

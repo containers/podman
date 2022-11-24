@@ -214,6 +214,7 @@ type ContainersConfig struct {
 	UserNS string `toml:"userns,omitempty"`
 
 	// UserNSSize how many UIDs to allocate for automatically created UserNS
+	// Deprecated: no user of this field is known.
 	UserNSSize int `toml:"userns_size,omitempty,omitzero"`
 }
 

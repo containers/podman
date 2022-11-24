@@ -36,6 +36,9 @@ func (n *cniNetwork) NetworkCreate(net types.Network) (types.Network, error) {
 // networkCreate will fill out the given network struct and return the new network entry.
 // If defaultNet is true it will not validate against used subnets and it will not write the cni config to disk.
 func (n *cniNetwork) networkCreate(newNetwork *types.Network, defaultNet bool) (*network, error) {
+	if len(newNetwork.NetworkDNSServers) > 0 {
+		return nil, fmt.Errorf("NetworkDNSServers cannot be configured for backend CNI: %w", types.ErrInvalidArg)
+	}
 	// if no driver is set use the default one
 	if newNetwork.Driver == "" {
 		newNetwork.Driver = types.DefaultNetworkDriver
