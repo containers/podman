@@ -1081,6 +1081,15 @@ func (c *Container) init(ctx context.Context, retainRetries bool) error {
 		c.state.RestartCount = 0
 	}
 
+	// bugzilla.redhat.com/show_bug.cgi?id=2144754:
+	// In case of a restart, make sure to remove the healthcheck log to
+	// have a clean state.
+	if path := c.healthCheckLogPath(); path != "" {
+		if err := os.Remove(path); err != nil && !errors.Is(err, os.ErrNotExist) {
+			logrus.Error(err)
+		}
+	}
+
 	if err := c.save(); err != nil {
 		return err
 	}
