@@ -111,10 +111,18 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 		result := podmanTest.Podman([]string{"top", "test1", "capeff"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
-		Expect(result.Out.Contents()).To(
+		Expect(string(result.Out.Contents())).To(
 			And(
-				ContainSubstring("SYS_CHROOT"),
-				ContainSubstring("NET_RAW"),
+				ContainSubstring("CHOWN"),
+				ContainSubstring("DAC_OVERRIDE"),
+				ContainSubstring("FOWNER"),
+				ContainSubstring("FSETID"),
+				ContainSubstring("KILL"),
+				ContainSubstring("NET_BIND_SERVICE"),
+				ContainSubstring("SETFCAP"),
+				ContainSubstring("SETGID"),
+				ContainSubstring("SETPCAP"),
+				ContainSubstring("SETUID"),
 			))
 	})
 

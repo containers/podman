@@ -137,6 +137,17 @@ func (n *netavarkNetwork) networkCreate(newNetwork *types.Network, defaultNet bo
 	// when we do not have ipam we must disable dns
 	internalutil.IpamNoneDisableDNS(newNetwork)
 
+	// process NetworkDNSServers
+	if len(newNetwork.NetworkDNSServers) > 0 && !newNetwork.DNSEnabled {
+		return nil, fmt.Errorf("Cannot set NetworkDNSServers if DNS is not enabled for the network: %w", types.ErrInvalidArg)
+	}
+	// validate ip address
+	for _, dnsServer := range newNetwork.NetworkDNSServers {
+		if net.ParseIP(dnsServer) == nil {
+			return nil, fmt.Errorf("Unable to parse ip %s specified in NetworkDNSServers: %w", dnsServer, types.ErrInvalidArg)
+		}
+	}
+
 	// add gateway when not internal or dns enabled
 	addGateway := !newNetwork.Internal || newNetwork.DNSEnabled
 	err = internalutil.ValidateSubnets(newNetwork, addGateway, usedNetworks)

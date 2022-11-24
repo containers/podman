@@ -76,20 +76,16 @@ var (
 	DefaultHooksDirs = []string{"/usr/share/containers/oci/hooks.d"}
 	// DefaultCapabilities is the default for the default_capabilities option in the containers.conf file.
 	DefaultCapabilities = []string{
-		"CAP_AUDIT_WRITE",
 		"CAP_CHOWN",
 		"CAP_DAC_OVERRIDE",
 		"CAP_FOWNER",
 		"CAP_FSETID",
 		"CAP_KILL",
-		"CAP_MKNOD",
 		"CAP_NET_BIND_SERVICE",
-		"CAP_NET_RAW",
 		"CAP_SETFCAP",
 		"CAP_SETGID",
 		"CAP_SETPCAP",
 		"CAP_SETUID",
-		"CAP_SYS_CHROOT",
 	}
 
 	// Search these locations in which CNIPlugins can be installed.
@@ -158,6 +154,7 @@ const (
 	// DefaultShmSize is the default upper limit on the size of tmpfs mounts.
 	DefaultShmSize = "65536k"
 	// DefaultUserNSSize indicates the default number of UIDs allocated for user namespace within a container.
+	// Deprecated: no user of this field is known.
 	DefaultUserNSSize = 65536
 	// OCIBufSize limits maximum LogSizeMax.
 	OCIBufSize = 8192
@@ -232,7 +229,7 @@ func DefaultConfig() (*Config, error) {
 			TZ:         "",
 			Umask:      "0022",
 			UTSNS:      "private",
-			UserNSSize: DefaultUserNSSize,
+			UserNSSize: DefaultUserNSSize, // Deprecated
 		},
 		Network: NetworkConfig{
 			DefaultNetwork:     "podman",

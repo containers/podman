@@ -144,7 +144,7 @@ func (c *Container) platformInspectContainerHostConfig(ctrSpec *spec.Spec, hostC
 			return err
 		}
 		if !hostConfig.Privileged {
-			for _, cap := range g.Config.Process.Capabilities.Bounding {
+			for _, cap := range c.runtime.config.Containers.DefaultCapabilities {
 				boundingCaps[cap] = true
 			}
 		} else {
