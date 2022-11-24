@@ -488,7 +488,7 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 
 	It("podman run network bind to HostIP", func() {
 		ip, err := utils.HostIP()
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		port := GetPort()
 
 		slirp4netnsHelp := SystemExec("slirp4netns", []string{"--help"})
@@ -711,7 +711,7 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 
 	addAddr := func(cidr string, containerInterface netlink.Link) error {
 		_, ipnet, err := net.ParseCIDR(cidr)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		addr := &netlink.Addr{IPNet: ipnet, Label: ""}
 		if err := netlink.AddrAdd(containerInterface, addr); err != nil && err != syscall.EEXIST {
 			return err
@@ -721,25 +721,25 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 
 	loopbackup := func() {
 		lo, err := netlink.LinkByName("lo")
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		err = netlink.LinkSetUp(lo)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 	}
 
 	linkup := func(name string, mac string, addresses []string) {
 		linkAttr := netlink.NewLinkAttrs()
 		linkAttr.Name = name
 		m, err := net.ParseMAC(mac)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		linkAttr.HardwareAddr = m
 		eth := &netlink.Dummy{LinkAttrs: linkAttr}
 		err = netlink.LinkAdd(eth)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		err = netlink.LinkSetUp(eth)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		for _, address := range addresses {
 			err := addAddr(address, eth)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 		}
 	}
 
@@ -765,14 +765,14 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 		inspectOut := podmanTest.InspectContainer(name)
 		Expect(inspectOut[0].NetworkSettings).To(HaveField("IPAddress", "10.25.40.0"))
 		Expect(inspectOut[0].NetworkSettings).To(HaveField("IPPrefixLen", 24))
-		Expect(len(inspectOut[0].NetworkSettings.SecondaryIPAddresses)).To(Equal(1))
+		Expect(inspectOut[0].NetworkSettings.SecondaryIPAddresses).To(HaveLen(1))
 		Expect(inspectOut[0].NetworkSettings.SecondaryIPAddresses[0]).To(HaveField("Addr", "10.88.0.0"))
 		Expect(inspectOut[0].NetworkSettings.SecondaryIPAddresses[0]).To(HaveField("PrefixLength", 16))
 		Expect(inspectOut[0].NetworkSettings).To(HaveField("GlobalIPv6Address", "fd04:3e42:4a4e:3381::"))
 		Expect(inspectOut[0].NetworkSettings).To(HaveField("GlobalIPv6PrefixLen", 64))
-		Expect(len(inspectOut[0].NetworkSettings.SecondaryIPv6Addresses)).To(Equal(0))
+		Expect(inspectOut[0].NetworkSettings.SecondaryIPv6Addresses).To(BeEmpty())
 		Expect(inspectOut[0].NetworkSettings).To(HaveField("MacAddress", "46:7f:45:6e:4f:c8"))
-		Expect(len(inspectOut[0].NetworkSettings.AdditionalMacAddresses)).To(Equal(1))
+		Expect(inspectOut[0].NetworkSettings.AdditionalMacAddresses).To(HaveLen(1))
 		Expect(inspectOut[0].NetworkSettings.AdditionalMacAddresses[0]).To(Equal("56:6e:35:5d:3e:a8"))
 		Expect(inspectOut[0].NetworkSettings).To(HaveField("Gateway", "10.25.40.0"))
 
@@ -797,7 +797,7 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 
 		inspectOut := podmanTest.InspectContainer(name)
 		Expect(inspectOut[0].NetworkSettings).To(HaveField("IPAddress", ""))
-		Expect(len(inspectOut[0].NetworkSettings.Networks)).To(Equal(0))
+		Expect(inspectOut[0].NetworkSettings.Networks).To(BeEmpty())
 	})
 
 	It("podman inspect can handle joined network ns with multiple interfaces", func() {

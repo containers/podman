@@ -184,7 +184,7 @@ var _ = Describe("Podman manifest", func() {
 
 		var inspect libimage.ManifestListData
 		err := json.Unmarshal(session.Out.Contents(), &inspect)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		Expect(inspect.Manifests[0].Annotations).To(Equal(map[string]string{"hoge": "fuga"}))
 	})
 
@@ -274,7 +274,7 @@ var _ = Describe("Podman manifest", func() {
 		Expect(session).Should(Exit(0))
 		dest := filepath.Join(podmanTest.TempDir, "pushed")
 		err := os.MkdirAll(dest, os.ModePerm)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		defer func() {
 			os.RemoveAll(dest)
 		}()
@@ -308,7 +308,7 @@ var _ = Describe("Podman manifest", func() {
 		Expect(session).Should(Exit(0))
 		dest := filepath.Join(podmanTest.TempDir, "pushed")
 		err := os.MkdirAll(dest, os.ModePerm)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		defer func() {
 			os.RemoveAll(dest)
 		}()
@@ -316,7 +316,7 @@ var _ = Describe("Podman manifest", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		files, err := filepath.Glob(dest + string(os.PathSeparator) + "*")
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		check := SystemExec("sha256sum", files)
 		check.WaitWithDefaultTimeout()
 		Expect(check).Should(Exit(0))
@@ -342,7 +342,7 @@ var _ = Describe("Podman manifest", func() {
 		Expect(session).Should(Exit(0))
 		dest := filepath.Join(podmanTest.TempDir, "pushed")
 		err := os.MkdirAll(dest, os.ModePerm)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		defer func() {
 			os.RemoveAll(dest)
 		}()
@@ -355,13 +355,13 @@ var _ = Describe("Podman manifest", func() {
 		blobsDir := filepath.Join(dest, "blobs", "sha256")
 
 		blobs, err := os.ReadDir(blobsDir)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		for _, f := range blobs {
 			blobPath := filepath.Join(blobsDir, f.Name())
 
 			sourceFile, err := os.ReadFile(blobPath)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 
 			compressionType := archive.DetectCompression(sourceFile)
 			if compressionType == archive.Zstd {
@@ -381,7 +381,7 @@ var _ = Describe("Podman manifest", func() {
 
 		dest := filepath.Join(podmanTest.TempDir, "pushed")
 		err := os.MkdirAll(dest, os.ModePerm)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		defer func() {
 			os.RemoveAll(dest)
 		}()
@@ -412,10 +412,10 @@ var _ = Describe("Podman manifest", func() {
 		}
 		os.Setenv("PODMAN", podmanTest.PodmanBinary+" "+opts)
 		registry, err := podmanRegistry.StartWithOptions(registryOptions)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		defer func() {
 			err := registry.Stop()
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			os.Unsetenv("PODMAN")
 		}()
 
@@ -480,7 +480,7 @@ var _ = Describe("Podman manifest", func() {
 		Expect(session).Should(Exit(0))
 		dest := filepath.Join(podmanTest.TempDir, "pushed")
 		err := os.MkdirAll(dest, os.ModePerm)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		defer func() {
 			os.RemoveAll(dest)
 		}()

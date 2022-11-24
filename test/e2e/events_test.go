@@ -56,7 +56,7 @@ var _ = Describe("Podman events", func() {
 		result := podmanTest.Podman([]string{"events", "--stream=false", "--filter", "event=start"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
-		Expect(len(result.OutputToStringArray())).To(BeNumerically(">=", 1), "Number of events")
+		Expect(result.OutputToStringArray()).ToNot(BeEmpty(), "Number of events")
 		date := time.Now().Format("2006-01-02")
 		Expect(result.OutputToStringArray()).To(ContainElement(HavePrefix(date)), "event log has correct timestamp")
 	})
@@ -194,7 +194,7 @@ var _ = Describe("Podman events", func() {
 		tEnd := time.Now()
 		outDur := tEnd.Sub(untilT)
 		diff := outDur.Seconds() > 0
-		Expect(diff).To(Equal(true))
+		Expect(diff).To(BeTrue())
 		Expect(result.OutputToString()).To(ContainSubstring(name1))
 		Expect(result.OutputToString()).To(ContainSubstring(name2))
 		Expect(result.OutputToString()).To(ContainSubstring(name3))
@@ -242,7 +242,7 @@ var _ = Describe("Podman events", func() {
 		result := podmanTest.Podman([]string{"events", "--stream=false", "--filter", "event=health_status", "--since", "1m"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
-		Expect(len(result.OutputToStringArray())).To(BeNumerically(">=", 1), "Number of health_status events")
+		Expect(result.OutputToStringArray()).ToNot(BeEmpty(), "Number of health_status events")
 	})
 
 })

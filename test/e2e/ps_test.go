@@ -58,7 +58,7 @@ var _ = Describe("Podman ps", func() {
 		result := podmanTest.Podman([]string{"ps"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
-		Expect(len(result.OutputToStringArray())).Should(BeNumerically(">", 0))
+		Expect(result.OutputToStringArray()).ShouldNot(BeEmpty())
 	})
 
 	It("podman ps all", func() {
@@ -68,7 +68,7 @@ var _ = Describe("Podman ps", func() {
 		result := podmanTest.Podman([]string{"ps", "-a"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
-		Expect(len(result.OutputToStringArray())).Should(BeNumerically(">", 0))
+		Expect(result.OutputToStringArray()).ShouldNot(BeEmpty())
 	})
 
 	It("podman container list all", func() {
@@ -78,12 +78,12 @@ var _ = Describe("Podman ps", func() {
 		result := podmanTest.Podman([]string{"container", "list", "-a"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
-		Expect(len(result.OutputToStringArray())).Should(BeNumerically(">", 0))
+		Expect(result.OutputToStringArray()).ShouldNot(BeEmpty())
 
 		result = podmanTest.Podman([]string{"container", "ls", "-a"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
-		Expect(len(result.OutputToStringArray())).Should(BeNumerically(">", 0))
+		Expect(result.OutputToStringArray()).ShouldNot(BeEmpty())
 	})
 
 	It("podman ps size flag", func() {
@@ -93,7 +93,7 @@ var _ = Describe("Podman ps", func() {
 		result := podmanTest.Podman([]string{"ps", "-a", "--size"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
-		Expect(len(result.OutputToStringArray())).Should(BeNumerically(">", 0))
+		Expect(result.OutputToStringArray()).ShouldNot(BeEmpty())
 	})
 
 	It("podman ps quiet flag", func() {
@@ -103,7 +103,7 @@ var _ = Describe("Podman ps", func() {
 		result := podmanTest.Podman([]string{"ps", "-a", "-q"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
-		Expect(len(result.OutputToStringArray())).Should(BeNumerically(">", 0))
+		Expect(result.OutputToStringArray()).ShouldNot(BeEmpty())
 		Expect(fullCid).To(ContainSubstring(result.OutputToStringArray()[0]))
 	})
 
@@ -166,7 +166,7 @@ var _ = Describe("Podman ps", func() {
 		result := podmanTest.Podman([]string{"ps", "-aq", "--no-trunc"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
-		Expect(len(result.OutputToStringArray())).Should(BeNumerically(">", 0))
+		Expect(result.OutputToStringArray()).ShouldNot(BeEmpty())
 		Expect(fullCid).To(Equal(result.OutputToStringArray()[0]))
 	})
 
@@ -219,7 +219,7 @@ var _ = Describe("Podman ps", func() {
 		result := podmanTest.Podman([]string{"ps", "-a", "--namespace"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
-		Expect(len(result.OutputToStringArray())).Should(BeNumerically(">", 0))
+		Expect(result.OutputToStringArray()).ShouldNot(BeEmpty())
 	})
 
 	It("podman ps namespace flag even for remote", func() {
@@ -264,9 +264,9 @@ var _ = Describe("Podman ps", func() {
 
 		// Make sure Created field is an int64
 		created, err := result.jq(".[0].Created")
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		_, err = strconv.ParseInt(created, 10, 64)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 	})
 
 	It("podman ps print a human-readable `Status` with json format", func() {

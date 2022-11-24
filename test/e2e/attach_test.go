@@ -19,7 +19,7 @@ var _ = Describe("Podman attach", func() {
 
 	BeforeEach(func() {
 		tempdir, err = CreateTempDirInTempDir()
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.Setup()
 	})

@@ -175,7 +175,7 @@ var _ = Describe("Podman pod start", func() {
 
 	It("podman pod start single pod via --pod-id-file", func() {
 		tmpDir, err := os.MkdirTemp("", "")
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		tmpFile := tmpDir + "podID"
 		defer os.RemoveAll(tmpDir)
 
@@ -199,7 +199,7 @@ var _ = Describe("Podman pod start", func() {
 
 	It("podman pod start multiple pods via --pod-id-file", func() {
 		tmpDir, err := os.MkdirTemp("", "")
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		defer os.RemoveAll(tmpDir)
 
 		podIDFiles := []string{}
@@ -231,7 +231,7 @@ var _ = Describe("Podman pod start", func() {
 
 	It("podman pod create --infra-conmon-pod create + start", func() {
 		tmpDir, err := os.MkdirTemp("", "")
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		tmpFile := tmpDir + "podID"
 		defer os.RemoveAll(tmpDir)
 
@@ -248,7 +248,7 @@ var _ = Describe("Podman pod start", func() {
 
 		readFirstLine := func(path string) string {
 			content, err := os.ReadFile(path)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			return strings.Split(string(content), "\n")[0]
 		}
 
@@ -256,7 +256,7 @@ var _ = Describe("Podman pod start", func() {
 		// on the pid.
 		infraConmonPID := readFirstLine(tmpFile)
 		_, err = strconv.Atoi(infraConmonPID) // Make sure it's a proper integer
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		cmdline := readFirstLine(fmt.Sprintf("/proc/%s/cmdline", infraConmonPID))
 		Expect(cmdline).To(ContainSubstring("/conmon"))

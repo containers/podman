@@ -52,7 +52,7 @@ var _ = Describe("Podman ps", func() {
 		result := podmanTest.Podman([]string{"pod", "ps"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
-		Expect(len(result.OutputToStringArray())).Should(BeNumerically(">", 0))
+		Expect(result.OutputToStringArray()).ShouldNot(BeEmpty())
 	})
 
 	It("podman pod ps quiet flag", func() {
@@ -65,7 +65,7 @@ var _ = Describe("Podman ps", func() {
 		result := podmanTest.Podman([]string{"pod", "ps", "-q"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).To(Exit(0))
-		Expect(len(result.OutputToStringArray())).Should(BeNumerically(">", 0))
+		Expect(result.OutputToStringArray()).ShouldNot(BeEmpty())
 		Expect(podid).To(ContainSubstring(result.OutputToStringArray()[0]))
 	})
 
@@ -79,7 +79,7 @@ var _ = Describe("Podman ps", func() {
 		result := podmanTest.Podman([]string{"pod", "ps", "-q", "--no-trunc"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
-		Expect(len(result.OutputToStringArray())).Should(BeNumerically(">", 0))
+		Expect(result.OutputToStringArray()).ShouldNot(BeEmpty())
 		Expect(podid).To(Equal(result.OutputToStringArray()[0]))
 	})
 

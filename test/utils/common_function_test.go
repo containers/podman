@@ -52,7 +52,7 @@ var _ = Describe("Common functions test", func() {
 			if !empty {
 				f, _ := os.Create(path)
 				_, err := f.WriteString(txt)
-				Expect(err).To(BeNil(), "Failed to write data.")
+				Expect(err).ToNot(HaveOccurred(), "Failed to write data.")
 				f.Close()
 			}
 
@@ -104,13 +104,13 @@ var _ = Describe("Common functions test", func() {
 		}
 
 		testByte, err := json.Marshal(testData)
-		Expect(err).To(BeNil(), "Failed to marshal data.")
+		Expect(err).ToNot(HaveOccurred(), "Failed to marshal data.")
 
 		err = WriteJSONFile(testByte, "/tmp/testJSON")
-		Expect(err).To(BeNil(), "Failed to write JSON to file.")
+		Expect(err).ToNot(HaveOccurred(), "Failed to write JSON to file.")
 
 		read, err := os.Open("/tmp/testJSON")
-		Expect(err).To(BeNil(), "Can not find the JSON file after we write it.")
+		Expect(err).ToNot(HaveOccurred(), "Can not find the JSON file after we write it.")
 		defer read.Close()
 
 		bytes, err := io.ReadAll(read)
@@ -139,7 +139,7 @@ var _ = Describe("Common functions test", func() {
 			if createFile {
 				f, _ := os.Create(path)
 				_, err := f.WriteString(txt)
-				Expect(err).To(BeNil(), "Failed to write data.")
+				Expect(err).ToNot(HaveOccurred(), "Failed to write data.")
 				f.Close()
 			}
 			ProcessOneCgroupPath = path

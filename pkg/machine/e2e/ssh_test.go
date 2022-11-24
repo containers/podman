@@ -23,7 +23,7 @@ var _ = Describe("podman machine ssh", func() {
 		name := randomString()
 		ssh := sshMachine{}
 		session, err := mb.setName(name).setCmd(ssh).run()
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		Expect(session).To(Exit(125))
 		Expect(session.errorToString()).To(ContainSubstring("not exist"))
 	})
@@ -32,12 +32,12 @@ var _ = Describe("podman machine ssh", func() {
 		name := randomString()
 		i := new(initMachine)
 		session, err := mb.setName(name).setCmd(i.withImagePath(mb.imagePath)).run()
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		Expect(session).To(Exit(0))
 
 		ssh := sshMachine{}
 		sshSession, err := mb.setName(name).setCmd(ssh).run()
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		Expect(sshSession.errorToString()).To(ContainSubstring("is not running"))
 		Expect(sshSession).To(Exit(125))
 	})
@@ -46,18 +46,18 @@ var _ = Describe("podman machine ssh", func() {
 		name := randomString()
 		i := new(initMachine)
 		session, err := mb.setName(name).setCmd(i.withImagePath(mb.imagePath).withNow()).run()
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		Expect(session).To(Exit(0))
 
 		ssh := sshMachine{}
 		sshSession, err := mb.setName(name).setCmd(ssh.withSSHComand([]string{"cat", "/etc/os-release"})).run()
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		Expect(sshSession).To(Exit(0))
 		Expect(sshSession.outputToString()).To(ContainSubstring("Fedora CoreOS"))
 
 		// keep exit code
 		sshSession, err = mb.setName(name).setCmd(ssh.withSSHComand([]string{"false"})).run()
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		Expect(sshSession).To(Exit(1))
 		Expect(sshSession.outputToString()).To(Equal(""))
 		Expect(sshSession.errorToString()).To(Equal(""))

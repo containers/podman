@@ -298,7 +298,7 @@ var _ = Describe("Podman run", func() {
 		runtime := podmanTest.OCIRuntime
 		podmanTest.OCIRuntime = filepath.Join(podmanTest.TempDir, "kata-runtime")
 		err := os.Symlink("/bin/true", podmanTest.OCIRuntime)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		if IsRemote() {
 			podmanTest.StopRemoteService()
 			podmanTest.StartRemoteService()

@@ -23,7 +23,7 @@ var _ = Describe("Podman connection", func() {
 		s = bt.startAPIService()
 		time.Sleep(1 * time.Second)
 		err := bt.NewConnection()
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 	})
 
 	AfterEach(func() {
@@ -41,7 +41,7 @@ var _ = Describe("Podman connection", func() {
 	It("cancel request in flight reports cancelled context", func() {
 		var name = "top"
 		_, err := bt.RunTopContainer(&name, nil)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		errChan := make(chan error)
 		ctx, cancel := context.WithCancel(bt.conn)

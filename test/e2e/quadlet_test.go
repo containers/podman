@@ -24,7 +24,7 @@ type quadletTestcase struct {
 
 func loadQuadletTestcase(path string) *quadletTestcase {
 	data, err := os.ReadFile(path)
-	Expect(err).To(BeNil())
+	Expect(err).ToNot(HaveOccurred())
 
 	base := filepath.Base(path)
 	ext := filepath.Ext(base)
@@ -39,7 +39,7 @@ func loadQuadletTestcase(path string) *quadletTestcase {
 	for _, line := range strings.Split(string(data), "\n") {
 		if strings.HasPrefix(line, "##") {
 			words, err := shellwords.Parse(line[2:])
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			checks = append(checks, words)
 		}
 	}
@@ -222,7 +222,7 @@ func (t *quadletTestcase) check(generateDir string, session *PodmanSessionIntegr
 	var unit *parser.UnitFile
 	if !expectFail {
 		unit, err = parser.ParseUnitFile(file)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 	}
 
 	for _, check := range t.checks {
@@ -250,11 +250,11 @@ var _ = Describe("quadlet system generator", func() {
 
 		generatedDir = filepath.Join(podmanTest.TempDir, "generated")
 		err = os.Mkdir(generatedDir, os.ModePerm)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		quadletDir = filepath.Join(podmanTest.TempDir, "quadlet")
 		err = os.Mkdir(quadletDir, os.ModePerm)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 	})
 
 	AfterEach(func() {
@@ -270,7 +270,7 @@ var _ = Describe("quadlet system generator", func() {
 
 			// Write the tested file to the quadlet dir
 			err = os.WriteFile(filepath.Join(quadletDir, fileName), testcase.data, 0644)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 
 			// Run quadlet to convert the file
 			session := podmanTest.Quadlet([]string{"-no-kmsg-log", generatedDir}, quadletDir)

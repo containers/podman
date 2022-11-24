@@ -34,7 +34,7 @@ var _ = Describe("podman machine list", func() {
 
 		i := new(initMachine)
 		session, err := mb.setCmd(i.withImagePath(mb.imagePath)).run()
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		Expect(session).To(Exit(0))
 
 		secondList, err := mb.setCmd(list).run()
@@ -61,11 +61,11 @@ var _ = Describe("podman machine list", func() {
 
 		i := new(initMachine)
 		session, err := mb.setName(name1).setCmd(i.withImagePath(mb.imagePath)).run()
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		Expect(session).To(Exit(0))
 
 		session2, err := mb.setName(name2).setCmd(i.withImagePath(mb.imagePath)).run()
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		Expect(session2).To(Exit(0))
 
 		secondList, err := mb.setCmd(list.withQuiet()).run()
@@ -82,16 +82,16 @@ var _ = Describe("podman machine list", func() {
 	It("list machine: check if running while starting", func() {
 		i := new(initMachine)
 		session, err := mb.setCmd(i.withImagePath(mb.imagePath)).run()
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		Expect(session).To(Exit(0))
 		s := new(startMachine)
 		startSession, err := mb.setCmd(s).runWithoutWait()
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		l := new(listMachine)
 		for i := 0; i < 30; i++ {
 			listSession, err := mb.setCmd(l).run()
 			Expect(listSession).To(Exit(0))
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			if startSession.ExitCode() == -1 {
 				Expect(listSession.outputToString()).NotTo(ContainSubstring("Currently running"))
 			} else {
@@ -102,7 +102,7 @@ var _ = Describe("podman machine list", func() {
 		Expect(startSession).To(Exit(0))
 		listSession, err := mb.setCmd(l).run()
 		Expect(listSession).To(Exit(0))
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		Expect(listSession.outputToString()).To(ContainSubstring("Currently running"))
 		Expect(listSession.outputToString()).NotTo(ContainSubstring("Less than a second ago")) // check to make sure time created is accurate
 	})
@@ -113,7 +113,7 @@ var _ = Describe("podman machine list", func() {
 
 		i := new(initMachine)
 		session, err := mb.setName(name1).setCmd(i.withImagePath(mb.imagePath)).run()
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		Expect(session).To(Exit(0))
 
 		// go format
@@ -131,12 +131,12 @@ var _ = Describe("podman machine list", func() {
 		list2 := new(listMachine)
 		list2 = list2.withFormat("json")
 		listSession2, err := mb.setCmd(list2).run()
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		Expect(listSession2).To(Exit(0))
 
 		var listResponse []*entities.ListReporter
 		err = jsoniter.Unmarshal(listSession2.Bytes(), &listResponse)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		// table format includes the header
 		list = new(listMachine)

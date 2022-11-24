@@ -93,21 +93,21 @@ LABEL marge=mom
 		// Setup
 		yamlDir := filepath.Join(tempdir, RandomString(12))
 		err := os.Mkdir(yamlDir, 0755)
-		Expect(err).To(BeNil(), "mkdir "+yamlDir)
+		Expect(err).ToNot(HaveOccurred(), "mkdir "+yamlDir)
 		err = writeYaml(testYAML, filepath.Join(yamlDir, "top.yaml"))
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		app1Dir := filepath.Join(yamlDir, "foobar")
 		err = os.Mkdir(app1Dir, 0755)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		err = writeYaml(playBuildFile, filepath.Join(app1Dir, "Dockerfile"))
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		// Write a file to be copied
 		err = writeYaml(copyFile, filepath.Join(app1Dir, "copyfile"))
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		// Switch to temp dir and restore it afterwards
 		cwd, err := os.Getwd()
-		Expect(err).To(BeNil())
-		Expect(os.Chdir(yamlDir)).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
+		Expect(os.Chdir(yamlDir)).To(Succeed())
 		defer func() { (Expect(os.Chdir(cwd)).To(BeNil())) }()
 
 		session := podmanTest.Podman([]string{"play", "kube", "top.yaml"})
@@ -122,7 +122,7 @@ LABEL marge=mom
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect).Should(Exit(0))
 		inspectData := inspect.InspectContainerToJSON()
-		Expect(len(inspectData)).To(BeNumerically(">", 0))
+		Expect(inspectData).ToNot(BeEmpty())
 		Expect(inspectData[0].Config.Labels).To(HaveKeyWithValue("homer", "dad"))
 	})
 
@@ -130,21 +130,21 @@ LABEL marge=mom
 		// Setup
 		yamlDir := filepath.Join(tempdir, RandomString(12))
 		err := os.Mkdir(yamlDir, 0755)
-		Expect(err).To(BeNil(), "mkdir "+yamlDir)
+		Expect(err).ToNot(HaveOccurred(), "mkdir "+yamlDir)
 		err = writeYaml(testYAML, filepath.Join(yamlDir, "top.yaml"))
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		app1Dir := filepath.Join(yamlDir, "foobar")
 		err = os.Mkdir(app1Dir, 0755)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		err = writeYaml(playBuildFile, filepath.Join(app1Dir, "Containerfile"))
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		// Write a file to be copied
 		err = writeYaml(copyFile, filepath.Join(app1Dir, "copyfile"))
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		// Switch to temp dir and restore it afterwards
 		cwd, err := os.Getwd()
-		Expect(err).To(BeNil())
-		Expect(os.Chdir(yamlDir)).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
+		Expect(os.Chdir(yamlDir)).To(Succeed())
 		defer func() { (Expect(os.Chdir(cwd)).To(BeNil())) }()
 
 		session := podmanTest.Podman([]string{"play", "kube", "top.yaml"})
@@ -159,7 +159,7 @@ LABEL marge=mom
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect).Should(Exit(0))
 		inspectData := inspect.InspectContainerToJSON()
-		Expect(len(inspectData)).To(BeNumerically(">", 0))
+		Expect(inspectData).ToNot(BeEmpty())
 		Expect(inspectData[0].Config.Labels).To(HaveKeyWithValue("homer", "dad"))
 	})
 
@@ -167,29 +167,29 @@ LABEL marge=mom
 		// Setup
 		yamlDir := filepath.Join(tempdir, RandomString(12))
 		err := os.Mkdir(yamlDir, 0755)
-		Expect(err).To(BeNil(), "mkdir "+yamlDir)
+		Expect(err).ToNot(HaveOccurred(), "mkdir "+yamlDir)
 		err = writeYaml(testYAML, filepath.Join(yamlDir, "top.yaml"))
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		// build an image called foobar but make sure it doesn't have
 		// the same label as the yaml buildfile, so we can check that
 		// the image is NOT rebuilt.
 		err = writeYaml(prebuiltImage, filepath.Join(yamlDir, "Containerfile"))
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		app1Dir := filepath.Join(yamlDir, "foobar")
 		err = os.Mkdir(app1Dir, 0755)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		err = writeYaml(playBuildFile, filepath.Join(app1Dir, "Containerfile"))
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		// Write a file to be copied
 		err = writeYaml(copyFile, filepath.Join(app1Dir, "copyfile"))
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		// Switch to temp dir and restore it afterwards
 		cwd, err := os.Getwd()
-		Expect(err).To(BeNil())
-		Expect(os.Chdir(yamlDir)).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
+		Expect(os.Chdir(yamlDir)).To(Succeed())
 		defer func() { (Expect(os.Chdir(cwd)).To(BeNil())) }()
 
 		// Build the image into the local store
@@ -205,7 +205,7 @@ LABEL marge=mom
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect).Should(Exit(0))
 		inspectData := inspect.InspectContainerToJSON()
-		Expect(len(inspectData)).To(BeNumerically(">", 0))
+		Expect(inspectData).ToNot(BeEmpty())
 		Expect(inspectData[0].Config.Labels).To(Not(HaveKey("homer")))
 		Expect(inspectData[0].Config.Labels).To(HaveKeyWithValue("marge", "mom"))
 	})
@@ -214,29 +214,29 @@ LABEL marge=mom
 		// Setup
 		yamlDir := filepath.Join(tempdir, RandomString(12))
 		err := os.Mkdir(yamlDir, 0755)
-		Expect(err).To(BeNil(), "mkdir "+yamlDir)
+		Expect(err).ToNot(HaveOccurred(), "mkdir "+yamlDir)
 		err = writeYaml(testYAML, filepath.Join(yamlDir, "top.yaml"))
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		// build an image called foobar but make sure it doesn't have
 		// the same label as the yaml buildfile, so we can check that
 		// the image is NOT rebuilt.
 		err = writeYaml(prebuiltImage, filepath.Join(yamlDir, "Containerfile"))
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		app1Dir := filepath.Join(yamlDir, "foobar")
 		err = os.Mkdir(app1Dir, 0755)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		err = writeYaml(playBuildFile, filepath.Join(app1Dir, "Containerfile"))
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		// Write a file to be copied
 		err = writeYaml(copyFile, filepath.Join(app1Dir, "copyfile"))
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		// Switch to temp dir and restore it afterwards
 		cwd, err := os.Getwd()
-		Expect(err).To(BeNil())
-		Expect(os.Chdir(yamlDir)).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
+		Expect(os.Chdir(yamlDir)).To(Succeed())
 		defer func() { (Expect(os.Chdir(cwd)).To(BeNil())) }()
 
 		// Build the image into the local store
@@ -252,7 +252,7 @@ LABEL marge=mom
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect).Should(Exit(0))
 		inspectData := inspect.InspectContainerToJSON()
-		Expect(len(inspectData)).To(BeNumerically(">", 0))
+		Expect(inspectData).ToNot(BeEmpty())
 		Expect(inspectData[0].Config.Labels).To(Not(HaveKey("homer")))
 		Expect(inspectData[0].Config.Labels).To(HaveKeyWithValue("marge", "mom"))
 	})
@@ -261,29 +261,29 @@ LABEL marge=mom
 		// Setup
 		yamlDir := filepath.Join(tempdir, RandomString(12))
 		err := os.Mkdir(yamlDir, 0755)
-		Expect(err).To(BeNil(), "os.Mkdir "+yamlDir)
+		Expect(err).ToNot(HaveOccurred(), "os.Mkdir "+yamlDir)
 		err = writeYaml(testYAML, filepath.Join(yamlDir, "top.yaml"))
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		// build an image called foobar but make sure it doesn't have
 		// the same label as the yaml buildfile, so we can check that
 		// the image is NOT rebuilt.
 		err = writeYaml(prebuiltImage, filepath.Join(yamlDir, "Containerfile"))
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		app1Dir := filepath.Join(yamlDir, "foobar")
 		err = os.Mkdir(app1Dir, 0755)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		err = writeYaml(playBuildFile, filepath.Join(app1Dir, "Containerfile"))
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		// Write a file to be copied
 		err = writeYaml(copyFile, filepath.Join(app1Dir, "copyfile"))
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		// Switch to temp dir and restore it afterwards
 		cwd, err := os.Getwd()
-		Expect(err).To(BeNil())
-		Expect(os.Chdir(yamlDir)).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
+		Expect(os.Chdir(yamlDir)).To(Succeed())
 		defer func() { (Expect(os.Chdir(cwd)).To(BeNil())) }()
 
 		// Build the image into the local store
@@ -299,7 +299,7 @@ LABEL marge=mom
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect).Should(Exit(0))
 		inspectData := inspect.InspectContainerToJSON()
-		Expect(len(inspectData)).To(BeNumerically(">", 0))
+		Expect(inspectData).ToNot(BeEmpty())
 		Expect(inspectData[0].Config.Labels).To(HaveKeyWithValue("homer", "dad"))
 		Expect(inspectData[0].Config.Labels).To(Not(HaveKey("marge")))
 	})

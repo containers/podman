@@ -37,7 +37,7 @@ var _ = Describe("podman machine info", func() {
 		// Create a machine and check if info has been updated
 		i := new(initMachine)
 		initSession, err := mb.setCmd(i.withImagePath(mb.imagePath)).run()
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		Expect(initSession).To(Exit(0))
 
 		info = new(infoMachine)
@@ -53,6 +53,6 @@ var _ = Describe("podman machine info", func() {
 
 		infoReport := &entities.MachineInfo{}
 		err = jsoniter.Unmarshal(infoSession.Bytes(), infoReport)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 	})
 })

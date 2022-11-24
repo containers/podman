@@ -25,7 +25,7 @@ var _ = Describe("Podman info", func() {
 		s = bt.startAPIService()
 		time.Sleep(1 * time.Second)
 		err := bt.NewConnection()
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 	})
 
 	AfterEach(func() {
@@ -35,35 +35,35 @@ var _ = Describe("Podman info", func() {
 
 	It("podman info", func() {
 		info, err := system.Info(bt.conn, nil)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		Expect(info.Host.Arch).To(Equal(runtime.GOARCH))
 		Expect(info.Host.OS).To(Equal(runtime.GOOS))
 		listOptions := new(images.ListOptions)
 		i, err := images.List(bt.conn, listOptions.WithAll(true))
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		Expect(info.Store.ImageStore.Number).To(Equal(len(i)))
 	})
 
 	It("podman info container counts", func() {
 		s := specgen.NewSpecGenerator(alpine.name, false)
 		_, err := containers.CreateWithSpec(bt.conn, s, nil)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		idPause, err := bt.RunTopContainer(nil, nil)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		err = containers.Pause(bt.conn, idPause, nil)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		idStop, err := bt.RunTopContainer(nil, nil)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		err = containers.Stop(bt.conn, idStop, nil)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		_, err = bt.RunTopContainer(nil, nil)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		info, err := system.Info(bt.conn, nil)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		Expect(info.Store.ContainerStore.Number).To(BeNumerically("==", 4))
 		Expect(info.Store.ContainerStore.Paused).To(Equal(1))

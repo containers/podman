@@ -18,7 +18,7 @@ func createContainersConfFileWithCustomUserns(pTest *PodmanTestIntegration, user
 	configPath := filepath.Join(pTest.TempDir, "containers.conf")
 	containersConf := []byte(fmt.Sprintf("[containers]\nuserns = \"%s\"\n", userns))
 	err := os.WriteFile(configPath, containersConf, os.ModePerm)
-	Expect(err).To(BeNil())
+	Expect(err).ToNot(HaveOccurred())
 
 	// Set custom containers.conf file
 	os.Setenv("CONTAINERS_CONF", configPath)
@@ -63,7 +63,7 @@ var _ = Describe("Podman UserNS support", func() {
 	// we don't break this feature for podman-remote.
 	It("podman build with --userns=auto", func() {
 		u, err := user.Current()
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		name := u.Name
 		if name == "root" {
 			name = "containers"
@@ -154,7 +154,7 @@ var _ = Describe("Podman UserNS support", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		u, err := user.Current()
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		Expect(session.OutputToString()).To(ContainSubstring(u.Name))
 	})
 
@@ -198,7 +198,7 @@ var _ = Describe("Podman UserNS support", func() {
 
 	It("podman --userns=auto", func() {
 		u, err := user.Current()
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		name := u.Name
 		if name == "root" {
 			name = "containers"
@@ -235,7 +235,7 @@ var _ = Describe("Podman UserNS support", func() {
 
 	It("podman --userns=auto:size=%d", func() {
 		u, err := user.Current()
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		name := u.Name
 		if name == "root" {
@@ -273,7 +273,7 @@ var _ = Describe("Podman UserNS support", func() {
 
 	It("podman --userns=auto:uidmapping=", func() {
 		u, err := user.Current()
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		name := u.Name
 		if name == "root" {
@@ -302,7 +302,7 @@ var _ = Describe("Podman UserNS support", func() {
 
 	It("podman --userns=auto:gidmapping=", func() {
 		u, err := user.Current()
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		name := u.Name
 		if name == "root" {

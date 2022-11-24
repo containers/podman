@@ -20,7 +20,7 @@ var _ = Describe("Podman commit", func() {
 
 	BeforeEach(func() {
 		tempdir, err = CreateTempDirInTempDir()
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.Setup()
 	})
@@ -127,7 +127,7 @@ var _ = Describe("Podman commit", func() {
 				break
 			}
 		}
-		Expect(foundBlue).To(Equal(true))
+		Expect(foundBlue).To(BeTrue())
 	})
 
 	It("podman commit container with --squash", func() {
@@ -268,8 +268,8 @@ var _ = Describe("Podman commit", func() {
 	It("podman commit container and print id to external file", func() {
 		// Switch to temp dir and restore it afterwards
 		cwd, err := os.Getwd()
-		Expect(err).To(BeNil())
-		Expect(os.Chdir(os.TempDir())).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
+		Expect(os.Chdir(os.TempDir())).To(Succeed())
 		targetPath, err := CreateTempDirInTempDir()
 		if err != nil {
 			os.Exit(1)
@@ -297,7 +297,7 @@ var _ = Describe("Podman commit", func() {
 		secretsString := "somesecretdata"
 		secretFilePath := filepath.Join(podmanTest.TempDir, "secret")
 		err := os.WriteFile(secretFilePath, []byte(secretsString), 0755)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		session := podmanTest.Podman([]string{"secret", "create", "mysecret", secretFilePath})
 		session.WaitWithDefaultTimeout()
@@ -322,7 +322,7 @@ var _ = Describe("Podman commit", func() {
 		secretsString := "somesecretdata"
 		secretFilePath := filepath.Join(podmanTest.TempDir, "secret")
 		err := os.WriteFile(secretFilePath, []byte(secretsString), 0755)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		session := podmanTest.Podman([]string{"secret", "create", "mysecret", secretFilePath})
 		session.WaitWithDefaultTimeout()

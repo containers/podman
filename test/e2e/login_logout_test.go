@@ -101,11 +101,11 @@ var _ = Describe("Podman login and logout", func() {
 
 	readAuthInfo := func(filePath string) map[string]interface{} {
 		authBytes, err := os.ReadFile(filePath)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		var authInfo map[string]interface{}
 		err = json.Unmarshal(authBytes, &authInfo)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		fmt.Println(authInfo)
 
 		const authsKey = "auths"
@@ -137,12 +137,12 @@ var _ = Describe("Podman login and logout", func() {
 
 	It("podman login and logout without registry parameter", func() {
 		registriesConf, err := os.CreateTemp("", "TestLoginWithoutParameter")
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		defer registriesConf.Close()
 		defer os.Remove(registriesConf.Name())
 
 		err = os.WriteFile(registriesConf.Name(), registriesConfWithSearch, os.ModePerm)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		// Environment is per-process, so this looks very unsafe; actually it seems fine because tests are not
 		// run in parallel unless they opt in by calling t.Parallel().  So don’t do that.
@@ -451,7 +451,7 @@ var _ = Describe("Podman login and logout", func() {
 			"%s/podmantest": { "auth": "cG9kbWFudGVzdDp3cm9uZw==" },
 			"%s": { "auth": "cG9kbWFudGVzdDp0ZXN0" }
 		}}`, server, server)), 0644)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		session := podmanTest.Podman([]string{
 			"push",
@@ -498,7 +498,7 @@ var _ = Describe("Podman login and logout", func() {
 			"%s/podmantest": { "auth": "cG9kbWFudGVzdDp0ZXN0" },
 			"%s": { "auth": "cG9kbWFudGVzdDp0ZXN0" }
 		}}`, server, server, server)), 0644)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		session = podmanTest.Podman([]string{
 			"pull",

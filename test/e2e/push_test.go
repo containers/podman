@@ -78,13 +78,13 @@ var _ = Describe("Podman push", func() {
 		blobsDir := filepath.Join(bbdir, "blobs/sha256")
 
 		blobs, err := os.ReadDir(blobsDir)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		for _, f := range blobs {
 			blobPath := filepath.Join(blobsDir, f.Name())
 
 			sourceFile, err := os.ReadFile(blobPath)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 
 			compressionType := archive.DetectCompression(sourceFile)
 			if compressionType == archive.Zstd {
@@ -116,7 +116,7 @@ var _ = Describe("Podman push", func() {
 		push := podmanTest.Podman([]string{"push", "-q", "--tls-verify=false", "--remove-signatures", ALPINE, "localhost:5000/my-alpine"})
 		push.WaitWithDefaultTimeout()
 		Expect(push).Should(Exit(0))
-		Expect(len(push.ErrorToString())).To(Equal(0))
+		Expect(push.ErrorToString()).To(BeEmpty())
 
 		push = podmanTest.Podman([]string{"push", "--tls-verify=false", "--remove-signatures", ALPINE, "localhost:5000/my-alpine"})
 		push.WaitWithDefaultTimeout()
@@ -132,7 +132,7 @@ var _ = Describe("Podman push", func() {
 			push2 := podmanTest.Podman([]string{"push", "--tls-verify=false", "--digestfile=/tmp/digestfile.txt", "--remove-signatures", ALPINE, "localhost:5000/my-alpine"})
 			push2.WaitWithDefaultTimeout()
 			fi, err := os.Lstat("/tmp/digestfile.txt")
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(fi.Name()).To(Equal("digestfile.txt"))
 			Expect(push2).Should(Exit(0))
 		}
@@ -157,7 +157,7 @@ var _ = Describe("Podman push", func() {
 				push := podmanTest.Podman([]string{"push", "-q", "--tls-verify=false", "--remove-signatures", ALPINE, "localhost:5000/sigstore-signed"})
 				push.WaitWithDefaultTimeout()
 				Expect(push).Should(Exit(0))
-				Expect(len(push.ErrorToString())).To(Equal(0))
+				Expect(push.ErrorToString()).To(BeEmpty())
 
 				pull := podmanTest.Podman([]string{"pull", "-q", "--tls-verify=false", "--signature-policy", "sign/policy.json", "localhost:5000/sigstore-signed"})
 				pull.WaitWithDefaultTimeout()
@@ -168,7 +168,7 @@ var _ = Describe("Podman push", func() {
 				push = podmanTest.Podman([]string{"push", "-q", "--tls-verify=false", "--remove-signatures", "--sign-by-sigstore-private-key", "testdata/sigstore-key.key", "--sign-passphrase-file", "testdata/sigstore-key.key.pass", ALPINE, "localhost:5000/sigstore-signed"})
 				push.WaitWithDefaultTimeout()
 				Expect(push).Should(Exit(0))
-				Expect(len(push.ErrorToString())).To(Equal(0))
+				Expect(push.ErrorToString()).To(BeEmpty())
 
 				pull = podmanTest.Podman([]string{"pull", "-q", "--tls-verify=false", "--signature-policy", "sign/policy.json", "localhost:5000/sigstore-signed"})
 				pull.WaitWithDefaultTimeout()

@@ -382,7 +382,7 @@ func (p *PodmanTestIntegration) createArtifact(image string) {
 func (s *PodmanSessionIntegration) InspectImageJSON() []inspect.ImageData {
 	var i []inspect.ImageData
 	err := jsoniter.Unmarshal(s.Out.Contents(), &i)
-	Expect(err).To(BeNil())
+	Expect(err).ToNot(HaveOccurred())
 	return i
 }
 
@@ -582,7 +582,7 @@ func (p *PodmanTestIntegration) CleanupSecrets() {
 func (s *PodmanSessionIntegration) InspectContainerToJSON() []define.InspectContainerData {
 	var i []define.InspectContainerData
 	err := jsoniter.Unmarshal(s.Out.Contents(), &i)
-	Expect(err).To(BeNil())
+	Expect(err).ToNot(HaveOccurred())
 	return i
 }
 
@@ -598,7 +598,7 @@ func (s *PodmanSessionIntegration) InspectPodToJSON() define.InspectPodData {
 func (s *PodmanSessionIntegration) InspectPodArrToJSON() []define.InspectPodData {
 	var i []define.InspectPodData
 	err := jsoniter.Unmarshal(s.Out.Contents(), &i)
-	Expect(err).To(BeNil())
+	Expect(err).ToNot(HaveOccurred())
 	return i
 }
 
@@ -826,7 +826,7 @@ func (p *PodmanTestIntegration) RestoreArtifactToCache(image string) error {
 func populateCache(podman *PodmanTestIntegration) {
 	for _, image := range CACHE_IMAGES {
 		err := podman.RestoreArtifactToCache(image)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 	}
 	// logformatter uses this to recognize the first test
 	fmt.Printf("-----------------------------\n")
@@ -987,7 +987,7 @@ func (s *PodmanSessionIntegration) jq(jqCommand string) (string, error) {
 func (p *PodmanTestIntegration) buildImage(dockerfile, imageName string, layers string, label string) string {
 	dockerfilePath := filepath.Join(p.TempDir, "Dockerfile")
 	err := os.WriteFile(dockerfilePath, []byte(dockerfile), 0755)
-	Expect(err).To(BeNil())
+	Expect(err).ToNot(HaveOccurred())
 	cmd := []string{"build", "--pull-never", "--layers=" + layers, "--file", dockerfilePath}
 	if label != "" {
 		cmd = append(cmd, "--label="+label)

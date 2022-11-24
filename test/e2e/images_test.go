@@ -171,7 +171,7 @@ RUN echo hello > /hello
 		result := podmanTest.Podman([]string{"images", "-q", "-f", "before=foobar.com/before:latest"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
-		Expect(len(result.OutputToStringArray())).To(BeNumerically(">=", 1))
+		Expect(result.OutputToStringArray()).ToNot(BeEmpty())
 	})
 
 	It("podman images workingdir from  image", func() {

@@ -122,7 +122,7 @@ registries = ['{{.Host}}:{{.Port}}']`
 		contents := make([]entities.ImageSearchReport, 0)
 		err := json.Unmarshal(search.Out.Contents(), &contents)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(len(contents)).To(BeNumerically(">", 0), "No results from image search")
+		Expect(contents).ToNot(BeEmpty(), "No results from image search")
 		for _, element := range contents {
 			Expect(element.Description).ToNot(HaveSuffix("..."))
 		}
@@ -255,7 +255,7 @@ registries = ['{{.Host}}:{{.Port}}']`
 		searchEmpty := podmanTest.Podman([]string{"search", fmt.Sprintf("%s/", ep.Address()), "--tls-verify=false"})
 		searchEmpty.WaitWithDefaultTimeout()
 		Expect(searchEmpty).Should(Exit(0))
-		Expect(len(searchEmpty.OutputToStringArray())).To(BeNumerically(">=", 1))
+		Expect(searchEmpty.OutputToStringArray()).ToNot(BeEmpty())
 		Expect(search.OutputToString()).To(ContainSubstring("my-alpine"))
 	})
 

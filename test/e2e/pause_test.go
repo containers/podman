@@ -336,7 +336,7 @@ var _ = Describe("Podman pause", func() {
 
 	It("podman pause --cidfile", func() {
 		tmpDir, err := os.MkdirTemp("", "")
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		tmpFile := tmpDir + "cid"
 
 		defer os.RemoveAll(tmpDir)
@@ -365,7 +365,7 @@ var _ = Describe("Podman pause", func() {
 
 	It("podman pause multiple --cidfile", func() {
 		tmpDir, err := os.MkdirTemp("", "")
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		tmpFile1 := tmpDir + "cid-1"
 		tmpFile2 := tmpDir + "cid-2"
 

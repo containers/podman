@@ -366,7 +366,7 @@ var _ = Describe("Podman pod create", func() {
 		result = podmanTest.Podman([]string{"ps", "-aq"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
-		Expect(len(result.OutputToStringArray())).Should(BeNumerically(">", 0))
+		Expect(result.OutputToStringArray()).ShouldNot(BeEmpty())
 
 		Expect(result.OutputToString()).To(ContainSubstring(infraID))
 	})
@@ -394,7 +394,7 @@ var _ = Describe("Podman pod create", func() {
 		result = podmanTest.Podman([]string{"ps", "-aq"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
-		Expect(len(result.OutputToStringArray())).Should(BeNumerically(">", 0))
+		Expect(result.OutputToStringArray()).ShouldNot(BeEmpty())
 
 		Expect(result.OutputToString()).To(ContainSubstring(infraID))
 	})

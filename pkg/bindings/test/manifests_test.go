@@ -43,7 +43,7 @@ var _ = Describe("Podman manifests", func() {
 		list, err := manifests.Inspect(bt.conn, id, nil)
 		Expect(err).ToNot(HaveOccurred())
 
-		Expect(len(list.Manifests)).To(BeZero())
+		Expect(list.Manifests).To(BeEmpty())
 
 		// creating a duplicate should fail as a 500
 		_, err = manifests.Create(bt.conn, "quay.io/libpod/foobar:latest", nil, nil)
@@ -53,7 +53,7 @@ var _ = Describe("Podman manifests", func() {
 		Expect(code).To(BeNumerically("==", http.StatusInternalServerError))
 
 		_, errs := images.Remove(bt.conn, []string{id}, nil)
-		Expect(len(errs)).To(BeZero())
+		Expect(errs).To(BeEmpty())
 
 		// create manifest list with images
 		id, err = manifests.Create(bt.conn, "quay.io/libpod/foobar:latest", []string{alpine.name}, nil)
@@ -62,7 +62,7 @@ var _ = Describe("Podman manifests", func() {
 		list, err = manifests.Inspect(bt.conn, id, nil)
 		Expect(err).ToNot(HaveOccurred())
 
-		Expect(len(list.Manifests)).To(BeNumerically("==", 1))
+		Expect(list.Manifests).To(HaveLen(1))
 	})
 
 	It("delete manifest", func() {
@@ -71,11 +71,11 @@ var _ = Describe("Podman manifests", func() {
 		list, err := manifests.Inspect(bt.conn, id, nil)
 		Expect(err).ToNot(HaveOccurred())
 
-		Expect(len(list.Manifests)).To(BeZero())
+		Expect(list.Manifests).To(BeEmpty())
 
 		removeReport, err := manifests.Delete(bt.conn, "quay.io/libpod/foobar:latest")
 		Expect(err).ToNot(HaveOccurred())
-		Expect(len(removeReport.Deleted)).To(BeNumerically("==", 1))
+		Expect(removeReport.Deleted).To(HaveLen(1))
 	})
 
 	It("inspect", func() {
@@ -104,7 +104,7 @@ var _ = Describe("Podman manifests", func() {
 		list, err := manifests.Inspect(bt.conn, id, nil)
 		Expect(err).ToNot(HaveOccurred())
 
-		Expect(len(list.Manifests)).To(BeNumerically("==", 1))
+		Expect(list.Manifests).To(HaveLen(1))
 
 		// add bogus name to existing list should fail
 		options.WithImages([]string{"larry"})
@@ -129,7 +129,7 @@ var _ = Describe("Podman manifests", func() {
 		data, err := manifests.Inspect(bt.conn, id, nil)
 		Expect(err).ToNot(HaveOccurred())
 
-		Expect(len(data.Manifests)).To(BeNumerically("==", 1))
+		Expect(data.Manifests).To(HaveLen(1))
 
 		// removal on a good manifest list with a bad digest should be 400
 		_, err = manifests.Remove(bt.conn, id, "!234", nil)
@@ -161,7 +161,7 @@ var _ = Describe("Podman manifests", func() {
 		data, err := manifests.Inspect(bt.conn, id, nil)
 		Expect(err).ToNot(HaveOccurred())
 
-		Expect(len(data.Manifests)).To(BeNumerically("==", 1))
+		Expect(data.Manifests).To(HaveLen(1))
 
 		digest := data.Manifests[0].Digest.String()
 		annoOpts := new(manifests.ModifyOptions).WithOS("foo")
@@ -171,13 +171,13 @@ var _ = Describe("Podman manifests", func() {
 		list, err := manifests.Inspect(bt.conn, id, nil)
 		Expect(err).ToNot(HaveOccurred())
 
-		Expect(len(list.Manifests)).To(BeNumerically("==", 1))
+		Expect(list.Manifests).To(HaveLen(1))
 		Expect(list.Manifests[0].Platform.OS).To(Equal("foo"))
 	})
 
 	It("Manifest Push", func() {
 		registry, err := podmanRegistry.Start()
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		name := "quay.io/libpod/foobar:latest"
 		_, err = manifests.Create(bt.conn, name, []string{alpine.name}, nil)

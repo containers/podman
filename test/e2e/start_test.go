@@ -204,12 +204,12 @@ var _ = Describe("Podman start", func() {
 		Expect(session).Should(Exit(0))
 		readFirstLine := func(path string) string {
 			content, err := os.ReadFile(path)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			return strings.Split(string(content), "\n")[0]
 		}
 		containerPID := readFirstLine(pidfile)
 		_, err = strconv.Atoi(containerPID) // Make sure it's a proper integer
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 	})
 
 	It("podman start container --filter", func() {

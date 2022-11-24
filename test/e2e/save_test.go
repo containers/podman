@@ -154,10 +154,10 @@ var _ = Describe("Podman save", func() {
 		}
 		tempGNUPGHOME := filepath.Join(podmanTest.TempDir, "tmpGPG")
 		err := os.Mkdir(tempGNUPGHOME, os.ModePerm)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		origGNUPGHOME := os.Getenv("GNUPGHOME")
 		err = os.Setenv("GNUPGHOME", tempGNUPGHOME)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		defer os.Setenv("GNUPGHOME", origGNUPGHOME)
 
 		port := 5000
@@ -173,7 +173,7 @@ var _ = Describe("Podman save", func() {
 
 		cmd := exec.Command("gpg", "--import", "sign/secret-key.asc")
 		err = cmd.Run()
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		defaultYaml := filepath.Join(podmanTest.TempDir, "default.yaml")
 		cmd = exec.Command("cp", "/etc/containers/registries.d/default.yaml", defaultYaml)
@@ -187,13 +187,13 @@ var _ = Describe("Podman save", func() {
 		}()
 
 		cmd = exec.Command("cp", "sign/key.gpg", "/tmp/key.gpg")
-		Expect(cmd.Run()).To(BeNil())
+		Expect(cmd.Run()).To(Succeed())
 		sigstore := `
 default-docker:
   sigstore: file:///var/lib/containers/sigstore
   sigstore-staging: file:///var/lib/containers/sigstore
 `
-		Expect(os.WriteFile("/etc/containers/registries.d/default.yaml", []byte(sigstore), 0755)).To(BeNil())
+		Expect(os.WriteFile("/etc/containers/registries.d/default.yaml", []byte(sigstore), 0755)).To(Succeed())
 
 		session = podmanTest.Podman([]string{"tag", ALPINE, "localhost:5000/alpine"})
 		session.WaitWithDefaultTimeout()

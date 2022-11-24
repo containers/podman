@@ -482,7 +482,7 @@ var _ = Describe("Podman logs", func() {
 
 		cmd := exec.Command("journalctl", "--no-pager", "-o", "json", "--output-fields=CONTAINER_TAG", fmt.Sprintf("CONTAINER_ID_FULL=%s", cid))
 		out, err := cmd.CombinedOutput()
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		Expect(string(out)).To(ContainSubstring("alpine"))
 	})
 
@@ -500,7 +500,7 @@ var _ = Describe("Podman logs", func() {
 
 		cmd := exec.Command("journalctl", "--no-pager", "-o", "json", "--output-fields=CONTAINER_NAME", fmt.Sprintf("CONTAINER_ID_FULL=%s", cid))
 		out, err := cmd.CombinedOutput()
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		Expect(string(out)).To(ContainSubstring(containerName))
 	})
 

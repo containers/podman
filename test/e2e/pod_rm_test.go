@@ -50,14 +50,14 @@ var _ = Describe("Podman pod rm", func() {
 				return err
 			}
 			if !d.IsDir() {
-				Expect(err).To(BeNil())
+				Expect(err).ToNot(HaveOccurred())
 			}
 			if strings.Contains(d.Name(), podid) {
 				return fmt.Errorf("leaking cgroup path %s", path)
 			}
 			return nil
 		})
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 	})
 
 	It("podman pod rm latest pod", func() {
@@ -142,7 +142,7 @@ var _ = Describe("Podman pod rm", func() {
 		result.WaitWithDefaultTimeout()
 		Expect(result).To(ExitWithError())
 		foundExpectedError, _ := result.ErrorGrepString("cannot be removed")
-		Expect(foundExpectedError).To(Equal(true))
+		Expect(foundExpectedError).To(BeTrue())
 
 		numPods = podmanTest.NumberOfPods()
 		ps = podmanTest.Podman([]string{"pod", "ps"})
@@ -235,7 +235,7 @@ var _ = Describe("Podman pod rm", func() {
 
 	It("podman pod start/remove single pod via --pod-id-file", func() {
 		tmpDir, err := os.MkdirTemp("", "")
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		tmpFile := tmpDir + "podID"
 		defer os.RemoveAll(tmpDir)
 
@@ -264,7 +264,7 @@ var _ = Describe("Podman pod rm", func() {
 
 	It("podman pod start/remove multiple pods via --pod-id-file", func() {
 		tmpDir, err := os.MkdirTemp("", "")
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		defer os.RemoveAll(tmpDir)
 
 		podIDFiles := []string{}

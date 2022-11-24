@@ -36,41 +36,41 @@ var _ = Describe("Podman history", func() {
 		session := podmanTest.Podman([]string{"history", ALPINE})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(len(session.OutputToStringArray())).To(BeNumerically(">", 0))
+		Expect(session.OutputToStringArray()).ToNot(BeEmpty())
 	})
 
 	It("podman history with GO template", func() {
 		session := podmanTest.Podman([]string{"history", "--format", "{{.ID}} {{.Created}}", ALPINE})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(len(session.OutputToStringArray())).To(BeNumerically(">", 0))
+		Expect(session.OutputToStringArray()).ToNot(BeEmpty())
 	})
 
 	It("podman history with human flag", func() {
 		session := podmanTest.Podman([]string{"history", "--human=false", ALPINE})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(len(session.OutputToStringArray())).To(BeNumerically(">", 0))
+		Expect(session.OutputToStringArray()).ToNot(BeEmpty())
 	})
 
 	It("podman history with quiet flag", func() {
 		session := podmanTest.Podman([]string{"history", "-qH", ALPINE})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(len(session.OutputToStringArray())).To(BeNumerically(">", 0))
+		Expect(session.OutputToStringArray()).ToNot(BeEmpty())
 	})
 
 	It("podman history with no-trunc flag", func() {
 		session := podmanTest.Podman([]string{"history", "--no-trunc", ALPINE})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(len(session.OutputToStringArray())).To(BeNumerically(">", 0))
+		Expect(session.OutputToStringArray()).ToNot(BeEmpty())
 
 		session = podmanTest.Podman([]string{"history", "--no-trunc", "--format", "{{.ID}}", ALPINE})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		lines := session.OutputToStringArray()
-		Expect(len(lines)).To(BeNumerically(">", 0))
+		Expect(lines).ToNot(BeEmpty())
 		// the image id must be 64 chars long
 		Expect(lines[0]).To(HaveLen(64))
 
@@ -78,7 +78,7 @@ var _ = Describe("Podman history", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		lines = session.OutputToStringArray()
-		Expect(len(lines)).To(BeNumerically(">", 0))
+		Expect(lines).ToNot(BeEmpty())
 		Expect(session.OutputToString()).ToNot(ContainSubstring("..."))
 		// the second line in the alpine history contains a command longer than 45 chars
 		Expect(len(lines[1])).To(BeNumerically(">", 45))

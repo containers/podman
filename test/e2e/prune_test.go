@@ -190,7 +190,7 @@ var _ = Describe("Podman prune", func() {
 		hasNoneAfter, result := after.GrepString("<none>")
 		Expect(hasNoneAfter).To(BeTrue())
 		Expect(len(after.OutputToStringArray())).To(BeNumerically(">", 1))
-		Expect(len(result)).To(BeNumerically(">", 0))
+		Expect(result).ToNot(BeEmpty())
 	})
 
 	It("podman image prune unused images", func() {

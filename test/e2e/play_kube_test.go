@@ -763,7 +763,7 @@ func generateMultiDocKubeYaml(kubeObjects []string, pathname string) error {
 func createSecret(podmanTest *PodmanTestIntegration, name string, value []byte) { //nolint:unparam
 	secretFilePath := filepath.Join(podmanTest.TempDir, "secret")
 	err := os.WriteFile(secretFilePath, value, 0755)
-	Expect(err).To(BeNil())
+	Expect(err).ToNot(HaveOccurred())
 
 	secret := podmanTest.Podman([]string{"secret", "create", name, secretFilePath})
 	secret.WaitWithDefaultTimeout()
@@ -1384,7 +1384,7 @@ var _ = Describe("Podman play kube", func() {
 
 	It("podman play kube fail with yaml of unsupported kind", func() {
 		err := writeYaml(unknownKindYaml, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -1397,7 +1397,7 @@ var _ = Describe("Podman play kube", func() {
 			Skip("SELinux not enabled")
 		}
 		err := writeYaml(selinuxLabelPodYaml, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -1412,7 +1412,7 @@ var _ = Describe("Podman play kube", func() {
 
 	It("podman play kube --no-host", func() {
 		err := writeYaml(checkInfraImagePodYaml, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", "--no-hosts", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -1436,7 +1436,7 @@ var _ = Describe("Podman play kube", func() {
 
 	It("podman play kube with non-existing configmap", func() {
 		err := writeYaml(podWithoutConfigMapDefined, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -1455,7 +1455,7 @@ var _ = Describe("Podman play kube", func() {
 			}),
 		)
 		err := generateKubeYaml("pod", pod, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", "--no-hosts", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -1468,7 +1468,7 @@ var _ = Describe("Podman play kube", func() {
 
 		infraImage := "k8s.gcr.io/pause:3.2"
 		err := os.WriteFile(conffile, []byte(fmt.Sprintf("[engine]\ninfra_image=\"%s\"\n", infraImage)), 0644)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		os.Setenv("CONTAINERS_CONF", conffile)
 		defer os.Unsetenv("CONTAINERS_CONF")
@@ -1478,7 +1478,7 @@ var _ = Describe("Podman play kube", func() {
 		}
 
 		err = writeYaml(checkInfraImagePodYaml, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -1497,7 +1497,7 @@ var _ = Describe("Podman play kube", func() {
 	It("podman play kube should share ipc,net,uts when shareProcessNamespace is set", func() {
 		SkipIfRootless("Requires root privileges for sharing few namespaces")
 		err := writeYaml(sharedNamespacePodYaml, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -1520,7 +1520,7 @@ var _ = Describe("Podman play kube", func() {
 		Expect(session).Should(Exit(0))
 
 		err := writeYaml(workdirSymlinkPodYaml, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -1534,7 +1534,7 @@ var _ = Describe("Podman play kube", func() {
 
 	It("podman play kube should not rename pod if container in pod has same name", func() {
 		err := writeYaml(podnameEqualsContainerNameYaml, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -1557,7 +1557,7 @@ var _ = Describe("Podman play kube", func() {
 
 	It("podman play kube should error if pod dont have a name", func() {
 		err := writeYaml(podWithoutAName, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -1567,7 +1567,7 @@ var _ = Describe("Podman play kube", func() {
 
 	It("podman play kube support container liveness probe", func() {
 		err := writeYaml(livenessProbePodYaml, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -1582,7 +1582,7 @@ var _ = Describe("Podman play kube", func() {
 
 	It("podman play kube liveness probe should fail", func() {
 		err := writeYaml(livenessProbeUnhealthyPodYaml, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -1597,7 +1597,7 @@ var _ = Describe("Podman play kube", func() {
 
 	It("podman play kube fail with nonexistent authfile", func() {
 		err := generateKubeYaml("pod", getPod(), kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", "--authfile", "/tmp/nonexistent", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -1608,7 +1608,7 @@ var _ = Describe("Podman play kube", func() {
 	It("podman play kube test correct command", func() {
 		pod := getPod()
 		err := generateKubeYaml("pod", pod, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -1633,7 +1633,7 @@ var _ = Describe("Podman play kube", func() {
 	It("podman play kube test correct args and cmd when not specified", func() {
 		pod := getPod(withCtr(getCtr(withImage(REGISTRY_IMAGE), withCmd(nil), withArg(nil))))
 		err := generateKubeYaml("pod", pod, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -1657,7 +1657,7 @@ var _ = Describe("Podman play kube", func() {
 	It("podman play kube test correct command with only set command in yaml file", func() {
 		pod := getPod(withCtr(getCtr(withImage(REGISTRY_IMAGE), withCmd([]string{"echo", "hello"}), withArg(nil))))
 		err := generateKubeYaml("pod", pod, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -1683,7 +1683,7 @@ var _ = Describe("Podman play kube", func() {
 		// With the init container type annotation set to always
 		pod := getPod(withAnnotation("io.podman.annotations.init.container.type", "always"), withPodInitCtr(getCtr(withImage(ALPINE), withCmd([]string{"echo", "hello"}), withInitCtr(), withName("init-test"))), withCtr(getCtr(withImage(ALPINE), withCmd([]string{"top"}))))
 		err := generateKubeYaml("pod", pod, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -1712,7 +1712,7 @@ var _ = Describe("Podman play kube", func() {
 		// Using the default init container type (once)
 		pod := getPod(withPodInitCtr(getCtr(withImage(ALPINE), withCmd([]string{"echo", "hello"}), withInitCtr(), withName("init-test"))), withCtr(getCtr(withImage(ALPINE), withCmd([]string{"top"}))))
 		err := generateKubeYaml("pod", pod, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -1733,7 +1733,7 @@ var _ = Describe("Podman play kube", func() {
 	It("podman play kube test correct command with only set args in yaml file", func() {
 		pod := getPod(withCtr(getCtr(withImage(REGISTRY_IMAGE), withCmd(nil), withArg([]string{"echo", "hello"}))))
 		err := generateKubeYaml("pod", pod, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -1757,7 +1757,7 @@ var _ = Describe("Podman play kube", func() {
 	It("podman play kube test correct command with both set args and cmd in yaml file", func() {
 		pod := getPod(withCtr(getCtr(withImage(REGISTRY_IMAGE), withCmd([]string{"echo"}), withArg([]string{"hello"}))))
 		err := generateKubeYaml("pod", pod, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -1778,7 +1778,7 @@ var _ = Describe("Podman play kube", func() {
 		p := getPod(withCtr(getCtr(withCmd([]string{"echo", "hello"}), withArg([]string{"world"}))))
 
 		err := generateKubeYaml("pod", p, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -1799,7 +1799,7 @@ var _ = Describe("Podman play kube", func() {
 		p := getPod(withCtr(getCtr(withCmd([]string{"echo", "hello"}), withArg([]string{"world"}))))
 
 		err := generateKubeYaml("pod", p, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -1820,7 +1820,7 @@ var _ = Describe("Podman play kube", func() {
 		p := getPod(withCtr(getCtr(withCmd([]string{"echo", "hello"}), withArg([]string{"world"}))))
 
 		err := generateKubeYaml("pod", p, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -1847,7 +1847,7 @@ var _ = Describe("Podman play kube", func() {
 		for _, v := range testSli {
 			pod := getPod(withPodName(v[0]), withRestartPolicy(v[1]))
 			err := generateKubeYaml("pod", pod, kubeYaml)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 
 			kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 			kube.WaitWithDefaultTimeout()
@@ -1865,11 +1865,11 @@ var _ = Describe("Podman play kube", func() {
 		cmYamlPathname := filepath.Join(podmanTest.TempDir, "foo-cm.yaml")
 		cm := getConfigMap(withConfigMapName("foo"), withConfigMapData("FOO", "foo"))
 		err := generateKubeYaml("configmap", cm, cmYamlPathname)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		pod := getPod(withCtr(getCtr(withEnv("FOO", "", "configmap", "foo", "FOO", false))))
 		err = generateKubeYaml("pod", pod, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml, "--configmap", cmYamlPathname})
 		kube.WaitWithDefaultTimeout()
@@ -1886,11 +1886,11 @@ var _ = Describe("Podman play kube", func() {
 		cmYamlPathname := filepath.Join(podmanTest.TempDir, "foo-cm.yaml")
 		cm := getConfigMap(withConfigMapName("foo"), withConfigMapData("FOO", "foo"))
 		err := generateKubeYaml("configmap", cm, cmYamlPathname)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		pod := getPod(withCtr(getCtr(withEnv("FOO", "", "configmap", "foo", "FOO", false))))
 		err = generateKubeYaml("pod", pod, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml, "--configmap", cmYamlPathname})
 		kube.WaitWithDefaultTimeout()
@@ -1912,11 +1912,11 @@ var _ = Describe("Podman play kube", func() {
 		cmYamlPathname := filepath.Join(podmanTest.TempDir, "foo-cm.yaml")
 		cm := getConfigMap(withConfigMapName("foo"), withConfigMapData("FOO", "foo"))
 		err := generateKubeYaml("configmap", cm, cmYamlPathname)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		pod := getPod(withCtr(getCtr(withEnv("FOO", "", "configmap", "foo", "MISSING_KEY", false))))
 		err = generateKubeYaml("pod", pod, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml, "--configmap", cmYamlPathname})
 		kube.WaitWithDefaultTimeout()
@@ -1926,7 +1926,7 @@ var _ = Describe("Podman play kube", func() {
 	It("podman play kube test required env value from missing configmap", func() {
 		pod := getPod(withCtr(getCtr(withEnv("FOO", "", "configmap", "missing_cm", "FOO", false))))
 		err = generateKubeYaml("pod", pod, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -1938,11 +1938,11 @@ var _ = Describe("Podman play kube", func() {
 		cmYamlPathname := filepath.Join(podmanTest.TempDir, "foo-cm.yaml")
 		cm := getConfigMap(withConfigMapName("foo"), withConfigMapData("FOO", "foo"))
 		err := generateKubeYaml("configmap", cm, cmYamlPathname)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		pod := getPod(withCtr(getCtr(withEnv("FOO", "", "configmap", "foo", "MISSING_KEY", true))))
 		err = generateKubeYaml("pod", pod, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml, "--configmap", cmYamlPathname})
 		kube.WaitWithDefaultTimeout()
@@ -1957,7 +1957,7 @@ var _ = Describe("Podman play kube", func() {
 	It("podman play kube test optional env value from missing configmap", func() {
 		pod := getPod(withCtr(getCtr(withEnv("FOO", "", "configmap", "missing_cm", "FOO", true))))
 		err = generateKubeYaml("pod", pod, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -1974,11 +1974,11 @@ var _ = Describe("Podman play kube", func() {
 		cmYamlPathname := filepath.Join(podmanTest.TempDir, "foo-cm.yaml")
 		cm := getConfigMap(withConfigMapName("foo"), withConfigMapData("FOO1", "foo1"), withConfigMapData("FOO2", "foo2"))
 		err := generateKubeYaml("configmap", cm, cmYamlPathname)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		pod := getPod(withCtr(getCtr(withEnvFrom("foo", "configmap", false))))
 		err = generateKubeYaml("pod", pod, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml, "--configmap", cmYamlPathname})
 		kube.WaitWithDefaultTimeout()
@@ -1994,7 +1994,7 @@ var _ = Describe("Podman play kube", func() {
 	It("podman play kube test get all key-value pairs from required configmap as envs", func() {
 		pod := getPod(withCtr(getCtr(withEnvFrom("missing_cm", "configmap", false))))
 		err = generateKubeYaml("pod", pod, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -2004,7 +2004,7 @@ var _ = Describe("Podman play kube", func() {
 	It("podman play kube test get all key-value pairs from optional configmap as envs", func() {
 		pod := getPod(withCtr(getCtr(withEnvFrom("missing_cm", "configmap", true))))
 		err = generateKubeYaml("pod", pod, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -2015,7 +2015,7 @@ var _ = Describe("Podman play kube", func() {
 		createSecret(podmanTest, "foo", defaultSecret)
 		pod := getPod(withCtr(getCtr(withEnv("FOO", "", "secret", "foo", "FOO", false))))
 		err = generateKubeYaml("pod", pod, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -2030,7 +2030,7 @@ var _ = Describe("Podman play kube", func() {
 	It("podman play kube test required env value from missing secret", func() {
 		pod := getPod(withCtr(getCtr(withEnv("FOO", "", "secret", "foo", "FOO", false))))
 		err = generateKubeYaml("pod", pod, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -2041,7 +2041,7 @@ var _ = Describe("Podman play kube", func() {
 		createSecret(podmanTest, "foo", defaultSecret)
 		pod := getPod(withCtr(getCtr(withEnv("FOO", "", "secret", "foo", "MISSING", false))))
 		err = generateKubeYaml("pod", pod, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -2051,7 +2051,7 @@ var _ = Describe("Podman play kube", func() {
 	It("podman play kube test optional env value from missing secret", func() {
 		pod := getPod(withCtr(getCtr(withEnv("FOO", "", "secret", "foo", "FOO", true))))
 		err = generateKubeYaml("pod", pod, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -2067,7 +2067,7 @@ var _ = Describe("Podman play kube", func() {
 		createSecret(podmanTest, "foo", defaultSecret)
 		pod := getPod(withCtr(getCtr(withEnv("FOO", "", "secret", "foo", "MISSING", true))))
 		err = generateKubeYaml("pod", pod, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -2083,7 +2083,7 @@ var _ = Describe("Podman play kube", func() {
 		createSecret(podmanTest, "foo", defaultSecret)
 		pod := getPod(withCtr(getCtr(withEnvFrom("foo", "secret", false))))
 		err = generateKubeYaml("pod", pod, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -2099,7 +2099,7 @@ var _ = Describe("Podman play kube", func() {
 	It("podman play kube test get all key-value pairs from required secret as envs", func() {
 		pod := getPod(withCtr(getCtr(withEnvFrom("missing_secret", "secret", false))))
 		err = generateKubeYaml("pod", pod, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -2109,7 +2109,7 @@ var _ = Describe("Podman play kube", func() {
 	It("podman play kube test get all key-value pairs from optional secret as envs", func() {
 		pod := getPod(withCtr(getCtr(withEnvFrom("missing_secret", "secret", true))))
 		err = generateKubeYaml("pod", pod, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -2120,7 +2120,7 @@ var _ = Describe("Podman play kube", func() {
 		p := getPod(withCtr(getCtr(withName("testctr"), withCmd([]string{"echo", "hello"}))), withCtr(getCtr(withName("testctr"), withCmd([]string{"echo", "world"}))))
 
 		err := generateKubeYaml("pod", p, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -2129,7 +2129,7 @@ var _ = Describe("Podman play kube", func() {
 		p = getPod(withPodInitCtr(getCtr(withImage(ALPINE), withCmd([]string{"echo", "hello"}), withInitCtr(), withName("initctr"))), withCtr(getCtr(withImage(ALPINE), withName("initctr"), withCmd([]string{"top"}))))
 
 		err = generateKubeYaml("pod", p, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube = podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -2139,7 +2139,7 @@ var _ = Describe("Podman play kube", func() {
 	It("podman play kube test hostname", func() {
 		pod := getPod()
 		err := generateKubeYaml("pod", pod, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -2155,7 +2155,7 @@ var _ = Describe("Podman play kube", func() {
 		hostname := "myhostname"
 		pod := getPod(withHostname(hostname))
 		err := generateKubeYaml("pod", getPod(withHostname(hostname)), kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -2183,7 +2183,7 @@ var _ = Describe("Podman play kube", func() {
 			}),
 		)
 		err := generateKubeYaml("pod", pod, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -2202,7 +2202,7 @@ var _ = Describe("Podman play kube", func() {
 
 		pod := getPod(withCtr(ctr))
 		err := generateKubeYaml("pod", pod, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -2220,7 +2220,7 @@ var _ = Describe("Podman play kube", func() {
 
 		pod := getPod(withCtr(ctr))
 		err := generateKubeYaml("pod", pod, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -2236,7 +2236,7 @@ var _ = Describe("Podman play kube", func() {
 		// expect play kube to not fail if no security context is specified
 		pod := getPod(withCtr(getCtr(withSecurityContext(false))))
 		err := generateKubeYaml("pod", pod, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -2261,7 +2261,7 @@ var _ = Describe("Podman play kube", func() {
 
 		pod := getPod(withCtr(ctr), withAnnotation(ctrAnnotation, "localhost/"+filepath.Base(jsonFile)))
 		err = generateKubeYaml("pod", pod, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		// CreateSeccompJSON will put the profile into podmanTest.TempDir. Use --seccomp-profile-root to tell play kube where to look
 		kube := podmanTest.Podman([]string{"play", "kube", "--seccomp-profile-root", podmanTest.TempDir, kubeYaml})
@@ -2288,7 +2288,7 @@ var _ = Describe("Podman play kube", func() {
 
 		pod := getPod(withCtr(ctr), withAnnotation("seccomp.security.alpha.kubernetes.io/pod", "localhost/"+filepath.Base(jsonFile)))
 		err = generateKubeYaml("pod", pod, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		// CreateSeccompJSON will put the profile into podmanTest.TempDir. Use --seccomp-profile-root to tell play kube where to look
 		kube := podmanTest.Podman([]string{"play", "kube", "--seccomp-profile-root", podmanTest.TempDir, kubeYaml})
@@ -2304,7 +2304,7 @@ var _ = Describe("Podman play kube", func() {
 	It("podman play kube with pull policy of never should be 125", func() {
 		ctr := getCtr(withPullPolicy("never"), withImage(BB_GLIBC))
 		err := generateKubeYaml("pod", getPod(withCtr(ctr)), kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -2314,7 +2314,7 @@ var _ = Describe("Podman play kube", func() {
 	It("podman play kube with pull policy of missing", func() {
 		ctr := getCtr(withPullPolicy("Missing"), withImage(BB))
 		err := generateKubeYaml("pod", getPod(withCtr(ctr)), kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -2340,7 +2340,7 @@ var _ = Describe("Podman play kube", func() {
 
 		ctr := getCtr(withPullPolicy("always"), withImage(BB))
 		err := generateKubeYaml("pod", getPod(withCtr(ctr)), kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -2371,7 +2371,7 @@ var _ = Describe("Podman play kube", func() {
 
 		ctr := getCtr(withImage(BB))
 		err := generateKubeYaml("pod", getPod(withCtr(ctr)), kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -2405,10 +2405,10 @@ spec:
 
 		conffile := filepath.Join(podmanTest.TempDir, "kube.yaml")
 		tempdir, err = CreateTempDirInTempDir()
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		err := os.WriteFile(conffile, []byte(testyaml), 0755)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", conffile})
 		kube.WaitWithDefaultTimeout()
@@ -2429,7 +2429,7 @@ spec:
 	It("podman play kube deployment 1 replica test correct command", func() {
 		deployment := getDeployment()
 		err := generateKubeYaml("deployment", deployment, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -2448,7 +2448,7 @@ spec:
 		numReplicas = 5
 		deployment := getDeployment(withReplicas(numReplicas))
 		err := generateKubeYaml("deployment", deployment, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -2468,7 +2468,7 @@ spec:
 		numReplicas = 3
 		deployment := getDeployment(withReplicas(numReplicas))
 		err := generateKubeYaml("deployment", deployment, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		net := "playkube" + stringid.GenerateRandomID()
 		session := podmanTest.Podman([]string{"network", "create", "--subnet", "10.25.31.0/24", net})
@@ -2510,7 +2510,7 @@ spec:
 		ctr := getCtr(withImage(ALPINE))
 		pod := getPod(withCtr(ctr))
 		err := generateKubeYaml("pod", pod, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		net1 := "net1" + stringid.GenerateRandomID()
 		net2 := "net2" + stringid.GenerateRandomID()
@@ -2548,7 +2548,7 @@ spec:
 
 		pod := getPod(withCtr(ctr))
 		err := generateKubeYaml("pod", pod, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -2565,7 +2565,7 @@ spec:
 
 		pod := getPod(withVolume(getHostPathVolume(`""`, hostPathLocation)))
 		err := generateKubeYaml("pod", pod, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -2576,12 +2576,12 @@ spec:
 	It("podman play kube test with empty HostPath type volume", func() {
 		hostPathLocation := filepath.Join(tempdir, "file")
 		f, err := os.Create(hostPathLocation)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		f.Close()
 
 		pod := getPod(withVolume(getHostPathVolume(`""`, hostPathLocation)))
 		err = generateKubeYaml("pod", pod, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -2593,7 +2593,7 @@ spec:
 
 		pod := getPod(withVolume(getHostPathVolume("File", hostPathLocation)))
 		err := generateKubeYaml("pod", pod, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -2603,12 +2603,12 @@ spec:
 	It("podman play kube test with File HostPath type volume", func() {
 		hostPathLocation := filepath.Join(tempdir, "file")
 		f, err := os.Create(hostPathLocation)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		f.Close()
 
 		pod := getPod(withVolume(getHostPathVolume("File", hostPathLocation)))
 		err = generateKubeYaml("pod", pod, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -2620,7 +2620,7 @@ spec:
 
 		pod := getPod(withVolume(getHostPathVolume("FileOrCreate", hostPathLocation)))
 		err := generateKubeYaml("pod", pod, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -2628,7 +2628,7 @@ spec:
 
 		// the file should have been created
 		_, err = os.Stat(hostPathLocation)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 	})
 
 	It("podman play kube test with DirectoryOrCreate HostPath type volume", func() {
@@ -2636,7 +2636,7 @@ spec:
 
 		pod := getPod(withVolume(getHostPathVolume("DirectoryOrCreate", hostPathLocation)))
 		err := generateKubeYaml("pod", pod, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -2644,8 +2644,8 @@ spec:
 
 		// the file should have been created
 		st, err := os.Stat(hostPathLocation)
-		Expect(err).To(BeNil())
-		Expect(st.Mode().IsDir()).To(Equal(true))
+		Expect(err).ToNot(HaveOccurred())
+		Expect(st.Mode().IsDir()).To(BeTrue())
 	})
 
 	It("podman play kube test with DirectoryOrCreate HostPath type volume and non-existent directory path", func() {
@@ -2653,7 +2653,7 @@ spec:
 
 		pod := getPod(withVolume(getHostPathVolume("DirectoryOrCreate", hostPathLocation)))
 		err := generateKubeYaml("pod", pod, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -2661,17 +2661,17 @@ spec:
 
 		// the full path should have been created
 		st, err := os.Stat(hostPathLocation)
-		Expect(err).To(BeNil())
-		Expect(st.Mode().IsDir()).To(Equal(true))
+		Expect(err).ToNot(HaveOccurred())
+		Expect(st.Mode().IsDir()).To(BeTrue())
 	})
 
 	It("podman play kube test with DirectoryOrCreate HostPath type volume and existent directory path", func() {
 		hostPathLocation := filepath.Join(filepath.Join(tempdir, "dir1"), "dir2")
-		Expect(os.MkdirAll(hostPathLocation, os.ModePerm)).To(BeNil())
+		Expect(os.MkdirAll(hostPathLocation, os.ModePerm)).To(Succeed())
 
 		pod := getPod(withVolume(getHostPathVolume("DirectoryOrCreate", hostPathLocation)))
 		err := generateKubeYaml("pod", pod, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -2681,12 +2681,12 @@ spec:
 	It("podman play kube test with Socket HostPath type volume should fail if not socket", func() {
 		hostPathLocation := filepath.Join(tempdir, "file")
 		f, err := os.Create(hostPathLocation)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		f.Close()
 
 		pod := getPod(withVolume(getHostPathVolume("Socket", hostPathLocation)))
 		err = generateKubeYaml("pod", pod, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -2696,13 +2696,13 @@ spec:
 	It("podman play kube test with read-only HostPath volume", func() {
 		hostPathLocation := filepath.Join(tempdir, "file")
 		f, err := os.Create(hostPathLocation)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		f.Close()
 
 		ctr := getCtr(withVolumeMount(hostPathLocation, true), withImage(BB))
 		pod := getPod(withVolume(getHostPathVolume("File", hostPathLocation)), withCtr(ctr))
 		err = generateKubeYaml("pod", pod, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -2723,11 +2723,11 @@ spec:
 
 		hostPathDir := filepath.Join(tempdir, testdir)
 		err := os.Mkdir(hostPathDir, 0755)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		hostPathDirFile := filepath.Join(hostPathDir, testfile)
 		f, err := os.Create(hostPathDirFile)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		f.Close()
 
 		// Create container image with named volume
@@ -2742,7 +2742,7 @@ VOLUME %s`, ALPINE, hostPathDir+"/")
 		ctr := getCtr(withVolumeMount(hostPathDir+"/", false), withImage(image))
 		pod := getPod(withCtr(ctr), withVolume(getHostPathVolume("Directory", hostPathDir+"/")))
 		err = generateKubeYaml("pod", pod, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -2770,7 +2770,7 @@ VOLUME %s`, ALPINE, hostPathDir+"/")
 		ctr := getCtr(withVolumeMount("/test", false), withImage(BB))
 		pod := getPod(withVolume(getPersistentVolumeClaimVolume(volumeName)), withCtr(ctr))
 		err = generateKubeYaml("pod", pod, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -2788,15 +2788,15 @@ VOLUME %s`, ALPINE, hostPathDir+"/")
 		volumeName := "cmVol"
 		cm := getConfigMap(withConfigMapName(volumeName), withConfigMapData("FOO", "foobar"))
 		cmYaml, err := getKubeYaml("configmap", cm)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		ctr := getCtr(withVolumeMount("/test", false), withImage(BB))
 		pod := getPod(withVolume(getConfigMapVolume(volumeName, []map[string]string{}, false)), withCtr(ctr))
 		podYaml, err := getKubeYaml("pod", pod)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		yamls := []string{cmYaml, podYaml}
 		err = generateMultiDocKubeYaml(yamls, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -2812,7 +2812,7 @@ VOLUME %s`, ALPINE, hostPathDir+"/")
 		volumeName := "cmVol"
 		cm := getConfigMap(withConfigMapName(volumeName), withConfigMapData("FOO", "foobar"))
 		cmYaml, err := getKubeYaml("configmap", cm)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		volumeContents := []map[string]string{{
 			"key":  "FOO",
 			"path": "BAR",
@@ -2821,10 +2821,10 @@ VOLUME %s`, ALPINE, hostPathDir+"/")
 		ctr := getCtr(withVolumeMount("/test", false), withImage(BB))
 		pod := getPod(withVolume(getConfigMapVolume(volumeName, volumeContents, false)), withCtr(ctr))
 		podYaml, err := getKubeYaml("pod", pod)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		yamls := []string{cmYaml, podYaml}
 		err = generateMultiDocKubeYaml(yamls, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -2846,7 +2846,7 @@ VOLUME %s`, ALPINE, hostPathDir+"/")
 		ctr := getCtr(withVolumeMount("/test", false), withImage(BB))
 		pod := getPod(withVolume(getConfigMapVolume(volumeName, []map[string]string{}, true)), withCtr(ctr))
 		err = generateKubeYaml("pod", pod, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -2861,7 +2861,7 @@ VOLUME %s`, ALPINE, hostPathDir+"/")
 		ctr2 := getCtr(withVolumeMount("/test-emptydir-2", false), withImage(BB), withName(ctrName2))
 		pod := getPod(withPodName(podName), withVolume(getEmptyDirVolume()), withCtr(ctr1), withCtr(ctr2))
 		err = generateKubeYaml("pod", pod, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -2899,7 +2899,7 @@ VOLUME %s`, ALPINE, hostPathDir+"/")
 			withPod(getPod(withLabel(expectedLabelKey, expectedLabelValue))),
 		)
 		err := generateKubeYaml("deployment", deployment, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -2938,7 +2938,7 @@ VOLUME %s`, ALPINE, hostPathDir+"/")
 				withMemoryLimit(expectedMemoryLimit),
 			)))))
 		err := generateKubeYaml("deployment", deployment, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -2973,7 +2973,7 @@ MemoryReservation: {{ .HostConfig.MemoryReservation }}`})
 				withCPULimit(expectedCPULimit),
 			)))))
 		err := generateKubeYaml("deployment", deployment, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -3004,7 +3004,7 @@ MemoryReservation: {{ .HostConfig.MemoryReservation }}`})
 			),
 		)
 		err := generateKubeYaml("pod", pod, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -3016,7 +3016,7 @@ MemoryReservation: {{ .HostConfig.MemoryReservation }}`})
 		SkipIfInContainer("journald inside a container doesn't work")
 		pod := getPod()
 		err := generateKubeYaml("pod", pod, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", "--log-opt=max-size=10k", "--log-driver", "journald", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -3036,7 +3036,7 @@ MemoryReservation: {{ .HostConfig.MemoryReservation }}`})
 	It("podman play kube test only creating the containers", func() {
 		pod := getPod()
 		err := generateKubeYaml("pod", pod, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", "--start=false", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -3051,7 +3051,7 @@ MemoryReservation: {{ .HostConfig.MemoryReservation }}`})
 	It("podman play kube test with HostNetwork", func() {
 		pod := getPod(withHostNetwork(), withCtr(getCtr(withCmd([]string{"readlink", "/proc/self/ns/net"}), withArg(nil))))
 		err := generateKubeYaml("pod", pod, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -3077,7 +3077,7 @@ MemoryReservation: {{ .HostConfig.MemoryReservation }}`})
 	It("podman play kube test with kube default network", func() {
 		pod := getPod()
 		err := generateKubeYaml("pod", pod, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -3100,7 +3100,7 @@ MemoryReservation: {{ .HostConfig.MemoryReservation }}`})
 			withPVCAnnotations(util.VolumeTypeAnnotation, volType),
 			withPVCAnnotations(util.VolumeMountOptsAnnotation, volOpts))
 		err = generateKubeYaml("persistentVolumeClaim", pvc, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -3124,14 +3124,14 @@ o: {{ .Options.o }}`})
 		expectedFileContent := "Test"
 		tarFilePath := filepath.Join(os.TempDir(), "podmanVolumeSource.tgz")
 		err := createSourceTarFile(fileName, expectedFileContent, tarFilePath)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		volName := "myVolWithStorage"
 		pvc := getPVC(withPVCName(volName),
 			withPVCAnnotations(util.VolumeImportSourceAnnotation, tarFilePath),
 		)
 		err = generateKubeYaml("persistentVolumeClaim", pvc, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -3151,11 +3151,11 @@ o: {{ .Options.o }}`})
 		Expect(inspect).Should(Exit(0))
 		mp := make(map[string]string)
 		err = json.Unmarshal([]byte(inspect.OutputToString()), &mp)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		Expect(mp["Name"]).To(Equal(volName))
 		files, err := os.ReadDir(mp["Mountpoint"])
-		Expect(err).To(BeNil())
-		Expect(len(files)).To(Equal(1))
+		Expect(err).ToNot(HaveOccurred())
+		Expect(files).To(HaveLen(1))
 		Expect(files[0].Name()).To(Equal(fileName))
 	})
 
@@ -3191,7 +3191,7 @@ spec:
 
 		// add pvc
 		k, err := getKubeYaml("persistentVolumeClaim", pvc)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		yamlDocs = append(yamlDocs, k)
 
 		// add service
@@ -3199,12 +3199,12 @@ spec:
 
 		// add deployment
 		k, err = getKubeYaml("deployment", deployment)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		yamlDocs = append(yamlDocs, k)
 
 		// generate multi doc yaml
 		err = generateMultiDocKubeYaml(yamlDocs, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -3265,18 +3265,18 @@ spec:
 
 			// add pods
 			k, err := getKubeYaml("pod", pod)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			yamlDocs = append(yamlDocs, k)
 
 			// add deployments
 			k, err = getKubeYaml("deployment", deployment)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			yamlDocs = append(yamlDocs, k)
 		}
 
 		// generate multi doc yaml
 		err = generateMultiDocKubeYaml(yamlDocs, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -3313,12 +3313,12 @@ invalid kube kind
 		// add pod
 		pod := getPod()
 		k, err := getKubeYaml("pod", pod)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		yamlDocs = append(yamlDocs, k)
 
 		// generate multi doc yaml
 		err = generateMultiDocKubeYaml(yamlDocs, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -3345,7 +3345,7 @@ invalid kube kind
 			withAnnotation(autoUpdateAuthfile, autoUpdateAuthfileValue))
 
 		err = generateKubeYaml("pod", pod, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -3381,7 +3381,7 @@ invalid kube kind
 		)
 
 		err = generateKubeYaml("deployment", deployment, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -3403,7 +3403,7 @@ invalid kube kind
 	It("podman play kube teardown", func() {
 		pod := getPod()
 		err := generateKubeYaml("pod", pod, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -3444,7 +3444,7 @@ invalid kube kind
 			withPVCAnnotations(util.VolumeTypeAnnotation, volType),
 			withPVCAnnotations(util.VolumeMountOptsAnnotation, volOpts))
 		err = generateKubeYaml("persistentVolumeClaim", pvc, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -3476,7 +3476,7 @@ invalid kube kind
 			withPVCAnnotations(util.VolumeTypeAnnotation, volType),
 			withPVCAnnotations(util.VolumeMountOptsAnnotation, volOpts))
 		err = generateKubeYaml("persistentVolumeClaim", pvc, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -3508,7 +3508,7 @@ invalid kube kind
 			withPVCAnnotations(util.VolumeTypeAnnotation, volType),
 			withPVCAnnotations(util.VolumeMountOptsAnnotation, volOpts))
 		err = generateKubeYaml("persistentVolumeClaim", pvc, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -3543,7 +3543,7 @@ invalid kube kind
 
 		pod := getPod()
 		err = generateKubeYaml("pod", pod, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -3563,7 +3563,7 @@ invalid kube kind
 	It("podman play kube replace", func() {
 		pod := getPod()
 		err := generateKubeYaml("pod", pod, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -3589,7 +3589,7 @@ invalid kube kind
 			withCtr(ctr02),
 		)
 		err = generateKubeYaml("pod", newPod, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		replace := podmanTest.Podman([]string{"play", "kube", "--replace", kubeYaml})
 		replace.WaitWithDefaultTimeout()
@@ -3604,7 +3604,7 @@ invalid kube kind
 	It("podman play kube replace non-existing pod", func() {
 		pod := getPod()
 		err := generateKubeYaml("pod", pod, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		replace := podmanTest.Podman([]string{"play", "kube", "--replace", kubeYaml})
 		replace.WaitWithDefaultTimeout()
@@ -3631,7 +3631,7 @@ invalid kube kind
 		)
 
 		err := generateKubeYaml("pod", pod, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		cmd := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		cmd.WaitWithDefaultTimeout()
@@ -3693,16 +3693,16 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 			cm := getConfigMap(withConfigMapName("foo"), withConfigMapData("FOO", "foo"))
 
 			cmYaml, err := getKubeYaml("configmap", cm)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 
 			pod := getPod(withCtr(getCtr(withEnv("FOO", "", "configmap", "foo", "FOO", false))))
 
 			podYaml, err := getKubeYaml("pod", pod)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 
 			yamls := []string{cmYaml, podYaml}
 			err = generateMultiDocKubeYaml(yamls, kubeYaml)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 
 			kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 			kube.WaitWithDefaultTimeout()
@@ -3718,16 +3718,16 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 			cm := getConfigMap(withConfigMapName("foo"), withConfigMapData("FOO", "foo"))
 
 			cmYaml, err := getKubeYaml("configmap", cm)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 
 			pod := getPod(withCtr(getCtr(withEnv("FOO", "", "configmap", "foo", "MISSING_KEY", false))))
 
 			podYaml, err := getKubeYaml("pod", pod)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 
 			yamls := []string{cmYaml, podYaml}
 			err = generateMultiDocKubeYaml(yamls, kubeYaml)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 
 			kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 			kube.WaitWithDefaultTimeout()
@@ -3738,16 +3738,16 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 			cm := getConfigMap(withConfigMapName("foo"), withConfigMapData("FOO", "foo"))
 
 			cmYaml, err := getKubeYaml("configmap", cm)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 
 			pod := getPod(withCtr(getCtr(withEnv("FOO", "", "configmap", "foo", "MISSING_KEY", true))))
 
 			podYaml, err := getKubeYaml("pod", pod)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 
 			yamls := []string{cmYaml, podYaml}
 			err = generateMultiDocKubeYaml(yamls, kubeYaml)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 
 			kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 			kube.WaitWithDefaultTimeout()
@@ -3762,16 +3762,16 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 		It("podman play kube uses all key-value pairs as envs", func() {
 			cm := getConfigMap(withConfigMapName("foo"), withConfigMapData("FOO1", "foo1"), withConfigMapData("FOO2", "foo2"))
 			cmYaml, err := getKubeYaml("configmap", cm)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 
 			pod := getPod(withCtr(getCtr(withEnvFrom("foo", "configmap", false))))
 
 			podYaml, err := getKubeYaml("pod", pod)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 
 			yamls := []string{cmYaml, podYaml}
 			err = generateMultiDocKubeYaml(yamls, kubeYaml)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 
 			kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 			kube.WaitWithDefaultTimeout()
@@ -3788,16 +3788,16 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 			cm := getConfigMap(withConfigMapName("foo"), withConfigMapData("FOO", "foo"))
 
 			cmYaml, err := getKubeYaml("configmap", cm)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 
 			pod := getPod(withCtr(getCtr(withEnv("FOO", "", "configmap", "foo", "FOO", false))))
 
 			deployment := getDeployment(withPod(pod))
 			deploymentYaml, err := getKubeYaml("deployment", deployment)
-			Expect(err).To(BeNil(), "getKubeYaml(deployment)")
+			Expect(err).ToNot(HaveOccurred(), "getKubeYaml(deployment)")
 			yamls := []string{cmYaml, deploymentYaml}
 			err = generateMultiDocKubeYaml(yamls, kubeYaml)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 
 			kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 			kube.WaitWithDefaultTimeout()
@@ -3826,14 +3826,14 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 
 			cm := getConfigMap(withConfigMapName("foo"), withConfigMapData("FOO", "foo"))
 			cmYaml, err := getKubeYaml("configmap", cm)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 
 			pod := getPod(withCtr(getCtr(withEnv("FOO", "", "configmap", "foo", "FOO", false))))
 			podYaml, err := getKubeYaml("pod", pod)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			yamls := []string{cmYaml, podYaml}
 			err = generateMultiDocKubeYaml(yamls, kubeYaml)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 
 			podmanConnection, err := bindings.NewConnection(context.Background(), address.String())
 			Expect(err).ToNot(HaveOccurred())
@@ -3855,12 +3855,12 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 			fsCmYamlPathname := filepath.Join(podmanTest.TempDir, "foo-cm.yaml")
 			fsCm := getConfigMap(withConfigMapName("fooFs"), withConfigMapData("FOO_FS", "fooFS"))
 			err := generateKubeYaml("configmap", fsCm, fsCmYamlPathname)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 
 			cm := getConfigMap(withConfigMapName("foo"), withConfigMapData("FOO", "foo"))
 
 			cmYaml, err := getKubeYaml("configmap", cm)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 
 			pod := getPod(withCtr(getCtr(
 				withEnv("FOO_FS", "", "configmap", "fooFs", "FOO_FS", false),
@@ -3868,11 +3868,11 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 			)))
 
 			podYaml, err := getKubeYaml("pod", pod)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 
 			yamls := []string{cmYaml, podYaml}
 			err = generateMultiDocKubeYaml(yamls, kubeYaml)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 
 			kube := podmanTest.Podman([]string{"play", "kube", kubeYaml, "--configmap", fsCmYamlPathname})
 			kube.WaitWithDefaultTimeout()
@@ -3895,7 +3895,7 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 				withConfigMapData("FOO_FS_1", "fooFS1"),
 				withConfigMapData("FOO_FS_2", "fooFS2"))
 			err := generateKubeYaml("configmap", fsCm, fsCmYamlPathname)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 
 			cm := getConfigMap(withConfigMapName("foo"),
 				withConfigMapData("FOO_1", "foo1"),
@@ -3903,7 +3903,7 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 			)
 
 			cmYaml, err := getKubeYaml("configmap", cm)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 
 			pod := getPod(withCtr(getCtr(
 				withEnvFrom("foo", "configmap", false),
@@ -3911,11 +3911,11 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 			)))
 
 			podYaml, err := getKubeYaml("pod", pod)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 
 			yamls := []string{cmYaml, podYaml}
 			err = generateMultiDocKubeYaml(yamls, kubeYaml)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 
 			kube := podmanTest.Podman([]string{"play", "kube", kubeYaml, "--configmap", fsCmYamlPathname})
 			kube.WaitWithDefaultTimeout()
@@ -3938,23 +3938,23 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 			fsCmYamlPathname := filepath.Join(podmanTest.TempDir, "foo-cm.yaml")
 			fsCm := getConfigMap(withConfigMapName("foo"), withConfigMapData("FOO", "fooFS"))
 			err := generateKubeYaml("configmap", fsCm, fsCmYamlPathname)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 
 			cm := getConfigMap(withConfigMapName("foo"), withConfigMapData("FOO", "foo"))
 
 			cmYaml, err := getKubeYaml("configmap", cm)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 
 			pod := getPod(withCtr(getCtr(
 				withEnv("FOO", "", "configmap", "foo", "FOO", false),
 			)))
 
 			podYaml, err := getKubeYaml("pod", pod)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 
 			yamls := []string{cmYaml, podYaml}
 			err = generateMultiDocKubeYaml(yamls, kubeYaml)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 
 			kube := podmanTest.Podman([]string{"play", "kube", kubeYaml, "--configmap", fsCmYamlPathname})
 			kube.WaitWithDefaultTimeout()
@@ -3967,7 +3967,7 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 		SkipIfContainerized("journald does not work inside the container")
 		pod := getPod()
 		err := generateKubeYaml("pod", pod, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml, "--log-driver", "journald", "--log-opt", "tag={{.ImageName}}"})
 		kube.WaitWithDefaultTimeout()
@@ -3985,7 +3985,7 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 
 	It("podman play kube using a user namespace", func() {
 		u, err := user.Current()
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		name := u.Name
 		if name == "root" {
 			name = "containers"
@@ -3999,7 +3999,7 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 		}
 
 		initialUsernsConfig, err := os.ReadFile("/proc/self/uid_map")
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		if os.Geteuid() != 0 {
 			unshare := podmanTest.Podman([]string{"unshare", "cat", "/proc/self/uid_map"})
 			unshare.WaitWithDefaultTimeout()
@@ -4009,7 +4009,7 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 
 		pod := getPod()
 		err = generateKubeYaml("pod", pod, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -4035,7 +4035,7 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 		for _, hostUsers := range []bool{true, false} {
 			pod = getPod(withHostUsers(hostUsers))
 			err = generateKubeYaml("pod", pod, kubeYaml)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 
 			kube = podmanTest.PodmanNoCache([]string{"play", "kube", "--replace", kubeYaml})
 			kube.WaitWithDefaultTimeout()
@@ -4058,9 +4058,9 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 
 		// randomize the folder name to avoid error when running tests with multiple nodes
 		uuid, err := uuid.NewUUID()
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		devFolder := fmt.Sprintf("/dev/foodev%x", uuid[:6])
-		Expect(os.MkdirAll(devFolder, os.ModePerm)).To(BeNil())
+		Expect(os.MkdirAll(devFolder, os.ModePerm)).To(Succeed())
 		defer os.RemoveAll(devFolder)
 
 		devicePath := fmt.Sprintf("%s/blockdevice", devFolder)
@@ -4072,7 +4072,7 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 
 		pod := getPod(withVolume(blockVolume), withCtr(getCtr(withImage(REGISTRY_IMAGE), withCmd(nil), withArg(nil), withVolumeMount(devicePath, false))))
 		err = generateKubeYaml("pod", pod, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -4097,9 +4097,9 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 
 		// randomize the folder name to avoid error when running tests with multiple nodes
 		uuid, err := uuid.NewUUID()
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		devFolder := fmt.Sprintf("/dev/foodev%x", uuid[:6])
-		Expect(os.MkdirAll(devFolder, os.ModePerm)).To(BeNil())
+		Expect(os.MkdirAll(devFolder, os.ModePerm)).To(Succeed())
 		defer os.RemoveAll(devFolder)
 
 		devicePath := fmt.Sprintf("%s/chardevice", devFolder)
@@ -4111,7 +4111,7 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 
 		pod := getPod(withVolume(charVolume), withCtr(getCtr(withImage(REGISTRY_IMAGE), withCmd(nil), withArg(nil), withVolumeMount(devicePath, false))))
 		err = generateKubeYaml("pod", pod, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -4139,7 +4139,7 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 
 		pod := getPod(withVolume(blockVolume), withCtr(getCtr(withImage(REGISTRY_IMAGE), withCmd(nil), withArg(nil), withVolumeMount(devicePath, false))))
 		err = generateKubeYaml("pod", pod, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -4151,9 +4151,9 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 
 		// randomize the folder name to avoid error when running tests with multiple nodes
 		uuid, err := uuid.NewUUID()
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		devFolder := fmt.Sprintf("/dev/foodev%x", uuid[:6])
-		Expect(os.MkdirAll(devFolder, os.ModePerm)).To(BeNil())
+		Expect(os.MkdirAll(devFolder, os.ModePerm)).To(Succeed())
 		defer os.RemoveAll(devFolder)
 
 		devicePath := fmt.Sprintf("%s/chardevice", devFolder)
@@ -4165,7 +4165,7 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 
 		pod := getPod(withVolume(charVolume), withCtr(getCtr(withImage(REGISTRY_IMAGE), withCmd(nil), withArg(nil), withVolumeMount(devicePath, false))))
 		err = generateKubeYaml("pod", pod, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -4177,9 +4177,9 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 
 		// randomize the folder name to avoid error when running tests with multiple nodes
 		uuid, err := uuid.NewUUID()
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		devFolder := fmt.Sprintf("/dev/foodev%x", uuid[:6])
-		Expect(os.MkdirAll(devFolder, os.ModePerm)).To(BeNil())
+		Expect(os.MkdirAll(devFolder, os.ModePerm)).To(Succeed())
 
 		devicePath := fmt.Sprintf("%s/blockdevice", devFolder)
 		mknod := SystemExec("mknod", []string{devicePath, "b", "7", "0"})
@@ -4190,7 +4190,7 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 
 		pod := getPod(withVolume(charVolume), withCtr(getCtr(withImage(REGISTRY_IMAGE), withCmd(nil), withArg(nil), withVolumeMount(devicePath, false))))
 		err = generateKubeYaml("pod", pod, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -4199,7 +4199,7 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 
 	It("podman play kube secret as volume support", func() {
 		err := writeYaml(secretYaml, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -4211,7 +4211,7 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 		Expect(secretList.OutputToString()).Should(ContainSubstring("newsecret"))
 
 		err = writeYaml(secretPodYaml, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube = podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -4232,7 +4232,7 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 
 		yamls := []string{secretYaml, secretPodYaml}
 		err = generateMultiDocKubeYaml(yamls, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube = podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
@@ -4242,14 +4242,14 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 
 		yamls = []string{secretYaml, complexSecretYaml}
 		err = generateMultiDocKubeYaml(yamls, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube = podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(Exit(0))
 
 		err = writeYaml(secretPodYamlTwo, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube = podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
