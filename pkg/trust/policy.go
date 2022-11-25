@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/types"
 	"github.com/sirupsen/logrus"
 )
@@ -53,7 +54,7 @@ type genericRepoMap map[string]json.RawMessage
 
 // DefaultPolicyPath returns a path to the default policy of the system.
 func DefaultPolicyPath(sys *types.SystemContext) string {
-	systemDefaultPolicyPath := "/etc/containers/policy.json"
+	systemDefaultPolicyPath := config.DefaultSignaturePolicyPath
 	if sys != nil {
 		if sys.SignaturePolicyPath != "" {
 			return sys.SignaturePolicyPath
