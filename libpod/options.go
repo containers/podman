@@ -850,7 +850,7 @@ func WithIDMappings(idmappings storage.IDMappingOptions) CtrCreateOption {
 	}
 }
 
-// WithUTSNSFromPod indicates the the container should join the UTS namespace of
+// WithUTSNSFromPod indicates that the container should join the UTS namespace of
 // its pod
 func WithUTSNSFromPod(p *Pod) CtrCreateOption {
 	return func(ctr *Container) error {
@@ -872,7 +872,7 @@ func WithUTSNSFromPod(p *Pod) CtrCreateOption {
 	}
 }
 
-// WithIPCNSFrom indicates the the container should join the IPC namespace of
+// WithIPCNSFrom indicates that the container should join the IPC namespace of
 // the given container.
 // If the container has joined a pod, it can only join the namespaces of
 // containers in the same pod.
@@ -892,7 +892,7 @@ func WithIPCNSFrom(nsCtr *Container) CtrCreateOption {
 	}
 }
 
-// WithMountNSFrom indicates the the container should join the mount namespace
+// WithMountNSFrom indicates that the container should join the mount namespace
 // of the given container.
 // If the container has joined a pod, it can only join the namespaces of
 // containers in the same pod.
@@ -911,7 +911,7 @@ func WithMountNSFrom(nsCtr *Container) CtrCreateOption {
 	}
 }
 
-// WithNetNSFrom indicates the the container should join the network namespace
+// WithNetNSFrom indicates that the container should join the network namespace
 // of the given container.
 // If the container has joined a pod, it can only join the namespaces of
 // containers in the same pod.
@@ -931,7 +931,7 @@ func WithNetNSFrom(nsCtr *Container) CtrCreateOption {
 	}
 }
 
-// WithPIDNSFrom indicates the the container should join the PID namespace of
+// WithPIDNSFrom indicates that the container should join the PID namespace of
 // the given container.
 // If the container has joined a pod, it can only join the namespaces of
 // containers in the same pod.
@@ -965,7 +965,7 @@ func WithAddCurrentUserPasswdEntry() CtrCreateOption {
 	}
 }
 
-// WithUserNSFrom indicates the the container should join the user namespace of
+// WithUserNSFrom indicates that the container should join the user namespace of
 // the given container.
 // If the container has joined a pod, it can only join the namespaces of
 // containers in the same pod.
@@ -1000,7 +1000,7 @@ func WithUserNSFrom(nsCtr *Container) CtrCreateOption {
 	}
 }
 
-// WithUTSNSFrom indicates the the container should join the UTS namespace of
+// WithUTSNSFrom indicates that the container should join the UTS namespace of
 // the given container.
 // If the container has joined a pod, it can only join the namespaces of
 // containers in the same pod.
@@ -1020,7 +1020,7 @@ func WithUTSNSFrom(nsCtr *Container) CtrCreateOption {
 	}
 }
 
-// WithCgroupNSFrom indicates the the container should join the Cgroup namespace
+// WithCgroupNSFrom indicates that the container should join the Cgroup namespace
 // of the given container.
 // If the container has joined a pod, it can only join the namespaces of
 // containers in the same pod.
@@ -1224,7 +1224,7 @@ func WithDNS(dnsServers []string) CtrCreateOption {
 	}
 }
 
-// WithDNSOption sets addition dns options for the container.
+// WithDNSOption sets additional dns options for the container.
 func WithDNSOption(dnsOptions []string) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
@@ -1538,7 +1538,7 @@ func WithCreateCommand(cmd []string) CtrCreateOption {
 	}
 }
 
-// withIsInfra allows us to dfferentiate between infra containers and other containers
+// withIsInfra allows us to differentiate between infra containers and other containers
 // within the container config
 func withIsInfra() CtrCreateOption {
 	return func(ctr *Container) error {
@@ -1552,7 +1552,7 @@ func withIsInfra() CtrCreateOption {
 	}
 }
 
-// WithIsService allows us to dfferentiate between service containers and other container
+// WithIsService allows us to differentiate between service containers and other container
 // within the container config
 func WithIsService() CtrCreateOption {
 	return func(ctr *Container) error {

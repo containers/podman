@@ -6,7 +6,7 @@ import (
 )
 
 // EventToNull is an eventer type that does nothing.
-// It is meant for unittests only
+// It is meant for unit tests only
 type EventToNull struct{}
 
 // Write eats the event and always returns nil

@@ -26,7 +26,7 @@ func (o OutputErrors) PrintErrors() (lastError error) {
 }
 
 /*
-For remote client, server does not returns error with exit code
+For remote client, server does not return error with exit code
 
 	instead returns a message and we cast it to a new error.
 
@@ -45,14 +45,14 @@ func ExitCodeFromBuildError(errorMsg string) (int, error) {
 			return buildahCLI.ExecErrorCodeGeneric, err
 		}
 	}
-	return buildahCLI.ExecErrorCodeGeneric, errors.New("message does not contains a valid exit code")
+	return buildahCLI.ExecErrorCodeGeneric, errors.New("message does not contain a valid exit code")
 }
 
 // HandleOSExecError checks the given error for an exec.ExitError error and
 // sets the same podman exit code as the error.
 // No error will be returned in this case to make sure things like podman
 // unshare false work correctly without extra output.
-// When the exec file does not exists we set the exit code to 127, for
+// When the exec file does not exist we set the exit code to 127, for
 // permission errors 126 is used as exit code. In this case we still return
 // the error so the user gets an error message.
 // If the error is nil it returns nil.

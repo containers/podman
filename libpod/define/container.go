@@ -29,7 +29,7 @@ var RestartPolicyMap = map[string]string{
 
 // InitContainerTypes
 const (
-	// AlwaysInitContainer is an init container than runs on each
+	// AlwaysInitContainer is an init container that runs on each
 	// pod start (including restart)
 	AlwaysInitContainer = "always"
 	// OneShotInitContainer is a container that only runs as init once

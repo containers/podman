@@ -204,7 +204,7 @@ shm_struct_t *setup_lock_shm(char *path, uint32_t num_locks, int *error_code) {
 // Returns a valid pointer on success or NULL on error.
 // If an error occurs, negative ERRNO values will be written to error_code.
 // ERANGE is returned for a mismatch between num_locks and the number of locks
-// available in the the SHM lock struct.
+// available in the SHM lock struct.
 shm_struct_t *open_lock_shm(char *path, uint32_t num_locks, int *error_code) {
   int shm_fd;
   shm_struct_t *shm;

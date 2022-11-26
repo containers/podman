@@ -385,7 +385,7 @@ func makeRuntime(runtime *Runtime) (retErr error) {
 		if err := unix.Access(runtime.storageConfig.RunRoot, unix.W_OK); err != nil {
 			msg := fmt.Sprintf("RunRoot is pointing to a path (%s) which is not writable. Most likely podman will fail.", runtime.storageConfig.RunRoot)
 			if errors.Is(err, os.ErrNotExist) {
-				// if dir does not exists try to create it
+				// if dir does not exist, try to create it
 				if err := os.MkdirAll(runtime.storageConfig.RunRoot, 0700); err != nil {
 					logrus.Warn(msg)
 				}
@@ -704,8 +704,8 @@ var libimageEventsMap = map[libimage.EventType]events.Status{
 	libimage.EventTypeImageUnmount: events.Unmount,
 }
 
-// libimageEvents spawns a goroutine in the background which is listenting for
-// events on the libimage.Runtime.  The gourtine will be cleaned up implicitly
+// libimageEvents spawns a goroutine which will listen for events on
+// the libimage.Runtime.  The goroutine will be cleaned up implicitly
 // when the main() exists.
 func (r *Runtime) libimageEvents() {
 	r.libimageEventsShutdown = make(chan bool)
