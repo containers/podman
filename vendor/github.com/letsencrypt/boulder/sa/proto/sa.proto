@@ -7,56 +7,89 @@ import "core/proto/core.proto";
 import "google/protobuf/empty.proto";
 import "google/protobuf/timestamp.proto";
 
-service StorageAuthority {
-  // Getters
-  rpc GetRegistration(RegistrationID) returns (core.Registration) {}
-  rpc GetRegistrationByKey(JSONWebKey) returns (core.Registration) {}
-  rpc GetSerialMetadata(Serial) returns (SerialMetadata) {}
-  rpc GetCertificate(Serial) returns (core.Certificate) {}
-  rpc GetPrecertificate(Serial) returns (core.Certificate) {}
-  rpc GetCertificateStatus(Serial) returns (core.CertificateStatus) {}
-  rpc GetRevocationStatus(Serial) returns (RevocationStatus) {}
+// StorageAuthorityReadOnly exposes only those SA methods which are read-only.
+service StorageAuthorityReadOnly {
   rpc CountCertificatesByNames(CountCertificatesByNamesRequest) returns (CountByNames) {}
+  rpc CountFQDNSets(CountFQDNSetsRequest) returns (Count) {}
+  rpc CountInvalidAuthorizations2(CountInvalidAuthorizationsRequest) returns (Count) {}
+  rpc CountOrders(CountOrdersRequest) returns (Count) {}
+  rpc CountPendingAuthorizations2(RegistrationID) returns (Count) {}
   rpc CountRegistrationsByIP(CountRegistrationsByIPRequest) returns (Count) {}
   rpc CountRegistrationsByIPRange(CountRegistrationsByIPRequest) returns (Count) {}
-  rpc CountOrders(CountOrdersRequest) returns (Count) {}
-  // Return a count of authorizations with status "invalid" that belong to
-  // a given registration ID and expire in the given time range.
-  rpc CountFQDNSets(CountFQDNSetsRequest) returns (Count) {}
-  rpc FQDNSetTimestampsForWindow(CountFQDNSetsRequest) returns (Timestamps) {}
   rpc FQDNSetExists(FQDNSetExistsRequest) returns (Exists) {}
-  rpc PreviousCertificateExists(PreviousCertificateExistsRequest) returns (Exists) {}
+  rpc FQDNSetTimestampsForWindow(CountFQDNSetsRequest) returns (Timestamps) {}
   rpc GetAuthorization2(AuthorizationID2) returns (core.Authorization) {}
   rpc GetAuthorizations2(GetAuthorizationsRequest) returns (Authorizations) {}
+  rpc GetCertificate(Serial) returns (core.Certificate) {}
+  rpc GetCertificateStatus(Serial) returns (core.CertificateStatus) {}
+  rpc GetMaxExpiration(google.protobuf.Empty) returns (google.protobuf.Timestamp) {}
+  rpc GetOrder(OrderRequest) returns (core.Order) {}
+  rpc GetOrderForNames(GetOrderForNamesRequest) returns (core.Order) {}
   rpc GetPendingAuthorization2(GetPendingAuthorizationRequest) returns (core.Authorization) {}
-  rpc CountPendingAuthorizations2(RegistrationID) returns (Count) {}
-  rpc GetValidOrderAuthorizations2(GetValidOrderAuthorizationsRequest) returns (Authorizations) {}
-  rpc CountInvalidAuthorizations2(CountInvalidAuthorizationsRequest) returns (Count) {}
-  rpc GetValidAuthorizations2(GetValidAuthorizationsRequest) returns (Authorizations) {}
-  rpc KeyBlocked(KeyBlockedRequest) returns (Exists) {}
-  rpc SerialsForIncident (SerialsForIncidentRequest) returns (stream IncidentSerial) {}
+  rpc GetPrecertificate(Serial) returns (core.Certificate) {}
+  rpc GetRegistration(RegistrationID) returns (core.Registration) {}
+  rpc GetRegistrationByKey(JSONWebKey) returns (core.Registration) {}
+  rpc GetRevocationStatus(Serial) returns (RevocationStatus) {}
   rpc GetRevokedCerts(GetRevokedCertsRequest) returns (stream core.CRLEntry) {}
+  rpc GetSerialMetadata(Serial) returns (SerialMetadata) {}
+  rpc GetValidAuthorizations2(GetValidAuthorizationsRequest) returns (Authorizations) {}
+  rpc GetValidOrderAuthorizations2(GetValidOrderAuthorizationsRequest) returns (Authorizations) {}
   rpc IncidentsForSerial(Serial) returns (Incidents) {}
+  rpc KeyBlocked(KeyBlockedRequest) returns (Exists) {}
+  rpc PreviousCertificateExists(PreviousCertificateExistsRequest) returns (Exists) {}
+  rpc SerialsForIncident (SerialsForIncidentRequest) returns (stream IncidentSerial) {}
+}
+
+// StorageAuthority provides full read/write access to the database.
+service StorageAuthority {
+  // Getters: this list must be identical to the StorageAuthorityReadOnly rpcs.
+  rpc CountCertificatesByNames(CountCertificatesByNamesRequest) returns (CountByNames) {}
+  rpc CountFQDNSets(CountFQDNSetsRequest) returns (Count) {}
+  rpc CountInvalidAuthorizations2(CountInvalidAuthorizationsRequest) returns (Count) {}
+  rpc CountOrders(CountOrdersRequest) returns (Count) {}
+  rpc CountPendingAuthorizations2(RegistrationID) returns (Count) {}
+  rpc CountRegistrationsByIP(CountRegistrationsByIPRequest) returns (Count) {}
+  rpc CountRegistrationsByIPRange(CountRegistrationsByIPRequest) returns (Count) {}
+  rpc FQDNSetExists(FQDNSetExistsRequest) returns (Exists) {}
+  rpc FQDNSetTimestampsForWindow(CountFQDNSetsRequest) returns (Timestamps) {}
+  rpc GetAuthorization2(AuthorizationID2) returns (core.Authorization) {}
+  rpc GetAuthorizations2(GetAuthorizationsRequest) returns (Authorizations) {}
+  rpc GetCertificate(Serial) returns (core.Certificate) {}
+  rpc GetCertificateStatus(Serial) returns (core.CertificateStatus) {}
+  rpc GetMaxExpiration(google.protobuf.Empty) returns (google.protobuf.Timestamp) {}
+  rpc GetOrder(OrderRequest) returns (core.Order) {}
+  rpc GetOrderForNames(GetOrderForNamesRequest) returns (core.Order) {}
+  rpc GetPendingAuthorization2(GetPendingAuthorizationRequest) returns (core.Authorization) {}
+  rpc GetPrecertificate(Serial) returns (core.Certificate) {}
+  rpc GetRegistration(RegistrationID) returns (core.Registration) {}
+  rpc GetRegistrationByKey(JSONWebKey) returns (core.Registration) {}
+  rpc GetRevocationStatus(Serial) returns (RevocationStatus) {}
+  rpc GetRevokedCerts(GetRevokedCertsRequest) returns (stream core.CRLEntry) {}
+  rpc GetSerialMetadata(Serial) returns (SerialMetadata) {}
+  rpc GetValidAuthorizations2(GetValidAuthorizationsRequest) returns (Authorizations) {}
+  rpc GetValidOrderAuthorizations2(GetValidOrderAuthorizationsRequest) returns (Authorizations) {}
+  rpc IncidentsForSerial(Serial) returns (Incidents) {}
+  rpc KeyBlocked(KeyBlockedRequest) returns (Exists) {}
+  rpc PreviousCertificateExists(PreviousCertificateExistsRequest) returns (Exists) {}
+  rpc SerialsForIncident (SerialsForIncidentRequest) returns (stream IncidentSerial) {}
   // Adders
-  rpc NewRegistration(core.Registration) returns (core.Registration) {}
-  rpc UpdateRegistration(core.Registration) returns (google.protobuf.Empty) {}
+  rpc AddBlockedKey(AddBlockedKeyRequest) returns (google.protobuf.Empty) {}
   rpc AddCertificate(AddCertificateRequest) returns (AddCertificateResponse) {}
   rpc AddPrecertificate(AddCertificateRequest) returns (google.protobuf.Empty) {}
   rpc AddSerial(AddSerialRequest) returns (google.protobuf.Empty) {}
+  rpc DeactivateAuthorization2(AuthorizationID2) returns (google.protobuf.Empty) {}
   rpc DeactivateRegistration(RegistrationID) returns (google.protobuf.Empty) {}
+  rpc FinalizeAuthorization2(FinalizeAuthorizationRequest) returns (google.protobuf.Empty) {}
+  rpc FinalizeOrder(FinalizeOrderRequest) returns (google.protobuf.Empty) {}
+  rpc NewAuthorizations2(AddPendingAuthorizationsRequest) returns (Authorization2IDs) {}
   rpc NewOrder(NewOrderRequest) returns (core.Order) {}
   rpc NewOrderAndAuthzs(NewOrderAndAuthzsRequest) returns (core.Order) {}
-  rpc SetOrderProcessing(OrderRequest) returns (google.protobuf.Empty) {}
-  rpc SetOrderError(SetOrderErrorRequest) returns (google.protobuf.Empty) {}
-  rpc FinalizeOrder(FinalizeOrderRequest) returns (google.protobuf.Empty) {}
-  rpc GetOrder(OrderRequest) returns (core.Order) {}
-  rpc GetOrderForNames(GetOrderForNamesRequest) returns (core.Order) {}
+  rpc NewRegistration(core.Registration) returns (core.Registration) {}
   rpc RevokeCertificate(RevokeCertificateRequest) returns (google.protobuf.Empty) {}
+  rpc SetOrderError(SetOrderErrorRequest) returns (google.protobuf.Empty) {}
+  rpc SetOrderProcessing(OrderRequest) returns (google.protobuf.Empty) {}
+  rpc UpdateRegistration(core.Registration) returns (google.protobuf.Empty) {}
   rpc UpdateRevokedCertificate(RevokeCertificateRequest) returns (google.protobuf.Empty) {}
-  rpc NewAuthorizations2(AddPendingAuthorizationsRequest) returns (Authorization2IDs) {}
-  rpc FinalizeAuthorization2(FinalizeAuthorizationRequest) returns (google.protobuf.Empty) {}
-  rpc DeactivateAuthorization2(AuthorizationID2) returns (google.protobuf.Empty) {}
-  rpc AddBlockedKey(AddBlockedKeyRequest) returns (google.protobuf.Empty) {}
 }
 
 message RegistrationID {
@@ -124,6 +157,7 @@ message CountCertificatesByNamesRequest {
 
 message CountByNames {
   map<string, int64> counts = 1;
+  google.protobuf.Timestamp earliest = 2; // Unix timestamp (nanoseconds)
 }
 
 message CountRegistrationsByIPRequest {

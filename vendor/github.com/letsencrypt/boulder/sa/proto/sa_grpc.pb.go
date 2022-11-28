@@ -13,6 +13,7 @@ import (
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
 	emptypb "google.golang.org/protobuf/types/known/emptypb"
+	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // This is a compile-time assertion to ensure that this generated file
@@ -20,59 +21,1208 @@ import (
 // Requires gRPC-Go v1.32.0 or later.
 const _ = grpc.SupportPackageIsVersion7
 
+// StorageAuthorityReadOnlyClient is the client API for StorageAuthorityReadOnly service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+type StorageAuthorityReadOnlyClient interface {
+	CountCertificatesByNames(ctx context.Context, in *CountCertificatesByNamesRequest, opts ...grpc.CallOption) (*CountByNames, error)
+	CountFQDNSets(ctx context.Context, in *CountFQDNSetsRequest, opts ...grpc.CallOption) (*Count, error)
+	CountInvalidAuthorizations2(ctx context.Context, in *CountInvalidAuthorizationsRequest, opts ...grpc.CallOption) (*Count, error)
+	CountOrders(ctx context.Context, in *CountOrdersRequest, opts ...grpc.CallOption) (*Count, error)
+	CountPendingAuthorizations2(ctx context.Context, in *RegistrationID, opts ...grpc.CallOption) (*Count, error)
+	CountRegistrationsByIP(ctx context.Context, in *CountRegistrationsByIPRequest, opts ...grpc.CallOption) (*Count, error)
+	CountRegistrationsByIPRange(ctx context.Context, in *CountRegistrationsByIPRequest, opts ...grpc.CallOption) (*Count, error)
+	FQDNSetExists(ctx context.Context, in *FQDNSetExistsRequest, opts ...grpc.CallOption) (*Exists, error)
+	FQDNSetTimestampsForWindow(ctx context.Context, in *CountFQDNSetsRequest, opts ...grpc.CallOption) (*Timestamps, error)
+	GetAuthorization2(ctx context.Context, in *AuthorizationID2, opts ...grpc.CallOption) (*proto.Authorization, error)
+	GetAuthorizations2(ctx context.Context, in *GetAuthorizationsRequest, opts ...grpc.CallOption) (*Authorizations, error)
+	GetCertificate(ctx context.Context, in *Serial, opts ...grpc.CallOption) (*proto.Certificate, error)
+	GetCertificateStatus(ctx context.Context, in *Serial, opts ...grpc.CallOption) (*proto.CertificateStatus, error)
+	GetMaxExpiration(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*timestamppb.Timestamp, error)
+	GetOrder(ctx context.Context, in *OrderRequest, opts ...grpc.CallOption) (*proto.Order, error)
+	GetOrderForNames(ctx context.Context, in *GetOrderForNamesRequest, opts ...grpc.CallOption) (*proto.Order, error)
+	GetPendingAuthorization2(ctx context.Context, in *GetPendingAuthorizationRequest, opts ...grpc.CallOption) (*proto.Authorization, error)
+	GetPrecertificate(ctx context.Context, in *Serial, opts ...grpc.CallOption) (*proto.Certificate, error)
+	GetRegistration(ctx context.Context, in *RegistrationID, opts ...grpc.CallOption) (*proto.Registration, error)
+	GetRegistrationByKey(ctx context.Context, in *JSONWebKey, opts ...grpc.CallOption) (*proto.Registration, error)
+	GetRevocationStatus(ctx context.Context, in *Serial, opts ...grpc.CallOption) (*RevocationStatus, error)
+	GetRevokedCerts(ctx context.Context, in *GetRevokedCertsRequest, opts ...grpc.CallOption) (StorageAuthorityReadOnly_GetRevokedCertsClient, error)
+	GetSerialMetadata(ctx context.Context, in *Serial, opts ...grpc.CallOption) (*SerialMetadata, error)
+	GetValidAuthorizations2(ctx context.Context, in *GetValidAuthorizationsRequest, opts ...grpc.CallOption) (*Authorizations, error)
+	GetValidOrderAuthorizations2(ctx context.Context, in *GetValidOrderAuthorizationsRequest, opts ...grpc.CallOption) (*Authorizations, error)
+	IncidentsForSerial(ctx context.Context, in *Serial, opts ...grpc.CallOption) (*Incidents, error)
+	KeyBlocked(ctx context.Context, in *KeyBlockedRequest, opts ...grpc.CallOption) (*Exists, error)
+	PreviousCertificateExists(ctx context.Context, in *PreviousCertificateExistsRequest, opts ...grpc.CallOption) (*Exists, error)
+	SerialsForIncident(ctx context.Context, in *SerialsForIncidentRequest, opts ...grpc.CallOption) (StorageAuthorityReadOnly_SerialsForIncidentClient, error)
+}
+
+type storageAuthorityReadOnlyClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewStorageAuthorityReadOnlyClient(cc grpc.ClientConnInterface) StorageAuthorityReadOnlyClient {
+	return &storageAuthorityReadOnlyClient{cc}
+}
+
+func (c *storageAuthorityReadOnlyClient) CountCertificatesByNames(ctx context.Context, in *CountCertificatesByNamesRequest, opts ...grpc.CallOption) (*CountByNames, error) {
+	out := new(CountByNames)
+	err := c.cc.Invoke(ctx, "/sa.StorageAuthorityReadOnly/CountCertificatesByNames", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storageAuthorityReadOnlyClient) CountFQDNSets(ctx context.Context, in *CountFQDNSetsRequest, opts ...grpc.CallOption) (*Count, error) {
+	out := new(Count)
+	err := c.cc.Invoke(ctx, "/sa.StorageAuthorityReadOnly/CountFQDNSets", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storageAuthorityReadOnlyClient) CountInvalidAuthorizations2(ctx context.Context, in *CountInvalidAuthorizationsRequest, opts ...grpc.CallOption) (*Count, error) {
+	out := new(Count)
+	err := c.cc.Invoke(ctx, "/sa.StorageAuthorityReadOnly/CountInvalidAuthorizations2", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storageAuthorityReadOnlyClient) CountOrders(ctx context.Context, in *CountOrdersRequest, opts ...grpc.CallOption) (*Count, error) {
+	out := new(Count)
+	err := c.cc.Invoke(ctx, "/sa.StorageAuthorityReadOnly/CountOrders", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storageAuthorityReadOnlyClient) CountPendingAuthorizations2(ctx context.Context, in *RegistrationID, opts ...grpc.CallOption) (*Count, error) {
+	out := new(Count)
+	err := c.cc.Invoke(ctx, "/sa.StorageAuthorityReadOnly/CountPendingAuthorizations2", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storageAuthorityReadOnlyClient) CountRegistrationsByIP(ctx context.Context, in *CountRegistrationsByIPRequest, opts ...grpc.CallOption) (*Count, error) {
+	out := new(Count)
+	err := c.cc.Invoke(ctx, "/sa.StorageAuthorityReadOnly/CountRegistrationsByIP", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storageAuthorityReadOnlyClient) CountRegistrationsByIPRange(ctx context.Context, in *CountRegistrationsByIPRequest, opts ...grpc.CallOption) (*Count, error) {
+	out := new(Count)
+	err := c.cc.Invoke(ctx, "/sa.StorageAuthorityReadOnly/CountRegistrationsByIPRange", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storageAuthorityReadOnlyClient) FQDNSetExists(ctx context.Context, in *FQDNSetExistsRequest, opts ...grpc.CallOption) (*Exists, error) {
+	out := new(Exists)
+	err := c.cc.Invoke(ctx, "/sa.StorageAuthorityReadOnly/FQDNSetExists", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storageAuthorityReadOnlyClient) FQDNSetTimestampsForWindow(ctx context.Context, in *CountFQDNSetsRequest, opts ...grpc.CallOption) (*Timestamps, error) {
+	out := new(Timestamps)
+	err := c.cc.Invoke(ctx, "/sa.StorageAuthorityReadOnly/FQDNSetTimestampsForWindow", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storageAuthorityReadOnlyClient) GetAuthorization2(ctx context.Context, in *AuthorizationID2, opts ...grpc.CallOption) (*proto.Authorization, error) {
+	out := new(proto.Authorization)
+	err := c.cc.Invoke(ctx, "/sa.StorageAuthorityReadOnly/GetAuthorization2", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storageAuthorityReadOnlyClient) GetAuthorizations2(ctx context.Context, in *GetAuthorizationsRequest, opts ...grpc.CallOption) (*Authorizations, error) {
+	out := new(Authorizations)
+	err := c.cc.Invoke(ctx, "/sa.StorageAuthorityReadOnly/GetAuthorizations2", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storageAuthorityReadOnlyClient) GetCertificate(ctx context.Context, in *Serial, opts ...grpc.CallOption) (*proto.Certificate, error) {
+	out := new(proto.Certificate)
+	err := c.cc.Invoke(ctx, "/sa.StorageAuthorityReadOnly/GetCertificate", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storageAuthorityReadOnlyClient) GetCertificateStatus(ctx context.Context, in *Serial, opts ...grpc.CallOption) (*proto.CertificateStatus, error) {
+	out := new(proto.CertificateStatus)
+	err := c.cc.Invoke(ctx, "/sa.StorageAuthorityReadOnly/GetCertificateStatus", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storageAuthorityReadOnlyClient) GetMaxExpiration(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*timestamppb.Timestamp, error) {
+	out := new(timestamppb.Timestamp)
+	err := c.cc.Invoke(ctx, "/sa.StorageAuthorityReadOnly/GetMaxExpiration", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storageAuthorityReadOnlyClient) GetOrder(ctx context.Context, in *OrderRequest, opts ...grpc.CallOption) (*proto.Order, error) {
+	out := new(proto.Order)
+	err := c.cc.Invoke(ctx, "/sa.StorageAuthorityReadOnly/GetOrder", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storageAuthorityReadOnlyClient) GetOrderForNames(ctx context.Context, in *GetOrderForNamesRequest, opts ...grpc.CallOption) (*proto.Order, error) {
+	out := new(proto.Order)
+	err := c.cc.Invoke(ctx, "/sa.StorageAuthorityReadOnly/GetOrderForNames", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storageAuthorityReadOnlyClient) GetPendingAuthorization2(ctx context.Context, in *GetPendingAuthorizationRequest, opts ...grpc.CallOption) (*proto.Authorization, error) {
+	out := new(proto.Authorization)
+	err := c.cc.Invoke(ctx, "/sa.StorageAuthorityReadOnly/GetPendingAuthorization2", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storageAuthorityReadOnlyClient) GetPrecertificate(ctx context.Context, in *Serial, opts ...grpc.CallOption) (*proto.Certificate, error) {
+	out := new(proto.Certificate)
+	err := c.cc.Invoke(ctx, "/sa.StorageAuthorityReadOnly/GetPrecertificate", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storageAuthorityReadOnlyClient) GetRegistration(ctx context.Context, in *RegistrationID, opts ...grpc.CallOption) (*proto.Registration, error) {
+	out := new(proto.Registration)
+	err := c.cc.Invoke(ctx, "/sa.StorageAuthorityReadOnly/GetRegistration", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storageAuthorityReadOnlyClient) GetRegistrationByKey(ctx context.Context, in *JSONWebKey, opts ...grpc.CallOption) (*proto.Registration, error) {
+	out := new(proto.Registration)
+	err := c.cc.Invoke(ctx, "/sa.StorageAuthorityReadOnly/GetRegistrationByKey", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storageAuthorityReadOnlyClient) GetRevocationStatus(ctx context.Context, in *Serial, opts ...grpc.CallOption) (*RevocationStatus, error) {
+	out := new(RevocationStatus)
+	err := c.cc.Invoke(ctx, "/sa.StorageAuthorityReadOnly/GetRevocationStatus", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storageAuthorityReadOnlyClient) GetRevokedCerts(ctx context.Context, in *GetRevokedCertsRequest, opts ...grpc.CallOption) (StorageAuthorityReadOnly_GetRevokedCertsClient, error) {
+	stream, err := c.cc.NewStream(ctx, &StorageAuthorityReadOnly_ServiceDesc.Streams[0], "/sa.StorageAuthorityReadOnly/GetRevokedCerts", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &storageAuthorityReadOnlyGetRevokedCertsClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type StorageAuthorityReadOnly_GetRevokedCertsClient interface {
+	Recv() (*proto.CRLEntry, error)
+	grpc.ClientStream
+}
+
+type storageAuthorityReadOnlyGetRevokedCertsClient struct {
+	grpc.ClientStream
+}
+
+func (x *storageAuthorityReadOnlyGetRevokedCertsClient) Recv() (*proto.CRLEntry, error) {
+	m := new(proto.CRLEntry)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (c *storageAuthorityReadOnlyClient) GetSerialMetadata(ctx context.Context, in *Serial, opts ...grpc.CallOption) (*SerialMetadata, error) {
+	out := new(SerialMetadata)
+	err := c.cc.Invoke(ctx, "/sa.StorageAuthorityReadOnly/GetSerialMetadata", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storageAuthorityReadOnlyClient) GetValidAuthorizations2(ctx context.Context, in *GetValidAuthorizationsRequest, opts ...grpc.CallOption) (*Authorizations, error) {
+	out := new(Authorizations)
+	err := c.cc.Invoke(ctx, "/sa.StorageAuthorityReadOnly/GetValidAuthorizations2", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storageAuthorityReadOnlyClient) GetValidOrderAuthorizations2(ctx context.Context, in *GetValidOrderAuthorizationsRequest, opts ...grpc.CallOption) (*Authorizations, error) {
+	out := new(Authorizations)
+	err := c.cc.Invoke(ctx, "/sa.StorageAuthorityReadOnly/GetValidOrderAuthorizations2", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storageAuthorityReadOnlyClient) IncidentsForSerial(ctx context.Context, in *Serial, opts ...grpc.CallOption) (*Incidents, error) {
+	out := new(Incidents)
+	err := c.cc.Invoke(ctx, "/sa.StorageAuthorityReadOnly/IncidentsForSerial", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storageAuthorityReadOnlyClient) KeyBlocked(ctx context.Context, in *KeyBlockedRequest, opts ...grpc.CallOption) (*Exists, error) {
+	out := new(Exists)
+	err := c.cc.Invoke(ctx, "/sa.StorageAuthorityReadOnly/KeyBlocked", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storageAuthorityReadOnlyClient) PreviousCertificateExists(ctx context.Context, in *PreviousCertificateExistsRequest, opts ...grpc.CallOption) (*Exists, error) {
+	out := new(Exists)
+	err := c.cc.Invoke(ctx, "/sa.StorageAuthorityReadOnly/PreviousCertificateExists", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storageAuthorityReadOnlyClient) SerialsForIncident(ctx context.Context, in *SerialsForIncidentRequest, opts ...grpc.CallOption) (StorageAuthorityReadOnly_SerialsForIncidentClient, error) {
+	stream, err := c.cc.NewStream(ctx, &StorageAuthorityReadOnly_ServiceDesc.Streams[1], "/sa.StorageAuthorityReadOnly/SerialsForIncident", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &storageAuthorityReadOnlySerialsForIncidentClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type StorageAuthorityReadOnly_SerialsForIncidentClient interface {
+	Recv() (*IncidentSerial, error)
+	grpc.ClientStream
+}
+
+type storageAuthorityReadOnlySerialsForIncidentClient struct {
+	grpc.ClientStream
+}
+
+func (x *storageAuthorityReadOnlySerialsForIncidentClient) Recv() (*IncidentSerial, error) {
+	m := new(IncidentSerial)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+// StorageAuthorityReadOnlyServer is the server API for StorageAuthorityReadOnly service.
+// All implementations must embed UnimplementedStorageAuthorityReadOnlyServer
+// for forward compatibility
+type StorageAuthorityReadOnlyServer interface {
+	CountCertificatesByNames(context.Context, *CountCertificatesByNamesRequest) (*CountByNames, error)
+	CountFQDNSets(context.Context, *CountFQDNSetsRequest) (*Count, error)
+	CountInvalidAuthorizations2(context.Context, *CountInvalidAuthorizationsRequest) (*Count, error)
+	CountOrders(context.Context, *CountOrdersRequest) (*Count, error)
+	CountPendingAuthorizations2(context.Context, *RegistrationID) (*Count, error)
+	CountRegistrationsByIP(context.Context, *CountRegistrationsByIPRequest) (*Count, error)
+	CountRegistrationsByIPRange(context.Context, *CountRegistrationsByIPRequest) (*Count, error)
+	FQDNSetExists(context.Context, *FQDNSetExistsRequest) (*Exists, error)
+	FQDNSetTimestampsForWindow(context.Context, *CountFQDNSetsRequest) (*Timestamps, error)
+	GetAuthorization2(context.Context, *AuthorizationID2) (*proto.Authorization, error)
+	GetAuthorizations2(context.Context, *GetAuthorizationsRequest) (*Authorizations, error)
+	GetCertificate(context.Context, *Serial) (*proto.Certificate, error)
+	GetCertificateStatus(context.Context, *Serial) (*proto.CertificateStatus, error)
+	GetMaxExpiration(context.Context, *emptypb.Empty) (*timestamppb.Timestamp, error)
+	GetOrder(context.Context, *OrderRequest) (*proto.Order, error)
+	GetOrderForNames(context.Context, *GetOrderForNamesRequest) (*proto.Order, error)
+	GetPendingAuthorization2(context.Context, *GetPendingAuthorizationRequest) (*proto.Authorization, error)
+	GetPrecertificate(context.Context, *Serial) (*proto.Certificate, error)
+	GetRegistration(context.Context, *RegistrationID) (*proto.Registration, error)
+	GetRegistrationByKey(context.Context, *JSONWebKey) (*proto.Registration, error)
+	GetRevocationStatus(context.Context, *Serial) (*RevocationStatus, error)
+	GetRevokedCerts(*GetRevokedCertsRequest, StorageAuthorityReadOnly_GetRevokedCertsServer) error
+	GetSerialMetadata(context.Context, *Serial) (*SerialMetadata, error)
+	GetValidAuthorizations2(context.Context, *GetValidAuthorizationsRequest) (*Authorizations, error)
+	GetValidOrderAuthorizations2(context.Context, *GetValidOrderAuthorizationsRequest) (*Authorizations, error)
+	IncidentsForSerial(context.Context, *Serial) (*Incidents, error)
+	KeyBlocked(context.Context, *KeyBlockedRequest) (*Exists, error)
+	PreviousCertificateExists(context.Context, *PreviousCertificateExistsRequest) (*Exists, error)
+	SerialsForIncident(*SerialsForIncidentRequest, StorageAuthorityReadOnly_SerialsForIncidentServer) error
+	mustEmbedUnimplementedStorageAuthorityReadOnlyServer()
+}
+
+// UnimplementedStorageAuthorityReadOnlyServer must be embedded to have forward compatible implementations.
+type UnimplementedStorageAuthorityReadOnlyServer struct {
+}
+
+func (UnimplementedStorageAuthorityReadOnlyServer) CountCertificatesByNames(context.Context, *CountCertificatesByNamesRequest) (*CountByNames, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CountCertificatesByNames not implemented")
+}
+func (UnimplementedStorageAuthorityReadOnlyServer) CountFQDNSets(context.Context, *CountFQDNSetsRequest) (*Count, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CountFQDNSets not implemented")
+}
+func (UnimplementedStorageAuthorityReadOnlyServer) CountInvalidAuthorizations2(context.Context, *CountInvalidAuthorizationsRequest) (*Count, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CountInvalidAuthorizations2 not implemented")
+}
+func (UnimplementedStorageAuthorityReadOnlyServer) CountOrders(context.Context, *CountOrdersRequest) (*Count, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CountOrders not implemented")
+}
+func (UnimplementedStorageAuthorityReadOnlyServer) CountPendingAuthorizations2(context.Context, *RegistrationID) (*Count, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CountPendingAuthorizations2 not implemented")
+}
+func (UnimplementedStorageAuthorityReadOnlyServer) CountRegistrationsByIP(context.Context, *CountRegistrationsByIPRequest) (*Count, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CountRegistrationsByIP not implemented")
+}
+func (UnimplementedStorageAuthorityReadOnlyServer) CountRegistrationsByIPRange(context.Context, *CountRegistrationsByIPRequest) (*Count, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CountRegistrationsByIPRange not implemented")
+}
+func (UnimplementedStorageAuthorityReadOnlyServer) FQDNSetExists(context.Context, *FQDNSetExistsRequest) (*Exists, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method FQDNSetExists not implemented")
+}
+func (UnimplementedStorageAuthorityReadOnlyServer) FQDNSetTimestampsForWindow(context.Context, *CountFQDNSetsRequest) (*Timestamps, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method FQDNSetTimestampsForWindow not implemented")
+}
+func (UnimplementedStorageAuthorityReadOnlyServer) GetAuthorization2(context.Context, *AuthorizationID2) (*proto.Authorization, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetAuthorization2 not implemented")
+}
+func (UnimplementedStorageAuthorityReadOnlyServer) GetAuthorizations2(context.Context, *GetAuthorizationsRequest) (*Authorizations, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetAuthorizations2 not implemented")
+}
+func (UnimplementedStorageAuthorityReadOnlyServer) GetCertificate(context.Context, *Serial) (*proto.Certificate, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetCertificate not implemented")
+}
+func (UnimplementedStorageAuthorityReadOnlyServer) GetCertificateStatus(context.Context, *Serial) (*proto.CertificateStatus, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetCertificateStatus not implemented")
+}
+func (UnimplementedStorageAuthorityReadOnlyServer) GetMaxExpiration(context.Context, *emptypb.Empty) (*timestamppb.Timestamp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetMaxExpiration not implemented")
+}
+func (UnimplementedStorageAuthorityReadOnlyServer) GetOrder(context.Context, *OrderRequest) (*proto.Order, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetOrder not implemented")
+}
+func (UnimplementedStorageAuthorityReadOnlyServer) GetOrderForNames(context.Context, *GetOrderForNamesRequest) (*proto.Order, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetOrderForNames not implemented")
+}
+func (UnimplementedStorageAuthorityReadOnlyServer) GetPendingAuthorization2(context.Context, *GetPendingAuthorizationRequest) (*proto.Authorization, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetPendingAuthorization2 not implemented")
+}
+func (UnimplementedStorageAuthorityReadOnlyServer) GetPrecertificate(context.Context, *Serial) (*proto.Certificate, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetPrecertificate not implemented")
+}
+func (UnimplementedStorageAuthorityReadOnlyServer) GetRegistration(context.Context, *RegistrationID) (*proto.Registration, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetRegistration not implemented")
+}
+func (UnimplementedStorageAuthorityReadOnlyServer) GetRegistrationByKey(context.Context, *JSONWebKey) (*proto.Registration, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetRegistrationByKey not implemented")
+}
+func (UnimplementedStorageAuthorityReadOnlyServer) GetRevocationStatus(context.Context, *Serial) (*RevocationStatus, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetRevocationStatus not implemented")
+}
+func (UnimplementedStorageAuthorityReadOnlyServer) GetRevokedCerts(*GetRevokedCertsRequest, StorageAuthorityReadOnly_GetRevokedCertsServer) error {
+	return status.Errorf(codes.Unimplemented, "method GetRevokedCerts not implemented")
+}
+func (UnimplementedStorageAuthorityReadOnlyServer) GetSerialMetadata(context.Context, *Serial) (*SerialMetadata, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetSerialMetadata not implemented")
+}
+func (UnimplementedStorageAuthorityReadOnlyServer) GetValidAuthorizations2(context.Context, *GetValidAuthorizationsRequest) (*Authorizations, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetValidAuthorizations2 not implemented")
+}
+func (UnimplementedStorageAuthorityReadOnlyServer) GetValidOrderAuthorizations2(context.Context, *GetValidOrderAuthorizationsRequest) (*Authorizations, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetValidOrderAuthorizations2 not implemented")
+}
+func (UnimplementedStorageAuthorityReadOnlyServer) IncidentsForSerial(context.Context, *Serial) (*Incidents, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method IncidentsForSerial not implemented")
+}
+func (UnimplementedStorageAuthorityReadOnlyServer) KeyBlocked(context.Context, *KeyBlockedRequest) (*Exists, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method KeyBlocked not implemented")
+}
+func (UnimplementedStorageAuthorityReadOnlyServer) PreviousCertificateExists(context.Context, *PreviousCertificateExistsRequest) (*Exists, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method PreviousCertificateExists not implemented")
+}
+func (UnimplementedStorageAuthorityReadOnlyServer) SerialsForIncident(*SerialsForIncidentRequest, StorageAuthorityReadOnly_SerialsForIncidentServer) error {
+	return status.Errorf(codes.Unimplemented, "method SerialsForIncident not implemented")
+}
+func (UnimplementedStorageAuthorityReadOnlyServer) mustEmbedUnimplementedStorageAuthorityReadOnlyServer() {
+}
+
+// UnsafeStorageAuthorityReadOnlyServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to StorageAuthorityReadOnlyServer will
+// result in compilation errors.
+type UnsafeStorageAuthorityReadOnlyServer interface {
+	mustEmbedUnimplementedStorageAuthorityReadOnlyServer()
+}
+
+func RegisterStorageAuthorityReadOnlyServer(s grpc.ServiceRegistrar, srv StorageAuthorityReadOnlyServer) {
+	s.RegisterService(&StorageAuthorityReadOnly_ServiceDesc, srv)
+}
+
+func _StorageAuthorityReadOnly_CountCertificatesByNames_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CountCertificatesByNamesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StorageAuthorityReadOnlyServer).CountCertificatesByNames(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/sa.StorageAuthorityReadOnly/CountCertificatesByNames",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StorageAuthorityReadOnlyServer).CountCertificatesByNames(ctx, req.(*CountCertificatesByNamesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StorageAuthorityReadOnly_CountFQDNSets_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CountFQDNSetsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StorageAuthorityReadOnlyServer).CountFQDNSets(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/sa.StorageAuthorityReadOnly/CountFQDNSets",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StorageAuthorityReadOnlyServer).CountFQDNSets(ctx, req.(*CountFQDNSetsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StorageAuthorityReadOnly_CountInvalidAuthorizations2_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CountInvalidAuthorizationsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StorageAuthorityReadOnlyServer).CountInvalidAuthorizations2(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/sa.StorageAuthorityReadOnly/CountInvalidAuthorizations2",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StorageAuthorityReadOnlyServer).CountInvalidAuthorizations2(ctx, req.(*CountInvalidAuthorizationsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StorageAuthorityReadOnly_CountOrders_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CountOrdersRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StorageAuthorityReadOnlyServer).CountOrders(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/sa.StorageAuthorityReadOnly/CountOrders",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StorageAuthorityReadOnlyServer).CountOrders(ctx, req.(*CountOrdersRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StorageAuthorityReadOnly_CountPendingAuthorizations2_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RegistrationID)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StorageAuthorityReadOnlyServer).CountPendingAuthorizations2(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/sa.StorageAuthorityReadOnly/CountPendingAuthorizations2",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StorageAuthorityReadOnlyServer).CountPendingAuthorizations2(ctx, req.(*RegistrationID))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StorageAuthorityReadOnly_CountRegistrationsByIP_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CountRegistrationsByIPRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StorageAuthorityReadOnlyServer).CountRegistrationsByIP(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/sa.StorageAuthorityReadOnly/CountRegistrationsByIP",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StorageAuthorityReadOnlyServer).CountRegistrationsByIP(ctx, req.(*CountRegistrationsByIPRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StorageAuthorityReadOnly_CountRegistrationsByIPRange_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CountRegistrationsByIPRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StorageAuthorityReadOnlyServer).CountRegistrationsByIPRange(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/sa.StorageAuthorityReadOnly/CountRegistrationsByIPRange",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StorageAuthorityReadOnlyServer).CountRegistrationsByIPRange(ctx, req.(*CountRegistrationsByIPRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StorageAuthorityReadOnly_FQDNSetExists_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(FQDNSetExistsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StorageAuthorityReadOnlyServer).FQDNSetExists(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/sa.StorageAuthorityReadOnly/FQDNSetExists",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StorageAuthorityReadOnlyServer).FQDNSetExists(ctx, req.(*FQDNSetExistsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StorageAuthorityReadOnly_FQDNSetTimestampsForWindow_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CountFQDNSetsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StorageAuthorityReadOnlyServer).FQDNSetTimestampsForWindow(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/sa.StorageAuthorityReadOnly/FQDNSetTimestampsForWindow",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StorageAuthorityReadOnlyServer).FQDNSetTimestampsForWindow(ctx, req.(*CountFQDNSetsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StorageAuthorityReadOnly_GetAuthorization2_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AuthorizationID2)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StorageAuthorityReadOnlyServer).GetAuthorization2(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/sa.StorageAuthorityReadOnly/GetAuthorization2",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StorageAuthorityReadOnlyServer).GetAuthorization2(ctx, req.(*AuthorizationID2))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StorageAuthorityReadOnly_GetAuthorizations2_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetAuthorizationsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StorageAuthorityReadOnlyServer).GetAuthorizations2(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/sa.StorageAuthorityReadOnly/GetAuthorizations2",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StorageAuthorityReadOnlyServer).GetAuthorizations2(ctx, req.(*GetAuthorizationsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StorageAuthorityReadOnly_GetCertificate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Serial)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StorageAuthorityReadOnlyServer).GetCertificate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/sa.StorageAuthorityReadOnly/GetCertificate",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StorageAuthorityReadOnlyServer).GetCertificate(ctx, req.(*Serial))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StorageAuthorityReadOnly_GetCertificateStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Serial)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StorageAuthorityReadOnlyServer).GetCertificateStatus(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/sa.StorageAuthorityReadOnly/GetCertificateStatus",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StorageAuthorityReadOnlyServer).GetCertificateStatus(ctx, req.(*Serial))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StorageAuthorityReadOnly_GetMaxExpiration_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(emptypb.Empty)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StorageAuthorityReadOnlyServer).GetMaxExpiration(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/sa.StorageAuthorityReadOnly/GetMaxExpiration",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StorageAuthorityReadOnlyServer).GetMaxExpiration(ctx, req.(*emptypb.Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StorageAuthorityReadOnly_GetOrder_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OrderRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StorageAuthorityReadOnlyServer).GetOrder(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/sa.StorageAuthorityReadOnly/GetOrder",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StorageAuthorityReadOnlyServer).GetOrder(ctx, req.(*OrderRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StorageAuthorityReadOnly_GetOrderForNames_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetOrderForNamesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StorageAuthorityReadOnlyServer).GetOrderForNames(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/sa.StorageAuthorityReadOnly/GetOrderForNames",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StorageAuthorityReadOnlyServer).GetOrderForNames(ctx, req.(*GetOrderForNamesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StorageAuthorityReadOnly_GetPendingAuthorization2_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetPendingAuthorizationRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StorageAuthorityReadOnlyServer).GetPendingAuthorization2(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/sa.StorageAuthorityReadOnly/GetPendingAuthorization2",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StorageAuthorityReadOnlyServer).GetPendingAuthorization2(ctx, req.(*GetPendingAuthorizationRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StorageAuthorityReadOnly_GetPrecertificate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Serial)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StorageAuthorityReadOnlyServer).GetPrecertificate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/sa.StorageAuthorityReadOnly/GetPrecertificate",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StorageAuthorityReadOnlyServer).GetPrecertificate(ctx, req.(*Serial))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StorageAuthorityReadOnly_GetRegistration_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RegistrationID)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StorageAuthorityReadOnlyServer).GetRegistration(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/sa.StorageAuthorityReadOnly/GetRegistration",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StorageAuthorityReadOnlyServer).GetRegistration(ctx, req.(*RegistrationID))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StorageAuthorityReadOnly_GetRegistrationByKey_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(JSONWebKey)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StorageAuthorityReadOnlyServer).GetRegistrationByKey(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/sa.StorageAuthorityReadOnly/GetRegistrationByKey",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StorageAuthorityReadOnlyServer).GetRegistrationByKey(ctx, req.(*JSONWebKey))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StorageAuthorityReadOnly_GetRevocationStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Serial)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StorageAuthorityReadOnlyServer).GetRevocationStatus(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/sa.StorageAuthorityReadOnly/GetRevocationStatus",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StorageAuthorityReadOnlyServer).GetRevocationStatus(ctx, req.(*Serial))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StorageAuthorityReadOnly_GetRevokedCerts_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(GetRevokedCertsRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(StorageAuthorityReadOnlyServer).GetRevokedCerts(m, &storageAuthorityReadOnlyGetRevokedCertsServer{stream})
+}
+
+type StorageAuthorityReadOnly_GetRevokedCertsServer interface {
+	Send(*proto.CRLEntry) error
+	grpc.ServerStream
+}
+
+type storageAuthorityReadOnlyGetRevokedCertsServer struct {
+	grpc.ServerStream
+}
+
+func (x *storageAuthorityReadOnlyGetRevokedCertsServer) Send(m *proto.CRLEntry) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func _StorageAuthorityReadOnly_GetSerialMetadata_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Serial)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StorageAuthorityReadOnlyServer).GetSerialMetadata(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/sa.StorageAuthorityReadOnly/GetSerialMetadata",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StorageAuthorityReadOnlyServer).GetSerialMetadata(ctx, req.(*Serial))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StorageAuthorityReadOnly_GetValidAuthorizations2_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetValidAuthorizationsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StorageAuthorityReadOnlyServer).GetValidAuthorizations2(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/sa.StorageAuthorityReadOnly/GetValidAuthorizations2",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StorageAuthorityReadOnlyServer).GetValidAuthorizations2(ctx, req.(*GetValidAuthorizationsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StorageAuthorityReadOnly_GetValidOrderAuthorizations2_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetValidOrderAuthorizationsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StorageAuthorityReadOnlyServer).GetValidOrderAuthorizations2(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/sa.StorageAuthorityReadOnly/GetValidOrderAuthorizations2",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StorageAuthorityReadOnlyServer).GetValidOrderAuthorizations2(ctx, req.(*GetValidOrderAuthorizationsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StorageAuthorityReadOnly_IncidentsForSerial_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Serial)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StorageAuthorityReadOnlyServer).IncidentsForSerial(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/sa.StorageAuthorityReadOnly/IncidentsForSerial",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StorageAuthorityReadOnlyServer).IncidentsForSerial(ctx, req.(*Serial))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StorageAuthorityReadOnly_KeyBlocked_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(KeyBlockedRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StorageAuthorityReadOnlyServer).KeyBlocked(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/sa.StorageAuthorityReadOnly/KeyBlocked",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StorageAuthorityReadOnlyServer).KeyBlocked(ctx, req.(*KeyBlockedRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StorageAuthorityReadOnly_PreviousCertificateExists_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PreviousCertificateExistsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StorageAuthorityReadOnlyServer).PreviousCertificateExists(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/sa.StorageAuthorityReadOnly/PreviousCertificateExists",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StorageAuthorityReadOnlyServer).PreviousCertificateExists(ctx, req.(*PreviousCertificateExistsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StorageAuthorityReadOnly_SerialsForIncident_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(SerialsForIncidentRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(StorageAuthorityReadOnlyServer).SerialsForIncident(m, &storageAuthorityReadOnlySerialsForIncidentServer{stream})
+}
+
+type StorageAuthorityReadOnly_SerialsForIncidentServer interface {
+	Send(*IncidentSerial) error
+	grpc.ServerStream
+}
+
+type storageAuthorityReadOnlySerialsForIncidentServer struct {
+	grpc.ServerStream
+}
+
+func (x *storageAuthorityReadOnlySerialsForIncidentServer) Send(m *IncidentSerial) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+// StorageAuthorityReadOnly_ServiceDesc is the grpc.ServiceDesc for StorageAuthorityReadOnly service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var StorageAuthorityReadOnly_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "sa.StorageAuthorityReadOnly",
+	HandlerType: (*StorageAuthorityReadOnlyServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "CountCertificatesByNames",
+			Handler:    _StorageAuthorityReadOnly_CountCertificatesByNames_Handler,
+		},
+		{
+			MethodName: "CountFQDNSets",
+			Handler:    _StorageAuthorityReadOnly_CountFQDNSets_Handler,
+		},
+		{
+			MethodName: "CountInvalidAuthorizations2",
+			Handler:    _StorageAuthorityReadOnly_CountInvalidAuthorizations2_Handler,
+		},
+		{
+			MethodName: "CountOrders",
+			Handler:    _StorageAuthorityReadOnly_CountOrders_Handler,
+		},
+		{
+			MethodName: "CountPendingAuthorizations2",
+			Handler:    _StorageAuthorityReadOnly_CountPendingAuthorizations2_Handler,
+		},
+		{
+			MethodName: "CountRegistrationsByIP",
+			Handler:    _StorageAuthorityReadOnly_CountRegistrationsByIP_Handler,
+		},
+		{
+			MethodName: "CountRegistrationsByIPRange",
+			Handler:    _StorageAuthorityReadOnly_CountRegistrationsByIPRange_Handler,
+		},
+		{
+			MethodName: "FQDNSetExists",
+			Handler:    _StorageAuthorityReadOnly_FQDNSetExists_Handler,
+		},
+		{
+			MethodName: "FQDNSetTimestampsForWindow",
+			Handler:    _StorageAuthorityReadOnly_FQDNSetTimestampsForWindow_Handler,
+		},
+		{
+			MethodName: "GetAuthorization2",
+			Handler:    _StorageAuthorityReadOnly_GetAuthorization2_Handler,
+		},
+		{
+			MethodName: "GetAuthorizations2",
+			Handler:    _StorageAuthorityReadOnly_GetAuthorizations2_Handler,
+		},
+		{
+			MethodName: "GetCertificate",
+			Handler:    _StorageAuthorityReadOnly_GetCertificate_Handler,
+		},
+		{
+			MethodName: "GetCertificateStatus",
+			Handler:    _StorageAuthorityReadOnly_GetCertificateStatus_Handler,
+		},
+		{
+			MethodName: "GetMaxExpiration",
+			Handler:    _StorageAuthorityReadOnly_GetMaxExpiration_Handler,
+		},
+		{
+			MethodName: "GetOrder",
+			Handler:    _StorageAuthorityReadOnly_GetOrder_Handler,
+		},
+		{
+			MethodName: "GetOrderForNames",
+			Handler:    _StorageAuthorityReadOnly_GetOrderForNames_Handler,
+		},
+		{
+			MethodName: "GetPendingAuthorization2",
+			Handler:    _StorageAuthorityReadOnly_GetPendingAuthorization2_Handler,
+		},
+		{
+			MethodName: "GetPrecertificate",
+			Handler:    _StorageAuthorityReadOnly_GetPrecertificate_Handler,
+		},
+		{
+			MethodName: "GetRegistration",
+			Handler:    _StorageAuthorityReadOnly_GetRegistration_Handler,
+		},
+		{
+			MethodName: "GetRegistrationByKey",
+			Handler:    _StorageAuthorityReadOnly_GetRegistrationByKey_Handler,
+		},
+		{
+			MethodName: "GetRevocationStatus",
+			Handler:    _StorageAuthorityReadOnly_GetRevocationStatus_Handler,
+		},
+		{
+			MethodName: "GetSerialMetadata",
+			Handler:    _StorageAuthorityReadOnly_GetSerialMetadata_Handler,
+		},
+		{
+			MethodName: "GetValidAuthorizations2",
+			Handler:    _StorageAuthorityReadOnly_GetValidAuthorizations2_Handler,
+		},
+		{
+			MethodName: "GetValidOrderAuthorizations2",
+			Handler:    _StorageAuthorityReadOnly_GetValidOrderAuthorizations2_Handler,
+		},
+		{
+			MethodName: "IncidentsForSerial",
+			Handler:    _StorageAuthorityReadOnly_IncidentsForSerial_Handler,
+		},
+		{
+			MethodName: "KeyBlocked",
+			Handler:    _StorageAuthorityReadOnly_KeyBlocked_Handler,
+		},
+		{
+			MethodName: "PreviousCertificateExists",
+			Handler:    _StorageAuthorityReadOnly_PreviousCertificateExists_Handler,
+		},
+	},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "GetRevokedCerts",
+			Handler:       _StorageAuthorityReadOnly_GetRevokedCerts_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "SerialsForIncident",
+			Handler:       _StorageAuthorityReadOnly_SerialsForIncident_Handler,
+			ServerStreams: true,
+		},
+	},
+	Metadata: "sa.proto",
+}
+
 // StorageAuthorityClient is the client API for StorageAuthority service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type StorageAuthorityClient interface {
-	// Getters
-	GetRegistration(ctx context.Context, in *RegistrationID, opts ...grpc.CallOption) (*proto.Registration, error)
-	GetRegistrationByKey(ctx context.Context, in *JSONWebKey, opts ...grpc.CallOption) (*proto.Registration, error)
-	GetSerialMetadata(ctx context.Context, in *Serial, opts ...grpc.CallOption) (*SerialMetadata, error)
-	GetCertificate(ctx context.Context, in *Serial, opts ...grpc.CallOption) (*proto.Certificate, error)
-	GetPrecertificate(ctx context.Context, in *Serial, opts ...grpc.CallOption) (*proto.Certificate, error)
-	GetCertificateStatus(ctx context.Context, in *Serial, opts ...grpc.CallOption) (*proto.CertificateStatus, error)
-	GetRevocationStatus(ctx context.Context, in *Serial, opts ...grpc.CallOption) (*RevocationStatus, error)
+	// Getters: this list must be identical to the StorageAuthorityReadOnly rpcs.
 	CountCertificatesByNames(ctx context.Context, in *CountCertificatesByNamesRequest, opts ...grpc.CallOption) (*CountByNames, error)
+	CountFQDNSets(ctx context.Context, in *CountFQDNSetsRequest, opts ...grpc.CallOption) (*Count, error)
+	CountInvalidAuthorizations2(ctx context.Context, in *CountInvalidAuthorizationsRequest, opts ...grpc.CallOption) (*Count, error)
+	CountOrders(ctx context.Context, in *CountOrdersRequest, opts ...grpc.CallOption) (*Count, error)
+	CountPendingAuthorizations2(ctx context.Context, in *RegistrationID, opts ...grpc.CallOption) (*Count, error)
 	CountRegistrationsByIP(ctx context.Context, in *CountRegistrationsByIPRequest, opts ...grpc.CallOption) (*Count, error)
 	CountRegistrationsByIPRange(ctx context.Context, in *CountRegistrationsByIPRequest, opts ...grpc.CallOption) (*Count, error)
-	CountOrders(ctx context.Context, in *CountOrdersRequest, opts ...grpc.CallOption) (*Count, error)
-	// Return a count of authorizations with status "invalid" that belong to
-	// a given registration ID and expire in the given time range.
-	CountFQDNSets(ctx context.Context, in *CountFQDNSetsRequest, opts ...grpc.CallOption) (*Count, error)
-	FQDNSetTimestampsForWindow(ctx context.Context, in *CountFQDNSetsRequest, opts ...grpc.CallOption) (*Timestamps, error)
 	FQDNSetExists(ctx context.Context, in *FQDNSetExistsRequest, opts ...grpc.CallOption) (*Exists, error)
-	PreviousCertificateExists(ctx context.Context, in *PreviousCertificateExistsRequest, opts ...grpc.CallOption) (*Exists, error)
+	FQDNSetTimestampsForWindow(ctx context.Context, in *CountFQDNSetsRequest, opts ...grpc.CallOption) (*Timestamps, error)
 	GetAuthorization2(ctx context.Context, in *AuthorizationID2, opts ...grpc.CallOption) (*proto.Authorization, error)
 	GetAuthorizations2(ctx context.Context, in *GetAuthorizationsRequest, opts ...grpc.CallOption) (*Authorizations, error)
+	GetCertificate(ctx context.Context, in *Serial, opts ...grpc.CallOption) (*proto.Certificate, error)
+	GetCertificateStatus(ctx context.Context, in *Serial, opts ...grpc.CallOption) (*proto.CertificateStatus, error)
+	GetMaxExpiration(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*timestamppb.Timestamp, error)
+	GetOrder(ctx context.Context, in *OrderRequest, opts ...grpc.CallOption) (*proto.Order, error)
+	GetOrderForNames(ctx context.Context, in *GetOrderForNamesRequest, opts ...grpc.CallOption) (*proto.Order, error)
 	GetPendingAuthorization2(ctx context.Context, in *GetPendingAuthorizationRequest, opts ...grpc.CallOption) (*proto.Authorization, error)
-	CountPendingAuthorizations2(ctx context.Context, in *RegistrationID, opts ...grpc.CallOption) (*Count, error)
-	GetValidOrderAuthorizations2(ctx context.Context, in *GetValidOrderAuthorizationsRequest, opts ...grpc.CallOption) (*Authorizations, error)
-	CountInvalidAuthorizations2(ctx context.Context, in *CountInvalidAuthorizationsRequest, opts ...grpc.CallOption) (*Count, error)
-	GetValidAuthorizations2(ctx context.Context, in *GetValidAuthorizationsRequest, opts ...grpc.CallOption) (*Authorizations, error)
-	KeyBlocked(ctx context.Context, in *KeyBlockedRequest, opts ...grpc.CallOption) (*Exists, error)
-	SerialsForIncident(ctx context.Context, in *SerialsForIncidentRequest, opts ...grpc.CallOption) (StorageAuthority_SerialsForIncidentClient, error)
+	GetPrecertificate(ctx context.Context, in *Serial, opts ...grpc.CallOption) (*proto.Certificate, error)
+	GetRegistration(ctx context.Context, in *RegistrationID, opts ...grpc.CallOption) (*proto.Registration, error)
+	GetRegistrationByKey(ctx context.Context, in *JSONWebKey, opts ...grpc.CallOption) (*proto.Registration, error)
+	GetRevocationStatus(ctx context.Context, in *Serial, opts ...grpc.CallOption) (*RevocationStatus, error)
 	GetRevokedCerts(ctx context.Context, in *GetRevokedCertsRequest, opts ...grpc.CallOption) (StorageAuthority_GetRevokedCertsClient, error)
+	GetSerialMetadata(ctx context.Context, in *Serial, opts ...grpc.CallOption) (*SerialMetadata, error)
+	GetValidAuthorizations2(ctx context.Context, in *GetValidAuthorizationsRequest, opts ...grpc.CallOption) (*Authorizations, error)
+	GetValidOrderAuthorizations2(ctx context.Context, in *GetValidOrderAuthorizationsRequest, opts ...grpc.CallOption) (*Authorizations, error)
 	IncidentsForSerial(ctx context.Context, in *Serial, opts ...grpc.CallOption) (*Incidents, error)
+	KeyBlocked(ctx context.Context, in *KeyBlockedRequest, opts ...grpc.CallOption) (*Exists, error)
+	PreviousCertificateExists(ctx context.Context, in *PreviousCertificateExistsRequest, opts ...grpc.CallOption) (*Exists, error)
+	SerialsForIncident(ctx context.Context, in *SerialsForIncidentRequest, opts ...grpc.CallOption) (StorageAuthority_SerialsForIncidentClient, error)
 	// Adders
-	NewRegistration(ctx context.Context, in *proto.Registration, opts ...grpc.CallOption) (*proto.Registration, error)
-	UpdateRegistration(ctx context.Context, in *proto.Registration, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	AddBlockedKey(ctx context.Context, in *AddBlockedKeyRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	AddCertificate(ctx context.Context, in *AddCertificateRequest, opts ...grpc.CallOption) (*AddCertificateResponse, error)
 	AddPrecertificate(ctx context.Context, in *AddCertificateRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	AddSerial(ctx context.Context, in *AddSerialRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	DeactivateAuthorization2(ctx context.Context, in *AuthorizationID2, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	DeactivateRegistration(ctx context.Context, in *RegistrationID, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	FinalizeAuthorization2(ctx context.Context, in *FinalizeAuthorizationRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	FinalizeOrder(ctx context.Context, in *FinalizeOrderRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	NewAuthorizations2(ctx context.Context, in *AddPendingAuthorizationsRequest, opts ...grpc.CallOption) (*Authorization2IDs, error)
 	NewOrder(ctx context.Context, in *NewOrderRequest, opts ...grpc.CallOption) (*proto.Order, error)
 	NewOrderAndAuthzs(ctx context.Context, in *NewOrderAndAuthzsRequest, opts ...grpc.CallOption) (*proto.Order, error)
-	SetOrderProcessing(ctx context.Context, in *OrderRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
-	SetOrderError(ctx context.Context, in *SetOrderErrorRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
-	FinalizeOrder(ctx context.Context, in *FinalizeOrderRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
-	GetOrder(ctx context.Context, in *OrderRequest, opts ...grpc.CallOption) (*proto.Order, error)
-	GetOrderForNames(ctx context.Context, in *GetOrderForNamesRequest, opts ...grpc.CallOption) (*proto.Order, error)
+	NewRegistration(ctx context.Context, in *proto.Registration, opts ...grpc.CallOption) (*proto.Registration, error)
 	RevokeCertificate(ctx context.Context, in *RevokeCertificateRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	SetOrderError(ctx context.Context, in *SetOrderErrorRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	SetOrderProcessing(ctx context.Context, in *OrderRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	UpdateRegistration(ctx context.Context, in *proto.Registration, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	UpdateRevokedCertificate(ctx context.Context, in *RevokeCertificateRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
-	NewAuthorizations2(ctx context.Context, in *AddPendingAuthorizationsRequest, opts ...grpc.CallOption) (*Authorization2IDs, error)
-	FinalizeAuthorization2(ctx context.Context, in *FinalizeAuthorizationRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
-	DeactivateAuthorization2(ctx context.Context, in *AuthorizationID2, opts ...grpc.CallOption) (*emptypb.Empty, error)
-	AddBlockedKey(ctx context.Context, in *AddBlockedKeyRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 }
 
 type storageAuthorityClient struct {
@@ -83,72 +1233,45 @@ func NewStorageAuthorityClient(cc grpc.ClientConnInterface) StorageAuthorityClie
 	return &storageAuthorityClient{cc}
 }
 
-func (c *storageAuthorityClient) GetRegistration(ctx context.Context, in *RegistrationID, opts ...grpc.CallOption) (*proto.Registration, error) {
-	out := new(proto.Registration)
-	err := c.cc.Invoke(ctx, "/sa.StorageAuthority/GetRegistration", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *storageAuthorityClient) GetRegistrationByKey(ctx context.Context, in *JSONWebKey, opts ...grpc.CallOption) (*proto.Registration, error) {
-	out := new(proto.Registration)
-	err := c.cc.Invoke(ctx, "/sa.StorageAuthority/GetRegistrationByKey", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *storageAuthorityClient) GetSerialMetadata(ctx context.Context, in *Serial, opts ...grpc.CallOption) (*SerialMetadata, error) {
-	out := new(SerialMetadata)
-	err := c.cc.Invoke(ctx, "/sa.StorageAuthority/GetSerialMetadata", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *storageAuthorityClient) GetCertificate(ctx context.Context, in *Serial, opts ...grpc.CallOption) (*proto.Certificate, error) {
-	out := new(proto.Certificate)
-	err := c.cc.Invoke(ctx, "/sa.StorageAuthority/GetCertificate", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *storageAuthorityClient) GetPrecertificate(ctx context.Context, in *Serial, opts ...grpc.CallOption) (*proto.Certificate, error) {
-	out := new(proto.Certificate)
-	err := c.cc.Invoke(ctx, "/sa.StorageAuthority/GetPrecertificate", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *storageAuthorityClient) GetCertificateStatus(ctx context.Context, in *Serial, opts ...grpc.CallOption) (*proto.CertificateStatus, error) {
-	out := new(proto.CertificateStatus)
-	err := c.cc.Invoke(ctx, "/sa.StorageAuthority/GetCertificateStatus", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *storageAuthorityClient) GetRevocationStatus(ctx context.Context, in *Serial, opts ...grpc.CallOption) (*RevocationStatus, error) {
-	out := new(RevocationStatus)
-	err := c.cc.Invoke(ctx, "/sa.StorageAuthority/GetRevocationStatus", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *storageAuthorityClient) CountCertificatesByNames(ctx context.Context, in *CountCertificatesByNamesRequest, opts ...grpc.CallOption) (*CountByNames, error) {
 	out := new(CountByNames)
 	err := c.cc.Invoke(ctx, "/sa.StorageAuthority/CountCertificatesByNames", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storageAuthorityClient) CountFQDNSets(ctx context.Context, in *CountFQDNSetsRequest, opts ...grpc.CallOption) (*Count, error) {
+	out := new(Count)
+	err := c.cc.Invoke(ctx, "/sa.StorageAuthority/CountFQDNSets", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storageAuthorityClient) CountInvalidAuthorizations2(ctx context.Context, in *CountInvalidAuthorizationsRequest, opts ...grpc.CallOption) (*Count, error) {
+	out := new(Count)
+	err := c.cc.Invoke(ctx, "/sa.StorageAuthority/CountInvalidAuthorizations2", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storageAuthorityClient) CountOrders(ctx context.Context, in *CountOrdersRequest, opts ...grpc.CallOption) (*Count, error) {
+	out := new(Count)
+	err := c.cc.Invoke(ctx, "/sa.StorageAuthority/CountOrders", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storageAuthorityClient) CountPendingAuthorizations2(ctx context.Context, in *RegistrationID, opts ...grpc.CallOption) (*Count, error) {
+	out := new(Count)
+	err := c.cc.Invoke(ctx, "/sa.StorageAuthority/CountPendingAuthorizations2", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -173,33 +1296,6 @@ func (c *storageAuthorityClient) CountRegistrationsByIPRange(ctx context.Context
 	return out, nil
 }
 
-func (c *storageAuthorityClient) CountOrders(ctx context.Context, in *CountOrdersRequest, opts ...grpc.CallOption) (*Count, error) {
-	out := new(Count)
-	err := c.cc.Invoke(ctx, "/sa.StorageAuthority/CountOrders", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *storageAuthorityClient) CountFQDNSets(ctx context.Context, in *CountFQDNSetsRequest, opts ...grpc.CallOption) (*Count, error) {
-	out := new(Count)
-	err := c.cc.Invoke(ctx, "/sa.StorageAuthority/CountFQDNSets", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *storageAuthorityClient) FQDNSetTimestampsForWindow(ctx context.Context, in *CountFQDNSetsRequest, opts ...grpc.CallOption) (*Timestamps, error) {
-	out := new(Timestamps)
-	err := c.cc.Invoke(ctx, "/sa.StorageAuthority/FQDNSetTimestampsForWindow", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *storageAuthorityClient) FQDNSetExists(ctx context.Context, in *FQDNSetExistsRequest, opts ...grpc.CallOption) (*Exists, error) {
 	out := new(Exists)
 	err := c.cc.Invoke(ctx, "/sa.StorageAuthority/FQDNSetExists", in, out, opts...)
@@ -209,9 +1305,9 @@ func (c *storageAuthorityClient) FQDNSetExists(ctx context.Context, in *FQDNSetE
 	return out, nil
 }
 
-func (c *storageAuthorityClient) PreviousCertificateExists(ctx context.Context, in *PreviousCertificateExistsRequest, opts ...grpc.CallOption) (*Exists, error) {
-	out := new(Exists)
-	err := c.cc.Invoke(ctx, "/sa.StorageAuthority/PreviousCertificateExists", in, out, opts...)
+func (c *storageAuthorityClient) FQDNSetTimestampsForWindow(ctx context.Context, in *CountFQDNSetsRequest, opts ...grpc.CallOption) (*Timestamps, error) {
+	out := new(Timestamps)
+	err := c.cc.Invoke(ctx, "/sa.StorageAuthority/FQDNSetTimestampsForWindow", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -236,6 +1332,51 @@ func (c *storageAuthorityClient) GetAuthorizations2(ctx context.Context, in *Get
 	return out, nil
 }
 
+func (c *storageAuthorityClient) GetCertificate(ctx context.Context, in *Serial, opts ...grpc.CallOption) (*proto.Certificate, error) {
+	out := new(proto.Certificate)
+	err := c.cc.Invoke(ctx, "/sa.StorageAuthority/GetCertificate", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storageAuthorityClient) GetCertificateStatus(ctx context.Context, in *Serial, opts ...grpc.CallOption) (*proto.CertificateStatus, error) {
+	out := new(proto.CertificateStatus)
+	err := c.cc.Invoke(ctx, "/sa.StorageAuthority/GetCertificateStatus", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storageAuthorityClient) GetMaxExpiration(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*timestamppb.Timestamp, error) {
+	out := new(timestamppb.Timestamp)
+	err := c.cc.Invoke(ctx, "/sa.StorageAuthority/GetMaxExpiration", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storageAuthorityClient) GetOrder(ctx context.Context, in *OrderRequest, opts ...grpc.CallOption) (*proto.Order, error) {
+	out := new(proto.Order)
+	err := c.cc.Invoke(ctx, "/sa.StorageAuthority/GetOrder", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storageAuthorityClient) GetOrderForNames(ctx context.Context, in *GetOrderForNamesRequest, opts ...grpc.CallOption) (*proto.Order, error) {
+	out := new(proto.Order)
+	err := c.cc.Invoke(ctx, "/sa.StorageAuthority/GetOrderForNames", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *storageAuthorityClient) GetPendingAuthorization2(ctx context.Context, in *GetPendingAuthorizationRequest, opts ...grpc.CallOption) (*proto.Authorization, error) {
 	out := new(proto.Authorization)
 	err := c.cc.Invoke(ctx, "/sa.StorageAuthority/GetPendingAuthorization2", in, out, opts...)
@@ -245,85 +1386,44 @@ func (c *storageAuthorityClient) GetPendingAuthorization2(ctx context.Context, i
 	return out, nil
 }
 
-func (c *storageAuthorityClient) CountPendingAuthorizations2(ctx context.Context, in *RegistrationID, opts ...grpc.CallOption) (*Count, error) {
-	out := new(Count)
-	err := c.cc.Invoke(ctx, "/sa.StorageAuthority/CountPendingAuthorizations2", in, out, opts...)
+func (c *storageAuthorityClient) GetPrecertificate(ctx context.Context, in *Serial, opts ...grpc.CallOption) (*proto.Certificate, error) {
+	out := new(proto.Certificate)
+	err := c.cc.Invoke(ctx, "/sa.StorageAuthority/GetPrecertificate", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *storageAuthorityClient) GetValidOrderAuthorizations2(ctx context.Context, in *GetValidOrderAuthorizationsRequest, opts ...grpc.CallOption) (*Authorizations, error) {
-	out := new(Authorizations)
-	err := c.cc.Invoke(ctx, "/sa.StorageAuthority/GetValidOrderAuthorizations2", in, out, opts...)
+func (c *storageAuthorityClient) GetRegistration(ctx context.Context, in *RegistrationID, opts ...grpc.CallOption) (*proto.Registration, error) {
+	out := new(proto.Registration)
+	err := c.cc.Invoke(ctx, "/sa.StorageAuthority/GetRegistration", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *storageAuthorityClient) CountInvalidAuthorizations2(ctx context.Context, in *CountInvalidAuthorizationsRequest, opts ...grpc.CallOption) (*Count, error) {
-	out := new(Count)
-	err := c.cc.Invoke(ctx, "/sa.StorageAuthority/CountInvalidAuthorizations2", in, out, opts...)
+func (c *storageAuthorityClient) GetRegistrationByKey(ctx context.Context, in *JSONWebKey, opts ...grpc.CallOption) (*proto.Registration, error) {
+	out := new(proto.Registration)
+	err := c.cc.Invoke(ctx, "/sa.StorageAuthority/GetRegistrationByKey", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *storageAuthorityClient) GetValidAuthorizations2(ctx context.Context, in *GetValidAuthorizationsRequest, opts ...grpc.CallOption) (*Authorizations, error) {
-	out := new(Authorizations)
-	err := c.cc.Invoke(ctx, "/sa.StorageAuthority/GetValidAuthorizations2", in, out, opts...)
+func (c *storageAuthorityClient) GetRevocationStatus(ctx context.Context, in *Serial, opts ...grpc.CallOption) (*RevocationStatus, error) {
+	out := new(RevocationStatus)
+	err := c.cc.Invoke(ctx, "/sa.StorageAuthority/GetRevocationStatus", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
-}
-
-func (c *storageAuthorityClient) KeyBlocked(ctx context.Context, in *KeyBlockedRequest, opts ...grpc.CallOption) (*Exists, error) {
-	out := new(Exists)
-	err := c.cc.Invoke(ctx, "/sa.StorageAuthority/KeyBlocked", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *storageAuthorityClient) SerialsForIncident(ctx context.Context, in *SerialsForIncidentRequest, opts ...grpc.CallOption) (StorageAuthority_SerialsForIncidentClient, error) {
-	stream, err := c.cc.NewStream(ctx, &StorageAuthority_ServiceDesc.Streams[0], "/sa.StorageAuthority/SerialsForIncident", opts...)
-	if err != nil {
-		return nil, err
-	}
-	x := &storageAuthoritySerialsForIncidentClient{stream}
-	if err := x.ClientStream.SendMsg(in); err != nil {
-		return nil, err
-	}
-	if err := x.ClientStream.CloseSend(); err != nil {
-		return nil, err
-	}
-	return x, nil
-}
-
-type StorageAuthority_SerialsForIncidentClient interface {
-	Recv() (*IncidentSerial, error)
-	grpc.ClientStream
-}
-
-type storageAuthoritySerialsForIncidentClient struct {
-	grpc.ClientStream
-}
-
-func (x *storageAuthoritySerialsForIncidentClient) Recv() (*IncidentSerial, error) {
-	m := new(IncidentSerial)
-	if err := x.ClientStream.RecvMsg(m); err != nil {
-		return nil, err
-	}
-	return m, nil
 }
 
 func (c *storageAuthorityClient) GetRevokedCerts(ctx context.Context, in *GetRevokedCertsRequest, opts ...grpc.CallOption) (StorageAuthority_GetRevokedCertsClient, error) {
-	stream, err := c.cc.NewStream(ctx, &StorageAuthority_ServiceDesc.Streams[1], "/sa.StorageAuthority/GetRevokedCerts", opts...)
+	stream, err := c.cc.NewStream(ctx, &StorageAuthority_ServiceDesc.Streams[0], "/sa.StorageAuthority/GetRevokedCerts", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -354,6 +1454,33 @@ func (x *storageAuthorityGetRevokedCertsClient) Recv() (*proto.CRLEntry, error) 
 	return m, nil
 }
 
+func (c *storageAuthorityClient) GetSerialMetadata(ctx context.Context, in *Serial, opts ...grpc.CallOption) (*SerialMetadata, error) {
+	out := new(SerialMetadata)
+	err := c.cc.Invoke(ctx, "/sa.StorageAuthority/GetSerialMetadata", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storageAuthorityClient) GetValidAuthorizations2(ctx context.Context, in *GetValidAuthorizationsRequest, opts ...grpc.CallOption) (*Authorizations, error) {
+	out := new(Authorizations)
+	err := c.cc.Invoke(ctx, "/sa.StorageAuthority/GetValidAuthorizations2", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storageAuthorityClient) GetValidOrderAuthorizations2(ctx context.Context, in *GetValidOrderAuthorizationsRequest, opts ...grpc.CallOption) (*Authorizations, error) {
+	out := new(Authorizations)
+	err := c.cc.Invoke(ctx, "/sa.StorageAuthority/GetValidOrderAuthorizations2", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *storageAuthorityClient) IncidentsForSerial(ctx context.Context, in *Serial, opts ...grpc.CallOption) (*Incidents, error) {
 	out := new(Incidents)
 	err := c.cc.Invoke(ctx, "/sa.StorageAuthority/IncidentsForSerial", in, out, opts...)
@@ -363,18 +1490,59 @@ func (c *storageAuthorityClient) IncidentsForSerial(ctx context.Context, in *Ser
 	return out, nil
 }
 
-func (c *storageAuthorityClient) NewRegistration(ctx context.Context, in *proto.Registration, opts ...grpc.CallOption) (*proto.Registration, error) {
-	out := new(proto.Registration)
-	err := c.cc.Invoke(ctx, "/sa.StorageAuthority/NewRegistration", in, out, opts...)
+func (c *storageAuthorityClient) KeyBlocked(ctx context.Context, in *KeyBlockedRequest, opts ...grpc.CallOption) (*Exists, error) {
+	out := new(Exists)
+	err := c.cc.Invoke(ctx, "/sa.StorageAuthority/KeyBlocked", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *storageAuthorityClient) UpdateRegistration(ctx context.Context, in *proto.Registration, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+func (c *storageAuthorityClient) PreviousCertificateExists(ctx context.Context, in *PreviousCertificateExistsRequest, opts ...grpc.CallOption) (*Exists, error) {
+	out := new(Exists)
+	err := c.cc.Invoke(ctx, "/sa.StorageAuthority/PreviousCertificateExists", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storageAuthorityClient) SerialsForIncident(ctx context.Context, in *SerialsForIncidentRequest, opts ...grpc.CallOption) (StorageAuthority_SerialsForIncidentClient, error) {
+	stream, err := c.cc.NewStream(ctx, &StorageAuthority_ServiceDesc.Streams[1], "/sa.StorageAuthority/SerialsForIncident", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &storageAuthoritySerialsForIncidentClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type StorageAuthority_SerialsForIncidentClient interface {
+	Recv() (*IncidentSerial, error)
+	grpc.ClientStream
+}
+
+type storageAuthoritySerialsForIncidentClient struct {
+	grpc.ClientStream
+}
+
+func (x *storageAuthoritySerialsForIncidentClient) Recv() (*IncidentSerial, error) {
+	m := new(IncidentSerial)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (c *storageAuthorityClient) AddBlockedKey(ctx context.Context, in *AddBlockedKeyRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
 	out := new(emptypb.Empty)
-	err := c.cc.Invoke(ctx, "/sa.StorageAuthority/UpdateRegistration", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/sa.StorageAuthority/AddBlockedKey", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -408,9 +1576,45 @@ func (c *storageAuthorityClient) AddSerial(ctx context.Context, in *AddSerialReq
 	return out, nil
 }
 
+func (c *storageAuthorityClient) DeactivateAuthorization2(ctx context.Context, in *AuthorizationID2, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, "/sa.StorageAuthority/DeactivateAuthorization2", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *storageAuthorityClient) DeactivateRegistration(ctx context.Context, in *RegistrationID, opts ...grpc.CallOption) (*emptypb.Empty, error) {
 	out := new(emptypb.Empty)
 	err := c.cc.Invoke(ctx, "/sa.StorageAuthority/DeactivateRegistration", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storageAuthorityClient) FinalizeAuthorization2(ctx context.Context, in *FinalizeAuthorizationRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, "/sa.StorageAuthority/FinalizeAuthorization2", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storageAuthorityClient) FinalizeOrder(ctx context.Context, in *FinalizeOrderRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, "/sa.StorageAuthority/FinalizeOrder", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storageAuthorityClient) NewAuthorizations2(ctx context.Context, in *AddPendingAuthorizationsRequest, opts ...grpc.CallOption) (*Authorization2IDs, error) {
+	out := new(Authorization2IDs)
+	err := c.cc.Invoke(ctx, "/sa.StorageAuthority/NewAuthorizations2", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -435,45 +1639,9 @@ func (c *storageAuthorityClient) NewOrderAndAuthzs(ctx context.Context, in *NewO
 	return out, nil
 }
 
-func (c *storageAuthorityClient) SetOrderProcessing(ctx context.Context, in *OrderRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
-	out := new(emptypb.Empty)
-	err := c.cc.Invoke(ctx, "/sa.StorageAuthority/SetOrderProcessing", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *storageAuthorityClient) SetOrderError(ctx context.Context, in *SetOrderErrorRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
-	out := new(emptypb.Empty)
-	err := c.cc.Invoke(ctx, "/sa.StorageAuthority/SetOrderError", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *storageAuthorityClient) FinalizeOrder(ctx context.Context, in *FinalizeOrderRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
-	out := new(emptypb.Empty)
-	err := c.cc.Invoke(ctx, "/sa.StorageAuthority/FinalizeOrder", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *storageAuthorityClient) GetOrder(ctx context.Context, in *OrderRequest, opts ...grpc.CallOption) (*proto.Order, error) {
-	out := new(proto.Order)
-	err := c.cc.Invoke(ctx, "/sa.StorageAuthority/GetOrder", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *storageAuthorityClient) GetOrderForNames(ctx context.Context, in *GetOrderForNamesRequest, opts ...grpc.CallOption) (*proto.Order, error) {
-	out := new(proto.Order)
-	err := c.cc.Invoke(ctx, "/sa.StorageAuthority/GetOrderForNames", in, out, opts...)
+func (c *storageAuthorityClient) NewRegistration(ctx context.Context, in *proto.Registration, opts ...grpc.CallOption) (*proto.Registration, error) {
+	out := new(proto.Registration)
+	err := c.cc.Invoke(ctx, "/sa.StorageAuthority/NewRegistration", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -489,45 +1657,36 @@ func (c *storageAuthorityClient) RevokeCertificate(ctx context.Context, in *Revo
 	return out, nil
 }
 
+func (c *storageAuthorityClient) SetOrderError(ctx context.Context, in *SetOrderErrorRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, "/sa.StorageAuthority/SetOrderError", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storageAuthorityClient) SetOrderProcessing(ctx context.Context, in *OrderRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, "/sa.StorageAuthority/SetOrderProcessing", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storageAuthorityClient) UpdateRegistration(ctx context.Context, in *proto.Registration, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, "/sa.StorageAuthority/UpdateRegistration", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *storageAuthorityClient) UpdateRevokedCertificate(ctx context.Context, in *RevokeCertificateRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
 	out := new(emptypb.Empty)
 	err := c.cc.Invoke(ctx, "/sa.StorageAuthority/UpdateRevokedCertificate", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *storageAuthorityClient) NewAuthorizations2(ctx context.Context, in *AddPendingAuthorizationsRequest, opts ...grpc.CallOption) (*Authorization2IDs, error) {
-	out := new(Authorization2IDs)
-	err := c.cc.Invoke(ctx, "/sa.StorageAuthority/NewAuthorizations2", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *storageAuthorityClient) FinalizeAuthorization2(ctx context.Context, in *FinalizeAuthorizationRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
-	out := new(emptypb.Empty)
-	err := c.cc.Invoke(ctx, "/sa.StorageAuthority/FinalizeAuthorization2", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *storageAuthorityClient) DeactivateAuthorization2(ctx context.Context, in *AuthorizationID2, opts ...grpc.CallOption) (*emptypb.Empty, error) {
-	out := new(emptypb.Empty)
-	err := c.cc.Invoke(ctx, "/sa.StorageAuthority/DeactivateAuthorization2", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *storageAuthorityClient) AddBlockedKey(ctx context.Context, in *AddBlockedKeyRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
-	out := new(emptypb.Empty)
-	err := c.cc.Invoke(ctx, "/sa.StorageAuthority/AddBlockedKey", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -538,55 +1697,54 @@ func (c *storageAuthorityClient) AddBlockedKey(ctx context.Context, in *AddBlock
 // All implementations must embed UnimplementedStorageAuthorityServer
 // for forward compatibility
 type StorageAuthorityServer interface {
-	// Getters
-	GetRegistration(context.Context, *RegistrationID) (*proto.Registration, error)
-	GetRegistrationByKey(context.Context, *JSONWebKey) (*proto.Registration, error)
-	GetSerialMetadata(context.Context, *Serial) (*SerialMetadata, error)
-	GetCertificate(context.Context, *Serial) (*proto.Certificate, error)
-	GetPrecertificate(context.Context, *Serial) (*proto.Certificate, error)
-	GetCertificateStatus(context.Context, *Serial) (*proto.CertificateStatus, error)
-	GetRevocationStatus(context.Context, *Serial) (*RevocationStatus, error)
+	// Getters: this list must be identical to the StorageAuthorityReadOnly rpcs.
 	CountCertificatesByNames(context.Context, *CountCertificatesByNamesRequest) (*CountByNames, error)
+	CountFQDNSets(context.Context, *CountFQDNSetsRequest) (*Count, error)
+	CountInvalidAuthorizations2(context.Context, *CountInvalidAuthorizationsRequest) (*Count, error)
+	CountOrders(context.Context, *CountOrdersRequest) (*Count, error)
+	CountPendingAuthorizations2(context.Context, *RegistrationID) (*Count, error)
 	CountRegistrationsByIP(context.Context, *CountRegistrationsByIPRequest) (*Count, error)
 	CountRegistrationsByIPRange(context.Context, *CountRegistrationsByIPRequest) (*Count, error)
-	CountOrders(context.Context, *CountOrdersRequest) (*Count, error)
-	// Return a count of authorizations with status "invalid" that belong to
-	// a given registration ID and expire in the given time range.
-	CountFQDNSets(context.Context, *CountFQDNSetsRequest) (*Count, error)
-	FQDNSetTimestampsForWindow(context.Context, *CountFQDNSetsRequest) (*Timestamps, error)
 	FQDNSetExists(context.Context, *FQDNSetExistsRequest) (*Exists, error)
-	PreviousCertificateExists(context.Context, *PreviousCertificateExistsRequest) (*Exists, error)
+	FQDNSetTimestampsForWindow(context.Context, *CountFQDNSetsRequest) (*Timestamps, error)
 	GetAuthorization2(context.Context, *AuthorizationID2) (*proto.Authorization, error)
 	GetAuthorizations2(context.Context, *GetAuthorizationsRequest) (*Authorizations, error)
+	GetCertificate(context.Context, *Serial) (*proto.Certificate, error)
+	GetCertificateStatus(context.Context, *Serial) (*proto.CertificateStatus, error)
+	GetMaxExpiration(context.Context, *emptypb.Empty) (*timestamppb.Timestamp, error)
+	GetOrder(context.Context, *OrderRequest) (*proto.Order, error)
+	GetOrderForNames(context.Context, *GetOrderForNamesRequest) (*proto.Order, error)
 	GetPendingAuthorization2(context.Context, *GetPendingAuthorizationRequest) (*proto.Authorization, error)
-	CountPendingAuthorizations2(context.Context, *RegistrationID) (*Count, error)
-	GetValidOrderAuthorizations2(context.Context, *GetValidOrderAuthorizationsRequest) (*Authorizations, error)
-	CountInvalidAuthorizations2(context.Context, *CountInvalidAuthorizationsRequest) (*Count, error)
-	GetValidAuthorizations2(context.Context, *GetValidAuthorizationsRequest) (*Authorizations, error)
-	KeyBlocked(context.Context, *KeyBlockedRequest) (*Exists, error)
-	SerialsForIncident(*SerialsForIncidentRequest, StorageAuthority_SerialsForIncidentServer) error
+	GetPrecertificate(context.Context, *Serial) (*proto.Certificate, error)
+	GetRegistration(context.Context, *RegistrationID) (*proto.Registration, error)
+	GetRegistrationByKey(context.Context, *JSONWebKey) (*proto.Registration, error)
+	GetRevocationStatus(context.Context, *Serial) (*RevocationStatus, error)
 	GetRevokedCerts(*GetRevokedCertsRequest, StorageAuthority_GetRevokedCertsServer) error
+	GetSerialMetadata(context.Context, *Serial) (*SerialMetadata, error)
+	GetValidAuthorizations2(context.Context, *GetValidAuthorizationsRequest) (*Authorizations, error)
+	GetValidOrderAuthorizations2(context.Context, *GetValidOrderAuthorizationsRequest) (*Authorizations, error)
 	IncidentsForSerial(context.Context, *Serial) (*Incidents, error)
+	KeyBlocked(context.Context, *KeyBlockedRequest) (*Exists, error)
+	PreviousCertificateExists(context.Context, *PreviousCertificateExistsRequest) (*Exists, error)
+	SerialsForIncident(*SerialsForIncidentRequest, StorageAuthority_SerialsForIncidentServer) error
 	// Adders
-	NewRegistration(context.Context, *proto.Registration) (*proto.Registration, error)
-	UpdateRegistration(context.Context, *proto.Registration) (*emptypb.Empty, error)
+	AddBlockedKey(context.Context, *AddBlockedKeyRequest) (*emptypb.Empty, error)
 	AddCertificate(context.Context, *AddCertificateRequest) (*AddCertificateResponse, error)
 	AddPrecertificate(context.Context, *AddCertificateRequest) (*emptypb.Empty, error)
 	AddSerial(context.Context, *AddSerialRequest) (*emptypb.Empty, error)
+	DeactivateAuthorization2(context.Context, *AuthorizationID2) (*emptypb.Empty, error)
 	DeactivateRegistration(context.Context, *RegistrationID) (*emptypb.Empty, error)
+	FinalizeAuthorization2(context.Context, *FinalizeAuthorizationRequest) (*emptypb.Empty, error)
+	FinalizeOrder(context.Context, *FinalizeOrderRequest) (*emptypb.Empty, error)
+	NewAuthorizations2(context.Context, *AddPendingAuthorizationsRequest) (*Authorization2IDs, error)
 	NewOrder(context.Context, *NewOrderRequest) (*proto.Order, error)
 	NewOrderAndAuthzs(context.Context, *NewOrderAndAuthzsRequest) (*proto.Order, error)
-	SetOrderProcessing(context.Context, *OrderRequest) (*emptypb.Empty, error)
-	SetOrderError(context.Context, *SetOrderErrorRequest) (*emptypb.Empty, error)
-	FinalizeOrder(context.Context, *FinalizeOrderRequest) (*emptypb.Empty, error)
-	GetOrder(context.Context, *OrderRequest) (*proto.Order, error)
-	GetOrderForNames(context.Context, *GetOrderForNamesRequest) (*proto.Order, error)
+	NewRegistration(context.Context, *proto.Registration) (*proto.Registration, error)
 	RevokeCertificate(context.Context, *RevokeCertificateRequest) (*emptypb.Empty, error)
+	SetOrderError(context.Context, *SetOrderErrorRequest) (*emptypb.Empty, error)
+	SetOrderProcessing(context.Context, *OrderRequest) (*emptypb.Empty, error)
+	UpdateRegistration(context.Context, *proto.Registration) (*emptypb.Empty, error)
 	UpdateRevokedCertificate(context.Context, *RevokeCertificateRequest) (*emptypb.Empty, error)
-	NewAuthorizations2(context.Context, *AddPendingAuthorizationsRequest) (*Authorization2IDs, error)
-	FinalizeAuthorization2(context.Context, *FinalizeAuthorizationRequest) (*emptypb.Empty, error)
-	DeactivateAuthorization2(context.Context, *AuthorizationID2) (*emptypb.Empty, error)
-	AddBlockedKey(context.Context, *AddBlockedKeyRequest) (*emptypb.Empty, error)
 	mustEmbedUnimplementedStorageAuthorityServer()
 }
 
@@ -594,29 +1752,20 @@ type StorageAuthorityServer interface {
 type UnimplementedStorageAuthorityServer struct {
 }
 
-func (UnimplementedStorageAuthorityServer) GetRegistration(context.Context, *RegistrationID) (*proto.Registration, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetRegistration not implemented")
-}
-func (UnimplementedStorageAuthorityServer) GetRegistrationByKey(context.Context, *JSONWebKey) (*proto.Registration, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetRegistrationByKey not implemented")
-}
-func (UnimplementedStorageAuthorityServer) GetSerialMetadata(context.Context, *Serial) (*SerialMetadata, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetSerialMetadata not implemented")
-}
-func (UnimplementedStorageAuthorityServer) GetCertificate(context.Context, *Serial) (*proto.Certificate, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetCertificate not implemented")
-}
-func (UnimplementedStorageAuthorityServer) GetPrecertificate(context.Context, *Serial) (*proto.Certificate, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetPrecertificate not implemented")
-}
-func (UnimplementedStorageAuthorityServer) GetCertificateStatus(context.Context, *Serial) (*proto.CertificateStatus, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetCertificateStatus not implemented")
-}
-func (UnimplementedStorageAuthorityServer) GetRevocationStatus(context.Context, *Serial) (*RevocationStatus, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetRevocationStatus not implemented")
-}
 func (UnimplementedStorageAuthorityServer) CountCertificatesByNames(context.Context, *CountCertificatesByNamesRequest) (*CountByNames, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CountCertificatesByNames not implemented")
+}
+func (UnimplementedStorageAuthorityServer) CountFQDNSets(context.Context, *CountFQDNSetsRequest) (*Count, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CountFQDNSets not implemented")
+}
+func (UnimplementedStorageAuthorityServer) CountInvalidAuthorizations2(context.Context, *CountInvalidAuthorizationsRequest) (*Count, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CountInvalidAuthorizations2 not implemented")
+}
+func (UnimplementedStorageAuthorityServer) CountOrders(context.Context, *CountOrdersRequest) (*Count, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CountOrders not implemented")
+}
+func (UnimplementedStorageAuthorityServer) CountPendingAuthorizations2(context.Context, *RegistrationID) (*Count, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CountPendingAuthorizations2 not implemented")
 }
 func (UnimplementedStorageAuthorityServer) CountRegistrationsByIP(context.Context, *CountRegistrationsByIPRequest) (*Count, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CountRegistrationsByIP not implemented")
@@ -624,20 +1773,11 @@ func (UnimplementedStorageAuthorityServer) CountRegistrationsByIP(context.Contex
 func (UnimplementedStorageAuthorityServer) CountRegistrationsByIPRange(context.Context, *CountRegistrationsByIPRequest) (*Count, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CountRegistrationsByIPRange not implemented")
 }
-func (UnimplementedStorageAuthorityServer) CountOrders(context.Context, *CountOrdersRequest) (*Count, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method CountOrders not implemented")
-}
-func (UnimplementedStorageAuthorityServer) CountFQDNSets(context.Context, *CountFQDNSetsRequest) (*Count, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method CountFQDNSets not implemented")
-}
-func (UnimplementedStorageAuthorityServer) FQDNSetTimestampsForWindow(context.Context, *CountFQDNSetsRequest) (*Timestamps, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method FQDNSetTimestampsForWindow not implemented")
-}
 func (UnimplementedStorageAuthorityServer) FQDNSetExists(context.Context, *FQDNSetExistsRequest) (*Exists, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method FQDNSetExists not implemented")
 }
-func (UnimplementedStorageAuthorityServer) PreviousCertificateExists(context.Context, *PreviousCertificateExistsRequest) (*Exists, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method PreviousCertificateExists not implemented")
+func (UnimplementedStorageAuthorityServer) FQDNSetTimestampsForWindow(context.Context, *CountFQDNSetsRequest) (*Timestamps, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method FQDNSetTimestampsForWindow not implemented")
 }
 func (UnimplementedStorageAuthorityServer) GetAuthorization2(context.Context, *AuthorizationID2) (*proto.Authorization, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetAuthorization2 not implemented")
@@ -645,38 +1785,62 @@ func (UnimplementedStorageAuthorityServer) GetAuthorization2(context.Context, *A
 func (UnimplementedStorageAuthorityServer) GetAuthorizations2(context.Context, *GetAuthorizationsRequest) (*Authorizations, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetAuthorizations2 not implemented")
 }
+func (UnimplementedStorageAuthorityServer) GetCertificate(context.Context, *Serial) (*proto.Certificate, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetCertificate not implemented")
+}
+func (UnimplementedStorageAuthorityServer) GetCertificateStatus(context.Context, *Serial) (*proto.CertificateStatus, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetCertificateStatus not implemented")
+}
+func (UnimplementedStorageAuthorityServer) GetMaxExpiration(context.Context, *emptypb.Empty) (*timestamppb.Timestamp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetMaxExpiration not implemented")
+}
+func (UnimplementedStorageAuthorityServer) GetOrder(context.Context, *OrderRequest) (*proto.Order, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetOrder not implemented")
+}
+func (UnimplementedStorageAuthorityServer) GetOrderForNames(context.Context, *GetOrderForNamesRequest) (*proto.Order, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetOrderForNames not implemented")
+}
 func (UnimplementedStorageAuthorityServer) GetPendingAuthorization2(context.Context, *GetPendingAuthorizationRequest) (*proto.Authorization, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetPendingAuthorization2 not implemented")
 }
-func (UnimplementedStorageAuthorityServer) CountPendingAuthorizations2(context.Context, *RegistrationID) (*Count, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method CountPendingAuthorizations2 not implemented")
+func (UnimplementedStorageAuthorityServer) GetPrecertificate(context.Context, *Serial) (*proto.Certificate, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetPrecertificate not implemented")
 }
-func (UnimplementedStorageAuthorityServer) GetValidOrderAuthorizations2(context.Context, *GetValidOrderAuthorizationsRequest) (*Authorizations, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetValidOrderAuthorizations2 not implemented")
+func (UnimplementedStorageAuthorityServer) GetRegistration(context.Context, *RegistrationID) (*proto.Registration, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetRegistration not implemented")
 }
-func (UnimplementedStorageAuthorityServer) CountInvalidAuthorizations2(context.Context, *CountInvalidAuthorizationsRequest) (*Count, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method CountInvalidAuthorizations2 not implemented")
+func (UnimplementedStorageAuthorityServer) GetRegistrationByKey(context.Context, *JSONWebKey) (*proto.Registration, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetRegistrationByKey not implemented")
 }
-func (UnimplementedStorageAuthorityServer) GetValidAuthorizations2(context.Context, *GetValidAuthorizationsRequest) (*Authorizations, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetValidAuthorizations2 not implemented")
-}
-func (UnimplementedStorageAuthorityServer) KeyBlocked(context.Context, *KeyBlockedRequest) (*Exists, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method KeyBlocked not implemented")
-}
-func (UnimplementedStorageAuthorityServer) SerialsForIncident(*SerialsForIncidentRequest, StorageAuthority_SerialsForIncidentServer) error {
-	return status.Errorf(codes.Unimplemented, "method SerialsForIncident not implemented")
+func (UnimplementedStorageAuthorityServer) GetRevocationStatus(context.Context, *Serial) (*RevocationStatus, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetRevocationStatus not implemented")
 }
 func (UnimplementedStorageAuthorityServer) GetRevokedCerts(*GetRevokedCertsRequest, StorageAuthority_GetRevokedCertsServer) error {
 	return status.Errorf(codes.Unimplemented, "method GetRevokedCerts not implemented")
 }
+func (UnimplementedStorageAuthorityServer) GetSerialMetadata(context.Context, *Serial) (*SerialMetadata, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetSerialMetadata not implemented")
+}
+func (UnimplementedStorageAuthorityServer) GetValidAuthorizations2(context.Context, *GetValidAuthorizationsRequest) (*Authorizations, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetValidAuthorizations2 not implemented")
+}
+func (UnimplementedStorageAuthorityServer) GetValidOrderAuthorizations2(context.Context, *GetValidOrderAuthorizationsRequest) (*Authorizations, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetValidOrderAuthorizations2 not implemented")
+}
 func (UnimplementedStorageAuthorityServer) IncidentsForSerial(context.Context, *Serial) (*Incidents, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method IncidentsForSerial not implemented")
 }
-func (UnimplementedStorageAuthorityServer) NewRegistration(context.Context, *proto.Registration) (*proto.Registration, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method NewRegistration not implemented")
+func (UnimplementedStorageAuthorityServer) KeyBlocked(context.Context, *KeyBlockedRequest) (*Exists, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method KeyBlocked not implemented")
 }
-func (UnimplementedStorageAuthorityServer) UpdateRegistration(context.Context, *proto.Registration) (*emptypb.Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method UpdateRegistration not implemented")
+func (UnimplementedStorageAuthorityServer) PreviousCertificateExists(context.Context, *PreviousCertificateExistsRequest) (*Exists, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method PreviousCertificateExists not implemented")
+}
+func (UnimplementedStorageAuthorityServer) SerialsForIncident(*SerialsForIncidentRequest, StorageAuthority_SerialsForIncidentServer) error {
+	return status.Errorf(codes.Unimplemented, "method SerialsForIncident not implemented")
+}
+func (UnimplementedStorageAuthorityServer) AddBlockedKey(context.Context, *AddBlockedKeyRequest) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AddBlockedKey not implemented")
 }
 func (UnimplementedStorageAuthorityServer) AddCertificate(context.Context, *AddCertificateRequest) (*AddCertificateResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AddCertificate not implemented")
@@ -687,8 +1851,20 @@ func (UnimplementedStorageAuthorityServer) AddPrecertificate(context.Context, *A
 func (UnimplementedStorageAuthorityServer) AddSerial(context.Context, *AddSerialRequest) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AddSerial not implemented")
 }
+func (UnimplementedStorageAuthorityServer) DeactivateAuthorization2(context.Context, *AuthorizationID2) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeactivateAuthorization2 not implemented")
+}
 func (UnimplementedStorageAuthorityServer) DeactivateRegistration(context.Context, *RegistrationID) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeactivateRegistration not implemented")
+}
+func (UnimplementedStorageAuthorityServer) FinalizeAuthorization2(context.Context, *FinalizeAuthorizationRequest) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method FinalizeAuthorization2 not implemented")
+}
+func (UnimplementedStorageAuthorityServer) FinalizeOrder(context.Context, *FinalizeOrderRequest) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method FinalizeOrder not implemented")
+}
+func (UnimplementedStorageAuthorityServer) NewAuthorizations2(context.Context, *AddPendingAuthorizationsRequest) (*Authorization2IDs, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method NewAuthorizations2 not implemented")
 }
 func (UnimplementedStorageAuthorityServer) NewOrder(context.Context, *NewOrderRequest) (*proto.Order, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method NewOrder not implemented")
@@ -696,38 +1872,23 @@ func (UnimplementedStorageAuthorityServer) NewOrder(context.Context, *NewOrderRe
 func (UnimplementedStorageAuthorityServer) NewOrderAndAuthzs(context.Context, *NewOrderAndAuthzsRequest) (*proto.Order, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method NewOrderAndAuthzs not implemented")
 }
-func (UnimplementedStorageAuthorityServer) SetOrderProcessing(context.Context, *OrderRequest) (*emptypb.Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SetOrderProcessing not implemented")
-}
-func (UnimplementedStorageAuthorityServer) SetOrderError(context.Context, *SetOrderErrorRequest) (*emptypb.Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SetOrderError not implemented")
-}
-func (UnimplementedStorageAuthorityServer) FinalizeOrder(context.Context, *FinalizeOrderRequest) (*emptypb.Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method FinalizeOrder not implemented")
-}
-func (UnimplementedStorageAuthorityServer) GetOrder(context.Context, *OrderRequest) (*proto.Order, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetOrder not implemented")
-}
-func (UnimplementedStorageAuthorityServer) GetOrderForNames(context.Context, *GetOrderForNamesRequest) (*proto.Order, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetOrderForNames not implemented")
+func (UnimplementedStorageAuthorityServer) NewRegistration(context.Context, *proto.Registration) (*proto.Registration, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method NewRegistration not implemented")
 }
 func (UnimplementedStorageAuthorityServer) RevokeCertificate(context.Context, *RevokeCertificateRequest) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RevokeCertificate not implemented")
 }
+func (UnimplementedStorageAuthorityServer) SetOrderError(context.Context, *SetOrderErrorRequest) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SetOrderError not implemented")
+}
+func (UnimplementedStorageAuthorityServer) SetOrderProcessing(context.Context, *OrderRequest) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SetOrderProcessing not implemented")
+}
+func (UnimplementedStorageAuthorityServer) UpdateRegistration(context.Context, *proto.Registration) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateRegistration not implemented")
+}
 func (UnimplementedStorageAuthorityServer) UpdateRevokedCertificate(context.Context, *RevokeCertificateRequest) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateRevokedCertificate not implemented")
-}
-func (UnimplementedStorageAuthorityServer) NewAuthorizations2(context.Context, *AddPendingAuthorizationsRequest) (*Authorization2IDs, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method NewAuthorizations2 not implemented")
-}
-func (UnimplementedStorageAuthorityServer) FinalizeAuthorization2(context.Context, *FinalizeAuthorizationRequest) (*emptypb.Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method FinalizeAuthorization2 not implemented")
-}
-func (UnimplementedStorageAuthorityServer) DeactivateAuthorization2(context.Context, *AuthorizationID2) (*emptypb.Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method DeactivateAuthorization2 not implemented")
-}
-func (UnimplementedStorageAuthorityServer) AddBlockedKey(context.Context, *AddBlockedKeyRequest) (*emptypb.Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method AddBlockedKey not implemented")
 }
 func (UnimplementedStorageAuthorityServer) mustEmbedUnimplementedStorageAuthorityServer() {}
 
@@ -740,132 +1901,6 @@ type UnsafeStorageAuthorityServer interface {
 
 func RegisterStorageAuthorityServer(s grpc.ServiceRegistrar, srv StorageAuthorityServer) {
 	s.RegisterService(&StorageAuthority_ServiceDesc, srv)
-}
-
-func _StorageAuthority_GetRegistration_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(RegistrationID)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(StorageAuthorityServer).GetRegistration(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/sa.StorageAuthority/GetRegistration",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(StorageAuthorityServer).GetRegistration(ctx, req.(*RegistrationID))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _StorageAuthority_GetRegistrationByKey_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(JSONWebKey)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(StorageAuthorityServer).GetRegistrationByKey(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/sa.StorageAuthority/GetRegistrationByKey",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(StorageAuthorityServer).GetRegistrationByKey(ctx, req.(*JSONWebKey))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _StorageAuthority_GetSerialMetadata_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Serial)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(StorageAuthorityServer).GetSerialMetadata(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/sa.StorageAuthority/GetSerialMetadata",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(StorageAuthorityServer).GetSerialMetadata(ctx, req.(*Serial))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _StorageAuthority_GetCertificate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Serial)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(StorageAuthorityServer).GetCertificate(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/sa.StorageAuthority/GetCertificate",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(StorageAuthorityServer).GetCertificate(ctx, req.(*Serial))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _StorageAuthority_GetPrecertificate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Serial)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(StorageAuthorityServer).GetPrecertificate(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/sa.StorageAuthority/GetPrecertificate",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(StorageAuthorityServer).GetPrecertificate(ctx, req.(*Serial))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _StorageAuthority_GetCertificateStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Serial)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(StorageAuthorityServer).GetCertificateStatus(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/sa.StorageAuthority/GetCertificateStatus",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(StorageAuthorityServer).GetCertificateStatus(ctx, req.(*Serial))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _StorageAuthority_GetRevocationStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Serial)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(StorageAuthorityServer).GetRevocationStatus(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/sa.StorageAuthority/GetRevocationStatus",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(StorageAuthorityServer).GetRevocationStatus(ctx, req.(*Serial))
-	}
-	return interceptor(ctx, in, info, handler)
 }
 
 func _StorageAuthority_CountCertificatesByNames_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -882,6 +1917,78 @@ func _StorageAuthority_CountCertificatesByNames_Handler(srv interface{}, ctx con
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(StorageAuthorityServer).CountCertificatesByNames(ctx, req.(*CountCertificatesByNamesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StorageAuthority_CountFQDNSets_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CountFQDNSetsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StorageAuthorityServer).CountFQDNSets(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/sa.StorageAuthority/CountFQDNSets",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StorageAuthorityServer).CountFQDNSets(ctx, req.(*CountFQDNSetsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StorageAuthority_CountInvalidAuthorizations2_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CountInvalidAuthorizationsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StorageAuthorityServer).CountInvalidAuthorizations2(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/sa.StorageAuthority/CountInvalidAuthorizations2",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StorageAuthorityServer).CountInvalidAuthorizations2(ctx, req.(*CountInvalidAuthorizationsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StorageAuthority_CountOrders_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CountOrdersRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StorageAuthorityServer).CountOrders(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/sa.StorageAuthority/CountOrders",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StorageAuthorityServer).CountOrders(ctx, req.(*CountOrdersRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StorageAuthority_CountPendingAuthorizations2_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RegistrationID)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StorageAuthorityServer).CountPendingAuthorizations2(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/sa.StorageAuthority/CountPendingAuthorizations2",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StorageAuthorityServer).CountPendingAuthorizations2(ctx, req.(*RegistrationID))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -922,60 +2029,6 @@ func _StorageAuthority_CountRegistrationsByIPRange_Handler(srv interface{}, ctx 
 	return interceptor(ctx, in, info, handler)
 }
 
-func _StorageAuthority_CountOrders_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(CountOrdersRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(StorageAuthorityServer).CountOrders(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/sa.StorageAuthority/CountOrders",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(StorageAuthorityServer).CountOrders(ctx, req.(*CountOrdersRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _StorageAuthority_CountFQDNSets_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(CountFQDNSetsRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(StorageAuthorityServer).CountFQDNSets(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/sa.StorageAuthority/CountFQDNSets",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(StorageAuthorityServer).CountFQDNSets(ctx, req.(*CountFQDNSetsRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _StorageAuthority_FQDNSetTimestampsForWindow_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(CountFQDNSetsRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(StorageAuthorityServer).FQDNSetTimestampsForWindow(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/sa.StorageAuthority/FQDNSetTimestampsForWindow",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(StorageAuthorityServer).FQDNSetTimestampsForWindow(ctx, req.(*CountFQDNSetsRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _StorageAuthority_FQDNSetExists_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(FQDNSetExistsRequest)
 	if err := dec(in); err != nil {
@@ -994,20 +2047,20 @@ func _StorageAuthority_FQDNSetExists_Handler(srv interface{}, ctx context.Contex
 	return interceptor(ctx, in, info, handler)
 }
 
-func _StorageAuthority_PreviousCertificateExists_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(PreviousCertificateExistsRequest)
+func _StorageAuthority_FQDNSetTimestampsForWindow_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CountFQDNSetsRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(StorageAuthorityServer).PreviousCertificateExists(ctx, in)
+		return srv.(StorageAuthorityServer).FQDNSetTimestampsForWindow(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/sa.StorageAuthority/PreviousCertificateExists",
+		FullMethod: "/sa.StorageAuthority/FQDNSetTimestampsForWindow",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(StorageAuthorityServer).PreviousCertificateExists(ctx, req.(*PreviousCertificateExistsRequest))
+		return srv.(StorageAuthorityServer).FQDNSetTimestampsForWindow(ctx, req.(*CountFQDNSetsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1048,6 +2101,96 @@ func _StorageAuthority_GetAuthorizations2_Handler(srv interface{}, ctx context.C
 	return interceptor(ctx, in, info, handler)
 }
 
+func _StorageAuthority_GetCertificate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Serial)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StorageAuthorityServer).GetCertificate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/sa.StorageAuthority/GetCertificate",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StorageAuthorityServer).GetCertificate(ctx, req.(*Serial))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StorageAuthority_GetCertificateStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Serial)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StorageAuthorityServer).GetCertificateStatus(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/sa.StorageAuthority/GetCertificateStatus",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StorageAuthorityServer).GetCertificateStatus(ctx, req.(*Serial))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StorageAuthority_GetMaxExpiration_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(emptypb.Empty)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StorageAuthorityServer).GetMaxExpiration(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/sa.StorageAuthority/GetMaxExpiration",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StorageAuthorityServer).GetMaxExpiration(ctx, req.(*emptypb.Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StorageAuthority_GetOrder_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OrderRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StorageAuthorityServer).GetOrder(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/sa.StorageAuthority/GetOrder",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StorageAuthorityServer).GetOrder(ctx, req.(*OrderRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StorageAuthority_GetOrderForNames_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetOrderForNamesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StorageAuthorityServer).GetOrderForNames(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/sa.StorageAuthority/GetOrderForNames",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StorageAuthorityServer).GetOrderForNames(ctx, req.(*GetOrderForNamesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _StorageAuthority_GetPendingAuthorization2_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetPendingAuthorizationRequest)
 	if err := dec(in); err != nil {
@@ -1066,56 +2209,113 @@ func _StorageAuthority_GetPendingAuthorization2_Handler(srv interface{}, ctx con
 	return interceptor(ctx, in, info, handler)
 }
 
-func _StorageAuthority_CountPendingAuthorizations2_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _StorageAuthority_GetPrecertificate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Serial)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StorageAuthorityServer).GetPrecertificate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/sa.StorageAuthority/GetPrecertificate",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StorageAuthorityServer).GetPrecertificate(ctx, req.(*Serial))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StorageAuthority_GetRegistration_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(RegistrationID)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(StorageAuthorityServer).CountPendingAuthorizations2(ctx, in)
+		return srv.(StorageAuthorityServer).GetRegistration(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/sa.StorageAuthority/CountPendingAuthorizations2",
+		FullMethod: "/sa.StorageAuthority/GetRegistration",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(StorageAuthorityServer).CountPendingAuthorizations2(ctx, req.(*RegistrationID))
+		return srv.(StorageAuthorityServer).GetRegistration(ctx, req.(*RegistrationID))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _StorageAuthority_GetValidOrderAuthorizations2_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetValidOrderAuthorizationsRequest)
+func _StorageAuthority_GetRegistrationByKey_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(JSONWebKey)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(StorageAuthorityServer).GetValidOrderAuthorizations2(ctx, in)
+		return srv.(StorageAuthorityServer).GetRegistrationByKey(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/sa.StorageAuthority/GetValidOrderAuthorizations2",
+		FullMethod: "/sa.StorageAuthority/GetRegistrationByKey",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(StorageAuthorityServer).GetValidOrderAuthorizations2(ctx, req.(*GetValidOrderAuthorizationsRequest))
+		return srv.(StorageAuthorityServer).GetRegistrationByKey(ctx, req.(*JSONWebKey))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _StorageAuthority_CountInvalidAuthorizations2_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(CountInvalidAuthorizationsRequest)
+func _StorageAuthority_GetRevocationStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Serial)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(StorageAuthorityServer).CountInvalidAuthorizations2(ctx, in)
+		return srv.(StorageAuthorityServer).GetRevocationStatus(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/sa.StorageAuthority/CountInvalidAuthorizations2",
+		FullMethod: "/sa.StorageAuthority/GetRevocationStatus",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(StorageAuthorityServer).CountInvalidAuthorizations2(ctx, req.(*CountInvalidAuthorizationsRequest))
+		return srv.(StorageAuthorityServer).GetRevocationStatus(ctx, req.(*Serial))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StorageAuthority_GetRevokedCerts_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(GetRevokedCertsRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(StorageAuthorityServer).GetRevokedCerts(m, &storageAuthorityGetRevokedCertsServer{stream})
+}
+
+type StorageAuthority_GetRevokedCertsServer interface {
+	Send(*proto.CRLEntry) error
+	grpc.ServerStream
+}
+
+type storageAuthorityGetRevokedCertsServer struct {
+	grpc.ServerStream
+}
+
+func (x *storageAuthorityGetRevokedCertsServer) Send(m *proto.CRLEntry) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func _StorageAuthority_GetSerialMetadata_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Serial)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StorageAuthorityServer).GetSerialMetadata(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/sa.StorageAuthority/GetSerialMetadata",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StorageAuthorityServer).GetSerialMetadata(ctx, req.(*Serial))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1138,6 +2338,42 @@ func _StorageAuthority_GetValidAuthorizations2_Handler(srv interface{}, ctx cont
 	return interceptor(ctx, in, info, handler)
 }
 
+func _StorageAuthority_GetValidOrderAuthorizations2_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetValidOrderAuthorizationsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StorageAuthorityServer).GetValidOrderAuthorizations2(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/sa.StorageAuthority/GetValidOrderAuthorizations2",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StorageAuthorityServer).GetValidOrderAuthorizations2(ctx, req.(*GetValidOrderAuthorizationsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StorageAuthority_IncidentsForSerial_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Serial)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StorageAuthorityServer).IncidentsForSerial(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/sa.StorageAuthority/IncidentsForSerial",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StorageAuthorityServer).IncidentsForSerial(ctx, req.(*Serial))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _StorageAuthority_KeyBlocked_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(KeyBlockedRequest)
 	if err := dec(in); err != nil {
@@ -1152,6 +2388,24 @@ func _StorageAuthority_KeyBlocked_Handler(srv interface{}, ctx context.Context, 
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(StorageAuthorityServer).KeyBlocked(ctx, req.(*KeyBlockedRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StorageAuthority_PreviousCertificateExists_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PreviousCertificateExistsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StorageAuthorityServer).PreviousCertificateExists(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/sa.StorageAuthority/PreviousCertificateExists",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StorageAuthorityServer).PreviousCertificateExists(ctx, req.(*PreviousCertificateExistsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1177,77 +2431,20 @@ func (x *storageAuthoritySerialsForIncidentServer) Send(m *IncidentSerial) error
 	return x.ServerStream.SendMsg(m)
 }
 
-func _StorageAuthority_GetRevokedCerts_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(GetRevokedCertsRequest)
-	if err := stream.RecvMsg(m); err != nil {
-		return err
-	}
-	return srv.(StorageAuthorityServer).GetRevokedCerts(m, &storageAuthorityGetRevokedCertsServer{stream})
-}
-
-type StorageAuthority_GetRevokedCertsServer interface {
-	Send(*proto.CRLEntry) error
-	grpc.ServerStream
-}
-
-type storageAuthorityGetRevokedCertsServer struct {
-	grpc.ServerStream
-}
-
-func (x *storageAuthorityGetRevokedCertsServer) Send(m *proto.CRLEntry) error {
-	return x.ServerStream.SendMsg(m)
-}
-
-func _StorageAuthority_IncidentsForSerial_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Serial)
+func _StorageAuthority_AddBlockedKey_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AddBlockedKeyRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(StorageAuthorityServer).IncidentsForSerial(ctx, in)
+		return srv.(StorageAuthorityServer).AddBlockedKey(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/sa.StorageAuthority/IncidentsForSerial",
+		FullMethod: "/sa.StorageAuthority/AddBlockedKey",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(StorageAuthorityServer).IncidentsForSerial(ctx, req.(*Serial))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _StorageAuthority_NewRegistration_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(proto.Registration)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(StorageAuthorityServer).NewRegistration(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/sa.StorageAuthority/NewRegistration",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(StorageAuthorityServer).NewRegistration(ctx, req.(*proto.Registration))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _StorageAuthority_UpdateRegistration_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(proto.Registration)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(StorageAuthorityServer).UpdateRegistration(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/sa.StorageAuthority/UpdateRegistration",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(StorageAuthorityServer).UpdateRegistration(ctx, req.(*proto.Registration))
+		return srv.(StorageAuthorityServer).AddBlockedKey(ctx, req.(*AddBlockedKeyRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1306,6 +2503,24 @@ func _StorageAuthority_AddSerial_Handler(srv interface{}, ctx context.Context, d
 	return interceptor(ctx, in, info, handler)
 }
 
+func _StorageAuthority_DeactivateAuthorization2_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AuthorizationID2)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StorageAuthorityServer).DeactivateAuthorization2(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/sa.StorageAuthority/DeactivateAuthorization2",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StorageAuthorityServer).DeactivateAuthorization2(ctx, req.(*AuthorizationID2))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _StorageAuthority_DeactivateRegistration_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(RegistrationID)
 	if err := dec(in); err != nil {
@@ -1320,6 +2535,60 @@ func _StorageAuthority_DeactivateRegistration_Handler(srv interface{}, ctx conte
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(StorageAuthorityServer).DeactivateRegistration(ctx, req.(*RegistrationID))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StorageAuthority_FinalizeAuthorization2_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(FinalizeAuthorizationRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StorageAuthorityServer).FinalizeAuthorization2(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/sa.StorageAuthority/FinalizeAuthorization2",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StorageAuthorityServer).FinalizeAuthorization2(ctx, req.(*FinalizeAuthorizationRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StorageAuthority_FinalizeOrder_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(FinalizeOrderRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StorageAuthorityServer).FinalizeOrder(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/sa.StorageAuthority/FinalizeOrder",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StorageAuthorityServer).FinalizeOrder(ctx, req.(*FinalizeOrderRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StorageAuthority_NewAuthorizations2_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AddPendingAuthorizationsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StorageAuthorityServer).NewAuthorizations2(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/sa.StorageAuthority/NewAuthorizations2",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StorageAuthorityServer).NewAuthorizations2(ctx, req.(*AddPendingAuthorizationsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1360,92 +2629,20 @@ func _StorageAuthority_NewOrderAndAuthzs_Handler(srv interface{}, ctx context.Co
 	return interceptor(ctx, in, info, handler)
 }
 
-func _StorageAuthority_SetOrderProcessing_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(OrderRequest)
+func _StorageAuthority_NewRegistration_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(proto.Registration)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(StorageAuthorityServer).SetOrderProcessing(ctx, in)
+		return srv.(StorageAuthorityServer).NewRegistration(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/sa.StorageAuthority/SetOrderProcessing",
+		FullMethod: "/sa.StorageAuthority/NewRegistration",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(StorageAuthorityServer).SetOrderProcessing(ctx, req.(*OrderRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _StorageAuthority_SetOrderError_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(SetOrderErrorRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(StorageAuthorityServer).SetOrderError(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/sa.StorageAuthority/SetOrderError",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(StorageAuthorityServer).SetOrderError(ctx, req.(*SetOrderErrorRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _StorageAuthority_FinalizeOrder_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(FinalizeOrderRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(StorageAuthorityServer).FinalizeOrder(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/sa.StorageAuthority/FinalizeOrder",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(StorageAuthorityServer).FinalizeOrder(ctx, req.(*FinalizeOrderRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _StorageAuthority_GetOrder_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(OrderRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(StorageAuthorityServer).GetOrder(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/sa.StorageAuthority/GetOrder",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(StorageAuthorityServer).GetOrder(ctx, req.(*OrderRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _StorageAuthority_GetOrderForNames_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetOrderForNamesRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(StorageAuthorityServer).GetOrderForNames(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/sa.StorageAuthority/GetOrderForNames",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(StorageAuthorityServer).GetOrderForNames(ctx, req.(*GetOrderForNamesRequest))
+		return srv.(StorageAuthorityServer).NewRegistration(ctx, req.(*proto.Registration))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1468,6 +2665,60 @@ func _StorageAuthority_RevokeCertificate_Handler(srv interface{}, ctx context.Co
 	return interceptor(ctx, in, info, handler)
 }
 
+func _StorageAuthority_SetOrderError_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetOrderErrorRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StorageAuthorityServer).SetOrderError(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/sa.StorageAuthority/SetOrderError",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StorageAuthorityServer).SetOrderError(ctx, req.(*SetOrderErrorRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StorageAuthority_SetOrderProcessing_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OrderRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StorageAuthorityServer).SetOrderProcessing(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/sa.StorageAuthority/SetOrderProcessing",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StorageAuthorityServer).SetOrderProcessing(ctx, req.(*OrderRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StorageAuthority_UpdateRegistration_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(proto.Registration)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StorageAuthorityServer).UpdateRegistration(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/sa.StorageAuthority/UpdateRegistration",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StorageAuthorityServer).UpdateRegistration(ctx, req.(*proto.Registration))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _StorageAuthority_UpdateRevokedCertificate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(RevokeCertificateRequest)
 	if err := dec(in); err != nil {
@@ -1486,78 +2737,6 @@ func _StorageAuthority_UpdateRevokedCertificate_Handler(srv interface{}, ctx con
 	return interceptor(ctx, in, info, handler)
 }
 
-func _StorageAuthority_NewAuthorizations2_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(AddPendingAuthorizationsRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(StorageAuthorityServer).NewAuthorizations2(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/sa.StorageAuthority/NewAuthorizations2",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(StorageAuthorityServer).NewAuthorizations2(ctx, req.(*AddPendingAuthorizationsRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _StorageAuthority_FinalizeAuthorization2_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(FinalizeAuthorizationRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(StorageAuthorityServer).FinalizeAuthorization2(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/sa.StorageAuthority/FinalizeAuthorization2",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(StorageAuthorityServer).FinalizeAuthorization2(ctx, req.(*FinalizeAuthorizationRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _StorageAuthority_DeactivateAuthorization2_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(AuthorizationID2)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(StorageAuthorityServer).DeactivateAuthorization2(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/sa.StorageAuthority/DeactivateAuthorization2",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(StorageAuthorityServer).DeactivateAuthorization2(ctx, req.(*AuthorizationID2))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _StorageAuthority_AddBlockedKey_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(AddBlockedKeyRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(StorageAuthorityServer).AddBlockedKey(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/sa.StorageAuthority/AddBlockedKey",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(StorageAuthorityServer).AddBlockedKey(ctx, req.(*AddBlockedKeyRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 // StorageAuthority_ServiceDesc is the grpc.ServiceDesc for StorageAuthority service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -1566,36 +2745,24 @@ var StorageAuthority_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*StorageAuthorityServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "GetRegistration",
-			Handler:    _StorageAuthority_GetRegistration_Handler,
-		},
-		{
-			MethodName: "GetRegistrationByKey",
-			Handler:    _StorageAuthority_GetRegistrationByKey_Handler,
-		},
-		{
-			MethodName: "GetSerialMetadata",
-			Handler:    _StorageAuthority_GetSerialMetadata_Handler,
-		},
-		{
-			MethodName: "GetCertificate",
-			Handler:    _StorageAuthority_GetCertificate_Handler,
-		},
-		{
-			MethodName: "GetPrecertificate",
-			Handler:    _StorageAuthority_GetPrecertificate_Handler,
-		},
-		{
-			MethodName: "GetCertificateStatus",
-			Handler:    _StorageAuthority_GetCertificateStatus_Handler,
-		},
-		{
-			MethodName: "GetRevocationStatus",
-			Handler:    _StorageAuthority_GetRevocationStatus_Handler,
-		},
-		{
 			MethodName: "CountCertificatesByNames",
 			Handler:    _StorageAuthority_CountCertificatesByNames_Handler,
+		},
+		{
+			MethodName: "CountFQDNSets",
+			Handler:    _StorageAuthority_CountFQDNSets_Handler,
+		},
+		{
+			MethodName: "CountInvalidAuthorizations2",
+			Handler:    _StorageAuthority_CountInvalidAuthorizations2_Handler,
+		},
+		{
+			MethodName: "CountOrders",
+			Handler:    _StorageAuthority_CountOrders_Handler,
+		},
+		{
+			MethodName: "CountPendingAuthorizations2",
+			Handler:    _StorageAuthority_CountPendingAuthorizations2_Handler,
 		},
 		{
 			MethodName: "CountRegistrationsByIP",
@@ -1606,24 +2773,12 @@ var StorageAuthority_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _StorageAuthority_CountRegistrationsByIPRange_Handler,
 		},
 		{
-			MethodName: "CountOrders",
-			Handler:    _StorageAuthority_CountOrders_Handler,
-		},
-		{
-			MethodName: "CountFQDNSets",
-			Handler:    _StorageAuthority_CountFQDNSets_Handler,
-		},
-		{
-			MethodName: "FQDNSetTimestampsForWindow",
-			Handler:    _StorageAuthority_FQDNSetTimestampsForWindow_Handler,
-		},
-		{
 			MethodName: "FQDNSetExists",
 			Handler:    _StorageAuthority_FQDNSetExists_Handler,
 		},
 		{
-			MethodName: "PreviousCertificateExists",
-			Handler:    _StorageAuthority_PreviousCertificateExists_Handler,
+			MethodName: "FQDNSetTimestampsForWindow",
+			Handler:    _StorageAuthority_FQDNSetTimestampsForWindow_Handler,
 		},
 		{
 			MethodName: "GetAuthorization2",
@@ -1634,40 +2789,72 @@ var StorageAuthority_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _StorageAuthority_GetAuthorizations2_Handler,
 		},
 		{
+			MethodName: "GetCertificate",
+			Handler:    _StorageAuthority_GetCertificate_Handler,
+		},
+		{
+			MethodName: "GetCertificateStatus",
+			Handler:    _StorageAuthority_GetCertificateStatus_Handler,
+		},
+		{
+			MethodName: "GetMaxExpiration",
+			Handler:    _StorageAuthority_GetMaxExpiration_Handler,
+		},
+		{
+			MethodName: "GetOrder",
+			Handler:    _StorageAuthority_GetOrder_Handler,
+		},
+		{
+			MethodName: "GetOrderForNames",
+			Handler:    _StorageAuthority_GetOrderForNames_Handler,
+		},
+		{
 			MethodName: "GetPendingAuthorization2",
 			Handler:    _StorageAuthority_GetPendingAuthorization2_Handler,
 		},
 		{
-			MethodName: "CountPendingAuthorizations2",
-			Handler:    _StorageAuthority_CountPendingAuthorizations2_Handler,
+			MethodName: "GetPrecertificate",
+			Handler:    _StorageAuthority_GetPrecertificate_Handler,
 		},
 		{
-			MethodName: "GetValidOrderAuthorizations2",
-			Handler:    _StorageAuthority_GetValidOrderAuthorizations2_Handler,
+			MethodName: "GetRegistration",
+			Handler:    _StorageAuthority_GetRegistration_Handler,
 		},
 		{
-			MethodName: "CountInvalidAuthorizations2",
-			Handler:    _StorageAuthority_CountInvalidAuthorizations2_Handler,
+			MethodName: "GetRegistrationByKey",
+			Handler:    _StorageAuthority_GetRegistrationByKey_Handler,
+		},
+		{
+			MethodName: "GetRevocationStatus",
+			Handler:    _StorageAuthority_GetRevocationStatus_Handler,
+		},
+		{
+			MethodName: "GetSerialMetadata",
+			Handler:    _StorageAuthority_GetSerialMetadata_Handler,
 		},
 		{
 			MethodName: "GetValidAuthorizations2",
 			Handler:    _StorageAuthority_GetValidAuthorizations2_Handler,
 		},
 		{
-			MethodName: "KeyBlocked",
-			Handler:    _StorageAuthority_KeyBlocked_Handler,
+			MethodName: "GetValidOrderAuthorizations2",
+			Handler:    _StorageAuthority_GetValidOrderAuthorizations2_Handler,
 		},
 		{
 			MethodName: "IncidentsForSerial",
 			Handler:    _StorageAuthority_IncidentsForSerial_Handler,
 		},
 		{
-			MethodName: "NewRegistration",
-			Handler:    _StorageAuthority_NewRegistration_Handler,
+			MethodName: "KeyBlocked",
+			Handler:    _StorageAuthority_KeyBlocked_Handler,
 		},
 		{
-			MethodName: "UpdateRegistration",
-			Handler:    _StorageAuthority_UpdateRegistration_Handler,
+			MethodName: "PreviousCertificateExists",
+			Handler:    _StorageAuthority_PreviousCertificateExists_Handler,
+		},
+		{
+			MethodName: "AddBlockedKey",
+			Handler:    _StorageAuthority_AddBlockedKey_Handler,
 		},
 		{
 			MethodName: "AddCertificate",
@@ -1682,8 +2869,24 @@ var StorageAuthority_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _StorageAuthority_AddSerial_Handler,
 		},
 		{
+			MethodName: "DeactivateAuthorization2",
+			Handler:    _StorageAuthority_DeactivateAuthorization2_Handler,
+		},
+		{
 			MethodName: "DeactivateRegistration",
 			Handler:    _StorageAuthority_DeactivateRegistration_Handler,
+		},
+		{
+			MethodName: "FinalizeAuthorization2",
+			Handler:    _StorageAuthority_FinalizeAuthorization2_Handler,
+		},
+		{
+			MethodName: "FinalizeOrder",
+			Handler:    _StorageAuthority_FinalizeOrder_Handler,
+		},
+		{
+			MethodName: "NewAuthorizations2",
+			Handler:    _StorageAuthority_NewAuthorizations2_Handler,
 		},
 		{
 			MethodName: "NewOrder",
@@ -1694,59 +2897,39 @@ var StorageAuthority_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _StorageAuthority_NewOrderAndAuthzs_Handler,
 		},
 		{
-			MethodName: "SetOrderProcessing",
-			Handler:    _StorageAuthority_SetOrderProcessing_Handler,
-		},
-		{
-			MethodName: "SetOrderError",
-			Handler:    _StorageAuthority_SetOrderError_Handler,
-		},
-		{
-			MethodName: "FinalizeOrder",
-			Handler:    _StorageAuthority_FinalizeOrder_Handler,
-		},
-		{
-			MethodName: "GetOrder",
-			Handler:    _StorageAuthority_GetOrder_Handler,
-		},
-		{
-			MethodName: "GetOrderForNames",
-			Handler:    _StorageAuthority_GetOrderForNames_Handler,
+			MethodName: "NewRegistration",
+			Handler:    _StorageAuthority_NewRegistration_Handler,
 		},
 		{
 			MethodName: "RevokeCertificate",
 			Handler:    _StorageAuthority_RevokeCertificate_Handler,
 		},
 		{
+			MethodName: "SetOrderError",
+			Handler:    _StorageAuthority_SetOrderError_Handler,
+		},
+		{
+			MethodName: "SetOrderProcessing",
+			Handler:    _StorageAuthority_SetOrderProcessing_Handler,
+		},
+		{
+			MethodName: "UpdateRegistration",
+			Handler:    _StorageAuthority_UpdateRegistration_Handler,
+		},
+		{
 			MethodName: "UpdateRevokedCertificate",
 			Handler:    _StorageAuthority_UpdateRevokedCertificate_Handler,
-		},
-		{
-			MethodName: "NewAuthorizations2",
-			Handler:    _StorageAuthority_NewAuthorizations2_Handler,
-		},
-		{
-			MethodName: "FinalizeAuthorization2",
-			Handler:    _StorageAuthority_FinalizeAuthorization2_Handler,
-		},
-		{
-			MethodName: "DeactivateAuthorization2",
-			Handler:    _StorageAuthority_DeactivateAuthorization2_Handler,
-		},
-		{
-			MethodName: "AddBlockedKey",
-			Handler:    _StorageAuthority_AddBlockedKey_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{
 		{
-			StreamName:    "SerialsForIncident",
-			Handler:       _StorageAuthority_SerialsForIncident_Handler,
+			StreamName:    "GetRevokedCerts",
+			Handler:       _StorageAuthority_GetRevokedCerts_Handler,
 			ServerStreams: true,
 		},
 		{
-			StreamName:    "GetRevokedCerts",
-			Handler:       _StorageAuthority_GetRevokedCerts_Handler,
+			StreamName:    "SerialsForIncident",
+			Handler:       _StorageAuthority_SerialsForIncident_Handler,
 			ServerStreams: true,
 		},
 	},

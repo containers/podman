@@ -20,6 +20,11 @@ const (
 	StreamlineOrderAndAuthzs
 	V1DisableNewValidations
 	ExpirationMailerDontLookTwice
+	OldTLSInbound
+	OldTLSOutbound
+	ROCSPStage1
+	ROCSPStage2
+	ROCSPStage3
 
 	//   Currently in-use features
 	// Check CAA and respect validationmethods parameter.
@@ -79,14 +84,6 @@ const (
 	//   with the certificate's keypair, the cert will be revoked with reason
 	//   keyCompromise, regardless of what revocation reason they request.
 	MozRevocationReasons
-	// OldTLSOutbound allows the VA to negotiate TLS 1.0 and TLS 1.1 during
-	// HTTPS redirects. When it is set to false, the VA will only connect to
-	// HTTPS servers that support TLS 1.2 or above.
-	OldTLSOutbound
-	// OldTLSInbound controls whether the WFE rejects inbound requests using
-	// TLS 1.0 and TLS 1.1. Because WFE does not terminate TLS in production,
-	// we rely on the TLS-Version header (set by our reverse proxy).
-	OldTLSInbound
 	// SHA1CSRs controls whether the /acme/finalize endpoint rejects CSRs that
 	// are self-signed using SHA1.
 	SHA1CSRs
@@ -98,25 +95,15 @@ const (
 	// go1.19.
 	RejectDuplicateCSRExtensions
 
-	// ROCSPStage1 enables querying Redis, live-signing response, and storing
-	// to Redis, but doesn't serve responses from Redis.
-	ROCSPStage1
-	// ROCSPStage2 enables querying Redis, live-signing a response, and storing
-	// to Redis, and does serve responses from Redis when appropriate (when
-	// they are fresh, and agree with MariaDB's status for the certificate).
-	ROCSPStage2
-	// ROCSPStage3 enables querying Redis, live-signing a response, and serving
-	// from Redis, without any fallback to serving bytes from MariaDB. In this
-	// mode we still make a parallel request to MariaDB to cross-check the
-	// _status_ of the response. If that request indicates a different status
-	// than what's stored in Redis, we'll trigger a fresh signing and serve and
-	// store the result.
-	ROCSPStage3
 	// ROCSPStage6 disables writing full OCSP Responses to MariaDB during
 	// (pre)certificate issuance and during revocation. Because Stage 4 involved
 	// disabling ocsp-updater, this means that no ocsp response bytes will be
 	// written to the database anymore.
 	ROCSPStage6
+	// ROCSPStage7 disables generating OCSP responses during issuance and
+	// revocation. This affects codepaths in both the RA (revocation) and the CA
+	// (precert "birth certificates").
+	ROCSPStage7
 )
 
 // List of features and their default value, protected by fMu
@@ -154,6 +141,7 @@ var features = map[FeatureFlag]bool{
 	ROCSPStage2:                    false,
 	ROCSPStage3:                    false,
 	ROCSPStage6:                    false,
+	ROCSPStage7:                    false,
 }
 
 var fMu = new(sync.RWMutex)
