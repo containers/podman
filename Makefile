@@ -290,13 +290,21 @@ vendor:
 	$(GO) mod vendor
 	$(GO) mod verify
 
-.PHONY: vendor-in-container
-vendor-in-container:
-	podman run --rm --env HOME=/root \
+
+# We define *-in-container targets for the following make targets. This allow the targets to be run in a container.
+# Note that the PODMANCMD can also be overridden to allow a different container CLI to be used on systems where podman is not already available.
+IN_CONTAINER_TARGETS = vendor validate
+PODMANCMD ?= podman
+IN_CONTAINER = $(patsubst %,%-in-container,$(IN_CONTAINER_TARGETS))
+
+.PHONY: $(IN_CONTAINER)
+$(IN_CONTAINER): %-in-container:
+	$(PODMANCMD) run --rm --env HOME=/root \
 		-v $(CURDIR):/src -w /src \
 		--security-opt label=disable \
 		docker.io/library/golang:1.17 \
-		make vendor
+		make $(*)
+
 
 ###
 ### Primary binary-build targets
