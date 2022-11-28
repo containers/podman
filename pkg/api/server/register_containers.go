@@ -1455,6 +1455,10 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//    type: boolean
 	//    description: do not include root file-system changes when exporting
 	//  - in: query
+	//    name: ignoreVolumes
+	//    type: boolean
+	//    description: do not include associated volumes. can only be used with export
+	//  - in: query
 	//    name: printStats
 	//    type: boolean
 	//    description: add checkpoint statistics to the returned CheckpointReport
@@ -1500,6 +1504,10 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//    name: ignoreRootFS
 	//    type: boolean
 	//    description: do not include root file-system changes when exporting
+	//  - in: query
+	//    name: ignoreVolumes
+	//    type: boolean
+	//    description: do not restore associated volumes. can only be used with import
 	//  - in: query
 	//    name: ignoreStaticIP
 	//    type: boolean
