@@ -1459,6 +1459,18 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//    type: boolean
 	//    description: do not include associated volumes. can only be used with export
 	//  - in: query
+	//    name: preCheckpoint
+	//    type: boolean
+	//    description: dump the container's memory information only, leaving the container running. only works on runc 1.0-rc or higher
+	//  - in: query
+	//    name: withPrevious
+	//    type: boolean
+	//    description: check out the container with previous criu image files in pre-dump. only works on runc 1.0-rc or higher
+	//  - in: query
+	//    name: fileLocks
+	//    type: boolean
+	//    description: checkpoint a container with filelocks
+	//  - in: query
 	//    name: printStats
 	//    type: boolean
 	//    description: add checkpoint statistics to the returned CheckpointReport
@@ -1516,6 +1528,10 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//    name: ignoreStaticMAC
 	//    type: boolean
 	//    description: ignore MAC address if set statically
+	//  - in: query
+	//    name: fileLocks
+	//    type: boolean
+	//    description: restore a container with file locks
 	//  - in: query
 	//    name: printStats
 	//    type: boolean
