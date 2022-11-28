@@ -164,11 +164,13 @@ func (c *Container) reloadNetwork() error {
 // Add an existing container's network jail
 func (c *Container) addNetworkContainer(g *generate.Generator, ctr string) error {
 	nsCtr, err := c.runtime.state.Container(ctr)
-	c.runtime.state.UpdateContainer(nsCtr)
 	if err != nil {
 		return fmt.Errorf("retrieving dependency %s of container %s from state: %w", ctr, c.ID(), err)
 	}
-	g.AddAnnotation("org.freebsd.parentJail", nsCtr.state.NetNS.Name)
+	c.runtime.state.UpdateContainer(nsCtr)
+	if nsCtr.state.NetNS != nil {
+		g.AddAnnotation("org.freebsd.parentJail", nsCtr.state.NetNS.Name)
+	}
 	return nil
 }
 
@@ -191,6 +193,14 @@ func openDirectory(path string) (fd int, err error) {
 
 func (c *Container) addNetworkNamespace(g *generate.Generator) error {
 	if c.config.CreateNetNS {
+		if c.state.NetNS == nil {
+			// This should not happen since network setup
+			// errors should be propagated correctly from
+			// (*Runtime).createNetNS. Check for it anyway
+			// since it caused nil pointer dereferences in
+			// the past (see #16333).
+			return fmt.Errorf("Inconsistent state: c.config.CreateNetNS is set but c.state.NetNS is nil")
+		}
 		g.AddAnnotation("org.freebsd.parentJail", c.state.NetNS.Name)
 	}
 	return nil
