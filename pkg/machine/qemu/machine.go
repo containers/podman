@@ -560,18 +560,7 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
 	attr.Files = files
 	cmdLine := v.CmdLine
 
-	// It is here for providing the ability to propagate
-	// proxy settings (e.g. HTTP_PROXY and others) on a start
-	// and avoid a need of re-creating/re-initiating a VM
-	if proxyOpts := machine.GetProxyVariables(); len(proxyOpts) > 0 {
-		proxyStr := "name=opt/com.coreos/environment,string="
-		var proxies string
-		for k, v := range proxyOpts {
-			proxies = fmt.Sprintf("%s%s=\"%s\"|", proxies, k, v)
-		}
-		proxyStr = fmt.Sprintf("%s%s", proxyStr, base64.StdEncoding.EncodeToString([]byte(proxies)))
-		cmdLine = append(cmdLine, "-fw_cfg", proxyStr)
-	}
+	cmdLine = propagateHostEnv(cmdLine)
 
 	// Disable graphic window when not in debug mode
 	// Done in start, so we're not suck with the debug level we used on init
@@ -700,6 +689,35 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
 
 	v.waitAPIAndPrintInfo(forwardState, forwardSock, opts.NoInfo)
 	return nil
+}
+
+// propagateHostEnv is here for providing the ability to propagate
+// proxy and SSL settings (e.g. HTTP_PROXY and others) on a start
+// and avoid a need of re-creating/re-initiating a VM
+func propagateHostEnv(cmdLine []string) []string {
+	varsToPropagate := make([]string, 0)
+
+	for k, v := range machine.GetProxyVariables() {
+		varsToPropagate = append(varsToPropagate, fmt.Sprintf("%s=%q", k, v))
+	}
+
+	if sslCertFile, ok := os.LookupEnv("SSL_CERT_FILE"); ok {
+		pathInVM := filepath.Join(machine.UserCertsTargetPath, filepath.Base(sslCertFile))
+		varsToPropagate = append(varsToPropagate, fmt.Sprintf("%s=%q", "SSL_CERT_FILE", pathInVM))
+	}
+
+	if _, ok := os.LookupEnv("SSL_CERT_DIR"); ok {
+		varsToPropagate = append(varsToPropagate, fmt.Sprintf("%s=%q", "SSL_CERT_DIR", machine.UserCertsTargetPath))
+	}
+
+	if len(varsToPropagate) > 0 {
+		prefix := "name=opt/com.coreos/environment,string="
+		envVarsJoined := strings.Join(varsToPropagate, "|")
+		fwCfgArg := prefix + base64.StdEncoding.EncodeToString([]byte(envVarsJoined))
+		return append(cmdLine, "-fw_cfg", fwCfgArg)
+	}
+
+	return cmdLine
 }
 
 func (v *MachineVM) checkStatus(monitor *qmp.SocketMonitor) (machine.Status, error) {

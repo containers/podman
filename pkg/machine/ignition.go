@@ -24,6 +24,10 @@ import (
 	https://github.com/openshift/machine-config-operator/blob/master/pkg/server/server.go
 */
 
+const (
+	UserCertsTargetPath = "/etc/containers/certs.d"
+)
+
 // Convenience function to convert int to ptr
 func intToPtr(i int) *int {
 	return &i
@@ -495,24 +499,17 @@ Delegate=memory pids cpu io
 		if _, err := os.Stat(sslCertFile); err == nil {
 			certFiles = getCerts(sslCertFile, false)
 			files = append(files, certFiles...)
+		} else {
+			logrus.Warnf("Invalid path in SSL_CERT_FILE: %q", err)
+		}
+	}
 
-			if len(certFiles) > 0 {
-				setSSLCertFile := fmt.Sprintf("export %s=%s", "SSL_CERT_FILE", filepath.Join("/etc/containers/certs.d", filepath.Base(sslCertFile)))
-				files = append(files, File{
-					Node: Node{
-						Group: getNodeGrp("root"),
-						Path:  "/etc/profile.d/ssl_cert_file.sh",
-						User:  getNodeUsr("root"),
-					},
-					FileEmbedded1: FileEmbedded1{
-						Append: nil,
-						Contents: Resource{
-							Source: encodeDataURLPtr(setSSLCertFile),
-						},
-						Mode: intToPtr(0644),
-					},
-				})
-			}
+	if sslCertDir, ok := os.LookupEnv("SSL_CERT_DIR"); ok {
+		if _, err := os.Stat(sslCertDir); err == nil {
+			certFiles = getCerts(sslCertDir, true)
+			files = append(files, certFiles...)
+		} else {
+			logrus.Warnf("Invalid path in SSL_CERT_DIR: %q", err)
 		}
 	}
 
@@ -564,7 +561,7 @@ func prepareCertFile(path string, name string) (File, error) {
 		return File{}, err
 	}
 
-	targetPath := filepath.Join("/etc/containers/certs.d", name)
+	targetPath := filepath.Join(UserCertsTargetPath, name)
 
 	logrus.Debugf("Copying cert file from '%s' to '%s'.", path, targetPath)
 
