@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"runtime"
 
+	"github.com/containers/podman/v4/pkg/rootless"
 	. "github.com/containers/podman/v4/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -559,4 +560,89 @@ var _ = Describe("Podman pull", func() {
 		Expect(session).Should(Exit(0))
 		Expect(session.ErrorToString()).To(BeEmpty())
 	})
+
+	Describe("podman pull and decrypt", func() {
+
+		decryptionTestHelper := func(imgPath string) *PodmanSessionIntegration {
+			bitSize := 1024
+			keyFileName := filepath.Join(podmanTest.TempDir, "key")
+			publicKeyFileName, privateKeyFileName, err := WriteRSAKeyPair(keyFileName, bitSize)
+			Expect(err).To(BeNil())
+
+			wrongKeyFileName := filepath.Join(podmanTest.TempDir, "wrong_key")
+			_, wrongPrivateKeyFileName, err := WriteRSAKeyPair(wrongKeyFileName, bitSize)
+			Expect(err).To(BeNil())
+
+			session := podmanTest.Podman([]string{"push", "--encryption-key", "jwe:" + publicKeyFileName, "--tls-verify=false", "--remove-signatures", ALPINE, imgPath})
+			session.WaitWithDefaultTimeout()
+
+			session = podmanTest.Podman([]string{"rmi", ALPINE})
+			session.WaitWithDefaultTimeout()
+			Expect(session).Should(Exit(0))
+
+			// Pulling encrypted image without key should fail
+			session = podmanTest.Podman([]string{"pull", imgPath})
+			session.WaitWithDefaultTimeout()
+			Expect(session).Should(Exit(125))
+
+			// Pulling encrypted image with wrong key should fail
+			session = podmanTest.Podman([]string{"pull", "--decryption-key", wrongPrivateKeyFileName, imgPath})
+			session.WaitWithDefaultTimeout()
+			Expect(session).Should(Exit(125))
+
+			// Pulling encrypted image with correct key should pass
+			session = podmanTest.Podman([]string{"pull", "--decryption-key", privateKeyFileName, imgPath})
+			session.WaitWithDefaultTimeout()
+			Expect(session).Should(Exit(0))
+			session = podmanTest.Podman([]string{"images"})
+			session.WaitWithDefaultTimeout()
+			Expect(session).Should(Exit(0))
+
+			return session
+		}
+
+		It("From oci", func() {
+			SkipIfRemote("Remote pull neither supports oci transport, nor decryption")
+
+			podmanTest.AddImageToRWStore(ALPINE)
+
+			bbdir := filepath.Join(podmanTest.TempDir, "busybox-oci")
+			imgPath := fmt.Sprintf("oci:%s", bbdir)
+
+			session := decryptionTestHelper(imgPath)
+
+			Expect(session.LineInOutputContainsTag(filepath.Join("localhost", bbdir), "latest")).To(BeTrue())
+		})
+
+		It("From local registry", func() {
+			SkipIfRemote("Remote pull does not support decryption")
+
+			if podmanTest.Host.Arch == "ppc64le" {
+				Skip("No registry image for ppc64le")
+			}
+
+			podmanTest.AddImageToRWStore(ALPINE)
+
+			if rootless.IsRootless() {
+				err := podmanTest.RestoreArtifact(REGISTRY_IMAGE)
+				Expect(err).ToNot(HaveOccurred())
+			}
+			lock := GetPortLock("5000")
+			defer lock.Unlock()
+			session := podmanTest.Podman([]string{"run", "-d", "--name", "registry", "-p", "5000:5000", REGISTRY_IMAGE, "/entrypoint.sh", "/etc/docker/registry/config.yml"})
+			session.WaitWithDefaultTimeout()
+			Expect(session).Should(Exit(0))
+
+			if !WaitContainerReady(podmanTest, "registry", "listening on", 20, 1) {
+				Skip("Cannot start docker registry.")
+			}
+
+			imgPath := "localhost:5000/my-alpine"
+
+			session = decryptionTestHelper(imgPath)
+
+			Expect(session.LineInOutputContainsTag(imgPath, "latest")).To(BeTrue())
+		})
+	})
+
 })

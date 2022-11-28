@@ -114,6 +114,8 @@ and specified with a _tag_.
 
 @@option cpuset-mems
 
+@@option decryption-key
+
 @@option device
 
 Note: if the user only has access rights via a group, accessing the device

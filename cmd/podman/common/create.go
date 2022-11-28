@@ -571,9 +571,18 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		createFlags.StringVar(&cf.PasswdEntry, passwdEntryName, "", "Entry to write to /etc/passwd")
 		_ = cmd.RegisterFlagCompletionFunc(passwdEntryName, completion.AutocompleteNone)
 
+		decryptionKeysFlagName := "decryption-key"
+		createFlags.StringSliceVar(
+			&cf.DecryptionKeys,
+			decryptionKeysFlagName, []string{},
+			"Key needed to decrypt the image (e.g. /path/to/key.pem)",
+		)
+		_ = cmd.RegisterFlagCompletionFunc(decryptionKeysFlagName, completion.AutocompleteNone)
+
 		if registry.IsRemote() {
 			_ = createFlags.MarkHidden("env-host")
 			_ = createFlags.MarkHidden("http-proxy")
+			_ = createFlags.MarkHidden(decryptionKeysFlagName)
 		} else {
 			createFlags.StringVar(
 				&cf.SignaturePolicy,

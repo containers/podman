@@ -11,6 +11,11 @@ import (
 	"strings"
 	"time"
 
+	crypto_rand "crypto/rand"
+	"crypto/rsa"
+	"crypto/x509"
+	"encoding/pem"
+
 	"github.com/sirupsen/logrus"
 
 	"github.com/containers/storage/pkg/parsers/kernel"
@@ -522,4 +527,77 @@ func RandomString(n int) string {
 		b[i] = randomLetters[rand.Intn(len(randomLetters))]
 	}
 	return string(b)
+}
+
+// Encode *rsa.PublicKey and store it in a file.
+// Adds appropriate extension to the fileName, and returns the complete fileName of
+// the file storing the public key.
+func savePublicKey(fileName string, publicKey *rsa.PublicKey) (string, error) {
+	// Encode public key to PKIX, ASN.1 DER form
+	pubBytes, err := x509.MarshalPKIXPublicKey(publicKey)
+	if err != nil {
+		return "", err
+	}
+
+	pubPEM := pem.EncodeToMemory(
+		&pem.Block{
+			Type:  "RSA PUBLIC KEY",
+			Bytes: pubBytes,
+		},
+	)
+
+	// Write public key to file
+	publicKeyFileName := fileName + ".rsa.pub"
+	if err := os.WriteFile(publicKeyFileName, pubPEM, 0600); err != nil {
+		return "", err
+	}
+
+	return publicKeyFileName, nil
+}
+
+// Encode *rsa.PrivateKey and store it in a file.
+// Adds appropriate extension to the fileName, and returns the complete fileName of
+// the file storing the private key.
+func savePrivateKey(fileName string, privateKey *rsa.PrivateKey) (string, error) {
+	// Encode private key to PKCS#1, ASN.1 DER form
+	privBytes := x509.MarshalPKCS1PrivateKey(privateKey)
+	keyPEM := pem.EncodeToMemory(
+		&pem.Block{
+			Type:  "RSA PRIVATE KEY",
+			Bytes: privBytes,
+		},
+	)
+
+	// Write private key to file
+	privateKeyFileName := fileName + ".rsa"
+	if err := os.WriteFile(privateKeyFileName, keyPEM, 0600); err != nil {
+		return "", err
+	}
+
+	return privateKeyFileName, nil
+}
+
+// Generate RSA key pair of specified bit size and write them to files.
+// Adds appropriate extension to the fileName, and returns the complete fileName of
+// the files storing the public and private key respectively.
+func WriteRSAKeyPair(fileName string, bitSize int) (string, string, error) {
+	// Generate RSA key
+	privateKey, err := rsa.GenerateKey(crypto_rand.Reader, bitSize)
+	if err != nil {
+		return "", "", err
+	}
+
+	publicKey := privateKey.Public().(*rsa.PublicKey)
+
+	publicKeyFileName, err := savePublicKey(fileName, publicKey)
+	if err != nil {
+		return "", "", err
+	}
+
+	privateKeyFileName, err := savePrivateKey(fileName, privateKey)
+	if err != nil {
+		return "", "", err
+	}
+
+	return publicKeyFileName, privateKeyFileName, nil
 }

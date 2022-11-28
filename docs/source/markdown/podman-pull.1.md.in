@@ -57,6 +57,8 @@ All tagged images in the repository will be pulled.
 
 @@option creds
 
+@@option decryption-key
+
 @@option disable-content-trust
 
 #### **--help**, **-h**
