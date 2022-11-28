@@ -402,7 +402,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 	// Docker's newer clients popuates `cacheFrom` and `cacheTo` parameter
 	// by default as empty array for all commands but buildah's design of
 	// distributed cache expects this to be a repo not image hence parse
-	// only the first populated repo and igore if empty array.
+	// only the first populated repo and ignore if empty array.
 	// Read more here: https://github.com/containers/podman/issues/15928
 	// TODO: Remove this when buildah's API is extended.
 	compatIgnoreForcedCacheOptions := func(queryStr string) string {

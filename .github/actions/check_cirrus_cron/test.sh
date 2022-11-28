@@ -2,7 +2,7 @@
 
 # This script attempts to confirm functional github action scripts.
 # It expects to be called from Cirrus-CI, in a special execution
-# enironment.  Any use outside this environment will probably fail.
+# environment.  Any use outside this environment will probably fail.
 
 set -eo pipefail
 

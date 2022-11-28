@@ -231,7 +231,7 @@ func isImageID(imageName string) bool {
 	}
 
 	// However, podman also accepts image ids as pure hex strings,
-	// but only those of length 64 are unambigous image ids
+	// but only those of length 64 are unambiguous image ids
 	if len(imageName) != 64 {
 		return false
 	}
@@ -246,7 +246,7 @@ func isImageID(imageName string) bool {
 }
 
 func isUnambiguousName(imageName string) bool {
-	// Fully specified image ids are unambigous
+	// Fully specified image ids are unambiguous
 	if isImageID(imageName) {
 		return true
 	}
@@ -269,7 +269,7 @@ func isUnambiguousName(imageName string) bool {
 	return false
 }
 
-// warns if input is an ambigious name, i.e. a partial image id or a short
+// warns if input is an ambiguous name, i.e. a partial image id or a short
 // name (i.e. is missing a registry)
 //
 // Examples:

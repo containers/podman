@@ -246,7 +246,7 @@ func ConfDirPrefix() (string, error) {
 // will not delete certain catastrophic paths.
 func GuardedRemoveAll(path string) error {
 	if path == "" || path == "/" {
-		return fmt.Errorf("refusing to recusively delete `%s`", path)
+		return fmt.Errorf("refusing to recursively delete `%s`", path)
 	}
 	return os.RemoveAll(path)
 }
