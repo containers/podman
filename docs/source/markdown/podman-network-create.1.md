@@ -72,7 +72,9 @@ Set metadata for a network (e.g., --label mykey=value).
 
 Set driver specific options.
 
-All drivers accept the `mtu` option. The `mtu` option sets the Maximum Transmission Unit (MTU) and takes an integer value.
+All drivers accept the `mtu` and `metric` options.
+- `mtu`: Sets the Maximum Transmission Unit (MTU) and takes an integer value.
+- `metric` Sets the Route Metric for the default route created in every container joined to this network. Accepts a positive integer value. Can only be used with the Netavark network backend.
 
 Additionally the `bridge` driver supports the following options:
 - `vlan`: This option assign VLAN tag and enables vlan\_filtering. Defaults to none.
