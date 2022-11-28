@@ -26,6 +26,8 @@ import (
 	jose "gopkg.in/square/go-jose.v2"
 )
 
+const Unspecified = "Unspecified"
+
 // Package Variables Variables
 
 // BuildID is set by the compiler (using -ldflags "-X core.BuildID $(git rev-parse --short HEAD)")
@@ -182,7 +184,7 @@ func ValidSerial(serial string) bool {
 func GetBuildID() (retID string) {
 	retID = BuildID
 	if retID == "" {
-		retID = "Unspecified"
+		retID = Unspecified
 	}
 	return
 }
@@ -191,7 +193,7 @@ func GetBuildID() (retID string) {
 func GetBuildTime() (retID string) {
 	retID = BuildTime
 	if retID == "" {
-		retID = "Unspecified"
+		retID = Unspecified
 	}
 	return
 }
@@ -200,7 +202,7 @@ func GetBuildTime() (retID string) {
 func GetBuildHost() (retID string) {
 	retID = BuildHost
 	if retID == "" {
-		retID = "Unspecified"
+		retID = Unspecified
 	}
 	return
 }

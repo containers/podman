@@ -1,15 +1,11 @@
 package config
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"net"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"regexp"
-	"strconv"
 	"strings"
 
 	nettypes "github.com/containers/common/libnetwork/types"
@@ -24,28 +20,6 @@ import (
 )
 
 const (
-	// _conmonMinMajorVersion is the major version required for conmon.
-	_conmonMinMajorVersion = 2
-
-	// _conmonMinMinorVersion is the minor version required for conmon.
-	_conmonMinMinorVersion = 0
-
-	// _conmonMinPatchVersion is the sub-minor version required for conmon.
-	_conmonMinPatchVersion = 1
-
-	// _conmonrsMinMajorVersion is the major version required for conmonrs.
-	_conmonrsMinMajorVersion = 0
-
-	// _conmonrsMinMinorVersion is the minor version required for conmonrs.
-	_conmonrsMinMinorVersion = 1
-
-	// _conmonrsMinPatchVersion is the sub-minor version required for conmonrs.
-	_conmonrsMinPatchVersion = 0
-
-	// _conmonVersionFormatErr is used when the expected versio-format of conmon
-	// has changed.
-	_conmonVersionFormatErr = "conmon version changed format: %w"
-
 	// _defaultGraphRoot points to the default path of the graph root.
 	_defaultGraphRoot = "/var/lib/containers/storage"
 
@@ -468,70 +442,6 @@ func defaultTmpDir() (string, error) {
 		}
 	}
 	return filepath.Join(libpodRuntimeDir, "tmp"), nil
-}
-
-// probeConmon calls conmon --version and verifies it is a new enough version for
-// the runtime expectations the container engine currently has.
-func probeConmon(conmonBinary string) error {
-	cmd := exec.Command(conmonBinary, "--version")
-	var out bytes.Buffer
-	cmd.Stdout = &out
-	if err := cmd.Run(); err != nil {
-		return err
-	}
-	r := regexp.MustCompile(`^(version:|conmon version)? (?P<Major>\d+).(?P<Minor>\d+).(?P<Patch>\d+)`)
-
-	matches := r.FindStringSubmatch(out.String())
-	if len(matches) != 5 {
-		return fmt.Errorf(_conmonVersionFormatErr, errors.New("invalid version format"))
-	}
-	major, err := strconv.Atoi(matches[2])
-
-	var minMajor, minMinor, minPatch int
-	// conmon-rs returns "^version:"
-	if matches[1] == "version:" {
-		minMajor = _conmonrsMinMajorVersion
-		minMinor = _conmonrsMinMinorVersion
-		minPatch = _conmonrsMinPatchVersion
-	} else {
-		minMajor = _conmonMinMajorVersion
-		minMinor = _conmonMinMinorVersion
-		minPatch = _conmonMinPatchVersion
-	}
-
-	if err != nil {
-		return fmt.Errorf(_conmonVersionFormatErr, err)
-	}
-	if major < minMajor {
-		return ErrConmonOutdated
-	}
-	if major > minMajor {
-		return nil
-	}
-
-	minor, err := strconv.Atoi(matches[3])
-	if err != nil {
-		return fmt.Errorf(_conmonVersionFormatErr, err)
-	}
-	if minor < minMinor {
-		return ErrConmonOutdated
-	}
-	if minor > minMinor {
-		return nil
-	}
-
-	patch, err := strconv.Atoi(matches[4])
-	if err != nil {
-		return fmt.Errorf(_conmonVersionFormatErr, err)
-	}
-	if patch < minPatch {
-		return ErrConmonOutdated
-	}
-	if patch > minPatch {
-		return nil
-	}
-
-	return nil
 }
 
 // NetNS returns the default network namespace.

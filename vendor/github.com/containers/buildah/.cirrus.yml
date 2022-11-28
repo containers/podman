@@ -140,7 +140,7 @@ cross_build_task:
         $CIRRUS_CRON != 'multiarch'
 
     osx_instance:
-        image: 'big-sur-base'
+        image: ghcr.io/cirruslabs/macos-ventura-base:latest
 
     script:
         - brew update

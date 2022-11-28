@@ -959,11 +959,10 @@ func (c *NetworkConfig) Validate() error {
 // to first (version) matching conmon binary. If non is found, we try
 // to do a path lookup of "conmon".
 func (c *Config) FindConmon() (string, error) {
-	return findConmonPath(c.Engine.ConmonPath, "conmon", _conmonMinMajorVersion, _conmonMinMinorVersion, _conmonMinPatchVersion)
+	return findConmonPath(c.Engine.ConmonPath, "conmon")
 }
 
-func findConmonPath(paths []string, binaryName string, major int, minor int, patch int) (string, error) {
-	foundOutdatedConmon := false
+func findConmonPath(paths []string, binaryName string) (string, error) {
 	for _, path := range paths {
 		stat, err := os.Stat(path)
 		if err != nil {
@@ -972,29 +971,14 @@ func findConmonPath(paths []string, binaryName string, major int, minor int, pat
 		if stat.IsDir() {
 			continue
 		}
-		if err := probeConmon(path); err != nil {
-			logrus.Warnf("Conmon at %s invalid: %v", path, err)
-			foundOutdatedConmon = true
-			continue
-		}
 		logrus.Debugf("Using conmon: %q", path)
 		return path, nil
 	}
 
 	// Search the $PATH as last fallback
 	if path, err := exec.LookPath(binaryName); err == nil {
-		if err := probeConmon(path); err != nil {
-			logrus.Warnf("Conmon at %s is invalid: %v", path, err)
-			foundOutdatedConmon = true
-		} else {
-			logrus.Debugf("Using conmon from $PATH: %q", path)
-			return path, nil
-		}
-	}
-
-	if foundOutdatedConmon {
-		return "", fmt.Errorf("please update to v%d.%d.%d or later: %w",
-			major, minor, patch, ErrConmonOutdated)
+		logrus.Debugf("Using conmon from $PATH: %q", path)
+		return path, nil
 	}
 
 	return "", fmt.Errorf("could not find a working conmon binary (configured options: %v: %w)",
@@ -1005,7 +989,7 @@ func findConmonPath(paths []string, binaryName string, major int, minor int, pat
 // to first (version) matching conmonrs binary. If non is found, we try
 // to do a path lookup of "conmonrs".
 func (c *Config) FindConmonRs() (string, error) {
-	return findConmonPath(c.Engine.ConmonRsPath, "conmonrs", _conmonrsMinMajorVersion, _conmonrsMinMinorVersion, _conmonrsMinPatchVersion)
+	return findConmonPath(c.Engine.ConmonRsPath, "conmonrs")
 }
 
 // GetDefaultEnv returns the environment variables for the container.
