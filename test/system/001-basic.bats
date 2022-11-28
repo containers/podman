@@ -233,7 +233,7 @@ See 'podman version --help'" "podman version --remote"
 }
 
 # Tests --noout for commands that do not enter the engine
-@test "podman --noout properly supresses output" {
+@test "podman --noout properly suppresses output" {
 run_podman --noout system connection ls
     is "$output" "" "output should be empty"
 }
