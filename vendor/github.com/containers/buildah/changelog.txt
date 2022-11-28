@@ -1,3 +1,10 @@
+- Changelog for v1.28.2 (2022-11-23)
+  * Define and use a safe, reliable test image
+  * Stop using ubi8
+
+- Changelog for v1.28.1 (2022-11-19)
+  * copier.Put(): clear up os/syscall mode bit confusion
+
 - Changelog for v1.28.0 (2022-09-30)
   * Update vendor containers/(common,image)
   * [CI:DOCS] Add quay-description update reminder

@@ -2,6 +2,15 @@
 
 # Changelog
 
+## v1.28.2 (2022-11-23)
+
+   Define and use a safe, reliable test image
+   Stop using ubi8
+
+## v1.28.1 (2022-11-19)
+
+   copier.Put(): clear up os/syscall mode bit confusion
+
 ## v1.28.0 (2022-09-30)
 
     Update vendor containers/(common,image)
