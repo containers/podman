@@ -100,6 +100,84 @@ spec:
         optional: false
 `
 
+var optionalExistingSecretPodYaml = `
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mypod
+spec:
+  containers:
+    - name: myctr
+      image: quay.io/libpod/alpine_nginx:latest
+      volumeMounts:
+        - name: foo
+          mountPath: /etc/foo
+          readOnly: true
+  volumes:
+    - name: foo
+      secret:
+        secretName: newsecret
+        optional: true
+`
+
+var optionalNonExistingSecretPodYaml = `
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mypod
+spec:
+  containers:
+    - name: myctr
+      image: quay.io/libpod/alpine_nginx:latest
+      volumeMounts:
+        - name: foo
+          mountPath: /etc/foo
+          readOnly: true
+  volumes:
+    - name: foo
+      secret:
+        secretName: oldsecret
+        optional: true
+`
+
+var noOptionalExistingSecretPodYaml = `
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mypod
+spec:
+  containers:
+    - name: myctr
+      image: quay.io/libpod/alpine_nginx:latest
+      volumeMounts:
+        - name: foo
+          mountPath: /etc/foo
+          readOnly: true
+  volumes:
+    - name: foo
+      secret:
+        secretName: newsecret
+`
+
+var noOptionalNonExistingSecretPodYaml = `
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mypod
+spec:
+  containers:
+    - name: myctr
+      image: quay.io/libpod/alpine_nginx:latest
+      volumeMounts:
+        - name: foo
+          mountPath: /etc/foo
+          readOnly: true
+  volumes:
+    - name: foo
+      secret:
+        secretName: oldsecret
+`
+
 var unknownKindYaml = `
 apiVersion: v1
 kind: UnknownKind
@@ -1356,6 +1434,52 @@ func createSourceTarFile(fileName, fileContent, tarFilePath string) error {
 	defer tarFile.Close()
 
 	return utils.TarToFilesystem(dir, tarFile)
+}
+
+func createAndTestSecret(podmanTest *PodmanTestIntegration, secretYamlString, secretName, fileName string) {
+	err := writeYaml(secretYamlString, fileName)
+	Expect(err).ToNot(HaveOccurred())
+
+	kube := podmanTest.Podman([]string{"play", "kube", fileName})
+	kube.WaitWithDefaultTimeout()
+	Expect(kube).Should(Exit(0))
+
+	secretList := podmanTest.Podman([]string{"secret", "list"})
+	secretList.WaitWithDefaultTimeout()
+	Expect(secretList).Should(Exit(0))
+	Expect(secretList.OutputToString()).Should(ContainSubstring(secretName))
+}
+
+func deleteAndTestSecret(podmanTest *PodmanTestIntegration, secretName string) {
+	secretRm := podmanTest.Podman([]string{"secret", "rm", secretName})
+	secretRm.WaitWithDefaultTimeout()
+	Expect(secretRm).Should(Exit(0))
+}
+
+func testPodWithSecret(podmanTest *PodmanTestIntegration, podYamlString, fileName string, succeed, exists bool) {
+	err := writeYaml(podYamlString, fileName)
+	Expect(err).ToNot(HaveOccurred())
+
+	kube := podmanTest.Podman([]string{"play", "kube", fileName})
+	kube.WaitWithDefaultTimeout()
+	if !succeed {
+		Expect(kube).Should(Exit(-1))
+		return
+	}
+	Expect(kube).Should(Exit(0))
+
+	exec := podmanTest.Podman([]string{"exec", "-it", "mypod-myctr", "cat", "/etc/foo/username"})
+	exec.WaitWithDefaultTimeout()
+	if exists {
+		Expect(exec).Should(Exit(0))
+		Expect(exec.OutputToString()).Should(ContainSubstring("dXNlcg=="))
+	} else {
+		Expect(exec).Should(Exit(-1))
+	}
+
+	podRm := podmanTest.Podman([]string{"pod", "rm", "-f", "mypod"})
+	podRm.WaitWithDefaultTimeout()
+	Expect(podRm).Should(Exit(0))
 }
 
 var _ = Describe("Podman play kube", func() {
@@ -4197,44 +4321,18 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 		Expect(kube).Should(Exit(125))
 	})
 
-	It("podman play kube secret as volume support", func() {
-		err := writeYaml(secretYaml, kubeYaml)
-		Expect(err).ToNot(HaveOccurred())
+	It("podman play kube secret as volume support - simple", func() {
+		createAndTestSecret(podmanTest, secretYaml, "newsecret", kubeYaml)
+		testPodWithSecret(podmanTest, secretPodYaml, kubeYaml, true, true)
+		deleteAndTestSecret(podmanTest, "newsecret")
+	})
 
-		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
-		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(Exit(0))
-
-		secretList := podmanTest.Podman([]string{"secret", "list"})
-		secretList.WaitWithDefaultTimeout()
-		Expect(secretList).Should(Exit(0))
-		Expect(secretList.OutputToString()).Should(ContainSubstring("newsecret"))
-
-		err = writeYaml(secretPodYaml, kubeYaml)
-		Expect(err).ToNot(HaveOccurred())
-
-		kube = podmanTest.Podman([]string{"play", "kube", kubeYaml})
-		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(Exit(0))
-
-		exec := podmanTest.Podman([]string{"exec", "-it", "mypod-myctr", "cat", "/etc/foo/username"})
-		exec.WaitWithDefaultTimeout()
-		Expect(exec).Should(Exit(0))
-		Expect(exec.OutputToString()).Should(ContainSubstring("dXNlcg=="))
-
-		secretRm := podmanTest.Podman([]string{"secret", "rm", "newsecret"})
-		secretRm.WaitWithDefaultTimeout()
-		Expect(secretRm).Should(Exit(0))
-
-		podRm := podmanTest.Podman([]string{"pod", "rm", "-f", "mypod"})
-		podRm.WaitWithDefaultTimeout()
-		Expect(podRm).Should(Exit(0))
-
+	It("podman play kube secret as volume support - two volumes", func() {
 		yamls := []string{secretYaml, secretPodYaml}
 		err = generateMultiDocKubeYaml(yamls, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
 
-		kube = podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(Exit(0))
 
@@ -4255,7 +4353,7 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(Exit(0))
 
-		exec = podmanTest.Podman([]string{"exec", "-it", "mypod2-myctr", "cat", "/etc/foo/username"})
+		exec := podmanTest.Podman([]string{"exec", "-it", "mypod2-myctr", "cat", "/etc/foo/username"})
 		exec.WaitWithDefaultTimeout()
 		Expect(exec).Should(Exit(0))
 		Expect(exec.OutputToString()).Should(ContainSubstring("dXNlcg=="))
@@ -4265,6 +4363,17 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 		Expect(exec).Should(Exit(0))
 		Expect(exec.OutputToString()).Should(ContainSubstring("Y2RvZXJuCg=="))
 
+	})
+
+	It("podman play kube secret as volume support - optional field", func() {
+		createAndTestSecret(podmanTest, secretYaml, "newsecret", kubeYaml)
+
+		testPodWithSecret(podmanTest, optionalExistingSecretPodYaml, kubeYaml, true, true)
+		testPodWithSecret(podmanTest, optionalNonExistingSecretPodYaml, kubeYaml, true, false)
+		testPodWithSecret(podmanTest, noOptionalExistingSecretPodYaml, kubeYaml, true, true)
+		testPodWithSecret(podmanTest, noOptionalNonExistingSecretPodYaml, kubeYaml, false, false)
+
+		deleteAndTestSecret(podmanTest, "newsecret")
 	})
 
 })

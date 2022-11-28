@@ -131,9 +131,19 @@ func VolumeFromHostPath(hostPath *v1.HostPathVolumeSource) (*KubeVolume, error) 
 
 // VolumeFromSecret creates a new kube volume from a kube secret.
 func VolumeFromSecret(secretSource *v1.SecretVolumeSource, secretsManager *secrets.SecretsManager) (*KubeVolume, error) {
+	kv := &KubeVolume{
+		Type:   KubeVolumeTypeSecret,
+		Source: secretSource.SecretName,
+		Items:  map[string][]byte{},
+	}
+
 	// returns a byte array of a kube secret data, meaning this needs to go into a string map
 	_, secretByte, err := secretsManager.LookupSecretData(secretSource.SecretName)
 	if err != nil {
+		if errors.Is(err, secrets.ErrNoSuchSecret) && secretSource.Optional != nil && *secretSource.Optional {
+			kv.Optional = true
+			return kv, nil
+		}
 		return nil, err
 	}
 
@@ -158,12 +168,6 @@ func VolumeFromSecret(secretSource *v1.SecretVolumeSource, secretsManager *secre
 	if err != nil {
 		return nil, err
 	}
-
-	kv := &KubeVolume{}
-	kv.Type = KubeVolumeTypeSecret
-	kv.Source = secretSource.SecretName
-	kv.Optional = *secretSource.Optional
-	kv.Items = make(map[string][]byte)
 
 	// add key: value pairs to the items array
 	for key, entry := range data.Data {
