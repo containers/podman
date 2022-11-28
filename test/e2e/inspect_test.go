@@ -500,7 +500,7 @@ var _ = Describe("Podman inspect", func() {
 
 		data := inspect.InspectContainerToJSON()
 		ulimits := data[0].HostConfig.Ulimits
-		Expect(len(ulimits)).To(BeNumerically(">", 0))
+		Expect(ulimits).ToNot(BeEmpty())
 		found := false
 		for _, ulimit := range ulimits {
 			if ulimit.Name == "RLIMIT_CORE" {

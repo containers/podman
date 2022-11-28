@@ -293,24 +293,24 @@ var _ = Describe("Podman healthcheck run", func() {
 
 	It("Verify default time is used and no utf-8 escapes", func() {
 		cwd, err := os.Getwd()
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		podmanTest.AddImageToRWStore(ALPINE)
 		// Write target and fake files
 		targetPath, err := CreateTempDirInTempDir()
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		containerfile := fmt.Sprintf(`FROM %s
 HEALTHCHECK CMD ls -l / 2>&1`, ALPINE)
 		containerfilePath := filepath.Join(targetPath, "Containerfile")
 		err = os.WriteFile(containerfilePath, []byte(containerfile), 0644)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		defer func() {
-			Expect(os.Chdir(cwd)).To(BeNil())
-			Expect(os.RemoveAll(targetPath)).To(BeNil())
+			Expect(os.Chdir(cwd)).To(Succeed())
+			Expect(os.RemoveAll(targetPath)).To(Succeed())
 		}()
 
 		// make cwd as context root path
-		Expect(os.Chdir(targetPath)).To(BeNil())
+		Expect(os.Chdir(targetPath)).To(Succeed())
 
 		session := podmanTest.Podman([]string{"build", "--format", "docker", "-t", "test", "."})
 		session.WaitWithDefaultTimeout()

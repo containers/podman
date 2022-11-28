@@ -124,6 +124,7 @@ GINKGOTIMEOUT ?= -timeout=90m
 GINKGOWHAT ?= test/e2e/.
 # By default, run tests in parallel across 3 nodes.
 GINKGONODES ?= 3
+GINKGO ?= ./test/tools/build/ginkgo
 
 # Conditional required to produce empty-output if binary not built yet.
 RELEASE_VERSION = $(shell if test -x test/version/version; then test/version/version; fi)
@@ -521,7 +522,7 @@ run-docker-py-tests:
 .PHONY: localunit
 localunit: test/goecho/goecho test/version/version
 	rm -rf ${COVERAGE_PATH} && mkdir -p ${COVERAGE_PATH}
-	UNIT=1 ginkgo \
+	UNIT=1 $(GINKGO) \
 		-r \
 		$(TESTFLAGS) \
 		--skipPackage test/e2e,pkg/apparmor,pkg/bindings,hack,pkg/machine/e2e \
@@ -539,9 +540,9 @@ localunit: test/goecho/goecho test/version/version
 test: localunit localintegration remoteintegration localsystem remotesystem  ## Run unit, integration, and system tests.
 
 .PHONY: ginkgo-run
-ginkgo-run:
-	ACK_GINKGO_RC=true ginkgo version
-	ACK_GINKGO_RC=true ginkgo -v $(TESTFLAGS) -tags "$(TAGS) remote" $(GINKGOTIMEOUT) -cover -flakeAttempts 3 -progress -trace -noColor -nodes $(GINKGONODES) -debug $(GINKGOWHAT) $(HACK)
+ginkgo-run: .install.ginkgo
+	ACK_GINKGO_RC=true $(GINKGO) version
+	ACK_GINKGO_RC=true $(GINKGO) -v $(TESTFLAGS) -tags "$(TAGS) remote" $(GINKGOTIMEOUT) -cover -flakeAttempts 3 -progress -trace -noColor -nodes $(GINKGONODES) -debug $(GINKGOWHAT) $(HACK)
 
 .PHONY: ginkgo
 ginkgo:
@@ -563,7 +564,7 @@ localmachine: test-binaries
 
 .PHONY: localbenchmarks
 localbenchmarks: test-binaries
-	PATH=$(PATH):$(shell pwd)/hack ACK_GINKGO_RC=true ginkgo \
+	PATH=$(PATH):$(shell pwd)/hack ACK_GINKGO_RC=true $(GINKGO) \
 		      -focus "Podman Benchmark Suite" \
 		      -tags "$(BUILDTAGS) benchmarks" -noColor \
 		      -noisySkippings=false -noisyPendings=false \
@@ -870,7 +871,7 @@ install.systemd:
 endif
 
 .PHONY: install.tools
-install.tools: .install.ginkgo .install.golangci-lint .install.swagger ## Install needed tools
+install.tools: .install.golangci-lint .install.swagger ## Install needed tools
 	$(MAKE) -C test/tools
 
 .PHONY: .install.goimports
@@ -879,7 +880,7 @@ install.tools: .install.ginkgo .install.golangci-lint .install.swagger ## Instal
 
 .PHONY: .install.ginkgo
 .install.ginkgo:
-	$(GO) install $(BUILDFLAGS) ./vendor/github.com/onsi/ginkgo/ginkgo
+	$(MAKE) -C test/tools build/ginkgo
 
 .PHONY: .install.gitvalidation
 .install.gitvalidation:

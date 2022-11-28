@@ -618,7 +618,7 @@ var _ = Describe("Podman network", func() {
 		// JSON the network configuration into something usable
 		var results []types.Network
 		err := json.Unmarshal([]byte(inspect.OutputToString()), &results)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		Expect(results).To(HaveLen(1))
 		result := results[0]
 		Expect(result).To(HaveField("NetworkInterface", ""))
@@ -644,7 +644,7 @@ var _ = Describe("Podman network", func() {
 
 		var results []types.Network
 		err := json.Unmarshal([]byte(inspect.OutputToString()), &results)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		Expect(results).To(HaveLen(1))
 		result := results[0]
 
@@ -687,7 +687,7 @@ var _ = Describe("Podman network", func() {
 
 		var results []types.Network
 		err := json.Unmarshal([]byte(inspect.OutputToString()), &results)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		Expect(results).To(HaveLen(1))
 		result := results[0]
 

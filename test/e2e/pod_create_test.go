@@ -317,8 +317,8 @@ var _ = Describe("Podman pod create", func() {
 	It("podman create pod and print id to external file", func() {
 		// Switch to temp dir and restore it afterwards
 		cwd, err := os.Getwd()
-		Expect(err).To(BeNil())
-		Expect(os.Chdir(os.TempDir())).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
+		Expect(os.Chdir(os.TempDir())).To(Succeed())
 		targetPath, err := CreateTempDirInTempDir()
 		if err != nil {
 			os.Exit(1)
@@ -682,7 +682,7 @@ ENTRYPOINT ["sleep","99999"]
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		u, err := user.Current()
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		Expect(session.OutputToString()).To(ContainSubstring(u.Name))
 
 		// root owns /usr
@@ -731,7 +731,7 @@ ENTRYPOINT ["sleep","99999"]
 
 	It("podman pod create with --userns=auto", func() {
 		u, err := user.Current()
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		name := u.Name
 		if name == "root" {
 			name = "containers"
@@ -765,7 +765,7 @@ ENTRYPOINT ["sleep","99999"]
 
 	It("podman pod create --userns=auto:size=%d", func() {
 		u, err := user.Current()
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		name := u.Name
 		if name == "root" {
@@ -801,7 +801,7 @@ ENTRYPOINT ["sleep","99999"]
 
 	It("podman pod create --userns=auto:uidmapping=", func() {
 		u, err := user.Current()
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		name := u.Name
 		if name == "root" {
@@ -838,7 +838,7 @@ ENTRYPOINT ["sleep","99999"]
 
 	It("podman pod create --userns=auto:gidmapping=", func() {
 		u, err := user.Current()
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		name := u.Name
 		if name == "root" {
@@ -912,7 +912,7 @@ ENTRYPOINT ["sleep","99999"]
 
 	It("podman pod create --device", func() {
 		SkipIfRootless("Cannot create devices in /dev in rootless mode")
-		Expect(os.MkdirAll("/dev/foodevdir", os.ModePerm)).To(BeNil())
+		Expect(os.MkdirAll("/dev/foodevdir", os.ModePerm)).To(Succeed())
 		defer os.RemoveAll("/dev/foodevdir")
 
 		mknod := SystemExec("mknod", []string{"/dev/foodevdir/null", "c", "1", "3"})

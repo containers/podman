@@ -453,7 +453,7 @@ var _ = Describe("Podman exec", func() {
 		Expect(setup).Should(Exit(0))
 
 		devNull, err := os.Open("/dev/null")
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		defer devNull.Close()
 		files := []*os.File{
 			devNull,
@@ -545,7 +545,7 @@ RUN useradd -u 1000 auser`, fedoraMinimal)
 		secretsString := "somesecretdata"
 		secretFilePath := filepath.Join(podmanTest.TempDir, "secret")
 		err := os.WriteFile(secretFilePath, []byte(secretsString), 0755)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		session := podmanTest.Podman([]string{"secret", "create", "mysecret", secretFilePath})
 		session.WaitWithDefaultTimeout()

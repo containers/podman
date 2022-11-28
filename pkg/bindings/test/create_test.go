@@ -22,7 +22,7 @@ var _ = Describe("Create containers ", func() {
 		s = bt.startAPIService()
 		time.Sleep(1 * time.Second)
 		err := bt.NewConnection()
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 	})
 
 	AfterEach(func() {
@@ -36,14 +36,14 @@ var _ = Describe("Create containers ", func() {
 		s.Terminal = true
 		s.Name = "top"
 		ctr, err := containers.CreateWithSpec(bt.conn, s, nil)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		data, err := containers.Inspect(bt.conn, ctr.ID, nil)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		Expect(data.Name).To(Equal("top"))
 		err = containers.Start(bt.conn, ctr.ID, nil)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		data, err = containers.Inspect(bt.conn, ctr.ID, nil)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		Expect(data.State.Status).To(Equal("running"))
 	})
 

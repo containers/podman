@@ -23,7 +23,7 @@ var _ = Describe("Podman create", func() {
 
 	BeforeEach(func() {
 		tempdir, err = CreateTempDirInTempDir()
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.Setup()
 	})
@@ -146,10 +146,10 @@ var _ = Describe("Podman create", func() {
 	It("podman create --mount flag with multiple mounts", func() {
 		vol1 := filepath.Join(podmanTest.TempDir, "vol-test1")
 		err := os.MkdirAll(vol1, 0755)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		vol2 := filepath.Join(podmanTest.TempDir, "vol-test2")
 		err = os.MkdirAll(vol2, 0755)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		session := podmanTest.Podman([]string{"create", "--name", "test", "--mount", "type=bind,src=" + vol1 + ",target=/myvol1,z", "--mount", "type=bind,src=" + vol2 + ",target=/myvol2,z", ALPINE, "touch", "/myvol2/foo.txt"})
 		session.WaitWithDefaultTimeout()
@@ -224,7 +224,7 @@ var _ = Describe("Podman create", func() {
 		Expect(session).Should(Exit(125))
 
 		tmpDir, err := os.MkdirTemp("", "")
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		defer os.RemoveAll(tmpDir)
 
 		podName := "rudolph"

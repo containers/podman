@@ -117,13 +117,13 @@ var _ = Describe("Podman run ns", func() {
 		SkipIfRootlessCgroupsV1("Not supported for rootless + CgroupsV1")
 		cmd := exec.Command("ls", "-l", "/proc/self/ns/pid")
 		res, err := cmd.Output()
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		fields := strings.Split(string(res), " ")
 		hostPidNS := strings.TrimSuffix(fields[len(fields)-1], "\n")
 
 		cmd = exec.Command("ls", "-l", "/proc/self/ns/ipc")
 		res, err = cmd.Output()
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		fields = strings.Split(string(res), " ")
 		hostIpcNS := strings.TrimSuffix(fields[len(fields)-1], "\n")
 

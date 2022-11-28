@@ -78,7 +78,7 @@ var _ = Describe("Podman run device", func() {
 
 	It("podman run device host device and container device parameter are directories", func() {
 		SkipIfRootless("Cannot create devices in /dev in rootless mode")
-		Expect(os.MkdirAll("/dev/foodevdir", os.ModePerm)).To(BeNil())
+		Expect(os.MkdirAll("/dev/foodevdir", os.ModePerm)).To(Succeed())
 		defer os.RemoveAll("/dev/foodevdir")
 
 		mknod := SystemExec("mknod", []string{"/dev/foodevdir/null", "c", "1", "3"})
@@ -105,13 +105,13 @@ var _ = Describe("Podman run device", func() {
 		SkipIfRootless("Rootless will not be able to create files/folders in /etc")
 		cdiDir := "/etc/cdi"
 		if _, err := os.Stat(cdiDir); os.IsNotExist(err) {
-			Expect(os.MkdirAll(cdiDir, os.ModePerm)).To(BeNil())
+			Expect(os.MkdirAll(cdiDir, os.ModePerm)).To(Succeed())
 		}
 		defer os.RemoveAll(cdiDir)
 
 		cmd := exec.Command("cp", "cdi/device.json", cdiDir)
 		err = cmd.Run()
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		session := podmanTest.Podman([]string{"run", "-q", "--security-opt", "label=disable", "--device", "vendor.com/device=myKmsg", ALPINE, "test", "-c", "/dev/kmsg1"})
 		session.WaitWithDefaultTimeout()

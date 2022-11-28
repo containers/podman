@@ -103,7 +103,7 @@ profile aa-test-profile flags=(attach_disconnected,mediate_deleted) {
 }
 `
 		aaFile := filepath.Join(os.TempDir(), "aaFile")
-		Expect(os.WriteFile(aaFile, []byte(aaProfile), 0755)).To(BeNil())
+		Expect(os.WriteFile(aaFile, []byte(aaProfile), 0755)).To(Succeed())
 		parse := SystemExec("apparmor_parser", []string{"-Kr", aaFile})
 		Expect(parse).Should(Exit(0))
 

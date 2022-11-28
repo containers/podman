@@ -51,7 +51,7 @@ WantedBy=default.target
 		SkipIfContainerized("test does not have systemd as pid 1")
 
 		sysFile := os.WriteFile("/etc/systemd/system/redis.service", []byte(systemdUnitFile), 0644)
-		Expect(sysFile).To(BeNil())
+		Expect(sysFile).ToNot(HaveOccurred())
 		defer func() {
 			stop := SystemExec("bash", []string{"-c", "systemctl stop redis"})
 			os.Remove("/etc/systemd/system/redis.service")
@@ -137,7 +137,7 @@ CMD /usr/lib/systemd/systemd`, ALPINE)
 
 		containerfilePath := filepath.Join(podmanTest.TempDir, "Containerfile")
 		err := os.WriteFile(containerfilePath, []byte(containerfile), 0755)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		session := podmanTest.Podman([]string{"build", "-t", "systemd", "--file", containerfilePath, podmanTest.TempDir})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
@@ -167,7 +167,7 @@ CMD /usr/lib/systemd/systemd`, ALPINE)
 
 		pidFile := strings.TrimSuffix(session.OutputToString(), "\n")
 		_, err := os.ReadFile(pidFile)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 	})
 
 	It("podman create container with systemd=always triggers systemd mode", func() {

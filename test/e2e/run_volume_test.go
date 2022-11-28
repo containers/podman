@@ -153,12 +153,12 @@ var _ = Describe("Podman run with volumes", func() {
 		Expect(err).ToNot(HaveOccurred())
 		mountPath := filepath.Join(podmanTest.TempDir, "secrets")
 		err := os.Mkdir(mountPath, 0755)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		testFile := filepath.Join(mountPath, "test1")
 		f, err := os.Create(testFile)
-		Expect(err).To(BeNil(), "os.Create(testfile)")
+		Expect(err).ToNot(HaveOccurred(), "os.Create(testfile)")
 		f.Close()
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		session := podmanTest.Podman([]string{"run", "-v", fmt.Sprintf("%s:/data", mountPath), REDIS_IMAGE, "ls", "/data/test1"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
@@ -284,12 +284,12 @@ var _ = Describe("Podman run with volumes", func() {
 		// create persistent upperdir on host
 		upperDir := filepath.Join(tempdir, "upper")
 		err := os.Mkdir(upperDir, 0755)
-		Expect(err).To(BeNil(), "mkdir "+upperDir)
+		Expect(err).ToNot(HaveOccurred(), "mkdir "+upperDir)
 
 		// create persistent workdir on host
 		workDir := filepath.Join(tempdir, "work")
 		err = os.Mkdir(workDir, 0755)
-		Expect(err).To(BeNil(), "mkdir "+workDir)
+		Expect(err).ToNot(HaveOccurred(), "mkdir "+workDir)
 
 		overlayOpts := fmt.Sprintf("upperdir=%s,workdir=%s", upperDir, workDir)
 
@@ -338,17 +338,17 @@ var _ = Describe("Podman run with volumes", func() {
 		// Use bindsource instead of named volume
 		bindSource := filepath.Join(tempdir, "bindsource")
 		err := os.Mkdir(bindSource, 0755)
-		Expect(err).To(BeNil(), "mkdir "+bindSource)
+		Expect(err).ToNot(HaveOccurred(), "mkdir "+bindSource)
 
 		// create persistent upperdir on host
 		upperDir := filepath.Join(tempdir, "upper")
 		err = os.Mkdir(upperDir, 0755)
-		Expect(err).To(BeNil(), "mkdir "+upperDir)
+		Expect(err).ToNot(HaveOccurred(), "mkdir "+upperDir)
 
 		// create persistent workdir on host
 		workDir := filepath.Join(tempdir, "work")
 		err = os.Mkdir(workDir, 0755)
-		Expect(err).To(BeNil(), "mkdir "+workDir)
+		Expect(err).ToNot(HaveOccurred(), "mkdir "+workDir)
 
 		overlayOpts := fmt.Sprintf("upperdir=%s,workdir=%s", upperDir, workDir)
 
@@ -385,7 +385,7 @@ var _ = Describe("Podman run with volumes", func() {
 
 		// Volume not mounted on create
 		mountCmd1, err := Start(exec.Command("mount"), GinkgoWriter, GinkgoWriter)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		mountCmd1.Wait(90)
 		Expect(mountCmd1).Should(Exit(0))
 		os.Stdout.Sync()
@@ -401,7 +401,7 @@ var _ = Describe("Podman run with volumes", func() {
 
 		// Volume now mounted as container is running
 		mountCmd2, err := Start(exec.Command("mount"), GinkgoWriter, GinkgoWriter)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		mountCmd2.Wait(90)
 		Expect(mountCmd2).Should(Exit(0))
 		os.Stdout.Sync()
@@ -422,7 +422,7 @@ var _ = Describe("Podman run with volumes", func() {
 
 		// Ensure volume is unmounted
 		mountCmd3, err := Start(exec.Command("mount"), GinkgoWriter, GinkgoWriter)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		mountCmd3.Wait(90)
 		Expect(mountCmd3).Should(Exit(0))
 		os.Stdout.Sync()
@@ -621,7 +621,7 @@ RUN sh -c "cd /etc/apk && ln -s ../../testfile"`, ALPINE)
 
 		fileName := "thisIsATestFile"
 		file, err := os.Create(filepath.Join(path, fileName))
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		defer file.Close()
 
 		runLs := podmanTest.Podman([]string{"run", "-t", "-i", "--rm", "-v", fmt.Sprintf("%v:/etc/ssl", volName), ALPINE, "ls", "-1", "/etc/ssl"})
@@ -665,7 +665,7 @@ VOLUME /test/`, ALPINE)
 		Expect(err).ToNot(HaveOccurred())
 		testFile := filepath.Join(mountPath, "test1")
 		f, err := os.Create(testFile)
-		Expect(err).To(BeNil(), "os.Create "+testFile)
+		Expect(err).ToNot(HaveOccurred(), "os.Create "+testFile)
 		f.Close()
 
 		// Make sure host directory gets mounted in to container as overlay
@@ -679,7 +679,7 @@ VOLUME /test/`, ALPINE)
 
 		// Test overlay mount when lowerdir is relative path.
 		f, err = os.Create("hello")
-		Expect(err).To(BeNil(), "os.Create")
+		Expect(err).ToNot(HaveOccurred(), "os.Create")
 		f.Close()
 		session = podmanTest.Podman([]string{"run", "--rm", "-v", ".:/app:O", ALPINE, "ls", "/app"})
 		session.WaitWithDefaultTimeout()
@@ -691,7 +691,7 @@ VOLUME /test/`, ALPINE)
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		_, err = os.Stat(filepath.Join(mountPath, "container"))
-		Expect(err).To(Not(BeNil()))
+		Expect(err).To(HaveOccurred())
 
 		// Make sure modifications in container disappear when container is stopped
 		session = podmanTest.Podman([]string{"create", "-v", fmt.Sprintf("%s:/run/test:O", mountPath), ALPINE, "top"})
@@ -723,11 +723,11 @@ VOLUME /test/`, ALPINE)
 		Expect(err).ToNot(HaveOccurred())
 		testFile := filepath.Join(mountPath, "test1")
 		f, err := os.Create(testFile)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		f.Close()
 		mountSrc := filepath.Join(podmanTest.TempDir, "vol-test1")
 		err = os.MkdirAll(mountSrc, 0755)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		mountDest := "/run/test"
 		volName := "myvol"
 
@@ -761,7 +761,7 @@ VOLUME /test/`, ALPINE)
 		SkipIfRemote("Overlay volumes only work locally")
 
 		u, err := user.Current()
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		name := u.Username
 		if name == "root" {
 			name = "containers"
@@ -808,7 +808,7 @@ VOLUME /test/`, ALPINE)
 
 	It("podman run with --mount and U flag", func() {
 		u, err := user.Current()
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		name := u.Username
 		if name == "root" {
 			name = "containers"
@@ -927,7 +927,7 @@ USER testuser`, fedoraMinimal)
 	It("podman run with -v $SRC:/run does not create /run/.containerenv", func() {
 		mountSrc := filepath.Join(podmanTest.TempDir, "vol-test1")
 		err := os.MkdirAll(mountSrc, 0755)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		session := podmanTest.Podman([]string{"run", "-v", mountSrc + ":/run", ALPINE, "true"})
 		session.WaitWithDefaultTimeout()
@@ -935,7 +935,7 @@ USER testuser`, fedoraMinimal)
 
 		// the file should not have been created
 		_, err = os.Stat(filepath.Join(mountSrc, ".containerenv"))
-		Expect(err).To(Not(BeNil()))
+		Expect(err).To(HaveOccurred())
 	})
 
 	It("podman volume with uid and gid works", func() {

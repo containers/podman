@@ -94,27 +94,27 @@ var _ = Describe("Podman Info", func() {
 			os.Unsetenv("CONTAINERS_STORAGE_CONF")
 		}()
 		err := os.RemoveAll(filepath.Dir(configPath))
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		err = os.MkdirAll(filepath.Dir(configPath), os.ModePerm)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		rootlessStoragePath := `"/tmp/$HOME/$USER/$UID/storage"`
 		driver := `"overlay"`
 		storageOpt := `"/usr/bin/fuse-overlayfs"`
 		storageConf := []byte(fmt.Sprintf("[storage]\ndriver=%s\nrootless_storage_path=%s\n[storage.options]\nmount_program=%s", driver, rootlessStoragePath, storageOpt))
 		err = os.WriteFile(configPath, storageConf, os.ModePerm)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		u, err := user.Current()
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		// Cannot use podmanTest.Podman() and test for storage path
 		expect := filepath.Join("/tmp", os.Getenv("HOME"), u.Username, u.Uid, "storage")
 		podmanPath := podmanTest.PodmanTest.PodmanBinary
 		cmd := exec.Command(podmanPath, "info", "--format", "{{.Store.GraphRoot -}}")
 		out, err := cmd.CombinedOutput()
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		Expect(string(out)).To(Equal(expect))
 	})
 

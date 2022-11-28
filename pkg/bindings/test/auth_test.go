@@ -26,21 +26,21 @@ var _ = Describe("Podman images", func() {
 		// the test. Otherwise, the registry is not reachable for
 		// currently unknown reasons.
 		registry, err = podmanRegistry.Start()
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		bt = newBindingTest()
 		bt.RestoreImagesFromCache()
 		s = bt.startAPIService()
 		time.Sleep(1 * time.Second)
 		err := bt.NewConnection()
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 	})
 
 	AfterEach(func() {
 		s.Kill()
 		bt.cleanup()
 		err := registry.Stop()
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 	})
 
 	// Test using credentials.
@@ -52,19 +52,19 @@ var _ = Describe("Podman images", func() {
 
 		// Tag the alpine image and verify it has worked.
 		err = images.Tag(bt.conn, alpine.shortName, imageTag, imageRep, nil)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		_, err = images.GetImage(bt.conn, imageRef, nil)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		// Now push the image.
 		pushOpts := new(images.PushOptions)
 		err = images.Push(bt.conn, imageRef, imageRef, pushOpts.WithUsername(registry.User).WithPassword(registry.Password).WithSkipTLSVerify(true))
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		// Now pull the image.
 		pullOpts := new(images.PullOptions)
 		_, err = images.Pull(bt.conn, imageRef, pullOpts.WithSkipTLSVerify(true).WithPassword(registry.Password).WithUsername(registry.User))
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 	})
 
 	// Test using authfile.
@@ -76,11 +76,11 @@ var _ = Describe("Podman images", func() {
 
 		// Create a temporary authentication file.
 		tmpFile, err := os.CreateTemp("", "auth.json.")
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		_, err = tmpFile.Write([]byte{'{', '}'})
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		err = tmpFile.Close()
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		authFilePath := tmpFile.Name()
 
@@ -98,28 +98,28 @@ var _ = Describe("Podman images", func() {
 			Stdout:   os.Stdout,
 		}
 		err = auth.Login(bt.conn, &sys, &loginOptions, []string{imageRep})
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		// Tag the alpine image and verify it has worked.
 		err = images.Tag(bt.conn, alpine.shortName, imageTag, imageRep, nil)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		_, err = images.GetImage(bt.conn, imageRef, nil)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		// Now push the image.
 		pushOpts := new(images.PushOptions)
 		err = images.Push(bt.conn, imageRef, imageRef, pushOpts.WithAuthfile(authFilePath).WithSkipTLSVerify(true))
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		// Now pull the image.
 		pullOpts := new(images.PullOptions)
 		_, err = images.Pull(bt.conn, imageRef, pullOpts.WithAuthfile(authFilePath).WithSkipTLSVerify(true))
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		// Last, but not least, exercise search.
 		searchOptions := new(images.SearchOptions)
 		_, err = images.Search(bt.conn, imageRef, searchOptions.WithSkipTLSVerify(true).WithAuthfile(authFilePath))
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 	})
 
 })

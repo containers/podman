@@ -22,7 +22,7 @@ var _ = Describe("Podman containers exec", func() {
 		s = bt.startAPIService()
 		time.Sleep(1 * time.Second)
 		err := bt.NewConnection()
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 	})
 
 	AfterEach(func() {
@@ -33,32 +33,32 @@ var _ = Describe("Podman containers exec", func() {
 	It("Podman exec create makes an exec session", func() {
 		name := "testCtr"
 		cid, err := bt.RunTopContainer(&name, nil)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		execConfig := new(handlers.ExecCreateConfig)
 		execConfig.Cmd = []string{"echo", "hello world"}
 
 		sessionID, err := containers.ExecCreate(bt.conn, name, execConfig)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		Expect(sessionID).To(Not(Equal("")))
 
 		inspectOut, err := containers.ExecInspect(bt.conn, sessionID, nil)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		Expect(inspectOut.ContainerID).To(Equal(cid))
 		Expect(inspectOut.ProcessConfig.Entrypoint).To(Equal("echo"))
-		Expect(len(inspectOut.ProcessConfig.Arguments)).To(Equal(1))
+		Expect(inspectOut.ProcessConfig.Arguments).To(HaveLen(1))
 		Expect(inspectOut.ProcessConfig.Arguments[0]).To(Equal("hello world"))
 	})
 
 	It("Podman exec create with bad command fails", func() {
 		name := "testCtr"
 		_, err := bt.RunTopContainer(&name, nil)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		execConfig := new(handlers.ExecCreateConfig)
 
 		_, err = containers.ExecCreate(bt.conn, name, execConfig)
-		Expect(err).To(Not(BeNil()))
+		Expect(err).To(HaveOccurred())
 	})
 
 	It("Podman exec create with invalid container fails", func() {
@@ -66,11 +66,11 @@ var _ = Describe("Podman containers exec", func() {
 		execConfig.Cmd = []string{"echo", "hello world"}
 
 		_, err := containers.ExecCreate(bt.conn, "doesnotexist", execConfig)
-		Expect(err).To(Not(BeNil()))
+		Expect(err).To(HaveOccurred())
 	})
 
 	It("Podman exec inspect on invalid session fails", func() {
 		_, err := containers.ExecInspect(bt.conn, "0000000000000000000000000000000000000000000000000000000000000000", nil)
-		Expect(err).To(Not(BeNil()))
+		Expect(err).To(HaveOccurred())
 	})
 })

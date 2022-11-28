@@ -25,27 +25,27 @@ var _ = Describe("run basic podman commands", func() {
 		name := randomString()
 		i := new(initMachine)
 		session, err := mb.setName(name).setCmd(i.withImagePath(mb.imagePath).withNow()).run()
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		Expect(session).To(Exit(0))
 
 		bm := basicMachine{}
 		imgs, err := mb.setCmd(bm.withPodmanCommand([]string{"images", "-q"})).run()
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		Expect(imgs).To(Exit(0))
-		Expect(len(imgs.outputToStringSlice())).To(Equal(0))
+		Expect(imgs.outputToStringSlice()).To(BeEmpty())
 
 		newImgs, err := mb.setCmd(bm.withPodmanCommand([]string{"pull", "quay.io/libpod/alpine_nginx"})).run()
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		Expect(newImgs).To(Exit(0))
-		Expect(len(newImgs.outputToStringSlice())).To(Equal(1))
+		Expect(newImgs.outputToStringSlice()).To(HaveLen(1))
 
 		runAlp, err := mb.setCmd(bm.withPodmanCommand([]string{"run", "quay.io/libpod/alpine_nginx", "cat", "/etc/os-release"})).run()
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		Expect(runAlp).To(Exit(0))
 		Expect(runAlp.outputToString()).To(ContainSubstring("Alpine Linux"))
 
 		rmCon, err := mb.setCmd(bm.withPodmanCommand([]string{"rm", "-a"})).run()
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		Expect(rmCon).To(Exit(0))
 	})
 

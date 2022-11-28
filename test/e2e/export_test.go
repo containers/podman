@@ -42,10 +42,10 @@ var _ = Describe("Podman export", func() {
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
 		_, err := os.Stat(outfile)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		err = os.Remove(outfile)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 	})
 
 	It("podman container export output flag", func() {
@@ -57,10 +57,10 @@ var _ = Describe("Podman export", func() {
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
 		_, err := os.Stat(outfile)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		err = os.Remove(outfile)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 	})
 
 	It("podman export bad filename", func() {

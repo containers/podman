@@ -39,7 +39,7 @@ var _ = Describe("Podman diff", func() {
 		session := podmanTest.Podman([]string{"diff", ALPINE})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(len(session.OutputToStringArray())).To(BeNumerically(">", 0))
+		Expect(session.OutputToStringArray()).ToNot(BeEmpty())
 	})
 
 	It("podman diff bogus image", func() {
@@ -135,7 +135,7 @@ RUN echo test
 		session := podmanTest.Podman([]string{"image", "diff", BB})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(len(session.OutputToStringArray())).To(BeNumerically(">", 0))
+		Expect(session.OutputToStringArray()).ToNot(BeEmpty())
 	})
 
 	It("podman image diff bogus image", func() {

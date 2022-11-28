@@ -30,9 +30,9 @@ var _ = Describe("Podman networks", func() {
 		s = bt.startAPIService()
 		time.Sleep(1 * time.Second)
 		connText, err = bindings.NewConnection(context.Background(), bt.sock)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		_, err = network.Prune(connText, &network.PruneOptions{})
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 	})
 
 	AfterEach(func() {
@@ -46,51 +46,51 @@ var _ = Describe("Podman networks", func() {
 			Name: name,
 		}
 		_, err = network.Create(connText, &net)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		// Invalid filters should return error
 		filtersIncorrect := map[string][]string{
 			"status": {"dummy"},
 		}
 		_, err = network.Prune(connText, new(network.PruneOptions).WithFilters(filtersIncorrect))
-		Expect(err).ToNot(BeNil())
+		Expect(err).To(HaveOccurred())
 
 		// List filter params should not work with prune.
 		filtersIncorrect = map[string][]string{
 			"name": {name},
 		}
 		_, err = network.Prune(connText, new(network.PruneOptions).WithFilters(filtersIncorrect))
-		Expect(err).ToNot(BeNil())
+		Expect(err).To(HaveOccurred())
 
 		// Mismatched label, correct filter params => no network should be pruned.
 		filtersIncorrect = map[string][]string{
 			"label": {"xyz"},
 		}
 		pruneResponse, err := network.Prune(connText, new(network.PruneOptions).WithFilters(filtersIncorrect))
-		Expect(err).To(BeNil())
-		Expect(len(pruneResponse)).To(Equal(0))
+		Expect(err).ToNot(HaveOccurred())
+		Expect(pruneResponse).To(BeEmpty())
 
 		// Mismatched until, correct filter params => no network should be pruned.
 		filters := map[string][]string{
 			"until": {"50"}, // January 1, 1970
 		}
 		pruneResponse, err = network.Prune(connText, new(network.PruneOptions).WithFilters(filters))
-		Expect(err).To(BeNil())
-		Expect(len(pruneResponse)).To(Equal(0))
+		Expect(err).ToNot(HaveOccurred())
+		Expect(pruneResponse).To(BeEmpty())
 
 		// Valid filter params => network should be pruned now.
 		filters = map[string][]string{
 			"until": {"5000000000"}, // June 11, 2128
 		}
 		pruneResponse, err = network.Prune(connText, new(network.PruneOptions).WithFilters(filters))
-		Expect(err).To(BeNil())
-		Expect(len(pruneResponse)).To(Equal(1))
+		Expect(err).ToNot(HaveOccurred())
+		Expect(pruneResponse).To(HaveLen(1))
 	})
 
 	It("create network", func() {
 		// create a network with blank config should work
 		_, err = network.Create(connText, nil)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		name := "foobar"
 		net := types.Network{
@@ -98,12 +98,12 @@ var _ = Describe("Podman networks", func() {
 		}
 
 		report, err := network.Create(connText, &net)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		Expect(report.Name).To(Equal(name))
 
 		// create network with same name should 500
 		_, err = network.Create(connText, &net)
-		Expect(err).ToNot(BeNil())
+		Expect(err).To(HaveOccurred())
 		code, _ := bindings.CheckResponseCode(err)
 		Expect(code).To(BeNumerically("==", http.StatusConflict))
 	})
@@ -114,9 +114,9 @@ var _ = Describe("Podman networks", func() {
 			Name: name,
 		}
 		_, err = network.Create(connText, &net)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		data, err := network.Inspect(connText, name, nil)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		Expect(data.Name).To(Equal(name))
 	})
 
@@ -128,10 +128,10 @@ var _ = Describe("Podman networks", func() {
 				Name: netNames[i],
 			}
 			_, err = network.Create(connText, &net)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 		}
 		list, err := network.List(connText, nil)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		Expect(len(list)).To(BeNumerically(">=", 5))
 		for _, n := range list {
 			if n.Name != "podman" {
@@ -144,7 +144,7 @@ var _ = Describe("Podman networks", func() {
 		filters["foobar"] = []string{"1234"}
 		options := new(network.ListOptions).WithFilters(filters)
 		_, err = network.List(connText, options)
-		Expect(err).ToNot(BeNil())
+		Expect(err).To(HaveOccurred())
 		code, _ := bindings.CheckResponseCode(err)
 		Expect(code).To(BeNumerically("==", http.StatusInternalServerError))
 
@@ -153,8 +153,8 @@ var _ = Describe("Podman networks", func() {
 		filters["name"] = []string{"homer"}
 		options = new(network.ListOptions).WithFilters(filters)
 		list, err = network.List(connText, options)
-		Expect(err).To(BeNil())
-		Expect(len(list)).To(BeNumerically("==", 1))
+		Expect(err).ToNot(HaveOccurred())
+		Expect(list).To(HaveLen(1))
 		Expect(list[0].Name).To(Equal("homer"))
 	})
 
@@ -162,7 +162,7 @@ var _ = Describe("Podman networks", func() {
 		// removing a noName network should result in 404
 		_, err := network.Remove(connText, "noName", nil)
 		code, err := bindings.CheckResponseCode(err)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		Expect(code).To(BeNumerically("==", http.StatusNotFound))
 
 		// Removing an unused network should work
@@ -171,9 +171,9 @@ var _ = Describe("Podman networks", func() {
 			Name: name,
 		}
 		_, err = network.Create(connText, &net)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		report, err := network.Remove(connText, name, nil)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		Expect(report[0].Name).To(Equal(name))
 
 		// Removing a network that is being used without force should be 500
@@ -182,7 +182,7 @@ var _ = Describe("Podman networks", func() {
 			Name: name,
 		}
 		_, err = network.Create(connText, &net)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		// Start container and wait
 		container := "ntest"
@@ -192,15 +192,15 @@ var _ = Describe("Podman networks", func() {
 
 		_, err = network.Remove(connText, name, nil)
 		code, err = bindings.CheckResponseCode(err)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		Expect(code).To(BeNumerically("==", http.StatusInternalServerError))
 
 		// Removing with a network in use with force should work with a stopped container
 		err = containers.Stop(connText, container, new(containers.StopOptions).WithTimeout(0))
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		options := new(network.RemoveOptions).WithForce(true)
 		report, err = network.Remove(connText, name, options)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		Expect(report[0].Name).To(Equal(name))
 	})
 })

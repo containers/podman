@@ -134,7 +134,7 @@ var _ = Describe("Podman privileged container tests", func() {
 	It("podman privileged should restart after host devices change", func() {
 		containerName := "privileged-restart-test"
 		SkipIfRootless("Cannot create devices in /dev in rootless mode")
-		Expect(os.MkdirAll("/dev/foodevdir", os.ModePerm)).To(BeNil())
+		Expect(os.MkdirAll("/dev/foodevdir", os.ModePerm)).To(Succeed())
 
 		mknod := SystemExec("mknod", []string{"/dev/foodevdir/null", "c", "1", "3"})
 		mknod.WaitWithDefaultTimeout()
@@ -158,7 +158,7 @@ var _ = Describe("Podman privileged container tests", func() {
 	It("run no-new-privileges test", func() {
 		// Check if our kernel is new enough
 		k, err := IsKernelNewerThan("4.14")
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		if !k {
 			Skip("Kernel is not new enough to test this feature")
 		}

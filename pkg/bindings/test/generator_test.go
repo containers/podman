@@ -26,8 +26,8 @@ var _ = Describe("Podman API Bindings", func() {
 		}))
 
 		Expect(actual.GetDetachKeys()).To(Equal("Test"))
-		Expect(actual.GetLogs()).To(Equal(true))
-		Expect(actual.GetStream()).To(Equal(false))
+		Expect(actual.GetLogs()).To(BeTrue())
+		Expect(actual.GetStream()).To(BeFalse())
 	})
 
 	It("verify composite setters", func() {

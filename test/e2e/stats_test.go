@@ -231,9 +231,9 @@ var _ = Describe("Podman stats", func() {
 		Expect(limits[0]).ToNot(Equal(limits[2]))
 
 		defaultLimit, err := strconv.Atoi(limits[0])
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		customLimit, err := strconv.Atoi(limits[2])
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		Expect(customLimit).To(BeNumerically("<", defaultLimit))
 	})

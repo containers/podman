@@ -550,7 +550,7 @@ var _ = Describe("Podman generate systemd", func() {
 
 	It("podman generate systemd pod with containers --new", func() {
 		tmpDir, err := os.MkdirTemp("", "")
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		tmpFile := tmpDir + "podID"
 		defer os.RemoveAll(tmpDir)
 
