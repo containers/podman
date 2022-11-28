@@ -1489,10 +1489,6 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//    type: boolean
 	//    description: keep all temporary checkpoint files
 	//  - in: query
-	//    name: leaveRunning
-	//    type: boolean
-	//    description: leave the container running after writing checkpoint to disk
-	//  - in: query
 	//    name: tcpEstablished
 	//    type: boolean
 	//    description: checkpoint a container with established TCP connections
