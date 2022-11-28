@@ -158,6 +158,7 @@ const (
 	// DefaultShmSize is the default upper limit on the size of tmpfs mounts.
 	DefaultShmSize = "65536k"
 	// DefaultUserNSSize indicates the default number of UIDs allocated for user namespace within a container.
+	// Deprecated: no user of this field is known.
 	DefaultUserNSSize = 65536
 	// OCIBufSize limits maximum LogSizeMax.
 	OCIBufSize = 8192
@@ -232,7 +233,7 @@ func DefaultConfig() (*Config, error) {
 			TZ:         "",
 			Umask:      "0022",
 			UTSNS:      "private",
-			UserNSSize: DefaultUserNSSize,
+			UserNSSize: DefaultUserNSSize, // Deprecated
 		},
 		Network: NetworkConfig{
 			DefaultNetwork:     "podman",

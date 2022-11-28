@@ -1,14 +1,29 @@
 package integration
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 
 	. "github.com/containers/podman/v4/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
 )
+
+func createContainersConfFileWithDevices(pTest *PodmanTestIntegration, devices string) {
+	configPath := filepath.Join(pTest.TempDir, "containers.conf")
+	containersConf := []byte(fmt.Sprintf("[containers]\ndevices = [%s]\n", devices))
+	err := os.WriteFile(configPath, containersConf, os.ModePerm)
+	Expect(err).To(BeNil())
+
+	// Set custom containers.conf file
+	os.Setenv("CONTAINERS_CONF", configPath)
+	if IsRemote() {
+		pTest.RestartRemoteService()
+	}
+}
 
 var _ = Describe("Podman run device", func() {
 	var (
@@ -30,7 +45,7 @@ var _ = Describe("Podman run device", func() {
 		podmanTest.Cleanup()
 		f := CurrentGinkgoTestDescription()
 		processTestResult(f)
-
+		os.Unsetenv("CONTAINERS_CONF")
 	})
 
 	It("podman run bad device test", func() {
@@ -114,6 +129,11 @@ var _ = Describe("Podman run device", func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		session := podmanTest.Podman([]string{"run", "-q", "--security-opt", "label=disable", "--device", "vendor.com/device=myKmsg", ALPINE, "test", "-c", "/dev/kmsg1"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		createContainersConfFileWithDevices(podmanTest, "\"vendor.com/device=myKmsg\"")
+		session = podmanTest.Podman([]string{"run", "-q", "--security-opt", "label=disable", ALPINE, "test", "-c", "/dev/kmsg1"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 	})

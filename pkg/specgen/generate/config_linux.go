@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/container-orchestrated-devices/container-device-interface/pkg/cdi"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/containers/podman/v4/pkg/util"
@@ -19,6 +20,19 @@ import (
 
 // DevicesFromPath computes a list of devices
 func DevicesFromPath(g *generate.Generator, devicePath string) error {
+	if isCDIDevice(devicePath) {
+		registry := cdi.GetRegistry(
+			cdi.WithAutoRefresh(false),
+		)
+		if err := registry.Refresh(); err != nil {
+			logrus.Debugf("The following error was triggered when refreshing the CDI registry: %v", err)
+		}
+		_, err := registry.InjectDevices(g.Config, devicePath)
+		if err != nil {
+			return fmt.Errorf("setting up CDI devices: %w", err)
+		}
+		return nil
+	}
 	devs := strings.Split(devicePath, ":")
 	resolvedDevicePath := devs[0]
 	// check if it is a symbolic link
