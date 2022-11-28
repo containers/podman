@@ -72,8 +72,8 @@ func (c *Container) getPlatformContainerStats(stats *define.ContainerStats, prev
 	stats.PerCPU = cgroupStats.CpuStats.CpuUsage.PercpuUsage
 	// Handle case where the container is not in a network namespace
 	if netStats != nil {
-		stats.NetInput = netStats.TxBytes
-		stats.NetOutput = netStats.RxBytes
+		stats.NetInput = netStats.RxBytes
+		stats.NetOutput = netStats.TxBytes
 	} else {
 		stats.NetInput = 0
 		stats.NetOutput = 0
