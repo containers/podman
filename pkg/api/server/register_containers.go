@@ -1453,7 +1453,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//  - in: query
 	//    name: ignoreRootFS
 	//    type: boolean
-	//    description: do not include root file-system changes when exporting
+	//    description: do not include root file-system changes when exporting. can only be used with export
 	//  - in: query
 	//    name: ignoreVolumes
 	//    type: boolean
@@ -1503,7 +1503,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//  - in: query
 	//    name: ignoreRootFS
 	//    type: boolean
-	//    description: do not include root file-system changes when exporting
+	//    description: do not include root file-system changes when exporting. can only be used with import
 	//  - in: query
 	//    name: ignoreVolumes
 	//    type: boolean
