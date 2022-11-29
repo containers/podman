@@ -25,40 +25,51 @@ const (
 	XVolumeGroup    = "X-Volume"
 	KubeGroup       = "Kube"
 	XKubeGroup      = "X-Kube"
+	NetworkGroup    = "Network"
+	XNetworkGroup   = "X-Network"
 )
 
 var validPortRange = regexp.MustCompile(`\d+(-\d+)?(/udp|/tcp)?$`)
 
 // All the supported quadlet keys
 const (
-	KeyContainerName   = "ContainerName"
-	KeyImage           = "Image"
-	KeyEnvironment     = "Environment"
-	KeyExec            = "Exec"
-	KeyNoNewPrivileges = "NoNewPrivileges"
-	KeyDropCapability  = "DropCapability"
-	KeyAddCapability   = "AddCapability"
-	KeyReadOnly        = "ReadOnly"
-	KeyRemapUsers      = "RemapUsers"
-	KeyRemapUID        = "RemapUid"
-	KeyRemapGID        = "RemapGid"
-	KeyRemapUIDSize    = "RemapUidSize"
-	KeyNotify          = "Notify"
-	KeyExposeHostPort  = "ExposeHostPort"
-	KeyPublishPort     = "PublishPort"
-	KeyUser            = "User"
-	KeyGroup           = "Group"
-	KeyVolume          = "Volume"
-	KeyPodmanArgs      = "PodmanArgs"
-	KeyLabel           = "Label"
-	KeyAnnotation      = "Annotation"
-	KeyRunInit         = "RunInit"
-	KeyVolatileTmp     = "VolatileTmp"
-	KeyTimezone        = "Timezone"
-	KeySeccompProfile  = "SeccompProfile"
-	KeyAddDevice       = "AddDevice"
-	KeyNetwork         = "Network"
-	KeyYaml            = "Yaml"
+	KeyContainerName     = "ContainerName"
+	KeyImage             = "Image"
+	KeyEnvironment       = "Environment"
+	KeyExec              = "Exec"
+	KeyNoNewPrivileges   = "NoNewPrivileges"
+	KeyDropCapability    = "DropCapability"
+	KeyAddCapability     = "AddCapability"
+	KeyReadOnly          = "ReadOnly"
+	KeyRemapUsers        = "RemapUsers"
+	KeyRemapUID          = "RemapUid"
+	KeyRemapGID          = "RemapGid"
+	KeyRemapUIDSize      = "RemapUidSize"
+	KeyNotify            = "Notify"
+	KeyExposeHostPort    = "ExposeHostPort"
+	KeyPublishPort       = "PublishPort"
+	KeyUser              = "User"
+	KeyGroup             = "Group"
+	KeyVolume            = "Volume"
+	KeyPodmanArgs        = "PodmanArgs"
+	KeyLabel             = "Label"
+	KeyAnnotation        = "Annotation"
+	KeyRunInit           = "RunInit"
+	KeyVolatileTmp       = "VolatileTmp"
+	KeyTimezone          = "Timezone"
+	KeySeccompProfile    = "SeccompProfile"
+	KeyAddDevice         = "AddDevice"
+	KeyNetwork           = "Network"
+	KeyYaml              = "Yaml"
+	KeyNetworkDisableDNS = "DisableDNS"
+	KeyNetworkDriver     = "Driver"
+	KeyNetworkGateway    = "Gateway"
+	KeyNetworkInternal   = "Internal"
+	KeyNetworkIPRange    = "IPRange"
+	KeyNetworkIPAMDriver = "IPAMDriver"
+	KeyNetworkIPv6       = "IPv6"
+	KeyNetworkOptions    = "Options"
+	KeyNetworkSubnet     = "Subnet"
 )
 
 // Supported keys in "Container" group
@@ -99,6 +110,20 @@ var supportedVolumeKeys = map[string]bool{
 	KeyLabel: true,
 }
 
+// Supported keys in "Volume" group
+var supportedNetworkKeys = map[string]bool{
+	KeyNetworkDisableDNS: true,
+	KeyNetworkDriver:     true,
+	KeyNetworkGateway:    true,
+	KeyNetworkInternal:   true,
+	KeyNetworkIPRange:    true,
+	KeyNetworkIPAMDriver: true,
+	KeyNetworkIPv6:       true,
+	KeyNetworkOptions:    true,
+	KeyNetworkSubnet:     true,
+	KeyLabel:             true,
+}
+
 // Supported keys in "Kube" group
 var supportedKubeKeys = map[string]bool{
 	KeyYaml:         true,
@@ -106,6 +131,7 @@ var supportedKubeKeys = map[string]bool{
 	KeyRemapGID:     true,
 	KeyRemapUsers:   true,
 	KeyRemapUIDSize: true,
+	KeyNetwork:      true,
 }
 
 func replaceExtension(name string, extension string, extraPrefix string, extraSuffix string) string {
@@ -266,12 +292,7 @@ func ConvertContainer(container *parser.UnitFile, isUser bool) (*parser.UnitFile
 		podman.addf("--tz=%s", timezone)
 	}
 
-	networks := container.LookupAll(ContainerGroup, KeyNetwork)
-	for _, network := range networks {
-		if len(network) > 0 {
-			podman.addf("--network=%s", network)
-		}
-	}
+	addNetworks(container, ContainerGroup, service, podman)
 
 	// Run with a pid1 init to reap zombies by default (as most apps don't do that)
 	runInit := container.LookupBoolean(ContainerGroup, KeyRunInit, false)
@@ -494,10 +515,99 @@ func ConvertContainer(container *parser.UnitFile, isUser bool) (*parser.UnitFile
 	return service, nil
 }
 
+// Convert a quadlet network file (unit file with a Network group) to a systemd
+// service file (unit file with Service group) based on the options in the
+// Network group.
+// The original Network group is kept around as X-Network.
+func ConvertNetwork(network *parser.UnitFile, name string) (*parser.UnitFile, error) {
+	service := network.Dup()
+	service.Filename = replaceExtension(network.Filename, ".service", "", "-network")
+
+	if err := checkForUnknownKeys(network, NetworkGroup, supportedNetworkKeys); err != nil {
+		return nil, err
+	}
+
+	/* Rename old Network group to x-Network so that systemd ignores it */
+	service.RenameGroup(NetworkGroup, XNetworkGroup)
+
+	networkName := replaceExtension(name, "", "systemd-", "")
+
+	// Need the containers filesystem mounted to start podman
+	service.Add(UnitGroup, "RequiresMountsFor", "%t/containers")
+
+	podman := NewPodmanCmdline("network", "create", "--ignore")
+
+	if disableDNS := network.LookupBoolean(NetworkGroup, KeyNetworkDisableDNS, false); disableDNS {
+		podman.add("--disable-dns")
+	}
+
+	driver, ok := network.Lookup(NetworkGroup, KeyNetworkDriver)
+	if ok && len(driver) > 0 {
+		podman.addf("--driver=%s", driver)
+	}
+
+	subnets := network.LookupAll(NetworkGroup, KeyNetworkSubnet)
+	gateways := network.LookupAll(NetworkGroup, KeyNetworkGateway)
+	ipRanges := network.LookupAll(NetworkGroup, KeyNetworkIPRange)
+	if len(subnets) > 0 {
+		if len(gateways) > len(subnets) {
+			return nil, fmt.Errorf("cannot set more gateways than subnets")
+		}
+		if len(ipRanges) > len(subnets) {
+			return nil, fmt.Errorf("cannot set more ranges than subnets")
+		}
+		for i := range subnets {
+			podman.addf("--subnet=%s", subnets[i])
+			if len(gateways) > i {
+				podman.addf("--gateway=%s", gateways[i])
+			}
+			if len(ipRanges) > i {
+				podman.addf("--ip-range=%s", ipRanges[i])
+			}
+		}
+	} else if len(ipRanges) > 0 || len(gateways) > 0 {
+		return nil, fmt.Errorf("cannot set gateway or range without subnet")
+	}
+
+	if internal := network.LookupBoolean(NetworkGroup, KeyNetworkInternal, false); internal {
+		podman.add("--internal")
+	}
+
+	if ipamDriver, ok := network.Lookup(NetworkGroup, KeyNetworkIPAMDriver); ok && len(ipamDriver) > 0 {
+		podman.addf("--ipam-driver=%s", ipamDriver)
+	}
+
+	if ipv6 := network.LookupBoolean(NetworkGroup, KeyNetworkIPv6, false); ipv6 {
+		podman.add("--ipv6")
+	}
+
+	networkOptions := network.LookupAllKeyVal(NetworkGroup, KeyNetworkOptions)
+	if len(networkOptions) > 0 {
+		podman.addKeys("--opt", networkOptions)
+	}
+
+	if labels := network.LookupAllKeyVal(NetworkGroup, KeyLabel); len(labels) > 0 {
+		podman.addLabels(labels)
+	}
+
+	podman.add(networkName)
+
+	service.AddCmdline(ServiceGroup, "ExecStart", podman.Args)
+
+	service.Setv(ServiceGroup,
+		"Type", "oneshot",
+		"RemainAfterExit", "yes",
+
+		// The default syslog identifier is the exec basename (podman) which isn't very useful here
+		"SyslogIdentifier", "%N")
+
+	return service, nil
+}
+
 // Convert a quadlet volume file (unit file with a Volume group) to a systemd
 // service file (unit file with Service group) based on the options in the
 // Volume group.
-// The original Container group is kept around as X-Container.
+// The original Volume group is kept around as X-Volume.
 func ConvertVolume(volume *parser.UnitFile, name string) (*parser.UnitFile, error) {
 	service := volume.Dup()
 	service.Filename = replaceExtension(volume.Filename, ".service", "", "-volume")
@@ -627,6 +737,8 @@ func ConvertKube(kube *parser.UnitFile, isUser bool) (*parser.UnitFile, error) {
 		return nil, err
 	}
 
+	addNetworks(kube, KubeGroup, service, execStart)
+
 	execStart.add(yamlPath)
 
 	service.AddCmdline(ServiceGroup, "ExecStart", execStart.Args)
@@ -685,4 +797,31 @@ func handleUserRemap(unitFile *parser.UnitFile, groupName string, podman *Podman
 	}
 
 	return nil
+}
+
+func addNetworks(quadletUnitFile *parser.UnitFile, groupName string, serviceUnitFile *parser.UnitFile, podman *PodmanCmdline) {
+	networks := quadletUnitFile.LookupAll(groupName, KeyNetwork)
+	for _, network := range networks {
+		if len(network) > 0 {
+			networkName, options, found := strings.Cut(network, ":")
+			if strings.HasSuffix(networkName, ".network") {
+				// the podman network name is systemd-$name
+				networkName = replaceExtension(networkName, "", "systemd-", "")
+
+				// the systemd unit name is $name-network.service
+				networkServiceName := replaceExtension(networkName, ".service", "", "-network")
+
+				serviceUnitFile.Add(UnitGroup, "Requires", networkServiceName)
+				serviceUnitFile.Add(UnitGroup, "After", networkServiceName)
+
+				if found {
+					network = fmt.Sprintf("%s:%s", networkName, options)
+				} else {
+					network = networkName
+				}
+			}
+
+			podman.addf("--network=%s", network)
+		}
+	}
 }
