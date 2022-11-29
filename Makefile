@@ -335,10 +335,10 @@ $(SRCBINDIR)/podman$(BINSFX): $(SOURCES) go.mod go.sum | $(SRCBINDIR)
 		-tags "${REMOTETAGS}" \
 		-o $@ ./cmd/podman
 
-$(SRCBINDIR)/podman-remote-static: $(SRCBINDIR) $(SOURCES) go.mod go.sum
+$(SRCBINDIR)/podman-remote-static_amd64 $(SRCBINDIR)/podman-remote-static_arm64: $(SRCBINDIR)/podman-remote-static_%: $(SRCBINDIR) $(SOURCES) go.mod go.sum
 	CGO_ENABLED=0 \
 	GOOS=linux \
-	GOARCH=$(GOARCH) \
+	GOARCH=$* \
 	$(GO) build \
 		$(BUILDFLAGS) \
 		$(GO_LDFLAGS) '$(LDFLAGS_PODMAN_STATIC)' \
@@ -362,8 +362,9 @@ $(SRCBINDIR)/quadlet: $(SOURCES) go.mod go.sum
 .PHONY: quadlet
 quadlet: bin/quadlet
 
-PHONY: podman-remote-static
-podman-remote-static: $(SRCBINDIR)/podman-remote-static
+PHONY: podman-remote-static_amd64 podman-remote-static_arm64
+podman-remote-static_amd64: $(SRCBINDIR)/podman-remote-static_amd64
+podman-remote-static_arm64: $(SRCBINDIR)/podman-remote-static_arm64
 
 .PHONY: podman-winpath
 podman-winpath: $(SOURCES) go.mod go.sum
