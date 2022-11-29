@@ -273,6 +273,11 @@ type EngineConfig struct {
 	// EventsLogger determines where events should be logged.
 	EventsLogger string `toml:"events_logger,omitempty"`
 
+	// EventsContainerCreateInspectData creates a more verbose
+	// container-create event which includes a JSON payload with detailed
+	// information about the container.
+	EventsContainerCreateInspectData bool `toml:"events_container_create_inspect_data,omitempty"`
+
 	// graphRoot internal stores the location of the graphroot
 	graphRoot string
 

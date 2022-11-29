@@ -578,7 +578,14 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 	} else if err := r.state.AddContainer(ctr); err != nil {
 		return nil, err
 	}
-	ctr.newContainerEvent(events.Create)
+
+	if ctr.runtime.config.Engine.EventsContainerCreateInspectData {
+		if err := ctr.newContainerEventWithInspectData(events.Create, true); err != nil {
+			return nil, err
+		}
+	} else {
+		ctr.newContainerEvent(events.Create)
+	}
 	return ctr, nil
 }
 

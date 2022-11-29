@@ -50,6 +50,10 @@ type Event struct {
 type Details struct {
 	// ID is the event ID
 	ID string
+	// ContainerInspectData includes the payload of the container's inspect
+	// data. Only set when events_container_create_inspect_data is set true
+	// in containers.conf.
+	ContainerInspectData string `json:",omitempty"`
 	// PodID is the ID of the pod associated with the container.
 	PodID string `json:",omitempty"`
 	// Attributes can be used to describe specifics about the event
