@@ -244,12 +244,12 @@ spelled with complete minutiae.
       $ make podman-remote-release-darwin_amd64.zip \
           podman-remote-release-darwin_arm64.zip \
           podman-remote-release-windows_amd64.zip \
-          podman-remote-static_amd64 \
-          podman-remote-static_arm64
+          podman-remote-static-linux_amd64 \
+          podman-remote-static-linux_arm64
       $ mv podman-* bin/
       $ cd bin/
-      $ tar -cvzf podman-remote-static_amd64.tar.gz podman-remote-static_amd64
-      $ tar -cvzf podman-remote-static_arm64.tar.gz podman-remote-static_arm64
+      $ tar -cvzf podman-remote-static-linux_amd64.tar.gz podman-remote-static-linux_amd64
+      $ tar -cvzf podman-remote-static-linux_arm64.tar.gz podman-remote-static-linux_arm64
       $ sha256sum *.zip *.tar.gz > shasums
       ```
 
@@ -272,8 +272,8 @@ spelled with complete minutiae.
       * podman-remote-release-darwin_arm64.zip
       * podman-remote-release-windows_amd64.zip
       * podman-vX.Y.Z.msi
-      * podman-remote-static_amd64.tar.gz
-      * podman-remote-static_arm64.tar.gz
+      * podman-remote-static-linux_amd64.tar.gz
+      * podman-remote-static-linux_arm64.tar.gz
       * shasums
    1. Click the Publish button to make the release (or pre-release)
       available.
