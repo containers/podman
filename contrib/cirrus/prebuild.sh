@@ -42,6 +42,9 @@ if [[ "${DISTRO_NV}" =~ fedora ]]; then
         ./.github/actions/check_cirrus_cron/* \
         hack/get_ci_vm.sh
 
+    # Tests for lib.sh
+    showrun ${SCRIPT_BASE}/lib.sh.t
+
     export PREBUILD=1
     showrun bash ${CIRRUS_WORKING_DIR}/.github/actions/check_cirrus_cron/test.sh
 fi

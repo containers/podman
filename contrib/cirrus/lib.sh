@@ -91,9 +91,21 @@ EPOCH_TEST_COMMIT="$CIRRUS_BASE_SHA"
 # testing operations on all platforms and versions.  This is necessary
 # to avoid needlessly passing through global/system values across
 # contexts, such as host->container or root->rootless user
-PASSTHROUGH_ENV_RE='(^CI.*)|(^CIRRUS)|(^DISTRO_NV)|(^GOPATH)|(^GOCACHE)|(^GOSRC)|(^SCRIPT_BASE)|(CGROUP_MANAGER)|(OCI_RUNTIME)|(^TEST.*)|(^PODBIN_NAME)|(^PRIV_NAME)|(^ALT_NAME)|(^ROOTLESS_USER)|(SKIP_USERNS)|(.*_NAME)|(.*_FQIN)|(NETWORK_BACKEND)|(DEST_BRANCH)'
+#
+# List of envariables which must be EXACT matches
+PASSTHROUGH_ENV_EXACT='CGROUP_MANAGER|DEST_BRANCH|DISTRO_NV|GOCACHE|GOPATH|GOSRC|NETWORK_BACKEND|OCI_RUNTIME|ROOTLESS_USER|SCRIPT_BASE|SKIP_USERNS'
+
+# List of envariable patterns which must match AT THE BEGINNING of the name.
+PASSTHROUGH_ENV_ATSTART='CI|TEST'
+
+# List of envariable patterns which can match ANYWHERE in the name
+PASSTHROUGH_ENV_ANYWHERE='_NAME|_FQIN'
+
+# Combine into one
+PASSTHROUGH_ENV_RE="(^($PASSTHROUGH_ENV_EXACT)\$)|(^($PASSTHROUGH_ENV_ATSTART))|($PASSTHROUGH_ENV_ANYWHERE)"
+
 # Unsafe env. vars for display
-SECRET_ENV_RE='(ACCOUNT)|(GC[EP]..+)|(SSH)|(PASSWORD)|(TOKEN)'
+SECRET_ENV_RE='ACCOUNT|GC[EP]..|SSH|PASSWORD|SECRET|TOKEN'
 
 # Type of filesystem used for cgroups
 CG_FS_TYPE="$(stat -f -c %T /sys/fs/cgroup)"
@@ -107,28 +119,18 @@ set +a
 lilto() { err_retry 8 1000 "" "$@"; }  # just over 4 minutes max
 bigto() { err_retry 7 5670 "" "$@"; }  # 12 minutes max
 
-# Print shell-escaped variable=value pairs, one per line, based on
-# variable name matching a regex.  This is intended to catch
-# variables being passed down from higher layers, like Cirrus-CI.
+# Return a list of environment variables that should be passed through
+# to lower levels (tests in containers, or via ssh to rootless).
+# We return the variable names only, not their values. It is up to our
+# caller to reference values.
 passthrough_envars(){
-    local xchars
     local envname
-    local envval
-    # Avoid values containing entirely punctuation|control|whitespace
-    xchars='[:punct:][:cntrl:][:space:]'
     warn "Will pass env. vars. matching the following regex:
     $PASSTHROUGH_ENV_RE"
-    for envname in $(awk 'BEGIN{for(v in ENVIRON) print v}' | \
-                         grep -Ev "SETUP_ENVIRONMENT" | \
-                         grep -Ev "$SECRET_ENV_RE" | \
-                         grep -E "$PASSTHROUGH_ENV_RE"); do
-
-            envval="${!envname}"
-            [[ -n $(tr -d "$xchars" <<<"$envval") ]] || continue
-
-            # Properly escape values to prevent injection
-            printf -- "$envname=%q\n" "$envval"
-    done
+    compgen -A variable | \
+        grep -Ev "SETUP_ENVIRONMENT" | \
+        grep -Ev "$SECRET_ENV_RE" | \
+        grep -E  "$PASSTHROUGH_ENV_RE"
 }
 
 setup_rootless() {

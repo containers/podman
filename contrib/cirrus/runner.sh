@@ -136,11 +136,11 @@ exec_container() {
 
     # Line-separated arguments which include shell-escaped special characters
     declare -a envargs
-    while read -r var_val; do
+    while read -r var; do
         # Pass "-e VAR" on the command line, not "-e VAR=value". Podman can
         # do a much better job of transmitting the value than we can,
         # especially when value includes spaces.
-        envargs+=("-e" "$(awk -F= '{print $1}' <<<$var_val)")
+        envargs+=("-e" "$var")
     done <<<"$(passthrough_envars)"
 
     # VM Images and Container images are built using (nearly) identical operations.

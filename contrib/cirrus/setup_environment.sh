@@ -51,8 +51,8 @@ git config --system --add safe.directory $GOSRC
 echo -e "\n# Begin single-use VM global variables (${BASH_SOURCE[0]})" \
     > "/etc/ci_environment"
 (
-    while read -r env_var_val; do
-        echo "$env_var_val"
+    while read -r env_var; do
+        printf -- "%s=%q\n" "${env_var}" "${!env_var}"
     done <<<"$(passthrough_envars)"
 ) >> "/etc/ci_environment"
 
