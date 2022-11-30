@@ -20,6 +20,9 @@
           <Directory Id="INSTALLDIR" Name="Podman">
             <Component Id="INSTALLDIR_Component" Guid="14B310C4-9B5D-4DA5-ADF9-B9D008E4CD82" Win64="yes">
               <CreateFolder/>
+              <RegistryKey Root="HKLM" Key="SOFTWARE\Red Hat\Podman">
+                <RegistryValue Name="InstallDir" Value="[INSTALLDIR]" Type="string" />
+              </RegistryKey>
             </Component>
             <Component Id="MainExecutable" Guid="73752F94-6589-4C7B-ABED-39D655A19714" Win64="yes">
               <File Id="MainExecutableFile" Name="podman.exe" Source="artifacts/podman.exe" KeyPath="yes"/>
