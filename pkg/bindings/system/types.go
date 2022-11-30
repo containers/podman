@@ -14,9 +14,10 @@ type EventsOptions struct {
 //
 //go:generate go run ../generator/generator.go PruneOptions
 type PruneOptions struct {
-	All     *bool
-	Filters map[string][]string
-	Volumes *bool
+	All      *bool
+	Filters  map[string][]string
+	Volumes  *bool
+	External *bool
 }
 
 // VersionOptions are optional options for getting version info

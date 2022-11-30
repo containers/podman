@@ -3,6 +3,7 @@ package integration
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
 	. "github.com/containers/podman/v4/test/utils"
 	. "github.com/onsi/ginkgo"
@@ -521,5 +522,88 @@ var _ = Describe("Podman prune", func() {
 		Expect(session.OutputToStringArray()).To(HaveLen(3))
 
 		podmanTest.Cleanup()
+	})
+
+	It("podman system prune --all --external fails", func() {
+		prune := podmanTest.Podman([]string{"system", "prune", "--all", "--enternal"})
+		prune.WaitWithDefaultTimeout()
+		Expect(prune).Should(Exit(125))
+	})
+
+	It("podman system prune --external leaves referenced containers", func() {
+		containerStorageDir := filepath.Join(podmanTest.Root, podmanTest.ImageCacheFS+"-containers")
+
+		create := podmanTest.Podman([]string{"create", "--name", "test", BB})
+		create.WaitWithDefaultTimeout()
+		Expect(create).Should(Exit(0))
+
+		// Container should exist
+		Expect(podmanTest.NumberOfContainers()).To(Equal(1))
+
+		// have: containers.json, containers.lock and container dir
+		dirents, err := os.ReadDir(containerStorageDir)
+		Expect(err).To(BeNil())
+		Expect(dirents).To(HaveLen(3))
+
+		prune := podmanTest.Podman([]string{"system", "prune", "--external", "-f"})
+		prune.WaitWithDefaultTimeout()
+		Expect(prune).Should(Exit(0))
+
+		// Container should still exist
+		Expect(podmanTest.NumberOfContainers()).To(Equal(1))
+
+		// still have: containers.json, containers.lock and container dir
+		dirents, err = os.ReadDir(containerStorageDir)
+		Expect(err).To(BeNil())
+		Expect(dirents).To(HaveLen(3))
+
+	})
+
+	It("podman system prune --external removes unreferenced containers", func() {
+		SkipIfRemote("Can't drop database while daemon running")
+
+		containerStorageDir := filepath.Join(podmanTest.Root, podmanTest.ImageCacheFS+"-containers")
+		dbDir := filepath.Join(podmanTest.Root, "libpod")
+
+		// Create container 1
+		create := podmanTest.Podman([]string{"create", "--name", "test", BB})
+		create.WaitWithDefaultTimeout()
+		Expect(create).Should(Exit(0))
+
+		Expect(podmanTest.NumberOfContainers()).To(Equal(1))
+
+		// containers.json, containers.lock and container 1 dir
+		dirents, err := os.ReadDir(containerStorageDir)
+		Expect(err).To(BeNil())
+		Expect(dirents).To(HaveLen(3))
+
+		// Drop podman database and storage, losing track of container 1 (but directory remains)
+		err = os.Remove(filepath.Join(containerStorageDir, "containers.json"))
+		Expect(err).To(BeNil())
+		err = os.RemoveAll(dbDir)
+		Expect(err).To(BeNil())
+
+		Expect(podmanTest.NumberOfContainers()).To(Equal(0))
+
+		// Create container 2
+		create = podmanTest.Podman([]string{"create", "--name", "test", BB})
+		create.WaitWithDefaultTimeout()
+		Expect(create).Should(Exit(0))
+
+		Expect(podmanTest.NumberOfContainers()).To(Equal(1))
+
+		// containers.json, containers.lock and container 1&2 dir
+		dirents, err = os.ReadDir(containerStorageDir)
+		Expect(err).To(BeNil())
+		Expect(dirents).To(HaveLen(4))
+
+		prune := podmanTest.Podman([]string{"system", "prune", "--external", "-f"})
+		prune.WaitWithDefaultTimeout()
+		Expect(prune).Should(Exit(0))
+
+		// container 1 dir should be gone now
+		dirents, err = os.ReadDir(containerStorageDir)
+		Expect(err).To(BeNil())
+		Expect(dirents).To(HaveLen(3))
 	})
 })

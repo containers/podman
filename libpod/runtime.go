@@ -959,6 +959,10 @@ func (r *Runtime) StorageConfig() storage.StoreOptions {
 	return r.storageConfig
 }
 
+func (r *Runtime) GarbageCollect() error {
+	return r.store.GarbageCollect()
+}
+
 // RunRoot retrieves the current c/storage temporary directory in use by Libpod.
 func (r *Runtime) RunRoot() string {
 	if r.store == nil {
