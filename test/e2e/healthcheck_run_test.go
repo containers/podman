@@ -334,4 +334,43 @@ HEALTHCHECK CMD ls -l / 2>&1`, ALPINE)
 		// Check to make sure characters were not coerced to utf8
 		Expect(inspect[0].Config.Healthcheck).To(HaveField("Test", []string{"CMD-SHELL", "ls -l / 2>&1"}))
 	})
+
+	It("Startup healthcheck success transitions to regular healthcheck", func() {
+		ctrName := "hcCtr"
+		ctrRun := podmanTest.Podman([]string{"run", "-dt", "--name", ctrName, "--health-cmd", "echo regular", "--health-startup-cmd", "cat /test", ALPINE, "top"})
+		ctrRun.WaitWithDefaultTimeout()
+		Expect(ctrRun).Should(Exit(0))
+
+		inspect := podmanTest.InspectContainer(ctrName)
+		Expect(inspect[0].State.Health).To(HaveField("Status", "starting"))
+
+		hc := podmanTest.Podman([]string{"healthcheck", "run", ctrName})
+		hc.WaitWithDefaultTimeout()
+		Expect(hc).Should(Exit(1))
+
+		exec := podmanTest.Podman([]string{"exec", ctrName, "sh", "-c", "touch /test && echo startup > /test"})
+		exec.WaitWithDefaultTimeout()
+		Expect(exec).Should(Exit(0))
+
+		hc = podmanTest.Podman([]string{"healthcheck", "run", ctrName})
+		hc.WaitWithDefaultTimeout()
+		Expect(hc).Should(Exit(0))
+
+		inspect = podmanTest.InspectContainer(ctrName)
+		Expect(inspect[0].State.Health).To(HaveField("Status", define.HealthCheckHealthy))
+
+		hc = podmanTest.Podman([]string{"healthcheck", "run", ctrName})
+		hc.WaitWithDefaultTimeout()
+		Expect(hc).Should(Exit(0))
+
+		inspect = podmanTest.InspectContainer(ctrName)
+		Expect(inspect[0].State.Health).To(HaveField("Status", define.HealthCheckHealthy))
+
+		// Test podman ps --filter heath is working (#11687)
+		ps := podmanTest.Podman([]string{"ps", "--filter", "health=healthy"})
+		ps.WaitWithDefaultTimeout()
+		Expect(ps).Should(Exit(0))
+		Expect(ps.OutputToStringArray()).To(HaveLen(2))
+		Expect(ps.OutputToString()).To(ContainSubstring("hc"))
+	})
 })

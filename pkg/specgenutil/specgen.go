@@ -256,7 +256,7 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 		if c.NoHealthCheck {
 			return errors.New("cannot specify both --no-healthcheck and --health-cmd")
 		}
-		s.HealthConfig, err = makeHealthCheckFromCli(c.HealthCmd, c.HealthInterval, c.HealthRetries, c.HealthTimeout, c.HealthStartPeriod)
+		s.HealthConfig, err = makeHealthCheckFromCli(c.HealthCmd, c.HealthInterval, c.HealthRetries, c.HealthTimeout, c.HealthStartPeriod, false)
 		if err != nil {
 			return err
 		}
@@ -271,6 +271,25 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 		return err
 	}
 	s.HealthCheckOnFailureAction = onFailureAction
+
+	if c.StartupHCCmd != "" {
+		if c.NoHealthCheck {
+			return errors.New("cannot specify both --no-healthcheck and --health-startup-cmd")
+		}
+		// The hardcoded "1s" will be discarded, as the startup
+		// healthcheck does not have a period. So just hardcode
+		// something that parses correctly.
+		tmpHcConfig, err := makeHealthCheckFromCli(c.StartupHCCmd, c.StartupHCInterval, c.StartupHCRetries, c.StartupHCTimeout, "1s", true)
+		if err != nil {
+			return err
+		}
+		s.StartupHealthConfig = new(define.StartupHealthCheck)
+		s.StartupHealthConfig.Test = tmpHcConfig.Test
+		s.StartupHealthConfig.Interval = tmpHcConfig.Interval
+		s.StartupHealthConfig.Timeout = tmpHcConfig.Timeout
+		s.StartupHealthConfig.Retries = tmpHcConfig.Retries
+		s.StartupHealthConfig.Successes = int(c.StartupHCSuccesses)
+	}
 
 	if err := setNamespaces(s, c); err != nil {
 		return err
@@ -838,7 +857,7 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 	return nil
 }
 
-func makeHealthCheckFromCli(inCmd, interval string, retries uint, timeout, startPeriod string) (*manifest.Schema2HealthConfig, error) {
+func makeHealthCheckFromCli(inCmd, interval string, retries uint, timeout, startPeriod string, isStartup bool) (*manifest.Schema2HealthConfig, error) {
 	cmdArr := []string{}
 	isArr := true
 	err := json.Unmarshal([]byte(inCmd), &cmdArr) // array unmarshalling
@@ -886,7 +905,7 @@ func makeHealthCheckFromCli(inCmd, interval string, retries uint, timeout, start
 
 	hc.Interval = intervalDuration
 
-	if retries < 1 {
+	if retries < 1 && !isStartup {
 		return nil, errors.New("healthcheck-retries must be greater than 0")
 	}
 	hc.Retries = int(retries)

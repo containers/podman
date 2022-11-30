@@ -622,6 +622,9 @@ func resetState(state *ContainerState) {
 	state.CheckpointPath = ""
 	state.CheckpointLog = ""
 	state.RestoreLog = ""
+	state.StartupHCPassed = false
+	state.StartupHCSuccessCount = 0
+	state.StartupHCFailureCount = 0
 }
 
 // Refresh refreshes the container's state after a restart.
@@ -1072,6 +1075,9 @@ func (c *Container) init(ctx context.Context, retainRetries bool) error {
 	c.state.State = define.ContainerStateCreated
 	c.state.StoppedByUser = false
 	c.state.RestartPolicyMatch = false
+	c.state.StartupHCFailureCount = 0
+	c.state.StartupHCSuccessCount = 0
+	c.state.StartupHCPassed = false
 
 	if !retainRetries {
 		c.state.RestartCount = 0
@@ -1091,7 +1097,11 @@ func (c *Container) init(ctx context.Context, retainRetries bool) error {
 	}
 
 	if c.config.HealthCheckConfig != nil {
-		if err := c.createTimer(); err != nil {
+		timer := c.config.HealthCheckConfig.Interval.String()
+		if c.config.StartupHealthCheckConfig != nil {
+			timer = c.config.StartupHealthCheckConfig.Interval.String()
+		}
+		if err := c.createTimer(timer, c.config.StartupHealthCheckConfig != nil); err != nil {
 			logrus.Error(err)
 		}
 	}
@@ -1244,7 +1254,7 @@ func (c *Container) start() error {
 		if err := c.updateHealthStatus(define.HealthCheckStarting); err != nil {
 			logrus.Error(err)
 		}
-		if err := c.startTimer(); err != nil {
+		if err := c.startTimer(c.config.StartupHealthCheckConfig != nil); err != nil {
 			logrus.Error(err)
 		}
 	}
@@ -1422,7 +1432,7 @@ func (c *Container) restartWithTimeout(ctx context.Context, timeout uint) (retEr
 			return err
 		}
 		if c.config.HealthCheckConfig != nil {
-			if err := c.removeTransientFiles(context.Background()); err != nil {
+			if err := c.removeTransientFiles(context.Background(), c.config.StartupHealthCheckConfig != nil && !c.state.StartupHCPassed); err != nil {
 				logrus.Error(err.Error())
 			}
 		}
@@ -1859,7 +1869,7 @@ func (c *Container) cleanup(ctx context.Context) error {
 
 	// Remove healthcheck unit/timer file if it execs
 	if c.config.HealthCheckConfig != nil {
-		if err := c.removeTransientFiles(ctx); err != nil {
+		if err := c.removeTransientFiles(ctx, c.config.StartupHealthCheckConfig != nil && !c.state.StartupHCPassed); err != nil {
 			logrus.Errorf("Removing timer for container %s healthcheck: %v", c.ID(), err)
 		}
 	}

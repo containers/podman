@@ -3,6 +3,8 @@ package define
 import (
 	"fmt"
 	"strings"
+
+	"github.com/containers/image/v5/manifest"
 )
 
 const (
@@ -38,6 +40,9 @@ const (
 	HealthCheckInternalError HealthCheckStatus = iota
 	// HealthCheckDefined means the healthcheck was found on the container
 	HealthCheckDefined HealthCheckStatus = iota
+	// HealthCheckStartup means the healthcheck was unhealthy, but is still
+	// either within the startup HC or the startup period of the healthcheck
+	HealthCheckStartup HealthCheckStatus = iota
 )
 
 // Healthcheck defaults.  These are used both in the cli as well in
@@ -130,4 +135,13 @@ func ParseHealthCheckOnFailureAction(s string) (HealthCheckOnFailureAction, erro
 		err := fmt.Errorf("invalid on-failure action %q for health check: supported actions are %s", s, strings.Join(SupportedHealthCheckOnFailureActions, ","))
 		return HealthCheckOnFailureActionInvalid, err
 	}
+}
+
+// StartupHealthCheck is the configuration of a startup healthcheck.
+type StartupHealthCheck struct {
+	manifest.Schema2HealthConfig
+	// Successes are the number of successes required to mark the startup HC
+	// as passed.
+	// If set to 0, a single success will mark the HC as passed.
+	Successes int `json:",omitempty"`
 }

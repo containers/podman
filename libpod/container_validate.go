@@ -156,6 +156,11 @@ func (c *Container) validate() error {
 		}
 	}
 
+	// Cannot set startup HC without a healthcheck
+	if c.config.HealthCheckConfig == nil && c.config.StartupHealthCheckConfig != nil {
+		return fmt.Errorf("cannot set a startup healthcheck when there is no regular healthcheck: %w", define.ErrInvalidArg)
+	}
+
 	return nil
 }
 

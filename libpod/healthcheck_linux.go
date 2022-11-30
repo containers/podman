@@ -14,8 +14,8 @@ import (
 )
 
 // createTimer systemd timers for healthchecks of a container
-func (c *Container) createTimer() error {
-	if c.disableHealthCheckSystemd() {
+func (c *Container) createTimer(interval string, isStartup bool) error {
+	if c.disableHealthCheckSystemd(isStartup) {
 		return nil
 	}
 	podman, err := os.Executable()
@@ -31,7 +31,14 @@ func (c *Container) createTimer() error {
 	if path != "" {
 		cmd = append(cmd, "--setenv=PATH="+path)
 	}
-	cmd = append(cmd, "--unit", c.ID(), fmt.Sprintf("--on-unit-inactive=%s", c.HealthCheckConfig().Interval.String()), "--timer-property=AccuracySec=1s", podman, "healthcheck", "run", c.ID())
+
+	cmd = append(cmd, "--unit", c.hcUnitName(isStartup), fmt.Sprintf("--on-unit-inactive=%s", interval), "--timer-property=AccuracySec=1s", podman)
+
+	if logrus.IsLevelEnabled(logrus.DebugLevel) {
+		cmd = append(cmd, "--log-level=debug", "--syslog")
+	}
+
+	cmd = append(cmd, "healthcheck", "run", c.ID())
 
 	conn, err := systemd.ConnectToDBUS()
 	if err != nil {
@@ -58,8 +65,8 @@ func systemdOpSuccessful(c chan string) error {
 }
 
 // startTimer starts a systemd timer for the healthchecks
-func (c *Container) startTimer() error {
-	if c.disableHealthCheckSystemd() {
+func (c *Container) startTimer(isStartup bool) error {
+	if c.disableHealthCheckSystemd(isStartup) {
 		return nil
 	}
 	conn, err := systemd.ConnectToDBUS()
@@ -68,7 +75,7 @@ func (c *Container) startTimer() error {
 	}
 	defer conn.Close()
 
-	startFile := fmt.Sprintf("%s.service", c.ID())
+	startFile := fmt.Sprintf("%s.service", c.hcUnitName(isStartup))
 	startChan := make(chan string)
 	if _, err := conn.RestartUnitContext(context.Background(), startFile, "fail", startChan); err != nil {
 		return err
@@ -82,8 +89,8 @@ func (c *Container) startTimer() error {
 
 // removeTransientFiles removes the systemd timer and unit files
 // for the container
-func (c *Container) removeTransientFiles(ctx context.Context) error {
-	if c.disableHealthCheckSystemd() {
+func (c *Container) removeTransientFiles(ctx context.Context, isStartup bool) error {
+	if c.disableHealthCheckSystemd(isStartup) {
 		return nil
 	}
 	conn, err := systemd.ConnectToDBUS()
@@ -99,7 +106,7 @@ func (c *Container) removeTransientFiles(ctx context.Context) error {
 	// Stop the timer before the service to make sure the timer does not
 	// fire after the service is stopped.
 	timerChan := make(chan string)
-	timerFile := fmt.Sprintf("%s.timer", c.ID())
+	timerFile := fmt.Sprintf("%s.timer", c.hcUnitName(isStartup))
 	if _, err := conn.StopUnitContext(ctx, timerFile, "fail", timerChan); err != nil {
 		if !strings.HasSuffix(err.Error(), ".timer not loaded.") {
 			stopErrors = append(stopErrors, fmt.Errorf("removing health-check timer %q: %w", timerFile, err))
@@ -111,7 +118,7 @@ func (c *Container) removeTransientFiles(ctx context.Context) error {
 	// Reset the service before stopping it to make sure it's being removed
 	// on stop.
 	serviceChan := make(chan string)
-	serviceFile := fmt.Sprintf("%s.service", c.ID())
+	serviceFile := fmt.Sprintf("%s.service", c.hcUnitName(isStartup))
 	if err := conn.ResetFailedUnitContext(ctx, serviceFile); err != nil {
 		logrus.Debugf("Failed to reset unit file: %q", err)
 	}
