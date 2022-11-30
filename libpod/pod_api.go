@@ -44,10 +44,6 @@ func (p *Pod) startInitContainers(ctx context.Context) error {
 				icLock.Unlock()
 				return fmt.Errorf("failed to remove once init container %s: %w", initCon.ID(), err)
 			}
-			// Removing a container this way requires an explicit call to clean up the db
-			if err := p.runtime.state.RemoveContainerFromPod(p, initCon); err != nil {
-				logrus.Errorf("Removing container %s from database: %v", initCon.ID(), err)
-			}
 			icLock.Unlock()
 		}
 	}
