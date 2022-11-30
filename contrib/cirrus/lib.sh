@@ -219,7 +219,9 @@ use_cni() {
     #
     # FIXME FIXME FIXME: if/when we bring back Ubuntu (or use Debian),
     #       someone will have to conditionalize these rpm/dnf commands
-    rpm -e --nodeps netavark aardvark-dns
+    if rpm -q netavark aardvark-dns; then
+      rpm -e --nodeps netavark aardvark-dns
+    fi
     msg "Installing default CNI configuration"
     dnf install -y $PACKAGE_DOWNLOAD_DIR/podman-plugins*
     cd $GOSRC || exit 1
