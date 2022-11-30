@@ -179,17 +179,15 @@ else
 BINSFX := -remote
 SRCBINDIR := bin
 endif
-# Necessary for nested-$(MAKE) calls and docs/remote-docs.sh
-export GOOS GOARCH CGO_ENABLED BINSFX SRCBINDIR
-
 # Need to use CGO for mDNS resolution, but cross builds need CGO disabled
 # See https://github.com/golang/go/issues/12524 for details
-DARWIN_GCO := 0
 ifeq ($(call err_if_empty,NATIVE_GOOS),darwin)
 ifdef HOMEBREW_PREFIX
-	DARWIN_GCO := 1
+	CGO_ENABLED := 1
 endif
 endif
+# Necessary for nested-$(MAKE) calls and docs/remote-docs.sh
+export GOOS GOARCH CGO_ENABLED BINSFX SRCBINDIR
 
 # win-sshproxy is checked out manually to keep from pulling in gvisor and it's transitive
 # dependencies. This is only used for the Windows installer task (podman.msi), which must
@@ -718,7 +716,7 @@ podman-remote-release-%.zip: test/version/version ## Build podman-remote for %=$
 	$(eval GOARCH := $(lastword $(subst _, ,$*)))
 	$(eval _GOPLAT := GOOS=$(call err_if_empty,GOOS) GOARCH=$(call err_if_empty,GOARCH))
 	mkdir -p "$(call err_if_empty,TMPDIR)/$(SUBDIR)"
-	$(MAKE) GOOS=$(GOOS) GOARCH=$(GOARCH) \
+	$(MAKE) GOOS=$(GOOS) GOARCH=$(NATIVE_GOARCH) \
 		clean-binaries podman-remote-$(GOOS)-docs
 	if [[ "$(GOARCH)" != "$(NATIVE_GOARCH)" ]]; then \
 		$(MAKE) CGO_ENABLED=0 $(GOPLAT) BUILDTAGS="$(BUILDTAGS_CROSS)" \

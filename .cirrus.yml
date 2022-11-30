@@ -399,15 +399,15 @@ osx_alt_build_task:
         TEST_FLAVOR: "altbuild"
         ALT_NAME: 'OSX Cross'
     osx_instance:
-        image: ghcr.io/cirruslabs/macos-ventura-base:latest
+        image: ghcr.io/cirruslabs/macos-ventura-xcode:latest
     setup_script:
         - brew install go
         - brew install go-md2man
         - go version
-    build_amd64_script:
-        - make podman-remote-release-darwin_amd64.zip
     build_arm64_script:
         - make podman-remote-release-darwin_arm64.zip
+    build_amd64_script:
+        - make podman-remote-release-darwin_amd64.zip
     build_pkginstaller_script:
         - cd contrib/pkginstaller
         - make ARCH=amd64 NO_CODESIGN=1 pkginstaller
