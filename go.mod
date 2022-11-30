@@ -11,10 +11,10 @@ require (
 	github.com/container-orchestrated-devices/container-device-interface v0.5.3
 	github.com/containernetworking/cni v1.1.2
 	github.com/containernetworking/plugins v1.1.1
-	github.com/containers/buildah v1.28.1-0.20221123095548-1c1fa111e4cc
+	github.com/containers/buildah v1.28.1-0.20221130132810-cf661299d14f
 	github.com/containers/common v0.50.2-0.20221128124429-24d78208a290
 	github.com/containers/conmon v2.0.20+incompatible
-	github.com/containers/image/v5 v5.23.1-0.20221124171848-19f10aac8007
+	github.com/containers/image/v5 v5.23.1-0.20221130170538-333c50e3eac8
 	github.com/containers/ocicrypt v1.1.6
 	github.com/containers/psgo v1.8.0
 	github.com/containers/storage v1.44.1-0.20221121144727-71fd3e87df7a
@@ -121,7 +121,7 @@ require (
 	github.com/seccomp/libseccomp-golang v0.10.0 // indirect
 	github.com/sigstore/sigstore v1.4.6 // indirect
 	github.com/stefanberger/go-pkcs11uri v0.0.0-20201008174630-78d3cae3a980 // indirect
-	github.com/sylabs/sif/v2 v2.8.3 // indirect
+	github.com/sylabs/sif/v2 v2.9.0 // indirect
 	github.com/tchap/go-patricia v2.3.0+incompatible // indirect
 	github.com/theupdateframework/go-tuf v0.5.2-0.20220930112810-3890c1e7ace4 // indirect
 	github.com/titanous/rocacheck v0.0.0-20171023193734-afe73141d399 // indirect

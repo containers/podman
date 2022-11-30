@@ -95,7 +95,7 @@ github.com/containernetworking/cni/pkg/version
 # github.com/containernetworking/plugins v1.1.1
 ## explicit; go 1.17
 github.com/containernetworking/plugins/pkg/ns
-# github.com/containers/buildah v1.28.1-0.20221123095548-1c1fa111e4cc
+# github.com/containers/buildah v1.28.1-0.20221130132810-cf661299d14f
 ## explicit; go 1.17
 github.com/containers/buildah
 github.com/containers/buildah/bind
@@ -172,7 +172,7 @@ github.com/containers/common/version
 # github.com/containers/conmon v2.0.20+incompatible
 ## explicit
 github.com/containers/conmon/runner/config
-# github.com/containers/image/v5 v5.23.1-0.20221124171848-19f10aac8007
+# github.com/containers/image/v5 v5.23.1-0.20221130170538-333c50e3eac8
 ## explicit; go 1.17
 github.com/containers/image/v5/copy
 github.com/containers/image/v5/directory
@@ -695,7 +695,7 @@ github.com/stefanberger/go-pkcs11uri
 ## explicit; go 1.13
 github.com/stretchr/testify/assert
 github.com/stretchr/testify/require
-# github.com/sylabs/sif/v2 v2.8.3
+# github.com/sylabs/sif/v2 v2.9.0
 ## explicit; go 1.18
 github.com/sylabs/sif/v2/pkg/sif
 # github.com/syndtr/gocapability v0.0.0-20200815063812-42c35b437635
