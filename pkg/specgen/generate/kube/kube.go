@@ -16,6 +16,7 @@ import (
 
 	"github.com/containers/common/libimage"
 	"github.com/containers/common/libnetwork/types"
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/common/pkg/parse"
 	"github.com/containers/common/pkg/secrets"
 	cutil "github.com/containers/common/pkg/util"
@@ -145,6 +146,21 @@ type CtrSpecGenOptions struct {
 func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGenerator, error) {
 	s := specgen.NewSpecGenerator(opts.Container.Image, false)
 
+	rtc, err := config.Default()
+	if err != nil {
+		return nil, err
+	}
+
+	if s.CgroupsMode == "" {
+		s.CgroupsMode = rtc.Cgroups()
+	}
+	if len(s.ImageVolumeMode) == 0 {
+		s.ImageVolumeMode = rtc.Engine.ImageVolumeMode
+	}
+	if s.ImageVolumeMode == "bind" {
+		s.ImageVolumeMode = "anonymous"
+	}
+
 	// pod name should be non-empty for Deployment objects to be able to create
 	// multiple pods having containers with unique names
 	if len(opts.PodName) < 1 {
@@ -196,7 +212,7 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 	s.InitContainerType = opts.InitContainerType
 
 	setupSecurityContext(s, opts.Container.SecurityContext, opts.PodSecurityContext)
-	err := setupLivenessProbe(s, opts.Container, opts.RestartPolicy)
+	err = setupLivenessProbe(s, opts.Container, opts.RestartPolicy)
 	if err != nil {
 		return nil, fmt.Errorf("failed to configure livenessProbe: %w", err)
 	}

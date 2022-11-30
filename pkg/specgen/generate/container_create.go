@@ -615,7 +615,7 @@ func Inherit(infra libpod.Container, s *specgen.SpecGenerator, rt *libpod.Runtim
 	}
 
 	// this causes errors when shmSize is the default value, it will still get passed down unless we manually override.
-	if s.IpcNS.NSMode == specgen.Host && (compatibleOptions.ShmSize != nil && compatibleOptions.IsDefaultShmSize()) {
+	if inheritSpec.IpcNS.NSMode == specgen.Host && (compatibleOptions.ShmSize != nil && compatibleOptions.IsDefaultShmSize()) {
 		s.ShmSize = nil
 	}
 	return options, infraSpec, compatibleOptions, nil

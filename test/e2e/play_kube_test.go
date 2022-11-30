@@ -175,8 +175,19 @@ spec:
   volumes:
     - name: foo
       secret:
-        secretName: oldsecret
-`
+        secretName: oldsecret`
+
+var simplePodYaml = `
+apiVersion: v1
+kind: Pod
+metadata:
+  name: libpod-test
+spec:
+  containers:
+  - image: quay.io/libpod/alpine_nginx:latest
+    command:
+      - sleep
+      - "3600"`
 
 var unknownKindYaml = `
 apiVersion: v1
@@ -4376,4 +4387,13 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 		deleteAndTestSecret(podmanTest, "newsecret")
 	})
 
+	It("podman play kube with disabled cgroup", func() {
+		os.Setenv("CONTAINERS_CONF", "config/containers-cgroup.conf")
+		err := writeYaml(simplePodYaml, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+	})
 })
