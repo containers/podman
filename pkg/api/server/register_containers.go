@@ -1453,7 +1453,23 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//  - in: query
 	//    name: ignoreRootFS
 	//    type: boolean
-	//    description: do not include root file-system changes when exporting
+	//    description: do not include root file-system changes when exporting. can only be used with export
+	//  - in: query
+	//    name: ignoreVolumes
+	//    type: boolean
+	//    description: do not include associated volumes. can only be used with export
+	//  - in: query
+	//    name: preCheckpoint
+	//    type: boolean
+	//    description: dump the container's memory information only, leaving the container running. only works on runc 1.0-rc or higher
+	//  - in: query
+	//    name: withPrevious
+	//    type: boolean
+	//    description: check out the container with previous criu image files in pre-dump. only works on runc 1.0-rc or higher
+	//  - in: query
+	//    name: fileLocks
+	//    type: boolean
+	//    description: checkpoint a container with filelocks
 	//  - in: query
 	//    name: printStats
 	//    type: boolean
@@ -1489,10 +1505,6 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//    type: boolean
 	//    description: keep all temporary checkpoint files
 	//  - in: query
-	//    name: leaveRunning
-	//    type: boolean
-	//    description: leave the container running after writing checkpoint to disk
-	//  - in: query
 	//    name: tcpEstablished
 	//    type: boolean
 	//    description: checkpoint a container with established TCP connections
@@ -1503,7 +1515,11 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//  - in: query
 	//    name: ignoreRootFS
 	//    type: boolean
-	//    description: do not include root file-system changes when exporting
+	//    description: do not include root file-system changes when exporting. can only be used with import
+	//  - in: query
+	//    name: ignoreVolumes
+	//    type: boolean
+	//    description: do not restore associated volumes. can only be used with import
 	//  - in: query
 	//    name: ignoreStaticIP
 	//    type: boolean
@@ -1512,6 +1528,10 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//    name: ignoreStaticMAC
 	//    type: boolean
 	//    description: ignore MAC address if set statically
+	//  - in: query
+	//    name: fileLocks
+	//    type: boolean
+	//    description: restore a container with file locks
 	//  - in: query
 	//    name: printStats
 	//    type: boolean
