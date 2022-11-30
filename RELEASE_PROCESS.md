@@ -259,6 +259,8 @@ spelled with complete minutiae.
       press the "Edit Release" button.  Change the name to the form `vX.Y.Z`
    1. If this is a release candidate be certain to click the pre-release
       checkbox at the bottom of the page.
+   1. If this new release will be the latest version released, be certain to
+      click the latest release checkbox at the bottom of the page.
    1. Copy and paste the release notes for the release into the body of
       the release.
    1. Near the bottom of the page there is a box with the message
