@@ -65,6 +65,8 @@ var _ = Describe("Systemd activate", func() {
 		addr := net.JoinHostPort(host, strconv.Itoa(port))
 
 		activateSession := testUtils.StartSystemExec(activate, []string{
+			"-E", "http_proxy", "-E", "https_proxy", "-E", "no_proxy",
+			"-E", "HTTP_PROXY", "-E", "HTTPS_PROXY", "-E", "NO_PROXY",
 			"--listen", addr,
 			podmanTest.PodmanBinary,
 			"--root=" + filepath.Join(tempDir, "server_root"),
