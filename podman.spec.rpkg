@@ -75,6 +75,7 @@ BuildRequires: shadow-utils-subid-devel
 BuildRequires: pkgconfig
 BuildRequires: make
 BuildRequires: ostree-devel
+%{?systemd_requires}
 BuildRequires: systemd
 BuildRequires: systemd-devel
 Requires: conmon >= 2:2.0.30-2
@@ -220,6 +221,17 @@ cp -pav test/system %{buildroot}/%{_datadir}/%{name}/test/
 for file in `find %{buildroot}%{_mandir}/man[15] -type f | sed "s,%{buildroot},," | grep -v -e remote -e docker`; do
     echo "$file*" >> podman.file-list
 done
+
+%post
+if [ $1 -eq 1 ]; then
+    %{_bindir}/systemctl enable --now %{name}-restart.service
+fi
+
+%preun
+%systemd_preun %{name}-restart.service
+
+%postun
+%systemd_postun %{name}-restart.service
 
 # This lists all the files that are included in the rpm package and that
 # are going to be installed into target system where the rpm is installed.
