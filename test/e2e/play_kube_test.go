@@ -4388,8 +4388,18 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 	})
 
 	It("podman play kube with disabled cgroup", func() {
-		os.Setenv("CONTAINERS_CONF", "config/containers-cgroup.conf")
-		err := writeYaml(simplePodYaml, kubeYaml)
+		conffile := filepath.Join(podmanTest.TempDir, "container.conf")
+		// Disabled ipcns and cgroupfs in the config file
+		// Since shmsize (Inherit from infra container) cannot be set if ipcns is "host", we should remove the default value.
+		// Also, cgroupfs config should be loaded into SpecGenerator when playing kube.
+		err := os.WriteFile(conffile, []byte(`
+[containers]
+ipcns="host"
+cgroups="disabled"`), 0644)
+		Expect(err).ToNot(HaveOccurred())
+		defer os.Unsetenv("CONTAINERS_CONF")
+		os.Setenv("CONTAINERS_CONF", conffile)
+		err = writeYaml(simplePodYaml, kubeYaml)
 		Expect(err).To(BeNil())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
