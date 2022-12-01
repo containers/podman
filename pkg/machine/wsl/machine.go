@@ -267,11 +267,16 @@ func (p *Provider) NewMachine(opts machine.InitOptions) (machine.VM, error) {
 }
 
 func getConfigPath(name string) (string, error) {
+	return getConfigPathExt(name, "json")
+}
+
+func getConfigPathExt(name string, extension string) (string, error) {
 	vmConfigDir, err := machine.GetConfDir(vmtype)
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(vmConfigDir, name+".json"), nil
+
+	return filepath.Join(vmConfigDir, fmt.Sprintf("%s.%s", name, extension)), nil
 }
 
 // LoadByName reads a json file that describes a known qemu vm
@@ -424,14 +429,24 @@ func downloadDistro(v *MachineVM, opts machine.InitOptions) error {
 }
 
 func (v *MachineVM) writeConfig() error {
+	const format = "could not write machine json config: %w"
 	jsonFile := v.ConfigPath
-
-	b, err := json.MarshalIndent(v, "", " ")
+	tmpFile, err := getConfigPathExt(v.Name, "tmp")
 	if err != nil {
 		return err
 	}
-	if err := os.WriteFile(jsonFile, b, 0644); err != nil {
-		return fmt.Errorf("could not write machine json config: %w", err)
+
+	b, err := json.MarshalIndent(v, "", " ")
+	if err != nil {
+		return fmt.Errorf(format, err)
+	}
+
+	if err := os.WriteFile(tmpFile, b, 0644); err != nil {
+		return fmt.Errorf(format, err)
+	}
+
+	if err := os.Rename(tmpFile, jsonFile); err != nil {
+		return fmt.Errorf(format, err)
 	}
 
 	return nil
