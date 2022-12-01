@@ -299,6 +299,9 @@ type rwLayerStore interface {
 
 	// Clean up unreferenced layers
 	GarbageCollect() error
+
+	// supportsShifting() returns true if the driver.Driver.SupportsShifting().
+	supportsShifting() bool
 }
 
 type layerStore struct {
@@ -2232,6 +2235,10 @@ func (r *layerStore) LayersByCompressedDigest(d digest.Digest) ([]Layer, error) 
 
 func (r *layerStore) LayersByUncompressedDigest(d digest.Digest) ([]Layer, error) {
 	return r.layersByDigestMap(r.byuncompressedsum, d)
+}
+
+func (r *layerStore) supportsShifting() bool {
+	return r.driver.SupportsShifting()
 }
 
 func closeAll(closes ...func() error) (rErr error) {
