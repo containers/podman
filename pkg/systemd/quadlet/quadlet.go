@@ -276,7 +276,7 @@ func ConvertContainer(container *parser.UnitFile, isUser bool) (*parser.UnitFile
 	}
 
 	// Run with a pid1 init to reap zombies by default (as most apps don't do that)
-	runInit := container.LookupBoolean(ContainerGroup, KeyRunInit, true)
+	runInit := container.LookupBoolean(ContainerGroup, KeyRunInit, false)
 	if runInit {
 		podman.add("--init")
 	}

@@ -190,9 +190,9 @@ of startup on its own.
 
 The timezone to run the container in.
 
-#### `RunInit=` (default to `yes`)
+#### `RunInit=` (default to `no`)
 
-If enabled (and it is by default), the container will have a minimal init process inside the
+If enabled, the container will have a minimal init process inside the
 container that forwards signals and reaps processes.
 
 #### `VolatileTmp=` (default to `yes`)
