@@ -397,6 +397,10 @@ EOF
     systemctl start $service_name
     systemctl is-active $service_name
 
+    # Make sure that Podman is the service's MainPID
+    run systemctl show --property=MainPID --value $service_name
+    is "$(</proc/$output/comm)" "podman" "podman is the service mainPID"
+
     # The name of the service container is predictable: the first 12 characters
     # of the hash of the YAML file followed by the "-service" suffix
     yaml_sha=$(sha256sum $yaml_source)
@@ -422,13 +426,13 @@ EOF
     # container.
     run_podman pod kill test_pod
     for i in {0..5}; do
-        run systemctl is-failed $service_name
-        if [[ $output == "failed" ]]; then
+        run systemctl is-active $service_name
+        if [[ $output == "inactive" ]]; then
             break
         fi
         sleep 0.5
     done
-    is "$output" "failed" "systemd service transitioned to 'failed' state"
+    is "$output" "inactive" "systemd service transitioned to 'inactive' state: $service_name"
 
     # Now stop and start the service again.
     systemctl stop $service_name

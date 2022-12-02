@@ -18,7 +18,7 @@ func TestNotifyProxy(t *testing.T) {
 	proxy, err := New("")
 	require.NoError(t, err)
 	require.FileExists(t, proxy.SocketPath())
-	require.NoError(t, proxy.close())
+	require.NoError(t, proxy.Close())
 	require.NoFileExists(t, proxy.SocketPath())
 }
 
@@ -28,9 +28,12 @@ func TestWaitAndClose(t *testing.T) {
 	require.FileExists(t, proxy.SocketPath())
 
 	ch := make(chan error)
-
+	defer func() {
+		err := proxy.Close()
+		require.NoError(t, err, "proxy should close successfully")
+	}()
 	go func() {
-		ch <- proxy.WaitAndClose()
+		ch <- proxy.Wait()
 	}()
 
 	sendMessage(t, proxy, "foo\n")

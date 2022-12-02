@@ -206,9 +206,10 @@ metadata:
     app: test
   name: test_pod
 spec:
+  restartPolicy: "Never"
   containers:
   - command:
-    - top
+    - true
     image: $IMAGE
     name: test
     resources: {}
@@ -219,26 +220,26 @@ EOF
     yaml_sha=$(sha256sum $yaml_source)
     service_container="${yaml_sha:0:12}-service"
 
-
     export NOTIFY_SOCKET=$PODMAN_TMPDIR/conmon.sock
     _start_socat
+    wait_for_file $_SOCAT_LOG
 
+    # Will run until all containers have stopped.
     run_podman play kube --service-container=true $yaml_source
+    run_podman container wait $service_container test_pod-test
 
     # Make sure the containers have the correct policy.
     run_podman container inspect test_pod-test $service_container --format "{{.Config.SdNotifyMode}}"
     is "$output" "ignore
 ignore"
 
-    run_podman container inspect $service_container --format "{{.State.ConmonPid}}"
-    mainPID="$output"
-    wait_for_file $_SOCAT_LOG
     # The 'echo's help us debug failed runs
     run cat $_SOCAT_LOG
     echo "socat log:"
     echo "$output"
 
-    is "$output" "MAINPID=$mainPID
+    # The "with policies" test below checks the MAINPID.
+    is "$output" "MAINPID=.*
 READY=1" "sdnotify sent MAINPID and READY"
 
     _stop_socat
@@ -268,11 +269,11 @@ metadata:
   labels:
     app: test
   name: test_pod
-  restartPolicy: "Never"
   annotations:
     io.containers.sdnotify:   "container"
     io.containers.sdnotify/b: "conmon"
 spec:
+  restartPolicy: "Never"
   containers:
   - command:
     - /bin/sh
@@ -333,13 +334,12 @@ ignore"
     run_podman logs $container_a
     is "${lines[0]}" "/run/notify/notify.sock" "NOTIFY_SOCKET is passed to container"
 
+    # Send the READY message.  Doing it in an exec session helps debug
+    # potential issues.
     run_podman exec --env NOTIFY_SOCKET="/run/notify/notify.sock" $container_a /usr/bin/systemd-notify --ready
 
-    # Instruct the container to send the READY
+    # Instruct the container to stop
     run_podman exec $container_a /bin/touch /stop
-
-    run_podman container inspect $service_container --format "{{.State.ConmonPid}}"
-    main_pid="$output"
 
     run_podman container wait $container_a
     run_podman container inspect $container_a --format "{{.State.ExitCode}}"
@@ -350,9 +350,12 @@ ignore"
     echo "socat log:"
     echo "$output"
 
-    is "$output" "MAINPID=$main_pid
+    is "$output" "MAINPID=.*
 READY=1" "sdnotify sent MAINPID and READY"
 
+    # Make sure that Podman is the service's MainPID
+    main_pid=$(awk -F= '{print $2}' <<< ${lines[0]})
+    is "$(</proc/$main_pid/comm)" "podman" "podman is the service mainPID"
     _stop_socat
 
     # Clean up pod and pause image
