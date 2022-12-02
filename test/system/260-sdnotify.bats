@@ -268,6 +268,7 @@ metadata:
   labels:
     app: test
   name: test_pod
+  restartPolicy: "Never"
   annotations:
     io.containers.sdnotify:   "container"
     io.containers.sdnotify/b: "conmon"
@@ -276,7 +277,7 @@ spec:
   - command:
     - /bin/sh
     - -c
-    - 'printenv NOTIFY_SOCKET; echo READY; while ! test -f /stop;do sleep 0.1;done;systemd-notify --ready'
+    - 'printenv NOTIFY_SOCKET; while ! test -f /stop;do sleep 0.1;done'
     image: $_FEDORA
     name: a
   - command:
@@ -332,6 +333,8 @@ ignore"
     run_podman logs $container_a
     is "${lines[0]}" "/run/notify/notify.sock" "NOTIFY_SOCKET is passed to container"
 
+    run_podman exec --env NOTIFY_SOCKET="/run/notify/notify.sock" $container_a /usr/bin/systemd-notify --ready
+
     # Instruct the container to send the READY
     run_podman exec $container_a /bin/touch /stop
 
@@ -339,6 +342,8 @@ ignore"
     main_pid="$output"
 
     run_podman container wait $container_a
+    run_podman container inspect $container_a --format "{{.State.ExitCode}}"
+    is "$output" "0" "container exited cleanly after sending READY message"
     wait_for_file $_SOCAT_LOG
     # The 'echo's help us debug failed runs
     run cat $_SOCAT_LOG
