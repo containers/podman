@@ -38,7 +38,7 @@ class Preprocessor():
         outfile = os.path.splitext(infile)[0]
         outfile_tmp = outfile + '.tmp.' + str(os.getpid())
 
-        with open(infile, 'r', encoding='utf-8') as fh_in, open(outfile_tmp, 'w', encoding='utf-8') as fh_out:
+        with open(infile, 'r', encoding='utf-8') as fh_in, open(outfile_tmp, 'w', encoding='utf-8', newline='\n') as fh_out:
             for line in fh_in:
                 # '@@option foo' -> include file options/foo.md
                 if line.startswith('@@option '):
@@ -71,7 +71,7 @@ class Preprocessor():
         """
         for optionfile in self.used_by:
             tmpfile = optionfile + '.tmp'
-            with open(optionfile, 'r', encoding='utf-8') as fh_in, open(tmpfile, 'w', encoding='utf-8') as fh_out:
+            with open(optionfile, 'r', encoding='utf-8') as fh_in, open(tmpfile, 'w', encoding='utf-8', newline='\n') as fh_out:
                 fh_out.write("####> This option file is used in:\n")
                 used_by = ', '.join(x for x in self.used_by[optionfile])
                 fh_out.write(f"####>   podman {used_by}\n")
@@ -82,6 +82,7 @@ class Preprocessor():
                         fh_out.write(line)
             # Compare files; only rewrite if the new one differs
             if not filecmp.cmp(optionfile, tmpfile):
+                os.unlink(optionfile)
                 os.rename(tmpfile, optionfile)
             else:
                 os.unlink(tmpfile)

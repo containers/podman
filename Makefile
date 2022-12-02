@@ -477,7 +477,7 @@ $(MANPAGES): %: %.md .install.md2man docdir
 	       -e 's/\[\([^]]*\)](http[^)]\+)/\1/g'         \
 	       -e 's;<\(/\)\?\(a\|a\s\+[^>]*\|sup\)>;;g'    \
 	       -e 's/\\$$/  /g' $<                         |\
-	$(GOMD2MAN) -in /dev/stdin -out $(subst source/markdown,build/man,$@)
+	$(GOMD2MAN) -out $(subst source/markdown,build/man,$@)
 
 .PHONY: docdir
 docdir:
@@ -731,7 +731,7 @@ podman-remote-release-%.zip: test/version/version ## Build podman-remote for %=$
 		$(MAKE) $(GOPLAT) podman-remote; \
 	fi
 	if [[ "$(GOOS)" == "windows" ]]; then \
-		$(MAKE) $(GOPLAT) TMPDIR="" win-sshproxy; \
+		$(MAKE) $(GOPLAT) TMPDIR="" win-gvproxy; \
 	fi
 	if [[ "$(GOOS)" == "darwin" ]]; then \
 		$(MAKE) $(GOPLAT) podman-mac-helper;\
@@ -751,7 +751,7 @@ podman.msi: test/version/version  ## Build podman-remote, package for installati
 podman-v%.msi: test/version/version
 # Passing explicitly OS and ARCH, because ARM is not supported by wixl https://gitlab.gnome.org/GNOME/msitools/-/blob/master/tools/wixl/builder.vala#L3
 	$(MAKE) GOOS=windows GOARCH=amd64 podman-remote-windows-docs
-	$(MAKE) GOOS=windows GOARCH=amd64 clean-binaries podman-remote podman-winpath win-sshproxy
+	$(MAKE) GOOS=windows GOARCH=amd64 clean-binaries podman-remote podman-winpath win-gvproxy
 	$(eval DOCFILE := docs/build/remote/windows)
 	find $(DOCFILE) -print | \
 		wixl-heat --var var.ManSourceDir --component-group ManFiles \
@@ -761,16 +761,17 @@ podman-v%.msi: test/version/version
 		-o $@ contrib/msi/podman.wxs $(DOCFILE)/pages.wsx --arch x64
 
 # Checks out and builds win-sshproxy helper. See comment on GV_GITURL declaration
-.PHONY: win-sshproxy
-win-sshproxy: test/version/version
+.PHONY: win-gvproxy
+win-gvproxy: test/version/version
 	rm -rf tmp-gv; mkdir tmp-gv
 	(cd tmp-gv; \
          git init; \
          git remote add origin $(GV_GITURL); \
          git fetch --depth 1 origin $(GV_SHA); \
-         git checkout FETCH_HEAD; make win-sshproxy)
+         git checkout FETCH_HEAD; make win-gvproxy win-sshproxy)
 	mkdir -p bin/windows/
 	cp tmp-gv/bin/win-sshproxy.exe bin/windows/
+	cp tmp-gv/bin/gvproxy.exe bin/windows/
 	rm -rf tmp-gv
 
 .PHONY: package
@@ -804,6 +805,8 @@ install.remote:
 		$(DESTDIR)$(BINDIR)/podman$(BINSFX)
 	test "${GOOS}" != "windows" || \
 		install -m 755 $(SRCBINDIR)/win-sshproxy.exe $(DESTDIR)$(BINDIR)
+	test "${GOOS}" != "windows" || \
+		install -m 755 $(SRCBINDIR)/gvproxy.exe $(DESTDIR)$(BINDIR)
 	test "${GOOS}" != "darwin" || \
 		install -m 755 $(SRCBINDIR)/podman-mac-helper $(DESTDIR)$(BINDIR)
 	test -z "${SELINUXOPT}" || \
