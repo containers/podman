@@ -132,6 +132,7 @@ FetchPanel
 
 .\build-hooks.bat; ExitOnError
 SignItem @("artifacts/win-sshproxy.exe",
+          "artifacts/gvproxy.exe",
           "artifacts/podman.exe",
           "artifacts/podman-msihooks.dll",
           "artifacts/podman-wslkerninst.exe")
