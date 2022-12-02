@@ -253,9 +253,7 @@ func ConvertContainer(container *parser.UnitFile, isUser bool) (*parser.UnitFile
 
 		// But we still want output to the journal, so use the log driver.
 		"--log-driver", "passthrough",
-
-		// Never try to pull the image during service start
-		"--pull=never")
+	)
 
 	// We use crun as the runtime and delegated groups to it
 	service.Add(ServiceGroup, "Delegate", "yes")
