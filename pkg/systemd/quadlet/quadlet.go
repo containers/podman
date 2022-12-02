@@ -297,7 +297,7 @@ func ConvertContainer(container *parser.UnitFile, isUser bool) (*parser.UnitFile
 	}
 
 	// Default to no higher level privileges or caps
-	noNewPrivileges := container.LookupBoolean(ContainerGroup, KeyNoNewPrivileges, true)
+	noNewPrivileges := container.LookupBoolean(ContainerGroup, KeyNoNewPrivileges, false)
 	if noNewPrivileges {
 		podman.add("--security-opt=no-new-privileges")
 	}

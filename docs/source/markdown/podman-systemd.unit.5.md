@@ -109,7 +109,7 @@ which can be modified with `RemapUsers`, but if that is not specified, this uid 
 The (numeric) gid to run as inside the container. This does not need to match the gid on the host,
 which can be modified with `RemapUsers`, but if that is not specified, this gid is also used on the host.
 
-#### `NoNewPrivileges=` (defaults to `yes`)
+#### `NoNewPrivileges=` (defaults to `no`)
 
 If enabled (which is the default), this disables the container processes from gaining additional privileges via things like
 setuid and file capabilities.
