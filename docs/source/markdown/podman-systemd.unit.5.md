@@ -109,15 +109,14 @@ which can be modified with `RemapUsers`, but if that is not specified, this uid 
 The (numeric) gid to run as inside the container. This does not need to match the gid on the host,
 which can be modified with `RemapUsers`, but if that is not specified, this gid is also used on the host.
 
-#### `NoNewPrivileges=` (defaults to `yes`)
+#### `NoNewPrivileges=` (defaults to `no`)
 
 If enabled (which is the default), this disables the container processes from gaining additional privileges via things like
 setuid and file capabilities.
 
 #### `DropCapability=` (defaults to `all`)
 
-Drop these capabilities from the default podman capability set, or `all` for all capabilities. The default if no
-`DropCapability` is set is `all`. Set this to empty (i.e. `DropCapability=`) to use the default podman capability set.
+Drop these capabilities from the default podman capability set, or `all` to drop all capabilities.
 
 This is a space separated list of capabilities. This key can be listed multiple times.
 
@@ -138,9 +137,9 @@ For example:
 AddCapability=CAP_DAC_OVERRIDE CAP_IPC_OWNER
 ```
 
-#### `ReadOnly=` (defaults to `yes`)
+#### `ReadOnly=` (defaults to `no`)
 
-If enabled, makes image read-only, with /var/tmp, /tmp and /run a tmpfs (unless disabled by `VolatileTmp=no`).
+If enabled, makes image read-only, with /var/tmp, /tmp and /run a tmpfs (unless disabled by `VolatileTmp=no`).r
 
 **NOTE:** Podman will automatically copy any content from the image onto the tmpfs
 
@@ -190,9 +189,9 @@ of startup on its own.
 
 The timezone to run the container in.
 
-#### `RunInit=` (default to `yes`)
+#### `RunInit=` (default to `no`)
 
-If enabled (and it is by default), the container will have a minimal init process inside the
+If enabled, the container will have a minimal init process inside the
 container that forwards signals and reaps processes.
 
 #### `VolatileTmp=` (default to `yes`)

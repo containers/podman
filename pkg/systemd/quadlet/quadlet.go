@@ -253,9 +253,7 @@ func ConvertContainer(container *parser.UnitFile, isUser bool) (*parser.UnitFile
 
 		// But we still want output to the journal, so use the log driver.
 		"--log-driver", "passthrough",
-
-		// Never try to pull the image during service start
-		"--pull=never")
+	)
 
 	// We use crun as the runtime and delegated groups to it
 	service.Add(ServiceGroup, "Delegate", "yes")
@@ -276,7 +274,7 @@ func ConvertContainer(container *parser.UnitFile, isUser bool) (*parser.UnitFile
 	}
 
 	// Run with a pid1 init to reap zombies by default (as most apps don't do that)
-	runInit := container.LookupBoolean(ContainerGroup, KeyRunInit, true)
+	runInit := container.LookupBoolean(ContainerGroup, KeyRunInit, false)
 	if runInit {
 		podman.add("--init")
 	}
@@ -297,7 +295,7 @@ func ConvertContainer(container *parser.UnitFile, isUser bool) (*parser.UnitFile
 	}
 
 	// Default to no higher level privileges or caps
-	noNewPrivileges := container.LookupBoolean(ContainerGroup, KeyNoNewPrivileges, true)
+	noNewPrivileges := container.LookupBoolean(ContainerGroup, KeyNoNewPrivileges, false)
 	if noNewPrivileges {
 		podman.add("--security-opt=no-new-privileges")
 	}
@@ -314,10 +312,7 @@ func ConvertContainer(container *parser.UnitFile, isUser bool) (*parser.UnitFile
 		podman.add("--security-opt", fmt.Sprintf("seccomp=%s", seccompProfile))
 	}
 
-	dropCaps := []string{"all"} // Default
-	if container.HasKey(ContainerGroup, KeyDropCapability) {
-		dropCaps = container.LookupAllStrv(ContainerGroup, KeyDropCapability)
-	}
+	dropCaps := container.LookupAllStrv(ContainerGroup, KeyDropCapability)
 
 	for _, caps := range dropCaps {
 		podman.addf("--cap-drop=%s", strings.ToLower(caps))
@@ -329,7 +324,7 @@ func ConvertContainer(container *parser.UnitFile, isUser bool) (*parser.UnitFile
 		podman.addf("--cap-add=%s", strings.ToLower(caps))
 	}
 
-	readOnly := container.LookupBoolean(ContainerGroup, KeyReadOnly, true)
+	readOnly := container.LookupBoolean(ContainerGroup, KeyReadOnly, false)
 	if readOnly {
 		podman.add("--read-only")
 	}
