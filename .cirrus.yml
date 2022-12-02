@@ -399,9 +399,9 @@ osx_alt_build_task:
         - brew install go-md2man
         - go version
     build_amd64_script:
-        - make podman-remote-release-darwin_amd64.zip GOARCH=amd64
+        - make podman-remote-release-darwin_amd64.zip
     build_arm64_script:
-        - make podman-remote-release-darwin_arm64.zip GOARCH=arm64
+        - make podman-remote-release-darwin_arm64.zip
     build_pkginstaller_script:
         - cd contrib/pkginstaller
         - make ARCH=amd64 NO_CODESIGN=1 pkginstaller

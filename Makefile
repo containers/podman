@@ -479,7 +479,7 @@ docs: $(MANPAGES) ## Generate documentation
 # in addition to the target-architecture binary (if different). That's
 # what the NATIVE_GOOS make does in the first line.
 podman-remote-%-docs: podman-remote
-	$(MAKE) podman-remote GOOS=$(NATIVE_GOOS)
+	$(MAKE) clean-binaries podman-remote GOOS=$(NATIVE_GOOS) GOARCH=$(NATIVE_GOARCH)
 	$(eval GOOS := $*)
 	$(MAKE) docs $(MANPAGES)
 	rm -rf docs/build/remote
@@ -707,7 +707,7 @@ podman-remote-release-%.zip: test/version/version ## Build podman-remote for %=$
 	$(eval GOARCH := $(lastword $(subst _, ,$*)))
 	$(eval _GOPLAT := GOOS=$(call err_if_empty,GOOS) GOARCH=$(call err_if_empty,GOARCH))
 	mkdir -p "$(call err_if_empty,TMPDIR)/$(SUBDIR)"
-	$(MAKE) GOOS=$(GOOS) GOARCH=$(NATIVE_GOARCH) \
+	$(MAKE) GOOS=$(GOOS) GOARCH=$(GOARCH) \
 		clean-binaries podman-remote-$(GOOS)-docs
 	if [[ "$(GOARCH)" != "$(NATIVE_GOARCH)" ]]; then \
 		$(MAKE) CGO_ENABLED=0 $(GOPLAT) BUILDTAGS="$(BUILDTAGS_CROSS)" \
@@ -729,7 +729,10 @@ podman-remote-release-%.zip: test/version/version ## Build podman-remote for %=$
 .PHONY: podman.msi
 podman.msi: test/version/version  ## Build podman-remote, package for installation on Windows
 	$(MAKE) podman-v$(call err_if_empty,RELEASE_NUMBER).msi
-podman-v%.msi: test/version/version podman-remote podman-remote-windows-docs podman-winpath win-sshproxy
+podman-v%.msi: test/version/version
+# Passing explicitly OS and ARCH, because ARM is not supported by wixl https://gitlab.gnome.org/GNOME/msitools/-/blob/master/tools/wixl/builder.vala#L3
+	$(MAKE) GOOS=windows GOARCH=amd64 podman-remote-windows-docs
+	$(MAKE) GOOS=windows GOARCH=amd64 clean-binaries podman-remote podman-winpath win-sshproxy
 	$(eval DOCFILE := docs/build/remote/windows)
 	find $(DOCFILE) -print | \
 		wixl-heat --var var.ManSourceDir --component-group ManFiles \

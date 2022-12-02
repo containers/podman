@@ -10,7 +10,8 @@ SOURCES=${@:3}                      ## directories to find markdown files
 # invoked in a cross-compilation environment, so even if PLATFORM=windows
 # we need an actual executable that we can invoke).
 if [[ -z "$PODMAN" ]]; then
-    case $(env -i HOME=$HOME PATH=$PATH go env GOOS) in
+    DETECTED_OS=$(env -i HOME="$HOME" PATH="$PATH" go env GOOS)
+    case $DETECTED_OS in
         windows)
             PODMAN=bin/windows/podman.exe ;;
         darwin)
