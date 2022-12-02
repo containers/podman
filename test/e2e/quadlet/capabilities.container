@@ -5,7 +5,5 @@
 
 [Container]
 Image=localhost/imagename
-# Verify that we can reset to the default cap set
-DropCapability=
 AddCapability=CAP_DAC_OVERRIDE CAP_AUDIT_WRITE
 AddCapability=CAP_IPC_OWNER

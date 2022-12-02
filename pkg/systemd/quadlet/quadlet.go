@@ -312,10 +312,7 @@ func ConvertContainer(container *parser.UnitFile, isUser bool) (*parser.UnitFile
 		podman.add("--security-opt", fmt.Sprintf("seccomp=%s", seccompProfile))
 	}
 
-	dropCaps := []string{"all"} // Default
-	if container.HasKey(ContainerGroup, KeyDropCapability) {
-		dropCaps = container.LookupAllStrv(ContainerGroup, KeyDropCapability)
-	}
+	dropCaps := container.LookupAllStrv(ContainerGroup, KeyDropCapability)
 
 	for _, caps := range dropCaps {
 		podman.addf("--cap-drop=%s", strings.ToLower(caps))

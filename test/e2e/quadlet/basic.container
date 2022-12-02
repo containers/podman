@@ -8,7 +8,6 @@
 ## assert-podman-args "--runtime" "/usr/bin/crun"
 ## assert-podman-args "--cgroups=split"
 ## assert-podman-args "--sdnotify=conmon"
-## assert-podman-args "--cap-drop=all"
 ## assert-key-is "Unit" "RequiresMountsFor" "%t/containers"
 ## assert-key-is "Service" "KillMode" "mixed"
 ## assert-key-is "Service" "Delegate" "yes"
