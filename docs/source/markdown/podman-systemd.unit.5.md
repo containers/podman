@@ -138,7 +138,7 @@ For example:
 AddCapability=CAP_DAC_OVERRIDE CAP_IPC_OWNER
 ```
 
-#### `ReadOnly=` (defaults to `yes`)
+#### `ReadOnly=` (defaults to `no`)
 
 If enabled, makes image read-only, with /var/tmp, /tmp and /run a tmpfs (unless disabled by `VolatileTmp=no`).
 
