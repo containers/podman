@@ -16,7 +16,7 @@ $ podman cp $(podman create --name remote-temp quay.io/containers/podman-remote-
 
 - For Linux binary
 ```bash
-$ podman cp $(podman create --name remote-temp quay.io/containers/podman-remote-artifacts:latest):/podman-remote-static . && podman rm remote-temp
+$ podman cp $(podman create --name remote-temp quay.io/containers/podman-remote-artifacts:latest):/podman-remote-static-linux_amd64 . && podman rm remote-temp
 ```
 
 - For Mac binary

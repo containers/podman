@@ -1,6 +1,11 @@
 SHELL := bash
 
 ARCH ?= aarch64
+ifeq ($(ARCH), aarch64)
+	GOARCH:=arm64
+else
+	GOARCH:=$(ARCH)
+endif
 GVPROXY_VERSION ?= 0.4.0
 QEMU_VERSION ?= 7.1.0-1
 GVPROXY_RELEASE_URL ?= https://github.com/containers/gvisor-tap-vsock/releases/download/v$(GVPROXY_VERSION)/gvproxy-darwin
@@ -8,7 +13,7 @@ QEMU_RELEASE_URL ?= https://github.com/containers/podman-machine-qemu/releases/d
 PACKAGE_DIR ?= out/packaging
 TMP_DOWNLOAD ?= tmp-download
 PACKAGE_ROOT ?= root
-PKG_NAME := podman-installer-macos-$(ARCH).pkg
+PKG_NAME := podman-installer-macos-$(GOARCH).pkg
 
 default: pkginstaller
 

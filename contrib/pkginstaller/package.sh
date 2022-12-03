@@ -17,10 +17,6 @@ arch=$(cat "${BASEDIR}/ARCH")
 
 function build_podman() {
   pushd "$1"
-    local goArch="${arch}"
-    if [ "${goArch}" = aarch64 ]; then
-        goArch=arm64
-    fi
     make GOARCH="${goArch}" podman-remote HELPER_BINARIES_DIR="${HELPER_BINARIES_DIR}"
     make GOARCH="${goArch}" podman-mac-helper
     cp bin/darwin/podman "contrib/pkginstaller/out/packaging/${binDir}/podman"
@@ -66,6 +62,11 @@ function signQemu() {
     --entitlements "${BASEDIR}/hvf.entitlements" "${qemuBinDir}/qemu-system-${qemuArch}"
 }
 
+goArch="${arch}"
+if [ "${goArch}" = aarch64 ]; then
+  goArch=arm64
+fi
+
 build_podman "../../../../"
 sign "${binDir}/podman"
 sign "${binDir}/gvproxy"
@@ -86,7 +87,7 @@ productbuild --distribution "${BASEDIR}/Distribution" \
 rm "${OUTPUT}/podman.pkg"
 
 if [ ! "${NO_CODESIGN}" -eq "1" ]; then
-  productsign --timestamp --sign "${PRODUCTSIGN_IDENTITY}" "${OUTPUT}/podman-unsigned.pkg" "${OUTPUT}/podman-installer-macos-${arch}.pkg"
+  productsign --timestamp --sign "${PRODUCTSIGN_IDENTITY}" "${OUTPUT}/podman-unsigned.pkg" "${OUTPUT}/podman-installer-macos-${goArch}.pkg"
 else
-  mv "${OUTPUT}/podman-unsigned.pkg" "${OUTPUT}/podman-installer-macos-${arch}.pkg"
+  mv "${OUTPUT}/podman-unsigned.pkg" "${OUTPUT}/podman-installer-macos-${goArch}.pkg"
 fi
