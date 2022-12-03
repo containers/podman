@@ -283,6 +283,9 @@ function _run_altbuild() {
         *RPM*)
             make package
             ;;
+        FreeBSD*Cross)
+            make bin/podman.cross.freebsd.amd64
+            ;;
         Alt*Cross)
             arches=(\
                 amd64
