@@ -8,7 +8,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/containers/common/pkg/completion"
 	"github.com/containers/common/pkg/config"
 	cutil "github.com/containers/common/pkg/util"
 	"github.com/containers/image/v5/transports/alltransports"
@@ -69,6 +68,7 @@ func createFlags(cmd *cobra.Command) {
 		initContainerFlagName, "",
 		"Make this a pod init container.",
 	)
+	_ = cmd.RegisterFlagCompletionFunc(initContainerFlagName, common.AutocompleteInitCtr)
 
 	flags.SetInterspersed(false)
 	common.DefineCreateDefaults(&cliVals)
@@ -86,8 +86,6 @@ func createFlags(cmd *cobra.Command) {
 
 		_ = flags.MarkHidden("pidfile")
 	}
-
-	_ = cmd.RegisterFlagCompletionFunc(initContainerFlagName, completion.AutocompleteDefault)
 }
 
 func init() {

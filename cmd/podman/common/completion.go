@@ -906,6 +906,13 @@ func AutocompleteImageFormat(cmd *cobra.Command, args []string, toComplete strin
 	return ImageFormat, cobra.ShellCompDirectiveNoFileComp
 }
 
+// AutocompleteInitCtr - Autocomplete init container type
+// -> "once", "always"
+func AutocompleteInitCtr(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	InitCtrType := []string{define.AlwaysInitContainer, define.OneShotInitContainer}
+	return InitCtrType, cobra.ShellCompDirectiveNoFileComp
+}
+
 // AutocompleteCreateAttach - Autocomplete create --attach options.
 // -> "stdin", "stdout", "stderr"
 func AutocompleteCreateAttach(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
