@@ -121,6 +121,11 @@ func commonFlags(cmd *cobra.Command) error {
 	if cmd.Flags().Changed("image-volume") {
 		cliVals.ImageVolume = cmd.Flag("image-volume").Value.String()
 	}
+
+	if cmd.Flags().Changed("read-write-tmpfs") && !cliVals.ReadOnly {
+		return errors.New("--read-write-tmpfs is valid only when --read-only=true")
+	}
+
 	return nil
 }
 

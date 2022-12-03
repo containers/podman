@@ -249,7 +249,7 @@ type ContainerCreateOptions struct {
 	Pull               string
 	Quiet              bool
 	ReadOnly           bool
-	ReadOnlyTmpFS      bool
+	ReadWriteTmpFS     bool
 	Restart            string
 	Replace            bool
 	Requires           []string
@@ -308,6 +308,7 @@ func NewInfraContainerCreateOptions() ContainerCreateOptions {
 		IsInfra:          true,
 		ImageVolume:      "bind",
 		MemorySwappiness: -1,
+		ReadWriteTmpFS:   true,
 	}
 	return options
 }

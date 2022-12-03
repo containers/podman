@@ -329,7 +329,7 @@ Suppress output information when pulling images
 
 @@option read-only
 
-@@option read-only-tmpfs
+@@option read-write-tmpfs
 
 @@option replace
 
@@ -455,12 +455,12 @@ made more secure by running them in read-only mode using the **--read-only** swi
 This protects the container's image from modification. By default read-only
 containers can write to temporary data. Podman mounts a tmpfs on _/run_ and
 _/tmp_ within the container. If the container should not write to any file
-system within the container, including tmpfs, set --read-only-tmpfs=false.
+system within the container, including tmpfs, set --read-write-tmpfs=false.
 
 ```
 $ podman run --read-only -i -t fedora /bin/bash
 
-$ podman run --read-only --read-only-tmpfs=false --tmpfs /run -i -t fedora /bin/bash
+$ podman run --read-only --read-write-tmpfs=false --tmpfs /run -i -t fedora /bin/bash
 ```
 
 ### Exposing log messages from the container to the host's log

@@ -26,7 +26,7 @@ var (
 // Does not handle image volumes, init, and --volumes-from flags.
 // Can also add tmpfs mounts from read-only tmpfs.
 // TODO: handle options parsing/processing via containers/storage/pkg/mount
-func parseVolumes(volumeFlag, mountFlag, tmpfsFlag []string, addReadOnlyTmpfs bool) ([]spec.Mount, []*specgen.NamedVolume, []*specgen.OverlayVolume, []*specgen.ImageVolume, error) {
+func parseVolumes(volumeFlag, mountFlag, tmpfsFlag []string, addReadWriteTmpfs bool) ([]spec.Mount, []*specgen.NamedVolume, []*specgen.OverlayVolume, []*specgen.ImageVolume, error) {
 	// Get mounts from the --mounts flag.
 	unifiedMounts, unifiedVolumes, unifiedImageVolumes, err := Mounts(mountFlag)
 	if err != nil {
@@ -79,10 +79,10 @@ func parseVolumes(volumeFlag, mountFlag, tmpfsFlag []string, addReadOnlyTmpfs bo
 	}
 
 	// If requested, add tmpfs filesystems for read-only containers.
-	if addReadOnlyTmpfs {
-		readonlyTmpfs := []string{"/tmp", "/var/tmp", "/run"}
+	if addReadWriteTmpfs {
+		tmpfs := []string{"/tmp", "/var/tmp", "/run"}
 		options := []string{"rw", "rprivate", "nosuid", "nodev", "tmpcopyup"}
-		for _, dest := range readonlyTmpfs {
+		for _, dest := range tmpfs {
 			if _, ok := unifiedMounts[dest]; ok {
 				continue
 			}

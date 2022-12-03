@@ -400,7 +400,7 @@ func cliOpts(cc handlers.CreateContainerConfig, rtc *config.Config) (*entities.C
 		PublishAll:        cc.HostConfig.PublishAllPorts,
 		Quiet:             false,
 		ReadOnly:          cc.HostConfig.ReadonlyRootfs,
-		ReadOnlyTmpFS:     true, // podman default
+		ReadWriteTmpFS:    true, // podman default
 		Rm:                cc.HostConfig.AutoRemove,
 		SecurityOpt:       cc.HostConfig.SecurityOpt,
 		StopSignal:        cc.Config.StopSignal,

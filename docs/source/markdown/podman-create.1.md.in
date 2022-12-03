@@ -305,7 +305,7 @@ Suppress output information when pulling images
 
 @@option read-only
 
-@@option read-only-tmpfs
+@@option read-write-tmpfs
 
 @@option replace
 

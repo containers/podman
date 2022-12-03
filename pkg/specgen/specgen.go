@@ -384,6 +384,9 @@ type ContainerSecurityConfig struct {
 	// ReadOnlyFilesystem indicates that everything will be mounted
 	// as read-only
 	ReadOnlyFilesystem bool `json:"read_only_filesystem,omitempty"`
+	// ReadWriteTmpfs indicates that tmpfs will be mounted
+	// as read-only
+	ReadWriteTmpFS bool `json:"read_write_tmpfs,omitempty"`
 	// Umask is the umask the init process of the container will be run with.
 	Umask string `json:"umask,omitempty"`
 	// ProcOpts are the options used for the proc mount.

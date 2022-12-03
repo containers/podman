@@ -585,10 +585,10 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 	if !s.ReadOnlyFilesystem {
 		s.ReadOnlyFilesystem = c.ReadOnly
 	}
+	s.ReadWriteTmpFS = c.ReadWriteTmpFS
 	if len(s.ConmonPidFile) == 0 || len(c.ConmonPIDFile) != 0 {
 		s.ConmonPidFile = c.ConmonPIDFile
 	}
-
 	if len(s.DependencyContainers) == 0 || len(c.Requires) != 0 {
 		s.DependencyContainers = c.Requires
 	}
@@ -596,9 +596,6 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 	// TODO
 	// outside of specgen and oci though
 	// defaults to true, check spec/storage
-	// s.readonly = c.ReadOnlyTmpFS
-	//  TODO convert to map?
-	// check if key=value and convert
 	sysmap := make(map[string]string)
 	for _, ctl := range c.Sysctl {
 		splitCtl := strings.SplitN(ctl, "=", 2)
@@ -676,7 +673,7 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 
 	// Only add read-only tmpfs mounts in case that we are read-only and the
 	// read-only tmpfs flag has been set.
-	mounts, volumes, overlayVolumes, imageVolumes, err := parseVolumes(c.Volume, c.Mount, c.TmpFS, c.ReadOnlyTmpFS && c.ReadOnly)
+	mounts, volumes, overlayVolumes, imageVolumes, err := parseVolumes(c.Volume, c.Mount, c.TmpFS, c.ReadWriteTmpFS && c.ReadOnly)
 	if err != nil {
 		return err
 	}

@@ -83,7 +83,7 @@ func DefineCreateDefaults(opts *entities.ContainerCreateOptions) {
 	opts.MemorySwappiness = -1
 	opts.ImageVolume = podmanConfig.ContainersConfDefaultsRO.Engine.ImageVolumeMode
 	opts.Pull = policy()
-	opts.ReadOnlyTmpFS = true
+	opts.ReadWriteTmpFS = true
 	opts.SdNotifyMode = define.SdNotifyModeContainer
 	opts.StopTimeout = podmanConfig.ContainersConfDefaultsRO.Engine.StopTimeout
 	opts.Systemd = "true"

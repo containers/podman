@@ -2,6 +2,7 @@ package integration
 
 import (
 	"os"
+	"strings"
 
 	. "github.com/containers/podman/v4/test/utils"
 	. "github.com/onsi/ginkgo"
@@ -51,6 +52,11 @@ var _ = Describe("Podman container clone", func() {
 		Expect(ctrInspect).To(Exit(0))
 		Expect(ctrInspect.InspectContainerToJSON()[0].Name).To(ContainSubstring("-clone1"))
 
+		// FIXME when new crun reaches Ubuntu
+		if podmanTest.Host.Distribution == "ubuntu" &&
+			strings.Contains(podmanTest.OCIRuntime, "crun") {
+			Skip("The version of crun shipped by ubuntu is too old. Needs crun-1.4.2 or greater")
+		}
 		ctrStart := podmanTest.Podman([]string{"container", "start", clone.OutputToString()})
 		ctrStart.WaitWithDefaultTimeout()
 		Expect(ctrStart).To(Exit(0))
@@ -164,12 +170,18 @@ var _ = Describe("Podman container clone", func() {
 
 	It("podman container clone in a pod", func() {
 		SkipIfRootlessCgroupsV1("starting a container with the memory limits not supported")
+		// FIXME when new crun reaches Ubuntu
+		if podmanTest.Host.Distribution == "ubuntu" &&
+			strings.Contains(podmanTest.OCIRuntime, "crun") {
+			Skip("The version of crun shipped by ubuntu is too old. Needs crun-1.4.2 or greater")
+		}
 		run := podmanTest.Podman([]string{"run", "-dt", "--pod", "new:1234", ALPINE, "sleep", "20"})
 		run.WaitWithDefaultTimeout()
 		Expect(run).To(Exit(0))
 		clone := podmanTest.Podman([]string{"container", "clone", run.OutputToString()})
 		clone.WaitWithDefaultTimeout()
 		Expect(clone).To(Exit(0))
+
 		ctrStart := podmanTest.Podman([]string{"container", "start", clone.OutputToString()})
 		ctrStart.WaitWithDefaultTimeout()
 		Expect(ctrStart).To(Exit(0))

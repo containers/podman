@@ -31,6 +31,8 @@ func AliasFlags(f *pflag.FlagSet, name string) pflag.NormalizedName {
 		name = "os"
 	case "override-variant":
 		name = "variant"
+	case "read-only-tmpfs":
+		name = "read-write-tmpfs"
 	}
 	return pflag.NormalizedName(name)
 }

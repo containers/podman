@@ -381,8 +381,8 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 			"Make containers root filesystem read-only",
 		)
 		createFlags.BoolVar(
-			&cf.ReadOnlyTmpFS,
-			"read-only-tmpfs", cf.ReadOnlyTmpFS,
+			&cf.ReadWriteTmpFS,
+			"read-write-tmpfs", cf.ReadWriteTmpFS,
 			"When running containers in read-only mode mount a read-write tmpfs on /run, /tmp and /var/tmp",
 		)
 		requiresFlagName := "requires"

@@ -836,6 +836,25 @@ EOF
     is "${lines[0]}" ".*${HOST}.*"
 }
 
+@test "podman run --read-write-tmpfs" {
+    # FIXME once ubuntu gets a newer crun
+    if is_ubuntu; then
+        if [ $(podman_runtime) == "crun" ]; then
+	   skip "The version of crun shipped by ubuntu is too old. Needs crun-1.4.2 or greater"
+	fi
+    fi
+    HOST=$(random_string 25)
+    run_podman 1 run --rm --read-only $IMAGE touch /foo
+    is "$output" "touch: /foo: Read-only file system" "Should fail with read only file system"
+
+    for rwdir in /run /tmp /var/tmp /dev /dev/shm; do
+        run_podman run --rm --read-only $IMAGE touch ${rwdir}/foo
+        run_podman run --rm --read-only --read-write-tmpfs=true $IMAGE touch ${rwdir}/foo
+	run_podman 1 run --rm --read-only --read-write-tmpfs=false $IMAGE touch ${rwdir}/foo
+	is "$output" "touch: ${rwdir}/foo: Read-only file system" "Should fail with ${rwdir}/foo read only file system"
+     done
+}
+
 @test "podman run doesn't override oom-score-adj" {
     current_oom_score_adj=$(cat /proc/self/oom_score_adj)
     run_podman run --rm $IMAGE cat /proc/self/oom_score_adj
