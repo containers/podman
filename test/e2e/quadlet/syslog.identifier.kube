@@ -11,7 +11,10 @@
 ## assert-key-is "Service" "Type" "notify"
 ## assert-key-is "Service" "NotifyAccess" "all"
 ## assert-key-is "Service" "Environment" "PODMAN_SYSTEMD_UNIT=%n"
-## assert-key-is "Service" "SyslogIdentifier" "%N"
+## assert-key-is "Service" "SyslogIdentifier" "mytest"
+
+[Service]
+SyslogIdentifier=mytest
 
 [Kube]
 Yaml=deployment.yml

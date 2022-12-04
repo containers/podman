@@ -638,6 +638,10 @@ func ConvertKube(kube *parser.UnitFile) (*parser.UnitFile, error) {
 		"Type", "notify",
 		"NotifyAccess", "all")
 
+	if !kube.HasKey(ServiceGroup, "SyslogIdentifier") {
+		service.Set(ServiceGroup, "SyslogIdentifier", "%N")
+	}
+
 	execStart := NewPodmanCmdline("kube", "play")
 
 	execStart.add(
