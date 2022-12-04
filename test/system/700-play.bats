@@ -196,6 +196,30 @@ EOF
     run_podman rm -a
 }
 
+@test "podman kube play read-only" {
+    YAML=$PODMAN_TMPDIR/test.yml
+    run_podman create --pod new:pod1 --name test1 $IMAGE touch /testrw
+    run_podman create --pod pod1 --read-only --name test2 $IMAGE touch /testro
+    run_podman create --pod pod1 --read-only --name test3 $IMAGE touch /tmp/testtmp
+    run_podman kube generate pod1 -f $YAML
+
+    run_podman kube play --replace $YAML
+    run_podman container inspect --format '{{.HostConfig.ReadonlyRootfs}}' pod1-test1 pod1-test2 pod1-test3
+    is "$output" "false.*true.*true" "Rootfs should be read/only"
+
+    run_podman inspect --format "{{.State.ExitCode}}" pod1-test1
+    is "$output" "0" "Container / should be read/write"
+    run_podman inspect --format "{{.State.ExitCode}}" pod1-test2
+    is "$output" "1" "Container / should be read/only"
+    run_podman inspect --format "{{.State.ExitCode}}" pod1-test3
+    is "$output" "0" "/tmp in a read-only container should be read/write"
+
+    run_podman kube down - < $YAML
+    run_podman 1 container exists pod1-test1
+    run_podman 1 container exists pod1-test2
+    run_podman 1 container exists pod1-test3
+}
+
 @test "podman play with user from image" {
     TESTDIR=$PODMAN_TMPDIR/testdir
     mkdir -p $TESTDIR
@@ -416,4 +440,7 @@ spec:
     run_podman pod inspect test_pod --format "{{.InfraConfig.PortBindings}}"
     assert "$output" = "map[$HOST_PORT/tcp:[{ $HOST_PORT}]]"
     run_podman kube down $PODMAN_TMPDIR/testpod.yaml
+
+    run_podman pod rm -a -f
+    run_podman rm -a -f
 }
