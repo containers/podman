@@ -32,6 +32,7 @@ so networks have to be created again after a backend change.
 | prune      | [podman-network-prune(1)](podman-network-prune.1.md)           | Remove all unused networks                                      |
 | reload     | [podman-network-reload(1)](podman-network-reload.1.md)         | Reload network configuration for containers                     |
 | rm         | [podman-network-rm(1)](podman-network-rm.1.md)                 | Remove one or more networks                                     |
+| update     | [podman-network-upate(1)](podman-network-update.1.md)          | Update an existing Podman network                               |
 
 ## SEE ALSO
 **[podman(1)](podman.1.md)**, **[containers.conf(5)](https://github.com/containers/common/blob/main/docs/containers.conf.5.md)**

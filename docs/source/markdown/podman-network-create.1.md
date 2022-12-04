@@ -24,6 +24,10 @@ release because it is used as a special network mode in **podman run/create --ne
 Disables the DNS plugin for this network which if enabled, can perform container to container name
 resolution.
 
+#### **--dns**=*ip*
+
+Set network-scoped DNS resolver/nameserver for containers in this network. If not set, the host servers from `/etc/resolv.conf` will be used.  It can be overwritten on the container level with the `podman run/create --dns` option. This option can be specified multiple times to set more than one IP.
+
 #### **--driver**, **-d**
 
 Driver to manage the network. Currently `bridge`, `macvlan` and `ipvlan` are supported. Defaults to `bridge`.

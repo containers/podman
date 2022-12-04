@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"encoding/json"
 	"fmt"
 	"net"
 	"os"
@@ -8,6 +9,7 @@ import (
 	"syscall"
 
 	"github.com/containernetworking/plugins/pkg/ns"
+	"github.com/containers/common/libnetwork/types"
 	. "github.com/containers/podman/v4/test/utils"
 	"github.com/containers/storage/pkg/stringid"
 	. "github.com/onsi/ginkgo"
@@ -38,6 +40,56 @@ var _ = Describe("Podman run networking", func() {
 		podmanTest.Cleanup()
 		f := CurrentGinkgoTestDescription()
 		processTestResult(f)
+
+	})
+
+	It("podman verify network scoped DNS server and also verify updating network dns server", func() {
+		// TODO: Unskip after https://github.com/containers/podman/pull/16525
+		Skip("TODO: unskip after https://github.com/containers/podman/pull/16525")
+		// Following test is only functional with netavark and aardvark
+		SkipIfCNI(podmanTest)
+		net := createNetworkName("IntTest")
+		session := podmanTest.Podman([]string{"network", "create", net, "--dns", "1.1.1.1"})
+		session.WaitWithDefaultTimeout()
+		defer podmanTest.removeNetwork(net)
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"network", "inspect", net})
+		session.WaitWithDefaultTimeout()
+		defer podmanTest.removeNetwork(net)
+		var results []types.Network
+		err := json.Unmarshal([]byte(session.OutputToString()), &results)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(results).To(HaveLen(1))
+		result := results[0]
+		Expect(result.Subnets).To(HaveLen(1))
+		aardvarkDNSGateway := result.Subnets[0].Gateway.String()
+		Expect(session.OutputToString()).To(ContainSubstring("1.1.1.1"))
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"run", "-d", "--name", "con1", "--network", net, "busybox", "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"exec", "-i", "con1", "nslookup", "google.com", aardvarkDNSGateway})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).To(ContainSubstring("Non-authoritative answer: Name: google.com Address:"))
+
+		// Update to a bad DNS Server
+		session = podmanTest.Podman([]string{"network", "update", net, "--dns-add", "7.7.7.7"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		// Remove good DNS server
+		session = podmanTest.Podman([]string{"network", "update", net, "--dns-drop=1.1.1.1"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"exec", "-i", "con1", "nslookup", "google.com", aardvarkDNSGateway})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(1))
+		Expect(session.OutputToString()).To(ContainSubstring(";; connection timed out; no servers could be reached"))
 
 	})
 

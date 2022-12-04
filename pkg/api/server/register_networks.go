@@ -234,6 +234,33 @@ func (s *APIServer) registerNetworkHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/internalError"
 	r.HandleFunc(VersionedPath("/libpod/networks/{name}"), s.APIHandler(libpod.RemoveNetwork)).Methods(http.MethodDelete)
+	// swagger:operation POST /libpod/networks/{name}/update libpod NetworkUpdateLibpod
+	// ---
+	// tags:
+	//  - networks
+	// summary: Update exisiting podman network
+	// description: Update exisiting podman network
+	// produces:
+	// - application/json
+	// parameters:
+	//  - in: path
+	//    name: name
+	//    type: string
+	//    required: true
+	//    description: the name or ID of the network
+	//  - in: body
+	//    name: update
+	//    description: attributes for updating a netavark network
+	//    schema:
+	//      $ref: "#/definitions/networkUpdateRequestLibpod"
+	// responses:
+	//   200:
+	//     description: OK
+	//   400:
+	//     $ref: "#/responses/badParamError"
+	//   500:
+	//     $ref: "#/responses/internalError"
+	r.HandleFunc(VersionedPath("/libpod/networks/{name}/update"), s.APIHandler(libpod.UpdateNetwork)).Methods(http.MethodPost)
 	// swagger:operation GET /libpod/networks/{name}/exists libpod NetworkExistsLibpod
 	// ---
 	// tags:

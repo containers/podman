@@ -53,6 +53,26 @@ func CreateNetwork(w http.ResponseWriter, r *http.Request) {
 	utils.WriteResponse(w, http.StatusOK, report)
 }
 
+func UpdateNetwork(w http.ResponseWriter, r *http.Request) {
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
+	ic := abi.ContainerEngine{Libpod: runtime}
+
+	networkUpdateOptions := entities.NetworkUpdateOptions{}
+	if err := json.NewDecoder(r.Body).Decode(&networkUpdateOptions); err != nil {
+		utils.Error(w, http.StatusBadRequest, fmt.Errorf("failed to decode request JSON payload: %w", err))
+		return
+	}
+
+	name := utils.GetName(r)
+
+	err := ic.NetworkUpdate(r.Context(), name, networkUpdateOptions)
+	if err != nil {
+		utils.Error(w, http.StatusInternalServerError, err)
+	}
+
+	utils.WriteResponse(w, http.StatusNoContent, nil)
+}
+
 func ListNetworks(w http.ResponseWriter, r *http.Request) {
 	if v, err := utils.SupportedVersion(r, ">=4.0.0"); err != nil {
 		utils.BadRequest(w, "version", v.String(), err)

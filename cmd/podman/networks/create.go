@@ -80,6 +80,9 @@ func networkCreateFlags(cmd *cobra.Command) {
 	flags.BoolVar(&networkCreateOptions.DisableDNS, "disable-dns", false, "disable dns plugin")
 
 	flags.BoolVar(&networkCreateOptions.IgnoreIfExists, "ignore", false, "Don't fail if network already exists")
+	dnsserverFlagName := "dns"
+	flags.StringArrayVar(&networkCreateOptions.NetworkDNSServers, dnsserverFlagName, nil, "DNS servers this network will use")
+	_ = cmd.RegisterFlagCompletionFunc(dnsserverFlagName, completion.AutocompleteNone)
 }
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
@@ -107,13 +110,14 @@ func networkCreate(cmd *cobra.Command, args []string) error {
 	}
 
 	network := types.Network{
-		Name:        name,
-		Driver:      networkCreateOptions.Driver,
-		Options:     networkCreateOptions.Options,
-		Labels:      networkCreateOptions.Labels,
-		IPv6Enabled: networkCreateOptions.IPv6,
-		DNSEnabled:  !networkCreateOptions.DisableDNS,
-		Internal:    networkCreateOptions.Internal,
+		Name:              name,
+		Driver:            networkCreateOptions.Driver,
+		Options:           networkCreateOptions.Options,
+		Labels:            networkCreateOptions.Labels,
+		IPv6Enabled:       networkCreateOptions.IPv6,
+		DNSEnabled:        !networkCreateOptions.DisableDNS,
+		NetworkDNSServers: networkCreateOptions.NetworkDNSServers,
+		Internal:          networkCreateOptions.Internal,
 	}
 
 	if cmd.Flags().Changed(ipamDriverFlagName) {

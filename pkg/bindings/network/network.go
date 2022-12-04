@@ -50,6 +50,25 @@ func CreateWithOptions(ctx context.Context, network *types.Network, extraCreateO
 	return report, response.Process(&report)
 }
 
+// Updates an existing netavark network config
+func Update(ctx context.Context, netNameOrID string, options *UpdateOptions) error {
+	conn, err := bindings.GetClient(ctx)
+	if err != nil {
+		return err
+	}
+	networkConfig, err := jsoniter.MarshalToString(options)
+	if err != nil {
+		return err
+	}
+	reader := strings.NewReader(networkConfig)
+	response, err := conn.DoRequest(ctx, reader, http.MethodPost, "/networks/%s/update", nil, nil, netNameOrID)
+	if err != nil {
+		return err
+	}
+	defer response.Body.Close()
+	return response.Process(nil)
+}
+
 // Inspect returns information about a network configuration
 func Inspect(ctx context.Context, nameOrID string, _ *InspectOptions) (types.Network, error) {
 	var net types.Network

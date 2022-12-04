@@ -64,6 +64,7 @@ type ContainerEngine interface { //nolint:interfacebloat
 	KubeApply(ctx context.Context, body io.Reader, opts ApplyOptions) error
 	NetworkConnect(ctx context.Context, networkname string, options NetworkConnectOptions) error
 	NetworkCreate(ctx context.Context, network types.Network, createOptions *types.NetworkCreateOptions) (*types.Network, error)
+	NetworkUpdate(ctx context.Context, networkname string, options NetworkUpdateOptions) error
 	NetworkDisconnect(ctx context.Context, networkname string, options NetworkDisconnectOptions) error
 	NetworkExists(ctx context.Context, networkname string) (*BoolReport, error)
 	NetworkInspect(ctx context.Context, namesOrIds []string, options InspectOptions) ([]types.Network, []error, error)
