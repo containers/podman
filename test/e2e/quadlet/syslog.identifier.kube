@@ -1,16 +1,3 @@
-## assert-podman-args "kube"
-## assert-podman-args "play"
-## assert-podman-final-args deployment.yml
-## assert-podman-args "--replace"
-## assert-podman-args "--service-container=true"
-## assert-podman-stop-args "kube"
-## assert-podman-stop-args "down"
-## assert-podman-stop-final-args deployment.yml
-## assert-key-is "Unit" "RequiresMountsFor" "%t/containers"
-## assert-key-is "Service" "KillMode" "mixed"
-## assert-key-is "Service" "Type" "notify"
-## assert-key-is "Service" "NotifyAccess" "all"
-## assert-key-is "Service" "Environment" "PODMAN_SYSTEMD_UNIT=%n"
 ## assert-key-is "Service" "SyslogIdentifier" "mytest"
 
 [Service]
