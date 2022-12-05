@@ -1,4 +1,4 @@
-//nolint:deadcode,unused // these types are used to wire generated swagger to API code
+//nolint:unused // these types are used to wire generated swagger to API code
 package swagger
 
 import (

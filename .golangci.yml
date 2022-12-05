@@ -62,6 +62,9 @@ linters:
     - golint # replaced by revive
     - scopelint # replaced by exportloopref
     - interfacer
+    - deadcode    # deprecated since v1.49.0, replaced by unused
+    - structcheck # deprecated since v1.49.0, replaced by unused
+    - varcheck    # deprecated since v1.49.0, replaced by unused
 linters-settings:
   errcheck:
     check-blank: false
