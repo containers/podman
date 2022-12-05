@@ -109,13 +109,13 @@ var _ = Describe("Podman UserNS support", func() {
 	})
 
 	It("podman uidmapping and gidmapping with an idmapped volume", func() {
-		session := podmanTest.Podman([]string{"run", "--uidmap=0:1:500", "--gidmap=0:200:5000", "-v", "my-foo-volume:/foo:Z,idmap", "alpine", "echo", "hello"})
+		session := podmanTest.Podman([]string{"run", "--uidmap=0:1:500", "--gidmap=0:200:5000", "-v", "my-foo-volume:/foo:Z,idmap", "alpine", "stat", "-c", "#%u:%g#", "/foo"})
 		session.WaitWithDefaultTimeout()
 		if strings.Contains(session.ErrorToString(), "Operation not permitted") {
 			Skip("not sufficiently privileged")
 		}
 		Expect(session).Should(Exit(0))
-		Expect(session.OutputToString()).To(ContainSubstring("hello"))
+		Expect(session.OutputToString()).To(ContainSubstring("#0:0#"))
 	})
 
 	It("podman uidmapping and gidmapping --net=host", func() {

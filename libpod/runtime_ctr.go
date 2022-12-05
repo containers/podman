@@ -495,16 +495,21 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 		logrus.Debugf("Creating new volume %s for container", vol.Name)
 
 		// The volume does not exist, so we need to create it.
-		volOptions := []VolumeCreateOption{WithVolumeName(vol.Name), WithVolumeUID(ctr.RootUID()), WithVolumeGID(ctr.RootGID())}
+		volOptions := []VolumeCreateOption{WithVolumeName(vol.Name)}
 		if isAnonymous {
 			volOptions = append(volOptions, withSetAnon())
 		}
+
+		needsChown := true
 
 		// If volume-opts are set parse and add driver opts.
 		if len(vol.Options) > 0 {
 			isDriverOpts := false
 			driverOpts := make(map[string]string)
 			for _, opts := range vol.Options {
+				if opts == "idmap" {
+					needsChown = false
+				}
 				if strings.HasPrefix(opts, "volume-opt") {
 					isDriverOpts = true
 					driverOptKey, driverOptValue, err := util.ParseDriverOpts(opts)
@@ -519,6 +524,13 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 				volOptions = append(volOptions, parsedOptions...)
 			}
 		}
+
+		if needsChown {
+			volOptions = append(volOptions, WithVolumeUID(ctr.RootUID()), WithVolumeGID(ctr.RootGID()))
+		} else {
+			volOptions = append(volOptions, WithVolumeNoChown())
+		}
+
 		newVol, err := r.newVolume(ctx, false, volOptions...)
 		if err != nil {
 			return nil, fmt.Errorf("creating named volume %q: %w", vol.Name, err)
