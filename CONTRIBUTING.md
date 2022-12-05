@@ -309,49 +309,7 @@ podman build -t gate -f contrib/gate/Dockerfile .
 
 ***N/B:*** **don't miss the dot (.) at the end, it's really important**
 
-#### Local use of gate container
-
-The gate container's entry-point executes 'make' by default, on a copy of
-the repository made at runtime.  This avoids the container changing or
-leaving build artifacts in your hosts working directory.  It also guarantees
-every execution is based upon pristine code provided from the host.
-
-Execution does not require any special permissions from the host. However,
-your Podman repository clone's root must be bind-mounted to the container at
-'/usr/src/libpod'.  The copy will be made into /var/tmp/go (`$GOSRC` in container)
-before running your make target.  For example, running `make lint` from a
-repository clone at $HOME/devel/podman could be done with the commands:
-
-```bash
-$ cd $HOME/devel/podman
-$ podman run -it --rm -v $PWD:/usr/src/libpod:ro \
-    --security-opt label=disable quay.io/libpod/gate:master \
-    lint
-```
-
-***N/B:*** Depending on your clone's git remotes-configuration,
-(esp. for `validate` and `lint` targets), you may also need to reference the
-commit which was your upstream fork-point.  Otherwise you may receive an error
-similar to:
-
-```
-fatal: Not a valid object name master
-Makefile:152: *** Required variable EPOCH_TEST_COMMIT value is undefined, whitespace, or empty.  Stop.
-```
-
-For example, assuming your have a remote called `upstream` running the
-validate target should be done like this:
-
-```bash
-$ cd $HOME/devel/podman
-$ git remote update upstream
-$ export EPOCH_TEST_COMMIT=$(git merge-base upstream/master HEAD)
-$ podman run -it --rm -e EPOCH_TEST_COMMIT -v $PWD:/usr/src/libpod:ro \
-    --security-opt label=disable quay.io/libpod/gate:master \
-    validate
-```
-
-### Integration and Other Tests
+### Integration Tests
 
 Our primary means of performing integration testing for Podman is with the
 [Ginkgo](https://github.com/onsi/ginkgo) BDD testing framework. This allows
