@@ -2,6 +2,7 @@ version: "3.2"
 services:
   test:
     image: alpine
+    mac_address: 32:b5:b2:55:48:72
     networks:
       net1:
         ipv4_address: 10.123.0.253

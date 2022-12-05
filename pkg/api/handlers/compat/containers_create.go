@@ -287,6 +287,9 @@ func cliOpts(cc handlers.CreateContainerConfig, rtc *config.Config) (*entities.C
 		NoHosts:        rtc.Containers.NoHosts,
 	}
 
+	// sigh docker-compose sets the mac address on the container config instead on the per network endpoint config
+	containerMacAddress := cc.MacAddress
+
 	// network names
 	switch {
 	case len(cc.NetworkingConfig.EndpointsConfig) > 0:
@@ -331,6 +334,16 @@ func cliOpts(cc handlers.CreateContainerConfig, rtc *config.Config) (*entities.C
 						return nil, nil, fmt.Errorf("failed to parse the mac address %q", endpoint.MacAddress)
 					}
 					netOpts.StaticMAC = types.HardwareAddr(staticMac)
+				} else if len(containerMacAddress) > 0 {
+					// docker-compose only sets one mac address for the container on the container config
+					// If there are more than one network attached it will end up on the first one,
+					// which is not deterministic since we iterate a map. Not nice but this matches docker.
+					staticMac, err := net.ParseMAC(containerMacAddress)
+					if err != nil {
+						return nil, nil, fmt.Errorf("failed to parse the mac address %q", containerMacAddress)
+					}
+					netOpts.StaticMAC = types.HardwareAddr(staticMac)
+					containerMacAddress = ""
 				}
 			}
 
