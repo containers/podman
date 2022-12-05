@@ -2,6 +2,7 @@ package quadlet
 
 import (
 	"fmt"
+	"path/filepath"
 	"regexp"
 	"strings"
 
@@ -615,6 +616,18 @@ func ConvertKube(kube *parser.UnitFile) (*parser.UnitFile, error) {
 	yamlPath, ok := kube.Lookup(KubeGroup, KeyYaml)
 	if !ok || len(yamlPath) == 0 {
 		return nil, fmt.Errorf("no Yaml key specified")
+	}
+
+	if !filepath.IsAbs(yamlPath) {
+		if len(kube.Path) > 0 {
+			yamlPath = filepath.Join(filepath.Dir(kube.Path), yamlPath)
+		} else {
+			var err error
+			yamlPath, err = filepath.Abs(yamlPath)
+			if err != nil {
+				return nil, err
+			}
+		}
 	}
 
 	// Only allow mixed or control-group, as nothing else works well

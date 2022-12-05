@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/containers/podman/v4/pkg/systemd/parser"
@@ -58,6 +59,20 @@ func matchSublistAt(full []string, pos int, sublist []string) bool {
 
 	for i := range sublist {
 		if sublist[i] != full[pos+i] {
+			return false
+		}
+	}
+	return true
+}
+
+func matchSublistRegexAt(full []string, pos int, sublist []string) bool {
+	if len(sublist) > len(full)-pos {
+		return false
+	}
+
+	for i := range sublist {
+		matched, err := regexp.MatchString(sublist[i], full[pos+i])
+		if err != nil || !matched {
 			return false
 		}
 	}
@@ -123,6 +138,14 @@ func (t *quadletTestcase) assertPodmanFinalArgs(args []string, unit *parser.Unit
 	return matchSublistAt(podmanArgs, len(podmanArgs)-len(args), args)
 }
 
+func (t *quadletTestcase) assertPodmanFinalArgsRegex(args []string, unit *parser.UnitFile, key string) bool {
+	podmanArgs, _ := unit.LookupLastArgs("Service", key)
+	if len(podmanArgs) < len(args) {
+		return false
+	}
+	return matchSublistRegexAt(podmanArgs, len(podmanArgs)-len(args), args)
+}
+
 func (t *quadletTestcase) assertStartPodmanArgs(args []string, unit *parser.UnitFile) bool {
 	return t.assertPodmanArgs(args, unit, "ExecStart")
 }
@@ -131,12 +154,20 @@ func (t *quadletTestcase) assertStartPodmanFinalArgs(args []string, unit *parser
 	return t.assertPodmanFinalArgs(args, unit, "ExecStart")
 }
 
+func (t *quadletTestcase) assertStartPodmanFinalArgsRegex(args []string, unit *parser.UnitFile) bool {
+	return t.assertPodmanFinalArgsRegex(args, unit, "ExecStart")
+}
+
 func (t *quadletTestcase) assertStopPodmanArgs(args []string, unit *parser.UnitFile) bool {
 	return t.assertPodmanArgs(args, unit, "ExecStop")
 }
 
 func (t *quadletTestcase) assertStopPodmanFinalArgs(args []string, unit *parser.UnitFile) bool {
 	return t.assertPodmanFinalArgs(args, unit, "ExecStop")
+}
+
+func (t *quadletTestcase) assertStopPodmanFinalArgsRegex(args []string, unit *parser.UnitFile) bool {
+	return t.assertPodmanFinalArgsRegex(args, unit, "ExecStop")
 }
 
 func (t *quadletTestcase) assertSymlink(args []string, unit *parser.UnitFile) bool {
@@ -180,12 +211,16 @@ func (t *quadletTestcase) doAssert(check []string, unit *parser.UnitFile, sessio
 		ok = t.assertStartPodmanArgs(args, unit)
 	case "assert-podman-final-args":
 		ok = t.assertStartPodmanFinalArgs(args, unit)
+	case "assert-podman-final-args-regex":
+		ok = t.assertStartPodmanFinalArgsRegex(args, unit)
 	case "assert-symlink":
 		ok = t.assertSymlink(args, unit)
 	case "assert-podman-stop-args":
 		ok = t.assertStopPodmanArgs(args, unit)
 	case "assert-podman-stop-final-args":
 		ok = t.assertStopPodmanFinalArgs(args, unit)
+	case "assert-podman-stop-final-args-regex":
+		ok = t.assertStopPodmanFinalArgsRegex(args, unit)
 	default:
 		return fmt.Errorf("Unsupported assertion %s", op)
 	}
@@ -323,6 +358,7 @@ var _ = Describe("quadlet system generator", func() {
 
 		Entry("Basic kube", "basic.kube"),
 		Entry("Syslog Identifier", "syslog.identifier.kube"),
+		Entry("Absolute Path", "absolute.path.kube"),
 	)
 
 })
