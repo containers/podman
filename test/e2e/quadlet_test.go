@@ -322,6 +322,7 @@ var _ = Describe("quadlet system generator", func() {
 		Entry("uid.volume", "uid.volume"),
 
 		Entry("Basic kube", "basic.kube"),
+		Entry("Syslog Identifier", "syslog.identifier.kube"),
 	)
 
 })
