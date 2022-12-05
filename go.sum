@@ -264,8 +264,8 @@ github.com/containernetworking/plugins v1.1.1 h1:+AGfFigZ5TiQH00vhR8qPeSatj53eNG
 github.com/containernetworking/plugins v1.1.1/go.mod h1:Sr5TH/eBsGLXK/h71HeLfX19sZPp3ry5uHSkI4LPxV8=
 github.com/containers/buildah v1.28.1-0.20221130132810-cf661299d14f h1:Nzbda2tG7/aimoKnDxysqFgS1Q/gSsbcn88lFPj9LwY=
 github.com/containers/buildah v1.28.1-0.20221130132810-cf661299d14f/go.mod h1:0HcSoS6BHXWzMKqtxY1L0gupebEX33oPC+X62lPi6+c=
-github.com/containers/common v0.50.2-0.20221128124429-24d78208a290 h1:ds8YJg3Z91jOcqVR31aFFMH+BOobolXBeGktas58VgY=
-github.com/containers/common v0.50.2-0.20221128124429-24d78208a290/go.mod h1:rzuZglPq/5sz6n29nhyDPCXh44CZymkCR2sacEZb7zw=
+github.com/containers/common v0.50.2-0.20221206110749-eb48ebbf8ca9 h1:L54LXA/DGRhp1cDN11HLaXcLCYh/ftqDhKYn9S1uetc=
+github.com/containers/common v0.50.2-0.20221206110749-eb48ebbf8ca9/go.mod h1:M1epBsHlUAeySDuMx+HdbvKBVf0odzLciecS5AQa6FA=
 github.com/containers/conmon v2.0.20+incompatible h1:YbCVSFSCqFjjVwHTPINGdMX1F6JXHGTUje2ZYobNrkg=
 github.com/containers/conmon v2.0.20+incompatible/go.mod h1:hgwZ2mtuDrppv78a/cOBNiCm6O0UMWGx1mu7P00nu5I=
 github.com/containers/image/v5 v5.23.1-0.20221130170538-333c50e3eac8 h1:GLTTwKYkNGDhG3HagLuPvhieu1JEjDs9RsCDr8oJr9s=
@@ -1232,8 +1232,8 @@ golang.org/x/sys v0.0.0-20220817070843-5a390386f1f2/go.mod h1:oPkhp1MJrh7nUepCBc
 golang.org/x/sys v0.0.0-20220823224334-20c2bfdbfe24/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/sys v0.0.0-20220908164124-27713097b956/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/sys v0.0.0-20220909162455-aba9fc2a8ff2/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
-golang.org/x/sys v0.2.0 h1:ljd4t30dBnAvMZaQCevtY0xLLD0A+bRZXbgLMLU1F/A=
-golang.org/x/sys v0.2.0/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
+golang.org/x/sys v0.3.0 h1:w8ZOecv6NaNa/zC8944JTU3vz4u6Lagfk4RPQxv92NQ=
+golang.org/x/sys v0.3.0/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/term v0.0.0-20201126162022-7de9c90e9dd1/go.mod h1:bj7SfCRtBDWHUb9snDiAeCFNEtKQo2Wmx5Cou7ajbmo=
 golang.org/x/term v0.0.0-20210615171337-6886f2dfbf5b/go.mod h1:jbD1KX2456YbFQfuXm/mYQcufACuNUgVhRMnK/tPxf8=
 golang.org/x/term v0.2.0 h1:z85xZCsEl7bi/KwbNADeBYoOP0++7W1ipu+aGnpwzRM=

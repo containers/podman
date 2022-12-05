@@ -143,7 +143,7 @@ func (ic *ContainerEngine) NetworkCreate(ctx context.Context, network types.Netw
 	if util.StringInSlice(network.Name, []string{"none", "host", "bridge", "private", "slirp4netns", "container", "ns"}) {
 		return nil, fmt.Errorf("cannot create network with name %q because it conflicts with a valid network mode", network.Name)
 	}
-	network, err := ic.Libpod.Network().NetworkCreate(network)
+	network, err := ic.Libpod.Network().NetworkCreate(network, nil)
 	if err != nil {
 		return nil, err
 	}

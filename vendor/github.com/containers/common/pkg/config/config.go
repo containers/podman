@@ -194,6 +194,9 @@ type ContainersConfig struct {
 	// performance implications.
 	PrepareVolumeOnCreate bool `toml:"prepare_volume_on_create,omitempty"`
 
+	// ReadOnly causes engine to run all containers with root file system mounted read-only
+	ReadOnly bool `toml:"read_only,omitempty"`
+
 	// SeccompProfile is the seccomp.json profile path which is used as the
 	// default for the runtime.
 	SeccompProfile string `toml:"seccomp_profile,omitempty"`

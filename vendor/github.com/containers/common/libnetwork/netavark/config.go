@@ -21,7 +21,7 @@ import (
 
 // NetworkCreate will take a partial filled Network and fill the
 // missing fields. It creates the Network and returns the full Network.
-func (n *netavarkNetwork) NetworkCreate(net types.Network) (types.Network, error) {
+func (n *netavarkNetwork) NetworkCreate(net types.Network, options *types.NetworkCreateOptions) (types.Network, error) {
 	n.lock.Lock()
 	defer n.lock.Unlock()
 	err := n.loadNetworks()
@@ -30,6 +30,11 @@ func (n *netavarkNetwork) NetworkCreate(net types.Network) (types.Network, error
 	}
 	network, err := n.networkCreate(&net, false)
 	if err != nil {
+		if options != nil && options.IgnoreIfExists && errors.Is(err, types.ErrNetworkExists) {
+			if network, ok := n.networks[net.Name]; ok {
+				return *network, nil
+			}
+		}
 		return types.Network{}, err
 	}
 	// add the new network to the map

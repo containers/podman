@@ -127,7 +127,7 @@ func NewManager(rootPath string) (*SecretsManager, error) {
 		return nil, err
 	}
 
-	lock, err := lockfile.GetLockfile(filepath.Join(rootPath, "secrets.lock"))
+	lock, err := lockfile.GetLockFile(filepath.Join(rootPath, "secrets.lock"))
 	if err != nil {
 		return nil, err
 	}

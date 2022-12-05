@@ -9,7 +9,7 @@ import (
 type ContainerNetwork interface {
 	// NetworkCreate will take a partial filled Network and fill the
 	// missing fields. It creates the Network and returns the full Network.
-	NetworkCreate(Network) (Network, error)
+	NetworkCreate(Network, *NetworkCreateOptions) (Network, error)
 	// NetworkRemove will remove the Network with the given name or ID.
 	NetworkRemove(nameOrID string) error
 	// NetworkList will return all known Networks. Optionally you can
@@ -289,3 +289,8 @@ type TeardownOptions struct {
 
 // FilterFunc can be passed to NetworkList to filter the networks.
 type FilterFunc func(Network) bool
+
+type NetworkCreateOptions struct {
+	// IgnoreIfExists if true, do not fail if the network already exists
+	IgnoreIfExists bool
+}
