@@ -29,7 +29,7 @@ func TryJoinPauseProcess(pausePidPath string) (bool, int, error) {
 	}
 
 	// It could not join the pause process, let's lock the file before trying to delete it.
-	pidFileLock, err := lockfile.GetLockfile(pausePidPath)
+	pidFileLock, err := lockfile.GetLockFile(pausePidPath)
 	if err != nil {
 		// The file was deleted by another process.
 		if os.IsNotExist(err) {

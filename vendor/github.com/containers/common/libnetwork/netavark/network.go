@@ -95,7 +95,7 @@ type InitConfig struct {
 // Note: The networks are not loaded from disk until a method is called.
 func NewNetworkInterface(conf *InitConfig) (types.ContainerNetwork, error) {
 	// TODO: consider using a shared memory lock
-	lock, err := lockfile.GetLockfile(filepath.Join(conf.NetworkConfigDir, "netavark.lock"))
+	lock, err := lockfile.GetLockFile(filepath.Join(conf.NetworkConfigDir, "netavark.lock"))
 	if err != nil {
 		return nil, err
 	}

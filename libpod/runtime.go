@@ -35,6 +35,7 @@ import (
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/containers/podman/v4/utils"
 	"github.com/containers/storage"
+	"github.com/containers/storage/pkg/lockfile"
 	"github.com/containers/storage/pkg/unshare"
 	"github.com/docker/docker/pkg/namesgenerator"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
@@ -539,7 +540,7 @@ func makeRuntime(runtime *Runtime) (retErr error) {
 	// This check must be locked to prevent races
 	runtimeAliveLock := filepath.Join(runtime.config.Engine.TmpDir, "alive.lck")
 	runtimeAliveFile := filepath.Join(runtime.config.Engine.TmpDir, "alive")
-	aliveLock, err := storage.GetLockfile(runtimeAliveLock)
+	aliveLock, err := lockfile.GetLockFile(runtimeAliveLock)
 	if err != nil {
 		return fmt.Errorf("acquiring runtime init lock: %w", err)
 	}

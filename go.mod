@@ -12,12 +12,12 @@ require (
 	github.com/containernetworking/cni v1.1.2
 	github.com/containernetworking/plugins v1.1.1
 	github.com/containers/buildah v1.28.1-0.20221130132810-cf661299d14f
-	github.com/containers/common v0.50.2-0.20221128124429-24d78208a290
+	github.com/containers/common v0.50.2-0.20221205130757-9041cfa40eb5
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/image/v5 v5.23.1-0.20221130170538-333c50e3eac8
 	github.com/containers/ocicrypt v1.1.6
 	github.com/containers/psgo v1.8.0
-	github.com/containers/storage v1.44.1-0.20221121144727-71fd3e87df7a
+	github.com/containers/storage v1.44.1-0.20221201083122-c5a80ad65f42
 	github.com/coreos/go-systemd/v22 v22.5.0
 	github.com/coreos/stream-metadata-go v0.0.0-20210225230131-70edb9eb47b3
 	github.com/cyphar/filepath-securejoin v0.2.3
@@ -62,7 +62,7 @@ require (
 	go.etcd.io/bbolt v1.3.6
 	golang.org/x/net v0.2.0
 	golang.org/x/sync v0.1.0
-	golang.org/x/sys v0.2.0
+	golang.org/x/sys v0.3.0
 	golang.org/x/term v0.2.0
 	golang.org/x/text v0.4.0
 	google.golang.org/protobuf v1.28.1
@@ -144,3 +144,5 @@ require (
 )
 
 replace github.com/opencontainers/runc => github.com/opencontainers/runc v1.1.1-0.20220617142545-8b9452f75cbc
+
+replace github.com/containers/common => github.com/rhatdan/common v0.47.1-0.20221205150410-4f8757f6883a
