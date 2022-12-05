@@ -101,7 +101,11 @@ var supportedVolumeKeys = map[string]bool{
 
 // Supported keys in "Kube" group
 var supportedKubeKeys = map[string]bool{
-	KeyYaml: true,
+	KeyYaml:         true,
+	KeyRemapUID:     true,
+	KeyRemapGID:     true,
+	KeyRemapUsers:   true,
+	KeyRemapUIDSize: true,
 }
 
 func replaceExtension(name string, extension string, extraPrefix string, extraSuffix string) string {
@@ -356,48 +360,8 @@ func ConvertContainer(container *parser.UnitFile, isUser bool) (*parser.UnitFile
 		}
 	}
 
-	uidMaps := container.LookupAllStrv(ContainerGroup, KeyRemapUID)
-	gidMaps := container.LookupAllStrv(ContainerGroup, KeyRemapGID)
-
-	remapUsers, ok := container.LookupLast(ContainerGroup, KeyRemapUsers)
-	if ok && remapUsers != "" {
-		switch remapUsers {
-		case "":
-			if len(uidMaps) > 0 {
-				return nil, fmt.Errorf("UidMap set without RemapUsers")
-			}
-			if len(gidMaps) > 0 {
-				return nil, fmt.Errorf("GidMap set without RemapUsers")
-			}
-		case "manual":
-			for _, uidMap := range uidMaps {
-				podman.addf("--uidmap=%s", uidMap)
-			}
-			for _, gidMap := range gidMaps {
-				podman.addf("--gidmap=%s", gidMap)
-			}
-		case "auto":
-			autoOpts := make([]string, 0)
-			for _, uidMap := range uidMaps {
-				autoOpts = append(autoOpts, "uidmapping="+uidMap)
-			}
-			for _, gidMap := range gidMaps {
-				autoOpts = append(autoOpts, "gidmapping="+gidMap)
-			}
-			uidSize := container.LookupUint32(ContainerGroup, KeyRemapUIDSize, 0)
-			if uidSize > 0 {
-				autoOpts = append(autoOpts, fmt.Sprintf("size=%v", uidSize))
-			}
-
-			podman.addf("--userns=" + usernsOpts("auto", autoOpts))
-		case "keep-id":
-			if !isUser {
-				return nil, fmt.Errorf("RemapUsers=keep-id is unsupported for system units")
-			}
-			podman.addf("--userns=keep-id")
-		default:
-			return nil, fmt.Errorf("unsupported RemapUsers option '%s'", remapUsers)
-		}
+	if err := handleUserRemap(container, ContainerGroup, podman, isUser, true); err != nil {
+		return nil, err
 	}
 
 	volumes := container.LookupAll(ContainerGroup, KeyVolume)
@@ -598,7 +562,7 @@ func ConvertVolume(volume *parser.UnitFile, name string) (*parser.UnitFile, erro
 	return service, nil
 }
 
-func ConvertKube(kube *parser.UnitFile) (*parser.UnitFile, error) {
+func ConvertKube(kube *parser.UnitFile, isUser bool) (*parser.UnitFile, error) {
 	service := kube.Dup()
 	service.Filename = replaceExtension(kube.Filename, ".service", "", "")
 
@@ -665,6 +629,10 @@ func ConvertKube(kube *parser.UnitFile) (*parser.UnitFile, error) {
 		"--service-container=true",
 	)
 
+	if err := handleUserRemap(kube, KubeGroup, execStart, isUser, false); err != nil {
+		return nil, err
+	}
+
 	execStart.add(yamlPath)
 
 	service.AddCmdline(ServiceGroup, "ExecStart", execStart.Args)
@@ -674,4 +642,53 @@ func ConvertKube(kube *parser.UnitFile) (*parser.UnitFile, error) {
 	service.AddCmdline(ServiceGroup, "ExecStop", execStop.Args)
 
 	return service, nil
+}
+
+func handleUserRemap(unitFile *parser.UnitFile, groupName string, podman *PodmanCmdline, isUser, supportManual bool) error {
+	uidMaps := unitFile.LookupAllStrv(groupName, KeyRemapUID)
+	gidMaps := unitFile.LookupAllStrv(groupName, KeyRemapGID)
+	remapUsers, _ := unitFile.LookupLast(groupName, KeyRemapUsers)
+	switch remapUsers {
+	case "":
+		if len(uidMaps) > 0 {
+			return fmt.Errorf("UidMap set without RemapUsers")
+		}
+		if len(gidMaps) > 0 {
+			return fmt.Errorf("GidMap set without RemapUsers")
+		}
+	case "manual":
+		if supportManual {
+			for _, uidMap := range uidMaps {
+				podman.addf("--uidmap=%s", uidMap)
+			}
+			for _, gidMap := range gidMaps {
+				podman.addf("--gidmap=%s", gidMap)
+			}
+		} else {
+			return fmt.Errorf("RemapUsers=manual is not supported")
+		}
+	case "auto":
+		autoOpts := make([]string, 0)
+		for _, uidMap := range uidMaps {
+			autoOpts = append(autoOpts, "uidmapping="+uidMap)
+		}
+		for _, gidMap := range gidMaps {
+			autoOpts = append(autoOpts, "gidmapping="+gidMap)
+		}
+		uidSize := unitFile.LookupUint32(groupName, KeyRemapUIDSize, 0)
+		if uidSize > 0 {
+			autoOpts = append(autoOpts, fmt.Sprintf("size=%v", uidSize))
+		}
+
+		podman.addf("--userns=" + usernsOpts("auto", autoOpts))
+	case "keep-id":
+		if !isUser {
+			return fmt.Errorf("RemapUsers=keep-id is unsupported for system units")
+		}
+		podman.addf("--userns=keep-id")
+	default:
+		return fmt.Errorf("unsupported RemapUsers option '%s'", remapUsers)
+	}
+
+	return nil
 }

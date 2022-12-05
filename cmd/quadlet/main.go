@@ -336,7 +336,7 @@ func main() {
 		case strings.HasSuffix(name, ".volume"):
 			service, err = quadlet.ConvertVolume(unit, name)
 		case strings.HasSuffix(name, ".kube"):
-			service, err = quadlet.ConvertKube(unit)
+			service, err = quadlet.ConvertKube(unit, isUser)
 		default:
 			Logf("Unsupported file type '%s'", name)
 			continue
