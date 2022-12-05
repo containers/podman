@@ -451,7 +451,7 @@ func (c *Container) NetworkDisconnect(nameOrID, netName string, force bool) erro
 			if len(rm) > 0 {
 				// make sure to lock this file to prevent concurrent writes when
 				// this is used a net dependency container
-				lock, err := lockfile.GetLockfile(file)
+				lock, err := lockfile.GetLockFile(file)
 				if err != nil {
 					return fmt.Errorf("failed to lock hosts file: %w", err)
 				}
@@ -591,7 +591,7 @@ func (c *Container) NetworkConnect(nameOrID, netName string, netOpts types.PerNe
 	if file, ok := c.state.BindMounts[config.DefaultHostsFile]; ok {
 		// make sure to lock this file to prevent concurrent writes when
 		// this is used a net dependency container
-		lock, err := lockfile.GetLockfile(file)
+		lock, err := lockfile.GetLockFile(file)
 		if err != nil {
 			return fmt.Errorf("failed to lock hosts file: %w", err)
 		}

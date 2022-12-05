@@ -14,6 +14,7 @@ import (
 	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/containers/storage"
+	"github.com/containers/storage/pkg/lockfile"
 	stypes "github.com/containers/storage/types"
 	"github.com/sirupsen/logrus"
 )
@@ -35,7 +36,7 @@ func (r *Runtime) removeAllDirs() error {
 	// TODO: maybe want a helper for getting the path? This is duped from
 	// runtime.go
 	runtimeAliveLock := filepath.Join(r.config.Engine.TmpDir, "alive.lck")
-	aliveLock, err := storage.GetLockfile(runtimeAliveLock)
+	aliveLock, err := lockfile.GetLockFile(runtimeAliveLock)
 	if err != nil {
 		logrus.Errorf("Lock runtime alive lock %s: %v", runtimeAliveLock, err)
 	} else {

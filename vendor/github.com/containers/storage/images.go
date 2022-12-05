@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/containers/storage/pkg/ioutils"
+	"github.com/containers/storage/pkg/lockfile"
 	"github.com/containers/storage/pkg/stringid"
 	"github.com/containers/storage/pkg/stringutils"
 	"github.com/containers/storage/pkg/truncindex"
@@ -156,14 +157,15 @@ type rwImageStore interface {
 }
 
 type imageStore struct {
-	lockfile Locker // lockfile.IsReadWrite can be used to distinguish between read-write and read-only image stores.
-	dir      string
-	images   []*Image
-	idindex  *truncindex.TruncIndex
-	byid     map[string]*Image
-	byname   map[string]*Image
-	bydigest map[digest.Digest][]*Image
-	loadMut  sync.Mutex
+	lockfile  *lockfile.LockFile // lockfile.IsReadWrite can be used to distinguish between read-write and read-only image stores.
+	dir       string
+	lastWrite lockfile.LastWrite
+	images    []*Image
+	idindex   *truncindex.TruncIndex
+	byid      map[string]*Image
+	byname    map[string]*Image
+	bydigest  map[digest.Digest][]*Image
+	loadMut   sync.Mutex
 }
 
 func copyImage(i *Image) *Image {
@@ -255,7 +257,7 @@ func (r *imageStore) startReadingWithReload(canReload bool) error {
 
 			r.lockfile.Lock()
 			unlockFn = r.lockfile.Unlock
-			if _, err := r.load(true); err != nil {
+			if _, err := r.reloadIfChanged(true); err != nil {
 				return err
 			}
 			unlockFn()
@@ -295,19 +297,20 @@ func (r *imageStore) stopReading() {
 // if it is held for writing.
 //
 // If !lockedForWriting and this function fails, the return value indicates whether
-// retrying with lockedForWriting could succeed. In that case the caller MUST
-// call load(), not reloadIfChanged() (because the “if changed” state will not
-// be detected again).
+// reloadIfChanged() with lockedForWriting could succeed.
 func (r *imageStore) reloadIfChanged(lockedForWriting bool) (bool, error) {
 	r.loadMut.Lock()
 	defer r.loadMut.Unlock()
 
-	modified, err := r.lockfile.Modified()
+	lastWrite, modified, err := r.lockfile.ModifiedSince(r.lastWrite)
 	if err != nil {
 		return false, err
 	}
 	if modified {
-		return r.load(lockedForWriting)
+		if tryLockedForWriting, err := r.load(lockedForWriting); err != nil {
+			return tryLockedForWriting, err // r.lastWrite is unchanged, so we will load the next time again.
+		}
+		r.lastWrite = lastWrite
 	}
 	return false, nil
 }
@@ -373,6 +376,9 @@ func (i *Image) recomputeDigests() error {
 }
 
 // load reloads the contents of the store from disk.
+//
+// Most callers should call reloadIfChanged() instead, to avoid overhead and to correctly
+// manage r.lastWrite.
 //
 // The caller must hold r.lockfile for reading _or_ writing; lockedForWriting is true
 // if it is held for writing.
@@ -457,14 +463,19 @@ func (r *imageStore) Save() error {
 	if err := ioutils.AtomicWriteFile(rpath, jdata, 0600); err != nil {
 		return err
 	}
-	return r.lockfile.Touch()
+	lw, err := r.lockfile.RecordWrite()
+	if err != nil {
+		return err
+	}
+	r.lastWrite = lw
+	return nil
 }
 
 func newImageStore(dir string) (rwImageStore, error) {
 	if err := os.MkdirAll(dir, 0700); err != nil {
 		return nil, err
 	}
-	lockfile, err := GetLockfile(filepath.Join(dir, "images.lock"))
+	lockfile, err := lockfile.GetLockFile(filepath.Join(dir, "images.lock"))
 	if err != nil {
 		return nil, err
 	}
@@ -480,6 +491,10 @@ func newImageStore(dir string) (rwImageStore, error) {
 		return nil, err
 	}
 	defer istore.stopWriting()
+	istore.lastWrite, err = istore.lockfile.GetLastWrite()
+	if err != nil {
+		return nil, err
+	}
 	if _, err := istore.load(true); err != nil {
 		return nil, err
 	}
@@ -487,7 +502,7 @@ func newImageStore(dir string) (rwImageStore, error) {
 }
 
 func newROImageStore(dir string) (roImageStore, error) {
-	lockfile, err := GetROLockfile(filepath.Join(dir, "images.lock"))
+	lockfile, err := lockfile.GetROLockFile(filepath.Join(dir, "images.lock"))
 	if err != nil {
 		return nil, err
 	}
@@ -503,6 +518,10 @@ func newROImageStore(dir string) (roImageStore, error) {
 		return nil, err
 	}
 	defer istore.stopReading()
+	istore.lastWrite, err = istore.lockfile.GetLastWrite()
+	if err != nil {
+		return nil, err
+	}
 	if _, err := istore.load(false); err != nil {
 		return nil, err
 	}

@@ -45,7 +45,7 @@ func newLogFileEventer(options EventerOptions) (*EventLogFile, error) {
 // Writes to the log file
 func (e EventLogFile) Write(ee Event) error {
 	// We need to lock events file
-	lock, err := lockfile.GetLockfile(e.options.LogFilePath + ".lock")
+	lock, err := lockfile.GetLockFile(e.options.LogFilePath + ".lock")
 	if err != nil {
 		return err
 	}

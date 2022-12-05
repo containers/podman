@@ -264,7 +264,7 @@ github.com/containers/psgo/internal/dev
 github.com/containers/psgo/internal/host
 github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
-# github.com/containers/storage v1.44.1-0.20221121144727-71fd3e87df7a
+# github.com/containers/storage v1.44.1-0.20221201083122-c5a80ad65f42
 ## explicit; go 1.17
 github.com/containers/storage
 github.com/containers/storage/drivers
