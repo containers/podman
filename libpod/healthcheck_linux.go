@@ -1,3 +1,6 @@
+//go:build systemd
+// +build systemd
+
 package libpod
 
 import (
@@ -10,6 +13,7 @@ import (
 	"github.com/containers/podman/v4/pkg/errorhandling"
 	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/containers/podman/v4/pkg/systemd"
+	"github.com/containers/podman/v4/utils"
 	"github.com/sirupsen/logrus"
 )
 
@@ -131,4 +135,28 @@ func (c *Container) removeTransientFiles(ctx context.Context, isStartup bool) er
 	}
 
 	return errorhandling.JoinErrors(stopErrors)
+}
+
+func (c *Container) disableHealthCheckSystemd(isStartup bool) bool {
+	if !utils.RunsOnSystemd() || os.Getenv("DISABLE_HC_SYSTEMD") == "true" {
+		return true
+	}
+	if isStartup {
+		if c.config.StartupHealthCheckConfig.Interval == 0 {
+			return true
+		}
+	}
+	if c.config.HealthCheckConfig.Interval == 0 {
+		return true
+	}
+	return false
+}
+
+// Systemd unit name for the healthcheck systemd unit
+func (c *Container) hcUnitName(isStartup bool) string {
+	unitName := c.ID()
+	if isStartup {
+		unitName += "-startup"
+	}
+	return unitName
 }
