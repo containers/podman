@@ -223,11 +223,6 @@ func ConvertContainer(container *parser.UnitFile, isUser bool) (*parser.UnitFile
 	// Need the containers filesystem mounted to start podman
 	service.Add(UnitGroup, "RequiresMountsFor", "%t/containers")
 
-	// Remove any leftover cid file before starting, just to be sure.
-	// We remove any actual pre-existing container by name with --replace=true.
-	// But --cidfile will fail if the target exists.
-	service.Add(ServiceGroup, "ExecStartPre", "-rm -f %t/%N.cid")
-
 	// If the conman exited uncleanly it may not have removed the container, so force it,
 	// -i makes it ignore non-existing files.
 	service.Add(ServiceGroup, "ExecStopPost", "-/usr/bin/podman rm -f -i --cidfile=%t/%N.cid")
