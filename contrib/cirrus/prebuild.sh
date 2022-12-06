@@ -33,7 +33,7 @@ showrun $SCRIPT_BASE/cirrus_yaml_test.py
 if [[ "${DISTRO_NV}" =~ fedora ]]; then
     msg "Checking shell scripts"
     showrun ooe.sh dnf install -y ShellCheck  # small/quick addition
-    showrun shellcheck --color=always --format=tty \
+    showrun shellcheck --format=tty \
         --shell=bash --external-sources \
         --enable add-default-case,avoid-nullary-conditions,check-unassigned-uppercase \
         --exclude SC2046,SC2034,SC2090,SC2064 \
