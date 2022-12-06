@@ -9,10 +9,9 @@ import (
 	"github.com/containers/common/pkg/secrets"
 	"github.com/containers/podman/v4/libpod"
 	v1 "github.com/containers/podman/v4/pkg/k8s.io/api/core/v1"
-	metav1 "github.com/containers/podman/v4/pkg/k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"github.com/ghodss/yaml"
 	"github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v3"
 )
 
 const (
@@ -147,22 +146,7 @@ func VolumeFromSecret(secretSource *v1.SecretVolumeSource, secretsManager *secre
 		return nil, err
 	}
 
-	// unmarshaling directly into a v1.secret creates type mismatch errors
-	// use a more friendly, string only secret struct.
-	type KubeSecret struct {
-		metav1.TypeMeta `json:",inline"`
-		// +optional
-		metav1.ObjectMeta `json:"metadata,omitempty"`
-		// +optional
-		Immutable *bool             `json:"immutable,omitempty"`
-		Data      map[string]string `json:"data,omitempty"`
-		// +optional
-		StringData map[string]string `json:"stringData,omitempty"`
-		// +optional
-		Type string `json:"type,omitempty"`
-	}
-
-	data := &KubeSecret{}
+	data := &v1.Secret{}
 
 	err = yaml.Unmarshal(secretByte, data)
 	if err != nil {
@@ -171,8 +155,13 @@ func VolumeFromSecret(secretSource *v1.SecretVolumeSource, secretsManager *secre
 
 	// add key: value pairs to the items array
 	for key, entry := range data.Data {
+		kv.Items[key] = entry
+	}
+
+	for key, entry := range data.StringData {
 		kv.Items[key] = []byte(entry)
 	}
+
 	return kv, nil
 }
 
