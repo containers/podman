@@ -1,6 +1,6 @@
 ####> This option file is used in:
 ####>   podman auto update, build, container runlabel, create, image sign, kube play, login, logout, manifest add, manifest push, pull, push, run, search
-####> If you edit this file, make sure your changes
+####> If file is edited, make sure the changes
 ####> are applicable to all of those.
 #### **--authfile**=*path*
 

@@ -90,7 +90,7 @@ Valid values could be:
 * HTTP URL to a tarball – e.g. --build-context src=https://example.org/releases/src.tar
 * Container image – specified with a container-image:// prefix, e.g. --build-context alpine=container-image://alpine:3.15, (also accepts docker://, docker-image://)
 
-On the Containerfile side, you can reference the build context on all
+On the Containerfile side, reference the build context on all
 commands that accept the “from” parameter. Here’s how that might look:
 
 ```dockerfile
@@ -261,7 +261,7 @@ If a build context is not specified, and at least one Containerfile is a
 local file, the directory in which it resides will be used as the build
 context.
 
-If you specify `-f -`, the Containerfile contents will be read from stdin.
+Specifying the option `-f -` causes the Containerfile contents to be read from stdin.
 
 #### **--force-rm**
 
@@ -284,9 +284,8 @@ FROM instructions in a Containerfile, only the first is changed.
 
 With the remote podman client, not all container transports will work as
 expected. For example, oci-archive:/x.tar will reference /x.tar on the remote
-machine instead of on the client. If you need to support remote podman clients,
-it is best to restrict yourself to containers-storage: and docker://
-transports.
+machine instead of on the client. When using podman remote clients it is
+best to restrict use to *containers-storage*, and *docker:// transports*.
 
 #### **--help**, **-h**
 
@@ -483,7 +482,7 @@ process.
 
 #### **--platform**=*os/arch[/variant][,...]*
 
-Set the *os/arch* of the built image (and its base image, if your build uses one)
+Set the *os/arch* of the built image (and its base image, when using one)
 to the provided value instead of using the current operating system and
 architecture of the host (for example `linux/arm`).  Unless overridden,
 subsequent lookups of the same image in the local storage will match this
@@ -565,7 +564,7 @@ To later use the secret, use the --mount option in a `RUN` instruction within a 
 Security Options
 
 - `apparmor=unconfined` : Turn off apparmor confinement for the container
-- `apparmor=your-profile` : Set the apparmor confinement profile for the
+- `apparmor=alternate-profile` : Set the apparmor confinement profile for the
 container
 
 - `label=user:USER`     : Set the label user for the container processes
@@ -766,8 +765,8 @@ using the architecture variant of the build host.
 
 #### **--volume**, **-v**=*[HOST-DIR:CONTAINER-DIR[:OPTIONS]]*
 
-Create a bind mount. If you specify `-v /HOST-DIR:/CONTAINER-DIR`, Podman
-bind mounts `/HOST-DIR` in the host to `/CONTAINER-DIR` in the Podman
+Create a bind mount. Specifying the `-v /HOST-DIR:/CONTAINER-DIR` option, Podman
+bind mounts `/HOST-DIR` from the host to `/CONTAINER-DIR` in the Podman
 container. (This option is not available with the remote Podman client,
 including Mac and Windows (excluding WSL2) machines)
 
@@ -780,7 +779,7 @@ The `OPTIONS` are a comma-separated list and can be: <sup>[[1]](#Footnote1)</sup
 
 The `CONTAINER-DIR` must be an absolute path such as `/src/docs`. The `HOST-DIR`
 must be an absolute path as well. Podman bind-mounts the `HOST-DIR` to the
-path you specify. For example, if you supply `/foo` as the host path,
+specified path. For example, when specifying the host path `/foo`,
 Podman copies the contents of `/foo` to the container filesystem on the host
 and bind mounts that into the container.
 
@@ -810,7 +809,7 @@ content mounted into a container. Without a label, the security system might
 prevent the processes running inside the container from using the content. By
 default, Podman does not change the labels set by the OS.
 
-To change a label in the container context, you can add either of two suffixes
+To change a label in the container context, add one of these two suffixes
 `:z` or `:Z` to the volume mount. These suffixes tell Podman to relabel file
 objects on the shared volumes. The `z` option tells Podman that two containers
 share the volume content. As a result, Podman labels the content with a shared
@@ -819,7 +818,7 @@ The `Z` option tells Podman to label the content with a private unshared label.
 Only the current container can use a private volume.
 
 Note: Do not relabel system files and directories. Relabeling system content
-might cause other confined services on your machine to fail.  For these types
+might cause other confined services on the host machine to fail.  For these types
 of containers, disabling SELinux separation is recommended.  The option
 `--security-opt label=disable` disables SELinux separation for the container.
 For example, if a user wanted to volume mount their entire home directory into the build containers, they need to disable SELinux separation.
@@ -851,8 +850,8 @@ Content mounted into the container is labeled with the private label.
 by the container label. If not, SELinux container separation must be disabled
 for the container to work.
      - Modification of the directory volume mounted into the container with an
-overlay mount can cause unexpected failures.  It is recommended that you do not
-modify the directory until the container finishes running.
+overlay mount can cause unexpected failures. Do not modify the directory until
+the container finishes running.
 
 By default bind mounted volumes are `private`. That means any mounts done
 inside containers will not be visible on the host and vice versa. This behavior
@@ -981,8 +980,8 @@ $ podman build https://github.com/scollier/purpletest
 
   Podman will fetch the archive file, decompress it, and use its contents as the
 build context. The Containerfile at the root of the archive and the rest of the
-archive will get used as the context of the build. If you pass
-`-f PATH/Containerfile` option as well, the system will look for that file
+archive will get used as the context of the build. Passing the
+`-f PATH/Containerfile` option as well tells the system to look for that file
 inside the contents of the archive.
 
 ```
@@ -1057,12 +1056,12 @@ a registry or domain portion.
 
 ### lastlog sparse file
 
-If you are using a useradd command within a Containerfile with a large UID/GID,
-it will create a large sparse file `/var/log/lastlog`.  This can cause the
+Using a useradd command within a Containerfile with a large UID/GID will create
+a large sparse file `/var/log/lastlog`.  This can cause the
 build to hang forever.  Go language does not support sparse files correctly,
-which can lead to some huge files being created in your container image.
+which can lead to some huge files being created in the container image.
 
-If you are using `useradd` within your build script, you should pass the
+When using the `useradd` command within the build script, pass the
 `--no-log-init or -l` option to the `useradd` command.  This option tells
 useradd to stop creating the lastlog file.
 

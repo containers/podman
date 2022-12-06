@@ -1,6 +1,6 @@
 ####> This option file is used in:
 ####>   podman build, container runlabel, create, kube play, login, manifest add, manifest create, manifest inspect, manifest push, pull, push, run, search
-####> If you edit this file, make sure your changes
+####> If file is edited, make sure the changes
 ####> are applicable to all of those.
 #### **--tls-verify**
 

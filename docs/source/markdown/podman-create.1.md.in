@@ -12,9 +12,8 @@ podman\-create - Create a new container
 
 Creates a writable container layer over the specified image and prepares it for
 running the specified command. The container ID is then printed to STDOUT. This
-is similar to **podman run -d** except the container is never started. You can
-then use the **podman start** *container* command to start the container at
-any point.
+is similar to **podman run -d** except the container is never started. Use the
+**podman start** *container* command to start the container at any point.
 
 The initial status of the container created with **podman create** is 'created'.
 
@@ -289,7 +288,7 @@ This option conflicts with **--add-host**.
 
 **Note:** If a container will be run within a pod, it is not necessary to publish the port for
 the containers in the pod. The port must only be published by the pod itself. Pod network
-stacks act like the network stack on the host - you have a variety of containers in the pod,
+stacks act like the network stack on the host - when there are a variety of containers in the pod,
 and programs in the container, all sharing a single interface and IP address, and
 associated ports. If one container binds to a port, no other container can use that port
 within the pod while it is in use. Containers in the pod can also communicate over localhost

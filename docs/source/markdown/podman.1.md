@@ -64,7 +64,7 @@ If `--hooks-dir` is unset for root callers, Podman and libpod will currently def
 
 Podman and libpod currently support an additional `precreate` state which is called before the runtime's `create` operation.  Unlike the other stages, which receive the container state on their standard input, `precreate` hooks receive the proposed runtime configuration on their standard input.  They may alter that configuration as they see fit, and write the altered form to their standard output.
 
-**WARNING**: the `precreate` hook lets you do powerful things, such as adding additional mounts to the runtime configuration.  That power also makes it easy to break things.  Before reporting libpod errors, try running your container with `precreate` hooks disabled to see if the problem is due to one of your hooks.
+**WARNING**: the `precreate` hook allows powerful changes to occur, such as adding additional mounts to the runtime configuration.  That power also makes it easy to break things.  Before reporting libpod errors, try running a container with `precreate` hooks disabled to see if the problem is due to one of the hooks.
 
 #### **--identity**=*path*
 
@@ -148,7 +148,7 @@ specify additional options via the `--storage-opt` flag.
 
 #### **--storage-opt**=*value*
 
-Storage driver option, Default storage driver options are configured in `containers-storage.conf(5)`. The `STORAGE_OPTS` environment variable overrides the default. The --storage-opt specified options overrides all. If you specify --storage-opt="", no storage options will be used.
+Specify a storage driver option. Default storage driver options are configured in `containers-storage.conf(5)`. The `STORAGE_OPTS` environment variable overrides the default. The --storage-opt specified options override all. Specify --storage-opt="" so no storage options will be used.
 
 #### **--syslog**
 
@@ -415,8 +415,7 @@ Containers created by a non-root user are not visible to other users and are not
 
 It is required to have multiple uids/gids set for a user.  Be sure the user is present in the files `/etc/subuid` and `/etc/subgid`.
 
-If you have a recent version of usermod, you can execute the following
-commands to add the ranges to the files
+Execute the following commands to add the ranges to the files
 
 	$ sudo usermod --add-subuids 10000-75535 USERNAME
 	$ sudo usermod --add-subgids 10000-75535 USERNAME

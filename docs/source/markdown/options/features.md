@@ -1,6 +1,6 @@
 ####> This option file is used in:
 ####>   podman manifest add, manifest annotate
-####> If you edit this file, make sure your changes
+####> If file is edited, make sure the changes
 ####> are applicable to all of those.
 #### **--features**
 

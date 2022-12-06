@@ -149,7 +149,7 @@ Print usage statement
 #### **--ip**=*IP address*
 
 Assign a static ip address to the pod. This option can be specified several times when kube play creates more than one pod.
-Note: When joining multiple networks you should use the **--network name:ip=\<ip\>** syntax.
+Note: When joining multiple networks use the **--network name:ip=\<ip\>** syntax.
 
 #### **--log-driver**=*driver*
 
@@ -160,7 +160,7 @@ Set logging driver for all created containers.
 #### **--mac-address**=*MAC address*
 
 Assign a static mac address to the pod. This option can be specified several times when kube play creates more than one pod.
-Note: When joining multiple networks you should use the **--network name:mac=\<mac\>** syntax.
+Note: When joining multiple networks use the **--network name:mac=\<mac\>** syntax.
 
 @@option network
 

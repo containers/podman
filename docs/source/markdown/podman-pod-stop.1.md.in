@@ -17,9 +17,7 @@ Stops all pods
 
 @@option ignore
 
-#### **--latest**, **-l**
-
-Instead of providing the pod name or ID, stop the last created pod. (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
+@@option latest
 
 @@option pod-id-file.pod
 

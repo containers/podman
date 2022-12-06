@@ -34,11 +34,9 @@ Valid placeholders for the Go template are listed below:
 | .PIDS           | Number of PIDs     |
 | .Pod            | Pod ID             |
 
-When using a GO template, you may precede the format with `table` to print headers.
+When using a Go template, precede the format with `table` to print headers.
 
-#### **--latest**, **-l**
-
-Instead of providing the pod name or ID, use the last created pod. (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
+@@option latest
 
 @@option no-reset
 

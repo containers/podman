@@ -46,7 +46,7 @@ Sign the busybox image with the identity of foo@bar.com with a user's keyring an
 
 The write (and read) location for signatures is defined in YAML-based
 configuration files in /etc/containers/registries.d/ for root,
-or $HOME/.config/containers/registries.d for non-root users.  When you sign
+or $HOME/.config/containers/registries.d for non-root users.  When signing
 an image, Podman will use those configuration files to determine
 where to write the signature based on the name of the originating
 registry or a default storage value unless overridden with the --directory

@@ -15,13 +15,9 @@ List port mappings for the *container* or look up the public-facing port that is
 
 #### **--all**, **-a**
 
-List all known port mappings for running containers.  When using this option, you cannot pass any container names
-or private ports/protocols as filters.
+List all known port mappings for running containers; when using this option, container names or private ports/protocols filters cannot be used.
 
-#### **--latest**, **-l**
-
-Instead of providing the container name or ID, use the last created container. If you use methods other than Podman
-to run containers such as CRI-O, the last started container could be from either of those methods. (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
+@@option latest
 
 ## EXAMPLE
 

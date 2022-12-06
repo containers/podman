@@ -1,6 +1,6 @@
 ####> This option file is used in:
 ####>   podman pod rm, pod stop, restart, rm, stop
-####> If you edit this file, make sure your changes
+####> If file is edited, make sure the changes
 ####> are applicable to all of those.
 #### **--time**, **-t**=*seconds*
 

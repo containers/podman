@@ -158,7 +158,7 @@ exact mapping of uids from host to container. You must specify these.
 
 In `auto` mode mode, the subuids and subgids allocated to the `containers` user is used to allocate
 host uids/gids to use for the container. By default this will try to estimate a count of the ids
-to remap, but you can set RemapUidSize to use an explicit size. You can also Use `RemapUid` and
+to remap, but RemapUidSize can be specified to use an explicit size. Use `RemapUid` and
 `RemapGid` key to force a particular host uid to be mapped to the container.
 
 In `keep-id` mode, the running user is mapped to the same id in the container. This is supported

@@ -9,7 +9,7 @@ podman\-system\-prune - Remove all unused pods, containers, images, networks, an
 ## DESCRIPTION
 **podman system prune** removes all unused containers (both dangling and unreferenced), pods, networks, and optionally, volumes from local storage.
 
-With the **--all** option, you can delete all unused images.  Unused images are dangling images as well as any image that does not have any containers based on it.
+Use the **--all** option to delete all unused images.  Unused images are dangling images as well as any image that does not have any containers based on it.
 
 By default, volumes are not removed to prevent important data from being deleted if there is currently no container using the volume. Use the **--volumes** flag when running the command to prune volumes as well.
 
@@ -22,8 +22,7 @@ Recursively remove all unused pods, containers, images, networks, and volume dat
 
 Removes all leftover container storage files from local storage that are not managed by podman. In normal circumstances no such data should exist, but in case of an unclean shutdown the podman database may be corrupted and cause his.
 
-However, when using transient storage mode, the podman database does not persist. This means containers can will leave the writable layers on disk after a reboot. If you use transient store
-it it recommended that you run **podman system prune --external** once some time after each boot.
+However, when using transient storage mode, the Podman database does not persist. This means containers will leave the writable layers on disk after a reboot. When using a transient store, it is recommended that the **podman system prune --external** command is run during boot.
 
 This option is incompatible with **--all** and **--filter** and drops the default behaviour of removing unused resources.
 

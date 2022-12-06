@@ -10,7 +10,7 @@ podman\-volume\-mount - Mount a volume filesystem
 Mounts the specified volumes' file system in a location which can be
 accessed from the host, and returns its location.
 
-Rootless mode only supports mounting file volumes, unless you enter the user namespace
+Rootless mode only supports mounting file volumes unless Podman is run within the user namespace
 via the `podman unshare` command. All other volume types will fail to mount.
 
 ## RETURN VALUE

@@ -62,16 +62,13 @@ Valid placeholders for the Go template are listed below:
 
 [1] Cgroups V1 only
 
-When using a GO template, you may precede the format with `table` to print headers.
+When using a Go template, precede the format with `table` to print headers.
 
 #### **--interval**, **-i**=*seconds*
 
 Time in seconds between stats reports, defaults to 5 seconds.
 
-#### **--latest**, **-l**
-
-Instead of providing the container name or ID, use the last created container. If you use methods other than Podman
-to run containers such as CRI-O, the last started container could be from either of those methods. (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
+@@option latest
 
 @@option no-reset
 

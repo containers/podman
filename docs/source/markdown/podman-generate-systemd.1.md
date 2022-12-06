@@ -12,9 +12,9 @@ By default, the command will print the content of the unit files to stdout.
 
 Generating unit files for a pod requires the pod to be created with an infra container (see `--infra=true`).  An infra container runs across the entire lifespan of a pod and is hence required for systemd to manage the life cycle of the pod's main unit.
 
-_Note: If you use this command with the remote client, including Mac and Windows (excluding WSL2) machines, you would still have to place the generated units on the remote system.  Moreover, please make sure that the `XDG_RUNTIME_DIR` environment variable is set.  If unset, you may set it via `export XDG_RUNTIME_DIR=/run/user/$(id -u)`._
+- Note: When using this command with the remote client, including Mac and Windows (excluding WSL2) machines, place the generated units on the remote system.  Moreover, make sure that the `XDG_RUNTIME_DIR` environment variable is set.  If unset, set it via `export XDG_RUNTIME_DIR=/run/user/$(id -u)`._
 
-_Note: The generated `podman run` command contains an `--sdnotify` option with the value taken from the container.
+- Note: The generated `podman run` command contains an `--sdnotify` option with the value taken from the container.
 If the container does not have any explicitly set value or the value is set to __ignore__, the value __conmon__ is used.
 The reason for overriding the default value __container__ is that almost no container workloads send notify messages.
 Systemd would wait for a ready message that never comes, if the value __container__ is used for a container
@@ -197,7 +197,7 @@ WantedBy=default.target
 
 Note `systemctl` should only be used on the pod unit and one should not start or stop containers individually via `systemctl`, as they are managed by the pod service along with the internal infra-container.
 
-You can still use `systemctl status` or `journalctl` to examine container or pod unit files.
+Use `systemctl status` or `journalctl` to examine container or pod unit files.
 ```
 $ podman pod create --name systemd-pod
 $ podman create --pod systemd-pod alpine top
@@ -237,9 +237,9 @@ WantedBy=default.target
 
 Podman-generated unit files include an `[Install]` section, which carries installation information for the unit. It is used by the enable and disable commands of systemctl(1) during installation.
 
-Once you have generated the systemd unit file, you can copy the generated systemd file to ```/etc/systemd/system``` for installing as a root user and to ```$HOME/.config/systemd/user``` for installing it as a non-root user. Enable the copied unit file or files using `systemctl enable`.
+Once the systemd unit file is generated, install it to */etc/systemd/system* to be run by the root user or to *$HOME/.config/systemd/user* for installing it as a non-root user. Enable the copied unit file or files using `systemctl enable`.
 
-Note: Copying unit files to ```/etc/systemd/system``` and enabling it marks the unit file to be automatically started at boot. And similarly, copying a unit file to ```$HOME/.config/systemd/user``` and enabling it marks the unit file to be automatically started on user login.
+Note: Copying unit files to */etc/systemd/system* and enabling it marks the unit file to be automatically started at boot. And similarly, copying a unit file to *$HOME/.config/systemd/user* and enabling it marks the unit file to be automatically started on user login.
 
 
 ```

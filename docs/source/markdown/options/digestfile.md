@@ -1,6 +1,6 @@
 ####> This option file is used in:
 ####>   podman manifest push, push
-####> If you edit this file, make sure your changes
+####> If file is edited, make sure the changes
 ####> are applicable to all of those.
 #### **--digestfile**=*Digestfile*
 

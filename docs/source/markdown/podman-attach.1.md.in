@@ -15,11 +15,7 @@ The *container* can be detached from (and leave it running) using a configurable
 ## OPTIONS
 @@option detach-keys
 
-#### **--latest**, **-l**
-
-Instead of providing the *container ID* or *name*, use the last created *container*. If other methods than Podman are used to run *containers* such as `CRI-O`, the last started *container* could be from either of those methods.\
-The default is **false**.\
-*IMPORTANT: This OPTION is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines. This OPTION does not need a container name or ID as input argument.*
+@@option latest
 
 #### **--no-stdin**
 
