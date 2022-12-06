@@ -359,6 +359,9 @@ var _ = Describe("quadlet system generator", func() {
 		Entry("Basic kube", "basic.kube"),
 		Entry("Syslog Identifier", "syslog.identifier.kube"),
 		Entry("Absolute Path", "absolute.path.kube"),
+		Entry("Kube - User Remap Manual", "remap-manual.kube"),
+		Entry("Kube - User Remap Auto", "remap-auto.kube"),
+		Entry("Kube - User Remap Auto with IDs", "remap-auto2.kube"),
 	)
 
 })
