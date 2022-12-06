@@ -432,27 +432,3 @@ func (c *Container) healthCheckStatus() (string, error) {
 
 	return results.Status, nil
 }
-
-func (c *Container) disableHealthCheckSystemd(isStartup bool) bool {
-	if os.Getenv("DISABLE_HC_SYSTEMD") == "true" {
-		return true
-	}
-	if isStartup {
-		if c.config.StartupHealthCheckConfig.Interval == 0 {
-			return true
-		}
-	}
-	if c.config.HealthCheckConfig.Interval == 0 {
-		return true
-	}
-	return false
-}
-
-// Systemd unit name for the healthcheck systemd unit
-func (c *Container) hcUnitName(isStartup bool) string {
-	unitName := c.ID()
-	if isStartup {
-		unitName += "-startup"
-	}
-	return unitName
-}
