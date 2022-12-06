@@ -82,12 +82,12 @@ type InitConfig struct {
 // Note: The networks are not loaded from disk until a method is called.
 func NewCNINetworkInterface(conf *InitConfig) (types.ContainerNetwork, error) {
 	// TODO: consider using a shared memory lock
-	lock, err := lockfile.GetLockfile(filepath.Join(conf.CNIConfigDir, "cni.lock"))
+	lock, err := lockfile.GetLockFile(filepath.Join(conf.CNIConfigDir, "cni.lock"))
 	if err != nil {
 		// If we're on a read-only filesystem, there is no risk of
 		// contention. Fall back to a local lockfile.
 		if errors.Is(err, unix.EROFS) {
-			lock, err = lockfile.GetLockfile(filepath.Join(conf.RunDir, "cni.lock"))
+			lock, err = lockfile.GetLockFile(filepath.Join(conf.RunDir, "cni.lock"))
 			if err != nil {
 				return nil, err
 			}
