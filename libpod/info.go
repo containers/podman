@@ -226,6 +226,7 @@ func (r *Runtime) storeInfo() (*define.StoreInfo, error) {
 		GraphOptions:       nil,
 		VolumePath:         r.config.Engine.VolumePath,
 		ConfigFile:         configFile,
+		TransientStore:     r.store.TransientStore(),
 	}
 
 	graphOptions := map[string]interface{}{}

@@ -47,6 +47,7 @@ func init() {
 	flags := pruneCommand.Flags()
 	flags.BoolVarP(&force, "force", "f", false, "Do not prompt for confirmation.  The default is false")
 	flags.BoolVarP(&pruneOptions.All, "all", "a", false, "Remove all unused data")
+	flags.BoolVar(&pruneOptions.External, "external", false, "Remove container data in storage not controlled by podman")
 	flags.BoolVar(&pruneOptions.Volume, "volumes", false, "Prune volumes")
 	filterFlagName := "filter"
 	flags.StringArrayVar(&filters, filterFlagName, []string{}, "Provide filter values (e.g. 'label=<key>=<value>')")
@@ -55,8 +56,8 @@ func init() {
 
 func prune(cmd *cobra.Command, args []string) error {
 	var err error
-	// Prompt for confirmation if --force is not set
-	if !force {
+	// Prompt for confirmation if --force is not set, unless --external
+	if !force && !pruneOptions.External {
 		reader := bufio.NewReader(os.Stdin)
 		volumeString := ""
 		if pruneOptions.Volume {
@@ -113,7 +114,9 @@ func prune(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	fmt.Printf("Total reclaimed space: %s\n", units.HumanSize((float64)(response.ReclaimedSpace)))
+	if !pruneOptions.External {
+		fmt.Printf("Total reclaimed space: %s\n", units.HumanSize((float64)(response.ReclaimedSpace)))
+	}
 	return nil
 }
 

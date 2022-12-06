@@ -160,6 +160,18 @@ func (ic *ContainerEngine) SetupRootless(_ context.Context, noMoveProcess bool) 
 // SystemPrune removes unused data from the system. Pruning pods, containers, networks, volumes and images.
 func (ic *ContainerEngine) SystemPrune(ctx context.Context, options entities.SystemPruneOptions) (*entities.SystemPruneReport, error) {
 	var systemPruneReport = new(entities.SystemPruneReport)
+
+	if options.External {
+		if options.All || options.Volume || len(options.Filters) > 0 {
+			return nil, fmt.Errorf("system prune --external cannot be combined with other options")
+		}
+		err := ic.Libpod.GarbageCollect()
+		if err != nil {
+			return nil, err
+		}
+		return systemPruneReport, nil
+	}
+
 	filters := []string{}
 	for k, v := range options.Filters {
 		filters = append(filters, fmt.Sprintf("%s=%s", k, v[0]))

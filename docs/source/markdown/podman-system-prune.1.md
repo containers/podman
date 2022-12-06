@@ -18,6 +18,15 @@ By default, volumes are not removed to prevent important data from being deleted
 
 Recursively remove all unused pods, containers, images, networks, and volume data. (Maximum 50 iterations.)
 
+#### **--external**
+
+Removes all leftover container storage files from local storage that are not managed by podman. In normal circumstances no such data should exist, but in case of an unclean shutdown the podman database may be corrupted and cause his.
+
+However, when using transient storage mode, the podman database does not persist. This means containers can will leave the writable layers on disk after a reboot. If you use transient store
+it it recommended that you run **podman system prune --external** once some time after each boot.
+
+This option is incompatible with **--all** and **--filter** and drops the default behaviour of removing unused resources.
+
 #### **--filter**=*filters*
 
 Provide filter values.

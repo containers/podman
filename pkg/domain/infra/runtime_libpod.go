@@ -171,6 +171,9 @@ func getRuntime(ctx context.Context, fs *flag.FlagSet, opts *engineOpts) (*libpo
 			storageOpts.GraphDriverOptions = cfg.StorageOpts
 		}
 	}
+	if fs.Changed("transient-store") {
+		options = append(options, libpod.WithTransientStore(cfg.TransientStore))
+	}
 	if opts.migrate {
 		options = append(options, libpod.WithMigrate())
 		if opts.name != "" {

@@ -110,14 +110,14 @@ environment variable is set, the **--remote** option defaults to true.
 #### **--root**=*value*
 
 Storage root dir in which data, including images, is stored (default: "/var/lib/containers/storage" for UID 0, "$HOME/.local/share/containers/storage" for other users).
-Default root dir configured in `/etc/containers/storage.conf`.
+Default root dir configured in `containers-storage.conf(5)`.
 
-Overriding this option will cause the *storage-opt* settings in /etc/containers/storage.conf to be ignored.  The user must specify additional options via the `--storage-opt` flag.
+Overriding this option will cause the *storage-opt* settings in `containers-storage.conf(5)` to be ignored.  The user must specify additional options via the `--storage-opt` flag.
 
 #### **--runroot**=*value*
 
 Storage state directory where all state information is stored (default: "/run/containers/storage" for UID 0, "/run/user/$UID/run" for other users).
-Default state dir configured in `/etc/containers/storage.conf`.
+Default state dir configured in `containers-storage.conf(5)`.
 
 #### **--runtime**=*value*
 
@@ -141,14 +141,14 @@ to use the installed ssh binary and config file declared in containers.conf.
 
 #### **--storage-driver**=*value*
 
-Storage driver.  The default storage driver for UID 0 is configured in /etc/containers/storage.conf (`$HOME/.config/containers/storage.conf` in rootless mode), and is *vfs* for non-root users when *fuse-overlayfs* is not available.  The `STORAGE_DRIVER` environment variable overrides the default.  The --storage-driver specified driver overrides all.
+Storage driver.  The default storage driver for UID 0 is configured in `containers-storage.conf(5)` in rootless mode), and is *vfs* for non-root users when *fuse-overlayfs* is not available.  The `STORAGE_DRIVER` environment variable overrides the default.  The --storage-driver specified driver overrides all.
 
-Overriding this option will cause the *storage-opt* settings in /etc/containers/storage.conf to be ignored.  The user must
+Overriding this option will cause the *storage-opt* settings in `containers-storage.conf(5)` to be ignored.  The user must
 specify additional options via the `--storage-opt` flag.
 
 #### **--storage-opt**=*value*
 
-Storage driver option, Default storage driver options are configured in /etc/containers/storage.conf (`$HOME/.config/containers/storage.conf` in rootless mode). The `STORAGE_OPTS` environment variable overrides the default. The --storage-opt specified options overrides all. If you specify --storage-opt="", no storage options will be used.
+Storage driver option, Default storage driver options are configured in `containers-storage.conf(5)`. The `STORAGE_OPTS` environment variable overrides the default. The --storage-opt specified options overrides all. If you specify --storage-opt="", no storage options will be used.
 
 #### **--syslog**
 
@@ -161,6 +161,14 @@ On remote clients, including Mac and Windows (excluding WSL2) machines, logging 
 Path to the tmp directory, for libpod runtime content. Defaults to `$XDG_RUNTIME_DIR/libpod/tmp` as rootless and `/run/libpod/tmp` as rootful.
 
 NOTE --tmpdir is not used for the temporary storage of downloaded images.  Use the environment variable `TMPDIR` to change the temporary storage location of downloaded container images. Podman defaults to use `/var/tmp`.
+
+#### **--transient-store**
+
+Enables a global transient storaga mode where all container metadata is stored on non-persistant media (i.e. in the location specified by `--runroot`).
+This mode allows starting containers faster, as well as guaranteeing a fresh state on boot in case of unclean shutdowns or other problems. However
+it is not compabible with a traditional model where containers persist across reboots.
+
+Default value for this is configured in `containers-storage.conf(5)`.
 
 #### **--url**=*value*
 URL to access Podman service (default from `containers.conf`, rootless `unix://run/user/$UID/podman/podman.sock` or as root `unix://run/podman/podman.sock`).
@@ -426,7 +434,7 @@ Currently slirp4netns or pasta is required to be installed to create a network
 device, otherwise rootless containers need to run in the network namespace of
 the host.
 
-In certain environments like HPC (High Performance Computing), users cannot take advantage of the additional UIDs and GIDs from the /etc/subuid and /etc/subgid systems.  However, in this environment, rootless Podman can operate with a single UID.  To make this work, set the `ignore_chown_errors` option in the /etc/containers/storage.conf or in ~/.config/containers/storage.conf files. This option tells Podman when pulling an image to ignore chown errors when attempting to change a file in a container image to match the non-root UID in the image. This means all files get saved as the user's UID. Note this could cause issues when running the container.
+In certain environments like HPC (High Performance Computing), users cannot take advantage of the additional UIDs and GIDs from the /etc/subuid and /etc/subgid systems.  However, in this environment, rootless Podman can operate with a single UID.  To make this work, set the `ignore_chown_errors` option in the `containers-storage.conf(5)` file. This option tells Podman when pulling an image to ignore chown errors when attempting to change a file in a container image to match the non-root UID in the image. This means all files get saved as the user's UID. Note this could cause issues when running the container.
 
 ### **NOTE:** Unsupported file systems in rootless mode
 

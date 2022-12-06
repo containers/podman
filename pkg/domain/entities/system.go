@@ -18,9 +18,10 @@ type ServiceOptions struct {
 
 // SystemPruneOptions provides options to prune system.
 type SystemPruneOptions struct {
-	All     bool
-	Volume  bool
-	Filters map[string][]string `json:"filters" schema:"filters"`
+	All      bool
+	Volume   bool
+	Filters  map[string][]string `json:"filters" schema:"filters"`
+	External bool
 }
 
 // SystemPruneReport provides report after system prune is executed.

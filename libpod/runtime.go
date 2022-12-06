@@ -323,6 +323,11 @@ func makeRuntime(runtime *Runtime) (retErr error) {
 		}
 	}
 
+	// Create the TmpDir if needed
+	if err := os.MkdirAll(runtime.config.Engine.TmpDir, 0751); err != nil {
+		return fmt.Errorf("creating runtime temporary files directory: %w", err)
+	}
+
 	// Set up the state.
 	//
 	// TODO - if we further break out the state implementation into
@@ -335,7 +340,11 @@ func makeRuntime(runtime *Runtime) (retErr error) {
 	case config.SQLiteStateStore:
 		return fmt.Errorf("SQLite state is currently disabled: %w", define.ErrInvalidArg)
 	case config.BoltDBStateStore:
-		dbPath := filepath.Join(runtime.config.Engine.StaticDir, "bolt_state.db")
+		baseDir := runtime.config.Engine.StaticDir
+		if runtime.storageConfig.TransientStore {
+			baseDir = runtime.config.Engine.TmpDir
+		}
+		dbPath := filepath.Join(baseDir, "bolt_state.db")
 
 		state, err := NewBoltState(dbPath, runtime)
 		if err != nil {
@@ -392,6 +401,7 @@ func makeRuntime(runtime *Runtime) (retErr error) {
 	logrus.Debugf("Using static dir %s", runtime.config.Engine.StaticDir)
 	logrus.Debugf("Using tmp dir %s", runtime.config.Engine.TmpDir)
 	logrus.Debugf("Using volume path %s", runtime.config.Engine.VolumePath)
+	logrus.Debugf("Using transient store: %v", runtime.storageConfig.TransientStore)
 
 	// Validate our config against the database, now that we've set our
 	// final storage configuration
@@ -459,14 +469,6 @@ func makeRuntime(runtime *Runtime) (retErr error) {
 	}
 	runtime.imageContext.SignaturePolicyPath = runtime.config.Engine.SignaturePolicyPath
 
-	// Create the tmpDir
-	if err := os.MkdirAll(runtime.config.Engine.TmpDir, 0751); err != nil {
-		// The directory is allowed to exist
-		if !errors.Is(err, os.ErrExist) {
-			return fmt.Errorf("creating tmpdir: %w", err)
-		}
-	}
-
 	// Get us at least one working OCI runtime.
 	runtime.ociRuntimes = make(map[string]OCIRuntime)
 
@@ -515,14 +517,6 @@ func makeRuntime(runtime *Runtime) (retErr error) {
 	// Do we have a default runtime?
 	if runtime.defaultOCIRuntime == nil {
 		return fmt.Errorf("no default OCI runtime was configured: %w", define.ErrInvalidArg)
-	}
-
-	// Make the per-boot files directory if it does not exist
-	if err := os.MkdirAll(runtime.config.Engine.TmpDir, 0755); err != nil {
-		// The directory is allowed to exist
-		if !errors.Is(err, os.ErrExist) {
-			return fmt.Errorf("creating runtime temporary files directory: %w", err)
-		}
 	}
 
 	// the store is only set up when we are in the userns so we do the same for the network interface
@@ -964,6 +958,10 @@ func (r *Runtime) DefaultOCIRuntime() OCIRuntime {
 // StorageConfig retrieves the storage options for the container runtime
 func (r *Runtime) StorageConfig() storage.StoreOptions {
 	return r.storageConfig
+}
+
+func (r *Runtime) GarbageCollect() error {
+	return r.store.GarbageCollect()
 }
 
 // RunRoot retrieves the current c/storage temporary directory in use by Libpod.
