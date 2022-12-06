@@ -12,11 +12,10 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/containernetworking/plugins/pkg/ns"
 	"github.com/sirupsen/logrus"
 )
 
-func (r *Runtime) setupPasta(ctr *Container, netns ns.NetNS) error {
+func (r *Runtime) setupPasta(ctr *Container, netns string) error {
 	var NoTCPInitPorts = true
 	var NoUDPInitPorts = true
 	var NoTCPNamespacePorts = true
@@ -93,7 +92,7 @@ func (r *Runtime) setupPasta(ctr *Container, netns ns.NetNS) error {
 		cmdArgs = append(cmdArgs, "--no-map-gw")
 	}
 
-	cmdArgs = append(cmdArgs, "--netns", netns.Path())
+	cmdArgs = append(cmdArgs, "--netns", netns)
 
 	logrus.Debugf("pasta arguments: %s", strings.Join(cmdArgs, " "))
 

@@ -212,7 +212,7 @@ func createBasicSlirp4netnsCmdArgs(options *slirp4netnsNetworkOptions, features 
 }
 
 // setupSlirp4netns can be called in rootful as well as in rootless
-func (r *Runtime) setupSlirp4netns(ctr *Container, netns ns.NetNS) error {
+func (r *Runtime) setupSlirp4netns(ctr *Container, netns string) error {
 	path := r.config.Engine.NetworkCmdPath
 	if path == "" {
 		var err error
@@ -267,7 +267,7 @@ func (r *Runtime) setupSlirp4netns(ctr *Container, netns ns.NetNS) error {
 		if err != nil {
 			return fmt.Errorf("failed to create rootless network sync pipe: %w", err)
 		}
-		netnsPath = netns.Path()
+		netnsPath = netns
 		cmdArgs = append(cmdArgs, "--netns-type=path", netnsPath, "tap0")
 	} else {
 		defer errorhandling.CloseQuiet(ctr.rootlessSlirpSyncR)

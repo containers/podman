@@ -590,7 +590,6 @@ func (s *BoltState) addContainer(ctr *Container, pod *Pod) error {
 	if err != nil {
 		return fmt.Errorf("marshalling container %s state to JSON: %w", ctr.ID(), err)
 	}
-	netNSPath := getNetNSPath(ctr)
 	dependsCtrs := ctr.Dependencies()
 
 	ctrID := []byte(ctr.ID())
@@ -739,11 +738,6 @@ func (s *BoltState) addContainer(ctr *Container, pod *Pod) error {
 		if pod != nil {
 			if err := newCtrBkt.Put(podIDKey, []byte(pod.ID())); err != nil {
 				return fmt.Errorf("adding container %s pod to DB: %w", ctr.ID(), err)
-			}
-		}
-		if netNSPath != "" {
-			if err := newCtrBkt.Put(netNSKey, []byte(netNSPath)); err != nil {
-				return fmt.Errorf("adding container %s netns path to DB: %w", ctr.ID(), err)
 			}
 		}
 		if len(networks) > 0 {

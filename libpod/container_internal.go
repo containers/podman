@@ -625,6 +625,9 @@ func resetState(state *ContainerState) {
 	state.StartupHCPassed = false
 	state.StartupHCSuccessCount = 0
 	state.StartupHCFailureCount = 0
+	state.NetNS = ""
+	state.NetworkStatus = nil
+	state.NetworkStatusOld = nil
 }
 
 // Refresh refreshes the container's state after a restart.
