@@ -614,6 +614,11 @@ func Inherit(infra libpod.Container, s *specgen.SpecGenerator, rt *libpod.Runtim
 		return nil, nil, nil, err
 	}
 
+	// podman pod container can override pod ipc NS
+	if !s.IpcNS.IsDefault() {
+		inheritSpec.IpcNS = s.IpcNS
+	}
+
 	// this causes errors when shmSize is the default value, it will still get passed down unless we manually override.
 	if inheritSpec.IpcNS.NSMode == specgen.Host && (compatibleOptions.ShmSize != nil && compatibleOptions.IsDefaultShmSize()) {
 		s.ShmSize = nil
