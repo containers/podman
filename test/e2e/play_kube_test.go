@@ -175,8 +175,19 @@ spec:
   volumes:
     - name: foo
       secret:
-        secretName: oldsecret
-`
+        secretName: oldsecret`
+
+var simplePodYaml = `
+apiVersion: v1
+kind: Pod
+metadata:
+  name: libpod-test
+spec:
+  containers:
+  - image: quay.io/libpod/alpine_nginx:latest
+    command:
+      - sleep
+      - "3600"`
 
 var unknownKindYaml = `
 apiVersion: v1
@@ -4376,4 +4387,23 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 		deleteAndTestSecret(podmanTest, "newsecret")
 	})
 
+	It("podman play kube with disabled cgroup", func() {
+		conffile := filepath.Join(podmanTest.TempDir, "container.conf")
+		// Disabled ipcns and cgroupfs in the config file
+		// Since shmsize (Inherit from infra container) cannot be set if ipcns is "host", we should remove the default value.
+		// Also, cgroupfs config should be loaded into SpecGenerator when playing kube.
+		err := os.WriteFile(conffile, []byte(`
+[containers]
+ipcns="host"
+cgroups="disabled"`), 0644)
+		Expect(err).ToNot(HaveOccurred())
+		defer os.Unsetenv("CONTAINERS_CONF")
+		os.Setenv("CONTAINERS_CONF", conffile)
+		err = writeYaml(simplePodYaml, kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+	})
 })
