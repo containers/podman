@@ -125,7 +125,7 @@ func networkCreate(cmd *cobra.Command, args []string) error {
 		logrus.Warn("The --macvlan option is deprecated, use `--driver macvlan --opt parent=<device>` instead")
 		network.Driver = types.MacVLANNetworkDriver
 		network.NetworkInterface = networkCreateOptions.MacVLAN
-	} else if networkCreateOptions.Driver == types.MacVLANNetworkDriver {
+	} else if networkCreateOptions.Driver == types.MacVLANNetworkDriver || networkCreateOptions.Driver == types.IPVLANNetworkDriver {
 		// new -d macvlan --opt parent=... syntax
 		if parent, ok := network.Options["parent"]; ok {
 			network.NetworkInterface = parent
