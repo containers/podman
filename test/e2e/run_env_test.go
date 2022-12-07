@@ -121,6 +121,11 @@ ENV hello=world
 	})
 
 	It("podman run --http-proxy test", func() {
+		if env, found := os.LookupEnv("http_proxy"); found {
+			defer os.Setenv("http_proxy", env)
+		} else {
+			defer os.Unsetenv("http_proxy")
+		}
 		os.Setenv("http_proxy", "1.2.3.4")
 		if IsRemote() {
 			podmanTest.StopRemoteService()
@@ -140,12 +145,10 @@ ENV hello=world
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(ContainSubstring("5.6.7.8"))
-		os.Unsetenv("http_proxy")
 
 		session = podmanTest.Podman([]string{"run", "--http-proxy=false", "--env", "http_proxy=5.6.7.8", ALPINE, "printenv", "http_proxy"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(ContainSubstring("5.6.7.8"))
-		os.Unsetenv("http_proxy")
 	})
 })

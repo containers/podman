@@ -300,6 +300,11 @@ var _ = Describe("Podman build", func() {
 	})
 
 	It("podman build --http_proxy flag", func() {
+		if env, found := os.LookupEnv("http_proxy"); found {
+			defer os.Setenv("http_proxy", env)
+		} else {
+			defer os.Unsetenv("http_proxy")
+		}
 		os.Setenv("http_proxy", "1.2.3.4")
 		if IsRemote() {
 			podmanTest.StopRemoteService()
@@ -316,7 +321,6 @@ RUN printenv http_proxy`, ALPINE)
 		session.Wait(120)
 		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(ContainSubstring("1.2.3.4"))
-		os.Unsetenv("http_proxy")
 	})
 
 	It("podman build relay exit code to process", func() {
