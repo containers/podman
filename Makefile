@@ -728,11 +728,14 @@ podman-remote-release-%.zip: test/version/version ## Build podman-remote for %=$
 	if [[ "$(GOOS)" == "windows" ]]; then \
 		$(MAKE) $(GOPLAT) TMPDIR="" win-sshproxy; \
 	fi
+	if [[ "$(GOOS)" == "darwin" ]]; then \
+		$(MAKE) $(GOPLAT) podman-mac-helper;\
+	fi
 	cp -r ./docs/build/remote/$(GOOS) "$(TMPDIR)/$(SUBDIR)/docs/"
 	cp ./contrib/remote/containers.conf "$(TMPDIR)/$(SUBDIR)/"
 	$(MAKE) $(GOPLAT) $(_DSTARGS) SELINUXOPT="" install.remote
 	cd "$(TMPDIR)" && \
-		zip --recurse-paths "$(CURDIR)/$@" "./"
+		zip --recurse-paths "$(CURDIR)/$@" "./$(SUBDIR)"
 	if [[ "$(GOARCH)" != "$(NATIVE_GOARCH)" ]]; then $(MAKE) clean-binaries; fi
 	-rm -rf "$(TMPDIR)"
 
@@ -795,6 +798,8 @@ install.remote:
 		$(DESTDIR)$(BINDIR)/podman$(BINSFX)
 	test "${GOOS}" != "windows" || \
 		install -m 755 $(SRCBINDIR)/win-sshproxy.exe $(DESTDIR)$(BINDIR)
+	test "${GOOS}" != "darwin" || \
+		install -m 755 $(SRCBINDIR)/podman-mac-helper $(DESTDIR)$(BINDIR)
 	test -z "${SELINUXOPT}" || \
 		chcon --verbose --reference=$(DESTDIR)$(BINDIR)/podman-remote \
 		bin/podman-remote
