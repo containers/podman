@@ -1132,8 +1132,6 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 	})
 
 	It("podman run with ipam none driver", func() {
-		// Test fails, issue #13931
-		SkipIfNetavark(podmanTest)
 		net := "ipam" + stringid.GenerateRandomID()
 		session := podmanTest.Podman([]string{"network", "create", "--ipam-driver=none", net})
 		session.WaitWithDefaultTimeout()
