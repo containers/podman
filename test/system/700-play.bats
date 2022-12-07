@@ -123,7 +123,25 @@ spec:
     name: test
     resources: {}
 EOF
-    run_podman play kube --service-container=true $yaml_source
+    # Run `play kube` in the background as it will wait for the service
+    # container to exit.
+    timeout --foreground -v --kill=10 60 \
+        $PODMAN play kube --service-container=true $yaml_source &>/dev/null &
+
+    # Wait for the container to be running
+    container_a=test_pod-test
+    for i in $(seq 1 20); do
+        run_podman "?" container wait $container_a --condition="running"
+        if [[ $status == 0 ]]; then
+            break
+        fi
+        sleep 0.5
+        # Just for debugging
+        run_podman ps -a
+    done
+    if [[ $status != 0 ]]; then
+        die "container $container_a did not start"
+    fi
 
     # The name of the service container is predictable: the first 12 characters
     # of the hash of the YAML file followed by the "-service" suffix
