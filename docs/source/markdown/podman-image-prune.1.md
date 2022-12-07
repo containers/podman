@@ -8,7 +8,7 @@ podman-image-prune - Remove all unused images from the local store
 
 ## DESCRIPTION
 **podman image prune** removes all dangling images from local storage. With the `all` option,
-you can delete all unused images (i.e., images not in use by any container).
+all unused images are deleted (i.e., images not in use by any container).
 
 The image prune command does not prune cache images that only use layers that are necessary for other images.
 

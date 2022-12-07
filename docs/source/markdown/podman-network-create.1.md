@@ -11,7 +11,7 @@ Create a network configuration for use with Podman. By default, Podman creates a
 A *Macvlan* connection can be created with the *-d macvlan* option. A parent device for macvlan can
 be designated with the *-o parent=`<device>`* option.
 
-If no options are provided, Podman will assign a free subnet and name for your network.
+If no options are provided, Podman will assign a free subnet and name for the network.
 
 Upon completion of creating the network, Podman will display the name of the newly added network.
 
@@ -35,8 +35,8 @@ Special considerations for the *netavark* backend:
 
 #### **--gateway**
 
-Define a gateway for the subnet. If you want to provide a gateway address, you must also provide a
-*subnet* option. Can be specified multiple times.
+Define a gateway for the subnet. To provide a gateway address, a
+*subnet* option is required. Can be specified multiple times.
 The argument order of the **--subnet**, **--gateway** and **--ip-range** options must match.
 
 #### **--internal**
@@ -55,10 +55,10 @@ The argument order of the **--subnet**, **--gateway** and **--ip-range** options
 Set the ipam driver (IP Address Management Driver) for the network. When unset podman will choose an
 ipam driver automatically based on the network driver. Valid values are:
  - `host-local`: IP addresses are assigned locally.
- - `dhcp`: IP addresses are assigned from a dhcp server on your network. This driver is not yet supported with netavark. For CNI the *dhcp* plugin needs to be activated before.
+ - `dhcp`: IP addresses are assigned from a dhcp server on the network. This driver is not yet supported with netavark. For CNI the *dhcp* plugin needs to be activated before.
  - `none`: No ip addresses are assigned to the interfaces.
 
-You can see the driver in the **podman network inspect** output under the `ipam_options` field.
+View the driver in the **podman network inspect** output under the `ipam_options` field.
 
 #### **--ipv6**
 

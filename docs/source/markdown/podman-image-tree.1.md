@@ -9,7 +9,7 @@ podman\-image\-tree - Prints layer hierarchy of an image in a tree format
 
 ## DESCRIPTION
 Prints layer hierarchy of an image in a tree format.
-If you do not provide a *tag*, Podman will default to `latest` for the *image*.
+If no *tag* is provided, Podman defaults to `latest` for the *image*.
 Layers are indicated with image tags as `Top Layer of`, when the tag is known locally.
 ## OPTIONS
 

@@ -137,11 +137,11 @@ and specified with a _tag_.
 
 Detached mode: run the container in the background and print the new container ID. The default is *false*.
 
-At any time you can run **podman ps** in
-the other shell to view a list of the running containers. You can reattach to a
-detached container with **podman attach**.
+At any time run **podman ps** in
+the other shell to view a list of the running containers. Reattach to a
+detached container with **podman attach** command.
 
-When attached in the tty mode, you can detach from the container (and leave it
+When attached via tty mode, detach from the container (and leave it
 running) using a configurable key sequence. The default sequence is `ctrl-p,ctrl-q`.
 Specify the key sequence using the **--detach-keys** option, or configure
 it in the **containers.conf** file: see **containers.conf(5)** for more information.
@@ -313,8 +313,8 @@ This is used to override the Podman provided user setup in favor of entrypoint c
 
 **Note:** If a container will be run within a pod, it is not necessary to publish the port for
 the containers in the pod. The port must only be published by the pod itself. Pod network
-stacks act like the network stack on the host - you have a variety of containers in the pod,
-and programs in the container, all sharing a single interface and IP address, and
+stacks act like the network stack on the host - meaning a variety of containers in the pod
+and programs in the container all share a single interface, IP address, and
 associated ports. If one container binds to a port, no other container can use that port
 within the pod while it is in use. Containers in the pod can also communicate over localhost
 by having one container bind to localhost in the pod, and another connect to that port.
@@ -465,14 +465,14 @@ $ podman run --read-only --read-only-tmpfs=false --tmpfs /run -i -t fedora /bin/
 
 ### Exposing log messages from the container to the host's log
 
-If you want messages that are logged in your container to show up in the host's
-syslog/journal then you should bind mount the _/dev/log_ directory as follows.
+Bind mount the _/dev/log_ directory to have messages that are logged in the container  show up in the host's
+syslog/journal.
 
 ```
 $ podman run -v /dev/log:/dev/log -i -t fedora /bin/bash
 ```
 
-From inside the container you can test this by sending a message to the log.
+From inside the container test this by sending a message to the log.
 
 ```
 (bash)# logger "Hello from my container"
@@ -490,9 +490,8 @@ This should list the message sent to logger.
 
 ### Attaching to one or more from STDIN, STDOUT, STDERR
 
-If you do not specify **-a**, Podman will attach everything (stdin, stdout, stderr).
-You can specify to which of the three standard streams (stdin, stdout, stderr)
-you'd like to connect instead, as in:
+Without specifying the **-a** option, Podman will attach everything (stdin, stdout, stderr).
+Override the default by specifying -a (stdin, stdout, stderr), as in:
 
 ```
 $ podman run -a stdin -a stdout -i -t fedora /bin/bash
@@ -579,7 +578,7 @@ To mount a host directory as a container volume, specify the absolute path to
 the directory and the absolute path for the container directory separated by a
 colon. If the source is a named volume maintained by Podman, it is recommended to
 use its name rather than the path to the volume. Otherwise the volume will be
-considered as an orphan and wiped if you execute **podman volume prune**:
+considered as an orphan and wiped by the **podman volume prune** command:
 
 ```
 $ podman run -v /var/db:/data1 -i -t fedora bash
@@ -630,10 +629,10 @@ changes will also be reflected on the host in _/var/db_.
 
 ### Using alternative security labeling
 
-You can override the default labeling scheme for each container by specifying
-the **--security-opt** flag. For example, you can specify the MCS/MLS level, a
+Override the default labeling scheme for each container by specifying
+the **--security-opt** flag. For example, specify the MCS/MLS level, a
 requirement for MLS systems. Specifying the level in the following command
-allows you to share the same content between containers.
+allows the same content to be shared between containers.
 
 ```
 podman run --security-opt label=level:s0:c100,c200 -i -t fedora bash
@@ -652,8 +651,8 @@ To disable the security labeling for this container versus running with the
 $ podman run --security-opt label=disable -i -t fedora bash
 ```
 
-If you want a tighter security policy on the processes within a container,
-you can specify an alternate type for the container. You could run a container
+Tighten the security policy on the processes within a container by specifying an
+alternate type for the container. For example, run a container
 that is only allowed to listen on Apache ports by executing the following
 command:
 
@@ -661,7 +660,7 @@ command:
 $ podman run --security-opt label=type:svirt_apache_t -i -t centos bash
 ```
 
-Note you would have to write policy defining a **svirt_apache_t** type.
+Note an SELinux policy defining a **svirt_apache_t** type would need to be written.
 
 To mask additional specific paths in the container, specify the paths
 separated by a colon using the **mask** option with the **--security-opt**
@@ -690,10 +689,7 @@ $ podman run --security-opt unmask=/proc/* fedora bash
 $ podman run --security-opt unmask=/foo/bar:/sys/firmware fedora bash
 ```
 
-### Setting device weight
-
-If you want to set _/dev/sda_ device weight to **200**, you can specify the device
-weight by **--blkio-weight-device** flag. Use the following command:
+### Setting device weight via **--blkio-weight-device** flag.
 
 ```
 $ podman run -it --blkio-weight-device "/dev/sda:200" ubuntu

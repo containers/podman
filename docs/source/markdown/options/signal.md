@@ -1,6 +1,6 @@
 ####> This option file is used in:
 ####>   podman kill, pod kill
-####> If you edit this file, make sure your changes
+####> If file is edited, make sure the changes
 ####> are applicable to all of those.
 #### **--signal**, **-s**=**signal**
 

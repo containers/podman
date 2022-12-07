@@ -1,6 +1,6 @@
 ####> This option file is used in:
 ####>   podman build, create, kube play, pod create, run
-####> If you edit this file, make sure your changes
+####> If file is edited, make sure the changes
 ####> are applicable to all of those.
 #### **--no-hosts**
 

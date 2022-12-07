@@ -9,10 +9,10 @@ podman\-start - Start one or more containers
 **podman container start** [*options*] *container* ...
 
 ## DESCRIPTION
-Start one or more containers.  You may use container IDs or names as input.  The *attach* and *interactive*
+Start one or more containers using container IDs or names as input.  The *attach* and *interactive*
 options cannot be used to override the *--tty* and *--interactive* options from when the container
-was created. If you attempt to start a running container with the *--attach* option, podman will simply
-attach to the container.
+was created. Starting an already running container with the *--attach* option, Podman simply
+attaches to the container.
 
 ## OPTIONS
 
@@ -53,10 +53,7 @@ Valid filters are listed below:
 
 @@option interactive
 
-#### **--latest**, **-l**
-
-Instead of providing the container name or ID, use the last created container. If you use methods other than Podman
-to run containers such as CRI-O, the last started container could be from either of those methods. (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
+@@option latest
 
 @@option sig-proxy
 

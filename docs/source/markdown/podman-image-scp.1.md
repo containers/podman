@@ -7,8 +7,8 @@ podman-image-scp - Securely copy an image from one host to another
 **podman image scp** [*options*] *name*[:*tag*]
 
 ## DESCRIPTION
-**podman image scp** copies container images between hosts on a network. You can load to the remote host or from the remote host as well as in between two remote hosts.
-Note: `::` is used to specify the image name depending on if you are saving or loading. Images can also be transferred from rootful to rootless storage on the same machine without using sshd. This feature is not supported on the remote client, including Mac and Windows (excluding WSL2) machines.
+**podman image scp** copies container images between hosts on a network. This command can copy images to the remote host or from the remote host as well as between two remote hosts.
+Note: `::` is used to specify the image name depending on Podman is saving or loading. Images can also be transferred from rootful to rootless storage on the same machine without using sshd. This feature is not supported on the remote client, including Mac and Windows (excluding WSL2) machines.
 
 **podman image scp [GLOBAL OPTIONS]**
 

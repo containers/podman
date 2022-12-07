@@ -1,6 +1,6 @@
 ####> This option file is used in:
 ####>   podman create, pod clone, pod create, run
-####> If you edit this file, make sure your changes
+####> If file is edited, make sure the changes
 ####> are applicable to all of those.
 #### **--volume**, **-v**=*[[SOURCE-VOLUME|HOST-DIR:]CONTAINER-DIR[:OPTIONS]]*
 
@@ -80,7 +80,7 @@ The **Z** option tells Podman to label the content with a private unshared label
 Only the current <<container|pod>> can use a private volume.
 
 Note: Do not relabel system files and directories. Relabeling system content
-might cause other confined services on your machine to fail.  For these types
+might cause other confined services on the machine to fail.  For these types
 of containers we recommend disabling SELinux separation.  The option
 **--security-opt label=disable** disables SELinux separation for the <<container|pod>>.
 For example if a user wanted to volume mount their entire home directory into a

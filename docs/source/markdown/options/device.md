@@ -1,6 +1,6 @@
 ####> This option file is used in:
 ####>   podman build, create, pod clone, pod create, run
-####> If you edit this file, make sure your changes
+####> If file is edited, make sure the changes
 ####> are applicable to all of those.
 #### **--device**=*host-device[:container-device][:permissions]*
 

@@ -9,8 +9,8 @@ podman\-stop - Stop one or more running containers
 **podman container stop** [*options*] *container* ...
 
 ## DESCRIPTION
-Stops one or more containers.  You may use container IDs or names as input. The **--time** switch
-allows you to specify the number of seconds to wait before forcibly stopping the container after the stop command
+Stops one or more containers using container IDs or names as input. The **--time** option
+specifies the number of seconds to wait before forcibly stopping the container after the stop command
 is issued to the container. The default is 10 seconds. By default, containers are stopped with SIGTERM
 and then SIGKILL after the timeout. The SIGTERM default can be overridden by the image used to create the
 container and also via command line when creating the container.
@@ -49,10 +49,7 @@ Valid filters are listed below:
 
 @@option ignore
 
-#### **--latest**, **-l**
-
-Instead of providing the container name or ID, use the last created container. If you use methods other than Podman
-to run containers such as CRI-O, the last started container could be from either of those methods. (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
+@@option latest
 
 @@option time
 

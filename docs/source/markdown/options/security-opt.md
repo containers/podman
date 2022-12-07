@@ -1,13 +1,13 @@
 ####> This option file is used in:
 ####>   podman create, pod clone, pod create, run
-####> If you edit this file, make sure your changes
+####> If file is edited, make sure the changes
 ####> are applicable to all of those.
 #### **--security-opt**=*option*
 
 Security Options
 
 - **apparmor=unconfined** : Turn off apparmor confinement for the <<container|pod>>
-- **apparmor**=_your-profile_ : Set the apparmor confinement profile for the <<container|pod>>
+- **apparmor**=_alternate-profile_ : Set the apparmor confinement profile for the <<container|pod>>
 
 - **label=user:**_USER_: Set the label user for the <<container|pod>> processes
 - **label=role:**_ROLE_: Set the label role for the <<container|pod>> processes

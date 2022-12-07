@@ -21,10 +21,11 @@ Name (“jonah”)
 
 podman generates a UUID for each pod, and if a name is not assigned
 to the container with **--name** then a random string name will be generated
-for it. The name is useful any place you need to identify a pod.
+for it. This name is useful to identify a pod.
 
-Note: resource limit related flags work by setting the limits explicitly in the pod's cgroup
-which by default, is the cgroup parent for all containers joining the pod. Containers are still delegated the ability to set their own resource limits when joining a pod meaning that if you run **podman pod create --cpus=5** you can also run **podman container create --pod=`<pod_id|pod_name>` --cpus=4** and the container will only see the smaller limit. containers do NOT get the pod level cgroup resources if they specify their own cgroup when joining a pod such as **--cgroupns=host**
+Note: resource limit related flags work by setting the limits explicitly in the pod's cgroup parent
+for all containers joining the pod. A container can override the resource limits when joining a pod.
+For example, if a pod was created via **podman pod create --cpus=5**, specifying **podman container create --pod=`<pod_id|pod_name>` --cpus=4** causes the container to use the smaller limit. Also, containers which specify their own cgroup, such as **--cgroupns=host**, do NOT get the assigned pod level cgroup resources.
 
 ## OPTIONS
 
@@ -150,7 +151,7 @@ A comma-separated list of kernel namespaces to share. If none or "" is specified
 
 #### **--share-parent**
 
-This boolean determines whether or not all containers entering the pod will use the pod as their cgroup parent. The default value of this flag is true. If you are looking to share the cgroup namespace rather than a cgroup parent in a pod, use **--share**
+This boolean determines whether or not all containers entering the pod will use the pod as their cgroup parent. The default value of this flag is true. Use the **--share** option to share the cgroup namespace rather than a cgroup parent in a pod.
 
 Note: This options conflict with **--share=cgroup** since that would set the pod as the cgroup parent but enter the container into the same cgroupNS as the infra container.
 

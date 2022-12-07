@@ -1,6 +1,6 @@
 ####> This option file is used in:
 ####>   podman create, pull, run
-####> If you edit this file, make sure your changes
+####> If file is edited, make sure the changes
 ####> are applicable to all of those.
 #### **--arch**=*ARCH*
 Override the architecture, defaults to hosts, of the image to be pulled. For example, `arm`.

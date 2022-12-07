@@ -1,12 +1,12 @@
 ####> This option file is used in:
 ####>   podman create, run, update
-####> If you edit this file, make sure your changes
+####> If file is edited, make sure the changes
 ####> are applicable to all of those.
 #### **--cpus**=*number*
 
 Number of CPUs. The default is *0.0* which means no limit. This is shorthand
-for **--cpu-period** and **--cpu-quota**, so you may only set either
-**--cpus** or **--cpu-period** and **--cpu-quota**.
+for **--cpu-period** and **--cpu-quota**, therfore the option cannot be specified with
+**--cpu-period** or **--cpu-quota**.
 
 On some systems, changing the CPU limits may not be allowed for non-root
 users. For more details, see

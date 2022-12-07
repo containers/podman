@@ -7,7 +7,7 @@ podman\-container - Manage containers
 **podman container** *subcommand*
 
 ## DESCRIPTION
-The container command allows you to manage containers
+The container command allows management of containers
 
 ## COMMANDS
 
@@ -20,7 +20,7 @@ The container command allows you to manage containers
 | commit     | [podman-commit(1)](podman-commit.1.md)              | Create new image based on the changed container.                             |
 | cp         | [podman-cp(1)](podman-cp.1.md)                      | Copy files/folders between a container and the local filesystem.             |
 | create     | [podman-create(1)](podman-create.1.md)              | Create a new container.                                                      |
-| diff       | [podman-container-diff(1)](podman-container-diff.1.md) | Inspect changes on a container's filesystem                               |
+| diff       | [podman-container-diff(1)](podman-container-diff.1.md)        |  Inspect changes on a container's filesystem |
 | exec       | [podman-exec(1)](podman-exec.1.md)                  | Execute a command in a running container.                                    |
 | exists     | [podman-container-exists(1)](podman-container-exists.1.md)  | Check if a container exists in local storage                         |
 | export     | [podman-export(1)](podman-export.1.md)              | Export a container's filesystem contents as a tar archive.                   |
