@@ -1604,6 +1604,12 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//    type: array
 	//    items:
 	//      type: string
+	//  - in: query
+	//    name: volume
+	//    description: Extra volumes that should be mounted in the build container.
+	//    type: array
+	//    items:
+	//      type: string
 	// produces:
 	// - application/json
 	// responses:

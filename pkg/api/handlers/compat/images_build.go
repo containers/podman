@@ -138,6 +138,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		Timestamp               int64    `schema:"timestamp"`
 		Ulimits                 string   `schema:"ulimits"`
 		UnsetEnvs               []string `schema:"unsetenv"`
+		Volumes                 []string `schema:"volume"`
 	}{
 		Dockerfile:       "Dockerfile",
 		IdentityLabel:    true,
@@ -670,6 +671,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 			ShmSize:            strconv.Itoa(query.ShmSize),
 			Ulimit:             ulimits,
 			Secrets:            secrets,
+			Volumes:            query.Volumes,
 		},
 		Compression:                    compression,
 		ConfigureNetwork:               parseNetworkConfigurationPolicy(query.ConfigureNetwork),

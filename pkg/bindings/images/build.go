@@ -290,6 +290,11 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 			params.Add("platform", platform)
 		}
 	}
+
+	for _, volume := range options.CommonBuildOpts.Volumes {
+		params.Add("volume", volume)
+	}
+
 	var err error
 	var contextDir string
 	if contextDir, err = filepath.EvalSymlinks(options.ContextDirectory); err == nil {
