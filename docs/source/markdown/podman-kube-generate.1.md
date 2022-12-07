@@ -78,12 +78,6 @@ spec:
     - containerPort: 3306
       hostPort: 36533
     resources: {}
-    securityContext:
-      capabilities:
-        drop:
-        - CAP_MKNOD
-        - CAP_NET_RAW
-        - CAP_AUDIT_WRITE
     tty: true
 status: {}
 ```
@@ -109,12 +103,6 @@ spec:
     image: docker.io/library/alpine:latest
     name: test-bind-mount
     resources: {}
-    securityContext:
-      capabilities:
-        drop:
-        - CAP_MKNOD
-        - CAP_NET_RAW
-        - CAP_AUDIT_WRITE
     volumeMounts:
     - mountPath: /volume
       name: home-user-my-data-host
@@ -148,12 +136,6 @@ spec:
     image: docker.io/library/alpine:latest
     name: test-bind-mount
     resources: {}
-    securityContext:
-      capabilities:
-        drop:
-        - CAP_MKNOD
-        - CAP_NET_RAW
-        - CAP_AUDIT_WRITE
     volumeMounts:
     - mountPath: /volume
       name: priceless-data-pvc

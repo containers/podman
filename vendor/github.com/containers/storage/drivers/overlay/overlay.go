@@ -1202,6 +1202,9 @@ func (d *Driver) Remove(id string) error {
 	if err := system.EnsureRemoveAll(dir); err != nil && !os.IsNotExist(err) {
 		return err
 	}
+	if d.quotaCtl != nil {
+		d.quotaCtl.ClearQuota(dir)
+	}
 	return nil
 }
 

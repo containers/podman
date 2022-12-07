@@ -89,14 +89,37 @@ func (s *storageImageSource) Close() error {
 // The Digest field in BlobInfo is guaranteed to be provided, Size may be -1 and MediaType may be optionally provided.
 // May update BlobInfoCache, preferably after it knows for certain that a blob truly exists at a specific location.
 func (s *storageImageSource) GetBlob(ctx context.Context, info types.BlobInfo, cache types.BlobInfoCache) (rc io.ReadCloser, n int64, err error) {
-	if info.Digest == image.GzippedEmptyLayerDigest {
+	// We need a valid digest value.
+	digest := info.Digest
+	err = digest.Validate()
+	if err != nil {
+		return nil, 0, err
+	}
+
+	if digest == image.GzippedEmptyLayerDigest {
 		return io.NopCloser(bytes.NewReader(image.GzippedEmptyLayer)), int64(len(image.GzippedEmptyLayer)), nil
+	}
+
+	// Check if the blob corresponds to a diff that was used to initialize any layers.  Our
+	// callers should try to retrieve layers using their uncompressed digests, so no need to
+	// check if they're using one of the compressed digests, which we can't reproduce anyway.
+	layers, _ := s.imageRef.transport.store.LayersByUncompressedDigest(digest)
+
+	// If it's not a layer, then it must be a data item.
+	if len(layers) == 0 {
+		b, err := s.imageRef.transport.store.ImageBigData(s.image.ID, digest.String())
+		if err != nil {
+			return nil, 0, err
+		}
+		r := bytes.NewReader(b)
+		logrus.Debugf("exporting opaque data as blob %q", digest.String())
+		return io.NopCloser(r), int64(r.Len()), nil
 	}
 
 	// NOTE: the blob is first written to a temporary file and subsequently
 	// closed.  The intention is to keep the time we own the storage lock
 	// as short as possible to allow other processes to access the storage.
-	rc, n, _, err = s.getBlobAndLayerID(info)
+	rc, n, _, err = s.getBlobAndLayerID(digest, layers)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -111,7 +134,7 @@ func (s *storageImageSource) GetBlob(ctx context.Context, info types.BlobInfo, c
 		return nil, 0, err
 	}
 
-	if _, err := tmpFile.Seek(0, 0); err != nil {
+	if _, err := tmpFile.Seek(0, io.SeekStart); err != nil {
 		return nil, 0, err
 	}
 
@@ -124,35 +147,16 @@ func (s *storageImageSource) GetBlob(ctx context.Context, info types.BlobInfo, c
 }
 
 // getBlobAndLayer reads the data blob or filesystem layer which matches the digest and size, if given.
-func (s *storageImageSource) getBlobAndLayerID(info types.BlobInfo) (rc io.ReadCloser, n int64, layerID string, err error) {
+func (s *storageImageSource) getBlobAndLayerID(digest digest.Digest, layers []storage.Layer) (rc io.ReadCloser, n int64, layerID string, err error) {
 	var layer storage.Layer
 	var diffOptions *storage.DiffOptions
-	// We need a valid digest value.
-	err = info.Digest.Validate()
-	if err != nil {
-		return nil, -1, "", err
-	}
-	// Check if the blob corresponds to a diff that was used to initialize any layers.  Our
-	// callers should try to retrieve layers using their uncompressed digests, so no need to
-	// check if they're using one of the compressed digests, which we can't reproduce anyway.
-	layers, _ := s.imageRef.transport.store.LayersByUncompressedDigest(info.Digest)
 
-	// If it's not a layer, then it must be a data item.
-	if len(layers) == 0 {
-		b, err := s.imageRef.transport.store.ImageBigData(s.image.ID, info.Digest.String())
-		if err != nil {
-			return nil, -1, "", err
-		}
-		r := bytes.NewReader(b)
-		logrus.Debugf("exporting opaque data as blob %q", info.Digest.String())
-		return io.NopCloser(r), int64(r.Len()), "", nil
-	}
 	// Step through the list of matching layers.  Tests may want to verify that if we have multiple layers
 	// which claim to have the same contents, that we actually do have multiple layers, otherwise we could
 	// just go ahead and use the first one every time.
 	s.getBlobMutex.Lock()
-	i := s.layerPosition[info.Digest]
-	s.layerPosition[info.Digest] = i + 1
+	i := s.layerPosition[digest]
+	s.layerPosition[digest] = i + 1
 	s.getBlobMutex.Unlock()
 	if len(layers) > 0 {
 		layer = layers[i%len(layers)]
@@ -168,7 +172,7 @@ func (s *storageImageSource) getBlobAndLayerID(info types.BlobInfo) (rc io.ReadC
 	} else {
 		n = layer.UncompressedSize
 	}
-	logrus.Debugf("exporting filesystem layer %q without compression for blob %q", layer.ID, info.Digest)
+	logrus.Debugf("exporting filesystem layer %q without compression for blob %q", layer.ID, digest)
 	rc, err = s.imageRef.transport.store.Diff("", layer.ID, diffOptions)
 	if err != nil {
 		return nil, -1, "", err

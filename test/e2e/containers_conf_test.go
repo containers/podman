@@ -113,8 +113,8 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 		Expect(result).Should(Exit(0))
 		Expect(result.Out.Contents()).To(
 			And(
-				ContainSubstring("SYS_CHROOT"),
-				ContainSubstring("NET_RAW"),
+				ContainSubstring("FOWNER"),
+				ContainSubstring("SETFCAP"),
 			))
 	})
 
@@ -130,8 +130,8 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 		Expect(result).Should(Exit(0))
 		Expect(result.Out.Contents()).ToNot(
 			And(
-				ContainSubstring("SYS_CHROOT"),
-				ContainSubstring("NET_RAW"),
+				ContainSubstring("SETUID"),
+				ContainSubstring("FOWNER"),
 			))
 	})
 

@@ -17,6 +17,11 @@ This package provides various compression algorithms.
 
 # changelog
 
+* Oct 26, 2022 (v1.15.12)
+
+	* zstd: Tweak decoder allocs. https://github.com/klauspost/compress/pull/680
+	* gzhttp: Always delete `HeaderNoCompression` https://github.com/klauspost/compress/pull/683
+
 * Sept 26, 2022 (v1.15.11)
 
 	* flate: Improve level 1-3 compression  https://github.com/klauspost/compress/pull/678

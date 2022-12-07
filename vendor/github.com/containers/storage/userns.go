@@ -264,7 +264,7 @@ func (s *store) getAutoUserNS(options *types.AutoUserNsOptions, image *Image, rl
 			}
 		}
 		if s.autoNsMaxSize > 0 && size > s.autoNsMaxSize {
-			return nil, nil, fmt.Errorf("the container needs a user namespace with size %q that is bigger than the maximum value allowed with userns=auto %q", size, s.autoNsMaxSize)
+			return nil, nil, fmt.Errorf("the container needs a user namespace with size %v that is bigger than the maximum value allowed with userns=auto %v", size, s.autoNsMaxSize)
 		}
 	}
 

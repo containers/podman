@@ -4,6 +4,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"time"
 )
 
 // AtomicFileWriterOptions specifies options for creating the atomic file writer.
@@ -13,6 +14,9 @@ type AtomicFileWriterOptions struct {
 	// storage after it has been written and before it is moved to
 	// the specified path.
 	NoSync bool
+	// On successful return from Close() this is set to the mtime of the
+	// newly written file.
+	ModTime time.Time
 }
 
 var defaultWriterOptions = AtomicFileWriterOptions{}
@@ -74,6 +78,11 @@ func AtomicWriteFileWithOpts(filename string, data []byte, perm os.FileMode, opt
 	if err1 := f.Close(); err == nil {
 		err = err1
 	}
+
+	if opts != nil {
+		opts.ModTime = f.modTime
+	}
+
 	return err
 }
 
@@ -87,6 +96,7 @@ type atomicFileWriter struct {
 	writeErr error
 	perm     os.FileMode
 	noSync   bool
+	modTime  time.Time
 }
 
 func (w *atomicFileWriter) Write(dt []byte) (int, error) {
@@ -109,9 +119,25 @@ func (w *atomicFileWriter) Close() (retErr error) {
 			return err
 		}
 	}
+
+	// fstat before closing the fd
+	info, statErr := w.f.Stat()
+	if statErr == nil {
+		w.modTime = info.ModTime()
+	}
+	// We delay error reporting until after the real call to close()
+	// to match the traditional linux close() behaviour that an fd
+	// is invalid (closed) even if close returns failure. While
+	// weird, this allows a well defined way to not leak open fds.
+
 	if err := w.f.Close(); err != nil {
 		return err
 	}
+
+	if statErr != nil {
+		return statErr
+	}
+
 	if err := os.Chmod(w.f.Name(), w.perm); err != nil {
 		return err
 	}

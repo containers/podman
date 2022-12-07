@@ -129,7 +129,6 @@ $ podman container inspect foobar
             "CAP_SETGID",
             "CAP_SETPCAP",
             "CAP_SETUID",
-            "CAP_SYS_CHROOT"
         ],
         "BoundingCaps": [
             "CAP_CHOWN",
@@ -142,7 +141,6 @@ $ podman container inspect foobar
             "CAP_SETGID",
             "CAP_SETPCAP",
             "CAP_SETUID",
-            "CAP_SYS_CHROOT"
         ],
         "ExecIDs": [],
         "GraphDriver": {
@@ -248,11 +246,7 @@ $ podman container inspect foobar
             "VolumeDriver": "",
             "VolumesFrom": null,
             "CapAdd": [],
-            "CapDrop": [
-                "CAP_AUDIT_WRITE",
-                "CAP_MKNOD",
-                "CAP_NET_RAW"
-            ],
+            "CapDrop": [],
             "Dns": [],
             "DnsOptions": [],
             "DnsSearch": [],
@@ -325,7 +319,7 @@ overlay
 
 ```
 $ podman container inspect --latest --format {{.EffectiveCaps}}
-[CAP_CHOWN CAP_DAC_OVERRIDE CAP_FOWNER CAP_FSETID CAP_KILL CAP_NET_BIND_SERVICE CAP_SETFCAP CAP_SETGID CAP_SETPCAP CAP_SETUID CAP_SYS_CHROOT]
+[CAP_CHOWN CAP_DAC_OVERRIDE CAP_FOWNER CAP_FSETID CAP_KILL CAP_NET_BIND_SERVICE CAP_SETFCAP CAP_SETGID CAP_SETPCAP CAP_SETUID]
 ```
 
 ## SEE ALSO

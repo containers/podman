@@ -1,6 +1,8 @@
 /*
 Package report provides helper structs/methods/funcs for formatting output
 
+# Examples
+
 To format output for an array of structs:
 
 ExamplePodman:
@@ -54,7 +56,7 @@ Helpers:
 		... "table" keyword prefix in format text
 	}
 
-Template Functions:
+# Template Functions
 
 The following template functions are added to the template when parsed:
   - join  strings.Join, {{join .Field separator}}

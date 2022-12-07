@@ -27,7 +27,6 @@ import (
 	"github.com/containers/podman/v4/pkg/specgen"
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/sirupsen/logrus"
 )
 
@@ -602,7 +601,7 @@ func containerToV1Container(ctx context.Context, c *Container) (v1.Container, []
 	kubeContainer := v1.Container{}
 	kubeVolumes := []v1.Volume{}
 	annotations := make(map[string]string)
-	kubeSec, err := generateKubeSecurityContext(c)
+	kubeSec, hasSecData, err := generateKubeSecurityContext(c)
 	if err != nil {
 		return kubeContainer, kubeVolumes, nil, annotations, err
 	}
@@ -677,7 +676,7 @@ func containerToV1Container(ctx context.Context, c *Container) (v1.Container, []
 		kubeContainer.WorkingDir = c.WorkingDir()
 	}
 
-	if imgData.User == c.User() {
+	if imgData.User == c.User() && hasSecData {
 		kubeSec.RunAsGroup, kubeSec.RunAsUser = nil, nil
 	}
 
@@ -690,7 +689,9 @@ func containerToV1Container(ctx context.Context, c *Container) (v1.Container, []
 	kubeContainer.Ports = ports
 	// This should not be applicable
 	// container.EnvFromSource =
-	kubeContainer.SecurityContext = kubeSec
+	if hasSecData {
+		kubeContainer.SecurityContext = kubeSec
+	}
 	kubeContainer.StdinOnce = false
 	kubeContainer.TTY = c.Terminal()
 
@@ -983,27 +984,16 @@ func determineCapAddDropFromCapabilities(defaultCaps, containerCaps []string) *v
 		}
 	}
 
-	return &v1.Capabilities{
-		Add:  add,
-		Drop: drop,
+	if len(add) > 0 || len(drop) > 0 {
+		return &v1.Capabilities{
+			Add:  add,
+			Drop: drop,
+		}
 	}
+	return nil
 }
 
-func capAddDrop(caps *specs.LinuxCapabilities) (*v1.Capabilities, error) {
-	g, err := generate.New("linux")
-	if err != nil {
-		return nil, err
-	}
-
-	defCaps := g.Config.Process.Capabilities
-	// Combine all the default capabilities into a slice
-	defaultCaps := make([]string, 0, len(defCaps.Ambient)+len(defCaps.Bounding)+len(defCaps.Effective)+len(defCaps.Inheritable)+len(defCaps.Permitted))
-	defaultCaps = append(defaultCaps, defCaps.Ambient...)
-	defaultCaps = append(defaultCaps, defCaps.Bounding...)
-	defaultCaps = append(defaultCaps, defCaps.Effective...)
-	defaultCaps = append(defaultCaps, defCaps.Inheritable...)
-	defaultCaps = append(defaultCaps, defCaps.Permitted...)
-
+func (c *Container) capAddDrop(caps *specs.LinuxCapabilities) *v1.Capabilities {
 	// Combine all the container's capabilities into a slice
 	containerCaps := make([]string, 0, len(caps.Ambient)+len(caps.Bounding)+len(caps.Effective)+len(caps.Inheritable)+len(caps.Permitted))
 	containerCaps = append(containerCaps, caps.Ambient...)
@@ -1012,12 +1002,12 @@ func capAddDrop(caps *specs.LinuxCapabilities) (*v1.Capabilities, error) {
 	containerCaps = append(containerCaps, caps.Inheritable...)
 	containerCaps = append(containerCaps, caps.Permitted...)
 
-	calculatedCaps := determineCapAddDropFromCapabilities(defaultCaps, containerCaps)
-	return calculatedCaps, nil
+	calculatedCaps := determineCapAddDropFromCapabilities(c.runtime.config.Containers.DefaultCapabilities, containerCaps)
+	return calculatedCaps
 }
 
 // generateKubeSecurityContext generates a securityContext based on the existing container
-func generateKubeSecurityContext(c *Container) (*v1.SecurityContext, error) {
+func generateKubeSecurityContext(c *Container) (*v1.SecurityContext, bool, error) {
 	privileged := c.Privileged()
 	ro := c.IsReadOnly()
 	allowPrivEscalation := !c.config.Spec.Process.NoNewPrivileges
@@ -1025,19 +1015,17 @@ func generateKubeSecurityContext(c *Container) (*v1.SecurityContext, error) {
 	var capabilities *v1.Capabilities
 	if !privileged {
 		// Running privileged adds all caps.
-		newCaps, err := capAddDrop(c.config.Spec.Process.Capabilities)
-		if err != nil {
-			return nil, err
-		}
-		capabilities = newCaps
+		capabilities = c.capAddDrop(c.config.Spec.Process.Capabilities)
 	}
 
+	scHasData := false
 	sc := v1.SecurityContext{
 		// RunAsNonRoot is an optional parameter; our first implementations should be root only; however
 		// I'm leaving this as a bread-crumb for later
 		//RunAsNonRoot:             &nonRoot,
 	}
 	if capabilities != nil {
+		scHasData = true
 		sc.Capabilities = capabilities
 	}
 	var selinuxOpts v1.SELinuxOptions
@@ -1048,24 +1036,30 @@ func generateKubeSecurityContext(c *Container) (*v1.SecurityContext, error) {
 		case "type":
 			selinuxOpts.Type = opts[1]
 			sc.SELinuxOptions = &selinuxOpts
+			scHasData = true
 		case "level":
 			selinuxOpts.Level = opts[1]
 			sc.SELinuxOptions = &selinuxOpts
+			scHasData = true
 		}
 	case 1:
 		if opts[0] == "disable" {
 			selinuxOpts.Type = "spc_t"
 			sc.SELinuxOptions = &selinuxOpts
+			scHasData = true
 		}
 	}
 
 	if !allowPrivEscalation {
+		scHasData = true
 		sc.AllowPrivilegeEscalation = &allowPrivEscalation
 	}
 	if privileged {
+		scHasData = true
 		sc.Privileged = &privileged
 	}
 	if ro {
+		scHasData = true
 		sc.ReadOnlyRootFilesystem = &ro
 	}
 	if c.User() != "" {
@@ -1074,7 +1068,7 @@ func generateKubeSecurityContext(c *Container) (*v1.SecurityContext, error) {
 			defer c.lock.Unlock()
 		}
 		if err := c.syncContainer(); err != nil {
-			return nil, fmt.Errorf("unable to sync container during YAML generation: %w", err)
+			return nil, false, fmt.Errorf("unable to sync container during YAML generation: %w", err)
 		}
 
 		mountpoint := c.state.Mountpoint
@@ -1082,7 +1076,7 @@ func generateKubeSecurityContext(c *Container) (*v1.SecurityContext, error) {
 			var err error
 			mountpoint, err = c.mount()
 			if err != nil {
-				return nil, fmt.Errorf("failed to mount %s mountpoint: %w", c.ID(), err)
+				return nil, false, fmt.Errorf("failed to mount %s mountpoint: %w", c.ID(), err)
 			}
 			defer func() {
 				if err := c.unmount(false); err != nil {
@@ -1094,14 +1088,16 @@ func generateKubeSecurityContext(c *Container) (*v1.SecurityContext, error) {
 
 		execUser, err := lookup.GetUserGroupInfo(mountpoint, c.User(), nil)
 		if err != nil {
-			return nil, err
+			return nil, false, err
 		}
 		uid := int64(execUser.Uid)
 		gid := int64(execUser.Gid)
+		scHasData = true
 		sc.RunAsUser = &uid
 		sc.RunAsGroup = &gid
 	}
-	return &sc, nil
+
+	return &sc, scHasData, nil
 }
 
 // generateKubeVolumeDeviceFromLinuxDevice takes a list of devices and makes a VolumeDevice struct for kube
