@@ -434,7 +434,8 @@ func (p *PodmanTestIntegration) RunTopContainer(name string) *PodmanSessionInteg
 // RunTopContainerWithArgs runs a simple container in the background that
 // runs top.  If the name passed != "", it will have a name, command args can also be passed in
 func (p *PodmanTestIntegration) RunTopContainerWithArgs(name string, args []string) *PodmanSessionIntegration {
-	var podmanArgs = []string{"run"}
+	// In proxy environment, some tests need to the --http-proxy=false option (#16684)
+	var podmanArgs = []string{"run", "--http-proxy=false"}
 	if name != "" {
 		podmanArgs = append(podmanArgs, "--name", name)
 	}
@@ -474,6 +475,17 @@ func (p *PodmanTestIntegration) RunNginxWithHealthCheck(name string) (*PodmanSes
 	session := p.Podman(podmanArgs)
 	session.WaitWithDefaultTimeout()
 	return session, session.OutputToString()
+}
+
+// RunContainerWithNetworkTest runs the fedoraMinimal curl with the specified network mode.
+func (p *PodmanTestIntegration) RunContainerWithNetworkTest(mode string) *PodmanSessionIntegration {
+	var podmanArgs = []string{"run"}
+	if mode != "" {
+		podmanArgs = append(podmanArgs, "--network", mode)
+	}
+	podmanArgs = append(podmanArgs, fedoraMinimal, "curl", "-k", "-o", "/dev/null", "http://www.podman.io:80")
+	session := p.Podman(podmanArgs)
+	return session
 }
 
 func (p *PodmanTestIntegration) RunLsContainerInPod(name, pod string) (*PodmanSessionIntegration, int, string) {

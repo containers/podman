@@ -1251,7 +1251,8 @@ USER test1`
 
 		ctrName := "gen-kube-env-ctr"
 		podName := "gen-kube-env"
-		session1 := podmanTest.Podman([]string{"run", "-d", "--pod", "new:" + podName, "--name", ctrName,
+		// In proxy environment, this test needs to the --http-proxy=false option (#16684)
+		session1 := podmanTest.Podman([]string{"run", "-d", "--http-proxy=false", "--pod", "new:" + podName, "--name", ctrName,
 			"-e", "FOO=bar",
 			"-e", "HELLO=WORLD",
 			"alpine", "top"})
