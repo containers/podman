@@ -168,16 +168,7 @@ func buildFlags(cmd *cobra.Command) {
 		logrus.Errorf("Setting up build flags: %v", err)
 		os.Exit(1)
 	}
-	// --http-proxy flag
-	// containers.conf defaults to true but we want to force false by default for remote, since settings do not apply
-	if registry.IsRemote() {
-		flag = fromAndBudFlags.Lookup("http-proxy")
-		buildOpts.HTTPProxy = false
-		if err := flag.Value.Set("false"); err != nil {
-			logrus.Errorf("Unable to set --https-proxy to %v: %v", false, err)
-		}
-		flag.DefValue = "false"
-	}
+
 	flags.AddFlagSet(&fromAndBudFlags)
 	// Add the completion functions
 	fromAndBudFlagsCompletions := buildahCLI.GetFromAndBudFlagsCompletions()
