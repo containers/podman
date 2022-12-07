@@ -77,6 +77,8 @@ You can run a single file of integration tests using the go test command:
 GOPATH=~/go go test -v test/e2e/libpod_suite_test.go test/e2e/common_test.go test/e2e/config.go test/e2e/config_amd64.go test/e2e/your_test.go
 ```
 
+If you want to run the tests with the podman-remote client, make sure to replace `test/e2e/libpod_suite_test.go` with `test/e2e/libpod_suite_remote_test.go`.
+
 ### Running a single integration test
 Before running the test suite, you have to declare which test you want run in the test
 file itself. Consider the following actual test:
