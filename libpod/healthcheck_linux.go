@@ -111,7 +111,7 @@ func (c *Container) removeTransientFiles(ctx context.Context, isStartup bool) er
 	// fire after the service is stopped.
 	timerChan := make(chan string)
 	timerFile := fmt.Sprintf("%s.timer", c.hcUnitName(isStartup))
-	if _, err := conn.StopUnitContext(ctx, timerFile, "fail", timerChan); err != nil {
+	if _, err := conn.StopUnitContext(ctx, timerFile, "ignore-dependencies", timerChan); err != nil {
 		if !strings.HasSuffix(err.Error(), ".timer not loaded.") {
 			stopErrors = append(stopErrors, fmt.Errorf("removing health-check timer %q: %w", timerFile, err))
 		}
@@ -126,7 +126,7 @@ func (c *Container) removeTransientFiles(ctx context.Context, isStartup bool) er
 	if err := conn.ResetFailedUnitContext(ctx, serviceFile); err != nil {
 		logrus.Debugf("Failed to reset unit file: %q", err)
 	}
-	if _, err := conn.StopUnitContext(ctx, serviceFile, "fail", serviceChan); err != nil {
+	if _, err := conn.StopUnitContext(ctx, serviceFile, "ignore-dependencies", serviceChan); err != nil {
 		if !strings.HasSuffix(err.Error(), ".service not loaded.") {
 			stopErrors = append(stopErrors, fmt.Errorf("removing health-check service %q: %w", serviceFile, err))
 		}
