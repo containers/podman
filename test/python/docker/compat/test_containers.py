@@ -3,6 +3,8 @@ Integration tests for exercising docker-py against Podman Service.
 """
 import io
 import tarfile
+import threading
+import time
 from typing import IO, List, Optional
 
 from docker import errors
@@ -260,3 +262,24 @@ class TestContainers(common.DockerTestCase):
                 ctr.remove()
             if vol is not None:
                 vol.remove(force=True)
+
+    def test_wait_next_exit(self):
+        self.skipTest("Skip until fix container-selinux#196 is available.")
+        ctr: Container = self.docker.containers.create(
+            image=constant.ALPINE,
+            name="test-exit",
+            command=["true"],
+            labels={"my-label": "0" * 250_000})
+
+        try:
+            def wait_and_start():
+                time.sleep(5)
+                ctr.start()
+
+            t = threading.Thread(target=wait_and_start)
+            t.start()
+            ctr.wait(condition="next-exit", timeout=300)
+            t.join()
+        finally:
+            ctr.stop()
+            ctr.remove(force=True)
