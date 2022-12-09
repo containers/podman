@@ -196,8 +196,7 @@ skip_if_remote "secret files not implemented under podman-remote" \
                "bud with containerfile env secret" \
                "bud with containerfile env secret priority"
 
-skip_if_remote "volumes don't work with podman-remote" \
-               "buildah bud --volume" \
+skip_if_remote "--signature-policy does not work with podman-remote" \
                "buildah-bud-policy"
 
 skip_if_remote "--build-context option not implemented in podman-remote" \

@@ -767,8 +767,7 @@ using the architecture variant of the build host.
 
 Create a bind mount. Specifying the `-v /HOST-DIR:/CONTAINER-DIR` option, Podman
 bind mounts `/HOST-DIR` from the host to `/CONTAINER-DIR` in the Podman
-container. (This option is not available with the remote Podman client,
-including Mac and Windows (excluding WSL2) machines)
+container.
 
 The `OPTIONS` are a comma-separated list and can be: <sup>[[1]](#Footnote1)</sup>
 
