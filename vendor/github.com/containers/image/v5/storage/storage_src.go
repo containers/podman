@@ -111,7 +111,7 @@ func (s *storageImageSource) GetBlob(ctx context.Context, info types.BlobInfo, c
 		return nil, 0, err
 	}
 
-	if _, err := tmpFile.Seek(0, 0); err != nil {
+	if _, err := tmpFile.Seek(0, io.SeekStart); err != nil {
 		return nil, 0, err
 	}
 

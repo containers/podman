@@ -34,15 +34,19 @@ func NewReaderFromFile(sys *types.SystemContext, path string) (*Reader, error) {
 	}
 	defer file.Close()
 
-	// If the file is already not compressed we can just return the file itself
+	// If the file is seekable and already not compressed we can just return the file itself
 	// as a source. Otherwise we pass the stream to NewReaderFromStream.
-	stream, isCompressed, err := compression.AutoDecompress(file)
-	if err != nil {
-		return nil, fmt.Errorf("detecting compression for file %q: %w", path, err)
-	}
-	defer stream.Close()
-	if !isCompressed {
-		return newReader(path, false)
+	var stream io.Reader = file
+	if _, err := file.Seek(0, io.SeekCurrent); err == nil { // seeking is possible
+		decompressed, isCompressed, err := compression.AutoDecompress(file)
+		if err != nil {
+			return nil, fmt.Errorf("detecting compression for file %q: %w", path, err)
+		}
+		defer decompressed.Close()
+		stream = decompressed
+		if !isCompressed {
+			return newReader(path, false)
+		}
 	}
 	return NewReaderFromStream(sys, stream)
 }

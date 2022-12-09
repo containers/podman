@@ -15,6 +15,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+func (n *cniNetwork) NetworkUpdate(name string, options types.NetworkUpdateOptions) error {
+	return fmt.Errorf("NetworkUpdate is not supported for backend CNI: %w", types.ErrInvalidArg)
+}
+
 // NetworkCreate will take a partial filled Network and fill the
 // missing fields. It creates the Network and returns the full Network.
 func (n *cniNetwork) NetworkCreate(net types.Network, options *types.NetworkCreateOptions) (types.Network, error) {

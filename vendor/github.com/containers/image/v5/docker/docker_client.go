@@ -522,9 +522,8 @@ func parseRetryAfter(res *http.Response, fallbackDelay time.Duration) time.Durat
 		return time.Duration(num) * time.Second
 	}
 	// Second, check if we have an HTTP date.
-	// If the delta between the date and now is positive, use it.
-	// Otherwise, fall back to using the default exponential back off.
 	if t, err := http.ParseTime(after); err == nil {
+		// If the delta between the date and now is positive, use it.
 		delta := time.Until(t)
 		if delta > 0 {
 			return delta
@@ -532,7 +531,6 @@ func parseRetryAfter(res *http.Response, fallbackDelay time.Duration) time.Durat
 		logrus.Debugf("Retry-After date in the past, ignoring it")
 		return fallbackDelay
 	}
-	// If the header contents are bogus, fall back to using the default exponential back off.
 	logrus.Debugf("Invalid Retry-After format, ignoring it")
 	return fallbackDelay
 }
@@ -590,7 +588,7 @@ func (c *dockerClient) makeRequestToResolvedURL(ctx context.Context, method stri
 		case <-time.After(delay):
 			// Nothing
 		}
-		delay = delay * 2 // exponential back off
+		delay = delay * 2 // If the registry does not specify a delay, back off exponentially.
 	}
 }
 

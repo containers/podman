@@ -12,12 +12,12 @@ require (
 	github.com/containernetworking/cni v1.1.2
 	github.com/containernetworking/plugins v1.1.1
 	github.com/containers/buildah v1.28.1-0.20221130132810-cf661299d14f
-	github.com/containers/common v0.50.2-0.20221206110749-eb48ebbf8ca9
+	github.com/containers/common v0.50.2-0.20221209085636-567290d3d3b3
 	github.com/containers/conmon v2.0.20+incompatible
-	github.com/containers/image/v5 v5.23.1-0.20221130170538-333c50e3eac8
+	github.com/containers/image/v5 v5.23.1-0.20221209092225-431fd251c4c5
 	github.com/containers/ocicrypt v1.1.6
 	github.com/containers/psgo v1.8.0
-	github.com/containers/storage v1.44.1-0.20221201083122-c5a80ad65f42
+	github.com/containers/storage v1.44.1-0.20221209075713-e546955f90ea
 	github.com/coreos/go-systemd/v22 v22.5.0
 	github.com/coreos/stream-metadata-go v0.0.0-20210225230131-70edb9eb47b3
 	github.com/cyphar/filepath-securejoin v0.2.3
@@ -60,11 +60,11 @@ require (
 	github.com/vbauerster/mpb/v7 v7.5.3
 	github.com/vishvananda/netlink v1.1.1-0.20220115184804-dd687eb2f2d4
 	go.etcd.io/bbolt v1.3.6
-	golang.org/x/net v0.2.0
+	golang.org/x/net v0.4.0
 	golang.org/x/sync v0.1.0
 	golang.org/x/sys v0.3.0
-	golang.org/x/term v0.2.0
-	golang.org/x/text v0.4.0
+	golang.org/x/term v0.3.0
+	golang.org/x/text v0.5.0
 	google.golang.org/protobuf v1.28.1
 	gopkg.in/inf.v0 v0.9.1
 	gopkg.in/yaml.v3 v3.0.1
@@ -78,7 +78,7 @@ require (
 	github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d // indirect
 	github.com/chzyer/readline v1.5.1 // indirect
 	github.com/containerd/cgroups v1.0.4 // indirect
-	github.com/containerd/containerd v1.6.10 // indirect
+	github.com/containerd/containerd v1.6.12 // indirect
 	github.com/containerd/stargz-snapshotter/estargz v0.13.0 // indirect
 	github.com/containers/libtrust v0.0.0-20200511145503-9c3a6c22cd9a // indirect
 	github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f // indirect
@@ -132,7 +132,7 @@ require (
 	github.com/xeipuuv/gojsonschema v1.2.0 // indirect
 	go.mozilla.org/pkcs7 v0.0.0-20210826202110-33d05740a352 // indirect
 	go.opencensus.io v0.24.0 // indirect
-	golang.org/x/crypto v0.3.0 // indirect
+	golang.org/x/crypto v0.4.0 // indirect
 	golang.org/x/mod v0.6.0 // indirect
 	golang.org/x/tools v0.2.0 // indirect
 	google.golang.org/genproto v0.0.0-20221111202108-142d8a6fa32e // indirect

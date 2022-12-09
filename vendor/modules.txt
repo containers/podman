@@ -69,7 +69,7 @@ github.com/container-orchestrated-devices/container-device-interface/specs-go
 # github.com/containerd/cgroups v1.0.4
 ## explicit; go 1.17
 github.com/containerd/cgroups/stats/v1
-# github.com/containerd/containerd v1.6.10
+# github.com/containerd/containerd v1.6.12
 ## explicit; go 1.17
 github.com/containerd/containerd/errdefs
 github.com/containerd/containerd/log
@@ -118,7 +118,7 @@ github.com/containers/buildah/pkg/rusage
 github.com/containers/buildah/pkg/sshagent
 github.com/containers/buildah/pkg/util
 github.com/containers/buildah/util
-# github.com/containers/common v0.50.2-0.20221206110749-eb48ebbf8ca9
+# github.com/containers/common v0.50.2-0.20221209085636-567290d3d3b3
 ## explicit; go 1.17
 github.com/containers/common/libimage
 github.com/containers/common/libimage/define
@@ -172,7 +172,7 @@ github.com/containers/common/version
 # github.com/containers/conmon v2.0.20+incompatible
 ## explicit
 github.com/containers/conmon/runner/config
-# github.com/containers/image/v5 v5.23.1-0.20221130170538-333c50e3eac8
+# github.com/containers/image/v5 v5.23.1-0.20221209092225-431fd251c4c5
 ## explicit; go 1.17
 github.com/containers/image/v5/copy
 github.com/containers/image/v5/directory
@@ -264,7 +264,7 @@ github.com/containers/psgo/internal/dev
 github.com/containers/psgo/internal/host
 github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
-# github.com/containers/storage v1.44.1-0.20221201083122-c5a80ad65f42
+# github.com/containers/storage v1.44.1-0.20221209075713-e546955f90ea
 ## explicit; go 1.17
 github.com/containers/storage
 github.com/containers/storage/drivers
@@ -764,7 +764,7 @@ go.opencensus.io/internal
 go.opencensus.io/trace
 go.opencensus.io/trace/internal
 go.opencensus.io/trace/tracestate
-# golang.org/x/crypto v0.3.0
+# golang.org/x/crypto v0.4.0
 ## explicit; go 1.17
 golang.org/x/crypto/blowfish
 golang.org/x/crypto/cast5
@@ -793,7 +793,7 @@ golang.org/x/crypto/ssh/knownhosts
 # golang.org/x/mod v0.6.0
 ## explicit; go 1.17
 golang.org/x/mod/semver
-# golang.org/x/net v0.2.0
+# golang.org/x/net v0.4.0
 ## explicit; go 1.17
 golang.org/x/net/context
 golang.org/x/net/html
@@ -821,10 +821,10 @@ golang.org/x/sys/unix
 golang.org/x/sys/windows
 golang.org/x/sys/windows/registry
 golang.org/x/sys/windows/svc/eventlog
-# golang.org/x/term v0.2.0
+# golang.org/x/term v0.3.0
 ## explicit; go 1.17
 golang.org/x/term
-# golang.org/x/text v0.4.0
+# golang.org/x/text v0.5.0
 ## explicit; go 1.17
 golang.org/x/text/encoding
 golang.org/x/text/encoding/charmap
