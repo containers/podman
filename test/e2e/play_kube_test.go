@@ -370,6 +370,48 @@ spec:
           periodSeconds: 1
 `
 
+var startupProbePodYaml = `
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: startup-healthy-probe
+  labels:
+    app: alpine
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: alpine
+  template:
+    metadata:
+      labels:
+        app: alpine
+    spec:
+      restartPolicy: Never
+      containers:
+      - command:
+        - top
+        - -d
+        - "1.5"
+        name: alpine
+        image: quay.io/libpod/alpine:latest
+        startupProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - cat /testfile
+          initialDelaySeconds: 0
+          periodSeconds: 1
+        livenessProbe:
+          exec:
+            command:
+            - echo
+            - liveness probe
+          initialDelaySeconds: 0
+          periodSeconds: 1
+`
+
 var selinuxLabelPodYaml = `
 apiVersion: v1
 kind: Pod
@@ -1712,7 +1754,7 @@ var _ = Describe("Podman play kube", func() {
 		inspect.WaitWithDefaultTimeout()
 		healthcheckcmd := inspect.OutputToString()
 		// check if CMD-SHELL based equivalent health check is added to container
-		Expect(healthcheckcmd).To(ContainSubstring("CMD-SHELL"))
+		Expect(healthcheckcmd).To(ContainSubstring("[echo hello]"))
 	})
 
 	It("podman play kube liveness probe should fail", func() {
@@ -1728,6 +1770,35 @@ var _ = Describe("Podman play kube", func() {
 		hc.WaitWithDefaultTimeout()
 		hcoutput := hc.OutputToString()
 		Expect(hcoutput).To(ContainSubstring(define.HealthCheckUnhealthy))
+	})
+
+	It("podman play kube support container startup probe", func() {
+		ctrName := "startup-healthy-probe-pod-0-alpine"
+		err := writeYaml(startupProbePodYaml, kubeYaml)
+		Expect(err).ToNot(HaveOccurred())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		time.Sleep(2 * time.Second)
+		inspect := podmanTest.InspectContainer(ctrName)
+		Expect(inspect[0].State.Health).To(HaveField("Status", "starting"))
+
+		hc := podmanTest.Podman([]string{"healthcheck", "run", ctrName})
+		hc.WaitWithDefaultTimeout()
+		Expect(hc).Should(Exit(1))
+
+		exec := podmanTest.Podman([]string{"exec", ctrName, "sh", "-c", "echo 'startup probe success' > /testfile"})
+		exec.WaitWithDefaultTimeout()
+		Expect(exec).Should(Exit(0))
+
+		hc = podmanTest.Podman([]string{"healthcheck", "run", ctrName})
+		hc.WaitWithDefaultTimeout()
+		Expect(hc).Should(Exit(0))
+
+		inspect = podmanTest.InspectContainer(ctrName)
+		Expect(inspect[0].State.Health).To(HaveField("Status", define.HealthCheckHealthy))
 	})
 
 	It("podman play kube fail with nonexistent authfile", func() {
