@@ -1,5 +1,5 @@
 ####> This option file is used in:
-####>   podman create, run
+####>   podman build, create, run
 ####> If file is edited, make sure the changes
 ####> are applicable to all of those.
 #### **--http-proxy**
@@ -14,6 +14,7 @@ for the container in any other way will override the values that would have
 been passed through from the host. (Other ways to specify the proxy for the
 container include passing the values with the **--env** flag, or hard coding the
 proxy environment at container build time.)
-(This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
+When used with the remote client it will use the proxy environment variables
+that are set on the server process.
 
 Defaults to **true**.

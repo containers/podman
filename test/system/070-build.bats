@@ -20,7 +20,7 @@ RUN echo $rand_content > /$rand_filename
 EOF
 
     # The 'apk' command can take a long time to fetch files; bump timeout
-    PODMAN_TIMEOUT=240 run_podman build -t build_test --format=docker --http-proxy $tmpdir
+    PODMAN_TIMEOUT=240 run_podman build -t build_test --format=docker $tmpdir
     is "$output" ".*COMMIT" "COMMIT seen in log"
 
     run_podman run --rm build_test cat /$rand_filename

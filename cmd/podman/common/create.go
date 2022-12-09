@@ -621,7 +621,6 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 
 		if registry.IsRemote() {
 			_ = createFlags.MarkHidden("env-host")
-			_ = createFlags.MarkHidden("http-proxy")
 			_ = createFlags.MarkHidden(decryptionKeysFlagName)
 		} else {
 			createFlags.StringVar(

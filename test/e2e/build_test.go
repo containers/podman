@@ -299,7 +299,7 @@ var _ = Describe("Podman build", func() {
 		Expect(session.OutputToString()).To(ContainSubstring("hello"))
 	})
 
-	It("podman build --http_proxy flag", func() {
+	It("podman build http proxy test", func() {
 		if env, found := os.LookupEnv("http_proxy"); found {
 			defer os.Setenv("http_proxy", env)
 		} else {
@@ -309,6 +309,9 @@ var _ = Describe("Podman build", func() {
 		if IsRemote() {
 			podmanTest.StopRemoteService()
 			podmanTest.StartRemoteService()
+			// set proxy env again so it will only effect the client
+			// the remote client should still use the proxy that was set for the server
+			os.Setenv("http_proxy", "127.0.0.2")
 		}
 		podmanTest.AddImageToRWStore(ALPINE)
 		dockerfile := fmt.Sprintf(`FROM %s
@@ -317,10 +320,17 @@ RUN printenv http_proxy`, ALPINE)
 		dockerfilePath := filepath.Join(podmanTest.TempDir, "Dockerfile")
 		err := os.WriteFile(dockerfilePath, []byte(dockerfile), 0755)
 		Expect(err).ToNot(HaveOccurred())
-		session := podmanTest.Podman([]string{"build", "--pull-never", "--http-proxy", "--file", dockerfilePath, podmanTest.TempDir})
+		// --http-proxy should be true by default so we do not set it
+		session := podmanTest.Podman([]string{"build", "--pull-never", "--file", dockerfilePath, podmanTest.TempDir})
 		session.Wait(120)
 		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(ContainSubstring("1.2.3.4"))
+
+		// this tries to use the cache so we explicitly disable it
+		session = podmanTest.Podman([]string{"build", "--no-cache", "--pull-never", "--http-proxy=false", "--file", dockerfilePath, podmanTest.TempDir})
+		session.Wait(120)
+		Expect(session).Should(Exit(1))
+		Expect(session.ErrorToString()).To(ContainSubstring(`Error: building at STEP "RUN printenv http_proxy"`))
 	})
 
 	It("podman build relay exit code to process", func() {

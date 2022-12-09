@@ -303,9 +303,7 @@ For the bind-mount conditions, only mounts explicitly requested by the caller vi
 
 If --hooks-dir is unset for root callers, Buildah will currently default to /usr/share/containers/oci/hooks.d and /etc/containers/oci/hooks.d in order of increasing precedence. Using these defaults is deprecated, and callers should migrate to explicitly setting --hooks-dir.
 
-#### **--http-proxy**
-
-Pass through HTTP Proxy environment variables.
+@@option http-proxy
 
 #### **--identity-label**
 

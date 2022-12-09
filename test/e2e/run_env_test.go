@@ -130,6 +130,9 @@ ENV hello=world
 		if IsRemote() {
 			podmanTest.StopRemoteService()
 			podmanTest.StartRemoteService()
+			// set proxy env again so it will only effect the client
+			// the remote client should still use the proxy that was set for the server
+			os.Setenv("http_proxy", "127.0.0.2")
 		}
 		session := podmanTest.Podman([]string{"run", "--rm", ALPINE, "printenv", "http_proxy"})
 		session.WaitWithDefaultTimeout()
