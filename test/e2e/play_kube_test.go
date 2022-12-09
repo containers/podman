@@ -3,6 +3,7 @@ package integration
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net"
@@ -48,9 +49,11 @@ metadata:
   name: newsecrettwo
 type: Opaque
 data:
-  username: Y2RvZXJuCg==
+  username: Y2RvZXJu
   password: dGVzdGluZ3Rlc3RpbmcK
   note: a3ViZSBzZWNyZXRzIGFyZSBjb29sIQo=
+stringData:
+  plain_note: This is a test
 `
 
 var secretPodYaml = `
@@ -89,12 +92,19 @@ spec:
         - name: bar
           mountPath: /etc/bar
           readOnly: true
+        - name: baz
+          mountPath: /etc/baz
+          readOnly: true
   volumes:
     - name: foo
       secret:
         secretName: newsecret
         optional: false
     - name: bar
+      secret:
+        secretName: newsecrettwo
+        optional: false
+    - name: baz
       secret:
         secretName: newsecrettwo
         optional: false
@@ -1483,7 +1493,8 @@ func testPodWithSecret(podmanTest *PodmanTestIntegration, podYamlString, fileNam
 	exec.WaitWithDefaultTimeout()
 	if exists {
 		Expect(exec).Should(Exit(0))
-		Expect(exec.OutputToString()).Should(ContainSubstring("dXNlcg=="))
+		username, _ := base64.StdEncoding.DecodeString("dXNlcg==")
+		Expect(exec.OutputToString()).Should(ContainSubstring(string(username)))
 	} else {
 		Expect(exec).Should(Exit(-1))
 	}
@@ -4338,7 +4349,7 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 		deleteAndTestSecret(podmanTest, "newsecret")
 	})
 
-	It("podman play kube secret as volume support - two volumes", func() {
+	It("podman play kube secret as volume support - multiple volumes", func() {
 		yamls := []string{secretYaml, secretPodYaml}
 		err = generateMultiDocKubeYaml(yamls, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
@@ -4367,12 +4378,19 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 		exec := podmanTest.Podman([]string{"exec", "-it", "mypod2-myctr", "cat", "/etc/foo/username"})
 		exec.WaitWithDefaultTimeout()
 		Expect(exec).Should(Exit(0))
-		Expect(exec.OutputToString()).Should(ContainSubstring("dXNlcg=="))
+		username, _ := base64.StdEncoding.DecodeString("dXNlcg==")
+		Expect(exec.OutputToString()).Should(ContainSubstring(string(username)))
 
 		exec = podmanTest.Podman([]string{"exec", "-it", "mypod2-myctr", "cat", "/etc/bar/username"})
 		exec.WaitWithDefaultTimeout()
 		Expect(exec).Should(Exit(0))
-		Expect(exec.OutputToString()).Should(ContainSubstring("Y2RvZXJuCg=="))
+		username, _ = base64.StdEncoding.DecodeString("Y2RvZXJu")
+		Expect(exec.OutputToString()).Should(ContainSubstring(string(username)))
+
+		exec = podmanTest.Podman([]string{"exec", "-it", "mypod2-myctr", "cat", "/etc/baz/plain_note"})
+		exec.WaitWithDefaultTimeout()
+		Expect(exec).Should(Exit(0))
+		Expect(exec.OutputToString()).Should(ContainSubstring("This is a test"))
 
 	})
 

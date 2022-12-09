@@ -33,6 +33,7 @@ import (
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/docker/docker/pkg/system"
 	"github.com/docker/go-units"
+	"github.com/ghodss/yaml"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 )
@@ -691,17 +692,31 @@ func quantityToInt64(quantity *resource.Quantity) (int64, error) {
 	return 0, fmt.Errorf("quantity cannot be represented as int64: %v", quantity)
 }
 
-// read a k8s secret in JSON format from the secret manager
+// read a k8s secret in JSON/YAML format from the secret manager
+// k8s secret is stored as YAML, we have to read data as JSON for backward compatibility
 func k8sSecretFromSecretManager(name string, secretsManager *secrets.SecretsManager) (map[string][]byte, error) {
-	_, jsonSecret, err := secretsManager.LookupSecretData(name)
+	_, inputSecret, err := secretsManager.LookupSecretData(name)
 	if err != nil {
 		return nil, err
 	}
 
 	var secrets map[string][]byte
-	if err := json.Unmarshal(jsonSecret, &secrets); err != nil {
-		return nil, fmt.Errorf("secret %v is not valid JSON: %v", name, err)
+	if err := json.Unmarshal(inputSecret, &secrets); err != nil {
+		secrets = make(map[string][]byte)
+		var secret v1.Secret
+		if err := yaml.Unmarshal(inputSecret, &secret); err != nil {
+			return nil, fmt.Errorf("secret %v is not valid JSON/YAML: %v", name, err)
+		}
+
+		for key, val := range secret.Data {
+			secrets[key] = val
+		}
+
+		for key, val := range secret.StringData {
+			secrets[key] = []byte(val)
+		}
 	}
+
 	return secrets, nil
 }
 

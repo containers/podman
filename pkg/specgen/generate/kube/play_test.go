@@ -4,7 +4,6 @@
 package kube
 
 import (
-	"encoding/json"
 	"math"
 	"runtime"
 	"strconv"
@@ -17,6 +16,7 @@ import (
 	"github.com/containers/podman/v4/pkg/k8s.io/apimachinery/pkg/util/intstr"
 	"github.com/containers/podman/v4/pkg/specgen"
 	"github.com/docker/docker/pkg/system"
+	"github.com/ghodss/yaml"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -34,7 +34,7 @@ func createSecrets(t *testing.T, d string) *secrets.SecretsManager {
 	}
 
 	for _, s := range k8sSecrets {
-		data, err := json.Marshal(s.Data)
+		data, err := yaml.Marshal(s)
 		assert.NoError(t, err)
 
 		_, err = secretsManager.Store(s.ObjectMeta.Name, data, driver, storeOpts)
@@ -359,6 +359,61 @@ func TestEnvVarsFrom(t *testing.T) {
 			},
 			false,
 			nil,
+		},
+		{
+			"SecretExistsMultipleDataEntries",
+			v1.EnvFromSource{
+				SecretRef: &v1.SecretEnvSource{
+					LocalObjectReference: v1.LocalObjectReference{
+						Name: "multi-data",
+					},
+				},
+			},
+			CtrSpecGenOptions{
+				SecretsManager: secretsManager,
+			},
+			true,
+			map[string]string{
+				"myvar":  "foo",
+				"myvar1": "foo1",
+			},
+		},
+		{
+			"SecretExistsMultipleStringDataEntries",
+			v1.EnvFromSource{
+				SecretRef: &v1.SecretEnvSource{
+					LocalObjectReference: v1.LocalObjectReference{
+						Name: "multi-stringdata",
+					},
+				},
+			},
+			CtrSpecGenOptions{
+				SecretsManager: secretsManager,
+			},
+			true,
+			map[string]string{
+				"myvar":  "foo",
+				"myvar1": "foo1",
+			},
+		},
+		{
+			"SecretExistsMultipleDataStringDataEntries",
+			v1.EnvFromSource{
+				SecretRef: &v1.SecretEnvSource{
+					LocalObjectReference: v1.LocalObjectReference{
+						Name: "multi-data-stringdata",
+					},
+				},
+			},
+			CtrSpecGenOptions{
+				SecretsManager: secretsManager,
+			},
+			true,
+			map[string]string{
+				"myvardata":   "foodata",
+				"myvar1":      "foo1string", // stringData overwrites data
+				"myvarstring": "foostring",
+			},
 		},
 		{
 			"OptionalSecretDoesNotExist",
@@ -1085,6 +1140,46 @@ var (
 			},
 			Data: map[string][]byte{
 				"myvar": []byte("foo"),
+			},
+		},
+		{
+			TypeMeta: v12.TypeMeta{
+				Kind: "Secret",
+			},
+			ObjectMeta: v12.ObjectMeta{
+				Name: "multi-data",
+			},
+			Data: map[string][]byte{
+				"myvar":  []byte("foo"),
+				"myvar1": []byte("foo1"),
+			},
+		},
+		{
+			TypeMeta: v12.TypeMeta{
+				Kind: "Secret",
+			},
+			ObjectMeta: v12.ObjectMeta{
+				Name: "multi-stringdata",
+			},
+			StringData: map[string]string{
+				"myvar":  string("foo"),
+				"myvar1": string("foo1"),
+			},
+		},
+		{
+			TypeMeta: v12.TypeMeta{
+				Kind: "Secret",
+			},
+			ObjectMeta: v12.ObjectMeta{
+				Name: "multi-data-stringdata",
+			},
+			Data: map[string][]byte{
+				"myvardata": []byte("foodata"),
+				"myvar1":    []byte("foo1data"),
+			},
+			StringData: map[string]string{
+				"myvarstring": string("foostring"),
+				"myvar1":      string("foo1string"),
 			},
 		},
 	}
