@@ -247,6 +247,28 @@ spec:
     - containerPort: 80
 `
 
+var subpathTest = `
+apiVersion: v1
+kind: Pod
+metadata:
+  name: testpod
+spec:
+    containers:
+    - name: testctr
+      image: quay.io/libpod/alpine_nginx:latest
+      command:
+        - sleep
+        - inf
+      volumeMounts:
+      - mountPath: /var
+        name: testing
+        subPath: testing/onlythis
+    volumes:
+    - name: testing
+      persistentVolumeClaim:
+        claimName: testvol
+`
+
 var checkInfraImagePodYaml = `
 apiVersion: v1
 kind: Pod
@@ -4460,4 +4482,39 @@ spec:
 		Expect(ps.OutputToStringArray()).To(HaveLen(0))
 	})
 
+	It("podman play kube with named volume subpaths", func() {
+		SkipIfRemote("volume export does not exist on remote")
+		volumeCreate := podmanTest.Podman([]string{"volume", "create", "testvol1"})
+		volumeCreate.WaitWithDefaultTimeout()
+		Expect(volumeCreate).Should(Exit(0))
+
+		session := podmanTest.Podman([]string{"run", "--volume", "testvol1:/data", ALPINE, "sh", "-c", "mkdir -p /data/testing/onlythis && touch /data/testing/onlythis/123.txt && echo hi >> /data/testing/onlythis/123.txt"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		tar := filepath.Join(podmanTest.TempDir, "out.tar")
+		session = podmanTest.Podman([]string{"volume", "export", "--output", tar, "testvol1"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		volumeCreate = podmanTest.Podman([]string{"volume", "create", "testvol"})
+		volumeCreate.WaitWithDefaultTimeout()
+		Expect(volumeCreate).Should(Exit(0))
+
+		volumeImp := podmanTest.Podman([]string{"volume", "import", "testvol", filepath.Join(podmanTest.TempDir, "out.tar")})
+		volumeImp.WaitWithDefaultTimeout()
+		Expect(volumeImp).Should(Exit(0))
+
+		err = writeYaml(subpathTest, kubeYaml)
+		Expect(err).ToNot(HaveOccurred())
+
+		playKube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		playKube.WaitWithDefaultTimeout()
+		Expect(playKube).Should(Exit(0))
+
+		exec := podmanTest.Podman([]string{"exec", "-it", "testpod-testctr", "cat", "/var/123.txt"})
+		exec.WaitWithDefaultTimeout()
+		Expect(exec).Should(Exit(0))
+		Expect(exec.OutputToString()).Should(Equal("hi"))
+	})
 })

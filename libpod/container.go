@@ -254,6 +254,8 @@ type ContainerNamedVolume struct {
 	// IsAnonymous sets the named volume as anonymous even if it has a name
 	// This is used for emptyDir volumes from a kube yaml
 	IsAnonymous bool `json:"setAnonymous,omitempty"`
+	// SubPath determines which part of the Source will be mounted in the container
+	SubPath string
 }
 
 // ContainerOverlayVolume is an overlay volume that will be mounted into the
@@ -440,6 +442,7 @@ func (c *Container) NamedVolumes() []*ContainerNamedVolume {
 		newVol.Name = vol.Name
 		newVol.Dest = vol.Dest
 		newVol.Options = vol.Options
+		newVol.SubPath = vol.SubPath
 		volumes = append(volumes, newVol)
 	}
 

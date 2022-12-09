@@ -395,6 +395,7 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 				Dest:    volume.MountPath,
 				Name:    volumeSource.Source,
 				Options: options,
+				SubPath: volume.SubPath,
 			}
 			s.Volumes = append(s.Volumes, &namedVolume)
 		case KubeVolumeTypeConfigMap:

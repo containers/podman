@@ -157,6 +157,10 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 			return nil, err
 		}
 
+		if len(namedVol.SubPath) > 0 {
+			mountPoint = filepath.Join(mountPoint, namedVol.SubPath)
+		}
+
 		overlayFlag := false
 		upperDir := ""
 		workDir := ""
