@@ -19,6 +19,7 @@ import (
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/docker/reference"
+	"github.com/containers/image/v5/types"
 	encconfig "github.com/containers/ocicrypt/config"
 	enchelpers "github.com/containers/ocicrypt/helpers"
 	"github.com/containers/podman/v4/cmd/podman/common"
@@ -608,6 +609,10 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *buil
 			return nil, fmt.Errorf("unable to obtain decrypt config: %w", err)
 		}
 		opts.Excludes = excludes
+	}
+
+	if c.Flag("skip-unused-stages").Changed {
+		opts.SkipUnusedStages = types.NewOptionalBool(flags.SkipUnusedStages)
 	}
 
 	if c.Flag("timestamp").Changed {

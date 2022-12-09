@@ -227,6 +227,14 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 	if options.CacheFrom != nil {
 		params.Set("cachefrom", options.CacheFrom.String())
 	}
+
+	switch options.SkipUnusedStages {
+	case types.OptionalBoolTrue:
+		params.Set("skipunusedstages", "1")
+	case types.OptionalBoolFalse:
+		params.Set("skipunusedstages", "0")
+	}
+
 	if options.CacheTo != nil {
 		params.Set("cacheto", options.CacheTo.String())
 	}

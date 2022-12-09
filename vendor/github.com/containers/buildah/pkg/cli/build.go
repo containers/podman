@@ -20,6 +20,7 @@ import (
 	"github.com/containers/buildah/pkg/util"
 	"github.com/containers/common/pkg/auth"
 	"github.com/containers/image/v5/docker/reference"
+	"github.com/containers/image/v5/types"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -370,6 +371,7 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 		RusageLogFile:           iopts.RusageLogFile,
 		SignBy:                  iopts.SignBy,
 		SignaturePolicyPath:     iopts.SignaturePolicy,
+		SkipUnusedStages:        types.NewOptionalBool(iopts.SkipUnusedStages),
 		Squash:                  iopts.Squash,
 		SystemContext:           systemContext,
 		Target:                  iopts.Target,

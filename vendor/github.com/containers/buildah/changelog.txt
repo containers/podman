@@ -1,3 +1,9 @@
+- Changelog for v1.27.3 (2022-12-09)
+  * copier.Put(): clear up os/syscall mode bit confusion
+
+- Changelog for v1.27.2 (2022-09-20)
+  * build: backport the --skip-unused-stages flag.
+
 - Changelog for v1.27.1 (2022-09-09)
   * run: add container gid to additional groups.
 
