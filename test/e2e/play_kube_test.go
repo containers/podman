@@ -4406,4 +4406,40 @@ cgroups="disabled"`), 0644)
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(Exit(0))
 	})
+
+	It("podman kube play invalid yaml should clean up pod that was created before failure", func() {
+		podTemplate := `---
+apiVersion: v1
+kind: Pod
+metadata:
+	creationTimestamp: "2022-08-02T04:05:53Z"
+	labels:
+	app: vol-test-3-pod
+	name: vol-test-3
+spec:
+	containers:
+	- command:
+	- sleep
+	- "1000"
+	image: non-existing-image
+	name: vol-test-3
+	securityContext:
+		capabilities:
+		drop:
+		- CAP_MKNOD
+		- CAP_NET_RAW
+		- CAP_AUDIT_WRITE
+`
+
+		// the image is incorrect so the kube play will fail, but it will clean up the pod that was created for it before the failure happened
+		kube := podmanTest.Podman([]string{"kube", "play", podTemplate})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).To(ExitWithError())
+
+		ps := podmanTest.Podman([]string{"pod", "ps", "-q"})
+		ps.WaitWithDefaultTimeout()
+		Expect(ps).Should(Exit(0))
+		Expect(ps.OutputToStringArray()).To(HaveLen(0))
+	})
+
 })

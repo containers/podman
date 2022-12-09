@@ -253,11 +253,11 @@ func play(cmd *cobra.Command, args []string) error {
 	}
 
 	if playOptions.Down {
-		return teardown(reader, entities.PlayKubeDownOptions{Force: playOptions.Force})
+		return teardown(reader, entities.PlayKubeDownOptions{Force: playOptions.Force}, false)
 	}
 
 	if playOptions.Replace {
-		if err := teardown(reader, entities.PlayKubeDownOptions{Force: playOptions.Force}); err != nil && !errorhandling.Contains(err, define.ErrNoSuchPod) {
+		if err := teardown(reader, entities.PlayKubeDownOptions{Force: playOptions.Force}, false); err != nil && !errorhandling.Contains(err, define.ErrNoSuchPod) {
 			return err
 		}
 		if _, err := reader.Seek(0, 0); err != nil {
@@ -265,7 +265,19 @@ func play(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	return kubeplay(reader)
+	if err := kubeplay(reader); err != nil {
+		// teardown any containers, pods, and volumes that might have created before we hit the error
+		teardownReader, trErr := readerFromArg(args[0])
+		if trErr != nil {
+			return trErr
+		}
+		if tErr := teardown(teardownReader, entities.PlayKubeDownOptions{Force: true}, true); tErr != nil && !errorhandling.Contains(tErr, define.ErrNoSuchPod) {
+			return fmt.Errorf("error tearing down workloads %q after kube play error %q", tErr, err)
+		}
+		return err
+	}
+
+	return nil
 }
 
 func playKube(cmd *cobra.Command, args []string) error {
@@ -307,7 +319,7 @@ func readerFromArg(fileName string) (*bytes.Reader, error) {
 	return bytes.NewReader(data), nil
 }
 
-func teardown(body io.Reader, options entities.PlayKubeDownOptions) error {
+func teardown(body io.Reader, options entities.PlayKubeDownOptions, quiet bool) error {
 	var (
 		podStopErrors utils.OutputErrors
 		podRmErrors   utils.OutputErrors
@@ -319,9 +331,11 @@ func teardown(body io.Reader, options entities.PlayKubeDownOptions) error {
 	}
 
 	// Output stopped pods
-	fmt.Println("Pods stopped:")
+	if !quiet {
+		fmt.Println("Pods stopped:")
+	}
 	for _, stopped := range reports.StopReport {
-		if len(stopped.Errs) == 0 {
+		if len(stopped.Errs) == 0 && !quiet {
 			fmt.Println(stopped.Id)
 		} else {
 			podStopErrors = append(podStopErrors, stopped.Errs...)
@@ -334,9 +348,11 @@ func teardown(body io.Reader, options entities.PlayKubeDownOptions) error {
 	}
 
 	// Output rm'd pods
-	fmt.Println("Pods removed:")
+	if !quiet {
+		fmt.Println("Pods removed:")
+	}
 	for _, removed := range reports.RmReport {
-		if removed.Err == nil {
+		if removed.Err == nil && !quiet {
 			fmt.Println(removed.Id)
 		} else {
 			podRmErrors = append(podRmErrors, removed.Err)
@@ -349,9 +365,11 @@ func teardown(body io.Reader, options entities.PlayKubeDownOptions) error {
 	}
 
 	// Output rm'd volumes
-	fmt.Println("Volumes removed:")
+	if !quiet {
+		fmt.Println("Volumes removed:")
+	}
 	for _, removed := range reports.VolumeRmReport {
-		if removed.Err == nil {
+		if removed.Err == nil && !quiet {
 			fmt.Println(removed.Id)
 		} else {
 			volRmErrors = append(volRmErrors, removed.Err)
