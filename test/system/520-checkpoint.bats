@@ -220,4 +220,187 @@ function teardown() {
     trim=$(sed -z -e 's/[\r\n]\+//g' <<<"$output")
     is "$trim" "READY123123" "File lock restored"
 }
+
+@test "podman checkpoint/restore ip and mac handling" {
+    # Refer to https://github.com/containers/podman/issues/16666#issuecomment-1337860545
+    # for the correct behavior, this should cover all cases listed there.
+    local netname=net-$(random_string)
+    local subnet="$(random_rfc1918_subnet)"
+    run_podman network create --subnet "$subnet.0/24" $netname
+
+    run_podman run -d --network $netname $IMAGE sleep inf
+    cid="$output"
+    # get current ip and mac
+    run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname\").IPAddress}}"
+    ip1="$output"
+    run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname\").MacAddress}}"
+    mac1="$output"
+
+    run_podman container checkpoint $cid
+    is "$output" "$cid"
+    run_podman container restore $cid
+    is "$output" "$cid"
+
+    # now get mac and ip after restore they should be the same
+    run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname\").IPAddress}}"
+    ip2="$output"
+    run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname\").MacAddress}}"
+    mac2="$output"
+
+    assert "$ip2" == "$ip1" "ip after restore should match"
+    assert "$mac2" == "$mac1" "mac after restore should match"
+
+    # restart the container we should get a new ip/mac because they are not static
+    run_podman restart $cid
+
+    run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname\").IPAddress}}"
+    ip3="$output"
+    run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname\").MacAddress}}"
+    mac3="$output"
+
+    # the ip/mac should be different this time
+    assert "$ip3" != "$ip1" "ip after restart should be different"
+    assert "$mac3" != "$mac1" "mac after restart should be different"
+
+    # restore with --ignore-static-ip/mac
+    run_podman container checkpoint $cid
+    is "$output" "$cid"
+    run_podman container restore --ignore-static-ip --ignore-static-mac $cid
+    is "$output" "$cid"
+
+    run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname\").IPAddress}}"
+    ip4="$output"
+    run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname\").MacAddress}}"
+    mac4="$output"
+
+    # the ip/mac should be different this time
+    assert "$ip4" != "$ip3" "ip after restore --ignore-static-ip should be different"
+    assert "$mac4" != "$mac3" "mac after restore --ignore-static-mac should be different"
+
+    local archive=$PODMAN_TMPDIR/checkpoint.tar.gz
+
+    # now checkpoint and export the container
+    run_podman container checkpoint --export "$archive" $cid
+    is "$output" "$cid"
+    # remove container
+    run_podman rm -t 0 -f $cid
+
+    # restore it without new name should keep the ip/mac, we also get a new container id
+    run_podman container restore --import "$archive"
+    cid="$output"
+
+    run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname\").IPAddress}}"
+    ip5="$output"
+    run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname\").MacAddress}}"
+    mac5="$output"
+    assert "$ip5" == "$ip4" "ip after restore --import should match"
+    assert "$mac5" == "$mac4" "mac after restore --import should match"
+
+    run_podman rm -t 0 -f $cid
+
+    # now restore it again but with --name this time, it should not keep the
+    # mac and ip to allow restoring the same container with different names
+    # at the same time
+    run_podman container restore --import "$archive" --name "newcon"
+    cid="$output"
+
+    run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname\").IPAddress}}"
+    ip6="$output"
+    run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname\").MacAddress}}"
+    mac6="$output"
+    assert "$ip6" != "$ip5" "ip after restore --import --name should be different"
+    assert "$mac6" != "$mac5" "mac after restore --import --name should be different"
+
+    run_podman rm -t 0 -f $cid
+
+    # now create a container with a static mac and ip
+    local static_ip="$subnet.2"
+    local static_mac="92:d0:c6:0a:29:38"
+    run_podman run -d --network "$netname:ip=$static_ip,mac=$static_mac" $IMAGE sleep inf
+    cid="$output"
+
+    run_podman container checkpoint $cid
+    is "$output" "$cid"
+    run_podman container restore --ignore-static-ip --ignore-static-mac $cid
+    is "$output" "$cid"
+
+    run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname\").IPAddress}}"
+    ip7="$output"
+    run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname\").MacAddress}}"
+    mac7="$output"
+    assert "$ip7" != "$static_ip" "static ip after restore --ignore-static-ip should be different"
+    assert "$mac7" != "$static_mac" "static mac after restore --ignore-static-mac should be different"
+
+    # restart the container to make sure the change is actually persistent in the config and not just set for restore
+    run_podman restart $cid
+
+    run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname\").IPAddress}}"
+    ip8="$output"
+    run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname\").MacAddress}}"
+    mac8="$output"
+    assert "$ip8" != "$static_ip" "static ip after restore --ignore-static-ip and restart should be different"
+    assert "$mac8" != "$static_mac" "static mac after restore --ignore-static-mac and restart should be different"
+    assert "$ip8" != "$ip7" "static ip after restore --ignore-static-ip and restart should be different"
+    assert "$mac8" != "$ip" "static mac after restore --ignore-static-mac and restart should be different"
+
+    run_podman rm -t 0 -f $cid
+
+    # now create container again and try the same again with --export and --import
+    run_podman run -d --network "$netname:ip=$static_ip,mac=$static_mac" $IMAGE sleep inf
+    cid="$output"
+
+    run_podman container checkpoint --export "$archive" $cid
+    is "$output" "$cid"
+    # remove container
+    run_podman rm -t 0 -f $cid
+
+    # restore normal should keep static ip
+    run_podman container restore --import "$archive"
+    cid="$output"
+
+    run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname\").IPAddress}}"
+    ip9="$output"
+    run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname\").MacAddress}}"
+    mac9="$output"
+    assert "$ip9" == "$static_ip" "static ip after restore --import should match"
+    assert "$mac9" == "$static_mac" "static mac after restore --import should match"
+
+    # restart the container to make sure the change is actually persistent in the config and not just set for restore
+    run_podman restart $cid
+    run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname\").IPAddress}}"
+    ip10="$output"
+    run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname\").MacAddress}}"
+    mac10="$output"
+    assert "$ip10" == "$static_ip" "static ip after restore --import and restart should match"
+    assert "$mac10" == "$static_mac" "static mac after restore --import and restart should match"
+
+    run_podman rm -t 0 -f $cid
+
+    # restore normal without keeping static ip/mac
+    run_podman container restore --ignore-static-ip --ignore-static-mac --import "$archive"
+    cid="$output"
+
+    run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname\").IPAddress}}"
+    ip11="$output"
+    run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname\").MacAddress}}"
+    mac11="$output"
+    assert "$ip11" != "$static_ip" "static ip after restore --import --ignore-static-ip should be different"
+    assert "$mac11" != "$static_mac" "static mac after restore --import --ignore-static-mac should be different"
+
+    # restart the container to make sure the change is actually persistent in the config and not just set for restore
+    run_podman restart $cid
+
+    run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname\").IPAddress}}"
+    ip12="$output"
+    run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname\").MacAddress}}"
+    mac12="$output"
+    assert "$ip12" != "$static_ip" "static ip after restore --import --ignore-static-ip and restart should be different"
+    assert "$mac12" != "$static_mac" "static mac after restore --ignore-static-mac and restart should be different"
+    assert "$ip12" != "$ip11" "static ip after restore --import --ignore-static-ip and restart should be different"
+    assert "$mac12" != "$ip11" "static mac after restore --ignore-static-mac and restart should be different"
+
+    run_podman rm -t 0 -f $cid
+    run_podman network rm $netname
+}
+
 # vim: filetype=sh

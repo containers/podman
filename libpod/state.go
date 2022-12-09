@@ -104,6 +104,8 @@ type State interface { //nolint:interfacebloat
 	GetNetworks(ctr *Container) (map[string]types.PerNetworkOptions, error)
 	// Add the container to the given network with the given options
 	NetworkConnect(ctr *Container, network string, opts types.PerNetworkOptions) error
+	// Modify the container network with the given options.
+	NetworkModify(ctr *Container, network string, opts types.PerNetworkOptions) error
 	// Remove the container from the given network, removing all aliases for
 	// the container in that network in the process.
 	NetworkDisconnect(ctr *Container, network string) error
