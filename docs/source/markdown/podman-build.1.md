@@ -680,6 +680,10 @@ size entirely, the system uses `64m`.
 
 Sign the image using a GPG key with the specified FINGERPRINT. (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines,)
 
+#### **--skip-unused-stages**
+
+Skip stages in multi-stage builds which don't affect the target stage. (Default: **true**).
+
 #### **--squash**
 
 Squash all of the image's new layers into a single new layer; any preexisting
