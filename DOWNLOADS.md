@@ -30,7 +30,7 @@ don't take them beyond that.
 
 WARNING:  The items linked below all come from scripts in the `artifacts_task`
 map of `.cirrus.yml`.  When adding or updating any item below, please ensure it
-matches cooresponding changes in the artifacts task.
+matches corresponding changes in the artifacts task.
 
 -->
 

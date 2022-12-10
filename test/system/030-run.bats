@@ -951,4 +951,17 @@ $IMAGE--c_ok" \
     run_podman stop -t 0 $cid
 }
 
+@test "podman run read-only from containers.conf" {
+    containersconf=$PODMAN_TMPDIR/containers.conf
+    cat >$containersconf <<EOF
+[containers]
+read_only=true
+EOF
+
+    CONTAINERS_CONF="$containersconf" run_podman 1 run --rm $IMAGE touch /testro
+    CONTAINERS_CONF="$containersconf" run_podman run --rm --read-only=false $IMAGE touch /testrw
+    CONTAINERS_CONF="$containersconf" run_podman run --rm $IMAGE touch /tmp/testrw
+    CONTAINERS_CONF="$containersconf" run_podman 1 run --rm --read-only-tmpfs=false $IMAGE touch /tmp/testro
+}
+
 # vim: filetype=sh

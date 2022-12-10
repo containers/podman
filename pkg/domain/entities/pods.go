@@ -249,7 +249,7 @@ type ContainerCreateOptions struct {
 	Pull               string
 	Quiet              bool
 	ReadOnly           bool
-	ReadOnlyTmpFS      bool
+	ReadWriteTmpFS     bool
 	Restart            string
 	Replace            bool
 	Requires           []string

@@ -703,26 +703,3 @@ func validChownFlag(flag string) (bool, error) {
 func unixPathClean(p string) string {
 	return path.Clean(p)
 }
-
-func addReadOnlyMounts(mounts []spec.Mount) []spec.Mount {
-	readonlyTmpfs := []string{"/tmp", "/var/tmp", "/run"}
-	options := []string{"rw", "rprivate", "nosuid", "nodev", "tmpcopyup"}
-	for _, dest := range readonlyTmpfs {
-		for _, m := range mounts {
-			if m.Destination == dest {
-				continue
-			}
-		}
-		mnt := spec.Mount{
-			Destination: dest,
-			Type:        define.TypeTmpfs,
-			Source:      define.TypeTmpfs,
-			Options:     options,
-		}
-		if dest != "/run" {
-			mnt.Options = append(mnt.Options, "noexec")
-		}
-		mounts = append(mounts, mnt)
-	}
-	return mounts
-}

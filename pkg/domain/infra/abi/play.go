@@ -68,6 +68,8 @@ func (ic *ContainerEngine) createServiceContainer(ctx context.Context, name stri
 		ImageVolume:      "bind",
 		IsInfra:          false,
 		MemorySwappiness: -1,
+		ReadOnly:         true,
+		ReadWriteTmpFS:   false,
 		// No need to spin up slirp etc.
 		Net: &entities.NetOptions{Network: specgen.Namespace{NSMode: specgen.NoNetwork}},
 	}
@@ -560,6 +562,8 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 		infraImage := util.DefaultContainerConfig().Engine.InfraImage
 		infraOptions := entities.NewInfraContainerCreateOptions()
 		infraOptions.Hostname = podSpec.PodSpecGen.PodBasicConfig.Hostname
+		infraOptions.ReadOnly = true
+		infraOptions.ReadWriteTmpFS = false
 		infraOptions.UserNS = options.Userns
 		podSpec.PodSpecGen.InfraImage = infraImage
 		podSpec.PodSpecGen.NoInfra = false
@@ -605,6 +609,16 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 		}
 	}
 
+	cfg, err := ic.Libpod.GetConfigNoCopy()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var readOnly types.OptionalBool
+	if cfg.Containers.ReadOnly {
+		readOnly = types.NewOptionalBool(cfg.Containers.ReadOnly)
+	}
+
 	ctrNames := make(map[string]string)
 	for _, initCtr := range podYAML.Spec.InitContainers {
 		// Error out if same name is used for more than one container
@@ -643,6 +657,7 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 			PodInfraID:         podInfraID,
 			PodName:            podName,
 			PodSecurityContext: podYAML.Spec.SecurityContext,
+			ReadOnly:           readOnly,
 			RestartPolicy:      define.RestartPolicyNo,
 			SeccompPaths:       seccompPaths,
 			SecretsManager:     secretsManager,
@@ -697,6 +712,7 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 			PodInfraID:         podInfraID,
 			PodName:            podName,
 			PodSecurityContext: podYAML.Spec.SecurityContext,
+			ReadOnly:           readOnly,
 			RestartPolicy:      ctrRestartPolicy,
 			SeccompPaths:       seccompPaths,
 			SecretsManager:     secretsManager,

@@ -238,6 +238,41 @@ EOF
     run_podman 1 container exists pod1-test3
 }
 
+@test "podman kube play read-only from containers.conf" {
+    containersconf=$PODMAN_TMPDIR/containers.conf
+    cat >$containersconf <<EOF
+[containers]
+read_only=true
+EOF
+
+    YAML=$PODMAN_TMPDIR/test.yml
+    CONTAINERS_CONF="$containersconf" run_podman create --pod new:pod1 --read-only=false --name test1 $IMAGE touch /testrw
+    CONTAINERS_CONF="$containersconf" run_podman create --pod pod1 --name test2 $IMAGE touch /testro
+    CONTAINERS_CONF="$containersconf" run_podman create --pod pod1 --name test3 $IMAGE touch /tmp/testtmp
+    CONTAINERS_CONF="$containersconf" run_podman container inspect --format '{{.HostConfig.ReadonlyRootfs}}' test1 test2 test3
+    is "$output" "false.*true.*true" "Rootfs should be read/only"
+
+    # Now generate and run kube.yaml on a machine without the defaults set
+    CONTAINERS_CONF="$containersconf" run_podman kube generate pod1 -f $YAML
+    cat $YAML
+
+    run_podman kube play --replace $YAML
+    run_podman container inspect --format '{{.HostConfig.ReadonlyRootfs}}' pod1-test1 pod1-test2 pod1-test3
+    is "$output" "false.*true.*true" "Rootfs should be read/only"
+
+    run_podman inspect --format "{{.State.ExitCode}}" pod1-test1
+    is "$output" "0" "Container / should be read/write"
+    run_podman inspect --format "{{.State.ExitCode}}" pod1-test2
+    is "$output" "1" "Container / should be read/only"
+    run_podman inspect --format "{{.State.ExitCode}}" pod1-test3
+    is "$output" "0" "/tmp in a read-only container should be read/write"
+
+    run_podman kube down - < $YAML
+    run_podman 1 container exists pod1-test1
+    run_podman 1 container exists pod1-test2
+    run_podman 1 container exists pod1-test3
+}
+
 @test "podman play with user from image" {
     TESTDIR=$PODMAN_TMPDIR/testdir
     mkdir -p $TESTDIR

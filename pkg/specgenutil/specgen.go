@@ -592,10 +592,11 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 		s.DependencyContainers = c.Requires
 	}
 
-	// TODO
-	// outside of specgen and oci though
-	// defaults to true, check spec/storage
-	// s.readonly = c.ReadOnlyTmpFS
+	// Only add ReadWrite tmpfs mounts iff the container is
+	// being run ReadOnly and ReadWriteTmpFS is not disabled,
+	// (user specifying --read-only-tmpfs=false.)
+	s.ReadWriteTmpfs = c.ReadOnly && c.ReadWriteTmpFS
+
 	//  TODO convert to map?
 	// check if key=value and convert
 	sysmap := make(map[string]string)
@@ -851,10 +852,6 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 
 	if len(s.PasswdEntry) == 0 || len(c.PasswdEntry) != 0 {
 		s.PasswdEntry = c.PasswdEntry
-	}
-
-	if c.ReadOnly && c.ReadOnlyTmpFS {
-		s.Mounts = addReadOnlyMounts(s.Mounts)
 	}
 
 	return nil
