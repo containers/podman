@@ -129,7 +129,7 @@ func (c *Container) getContainerInspectData(size bool, driverData *define.Driver
 			Pid:            runtimeInfo.PID,
 			ConmonPid:      runtimeInfo.ConmonPID,
 			ExitCode:       runtimeInfo.ExitCode,
-			Error:          "", // can't get yet
+			Error:          runtimeInfo.Error,
 			StartedAt:      runtimeInfo.StartedTime,
 			FinishedAt:     runtimeInfo.FinishedTime,
 			Checkpointed:   runtimeInfo.Checkpointed,
