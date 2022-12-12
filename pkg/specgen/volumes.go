@@ -27,6 +27,8 @@ type NamedVolume struct {
 	// IsAnonymous sets the named volume as anonymous even if it has a name
 	// This is used for emptyDir volumes from a kube yaml
 	IsAnonymous bool
+	// SubPath stores the sub directory of the named volume to be mounted in the container
+	SubPath string
 }
 
 // OverlayVolume holds information about an overlay volume that will be mounted into
