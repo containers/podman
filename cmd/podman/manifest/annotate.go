@@ -13,7 +13,6 @@ import (
 var (
 	manifestAnnotateOpts = entities.ManifestAnnotateOptions{}
 	annotateCmd          = &cobra.Command{
-		Annotations:       map[string]string{registry.EngineMode: registry.ABIMode},
 		Use:               "annotate [options] LIST IMAGE",
 		Short:             "Add or update information about an entry in a manifest list or image index",
 		Long:              "Adds or updates information about an entry in a manifest list or image index.",
