@@ -86,7 +86,7 @@ of this document, it's not possible to override the behavior of `$CIRRUS_PR`.
 + meta
 + success
 
-### Intend `[CI:BUILD]` PR Tasks:
+### Intended `[CI:BUILD]` PR Tasks:
 + *build*
 + validate
 + *alt_build*
@@ -95,6 +95,23 @@ of this document, it's not possible to override the behavior of `$CIRRUS_PR`.
 + meta
 + success
 + artifacts
+
+### Intended `[CI:NVAV=update]` or `[CI:NVAV=main]` behavior:
+
+If and only if the PR is in **draft-mode**, either update Fedora CI VMs to the
+latest Netavark/Aardvark-dns RPMs ("update" keyword), or install the most
+recent package builds from their `main` branch ("main" keyword).  These are
+**runtime changes** only, and will not persist or impact other PRs
+in any way.
+
+The intent is to temporarily support testing of updates with the latest podman
+code & tests.  To help prevent accidents, when the PR is not in draft-mode, the
+presence of the magic string will cause VM-setup script to fail, until the magic
+is removed.
+
+**Note:** When changing the draft-status of PR, you will need to re-push a
+commit-change before Cirrus-CI will notice the draft-status update (i.e.
+pressing the re-run button **is not** good enough).
 
 ### Intended Branch tasks (and Cirrus-cron jobs, except "multiarch"):
 + *build*

@@ -236,6 +236,7 @@ use_cni() {
 }
 
 use_netavark() {
+    local magickind repokind
     msg "Forcing NETWORK_BACKEND=netavark for all subsequent environments."
     echo "NETWORK_BACKEND=netavark" >> /etc/ci_environment
     export NETWORK_BACKEND=netavark  # needed for install_test_configs()
@@ -244,6 +245,37 @@ use_netavark() {
     # N/B: The CNI packages are still installed and available. This is
     # on purpose, since CI needs to verify the selection mechanisms are
     # functional when both are available.
+
+    # See ./contrib/cirrus/CIModes.md.
+    # Vars defined by cirrus-ci
+    # shellcheck disable=SC2154
+    if [[ "$CIRRUS_CHANGE_TITLE" =~ CI:[AN]V[AN]V= ]]; then
+        # shellcheck disable=SC2154
+        if [[ "$CIRRUS_PR_DRAFT" != "true" ]]; then
+            die "Magic 'CI:NVAV=*' string can only be used on DRAFT PRs"
+        fi
+
+        magickind=$(sed -r -e 's~(.*CI:[AN]V[AN]V=)(\w+)(.*)~\2~' <<<"$CIRRUS_CHANGE_TITLE")
+
+        # The update source scheme is defined during VM image build.
+        # See c/automation_images repo. cache_images/fedora_packaging.sh
+        repokind="updates-testing"  # $DISTRO_NV==$FEDORA_NAME
+        # shellcheck disable=SC2154
+        if [[ "$DISTRO_NV" =~ $PRIOR_FEDORA_NAME ]]; then
+            repokind="updates"
+        # else we're not running fedora, or .cirrus.yml env. vars are setup wrong.
+        fi
+
+        if [[ "$magickind" == "update" ]]; then
+            warn "Updating netavark/aardvark RPM packages from ***the fedora $repokind repo.***"
+        elif [[ "$magickind" == "main" ]]; then
+            warn "Installing latest netavark/aardvark packages from their main branches using ***the podman-next COPR repo***"
+            showrun dnf copr enable rhcontainerbot/podman-next -y
+        else
+            die "Unknown CI:NVAV= '$magickind' keyword.  Only 'update' and 'main' are supported."
+        fi
+        showrun dnf upgrade -y netavark aardvark-dns
+    fi
 }
 
 # Remove all files provided by the distro version of podman.
