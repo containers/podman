@@ -386,6 +386,41 @@ RUN exit 5`, ALPINE)
 		Expect(data).To(ContainSubstring(buildah.Version))
 	})
 
+	It("podman-remote send correct path to copier", func() {
+		if IsRemote() {
+			podmanTest.StopRemoteService()
+			podmanTest.StartRemoteService()
+		} else {
+			Skip("Only valid at remote test, case works fine for regular podman and buildah")
+		}
+		cwd, err := os.Getwd()
+		Expect(err).ToNot(HaveOccurred())
+
+		// Write target and fake files
+		targetSubPath := filepath.Join(cwd, "emptydir")
+		if _, err = os.Stat(targetSubPath); err != nil {
+			if os.IsNotExist(err) {
+				err = os.Mkdir(targetSubPath, 0755)
+				Expect(err).ToNot(HaveOccurred())
+			}
+		}
+
+		containerfile := fmt.Sprintf(`FROM %s
+COPY /* /dir`, ALPINE)
+
+		containerfilePath := filepath.Join(cwd, "ContainerfilePathToCopier")
+		err = os.WriteFile(containerfilePath, []byte(containerfile), 0644)
+		Expect(err).ToNot(HaveOccurred())
+
+		session := podmanTest.Podman([]string{"build", "--pull-never", "-t", "test", "-f", "ContainerfilePathToCopier", targetSubPath})
+		session.WaitWithDefaultTimeout()
+		// NOTE: Docker and buildah both should error when `COPY /* /dir` is done on emptydir
+		// as context. However buildkit simply ignores this so when buildah also starts ignoring
+		// for such case edit this test to return 0 and check that no `/dir` should be in the result.
+		Expect(session).Should(Exit(125))
+		Expect(session.ErrorToString()).To(ContainSubstring("can't make relative to"))
+	})
+
 	It("podman remote test container/docker file is not inside context dir", func() {
 		// Given
 		// Switch to temp dir and restore it afterwards
