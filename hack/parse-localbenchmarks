@@ -71,13 +71,7 @@ while (my $line = <STDIN>) {
 
     # e.g., 'Fastest Time: 0.265s'
     elsif ($line =~ /^(\S.*?\S):\s+(.*)/) {
-        my $benchmark = "$type $1";
-        $results{$testname}{$benchmark} = $2;
-
-        # Keep an ordered list of benchmark names (as in, the order we
-        # encounter them)
-        push @benchmarks, $benchmark
-            unless grep { $_ eq $benchmark } @benchmarks;
+        log_result($testname, $type, $1, $2);
     }
 
     else {
@@ -101,4 +95,39 @@ for my $t (sort keys %results) {
         printf ", \"%s\"", $results{$t}{$benchmark} || '';
     }
     print "\n";
+}
+
+exit 0;
+
+################
+#  log_result  #  Preserve one record
+################
+sub log_result {
+    my $testname = shift;               # in: test name (eg "podman foo")
+    my $type     = shift;               # in: CPU or MEM
+    my $name     = shift;               # in: benchmark name (eg "Fastest")
+    my $result   = shift;               # in: benchmark value
+
+    my $benchmark = "$type $name";
+    $results{$testname}{$benchmark} = $result;
+
+    # Keep an ordered list of benchmark names (as in, the order we
+    # encounter them)
+    push @benchmarks, $benchmark
+        unless grep { $_ eq $benchmark } @benchmarks;
+
+    # Special case: "Average X" may be of the form "xxx ± yyy". Move the
+    # standard deviation to its own column.
+    if ($name =~ /Average/) {
+        if ($results{$testname}{$benchmark} =~ s/^(\S+)\s+.*\s+(\S+)$/$1/) {
+            my ($average, $sd) = ($1, $2);
+            log_result($testname, $type, 'StdDev', $sd);
+
+            # Strip off units, so we can determine it as a percentage
+            $average   =~ s/[a-z]+$//i;
+            $sd        =~ s/[a-z]+$//i;
+            my $pct = sprintf("%.1f%%", $sd * 100.0 / $average);
+            log_result($testname, $type, 'StdDev (Percent)', $pct);
+        }
+    }
 }
