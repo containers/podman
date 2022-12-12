@@ -1438,7 +1438,7 @@ func readConmonPipeData(runtimeName string, pipe *os.File, ociLog string) (int, 
 		ch <- syncStruct{si: si}
 	}()
 
-	data := -1 //nolint: wastedassign
+	data := -1
 	select {
 	case ss := <-ch:
 		if ss.err != nil {
