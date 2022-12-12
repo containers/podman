@@ -120,7 +120,7 @@ type InspectPodInfraConfig struct {
 	// HostAdd adds a number of hosts to the infra container's resolv.conf
 	// which will be shared with the rest of the pod.
 	HostAdd []string
-	// Networks is a list of CNI networks the pod will join.
+	// Networks is a list of networks the pod will join.
 	Networks []string
 	// NetworkOptions are additional options for each network
 	NetworkOptions map[string][]string

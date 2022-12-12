@@ -57,10 +57,13 @@ type BoltState struct {
 //   operations.
 // - execBkt: Map of exec session ID to container ID - used for resolving
 //   exec session IDs to the containers that hold the exec session.
-// - aliasesBkt - Contains a bucket for each CNI network, which contain a map of
-//   network alias (an extra name for containers in DNS) to the ID of the
-//   container holding the alias. Aliases must be unique per-network, and cannot
-//   conflict with names registered in nameRegistryBkt.
+// - networksBkt: Contains all network names as key with their options json
+//   encoded as value.
+// - aliasesBkt - Deprecated, use the networksBkt. Used to contain a bucket
+//   for each CNI network which contain a map of network alias (an extra name
+//   for containers in DNS) to the ID of the container holding the alias.
+//   Aliases must be unique per-network, and cannot conflict with names
+//   registered in nameRegistryBkt.
 // - runtimeConfigBkt: Contains configuration of the libpod instance that
 //   initially created the database. This must match for any further instances
 //   that access the database, to ensure that state mismatches with
@@ -1056,7 +1059,7 @@ func (s *BoltState) AllContainers() ([]*Container, error) {
 	return ctrs, nil
 }
 
-// GetNetworks returns the CNI networks this container is a part of.
+// GetNetworks returns the networks this container is a part of.
 func (s *BoltState) GetNetworks(ctr *Container) (map[string]types.PerNetworkOptions, error) {
 	if !s.valid {
 		return nil, define.ErrDBClosed
@@ -1333,11 +1336,11 @@ func (s *BoltState) NetworkDisconnect(ctr *Container, network string) error {
 		ctrAliasesBkt := dbCtr.Bucket(aliasesBkt)
 		ctrNetworksBkt := dbCtr.Bucket(networksBkt)
 		if ctrNetworksBkt == nil {
-			return fmt.Errorf("container %s is not connected to any CNI networks, so cannot disconnect: %w", ctr.ID(), define.ErrNoSuchNetwork)
+			return fmt.Errorf("container %s is not connected to any networks, so cannot disconnect: %w", ctr.ID(), define.ErrNoSuchNetwork)
 		}
 		netConnected := ctrNetworksBkt.Get([]byte(network))
 		if netConnected == nil {
-			return fmt.Errorf("container %s is not connected to CNI network %q: %w", ctr.ID(), network, define.ErrNoSuchNetwork)
+			return fmt.Errorf("container %s is not connected to network %q: %w", ctr.ID(), network, define.ErrNoSuchNetwork)
 		}
 
 		if err := ctrNetworksBkt.Delete([]byte(network)); err != nil {

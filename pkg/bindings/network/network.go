@@ -12,7 +12,7 @@ import (
 	jsoniter "github.com/json-iterator/go"
 )
 
-// Create makes a new CNI network configuration
+// Create makes a new network configuration
 func Create(ctx context.Context, network *types.Network) (types.Network, error) {
 	return CreateWithOptions(ctx, network, nil)
 }
@@ -50,7 +50,7 @@ func CreateWithOptions(ctx context.Context, network *types.Network, extraCreateO
 	return report, response.Process(&report)
 }
 
-// Inspect returns low level information about a CNI network configuration
+// Inspect returns information about a network configuration
 func Inspect(ctx context.Context, nameOrID string, _ *InspectOptions) (types.Network, error) {
 	var net types.Network
 	conn, err := bindings.GetClient(ctx)
@@ -66,7 +66,7 @@ func Inspect(ctx context.Context, nameOrID string, _ *InspectOptions) (types.Net
 	return net, response.Process(&net)
 }
 
-// Remove deletes a defined CNI network configuration by name.  The optional force boolean
+// Remove deletes a defined network configuration by name.  The optional force boolean
 // will remove all containers associated with the network when set to true.  A slice
 // of NetworkRemoveReports are returned.
 func Remove(ctx context.Context, nameOrID string, options *RemoveOptions) ([]*entities.NetworkRmReport, error) {
@@ -91,7 +91,7 @@ func Remove(ctx context.Context, nameOrID string, options *RemoveOptions) ([]*en
 	return reports, response.Process(&reports)
 }
 
-// List returns a summary of all CNI network configurations
+// List returns a summary of all network configurations
 func List(ctx context.Context, options *ListOptions) ([]types.Network, error) {
 	var netList []types.Network
 	if options == nil {
@@ -192,7 +192,7 @@ func Exists(ctx context.Context, nameOrID string, options *ExistsOptions) (bool,
 	return response.IsSuccess(), nil
 }
 
-// Prune removes unused CNI networks
+// Prune removes unused networks
 func Prune(ctx context.Context, options *PruneOptions) ([]*entities.NetworkPruneReport, error) {
 	if options == nil {
 		options = new(PruneOptions)

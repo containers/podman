@@ -374,8 +374,8 @@ func WithNoPivotRoot() RuntimeOption {
 	}
 }
 
-// WithCNIConfigDir sets the CNI configuration directory.
-func WithCNIConfigDir(dir string) RuntimeOption {
+// WithNetworkConfigDir sets the network configuration directory.
+func WithNetworkConfigDir(dir string) RuntimeOption {
 	return func(rt *Runtime) error {
 		if rt.valid {
 			return define.ErrRuntimeFinalized

@@ -984,7 +984,7 @@ func (c *Container) completeNetworkSetup() error {
 		return err
 	}
 	state := c.state
-	// collect any dns servers that cni tells us to use (dnsname)
+	// collect any dns servers that the network backend tells us to use
 	for _, status := range c.getNetworkStatus() {
 		for _, server := range status.DNSServerIPs {
 			nameservers = append(nameservers, server.String())

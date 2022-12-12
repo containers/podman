@@ -334,7 +334,7 @@ Delegate=memory pids cpu io
 		},
 	})
 
-	// Set containers.conf up for core user to use cni networks
+	// Set containers.conf up for core user to use networks
 	// by default
 	files = append(files, File{
 		Node: Node{

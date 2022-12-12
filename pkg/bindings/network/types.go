@@ -76,7 +76,7 @@ type ExistsOptions struct {
 }
 
 // PruneOptions are optional options for removing unused
-// CNI networks
+// networks
 //
 //go:generate go run ../generator/generator.go PruneOptions
 type PruneOptions struct {

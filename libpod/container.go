@@ -1251,12 +1251,7 @@ func (c *Container) Secrets() []*ContainerSecret {
 // Networks gets all the networks this container is connected to.
 // Please do NOT use ctr.config.Networks, as this can be changed from those
 // values at runtime via network connect and disconnect.
-// If the container is configured to use CNI and this function returns an empty
-// array, the container will still be connected to the default network.
-// The second return parameter, a bool, indicates that the container
-// is joining the default CNI network - the network name will be included in the
-// returned array of network names, but the container did not explicitly join
-// this network.
+// Returned array of network names or error.
 func (c *Container) Networks() ([]string, error) {
 	if !c.batched {
 		c.lock.Lock()

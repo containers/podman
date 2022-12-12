@@ -606,7 +606,7 @@ type InspectBasicNetworkConfig struct {
 	AdditionalMacAddresses []string `json:"AdditionalMACAddresses,omitempty"`
 }
 
-// InspectAdditionalNetwork holds information about non-default CNI networks the
+// InspectAdditionalNetwork holds information about non-default networks the
 // container has been connected to.
 // As with InspectNetworkSettings, many fields are unused and maintained only
 // for compatibility with Docker.
@@ -642,7 +642,7 @@ type InspectNetworkSettings struct {
 	LinkLocalIPv6PrefixLen int                          `json:"LinkLocalIPv6PrefixLen"`
 	Ports                  map[string][]InspectHostPort `json:"Ports"`
 	SandboxKey             string                       `json:"SandboxKey"`
-	// Networks contains information on non-default CNI networks this
+	// Networks contains information on non-default networks this
 	// container has joined.
 	// It is a map of network name to network information.
 	Networks map[string]*InspectAdditionalNetwork `json:"Networks,omitempty"`
