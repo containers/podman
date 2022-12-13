@@ -312,7 +312,12 @@ func writeHijackHeader(r *http.Request, conn io.Writer) {
 }
 
 // Convert OCICNI port bindings into Inspect-formatted port bindings.
-func makeInspectPortBindings(bindings []types.PortMapping, expose map[uint16][]string) map[string][]define.InspectHostPort {
+func makeInspectPortBindings(bindings []types.PortMapping) map[string][]define.InspectHostPort {
+	return makeInspectPorts(bindings, nil)
+}
+
+// Convert OCICNI port bindings into Inspect-formatted port bindings with exposed, but not bound ports set to nil.
+func makeInspectPorts(bindings []types.PortMapping, expose map[uint16][]string) map[string][]define.InspectHostPort {
 	portBindings := make(map[string][]define.InspectHostPort)
 	for _, port := range bindings {
 		protocols := strings.Split(port.Protocol, ",")

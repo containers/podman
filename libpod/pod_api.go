@@ -709,7 +709,7 @@ func (p *Pod) Inspect() (*define.InspectPodData, error) {
 			infraConfig.Networks = netNames
 		}
 		infraConfig.NetworkOptions = infra.config.ContainerNetworkConfig.NetworkOptions
-		infraConfig.PortBindings = makeInspectPortBindings(infra.config.ContainerNetworkConfig.PortMappings, nil)
+		infraConfig.PortBindings = makeInspectPortBindings(infra.config.ContainerNetworkConfig.PortMappings)
 	}
 
 	inspectData := define.InspectPodData{
