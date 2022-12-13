@@ -229,7 +229,7 @@ func ConvertContainer(container *parser.UnitFile, isUser bool) (*parser.UnitFile
 
 	// If the conman exited uncleanly it may not have removed the container, so force it,
 	// -i makes it ignore non-existing files.
-	service.Add(ServiceGroup, "ExecStopPost", "-/usr/bin/podman rm -f -i --cidfile=%t/%N.cid")
+	service.Add(ServiceGroup, "ExecStopPost", "-"+podmanBinary()+" rm -f -i --cidfile=%t/%N.cid")
 
 	// Remove the cid file, to avoid confusion as the container is no longer running.
 	service.Add(ServiceGroup, "ExecStopPost", "-rm -f %t/%N.cid")
