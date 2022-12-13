@@ -329,8 +329,7 @@ func ConvertContainer(container *parser.UnitFile, isUser bool) (*parser.UnitFile
 		podman.add("--read-only")
 	}
 
-	// We want /tmp to be a tmpfs, like on rhel host
-	volatileTmp := container.LookupBoolean(ContainerGroup, KeyVolatileTmp, true)
+	volatileTmp := container.LookupBoolean(ContainerGroup, KeyVolatileTmp, false)
 	if volatileTmp {
 		/* Read only mode already has a tmpfs by default */
 		if !readOnly {

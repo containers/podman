@@ -3,4 +3,5 @@
 
 [Container]
 Image=localhost/imagename
+VolatileTmp=yes
 ReadOnly=no
