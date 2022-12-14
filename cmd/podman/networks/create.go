@@ -78,6 +78,8 @@ func networkCreateFlags(cmd *cobra.Command) {
 	_ = cmd.RegisterFlagCompletionFunc(subnetFlagName, completion.AutocompleteNone)
 
 	flags.BoolVar(&networkCreateOptions.DisableDNS, "disable-dns", false, "disable dns plugin")
+
+	flags.BoolVar(&networkCreateOptions.IgnoreIfExists, "ignore", false, "Don't fail if network already exists")
 }
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
@@ -165,7 +167,11 @@ func networkCreate(cmd *cobra.Command, args []string) error {
 		return errors.New("cannot set gateway or range without subnet")
 	}
 
-	response, err := registry.ContainerEngine().NetworkCreate(registry.Context(), network)
+	extraCreateOptions := types.NetworkCreateOptions{
+		IgnoreIfExists: networkCreateOptions.IgnoreIfExists,
+	}
+
+	response, err := registry.ContainerEngine().NetworkCreate(registry.Context(), network, &extraCreateOptions)
 	if err != nil {
 		return err
 	}

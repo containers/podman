@@ -278,7 +278,7 @@ func CreateNetwork(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ic := abi.ContainerEngine{Libpod: runtime}
-	newNetwork, err := ic.NetworkCreate(r.Context(), network)
+	newNetwork, err := ic.NetworkCreate(r.Context(), network, nil)
 	if err != nil {
 		utils.InternalServerError(w, err)
 		return
