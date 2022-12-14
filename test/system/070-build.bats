@@ -43,6 +43,12 @@ VOLUME /a/b/c
 VOLUME ['/etc/foo', '/etc/bar']
 EOF
 
+    run_podman info --format '{{ .Host.BuildahVersion}}'
+    BUILDAH_VERSION=$output
+
+    run_podman buildx version
+    is "$output" "buildah ${BUILDAH_VERSION}" "buildx version contains Buildah version"
+
     run_podman buildx build --load -t build_test --format=docker $tmpdir
     is "$output" ".*COMMIT" "COMMIT seen in log"
 
