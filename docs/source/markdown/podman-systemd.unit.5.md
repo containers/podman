@@ -194,9 +194,9 @@ The timezone to run the container in.
 If enabled, the container will have a minimal init process inside the
 container that forwards signals and reaps processes.
 
-#### `VolatileTmp=` (default to `yes`)
+#### `VolatileTmp=` (default to `no`, or `yes` if `ReadOnly` enabled)
 
-If enabled (and it is by default), the container will have a fresh tmpfs mounted on `/tmp`.
+If enabled, the container will have a fresh tmpfs mounted on `/tmp`.
 
 **NOTE:** Podman will automatically copy any content from the image onto the tmpfs
 
