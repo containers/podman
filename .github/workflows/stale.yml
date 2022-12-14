@@ -24,7 +24,6 @@ jobs:
         repo-token: ${{ secrets.GITHUB_TOKEN }}
         stale-issue-message: 'A friendly reminder that this issue had no activity for 30 days.'
         stale-pr-message: 'A friendly reminder that this PR had no activity for 30 days.'
-        stale-issue-label: 'stale-issue'
         stale-pr-label: 'stale-pr'
         days-before-stale: 30
         days-before-close: 365
