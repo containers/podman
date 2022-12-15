@@ -25,8 +25,7 @@ const (
 	// Default indicates the spec generator should determine
 	// a sane default
 	Default NamespaceMode = "default"
-	// Host means the the namespace is derived from
-	// the host
+	// Host means the namespace is derived from the host
 	Host NamespaceMode = "host"
 	// Path is the path to a namespace
 	Path NamespaceMode = "path"

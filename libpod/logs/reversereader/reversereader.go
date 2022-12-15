@@ -16,7 +16,7 @@ type ReverseReader struct {
 
 // NewReverseReader returns a reader that reads from the end of a file
 // rather than the beginning.  It sets the readsize to pagesize and determines
-// the first offset using using modulus.
+// the first offset using modulus.
 func NewReverseReader(reader *os.File) (*ReverseReader, error) {
 	// pagesize should be safe for memory use and file reads should be on page
 	// boundaries as well

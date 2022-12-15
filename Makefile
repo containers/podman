@@ -914,7 +914,7 @@ install.tools: .install.golangci-lint .install.swagger ## Install needed tools
 
 .PHONY: .install.golangci-lint
 .install.golangci-lint:
-	VERSION=1.49.0 ./hack/install_golangci.sh
+	VERSION=1.50.1 ./hack/install_golangci.sh
 
 .PHONY: .install.swagger
 .install.swagger:

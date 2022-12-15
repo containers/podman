@@ -25,7 +25,7 @@ const (
 	ContainerStateStopped ContainerStatus = iota
 	// ContainerStatePaused indicates that the container has been paused
 	ContainerStatePaused ContainerStatus = iota
-	// ContainerStateExited indicates the the container has stopped and been
+	// ContainerStateExited indicates the container has stopped and been
 	// cleaned up
 	ContainerStateExited ContainerStatus = iota
 	// ContainerStateRemoving indicates the container is in the process of

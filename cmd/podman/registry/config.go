@@ -34,7 +34,7 @@ var (
 
 	// ABIMode used in cobra.Annotations registry.EngineMode when command only supports ABIMode
 	ABIMode = entities.ABIMode.String()
-	// TunnelMode used in in cobra.Annotations registry.EngineMode when command only supports TunnelMode
+	// TunnelMode used in cobra.Annotations registry.EngineMode when command only supports TunnelMode
 	TunnelMode = entities.TunnelMode.String()
 )
 

@@ -431,7 +431,7 @@ RUN > file2
 `
 		podmanTest.BuildImageWithLabel(dockerfile, "foobar.com/workdir:latest", "false", "abc")
 		podmanTest.BuildImageWithLabel(dockerfile2, "foobar.com/workdir:latest", "false", "xyz")
-		// --force used to to avoid y/n question
+		// --force used to avoid y/n question
 		result := podmanTest.Podman([]string{"image", "prune", "--filter", "label=abc", "--force"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))

@@ -21,7 +21,7 @@ type Overrides struct {
 	ContainerEtcGroupPath  string
 }
 
-// GetUserGroupInfo takes string forms of the the container's mount path and the container user and
+// GetUserGroupInfo takes string forms of the container's mount path and the container user and
 // returns a ExecUser with uid, gid, sgids, and home.  And override can be provided for defaults.
 func GetUserGroupInfo(containerMount, containerUser string, override *Overrides) (*user.ExecUser, error) {
 	var (

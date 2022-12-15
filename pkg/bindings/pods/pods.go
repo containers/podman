@@ -188,7 +188,7 @@ func Restart(ctx context.Context, nameOrID string, options *RestartOptions) (*en
 	return &report, response.ProcessWithError(&report, &errorhandling.PodConflictErrorModel{})
 }
 
-// Remove deletes a Pod from from local storage. The optional force parameter denotes
+// Remove deletes a Pod from local storage. The optional force parameter denotes
 // that the Pod can be removed even if in a running state.
 func Remove(ctx context.Context, nameOrID string, options *RemoveOptions) (*entities.PodRmReport, error) {
 	var report entities.PodRmReport

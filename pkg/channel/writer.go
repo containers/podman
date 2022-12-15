@@ -6,7 +6,7 @@ import (
 	"sync"
 )
 
-// WriteCloser is an io.WriteCloser that that proxies Write() calls to a channel
+// WriteCloser is an io.WriteCloser that proxies Write() calls to a channel
 // The []byte buffer of the Write() is queued on the channel as one message.
 type WriteCloser interface {
 	io.WriteCloser

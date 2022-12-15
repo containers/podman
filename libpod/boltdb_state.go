@@ -3451,7 +3451,7 @@ func (s *BoltState) RemoveContainerFromPod(pod *Pod, ctr *Container) error {
 			return fmt.Errorf("pod %s is in namespace %q but we are in namespace %q: %w", pod.ID(), pod.config.Namespace, s.namespace, define.ErrNSMismatch)
 		}
 		if s.namespace != ctr.config.Namespace {
-			return fmt.Errorf("container %s in in namespace %q but we are in namespace %q: %w", ctr.ID(), ctr.config.Namespace, s.namespace, define.ErrNSMismatch)
+			return fmt.Errorf("container %s in namespace %q but we are in namespace %q: %w", ctr.ID(), ctr.config.Namespace, s.namespace, define.ErrNSMismatch)
 		}
 	}
 

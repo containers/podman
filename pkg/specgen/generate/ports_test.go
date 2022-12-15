@@ -672,7 +672,7 @@ func TestParsePortMappingWithoutHostPort(t *testing.T) {
 			assert.NoError(t, err, "error is not nil")
 
 			// because we always get random host ports when it is set to 0 we cannot check that exactly
-			// check if it is not 0 and set to to 0 afterwards
+			// check if it is not 0 and set to 0 afterwards
 			for i := range got {
 				assert.Greater(t, got[i].HostPort, uint16(0), "host port is zero")
 				got[i].HostPort = 0
