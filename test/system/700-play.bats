@@ -207,7 +207,7 @@ EOF
     run_podman container inspect --format "{{.HostConfig.NetworkMode}}" $infraID
     is "$output" "none" "network mode none is set for the container"
 
-    run_podman kube down - < $PODMAN_TMPDIR/test.yaml
+    run_podman kube down $PODMAN_TMPDIR/test.yaml
     run_podman 125 inspect test_pod-test
     is "$output" ".*Error: inspecting object: no such object: \"test_pod-test\""
     run_podman pod rm -a
@@ -434,6 +434,38 @@ status: {}
     run_podman pod rm -a -f
     run_podman rm -a -f
     run_podman rm -f -t0 myyaml
+}
+
+@test "podman play with init container" {
+    TESTDIR=$PODMAN_TMPDIR/testdir
+    mkdir -p $TESTDIR
+
+testUserYaml="
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod
+spec:
+  containers:
+  - command:
+    - ls
+    - /dev/shm/test1
+    image: $IMAGE
+    name: testCtr
+  initContainers:
+  - command:
+    - touch
+    - /dev/shm/test1
+    image: $IMAGE
+    name: initCtr
+"
+    echo "$testUserYaml" > $PODMAN_TMPDIR/test.yaml
+    run_podman kube play $PODMAN_TMPDIR/test.yaml
+    assert "$output" !~ "level=" "init containers should not generate logrus.Error"
+    run_podman inspect --format "{{.State.ExitCode}}" pod-testCtr
+    is "$output" "0" "init container should have created /dev/shm/test1"
+
+    run_podman kube down $PODMAN_TMPDIR/test.yaml
 }
 
 @test "podman kube play - hostport" {
