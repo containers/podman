@@ -349,6 +349,15 @@ func (ic *ContainerEngine) playKubeDeployment(ctx context.Context, deploymentYAM
 
 	// create "replicas" number of pods
 	var notifyProxies []*notifyproxy.NotifyProxy
+	if numReplicas > 1 {
+		for _, container := range deploymentYAML.Spec.Template.Spec.Containers {
+			for _, port := range container.Ports {
+				if port.HostPort != 0 {
+					return nil, nil, errors.New("deployment has a hostPort defined and multiple replicas are involved")
+				}
+			}
+		}
+	}
 	for i = 0; i < numReplicas; i++ {
 		podName := fmt.Sprintf("%s-pod-%d", deploymentName, i)
 		podReport, proxies, err := ic.playKubePod(ctx, podName, &podSpec, options, ipIndex, deploymentYAML.Annotations, configMaps, serviceContainer)

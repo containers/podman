@@ -565,3 +565,36 @@ spec:
     run_podman pod rm -a -f
     run_podman rm -a -f
 }
+
+@test "podman kube play - hostport and replicas" {
+    echo "
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: test_pod
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: test
+  template:
+    metadata:
+      labels:
+        app: test
+    spec:
+      containers:
+        - name: server
+          image: $IMAGE
+          ports:
+            - name: hostp
+              containerPort: 8080
+              hostPort: 8080
+" > "$PODMAN_TMPDIR/testpod.yaml"
+
+    run_podman 125 kube play "$PODMAN_TMPDIR/testpod.yaml"
+    is "$output" ".*deployment has a hostPort defined and multiple replicas are involved*"
+
+    run_podman pod rm -a -f
+    run_podman rm -a -f
+}
