@@ -52,6 +52,8 @@ type NetworkCreateOptions struct {
 	IPv6       bool
 	// Mapping of driver options and values.
 	Options map[string]string
+	// IgnoreIfExists if true, do not fail if the network already exists
+	IgnoreIfExists bool
 }
 
 // NetworkCreateReport describes a created network for the cli

@@ -122,12 +122,16 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, body io.Reader, options
 	// when no network options are specified, create a common network for all the pods
 	if len(options.Networks) == 0 {
 		_, err := ic.NetworkCreate(
-			ctx, nettypes.Network{
+			ctx,
+			nettypes.Network{
 				Name:       kubeDefaultNetwork,
 				DNSEnabled: true,
 			},
+			&nettypes.NetworkCreateOptions{
+				IgnoreIfExists: true,
+			},
 		)
-		if err != nil && !errors.Is(err, nettypes.ErrNetworkExists) {
+		if err != nil {
 			return nil, err
 		}
 	}

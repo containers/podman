@@ -452,4 +452,33 @@ var _ = Describe("Podman network create", func() {
 		Expect(nc).To(Exit(125))
 		Expect(nc.ErrorToString()).To(Equal("Error: cannot set more ranges than subnets"))
 	})
+
+	It("podman network create same name - fail", func() {
+		name := "same-name-" + stringid.GenerateRandomID()
+		networkCreateCommand := []string{"network", "create", name}
+		nc := podmanTest.Podman(networkCreateCommand)
+		nc.WaitWithDefaultTimeout()
+		defer podmanTest.removeNetwork(name)
+		Expect(nc).To(Exit(0))
+		Expect(nc.OutputToString()).To(Equal(name))
+
+		nc = podmanTest.Podman(networkCreateCommand)
+		nc.WaitWithDefaultTimeout()
+		Expect(nc).To(Exit(125))
+	})
+
+	It("podman network create same name - succeed with ignore", func() {
+		name := "same-name-" + stringid.GenerateRandomID()
+		networkCreateCommand := []string{"network", "create", "--ignore", name}
+		nc := podmanTest.Podman(networkCreateCommand)
+		nc.WaitWithDefaultTimeout()
+		defer podmanTest.removeNetwork(name)
+		Expect(nc).To(Exit(0))
+		Expect(nc.OutputToString()).To(Equal(name))
+
+		nc = podmanTest.Podman(networkCreateCommand)
+		nc.WaitWithDefaultTimeout()
+		Expect(nc).To(Exit(0))
+		Expect(nc.OutputToString()).To(Equal(name))
+	})
 })

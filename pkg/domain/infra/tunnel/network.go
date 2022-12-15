@@ -66,8 +66,12 @@ func (ic *ContainerEngine) NetworkRm(ctx context.Context, namesOrIds []string, o
 	return reports, nil
 }
 
-func (ic *ContainerEngine) NetworkCreate(ctx context.Context, net types.Network) (*types.Network, error) {
-	net, err := network.Create(ic.ClientCtx, &net)
+func (ic *ContainerEngine) NetworkCreate(ctx context.Context, net types.Network, createOptions *types.NetworkCreateOptions) (*types.Network, error) {
+	options := new(network.ExtraCreateOptions)
+	if createOptions != nil {
+		options = options.WithIgnoreIfExists(createOptions.IgnoreIfExists)
+	}
+	net, err := network.CreateWithOptions(ic.ClientCtx, &net, options)
 	if err != nil {
 		return nil, err
 	}

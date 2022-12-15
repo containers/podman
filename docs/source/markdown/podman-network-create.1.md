@@ -39,6 +39,10 @@ Define a gateway for the subnet. To provide a gateway address, a
 *subnet* option is required. Can be specified multiple times.
 The argument order of the **--subnet**, **--gateway** and **--ip-range** options must match.
 
+#### **--ignore**
+Ignore the create request if a network with the same name already exists instead of failing.
+Note, trying to create a network with an existing name and different parameters, will not change the configuration of the existing one
+
 #### **--internal**
 
 Restrict external access of this network. Note when using this option, the dnsname plugin will be

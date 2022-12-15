@@ -31,8 +31,17 @@ func CreateNetwork(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	query := struct {
+		IgnoreIfExists bool `schema:"ignoreIfExists"`
+	}{}
+	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
+	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
+		utils.Error(w, http.StatusBadRequest, fmt.Errorf("failed to parse parameters for %s: %w", r.URL.String(), err))
+		return
+	}
+
 	ic := abi.ContainerEngine{Libpod: runtime}
-	report, err := ic.NetworkCreate(r.Context(), network)
+	report, err := ic.NetworkCreate(r.Context(), network, &types.NetworkCreateOptions{IgnoreIfExists: query.IgnoreIfExists})
 	if err != nil {
 		if errors.Is(err, types.ErrNetworkExists) {
 			utils.Error(w, http.StatusConflict, err)

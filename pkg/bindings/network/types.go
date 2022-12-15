@@ -84,3 +84,12 @@ type PruneOptions struct {
 	// specific on choosing
 	Filters map[string][]string
 }
+
+// ExtraCreateOptions are optional additional configuration flags for creating Networks
+// that are not part of the network configuration
+//
+//go:generate go run ../generator/generator.go ExtraCreateOptions
+type ExtraCreateOptions struct {
+	// IgnoreIfExists if true, do not fail if the network already exists
+	IgnoreIfExists *bool `schema:"ignoreIfExists"`
+}

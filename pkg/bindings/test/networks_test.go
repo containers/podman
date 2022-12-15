@@ -101,11 +101,24 @@ var _ = Describe("Podman networks", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(report.Name).To(Equal(name))
 
-		// create network with same name should 500
+		// create network with same name should 409
 		_, err = network.Create(connText, &net)
 		Expect(err).To(HaveOccurred())
 		code, _ := bindings.CheckResponseCode(err)
 		Expect(code).To(BeNumerically("==", http.StatusConflict))
+
+		// create network with same name and ignore false should 409
+		options := new(network.ExtraCreateOptions).WithIgnoreIfExists(false)
+		_, err = network.CreateWithOptions(connText, &net, options)
+		Expect(err).To(HaveOccurred())
+		code, _ = bindings.CheckResponseCode(err)
+		Expect(code).To(BeNumerically("==", http.StatusConflict))
+
+		// create network with same name and ignore true succeed
+		options = new(network.ExtraCreateOptions).WithIgnoreIfExists(true)
+		report, err = network.CreateWithOptions(connText, &net, options)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(report.Name).To(Equal(name))
 	})
 
 	It("inspect network", func() {

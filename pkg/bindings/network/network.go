@@ -3,6 +3,7 @@ package network
 import (
 	"context"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/containers/common/libnetwork/types"
@@ -13,11 +14,24 @@ import (
 
 // Create makes a new CNI network configuration
 func Create(ctx context.Context, network *types.Network) (types.Network, error) {
+	return CreateWithOptions(ctx, network, nil)
+}
+
+func CreateWithOptions(ctx context.Context, network *types.Network, extraCreateOptions *ExtraCreateOptions) (types.Network, error) {
 	var report types.Network
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return report, err
 	}
+
+	var params url.Values
+	if extraCreateOptions != nil {
+		params, err = extraCreateOptions.ToParams()
+		if err != nil {
+			return report, err
+		}
+	}
+
 	// create empty network if the caller did not provide one
 	if network == nil {
 		network = &types.Network{}
@@ -27,7 +41,7 @@ func Create(ctx context.Context, network *types.Network) (types.Network, error) 
 		return report, err
 	}
 	reader := strings.NewReader(networkConfig)
-	response, err := conn.DoRequest(ctx, reader, http.MethodPost, "/networks/create", nil, nil)
+	response, err := conn.DoRequest(ctx, reader, http.MethodPost, "/networks/create", params, nil)
 	if err != nil {
 		return report, err
 	}
