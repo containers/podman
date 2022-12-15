@@ -31,6 +31,7 @@ import (
 	"github.com/containers/podman/v4/pkg/specgen/generate"
 	systemdDefine "github.com/containers/podman/v4/pkg/systemd/define"
 	"github.com/containers/podman/v4/pkg/util"
+	"github.com/containers/podman/v4/utils"
 	"github.com/docker/docker/pkg/system"
 	"github.com/docker/go-units"
 	"github.com/ghodss/yaml"
@@ -71,7 +72,11 @@ func ToPodOpt(ctx context.Context, podName string, p entities.PodCreateOptions, 
 		}
 		p.Net.AddHosts = hosts
 	}
-	podPorts := getPodPorts(podYAML.Spec.Containers)
+
+	podPorts, err := getPodPorts(podYAML.Spec.Containers)
+	if err != nil {
+		return entities.PodCreateOptions{}, err
+	}
 	p.Net.PublishPorts = podPorts
 
 	if dnsConfig := podYAML.Spec.DNSConfig; dnsConfig != nil {
@@ -997,18 +1002,28 @@ func getContainerResources(container v1.Container) (v1.ResourceRequirements, err
 
 // getPodPorts converts a slice of kube container descriptions to an
 // array of portmapping
-func getPodPorts(containers []v1.Container) []types.PortMapping {
+func getPodPorts(containers []v1.Container) ([]types.PortMapping, error) {
 	var infraPorts []types.PortMapping
 	for _, container := range containers {
 		for _, p := range container.Ports {
+			// only hostPort is utilized in podman context, all container ports
+			// are accessible inside the shared network namespace
+			if p.HostPort == 0 && p.ContainerPort == 0 {
+				continue
+			}
+
 			if p.HostPort != 0 && p.ContainerPort == 0 {
 				p.ContainerPort = p.HostPort
 			}
-			if p.HostPort == 0 && p.ContainerPort != 0 {
-				p.HostPort = p.ContainerPort
-			}
 			if p.Protocol == "" {
 				p.Protocol = "tcp"
+			}
+			if p.HostPort == 0 {
+				port, err := utils.GetRandomPort()
+				if err != nil {
+					return nil, err
+				}
+				p.HostPort = int32(port)
 			}
 			portBinding := types.PortMapping{
 				HostPort:      uint16(p.HostPort),
@@ -1016,12 +1031,8 @@ func getPodPorts(containers []v1.Container) []types.PortMapping {
 				Protocol:      strings.ToLower(string(p.Protocol)),
 				HostIP:        p.HostIP,
 			}
-			// only hostPort is utilized in podman context, all container ports
-			// are accessible inside the shared network namespace
-			if p.HostPort != 0 {
-				infraPorts = append(infraPorts, portBinding)
-			}
+			infraPorts = append(infraPorts, portBinding)
 		}
 	}
-	return infraPorts
+	return infraPorts, nil
 }

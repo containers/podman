@@ -503,7 +503,7 @@ spec:
     run_podman kube down $PODMAN_TMPDIR/test.yaml
 }
 
-@test "podman kube play - hostport" {
+@test "podman kube play - containerport" {
     HOST_PORT=$(random_free_port)
     echo "
 apiVersion: v1
@@ -522,9 +522,45 @@ spec:
 " > $PODMAN_TMPDIR/testpod.yaml
 
     run_podman kube play $PODMAN_TMPDIR/testpod.yaml
-    run_podman pod inspect test_pod --format "{{.InfraConfig.PortBindings}}"
-    assert "$output" = "map[$HOST_PORT/tcp:[{ $HOST_PORT}]]"
+    run_podman pod inspect test_pod --format "{{index .InfraConfig.PortBindings \"$HOST_PORT/tcp\" | len}}"
+    assert "$output" = "1"
     run_podman kube down $PODMAN_TMPDIR/testpod.yaml
+
+    run_podman pod rm -a -f
+    run_podman rm -a -f
+}
+
+@test "podman kube play - containerport and replicas" {
+    echo "
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: test_pod
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: test
+  template:
+    metadata:
+      labels:
+        app: test
+    spec:
+      containers:
+        - name: server
+          image: $IMAGE
+          ports:
+            - name: hostp
+              containerPort: 8080
+" > "$PODMAN_TMPDIR/testpod.yaml"
+
+    run_podman kube play "$PODMAN_TMPDIR/testpod.yaml"
+    for i in $(seq 0 2); do
+        run_podman pod inspect "test_pod-pod-$i" --format '{{ index .InfraConfig.PortBindings "8080/tcp" |len}}'
+        assert "$output" = "1" "Expected port bindings from 8080 to exactly one container port"
+    done
+    run_podman kube down "$PODMAN_TMPDIR/testpod.yaml"
 
     run_podman pod rm -a -f
     run_podman rm -a -f
