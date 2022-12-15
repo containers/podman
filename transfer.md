@@ -194,7 +194,7 @@ The following podman commands do not have a Docker equivalent:
 * [`podman system renumber`](./docs/source/markdown/podman-system-connection-renumber.1.md)
 * [`podman system reset`](./docs/source/markdown/podman-system-connection-reset.1.md)
 * [`podman system service`](./docs/source/markdown/podman-system-connection-service.1.md)
-* [`podman umount`](./docs/source/markdown/podman-umount.1.md)
+* [`podman unmount`](./docs/source/markdown/podman-unmount.1.md)
 * [`podman unshare`](./docs/source/markdown/podman-unshare.1.md)
 * [`podman untag`](./docs/source/markdown/podman-untag.1.md)
 * [`podman volume exists`](./docs/source/markdown/podman-volume-exists.1.md)
