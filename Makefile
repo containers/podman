@@ -739,9 +739,10 @@ podman-remote-release-%.zip: test/version/version ## Build podman-remote for %=$
 	if [[ "$(GOARCH)" != "$(NATIVE_GOARCH)" ]]; then $(MAKE) clean-binaries; fi
 	-rm -rf "$(TMPDIR)"
 
-.PHONY: podman.msi
 podman.msi: test/version/version  ## Build podman-remote, package for installation on Windows
 	$(MAKE) podman-v$(call err_if_empty,RELEASE_NUMBER).msi
+	cp podman-v$(call err_if_empty,RELEASE_NUMBER).msi podman.msi
+
 podman-v%.msi: test/version/version
 # Passing explicitly OS and ARCH, because ARM is not supported by wixl https://gitlab.gnome.org/GNOME/msitools/-/blob/master/tools/wixl/builder.vala#L3
 	$(MAKE) GOOS=windows GOARCH=amd64 podman-remote-windows-docs
