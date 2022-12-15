@@ -47,6 +47,7 @@ import (
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/lockfile"
+	stypes "github.com/containers/storage/types"
 	securejoin "github.com/cyphar/filepath-securejoin"
 	runcuser "github.com/opencontainers/runc/libcontainer/user"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
@@ -55,6 +56,66 @@ import (
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/sirupsen/logrus"
 )
+
+func parseOptionIDs(option string) ([]idtools.IDMap, error) {
+	ranges := strings.Split(option, "#")
+	ret := make([]idtools.IDMap, len(ranges))
+	for i, m := range ranges {
+		var v idtools.IDMap
+		_, err := fmt.Sscanf(m, "%d-%d-%d", &v.ContainerID, &v.HostID, &v.Size)
+		if err != nil {
+			return nil, err
+		}
+		if v.ContainerID < 0 || v.HostID < 0 || v.Size < 1 {
+			return nil, fmt.Errorf("invalid value for %q", option)
+		}
+		ret[i] = v
+	}
+	return ret, nil
+}
+
+func parseIDMapMountOption(idMappings stypes.IDMappingOptions, option string) ([]spec.LinuxIDMapping, []spec.LinuxIDMapping, error) {
+	uidMap := idMappings.UIDMap
+	gidMap := idMappings.GIDMap
+	if strings.HasPrefix(option, "idmap=") {
+		var err error
+		options := strings.Split(strings.SplitN(option, "=", 2)[1], ";")
+		for _, i := range options {
+			switch {
+			case strings.HasPrefix(i, "uids="):
+				uidMap, err = parseOptionIDs(strings.Replace(i, "uids=", "", 1))
+				if err != nil {
+					return nil, nil, err
+				}
+			case strings.HasPrefix(i, "gids="):
+				gidMap, err = parseOptionIDs(strings.Replace(i, "gids=", "", 1))
+				if err != nil {
+					return nil, nil, err
+				}
+			default:
+				return nil, nil, fmt.Errorf("unknown option %q", i)
+			}
+		}
+	}
+
+	uidMappings := make([]spec.LinuxIDMapping, len(uidMap))
+	gidMappings := make([]spec.LinuxIDMapping, len(gidMap))
+	for i, uidmap := range uidMap {
+		uidMappings[i] = spec.LinuxIDMapping{
+			HostID:      uint32(uidmap.ContainerID),
+			ContainerID: uint32(uidmap.HostID),
+			Size:        uint32(uidmap.Size),
+		}
+	}
+	for i, gidmap := range gidMap {
+		gidMappings[i] = spec.LinuxIDMapping{
+			HostID:      uint32(gidmap.ContainerID),
+			ContainerID: uint32(gidmap.HostID),
+			Size:        uint32(gidmap.Size),
+		}
+	}
+	return uidMappings, gidMappings, nil
+}
 
 // Internal only function which returns upper and work dir from
 // overlay options.
@@ -217,13 +278,22 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 		}
 	}
 
-	// Check if the spec file mounts contain the options z, Z or U.
+	// Check if the spec file mounts contain the options z, Z, U or idmap.
 	// If they have z or Z, relabel the source directory and then remove the option.
 	// If they have U, chown the source directory and them remove the option.
+	// If they have idmap, then calculate the mappings to use in the OCI config file.
 	for i := range g.Config.Mounts {
 		m := &g.Config.Mounts[i]
 		var options []string
 		for _, o := range m.Options {
+			if o == "idmap" || strings.HasPrefix(o, "idmap=") {
+				var err error
+				m.UIDMappings, m.GIDMappings, err = parseIDMapMountOption(c.config.IDMappings, o)
+				if err != nil {
+					return nil, err
+				}
+				continue
+			}
 			switch o {
 			case "U":
 				if m.Type == "tmpfs" {
