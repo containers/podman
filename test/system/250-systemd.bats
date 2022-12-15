@@ -443,7 +443,14 @@ EOF
 
     # Clean up
     systemctl stop $service_name
-    run_podman 1 container exists $service_container
+    for i in {0..5}; do
+        run_podman ? container exists $service_container
+        if [[ $status == 1 ]]; then
+            break
+        fi
+        sleep 0.5
+    done
+    is "$status" "1" "service container should have been removed"
     run_podman 1 pod exists test_pod
     run_podman rmi $(pause_image)
     rm -f $UNIT_DIR/$unit_name
