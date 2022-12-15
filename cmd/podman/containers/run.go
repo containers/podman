@@ -203,7 +203,7 @@ func run(cmd *cobra.Command, args []string) error {
 	}
 
 	report, err := registry.ContainerEngine().ContainerRun(registry.GetContext(), runOpts)
-	// report.ExitCode is set by ContainerRun even it it returns an error
+	// report.ExitCode is set by ContainerRun even it returns an error
 	if report != nil {
 		registry.SetExitCode(report.ExitCode)
 	}

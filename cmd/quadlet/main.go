@@ -261,7 +261,7 @@ func isUnambiguousName(imageName string) bool {
 	// What is before the first slash can be a domain or a path
 	domain := imageName[:firstSlash]
 
-	// If its a a domain (has dot or port or is "localhost") it is considered fq
+	// If its a domain (has dot or port or is "localhost") it is considered fq
 	if strings.ContainsAny(domain, ".:") || domain == "localhost" {
 		return true
 	}

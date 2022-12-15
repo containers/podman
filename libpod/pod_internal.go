@@ -44,7 +44,7 @@ func (p *Pod) save() error {
 // This cannot lock any other pod, but may lock individual containers, as those
 // will have refreshed by the time pod refresh runs.
 func (p *Pod) refresh() error {
-	// Need to to an update from the DB to pull potentially-missing state
+	// Need to do an update from the DB to pull potentially-missing state
 	if err := p.runtime.state.UpdatePod(p); err != nil {
 		return err
 	}
