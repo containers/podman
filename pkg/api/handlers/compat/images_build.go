@@ -399,20 +399,47 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Docker's newer clients popuates `cacheFrom` and `cacheTo` parameter
+	// by default as empty array for all commands but buildah's design of
+	// distributed cache expects this to be a repo not image hence parse
+	// only the first populated repo and igore if empty array.
+	// Read more here: https://github.com/containers/podman/issues/15928
+	// TODO: Remove this when buildah's API is extended.
+	compatIgnoreForcedCacheOptions := func(queryStr string) string {
+		query := queryStr
+		if strings.HasPrefix(query, "[") {
+			query = ""
+			var arr []string
+			parseErr := json.Unmarshal([]byte(query), &arr)
+			if parseErr != nil {
+				if len(arr) > 0 {
+					query = arr[0]
+				}
+			}
+		}
+		return query
+	}
+
 	var cacheFrom reference.Named
 	if _, found := r.URL.Query()["cachefrom"]; found {
-		cacheFrom, err = parse.RepoNameToNamedReference(query.CacheFrom)
-		if err != nil {
-			utils.BadRequest(w, "cacheFrom", query.CacheFrom, err)
-			return
+		cacheFromQuery := compatIgnoreForcedCacheOptions(query.CacheFrom)
+		if cacheFromQuery != "" {
+			cacheFrom, err = parse.RepoNameToNamedReference(cacheFromQuery)
+			if err != nil {
+				utils.BadRequest(w, "cacheFrom", cacheFromQuery, err)
+				return
+			}
 		}
 	}
 	var cacheTo reference.Named
 	if _, found := r.URL.Query()["cacheto"]; found {
-		cacheTo, err = parse.RepoNameToNamedReference(query.CacheTo)
-		if err != nil {
-			utils.BadRequest(w, "cacheto", query.CacheTo, err)
-			return
+		cacheToQuery := compatIgnoreForcedCacheOptions(query.CacheTo)
+		if cacheToQuery != "" {
+			cacheTo, err = parse.RepoNameToNamedReference(cacheToQuery)
+			if err != nil {
+				utils.BadRequest(w, "cacheto", cacheToQuery, err)
+				return
+			}
 		}
 	}
 	var cacheTTL time.Duration
