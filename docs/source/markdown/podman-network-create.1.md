@@ -132,7 +132,7 @@ podman4
 
 Create a Macvlan based network using the host interface eth0. Macvlan networks can only be used as root.
 ```
-$ podman network create -d macvlan -o parent=eth0 --subnet 192.5.0.0/16 newnet
+$ sudo podman network create -d macvlan -o parent=eth0 --subnet 192.5.0.0/16 newnet
 newnet
 ```
 
