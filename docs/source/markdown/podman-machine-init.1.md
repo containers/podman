@@ -97,8 +97,12 @@ options are:
 
 The 9p security model [determines] https://wiki.qemu.org/Documentation/9psetup#Starting_the_Guest_directly
 if and how the 9p filesystem translates some filesystem operations before
-actual storage on the host. The
-default value of *mapped-xattr* specifies that 9p store symlinks and some file
+actual storage on the host.
+
+In order to allow symlinks to work, on MacOS the default security model is
+ *none*.
+
+The value of *mapped-xattr* specifies that 9p store symlinks and some file
 attributes as extended attributes on the host. This is suitable when the host
 and the guest do not need to interoperate on the shared filesystem, but has
 caveats for actual shared access; notably, symlinks on the host are not usable

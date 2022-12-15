@@ -305,7 +305,7 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 		source := paths[0]
 		target := source
 		readonly := false
-		securityModel := "mapped-xattr"
+		securityModel := "none"
 		if len(paths) > 1 {
 			target = paths[1]
 		}
