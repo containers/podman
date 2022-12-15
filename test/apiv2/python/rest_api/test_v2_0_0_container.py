@@ -133,9 +133,36 @@ class ContainerTestCase(APITestCase):
             self.assertEqual(r.text, "", r.text)
 
     def test_attach(self):
-        self.skipTest("FIXME: Test timeouts")
-        r = requests.post(self.uri(self.resolve_container("/containers/{}/attach?logs=true")), timeout=5)
-        self.assertIn(r.status_code, (101, 500), r.text)
+        r = requests.post(
+            self.podman_url + "/v1.40/containers/create?name=topcontainer",
+            json={"Cmd": ["sh", "-c", "echo podman; sleep 100"], "Image": "alpine:latest"},
+        )
+        self.assertEqual(r.status_code, 201, r.text)
+        payload = r.json()
+
+        r = requests.post(
+            self.podman_url
+            + f"/v1.40/containers/{payload['Id']}/start"
+        )
+        self.assertEqual(r.status_code, 204, r.text)
+
+        r = requests.post(
+            self.podman_url
+            + f"/v1.40/containers/{payload['Id']}/attach?logs=true&stream=false"
+        )
+        self.assertIn(r.status_code, (101, 200), r.text)
+        # see the attach format docs, stdout = 1, length = 7, message = podman\n
+        self.assertEqual(r.content, b"\x01\x00\x00\x00\x00\x00\x00\x07podman\n", r.text)
+
+        r = requests.post(
+            self.podman_url
+            + f"/v1.40/containers/{payload['Id']}/stop?t=0"
+        )
+        self.assertEqual(r.status_code, 204, r.text)
+
+        requests.delete(
+            self.podman_url + f"/v1.40/containers/{payload['Id']}?force=true"
+        )
 
     def test_logs(self):
         r = requests.get(self.uri(self.resolve_container("/containers/{}/logs?stdout=true")))

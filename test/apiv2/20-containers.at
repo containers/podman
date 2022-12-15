@@ -26,9 +26,10 @@ like "$response_headers" ".*Content-Type: application/json.*" "header does not c
 # Regression test for #12904 (race condition in logging code)
 mytext="hi-there-$(random_string 15)"
 podman run --rm -d --replace --name foo $IMAGE sh -c "echo $mytext;sleep 42"
-# Logs output is prepended by ^A^X
+# Logs output is prepended by ^A^Y (stdout = 1, length = 25 (with newline))
+# Looks like it is missing the required 0 bytes from the message, why?
 t POST "containers/foo/attach?logs=true&stream=false" 200 \
-  $'\001\030'$mytext
+  $'\001\031'$mytext
 t POST "containers/foo/kill" 204
 
 podman run -v /tmp:/tmp $IMAGE true
