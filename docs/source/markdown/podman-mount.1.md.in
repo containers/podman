@@ -68,4 +68,4 @@ a7060253093b /var/lib/containers/storage/overlay/0ff7d7ca68bed1ace424f9df154d2dd
 ```
 
 ## SEE ALSO
-**[podman(1)](podman.1.md)**, **[podman-umount(1)](podman-umount.1.md)**, **[podman-unshare(1)](podman-unshare.1.md)**, **mount(8)**
+**[podman(1)](podman.1.md)**, **[podman-unmount(1)](podman-unmount.1.md)**, **[podman-unshare(1)](podman-unshare.1.md)**, **mount(8)**
