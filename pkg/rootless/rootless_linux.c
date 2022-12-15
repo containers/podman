@@ -8,6 +8,7 @@
 #include <sys/stat.h>
 #include <limits.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <signal.h>
 #include <fcntl.h>
 #include <sys/wait.h>
@@ -18,6 +19,9 @@
 #include <dirent.h>
 #include <sys/select.h>
 #include <stdio.h>
+
+#define ETC_AUTH_SCRIPTS "/etc/containers/auth-scripts"
+#define LIBEXECPODMAN "/usr/libexec/podman"
 
 #ifndef TEMP_FAILURE_RETRY
 #define TEMP_FAILURE_RETRY(expression) \
@@ -117,6 +121,155 @@ rootless_gid ()
   return rootless_gid_init;
 }
 
+/* exec the specified executable and exit if it fails.  */
+static void
+exec_binary (const char *path, char **argv, int argc)
+{
+  int r, status = 0;
+  pid_t pid;
+
+  pid = fork ();
+  if (pid < 0)
+    {
+      fprintf (stderr, "fork: %m\n");
+      exit (EXIT_FAILURE);
+    }
+  if (pid == 0)
+    {
+      size_t i;
+      char **newargv = malloc ((argc + 2) * sizeof(char *));
+      if (!newargv)
+        {
+          fprintf (stderr, "malloc: %m\n");
+          exit (EXIT_FAILURE);
+        }
+      newargv[0] = (char*) path;
+      for (i = 0; i < argc; i++)
+        newargv[i+1] = argv[i];
+
+      newargv[i+1] = NULL;
+      errno = 0;
+      execv (path, newargv);
+      /* If the file was deleted in the meanwhile, return success.  */
+      if (errno == ENOENT)
+        exit (EXIT_SUCCESS);
+      exit (EXIT_FAILURE);
+    }
+
+  r = TEMP_FAILURE_RETRY (waitpid (pid, &status, 0));
+  if (r < 0)
+    {
+      fprintf (stderr, "waitpid: %m\n");
+      exit (EXIT_FAILURE);
+    }
+  if (WIFEXITED(status) && WEXITSTATUS (status))
+    {
+      fprintf (stderr, "external auth script %s failed\n", path);
+      exit (WEXITSTATUS(status));
+    }
+  if (WIFSIGNALED (status))
+    {
+      fprintf (stderr, "external auth script %s failed\n", path);
+      exit (127+WTERMSIG (status));
+    }
+  if (WIFSTOPPED (status))
+    {
+      fprintf (stderr, "external auth script %s failed\n", path);
+      exit (EXIT_FAILURE);
+    }
+}
+
+static void
+do_auth_scripts_dir (const char *dir, char **argv, int argc)
+{
+  cleanup_free char *buffer = NULL;
+  cleanup_dir DIR *d = NULL;
+  size_t i, nfiles = 0;
+  struct dirent *de;
+
+  /* Store how many FDs were open before the Go runtime kicked in.  */
+  d = opendir (dir);
+  if (!d)
+    {
+      if (errno != ENOENT)
+        {
+          fprintf (stderr, "opendir %s: %m\n", dir);
+          exit (EXIT_FAILURE);
+        }
+      return;
+    }
+
+  errno = 0;
+
+  for (de = readdir (d); de; de = readdir (d))
+    {
+      buffer = realloc (buffer, (nfiles + 1) * (NAME_MAX + 1));
+      if (buffer == NULL)
+        {
+          fprintf (stderr, "realloc buffer: %m\n");
+          exit (EXIT_FAILURE);
+        }
+
+      if (de->d_type != DT_REG)
+        continue;
+
+      strncpy (buffer + nfiles * (NAME_MAX + 1), de->d_name, NAME_MAX + 1);
+      nfiles++;
+      buffer[nfiles * (NAME_MAX + 1)] = '\0';
+    }
+
+  qsort (buffer, nfiles, NAME_MAX + 1, (int (*)(const void *, const void *)) strcmp);
+
+  for (i = 0; i < nfiles; i++)
+    {
+      const char *fname = buffer + i * (NAME_MAX + 1);
+      char path[PATH_MAX];
+      struct stat st;
+      int ret;
+
+      ret = snprintf (path, PATH_MAX, "%s/%s", dir, fname);
+      if (ret == PATH_MAX)
+        {
+          fprintf (stderr, "internal error: path too long\n");
+          exit (EXIT_FAILURE);
+        }
+
+      ret = stat (path, &st);
+      if (ret < 0)
+        {
+          /* Ignore the failure if the file was deleted.  */
+          if (errno == ENOENT)
+            continue;
+
+          fprintf (stderr, "stat %s: %m\n", path);
+          exit (EXIT_FAILURE);
+        }
+
+      /* Not an executable.  */
+      if ((st.st_mode & (S_IXUSR | S_IXGRP | S_IXOTH)) == 0)
+        continue;
+
+      exec_binary (path, argv, argc);
+      errno = 0;
+    }
+
+  if (errno)
+    {
+      fprintf (stderr, "readdir %s: %m\n", dir);
+      exit (EXIT_FAILURE);
+    }
+}
+
+static void
+do_auth_scripts (char **argv, int argc)
+{
+  char *auth_scripts = getenv ("PODMAN_AUTH_SCRIPTS_DIR");
+  do_auth_scripts_dir (LIBEXECPODMAN "/auth-scripts", argv, argc);
+  do_auth_scripts_dir (ETC_AUTH_SCRIPTS, argv, argc);
+  if (auth_scripts && auth_scripts[0])
+    do_auth_scripts_dir (auth_scripts, argv, argc);
+}
+
 static void
 do_pause ()
 {
@@ -134,7 +287,7 @@ do_pause ()
     sigaction (sig[i], &act, NULL);
 
   /* Attempt to execv catatonit to keep the pause process alive.  */
-  execl ("/usr/libexec/podman/catatonit", "catatonit", "-P", NULL);
+  execl (LIBEXECPODMAN "catatonit", "catatonit", "-P", NULL);
   execl ("/usr/bin/catatonit", "catatonit", "-P", NULL);
   /* and if the catatonit executable could not be found, fallback here... */
 
@@ -144,7 +297,7 @@ do_pause ()
 }
 
 static char **
-get_cmd_line_args ()
+get_cmd_line_args (int *argc_out)
 {
   cleanup_free char *buffer = NULL;
   cleanup_close int fd = -1;
@@ -204,13 +357,15 @@ get_cmd_line_args ()
   /* Move ownership.  */
   buffer = NULL;
 
+  if (argc_out)
+    *argc_out = argc;
+
   return argv;
 }
 
 static bool
-can_use_shortcut ()
+can_use_shortcut (char **argv)
 {
-  cleanup_free char **argv = NULL;
   cleanup_free char *argv0 = NULL;
   bool ret = true;
   int argc;
@@ -218,10 +373,6 @@ can_use_shortcut ()
 #ifdef DISABLE_JOIN_SHORTCUT
   return false;
 #endif
-
-  argv = get_cmd_line_args ();
-  if (argv == NULL)
-    return false;
 
   argv0 = argv[0];
 
@@ -287,7 +438,9 @@ static void __attribute__((constructor)) init()
   const char *listen_pid;
   const char *listen_fds;
   const char *listen_fdnames;
+  cleanup_free char **argv = NULL;
   cleanup_dir DIR *d = NULL;
+  int argc;
 
   pause = getenv ("_PODMAN_PAUSE");
   if (pause && pause[0])
@@ -337,30 +490,40 @@ static void __attribute__((constructor)) init()
         }
     }
 
-    listen_pid = getenv("LISTEN_PID");
-    listen_fds = getenv("LISTEN_FDS");
-    listen_fdnames = getenv("LISTEN_FDNAMES");
+  argv = get_cmd_line_args (&argc);
+  if (argv == NULL)
+    {
+      fprintf(stderr, "cannot retrieve cmd line");
+      _exit (EXIT_FAILURE);
+    }
 
-    if (listen_pid != NULL && listen_fds != NULL && strtol(listen_pid, NULL, 10) == getpid())
-      {
-        // save systemd socket environment for rootless child
-        do_socket_activation = true;
-        saved_systemd_listen_pid = strdup(listen_pid);
-        saved_systemd_listen_fds = strdup(listen_fds);
-        if (listen_fdnames != NULL)
-          saved_systemd_listen_fdnames = strdup(listen_fdnames);
-        if (saved_systemd_listen_pid == NULL
-                || saved_systemd_listen_fds == NULL)
-          {
-            fprintf (stderr, "save socket listen environments error: %m\n");
-            _exit (EXIT_FAILURE);
-          }
-      }
+  if (geteuid () != 0 || getenv ("_CONTAINERS_USERNS_CONFIGURED") == NULL)
+    do_auth_scripts(argv, argc);
+
+  listen_pid = getenv("LISTEN_PID");
+  listen_fds = getenv("LISTEN_FDS");
+  listen_fdnames = getenv("LISTEN_FDNAMES");
+
+  if (listen_pid != NULL && listen_fds != NULL && strtol(listen_pid, NULL, 10) == getpid())
+    {
+      // save systemd socket environment for rootless child
+      do_socket_activation = true;
+      saved_systemd_listen_pid = strdup(listen_pid);
+      saved_systemd_listen_fds = strdup(listen_fds);
+      if (listen_fdnames != NULL)
+        saved_systemd_listen_fdnames = strdup(listen_fdnames);
+      if (saved_systemd_listen_pid == NULL
+          || saved_systemd_listen_fds == NULL)
+        {
+          fprintf (stderr, "save socket listen environments error: %m\n");
+          _exit (EXIT_FAILURE);
+        }
+    }
 
   /* Shortcut.  If we are able to join the pause pid file, do it now so we don't
      need to re-exec.  */
   xdg_runtime_dir = getenv ("XDG_RUNTIME_DIR");
-  if (geteuid () != 0 && xdg_runtime_dir && xdg_runtime_dir[0] && can_use_shortcut ())
+  if (geteuid () != 0 && xdg_runtime_dir && xdg_runtime_dir[0] && can_use_shortcut (argv))
     {
       cleanup_free char *cwd = NULL;
       cleanup_close int userns_fd = -1;
@@ -648,7 +811,7 @@ reexec_userns_join (int pid_to_join, char *pause_pid_file_path)
   sprintf (uid, "%d", geteuid ());
   sprintf (gid, "%d", getegid ());
 
-  argv = get_cmd_line_args ();
+  argv = get_cmd_line_args (NULL);
   if (argv == NULL)
     {
       fprintf (stderr, "cannot read argv: %m\n");
@@ -898,7 +1061,7 @@ reexec_in_user_namespace (int ready, char *pause_pid_file_path, char *file_to_re
       _exit (EXIT_FAILURE);
     }
 
-  argv = get_cmd_line_args ();
+  argv = get_cmd_line_args (NULL);
   if (argv == NULL)
     {
       fprintf (stderr, "cannot read argv: %m\n");
