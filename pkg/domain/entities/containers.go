@@ -52,11 +52,11 @@ type ContainerRunlabelReport struct{}
 type WaitOptions struct {
 	Condition []define.ContainerStatus
 	Interval  time.Duration
+	Ignore    bool
 	Latest    bool
 }
 
 type WaitReport struct {
-	Id       string //nolint:revive,stylecheck
 	Error    error
 	ExitCode int32
 }

@@ -53,6 +53,8 @@ func waitFlags(cmd *cobra.Command) {
 	flags.StringVarP(&waitInterval, intervalFlagName, "i", "250ms", "Time Interval to wait before polling for completion")
 	_ = cmd.RegisterFlagCompletionFunc(intervalFlagName, completion.AutocompleteNone)
 
+	flags.BoolVarP(&waitOptions.Ignore, "ignore", "", false, "Ignore if a container does not exist")
+
 	conditionFlagName := "condition"
 	flags.StringSliceVar(&waitConditions, conditionFlagName, []string{}, "Condition to wait on")
 	_ = cmd.RegisterFlagCompletionFunc(conditionFlagName, common.AutocompleteWaitCondition)
