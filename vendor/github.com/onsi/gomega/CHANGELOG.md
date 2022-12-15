@@ -1,3 +1,15 @@
+## 1.24.2
+
+### Fixes
+- Correctly handle assertion failure panics for eventually/consistnetly "g Gomega"s in a goroutine [78f1660]
+- docs:Fix typo "you an" -> "you can" (#607) [3187c1f]
+- fixes issue #600 (#606) [808d192]
+
+### Maintenance
+- Bump golang.org/x/net from 0.2.0 to 0.4.0 (#611) [6ebc0bf]
+- Bump nokogiri from 1.13.9 to 1.13.10 in /docs (#612) [258cfc8]
+- Bump github.com/onsi/ginkgo/v2 from 2.5.0 to 2.5.1 (#609) [e6c3eb9]
+
 ## 1.24.1
 
 ### Fixes
