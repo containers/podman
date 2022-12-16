@@ -99,6 +99,7 @@ func (t *quadletTestcase) assertStdErrContains(args []string, session *PodmanSes
 }
 
 func (t *quadletTestcase) assertKeyIs(args []string, unit *parser.UnitFile) bool {
+	Expect(len(args)).To(BeNumerically(">=", 3))
 	group := args[0]
 	key := args[1]
 	values := args[2:]
@@ -117,6 +118,7 @@ func (t *quadletTestcase) assertKeyIs(args []string, unit *parser.UnitFile) bool
 }
 
 func (t *quadletTestcase) assertKeyContains(args []string, unit *parser.UnitFile) bool {
+	Expect(args).To(HaveLen(3))
 	group := args[0]
 	key := args[1]
 	value := args[2]
@@ -171,6 +173,7 @@ func (t *quadletTestcase) assertStopPodmanFinalArgsRegex(args []string, unit *pa
 }
 
 func (t *quadletTestcase) assertSymlink(args []string, unit *parser.UnitFile) bool {
+	Expect(args).To(HaveLen(2))
 	symlink := args[0]
 	expectedTarget := args[1]
 
@@ -183,6 +186,7 @@ func (t *quadletTestcase) assertSymlink(args []string, unit *parser.UnitFile) bo
 }
 
 func (t *quadletTestcase) doAssert(check []string, unit *parser.UnitFile, session *PodmanSessionIntegration) error {
+	Expect(len(check)).To(BeNumerically(">=", 1))
 	op := check[0]
 	args := make([]string, 0)
 	for _, a := range check[1:] {
