@@ -63,7 +63,7 @@ func (r *RootlessNetNS) getPath(path string) string {
 
 // Do - run the given function in the rootless netns.
 // It does not lock the rootlessCNI lock, the caller
-// should only lock when needed, e.g. for cni operations.
+// should only lock when needed, e.g. for network operations.
 func (r *RootlessNetNS) Do(toRun func() error) error {
 	err := r.ns.Do(func(_ ns.NetNS) error {
 		// Before we can run the given function,
@@ -269,7 +269,7 @@ func (r *RootlessNetNS) Cleanup(runtime *Runtime) error {
 		// at this stage the container is already locked.
 		// also do not try to lock only containers which are not currently in net
 		// teardown because this will result in an ABBA deadlock between the rootless
-		// cni lock and the container lock
+		// rootless netns lock and the container lock
 		// because we need to get the state we have to sync otherwise this will not
 		// work because the state is empty by default
 		// I do not like this but I do not see a better way at moment
@@ -702,7 +702,7 @@ func (r *Runtime) teardownNetNS(ctr *Container) error {
 	// Do not check the error here, we want to always umount the netns
 	// This will ensure that the container interface will be deleted
 	// even when there is a CNI or netavark bug.
-	prevErr := r.teardownCNI(ctr)
+	prevErr := r.teardownNetwork(ctr)
 
 	// First unmount the namespace
 	if err := netns.UnmountNS(ctr.state.NetNS.Path()); err != nil {

@@ -181,7 +181,7 @@ func (s *APIServer) registerNetworkHandlers(r *mux.Router) error {
 	// tags:
 	//  - networks (compat)
 	// summary: Delete unused networks
-	// description: Remove CNI networks that do not have containers
+	// description: Remove networks that do not have containers
 	// produces:
 	// - application/json
 	// parameters:
@@ -213,7 +213,7 @@ func (s *APIServer) registerNetworkHandlers(r *mux.Router) error {
 	// tags:
 	//  - networks
 	// summary: Remove a network
-	// description: Remove a CNI configured network
+	// description: Remove a configured network
 	// parameters:
 	//  - in: path
 	//    name: name
@@ -289,8 +289,7 @@ func (s *APIServer) registerNetworkHandlers(r *mux.Router) error {
 	//  - networks
 	// summary: Inspect a network
 	// description: |
-	//   Display low level configuration for a CNI network.
-	//     - In a 200 response, all of the fields named Bytes are returned as a Base64 encoded string.
+	//   Display configuration for a network.
 	// parameters:
 	//  - in: path
 	//    name: name
@@ -391,7 +390,7 @@ func (s *APIServer) registerNetworkHandlers(r *mux.Router) error {
 	// tags:
 	//  - networks
 	// summary: Delete unused networks
-	// description: Remove CNI networks that do not have containers
+	// description: Remove networks that do not have containers
 	// produces:
 	// - application/json
 	// parameters:

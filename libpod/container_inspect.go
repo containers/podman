@@ -552,7 +552,7 @@ func (c *Container) generateInspectContainerHostConfig(ctrSpec *spec.Spec, named
 	hostConfig.NetworkMode = networkMode
 
 	// Port bindings.
-	// Only populate if we're using CNI to configure the network.
+	// Only populate if we are creating the network namespace to configure the network.
 	if c.config.CreateNetNS {
 		hostConfig.PortBindings = makeInspectPortBindings(c.config.PortMappings)
 	} else {

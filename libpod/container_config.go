@@ -24,7 +24,7 @@ type ContainerConfig struct {
 	// in when the container is created, but it is not the final spec used
 	// to run the container - it will be modified by Libpod to add things we
 	// manage (e.g. bind mounts for /etc/resolv.conf, named volumes, a
-	// network namespace prepared by CNI or slirp4netns) in the
+	// network namespace prepared by the network backend) in the
 	// generateSpec() function.
 	Spec *spec.Spec `json:"spec"`
 

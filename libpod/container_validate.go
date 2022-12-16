@@ -82,7 +82,7 @@ func (c *Container) validate() error {
 		return fmt.Errorf("cannot set static IP or MAC address if not creating a network namespace: %w", define.ErrInvalidArg)
 	}
 
-	// Cannot set static IP or MAC if joining >1 CNI network.
+	// Cannot set static IP or MAC if joining >1 network.
 	if len(c.config.Networks) > 1 && (c.config.StaticIP != nil || c.config.StaticMAC != nil) {
 		return fmt.Errorf("cannot set static IP or MAC address if joining more than one network: %w", define.ErrInvalidArg)
 	}

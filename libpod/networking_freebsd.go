@@ -85,7 +85,7 @@ func (r *RootlessNetNS) getPath(path string) string {
 
 // Do - run the given function in the rootless netns.
 // It does not lock the rootlessCNI lock, the caller
-// should only lock when needed, e.g. for cni operations.
+// should only lock when needed, e.g. for network operations.
 func (r *RootlessNetNS) Do(toRun func() error) error {
 	return errors.New("not supported on freebsd")
 }
@@ -192,7 +192,7 @@ func (r *Runtime) teardownNetNS(ctr *Container) error {
 		// do not return an error otherwise we would prevent network cleanup
 		logrus.Errorf("failed to free gvproxy machine ports: %v", err)
 	}
-	if err := r.teardownCNI(ctr); err != nil {
+	if err := r.teardownNetwork(ctr); err != nil {
 		return err
 	}
 
