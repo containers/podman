@@ -38,17 +38,17 @@ func (ic *ContainerEngine) ContainerExists(ctx context.Context, nameOrID string,
 }
 
 func (ic *ContainerEngine) ContainerWait(ctx context.Context, namesOrIds []string, opts entities.WaitOptions) ([]entities.WaitReport, error) {
-	cons, err := getContainersByContext(ic.ClientCtx, false, false, namesOrIds)
-	if err != nil {
-		return nil, err
-	}
-	responses := make([]entities.WaitReport, 0, len(cons))
+	responses := make([]entities.WaitReport, 0, len(namesOrIds))
 	options := new(containers.WaitOptions).WithCondition(opts.Condition).WithInterval(opts.Interval.String())
-	for _, c := range cons {
-		response := entities.WaitReport{Id: c.ID}
-		exitCode, err := containers.Wait(ic.ClientCtx, c.ID, options)
+	for _, n := range namesOrIds {
+		response := entities.WaitReport{}
+		exitCode, err := containers.Wait(ic.ClientCtx, n, options)
 		if err != nil {
-			response.Error = err
+			if opts.Ignore && errorhandling.Contains(err, define.ErrNoSuchCtr) {
+				response.ExitCode = -1
+			} else {
+				response.Error = err
+			}
 		} else {
 			response.ExitCode = exitCode
 		}

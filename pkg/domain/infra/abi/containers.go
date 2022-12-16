@@ -139,13 +139,29 @@ func (ic *ContainerEngine) ContainerExists(ctx context.Context, nameOrID string,
 }
 
 func (ic *ContainerEngine) ContainerWait(ctx context.Context, namesOrIds []string, options entities.WaitOptions) ([]entities.WaitReport, error) {
-	ctrs, err := getContainersByContext(false, options.Latest, false, namesOrIds, ic.Libpod)
-	if err != nil {
-		return nil, err
+	responses := make([]entities.WaitReport, 0, len(namesOrIds))
+	if options.Latest {
+		ctr, err := ic.Libpod.GetLatestContainer()
+		if err != nil {
+			if options.Ignore && errors.Is(err, define.ErrNoSuchCtr) {
+				responses = append(responses, entities.WaitReport{ExitCode: -1})
+				return responses, nil
+			}
+			return nil, err
+		}
+		namesOrIds = append(namesOrIds, ctr.ID())
 	}
-	responses := make([]entities.WaitReport, 0, len(ctrs))
-	for _, c := range ctrs {
-		response := entities.WaitReport{Id: c.ID()}
+	for _, n := range namesOrIds {
+		c, err := ic.Libpod.LookupContainer(n)
+		if err != nil {
+			if options.Ignore && errors.Is(err, define.ErrNoSuchCtr) {
+				responses = append(responses, entities.WaitReport{ExitCode: -1})
+				continue
+			}
+			return nil, err
+		}
+
+		response := entities.WaitReport{}
 		if options.Condition == nil {
 			options.Condition = []define.ContainerStatus{define.ContainerStateStopped, define.ContainerStateExited}
 		}

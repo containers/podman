@@ -20,6 +20,15 @@ load helpers
     run_podman rm $rand
     is "$output" "$rand" "display raw input"
     run_podman 125 inspect $rand
+    run_podman 125 wait $rand
+    run_podman wait --ignore $rand
+    is "$output" "-1" "wait --ignore will mark missing containers with -1"
+
+    if !is_remote; then
+        # remote does not support the --latest flag
+        run_podman wait --ignore --latest
+        is "$output" "-1" "wait --ignore will mark missing containers with -1"
+    fi
 }
 
 @test "podman rm - running container, w/o and w/ force" {
