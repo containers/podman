@@ -110,6 +110,7 @@ LDFLAGS_PODMAN ?= \
 	$(if $(BUILD_INFO),-X $(LIBPOD)/define.buildInfo=$(BUILD_INFO),) \
 	-X $(LIBPOD)/config._installPrefix=$(PREFIX) \
 	-X $(LIBPOD)/config._etcDir=$(ETCDIR) \
+	-X $(PROJECT)/v4/pkg/systemd/quadlet._binDir=$(BINDIR) \
 	-X github.com/containers/common/pkg/config.additionalHelperBinariesDir=$(HELPER_BINARIES_DIR)\
 	$(EXTRA_LDFLAGS)
 LDFLAGS_PODMAN_STATIC ?= \

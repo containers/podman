@@ -99,6 +99,7 @@ func (t *quadletTestcase) assertStdErrContains(args []string, session *PodmanSes
 }
 
 func (t *quadletTestcase) assertKeyIs(args []string, unit *parser.UnitFile) bool {
+	Expect(len(args)).To(BeNumerically(">=", 3))
 	group := args[0]
 	key := args[1]
 	values := args[2:]
@@ -116,7 +117,28 @@ func (t *quadletTestcase) assertKeyIs(args []string, unit *parser.UnitFile) bool
 	return true
 }
 
+func (t *quadletTestcase) assertKeyIsRegex(args []string, unit *parser.UnitFile) bool {
+	Expect(len(args)).To(BeNumerically(">=", 3))
+	group := args[0]
+	key := args[1]
+	values := args[2:]
+
+	realValues := unit.LookupAll(group, key)
+	if len(realValues) != len(values) {
+		return false
+	}
+
+	for i := range realValues {
+		matched, _ := regexp.MatchString(values[i], realValues[i])
+		if !matched {
+			return false
+		}
+	}
+	return true
+}
+
 func (t *quadletTestcase) assertKeyContains(args []string, unit *parser.UnitFile) bool {
+	Expect(args).To(HaveLen(3))
 	group := args[0]
 	key := args[1]
 	value := args[2]
@@ -171,6 +193,7 @@ func (t *quadletTestcase) assertStopPodmanFinalArgsRegex(args []string, unit *pa
 }
 
 func (t *quadletTestcase) assertSymlink(args []string, unit *parser.UnitFile) bool {
+	Expect(args).To(HaveLen(2))
 	symlink := args[0]
 	expectedTarget := args[1]
 
@@ -183,6 +206,7 @@ func (t *quadletTestcase) assertSymlink(args []string, unit *parser.UnitFile) bo
 }
 
 func (t *quadletTestcase) doAssert(check []string, unit *parser.UnitFile, session *PodmanSessionIntegration) error {
+	Expect(len(check)).To(BeNumerically(">=", 1))
 	op := check[0]
 	args := make([]string, 0)
 	for _, a := range check[1:] {
@@ -205,6 +229,8 @@ func (t *quadletTestcase) doAssert(check []string, unit *parser.UnitFile, sessio
 		ok = t.assertStdErrContains(args, session)
 	case "assert-key-is":
 		ok = t.assertKeyIs(args, unit)
+	case "assert-key-is-regex":
+		ok = t.assertKeyIsRegex(args, unit)
 	case "assert-key-contains":
 		ok = t.assertKeyContains(args, unit)
 	case "assert-podman-args":

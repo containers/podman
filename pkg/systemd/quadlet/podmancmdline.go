@@ -2,8 +2,23 @@ package quadlet
 
 import (
 	"fmt"
+	"os"
+	"path"
 	"sort"
 )
+
+// Overwritten at build time
+var (
+	_binDir string
+)
+
+func podmanBinary() string {
+	podman := os.Getenv("PODMAN")
+	if len(podman) > 0 {
+		return podman
+	}
+	return path.Join(_binDir, "podman")
+}
 
 /* This is a helper for constructing podman commandlines */
 type PodmanCmdline struct {
@@ -47,7 +62,7 @@ func NewPodmanCmdline(args ...string) *PodmanCmdline {
 		Args: make([]string, 0),
 	}
 
-	c.add("/usr/bin/podman")
+	c.add(podmanBinary())
 	c.add(args...)
 	return c
 }
