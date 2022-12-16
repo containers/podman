@@ -101,6 +101,10 @@ func (e EventJournalD) Read(ctx context.Context, options ReadOptions) error {
 			logrus.Errorf("Unable to close journal :%v", err)
 		}
 	}()
+	err = j.SetDataThreshold(0)
+	if err != nil {
+		logrus.Warnf("cannot set data threshold: %v", err)
+	}
 	// match only podman journal entries
 	podmanJournal := sdjournal.Match{Field: "SYSLOG_IDENTIFIER", Value: "podman"}
 	if err := j.AddMatch(podmanJournal.String()); err != nil {
