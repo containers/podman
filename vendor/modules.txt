@@ -354,7 +354,7 @@ github.com/docker/distribution/reference
 github.com/docker/distribution/registry/api/errcode
 github.com/docker/distribution/registry/api/v2
 github.com/docker/distribution/registry/client/auth/challenge
-# github.com/docker/docker v20.10.21+incompatible
+# github.com/docker/docker v20.10.22+incompatible
 ## explicit
 github.com/docker/docker/api
 github.com/docker/docker/api/types
