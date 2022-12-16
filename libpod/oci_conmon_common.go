@@ -594,6 +594,10 @@ func (r *ConmonOCIRuntime) HTTPAttach(ctr *Container, req *http.Request, w http.
 					device := logLine.Device
 					var header []byte
 					headerLen := uint32(len(logLine.Msg))
+					if !logLine.Partial() {
+						// we append an extra newline in this case so we need to increment the len as well
+						headerLen++
+					}
 					logSize += len(logLine.Msg)
 					switch strings.ToLower(device) {
 					case "stdin":
