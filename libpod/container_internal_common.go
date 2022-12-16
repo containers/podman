@@ -1329,6 +1329,25 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 	c.state.RestoreLog = path.Join(c.bundlePath(), "restore.log")
 	c.state.CheckpointPath = c.CheckpointPath()
 
+	if options.IgnoreStaticIP || options.IgnoreStaticMAC {
+		networks, err := c.networks()
+		if err != nil {
+			return nil, 0, err
+		}
+
+		for net, opts := range networks {
+			if options.IgnoreStaticIP {
+				opts.StaticIPs = nil
+			}
+			if options.IgnoreStaticMAC {
+				opts.StaticMAC = nil
+			}
+			if err := c.runtime.state.NetworkModify(c, net, opts); err != nil {
+				return nil, 0, fmt.Errorf("failed to rewrite network config: %w", err)
+			}
+		}
+	}
+
 	// Read network configuration from checkpoint
 	var netStatus map[string]types.StatusBlock
 	_, err := metadata.ReadJSONFile(&netStatus, c.bundlePath(), metadata.NetworkStatusFile)
@@ -1356,7 +1375,7 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 			perNetOpts.StaticIPs = nil
 			for name, netInt := range netStatus[network].Interfaces {
 				perNetOpts.InterfaceName = name
-				if !options.IgnoreStaticIP {
+				if !options.IgnoreStaticMAC {
 					perNetOpts.StaticMAC = netInt.MacAddress
 				}
 				if !options.IgnoreStaticIP {
