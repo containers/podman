@@ -50,20 +50,16 @@ var (
 	DefaultHooksDirs = []string{"/usr/share/containers/oci/hooks.d"}
 	// DefaultCapabilities is the default for the default_capabilities option in the containers.conf file.
 	DefaultCapabilities = []string{
-		"CAP_AUDIT_WRITE",
 		"CAP_CHOWN",
 		"CAP_DAC_OVERRIDE",
 		"CAP_FOWNER",
 		"CAP_FSETID",
 		"CAP_KILL",
-		"CAP_MKNOD",
 		"CAP_NET_BIND_SERVICE",
-		"CAP_NET_RAW",
 		"CAP_SETFCAP",
 		"CAP_SETGID",
 		"CAP_SETPCAP",
 		"CAP_SETUID",
-		"CAP_SYS_CHROOT",
 	}
 
 	// Search these locations in which CNIPlugins can be installed.

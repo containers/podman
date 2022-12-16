@@ -639,7 +639,7 @@ func (d *dockerImageDestination) putSignaturesToSigstoreAttachments(ctx context.
 
 	ociManifest, err := d.c.getSigstoreAttachmentManifest(ctx, d.ref, manifestDigest)
 	if err != nil {
-		return nil
+		return err
 	}
 	var ociConfig imgspecv1.Image // Most fields empty by default
 	if ociManifest == nil {
@@ -711,13 +711,13 @@ func (d *dockerImageDestination) putSignaturesToSigstoreAttachments(ctx context.
 		LayerIndex: nil,
 	})
 	if err != nil {
-		return nil
+		return err
 	}
 	ociManifest.Config = configDesc
 
 	manifestBlob, err := ociManifest.Serialize()
 	if err != nil {
-		return nil
+		return err
 	}
 	logrus.Debugf("Uploading sigstore attachment manifest")
 	return d.uploadManifest(ctx, manifestBlob, sigstoreAttachmentTag(manifestDigest))

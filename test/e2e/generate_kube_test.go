@@ -69,6 +69,7 @@ var _ = Describe("Podman generate kube", func() {
 		Expect(pod.Spec.SecurityContext).To(BeNil())
 		Expect(pod.Spec.DNSConfig).To(BeNil())
 		Expect(pod.Spec.Containers[0]).To(HaveField("WorkingDir", ""))
+		Expect(pod.Spec.Containers[0].SecurityContext).To(BeNil())
 		Expect(pod.Spec.Containers[0].Env).To(BeNil())
 		Expect(pod).To(HaveField("Name", "top-pod"))
 

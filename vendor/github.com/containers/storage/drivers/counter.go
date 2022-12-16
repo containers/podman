@@ -58,6 +58,11 @@ func (c *RefCounter) incdec(path string, infoOp func(minfo *minfo)) int {
 	}
 	infoOp(m)
 	count := m.count
+	if count <= 0 {
+		// If the mounted path has been decremented enough have no references,
+		// then its entry can be removed.
+		delete(c.counts, path)
+	}
 	c.mu.Unlock()
 	return count
 }

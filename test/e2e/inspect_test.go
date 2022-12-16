@@ -514,7 +514,7 @@ var _ = Describe("Podman inspect", func() {
 
 	It("Dropped capabilities are sorted", func() {
 		ctrName := "testCtr"
-		session := podmanTest.Podman([]string{"run", "-d", "--cap-drop", "CAP_AUDIT_WRITE", "--cap-drop", "CAP_MKNOD", "--cap-drop", "CAP_NET_RAW", "--name", ctrName, ALPINE, "top"})
+		session := podmanTest.Podman([]string{"run", "-d", "--cap-drop", "SETUID", "--cap-drop", "SETGID", "--cap-drop", "CAP_NET_BIND_SERVICE", "--name", ctrName, ALPINE, "top"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
@@ -525,9 +525,26 @@ var _ = Describe("Podman inspect", func() {
 		data := inspect.InspectContainerToJSON()
 		Expect(data).To(HaveLen(1))
 		Expect(data[0].HostConfig.CapDrop).To(HaveLen(3))
-		Expect(data[0].HostConfig.CapDrop[0]).To(Equal("CAP_AUDIT_WRITE"))
-		Expect(data[0].HostConfig.CapDrop[1]).To(Equal("CAP_MKNOD"))
-		Expect(data[0].HostConfig.CapDrop[2]).To(Equal("CAP_NET_RAW"))
+		Expect(data[0].HostConfig.CapDrop[0]).To(Equal("CAP_NET_BIND_SERVICE"))
+		Expect(data[0].HostConfig.CapDrop[1]).To(Equal("CAP_SETGID"))
+		Expect(data[0].HostConfig.CapDrop[2]).To(Equal("CAP_SETUID"))
+	})
+
+	It("Add capabilities are sorted", func() {
+		ctrName := "testCtr"
+		session := podmanTest.Podman([]string{"run", "-d", "--cap-add", "SYS_ADMIN", "--cap-add", "CAP_NET_ADMIN", "--name", ctrName, ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		inspect := podmanTest.Podman([]string{"inspect", ctrName})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).Should(Exit(0))
+
+		data := inspect.InspectContainerToJSON()
+		Expect(data).To(HaveLen(1))
+		Expect(data[0].HostConfig.CapAdd).To(HaveLen(2))
+		Expect(data[0].HostConfig.CapAdd[0]).To(Equal("CAP_NET_ADMIN"))
+		Expect(data[0].HostConfig.CapAdd[1]).To(Equal("CAP_SYS_ADMIN"))
 	})
 
 	It("podman inspect container with GO format for PidFile", func() {

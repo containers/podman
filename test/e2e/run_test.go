@@ -495,7 +495,7 @@ var _ = Describe("Podman run", func() {
 		session := podmanTest.Podman([]string{"run", "--rm", "--user", "bin", ALPINE, "grep", "CapBnd", "/proc/self/status"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.OutputToString()).To(ContainSubstring("00000000a80425fb"))
+		Expect(session.OutputToString()).To(ContainSubstring("00000000800005fb"))
 
 		session = podmanTest.Podman([]string{"run", "--rm", "--user", "bin", ALPINE, "grep", "CapEff", "/proc/self/status"})
 		session.WaitWithDefaultTimeout()
@@ -510,12 +510,12 @@ var _ = Describe("Podman run", func() {
 		session = podmanTest.Podman([]string{"run", "--rm", "--user", "root", ALPINE, "grep", "CapBnd", "/proc/self/status"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.OutputToString()).To(ContainSubstring("00000000a80425fb"))
+		Expect(session.OutputToString()).To(ContainSubstring("00000000800005fb"))
 
 		session = podmanTest.Podman([]string{"run", "--rm", "--user", "root", ALPINE, "grep", "CapEff", "/proc/self/status"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.OutputToString()).To(ContainSubstring("00000000a80425fb"))
+		Expect(session.OutputToString()).To(ContainSubstring("00000000800005fb"))
 
 		session = podmanTest.Podman([]string{"run", "--rm", "--user", "root", ALPINE, "grep", "CapInh", "/proc/self/status"})
 		session.WaitWithDefaultTimeout()
@@ -525,12 +525,12 @@ var _ = Describe("Podman run", func() {
 		session = podmanTest.Podman([]string{"run", "--rm", ALPINE, "grep", "CapBnd", "/proc/self/status"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.OutputToString()).To(ContainSubstring("00000000a80425fb"))
+		Expect(session.OutputToString()).To(ContainSubstring("00000000800005fb"))
 
 		session = podmanTest.Podman([]string{"run", "--rm", ALPINE, "grep", "CapEff", "/proc/self/status"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.OutputToString()).To(ContainSubstring("00000000a80425fb"))
+		Expect(session.OutputToString()).To(ContainSubstring("00000000800005fb"))
 
 		session = podmanTest.Podman([]string{"run", "--user=1000:1000", "--cap-add=DAC_OVERRIDE", "--rm", ALPINE, "grep", "CapAmb", "/proc/self/status"})
 		session.WaitWithDefaultTimeout()
@@ -598,7 +598,7 @@ USER bin`, BB)
 		session := podmanTest.Podman([]string{"run", "--rm", "--user", "bin", "test", "grep", "CapBnd", "/proc/self/status"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.OutputToString()).To(ContainSubstring("00000000a80425fb"))
+		Expect(session.OutputToString()).To(ContainSubstring("00000000800005fb"))
 
 		session = podmanTest.Podman([]string{"run", "--rm", "--user", "bin", "test", "grep", "CapEff", "/proc/self/status"})
 		session.WaitWithDefaultTimeout()

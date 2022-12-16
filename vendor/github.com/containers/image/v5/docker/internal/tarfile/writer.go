@@ -346,7 +346,7 @@ func (t *tarFI) Sys() interface{} {
 func (w *Writer) sendSymlinkLocked(path string, target string) error {
 	hdr, err := tar.FileInfoHeader(&tarFI{path: path, size: 0, isSymlink: true}, target)
 	if err != nil {
-		return nil
+		return err
 	}
 	logrus.Debugf("Sending as tar link %s -> %s", path, target)
 	return w.tar.WriteHeader(hdr)
@@ -363,7 +363,7 @@ func (w *Writer) sendBytesLocked(path string, b []byte) error {
 func (w *Writer) sendFileLocked(path string, expectedSize int64, stream io.Reader) error {
 	hdr, err := tar.FileInfoHeader(&tarFI{path: path, size: expectedSize}, "")
 	if err != nil {
-		return nil
+		return err
 	}
 	logrus.Debugf("Sending as tar file %s", path)
 	if err := w.tar.WriteHeader(hdr); err != nil {

@@ -94,7 +94,7 @@ var _ = Describe("Podman generate kube", func() {
 		test1.WaitWithDefaultTimeout()
 		Expect(test1).Should(Exit(0))
 
-		commit := podmanTest.Podman([]string{"commit", "-c", "label=io.containers.capabilities=sys_chroot,setuid", "test1", "image1"})
+		commit := podmanTest.Podman([]string{"commit", "-c", "label=io.containers.capabilities=setgid,setuid", "test1", "image1"})
 		commit.WaitWithDefaultTimeout()
 		Expect(commit).Should(Exit(0))
 
@@ -108,7 +108,7 @@ var _ = Describe("Podman generate kube", func() {
 
 		ctr := inspect.InspectContainerToJSON()
 		caps := strings.Join(ctr[0].EffectiveCaps, ",")
-		Expect(caps).To(Equal("CAP_SETUID,CAP_SYS_CHROOT"))
+		Expect(caps).To(Equal("CAP_SETGID,CAP_SETUID"))
 
 	})
 

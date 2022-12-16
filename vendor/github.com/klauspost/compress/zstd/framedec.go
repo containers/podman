@@ -5,7 +5,7 @@
 package zstd
 
 import (
-	"bytes"
+	"encoding/binary"
 	"encoding/hex"
 	"errors"
 	"io"
@@ -43,9 +43,9 @@ const (
 	MaxWindowSize = 1 << 29
 )
 
-var (
-	frameMagic          = []byte{0x28, 0xb5, 0x2f, 0xfd}
-	skippableFrameMagic = []byte{0x2a, 0x4d, 0x18}
+const (
+	frameMagic          = "\x28\xb5\x2f\xfd"
+	skippableFrameMagic = "\x2a\x4d\x18"
 )
 
 func newFrameDec(o decoderOptions) *frameDec {
@@ -89,9 +89,9 @@ func (d *frameDec) reset(br byteBuffer) error {
 			copy(signature[1:], b)
 		}
 
-		if !bytes.Equal(signature[1:4], skippableFrameMagic) || signature[0]&0xf0 != 0x50 {
+		if string(signature[1:4]) != skippableFrameMagic || signature[0]&0xf0 != 0x50 {
 			if debugDecoder {
-				println("Not skippable", hex.EncodeToString(signature[:]), hex.EncodeToString(skippableFrameMagic))
+				println("Not skippable", hex.EncodeToString(signature[:]), hex.EncodeToString([]byte(skippableFrameMagic)))
 			}
 			// Break if not skippable frame.
 			break
@@ -114,9 +114,9 @@ func (d *frameDec) reset(br byteBuffer) error {
 			return err
 		}
 	}
-	if !bytes.Equal(signature[:], frameMagic) {
+	if string(signature[:]) != frameMagic {
 		if debugDecoder {
-			println("Got magic numbers: ", signature, "want:", frameMagic)
+			println("Got magic numbers: ", signature, "want:", []byte(frameMagic))
 		}
 		return ErrMagicMismatch
 	}
@@ -305,7 +305,7 @@ func (d *frameDec) checkCRC() error {
 	}
 
 	// We can overwrite upper tmp now
-	want, err := d.rawInput.readSmall(4)
+	buf, err := d.rawInput.readSmall(4)
 	if err != nil {
 		println("CRC missing?", err)
 		return err
@@ -315,22 +315,17 @@ func (d *frameDec) checkCRC() error {
 		return nil
 	}
 
-	var tmp [4]byte
-	got := d.crc.Sum64()
-	// Flip to match file order.
-	tmp[0] = byte(got >> 0)
-	tmp[1] = byte(got >> 8)
-	tmp[2] = byte(got >> 16)
-	tmp[3] = byte(got >> 24)
+	want := binary.LittleEndian.Uint32(buf[:4])
+	got := uint32(d.crc.Sum64())
 
-	if !bytes.Equal(tmp[:], want) {
+	if got != want {
 		if debugDecoder {
-			println("CRC Check Failed:", tmp[:], "!=", want)
+			printf("CRC check failed: got %08x, want %08x\n", got, want)
 		}
 		return ErrCRCMismatch
 	}
 	if debugDecoder {
-		println("CRC ok", tmp[:])
+		printf("CRC ok %08x\n", got)
 	}
 	return nil
 }

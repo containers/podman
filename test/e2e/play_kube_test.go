@@ -423,11 +423,6 @@ spec:
     name: test
     securityContext:
       allowPrivilegeEscalation: true
-      capabilities:
-        drop:
-        - CAP_MKNOD
-        - CAP_NET_RAW
-        - CAP_AUDIT_WRITE
       privileged: false
       readOnlyRootFilesystem: false
       seLinuxOptions:
@@ -4463,12 +4458,6 @@ spec:
 	- "1000"
 	image: non-existing-image
 	name: vol-test-3
-	securityContext:
-		capabilities:
-		drop:
-		- CAP_MKNOD
-		- CAP_NET_RAW
-		- CAP_AUDIT_WRITE
 `
 
 		// the image is incorrect so the kube play will fail, but it will clean up the pod that was created for it before the failure happened

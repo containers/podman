@@ -10,6 +10,8 @@ type ContainerNetwork interface {
 	// NetworkCreate will take a partial filled Network and fill the
 	// missing fields. It creates the Network and returns the full Network.
 	NetworkCreate(Network, *NetworkCreateOptions) (Network, error)
+	// NetworkUpdate will take network name and ID and updates network DNS Servers.
+	NetworkUpdate(nameOrID string, options NetworkUpdateOptions) error
 	// NetworkRemove will remove the Network with the given name or ID.
 	NetworkRemove(nameOrID string) error
 	// NetworkList will return all known Networks. Optionally you can
@@ -68,6 +70,14 @@ type Network struct {
 	Options map[string]string `json:"options,omitempty"`
 	// IPAMOptions contains options used for the ip assignment.
 	IPAMOptions map[string]string `json:"ipam_options,omitempty"`
+}
+
+// NetworkOptions for a given container.
+type NetworkUpdateOptions struct {
+	// List of custom DNS server for podman's DNS resolver.
+	// Priority order will be kept as defined by user in the configuration.
+	AddDNSServers    []string `json:"add_dns_servers,omitempty"`
+	RemoveDNSServers []string `json:"remove_dns_servers,omitempty"`
 }
 
 // IPNet is used as custom net.IPNet type to add Marshal/Unmarshal methods.

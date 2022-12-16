@@ -293,7 +293,7 @@ func (r *RootlessNetNS) Cleanup(runtime *Runtime) error {
 		return nil
 	}
 	logrus.Debug("Cleaning up rootless network namespace")
-	err = netns.UnmountNS(r.ns)
+	err = netns.UnmountNS(r.ns.Path())
 	if err != nil {
 		return err
 	}
@@ -605,7 +605,7 @@ func (r *Runtime) createNetNS(ctr *Container) (n ns.NetNS, q map[string]types.St
 	}
 	defer func() {
 		if retErr != nil {
-			if err := netns.UnmountNS(ctrNS); err != nil {
+			if err := netns.UnmountNS(ctrNS.Path()); err != nil {
 				logrus.Errorf("Unmounting partially created network namespace for container %s: %v", ctr.ID(), err)
 			}
 			if err := ctrNS.Close(); err != nil {
@@ -705,7 +705,7 @@ func (r *Runtime) teardownNetNS(ctr *Container) error {
 	prevErr := r.teardownCNI(ctr)
 
 	// First unmount the namespace
-	if err := netns.UnmountNS(ctr.state.NetNS); err != nil {
+	if err := netns.UnmountNS(ctr.state.NetNS.Path()); err != nil {
 		if prevErr != nil {
 			logrus.Error(prevErr)
 		}

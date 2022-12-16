@@ -211,6 +211,12 @@ func (q *Control) SetQuota(targetPath string, quota Quota) error {
 	return q.setProjectQuota(projectID, quota)
 }
 
+// ClearQuota removes the map entry in the quotas map for targetPath.
+// It does so to prevent the map leaking entries as directories are deleted.
+func (q *Control) ClearQuota(targetPath string) {
+	delete(q.quotas, targetPath)
+}
+
 // setProjectQuota - set the quota for project id on xfs block device
 func (q *Control) setProjectQuota(projectID uint32, quota Quota) error {
 	var d C.fs_disk_quota_t

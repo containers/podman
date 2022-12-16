@@ -434,7 +434,7 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 	})
 
 	It("podman run slirp4netns network with host loopback", func() {
-		session := podmanTest.Podman([]string{"run", "--network", "slirp4netns:allow_host_loopback=true", ALPINE, "ping", "-c1", "10.0.2.2"})
+		session := podmanTest.Podman([]string{"run", "--cap-add", "net_raw", "--network", "slirp4netns:allow_host_loopback=true", ALPINE, "ping", "-c1", "10.0.2.2"})
 		session.Wait(30)
 		Expect(session).Should(Exit(0))
 	})
@@ -451,7 +451,7 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 		Expect(slirp4netnsHelp).Should(Exit(0))
 
 		networkConfiguration := "slirp4netns:cidr=192.168.0.0/24,allow_host_loopback=true"
-		session := podmanTest.Podman([]string{"run", "--network", networkConfiguration, ALPINE, "ping", "-c1", "192.168.0.2"})
+		session := podmanTest.Podman([]string{"run", "--cap-add", "net_raw", "--network", networkConfiguration, ALPINE, "ping", "-c1", "192.168.0.2"})
 		session.Wait(30)
 
 		if strings.Contains(slirp4netnsHelp.OutputToString(), "cidr") {
@@ -988,11 +988,11 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 
 	pingTest := func(netns string) {
 		hostname := "testctr"
-		run := podmanTest.Podman([]string{"run", netns, "--hostname", hostname, ALPINE, "ping", "-c", "1", hostname})
+		run := podmanTest.Podman([]string{"run", netns, "--cap-add", "net_raw", "--hostname", hostname, ALPINE, "ping", "-c", "1", hostname})
 		run.WaitWithDefaultTimeout()
 		Expect(run).Should(Exit(0))
 
-		run = podmanTest.Podman([]string{"run", netns, "--hostname", hostname, "--name", "test", ALPINE, "ping", "-c", "1", "test"})
+		run = podmanTest.Podman([]string{"run", netns, "--cap-add", "net_raw", "--hostname", hostname, "--name", "test", ALPINE, "ping", "-c", "1", "test"})
 		run.WaitWithDefaultTimeout()
 		Expect(run).Should(Exit(0))
 	}

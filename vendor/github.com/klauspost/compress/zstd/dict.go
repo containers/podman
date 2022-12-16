@@ -1,7 +1,6 @@
 package zstd
 
 import (
-	"bytes"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -20,7 +19,7 @@ type dict struct {
 	content []byte
 }
 
-var dictMagic = [4]byte{0x37, 0xa4, 0x30, 0xec}
+const dictMagic = "\x37\xa4\x30\xec"
 
 // ID returns the dictionary id or 0 if d is nil.
 func (d *dict) ID() uint32 {
@@ -50,7 +49,7 @@ func loadDict(b []byte) (*dict, error) {
 		ofDec: sequenceDec{fse: &fseDecoder{}},
 		mlDec: sequenceDec{fse: &fseDecoder{}},
 	}
-	if !bytes.Equal(b[:4], dictMagic[:]) {
+	if string(b[:4]) != dictMagic {
 		return nil, ErrMagicMismatch
 	}
 	d.id = binary.LittleEndian.Uint32(b[4:8])

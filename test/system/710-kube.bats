@@ -5,8 +5,8 @@
 
 load helpers
 
-# standard capability drop list
-capabilities='{"drop":["CAP_MKNOD","CAP_NET_RAW","CAP_AUDIT_WRITE"]}'
+# capability drop list
+capabilities='{"drop":["CAP_FOWNER","CAP_SETFCAP"]}'
 
 # Warning that is emitted once on containers, multiple times on pods
 kubernetes_63='Truncation Annotation: .* Kubernetes only allows 63 characters'
@@ -31,7 +31,7 @@ json.dump(yaml.safe_load(sys.stdin), sys.stdout)'
 
 @test "podman kube generate - container" {
     cname=c$(random_string 15)
-    run_podman container create --name $cname $IMAGE top
+    run_podman container create --cap-drop fowner --cap-drop setfcap --name $cname $IMAGE top
     run_podman kube generate $cname
 
     # Convert yaml to json, and dump to stdout (to help in case of errors)
@@ -95,7 +95,7 @@ status                           | =  | null
     run_podman 125 kube generate $pname
     assert "$output" =~ "Error: .* only has an infra container"
 
-    run_podman container create --name $cname1 --pod $pname $IMAGE top
+    run_podman container create --cap-drop fowner --cap-drop setfcap --name $cname1 --pod $pname $IMAGE top
     run_podman container create --name $cname2 --pod $pname $IMAGE bottom
     run_podman kube generate $pname
 

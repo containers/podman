@@ -125,6 +125,13 @@ type BlobInfo struct {
 	URLs        []string
 	Annotations map[string]string
 	MediaType   string
+
+	// NOTE: The following fields contain desired _edits_ to blob infos.
+	// Conceptually then don't belong in the BlobInfo object at all;
+	// the edits should be provided specifically as parameters to the edit implementation.
+	// We can’t remove the fields without breaking compatibility, but don’t
+	// add any more.
+
 	// CompressionOperation is used in Image.UpdateLayerInfos to instruct
 	// whether the original layer's "compressed or not" should be preserved,
 	// possibly while changing the compression algorithm from one to another,
@@ -144,6 +151,7 @@ type BlobInfo struct {
 	// TODO: To remove together with CompressionOperation in re-design to
 	// remove field out out of BlobInfo.
 	CryptoOperation LayerCrypto
+	// Before adding any fields to this struct, read the NOTE above.
 }
 
 // BICTransportScope encapsulates transport-dependent representation of a “scope” where blobs are or are not present.

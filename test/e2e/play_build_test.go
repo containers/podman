@@ -62,11 +62,6 @@ spec:
     resources: {}
     securityContext:
       allowPrivilegeEscalation: true
-      capabilities:
-        drop:
-        - CAP_MKNOD
-        - CAP_NET_RAW
-        - CAP_AUDIT_WRITE
       privileged: false
       readOnlyRootFilesystem: false
       seLinuxOptions: {}

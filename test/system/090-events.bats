@@ -262,10 +262,10 @@ EOF
     t0=$(date --iso-8601=seconds)
 
     CONTAINERS_CONF=$containersConf run_podman create --name=$cname $IMAGE
-    run_podman container inspect --size=true $cname
+    CONTAINERS_CONF=$containersConf run_podman container inspect --size=true $cname
     inspect_json=$(jq -r --tab . <<< "$output")
 
-    run_podman --events-backend=$1 events \
+    CONTAINERS_CONF=$containersConf run_podman --events-backend=$1 events \
         --since="$t0"           \
         --filter=status=$cname  \
         --filter=status=create  \
@@ -276,7 +276,7 @@ EOF
 
     # Make sure that the inspect data doesn't show by default in
     # podman-events.
-    run_podman --events-backend=$1 events \
+    CONTAINERS_CONF=$containersConf run_podman --events-backend=$1 events \
         --since="$t0"           \
         --filter=status=$cname  \
         --filter=status=create  \
