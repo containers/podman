@@ -188,6 +188,21 @@ var _ = Describe("Podman push", func() {
 		}
 	})
 
+	It("podman push from local storage with nothing-allowed signature policy", func() {
+		SkipIfRemote("Remote push does not support dir transport")
+		denyAllPolicy := filepath.Join(INTEGRATION_ROOT, "test/deny.json")
+
+		inspect := podmanTest.Podman([]string{"inspect", "--format={{.ID}}", ALPINE})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).Should(Exit(0))
+		imageID := inspect.OutputToString()
+
+		push := podmanTest.Podman([]string{"push", "--signature-policy", denyAllPolicy, "-q", imageID, "dir:" + filepath.Join(podmanTest.TempDir, imageID)})
+		push.WaitWithDefaultTimeout()
+		Expect(push).Should(Exit(0))
+		Expect(push.ErrorToString()).To(BeEmpty())
+	})
+
 	It("podman push to local registry with authorization", func() {
 		SkipIfRootless("volume-mounting a certs.d file N/A over remote")
 		if podmanTest.Host.Arch == "ppc64le" {
