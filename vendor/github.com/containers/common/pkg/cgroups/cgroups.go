@@ -432,7 +432,7 @@ func (c *CgroupControl) CreateSystemdUnit(path string) error {
 // GetUserConnection returns an user connection to D-BUS
 func GetUserConnection(uid int) (*systemdDbus.Conn, error) {
 	return systemdDbus.NewConnection(func() (*dbus.Conn, error) {
-		return dbusAuthConnection(uid, dbus.SessionBusPrivate)
+		return dbusAuthConnection(uid, dbus.SessionBusPrivateNoAutoStartup)
 	})
 }
 
