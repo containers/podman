@@ -304,6 +304,8 @@ func (ir *ImageEngine) Push(ctx context.Context, source string, destination stri
 	pushOptions.Password = options.Password
 	pushOptions.ManifestMIMEType = manifestType
 	pushOptions.RemoveSignatures = options.RemoveSignatures
+	pushOptions.PolicyAllowStorage = true
+	pushOptions.SignaturePolicyPath = options.SignaturePolicy
 	pushOptions.SignBy = options.SignBy
 	pushOptions.SignPassphrase = options.SignPassphrase
 	pushOptions.SignBySigstorePrivateKeyFile = options.SignBySigstorePrivateKeyFile
@@ -357,6 +359,7 @@ func (ir *ImageEngine) Push(ctx context.Context, source string, destination stri
 	}
 	return pushError
 }
+
 func (ir *ImageEngine) Tag(ctx context.Context, nameOrID string, tags []string, options entities.ImageTagOptions) error {
 	// Allow tagging manifest list instead of resolving instances from manifest
 	lookupOptions := &libimage.LookupImageOptions{ManifestList: true}
