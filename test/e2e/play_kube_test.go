@@ -1754,7 +1754,7 @@ var _ = Describe("Podman play kube", func() {
 		inspect.WaitWithDefaultTimeout()
 		healthcheckcmd := inspect.OutputToString()
 		// check if CMD-SHELL based equivalent health check is added to container
-		Expect(healthcheckcmd).To(ContainSubstring("[echo hello]"))
+		Expect(healthcheckcmd).To(ContainSubstring("[CMD echo hello]"))
 	})
 
 	It("podman play kube liveness probe should fail", func() {

@@ -523,6 +523,7 @@ func probeToHealthConfig(probe *v1.Probe) (*manifest.Schema2HealthConfig, error)
 	// configure healthcheck on the basis of Handler Actions.
 	switch {
 	case probeHandler.Exec != nil:
+		// `makeHealthCheck` function can accept a json array as the command.
 		cmd, err := json.Marshal(probeHandler.Exec.Command)
 		if err != nil {
 			return nil, err
@@ -618,6 +619,8 @@ func makeHealthCheck(inCmd string, interval int32, retries int32, timeout int32,
 			// ...otherwise pass it to "/bin/sh -c" inside the container
 			cmd = []string{define.HealthConfigTestCmdShell}
 			cmd = append(cmd, strings.Split(inCmd, " ")...)
+		} else {
+			cmd = append([]string{define.HealthConfigTestCmd}, cmd...)
 		}
 	}
 	hc := manifest.Schema2HealthConfig{
