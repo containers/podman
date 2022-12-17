@@ -169,6 +169,8 @@ type ContainerState struct {
 	// Podman.
 	// These are DEPRECATED and will be removed in a future release.
 	LegacyExecSessions map[string]*legacyExecSession `json:"execSessions,omitempty"`
+	// NetNS is the path or name of the NetNS
+	NetNS string `json:"netns,omitempty"`
 	// NetworkStatusOld contains the configuration results for all networks
 	// the pod is attached to. Only populated if we created a network
 	// namespace for the container, and the network namespace is currently
@@ -227,9 +229,6 @@ type ContainerState struct {
 	// the entire life cycle of service which may be started via
 	// `podman-play-kube`.
 	Service Service
-
-	// containerPlatformState holds platform-specific container state.
-	containerPlatformState
 
 	// Following checkpoint/restore related information is displayed
 	// if the container has been checkpointed or restored.

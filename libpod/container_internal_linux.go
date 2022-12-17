@@ -14,7 +14,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/containernetworking/plugins/pkg/ns"
 	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/common/pkg/config"
@@ -56,7 +55,7 @@ func (c *Container) unmountSHM(mount string) error {
 func (c *Container) prepare() error {
 	var (
 		wg                              sync.WaitGroup
-		netNS                           ns.NetNS
+		netNS                           string
 		networkStatus                   map[string]types.StatusBlock
 		createNetNSErr, mountStorageErr error
 		mountPoint                      string
@@ -68,7 +67,7 @@ func (c *Container) prepare() error {
 	go func() {
 		defer wg.Done()
 		// Set up network namespace if not already set up
-		noNetNS := c.state.NetNS == nil
+		noNetNS := c.state.NetNS == ""
 		if c.config.CreateNetNS && noNetNS && !c.config.PostConfigureNetNS {
 			netNS, networkStatus, createNetNSErr = c.runtime.createNetNS(c)
 			if createNetNSErr != nil {
@@ -159,7 +158,7 @@ func (c *Container) cleanupNetwork() error {
 	if netDisabled {
 		return nil
 	}
-	if c.state.NetNS == nil {
+	if c.state.NetNS == "" {
 		logrus.Debugf("Network is already cleaned up, skipping...")
 		return nil
 	}
@@ -169,7 +168,7 @@ func (c *Container) cleanupNetwork() error {
 		logrus.Errorf("Unable to clean up network for container %s: %q", c.ID(), err)
 	}
 
-	c.state.NetNS = nil
+	c.state.NetNS = ""
 	c.state.NetworkStatus = nil
 	c.state.NetworkStatusOld = nil
 
@@ -411,7 +410,7 @@ func (c *Container) setupRootlessNetwork() error {
 	// set up rootlesskit port forwarder again since it dies when conmon exits
 	// we use rootlesskit port forwarder only as rootless and when bridge network is used
 	if rootless.IsRootless() && c.config.NetMode.IsBridge() && len(c.config.PortMappings) > 0 {
-		err := c.runtime.setupRootlessPortMappingViaRLK(c, c.state.NetNS.Path(), c.state.NetworkStatus)
+		err := c.runtime.setupRootlessPortMappingViaRLK(c, c.state.NetNS, c.state.NetworkStatus)
 		if err != nil {
 			return err
 		}
@@ -430,7 +429,7 @@ func (c *Container) addNetworkNamespace(g *generate.Generator) error {
 				return err
 			}
 		} else {
-			if err := g.AddOrReplaceLinuxNamespace(string(spec.NetworkNamespace), c.state.NetNS.Path()); err != nil {
+			if err := g.AddOrReplaceLinuxNamespace(string(spec.NetworkNamespace), c.state.NetNS); err != nil {
 				return err
 			}
 		}

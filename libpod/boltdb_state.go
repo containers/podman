@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"net"
-	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -817,7 +816,6 @@ func (s *BoltState) UpdateContainer(ctr *Container) error {
 	}
 
 	newState := new(ContainerState)
-	netNSPath := ""
 
 	ctrID := []byte(ctr.ID())
 
@@ -848,24 +846,16 @@ func (s *BoltState) UpdateContainer(ctr *Container) error {
 			return fmt.Errorf("unmarshalling container %s state: %w", ctr.ID(), err)
 		}
 
+		// backwards compat, previously we used a extra bucket for the netns so try to get it from there
 		netNSBytes := ctrToUpdate.Get(netNSKey)
-		if netNSBytes != nil {
-			netNSPath = string(netNSBytes)
+		if netNSBytes != nil && newState.NetNS == "" {
+			newState.NetNS = string(netNSBytes)
 		}
 
 		return nil
 	})
 	if err != nil {
 		return err
-	}
-
-	// Handle network namespace.
-	if os.Geteuid() == 0 {
-		// Do it only when root, either on the host or as root in the
-		// user namespace.
-		if err := replaceNetNS(netNSPath, ctr, newState); err != nil {
-			return err
-		}
 	}
 
 	// New state compiled successfully, swap it into the current state
@@ -892,7 +882,7 @@ func (s *BoltState) SaveContainer(ctr *Container) error {
 	if err != nil {
 		return fmt.Errorf("marshalling container %s state to JSON: %w", ctr.ID(), err)
 	}
-	netNSPath := getNetNSPath(ctr)
+	netNSPath := ctr.state.NetNS
 
 	ctrID := []byte(ctr.ID())
 
@@ -919,11 +909,7 @@ func (s *BoltState) SaveContainer(ctr *Container) error {
 			return fmt.Errorf("updating container %s state in DB: %w", ctr.ID(), err)
 		}
 
-		if netNSPath != "" {
-			if err := ctrToSave.Put(netNSKey, []byte(netNSPath)); err != nil {
-				return fmt.Errorf("updating network namespace path for container %s in DB: %w", ctr.ID(), err)
-			}
-		} else {
+		if netNSPath == "" {
 			// Delete the existing network namespace
 			if err := ctrToSave.Delete(netNSKey); err != nil {
 				return fmt.Errorf("removing network namespace path for container %s in DB: %w", ctr.ID(), err)

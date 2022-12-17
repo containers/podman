@@ -36,7 +36,7 @@ func (c *Container) unmountSHM(path string) error {
 func (c *Container) prepare() error {
 	var (
 		wg                              sync.WaitGroup
-		ctrNS                           *jailNetNS
+		ctrNS                           string
 		networkStatus                   map[string]types.StatusBlock
 		createNetNSErr, mountStorageErr error
 		mountPoint                      string
@@ -48,7 +48,7 @@ func (c *Container) prepare() error {
 	go func() {
 		defer wg.Done()
 		// Set up network namespace if not already set up
-		noNetNS := c.state.NetNS == nil
+		noNetNS := c.state.NetNS == ""
 		if c.config.CreateNetNS && noNetNS && !c.config.PostConfigureNetNS {
 			ctrNS, networkStatus, createNetNSErr = c.runtime.createNetNS(c)
 			if createNetNSErr != nil {
@@ -168,8 +168,8 @@ func (c *Container) addNetworkContainer(g *generate.Generator, ctr string) error
 		return fmt.Errorf("retrieving dependency %s of container %s from state: %w", ctr, c.ID(), err)
 	}
 	c.runtime.state.UpdateContainer(nsCtr)
-	if nsCtr.state.NetNS != nil {
-		g.AddAnnotation("org.freebsd.parentJail", nsCtr.state.NetNS.Name)
+	if nsCtr.state.NetNS != "" {
+		g.AddAnnotation("org.freebsd.parentJail", nsCtr.state.NetNS)
 	}
 	return nil
 }
@@ -193,7 +193,7 @@ func openDirectory(path string) (fd int, err error) {
 
 func (c *Container) addNetworkNamespace(g *generate.Generator) error {
 	if c.config.CreateNetNS {
-		if c.state.NetNS == nil {
+		if c.state.NetNS == "" {
 			// This should not happen since network setup
 			// errors should be propagated correctly from
 			// (*Runtime).createNetNS. Check for it anyway
@@ -201,7 +201,7 @@ func (c *Container) addNetworkNamespace(g *generate.Generator) error {
 			// the past (see #16333).
 			return fmt.Errorf("Inconsistent state: c.config.CreateNetNS is set but c.state.NetNS is nil")
 		}
-		g.AddAnnotation("org.freebsd.parentJail", c.state.NetNS.Name)
+		g.AddAnnotation("org.freebsd.parentJail", c.state.NetNS)
 	}
 	return nil
 }
@@ -286,7 +286,7 @@ func (c *Container) isSlirp4netnsIPv6() (bool, error) {
 
 // check for net=none
 func (c *Container) hasNetNone() bool {
-	return c.state.NetNS == nil
+	return c.state.NetNS == ""
 }
 
 func setVolumeAtime(mountPoint string, st os.FileInfo) error {
@@ -310,8 +310,8 @@ func (c *Container) getConmonPidFd() int {
 }
 
 func (c *Container) jailName() string {
-	if c.state.NetNS != nil {
-		return c.state.NetNS.Name + "." + c.ID()
+	if c.state.NetNS != "" {
+		return c.state.NetNS + "." + c.ID()
 	} else {
 		return c.ID()
 	}
