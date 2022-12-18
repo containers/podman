@@ -54,6 +54,7 @@ $0 also passes through \$OCI_RUNTIME, should you need to test that.
 # By default, test the podman in our working directory.
 # Some tests cd out of our workdir, so abs path is important
 export PODMAN=${PODMAN:-$(pwd)/bin/podman}
+export QUADLET=${QUADLET:-$(pwd)/bin/quadlet}
 
 # Because 'make' doesn't do this by default
 chcon -t container_runtime_exec_t $PODMAN

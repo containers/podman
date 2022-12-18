@@ -358,4 +358,5 @@ func main() {
 func init() {
 	flag.BoolVar(&verboseFlag, "v", false, "Print debug information")
 	flag.BoolVar(&noKmsgFlag, "no-kmsg-log", false, "Don't log to kmsg")
+	flag.BoolVar(&isUser, "user", false, "Run as systemd user")
 }

@@ -2,6 +2,7 @@
 
 # Podman command to run; may be podman-remote
 PODMAN=${PODMAN:-podman}
+QUADLET=${QUADLET:-quadlet}
 
 # Standard image to use for most tests
 PODMAN_TEST_IMAGE_REGISTRY=${PODMAN_TEST_IMAGE_REGISTRY:-"quay.io"}
@@ -862,6 +863,14 @@ CMD ["/entrypoint"]
 EOF
 
     run_podman build -t $imagename ${PODMAN_TMPDIR}
+}
+
+##########################
+#  sleep_to_next_second  #  Sleep until second rolls over
+##########################
+
+function sleep_to_next_second() {
+    sleep 0.$(printf '%04d' $((10000 - 10#$(date +%4N))))
 }
 
 # END   miscellaneous tools

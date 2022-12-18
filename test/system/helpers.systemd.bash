@@ -46,3 +46,16 @@ install_kube_template() {
         cp $unit_file $UNIT_DIR/$unit_name
     fi
 }
+
+quadlet_to_service_name() {
+    local filename=$(basename -- "$1")
+    local extension="${filename##*.}"
+    local filename="${filename%.*}"
+    local suffix=""
+
+    if [ "$extension" == "volume" ]; then
+        suffix="-volume"
+    fi
+
+    echo "$filename$suffix.service"
+}
