@@ -47,7 +47,7 @@ func networkListFlags(flags *pflag.FlagSet) {
 
 	filterFlagName := "filter"
 	flags.StringArrayVarP(&filters, filterFlagName, "f", nil, "Provide filter values (e.g. 'name=podman')")
-	flags.Bool("noheading", false, "Do not print headers")
+	flags.BoolP("noheading", "n", false, "Do not print headers")
 	_ = networklistCommand.RegisterFlagCompletionFunc(filterFlagName, common.AutocompleteNetworkFilters)
 }
 

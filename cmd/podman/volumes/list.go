@@ -58,7 +58,7 @@ func init() {
 	flags.StringVar(&cliOpts.Format, formatFlagName, "{{range .}}{{.Driver}}\t{{.Name}}\n{{end -}}", "Format volume output using Go template")
 	_ = lsCommand.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(&entities.VolumeListReport{}))
 
-	flags.Bool("noheading", false, "Do not print headers")
+	flags.BoolP("noheading", "n", false, "Do not print headers")
 	flags.BoolVarP(&cliOpts.Quiet, "quiet", "q", false, "Print volume output in quiet mode")
 }
 

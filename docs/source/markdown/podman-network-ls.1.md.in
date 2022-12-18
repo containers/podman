@@ -61,9 +61,7 @@ Valid placeholders for the Go template are listed below:
 
 Do not truncate the network ID.
 
-#### **--noheading**
-
-Omit the table headings from the listing of networks.
+@@option noheading
 
 #### **--quiet**, **-q**
 

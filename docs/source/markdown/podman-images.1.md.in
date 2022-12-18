@@ -108,9 +108,7 @@ Display the history of image names.  If an image gets re-tagged or untagged, the
 
 Do not truncate the output (default *false*).
 
-#### **--noheading**, **-n**
-
-Omit the table headings from the listing of images.
+@@option noheading
 
 #### **--quiet**, **-q**
 

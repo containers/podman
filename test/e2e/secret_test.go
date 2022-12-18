@@ -198,7 +198,17 @@ var _ = Describe("Podman secret", func() {
 		secret1 := "Secret1"
 		secret2 := "Secret2"
 
-		session := podmanTest.Podman([]string{"secret", "create", secret1, secretFilePath})
+		session := podmanTest.Podman([]string{"secret", "ls", "-n"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).To(Equal(""))
+
+		session = podmanTest.Podman([]string{"secret", "ls", "--noheading"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).To(Equal(""))
+
+		session = podmanTest.Podman([]string{"secret", "create", secret1, secretFilePath})
 		session.WaitWithDefaultTimeout()
 		secrID1 := session.OutputToString()
 		Expect(session).Should(Exit(0))

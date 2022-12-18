@@ -14,6 +14,9 @@ load helpers.network
     run_podman network ls --noheading
     assert "$output" !~ "$heading" "network ls --noheading shows header anyway"
 
+    run_podman network ls -n
+    assert "$output" !~ "$heading" "network ls -n shows header anyway"
+
     # check deterministic list order
     local net1=a-$(random_string 10)
     local net2=b-$(random_string 10)

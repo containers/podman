@@ -54,7 +54,7 @@ func init() {
 	_ = lsCmd.RegisterFlagCompletionFunc(filterFlagName, common.AutocompleteSecretFilters)
 
 	noHeadingFlagName := "noheading"
-	flags.BoolVar(&listFlag.noHeading, noHeadingFlagName, false, "Do not print headers")
+	flags.BoolVarP(&listFlag.noHeading, noHeadingFlagName, "n", false, "Do not print headers")
 
 	quietFlagName := "quiet"
 	flags.BoolVarP(&listFlag.quiet, quietFlagName, "q", false, "Print secret IDs only")
