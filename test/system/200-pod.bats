@@ -21,8 +21,8 @@ function teardown() {
     run_podman pod list --noheading
     is "$output" "" "baseline: empty results from list --noheading"
 
-    run_podman pod ls --noheading
-    is "$output" "" "baseline: empty results from ls --noheading"
+    run_podman pod ls -n
+    is "$output" "" "baseline: empty results from ls -n"
 
     run_podman pod ps --noheading
     is "$output" "" "baseline: empty results from ps --noheading"

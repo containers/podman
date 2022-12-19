@@ -105,9 +105,7 @@ Display namespace information of the pod
 
 Do not truncate the output (default *false*).
 
-#### **--noheading**
-
-Omit the table headings from the listing of pods.
+@@option noheading
 
 #### **--quiet**, **-q**
 

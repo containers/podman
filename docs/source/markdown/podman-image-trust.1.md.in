@@ -64,8 +64,7 @@ Trust may be updated using the command **podman image trust set** for an existin
 #### **--json**, **-j**
   Output trust as JSON for machine parsing
 
-#### **--noheading**, **-n**
-  Omit the table headings from the trust listings
+@@option noheading
 
 #### **--raw**
   Output trust policy file as raw JSON

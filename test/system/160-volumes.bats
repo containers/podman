@@ -23,6 +23,8 @@ function teardown() {
 @test "podman run --volumes : basic" {
     run_podman volume list --noheading
     is "$output" "" "baseline: empty results from list --noheading"
+    run_podman volume list -n
+    is "$output" "" "baseline: empty results from list -n"
 
     # Create three temporary directories
     vol1=${PODMAN_TMPDIR}/v1_$(random_string)
