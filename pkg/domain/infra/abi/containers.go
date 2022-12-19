@@ -35,69 +35,84 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// getContainersAndInputByContext gets containers whether all, latest, or a slice of names/ids
-// is specified.  It also returns a list of the corresponding input name used to lookup each container.
-func getContainersAndInputByContext(all, latest, isPod bool, names []string, filters map[string][]string, runtime *libpod.Runtime) (ctrs []*libpod.Container, rawInput []string, err error) {
-	var ctr *libpod.Container
-	var filteredCtrs []*libpod.Container
-	ctrs = []*libpod.Container{}
-	filterFuncs := make([]libpod.ContainerFilter, 0, len(filters))
+type getContainersOptions struct {
+	all     bool
+	isPod   bool
+	latest  bool
+	running bool
+	filters map[string][]string
+	names   []string
+}
+
+type getContainersReport struct {
+	containers []*libpod.Container
+	rawInput   []string
+}
+
+func getContainers(runtime *libpod.Runtime, options getContainersOptions) (report *getContainersReport, err error) {
+	report = &getContainersReport{}
 
 	switch {
-	case len(filters) > 0:
-		for k, v := range filters {
+	case len(options.filters) > 0:
+		filterFuncs := make([]libpod.ContainerFilter, 0, len(options.filters))
+		for k, v := range options.filters {
 			generatedFunc, err := dfilters.GenerateContainerFilterFuncs(k, v, runtime)
 			if err != nil {
-				return nil, nil, err
+				return nil, err
 			}
 			filterFuncs = append(filterFuncs, generatedFunc)
 		}
-		ctrs, err = runtime.GetContainers(filterFuncs...)
+		ctrs, err := runtime.GetContainers(filterFuncs...)
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
-		rawInput = []string{}
+		var filteredCtrs []*libpod.Container
 		for _, candidate := range ctrs {
-			if len(names) > 0 {
-				for _, name := range names {
+			if len(options.names) > 0 {
+				for _, name := range options.names {
 					if candidate.ID() == name || candidate.Name() == name {
-						rawInput = append(rawInput, candidate.ID())
+						report.rawInput = append(report.rawInput, candidate.ID())
 						filteredCtrs = append(filteredCtrs, candidate)
 					}
 				}
-				ctrs = filteredCtrs
+				report.containers = filteredCtrs
 			} else {
-				rawInput = append(rawInput, candidate.ID())
+				report.rawInput = append(report.rawInput, candidate.ID())
 			}
 		}
-	case all:
-		ctrs, err = runtime.GetAllContainers()
+	case options.all:
+		report.containers, err = runtime.GetAllContainers()
 		if err == nil {
-			for _, ctr := range ctrs {
-				rawInput = append(rawInput, ctr.ID())
+			for _, ctr := range report.containers {
+				report.rawInput = append(report.rawInput, ctr.ID())
 			}
 		}
-	case latest:
-		if isPod {
+	case options.latest:
+		if options.isPod {
 			pod, err := runtime.GetLatestPod()
 			if err == nil {
 				podCtrs, err := pod.AllContainers()
 				if err == nil {
 					for _, c := range podCtrs {
-						rawInput = append(rawInput, c.ID())
+						report.rawInput = append(report.rawInput, c.ID())
 					}
-					ctrs = podCtrs
+					report.containers = podCtrs
 				}
 			}
 		} else {
-			ctr, err = runtime.GetLatestContainer()
+			ctr, err := runtime.GetLatestContainer()
 			if err == nil {
-				rawInput = append(rawInput, ctr.ID())
-				ctrs = append(ctrs, ctr)
+				report.rawInput = append(report.rawInput, ctr.ID())
+				report.containers = append(report.containers, ctr)
 			}
 		}
+	case options.running:
+		report.containers, err = runtime.GetRunningContainers()
+		for _, candidate := range report.containers {
+			report.rawInput = append(report.rawInput, candidate.ID())
+		}
 	default:
-		for _, n := range names {
+		for _, n := range options.names {
 			ctr, e := runtime.LookupContainer(n)
 			if e != nil {
 				// Log all errors here, so callers don't need to.
@@ -106,19 +121,12 @@ func getContainersAndInputByContext(all, latest, isPod bool, names []string, fil
 					err = e
 				}
 			} else {
-				rawInput = append(rawInput, n)
-				ctrs = append(ctrs, ctr)
+				report.rawInput = append(report.rawInput, n)
+				report.containers = append(report.containers, ctr)
 			}
 		}
 	}
-	return ctrs, rawInput, err
-}
-
-// getContainersByContext gets containers whether all, latest, or a slice of names/ids
-// is specified.
-func getContainersByContext(all, latest, isPod bool, names []string, runtime *libpod.Runtime) (ctrs []*libpod.Container, err error) {
-	ctrs, _, err = getContainersAndInputByContext(all, latest, isPod, names, nil, runtime)
-	return
+	return report, err
 }
 
 // ContainerExists returns whether the container exists in container storage
@@ -177,18 +185,18 @@ func (ic *ContainerEngine) ContainerWait(ctx context.Context, namesOrIds []strin
 }
 
 func (ic *ContainerEngine) ContainerPause(ctx context.Context, namesOrIds []string, options entities.PauseUnPauseOptions) ([]*entities.PauseUnpauseReport, error) {
-	ctrs, rawInputs, err := getContainersAndInputByContext(options.All, options.Latest, false, namesOrIds, options.Filters, ic.Libpod)
+	report, err := getContainers(ic.Libpod, getContainersOptions{all: options.All, latest: options.Latest, names: namesOrIds, filters: options.Filters})
 	if err != nil {
 		return nil, err
 	}
 	idToRawInput := map[string]string{}
-	if len(rawInputs) == len(ctrs) {
-		for i := range ctrs {
-			idToRawInput[ctrs[i].ID()] = rawInputs[i]
+	if len(report.rawInput) == len(report.containers) {
+		for i := range report.containers {
+			idToRawInput[report.containers[i].ID()] = report.rawInput[i]
 		}
 	}
-	reports := make([]*entities.PauseUnpauseReport, 0, len(ctrs))
-	for _, c := range ctrs {
+	reports := make([]*entities.PauseUnpauseReport, 0, len(report.containers))
+	for _, c := range report.containers {
 		err := c.Pause()
 		if err != nil && options.All && errors.Is(err, define.ErrCtrStateInvalid) {
 			logrus.Debugf("Container %s is not running", c.ID())
@@ -204,18 +212,18 @@ func (ic *ContainerEngine) ContainerPause(ctx context.Context, namesOrIds []stri
 }
 
 func (ic *ContainerEngine) ContainerUnpause(ctx context.Context, namesOrIds []string, options entities.PauseUnPauseOptions) ([]*entities.PauseUnpauseReport, error) {
-	ctrs, rawInputs, err := getContainersAndInputByContext(options.All, options.Latest, false, namesOrIds, options.Filters, ic.Libpod)
+	report, err := getContainers(ic.Libpod, getContainersOptions{all: options.All, latest: options.Latest, names: namesOrIds, filters: options.Filters})
 	if err != nil {
 		return nil, err
 	}
 	idToRawInput := map[string]string{}
-	if len(rawInputs) == len(ctrs) {
-		for i := range ctrs {
-			idToRawInput[ctrs[i].ID()] = rawInputs[i]
+	if len(report.rawInput) == len(report.containers) {
+		for i := range report.containers {
+			idToRawInput[report.containers[i].ID()] = report.rawInput[i]
 		}
 	}
-	reports := make([]*entities.PauseUnpauseReport, 0, len(ctrs))
-	for _, c := range ctrs {
+	reports := make([]*entities.PauseUnpauseReport, 0, len(report.containers))
+	for _, c := range report.containers {
 		err := c.Unpause()
 		if err != nil && options.All && errors.Is(err, define.ErrCtrStateInvalid) {
 			logrus.Debugf("Container %s is not paused", c.ID())
@@ -230,18 +238,19 @@ func (ic *ContainerEngine) ContainerUnpause(ctx context.Context, namesOrIds []st
 	return reports, nil
 }
 func (ic *ContainerEngine) ContainerStop(ctx context.Context, namesOrIds []string, options entities.StopOptions) ([]*entities.StopReport, error) {
-	names := namesOrIds
-	ctrs, rawInputs, err := getContainersAndInputByContext(options.All, options.Latest, false, names, options.Filters, ic.Libpod)
+	report, err := getContainers(ic.Libpod, getContainersOptions{all: options.All, latest: options.Latest, names: namesOrIds, filters: options.Filters})
 	if err != nil && !(options.Ignore && errors.Is(err, define.ErrNoSuchCtr)) {
 		return nil, err
 	}
+
 	idToRawInput := map[string]string{}
-	if len(rawInputs) == len(ctrs) {
-		for i := range ctrs {
-			idToRawInput[ctrs[i].ID()] = rawInputs[i]
+	if len(report.rawInput) == len(report.containers) {
+		for i := range report.containers {
+			idToRawInput[report.containers[i].ID()] = report.rawInput[i]
 		}
 	}
-	errMap, err := parallelctr.ContainerOp(ctx, ctrs, func(c *libpod.Container) error {
+
+	errMap, err := parallelctr.ContainerOp(ctx, report.containers, func(c *libpod.Container) error {
 		var err error
 		if options.Timeout != nil {
 			err = c.StopWithTimeout(*options.Timeout)
@@ -310,18 +319,19 @@ func (ic *ContainerEngine) ContainerKill(ctx context.Context, namesOrIds []strin
 	if err != nil {
 		return nil, err
 	}
-	ctrs, rawInputs, err := getContainersAndInputByContext(options.All, options.Latest, false, namesOrIds, nil, ic.Libpod)
+	report, err := getContainers(ic.Libpod, getContainersOptions{all: options.All, latest: options.Latest, names: namesOrIds})
 	if err != nil {
 		return nil, err
 	}
 	idToRawInput := map[string]string{}
-	if len(rawInputs) == len(ctrs) {
-		for i := range ctrs {
-			idToRawInput[ctrs[i].ID()] = rawInputs[i]
+	if len(report.rawInput) == len(report.containers) {
+		for i := range report.containers {
+			idToRawInput[report.containers[i].ID()] = report.rawInput[i]
 		}
 	}
-	reports := make([]*entities.KillReport, 0, len(ctrs))
-	for _, con := range ctrs {
+
+	reports := make([]*entities.KillReport, 0, len(report.containers))
+	for _, con := range report.containers {
 		err := con.Kill(uint(sig))
 		if options.All && errors.Is(err, define.ErrCtrStateInvalid) {
 			logrus.Debugf("Container %s is not running", con.ID())
@@ -337,35 +347,26 @@ func (ic *ContainerEngine) ContainerKill(ctx context.Context, namesOrIds []strin
 }
 
 func (ic *ContainerEngine) ContainerRestart(ctx context.Context, namesOrIds []string, options entities.RestartOptions) ([]*entities.RestartReport, error) {
-	var (
-		ctrs      []*libpod.Container
-		err       error
-		rawInputs = []string{}
-	)
-
-	if options.Running {
-		ctrs, err = ic.Libpod.GetRunningContainers()
-		for _, candidate := range ctrs {
-			rawInputs = append(rawInputs, candidate.ID())
-		}
-
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		ctrs, rawInputs, err = getContainersAndInputByContext(options.All, options.Latest, false, namesOrIds, options.Filters, ic.Libpod)
-		if err != nil {
-			return nil, err
-		}
+	report, err := getContainers(ic.Libpod,
+		getContainersOptions{
+			all:     options.All,
+			filters: options.Filters,
+			latest:  options.Latest,
+			running: options.Running,
+			names:   namesOrIds,
+		})
+	if err != nil {
+		return nil, err
 	}
 	idToRawInput := map[string]string{}
-	if len(rawInputs) == len(ctrs) {
-		for i := range ctrs {
-			idToRawInput[ctrs[i].ID()] = rawInputs[i]
+	if len(report.rawInput) == len(report.containers) {
+		for i := range report.containers {
+			idToRawInput[report.containers[i].ID()] = report.rawInput[i]
 		}
 	}
-	reports := make([]*entities.RestartReport, 0, len(ctrs))
-	for _, c := range ctrs {
+
+	reports := make([]*entities.RestartReport, 0, len(report.containers))
+	for _, c := range report.containers {
 		timeout := c.StopTimeout()
 		if options.Timeout != nil {
 			timeout = *options.Timeout
@@ -431,14 +432,14 @@ func (ic *ContainerEngine) ContainerRm(ctx context.Context, namesOrIds []string,
 	}
 	names = tmpNames
 
-	ctrs, rawInputs, err := getContainersAndInputByContext(options.All, options.Latest, false, names, options.Filters, ic.Libpod)
+	report, err := getContainers(ic.Libpod, getContainersOptions{all: options.All, latest: options.Latest, filters: options.Filters, names: names})
 	if err != nil && !(options.Ignore && errors.Is(err, define.ErrNoSuchCtr)) {
 		return nil, err
 	}
 	idToRawInput := map[string]string{}
-	if len(rawInputs) == len(ctrs) {
-		for i := range ctrs {
-			idToRawInput[ctrs[i].ID()] = rawInputs[i]
+	if len(report.rawInput) == len(report.containers) {
+		for i := range report.containers {
+			idToRawInput[report.containers[i].ID()] = report.rawInput[i]
 		}
 	}
 	if err != nil && !(options.Ignore && errors.Is(err, define.ErrNoSuchCtr)) {
@@ -479,7 +480,7 @@ func (ic *ContainerEngine) ContainerRm(ctx context.Context, namesOrIds []string,
 	}
 	if !options.All && options.Depend {
 		// Add additional containers based on dependencies to container map
-		for _, ctr := range ctrs {
+		for _, ctr := range report.containers {
 			if alreadyRemoved[ctr.ID()] {
 				continue
 			}
@@ -495,7 +496,7 @@ func (ic *ContainerEngine) ContainerRm(ctx context.Context, namesOrIds []string,
 	// If --all is set, make sure to remove the infra containers'
 	// dependencies before doing the parallel removal below.
 	if options.All {
-		for _, ctr := range ctrs {
+		for _, ctr := range report.containers {
 			if alreadyRemoved[ctr.ID()] || !ctr.IsInfra() {
 				continue
 			}
@@ -507,7 +508,7 @@ func (ic *ContainerEngine) ContainerRm(ctx context.Context, namesOrIds []string,
 		}
 	}
 
-	errMap, err := parallelctr.ContainerOp(ctx, ctrs, func(c *libpod.Container) error {
+	errMap, err := parallelctr.ContainerOp(ctx, report.containers, func(c *libpod.Container) error {
 		if alreadyRemoved[c.ID()] {
 			return nil
 		}
@@ -660,11 +661,6 @@ func (ic *ContainerEngine) ContainerExport(ctx context.Context, nameOrID string,
 }
 
 func (ic *ContainerEngine) ContainerCheckpoint(ctx context.Context, namesOrIds []string, options entities.CheckpointOptions) ([]*entities.CheckpointReport, error) {
-	var (
-		ctrs      []*libpod.Container
-		rawInputs []string
-		err       error
-	)
 	checkOpts := libpod.ContainerCheckpointOptions{
 		Keep:           options.Keep,
 		TCPEstablished: options.TCPEstablished,
@@ -679,30 +675,20 @@ func (ic *ContainerEngine) ContainerCheckpoint(ctx context.Context, namesOrIds [
 		FileLocks:      options.FileLocks,
 		CreateImage:    options.CreateImage,
 	}
-
+	// NOTE: all maps to running
+	report, err := getContainers(ic.Libpod, getContainersOptions{running: options.All, latest: options.Latest, names: namesOrIds})
+	if err != nil {
+		return nil, err
+	}
 	idToRawInput := map[string]string{}
-	if options.All {
-		running := func(c *libpod.Container) bool {
-			state, _ := c.State()
-			return state == define.ContainerStateRunning
-		}
-		ctrs, err = ic.Libpod.GetContainers(running)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		ctrs, rawInputs, err = getContainersAndInputByContext(false, options.Latest, false, namesOrIds, nil, ic.Libpod)
-		if err != nil {
-			return nil, err
-		}
-		if len(rawInputs) == len(ctrs) {
-			for i := range ctrs {
-				idToRawInput[ctrs[i].ID()] = rawInputs[i]
-			}
+	if len(report.rawInput) == len(report.containers) {
+		for i := range report.containers {
+			idToRawInput[report.containers[i].ID()] = report.rawInput[i]
 		}
 	}
-	reports := make([]*entities.CheckpointReport, 0, len(ctrs))
-	for _, c := range ctrs {
+
+	reports := make([]*entities.CheckpointReport, 0, len(report.containers))
+	for _, c := range report.containers {
 		criuStatistics, runtimeCheckpointDuration, err := c.Checkpoint(ctx, checkOpts)
 		reports = append(reports, &entities.CheckpointReport{
 			Err:             err,
@@ -751,7 +737,9 @@ func (ic *ContainerEngine) ContainerRestore(ctx context.Context, namesOrIds []st
 	case options.All:
 		ctrs, err = ic.Libpod.GetContainers(filterFuncs...)
 	case options.Latest:
-		ctrs, err = getContainersByContext(false, options.Latest, false, namesOrIds, ic.Libpod)
+		report, getErr := getContainers(ic.Libpod, getContainersOptions{latest: options.Latest, names: namesOrIds})
+		ctrs = report.containers
+		err = getErr
 	default:
 		for _, nameOrID := range namesOrIds {
 			logrus.Debugf("look up container: %q", nameOrID)
@@ -835,11 +823,15 @@ func (ic *ContainerEngine) ContainerCreate(ctx context.Context, s *specgen.SpecG
 }
 
 func (ic *ContainerEngine) ContainerAttach(ctx context.Context, nameOrID string, options entities.AttachOptions) error {
-	ctrs, err := getContainersByContext(false, options.Latest, false, []string{nameOrID}, ic.Libpod)
+	report, err := getContainers(ic.Libpod, getContainersOptions{latest: options.Latest, names: []string{nameOrID}})
 	if err != nil {
 		return err
 	}
-	ctr := ctrs[0]
+	if len(report.containers) != 1 {
+		return fmt.Errorf("%w: expected to find exactly one container but got %d", define.ErrInternal, len(report.containers))
+	}
+
+	ctr := report.containers[0]
 	conState, err := ctr.State()
 	if err != nil {
 		return fmt.Errorf("unable to determine state of %s: %w", ctr.ID(), err)
@@ -916,11 +908,14 @@ func (ic *ContainerEngine) ContainerExec(ctx context.Context, nameOrID string, o
 	if err != nil {
 		return ec, err
 	}
-	ctrs, err := getContainersByContext(false, options.Latest, false, []string{nameOrID}, ic.Libpod)
+	report, err := getContainers(ic.Libpod, getContainersOptions{latest: options.Latest, names: []string{nameOrID}})
 	if err != nil {
 		return ec, err
 	}
-	ctr := ctrs[0]
+	if len(report.containers) != 1 {
+		return ec, fmt.Errorf("%w: expected to find exactly one container but got %d", define.ErrInternal, len(report.containers))
+	}
+	ctr := report.containers[0]
 
 	execConfig, err := makeExecConfig(options, ic.Libpod)
 	if err != nil {
@@ -936,11 +931,15 @@ func (ic *ContainerEngine) ContainerExecDetached(ctx context.Context, nameOrID s
 	if err != nil {
 		return "", err
 	}
-	ctrs, err := getContainersByContext(false, options.Latest, false, []string{nameOrID}, ic.Libpod)
+
+	report, err := getContainers(ic.Libpod, getContainersOptions{latest: options.Latest, names: []string{nameOrID}})
 	if err != nil {
 		return "", err
 	}
-	ctr := ctrs[0]
+	if len(report.containers) != 1 {
+		return "", fmt.Errorf("%w: expected to find exactly one container but got %d", define.ErrInternal, len(report.containers))
+	}
+	ctr := report.containers[0]
 
 	execConfig, err := makeExecConfig(options, ic.Libpod)
 	if err != nil {
@@ -963,19 +962,19 @@ func (ic *ContainerEngine) ContainerExecDetached(ctx context.Context, nameOrID s
 func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []string, options entities.ContainerStartOptions) ([]*entities.ContainerStartReport, error) {
 	reports := []*entities.ContainerStartReport{}
 	var exitCode = define.ExecErrorCodeGeneric
-	ctrs, rawInputs, err := getContainersAndInputByContext(options.All, options.Latest, false, namesOrIds, options.Filters, ic.Libpod)
+	report, err := getContainers(ic.Libpod, getContainersOptions{all: options.All, latest: options.Latest, names: namesOrIds, filters: options.Filters})
 	if err != nil {
 		return nil, err
 	}
 	idToRawInput := map[string]string{}
-	if len(rawInputs) == len(ctrs) {
-		for i := range ctrs {
-			idToRawInput[ctrs[i].ID()] = rawInputs[i]
+	if len(report.rawInput) == len(report.containers) {
+		for i := range report.containers {
+			idToRawInput[report.containers[i].ID()] = report.rawInput[i]
 		}
 	}
 	// There can only be one container if attach was used
-	for i := range ctrs {
-		ctr := ctrs[i]
+	for i := range report.containers {
+		ctr := report.containers[i]
 		ctrState, err := ctr.State()
 		if err != nil {
 			return nil, err
@@ -1268,13 +1267,13 @@ func (ic *ContainerEngine) ContainerLogs(ctx context.Context, containers []strin
 		}
 	}
 
-	ctrs, err := getContainersByContext(false, options.Latest, isPod, containers, ic.Libpod)
+	report, err := getContainers(ic.Libpod, getContainersOptions{latest: options.Latest, isPod: isPod, names: containers})
 	if err != nil {
 		return err
 	}
 
 	logOpts := &logs.LogOptions{
-		Multi:      len(ctrs) > 1,
+		Multi:      len(report.containers) > 1,
 		Details:    options.Details,
 		Follow:     options.Follow,
 		Since:      options.Since,
@@ -1286,13 +1285,13 @@ func (ic *ContainerEngine) ContainerLogs(ctx context.Context, containers []strin
 		WaitGroup:  &wg,
 	}
 
-	chSize := len(ctrs) * int(options.Tail)
+	chSize := len(report.containers) * int(options.Tail)
 	if chSize <= 0 {
 		chSize = 1
 	}
 	logChannel := make(chan *logs.LogLine, chSize)
 
-	if err := ic.Libpod.Log(ctx, ctrs, logOpts, logChannel); err != nil {
+	if err := ic.Libpod.Log(ctx, report.containers, logOpts, logChannel); err != nil {
 		return err
 	}
 
@@ -1309,18 +1308,18 @@ func (ic *ContainerEngine) ContainerLogs(ctx context.Context, containers []strin
 }
 
 func (ic *ContainerEngine) ContainerCleanup(ctx context.Context, namesOrIds []string, options entities.ContainerCleanupOptions) ([]*entities.ContainerCleanupReport, error) {
-	ctrs, rawInputs, err := getContainersAndInputByContext(options.All, options.Latest, false, namesOrIds, nil, ic.Libpod)
+	report, err := getContainers(ic.Libpod, getContainersOptions{all: options.All, latest: options.Latest, names: namesOrIds})
 	if err != nil {
 		return nil, err
 	}
 	idToRawInput := map[string]string{}
-	if len(rawInputs) == len(ctrs) {
-		for i := range ctrs {
-			idToRawInput[ctrs[i].ID()] = rawInputs[i]
+	if len(report.rawInput) == len(report.containers) {
+		for i := range report.containers {
+			idToRawInput[report.containers[i].ID()] = report.rawInput[i]
 		}
 	}
 	reports := []*entities.ContainerCleanupReport{}
-	for _, ctr := range ctrs {
+	for _, ctr := range report.containers {
 		var err error
 		report := entities.ContainerCleanupReport{Id: ctr.ID(), RawInput: idToRawInput[ctr.ID()]}
 
@@ -1363,18 +1362,18 @@ func (ic *ContainerEngine) ContainerCleanup(ctx context.Context, namesOrIds []st
 }
 
 func (ic *ContainerEngine) ContainerInit(ctx context.Context, namesOrIds []string, options entities.ContainerInitOptions) ([]*entities.ContainerInitReport, error) {
-	ctrs, rawInputs, err := getContainersAndInputByContext(options.All, options.Latest, false, namesOrIds, nil, ic.Libpod)
+	report, err := getContainers(ic.Libpod, getContainersOptions{all: options.All, latest: options.Latest, names: namesOrIds})
 	if err != nil {
 		return nil, err
 	}
 	idToRawInput := map[string]string{}
-	if len(rawInputs) == len(ctrs) {
-		for i := range ctrs {
-			idToRawInput[ctrs[i].ID()] = rawInputs[i]
+	if len(report.rawInput) == len(report.containers) {
+		for i := range report.containers {
+			idToRawInput[report.containers[i].ID()] = report.rawInput[i]
 		}
 	}
-	reports := make([]*entities.ContainerInitReport, 0, len(ctrs))
-	for _, ctr := range ctrs {
+	reports := make([]*entities.ContainerInitReport, 0, len(report.containers))
+	for _, ctr := range report.containers {
 		report := entities.ContainerInitReport{Id: ctr.ID(), RawInput: idToRawInput[ctr.ID()]}
 		err := ctr.Init(ctx, ctr.PodID() != "")
 
@@ -1417,11 +1416,11 @@ func (ic *ContainerEngine) ContainerMount(ctx context.Context, nameOrIDs []strin
 		}
 	}
 
-	ctrs, err := getContainersByContext(options.All, options.Latest, false, names, ic.Libpod)
+	report, err := getContainers(ic.Libpod, getContainersOptions{all: options.All, latest: options.Latest, names: names})
 	if err != nil {
 		return nil, err
 	}
-	for _, ctr := range ctrs {
+	for _, ctr := range report.containers {
 		report := entities.ContainerMountReport{Id: ctr.ID()}
 		report.Path, report.Err = ctr.Mount()
 		reports = append(reports, &report)
@@ -1455,11 +1454,11 @@ func (ic *ContainerEngine) ContainerMount(ctx context.Context, nameOrIDs []strin
 	}
 
 	// No containers were passed, so we send back what is mounted
-	ctrs, err = getContainersByContext(true, false, false, []string{}, ic.Libpod)
+	report, err = getContainers(ic.Libpod, getContainersOptions{all: true})
 	if err != nil {
 		return nil, err
 	}
-	for _, ctr := range ctrs {
+	for _, ctr := range report.containers {
 		mounted, path, err := ctr.Mounted()
 		if err != nil {
 			return nil, err
@@ -1507,11 +1506,11 @@ func (ic *ContainerEngine) ContainerUnmount(ctx context.Context, nameOrIDs []str
 			reports = append(reports, &report)
 		}
 	}
-	ctrs, err := getContainersByContext(options.All, options.Latest, false, names, ic.Libpod)
+	report, err := getContainers(ic.Libpod, getContainersOptions{all: options.All, latest: options.Latest, names: names})
 	if err != nil {
 		return nil, err
 	}
-	for _, ctr := range ctrs {
+	for _, ctr := range report.containers {
 		state, err := ctr.State()
 		if err != nil {
 			logrus.Debugf("Error umounting container %s state: %s", ctr.ID(), err.Error())
@@ -1541,12 +1540,12 @@ func (ic *ContainerEngine) Config(_ context.Context) (*config.Config, error) {
 }
 
 func (ic *ContainerEngine) ContainerPort(ctx context.Context, nameOrID string, options entities.ContainerPortOptions) ([]*entities.ContainerPortReport, error) {
-	ctrs, err := getContainersByContext(options.All, options.Latest, false, []string{nameOrID}, ic.Libpod)
+	report, err := getContainers(ic.Libpod, getContainersOptions{all: options.All, latest: options.Latest, names: []string{nameOrID}})
 	if err != nil {
 		return nil, err
 	}
 	reports := []*entities.ContainerPortReport{}
-	for _, con := range ctrs {
+	for _, con := range report.containers {
 		state, err := con.State()
 		if err != nil {
 			return nil, err
@@ -1803,16 +1802,16 @@ func (ic *ContainerEngine) ContainerUpdate(ctx context.Context, updateOptions *e
 	if err != nil {
 		return "", err
 	}
-	ctrs, err := getContainersByContext(false, false, false, []string{updateOptions.NameOrID}, ic.Libpod)
+	report, err := getContainers(ic.Libpod, getContainersOptions{names: []string{updateOptions.NameOrID}})
 	if err != nil {
 		return "", err
 	}
-	if len(ctrs) != 1 {
+	if len(report.containers) != 1 {
 		return "", fmt.Errorf("container not found")
 	}
 
-	if err = ctrs[0].Update(updateOptions.Specgen.ResourceLimits); err != nil {
+	if err = report.containers[0].Update(updateOptions.Specgen.ResourceLimits); err != nil {
 		return "", err
 	}
-	return ctrs[0].ID(), nil
+	return report.containers[0].ID(), nil
 }
