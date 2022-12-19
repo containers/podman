@@ -40,6 +40,7 @@ var (
 		".container": void,
 		".volume":    void,
 		".kube":      void,
+		".network":   void,
 	}
 )
 
@@ -337,6 +338,8 @@ func main() {
 			service, err = quadlet.ConvertVolume(unit, name)
 		case strings.HasSuffix(name, ".kube"):
 			service, err = quadlet.ConvertKube(unit, isUser)
+		case strings.HasSuffix(name, ".network"):
+			service, err = quadlet.ConvertNetwork(unit, name)
 		default:
 			Logf("Unsupported file type '%s'", name)
 			continue

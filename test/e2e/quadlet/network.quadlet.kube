@@ -1,0 +1,8 @@
+## assert-podman-args "--network=systemd-basic"
+## assert-key-is "Unit" "Requires" "systemd-basic-network.service"
+## assert-key-is "Unit" "After" "systemd-basic-network.service"
+
+
+[Kube]
+Yaml=deployment.yml
+Network=basic.network

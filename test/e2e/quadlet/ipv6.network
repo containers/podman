@@ -1,0 +1,5 @@
+## assert-podman-final-args systemd-ipv6
+## assert-podman-args "--ipv6"
+
+[Network]
+IPv6=yes

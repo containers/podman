@@ -310,9 +310,85 @@ Set one or more OCI labels on the volume. The format is a list of
 
 This key can be listed multiple times.
 
+### Network units
 
-Set one or more OCI labels on the volume. The format is a list of `key=value` items,
-similar to `Environment`.
+Network files are named with a `.network` extension and contain a section `[Network]` describing the
+named Podman network. The generated service is a one-time command that ensures that the network
+exists on the host, creating it if needed.
+
+For a network file named `$NAME.network`, the generated Podman network will be called `systemd-$NAME`,
+and the generated service file `$NAME-network.service`.
+
+Using network units allows containers to depend on networks being automatically pre-created. This is
+particularly interesting when using special options to control network creation, as Podman will
+otherwise create networks with the default options.
+
+Supported keys in `Network` section are:
+
+#### `DisableDNS=` (defaults to `no`)
+
+If enabled, disables the DNS plugin for this network.
+
+This is equivalent to the Podman `--disable-dns` option
+
+#### `Driver=` (defaults to `bridge`)
+
+Driver to manage the network. Currently `bridge`, `macvlan` and `ipvlan` are supported.
+
+This is equivalent to the Podman `--driver` option
+
+#### `Gateway=`
+
+Define a gateway for the subnet. If you want to provide a gateway address, you must also provide a subnet option.
+
+This is equivalent to the Podman `--gateway` option
+
+This key can be listed multiple times.
+
+#### `Internal=` (defaults to `no`)
+
+Restrict external access of this network.
+
+This is equivalent to the Podman `--internal` option
+
+#### `IPRange=`
+
+Allocate  container  IP  from a range. The range must be a complete subnet and in CIDR notation. The ip-range option must be used with a subnet option.
+
+This is equivalent to the Podman `--ip-range` option
+
+This key can be listed multiple times.
+
+#### `IPAMDriver=`
+
+Set the ipam driver (IP Address Management Driver) for the network. Currently `host-local`, `dhcp` and `none` are supported.
+
+This is equivalent to the Podman `--ipam-driver` option
+
+#### `IPv6=`
+
+Enable IPv6 (Dual Stack) networking.
+
+This is equivalent to the Podman `--ipv6` option
+
+#### `Options=`
+
+Set driver specific options.
+
+This is equivalent to the Podman `--opt` option
+
+#### `Subnet=`
+
+The subnet in CIDR notation.
+
+This is equivalent to the Podman `--subnet` option
+
+This key can be listed multiple times.
+
+#### `Label=`
+
+Set one or more OCI labels on the network. The format is a list of
+`key=value` items, similar to `Environment`.
 
 This key can be listed multiple times.
 
@@ -351,7 +427,17 @@ Group=projectname
 Label=org.test.Key=value
 ```
 
+Example `test.network`:
+```
+[Network]
+Subnet=172.16.0.0/24
+Gateway=172.16.0.1
+IPRange=172.16.0.0/28
+Label=org.test.Key=value
+```
+
 ## SEE ALSO
 **[systemd.unit(5)](https://www.freedesktop.org/software/systemd/man/systemd.unit.html)**,
 **[systemd.service(5)](https://www.freedesktop.org/software/systemd/man/systemd.service.html)**,
 **[podman-run(1)](podman-run.1.md)**
+**[podman-network-create(1)](podman-network-create.1.md)**

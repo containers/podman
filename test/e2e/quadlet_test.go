@@ -30,8 +30,11 @@ func loadQuadletTestcase(path string) *quadletTestcase {
 	base := filepath.Base(path)
 	ext := filepath.Ext(base)
 	service := base[:len(base)-len(ext)]
-	if ext == ".volume" {
+	switch ext {
+	case ".volume":
 		service += "-volume"
+	case ".network":
+		service += "-network"
 	}
 	service += ".service"
 
@@ -360,6 +363,7 @@ var _ = Describe("quadlet system generator", func() {
 		Entry("label.container", "label.container"),
 		Entry("name.container", "name.container"),
 		Entry("network.container", "network.container"),
+		Entry("network.quadlet.container", "network.quadlet.container"),
 		Entry("noimage.container", "noimage.container"),
 		Entry("notify.container", "notify.container"),
 		Entry("other-sections.container", "other-sections.container"),
@@ -388,6 +392,27 @@ var _ = Describe("quadlet system generator", func() {
 		Entry("Kube - User Remap Manual", "remap-manual.kube"),
 		Entry("Kube - User Remap Auto", "remap-auto.kube"),
 		Entry("Kube - User Remap Auto with IDs", "remap-auto2.kube"),
+		Entry("Kube - Network", "network.kube"),
+		Entry("Kube - Quadlet Network", "network.quadlet.kube"),
+
+		Entry("Network - Basic", "basic.network"),
+		Entry("Network - Label", "label.network"),
+		Entry("Network - Disable DNS", "disable-dns.network"),
+		Entry("Network - Driver", "driver.network"),
+		Entry("Network - Subnets", "subnets.network"),
+		Entry("Network - Gateway", "gateway.network"),
+		Entry("Network - Gateway without Subnet", "gateway.no-subnet.network"),
+		Entry("Network - Gateway not enough Subnet", "gateway.less-subnet.network"),
+		Entry("Network - Range", "range.network"),
+		Entry("Network - Range without Subnet", "range.no-subnet.network"),
+		Entry("Network - Range not enough Subnet", "range.less-subnet.network"),
+		Entry("Network - subnet, gateway and range", "subnet-trio.network"),
+		Entry("Network - multiple subnet, gateway and range", "subnet-trio.multiple.network"),
+		Entry("Network - Internal network", "internal.network"),
+		Entry("Network - IPAM Driver", "ipam-driver.network"),
+		Entry("Network - IPv6", "ipv6.network"),
+		Entry("Network - Options", "options.network"),
+		Entry("Network - Multiple Options", "options.multiple.network"),
 	)
 
 })
