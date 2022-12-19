@@ -718,4 +718,41 @@ var _ = Describe("Podman create", func() {
 		setup.WaitWithDefaultTimeout()
 		Expect(setup).Should(Exit(0))
 	})
+
+	It("podman create -v with a subpath test", func() {
+		SkipIfRemote("volume export does not exist on remote")
+		volumeCreate := podmanTest.Podman([]string{"volume", "create", "testvol1"})
+		volumeCreate.WaitWithDefaultTimeout()
+		Expect(volumeCreate).Should(Exit(0))
+
+		session := podmanTest.Podman([]string{"run", "--volume", "testvol1:/data", ALPINE, "sh", "-c", "mkdir -p /data/testing/onlythis && touch /data/testing/onlythis/123.txt && echo hi >> /data/testing/onlythis/123.txt"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		tar := filepath.Join(podmanTest.TempDir, "out.tar")
+		session = podmanTest.Podman([]string{"volume", "export", "--output", tar, "testvol1"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		volumeCreate = podmanTest.Podman([]string{"volume", "create", "testvol"})
+		volumeCreate.WaitWithDefaultTimeout()
+		Expect(volumeCreate).Should(Exit(0))
+
+		volumeImp := podmanTest.Podman([]string{"volume", "import", "testvol", filepath.Join(podmanTest.TempDir, "out.tar")})
+		volumeImp.WaitWithDefaultTimeout()
+		Expect(volumeImp).Should(Exit(0))
+
+		create := podmanTest.Podman([]string{"create", "-v", "testvol/testing/onlythis:/var", ALPINE, "top"})
+		create.WaitWithDefaultTimeout()
+		Expect(create).Should(Exit(0))
+
+		start := podmanTest.Podman([]string{"start", create.OutputToString()})
+		start.WaitWithDefaultTimeout()
+		Expect(start).Should(Exit(0))
+
+		exec := podmanTest.Podman([]string{"exec", "-it", start.OutputToString(), "cat", "/var/123.txt"})
+		exec.WaitWithDefaultTimeout()
+		Expect(exec).Should(Exit(0))
+		Expect(exec.OutputToString()).Should(Equal("hi"))
+	})
 })

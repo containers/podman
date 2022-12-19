@@ -180,10 +180,20 @@ func GenVolumeMounts(volumeFlag []string) (map[string]spec.Mount, map[string]*Na
 			}
 		} else {
 			// This is a named volume
+			// however, we might still have a subpath
+			// the syntax is NAMED_VOL/sub/path:dest
+
+			subpath := ""
+			srcAndSubPath := strings.SplitN(src, "/", 2)
+			if len(srcAndSubPath) > 1 {
+				src = srcAndSubPath[0]
+				subpath = "/" + srcAndSubPath[1]
+			}
 			newNamedVol := new(NamedVolume)
 			newNamedVol.Name = src
 			newNamedVol.Dest = dest
 			newNamedVol.Options = options
+			newNamedVol.SubPath = subpath
 
 			if vol, ok := volumes[newNamedVol.Dest]; ok {
 				if vol.Name == newNamedVol.Name {
