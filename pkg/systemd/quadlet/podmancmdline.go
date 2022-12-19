@@ -9,7 +9,7 @@ import (
 
 // Overwritten at build time
 var (
-	_binDir string
+	_binDir = "/usr/bin"
 )
 
 func podmanBinary() string {
