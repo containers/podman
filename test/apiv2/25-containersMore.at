@@ -51,6 +51,13 @@ like "$output" ".*merged" "Check container mount"
 # Unmount the container
 t POST libpod/containers/foo/unmount 204
 
+# export the container fs to tarball
+
+t GET libpod/containers/foo/export 200
+like "$(<$WORKDIR/curl.headers.out)" ".*"Content-Type\: application/x-tar".*"
+tar_tf=$(tar tf $WORKDIR/curl.result.out)
+like "$tar_tf" ".*bin/cat.*" "fetched tarball: contains bin/cat path"
+
 t DELETE libpod/containers/foo?force=true 200
 
 # Create 3 stopped containers to test containers prune

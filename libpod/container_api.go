@@ -462,7 +462,7 @@ func (c *Container) Unpause() error {
 
 // Export exports a container's root filesystem as a tar archive
 // The archive will be saved as a file at the given path
-func (c *Container) Export(path string) error {
+func (c *Container) Export(out io.Writer) error {
 	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
@@ -477,7 +477,7 @@ func (c *Container) Export(path string) error {
 	}
 
 	defer c.newContainerEvent(events.Mount)
-	return c.export(path)
+	return c.export(out)
 }
 
 // AddArtifact creates and writes to an artifact file for the container

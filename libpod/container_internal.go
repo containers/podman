@@ -745,7 +745,7 @@ func (c *Container) removeConmonFiles() error {
 	return nil
 }
 
-func (c *Container) export(path string) error {
+func (c *Container) export(out io.Writer) error {
 	mountPoint := c.state.Mountpoint
 	if !c.state.Mounted {
 		containerMount, err := c.runtime.store.Mount(c.ID(), c.config.MountLabel)
@@ -765,13 +765,7 @@ func (c *Container) export(path string) error {
 		return fmt.Errorf("reading container directory %q: %w", c.ID(), err)
 	}
 
-	outFile, err := os.Create(path)
-	if err != nil {
-		return fmt.Errorf("creating file %q: %w", path, err)
-	}
-	defer outFile.Close()
-
-	_, err = io.Copy(outFile, input)
+	_, err = io.Copy(out, input)
 	return err
 }
 

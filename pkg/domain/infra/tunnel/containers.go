@@ -355,17 +355,7 @@ func (ic *ContainerEngine) ContainerCommit(ctx context.Context, nameOrID string,
 }
 
 func (ic *ContainerEngine) ContainerExport(ctx context.Context, nameOrID string, options entities.ContainerExportOptions) error {
-	var (
-		err error
-		w   io.Writer
-	)
-	if len(options.Output) > 0 {
-		w, err = os.Create(options.Output)
-		if err != nil {
-			return err
-		}
-	}
-	return containers.Export(ic.ClientCtx, nameOrID, w, nil)
+	return containers.Export(ic.ClientCtx, nameOrID, options.Output, nil)
 }
 
 func (ic *ContainerEngine) ContainerCheckpoint(ctx context.Context, namesOrIds []string, opts entities.CheckpointOptions) ([]*entities.CheckpointReport, error) {
