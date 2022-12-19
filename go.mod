@@ -12,9 +12,9 @@ require (
 	github.com/containernetworking/cni v1.1.2
 	github.com/containernetworking/plugins v1.1.1
 	github.com/containers/buildah v1.28.1-0.20221130132810-cf661299d14f
-	github.com/containers/common v0.50.2-0.20221215152004-4a63cf13ee8d
+	github.com/containers/common v0.50.2-0.20221216120044-ef7e0d6f3002
 	github.com/containers/conmon v2.0.20+incompatible
-	github.com/containers/image/v5 v5.23.1-0.20221215093114-15fbbcf9f484
+	github.com/containers/image/v5 v5.23.1-0.20221216122512-3963f229df32
 	github.com/containers/ocicrypt v1.1.6
 	github.com/containers/psgo v1.8.0
 	github.com/containers/storage v1.44.1-0.20221215163359-b0949d90efad
@@ -78,7 +78,7 @@ require (
 	github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d // indirect
 	github.com/chzyer/readline v1.5.1 // indirect
 	github.com/containerd/cgroups v1.0.4 // indirect
-	github.com/containerd/containerd v1.6.12 // indirect
+	github.com/containerd/containerd v1.6.13 // indirect
 	github.com/containerd/stargz-snapshotter/estargz v0.13.0 // indirect
 	github.com/containers/libtrust v0.0.0-20200511145503-9c3a6c22cd9a // indirect
 	github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f // indirect
