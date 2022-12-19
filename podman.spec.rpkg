@@ -144,7 +144,6 @@ connections as well.
 %package quadlet
 Summary: Easily create systemd services using %{name}
 Requires: %{name} = %{epoch}:%{version}-%{release}
-Requires(pre):  /usr/sbin/useradd
 Conflicts: quadlet
 
 %description quadlet
