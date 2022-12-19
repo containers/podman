@@ -63,8 +63,6 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 
 	if s.Remove {
 		configSpec.Annotations[define.InspectAnnotationAutoremove] = define.InspectResponseTrue
-	} else {
-		configSpec.Annotations[define.InspectAnnotationAutoremove] = define.InspectResponseFalse
 	}
 
 	if len(s.VolumesFrom) > 0 {
@@ -73,14 +71,10 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 
 	if s.Privileged {
 		configSpec.Annotations[define.InspectAnnotationPrivileged] = define.InspectResponseTrue
-	} else {
-		configSpec.Annotations[define.InspectAnnotationPrivileged] = define.InspectResponseFalse
 	}
 
 	if s.Init {
 		configSpec.Annotations[define.InspectAnnotationInit] = define.InspectResponseTrue
-	} else {
-		configSpec.Annotations[define.InspectAnnotationInit] = define.InspectResponseFalse
 	}
 
 	if s.OOMScoreAdj != nil {

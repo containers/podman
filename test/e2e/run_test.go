@@ -335,7 +335,7 @@ var _ = Describe("Podman run", func() {
 		Expect(result).Should(Exit(0))
 		conData := result.InspectContainerToJSON()
 		Expect(conData[0]).To(HaveField("Path", "ls"))
-		Expect(conData[0].Config.Annotations).To(HaveKeyWithValue("io.podman.annotations.init", "FALSE"))
+		Expect(conData[0].Config.Annotations).To(Not(HaveKey("io.podman.annotations.init")))
 	})
 
 	forbidGetCWDSeccompProfile := func() string {

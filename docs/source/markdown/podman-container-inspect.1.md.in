@@ -202,11 +202,6 @@ $ podman container inspect foobar
             "Annotations": {
                 "io.container.manager": "libpod",
                 "io.kubernetes.cri-o.Created": "2021-09-16T06:09:08.936623325-04:00",
-                "io.kubernetes.cri-o.TTY": "false",
-                "io.podman.annotations.autoremove": "FALSE",
-                "io.podman.annotations.init": "FALSE",
-                "io.podman.annotations.privileged": "FALSE",
-                "io.podman.annotations.publish-all": "FALSE",
                 "org.opencontainers.image.stopSignal": "15"
             },
             "StopSignal": 15,

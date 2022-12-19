@@ -53,12 +53,6 @@ json.dump(yaml.safe_load(sys.stdin), sys.stdout)'
 apiVersion | =  | v1
 kind       | =  | Pod
 
-metadata.annotations.\"io.kubernetes.cri-o.TTY/$cname\"           | =  | false
-metadata.annotations.\"io.podman.annotations.autoremove/$cname\"  | =  | FALSE
-metadata.annotations.\"io.podman.annotations.init/$cname\"        | =  | FALSE
-metadata.annotations.\"io.podman.annotations.privileged/$cname\"  | =  | FALSE
-metadata.annotations.\"io.podman.annotations.publish-all/$cname\" | =  | FALSE
-
 metadata.creationTimestamp | =~ | [0-9T:-]\\+Z
 metadata.labels.app        | =  | ${cname}-pod
 metadata.name              | =  | ${cname}-pod
@@ -111,16 +105,6 @@ metadata.annotations.\"io.kubernetes.cri-o.ContainerType/$cname1\" | =  | contai
 metadata.annotations.\"io.kubernetes.cri-o.ContainerType/$cname2\" | =  | container
 metadata.annotations.\"io.kubernetes.cri-o.SandboxID/$cname1\"     | =~ | [0-9a-f]\\{56\\}
 metadata.annotations.\"io.kubernetes.cri-o.SandboxID/$cname2\"     | =~ | [0-9a-f]\\{56\\}
-metadata.annotations.\"io.kubernetes.cri-o.TTY/$cname1\"           | =  | false
-metadata.annotations.\"io.kubernetes.cri-o.TTY/$cname2\"           | =  | false
-metadata.annotations.\"io.podman.annotations.autoremove/$cname1\"  | =  | FALSE
-metadata.annotations.\"io.podman.annotations.autoremove/$cname2\"  | =  | FALSE
-metadata.annotations.\"io.podman.annotations.init/$cname1\"        | =  | FALSE
-metadata.annotations.\"io.podman.annotations.init/$cname2\"        | =  | FALSE
-metadata.annotations.\"io.podman.annotations.privileged/$cname1\"  | =  | FALSE
-metadata.annotations.\"io.podman.annotations.privileged/$cname2\"  | =  | FALSE
-metadata.annotations.\"io.podman.annotations.publish-all/$cname1\" | =  | FALSE
-metadata.annotations.\"io.podman.annotations.publish-all/$cname2\" | =  | FALSE
 
 metadata.creationTimestamp | =~ | [0-9T:-]\\+Z
 metadata.labels.app        | =  | ${pname}
