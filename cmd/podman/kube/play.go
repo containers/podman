@@ -73,6 +73,7 @@ var (
   podman play kube --creds user:password --seccomp-profile-root /custom/path apache.yml
   podman play kube https://example.com/nginx.yml`,
 	}
+	logDriverFlagName = "log-driver"
 )
 
 func init() {
@@ -116,7 +117,6 @@ func playFlags(cmd *cobra.Command) {
 	flags.IPSliceVar(&playOptions.StaticIPs, staticIPFlagName, nil, "Static IP addresses to assign to the pods")
 	_ = cmd.RegisterFlagCompletionFunc(staticIPFlagName, completion.AutocompleteNone)
 
-	logDriverFlagName := "log-driver"
 	flags.StringVar(&playOptions.LogDriver, logDriverFlagName, common.LogDriver(), "Logging driver for the container")
 	_ = cmd.RegisterFlagCompletionFunc(logDriverFlagName, common.AutocompleteLogDriver)
 
@@ -245,6 +245,15 @@ func play(cmd *cobra.Command, args []string) error {
 
 	if playOptions.Force && !playOptions.Down {
 		return errors.New("--force may be specified only with --down")
+	}
+
+	// When running under Systemd use passthrough as the default log-driver.
+	// When doing so, the journal socket is passed to the containers as-is which has two advantages:
+	// 1. journald can see who the actual sender of the log event is,
+	//    rather than thinking everything comes from the conmon process
+	// 2. conmon will not have to copy all the log data
+	if !cmd.Flags().Changed(logDriverFlagName) && playOptions.ServiceContainer {
+		playOptions.LogDriver = define.PassthroughLogging
 	}
 
 	reader, err := readerFromArg(args[0])

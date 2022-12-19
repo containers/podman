@@ -225,7 +225,7 @@ EOF
     wait_for_file $_SOCAT_LOG
 
     # Will run until all containers have stopped.
-    run_podman play kube --service-container=true $yaml_source
+    run_podman play kube --service-container=true --log-driver journald $yaml_source
     run_podman container wait $service_container test_pod-test
 
     # Make sure the containers have the correct policy.
@@ -302,7 +302,7 @@ EOF
     # Run `play kube` in the background as it will wait for all containers to
     # send the READY=1 message.
     timeout --foreground -v --kill=10 60 \
-        $PODMAN play kube --service-container=true $yaml_source &>/dev/null &
+        $PODMAN play kube --service-container=true --log-driver journald $yaml_source &>/dev/null &
 
     # Wait for both containers to be running
     for i in $(seq 1 20); do
