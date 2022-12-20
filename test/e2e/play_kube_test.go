@@ -4435,7 +4435,7 @@ cgroups="disabled"`), 0644)
 		defer os.Unsetenv("CONTAINERS_CONF")
 		os.Setenv("CONTAINERS_CONF", conffile)
 		err = writeYaml(simplePodYaml, kubeYaml)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
 		kube.WaitWithDefaultTimeout()

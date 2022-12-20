@@ -2023,7 +2023,7 @@ WORKDIR /madethis`, BB)
 		bitSize := 1024
 		keyFileName := filepath.Join(podmanTest.TempDir, "key")
 		publicKeyFileName, privateKeyFileName, err := WriteRSAKeyPair(keyFileName, bitSize)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		imgPath := "localhost:5000/my-alpine"
 		session = podmanTest.Podman([]string{"push", "--encryption-key", "jwe:" + publicKeyFileName, "--tls-verify=false", "--remove-signatures", ALPINE, imgPath})

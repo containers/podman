@@ -567,11 +567,11 @@ var _ = Describe("Podman pull", func() {
 			bitSize := 1024
 			keyFileName := filepath.Join(podmanTest.TempDir, "key")
 			publicKeyFileName, privateKeyFileName, err := WriteRSAKeyPair(keyFileName, bitSize)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 
 			wrongKeyFileName := filepath.Join(podmanTest.TempDir, "wrong_key")
 			_, wrongPrivateKeyFileName, err := WriteRSAKeyPair(wrongKeyFileName, bitSize)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 
 			session := podmanTest.Podman([]string{"push", "--encryption-key", "jwe:" + publicKeyFileName, "--tls-verify=false", "--remove-signatures", ALPINE, imgPath})
 			session.WaitWithDefaultTimeout()

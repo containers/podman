@@ -209,7 +209,7 @@ func (t *quadletTestcase) assertSymlink(args []string, unit *parser.UnitFile) bo
 }
 
 func (t *quadletTestcase) doAssert(check []string, unit *parser.UnitFile, session *PodmanSessionIntegration) error {
-	Expect(len(check)).To(BeNumerically(">=", 1))
+	Expect(check).ToNot(BeEmpty())
 	op := check[0]
 	args := make([]string, 0)
 	for _, a := range check[1:] {
