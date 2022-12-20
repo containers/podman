@@ -172,7 +172,7 @@ func joinUserAndMountNS(pid uint, pausePid string) (bool, int, error) {
 	if err != nil {
 		return false, 0, err
 	}
-	if hasCapSysAdmin || os.Getenv("_CONTAINERS_USERNS_CONFIGURED") != "" {
+	if (os.Geteuid() == 0 && hasCapSysAdmin) || os.Getenv("_CONTAINERS_USERNS_CONFIGURED") != "" {
 		return false, 0, nil
 	}
 
@@ -248,7 +248,7 @@ func becomeRootInUserNS(pausePid, fileToRead string, fileOutput *os.File) (_ boo
 		return false, 0, err
 	}
 
-	if hasCapSysAdmin || os.Getenv("_CONTAINERS_USERNS_CONFIGURED") != "" {
+	if (os.Geteuid() == 0 && hasCapSysAdmin) || os.Getenv("_CONTAINERS_USERNS_CONFIGURED") != "" {
 		if os.Getenv("_CONTAINERS_USERNS_CONFIGURED") == "init" {
 			return false, 0, runInUser()
 		}

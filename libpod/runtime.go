@@ -420,13 +420,14 @@ func makeRuntime(runtime *Runtime) (retErr error) {
 	}
 	logrus.Debugf("Set libpod namespace to %q", runtime.config.Engine.Namespace)
 
-	hasCapSysAdmin, err := unshare.HasCapSysAdmin()
-	if err != nil {
-		return err
+	needsUserns := os.Geteuid() != 0
+	if !needsUserns {
+		hasCapSysAdmin, err := unshare.HasCapSysAdmin()
+		if err != nil {
+			return err
+		}
+		needsUserns = !hasCapSysAdmin
 	}
-
-	needsUserns := !hasCapSysAdmin
-
 	// Set up containers/storage
 	var store storage.Store
 	if needsUserns {
