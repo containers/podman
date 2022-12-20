@@ -871,7 +871,8 @@ ifneq (,$(findstring systemd,$(BUILDTAGS)))
 PODMAN_UNIT_FILES = contrib/systemd/auto-update/podman-auto-update.service \
 		    contrib/systemd/system/podman.service \
 		    contrib/systemd/system/podman-restart.service \
-		    contrib/systemd/system/podman-kube@.service
+		    contrib/systemd/system/podman-kube@.service \
+		    contrib/systemd/system/podman-clean-transient.service
 
 %.service: %.service.in
 	sed -e 's;@@PODMAN@@;$(BINDIR)/podman;g' $< >$@.tmp.$$ \
@@ -893,6 +894,7 @@ install.systemd: $(PODMAN_UNIT_FILES)
 	install ${SELINUXOPT} -m 644 contrib/systemd/system/podman.service ${DESTDIR}${SYSTEMDDIR}/podman.service
 	install ${SELINUXOPT} -m 644 contrib/systemd/system/podman-restart.service ${DESTDIR}${SYSTEMDDIR}/podman-restart.service
 	install ${SELINUXOPT} -m 644 contrib/systemd/system/podman-kube@.service ${DESTDIR}${SYSTEMDDIR}/podman-kube@.service
+	install ${SELINUXOPT} -m 644 contrib/systemd/system/podman-clean-transient.service ${DESTDIR}${SYSTEMDDIR}/podman-clean-transient.service
 	rm -f $(PODMAN_UNIT_FILES)
 else
 install.systemd:

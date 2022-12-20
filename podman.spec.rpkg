@@ -252,6 +252,7 @@ fi
 %{_unitdir}/%{name}.socket
 %{_unitdir}/%{name}-restart.service
 %{_unitdir}/%{name}-kube@.service
+%{_unitdir}/%{name}-clean-transient.service
 %{_userunitdir}/%{name}-auto-update.service
 %{_userunitdir}/%{name}-auto-update.timer
 %{_userunitdir}/%{name}.service
