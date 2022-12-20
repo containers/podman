@@ -53,8 +53,8 @@ type BudResults struct {
 	Authfile            string
 	BuildArg            []string
 	BuildContext        []string
-	CacheFrom           string
-	CacheTo             string
+	CacheFrom           []string
+	CacheTo             []string
 	CacheTTL            string
 	CertDir             string
 	Compress            bool
@@ -202,8 +202,8 @@ func GetBudFlags(flags *BudResults) pflag.FlagSet {
 	fs.StringArrayVar(&flags.OCIHooksDir, "hooks-dir", []string{}, "set the OCI hooks directory path (may be set multiple times)")
 	fs.StringArrayVar(&flags.BuildArg, "build-arg", []string{}, "`argument=value` to supply to the builder")
 	fs.StringArrayVar(&flags.BuildContext, "build-context", []string{}, "`argument=value` to supply additional build context to the builder")
-	fs.StringVar(&flags.CacheFrom, "cache-from", "", "remote repository to utilise as potential cache source.")
-	fs.StringVar(&flags.CacheTo, "cache-to", "", "remote repository to utilise as potential cache destination.")
+	fs.StringArrayVar(&flags.CacheFrom, "cache-from", []string{}, "remote repository list to utilise as potential cache source.")
+	fs.StringArrayVar(&flags.CacheTo, "cache-to", []string{}, "remote repository list to utilise as potential cache destination.")
 	fs.StringVar(&flags.CacheTTL, "cache-ttl", "", "only consider cache images under specified duration.")
 	fs.StringVar(&flags.CertDir, "cert-dir", "", "use certificates at the specified path to access the registry")
 	fs.BoolVar(&flags.Compress, "compress", false, "this is a legacy option, which has no effect on the image")

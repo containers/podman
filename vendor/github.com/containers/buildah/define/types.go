@@ -5,7 +5,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	urlpkg "net/url"
 	"os"
@@ -121,7 +121,7 @@ func TempDirForURL(dir, prefix, url string) (name string, subdir string, err err
 		url != "-" {
 		return "", "", nil
 	}
-	name, err = ioutil.TempDir(dir, prefix)
+	name, err = os.MkdirTemp(dir, prefix)
 	if err != nil {
 		return "", "", fmt.Errorf("creating temporary directory for %q: %w", url, err)
 	}
@@ -255,7 +255,7 @@ func downloadToDirectory(url, dir string) error {
 			return err
 		}
 		defer resp1.Body.Close()
-		body, err := ioutil.ReadAll(resp1.Body)
+		body, err := io.ReadAll(resp1.Body)
 		if err != nil {
 			return err
 		}
@@ -271,7 +271,7 @@ func downloadToDirectory(url, dir string) error {
 func stdinToDirectory(dir string) error {
 	logrus.Debugf("extracting stdin to %q", dir)
 	r := bufio.NewReader(os.Stdin)
-	b, err := ioutil.ReadAll(r)
+	b, err := io.ReadAll(r)
 	if err != nil {
 		return fmt.Errorf("failed to read from stdin: %w", err)
 	}

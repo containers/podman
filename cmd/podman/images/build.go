@@ -527,16 +527,16 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *buil
 			}
 		}
 	}
-	var cacheTo reference.Named
-	var cacheFrom reference.Named
+	var cacheTo []reference.Named
+	var cacheFrom []reference.Named
 	if c.Flag("cache-to").Changed {
-		cacheTo, err = parse.RepoNameToNamedReference(flags.CacheTo)
+		cacheTo, err = parse.RepoNamesToNamedReferences(flags.CacheTo)
 		if err != nil {
 			return nil, fmt.Errorf("unable to parse value provided `%s` to --cache-to: %w", flags.CacheTo, err)
 		}
 	}
 	if c.Flag("cache-from").Changed {
-		cacheFrom, err = parse.RepoNameToNamedReference(flags.CacheFrom)
+		cacheFrom, err = parse.RepoNamesToNamedReferences(flags.CacheFrom)
 		if err != nil {
 			return nil, fmt.Errorf("unable to parse value provided `%s` to --cache-from: %w", flags.CacheTo, err)
 		}

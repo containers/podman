@@ -400,47 +400,30 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Docker's newer clients popuates `cacheFrom` and `cacheTo` parameter
-	// by default as empty array for all commands but buildah's design of
-	// distributed cache expects this to be a repo not image hence parse
-	// only the first populated repo and ignore if empty array.
-	// Read more here: https://github.com/containers/podman/issues/15928
-	// TODO: Remove this when buildah's API is extended.
-	compatIgnoreForcedCacheOptions := func(queryStr string) string {
-		query := queryStr
-		if strings.HasPrefix(query, "[") {
-			query = ""
-			var arr []string
-			parseErr := json.Unmarshal([]byte(query), &arr)
-			if parseErr != nil {
-				if len(arr) > 0 {
-					query = arr[0]
-				}
-			}
-		}
-		return query
-	}
-
-	var cacheFrom reference.Named
+	cacheFrom := []reference.Named{}
 	if _, found := r.URL.Query()["cachefrom"]; found {
-		cacheFromQuery := compatIgnoreForcedCacheOptions(query.CacheFrom)
-		if cacheFromQuery != "" {
-			cacheFrom, err = parse.RepoNameToNamedReference(cacheFromQuery)
-			if err != nil {
-				utils.BadRequest(w, "cacheFrom", cacheFromQuery, err)
-				return
-			}
+		var cacheFromSrcList []string
+		if err := json.Unmarshal([]byte(query.CacheFrom), &cacheFromSrcList); err != nil {
+			utils.BadRequest(w, "cacheFrom", query.CacheFrom, err)
+			return
+		}
+		cacheFrom, err = parse.RepoNamesToNamedReferences(cacheFromSrcList)
+		if err != nil {
+			utils.BadRequest(w, "cacheFrom", query.CacheFrom, err)
+			return
 		}
 	}
-	var cacheTo reference.Named
+	cacheTo := []reference.Named{}
 	if _, found := r.URL.Query()["cacheto"]; found {
-		cacheToQuery := compatIgnoreForcedCacheOptions(query.CacheTo)
-		if cacheToQuery != "" {
-			cacheTo, err = parse.RepoNameToNamedReference(cacheToQuery)
-			if err != nil {
-				utils.BadRequest(w, "cacheto", cacheToQuery, err)
-				return
-			}
+		var cacheToDestList []string
+		if err := json.Unmarshal([]byte(query.CacheTo), &cacheToDestList); err != nil {
+			utils.BadRequest(w, "cacheTo", query.CacheTo, err)
+			return
+		}
+		cacheTo, err = parse.RepoNamesToNamedReferences(cacheToDestList)
+		if err != nil {
+			utils.BadRequest(w, "cacheto", query.CacheTo, err)
+			return
 		}
 	}
 	var cacheTTL time.Duration

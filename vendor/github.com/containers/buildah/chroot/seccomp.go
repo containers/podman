@@ -5,7 +5,7 @@ package chroot
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 
 	"github.com/containers/common/pkg/seccomp"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
@@ -187,7 +187,7 @@ func setupSeccomp(spec *specs.Spec, seccompProfilePath string) error {
 		}
 		spec.Linux.Seccomp = seccompConfig
 	default:
-		seccompProfile, err := ioutil.ReadFile(seccompProfilePath)
+		seccompProfile, err := os.ReadFile(seccompProfilePath)
 		if err != nil {
 			return fmt.Errorf("opening seccomp profile failed: %w", err)
 		}

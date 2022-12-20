@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
-	"io/ioutil"
 	"net"
 	"os"
 	"os/user"
@@ -573,7 +572,7 @@ func copierWithSubprocess(bulkReader io.Reader, bulkWriter io.Writer, req reques
 		bulkReader = bytes.NewReader([]byte{})
 	}
 	if bulkWriter == nil {
-		bulkWriter = ioutil.Discard
+		bulkWriter = io.Discard
 	}
 	cmd := reexec.Command(copierCommand)
 	stdinRead, stdinWrite, err := os.Pipe()

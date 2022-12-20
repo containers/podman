@@ -178,7 +178,7 @@ type runMountArtifacts struct {
 	// SSHAuthSock is the path to the ssh auth sock inside the container
 	SSHAuthSock string
 	// TargetLocks to be unlocked if there are any.
-	TargetLocks []lockfile.Locker
+	TargetLocks []*lockfile.LockFile
 }
 
 // RunMountInfo are the available run mounts for this run

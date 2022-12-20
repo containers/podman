@@ -231,7 +231,15 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 		params.Set("manifest", options.Manifest)
 	}
 	if options.CacheFrom != nil {
-		params.Set("cachefrom", options.CacheFrom.String())
+		cacheFrom := []string{}
+		for _, cacheSrc := range options.CacheFrom {
+			cacheFrom = append(cacheFrom, cacheSrc.String())
+		}
+		cacheFromJSON, err := jsoniter.MarshalToString(cacheFrom)
+		if err != nil {
+			return nil, err
+		}
+		params.Set("cachefrom", cacheFromJSON)
 	}
 
 	switch options.SkipUnusedStages {
@@ -242,7 +250,15 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 	}
 
 	if options.CacheTo != nil {
-		params.Set("cacheto", options.CacheTo.String())
+		cacheTo := []string{}
+		for _, cacheSrc := range options.CacheTo {
+			cacheTo = append(cacheTo, cacheSrc.String())
+		}
+		cacheToJSON, err := jsoniter.MarshalToString(cacheTo)
+		if err != nil {
+			return nil, err
+		}
+		params.Set("cacheto", cacheToJSON)
 	}
 	if int64(options.CacheTTL) != 0 {
 		params.Set("cachettl", options.CacheTTL.String())

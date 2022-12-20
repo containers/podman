@@ -188,8 +188,8 @@ func GetBindMount(ctx *types.SystemContext, args []string, contextDir string, st
 
 // GetCacheMount parses a single cache mount entry from the --mount flag.
 //
-// If this function succeeds and returns a non-nil lockfile.Locker, the caller must unlock it (when??).
-func GetCacheMount(args []string, store storage.Store, imageMountLabel string, additionalMountPoints map[string]internal.StageMountDetails) (specs.Mount, lockfile.Locker, error) {
+// If this function succeeds and returns a non-nil *lockfile.LockFile, the caller must unlock it (when??).
+func GetCacheMount(args []string, store storage.Store, imageMountLabel string, additionalMountPoints map[string]internal.StageMountDetails) (specs.Mount, *lockfile.LockFile, error) {
 	var err error
 	var mode uint64
 	var buildahLockFilesDir string
@@ -364,7 +364,7 @@ func GetCacheMount(args []string, store storage.Store, imageMountLabel string, a
 		}
 	}
 
-	var targetLock lockfile.Locker // = nil
+	var targetLock *lockfile.LockFile // = nil
 	succeeded := false
 	defer func() {
 		if !succeeded && targetLock != nil {
@@ -374,7 +374,7 @@ func GetCacheMount(args []string, store storage.Store, imageMountLabel string, a
 	switch sharing {
 	case "locked":
 		// lock parent cache
-		lockfile, err := lockfile.GetLockfile(filepath.Join(buildahLockFilesDir, BuildahCacheLockfile))
+		lockfile, err := lockfile.GetLockFile(filepath.Join(buildahLockFilesDir, BuildahCacheLockfile))
 		if err != nil {
 			return newMount, nil, fmt.Errorf("unable to acquire lock when sharing mode is locked: %w", err)
 		}
@@ -497,7 +497,7 @@ func Volume(volume string) (specs.Mount, error) {
 }
 
 // UnlockLockArray is a helper for cleaning up after GetVolumes and the like.
-func UnlockLockArray(locks []lockfile.Locker) {
+func UnlockLockArray(locks []*lockfile.LockFile) {
 	for _, lock := range locks {
 		lock.Unlock()
 	}
@@ -505,8 +505,8 @@ func UnlockLockArray(locks []lockfile.Locker) {
 
 // GetVolumes gets the volumes from --volume and --mount
 //
-// If this function succeeds, the caller must unlock the returned lockfile.Lockers if any (when??).
-func GetVolumes(ctx *types.SystemContext, store storage.Store, volumes []string, mounts []string, contextDir string) ([]specs.Mount, []string, []lockfile.Locker, error) {
+// If this function succeeds, the caller must unlock the returned *lockfile.LockFile s if any (when??).
+func GetVolumes(ctx *types.SystemContext, store storage.Store, volumes []string, mounts []string, contextDir string) ([]specs.Mount, []string, []*lockfile.LockFile, error) {
 	unifiedMounts, mountedImages, targetLocks, err := getMounts(ctx, store, mounts, contextDir)
 	if err != nil {
 		return nil, mountedImages, nil, err
@@ -541,13 +541,13 @@ func GetVolumes(ctx *types.SystemContext, store storage.Store, volumes []string,
 // buildah run --mount type=bind,src=/etc/resolv.conf,target=/etc/resolv.conf ...
 // buildah run --mount type=tmpfs,target=/dev/shm ...
 //
-// If this function succeeds, the caller must unlock the returned lockfile.Lockers if any (when??).
-func getMounts(ctx *types.SystemContext, store storage.Store, mounts []string, contextDir string) (map[string]specs.Mount, []string, []lockfile.Locker, error) {
+// If this function succeeds, the caller must unlock the returned *lockfile.LockFile s if any (when??).
+func getMounts(ctx *types.SystemContext, store storage.Store, mounts []string, contextDir string) (map[string]specs.Mount, []string, []*lockfile.LockFile, error) {
 	// If `type` is not set default to "bind"
 	mountType := define.TypeBind
 	finalMounts := make(map[string]specs.Mount)
 	mountedImages := make([]string, 0)
-	targetLocks := make([]lockfile.Locker, 0)
+	targetLocks := make([]*lockfile.LockFile, 0)
 	succeeded := false
 	defer func() {
 		if !succeeded {

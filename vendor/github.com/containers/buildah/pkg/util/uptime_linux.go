@@ -3,12 +3,12 @@ package util
 import (
 	"bytes"
 	"errors"
-	"io/ioutil"
 	"time"
+	"os"
 )
 
 func ReadUptime() (time.Duration, error) {
-	buf, err := ioutil.ReadFile("/proc/uptime")
+	buf, err := os.ReadFile("/proc/uptime")
 	if err != nil {
 		return 0, err
 	}
