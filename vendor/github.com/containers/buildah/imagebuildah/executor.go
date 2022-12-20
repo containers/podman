@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"sort"
 	"strconv"
@@ -58,8 +57,8 @@ var builtinAllowedBuildArgs = map[string]bool{
 // interface.  It coordinates the entire build by using one or more
 // StageExecutors to handle each stage of the build.
 type Executor struct {
-	cacheFrom                      reference.Named
-	cacheTo                        reference.Named
+	cacheFrom                      []reference.Named
+	cacheTo                        []reference.Named
 	cacheTTL                       time.Duration
 	containerSuffix                string
 	logger                         *logrus.Logger
@@ -200,7 +199,7 @@ func newExecutor(logger *logrus.Logger, logPrefix string, store storage.Store, o
 
 	writer := options.ReportWriter
 	if options.Quiet {
-		writer = ioutil.Discard
+		writer = io.Discard
 	}
 
 	var rusageLogFile io.Writer
@@ -589,7 +588,7 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) (image
 
 	stdout := b.out
 	if b.quiet {
-		b.out = ioutil.Discard
+		b.out = io.Discard
 	}
 
 	cleanup := func() error {
@@ -954,7 +953,7 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) (image
 	}
 	logrus.Debugf("printing final image id %q", imageID)
 	if b.iidfile != "" {
-		if err = ioutil.WriteFile(b.iidfile, []byte("sha256:"+imageID), 0644); err != nil {
+		if err = os.WriteFile(b.iidfile, []byte("sha256:"+imageID), 0644); err != nil {
 			return imageID, ref, fmt.Errorf("failed to write image ID to file %q: %w", b.iidfile, err)
 		}
 	} else {

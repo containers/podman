@@ -1729,42 +1729,48 @@ func (s *StageExecutor) generateCacheKey(ctx context.Context, currNode *parser.N
 
 // cacheImageReference is internal function which generates ImageReference from Named repo sources
 // and a tag.
-func cacheImageReference(repo reference.Named, cachekey string) (types.ImageReference, error) {
-	tagged, err := reference.WithTag(repo, cachekey)
-	if err != nil {
-		return nil, fmt.Errorf("failed generating tagged reference for %q: %w", repo, err)
+func cacheImageReferences(repos []reference.Named, cachekey string) ([]types.ImageReference, error) {
+	var result []types.ImageReference
+	for _, repo := range repos {
+		tagged, err := reference.WithTag(repo, cachekey)
+		if err != nil {
+			return nil, fmt.Errorf("failed generating tagged reference for %q: %w", repo, err)
+		}
+		dest, err := imagedocker.NewReference(tagged)
+		if err != nil {
+			return nil, fmt.Errorf("failed generating docker reference for %q: %w", tagged, err)
+		}
+		result = append(result, dest)
 	}
-	dest, err := imagedocker.NewReference(tagged)
-	if err != nil {
-		return nil, fmt.Errorf("failed generating docker reference for %q: %w", tagged, err)
-	}
-	return dest, nil
+	return result, nil
 }
 
 // pushCache takes the image id of intermediate image and attempts
 // to perform push at the remote repository with cacheKey as the tag.
 // Returns error if fails otherwise returns nil.
 func (s *StageExecutor) pushCache(ctx context.Context, src, cacheKey string) error {
-	dest, err := cacheImageReference(s.executor.cacheTo, cacheKey)
+	destList, err := cacheImageReferences(s.executor.cacheTo, cacheKey)
 	if err != nil {
 		return err
 	}
-	logrus.Debugf("trying to push cache to dest: %+v from src:%+v", dest, src)
-	options := buildah.PushOptions{
-		Compression:         s.executor.compression,
-		SignaturePolicyPath: s.executor.signaturePolicyPath,
-		Store:               s.executor.store,
-		SystemContext:       s.executor.systemContext,
-		BlobDirectory:       s.executor.blobDirectory,
-		SignBy:              s.executor.signBy,
-		MaxRetries:          s.executor.maxPullPushRetries,
-		RetryDelay:          s.executor.retryPullPushDelay,
+	for _, dest := range destList {
+		logrus.Debugf("trying to push cache to dest: %+v from src:%+v", dest, src)
+		options := buildah.PushOptions{
+			Compression:         s.executor.compression,
+			SignaturePolicyPath: s.executor.signaturePolicyPath,
+			Store:               s.executor.store,
+			SystemContext:       s.executor.systemContext,
+			BlobDirectory:       s.executor.blobDirectory,
+			SignBy:              s.executor.signBy,
+			MaxRetries:          s.executor.maxPullPushRetries,
+			RetryDelay:          s.executor.retryPullPushDelay,
+		}
+		ref, digest, err := buildah.Push(ctx, src, dest, options)
+		if err != nil {
+			return fmt.Errorf("failed pushing cache to %q: %w", dest, err)
+		}
+		logrus.Debugf("successfully pushed cache to dest: %+v with ref:%+v and digest: %v", dest, ref, digest)
 	}
-	ref, digest, err := buildah.Push(ctx, src, dest, options)
-	if err != nil {
-		return fmt.Errorf("failed pushing cache to %q: %w", dest, err)
-	}
-	logrus.Debugf("successfully pushed cache to dest: %+v with ref:%+v and digest: %v", dest, ref, digest)
 	return nil
 }
 
@@ -1775,29 +1781,33 @@ func (s *StageExecutor) pushCache(ctx context.Context, src, cacheKey string) err
 // image was pulled function returns image id otherwise returns empty
 // string "" or error if any error was encontered while pulling the cache.
 func (s *StageExecutor) pullCache(ctx context.Context, cacheKey string) (string, error) {
-	src, err := cacheImageReference(s.executor.cacheFrom, cacheKey)
+	srcList, err := cacheImageReferences(s.executor.cacheFrom, cacheKey)
 	if err != nil {
 		return "", err
 	}
-	logrus.Debugf("trying to pull cache from remote repo: %+v", src.DockerReference())
-	options := buildah.PullOptions{
-		SignaturePolicyPath: s.executor.signaturePolicyPath,
-		Store:               s.executor.store,
-		SystemContext:       s.executor.systemContext,
-		BlobDirectory:       s.executor.blobDirectory,
-		MaxRetries:          s.executor.maxPullPushRetries,
-		RetryDelay:          s.executor.retryPullPushDelay,
-		AllTags:             false,
-		ReportWriter:        nil,
-		PullPolicy:          define.PullIfNewer,
+	for _, src := range srcList {
+		logrus.Debugf("trying to pull cache from remote repo: %+v", src.DockerReference())
+		options := buildah.PullOptions{
+			SignaturePolicyPath: s.executor.signaturePolicyPath,
+			Store:               s.executor.store,
+			SystemContext:       s.executor.systemContext,
+			BlobDirectory:       s.executor.blobDirectory,
+			MaxRetries:          s.executor.maxPullPushRetries,
+			RetryDelay:          s.executor.retryPullPushDelay,
+			AllTags:             false,
+			ReportWriter:        nil,
+			PullPolicy:          define.PullIfNewer,
+		}
+		id, err := buildah.Pull(ctx, src.DockerReference().String(), options)
+		if err != nil {
+			logrus.Debugf("failed pulling cache from source %s: %v", src, err)
+			continue // failed pulling this one try next
+			//return "", fmt.Errorf("failed while pulling cache from %q: %w", src, err)
+		}
+		logrus.Debugf("successfully pulled cache from repo %s: %s", src, id)
+		return id, nil
 	}
-	id, err := buildah.Pull(ctx, src.DockerReference().String(), options)
-	if err != nil {
-		logrus.Debugf("failed pulling cache from source %s: %v", src, err)
-		return "", fmt.Errorf("failed while pulling cache from %q: %w", src, err)
-	}
-	logrus.Debugf("successfully pulled cache from repo %s: %s", src, id)
-	return id, nil
+	return "", fmt.Errorf("failed pulling cache from all available sources %q", srcList)
 }
 
 // intermediateImageExists returns true if an intermediate image of currNode exists in the image store from a previous build.

@@ -141,10 +141,10 @@ type BuildOptions struct {
 	TransientMounts []string
 	// CacheFrom specifies any remote repository which can be treated as
 	// potential cache source.
-	CacheFrom reference.Named
+	CacheFrom []reference.Named
 	// CacheTo specifies any remote repository which can be treated as
 	// potential cache destination.
-	CacheTo reference.Named
+	CacheTo []reference.Named
 	// CacheTTL specifies duration, if specified using `--cache-ttl` then
 	// cache intermediate images under this duration will be considered as
 	// valid cache sources and images outside this duration will be ignored.

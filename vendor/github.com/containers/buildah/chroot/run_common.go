@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -690,7 +689,7 @@ func runUsingChrootExecMain() {
 			os.Exit(1)
 		}
 	} else {
-		setgroups, _ := ioutil.ReadFile("/proc/self/setgroups")
+		setgroups, _ := os.ReadFile("/proc/self/setgroups")
 		if strings.Trim(string(setgroups), "\n") != "deny" {
 			logrus.Debugf("clearing supplemental groups")
 			if err = syscall.Setgroups([]int{}); err != nil {

@@ -16,6 +16,7 @@ import (
 
 	"github.com/containerd/containerd/platforms"
 	"github.com/containers/buildah/define"
+	securejoin "github.com/cyphar/filepath-securejoin"
 	internalParse "github.com/containers/buildah/internal/parse"
 	"github.com/containers/buildah/pkg/sshagent"
 	"github.com/containers/common/pkg/config"
@@ -50,16 +51,20 @@ const (
 	BuildahCacheDir = "buildah-cache"
 )
 
-// RepoNameToNamedReference parse the raw string to Named reference
-func RepoNameToNamedReference(dest string) (reference.Named, error) {
-	named, err := reference.ParseNormalizedNamed(dest)
-	if err != nil {
-		return nil, fmt.Errorf("invalid repo %q: must contain registry and repository: %w", dest, err)
+// RepoNamesToNamedReferences parse the raw string to Named reference
+func RepoNamesToNamedReferences(destList []string) ([]reference.Named, error) {
+	var result []reference.Named
+	for _, dest := range destList {
+		named, err := reference.ParseNormalizedNamed(dest)
+		if err != nil {
+			return nil, fmt.Errorf("invalid repo %q: must contain registry and repository: %w", dest, err)
+		}
+		if !reference.IsNameOnly(named) {
+			return nil, fmt.Errorf("repository must contain neither a tag nor digest: %v", named)
+		}
+		result = append(result, named)
 	}
-	if !reference.IsNameOnly(named) {
-		return nil, fmt.Errorf("repository must contain neither a tag nor digest: %v", named)
-	}
-	return named, nil
+	return result, nil
 }
 
 // CommonBuildOptions parses the build options from the bud cli
@@ -1103,10 +1108,16 @@ func ContainerIgnoreFile(contextDir, path string, containerFiles []string) ([]st
 			return excludes, containerfileIgnore, err
 		}
 	}
-	path = filepath.Join(contextDir, ".containerignore")
+	path, symlinkErr := securejoin.SecureJoin(contextDir, ".containerignore")
+	if symlinkErr != nil {
+		return nil, "", symlinkErr
+	}
 	excludes, err := imagebuilder.ParseIgnore(path)
 	if errors.Is(err, os.ErrNotExist) {
-		path = filepath.Join(contextDir, ".dockerignore")
+		path, symlinkErr = securejoin.SecureJoin(contextDir, ".dockerignore")
+		if symlinkErr != nil {
+			return nil, "", symlinkErr
+		}
 		excludes, err = imagebuilder.ParseIgnore(path)
 	}
 	if errors.Is(err, os.ErrNotExist) {
