@@ -434,7 +434,6 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 	annotations := make(map[string]string)
 
 	// First, add our default annotations
-	annotations[ann.TTY] = "false"
 	if c.TTY {
 		annotations[ann.TTY] = "true"
 	}
