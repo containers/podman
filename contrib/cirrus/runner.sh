@@ -101,11 +101,8 @@ function _run_bindings() {
         gitcommit_magic="/define.gitCommit=${GIT_COMMIT}"
     fi
 
-    # Subshell needed so logformatter will write output in cwd; if it runs in
-    # the subdir, .cirrus.yml will not find the html'ized log
-    (cd pkg/bindings/test && \
-         echo "$gitcommit_magic" && \
-         ginkgo -progress -trace -noColor -debug -timeout 30m -r -v) |& logformatter
+    (echo "$gitcommit_magic" && \
+        make testbindings) |& logformatter
 }
 
 function _run_docker-py() {
