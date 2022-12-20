@@ -70,13 +70,13 @@ func (ic *ContainerEngine) NetworkInspect(ctx context.Context, namesOrIds []stri
 }
 
 func (ic *ContainerEngine) NetworkReload(ctx context.Context, names []string, options entities.NetworkReloadOptions) ([]*entities.NetworkReloadReport, error) {
-	ctrs, err := getContainersByContext(options.All, options.Latest, false, names, ic.Libpod)
+	containers, err := getContainers(ic.Libpod, getContainersOptions{all: options.All, latest: options.Latest, names: names})
 	if err != nil {
 		return nil, err
 	}
 
-	reports := make([]*entities.NetworkReloadReport, 0, len(ctrs))
-	for _, ctr := range ctrs {
+	reports := make([]*entities.NetworkReloadReport, 0, len(containers))
+	for _, ctr := range containers {
 		report := new(entities.NetworkReloadReport)
 		report.Id = ctr.ID()
 		report.Err = ctr.ReloadNetwork()
