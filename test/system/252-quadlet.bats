@@ -198,6 +198,29 @@ EOF
     service_cleanup $QUADLET_SERVICE_NAME failed
 }
 
+@test "quadlet - oneshot" {
+    local quadlet_file=$PODMAN_TMPDIR/oneshot_$(random_string).container
+    cat > $quadlet_file <<EOF
+[Container]
+Image=$IMAGE
+Exec=echo INITIALIZED
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+EOF
+
+    run_quadlet "$quadlet_file"
+
+    service_setup $QUADLET_SERVICE_NAME
+
+    # Ensure we have output. Output is synced by oneshot command exit
+    run journalctl "--since=$STARTED_TIME"  SYSLOG_IDENTIFIER="$QUADLET_SYSLOG_ID"
+    is "$output" '.*INITIALIZED.*'
+
+    service_cleanup $QUADLET_SERVICE_NAME inactive
+}
+
 @test "quadlet - volume" {
     local quadlet_file=$PODMAN_TMPDIR/basic_$(random_string).volume
     cat > $quadlet_file <<EOF
