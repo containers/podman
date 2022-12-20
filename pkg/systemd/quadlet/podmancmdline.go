@@ -57,6 +57,14 @@ func (c *PodmanCmdline) addAnnotations(annotations map[string]string) {
 	c.addKeys("--annotation", annotations)
 }
 
+func (c *PodmanCmdline) addBool(arg string, val bool) {
+	if val {
+		c.add(arg)
+	} else {
+		c.addf("%s=false", arg)
+	}
+}
+
 func NewPodmanCmdline(args ...string) *PodmanCmdline {
 	c := &PodmanCmdline{
 		Args: make([]string, 0),

@@ -295,9 +295,9 @@ func ConvertContainer(container *parser.UnitFile, isUser bool) (*parser.UnitFile
 	addNetworks(container, ContainerGroup, service, podman)
 
 	// Run with a pid1 init to reap zombies by default (as most apps don't do that)
-	runInit := container.LookupBooleanWithDefault(ContainerGroup, KeyRunInit, false)
-	if runInit {
-		podman.add("--init")
+	runInit, ok := container.LookupBoolean(ContainerGroup, KeyRunInit)
+	if ok {
+		podman.addBool("--init", runInit)
 	}
 
 	// By default we handle startup notification with conmon, but allow passing it to the container with Notify=yes
@@ -345,9 +345,9 @@ func ConvertContainer(container *parser.UnitFile, isUser bool) (*parser.UnitFile
 		podman.addf("--cap-add=%s", strings.ToLower(caps))
 	}
 
-	readOnly := container.LookupBooleanWithDefault(ContainerGroup, KeyReadOnly, false)
-	if readOnly {
-		podman.add("--read-only")
+	readOnly, ok := container.LookupBoolean(ContainerGroup, KeyReadOnly)
+	if ok {
+		podman.addBool("--read-only", readOnly)
 	}
 
 	volatileTmp := container.LookupBooleanWithDefault(ContainerGroup, KeyVolatileTmp, false)

@@ -4,9 +4,7 @@
 Image=localhost/imagename
 
 # Disable all default features to get as empty podman run command as we can
-ReadOnly=no
 NoNewPrivileges=no
 DropCapability=
-RunInit=no
 VolatileTmp=no
 Timezone=
