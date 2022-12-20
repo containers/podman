@@ -130,7 +130,7 @@ var _ = Describe("Podman push", func() {
 		bitSize := 1024
 		keyFileName := filepath.Join(podmanTest.TempDir, "key")
 		publicKeyFileName, _, err := WriteRSAKeyPair(keyFileName, bitSize)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		if !IsRemote() { // Remote does not support --encryption-key
 			push = podmanTest.Podman([]string{"push", "--encryption-key", "jwe:" + publicKeyFileName, "--tls-verify=false", "--remove-signatures", ALPINE, "localhost:5000/my-alpine"})
@@ -295,7 +295,7 @@ var _ = Describe("Podman push", func() {
 		bitSize := 1024
 		keyFileName := filepath.Join(podmanTest.TempDir, "key")
 		publicKeyFileName, _, err := WriteRSAKeyPair(keyFileName, bitSize)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		session := podmanTest.Podman([]string{"push", "--encryption-key", "jwe:" + publicKeyFileName, ALPINE, fmt.Sprintf("oci:%s", bbdir)})
 		session.WaitWithDefaultTimeout()

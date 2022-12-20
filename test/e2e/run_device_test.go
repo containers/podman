@@ -16,7 +16,7 @@ func createContainersConfFileWithDevices(pTest *PodmanTestIntegration, devices s
 	configPath := filepath.Join(pTest.TempDir, "containers.conf")
 	containersConf := []byte(fmt.Sprintf("[containers]\ndevices = [%s]\n", devices))
 	err := os.WriteFile(configPath, containersConf, os.ModePerm)
-	Expect(err).To(BeNil())
+	Expect(err).ToNot(HaveOccurred())
 
 	// Set custom containers.conf file
 	os.Setenv("CONTAINERS_CONF", configPath)

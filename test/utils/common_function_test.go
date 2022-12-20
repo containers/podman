@@ -156,14 +156,14 @@ var _ = Describe("Common functions test", func() {
 		bitSize := 1024
 
 		publicKeyFileName, privateKeyFileName, err := WriteRSAKeyPair(fileName, bitSize)
-		Expect(err).To(BeNil(), "Failed to write RSA key pair to files.")
+		Expect(err).ToNot(HaveOccurred(), "Failed to write RSA key pair to files.")
 
 		read, err := os.Open(publicKeyFileName)
-		Expect(err).To(BeNil(), "Cannot find the public key file after we write it.")
+		Expect(err).ToNot(HaveOccurred(), "Cannot find the public key file after we write it.")
 		defer read.Close()
 
 		read, err = os.Open(privateKeyFileName)
-		Expect(err).To(BeNil(), "Cannot find the private key file after we write it.")
+		Expect(err).ToNot(HaveOccurred(), "Cannot find the private key file after we write it.")
 		defer read.Close()
 	})
 
