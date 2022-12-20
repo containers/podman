@@ -3,7 +3,6 @@ package compat
 import (
 	"fmt"
 	"net/http"
-	"os"
 
 	"github.com/containers/podman/v4/libpod"
 	"github.com/containers/podman/v4/pkg/api/handlers/utils"
@@ -18,25 +17,14 @@ func ExportContainer(w http.ResponseWriter, r *http.Request) {
 		utils.ContainerNotFound(w, name, err)
 		return
 	}
-	tmpfile, err := os.CreateTemp("", "api.tar")
-	if err != nil {
-		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("unable to create tempfile: %w", err))
+
+	// set the correct header
+	w.Header().Set("Content-Type", "application/x-tar")
+	// NOTE: As described in w.Write() it automatically sets the http code to
+	// 200 on first write if no other code was set.
+
+	if err := con.Export(w); err != nil {
+		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("failed to export container: %w", err))
 		return
 	}
-	defer os.Remove(tmpfile.Name())
-	if err := tmpfile.Close(); err != nil {
-		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("unable to close tempfile: %w", err))
-		return
-	}
-	if err := con.Export(tmpfile.Name()); err != nil {
-		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("failed to save image: %w", err))
-		return
-	}
-	rdr, err := os.Open(tmpfile.Name())
-	if err != nil {
-		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("failed to read the exported tarfile: %w", err))
-		return
-	}
-	defer rdr.Close()
-	utils.WriteResponse(w, http.StatusOK, rdr)
 }

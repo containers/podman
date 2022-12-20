@@ -181,7 +181,7 @@ type CommitReport struct {
 }
 
 type ContainerExportOptions struct {
-	Output string
+	Output io.Writer
 }
 
 type CheckpointOptions struct {

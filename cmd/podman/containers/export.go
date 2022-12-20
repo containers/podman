@@ -43,13 +43,14 @@ var (
 
 var (
 	exportOpts entities.ContainerExportOptions
+	outputFile string
 )
 
 func exportFlags(cmd *cobra.Command) {
 	flags := cmd.Flags()
 
 	outputFlagName := "output"
-	flags.StringVarP(&exportOpts.Output, outputFlagName, "o", "", "Write to a specified file (default: stdout, which must be redirected)")
+	flags.StringVarP(&outputFile, outputFlagName, "o", "", "Write to a specified file (default: stdout, which must be redirected)")
 	_ = cmd.RegisterFlagCompletionFunc(outputFlagName, completion.AutocompleteDefault)
 }
 
@@ -67,14 +68,24 @@ func init() {
 }
 
 func export(cmd *cobra.Command, args []string) error {
-	if len(exportOpts.Output) == 0 {
+	if len(outputFile) == 0 {
 		file := os.Stdout
 		if term.IsTerminal(int(file.Fd())) {
 			return errors.New("refusing to export to terminal. Use -o flag or redirect")
 		}
-		exportOpts.Output = "/dev/stdout"
-	} else if err := parse.ValidateFileName(exportOpts.Output); err != nil {
-		return err
+		exportOpts.Output = file
+	} else {
+		if err := parse.ValidateFileName(outputFile); err != nil {
+			return err
+		}
+		// open file here with WRONLY since on MacOS it can fail to open /dev/stderr in read mode for example
+		// https://github.com/containers/podman/issues/16870
+		file, err := os.OpenFile(outputFile, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
+		if err != nil {
+			return err
+		}
+		defer file.Close()
+		exportOpts.Output = file
 	}
 	return registry.ContainerEngine().ContainerExport(context.Background(), args[0], exportOpts)
 }
