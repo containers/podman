@@ -615,16 +615,26 @@ func (f *UnitFile) Lookup(groupName string, key string) (string, bool) {
 }
 
 // Lookup the last instance of a key and convert the value to a bool
-func (f *UnitFile) LookupBoolean(groupName string, key string, defaultValue bool) bool {
+func (f *UnitFile) LookupBoolean(groupName string, key string) (bool, bool) {
 	v, ok := f.Lookup(groupName, key)
 	if !ok {
-		return defaultValue
+		return false, false
 	}
 
 	return strings.EqualFold(v, "1") ||
 		strings.EqualFold(v, "yes") ||
 		strings.EqualFold(v, "true") ||
-		strings.EqualFold(v, "on")
+		strings.EqualFold(v, "on"), true
+}
+
+// Lookup the last instance of a key and convert the value to a bool
+func (f *UnitFile) LookupBooleanWithDefault(groupName string, key string, defaultValue bool) bool {
+	v, ok := f.LookupBoolean(groupName, key)
+	if !ok {
+		return defaultValue
+	}
+
+	return v
 }
 
 /* Mimics strol, which is what systemd uses */

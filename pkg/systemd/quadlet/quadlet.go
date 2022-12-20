@@ -295,13 +295,13 @@ func ConvertContainer(container *parser.UnitFile, isUser bool) (*parser.UnitFile
 	addNetworks(container, ContainerGroup, service, podman)
 
 	// Run with a pid1 init to reap zombies by default (as most apps don't do that)
-	runInit := container.LookupBoolean(ContainerGroup, KeyRunInit, false)
+	runInit := container.LookupBooleanWithDefault(ContainerGroup, KeyRunInit, false)
 	if runInit {
 		podman.add("--init")
 	}
 
 	// By default we handle startup notification with conmon, but allow passing it to the container with Notify=yes
-	notify := container.LookupBoolean(ContainerGroup, KeyNotify, false)
+	notify := container.LookupBooleanWithDefault(ContainerGroup, KeyNotify, false)
 	if notify {
 		podman.add("--sdnotify=container")
 	} else {
@@ -316,7 +316,7 @@ func ConvertContainer(container *parser.UnitFile, isUser bool) (*parser.UnitFile
 	}
 
 	// Default to no higher level privileges or caps
-	noNewPrivileges := container.LookupBoolean(ContainerGroup, KeyNoNewPrivileges, false)
+	noNewPrivileges := container.LookupBooleanWithDefault(ContainerGroup, KeyNoNewPrivileges, false)
 	if noNewPrivileges {
 		podman.add("--security-opt=no-new-privileges")
 	}
@@ -345,12 +345,12 @@ func ConvertContainer(container *parser.UnitFile, isUser bool) (*parser.UnitFile
 		podman.addf("--cap-add=%s", strings.ToLower(caps))
 	}
 
-	readOnly := container.LookupBoolean(ContainerGroup, KeyReadOnly, false)
+	readOnly := container.LookupBooleanWithDefault(ContainerGroup, KeyReadOnly, false)
 	if readOnly {
 		podman.add("--read-only")
 	}
 
-	volatileTmp := container.LookupBoolean(ContainerGroup, KeyVolatileTmp, false)
+	volatileTmp := container.LookupBooleanWithDefault(ContainerGroup, KeyVolatileTmp, false)
 	if volatileTmp {
 		/* Read only mode already has a tmpfs by default */
 		if !readOnly {
@@ -537,7 +537,7 @@ func ConvertNetwork(network *parser.UnitFile, name string) (*parser.UnitFile, er
 
 	podman := NewPodmanCmdline("network", "create", "--ignore")
 
-	if disableDNS := network.LookupBoolean(NetworkGroup, KeyNetworkDisableDNS, false); disableDNS {
+	if disableDNS := network.LookupBooleanWithDefault(NetworkGroup, KeyNetworkDisableDNS, false); disableDNS {
 		podman.add("--disable-dns")
 	}
 
@@ -569,7 +569,7 @@ func ConvertNetwork(network *parser.UnitFile, name string) (*parser.UnitFile, er
 		return nil, fmt.Errorf("cannot set gateway or range without subnet")
 	}
 
-	if internal := network.LookupBoolean(NetworkGroup, KeyNetworkInternal, false); internal {
+	if internal := network.LookupBooleanWithDefault(NetworkGroup, KeyNetworkInternal, false); internal {
 		podman.add("--internal")
 	}
 
@@ -577,7 +577,7 @@ func ConvertNetwork(network *parser.UnitFile, name string) (*parser.UnitFile, er
 		podman.addf("--ipam-driver=%s", ipamDriver)
 	}
 
-	if ipv6 := network.LookupBoolean(NetworkGroup, KeyNetworkIPv6, false); ipv6 {
+	if ipv6 := network.LookupBooleanWithDefault(NetworkGroup, KeyNetworkIPv6, false); ipv6 {
 		podman.add("--ipv6")
 	}
 
