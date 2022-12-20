@@ -19,6 +19,23 @@ function teardown() {
     is "$output" ".*Local Volumes *0 *0 " "No volumes"
 }
 
+@test "podman system df --format {{ json . }} functionality" {
+    run_podman system df --format '{{json .}}'
+    is "$output" '.*"TotalCount":1'       "Exactly one image"
+    is "$output" '.*"RawSize".*"Size"' "RawSize and Size reported"
+    is "$output" '.*"RawReclaimable".*"Reclaimable"' "RawReclaimable and Reclaimable reported"
+    is "$output" '.*"Containers".*"Total":0' "Total containers reported"
+    is "$output" '.*"Local Volumes".*"Size":"0B"' "Total containers reported"
+    is "$output" '.*"Local Volumes".*"Size":"0B"' "Total containers reported"
+}
+
+@test "podman system df --format json functionality" {
+    run_podman system df --format json
+    is "$output" '.*"TotalCount": 1'       "Exactly one image"
+    is "$output" '.*"RawSize": 0' "RawSize reported"
+    is "$output" '.*"Size": "0B"' "Size reported"
+}
+
 @test "podman system df - with active containers and volumes" {
     run_podman run    -v /myvol1 --name c1 $IMAGE true
     run_podman run -d -v /myvol2 --name c2 $IMAGE \
