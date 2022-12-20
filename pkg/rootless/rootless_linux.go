@@ -223,6 +223,11 @@ func GetConfiguredMappings(quiet bool) ([]idtools.IDMap, []idtools.IDMap, error)
 }
 
 func copyMappings(from, to string) error {
+	// when running as non-root always go through the newuidmap/newgidmap
+	// configuration since this is the expectation when running on Kubernetes
+	if os.Geteuid() != 0 {
+		return errors.New("copying mappings is allowed only for root")
+	}
 	content, err := os.ReadFile(from)
 	if err != nil {
 		return err
