@@ -24,6 +24,7 @@ The *container* event type will report the follow statuses:
  * commit
  * connect
  * create
+ * died
  * disconnect
  * exec
  * exec_died
@@ -89,7 +90,7 @@ filters are supported:
  * volume=name_or_id
  * type=event_type (described above)
 
-In the case where an ID is used, the ID may be in its full or shortened form.
+In the case where an ID is used, the ID may be in its full or shortened form.  The "die" event is mapped to "died" for Docker compatibility.
 
 #### **--format**
 
