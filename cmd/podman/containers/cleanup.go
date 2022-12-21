@@ -65,11 +65,11 @@ func cleanup(cmd *cobra.Command, args []string) error {
 	if cleanupOptions.Exec != "" {
 		switch {
 		case cleanupOptions.All:
-			return errors.New("exec and all options conflict")
+			return errors.New("--all and --exec cannot be set together")
 		case len(args) > 1:
 			return errors.New("cannot use exec option when more than one container is given")
 		case cleanupOptions.RemoveImage:
-			return errors.New("exec and rmi options conflict")
+			return errors.New("--exec and --rmi cannot be set together")
 		}
 	}
 
