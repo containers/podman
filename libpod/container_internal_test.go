@@ -118,6 +118,7 @@ func TestPostDeleteHooks(t *testing.T) {
 	statePath := filepath.Join(dir, "state")
 	copyPath := filepath.Join(dir, "copy")
 	c := Container{
+		runtime: &Runtime{},
 		config: &ContainerConfig{
 			ID: "123abc",
 			Spec: &rspec.Spec{

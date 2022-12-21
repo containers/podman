@@ -128,6 +128,9 @@ func (c *Container) rwSize() (int64, error) {
 // bundlePath returns the path to the container's root filesystem - where the OCI spec will be
 // placed, amongst other things
 func (c *Container) bundlePath() string {
+	if c.runtime.storageConfig.TransientStore {
+		return c.state.RunDir
+	}
 	return c.config.StaticDir
 }
 
