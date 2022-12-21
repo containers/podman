@@ -274,9 +274,6 @@ func ConvertContainer(container *parser.UnitFile, isUser bool) (*parser.UnitFile
 		// On clean shutdown, remove container
 		"--rm",
 
-		// Detach from container, we don't need the podman process to hang around
-		"-d",
-
 		// But we still want output to the journal, so use the log driver.
 		"--log-driver", "passthrough",
 	)
@@ -300,16 +297,27 @@ func ConvertContainer(container *parser.UnitFile, isUser bool) (*parser.UnitFile
 		podman.addBool("--init", runInit)
 	}
 
-	// By default we handle startup notification with conmon, but allow passing it to the container with Notify=yes
-	notify := container.LookupBooleanWithDefault(ContainerGroup, KeyNotify, false)
-	if notify {
-		podman.add("--sdnotify=container")
-	} else {
-		podman.add("--sdnotify=conmon")
+	serviceType, ok := service.Lookup(ServiceGroup, "Type")
+	if ok && serviceType != "notify" && serviceType != "oneshot" {
+		return nil, fmt.Errorf("invalid service Type '%s'", serviceType)
 	}
-	service.Setv(ServiceGroup,
-		"Type", "notify",
-		"NotifyAccess", "all")
+
+	if serviceType != "oneshot" {
+		// If we're not in oneshot mode always use some form of sd-notify, normally via conmon,
+		// but we also allow passing it to the container by setting Notify=yes
+		notify := container.LookupBooleanWithDefault(ContainerGroup, KeyNotify, false)
+		if notify {
+			podman.add("--sdnotify=container")
+		} else {
+			podman.add("--sdnotify=conmon")
+		}
+		service.Setv(ServiceGroup,
+			"Type", "notify",
+			"NotifyAccess", "all")
+
+		// Detach from container, we don't need the podman process to hang around
+		podman.add("-d")
+	}
 
 	if !container.HasKey(ServiceGroup, "SyslogIdentifier") {
 		service.Set(ServiceGroup, "SyslogIdentifier", "%N")

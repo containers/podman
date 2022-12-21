@@ -109,6 +109,7 @@ export PODMAN_ROOTLESS_USER=$(id -un)
 if [ -z "$ROOTLESS_ONLY" ]; then
     echo "# bats ${bats_filter[*]} $TESTS"
     sudo    --preserve-env=PODMAN \
+            --preserve-env=QUADLET \
             --preserve-env=PODMAN_TEST_DEBUG \
             --preserve-env=OCI_RUNTIME \
             --preserve-env=CONTAINERS_HELPER_BINARY_DIR \
