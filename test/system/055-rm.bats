@@ -108,7 +108,7 @@ load helpers
 
 @test "podman container rm --force bogus" {
     run_podman 1 container rm bogus
-    is "$output" "Error: no container with name or ID \"bogus\" found: no such container" "Should print error"
+    is "$output" "Error: no container with ID or name \"bogus\" found: no such container" "Should print error"
     run_podman container rm --force bogus
     is "$output" "" "Should print no output"
 }
