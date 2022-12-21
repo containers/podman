@@ -335,7 +335,7 @@ func loadShortNameAliasConf(confPath string) (*shortNameAliasConf, *shortNameAli
 	return &conf, cache, nil
 }
 
-func shortNameAliasesConfPathAndLock(ctx *types.SystemContext) (string, lockfile.Locker, error) {
+func shortNameAliasesConfPathAndLock(ctx *types.SystemContext) (string, *lockfile.LockFile, error) {
 	shortNameAliasesConfPath, err := shortNameAliasesConfPath(ctx)
 	if err != nil {
 		return "", nil, err
@@ -346,6 +346,6 @@ func shortNameAliasesConfPathAndLock(ctx *types.SystemContext) (string, lockfile
 	}
 
 	lockPath := shortNameAliasesConfPath + ".lock"
-	locker, err := lockfile.GetLockfile(lockPath)
+	locker, err := lockfile.GetLockFile(lockPath)
 	return shortNameAliasesConfPath, locker, err
 }
