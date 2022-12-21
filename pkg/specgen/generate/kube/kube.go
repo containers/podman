@@ -220,6 +220,10 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 	if err != nil {
 		return nil, fmt.Errorf("failed to configure livenessProbe: %w", err)
 	}
+	err = setupStartupProbe(s, opts.Container, opts.RestartPolicy)
+	if err != nil {
+		return nil, fmt.Errorf("failed to configure startupProbe: %w", err)
+	}
 
 	// Since we prefix the container name with pod name to work-around the uniqueness requirement,
 	// the seccomp profile should reference the actual container name from the YAML
@@ -513,6 +517,41 @@ func parseMountPath(mountPath string, readOnly bool, propagationMode *v1.MountPr
 	return dest, opts, nil
 }
 
+func probeToHealthConfig(probe *v1.Probe) (*manifest.Schema2HealthConfig, error) {
+	var commandString string
+	failureCmd := "exit 1"
+	probeHandler := probe.Handler
+
+	// configure healthcheck on the basis of Handler Actions.
+	switch {
+	case probeHandler.Exec != nil:
+		// `makeHealthCheck` function can accept a json array as the command.
+		cmd, err := json.Marshal(probeHandler.Exec.Command)
+		if err != nil {
+			return nil, err
+		}
+		commandString = string(cmd)
+	case probeHandler.HTTPGet != nil:
+		// set defaults as in https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#http-probes
+		uriScheme := v1.URISchemeHTTP
+		if probeHandler.HTTPGet.Scheme != "" {
+			uriScheme = probeHandler.HTTPGet.Scheme
+		}
+		host := "localhost" // Kubernetes default is host IP, but with Podman there is only one node
+		if probeHandler.HTTPGet.Host != "" {
+			host = probeHandler.HTTPGet.Host
+		}
+		path := "/"
+		if probeHandler.HTTPGet.Path != "" {
+			path = probeHandler.HTTPGet.Path
+		}
+		commandString = fmt.Sprintf("curl -f %s://%s:%d%s || %s", uriScheme, host, probeHandler.HTTPGet.Port.IntValue(), path, failureCmd)
+	case probeHandler.TCPSocket != nil:
+		commandString = fmt.Sprintf("nc -z -v %s %d || %s", probeHandler.TCPSocket.Host, probeHandler.TCPSocket.Port.IntValue(), failureCmd)
+	}
+	return makeHealthCheck(commandString, probe.PeriodSeconds, probe.FailureThreshold, probe.TimeoutSeconds, probe.InitialDelaySeconds)
+}
+
 func setupLivenessProbe(s *specgen.SpecGenerator, containerYAML v1.Container, restartPolicy string) error {
 	var err error
 	if containerYAML.LivenessProbe == nil {
@@ -520,37 +559,41 @@ func setupLivenessProbe(s *specgen.SpecGenerator, containerYAML v1.Container, re
 	}
 	emptyHandler := v1.Handler{}
 	if containerYAML.LivenessProbe.Handler != emptyHandler {
-		var commandString string
-		failureCmd := "exit 1"
-		probe := containerYAML.LivenessProbe
-		probeHandler := probe.Handler
-
-		// configure healthcheck on the basis of Handler Actions.
-		switch {
-		case probeHandler.Exec != nil:
-			execString := strings.Join(probeHandler.Exec.Command, " ")
-			commandString = fmt.Sprintf("%s || %s", execString, failureCmd)
-		case probeHandler.HTTPGet != nil:
-			// set defaults as in https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#http-probes
-			uriScheme := v1.URISchemeHTTP
-			if probeHandler.HTTPGet.Scheme != "" {
-				uriScheme = probeHandler.HTTPGet.Scheme
-			}
-			host := "localhost" // Kubernetes default is host IP, but with Podman there is only one node
-			if probeHandler.HTTPGet.Host != "" {
-				host = probeHandler.HTTPGet.Host
-			}
-			path := "/"
-			if probeHandler.HTTPGet.Path != "" {
-				path = probeHandler.HTTPGet.Path
-			}
-			commandString = fmt.Sprintf("curl -f %s://%s:%d%s || %s", uriScheme, host, probeHandler.HTTPGet.Port.IntValue(), path, failureCmd)
-		case probeHandler.TCPSocket != nil:
-			commandString = fmt.Sprintf("nc -z -v %s %d || %s", probeHandler.TCPSocket.Host, probeHandler.TCPSocket.Port.IntValue(), failureCmd)
-		}
-		s.HealthConfig, err = makeHealthCheck(commandString, probe.PeriodSeconds, probe.FailureThreshold, probe.TimeoutSeconds, probe.InitialDelaySeconds)
+		s.HealthConfig, err = probeToHealthConfig(containerYAML.LivenessProbe)
 		if err != nil {
 			return err
+		}
+		// if restart policy is in place, ensure the health check enforces it
+		if restartPolicy == "always" || restartPolicy == "onfailure" {
+			s.HealthCheckOnFailureAction = define.HealthCheckOnFailureActionRestart
+		}
+		return nil
+	}
+	return nil
+}
+
+func setupStartupProbe(s *specgen.SpecGenerator, containerYAML v1.Container, restartPolicy string) error {
+	if containerYAML.StartupProbe == nil {
+		return nil
+	}
+	emptyHandler := v1.Handler{}
+	if containerYAML.StartupProbe.Handler != emptyHandler {
+		healthConfig, err := probeToHealthConfig(containerYAML.StartupProbe)
+		if err != nil {
+			return err
+		}
+
+		// currently, StartupProbe still an optional feature, and it requires HealthConfig.
+		if s.HealthConfig == nil {
+			probe := containerYAML.StartupProbe
+			s.HealthConfig, err = makeHealthCheck("exit 0", probe.PeriodSeconds, probe.FailureThreshold, probe.TimeoutSeconds, probe.InitialDelaySeconds)
+			if err != nil {
+				return err
+			}
+		}
+		s.StartupHealthConfig = &define.StartupHealthCheck{
+			Schema2HealthConfig: *healthConfig,
+			Successes:           int(containerYAML.StartupProbe.SuccessThreshold),
 		}
 		// if restart policy is in place, ensure the health check enforces it
 		if restartPolicy == "always" || restartPolicy == "onfailure" {
@@ -578,6 +621,8 @@ func makeHealthCheck(inCmd string, interval int32, retries int32, timeout int32,
 			// ...otherwise pass it to "/bin/sh -c" inside the container
 			cmd = []string{define.HealthConfigTestCmdShell}
 			cmd = append(cmd, strings.Split(inCmd, " ")...)
+		} else {
+			cmd = append([]string{define.HealthConfigTestCmd}, cmd...)
 		}
 	}
 	hc := manifest.Schema2HealthConfig{
