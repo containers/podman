@@ -291,3 +291,15 @@ EOF
     _events_container_create_inspect_data journald
     _events_container_create_inspect_data file
 }
+
+@test "events - docker compat" {
+    local cname=c$(random_string 15)
+    t0=$(date --iso-8601=seconds)
+    run_podman run --name=$cname --rm $IMAGE true
+    run_podman events \
+        --since="$t0"           \
+        --filter=status=$cname  \
+        --filter=status=die     \
+        --stream=false
+    is "${lines[0]}" ".* container died .* (image=$IMAGE, name=$cname, .*)"
+}
