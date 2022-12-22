@@ -94,15 +94,17 @@ func restService(flags *pflag.FlagSet, cfg *entities.PodmanConfig, opts entities
 		libpodRuntime.SetRemoteURI(uri.String())
 	}
 
-	// Close stdin, so shortnames will not prompt
+	// Set stdin to /dev/null, so shortnames will not prompt
 	devNullfile, err := os.Open(os.DevNull)
 	if err != nil {
 		return err
 	}
-	defer devNullfile.Close()
 	if err := unix.Dup2(int(devNullfile.Fd()), int(os.Stdin.Fd())); err != nil {
+		devNullfile.Close()
 		return err
 	}
+	// Close the fd right away to not leak it during the entire time of the service.
+	devNullfile.Close()
 
 	if err := utils.MaybeMoveToSubCgroup(); err != nil {
 		// it is a best effort operation, so just print the
