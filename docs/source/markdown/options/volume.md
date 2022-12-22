@@ -55,30 +55,38 @@ See examples.
   `Chowning Volume Mounts`
 
 By default, Podman does not change the owner and group of source volume
-directories mounted into containers. If a <<container|pod>> is created in a new user
-namespace, the UID and GID in the container may correspond to another UID and
-GID on the host.
+directories mounted into containers. If a <<container|pod>> is created in a new
+user namespace, the UID and GID in the container may correspond to another UID
+and GID on the host.
 
 The `:U` suffix tells Podman to use the correct host UID and GID based on the
-UID and GID within the <<container|pod>>, to change recursively the owner and group of
-the source volume.
+UID and GID within the <<container|pod>>, to change recursively the owner and
+group of the source volume. Chowning walks the file system under the volume and
+changes the UID/GID on each file, it the volume has thousands of inodes, this
+process will take a long time, delaying the start of the <<container|pod>>.
 
 **Warning** use with caution since this will modify the host filesystem.
 
   `Labeling Volume Mounts`
 
 Labeling systems like SELinux require that proper labels are placed on volume
-content mounted into a <<container|pod>>. Without a label, the security system might
-prevent the processes running inside the <<container|pod>> from using the content. By
-default, Podman does not change the labels set by the OS.
+content mounted into a <<container|pod>>. Without a label, the security system
+might prevent the processes running inside the <<container|pod>> from using the
+content. By default, Podman does not change the labels set by the OS.
 
 To change a label in the <<container|pod>> context, add either of two suffixes
 **:z** or **:Z** to the volume mount. These suffixes tell Podman to relabel file
-objects on the shared volumes. The **z** option tells Podman that two <<containers|pods>>
-share the volume content. As a result, Podman labels the content with a shared
-content label. Shared volume labels allow all containers to read/write content.
-The **Z** option tells Podman to label the content with a private unshared label.
-Only the current <<container|pod>> can use a private volume.
+objects on the shared volumes. The **z** option tells Podman that two or more
+<<containers|pods>> share the volume content. As a result, Podman labels the
+content with a shared content label. Shared volume labels allow all containers
+to read/write content. The **Z** option tells Podman to label the content with
+a private unshared label Only the current <<container|pod>> can use a private
+volume. Relabeling walks the file system under the volume and changes the label
+on each file, it the volume has thousands of inodes, this process will take a
+long time, delaying the start of the <<container|pod>>. If the volume
+was previously relabeled with the `z` option, Podman is optimized to not relabel
+a second time. If files are moved into the volume, then the labels can be
+manually change with the `chcon -R container_file_t PATH` command.
 
 Note: Do not relabel system files and directories. Relabeling system content
 might cause other confined services on the machine to fail.  For these types
