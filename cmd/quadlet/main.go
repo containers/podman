@@ -26,6 +26,7 @@ var (
 	verboseFlag bool // True if -v passed
 	noKmsgFlag  bool
 	isUser      bool // True if run as quadlet-user-generator executable
+	dryRun      bool // True if -dryrun is used
 )
 
 var (
@@ -291,27 +292,32 @@ func warnIfAmbigiousName(container *parser.UnitFile) {
 }
 
 func main() {
+	exitCode := 0
 	prgname := path.Base(os.Args[0])
 	isUser = strings.Contains(prgname, "user")
 
 	flag.Parse()
 
-	if verboseFlag {
+	if verboseFlag || dryRun {
 		enableDebug()
 	}
 
-	if noKmsgFlag {
+	if noKmsgFlag || dryRun {
 		noKmsg = true
 	}
 
-	if flag.NArg() < 1 {
+	if !dryRun && flag.NArg() < 1 {
 		Logf("Missing output directory argument")
 		os.Exit(1)
 	}
 
-	outputPath := flag.Arg(0)
+	var outputPath string
 
-	Debugf("Starting quadlet-generator, output to: %s", outputPath)
+	if !dryRun {
+		outputPath = flag.Arg(0)
+
+		Debugf("Starting quadlet-generator, output to: %s", outputPath)
+	}
 
 	sourcePaths := getUnitDirs(isUser)
 
@@ -320,10 +326,17 @@ func main() {
 		loadUnitsFromDir(d, units)
 	}
 
-	err := os.MkdirAll(outputPath, os.ModePerm)
-	if err != nil {
-		Logf("Can't create dir %s: %s", outputPath, err)
+	if len(units) == 0 {
+		Debugf("No files to parse from %s", sourcePaths)
 		os.Exit(1)
+	}
+
+	if !dryRun {
+		err := os.MkdirAll(outputPath, os.ModePerm)
+		if err != nil {
+			Logf("Can't create dir %s: %s", outputPath, err)
+			os.Exit(1)
+		}
 	}
 
 	for name, unit := range units {
@@ -350,16 +363,29 @@ func main() {
 		} else {
 			service.Path = path.Join(outputPath, service.Filename)
 
-			if err := generateServiceFile(service); err != nil {
-				Logf("Error writing '%s'o: %s", service.Path, err)
+			if dryRun {
+				data, err := service.ToString()
+				if err != nil {
+					Debugf("Error parsing %s\n---\n", service.Path)
+					exitCode = 1
+				} else {
+					fmt.Printf("---%s---\n%s\n", service.Path, data)
+				}
+			} else {
+				if err := generateServiceFile(service); err != nil {
+					Logf("Error writing '%s'o: %s", service.Path, err)
+				}
+				enableServiceFile(outputPath, service)
 			}
-			enableServiceFile(outputPath, service)
 		}
 	}
+
+	os.Exit(exitCode)
 }
 
 func init() {
 	flag.BoolVar(&verboseFlag, "v", false, "Print debug information")
 	flag.BoolVar(&noKmsgFlag, "no-kmsg-log", false, "Don't log to kmsg")
 	flag.BoolVar(&isUser, "user", false, "Run as systemd user")
+	flag.BoolVar(&dryRun, "dryrun", false, "run in dryrun mode printing debug information")
 }
