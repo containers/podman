@@ -21,6 +21,9 @@ func generateEventFilter(filter, filterValue string) (func(e *Event) bool, error
 			return strings.HasPrefix(e.ID, filterValue)
 		}, nil
 	case "EVENT", "STATUS":
+		if filterValue == "die" { // Docker compat
+			filterValue = "died"
+		}
 		return func(e *Event) bool {
 			return string(e.Status) == filterValue
 		}, nil
