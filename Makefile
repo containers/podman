@@ -937,7 +937,7 @@ install.tools: .install.golangci-lint .install.swagger ## Install needed tools
 .PHONY: .install.pre-commit
 .install.pre-commit:
 	if [ -z "$(PRE_COMMIT)" ]; then \
-		python3 -m pip install --user pre-commit; \
+		$(PYTHON) -m pip install --user pre-commit; \
 	fi
 
 .PHONY: uninstall
