@@ -1,6 +1,7 @@
 package system
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"math"
@@ -145,6 +146,7 @@ func printSummary(cmd *cobra.Command, reports *entities.SystemDfReport) error {
 
 	rpt := report.New(os.Stdout, cmd.Name())
 	defer rpt.Flush()
+	report.DefaultFuncs["json"] = rptJSON
 
 	var err error
 	if cmd.Flags().Changed("format") {
@@ -162,7 +164,46 @@ func printSummary(cmd *cobra.Command, reports *entities.SystemDfReport) error {
 	return writeTemplate(rpt, hdrs, dfSummaries)
 }
 
-func printJSON(data interface{}) error {
+type jsonSummary struct {
+	Type           string
+	Total          int
+	Active         int
+	RawSize        int64
+	RawReclaimable int64
+
+	TotalCount  int
+	Size        string
+	Reclaimable string
+}
+
+func jsonConvert(df *dfSummary) *jsonSummary {
+	return &jsonSummary{
+		Type:           df.Type,
+		Total:          df.Total,
+		TotalCount:     df.Total,
+		Active:         df.Active,
+		RawSize:        df.RawSize,
+		RawReclaimable: df.RawReclaimable,
+		Size:           df.Size(),
+		Reclaimable:    df.Reclaimable(),
+	}
+}
+
+func rptJSON(df *dfSummary) string {
+	buf := new(bytes.Buffer)
+	enc := json.NewEncoder(buf)
+	enc.SetEscapeHTML(false)
+	_ = enc.Encode(jsonConvert(df))
+	// Remove the trailing new line added by the encoder
+	return strings.TrimSpace(buf.String())
+}
+
+func printJSON(dfSummaries []*dfSummary) error {
+	data := make([]jsonSummary, len(dfSummaries))
+	for i, df := range dfSummaries {
+		data[i] = *jsonConvert(df)
+	}
+
 	bytes, err := json.MarshalIndent(data, "", "    ")
 	if err != nil {
 		return err
