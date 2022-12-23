@@ -383,60 +383,37 @@ func (ic *ContainerEngine) removeContainer(ctx context.Context, ctr *libpod.Cont
 func (ic *ContainerEngine) ContainerRm(ctx context.Context, namesOrIds []string, options entities.RmOptions) ([]*reports.RmReport, error) {
 	rmReports := []*reports.RmReport{}
 
-	names := namesOrIds
-	// Attempt to remove named containers directly from storage, if container is defined in libpod
-	// this will fail and code will fall through to removing the container from libpod.`
-	tmpNames := []string{}
-	for _, ctr := range names {
-		report := reports.RmReport{Id: ctr}
-		report.Err = ic.Libpod.RemoveStorageContainer(ctr, options.Force)
-		//nolint:gocritic
-		if report.Err == nil {
-			// remove container names that we successfully deleted
-			rmReports = append(rmReports, &report)
-		} else if errors.Is(report.Err, define.ErrNoSuchCtr) || errors.Is(report.Err, define.ErrCtrExists) {
-			// There is still a potential this is a libpod container
-			tmpNames = append(tmpNames, ctr)
-		} else {
-			if _, err := ic.Libpod.LookupContainer(ctr); errors.Is(err, define.ErrNoSuchCtr) {
-				// remove container failed, but not a libpod container
-				rmReports = append(rmReports, &report)
-				continue
-			}
-			// attempt to remove as a libpod container
-			tmpNames = append(tmpNames, ctr)
-		}
+	containers, err := getContainers(ic.Libpod, getContainersOptions{
+		all:     options.All,
+		latest:  options.Latest,
+		filters: options.Filters,
+		names:   namesOrIds,
+		ignore:  true, // Force ignore as `podman rm` also handles external containers
+	})
+	if err != nil {
+		return nil, err
 	}
-	names = tmpNames
 
-	containers, err := getContainers(ic.Libpod, getContainersOptions{all: options.All, latest: options.Latest, filters: options.Filters, names: names, ignore: options.Ignore})
-	if err != nil && !(options.Ignore && errors.Is(err, define.ErrNoSuchCtr)) {
-		// Failed to get containers. If force is specified, get the containers ID
-		// and evict them
-		if !options.Force {
-			return nil, err
-		}
-
-		for _, ctr := range names {
-			logrus.Debugf("Evicting container %q", ctr)
-			report := reports.RmReport{
-				Id:       ctr,
-				RawInput: ctr,
-			}
-			_, err := ic.Libpod.EvictContainer(ctx, ctr, options.Volumes)
-			if err != nil {
-				if options.Ignore && errors.Is(err, define.ErrNoSuchCtr) {
-					logrus.Debugf("Ignoring error (--allow-missing): %v", err)
-					rmReports = append(rmReports, &report)
+	libpodContainers := make([]*libpod.Container, 0, len(containers))
+	idToRawInput := make(map[string]string, len(containers))
+	for i, ctr := range containers {
+		if ctr.doesNotExist {
+			// If the container does not exist in Podman's database, it may
+			// be an external one. Hence, try removing the external
+			// "storage" container.
+			if err := ic.Libpod.RemoveStorageContainer(ctr.rawInput, options.Force); err != nil {
+				if options.Ignore && (errors.Is(err, define.ErrNoSuchCtr) || errors.Is(err, define.ErrCtrExists)) {
 					continue
 				}
-				report.Err = err
-				rmReports = append(rmReports, &report)
-				continue
+				return nil, err
 			}
-			rmReports = append(rmReports, &report)
+			rmReports = append(rmReports, &reports.RmReport{RawInput: ctr.rawInput})
+		} else {
+			// If the container exists in the Podman database, we
+			// can remove it correctly below.
+			libpodContainers = append(libpodContainers, containers[i].Container)
+			idToRawInput[ctr.ID()] = ctr.rawInput
 		}
-		return rmReports, nil
 	}
 
 	alreadyRemoved := make(map[string]bool)
@@ -446,44 +423,23 @@ func (ic *ContainerEngine) ContainerRm(ctx context.Context, namesOrIds []string,
 			rmReports = append(rmReports, newReports[i])
 		}
 	}
-	if !options.All && options.Depend {
-		// Add additional containers based on dependencies to container map
-		for _, ctr := range containers {
-			if ctr.doesNotExist || alreadyRemoved[ctr.ID()] {
+
+	// First, remove dependend containers.
+	if options.All || options.Depend {
+		for _, ctr := range libpodContainers {
+			// When `All` is set, remove the infra containers and
+			// their dependencies first. Otherwise, we'd error out.
+			//
+			// TODO: All this logic should probably live in libpod.
+			if alreadyRemoved[ctr.ID()] || (options.All && !ctr.IsInfra()) {
 				continue
 			}
-			reports, err := ic.Libpod.RemoveDepend(ctx, ctr.Container, options.Force, options.Volumes, options.Timeout)
+			reports, err := ic.Libpod.RemoveDepend(ctx, ctr, options.Force, options.Volumes, options.Timeout)
 			if err != nil {
 				return rmReports, err
 			}
 			addReports(reports)
 		}
-		return rmReports, nil
-	}
-
-	// If --all is set, make sure to remove the infra containers'
-	// dependencies before doing the parallel removal below.
-	if options.All {
-		for _, ctr := range containers {
-			if ctr.doesNotExist || alreadyRemoved[ctr.ID()] || !ctr.IsInfra() {
-				continue
-			}
-			reports, err := ic.Libpod.RemoveDepend(ctx, ctr.Container, options.Force, options.Volumes, options.Timeout)
-			if err != nil {
-				return rmReports, err
-			}
-			addReports(reports)
-		}
-	}
-
-	idToRawInput := make(map[string]string, len(containers))
-	libpodContainers := make([]*libpod.Container, 0, len(containers))
-	for i, c := range containers {
-		if c.doesNotExist {
-			continue
-		}
-		idToRawInput[c.ID()] = c.rawInput
-		libpodContainers = append(libpodContainers, containers[i].Container)
 	}
 
 	errMap, err := parallelctr.ContainerOp(ctx, libpodContainers, func(c *libpod.Container) error {
@@ -495,6 +451,7 @@ func (ic *ContainerEngine) ContainerRm(ctx context.Context, namesOrIds []string,
 	if err != nil {
 		return nil, err
 	}
+
 	for ctr, err := range errMap {
 		if alreadyRemoved[ctr.ID()] {
 			continue
@@ -505,6 +462,7 @@ func (ic *ContainerEngine) ContainerRm(ctx context.Context, namesOrIds []string,
 		report.RawInput = idToRawInput[ctr.ID()]
 		rmReports = append(rmReports, report)
 	}
+
 	return rmReports, nil
 }
 
