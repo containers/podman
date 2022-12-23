@@ -112,9 +112,17 @@ $c2[ ]\+tcp://localhost:54321[ ]\+true" \
                         --runroot ${PODMAN_TMPDIR}/runroot \
                         system service -t 99 tcp://localhost:$_SERVICE_PORT &
     _SERVICE_PID=$!
+    # Wait for the port and the podman-service to be ready.
     wait_for_port localhost $_SERVICE_PORT
-
-    _run_podman_remote info --format '{{.Host.RemoteSocket.Path}}'
+    local timeout=10
+    while [[ $timeout -gt 1 ]]; do
+        _run_podman_remote ? info --format '{{.Host.RemoteSocket.Path}}'
+        if [[ $status == 0 ]]; then
+            break
+        fi
+        sleep 1
+        let timeout=$timeout-1
+    done
     is "$output" "tcp://localhost:$_SERVICE_PORT" \
        "podman info works, and talks to the correct server"
 
