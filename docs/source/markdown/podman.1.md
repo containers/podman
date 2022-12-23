@@ -164,9 +164,9 @@ NOTE --tmpdir is not used for the temporary storage of downloaded images.  Use t
 
 #### **--transient-store**
 
-Enables a global transient storaga mode where all container metadata is stored on non-persistant media (i.e. in the location specified by `--runroot`).
+Enables a global transient storage mode where all container metadata is stored on non-persistent media (i.e. in the location specified by `--runroot`).
 This mode allows starting containers faster, as well as guaranteeing a fresh state on boot in case of unclean shutdowns or other problems. However
-it is not compabible with a traditional model where containers persist across reboots.
+it is not compatible with a traditional model where containers persist across reboots.
 
 Default value for this is configured in `containers-storage.conf(5)`.
 
