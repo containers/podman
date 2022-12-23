@@ -146,7 +146,7 @@ func GenerateContainerFilterFuncs(filter string, filterValues []string, r *libpo
 					if dest != "" && (mount.Source == source && mount.Destination == dest) {
 						return true
 					}
-					if dest == "" && mount.Source == source {
+					if dest == "" && mount.Destination == source {
 						return true
 					}
 				}
