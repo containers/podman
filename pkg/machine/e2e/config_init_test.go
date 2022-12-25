@@ -10,7 +10,7 @@ type initMachine struct {
 	      --disk-size uint         Disk size in GB (default 100)
 	      --ignition-path string   Path to ignition file
 	      --username string        Username of the remote user (default "core" for FCOS, "user" for Fedora)
-	      --image-path string      Path to qcow image (default "testing")
+	      --image-path string      Path to bootable image (default "testing")
 	  -m, --memory uint            Memory in MB (default 2048)
 	      --now                    Start machine now
 	      --rootful                Whether this machine should prefer rootful container execution
