@@ -377,12 +377,12 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		)
 		createFlags.BoolVar(
 			&cf.ReadOnly,
-			"read-only", false,
+			"read-only", podmanConfig.ContainersConfDefaultsRO.Containers.ReadOnly,
 			"Make containers root filesystem read-only",
 		)
 		createFlags.BoolVar(
-			&cf.ReadOnlyTmpFS,
-			"read-only-tmpfs", cf.ReadOnlyTmpFS,
+			&cf.ReadWriteTmpFS,
+			"read-only-tmpfs", cf.ReadWriteTmpFS,
 			"When running containers in read-only mode mount a read-write tmpfs on /run, /tmp and /var/tmp",
 		)
 		requiresFlagName := "requires"

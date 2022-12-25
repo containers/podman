@@ -409,6 +409,8 @@ func createPodIfNecessary(cmd *cobra.Command, s *specgen.SpecGenerator, netOpts 
 	infraOpts := entities.NewInfraContainerCreateOptions()
 	infraOpts.Net = netOpts
 	infraOpts.Quiet = true
+	infraOpts.ReadOnly = true
+	infraOpts.ReadWriteTmpFS = false
 	infraOpts.Hostname, err = cmd.Flags().GetString("hostname")
 	if err != nil {
 		return err

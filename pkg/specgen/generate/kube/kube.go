@@ -472,6 +472,8 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 	if ro := opts.ReadOnly; ro != itypes.OptionalBoolUndefined {
 		s.ReadOnlyFilesystem = (ro == itypes.OptionalBoolTrue)
 	}
+	// This should default to true for kubernetes yaml
+	s.ReadWriteTmpfs = true
 
 	// Make sure the container runs in a systemd unit which is
 	// stored as a label at container creation.
