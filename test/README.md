@@ -146,6 +146,15 @@ When `bats` is installed and is in your `PATH`, you can run the test suite with 
 make localsystem
 ```
 
+## Running a subset of the system tests
+You can filter the tests that will be excuted as part of the suite by setting the environment variable `LOCAL_SYSTEM_FILTER`.
+For example, in order to run only quadlet tests execute the following command:
+```
+LOCAL_SYSTEM_FILTER="quadlet" make localsystem
+```
+
+Please see the man page for `bats` for the description of the `--filter` argument
+
 ## Contributing to system tests
 
 Please see [the TODO list of needed workflows/tests](system/TODO.md).

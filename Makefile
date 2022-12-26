@@ -589,12 +589,18 @@ localbenchmarks: test-binaries
 		      -noisySkippings=false -noisyPendings=false \
 		      test/e2e/.
 
+ifdef LOCAL_SYSTEM_FILTER
+_LOCAL_SYSTEM_FILTER = --filter "${LOCAL_SYSTEM_FILTER}"
+endif
 .PHONY: localsystem
 localsystem:
 	# Wipe existing config, database, and cache: start with clean slate.
 	$(RM) -rf ${HOME}/.local/share/containers ${HOME}/.config/containers
-	if timeout -v 1 true; then PODMAN=$(CURDIR)/bin/podman QUADLET=$(CURDIR)/bin/quadlet bats test/system/; else echo "Skipping $@: 'timeout -v' unavailable'"; fi
+	if timeout -v 1 true; then PODMAN=$(CURDIR)/bin/podman QUADLET=$(CURDIR)/bin/quadlet bats test/system/ ${_LOCAL_SYSTEM_FILTER}; else echo "Skipping $@: 'timeout -v' unavailable'"; fi
 
+ifdef REMOTE_SYSTEM_FILTER
+_REMOTE_SYSTEM_FILTER = --filter "${REMOTE_SYSTEM_FILTER}"
+endif
 .PHONY: remotesystem
 remotesystem:
 	# Wipe existing config, database, and cache: start with clean slate.
@@ -618,7 +624,7 @@ remotesystem:
 			echo "Error: ./bin/podman system service did not come up on $$SOCK_FILE" >&2;\
 			exit 1;\
 		fi;\
-		env PODMAN="$(CURDIR)/bin/podman-remote --url $$PODMAN_SOCKET" bats test/system/ ;\
+		env PODMAN="$(CURDIR)/bin/podman-remote --url $$PODMAN_SOCKET" bats test/system/ ${_REMOTE_SYSTEM_FILTER} ;\
 		rc=$$?;\
 		kill %1;\
 		rm -f $$SOCK_FILE;\
