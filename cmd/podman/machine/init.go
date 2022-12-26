@@ -89,11 +89,11 @@ func init() {
 	_ = flags.MarkHidden("reexec")
 
 	UsernameFlagName := "username"
-	flags.StringVar(&initOpts.Username, UsernameFlagName, cfg.ContainersConfDefaultsRO.Machine.User, "Username used in qcow image")
+	flags.StringVar(&initOpts.Username, UsernameFlagName, cfg.ContainersConfDefaultsRO.Machine.User, "Username used in image")
 	_ = initCmd.RegisterFlagCompletionFunc(UsernameFlagName, completion.AutocompleteDefault)
 
 	ImagePathFlagName := "image-path"
-	flags.StringVar(&initOpts.ImagePath, ImagePathFlagName, cfg.ContainersConfDefaultsRO.Machine.Image, "Path to qcow image")
+	flags.StringVar(&initOpts.ImagePath, ImagePathFlagName, cfg.ContainersConfDefaultsRO.Machine.Image, "Path to bootable image")
 	_ = initCmd.RegisterFlagCompletionFunc(ImagePathFlagName, completion.AutocompleteDefault)
 
 	VolumeFlagName := "volume"
