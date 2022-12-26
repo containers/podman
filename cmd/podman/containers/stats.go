@@ -10,6 +10,7 @@ import (
 	"github.com/containers/common/pkg/report"
 	"github.com/containers/podman/v4/cmd/podman/common"
 	"github.com/containers/podman/v4/cmd/podman/registry"
+	putils "github.com/containers/podman/v4/cmd/podman/utils"
 	"github.com/containers/podman/v4/cmd/podman/validate"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/domain/entities"
@@ -120,6 +121,7 @@ func stats(cmd *cobra.Command, args []string) error {
 		Stream:   !statsOptions.NoStream,
 		Interval: statsOptions.Interval,
 	}
+	args = putils.RemoveSlash(args)
 	statsChan, err := registry.ContainerEngine().ContainerStats(registry.Context(), args, opts)
 	if err != nil {
 		return err

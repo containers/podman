@@ -80,6 +80,7 @@ func wait(cmd *cobra.Command, args []string) error {
 		err  error
 		errs utils.OutputErrors
 	)
+	args = utils.RemoveSlash(args)
 	if waitOptions.Interval, err = time.ParseDuration(waitInterval); err != nil {
 		var err1 error
 		if waitOptions.Interval, err1 = time.ParseDuration(waitInterval + "ms"); err1 != nil {

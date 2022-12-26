@@ -90,6 +90,7 @@ func pause(cmd *cobra.Command, args []string) error {
 	var (
 		errs utils.OutputErrors
 	)
+	args = utils.RemoveSlash(args)
 
 	for _, cidFile := range pauseCidFiles {
 		content, err := os.ReadFile(cidFile)

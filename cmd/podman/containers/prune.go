@@ -46,7 +46,7 @@ func init() {
 	_ = pruneCommand.RegisterFlagCompletionFunc(filterFlagName, common.AutocompletePruneFilters)
 }
 
-func prune(cmd *cobra.Command, args []string) error {
+func prune(cmd *cobra.Command, _ []string) error {
 	var (
 		pruneOptions = entities.ContainerPruneOptions{}
 		err          error

@@ -96,6 +96,8 @@ func restore(cmd *cobra.Command, args []string) error {
 		e    error
 		errs utils.OutputErrors
 	)
+	args = utils.RemoveSlash(args)
+
 	podmanStart := time.Now()
 	if rootless.IsRootless() {
 		return fmt.Errorf("restoring a container requires root")

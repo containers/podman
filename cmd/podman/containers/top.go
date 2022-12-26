@@ -94,7 +94,7 @@ func top(cmd *cobra.Command, args []string) error {
 	if topOptions.Latest {
 		topOptions.Descriptors = args
 	} else {
-		topOptions.NameOrID = args[0]
+		topOptions.NameOrID = strings.TrimPrefix(args[0], "/")
 		topOptions.Descriptors = args[1:]
 	}
 

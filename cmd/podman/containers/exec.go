@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/podman/v4/cmd/podman/common"
@@ -112,7 +113,7 @@ func exec(_ *cobra.Command, args []string) error {
 	execOpts.Cmd = args
 	if !execOpts.Latest {
 		execOpts.Cmd = args[1:]
-		nameOrID = args[0]
+		nameOrID = strings.TrimPrefix(args[0], "/")
 	}
 	// Validate given environment variables
 	execOpts.Envs = make(map[string]string)

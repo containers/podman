@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"os"
+	"strings"
 
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/podman/v4/cmd/podman/common"
@@ -87,5 +88,5 @@ func export(cmd *cobra.Command, args []string) error {
 		defer file.Close()
 		exportOpts.Output = file
 	}
-	return registry.ContainerEngine().ContainerExport(context.Background(), args[0], exportOpts)
+	return registry.ContainerEngine().ContainerExport(context.Background(), strings.TrimPrefix(args[0], "/"), exportOpts)
 }

@@ -91,6 +91,8 @@ func unpause(cmd *cobra.Command, args []string) error {
 	var (
 		errs utils.OutputErrors
 	)
+	args = utils.RemoveSlash(args)
+
 	if rootless.IsRootless() && !registry.IsRemote() {
 		cgroupv2, _ := cgroups.IsCgroup2UnifiedMode()
 		if !cgroupv2 {

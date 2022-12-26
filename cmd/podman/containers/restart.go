@@ -99,6 +99,7 @@ func restart(cmd *cobra.Command, args []string) error {
 	var (
 		errs utils.OutputErrors
 	)
+	args = utils.RemoveSlash(args)
 
 	if cmd.Flag("time").Changed {
 		restartOpts.Timeout = &restartTimeout

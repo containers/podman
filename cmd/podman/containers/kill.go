@@ -86,6 +86,7 @@ func kill(_ *cobra.Command, args []string) error {
 		err  error
 		errs utils.OutputErrors
 	)
+	args = utils.RemoveSlash(args)
 	// Check if the signalString provided by the user is valid
 	// Invalid signals will return err
 	sig, err := signal.ParseSignalNameOrNumber(killOptions.Signal)

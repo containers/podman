@@ -132,7 +132,7 @@ func rm(cmd *cobra.Command, args []string) error {
 		rmOptions.Depend = true
 	}
 
-	return removeContainers(args, rmOptions, true)
+	return removeContainers(utils.RemoveSlash(args), rmOptions, true)
 }
 
 // removeContainers will remove the specified containers (names or IDs).

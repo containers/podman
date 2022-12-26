@@ -85,6 +85,8 @@ func mount(cmd *cobra.Command, args []string) error {
 	if len(args) > 0 && mountOpts.Latest {
 		return errors.New("--latest and containers cannot be used together")
 	}
+	args = utils.RemoveSlash(args)
+
 	reports, err := registry.ContainerEngine().ContainerMount(registry.GetContext(), args, mountOpts)
 	if err != nil {
 		return err

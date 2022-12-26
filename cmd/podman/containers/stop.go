@@ -101,6 +101,8 @@ func stop(cmd *cobra.Command, args []string) error {
 	var (
 		errs utils.OutputErrors
 	)
+	args = utils.RemoveSlash(args)
+
 	if cmd.Flag("time").Changed {
 		stopOptions.Timeout = &stopTimeout
 	}

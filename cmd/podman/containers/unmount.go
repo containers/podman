@@ -78,6 +78,7 @@ func init() {
 
 func unmount(cmd *cobra.Command, args []string) error {
 	var errs utils.OutputErrors
+	args = utils.RemoveSlash(args)
 	reports, err := registry.ContainerEngine().ContainerUnmount(registry.GetContext(), args, unmountOpts)
 	if err != nil {
 		return err

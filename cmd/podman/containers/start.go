@@ -124,7 +124,7 @@ func start(cmd *cobra.Command, args []string) error {
 		startOptions.Stdout = os.Stdout
 	}
 
-	containers := args
+	containers := utils.RemoveSlash(args)
 	for _, f := range filters {
 		split := strings.SplitN(f, "=", 2)
 		if len(split) < 2 {
