@@ -283,4 +283,42 @@ EOF
     service_cleanup $QUADLET_SERVICE_NAME inactive
 }
 
+@test "quadlet kube - basic" {
+    # Create the YAMl file
+    yaml_source="$PODMAN_TMPDIR/basic_$(random_string).yaml"
+    cat >$yaml_source <<EOF
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app: test
+  name: test_pod
+spec:
+  containers:
+  - command:
+    - top
+    image: $IMAGE
+    name: test
+EOF
+
+    # Create the Quadlet file
+    local quadlet_file=$PODMAN_TMPDIR/basic_$(random_string).kube
+    cat > $quadlet_file <<EOF
+[Kube]
+Yaml=${yaml_source}
+EOF
+
+    run_quadlet "$quadlet_file"
+    service_setup $QUADLET_SERVICE_NAME
+
+    # Ensure we have output. Output is synced via sd-notify (socat in Exec)
+    run journalctl "--since=$STARTED_TIME" --unit="$QUADLET_SERVICE_NAME"
+    is "$output" '.*Started.*\.service.*'
+
+    run_podman container inspect  --format "{{.State.Status}}" test_pod-test
+    is "$output" "running" "container should be started by systemd and hence be running"
+
+    service_cleanup $QUADLET_SERVICE_NAME inactive
+}
+
 # vim: filetype=sh
