@@ -36,6 +36,8 @@ const (
 	KeyContainerName     = "ContainerName"
 	KeyImage             = "Image"
 	KeyEnvironment       = "Environment"
+	KeyEnvironmentFile   = "EnvironmentFile"
+	KeyEnvironmentHost   = "EnvironmentHost"
 	KeyExec              = "Exec"
 	KeyNoNewPrivileges   = "NoNewPrivileges"
 	KeyDropCapability    = "DropCapability"
@@ -77,6 +79,8 @@ var supportedContainerKeys = map[string]bool{
 	KeyContainerName:   true,
 	KeyImage:           true,
 	KeyEnvironment:     true,
+	KeyEnvironmentFile: true,
+	KeyEnvironmentHost: true,
 	KeyExec:            true,
 	KeyNoNewPrivileges: true,
 	KeyDropCapability:  true,
@@ -508,6 +512,19 @@ func ConvertContainer(container *parser.UnitFile, isUser bool) (*parser.UnitFile
 	annotations := container.LookupAllKeyVal(ContainerGroup, KeyAnnotation)
 	podman.addAnnotations(annotations)
 
+	envFiles := container.LookupAllArgs(ContainerGroup, KeyEnvironmentFile)
+	for _, envFile := range envFiles {
+		filePath, err := getAbsolutePath(container, envFile)
+		if err != nil {
+			return nil, err
+		}
+		podman.add("--env-file", filePath)
+	}
+
+	if envHost, ok := container.LookupBoolean(ContainerGroup, KeyEnvironmentHost); ok {
+		podman.addBool("--env-host", envHost)
+	}
+
 	podmanArgs := container.LookupAllArgs(ContainerGroup, KeyPodmanArgs)
 	podman.add(podmanArgs...)
 
@@ -694,16 +711,9 @@ func ConvertKube(kube *parser.UnitFile, isUser bool) (*parser.UnitFile, error) {
 		return nil, fmt.Errorf("no Yaml key specified")
 	}
 
-	if !filepath.IsAbs(yamlPath) {
-		if len(kube.Path) > 0 {
-			yamlPath = filepath.Join(filepath.Dir(kube.Path), yamlPath)
-		} else {
-			var err error
-			yamlPath, err = filepath.Abs(yamlPath)
-			if err != nil {
-				return nil, err
-			}
-		}
+	yamlPath, err := getAbsolutePath(kube, yamlPath)
+	if err != nil {
+		return nil, err
 	}
 
 	// Only allow mixed or control-group, as nothing else works well
@@ -832,4 +842,19 @@ func addNetworks(quadletUnitFile *parser.UnitFile, groupName string, serviceUnit
 			podman.addf("--network=%s", network)
 		}
 	}
+}
+
+func getAbsolutePath(quadletUnitFile *parser.UnitFile, filePath string) (string, error) {
+	if !filepath.IsAbs(filePath) {
+		if len(quadletUnitFile.Path) > 0 {
+			filePath = filepath.Join(filepath.Dir(quadletUnitFile.Path), filePath)
+		} else {
+			var err error
+			filePath, err = filepath.Abs(filePath)
+			if err != nil {
+				return "", err
+			}
+		}
+	}
+	return filePath, nil
 }
