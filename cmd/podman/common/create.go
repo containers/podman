@@ -329,13 +329,6 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		)
 		_ = cmd.RegisterFlagCompletionFunc(variantFlagName, completion.AutocompleteNone)
 
-		pidsLimitFlagName := "pids-limit"
-		createFlags.Int64(
-			pidsLimitFlagName, pidsLimit(),
-			"Tune container pids limit (set -1 for unlimited)",
-		)
-		_ = cmd.RegisterFlagCompletionFunc(pidsLimitFlagName, completion.AutocompleteNone)
-
 		platformFlagName := "platform"
 		createFlags.StringVar(
 			&cf.Platform,
@@ -898,6 +891,14 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 			"Limit write rate (IO per second) to a device (e.g. --device-write-iops=/dev/sda:1000)",
 		)
 		_ = cmd.RegisterFlagCompletionFunc(deviceWriteIopsFlagName, completion.AutocompleteDefault)
+
+		pidsLimitFlagName := "pids-limit"
+		createFlags.Int64Var(
+			cf.PIDsLimit,
+			pidsLimitFlagName, pidsLimit(),
+			"Tune container pids limit (set -1 for unlimited)",
+		)
+		_ = cmd.RegisterFlagCompletionFunc(pidsLimitFlagName, completion.AutocompleteNone)
 	}
 	// anyone can use these
 	cpusFlagName := "cpus"
