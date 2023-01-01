@@ -62,6 +62,8 @@ type PlayKubeOptions struct {
 	IsRemote bool
 	// Force - remove volumes on --down
 	Force bool
+	// PublishPorts - configure how to expose ports configured inside the K8S YAML file
+	PublishPorts []string
 }
 
 // PlayKubePod represents a single pod and associated containers created by play kube

@@ -151,6 +151,10 @@ func playFlags(cmd *cobra.Command) {
 	replaceFlagName := "replace"
 	flags.BoolVar(&playOptions.Replace, replaceFlagName, false, "Delete and recreate pods defined in the YAML file")
 
+	publishPortsFlagName := "publish"
+	flags.StringSliceVar(&playOptions.PublishPorts, publishPortsFlagName, []string{}, "Publish a container's port, or a range of ports, to the host")
+	_ = cmd.RegisterFlagCompletionFunc(publishPortsFlagName, completion.AutocompleteNone)
+
 	if !registry.IsRemote() {
 		certDirFlagName := "cert-dir"
 		flags.StringVar(&playOptions.CertDir, certDirFlagName, "", "`Pathname` of a directory containing TLS certificates and keys")

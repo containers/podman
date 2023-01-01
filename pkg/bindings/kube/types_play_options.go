@@ -302,3 +302,18 @@ func (o *PlayOptions) GetForce() bool {
 	}
 	return *o.Force
 }
+
+// WithPublishPorts set field PublishPorts to given value
+func (o *PlayOptions) WithPublishPorts(value []string) *PlayOptions {
+	o.PublishPorts = value
+	return o
+}
+
+// GetPublishPorts returns value of field PublishPorts
+func (o *PlayOptions) GetPublishPorts() []string {
+	if o.PublishPorts == nil {
+		var z []string
+		return z
+	}
+	return o.PublishPorts
+}

@@ -72,6 +72,7 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, body io.Reader, opts en
 	if start := opts.Start; start != types.OptionalBoolUndefined {
 		options.WithStart(start == types.OptionalBoolTrue)
 	}
+	options.WithPublishPorts(opts.PublishPorts)
 	return play.KubeWithBody(ic.ClientCtx, body, options)
 }
 
