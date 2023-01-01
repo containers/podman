@@ -90,8 +90,8 @@ See the example above "_Using a separate user account for benchmarking_" for how
 
 Storage driver   | Podman command
 ----             | ------
-native overlayfs | `podman --storage-driver=overlayfs run ...`
-fuse-overlayfs   | `podman --storage-driver=overlayfs --storage-opt overlay.mount_program=/usr/bin/fuse-overlayfs run ...`
+native overlayfs | `podman --storage-driver=overlay run ...`
+fuse-overlayfs   | `podman --storage-driver=overlay --storage-opt overlay.mount_program=/usr/bin/fuse-overlayfs run ...`
 VFS              | `podman --storage-driver=vfs run ...`
 
 #### Configuring the default storage driver
