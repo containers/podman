@@ -26,7 +26,7 @@ function teardown() {
     done < $SNAME_FILE
 
     rm -f $SNAME_FILE
-    run_podman ? rmi -f                            \
+    run_podman '?' rmi -f                            \
             quay.io/libpod/alpine:latest           \
             quay.io/libpod/busybox:latest          \
             quay.io/libpod/localtest:latest        \
@@ -36,7 +36,7 @@ function teardown() {
 
     # The rollback tests may leave some dangling images behind, so let's prune
     # them to leave a clean state.
-    run_podman ? image prune -f
+    run_podman '?' image prune -f
     basic_teardown
 }
 
