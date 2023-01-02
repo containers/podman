@@ -319,6 +319,7 @@ EOF
     is "$output" "running" "container should be started by systemd and hence be running"
 
     service_cleanup $QUADLET_SERVICE_NAME inactive
+    run_podman rmi $(pause_image)
 }
 
 # vim: filetype=sh
