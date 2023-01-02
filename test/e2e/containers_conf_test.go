@@ -419,6 +419,14 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 	})
 
 	It("add image_copy_tmp_dir", func() {
+		// Prevents overwriting of TMPDIR environment
+		if cacheDir, found := os.LookupEnv("TMPDIR"); found {
+			defer os.Setenv("TMPDIR", cacheDir)
+			os.Unsetenv("TMPDIR")
+		} else {
+			defer os.Unsetenv("TMPDIR")
+		}
+
 		session := podmanTest.Podman([]string{"info", "--format", "{{.Store.ImageCopyTmpDir}}"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
@@ -462,6 +470,13 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 			session.WaitWithDefaultTimeout()
 			Expect(session).Should(Exit(125))
 			Expect(session.Err.Contents()).To(ContainSubstring("invalid image_copy_tmp_dir value \"storage1\" (relative paths are not accepted)"))
+
+			os.Setenv("TMPDIR", "/hoge")
+			session = podmanTest.Podman([]string{"info", "--format", "{{.Store.ImageCopyTmpDir}}"})
+			session.WaitWithDefaultTimeout()
+			Expect(session).Should(Exit(0))
+			Expect(session.OutputToString()).To(Equal("/hoge"))
+			os.Unsetenv("TMPDIR")
 		}
 	})
 
