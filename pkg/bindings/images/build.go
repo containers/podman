@@ -647,23 +647,27 @@ func nTar(excludes []string, sources ...string) (io.ReadCloser, error) {
 					return err
 				}
 
+				separator := string(filepath.Separator)
 				// check if what we are given is an empty dir, if so then continue w/ it. Else return.
 				// if we are given a file or a symlink, we do not want to exclude it.
-				if d.IsDir() && s == path {
-					var p *os.File
-					p, err = os.Open(path)
-					if err != nil {
-						return err
-					}
-					defer p.Close()
-					_, err = p.Readdir(1)
-					if err != io.EOF {
-						return nil // non empty root dir, need to return
-					} else if err != nil {
-						logrus.Errorf("While reading directory %v: %v", path, err)
+				if s == path {
+					separator = ""
+					if d.IsDir() {
+						var p *os.File
+						p, err = os.Open(path)
+						if err != nil {
+							return err
+						}
+						defer p.Close()
+						_, err = p.Readdir(1)
+						if err != io.EOF {
+							return nil // non empty root dir, need to return
+						} else if err != nil {
+							logrus.Errorf("While reading directory %v: %v", path, err)
+						}
 					}
 				}
-				name := filepath.ToSlash(strings.TrimPrefix(path, s+string(filepath.Separator)))
+				name := filepath.ToSlash(strings.TrimPrefix(path, s+separator))
 
 				excluded, err := pm.Matches(name) //nolint:staticcheck
 				if err != nil {
