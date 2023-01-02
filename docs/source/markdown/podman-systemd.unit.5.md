@@ -158,7 +158,7 @@ exact mapping of uids from host to container. You must specify these.
 
 In `auto` mode mode, the subuids and subgids allocated to the `containers` user is used to allocate
 host uids/gids to use for the container. By default this will try to estimate a count of the ids
-to remap, but RemapUidSize can be specified to use an explicit size. Use `RemapUid` and
+to remap, but `RemapUidSize` can be specified to use an explicit size. Use `RemapUid` and
 `RemapGid` key to force a particular host uid to be mapped to the container.
 
 In `keep-id` mode, the running user is mapped to the same id in the container. This is supported
@@ -175,6 +175,10 @@ at `container_uid`.
 If `RemapUsers` is enabled, this specifies a gid mapping of the form `container_gid:from_gid:amount`,
 which will map `amount` number of gids on the host starting at `from_gid` into the container, starting
 at `container_gid`.
+
+#### `RemapUidSize=`
+
+If `RemapUsers` is enabled and set to `auto`, this specifies the count of the ids to remap
 
 #### `Notify=` (defaults to `no`)
 
@@ -217,6 +221,11 @@ This key can be listed multiple times.
 Specify a custom network for the container. This has the same format as the `--network` option
 to `podman run`. For example, use `host` to use the host network in the container, or `none` to
 not set up networking in the container.
+
+As a special case, if the `name` of the network ends with `.network`, a Podman network called
+`systemd-$name` will be used, and the generated systemd service will contain
+a dependency on the `$name-network.service`. Such a network can be automatically
+created by using a `$name.network` quadlet file.
 
 This key can be listed multiple times.
 
@@ -277,6 +286,64 @@ This key can be listed multiple times.
 
 Set one or more OCI annotations on the container. The format is a list of `key=value` items,
 similar to `Environment`.
+
+This key can be listed multiple times.
+
+### Kube units
+
+Kube units are named with a `.kube` extension and contain a `[Kube] `section describing
+how `podman kube play` should be run as a service. The resulting service file will contain a line like
+`ExecStart=podman kube play … file.yml`, and most of the keys in this section control the command-line
+options passed to Podman. However, some options also affect the details of how systemd is set up to run and
+interact with the container.
+
+There is only one required key, `Yaml`, which defines the path to the Kubernetes YAML file.
+
+Supported keys in the `Kube` section are:
+
+#### `Yaml=`
+
+The path, absolute or relative to the location of the unit file, to the Kubernetes YAML file to use.
+
+#### `RemapUsers=`
+
+If this is set, then host user and group ids are remapped in the container. It currently
+supports values: `auto`, and `keep-id`.
+
+In `auto` mode mode, the subuids and subgids allocated to the `containers` user is used to allocate
+host uids/gids to use for the container. By default this will try to estimate a count of the ids
+to remap, but `RemapUidSize` can be specified to use an explicit size. Use `RemapUid` and
+`RemapGid` key to force a particular host uid to be mapped to the container.
+
+In `keep-id` mode, the running user is mapped to the same id in the container. This is supported
+only on user systemd units.
+
+#### `RemapUid=`
+
+If `RemapUsers` is enabled, this specifies a uid mapping of the form `container_uid:from_uid:amount`,
+which will map `amount` number of uids on the host starting at `from_uid` into the container, starting
+at `container_uid`.
+
+#### `RemapGid=`
+
+If `RemapUsers` is enabled, this specifies a gid mapping of the form `container_gid:from_gid:amount`,
+which will map `amount` number of gids on the host starting at `from_gid` into the container, starting
+at `container_gid`.
+
+#### `RemapUidSize=`
+
+If `RemapUsers` is enabled and set to `auto`, this specifies the count of the ids to remap.
+
+#### `Network=`
+
+Specify a custom network for the container. This has the same format as the `--network` option
+to `podman kube play`. For example, use `host` to use the host network in the container, or `none` to
+not set up networking in the container.
+
+As a special case, if the `name` of the network ends with `.network`, a Podman network called
+`systemd-$name` will be used, and the generated systemd service will contain
+a dependency on the `$name-network.service`. Such a network can be automatically
+created by using a `$name.network` quadlet file.
 
 This key can be listed multiple times.
 
