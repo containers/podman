@@ -247,7 +247,7 @@ spec:
     - containerPort: 80
 `
 
-var subpathTest = `
+var subpathTestNamedVolume = `
 apiVersion: v1
 kind: Pod
 metadata:
@@ -656,6 +656,7 @@ spec:
     {{ if .VolumeMount }}
     - name: {{.VolumeName}}
       mountPath: {{ .VolumeMountPath }}
+      subPath: {{ .VolumeSubPath }}
       readonly: {{.VolumeReadOnly}}
       {{ end }}
     {{ end }}
@@ -1211,6 +1212,7 @@ type Ctr struct {
 	VolumeMount     bool
 	VolumeMountPath string
 	VolumeName      string
+	VolumeSubPath   string
 	VolumeReadOnly  bool
 	Env             []Env
 	EnvFrom         []EnvFrom
@@ -1238,6 +1240,7 @@ func getCtr(options ...ctrOption) *Ctr {
 		VolumeMountPath: "",
 		VolumeName:      "",
 		VolumeReadOnly:  false,
+		VolumeSubPath:   "",
 		Env:             []Env{},
 		EnvFrom:         []EnvFrom{},
 		InitCtrType:     "",
@@ -1349,12 +1352,15 @@ func withHostIP(ip string, port string) ctrOption {
 	}
 }
 
-func withVolumeMount(mountPath string, readonly bool) ctrOption {
+func withVolumeMount(mountPath, subpath string, readonly bool) ctrOption {
 	return func(c *Ctr) {
 		c.VolumeMountPath = mountPath
 		c.VolumeName = defaultVolName
 		c.VolumeReadOnly = readonly
 		c.VolumeMount = true
+		if len(subpath) > 0 {
+			c.VolumeSubPath = subpath
+		}
 	}
 }
 
@@ -1446,7 +1452,7 @@ func getPersistentVolumeClaimVolume(vName string) *Volume {
 
 // getConfigMap returns a new ConfigMap Volume given the name and items
 // of the ConfigMap.
-func getConfigMapVolume(vName string, items []map[string]string, optional bool) *Volume {
+func getConfigMapVolume(vName string, items []map[string]string, optional bool) *Volume { //nolint:unparam
 	return &Volume{
 		VolumeType: "ConfigMap",
 		Name:       defaultVolName,
@@ -2933,7 +2939,7 @@ spec:
 		Expect(err).ToNot(HaveOccurred())
 		f.Close()
 
-		ctr := getCtr(withVolumeMount(hostPathLocation, true), withImage(BB))
+		ctr := getCtr(withVolumeMount(hostPathLocation, "", true), withImage(BB))
 		pod := getPod(withVolume(getHostPathVolume("File", hostPathLocation)), withCtr(ctr))
 		err = generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
@@ -2973,7 +2979,7 @@ VOLUME %s`, ALPINE, hostPathDir+"/")
 		podmanTest.BuildImage(containerfile, image, "false")
 
 		// Create and play kube pod
-		ctr := getCtr(withVolumeMount(hostPathDir+"/", false), withImage(image))
+		ctr := getCtr(withVolumeMount(hostPathDir+"/", "", false), withImage(image))
 		pod := getPod(withCtr(ctr), withVolume(getHostPathVolume("Directory", hostPathDir+"/")))
 		err = generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
@@ -3001,7 +3007,7 @@ VOLUME %s`, ALPINE, hostPathDir+"/")
 	It("podman play kube test with PersistentVolumeClaim volume", func() {
 		volumeName := "namedVolume"
 
-		ctr := getCtr(withVolumeMount("/test", false), withImage(BB))
+		ctr := getCtr(withVolumeMount("/test", "", false), withImage(BB))
 		pod := getPod(withVolume(getPersistentVolumeClaimVolume(volumeName)), withCtr(ctr))
 		err = generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
@@ -3024,7 +3030,7 @@ VOLUME %s`, ALPINE, hostPathDir+"/")
 		cmYaml, err := getKubeYaml("configmap", cm)
 		Expect(err).ToNot(HaveOccurred())
 
-		ctr := getCtr(withVolumeMount("/test", false), withImage(BB))
+		ctr := getCtr(withVolumeMount("/test", "", false), withImage(BB))
 		pod := getPod(withVolume(getConfigMapVolume(volumeName, []map[string]string{}, false)), withCtr(ctr))
 		podYaml, err := getKubeYaml("pod", pod)
 		Expect(err).ToNot(HaveOccurred())
@@ -3052,7 +3058,7 @@ VOLUME %s`, ALPINE, hostPathDir+"/")
 			"path": "BAR",
 		}}
 
-		ctr := getCtr(withVolumeMount("/test", false), withImage(BB))
+		ctr := getCtr(withVolumeMount("/test", "", false), withImage(BB))
 		pod := getPod(withVolume(getConfigMapVolume(volumeName, volumeContents, false)), withCtr(ctr))
 		podYaml, err := getKubeYaml("pod", pod)
 		Expect(err).ToNot(HaveOccurred())
@@ -3077,7 +3083,7 @@ VOLUME %s`, ALPINE, hostPathDir+"/")
 	It("podman play kube with a missing optional ConfigMap volume", func() {
 		volumeName := "cmVol"
 
-		ctr := getCtr(withVolumeMount("/test", false), withImage(BB))
+		ctr := getCtr(withVolumeMount("/test", "", false), withImage(BB))
 		pod := getPod(withVolume(getConfigMapVolume(volumeName, []map[string]string{}, true)), withCtr(ctr))
 		err = generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
@@ -3091,8 +3097,8 @@ VOLUME %s`, ALPINE, hostPathDir+"/")
 		podName := "test-pod"
 		ctrName1 := "vol-test-ctr"
 		ctrName2 := "vol-test-ctr-2"
-		ctr1 := getCtr(withVolumeMount("/test-emptydir", false), withImage(BB), withName(ctrName1))
-		ctr2 := getCtr(withVolumeMount("/test-emptydir-2", false), withImage(BB), withName(ctrName2))
+		ctr1 := getCtr(withVolumeMount("/test-emptydir", "", false), withImage(BB), withName(ctrName1))
+		ctr2 := getCtr(withVolumeMount("/test-emptydir-2", "", false), withImage(BB), withName(ctrName2))
 		pod := getPod(withPodName(podName), withVolume(getEmptyDirVolume()), withCtr(ctr1), withCtr(ctr2))
 		err = generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
@@ -3417,7 +3423,7 @@ spec:
 		deploymentName := "multiFoo"
 		podName := "multiFoo"
 		ctrName := "ctr-01"
-		ctr := getCtr(withVolumeMount("/test", false))
+		ctr := getCtr(withVolumeMount("/test", "", false))
 		ctr.Name = ctrName
 		pod := getPod(withPodName(podName), withVolume(getPersistentVolumeClaimVolume(volName)), withCtr(ctr))
 		deployment := getDeployment(withPod(pod))
@@ -4304,7 +4310,7 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 
 		blockVolume := getHostPathVolume("BlockDevice", devicePath)
 
-		pod := getPod(withVolume(blockVolume), withCtr(getCtr(withImage(REGISTRY_IMAGE), withCmd(nil), withArg(nil), withVolumeMount(devicePath, false))))
+		pod := getPod(withVolume(blockVolume), withCtr(getCtr(withImage(REGISTRY_IMAGE), withCmd(nil), withArg(nil), withVolumeMount(devicePath, "", false))))
 		err = generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
 
@@ -4343,7 +4349,7 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 
 		charVolume := getHostPathVolume("CharDevice", devicePath)
 
-		pod := getPod(withVolume(charVolume), withCtr(getCtr(withImage(REGISTRY_IMAGE), withCmd(nil), withArg(nil), withVolumeMount(devicePath, false))))
+		pod := getPod(withVolume(charVolume), withCtr(getCtr(withImage(REGISTRY_IMAGE), withCmd(nil), withArg(nil), withVolumeMount(devicePath, "", false))))
 		err = generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
 
@@ -4371,7 +4377,7 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 
 		blockVolume := getHostPathVolume("BlockDevice", devicePath)
 
-		pod := getPod(withVolume(blockVolume), withCtr(getCtr(withImage(REGISTRY_IMAGE), withCmd(nil), withArg(nil), withVolumeMount(devicePath, false))))
+		pod := getPod(withVolume(blockVolume), withCtr(getCtr(withImage(REGISTRY_IMAGE), withCmd(nil), withArg(nil), withVolumeMount(devicePath, "", false))))
 		err = generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
 
@@ -4397,7 +4403,7 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 
 		charVolume := getHostPathVolume("BlockDevice", devicePath)
 
-		pod := getPod(withVolume(charVolume), withCtr(getCtr(withImage(REGISTRY_IMAGE), withCmd(nil), withArg(nil), withVolumeMount(devicePath, false))))
+		pod := getPod(withVolume(charVolume), withCtr(getCtr(withImage(REGISTRY_IMAGE), withCmd(nil), withArg(nil), withVolumeMount(devicePath, "", false))))
 		err = generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
 
@@ -4422,7 +4428,7 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 
 		charVolume := getHostPathVolume("CharDevice", devicePath)
 
-		pod := getPod(withVolume(charVolume), withCtr(getCtr(withImage(REGISTRY_IMAGE), withCmd(nil), withArg(nil), withVolumeMount(devicePath, false))))
+		pod := getPod(withVolume(charVolume), withCtr(getCtr(withImage(REGISTRY_IMAGE), withCmd(nil), withArg(nil), withVolumeMount(devicePath, "", false))))
 		err = generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
 
@@ -4565,7 +4571,7 @@ spec:
 		volumeImp.WaitWithDefaultTimeout()
 		Expect(volumeImp).Should(Exit(0))
 
-		err = writeYaml(subpathTest, kubeYaml)
+		err = writeYaml(subpathTestNamedVolume, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
 
 		playKube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
@@ -4576,5 +4582,67 @@ spec:
 		exec.WaitWithDefaultTimeout()
 		Expect(exec).Should(Exit(0))
 		Expect(exec.OutputToString()).Should(Equal("hi"))
+	})
+
+	It("podman play kube with hostPath subpaths", func() {
+		if !Containerized() {
+			Skip("something is wrong with file permissions in CI or in the yaml creation. cannot ls or cat the fs unless in a container")
+		}
+
+		hostPathLocation := podmanTest.TempDir
+		Expect(os.MkdirAll(filepath.Join(hostPathLocation, "testing", "onlythis"), 0755)).To(Succeed())
+		file, err := os.Create(filepath.Join(hostPathLocation, "testing", "onlythis", "123.txt"))
+		Expect(err).ToNot(HaveOccurred())
+
+		_, err = file.Write([]byte("hi"))
+		Expect(err).ToNot(HaveOccurred())
+
+		err = file.Close()
+		Expect(err).ToNot(HaveOccurred())
+
+		pod := getPod(withPodName("testpod"), withCtr(getCtr(withImage(ALPINE), withName("testctr"), withCmd([]string{"top"}), withVolumeMount("/var", "testing/onlythis", false))), withVolume(getHostPathVolume("DirectoryOrCreate", hostPathLocation)))
+
+		err = generateKubeYaml("pod", pod, kubeYaml)
+		Expect(err).To(Not(HaveOccurred()))
+		playKube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		playKube.WaitWithDefaultTimeout()
+		Expect(playKube).Should(Exit(0))
+		exec := podmanTest.Podman([]string{"exec", "-it", "testpod-testctr", "ls", "/var"})
+		exec.WaitWithDefaultTimeout()
+		Expect(exec).Should(Exit(0))
+		Expect(exec.OutputToString()).Should(ContainSubstring("123.txt"))
+	})
+
+	It("podman play kube with configMap subpaths", func() {
+		volumeName := "cmVol"
+		cm := getConfigMap(withConfigMapName(volumeName), withConfigMapData("FOO", "foobar"))
+		cmYaml, err := getKubeYaml("configmap", cm)
+		Expect(err).ToNot(HaveOccurred())
+		volumeContents := []map[string]string{{
+			"key":  "FOO",
+			"path": "BAR",
+		}}
+
+		ctr := getCtr(withPullPolicy("always"), withName("testctr"), withCmd([]string{"top"}), withVolumeMount("/etc/BAR", "BAR", false), withImage(ALPINE))
+		pod := getPod(withPodName("testpod"), withVolume(getConfigMapVolume(volumeName, volumeContents, false)), withCtr(ctr))
+
+		podYaml, err := getKubeYaml("pod", pod)
+		Expect(err).ToNot(HaveOccurred())
+
+		yamls := []string{cmYaml, podYaml}
+		err = generateMultiDocKubeYaml(yamls, kubeYaml)
+		Expect(err).ToNot(HaveOccurred())
+
+		out, _ := os.ReadFile(kubeYaml)
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0), string(out))
+
+		exec := podmanTest.Podman([]string{"exec", "-it", "testpod-testctr", "ls", "/etc/"})
+		exec.WaitWithDefaultTimeout()
+		Expect(exec).Should(Exit(0))
+		Expect(exec.OutputToString()).ShouldNot(HaveLen(3))
+		Expect(exec.OutputToString()).Should(ContainSubstring("BAR"))
+		// we want to check that we can mount a subpath but not replace the entire dir
 	})
 })
