@@ -126,7 +126,7 @@ EOF
     # Run `play kube` in the background as it will wait for the service
     # container to exit.
     timeout --foreground -v --kill=10 60 \
-        $PODMAN play kube --service-container=true $yaml_source &>/dev/null &
+        $PODMAN play kube --service-container=true --log-driver journald $yaml_source &>/dev/null &
 
     # Wait for the container to be running
     container_a=test_pod-test
