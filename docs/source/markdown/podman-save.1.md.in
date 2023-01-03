@@ -24,9 +24,8 @@ Note: `:` is a restricted character and cannot be part of the file name.
 
 ## OPTIONS
 
-#### **--compress**
+@@option dir-compress
 
-Compress tarball image layers when pushing to a directory using the 'dir' transport. (default is same compression type, compressed or uncompressed, as source)
 Note: This flag can only be set with **--format=docker-dir**.
 
 #### **--format**=*format*
