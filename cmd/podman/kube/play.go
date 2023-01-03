@@ -344,10 +344,12 @@ func teardown(body io.Reader, options entities.PlayKubeDownOptions, quiet bool) 
 		fmt.Println("Pods stopped:")
 	}
 	for _, stopped := range reports.StopReport {
-		if len(stopped.Errs) == 0 && !quiet {
-			fmt.Println(stopped.Id)
-		} else {
+		switch {
+		case len(stopped.Errs) > 0:
 			podStopErrors = append(podStopErrors, stopped.Errs...)
+		case quiet:
+		default:
+			fmt.Println(stopped.Id)
 		}
 	}
 	// Dump any stop errors
@@ -361,10 +363,12 @@ func teardown(body io.Reader, options entities.PlayKubeDownOptions, quiet bool) 
 		fmt.Println("Pods removed:")
 	}
 	for _, removed := range reports.RmReport {
-		if removed.Err == nil && !quiet {
-			fmt.Println(removed.Id)
-		} else {
+		switch {
+		case removed.Err != nil:
 			podRmErrors = append(podRmErrors, removed.Err)
+		case quiet:
+		default:
+			fmt.Println(removed.Id)
 		}
 	}
 
@@ -378,10 +382,12 @@ func teardown(body io.Reader, options entities.PlayKubeDownOptions, quiet bool) 
 		fmt.Println("Volumes removed:")
 	}
 	for _, removed := range reports.VolumeRmReport {
-		if removed.Err == nil && !quiet {
-			fmt.Println(removed.Id)
-		} else {
+		switch {
+		case removed.Err != nil:
 			volRmErrors = append(volRmErrors, removed.Err)
+		case quiet:
+		default:
+			fmt.Println(removed.Id)
 		}
 	}
 

@@ -4519,6 +4519,38 @@ cgroups="disabled"`), 0644)
 		Expect(kube).Should(Exit(0))
 	})
 
+	It("podman kube --quiet with error", func() {
+		yaml := `
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+spec:
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: guestbook
+        tier: frontend
+    spec:
+      containers:
+      - name: php-redis
+        image: quay.io/libpod/alpine_nginx:latest
+        ports:
+        - containerPort: 1234
+`
+
+		err = writeYaml(yaml, kubeYaml)
+		Expect(err).ToNot(HaveOccurred())
+
+		kube := podmanTest.Podman([]string{"kube", "play", "--quiet", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).To(ExitWithError())
+		// The ugly format-error exited once in Podman. The test makes
+		// sure it's not coming back.
+		Expect(kube.ErrorToString()).To(Not(ContainSubstring("Error: %!s(<nil>)")))
+	})
+
 	It("podman kube play invalid yaml should clean up pod that was created before failure", func() {
 		podTemplate := `---
 apiVersion: v1
