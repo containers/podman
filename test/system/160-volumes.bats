@@ -509,4 +509,20 @@ EOF
     is "$output" "" "Should print no output"
 }
 
+@test "podman ps -f" {
+    vol1="/v1_$(random_string)"
+    run_podman run -d --rm --volume ${PODMAN_TMPDIR}:$vol1 $IMAGE top
+    cid=$output
+
+    run_podman ps --noheading --no-trunc -q -f volume=$vol1
+    is "$output" "$cid" "Should find container by volume"
+
+    run_podman ps --noheading --no-trunc -q --filter volume=/NoSuchVolume
+    is "$output" "" "ps --filter volume=/NoSuchVolume"
+
+    # Clean up
+    run_podman rm -f -t 0 -a
+}
+
+
 # vim: filetype=sh
