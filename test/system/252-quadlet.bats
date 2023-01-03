@@ -101,7 +101,7 @@ function service_cleanup() {
     if [[ -n "$expected_state" ]]; then
         run systemctl show --property=ActiveState "$service"
         assert "$output" = "ActiveState=$expected_state" \
-               "state of service after systemctl stop"
+               "state of service $service after systemctl stop"
     fi
 
     rm -f "$UNIT_DIR/$service"
@@ -246,13 +246,17 @@ EOF
 
 # A quadlet container depends on a quadlet volume
 @test "quadlet - volume dependency" {
-    local quadlet_vol_file=$PODMAN_TMPDIR/dep_$(random_string).volume
+    # Save the unit name to use as the volume for the container
+    local quadlet_vol_unit=dep_$(random_string).volume
+    local quadlet_vol_file=$PODMAN_TMPDIR/${quadlet_vol_unit}
     cat > $quadlet_vol_file <<EOF
 [Volume]
 EOF
 
+    # Have quadlet create the systemd unit file for the volume unit
     run_quadlet "$quadlet_vol_file"
 
+    # Save the volume service name since the variable will be overwritten
     local vol_service=$QUADLET_SERVICE_NAME
     local volume_name=systemd-$(basename $quadlet_vol_file .volume)
 
@@ -261,14 +265,20 @@ EOF
 [Container]
 Image=$IMAGE
 Exec=top
-Volume=$vol_service:/tmp
+Volume=$quadlet_vol_unit:/tmp
 EOF
 
-    # Volume should not exist
-    run_podman volume ls
-    assert "$output" !~ ".*${volume_name}.*"
+    # Have quadlet create the systemd unit file for the container unit
+    run_quadlet "$quadlet_file"
 
-    service_setup $QUADLET_SERVICE_NAME
+    # Save the container service name for readability
+    local container_service=$QUADLET_SERVICE_NAME
+
+    # Volume should not exist
+    run_podman 1 volume exists ${volume_name}
+
+    # Start the container service which should also trigger the start of the volume service
+    service_setup $container_service
 
     # Volume system unit should be active
     run systemctl show --property=ActiveState "$vol_service"
@@ -276,11 +286,11 @@ EOF
            "volume should be active via dependency"
 
     # Volume should exist
-    volume_name=systemd-$(basename $quadlet_vol_file .volume)
-    run_podman volume ls
-    is "$output" ".*local.*${volume_name}.*"
+    run_podman volume exists ${volume_name}
 
-    service_cleanup $QUADLET_SERVICE_NAME inactive
+    # Shutdown the service and remove the volume
+    service_cleanup $container_service failed
+    run_podman volume rm $volume_name
 }
 
 @test "quadlet kube - basic" {
