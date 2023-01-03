@@ -354,6 +354,73 @@ var _ = Describe("quadlet system generator", func() {
 
 	})
 
+	Describe("Running quadlet dryrun tests", func() {
+		It("Should exit with an error because of no files are found to parse", func() {
+			fileName := "basic.kube"
+			testcase := loadQuadletTestcase(filepath.Join("quadlet", fileName))
+
+			// Write the tested file to the quadlet dir
+			err = os.WriteFile(filepath.Join(quadletDir, fileName), testcase.data, 0644)
+			Expect(err).ToNot(HaveOccurred())
+
+			session := podmanTest.Quadlet([]string{"-dryrun"}, "/something")
+			session.WaitWithDefaultTimeout()
+			Expect(session).Should(Exit(1))
+
+			current := session.ErrorToStringArray()
+			expected := "No files to parse from [/something]"
+
+			Expect(strings.Contains(current[0], expected)).To(BeTrue())
+		})
+
+		It("Should parse a kube file and print it to stdout", func() {
+			fileName := "basic.kube"
+			testcase := loadQuadletTestcase(filepath.Join("quadlet", fileName))
+
+			// Write the tested file to the quadlet dir
+			err = os.WriteFile(filepath.Join(quadletDir, fileName), testcase.data, 0644)
+			Expect(err).ToNot(HaveOccurred())
+
+			session := podmanTest.Quadlet([]string{"-dryrun"}, quadletDir)
+			session.WaitWithDefaultTimeout()
+			Expect(session).Should(Exit(0))
+
+			current := session.OutputToStringArray()
+			expected := []string{
+				"---basic.service---",
+				"## assert-podman-args \"kube\"",
+				"## assert-podman-args \"play\"",
+				"## assert-podman-final-args-regex /tmp/podman_test.*/quadlet/deployment.yml",
+				"## assert-podman-args \"--replace\"",
+				"## assert-podman-args \"--service-container=true\"",
+				"## assert-podman-stop-args \"kube\"",
+				"## assert-podman-stop-args \"down\"",
+				"## assert-podman-stop-final-args-regex /tmp/podman_test.*/quadlet/deployment.yml",
+				"## assert-key-is \"Unit\" \"RequiresMountsFor\" \"%t/containers\"",
+				"## assert-key-is \"Service\" \"KillMode\" \"mixed\"",
+				"## assert-key-is \"Service\" \"Type\" \"notify\"",
+				"## assert-key-is \"Service\" \"NotifyAccess\" \"all\"",
+				"## assert-key-is \"Service\" \"Environment\" \"PODMAN_SYSTEMD_UNIT=%n\"",
+				"## assert-key-is \"Service\" \"SyslogIdentifier\" \"%N\"",
+				"[X-Kube]",
+				"Yaml=deployment.yml",
+				"[Unit]",
+				fmt.Sprintf("SourcePath=%s/basic.kube", quadletDir),
+				"RequiresMountsFor=%t/containers",
+				"[Service]",
+				"KillMode=mixed",
+				"Environment=PODMAN_SYSTEMD_UNIT=%n",
+				"Type=notify",
+				"NotifyAccess=all",
+				"SyslogIdentifier=%N",
+				fmt.Sprintf("ExecStart=/usr/local/bin/podman kube play --replace --service-container=true %s/deployment.yml", quadletDir),
+				fmt.Sprintf("ExecStop=/usr/local/bin/podman kube down %s/deployment.yml", quadletDir),
+			}
+
+			Expect(expected).To(Equal(current))
+		})
+	})
+
 	DescribeTable("Running quadlet test case",
 		func(fileName string) {
 			testcase := loadQuadletTestcase(filepath.Join("quadlet", fileName))
