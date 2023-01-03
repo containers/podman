@@ -23,9 +23,13 @@ your scenario, or additional information, to the discussion. Or simply
 
 If you find a new issue with the project we'd love to hear about it! The most
 important aspect of a bug report is that it includes enough information for
-us to reproduce it. So, please include as much detail as possible and try
-to remove the extra stuff that doesn't really relate to the issue itself.
-The easier it is for us to reproduce it, the faster it'll be fixed!
+us to reproduce it. To make this easier, there are three types of issue
+templates you can use, if you have a bug to report, please use *Bug Report*
+template or if you have an idea to propose, please use the *Feature Request*
+template or if your issue is something else, please use the default template.
+Please include as much detail as possible and try to remove the extra stuff
+that doesn't really relate to the issue itself. The easier it is for us to
+reproduce it, the faster it'll be fixed!
 
 Please don't include any private/sensitive information in your issue!
 
