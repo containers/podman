@@ -97,6 +97,21 @@ func findSublist(full []string, sublist []string) int {
 	return -1
 }
 
+func findSublistRegex(full []string, sublist []string) int {
+	if len(sublist) > len(full) {
+		return -1
+	}
+	if len(sublist) == 0 {
+		return -1
+	}
+	for i := 0; i < len(full)-len(sublist)+1; i++ {
+		if matchSublistRegexAt(full, i, sublist) {
+			return i
+		}
+	}
+	return -1
+}
+
 func (t *quadletTestcase) assertStdErrContains(args []string, session *PodmanSessionIntegration) bool {
 	return strings.Contains(session.ErrorToString(), args[0])
 }
@@ -155,6 +170,11 @@ func (t *quadletTestcase) assertPodmanArgs(args []string, unit *parser.UnitFile,
 	return findSublist(podmanArgs, args) != -1
 }
 
+func (t *quadletTestcase) assertPodmanArgsRegex(args []string, unit *parser.UnitFile, key string) bool {
+	podmanArgs, _ := unit.LookupLastArgs("Service", key)
+	return findSublistRegex(podmanArgs, args) != -1
+}
+
 func (t *quadletTestcase) assertPodmanFinalArgs(args []string, unit *parser.UnitFile, key string) bool {
 	podmanArgs, _ := unit.LookupLastArgs("Service", key)
 	if len(podmanArgs) < len(args) {
@@ -173,6 +193,10 @@ func (t *quadletTestcase) assertPodmanFinalArgsRegex(args []string, unit *parser
 
 func (t *quadletTestcase) assertStartPodmanArgs(args []string, unit *parser.UnitFile) bool {
 	return t.assertPodmanArgs(args, unit, "ExecStart")
+}
+
+func (t *quadletTestcase) assertStartPodmanArgsRegex(args []string, unit *parser.UnitFile) bool {
+	return t.assertPodmanArgsRegex(args, unit, "ExecStart")
 }
 
 func (t *quadletTestcase) assertStartPodmanFinalArgs(args []string, unit *parser.UnitFile) bool {
@@ -238,6 +262,8 @@ func (t *quadletTestcase) doAssert(check []string, unit *parser.UnitFile, sessio
 		ok = t.assertKeyContains(args, unit)
 	case "assert-podman-args":
 		ok = t.assertStartPodmanArgs(args, unit)
+	case "assert-podman-args-regex":
+		ok = t.assertStartPodmanArgsRegex(args, unit)
 	case "assert-podman-final-args":
 		ok = t.assertStartPodmanFinalArgs(args, unit)
 	case "assert-podman-final-args-regex":
@@ -382,6 +408,9 @@ var _ = Describe("quadlet system generator", func() {
 		Entry("remap-auto.container", "remap-auto.container"),
 		Entry("remap-auto2.container", "remap-auto2.container"),
 		Entry("volume.container", "volume.container"),
+		Entry("env-file.container", "env-file.container"),
+		Entry("env-host.container", "env-host.container"),
+		Entry("env-host-false.container", "env-host-false.container"),
 
 		Entry("basic.volume", "basic.volume"),
 		Entry("label.volume", "label.volume"),

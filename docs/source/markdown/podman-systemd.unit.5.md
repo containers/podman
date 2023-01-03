@@ -93,6 +93,16 @@ Set an environment variable in the container. This uses the same format as
 [services in systemd](https://www.freedesktop.org/software/systemd/man/systemd.exec.html#Environment=)
 and can be listed multiple times.
 
+#### `EnvironmentFile=`
+
+Use a line-delimited file to set environment variables in the container.
+The path may be absolute or relative to the location of the unit file.
+This key may be used multiple times, and the order persists when passed to `podman run`.
+
+#### `EnvironmentHost=` (defaults to `no`)
+
+Use the host environment inside of the container.
+
 #### `Exec=`
 
 If this is set then it defines what command line to run in the container. If it is not set the

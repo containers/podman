@@ -1,0 +1,9 @@
+## assert-podman-final-args localhost/imagename
+## assert-podman-args --env-file /opt/env/abs-1 --env-file /opt/env/abs-2
+## assert-podman-args-regex --env-file /.*/podman_test.*/quadlet/rel-1
+
+[Container]
+Image=localhost/imagename
+EnvironmentFile=/opt/env/abs-1
+EnvironmentFile=/opt/env/abs-2
+EnvironmentFile=rel-1
