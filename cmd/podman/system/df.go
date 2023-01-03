@@ -1,7 +1,6 @@
 package system
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"math"
@@ -146,7 +145,6 @@ func printSummary(cmd *cobra.Command, reports *entities.SystemDfReport) error {
 
 	rpt := report.New(os.Stdout, cmd.Name())
 	defer rpt.Flush()
-	report.DefaultFuncs["json"] = rptJSON
 
 	var err error
 	if cmd.Flags().Changed("format") {
@@ -164,46 +162,7 @@ func printSummary(cmd *cobra.Command, reports *entities.SystemDfReport) error {
 	return writeTemplate(rpt, hdrs, dfSummaries)
 }
 
-type jsonSummary struct {
-	Type           string
-	Total          int
-	Active         int
-	RawSize        int64
-	RawReclaimable int64
-
-	TotalCount  int
-	Size        string
-	Reclaimable string
-}
-
-func jsonConvert(df *dfSummary) *jsonSummary {
-	return &jsonSummary{
-		Type:           df.Type,
-		Total:          df.Total,
-		TotalCount:     df.Total,
-		Active:         df.Active,
-		RawSize:        df.RawSize,
-		RawReclaimable: df.RawReclaimable,
-		Size:           df.Size(),
-		Reclaimable:    df.Reclaimable(),
-	}
-}
-
-func rptJSON(df *dfSummary) string {
-	buf := new(bytes.Buffer)
-	enc := json.NewEncoder(buf)
-	enc.SetEscapeHTML(false)
-	_ = enc.Encode(jsonConvert(df))
-	// Remove the trailing new line added by the encoder
-	return strings.TrimSpace(buf.String())
-}
-
-func printJSON(dfSummaries []*dfSummary) error {
-	data := make([]jsonSummary, len(dfSummaries))
-	for i, df := range dfSummaries {
-		data[i] = *jsonConvert(df)
-	}
-
+func printJSON(data []*dfSummary) error {
 	bytes, err := json.MarshalIndent(data, "", "    ")
 	if err != nil {
 		return err
@@ -343,8 +302,8 @@ type dfSummary struct {
 	Type           string
 	Total          int
 	Active         int
-	RawSize        int64 `json:"Size"`
-	RawReclaimable int64 `json:"Reclaimable"`
+	RawSize        int64
+	RawReclaimable int64
 }
 
 func (d *dfSummary) Size() string {
@@ -358,4 +317,17 @@ func (d *dfSummary) Reclaimable() string {
 		percent = int(math.Round(float64(d.RawReclaimable) / float64(d.RawSize) * float64(100)))
 	}
 	return fmt.Sprintf("%s (%d%%)", units.HumanSize(float64(d.RawReclaimable)), percent)
+}
+
+func (d dfSummary) MarshalJSON() ([]byte, error) {
+	// need to create a new type here to prevent infinite recursion in MarshalJSON() call
+	type rawDf dfSummary
+
+	return json.Marshal(struct {
+		rawDf
+		// fields for docker compat https://github.com/containers/podman/issues/16902
+		TotalCount  int
+		Size        string
+		Reclaimable string
+	}{rawDf(d), d.Total, d.Size(), d.Reclaimable()})
 }
