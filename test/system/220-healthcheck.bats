@@ -102,6 +102,7 @@ Log[-1].Output   | \"Uh-oh on stdout!\\\nUh-oh on stderr!\"
     is "$output" "0" "Failing streak of restarted container should be 0 again"
 
     run_podman rm -f -t0 $ctr
+    run_podman rmi $img
 }
 
 @test "podman healthcheck --health-on-failure" {
