@@ -821,13 +821,13 @@ func addNetworks(quadletUnitFile *parser.UnitFile, groupName string, serviceUnit
 	networks := quadletUnitFile.LookupAll(groupName, KeyNetwork)
 	for _, network := range networks {
 		if len(network) > 0 {
-			networkName, options, found := strings.Cut(network, ":")
-			if strings.HasSuffix(networkName, ".network") {
+			quadletNetworkName, options, found := strings.Cut(network, ":")
+			if strings.HasSuffix(quadletNetworkName, ".network") {
 				// the podman network name is systemd-$name
-				networkName = replaceExtension(networkName, "", "systemd-", "")
+				networkName := replaceExtension(quadletNetworkName, "", "systemd-", "")
 
 				// the systemd unit name is $name-network.service
-				networkServiceName := replaceExtension(networkName, ".service", "", "-network")
+				networkServiceName := replaceExtension(quadletNetworkName, ".service", "", "-network")
 
 				serviceUnitFile.Add(UnitGroup, "Requires", networkServiceName)
 				serviceUnitFile.Add(UnitGroup, "After", networkServiceName)
