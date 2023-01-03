@@ -12,6 +12,11 @@ PODMAN_TEST_IMAGE_TAG=${PODMAN_TEST_IMAGE_TAG:-"20221018"}
 PODMAN_TEST_IMAGE_FQN="$PODMAN_TEST_IMAGE_REGISTRY/$PODMAN_TEST_IMAGE_USER/$PODMAN_TEST_IMAGE_NAME:$PODMAN_TEST_IMAGE_TAG"
 PODMAN_TEST_IMAGE_ID=
 
+# Larger image containing systemd tools.
+PODMAN_SYSTEMD_IMAGE_NAME=${PODMAN_SYSTEMD_IMAGE_NAME:-"systemd-image"}
+PODMAN_SYSTEMD_IMAGE_TAG=${PODMAN_SYSTEMD_IMAGE_TAG:-"20221206"}
+PODMAN_SYSTEMD_IMAGE_FQN="$PODMAN_TEST_IMAGE_REGISTRY/$PODMAN_TEST_IMAGE_USER/$PODMAN_SYSTEMD_IMAGE_NAME:$PODMAN_SYSTEMD_IMAGE_TAG"
+
 # Remote image that we *DO NOT* fetch or keep by default; used for testing pull
 # This has changed in 2021, from 0 through 3, various iterations of getting
 # multiarch to work. It should change only very rarely.
@@ -20,6 +25,7 @@ PODMAN_NONLOCAL_IMAGE_FQN="$PODMAN_TEST_IMAGE_REGISTRY/$PODMAN_TEST_IMAGE_USER/$
 
 # Because who wants to spell that out each time?
 IMAGE=$PODMAN_TEST_IMAGE_FQN
+SYSTEMD_IMAGE=$PODMAN_SYSTEMD_IMAGE_FQN
 
 # Default timeout for a podman command.
 PODMAN_TIMEOUT=${PODMAN_TIMEOUT:-120}
@@ -55,12 +61,15 @@ function basic_setup() {
     run_podman images --all --format '{{.Repository}}:{{.Tag}} {{.ID}}'
     for line in "${lines[@]}"; do
         set $line
-        if [ "$1" == "$PODMAN_TEST_IMAGE_FQN" ]; then
+        if [[ "$1" == "$PODMAN_TEST_IMAGE_FQN" ]]; then
             if [[ -z "$PODMAN_TEST_IMAGE_ID" ]]; then
                 # This will probably only trigger the 2nd time through setup
                 PODMAN_TEST_IMAGE_ID=$2
             fi
             found_needed_image=1
+        elif [[ "$1" == "$PODMAN_SYSTEMD_IMAGE_FQN" ]]; then
+            # This is a big image, don't force unnecessary pulls
+            :
         else
             # Always remove image that doesn't match by name
             echo "# setup(): removing stray image $1" >&3

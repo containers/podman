@@ -5,6 +5,15 @@
 
 load helpers
 
+function setup() {
+    # Depending on which tests have been run prior to getting here, there
+    # may be one or two images loaded. We want only '$IMAGE', not the
+    # systemd one.
+    run_podman rmi -f $SYSTEMD_IMAGE
+
+    basic_setup
+}
+
 function teardown() {
     basic_teardown
 
@@ -30,10 +39,45 @@ function teardown() {
 }
 
 @test "podman system df --format json functionality" {
+    # Run two dummy containers, one which exits, one which stays running
+    run_podman run    --name stoppedcontainer $IMAGE true
+    run_podman run -d --name runningcontainer $IMAGE top
     run_podman system df --format json
-    is "$output" '.*"TotalCount": 1'       "Exactly one image"
-    is "$output" '.*"RawSize": 0' "RawSize reported"
-    is "$output" '.*"Size": "0B"' "Size reported"
+    local results="$output"
+
+    # FIXME: we can't check exact RawSize or Size because every CI system
+    # computes a different value: 12701526, 12702113, 12706209... and
+    # those are all amd64. aarch64 gets 12020148, 12019561.
+    #
+    # WARNING: RawSize and Size tests may fail if $IMAGE is updated. Since
+    # that tends to be done yearly or less, and only by Ed, that's OK.
+    local tests='
+Type           | Images    | Containers | Local Volumes
+Total          |         1 |          2 |             0
+Active         |         1 |          1 |             0
+RawSize        | ~12...... |          0 |             0
+RawReclaimable |         0 |          0 |             0
+TotalCount     |         1 |          2 |             0
+Size           |   ~12.*MB |         0B |            0B
+'
+    while read -a fields; do
+        for i in 0 1 2;do
+            expect="${fields[$((i+1))]}"
+            actual=$(jq -r ".[$i].${fields[0]}" <<<"$results")
+
+            # Do exact-match check, unless the expect term starts with ~
+            op='='
+            if [[ "$expect" =~ ^~ ]]; then
+                op='=~'
+                expect=${expect##\~}
+            fi
+
+            assert "$actual" "$op" "$expect" "system df[$i].${fields[0]}"
+        done
+    done < <(parse_table "$tests")
+
+    # Clean up
+    run_podman rm -f -t 0 stoppedcontainer runningcontainer
 }
 
 @test "podman system df - with active containers and volumes" {

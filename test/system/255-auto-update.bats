@@ -31,8 +31,7 @@ function teardown() {
             quay.io/libpod/busybox:latest          \
             quay.io/libpod/localtest:latest        \
             quay.io/libpod/autoupdatebroken:latest \
-            quay.io/libpod/test:latest             \
-            quay.io/libpod/fedora:31
+            quay.io/libpod/test:latest
 
     # The rollback tests may leave some dangling images behind, so let's prune
     # them to leave a clean state.
@@ -267,7 +266,7 @@ function _confirm_update() {
 
     dockerfile1=$PODMAN_TMPDIR/Dockerfile.1
     cat >$dockerfile1 <<EOF
-FROM quay.io/libpod/fedora:31
+FROM $SYSTEMD_IMAGE
 RUN echo -e "#!/bin/sh\n\
 printenv NOTIFY_SOCKET; echo READY; systemd-notify --ready;\n\
 trap 'echo Received SIGTERM, finishing; exit' SIGTERM; echo WAITING; while :; do sleep 0.1; done" \
@@ -277,7 +276,7 @@ EOF
 
     dockerfile2=$PODMAN_TMPDIR/Dockerfile.2
     cat >$dockerfile2 <<EOF
-FROM quay.io/libpod/fedora:31
+FROM $SYSTEMD_IMAGE
 RUN echo -e "#!/bin/sh\n\
 exit 1" >> /runme
 RUN chmod +x /runme
@@ -446,7 +445,7 @@ EOF
 
     dockerfile1=$PODMAN_TMPDIR/Dockerfile.1
     cat >$dockerfile1 <<EOF
-FROM quay.io/libpod/fedora:31
+FROM $SYSTEMD_IMAGE
 RUN echo -e "#!/bin/sh\n\
 printenv NOTIFY_SOCKET; echo READY; systemd-notify --ready;\n\
 trap 'echo Received SIGTERM, finishing; exit' SIGTERM; echo WAITING; while :; do sleep 0.1; done" \
@@ -456,7 +455,7 @@ EOF
 
     dockerfile2=$PODMAN_TMPDIR/Dockerfile.2
     cat >$dockerfile2 <<EOF
-FROM quay.io/libpod/fedora:31
+FROM $SYSTEMD_IMAGE
 RUN echo -e "#!/bin/sh\n\
 exit 1" >> /runme
 RUN chmod +x /runme

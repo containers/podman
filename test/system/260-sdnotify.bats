@@ -144,20 +144,15 @@ READY=1" "sdnotify sent MAINPID and READY"
 # These tests can fail in dev. environment because of SELinux.
 # quick fix: chcon -t container_runtime_exec_t ./bin/podman
 @test "sdnotify : container" {
-    # Sigh... we need to pull a humongous image because it has systemd-notify.
-    # (IMPORTANT: fedora:32 and above silently removed systemd-notify; this
-    # caused CI to hang. That's why we explicitly require fedora:31)
-    # FIXME: is there a smaller image we could use?
-    local _FEDORA="$PODMAN_TEST_IMAGE_REGISTRY/$PODMAN_TEST_IMAGE_USER/fedora:31"
-    # Pull that image. Retry in case of flakes.
-    run_podman pull $_FEDORA || \
-        run_podman pull $_FEDORA || \
-        run_podman pull $_FEDORA
+    # Pull our systemd image. Retry in case of flakes.
+    run_podman pull $SYSTEMD_IMAGE || \
+        run_podman pull $SYSTEMD_IMAGE || \
+        run_podman pull $SYSTEMD_IMAGE
 
     export NOTIFY_SOCKET=$PODMAN_TMPDIR/container.sock
     _start_socat
 
-    run_podman run -d --sdnotify=container $_FEDORA \
+    run_podman run -d --sdnotify=container $SYSTEMD_IMAGE \
                sh -c 'printenv NOTIFY_SOCKET; echo READY; while ! test -f /stop;do sleep 0.1;done;systemd-notify --ready'
     cid="$output"
     wait_for_ready $cid
@@ -191,7 +186,6 @@ READY=1" "sdnotify sent MAINPID and READY"
 READY=1"
 
     run_podman rm $cid
-    run_podman rmi $_FEDORA
     _stop_socat
 }
 
@@ -250,15 +244,10 @@ READY=1" "sdnotify sent MAINPID and READY"
 }
 
 @test "sdnotify : play kube - with policies" {
-    # Sigh... we need to pull a humongous image because it has systemd-notify.
-    # (IMPORTANT: fedora:32 and above silently removed systemd-notify; this
-    # caused CI to hang. That's why we explicitly require fedora:31)
-    # FIXME: is there a smaller image we could use?
-    local _FEDORA="$PODMAN_TEST_IMAGE_REGISTRY/$PODMAN_TEST_IMAGE_USER/fedora:31"
     # Pull that image. Retry in case of flakes.
-    run_podman pull $_FEDORA || \
-        run_podman pull $_FEDORA || \
-        run_podman pull $_FEDORA
+    run_podman pull $SYSTEMD_IMAGE || \
+        run_podman pull $SYSTEMD_IMAGE || \
+        run_podman pull $SYSTEMD_IMAGE
 
     # Create the YAMl file
     yaml_source="$PODMAN_TMPDIR/test.yaml"
@@ -279,7 +268,7 @@ spec:
     - /bin/sh
     - -c
     - 'printenv NOTIFY_SOCKET; while ! test -f /stop;do sleep 0.1;done'
-    image: $_FEDORA
+    image: $SYSTEMD_IMAGE
     name: a
   - command:
     - /bin/sh
@@ -360,7 +349,7 @@ READY=1" "sdnotify sent MAINPID and READY"
 
     # Clean up pod and pause image
     run_podman play kube --down $yaml_source
-    run_podman rmi $_FEDORA $(pause_image)
+    run_podman rmi $(pause_image)
 }
 
 # vim: filetype=sh
