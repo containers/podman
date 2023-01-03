@@ -116,7 +116,7 @@ $c2[ ]\+tcp://localhost:54321[ ]\+true" \
     wait_for_port localhost $_SERVICE_PORT
     local timeout=10
     while [[ $timeout -gt 1 ]]; do
-        _run_podman_remote ? info --format '{{.Host.RemoteSocket.Path}}'
+        _run_podman_remote '?' info --format '{{.Host.RemoteSocket.Path}}'
         if [[ $status == 0 ]]; then
             break
         fi
