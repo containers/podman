@@ -146,6 +146,15 @@ When `bats` is installed and is in your `PATH`, you can run the test suite with 
 make localsystem
 ```
 
+## Running the system tests in a more controlled way
+If you would like to run a subset of the system tests, or configure the environment (e.g. root vs rootless, local vs remote),
+use `hack/bats`.
+
+For usage run:
+```
+hack/bats --help
+```
+
 ## Contributing to system tests
 
 Please see [the TODO list of needed workflows/tests](system/TODO.md).
