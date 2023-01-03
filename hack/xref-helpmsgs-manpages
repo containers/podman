@@ -554,7 +554,7 @@ sub _check_seealso_links {
             my ($name, $link) = ($1, $2);
             if ($name =~ /^(.*)\((\d)\)$/) {
                 my ($base, $section) = ($1, $2);
-                if (-e "$Markdown_Path/$base.$section.md" || -e "$Markdown_Path/links/$base.$section") {
+                if (-e "$Markdown_Path/$base.$section.md") {
                     if ($link ne "$base.$section.md") {
                         warn "$ME: $path: inconsistent link $name -> $link, expected $base.$section.md\n";
                         ++$Errs;
@@ -578,8 +578,14 @@ sub _check_seealso_links {
             my ($base, $section) = ($1, $2);
 
             # Unadorned 'podman-foo(1)' must be a link.
-            if (-e "$Markdown_Path/$base.$section.md" || -e "$Markdown_Path/links/$base.$section") {
+            if (-e "$Markdown_Path/$base.$section.md") {
                 warn "$ME: $path: '$token' should be '[$token]($base.$section.md)'\n";
+                ++$Errs;
+            }
+
+            # Aliases (non-canonical command names): never link to these
+            if (-e "$Markdown_Path/links/$base.$section") {
+                warn "$ME: $path: '$token' refers to a command alias; please use the canonical command name instead\n";
                 ++$Errs;
             }
 
