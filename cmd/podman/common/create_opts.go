@@ -92,4 +92,5 @@ func DefineCreateDefaults(opts *entities.ContainerCreateOptions) {
 	opts.Ulimit = ulimits()
 	opts.SeccompPolicy = "default"
 	opts.Volume = volumes()
+	opts.PIDsLimit = &podmanConfig.ContainersConf.Containers.PidsLimit
 }
