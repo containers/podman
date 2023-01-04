@@ -93,7 +93,7 @@ EPOCH_TEST_COMMIT="$CIRRUS_BASE_SHA"
 # contexts, such as host->container or root->rootless user
 #
 # List of envariables which must be EXACT matches
-PASSTHROUGH_ENV_EXACT='CGROUP_MANAGER|DEST_BRANCH|DISTRO_NV|GOCACHE|GOPATH|GOSRC|NETWORK_BACKEND|OCI_RUNTIME|ROOTLESS_USER|SCRIPT_BASE|SKIP_USERNS'
+PASSTHROUGH_ENV_EXACT='CGROUP_MANAGER|DEST_BRANCH|DISTRO_NV|GOCACHE|GOPATH|GOSRC|NETWORK_BACKEND|OCI_RUNTIME|ROOTLESS_USER|SCRIPT_BASE|SKIP_USERNS|EC2_INST_TYPE'
 
 # List of envariable patterns which must match AT THE BEGINNING of the name.
 PASSTHROUGH_ENV_ATSTART='CI|TEST'
@@ -289,4 +289,33 @@ remove_packaged_podman_files() {
 
     # Be super extra sure and careful vs performant and completely safe
     sync && echo 3 > /proc/sys/vm/drop_caches || true
+}
+
+# Execute make localbenchmarks in $CIRRUS_WORKING_DIR/data
+# for preserving as a task artifact.
+localbenchmarks() {
+    local datadir
+    req_env_vars DISTRO_NV PODBIN_NAME PRIV_NAME TEST_ENVIRON TEST_FLAVOR
+    req_env_vars VM_IMAGE_NAME EC2_INST_TYPE
+
+    datadir=$CIRRUS_WORKING_DIR/data
+    mkdir -p $datadir
+
+    (
+      echo "# Env. var basis for benchmarks benchmarks."
+      printenv | grep -Ev "$SECRET_ENV_RE" | sort
+
+      echo "# Machine details for data-comparison sake, not actual env. vars."
+      # Checked above in req_env_vars
+      # shellcheck disable=SC2154
+      echo "\
+CPUTOTAL=$(grep -ce '^processor' /proc/cpuinfo)
+INST_TYPE=$EC2_INST_TYPE  # one day may include other cloud's VM types.
+MEMTOTAL=$(awk -F: '$1 == "MemTotal" { print $2 }' </proc/meminfo | sed -e "s/^ *//")
+UNAME_RM=$(uname -r -m)
+"
+    ) > $datadir/benchmarks.env
+    make localbenchmarks | tee $datadir/benchmarks.raw
+    msg "Processing raw benchmarks output"
+    hack/parse-localbenchmarks < $datadir/benchmarks.raw | tee $datadir/benchmarks.csv
 }
