@@ -29,20 +29,27 @@ $0 is a wrapper for invoking podman system tests.
 
 By default, tests ./bin/podman. To test a different podman, do:
 
-    \$ PODMAN=/abs/path/to/podman $0 ....
+    \$ env PODMAN=/abs/path/to/podman $0 ....
 
 To test podman-remote, start your own servers (root and rootless) via:
 
     \$ bin/podman system service --timeout=0 &
     \$ sudo !!
 
-...then invoke this script with --remote.
-
-   (This script cannot start the servers, because we can sudo *starting*
-   the service but can't sudo stopping it: by the time the bats tests
-   finish, the sudo timeout will have expired.)
+...then invoke this script with --remote. (This script can't start the
+servers, because we can sudo *starting* the service but can't sudo
+stopping it: by the time the bats tests finish, the sudo timeout will
+have expired. We apologize for the inconvenience.)
 
 $0 also passes through \$OCI_RUNTIME, should you need to test that.
+
+Examples:
+
+    \$ $0 220:\"restart cleans up\"
+       ... only the \"restart cleans up\" test in 220-healthcheck.bats
+
+    \$ $0 --root 160:\"ps -f\"
+       ... runs all tests in 160-volumes.bats that match \"ps -f\" (root only)
 "
 
 # END   usage message
