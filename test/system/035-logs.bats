@@ -373,6 +373,10 @@ $content" "logs --until -f on running container works"
     run_podman ${events_backend} rm -t 0 -f $cname
 }
 
+@test "podman logs - --until --follow k8s-file" {
+    _log_test_follow_until k8s-file
+}
+
 @test "podman logs - --until --follow journald" {
     # We can't use journald on RHEL as rootless: rhbz#1895105
     skip_if_journald_unavailable
