@@ -103,4 +103,50 @@ load helpers
     is "$output" "" "Should print no output"
 }
 
+@test "podman container rm doesn't affect stopping containers" {
+    local cname=c$(random_string 30)
+    run_podman run -d --name $cname \
+               --health-cmd /bin/false \
+               --health-interval 1s \
+               --health-retries 2 \
+               --health-timeout 1s \
+               --health-on-failure=stop \
+               --stop-timeout=2 \
+               --health-start-period 0 \
+               --stop-signal SIGTERM \
+               $IMAGE sleep infinity
+    local cid=$output
+
+    # We'll use the PID later to confirm that container is not running
+    run_podman inspect --format '{{.State.Pid}}' $cname
+    local pid=$output
+
+    # rm without -f should fail, because container is running/stopping.
+    # We have no way to guarantee that we see 'stopping', but at a very
+    # minimum we need to check at least one rm failure
+    local rm_failures=0
+    for i in {1..10}; do
+        run_podman '?' rm $cname
+        if [[ $status -eq 0 ]]; then
+            break
+        fi
+
+        # rm failed. Confirm that it's for the right reason.
+        assert "$output" =~ "Error: cannot remove container $cid as it is .* - running or paused containers cannot be removed without force: container state improper" \
+               "Expected error message from podman rm"
+        rm_failures=$((rm_failures + 1))
+        sleep 1
+    done
+
+    # At this point, container should be gone
+    run_podman 1 container exists $cname
+    run_podman 1 container exists $cid
+
+    assert "$rm_failures" -gt 0 "we want at least one failure from podman-rm"
+
+    if kill -0 $pid; then
+        die "Container $cname process is still running (pid $pid)"
+    fi
+}
+
 # vim: filetype=sh
