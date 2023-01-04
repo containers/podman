@@ -12,6 +12,7 @@ $0 is a wrapper for invoking podman system tests.
 
    --root         Run only as root
    --rootless     Run only as user (i.e. you)
+   --remote       Run with podman-remote (see below)
 
    FILENAME-PATTERN Run only test files that match 'test/system/*name*',
                     e.g. '500' or 'net' will match 500-networking.bats.
@@ -32,17 +33,14 @@ By default, tests ./bin/podman. To test a different podman, do:
 
 To test podman-remote, start your own servers (root and rootless) via:
 
-    /path/to/podman system service --timeout=0
+    \$ bin/podman system service --timeout=0 &
+    \$ sudo !!
 
-...then invoke this script with PODMAN=\$(pwd)/bin/podman-remote
+...then invoke this script with --remote.
 
-   (You'd think Ed could be bothered to do all that in this script; but then
-   the flow would be 'sudo start-service; sudo run-bats; sudo stop-service'
-   and by the time we get to stop-service, the sudo timeout will have lapsed,
-   and the script will be hanging at the password prompt, and you, who left
-   your desk for coffee or a walk and expected to come back to completed
-   root and rootless tests, will be irked because only root tests ran and
-   now you have to wait for rootless).
+   (This script cannot start the servers, because we can sudo *starting*
+   the service but can't sudo stopping it: by the time the bats tests
+   finish, the sudo timeout will have expired.)
 
 $0 also passes through \$OCI_RUNTIME, should you need to test that.
 "
@@ -76,7 +74,7 @@ for i;do
         -h|--help)  echo "$usage"; exit 0;;
         --root)     TEST_ROOTLESS= ;;
         --rootless) TEST_ROOT= ;;
-        --remote)   REMOTE=remote; echo "--remote is TBI"; exit 1;;
+        --remote)   REMOTE=remote ;;
         --ts|-T)    bats_opts+=("-T") ;;
         */*.bats)   TESTS=$i ;;
         *)
@@ -91,6 +89,20 @@ for i;do
             ;;
     esac
 done
+
+# With --remote, use correct binary and make sure daem--I mean server--is live
+if [[ "$REMOTE" ]]; then
+    if ! [[ $PODMAN =~ -remote ]]; then
+        PODMAN=${PODMAN}-remote
+    fi
+
+    if [[ -n "$TEST_ROOT" ]]; then
+        sudo $PODMAN info >/dev/null || exit 1
+    fi
+    if [[ -n "$TEST_ROOTLESS" ]]; then
+        $PODMAN info >/dev/null || exit 1
+    fi
+fi
 
 # END   initialization and command-line arg checking
 ###############################################################################
