@@ -97,7 +97,18 @@ func (c *Container) readFromJournal(ctx context.Context, options *logs.LogOption
 	// exponential backoff.
 	var cursor string
 	var cursorError error
-	var containerCouldBeLogging bool
+
+	c.lock.Lock()
+	if err := c.syncContainer(); err != nil {
+		c.lock.Unlock()
+		return err
+	}
+	// The initial "containerCouldBeLogging" state must be correct, we cannot rely on the start event being still in the journal.
+	// This can happen if the journal was rotated after the container was started or when --since is used.
+	// https://github.com/containers/podman/issues/16950
+	containerCouldBeLogging := c.ensureState(define.ContainerStateRunning, define.ContainerStateStopping)
+	c.lock.Unlock()
+
 	for i := 1; i <= 3; i++ {
 		cursor, cursorError = journal.GetCursor()
 		hundreds := 1
