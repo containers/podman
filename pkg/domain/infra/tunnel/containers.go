@@ -546,6 +546,13 @@ func (ic *ContainerEngine) ContainerAttach(ctx context.Context, nameOrID string,
 		return fmt.Errorf("you can only attach to running containers")
 	}
 	options := new(containers.AttachOptions).WithStream(true).WithDetachKeys(opts.DetachKeys)
+	if opts.SigProxy {
+		remoteProxySignals(ctr.ID, func(signal string) error {
+			killOpts := entities.KillOptions{All: false, Latest: false, Signal: signal}
+			_, err := ic.ContainerKill(ctx, []string{ctr.ID}, killOpts)
+			return err
+		})
+	}
 	return containers.Attach(ic.ClientCtx, nameOrID, opts.Stdin, opts.Stdout, opts.Stderr, nil, options)
 }
 
@@ -611,7 +618,7 @@ func (ic *ContainerEngine) ContainerExecDetached(ctx context.Context, nameOrID s
 	return sessionID, nil
 }
 
-func startAndAttach(ic *ContainerEngine, name string, detachKeys *string, input, output, errput *os.File) error {
+func startAndAttach(ic *ContainerEngine, name string, detachKeys *string, sigProxy bool, input, output, errput *os.File) error {
 	if output == nil && errput == nil {
 		fmt.Printf("%s\n", name)
 	}
@@ -621,6 +628,14 @@ func startAndAttach(ic *ContainerEngine, name string, detachKeys *string, input,
 	if dk := detachKeys; dk != nil {
 		options.WithDetachKeys(*dk)
 	}
+	if sigProxy {
+		remoteProxySignals(name, func(signal string) error {
+			killOpts := entities.KillOptions{All: false, Latest: false, Signal: signal}
+			_, err := ic.ContainerKill(ic.ClientCtx, []string{name}, killOpts)
+			return err
+		})
+	}
+
 	go func() {
 		err := containers.Attach(ic.ClientCtx, name, input, output, errput, attachReady, options)
 		attachErr <- err
@@ -693,7 +708,7 @@ func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []stri
 		}
 		ctrRunning := ctr.State == define.ContainerStateRunning.String()
 		if options.Attach {
-			err = startAndAttach(ic, name, &options.DetachKeys, options.Stdin, options.Stdout, options.Stderr)
+			err = startAndAttach(ic, name, &options.DetachKeys, options.SigProxy, options.Stdin, options.Stdout, options.Stderr)
 			if err == define.ErrDetach {
 				// User manually detached
 				// Exit cleanly immediately
@@ -851,7 +866,7 @@ func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.Conta
 			return err
 		})
 	}
-	if err := startAndAttach(ic, con.ID, &opts.DetachKeys, opts.InputStream, opts.OutputStream, opts.ErrorStream); err != nil {
+	if err := startAndAttach(ic, con.ID, &opts.DetachKeys, opts.SigProxy, opts.InputStream, opts.OutputStream, opts.ErrorStream); err != nil {
 		if err == define.ErrDetach {
 			return &report, nil
 		}
