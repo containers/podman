@@ -47,6 +47,7 @@ podman-push.1.md
 podman-restart.1.md
 podman-rm.1.md
 podman-run.1.md
+podman-save.1.md
 podman-search.1.md
 podman-secret-ls.1.md
 podman-start.1.md
