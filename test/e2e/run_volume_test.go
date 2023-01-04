@@ -159,7 +159,7 @@ var _ = Describe("Podman run with volumes", func() {
 		Expect(err).ToNot(HaveOccurred(), "os.Create(testfile)")
 		f.Close()
 		Expect(err).ToNot(HaveOccurred())
-		session := podmanTest.Podman([]string{"run", "-v", fmt.Sprintf("%s:/data", mountPath), REDIS_IMAGE, "ls", "/data/test1"})
+		session := podmanTest.Podman([]string{"run", "-v", fmt.Sprintf("%s:/data:Z", mountPath), REDIS_IMAGE, "ls", "/data/test1"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 	})
