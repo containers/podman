@@ -133,7 +133,7 @@ func (e EventJournalD) Read(ctx context.Context, options ReadOptions) error {
 	}
 
 	for {
-		entry, err := getNextEntry(ctx, j, options.Stream, untilTime)
+		entry, err := GetNextEntry(ctx, j, options.Stream, untilTime)
 		if err != nil {
 			return err
 		}
@@ -219,10 +219,10 @@ func (e EventJournalD) String() string {
 	return Journald.String()
 }
 
-// getNextEntry returns the next entry in the journal. If the end  of the
+// GetNextEntry returns the next entry in the journal. If the end  of the
 // journal is reached and stream is not set or the current time is after
 // the until time this function return nil,nil.
-func getNextEntry(ctx context.Context, j *sdjournal.Journal, stream bool, untilTime time.Time) (*sdjournal.JournalEntry, error) {
+func GetNextEntry(ctx context.Context, j *sdjournal.Journal, stream bool, untilTime time.Time) (*sdjournal.JournalEntry, error) {
 	for {
 		select {
 		case <-ctx.Done():
