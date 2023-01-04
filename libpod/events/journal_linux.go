@@ -121,6 +121,15 @@ func (e EventJournalD) Read(ctx context.Context, options ReadOptions) error {
 		if _, err := j.Previous(); err != nil {
 			return fmt.Errorf("failed to move journal cursor to previous entry: %w", err)
 		}
+	} else if len(options.Since) > 0 {
+		since, err := util.ParseInputTime(options.Since, true)
+		if err != nil {
+			return err
+		}
+		// seek based on time which helps to reduce unnecessary event reads
+		if err := j.SeekRealtimeUsec(uint64(since.UnixMicro())); err != nil {
+			return err
+		}
 	}
 
 	for {

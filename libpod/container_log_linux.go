@@ -80,8 +80,15 @@ func (c *Container) readFromJournal(ctx context.Context, options *logs.LogOption
 		return fmt.Errorf("adding filter to journald logger: %v: %w", match, err)
 	}
 
-	if err := journal.SeekHead(); err != nil {
-		return err
+	if options.Since.IsZero() {
+		if err := journal.SeekHead(); err != nil {
+			return err
+		}
+	} else {
+		// seek based on time which helps to reduce unnecessary event reads
+		if err := journal.SeekRealtimeUsec(uint64(options.Since.UnixMicro())); err != nil {
+			return err
+		}
 	}
 	// API requires Next() immediately after SeekHead().
 	if _, err := journal.Next(); err != nil {
