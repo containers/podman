@@ -37,6 +37,7 @@ Supported filters:
 | *before*           | Filter by images created before the given IMAGE (name or tag).                                |
 | *containers*       | Filter by images with a running container.                                                    |
 | *dangling*         | Filter by dangling (unused) images.                                                           |
+| *digest* 	     | Filter by digest.                                                                             |
 | *intermediate*     | Filter by images that are dangling and have no children                                       |
 | *label*            | Filter by images with (or without, in the case of label!=[...] is used) the specified labels. |
 | *manifest*         | Filter by images that are manifest lists.                                                     |
@@ -52,6 +53,8 @@ The `before` *filter* accepts formats: `<image-name>[:<tag>]`, `<image id>` or `
 The `containers` *filter* shows images that have a running container based on that image.
 
 The `dangling` *filter* shows images that are taking up disk space and serve no purpose. Dangling image is a file system layer that was used in a previous build of an image and is no longer referenced by any image. They are denoted with the `<none>` tag, consume disk space and serve no active purpose.
+
+The `digest` *filter* accepts the image digest string.
 
 The `intermediate` *filter* shows images that are dangling and have no children.
 

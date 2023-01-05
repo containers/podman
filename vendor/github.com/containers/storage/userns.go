@@ -197,7 +197,7 @@ outer:
 		return 0, err
 	}
 	defer func() {
-		if _, err2 := rlstore.Unmount(clayer.ID, true); err2 != nil {
+		if _, err2 := rlstore.unmount(clayer.ID, true, false); err2 != nil {
 			if retErr == nil {
 				retErr = fmt.Errorf("unmounting temporary layer %#v: %w", clayer.ID, err2)
 			} else {

@@ -216,7 +216,7 @@ func GetAllCredentials(sys *types.SystemContext) (map[string]types.DockerAuthCon
 // by tests.
 func getAuthFilePaths(sys *types.SystemContext, homeDir string) []authPath {
 	paths := []authPath{}
-	pathToAuth, err := getPathToAuth(sys)
+	pathToAuth, userSpecifiedPath, err := getPathToAuth(sys)
 	if err == nil {
 		paths = append(paths, pathToAuth)
 	} else {
@@ -225,7 +225,7 @@ func getAuthFilePaths(sys *types.SystemContext, homeDir string) []authPath {
 		// Logging the error as a warning instead and moving on to pulling the image
 		logrus.Warnf("%v: Trying to pull image in the event that it is a public image.", err)
 	}
-	if sys == nil || (sys.AuthFilePath == "" && sys.LegacyFormatAuthFilePath == "") {
+	if !userSpecifiedPath {
 		xdgCfgHome := os.Getenv("XDG_CONFIG_HOME")
 		if xdgCfgHome == "" {
 			xdgCfgHome = filepath.Join(homeDir, ".config")
@@ -506,28 +506,28 @@ func listAuthsFromCredHelper(credHelper string) (map[string]string, error) {
 	return helperclient.List(p)
 }
 
-// getPathToAuth gets the path of the auth.json file used for reading and writing credentials
-// returns the path, and a bool specifies whether the file is in legacy format
-func getPathToAuth(sys *types.SystemContext) (authPath, error) {
+// getPathToAuth gets the path of the auth.json file used for reading and writing credentials,
+// and a boolean indicating whether the return value came from an explicit user choice (i.e. not defaults)
+func getPathToAuth(sys *types.SystemContext) (authPath, bool, error) {
 	return getPathToAuthWithOS(sys, runtime.GOOS)
 }
 
 // getPathToAuthWithOS is an internal implementation detail of getPathToAuth,
 // it exists only to allow testing it with an artificial runtime.GOOS.
-func getPathToAuthWithOS(sys *types.SystemContext, goOS string) (authPath, error) {
+func getPathToAuthWithOS(sys *types.SystemContext, goOS string) (authPath, bool, error) {
 	if sys != nil {
 		if sys.AuthFilePath != "" {
-			return newAuthPathDefault(sys.AuthFilePath), nil
+			return newAuthPathDefault(sys.AuthFilePath), true, nil
 		}
 		if sys.LegacyFormatAuthFilePath != "" {
-			return authPath{path: sys.LegacyFormatAuthFilePath, legacyFormat: true}, nil
+			return authPath{path: sys.LegacyFormatAuthFilePath, legacyFormat: true}, true, nil
 		}
 		if sys.RootForImplicitAbsolutePaths != "" {
-			return newAuthPathDefault(filepath.Join(sys.RootForImplicitAbsolutePaths, fmt.Sprintf(defaultPerUIDPathFormat, os.Getuid()))), nil
+			return newAuthPathDefault(filepath.Join(sys.RootForImplicitAbsolutePaths, fmt.Sprintf(defaultPerUIDPathFormat, os.Getuid()))), false, nil
 		}
 	}
 	if goOS == "windows" || goOS == "darwin" {
-		return newAuthPathDefault(filepath.Join(homedir.Get(), nonLinuxAuthFilePath)), nil
+		return newAuthPathDefault(filepath.Join(homedir.Get(), nonLinuxAuthFilePath)), false, nil
 	}
 
 	runtimeDir := os.Getenv("XDG_RUNTIME_DIR")
@@ -539,11 +539,11 @@ func getPathToAuthWithOS(sys *types.SystemContext, goOS string) (authPath, error
 			// This means the user set the XDG_RUNTIME_DIR variable and either forgot to create the directory
 			// or made a typo while setting the environment variable,
 			// so return an error referring to $XDG_RUNTIME_DIR instead of xdgRuntimeDirPath inside.
-			return authPath{}, fmt.Errorf("%q directory set by $XDG_RUNTIME_DIR does not exist. Either create the directory or unset $XDG_RUNTIME_DIR.: %w", runtimeDir, err)
+			return authPath{}, false, fmt.Errorf("%q directory set by $XDG_RUNTIME_DIR does not exist. Either create the directory or unset $XDG_RUNTIME_DIR.: %w", runtimeDir, err)
 		} // else ignore err and let the caller fail accessing xdgRuntimeDirPath.
-		return newAuthPathDefault(filepath.Join(runtimeDir, xdgRuntimeDirPath)), nil
+		return newAuthPathDefault(filepath.Join(runtimeDir, xdgRuntimeDirPath)), false, nil
 	}
-	return newAuthPathDefault(fmt.Sprintf(defaultPerUIDPathFormat, os.Getuid())), nil
+	return newAuthPathDefault(fmt.Sprintf(defaultPerUIDPathFormat, os.Getuid())), false, nil
 }
 
 // parse unmarshals the authentications stored in the auth.json file and returns it
@@ -589,7 +589,7 @@ func (path authPath) parse() (dockerConfigFile, error) {
 // The editor may also return a human-readable description of the updated location; if it is "",
 // the file itself is used.
 func modifyJSON(sys *types.SystemContext, editor func(auths *dockerConfigFile) (bool, string, error)) (string, error) {
-	path, err := getPathToAuth(sys)
+	path, _, err := getPathToAuth(sys)
 	if err != nil {
 		return "", err
 	}

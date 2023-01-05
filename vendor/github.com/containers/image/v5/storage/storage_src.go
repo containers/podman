@@ -23,7 +23,6 @@ import (
 	"github.com/containers/image/v5/types"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
-	"github.com/containers/storage/pkg/ioutils"
 	digest "github.com/opencontainers/go-digest"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/sirupsen/logrus"
@@ -129,21 +128,27 @@ func (s *storageImageSource) GetBlob(ctx context.Context, info types.BlobInfo, c
 	if err != nil {
 		return nil, 0, err
 	}
+	success := false
+	defer func() {
+		if !success {
+			tmpFile.Close()
+		}
+	}()
+	// On Unix and modern Windows (2022 at least) we can eagerly unlink the file to ensure it's automatically
+	// cleaned up on process termination (or if the caller forgets to invoke Close())
+	if err := os.Remove(tmpFile.Name()); err != nil {
+		return nil, 0, err
+	}
 
 	if _, err := io.Copy(tmpFile, rc); err != nil {
 		return nil, 0, err
 	}
-
 	if _, err := tmpFile.Seek(0, io.SeekStart); err != nil {
 		return nil, 0, err
 	}
 
-	wrapper := ioutils.NewReadCloserWrapper(tmpFile, func() error {
-		defer os.Remove(tmpFile.Name())
-		return tmpFile.Close()
-	})
-
-	return wrapper, n, err
+	success = true
+	return tmpFile, n, nil
 }
 
 // getBlobAndLayer reads the data blob or filesystem layer which matches the digest and size, if given.

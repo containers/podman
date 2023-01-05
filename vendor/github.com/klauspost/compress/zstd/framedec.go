@@ -167,7 +167,7 @@ func (d *frameDec) reset(br byteBuffer) error {
 			return err
 		}
 		var id uint32
-		switch size {
+		switch len(b) {
 		case 1:
 			id = uint32(b[0])
 		case 2:
@@ -204,7 +204,7 @@ func (d *frameDec) reset(br byteBuffer) error {
 			println("Reading Frame content", err)
 			return err
 		}
-		switch fcsSize {
+		switch len(b) {
 		case 1:
 			d.FrameContentSize = uint64(b[0])
 		case 2:

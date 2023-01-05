@@ -152,7 +152,7 @@ func (h *Header) Decode(in []byte) error {
 		}
 		b, in = in[:size], in[size:]
 		h.HeaderSize += int(size)
-		switch size {
+		switch len(b) {
 		case 1:
 			h.DictionaryID = uint32(b[0])
 		case 2:
@@ -182,7 +182,7 @@ func (h *Header) Decode(in []byte) error {
 		}
 		b, in = in[:fcsSize], in[fcsSize:]
 		h.HeaderSize += int(fcsSize)
-		switch fcsSize {
+		switch len(b) {
 		case 1:
 			h.FrameContentSize = uint64(b[0])
 		case 2:

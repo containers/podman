@@ -57,4 +57,6 @@ var (
 	ErrNotSupported = errors.New("not supported")
 	// ErrInvalidMappings is returned when the specified mappings are invalid.
 	ErrInvalidMappings = errors.New("invalid mappings specified")
+	// ErrNoAvailableIDs is returned when there are not enough unused IDS within the user namespace.
+	ErrNoAvailableIDs = errors.New("not enough unused IDs in user namespace")
 )
