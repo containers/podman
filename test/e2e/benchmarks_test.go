@@ -178,7 +178,7 @@ var _ = Describe("Podman Benchmark Suite", func() {
 
 		newBenchmark("podman push", func() {
 			port, user, pass := getPortUserPass()
-			session := podmanTest.Podman([]string{"push", "--tls-verify=false", "--creds", user + ":" + pass, UBI_INIT, "localhost:" + port + "/repo/image:tag"})
+			session := podmanTest.Podman([]string{"push", "--tls-verify=false", "--creds", user + ":" + pass, SYSTEMD_IMAGE, "localhost:" + port + "/repo/image:tag"})
 			session.WaitWithDefaultTimeout()
 			Expect(session).Should(Exit(0))
 		}, &newBenchmarkOptions{needsRegistry: true})
@@ -192,7 +192,7 @@ var _ = Describe("Podman Benchmark Suite", func() {
 			needsRegistry: true,
 			init: func() {
 				port, user, pass := getPortUserPass()
-				session := podmanTest.Podman([]string{"push", "--tls-verify=false", "--creds", user + ":" + pass, UBI_INIT, "localhost:" + port + "/repo/image:tag"})
+				session := podmanTest.Podman([]string{"push", "--tls-verify=false", "--creds", user + ":" + pass, SYSTEMD_IMAGE, "localhost:" + port + "/repo/image:tag"})
 				session.WaitWithDefaultTimeout()
 				Expect(session).Should(Exit(0))
 			},

@@ -78,7 +78,7 @@ WantedBy=default.target
 
 	It("podman run container with systemd PID1", func() {
 		ctrName := "testSystemd"
-		run := podmanTest.Podman([]string{"run", "--name", ctrName, "-t", "-i", "-d", UBI_INIT, "/sbin/init"})
+		run := podmanTest.Podman([]string{"run", "--name", ctrName, "-t", "-i", "-d", SYSTEMD_IMAGE, "/sbin/init"})
 		run.WaitWithDefaultTimeout()
 		Expect(run).Should(Exit(0))
 
@@ -87,7 +87,7 @@ WantedBy=default.target
 		Expect(logs).Should(Exit(0))
 
 		// Give container 10 seconds to start
-		started := podmanTest.WaitContainerReady(ctrName, "Reached target Multi-User System.", 30, 1)
+		started := podmanTest.WaitContainerReady(ctrName, "Reached target multi-user.target - Multi-User System.", 30, 1)
 		Expect(started).To(BeTrue())
 
 		systemctl := podmanTest.Podman([]string{"exec", "-t", "-i", ctrName, "systemctl", "status", "--no-pager"})
@@ -113,12 +113,12 @@ WantedBy=default.target
 		cgroupPath := podmanTest.Podman([]string{"inspect", "--format='{{.State.CgroupPath}}'", ctrName})
 		cgroupPath.WaitWithDefaultTimeout()
 		Expect(cgroupPath).Should(Exit(0))
-		Expect(result.OutputToString()).To(Not(ContainSubstring("init.scope")))
+		Expect(cgroupPath.OutputToString()).To(Not(ContainSubstring("init.scope")))
 	})
 
 	It("podman create container with systemd entrypoint triggers systemd mode", func() {
 		ctrName := "testCtr"
-		run := podmanTest.Podman([]string{"create", "--name", ctrName, "--entrypoint", "/sbin/init", UBI_INIT})
+		run := podmanTest.Podman([]string{"create", "--name", ctrName, "--entrypoint", "/sbin/init", SYSTEMD_IMAGE})
 		run.WaitWithDefaultTimeout()
 		Expect(run).Should(Exit(0))
 
