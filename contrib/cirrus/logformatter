@@ -18,7 +18,7 @@ use warnings;
 
 (our $ME = $0) =~ s|.*/||;
 
-our $VERSION = '0.1';
+our $VERSION = '0.2';
 
 # Autoflush stdout
 $| = 1;
@@ -40,20 +40,20 @@ table.synopsis { border: none; border-collapse: collapse; margin-left: 2em; marg
 .synopsis td   { font-weight: bold;   font-size: 120%; font-family: monospace; }
 
 /* test results */
-.testname  { font-size: 125%; color: #444; }
-.boring    { color: #999; }
-.timestamp { color: #999; }
-.log-debug { color: #999; }
-.log-info  { color: #333; }
-.log-warn  { color: #f60; }
-.log-error { color: #900; font-weight: bold; }
-.log-skip  { color: #F90; }
-.log-slow  { background: #FF0; color: #000; font-weight: bold; }
-.subtest   { background: #eee; }
-.subsubtest { color: #F39; font-weight: bold; }
-.string    { color: #00c; }
-.command   { font-weight: bold; color: #000; }
-.changed   { color: #000; font-weight: bold; }
+.testname     { font-size: 125%; color: #444; }
+.boring       { color: #999; }
+.timestamp    { color: #999; }
+.log-debug    { color: #999; }
+.log-info     { color: #333; }
+.log-warning  { color: #f60; }
+.log-error    { color: #900; font-weight: bold; }
+.log-skip     { color: #F90; }
+.log-slow     { background: #FF0; color: #000; font-weight: bold; }
+.subtest      { background: #eee; }
+.subsubtest   { color: #F39; font-weight: bold; }
+.string       { color: #00c; }
+.command      { font-weight: bold; color: #000; }
+.changed      { color: #000; font-weight: bold; }
 
 /* links to source files: not as prominent as links to errors */
 a.codelink:link    { color: #000; }
@@ -68,8 +68,8 @@ a.timing           { text-decoration: none; }
 .bats-passed    { color: #393; }
 .bats-failed    { color: #F00; font-weight: bold; }
 .bats-skipped   { color: #F90; }
-.bats-log       { color: #900; }
-.bats-log-esm   { color: #b00; font-weight: bold; }
+.bats-log       { color: #933; }
+.bats-log-failblock { color: #b00; background-color: #fee; display: inline-flex; margin: 0 -500%; padding: 0 500% !important; }
 
 .bats-summary   { font-size: 150%; }
 
@@ -285,6 +285,13 @@ END_HTML
             $cirrus_task = $1;
         }
 
+        # logrus messages, always highlighted
+        #              1   2   2 13     34  4 5      56   6 7    78  8
+        if ($line =~ /^(\s*(#\s)?)(time=)(.*) (level=)(\S+) (msg=)(.*)/) {
+            my $span = "<span class='log-$6'>";
+            $line = "$1$3$span$4</span> $5$span$6</span> $7$span$8</span>";
+        }
+
         # BATS handling. This will recognize num_tests both at start and end
         if ($line =~ /^1\.\.(\d+)$/) {
             $looks_like_bats = 1;
@@ -331,11 +338,11 @@ END_HTML
             $line =~ s{^(#\s+(#|\$)\s+)(\S+/)(podman\S*)(\s.*)}
                       {$1<b><span title="$3$4">$4</span>$5</b>};
 
-            if    ($line =~ /^ok\s.*\s# skip/) { $css = 'skipped' }
-            elsif ($line =~ /^ok\s/)           { $css = 'passed'  }
-            elsif ($line =~ /^not\s+ok\s/)     { $css = 'failed'  }
-            elsif ($line =~ /^#\s#\|\s/)       { $css = 'log-esm' }
-            elsif ($line =~ /^#\s/)            { $css = 'log'     }
+            if    ($line =~ /^ok\s.*\s# skip/)    { $css = 'skipped'       }
+            elsif ($line =~ /^ok\s/)              { $css = 'passed'        }
+            elsif ($line =~ /^not\s+ok\s/)        { $css = 'failed'        }
+            elsif ($line =~ /^# #(\/v|\| |\\\^)/) { $css = 'log-failblock' }
+            elsif ($line =~ /^#\s/)               { $css = 'log'           }
 
             # Link to source file. This is ugly: we have to hardcode 'podman'
             # and 'test/system' because there's no way to get them from log.
@@ -444,7 +451,7 @@ END_HTML
             }
         }
         elsif ($line =~ /^Error:/ || $line =~ / level=(warning|error) /) {
-            $line = "<span class='log-warn'>" . $line . "</span>";
+            $line = "<span class='log-warning'>" . $line . "</span>";
         }
         elsif ($line =~ /^panic:/) {
             $line = "<span class='log-error'>" . $line . "</span>";

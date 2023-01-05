@@ -95,6 +95,8 @@ not ok 3 fail
 #  from function `expect_output' in file ./helpers.bash, line 370,
 #  in test file ./run.bats, line 786)
 # $ /path/to/podman foo -bar
+# time="2023-01-05T15:15:20Z" level=debug msg="this is debug"
+# time="2023-01-05T15:15:20Z" level=warning msg="this is warning"
 # #| FAIL: exit code is 123; expected 321
 ok 4 blah
 >>>
@@ -106,7 +108,9 @@ ok 4 blah
 <span class='bats-log'>#  from function `expect_output&#39; in file ./<a class="codelink" href="https://github.com/containers/podman/blob/ceci-nest-pas-une-sha/test/system/helpers.bash#L370">helpers.bash, line 370</a>,</span>
 <span class='bats-log'>#  in test file ./<a class="codelink" href="https://github.com/containers/podman/blob/ceci-nest-pas-une-sha/test/system/run.bats#L786">run.bats, line 786</a>)</span>
 <span class='bats-log'># $ <b><span title="/path/to/podman">podman</span> foo -bar</b></span>
-<span class='bats-log-esm'># #| FAIL: exit code is 123; expected 321</span>
+<span class='bats-log'># time=<span class='log-debug'>&quot;2023-01-05T15:15:20Z&quot;</span> level=<span class='log-debug'>debug</span> msg=<span class='log-debug'>&quot;this is debug&quot;</span></span>
+<span class='bats-log'># time=<span class='log-warning'>&quot;2023-01-05T15:15:20Z&quot;</span> level=<span class='log-warning'>warning</span> msg=<span class='log-warning'>&quot;this is warning&quot;</span></span>
+<span class='bats-log-failblock'># #| FAIL: exit code is 123; expected 321</span>
 <span class='bats-passed'><a name='t--00004'>ok 4 blah</a></span>
 <hr/><span class='bats-summary'>Summary: <span class='bats-passed'>2 Passed</span>, <span class='bats-failed'>1 Failed</span>, <span class='bats-skipped'>1 Skipped</span>. Total tests: 4</span>
 
@@ -209,7 +213,7 @@ $SCRIPT_BASE/integration_test.sh |&amp; ${TIMESTAMP}
 --tmpdir /tmp/podman_test553496330
 --events-backend file
 --storage-driver vfs">[options]</span><b> pod restart 4810be0cfbd42241e349dbe7d50fbc54405cd320a6637c65fd5323f34d64af89</b>
-<span class="timestamp">         </span><span class='log-warn'>Error: no containers in pod 4810be0cfbd42241e349dbe7d50fbc54405cd320a6637c65fd5323f34d64af89 have no dependencies, cannot start pod: no such container</span>
+<span class="timestamp">         </span><span class='log-warning'>Error: no containers in pod 4810be0cfbd42241e349dbe7d50fbc54405cd320a6637c65fd5323f34d64af89 have no dependencies, cannot start pod: no such container</span>
 <span class="timestamp">         </span>output:
 <span class="timestamp">         </span>[AfterEach] Podman pod restart
 <span class="timestamp">         </span>  /var/tmp/go/src/github.com<a class="codelink" href='https://github.com/containers/podman/blob/40f5d8b1becd381c4e8283ed3940d09193e4fe06/test/e2e/pod_restart_test.go#L28'>/containers/podman/test/e2e/pod_restart_test.go:28</a>
