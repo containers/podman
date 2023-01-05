@@ -152,6 +152,8 @@ type ContainerState struct {
 	ExitCode int32 `json:"exitCode,omitempty"`
 	// Exited is whether the container has exited
 	Exited bool `json:"exited,omitempty"`
+	// Error holds the last known error message during start, stop, or remove
+	Error string `json:"error,omitempty"`
 	// OOMKilled indicates that the container was killed as it ran out of
 	// memory
 	OOMKilled bool `json:"oomKilled,omitempty"`

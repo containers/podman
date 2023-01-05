@@ -82,7 +82,15 @@ func (c *Container) Init(ctx context.Context, recursive bool) error {
 // Start requites that all dependency containers (e.g. pod infra containers) be
 // running before being run. The recursive parameter, if set, will start all
 // dependencies before starting this container.
-func (c *Container) Start(ctx context.Context, recursive bool) error {
+func (c *Container) Start(ctx context.Context, recursive bool) (finalErr error) {
+	defer func() {
+		if finalErr != nil {
+			if err := saveContainerError(c, finalErr); err != nil {
+				logrus.Debug(err)
+			}
+		}
+	}()
+
 	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
@@ -114,7 +122,15 @@ func (c *Container) Update(res *spec.LinuxResources) error {
 // Attach call occurs before Start).
 // In overall functionality, it is identical to the Start call, with the added
 // side effect that an attach session will also be started.
-func (c *Container) StartAndAttach(ctx context.Context, streams *define.AttachStreams, keys string, resize <-chan resize.TerminalSize, recursive bool) (<-chan error, error) {
+func (c *Container) StartAndAttach(ctx context.Context, streams *define.AttachStreams, keys string, resize <-chan resize.TerminalSize, recursive bool) (retChan <-chan error, finalErr error) {
+	defer func() {
+		if finalErr != nil {
+			if err := saveContainerError(c, finalErr); err != nil {
+				logrus.Debug(err)
+			}
+		}
+	}()
+
 	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
@@ -193,7 +209,15 @@ func (c *Container) Stop() error {
 // StopWithTimeout is a version of Stop that allows a timeout to be specified
 // manually. If timeout is 0, SIGKILL will be used immediately to kill the
 // container.
-func (c *Container) StopWithTimeout(timeout uint) error {
+func (c *Container) StopWithTimeout(timeout uint) (finalErr error) {
+	defer func() {
+		if finalErr != nil {
+			if err := saveContainerError(c, finalErr); err != nil {
+				logrus.Debug(err)
+			}
+		}
+	}()
+
 	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
@@ -1036,4 +1060,9 @@ func (c *Container) Stat(ctx context.Context, containerPath string) (*define.Fil
 
 	info, _, _, err := c.stat(mountPoint, containerPath)
 	return info, err
+}
+
+func saveContainerError(c *Container, err error) error {
+	c.state.Error = err.Error()
+	return c.save()
 }

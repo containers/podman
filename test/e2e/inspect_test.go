@@ -557,4 +557,24 @@ var _ = Describe("Podman inspect", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 	})
+
+	It("podman inspect container with bad create args", func() {
+		session := podmanTest.Podman([]string{"container", "create", ALPINE, "efcho", "Hello World"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		cid := session.OutputToString()
+		session = podmanTest.Podman([]string{"container", "inspect", cid, "-f", "{{ .State.Error }}"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).To(HaveLen(0))
+
+		session = podmanTest.Podman([]string{"start", cid})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(125))
+		session = podmanTest.Podman([]string{"container", "inspect", cid, "-f", "'{{ .State.Error }}"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).To(Not(HaveLen(0)))
+	})
+
 })
