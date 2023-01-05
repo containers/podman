@@ -49,7 +49,7 @@ var _ = Describe("Podman run with volumes", func() {
 
 		_ = SystemExec("ls", []string{"-l", containerStorageDir})
 
-		// All files should be in permament store, not volatile
+		// All files should be in permanent store, not volatile
 		Expect(filepath.Join(containerStorageDir, "containers.json")).Should(BeARegularFile())
 		Expect(filepath.Join(containerStorageDir, "volatile-containers.json")).Should(Not(BeAnExistingFile()))
 		Expect(filepath.Join(runContainerStorageDir, "containers.json")).Should(Not(BeAnExistingFile()))
@@ -63,7 +63,7 @@ var _ = Describe("Podman run with volumes", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
-		// All files should be in permament store, volatile
+		// All files should not be in permanent store, not volatile
 		Expect(filepath.Join(containerStorageDir, "containers.json")).Should(Not(BeAnExistingFile()))
 		Expect(filepath.Join(containerStorageDir, "volatile-containers.json")).Should(BeARegularFile())
 		Expect(filepath.Join(runContainerStorageDir, "containers.json")).Should(Not(BeAnExistingFile()))

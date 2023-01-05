@@ -424,7 +424,7 @@ func (ic *ContainerEngine) ContainerRm(ctx context.Context, namesOrIds []string,
 		}
 	}
 
-	// First, remove dependend containers.
+	// First, remove dependent containers.
 	if options.All || options.Depend {
 		for _, ctr := range libpodContainers {
 			// When `All` is set, remove the infra containers and

@@ -156,6 +156,12 @@ To recursively mount a volume and all of its submounts into a
 used, and submounts of the source directory will not be mounted into the
 <<container|pod>>.
 
+Mounting the volume with a **copy** option tells podman to copy content from
+the underlying destination directory onto newly created internal volumes. The
+**copy** only happens on the initial creation of the volume. Content is not
+copied up when the volume is subsequently used on different containers. The
+**copy** option is ignored on bind mounts and has no effect.
+
 Mounting the volume with the **nosuid** options means that SUID applications on
 the volume will not be able to change their privilege. By default volumes
 are mounted with **nosuid**.
