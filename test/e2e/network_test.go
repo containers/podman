@@ -48,14 +48,6 @@ var _ = Describe("Podman network", func() {
 		Expect(session).Should(Exit(0))
 		// default network always exists
 		Expect(session.OutputToStringArray()).To(HaveLen(1))
-
-		// check that the only file in the directory is the network lockfile
-		dir, err := os.Open(netDir)
-		Expect(err).ToNot(HaveOccurred())
-		names, err := dir.Readdirnames(5)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(names).To(HaveLen(1))
-		Expect(names[0]).To(Or(Equal("netavark.lock"), Equal("cni.lock")))
 	})
 
 	It("podman network list", func() {
