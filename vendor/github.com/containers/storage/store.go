@@ -247,6 +247,8 @@ type Store interface {
 
 	// Unmount attempts to unmount an image, given an ID.
 	// Returns whether or not the layer is still mounted.
+	// WARNING: The return value may already be obsolete by the time it is available
+	// to the caller, so it can be used for heuristic sanity checks at best. It should almost always be ignored.
 	UnmountImage(id string, force bool) (bool, error)
 
 	// Mount attempts to mount a layer, image, or container for access, and
@@ -265,9 +267,15 @@ type Store interface {
 
 	// Unmount attempts to unmount a layer, image, or container, given an ID, a
 	// name, or a mount path. Returns whether or not the layer is still mounted.
+	// WARNING: The return value may already be obsolete by the time it is available
+	// to the caller, so it can be used for heuristic sanity checks at best. It should almost always be ignored.
 	Unmount(id string, force bool) (bool, error)
 
 	// Mounted returns number of times the layer has been mounted.
+	//
+	// WARNING: This value might already be obsolete by the time it is returned;
+	// In situations where concurrent mount/unmount attempts can happen, this field
+	// should not be used for any decisions, maybe apart from heuristic user warnings.
 	Mounted(id string) (int, error)
 
 	// Changes returns a summary of the changes which would need to be made
@@ -2588,7 +2596,7 @@ func (s *store) Unmount(id string, force bool) (bool, error) {
 	err := s.writeToLayerStore(func(rlstore rwLayerStore) error {
 		if rlstore.Exists(id) {
 			var err error
-			res, err = rlstore.Unmount(id, force)
+			res, err = rlstore.unmount(id, force, false)
 			return err
 		}
 		return ErrLayerUnknown
@@ -3149,8 +3157,11 @@ func (s *store) Shutdown(force bool) ([]string, error) {
 		}
 		mounted = append(mounted, layer.ID)
 		if force {
-			for layer.MountCount > 0 {
-				_, err2 := rlstore.Unmount(layer.ID, force)
+			for {
+				_, err2 := rlstore.unmount(layer.ID, force, true)
+				if err2 == ErrLayerNotMounted {
+					break
+				}
 				if err2 != nil {
 					if err == nil {
 						err = err2

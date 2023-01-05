@@ -49,7 +49,7 @@ type Locker interface {
 	// It might do nothing at all, or it may panic if the caller is not the owner of this lock.
 	AssertLocked()
 
-	// AssertLocked() can be used by callers that _know_ that they hold the lock locked for writing, for sanity checking.
+	// AssertLockedForWriting() can be used by callers that _know_ that they hold the lock locked for writing, for sanity checking.
 	// It might do nothing at all, or it may panic if the caller is not the owner of this lock for writing.
 	AssertLockedForWriting()
 }
