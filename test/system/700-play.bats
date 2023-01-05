@@ -170,6 +170,8 @@ EOF
     # Check for an error when trying to remove the service container
     run_podman 125 container rm $service_container
     is "$output" "Error: container .* is the service container of pod(s) .* and cannot be removed without removing the pod(s)"
+    run_podman 125 container rm --force $service_container
+    is "$output" "Error: container .* is the service container of pod(s) .* and cannot be removed without removing the pod(s)"
 
     # Kill the pod and make sure the service is not running
     run_podman pod kill test_pod

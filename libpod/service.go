@@ -89,6 +89,9 @@ func (c *Container) canStopServiceContainer() (bool, error) {
 
 		status, err := pod.GetPodStatus()
 		if err != nil {
+			if errors.Is(err, define.ErrNoSuchPod) {
+				continue
+			}
 			return false, err
 		}
 
@@ -112,6 +115,9 @@ func (p *Pod) maybeStopServiceContainer() error {
 
 	serviceCtr, err := p.serviceContainer()
 	if err != nil {
+		if errors.Is(err, define.ErrNoSuchCtr) {
+			return nil
+		}
 		return fmt.Errorf("getting pod's service container: %w", err)
 	}
 	// Checking whether the service can be stopped must be done in
@@ -163,13 +169,7 @@ func (p *Pod) maybeStartServiceContainer(ctx context.Context) error {
 
 // canRemoveServiceContainer returns true if all pods of the service are removed.
 // Note that the method acquires the container lock.
-func (c *Container) canRemoveServiceContainerLocked() (bool, error) {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-	if err := c.syncContainer(); err != nil {
-		return false, err
-	}
-
+func (c *Container) canRemoveServiceContainer() (bool, error) {
 	if !c.IsService() {
 		return false, fmt.Errorf("internal error: checking service: container %s is not a service container", c.ID())
 	}
@@ -188,6 +188,7 @@ func (c *Container) canRemoveServiceContainerLocked() (bool, error) {
 }
 
 // Checks whether the service container can be removed and does so.
+// It also unlinks the pod from the service container.
 func (p *Pod) maybeRemoveServiceContainer() error {
 	if !p.hasServiceContainer() {
 		return nil
@@ -195,6 +196,9 @@ func (p *Pod) maybeRemoveServiceContainer() error {
 
 	serviceCtr, err := p.serviceContainer()
 	if err != nil {
+		if errors.Is(err, define.ErrNoSuchCtr) {
+			return nil
+		}
 		return fmt.Errorf("getting pod's service container: %w", err)
 	}
 	// Checking whether the service can be stopped must be done in
@@ -202,9 +206,31 @@ func (p *Pod) maybeRemoveServiceContainer() error {
 	// pod->container->servicePods hierarchy.
 	p.runtime.queueWork(func() {
 		logrus.Debugf("Pod %s has a service %s: checking if it can be removed", p.ID(), serviceCtr.ID())
-		canRemove, err := serviceCtr.canRemoveServiceContainerLocked()
+		canRemove, err := func() (bool, error) { // Anonymous func for easy locking
+			serviceCtr.lock.Lock()
+			defer serviceCtr.lock.Unlock()
+			if err := serviceCtr.syncContainer(); err != nil {
+				return false, err
+			}
+
+			// Unlink the pod from the service container.
+			servicePods := make([]string, 0, len(serviceCtr.state.Service.Pods)-1)
+			for _, id := range serviceCtr.state.Service.Pods {
+				if id != p.ID() {
+					servicePods = append(servicePods, id)
+				}
+			}
+			serviceCtr.state.Service.Pods = servicePods
+			if err := serviceCtr.save(); err != nil {
+				return false, err
+			}
+
+			return serviceCtr.canRemoveServiceContainer()
+		}()
 		if err != nil {
-			logrus.Errorf("Checking whether service of container %s can be removed: %v", serviceCtr.ID(), err)
+			if !errors.Is(err, define.ErrNoSuchCtr) {
+				logrus.Errorf("Checking whether service container %s can be removed: %v", serviceCtr.ID(), err)
+			}
 			return
 		}
 		if !canRemove {
