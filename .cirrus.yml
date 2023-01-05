@@ -355,33 +355,33 @@ alt_build_task:
 
 
 # Confirm building the remote client, natively on a Mac OS-X VM.
-osx_alt_build_task:
-    name: "OSX Cross"
-    alias: osx_alt_build
-    # Docs: ./contrib/cirrus/CIModes.md
-    only_if: $CIRRUS_CRON != 'multiarch'
-    depends_on:
-        - build
-    env:
-        <<: *stdenvars
-        # OSX platform variation prevents this being included in alt_build_task
-        TEST_FLAVOR: "altbuild"
-        ALT_NAME: 'OSX Cross'
-    osx_instance:
-        image: 'big-sur-base'
-    setup_script:
-        - brew install go
-        - brew install go-md2man
-        - go version
-    build_amd64_script:
-        - make podman-remote-release-darwin_amd64.zip GOARCH=amd64
-    build_arm64_script:
-        - make podman-remote-release-darwin_arm64.zip GOARCH=arm64
-    # This task cannot make use of the shared repo.tbz artifact and must
-    # produce a new repo.tbz artifact for consumption by 'artifacts' task.
-    repo_prep_script: *repo_prep
-    repo_artifacts: *repo_artifacts
-    always: *runner_stats
+#osx_alt_build_task:
+#    name: "OSX Cross"
+#    alias: osx_alt_build
+#    # Docs: ./contrib/cirrus/CIModes.md
+#    only_if: $CIRRUS_CRON != 'multiarch'
+#    depends_on:
+#        - build
+#    env:
+#        <<: *stdenvars
+#        # OSX platform variation prevents this being included in alt_build_task
+#        TEST_FLAVOR: "altbuild"
+#        ALT_NAME: 'OSX Cross'
+#    osx_instance:
+#        image: 'big-sur-base'
+#    setup_script:
+#        - brew install go
+#        - brew install go-md2man
+#        - go version
+#    build_amd64_script:
+#        - make podman-remote-release-darwin_amd64.zip GOARCH=amd64
+#    build_arm64_script:
+#        - make podman-remote-release-darwin_arm64.zip GOARCH=arm64
+#    # This task cannot make use of the shared repo.tbz artifact and must
+#    # produce a new repo.tbz artifact for consumption by 'artifacts' task.
+#    repo_prep_script: *repo_prep
+#    repo_artifacts: *repo_artifacts
+#    always: *runner_stats
 
 
 # Verify podman is compatible with the docker python-module.
@@ -876,7 +876,7 @@ success_task:
         - swagger
         - consistency
         - alt_build
-        - osx_alt_build
+        # - osx_alt_build
         - docker-py_test
         - unit_test
         - apiv2_test

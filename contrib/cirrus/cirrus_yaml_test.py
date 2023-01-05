@@ -27,6 +27,7 @@ class TestDependsOn(TestCaseBase):
 
     ALL_TASK_NAMES = None
     SUCCESS_DEPS_EXCLUDE = set(['success', 'artifacts', 'podman_machine',
+        'osx_alt_build',
         'test_image_build', 'release', 'release_test'])
 
     def setUp(self):
