@@ -251,6 +251,19 @@ END_HTML
             $previous_timestamp = $timestamp;
         }
 
+        # Helper function for printing a formatted line. This should always
+        # be followed by 'next LINE'.
+        my $print_line = sub {
+            my $css = shift;
+
+            print { $out_fh } "<span class=\"timestamp\">$timestamp</span>"
+                if $timestamp;
+            print { $out_fh } "<span class='$css'>"     if $css;
+            print { $out_fh } $line;
+            print { $out_fh } "</span>"                 if $css;
+            print { $out_fh } "\n";
+        };
+
         # Try to identify the git commit we're working with...
         if ($line =~ m!/define.gitCommit=([0-9a-f]+)!) {
             $git_commit = $1;
@@ -305,9 +318,7 @@ END_HTML
             if ($line =~ /^\s*(OK|FAILED)\s+\(/) {
                 undef $looks_like_python;
                 my $css = ($1 eq 'OK' ? 'passed' : 'failed');
-                print { $out_fh } "<span class=\"timestamp\">$timestamp</span>"
-                    if $timestamp;
-                print { $out_fh } "<span class='bats-$css'>", $line, "</span>\n";
+                $print_line->("bats-$css");
                 next LINE;
             }
         }
@@ -339,14 +350,11 @@ END_HTML
 
                     push @{$bats_count{__fail_list}}, [ $2, $3 ] if $1;
                 }
-                $line = "<span class='bats-$css'>$line</span>";
-
                 $bats_count{$css}++;
+                $css = "bats-$css";
             }
 
-            print { $out_fh } "<span class=\"timestamp\">$timestamp</span>"
-                if $timestamp;
-            print { $out_fh } $line, "\n";
+            $print_line->($css);
             next LINE;
         }
         elsif ($looks_like_python) {
@@ -362,13 +370,10 @@ END_HTML
             }
 
             if ($css) {
-                $line = "<span class='bats-$css'>$line</span>";
-
                 $bats_count{$css}++;
+                $css = "bats-$css";
             }
-            print { $out_fh } "<span class=\"timestamp\">$timestamp</span>"
-                if $timestamp;
-            print { $out_fh } $line, "\n";
+            $print_line->($css);
             next LINE;
         }
 
