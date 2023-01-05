@@ -18,7 +18,8 @@ import (
 )
 
 const (
-	githubLatestReleaseURL = "https://github.com/containers/podman-wsl-fedora/releases/latest/download/rootfs.tar.xz"
+	githubX86ReleaseURL = "https://github.com/containers/podman-wsl-fedora/releases/latest/download/rootfs.tar.xz"
+	githubArmReleaseURL = "https://github.com/containers/podman-wsl-fedora-arm/releases/latest/download/rootfs.tar.xz"
 )
 
 type FedoraDownload struct {
@@ -26,7 +27,7 @@ type FedoraDownload struct {
 }
 
 func NewFedoraDownloader(vmType, vmName, releaseStream string) (DistributionDownload, error) {
-	downloadURL, version, size, err := getFedoraDownload(githubLatestReleaseURL)
+	downloadURL, version, arch, size, err := getFedoraDownload()
 	if err != nil {
 		return nil, err
 	}
@@ -36,7 +37,7 @@ func NewFedoraDownloader(vmType, vmName, releaseStream string) (DistributionDown
 		return nil, err
 	}
 
-	imageName := fmt.Sprintf("fedora-podman-%s.tar.xz", version)
+	imageName := fmt.Sprintf("fedora-podman-%s-%s.tar.xz", arch, version)
 
 	f := FedoraDownload{
 		Download: Download{
@@ -80,21 +81,32 @@ func (f FedoraDownload) CleanCache() error {
 	return removeImageAfterExpire(f.CacheDir, expire)
 }
 
-func getFedoraDownload(releaseURL string) (*url.URL, string, int64, error) {
+func getFedoraDownload() (*url.URL, string, string, int64, error) {
+	var releaseURL string
+	arch := determineFedoraArch()
+	switch arch {
+	case "arm64":
+		releaseURL = githubArmReleaseURL
+	case "amd64":
+		releaseURL = githubX86ReleaseURL
+	default:
+		return nil, "", "", -1, fmt.Errorf("CPU architecture %q is not supported", arch)
+	}
+
 	downloadURL, err := url.Parse(releaseURL)
 	if err != nil {
-		return nil, "", -1, fmt.Errorf("invalid URL generated from discovered Fedora file: %s: %w", releaseURL, err)
+		return nil, "", "", -1, fmt.Errorf("invalid URL generated from discovered Fedora file: %s: %w", releaseURL, err)
 	}
 
 	resp, err := http.Head(releaseURL)
 	if err != nil {
-		return nil, "", -1, fmt.Errorf("head request failed: %s: %w", releaseURL, err)
+		return nil, "", "", -1, fmt.Errorf("head request failed: %s: %w", releaseURL, err)
 	}
 	_ = resp.Body.Close()
 	contentLen := resp.ContentLength
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, "", -1, fmt.Errorf("head request failed: %s: %w", releaseURL, err)
+		return nil, "", "", -1, fmt.Errorf("head request failed: %s: %w", releaseURL, err)
 	}
 
 	verURL := *downloadURL
@@ -102,14 +114,14 @@ func getFedoraDownload(releaseURL string) (*url.URL, string, int64, error) {
 
 	resp, err = http.Get(verURL.String())
 	if err != nil {
-		return nil, "", -1, fmt.Errorf("get request failed: %s: %w", verURL.String(), err)
+		return nil, "", "", -1, fmt.Errorf("get request failed: %s: %w", verURL.String(), err)
 	}
 
 	defer resp.Body.Close()
 	bytes, err := io.ReadAll(&io.LimitedReader{R: resp.Body, N: 1024})
 	if err != nil {
-		return nil, "", -1, fmt.Errorf("failed reading: %s: %w", verURL.String(), err)
+		return nil, "", "", -1, fmt.Errorf("failed reading: %s: %w", verURL.String(), err)
 	}
 
-	return downloadURL, strings.TrimSpace(string(bytes)), contentLen, nil
+	return downloadURL, strings.TrimSpace(string(bytes)), arch, contentLen, nil
 }
