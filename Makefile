@@ -262,8 +262,10 @@ volume-plugin-test-img:
 test/goecho/goecho: $(wildcard test/goecho/*.go)
 	$(GOCMD) build $(BUILDFLAGS) $(GO_LDFLAGS) '$(LDFLAGS_PODMAN)' -o $@ ./test/goecho
 
+# The ./test/version/version binary is executed in other make steps
+# so we have to make sure the version binary is built for NATIVE_GOARCH.
 test/version/version: version/version.go
-	$(GO) build -o $@ ./test/version/
+	GOARCH=$(NATIVE_GOARCH) $(GO) build -o $@ ./test/version/
 
 .PHONY: codespell
 codespell:
