@@ -46,8 +46,8 @@ podman inspect -l | grep IPAddress\":
             "IPAddress": "",
 ```
 
-Note: The -l is a convenience argument for **latest container**. When using the remote Podman client you have to use the container's ID instead
-of -l. 
+Note: The -l is a convenience argument for **latest container**. This option is not available with the remote Podman client, so you have to instead
+use the container's ID. 
 
 ### Testing the httpd server
 As we do not have the IP address of the container, we can test the network communication between the host
