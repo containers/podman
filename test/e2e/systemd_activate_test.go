@@ -12,11 +12,13 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/containers/podman/v4/pkg/rootless"
 	testUtils "github.com/containers/podman/v4/test/utils"
 	podmanUtils "github.com/containers/podman/v4/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
+	"github.com/opencontainers/selinux/go-selinux"
 )
 
 var _ = Describe("Systemd activate", func() {
@@ -64,16 +66,44 @@ var _ = Describe("Systemd activate", func() {
 		Expect(err).ToNot(HaveOccurred())
 		addr := net.JoinHostPort(host, strconv.Itoa(port))
 
+		// Make a temporary root directory
+		tmpRootDir := filepath.Join(tempDir, "server_root")
+		err = os.Mkdir(tmpRootDir, 0755)
+		Expect(err).ToNot(HaveOccurred())
+		defer os.RemoveAll(tmpRootDir)
+
+		// When SELinux is enabled, a storage root directory should be
+		// labeld with a specific value
+		if selinux.GetEnabled() {
+			rootDir := "/var/lib/containers"
+			label := "container_var_lib_t"
+			if rootless.IsRootless() {
+				rootDir = filepath.Join(os.Getenv("HOME"), ".local/share/containers")
+				label = "data_home_t"
+			}
+
+			args := []string{"--reference", rootDir, tmpRootDir}
+			// If rootDir doesn't exist, use "chcon -t" to label tmpRootDir
+			// instead of "chcon --reference"
+			if _, err := os.Stat(rootDir); err != nil {
+				args = []string{"-t", label, tmpRootDir}
+			}
+
+			chcon := testUtils.SystemExec("chcon", args)
+			Expect(chcon).Should(Exit(0))
+		}
+
 		activateSession := testUtils.StartSystemExec(activate, []string{
 			"-E", "http_proxy", "-E", "https_proxy", "-E", "no_proxy",
 			"-E", "HTTP_PROXY", "-E", "HTTPS_PROXY", "-E", "NO_PROXY",
 			"--listen", addr,
 			podmanTest.PodmanBinary,
-			"--root=" + filepath.Join(tempDir, "server_root"),
+			"--root", tmpRootDir,
 			"system", "service",
 			"--time=0",
 		})
 		Expect(activateSession.Exited).ShouldNot(Receive(), "Failed to start podman service")
+		defer activateSession.Signal(syscall.SIGTERM)
 
 		// Curried functions for specialized podman calls
 		podmanRemote := func(args ...string) *testUtils.PodmanSession {
@@ -82,7 +112,7 @@ var _ = Describe("Systemd activate", func() {
 		}
 
 		podman := func(args ...string) *testUtils.PodmanSession {
-			args = append([]string{"--root", filepath.Join(tempDir, "server_root")}, args...)
+			args = append([]string{"--root", tmpRootDir}, args...)
 			return testUtils.SystemExec(podmanTest.PodmanBinary, args)
 		}
 
@@ -92,6 +122,7 @@ var _ = Describe("Systemd activate", func() {
 			"quay.io/libpod/alpine_labels:latest",
 		)
 		Expect(apiSession).Should(Exit(0))
+		defer podman("rm", "-f", containerName)
 
 		apiSession = podmanRemote("start", containerName)
 		Expect(apiSession).Should(Exit(0))
