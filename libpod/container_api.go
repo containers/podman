@@ -85,6 +85,15 @@ func (c *Container) Init(ctx context.Context, recursive bool) error {
 func (c *Container) Start(ctx context.Context, recursive bool) (finalErr error) {
 	defer func() {
 		if finalErr != nil {
+			// Have to re-lock.
+			// As this is the first defer, it's the last thing to
+			// happen in the function - so `defer c.lock.Unlock()`
+			// below already fired.
+			if !c.batched {
+				c.lock.Lock()
+				defer c.lock.Unlock()
+			}
+
 			if err := saveContainerError(c, finalErr); err != nil {
 				logrus.Debug(err)
 			}
@@ -125,6 +134,15 @@ func (c *Container) Update(res *spec.LinuxResources) error {
 func (c *Container) StartAndAttach(ctx context.Context, streams *define.AttachStreams, keys string, resize <-chan resize.TerminalSize, recursive bool) (retChan <-chan error, finalErr error) {
 	defer func() {
 		if finalErr != nil {
+			// Have to re-lock.
+			// As this is the first defer, it's the last thing to
+			// happen in the function - so `defer c.lock.Unlock()`
+			// below already fired.
+			if !c.batched {
+				c.lock.Lock()
+				defer c.lock.Unlock()
+			}
+
 			if err := saveContainerError(c, finalErr); err != nil {
 				logrus.Debug(err)
 			}
@@ -212,6 +230,15 @@ func (c *Container) Stop() error {
 func (c *Container) StopWithTimeout(timeout uint) (finalErr error) {
 	defer func() {
 		if finalErr != nil {
+			// Have to re-lock.
+			// As this is the first defer, it's the last thing to
+			// happen in the function - so `defer c.lock.Unlock()`
+			// below already fired.
+			if !c.batched {
+				c.lock.Lock()
+				defer c.lock.Unlock()
+			}
+
 			if err := saveContainerError(c, finalErr); err != nil {
 				logrus.Debug(err)
 			}
