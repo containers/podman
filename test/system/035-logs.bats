@@ -298,4 +298,89 @@ $contentC" "logs -f on exitted container works"
 
     _log_test_follow journald
 }
+
+function _log_test_follow_since() {
+    local driver=$1
+    cname=$(random_string)
+    content=$(random_string)
+    local events_backend=$(_additional_events_backend $driver)
+
+    if [[ -n "${events_backend}" ]]; then
+        skip_if_remote "remote does not support --events-backend"
+    fi
+
+    run_podman ${events_backend} run --log-driver=$driver --name $cname $IMAGE echo "$content"
+    # Using --since 0s can flake because the log might written in the second as the logs call is made.
+    # The -1s makes sure we only read logs that would be created 1s in the future which cannot happen.
+    run_podman ${events_backend} logs --since -1s -f $cname
+    assert "$output" == "" "logs --since -f on exited container works"
+
+    run_podman ${events_backend} rm -t 0 -f $cname
+
+    # Now do the same with a running container to check #16950.
+    run_podman ${events_backend} run --log-driver=$driver --name $cname -d $IMAGE \
+        sh -c "sleep 0.5; while :; do echo $content && sleep 3; done"
+
+    # sleep is required to make sure the podman event backend no longer sees the start event in the log
+    # This value must be greater or equal than the the value given in --since below
+    sleep 0.2
+
+    # Make sure podman logs actually follows by giving a low timeout and check that the command times out
+    PODMAN_TIMEOUT=2 run_podman 124 ${events_backend} logs --since 0.1s -f $cname
+    assert "$output" =~ "^$content
+timeout: sending signal TERM to command.*" "logs --since -f on running container works"
+
+    run_podman ${events_backend} rm -t 0 -f $cname
+}
+
+@test "podman logs - --since --follow k8s-file" {
+    _log_test_follow_since k8s-file
+}
+
+@test "podman logs - --since --follow journald" {
+    # We can't use journald on RHEL as rootless: rhbz#1895105
+    skip_if_journald_unavailable
+
+    _log_test_follow_since journald
+}
+
+function _log_test_follow_until() {
+    local driver=$1
+    cname=$(random_string)
+    content=$(random_string)
+    local events_backend=$(_additional_events_backend $driver)
+
+    if [[ -n "${events_backend}" ]]; then
+        skip_if_remote "remote does not support --events-backend"
+    fi
+
+    run_podman ${events_backend} run --log-driver=$driver --name $cname -d $IMAGE \
+        sh -c "while :; do echo $content && sleep 2; done"
+
+    t0=$SECONDS
+    # The logs command should exit after the until time even when follow is set
+    PODMAN_TIMEOUT=10 run_podman ${events_backend} logs --until 3s -f $cname
+    t1=$SECONDS
+
+    # The delta should be 3 but because it could be a bit longer on a slow system such as CI we also accept 4.
+    delta_t=$(( $t1 - $t0 ))
+    assert $delta_t -gt 2 "podman logs --until: exited too early!"
+    assert $delta_t -lt 5 "podman logs --until: exited too late!"
+
+    assert "$output" == "$content
+$content" "logs --until -f on running container works"
+
+    run_podman ${events_backend} rm -t 0 -f $cname
+}
+
+@test "podman logs - --until --follow k8s-file" {
+    _log_test_follow_until k8s-file
+}
+
+@test "podman logs - --until --follow journald" {
+    # We can't use journald on RHEL as rootless: rhbz#1895105
+    skip_if_journald_unavailable
+
+    _log_test_follow_until journald
+}
 # vim: filetype=sh

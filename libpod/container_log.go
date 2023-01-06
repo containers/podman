@@ -72,6 +72,14 @@ func (c *Container) readFromLogFile(ctx context.Context, options *logs.LogOption
 			}
 		}
 	}
+	go func() {
+		if options.Until.After(time.Now()) {
+			time.Sleep(time.Until(options.Until))
+			if err := t.Stop(); err != nil {
+				logrus.Errorf("Stopping logger: %v", err)
+			}
+		}
+	}()
 
 	go func() {
 		defer options.WaitGroup.Done()

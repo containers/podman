@@ -121,10 +121,19 @@ func (e EventJournalD) Read(ctx context.Context, options ReadOptions) error {
 		if _, err := j.Previous(); err != nil {
 			return fmt.Errorf("failed to move journal cursor to previous entry: %w", err)
 		}
+	} else if len(options.Since) > 0 {
+		since, err := util.ParseInputTime(options.Since, true)
+		if err != nil {
+			return err
+		}
+		// seek based on time which helps to reduce unnecessary event reads
+		if err := j.SeekRealtimeUsec(uint64(since.UnixMicro())); err != nil {
+			return err
+		}
 	}
 
 	for {
-		entry, err := getNextEntry(ctx, j, options.Stream, untilTime)
+		entry, err := GetNextEntry(ctx, j, options.Stream, untilTime)
 		if err != nil {
 			return err
 		}
@@ -210,10 +219,10 @@ func (e EventJournalD) String() string {
 	return Journald.String()
 }
 
-// getNextEntry returns the next entry in the journal. If the end  of the
+// GetNextEntry returns the next entry in the journal. If the end  of the
 // journal is reached and stream is not set or the current time is after
 // the until time this function return nil,nil.
-func getNextEntry(ctx context.Context, j *sdjournal.Journal, stream bool, untilTime time.Time) (*sdjournal.JournalEntry, error) {
+func GetNextEntry(ctx context.Context, j *sdjournal.Journal, stream bool, untilTime time.Time) (*sdjournal.JournalEntry, error) {
 	for {
 		select {
 		case <-ctx.Done():

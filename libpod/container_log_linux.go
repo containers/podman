@@ -80,39 +80,27 @@ func (c *Container) readFromJournal(ctx context.Context, options *logs.LogOption
 		return fmt.Errorf("adding filter to journald logger: %v: %w", match, err)
 	}
 
-	if err := journal.SeekHead(); err != nil {
+	if options.Since.IsZero() {
+		if err := journal.SeekHead(); err != nil {
+			return err
+		}
+	} else {
+		// seek based on time which helps to reduce unnecessary event reads
+		if err := journal.SeekRealtimeUsec(uint64(options.Since.UnixMicro())); err != nil {
+			return err
+		}
+	}
+
+	c.lock.Lock()
+	if err := c.syncContainer(); err != nil {
+		c.lock.Unlock()
 		return err
 	}
-	// API requires Next() immediately after SeekHead().
-	if _, err := journal.Next(); err != nil {
-		return fmt.Errorf("next journal: %w", err)
-	}
-
-	// API requires a next|prev before getting a cursor.
-	if _, err := journal.Previous(); err != nil {
-		return fmt.Errorf("previous journal: %w", err)
-	}
-
-	// Note that the initial cursor may not yet be ready, so we'll do an
-	// exponential backoff.
-	var cursor string
-	var cursorError error
-	var containerCouldBeLogging bool
-	for i := 1; i <= 3; i++ {
-		cursor, cursorError = journal.GetCursor()
-		hundreds := 1
-		for j := 1; j < i; j++ {
-			hundreds *= 2
-		}
-		if cursorError != nil {
-			time.Sleep(time.Duration(hundreds*100) * time.Millisecond)
-			continue
-		}
-		break
-	}
-	if cursorError != nil {
-		return fmt.Errorf("initial journal cursor: %w", cursorError)
-	}
+	// The initial "containerCouldBeLogging" state must be correct, we cannot rely on the start event being still in the journal.
+	// This can happen if the journal was rotated after the container was started or when --since is used.
+	// https://github.com/containers/podman/issues/16950
+	containerCouldBeLogging := c.ensureState(define.ContainerStateRunning, define.ContainerStateStopping)
+	c.lock.Unlock()
 
 	options.WaitGroup.Add(1)
 	go func() {
@@ -142,57 +130,18 @@ func (c *Container) readFromJournal(ctx context.Context, options *logs.LogOption
 			tailQueue = nil
 			doTail = false
 		}
-		lastReadCursor := ""
 		for {
-			select {
-			case <-ctx.Done():
-				// Remote client may have closed/lost the connection.
-				return
-			default:
-				// Fallthrough
-			}
-
-			if lastReadCursor != "" {
-				// Advance to next entry if we read this one.
-				if _, err := journal.Next(); err != nil {
-					logrus.Errorf("Failed to move journal cursor to next entry: %v", err)
-					return
-				}
-			}
-
-			// Fetch the location of this entry, presumably either
-			// the one that follows the last one we read, or that
-			// same last one, if there is no next entry (yet).
-			cursor, err = journal.GetCursor()
-			if err != nil {
-				logrus.Errorf("Failed to get journal cursor: %v", err)
-				return
-			}
-
-			// Hit the end of the journal (so far?).
-			if cursor == lastReadCursor {
-				if doTail {
-					doTailFunc()
-				}
-				// Unless we follow, quit.
-				if !options.Follow || !containerCouldBeLogging {
-					return
-				}
-
-				// journal.Wait() is blocking, this would cause the goroutine to hang forever
-				// if no more journal entries are generated and thus if the client
-				// has closed the connection in the meantime to leak memory.
-				// Waiting only 5 seconds makes sure we can check if the client closed in the
-				// meantime at least every 5 seconds.
-				journal.Wait(5 * time.Second)
-				continue
-			}
-			lastReadCursor = cursor
-
-			// Read the journal entry.
-			entry, err := journal.GetEntry()
+			entry, err := events.GetNextEntry(ctx, journal, !doTail && options.Follow && containerCouldBeLogging, options.Until)
 			if err != nil {
 				logrus.Errorf("Failed to get journal entry: %v", err)
+				return
+			}
+			// entry nil == EOF in journal
+			if entry == nil {
+				if doTail {
+					doTailFunc()
+					continue
+				}
 				return
 			}
 
