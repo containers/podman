@@ -9,7 +9,7 @@ If you are running on a Mac or Windows PC, you should instead follow the [Mac an
 to set up the remote Podman client.
 
 **NOTE**: the code samples are intended to be run as a non-root user, and use `sudo` where
-root escalation is required.
+root escalation is required. 
 
 ## Installing Podman
 
@@ -46,8 +46,8 @@ podman inspect -l | grep IPAddress\":
             "IPAddress": "",
 ```
 
-Note: The -l is a convenience argument for **latest container**.  You can also use the container's ID instead
-of -l.
+Note: The -l is a convenience argument for **latest container**. When using the remote Podman client you have to use the container's ID instead
+of -l. 
 
 ### Testing the httpd server
 As we do not have the IP address of the container, we can test the network communication between the host
@@ -60,7 +60,7 @@ curl http://localhost:8080
 ### Viewing the container's logs
 You can view the container's logs with Podman as well:
 ```console
-podman logs --latest
+podman logs -l
 10.88.0.1 - - [07/Feb/2018:15:22:11 +0000] "GET / HTTP/1.1" 200 612 "-" "curl/7.55.1" "-"
 10.88.0.1 - - [07/Feb/2018:15:22:30 +0000] "GET / HTTP/1.1" 200 612 "-" "curl/7.55.1" "-"
 10.88.0.1 - - [07/Feb/2018:15:22:30 +0000] "GET / HTTP/1.1" 200 612 "-" "curl/7.55.1" "-"
@@ -71,7 +71,7 @@ podman logs --latest
 ### Viewing the container's pids
 And you can observe the httpd pid in the container with *top*.
 ```console
-podman top <container_id>
+podman top -l
   UID   PID  PPID  C STIME TTY          TIME CMD
     0 31873 31863  0 09:21 ?        00:00:00 nginx: master process nginx -g daemon off;
   101 31889 31873  0 09:21 ?        00:00:00 nginx: worker process
@@ -85,7 +85,7 @@ This feature is not supported as rootless; as such, if you wish to try it, you'l
 
 To checkpoint the container use:
 ```console
-sudo podman container checkpoint <container_id>
+sudo podman container checkpoint -l
 ```
 
 ### Restoring the container
@@ -93,7 +93,7 @@ Restoring a container is only possible for a previously checkpointed container. 
 continue to run at exactly the same point in time it was checkpointed.
 To restore the container use:
 ```console
-sudo podman container restore <container_id>
+sudo podman container restore -l
 ```
 
 After being restored, the container will answer requests again as it did before checkpointing.
@@ -108,7 +108,7 @@ system. When transferring the checkpoint, it is possible to specify an output-fi
 
 On the source system:
 ```console
-sudo podman container checkpoint <container_id> -e /tmp/checkpoint.tar.gz
+sudo podman container checkpoint -l -e /tmp/checkpoint.tar.gz
 scp /tmp/checkpoint.tar.gz <destination_system>:/tmp
 ```
 
@@ -126,7 +126,7 @@ curl http://<IP_address>:8080
 ### Stopping the container
 To stop the httpd container:
 ```console
-podman stop --latest
+podman stop -l
 ```
 You can also check the status of one or more containers using the *ps* subcommand. In this case, we should
 use the *-a* argument to list all containers.
@@ -137,7 +137,7 @@ podman ps -a
 ### Removing the container
 To remove the httpd container:
 ```console
-podman rm --latest
+podman rm -l
 ```
 You can verify the deletion of the container by running *podman ps -a*.
 
