@@ -735,6 +735,19 @@ func (c *Container) Cleanup(ctx context.Context) error {
 
 	// If we didn't restart, we perform a normal cleanup
 
+	// make sure all the container processes are terminated if we are running without a pid namespace.
+	hasPidNs := false
+	for _, i := range c.config.Spec.Linux.Namespaces {
+		if i.Type == spec.PIDNamespace {
+			hasPidNs = true
+			break
+		}
+	}
+	if !hasPidNs {
+		// do not fail on errors
+		_ = c.ociRuntime.KillContainer(c, uint(unix.SIGKILL), true)
+	}
+
 	// Check for running exec sessions
 	sessions, err := c.getActiveExecSessions()
 	if err != nil {
