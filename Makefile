@@ -196,7 +196,7 @@ endif
 # include this lightweight helper binary.
 #
 GV_GITURL=https://github.com/containers/gvisor-tap-vsock.git
-GV_SHA=e943b1806d94d387c4c38d96719432d50a84bbd0
+GV_SHA=aab0ac9367fc5142f5857c36ac2352bcb3c60ab7
 
 ###
 ### Primary entry-point targets
