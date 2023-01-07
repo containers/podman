@@ -118,6 +118,7 @@ func (r *Runtime) RenameContainer(ctx context.Context, ctr *Container, newName s
 		return nil, err
 	}
 
+	newName = strings.TrimPrefix(newName, "/")
 	if newName == "" || !define.NameRegex.MatchString(newName) {
 		return nil, define.RegexError
 	}

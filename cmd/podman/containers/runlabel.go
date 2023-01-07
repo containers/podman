@@ -3,6 +3,7 @@ package containers
 import (
 	"context"
 	"os"
+	"strings"
 
 	"github.com/containers/common/pkg/auth"
 	"github.com/containers/common/pkg/completion"
@@ -95,5 +96,5 @@ func runlabel(cmd *cobra.Command, args []string) error {
 			return err
 		}
 	}
-	return registry.ContainerEngine().ContainerRunlabel(context.Background(), args[0], args[1], args[2:], runlabelOptions.ContainerRunlabelOptions)
+	return registry.ContainerEngine().ContainerRunlabel(context.Background(), strings.TrimPrefix(args[0], "/"), args[1], args[2:], runlabelOptions.ContainerRunlabelOptions)
 }

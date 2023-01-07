@@ -69,6 +69,7 @@ func init() {
 
 func initContainer(cmd *cobra.Command, args []string) error {
 	var errs utils.OutputErrors
+	args = utils.RemoveSlash(args)
 	report, err := registry.ContainerEngine().ContainerInit(registry.GetContext(), args, initOptions)
 	if err != nil {
 		return err

@@ -93,7 +93,7 @@ func init() {
 }
 
 func commit(cmd *cobra.Command, args []string) error {
-	container := args[0]
+	container := strings.TrimPrefix(args[0], "/")
 	if len(args) == 2 {
 		commitOptions.ImageName = args[1]
 	}

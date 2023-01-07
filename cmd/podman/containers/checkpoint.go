@@ -87,6 +87,7 @@ func init() {
 
 func checkpoint(cmd *cobra.Command, args []string) error {
 	var errs utils.OutputErrors
+	args = utils.RemoveSlash(args)
 	podmanStart := time.Now()
 	if cmd.Flags().Changed("compress") {
 		if checkpointOptions.Export == "" {

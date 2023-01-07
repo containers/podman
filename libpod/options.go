@@ -6,6 +6,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"strings"
 	"syscall"
 
 	"github.com/containers/buildah/pkg/parse"
@@ -776,6 +777,7 @@ func WithName(name string) CtrCreateOption {
 			return define.ErrCtrFinalized
 		}
 
+		name = strings.TrimPrefix(name, "/")
 		// Check the name against a regex
 		if !define.NameRegex.MatchString(name) {
 			return define.RegexError

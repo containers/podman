@@ -5,6 +5,7 @@ import (
 
 	"github.com/containers/podman/v4/cmd/podman/common"
 	"github.com/containers/podman/v4/cmd/podman/registry"
+	"github.com/containers/podman/v4/cmd/podman/utils"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/spf13/cobra"
 )
@@ -47,6 +48,7 @@ func rename(cmd *cobra.Command, args []string) error {
 	if len(args) > 2 {
 		return errors.New("must provide at least two arguments to rename")
 	}
+	args = utils.RemoveSlash(args)
 	renameOpts := entities.ContainerRenameOptions{
 		NewName: args[1],
 	}

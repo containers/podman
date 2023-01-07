@@ -174,7 +174,7 @@ echo $rand        |   0 | $rand
     run_podman 1 image exists $NONLOCAL_IMAGE
 
     # Run a container, without --rm; this should block subsequent --rmi
-    run_podman run --name keepme $NONLOCAL_IMAGE /bin/true
+    run_podman run --name /keepme $NONLOCAL_IMAGE /bin/true
     run_podman image exists $NONLOCAL_IMAGE
 
     # Now try running with --rmi : it should succeed, but not remove the image
@@ -182,7 +182,7 @@ echo $rand        |   0 | $rand
     run_podman image exists $NONLOCAL_IMAGE
 
     # Remove the stray container, and run one more time with --rmi.
-    run_podman rm keepme
+    run_podman rm /keepme
     run_podman run --rmi --rm $NONLOCAL_IMAGE /bin/true
     run_podman 1 image exists $NONLOCAL_IMAGE
 }
@@ -962,6 +962,16 @@ EOF
     CONTAINERS_CONF="$containersconf" run_podman run --rm --read-only=false $IMAGE touch /testrw
     CONTAINERS_CONF="$containersconf" run_podman run --rm $IMAGE touch /tmp/testrw
     CONTAINERS_CONF="$containersconf" run_podman 1 run --rm --read-only-tmpfs=false $IMAGE touch /tmp/testro
+}
+
+@test "podman run bad --name" {
+    randomname=$(random_string 30)
+    run_podman 125 create --name "$randomname/bad" $IMAGE
+    run_podman create --name "/$randomname" $IMAGE
+    run_podman ps -a --filter name="^/$randomname$" --format '{{ .Names }}'
+    is $output "$randomname" "Should be able to find container by name"
+    run_podman rm "/$randomname"
+    run_podman 125 create --name "$randomname/" $IMAGE
 }
 
 # vim: filetype=sh

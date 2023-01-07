@@ -80,7 +80,7 @@ func port(_ *cobra.Command, args []string) error {
 		return errors.New("you must supply a running container name or id")
 	}
 	if !portOpts.Latest && len(args) >= 1 {
-		container = args[0]
+		container = strings.TrimPrefix(args[0], "/")
 	}
 	port := ""
 	if len(args) > 2 {

@@ -3,6 +3,7 @@ package containers
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/containers/podman/v4/cmd/podman/common"
 	"github.com/containers/podman/v4/cmd/podman/registry"
@@ -71,7 +72,7 @@ func update(cmd *cobra.Command, args []string) error {
 	}
 
 	opts := &entities.ContainerUpdateOptions{
-		NameOrID: args[0],
+		NameOrID: strings.TrimPrefix(args[0], "/"),
 		Specgen:  s,
 	}
 	rep, err := registry.ContainerEngine().ContainerUpdate(context.Background(), opts)

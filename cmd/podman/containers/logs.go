@@ -8,6 +8,7 @@ import (
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/podman/v4/cmd/podman/common"
 	"github.com/containers/podman/v4/cmd/podman/registry"
+	"github.com/containers/podman/v4/cmd/podman/utils"
 	"github.com/containers/podman/v4/cmd/podman/validate"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/util"
@@ -122,6 +123,7 @@ func logsFlags(cmd *cobra.Command) {
 }
 
 func logs(_ *cobra.Command, args []string) error {
+	args = utils.RemoveSlash(args)
 	if logsOptions.SinceRaw != "" {
 		// parse time, error out if something is wrong
 		since, err := util.ParseInputTime(logsOptions.SinceRaw, true)

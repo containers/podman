@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/containers/podman/v4/libpod/define"
@@ -138,4 +139,12 @@ func IsCheckpointImage(ctx context.Context, namesOrIDs []string) (bool, error) {
 		}
 	}
 	return true, nil
+}
+
+func RemoveSlash(input []string) []string {
+	output := make([]string, 0, len(input))
+	for _, in := range input {
+		output = append(output, strings.TrimPrefix(in, "/"))
+	}
+	return output
 }
