@@ -9,7 +9,7 @@ If you are running on a Mac or Windows PC, you should instead follow the [Mac an
 to set up the remote Podman client.
 
 **NOTE**: the code samples are intended to be run as a non-root user, and use `sudo` where
-root escalation is required. 
+root escalation is required.
 
 ## Installing Podman
 
@@ -46,8 +46,7 @@ podman inspect -l | grep IPAddress\":
             "IPAddress": "",
 ```
 
-Note: The -l is a convenience argument for **latest container**. This option is not available with the remote Podman client, so you have to instead
-use the container's ID. 
+Note: The -l is a convenience argument for **latest container**. This option is not available with the remote Podman client; use the container name or ID instead.
 
 ### Testing the httpd server
 As we do not have the IP address of the container, we can test the network communication between the host
