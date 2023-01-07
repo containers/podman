@@ -46,13 +46,23 @@ func getOvmfDir(imagePath, vmName string) string {
  */
 func getEdk2CodeFdPathFromQemuBinaryPath() string {
 	cfg, err := config.Default()
-	if err == nil {
-		execPath, err := cfg.FindHelperBinary(QemuCommand, true)
-		if err == nil {
-			return filepath.Clean(filepath.Join(filepath.Dir(execPath), "..", "share", "qemu"))
-		}
+	if err != nil {
+		return ""
 	}
-	return ""
+	execPath, err := cfg.FindHelperBinary(QemuCommand, true)
+	if err != nil {
+		return ""
+	}
+
+	sharePath := func(path string) string {
+		return filepath.Clean(filepath.Join(filepath.Dir(path), "..", "share", "qemu"))
+	}
+
+	symlinkedPath, err := filepath.EvalSymlinks(execPath)
+	if err != nil {
+		return sharePath(execPath)
+	}
+	return sharePath(symlinkedPath)
 }
 
 /*
