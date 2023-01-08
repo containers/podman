@@ -1,5 +1,6 @@
-[Container]
-Image=localhost/imagename
+[Kube]
+Yaml=/opt/k8s/deployment.yml
+
 ## assert-podman-args --publish [::1]:80:90
 PublishPort=[::1]:80:90
 

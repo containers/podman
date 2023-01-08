@@ -1,9 +1,5 @@
-[Container]
-Image=localhost/imagename
-## assert-podman-args --expose=1000
-ExposeHostPort=1000
-## assert-podman-args --expose=2000-3000
-ExposeHostPort=2000-3000
+[Kube]
+Yaml=/opt/k8s/deployment.yml
 
 ## assert-podman-args --publish 127.0.0.1:80:90
 PublishPort=127.0.0.1:80:90
@@ -46,9 +42,3 @@ PublishPort=1234:1234/tcp
 
 ## assert-podman-args --publish 127.0.0.1:1234:1234/tcp
 PublishPort=127.0.0.1:1234:1234/tcp
-
-## assert-podman-args --expose=2000-3000/udp
-ExposeHostPort=2000-3000/udp
-
-## assert-podman-args --expose=2000-3000/tcp
-ExposeHostPort=2000-3000/tcp
