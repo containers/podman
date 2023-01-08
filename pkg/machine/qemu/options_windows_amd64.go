@@ -1,7 +1,7 @@
 package qemu
 
 var (
-	QemuCommand = "qemu-system-x86_64"
+	QemuCommand = "qemu-system-x86_64w"
 )
 
 func (v *MachineVM) addArchOptions() []string {
