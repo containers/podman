@@ -698,7 +698,7 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force, remo
 	}
 
 	// Check that the container's in a good state to be removed.
-	if c.state.State == define.ContainerStateRunning {
+	if c.ensureState(define.ContainerStateRunning, define.ContainerStateStopping) {
 		time := c.StopTimeout()
 		if timeout != nil {
 			time = *timeout
