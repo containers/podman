@@ -76,7 +76,7 @@ echo $rand        |   0 | $rand
 }
 
 @test "podman run - uidmapping has no /sys/kernel mounts" {
-    skip_if_cgroupsv1 "FIXME: #15025: run --uidmap fails on cgroups v1"
+    skip_if_cgroupsv1 "run --uidmap fails on cgroups v1 (issue 15025, wontfix)"
     skip_if_rootless "cannot umount as rootless"
     skip_if_remote "TODO Fix this for remote case"
 
@@ -877,7 +877,7 @@ EOF
 
 # rhbz#1902979 : podman run fails to update /etc/hosts when --uidmap is provided
 @test "podman run update /etc/hosts" {
-    skip_if_cgroupsv1 "FIXME: #15025: run --uidmap fails on cgroups v1"
+    skip_if_cgroupsv1 "run --uidmap fails on cgroups v1 (issue 15025, wontfix)"
     HOST=$(random_string 25)
     run_podman run --uidmap 0:10001:10002 --rm --hostname ${HOST} $IMAGE grep ${HOST} /etc/hosts
     is "${lines[0]}" ".*${HOST}.*"

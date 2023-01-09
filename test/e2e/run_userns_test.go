@@ -89,7 +89,7 @@ var _ = Describe("Podman UserNS support", func() {
 	})
 
 	It("podman uidmapping and gidmapping with an idmapped volume", func() {
-		SkipIfRunc(podmanTest, "Test not supported yet with runc, see issue #17433")
+		SkipIfRunc(podmanTest, "Test not supported yet with runc (issue 17433, wontfix)")
 		SkipOnOSVersion("fedora", "36")
 		session := podmanTest.Podman([]string{"run", "--uidmap=0:1:500", "--gidmap=0:200:5000", "-v", "my-foo-volume:/foo:Z,idmap", "alpine", "stat", "-c", "#%u:%g#", "/foo"})
 		session.WaitWithDefaultTimeout()

@@ -1045,7 +1045,7 @@ ENTRYPOINT ["sleep","99999"]
 
 	It("podman pod create --share-parent test", func() {
 		SkipIfRootlessCgroupsV1("rootless cannot use cgroups with cgroupsv1")
-		SkipIfCgroupV1("FIXME: #15013: CgroupMode shows 'host' instead of CID under Cgroups V1.")
+		SkipIfCgroupV1("CgroupMode shows 'host' on CGv1, not CID (issue 15013, wontfix")
 		podCreate := podmanTest.Podman([]string{"pod", "create", "--share-parent=false"})
 		podCreate.WaitWithDefaultTimeout()
 		Expect(podCreate).Should(Exit(0))

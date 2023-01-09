@@ -119,7 +119,7 @@ function check_label() {
     skip_if_rootless_cgroupsv1
 
     if [[ $(podman_runtime) == "runc" ]]; then
-        skip "some sort of runc bug, not worth fixing (#11784)"
+        skip "some sort of runc bug, not worth fixing (issue 11784, wontfix)"
     fi
 
     run_podman run -d --name myctr $IMAGE top

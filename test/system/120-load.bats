@@ -82,9 +82,6 @@ verify_iid_and_name() {
 
 @test "podman image scp transfer" {
     skip_if_remote "only applicable under local podman"
-    if is_ubuntu; then
-        skip "I don't have time to deal with this"
-    fi
 
     # The testing is the same whether we're root or rootless; all that
     # differs is the destination (not-me) username.

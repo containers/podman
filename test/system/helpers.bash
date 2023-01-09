@@ -452,10 +452,6 @@ function wait_for_file() {
 # BEGIN miscellaneous tools
 
 # Shortcuts for common needs:
-function is_ubuntu() {
-    grep -qiw ubuntu /etc/os-release
-}
-
 function is_rootless() {
     [ "$(id -u)" -ne 0 ]
 }
