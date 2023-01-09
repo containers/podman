@@ -76,11 +76,6 @@ function service_cleanup() {
 # These tests can fail in dev. environment because of SELinux.
 # quick fix: chcon -t container_runtime_exec_t ./bin/podman
 @test "podman generate - systemd - basic" {
-    # Flakes with "ActiveState=failed (expected =inactive)"
-    if is_ubuntu; then
-        skip "FIXME: 2022-09-01: requires conmon-2.1.4, ubuntu has 2.1.3"
-    fi
-
     # Warn when a custom restart policy is used without --new (see #15284)
     run_podman create --restart=always $IMAGE
     cid="$output"
