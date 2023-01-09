@@ -974,4 +974,9 @@ EOF
     run_podman 125 create --name "$randomname/" $IMAGE
 }
 
+@test "podman run --net=host --cgroupns=host with read only cgroupfs" {
+    # verify that the last /sys/fs/cgroup mount is read-only
+    run_podman run --net=host --cgroupns=host --rm $IMAGE sh -c "grep ' / /sys/fs/cgroup ' /proc/self/mountinfo | tail -n 1 | grep '/sys/fs/cgroup ro'"
+}
+
 # vim: filetype=sh

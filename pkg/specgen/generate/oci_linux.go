@@ -107,11 +107,19 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 		}
 		sysMnt := spec.Mount{
 			Destination: "/sys",
-			Type:        "bind", // should we use a constant for this, like createconfig?
+			Type:        "bind",
 			Source:      "/sys",
 			Options:     []string{"rprivate", "nosuid", "noexec", "nodev", r, "rbind"},
 		}
 		g.AddMount(sysMnt)
+		g.RemoveMount("/sys/fs/cgroup")
+		sysFsCgroupMnt := spec.Mount{
+			Destination: "/sys/fs/cgroup",
+			Type:        "bind",
+			Source:      "/sys/fs/cgroup",
+			Options:     []string{"rprivate", "nosuid", "noexec", "nodev", r, "rbind"},
+		}
+		g.AddMount(sysFsCgroupMnt)
 		if !s.Privileged && isRootless {
 			g.AddLinuxMaskedPaths("/sys/kernel")
 		}
