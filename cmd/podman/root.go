@@ -115,6 +115,22 @@ func Execute() {
 		}
 		fmt.Fprintln(os.Stderr, formatError(err))
 	}
+
+	if requireCleanup {
+		// The cobra post-run is not being executed in case of
+		// a previous error , so make sure that the engine(s)
+		// are correctly shutdown.
+		//
+		// See https://github.com/spf13/cobra/issues/914
+		logrus.Debugf("Shutting down engines")
+		if engine := registry.ImageEngine(); engine != nil {
+			engine.Shutdown(registry.Context())
+		}
+		if engine := registry.ContainerEngine(); engine != nil {
+			engine.Shutdown(registry.Context())
+		}
+	}
+
 	os.Exit(registry.GetExitCode())
 }
 
@@ -297,13 +313,6 @@ func persistentPreRunE(cmd *cobra.Command, args []string) error {
 
 func persistentPostRunE(cmd *cobra.Command, args []string) error {
 	logrus.Debugf("Called %s.PersistentPostRunE(%s)", cmd.Name(), strings.Join(os.Args, " "))
-
-	if !requireCleanup {
-		return nil
-	}
-
-	registry.ImageEngine().Shutdown(registry.Context())
-	registry.ContainerEngine().Shutdown(registry.Context())
 
 	if registry.IsRemote() {
 		return nil
