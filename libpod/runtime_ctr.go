@@ -687,11 +687,13 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force, remo
 	}
 
 	if c.IsService() {
-		canStop, err := c.canStopServiceContainer()
-		if err != nil {
-			return err
-		}
-		if !canStop {
+		for _, id := range c.state.Service.Pods {
+			if _, err := c.runtime.LookupPod(id); err != nil {
+				if errors.Is(err, define.ErrNoSuchPod) {
+					continue
+				}
+				return err
+			}
 			return fmt.Errorf("container %s is the service container of pod(s) %s and cannot be removed without removing the pod(s)", c.ID(), strings.Join(c.state.Service.Pods, ","))
 		}
 	}
