@@ -357,6 +357,14 @@ created by using a `$name.network` quadlet file.
 
 This key can be listed multiple times.
 
+#### `ConfigMap=`
+
+Pass the Kubernetes ConfigMap YAML at path to `podman kube play` via the `--configmap` argument.
+Unlike the `configmap` argument, the value may contain only one path but
+it may be absolute or relative to the location of the unit file.
+
+This key may be used multiple times
+
 ### Volume units
 
 Volume files are named with a `.volume` extension and contain a section `[Volume]` describing the
