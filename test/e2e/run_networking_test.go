@@ -67,7 +67,7 @@ var _ = Describe("Podman run networking", func() {
 			Expect(session.ErrorToString()).To(ContainSubstring("Could not resolve proxy:"))
 		} else {
 			Expect(session).Should(Exit(6))
-			Expect(session.ErrorToString()).To(ContainSubstring("Could not resolve host: www.podman.io"))
+			Expect(session.ErrorToString()).To(ContainSubstring("Could not resolve host: www.redhat.com"))
 		}
 	})
 
@@ -678,7 +678,7 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 			Expect(delXXX).Should(Exit(0))
 		}()
 
-		session := podmanTest.Podman([]string{"run", "-dt", "--net", "ns:/run/netns/xxx", ALPINE, "wget", "www.podman.io"})
+		session := podmanTest.Podman([]string{"run", "-dt", "--net", "ns:/run/netns/xxx", ALPINE, "wget", "www.redhat.com"})
 		session.Wait(90)
 		Expect(session).Should(Exit(0))
 	})
@@ -861,7 +861,7 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 	})
 
 	It("podman run network in bogus user created network namespace", func() {
-		session := podmanTest.Podman([]string{"run", "-dt", "--net", "ns:/run/netns/xxy", ALPINE, "wget", "www.podman.io"})
+		session := podmanTest.Podman([]string{"run", "-dt", "--net", "ns:/run/netns/xxy", ALPINE, "wget", "www.redhat.com"})
 		session.Wait(90)
 		Expect(session).To(ExitWithError())
 		Expect(session.ErrorToString()).To(ContainSubstring("stat /run/netns/xxy: no such file or directory"))
