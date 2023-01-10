@@ -103,26 +103,81 @@ RELABEL="system_u:object_r:container_file_t:s0"
     run_podman pod rm -t 0 -f test_pod
 }
 
+# helper function: writes a yaml file with customizable values
+function _write_test_yaml() {
+    local outfile=$PODMAN_TMPDIR/test.yaml
+
+    # Function args must all be of the form 'keyword=value' (value may be null)
+    local annotations=
+    local labels="app: test"
+    local name="test_pod"
+    local command=""
+    local image="$IMAGE"
+    local ctrname="test"
+    for i;do
+        # This will error on 'foo=' (no value). That's totally OK.
+        local value=$(expr "$i" : '[^=]*=\(.*\)')
+        case "$i" in
+            annotations=*)   annotations="$value" ;;
+            labels=*)        labels="$value"      ;;
+            name=*)          name="$value"        ;;
+            command=*)       command="$value"     ;;
+            image=*)         image="$value"       ;;
+            ctrname=*)       ctrname="$value"     ;;
+            *)               die "_write_test_yaml: cannot grok '$i'" ;;
+        esac
+    done
+
+    # These three header lines are common to all yamls.
+    # Note: use >> (append), not > (overwrite), for multi-pod test
+    cat >>$outfile <<EOF
+apiVersion: v1
+kind: Pod
+metadata:
+EOF
+
+    if [[ -n "$annotations" ]]; then
+        echo "  annotations:"   >>$outfile
+        echo "    $annotations" >>$outfile
+    fi
+    if [[ -n "$labels" ]]; then
+        echo "  labels:"        >>$outfile
+        echo "    $labels"      >>$outfile
+    fi
+    if [[ -n "$name" ]]; then
+        echo "  name: $name"    >>$outfile
+    fi
+
+    # We always have spec and container lines...
+    echo "spec:"                >>$outfile
+    echo "  containers:"        >>$outfile
+    # ...but command is optional. If absent, assume our caller will fill it in.
+    if [[ -n "$command" ]]; then
+        cat <<EOF               >>$outfile
+  - command:
+    - $command
+    env:
+    - name: PATH
+      value: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+    - name: TERM
+      value: xterm
+    - name: container
+      value: podman
+    image: $image
+    name: $ctrname
+    resources: {}
+status: {}
+EOF
+    fi
+}
+
 @test "podman play --service-container" {
     skip_if_remote "service containers only work locally"
 
     # Create the YAMl file
     yaml_source="$PODMAN_TMPDIR/test.yaml"
-    cat >$yaml_source <<EOF
-apiVersion: v1
-kind: Pod
-metadata:
-  labels:
-    app: test
-  name: test_pod
-spec:
-  containers:
-  - command:
-    - top
-    image: $IMAGE
-    name: test
-    resources: {}
-EOF
+    _write_test_yaml command=top
+
     # Run `play kube` in the background as it will wait for the service
     # container to exit.
     timeout --foreground -v --kill=10 60 \
@@ -279,36 +334,13 @@ EOF
     TESTDIR=$PODMAN_TMPDIR/testdir
     mkdir -p $TESTDIR
 
-testUserYaml="
-apiVersion: v1
-kind: Pod
-metadata:
-  labels:
-    app: test
-  name: test_pod
-spec:
-  containers:
-  - command:
-    - id
-    env:
-    - name: PATH
-      value: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-    - name: TERM
-      value: xterm
-    - name: container
-      value: podman
-    image: userimage
-    name: test
-    resources: {}
-status: {}
-"
+    _write_test_yaml command=id image=userimage
 
 cat > $PODMAN_TMPDIR/Containerfile << _EOF
 from $IMAGE
 USER bin
 _EOF
 
-    echo "$testUserYaml" | sed "s|TESTDIR|${TESTDIR}|g" > $PODMAN_TMPDIR/test.yaml
     run_podman build -t userimage $PODMAN_TMPDIR
     run_podman play kube --start=false $PODMAN_TMPDIR/test.yaml
     run_podman inspect --format "{{ .Config.User }}" test_pod-test
@@ -320,38 +352,15 @@ _EOF
 }
 
 @test "podman play --build --context-dir" {
-   skip_if_remote "--build is not supported in context remote"
-   testUserYaml="
-apiVersion: v1
-kind: Pod
-metadata:
-  labels:
-    app: test
-  name: test_pod
-spec:
-  containers:
-  - command:
-    - id
-    env:
-    - name: PATH
-      value: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-    - name: TERM
-      value: xterm
-    - name: container
-      value: podman
-    image: quay.io/libpod/userimage
-    name: test
-    resources: {}
-status: {}
-"
+    skip_if_remote "--build is not supported in context remote"
 
-mkdir -p $PODMAN_TMPDIR/userimage
-cat > $PODMAN_TMPDIR/userimage/Containerfile << _EOF
+    mkdir -p $PODMAN_TMPDIR/userimage
+    cat > $PODMAN_TMPDIR/userimage/Containerfile << _EOF
 from $IMAGE
 USER bin
 _EOF
 
-    echo "$testUserYaml" > $PODMAN_TMPDIR/test.yaml
+    _write_test_yaml command=id image=quay.io/libpod/userimage
     run_podman 125 play kube --build --start=false $PODMAN_TMPDIR/test.yaml
     run_podman play kube --replace --context-dir=$PODMAN_TMPDIR --build --start=false $PODMAN_TMPDIR/test.yaml
     run_podman inspect --format "{{ .Config.User }}" test_pod-test
@@ -395,35 +404,8 @@ _EOF
 
 @test "podman play Yaml with annotation > Max" {
    RANDOMSTRING=$(random_string 65)
-   testBadYaml="
-apiVersion: v1
-kind: Pod
-metadata:
-  annotations:
-    test: ${RANDOMSTRING}
-  labels:
-    app: test
-  name: test_pod
-spec:
-  containers:
-  - command:
-    - id
-    env:
-    - name: PATH
-      value: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-    - name: TERM
-      value: xterm
-    - name: container
-      value: podman
-    image: quay.io/libpod/userimage
-    name: test
-    resources: {}
-status: {}
-"
-    TESTDIR=$PODMAN_TMPDIR/testdir
-    mkdir -p $TESTDIR
-    echo "$testBadYaml" | sed "s|TESTDIR|${TESTDIR}|g" > $PODMAN_TMPDIR/test.yaml
 
+   _write_test_yaml "annotations=test: ${RANDOMSTRING}" command=id
     run_podman 125 play kube - < $PODMAN_TMPDIR/test.yaml
     assert "$output" =~ "invalid annotation \"test\"=\"$RANDOMSTRING\"" "Expected to fail with annotation length greater than 63"
 }
@@ -474,16 +456,8 @@ status: {}
 }
 
 @test "podman play with init container" {
-    TESTDIR=$PODMAN_TMPDIR/testdir
-    mkdir -p $TESTDIR
-
-testUserYaml="
-apiVersion: v1
-kind: Pod
-metadata:
-  name: pod
-spec:
-  containers:
+    _write_test_yaml command=
+    cat >>$PODMAN_TMPDIR/test.yaml <<EOF
   - command:
     - ls
     - /dev/shm/test1
@@ -495,11 +469,11 @@ spec:
     - /dev/shm/test1
     image: $IMAGE
     name: initCtr
-"
-    echo "$testUserYaml" > $PODMAN_TMPDIR/test.yaml
+EOF
+
     run_podman kube play $PODMAN_TMPDIR/test.yaml
     assert "$output" !~ "level=" "init containers should not generate logrus.Error"
-    run_podman inspect --format "{{.State.ExitCode}}" pod-testCtr
+    run_podman inspect --format "{{.State.ExitCode}}" test_pod-testCtr
     is "$output" "0" "init container should have created /dev/shm/test1"
 
     run_podman kube down $PODMAN_TMPDIR/test.yaml
@@ -507,26 +481,19 @@ spec:
 
 @test "podman kube play - hostport" {
     HOST_PORT=$(random_free_port)
-    echo "
-apiVersion: v1
-kind: Pod
-metadata:
-  labels:
-    app: test
-  name: test_pod
-spec:
-  containers:
+    _write_test_yaml
+    cat >>$PODMAN_TMPDIR/test.yaml <<EOF
     - name: server
       image: $IMAGE
       ports:
         - name: hostp
           containerPort: $HOST_PORT
-" > $PODMAN_TMPDIR/testpod.yaml
+EOF
 
-    run_podman kube play $PODMAN_TMPDIR/testpod.yaml
+    run_podman kube play $PODMAN_TMPDIR/test.yaml
     run_podman pod inspect test_pod --format "{{.InfraConfig.PortBindings}}"
     assert "$output" = "map[$HOST_PORT/tcp:[{ $HOST_PORT}]]"
-    run_podman kube down $PODMAN_TMPDIR/testpod.yaml
+    run_podman kube down $PODMAN_TMPDIR/test.yaml
 
     run_podman pod rm -a -f
     run_podman rm -a -f
@@ -536,35 +503,17 @@ spec:
     skip_if_remote "service containers only work locally"
     skip_if_journald_unavailable
 
-    # Create the YAMl file
+    # Create the YAMl file, with two pods, each with one container
     yaml_source="$PODMAN_TMPDIR/test.yaml"
-    cat >$yaml_source <<EOF
-apiVersion: v1
-kind: Pod
-metadata:
-  labels:
-    app: pod1
-  name: pod1
-spec:
-  containers:
-  - command:
-    - top
-    image: $IMAGE
-    name: ctr1
----
-apiVersion: v1
-kind: Pod
-metadata:
-  labels:
-    app: pod2
-  name: pod2
-spec:
-  containers:
-  - command:
-    - top
-    image: $IMAGE
-    name: ctr2
-EOF
+    for n in 1 2;do
+        _write_test_yaml labels="app: pod$n" name="pod$n" ctrname="ctr$n"
+
+        # Separator between two yaml halves
+        if [[ $n = 1 ]]; then
+            echo "---" >>$yaml_source
+        fi
+    done
+
     # Run `play kube` in the background as it will wait for the service
     # container to exit.
     timeout --foreground -v --kill=10 60 \
