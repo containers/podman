@@ -465,6 +465,14 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 	}
 	*ipIndex++
 
+	if len(options.PublishPorts) > 0 {
+		publishPorts, err := specgenutil.CreatePortBindings(options.PublishPorts)
+		if err != nil {
+			return nil, nil, err
+		}
+		mergePublishPorts(&podOpt, publishPorts)
+	}
+
 	p := specgen.NewPodSpecGenerator()
 	if err != nil {
 		return nil, nil, err
@@ -999,6 +1007,38 @@ func (ic *ContainerEngine) playKubePVC(ctx context.Context, pvcYAML *v1.Persiste
 	})
 
 	return &report, nil
+}
+
+func mergePublishPorts(p *entities.PodCreateOptions, publishPortsOption []nettypes.PortMapping) {
+	for _, publishPortSpec := range p.Net.PublishPorts {
+		if !portAlreadyPublished(publishPortSpec, publishPortsOption) {
+			publishPortsOption = append(publishPortsOption, publishPortSpec)
+		}
+	}
+	p.Net.PublishPorts = publishPortsOption
+}
+
+func portAlreadyPublished(port nettypes.PortMapping, publishedPorts []nettypes.PortMapping) bool {
+	for _, publishedPort := range publishedPorts {
+		if port.ContainerPort >= publishedPort.ContainerPort &&
+			port.ContainerPort < publishedPort.ContainerPort+publishedPort.Range &&
+			isSamePortProtocol(port.Protocol, publishedPort.Protocol) {
+			return true
+		}
+	}
+	return false
+}
+
+func isSamePortProtocol(a, b string) bool {
+	if len(a) == 0 {
+		a = string(v1.ProtocolTCP)
+	}
+	if len(b) == 0 {
+		b = string(v1.ProtocolTCP)
+	}
+
+	ret := strings.EqualFold(a, b)
+	return ret
 }
 
 func (ic *ContainerEngine) importVolume(ctx context.Context, vol *libpod.Volume, tarFile *os.File) error {

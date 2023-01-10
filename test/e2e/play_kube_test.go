@@ -1,12 +1,15 @@
 package integration
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net"
+	"net/http"
 	"net/url"
 	"os"
 	"os/user"
@@ -850,6 +853,94 @@ spec:
 {{ end }}
 `
 
+var publishPortsPodWithoutPorts = `
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx
+spec:
+  containers:
+  - name: nginx
+    image: quay.io/libpod/alpine_nginx:latest
+`
+
+var publishPortsPodWithContainerPort = `
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx
+spec:
+  containers:
+  - name: nginx
+    image: quay.io/libpod/alpine_nginx:latest
+    ports:
+    - containerPort: 80
+`
+
+var publishPortsPodWithContainerHostPort = `
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx
+spec:
+  containers:
+  - name: nginx
+    image: quay.io/libpod/alpine_nginx:latest
+    ports:
+    - containerPort: 80
+      hostPort: 19001
+`
+
+var publishPortsEchoWithHostPortUDP = `
+apiVersion: v1
+kind: Pod
+metadata:
+  name: network-echo
+spec:
+  containers:
+  - name: udp-echo
+    image: quay.io/libpod/busybox:latest
+    command:
+    - "/bin/sh"
+    - "-c"
+    - "nc -ulk -p 19008 -e /bin/cat"
+    ports:
+    - containerPort: 19008
+      hostPort: 19009
+      protocol: udp
+  - name: tcp-echo
+    image: quay.io/libpod/busybox:latest
+    command:
+    - "/bin/sh"
+    - "-c"
+    - "nc -lk -p 19008 -e /bin/cat"
+`
+
+var publishPortsEchoWithHostPortTCP = `
+apiVersion: v1
+kind: Pod
+metadata:
+  name: network-echo
+spec:
+  containers:
+  - name: udp-echo
+    image: quay.io/libpod/busybox:latest
+    command:
+    - "/bin/sh"
+    - "-c"
+    - "nc -ulk -p 19008 -e /bin/cat"
+  - name: tcp-echo
+    image: quay.io/libpod/busybox:latest
+    command:
+    - "/bin/sh"
+    - "-c"
+    - "nc -lk -p 19008 -e /bin/cat"
+    ports:
+    - containerPort: 19008
+      hostPort: 19011
+      protocol: tcp
+`
+
 var (
 	defaultCtrName        = "testCtr"
 	defaultCtrCmd         = []string{"top"}
@@ -1567,6 +1658,108 @@ func testPodWithSecret(podmanTest *PodmanTestIntegration, podYamlString, fileNam
 	podRm := podmanTest.Podman([]string{"pod", "rm", "-f", "mypod"})
 	podRm.WaitWithDefaultTimeout()
 	Expect(podRm).Should(Exit(0))
+}
+
+func testHTTPServer(port string, shouldErr bool, expectedResponse string) {
+	address := url.URL{
+		Scheme: "http",
+		Host:   net.JoinHostPort("localhost", port),
+	}
+
+	interval := 250 * time.Millisecond
+	var err error
+	var resp *http.Response
+	for i := 0; i < 6; i++ {
+		resp, err = http.Get(address.String())
+		if err != nil && shouldErr {
+			Expect(err.Error()).To(ContainSubstring(expectedResponse))
+			return
+		}
+		if err == nil {
+			defer resp.Body.Close()
+			break
+		}
+		time.Sleep(interval)
+		interval *= 2
+	}
+	Expect(err).To(BeNil())
+
+	body, err := io.ReadAll(resp.Body)
+	Expect(err).To(BeNil())
+	Expect(string(body)).Should(Equal(expectedResponse))
+}
+
+func testEchoServer(connection io.ReadWriter) {
+	stringToSend := "hello world"
+	var err error
+	var bytesSent int
+	interval := 250 * time.Millisecond
+	for i := 0; i < 6; i++ {
+		bytesSent, err = fmt.Fprint(connection, stringToSend)
+		if err == nil {
+			break
+		}
+		time.Sleep(interval)
+		interval *= 2
+	}
+	Expect(err).To(BeNil())
+	Expect(bytesSent).To(Equal(len(stringToSend)))
+
+	stringReceived := make([]byte, bytesSent)
+	var bytesRead int
+	interval = 250 * time.Millisecond
+	for i := 0; i < 6; i++ {
+		bytesRead, err = bufio.NewReader(connection).Read(stringReceived)
+		if err == nil {
+			break
+		}
+		time.Sleep(interval)
+		interval *= 2
+	}
+	Expect(err).To(BeNil())
+	Expect(bytesRead).To(Equal(bytesSent))
+
+	Expect(stringToSend).To(Equal(string(stringReceived)))
+}
+
+func testEchoServerUDP(address string) {
+	udpServer, err := net.ResolveUDPAddr("udp", address)
+	Expect(err).To(BeNil())
+
+	interval := 250 * time.Millisecond
+	var conn *net.UDPConn
+	for i := 0; i < 6; i++ {
+		conn, err = net.DialUDP("udp", nil, udpServer)
+		if err == nil {
+			break
+		}
+		time.Sleep(interval)
+		interval *= 2
+	}
+	Expect(err).To(BeNil())
+	defer conn.Close()
+
+	testEchoServer(conn)
+}
+
+func testEchoServerTCP(address string) {
+	tcpServer, err := net.ResolveTCPAddr("tcp", address)
+	Expect(err).To(BeNil())
+
+	interval := 250 * time.Millisecond
+	var conn *net.TCPConn
+	for i := 0; i < 6; i++ {
+		conn, err = net.DialTCP("tcp", nil, tcpServer)
+		if err == nil {
+			break
+		}
+		time.Sleep(interval)
+		interval *= 2
+	}
+	Expect(err).To(BeNil())
+	defer conn.Close()
+
+	testEchoServer(conn)
 }
 
 var _ = Describe("Podman play kube", func() {
@@ -4676,5 +4869,113 @@ spec:
 		Expect(exec.OutputToString()).ShouldNot(HaveLen(3))
 		Expect(exec.OutputToString()).Should(ContainSubstring("BAR"))
 		// we want to check that we can mount a subpath but not replace the entire dir
+	})
+
+	It("podman play kube without Ports - curl should fail", func() {
+		err := writeYaml(publishPortsPodWithoutPorts, kubeYaml)
+		Expect(err).ToNot(HaveOccurred())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		curlTest := podmanTest.Podman([]string{"run", "--network", "host", NGINX_IMAGE, "curl", "-s", "localhost:19000"})
+		curlTest.WaitWithDefaultTimeout()
+		Expect(curlTest).Should(Exit(7))
+	})
+
+	It("podman play kube without Ports, publish in command line - curl should succeed", func() {
+		err := writeYaml(publishPortsPodWithoutPorts, kubeYaml)
+		Expect(err).ToNot(HaveOccurred())
+
+		kube := podmanTest.Podman([]string{"play", "kube", "--publish", "19002:80", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		testHTTPServer("19002", false, "podman rulez")
+	})
+
+	It("podman play kube with privileged container ports - should fail", func() {
+		SkipIfNotRootless("rootlessport can expose privileged port 80, no point in checking for failure")
+		err := writeYaml(publishPortsPodWithContainerPort, kubeYaml)
+		Expect(err).ToNot(HaveOccurred())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(125))
+		// The error message is printed only on local call
+		if !IsRemote() {
+			Expect(kube.OutputToString()).Should(ContainSubstring("rootlessport cannot expose privileged port 80"))
+		}
+	})
+
+	It("podman play kube with privileged containers ports and publish in command line - curl should succeed", func() {
+		err := writeYaml(publishPortsPodWithContainerPort, kubeYaml)
+		Expect(err).ToNot(HaveOccurred())
+
+		kube := podmanTest.Podman([]string{"play", "kube", "--publish", "19003:80", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		testHTTPServer("19003", false, "podman rulez")
+	})
+
+	It("podman play kube with Host Ports - curl should succeed", func() {
+		err := writeYaml(publishPortsPodWithContainerHostPort, kubeYaml)
+		Expect(err).ToNot(HaveOccurred())
+
+		kube := podmanTest.Podman([]string{"play", "kube", "--publish", "19004:80", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		testHTTPServer("19004", false, "podman rulez")
+	})
+
+	It("podman play kube with Host Ports and publish in command line - curl should succeed only on overriding port", func() {
+		err := writeYaml(publishPortsPodWithContainerHostPort, kubeYaml)
+		Expect(err).ToNot(HaveOccurred())
+
+		kube := podmanTest.Podman([]string{"play", "kube", "--publish", "19005:80", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		testHTTPServer("19001", true, "connection refused")
+		testHTTPServer("19005", false, "podman rulez")
+	})
+
+	It("podman play kube multiple publish ports", func() {
+		err := writeYaml(publishPortsPodWithoutPorts, kubeYaml)
+		Expect(err).ToNot(HaveOccurred())
+
+		kube := podmanTest.Podman([]string{"play", "kube", "--publish", "19006:80", "--publish", "19007:80", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		testHTTPServer("19006", false, "podman rulez")
+		testHTTPServer("19007", false, "podman rulez")
+	})
+
+	It("podman play kube override with tcp should keep udp from YAML file", func() {
+		err := writeYaml(publishPortsEchoWithHostPortUDP, kubeYaml)
+		Expect(err).ToNot(HaveOccurred())
+
+		kube := podmanTest.Podman([]string{"play", "kube", "--publish", "19010:19008/tcp", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		testEchoServerUDP(":19009")
+		testEchoServerTCP(":19010")
+	})
+
+	It("podman play kube override with udp should keep tcp from YAML file", func() {
+		err := writeYaml(publishPortsEchoWithHostPortTCP, kubeYaml)
+		Expect(err).ToNot(HaveOccurred())
+
+		kube := podmanTest.Podman([]string{"play", "kube", "--publish", "19012:19008/udp", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		testEchoServerUDP(":19012")
+		testEchoServerTCP(":19011")
 	})
 })

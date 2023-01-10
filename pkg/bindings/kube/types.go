@@ -48,6 +48,8 @@ type PlayOptions struct {
 	Userns *string
 	// Force - remove volumes on --down
 	Force *bool
+	// PublishPorts - configure how to expose ports configured inside the K8S YAML file
+	PublishPorts []string
 }
 
 // ApplyOptions are optional options for applying kube YAML files to a k8s cluster
