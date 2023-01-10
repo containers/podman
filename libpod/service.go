@@ -135,7 +135,9 @@ func (p *Pod) maybeStopServiceContainer() error {
 		}
 		logrus.Debugf("Stopping service container %s", serviceCtr.ID())
 		if err := serviceCtr.Stop(); err != nil {
-			logrus.Errorf("Stopping service container %s: %v", serviceCtr.ID(), err)
+			if !errors.Is(err, define.ErrCtrStopped) {
+				logrus.Errorf("Stopping service container %s: %v", serviceCtr.ID(), err)
+			}
 		}
 	})
 	return nil
@@ -239,7 +241,9 @@ func (p *Pod) maybeRemoveServiceContainer() error {
 		timeout := uint(0)
 		logrus.Debugf("Removing service container %s", serviceCtr.ID())
 		if err := p.runtime.RemoveContainer(context.Background(), serviceCtr, true, false, &timeout); err != nil {
-			logrus.Errorf("Removing service container %s: %v", serviceCtr.ID(), err)
+			if !errors.Is(err, define.ErrNoSuchCtr) {
+				logrus.Errorf("Removing service container %s: %v", serviceCtr.ID(), err)
+			}
 		}
 	})
 	return nil
