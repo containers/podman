@@ -652,6 +652,11 @@ END_SYNOPSIS
                                 _a("{CIRRUS_BUILD_ID}", "https://cirrus-ci.com/build/{CIRRUS_BUILD_ID}"),
                                 _a("{CIRRUS_TASK_ID}", "https://cirrus-ci.com/task/{CIRRUS_TASK_ID}")));
 
+    # BASE_SHA can tell us if our parent includes--or doesn't--a purported
+    # fix for a flake. Note that "commits", plural, links to a git history
+    # listing; if we used "commit", singular, that would be less useful.
+    $s .= _tr("Base commit", _a("{CIRRUS_BASE_SHA}", "https://{CIRRUS_REPO_CLONE_HOST}/{CIRRUS_REPO_FULL_NAME}/commits/{CIRRUS_BASE_SHA}"));
+
     $s .= "</table>\n";
     return $s;
 }
