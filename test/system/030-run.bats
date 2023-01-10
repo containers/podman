@@ -928,15 +928,16 @@ $IMAGE--c_ok" \
     # ('skip' would be nicer in some sense... but could hide a regression.
     # Fedora, RHEL, Debian, Ubuntu, Gentoo, all have /dev/ttyN, so if
     # this ever triggers, it means a real problem we should know about.)
-    assert "$(ls /dev/tty* | grep -vx /dev/tty)" != "" \
+    vt_tty_devices_count=$(find /dev -regex '/dev/tty[0-9].*' | wc -w)
+    assert "$vt_tty_devices_count" != "0" \
            "Expected at least one /dev/ttyN device on host"
 
     # Ok now confirm that without --systemd, podman exposes ttyNN devices
     run_podman run --rm -d --privileged $IMAGE ./pause
     cid="$output"
 
-    run_podman exec $cid sh -c 'ls /dev/tty*'
-    assert "$output" != "/dev/tty" \
+    run_podman exec $cid sh -c "find /dev -regex '/dev/tty[0-9].*' | wc -w"
+    assert "$output" = "$vt_tty_devices_count" \
            "ls /dev/tty* without systemd; should have lots of ttyN devices"
     run_podman stop -t 0 $cid
 
@@ -944,10 +945,32 @@ $IMAGE--c_ok" \
     run_podman run --rm -d --privileged --systemd=always $IMAGE ./pause
     cid="$output"
 
-    run_podman exec $cid sh -c 'ls /dev/tty*'
-    assert "$output" = "/dev/tty" \
-           "ls /dev/tty* with --systemd=always: should have no ttyN devices"
+    run_podman exec $cid sh -c "find /dev -regex '/dev/tty[0-9].*' | wc -w"
+    assert "$output" = "0" \
+           "ls /dev/tty[0-9] with --systemd=always: should have no ttyN devices"
 
+    run_podman stop -t 0 $cid
+}
+
+# 16925: --privileged + --systemd = share non-virtual-terminal TTYs
+@test "podman run --privileged as root with systemd mounts non-vt /dev/tty devices" {
+    skip_if_rootless "this test only makes sense as root"
+
+    # First, confirm that we _have_ non-virtual terminal /dev/tty* devices on
+    # the host.
+    non_vt_tty_devices_count=$(find /dev -regex '/dev/tty[^0-9].*' | wc -w)
+    if [ "$non_vt_tty_devices_count" -eq 0 ]; then
+        skip "The server does not have non-vt TTY devices"
+    fi
+
+    # Verify that all the non-vt TTY devices got mounted in the container
+    run_podman run --rm -d --privileged --systemd=always $IMAGE ./pause
+    cid="$output"
+    run_podman '?' exec $cid find /dev -regex '/dev/tty[^0-9].*'
+    assert "$status" = 0 \
+           "No non-virtual-terminal TTY devices got mounted in the container"
+    assert "$(echo "$output" | wc -w)" = "$non_vt_tty_devices_count" \
+           "Some non-virtual-terminal TTY devices are missing in the container"
     run_podman stop -t 0 $cid
 }
 
