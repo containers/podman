@@ -444,6 +444,10 @@ func (r *ConmonOCIRuntime) StopContainer(ctr *Container, timeout uint, all bool)
 	}
 
 	if err := r.KillContainer(ctr, 9, all); err != nil {
+		// If the PID is 0, then the container is already stopped.
+		if ctr.state.PID == 0 {
+			return nil
+		}
 		// Again, check if the container is gone. If it is, exit cleanly.
 		err := unix.Kill(ctr.state.PID, 0)
 		if err == unix.ESRCH {
