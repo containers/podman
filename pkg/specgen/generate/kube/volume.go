@@ -245,7 +245,7 @@ func VolumeFromSource(volumeSource v1.VolumeSource, configMaps []v1.ConfigMap, s
 	case volumeSource.EmptyDir != nil:
 		return VolumeFromEmptyDir(volumeSource.EmptyDir, volName)
 	default:
-		return nil, errors.New("HostPath, ConfigMap, EmptyDir, and PersistentVolumeClaim are currently the only supported VolumeSource")
+		return nil, errors.New("HostPath, ConfigMap, EmptyDir, Secret, and PersistentVolumeClaim are currently the only supported VolumeSource")
 	}
 }
 
