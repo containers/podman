@@ -417,6 +417,24 @@ t GET containers/$cid/json 200 \
 
 t DELETE containers/$cid?v=true 204
 
+# test create with default netns="host"
+stop_service
+CONTAINERS_CONF=$TESTS_DIR/containers.host-netns.conf start_service
+
+# check that the default docker netns "default" is rewritten to "host"
+# when the containers.conf explicitly uses "host"
+t POST containers/create Image=$IMAGE HostConfig='{"NetworkMode":"default"}' 201 \
+  .Id~[0-9a-f]\\{64\\}
+cid=$(jq -r '.Id' <<<"$output")
+t GET containers/$cid/json 200 \
+  .HostConfig.NetworkMode="host"
+
+t DELETE containers/$cid?v=true 204
+
+# Restart with the default containers.conf for next tests.
+stop_service
+start_service
+
 # Test Compat Create with healthcheck, check default values
 t POST containers/create Image=$IMAGE Cmd='["top"]' Healthcheck='{"Test":["true"]}' 201 \
   .Id~[0-9a-f]\\{64\\}
