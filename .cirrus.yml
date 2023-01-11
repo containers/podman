@@ -643,9 +643,14 @@ rootless_integration_test_task:
 podman_machine_task:
     name: *std_name_fmt
     alias: podman_machine
-    # Required_pr_labels does not apply to non-PRs.
-    # Do not run on tags, branches, [CI:BUILD], or [CI:DOCS].
-    only_if: *not_tag_branch_build_docs
+    # Don't create task for tags, or if using [CI:DOCS], [CI:BUILD], multiarch
+    # Docs: ./contrib/cirrus/CIModes.md
+    only_if: &not_tag_build_docs_multiarch >-
+        $CIRRUS_TAG == '' &&
+        $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*' &&
+        $CIRRUS_CHANGE_TITLE !=~ '.*CI:COPR.*' &&
+        $CIRRUS_CHANGE_TITLE !=~ '.*CI:BUILD.*' &&
+        $CIRRUS_CRON != 'multiarch'
     depends_on:
         - build
         - local_integration_test
@@ -675,7 +680,7 @@ podman_machine_task:
 podman_machine_aarch64_task:
     name: *std_name_fmt
     alias: podman_machine_aarch64
-    only_if: *not_tag_branch_build_docs
+    only_if: *not_tag_build_docs_multiarch
     depends_on:
         - build_aarch64
         - validate_aarch64
@@ -705,14 +710,7 @@ podman_machine_aarch64_task:
 local_system_test_task: &local_system_test_task
     name: *std_name_fmt
     alias: local_system_test
-    # Don't create task for tags, or if using [CI:DOCS], [CI:BUILD], multiarch
-    # Docs: ./contrib/cirrus/CIModes.md
-    only_if: &not_tag_build_docs_multiarch >-
-        $CIRRUS_TAG == '' &&
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*' &&
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:COPR.*' &&
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:BUILD.*' &&
-        $CIRRUS_CRON != 'multiarch'
+    only_if: *not_tag_build_docs_multiarch
     depends_on:
         - build
         - local_integration_test
