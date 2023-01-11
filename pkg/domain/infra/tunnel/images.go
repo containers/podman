@@ -244,6 +244,9 @@ func (ir *ImageEngine) Import(ctx context.Context, opts entities.ImageImportOpti
 }
 
 func (ir *ImageEngine) Push(ctx context.Context, source string, destination string, opts entities.ImagePushOptions) error {
+	if opts.Signers != nil {
+		return fmt.Errorf("forwarding Signers is not supported for remote clients")
+	}
 	if opts.OciEncryptConfig != nil {
 		return fmt.Errorf("encryption is not supported for remote clients")
 	}

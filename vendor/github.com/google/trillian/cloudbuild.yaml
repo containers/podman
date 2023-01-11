@@ -1,0 +1,187 @@
+# This file contains Google Cloud Build configuration for presubmit checks, unit
+# and integration tests, triggered by pull requests and commits to branches.
+
+timeout: 1800s
+substitutions:
+  _CODECOV_TOKEN: "" # The auth token for uploading coverage to Codecov.
+options:
+  machineType: E2_HIGHCPU_32
+  volumes:
+  # A shared volume for caching Go modules between steps.
+  - name: go-modules
+    path: /go
+  env:
+    - GO111MODULE=on
+    - GOPATH=/go
+    - GOLANG_PROTOBUF_REGISTRATION_CONFLICT=ignore # Temporary work-around v1.proto already registered error.
+    - DOCKER_CLIENT_TIMEOUT=120
+    - COMPOSE_HTTP_TIMEOUT=120
+
+# Cache the testbase image in Container Regisrty, to be reused by subsequent
+# builds. The technique is described here:
+# https://cloud.google.com/cloud-build/docs/speeding-up-builds#using_a_cached_docker_image
+#
+# TODO(pavelkalinnikov): Consider pushing this image only on commits to master.
+images: ['gcr.io/$PROJECT_ID/trillian_testbase:latest']
+
+# Cloud Build logs sent to GCS bucket
+logsBucket: 'gs://trillian-cloudbuild-logs'
+
+steps:
+
+# Try to pull the testbase image from Container Registry.
+- name: 'gcr.io/cloud-builders/docker'
+  entrypoint: 'bash'
+  args: ['-c', 'docker pull gcr.io/$PROJECT_ID/trillian_testbase:latest || exit 0']
+# Build the testbase image reusing as much of the cached image as possible.
+- name: 'gcr.io/cloud-builders/docker'
+  args: [
+    'build',
+    '-t', 'gcr.io/$PROJECT_ID/trillian_testbase:latest',
+    '--cache-from', 'gcr.io/$PROJECT_ID/trillian_testbase:latest',
+    '-f', './integration/cloudbuild/testbase/Dockerfile',
+    '.'
+  ]
+
+# Set up tools and any other common steps which should not be part of Docker image.
+- id: prepare
+  name: 'gcr.io/${PROJECT_ID}/trillian_testbase'
+  entrypoint: ./integration/cloudbuild/prepare.sh
+
+# Run lint and porcelain checks, make sure the diff is empty and no files need
+# to be updated. This includes gofmt, golangci-linter, go mod tidy, go mod
+# generate and a few more.
+- id: lint
+  name: 'gcr.io/${PROJECT_ID}/trillian_testbase'
+  entrypoint: ./scripts/presubmit.sh
+  args:
+    - --no-build
+    - --fix
+    - --no-mod-tidy
+    - --empty-diff
+  waitFor:
+    - prepare
+
+# Presubmit
+- id: presubmit
+  name: 'gcr.io/${PROJECT_ID}/trillian_testbase'
+  entrypoint: ./integration/cloudbuild/run_presubmit.sh
+  args:
+    - --no-linters
+    - --no-generate
+  env:
+    - GOFLAGS=-race
+    - GO_TEST_TIMEOUT=20m
+  waitFor:
+    - lint
+
+# Codecov
+- id: codecov
+  name: 'gcr.io/${PROJECT_ID}/trillian_testbase'
+  entrypoint: ./integration/cloudbuild/run_presubmit.sh
+  args:
+    - --coverage
+    - --no-linters
+    - --no-generate
+  env:
+    - GOFLAGS=-race
+    - GO_TEST_TIMEOUT=20m
+    - CODECOV_TOKEN=${_CODECOV_TOKEN}
+  waitFor:
+    - lint
+
+# Presubmit (Batched queue)
+- id: presubmit_batched
+  name: 'gcr.io/${PROJECT_ID}/trillian_testbase'
+  entrypoint: ./integration/cloudbuild/run_presubmit.sh
+  args:
+    - --no-linters
+    - --no-generate
+  env:
+    - GOFLAGS=-race --tags=batched_queue
+    - GO_TEST_TIMEOUT=20m
+  waitFor:
+    - lint
+
+# Presubmit (PKCS11)
+- id: presubmit_pkcs11
+  name: 'gcr.io/${PROJECT_ID}/trillian_testbase'
+  entrypoint: ./integration/cloudbuild/run_presubmit.sh
+  args:
+    - --no-linters
+    - --no-generate
+  env:
+    - GOFLAGS=-race --tags=pkcs11
+    - GO_TEST_TIMEOUT=20m
+  waitFor:
+    - lint
+
+# Try to spread the load a bit, we'll wait for all the presubmit.* steps
+# to finish before starting the integration.* ones.
+# Having too many "big" things running concurrently leads to problems
+# with timeouts and mysql issues.
+- id: presubmits_done
+  name: 'gcr.io/${PROJECT_ID}/trillian_testbase'
+  entrypoint: /bin/true
+  waitFor:
+    - codecov
+    - presubmit
+    - presubmit_batched
+    - presubmit_pkcs11
+
+# Integration
+- id: integration
+  name: 'gcr.io/${PROJECT_ID}/trillian_testbase'
+  entrypoint: ./integration/cloudbuild/run_integration.sh
+  env:
+    - GO_TEST_TIMEOUT=20m
+  waitFor:
+    - presubmits_done
+
+# Integration (Docker)
+- id: integration_docker
+  name: 'gcr.io/${PROJECT_ID}/trillian_testbase'
+  entrypoint: ./integration/docker_compose_integration_test.sh
+  waitFor:
+    - presubmits_done
+
+# Integration (etcd)
+- id: integration_etcd
+  name: 'gcr.io/${PROJECT_ID}/trillian_testbase'
+  entrypoint: ./integration/cloudbuild/run_integration.sh
+  env:
+    - ETCD_DIR=/go/bin
+    - GOFLAGS=-race
+    - GO_TEST_TIMEOUT=20m
+  waitFor:
+    - presubmits_done
+
+# Integration (Batched queue)
+- id: integration_batched
+  name: 'gcr.io/${PROJECT_ID}/trillian_testbase'
+  entrypoint: ./integration/cloudbuild/run_integration.sh
+  env:
+    - GOFLAGS=-race -tags=batched_queue
+    - GO_TEST_TIMEOUT=20m
+  waitFor:
+    - presubmits_done
+
+# Integration (PKCS11)
+- id: integration_pkcs11
+  name: 'gcr.io/${PROJECT_ID}/trillian_testbase'
+  entrypoint: ./integration/cloudbuild/run_integration.sh
+  env:
+    - GOFLAGS=-race -tags=pkcs11
+    - GO_TEST_TIMEOUT=20m
+  waitFor:
+    - presubmits_done
+
+# Integration (MariaDB)
+- id: integration_mariadb
+  name: 'gcr.io/${PROJECT_ID}/trillian_testbase'
+  entrypoint: ./integration/cloudbuild/run_integration.sh
+  env:
+    - GO_TEST_TIMEOUT=20m
+    - MYSQLD_IMAGE=mariadb:10.3
+  waitFor:
+    - presubmits_done

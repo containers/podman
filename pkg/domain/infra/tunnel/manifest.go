@@ -130,6 +130,10 @@ func (ir *ImageEngine) ManifestRm(ctx context.Context, names []string) (*entitie
 
 // ManifestPush pushes a manifest list or image index to the destination
 func (ir *ImageEngine) ManifestPush(ctx context.Context, name, destination string, opts entities.ImagePushOptions) (string, error) {
+	if opts.Signers != nil {
+		return "", fmt.Errorf("forwarding Signers is not supported for remote clients")
+	}
+
 	options := new(images.PushOptions)
 	options.WithUsername(opts.Username).WithPassword(opts.Password).WithAuthfile(opts.Authfile).WithRemoveSignatures(opts.RemoveSignatures).WithAll(opts.All).WithFormat(opts.Format).WithCompressionFormat(opts.CompressionFormat).WithQuiet(opts.Quiet).WithProgressWriter(opts.Writer)
 
