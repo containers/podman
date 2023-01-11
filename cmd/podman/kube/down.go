@@ -52,5 +52,5 @@ func down(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	return teardown(reader, entities.PlayKubeDownOptions{Force: downOptions.Force}, false)
+	return teardown(reader, entities.PlayKubeDownOptions{Force: downOptions.Force})
 }

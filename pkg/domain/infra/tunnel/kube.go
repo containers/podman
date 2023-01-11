@@ -58,7 +58,7 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, body io.Reader, opts en
 	options := new(kube.PlayOptions).WithAuthfile(opts.Authfile).WithUsername(opts.Username).WithPassword(opts.Password)
 	options.WithCertDir(opts.CertDir).WithQuiet(opts.Quiet).WithSignaturePolicy(opts.SignaturePolicy).WithConfigMaps(opts.ConfigMaps)
 	options.WithLogDriver(opts.LogDriver).WithNetwork(opts.Networks).WithSeccompProfileRoot(opts.SeccompProfileRoot)
-	options.WithStaticIPs(opts.StaticIPs).WithStaticMACs(opts.StaticMACs)
+	options.WithStaticIPs(opts.StaticIPs).WithStaticMACs(opts.StaticMACs).WithWait(opts.Wait).WithServiceContainer(opts.ServiceContainer)
 	if len(opts.LogOptions) > 0 {
 		options.WithLogOptions(opts.LogOptions)
 	}

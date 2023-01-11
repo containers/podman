@@ -317,3 +317,33 @@ func (o *PlayOptions) GetPublishPorts() []string {
 	}
 	return o.PublishPorts
 }
+
+// WithWait set field Wait to given value
+func (o *PlayOptions) WithWait(value bool) *PlayOptions {
+	o.Wait = &value
+	return o
+}
+
+// GetWait returns value of field Wait
+func (o *PlayOptions) GetWait() bool {
+	if o.Wait == nil {
+		var z bool
+		return z
+	}
+	return *o.Wait
+}
+
+// WithServiceContainer set field ServiceContainer to given value
+func (o *PlayOptions) WithServiceContainer(value bool) *PlayOptions {
+	o.ServiceContainer = &value
+	return o
+}
+
+// GetServiceContainer returns value of field ServiceContainer
+func (o *PlayOptions) GetServiceContainer() bool {
+	if o.ServiceContainer == nil {
+		var z bool
+		return z
+	}
+	return *o.ServiceContainer
+}

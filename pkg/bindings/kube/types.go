@@ -50,6 +50,9 @@ type PlayOptions struct {
 	Force *bool
 	// PublishPorts - configure how to expose ports configured inside the K8S YAML file
 	PublishPorts []string
+	// // Wait - indicates whether to return after having created the pods
+	Wait             *bool
+	ServiceContainer *bool
 }
 
 // ApplyOptions are optional options for applying kube YAML files to a k8s cluster

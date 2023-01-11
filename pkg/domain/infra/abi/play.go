@@ -200,8 +200,13 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, body io.Reader, options
 				if finalErr == nil {
 					return
 				}
-				if err := ic.Libpod.RemoveContainer(ctx, ctr, true, false, nil); err != nil {
-					logrus.Errorf("Cleaning up service container after failure: %v", err)
+				if err := ic.Libpod.RemoveContainer(ctx, ctr, true, true, nil); err != nil {
+					// Log this in debug mode so that we don't print out an error and confuse the user
+					// when the service container can't be removed because the pod still exists
+					// This can happen when an error happens during kube play and we are trying to
+					// clean up after the error. The service container will be removed as part of the
+					// teardown function.
+					logrus.Debugf("Error cleaning up service container after failure: %v", err)
 				}
 			}()
 		}
@@ -316,6 +321,7 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, body io.Reader, options
 
 	// If we started containers along with a service container, we are
 	// running inside a systemd unit and need to set the main PID.
+
 	if options.ServiceContainer && ranContainers {
 		switch len(notifyProxies) {
 		case 0: // Optimization for containers/podman/issues/17345
@@ -341,11 +347,12 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, body io.Reader, options
 			if err := notifyproxy.SendMessage("", message); err != nil {
 				return nil, err
 			}
-
 			if _, err := serviceContainer.Wait(ctx); err != nil {
 				return nil, fmt.Errorf("waiting for service container: %w", err)
 			}
 		}
+
+		report.ServiceContainerID = serviceContainer.ID()
 	}
 
 	return report, nil

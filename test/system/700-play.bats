@@ -572,3 +572,55 @@ EOF
     fi
     run_podman kube down $YAML
 }
+
+# kube play --wait=true, where we clear up the created containers, pods, and volumes when a kill or sigterm is triggered
+@test "podman kube play --wait with siginterrupt" {
+    cname=c$(random_string 15)
+    fname="/tmp/play_kube_wait_$(random_string 6).yaml"
+    run_podman container create --name $cname $IMAGE top
+    run_podman kube generate -f $fname $cname
+
+    # delete the container we generated from
+    run_podman rm -f $cname
+
+    # force a timeout to happen so that the kube play command is killed
+    # and expect the timeout code 124 to happen so that we can clean up
+    local t0=$SECONDS
+    PODMAN_TIMEOUT=15 run_podman 124 kube play --wait $fname
+    local t1=$SECONDS
+    local delta_t=$((t1 - t0))
+    assert $delta_t -le 20 \
+           "podman kube play did not get killed within 10 seconds"
+
+    # there should be no containers running or created
+    run_podman ps -aq
+    is "$output" "" "There should be no containers"
+    run_podman rmi $(pause_image)
+}
+
+@test "podman kube play --wait - wait for pod to exit" {
+    fname="/tmp/play_kube_wait_$(random_string 6).yaml"
+    echo "
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app: test
+  name: test_pod
+spec:
+  restartPolicy: Never
+  containers:
+    - name: server
+      image: $IMAGE
+      command:
+      - sleep
+      - "5"
+" > $fname
+
+    run_podman kube play --wait $fname
+
+    # there should be no containers running or created
+    run_podman ps -aq
+    is "$output" "" "There should be no containers"
+    run_podman rmi $(pause_image)
+}
