@@ -3157,11 +3157,17 @@ spec:
 		hostPathDir := filepath.Join(tempdir, testdir)
 		err := os.Mkdir(hostPathDir, 0755)
 		Expect(err).ToNot(HaveOccurred())
+		defer os.RemoveAll(hostPathDir)
 
 		hostPathDirFile := filepath.Join(hostPathDir, testfile)
 		f, err := os.Create(hostPathDirFile)
 		Expect(err).ToNot(HaveOccurred())
 		f.Close()
+
+		if selinux.GetEnabled() {
+			label := SystemExec("chcon", []string{"-t", "container_file_t", hostPathDirFile})
+			Expect(label).Should(Exit(0))
+		}
 
 		// Create container image with named volume
 		containerfile := fmt.Sprintf(`
