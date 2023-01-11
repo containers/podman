@@ -44,7 +44,8 @@ env:
     # Container FQIN's
     FEDORA_CONTAINER_FQIN: "quay.io/libpod/fedora_podman:${IMAGE_SUFFIX}"
     PRIOR_FEDORA_CONTAINER_FQIN: "quay.io/libpod/prior-fedora_podman:${IMAGE_SUFFIX}"
-    WINDOWS_AMI: "win-server-wsl-${IMAGE_SUFFIX}"
+    # FIXME, replace override with common suffix once everything is in sync
+    WINDOWS_AMI: "win-server-wsl-c6447802205601792"
     ####
     #### Control variables that determine what to run and how to run it.
     #### N/B: Required ALL of these are set for every single task.
@@ -545,7 +546,7 @@ windows_smoke_test_task:
         CIRRUS_SHELL: powershell
         # Fake version, we are only testing the installer functions, so version doesn't matter
         CIRRUS_WORKING_DIR: "${LOCALAPPDATA}\\Temp\\cirrus-ci-build"
-    main_script: 'contrib/cirrus/win-podman-machine-verify.ps1'
+    main_script: 'contrib/cirrus/win-podman-machine-main.ps1'
 
 
 # versions, as root, without involving the podman-remote client.
