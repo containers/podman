@@ -17,6 +17,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/containers/buildah/define"
 	"github.com/containers/image/v5/types"
@@ -37,11 +38,16 @@ type devino struct {
 }
 
 var (
-	iidRegex = regexp.MustCompile(`^[0-9a-f]{12}`)
+	iidRegex  *regexp.Regexp
+	onceRegex sync.Once
 )
 
 // Build creates an image using a containerfile reference
 func Build(ctx context.Context, containerFiles []string, options entities.BuildOptions) (*entities.BuildReport, error) {
+	onceRegex.Do(func() {
+		iidRegex = regexp.MustCompile(`^[0-9a-f]{12}`)
+	})
+
 	if options.CommonBuildOpts == nil {
 		options.CommonBuildOpts = new(define.CommonBuildOptions)
 	}

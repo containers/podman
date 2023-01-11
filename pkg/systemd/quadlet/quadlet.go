@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 
 	"github.com/containers/podman/v4/pkg/systemd/parser"
 )
@@ -28,8 +29,6 @@ const (
 	NetworkGroup    = "Network"
 	XNetworkGroup   = "X-Network"
 )
-
-var validPortRange = regexp.MustCompile(`\d+(-\d+)?(/udp|/tcp)?$`)
 
 // All the supported quadlet keys
 const (
@@ -75,70 +74,75 @@ const (
 	KeyConfigMap         = "ConfigMap"
 )
 
-// Supported keys in "Container" group
-var supportedContainerKeys = map[string]bool{
-	KeyContainerName:   true,
-	KeyImage:           true,
-	KeyEnvironment:     true,
-	KeyEnvironmentFile: true,
-	KeyEnvironmentHost: true,
-	KeyExec:            true,
-	KeyNoNewPrivileges: true,
-	KeyDropCapability:  true,
-	KeyAddCapability:   true,
-	KeyReadOnly:        true,
-	KeyRemapUsers:      true,
-	KeyRemapUID:        true,
-	KeyRemapGID:        true,
-	KeyRemapUIDSize:    true,
-	KeyNotify:          true,
-	KeyExposeHostPort:  true,
-	KeyPublishPort:     true,
-	KeyUser:            true,
-	KeyGroup:           true,
-	KeyVolume:          true,
-	KeyPodmanArgs:      true,
-	KeyLabel:           true,
-	KeyAnnotation:      true,
-	KeyRunInit:         true,
-	KeyVolatileTmp:     true,
-	KeyTimezone:        true,
-	KeySeccompProfile:  true,
-	KeyAddDevice:       true,
-	KeyNetwork:         true,
-}
+var (
+	onceRegex      sync.Once
+	validPortRange *regexp.Regexp
 
-// Supported keys in "Volume" group
-var supportedVolumeKeys = map[string]bool{
-	KeyUser:  true,
-	KeyGroup: true,
-	KeyLabel: true,
-}
+	// Supported keys in "Container" group
+	supportedContainerKeys = map[string]bool{
+		KeyContainerName:   true,
+		KeyImage:           true,
+		KeyEnvironment:     true,
+		KeyEnvironmentFile: true,
+		KeyEnvironmentHost: true,
+		KeyExec:            true,
+		KeyNoNewPrivileges: true,
+		KeyDropCapability:  true,
+		KeyAddCapability:   true,
+		KeyReadOnly:        true,
+		KeyRemapUsers:      true,
+		KeyRemapUID:        true,
+		KeyRemapGID:        true,
+		KeyRemapUIDSize:    true,
+		KeyNotify:          true,
+		KeyExposeHostPort:  true,
+		KeyPublishPort:     true,
+		KeyUser:            true,
+		KeyGroup:           true,
+		KeyVolume:          true,
+		KeyPodmanArgs:      true,
+		KeyLabel:           true,
+		KeyAnnotation:      true,
+		KeyRunInit:         true,
+		KeyVolatileTmp:     true,
+		KeyTimezone:        true,
+		KeySeccompProfile:  true,
+		KeyAddDevice:       true,
+		KeyNetwork:         true,
+	}
 
-// Supported keys in "Volume" group
-var supportedNetworkKeys = map[string]bool{
-	KeyNetworkDisableDNS: true,
-	KeyNetworkDriver:     true,
-	KeyNetworkGateway:    true,
-	KeyNetworkInternal:   true,
-	KeyNetworkIPRange:    true,
-	KeyNetworkIPAMDriver: true,
-	KeyNetworkIPv6:       true,
-	KeyNetworkOptions:    true,
-	KeyNetworkSubnet:     true,
-	KeyLabel:             true,
-}
+	// Supported keys in "Volume" group
+	supportedVolumeKeys = map[string]bool{
+		KeyUser:  true,
+		KeyGroup: true,
+		KeyLabel: true,
+	}
 
-// Supported keys in "Kube" group
-var supportedKubeKeys = map[string]bool{
-	KeyYaml:         true,
-	KeyRemapUID:     true,
-	KeyRemapGID:     true,
-	KeyRemapUsers:   true,
-	KeyRemapUIDSize: true,
-	KeyNetwork:      true,
-	KeyConfigMap:    true,
-}
+	// Supported keys in "Volume" group
+	supportedNetworkKeys = map[string]bool{
+		KeyNetworkDisableDNS: true,
+		KeyNetworkDriver:     true,
+		KeyNetworkGateway:    true,
+		KeyNetworkInternal:   true,
+		KeyNetworkIPRange:    true,
+		KeyNetworkIPAMDriver: true,
+		KeyNetworkIPv6:       true,
+		KeyNetworkOptions:    true,
+		KeyNetworkSubnet:     true,
+		KeyLabel:             true,
+	}
+
+	// Supported keys in "Kube" group
+	supportedKubeKeys = map[string]bool{
+		KeyYaml:         true,
+		KeyRemapUID:     true,
+		KeyRemapGID:     true,
+		KeyRemapUsers:   true,
+		KeyRemapUIDSize: true,
+		KeyNetwork:      true,
+		KeyConfigMap:    true,
+	}
+)
 
 func replaceExtension(name string, extension string, extraPrefix string, extraSuffix string) string {
 	baseName := name
@@ -152,6 +156,9 @@ func replaceExtension(name string, extension string, extraPrefix string, extraSu
 }
 
 func isPortRange(port string) bool {
+	onceRegex.Do(func() {
+		validPortRange = regexp.MustCompile(`\d+(-\d+)?(/udp|/tcp)?$`)
+	})
 	return validPortRange.MatchString(port)
 }
 
