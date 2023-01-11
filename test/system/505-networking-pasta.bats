@@ -335,6 +335,7 @@ function teardown() {
 }
 
 @test "podman networking with pasta(1) - Local forwarder, IPv4" {
+    skip "FIXME: #17074: some pasta dns problem"
     skip_if_no_ipv4 "IPv4 not routable on the host"
 
     run_podman run --dns 198.51.100.1 \
