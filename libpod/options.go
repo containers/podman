@@ -6,7 +6,9 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
+	"sync"
 	"syscall"
 
 	"github.com/containers/buildah/pkg/parse"
@@ -26,6 +28,11 @@ import (
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/sirupsen/logrus"
+)
+
+var (
+	umaskRegex *regexp.Regexp
+	onceRegex  sync.Once
 )
 
 // WithStorageConfig uses the given configuration to set up container storage.
@@ -1790,11 +1797,14 @@ func WithTimezone(path string) CtrCreateOption {
 
 // WithUmask sets the umask in the container
 func WithUmask(umask string) CtrCreateOption {
+	onceRegex.Do(func() {
+		umaskRegex = regexp.MustCompile(`^[0-7]{1,4}$`)
+	})
 	return func(ctr *Container) error {
 		if ctr.valid {
 			return define.ErrCtrFinalized
 		}
-		if !define.UmaskRegex.MatchString(umask) {
+		if !umaskRegex.MatchString(umask) {
 			return fmt.Errorf("invalid umask string %s: %w", umask, define.ErrInvalidArg)
 		}
 		ctr.config.Umask = umask
