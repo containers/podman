@@ -1689,12 +1689,15 @@ func testHTTPServer(port string, shouldErr bool, expectedResponse string) {
 	Expect(string(body)).Should(Equal(expectedResponse))
 }
 
-func testEchoServer(connection io.ReadWriter) {
+func testEchoServer(connection net.Conn) {
 	stringToSend := "hello world"
 	var err error
 	var bytesSent int
+
 	interval := 250 * time.Millisecond
-	for i := 0; i < 6; i++ {
+	for i := 0; i < 5; i++ {
+		err = connection.SetDeadline(time.Now().Add(time.Second))
+		Expect(err).To(BeNil())
 		bytesSent, err = fmt.Fprint(connection, stringToSend)
 		if err == nil {
 			break
@@ -1708,7 +1711,9 @@ func testEchoServer(connection io.ReadWriter) {
 	stringReceived := make([]byte, bytesSent)
 	var bytesRead int
 	interval = 250 * time.Millisecond
-	for i := 0; i < 6; i++ {
+	for i := 0; i < 5; i++ {
+		err = connection.SetDeadline(time.Now().Add(time.Second))
+		Expect(err).To(BeNil())
 		bytesRead, err = bufio.NewReader(connection).Read(stringReceived)
 		if err == nil {
 			break
