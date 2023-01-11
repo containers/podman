@@ -262,10 +262,17 @@ func cliOpts(cc handlers.CreateContainerConfig, rtc *config.Config) (*entities.C
 	}
 
 	// special case for NetworkMode, the podman default is slirp4netns for
-	// rootless but for better docker compat we want bridge.
+	// rootless but for better docker compat we want bridge. Do this only if
+	// the default config in containers.conf wasn't overridden to use another
+	// value than the default "private" one.
 	netmode := string(cc.HostConfig.NetworkMode)
+	configDefaultNetNS := rtc.Containers.NetNS
 	if netmode == "" || netmode == "default" {
-		netmode = "bridge"
+		if configDefaultNetNS == "" || configDefaultNetNS == string(specgen.Default) || configDefaultNetNS == string(specgen.Private) {
+			netmode = "bridge"
+		} else {
+			netmode = configDefaultNetNS
+		}
 	}
 
 	nsmode, networks, netOpts, err := specgen.ParseNetworkFlag([]string{netmode}, false)
