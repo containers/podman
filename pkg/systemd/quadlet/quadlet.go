@@ -72,6 +72,7 @@ const (
 	KeyNetworkIPv6       = "IPv6"
 	KeyNetworkOptions    = "Options"
 	KeyNetworkSubnet     = "Subnet"
+	KeyConfigMap         = "ConfigMap"
 )
 
 // Supported keys in "Container" group
@@ -136,6 +137,7 @@ var supportedKubeKeys = map[string]bool{
 	KeyRemapUsers:   true,
 	KeyRemapUIDSize: true,
 	KeyNetwork:      true,
+	KeyConfigMap:    true,
 }
 
 func replaceExtension(name string, extension string, extraPrefix string, extraSuffix string) string {
@@ -756,6 +758,15 @@ func ConvertKube(kube *parser.UnitFile, isUser bool) (*parser.UnitFile, error) {
 	}
 
 	addNetworks(kube, KubeGroup, service, execStart)
+
+	configMaps := kube.LookupAllStrv(KubeGroup, KeyConfigMap)
+	for _, configMap := range configMaps {
+		configMapPath, err := getAbsolutePath(kube, configMap)
+		if err != nil {
+			return nil, err
+		}
+		execStart.add("--configmap", configMapPath)
+	}
 
 	execStart.add(yamlPath)
 

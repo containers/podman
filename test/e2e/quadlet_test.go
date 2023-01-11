@@ -491,6 +491,7 @@ var _ = Describe("quadlet system generator", func() {
 		Entry("Kube - User Remap Auto with IDs", "remap-auto2.kube"),
 		Entry("Kube - Network", "network.kube"),
 		Entry("Kube - Quadlet Network", "network.quadlet.kube"),
+		Entry("Kube - ConfigMap", "configmap.kube"),
 
 		Entry("Network - Basic", "basic.network"),
 		Entry("Network - Label", "label.network"),
