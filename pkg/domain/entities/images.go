@@ -7,6 +7,7 @@ import (
 
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/manifest"
+	"github.com/containers/image/v5/signature/signer"
 	"github.com/containers/image/v5/types"
 	encconfig "github.com/containers/ocicrypt/config"
 	"github.com/containers/podman/v4/pkg/inspect"
@@ -210,6 +211,10 @@ type ImagePushOptions struct {
 	RemoveSignatures bool
 	// SignaturePolicy to use when pulling.  Ignored for remote calls.
 	SignaturePolicy string
+	// Signers, if non-empty, asks for signatures to be added during the copy
+	// using the provided signers.
+	// Rejected for remote calls.
+	Signers []*signer.Signer
 	// SignBy adds a signature at the destination using the specified key.
 	// Ignored for remote calls.
 	SignBy string
