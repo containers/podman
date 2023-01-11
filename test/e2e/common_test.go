@@ -1018,6 +1018,12 @@ func generatePolicyFile(tempDir string) string {
                     "type": "sigstoreSigned",
                     "keyPath": "testdata/sigstore-key.pub"
                 }
+            ],
+            "localhost:5000/sigstore-signed-params": [
+                {
+                    "type": "sigstoreSigned",
+                    "keyPath": "testdata/sigstore-key.pub"
+                }
             ]
         }
     }

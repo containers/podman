@@ -21,9 +21,10 @@ import (
 type manifestPushOptsWrapper struct {
 	entities.ImagePushOptions
 
-	TLSVerifyCLI, Insecure bool // CLI only
-	CredentialsCLI         string
-	SignPassphraseFileCLI  string
+	TLSVerifyCLI, Insecure     bool // CLI only
+	CredentialsCLI             string
+	SignBySigstoreParamFileCLI string
+	SignPassphraseFileCLI      string
 }
 
 var (
@@ -76,6 +77,10 @@ func init() {
 	flags.StringVar(&manifestPushOpts.SignBy, signByFlagName, "", "sign the image using a GPG key with the specified `FINGERPRINT`")
 	_ = pushCmd.RegisterFlagCompletionFunc(signByFlagName, completion.AutocompleteNone)
 
+	signBySigstoreFlagName := "sign-by-sigstore"
+	flags.StringVar(&manifestPushOpts.SignBySigstoreParamFileCLI, signBySigstoreFlagName, "", "Sign the image using a sigstore parameter file at `PATH`")
+	_ = pushCmd.RegisterFlagCompletionFunc(signBySigstoreFlagName, completion.AutocompleteDefault)
+
 	signBySigstorePrivateKeyFlagName := "sign-by-sigstore-private-key"
 	flags.StringVar(&manifestPushOpts.SignBySigstorePrivateKeyFile, signBySigstorePrivateKeyFlagName, "", "Sign the image using a sigstore private key at `PATH`")
 	_ = pushCmd.RegisterFlagCompletionFunc(signBySigstorePrivateKeyFlagName, completion.AutocompleteDefault)
@@ -97,6 +102,7 @@ func init() {
 	if registry.IsRemote() {
 		_ = flags.MarkHidden("cert-dir")
 		_ = flags.MarkHidden(signByFlagName)
+		_ = flags.MarkHidden(signBySigstoreFlagName)
 		_ = flags.MarkHidden(signBySigstorePrivateKeyFlagName)
 		_ = flags.MarkHidden(signPassphraseFileFlagName)
 	}
@@ -128,9 +134,12 @@ func push(cmd *cobra.Command, args []string) error {
 		manifestPushOpts.Writer = os.Stderr
 	}
 
-	if err := common.PrepareSigningPassphrase(&manifestPushOpts.ImagePushOptions, manifestPushOpts.SignPassphraseFileCLI); err != nil {
+	signingCleanup, err := common.PrepareSigning(&manifestPushOpts.ImagePushOptions,
+		manifestPushOpts.SignPassphraseFileCLI, manifestPushOpts.SignBySigstoreParamFileCLI)
+	if err != nil {
 		return err
 	}
+	defer signingCleanup()
 
 	// TLS verification in c/image is controlled via a `types.OptionalBool`
 	// which allows for distinguishing among set-true, set-false, unspecified
