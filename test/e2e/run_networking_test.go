@@ -44,8 +44,6 @@ var _ = Describe("Podman run networking", func() {
 	})
 
 	It("podman verify network scoped DNS server and also verify updating network dns server", func() {
-		// TODO: Unskip after https://github.com/containers/podman/pull/16525
-		Skip("TODO: unskip after https://github.com/containers/podman/pull/16525")
 		// Following test is only functional with netavark and aardvark
 		SkipIfCNI(podmanTest)
 		net := createNetworkName("IntTest")
@@ -90,7 +88,6 @@ var _ = Describe("Podman run networking", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(1))
 		Expect(session.OutputToString()).To(ContainSubstring(";; connection timed out; no servers could be reached"))
-
 	})
 
 	It("podman run network connection with default bridge", func() {
