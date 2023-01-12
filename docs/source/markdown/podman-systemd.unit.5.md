@@ -365,6 +365,23 @@ it may be absolute or relative to the location of the unit file.
 
 This key may be used multiple times
 
+#### `PublishPort=`
+
+Exposes a port, or a range of ports (e.g. `50-59`), from the container to the host. Equivalent
+to the `podman kube play`'s `--publish` option. The format is similar to the Podman options, which is of
+the form `ip:hostPort:containerPort`, `ip::containerPort`, `hostPort:containerPort` or
+`containerPort`, where the number of host and container ports must be the same (in the case
+of a range).
+
+If the IP is set to 0.0.0.0 or not set at all, the port will be bound on all IPv4 addresses on
+the host; use [::] for IPv6.
+
+The list of published ports specified in the unit file will be merged with the list of ports specified
+in the Kubernetes YAML file. If the same container port and protocol is specified in both, the
+entry from the unit file will take precedence
+
+This key can be listed multiple times.
+
 ### Volume units
 
 Volume files are named with a `.volume` extension and contain a section `[Volume]` describing the

@@ -141,6 +141,7 @@ var (
 		KeyRemapUIDSize: true,
 		KeyNetwork:      true,
 		KeyConfigMap:    true,
+		KeyPublishPort:  true,
 	}
 )
 
@@ -454,63 +455,8 @@ func ConvertContainer(container *parser.UnitFile, isUser bool) (*parser.UnitFile
 		podman.addf("--expose=%s", exposedPort)
 	}
 
-	publishPorts := container.LookupAll(ContainerGroup, KeyPublishPort)
-	for _, publishPort := range publishPorts {
-		publishPort = strings.TrimSpace(publishPort) // Allow whitespace after
-
-		// IP address could have colons in it. For example: "[::]:8080:80/tcp, so use custom splitter
-		parts := splitPorts(publishPort)
-
-		var containerPort string
-		ip := ""
-		hostPort := ""
-
-		// format (from podman run):
-		// ip:hostPort:containerPort | ip::containerPort | hostPort:containerPort | containerPort
-		//
-		// ip could be IPv6 with minimum of these chars "[::]"
-		// containerPort can have a suffix of "/tcp" or "/udp"
-		//
-
-		switch len(parts) {
-		case 1:
-			containerPort = parts[0]
-
-		case 2:
-			hostPort = parts[0]
-			containerPort = parts[1]
-
-		case 3:
-			ip = parts[0]
-			hostPort = parts[1]
-			containerPort = parts[2]
-
-		default:
-			return nil, fmt.Errorf("invalid published port '%s'", publishPort)
-		}
-
-		if ip == "0.0.0.0" {
-			ip = ""
-		}
-
-		if len(hostPort) > 0 && !isPortRange(hostPort) {
-			return nil, fmt.Errorf("invalid port format '%s'", hostPort)
-		}
-
-		if len(containerPort) > 0 && !isPortRange(containerPort) {
-			return nil, fmt.Errorf("invalid port format '%s'", containerPort)
-		}
-
-		switch {
-		case len(ip) > 0 && len(hostPort) > 0:
-			podman.addf("-p=%s:%s:%s", ip, hostPort, containerPort)
-		case len(ip) > 0:
-			podman.addf("-p=%s::%s", ip, containerPort)
-		case len(hostPort) > 0:
-			podman.addf("-p=%s:%s", hostPort, containerPort)
-		default:
-			podman.addf("-p=%s", containerPort)
-		}
+	if err := handlePublishPorts(container, ContainerGroup, podman); err != nil {
+		return nil, err
 	}
 
 	podman.addEnv(podmanEnv)
@@ -775,6 +721,10 @@ func ConvertKube(kube *parser.UnitFile, isUser bool) (*parser.UnitFile, error) {
 		execStart.add("--configmap", configMapPath)
 	}
 
+	if err := handlePublishPorts(kube, KubeGroup, execStart); err != nil {
+		return nil, err
+	}
+
 	execStart.add(yamlPath)
 
 	service.AddCmdline(ServiceGroup, "ExecStart", execStart.Args)
@@ -875,4 +825,68 @@ func getAbsolutePath(quadletUnitFile *parser.UnitFile, filePath string) (string,
 		}
 	}
 	return filePath, nil
+}
+
+func handlePublishPorts(unitFile *parser.UnitFile, groupName string, podman *PodmanCmdline) error {
+	publishPorts := unitFile.LookupAll(groupName, KeyPublishPort)
+	for _, publishPort := range publishPorts {
+		publishPort = strings.TrimSpace(publishPort) // Allow whitespace after
+
+		// IP address could have colons in it. For example: "[::]:8080:80/tcp, so use custom splitter
+		parts := splitPorts(publishPort)
+
+		var containerPort string
+		ip := ""
+		hostPort := ""
+
+		// format (from podman run):
+		// ip:hostPort:containerPort | ip::containerPort | hostPort:containerPort | containerPort
+		//
+		// ip could be IPv6 with minimum of these chars "[::]"
+		// containerPort can have a suffix of "/tcp" or "/udp"
+		//
+
+		switch len(parts) {
+		case 1:
+			containerPort = parts[0]
+
+		case 2:
+			hostPort = parts[0]
+			containerPort = parts[1]
+
+		case 3:
+			ip = parts[0]
+			hostPort = parts[1]
+			containerPort = parts[2]
+
+		default:
+			return fmt.Errorf("invalid published port '%s'", publishPort)
+		}
+
+		if ip == "0.0.0.0" {
+			ip = ""
+		}
+
+		if len(hostPort) > 0 && !isPortRange(hostPort) {
+			return fmt.Errorf("invalid port format '%s'", hostPort)
+		}
+
+		if len(containerPort) > 0 && !isPortRange(containerPort) {
+			return fmt.Errorf("invalid port format '%s'", containerPort)
+		}
+
+		podman.add("--publish")
+		switch {
+		case len(ip) > 0 && len(hostPort) > 0:
+			podman.addf("%s:%s:%s", ip, hostPort, containerPort)
+		case len(ip) > 0:
+			podman.addf("%s::%s", ip, containerPort)
+		case len(hostPort) > 0:
+			podman.addf("%s:%s", hostPort, containerPort)
+		default:
+			podman.addf("%s", containerPort)
+		}
+	}
+
+	return nil
 }

@@ -492,6 +492,8 @@ var _ = Describe("quadlet system generator", func() {
 		Entry("Kube - Network", "network.kube"),
 		Entry("Kube - Quadlet Network", "network.quadlet.kube"),
 		Entry("Kube - ConfigMap", "configmap.kube"),
+		Entry("Kube - Publish IPv4 ports", "ports.kube"),
+		Entry("Kube - Publish IPv6 ports", "ports_ipv6.kube"),
 
 		Entry("Network - Basic", "basic.network"),
 		Entry("Network - Label", "label.network"),
