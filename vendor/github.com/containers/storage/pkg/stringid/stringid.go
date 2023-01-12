@@ -9,18 +9,19 @@ import (
 	"math"
 	"math/big"
 	"math/rand"
-	"regexp"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/containers/storage/pkg/regexp"
 )
 
 const shortLen = 12
 
 var (
-	validShortID = regexp.MustCompile("^[a-f0-9]{12}$")
-	validHex     = regexp.MustCompile(`^[a-f0-9]{64}$`)
+	validShortID = regexp.Delayed("^[a-f0-9]{12}$")
+	validHex     = regexp.Delayed(`^[a-f0-9]{64}$`)
 
 	rngLock sync.Mutex
 	rng     *rand.Rand // A RNG with seeding properties we control. It can only be accessed with randLock held.
