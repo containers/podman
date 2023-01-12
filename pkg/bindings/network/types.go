@@ -58,6 +58,14 @@ type ListOptions struct {
 	Filters map[string][]string
 }
 
+// NetworkUpdateOptions describes options to update a network
+//
+//go:generate go run ../generator/generator.go UpdateOptions
+type UpdateOptions struct {
+	AddDNSServers    []string `json:"adddnsservers"`
+	RemoveDNSServers []string `json:"removednsservers"`
+}
+
 // DisconnectOptions are optional options for disconnecting
 // containers from a network
 //

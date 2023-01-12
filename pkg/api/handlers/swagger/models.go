@@ -44,3 +44,7 @@ type networkDisconnectRequest types.NetworkDisconnect
 // Network connect
 // swagger:model
 type networkConnectRequestLibpod entities.NetworkConnectOptions
+
+// Network update
+// swagger:model
+type networkUpdateRequestLibpod entities.NetworkUpdateOptions

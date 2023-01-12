@@ -13,6 +13,17 @@ import (
 	"github.com/containers/podman/v4/pkg/domain/entities"
 )
 
+func (ic *ContainerEngine) NetworkUpdate(ctx context.Context, netName string, options entities.NetworkUpdateOptions) error {
+	var networkUpdateOptions types.NetworkUpdateOptions
+	networkUpdateOptions.AddDNSServers = options.AddDNSServers
+	networkUpdateOptions.RemoveDNSServers = options.RemoveDNSServers
+	err := ic.Libpod.Network().NetworkUpdate(netName, networkUpdateOptions)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (ic *ContainerEngine) NetworkList(ctx context.Context, options entities.NetworkListOptions) ([]types.Network, error) {
 	// dangling filter is not provided by netutil
 	var wantDangling bool
