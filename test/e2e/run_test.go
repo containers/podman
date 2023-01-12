@@ -1407,6 +1407,22 @@ USER mail`, BB)
 		Expect(found).To(BeTrue())
 	})
 
+	It("podman run with restart policy does not restart on manual stop", func() {
+		ctrName := "testCtr"
+		ctr := podmanTest.Podman([]string{"run", "-dt", "--restart=always", "--name", ctrName, ALPINE, "top"})
+		ctr.WaitWithDefaultTimeout()
+		Expect(ctr).Should(Exit(0))
+
+		stop := podmanTest.Podman([]string{"stop", ctrName})
+		stop.WaitWithDefaultTimeout()
+		Expect(stop).Should(Exit(0))
+
+		// This is ugly, but I don't see a better way
+		time.Sleep(10 * time.Second)
+
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
+	})
+
 	It("podman run with cgroups=split", func() {
 		SkipIfNotSystemd(podmanTest.CgroupManager, "do not test --cgroups=split if not running on systemd")
 		SkipIfRootlessCgroupsV1("Disable cgroups not supported on cgroupv1 for rootless users")

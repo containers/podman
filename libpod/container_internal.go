@@ -1296,6 +1296,7 @@ func (c *Container) stop(timeout uint) error {
 	// demonstrates nicely that a high stop timeout will block even simple
 	// commands such as `podman ps` from progressing if the container lock
 	// is held when busy-waiting for the container to be stopped.
+	c.state.StoppedByUser = true
 	c.state.State = define.ContainerStateStopping
 	if err := c.save(); err != nil {
 		return fmt.Errorf("saving container %s state before stopping: %w", c.ID(), err)
@@ -1343,7 +1344,6 @@ func (c *Container) stop(timeout uint) error {
 	}
 
 	c.newContainerEvent(events.Stop)
-	c.state.StoppedByUser = true
 	return c.waitForConmonToExitAndSave()
 }
 
