@@ -3,11 +3,10 @@ package quadlet
 import (
 	"fmt"
 	"path/filepath"
-	"regexp"
 	"strings"
-	"sync"
 
 	"github.com/containers/podman/v4/pkg/systemd/parser"
+	"github.com/containers/storage/pkg/regexp"
 )
 
 const (
@@ -75,8 +74,7 @@ const (
 )
 
 var (
-	onceRegex      sync.Once
-	validPortRange *regexp.Regexp
+	validPortRange = regexp.Delayed(`\d+(-\d+)?(/udp|/tcp)?$`)
 
 	// Supported keys in "Container" group
 	supportedContainerKeys = map[string]bool{
@@ -157,9 +155,6 @@ func replaceExtension(name string, extension string, extraPrefix string, extraSu
 }
 
 func isPortRange(port string) bool {
-	onceRegex.Do(func() {
-		validPortRange = regexp.MustCompile(`\d+(-\d+)?(/udp|/tcp)?$`)
-	})
 	return validPortRange.MatchString(port)
 }
 
