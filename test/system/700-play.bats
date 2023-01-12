@@ -531,3 +531,70 @@ spec:
     run_podman pod rm -a -f
     run_podman rm -a -f
 }
+
+@test "podman kube play - multi-pod YAML" {
+    skip_if_remote "service containers only work locally"
+    skip_if_journald_unavailable
+
+    # Create the YAMl file
+    yaml_source="$PODMAN_TMPDIR/test.yaml"
+    cat >$yaml_source <<EOF
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app: pod1
+  name: pod1
+spec:
+  containers:
+  - command:
+    - top
+    image: $IMAGE
+    name: ctr1
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app: pod2
+  name: pod2
+spec:
+  containers:
+  - command:
+    - top
+    image: $IMAGE
+    name: ctr2
+EOF
+    # Run `play kube` in the background as it will wait for the service
+    # container to exit.
+    timeout --foreground -v --kill=10 60 \
+        $PODMAN play kube --service-container=true --log-driver journald $yaml_source &>/dev/null &
+
+    # The name of the service container is predictable: the first 12 characters
+    # of the hash of the YAML file followed by the "-service" suffix
+    yaml_sha=$(sha256sum $yaml_source)
+    service_container="${yaml_sha:0:12}-service"
+    # Wait for the containers to be running
+    container_1=pod1-ctr1
+    container_2=pod1-ctr2
+    for i in $(seq 1 20); do
+        run_podman "?" container wait $container_1 $container_2 $service_container --condition="running"
+        if [[ $status == 0 ]]; then
+            break
+        fi
+        sleep 0.5
+        # Just for debugging
+        run_podman ps -a
+    done
+    if [[ $status != 0 ]]; then
+        die "container $container_1, $container_2 and/or $service_container did not start"
+    fi
+
+    # Stop the pods, make sure that no ugly error logs show up and that the
+    # service container will implicitly get stopped as well
+    run_podman pod stop pod1 pod2
+    assert "$output" !~ "Stopping"
+    _ensure_container_running $service_container false
+
+    run_podman kube down $yaml_source
+}
