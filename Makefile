@@ -905,7 +905,7 @@ install.systemd:
 endif
 
 .PHONY: install.tools
-install.tools: .install.golangci-lint .install.swagger ## Install needed tools
+install.tools: .install.golangci-lint ## Install needed tools
 	$(MAKE) -C test/tools
 
 .PHONY: .install.goimports
