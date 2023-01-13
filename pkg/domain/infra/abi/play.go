@@ -732,6 +732,16 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 		if err != nil {
 			return nil, nil, err
 		}
+
+		// Make sure to complete the spec (#17016)
+		warn, err := generate.CompleteSpec(ctx, ic.Libpod, specGen)
+		if err != nil {
+			return nil, nil, err
+		}
+		for _, w := range warn {
+			fmt.Fprintf(os.Stderr, "%s\n", w)
+		}
+
 		specGen.RawImageName = container.Image
 		rtSpec, spec, opts, err := generate.MakeContainer(ctx, ic.Libpod, specGen, false, nil)
 		if err != nil {

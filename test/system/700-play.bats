@@ -156,13 +156,6 @@ EOF
         cat <<EOF               >>$outfile
   - command:
     - $command
-    env:
-    - name: PATH
-      value: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-    - name: TERM
-      value: xterm
-    - name: container
-      value: podman
     image: $image
     name: $ctrname
     resources: {}
@@ -341,10 +334,19 @@ from $IMAGE
 USER bin
 _EOF
 
-    run_podman build -t userimage $PODMAN_TMPDIR
+    # Unset the PATH during build and make sure that all default env variables
+    # are correctly set for the created container.
+    run_podman build --unsetenv PATH -t userimage $PODMAN_TMPDIR
+    run_podman image inspect userimage --format "{{.Config.Env}}"
+    is "$output" "\[\]" "image does not set PATH - env is empty"
+
     run_podman play kube --start=false $PODMAN_TMPDIR/test.yaml
     run_podman inspect --format "{{ .Config.User }}" test_pod-test
     is "$output" bin "expect container within pod to run as the bin user"
+    run_podman inspect --format "{{ .Config.Env }}" test_pod-test
+    is "$output" ".*PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin.*" "expect PATH to be set"
+    is "$output" ".*TERM=xterm.*" "expect TERM to be set"
+    is "$output" ".*container=podman.*" "expect container to be set"
 
     run_podman stop -a -t 0
     run_podman pod rm -t 0 -f test_pod
