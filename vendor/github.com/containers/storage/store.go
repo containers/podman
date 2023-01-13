@@ -599,8 +599,9 @@ type store struct {
 
 	// The following fields are only set when constructing store, and must never be modified afterwards.
 	// They are safe to access without any other locking.
-	runRoot         string
-	graphDriverName string // Initially set to the user-requested value, possibly ""; updated during store construction, and does not change afterwards.
+	runRoot             string
+	graphDriverName     string // Initially set to the user-requested value, possibly ""; updated during store construction, and does not change afterwards.
+	graphDriverPriority []string
 	// graphLock:
 	// - Ensures that we always reload graphDriver, and the primary layer store, after any process does store.Shutdown. This is necessary
 	//   because (??) the Shutdown may forcibly unmount and clean up, affecting graph driver state in a way only a graph driver
@@ -731,20 +732,21 @@ func GetStore(options types.StoreOptions) (Store, error) {
 		autoNsMaxSize = AutoUserNsMaxSize
 	}
 	s := &store{
-		runRoot:         options.RunRoot,
-		graphDriverName: options.GraphDriverName,
-		graphLock:       graphLock,
-		usernsLock:      usernsLock,
-		graphRoot:       options.GraphRoot,
-		graphOptions:    options.GraphDriverOptions,
-		pullOptions:     options.PullOptions,
-		uidMap:          copyIDMap(options.UIDMap),
-		gidMap:          copyIDMap(options.GIDMap),
-		autoUsernsUser:  options.RootAutoNsUser,
-		autoNsMinSize:   autoNsMinSize,
-		autoNsMaxSize:   autoNsMaxSize,
-		disableVolatile: options.DisableVolatile,
-		transientStore:  options.TransientStore,
+		runRoot:             options.RunRoot,
+		graphDriverName:     options.GraphDriverName,
+		graphDriverPriority: options.GraphDriverPriority,
+		graphLock:           graphLock,
+		usernsLock:          usernsLock,
+		graphRoot:           options.GraphRoot,
+		graphOptions:        options.GraphDriverOptions,
+		pullOptions:         options.PullOptions,
+		uidMap:              copyIDMap(options.UIDMap),
+		gidMap:              copyIDMap(options.GIDMap),
+		autoUsernsUser:      options.RootAutoNsUser,
+		autoNsMinSize:       autoNsMinSize,
+		autoNsMaxSize:       autoNsMaxSize,
+		disableVolatile:     options.DisableVolatile,
+		transientStore:      options.TransientStore,
 
 		additionalUIDs: nil,
 		additionalGIDs: nil,
@@ -942,11 +944,12 @@ func (s *store) stopUsingGraphDriver() {
 // The caller must hold s.graphLock.
 func (s *store) createGraphDriverLocked() (drivers.Driver, error) {
 	config := drivers.Options{
-		Root:          s.graphRoot,
-		RunRoot:       s.runRoot,
-		DriverOptions: s.graphOptions,
-		UIDMaps:       s.uidMap,
-		GIDMaps:       s.gidMap,
+		Root:           s.graphRoot,
+		RunRoot:        s.runRoot,
+		DriverPriority: s.graphDriverPriority,
+		DriverOptions:  s.graphOptions,
+		UIDMaps:        s.uidMap,
+		GIDMaps:        s.gidMap,
 	}
 	return drivers.New(s.graphDriverName, config)
 }

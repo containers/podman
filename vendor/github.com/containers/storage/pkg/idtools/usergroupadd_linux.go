@@ -2,11 +2,12 @@ package idtools
 
 import (
 	"fmt"
-	"regexp"
 	"sort"
 	"strconv"
 	"strings"
 	"sync"
+
+	"github.com/containers/storage/pkg/regexp"
 )
 
 // add a user and/or group to Linux /etc/passwd, /etc/group using standard
@@ -24,7 +25,7 @@ var (
 		"usermod": "-%s %d-%d %s",
 	}
 
-	idOutRegexp = regexp.MustCompile(`uid=([0-9]+).*gid=([0-9]+)`)
+	idOutRegexp = regexp.Delayed(`uid=([0-9]+).*gid=([0-9]+)`)
 	// default length for a UID/GID subordinate range
 	defaultRangeLen   = 65536
 	defaultRangeStart = 100000

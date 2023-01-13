@@ -17,7 +17,7 @@ require (
 	github.com/containers/image/v5 v5.23.1-0.20230104183125-aaf0985b36f9
 	github.com/containers/ocicrypt v1.1.6
 	github.com/containers/psgo v1.8.0
-	github.com/containers/storage v1.44.1-0.20230105105526-fc91849352e5
+	github.com/containers/storage v1.44.1-0.20230112185043-9e5983234687
 	github.com/coreos/go-systemd/v22 v22.5.0
 	github.com/coreos/stream-metadata-go v0.0.0-20210225230131-70edb9eb47b3
 	github.com/cyphar/filepath-securejoin v0.2.3

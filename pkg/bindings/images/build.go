@@ -13,11 +13,9 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
-	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
-	"sync"
 
 	"github.com/containers/buildah/define"
 	"github.com/containers/image/v5/types"
@@ -26,6 +24,7 @@ import (
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/storage/pkg/fileutils"
 	"github.com/containers/storage/pkg/ioutils"
+	"github.com/containers/storage/pkg/regexp"
 	"github.com/docker/go-units"
 	"github.com/hashicorp/go-multierror"
 	jsoniter "github.com/json-iterator/go"
@@ -37,17 +36,10 @@ type devino struct {
 	Ino uint64
 }
 
-var (
-	iidRegex  *regexp.Regexp
-	onceRegex sync.Once
-)
+var iidRegex = regexp.Delayed(`^[0-9a-f]{12}`)
 
 // Build creates an image using a containerfile reference
 func Build(ctx context.Context, containerFiles []string, options entities.BuildOptions) (*entities.BuildReport, error) {
-	onceRegex.Do(func() {
-		iidRegex = regexp.MustCompile(`^[0-9a-f]{12}`)
-	})
-
 	if options.CommonBuildOpts == nil {
 		options.CommonBuildOpts = new(define.CommonBuildOptions)
 	}

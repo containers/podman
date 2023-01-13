@@ -116,7 +116,7 @@ lint_task:
       echo "deb http://deb.debian.org/debian stretch-backports main" > /etc/apt/sources.list.d/backports.list
       apt-get update
       apt-get install -y libbtrfs-dev libdevmapper-dev
-    test_script: make local-validate && make lint
+    test_script: make TAGS=regex_precompile local-validate && make lint && make clean
 
 
 # Update metadata on VM images referenced by this repository state

@@ -322,6 +322,7 @@ func getBuiltinDriver(name, home string, options Options) (Driver, error) {
 type Options struct {
 	Root                string
 	RunRoot             string
+	DriverPriority      []string
 	DriverOptions       []string
 	UIDMaps             []idtools.IDMap
 	GIDMaps             []idtools.IDMap
@@ -337,9 +338,18 @@ func New(name string, config Options) (Driver, error) {
 
 	// Guess for prior driver
 	driversMap := scanPriorDrivers(config.Root)
-	for _, name := range priority {
-		if name == "vfs" {
-			// don't use vfs even if there is state present.
+
+	// use the supplied priority list unless it is empty
+	prioList := config.DriverPriority
+	if len(prioList) == 0 {
+		prioList = priority
+	}
+
+	for _, name := range prioList {
+		if name == "vfs" && len(config.DriverPriority) == 0 {
+			// don't use vfs even if there is state present and vfs
+			// has not been explicitly added to the override driver
+			// priority list
 			continue
 		}
 		if _, prior := driversMap[name]; prior {
@@ -372,7 +382,7 @@ func New(name string, config Options) (Driver, error) {
 	}
 
 	// Check for priority drivers first
-	for _, name := range priority {
+	for _, name := range prioList {
 		driver, err := getBuiltinDriver(name, config.Root, config)
 		if err != nil {
 			if isDriverNotSupported(err) {

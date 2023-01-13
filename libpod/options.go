@@ -6,9 +6,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
-	"sync"
 	"syscall"
 
 	"github.com/containers/buildah/pkg/parse"
@@ -25,15 +23,13 @@ import (
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/idtools"
+	"github.com/containers/storage/pkg/regexp"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/sirupsen/logrus"
 )
 
-var (
-	umaskRegex *regexp.Regexp
-	onceRegex  sync.Once
-)
+var umaskRegex = regexp.Delayed(`^[0-7]{1,4}$`)
 
 // WithStorageConfig uses the given configuration to set up container storage.
 // If this is not specified, the system default configuration will be used
@@ -1797,9 +1793,6 @@ func WithTimezone(path string) CtrCreateOption {
 
 // WithUmask sets the umask in the container
 func WithUmask(umask string) CtrCreateOption {
-	onceRegex.Do(func() {
-		umaskRegex = regexp.MustCompile(`^[0-7]{1,4}$`)
-	})
 	return func(ctr *Container) error {
 		if ctr.valid {
 			return define.ErrCtrFinalized
