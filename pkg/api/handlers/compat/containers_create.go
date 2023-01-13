@@ -392,7 +392,7 @@ func cliOpts(cc handlers.CreateContainerConfig, rtc *config.Config) (*entities.C
 		// Detach:            false, // don't need
 		// DetachKeys:        "",    // don't need
 		Devices:           devices,
-		DeviceCgroupRule:  nil,
+		DeviceCgroupRule:  cc.HostConfig.DeviceCgroupRules,
 		DeviceReadBPs:     readBps,
 		DeviceReadIOPs:    readIops,
 		DeviceWriteBPs:    writeBps,
