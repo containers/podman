@@ -329,31 +329,6 @@ alt_build_task:
     always: *binary_artifacts
 
 
-# Confirm building the remote client, natively on a Mac OS-X VM.
-osx_alt_build_task:
-    name: "OSX Cross"
-    alias: osx_alt_build
-    only_if: *not_docs
-    depends_on:
-        - build
-    env:
-        <<: *stdenvars
-        # OSX platform variation prevents this being included in alt_build_task
-        TEST_FLAVOR: "altbuild"
-        ALT_NAME: 'OSX Cross'
-    osx_instance:
-        image: ghcr.io/cirruslabs/macos-ventura-base:latest
-    setup_script:
-        - brew install go
-        - brew install go-md2man
-        - go version
-    build_amd64_script:
-        - make podman-remote-release-darwin_amd64.zip
-    build_arm64_script:
-        - make podman-remote-release-darwin_arm64.zip GOARCH=arm64
-    always: *binary_artifacts
-
-
 # Verify podman is compatible with the docker python-module.
 docker-py_test_task:
     name: Docker-py Compat.
@@ -714,7 +689,6 @@ success_task:
         - swagger
         - consistency
         - alt_build
-        - osx_alt_build
         - docker-py_test
         - unit_test
         - apiv2_test
