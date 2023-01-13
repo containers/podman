@@ -2,8 +2,6 @@
 Description=Podman Start All Containers With Restart Policy Set To Always
 Documentation=man:podman-start(1)
 StartLimitIntervalSec=0
-Wants=network-online.target
-After=network-online.target
 
 [Service]
 Type=oneshot
