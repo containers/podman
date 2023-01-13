@@ -301,30 +301,10 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 	mounts := []machine.Mount{}
 	for i, volume := range opts.Volumes {
 		tag := fmt.Sprintf("vol%d", i)
-		paths := strings.SplitN(volume, ":", 3)
-		source := paths[0]
-		target := source
-		readonly := false
-		securityModel := "none"
-		if len(paths) > 1 {
-			target = paths[1]
-		}
-		if len(paths) > 2 {
-			options := paths[2]
-			volopts := strings.Split(options, ",")
-			for _, o := range volopts {
-				switch {
-				case o == "rw":
-					readonly = false
-				case o == "ro":
-					readonly = true
-				case strings.HasPrefix(o, "security_model="):
-					securityModel = strings.Split(o, "=")[1]
-				default:
-					fmt.Printf("Unknown option: %s\n", o)
-				}
-			}
-		}
+		paths := pathsFromVolume(volume)
+		source := extractSourcePath(paths)
+		target := extractTargetPath(paths)
+		readonly, securityModel := extractMountOptions(paths)
 		if volumeType == VolumeTypeVirtfs {
 			virtfsOptions := fmt.Sprintf("local,path=%s,mount_tag=%s,security_model=%s", source, tag, securityModel)
 			if readonly {
@@ -1755,4 +1735,30 @@ func isRootful() bool {
 	// for now will check additionally for valid os.Getuid
 
 	return !rootless.IsRootless() && os.Getuid() != -1
+}
+
+func extractSourcePath(paths []string) string {
+	return paths[0]
+}
+
+func extractMountOptions(paths []string) (bool, string) {
+	readonly := false
+	securityModel := "none"
+	if len(paths) > 2 {
+		options := paths[2]
+		volopts := strings.Split(options, ",")
+		for _, o := range volopts {
+			switch {
+			case o == "rw":
+				readonly = false
+			case o == "ro":
+				readonly = true
+			case strings.HasPrefix(o, "security_model="):
+				securityModel = strings.Split(o, "=")[1]
+			default:
+				fmt.Printf("Unknown option: %s\n", o)
+			}
+		}
+	}
+	return readonly, securityModel
 }
