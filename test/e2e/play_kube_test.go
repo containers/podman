@@ -1,7 +1,6 @@
 package integration
 
 import (
-	"bufio"
 	"bytes"
 	"context"
 	"encoding/base64"
@@ -1689,82 +1688,19 @@ func testHTTPServer(port string, shouldErr bool, expectedResponse string) {
 	Expect(string(body)).Should(Equal(expectedResponse))
 }
 
-func testEchoServer(connection net.Conn) {
-	stringToSend := "hello world"
-	var err error
-	var bytesSent int
+func verifyPodPorts(podmanTest *PodmanTestIntegration, podName string, ports ...string) {
+	podInspect := podmanTest.Podman([]string{"pod", "inspect", podName, "--format", "{{.InfraContainerID}}"})
+	podInspect.WaitWithDefaultTimeout()
+	Expect(podInspect).To(Exit(0))
+	infraID := podInspect.OutputToString()
 
-	interval := 250 * time.Millisecond
-	for i := 0; i < 5; i++ {
-		err = connection.SetDeadline(time.Now().Add(time.Second))
-		Expect(err).To(BeNil())
-		bytesSent, err = fmt.Fprint(connection, stringToSend)
-		if err == nil {
-			break
-		}
-		time.Sleep(interval)
-		interval *= 2
+	inspect := podmanTest.Podman([]string{"inspect", "--format", "{{.NetworkSettings.Ports}}", infraID})
+	inspect.WaitWithDefaultTimeout()
+	Expect(inspect).To(Exit(0))
+
+	for _, port := range ports {
+		Expect(inspect.OutputToString()).Should(ContainSubstring(port))
 	}
-	Expect(err).To(BeNil())
-	Expect(bytesSent).To(Equal(len(stringToSend)))
-
-	stringReceived := make([]byte, bytesSent)
-	var bytesRead int
-	interval = 250 * time.Millisecond
-	for i := 0; i < 5; i++ {
-		err = connection.SetDeadline(time.Now().Add(time.Second))
-		Expect(err).To(BeNil())
-		bytesRead, err = bufio.NewReader(connection).Read(stringReceived)
-		if err == nil {
-			break
-		}
-		time.Sleep(interval)
-		interval *= 2
-	}
-	Expect(err).To(BeNil())
-	Expect(bytesRead).To(Equal(bytesSent))
-
-	Expect(stringToSend).To(Equal(string(stringReceived)))
-}
-
-func testEchoServerUDP(address string) {
-	udpServer, err := net.ResolveUDPAddr("udp", address)
-	Expect(err).To(BeNil())
-
-	interval := 250 * time.Millisecond
-	var conn *net.UDPConn
-	for i := 0; i < 6; i++ {
-		conn, err = net.DialUDP("udp", nil, udpServer)
-		if err == nil {
-			break
-		}
-		time.Sleep(interval)
-		interval *= 2
-	}
-	Expect(err).To(BeNil())
-	defer conn.Close()
-
-	testEchoServer(conn)
-}
-
-func testEchoServerTCP(address string) {
-	tcpServer, err := net.ResolveTCPAddr("tcp", address)
-	Expect(err).To(BeNil())
-
-	interval := 250 * time.Millisecond
-	var conn *net.TCPConn
-	for i := 0; i < 6; i++ {
-		conn, err = net.DialTCP("tcp", nil, tcpServer)
-		if err == nil {
-			break
-		}
-		time.Sleep(interval)
-		interval *= 2
-	}
-	Expect(err).To(BeNil())
-	defer conn.Close()
-
-	testEchoServer(conn)
 }
 
 var _ = Describe("Podman play kube", func() {
@@ -4974,8 +4910,7 @@ spec:
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(Exit(0))
 
-		testEchoServerUDP(":19009")
-		testEchoServerTCP(":19010")
+		verifyPodPorts(podmanTest, "network-echo", "19008/tcp:[{ 19010}]", "19008/udp:[{ 19009}]")
 	})
 
 	It("podman play kube override with udp should keep tcp from YAML file", func() {
@@ -4986,7 +4921,6 @@ spec:
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(Exit(0))
 
-		testEchoServerUDP(":19012")
-		testEchoServerTCP(":19011")
+		verifyPodPorts(podmanTest, "network-echo", "19008/tcp:[{ 19011}]", "19008/udp:[{ 19012}]")
 	})
 })
