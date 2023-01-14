@@ -333,7 +333,6 @@ func (ic *ContainerEngine) playKubeDeployment(ctx context.Context, deploymentYAM
 		deploymentName string
 		podSpec        v1.PodTemplateSpec
 		numReplicas    int32
-		i              int32
 		report         entities.PlayKubeReport
 	)
 
@@ -345,20 +344,19 @@ func (ic *ContainerEngine) playKubeDeployment(ctx context.Context, deploymentYAM
 	if deploymentYAML.Spec.Replicas != nil {
 		numReplicas = *deploymentYAML.Spec.Replicas
 	}
+	if numReplicas > 1 {
+		logrus.Warnf("Limiting replica count to 1, more than one replica is not supported by Podman")
+	}
 	podSpec = deploymentYAML.Spec.Template
 
-	// create "replicas" number of pods
-	var notifyProxies []*notifyproxy.NotifyProxy
-	for i = 0; i < numReplicas; i++ {
-		podName := fmt.Sprintf("%s-pod-%d", deploymentName, i)
-		podReport, proxies, err := ic.playKubePod(ctx, podName, &podSpec, options, ipIndex, deploymentYAML.Annotations, configMaps, serviceContainer)
-		if err != nil {
-			return nil, notifyProxies, fmt.Errorf("encountered while bringing up pod %s: %w", podName, err)
-		}
-		report.Pods = append(report.Pods, podReport.Pods...)
-		notifyProxies = append(notifyProxies, proxies...)
+	podName := fmt.Sprintf("%s-pod", deploymentName)
+	podReport, proxies, err := ic.playKubePod(ctx, podName, &podSpec, options, ipIndex, deploymentYAML.Annotations, configMaps, serviceContainer)
+	if err != nil {
+		return nil, nil, fmt.Errorf("encountered while bringing up pod %s: %w", podName, err)
 	}
-	return &report, notifyProxies, nil
+	report.Pods = podReport.Pods
+
+	return &report, proxies, nil
 }
 
 func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podYAML *v1.PodTemplateSpec, options entities.PlayKubeOptions, ipIndex *int, annotations map[string]string, configMaps []v1.ConfigMap, serviceContainer *libpod.Container) (*entities.PlayKubeReport, []*notifyproxy.NotifyProxy, error) {
@@ -1255,10 +1253,11 @@ func (ic *ContainerEngine) PlayKubeDown(ctx context.Context, body io.Reader, opt
 			if deploymentYAML.Spec.Replicas != nil {
 				numReplicas = *deploymentYAML.Spec.Replicas
 			}
-			for i := 0; i < int(numReplicas); i++ {
-				podName := fmt.Sprintf("%s-pod-%d", deploymentName, i)
-				podNames = append(podNames, podName)
+			if numReplicas > 1 {
+				logrus.Warnf("Limiting replica count to 1, more than one replica is not supported by Podman")
 			}
+			podName := fmt.Sprintf("%s-pod", deploymentName)
+			podNames = append(podNames, podName)
 		case "PersistentVolumeClaim":
 			var pvcYAML v1.PersistentVolumeClaim
 			if err := yaml.Unmarshal(document, &pvcYAML); err != nil {

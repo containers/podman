@@ -1266,20 +1266,14 @@ func withReplicas(replicas int32) deploymentOption {
 	}
 }
 
-// getPodNamesInDeployment returns list of Pod objects
-// with just their name set, so that it can be passed around
+// getPodNameInDeployment returns the Pod object
+// with just its name set, so that it can be passed around
 // and into getCtrNameInPod for ease of testing
-func getPodNamesInDeployment(d *Deployment) []Pod {
-	var pods []Pod
-	var i int32
+func getPodNameInDeployment(d *Deployment) Pod {
+	p := Pod{}
+	p.Name = fmt.Sprintf("%s-pod", d.Name)
 
-	for i = 0; i < d.Replicas; i++ {
-		p := Pod{}
-		p.Name = fmt.Sprintf("%s-pod-%d", d.Name, i)
-		pods = append(pods, p)
-	}
-
-	return pods
+	return p
 }
 
 // Ctr describes the options a kube yaml can be configured at container level
@@ -1918,7 +1912,7 @@ var _ = Describe("Podman play kube", func() {
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(Exit(0))
 
-		inspect := podmanTest.Podman([]string{"inspect", "liveness-probe-pod-0-alpine", "--format", "'{{ .Config.Healthcheck }}'"})
+		inspect := podmanTest.Podman([]string{"inspect", "liveness-probe-pod-alpine", "--format", "'{{ .Config.Healthcheck }}'"})
 		inspect.WaitWithDefaultTimeout()
 		healthcheckcmd := inspect.OutputToString()
 		// check if CMD-SHELL based equivalent health check is added to container
@@ -1934,14 +1928,14 @@ var _ = Describe("Podman play kube", func() {
 		Expect(kube).Should(Exit(0))
 
 		time.Sleep(2 * time.Second)
-		hc := podmanTest.Podman([]string{"healthcheck", "run", "liveness-unhealthy-probe-pod-0-alpine"})
+		hc := podmanTest.Podman([]string{"healthcheck", "run", "liveness-unhealthy-probe-pod-alpine"})
 		hc.WaitWithDefaultTimeout()
 		hcoutput := hc.OutputToString()
 		Expect(hcoutput).To(ContainSubstring(define.HealthCheckUnhealthy))
 	})
 
 	It("podman play kube support container startup probe", func() {
-		ctrName := "startup-healthy-probe-pod-0-alpine"
+		ctrName := "startup-healthy-probe-pod-alpine"
 		err := writeYaml(startupProbePodYaml, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
 
@@ -2809,8 +2803,8 @@ spec:
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(Exit(0))
 
-		podNames := getPodNamesInDeployment(deployment)
-		inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(&podNames[0]), "--format", "'{{ .Config.Entrypoint }}'"})
+		podName := getPodNameInDeployment(deployment)
+		inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(&podName), "--format", "'{{ .Config.Entrypoint }}'"})
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect).Should(Exit(0))
 		// yaml's command should override the image's Entrypoint
@@ -2818,8 +2812,7 @@ spec:
 	})
 
 	It("podman play kube deployment more than 1 replica test correct command", func() {
-		var i, numReplicas int32
-		numReplicas = 5
+		var numReplicas int32 = 5
 		deployment := getDeployment(withReplicas(numReplicas))
 		err := generateKubeYaml("deployment", deployment, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
@@ -2828,13 +2821,13 @@ spec:
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(Exit(0))
 
-		podNames := getPodNamesInDeployment(deployment)
-		for i = 0; i < numReplicas; i++ {
-			inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(&podNames[i]), "--format", "'{{ .Config.Entrypoint }}'"})
-			inspect.WaitWithDefaultTimeout()
-			Expect(inspect).Should(Exit(0))
-			Expect(inspect.OutputToString()).To(ContainSubstring(strings.Join(defaultCtrCmd, " ")))
-		}
+		podName := getPodNameInDeployment(deployment)
+
+		inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(&podName), "--format", "'{{ .Config.Entrypoint }}'"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).Should(Exit(0))
+		Expect(inspect.OutputToString()).To(ContainSubstring(strings.Join(defaultCtrCmd, " ")))
+
 	})
 
 	It("podman play kube --ip and --mac-address", func() {
@@ -2864,20 +2857,18 @@ spec:
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(Exit(0))
 
-		podNames := getPodNamesInDeployment(deployment)
-		for i = 0; i < numReplicas; i++ {
-			inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(&podNames[i]), "--format", "{{ .NetworkSettings.Networks." + net + ".IPAddress }}"})
-			inspect.WaitWithDefaultTimeout()
-			Expect(inspect).Should(Exit(0))
-			Expect(inspect.OutputToString()).To(Equal(ips[i]))
-		}
+		podName := getPodNameInDeployment(deployment)
 
-		for i = 0; i < numReplicas; i++ {
-			inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(&podNames[i]), "--format", "{{ .NetworkSettings.Networks." + net + ".MacAddress }}"})
-			inspect.WaitWithDefaultTimeout()
-			Expect(inspect).Should(Exit(0))
-			Expect(inspect.OutputToString()).To(Equal(macs[i]))
-		}
+		inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(&podName), "--format", "{{ .NetworkSettings.Networks." + net + ".IPAddress }}"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).Should(Exit(0))
+		Expect(inspect.OutputToString()).To(Equal(ips[i]))
+
+		inspect = podmanTest.Podman([]string{"inspect", getCtrNameInPod(&podName), "--format", "{{ .NetworkSettings.Networks." + net + ".MacAddress }}"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).Should(Exit(0))
+		Expect(inspect.OutputToString()).To(Equal(macs[i]))
+
 	})
 
 	It("podman play kube with multiple networks", func() {
@@ -3286,12 +3277,11 @@ VOLUME %s`, ALPINE, hostPathDir+"/")
 		Expect(kube).Should(Exit(0))
 
 		correctLabels := expectedLabelKey + ":" + expectedLabelValue
-		for _, pod := range getPodNamesInDeployment(deployment) {
-			inspect := podmanTest.Podman([]string{"pod", "inspect", pod.Name, "--format", "'{{ .Labels }}'"})
-			inspect.WaitWithDefaultTimeout()
-			Expect(inspect).Should(Exit(0))
-			Expect(inspect.OutputToString()).To(ContainSubstring(correctLabels))
-		}
+		pod := getPodNameInDeployment(deployment)
+		inspect := podmanTest.Podman([]string{"pod", "inspect", pod.Name, "--format", "'{{ .Labels }}'"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).Should(Exit(0))
+		Expect(inspect.OutputToString()).To(ContainSubstring(correctLabels))
 	})
 
 	It("podman play kube allows setting resource limits", func() {
@@ -3324,19 +3314,18 @@ VOLUME %s`, ALPINE, hostPathDir+"/")
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(Exit(0))
 
-		for _, pod := range getPodNamesInDeployment(deployment) {
-			pod := pod // copy into local scope
-			inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(&pod), "--format", `
+		pod := getPodNameInDeployment(deployment)
+		inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(&pod), "--format", `
 CpuPeriod: {{ .HostConfig.CpuPeriod }}
 CpuQuota: {{ .HostConfig.CpuQuota }}
 Memory: {{ .HostConfig.Memory }}
 MemoryReservation: {{ .HostConfig.MemoryReservation }}`})
-			inspect.WaitWithDefaultTimeout()
-			Expect(inspect).Should(Exit(0))
-			Expect(inspect.OutputToString()).To(ContainSubstring(fmt.Sprintf("%s: %d", "CpuQuota", expectedCPUQuota)))
-			Expect(inspect.OutputToString()).To(ContainSubstring("MemoryReservation: " + expectedMemoryRequest))
-			Expect(inspect.OutputToString()).To(ContainSubstring("Memory: " + expectedMemoryLimit))
-		}
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).Should(Exit(0))
+		Expect(inspect.OutputToString()).To(ContainSubstring(fmt.Sprintf("%s: %d", "CpuQuota", expectedCPUQuota)))
+		Expect(inspect.OutputToString()).To(ContainSubstring("MemoryReservation: " + expectedMemoryRequest))
+		Expect(inspect.OutputToString()).To(ContainSubstring("Memory: " + expectedMemoryLimit))
+
 	})
 
 	It("podman play kube allows setting resource limits with --cpus 1", func() {
@@ -3359,18 +3348,17 @@ MemoryReservation: {{ .HostConfig.MemoryReservation }}`})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(Exit(0))
 
-		for _, pod := range getPodNamesInDeployment(deployment) {
-			pod := pod // copy into local scope
-			inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(&pod), "--format", `{{ .HostConfig.CpuPeriod }}:{{ .HostConfig.CpuQuota }}`})
+		pod := getPodNameInDeployment(deployment)
+		inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(&pod), "--format", `{{ .HostConfig.CpuPeriod }}:{{ .HostConfig.CpuQuota }}`})
 
-			inspect.WaitWithDefaultTimeout()
-			Expect(inspect).Should(Exit(0))
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).Should(Exit(0))
 
-			parts := strings.Split(strings.Trim(inspect.OutputToString(), "\n"), ":")
-			Expect(parts).To(HaveLen(2))
+		parts := strings.Split(strings.Trim(inspect.OutputToString(), "\n"), ":")
+		Expect(parts).To(HaveLen(2))
 
-			Expect(parts[0]).To(Equal(parts[1]))
-		}
+		Expect(parts[0]).To(Equal(parts[1]))
+
 	})
 
 	It("podman play kube reports invalid image name", func() {
@@ -3595,12 +3583,12 @@ spec:
 		Expect(inspectVolume).Should(Exit(0))
 		Expect(inspectVolume.OutputToString()).To(ContainSubstring(volName))
 
-		inspectPod := podmanTest.Podman([]string{"inspect", podName + "-pod-0", "--format", "'{{ .State }}'"})
+		inspectPod := podmanTest.Podman([]string{"inspect", podName + "-pod", "--format", "'{{ .State }}'"})
 		inspectPod.WaitWithDefaultTimeout()
 		Expect(inspectPod).Should(Exit(0))
 		Expect(inspectPod.OutputToString()).To(ContainSubstring(`Running`))
 
-		inspectMounts := podmanTest.Podman([]string{"inspect", podName + "-pod-0-" + ctrName, "--format", "{{ (index .Mounts 0).Type }}:{{ (index .Mounts 0).Name }}"})
+		inspectMounts := podmanTest.Podman([]string{"inspect", podName + "-pod-" + ctrName, "--format", "{{ (index .Mounts 0).Type }}:{{ (index .Mounts 0).Name }}"})
 		inspectMounts.WaitWithDefaultTimeout()
 		Expect(inspectMounts).Should(Exit(0))
 
@@ -3628,7 +3616,7 @@ spec:
 		for i := 0; i < 2; i++ {
 			podName := fmt.Sprintf("testPod%d", i)
 			deploymentName := fmt.Sprintf("testDeploy%d", i)
-			deploymentPodName := fmt.Sprintf("%s-pod-0", deploymentName)
+			deploymentPodName := fmt.Sprintf("%s-pod", deploymentName)
 
 			podNames = append(podNames, podName)
 			podNames = append(podNames, deploymentPodName)
@@ -3767,7 +3755,7 @@ invalid kube kind
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(Exit(0))
 
-		podName := getPodNamesInDeployment(deployment)[0].Name
+		podName := getPodNameInDeployment(deployment).Name
 
 		inspect := podmanTest.Podman([]string{"inspect", podName + "-" + ctr01Name, "--format", "'{{.Config.Labels}}'"})
 		inspect.WaitWithDefaultTimeout()
@@ -4183,7 +4171,7 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 			kube.WaitWithDefaultTimeout()
 			Expect(kube).Should(Exit(0))
 
-			inspect := podmanTest.Podman([]string{"inspect", fmt.Sprintf("%s-%s-%s", deployment.Name, "pod-0", defaultCtrName), "--format", "'{{ .Config }}'"})
+			inspect := podmanTest.Podman([]string{"inspect", fmt.Sprintf("%s-%s-%s", deployment.Name, "pod", defaultCtrName), "--format", "'{{ .Config }}'"})
 			inspect.WaitWithDefaultTimeout()
 			Expect(inspect).Should(Exit(0))
 			Expect(inspect.OutputToString()).To(ContainSubstring(`FOO=foo`))
@@ -4660,6 +4648,7 @@ cgroups="disabled"`), 0644)
 	})
 
 	It("podman kube --quiet with error", func() {
+		SkipIfNotRootless("We need to create an error trying to bind to port 80")
 		yaml := `
 apiVersion: apps/v1
 kind: Deployment
@@ -4678,6 +4667,7 @@ spec:
         image: quay.io/libpod/alpine_nginx:latest
         ports:
         - containerPort: 1234
+          hostPort: 80
 `
 
 		err = writeYaml(yaml, kubeYaml)
@@ -4922,5 +4912,23 @@ spec:
 		Expect(kube).Should(Exit(0))
 
 		verifyPodPorts(podmanTest, "network-echo", "19008/tcp:[{ 19011}]", "19008/udp:[{ 19012}]")
+	})
+
+	It("podman play kube with replicas limits the count to 1 and emits a warning", func() {
+		deployment := getDeployment(withReplicas(10))
+		err := generateKubeYaml("deployment", deployment, kubeYaml)
+		Expect(err).ToNot(HaveOccurred())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		// warnings are only propagated to local clients
+		if !IsRemote() {
+			Expect(kube.ErrorToString()).Should(ContainSubstring("Limiting replica count to 1, more than one replica is not supported by Podman"))
+		}
+
+		Expect(strings.Count(kube.OutputToString(), "Pod:")).To(Equal(1))
+		Expect(strings.Count(kube.OutputToString(), "Container:")).To(Equal(1))
 	})
 })
