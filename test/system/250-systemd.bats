@@ -431,7 +431,7 @@ EOF
     # design yet for propagating exit codes up to the service
     # container.
     run_podman pod kill test_pod
-    for i in {0..5}; do
+    for i in {0..20}; do
         run systemctl is-active $service_name
         if [[ $output == "inactive" ]]; then
             break
