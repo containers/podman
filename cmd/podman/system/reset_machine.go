@@ -8,6 +8,9 @@ import (
 )
 
 func resetMachine() error {
-	provider := cmdMach.GetSystemDefaultProvider()
+	provider, err := cmdMach.GetSystemProvider()
+	if err != nil {
+		return err
+	}
 	return provider.RemoveAndCleanMachines()
 }
