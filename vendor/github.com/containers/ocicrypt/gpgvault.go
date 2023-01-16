@@ -18,7 +18,7 @@ package ocicrypt
 
 import (
 	"bytes"
-	"io/ioutil"
+	"os"
 
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/openpgp"
@@ -76,7 +76,7 @@ func (g *gpgVault) AddSecretKeyRingDataArray(gpgSecretKeyRingDataArray [][]byte)
 // AddSecretKeyRingFiles adds the secret key rings given their filenames
 func (g *gpgVault) AddSecretKeyRingFiles(filenames []string) error {
 	for _, filename := range filenames {
-		gpgSecretKeyRingData, err := ioutil.ReadFile(filename)
+		gpgSecretKeyRingData, err := os.ReadFile(filename)
 		if err != nil {
 			return err
 		}

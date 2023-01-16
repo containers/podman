@@ -19,6 +19,7 @@ package keyprovider
 import (
 	"context"
 	"encoding/json"
+
 	"github.com/containers/ocicrypt/config"
 	keyproviderconfig "github.com/containers/ocicrypt/config/keyprovider-config"
 	"github.com/containers/ocicrypt/keywrap"

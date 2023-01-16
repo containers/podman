@@ -19,13 +19,13 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"regexp"
 
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/signature/internal"
 	"github.com/containers/image/v5/transports"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/storage/pkg/homedir"
+	"github.com/containers/storage/pkg/regexp"
 )
 
 // systemDefaultPolicyPath is the policy path used for DefaultPolicy().
@@ -829,12 +829,12 @@ func (prm *prmExactRepository) UnmarshalJSON(data []byte) error {
 // Private objects for validateIdentityRemappingPrefix
 var (
 	// remapIdentityDomainRegexp matches exactly a reference domain (name[:port])
-	remapIdentityDomainRegexp = regexp.MustCompile("^" + reference.DomainRegexp.String() + "$")
+	remapIdentityDomainRegexp = regexp.Delayed("^" + reference.DomainRegexp.String() + "$")
 	// remapIdentityDomainPrefixRegexp matches a reference that starts with a domain;
 	// we need this because reference.NameRegexp accepts short names with docker.io implied.
-	remapIdentityDomainPrefixRegexp = regexp.MustCompile("^" + reference.DomainRegexp.String() + "/")
+	remapIdentityDomainPrefixRegexp = regexp.Delayed("^" + reference.DomainRegexp.String() + "/")
 	// remapIdentityNameRegexp matches exactly a reference.Named name (possibly unnormalized)
-	remapIdentityNameRegexp = regexp.MustCompile("^" + reference.NameRegexp.String() + "$")
+	remapIdentityNameRegexp = regexp.Delayed("^" + reference.NameRegexp.String() + "$")
 )
 
 // validateIdentityRemappingPrefix returns an InvalidPolicyFormatError if s is detected to be invalid

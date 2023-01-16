@@ -138,7 +138,7 @@ func (h *LayerBlockCipherHandler) Decrypt(encDataReader io.Reader, opt LayerBloc
 	if typ == "" {
 		return nil, LayerBlockCipherOptions{}, errors.New("no cipher type provided")
 	}
-	if c, ok := h.cipherMap[LayerCipherType(typ)]; ok {
+	if c, ok := h.cipherMap[typ]; ok {
 		return c.Decrypt(encDataReader, opt)
 	}
 	return nil, LayerBlockCipherOptions{}, errors.Errorf("unsupported cipher type: %s", typ)

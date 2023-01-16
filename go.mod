@@ -14,8 +14,8 @@ require (
 	github.com/containers/buildah v1.28.1-0.20221221082547-8403b6ebc13d
 	github.com/containers/common v0.50.2-0.20230113010242-57f81310d68a
 	github.com/containers/conmon v2.0.20+incompatible
-	github.com/containers/image/v5 v5.23.1-0.20230104183125-aaf0985b36f9
-	github.com/containers/ocicrypt v1.1.6
+	github.com/containers/image/v5 v5.23.1-0.20230116122250-3d22f4e96c53
+	github.com/containers/ocicrypt v1.1.7-0.20230115130455-e0cec6f7be0d
 	github.com/containers/psgo v1.8.0
 	github.com/containers/storage v1.45.0
 	github.com/coreos/go-systemd/v22 v22.5.0
@@ -117,7 +117,7 @@ require (
 	github.com/pkg/sftp v1.13.5 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/proglottis/gpgme v0.1.3 // indirect
-	github.com/rivo/uniseg v0.2.0 // indirect
+	github.com/rivo/uniseg v0.4.3 // indirect
 	github.com/seccomp/libseccomp-golang v0.10.0 // indirect
 	github.com/sigstore/sigstore v1.5.0 // indirect
 	github.com/stefanberger/go-pkcs11uri v0.0.0-20201008174630-78d3cae3a980 // indirect
@@ -135,7 +135,7 @@ require (
 	golang.org/x/crypto v0.5.0 // indirect
 	golang.org/x/mod v0.7.0 // indirect
 	golang.org/x/tools v0.4.0 // indirect
-	google.golang.org/genproto v0.0.0-20221206210731-b1a01be3a5f6 // indirect
+	google.golang.org/genproto v0.0.0-20221207170731-23e4bf6bdc37 // indirect
 	google.golang.org/grpc v1.51.0 // indirect
 	gopkg.in/square/go-jose.v2 v2.6.0 // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
