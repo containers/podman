@@ -608,6 +608,7 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 // be removed also if and only if the container is the sole user
 // Otherwise, RemoveContainer will return an error if the container is running
 func (r *Runtime) RemoveContainer(ctx context.Context, c *Container, force bool, removeVolume bool, timeout *uint) error {
+	// NOTE: container will be locked down the road.
 	return r.removeContainer(ctx, c, force, removeVolume, false, false, timeout)
 }
 
