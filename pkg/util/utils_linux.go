@@ -7,7 +7,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"strings"
 	"syscall"
 
 	"github.com/containers/podman/v4/libpod/define"
@@ -107,7 +106,18 @@ func AddPrivilegedDevices(g *generate.Generator, systemdMode bool) error {
 				Source:      d.Path,
 				Options:     []string{"slave", "nosuid", "noexec", "rw", "rbind"},
 			}
-			if d.Path == "/dev/ptmx" || strings.HasPrefix(d.Path, "/dev/tty") {
+
+			/* The following devices should not be mounted in rootless containers:
+			 *
+			 *   /dev/ptmx: The host-provided /dev/ptmx should not be shared to
+			 *              the rootless containers for security reasons, and
+			 *              the container runtime will create it for us
+			 *              anyway (ln -s /dev/pts/ptmx /dev/ptmx);
+			 *   /dev/tty[0-9]+: Prevent the container from taking over the host's
+			 *                   virtual consoles, even when not in systemd mode
+			 *                   for backwards compatibility.
+			 */
+			if d.Path == "/dev/ptmx" || isVirtualConsoleDevice(d.Path) {
 				continue
 			}
 			if _, found := mounts[d.Path]; found {
@@ -121,6 +131,16 @@ func AddPrivilegedDevices(g *generate.Generator, systemdMode bool) error {
 		}
 	} else {
 		for _, d := range hostDevices {
+			/* Restrict access to the virtual consoles *only* when running
+			 * in systemd mode to improve backwards compatibility. See
+			 * https://github.com/containers/podman/issues/15878.
+			 *
+			 * NOTE: May need revisiting in the future to drop the systemd
+			 * condition if more use cases end up breaking the virtual terminals
+			 * of people who specifically disable the systemd mode. It would
+			 * also provide a more consistent behaviour between rootless and
+			 * rootfull containers.
+			 */
 			if systemdMode && isVirtualConsoleDevice(d.Path) {
 				continue
 			}

@@ -952,10 +952,29 @@ $IMAGE--c_ok" \
     run_podman stop -t 0 $cid
 }
 
-# 16925: --privileged + --systemd = share non-virtual-terminal TTYs
-@test "podman run --privileged as root with systemd mounts non-vt /dev/tty devices" {
-    skip_if_rootless "this test only makes sense as root"
+@test "podman run --privileged as rootless will not mount /dev/tty\d+" {
+    skip_if_not_rootless "this test as rootless"
 
+    # First, confirm that we _have_ /dev/ttyNN devices on the host.
+    # ('skip' would be nicer in some sense... but could hide a regression.
+    # Fedora, RHEL, Debian, Ubuntu, Gentoo, all have /dev/ttyN, so if
+    # this ever triggers, it means a real problem we should know about.)
+    vt_tty_devices_count=$(find /dev -regex '/dev/tty[0-9].*' | wc -w)
+    assert "$vt_tty_devices_count" != "0" \
+           "Expected at least one /dev/ttyN device on host"
+
+    run_podman run --rm -d --privileged $IMAGE ./pause
+    cid="$output"
+
+    run_podman exec $cid sh -c "find /dev -regex '/dev/tty[0-9].*' | wc -w"
+    assert "$output" = "0" \
+           "ls /dev/tty[0-9]: should have no ttyN devices"
+
+    run_podman stop -t 0 $cid
+}
+
+# 16925: --privileged + --systemd = share non-virtual-terminal TTYs (both rootful and rootless)
+@test "podman run --privileged as root with systemd mounts non-vt /dev/tty devices" {
     # First, confirm that we _have_ non-virtual terminal /dev/tty* devices on
     # the host.
     non_vt_tty_devices_count=$(find /dev -regex '/dev/tty[^0-9].*' | wc -w)
