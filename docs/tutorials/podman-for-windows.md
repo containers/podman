@@ -44,7 +44,7 @@ downloaded from the official
 Windows installer file is named podman-#.#.#-setup.exe, where the # symbols
 represent the version number of Podman. Be sure to download a 4.1 or later
 release for the capabilities discussed in this guide.
-As of 2022-11-09 the latest version is [v4.3.0](https://github.com/containers/podman/releases/download/v4.3.0/podman-v4.3.0-setup.exe).
+As of 2023-01-16 the latest version is [v4.3.1](https://github.com/containers/podman/releases/download/v4.3.1/podman-4.3.1-setup.exe).
 
 ![Installing Podman 4.1.0](podman-win-install.jpg)
 

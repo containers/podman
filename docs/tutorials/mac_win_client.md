@@ -17,7 +17,7 @@ The remote client uses a client-server model. You need Podman installed on a Lin
 ### Windows
 
 Installing the Windows Podman client begins by downloading the Podman Windows installer. The Windows installer is built with each Podman release and is downloadable from its [release description page](https://github.com/containers/podman/releases/latest).  The Windows installer file is named `podman-#.#.#-setup.exe`, where the `#` symbols represent the version number of Podman.
-As of 2022-11-09 the latest version is [v4.3.0](https://github.com/containers/podman/releases/download/v4.3.0/podman-v4.3.0-setup.exe).
+As of 2023-01-16 the latest version is [v4.3.1](https://github.com/containers/podman/releases/download/v4.3.1/podman-4.3.1-setup.exe).
 
 Once you have downloaded the installer to your Windows host, simply double click the installer and Podman will be installed.  The path is also set to put `podman` in the default user path.
 
