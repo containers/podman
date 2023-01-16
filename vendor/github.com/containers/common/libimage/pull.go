@@ -497,16 +497,26 @@ func (r *Runtime) copySingleImageFromRegistry(ctx context.Context, imageName str
 
 	customPlatform := len(options.Architecture)+len(options.OS)+len(options.Variant) > 0
 	if customPlatform && pullPolicy != config.PullPolicyAlways && pullPolicy != config.PullPolicyNever {
-		// Unless the pull policy is always/never, we must
-		// pessimistically assume that the local image has an invalid
-		// architecture (see containers/podman/issues/10682).  Hence,
-		// whenever the user requests a custom platform, set the pull
-		// policy to "newer" to make sure we're pulling down the
+		// Unless the specified platform matches the local image, we
+		// must pessimistically assume that the local image has an
+		// invalid architecture (see containers/podman/issues/10682).
+		// Hence, whenever the user requests a custom platform, set the
+		// pull policy to "newer" to make sure we're pulling down the
 		// correct image.
 		//
 		// NOTE that this is will even override --pull={false,never}.
-		pullPolicy = config.PullPolicyNewer
-		logrus.Debugf("Enforcing pull policy to %q to pull custom platform (arch: %q, os: %q, variant: %q) - local image may mistakenly specify wrong platform", pullPolicy, options.Architecture, options.OS, options.Variant)
+		localImageMatches := false
+		if localImage != nil {
+			_, matches, err := localImage.matchesPlatform(ctx, options.OS, options.Architecture, options.Variant)
+			if err != nil {
+				return nil, err
+			}
+			localImageMatches = matches
+		}
+		if !localImageMatches {
+			pullPolicy = config.PullPolicyNewer
+			logrus.Debugf("Enforcing pull policy to %q to pull custom platform (arch: %q, os: %q, variant: %q) - local image may mistakenly specify wrong platform", pullPolicy, options.Architecture, options.OS, options.Variant)
+		}
 	}
 
 	if pullPolicy == config.PullPolicyNever {

@@ -4,11 +4,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"reflect"
-	"regexp"
 	"strings"
 	"text/template"
 
 	"github.com/containers/common/pkg/report/camelcase"
+	"github.com/containers/storage/pkg/regexp"
 )
 
 // Template embeds template.Template to add functionality to methods
@@ -160,7 +160,7 @@ func (t *Template) IsTable() bool {
 	return t.isTable
 }
 
-var rangeRegex = regexp.MustCompile(`(?s){{\s*range\s*\.\s*}}.*{{\s*end\s*-?\s*}}`)
+var rangeRegex = regexp.Delayed(`(?s){{\s*range\s*\.\s*}}.*{{\s*end\s*-?\s*}}`)
 
 // EnforceRange ensures that the format string contains a range
 func EnforceRange(format string) string {
