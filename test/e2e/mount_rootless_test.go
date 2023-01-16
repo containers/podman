@@ -57,11 +57,11 @@ var _ = Describe("Podman mount", func() {
 		opts := podmanTest.PodmanMakeOptions([]string{"mount", cid}, false, false)
 		args = append(args, opts...)
 
-		// container root file system location is /tmp/... because "--root /tmp/..."
+		// container root file system location is cachePath/... because "--root cachePath/..."
 		session := podmanTest.Podman(args)
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.OutputToString()).To(ContainSubstring("/tmp"))
+		Expect(session.OutputToString()).To(ContainSubstring(cachePath()))
 	})
 
 	It("podman image mount", func() {
@@ -83,10 +83,10 @@ var _ = Describe("Podman mount", func() {
 		opts := podmanTest.PodmanMakeOptions([]string{"image", "mount", ALPINE}, false, false)
 		args = append(args, opts...)
 
-		// image location is /tmp/... because "--root /tmp/..."
+		// image location is cachePath/... because "--root cachePath/..."
 		session := podmanTest.Podman(args)
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.OutputToString()).To(ContainSubstring("/tmp"))
+		Expect(session.OutputToString()).To(ContainSubstring(cachePath()))
 	})
 })

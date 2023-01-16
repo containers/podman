@@ -188,6 +188,7 @@ var _ = Describe("Podman save", func() {
 
 		cmd = exec.Command("cp", "sign/key.gpg", "/tmp/key.gpg")
 		Expect(cmd.Run()).To(Succeed())
+		defer os.Remove("/tmp/key.gpg")
 		sigstore := `
 default-docker:
   sigstore: file:///var/lib/containers/sigstore

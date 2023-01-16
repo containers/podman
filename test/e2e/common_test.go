@@ -104,7 +104,9 @@ func TestLibpod(t *testing.T) {
 
 var _ = SynchronizedBeforeSuite(func() []byte {
 	// make cache dir
-	if err := os.MkdirAll(ImageCacheDir, 0777); err != nil {
+	imageDir := cachePath("imagedir")
+
+	if err := os.MkdirAll(imageDir, 0777); err != nil {
 		fmt.Printf("%q\n", err)
 		os.Exit(1)
 	}
@@ -112,7 +114,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	// Cache images
 	cwd, _ := os.Getwd()
 	INTEGRATION_ROOT = filepath.Join(cwd, "../../")
-	podman := PodmanTestSetup("/tmp")
+	podman := PodmanTestSetup(cachePath())
 
 	// Pull cirros but don't put it into the cache
 	pullImages := []string{CIRROS_IMAGE, fedoraToolbox, volumeTest}
@@ -121,11 +123,11 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 		podman.createArtifact(image)
 	}
 
-	if err := os.MkdirAll(filepath.Join(ImageCacheDir, podman.ImageCacheFS+"-images"), 0777); err != nil {
+	if err := os.MkdirAll(filepath.Join(imageDir, podman.ImageCacheFS+"-images"), 0777); err != nil {
 		fmt.Printf("%q\n", err)
 		os.Exit(1)
 	}
-	podman.Root = ImageCacheDir
+	podman.Root = imageDir
 	// If running localized tests, the cache dir is created and populated. if the
 	// tests are remote, this is a no-op
 	populateCache(podman)
@@ -192,7 +194,7 @@ var _ = SynchronizedAfterSuite(func() {},
 		}
 		// for localized tests, this removes the image cache dir and for remote tests
 		// this is a no-op
-		removeCache()
+		podmanTest.removeCache()
 	})
 
 // PodmanTestCreate creates a PodmanTestIntegration instance for the tests
@@ -275,6 +277,9 @@ func PodmanTestCreateUtil(tempDir string, remote bool) *PodmanTestIntegration {
 		storageFs = os.Getenv("STORAGE_FS")
 		storageOptions = "--storage-driver " + storageFs
 	}
+
+	imageDir := cachePath("imagedir")
+
 	p := &PodmanTestIntegration{
 		PodmanTest: PodmanTest{
 			PodmanBinary:       podmanBinary,
@@ -282,7 +287,7 @@ func PodmanTestCreateUtil(tempDir string, remote bool) *PodmanTestIntegration {
 			TempDir:            tempDir,
 			RemoteTest:         remote,
 			ImageCacheFS:       storageFs,
-			ImageCacheDir:      ImageCacheDir,
+			ImageCacheDir:      imageDir,
 			NetworkBackend:     networkBackend,
 		},
 		ConmonBinary:        conmonBinary,
@@ -557,8 +562,15 @@ func (p *PodmanTestIntegration) Cleanup() {
 
 	p.StopRemoteService()
 	// Nuke tempdir
-	if err := os.RemoveAll(p.TempDir); err != nil {
-		fmt.Printf("%q\n", err)
+	if isRootless() {
+		cmd := exec.Command(p.PodmanBinary, "unshare", "rm", "-rf", p.TempDir)
+		if err := cmd.Run(); err != nil {
+			fmt.Fprintf(os.Stderr, "%v\n", err)
+		}
+	} else {
+		if err := os.RemoveAll(p.TempDir); err != nil {
+			fmt.Printf("%q\n", err)
+		}
 	}
 
 	// Clean up the registries configuration file ENV variable set in Create
@@ -844,10 +856,31 @@ func populateCache(podman *PodmanTestIntegration) {
 	fmt.Printf("-----------------------------\n")
 }
 
-func removeCache() {
+func cachePath(path ...string) string {
+	cacheDir := os.Getenv("TMPDIR")
+	if cacheDir == "" {
+		cacheDir = "/tmp"
+	}
+
+	if len(path) != 0 {
+		cacheDir = filepath.Join(cacheDir, path[0])
+	}
+
+	return cacheDir
+}
+
+func (p *PodmanTestIntegration) removeCache() {
 	// Remove cache dirs
-	if err := os.RemoveAll(ImageCacheDir); err != nil {
-		fmt.Printf("%q\n", err)
+	imageDir := cachePath("imagedir")
+	if isRootless() {
+		cmd := exec.Command(p.PodmanBinary, "unshare", "rm", "-rf", imageDir)
+		if err := cmd.Run(); err != nil {
+			fmt.Fprintf(os.Stderr, "%v\n", err)
+		}
+	} else {
+		if err := os.RemoveAll(imageDir); err != nil {
+			fmt.Printf("%q\n", err)
+		}
 	}
 }
 

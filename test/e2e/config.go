@@ -13,7 +13,6 @@ var (
 	INFRA_IMAGE       = "k8s.gcr.io/pause:3.2" //nolint:revive,stylecheck
 	BB                = "quay.io/libpod/busybox:latest"
 	HEALTHCHECK_IMAGE = "quay.io/libpod/alpine_healthcheck:latest" //nolint:revive,stylecheck
-	ImageCacheDir     = "/tmp/podman/imagecachedir"
 	fedoraToolbox     = "registry.fedoraproject.org/fedora-toolbox:36"
 	volumeTest        = "quay.io/libpod/volume-plugin-test-img:20220623"
 

@@ -140,9 +140,10 @@ var _ = Describe("Podman push", func() {
 
 		if !IsRemote() { // Remote does not support --digestfile
 			// Test --digestfile option
-			push2 := podmanTest.Podman([]string{"push", "--tls-verify=false", "--digestfile=/tmp/digestfile.txt", "--remove-signatures", ALPINE, "localhost:5000/my-alpine"})
+			digestFile := cachePath("digestfile.txt")
+			push2 := podmanTest.Podman([]string{"push", "--tls-verify=false", "--digestfile=" + digestFile, "--remove-signatures", ALPINE, "localhost:5000/my-alpine"})
 			push2.WaitWithDefaultTimeout()
-			fi, err := os.Lstat("/tmp/digestfile.txt")
+			fi, err := os.Lstat(digestFile)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(fi.Name()).To(Equal("digestfile.txt"))
 			Expect(push2).Should(Exit(0))
