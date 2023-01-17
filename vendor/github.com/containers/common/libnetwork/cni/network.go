@@ -141,11 +141,15 @@ func (n *cniNetwork) DefaultNetworkName() string {
 
 func (n *cniNetwork) loadNetworks() error {
 	// check the mod time of the config dir
+	var modTime time.Time
 	f, err := os.Stat(n.cniConfigDir)
-	if err != nil {
+	// ignore error if the file does not exists
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
 		return err
 	}
-	modTime := f.ModTime()
+	if err == nil {
+		modTime = f.ModTime()
+	}
 
 	// skip loading networks if they are already loaded and
 	// if the config dir was not modified since the last call

@@ -23,7 +23,6 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/mail"
 	"strconv"
 	"strings"
@@ -126,7 +125,7 @@ func (kw *gpgKeyWrapper) UnwrapKey(dc *config.DecryptConfig, pgpPacket []byte) (
 			continue
 		}
 		// we get the plain key options back
-		optsData, err := ioutil.ReadAll(md.UnverifiedBody)
+		optsData, err := io.ReadAll(md.UnverifiedBody)
 		if err != nil {
 			continue
 		}

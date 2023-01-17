@@ -18,12 +18,13 @@ package ocicrypt
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"os/exec"
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
@@ -272,8 +273,8 @@ func runGPGGetOutput(cmd *exec.Cmd) ([]byte, error) {
 		return nil, err
 	}
 
-	stdoutstr, err2 := ioutil.ReadAll(stdout)
-	stderrstr, _ := ioutil.ReadAll(stderr)
+	stdoutstr, err2 := io.ReadAll(stdout)
+	stderrstr, _ := io.ReadAll(stderr)
 
 	if err := cmd.Wait(); err != nil {
 		return nil, fmt.Errorf("error from %s: %s", cmd.Path, string(stderrstr))
@@ -310,9 +311,15 @@ func resolveRecipients(gc GPGClient, recipients []string) []string {
 	return result
 }
 
-var emailPattern = regexp.MustCompile(`uid\s+\[.*\]\s.*\s<(?P<email>.+)>`)
+var (
+	onceRegexp   sync.Once
+	emailPattern *regexp.Regexp
+)
 
 func extractEmailFromDetails(details []byte) string {
+	onceRegexp.Do(func() {
+		emailPattern = regexp.MustCompile(`uid\s+\[.*\]\s.*\s<(?P<email>.+)>`)
+	})
 	loc := emailPattern.FindSubmatchIndex(details)
 	if len(loc) == 0 {
 		return ""
@@ -352,7 +359,7 @@ func GPGGetPrivateKey(descs []ocispec.Descriptor, gpgClient GPGClient, gpgVault 
 			}
 			keywrapper := GetKeyWrapper(scheme)
 			if keywrapper == nil {
-				return nil, nil, errors.Errorf("could not get KeyWrapper for %s\n", scheme)
+				return nil, nil, errors.Errorf("could not get KeyWrapper for %s", scheme)
 			}
 			keyIds, err := keywrapper.GetKeyIdsFromPacket(b64pgpPackets)
 			if err != nil {
