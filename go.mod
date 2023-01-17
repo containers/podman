@@ -10,7 +10,7 @@ require (
 	github.com/checkpoint-restore/go-criu/v6 v6.3.0
 	github.com/container-orchestrated-devices/container-device-interface v0.5.3
 	github.com/containernetworking/cni v1.1.2
-	github.com/containernetworking/plugins v1.1.1
+	github.com/containernetworking/plugins v1.2.0
 	github.com/containers/buildah v1.28.1-0.20221221082547-8403b6ebc13d
 	github.com/containers/common v0.50.2-0.20230113010242-57f81310d68a
 	github.com/containers/conmon v2.0.20+incompatible
@@ -58,7 +58,7 @@ require (
 	github.com/uber/jaeger-client-go v2.30.0+incompatible
 	github.com/ulikunitz/xz v0.5.11
 	github.com/vbauerster/mpb/v7 v7.5.3
-	github.com/vishvananda/netlink v1.1.1-0.20220115184804-dd687eb2f2d4
+	github.com/vishvananda/netlink v1.2.1-beta.2
 	go.etcd.io/bbolt v1.3.6
 	golang.org/x/net v0.5.0
 	golang.org/x/sync v0.1.0
