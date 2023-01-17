@@ -750,9 +750,6 @@ artifacts_task:
         - unzip gosrc.zip
         - cd $CIRRUS_WORKING_DIR
         - mv /tmp/win/podman-remote*.zip /tmp/win/*.msi ./
-        # OSX
-        - $CURL/OSX%20Cross/gosrc/podman-remote-release-darwin_amd64.zip
-        - $CURL/OSX%20Cross/gosrc/podman-remote-release-darwin_arm64.zip
     # Always show contents to assist in debugging
     always:
         contents_script: ls -1 $CIRRUS_WORKING_DIR
