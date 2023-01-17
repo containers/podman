@@ -152,6 +152,12 @@ func ruleHandle(rule *Rule, req *nl.NetlinkRequest) error {
 		req.AddData(nl.NewRtAttr(nl.FRA_GOTO, b))
 	}
 
+	if rule.IPProto > 0 {
+		b := make([]byte, 4)
+		native.PutUint32(b, uint32(rule.IPProto))
+		req.AddData(nl.NewRtAttr(nl.FRA_IP_PROTO, b))
+	}
+
 	if rule.Dport != nil {
 		b := rule.Dport.toRtAttrData()
 		req.AddData(nl.NewRtAttr(nl.FRA_DPORT_RANGE, b))
@@ -250,6 +256,8 @@ func (h *Handle) RuleListFiltered(family int, filter *Rule, filterMask uint64) (
 				rule.Goto = int(native.Uint32(attrs[j].Value[0:4]))
 			case nl.FRA_PRIORITY:
 				rule.Priority = int(native.Uint32(attrs[j].Value[0:4]))
+			case nl.FRA_IP_PROTO:
+				rule.IPProto = int(native.Uint32(attrs[j].Value[0:4]))
 			case nl.FRA_DPORT_RANGE:
 				rule.Dport = NewRulePortRange(native.Uint16(attrs[j].Value[0:2]), native.Uint16(attrs[j].Value[2:4]))
 			case nl.FRA_SPORT_RANGE:

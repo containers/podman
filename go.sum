@@ -260,8 +260,8 @@ github.com/containernetworking/cni v1.1.2 h1:wtRGZVv7olUHMOqouPpn3cXJWpJgM6+EUl3
 github.com/containernetworking/cni v1.1.2/go.mod h1:sDpYKmGVENF3s6uvMvGgldDWeG8dMxakj/u+i9ht9vw=
 github.com/containernetworking/plugins v0.8.6/go.mod h1:qnw5mN19D8fIwkqW7oHHYDHVlzhJpcY6TQxn/fUyDDM=
 github.com/containernetworking/plugins v0.9.1/go.mod h1:xP/idU2ldlzN6m4p5LmGiwRDjeJr6FLK6vuiUwoH7P8=
-github.com/containernetworking/plugins v1.1.1 h1:+AGfFigZ5TiQH00vhR8qPeSatj53eNGz0C1d3wVYlHE=
-github.com/containernetworking/plugins v1.1.1/go.mod h1:Sr5TH/eBsGLXK/h71HeLfX19sZPp3ry5uHSkI4LPxV8=
+github.com/containernetworking/plugins v1.2.0 h1:SWgg3dQG1yzUo4d9iD8cwSVh1VqI+bP7mkPDoSfP9VU=
+github.com/containernetworking/plugins v1.2.0/go.mod h1:/VjX4uHecW5vVimFa1wkG4s+r/s9qIfPdqlLF4TW8c4=
 github.com/containers/buildah v1.28.1-0.20221221082547-8403b6ebc13d h1:OyqOrN7QTtA7g5ZgQkV5lChAn5cVQB0dnVqjNd93DuQ=
 github.com/containers/buildah v1.28.1-0.20221221082547-8403b6ebc13d/go.mod h1:PAftqTiRApPwzIaY42fDm/FRqOuLgd+ZZtVzIu3/eco=
 github.com/containers/common v0.50.2-0.20230113010242-57f81310d68a h1:lb8F/PZltX0YJMLw7dNPQBv5+e4I8u3id2/3bdv4O6Q=
@@ -945,8 +945,8 @@ github.com/vbauerster/mpb/v7 v7.5.3/go.mod h1:i+h4QY6lmLvBNK2ah1fSreiw3ajskRlBp9
 github.com/vishvananda/netlink v0.0.0-20181108222139-023a6dafdcdf/go.mod h1:+SR5DhBJrl6ZM7CoCKvpw5BKroDKQ+PJqOg65H/2ktk=
 github.com/vishvananda/netlink v1.1.0/go.mod h1:cTgwzPIzzgDAYoQrMm0EdrjRUBkTqKYppBueQtXaqoE=
 github.com/vishvananda/netlink v1.1.1-0.20201029203352-d40f9887b852/go.mod h1:twkDnbuQxJYemMlGd4JFIcuhgX83tXhKS2B/PRMpOho=
-github.com/vishvananda/netlink v1.1.1-0.20220115184804-dd687eb2f2d4 h1:fB26rIBlWTVJyEB6ONHdoEvUbvwoudH0/cMEXHiD1RU=
-github.com/vishvananda/netlink v1.1.1-0.20220115184804-dd687eb2f2d4/go.mod h1:twkDnbuQxJYemMlGd4JFIcuhgX83tXhKS2B/PRMpOho=
+github.com/vishvananda/netlink v1.2.1-beta.2 h1:Llsql0lnQEbHj0I1OuKyp8otXp0r3q0mPkuhwHfStVs=
+github.com/vishvananda/netlink v1.2.1-beta.2/go.mod h1:twkDnbuQxJYemMlGd4JFIcuhgX83tXhKS2B/PRMpOho=
 github.com/vishvananda/netns v0.0.0-20180720170159-13995c7128cc/go.mod h1:ZjcWmFBXmLKZu9Nxj3WKYEafiSqer2rnvPr0en9UNpI=
 github.com/vishvananda/netns v0.0.0-20191106174202-0a2b9b5464df/go.mod h1:JP3t17pCcGlemwknint6hfoeCVQrEMVwxRLRjXpq+BU=
 github.com/vishvananda/netns v0.0.0-20200728191858-db3c7e526aae/go.mod h1:DD4vA1DwXk04H54A1oHXtwZmA0grkVMdPxx/VGLCah0=
