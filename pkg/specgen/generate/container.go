@@ -213,7 +213,6 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 			sandboxID = infra.ID()
 		}
 		annotations[ann.SandboxID] = sandboxID
-		annotations[ann.ContainerType] = ann.ContainerTypeContainer
 		// Check if this is an init-ctr and if so, check if
 		// the pod is running.  we do not want to add init-ctrs to
 		// a running pod because it creates confusion for us.

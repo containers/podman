@@ -324,7 +324,6 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 	}
 	if opts.PodInfraID != "" {
 		annotations[ann.SandboxID] = opts.PodInfraID
-		annotations[ann.ContainerType] = ann.ContainerTypeContainer
 	}
 	s.Annotations = annotations
 

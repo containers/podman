@@ -120,3 +120,15 @@ const (
 // ContainerManagerLibpod indicates that libpod created and manages the
 // container.
 const ContainerManagerLibpod = "libpod"
+
+// IsReservedAnnotation returns true if the specified value corresponds to an
+// already reserved annotation that Podman sets during container creation.
+func IsReservedAnnotation(value string) bool {
+	switch value {
+	case Annotations, ContainerID, ContainerName, ContainerType, Created, HostName, CgroupParent, IP, NamespaceOptions, SeccompProfilePath, Image, ImageName, ImageRef, KubeName, PortMappings, Labels, LogPath, Metadata, Name, Namespace, PrivilegedRuntime, ResolvPath, HostnamePath, SandboxID, SandboxName, ShmPath, MountPoint, RuntimeHandler, TTY, Stdin, StdinOnce, Volumes, HostNetwork, CNIResult, ContainerManager:
+		return true
+
+	default:
+		return false
+	}
+}

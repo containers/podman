@@ -18,7 +18,7 @@ import (
 	. "github.com/onsi/gomega/gexec"
 )
 
-var _ = Describe("Podman generate kube", func() {
+var _ = Describe("Podman kube generate", func() {
 	var (
 		tempdir    string
 		err        error
@@ -41,19 +41,19 @@ var _ = Describe("Podman generate kube", func() {
 
 	})
 
-	It("podman generate pod kube on bogus object", func() {
+	It("podman kube generate pod on bogus object", func() {
 		session := podmanTest.Podman([]string{"generate", "kube", "foobar"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).To(ExitWithError())
 	})
 
-	It("podman generate service kube on bogus object", func() {
-		session := podmanTest.Podman([]string{"generate", "kube", "-s", "foobar"})
+	It("podman kube generate service on bogus object", func() {
+		session := podmanTest.Podman([]string{"kube", "generate", "-s", "foobar"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).To(ExitWithError())
 	})
 
-	It("podman generate kube on container", func() {
+	It("podman kube generate on container", func() {
 		session := podmanTest.RunTopContainer("top")
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
@@ -72,6 +72,7 @@ var _ = Describe("Podman generate kube", func() {
 		Expect(pod.Spec.Containers[0].SecurityContext).To(BeNil())
 		Expect(pod.Spec.Containers[0].Env).To(BeNil())
 		Expect(pod).To(HaveField("Name", "top-pod"))
+		Expect(pod.Annotations).To(HaveLen(0))
 
 		numContainers := 0
 		for range pod.Spec.Containers {
@@ -80,7 +81,7 @@ var _ = Describe("Podman generate kube", func() {
 		Expect(numContainers).To(Equal(1))
 	})
 
-	It("podman generate service kube on container with --security-opt level", func() {
+	It("podman kube generate service on container with --security-opt level", func() {
 		session := podmanTest.Podman([]string{"create", "--name", "test", "--security-opt", "label=level:s0:c100,c200", "alpine"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
@@ -166,6 +167,7 @@ var _ = Describe("Podman generate kube", func() {
 		err := yaml.Unmarshal(kube.Out.Contents(), pod)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(pod.Spec).To(HaveField("HostNetwork", false))
+		Expect(pod.Annotations).To(HaveLen(0))
 
 		numContainers := 0
 		for range pod.Spec.Containers {

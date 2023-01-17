@@ -499,7 +499,6 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 	}
 
 	g.SetRootPath(c.state.Mountpoint)
-	g.AddAnnotation(annotations.Created, c.config.CreatedTime.Format(time.RFC3339Nano))
 	g.AddAnnotation("org.opencontainers.image.stopSignal", fmt.Sprintf("%d", c.config.StopSignal))
 
 	if _, exists := g.Config.Annotations[annotations.ContainerManager]; !exists {
