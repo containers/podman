@@ -12,7 +12,7 @@ function _test_sigproxy() {
     local kidpid=$2
 
     # Wait for container to appear
-    local timeout=5
+    local timeout=10
     while :;do
           sleep 0.5
           run_podman '?' container exists $cname
@@ -21,6 +21,7 @@ function _test_sigproxy() {
           fi
           timeout=$((timeout - 1))
           if [[ $timeout -eq 0 ]]; then
+              run_podman ps -a
               die "Timed out waiting for container $cname to start"
           fi
     done
@@ -30,7 +31,7 @@ function _test_sigproxy() {
 
     # Signal, and wait for container to exit
     kill -INT $kidpid
-    local timeout=10
+    timeout=20
     while :;do
           sleep 0.5
           run_podman logs $cname
@@ -39,6 +40,7 @@ function _test_sigproxy() {
           fi
           timeout=$((timeout - 1))
           if [[ $timeout -eq 0 ]]; then
+              run_podman ps -a
               die "Timed out waiting for BYE from container"
           fi
     done
