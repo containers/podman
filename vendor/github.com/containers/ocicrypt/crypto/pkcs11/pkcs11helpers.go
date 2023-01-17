@@ -1,3 +1,4 @@
+//go:build cgo
 // +build cgo
 
 /*
@@ -138,7 +139,7 @@ func pkcs11UriGetKeyIdAndLabel(p11uri *pkcs11uri.Pkcs11URI) (string, string, err
 
 // pkcs11OpenSession opens a session with a pkcs11 device at the given slot and logs in with the given PIN
 func pkcs11OpenSession(p11ctx *pkcs11.Ctx, slotid uint, pin string) (session pkcs11.SessionHandle, err error) {
-	session, err = p11ctx.OpenSession(uint(slotid), pkcs11.CKF_SERIAL_SESSION|pkcs11.CKF_RW_SESSION)
+	session, err = p11ctx.OpenSession(slotid, pkcs11.CKF_SERIAL_SESSION|pkcs11.CKF_RW_SESSION)
 	if err != nil {
 		return 0, errors.Wrapf(err, "OpenSession to slot %d failed", slotid)
 	}
@@ -152,7 +153,7 @@ func pkcs11OpenSession(p11ctx *pkcs11.Ctx, slotid uint, pin string) (session pkc
 	return session, nil
 }
 
-// pkcs11UriLogin uses the given pkcs11 URI to select the pkcs11 module (share libary) and to get
+// pkcs11UriLogin uses the given pkcs11 URI to select the pkcs11 module (shared library) and to get
 // the PIN to use for login; if the URI contains a slot-id, the given slot-id will be used, otherwise
 // one slot after the other will be attempted and the first one where login succeeds will be used
 func pkcs11UriLogin(p11uri *pkcs11uri.Pkcs11URI, privateKeyOperation bool) (ctx *pkcs11.Ctx, session pkcs11.SessionHandle, err error) {
@@ -177,33 +178,33 @@ func pkcs11UriLogin(p11uri *pkcs11uri.Pkcs11URI, privateKeyOperation bool) (ctx 
 	if slotid >= 0 {
 		session, err := pkcs11OpenSession(p11ctx, uint(slotid), pin)
 		return p11ctx, session, err
-	} else {
-		slots, err := p11ctx.GetSlotList(true)
-		if err != nil {
-			return nil, 0, errors.Wrap(err, "GetSlotList failed")
-		}
-
-		tokenlabel, ok := p11uri.GetPathAttribute("token", false)
-		if !ok {
-			return nil, 0, errors.New("Missing 'token' attribute since 'slot-id' was not given")
-		}
-
-		for _, slot := range slots {
-			ti, err := p11ctx.GetTokenInfo(slot)
-			if err != nil || ti.Label != tokenlabel {
-				continue
-			}
-
-			session, err = pkcs11OpenSession(p11ctx, slot, pin)
-			if err == nil {
-				return p11ctx, session, err
-			}
-		}
-		if len(pin) > 0 {
-			return nil, 0, errors.New("Could not create session to any slot and/or log in")
-		}
-		return nil, 0, errors.New("Could not create session to any slot")
 	}
+
+	slots, err := p11ctx.GetSlotList(true)
+	if err != nil {
+		return nil, 0, errors.Wrap(err, "GetSlotList failed")
+	}
+
+	tokenlabel, ok := p11uri.GetPathAttribute("token", false)
+	if !ok {
+		return nil, 0, errors.New("Missing 'token' attribute since 'slot-id' was not given")
+	}
+
+	for _, slot := range slots {
+		ti, err := p11ctx.GetTokenInfo(slot)
+		if err != nil || ti.Label != tokenlabel {
+			continue
+		}
+
+		session, err = pkcs11OpenSession(p11ctx, slot, pin)
+		if err == nil {
+			return p11ctx, session, err
+		}
+	}
+	if len(pin) > 0 {
+		return nil, 0, errors.New("Could not create session to any slot and/or log in")
+	}
+	return nil, 0, errors.New("Could not create session to any slot")
 }
 
 func pkcs11Logout(ctx *pkcs11.Ctx, session pkcs11.SessionHandle) {
@@ -373,19 +374,19 @@ type Pkcs11Recipient struct {
 // may either be *rsa.PublicKey or *pkcs11uri.Pkcs11URI; the returned byte array is a JSON string of the
 // following format:
 // {
-//   recipients: [  // recipient list
-//     {
-//        "version": 0,
-//        "blob": <base64 encoded RSA OAEP encrypted blob>,
-//        "hash": <hash used for OAEP other than 'sha256'>
-//     } ,
-//     {
-//        "version": 0,
-//        "blob": <base64 encoded RSA OAEP encrypted blob>,
-//        "hash": <hash used for OAEP other than 'sha256'>
-//     } ,
-//     [...]
-//   ]
+// recipients: [ // recipient list
+// {
+// "version": 0,
+// "blob": <base64 encoded RSA OAEP encrypted blob>,
+// "hash": <hash used for OAEP other than 'sha256'>
+// } ,
+// {
+// "version": 0,
+// "blob": <base64 encoded RSA OAEP encrypted blob>,
+// "hash": <hash used for OAEP other than 'sha256'>
+// } ,
+// [...]
+// ]
 // }
 func EncryptMultiple(pubKeys []interface{}, data []byte) ([]byte, error) {
 	var (
@@ -422,22 +423,21 @@ func EncryptMultiple(pubKeys []interface{}, data []byte) ([]byte, error) {
 // Decrypt tries to decrypt one of the recipients' blobs using a pkcs11 private key.
 // The input pkcs11blobstr is a string with the following format:
 // {
-//   recipients: [  // recipient list
-//     {
-//        "version": 0,
-//        "blob": <base64 encoded RSA OAEP encrypted blob>,
-//        "hash": <hash used for OAEP other than 'sha1'>
-//     } ,
-//     {
-//        "version": 0,
-//        "blob": <base64 encoded RSA OAEP encrypted blob>,
-//        "hash": <hash used for OAEP other than 'sha1'>
-//     } ,
-//     [...]
+// recipients: [  // recipient list
+// {
+// "version": 0,
+// "blob": <base64 encoded RSA OAEP encrypted blob>,
+// "hash": <hash used for OAEP other than 'sha1'>
+// } ,
+// {
+// "version": 0,
+// "blob": <base64 encoded RSA OAEP encrypted blob>,
+// "hash": <hash used for OAEP other than 'sha1'>
+// } ,
+// [...]
 // }
 // Note: More recent versions of this code explicitly write 'sha1'
-//       while older versions left it empty in case of 'sha1'.
-//
+// while older versions left it empty in case of 'sha1'.
 func Decrypt(privKeyObjs []*Pkcs11KeyFileObject, pkcs11blobstr []byte) ([]byte, error) {
 	pkcs11blob := Pkcs11Blob{}
 	err := json.Unmarshal(pkcs11blobstr, &pkcs11blob)
@@ -448,7 +448,7 @@ func Decrypt(privKeyObjs []*Pkcs11KeyFileObject, pkcs11blobstr []byte) ([]byte, 
 	case 0:
 		// latest supported version
 	default:
-		return nil, errors.Errorf("Found Pkcs11Blob with version %d but maximum supported version is 0.", pkcs11blob.Version)
+		return nil, errors.Errorf("found Pkcs11Blob with version %d but maximum supported version is 0", pkcs11blob.Version)
 	}
 	// since we do trial and error, collect all encountered errors
 	errs := ""
@@ -458,7 +458,7 @@ func Decrypt(privKeyObjs []*Pkcs11KeyFileObject, pkcs11blobstr []byte) ([]byte, 
 		case 0:
 			// last supported version
 		default:
-			return nil, errors.Errorf("Found Pkcs11Recipient with version %d but maximum supported version is 0.", recipient.Version)
+			return nil, errors.Errorf("found Pkcs11Recipient with version %d but maximum supported version is 0", recipient.Version)
 		}
 
 		ciphertext, err := base64.StdEncoding.DecodeString(recipient.Blob)

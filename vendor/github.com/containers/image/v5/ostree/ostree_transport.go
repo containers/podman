@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 
 	"github.com/containers/image/v5/directory/explicitfilepath"
@@ -18,6 +17,7 @@ import (
 	"github.com/containers/image/v5/internal/image"
 	"github.com/containers/image/v5/transports"
 	"github.com/containers/image/v5/types"
+	"github.com/containers/storage/pkg/regexp"
 )
 
 const defaultOSTreeRepo = "/ostree/repo"
@@ -216,7 +216,7 @@ func (ref ostreeReference) DeleteImage(ctx context.Context, sys *types.SystemCon
 	return errors.New("Deleting images not implemented for ostree: images")
 }
 
-var ostreeRefRegexp = regexp.MustCompile(`^[A-Za-z0-9.-]$`)
+var ostreeRefRegexp = regexp.Delayed(`^[A-Za-z0-9.-]$`)
 
 func encodeOStreeRef(in string) string {
 	var buffer bytes.Buffer

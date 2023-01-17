@@ -20,15 +20,15 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	keyproviderconfig "github.com/containers/ocicrypt/config/keyprovider-config"
-	"github.com/containers/ocicrypt/keywrap/keyprovider"
 	"io"
 	"strings"
 
 	"github.com/containers/ocicrypt/blockcipher"
 	"github.com/containers/ocicrypt/config"
+	keyproviderconfig "github.com/containers/ocicrypt/config/keyprovider-config"
 	"github.com/containers/ocicrypt/keywrap"
 	"github.com/containers/ocicrypt/keywrap/jwe"
+	"github.com/containers/ocicrypt/keywrap/keyprovider"
 	"github.com/containers/ocicrypt/keywrap/pgp"
 	"github.com/containers/ocicrypt/keywrap/pkcs11"
 	"github.com/containers/ocicrypt/keywrap/pkcs7"
@@ -243,7 +243,7 @@ func decryptLayerKeyOptsData(dc *config.DecryptConfig, desc ocispec.Descriptor) 
 		}
 	}
 	if !privKeyGiven {
-		return nil, errors.New("missing private key needed for decryption")
+		return nil, errors.Errorf("missing private key needed for decryption:\n%s", errs)
 	}
 	return nil, errors.Errorf("no suitable key unwrapper found or none of the private keys could be used for decryption:\n%s", errs)
 }

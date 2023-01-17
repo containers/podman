@@ -1,0 +1,31 @@
+linters:
+  enable:
+    - depguard
+    - staticcheck
+    - unconvert
+    - gofmt
+    - goimports
+    - revive
+    - ineffassign
+    - vet
+    - unused
+    - misspell
+
+linters-settings:
+  depguard:
+    list-type: denylist
+    include-go-root: true
+    packages:
+      # use "io" or "os" instead
+      # https://go.dev/doc/go1.16#ioutil
+      - io/ioutil
+
+  revive:
+    severity: error
+    rules:
+      - name: indent-error-flow
+        severity: warning
+        disabled: false
+
+      - name: error-strings
+        disabled: false

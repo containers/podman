@@ -4,12 +4,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"regexp"
 	"strings"
 	"time"
 
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/types"
+	"github.com/containers/storage/pkg/regexp"
 	"github.com/docker/docker/api/types/versions"
 	"github.com/opencontainers/go-digest"
 )
@@ -206,7 +206,7 @@ func (m *Schema1) fixManifestLayers() error {
 	return nil
 }
 
-var validHex = regexp.MustCompile(`^([a-f0-9]{64})$`)
+var validHex = regexp.Delayed(`^([a-f0-9]{64})$`)
 
 func validateV1ID(id string) error {
 	if ok := validHex.MatchString(id); !ok {

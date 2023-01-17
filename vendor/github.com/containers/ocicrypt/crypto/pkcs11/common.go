@@ -15,6 +15,7 @@ package pkcs11
 
 import (
 	"fmt"
+
 	"github.com/pkg/errors"
 	pkcs11uri "github.com/stefanberger/go-pkcs11uri"
 	"gopkg.in/yaml.v3"
@@ -50,12 +51,12 @@ func ParsePkcs11Uri(uri string) (*pkcs11uri.Pkcs11URI, error) {
 // ParsePkcs11KeyFile parses a pkcs11 key file holding a pkcs11 URI describing a private key.
 // The file has the following yaml format:
 // pkcs11:
-//  - uri : <pkcs11 uri>
+// - uri : <pkcs11 uri>
 // An error is returned if the pkcs11 URI is malformed
 func ParsePkcs11KeyFile(yamlstr []byte) (*Pkcs11KeyFileObject, error) {
 	p11keyfile := Pkcs11KeyFile{}
 
-	err := yaml.Unmarshal([]byte(yamlstr), &p11keyfile)
+	err := yaml.Unmarshal(yamlstr, &p11keyfile)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Could not unmarshal pkcs11 keyfile")
 	}
@@ -126,7 +127,7 @@ func GetDefaultModuleDirectoriesYaml(indent string) string {
 func ParsePkcs11ConfigFile(yamlstr []byte) (*Pkcs11Config, error) {
 	p11conf := Pkcs11Config{}
 
-	err := yaml.Unmarshal([]byte(yamlstr), &p11conf)
+	err := yaml.Unmarshal(yamlstr, &p11conf)
 	if err != nil {
 		return &p11conf, errors.Wrapf(err, "Could not parse Pkcs11Config")
 	}
