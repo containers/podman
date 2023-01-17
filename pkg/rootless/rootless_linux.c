@@ -20,7 +20,7 @@
 #include <sys/select.h>
 #include <stdio.h>
 
-#define ETC_AUTH_SCRIPTS "/etc/containers/auth-scripts"
+#define ETC_PREEXEC_HOOKS "/etc/containers/pre-exec-hooks"
 #define LIBEXECPODMAN "/usr/libexec/podman"
 
 #ifndef TEMP_FAILURE_RETRY
@@ -164,23 +164,23 @@ exec_binary (const char *path, char **argv, int argc)
     }
   if (WIFEXITED(status) && WEXITSTATUS (status))
     {
-      fprintf (stderr, "external auth script %s failed\n", path);
+      fprintf (stderr, "external preexec hook %s failed\n", path);
       exit (WEXITSTATUS(status));
     }
   if (WIFSIGNALED (status))
     {
-      fprintf (stderr, "external auth script %s failed\n", path);
+      fprintf (stderr, "external preexec hook %s failed\n", path);
       exit (127+WTERMSIG (status));
     }
   if (WIFSTOPPED (status))
     {
-      fprintf (stderr, "external auth script %s failed\n", path);
+      fprintf (stderr, "external preexec hook %s failed\n", path);
       exit (EXIT_FAILURE);
     }
 }
 
 static void
-do_auth_scripts_dir (const char *dir, char **argv, int argc)
+do_preexec_hooks_dir (const char *dir, char **argv, int argc)
 {
   cleanup_free char *buffer = NULL;
   cleanup_dir DIR *d = NULL;
@@ -261,13 +261,13 @@ do_auth_scripts_dir (const char *dir, char **argv, int argc)
 }
 
 static void
-do_auth_scripts (char **argv, int argc)
+do_preexec_hooks (char **argv, int argc)
 {
-  char *auth_scripts = getenv ("PODMAN_AUTH_SCRIPTS_DIR");
-  do_auth_scripts_dir (LIBEXECPODMAN "/auth-scripts", argv, argc);
-  do_auth_scripts_dir (ETC_AUTH_SCRIPTS, argv, argc);
-  if (auth_scripts && auth_scripts[0])
-    do_auth_scripts_dir (auth_scripts, argv, argc);
+  char *preexec_hooks = getenv ("PODMAN_PREEXEC_HOOKS_DIR");
+  do_preexec_hooks_dir (LIBEXECPODMAN "/pre-exec-hooks", argv, argc);
+  do_preexec_hooks_dir (ETC_PREEXEC_HOOKS, argv, argc);
+  if (preexec_hooks && preexec_hooks[0])
+    do_preexec_hooks_dir (preexec_hooks, argv, argc);
 }
 
 static void
@@ -498,7 +498,7 @@ static void __attribute__((constructor)) init()
     }
 
   if (geteuid () != 0 || getenv ("_CONTAINERS_USERNS_CONFIGURED") == NULL)
-    do_auth_scripts(argv, argc);
+    do_preexec_hooks(argv, argc);
 
   listen_pid = getenv("LISTEN_PID");
   listen_fds = getenv("LISTEN_FDS");
