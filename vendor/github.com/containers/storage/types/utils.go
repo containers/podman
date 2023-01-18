@@ -173,6 +173,9 @@ func DefaultConfigFile(rootless bool) (string, error) {
 		return path, nil
 	}
 	if !rootless {
+		if _, err := os.Stat(defaultOverrideConfigFile); err == nil {
+			return defaultOverrideConfigFile, nil
+		}
 		return defaultConfigFile, nil
 	}
 

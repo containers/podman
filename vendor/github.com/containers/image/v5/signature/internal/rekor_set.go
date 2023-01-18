@@ -1,7 +1,18 @@
 package internal
 
 import (
+	"bytes"
+	"crypto/ecdsa"
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
+	"encoding/pem"
+	"fmt"
+	"time"
+
+	"github.com/cyberphone/json-canonicalization/go/src/webpki.org/jsoncanonicalizer"
+	"github.com/sigstore/rekor/pkg/generated/models"
 )
 
 // This is the github.com/sigstore/rekor/pkg/generated/models.Hashedrekord.APIVersion for github.com/sigstore/rekor/pkg/generated/models.HashedrekordV001Schema.
@@ -95,4 +106,132 @@ func (p UntrustedRekorPayload) MarshalJSON() ([]byte, error) {
 		"logIndex":       p.LogIndex,
 		"logID":          p.LogID,
 	})
+}
+
+// VerifyRekorSET verifies that unverifiedRekorSET is correctly signed by publicKey and matches the rest of the data.
+// Returns bundle upload time on success.
+func VerifyRekorSET(publicKey *ecdsa.PublicKey, unverifiedRekorSET []byte, unverifiedKeyOrCertBytes []byte, unverifiedBase64Signature string, unverifiedPayloadBytes []byte) (time.Time, error) {
+	// FIXME: Should the publicKey parameter hard-code ecdsa?
+
+	// == Parse SET bytes
+	var untrustedSET UntrustedRekorSET
+	// Sadly. we need to parse and transform untrusted data before verifying a cryptographic signature...
+	if err := json.Unmarshal(unverifiedRekorSET, &untrustedSET); err != nil {
+		return time.Time{}, NewInvalidSignatureError(err.Error())
+	}
+	// == Verify SET signature
+	// Cosign unmarshals and re-marshals UntrustedPayload; that seems unnecessary,
+	// assuming jsoncanonicalizer is designed to operate on untrusted data.
+	untrustedSETPayloadCanonicalBytes, err := jsoncanonicalizer.Transform(untrustedSET.UntrustedPayload)
+	if err != nil {
+		return time.Time{}, NewInvalidSignatureError(fmt.Sprintf("canonicalizing Rekor SET JSON: %v", err))
+	}
+	untrustedSETPayloadHash := sha256.Sum256(untrustedSETPayloadCanonicalBytes)
+	if !ecdsa.VerifyASN1(publicKey, untrustedSETPayloadHash[:], untrustedSET.UntrustedSignedEntryTimestamp) {
+		return time.Time{}, NewInvalidSignatureError("cryptographic signature verification of Rekor SET failed")
+	}
+
+	// == Parse SET payload
+	// Parse the cryptographically-verified canonicalized variant, NOT the originally-delivered representation,
+	// to decrease risk of exploiting the JSON parser. Note that if there were an arbitrary execution vulnerability, the attacker
+	// could have exploited the parsing of unverifiedRekorSET above already; so this, at best, ensures more consistent processing
+	// of the SET payload.
+	var rekorPayload UntrustedRekorPayload
+	if err := json.Unmarshal(untrustedSETPayloadCanonicalBytes, &rekorPayload); err != nil {
+		return time.Time{}, NewInvalidSignatureError(fmt.Sprintf("parsing Rekor SET payload: %v", err.Error()))
+	}
+	// FIXME: Use a different decoder implementation? The Swagger-generated code is kinda ridiculous, with the need to re-marshal
+	// hashedRekor.Spec and so on.
+	// Especially if we anticipate needing to decode different data formats…
+	// That would also allow being much more strict about JSON.
+	//
+	// Alternatively, rely on the existing .Validate() methods instead of manually checking for nil all over the place.
+	var hashedRekord models.Hashedrekord
+	if err := json.Unmarshal(rekorPayload.Body, &hashedRekord); err != nil {
+		return time.Time{}, NewInvalidSignatureError(fmt.Sprintf("decoding the body of a Rekor SET payload: %v", err))
+	}
+	// The decode of models.HashedRekord validates the "kind": "hashedrecord" field, which is otherwise invisible to us.
+	if hashedRekord.APIVersion == nil {
+		return time.Time{}, NewInvalidSignatureError("missing Rekor SET Payload API version")
+	}
+	if *hashedRekord.APIVersion != HashedRekordV001APIVersion {
+		return time.Time{}, NewInvalidSignatureError(fmt.Sprintf("unsupported Rekor SET Payload hashedrekord version %#v", hashedRekord.APIVersion))
+	}
+	hashedRekordV001Bytes, err := json.Marshal(hashedRekord.Spec)
+	if err != nil {
+		// Coverage: hashedRekord.Spec is an interface{} that was just unmarshaled,
+		// so this should never fail.
+		return time.Time{}, NewInvalidSignatureError(fmt.Sprintf("re-creating hashedrekord spec: %v", err))
+	}
+	var hashedRekordV001 models.HashedrekordV001Schema
+	if err := json.Unmarshal(hashedRekordV001Bytes, &hashedRekordV001); err != nil {
+		return time.Time{}, NewInvalidSignatureError(fmt.Sprintf("decoding hashedrekod spec: %v", err))
+	}
+
+	// == Match unverifiedKeyOrCertBytes
+	if hashedRekordV001.Signature == nil {
+		return time.Time{}, NewInvalidSignatureError(`Missing "signature" field in hashedrekord`)
+	}
+	if hashedRekordV001.Signature.PublicKey == nil {
+		return time.Time{}, NewInvalidSignatureError(`Missing "signature.publicKey" field in hashedrekord`)
+
+	}
+	rekorKeyOrCertPEM, rest := pem.Decode(hashedRekordV001.Signature.PublicKey.Content)
+	if rekorKeyOrCertPEM == nil {
+		return time.Time{}, NewInvalidSignatureError("publicKey in Rekor SET is not in PEM format")
+	}
+	if len(rest) != 0 {
+		return time.Time{}, NewInvalidSignatureError("publicKey in Rekor SET has trailing data")
+	}
+	// FIXME: For public keys, let the caller provide the DER-formatted blob instead
+	// of round-tripping through PEM.
+	unverifiedKeyOrCertPEM, rest := pem.Decode(unverifiedKeyOrCertBytes)
+	if unverifiedKeyOrCertPEM == nil {
+		return time.Time{}, NewInvalidSignatureError("public key or cert to be matched against publicKey in Rekor SET is not in PEM format")
+	}
+	if len(rest) != 0 {
+		return time.Time{}, NewInvalidSignatureError("public key or cert to be matched against publicKey in Rekor SET has trailing data")
+	}
+	// NOTE: This compares the PEM payload, but not the object type or headers.
+	if !bytes.Equal(rekorKeyOrCertPEM.Bytes, unverifiedKeyOrCertPEM.Bytes) {
+		return time.Time{}, NewInvalidSignatureError("publicKey in Rekor SET does not match")
+	}
+	// == Match unverifiedSignatureBytes
+	unverifiedSignatureBytes, err := base64.StdEncoding.DecodeString(unverifiedBase64Signature)
+	if err != nil {
+		return time.Time{}, NewInvalidSignatureError(fmt.Sprintf("decoding signature base64: %v", err))
+	}
+	if !bytes.Equal(hashedRekordV001.Signature.Content, unverifiedSignatureBytes) {
+		return time.Time{}, NewInvalidSignatureError(fmt.Sprintf("signature in Rekor SET does not match: %#v vs. %#v",
+			string(hashedRekordV001.Signature.Content), string(unverifiedSignatureBytes)))
+	}
+
+	// == Match unverifiedPayloadBytes
+	if hashedRekordV001.Data == nil {
+		return time.Time{}, NewInvalidSignatureError(`Missing "data" field in hashedrekord`)
+	}
+	if hashedRekordV001.Data.Hash == nil {
+		return time.Time{}, NewInvalidSignatureError(`Missing "data.hash" field in hashedrekord`)
+	}
+	if hashedRekordV001.Data.Hash.Algorithm == nil {
+		return time.Time{}, NewInvalidSignatureError(`Missing "data.hash.algorithm" field in hashedrekord`)
+	}
+	if *hashedRekordV001.Data.Hash.Algorithm != models.HashedrekordV001SchemaDataHashAlgorithmSha256 {
+		return time.Time{}, NewInvalidSignatureError(fmt.Sprintf(`Unexpected "data.hash.algorithm" value %#v`, *hashedRekordV001.Data.Hash.Algorithm))
+	}
+	if hashedRekordV001.Data.Hash.Value == nil {
+		return time.Time{}, NewInvalidSignatureError(`Missing "data.hash.value" field in hashedrekord`)
+	}
+	rekorPayloadHash, err := hex.DecodeString(*hashedRekordV001.Data.Hash.Value)
+	if err != nil {
+		return time.Time{}, NewInvalidSignatureError(fmt.Sprintf(`Invalid "data.hash.value" field in hashedrekord: %v`, err))
+
+	}
+	unverifiedPayloadHash := sha256.Sum256(unverifiedPayloadBytes)
+	if !bytes.Equal(rekorPayloadHash, unverifiedPayloadHash[:]) {
+		return time.Time{}, NewInvalidSignatureError("payload in Rekor SET does not match")
+	}
+
+	// == All OK; return the relevant time.
+	return time.Unix(rekorPayload.IntegratedTime, 0), nil
 }

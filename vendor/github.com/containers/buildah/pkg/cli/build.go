@@ -380,6 +380,7 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 		Excludes:                excludes,
 		ForceRmIntermediateCtrs: iopts.ForceRm,
 		From:                    iopts.From,
+		GroupAdd:                iopts.GroupAdd,
 		IDMappingOptions:        idmappingOptions,
 		IIDFile:                 iopts.Iidfile,
 		IgnoreFile:              iopts.IgnoreFile,

@@ -301,6 +301,7 @@ func newBuilder(ctx context.Context, store storage.Store, options BuilderOptions
 		FromImage:             imageSpec,
 		FromImageID:           imageID,
 		FromImageDigest:       imageDigest,
+		GroupAdd:              options.GroupAdd,
 		Container:             name,
 		ContainerID:           container.ID,
 		ImageAnnotations:      imageAnnotations,

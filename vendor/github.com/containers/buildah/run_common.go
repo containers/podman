@@ -265,6 +265,20 @@ func (b *Builder) configureUIDGID(g *generate.Generator, mountPoint string, opti
 	for _, gid := range user.AdditionalGids {
 		g.AddProcessAdditionalGid(gid)
 	}
+	for _, group := range b.GroupAdd {
+		if group == "keep-groups" {
+			if len(b.GroupAdd) > 1 {
+				return "", errors.New("the '--group-add keep-groups' option is not allowed with any other --group-add options")
+			}
+			g.AddAnnotation("run.oci.keep_original_groups", "1")
+			continue
+		}
+		gid, err := strconv.ParseUint(group, 10, 32)
+		if err != nil {
+			return "", err
+		}
+		g.AddProcessAdditionalGid(uint32(gid))
+	}
 
 	// Remove capabilities if not running as root except Bounding set
 	if user.UID != 0 && g.Config.Process.Capabilities != nil {
@@ -1483,7 +1497,7 @@ func (b *Builder) runSetupRunMounts(mounts []string, sources runMountInfo, idMap
 		}
 		switch mountType {
 		case "secret":
-			mount, envFile, err := b.getSecretMount(tokens, sources.Secrets, idMaps)
+			mount, envFile, err := b.getSecretMount(tokens, sources.Secrets, idMaps, sources.WorkDir)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -1510,7 +1524,7 @@ func (b *Builder) runSetupRunMounts(mounts []string, sources runMountInfo, idMap
 				sshCount++
 			}
 		case define.TypeBind:
-			mount, image, err := b.getBindMount(tokens, sources.SystemContext, sources.ContextDir, sources.StageMountPoints, idMaps)
+			mount, image, err := b.getBindMount(tokens, sources.SystemContext, sources.ContextDir, sources.StageMountPoints, idMaps, sources.WorkDir)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -1528,7 +1542,7 @@ func (b *Builder) runSetupRunMounts(mounts []string, sources runMountInfo, idMap
 			finalMounts = append(finalMounts, *mount)
 			mountTargets = append(mountTargets, mount.Destination)
 		case "cache":
-			mount, tl, err := b.getCacheMount(tokens, sources.StageMountPoints, idMaps)
+			mount, tl, err := b.getCacheMount(tokens, sources.StageMountPoints, idMaps, sources.WorkDir)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -1553,12 +1567,12 @@ func (b *Builder) runSetupRunMounts(mounts []string, sources runMountInfo, idMap
 	return finalMounts, artifacts, nil
 }
 
-func (b *Builder) getBindMount(tokens []string, context *imageTypes.SystemContext, contextDir string, stageMountPoints map[string]internal.StageMountDetails, idMaps IDMaps) (*spec.Mount, string, error) {
+func (b *Builder) getBindMount(tokens []string, context *imageTypes.SystemContext, contextDir string, stageMountPoints map[string]internal.StageMountDetails, idMaps IDMaps, workDir string) (*spec.Mount, string, error) {
 	if contextDir == "" {
 		return nil, "", errors.New("Context Directory for current run invocation is not configured")
 	}
 	var optionMounts []specs.Mount
-	mount, image, err := internalParse.GetBindMount(context, tokens, contextDir, b.store, b.MountLabel, stageMountPoints)
+	mount, image, err := internalParse.GetBindMount(context, tokens, contextDir, b.store, b.MountLabel, stageMountPoints, workDir)
 	if err != nil {
 		return nil, image, err
 	}
@@ -1584,7 +1598,7 @@ func (b *Builder) getTmpfsMount(tokens []string, idMaps IDMaps) (*spec.Mount, er
 	return &volumes[0], nil
 }
 
-func (b *Builder) getSecretMount(tokens []string, secrets map[string]define.Secret, idMaps IDMaps) (*spec.Mount, string, error) {
+func (b *Builder) getSecretMount(tokens []string, secrets map[string]define.Secret, idMaps IDMaps, workdir string) (*spec.Mount, string, error) {
 	errInvalidSyntax := errors.New("secret should have syntax id=id[,target=path,required=bool,mode=uint,uid=uint,gid=uint")
 	if len(tokens) == 0 {
 		return nil, "", errInvalidSyntax
@@ -1604,6 +1618,9 @@ func (b *Builder) getSecretMount(tokens []string, secrets map[string]define.Secr
 			id = kv[1]
 		case "target", "dst", "destination":
 			target = kv[1]
+			if !filepath.IsAbs(target) {
+				target = filepath.Join(workdir, target)
+			}
 		case "required":
 			required, err = strconv.ParseBool(kv[1])
 			if err != nil {

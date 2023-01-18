@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -49,7 +50,7 @@ var (
 // GetBindMount parses a single bind mount entry from the --mount flag.
 // Returns specifiedMount and a string which contains name of image that we mounted otherwise its empty.
 // Caller is expected to perform unmount of any mounted images
-func GetBindMount(ctx *types.SystemContext, args []string, contextDir string, store storage.Store, imageMountLabel string, additionalMountPoints map[string]internal.StageMountDetails) (specs.Mount, string, error) {
+func GetBindMount(ctx *types.SystemContext, args []string, contextDir string, store storage.Store, imageMountLabel string, additionalMountPoints map[string]internal.StageMountDetails, workDir string) (specs.Mount, string, error) {
 	newMount := specs.Mount{
 		Type: define.TypeBind,
 	}
@@ -101,10 +102,14 @@ func GetBindMount(ctx *types.SystemContext, args []string, contextDir string, st
 			if len(kv) == 1 {
 				return newMount, "", fmt.Errorf("%v: %w", kv[0], errBadOptionArg)
 			}
-			if err := parse.ValidateVolumeCtrDir(kv[1]); err != nil {
+			targetPath := kv[1]
+			if !path.IsAbs(targetPath) {
+				targetPath = filepath.Join(workDir, targetPath)
+			}
+			if err := parse.ValidateVolumeCtrDir(targetPath); err != nil {
 				return newMount, "", err
 			}
-			newMount.Destination = kv[1]
+			newMount.Destination = targetPath
 			setDest = true
 		case "consistency":
 			// Option for OS X only, has no meaning on other platforms
@@ -186,10 +191,16 @@ func GetBindMount(ctx *types.SystemContext, args []string, contextDir string, st
 	return newMount, fromImage, nil
 }
 
+// CleanCacheMount gets the cache parent created by `--mount=type=cache` and removes it.
+func CleanCacheMount() error {
+	cacheParent := filepath.Join(internalUtil.GetTempDir(), BuildahCacheDir+"-"+strconv.Itoa(unshare.GetRootlessUID()))
+	return os.RemoveAll(cacheParent)
+}
+
 // GetCacheMount parses a single cache mount entry from the --mount flag.
 //
 // If this function succeeds and returns a non-nil *lockfile.LockFile, the caller must unlock it (when??).
-func GetCacheMount(args []string, store storage.Store, imageMountLabel string, additionalMountPoints map[string]internal.StageMountDetails) (specs.Mount, *lockfile.LockFile, error) {
+func GetCacheMount(args []string, store storage.Store, imageMountLabel string, additionalMountPoints map[string]internal.StageMountDetails, workDir string) (specs.Mount, *lockfile.LockFile, error) {
 	var err error
 	var mode uint64
 	var buildahLockFilesDir string
@@ -257,10 +268,14 @@ func GetCacheMount(args []string, store storage.Store, imageMountLabel string, a
 			if len(kv) == 1 {
 				return newMount, nil, fmt.Errorf("%v: %w", kv[0], errBadOptionArg)
 			}
-			if err := parse.ValidateVolumeCtrDir(kv[1]); err != nil {
+			targetPath := kv[1]
+			if !path.IsAbs(targetPath) {
+				targetPath = filepath.Join(workDir, targetPath)
+			}
+			if err := parse.ValidateVolumeCtrDir(targetPath); err != nil {
 				return newMount, nil, err
 			}
-			newMount.Destination = kv[1]
+			newMount.Destination = targetPath
 			setDest = true
 		case "src", "source":
 			if len(kv) == 1 {
@@ -506,8 +521,8 @@ func UnlockLockArray(locks []*lockfile.LockFile) {
 // GetVolumes gets the volumes from --volume and --mount
 //
 // If this function succeeds, the caller must unlock the returned *lockfile.LockFile s if any (when??).
-func GetVolumes(ctx *types.SystemContext, store storage.Store, volumes []string, mounts []string, contextDir string) ([]specs.Mount, []string, []*lockfile.LockFile, error) {
-	unifiedMounts, mountedImages, targetLocks, err := getMounts(ctx, store, mounts, contextDir)
+func GetVolumes(ctx *types.SystemContext, store storage.Store, volumes []string, mounts []string, contextDir string, workDir string) ([]specs.Mount, []string, []*lockfile.LockFile, error) {
+	unifiedMounts, mountedImages, targetLocks, err := getMounts(ctx, store, mounts, contextDir, workDir)
 	if err != nil {
 		return nil, mountedImages, nil, err
 	}
@@ -542,7 +557,7 @@ func GetVolumes(ctx *types.SystemContext, store storage.Store, volumes []string,
 // buildah run --mount type=tmpfs,target=/dev/shm ...
 //
 // If this function succeeds, the caller must unlock the returned *lockfile.LockFile s if any (when??).
-func getMounts(ctx *types.SystemContext, store storage.Store, mounts []string, contextDir string) (map[string]specs.Mount, []string, []*lockfile.LockFile, error) {
+func getMounts(ctx *types.SystemContext, store storage.Store, mounts []string, contextDir string, workDir string) (map[string]specs.Mount, []string, []*lockfile.LockFile, error) {
 	// If `type` is not set default to "bind"
 	mountType := define.TypeBind
 	finalMounts := make(map[string]specs.Mount)
@@ -576,7 +591,7 @@ func getMounts(ctx *types.SystemContext, store storage.Store, mounts []string, c
 		}
 		switch mountType {
 		case define.TypeBind:
-			mount, image, err := GetBindMount(ctx, tokens, contextDir, store, "", nil)
+			mount, image, err := GetBindMount(ctx, tokens, contextDir, store, "", nil, workDir)
 			if err != nil {
 				return nil, mountedImages, nil, err
 			}
@@ -586,7 +601,7 @@ func getMounts(ctx *types.SystemContext, store storage.Store, mounts []string, c
 			finalMounts[mount.Destination] = mount
 			mountedImages = append(mountedImages, image)
 		case TypeCache:
-			mount, tl, err := GetCacheMount(tokens, store, "", nil)
+			mount, tl, err := GetCacheMount(tokens, store, "", nil, workDir)
 			if err != nil {
 				return nil, mountedImages, nil, err
 			}

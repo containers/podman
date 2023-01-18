@@ -1,0 +1,50 @@
+linters-settings:
+  govet:
+    check-shadowing: true
+  gocyclo:
+    min-complexity: 50
+  maligned:
+    suggest-new: true
+  dupl:
+    threshold: 100
+  goconst:
+    min-len: 2
+    min-occurrences: 3
+
+linters:
+  enable-all: true
+  disable:
+    - maligned
+    - lll
+    - godox
+    - gocognit
+    - whitespace
+    - wsl
+    - funlen
+    - gochecknoglobals
+    - gochecknoinits
+    - scopelint
+    - wrapcheck
+    - exhaustivestruct
+    - exhaustive
+    - nlreturn
+    - testpackage
+    - gci
+    - gofumpt
+    - goerr113
+    - gomnd
+    - tparallel
+    - nestif
+    - godot
+    - tparallel
+    - paralleltest
+    - cyclop # because we have gocyclo already
+    # TODO: review the linters below. We disabled them to make the CI pass first.
+    - ireturn
+    - varnamelen
+    - forcetypeassert
+    - thelper
+    # Disable deprecated linters.
+    # They will be removed from golangci-lint in future.
+    - interfacer
+    - golint

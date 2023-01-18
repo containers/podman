@@ -109,6 +109,7 @@ type Executor struct {
 	rootfsMap               map[string]bool             // Holds the names of every stage whose rootfs is referenced in a COPY or ADD instruction.
 	blobDirectory           string
 	excludes                []string
+	groupAdd                []string
 	ignoreFile              string
 	args                    map[string]string
 	unusedArgs              map[string]struct{}
@@ -226,6 +227,7 @@ func newExecutor(logger *logrus.Logger, logPrefix string, store storage.Store, o
 		store:                          store,
 		contextDir:                     options.ContextDirectory,
 		excludes:                       excludes,
+		groupAdd:                       options.GroupAdd,
 		ignoreFile:                     options.IgnoreFile,
 		pullPolicy:                     options.PullPolicy,
 		registry:                       options.Registry,
@@ -454,6 +456,10 @@ func (b *Executor) buildStage(ctx context.Context, cleanupStages map[int]*StageE
 	ib := stage.Builder
 	node := stage.Node
 	base, err := ib.From(node)
+	if err != nil {
+		logrus.Debugf("buildStage(node.Children=%#v)", node.Children)
+		return "", nil, err
+	}
 
 	// If this is the last stage, then the image that we produce at
 	// its end should be given the desired output name.
@@ -462,9 +468,30 @@ func (b *Executor) buildStage(ctx context.Context, cleanupStages map[int]*StageE
 		output = b.output
 	}
 
-	if err != nil {
-		logrus.Debugf("buildStage(node.Children=%#v)", node.Children)
-		return "", nil, err
+	// If this stage is starting out with environment variables that were
+	// passed in via our API, we should include them in the history, since
+	// they affect RUN instructions in this stage.
+	if len(b.envs) > 0 {
+		var envLine string
+		for _, envSpec := range b.envs {
+			env := strings.SplitN(envSpec, "=", 2)
+			key := env[0]
+			if len(env) > 1 {
+				value := env[1]
+				envLine += fmt.Sprintf(" %q=%q", key, value)
+			} else {
+				value := os.Getenv(key)
+				envLine += fmt.Sprintf(" %q=%q", key, value)
+			}
+		}
+		if len(envLine) > 0 {
+			additionalNode, err := imagebuilder.ParseDockerfile(strings.NewReader("ENV" + envLine + "\n"))
+			if err != nil {
+				return "", nil, fmt.Errorf("while adding additional ENV step: %w", err)
+			}
+			// make this the first instruction in the stage after its FROM instruction
+			stage.Node.Children = append(additionalNode.Children, stage.Node.Children...)
+		}
 	}
 
 	b.stagesLock.Lock()
