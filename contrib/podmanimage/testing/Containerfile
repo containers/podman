@@ -16,7 +16,7 @@ FROM registry.fedoraproject.org/fedora:latest
 #       https://bugzilla.redhat.com/show_bug.cgi?id=1995337#c3
 RUN dnf -y update && \
     rpm --setcaps shadow-utils 2>/dev/null && \
-    dnf -y install podman fuse-overlayfs \
+    dnf -y install podman fuse-overlayfs openssh-clients \
         --exclude container-selinux --enablerepo updates-testing && \
     dnf clean all && \
     rm -rf /var/cache /var/log/dnf* /var/log/yum.*
