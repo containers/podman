@@ -118,7 +118,7 @@ github.com/containers/buildah/pkg/rusage
 github.com/containers/buildah/pkg/sshagent
 github.com/containers/buildah/pkg/util
 github.com/containers/buildah/util
-# github.com/containers/common v0.50.2-0.20230117154327-37d31888e634
+# github.com/containers/common v0.50.2-0.20230118142943-edca0cc051c8
 ## explicit; go 1.17
 github.com/containers/common/libimage
 github.com/containers/common/libimage/define
@@ -269,7 +269,7 @@ github.com/containers/psgo/internal/dev
 github.com/containers/psgo/internal/host
 github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
-# github.com/containers/storage v1.45.0
+# github.com/containers/storage v1.45.1
 ## explicit; go 1.17
 github.com/containers/storage
 github.com/containers/storage/drivers
@@ -582,7 +582,7 @@ github.com/onsi/ginkgo/reporters/stenographer
 github.com/onsi/ginkgo/reporters/stenographer/support/go-colorable
 github.com/onsi/ginkgo/reporters/stenographer/support/go-isatty
 github.com/onsi/ginkgo/types
-# github.com/onsi/gomega v1.24.2
+# github.com/onsi/gomega v1.25.0
 ## explicit; go 1.18
 github.com/onsi/gomega
 github.com/onsi/gomega/format

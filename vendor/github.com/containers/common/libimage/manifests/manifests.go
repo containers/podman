@@ -15,6 +15,7 @@ import (
 	"github.com/containers/image/v5/image"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/signature"
+	"github.com/containers/image/v5/signature/signer"
 	is "github.com/containers/image/v5/storage"
 	"github.com/containers/image/v5/transports"
 	"github.com/containers/image/v5/transports/alltransports"
@@ -61,6 +62,7 @@ type PushOptions struct {
 	ImageListSelection               cp.ImageListSelection // set to either CopySystemImage, CopyAllImages, or CopySpecificImages
 	Instances                        []digest.Digest       // instances to copy if ImageListSelection == CopySpecificImages
 	ReportWriter                     io.Writer             // will be used to log the writing of the list and any blobs
+	Signers                          []*signer.Signer      // if non-empty, asks for signatures to be added during the copy using the provided signers.
 	SignBy                           string                // fingerprint of GPG key to use to sign images
 	SignPassphrase                   string                // passphrase to use when signing with the key ID from SignBy.
 	SignBySigstorePrivateKeyFile     string                // if non-empty, asks for a signature to be added during the copy, using a sigstore private key file at the provided path.
@@ -244,6 +246,7 @@ func (l *list) Push(ctx context.Context, dest types.ImageReference, options Push
 		DestinationCtx:                   options.SystemContext,
 		ReportWriter:                     options.ReportWriter,
 		RemoveSignatures:                 options.RemoveSignatures,
+		Signers:                          options.Signers,
 		SignBy:                           options.SignBy,
 		SignPassphrase:                   options.SignPassphrase,
 		SignBySigstorePrivateKeyFile:     options.SignBySigstorePrivateKeyFile,
