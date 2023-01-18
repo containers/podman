@@ -7,7 +7,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/containers/podman/v4/pkg/rootless"
 	. "github.com/containers/podman/v4/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -88,7 +87,7 @@ var _ = Describe("Podman save", func() {
 	})
 
 	It("podman save to directory with oci format", func() {
-		if rootless.IsRootless() {
+		if isRootless() {
 			Skip("Requires a fix in containers image for chown/lchown")
 		}
 		outdir := filepath.Join(podmanTest.TempDir, "save")
@@ -99,7 +98,7 @@ var _ = Describe("Podman save", func() {
 	})
 
 	It("podman save to directory with v2s2 docker format", func() {
-		if rootless.IsRootless() {
+		if isRootless() {
 			Skip("Requires a fix in containers image for chown/lchown")
 		}
 		outdir := filepath.Join(podmanTest.TempDir, "save")
@@ -110,7 +109,7 @@ var _ = Describe("Podman save", func() {
 	})
 
 	It("podman save to directory with docker format and compression", func() {
-		if rootless.IsRootless() && podmanTest.RemoteTest {
+		if isRootless() && podmanTest.RemoteTest {
 			Skip("Requires a fix in containers image for chown/lchown")
 		}
 		outdir := filepath.Join(podmanTest.TempDir, "save")
@@ -121,7 +120,7 @@ var _ = Describe("Podman save", func() {
 	})
 
 	It("podman save to directory with --compress but not use docker-dir and oci-dir", func() {
-		if rootless.IsRootless() && podmanTest.RemoteTest {
+		if isRootless() && podmanTest.RemoteTest {
 			Skip("Requires a fix in containers image for chown/lchown")
 		}
 		outdir := filepath.Join(podmanTest.TempDir, "save")

@@ -20,7 +20,7 @@ var _ = Describe("Podman unshare", func() {
 			Skip("User namespaces not supported.")
 		}
 
-		if os.Geteuid() == 0 {
+		if !isRootless() {
 			Skip("Use unshare in rootless only")
 		}
 

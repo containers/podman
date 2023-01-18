@@ -128,8 +128,9 @@ var _ = Describe("Podman UserNS support", func() {
 	It("podman --userns=keep-id", func() {
 		session := podmanTest.Podman([]string{"run", "--userns=keep-id", "alpine", "id", "-u"})
 		session.WaitWithDefaultTimeout()
-		if os.Geteuid() == 0 {
+		if !isRootless() {
 			Expect(session).Should(Exit(125))
+			Expect(session.ErrorToString()).To(ContainSubstring("keep-id is only supported in rootless mode"))
 			return
 		}
 
@@ -139,8 +140,9 @@ var _ = Describe("Podman UserNS support", func() {
 
 		session = podmanTest.Podman([]string{"run", "--userns=keep-id:uid=10,gid=12", "alpine", "sh", "-c", "echo $(id -u):$(id -g)"})
 		session.WaitWithDefaultTimeout()
-		if os.Geteuid() == 0 {
+		if !isRootless() {
 			Expect(session).Should(Exit(125))
+			Expect(session.ErrorToString()).To(ContainSubstring("keep-id is only supported in rootless mode"))
 			return
 		}
 

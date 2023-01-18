@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/containers/podman/v4/pkg/rootless"
 	. "github.com/containers/podman/v4/test/utils"
 	"github.com/containers/storage/pkg/archive"
 	. "github.com/onsi/ginkgo"
@@ -99,7 +98,7 @@ var _ = Describe("Podman push", func() {
 		if podmanTest.Host.Arch == "ppc64le" {
 			Skip("No registry image for ppc64le")
 		}
-		if rootless.IsRootless() {
+		if isRootless() {
 			err := podmanTest.RestoreArtifact(REGISTRY_IMAGE)
 			Expect(err).ToNot(HaveOccurred())
 		}

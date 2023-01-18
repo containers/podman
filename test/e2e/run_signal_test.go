@@ -9,7 +9,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/containers/podman/v4/pkg/rootless"
 	. "github.com/containers/podman/v4/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -55,7 +54,7 @@ var _ = Describe("Podman run with --sig-proxy", func() {
 		udsPath := filepath.Join(udsDir, "fifo")
 		err = syscall.Mkfifo(udsPath, 0600)
 		Expect(err).ToNot(HaveOccurred())
-		if rootless.IsRootless() {
+		if isRootless() {
 			err = podmanTest.RestoreArtifact(fedoraMinimal)
 			Expect(err).ToNot(HaveOccurred())
 		}
@@ -113,7 +112,7 @@ var _ = Describe("Podman run with --sig-proxy", func() {
 
 	Specify("signals are not forwarded to container with sig-proxy false", func() {
 		signal := syscall.SIGFPE
-		if rootless.IsRootless() {
+		if isRootless() {
 			err = podmanTest.RestoreArtifact(fedoraMinimal)
 			Expect(err).ToNot(HaveOccurred())
 		}

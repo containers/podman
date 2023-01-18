@@ -14,7 +14,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/containers/podman/v4/pkg/rootless"
 	. "github.com/onsi/gomega"
 )
 
@@ -34,7 +33,7 @@ func (p *PodmanTestIntegration) PodmanSystemdScope(args []string) *PodmanSession
 	args = p.makeOptions(args, false, false)
 
 	wrapper := []string{"systemd-run", "--scope"}
-	if rootless.IsRootless() {
+	if isRootless() {
 		wrapper = []string{"systemd-run", "--scope", "--user"}
 	}
 
@@ -71,7 +70,7 @@ func PodmanTestCreate(tempDir string) *PodmanTestIntegration {
 }
 
 func (p *PodmanTestIntegration) StartRemoteService() {
-	if os.Geteuid() == 0 {
+	if !isRootless() {
 		err := os.MkdirAll("/run/podman", 0755)
 		Expect(err).ToNot(HaveOccurred())
 	}
@@ -99,7 +98,7 @@ func (p *PodmanTestIntegration) StartRemoteService() {
 }
 
 func (p *PodmanTestIntegration) StopRemoteService() {
-	if !rootless.IsRootless() {
+	if !isRootless() {
 		if err := p.RemoteSession.Kill(); err != nil {
 			fmt.Fprintf(os.Stderr, "error on remote stop-kill %q", err)
 		}
