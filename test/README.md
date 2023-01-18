@@ -63,7 +63,7 @@ output with given format JSON by using *structs* defined in inspect package.
 You can run the entire suite of integration tests with the following command:
 
 ```
-GOPATH=~/go ginkgo -v test/e2e/.
+GOPATH=~/go ginkgo -tags "remote" -v test/e2e/.
 ```
 
 Note the trailing period on the command above. Also, **-v** invokes verbose mode.  That
