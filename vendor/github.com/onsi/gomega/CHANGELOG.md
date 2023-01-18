@@ -1,3 +1,15 @@
+## 1.25.0
+
+### Features
+- add `MustPassRepeatedly(int)` to asyncAssertion (#619) [4509f72]
+- compare unwrapped errors using DeepEqual (#617) [aaeaa5d]
+
+### Maintenance
+- Bump golang.org/x/net from 0.4.0 to 0.5.0 (#614) [c7cfea4]
+- Bump github.com/onsi/ginkgo/v2 from 2.6.1 to 2.7.0 (#615) [71b8adb]
+- Docs: Fix typo "MUltiple" -> "Multiple" (#616) [9351dda]
+- clean up go.sum [cd1dc1d]
+
 ## 1.24.2
 
 ### Fixes

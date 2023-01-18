@@ -12,12 +12,12 @@ require (
 	github.com/containernetworking/cni v1.1.2
 	github.com/containernetworking/plugins v1.2.0
 	github.com/containers/buildah v1.28.1-0.20221221082547-8403b6ebc13d
-	github.com/containers/common v0.50.2-0.20230117154327-37d31888e634
+	github.com/containers/common v0.50.2-0.20230118142943-edca0cc051c8
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/image/v5 v5.23.1-0.20230116122250-3d22f4e96c53
 	github.com/containers/ocicrypt v1.1.7-0.20230115130455-e0cec6f7be0d
 	github.com/containers/psgo v1.8.0
-	github.com/containers/storage v1.45.0
+	github.com/containers/storage v1.45.1
 	github.com/coreos/go-systemd/v22 v22.5.0
 	github.com/coreos/stream-metadata-go v0.0.0-20210225230131-70edb9eb47b3
 	github.com/cyphar/filepath-securejoin v0.2.3
@@ -41,7 +41,7 @@ require (
 	github.com/moby/term v0.0.0-20210619224110-3f7ff695adc6
 	github.com/nxadm/tail v1.4.8
 	github.com/onsi/ginkgo v1.16.5
-	github.com/onsi/gomega v1.24.2
+	github.com/onsi/gomega v1.25.0
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.1.0-rc2
 	github.com/opencontainers/runc v1.1.4
