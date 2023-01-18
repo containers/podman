@@ -949,31 +949,20 @@ func waitContainerStop(ctr *Container, timeout time.Duration) error {
 
 // Wait for a given PID to stop
 func waitPidStop(pid int, timeout time.Duration) error {
-	done := make(chan struct{})
-	chControl := make(chan struct{})
-	go func() {
-		for {
-			select {
-			case <-chControl:
-				return
-			default:
-				if err := unix.Kill(pid, 0); err != nil {
-					if err == unix.ESRCH {
-						close(done)
-						return
-					}
-					logrus.Errorf("Pinging PID %d with signal 0: %v", pid, err)
+	timer := time.NewTimer(timeout)
+	for {
+		select {
+		case <-timer.C:
+			return fmt.Errorf("given PID did not die within timeout")
+		default:
+			if err := unix.Kill(pid, 0); err != nil {
+				if err == unix.ESRCH {
+					return nil
 				}
-				time.Sleep(100 * time.Millisecond)
+				logrus.Errorf("Pinging PID %d with signal 0: %v", pid, err)
 			}
+			time.Sleep(100 * time.Millisecond)
 		}
-	}()
-	select {
-	case <-done:
-		return nil
-	case <-time.After(timeout):
-		close(chControl)
-		return fmt.Errorf("given PIDs did not die within timeout")
 	}
 }
 
