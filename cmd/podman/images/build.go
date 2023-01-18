@@ -573,6 +573,7 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *buil
 		Err:                     stderr,
 		ForceRmIntermediateCtrs: flags.ForceRm,
 		From:                    flags.From,
+		GroupAdd:                flags.GroupAdd,
 		IDMappingOptions:        idmappingOptions,
 		In:                      stdin,
 		Isolation:               isolation,
