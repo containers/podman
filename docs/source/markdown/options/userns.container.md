@@ -22,7 +22,7 @@ Valid _mode_ values are:
 
 **auto**[:_OPTIONS,..._]: automatically create a unique user namespace.
 
-The `--userns=auto` flag, requires that the user name `containers` and a range of subordinate user ids that the Podman container is allowed to use be specified in the /etc/subuid and /etc/subgid files.
+The `--userns=auto` flag requires that the user name __containers__ be specified in the /etc/subuid and /etc/subgid files, with an unused range of subordinate user IDs that Podman containers are allowed to allocate. See subuid(5).
 
 Example: `containers:2147483647:2147483648`.
 
