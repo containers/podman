@@ -300,7 +300,11 @@ func getRootlessStorageOpts(rootlessUID int, systemOpts StoreOptions) (StoreOpti
 		}
 	}
 	if opts.GraphDriverName == "" {
-		opts.GraphDriverName = "vfs"
+		if len(systemOpts.GraphDriverPriority) == 0 {
+			opts.GraphDriverName = "vfs"
+		} else {
+			opts.GraphDriverPriority = systemOpts.GraphDriverPriority
+		}
 	}
 
 	if os.Getenv("STORAGE_OPTS") != "" {
