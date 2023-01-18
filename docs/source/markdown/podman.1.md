@@ -93,10 +93,10 @@ Path to the command binary to use for setting up a network.  It is currently onl
 #### **--network-config-dir**=*directory*
 
 Path to the directory where network configuration files are located.
-For the CNI backend the default is "/etc/cni/net.d" as root
-and "$HOME/.config/cni/net.d" as rootless.
 For the netavark backend "/etc/containers/networks" is used as root
 and "$graphroot/networks" as rootless.
+For the CNI backend the default is "/etc/cni/net.d" as root
+and "$HOME/.config/cni/net.d" as rootless. CNI will be deprecated from Podman in the future for netavark.
 
 #### **--noout**
 
