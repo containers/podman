@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
-	"path"
 	"path/filepath"
+	"strconv"
+	"strings"
 	"syscall"
 
 	"github.com/containers/podman/v4/libpod/define"
@@ -70,20 +71,23 @@ func FindDeviceNodes() (map[string]string, error) {
 	return nodes, nil
 }
 
-func isVirtualConsoleDevice(device string) bool {
+// isVirtualConsoleDevice returns true if path is a virtual console device
+// (/dev/tty\d+).
+// The passed path must be clean (filepath.Clean).
+func isVirtualConsoleDevice(path string) bool {
 	/*
 		Virtual consoles are of the form `/dev/tty\d+`, any other device such as
 		/dev/tty, ttyUSB0, or ttyACM0 should not be matched.
 		See `man 4 console` for more information.
-
-		NOTE: Matching is done using path.Match even though a regular expression
-		      would have been more accurate. This is because a regular
-			  expression would have required pre-compilation, which would have
-			  increase the startup time needlessly or made the code more complex
-			  than needed.
 	*/
-	matched, _ := path.Match("/dev/tty[0-9]*", device)
-	return matched
+	suffix := strings.TrimPrefix(path, "/dev/tty")
+	if suffix == path || suffix == "" {
+		return false
+	}
+
+	// 16bit because, max. supported TTY devices is 512 in Linux 6.1.5.
+	_, err := strconv.ParseUint(suffix, 10, 16)
+	return err == nil
 }
 
 func AddPrivilegedDevices(g *generate.Generator, systemdMode bool) error {
