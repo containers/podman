@@ -21,7 +21,7 @@ RUN dnf -y update && \
     rpm --setcaps shadow-utils 2>/dev/null && \
     dnf -y install 'dnf-command(copr)' --enablerepo=updates-testing && \
     dnf -y copr enable rhcontainerbot/podman-next && \
-    dnf -y install podman fuse-overlayfs \
+    dnf -y install podman fuse-overlayfs openssh-clients \
         --exclude container-selinux \
         --enablerepo=updates-testing && \
     dnf clean all && \
