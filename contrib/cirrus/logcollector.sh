@@ -33,10 +33,6 @@ case $1 in
     df) showrun df -lhTx tmpfs ;;
     journal) showrun journalctl -b ;;
     podman) showrun ./bin/podman system info ;;
-    server)
-      msg "(Trailing 100 lines of $PODMAN_SERVER_LOG)"
-      if [[ -r "$PODMAN_SERVER_LOG" ]]; then tail -100 $PODMAN_SERVER_LOG; fi
-       ;;
     packages)
         # These names are common to Fedora and Ubuntu
         PKG_NAMES=(\

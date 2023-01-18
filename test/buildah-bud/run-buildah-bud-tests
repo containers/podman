@@ -229,6 +229,7 @@ review the test failure and double-check your changes.
 
     (set -x;sudo env TMPDIR=/var/tmp \
                  PODMAN_BINARY=$PODMAN_BINARY \
+                 PODMAN_SERVER_LOG=$PODMAN_SERVER_LOG \
                  REMOTE=$REMOTE \
                  BUILDAH_BINARY=$(pwd)/bin/buildah \
                  COPY_BINARY=$(pwd)/bin/copy \

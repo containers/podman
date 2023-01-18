@@ -307,6 +307,9 @@ bindings_task:
         html_artifacts:
             path: ./*.html
             type: text/html
+        server_log_artifacts:
+            path: ./podman-server.log
+            type: text/plain
         df_script: '$SCRIPT_BASE/logcollector.sh df'
         audit_log_script: '$SCRIPT_BASE/logcollector.sh audit'
         journal_script: '$SCRIPT_BASE/logcollector.sh journal'
