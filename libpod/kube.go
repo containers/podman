@@ -17,6 +17,7 @@ import (
 	"github.com/containers/common/pkg/config"
 	cutil "github.com/containers/common/pkg/util"
 	"github.com/containers/podman/v4/libpod/define"
+	"github.com/containers/podman/v4/pkg/annotations"
 	"github.com/containers/podman/v4/pkg/env"
 	v1 "github.com/containers/podman/v4/pkg/k8s.io/api/core/v1"
 	"github.com/containers/podman/v4/pkg/k8s.io/apimachinery/pkg/api/resource"
@@ -365,6 +366,9 @@ func (p *Pod) podWithContainers(ctx context.Context, containers []*Container, po
 	for _, ctr := range containers {
 		if !ctr.IsInfra() {
 			for k, v := range ctr.config.Spec.Annotations {
+				if define.IsReservedAnnotation(k) || annotations.IsReservedAnnotation(k) {
+					continue
+				}
 				podAnnotations[fmt.Sprintf("%s/%s", k, removeUnderscores(ctr.Name()))] = TruncateKubeAnnotation(v)
 			}
 			// Convert auto-update labels into kube annotations
@@ -506,6 +510,9 @@ func simplePodWithV1Containers(ctx context.Context, ctrs []*Container) (*v1.Pod,
 	for _, ctr := range ctrs {
 		ctrNames = append(ctrNames, removeUnderscores(ctr.Name()))
 		for k, v := range ctr.config.Spec.Annotations {
+			if define.IsReservedAnnotation(k) || annotations.IsReservedAnnotation(k) {
+				continue
+			}
 			kubeAnnotations[fmt.Sprintf("%s/%s", k, removeUnderscores(ctr.Name()))] = TruncateKubeAnnotation(v)
 		}
 

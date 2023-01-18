@@ -77,9 +77,7 @@ spec:
     ports:
     - containerPort: 3306
       hostPort: 36533
-    resources: {}
     tty: true
-status: {}
 ```
 
 Create Kubernetes Pod YAML for a container with the directory `/home/user/my-data` on the host bind-mounted in the container to `/volume`.
@@ -102,7 +100,6 @@ spec:
     - /bin/sh
     image: docker.io/library/alpine:latest
     name: test-bind-mount
-    resources: {}
     volumeMounts:
     - mountPath: /volume
       name: home-user-my-data-host
@@ -112,7 +109,6 @@ spec:
       path: /home/user/my-data
       type: Directory
     name: home-user-my-data-host
-status: {}
 ```
 
 Create Kubernetes Pod YAML for a container with the named volume `priceless-data` mounted in the container at `/volume`.
@@ -135,7 +131,6 @@ spec:
     - /bin/sh
     image: docker.io/library/alpine:latest
     name: test-bind-mount
-    resources: {}
     volumeMounts:
     - mountPath: /volume
       name: priceless-data-pvc
@@ -144,7 +139,6 @@ spec:
   - name: priceless-data-pvc
     persistentVolumeClaim:
       claimName: priceless-data
-status: {}
 ```
 
 Create Kubernetes Pod YAML for a pod called `demoweb` and include a service.
@@ -168,10 +162,8 @@ spec:
     - /root/code/graph.py
     image: quay.io/baude/demoweb:latest
     name: practicalarchimedes
-    resources: {}
     tty: true
     workingDir: /root/code
-status: {}
 ---
 apiVersion: v1
 kind: Service

@@ -13,7 +13,6 @@ import (
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/podman/v4/cmd/podman/parse"
 	"github.com/containers/podman/v4/libpod/define"
-	ann "github.com/containers/podman/v4/pkg/annotations"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	envLib "github.com/containers/podman/v4/pkg/env"
 	"github.com/containers/podman/v4/pkg/namespaces"
@@ -432,11 +431,6 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 
 	// ANNOTATIONS
 	annotations := make(map[string]string)
-
-	// First, add our default annotations
-	if c.TTY {
-		annotations[ann.TTY] = "true"
-	}
 
 	// Last, add user annotations
 	for _, annotation := range c.Annotation {
