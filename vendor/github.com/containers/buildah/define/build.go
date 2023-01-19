@@ -298,6 +298,10 @@ type BuildOptions struct {
 	// From is the image name to use to replace the value specified in the first
 	// FROM instruction in the Containerfile
 	From string
+	// GroupAdd is a list of groups to add to the primary process within
+	// the container. 'keep-groups' allows container processes to use
+	// supplementary groups.
+	GroupAdd []string
 	// Platforms is the list of parsed OS/Arch/Variant triples that we want
 	// to build the image for.  If this slice has items in it, the OS and
 	// Architecture fields above are ignored.

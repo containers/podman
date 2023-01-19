@@ -99,6 +99,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		Excludes                string   `schema:"excludes"`
 		ForceRm                 bool     `schema:"forcerm"`
 		From                    string   `schema:"from"`
+		GroupAdd                []string `schema:"groupadd"`
 		HTTPProxy               bool     `schema:"httpproxy"`
 		IDMappingOptions        string   `schema:"idmappingoptions"`
 		IdentityLabel           bool     `schema:"identitylabel"`
@@ -665,6 +666,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		Err:                            auxout,
 		Excludes:                       excludes,
 		ForceRmIntermediateCtrs:        query.ForceRm,
+		GroupAdd:                       query.GroupAdd,
 		From:                           fromImage,
 		IDMappingOptions:               &idMappingOptions,
 		IgnoreUnrecognizedInstructions: query.Ignore,

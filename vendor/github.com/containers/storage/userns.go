@@ -78,6 +78,10 @@ func (s *store) getAvailableIDs() (*idSet, *idSet, error) {
 	return u, g, nil
 }
 
+// nobodyUser returns the UID and GID of the "nobody" user.  Hardcode its value
+// for simplicity.
+const nobodyUser = 65534
+
 // parseMountedFiles returns the maximum UID and GID found in the /etc/passwd and
 // /etc/group files.
 func parseMountedFiles(containerMount, passwdFile, groupFile string) uint32 {
@@ -98,10 +102,10 @@ func parseMountedFiles(containerMount, passwdFile, groupFile string) uint32 {
 			if u.Name == "nobody" {
 				continue
 			}
-			if u.Uid > size {
+			if u.Uid > size && u.Uid != nobodyUser {
 				size = u.Uid
 			}
-			if u.Gid > size {
+			if u.Gid > size && u.Gid != nobodyUser {
 				size = u.Gid
 			}
 		}
@@ -113,7 +117,7 @@ func parseMountedFiles(containerMount, passwdFile, groupFile string) uint32 {
 			if g.Name == "nobody" {
 				continue
 			}
-			if g.Gid > size {
+			if g.Gid > size && g.Gid != nobodyUser {
 				size = g.Gid
 			}
 		}

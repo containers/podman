@@ -309,6 +309,10 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 		params.Add("volume", volume)
 	}
 
+	for _, group := range options.GroupAdd {
+		params.Add("groupadd", group)
+	}
+
 	var err error
 	var contextDir string
 	if contextDir, err = filepath.EvalSymlinks(options.ContextDirectory); err == nil {

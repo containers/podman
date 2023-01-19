@@ -416,7 +416,7 @@ func (c *Client) getServerAPIVersionString() (version string, err error) {
 	if resp.StatusCode != http.StatusOK {
 		return "", fmt.Errorf("received unexpected status %d while trying to retrieve the server version", resp.StatusCode)
 	}
-	var versionResponse map[string]interface{}
+	var versionResponse map[string]any
 	if err := json.NewDecoder(resp.Body).Decode(&versionResponse); err != nil {
 		return "", err
 	}
@@ -427,7 +427,7 @@ func (c *Client) getServerAPIVersionString() (version string, err error) {
 }
 
 type doOptions struct {
-	data      interface{}
+	data      any
 	forceJSON bool
 	headers   map[string]string
 	context   context.Context
@@ -485,7 +485,7 @@ func (c *Client) do(method, path string, doOptions doOptions) (*http.Response, e
 
 		return nil, chooseError(ctx, err)
 	}
-	if resp.StatusCode < 200 || resp.StatusCode >= 400 {
+	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusBadRequest {
 		return nil, newError(resp)
 	}
 	return resp, nil
@@ -710,7 +710,7 @@ type hijackOptions struct {
 	in             io.Reader
 	stdout         io.Writer
 	stderr         io.Writer
-	data           interface{}
+	data           any
 }
 
 // CloseWaiter is an interface with methods for closing the underlying resource
@@ -873,7 +873,7 @@ func (c *Client) getURL(path string) string {
 	return fmt.Sprintf("%s%s", urlStr, path)
 }
 
-func (c *Client) getPath(basepath string, opts interface{}) (string, error) {
+func (c *Client) getPath(basepath string, opts any) (string, error) {
 	queryStr, requiredAPIVersion := queryStringVersion(opts)
 	return c.pathVersionCheck(basepath, queryStr, requiredAPIVersion)
 }
@@ -912,7 +912,7 @@ func (c *Client) getFakeNativeURL(path string) string {
 	return fmt.Sprintf("%s%s", urlStr, path)
 }
 
-func queryStringVersion(opts interface{}) (string, APIVersion) {
+func queryStringVersion(opts any) (string, APIVersion) {
 	if opts == nil {
 		return "", nil
 	}
@@ -951,7 +951,7 @@ func queryStringVersion(opts interface{}) (string, APIVersion) {
 	return items.Encode(), apiVersion
 }
 
-func queryString(opts interface{}) string {
+func queryString(opts any) string {
 	s, _ := queryStringVersion(opts)
 	return s
 }

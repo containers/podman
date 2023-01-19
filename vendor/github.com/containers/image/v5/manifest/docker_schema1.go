@@ -227,6 +227,7 @@ func (m *Schema1) Inspect(_ func(types.BlobInfo) ([]byte, error)) (*types.ImageI
 		Created:       &s1.Created,
 		DockerVersion: s1.DockerVersion,
 		Architecture:  s1.Architecture,
+		Variant:       s1.Variant,
 		Os:            s1.OS,
 		Layers:        layerInfosToStrings(layerInfos),
 		LayersData:    imgInspectLayersFromLayerInfos(layerInfos),

@@ -158,6 +158,10 @@ type Builder struct {
 	// NetworkInterface is the libnetwork network interface used to setup CNI or netavark networks.
 	NetworkInterface nettypes.ContainerNetwork `json:"-"`
 
+	// GroupAdd is a list of groups to add to the primary process within
+	// the container. 'keep-groups' allows container processes to use
+	// supplementary groups.
+	GroupAdd []string
 	// ID mapping options to use when running processes in the container with non-host user namespaces.
 	IDMappingOptions define.IDMappingOptions
 	// Capabilities is a list of capabilities to use when running commands in the container.
@@ -190,6 +194,7 @@ type BuilderInfo struct {
 	FromImage             string
 	FromImageID           string
 	FromImageDigest       string
+	GroupAdd              []string
 	Config                string
 	Manifest              string
 	Container             string
@@ -229,6 +234,7 @@ func GetBuildInfo(b *Builder) BuilderInfo {
 		Manifest:              string(b.Manifest),
 		Container:             b.Container,
 		ContainerID:           b.ContainerID,
+		GroupAdd:              b.GroupAdd,
 		MountPoint:            b.MountPoint,
 		ProcessLabel:          b.ProcessLabel,
 		MountLabel:            b.MountLabel,
@@ -277,6 +283,7 @@ type BuilderOptions struct {
 	// to store copies of layer blobs that we pull down, if any.  It should
 	// already exist.
 	BlobDirectory string
+	GroupAdd      []string
 	// Logger is the logrus logger to write log messages with
 	Logger *logrus.Logger `json:"-"`
 	// Mount signals to NewBuilder() that the container should be mounted

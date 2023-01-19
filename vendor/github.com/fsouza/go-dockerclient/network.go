@@ -113,20 +113,20 @@ func (c *Client) NetworkInfo(id string) (*Network, error) {
 //
 // See https://goo.gl/6GugX3 for more details.
 type CreateNetworkOptions struct {
-	Name           string                 `json:"Name" yaml:"Name" toml:"Name"`
-	Driver         string                 `json:"Driver" yaml:"Driver" toml:"Driver"`
-	Scope          string                 `json:"Scope" yaml:"Scope" toml:"Scope"`
-	IPAM           *IPAMOptions           `json:"IPAM,omitempty" yaml:"IPAM" toml:"IPAM"`
-	ConfigFrom     *NetworkConfigFrom     `json:"ConfigFrom,omitempty" yaml:"ConfigFrom" toml:"ConfigFrom"`
-	Options        map[string]interface{} `json:"Options" yaml:"Options" toml:"Options"`
-	Labels         map[string]string      `json:"Labels" yaml:"Labels" toml:"Labels"`
-	CheckDuplicate bool                   `json:"CheckDuplicate" yaml:"CheckDuplicate" toml:"CheckDuplicate"`
-	Internal       bool                   `json:"Internal" yaml:"Internal" toml:"Internal"`
-	EnableIPv6     bool                   `json:"EnableIPv6" yaml:"EnableIPv6" toml:"EnableIPv6"`
-	Attachable     bool                   `json:"Attachable" yaml:"Attachable" toml:"Attachable"`
-	ConfigOnly     bool                   `json:"ConfigOnly" yaml:"ConfigOnly" toml:"ConfigOnly"`
-	Ingress        bool                   `json:"Ingress" yaml:"Ingress" toml:"Ingress"`
-	Context        context.Context        `json:"-"`
+	Name           string             `json:"Name" yaml:"Name" toml:"Name"`
+	Driver         string             `json:"Driver" yaml:"Driver" toml:"Driver"`
+	Scope          string             `json:"Scope" yaml:"Scope" toml:"Scope"`
+	IPAM           *IPAMOptions       `json:"IPAM,omitempty" yaml:"IPAM" toml:"IPAM"`
+	ConfigFrom     *NetworkConfigFrom `json:"ConfigFrom,omitempty" yaml:"ConfigFrom" toml:"ConfigFrom"`
+	Options        map[string]any     `json:"Options" yaml:"Options" toml:"Options"`
+	Labels         map[string]string  `json:"Labels" yaml:"Labels" toml:"Labels"`
+	CheckDuplicate bool               `json:"CheckDuplicate" yaml:"CheckDuplicate" toml:"CheckDuplicate"`
+	Internal       bool               `json:"Internal" yaml:"Internal" toml:"Internal"`
+	EnableIPv6     bool               `json:"EnableIPv6" yaml:"EnableIPv6" toml:"EnableIPv6"`
+	Attachable     bool               `json:"Attachable" yaml:"Attachable" toml:"Attachable"`
+	ConfigOnly     bool               `json:"ConfigOnly" yaml:"ConfigOnly" toml:"ConfigOnly"`
+	Ingress        bool               `json:"Ingress" yaml:"Ingress" toml:"Ingress"`
+	Context        context.Context    `json:"-"`
 }
 
 // NetworkConfigFrom is used in network creation for specifying the source of a

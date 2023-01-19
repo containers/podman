@@ -328,7 +328,7 @@ func (c *Client) PullImage(opts PullImageOptions, auth AuthConfiguration) error 
 	return c.createImage(&opts, headers, nil, opts.OutputStream, opts.RawJSONStream, opts.InactivityTimeout, opts.Context)
 }
 
-func (c *Client) createImage(opts interface{}, headers map[string]string, in io.Reader, w io.Writer, rawJSONStream bool, timeout time.Duration, context context.Context) error {
+func (c *Client) createImage(opts any, headers map[string]string, in io.Reader, w io.Writer, rawJSONStream bool, timeout time.Duration, context context.Context) error {
 	url, err := c.getPath("/images/create", opts)
 	if err != nil {
 		return err

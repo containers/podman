@@ -46,7 +46,7 @@ const (
 	TypeTmpfs = "tmpfs"
 	// TypeCache is the type for mounting a common persistent cache from host
 	TypeCache = "cache"
-	// mount=type=cache must create a persistent directory on host so its available for all consecutive builds.
+	// mount=type=cache must create a persistent directory on host so it's available for all consecutive builds.
 	// Lifecycle of following directory will be inherited from how host machine treats temporary directory
 	BuildahCacheDir = "buildah-cache"
 )

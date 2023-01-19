@@ -99,7 +99,7 @@ buildah commit "$ctr1" "${2:-$USER/lighttpd}"
 EOF
 
 $ chmod +x lighttpd.sh
-$ sudo ./lighttpd.sh
+$ ./lighttpd.sh
 ```
 
 ## Commands

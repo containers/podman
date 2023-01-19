@@ -29,6 +29,7 @@ type LayerResults struct {
 // UserNSResults represents the results for the UserNS flags
 type UserNSResults struct {
 	UserNS            string
+	GroupAdd          []string
 	UserNSUIDMap      []string
 	UserNSGIDMap      []string
 	UserNSUIDMapUser  string
@@ -137,6 +138,7 @@ type FromAndBudResults struct {
 // GetUserNSFlags returns the common flags for usernamespace
 func GetUserNSFlags(flags *UserNSResults) pflag.FlagSet {
 	usernsFlags := pflag.FlagSet{}
+	usernsFlags.StringSliceVar(&flags.GroupAdd, "group-add", nil, "add additional groups to the primary container process. 'keep-groups' allows container processes to use supplementary groups.")
 	usernsFlags.StringVar(&flags.UserNS, "userns", "", "'container', `path` of user namespace to join, or 'host'")
 	usernsFlags.StringSliceVar(&flags.UserNSUIDMap, "userns-uid-map", []string{}, "`containerUID:hostUID:length` UID mapping to use in user namespace")
 	usernsFlags.StringSliceVar(&flags.UserNSGIDMap, "userns-gid-map", []string{}, "`containerGID:hostGID:length` GID mapping to use in user namespace")
@@ -148,6 +150,7 @@ func GetUserNSFlags(flags *UserNSResults) pflag.FlagSet {
 // GetUserNSFlagsCompletions returns the FlagCompletions for the userns flags
 func GetUserNSFlagsCompletions() commonComp.FlagCompletions {
 	flagCompletion := commonComp.FlagCompletions{}
+	flagCompletion["group-add"] = commonComp.AutocompleteNone
 	flagCompletion["userns"] = completion.AutocompleteNamespaceFlag
 	flagCompletion["userns-uid-map"] = commonComp.AutocompleteNone
 	flagCompletion["userns-gid-map"] = commonComp.AutocompleteNone

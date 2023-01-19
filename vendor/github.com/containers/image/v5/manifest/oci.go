@@ -219,6 +219,7 @@ func (m *OCI1) Inspect(configGetter func(types.BlobInfo) ([]byte, error)) (*type
 		DockerVersion: d1.DockerVersion,
 		Labels:        v1.Config.Labels,
 		Architecture:  v1.Architecture,
+		Variant:       v1.Variant,
 		Os:            v1.OS,
 		Layers:        layerInfosToStrings(layerInfos),
 		LayersData:    imgInspectLayersFromLayerInfos(layerInfos),
