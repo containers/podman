@@ -430,20 +430,23 @@ func (r *ConmonOCIRuntime) StopContainer(ctr *Container, timeout uint, all bool)
 	// If the timeout was set to 0 or if stopping the container with the
 	// specified signal did not work, use the big hammer with SIGKILL.
 	if err := r.KillContainer(ctr, uint(unix.SIGKILL), all); err != nil {
-		// Ignore the error if KillContainer complains about it already
-		// being stopped or exited.  There's an inherent race with the
-		// cleanup process (see #16142).
-		if !(errors.Is(err, define.ErrCtrStateInvalid) && ctr.ensureState(define.ContainerStateStopped, define.ContainerStateExited)) {
-			// If the PID is 0, then the container is already stopped.
-			if ctr.state.PID == 0 {
-				return nil
-			}
-			// Again, check if the container is gone. If it is, exit cleanly.
-			if aliveErr := unix.Kill(ctr.state.PID, 0); errors.Is(aliveErr, unix.ESRCH) {
-				return nil
-			}
-			return fmt.Errorf("sending SIGKILL to container %s: %w", ctr.ID(), err)
+		// There's an inherent race with the cleanup process (see
+		// #16142, #17142). If the container has already been marked as
+		// stopped or exited by the cleanup process, we can return
+		// immediately.
+		if errors.Is(err, define.ErrCtrStateInvalid) && ctr.ensureState(define.ContainerStateStopped, define.ContainerStateExited) {
+			return nil
 		}
+
+		// If the PID is 0, then the container is already stopped.
+		if ctr.state.PID == 0 {
+			return nil
+		}
+		// Again, check if the container is gone. If it is, exit cleanly.
+		if aliveErr := unix.Kill(ctr.state.PID, 0); errors.Is(aliveErr, unix.ESRCH) {
+			return nil
+		}
+		return fmt.Errorf("sending SIGKILL to container %s: %w", ctr.ID(), err)
 	}
 
 	// Give runtime a few seconds to make it happen
