@@ -1,18 +1,18 @@
-From e11d1f32577a8b0307789208c3a39b0ab2a026d8 Mon Sep 17 00:00:00 2001
+From 5e0eb222e83de4edb009bfe09ef34908cbdced01 Mon Sep 17 00:00:00 2001
 From: Ed Santiago <santiago@redhat.com>
 Date: Thu, 6 Oct 2022 17:32:59 -0600
 Subject: [PATCH] tweaks for running buildah tests under podman
 
 Signed-off-by: Ed Santiago <santiago@redhat.com>
 ---
- tests/helpers.bash | 73 +++++++++++++++++++++++++++++++++++++++++++---
- 1 file changed, 69 insertions(+), 4 deletions(-)
+ tests/helpers.bash | 80 +++++++++++++++++++++++++++++++++++++++++++---
+ 1 file changed, 76 insertions(+), 4 deletions(-)
 
 diff --git a/tests/helpers.bash b/tests/helpers.bash
-index aab3f72e..6e3b0eb5 100644
+index aab3f72e..7c82e37e 100644
 --- a/tests/helpers.bash
 +++ b/tests/helpers.bash
-@@ -70,6 +70,23 @@ EOF
+@@ -70,6 +70,30 @@ EOF
      ROOTDIR_OPTS="--root ${TEST_SCRATCH_DIR}/root --runroot ${TEST_SCRATCH_DIR}/runroot --storage-driver ${STORAGE_DRIVER}"
      BUILDAH_REGISTRY_OPTS="--registries-conf ${TEST_SOURCES}/registries.conf --registries-conf-dir ${TEST_SCRATCH_DIR}/registries.d --short-name-alias-conf ${TEST_SCRATCH_DIR}/cache/shortnames.conf"
      PODMAN_REGISTRY_OPTS="--registries-conf ${TEST_SOURCES}/registries.conf"
@@ -21,10 +21,17 @@ index aab3f72e..6e3b0eb5 100644
 +    PODMAN_NATIVE="${PODMAN_BINARY} ${ROOTDIR_OPTS} ${PODMAN_REGISTRY_OPTS}"
 +    if [[ -n "$REMOTE" ]]; then
 +        PODMAN_NATIVE="${PODMAN_BINARY%%-remote} ${ROOTDIR_OPTS} ${PODMAN_REGISTRY_OPTS}"
++        if [[ -n "$PODMAN_SERVER_LOG" ]]; then
++            (
++                echo "---------------------------------"
++                echo "- bats test ${BATS_TEST_NUMBER} : ${BATS_TEST_NAME}"
++            ) >> $PODMAN_SERVER_LOG
++        fi
++
 +        # static CONTAINERS_CONF needed for capabilities test. As of 2021-07-01
 +        # no tests in bud.bats override this; if at some point any test does
 +        # so, it will probably need to be skip_if_remote()d.
-+        env CONTAINERS_CONF=${CONTAINERS_CONF:-$(dirname ${BASH_SOURCE})/containers.conf} $PODMAN_NATIVE system service --timeout=0  &
++        env CONTAINERS_CONF=${CONTAINERS_CONF:-$(dirname ${BASH_SOURCE})/containers.conf} $PODMAN_NATIVE system service --log-level=info --timeout=0 &>>${PODMAN_SERVER_LOG:-/dev/stderr} &
 +        PODMAN_SERVER_PID=$!
 +        local timeout=10
 +        while ((timeout > 0)); do
@@ -36,7 +43,7 @@ index aab3f72e..6e3b0eb5 100644
  }
  
  function starthttpd() {
-@@ -113,6 +130,12 @@ function teardown_tests() {
+@@ -113,6 +137,12 @@ function teardown_tests() {
      stop_git_daemon
      stop_registry
  
@@ -49,7 +56,7 @@ index aab3f72e..6e3b0eb5 100644
      # Workaround for #1991 - buildah + overlayfs leaks mount points.
      # Many tests leave behind /var/tmp/.../root/overlay and sub-mounts;
      # let's find those and clean them up, otherwise 'rm -rf' fails.
-@@ -202,7 +225,12 @@ function copy() {
+@@ -202,7 +232,12 @@ function copy() {
  }
  
  function podman() {
@@ -63,7 +70,7 @@ index aab3f72e..6e3b0eb5 100644
  }
  
  # There are various scenarios where we would like to execute `tests` as rootless user, however certain commands like `buildah mount`
-@@ -266,8 +294,36 @@ function run_buildah() {
+@@ -266,8 +301,36 @@ function run_buildah() {
          --retry)         retry=3;        shift;;  # retry network flakes
      esac
  
@@ -101,7 +108,7 @@ index aab3f72e..6e3b0eb5 100644
  
      # If session is rootless and `buildah mount` is invoked, perform unshare,
      # since normal user cannot mount a filesystem unless they're in a user namespace along with its own mount namespace.
-@@ -281,8 +337,8 @@ function run_buildah() {
+@@ -281,8 +344,8 @@ function run_buildah() {
          retry=$(( retry - 1 ))
  
          # stdout is only emitted upon error; this echo is to help a debugger
@@ -112,7 +119,7 @@ index aab3f72e..6e3b0eb5 100644
          # without "quotes", multiple lines are glommed together into one
          if [ -n "$output" ]; then
              echo "$output"
-@@ -614,6 +670,15 @@ function skip_if_no_docker() {
+@@ -614,6 +677,15 @@ function skip_if_no_docker() {
    fi
  }
  
@@ -129,5 +136,5 @@ index aab3f72e..6e3b0eb5 100644
    daemondir=${TEST_SCRATCH_DIR}/git-daemon
    mkdir -p ${daemondir}/repo
 -- 
-2.38.1
+2.39.0
 
