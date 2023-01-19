@@ -400,12 +400,11 @@ func (r *ConmonOCIRuntime) StopContainer(ctr *Container, timeout uint, all bool)
 		return nil
 	}
 
-	stopSignal := ctr.config.StopSignal
-	if stopSignal == 0 {
-		stopSignal = uint(syscall.SIGTERM)
-	}
-
 	if timeout > 0 {
+		stopSignal := ctr.config.StopSignal
+		if stopSignal == 0 {
+			stopSignal = uint(syscall.SIGTERM)
+		}
 		if err := r.KillContainer(ctr, stopSignal, all); err != nil {
 			// Is the container gone?
 			// If so, it probably died between the first check and
