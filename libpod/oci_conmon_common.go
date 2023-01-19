@@ -427,6 +427,8 @@ func (r *ConmonOCIRuntime) StopContainer(ctr *Container, timeout uint, all bool)
 		}
 	}
 
+	// If the timeout was set to 0 or if stopping the container with the
+	// specified signal did not work, use the big hammer with SIGKILL.
 	if err := r.KillContainer(ctr, uint(unix.SIGKILL), all); err != nil {
 		// Ignore the error if KillContainer complains about it already
 		// being stopped or exited.  There's an inherent race with the
