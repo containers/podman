@@ -965,7 +965,7 @@ func waitPidStop(pid int, timeout time.Duration) error {
 				}
 				logrus.Errorf("Pinging PID %d with signal 0: %v", pid, err)
 			}
-			time.Sleep(100 * time.Millisecond)
+			time.Sleep(10 * time.Millisecond)
 		}
 	}
 }
