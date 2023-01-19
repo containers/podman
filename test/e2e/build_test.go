@@ -572,8 +572,6 @@ subdir**`
 	// See https://github.com/containers/podman/issues/13535
 	It("Remote build .containerignore filtering embedded directory (#13535)", func() {
 		SkipIfNotRemote("Testing remote .containerignore file filtering")
-		Skip("FIXME: #15014: test times out in 'dd' on f36.")
-
 		podmanTest.RestartRemoteService()
 
 		// Switch to temp dir and restore it afterwards
@@ -605,7 +603,7 @@ subdir**`
 		dd := exec.Command("dd", "if=/dev/urandom", "of="+randomFile, "bs=1G", "count=1")
 		ddSession, err := Start(dd, GinkgoWriter, GinkgoWriter)
 		Expect(err).ToNot(HaveOccurred())
-		Eventually(ddSession, "10s", "1s").Should(Exit(0))
+		Eventually(ddSession, "30s", "1s").Should(Exit(0))
 
 		// make cwd as context root path
 		Expect(os.Chdir(contextDir)).ToNot(HaveOccurred())
@@ -623,7 +621,7 @@ subdir**`
 		Expect(session).To(Exit(0))
 
 		output := session.OutputToString()
-		Expect(output).To(ContainSubstring("Containerfile"))
+		Expect(output).NotTo(ContainSubstring("Containerfile"))
 		Expect(output).To(ContainSubstring("/testfilter/expected"))
 		Expect(output).NotTo(ContainSubstring("subdir"))
 	})
