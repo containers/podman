@@ -32,7 +32,7 @@ port mapping.  Depending on the firewall implementation, we have observed firewa
 ports being opened automatically due to running a container with a port mapping (for
 example).  If container traffic does not seem to work properly, check the firewall
 and allow traffic on ports the container is using. A common problem is that
-reloading the firewall deletes the cni/netavark iptables rules resulting in a loss of
+reloading the firewall deletes the netavark iptables rules resulting in a loss of
 network connectivity for rootful containers. Podman v3 provides the podman
 network reload command to restore this without having to restart the container.
 
@@ -128,7 +128,7 @@ client can connect to the container.
 
 Now run the container.
 ```
-$ podman run -dt --name webserver --net cni-podman1 -p 8081:80 quay.io/libpod/banner
+$ podman run -dt --name webserver --net podman1 -p 8081:80 quay.io/libpod/banner
 269fd0d6b2c8ed60f2ca41d7beceec2471d72fb9a33aa8ca45b81dc9a0abbb12
 ```
 Note in the above run command, the container’s port 80 (where the Nginx server is

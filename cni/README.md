@@ -1,5 +1,8 @@
 ## `cni` ##
 
+**Note**: CNI is being deprecated from Podman and support will be dropped at a future date.  Use of netavark is now
+advised and is the default network backend for Podman.
+
 There are a wide variety of different [CNI](https://github.com/containernetworking/cni) network configurations. This
 directory just contains an example configuration that can be used as the
 basis for your own configuration.
