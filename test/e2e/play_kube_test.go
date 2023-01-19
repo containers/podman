@@ -940,6 +940,19 @@ spec:
       protocol: tcp
 `
 
+var podWithHostPIDDefined = `
+apiVersion: v1
+kind: Pod
+metadata:
+  name: test-hostpid
+spec:
+  hostPID: true
+  containers:
+  - name: alpine
+    image: quay.io/libpod/alpine:latest
+    command: ['sh', '-c', 'echo $$']
+`
+
 var (
 	defaultCtrName        = "testCtr"
 	defaultCtrCmd         = []string{"top"}
@@ -4931,4 +4944,24 @@ spec:
 		Expect(strings.Count(kube.OutputToString(), "Pod:")).To(Equal(1))
 		Expect(strings.Count(kube.OutputToString(), "Container:")).To(Equal(1))
 	})
+
+	It("podman play kube test with hostPID", func() {
+		err := writeYaml(podWithHostPIDDefined, kubeYaml)
+		Expect(err).ToNot(HaveOccurred())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		logs := podmanTest.Podman([]string{"pod", "logs", "-c", "test-hostpid-alpine", "test-hostpid"})
+		logs.WaitWithDefaultTimeout()
+		Expect(logs).Should(Exit(0))
+		Expect(logs.OutputToString()).To(Not(Equal("1")), "PID should never be 1 because of host pidns")
+
+		inspect := podmanTest.Podman([]string{"inspect", "test-hostpid-alpine", "--format", "{{ .HostConfig.PidMode }}"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).Should(Exit(0))
+		Expect(inspect.OutputToString()).To(Equal("host"))
+	})
+
 })
