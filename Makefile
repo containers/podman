@@ -571,6 +571,10 @@ ginkgo:
 ginkgo-remote:
 	$(MAKE) ginkgo-run TAGS="$(REMOTETAGS) remote_testing" HACK=
 
+.PHONY: testbindings
+testbindings: .install.ginkgo
+	ACK_GINKGO_RC=true $(GINKGO) -v $(TESTFLAGS) -tags "$(TAGS) remote" $(GINKGOTIMEOUT) -progress -trace -noColor -debug -timeout 30m  -v -r ./pkg/bindings/test
+
 .PHONY: localintegration
 localintegration: test-binaries ginkgo
 
@@ -901,7 +905,7 @@ install.systemd:
 endif
 
 .PHONY: install.tools
-install.tools: .install.golangci-lint .install.swagger ## Install needed tools
+install.tools: .install.golangci-lint ## Install needed tools
 	$(MAKE) -C test/tools
 
 .PHONY: .install.goimports

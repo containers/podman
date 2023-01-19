@@ -56,6 +56,7 @@ case $1 in
                     container-selinux
                     libseccomp
                     netavark
+                    passt
                 )
                 ;;
             ubuntu)
