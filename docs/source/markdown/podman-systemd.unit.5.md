@@ -47,7 +47,7 @@ For example, to start a container on boot, add something like this to the file:
 
 ```
 [Install]
-WantedBy=multi-user.target
+WantedBy=default.target
 ```
 
 Currently, only the `Alias`, `WantedBy` and `RequiredBy` keys are supported.
