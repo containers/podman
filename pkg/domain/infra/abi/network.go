@@ -151,7 +151,7 @@ func (ic *ContainerEngine) NetworkRm(ctx context.Context, namesOrIds []string, o
 
 func (ic *ContainerEngine) NetworkCreate(ctx context.Context, network types.Network, createOptions *types.NetworkCreateOptions) (*types.Network, error) {
 	// TODO (5.0): Stop accepting "pasta" as value here
-	if util.StringInSlice(network.Name, []string{"none", "host", "bridge", "private", "slirp4netns", "container", "ns"}) {
+	if util.StringInSlice(network.Name, []string{"none", "host", "bridge", "private", "slirp4netns", "container", "ns", "default"}) {
 		return nil, fmt.Errorf("cannot create network with name %q because it conflicts with a valid network mode", network.Name)
 	}
 	network, err := ic.Libpod.Network().NetworkCreate(network, createOptions)
