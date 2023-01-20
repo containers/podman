@@ -2465,6 +2465,10 @@ func (c *Container) generateUserPasswdEntry(addedUID int) (string, error) {
 		return entry, nil
 	}
 
+	u, err := user.LookupId(fmt.Sprintf("%d", uid))
+	if err == nil {
+		return fmt.Sprintf("%s:*:%d:%d:%s:%s:/bin/sh\n", u.Username, uid, gid, u.Name, c.WorkingDir()), nil
+	}
 	return fmt.Sprintf("%d:*:%d:%d:container user:%s:/bin/sh\n", uid, uid, gid, c.WorkingDir()), nil
 }
 
