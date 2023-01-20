@@ -20,7 +20,6 @@ import (
 	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/inspect"
-	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/containers/podman/v4/pkg/util"
 	. "github.com/containers/podman/v4/test/utils"
 	"github.com/containers/storage/pkg/lockfile"
@@ -232,7 +231,7 @@ func PodmanTestCreateUtil(tempDir string, remote bool) *PodmanTestIntegration {
 	}
 
 	cgroupManager := CGROUP_MANAGER
-	if rootless.IsRootless() {
+	if isRootless() {
 		cgroupManager = "cgroupfs"
 	}
 	if os.Getenv("CGROUP_MANAGER") != "" {
@@ -247,14 +246,14 @@ func PodmanTestCreateUtil(tempDir string, remote bool) *PodmanTestIntegration {
 
 	networkBackend := CNI
 	networkConfigDir := "/etc/cni/net.d"
-	if rootless.IsRootless() {
+	if isRootless() {
 		networkConfigDir = filepath.Join(os.Getenv("HOME"), ".config/cni/net.d")
 	}
 
 	if strings.ToLower(os.Getenv("NETWORK_BACKEND")) == "netavark" {
 		networkBackend = Netavark
 		networkConfigDir = "/etc/containers/networks"
-		if rootless.IsRootless() {
+		if isRootless() {
 			networkConfigDir = filepath.Join(root, "etc", "networks")
 		}
 	}
@@ -268,7 +267,7 @@ func PodmanTestCreateUtil(tempDir string, remote bool) *PodmanTestIntegration {
 	}
 
 	storageFs := STORAGE_FS
-	if rootless.IsRootless() {
+	if isRootless() {
 		storageFs = ROOTLESS_STORAGE_FS
 	}
 	if os.Getenv("STORAGE_FS") != "" {
@@ -300,7 +299,7 @@ func PodmanTestCreateUtil(tempDir string, remote bool) *PodmanTestIntegration {
 
 	if remote {
 		var pathPrefix string
-		if !rootless.IsRootless() {
+		if !isRootless() {
 			pathPrefix = "/run/podman/podman"
 		} else {
 			runtimeDir := os.Getenv("XDG_RUNTIME_DIR")
@@ -676,21 +675,21 @@ func checkReason(reason string) {
 
 func SkipIfRootlessCgroupsV1(reason string) {
 	checkReason(reason)
-	if os.Geteuid() != 0 && !CGROUPSV2 {
+	if isRootless() && !CGROUPSV2 {
 		Skip("[rootless]: " + reason)
 	}
 }
 
 func SkipIfRootless(reason string) {
 	checkReason(reason)
-	if os.Geteuid() != 0 {
+	if isRootless() {
 		Skip("[rootless]: " + reason)
 	}
 }
 
 func SkipIfNotRootless(reason string) {
 	checkReason(reason)
-	if os.Geteuid() == 0 {
+	if !isRootless() {
 		Skip("[notRootless]: " + reason)
 	}
 }
@@ -722,6 +721,8 @@ func SkipIfNotFedora() {
 	}
 }
 
+// Use isRootless() instead of rootless.IsRootless()
+// This function can detect to join the user namespace by mistake
 func isRootless() bool {
 	return os.Geteuid() != 0
 }

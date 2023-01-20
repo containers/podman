@@ -12,7 +12,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/containers/podman/v4/pkg/rootless"
 	testUtils "github.com/containers/podman/v4/test/utils"
 	podmanUtils "github.com/containers/podman/v4/utils"
 	. "github.com/onsi/ginkgo"
@@ -77,7 +76,7 @@ var _ = Describe("Systemd activate", func() {
 		if selinux.GetEnabled() {
 			rootDir := "/var/lib/containers"
 			label := "container_var_lib_t"
-			if rootless.IsRootless() {
+			if isRootless() {
 				rootDir = filepath.Join(os.Getenv("HOME"), ".local/share/containers")
 				label = "data_home_t"
 			}

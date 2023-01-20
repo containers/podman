@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/containers/podman/v4/pkg/rootless"
 	. "github.com/containers/podman/v4/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -222,7 +221,7 @@ var _ = Describe("Podman run with volumes", func() {
 		if os.Getenv("container") != "" {
 			Skip("Overlay mounts not supported when running in a container")
 		}
-		if rootless.IsRootless() {
+		if isRootless() {
 			if _, err := exec.LookPath("fuse-overlayfs"); err != nil {
 				Skip("Fuse-Overlayfs required for rootless overlay mount test")
 			}
@@ -242,7 +241,7 @@ var _ = Describe("Podman run with volumes", func() {
 		if os.Getenv("container") != "" {
 			Skip("Overlay mounts not supported when running in a container")
 		}
-		if rootless.IsRootless() {
+		if isRootless() {
 			if _, err := exec.LookPath("fuse-overlayfs"); err != nil {
 				Skip("Fuse-Overlayfs required for rootless overlay mount test")
 			}
@@ -275,7 +274,7 @@ var _ = Describe("Podman run with volumes", func() {
 		if os.Getenv("container") != "" {
 			Skip("Overlay mounts not supported when running in a container")
 		}
-		if rootless.IsRootless() {
+		if isRootless() {
 			if _, err := exec.LookPath("fuse-overlayfs"); err != nil {
 				Skip("Fuse-Overlayfs required for rootless overlay mount test")
 			}
@@ -329,7 +328,7 @@ var _ = Describe("Podman run with volumes", func() {
 		if os.Getenv("container") != "" {
 			Skip("Overlay mounts not supported when running in a container")
 		}
-		if rootless.IsRootless() {
+		if isRootless() {
 			if _, err := exec.LookPath("fuse-overlayfs"); err != nil {
 				Skip("Fuse-Overlayfs required for rootless overlay mount test")
 			}
@@ -655,7 +654,7 @@ VOLUME /test/`, ALPINE)
 		if os.Getenv("container") != "" {
 			Skip("Overlay mounts not supported when running in a container")
 		}
-		if rootless.IsRootless() {
+		if isRootless() {
 			if _, err := exec.LookPath("fuse-overlayfs"); err != nil {
 				Skip("Fuse-Overlayfs required for rootless overlay mount test")
 			}
@@ -778,7 +777,7 @@ VOLUME /test/`, ALPINE)
 		if os.Getenv("container") != "" {
 			Skip("Overlay mounts not supported when running in a container")
 		}
-		if rootless.IsRootless() {
+		if isRootless() {
 			if _, err := exec.LookPath("fuse_overlay"); err != nil {
 				Skip("Fuse-Overlayfs required for rootless overlay mount test")
 			}

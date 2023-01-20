@@ -35,7 +35,6 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/containers/podman/v4/pkg/rootless"
 	. "github.com/containers/podman/v4/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -381,7 +380,7 @@ var _ = Describe("Toolbox-specific testing", func() {
 		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(ContainSubstring(currentUser.HomeDir))
 
-		if rootless.IsRootless() {
+		if isRootless() {
 			location := path.Dir(currentUser.HomeDir)
 			volumeArg := fmt.Sprintf("%s:%s", location, location)
 			session = podmanTest.Podman([]string{"run",

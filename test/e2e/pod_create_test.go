@@ -11,7 +11,6 @@ import (
 	"github.com/containers/common/pkg/apparmor"
 	"github.com/containers/common/pkg/seccomp"
 	"github.com/containers/common/pkg/sysinfo"
-	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/containers/podman/v4/pkg/util"
 	. "github.com/containers/podman/v4/test/utils"
 	. "github.com/onsi/ginkgo"
@@ -252,7 +251,7 @@ var _ = Describe("Podman pod create", func() {
 		podCreate := podmanTest.Podman([]string{"pod", "create", "--ip", ip, "--name", name})
 		podCreate.WaitWithDefaultTimeout()
 		// Rootless should error without network
-		if rootless.IsRootless() {
+		if isRootless() {
 			Expect(podCreate).Should(Exit(125))
 		} else {
 			Expect(podCreate).Should(Exit(0))
@@ -295,7 +294,7 @@ var _ = Describe("Podman pod create", func() {
 		podCreate := podmanTest.Podman([]string{"pod", "create", "--mac-address", mac, "--name", name})
 		podCreate.WaitWithDefaultTimeout()
 		// Rootless should error
-		if rootless.IsRootless() {
+		if isRootless() {
 			Expect(podCreate).Should(Exit(125))
 		} else {
 			Expect(podCreate).Should(Exit(0))
@@ -662,7 +661,7 @@ ENTRYPOINT ["sleep","99999"]
 	})
 
 	It("podman pod create with --userns=keep-id", func() {
-		if os.Geteuid() == 0 {
+		if !isRootless() {
 			Skip("Test only runs without root")
 		}
 
@@ -698,7 +697,7 @@ ENTRYPOINT ["sleep","99999"]
 	})
 
 	It("podman pod create with --userns=keep-id can add users", func() {
-		if os.Geteuid() == 0 {
+		if !isRootless() {
 			Skip("Test only runs without root")
 		}
 
@@ -1097,7 +1096,7 @@ ENTRYPOINT ["sleep","99999"]
 
 		inspect := podmanTest.InspectContainer(ctrCreate.OutputToString())
 		Expect(data.CgroupPath).To(HaveLen(0))
-		if podmanTest.CgroupManager == "cgroupfs" || !rootless.IsRootless() {
+		if podmanTest.CgroupManager == "cgroupfs" || !isRootless() {
 			Expect(inspect[0].HostConfig.CgroupParent).To(HaveLen(0))
 		} else if podmanTest.CgroupManager == "systemd" {
 			Expect(inspect[0].HostConfig).To(HaveField("CgroupParent", "user.slice"))

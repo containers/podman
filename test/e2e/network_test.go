@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/containers/common/libnetwork/types"
-	"github.com/containers/podman/v4/pkg/rootless"
 	. "github.com/containers/podman/v4/test/utils"
 	"github.com/containers/storage/pkg/stringid"
 	. "github.com/onsi/ginkgo"
@@ -265,7 +264,7 @@ var _ = Describe("Podman network", func() {
 		defer removeConf(path)
 
 		expectedNetworks := []string{name}
-		if !rootless.IsRootless() {
+		if !isRootless() {
 			// rootful image contains "podman/cni/87-podman-bridge.conflist" for "podman" network
 			expectedNetworks = append(expectedNetworks, "podman")
 		}

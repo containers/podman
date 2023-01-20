@@ -4368,7 +4368,7 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 
 		initialUsernsConfig, err := os.ReadFile("/proc/self/uid_map")
 		Expect(err).ToNot(HaveOccurred())
-		if os.Geteuid() != 0 {
+		if isRootless() {
 			unshare := podmanTest.Podman([]string{"unshare", "cat", "/proc/self/uid_map"})
 			unshare.WaitWithDefaultTimeout()
 			Expect(unshare).Should(Exit(0))

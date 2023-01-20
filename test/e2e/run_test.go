@@ -13,7 +13,6 @@ import (
 
 	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/podman/v4/libpod/define"
-	"github.com/containers/podman/v4/pkg/rootless"
 	. "github.com/containers/podman/v4/test/utils"
 	"github.com/containers/storage/pkg/stringid"
 	. "github.com/onsi/ginkgo"
@@ -261,7 +260,7 @@ var _ = Describe("Podman run", func() {
 		if os.Getenv("container") != "" {
 			Skip("Overlay mounts not supported when running in a container")
 		}
-		if rootless.IsRootless() {
+		if isRootless() {
 			if _, err := exec.LookPath("fuse-overlayfs"); err != nil {
 				Skip("Fuse-Overlayfs required for rootless overlay mount test")
 			}
@@ -562,7 +561,7 @@ var _ = Describe("Podman run", func() {
 		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(ContainSubstring("0000000000000002"))
 
-		if os.Geteuid() > 0 {
+		if isRootless() {
 			if os.Getenv("SKIP_USERNS") != "" {
 				Skip("Skip userns tests.")
 			}
@@ -2022,7 +2021,7 @@ WORKDIR /madethis`, BB)
 
 		podmanTest.AddImageToRWStore(ALPINE)
 
-		if rootless.IsRootless() {
+		if isRootless() {
 			err := podmanTest.RestoreArtifact(REGISTRY_IMAGE)
 			Expect(err).ToNot(HaveOccurred())
 		}

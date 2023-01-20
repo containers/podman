@@ -4,7 +4,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/containers/podman/v4/pkg/rootless"
 	. "github.com/containers/podman/v4/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -58,7 +57,7 @@ var _ = Describe("Podman create with --ip flag", func() {
 		result := podmanTest.Podman([]string{"create", "--name", "test", "--ip", ip, ALPINE, "ip", "addr"})
 		result.WaitWithDefaultTimeout()
 		// Rootless static ip assignment without network should error
-		if rootless.IsRootless() {
+		if isRootless() {
 			Expect(result).Should(Exit(125))
 		} else {
 			Expect(result).Should(Exit(0))
