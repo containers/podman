@@ -722,6 +722,7 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 			RestartPolicy:      ctrRestartPolicy,
 			SeccompPaths:       seccompPaths,
 			SecretsManager:     secretsManager,
+			PidNSIsHost:        p.Pid.IsHost(),
 			UserNSIsHost:       p.Userns.IsHost(),
 			Volumes:            volumes,
 		}

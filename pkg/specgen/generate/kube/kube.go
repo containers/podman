@@ -53,6 +53,9 @@ func ToPodOpt(ctx context.Context, podName string, p entities.PodCreateOptions, 
 	if podYAML.Spec.ShareProcessNamespace != nil && *podYAML.Spec.ShareProcessNamespace {
 		p.Share = append(p.Share, "pid")
 	}
+	if podYAML.Spec.HostPID {
+		p.Pid = "host"
+	}
 	p.Hostname = podYAML.Spec.Hostname
 	if p.Hostname == "" {
 		p.Hostname = podName
@@ -131,6 +134,8 @@ type CtrSpecGenOptions struct {
 	NetNSIsHost bool
 	// UserNSIsHost tells the container to use the host userns
 	UserNSIsHost bool
+	// PidNSIsHost tells the container to use the host pidns
+	PidNSIsHost bool
 	// SecretManager to access the secrets
 	SecretsManager *secrets.SecretsManager
 	// LogDriver which should be used for the container
@@ -461,6 +466,9 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 	}
 	if opts.UserNSIsHost {
 		s.UserNS.NSMode = specgen.Host
+	}
+	if opts.PidNSIsHost {
+		s.PidNS.NSMode = specgen.Host
 	}
 
 	// Add labels that come from kube

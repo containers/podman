@@ -47,7 +47,7 @@ Note: **N/A** means that the option cannot be supported in a single-node Podman 
 | dnsConfig.searches                                | ✅      |
 | dnsPolicy                                         |         |
 | hostNetwork                                       | ✅      |
-| hostPID                                           |         |
+| hostPID                                           | ✅      |
 | hostIPC                                           |         |
 | shareProcessNamespace                             | ✅      |
 | serviceAccountName                                |         |
