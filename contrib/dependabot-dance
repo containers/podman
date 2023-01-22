@@ -83,7 +83,7 @@ function branch_dance() {
 
     # Try to leave things in relatively clean state; remove local branch copy
     local tracking_branch=$(git branch --show-current)
-    git checkout master
+    git checkout main
     git branch -d $tracking_branch
 }
 

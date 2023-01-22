@@ -43,7 +43,7 @@ The time until the session expires in _seconds_. The default is 5
 seconds. A value of `0` means no timeout, therefore the session will not expire.
 
 The default timeout can be changed via the `service_timeout=VALUE` field in containers.conf.
-See **[containers.conf(5)](https://github.com/containers/common/blob/master/docs/containers.conf.5.md)** for more information.
+See **[containers.conf(5)](https://github.com/containers/common/blob/main/docs/containers.conf.5.md)** for more information.
 
 ## EXAMPLES
 
@@ -53,7 +53,7 @@ podman system service --time 5
 ```
 
 ## SEE ALSO
-**[podman(1)](podman.1.md)**, **[podman-system-connection(1)](podman-system-connection.1.md)**, **[containers.conf(5)](https://github.com/containers/common/blob/master/docs/containers.conf.5.md)**
+**[podman(1)](podman.1.md)**, **[podman-system-connection(1)](podman-system-connection.1.md)**, **[containers.conf(5)](https://github.com/containers/common/blob/main/docs/containers.conf.5.md)**
 
 ## HISTORY
 January 2020, Originally compiled by Brent Baude `<bbaude@redhat.com>`

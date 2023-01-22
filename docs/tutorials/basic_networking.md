@@ -4,7 +4,7 @@
 # Basic Networking Guide for Podman
 
 
-It seems once people master the basics of containers, networking is one of the first
+It seems once people understand the basics of containers, networking is one of the first
 aspects they begin experimenting with.  And regarding networking, it takes very
 little experimentation before ending up on the deep end of the pool.  The following
 guide shows the most common network setups for Podman rootful and rootless containers.
