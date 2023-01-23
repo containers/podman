@@ -7,6 +7,6 @@ import (
 	"runtime"
 )
 
-func determineFedoraArch() string {
+func DetermineMachineArch() string {
 	return runtime.GOARCH
 }

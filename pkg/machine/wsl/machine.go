@@ -415,7 +415,7 @@ func downloadDistro(v *MachineVM, opts machine.InitOptions) error {
 
 	if _, e := strconv.Atoi(opts.ImagePath); e == nil {
 		v.ImageStream = opts.ImagePath
-		dd, err = machine.NewFedoraDownloader(vmtype, v.Name, opts.ImagePath)
+		dd, err = NewFedoraDownloader(vmtype, v.Name, opts.ImagePath)
 	} else {
 		v.ImageStream = "custom"
 		dd, err = machine.NewGenericDownloader(vmtype, v.Name, opts.ImagePath)
