@@ -651,7 +651,7 @@ EOF
 "
 
     CONTAINERS_CONF=$containersconf run_podman run --rm $IMAGE cat /etc/resolv.conf
-    is "$output" "search example.com$nl.*" "correct search domain"
+    is "$output" "search example.com.*" "correct search domain"
     is "$output" ".*nameserver 1.1.1.1${nl}nameserver $searchIP${nl}nameserver 1.0.0.1${nl}nameserver 8.8.8.8" "nameserver order is correct"
 
     # create network with dns
@@ -660,9 +660,13 @@ EOF
     run_podman network create --subnet "$subnet.0/24"  $netname
     # custom server overwrites the network dns server
     CONTAINERS_CONF=$containersconf run_podman run --network $netname --rm $IMAGE cat /etc/resolv.conf
-    is "$output" "search example.com$nl.*" "correct search domain"
-    is "$output" ".*nameserver 1.1.1.1${nl}nameserver $searchIP${nl}nameserver 1.0.0.1${nl}nameserver 8.8.8.8" "nameserver order is correct"
-
+    is "$output" "search example.com.*" "correct search domain"
+    local store=$output
+    if is_netavark; then
+	is "$store" ".*nameserver $subnet.1.*" "integrated dns nameserver is set"
+    else
+	is "$store" ".*nameserver 1.1.1.1${nl}nameserver $searchIP${nl}nameserver 1.0.0.1${nl}nameserver 8.8.8.8" "nameserver order is correct"
+    fi
     # we should use the integrated dns server
     run_podman run --network $netname --rm $IMAGE cat /etc/resolv.conf
     is "$output" "search dns.podman.*" "correct search domain"
