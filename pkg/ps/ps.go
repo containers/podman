@@ -143,7 +143,7 @@ func ListContainerBatch(rt *libpod.Runtime, ctr *libpod.Container, opts entities
 			}
 		}
 
-		conConfig = c.Config()
+		conConfig = c.ConfigNoCopy()
 		conState, err = c.State()
 		if err != nil {
 			return fmt.Errorf("unable to obtain container state: %w", err)
