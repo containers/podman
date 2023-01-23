@@ -129,6 +129,7 @@ type PodCreateOptions struct {
 	InfraName          string            `json:"container_name,omitempty"`
 	InfraCommand       *string           `json:"container_command,omitempty"`
 	InfraConmonPidFile string            `json:"container_conmon_pidfile,omitempty"`
+	Ipc                string            `json:"ipc,omitempty"`
 	Labels             map[string]string `json:"labels,omitempty"`
 	Name               string            `json:"name,omitempty"`
 	Net                *NetOptions       `json:"net,omitempty"`
@@ -349,6 +350,12 @@ func ToPodSpecGen(s specgen.PodSpecGenerator, p *PodCreateOptions) (*specgen.Pod
 		return nil, err
 	}
 	s.Pid = out
+
+	out, err = specgen.ParseNamespace(p.Ipc)
+	if err != nil {
+		return nil, err
+	}
+	s.Ipc = out
 	s.Hostname = p.Hostname
 	s.ExitPolicy = p.ExitPolicy
 	s.Labels = p.Labels
