@@ -37,7 +37,7 @@ Your distribution might already provide it in the `fuse-overlayfs` package, but 
 
 The `fuse-overlayfs` project is available from [GitHub](https://github.com/containers/fuse-overlayfs), and provides instructions for easily building a static `fuse-overlayfs` executable.
 
-If Podman is used before `fuse-overlayfs` is installed, it may be necessary to adjust the `storage.conf` file (see "User Configuration Files" below) to change the `driver` option under `[storage]` to `"overlay"` and point the `mount_program` option in `[storage.options]` to the path of the `fuse-overlayfs` executable:
+If Podman is used before `fuse-overlayfs` is installed, it may be necessary to adjust the `storage.conf` file (see "User Configuration Files" below) to change the `driver` option under `[storage]` to `"overlay"` and point the `mount_program` option in `[storage.options.overlay]` to the path of the `fuse-overlayfs` executable:
 
 ```
 [storage]
@@ -45,7 +45,7 @@ If Podman is used before `fuse-overlayfs` is installed, it may be necessary to a
 
   (...)
 
-[storage.options]
+[storage.options.overlay]
 
   (...)
 
