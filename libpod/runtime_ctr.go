@@ -624,9 +624,6 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force, remo
 	}
 
 	if c.state.State == define.ContainerStatePaused {
-		if err := c.ociRuntime.KillContainer(c, 9, false); err != nil {
-			return err
-		}
 		isV2, err := cgroups.IsCgroup2UnifiedMode()
 		if err != nil {
 			return err
@@ -636,6 +633,9 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force, remo
 			if err := c.unpause(); err != nil {
 				return err
 			}
+		}
+		if err := c.ociRuntime.KillContainer(c, 9, false); err != nil {
+			return err
 		}
 		// Need to update container state to make sure we know it's stopped
 		if err := c.waitForExitFileAndSync(); err != nil {
