@@ -1,3 +1,13 @@
+## 1.26.0
+
+### Features
+- When a polled function returns an error, keep track of the actual and report on the matcher state of the last non-errored actual [21f3090]
+- improve eventually failure message output [c530fb3]
+
+### Fixes
+- fix several documentation spelling issues [e2eff1f]
+
+
 ## 1.25.0
 
 ### Features
