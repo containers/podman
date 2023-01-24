@@ -72,7 +72,6 @@ var (
 	ErrDecoderSizeExceeded = errors.New("decompressed size exceeds configured limit")
 
 	// ErrUnknownDictionary is returned if the dictionary ID is unknown.
-	// For the time being dictionaries are not supported.
 	ErrUnknownDictionary = errors.New("unknown dictionary")
 
 	// ErrFrameSizeExceeded is returned if the stated frame size is exceeded.

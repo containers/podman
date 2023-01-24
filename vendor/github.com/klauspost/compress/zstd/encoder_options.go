@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"math/bits"
 	"runtime"
 	"strings"
 )
@@ -305,7 +306,13 @@ func WithLowerEncoderMem(b bool) EOption {
 }
 
 // WithEncoderDict allows to register a dictionary that will be used for the encode.
+//
+// The slice dict must be in the [dictionary format] produced by
+// "zstd --train" from the Zstandard reference implementation.
+//
 // The encoder *may* choose to use no dictionary instead for certain payloads.
+//
+// [dictionary format]: https://github.com/facebook/zstd/blob/dev/doc/zstd_compression_format.md#dictionary-format
 func WithEncoderDict(dict []byte) EOption {
 	return func(o *encoderOptions) error {
 		d, err := loadDict(dict)
@@ -313,6 +320,20 @@ func WithEncoderDict(dict []byte) EOption {
 			return err
 		}
 		o.dict = d
+		return nil
+	}
+}
+
+// WithEncoderDictRaw registers a dictionary that may be used by the encoder.
+//
+// The slice content may contain arbitrary data. It will be used as an initial
+// history.
+func WithEncoderDictRaw(id uint32, content []byte) EOption {
+	return func(o *encoderOptions) error {
+		if bits.UintSize > 32 && uint(len(content)) > dictMaxLength {
+			return fmt.Errorf("dictionary of size %d > 2GiB too large", len(content))
+		}
+		o.dict = &dict{id: id, content: content, offsets: [3]int{1, 4, 8}}
 		return nil
 	}
 }

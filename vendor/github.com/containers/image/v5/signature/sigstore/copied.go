@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/sigstore/sigstore/pkg/cryptoutils"
 	"github.com/sigstore/sigstore/pkg/signature"
 	"github.com/theupdateframework/go-tuf/encrypted"
 )
@@ -67,4 +68,32 @@ func loadPrivateKey(key []byte, pass []byte) (signature.SignerVerifier, error) {
 	default:
 		return nil, errors.New("unsupported key type")
 	}
+}
+
+// simplified from sigstore/cosign/pkg/cosign.marshalKeyPair
+// loadPrivateKey always requires a encryption, so this always requires a passphrase.
+func marshalKeyPair(privateKey crypto.PrivateKey, publicKey crypto.PublicKey, password []byte) (_privateKey []byte, _publicKey []byte, err error) {
+	x509Encoded, err := x509.MarshalPKCS8PrivateKey(privateKey)
+	if err != nil {
+		return nil, nil, fmt.Errorf("x509 encoding private key: %w", err)
+	}
+
+	encBytes, err := encrypted.Encrypt(x509Encoded, password)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// store in PEM format
+	privBytes := pem.EncodeToMemory(&pem.Block{
+		Bytes: encBytes,
+		Type:  sigstorePrivateKeyPemType,
+	})
+
+	// Now do the public key
+	pubBytes, err := cryptoutils.MarshalPublicKeyToPEM(publicKey)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return privBytes, pubBytes, nil
 }

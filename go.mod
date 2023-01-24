@@ -11,13 +11,13 @@ require (
 	github.com/container-orchestrated-devices/container-device-interface v0.5.3
 	github.com/containernetworking/cni v1.1.2
 	github.com/containernetworking/plugins v1.2.0
-	github.com/containers/buildah v1.28.1-0.20230118214707-42f2b38574c4
-	github.com/containers/common v0.50.2-0.20230118184424-57606d3b130f
+	github.com/containers/buildah v1.28.1-0.20230120225201-4b72f055f1c9
+	github.com/containers/common v0.51.0
 	github.com/containers/conmon v2.0.20+incompatible
-	github.com/containers/image/v5 v5.23.1-0.20230118141642-5e9b17d07ceb
-	github.com/containers/ocicrypt v1.1.7-0.20230115130455-e0cec6f7be0d
+	github.com/containers/image/v5 v5.24.0
+	github.com/containers/ocicrypt v1.1.7
 	github.com/containers/psgo v1.8.0
-	github.com/containers/storage v1.45.2-0.20230117181605-d5792d2dbc18
+	github.com/containers/storage v1.45.3
 	github.com/coreos/go-systemd/v22 v22.5.0
 	github.com/coreos/stream-metadata-go v0.0.0-20210225230131-70edb9eb47b3
 	github.com/cyphar/filepath-securejoin v0.2.3
@@ -81,7 +81,7 @@ require (
 	github.com/containerd/cgroups v1.0.4 // indirect
 	github.com/containerd/containerd v1.6.15 // indirect
 	github.com/containerd/stargz-snapshotter/estargz v0.13.0 // indirect
-	github.com/containers/libtrust v0.0.0-20200511145503-9c3a6c22cd9a // indirect
+	github.com/containers/libtrust v0.0.0-20230121012942-c1716e8a8d01 // indirect
 	github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f // indirect
 	github.com/cyberphone/json-canonicalization v0.0.0-20220623050100-57a0ce2678a7 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
@@ -112,7 +112,7 @@ require (
 	github.com/inconshreveable/mousetrap v1.0.1 // indirect
 	github.com/jinzhu/copier v0.3.5 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
-	github.com/klauspost/compress v1.15.14 // indirect
+	github.com/klauspost/compress v1.15.15 // indirect
 	github.com/klauspost/pgzip v1.2.6-0.20220930104621-17e8dac29df8 // indirect
 	github.com/kr/fs v0.1.0 // indirect
 	github.com/letsencrypt/boulder v0.0.0-20221109233200-85aa52084eaf // indirect
@@ -135,6 +135,7 @@ require (
 	github.com/proglottis/gpgme v0.1.3 // indirect
 	github.com/rivo/uniseg v0.4.3 // indirect
 	github.com/seccomp/libseccomp-golang v0.10.0 // indirect
+	github.com/sigstore/fulcio v1.0.0 // indirect
 	github.com/sigstore/rekor v1.0.1 // indirect
 	github.com/sigstore/sigstore v1.5.1 // indirect
 	github.com/stefanberger/go-pkcs11uri v0.0.0-20201008174630-78d3cae3a980 // indirect

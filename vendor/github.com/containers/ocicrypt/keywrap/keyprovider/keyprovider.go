@@ -19,13 +19,14 @@ package keyprovider
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
 
 	"github.com/containers/ocicrypt/config"
 	keyproviderconfig "github.com/containers/ocicrypt/config/keyprovider-config"
 	"github.com/containers/ocicrypt/keywrap"
 	"github.com/containers/ocicrypt/utils"
 	keyproviderpb "github.com/containers/ocicrypt/utils/keyprovider"
-	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 )
@@ -113,13 +114,13 @@ func (kw *keyProviderKeyWrapper) WrapKeys(ec *config.EncryptConfig, optsData []b
 		if kw.attrs.Command != nil {
 			protocolOuput, err := getProviderCommandOutput(input, kw.attrs.Command)
 			if err != nil {
-				return nil, errors.Wrap(err, "error while retrieving keyprovider protocol command output")
+				return nil, fmt.Errorf("error while retrieving keyprovider protocol command output: %w", err)
 			}
 			return protocolOuput.KeyWrapResults.Annotation, nil
 		} else if kw.attrs.Grpc != "" {
 			protocolOuput, err := getProviderGRPCOutput(input, kw.attrs.Grpc, OpKeyWrap)
 			if err != nil {
-				return nil, errors.Wrap(err, "error while retrieving keyprovider protocol grpc output")
+				return nil, fmt.Errorf("error while retrieving keyprovider protocol grpc output: %w", err)
 			}
 
 			return protocolOuput.KeyWrapResults.Annotation, nil
@@ -171,7 +172,7 @@ func getProviderGRPCOutput(input []byte, connString string, operation KeyProvide
 	var grpcOutput *keyproviderpb.KeyProviderKeyWrapProtocolOutput
 	cc, err := grpc.Dial(connString, grpc.WithInsecure())
 	if err != nil {
-		return nil, errors.Wrap(err, "error while dialing rpc server")
+		return nil, fmt.Errorf("error while dialing rpc server: %w", err)
 	}
 	defer func() {
 		derr := cc.Close()
@@ -188,12 +189,12 @@ func getProviderGRPCOutput(input []byte, connString string, operation KeyProvide
 	if operation == OpKeyWrap {
 		grpcOutput, err = client.WrapKey(context.Background(), req)
 		if err != nil {
-			return nil, errors.Wrap(err, "Error from grpc method")
+			return nil, fmt.Errorf("Error from grpc method: %w", err)
 		}
 	} else if operation == OpKeyUnwrap {
 		grpcOutput, err = client.UnWrapKey(context.Background(), req)
 		if err != nil {
-			return nil, errors.Wrap(err, "Error from grpc method")
+			return nil, fmt.Errorf("Error from grpc method: %w", err)
 		}
 	} else {
 		return nil, errors.New("Unsupported operation")
@@ -202,7 +203,7 @@ func getProviderGRPCOutput(input []byte, connString string, operation KeyProvide
 	respBytes := grpcOutput.GetKeyProviderKeyWrapProtocolOutput()
 	err = json.Unmarshal(respBytes, &protocolOuput)
 	if err != nil {
-		return nil, errors.Wrap(err, "Error while unmarshalling grpc method output")
+		return nil, fmt.Errorf("Error while unmarshalling grpc method output: %w", err)
 	}
 
 	return &protocolOuput, nil
@@ -217,7 +218,7 @@ func getProviderCommandOutput(input []byte, command *keyproviderconfig.Command) 
 	}
 	err = json.Unmarshal(respBytes, &protocolOuput)
 	if err != nil {
-		return nil, errors.Wrap(err, "Error while unmarshalling binary executable command output")
+		return nil, fmt.Errorf("Error while unmarshalling binary executable command output: %w", err)
 	}
 	return &protocolOuput, nil
 }

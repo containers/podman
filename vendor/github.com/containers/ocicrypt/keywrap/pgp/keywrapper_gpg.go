@@ -21,6 +21,7 @@ import (
 	"crypto"
 	"crypto/rand"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"io"
 	"net/mail"
@@ -29,7 +30,6 @@ import (
 
 	"github.com/containers/ocicrypt/config"
 	"github.com/containers/ocicrypt/keywrap"
-	"github.com/pkg/errors"
 	"golang.org/x/crypto/openpgp"
 	"golang.org/x/crypto/openpgp/packet"
 )
@@ -63,7 +63,7 @@ func (kw *gpgKeyWrapper) WrapKeys(ec *config.EncryptConfig, optsData []byte) ([]
 	ciphertext := new(bytes.Buffer)
 	el, err := kw.createEntityList(ec)
 	if err != nil {
-		return nil, errors.Wrap(err, "unable to create entity list")
+		return nil, fmt.Errorf("unable to create entity list: %w", err)
 	}
 	if len(el) == 0 {
 		// nothing to do -- not an error
@@ -99,7 +99,7 @@ func (kw *gpgKeyWrapper) UnwrapKey(dc *config.DecryptConfig, pgpPacket []byte) (
 		r := bytes.NewBuffer(pgpPrivateKey)
 		entityList, err := openpgp.ReadKeyRing(r)
 		if err != nil {
-			return nil, errors.Wrap(err, "unable to parse private keys")
+			return nil, fmt.Errorf("unable to parse private keys: %w", err)
 		}
 
 		var prompt openpgp.PromptFunction
@@ -141,7 +141,7 @@ func (kw *gpgKeyWrapper) GetKeyIdsFromPacket(b64pgpPackets string) ([]uint64, er
 	for _, b64pgpPacket := range strings.Split(b64pgpPackets, ",") {
 		pgpPacket, err := base64.StdEncoding.DecodeString(b64pgpPacket)
 		if err != nil {
-			return nil, errors.Wrapf(err, "could not decode base64 encoded PGP packet")
+			return nil, fmt.Errorf("could not decode base64 encoded PGP packet: %w", err)
 		}
 		newids, err := kw.getKeyIDs(pgpPacket)
 		if err != nil {
@@ -165,7 +165,7 @@ ParsePackets:
 			break ParsePackets
 		}
 		if err != nil {
-			return []uint64{}, errors.Wrapf(err, "packets.Next() failed")
+			return []uint64{}, fmt.Errorf("packets.Next() failed: %w", err)
 		}
 		switch p := p.(type) {
 		case *packet.EncryptedKey:

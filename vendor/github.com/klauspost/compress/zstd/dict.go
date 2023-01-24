@@ -21,6 +21,9 @@ type dict struct {
 
 const dictMagic = "\x37\xa4\x30\xec"
 
+// Maximum dictionary size for the reference implementation (1.5.3) is 2 GiB.
+const dictMaxLength = 1 << 31
+
 // ID returns the dictionary id or 0 if d is nil.
 func (d *dict) ID() uint32 {
 	if d == nil {

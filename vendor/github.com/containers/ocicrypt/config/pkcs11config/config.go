@@ -17,12 +17,12 @@
 package pkcs11config
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path"
 
 	"github.com/containers/ocicrypt/crypto/pkcs11"
-	"github.com/pkg/errors"
 	"gopkg.in/yaml.v3"
 )
 

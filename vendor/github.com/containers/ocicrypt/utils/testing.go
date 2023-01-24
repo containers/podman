@@ -24,17 +24,16 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
+	"fmt"
 	"math/big"
 	"time"
-
-	"github.com/pkg/errors"
 )
 
 // CreateRSAKey creates an RSA key
 func CreateRSAKey(bits int) (*rsa.PrivateKey, error) {
 	key, err := rsa.GenerateKey(rand.Reader, bits)
 	if err != nil {
-		return nil, errors.Wrap(err, "rsa.GenerateKey failed")
+		return nil, fmt.Errorf("rsa.GenerateKey failed: %w", err)
 	}
 	return key, nil
 }
@@ -49,7 +48,7 @@ func CreateRSATestKey(bits int, password []byte, pemencode bool) ([]byte, []byte
 
 	pubData, err := x509.MarshalPKIXPublicKey(&key.PublicKey)
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "x509.MarshalPKIXPublicKey failed")
+		return nil, nil, fmt.Errorf("x509.MarshalPKIXPublicKey failed: %w", err)
 	}
 	privData := x509.MarshalPKCS1PrivateKey(key)
 
@@ -69,7 +68,7 @@ func CreateRSATestKey(bits int, password []byte, pemencode bool) ([]byte, []byte
 	if len(password) > 0 {
 		block, err = x509.EncryptPEMBlock(rand.Reader, typ, privData, password, x509.PEMCipherAES256) //nolint:staticcheck // ignore SA1019, which is kept for backward compatibility
 		if err != nil {
-			return nil, nil, errors.Wrap(err, "x509.EncryptPEMBlock failed")
+			return nil, nil, fmt.Errorf("x509.EncryptPEMBlock failed: %w", err)
 		}
 	} else {
 		block = &pem.Block{
@@ -88,17 +87,17 @@ func CreateRSATestKey(bits int, password []byte, pemencode bool) ([]byte, []byte
 func CreateECDSATestKey(curve elliptic.Curve) ([]byte, []byte, error) {
 	key, err := ecdsa.GenerateKey(curve, rand.Reader)
 	if err != nil {
-		return nil, nil, errors.Wrapf(err, "ecdsa.GenerateKey failed")
+		return nil, nil, fmt.Errorf("ecdsa.GenerateKey failed: %w", err)
 	}
 
 	pubData, err := x509.MarshalPKIXPublicKey(&key.PublicKey)
 	if err != nil {
-		return nil, nil, errors.Wrapf(err, "x509.MarshalPKIXPublicKey failed")
+		return nil, nil, fmt.Errorf("x509.MarshalPKIXPublicKey failed: %w", err)
 	}
 
 	privData, err := x509.MarshalECPrivateKey(key)
 	if err != nil {
-		return nil, nil, errors.Wrapf(err, "x509.MarshalECPrivateKey failed")
+		return nil, nil, fmt.Errorf("x509.MarshalECPrivateKey failed: %w", err)
 	}
 
 	return pubData, privData, nil
@@ -108,7 +107,7 @@ func CreateECDSATestKey(curve elliptic.Curve) ([]byte, []byte, error) {
 func CreateTestCA() (*rsa.PrivateKey, *x509.Certificate, error) {
 	key, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "rsa.GenerateKey failed")
+		return nil, nil, fmt.Errorf("rsa.GenerateKey failed: %w", err)
 	}
 
 	ca := &x509.Certificate{
@@ -154,12 +153,12 @@ func certifyKey(pub interface{}, template *x509.Certificate, caKey *rsa.PrivateK
 
 	certDER, err := x509.CreateCertificate(rand.Reader, template, caCert, pub, caKey)
 	if err != nil {
-		return nil, errors.Wrap(err, "x509.CreateCertificate failed")
+		return nil, fmt.Errorf("x509.CreateCertificate failed: %w", err)
 	}
 
 	cert, err := x509.ParseCertificate(certDER)
 	if err != nil {
-		return nil, errors.Wrap(err, "x509.ParseCertificate failed")
+		return nil, fmt.Errorf("x509.ParseCertificate failed: %w", err)
 	}
 
 	return cert, nil

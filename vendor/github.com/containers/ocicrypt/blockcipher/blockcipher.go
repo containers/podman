@@ -17,10 +17,11 @@
 package blockcipher
 
 import (
+	"errors"
+	"fmt"
 	"io"
 
 	"github.com/opencontainers/go-digest"
-	"github.com/pkg/errors"
 )
 
 // LayerCipherType is the ciphertype as specified in the layer metadata
@@ -129,7 +130,7 @@ func (h *LayerBlockCipherHandler) Encrypt(plainDataReader io.Reader, typ LayerCi
 		}
 		return encDataReader, fin, err
 	}
-	return nil, nil, errors.Errorf("unsupported cipher type: %s", typ)
+	return nil, nil, fmt.Errorf("unsupported cipher type: %s", typ)
 }
 
 // Decrypt is the handler for the layer decryption routine
@@ -141,7 +142,7 @@ func (h *LayerBlockCipherHandler) Decrypt(encDataReader io.Reader, opt LayerBloc
 	if c, ok := h.cipherMap[typ]; ok {
 		return c.Decrypt(encDataReader, opt)
 	}
-	return nil, LayerBlockCipherOptions{}, errors.Errorf("unsupported cipher type: %s", typ)
+	return nil, LayerBlockCipherOptions{}, fmt.Errorf("unsupported cipher type: %s", typ)
 }
 
 // NewLayerBlockCipherHandler returns a new default handler
@@ -153,7 +154,7 @@ func NewLayerBlockCipherHandler() (*LayerBlockCipherHandler, error) {
 	var err error
 	h.cipherMap[AES256CTR], err = NewAESCTRLayerBlockCipher(256)
 	if err != nil {
-		return nil, errors.Wrap(err, "unable to set up Cipher AES-256-CTR")
+		return nil, fmt.Errorf("unable to set up Cipher AES-256-CTR: %w", err)
 	}
 
 	return &h, nil
