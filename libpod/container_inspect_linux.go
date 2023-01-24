@@ -183,22 +183,28 @@ func (c *Container) platformInspectContainerHostConfig(ctrSpec *spec.Spec, hostC
 		// If there is none, it's ipc=host.
 		// If there is one and it has a path, it's "ns:".
 		// If no path, it's default - the empty string.
+		hostConfig.IpcMode = "host"
 		for _, ns := range ctrSpec.Linux.Namespaces {
 			if ns.Type == spec.IPCNamespace {
 				if ns.Path != "" {
 					hostConfig.IpcMode = fmt.Sprintf("ns:%s", ns.Path)
 				} else {
-					break
+					switch {
+					case c.config.NoShm:
+						hostConfig.IpcMode = "none"
+					case c.config.NoShmShare:
+						hostConfig.IpcMode = "private"
+					default:
+						hostConfig.IpcMode = "shareable"
+					}
 				}
+				break
 			}
 		}
 	case c.config.NoShm:
 		hostConfig.IpcMode = "none"
 	case c.config.NoShmShare:
 		hostConfig.IpcMode = "private"
-	}
-	if hostConfig.IpcMode == "" {
-		hostConfig.IpcMode = "shareable"
 	}
 
 	// Cgroup namespace mode
