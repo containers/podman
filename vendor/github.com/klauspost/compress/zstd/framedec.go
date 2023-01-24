@@ -29,7 +29,7 @@ type frameDec struct {
 
 	FrameContentSize uint64
 
-	DictionaryID  *uint32
+	DictionaryID  uint32
 	HasCheckSum   bool
 	SingleSegment bool
 }
@@ -155,7 +155,7 @@ func (d *frameDec) reset(br byteBuffer) error {
 
 	// Read Dictionary_ID
 	// https://github.com/facebook/zstd/blob/dev/doc/zstd_compression_format.md#dictionary_id
-	d.DictionaryID = nil
+	d.DictionaryID = 0
 	if size := fhd & 3; size != 0 {
 		if size == 3 {
 			size = 4
@@ -178,11 +178,7 @@ func (d *frameDec) reset(br byteBuffer) error {
 		if debugDecoder {
 			println("Dict size", size, "ID:", id)
 		}
-		if id > 0 {
-			// ID 0 means "sorry, no dictionary anyway".
-			// https://github.com/facebook/zstd/blob/dev/doc/zstd_compression_format.md#dictionary-format
-			d.DictionaryID = &id
-		}
+		d.DictionaryID = id
 	}
 
 	// Read Frame_Content_Size

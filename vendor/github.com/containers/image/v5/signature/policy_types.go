@@ -111,18 +111,49 @@ type prSignedBaseLayer struct {
 type prSigstoreSigned struct {
 	prCommon
 
-	// KeyPath is a pathname to a local file containing the trusted key. Exactly one of KeyPath and KeyData must be specified.
+	// KeyPath is a pathname to a local file containing the trusted key. Exactly one of KeyPath, KeyData, Fulcio must be specified.
 	KeyPath string `json:"keyPath,omitempty"`
-	// KeyData contains the trusted key, base64-encoded. Exactly one of KeyPath and KeyData must be specified.
+	// KeyData contains the trusted key, base64-encoded. Exactly one of KeyPath, KeyData, Fulcio must be specified.
 	KeyData []byte `json:"keyData,omitempty"`
 	// FIXME: Multiple public keys?
 
-	// FIXME: Support fulcio+rekor as an alternative.
+	// Fulcio specifies which Fulcio-generated certificates are accepted. Exactly one of KeyPath, KeyData, Fulcio must be specified.
+	// If Fulcio is specified, one of RekorPublicKeyPath or RekorPublicKeyData must be specified as well.
+	Fulcio PRSigstoreSignedFulcio `json:"fulcio,omitempty"`
+
+	// RekorPublicKeyPath is a pathname to local file containing a public key of a Rekor server which must record acceptable signatures.
+	// If Fulcio is used, one of RekorPublicKeyPath or RekorPublicKeyData must be specified as well; otherwise it is optional
+	// (and Rekor inclusion is not required if a Rekor public key is not specified).
+	RekorPublicKeyPath string `json:"rekorPublicKeyPath,omitempty"`
+	// RekorPublicKeyPath contain a base64-encoded public key of a Rekor server which must record acceptable signatures.
+	// If Fulcio is used, one of RekorPublicKeyPath or RekorPublicKeyData must be specified as well; otherwise it is optional
+	// (and Rekor inclusion is not required if a Rekor public key is not specified).
+	RekorPublicKeyData []byte `json:"rekorPublicKeyData,omitempty"`
 
 	// SignedIdentity specifies what image identity the signature must be claiming about the image.
 	// Defaults to "matchRepoDigestOrExact" if not specified.
 	// Note that /usr/bin/cosign interoperability might require using repo-only matching.
 	SignedIdentity PolicyReferenceMatch `json:"signedIdentity"`
+}
+
+// PRSigstoreSignedFulcio contains Fulcio configuration options for a "sigstoreSigned" PolicyRequirement.
+// This is a public type with a single private implementation.
+type PRSigstoreSignedFulcio interface {
+	// toFulcioTrustRoot creates a fulcioTrustRoot from the input data.
+	// (This also prevents external implementations of this interface, ensuring that prSigstoreSignedFulcio is the only one.)
+	prepareTrustRoot() (*fulcioTrustRoot, error)
+}
+
+// prSigstoreSignedFulcio collects Fulcio configuration options for prSigstoreSigned
+type prSigstoreSignedFulcio struct {
+	// CAPath a path to a file containing accepted CA root certificates, in PEM format. Exactly one of CAPath and CAData must be specified.
+	CAPath string `json:"caPath,omitempty"`
+	// CAData contains accepted CA root certificates in PEM format, all of that base64-encoded. Exactly one of CAPath and CAData must be specified.
+	CAData []byte `json:"caData,omitempty"`
+	// OIDCIssuer specifies the expected OIDC issuer, recorded by Fulcio into the generated certificates.
+	OIDCIssuer string `json:"oidcIssuer,omitempty"`
+	// SubjectEmail specifies the expected email address of the authenticated OIDC identity, recorded by Fulcio into the generated certificates.
+	SubjectEmail string `json:"subjectEmail,omitempty"`
 }
 
 // PolicyReferenceMatch specifies a set of image identities accepted in PolicyRequirement.

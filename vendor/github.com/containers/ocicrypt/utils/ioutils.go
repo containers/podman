@@ -18,10 +18,9 @@ package utils
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"os/exec"
-
-	"github.com/pkg/errors"
 )
 
 // FillBuffer fills the given buffer with as many bytes from the reader as possible. It returns
@@ -53,7 +52,7 @@ func (r Runner) Exec(cmdName string, args []string, input []byte) ([]byte, error
 	cmd.Stderr = &stderr
 	err := cmd.Run()
 	if err != nil {
-		return nil, errors.Wrapf(err, "Error while running command: %s. stderr: %s", cmdName, stderr.String())
+		return nil, fmt.Errorf("Error while running command: %s. stderr: %s: %w", cmdName, stderr.String(), err)
 	}
 	return out.Bytes(), nil
 }

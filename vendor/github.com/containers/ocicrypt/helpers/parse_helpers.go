@@ -1,6 +1,7 @@
 package helpers
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strconv"
@@ -11,8 +12,6 @@ import (
 	"github.com/containers/ocicrypt/config/pkcs11config"
 	"github.com/containers/ocicrypt/crypto/pkcs11"
 	encutils "github.com/containers/ocicrypt/utils"
-
-	"github.com/pkg/errors"
 )
 
 // processRecipientKeys sorts the array of recipients by type. Recipients may be either
@@ -44,7 +43,7 @@ func processRecipientKeys(recipients []string) ([][]byte, [][]byte, [][]byte, []
 		case "jwe":
 			tmp, err := os.ReadFile(value)
 			if err != nil {
-				return nil, nil, nil, nil, nil, nil, errors.Wrap(err, "Unable to read file")
+				return nil, nil, nil, nil, nil, nil, fmt.Errorf("Unable to read file: %w", err)
 			}
 			if !encutils.IsPublicKey(tmp) {
 				return nil, nil, nil, nil, nil, nil, errors.New("File provided is not a public key")
@@ -54,7 +53,7 @@ func processRecipientKeys(recipients []string) ([][]byte, [][]byte, [][]byte, []
 		case "pkcs7":
 			tmp, err := os.ReadFile(value)
 			if err != nil {
-				return nil, nil, nil, nil, nil, nil, errors.Wrap(err, "Unable to read file")
+				return nil, nil, nil, nil, nil, nil, fmt.Errorf("Unable to read file: %w", err)
 			}
 			if !encutils.IsCertificate(tmp) {
 				return nil, nil, nil, nil, nil, nil, errors.New("File provided is not an x509 cert")
@@ -64,7 +63,7 @@ func processRecipientKeys(recipients []string) ([][]byte, [][]byte, [][]byte, []
 		case "pkcs11":
 			tmp, err := os.ReadFile(value)
 			if err != nil {
-				return nil, nil, nil, nil, nil, nil, errors.Wrap(err, "Unable to read file")
+				return nil, nil, nil, nil, nil, nil, fmt.Errorf("Unable to read file: %w", err)
 			}
 			if encutils.IsPkcs11PublicKey(tmp) {
 				pkcs11Yamls = append(pkcs11Yamls, tmp)
@@ -94,7 +93,7 @@ func processx509Certs(keys []string) ([][]byte, error) {
 		}
 		tmp, err := os.ReadFile(fileName)
 		if err != nil {
-			return nil, errors.Wrap(err, "Unable to read file")
+			return nil, fmt.Errorf("Unable to read file: %w", err)
 		}
 		if !encutils.IsCertificate(tmp) {
 			continue
@@ -119,7 +118,7 @@ func processPwdString(pwdString string) ([]byte, error) {
 		fdStr := pwdString[3:]
 		fd, err := strconv.Atoi(fdStr)
 		if err != nil {
-			return nil, errors.Wrapf(err, "could not parse file descriptor %s", fdStr)
+			return nil, fmt.Errorf("could not parse file descriptor %s: %w", fdStr, err)
 		}
 		f := os.NewFile(uintptr(fd), "pwdfile")
 		if f == nil {
@@ -129,7 +128,7 @@ func processPwdString(pwdString string) ([]byte, error) {
 		pwd := make([]byte, 64)
 		n, err := f.Read(pwd)
 		if err != nil {
-			return nil, errors.Wrapf(err, "could not read from file descriptor")
+			return nil, fmt.Errorf("could not read from file descriptor: %w", err)
 		}
 		return pwd[:n], nil
 	}

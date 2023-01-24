@@ -18,9 +18,8 @@ package config
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
-
-	"github.com/pkg/errors"
 )
 
 // Command describes the structure of command, it consist of path and args, where path defines the location of
@@ -72,7 +71,7 @@ func GetConfiguration() (*OcicryptConfig, error) {
 	if len(filename) > 0 {
 		ic, err = parseConfigFile(filename)
 		if err != nil {
-			return nil, errors.Wrap(err, "Error while parsing keyprovider config file")
+			return nil, fmt.Errorf("Error while parsing keyprovider config file: %w", err)
 		}
 	} else {
 		return nil, nil

@@ -98,7 +98,7 @@ github.com/containernetworking/cni/pkg/version
 # github.com/containernetworking/plugins v1.2.0
 ## explicit; go 1.17
 github.com/containernetworking/plugins/pkg/ns
-# github.com/containers/buildah v1.28.1-0.20230118214707-42f2b38574c4
+# github.com/containers/buildah v1.28.1-0.20230120225201-4b72f055f1c9
 ## explicit; go 1.17
 github.com/containers/buildah
 github.com/containers/buildah/bind
@@ -121,7 +121,7 @@ github.com/containers/buildah/pkg/rusage
 github.com/containers/buildah/pkg/sshagent
 github.com/containers/buildah/pkg/util
 github.com/containers/buildah/util
-# github.com/containers/common v0.50.2-0.20230118184424-57606d3b130f
+# github.com/containers/common v0.51.0
 ## explicit; go 1.17
 github.com/containers/common/libimage
 github.com/containers/common/libimage/define
@@ -175,7 +175,7 @@ github.com/containers/common/version
 # github.com/containers/conmon v2.0.20+incompatible
 ## explicit
 github.com/containers/conmon/runner/config
-# github.com/containers/image/v5 v5.23.1-0.20230118141642-5e9b17d07ceb
+# github.com/containers/image/v5 v5.24.0
 ## explicit; go 1.17
 github.com/containers/image/v5/copy
 github.com/containers/image/v5/directory
@@ -242,10 +242,10 @@ github.com/containers/image/v5/transports
 github.com/containers/image/v5/transports/alltransports
 github.com/containers/image/v5/types
 github.com/containers/image/v5/version
-# github.com/containers/libtrust v0.0.0-20200511145503-9c3a6c22cd9a
+# github.com/containers/libtrust v0.0.0-20230121012942-c1716e8a8d01
 ## explicit
 github.com/containers/libtrust
-# github.com/containers/ocicrypt v1.1.7-0.20230115130455-e0cec6f7be0d
+# github.com/containers/ocicrypt v1.1.7
 ## explicit; go 1.16
 github.com/containers/ocicrypt
 github.com/containers/ocicrypt/blockcipher
@@ -272,7 +272,7 @@ github.com/containers/psgo/internal/dev
 github.com/containers/psgo/internal/host
 github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
-# github.com/containers/storage v1.45.2-0.20230117181605-d5792d2dbc18
+# github.com/containers/storage v1.45.3
 ## explicit; go 1.17
 github.com/containers/storage
 github.com/containers/storage/drivers
@@ -535,7 +535,7 @@ github.com/josharian/intern
 # github.com/json-iterator/go v1.1.12
 ## explicit; go 1.12
 github.com/json-iterator/go
-# github.com/klauspost/compress v1.15.14
+# github.com/klauspost/compress v1.15.15
 ## explicit; go 1.17
 github.com/klauspost/compress
 github.com/klauspost/compress/flate
@@ -735,6 +735,9 @@ github.com/rootless-containers/rootlesskit/pkg/port/portutil
 # github.com/seccomp/libseccomp-golang v0.10.0
 ## explicit; go 1.14
 github.com/seccomp/libseccomp-golang
+# github.com/sigstore/fulcio v1.0.0
+## explicit; go 1.18
+github.com/sigstore/fulcio/pkg/certificate
 # github.com/sigstore/rekor v1.0.1
 ## explicit; go 1.18
 github.com/sigstore/rekor/pkg/generated/models

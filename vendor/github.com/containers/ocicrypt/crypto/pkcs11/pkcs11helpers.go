@@ -26,6 +26,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"hash"
 	"net/url"
@@ -34,7 +35,6 @@ import (
 	"strings"
 
 	"github.com/miekg/pkcs11"
-	"github.com/pkg/errors"
 	pkcs11uri "github.com/stefanberger/go-pkcs11uri"
 )
 
@@ -77,11 +77,11 @@ func rsaPublicEncryptOAEP(pubKey *rsa.PublicKey, plaintext []byte) ([]byte, stri
 		hashfunc = sha256.New()
 		hashalg = "sha256"
 	default:
-		return nil, "", errors.Errorf("Unsupported OAEP hash '%s'", oaephash)
+		return nil, "", fmt.Errorf("Unsupported OAEP hash '%s'", oaephash)
 	}
 	ciphertext, err := rsa.EncryptOAEP(hashfunc, rand.Reader, pubKey, plaintext, OAEPLabel)
 	if err != nil {
-		return nil, "", errors.Wrapf(err, "rss.EncryptOAEP failed")
+		return nil, "", fmt.Errorf("rss.EncryptOAEP failed: %w", err)
 	}
 
 	return ciphertext, hashalg, nil
@@ -105,7 +105,7 @@ func pkcs11UriGetLoginParameters(p11uri *pkcs11uri.Pkcs11URI, privateKeyOperatio
 
 	module, err := p11uri.GetModule()
 	if err != nil {
-		return "", "", 0, errors.Wrap(err, "No module available in pkcs11 URI")
+		return "", "", 0, fmt.Errorf("No module available in pkcs11 URI: %w", err)
 	}
 
 	slotid := int64(-1)
@@ -114,7 +114,7 @@ func pkcs11UriGetLoginParameters(p11uri *pkcs11uri.Pkcs11URI, privateKeyOperatio
 	if ok {
 		slotid, err = strconv.ParseInt(slot, 10, 64)
 		if err != nil {
-			return "", "", 0, errors.Wrap(err, "slot-id is not a valid number")
+			return "", "", 0, fmt.Errorf("slot-id is not a valid number: %w", err)
 		}
 		if slotid < 0 {
 			return "", "", 0, fmt.Errorf("slot-id is a negative number")
@@ -141,13 +141,13 @@ func pkcs11UriGetKeyIdAndLabel(p11uri *pkcs11uri.Pkcs11URI) (string, string, err
 func pkcs11OpenSession(p11ctx *pkcs11.Ctx, slotid uint, pin string) (session pkcs11.SessionHandle, err error) {
 	session, err = p11ctx.OpenSession(slotid, pkcs11.CKF_SERIAL_SESSION|pkcs11.CKF_RW_SESSION)
 	if err != nil {
-		return 0, errors.Wrapf(err, "OpenSession to slot %d failed", slotid)
+		return 0, fmt.Errorf("OpenSession to slot %d failed: %w", slotid, err)
 	}
 	if len(pin) > 0 {
 		err = p11ctx.Login(session, pkcs11.CKU_USER, pin)
 		if err != nil {
 			_ = p11ctx.CloseSession(session)
-			return 0, errors.Wrap(err, "Could not login to device")
+			return 0, fmt.Errorf("Could not login to device: %w", err)
 		}
 	}
 	return session, nil
@@ -171,7 +171,7 @@ func pkcs11UriLogin(p11uri *pkcs11uri.Pkcs11URI, privateKeyOperation bool) (ctx 
 	if err != nil {
 		p11Err := err.(pkcs11.Error)
 		if p11Err != pkcs11.CKR_CRYPTOKI_ALREADY_INITIALIZED {
-			return nil, 0, errors.Wrap(err, "Initialize failed")
+			return nil, 0, fmt.Errorf("Initialize failed: %w", err)
 		}
 	}
 
@@ -182,7 +182,7 @@ func pkcs11UriLogin(p11uri *pkcs11uri.Pkcs11URI, privateKeyOperation bool) (ctx 
 
 	slots, err := p11ctx.GetSlotList(true)
 	if err != nil {
-		return nil, 0, errors.Wrap(err, "GetSlotList failed")
+		return nil, 0, fmt.Errorf("GetSlotList failed: %w", err)
 	}
 
 	tokenlabel, ok := p11uri.GetPathAttribute("token", false)
@@ -234,24 +234,24 @@ func findObject(p11ctx *pkcs11.Ctx, session pkcs11.SessionHandle, class uint, ke
 	}
 
 	if err := p11ctx.FindObjectsInit(session, template); err != nil {
-		return 0, errors.Wrap(err, "FindObjectsInit failed")
+		return 0, fmt.Errorf("FindObjectsInit failed: %w", err)
 	}
 
 	obj, _, err := p11ctx.FindObjects(session, 100)
 	if err != nil {
-		return 0, errors.Wrap(err, "FindObjects failed")
+		return 0, fmt.Errorf("FindObjects failed: %w", err)
 	}
 
 	if err := p11ctx.FindObjectsFinal(session); err != nil {
-		return 0, errors.Wrap(err, "FindObjectsFinal failed")
+		return 0, fmt.Errorf("FindObjectsFinal failed: %w", err)
 	}
 	if len(obj) > 1 {
-		return 0, errors.Errorf("There are too many (=%d) keys with %s", len(obj), msg)
+		return 0, fmt.Errorf("There are too many (=%d) keys with %s", len(obj), msg)
 	} else if len(obj) == 1 {
 		return obj[0], nil
 	}
 
-	return 0, errors.Errorf("Could not find any object with %s", msg)
+	return 0, fmt.Errorf("Could not find any object with %s", msg)
 }
 
 // publicEncryptOAEP uses a public key described by a pkcs11 URI to OAEP encrypt the given plaintext
@@ -291,17 +291,17 @@ func publicEncryptOAEP(pubKey *Pkcs11KeyFileObject, plaintext []byte) ([]byte, s
 		oaep = OAEPSha256Params
 		hashalg = "sha256"
 	default:
-		return nil, "", errors.Errorf("Unsupported OAEP hash '%s'", oaephash)
+		return nil, "", fmt.Errorf("Unsupported OAEP hash '%s'", oaephash)
 	}
 
 	err = p11ctx.EncryptInit(session, []*pkcs11.Mechanism{pkcs11.NewMechanism(pkcs11.CKM_RSA_PKCS_OAEP, oaep)}, p11PubKey)
 	if err != nil {
-		return nil, "", errors.Wrap(err, "EncryptInit error")
+		return nil, "", fmt.Errorf("EncryptInit error: %w", err)
 	}
 
 	ciphertext, err := p11ctx.Encrypt(session, plaintext)
 	if err != nil {
-		return nil, "", errors.Wrap(err, "Encrypt failed")
+		return nil, "", fmt.Errorf("Encrypt failed: %w", err)
 	}
 	return ciphertext, hashalg, nil
 }
@@ -339,16 +339,16 @@ func privateDecryptOAEP(privKeyObj *Pkcs11KeyFileObject, ciphertext []byte, hash
 	case "sha256":
 		oaep = OAEPSha256Params
 	default:
-		return nil, errors.Errorf("Unsupported hash algorithm '%s' for decryption", hashalg)
+		return nil, fmt.Errorf("Unsupported hash algorithm '%s' for decryption", hashalg)
 	}
 
 	err = p11ctx.DecryptInit(session, []*pkcs11.Mechanism{pkcs11.NewMechanism(pkcs11.CKM_RSA_PKCS_OAEP, oaep)}, p11PrivKey)
 	if err != nil {
-		return nil, errors.Wrapf(err, "DecryptInit failed")
+		return nil, fmt.Errorf("DecryptInit failed: %w", err)
 	}
 	plaintext, err := p11ctx.Decrypt(session, ciphertext)
 	if err != nil {
-		return nil, errors.Wrapf(err, "Decrypt failed")
+		return nil, fmt.Errorf("Decrypt failed: %w", err)
 	}
 	return plaintext, err
 }
@@ -403,7 +403,7 @@ func EncryptMultiple(pubKeys []interface{}, data []byte) ([]byte, error) {
 		case *Pkcs11KeyFileObject:
 			ciphertext, hashalg, err = publicEncryptOAEP(pkey, data)
 		default:
-			err = errors.Errorf("Unsupported key object type for pkcs11 public key")
+			err = fmt.Errorf("Unsupported key object type for pkcs11 public key")
 		}
 		if err != nil {
 			return nil, err
@@ -442,13 +442,13 @@ func Decrypt(privKeyObjs []*Pkcs11KeyFileObject, pkcs11blobstr []byte) ([]byte, 
 	pkcs11blob := Pkcs11Blob{}
 	err := json.Unmarshal(pkcs11blobstr, &pkcs11blob)
 	if err != nil {
-		return nil, errors.Wrapf(err, "Could not parse Pkcs11Blob")
+		return nil, fmt.Errorf("Could not parse Pkcs11Blob: %w", err)
 	}
 	switch pkcs11blob.Version {
 	case 0:
 		// latest supported version
 	default:
-		return nil, errors.Errorf("found Pkcs11Blob with version %d but maximum supported version is 0", pkcs11blob.Version)
+		return nil, fmt.Errorf("found Pkcs11Blob with version %d but maximum supported version is 0", pkcs11blob.Version)
 	}
 	// since we do trial and error, collect all encountered errors
 	errs := ""
@@ -458,7 +458,7 @@ func Decrypt(privKeyObjs []*Pkcs11KeyFileObject, pkcs11blobstr []byte) ([]byte, 
 		case 0:
 			// last supported version
 		default:
-			return nil, errors.Errorf("found Pkcs11Recipient with version %d but maximum supported version is 0", recipient.Version)
+			return nil, fmt.Errorf("found Pkcs11Recipient with version %d but maximum supported version is 0", recipient.Version)
 		}
 
 		ciphertext, err := base64.StdEncoding.DecodeString(recipient.Blob)
@@ -481,5 +481,5 @@ func Decrypt(privKeyObjs []*Pkcs11KeyFileObject, pkcs11blobstr []byte) ([]byte, 
 		}
 	}
 
-	return nil, errors.Errorf("Could not find a pkcs11 key for decryption:\n%s", errs)
+	return nil, fmt.Errorf("Could not find a pkcs11 key for decryption:\n%s", errs)
 }

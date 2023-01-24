@@ -17,6 +17,7 @@
 package ocicrypt
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -27,7 +28,6 @@ import (
 	"sync"
 
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
-	"github.com/pkg/errors"
 	"golang.org/x/term"
 )
 
@@ -133,7 +133,7 @@ func (gc *gpgv2Client) GetGPGPrivateKey(keyid uint64, passphrase string) ([]byte
 
 	rfile, wfile, err := os.Pipe()
 	if err != nil {
-		return nil, errors.Wrapf(err, "could not create pipe")
+		return nil, fmt.Errorf("could not create pipe: %w", err)
 	}
 	defer func() {
 		rfile.Close()
@@ -359,7 +359,7 @@ func GPGGetPrivateKey(descs []ocispec.Descriptor, gpgClient GPGClient, gpgVault 
 			}
 			keywrapper := GetKeyWrapper(scheme)
 			if keywrapper == nil {
-				return nil, nil, errors.Errorf("could not get KeyWrapper for %s", scheme)
+				return nil, nil, fmt.Errorf("could not get KeyWrapper for %s", scheme)
 			}
 			keyIds, err := keywrapper.GetKeyIdsFromPacket(b64pgpPackets)
 			if err != nil {
@@ -418,7 +418,7 @@ func GPGGetPrivateKey(descs []ocispec.Descriptor, gpgClient GPGClient, gpgVault 
 			if !found && len(b64pgpPackets) > 0 && mustFindKey {
 				ids := uint64ToStringArray("0x%x", keyIds)
 
-				return nil, nil, errors.Errorf("missing key for decryption of layer %x of %s. Need one of the following keys: %s", desc.Digest, desc.Platform, strings.Join(ids, ", "))
+				return nil, nil, fmt.Errorf("missing key for decryption of layer %x of %s. Need one of the following keys: %s", desc.Digest, desc.Platform, strings.Join(ids, ", "))
 			}
 		}
 	}

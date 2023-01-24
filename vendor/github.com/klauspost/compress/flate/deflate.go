@@ -294,7 +294,6 @@ func (d *compressor) findMatch(pos int, prevHead int, lookahead int) (length, of
 	}
 	offset = 0
 
-	cGain := 0
 	if d.chain < 100 {
 		for i := prevHead; tries > 0; tries-- {
 			if wEnd == win[i+length] {
@@ -322,10 +321,14 @@ func (d *compressor) findMatch(pos int, prevHead int, lookahead int) (length, of
 		return
 	}
 
+	// Minimum gain to accept a match.
+	cGain := 4
+
 	// Some like it higher (CSV), some like it lower (JSON)
-	const baseCost = 6
+	const baseCost = 3
 	// Base is 4 bytes at with an additional cost.
 	// Matches must be better than this.
+
 	for i := prevHead; tries > 0; tries-- {
 		if wEnd == win[i+length] {
 			n := matchLen(win[i:i+minMatchLook], wPos)
@@ -333,7 +336,7 @@ func (d *compressor) findMatch(pos int, prevHead int, lookahead int) (length, of
 				// Calculate gain. Estimate
 				newGain := d.h.bitLengthRaw(wPos[:n]) - int(offsetExtraBits[offsetCode(uint32(pos-i))]) - baseCost - int(lengthExtraBits[lengthCodes[(n-3)&255]])
 
-				//fmt.Println(n, "gain:", newGain, "prev:", cGain, "raw:", d.h.bitLengthRaw(wPos[:n]))
+				//fmt.Println("gain:", newGain, "prev:", cGain, "raw:", d.h.bitLengthRaw(wPos[:n]), "this-len:", n, "prev-len:", length)
 				if newGain > cGain {
 					length = n
 					offset = pos - i
@@ -490,27 +493,103 @@ func (d *compressor) deflateLazy() {
 		}
 
 		if prevLength >= minMatchLength && s.length <= prevLength {
-			// Check for better match at end...
+			// No better match, but check for better match at end...
 			//
-			// checkOff must be >=2 since we otherwise risk checking s.index
-			// Offset of 2 seems to yield best results.
+			// Skip forward a number of bytes.
+			// Offset of 2 seems to yield best results. 3 is sometimes better.
 			const checkOff = 2
-			prevIndex := s.index - 1
-			if prevIndex+prevLength+checkOff < s.maxInsertIndex {
-				end := lookahead
-				if lookahead > maxMatchLength {
-					end = maxMatchLength
-				}
-				end += prevIndex
-				idx := prevIndex + prevLength - (4 - checkOff)
-				h := hash4(d.window[idx:])
-				ch2 := int(s.hashHead[h]) - s.hashOffset - prevLength + (4 - checkOff)
-				if ch2 > minIndex {
-					length := matchLen(d.window[prevIndex:end], d.window[ch2:])
-					// It seems like a pure length metric is best.
-					if length > prevLength {
-						prevLength = length
-						prevOffset = prevIndex - ch2
+
+			// Check all, except full length
+			if prevLength < maxMatchLength-checkOff {
+				prevIndex := s.index - 1
+				if prevIndex+prevLength < s.maxInsertIndex {
+					end := lookahead
+					if lookahead > maxMatchLength+checkOff {
+						end = maxMatchLength + checkOff
+					}
+					end += prevIndex
+
+					// Hash at match end.
+					h := hash4(d.window[prevIndex+prevLength:])
+					ch2 := int(s.hashHead[h]) - s.hashOffset - prevLength
+					if prevIndex-ch2 != prevOffset && ch2 > minIndex+checkOff {
+						length := matchLen(d.window[prevIndex+checkOff:end], d.window[ch2+checkOff:])
+						// It seems like a pure length metric is best.
+						if length > prevLength {
+							prevLength = length
+							prevOffset = prevIndex - ch2
+
+							// Extend back...
+							for i := checkOff - 1; i >= 0; i-- {
+								if prevLength >= maxMatchLength || d.window[prevIndex+i] != d.window[ch2+i] {
+									// Emit tokens we "owe"
+									for j := 0; j <= i; j++ {
+										d.tokens.AddLiteral(d.window[prevIndex+j])
+										if d.tokens.n == maxFlateBlockTokens {
+											// The block includes the current character
+											if d.err = d.writeBlock(&d.tokens, s.index, false); d.err != nil {
+												return
+											}
+											d.tokens.Reset()
+										}
+										s.index++
+										if s.index < s.maxInsertIndex {
+											h := hash4(d.window[s.index:])
+											ch := s.hashHead[h]
+											s.chainHead = int(ch)
+											s.hashPrev[s.index&windowMask] = ch
+											s.hashHead[h] = uint32(s.index + s.hashOffset)
+										}
+									}
+									break
+								} else {
+									prevLength++
+								}
+							}
+						} else if false {
+							// Check one further ahead.
+							// Only rarely better, disabled for now.
+							prevIndex++
+							h := hash4(d.window[prevIndex+prevLength:])
+							ch2 := int(s.hashHead[h]) - s.hashOffset - prevLength
+							if prevIndex-ch2 != prevOffset && ch2 > minIndex+checkOff {
+								length := matchLen(d.window[prevIndex+checkOff:end], d.window[ch2+checkOff:])
+								// It seems like a pure length metric is best.
+								if length > prevLength+checkOff {
+									prevLength = length
+									prevOffset = prevIndex - ch2
+									prevIndex--
+
+									// Extend back...
+									for i := checkOff; i >= 0; i-- {
+										if prevLength >= maxMatchLength || d.window[prevIndex+i] != d.window[ch2+i-1] {
+											// Emit tokens we "owe"
+											for j := 0; j <= i; j++ {
+												d.tokens.AddLiteral(d.window[prevIndex+j])
+												if d.tokens.n == maxFlateBlockTokens {
+													// The block includes the current character
+													if d.err = d.writeBlock(&d.tokens, s.index, false); d.err != nil {
+														return
+													}
+													d.tokens.Reset()
+												}
+												s.index++
+												if s.index < s.maxInsertIndex {
+													h := hash4(d.window[s.index:])
+													ch := s.hashHead[h]
+													s.chainHead = int(ch)
+													s.hashPrev[s.index&windowMask] = ch
+													s.hashHead[h] = uint32(s.index + s.hashOffset)
+												}
+											}
+											break
+										} else {
+											prevLength++
+										}
+									}
+								}
+							}
+						}
 					}
 				}
 			}

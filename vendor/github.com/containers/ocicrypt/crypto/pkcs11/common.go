@@ -16,7 +16,6 @@ package pkcs11
 import (
 	"fmt"
 
-	"github.com/pkg/errors"
 	pkcs11uri "github.com/stefanberger/go-pkcs11uri"
 	"gopkg.in/yaml.v3"
 )
@@ -43,7 +42,7 @@ func ParsePkcs11Uri(uri string) (*pkcs11uri.Pkcs11URI, error) {
 	p11uri := pkcs11uri.New()
 	err := p11uri.Parse(uri)
 	if err != nil {
-		return nil, errors.Wrapf(err, "Could not parse Pkcs11URI from file")
+		return nil, fmt.Errorf("Could not parse Pkcs11URI from file: %w", err)
 	}
 	return p11uri, err
 }
@@ -58,7 +57,7 @@ func ParsePkcs11KeyFile(yamlstr []byte) (*Pkcs11KeyFileObject, error) {
 
 	err := yaml.Unmarshal(yamlstr, &p11keyfile)
 	if err != nil {
-		return nil, errors.Wrapf(err, "Could not unmarshal pkcs11 keyfile")
+		return nil, fmt.Errorf("Could not unmarshal pkcs11 keyfile: %w", err)
 	}
 
 	p11uri, err := ParsePkcs11Uri(p11keyfile.Pkcs11.Uri)
@@ -129,7 +128,7 @@ func ParsePkcs11ConfigFile(yamlstr []byte) (*Pkcs11Config, error) {
 
 	err := yaml.Unmarshal(yamlstr, &p11conf)
 	if err != nil {
-		return &p11conf, errors.Wrapf(err, "Could not parse Pkcs11Config")
+		return &p11conf, fmt.Errorf("Could not parse Pkcs11Config: %w", err)
 	}
 	return &p11conf, nil
 }
