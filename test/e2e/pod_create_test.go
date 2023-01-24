@@ -711,12 +711,14 @@ ENTRYPOINT ["sleep","99999"]
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
-		// container inside pod inherits user form infra container if --user is not set
-		// etc/passwd entry will look like 1000:*:1000:1000:container user:/:/bin/sh
+		u, err := user.Current()
+		Expect(err).ToNot(HaveOccurred())
+		// container inside pod inherits user from infra container if --user is not set
+		// etc/passwd entry will look like USERNAME:*:1000:1000:Full User Name:/:/bin/sh
 		exec1 := podmanTest.Podman([]string{"exec", ctrName, "cat", "/etc/passwd"})
 		exec1.WaitWithDefaultTimeout()
 		Expect(exec1).Should(Exit(0))
-		Expect(exec1.OutputToString()).To(ContainSubstring("container"))
+		Expect(exec1.OutputToString()).To(ContainSubstring(u.Name))
 
 		exec2 := podmanTest.Podman([]string{"exec", ctrName, "useradd", "testuser"})
 		exec2.WaitWithDefaultTimeout()
