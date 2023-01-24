@@ -188,17 +188,22 @@ func (c *Container) platformInspectContainerHostConfig(ctrSpec *spec.Spec, hostC
 				if ns.Path != "" {
 					hostConfig.IpcMode = fmt.Sprintf("ns:%s", ns.Path)
 				} else {
-					break
+					if c.config.NoShm {
+						hostConfig.IpcMode = "none"
+						break
+					}
+					if c.config.NoShmShare {
+						hostConfig.IpcMode = "private"
+					} else {
+						hostConfig.IpcMode = "shareable"
+					}
 				}
+				break
 			}
 		}
-	case c.config.NoShm:
-		hostConfig.IpcMode = "none"
-	case c.config.NoShmShare:
-		hostConfig.IpcMode = "private"
 	}
 	if hostConfig.IpcMode == "" {
-		hostConfig.IpcMode = "shareable"
+		hostConfig.IpcMode = "host"
 	}
 
 	// Cgroup namespace mode
