@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	libnetworkTypes "github.com/containers/common/libnetwork/types"
 	"github.com/containers/podman/v4/libpod"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/domain/entities"
@@ -134,6 +135,8 @@ func ListContainerBatch(rt *libpod.Runtime, ctr *libpod.Container, opts entities
 		startedTime                             time.Time
 		exitedTime                              time.Time
 		cgroup, ipc, mnt, net, pidns, user, uts string
+		portMappings                            []libnetworkTypes.PortMapping
+		networks                                []string
 	)
 
 	batchErr := ctr.Batch(func(c *libpod.Container) error {
@@ -165,6 +168,16 @@ func ListContainerBatch(rt *libpod.Runtime, ctr *libpod.Container, opts entities
 		pid, err = c.PID()
 		if err != nil {
 			return fmt.Errorf("unable to obtain container pid: %w", err)
+		}
+
+		portMappings, err = c.PortMappings()
+		if err != nil {
+			return err
+		}
+
+		networks, err = c.Networks()
+		if err != nil {
+			return err
 		}
 
 		if !opts.Size && !opts.Namespace {
@@ -201,16 +214,6 @@ func ListContainerBatch(rt *libpod.Runtime, ctr *libpod.Container, opts entities
 	})
 	if batchErr != nil {
 		return entities.ListContainer{}, batchErr
-	}
-
-	portMappings, err := ctr.PortMappings()
-	if err != nil {
-		return entities.ListContainer{}, err
-	}
-
-	networks, err := ctr.Networks()
-	if err != nil {
-		return entities.ListContainer{}, err
 	}
 
 	ps := entities.ListContainer{
