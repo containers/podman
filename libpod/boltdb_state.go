@@ -815,8 +815,6 @@ func (s *BoltState) UpdateContainer(ctr *Container) error {
 		return fmt.Errorf("container %s is in namespace %q, does not match our namespace %q: %w", ctr.ID(), ctr.config.Namespace, s.namespace, define.ErrNSMismatch)
 	}
 
-	newState := new(ContainerState)
-
 	ctrID := []byte(ctr.ID())
 
 	db, err := s.getDBCon()
@@ -825,43 +823,13 @@ func (s *BoltState) UpdateContainer(ctr *Container) error {
 	}
 	defer s.deferredCloseDBCon(db)
 
-	err = db.View(func(tx *bolt.Tx) error {
+	return db.View(func(tx *bolt.Tx) error {
 		ctrBucket, err := getCtrBucket(tx)
 		if err != nil {
 			return err
 		}
-
-		ctrToUpdate := ctrBucket.Bucket(ctrID)
-		if ctrToUpdate == nil {
-			ctr.valid = false
-			return fmt.Errorf("container %s does not exist in database: %w", ctr.ID(), define.ErrNoSuchCtr)
-		}
-
-		newStateBytes := ctrToUpdate.Get(stateKey)
-		if newStateBytes == nil {
-			return fmt.Errorf("container %s does not have a state key in DB: %w", ctr.ID(), define.ErrInternal)
-		}
-
-		if err := json.Unmarshal(newStateBytes, newState); err != nil {
-			return fmt.Errorf("unmarshalling container %s state: %w", ctr.ID(), err)
-		}
-
-		// backwards compat, previously we used a extra bucket for the netns so try to get it from there
-		netNSBytes := ctrToUpdate.Get(netNSKey)
-		if netNSBytes != nil && newState.NetNS == "" {
-			newState.NetNS = string(netNSBytes)
-		}
-
-		return nil
+		return s.getContainerStateDB(ctrID, ctr, ctrBucket)
 	})
-	if err != nil {
-		return err
-	}
-
-	// New state compiled successfully, swap it into the current state
-	ctr.state = newState
-
-	return nil
 }
 
 // SaveContainer saves a container's current state in the database
