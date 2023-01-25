@@ -146,6 +146,19 @@ class ContainerTestCase(APITestCase):
         )
         self.assertEqual(r.status_code, 204, r.text)
 
+        # wait for the log message to appear to avoid flakes on slow systems
+        # with the /attach?logs=true test below
+        for _ in range(5):
+            r = requests.get(
+                self.podman_url
+                + f"/v1.40/containers/{payload['Id']}/logs?stdout=true"
+            )
+            self.assertIn(r.status_code, (101, 200), r.text)
+            if r.content == b"\x01\x00\x00\x00\x00\x00\x00\x07podman\n":
+                break
+
+            time.sleep(1)
+
         r = requests.post(
             self.podman_url
             + f"/v1.40/containers/{payload['Id']}/attach?logs=true&stream=false"
