@@ -407,10 +407,13 @@ func (c *Container) getHealthCheckLog() (define.HealthCheckResults, error) {
 	return healthCheck, nil
 }
 
-// HealthCheckStatus returns the current state of a container with a healthcheck
+// HealthCheckStatus returns the current state of a container with a healthcheck.
+// Returns an empty string if no health check is defined for the container.
 func (c *Container) HealthCheckStatus() (string, error) {
-	c.lock.Lock()
-	defer c.lock.Unlock()
+	if !c.batched {
+		c.lock.Lock()
+		defer c.lock.Unlock()
+	}
 	return c.healthCheckStatus()
 }
 
@@ -418,7 +421,7 @@ func (c *Container) HealthCheckStatus() (string, error) {
 // This function does not lock the container.
 func (c *Container) healthCheckStatus() (string, error) {
 	if !c.HasHealthCheck() {
-		return "", fmt.Errorf("container %s has no defined healthcheck", c.ID())
+		return "", nil
 	}
 
 	if err := c.syncContainer(); err != nil {
