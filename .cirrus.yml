@@ -6,7 +6,7 @@ env:
     #### Global variables used for all tasks
     ####
     # Name of the ultimate destination branch for this CI run, PR or post-merge.
-    DEST_BRANCH: "main"
+    DEST_BRANCH: "v4.4"
     # Sane (default) value for GOPROXY and GOSUMDB.
     GOPROXY: "https://proxy.golang.org,direct"
     GOSUMDB: "sum.golang.org"
