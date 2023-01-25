@@ -13,10 +13,12 @@ import (
 	"time"
 
 	"github.com/containers/image/v5/docker/reference"
+	"github.com/containers/image/v5/internal/set"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/types"
 	"github.com/opencontainers/go-digest"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/exp/slices"
 )
 
 // Writer allows creating a (docker save)-formatted tar archive containing one or more images.
@@ -29,7 +31,7 @@ type Writer struct {
 	// Other state.
 	blobs            map[digest.Digest]types.BlobInfo // list of already-sent blobs
 	repositories     map[string]map[string]string
-	legacyLayers     map[string]struct{} // A set of IDs of legacy layers that have been already sent.
+	legacyLayers     *set.Set[string] // A set of IDs of legacy layers that have been already sent.
 	manifest         []ManifestItem
 	manifestByConfig map[digest.Digest]int // A map from config digest to an entry index in manifest above.
 }
@@ -42,7 +44,7 @@ func NewWriter(dest io.Writer) *Writer {
 		tar:              tar.NewWriter(dest),
 		blobs:            make(map[digest.Digest]types.BlobInfo),
 		repositories:     map[string]map[string]string{},
-		legacyLayers:     map[string]struct{}{},
+		legacyLayers:     set.New[string](),
 		manifestByConfig: map[digest.Digest]int{},
 	}
 }
@@ -89,7 +91,7 @@ func (w *Writer) recordBlobLocked(info types.BlobInfo) {
 // ensureSingleLegacyLayerLocked writes legacy VERSION and configuration files for a single layer
 // The caller must have locked the Writer.
 func (w *Writer) ensureSingleLegacyLayerLocked(layerID string, layerDigest digest.Digest, configBytes []byte) error {
-	if _, ok := w.legacyLayers[layerID]; !ok {
+	if !w.legacyLayers.Contains(layerID) {
 		// Create a symlink for the legacy format, where there is one subdirectory per layer ("image").
 		// See also the comment in physicalLayerPath.
 		physicalLayerPath := w.physicalLayerPath(layerDigest)
@@ -106,7 +108,7 @@ func (w *Writer) ensureSingleLegacyLayerLocked(layerID string, layerDigest diges
 			return fmt.Errorf("writing config json file: %w", err)
 		}
 
-		w.legacyLayers[layerID] = struct{}{}
+		w.legacyLayers.Add(layerID)
 	}
 	return nil
 }
@@ -117,7 +119,7 @@ func (w *Writer) writeLegacyMetadataLocked(layerDescriptors []manifest.Schema2De
 	lastLayerID := ""
 	for i, l := range layerDescriptors {
 		// The legacy format requires a config file per layer
-		layerConfig := make(map[string]interface{})
+		layerConfig := make(map[string]any)
 
 		// The root layer doesn't have any parent
 		if lastLayerID != "" {
@@ -188,13 +190,8 @@ func checkManifestItemsMatch(a, b *ManifestItem) error {
 	if a.Config != b.Config {
 		return fmt.Errorf("Internal error: Trying to reuse ManifestItem values with configs %#v vs. %#v", a.Config, b.Config)
 	}
-	if len(a.Layers) != len(b.Layers) {
+	if !slices.Equal(a.Layers, b.Layers) {
 		return fmt.Errorf("Internal error: Trying to reuse ManifestItem values with layers %#v vs. %#v", a.Layers, b.Layers)
-	}
-	for i := range a.Layers {
-		if a.Layers[i] != b.Layers[i] {
-			return fmt.Errorf("Internal error: Trying to reuse ManifestItem values with layers[i] %#v vs. %#v", a.Layers[i], b.Layers[i])
-		}
 	}
 	// Ignore RepoTags, that will be built later.
 	// Ignore Parent and LayerSources, which we don’t set to anything meaningful.
@@ -229,9 +226,9 @@ func (w *Writer) ensureManifestItemLocked(layerDescriptors []manifest.Schema2Des
 		item = &w.manifest[i]
 	}
 
-	knownRepoTags := map[string]struct{}{}
+	knownRepoTags := set.New[string]()
 	for _, repoTag := range item.RepoTags {
-		knownRepoTags[repoTag] = struct{}{}
+		knownRepoTags.Add(repoTag)
 	}
 	for _, tag := range repoTags {
 		// For github.com/docker/docker consumers, this works just as well as
@@ -252,9 +249,9 @@ func (w *Writer) ensureManifestItemLocked(layerDescriptors []manifest.Schema2Des
 		// analysis and explanation.
 		refString := fmt.Sprintf("%s:%s", tag.Name(), tag.Tag())
 
-		if _, ok := knownRepoTags[refString]; !ok {
+		if !knownRepoTags.Contains(refString) {
 			item.RepoTags = append(item.RepoTags, refString)
-			knownRepoTags[refString] = struct{}{}
+			knownRepoTags.Add(refString)
 		}
 	}
 
@@ -337,7 +334,7 @@ func (t *tarFI) ModTime() time.Time {
 func (t *tarFI) IsDir() bool {
 	return false
 }
-func (t *tarFI) Sys() interface{} {
+func (t *tarFI) Sys() any {
 	return nil
 }
 

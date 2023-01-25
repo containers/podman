@@ -11,6 +11,7 @@ import (
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/domain/infra/abi"
 	docker "github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/volume"
 )
 
 func GetDiskUsage(w http.ResponseWriter, r *http.Request) {
@@ -64,9 +65,9 @@ func GetDiskUsage(w http.ResponseWriter, r *http.Request) {
 		ctnrs[i] = &t
 	}
 
-	vols := make([]*docker.Volume, len(df.Volumes))
+	vols := make([]*volume.Volume, len(df.Volumes))
 	for i, o := range df.Volumes {
-		t := docker.Volume{
+		t := volume.Volume{
 			CreatedAt:  "",
 			Driver:     "",
 			Labels:     map[string]string{},
@@ -75,7 +76,7 @@ func GetDiskUsage(w http.ResponseWriter, r *http.Request) {
 			Options:    nil,
 			Scope:      "local",
 			Status:     nil,
-			UsageData: &docker.VolumeUsageData{
+			UsageData: &volume.UsageData{
 				RefCount: int64(o.Links),
 				Size:     o.Size,
 			},

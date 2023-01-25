@@ -11,7 +11,7 @@ import (
 // The net/http package uses a separate goroutine to upload data to a HTTP connection,
 // and it is possible for the server to return a response (typically an error) before consuming
 // the full body of the request. In that case http.Client.Do can return with an error while
-// the body is still being read — regardless of of the cancellation, if any, of http.Request.Context().
+// the body is still being read — regardless of the cancellation, if any, of http.Request.Context().
 //
 // As a result, any data used/updated by the io.Reader() provided as the request body may be
 // used/updated even after http.Client.Do returns, causing races.

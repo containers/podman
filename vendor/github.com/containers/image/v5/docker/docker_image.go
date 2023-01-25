@@ -94,8 +94,8 @@ func GetRepositoryTags(ctx context.Context, sys *types.SystemContext, ref types.
 			break
 		}
 
-		linkURLStr := strings.Trim(strings.Split(link, ";")[0], "<>")
-		linkURL, err := url.Parse(linkURLStr)
+		linkURLPart, _, _ := strings.Cut(link, ";")
+		linkURL, err := url.Parse(strings.Trim(linkURLPart, "<>"))
 		if err != nil {
 			return tags, err
 		}

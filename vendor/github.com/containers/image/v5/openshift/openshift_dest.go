@@ -17,10 +17,12 @@ import (
 	"github.com/containers/image/v5/internal/imagedestination/impl"
 	"github.com/containers/image/v5/internal/imagedestination/stubs"
 	"github.com/containers/image/v5/internal/private"
+	"github.com/containers/image/v5/internal/set"
 	"github.com/containers/image/v5/internal/signature"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/types"
 	"github.com/opencontainers/go-digest"
+	"golang.org/x/exp/slices"
 )
 
 type openshiftImageDestination struct {
@@ -180,12 +182,11 @@ func (d *openshiftImageDestination) PutSignaturesWithFormat(ctx context.Context,
 	if err != nil {
 		return err
 	}
-	existingSigNames := map[string]struct{}{}
+	existingSigNames := set.New[string]()
 	for _, sig := range image.Signatures {
-		existingSigNames[sig.objectMeta.Name] = struct{}{}
+		existingSigNames.Add(sig.objectMeta.Name)
 	}
 
-sigExists:
 	for _, newSigWithFormat := range signatures {
 		newSigSimple, ok := newSigWithFormat.(signature.SimpleSigning)
 		if !ok {
@@ -193,10 +194,10 @@ sigExists:
 		}
 		newSig := newSigSimple.UntrustedSignature()
 
-		for _, existingSig := range image.Signatures {
-			if existingSig.Type == imageSignatureTypeAtomic && bytes.Equal(existingSig.Content, newSig) {
-				continue sigExists
-			}
+		if slices.ContainsFunc(image.Signatures, func(existingSig imageSignature) bool {
+			return existingSig.Type == imageSignatureTypeAtomic && bytes.Equal(existingSig.Content, newSig)
+		}) {
+			continue
 		}
 
 		// The API expect us to invent a new unique name. This is racy, but hopefully good enough.
@@ -208,7 +209,7 @@ sigExists:
 				return fmt.Errorf("generating random signature len %d: %w", n, err)
 			}
 			signatureName = fmt.Sprintf("%s@%032x", imageStreamImageName, randBytes)
-			if _, ok := existingSigNames[signatureName]; !ok {
+			if !existingSigNames.Contains(signatureName) {
 				break
 			}
 		}

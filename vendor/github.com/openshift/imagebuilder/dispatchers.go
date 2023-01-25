@@ -136,7 +136,7 @@ func label(b *Builder, args []string, attributes map[string]bool, flagArgs []str
 //
 func add(b *Builder, args []string, attributes map[string]bool, flagArgs []string, original string) error {
 	if len(args) < 2 {
-		return errAtLeastOneArgument("ADD")
+		return errAtLeastTwoArgument("ADD")
 	}
 	var chown string
 	var chmod string
@@ -177,7 +177,7 @@ func add(b *Builder, args []string, attributes map[string]bool, flagArgs []strin
 //
 func dispatchCopy(b *Builder, args []string, attributes map[string]bool, flagArgs []string, original string) error {
 	if len(args) < 2 {
-		return errAtLeastOneArgument("COPY")
+		return errAtLeastTwoArgument("COPY")
 	}
 	last := len(args) - 1
 	dest := makeAbsolute(args[last], b.RunConfig.WorkingDir)
@@ -702,6 +702,10 @@ func checkChmodConversion(chmod string) error {
 
 func errAtLeastOneArgument(command string) error {
 	return fmt.Errorf("%s requires at least one argument", command)
+}
+
+func errAtLeastTwoArgument(command string) error {
+	return fmt.Errorf("%s requires at least two arguments", command)
 }
 
 func errExactlyOneArgument(command string) error {

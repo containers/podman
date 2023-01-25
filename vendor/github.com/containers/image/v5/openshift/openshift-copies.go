@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"net/netip"
 	"net/url"
 	"os"
 	"path"
@@ -19,6 +20,7 @@ import (
 	"github.com/containers/storage/pkg/homedir"
 	"github.com/imdario/mergo"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/exp/slices"
 	"golang.org/x/net/http2"
 	"gopkg.in/yaml.v3"
 )
@@ -205,10 +207,7 @@ func (config *directClientConfig) ClientConfig() (*restConfig, error) {
 	if isConfigTransportTLS(*clientConfig) {
 		var err error
 		// REMOVED: Support for interactive fallback.
-		userAuthPartialConfig, err := getUserIdentificationPartialConfig(configAuthInfo)
-		if err != nil {
-			return nil, err
-		}
+		userAuthPartialConfig := getUserIdentificationPartialConfig(configAuthInfo)
 		if err = mergo.MergeWithOverwrite(clientConfig, userAuthPartialConfig); err != nil {
 			return nil, err
 		}
@@ -255,7 +254,7 @@ func getServerIdentificationPartialConfig(configAuthInfo clientcmdAuthInfo, conf
 // 2.  configAuthInfo.auth-path (this file can contain information that conflicts with #1, and we want #1 to win the priority)
 // 3.  if there is not enough information to identify the user, load try the ~/.kubernetes_auth file
 // 4.  if there is not enough information to identify the user, prompt if possible
-func getUserIdentificationPartialConfig(configAuthInfo clientcmdAuthInfo) (*restConfig, error) {
+func getUserIdentificationPartialConfig(configAuthInfo clientcmdAuthInfo) *restConfig {
 	mergedConfig := &restConfig{}
 
 	// blindly overwrite existing values based on precedence
@@ -274,7 +273,7 @@ func getUserIdentificationPartialConfig(configAuthInfo clientcmdAuthInfo) (*rest
 	}
 
 	// REMOVED: prompting for missing information.
-	return mergedConfig, nil
+	return mergedConfig
 }
 
 // ConfirmUsable is a modified copy of k8s.io/kubernetes/pkg/client/unversioned/clientcmd.DirectClientConfig.ConfirmUsable.
@@ -873,11 +872,11 @@ func newProxierWithNoProxyCIDR(delegate func(req *http.Request) (*url.URL, error
 	noProxyEnv := os.Getenv("NO_PROXY")
 	noProxyRules := strings.Split(noProxyEnv, ",")
 
-	cidrs := []*net.IPNet{}
+	cidrs := []netip.Prefix{}
 	for _, noProxyRule := range noProxyRules {
-		_, cidr, _ := net.ParseCIDR(noProxyRule)
-		if cidr != nil {
-			cidrs = append(cidrs, cidr)
+		prefix, err := netip.ParsePrefix(noProxyRule)
+		if err == nil {
+			cidrs = append(cidrs, prefix)
 		}
 	}
 
@@ -888,7 +887,7 @@ func newProxierWithNoProxyCIDR(delegate func(req *http.Request) (*url.URL, error
 	return func(req *http.Request) (*url.URL, error) {
 		host := req.URL.Host
 		// for some urls, the Host is already the host, not the host:port
-		if net.ParseIP(host) == nil {
+		if _, err := netip.ParseAddr(host); err != nil {
 			var err error
 			host, _, err = net.SplitHostPort(req.URL.Host)
 			if err != nil {
@@ -896,15 +895,15 @@ func newProxierWithNoProxyCIDR(delegate func(req *http.Request) (*url.URL, error
 			}
 		}
 
-		ip := net.ParseIP(host)
-		if ip == nil {
+		ip, err := netip.ParseAddr(host)
+		if err != nil {
 			return delegate(req)
 		}
 
-		for _, cidr := range cidrs {
-			if cidr.Contains(ip) {
-				return nil, nil
-			}
+		if slices.ContainsFunc(cidrs, func(cidr netip.Prefix) bool {
+			return cidr.Contains(ip)
+		}) {
+			return nil, nil
 		}
 
 		return delegate(req)

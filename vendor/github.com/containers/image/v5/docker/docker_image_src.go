@@ -250,7 +250,7 @@ func splitHTTP200ResponseToPartial(streams chan io.ReadCloser, errs chan error, 
 			currentOffset += toSkip
 		}
 		s := signalCloseReader{
-			closed:        make(chan interface{}),
+			closed:        make(chan struct{}),
 			stream:        io.NopCloser(io.LimitReader(body, int64(c.Length))),
 			consumeStream: true,
 		}
@@ -292,7 +292,7 @@ func handle206Response(streams chan io.ReadCloser, errs chan error, body io.Read
 			return
 		}
 		s := signalCloseReader{
-			closed: make(chan interface{}),
+			closed: make(chan struct{}),
 			stream: p,
 		}
 		streams <- s
@@ -335,7 +335,7 @@ func parseMediaType(contentType string) (string, map[string]string, error) {
 func (s *dockerImageSource) GetBlobAt(ctx context.Context, info types.BlobInfo, chunks []private.ImageSourceChunk) (chan io.ReadCloser, chan error, error) {
 	headers := make(map[string][]string)
 
-	var rangeVals []string
+	rangeVals := make([]string, 0, len(chunks))
 	for _, c := range chunks {
 		rangeVals = append(rangeVals, fmt.Sprintf("%d-%d", c.Offset, c.Offset+c.Length-1))
 	}
@@ -766,7 +766,7 @@ func makeBufferedNetworkReader(stream io.ReadCloser, nBuffers, bufferSize uint) 
 }
 
 type signalCloseReader struct {
-	closed        chan interface{}
+	closed        chan struct{}
 	stream        io.ReadCloser
 	consumeStream bool
 }
