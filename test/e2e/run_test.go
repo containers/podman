@@ -2053,4 +2053,22 @@ WORKDIR /madethis`, BB)
 		Expect(session).Should(Exit(0))
 		Expect(session.ErrorToString()).To(ContainSubstring("Trying to pull"))
 	})
+
+	It("podman run --shm-size-systemd", func() {
+		ctrName := "testShmSizeSystemd"
+		run := podmanTest.Podman([]string{"run", "--name", ctrName, "--shm-size-systemd", "10mb", "-d", SYSTEMD_IMAGE, "/sbin/init"})
+		run.WaitWithDefaultTimeout()
+		Expect(run).Should(Exit(0))
+
+		logs := podmanTest.Podman([]string{"logs", ctrName})
+		logs.WaitWithDefaultTimeout()
+		Expect(logs).Should(Exit(0))
+
+		mount := podmanTest.Podman([]string{"exec", ctrName, "mount"})
+		mount.WaitWithDefaultTimeout()
+		Expect(mount).Should(Exit(0))
+		t, strings := mount.GrepString("tmpfs on /run/lock")
+		Expect(t).To(BeTrue())
+		Expect(strings[0]).Should(ContainSubstring("size=10240k"))
+	})
 })

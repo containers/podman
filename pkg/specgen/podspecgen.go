@@ -192,6 +192,10 @@ type PodStorageConfig struct {
 	// Conflicts with ShmSize if IpcNS is not private.
 	// Optional.
 	ShmSize *int64 `json:"shm_size,omitempty"`
+	// ShmSizeSystemd is the size of systemd-specific tmpfs mounts
+	// specifically /run, /run/lock, /var/log/journal and /tmp.
+	// Optional
+	ShmSizeSystemd *int64 `json:"shm_size_systemd,omitempty"`
 }
 
 // PodCgroupConfig contains configuration options about a pod's cgroups.

@@ -71,6 +71,8 @@ Set a custom name for the cloned pod. The default if not specified is of the syn
 
 @@option shm-size
 
+@@option shm-size-systemd
+
 #### **--start**
 
 When set to true, this flag starts the newly created pod after the

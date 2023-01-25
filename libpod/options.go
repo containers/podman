@@ -671,6 +671,23 @@ func WithShmSize(size int64) CtrCreateOption {
 	}
 }
 
+// WithShmSizeSystemd sets the size of systemd-specific mounts:
+//
+//	/run
+//	/run/lock
+//	/var/log/journal
+//	/tmp
+func WithShmSizeSystemd(size int64) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return define.ErrCtrFinalized
+		}
+
+		ctr.config.ShmSizeSystemd = size
+		return nil
+	}
+}
+
 // WithPrivileged sets the privileged flag in the container runtime.
 func WithPrivileged(privileged bool) CtrCreateOption {
 	return func(ctr *Container) error {

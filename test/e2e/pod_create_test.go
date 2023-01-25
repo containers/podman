@@ -1193,4 +1193,24 @@ ENTRYPOINT ["sleep","99999"]
 		podJSON := podInspect.InspectPodToJSON()
 		Expect(podJSON.InfraConfig).To(HaveField("UtsNS", ns))
 	})
+
+	It("podman pod create --shm-size-systemd", func() {
+		podName := "testShmSizeSystemd"
+		session := podmanTest.Podman([]string{"pod", "create", "--name", podName, "--shm-size-systemd", "10mb"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		// add container to pod
+		ctrRun := podmanTest.Podman([]string{"run", "-d", "--pod", podName, SYSTEMD_IMAGE, "/sbin/init"})
+		ctrRun.WaitWithDefaultTimeout()
+		Expect(ctrRun).Should(Exit(0))
+
+		run := podmanTest.Podman([]string{"exec", ctrRun.OutputToString(), "mount"})
+		run.WaitWithDefaultTimeout()
+		Expect(run).Should(Exit(0))
+		t, strings := run.GrepString("tmpfs on /run/lock")
+		Expect(t).To(BeTrue())
+		Expect(strings[0]).Should(ContainSubstring("size=10240k"))
+	})
+
 })

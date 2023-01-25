@@ -260,6 +260,7 @@ type ContainerCreateOptions struct {
 	SecurityOpt        []string `json:"security_opt,omitempty"`
 	SdNotifyMode       string
 	ShmSize            string
+	ShmSizeSystemd     string
 	SignaturePolicy    string
 	StartupHCCmd       string
 	StartupHCInterval  string
@@ -269,8 +270,8 @@ type ContainerCreateOptions struct {
 	StopSignal         string
 	StopTimeout        uint
 	StorageOpts        []string
-	SubUIDName         string
 	SubGIDName         string
+	SubUIDName         string
 	Sysctl             []string `json:"sysctl,omitempty"`
 	Systemd            string
 	Timeout            uint
