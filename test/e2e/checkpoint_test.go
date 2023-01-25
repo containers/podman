@@ -505,7 +505,7 @@ var _ = Describe("Podman checkpoint", func() {
 		Expect(session).Should(Exit(0))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
 		cid := session.OutputToString()
-		fileName := "/tmp/checkpoint-" + cid + ".tar.gz"
+		fileName := filepath.Join(podmanTest.TempDir, "/checkpoint-"+cid+".tar.gz")
 
 		result := podmanTest.Podman([]string{"container", "checkpoint", cid, "-e", fileName})
 		result.WaitWithDefaultTimeout()
@@ -556,7 +556,7 @@ var _ = Describe("Podman checkpoint", func() {
 		Expect(session).Should(Exit(0))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
 		cid := session.OutputToString()
-		fileName := "/tmp/checkpoint-" + cid + ".tar"
+		fileName := filepath.Join(podmanTest.TempDir, "/checkpoint-"+cid+".tar.gz")
 
 		// Checkpoint with the default algorithm
 		result := podmanTest.Podman([]string{"container", "checkpoint", cid, "-e", fileName})
@@ -661,7 +661,7 @@ var _ = Describe("Podman checkpoint", func() {
 		Expect(session).Should(Exit(0))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
 		cid := session.OutputToString()
-		fileName := "/tmp/checkpoint-" + cid + ".tar.gz"
+		fileName := filepath.Join(podmanTest.TempDir, "/checkpoint-"+cid+".tar.gz")
 
 		// Change the container's root file-system
 		result := podmanTest.Podman([]string{"exec", cid, "/bin/sh", "-c", "echo test" + cid + "test > /test.output"})
@@ -723,7 +723,7 @@ var _ = Describe("Podman checkpoint", func() {
 		Expect(session).Should(Exit(0))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
 		cid := session.OutputToString()
-		fileName := "/tmp/checkpoint-" + cid + ".tar.gz"
+		fileName := filepath.Join(podmanTest.TempDir, "/checkpoint-"+cid+".tar.gz")
 
 		// Change the container's root file-system
 		result := podmanTest.Podman([]string{"exec", cid, "/bin/sh", "-c", "echo test" + cid + "test > /test.output"})
@@ -765,7 +765,7 @@ var _ = Describe("Podman checkpoint", func() {
 		Expect(session).Should(Exit(0))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
 		cid := session.OutputToString()
-		fileName := "/tmp/checkpoint-" + cid + ".tar.gz"
+		fileName := filepath.Join(podmanTest.TempDir, "/checkpoint-"+cid+".tar.gz")
 
 		// Change the container's root file-system
 		result := podmanTest.Podman([]string{"exec", cid, "/bin/sh", "-c", "echo test" + cid + "test > /test.output"})
@@ -808,7 +808,7 @@ var _ = Describe("Podman checkpoint", func() {
 		Expect(session).Should(Exit(0))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
 		cid := session.OutputToString()
-		fileName := "/tmp/checkpoint-" + cid + ".tar.gz"
+		fileName := filepath.Join(podmanTest.TempDir, "/checkpoint-"+cid+".tar.gz")
 
 		// Checkpoint the container
 		result := podmanTest.Podman([]string{"container", "checkpoint", cid, "-e", fileName})
@@ -857,7 +857,7 @@ var _ = Describe("Podman checkpoint", func() {
 		Expect(result.ErrorToString()).To(ContainSubstring("cannot checkpoint containers that have been started with '--rm'"))
 
 		// Checkpointing with --export should still work
-		fileName := "/tmp/checkpoint-" + cid + ".tar.gz"
+		fileName := filepath.Join(podmanTest.TempDir, "/checkpoint-"+cid+".tar.gz")
 
 		result = podmanTest.Podman([]string{"container", "checkpoint", cid, "-e", fileName})
 		result.WaitWithDefaultTimeout()
@@ -929,7 +929,7 @@ var _ = Describe("Podman checkpoint", func() {
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
 
-		checkpointFileName := "/tmp/checkpoint-" + cid + ".tar.gz"
+		checkpointFileName := filepath.Join(podmanTest.TempDir, "/checkpoint-"+cid+".tar.gz")
 
 		// Checkpoint the container
 		result = podmanTest.Podman([]string{"container", "checkpoint", cid, "-e", checkpointFileName})
@@ -1024,8 +1024,8 @@ var _ = Describe("Podman checkpoint", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		cid := session.OutputToString()
-		preCheckpointFileName := "/tmp/pre-checkpoint-" + cid + ".tar.gz"
-		checkpointFileName := "/tmp/checkpoint-" + cid + ".tar.gz"
+		preCheckpointFileName := filepath.Join(podmanTest.TempDir, "/pre-checkpoint-"+cid+".tar.gz")
+		checkpointFileName := filepath.Join(podmanTest.TempDir, "/checkpoint-"+cid+".tar.gz")
 
 		result := podmanTest.Podman([]string{"container", "checkpoint", "-P", "-e", preCheckpointFileName, cid})
 		result.WaitWithDefaultTimeout()
@@ -1066,7 +1066,7 @@ var _ = Describe("Podman checkpoint", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		cid := session.OutputToString()
-		fileName := "/tmp/checkpoint-" + cid + ".tar.gz"
+		fileName := filepath.Join(podmanTest.TempDir, "/checkpoint-"+cid+".tar.gz")
 
 		if !WaitContainerReady(podmanTest, cid, "Ready to accept connections", 20, 1) {
 			Fail("Container failed to get ready")
@@ -1167,7 +1167,7 @@ var _ = Describe("Podman checkpoint", func() {
 			Expect(session).To(Exit(0))
 			cid := session.OutputToString()
 
-			fileName := "/tmp/checkpoint-" + cid + ".tar.gz"
+			fileName := filepath.Join(podmanTest.TempDir, "/checkpoint-"+cid+".tar.gz")
 
 			// Checkpoint the container
 			result := podmanTest.Podman([]string{
@@ -1286,7 +1286,7 @@ var _ = Describe("Podman checkpoint", func() {
 		Expect(session).Should(Exit(0))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
 		cid := session.OutputToString()
-		fileName := "/tmp/checkpoint-" + cid + ".tar.gz"
+		fileName := filepath.Join(podmanTest.TempDir, "/checkpoint-"+cid+".tar.gz")
 
 		result := podmanTest.Podman([]string{"container", "checkpoint", cid, "-e", fileName})
 		result.WaitWithDefaultTimeout()
@@ -1326,7 +1326,7 @@ var _ = Describe("Podman checkpoint", func() {
 		Expect(session).Should(Exit(0))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
 		cid := session.OutputToString()
-		fileName := "/tmp/checkpoint-" + cid + ".tar.gz"
+		fileName := filepath.Join(podmanTest.TempDir, "/checkpoint-"+cid+".tar.gz")
 
 		result := podmanTest.Podman([]string{
 			"container",
@@ -1514,7 +1514,7 @@ var _ = Describe("Podman checkpoint", func() {
 		Expect(session).Should(Exit(0))
 		runtime := session.OutputToString()
 
-		fileName := "/tmp/checkpoint-" + cid + ".tar.gz"
+		fileName := filepath.Join(podmanTest.TempDir, "/checkpoint-"+cid+".tar.gz")
 
 		result := podmanTest.Podman([]string{
 			"container",
@@ -1616,7 +1616,7 @@ var _ = Describe("Podman checkpoint", func() {
 		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(Equal("runc"))
 
-		checkpointExportPath := "/tmp/checkpoint-" + cid + ".tar.gz"
+		checkpointExportPath := filepath.Join(podmanTest.TempDir, "/checkpoint-"+cid+".tar.gz")
 
 		session = podmanTest.Podman([]string{"container", "checkpoint", cid, "-e", checkpointExportPath})
 		session.WaitWithDefaultTimeout()
@@ -1685,7 +1685,7 @@ var _ = Describe("Podman checkpoint", func() {
 		Expect(session).Should(Exit(0))
 		runtime := session.OutputToString()
 
-		fileName := "/tmp/checkpoint-" + cid + ".tar.gz"
+		fileName := filepath.Join(podmanTest.TempDir, "/checkpoint-"+cid+".tar.gz")
 
 		result := podmanTest.Podman([]string{
 			"container",
@@ -1769,7 +1769,7 @@ var _ = Describe("Podman checkpoint", func() {
 		Expect(session).Should(Exit(0))
 		runtime := session.OutputToString()
 
-		checkpointFileName := "/tmp/checkpoint-" + cid + ".tar.gz"
+		checkpointFileName := filepath.Join(podmanTest.TempDir, "/checkpoint-"+cid+".tar.gz")
 		result = podmanTest.Podman([]string{"container", "checkpoint", cid, "-e", checkpointFileName})
 		result.WaitWithDefaultTimeout()
 

@@ -139,9 +139,10 @@ var _ = Describe("Podman push", func() {
 
 		if !IsRemote() { // Remote does not support --digestfile
 			// Test --digestfile option
-			push2 := podmanTest.Podman([]string{"push", "--tls-verify=false", "--digestfile=/tmp/digestfile.txt", "--remove-signatures", ALPINE, "localhost:5000/my-alpine"})
+			digestFile := filepath.Join(podmanTest.TempDir, "digestfile.txt")
+			push2 := podmanTest.Podman([]string{"push", "--tls-verify=false", "--digestfile=" + digestFile, "--remove-signatures", ALPINE, "localhost:5000/my-alpine"})
 			push2.WaitWithDefaultTimeout()
-			fi, err := os.Lstat("/tmp/digestfile.txt")
+			fi, err := os.Lstat(digestFile)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(fi.Name()).To(Equal("digestfile.txt"))
 			Expect(push2).Should(Exit(0))
@@ -162,6 +163,9 @@ var _ = Describe("Podman push", func() {
 					err := os.Remove(systemRegistriesDAddition)
 					Expect(err).ToNot(HaveOccurred())
 				}()
+				// Generate a signature verification policy file
+				policyPath := generatePolicyFile(podmanTest.TempDir)
+				defer os.Remove(policyPath)
 
 				// Verify that the policy rejects unsigned images
 				push := podmanTest.Podman([]string{"push", "-q", "--tls-verify=false", "--remove-signatures", ALPINE, "localhost:5000/sigstore-signed"})
@@ -169,7 +173,7 @@ var _ = Describe("Podman push", func() {
 				Expect(push).Should(Exit(0))
 				Expect(push.ErrorToString()).To(BeEmpty())
 
-				pull := podmanTest.Podman([]string{"pull", "-q", "--tls-verify=false", "--signature-policy", "sign/policy.json", "localhost:5000/sigstore-signed"})
+				pull := podmanTest.Podman([]string{"pull", "-q", "--tls-verify=false", "--signature-policy", policyPath, "localhost:5000/sigstore-signed"})
 				pull.WaitWithDefaultTimeout()
 				Expect(pull).To(ExitWithError())
 				Expect(pull.ErrorToString()).To(ContainSubstring("A signature was required, but no signature exists"))
@@ -180,7 +184,7 @@ var _ = Describe("Podman push", func() {
 				Expect(push).Should(Exit(0))
 				Expect(push.ErrorToString()).To(BeEmpty())
 
-				pull = podmanTest.Podman([]string{"pull", "-q", "--tls-verify=false", "--signature-policy", "sign/policy.json", "localhost:5000/sigstore-signed"})
+				pull = podmanTest.Podman([]string{"pull", "-q", "--tls-verify=false", "--signature-policy", policyPath, "localhost:5000/sigstore-signed"})
 				pull.WaitWithDefaultTimeout()
 				Expect(pull).Should(Exit(0))
 			}
