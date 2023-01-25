@@ -137,6 +137,7 @@ func ListContainerBatch(rt *libpod.Runtime, ctr *libpod.Container, opts entities
 		cgroup, ipc, mnt, net, pidns, user, uts string
 		portMappings                            []libnetworkTypes.PortMapping
 		networks                                []string
+		healthStatus                            string
 	)
 
 	batchErr := ctr.Batch(func(c *libpod.Container) error {
@@ -176,6 +177,11 @@ func ListContainerBatch(rt *libpod.Runtime, ctr *libpod.Container, opts entities
 		}
 
 		networks, err = c.Networks()
+		if err != nil {
+			return err
+		}
+
+		healthStatus, err = c.HealthCheckStatus()
 		if err != nil {
 			return err
 		}
@@ -237,6 +243,7 @@ func ListContainerBatch(rt *libpod.Runtime, ctr *libpod.Container, opts entities
 		Size:       size,
 		StartedAt:  startedTime.Unix(),
 		State:      conState.String(),
+		Status:     healthStatus,
 	}
 	if opts.Pod && len(conConfig.Pod) > 0 {
 		podName, err := rt.GetName(conConfig.Pod)
@@ -259,12 +266,6 @@ func ListContainerBatch(rt *libpod.Runtime, ctr *libpod.Container, opts entities
 			User:   user,
 			UTS:    uts,
 		}
-	}
-
-	if hc, err := ctr.HealthCheckStatus(); err == nil {
-		ps.Status = hc
-	} else {
-		logrus.Debug(err)
 	}
 
 	return ps, nil
