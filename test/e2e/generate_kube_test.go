@@ -1085,6 +1085,41 @@ ENTRYPOINT ["sleep"]`
 		Expect(containers[0]).To(HaveField("Args", []string{"hello"}))
 	})
 
+	It("podman generate kube - image has positive integer user set", func() {
+		// Build an image with user=1000.
+		containerfile := `FROM quay.io/libpod/alpine:latest
+USER 1000`
+
+		targetPath, err := CreateTempDirInTempDir()
+		Expect(err).ToNot(HaveOccurred())
+		containerfilePath := filepath.Join(targetPath, "Containerfile")
+		err = os.WriteFile(containerfilePath, []byte(containerfile), 0644)
+		Expect(err).ToNot(HaveOccurred())
+
+		image := "generatekube:test"
+		session := podmanTest.Podman([]string{"build", "--pull-never", "-f", containerfilePath, "-t", image})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"create", "--pod", "new:testpod", image, "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		kube := podmanTest.Podman([]string{"generate", "kube", "testpod"})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		// Now make sure that the container's securityContext has runAsNonRoot=true
+		pod := new(v1.Pod)
+		err = yaml.Unmarshal(kube.Out.Contents(), pod)
+		Expect(err).ToNot(HaveOccurred())
+
+		containers := pod.Spec.Containers
+		Expect(containers).To(HaveLen(1))
+		trueBool := true
+		Expect(containers[0]).To(HaveField("SecurityContext.RunAsNonRoot", &trueBool))
+	})
+
 	It("podman generate kube - --privileged container", func() {
 		session := podmanTest.Podman([]string{"create", "--pod", "new:testpod", "--privileged", ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
