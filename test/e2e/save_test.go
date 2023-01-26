@@ -185,8 +185,11 @@ var _ = Describe("Podman save", func() {
 			Expect(err).ToNot(HaveOccurred())
 		}()
 
-		cmd = exec.Command("cp", "sign/key.gpg", "/tmp/key.gpg")
+		keyPath := filepath.Join(podmanTest.TempDir, "key.gpg")
+		cmd = exec.Command("cp", "sign/key.gpg", keyPath)
 		Expect(cmd.Run()).To(Succeed())
+		defer os.Remove(keyPath)
+
 		sigstore := `
 default-docker:
   sigstore: file:///var/lib/containers/sigstore
@@ -207,7 +210,11 @@ default-docker:
 		Expect(session).Should(Exit(0))
 
 		if !IsRemote() {
-			session = podmanTest.Podman([]string{"pull", "--tls-verify=false", "--signature-policy=sign/policy.json", "localhost:5000/alpine"})
+			// Generate a signature verification policy file
+			policyPath := generatePolicyFile(podmanTest.TempDir)
+			defer os.Remove(policyPath)
+
+			session = podmanTest.Podman([]string{"pull", "--tls-verify=false", "--signature-policy", policyPath, "localhost:5000/alpine"})
 			session.WaitWithDefaultTimeout()
 			Expect(session).Should(Exit(0))
 

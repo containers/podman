@@ -111,7 +111,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	// Cache images
 	cwd, _ := os.Getwd()
 	INTEGRATION_ROOT = filepath.Join(cwd, "../../")
-	podman := PodmanTestSetup("/tmp")
+	podman := PodmanTestSetup(os.TempDir())
 
 	// Pull cirros but don't put it into the cache
 	pullImages := []string{CIRROS_IMAGE, fedoraToolbox, volumeTest}
@@ -986,6 +986,41 @@ func (p *PodmanTestIntegration) removeNetwork(name string) {
 	session := p.Podman([]string{"network", "rm", "-f", name})
 	session.WaitWithDefaultTimeout()
 	Expect(session.ExitCode()).To(BeNumerically("<=", 1), "Exit code must be 0 or 1")
+}
+
+// generatePolicyFile generates a signature verification policy file.
+// it returns the policy file path.
+func generatePolicyFile(tempDir string) string {
+	keyPath := filepath.Join(tempDir, "key.gpg")
+	policyPath := filepath.Join(tempDir, "policy.json")
+	conf := fmt.Sprintf(`
+{
+    "default": [
+        {
+            "type": "insecureAcceptAnything"
+        }
+    ],
+    "transports": {
+        "docker": {
+            "localhost:5000": [
+                {
+                    "type": "signedBy",
+                    "keyType": "GPGKeys",
+                    "keyPath": "%s"
+                }
+            ],
+            "localhost:5000/sigstore-signed": [
+                {
+                    "type": "sigstoreSigned",
+                    "keyPath": "testdata/sigstore-key.pub"
+                }
+            ]
+        }
+    }
+}
+`, keyPath)
+	writeConf([]byte(conf), policyPath)
+	return policyPath
 }
 
 func (s *PodmanSessionIntegration) jq(jqCommand string) (string, error) {
