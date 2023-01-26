@@ -24,6 +24,7 @@ import (
 	"github.com/containers/podman/v4/pkg/auth"
 	"github.com/containers/podman/v4/pkg/channel"
 	"github.com/containers/podman/v4/pkg/rootless"
+	"github.com/containers/podman/v4/pkg/util"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/docker/docker/pkg/jsonmessage"
 	"github.com/gorilla/schema"
@@ -621,6 +622,12 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 	reporter := channel.NewWriter(make(chan []byte))
 	defer reporter.Close()
 
+	_, ignoreFile, err := util.ParseDockerignore(containerFiles, contextDirectory)
+	if err != nil {
+		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("processing ignore file: %w", err))
+		return
+	}
+
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	buildOptions := buildahDefine.BuildOptions{
 		AddCapabilities:         addCaps,
@@ -670,6 +677,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		From:                           fromImage,
 		IDMappingOptions:               &idMappingOptions,
 		IgnoreUnrecognizedInstructions: query.Ignore,
+		IgnoreFile:                     ignoreFile,
 		Isolation:                      isolation,
 		Jobs:                           &jobs,
 		Labels:                         labels,
