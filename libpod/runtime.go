@@ -777,7 +777,7 @@ func (r *Runtime) Shutdown(force bool) error {
 
 	// Shutdown all containers if --force is given
 	if force {
-		ctrs, err := r.state.AllContainers()
+		ctrs, err := r.state.AllContainers(false)
 		if err != nil {
 			logrus.Errorf("Retrieving containers from database: %v", err)
 		} else {
@@ -833,7 +833,7 @@ func (r *Runtime) refresh(alivePath string) error {
 	// Next refresh the state of all containers to recreate dirs and
 	// namespaces, and all the pods to recreate cgroups.
 	// Containers, pods, and volumes must also reacquire their locks.
-	ctrs, err := r.state.AllContainers()
+	ctrs, err := r.state.AllContainers(false)
 	if err != nil {
 		return fmt.Errorf("retrieving all containers from state: %w", err)
 	}

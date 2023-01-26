@@ -598,7 +598,7 @@ func (s *BoltState) Container(id string) (*Container, error) {
 			return err
 		}
 
-		return s.getContainerFromDB(ctrID, ctr, ctrBucket)
+		return s.getContainerFromDB(ctrID, ctr, ctrBucket, false)
 	})
 	if err != nil {
 		return nil, err
@@ -703,7 +703,7 @@ func (s *BoltState) LookupContainer(idOrName string) (*Container, error) {
 			return err
 		}
 
-		return s.getContainerFromDB(id, ctr, ctrBucket)
+		return s.getContainerFromDB(id, ctr, ctrBucket, false)
 	})
 	if err != nil {
 		return nil, err
@@ -815,8 +815,6 @@ func (s *BoltState) UpdateContainer(ctr *Container) error {
 		return fmt.Errorf("container %s is in namespace %q, does not match our namespace %q: %w", ctr.ID(), ctr.config.Namespace, s.namespace, define.ErrNSMismatch)
 	}
 
-	newState := new(ContainerState)
-
 	ctrID := []byte(ctr.ID())
 
 	db, err := s.getDBCon()
@@ -825,43 +823,13 @@ func (s *BoltState) UpdateContainer(ctr *Container) error {
 	}
 	defer s.deferredCloseDBCon(db)
 
-	err = db.View(func(tx *bolt.Tx) error {
+	return db.View(func(tx *bolt.Tx) error {
 		ctrBucket, err := getCtrBucket(tx)
 		if err != nil {
 			return err
 		}
-
-		ctrToUpdate := ctrBucket.Bucket(ctrID)
-		if ctrToUpdate == nil {
-			ctr.valid = false
-			return fmt.Errorf("container %s does not exist in database: %w", ctr.ID(), define.ErrNoSuchCtr)
-		}
-
-		newStateBytes := ctrToUpdate.Get(stateKey)
-		if newStateBytes == nil {
-			return fmt.Errorf("container %s does not have a state key in DB: %w", ctr.ID(), define.ErrInternal)
-		}
-
-		if err := json.Unmarshal(newStateBytes, newState); err != nil {
-			return fmt.Errorf("unmarshalling container %s state: %w", ctr.ID(), err)
-		}
-
-		// backwards compat, previously we used a extra bucket for the netns so try to get it from there
-		netNSBytes := ctrToUpdate.Get(netNSKey)
-		if netNSBytes != nil && newState.NetNS == "" {
-			newState.NetNS = string(netNSBytes)
-		}
-
-		return nil
+		return s.getContainerStateDB(ctrID, ctr, ctrBucket)
 	})
-	if err != nil {
-		return err
-	}
-
-	// New state compiled successfully, swap it into the current state
-	ctr.state = newState
-
-	return nil
 }
 
 // SaveContainer saves a container's current state in the database
@@ -982,7 +950,8 @@ func (s *BoltState) ContainerInUse(ctr *Container) ([]string, error) {
 }
 
 // AllContainers retrieves all the containers in the database
-func (s *BoltState) AllContainers() ([]*Container, error) {
+// If `loadState` is set, the containers' state will be loaded as well.
+func (s *BoltState) AllContainers(loadState bool) ([]*Container, error) {
 	if !s.valid {
 		return nil, define.ErrDBClosed
 	}
@@ -1019,7 +988,7 @@ func (s *BoltState) AllContainers() ([]*Container, error) {
 			ctr.config = new(ContainerConfig)
 			ctr.state = new(ContainerState)
 
-			if err := s.getContainerFromDB(id, ctr, ctrBucket); err != nil {
+			if err := s.getContainerFromDB(id, ctr, ctrBucket, loadState); err != nil {
 				// If the error is a namespace mismatch, we can
 				// ignore it safely.
 				// We just won't include the container in the
@@ -2495,7 +2464,7 @@ func (s *BoltState) PodContainers(pod *Pod) ([]*Container, error) {
 			newCtr.state = new(ContainerState)
 			ctrs = append(ctrs, newCtr)
 
-			return s.getContainerFromDB(id, newCtr, ctrBkt)
+			return s.getContainerFromDB(id, newCtr, ctrBkt, false)
 		})
 		if err != nil {
 			return err
