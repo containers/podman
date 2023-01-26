@@ -64,7 +64,7 @@ func getContainers(runtime *libpod.Runtime, options getContainersOptions) ([]con
 			}
 			filterFuncs = append(filterFuncs, generatedFunc)
 		}
-		ctrs, err := runtime.GetContainers(filterFuncs...)
+		ctrs, err := runtime.GetContainers(false, filterFuncs...)
 		if err != nil {
 			return nil, err
 		}
@@ -665,7 +665,7 @@ func (ic *ContainerEngine) ContainerRestore(ctx context.Context, namesOrIds []st
 	case options.Import != "":
 		ctrs, err = checkpoint.CRImportCheckpointTar(ctx, ic.Libpod, options)
 	case options.All:
-		ctrs, err = ic.Libpod.GetContainers(filterFuncs...)
+		ctrs, err = ic.Libpod.GetContainers(false, filterFuncs...)
 	case options.Latest:
 		containers, err := getContainers(ic.Libpod, getContainersOptions{latest: options.Latest, names: namesOrIds})
 		if err != nil {

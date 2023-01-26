@@ -456,13 +456,15 @@ func (s *BoltState) getContainerStateDB(id []byte, ctr *Container, ctrsBkt *bolt
 	return nil
 }
 
-func (s *BoltState) getContainerFromDB(id []byte, ctr *Container, ctrsBkt *bolt.Bucket) error {
+func (s *BoltState) getContainerFromDB(id []byte, ctr *Container, ctrsBkt *bolt.Bucket, loadState bool) error {
 	if err := s.getContainerConfigFromDB(id, ctr.config, ctrsBkt); err != nil {
 		return err
 	}
 
-	if err := s.getContainerStateDB(id, ctr, ctrsBkt); err != nil {
-		return err
+	if loadState {
+		if err := s.getContainerStateDB(id, ctr, ctrsBkt); err != nil {
+			return err
+		}
 	}
 
 	// Get the lock

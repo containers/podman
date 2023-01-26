@@ -598,7 +598,7 @@ func (s *BoltState) Container(id string) (*Container, error) {
 			return err
 		}
 
-		return s.getContainerFromDB(ctrID, ctr, ctrBucket)
+		return s.getContainerFromDB(ctrID, ctr, ctrBucket, false)
 	})
 	if err != nil {
 		return nil, err
@@ -703,7 +703,7 @@ func (s *BoltState) LookupContainer(idOrName string) (*Container, error) {
 			return err
 		}
 
-		return s.getContainerFromDB(id, ctr, ctrBucket)
+		return s.getContainerFromDB(id, ctr, ctrBucket, false)
 	})
 	if err != nil {
 		return nil, err
@@ -950,7 +950,8 @@ func (s *BoltState) ContainerInUse(ctr *Container) ([]string, error) {
 }
 
 // AllContainers retrieves all the containers in the database
-func (s *BoltState) AllContainers() ([]*Container, error) {
+// If `loadState` is set, the containers' state will be loaded as well.
+func (s *BoltState) AllContainers(loadState bool) ([]*Container, error) {
 	if !s.valid {
 		return nil, define.ErrDBClosed
 	}
@@ -987,7 +988,7 @@ func (s *BoltState) AllContainers() ([]*Container, error) {
 			ctr.config = new(ContainerConfig)
 			ctr.state = new(ContainerState)
 
-			if err := s.getContainerFromDB(id, ctr, ctrBucket); err != nil {
+			if err := s.getContainerFromDB(id, ctr, ctrBucket, loadState); err != nil {
 				// If the error is a namespace mismatch, we can
 				// ignore it safely.
 				// We just won't include the container in the
@@ -2463,7 +2464,7 @@ func (s *BoltState) PodContainers(pod *Pod) ([]*Container, error) {
 			newCtr.state = new(ContainerState)
 			ctrs = append(ctrs, newCtr)
 
-			return s.getContainerFromDB(id, newCtr, ctrBkt)
+			return s.getContainerFromDB(id, newCtr, ctrBkt, false)
 		})
 		if err != nil {
 			return err

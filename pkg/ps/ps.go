@@ -51,7 +51,14 @@ func GetContainerLists(runtime *libpod.Runtime, options entities.ContainerListOp
 		filterFuncs = append(filterFuncs, runningOnly)
 	}
 
-	cons, err := runtime.GetContainers(filterFuncs...)
+	// Load the containers with their states populated.  This speeds things
+	// up considerably as we use a signel DB connection to load the
+	// containers' states instead of one per container.
+	//
+	// This may return slightly outdated states but that's acceptable for
+	// listing containers; any state is outdated the point a container lock
+	// gets released.
+	cons, err := runtime.GetContainers(true, filterFuncs...)
 	if err != nil {
 		return nil, err
 	}
