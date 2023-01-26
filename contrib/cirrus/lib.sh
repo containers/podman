@@ -217,10 +217,11 @@ use_cni() {
     # Other packages depend on nv/av, but we're testing with podman
     # binaries built from source, so it's safe to ignore these deps.
     #
-    # FIXME FIXME FIXME: if/when we bring back Ubuntu (or use Debian),
-    #       someone will have to conditionalize these rpm/dnf commands
     # Do not fail when netavark and aardvark-dns are not installed.
-    rpm -e --nodeps netavark aardvark-dns || true
+    for pkg in aardvark-dns netavark
+    do
+        [ -z "$(rpm -qa | grep $pkg)" ] && echo "$pkg not installed" || rpm -e --nodeps $pkg
+    done
     msg "Installing default CNI configuration"
     dnf install -y $PACKAGE_DOWNLOAD_DIR/podman-plugins*
     cd $GOSRC || exit 1
