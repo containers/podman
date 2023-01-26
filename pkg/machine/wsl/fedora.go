@@ -1,20 +1,21 @@
 //go:build amd64 || arm64
 // +build amd64 arm64
 
-package machine
+package wsl
 
 import (
 	"errors"
 	"fmt"
 	"io"
-	"os"
-	"path"
-	"strings"
-
 	"net/http"
 	"net/url"
+	"os"
+	"path"
 	"path/filepath"
+	"strings"
 	"time"
+
+	"github.com/containers/podman/v4/pkg/machine"
 )
 
 const (
@@ -23,16 +24,16 @@ const (
 )
 
 type FedoraDownload struct {
-	Download
+	machine.Download
 }
 
-func NewFedoraDownloader(vmType, vmName, releaseStream string) (DistributionDownload, error) {
+func NewFedoraDownloader(vmType, vmName, releaseStream string) (machine.DistributionDownload, error) {
 	downloadURL, version, arch, size, err := getFedoraDownload()
 	if err != nil {
 		return nil, err
 	}
 
-	cacheDir, err := GetCacheDir(vmType)
+	cacheDir, err := machine.GetCacheDir(vmType)
 	if err != nil {
 		return nil, err
 	}
@@ -40,11 +41,11 @@ func NewFedoraDownloader(vmType, vmName, releaseStream string) (DistributionDown
 	imageName := fmt.Sprintf("fedora-podman-%s-%s.tar.xz", arch, version)
 
 	f := FedoraDownload{
-		Download: Download{
-			Arch:      getFcosArch(),
-			Artifact:  artifact,
+		Download: machine.Download{
+			Arch:      machine.GetFcosArch(),
+			Artifact:  "",
 			CacheDir:  cacheDir,
-			Format:    Format,
+			Format:    machine.Format,
 			ImageName: imageName,
 			LocalPath: filepath.Join(cacheDir, imageName),
 			URL:       downloadURL,
@@ -52,15 +53,15 @@ func NewFedoraDownloader(vmType, vmName, releaseStream string) (DistributionDown
 			Size:      size,
 		},
 	}
-	dataDir, err := GetDataDir(vmType)
+	dataDir, err := machine.GetDataDir(vmType)
 	if err != nil {
 		return nil, err
 	}
-	f.Download.LocalUncompressedFile = f.getLocalUncompressedFile(dataDir)
+	f.Download.LocalUncompressedFile = f.GetLocalUncompressedFile(dataDir)
 	return f, nil
 }
 
-func (f FedoraDownload) Get() *Download {
+func (f FedoraDownload) Get() *machine.Download {
 	return &f.Download
 }
 
@@ -78,12 +79,12 @@ func (f FedoraDownload) HasUsableCache() (bool, error) {
 func (f FedoraDownload) CleanCache() error {
 	// Set cached image to expire after 2 weeks
 	expire := 14 * 24 * time.Hour
-	return removeImageAfterExpire(f.CacheDir, expire)
+	return machine.RemoveImageAfterExpire(f.CacheDir, expire)
 }
 
 func getFedoraDownload() (*url.URL, string, string, int64, error) {
 	var releaseURL string
-	arch := determineFedoraArch()
+	arch := machine.DetermineMachineArch()
 	switch arch {
 	case "arm64":
 		releaseURL = githubArmReleaseURL

@@ -68,7 +68,7 @@ func NewGenericDownloader(vmType, vmName, pullPath string) (DistributionDownload
 	return gd, nil
 }
 
-func (d Download) getLocalUncompressedFile(dataDir string) string {
+func (d Download) GetLocalUncompressedFile(dataDir string) string {
 	var (
 		extension string
 	)
@@ -273,7 +273,7 @@ func decompressEverythingElse(src string, output io.WriteCloser) error {
 	return err
 }
 
-func removeImageAfterExpire(dir string, expire time.Duration) error {
+func RemoveImageAfterExpire(dir string, expire time.Duration) error {
 	now := time.Now()
 	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 		// Delete any cache files that are older than expiry date

@@ -8,7 +8,7 @@ import (
 	"golang.org/x/sys/windows"
 )
 
-func determineFedoraArch() string {
+func DetermineMachineArch() string {
 	const fallbackMsg = "this may result in the wrong Linux arch under emulation"
 	var machine, native uint16
 	current, _ := syscall.GetCurrentProcess()

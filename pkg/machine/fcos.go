@@ -61,7 +61,7 @@ func NewFcosDownloader(vmType, vmName, imageStream string) (DistributionDownload
 
 	fcd := FcosDownload{
 		Download: Download{
-			Arch:      getFcosArch(),
+			Arch:      GetFcosArch(),
 			Artifact:  artifact,
 			CacheDir:  cacheDir,
 			Format:    Format,
@@ -76,7 +76,7 @@ func NewFcosDownloader(vmType, vmName, imageStream string) (DistributionDownload
 	if err != nil {
 		return nil, err
 	}
-	fcd.Download.LocalUncompressedFile = fcd.getLocalUncompressedFile(dataDir)
+	fcd.Download.LocalUncompressedFile = fcd.GetLocalUncompressedFile(dataDir)
 	return fcd, nil
 }
 
@@ -118,10 +118,10 @@ func (f FcosDownload) CleanCache() error {
 	// Set cached image to expire after 2 weeks
 	// FCOS refreshes around every 2 weeks, assume old images aren't needed
 	expire := 14 * 24 * time.Hour
-	return removeImageAfterExpire(f.CacheDir, expire)
+	return RemoveImageAfterExpire(f.CacheDir, expire)
 }
 
-func getFcosArch() string {
+func GetFcosArch() string {
 	var arch string
 	// TODO fill in more architectures
 	switch runtime.GOARCH {
@@ -189,7 +189,7 @@ func GetFCOSDownload(imageStream string) (*FcosDownloadInfo, error) {
 			return nil, err
 		}
 
-		arches, ok := altMeta.Architectures[getFcosArch()]
+		arches, ok := altMeta.Architectures[GetFcosArch()]
 		if !ok {
 			return nil, fmt.Errorf("unable to pull VM image: no targetArch in stream")
 		}
@@ -209,7 +209,7 @@ func GetFCOSDownload(imageStream string) (*FcosDownloadInfo, error) {
 	if err := json.Unmarshal(body, &fcosstable); err != nil {
 		return nil, err
 	}
-	arch, ok := fcosstable.Architectures[getFcosArch()]
+	arch, ok := fcosstable.Architectures[GetFcosArch()]
 	if !ok {
 		return nil, fmt.Errorf("unable to pull VM image: no targetArch in stream")
 	}
