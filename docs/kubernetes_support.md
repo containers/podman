@@ -48,7 +48,7 @@ Note: **N/A** means that the option cannot be supported in a single-node Podman 
 | dnsPolicy                                         |         |
 | hostNetwork                                       | ✅      |
 | hostPID                                           | ✅      |
-| hostIPC                                           |         |
+| hostIPC                                           | ✅      |
 | shareProcessNamespace                             | ✅      |
 | serviceAccountName                                |         |
 | automountServiceAccountToken                      |         |

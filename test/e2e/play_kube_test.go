@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"os/exec"
 	"os/user"
 	"path/filepath"
 	"strconv"
@@ -951,6 +952,19 @@ spec:
   - name: alpine
     image: quay.io/libpod/alpine:latest
     command: ['sh', '-c', 'echo $$']
+`
+
+var podWithHostIPCDefined = `
+apiVersion: v1
+kind: Pod
+metadata:
+  name: test-hostipc
+spec:
+  hostIPC: true
+  containers:
+  - name: alpine
+    image: quay.io/libpod/alpine:latest
+    command: ['sh', '-c', 'ls -l /proc/self/ns/ipc']
 `
 
 var (
@@ -4962,6 +4976,34 @@ spec:
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect).Should(Exit(0))
 		Expect(inspect.OutputToString()).To(Equal("host"))
+	})
+
+	It("podman play kube test with hostIPC", func() {
+		err := writeYaml(podWithHostIPCDefined, kubeYaml)
+		Expect(err).ToNot(HaveOccurred())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		inspect := podmanTest.Podman([]string{"inspect", "test-hostipc-alpine", "--format", "{{ .HostConfig.IpcMode }}"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).Should(Exit(0))
+		Expect(inspect.OutputToString()).To(Equal("shareable"))
+
+		cmd := exec.Command("ls", "-l", "/proc/self/ns/ipc")
+		res, err := cmd.Output()
+		Expect(err).ToNot(HaveOccurred())
+		fields := strings.Split(string(res), " ")
+		hostIpcNS := strings.TrimSuffix(fields[len(fields)-1], "\n")
+
+		logs := podmanTest.Podman([]string{"pod", "logs", "-c", "test-hostipc-alpine", "test-hostipc"})
+		logs.WaitWithDefaultTimeout()
+		Expect(logs).Should(Exit(0))
+		fields = strings.Split(logs.OutputToString(), " ")
+		ctrIpcNS := strings.TrimSuffix(fields[len(fields)-1], "\n")
+
+		Expect(hostIpcNS).To(Equal(ctrIpcNS))
 	})
 
 })

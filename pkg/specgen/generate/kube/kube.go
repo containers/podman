@@ -56,6 +56,9 @@ func ToPodOpt(ctx context.Context, podName string, p entities.PodCreateOptions, 
 	if podYAML.Spec.HostPID {
 		p.Pid = "host"
 	}
+	if podYAML.Spec.HostIPC {
+		p.Ipc = "host"
+	}
 	p.Hostname = podYAML.Spec.Hostname
 	if p.Hostname == "" {
 		p.Hostname = podName
@@ -114,6 +117,8 @@ type CtrSpecGenOptions struct {
 	Container v1.Container
 	// Image available to use (pulled or found local)
 	Image *libimage.Image
+	// IPCNSIsHost tells the container to use the host ipcns
+	IpcNSIsHost bool
 	// Volumes for all containers
 	Volumes map[string]*KubeVolume
 	// PodID of the parent pod
@@ -469,6 +474,9 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 	}
 	if opts.PidNSIsHost {
 		s.PidNS.NSMode = specgen.Host
+	}
+	if opts.IpcNSIsHost {
+		s.IpcNS.NSMode = specgen.Host
 	}
 
 	// Add labels that come from kube

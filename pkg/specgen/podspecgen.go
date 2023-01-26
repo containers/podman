@@ -53,6 +53,9 @@ type PodBasicConfig struct {
 	// Conflicts with NoInfra=true.
 	// Optional.
 	InfraName string `json:"infra_name,omitempty"`
+	// Ipc sets the IPC namespace of the pod, set to private by default.
+	// This configuration will then be shared with the entire pod if PID namespace sharing is enabled via --share
+	Ipc Namespace `json:"ipcns,omitempty"`
 	// SharedNamespaces instructs the pod to share a set of namespaces.
 	// Shared namespaces will be joined (by default) by every container
 	// which joins the pod.
