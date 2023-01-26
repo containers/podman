@@ -283,7 +283,7 @@ func (r *RootlessNetNS) Cleanup(runtime *Runtime) error {
 		// only if the netns is empty we know that we do not need cleanup
 		return c.state.NetNS != ""
 	}
-	ctrs, err := runtime.GetContainers(activeNetns)
+	ctrs, err := runtime.GetContainers(false, activeNetns)
 	if err != nil {
 		return err
 	}

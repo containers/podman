@@ -146,7 +146,7 @@ func ListContainers(w http.ResponseWriter, r *http.Request) {
 		filterFuncs = append(filterFuncs, runningOnly)
 	}
 
-	containers, err := runtime.GetContainers(filterFuncs...)
+	containers, err := runtime.GetContainers(false, filterFuncs...)
 	if err != nil {
 		utils.InternalServerError(w, err)
 		return
