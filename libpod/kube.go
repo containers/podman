@@ -686,6 +686,13 @@ func containerToV1Container(ctx context.Context, c *Container) (v1.Container, []
 	if imgData.User == c.User() && hasSecData {
 		kubeSec.RunAsGroup, kubeSec.RunAsUser = nil, nil
 	}
+	// If the image has user set as a positive integer value, then set runAsNonRoot to true
+	// in the kube yaml
+	imgUserID, err := strconv.Atoi(imgData.User)
+	if err == nil && imgUserID > 0 {
+		trueBool := true
+		kubeSec.RunAsNonRoot = &trueBool
+	}
 
 	envVariables, err := libpodEnvVarsToKubeEnvVars(c.config.Spec.Process.Env, imgData.Config.Env)
 	if err != nil {
