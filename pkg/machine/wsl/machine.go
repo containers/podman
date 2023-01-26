@@ -1175,7 +1175,7 @@ func IsWSLFeatureEnabled() bool {
 }
 
 func isWSLRunning(dist string) (bool, error) {
-	cmd := exec.Command("wsl", "-l", "--running")
+	cmd := exec.Command("wsl", "-l", "--running", "--quiet")
 	out, err := cmd.StdoutPipe()
 	if err != nil {
 		return false, err
