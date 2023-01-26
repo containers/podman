@@ -193,8 +193,9 @@ skip_if_remote "--stdin option will not be implemented in podman-remote" \
 ###############################################################################
 # BEGIN tests which are skipped due to actual podman or podman-remote bugs.
 
-skip_if_remote "Podman #12838: different error messages" \
-               "bud with .dockerignore #2"
+skip_if_remote "different error messages between podman & podman-remote" \
+               "bud with .dockerignore #2" \
+               "bud with .dockerignore #4"
 
 # These two tests, new in 2022-01, invoke podman (create, export) in ways
 # that don't work with podman-remote due to the use of --registries-conf
