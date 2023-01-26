@@ -98,7 +98,7 @@ github.com/containernetworking/cni/pkg/version
 # github.com/containernetworking/plugins v1.2.0
 ## explicit; go 1.17
 github.com/containernetworking/plugins/pkg/ns
-# github.com/containers/buildah v1.28.1-0.20230120225201-4b72f055f1c9
+# github.com/containers/buildah v1.29.0
 ## explicit; go 1.17
 github.com/containers/buildah
 github.com/containers/buildah/bind
@@ -420,7 +420,7 @@ github.com/felixge/httpsnoop
 # github.com/fsnotify/fsnotify v1.6.0
 ## explicit; go 1.16
 github.com/fsnotify/fsnotify
-# github.com/fsouza/go-dockerclient v1.9.2
+# github.com/fsouza/go-dockerclient v1.9.3
 ## explicit; go 1.18
 github.com/fsouza/go-dockerclient
 # github.com/ghodss/yaml v1.0.0

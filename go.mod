@@ -11,7 +11,7 @@ require (
 	github.com/container-orchestrated-devices/container-device-interface v0.5.3
 	github.com/containernetworking/cni v1.1.2
 	github.com/containernetworking/plugins v1.2.0
-	github.com/containers/buildah v1.28.1-0.20230120225201-4b72f055f1c9
+	github.com/containers/buildah v1.29.0
 	github.com/containers/common v0.51.0
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/image/v5 v5.24.0
@@ -90,7 +90,7 @@ require (
 	github.com/docker/distribution v2.8.1+incompatible // indirect
 	github.com/docker/docker-credential-helpers v0.7.0 // indirect
 	github.com/felixge/httpsnoop v1.0.3 // indirect
-	github.com/fsouza/go-dockerclient v1.9.2 // indirect
+	github.com/fsouza/go-dockerclient v1.9.3 // indirect
 	github.com/go-openapi/analysis v0.21.4 // indirect
 	github.com/go-openapi/errors v0.20.3 // indirect
 	github.com/go-openapi/jsonpointer v0.19.5 // indirect
