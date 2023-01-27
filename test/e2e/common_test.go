@@ -180,6 +180,7 @@ var _ = SynchronizedAfterSuite(func() {},
 			os.Exit(1)
 		}
 		podmanTest := PodmanTestCreate(tempdir)
+		defer os.RemoveAll(tempdir)
 
 		if err := os.RemoveAll(podmanTest.Root); err != nil {
 			fmt.Printf("%q\n", err)
@@ -192,6 +193,9 @@ var _ = SynchronizedAfterSuite(func() {},
 		// for localized tests, this removes the image cache dir and for remote tests
 		// this is a no-op
 		removeCache()
+
+		// LockTmpDir can already be removed
+		os.RemoveAll(LockTmpDir)
 	})
 
 // PodmanTestCreate creates a PodmanTestIntegration instance for the tests
