@@ -280,8 +280,8 @@ var _ = Describe("Podman ps", func() {
 		// must contain "Status"
 		match, StatusLine := result.GrepString(`Status`)
 		Expect(match).To(BeTrue())
-		// container is running or exit, so it must contain `ago`
-		Expect(StatusLine[0]).To(ContainSubstring("ago"))
+		// we waited for container to exit, so this must contain `Exited`
+		Expect(StatusLine[0]).To(ContainSubstring("Exited"))
 	})
 
 	It("podman ps namespace flag with go template format", func() {

@@ -357,7 +357,7 @@ func (l psReporter) State() string {
 	switch l.ListContainer.State {
 	case "running":
 		t := units.HumanDuration(time.Since(time.Unix(l.StartedAt, 0)))
-		state = "Up " + t + " ago"
+		state = "Up " + t
 	case "exited", "stopped":
 		t := units.HumanDuration(time.Since(time.Unix(l.ExitedAt, 0)))
 		state = fmt.Sprintf("Exited (%d) %s ago", l.ExitCode, t)

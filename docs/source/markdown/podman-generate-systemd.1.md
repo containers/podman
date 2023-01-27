@@ -301,9 +301,9 @@ CONTAINER ID  IMAGE                            COMMAND  CREATED        STATUS   
 bb310a0780ae  docker.io/library/alpine:latest  /bin/sh  2 minutes ago  Created           busy_moser
 $ sudo systemctl start container-busy_moser.service
 $ sudo podman ps -a
-CONTAINER ID  IMAGE                            COMMAND  CREATED        STATUS            PORTS      NAMES
-772df2f8cf3b  docker.io/library/alpine:latest  /bin/sh  1 second ago   Up 1 second ago              distracted_albattani
-bb310a0780ae  docker.io/library/alpine:latest  /bin/sh  3 minutes ago  Created                      busy_moser
+CONTAINER ID  IMAGE                            COMMAND  CREATED        STATUS        PORTS      NAMES
+772df2f8cf3b  docker.io/library/alpine:latest  /bin/sh  1 second ago   Up 1 second              distracted_albattani
+bb310a0780ae  docker.io/library/alpine:latest  /bin/sh  3 minutes ago  Created                  busy_moser
 ```
 ## SEE ALSO
 **[podman(1)](podman.1.md)**, **[podman-container(1)](podman-container.1.md)**, **systemctl(1)**, **systemd.unit(5)**, **systemd.service(5)**, **[conmon(8)](https://github.com/containers/conmon/blob/main/docs/conmon.8.md)**
