@@ -28,7 +28,7 @@ func (r *Runtime) RemoveContainersForImageCallback(ctx context.Context) libimage
 		if !r.valid {
 			return define.ErrRuntimeStopped
 		}
-		ctrs, err := r.state.AllContainers()
+		ctrs, err := r.state.AllContainers(false)
 		if err != nil {
 			return err
 		}

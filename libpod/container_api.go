@@ -829,10 +829,6 @@ func (c *Container) Batch(batchFunc func(*Container) error) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
-	if err := c.syncContainer(); err != nil {
-		return err
-	}
-
 	newCtr := new(Container)
 	newCtr.config = c.config
 	newCtr.state = c.state
