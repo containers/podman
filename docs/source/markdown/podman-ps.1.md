@@ -175,9 +175,9 @@ CONTAINER ID   IMAGE         COMMAND         CREATED       STATUS               
 
 ```
 $ podman ps
-CONTAINER ID  IMAGE                            COMMAND    CREATED        STATUS            PORTS                                                   NAMES
-4089df24d4f3  docker.io/library/centos:latest  /bin/bash  2 minutes ago  Up 2 minutes ago  0.0.0.0:80->8080/tcp, 0.0.0.0:2000-2006->2000-2006/tcp  manyports
-92f58933c28c  docker.io/library/centos:latest  /bin/bash  3 minutes ago  Up 3 minutes ago  192.168.99.100:1000-1006->1000-1006/tcp                 zen_sanderson
+CONTAINER ID  IMAGE                            COMMAND    CREATED        STATUS        PORTS                                                   NAMES
+4089df24d4f3  docker.io/library/centos:latest  /bin/bash  2 minutes ago  Up 2 minutes  0.0.0.0:80->8080/tcp, 0.0.0.0:2000-2006->2000-2006/tcp  manyports
+92f58933c28c  docker.io/library/centos:latest  /bin/bash  3 minutes ago  Up 3 minutes  192.168.99.100:1000-1006->1000-1006/tcp                 zen_sanderson
 
 ```
 
