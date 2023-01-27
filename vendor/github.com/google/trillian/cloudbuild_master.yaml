@@ -1,0 +1,165 @@
+timeout: 1800s
+substitutions:
+  _CLUSTER_NAME: trillian-opensource-ci
+  _MASTER_ZONE: us-central1-a
+  _MYSQL_TAG: "5.7"
+  _MYSQL_ROOT_PASSWORD: ""
+  _MYSQL_PASSWORD: ""
+options:
+  machineType: E2_HIGHCPU_32
+steps:
+- id: pull_mysql
+  name : gcr.io/cloud-builders/docker
+  args:
+  - pull
+  - marketplace.gcr.io/google/mysql5:${_MYSQL_TAG}
+- id: tag_mysql
+  name: gcr.io/cloud-builders/docker
+  args:
+  - tag
+  - marketplace.gcr.io/google/mysql5:${_MYSQL_TAG}
+  - gcr.io/${PROJECT_ID}/mysql5:${_MYSQL_TAG}
+  waitFor:
+  - pull_mysql
+- id: push_mysql
+  name: gcr.io/cloud-builders/docker
+  args:
+  - push
+  - gcr.io/${PROJECT_ID}/mysql5:${_MYSQL_TAG}
+  waitFor:
+  - tag_mysql
+- id: build_db_server
+  name: gcr.io/kaniko-project/executor:v1.6.0
+  args:
+  - --dockerfile=examples/deployment/docker/db_server/Dockerfile
+  - --destination=gcr.io/${PROJECT_ID}/db_server:${COMMIT_SHA}
+  - --destination=gcr.io/${PROJECT_ID}/db_server:latest
+  - --cache=true
+  - --cache-dir= # Cache is in Google Container Registry
+  waitFor:
+  - push_mysql
+- id: build_log_server
+  name: gcr.io/kaniko-project/executor:v1.6.0
+  args:
+  - --dockerfile=examples/deployment/docker/log_server/Dockerfile
+  - --destination=gcr.io/${PROJECT_ID}/log_server:${COMMIT_SHA}
+  - --destination=gcr.io/${PROJECT_ID}/log_server:latest
+  - --cache=true
+  - --cache-dir= # Cache is in Google Container Registry
+  waitFor: ["-"]
+- id: build_log_signer
+  name: gcr.io/kaniko-project/executor:v1.6.0
+  args:
+  - --dockerfile=examples/deployment/docker/log_signer/Dockerfile
+  - --destination=gcr.io/${PROJECT_ID}/log_signer:${COMMIT_SHA}
+  - --destination=gcr.io/${PROJECT_ID}/log_signer:latest
+  - --cache=true
+  - --cache-dir= # Cache is in Google Container Registry
+  waitFor: ["-"]
+- id: build_envsubst
+  name: gcr.io/cloud-builders/docker
+  args:
+  - build
+  - examples/deployment/docker/envsubst
+  - -t
+  - envsubst
+  waitFor: ["-"]
+# etcd-operator requires that a ClusterRole has been created for it already.
+# Do this manually using examples/deployment/kubernetes/etcd-role*.yaml.
+- id: apply_k8s_cfgs_for_clusterwide_etcd_operator
+  name: gcr.io/cloud-builders/kubectl
+  args:
+  - apply
+  - -f=examples/deployment/kubernetes/etcd-deployment.yaml
+  env:
+  - CLOUDSDK_COMPUTE_ZONE=${_MASTER_ZONE}
+  - CLOUDSDK_CONTAINER_CLUSTER=${_CLUSTER_NAME}
+  waitFor: ["-"]
+- id: copy_k8s_cfgs_for_spanner
+  name: busybox
+  entrypoint: cp
+  args:
+  - -r
+  - examples/deployment/kubernetes/
+  - envsubst-spanner/
+  waitFor: ['-']
+- id: envsubst_k8s_cfgs_for_spanner
+  name: envsubst
+  args:
+  - envsubst-spanner/etcd-cluster.yaml
+  - envsubst-spanner/trillian-ci-spanner.yaml
+  - envsubst-spanner/trillian-log-deployment.yaml
+  - envsubst-spanner/trillian-log-service.yaml
+  - envsubst-spanner/trillian-log-signer-deployment.yaml
+  - envsubst-spanner/trillian-log-signer-service.yaml
+  env:
+  - PROJECT_ID=${PROJECT_ID}
+  - IMAGE_TAG=${COMMIT_SHA}
+  waitFor:
+  - build_envsubst
+  - copy_k8s_cfgs_for_spanner
+- id: apply_k8s_cfgs_for_spanner
+  name: gcr.io/cloud-builders/kubectl
+  args:
+  - apply
+  - -f=envsubst-spanner/etcd-cluster.yaml
+  - -f=envsubst-spanner/trillian-ci-spanner.yaml
+  - -f=envsubst-spanner/trillian-log-deployment.yaml
+  - -f=envsubst-spanner/trillian-log-service.yaml
+  - -f=envsubst-spanner/trillian-log-signer-deployment.yaml
+  - -f=envsubst-spanner/trillian-log-signer-service.yaml
+  env:
+  - CLOUDSDK_COMPUTE_ZONE=${_MASTER_ZONE}
+  - CLOUDSDK_CONTAINER_CLUSTER=${_CLUSTER_NAME}
+  waitFor:
+  - envsubst_k8s_cfgs_for_spanner
+  - build_log_server
+  - build_log_signer
+- id: copy_k8s_cfgs_for_mysql
+  name: busybox
+  entrypoint: cp
+  args:
+  - -r
+  - examples/deployment/kubernetes/
+  - envsubst-mysql/
+  waitFor: ['-']
+- id: envsubst_k8s_cfgs_for_mysql
+  name: envsubst
+  args:
+  - envsubst-mysql/etcd-cluster.yaml
+  - envsubst-mysql/trillian-ci-mysql.yaml
+  - envsubst-mysql/trillian-mysql.yaml
+  - envsubst-mysql/trillian-log-deployment.yaml
+  - envsubst-mysql/trillian-log-service.yaml
+  - envsubst-mysql/trillian-log-signer-deployment.yaml
+  - envsubst-mysql/trillian-log-signer-service.yaml
+  env:
+  - PROJECT_ID=${PROJECT_ID}
+  - IMAGE_TAG=${COMMIT_SHA}
+  - MYSQL_ROOT_PASSWORD=${_MYSQL_ROOT_PASSWORD}
+  - MYSQL_USER=trillian
+  - MYSQL_PASSWORD=${_MYSQL_PASSWORD}
+  - MYSQL_DATABASE=trillian
+  waitFor:
+  - build_envsubst
+  - copy_k8s_cfgs_for_mysql
+- id: apply_k8s_cfgs_for_mysql
+  name: gcr.io/cloud-builders/kubectl
+  args:
+  - apply
+  - --namespace=mysql
+  - -f=envsubst-mysql/etcd-cluster.yaml
+  - -f=envsubst-mysql/trillian-ci-mysql.yaml
+  - -f=envsubst-mysql/trillian-mysql.yaml
+  - -f=envsubst-mysql/trillian-log-deployment.yaml
+  - -f=envsubst-mysql/trillian-log-service.yaml
+  - -f=envsubst-mysql/trillian-log-signer-deployment.yaml
+  - -f=envsubst-mysql/trillian-log-signer-service.yaml
+  env:
+  - CLOUDSDK_COMPUTE_ZONE=${_MASTER_ZONE}
+  - CLOUDSDK_CONTAINER_CLUSTER=${_CLUSTER_NAME}
+  waitFor:
+  - envsubst_k8s_cfgs_for_mysql
+  - build_db_server
+  - build_log_server
+  - build_log_signer

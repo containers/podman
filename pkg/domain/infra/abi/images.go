@@ -306,6 +306,7 @@ func (ir *ImageEngine) Push(ctx context.Context, source string, destination stri
 	pushOptions.RemoveSignatures = options.RemoveSignatures
 	pushOptions.PolicyAllowStorage = true
 	pushOptions.SignaturePolicyPath = options.SignaturePolicy
+	pushOptions.Signers = options.Signers
 	pushOptions.SignBy = options.SignBy
 	pushOptions.SignPassphrase = options.SignPassphrase
 	pushOptions.SignBySigstorePrivateKeyFile = options.SignBySigstorePrivateKeyFile

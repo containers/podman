@@ -87,6 +87,11 @@ Discard any pre-existing signatures in the image.
 
 Add a “simple signing” signature at the destination using the specified key. (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
 
+#### **--sign-by-sigstore**=*param-file***
+
+Add a sigstore signature based on further options specified in a containers sigstore signing parameter file *param-file*.
+See containers-sigstore-signing-params.yaml(5) for details about the file format.
+
 #### **--sign-by-sigstore-private-key**=*path*
 
 Add a sigstore signature at the destination using a private key at the specified path. (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
