@@ -33,7 +33,7 @@ env:
     UBUNTU_NAME: "ubuntu-2204"
 
     # Image identifiers
-    IMAGE_SUFFIX: "c6447802205601792"
+    IMAGE_SUFFIX: "c5841131699699712"
     # EC2 images
     FEDORA_AMI: "fedora-aws-${IMAGE_SUFFIX}"
     FEDORA_AARCH64_AMI: "fedora-podman-aws-arm64-${IMAGE_SUFFIX}"

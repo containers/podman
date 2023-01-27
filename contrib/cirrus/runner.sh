@@ -92,8 +92,11 @@ function _run_bud() {
 }
 
 function _run_bindings() {
+    # install ginkgo
+    make .install.ginkgo
+
     # shellcheck disable=SC2155
-    export PATH=$PATH:$GOSRC/hack
+    export PATH=$PATH:$GOSRC/hack:$GOSRC/test/tools/build
 
     # if logformatter sees this, it can link directly to failing source lines
     local gitcommit_magic=

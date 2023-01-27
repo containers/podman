@@ -264,7 +264,8 @@ case "$TEST_FLAVOR" in
         pip install --requirement $GOSRC/test/apiv2/python/requirements.txt
         ;&  # continue with next item
     compose)
-        dnf install -y $PACKAGE_DOWNLOAD_DIR/podman-docker*
+        make install.tools
+        dnf install -y podman-docker*
         ;&  # continue with next item
     int)
         make .install.ginkgo
@@ -303,7 +304,7 @@ case "$TEST_FLAVOR" in
         install_test_configs
         ;;
     machine)
-        dnf install -y $PACKAGE_DOWNLOAD_DIR/podman-gvproxy*
+        dnf install -y podman-gvproxy*
         remove_packaged_podman_files
         make install PREFIX=/usr ETCDIR=/etc
         install_test_configs
