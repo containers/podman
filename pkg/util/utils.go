@@ -502,6 +502,19 @@ func IDtoolsToRuntimeSpec(idMaps []idtools.IDMap) (convertedIDMap []specs.LinuxI
 	return convertedIDMap
 }
 
+// RuntimeSpecToIDtoolsTo converts runtime spec to the one of the idtools ID mapping
+func RuntimeSpecToIDtools(idMaps []specs.LinuxIDMapping) (convertedIDMap []idtools.IDMap) {
+	for _, idmap := range idMaps {
+		tempIDMap := idtools.IDMap{
+			ContainerID: int(idmap.ContainerID),
+			HostID:      int(idmap.HostID),
+			Size:        int(idmap.Size),
+		}
+		convertedIDMap = append(convertedIDMap, tempIDMap)
+	}
+	return convertedIDMap
+}
+
 func LookupUser(name string) (*user.User, error) {
 	// Assume UID lookup first, if it fails look up by username
 	if u, err := user.LookupId(name); err == nil {
