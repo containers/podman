@@ -39,7 +39,7 @@ func (r *Runtime) newVolume(ctx context.Context, options ...VolumeCreateOption) 
 	}
 
 	if volume.config.Name == "" {
-		volume.config.Name = stringid.GenerateNonCryptoID()
+		volume.config.Name = stringid.GenerateRandomID()
 	}
 	if volume.config.Driver == "" {
 		volume.config.Driver = define.VolumeDriverLocal
