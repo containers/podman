@@ -7,12 +7,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/libpod/events"
 	"github.com/containers/podman/v4/libpod/logs"
+	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/coreos/go-systemd/v22/journal"
 	"github.com/coreos/go-systemd/v22/sdjournal"
 	"github.com/sirupsen/logrus"
@@ -69,6 +71,12 @@ func (c *Container) readFromJournal(ctx context.Context, options *logs.LogOption
 	if err := journal.AddMatch(match.String()); err != nil {
 		return fmt.Errorf("adding filter to journald logger: %v: %w", match, err)
 	}
+	// Make sure we only read events for the current user, while it is unlikely that there
+	// is a container ID duplication for two users, it is better to have it just in case.
+	uidMatch := sdjournal.Match{Field: "_UID", Value: strconv.Itoa(rootless.GetRootlessUID())}
+	if err := journal.AddMatch(uidMatch.String()); err != nil {
+		return fmt.Errorf("adding filter to journald logger: %v: %w", uidMatch, err)
+	}
 
 	// Add the filter for logs.  Note the disjunction so that we match
 	// either the events or the logs.
@@ -78,6 +86,9 @@ func (c *Container) readFromJournal(ctx context.Context, options *logs.LogOption
 	match = sdjournal.Match{Field: "CONTAINER_ID_FULL", Value: c.ID()}
 	if err := journal.AddMatch(match.String()); err != nil {
 		return fmt.Errorf("adding filter to journald logger: %v: %w", match, err)
+	}
+	if err := journal.AddMatch(uidMatch.String()); err != nil {
+		return fmt.Errorf("adding filter to journald logger: %v: %w", uidMatch, err)
 	}
 
 	if options.Since.IsZero() {
