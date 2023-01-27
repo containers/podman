@@ -1,5 +1,5 @@
 <h1 align="center">
-  <img src="https://raw.githubusercontent.com/containers/podman.io/master/images/podman.svg?sanitize=true" alt="podman">
+  <img src="https://raw.githubusercontent.com/containers/podman.io/main/images/podman.svg?sanitize=true" alt="podman">
   <br />
 </h1>
 
@@ -31,7 +31,7 @@ distributions.</p>
 
 Snapcrafters ([join us](https://forum.snapcraft.io/t/join-snapcrafters/1325))
 are working to land snap install documentation and
-the [snapcraft.yaml](https://github.com/snapcrafters/podman/blob/master/snap/snapcraft.yaml)
+the [snapcraft.yaml](https://github.com/snapcrafters/podman/blob/main/snap/snapcraft.yaml)
 upstream so `podman` can authoritatively publish future releases.
 
   - [x] Fork the [Snapcrafters template](https://github.com/snapcrafters/fork-and-rename-me) repository to your own GitHub account.

@@ -339,7 +339,7 @@ branches, which you may occasionally see [red bars on the status graph
 .](https://cirrus-ci.com/github/containers/podman/master)
 
 When the graph shows mostly green bars on the right, it's a good indication
-the master branch is currently stable.  Alternating red/green bars is indicative
+the main branch is currently stable.  Alternating red/green bars is indicative
 of a testing "flake", and should be examined (anybody can do this):
 
 * *One or a small handful of tests, on a single task, (i.e. specific distro/version)

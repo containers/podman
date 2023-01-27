@@ -7,7 +7,7 @@ standards](https://semver.org).
 Significant versions
 are tagged, including *release candidates* (`rc`).
 All relevant **minor** releases (`vX.Y`) have their own branches.  The **latest**
-development efforts occur on the *master* branch.  Branches with a
+development efforts occur on the *main* branch.  Branches with a
 *rhel* suffix are use for long-term support of downstream RHEL releases.
 
 ## Release workflow expectations
@@ -27,7 +27,7 @@ development efforts occur on the *master* branch.  Branches with a
 
 ## Major (***X***.y.z) release
 
-These releases always begin from *master*, and are contained in a branch
+These releases always begin from *main*, and are contained in a branch
 named with the **major** and **minor** version. **Major** release branches
 begin in a *release candidate* phase, with prospective release tags being
 created with an `-rc` suffix.  There may be multiple *release candidate*
@@ -36,7 +36,7 @@ tags before the final/official **major** version is tagged and released.
 ## Significant minor (x.**Y**.z) and patch (x.y.**Z**) releases
 
 Significant **minor** and **patch** level releases are normally
-branched from *master*, but there are occsaional exceptions.
+branched from *main*, but there are occsaional exceptions.
 Additionally, these branches may be named with `-rhel` (or another)
 suffix to signify a specialized purpose.  For example, `-rhel` indicates
 a release intended for downstream *RHEL* consumption.
@@ -61,7 +61,7 @@ spelled with complete minutiae.
       processing of release notes.  Ensure your local clone is fully up to
       date with the remote upstream (`git remote update`).
    1. Check out (create) a local working branch for a release-notes PR,
-      based on the latest `upstream/master` or pre-existing version-named
+      based on the latest `upstream/main` or pre-existing version-named
       branch - for example, if this is an additional *release-candidate*
       you might use `vX.Y.Z-rc2`;  **Note** this is a local branch name,
       an upstream branch would never contain the `-rc?` suffix.
@@ -94,14 +94,14 @@ spelled with complete minutiae.
       actual version numbers).
    1. Push your working branch to your github fork and create a new pull request.
 
-      * ***Ensure*** you properly select the base branch if not *master*.
+      * ***Ensure*** you properly select the base branch if not *main*.
         For example, `vX.y.Z`.
       * ***Before submitting*** the new PR, update the title with the
         prefix `[CI:DOCS]` to avoid triggering lengthy automated testing.
 
    1. If this is a release on a pre-existing version-named branch
       (e.x. *release-candidate* or `-rhel`), open another PR against
-      the upstream *master* branch.  This is needed to ensure the new
+      the upstream *main* branch.  This is needed to ensure the new
       notes are present for future releases.
 
 
@@ -112,8 +112,8 @@ spelled with complete minutiae.
       release, and no new features land after the *release-candidate* phases
       are complete.
    1. Ensure your local clone is fully up to date with the remote upstream
-      (`git remote update`).  Switch to this branch (`git checkout upstream/master`).
-   1. Make a new local branch for the release based on *master*.  For example,
+      (`git remote update`).  Switch to this branch (`git checkout upstream/main`).
+   1. Make a new local branch for the release based on *main*.  For example,
       `git checkout -b vX.Y`.  Where `X.Y` represent the complete release
       version-name, including any suffix (if any) like `-rhel`.  ***DO NOT***
       include any `-rc` suffix in the branch name.
@@ -129,7 +129,7 @@ spelled with complete minutiae.
       failures.  This can be done by going directly to
       `https://cirrus-ci.com/github/containers/podman/vX.Y`
    1. If there are CI test or automation boops that need fixing on the branch,
-      attend to them using normal PR process (to *master* first, then backport
+      attend to them using normal PR process (to *main* first, then backport
       changes to the new branch).  Ideally, CI should be "green" on the new
       branch before proceeding.
 
@@ -220,15 +220,15 @@ spelled with complete minutiae.
       "View All Tasks".
    1. Keep this page open to monitor its progress and for use in future steps.
 
-1. Bump master `-dev` version
+1. Bump main `-dev` version
 
    1. If you made a release branch and bumped **major** or **minor** version
       Complete the "Update version numbers and push tag" steps above on the
-      *master* branch.  Bump the **minor** version and set the **patch**
-      version to 0.  For example, after pushing the v2.2.0 release, *master*
+      *main* branch.  Bump the **minor** version and set the **patch**
+      version to 0.  For example, after pushing the v2.2.0 release, *main*
       should be set to v2.3.0-dev.
    1. Create a "Bump to vX.Y.Z-dev" commit with these changes.
-   1. Bump the version number in `README.md` (still on on *master*)
+   1. Bump the version number in `README.md` (still on on *main*)
       to reflect the new release.  Commit these changes.
    1. Create a PR with the above commits, and oversee it's merging.
 

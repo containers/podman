@@ -81,7 +81,7 @@ no longer there.
 
 Solution:
 * Inspect the error message(s) from `apply-podman-deltas`. Each message will list a specific `@test` name.
-* Look at the diffs in `tests/bud.bats` between master and your PR. (I'm really sorry; there's no quick easy command-line way to do that. You will need a checked-out buildah tree, and you will need to know the old and new buildah tags).
+* Look at the diffs in `tests/bud.bats` between main and your PR. (I'm really sorry; there's no quick easy command-line way to do that. You will need a checked-out buildah tree, and you will need to know the old and new buildah tags).
   * In those diffs, look for changes related to each `@test` listed as an error. For example, a test being renamed or even removed.
   * Update `test/buildah-bud/apply-podman-deltas` accordingly.
 
