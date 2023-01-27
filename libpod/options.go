@@ -1334,7 +1334,7 @@ func WithCommand(command []string) CtrCreateOption {
 
 // WithRootFS sets the rootfs for the container.
 // This creates a container from a directory on disk and not an image.
-func WithRootFS(rootfs string, overlay bool) CtrCreateOption {
+func WithRootFS(rootfs string, overlay bool, mapping *string) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
 			return define.ErrCtrFinalized
@@ -1344,6 +1344,7 @@ func WithRootFS(rootfs string, overlay bool) CtrCreateOption {
 		}
 		ctr.config.Rootfs = rootfs
 		ctr.config.RootfsOverlay = overlay
+		ctr.config.RootfsMapping = mapping
 		return nil
 	}
 }

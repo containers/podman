@@ -35,6 +35,7 @@ import (
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
+	"github.com/containers/storage/pkg/idmap"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/lockfile"
 	"github.com/containers/storage/pkg/mount"
@@ -370,9 +371,6 @@ func (c *Container) syncContainer() error {
 }
 
 func (c *Container) setupStorageMapping(dest, from *storage.IDMappingOptions) {
-	if c.config.Rootfs != "" {
-		return
-	}
 	*dest = *from
 	// If we are creating a container inside a pod, we always want to inherit the
 	// userns settings from the infra container. So clear the auto userns settings
@@ -1525,6 +1523,31 @@ func (c *Container) mountStorage() (_ string, deferredErr error) {
 	// We need to mount the container before volumes - to ensure the copyup
 	// works properly.
 	mountPoint := c.config.Rootfs
+
+	if c.config.RootfsMapping != nil {
+		uidMappings, gidMappings, err := parseIDMapMountOption(c.config.IDMappings, *c.config.RootfsMapping, false)
+		if err != nil {
+			return "", err
+		}
+
+		pid, cleanupFunc, err := idmap.CreateUsernsProcess(util.RuntimeSpecToIDtools(uidMappings), util.RuntimeSpecToIDtools(gidMappings))
+		if err != nil {
+			return "", err
+		}
+		defer cleanupFunc()
+
+		if err := idmap.CreateIDMappedMount(c.config.Rootfs, c.config.Rootfs, pid); err != nil {
+			return "", fmt.Errorf("failed to create idmapped mount: %w", err)
+		}
+		defer func() {
+			if deferredErr != nil {
+				if err := unix.Unmount(c.config.Rootfs, 0); err != nil {
+					logrus.Errorf("Unmounting idmapped rootfs for container %s after mount error: %v", c.ID(), err)
+				}
+			}
+		}()
+	}
+
 	// Check if overlay has to be created on top of Rootfs
 	if c.config.RootfsOverlay {
 		overlayDest := c.runtime.GraphRoot()
@@ -1793,6 +1816,11 @@ func (c *Container) cleanupStorage() error {
 				logrus.Errorf("Failed to clean up overlay mounts for %s: %v", c.ID(), err)
 			}
 			cleanupErr = err
+		}
+	}
+	if c.config.RootfsMapping != nil {
+		if err := unix.Unmount(c.config.Rootfs, 0); err != nil {
+			logrus.Errorf("Unmounting idmapped rootfs for container %s after mount error: %v", c.ID(), err)
 		}
 	}
 

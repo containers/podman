@@ -21,3 +21,12 @@ finishes executing, similar to a tmpfs mount point being unmounted.
 
 Note: On **SELinux** systems, the rootfs needs the correct label, which is by default
 **unconfined_u:object_r:container_file_t:s0**.
+
+    The `idmap` option if specified, creates an idmapped mount to the target user
+namespace in the container.
+The idmap option supports a custom mapping that can be different than the user
+namespace used by the container.  The mapping can be specified after the idmap
+option like: `idmap=uids=0-1-10#10-11-10;gids=0-100-10`.  For each triplet, the
+first value is the start of the backing file system IDs that are mapped to the
+second value on the host.  The length of this mapping is given in the third value.
+Multiple ranges are separated with #.

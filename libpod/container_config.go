@@ -116,6 +116,8 @@ type ContainerRootFSConfig struct {
 	Rootfs string `json:"rootfs,omitempty"`
 	// RootfsOverlay tells if rootfs has to be mounted as an overlay
 	RootfsOverlay bool `json:"rootfs_overlay,omitempty"`
+	// RootfsMapping specifies if there are mappings to apply to the rootfs.
+	RootfsMapping *string `json:"rootfs_mapping,omitempty"`
 	// ShmDir is the path to be mounted on /dev/shm in container.
 	// If not set manually at creation time, Libpod will create a tmpfs
 	// with the size specified in ShmSize and populate this with the path of
