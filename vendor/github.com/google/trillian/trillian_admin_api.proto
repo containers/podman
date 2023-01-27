@@ -1,0 +1,107 @@
+// Copyright 2016 Google LLC. All Rights Reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "com.google.trillian.proto";
+option java_outer_classname = "TrillianAdminApiProto";
+option go_package = "github.com/google/trillian";
+
+package trillian;
+
+import "trillian.proto";
+import "google/protobuf/field_mask.proto";
+
+// ListTrees request.
+// No filters or pagination options are provided.
+message ListTreesRequest {
+  // If true, deleted trees are included in the response.
+  bool show_deleted = 1;
+}
+
+// ListTrees response.
+// No pagination is provided, all trees the requester has access to are
+// returned.
+message ListTreesResponse {
+  // Trees matching the list request filters.
+  repeated Tree tree = 1;
+}
+
+// GetTree request.
+message GetTreeRequest {
+  // ID of the tree to retrieve.
+  int64 tree_id = 1;
+}
+
+// CreateTree request.
+message CreateTreeRequest {
+  // Tree to be created. See Tree and CreateTree for more details.
+  Tree tree = 1;
+
+  reserved 2;
+  reserved "key_spec";
+}
+
+// UpdateTree request.
+message UpdateTreeRequest {
+  // Tree to be updated.
+  Tree tree = 1;
+
+  // Fields modified by the update request.
+  // For example: "tree_state", "display_name", "description".
+  google.protobuf.FieldMask update_mask = 2;
+}
+
+// DeleteTree request.
+message DeleteTreeRequest {
+  // ID of the tree to delete.
+  int64 tree_id = 1;
+}
+
+// UndeleteTree request.
+message UndeleteTreeRequest {
+  // ID of the tree to undelete.
+  int64 tree_id = 1;
+}
+
+// Trillian Administrative interface.
+// Allows creation and management of Trillian trees.
+service TrillianAdmin {
+  // Lists all trees the requester has access to.
+  rpc ListTrees(ListTreesRequest) returns (ListTreesResponse) {}
+
+  // Retrieves a tree by ID.
+  rpc GetTree(GetTreeRequest) returns (Tree) {}
+
+  // Creates a new tree.
+  // System-generated fields are not required and will be ignored if present,
+  // e.g.: tree_id, create_time and update_time.
+  // Returns the created tree, with all system-generated fields assigned.
+  rpc CreateTree(CreateTreeRequest) returns (Tree) {}
+
+  // Updates a tree.
+  // See Tree for details. Readonly fields cannot be updated.
+  rpc UpdateTree(UpdateTreeRequest) returns (Tree) {}
+
+  // Soft-deletes a tree.
+  // A soft-deleted tree may be undeleted for a certain period, after which
+  // it'll be permanently deleted.
+  rpc DeleteTree(DeleteTreeRequest) returns (Tree) {}
+
+  // Undeletes a soft-deleted a tree.
+  // A soft-deleted tree may be undeleted for a certain period, after which
+  // it'll be permanently deleted.
+  rpc UndeleteTree(UndeleteTreeRequest) returns (Tree) {}
+}

@@ -149,7 +149,7 @@ var _ = Describe("Podman push", func() {
 		}
 
 		if !IsRemote() { // Remote does not support signing
-			By("pushing and pulling with sigstore signatures")
+			By("pushing and pulling with --sign-by-sigstore-private-key")
 			// Ideally, this should set SystemContext.RegistriesDirPath, but Podman currently doesn’t
 			// expose that as an option. So, for now, modify /etc/directly, and skip testing sigstore if
 			// we don’t have permission to do so.
@@ -185,6 +185,28 @@ var _ = Describe("Podman push", func() {
 				Expect(push.ErrorToString()).To(BeEmpty())
 
 				pull = podmanTest.Podman([]string{"pull", "-q", "--tls-verify=false", "--signature-policy", policyPath, "localhost:5000/sigstore-signed"})
+				pull.WaitWithDefaultTimeout()
+				Expect(pull).Should(Exit(0))
+
+				By("pushing and pulling with --sign-by-sigstore")
+				// Verify that the policy rejects unsigned images
+				push = podmanTest.Podman([]string{"push", "-q", "--tls-verify=false", "--remove-signatures", ALPINE, "localhost:5000/sigstore-signed-params"})
+				push.WaitWithDefaultTimeout()
+				Expect(push).Should(Exit(0))
+				Expect(push.ErrorToString()).To(BeEmpty())
+
+				pull = podmanTest.Podman([]string{"pull", "--tls-verify=false", "--signature-policy", policyPath, "localhost:5000/sigstore-signed-params"})
+				pull.WaitWithDefaultTimeout()
+				Expect(pull).To(ExitWithError())
+				Expect(pull.ErrorToString()).To(ContainSubstring("A signature was required, but no signature exists"))
+
+				// Sign an image, and verify it is accepted.
+				push = podmanTest.Podman([]string{"push", "-q", "--tls-verify=false", "--remove-signatures", "--sign-by-sigstore", "testdata/sigstore-signing-params.yaml", ALPINE, "localhost:5000/sigstore-signed-params"})
+				push.WaitWithDefaultTimeout()
+				Expect(push).Should(Exit(0))
+				Expect(push.ErrorToString()).To(BeEmpty())
+
+				pull = podmanTest.Podman([]string{"pull", "--tls-verify=false", "--signature-policy", policyPath, "localhost:5000/sigstore-signed-params"})
 				pull.WaitWithDefaultTimeout()
 				Expect(pull).Should(Exit(0))
 			}

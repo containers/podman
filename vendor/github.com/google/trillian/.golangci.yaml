@@ -1,0 +1,37 @@
+run:
+  # timeout for analysis, e.g. 30s, 5m, default is 1m
+  deadline: 90s
+  skip-files:
+    - types/internal/tls/tls.go
+
+linters-settings:
+  gocyclo:
+    # minimal code complexity to report, 30 by default (but we recommend 10-20)
+    # TODO(mhutchinson): lower this again after reworking interceptor
+    min-complexity: 26
+  depguard:
+    list-type: blacklist
+    packages:
+      - golang.org/x/net/context
+      - github.com/gogo/protobuf/proto
+
+linters:
+  disable-all: true
+  enable:
+    - deadcode
+    - depguard
+    - gocyclo
+    - gofmt
+    - goimports
+    - govet
+    - ineffassign
+    - megacheck
+    - misspell
+    - revive
+    - varcheck
+    # TODO(gbelvin): write license linter and commit to upstream.
+    # ./scripts/check_license.sh is run by ./scripts/presubmit.sh
+
+issues:
+  # Don't turn off any checks by default. We can do this explicitly if needed.
+  exclude-use-default: false

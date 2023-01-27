@@ -18,11 +18,12 @@ import (
 // CLI-only fields into the API types.
 type pushOptionsWrapper struct {
 	entities.ImagePushOptions
-	TLSVerifyCLI          bool // CLI only
-	CredentialsCLI        string
-	SignPassphraseFileCLI string
-	EncryptionKeys        []string
-	EncryptLayers         []int
+	TLSVerifyCLI               bool // CLI only
+	CredentialsCLI             string
+	SignPassphraseFileCLI      string
+	SignBySigstoreParamFileCLI string
+	EncryptionKeys             []string
+	EncryptLayers              []int
 }
 
 var (
@@ -110,6 +111,10 @@ func pushFlags(cmd *cobra.Command) {
 	flags.StringVar(&pushOptions.SignBy, signByFlagName, "", "Add a signature at the destination using the specified key")
 	_ = cmd.RegisterFlagCompletionFunc(signByFlagName, completion.AutocompleteNone)
 
+	signBySigstoreFlagName := "sign-by-sigstore"
+	flags.StringVar(&pushOptions.SignBySigstoreParamFileCLI, signBySigstoreFlagName, "", "Sign the image using a sigstore parameter file at `PATH`")
+	_ = cmd.RegisterFlagCompletionFunc(signBySigstoreFlagName, completion.AutocompleteDefault)
+
 	signBySigstorePrivateKeyFlagName := "sign-by-sigstore-private-key"
 	flags.StringVar(&pushOptions.SignBySigstorePrivateKeyFile, signBySigstorePrivateKeyFlagName, "", "Sign the image using a sigstore private key at `PATH`")
 	_ = cmd.RegisterFlagCompletionFunc(signBySigstorePrivateKeyFlagName, completion.AutocompleteDefault)
@@ -138,6 +143,7 @@ func pushFlags(cmd *cobra.Command) {
 		_ = flags.MarkHidden("digestfile")
 		_ = flags.MarkHidden("quiet")
 		_ = flags.MarkHidden(signByFlagName)
+		_ = flags.MarkHidden(signBySigstoreFlagName)
 		_ = flags.MarkHidden(signBySigstorePrivateKeyFlagName)
 		_ = flags.MarkHidden(signPassphraseFileFlagName)
 		_ = flags.MarkHidden(encryptionKeysFlagName)
@@ -181,9 +187,12 @@ func imagePush(cmd *cobra.Command, args []string) error {
 		pushOptions.Writer = os.Stderr
 	}
 
-	if err := common.PrepareSigningPassphrase(&pushOptions.ImagePushOptions, pushOptions.SignPassphraseFileCLI); err != nil {
+	signingCleanup, err := common.PrepareSigning(&pushOptions.ImagePushOptions,
+		pushOptions.SignPassphraseFileCLI, pushOptions.SignBySigstoreParamFileCLI)
+	if err != nil {
 		return err
 	}
+	defer signingCleanup()
 
 	encConfig, encLayers, err := util.EncryptConfig(pushOptions.EncryptionKeys, pushOptions.EncryptLayers)
 	if err != nil {
