@@ -192,7 +192,7 @@ var _ = SynchronizedAfterSuite(func() {},
 		}
 		// for localized tests, this removes the image cache dir and for remote tests
 		// this is a no-op
-		removeCache()
+		podmanTest.removeCache(ImageCacheDir)
 
 		// LockTmpDir can already be removed
 		os.RemoveAll(LockTmpDir)
@@ -560,9 +560,7 @@ func (p *PodmanTestIntegration) Cleanup() {
 
 	p.StopRemoteService()
 	// Nuke tempdir
-	if err := os.RemoveAll(p.TempDir); err != nil {
-		fmt.Printf("%q\n", err)
-	}
+	p.removeCache(p.TempDir)
 
 	// Clean up the registries configuration file ENV variable set in Create
 	resetRegistriesConfigEnv()
@@ -849,10 +847,20 @@ func populateCache(podman *PodmanTestIntegration) {
 	fmt.Printf("-----------------------------\n")
 }
 
-func removeCache() {
+func (p *PodmanTestIntegration) removeCache(path string) {
 	// Remove cache dirs
-	if err := os.RemoveAll(ImageCacheDir); err != nil {
-		fmt.Printf("%q\n", err)
+	if isRootless() {
+		// If rootless, os.RemoveAll() is failed due to permission denied
+		cmd := exec.Command(p.PodmanBinary, "unshare", "rm", "-rf", path)
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		if err := cmd.Run(); err != nil {
+			fmt.Fprintf(os.Stderr, "%v\n", err)
+		}
+	} else {
+		if err := os.RemoveAll(path); err != nil {
+			fmt.Printf("%q\n", err)
+		}
 	}
 }
 
