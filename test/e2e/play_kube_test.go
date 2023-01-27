@@ -4989,7 +4989,7 @@ spec:
 		inspect := podmanTest.Podman([]string{"inspect", "test-hostipc-alpine", "--format", "{{ .HostConfig.IpcMode }}"})
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect).Should(Exit(0))
-		Expect(inspect.OutputToString()).To(Equal("shareable"))
+		Expect(inspect.OutputToString()).To(Equal("host"))
 
 		cmd := exec.Command("ls", "-l", "/proc/self/ns/ipc")
 		res, err := cmd.Output()
