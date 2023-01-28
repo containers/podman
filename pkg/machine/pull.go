@@ -45,11 +45,7 @@ func NewGenericDownloader(vmType, vmName, pullPath string) (DistributionDownload
 	}
 	dl := Download{}
 	// Is pullpath a file or url?
-	getURL, err := url2.Parse(pullPath)
-	if err != nil {
-		return nil, err
-	}
-	if len(getURL.Scheme) > 0 {
+	if getURL := supportedURL(pullPath); getURL != nil {
 		urlSplit := strings.Split(getURL.Path, "/")
 		imageName = urlSplit[len(urlSplit)-1]
 		dl.URL = getURL
@@ -66,6 +62,26 @@ func NewGenericDownloader(vmType, vmName, pullPath string) (DistributionDownload
 
 	gd := GenericDownload{Download: dl}
 	return gd, nil
+}
+
+func supportedURL(path string) (url *url2.URL) {
+	getURL, err := url2.Parse(path)
+	if err != nil {
+		return nil
+	}
+
+	// Check supported scheme. Since URL is passed to net.http, only http
+	// schemes are supported. Also, windows drive paths can resemble a
+	// URL, but with a single letter scheme. These values should be
+	// passed through for interpretation as a file path.
+	switch getURL.Scheme {
+	case "http":
+		fallthrough
+	case "https":
+		return getURL
+	default:
+		return nil
+	}
 }
 
 func (d Download) getLocalUncompressedFile(dataDir string) string {
