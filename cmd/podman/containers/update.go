@@ -65,6 +65,11 @@ func update(cmd *cobra.Command, args []string) error {
 	s := &specgen.SpecGenerator{}
 	s.ResourceLimits = &specs.LinuxResources{}
 
+	err = createOrUpdateFlags(cmd, &updateOpts)
+	if err != nil {
+		return err
+	}
+
 	// we need to pass the whole specgen since throttle devices are parsed later due to cross compat.
 	s.ResourceLimits, err = specgenutil.GetResources(s, &updateOpts)
 	if err != nil {

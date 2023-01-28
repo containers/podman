@@ -893,8 +893,7 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		_ = cmd.RegisterFlagCompletionFunc(deviceWriteIopsFlagName, completion.AutocompleteDefault)
 
 		pidsLimitFlagName := "pids-limit"
-		createFlags.Int64Var(
-			cf.PIDsLimit,
+		createFlags.Int64(
 			pidsLimitFlagName, pidsLimit(),
 			"Tune container pids limit (set -1 for unlimited)",
 		)
