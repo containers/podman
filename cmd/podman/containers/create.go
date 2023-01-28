@@ -196,6 +196,23 @@ func replaceContainer(name string) error {
 	return removeContainers([]string{name}, rmOptions, false)
 }
 
+func createOrUpdateFlags(cmd *cobra.Command, vals *entities.ContainerCreateOptions) error {
+	if cmd.Flags().Changed("pids-limit") {
+		val := cmd.Flag("pids-limit").Value.String()
+		// Convert -1 to 0, so that -1 maps to unlimited pids limit
+		if val == "-1" {
+			val = "0"
+		}
+		pidsLimit, err := strconv.ParseInt(val, 10, 32)
+		if err != nil {
+			return err
+		}
+		vals.PIDsLimit = &pidsLimit
+	}
+
+	return nil
+}
+
 func CreateInit(c *cobra.Command, vals entities.ContainerCreateOptions, isInfra bool) (entities.ContainerCreateOptions, error) {
 	if len(vals.UIDMap) > 0 || len(vals.GIDMap) > 0 || vals.SubUIDName != "" || vals.SubGIDName != "" {
 		if c.Flag("userns").Changed {
@@ -255,18 +272,11 @@ func CreateInit(c *cobra.Command, vals entities.ContainerCreateOptions, isInfra 
 			}
 			vals.OOMScoreAdj = &val
 		}
-		if c.Flags().Changed("pids-limit") {
-			val := c.Flag("pids-limit").Value.String()
-			// Convert -1 to 0, so that -1 maps to unlimited pids limit
-			if val == "-1" {
-				val = "0"
-			}
-			pidsLimit, err := strconv.ParseInt(val, 10, 32)
-			if err != nil {
-				return vals, err
-			}
-			vals.PIDsLimit = &pidsLimit
+
+		if err := createOrUpdateFlags(c, &vals); err != nil {
+			return vals, err
 		}
+
 		if c.Flags().Changed("env") {
 			env, err := c.Flags().GetStringArray("env")
 			if err != nil {

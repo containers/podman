@@ -98,6 +98,33 @@ var _ = Describe("Podman update", func() {
 
 	})
 
+	It("podman update container unspecified pid limit", func() {
+		SkipIfCgroupV1("testing flags that only work in cgroup v2")
+		SkipIfRootless("many of these handlers are not enabled while rootless in CI")
+		session := podmanTest.Podman([]string{"run", "-dt", "--pids-limit", "-1", ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		ctrID := session.OutputToString()
+
+		commonArgs := []string{
+			"update",
+			"--cpus", "5",
+			ctrID}
+
+		session = podmanTest.Podman(commonArgs)
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		ctrID = session.OutputToString()
+
+		// checking pids-limit was not changed after update when not specified as an option
+		session = podmanTest.Podman([]string{"exec", "-it", ctrID, "cat", "/sys/fs/cgroup/pids.max"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).Should(ContainSubstring("max"))
+	})
+
 	It("podman update container all options v2", func() {
 		SkipIfCgroupV1("testing flags that only work in cgroup v2")
 		SkipIfRootless("many of these handlers are not enabled while rootless in CI")
