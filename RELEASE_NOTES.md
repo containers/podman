@@ -1621,7 +1621,7 @@ The `podman kube down` command accepts a new option, `--force`, which removes vo
 
 ## 2.2.0
 ### Features
-- Experimental support for shortname aliasing has been added. This is not enabled by default, but can be turned on by setting the environment variable `CONTAINERS_SHORT_NAME_ALIASING` to `on`. Documentation is [available here](https://github.com/containers/image/blob/master/docs/containers-registries.conf.5.md#short-name-aliasing).
+- Experimental support for shortname aliasing has been added. This is not enabled by default, but can be turned on by setting the environment variable `CONTAINERS_SHORT_NAME_ALIASING` to `on`. Documentation is [available here](https://github.com/containers/image/blob/main/docs/containers-registries.conf.5.md#short-name-aliasing).
 - Initial support has been added for the `podman network connect` and `podman network disconnect` commands, which allow existing containers to modify what networks they are connected to. At present, these commands can only be used on running containers that did not specify `--network=none` when they were created.
 - The `podman run` command now supports the `--network-alias` option to set network aliases (additional names the container can be accessed at from other containers via DNS if the `dnsname` CNI plugin is in use). Aliases can also be added and removed using the new `podman network connect` and `podman network disconnect` commands. Please note that this requires a new release (v1.1.0) of the `dnsname` plugin, and will only work on newly-created CNI networks.
 - The `podman generate kube` command now features support for exporting container's memory and CPU limits ([#7855](https://github.com/containers/podman/issues/7855)).

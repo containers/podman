@@ -337,7 +337,7 @@ var _ = Describe("Toolbox-specific testing", func() {
 		var session *PodmanSessionIntegration
 
 		// These should be most of the switches that Toolbox uses to create a "toolbox" container
-		// https://github.com/containers/toolbox/blob/master/src/cmd/create.go
+		// https://github.com/containers/toolbox/blob/main/src/cmd/create.go
 		session = podmanTest.Podman([]string{"create",
 			"--log-driver", "k8s-file",
 			"--dns", "none",
