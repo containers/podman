@@ -136,8 +136,8 @@ $ systemctl --user start container-be0889fd06f252a2e5141b37072c6bada68563026cb2b
 
 ### Get the name of the container
 $ podman ps
-CONTAINER ID  IMAGE                             COMMAND  CREATED        STATUS            PORTS   NAMES
-01f5c8113e84  docker.io/library/busybox:latest  top      2 seconds ago  Up 3 seconds ago          inspiring_galileo
+CONTAINER ID  IMAGE                             COMMAND  CREATED        STATUS        PORTS   NAMES
+01f5c8113e84  docker.io/library/busybox:latest  top      2 seconds ago  Up 3 seconds          inspiring_galileo
 
 ### Modify the image
 $ podman commit --change CMD=/bin/bash inspiring_galileo busybox:latest
