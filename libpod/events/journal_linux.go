@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/coreos/go-systemd/v22/journal"
 	"github.com/coreos/go-systemd/v22/sdjournal"
@@ -108,7 +109,13 @@ func (e EventJournalD) Read(ctx context.Context, options ReadOptions) error {
 	// match only podman journal entries
 	podmanJournal := sdjournal.Match{Field: "SYSLOG_IDENTIFIER", Value: "podman"}
 	if err := j.AddMatch(podmanJournal.String()); err != nil {
-		return fmt.Errorf("failed to add journal filter for event log: %w", err)
+		return fmt.Errorf("failed to add SYSLOG_IDENTIFIER journal filter for event log: %w", err)
+	}
+
+	// make sure we only read events for the current user
+	uidMatch := sdjournal.Match{Field: "_UID", Value: strconv.Itoa(rootless.GetRootlessUID())}
+	if err := j.AddMatch(uidMatch.String()); err != nil {
+		return fmt.Errorf("failed to add _UID journal filter for event log: %w", err)
 	}
 
 	if len(options.Since) == 0 && len(options.Until) == 0 && options.Stream {
