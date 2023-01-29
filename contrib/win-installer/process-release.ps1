@@ -123,14 +123,16 @@ try {
         Remove-Item -Recurse -Force -Path expand
     }
 
-    $loc = Get-ChildItem -Recurse -Path . -Name gvproxy.exe
-    if (!$loc) {
-        throw "Could not obtain gvproxy.exe"
+    Write-Host "Copying artifacts"
+    Foreach ($fileName in "win-sshproxy.exe", "podman.exe") {
+        Copy-Artifact($fileName)
     }
 
-    Write-Host "Copying artifacts"
-    Foreach ($fileName in "gvproxy.exe", "win-sshproxy.exe", "podman.exe") {
-        Copy-Artifact($fileName)
+    $loc = Get-ChildItem -Recurse -Path . -Name gvproxy.exe
+    if (!$loc) {
+        Write-Host "Skipping gvproxy.exe artifact"
+    } else {
+        Copy-Artifact("gvproxy.exe")
     }
 
     $docsloc = Get-ChildItem -Path . -Name docs -Recurse
