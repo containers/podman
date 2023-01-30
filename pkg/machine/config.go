@@ -32,7 +32,9 @@ type InitOptions struct {
 	ReExec       bool
 	Rootful      bool
 	// The numerical userid of the user that called machine
-	UID string
+	UID    string
+	NoInfo bool
+	Quiet  bool
 }
 
 type Status = string

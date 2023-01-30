@@ -58,9 +58,17 @@ Defaults to `testing`.
 
 Memory (in MB).
 
+#### **--no-info**
+
+Suppress informational tips.
+
 #### **--now**
 
 Start the virtual machine immediately after it has been initialized.
+
+#### **--quiet**, **-q**
+
+Suppress machine initializing status output.
 
 #### **--rootful**
 

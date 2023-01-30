@@ -110,6 +110,12 @@ func init() {
 
 	rootfulFlagName := "rootful"
 	flags.BoolVar(&initOpts.Rootful, rootfulFlagName, false, "Whether this machine should prefer rootful container execution")
+
+	noInfoFlagName := "no-info"
+	flags.BoolVar(&startOpts.NoInfo, noInfoFlagName, false, "Suppress informational tips")
+
+	quietFlagName := "quiet"
+	flags.BoolVarP(&startOpts.Quiet, quietFlagName, "q", false, "Suppress machine initializing status output")
 }
 
 func initMachine(cmd *cobra.Command, args []string) error {
@@ -117,6 +123,8 @@ func initMachine(cmd *cobra.Command, args []string) error {
 		err error
 		vm  machine.VM
 	)
+
+	initOpts.NoInfo = initOpts.Quiet || initOpts.NoInfo
 
 	provider := GetSystemDefaultProvider()
 	initOpts.Name = defaultMachineName
@@ -147,15 +155,20 @@ func initMachine(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	newMachineEvent(events.Init, events.Event{Name: initOpts.Name})
-	fmt.Println("Machine init complete")
+	if !initOpts.Quiet {
+		fmt.Println("Machine init complete")
+	}
 
 	if now {
 		return start(cmd, args)
 	}
-	extra := ""
-	if initOpts.Name != defaultMachineName {
-		extra = " " + initOpts.Name
+	if !initOpts.NoInfo {
+		extra := ""
+		if initOpts.Name != defaultMachineName {
+			extra = " " + initOpts.Name
+		}
+		fmt.Printf("To start your machine run:\n\n\tpodman machine start%s\n\n", extra)
 	}
-	fmt.Printf("To start your machine run:\n\n\tpodman machine start%s\n\n", extra)
+
 	return err
 }
