@@ -77,6 +77,9 @@ The *volume* type will report the following statuses:
  * prune
  * remove
 
+#### Verbose Create Events
+
+Setting `events_container_create_inspect_data=true` in containers.conf(5) instructs Podman to create more verbose container-create events which include a JSON payload with detailed information about the containers.  The JSON payload is identical to the one of podman-container-inspect(1).  The associated field in journald is named `PODMAN_CONTAINER_INSPECT_DATA`.
 
 ## OPTIONS
 
