@@ -67,6 +67,7 @@ func NewGenericDownloader(vmType, vmName, pullPath string) (DistributionDownload
 func supportedURL(path string) (url *url2.URL) {
 	getURL, err := url2.Parse(path)
 	if err != nil {
+		// ignore error, probably not a URL, fallback & treat as file path
 		return nil
 	}
 
