@@ -103,7 +103,8 @@ func TestLibpod(t *testing.T) {
 
 var _ = SynchronizedBeforeSuite(func() []byte {
 	// make cache dir
-	if err := os.MkdirAll(ImageCacheDir, 0777); err != nil {
+	ImageCacheDir = filepath.Join(os.TempDir(), "imagecachedir")
+	if err := os.MkdirAll(ImageCacheDir, 0700); err != nil {
 		fmt.Printf("%q\n", err)
 		os.Exit(1)
 	}
@@ -192,7 +193,7 @@ var _ = SynchronizedAfterSuite(func() {},
 		}
 		// for localized tests, this removes the image cache dir and for remote tests
 		// this is a no-op
-		podmanTest.removeCache(ImageCacheDir)
+		podmanTest.removeCache(podmanTest.ImageCacheDir)
 
 		// LockTmpDir can already be removed
 		os.RemoveAll(LockTmpDir)
@@ -278,6 +279,9 @@ func PodmanTestCreateUtil(tempDir string, remote bool) *PodmanTestIntegration {
 		storageFs = os.Getenv("STORAGE_FS")
 		storageOptions = "--storage-driver " + storageFs
 	}
+
+	ImageCacheDir = filepath.Join(os.TempDir(), "imagecachedir")
+
 	p := &PodmanTestIntegration{
 		PodmanTest: PodmanTest{
 			PodmanBinary:       podmanBinary,
