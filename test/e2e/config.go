@@ -13,7 +13,6 @@ var (
 	INFRA_IMAGE       = "k8s.gcr.io/pause:3.2" //nolint:revive,stylecheck
 	BB                = "quay.io/libpod/busybox:latest"
 	HEALTHCHECK_IMAGE = "quay.io/libpod/alpine_healthcheck:latest" //nolint:revive,stylecheck
-	ImageCacheDir     = "/tmp/podman/imagecachedir"
 	fedoraToolbox     = "registry.fedoraproject.org/fedora-toolbox:36"
 	volumeTest        = "quay.io/libpod/volume-plugin-test-img:20220623"
 
@@ -25,4 +24,10 @@ var (
 	// This image has a bogus/invalid seccomp profile which should
 	// yield a json error when being read.
 	alpineBogusSeccomp = "quay.io/libpod/alpine-with-bogus-seccomp:label"
+
+	// ImageCacheDir is initialized at runtime.
+	// e.g., filepath.Join(os.TempDir(), "imagecachedir")
+	// This directory should be used by per-user.
+	// Note: "ImageCacheDir" has nothing to do with "PODMAN_TEST_IMAGE_CACHE_DIR".
+	ImageCacheDir = ""
 )
