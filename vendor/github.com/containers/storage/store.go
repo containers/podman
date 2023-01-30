@@ -3341,7 +3341,14 @@ func (s *store) GarbageCollect() error {
 		return s.containerStore.GarbageCollect()
 	})
 
-	moreErr := s.writeToLayerStore(func(rlstore rwLayerStore) error {
+	moreErr := s.writeToImageStore(func() error {
+		return s.imageStore.GarbageCollect()
+	})
+	if firstErr == nil {
+		firstErr = moreErr
+	}
+
+	moreErr = s.writeToLayerStore(func(rlstore rwLayerStore) error {
 		return rlstore.GarbageCollect()
 	})
 	if firstErr == nil {

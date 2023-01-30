@@ -678,10 +678,13 @@ func (r *layerStore) GarbageCollect() error {
 
 		// Remove layer and any related data of unreferenced id
 		if err := r.driver.Remove(id); err != nil {
+			logrus.Debugf("removing driver layer %q", id)
 			return err
 		}
 
+		logrus.Debugf("removing %q", r.tspath(id))
 		os.Remove(r.tspath(id))
+		logrus.Debugf("removing %q", r.datadir(id))
 		os.RemoveAll(r.datadir(id))
 	}
 	return nil

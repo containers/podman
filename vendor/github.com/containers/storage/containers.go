@@ -14,6 +14,7 @@ import (
 	"github.com/containers/storage/pkg/stringid"
 	"github.com/containers/storage/pkg/truncindex"
 	digest "github.com/opencontainers/go-digest"
+	"github.com/sirupsen/logrus"
 )
 
 type containerLocations uint8
@@ -420,6 +421,7 @@ func (r *containerStore) GarbageCollect() error {
 		}
 
 		// Otherwise remove datadir
+		logrus.Debugf("removing %q", filepath.Join(r.dir, id))
 		moreErr := os.RemoveAll(filepath.Join(r.dir, id))
 		// Propagate first error
 		if moreErr != nil && err == nil {
