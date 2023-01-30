@@ -135,6 +135,12 @@ SignItem @("artifacts/win-sshproxy.exe",
           "artifacts/podman.exe",
           "artifacts/podman-msihooks.dll",
           "artifacts/podman-wslkerninst.exe")
+$gvExists = Test-Path "artifacts/gvproxy.exe"
+if ($gvExists) {
+    SignItem @("artifacts/gvproxy.exe")
+} else {
+    $env:UseGVProxy = "Skip"
+}
 
 .\build-msi.bat $ENV:INSTVER; ExitOnError
 SignItem @("podman.msi")
