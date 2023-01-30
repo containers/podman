@@ -311,6 +311,8 @@ func ParsePortMapping(portMappings []types.PortMapping, exposePorts map[uint16][
 						return nil, err
 					}
 					portMappings = append(portMappings, p)
+					// Mark this port as used so it doesn't get re-generated
+					allPorts[p.HostPort] = true
 				} else {
 					newProtocols = append(newProtocols, protocol)
 				}
