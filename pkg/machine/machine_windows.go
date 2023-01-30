@@ -4,7 +4,9 @@
 package machine
 
 import (
+	"os"
 	"syscall"
+	"time"
 )
 
 func GetProcessState(pid int) (active bool, exitCode int) {
@@ -17,4 +19,25 @@ func GetProcessState(pid int) (active bool, exitCode int) {
 	var code uint32
 	syscall.GetExitCodeProcess(handle, &code)
 	return code == 259, int(code)
+}
+
+func PipeNameAvailable(pipeName string) bool {
+	_, err := os.Stat(`\\.\pipe\` + pipeName)
+	return os.IsNotExist(err)
+}
+
+func WaitPipeExists(pipeName string, retries int, checkFailure func() error) error {
+	var err error
+	for i := 0; i < retries; i++ {
+		_, err = os.Stat(`\\.\pipe\` + pipeName)
+		if err == nil {
+			break
+		}
+		if fail := checkFailure(); fail != nil {
+			return fail
+		}
+		time.Sleep(250 * time.Millisecond)
+	}
+
+	return err
 }

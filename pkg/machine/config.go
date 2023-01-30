@@ -373,4 +373,6 @@ type SSHConfig struct {
 type ConnectionConfig struct {
 	// PodmanSocket is the exported podman service socket
 	PodmanSocket *VMFile `json:"PodmanSocket"`
+	// PodmanPipe is the exported podman service named pipe (Windows hosts only)
+	PodmanPipe *VMFile `json:"PodmanPipe"`
 }
