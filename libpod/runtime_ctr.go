@@ -776,16 +776,6 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force, remo
 		cleanupErr = fmt.Errorf("cleaning up container %s: %w", c.ID(), err)
 	}
 
-	// Set ContainerStateRemoving
-	c.state.State = define.ContainerStateRemoving
-
-	if err := c.save(); err != nil {
-		if cleanupErr != nil {
-			logrus.Errorf(err.Error())
-		}
-		return fmt.Errorf("unable to set container %s removing state in database: %w", c.ID(), err)
-	}
-
 	// Remove all active exec sessions
 	// removing the exec sessions might temporarily unlock the container's lock.  Using it
 	// after setting the state to ContainerStateRemoving will prevent that the container is
@@ -795,6 +785,20 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force, remo
 			cleanupErr = err
 		} else {
 			logrus.Errorf("Remove exec sessions: %v", err)
+		}
+	}
+
+	// Set ContainerStateRemoving as an intermediate state (we may get
+	// killed at any time) and save the container.
+	c.state.State = define.ContainerStateRemoving
+
+	if err := c.save(); err != nil {
+		if !errors.Is(err, define.ErrCtrRemoved) {
+			if cleanupErr == nil {
+				cleanupErr = err
+			} else {
+				logrus.Errorf("Saving container: %v", err)
+			}
 		}
 	}
 
