@@ -347,6 +347,10 @@ function is_aarch64() {
     [ "$(uname -m)" == "aarch64" ]
 }
 
+function selinux_enabled() {
+    /usr/sbin/selinuxenabled 2> /dev/null
+}
+
 # Returns the OCI runtime *basename* (typically crun or runc). Much as we'd
 # love to cache this result, we probably shouldn't.
 function podman_runtime() {

@@ -230,7 +230,7 @@ func ConvertV1PodToYAMLPod(pod *v1.Pod) *YAMLPod {
 			continue
 		}
 		selinuxOpts := ctr.SecurityContext.SELinuxOptions
-		if selinuxOpts.User == "" && selinuxOpts.Role == "" && selinuxOpts.Type == "" && selinuxOpts.Level == "" {
+		if selinuxOpts.User == "" && selinuxOpts.Role == "" && selinuxOpts.Type == "" && selinuxOpts.Level == "" && selinuxOpts.FileType == "" {
 			ctr.SecurityContext.SELinuxOptions = nil
 		}
 	}
@@ -1043,27 +1043,33 @@ func generateKubeSecurityContext(c *Container) (*v1.SecurityContext, bool, error
 		sc.Capabilities = capabilities
 	}
 	var selinuxOpts v1.SELinuxOptions
-	opts := strings.SplitN(c.config.Spec.Annotations[define.InspectAnnotationLabel], ":", 2)
-	switch len(opts) {
-	case 2:
-		switch opts[0] {
-		case "type":
-			selinuxOpts.Type = opts[1]
-			sc.SELinuxOptions = &selinuxOpts
-			scHasData = true
-		case "level":
-			selinuxOpts.Level = opts[1]
-			sc.SELinuxOptions = &selinuxOpts
-			scHasData = true
-		}
-	case 1:
-		if opts[0] == "disable" {
-			selinuxOpts.Type = "spc_t"
-			sc.SELinuxOptions = &selinuxOpts
-			scHasData = true
+	selinuxHasData := false
+	for _, label := range strings.Split(c.config.Spec.Annotations[define.InspectAnnotationLabel], ",label=") {
+		opts := strings.SplitN(label, ":", 2)
+		switch len(opts) {
+		case 2:
+			switch opts[0] {
+			case "filetype":
+				selinuxOpts.FileType = opts[1]
+				selinuxHasData = true
+			case "type":
+				selinuxOpts.Type = opts[1]
+				selinuxHasData = true
+			case "level":
+				selinuxOpts.Level = opts[1]
+				selinuxHasData = true
+			}
+		case 1:
+			if opts[0] == "disable" {
+				selinuxOpts.Type = "spc_t"
+				selinuxHasData = true
+			}
 		}
 	}
-
+	if selinuxHasData {
+		sc.SELinuxOptions = &selinuxOpts
+		scHasData = true
+	}
 	if !allowPrivEscalation {
 		scHasData = true
 		sc.AllowPrivilegeEscalation = &allowPrivEscalation

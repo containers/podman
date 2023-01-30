@@ -72,7 +72,7 @@ RELABEL="system_u:object_r:container_file_t:s0"
     echo "$testYaml" | sed "s|TESTDIR|${TESTDIR}|g" > $PODMAN_TMPDIR/test.yaml
 
     run_podman kube play - < $PODMAN_TMPDIR/test.yaml
-    if [ -e /usr/sbin/selinuxenabled -a /usr/sbin/selinuxenabled ]; then
+    if selinux_enabled; then
        run ls -Zd $TESTDIR
        is "$output" "${RELABEL} $TESTDIR" "selinux relabel should have happened"
     fi
@@ -94,7 +94,7 @@ RELABEL="system_u:object_r:container_file_t:s0"
     mkdir -p $TESTDIR
     echo "$testYaml" | sed "s|TESTDIR|${TESTDIR}|g" > $PODMAN_TMPDIR/test.yaml
     run_podman play kube $PODMAN_TMPDIR/test.yaml
-    if [ -e /usr/sbin/selinuxenabled -a /usr/sbin/selinuxenabled ]; then
+    if selinux_enabled; then
        run ls -Zd $TESTDIR
        is "$output" "${RELABEL} $TESTDIR" "selinux relabel should have happened"
     fi
@@ -548,4 +548,20 @@ EOF
     _ensure_container_running $service_container false
 
     run_podman kube down $yaml_source
+}
+
+@test "podman kube generate filetype" {
+    YAML=$PODMAN_TMPDIR/test.yml
+    run_podman create --pod new:pod1 --security-opt label=level:s0:c1,c2 --security-opt label=filetype:usr_t --name test1 $IMAGE true
+    run_podman kube generate pod1 -f $YAML
+    run cat $YAML
+    is "$output" ".*filetype: usr_t" "Generated YAML file should contain filetype usr_t"
+    run_podman pod rm --force pod1
+
+    run_podman kube play $YAML
+    if selinux_enabled; then
+        run_podman inspect pod1-test1 --format "{{ .MountLabel }}"
+	is "$output" "system_u:object_r:usr_t:s0:c1,c2" "Generated container should use filetype usr_t"
+    fi
+    run_podman kube down $YAML
 }

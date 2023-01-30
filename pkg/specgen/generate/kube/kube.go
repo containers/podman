@@ -719,6 +719,9 @@ func setupSecurityContext(s *specgen.SpecGenerator, securityContext *v1.Security
 		if seopt.Level != "" {
 			s.SelinuxOpts = append(s.SelinuxOpts, fmt.Sprintf("level:%s", seopt.Level))
 		}
+		if seopt.FileType != "" {
+			s.SelinuxOpts = append(s.SelinuxOpts, fmt.Sprintf("filetype:%s", seopt.FileType))
+		}
 	}
 	if caps := securityContext.Capabilities; caps != nil {
 		for _, capability := range caps.Add {

@@ -4403,6 +4403,9 @@ type SELinuxOptions struct {
 	// Type is a SELinux type label that applies to the container.
 	// +optional
 	Type string `json:"type,omitempty"`
+	// FileType is a SELinux file type label that applies to the container.
+	// +optional
+	FileType string `json:"filetype,omitempty"`
 	// Level is SELinux level label that applies to the container.
 	// +optional
 	Level string `json:"level,omitempty"`
