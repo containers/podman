@@ -34,6 +34,9 @@
             <Component Id="WinSshProxyExecutable" Guid="0DA730AB-2F97-40E8-A8FC-356E88EAA4D2" Win64="Yes">
               <File Id="4A2AD125-34E7-4BD8-BE28-B2A9A5EDBEB5" Name="win-sshproxy.exe" Source="bin/windows/win-sshproxy.exe" KeyPath="yes"/>
             </Component>
+            <Component Id="GvProxyExecutable" Guid="1A4A2975-AD2D-44AA-974B-9B343C098333" Win64="Yes">
+              <File Id="0C9BDFB8-1DBD-4E51-BE7B-3F55478DACB7" Name="gvproxy.exe" Source="bin/windows/gvproxy.exe" KeyPath="yes"/>
+            </Component>
           </Directory>
         </Directory>
       </Directory>
@@ -47,6 +50,7 @@
       <ComponentRef Id="MainExecutable"/>
       <ComponentRef Id="WinPathExecutable"/>
       <ComponentRef Id="WinSshProxyExecutable"/>
+      <ComponentRef Id="GvProxyExecutable"/>
       <ComponentGroupRef Id="ManFiles"/>
     </Feature>
 

@@ -128,6 +128,13 @@ try {
         Copy-Artifact($fileName)
     }
 
+    $loc = Get-ChildItem -Recurse -Path . -Name gvproxy.exe
+    if (!$loc) {
+        Write-Host "Skipping gvproxy.exe artifact"
+    } else {
+        Copy-Artifact("gvproxy.exe")
+    }
+
     $docsloc = Get-ChildItem -Path . -Name docs -Recurse
     $loc = Get-ChildItem -Recurse -Path . -Name podman-for-windows.html
     if (!$loc) {
