@@ -117,11 +117,12 @@ func AddPrivilegedDevices(g *generate.Generator, systemdMode bool) error {
 			 *              the rootless containers for security reasons, and
 			 *              the container runtime will create it for us
 			 *              anyway (ln -s /dev/pts/ptmx /dev/ptmx);
+			 *   /dev/tty and
 			 *   /dev/tty[0-9]+: Prevent the container from taking over the host's
 			 *                   virtual consoles, even when not in systemd mode
 			 *                   for backwards compatibility.
 			 */
-			if d.Path == "/dev/ptmx" || isVirtualConsoleDevice(d.Path) {
+			if d.Path == "/dev/ptmx" || d.Path == "/dev/tty" || isVirtualConsoleDevice(d.Path) {
 				continue
 			}
 			if _, found := mounts[d.Path]; found {
