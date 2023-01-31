@@ -25,7 +25,7 @@ showrun() {
 case $1 in
     audit)
         case $OS_RELEASE_ID in
-            ubuntu) showrun cat /var/log/kern.log ;;
+            debian) showrun cat /var/log/kern.log ;;
             fedora) showrun cat /var/log/audit/audit.log ;;
             *) bad_os_id_ver ;;
         esac
@@ -34,7 +34,7 @@ case $1 in
     journal) showrun journalctl -b ;;
     podman) showrun ./bin/podman system info ;;
     packages)
-        # These names are common to Fedora and Ubuntu
+        # These names are common to Fedora and Debian
         PKG_NAMES=(\
                     conmon
                     containernetworking-plugins
@@ -59,7 +59,7 @@ case $1 in
                     passt
                 )
                 ;;
-            ubuntu)
+            debian)
                 cat /etc/issue
                 PKG_LST_CMD='dpkg-query --show --showformat=${Package}-${Version}-${Architecture}\n'
                 PKG_NAMES+=(\

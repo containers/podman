@@ -204,6 +204,14 @@ install_test_configs() {
 }
 
 use_cni() {
+    req_env_vars OS_RELEASE_ID PACKAGE_DOWNLOAD_DIR SCRIPT_BASE
+    # Defined by common automation library
+    # shellcheck disable=SC2154
+    if [[ "$OS_RELEASE_ID" =~ "debian" ]]; then
+        # Supporting it involves swapping the rpm & dnf commands below
+        die "Testing debian w/ CNI networking currently not supported"
+    fi
+
     msg "Unsetting NETWORK_BACKEND for all subsequent environments."
     echo "export -n NETWORK_BACKEND" >> /etc/ci_environment
     echo "unset NETWORK_BACKEND" >> /etc/ci_environment
@@ -238,6 +246,7 @@ use_cni() {
 }
 
 use_netavark() {
+    req_env_vars OS_RELEASE_ID PRIOR_FEDORA_NAME DISTRO_NV
     local magickind repokind
     msg "Forcing NETWORK_BACKEND=netavark for all subsequent environments."
     echo "NETWORK_BACKEND=netavark" >> /etc/ci_environment
@@ -251,7 +260,9 @@ use_netavark() {
     # See ./contrib/cirrus/CIModes.md.
     # Vars defined by cirrus-ci
     # shellcheck disable=SC2154
-    if [[ "$CIRRUS_CHANGE_TITLE" =~ CI:[AN]V[AN]V= ]]; then
+    if [[ ! "$OS_RELEASE_ID" =~ "debian" ]] && \
+       [[ "$CIRRUS_CHANGE_TITLE" =~ CI:[AN]V[AN]V= ]]
+    then
         # shellcheck disable=SC2154
         if [[ "$CIRRUS_PR_DRAFT" != "true" ]]; then
             die "Magic 'CI:NVAV=*' string can only be used on DRAFT PRs"
@@ -306,7 +317,7 @@ remove_packaged_podman_files() {
 
     # OS_RELEASE_ID is defined by automation-library
     # shellcheck disable=SC2154
-    if [[ "$OS_RELEASE_ID" =~ "ubuntu" ]]
+    if [[ "$OS_RELEASE_ID" =~ "debian" ]]
     then
         LISTING_CMD="dpkg-query -L podman"
     else

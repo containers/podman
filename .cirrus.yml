@@ -26,20 +26,20 @@ env:
     ####
     #### Cache-image names to test with (double-quotes around names are critical)
     ####
-    FEDORA_NAME: "fedora-37" ### c20230120t152650z-f37f36u2204
-    FEDORA_AARCH64_NAME: "${FEDORA_NAME}-aarch64" ### c20230120t152650z-f37f36u2204
-    PRIOR_FEDORA_NAME: "fedora-36" ### c20230120t152650z-f37f36u2204
-    #UBUNTU_NAME: "ubuntu-2204"  ### c20230120t152650z-f37f36u2204
+    FEDORA_NAME: "fedora-37"
+    FEDORA_AARCH64_NAME: "${FEDORA_NAME}-aarch64"
+    PRIOR_FEDORA_NAME: "fedora-36"
+    DEBIAN_NAME: "debian-12"
 
     # Image identifiers
-    IMAGE_SUFFIX: "c20230120t152650z-f37f36u2204"
+    IMAGE_SUFFIX: "c20230221t162829z-f37f36d12"
     # EC2 images
     FEDORA_AMI: "fedora-aws-${IMAGE_SUFFIX}"
     FEDORA_AARCH64_AMI: "fedora-podman-aws-arm64-${IMAGE_SUFFIX}"
     # GCP Images
     FEDORA_CACHE_IMAGE_NAME: "fedora-${IMAGE_SUFFIX}"
     PRIOR_FEDORA_CACHE_IMAGE_NAME: "prior-fedora-${IMAGE_SUFFIX}"
-    #UBUNTU_CACHE_IMAGE_NAME: "ubuntu-${IMAGE_SUFFIX}"
+    DEBIAN_CACHE_IMAGE_NAME: "debian-${IMAGE_SUFFIX}"
     # Container FQIN's
     FEDORA_CONTAINER_FQIN: "quay.io/libpod/fedora_podman:${IMAGE_SUFFIX}"
     PRIOR_FEDORA_CONTAINER_FQIN: "quay.io/libpod/prior-fedora_podman:${IMAGE_SUFFIX}"
@@ -52,7 +52,7 @@ env:
     TEST_ENVIRON: host       # 'host', or 'container'
     PODBIN_NAME: podman      # 'podman' or 'remote'
     PRIV_NAME: root          # 'root' or 'rootless'
-    DISTRO_NV:               # any {PRIOR_,}{FEDORA,UBUNTU}_NAME value
+    DISTRO_NV:               # any {PRIOR_,}{FEDORA,DEBIAN}_NAME value
     VM_IMAGE_NAME:           # One of the "Google-cloud VM Images" (above)
     CTR_FQIN:                # One of the "Container FQIN's" (above)
 
@@ -109,12 +109,11 @@ build_task:
               CTR_FQIN: ${PRIOR_FEDORA_CONTAINER_FQIN}
               CI_DESIRED_RUNTIME: crun
               CI_DESIRED_NETWORK: cni
-        #- env: &ubuntu_envvars
-        #      DISTRO_NV: ${UBUNTU_NAME}
-        #      VM_IMAGE_NAME: ${UBUNTU_CACHE_IMAGE_NAME}
-        #      CTR_FQIN: ${UBUNTU_CONTAINER_FQIN}
-        #      CI_DESIRED_RUNTIME: runc
-        #      CI_DESIRED_NETWORK: whatever
+        - env: &debian_envvars
+              DISTRO_NV: ${DEBIAN_NAME}
+              VM_IMAGE_NAME: ${DEBIAN_CACHE_IMAGE_NAME}
+              CI_DESIRED_RUNTIME: runc
+              CI_DESIRED_NETWORK: netavark
     env:
         TEST_FLAVOR: build
     # NOTE: The default way Cirrus-CI clones is *NOT* compatible with
@@ -943,11 +942,10 @@ meta_task:
         image: quay.io/libpod/imgts:latest
     env:
         # Space-separated list of images used by this repository state
-        # DISABLED:
-        #   ${UBUNTU_CACHE_IMAGE_NAME}
         IMGNAMES: >-
             ${FEDORA_CACHE_IMAGE_NAME}
             ${PRIOR_FEDORA_CACHE_IMAGE_NAME}
+            ${DEBIAN_CACHE_IMAGE_NAME}
             build-push-${IMAGE_SUFFIX}
         EC2IMGNAMES: >-
           ${FEDORA_AARCH64_AMI}
