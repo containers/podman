@@ -255,7 +255,7 @@ option.
 Specifies a Containerfile which contains instructions for building the image,
 either a local file or an **http** or **https** URL.  If more than one
 Containerfile is specified, *FROM* instructions will only be accepted from the
-first specified file.
+last specified file.
 
 If a build context is not specified, and at least one Containerfile is a
 local file, the directory in which it resides will be used as the build
