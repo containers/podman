@@ -64,7 +64,7 @@ var _ = Describe("Podman UserNS support", func() {
 	It("podman build with --userns=auto", func() {
 		u, err := user.Current()
 		Expect(err).ToNot(HaveOccurred())
-		name := u.Name
+		name := u.Username
 		if name == "root" {
 			name = "containers"
 		}
@@ -157,7 +157,7 @@ var _ = Describe("Podman UserNS support", func() {
 		Expect(session).Should(Exit(0))
 		u, err := user.Current()
 		Expect(err).ToNot(HaveOccurred())
-		Expect(session.OutputToString()).To(ContainSubstring(u.Name))
+		Expect(session.OutputToString()).To(Equal(u.Username))
 	})
 
 	It("podman --userns=keep-id root owns /usr", func() {
@@ -201,7 +201,7 @@ var _ = Describe("Podman UserNS support", func() {
 	It("podman --userns=auto", func() {
 		u, err := user.Current()
 		Expect(err).ToNot(HaveOccurred())
-		name := u.Name
+		name := u.Username
 		if name == "root" {
 			name = "containers"
 		}
@@ -239,7 +239,7 @@ var _ = Describe("Podman UserNS support", func() {
 		u, err := user.Current()
 		Expect(err).ToNot(HaveOccurred())
 
-		name := u.Name
+		name := u.Username
 		if name == "root" {
 			name = "containers"
 		}
@@ -277,7 +277,7 @@ var _ = Describe("Podman UserNS support", func() {
 		u, err := user.Current()
 		Expect(err).ToNot(HaveOccurred())
 
-		name := u.Name
+		name := u.Username
 		if name == "root" {
 			name = "containers"
 		}
@@ -306,7 +306,7 @@ var _ = Describe("Podman UserNS support", func() {
 		u, err := user.Current()
 		Expect(err).ToNot(HaveOccurred())
 
-		name := u.Name
+		name := u.Username
 		if name == "root" {
 			name = "containers"
 		}
