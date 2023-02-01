@@ -84,7 +84,7 @@ function service_setup() {
     run systemctl status "$service"
     assert $status -eq $statusexit "systemctl status $service: $output"
 
-    run systemctl show -P ActiveState "$service"
+    run systemctl show --value --property=ActiveState "$service"
     assert $status -eq 0 "systemctl show $service: $output"
     is "$output" $activestate
 }
