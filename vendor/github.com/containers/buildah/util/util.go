@@ -441,14 +441,7 @@ func (m byDestination) Len() int {
 }
 
 func (m byDestination) Less(i, j int) bool {
-	iparts, jparts := m.parts(i), m.parts(j)
-	switch {
-	case iparts < jparts:
-		return true
-	case iparts > jparts:
-		return false
-	}
-	return filepath.Clean(m[i].Destination) < filepath.Clean(m[j].Destination)
+	return m.parts(i) < m.parts(j)
 }
 
 func (m byDestination) Swap(i, j int) {
@@ -460,7 +453,7 @@ func (m byDestination) parts(i int) int {
 }
 
 func SortMounts(m []specs.Mount) []specs.Mount {
-	sort.Stable(byDestination(m))
+	sort.Sort(byDestination(m))
 	return m
 }
 

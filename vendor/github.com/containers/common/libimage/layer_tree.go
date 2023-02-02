@@ -126,17 +126,6 @@ func (r *Runtime) layerTree() (*layerTree, error) {
 	return &tree, nil
 }
 
-// layersOf returns all storage layers of the specified image.
-func (t *layerTree) layersOf(image *Image) []*storage.Layer {
-	var layers []*storage.Layer
-	node := t.node(image.TopLayer())
-	for node != nil {
-		layers = append(layers, node.layer)
-		node = node.parent
-	}
-	return layers
-}
-
 // children returns the child images of parent. Child images are images with
 // either the same top layer as parent or parent being the true parent layer.
 // Furthermore, the history of the parent and child images must match with the

@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -300,18 +301,18 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 			iopts.Quiet = true
 		}
 	}
-	var cacheTo []reference.Named
-	var cacheFrom []reference.Named
+	var cacheTo reference.Named
+	var cacheFrom reference.Named
 	cacheTo = nil
 	cacheFrom = nil
 	if c.Flag("cache-to").Changed {
-		cacheTo, err = parse.RepoNamesToNamedReferences(iopts.CacheTo)
+		cacheTo, err = parse.RepoNameToNamedReference(iopts.CacheTo)
 		if err != nil {
 			return options, nil, nil, fmt.Errorf("unable to parse value provided `%s` to --cache-to: %w", iopts.CacheTo, err)
 		}
 	}
 	if c.Flag("cache-from").Changed {
-		cacheFrom, err = parse.RepoNamesToNamedReferences(iopts.CacheFrom)
+		cacheFrom, err = parse.RepoNameToNamedReference(iopts.CacheFrom)
 		if err != nil {
 			return options, nil, nil, fmt.Errorf("unable to parse value provided `%s` to --cache-from: %w", iopts.CacheTo, err)
 		}
@@ -380,7 +381,6 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 		Excludes:                excludes,
 		ForceRmIntermediateCtrs: iopts.ForceRm,
 		From:                    iopts.From,
-		GroupAdd:                iopts.GroupAdd,
 		IDMappingOptions:        idmappingOptions,
 		IIDFile:                 iopts.Iidfile,
 		IgnoreFile:              iopts.IgnoreFile,
@@ -423,7 +423,7 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 		UnsetEnvs:               iopts.UnsetEnvs,
 	}
 	if iopts.Quiet {
-		options.ReportWriter = io.Discard
+		options.ReportWriter = ioutil.Discard
 	}
 	return options, containerfiles, removeAll, nil
 }

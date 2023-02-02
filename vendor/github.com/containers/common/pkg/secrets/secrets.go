@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -12,7 +13,6 @@ import (
 	"github.com/containers/common/pkg/secrets/passdriver"
 	"github.com/containers/common/pkg/secrets/shelldriver"
 	"github.com/containers/storage/pkg/lockfile"
-	"github.com/containers/storage/pkg/regexp"
 	"github.com/containers/storage/pkg/stringid"
 )
 
@@ -51,12 +51,11 @@ var secretsFile = "secrets.json"
 
 // secretNameRegexp matches valid secret names
 // Allowed: 64 [a-zA-Z0-9-_.] characters, and the start and end character must be [a-zA-Z0-9]
-var secretNameRegexp = regexp.Delayed(`^[a-zA-Z0-9][a-zA-Z0-9_.-]*$`)
+var secretNameRegexp = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9_.-]*$`)
 
 // SecretsManager holds information on handling secrets
 //
 // revive does not like the name because the package is already called secrets
-//
 //nolint:revive
 type SecretsManager struct {
 	// secretsPath is the path to the db file where secrets are stored
@@ -91,7 +90,6 @@ type Secret struct {
 // Currently only the unencrypted filedriver is implemented.
 //
 // revive does not like the name because the package is already called secrets
-//
 //nolint:revive
 type SecretsDriver interface {
 	// List lists all secret ids in the secrets data store
@@ -127,7 +125,7 @@ func NewManager(rootPath string) (*SecretsManager, error) {
 		return nil, err
 	}
 
-	lock, err := lockfile.GetLockFile(filepath.Join(rootPath, "secrets.lock"))
+	lock, err := lockfile.GetLockfile(filepath.Join(rootPath, "secrets.lock"))
 	if err != nil {
 		return nil, err
 	}

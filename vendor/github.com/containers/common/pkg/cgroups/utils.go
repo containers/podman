@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -23,7 +24,7 @@ func readAcct(ctr *CgroupControl, name string) (uint64, error) {
 
 func readAcctList(ctr *CgroupControl, name string) ([]uint64, error) {
 	p := filepath.Join(ctr.getCgroupv1Path(CPUAcct), name)
-	data, err := os.ReadFile(p)
+	data, err := ioutil.ReadFile(p)
 	if err != nil {
 		return nil, err
 	}
@@ -53,7 +54,7 @@ func GetSystemCPUUsage() (uint64, error) {
 		return readFileAsUint64(p)
 	}
 
-	files, err := os.ReadDir(cgroupRoot)
+	files, err := ioutil.ReadDir(cgroupRoot)
 	if err != nil {
 		return 0, err
 	}
@@ -89,7 +90,7 @@ func cpusetCopyFileFromParent(dir, file string, cgroupv2 bool) ([]byte, error) {
 	if cgroupv2 {
 		parentPath = fmt.Sprintf("%s.effective", parentPath)
 	}
-	data, err := os.ReadFile(parentPath)
+	data, err := ioutil.ReadFile(parentPath)
 	if err != nil {
 		// if the file doesn't exist, it is likely that the cpuset controller
 		// is not enabled in the kernel.
@@ -105,7 +106,7 @@ func cpusetCopyFileFromParent(dir, file string, cgroupv2 bool) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := os.WriteFile(path, data, 0o644); err != nil {
+	if err := ioutil.WriteFile(path, data, 0o644); err != nil {
 		return nil, fmt.Errorf("write %s: %w", path, err)
 	}
 	return data, nil
@@ -125,7 +126,7 @@ func createCgroupv2Path(path string) (deferredError error) {
 	if !strings.HasPrefix(path, cgroupRoot+"/") {
 		return fmt.Errorf("invalid cgroup path %s", path)
 	}
-	content, err := os.ReadFile(cgroupRoot + "/cgroup.controllers")
+	content, err := ioutil.ReadFile(cgroupRoot + "/cgroup.controllers")
 	if err != nil {
 		return err
 	}
@@ -153,7 +154,7 @@ func createCgroupv2Path(path string) (deferredError error) {
 		// We enable the controllers for all the path components except the last one.  It is not allowed to add
 		// PIDs if there are already enabled controllers.
 		if i < len(elements[3:])-1 {
-			if err := os.WriteFile(filepath.Join(current, "cgroup.subtree_control"), res, 0o755); err != nil {
+			if err := ioutil.WriteFile(filepath.Join(current, "cgroup.subtree_control"), res, 0o755); err != nil {
 				return err
 			}
 		}

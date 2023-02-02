@@ -452,7 +452,6 @@ func (m *ManifestList) Push(ctx context.Context, destination string, options *Ma
 		ImageListSelection:               options.ImageListSelection,
 		Instances:                        options.Instances,
 		ReportWriter:                     options.Writer,
-		Signers:                          options.Signers,
 		SignBy:                           options.SignBy,
 		SignPassphrase:                   options.SignPassphrase,
 		SignBySigstorePrivateKeyFile:     options.SignBySigstorePrivateKeyFile,

@@ -3,6 +3,7 @@ package sysinfo
 import (
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path"
 	"strings"
@@ -209,12 +210,12 @@ func checkCgroupCpusetInfo(cgMounts map[string]string, quiet bool) cgroupCpusetI
 		return cgroupCpusetInfo{}
 	}
 
-	cpus, err := os.ReadFile(path.Join(mountPoint, "cpuset.cpus"))
+	cpus, err := ioutil.ReadFile(path.Join(mountPoint, "cpuset.cpus"))
 	if err != nil {
 		return cgroupCpusetInfo{}
 	}
 
-	mems, err := os.ReadFile(path.Join(mountPoint, "cpuset.mems"))
+	mems, err := ioutil.ReadFile(path.Join(mountPoint, "cpuset.mems"))
 	if err != nil {
 		return cgroupCpusetInfo{}
 	}
@@ -254,7 +255,7 @@ func cgroupEnabled(mountPoint, name string) bool {
 }
 
 func readProcBool(file string) bool {
-	val, err := os.ReadFile(file)
+	val, err := ioutil.ReadFile(file)
 	if err != nil {
 		return false
 	}

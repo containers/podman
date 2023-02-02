@@ -52,9 +52,9 @@ rpm-ostree install buildah
 Note: [`podman`](https://podman.io) build is available by default.
 
 ### [Gentoo](https://www.gentoo.org)
-[app-containers/buildah](https://packages.gentoo.org/packages/app-containers/buildah)
+[app-containers/podman](https://packages.gentoo.org/packages/app-containers/podman)
 ```bash
-sudo emerge app-containers/buildah
+sudo emerge app-containers/podman
 ```
 
 ### [openSUSE](https://www.opensuse.org)

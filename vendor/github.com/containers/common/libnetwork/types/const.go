@@ -40,7 +40,6 @@ const (
 	MTUOption     = "mtu"
 	ModeOption    = "mode"
 	IsolateOption = "isolate"
-	MetricOption  = "metric"
 )
 
 type NetworkBackend string

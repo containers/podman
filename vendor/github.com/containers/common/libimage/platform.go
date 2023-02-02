@@ -69,9 +69,9 @@ func toPlatformString(os, arch, variant string) string {
 
 // Checks whether the image matches the specified platform.
 // Returns
-//   - 1) a matching error that can be used for logging (or returning) what does not match
-//   - 2) a bool indicating whether architecture, os or variant were set (some callers need that to decide whether they need to throw an error)
-//   - 3) a fatal error that occurred prior to check for matches (e.g., storage errors etc.)
+//  * 1) a matching error that can be used for logging (or returning) what does not match
+//  * 2) a bool indicating whether architecture, os or variant were set (some callers need that to decide whether they need to throw an error)
+//  * 3) a fatal error that occurred prior to check for matches (e.g., storage errors etc.)
 func (i *Image) matchesPlatform(ctx context.Context, os, arch, variant string) (error, bool, error) {
 	if err := i.isCorrupted(""); err != nil {
 		return err, false, nil
@@ -96,5 +96,5 @@ func (i *Image) matchesPlatform(ctx context.Context, os, arch, variant string) (
 		return nil, customPlatform, nil
 	}
 
-	return fmt.Errorf("image platform (%s) does not match the expected platform (%s)", platforms.Format(fromImage), platforms.Format(expected)), customPlatform, nil
+	return fmt.Errorf("image platform (%s) does not match the expected platform (%s)", fromImage, expected), customPlatform, nil
 }

@@ -73,8 +73,7 @@ func (r *Runtime) filterImages(ctx context.Context, images []*Image, options *Li
 
 // compileImageFilters creates `filterFunc`s for the specified filters.  The
 // required format is `key=value` with the following supported keys:
-//
-//	after, since, before, containers, dangling, id, label, readonly, reference, intermediate
+//           after, since, before, containers, dangling, id, label, readonly, reference, intermediate
 func (r *Runtime) compileImageFilters(ctx context.Context, options *ListImagesOptions) (map[string][]filterFunc, error) {
 	logrus.Tracef("Parsing image filters %s", options.Filters)
 
@@ -145,9 +144,6 @@ func (r *Runtime) compileImageFilters(ctx context.Context, options *ListImagesOp
 
 		case "id":
 			filter = filterID(value)
-
-		case "digest":
-			filter = filterDigest(value)
 
 		case "intermediate":
 			intermediate, err := r.bool(duplicate, key, value)
@@ -383,13 +379,6 @@ func filterDangling(ctx context.Context, value bool, tree *layerTree) filterFunc
 func filterID(value string) filterFunc {
 	return func(img *Image) (bool, error) {
 		return img.ID() == value, nil
-	}
-}
-
-// filterDigest creates an digest filter for matching the specified value.
-func filterDigest(value string) filterFunc {
-	return func(img *Image) (bool, error) {
-		return string(img.Digest()) == value, nil
 	}
 }
 

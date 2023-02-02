@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -30,7 +31,7 @@ func Read(path string, extensionStages []string) (*current.Hook, error) {
 	if !strings.HasSuffix(path, ".json") {
 		return nil, ErrNoJSONSuffix
 	}
-	content, err := os.ReadFile(path)
+	content, err := ioutil.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
@@ -63,7 +64,7 @@ func read(content []byte) (hook *current.Hook, err error) {
 // clobbering any previous entries with the same filenames.
 func ReadDir(path string, extensionStages []string, hooks map[string]*current.Hook) error {
 	logrus.Debugf("reading hooks from %s", path)
-	files, err := os.ReadDir(path)
+	files, err := ioutil.ReadDir(path)
 	if err != nil {
 		return err
 	}

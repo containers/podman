@@ -29,7 +29,6 @@ type LayerResults struct {
 // UserNSResults represents the results for the UserNS flags
 type UserNSResults struct {
 	UserNS            string
-	GroupAdd          []string
 	UserNSUIDMap      []string
 	UserNSGIDMap      []string
 	UserNSUIDMapUser  string
@@ -54,8 +53,8 @@ type BudResults struct {
 	Authfile            string
 	BuildArg            []string
 	BuildContext        []string
-	CacheFrom           []string
-	CacheTo             []string
+	CacheFrom           string
+	CacheTo             string
 	CacheTTL            string
 	CertDir             string
 	Compress            bool
@@ -138,7 +137,6 @@ type FromAndBudResults struct {
 // GetUserNSFlags returns the common flags for usernamespace
 func GetUserNSFlags(flags *UserNSResults) pflag.FlagSet {
 	usernsFlags := pflag.FlagSet{}
-	usernsFlags.StringSliceVar(&flags.GroupAdd, "group-add", nil, "add additional groups to the primary container process. 'keep-groups' allows container processes to use supplementary groups.")
 	usernsFlags.StringVar(&flags.UserNS, "userns", "", "'container', `path` of user namespace to join, or 'host'")
 	usernsFlags.StringSliceVar(&flags.UserNSUIDMap, "userns-uid-map", []string{}, "`containerUID:hostUID:length` UID mapping to use in user namespace")
 	usernsFlags.StringSliceVar(&flags.UserNSGIDMap, "userns-gid-map", []string{}, "`containerGID:hostGID:length` GID mapping to use in user namespace")
@@ -150,7 +148,6 @@ func GetUserNSFlags(flags *UserNSResults) pflag.FlagSet {
 // GetUserNSFlagsCompletions returns the FlagCompletions for the userns flags
 func GetUserNSFlagsCompletions() commonComp.FlagCompletions {
 	flagCompletion := commonComp.FlagCompletions{}
-	flagCompletion["group-add"] = commonComp.AutocompleteNone
 	flagCompletion["userns"] = completion.AutocompleteNamespaceFlag
 	flagCompletion["userns-uid-map"] = commonComp.AutocompleteNone
 	flagCompletion["userns-gid-map"] = commonComp.AutocompleteNone
@@ -205,8 +202,8 @@ func GetBudFlags(flags *BudResults) pflag.FlagSet {
 	fs.StringArrayVar(&flags.OCIHooksDir, "hooks-dir", []string{}, "set the OCI hooks directory path (may be set multiple times)")
 	fs.StringArrayVar(&flags.BuildArg, "build-arg", []string{}, "`argument=value` to supply to the builder")
 	fs.StringArrayVar(&flags.BuildContext, "build-context", []string{}, "`argument=value` to supply additional build context to the builder")
-	fs.StringArrayVar(&flags.CacheFrom, "cache-from", []string{}, "remote repository list to utilise as potential cache source.")
-	fs.StringArrayVar(&flags.CacheTo, "cache-to", []string{}, "remote repository list to utilise as potential cache destination.")
+	fs.StringVar(&flags.CacheFrom, "cache-from", "", "remote repository to utilise as potential cache source.")
+	fs.StringVar(&flags.CacheTo, "cache-to", "", "remote repository to utilise as potential cache destination.")
 	fs.StringVar(&flags.CacheTTL, "cache-ttl", "", "only consider cache images under specified duration.")
 	fs.StringVar(&flags.CertDir, "cert-dir", "", "use certificates at the specified path to access the registry")
 	fs.BoolVar(&flags.Compress, "compress", false, "this is a legacy option, which has no effect on the image")

@@ -59,7 +59,7 @@ BuildRequires: btrfs-progs-devel
 %if 0%{?fedora} <= 35
 Requires: containers-common >= 4:1-39
 %else
-Requires: containers-common-extra
+Requires: containers-common >= 4:1-46
 %endif
 %if 0%{?rhel}
 BuildRequires: libseccomp-devel

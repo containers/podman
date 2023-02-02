@@ -38,7 +38,6 @@ func ComputeUntilTimestamp(filterValues []string) (time.Time, error) {
 // background.
 //
 // revive does not like the name because the package is already called filters
-//
 //nolint:revive
 func FiltersFromRequest(r *http.Request) ([]string, error) {
 	var (

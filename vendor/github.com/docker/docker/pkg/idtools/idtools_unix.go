@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strconv"
 	"sync"
@@ -30,6 +31,10 @@ func mkdirAs(path string, mode os.FileMode, owner Identity, mkAll, chownExisting
 	// chown the full directory path if it exists
 
 	var paths []string
+	path, err := filepath.Abs(path)
+	if err != nil {
+		return err
+	}
 
 	stat, err := system.Stat(path)
 	if err == nil {
@@ -195,7 +200,7 @@ func callGetent(database, key string) (io.Reader, error) {
 	}
 	out, err := execCmd(getentCmd, database, key)
 	if err != nil {
-		exitCode, errC := system.GetExitCode(err)
+		exitCode, errC := getExitCode(err)
 		if errC != nil {
 			return nil, err
 		}
@@ -209,9 +214,20 @@ func callGetent(database, key string) (io.Reader, error) {
 		default:
 			return nil, err
 		}
-
 	}
 	return bytes.NewReader(out), nil
+}
+
+// getExitCode returns the ExitStatus of the specified error if its type is
+// exec.ExitError, returns 0 and an error otherwise.
+func getExitCode(err error) (int, error) {
+	exitCode := 0
+	if exiterr, ok := err.(*exec.ExitError); ok {
+		if procExit, ok := exiterr.Sys().(syscall.WaitStatus); ok {
+			return procExit.ExitStatus(), nil
+		}
+	}
+	return exitCode, fmt.Errorf("failed to get exit code")
 }
 
 // setPermissions performs a chown/chmod only if the uid/gid don't match what's requested
@@ -240,24 +256,37 @@ func setPermissions(p string, mode os.FileMode, uid, gid int, stat *system.StatT
 // NewIdentityMapping takes a requested username and
 // using the data from /etc/sub{uid,gid} ranges, creates the
 // proper uid and gid remapping ranges for that user/group pair
+//
+// Deprecated: Use LoadIdentityMapping.
 func NewIdentityMapping(name string) (*IdentityMapping, error) {
+	m, err := LoadIdentityMapping(name)
+	if err != nil {
+		return nil, err
+	}
+	return &m, err
+}
+
+// LoadIdentityMapping takes a requested username and
+// using the data from /etc/sub{uid,gid} ranges, creates the
+// proper uid and gid remapping ranges for that user/group pair
+func LoadIdentityMapping(name string) (IdentityMapping, error) {
 	usr, err := LookupUser(name)
 	if err != nil {
-		return nil, fmt.Errorf("Could not get user for username %s: %v", name, err)
+		return IdentityMapping{}, fmt.Errorf("Could not get user for username %s: %v", name, err)
 	}
 
 	subuidRanges, err := lookupSubUIDRanges(usr)
 	if err != nil {
-		return nil, err
+		return IdentityMapping{}, err
 	}
 	subgidRanges, err := lookupSubGIDRanges(usr)
 	if err != nil {
-		return nil, err
+		return IdentityMapping{}, err
 	}
 
-	return &IdentityMapping{
-		uids: subuidRanges,
-		gids: subgidRanges,
+	return IdentityMapping{
+		UIDMaps: subuidRanges,
+		GIDMaps: subgidRanges,
 	}, nil
 }
 

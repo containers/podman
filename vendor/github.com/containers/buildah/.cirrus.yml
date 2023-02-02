@@ -27,13 +27,13 @@ env:
     ####
     # GCE project where images live
     IMAGE_PROJECT: "libpod-218412"
-    FEDORA_NAME: "fedora-37"
-    PRIOR_FEDORA_NAME: "fedora-36"
+    FEDORA_NAME: "fedora-36"
+    #PRIOR_FEDORA_NAME: "fedora-35"
     UBUNTU_NAME: "ubuntu-2204"
 
-    IMAGE_SUFFIX: "c6300530360713216"
+    IMAGE_SUFFIX: "c5124654741323776"
     FEDORA_CACHE_IMAGE_NAME: "fedora-${IMAGE_SUFFIX}"
-    PRIOR_FEDORA_CACHE_IMAGE_NAME: "prior-fedora-${IMAGE_SUFFIX}"
+    #PRIOR_FEDORA_CACHE_IMAGE_NAME: "prior-fedora-${IMAGE_SUFFIX}"
     UBUNTU_CACHE_IMAGE_NAME: "ubuntu-${IMAGE_SUFFIX}"
 
     IN_PODMAN_IMAGE: "quay.io/libpod/fedora_podman:${IMAGE_SUFFIX}"
@@ -72,9 +72,9 @@ meta_task:
 
     env:
         # Space-separated list of images used by this repository state
+        # TODO: Re-add ${PRIOR_FEDORA_CACHE_IMAGE_NAME} when place back in use
         IMGNAMES: |-
             ${FEDORA_CACHE_IMAGE_NAME}
-            ${PRIOR_FEDORA_CACHE_IMAGE_NAME}
             ${UBUNTU_CACHE_IMAGE_NAME}
             build-push-${IMAGE_SUFFIX}
         BUILDID: "${CIRRUS_BUILD_ID}"
@@ -140,7 +140,7 @@ cross_build_task:
         $CIRRUS_CRON != 'multiarch'
 
     osx_instance:
-        image: ghcr.io/cirruslabs/macos-ventura-base:latest
+        image: 'big-sur-base'
 
     script:
         - brew update
@@ -215,10 +215,10 @@ integration_task:
             DISTRO_NV: "${FEDORA_NAME}"
             IMAGE_NAME: "${FEDORA_CACHE_IMAGE_NAME}"
             STORAGE_DRIVER: 'vfs'
-        - env:
-            DISTRO_NV: "${PRIOR_FEDORA_NAME}"
-            IMAGE_NAME: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
-            STORAGE_DRIVER: 'vfs'
+        # - env:
+        #     DISTRO_NV: "${PRIOR_FEDORA_NAME}"
+        #     IMAGE_NAME: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
+        #     STORAGE_DRIVER: 'vfs'
         - env:
             DISTRO_NV: "${UBUNTU_NAME}"
             IMAGE_NAME: "${UBUNTU_CACHE_IMAGE_NAME}"
@@ -228,10 +228,10 @@ integration_task:
             DISTRO_NV: "${FEDORA_NAME}"
             IMAGE_NAME: "${FEDORA_CACHE_IMAGE_NAME}"
             STORAGE_DRIVER: 'overlay'
-        - env:
-            DISTRO_NV: "${PRIOR_FEDORA_NAME}"
-            IMAGE_NAME: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
-            STORAGE_DRIVER: 'overlay'
+        # - env:
+        #     DISTRO_NV: "${PRIOR_FEDORA_NAME}"
+        #     IMAGE_NAME: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
+        #     STORAGE_DRIVER: 'overlay'
         - env:
             DISTRO_NV: "${UBUNTU_NAME}"
             IMAGE_NAME: "${UBUNTU_CACHE_IMAGE_NAME}"
@@ -272,11 +272,11 @@ integration_rootless_task:
             IMAGE_NAME: "${FEDORA_CACHE_IMAGE_NAME}"
             STORAGE_DRIVER: 'overlay'
             PRIV_NAME: rootless
-        - env:
-            DISTRO_NV: "${PRIOR_FEDORA_NAME}"
-            IMAGE_NAME: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
-            STORAGE_DRIVER: 'overlay'
-            PRIV_NAME: rootless
+        # - env:
+        #     DISTRO_NV: "${PRIOR_FEDORA_NAME}"
+        #     IMAGE_NAME: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
+        #     STORAGE_DRIVER: 'overlay'
+        #     PRIV_NAME: rootless
         - env:
             DISTRO_NV: "${UBUNTU_NAME}"
             IMAGE_NAME: "${UBUNTU_CACHE_IMAGE_NAME}"
@@ -322,7 +322,7 @@ in_podman_task:
 
 
 image_build_task: &image-build
-    name: "Build multi-arch $FLAVOR"
+    name: "Build multi-arch $CTXDIR"
     alias: image_build
     # Some of these container images take > 1h to build, limit
     # this task to a specific Cirrus-Cron entry with this name.
@@ -337,11 +337,11 @@ image_build_task: &image-build
         type: "n2-standard-4"
     matrix:
         - env:
-            FLAVOR: upstream
+            CTXDIR: contrib/buildahimage/upstream
         - env:
-            FLAVOR: testing
+            CTXDIR: contrib/buildahimage/testing
         - env:
-            FLAVOR: stable
+            CTXDIR: contrib/buildahimage/stable
     env:
         DISTRO_NV: "${FEDORA_NAME}"  # Required for repo cache extraction
         BUILDAH_USERNAME: ENCRYPTED[70e1d4f026cba5d82fc067944baab10f7c71c64bb6b75fce4eeb5c106694b3bbc8e08f8a1b926d6e03e85cf4e21833bb]
@@ -350,7 +350,7 @@ image_build_task: &image-build
         CONTAINERS_PASSWORD: ENCRYPTED[886cf4cc126e50b2fd7f2792235a22bb79e4b81db43f803a6214a38d3fd6c04cd4e64570b562cb32b04e5fbc435404b6]
     main_script:
         - source /etc/automation_environment
-        - main.sh $CIRRUS_REPO_CLONE_URL contrib/buildahimage $FLAVOR
+        - main.sh $CIRRUS_REPO_CLONE_URL $CTXDIR
 
 
 test_image_build_task:

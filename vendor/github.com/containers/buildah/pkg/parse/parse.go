@@ -16,7 +16,6 @@ import (
 
 	"github.com/containerd/containerd/platforms"
 	"github.com/containers/buildah/define"
-	securejoin "github.com/cyphar/filepath-securejoin"
 	internalParse "github.com/containers/buildah/internal/parse"
 	"github.com/containers/buildah/pkg/sshagent"
 	"github.com/containers/common/pkg/config"
@@ -46,25 +45,21 @@ const (
 	TypeTmpfs = "tmpfs"
 	// TypeCache is the type for mounting a common persistent cache from host
 	TypeCache = "cache"
-	// mount=type=cache must create a persistent directory on host so it's available for all consecutive builds.
+	// mount=type=cache must create a persistent directory on host so its available for all consecutive builds.
 	// Lifecycle of following directory will be inherited from how host machine treats temporary directory
 	BuildahCacheDir = "buildah-cache"
 )
 
-// RepoNamesToNamedReferences parse the raw string to Named reference
-func RepoNamesToNamedReferences(destList []string) ([]reference.Named, error) {
-	var result []reference.Named
-	for _, dest := range destList {
-		named, err := reference.ParseNormalizedNamed(dest)
-		if err != nil {
-			return nil, fmt.Errorf("invalid repo %q: must contain registry and repository: %w", dest, err)
-		}
-		if !reference.IsNameOnly(named) {
-			return nil, fmt.Errorf("repository must contain neither a tag nor digest: %v", named)
-		}
-		result = append(result, named)
+// RepoNameToNamedReference parse the raw string to Named reference
+func RepoNameToNamedReference(dest string) (reference.Named, error) {
+	named, err := reference.ParseNormalizedNamed(dest)
+	if err != nil {
+		return nil, fmt.Errorf("invalid repo %q: must contain registry and repository: %w", dest, err)
 	}
-	return result, nil
+	if !reference.IsNameOnly(named) {
+		return nil, fmt.Errorf("repository must contain neither a tag nor digest: %v", named)
+	}
+	return named, nil
 }
 
 // CommonBuildOptions parses the build options from the bud cli
@@ -227,14 +222,13 @@ func GetAdditionalBuildContext(value string) (define.AdditionalBuildContext, err
 func parseSecurityOpts(securityOpts []string, commonOpts *define.CommonBuildOptions) error {
 	for _, opt := range securityOpts {
 		if opt == "no-new-privileges" {
-			commonOpts.NoNewPrivileges = true
-			continue
+			return errors.New("no-new-privileges is not supported")
 		}
-
 		con := strings.SplitN(opt, "=", 2)
 		if len(con) != 2 {
 			return fmt.Errorf("invalid --security-opt name=value pair: %q", opt)
 		}
+
 		switch con[0] {
 		case "label":
 			commonOpts.LabelOpts = append(commonOpts.LabelOpts, con[1])
@@ -934,11 +928,10 @@ func IsolationOption(isolation string) (define.Isolation, error) {
 
 // Device parses device mapping string to a src, dest & permissions string
 // Valid values for device look like:
-//
-//	'/dev/sdc"
-//	'/dev/sdc:/dev/xvdc"
-//	'/dev/sdc:/dev/xvdc:rwm"
-//	'/dev/sdc:rm"
+//    '/dev/sdc"
+//    '/dev/sdc:/dev/xvdc"
+//    '/dev/sdc:/dev/xvdc:rwm"
+//    '/dev/sdc:rm"
 func Device(device string) (string, string, string, error) {
 	src := ""
 	dst := ""
@@ -1108,16 +1101,10 @@ func ContainerIgnoreFile(contextDir, path string, containerFiles []string) ([]st
 			return excludes, containerfileIgnore, err
 		}
 	}
-	path, symlinkErr := securejoin.SecureJoin(contextDir, ".containerignore")
-	if symlinkErr != nil {
-		return nil, "", symlinkErr
-	}
+	path = filepath.Join(contextDir, ".containerignore")
 	excludes, err := imagebuilder.ParseIgnore(path)
 	if errors.Is(err, os.ErrNotExist) {
-		path, symlinkErr = securejoin.SecureJoin(contextDir, ".dockerignore")
-		if symlinkErr != nil {
-			return nil, "", symlinkErr
-		}
+		path = filepath.Join(contextDir, ".dockerignore")
 		excludes, err = imagebuilder.ParseIgnore(path)
 	}
 	if errors.Is(err, os.ErrNotExist) {

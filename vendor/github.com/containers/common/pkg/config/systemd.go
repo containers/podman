@@ -4,7 +4,7 @@
 package config
 
 import (
-	"os"
+	"io/ioutil"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -53,7 +53,7 @@ func defaultLogDriver() string {
 
 func useSystemd() bool {
 	systemdOnce.Do(func() {
-		dat, err := os.ReadFile("/proc/1/comm")
+		dat, err := ioutil.ReadFile("/proc/1/comm")
 		if err == nil {
 			val := strings.TrimSuffix(string(dat), "\n")
 			usesSystemd = (val == "systemd")
@@ -68,13 +68,13 @@ func useJournald() bool {
 			return
 		}
 		for _, root := range []string{"/run/log/journal", "/var/log/journal"} {
-			dirs, err := os.ReadDir(root)
+			dirs, err := ioutil.ReadDir(root)
 			if err != nil {
 				continue
 			}
 			for _, d := range dirs {
 				if d.IsDir() {
-					if _, err := os.ReadDir(filepath.Join(root, d.Name())); err == nil {
+					if _, err := ioutil.ReadDir(filepath.Join(root, d.Name())); err == nil {
 						usesJournald = true
 						return
 					}

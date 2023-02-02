@@ -7,7 +7,7 @@ func getDefaultCgroupsMode() string {
 // In theory, FreeBSD should be able to use shm locks but in practice,
 // this causes cryptic error messages from the kernel that look like:
 //
-//	comm podman pid 90813: handling rb error 22
+//     comm podman pid 90813: handling rb error 22
 //
 // These seem to be related to fork/exec code paths. Fall back to
 // file-based locks.

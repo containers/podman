@@ -103,11 +103,10 @@ func ValidateVolumeOpts(options []string) ([]string, error) {
 
 // Device parses device mapping string to a src, dest & permissions string
 // Valid values for device looklike:
-//
-//	'/dev/sdc"
-//	'/dev/sdc:/dev/xvdc"
-//	'/dev/sdc:/dev/xvdc:rwm"
-//	'/dev/sdc:rm"
+//    '/dev/sdc"
+//    '/dev/sdc:/dev/xvdc"
+//    '/dev/sdc:/dev/xvdc:rwm"
+//    '/dev/sdc:rm"
 func Device(device string) (src, dest, permissions string, err error) {
 	permissions = "rwm"
 	arr := strings.Split(device, ":")

@@ -28,51 +28,26 @@ type ImageDiskUsage struct {
 // DiskUsage calculates the disk usage for each image in the local containers
 // storage.  Note that a single image may yield multiple usage reports, one for
 // each repository tag.
-func (r *Runtime) DiskUsage(ctx context.Context) ([]ImageDiskUsage, int64, error) {
+func (r *Runtime) DiskUsage(ctx context.Context) ([]ImageDiskUsage, error) {
 	layerTree, err := r.layerTree()
 	if err != nil {
-		return nil, -1, err
+		return nil, err
 	}
 
 	images, err := r.ListImages(ctx, nil, nil)
 	if err != nil {
-		return nil, -1, err
+		return nil, err
 	}
-
-	var totalSize int64
-	visitedImages := make(map[string]bool)
-	visistedLayers := make(map[string]bool)
 
 	var allUsages []ImageDiskUsage
 	for _, image := range images {
 		usages, err := diskUsageForImage(ctx, image, layerTree)
 		if err != nil {
-			return nil, -1, err
+			return nil, err
 		}
 		allUsages = append(allUsages, usages...)
-
-		if _, ok := visitedImages[image.ID()]; ok {
-			// Do not count an image twice
-			continue
-		}
-		visitedImages[image.ID()] = true
-
-		size, err := image.Size()
-		if err != nil {
-			return nil, -1, err
-		}
-		for _, layer := range layerTree.layersOf(image) {
-			if _, ok := visistedLayers[layer.ID]; ok {
-				// Do not count a layer twice, so remove its
-				// size from the image size.
-				size -= layer.UncompressedSize
-				continue
-			}
-			visistedLayers[layer.ID] = true
-		}
-		totalSize += size
 	}
-	return allUsages, totalSize, err
+	return allUsages, err
 }
 
 // diskUsageForImage returns the disk-usage baseistics for the specified image.

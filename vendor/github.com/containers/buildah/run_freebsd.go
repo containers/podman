@@ -6,6 +6,7 @@ package buildah
 import (
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -24,7 +25,6 @@ import (
 	nettypes "github.com/containers/common/libnetwork/types"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/storage/pkg/idtools"
-	"github.com/containers/storage/pkg/lockfile"
 	"github.com/containers/storage/pkg/stringid"
 	"github.com/docker/go-units"
 	"github.com/opencontainers/runtime-spec/specs-go"
@@ -71,7 +71,7 @@ func setChildProcess() error {
 }
 
 func (b *Builder) Run(command []string, options RunOptions) error {
-	p, err := os.MkdirTemp("", Package)
+	p, err := ioutil.TempDir("", Package)
 	if err != nil {
 		return err
 	}
@@ -252,6 +252,10 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 		jconf.Set("devfs_ruleset", 4)
 		jconf.Set("allow.raw_sockets", true)
 		jconf.Set("allow.chflags", true)
+		jconf.Set("allow.mount", true)
+		jconf.Set("allow.mount.devfs", true)
+		jconf.Set("allow.mount.nullfs", true)
+		jconf.Set("allow.mount.fdescfs", true)
 		jconf.Set("securelevel", -1)
 		netjail, err := jail.Create(jconf)
 		if err != nil {
@@ -304,8 +308,7 @@ func setupSpecialMountSpecChanges(spec *spec.Spec, shmSize string) ([]specs.Moun
 	return spec.Mounts, nil
 }
 
-// If this function succeeds and returns a non-nil *lockfile.LockFile, the caller must unlock it (when??).
-func (b *Builder) getCacheMount(tokens []string, stageMountPoints map[string]internal.StageMountDetails, idMaps IDMaps, workDir string) (*spec.Mount, *lockfile.LockFile, error) {
+func (b *Builder) getCacheMount(tokens []string, stageMountPoints map[string]internal.StageMountDetails, idMaps IDMaps) (*spec.Mount, []string, error) {
 	return nil, nil, errors.New("cache mounts not supported on freebsd")
 }
 
@@ -356,7 +359,8 @@ func (b *Builder) runSetupVolumeMounts(mountLabel string, volumeMounts []string,
 		if len(spliti) > 2 {
 			options = strings.Split(spliti[2], ",")
 		}
-		mount, err := parseMount("nullfs", spliti[0], spliti[1], options)
+		options = append(options, "bind")
+		mount, err := parseMount("bind", spliti[0], spliti[1], options)
 		if err != nil {
 			return nil, err
 		}

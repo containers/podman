@@ -7,6 +7,7 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -98,12 +99,12 @@ func UserOwnsCurrentSystemdCgroup() (bool, error) {
 func rmDirRecursively(path string) error {
 	killProcesses := func(signal syscall.Signal) {
 		if signal == unix.SIGKILL {
-			if err := os.WriteFile(filepath.Join(path, "cgroup.kill"), []byte("1"), 0o600); err == nil {
+			if err := ioutil.WriteFile(filepath.Join(path, "cgroup.kill"), []byte("1"), 0o600); err == nil {
 				return
 			}
 		}
 		// kill all the processes that are still part of the cgroup
-		if procs, err := os.ReadFile(filepath.Join(path, "cgroup.procs")); err == nil {
+		if procs, err := ioutil.ReadFile(filepath.Join(path, "cgroup.procs")); err == nil {
 			for _, pidS := range strings.Split(string(procs), "\n") {
 				if pid, err := strconv.Atoi(pidS); err == nil {
 					_ = unix.Kill(pid, signal)
@@ -115,7 +116,7 @@ func rmDirRecursively(path string) error {
 	if err := os.Remove(path); err == nil || errors.Is(err, os.ErrNotExist) {
 		return nil
 	}
-	entries, err := os.ReadDir(path)
+	entries, err := ioutil.ReadDir(path)
 	if err != nil {
 		return err
 	}

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -59,7 +60,7 @@ func defaultDriverConfig() *driverConfig {
 				continue
 			}
 			cfg.Root = path
-			bs, err := os.ReadFile(filepath.Join(path, ".gpg-id"))
+			bs, err := ioutil.ReadFile(filepath.Join(path, ".gpg-id"))
 			if err != nil {
 				continue
 			}
@@ -75,7 +76,7 @@ func (cfg *driverConfig) findGpgID() {
 	path := cfg.Root
 	for len(path) > 1 {
 		if _, err := os.Stat(filepath.Join(path, ".gpg-id")); err == nil {
-			bs, err := os.ReadFile(filepath.Join(path, ".gpg-id"))
+			bs, err := ioutil.ReadFile(filepath.Join(path, ".gpg-id"))
 			if err != nil {
 				continue
 			}
@@ -105,7 +106,7 @@ func NewDriver(opts map[string]string) (*Driver, error) {
 
 // List returns all secret IDs
 func (d *Driver) List() (secrets []string, err error) {
-	files, err := os.ReadDir(d.Root)
+	files, err := ioutil.ReadDir(d.Root)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read secret directory: %w", err)
 	}
@@ -167,7 +168,7 @@ func (d *Driver) gpg(ctx context.Context, in io.Reader, out io.Writer, args ...s
 	cmd.Env = os.Environ()
 	cmd.Stdin = in
 	cmd.Stdout = out
-	cmd.Stderr = io.Discard
+	cmd.Stderr = ioutil.Discard
 	return cmd.Run()
 }
 

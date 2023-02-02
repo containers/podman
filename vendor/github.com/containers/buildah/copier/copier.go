@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"io/ioutil"
 	"net"
 	"os"
 	"os/user"
@@ -21,7 +22,6 @@ import (
 
 	"github.com/containers/buildah/util"
 	"github.com/containers/image/v5/pkg/compression"
-	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/fileutils"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/reexec"
@@ -572,7 +572,7 @@ func copierWithSubprocess(bulkReader io.Reader, bulkWriter io.Writer, req reques
 		bulkReader = bytes.NewReader([]byte{})
 	}
 	if bulkWriter == nil {
-		bulkWriter = io.Discard
+		bulkWriter = ioutil.Discard
 	}
 	cmd := reexec.Command(copierCommand)
 	stdinRead, stdinWrite, err := os.Pipe()
@@ -1462,10 +1462,6 @@ func copierHandlerGetOne(srcfi os.FileInfo, symlinkTarget, name, contentPath str
 			hdr.Mode = int64(*options.ChmodFiles)
 		}
 	}
-	// read fflags, if any
-	if err := archive.ReadFileFlagsToTarHeader(contentPath, hdr); err != nil {
-		return fmt.Errorf("getting fflags: %w", err)
-	}
 	var f *os.File
 	if hdr.Typeflag == tar.TypeReg {
 		// open the file first so that we don't write a header for it if we can't actually read it
@@ -1897,10 +1893,6 @@ func copierHandlerPut(bulkReader io.Reader, req request, idMappings *idtools.IDM
 			}
 			if err = lutimes(hdr.Typeflag == tar.TypeSymlink, path, hdr.AccessTime, hdr.ModTime); err != nil {
 				return fmt.Errorf("setting access and modify timestamps on %q to %s and %s: %w", path, hdr.AccessTime, hdr.ModTime, err)
-			}
-			// set fflags if supported
-			if err := archive.WriteFileFlagsFromTarHeader(path, hdr); err != nil {
-				return fmt.Errorf("copier: put: error setting fflags on %q: %w", path, err)
 			}
 		nextHeader:
 			hdr, err = tr.Next()

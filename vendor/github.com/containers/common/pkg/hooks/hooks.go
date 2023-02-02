@@ -90,8 +90,8 @@ func (m *Manager) namedHooks() (hooks []*namedHook) {
 // extensionStageHooks.  This takes precedence over their inclusion in
 // the OCI configuration.  For example:
 //
-//	manager, err := New(ctx, []string{DefaultDir}, []string{"poststop"})
-//	extensionStageHooks, err := manager.Hooks(config, annotations, hasBindMounts)
+//   manager, err := New(ctx, []string{DefaultDir}, []string{"poststop"})
+//   extensionStageHooks, err := manager.Hooks(config, annotations, hasBindMounts)
 //
 // will have any matching post-stop hooks in extensionStageHooks and
 // will not insert them into config.Hooks.Poststop.

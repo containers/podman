@@ -10,7 +10,6 @@ import (
 	"net"
 	"os"
 	"path/filepath"
-	"reflect"
 	"strconv"
 	"time"
 
@@ -20,68 +19,9 @@ import (
 	"github.com/containers/storage/pkg/stringid"
 )
 
-func sliceRemoveDuplicates(strList []string) []string {
-	list := make([]string, 0, len(strList))
-	for _, item := range strList {
-		if !util.StringInSlice(item, list) {
-			list = append(list, item)
-		}
-	}
-	return list
-}
-
-func (n *netavarkNetwork) commitNetwork(network *types.Network) error {
-	confPath := filepath.Join(n.networkConfigDir, network.Name+".json")
-	f, err := os.Create(confPath)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	enc := json.NewEncoder(f)
-	enc.SetIndent("", "     ")
-	err = enc.Encode(network)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (n *netavarkNetwork) NetworkUpdate(name string, options types.NetworkUpdateOptions) error {
-	n.lock.Lock()
-	defer n.lock.Unlock()
-	err := n.loadNetworks()
-	if err != nil {
-		return err
-	}
-	network, err := n.getNetwork(name)
-	if err != nil {
-		return err
-	}
-	networkDNSServersBefore := network.NetworkDNSServers
-	networkDNSServersAfter := []string{}
-	for _, server := range networkDNSServersBefore {
-		if util.StringInSlice(server, options.RemoveDNSServers) {
-			continue
-		}
-		networkDNSServersAfter = append(networkDNSServersAfter, server)
-	}
-	networkDNSServersAfter = append(networkDNSServersAfter, options.AddDNSServers...)
-	networkDNSServersAfter = sliceRemoveDuplicates(networkDNSServersAfter)
-	network.NetworkDNSServers = networkDNSServersAfter
-	if reflect.DeepEqual(networkDNSServersBefore, networkDNSServersAfter) {
-		return nil
-	}
-	err = n.commitNetwork(network)
-	if err != nil {
-		return err
-	}
-
-	return n.execUpdate(network.Name, network.NetworkDNSServers)
-}
-
 // NetworkCreate will take a partial filled Network and fill the
 // missing fields. It creates the Network and returns the full Network.
-func (n *netavarkNetwork) NetworkCreate(net types.Network, options *types.NetworkCreateOptions) (types.Network, error) {
+func (n *netavarkNetwork) NetworkCreate(net types.Network) (types.Network, error) {
 	n.lock.Lock()
 	defer n.lock.Unlock()
 	err := n.loadNetworks()
@@ -90,11 +30,6 @@ func (n *netavarkNetwork) NetworkCreate(net types.Network, options *types.Networ
 	}
 	network, err := n.networkCreate(&net, false)
 	if err != nil {
-		if options != nil && options.IgnoreIfExists && errors.Is(err, types.ErrNetworkExists) {
-			if network, ok := n.networks[net.Name]; ok {
-				return *network, nil
-			}
-		}
 		return types.Network{}, err
 	}
 	// add the new network to the map
@@ -181,11 +116,6 @@ func (n *netavarkNetwork) networkCreate(newNetwork *types.Network, defaultNet bo
 				}
 				// rust only support "true" or "false" while go can parse 1 and 0 as well so we need to change it
 				newNetwork.Options[types.IsolateOption] = strconv.FormatBool(val)
-			case types.MetricOption:
-				_, err := strconv.ParseUint(value, 10, 32)
-				if err != nil {
-					return nil, err
-				}
 			default:
 				return nil, fmt.Errorf("unsupported bridge network option %s", key)
 			}
@@ -202,17 +132,6 @@ func (n *netavarkNetwork) networkCreate(newNetwork *types.Network, defaultNet bo
 	// when we do not have ipam we must disable dns
 	internalutil.IpamNoneDisableDNS(newNetwork)
 
-	// process NetworkDNSServers
-	if len(newNetwork.NetworkDNSServers) > 0 && !newNetwork.DNSEnabled {
-		return nil, fmt.Errorf("Cannot set NetworkDNSServers if DNS is not enabled for the network: %w", types.ErrInvalidArg)
-	}
-	// validate ip address
-	for _, dnsServer := range newNetwork.NetworkDNSServers {
-		if net.ParseIP(dnsServer) == nil {
-			return nil, fmt.Errorf("Unable to parse ip %s specified in NetworkDNSServers: %w", dnsServer, types.ErrInvalidArg)
-		}
-	}
-
 	// add gateway when not internal or dns enabled
 	addGateway := !newNetwork.Internal || newNetwork.DNSEnabled
 	err = internalutil.ValidateSubnets(newNetwork, addGateway, usedNetworks)
@@ -223,7 +142,15 @@ func (n *netavarkNetwork) networkCreate(newNetwork *types.Network, defaultNet bo
 	newNetwork.Created = time.Now()
 
 	if !defaultNet {
-		err = n.commitNetwork(newNetwork)
+		confPath := filepath.Join(n.networkConfigDir, newNetwork.Name+".json")
+		f, err := os.Create(confPath)
+		if err != nil {
+			return nil, err
+		}
+		defer f.Close()
+		enc := json.NewEncoder(f)
+		enc.SetIndent("", "     ")
+		err = enc.Encode(newNetwork)
 		if err != nil {
 			return nil, err
 		}
@@ -242,11 +169,6 @@ func createMacvlan(network *types.Network) error {
 			return fmt.Errorf("parent interface %s does not exist", network.NetworkInterface)
 		}
 	}
-
-	// always turn dns off with macvlan, it is not implemented in netavark
-	// and makes little sense to support with macvlan
-	// see https://github.com/containers/netavark/pull/467
-	network.DNSEnabled = false
 
 	// we already validated the drivers before so we just have to set the default here
 	switch network.IPAMOptions[types.Driver] {

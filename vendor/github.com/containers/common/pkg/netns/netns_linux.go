@@ -179,13 +179,14 @@ func NewNSWithName(name string) (ns.NetNS, error) {
 	return ns.GetNS(nsPath)
 }
 
-// UnmountNS unmounts the given netns path
-func UnmountNS(nsPath string) error {
+// UnmountNS unmounts the NS held by the netns object
+func UnmountNS(netns ns.NetNS) error {
 	nsRunDir, err := GetNSRunDir()
 	if err != nil {
 		return err
 	}
 
+	nsPath := netns.Path()
 	// Only unmount if it's been bind-mounted (don't touch namespaces in /proc...)
 	if strings.HasPrefix(nsPath, nsRunDir) {
 		if err := unix.Unmount(nsPath, unix.MNT_DETACH); err != nil {

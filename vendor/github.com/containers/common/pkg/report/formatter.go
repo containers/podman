@@ -51,11 +51,11 @@ type Formatter struct {
 
 // Parse parses golang template returning a formatter
 //
-//   - OriginPodman implies text is a template from podman code. Output will
-//     be filtered through a tabwriter.
+// - OriginPodman implies text is a template from podman code. Output will
+//   be filtered through a tabwriter.
 //
-//   - OriginUser implies text is a template from a user. If template includes
-//     keyword "table" output will be filtered through a tabwriter.
+// - OriginUser implies text is a template from a user. If template includes
+//   keyword "table" output will be filtered through a tabwriter.
 func (f *Formatter) Parse(origin Origin, text string) (*Formatter, error) {
 	f.Origin = origin
 

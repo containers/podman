@@ -232,7 +232,7 @@ func (r *Runtime) copyFromDefault(ctx context.Context, ref types.ImageReference,
 		imageName = storageName
 
 	case ociArchiveTransport.Transport.Name():
-		manifestDescriptor, err := ociArchiveTransport.LoadManifestDescriptorWithContext(r.SystemContext(), ref)
+		manifestDescriptor, err := ociArchiveTransport.LoadManifestDescriptor(ref)
 		if err != nil {
 			return nil, err
 		}

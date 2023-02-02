@@ -123,7 +123,7 @@ validate: install.tools
 
 .PHONY: install.tools
 install.tools:
-	$(MAKE) -C tests/tools
+	make -C tests/tools
 
 .PHONY: runc
 runc: gopath
@@ -146,8 +146,7 @@ install.cni.sudo: gopath
 
 .PHONY: install
 install:
-	install -d -m 755 $(DESTDIR)/$(BINDIR)
-	install -m 755 bin/buildah $(DESTDIR)/$(BINDIR)/buildah
+	install -D -m0755 bin/buildah $(DESTDIR)/$(BINDIR)/buildah
 	$(MAKE) -C docs install
 
 .PHONY: uninstall
@@ -158,8 +157,7 @@ uninstall:
 
 .PHONY: install.completions
 install.completions:
-	install -m 755 -d $(DESTDIR)/$(BASHINSTALLDIR)
-	install -m 644 contrib/completions/bash/buildah $(DESTDIR)/$(BASHINSTALLDIR)/buildah
+	install -m 644 -D contrib/completions/bash/buildah $(DESTDIR)/$(BASHINSTALLDIR)/buildah
 
 .PHONY: install.runc
 install.runc:

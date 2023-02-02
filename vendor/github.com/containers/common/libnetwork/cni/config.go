@@ -15,13 +15,9 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func (n *cniNetwork) NetworkUpdate(name string, options types.NetworkUpdateOptions) error {
-	return fmt.Errorf("NetworkUpdate is not supported for backend CNI: %w", types.ErrInvalidArg)
-}
-
 // NetworkCreate will take a partial filled Network and fill the
 // missing fields. It creates the Network and returns the full Network.
-func (n *cniNetwork) NetworkCreate(net types.Network, options *types.NetworkCreateOptions) (types.Network, error) {
+func (n *cniNetwork) NetworkCreate(net types.Network) (types.Network, error) {
 	n.lock.Lock()
 	defer n.lock.Unlock()
 	err := n.loadNetworks()
@@ -30,11 +26,6 @@ func (n *cniNetwork) NetworkCreate(net types.Network, options *types.NetworkCrea
 	}
 	network, err := n.networkCreate(&net, false)
 	if err != nil {
-		if options != nil && options.IgnoreIfExists && errors.Is(err, types.ErrNetworkExists) {
-			if network, ok := n.networks[net.Name]; ok {
-				return *network.libpodNet, nil
-			}
-		}
 		return types.Network{}, err
 	}
 	// add the new network to the map
@@ -45,9 +36,6 @@ func (n *cniNetwork) NetworkCreate(net types.Network, options *types.NetworkCrea
 // networkCreate will fill out the given network struct and return the new network entry.
 // If defaultNet is true it will not validate against used subnets and it will not write the cni config to disk.
 func (n *cniNetwork) networkCreate(newNetwork *types.Network, defaultNet bool) (*network, error) {
-	if len(newNetwork.NetworkDNSServers) > 0 {
-		return nil, fmt.Errorf("NetworkDNSServers cannot be configured for backend CNI: %w", types.ErrInvalidArg)
-	}
 	// if no driver is set use the default one
 	if newNetwork.Driver == "" {
 		newNetwork.Driver = types.DefaultNetworkDriver

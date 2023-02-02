@@ -5,7 +5,7 @@ package buildah
 
 import (
 	"fmt"
-	"os"
+	"io/ioutil"
 
 	"github.com/containers/common/pkg/seccomp"
 	"github.com/opencontainers/runtime-spec/specs-go"
@@ -22,7 +22,7 @@ func setupSeccomp(spec *specs.Spec, seccompProfilePath string) error {
 		}
 		spec.Linux.Seccomp = seccompConfig
 	default:
-		seccompProfile, err := os.ReadFile(seccompProfilePath)
+		seccompProfile, err := ioutil.ReadFile(seccompProfilePath)
 		if err != nil {
 			return fmt.Errorf("opening seccomp profile failed: %w", err)
 		}

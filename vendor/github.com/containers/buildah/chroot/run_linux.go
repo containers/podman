@@ -423,7 +423,7 @@ func setupChrootBindMounts(spec *specs.Spec, bundlePath string) (undoBinds func(
 				file.Close()
 			}
 		}
-		requestFlags := uintptr(0)
+		requestFlags := bindFlags
 		expectedFlags := uintptr(0)
 		for _, option := range m.Options {
 			switch option {
@@ -457,18 +457,8 @@ func setupChrootBindMounts(spec *specs.Spec, bundlePath string) (undoBinds func(
 		case "bind":
 			// Do the bind mount.
 			logrus.Debugf("bind mounting %q on %q", m.Destination, filepath.Join(spec.Root.Path, m.Destination))
-			if err := unix.Mount(m.Source, target, "", bindFlags|requestFlags, ""); err != nil {
+			if err := unix.Mount(m.Source, target, "", requestFlags, ""); err != nil {
 				return undoBinds, fmt.Errorf("bind mounting %q from host to %q in mount namespace (%q): %w", m.Source, m.Destination, target, err)
-			}
-			if (requestFlags & unix.MS_RDONLY) != 0 {
-				if err = unix.Statfs(target, &fs); err != nil {
-					return undoBinds, fmt.Errorf("checking if directory %q was bound read-only: %w", target, err)
-				}
-				// we need to make sure these flags are maintained in the REMOUNT operation
-				additionalFlags := uintptr(fs.Flags) & (unix.MS_NOEXEC | unix.MS_NOSUID | unix.MS_NODEV)
-				if err := unix.Mount("", target, "", unix.MS_REMOUNT|unix.MS_BIND|unix.MS_RDONLY|additionalFlags, ""); err != nil {
-					return undoBinds, fmt.Errorf("setting flags on the bind mount %q from host to %q in mount namespace (%q): %w", m.Source, m.Destination, target, err)
-				}
 			}
 			logrus.Debugf("bind mounted %q to %q", m.Source, target)
 		case "tmpfs":

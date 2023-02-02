@@ -10,7 +10,6 @@ import (
 )
 
 // TODO: change name to MachineMarker since package is already called machine
-//
 //nolint:revive
 type MachineMarker struct {
 	Enabled bool
@@ -58,7 +57,6 @@ func IsPodmanMachine() bool {
 }
 
 // TODO: change name to HostType since package is already called machine
-//
 //nolint:revive
 func MachineHostType() string {
 	return GetMachineMarker().Type

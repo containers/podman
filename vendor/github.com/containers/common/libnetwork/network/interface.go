@@ -6,6 +6,7 @@ package network
 import (
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -36,12 +37,11 @@ const (
 // NetworkBackend returns the network backend name and interface
 // It returns either the CNI or netavark backend depending on what is set in the config.
 // If the the backend is set to "" we will automatically assign the backend on the following conditions:
-//  1. read ${graphroot}/defaultNetworkBackend
-//  2. find netavark binary (if not installed use CNI)
-//  3. check containers, images and CNI networks and if there are some we have an existing install and should continue to use CNI
+//   1. read ${graphroot}/defaultNetworkBackend
+//   2. find netavark binary (if not installed use CNI)
+//   3. check containers, images and CNI networks and if there are some we have an existing install and should continue to use CNI
 //
 // revive does not like the name because the package is already called network
-//
 //nolint:revive
 func NetworkBackend(store storage.Store, conf *config.Config, syslog bool) (types.NetworkBackend, types.ContainerNetwork, error) {
 	backend := types.NetworkBackend(conf.Network.NetworkBackend)
@@ -100,7 +100,7 @@ func NetworkBackend(store storage.Store, conf *config.Config, syslog bool) (type
 func defaultNetworkBackend(store storage.Store, conf *config.Config) (backend types.NetworkBackend, err error) {
 	// read defaultNetworkBackend file
 	file := filepath.Join(store.GraphRoot(), defaultNetworkBackendFileName)
-	b, err := os.ReadFile(file)
+	b, err := ioutil.ReadFile(file)
 	if err == nil {
 		val := string(b)
 		if val == string(types.Netavark) {

@@ -5,9 +5,9 @@ package resolvconf
 import (
 	"bytes"
 	"os"
+	"regexp"
 	"strings"
 
-	"github.com/containers/storage/pkg/regexp"
 	"github.com/sirupsen/logrus"
 )
 
@@ -32,19 +32,20 @@ var (
 	// ipLocalhost is a regex pattern for IPv4 or IPv6 loopback range.
 	ipLocalhost = `((127\.([0-9]{1,3}\.){2}[0-9]{1,3})|(::1)$)`
 
-	localhostNSRegexp = regexp.Delayed(`(?m)^nameserver\s+` + ipLocalhost + `\s*\n*`)
-	nsIPv6Regexp      = regexp.Delayed(`(?m)^nameserver\s+` + ipv6Address + `\s*\n*`)
-	nsRegexp          = regexp.Delayed(`^\s*nameserver\s*((` + ipv4Address + `)|(` + ipv6Address + `))\s*$`)
-	searchRegexp      = regexp.Delayed(`^\s*search\s*(([^\s]+\s*)*)$`)
-	optionsRegexp     = regexp.Delayed(`^\s*options\s*(([^\s]+\s*)*)$`)
+	localhostNSRegexp = regexp.MustCompile(`(?m)^nameserver\s+` + ipLocalhost + `\s*\n*`)
+	nsIPv6Regexp      = regexp.MustCompile(`(?m)^nameserver\s+` + ipv6Address + `\s*\n*`)
+	nsRegexp          = regexp.MustCompile(`^\s*nameserver\s*((` + ipv4Address + `)|(` + ipv6Address + `))\s*$`)
+	searchRegexp      = regexp.MustCompile(`^\s*search\s*(([^\s]+\s*)*)$`)
+	optionsRegexp     = regexp.MustCompile(`^\s*options\s*(([^\s]+\s*)*)$`)
 )
 
 // filterResolvDNS cleans up the config in resolvConf.  It has two main jobs:
-//  1. If a netns is enabled, it looks for localhost (127.*|::1) entries in the provided
-//     resolv.conf, removing local nameserver entries, and, if the resulting
-//     cleaned config has no defined nameservers left, adds default DNS entries
-//  2. Given the caller provides the enable/disable state of IPv6, the filter
-//     code will remove all IPv6 nameservers if it is not enabled for containers
+// 1. If a netns is enabled, it looks for localhost (127.*|::1) entries in the provided
+//    resolv.conf, removing local nameserver entries, and, if the resulting
+//    cleaned config has no defined nameservers left, adds default DNS entries
+// 2. Given the caller provides the enable/disable state of IPv6, the filter
+//    code will remove all IPv6 nameservers if it is not enabled for containers
+//
 func filterResolvDNS(resolvConf []byte, ipv6Enabled bool, netnsEnabled bool) []byte {
 	// If we're using the host netns, we have nothing to do besides hash the file.
 	if !netnsEnabled {

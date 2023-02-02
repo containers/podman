@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
@@ -114,7 +115,7 @@ func getURL(src string, chown *idtools.IDPair, mountpoint, renameTarget string, 
 	if size < 0 {
 		// Create a temporary file and copy the content to it, so that
 		// we can figure out how much content there is.
-		f, err := os.CreateTemp(mountpoint, "download")
+		f, err := ioutil.TempFile(mountpoint, "download")
 		if err != nil {
 			return fmt.Errorf("creating temporary file to hold %q: %w", src, err)
 		}

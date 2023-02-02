@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
+	"io/ioutil"
 	"os"
 	"strings"
 	"time"
@@ -51,7 +51,7 @@ func (s *SecretsManager) loadDB() error {
 		return err
 	}
 
-	byteValue, err := io.ReadAll(file)
+	byteValue, err := ioutil.ReadAll(file)
 	if err != nil {
 		return err
 	}
@@ -176,7 +176,7 @@ func (s *SecretsManager) store(entry *Secret) error {
 	if err != nil {
 		return err
 	}
-	err = os.WriteFile(s.secretsDBPath, marshalled, 0o600)
+	err = ioutil.WriteFile(s.secretsDBPath, marshalled, 0o600)
 	if err != nil {
 		return err
 	}
@@ -202,7 +202,7 @@ func (s *SecretsManager) delete(nameOrID string) error {
 	if err != nil {
 		return err
 	}
-	err = os.WriteFile(s.secretsDBPath, marshalled, 0o600)
+	err = ioutil.WriteFile(s.secretsDBPath, marshalled, 0o600)
 	if err != nil {
 		return err
 	}

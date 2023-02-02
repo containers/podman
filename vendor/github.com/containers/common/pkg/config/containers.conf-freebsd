@@ -212,6 +212,12 @@ default_sysctls = [
 #
 #userns = "host"
 
+# Number of UIDs to allocate for the automatic container creation.
+# UIDs are allocated from the "container" UIDs listed in
+# /etc/subuid & /etc/subgid
+#
+#userns_size = 65536
+
 # Default way to to create a UTS namespace for the container
 # Options are:
 # `private`        Create private UTS Namespace for the container.
@@ -479,7 +485,7 @@ default_sysctls = [
 # List of the OCI runtimes that support --format=json. When json is supported
 # engine will use it for reporting nicer errors.
 #
-#runtime_supports_json = ["crun", "runc", "kata", "runsc", "youki", "krun"]
+#runtime_supports_json = ["crun", "runc", "kata", "runsc", "krun"]
 
 # List of the OCI runtimes that supports running containers with KVM Separation.
 #
@@ -582,13 +588,6 @@ default_sysctls = [
 #  "/bin/runsc",
 #  "/sbin/runsc",
 #  "/run/current-system/sw/bin/runsc",
-#]
-
-#youki = [
-#  "/usr/local/bin/youki",
-#  "/usr/bin/youki",
-#  "/bin/youki",
-#  "/run/current-system/sw/bin/youki",
 #]
 
 #krun = [

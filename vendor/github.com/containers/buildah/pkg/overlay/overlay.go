@@ -2,6 +2,7 @@ package overlay
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -59,7 +60,7 @@ func TempDir(containerDir string, rootUID, rootGID int) (string, error) {
 		return "", fmt.Errorf("failed to create the overlay %s directory: %w", contentDir, err)
 	}
 
-	contentDir, err := os.MkdirTemp(contentDir, "")
+	contentDir, err := ioutil.TempDir(contentDir, "")
 	if err != nil {
 		return "", fmt.Errorf("failed to create the overlay tmpdir in %s directory: %w", contentDir, err)
 	}
@@ -290,7 +291,7 @@ func CleanupMount(contentDir string) (Err error) {
 func CleanupContent(containerDir string) (Err error) {
 	contentDir := filepath.Join(containerDir, "overlay")
 
-	files, err := os.ReadDir(contentDir)
+	files, err := ioutil.ReadDir(contentDir)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			return nil

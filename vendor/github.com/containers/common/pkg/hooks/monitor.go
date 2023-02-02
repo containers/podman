@@ -15,16 +15,16 @@ import (
 // first is written after the watchers are established and the second
 // when this function exits.  The expected usage is:
 //
-//	ctx, cancel := context.WithCancel(context.Background())
-//	sync := make(chan error, 2)
-//	go m.Monitor(ctx, sync)
-//	err := <-sync // block until writers are established
-//	if err != nil {
-//	  return err // failed to establish watchers
-//	}
-//	// do stuff
-//	cancel()
-//	err = <-sync // block until monitor finishes
+//   ctx, cancel := context.WithCancel(context.Background())
+//   sync := make(chan error, 2)
+//   go m.Monitor(ctx, sync)
+//   err := <-sync // block until writers are established
+//   if err != nil {
+//     return err // failed to establish watchers
+//   }
+//   // do stuff
+//   cancel()
+//   err = <-sync // block until monitor finishes
 func (m *Manager) Monitor(ctx context.Context, sync chan<- error) {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {

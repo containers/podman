@@ -1,11 +1,15 @@
 package config
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"net"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"regexp"
+	"strconv"
 	"strings"
 
 	nettypes "github.com/containers/common/libnetwork/types"
@@ -20,6 +24,28 @@ import (
 )
 
 const (
+	// _conmonMinMajorVersion is the major version required for conmon.
+	_conmonMinMajorVersion = 2
+
+	// _conmonMinMinorVersion is the minor version required for conmon.
+	_conmonMinMinorVersion = 0
+
+	// _conmonMinPatchVersion is the sub-minor version required for conmon.
+	_conmonMinPatchVersion = 1
+
+	// _conmonrsMinMajorVersion is the major version required for conmonrs.
+	_conmonrsMinMajorVersion = 0
+
+	// _conmonrsMinMinorVersion is the minor version required for conmonrs.
+	_conmonrsMinMinorVersion = 1
+
+	// _conmonrsMinPatchVersion is the sub-minor version required for conmonrs.
+	_conmonrsMinPatchVersion = 0
+
+	// _conmonVersionFormatErr is used when the expected versio-format of conmon
+	// has changed.
+	_conmonVersionFormatErr = "conmon version changed format: %w"
+
 	// _defaultGraphRoot points to the default path of the graph root.
 	_defaultGraphRoot = "/var/lib/containers/storage"
 
@@ -50,16 +76,20 @@ var (
 	DefaultHooksDirs = []string{"/usr/share/containers/oci/hooks.d"}
 	// DefaultCapabilities is the default for the default_capabilities option in the containers.conf file.
 	DefaultCapabilities = []string{
+		"CAP_AUDIT_WRITE",
 		"CAP_CHOWN",
 		"CAP_DAC_OVERRIDE",
 		"CAP_FOWNER",
 		"CAP_FSETID",
 		"CAP_KILL",
+		"CAP_MKNOD",
 		"CAP_NET_BIND_SERVICE",
+		"CAP_NET_RAW",
 		"CAP_SETFCAP",
 		"CAP_SETGID",
 		"CAP_SETPCAP",
 		"CAP_SETUID",
+		"CAP_SYS_CHROOT",
 	}
 
 	// Search these locations in which CNIPlugins can be installed.
@@ -119,6 +149,9 @@ const (
 	DefaultPidsLimit = 2048
 	// DefaultPullPolicy pulls the image if it does not exist locally.
 	DefaultPullPolicy = "missing"
+	// DefaultSignaturePolicyPath is the default value for the
+	// policy.json file.
+	DefaultSignaturePolicyPath = "/etc/containers/policy.json"
 	// DefaultSubnet is the subnet that will be used for the default
 	// network.
 	DefaultSubnet = "10.88.0.0/16"
@@ -128,7 +161,6 @@ const (
 	// DefaultShmSize is the default upper limit on the size of tmpfs mounts.
 	DefaultShmSize = "65536k"
 	// DefaultUserNSSize indicates the default number of UIDs allocated for user namespace within a container.
-	// Deprecated: no user of this field is known.
 	DefaultUserNSSize = 65536
 	// OCIBufSize limits maximum LogSizeMax.
 	OCIBufSize = 8192
@@ -203,7 +235,7 @@ func DefaultConfig() (*Config, error) {
 			TZ:         "",
 			Umask:      "0022",
 			UTSNS:      "private",
-			UserNSSize: DefaultUserNSSize, // Deprecated
+			UserNSSize: DefaultUserNSSize,
 		},
 		Network: NetworkConfig{
 			DefaultNetwork:     "podman",
@@ -300,15 +332,6 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 			"/bin/crun",
 			"/run/current-system/sw/bin/crun",
 		},
-		"crun-wasm": {
-			"/usr/bin/crun-wasm",
-			"/usr/sbin/crun-wasm",
-			"/usr/local/bin/crun-wasm",
-			"/usr/local/sbin/crun-wasm",
-			"/sbin/crun-wasm",
-			"/bin/crun-wasm",
-			"/run/current-system/sw/bin/crun-wasm",
-		},
 		"runc": {
 			"/usr/bin/runc",
 			"/usr/sbin/runc",
@@ -341,24 +364,10 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 			"/sbin/runsc",
 			"/run/current-system/sw/bin/runsc",
 		},
-		"youki": {
-			"/usr/local/bin/youki",
-			"/usr/bin/youki",
-			"/bin/youki",
-			"/run/current-system/sw/bin/youki",
-		},
 		"krun": {
 			"/usr/bin/krun",
 			"/usr/local/bin/krun",
 		},
-		"ocijail": {
-			"/usr/local/bin/ocijail",
-		},
-	}
-	c.PlatformToOCIRuntime = map[string]string{
-		"wasi/wasm":   "crun-wasm",
-		"wasi/wasm32": "crun-wasm",
-		"wasi/wasm64": "crun-wasm",
 	}
 	// Needs to be called after populating c.OCIRuntimes.
 	c.OCIRuntime = c.findRuntime()
@@ -392,7 +401,6 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 		"runc",
 		"kata",
 		"runsc",
-		"youki",
 		"krun",
 	}
 	c.RuntimeSupportsNoCgroups = []string{"crun", "krun"}
@@ -438,6 +446,70 @@ func defaultTmpDir() (string, error) {
 		}
 	}
 	return filepath.Join(libpodRuntimeDir, "tmp"), nil
+}
+
+// probeConmon calls conmon --version and verifies it is a new enough version for
+// the runtime expectations the container engine currently has.
+func probeConmon(conmonBinary string) error {
+	cmd := exec.Command(conmonBinary, "--version")
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	if err := cmd.Run(); err != nil {
+		return err
+	}
+	r := regexp.MustCompile(`^(version:|conmon version)? (?P<Major>\d+).(?P<Minor>\d+).(?P<Patch>\d+)`)
+
+	matches := r.FindStringSubmatch(out.String())
+	if len(matches) != 5 {
+		return fmt.Errorf(_conmonVersionFormatErr, errors.New("invalid version format"))
+	}
+	major, err := strconv.Atoi(matches[2])
+
+	var minMajor, minMinor, minPatch int
+	// conmon-rs returns "^version:"
+	if matches[1] == "version:" {
+		minMajor = _conmonrsMinMajorVersion
+		minMinor = _conmonrsMinMinorVersion
+		minPatch = _conmonrsMinPatchVersion
+	} else {
+		minMajor = _conmonMinMajorVersion
+		minMinor = _conmonMinMinorVersion
+		minPatch = _conmonMinPatchVersion
+	}
+
+	if err != nil {
+		return fmt.Errorf(_conmonVersionFormatErr, err)
+	}
+	if major < minMajor {
+		return ErrConmonOutdated
+	}
+	if major > minMajor {
+		return nil
+	}
+
+	minor, err := strconv.Atoi(matches[3])
+	if err != nil {
+		return fmt.Errorf(_conmonVersionFormatErr, err)
+	}
+	if minor < minMinor {
+		return ErrConmonOutdated
+	}
+	if minor > minMinor {
+		return nil
+	}
+
+	patch, err := strconv.Atoi(matches[4])
+	if err != nil {
+		return fmt.Errorf(_conmonVersionFormatErr, err)
+	}
+	if patch < minPatch {
+		return ErrConmonOutdated
+	}
+	if patch > minPatch {
+		return nil
+	}
+
+	return nil
 }
 
 // NetNS returns the default network namespace.
@@ -613,3 +685,4 @@ func useUserConfigLocations() bool {
 	// GetRootlessUID == -1 on Windows, so exclude negative range
 	return unshare.GetRootlessUID() > 0
 }
+

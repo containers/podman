@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -41,7 +42,7 @@ func (s subscriptionData) saveTo(dir string) error {
 	if err := os.MkdirAll(filepath.Dir(path), s.dirMode); err != nil {
 		return err
 	}
-	return os.WriteFile(path, s.data, s.mode)
+	return ioutil.WriteFile(path, s.data, s.mode)
 }
 
 func readAll(root, prefix string, parentMode os.FileMode) ([]subscriptionData, error) {
@@ -49,7 +50,7 @@ func readAll(root, prefix string, parentMode os.FileMode) ([]subscriptionData, e
 
 	data := []subscriptionData{}
 
-	files, err := os.ReadDir(path)
+	files, err := ioutil.ReadDir(path)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			return data, nil
@@ -89,7 +90,7 @@ func readFileOrDir(root, name string, parentMode os.FileMode) ([]subscriptionDat
 		}
 		return dirData, nil
 	}
-	bytes, err := os.ReadFile(path)
+	bytes, err := ioutil.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
@@ -152,9 +153,7 @@ func getMountsMap(path string) (string, string, error) { //nolint
 // containerRunDir: Private data for storing subscriptions on the host mounted in container.
 // mountFile: Additional mount points required for the container.
 // mountPoint: Container image mountpoint, or the directory from the hosts perspective that
-//
-//	corresponds to `/` in the container.
-//
+//   corresponds to `/` in the container.
 // uid: to assign to content created for subscriptions
 // gid: to assign to content created for subscriptions
 // rootless: indicates whether container is running in rootless mode
@@ -269,7 +268,7 @@ func addSubscriptionsFromMountsFile(filePath, mountLabel, containerRunDir string
 					if err := os.MkdirAll(filepath.Dir(ctrDirOrFileOnHost), s.dirMode); err != nil {
 						return nil, err
 					}
-					if err := os.WriteFile(ctrDirOrFileOnHost, s.data, s.mode); err != nil {
+					if err := ioutil.WriteFile(ctrDirOrFileOnHost, s.data, s.mode); err != nil {
 						return nil, fmt.Errorf("saving data to container filesystem: %w", err)
 					}
 				}
@@ -306,10 +305,10 @@ func addSubscriptionsFromMountsFile(filePath, mountLabel, containerRunDir string
 // (i.e: be FIPs compliant).
 // It should only be called if /etc/system-fips exists on host.
 // It primarily does two things:
-//   - creates /run/secrets/system-fips in the container root filesystem, and adds it to the `mounts` slice.
-//   - If `/etc/crypto-policies/back-ends` already exists inside of the container, it creates
-//     `/usr/share/crypto-policies/back-ends/FIPS` inside the container as well.
-//     It is done from within the container to ensure to avoid policy incompatibility between the container and host.
+// - creates /run/secrets/system-fips in the container root filesystem, and adds it to the `mounts` slice.
+// - If `/etc/crypto-policies/back-ends` already exists inside of the container, it creates
+//   `/usr/share/crypto-policies/back-ends/FIPS` inside the container as well.
+//   It is done from within the container to ensure to avoid policy incompatibility between the container and host.
 func addFIPSModeSubscription(mounts *[]rspec.Mount, containerRunDir, mountPoint, mountLabel string, uid, gid int) error {
 	subscriptionsDir := "/run/secrets"
 	ctrDirOnHost := filepath.Join(containerRunDir, subscriptionsDir)

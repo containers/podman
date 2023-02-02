@@ -287,7 +287,7 @@ func newVLANPlugin(pluginType, device, mode string, mtu int, ipam *ipamConfig) V
 	caps := make(map[string]bool)
 	caps["ips"] = true
 	// if we use host-local set the ips cap to ensure we can set static ips via runtime config
-	if m.IPAM.PluginType == types.HostLocalIPAMDriver {
+	if ipam.PluginType == types.HostLocalIPAMDriver {
 		m.Capabilities = caps
 	}
 	return m

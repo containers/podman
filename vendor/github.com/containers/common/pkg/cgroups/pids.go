@@ -5,7 +5,7 @@ package cgroups
 
 import (
 	"fmt"
-	"os"
+	"io/ioutil"
 	"path/filepath"
 
 	spec "github.com/opencontainers/runtime-spec/specs-go"
@@ -31,7 +31,7 @@ func (c *pidHandler) Apply(ctr *CgroupControl, res *spec.LinuxResources) error {
 	}
 
 	p := filepath.Join(PIDRoot, "pids.max")
-	return os.WriteFile(p, []byte(fmt.Sprintf("%d\n", res.Pids.Limit)), 0o644)
+	return ioutil.WriteFile(p, []byte(fmt.Sprintf("%d\n", res.Pids.Limit)), 0o644)
 }
 
 // Create the cgroup

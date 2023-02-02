@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
-	"strings"
 
 	"github.com/containers/common/libnetwork/internal/util"
 	"github.com/containers/common/libnetwork/types"
@@ -17,11 +16,6 @@ import (
 type netavarkOptions struct {
 	types.NetworkOptions
 	Networks map[string]*types.Network `json:"network_info"`
-}
-
-func (n *netavarkNetwork) execUpdate(networkName string, networkDNSServers []string) error {
-	retErr := n.execNetavark([]string{"update", networkName, "--network-dns-servers", strings.Join(networkDNSServers, ",")}, nil, nil)
-	return retErr
 }
 
 // Setup will setup the container network namespace. It returns

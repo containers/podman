@@ -194,9 +194,6 @@ type ContainersConfig struct {
 	// performance implications.
 	PrepareVolumeOnCreate bool `toml:"prepare_volume_on_create,omitempty"`
 
-	// ReadOnly causes engine to run all containers with root file system mounted read-only
-	ReadOnly bool `toml:"read_only,omitempty"`
-
 	// SeccompProfile is the seccomp.json profile path which is used as the
 	// default for the runtime.
 	SeccompProfile string `toml:"seccomp_profile,omitempty"`
@@ -217,7 +214,6 @@ type ContainersConfig struct {
 	UserNS string `toml:"userns,omitempty"`
 
 	// UserNSSize how many UIDs to allocate for automatically created UserNS
-	// Deprecated: no user of this field is known.
 	UserNSSize int `toml:"userns_size,omitempty,omitzero"`
 }
 
@@ -275,11 +271,6 @@ type EngineConfig struct {
 
 	// EventsLogger determines where events should be logged.
 	EventsLogger string `toml:"events_logger,omitempty"`
-
-	// EventsContainerCreateInspectData creates a more verbose
-	// container-create event which includes a JSON payload with detailed
-	// information about the container.
-	EventsContainerCreateInspectData bool `toml:"events_container_create_inspect_data,omitempty"`
 
 	// graphRoot internal stores the location of the graphroot
 	graphRoot string
@@ -366,9 +357,6 @@ type EngineConfig struct {
 
 	// OCIRuntimes are the set of configured OCI runtimes (default is runc).
 	OCIRuntimes map[string][]string `toml:"runtimes,omitempty"`
-
-	// PlatformToOCIRuntime requests specific OCI runtime for a specified platform of image.
-	PlatformToOCIRuntime map[string]string `toml:"platform_to_oci_runtime,omitempty"`
 
 	// PodExitPolicy determines the behaviour when the last container of a pod exits.
 	PodExitPolicy PodExitPolicy `toml:"pod_exit_policy,omitempty"`
@@ -591,7 +579,6 @@ type SecretConfig struct {
 // ConfigMapConfig represents the "configmap" TOML config table
 //
 // revive does not like the name because the package is already called config
-//
 //nolint:revive
 type ConfigMapConfig struct {
 	// Driver specifies the configmap driver to use.
@@ -629,16 +616,6 @@ type Destination struct {
 
 	// isMachine describes if the remote destination is a machine.
 	IsMachine bool `toml:"is_machine,omitempty"`
-}
-
-// Consumes container image's os and arch and returns if any dedicated runtime was
-// configured otherwise returns default runtime.
-func (c *EngineConfig) ImagePlatformToRuntime(os string, arch string) string {
-	platformString := os + "/" + arch
-	if val, ok := c.PlatformToOCIRuntime[platformString]; ok {
-		return val
-	}
-	return c.OCIRuntime
 }
 
 // NewConfig creates a new Config. It starts with an empty config and, if
@@ -865,7 +842,7 @@ func (m *MachineConfig) URI() string {
 
 func (c *EngineConfig) findRuntime() string {
 	// Search for crun first followed by runc, kata, runsc
-	for _, name := range []string{"crun", "runc", "runj", "kata", "runsc", "ocijail"} {
+	for _, name := range []string{"crun", "runc", "runj", "kata", "runsc"} {
 		for _, v := range c.OCIRuntimes[name] {
 			if _, err := os.Stat(v); err == nil {
 				return name
@@ -967,10 +944,11 @@ func (c *NetworkConfig) Validate() error {
 // to first (version) matching conmon binary. If non is found, we try
 // to do a path lookup of "conmon".
 func (c *Config) FindConmon() (string, error) {
-	return findConmonPath(c.Engine.ConmonPath, "conmon")
+	return findConmonPath(c.Engine.ConmonPath, "conmon", _conmonMinMajorVersion, _conmonMinMinorVersion, _conmonMinPatchVersion)
 }
 
-func findConmonPath(paths []string, binaryName string) (string, error) {
+func findConmonPath(paths []string, binaryName string, major int, minor int, patch int) (string, error) {
+	foundOutdatedConmon := false
 	for _, path := range paths {
 		stat, err := os.Stat(path)
 		if err != nil {
@@ -979,14 +957,29 @@ func findConmonPath(paths []string, binaryName string) (string, error) {
 		if stat.IsDir() {
 			continue
 		}
+		if err := probeConmon(path); err != nil {
+			logrus.Warnf("Conmon at %s invalid: %v", path, err)
+			foundOutdatedConmon = true
+			continue
+		}
 		logrus.Debugf("Using conmon: %q", path)
 		return path, nil
 	}
 
 	// Search the $PATH as last fallback
 	if path, err := exec.LookPath(binaryName); err == nil {
-		logrus.Debugf("Using conmon from $PATH: %q", path)
-		return path, nil
+		if err := probeConmon(path); err != nil {
+			logrus.Warnf("Conmon at %s is invalid: %v", path, err)
+			foundOutdatedConmon = true
+		} else {
+			logrus.Debugf("Using conmon from $PATH: %q", path)
+			return path, nil
+		}
+	}
+
+	if foundOutdatedConmon {
+		return "", fmt.Errorf("please update to v%d.%d.%d or later: %w",
+			major, minor, patch, ErrConmonOutdated)
 	}
 
 	return "", fmt.Errorf("could not find a working conmon binary (configured options: %v: %w)",
@@ -997,7 +990,7 @@ func findConmonPath(paths []string, binaryName string) (string, error) {
 // to first (version) matching conmonrs binary. If non is found, we try
 // to do a path lookup of "conmonrs".
 func (c *Config) FindConmonRs() (string, error) {
-	return findConmonPath(c.Engine.ConmonRsPath, "conmonrs")
+	return findConmonPath(c.Engine.ConmonRsPath, "conmonrs", _conmonrsMinMajorVersion, _conmonrsMinMinorVersion, _conmonrsMinPatchVersion)
 }
 
 // GetDefaultEnv returns the environment variables for the container.
@@ -1044,11 +1037,10 @@ func (c *Config) Capabilities(user string, addCapabilities, dropCapabilities []s
 
 // Device parses device mapping string to a src, dest & permissions string
 // Valid values for device looklike:
-//
-//	'/dev/sdc"
-//	'/dev/sdc:/dev/xvdc"
-//	'/dev/sdc:/dev/xvdc:rwm"
-//	'/dev/sdc:rm"
+//    '/dev/sdc"
+//    '/dev/sdc:/dev/xvdc"
+//    '/dev/sdc:/dev/xvdc:rwm"
+//    '/dev/sdc:rm"
 func Device(device string) (src, dst, permissions string, err error) {
 	permissions = "rwm"
 	split := strings.Split(device, ":")
