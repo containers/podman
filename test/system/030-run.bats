@@ -1017,8 +1017,17 @@ EOF
 }
 
 @test "podman run --net=host --cgroupns=host with read only cgroupfs" {
-    # verify that the last /sys/fs/cgroup mount is read-only
-    run_podman run --net=host --cgroupns=host --rm $IMAGE sh -c "grep ' / /sys/fs/cgroup ' /proc/self/mountinfo | tail -n 1 | grep '/sys/fs/cgroup ro'"
+    skip_if_rootless_cgroupsv1
+
+    if is_cgroupsv1; then
+        # verify that the memory controller is mounted read-only
+        run_podman run --net=host --cgroupns=host --rm $IMAGE cat /proc/self/mountinfo
+        assert "$output" =~ "/sys/fs/cgroup/memory ro.* cgroup cgroup"
+    else
+        # verify that the last /sys/fs/cgroup mount is read-only
+        run_podman run --net=host --cgroupns=host --rm $IMAGE sh -c "grep ' / /sys/fs/cgroup ' /proc/self/mountinfo | tail -n 1"
+        assert "$output" =~ "/sys/fs/cgroup ro"
+    fi
 }
 
 # vim: filetype=sh
