@@ -679,6 +679,13 @@ func checkReason(reason string) {
 	}
 }
 
+func SkipIfRunc(p *PodmanTestIntegration, reason string) {
+	checkReason(reason)
+	if p.OCIRuntime == "runc" {
+		Skip("[runc]: " + reason)
+	}
+}
+
 func SkipIfRootlessCgroupsV1(reason string) {
 	checkReason(reason)
 	if isRootless() && !CGROUPSV2 {

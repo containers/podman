@@ -110,7 +110,7 @@ var _ = Describe("Podman UserNS support", func() {
 
 	It("podman uidmapping and gidmapping with an idmapped volume", func() {
 		Skip("it depends on a breaking change in crun: https://github.com/containers/crun/pull/1147")
-
+		SkipIfRunc(podmanTest, "Test not supported yet with runc, see issue #17433")
 		session := podmanTest.Podman([]string{"run", "--uidmap=0:1:500", "--gidmap=0:200:5000", "-v", "my-foo-volume:/foo:Z,idmap", "alpine", "stat", "-c", "#%u:%g#", "/foo"})
 		session.WaitWithDefaultTimeout()
 		if strings.Contains(session.ErrorToString(), "Operation not permitted") {
