@@ -25,15 +25,14 @@ env:
 
     ####
     #### Cache-image names to test with (double-quotes around names are critical)
-    #### Comment out fedora-35 for podman 4.x branches.
     ####
-    FEDORA_NAME: "fedora-37"
-    FEDORA_AARCH64_NAME: "${FEDORA_NAME}-aarch64"
-    PRIOR_FEDORA_NAME: "fedora-36"
-    UBUNTU_NAME: "ubuntu-2204"
+    FEDORA_NAME: "fedora-37" ### c20230120t152650z-f37f36u2204
+    FEDORA_AARCH64_NAME: "${FEDORA_NAME}-aarch64" ### c20230120t152650z-f37f36u2204
+    PRIOR_FEDORA_NAME: "fedora-36" ### c20230120t152650z-f37f36u2204
+    #UBUNTU_NAME: "ubuntu-2204"  ### c20230120t152650z-f37f36u2204
 
     # Image identifiers
-    IMAGE_SUFFIX: "c5841131699699712"
+    IMAGE_SUFFIX: "c20230120t152650z-f37f36u2204"
     # EC2 images
     FEDORA_AMI: "fedora-aws-${IMAGE_SUFFIX}"
     FEDORA_AARCH64_AMI: "fedora-podman-aws-arm64-${IMAGE_SUFFIX}"
@@ -855,34 +854,6 @@ buildah_bud_test_task:
     always: *int_logs_artifacts
 
 
-#rootless_gitlab_test_task:
-#    name: *std_name_fmt
-#    alias: rootless_gitlab_test
-#    # Docs: ./contrib/cirrus/CIModes.md
-#    only_if: &cirrus_cron "${CIRRUS_CRON} == 'main'"
-#    # Community-maintained downstream test may fail unexpectedly.
-#    # Ref. repository: https://gitlab.com/gitlab-org/gitlab-runner
-#    # If necessary, uncomment the next line and file issue(s) with details.
-#    # allow_failures: $CI == $CI
-#    depends_on:
-#        - build
-#        - rootless_integration_test
-#    gce_instance: *standardvm
-#    env:
-#        <<: *ubuntu_envvars
-#        TEST_FLAVOR: 'gitlab'
-#        PRIV_NAME: rootless
-#    clone_script: *get_gosrc
-#    setup_script: *setup
-#    main_script: *main
-#    always:
-#        <<: *logs_artifacts
-#        junit_artifacts:
-#            path: gitlab-runner-podman.xml
-#            type: text/xml
-#            format: junit
-
-
 upgrade_test_task:
     name: "Upgrade test: from $PODMAN_UPGRADE_FROM"
     alias: upgrade_test
@@ -1028,7 +999,6 @@ success_task:
         - rootless_remote_system_test
         - minikube_test
         - buildah_bud_test
-        #- rootless_gitlab_test
         - upgrade_test
         - image_build
         - meta
