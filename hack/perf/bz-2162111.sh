@@ -21,23 +21,33 @@ container_cmd="--name $container_name \
 	-v $file_b:/home/file_b:rw \
 	--cap-drop=ALL \
 	--ulimit nofile=1024:2048 \
-	$IMAGE true"
+	$IMAGE"
 
 # Script to clean up before each benchmark below
 prepare_sh=$(mktemp -p $tmp --suffix '.prepare.sh')
 cat >$prepare_sh <<EOF
-\$ENGINE rm -f \$(\$ENGINE ps -aq)  > /dev/null
-\$ENGINE volume prune -f            > /dev/null
-\$ENGINE volume create $volume_name > /dev/null
+\$ENGINE rm -f \$(\$ENGINE ps -aq)
+\$ENGINE volume prune -f
+\$ENGINE volume create $volume_name
 EOF
 echo_bold "Prepare script: $prepare_sh"
 
 # Script to create container below
 create_sh=$(mktemp -p $tmp --suffix '.create.sh')
 cat >$create_sh <<EOF
-\$ENGINE create $container_cmd > /dev/null
+\$ENGINE create $container_cmd true
 EOF
-echo_bold "Create script: $prepare_sh"
+echo_bold "Create script: $create_sh"
+
+# Script to run container below
+run_sh=$(mktemp -p $tmp --suffix '.run.sh')
+cat >$run_sh <<EOF
+# Make sure to remove the container from a previous run
+\$ENGINE rm -f $container_name || true
+# Run the container
+\$ENGINE run -d $container_cmd top > /dev/null
+EOF
+echo_bold "Run script: $run_sh"
 
 echo ""
 echo "----------------------------------------------------"
@@ -46,8 +56,8 @@ echo_bold "Create $NUM_CONTAINERS containers"
 hyperfine --warmup 10 --runs $RUNS \
 	--prepare "ENGINE=$ENGINE_A sh $prepare_sh" \
 	--prepare "ENGINE=$ENGINE_B sh $prepare_sh" \
-	"$ENGINE_A create $container_cmd" \
-	"$ENGINE_B create $container_cmd"
+	"$ENGINE_A create $container_cmd true" \
+	"$ENGINE_B create $container_cmd true"
 
 echo ""
 echo "----------------------------------------------------"
@@ -58,6 +68,16 @@ hyperfine --warmup 10 --runs $RUNS \
 	--prepare "ENGINE=$ENGINE_B sh $prepare_sh; ENGINE=$ENGINE_B sh $create_sh" \
 	"$ENGINE_A start $container_name" \
 	"$ENGINE_B start $container_name"
+
+echo ""
+echo "----------------------------------------------------"
+echo
+echo_bold "Stop $NUM_CONTAINERS containers"
+hyperfine --warmup 10 --runs $RUNS \
+	--prepare "ENGINE=$ENGINE_A sh $run_sh" \
+	--prepare "ENGINE=$ENGINE_B sh $run_sh" \
+	"$ENGINE_A stop $container_name" \
+	"$ENGINE_B stop $container_name"
 
 echo ""
 echo "----------------------------------------------------"
