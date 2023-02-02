@@ -66,7 +66,7 @@ var _ = Describe("Podman run with --ip flag", func() {
 	})
 
 	It("Podman run with specified static IPv6 has correct IP", func() {
-		netName := "ipv6-" + stringid.GenerateNonCryptoID()
+		netName := "ipv6-" + stringid.GenerateRandomID()
 		ipv6 := "fd46:db93:aa76:ac37::10"
 		net := podmanTest.Podman([]string{"network", "create", "--subnet", "fd46:db93:aa76:ac37::/64", netName})
 		net.WaitWithDefaultTimeout()

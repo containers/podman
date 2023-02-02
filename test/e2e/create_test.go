@@ -593,7 +593,7 @@ var _ = Describe("Podman create", func() {
 		pod.WaitWithDefaultTimeout()
 		Expect(pod).Should(Exit(0))
 
-		netName := "pod" + stringid.GenerateNonCryptoID()
+		netName := "pod" + stringid.GenerateRandomID()
 		session := podmanTest.Podman([]string{"network", "create", netName})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
