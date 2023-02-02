@@ -78,14 +78,20 @@ function service_setup() {
         local activestate="inactive"
     fi
 
+    echo "$_LOG_PROMPT systemctl $startargs start $service"
     run systemctl $startargs start "$service"
-    assert $status -eq 0 "Error starting systemd unit $service: $output"
+    echo "$output"
+    assert $status -eq 0 "Error starting systemd unit $service"
 
+    echo "$_LOG_PROMPT systemctl status $service"
     run systemctl status "$service"
-    assert $status -eq $statusexit "systemctl status $service: $output"
+    echo "$output"
+    assert $status -eq $statusexit "systemctl status $service"
 
-    run systemctl show -P ActiveState "$service"
-    assert $status -eq 0 "systemctl show $service: $output"
+    echo "$_LOG_PROMPT systemctl show --value --property=ActiveState $service"
+    run systemctl show --value --property=ActiveState "$service"
+    echo "$output"
+    assert $status -eq 0 "systemctl show $service"
     is "$output" $activestate
 }
 
