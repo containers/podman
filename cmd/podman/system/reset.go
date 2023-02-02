@@ -9,6 +9,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/containers/buildah/pkg/parse"
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/containers/podman/v4/cmd/podman/validate"
@@ -85,6 +86,11 @@ func reset(cmd *cobra.Command, args []string) {
 
 	// Purge all the external containers with storage
 	_, err := registry.ContainerEngine().ContainerRm(registry.Context(), listCtnIds, entities.RmOptions{Force: true, All: true, Ignore: true, Volumes: true})
+	if err != nil {
+		logrus.Error(err)
+	}
+	// Clean build cache if any
+	err = parse.CleanCacheMount()
 	if err != nil {
 		logrus.Error(err)
 	}

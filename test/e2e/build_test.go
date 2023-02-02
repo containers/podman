@@ -874,4 +874,20 @@ RUN ls /dev/test1`, ALPINE)
 		build.WaitWithDefaultTimeout()
 		Expect(build).To(Exit(0))
 	})
+
+	It("podman system reset must clean host shared cache", func() {
+		SkipIfRemote("podman-remote does not have system reset -f")
+		podmanTest.AddImageToRWStore(ALPINE)
+		session := podmanTest.Podman([]string{"build", "--pull-never", "--file", "build/cache/Dockerfilecachewrite", "build/cache/"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"system", "reset", "-f"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"build", "--pull-never", "--file", "build/cache/Dockerfilecacheread", "build/cache/"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(1))
+	})
 })
