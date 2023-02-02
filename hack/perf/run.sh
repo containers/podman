@@ -16,3 +16,7 @@ hyperfine --warmup 10 --runs $RUNS \
 	--prepare "$ENGINE_B rm -f 123 || true" \
 	"$ENGINE_A run --rm --name=123 $IMAGE true" \
 	"$ENGINE_B run --rm --name=123 $IMAGE true"
+
+# Clean up
+$ENGINE_A system prune -f >> /dev/null
+$ENGINE_B system prune -f >> /dev/null
