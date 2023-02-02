@@ -7,8 +7,8 @@ import (
 
 	"github.com/containers/image/v5/internal/private"
 	"github.com/containers/image/v5/types"
-	"github.com/vbauerster/mpb/v7"
-	"github.com/vbauerster/mpb/v7/decor"
+	"github.com/vbauerster/mpb/v8"
+	"github.com/vbauerster/mpb/v8/decor"
 )
 
 // newProgressPool creates a *mpb.Progress.

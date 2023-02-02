@@ -20,8 +20,8 @@ import (
 	"github.com/containers/storage/pkg/archive"
 	"github.com/sirupsen/logrus"
 	"github.com/ulikunitz/xz"
-	"github.com/vbauerster/mpb/v7"
-	"github.com/vbauerster/mpb/v7/decor"
+	"github.com/vbauerster/mpb/v8"
+	"github.com/vbauerster/mpb/v8/decor"
 )
 
 // GenericDownload is used when a user provides a URL

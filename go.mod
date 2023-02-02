@@ -14,7 +14,7 @@ require (
 	github.com/containers/buildah v1.29.0
 	github.com/containers/common v0.51.0
 	github.com/containers/conmon v2.0.20+incompatible
-	github.com/containers/image/v5 v5.24.0
+	github.com/containers/image/v5 v5.24.1-0.20230202144111-a49c94a010be
 	github.com/containers/ocicrypt v1.1.7
 	github.com/containers/psgo v1.8.0
 	github.com/containers/storage v1.45.3
@@ -57,7 +57,7 @@ require (
 	github.com/syndtr/gocapability v0.0.0-20200815063812-42c35b437635
 	github.com/uber/jaeger-client-go v2.30.0+incompatible
 	github.com/ulikunitz/xz v0.5.11
-	github.com/vbauerster/mpb/v7 v7.5.3
+	github.com/vbauerster/mpb/v8 v8.1.4
 	github.com/vishvananda/netlink v1.2.1-beta.2
 	go.etcd.io/bbolt v1.3.7
 	golang.org/x/net v0.5.0
@@ -153,7 +153,7 @@ require (
 	github.com/stefanberger/go-pkcs11uri v0.0.0-20201008174630-78d3cae3a980 // indirect
 	github.com/sylabs/sif/v2 v2.9.0 // indirect
 	github.com/tchap/go-patricia v2.3.0+incompatible // indirect
-	github.com/theupdateframework/go-tuf v0.5.2-0.20221207161717-9cb61d6e65f5 // indirect
+	github.com/theupdateframework/go-tuf v0.5.2 // indirect
 	github.com/titanous/rocacheck v0.0.0-20171023193734-afe73141d399 // indirect
 	github.com/vbatts/tar-split v0.11.2 // indirect
 	github.com/vishvananda/netns v0.0.0-20210104183010-2eb08e3e575f // indirect
