@@ -328,16 +328,19 @@ remove_packaged_podman_files() {
 # Execute make localbenchmarks in $CIRRUS_WORKING_DIR/data
 # for preserving as a task artifact.
 localbenchmarks() {
-    local datadir
+    local datadir envnames envname
     req_env_vars DISTRO_NV PODBIN_NAME PRIV_NAME TEST_ENVIRON TEST_FLAVOR
     req_env_vars VM_IMAGE_NAME EC2_INST_TYPE
 
     datadir=$CIRRUS_WORKING_DIR/data
     mkdir -p $datadir
 
+    envnames=$(passthrough_envars | sort);
     (
       echo "# Env. var basis for benchmarks benchmarks."
-      printenv | grep -Ev "$SECRET_ENV_RE" | sort
+      for envname in $envnames; do
+        printf "$envname=%q\n" "${!envname}"
+      done
 
       echo "# Machine details for data-comparison sake, not actual env. vars."
       # Checked above in req_env_vars
