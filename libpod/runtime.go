@@ -973,6 +973,14 @@ func (r *Runtime) RunRoot() string {
 	return r.store.RunRoot()
 }
 
+// GraphRoot retrieves the current c/storage directory in use by Libpod.
+func (r *Runtime) GraphRoot() string {
+	if r.store == nil {
+		return ""
+	}
+	return r.store.GraphRoot()
+}
+
 // GetName retrieves the name associated with a given full ID.
 // This works for both containers and pods, and does not distinguish between the
 // two.

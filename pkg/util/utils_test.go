@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -87,4 +88,31 @@ func TestParseInputTime(t *testing.T) {
 	}
 
 	assert.Equal(t, expected, tm)
+}
+
+func TestConvertMappings(t *testing.T) {
+	start := []specs.LinuxIDMapping{
+		{
+			ContainerID: 1,
+			HostID:      2,
+			Size:        3,
+		},
+		{
+			ContainerID: 4,
+			HostID:      5,
+			Size:        6,
+		},
+	}
+
+	converted := RuntimeSpecToIDtools(start)
+
+	convertedBack := IDtoolsToRuntimeSpec(converted)
+
+	assert.Equal(t, len(start), len(convertedBack))
+
+	for i := range start {
+		assert.Equal(t, start[i].ContainerID, convertedBack[i].ContainerID)
+		assert.Equal(t, start[i].HostID, convertedBack[i].HostID)
+		assert.Equal(t, start[i].Size, convertedBack[i].Size)
+	}
 }

@@ -1,7 +1,7 @@
 //go:build linux
 // +build linux
 
-package overlay
+package idmap
 
 import (
 	"fmt"
@@ -77,9 +77,9 @@ func mountSetAttr(dfd int, path string, flags uint, attr *attr, size uint) (err 
 	return
 }
 
-// createIDMappedMount creates a IDMapped bind mount from SOURCE to TARGET using the user namespace
+// CreateIDMappedMount creates a IDMapped bind mount from SOURCE to TARGET using the user namespace
 // for the PID process.
-func createIDMappedMount(source, target string, pid int) error {
+func CreateIDMappedMount(source, target string, pid int) error {
 	path := fmt.Sprintf("/proc/%d/ns/user", pid)
 	userNsFile, err := os.Open(path)
 	if err != nil {
@@ -110,9 +110,9 @@ func createIDMappedMount(source, target string, pid int) error {
 	return moveMount(targetDirFd, target)
 }
 
-// createUsernsProcess forks the current process and creates a user namespace using the specified
+// CreateUsernsProcess forks the current process and creates a user namespace using the specified
 // mappings.  It returns the pid of the new process.
-func createUsernsProcess(uidMaps []idtools.IDMap, gidMaps []idtools.IDMap) (int, func(), error) {
+func CreateUsernsProcess(uidMaps []idtools.IDMap, gidMaps []idtools.IDMap) (int, func(), error) {
 	var pid uintptr
 	var err syscall.Errno
 

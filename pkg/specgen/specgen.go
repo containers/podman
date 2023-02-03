@@ -238,6 +238,8 @@ type ContainerStorageConfig struct {
 	Rootfs string `json:"rootfs,omitempty"`
 	// RootfsOverlay tells if rootfs is actually an overlay on top of base path
 	RootfsOverlay bool `json:"rootfs_overlay,omitempty"`
+	// RootfsMapping specifies if there are mappings to apply to the rootfs.
+	RootfsMapping *string `json:"rootfs_mapping,omitempty"`
 	// ImageVolumeMode indicates how image volumes will be created.
 	// Supported modes are "ignore" (do not create), "tmpfs" (create as
 	// tmpfs), and "anonymous" (create as anonymous volumes).
@@ -600,9 +602,15 @@ func NewSpecGenerator(arg string, rootfs bool) *SpecGenerator {
 		csc.Rootfs = arg
 		// check if rootfs should use overlay
 		lastColonIndex := strings.LastIndex(csc.Rootfs, ":")
-		if lastColonIndex != -1 && lastColonIndex+1 < len(csc.Rootfs) && csc.Rootfs[lastColonIndex+1:] == "O" {
-			csc.RootfsOverlay = true
-			csc.Rootfs = csc.Rootfs[:lastColonIndex]
+		if lastColonIndex != -1 {
+			lastPart := csc.Rootfs[lastColonIndex+1:]
+			if lastPart == "O" {
+				csc.RootfsOverlay = true
+				csc.Rootfs = csc.Rootfs[:lastColonIndex]
+			} else if lastPart == "idmap" || strings.HasPrefix(lastPart, "idmap=") {
+				csc.RootfsMapping = &lastPart
+				csc.Rootfs = csc.Rootfs[:lastColonIndex]
+			}
 		}
 	} else {
 		csc.Image = arg

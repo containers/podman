@@ -14,6 +14,7 @@ import (
 	"github.com/containers/storage/pkg/stringutils"
 	"github.com/containers/storage/pkg/truncindex"
 	digest "github.com/opencontainers/go-digest"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -151,6 +152,9 @@ type rwImageStore interface {
 
 	addMappedTopLayer(id, layer string) error
 	removeMappedTopLayer(id, layer string) error
+
+	// Clean up unreferenced per-image data.
+	GarbageCollect() error
 
 	// Wipe removes records of all images.
 	Wipe() error
@@ -394,6 +398,41 @@ func (r *imageStore) Images() ([]Image, error) {
 		images[i] = *copyImage(r.images[i])
 	}
 	return images, nil
+}
+
+// This looks for datadirs in the store directory that are not referenced
+// by the json file and removes it. These can happen in the case of unclean
+// shutdowns.
+// Requires startReading or startWriting.
+func (r *imageStore) GarbageCollect() error {
+	entries, err := os.ReadDir(r.dir)
+	if err != nil {
+		// Unexpected, don't try any GC
+		return err
+	}
+
+	for _, entry := range entries {
+		id := entry.Name()
+		// Does it look like a datadir directory?
+		if !entry.IsDir() || !nameLooksLikeID(id) {
+			continue
+		}
+
+		// Should the id be there?
+		if r.byid[id] != nil {
+			continue
+		}
+
+		// Otherwise remove datadir
+		logrus.Debugf("removing %q", filepath.Join(r.dir, id))
+		moreErr := os.RemoveAll(filepath.Join(r.dir, id))
+		// Propagate first error
+		if moreErr != nil && err == nil {
+			err = moreErr
+		}
+	}
+
+	return err
 }
 
 func (r *imageStore) imagespath() string {

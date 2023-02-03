@@ -78,6 +78,8 @@ fedora_testing_task: &fedora_testing
             TEST_DRIVER: "fuse-overlay"
         - env:
             TEST_DRIVER: "fuse-overlay-whiteout"
+        - env:
+            TEST_DRIVER: "btrfs"
 
     # Separate scripts for separate outputs, makes debugging easier.
     setup_script: '${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/setup.sh |& ${_TIMESTAMP}'
@@ -90,6 +92,7 @@ fedora_testing_task: &fedora_testing
         journal_log_script: '${_JOURNALCMD} || true'
 
 
+# aufs was dropped between 20.04 and 22.04, can't test it
 ubuntu_testing_task: &ubuntu_testing
     <<: *fedora_testing
     alias: ubuntu_testing
@@ -102,6 +105,12 @@ ubuntu_testing_task: &ubuntu_testing
             TEST_DRIVER: "vfs"
         - env:
             TEST_DRIVER: "overlay"
+        - env:
+            TEST_DRIVER: "fuse-overlay"
+        - env:
+            TEST_DRIVER: "fuse-overlay-whiteout"
+        - env:
+            TEST_DRIVER: "btrfs"
 
 
 lint_task:

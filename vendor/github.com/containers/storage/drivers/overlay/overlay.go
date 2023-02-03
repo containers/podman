@@ -26,6 +26,7 @@ import (
 	"github.com/containers/storage/pkg/chrootarchive"
 	"github.com/containers/storage/pkg/directory"
 	"github.com/containers/storage/pkg/fsutils"
+	"github.com/containers/storage/pkg/idmap"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/mount"
 	"github.com/containers/storage/pkg/parsers"
@@ -1511,7 +1512,7 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 			return "", err
 		}
 
-		pid, cleanupFunc, err := createUsernsProcess(options.UidMaps, options.GidMaps)
+		pid, cleanupFunc, err := idmap.CreateUsernsProcess(options.UidMaps, options.GidMaps)
 		if err != nil {
 			return "", err
 		}
@@ -1528,7 +1529,7 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 			if !found {
 				root = filepath.Join(mappedRoot, fmt.Sprintf("%d", c))
 				c++
-				if err := createIDMappedMount(mappedMountSrc, root, int(pid)); err != nil {
+				if err := idmap.CreateIDMappedMount(mappedMountSrc, root, int(pid)); err != nil {
 					return "", fmt.Errorf("create mapped mount for %q on %q: %w", mappedMountSrc, root, err)
 				}
 				idMappedMounts[mappedMountSrc] = root
