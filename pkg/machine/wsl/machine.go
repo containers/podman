@@ -1053,12 +1053,12 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
 
 func launchWinProxy(v *MachineVM) (bool, string, error) {
 	machinePipe := toDist(v.Name)
-	if !pipeAvailable(machinePipe) {
+	if !machine.PipeNameAvailable(machinePipe) {
 		return false, "", fmt.Errorf("could not start api proxy since expected pipe is not available: %s", machinePipe)
 	}
 
 	globalName := false
-	if pipeAvailable(globalPipe) {
+	if machine.PipeNameAvailable(globalPipe) {
 		globalName = true
 	}
 
@@ -1099,7 +1099,7 @@ func launchWinProxy(v *MachineVM) (bool, string, error) {
 		return globalName, "", err
 	}
 
-	return globalName, pipePrefix + waitPipe, waitPipeExists(waitPipe, 80, func() error {
+	return globalName, pipePrefix + waitPipe, machine.WaitPipeExists(waitPipe, 80, func() error {
 		active, exitCode := machine.GetProcessState(cmd.Process.Pid)
 		if !active {
 			return fmt.Errorf("win-sshproxy.exe failed to start, exit code: %d (see windows event logs)", exitCode)
@@ -1120,27 +1120,6 @@ func getWinProxyStateDir(v *MachineVM) (string, error) {
 	}
 
 	return stateDir, nil
-}
-
-func pipeAvailable(pipeName string) bool {
-	_, err := os.Stat(`\\.\pipe\` + pipeName)
-	return os.IsNotExist(err)
-}
-
-func waitPipeExists(pipeName string, retries int, checkFailure func() error) error {
-	var err error
-	for i := 0; i < retries; i++ {
-		_, err = os.Stat(`\\.\pipe\` + pipeName)
-		if err == nil {
-			break
-		}
-		if fail := checkFailure(); fail != nil {
-			return fail
-		}
-		time.Sleep(250 * time.Millisecond)
-	}
-
-	return err
 }
 
 func IsWSLInstalled() bool {
@@ -1611,11 +1590,15 @@ func (v *MachineVM) Inspect() (*machine.InspectInfo, error) {
 		return nil, err
 	}
 
-	created, lastUp, _ := v.updateTimeStamps(state == machine.Running)
+	connInfo := new(machine.ConnectionConfig)
+	machinePipe := toDist(v.Name)
+	connInfo.PodmanPipe = &machine.VMFile{Path: `\\.\pipe\` + machinePipe}
 
+	created, lastUp, _ := v.updateTimeStamps(state == machine.Running)
 	return &machine.InspectInfo{
-		ConfigPath: machine.VMFile{Path: v.ConfigPath},
-		Created:    created,
+		ConfigPath:     machine.VMFile{Path: v.ConfigPath},
+		ConnectionInfo: *connInfo,
+		Created:        created,
 		Image: machine.ImageConfig{
 			ImagePath:   machine.VMFile{Path: v.ImagePath},
 			ImageStream: v.ImageStream,
