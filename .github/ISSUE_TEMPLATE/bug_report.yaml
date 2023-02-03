@@ -54,7 +54,7 @@ body:
       label: podman info output
       description: Please copy and paste podman info output.
       value: If you are unable to run podman info for any reason, please provide the podman version, operating system and its version and the architecture you are running.
-      render: shell
+      render: yaml
     validations:
       required: true
   - type: dropdown
