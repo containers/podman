@@ -131,25 +131,15 @@ EOF
 }
 
 @test "podman userns=keep-id" {
-    if is_rootless; then
-        user=$(id -u)
-        run_podman run --rm --userns=keep-id $IMAGE id -u
-        is "${output}" "$user" "Container should run as the current user"
-    else
-        run_podman 125 run --rm --userns=keep-id $IMAGE id -u
-        is "${output}" "Error: keep-id is only supported in rootless mode" "Container should fail to start since keep-id is not supported in rootful mode"
-    fi
+    user=$(id -u)
+    run_podman run --rm --userns=keep-id $IMAGE id -u
+    is "${output}" "$user" "Container should run as the current user"
 }
 
 @test "podman userns=keep-id in a pod" {
-    if is_rootless; then
-        user=$(id -u)
-	run_podman pod create --userns keep-id
-	pid=$output
-        run_podman run --rm --pod $pid $IMAGE id -u
-        is "${output}" "$user" "Container should run as the current user"
-    else
-	run_podman 125 pod create --userns keep-id
-        is "${output}" 'Error:.*keep-id is only supported in rootless mode' "pod should fail to be created since keep-id is not supported in rootful mode"
-    fi
+    user=$(id -u)
+    run_podman pod create --userns keep-id
+    pid=$output
+    run_podman run --rm --pod $pid $IMAGE id -u
+    is "${output}" "$user" "Container should run as the current user"
 }
