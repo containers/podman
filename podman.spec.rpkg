@@ -84,6 +84,10 @@ Requires: iptables
 Requires: nftables
 Recommends: catatonit
 Suggests: qemu-user-static
+Conflicts: quadlet
+Provides: %{name}-quadlet
+Obsoletes: %{name}-quadlet <= 101:0.0.git.17877.f247b4d4-1
+Provides: %{name}-quadlet = %{epoch}:%{version}-%{release}
 
 # More detailed description of the package
 %description
@@ -140,17 +144,6 @@ Remote client for managing %{name} containers.
 %{name}-remote uses the libpod REST API to connect to a %{name} client to
 manage pods, containers and container images. %{name}-remote supports ssh
 connections as well.
-
-%package quadlet
-Summary: Easily create systemd services using %{name}
-Requires: %{name} = %{epoch}:%{version}-%{release}
-Conflicts: quadlet
-
-%description quadlet
-This package installs a systemd generator for *.container files in
-/etc/containers/systemd. Such files are automatically converted into
-systemd service units, allowing easily written and maintained
-podman-based system services.
 
 # The following four sections already describe the rpm build process itself.
 # prep will extract the tarball defined as Source above and descend into it.
@@ -240,6 +233,9 @@ fi
 %{_bindir}/%{name}
 %dir %{_libexecdir}/%{name}
 %{_libexecdir}/%{name}/rootlessport
+%{_libexecdir}/%{name}/quadlet
+%{_systemdgeneratordir}/%{name}-system-generator
+%{_systemdusergeneratordir}/%{name}-user-generator
 %{_datadir}/bash-completion/completions/%{name}
 # By "owning" the site-functions dir, we don't need to Require zsh
 %dir %{_datadir}/zsh/site-functions
@@ -261,6 +257,8 @@ fi
 %{_userunitdir}/%{name}-kube@.service
 %{_tmpfilesdir}/%{name}.conf
 %{_user_tmpfilesdir}/%{name}-docker.conf
+%{_mandir}/man5/quadlet*.5*
+%{_mandir}/man5/podman-systemd.unit*.5*
 %if 0%{?fedora} >= 36
 %{_modulesloaddir}/%{name}-iptables.conf
 %endif
@@ -270,12 +268,6 @@ fi
 %{_mandir}/man1/docker*.1*
 %{_mandir}/man5/docker*.5*
 %{_usr}/lib/tmpfiles.d/%{name}-docker.conf
-
-%files quadlet
-%license LICENSE
-%{_libexecdir}/%{name}/quadlet
-%_prefix/lib/systemd/system-generators/podman-system-generator
-%_prefix/lib/systemd/user-generators/podman-user-generator
 
 %files remote
 %license LICENSE
