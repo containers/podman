@@ -551,12 +551,14 @@ Example `test.container`:
 ```
 [Unit]
 Description=A minimal container
-Before=local-fs.target
 
 [Container]
 # Use the centos image
 Image=quay.io/centos/centos:latest
+
+# Use volume and network defined below
 Volume=test.volume:/data
+Network=test.network
 
 # In the container we just run sleep
 Exec=sleep 60
@@ -589,7 +591,7 @@ Example `test.volume`:
 ```
 [Volume]
 User=root
-Group=projectname
+Group=root
 Label=org.test.Key=value
 ```
 
