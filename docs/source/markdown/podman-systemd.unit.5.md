@@ -2,7 +2,7 @@
 
 ## NAME
 
-podman\-systemd.unit - systemd units using Podman
+podman\-systemd.unit - systemd units using Podman quadlet
 
 ## SYNOPSIS
 
