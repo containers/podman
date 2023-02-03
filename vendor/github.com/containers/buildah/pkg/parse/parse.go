@@ -16,7 +16,6 @@ import (
 
 	"github.com/containerd/containerd/platforms"
 	"github.com/containers/buildah/define"
-	securejoin "github.com/cyphar/filepath-securejoin"
 	internalParse "github.com/containers/buildah/internal/parse"
 	"github.com/containers/buildah/pkg/sshagent"
 	"github.com/containers/common/pkg/config"
@@ -26,6 +25,7 @@ import (
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/unshare"
 	storageTypes "github.com/containers/storage/types"
+	securejoin "github.com/cyphar/filepath-securejoin"
 	units "github.com/docker/go-units"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/openshift/imagebuilder"
@@ -65,6 +65,11 @@ func RepoNamesToNamedReferences(destList []string) ([]reference.Named, error) {
 		result = append(result, named)
 	}
 	return result, nil
+}
+
+// CleanCacheMount gets the cache parent created by `--mount=type=cache` and removes it.
+func CleanCacheMount() error {
+	return internalParse.CleanCacheMount()
 }
 
 // CommonBuildOptions parses the build options from the bud cli

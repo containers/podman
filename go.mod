@@ -11,7 +11,7 @@ require (
 	github.com/container-orchestrated-devices/container-device-interface v0.5.3
 	github.com/containernetworking/cni v1.1.2
 	github.com/containernetworking/plugins v1.2.0
-	github.com/containers/buildah v1.29.0
+	github.com/containers/buildah v1.29.1-0.20230201192322-e56eb25575c7
 	github.com/containers/common v0.51.0
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/image/v5 v5.24.0
@@ -79,7 +79,7 @@ require (
 	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d // indirect
 	github.com/chzyer/readline v1.5.1 // indirect
 	github.com/containerd/cgroups v1.0.4 // indirect
-	github.com/containerd/containerd v1.6.15 // indirect
+	github.com/containerd/containerd v1.6.16 // indirect
 	github.com/containerd/stargz-snapshotter/estargz v0.14.1 // indirect
 	github.com/containers/libtrust v0.0.0-20230121012942-c1716e8a8d01 // indirect
 	github.com/coreos/go-oidc/v3 v3.5.0 // indirect

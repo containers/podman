@@ -202,8 +202,8 @@ github.com/containerd/containerd v1.5.0-rc.0/go.mod h1:V/IXoMqNGgBlabz3tHD2TWDoT
 github.com/containerd/containerd v1.5.1/go.mod h1:0DOxVqwDy2iZvrZp2JUx/E+hS0UNTVn7dJnIOwtYR4g=
 github.com/containerd/containerd v1.5.7/go.mod h1:gyvv6+ugqY25TiXxcZC3L5yOeYgEw0QMhscqVp1AR9c=
 github.com/containerd/containerd v1.5.9/go.mod h1:fvQqCfadDGga5HZyn3j4+dx56qj2I9YwBrlSdalvJYQ=
-github.com/containerd/containerd v1.6.15 h1:4wWexxzLNHNE46aIETc6ge4TofO550v+BlLoANrbses=
-github.com/containerd/containerd v1.6.15/go.mod h1:U2NnBPIhzJDm59xF7xB2MMHnKtggpZ+phKg8o2TKj2c=
+github.com/containerd/containerd v1.6.16 h1:0H5xH6ABsN7XTrxIAKxFpBkFCBtrZ/OSORhCpUnHjrc=
+github.com/containerd/containerd v1.6.16/go.mod h1:1RdCUu95+gc2v9t3IL+zIlpClSmew7/0YS8O5eQZrOw=
 github.com/containerd/continuity v0.0.0-20190426062206-aaeac12a7ffc/go.mod h1:GL3xCUCBDV3CZiTSEKksMWbLE66hEyuu9qyDOOqM47Y=
 github.com/containerd/continuity v0.0.0-20190815185530-f2a389ac0a02/go.mod h1:GL3xCUCBDV3CZiTSEKksMWbLE66hEyuu9qyDOOqM47Y=
 github.com/containerd/continuity v0.0.0-20191127005431-f65d91d395eb/go.mod h1:GL3xCUCBDV3CZiTSEKksMWbLE66hEyuu9qyDOOqM47Y=
@@ -259,8 +259,8 @@ github.com/containernetworking/plugins v0.8.6/go.mod h1:qnw5mN19D8fIwkqW7oHHYDHV
 github.com/containernetworking/plugins v0.9.1/go.mod h1:xP/idU2ldlzN6m4p5LmGiwRDjeJr6FLK6vuiUwoH7P8=
 github.com/containernetworking/plugins v1.2.0 h1:SWgg3dQG1yzUo4d9iD8cwSVh1VqI+bP7mkPDoSfP9VU=
 github.com/containernetworking/plugins v1.2.0/go.mod h1:/VjX4uHecW5vVimFa1wkG4s+r/s9qIfPdqlLF4TW8c4=
-github.com/containers/buildah v1.29.0 h1:rA3S2SXJffrJjvY2kyxOsAaIseDY6Ib77FsD7n88Mj4=
-github.com/containers/buildah v1.29.0/go.mod h1:mah+CGmpOjkBJJ5rhOP0M2ETnODhiuhtnXusfh0hc6Q=
+github.com/containers/buildah v1.29.1-0.20230201192322-e56eb25575c7 h1:GmQhTfsGuYgGfuYWEF4Ed+rEvlSWRmxisLBL2J8rCb4=
+github.com/containers/buildah v1.29.1-0.20230201192322-e56eb25575c7/go.mod h1:sFvOi+WMtMtrkxx1Dn8EhF5/ddXNyC1f5LAj4ZGzjAs=
 github.com/containers/common v0.51.0 h1:Ax4YHNTG8cEPHZJcMYRoP7sfBgOISceeyOvmZzmSucg=
 github.com/containers/common v0.51.0/go.mod h1:3W2WIdalgQfrsX/T5tjX+6CxgT3ThJVN2G9sNuFjuCM=
 github.com/containers/conmon v2.0.20+incompatible h1:YbCVSFSCqFjjVwHTPINGdMX1F6JXHGTUje2ZYobNrkg=
