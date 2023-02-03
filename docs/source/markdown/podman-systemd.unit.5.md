@@ -6,7 +6,7 @@ podman\-systemd.unit - systemd units using Podman quadlet
 
 ## SYNOPSIS
 
-*name*.container, *name*.volume
+*name*.container, *name*.volume, *name*.network, `*.kube`
 
 ### Podman unit search path
 
@@ -26,8 +26,10 @@ These files are read during boot (and when `systemctl daemon-reload` is run) and
 corresponding regular systemd service unit files. Both system and user systemd units are supported.
 
 The Podman generator reads the search paths above and reads files with the extensions `.container`
-and `.volume`, and for each file generates a similarly named `.service` file. These units can be started
-and managed with systemctl like any other systemd service.
+`.volume` and `*.kube`, and for each file generates a similarly named `.service` file. These units
+can be started and managed with systemctl like any other systemd service.
+
+Files with the `.network` extension are only read if they are mentioned in a `.container` file. See the `Network=` key.
 
 The Podman files use the same format as [regular systemd unit files](https://www.freedesktop.org/software/systemd/man/systemd.syntax.html).
 Each file type has a custom section (for example, `[Container]`) that is handled by Podman, and all
