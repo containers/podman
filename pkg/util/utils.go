@@ -113,13 +113,34 @@ func ParseSignal(rawSignal string) (syscall.Signal, error) {
 
 // GetKeepIDMapping returns the mappings and the user to use when keep-id is used
 func GetKeepIDMapping(opts *namespaces.KeepIDUserNsOptions) (*stypes.IDMappingOptions, int, int, error) {
-	if !rootless.IsRootless() {
-		return nil, -1, -1, errors.New("keep-id is only supported in rootless mode")
-	}
 	options := stypes.IDMappingOptions{
 		HostUIDMapping: false,
 		HostGIDMapping: false,
 	}
+
+	if !rootless.IsRootless() {
+		uids, err := rootless.ReadMappingsProc("/proc/self/uid_map")
+		if err != nil {
+			return nil, 0, 0, err
+		}
+		gids, err := rootless.ReadMappingsProc("/proc/self/uid_map")
+		if err != nil {
+			return nil, 0, 0, err
+		}
+		options.UIDMap = uids
+		options.GIDMap = gids
+
+		uid, gid := 0, 0
+		if opts.UID != nil {
+			uid = int(*opts.UID)
+		}
+		if opts.GID != nil {
+			gid = int(*opts.GID)
+		}
+
+		return &options, uid, gid, nil
+	}
+
 	min := func(a, b int) int {
 		if a < b {
 			return a
