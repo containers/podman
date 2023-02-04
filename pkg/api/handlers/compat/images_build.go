@@ -188,10 +188,12 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		anchorDir, err := os.MkdirTemp(parse.GetTempDir(), "libpod_builder")
 		if err != nil {
 			utils.InternalServerError(w, err)
+			return
 		}
 		tempDir, subDir, err := buildahDefine.TempDirForURL(anchorDir, "buildah", query.Remote)
 		if err != nil {
 			utils.InternalServerError(w, err)
+			return
 		}
 		if tempDir != "" {
 			// We had to download it to a temporary directory.
@@ -209,6 +211,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 			absDir, err := filepath.Abs(query.Remote)
 			if err != nil {
 				utils.BadRequest(w, "remote", query.Remote, err)
+				return
 			}
 			contextDirectory = absDir
 		}
@@ -232,6 +235,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 				containerFiles = []string{filepath.Join(contextDirectory, "Dockerfile")}
 				if _, err1 := os.Stat(containerFiles[0]); err1 != nil {
 					utils.BadRequest(w, "dockerfile", query.Dockerfile, err)
+					return
 				}
 			}
 		}
