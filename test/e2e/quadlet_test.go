@@ -460,6 +460,7 @@ var _ = Describe("quadlet system generator", func() {
 		Entry("noimage.container", "noimage.container"),
 		Entry("notify.container", "notify.container"),
 		Entry("oneshot.container", "oneshot.container"),
+		Entry("rootfs.container", "rootfs.container"),
 		Entry("other-sections.container", "other-sections.container"),
 		Entry("podmanargs.container", "podmanargs.container"),
 		Entry("ports.container", "ports.container"),

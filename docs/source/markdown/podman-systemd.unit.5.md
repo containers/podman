@@ -188,6 +188,14 @@ This key can be listed multiple times.
 If enabled (which is the default), this disables the container processes from gaining additional privileges via things like
 setuid and file capabilities.
 
+#### `Rootfs=`
+
+The rootfs to use for the container. Rootfs points to a directory on the system that contains the content to be run within the container. This option conflicts with the `Image` option.
+
+The format of the rootfs is the same as when passed to `podman run --rootfs`, so it supports ovelay mounts as well.
+
+Note: On SELinux systems, the rootfs needs the correct label, which is by default unconfined_u:object_r:container_file_t:s0.
+
 #### `Notify=` (defaults to `no`)
 
 By default, Podman is run in such a way that the systemd startup notify command is handled by

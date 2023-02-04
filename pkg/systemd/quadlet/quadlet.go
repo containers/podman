@@ -45,6 +45,7 @@ const (
 	KeyRemapUID          = "RemapUid"
 	KeyRemapGID          = "RemapGid"
 	KeyRemapUIDSize      = "RemapUidSize"
+	KeyRootfs            = "Rootfs"
 	KeyNotify            = "Notify"
 	KeyExposeHostPort    = "ExposeHostPort"
 	KeyPublishPort       = "PublishPort"
@@ -96,6 +97,7 @@ var (
 		KeyRemapUID:        true,
 		KeyRemapGID:        true,
 		KeyRemapUIDSize:    true,
+		KeyRootfs:          true,
 		KeyNotify:          true,
 		KeyExposeHostPort:  true,
 		KeyPublishPort:     true,
@@ -239,9 +241,14 @@ func ConvertContainer(container *parser.UnitFile, isUser bool) (*parser.UnitFile
 	// Rename old Container group to x-Container so that systemd ignores it
 	service.RenameGroup(ContainerGroup, XContainerGroup)
 
-	image, ok := container.Lookup(ContainerGroup, KeyImage)
-	if !ok || len(image) == 0 {
-		return nil, fmt.Errorf("no Image key specified")
+	// One image or rootfs must be specified for the container
+	image, _ := container.Lookup(ContainerGroup, KeyImage)
+	rootfs, _ := container.Lookup(ContainerGroup, KeyRootfs)
+	if len(image) == 0 && len(rootfs) == 0 {
+		return nil, fmt.Errorf("no Image or Rootfs key specified")
+	}
+	if len(image) > 0 && len(rootfs) > 0 {
+		return nil, fmt.Errorf("the Image And Rootfs keys conflict can not be specified together")
 	}
 
 	containerName, ok := container.Lookup(ContainerGroup, KeyContainerName)
@@ -486,7 +493,11 @@ func ConvertContainer(container *parser.UnitFile, isUser bool) (*parser.UnitFile
 	podmanArgs := container.LookupAllArgs(ContainerGroup, KeyPodmanArgs)
 	podman.add(podmanArgs...)
 
-	podman.add(image)
+	if len(image) > 0 {
+		podman.add(image)
+	} else {
+		podman.add("--rootfs", rootfs)
+	}
 
 	execArgs, ok := container.LookupLastArgs(ContainerGroup, KeyExec)
 	if ok {

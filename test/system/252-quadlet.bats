@@ -406,4 +406,23 @@ EOF
     run_podman rmi $(pause_image)
 }
 
+@test "quadlet - rootfs" {
+    skip_if_no_selinux
+    skip_if_rootless
+    local quadlet_file=$PODMAN_TMPDIR/basic_$(random_string).container
+    cat > $quadlet_file <<EOF
+[Container]
+Rootfs=/:O
+Exec=sh -c "echo STARTED CONTAINER; echo "READY=1" | socat -u STDIN unix-sendto:\$NOTIFY_SOCKET; top"
+EOF
+
+    run_quadlet "$quadlet_file"
+    service_setup $QUADLET_SERVICE_NAME
+
+    # Ensure we have output. Output is synced via sd-notify (socat in Exec)
+    run journalctl "--since=$STARTED_TIME" --unit="$QUADLET_SERVICE_NAME"
+    is "$output" '.*STARTED CONTAINER.*'
+}
+
+
 # vim: filetype=sh
