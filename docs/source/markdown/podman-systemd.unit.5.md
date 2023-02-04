@@ -283,6 +283,22 @@ container that forwards signals and reaps processes.
 Set the seccomp profile to use in the container. If unset, the default podman profile is used.
 Set to either the pathname of a json file, or `unconfined` to disable the seccomp filters.
 
+#### `SecurityLabelDisable=`
+
+Turn off label separation for the container.
+
+#### `SecurityLabelFileType=`
+
+Set the label file type for the container files.
+
+#### `SecurityLabelLevel=`
+
+Set the label process level for the container processes.
+
+#### `SecurityLabelType=`
+
+Set the label process type for the container processes.
+
 #### `Timezone=` (if unset uses system-configured default)
 
 The timezone to run the container in.

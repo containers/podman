@@ -31,51 +31,55 @@ const (
 
 // All the supported quadlet keys
 const (
-	KeyContainerName     = "ContainerName"
-	KeyImage             = "Image"
-	KeyEnvironment       = "Environment"
-	KeyEnvironmentFile   = "EnvironmentFile"
-	KeyEnvironmentHost   = "EnvironmentHost"
-	KeyExec              = "Exec"
-	KeyNoNewPrivileges   = "NoNewPrivileges"
-	KeyDropCapability    = "DropCapability"
-	KeyAddCapability     = "AddCapability"
-	KeyReadOnly          = "ReadOnly"
-	KeyRemapUsers        = "RemapUsers"
-	KeyRemapUID          = "RemapUid"
-	KeyRemapGID          = "RemapGid"
-	KeyRemapUIDSize      = "RemapUidSize"
-	KeyRootfs            = "Rootfs"
-	KeyNotify            = "Notify"
-	KeyExposeHostPort    = "ExposeHostPort"
-	KeyPublishPort       = "PublishPort"
-	KeyUser              = "User"
-	KeyGroup             = "Group"
-	KeyDevice            = "Device"
-	KeyType              = "Type"
-	KeyOptions           = "Options"
-	KeyCopy              = "Copy"
-	KeyVolume            = "Volume"
-	KeyPodmanArgs        = "PodmanArgs"
-	KeyLabel             = "Label"
-	KeyAnnotation        = "Annotation"
-	KeyRunInit           = "RunInit"
-	KeyVolatileTmp       = "VolatileTmp"
-	KeyTimezone          = "Timezone"
-	KeySeccompProfile    = "SeccompProfile"
-	KeyAddDevice         = "AddDevice"
-	KeyNetwork           = "Network"
-	KeyYaml              = "Yaml"
-	KeyNetworkDisableDNS = "DisableDNS"
-	KeyNetworkDriver     = "Driver"
-	KeyNetworkGateway    = "Gateway"
-	KeyNetworkInternal   = "Internal"
-	KeyNetworkIPRange    = "IPRange"
-	KeyNetworkIPAMDriver = "IPAMDriver"
-	KeyNetworkIPv6       = "IPv6"
-	KeyNetworkOptions    = "Options"
-	KeyNetworkSubnet     = "Subnet"
-	KeyConfigMap         = "ConfigMap"
+	KeyContainerName         = "ContainerName"
+	KeyImage                 = "Image"
+	KeyEnvironment           = "Environment"
+	KeyEnvironmentFile       = "EnvironmentFile"
+	KeyEnvironmentHost       = "EnvironmentHost"
+	KeyExec                  = "Exec"
+	KeyNoNewPrivileges       = "NoNewPrivileges"
+	KeyDropCapability        = "DropCapability"
+	KeyAddCapability         = "AddCapability"
+	KeyReadOnly              = "ReadOnly"
+	KeyRemapUsers            = "RemapUsers"
+	KeyRemapUID              = "RemapUid"
+	KeyRemapGID              = "RemapGid"
+	KeyRemapUIDSize          = "RemapUidSize"
+	KeyRootfs                = "Rootfs"
+	KeyNotify                = "Notify"
+	KeyExposeHostPort        = "ExposeHostPort"
+	KeyPublishPort           = "PublishPort"
+	KeyUser                  = "User"
+	KeyGroup                 = "Group"
+	KeyDevice                = "Device"
+	KeyType                  = "Type"
+	KeyOptions               = "Options"
+	KeyCopy                  = "Copy"
+	KeyVolume                = "Volume"
+	KeyPodmanArgs            = "PodmanArgs"
+	KeyLabel                 = "Label"
+	KeyAnnotation            = "Annotation"
+	KeyRunInit               = "RunInit"
+	KeyVolatileTmp           = "VolatileTmp"
+	KeyTimezone              = "Timezone"
+	KeySeccompProfile        = "SeccompProfile"
+	KeySecurityLabelDisable  = "SecurityLabelDisable"
+	KeySecurityLabelFileType = "SecurityLabelFileType"
+	KeySecurityLabelType     = "SecurityLabelType"
+	KeySecurityLabelLevel    = "SecurityLabelLevel"
+	KeyAddDevice             = "AddDevice"
+	KeyNetwork               = "Network"
+	KeyYaml                  = "Yaml"
+	KeyNetworkDisableDNS     = "DisableDNS"
+	KeyNetworkDriver         = "Driver"
+	KeyNetworkGateway        = "Gateway"
+	KeyNetworkInternal       = "Internal"
+	KeyNetworkIPRange        = "IPRange"
+	KeyNetworkIPAMDriver     = "IPAMDriver"
+	KeyNetworkIPv6           = "IPv6"
+	KeyNetworkOptions        = "Options"
+	KeyNetworkSubnet         = "Subnet"
+	KeyConfigMap             = "ConfigMap"
 )
 
 var (
@@ -83,36 +87,40 @@ var (
 
 	// Supported keys in "Container" group
 	supportedContainerKeys = map[string]bool{
-		KeyContainerName:   true,
-		KeyImage:           true,
-		KeyEnvironment:     true,
-		KeyEnvironmentFile: true,
-		KeyEnvironmentHost: true,
-		KeyExec:            true,
-		KeyNoNewPrivileges: true,
-		KeyDropCapability:  true,
-		KeyAddCapability:   true,
-		KeyReadOnly:        true,
-		KeyRemapUsers:      true,
-		KeyRemapUID:        true,
-		KeyRemapGID:        true,
-		KeyRemapUIDSize:    true,
-		KeyRootfs:          true,
-		KeyNotify:          true,
-		KeyExposeHostPort:  true,
-		KeyPublishPort:     true,
-		KeyUser:            true,
-		KeyGroup:           true,
-		KeyVolume:          true,
-		KeyPodmanArgs:      true,
-		KeyLabel:           true,
-		KeyAnnotation:      true,
-		KeyRunInit:         true,
-		KeyVolatileTmp:     true,
-		KeyTimezone:        true,
-		KeySeccompProfile:  true,
-		KeyAddDevice:       true,
-		KeyNetwork:         true,
+		KeyContainerName:         true,
+		KeyImage:                 true,
+		KeyEnvironment:           true,
+		KeyEnvironmentFile:       true,
+		KeyEnvironmentHost:       true,
+		KeyExec:                  true,
+		KeyNoNewPrivileges:       true,
+		KeyDropCapability:        true,
+		KeyAddCapability:         true,
+		KeyReadOnly:              true,
+		KeyRemapUsers:            true,
+		KeyRemapUID:              true,
+		KeyRemapGID:              true,
+		KeyRemapUIDSize:          true,
+		KeyRootfs:                true,
+		KeyNotify:                true,
+		KeyExposeHostPort:        true,
+		KeyPublishPort:           true,
+		KeyUser:                  true,
+		KeyGroup:                 true,
+		KeyVolume:                true,
+		KeyPodmanArgs:            true,
+		KeyLabel:                 true,
+		KeyAnnotation:            true,
+		KeyRunInit:               true,
+		KeyVolatileTmp:           true,
+		KeyTimezone:              true,
+		KeySeccompProfile:        true,
+		KeySecurityLabelDisable:  true,
+		KeySecurityLabelFileType: true,
+		KeySecurityLabelType:     true,
+		KeySecurityLabelLevel:    true,
+		KeyAddDevice:             true,
+		KeyNetwork:               true,
 	}
 
 	// Supported keys in "Volume" group
@@ -351,6 +359,26 @@ func ConvertContainer(container *parser.UnitFile, isUser bool) (*parser.UnitFile
 	noNewPrivileges := container.LookupBooleanWithDefault(ContainerGroup, KeyNoNewPrivileges, false)
 	if noNewPrivileges {
 		podman.add("--security-opt=no-new-privileges")
+	}
+
+	securityLabelDisable := container.LookupBooleanWithDefault(ContainerGroup, KeySecurityLabelDisable, false)
+	if securityLabelDisable {
+		podman.add("--security-opt", "label:disable")
+	}
+
+	securityLabelType, _ := container.Lookup(ContainerGroup, KeySecurityLabelType)
+	if len(securityLabelType) > 0 {
+		podman.add("--security-opt", fmt.Sprintf("label=type:%s", securityLabelType))
+	}
+
+	securityLabelFileType, _ := container.Lookup(ContainerGroup, KeySecurityLabelFileType)
+	if len(securityLabelFileType) > 0 {
+		podman.add("--security-opt", fmt.Sprintf("label=filetype:%s", securityLabelFileType))
+	}
+
+	securityLabelLevel, _ := container.Lookup(ContainerGroup, KeySecurityLabelLevel)
+	if len(securityLabelLevel) > 0 {
+		podman.add("--security-opt", fmt.Sprintf("label=level:%s", securityLabelLevel))
 	}
 
 	// But allow overrides with AddCapability

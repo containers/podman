@@ -424,5 +424,57 @@ EOF
     is "$output" '.*STARTED CONTAINER.*'
 }
 
+@test "quadlet - selinux disable" {
+    skip_if_no_selinux
+    local quadlet_file=$PODMAN_TMPDIR/basic_$(random_string).container
+    cat > $quadlet_file <<EOF
+[Container]
+Image=$IMAGE
+SecurityLabelDisable=true
+Exec=sh -c "echo STARTED CONTAINER; echo "READY=1" | socat -u STDIN unix-sendto:\$NOTIFY_SOCKET; top"
+EOF
+
+    run_quadlet "$quadlet_file"
+    service_setup $QUADLET_SERVICE_NAME
+
+    # Ensure we have output. Output is synced via sd-notify (socat in Exec)
+    run journalctl "--since=$STARTED_TIME" --unit="$QUADLET_SERVICE_NAME"
+    is "$output" '.*STARTED CONTAINER.*'
+
+    run_podman container inspect  --format "{{.ProcessLabel}}" $QUADLET_CONTAINER_NAME
+    is "$output" "" "container should be started without specifying a Process Label"
+
+    service_cleanup $QUADLET_SERVICE_NAME failed
+}
+
+@test "quadlet - selinux labels" {
+    skip_if_no_selinux
+    NAME=$(random_string)
+    local quadlet_file=$PODMAN_TMPDIR/basic_$(random_string).container
+    cat > $quadlet_file <<EOF
+[Container]
+ContainerName=$NAME
+Image=$IMAGE
+SecurityLabelType=spc_t
+SecurityLabelLevel=s0:c100,c200
+SecurityLabelFileType=container_ro_file_t
+Exec=sh -c "echo STARTED CONTAINER; echo "READY=1" | socat -u STDIN unix-sendto:\$NOTIFY_SOCKET; top"
+EOF
+
+    run_quadlet "$quadlet_file"
+    service_setup $QUADLET_SERVICE_NAME
+
+    # Ensure we have output. Output is synced via sd-notify (socat in Exec)
+    run journalctl "--since=$STARTED_TIME" --unit="$QUADLET_SERVICE_NAME"
+    is "$output" '.*STARTED CONTAINER.*'
+
+    run_podman container ps
+    run_podman container inspect  --format "{{.ProcessLabel}}" $NAME
+    is "$output" "system_u:system_r:spc_t:s0:c100,c200" "container should be started with correct Process Label"
+    run_podman container inspect  --format "{{.MountLabel}}" $NAME
+    is "$output" "system_u:object_r:container_ro_file_t:s0:c100,c200" "container should be started with correct Mount Label"
+
+    service_cleanup $QUADLET_SERVICE_NAME failed
+}
 
 # vim: filetype=sh
