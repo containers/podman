@@ -25,6 +25,7 @@ import (
 	"github.com/containers/storage/pkg/fileutils"
 	"github.com/containers/storage/pkg/ioutils"
 	"github.com/containers/storage/pkg/regexp"
+	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/docker/go-units"
 	"github.com/hashicorp/go-multierror"
 	jsoniter "github.com/json-iterator/go"
@@ -407,7 +408,7 @@ func Build(ctx context.Context, containerFiles []string, options entities.BuildO
 
 	excludes := options.Excludes
 	if len(excludes) == 0 {
-		excludes, err = parseDockerignore(options.ContextDirectory)
+		excludes, err = parseDockerignore(options.ContextDirectory, containerFiles)
 		if err != nil {
 			return nil, err
 		}
@@ -770,14 +771,48 @@ func nTar(excludes []string, sources ...string) (io.ReadCloser, error) {
 	return rc, nil
 }
 
-func parseDockerignore(root string) ([]string, error) {
-	ignore, err := os.ReadFile(filepath.Join(root, ".containerignore"))
-	if err != nil {
-		var dockerIgnoreErr error
-		ignore, dockerIgnoreErr = os.ReadFile(filepath.Join(root, ".dockerignore"))
-		if dockerIgnoreErr != nil && !os.IsNotExist(dockerIgnoreErr) {
-			return nil, err
+// parseDockerignore finds the preferred ignore file and returns list of files to exclude along with the path to
+// the processed ignore file
+func parseDockerignore(contextDir string, containerFiles []string) ([]string, error) {
+	// If path was not supplied give priority to `<containerfile>.containerignore` first.
+	for _, containerfile := range containerFiles {
+		if !filepath.IsAbs(containerfile) {
+			containerfile = filepath.Join(contextDir, containerfile)
 		}
+		containerfileIgnore := ""
+		if _, err := os.Stat(containerfile + ".containerignore"); err == nil {
+			containerfileIgnore = containerfile + ".containerignore"
+		}
+		if _, err := os.Stat(containerfile + ".dockerignore"); err == nil {
+			containerfileIgnore = containerfile + ".dockerignore"
+		}
+		if containerfileIgnore != "" {
+			excludes, err := parseExcludes(containerfileIgnore)
+			return excludes, err
+		}
+	}
+	path, symlinkErr := securejoin.SecureJoin(contextDir, ".containerignore")
+	if symlinkErr != nil {
+		return nil, symlinkErr
+	}
+	excludes, err := parseExcludes(path)
+	if errors.Is(err, os.ErrNotExist) {
+		path, symlinkErr = securejoin.SecureJoin(contextDir, ".dockerignore")
+		if symlinkErr != nil {
+			return nil, symlinkErr
+		}
+		excludes, err = parseExcludes(path)
+	}
+	if errors.Is(err, os.ErrNotExist) {
+		return excludes, nil
+	}
+	return excludes, err
+}
+
+func parseExcludes(path string) ([]string, error) {
+	ignore, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
 	}
 	rawexcludes := strings.Split(string(ignore), "\n")
 	excludes := make([]string, 0, len(rawexcludes))
