@@ -8,13 +8,20 @@ file_b=$(mktemp -p $tmp --suffix '.file_b')
 dd if=/dev/zero of=$file_a bs=1024 count=1024 status=none
 dd if=/dev/zero of=$file_b bs=1024 count=1024 status=none
 
-# The create command
 volume_name="bz-2162111"
 container_name="bz-2162111"
+network_name="bz-2162111"
+
+$ENGINE_A system prune -f >> /dev/null
+$ENGINE_B system prune -f >> /dev/null
+$ENGINE_A network create $network_name >> /dev/null
+$ENGINE_B network create $network_name >> /dev/null
+
 container_cmd="--name $container_name \
 	--stop-timeout=0 \
 	--network-alias alias_a \
 	--network-alias alias_b \
+	--network=$network_name \
 	-v /dev/log:/dev/log:rw,z \
 	-v $volume_name:/var/core:rw,z \
 	-v $file_a:/home/file_a:rw \
@@ -88,3 +95,7 @@ hyperfine --warmup 10 --runs $RUNS \
 	--prepare "ENGINE=$ENGINE_B sh $prepare_sh; ENGINE=$ENGINE_B sh $create_sh" \
 	"$ENGINE_A rm -f $container_name" \
 	"$ENGINE_B rm -f $container_name"
+
+# Clean up
+$ENGINE_A system prune -f >> /dev/null
+$ENGINE_B system prune -f >> /dev/null
