@@ -140,6 +140,10 @@ const (
 	// of the init container.
 	InitContainerType = "io.podman.annotations.init.container.type"
 
+	// UlimitAnnotation is used by kube play when playing a kube yaml to specify the ulimits
+	// of the container
+	UlimitAnnotation = "io.podman.annotations.ulimit"
+
 	// MaxKubeAnnotation is the max length of annotations allowed by Kubernetes.
 	MaxKubeAnnotation = 63
 )

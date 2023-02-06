@@ -531,6 +531,24 @@ func simplePodWithV1Containers(ctx context.Context, ctrs []*Container) (*v1.Pod,
 			}
 		}
 
+		if ctr.config.Spec.Process != nil {
+			var ulimitArr []string
+			defaultUlimits := util.DefaultContainerConfig().Ulimits()
+			for _, ulimit := range ctr.config.Spec.Process.Rlimits {
+				finalUlimit := strings.ToLower(strings.ReplaceAll(ulimit.Type, "RLIMIT_", "")) + "=" + strconv.Itoa(int(ulimit.Soft)) + ":" + strconv.Itoa(int(ulimit.Hard))
+				// compare ulimit with default list so we don't add it twice
+				if cutil.StringInSlice(finalUlimit, defaultUlimits) {
+					continue
+				}
+
+				ulimitArr = append(ulimitArr, finalUlimit)
+			}
+
+			if len(ulimitArr) > 0 {
+				kubeAnnotations[define.UlimitAnnotation] = strings.Join(ulimitArr, ",")
+			}
+		}
+
 		if !ctr.HostNetwork() {
 			hostNetwork = false
 		}
