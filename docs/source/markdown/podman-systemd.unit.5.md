@@ -188,6 +188,14 @@ This key can be listed multiple times.
 If enabled (which is the default), this disables the container processes from gaining additional privileges via things like
 setuid and file capabilities.
 
+#### `Rootfs=`
+
+The rootfs to use for the container. Rootfs points to a directory on the system that contains the content to be run within the container. This option conflicts with the `Image` option.
+
+The format of the rootfs is the same as when passed to `podman run --rootfs`, so it supports ovelay mounts as well.
+
+Note: On SELinux systems, the rootfs needs the correct label, which is by default unconfined_u:object_r:container_file_t:s0.
+
 #### `Notify=` (defaults to `no`)
 
 By default, Podman is run in such a way that the systemd startup notify command is handled by
@@ -274,6 +282,22 @@ container that forwards signals and reaps processes.
 
 Set the seccomp profile to use in the container. If unset, the default podman profile is used.
 Set to either the pathname of a json file, or `unconfined` to disable the seccomp filters.
+
+#### `SecurityLabelDisable=`
+
+Turn off label separation for the container.
+
+#### `SecurityLabelFileType=`
+
+Set the label file type for the container files.
+
+#### `SecurityLabelLevel=`
+
+Set the label process level for the container processes.
+
+#### `SecurityLabelType=`
+
+Set the label process type for the container processes.
 
 #### `Timezone=` (if unset uses system-configured default)
 

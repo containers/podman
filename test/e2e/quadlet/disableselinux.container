@@ -1,0 +1,5 @@
+## assert-podman-args "--security-opt" "label:disable"
+
+[Container]
+Image=localhost/imagename
+SecurityLabelDisable=true
