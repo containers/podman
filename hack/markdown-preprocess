@@ -70,7 +70,7 @@ class Preprocessor():
         cross-referencing all the man pages in which they're used.
         """
         for optionfile in self.used_by:
-            tmpfile = optionfile + '.tmp'
+            tmpfile = optionfile + '.tmp.' + str(os.getpid())
             with open(optionfile, 'r', encoding='utf-8') as fh_in, open(tmpfile, 'w', encoding='utf-8', newline='\n') as fh_out:
                 fh_out.write("####> This option file is used in:\n")
                 used_by = ', '.join(x for x in self.used_by[optionfile])
