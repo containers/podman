@@ -660,6 +660,7 @@ function teardown() {
 }
 
 @test "podman networking with pasta(1) - ICMPv6 echo request" {
+    skip "Unsupported test, see the 'Local forwarder, IPv6' case for details"
     skip_if_no_ipv6 "IPv6 not routable on the host"
 
     local minuid=$(cut -f1 /proc/sys/net/ipv4/ping_group_range)
@@ -669,8 +670,8 @@ function teardown() {
         skip "ICMPv6 echo sockets not available for this UID"
     fi
 
-    run_podman run --net=pasta $IMAGE ping -6 -c3 -W1 \
-        sh -c 'ping -c3 -W1 sed -nr "s/^nameserver[ ]{1,}([^:]*):(.*)/\1:\2/p" /etc/resolv.conf | head -1'
+    run_podman run --net=pasta $IMAGE \
+        sh -c 'ping -c3 -W1 $(sed -nr "s/^nameserver[ ]{1,}([^:]*):(.*)/\1:\2/p" /etc/resolv.conf | head -1)'
 }
 
 ### Lifecycle ##################################################################
