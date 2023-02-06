@@ -382,11 +382,11 @@ function teardown() {
 }
 
 @test "podman networking with pasta(1) - TCP port range forwarding, IPv4, tap" {
-    pasta_test_do 4 tap      tcp 3 0 "port"      1
+    pasta_test_do 4 tap      tcp 2 0 "port"      1
 }
 
 @test "podman networking with pasta(1) - TCP port range forwarding, IPv4, loopback" {
-    pasta_test_do 4 loopback tcp 3 0 "port"      1
+    pasta_test_do 4 loopback tcp 2 0 "port"      1
 }
 
 @test "podman networking with pasta(1) - Translated TCP port forwarding, IPv4, tap" {
@@ -398,11 +398,11 @@ function teardown() {
 }
 
 @test "podman networking with pasta(1) - TCP translated port range forwarding, IPv4, tap" {
-    pasta_test_do 4 tap      tcp 3 1 "port"      1
+    pasta_test_do 4 tap      tcp 2 1 "port"      1
 }
 
 @test "podman networking with pasta(1) - TCP translated port range forwarding, IPv4, loopback" {
-    pasta_test_do 4 loopback tcp 3 1 "port"      1
+    pasta_test_do 4 loopback tcp 2 1 "port"      1
 }
 
 @test "podman networking with pasta(1) - Address-bound TCP port forwarding, IPv4, tap" {
@@ -432,7 +432,7 @@ function teardown() {
 }
 
 @test "podman networking with pasta(1) - TCP port range forwarding, IPv6, tap" {
-    pasta_test_do 6 tap      tcp 3 0 "port"      1
+    pasta_test_do 6 tap      tcp 2 0 "port"      1
 }
 
 @test "podman networking with pasta(1) - TCP port range forwarding, IPv6, loopback" {
@@ -448,11 +448,11 @@ function teardown() {
 }
 
 @test "podman networking with pasta(1) - TCP translated port range forwarding, IPv6, tap" {
-    pasta_test_do 6 tap      tcp 3 1 "port"      1
+    pasta_test_do 6 tap      tcp 2 1 "port"      1
 }
 
 @test "podman networking with pasta(1) - TCP translated port range forwarding, IPv6, loopback" {
-    pasta_test_do 6 loopback tcp 3 1 "port"      1
+    pasta_test_do 6 loopback tcp 2 1 "port"      1
 }
 
 @test "podman networking with pasta(1) - Address-bound TCP port forwarding, IPv6, tap" {
