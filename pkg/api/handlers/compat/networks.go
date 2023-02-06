@@ -74,6 +74,9 @@ func convertLibpodNetworktoDockerNetwork(runtime *libpod.Runtime, network *netty
 	for _, con := range cons {
 		data, err := con.Inspect(false)
 		if err != nil {
+			if errors.Is(err, define.ErrNoSuchCtr) || errors.Is(err, define.ErrCtrRemoved) {
+				continue
+			}
 			return nil, err
 		}
 		if netData, ok := data.NetworkSettings.Networks[network.Name]; ok {
