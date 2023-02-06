@@ -656,7 +656,7 @@ function teardown() {
     fi
 
     run_podman run --net=pasta $IMAGE \
-        sh -c 'ping -c3 -W1 sed -nr "s/^nameserver[ ]{1,}([^.]*).(.*)/\1.\2/p" /etc/resolv.conf | head -1'
+        sh -c 'ping -c3 -W1 $(sed -nr "s/^nameserver[ ]{1,}([^.]*).(.*)/\1.\2/p" /etc/resolv.conf | head -1)'
 }
 
 @test "podman networking with pasta(1) - ICMPv6 echo request" {
