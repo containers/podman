@@ -490,7 +490,8 @@ docs: $(MANPAGES) ## Generate documentation
 # in addition to the target-architecture binary (if different). That's
 # what the NATIVE_GOOS make does in the first line.
 podman-remote-%-docs: podman-remote
-	$(MAKE) clean-binaries podman-remote GOOS=$(NATIVE_GOOS) GOARCH=$(NATIVE_GOARCH)
+	$(MAKE) clean-binaries
+	$(MAKE) podman-remote GOOS=$(NATIVE_GOOS) GOARCH=$(NATIVE_GOARCH)
 	$(eval GOOS := $*)
 	$(MAKE) docs $(MANPAGES)
 	rm -rf docs/build/remote
