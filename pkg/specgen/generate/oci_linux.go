@@ -83,7 +83,7 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 	addCgroup := true
 
 	isRootless := rootless.IsRootless()
-	isNewUserns := s.UserNS.IsContainer() || s.UserNS.IsPath() || s.UserNS.IsPrivate()
+	isNewUserns := s.UserNS.IsContainer() || s.UserNS.IsPath() || s.UserNS.IsPrivate() || s.UserNS.IsPod() || s.UserNS.IsAuto()
 
 	canMountSys := canMountSys(isRootless, isNewUserns, s)
 
