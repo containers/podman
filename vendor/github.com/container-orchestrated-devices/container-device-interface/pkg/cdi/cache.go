@@ -17,6 +17,8 @@
 package cdi
 
 import (
+	"errors"
+	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -24,13 +26,10 @@ import (
 	"strings"
 	"sync"
 
-	stderr "errors"
-
 	"github.com/container-orchestrated-devices/container-device-interface/internal/multierror"
 	cdi "github.com/container-orchestrated-devices/container-device-interface/specs-go"
 	"github.com/fsnotify/fsnotify"
 	oci "github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/pkg/errors"
 )
 
 // Option is an option to change some aspect of default CDI behavior.
@@ -97,7 +96,7 @@ func (c *Cache) configure(options ...Option) error {
 
 	for _, o := range options {
 		if err = o(c); err != nil {
-			return errors.Wrapf(err, "failed to apply cache options")
+			return fmt.Errorf("failed to apply cache options: %w", err)
 		}
 	}
 
@@ -159,7 +158,7 @@ func (c *Cache) refresh() error {
 			return false
 		case devPrio == oldPrio:
 			devPath, oldPath := devSpec.GetPath(), oldSpec.GetPath()
-			collectError(errors.Errorf("conflicting device %q (specs %q, %q)",
+			collectError(fmt.Errorf("conflicting device %q (specs %q, %q)",
 				name, devPath, oldPath), devPath, oldPath)
 			conflicts[name] = struct{}{}
 		}
@@ -169,7 +168,7 @@ func (c *Cache) refresh() error {
 	_ = scanSpecDirs(c.specDirs, func(path string, priority int, spec *Spec, err error) error {
 		path = filepath.Clean(path)
 		if err != nil {
-			collectError(errors.Wrapf(err, "failed to load CDI Spec"), path)
+			collectError(fmt.Errorf("failed to load CDI Spec %w", err), path)
 			return nil
 		}
 
@@ -219,7 +218,7 @@ func (c *Cache) InjectDevices(ociSpec *oci.Spec, devices ...string) ([]string, e
 	var unresolved []string
 
 	if ociSpec == nil {
-		return devices, errors.Errorf("can't inject devices, nil OCI Spec")
+		return devices, fmt.Errorf("can't inject devices, nil OCI Spec")
 	}
 
 	c.Lock()
@@ -244,12 +243,12 @@ func (c *Cache) InjectDevices(ociSpec *oci.Spec, devices ...string) ([]string, e
 	}
 
 	if unresolved != nil {
-		return unresolved, errors.Errorf("unresolvable CDI devices %s",
+		return unresolved, fmt.Errorf("unresolvable CDI devices %s",
 			strings.Join(devices, ", "))
 	}
 
 	if err := edits.Apply(ociSpec); err != nil {
-		return nil, errors.Wrap(err, "failed to inject devices")
+		return nil, fmt.Errorf("failed to inject devices: %w", err)
 	}
 
 	return nil, nil
@@ -320,7 +319,7 @@ func (c *Cache) RemoveSpec(name string) error {
 	}
 
 	err = os.Remove(path)
-	if err != nil && stderr.Is(err, fs.ErrNotExist) {
+	if err != nil && errors.Is(err, fs.ErrNotExist) {
 		err = nil
 	}
 
@@ -409,7 +408,17 @@ func (c *Cache) GetVendorSpecs(vendor string) []*Spec {
 // GetSpecErrors returns all errors encountered for the spec during the
 // last cache refresh.
 func (c *Cache) GetSpecErrors(spec *Spec) []error {
-	return c.errors[spec.GetPath()]
+	var errors []error
+
+	c.Lock()
+	defer c.Unlock()
+
+	if errs, ok := c.errors[spec.GetPath()]; ok {
+		errors = make([]error, len(errs))
+		copy(errors, errs)
+	}
+
+	return errors
 }
 
 // GetErrors returns all errors encountered during the last
@@ -475,7 +484,7 @@ func (w *watch) setup(dirs []string, dirErrors map[string]error) {
 	w.watcher, err = fsnotify.NewWatcher()
 	if err != nil {
 		for _, dir := range dirs {
-			dirErrors[dir] = errors.Wrap(err, "failed to create watcher")
+			dirErrors[dir] = fmt.Errorf("failed to create watcher: %w", err)
 		}
 		return
 	}
@@ -558,7 +567,7 @@ func (w *watch) update(dirErrors map[string]error, removed ...string) bool {
 			update = true
 		} else {
 			w.tracked[dir] = false
-			dirErrors[dir] = errors.Wrap(err, "failed to monitor for changes")
+			dirErrors[dir] = fmt.Errorf("failed to monitor for changes: %w", err)
 		}
 	}
 

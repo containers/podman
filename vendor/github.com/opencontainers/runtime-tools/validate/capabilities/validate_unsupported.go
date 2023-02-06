@@ -1,7 +1,7 @@
 //go:build !linux
 // +build !linux
 
-package validate
+package capabilities
 
 import (
 	"github.com/syndtr/gocapability/capability"
@@ -10,9 +10,4 @@ import (
 // LastCap return last cap of system
 func LastCap() capability.Cap {
 	return capability.Cap(-1)
-}
-
-// CheckLinux is a noop on this platform
-func (v *Validator) CheckLinux() (errs error) {
-	return nil
 }

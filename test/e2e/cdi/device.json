@@ -1,5 +1,5 @@
 {
-  "cdiVersion": "0.2.0",
+  "cdiVersion": "0.3.0",
   "kind": "vendor.com/device",
   "devices": [
     {

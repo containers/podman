@@ -17,9 +17,10 @@
 package cdi
 
 import (
+	"fmt"
+
 	cdi "github.com/container-orchestrated-devices/container-device-interface/specs-go"
 	oci "github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/pkg/errors"
 )
 
 // Device represents a CDI device of a Spec.
@@ -69,10 +70,10 @@ func (d *Device) validate() error {
 	}
 	edits := d.edits()
 	if edits.isEmpty() {
-		return errors.Errorf("invalid device, empty device edits")
+		return fmt.Errorf("invalid device, empty device edits")
 	}
 	if err := edits.Validate(); err != nil {
-		return errors.Wrapf(err, "invalid device %q", d.Name)
+		return fmt.Errorf("invalid device %q: %w", d.Name, err)
 	}
 	return nil
 }
