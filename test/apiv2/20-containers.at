@@ -51,7 +51,7 @@ t GET libpod/containers/json?all=true 200 \
   .[0].IsInfra=false
 
 # Test compat API for Network Settings (.Network is N/A when rootless)
-network_expect="Networks=null"
+network_expect="Networks.slirp4netns.NetworkID=slirp4netns"
 if root; then
     network_expect="Networks.podman.NetworkID=podman"
 fi

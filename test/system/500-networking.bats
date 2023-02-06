@@ -806,4 +806,35 @@ EOF
     assert "$output" =~ "eth0"
 }
 
+@test "podman inspect list networks " {
+    run_podman create $IMAGE
+    cid=${output}
+    run_podman inspect --format '{{ .NetworkSettings.Networks }}' $cid
+    if is_rootless; then
+        is "$output" "map\[slirp4netns:.*" "NeworkSettings should contain one network named slirp4netns"
+    else
+        is "$output" "map\[podman:.*" "NeworkSettings should contain one network named podman"
+    fi
+    run_podman rm $cid
+
+    for network in "host" "none"; do
+        run_podman create --network=$network $IMAGE
+        cid=${output}
+        run_podman inspect --format '{{ .NetworkSettings.Networks }}' $cid
+        is "$output" "map\[$network:.*" "NeworkSettincs should contain one network named $network"
+        run_podman rm $cid
+    done
+
+    # Check with ns:/PATH
+    if ! is_rootless; then
+        netns=netns$(random_string)
+        ip netns add $netns
+        run_podman create --network=ns:/var/run/netns/$netns $IMAGE
+        cid=${output}
+        run_podman inspect --format '{{ .NetworkSettings.Networks }}' $cid
+        is "$output" 'map[]' "NeworkSettings should be empty"
+        run_podman rm $cid
+     fi
+}
+
 # vim: filetype=sh
