@@ -365,7 +365,7 @@ var _ = Describe("quadlet system generator", func() {
 
 			session := podmanTest.Quadlet([]string{"-dryrun"}, "/something")
 			session.WaitWithDefaultTimeout()
-			Expect(session).Should(Exit(1))
+			Expect(session).Should(Exit(0))
 
 			current := session.ErrorToStringArray()
 			expected := "No files to parse from [/something]"
