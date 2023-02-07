@@ -44,9 +44,6 @@ if [[ "${DISTRO_NV}" =~ fedora ]]; then
 
     # Tests for lib.sh
     showrun ${SCRIPT_BASE}/lib.sh.t
-
-    export PREBUILD=1
-    showrun bash ${CIRRUS_WORKING_DIR}/.github/actions/check_cirrus_cron/test.sh
 fi
 
 msg "Checking 3rd party network service connectivity"
