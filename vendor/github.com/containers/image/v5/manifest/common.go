@@ -9,30 +9,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// dupStringSlice returns a deep copy of a slice of strings, or nil if the
-// source slice is empty.
-func dupStringSlice(list []string) []string {
-	if len(list) == 0 {
-		return nil
-	}
-	dup := make([]string, len(list))
-	copy(dup, list)
-	return dup
-}
-
-// dupStringStringMap returns a deep copy of a map[string]string, or nil if the
-// passed-in map is nil or has no keys.
-func dupStringStringMap(m map[string]string) map[string]string {
-	if len(m) == 0 {
-		return nil
-	}
-	result := make(map[string]string)
-	for k, v := range m {
-		result[k] = v
-	}
-	return result
-}
-
 // allowedManifestFields is a bit mask of “essential” manifest fields that validateUnambiguousManifestFormat
 // can expect to be present.
 type allowedManifestFields int
@@ -58,17 +34,17 @@ func validateUnambiguousManifestFormat(manifest []byte, expectedMIMEType string,
 	if allowed >= allowedFieldFirstUnusedBit {
 		return fmt.Errorf("internal error: invalid allowedManifestFields value %#v", allowed)
 	}
-	// Use a private type to decode, not just a map[string]interface{}, because we want
+	// Use a private type to decode, not just a map[string]any, because we want
 	// to also reject case-insensitive matches (which would be used by Go when really decoding
 	// the manifest).
 	// (It is expected that as manifest formats are added or extended over time, more fields will be added
 	// here.)
 	detectedFields := struct {
-		Config    interface{} `json:"config"`
-		FSLayers  interface{} `json:"fsLayers"`
-		History   interface{} `json:"history"`
-		Layers    interface{} `json:"layers"`
-		Manifests interface{} `json:"manifests"`
+		Config    any `json:"config"`
+		FSLayers  any `json:"fsLayers"`
+		History   any `json:"history"`
+		Layers    any `json:"layers"`
+		Manifests any `json:"manifests"`
 	}{}
 	if err := json.Unmarshal(manifest, &detectedFields); err != nil {
 		// The caller was supposed to already validate version numbers, so this should not happen;

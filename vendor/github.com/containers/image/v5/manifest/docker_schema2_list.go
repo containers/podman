@@ -8,6 +8,7 @@ import (
 	"github.com/containers/image/v5/types"
 	"github.com/opencontainers/go-digest"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
+	"golang.org/x/exp/slices"
 )
 
 // Schema2PlatformSpec describes the platform which a particular manifest is
@@ -98,7 +99,7 @@ func (list *Schema2List) ChooseInstance(ctx *types.SystemContext) (digest.Digest
 				Architecture: d.Platform.Architecture,
 				OS:           d.Platform.OS,
 				OSVersion:    d.Platform.OSVersion,
-				OSFeatures:   dupStringSlice(d.Platform.OSFeatures),
+				OSFeatures:   slices.Clone(d.Platform.OSFeatures),
 				Variant:      d.Platform.Variant,
 			}
 			if platform.MatchesPlatform(imagePlatform, wantedPlatform) {
@@ -133,15 +134,15 @@ func Schema2ListFromComponents(components []Schema2ManifestDescriptor) *Schema2L
 				MediaType: component.MediaType,
 				Size:      component.Size,
 				Digest:    component.Digest,
-				URLs:      dupStringSlice(component.URLs),
+				URLs:      slices.Clone(component.URLs),
 			},
 			Schema2PlatformSpec{
 				Architecture: component.Platform.Architecture,
 				OS:           component.Platform.OS,
 				OSVersion:    component.Platform.OSVersion,
-				OSFeatures:   dupStringSlice(component.Platform.OSFeatures),
+				OSFeatures:   slices.Clone(component.Platform.OSFeatures),
 				Variant:      component.Platform.Variant,
-				Features:     dupStringSlice(component.Platform.Features),
+				Features:     slices.Clone(component.Platform.Features),
 			},
 		}
 		list.Manifests[i] = m
@@ -162,11 +163,11 @@ func (list *Schema2List) ToOCI1Index() (*OCI1Index, error) {
 			MediaType: manifest.MediaType,
 			Size:      manifest.Size,
 			Digest:    manifest.Digest,
-			URLs:      dupStringSlice(manifest.URLs),
+			URLs:      slices.Clone(manifest.URLs),
 			Platform: &imgspecv1.Platform{
 				OS:           manifest.Platform.OS,
 				Architecture: manifest.Platform.Architecture,
-				OSFeatures:   dupStringSlice(manifest.Platform.OSFeatures),
+				OSFeatures:   slices.Clone(manifest.Platform.OSFeatures),
 				OSVersion:    manifest.Platform.OSVersion,
 				Variant:      manifest.Platform.Variant,
 			},

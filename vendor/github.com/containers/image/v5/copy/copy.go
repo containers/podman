@@ -19,6 +19,7 @@ import (
 	"github.com/containers/image/v5/internal/imagesource"
 	"github.com/containers/image/v5/internal/pkg/platform"
 	"github.com/containers/image/v5/internal/private"
+	"github.com/containers/image/v5/internal/set"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/pkg/blobinfocache"
 	"github.com/containers/image/v5/pkg/compression"
@@ -31,7 +32,8 @@ import (
 	digest "github.com/opencontainers/go-digest"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/sirupsen/logrus"
-	"github.com/vbauerster/mpb/v7"
+	"github.com/vbauerster/mpb/v8"
+	"golang.org/x/exp/slices"
 	"golang.org/x/sync/semaphore"
 	"golang.org/x/term"
 )
@@ -143,7 +145,7 @@ type Options struct {
 
 	// Preserve digests, and fail if we cannot.
 	PreserveDigests bool
-	// manifest MIME type of image set by user. "" is default and means use the autodetection to the the manifest MIME type
+	// manifest MIME type of image set by user. "" is default and means use the autodetection to the manifest MIME type
 	ForceManifestMIMEType string
 	ImageListSelection    ImageListSelection // set to either CopySystemImage (the default), CopyAllImages, or CopySpecificImages to control which instances we copy when the source reference is a list; ignored if the source reference is not a list
 	Instances             []digest.Digest    // if ImageListSelection is CopySpecificImages, copy only these instances and the list itself
@@ -370,12 +372,7 @@ func supportsMultipleImages(dest types.ImageDestination) bool {
 		// Anything goes!
 		return true
 	}
-	for _, mtype := range mtypes {
-		if manifest.MIMETypeIsMultiImage(mtype) {
-			return true
-		}
-	}
-	return false
+	return slices.ContainsFunc(mtypes, manifest.MIMETypeIsMultiImage)
 }
 
 // compareImageDestinationManifestEqual compares the `src` and `dest` image manifests (reading the manifest from the
@@ -491,24 +488,16 @@ func (c *copier) copyMultipleImages(ctx context.Context, policyContext *signatur
 	updates := make([]manifest.ListUpdate, len(instanceDigests))
 	instancesCopied := 0
 	for i, instanceDigest := range instanceDigests {
-		if options.ImageListSelection == CopySpecificImages {
-			skip := true
-			for _, instance := range options.Instances {
-				if instance == instanceDigest {
-					skip = false
-					break
-				}
+		if options.ImageListSelection == CopySpecificImages &&
+			!slices.Contains(options.Instances, instanceDigest) {
+			update, err := updatedList.Instance(instanceDigest)
+			if err != nil {
+				return nil, err
 			}
-			if skip {
-				update, err := updatedList.Instance(instanceDigest)
-				if err != nil {
-					return nil, err
-				}
-				logrus.Debugf("Skipping instance %s (%d/%d)", instanceDigest, i+1, len(instanceDigests))
-				// Record the digest/size/type of the manifest that we didn't copy.
-				updates[i] = update
-				continue
-			}
+			logrus.Debugf("Skipping instance %s (%d/%d)", instanceDigest, i+1, len(instanceDigests))
+			// Record the digest/size/type of the manifest that we didn't copy.
+			updates[i] = update
+			continue
 		}
 		logrus.Debugf("Copying instance %s (%d/%d)", instanceDigest, i+1, len(instanceDigests))
 		c.Printf("Copying image %s (%d/%d)\n", instanceDigest, instancesCopied+1, imagesToCopy)
@@ -823,7 +812,7 @@ func (c *copier) copyOneImage(ctx context.Context, policyContext *signature.Poli
 // has a built-in list of functions/methods (whatever object they are for)
 // which have their format strings checked; for other names we would have
 // to pass a parameter to every (go tool vet) invocation.
-func (c *copier) Printf(format string, a ...interface{}) {
+func (c *copier) Printf(format string, a ...any) {
 	fmt.Fprintf(c.reportWriter, format, a...)
 }
 
@@ -948,20 +937,20 @@ func (ic *imageCopier) copyLayers(ctx context.Context) error {
 		data[index] = cld
 	}
 
-	// Create layer Encryption map
-	encLayerBitmap := map[int]bool{}
+	// Decide which layers to encrypt
+	layersToEncrypt := set.New[int]()
 	var encryptAll bool
 	if ic.ociEncryptLayers != nil {
 		encryptAll = len(*ic.ociEncryptLayers) == 0
 		totalLayers := len(srcInfos)
 		for _, l := range *ic.ociEncryptLayers {
 			// if layer is negative, it is reverse indexed.
-			encLayerBitmap[(totalLayers+l)%totalLayers] = true
+			layersToEncrypt.Add((totalLayers + l) % totalLayers)
 		}
 
 		if encryptAll {
 			for i := 0; i < len(srcInfos); i++ {
-				encLayerBitmap[i] = true
+				layersToEncrypt.Add(i)
 			}
 		}
 	}
@@ -980,7 +969,7 @@ func (ic *imageCopier) copyLayers(ctx context.Context) error {
 				return fmt.Errorf("copying layer: %w", err)
 			}
 			copyGroup.Add(1)
-			go copyLayerHelper(i, srcLayer, encLayerBitmap[i], progressPool, ic.c.rawSource.Reference().DockerReference())
+			go copyLayerHelper(i, srcLayer, layersToEncrypt.Contains(i), progressPool, ic.c.rawSource.Reference().DockerReference())
 		}
 
 		// A call to copyGroup.Wait() is done at this point by the defer above.
@@ -1013,15 +1002,9 @@ func (ic *imageCopier) copyLayers(ctx context.Context) error {
 
 // layerDigestsDiffer returns true iff the digests in a and b differ (ignoring sizes and possible other fields)
 func layerDigestsDiffer(a, b []types.BlobInfo) bool {
-	if len(a) != len(b) {
-		return true
-	}
-	for i := range a {
-		if a[i].Digest != b[i].Digest {
-			return true
-		}
-	}
-	return false
+	return !slices.EqualFunc(a, b, func(a, b types.BlobInfo) bool {
+		return a.Digest == b.Digest
+	})
 }
 
 // copyUpdatedConfigAndManifest updates the image per ic.manifestUpdates, if necessary,

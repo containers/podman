@@ -30,7 +30,7 @@ var (
 	// Zstd compression.
 	Zstd = internal.NewAlgorithm(types.ZstdAlgorithmName, types.ZstdAlgorithmName,
 		[]byte{0x28, 0xb5, 0x2f, 0xfd}, ZstdDecompressor, zstdCompressor)
-	// Zstd:chunked compression.
+	// ZstdChunked is a Zstd compresion with chunk metadta which allows random access to individual files.
 	ZstdChunked = internal.NewAlgorithm(types.ZstdChunkedAlgorithmName, types.ZstdAlgorithmName, /* Note: InternalUnstableUndocumentedMIMEQuestionMark is not ZstdChunkedAlgorithmName */
 		nil, ZstdDecompressor, compressor.ZstdCompressor)
 

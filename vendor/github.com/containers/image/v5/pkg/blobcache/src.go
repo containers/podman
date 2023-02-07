@@ -207,7 +207,7 @@ func streamChunksFromFile(streams chan io.ReadCloser, errs chan error, file io.R
 			break
 		}
 		s := signalCloseReader{
-			closed: make(chan interface{}),
+			closed: make(chan struct{}),
 			stream: io.LimitReader(file, int64(c.Length)),
 		}
 		streams <- s
@@ -218,7 +218,7 @@ func streamChunksFromFile(streams chan io.ReadCloser, errs chan error, file io.R
 }
 
 type signalCloseReader struct {
-	closed chan interface{}
+	closed chan struct{}
 	stream io.Reader
 }
 

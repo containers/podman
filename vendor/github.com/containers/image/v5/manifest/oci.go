@@ -12,6 +12,7 @@ import (
 	"github.com/opencontainers/go-digest"
 	"github.com/opencontainers/image-spec/specs-go"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
+	"golang.org/x/exp/slices"
 )
 
 // BlobInfoFromOCI1Descriptor returns a types.BlobInfo based on the input OCI1 descriptor.
@@ -160,10 +161,8 @@ func (m *OCI1) UpdateLayerInfos(layerInfos []types.BlobInfo) error {
 // getEncryptedMediaType will return the mediatype to its encrypted counterpart and return
 // an error if the mediatype does not support encryption
 func getEncryptedMediaType(mediatype string) (string, error) {
-	for _, s := range strings.Split(mediatype, "+")[1:] {
-		if s == "encrypted" {
-			return "", fmt.Errorf("unsupported mediaType: %v already encrypted", mediatype)
-		}
+	if slices.Contains(strings.Split(mediatype, "+")[1:], "encrypted") {
+		return "", fmt.Errorf("unsupported mediaType: %v already encrypted", mediatype)
 	}
 	unsuffixedMediatype := strings.Split(mediatype, "+")[0]
 	switch unsuffixedMediatype {
@@ -178,7 +177,7 @@ func getEncryptedMediaType(mediatype string) (string, error) {
 // an error if the mediatype does not support decryption
 func getDecryptedMediaType(mediatype string) (string, error) {
 	if !strings.HasSuffix(mediatype, "+encrypted") {
-		return "", fmt.Errorf("unsupported mediaType to decrypt %v:", mediatype)
+		return "", fmt.Errorf("unsupported mediaType to decrypt: %v", mediatype)
 	}
 
 	return strings.TrimSuffix(mediatype, "+encrypted"), nil

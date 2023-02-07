@@ -7,6 +7,8 @@ import (
 	"github.com/containers/image/v5/types"
 	"github.com/containers/ocicrypt"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
+	"golang.org/x/exp/maps"
+	"golang.org/x/exp/slices"
 )
 
 // isOciEncrypted returns a bool indicating if a mediatype is encrypted
@@ -18,12 +20,9 @@ func isOciEncrypted(mediatype string) bool {
 // isEncrypted checks if an image is encrypted
 func isEncrypted(i types.Image) bool {
 	layers := i.LayerInfos()
-	for _, l := range layers {
-		if isOciEncrypted(l.MediaType) {
-			return true
-		}
-	}
-	return false
+	return slices.ContainsFunc(layers, func(l types.BlobInfo) bool {
+		return isOciEncrypted(l.MediaType)
+	})
 }
 
 // bpDecryptionStepData contains data that the copy pipeline needs about the decryption step.
@@ -47,11 +46,9 @@ func (c *copier) blobPipelineDecryptionStep(stream *sourceStream, srcInfo types.
 		stream.reader = reader
 		stream.info.Digest = decryptedDigest
 		stream.info.Size = -1
-		for k := range stream.info.Annotations {
-			if strings.HasPrefix(k, "org.opencontainers.image.enc") {
-				delete(stream.info.Annotations, k)
-			}
-		}
+		maps.DeleteFunc(stream.info.Annotations, func(k string, _ string) bool {
+			return strings.HasPrefix(k, "org.opencontainers.image.enc")
+		})
 		return &bpDecryptionStepData{
 			decrypting: true,
 		}, nil
@@ -122,8 +119,6 @@ func (d *bpEncryptionStepData) updateCryptoOperationAndAnnotations(operation *ty
 	if *annotations == nil {
 		*annotations = map[string]string{}
 	}
-	for k, v := range encryptAnnotations {
-		(*annotations)[k] = v
-	}
+	maps.Copy(*annotations, encryptAnnotations)
 	return nil
 }

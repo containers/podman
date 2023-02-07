@@ -12,6 +12,7 @@ import (
 	"github.com/containers/image/v5/signature/internal"
 	"github.com/sigstore/fulcio/pkg/certificate"
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
+	"golang.org/x/exp/slices"
 )
 
 // fulcioTrustRoot contains policy allow validating Fulcio-issued certificates.
@@ -109,7 +110,7 @@ func (f *fulcioTrustRoot) verifyFulcioCertificateAtTime(relevantTime time.Time, 
 	//
 	// So, pragmatically, the ideal design seem to be to only do signatures from a trusted build system (which is, by definition,
 	// the arbiter of desired vs. malicious signatures) that maintains an audit log of performed signature operations; and that seems to
-	// make make the SCT (and all of Rekor apart from the trusted timestamp) unnecessary.
+	// make the SCT (and all of Rekor apart from the trusted timestamp) unnecessary.
 
 	// == Validate the recorded OIDC issuer
 	gotOIDCIssuer := false
@@ -136,15 +137,7 @@ func (f *fulcioTrustRoot) verifyFulcioCertificateAtTime(relevantTime time.Time, 
 	}
 
 	// == Validate the OIDC subject
-	foundEmail := false
-	// TO DO: Use slices.Contains after we update to Go 1.18
-	for _, certEmail := range untrustedCertificate.EmailAddresses {
-		if certEmail == f.subjectEmail {
-			foundEmail = true
-			break
-		}
-	}
-	if !foundEmail {
+	if !slices.Contains(untrustedCertificate.EmailAddresses, f.subjectEmail) {
 		return nil, internal.NewInvalidSignatureError(fmt.Sprintf("Required email %s not found (got %#v)",
 			f.subjectEmail,
 			untrustedCertificate.EmailAddresses))

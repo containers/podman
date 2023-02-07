@@ -14,7 +14,7 @@ require (
 	github.com/containers/buildah v1.29.1-0.20230201192322-e56eb25575c7
 	github.com/containers/common v0.51.0
 	github.com/containers/conmon v2.0.20+incompatible
-	github.com/containers/image/v5 v5.24.0
+	github.com/containers/image/v5 v5.24.1-0.20230207090938-b5205c6e229e
 	github.com/containers/ocicrypt v1.1.7
 	github.com/containers/psgo v1.8.0
 	github.com/containers/storage v1.45.3
@@ -22,7 +22,7 @@ require (
 	github.com/coreos/stream-metadata-go v0.0.0-20210225230131-70edb9eb47b3
 	github.com/cyphar/filepath-securejoin v0.2.3
 	github.com/digitalocean/go-qemu v0.0.0-20210326154740-ac9e0b687001
-	github.com/docker/docker v20.10.23+incompatible
+	github.com/docker/docker v23.0.0+incompatible
 	github.com/docker/go-connections v0.4.1-0.20210727194412-58542c764a11
 	github.com/docker/go-plugins-helpers v0.0.0-20211224144127-6eecb7beb651
 	github.com/docker/go-units v0.5.0
@@ -38,7 +38,7 @@ require (
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/json-iterator/go v1.1.12
 	github.com/mattn/go-shellwords v1.0.12
-	github.com/moby/term v0.0.0-20210619224110-3f7ff695adc6
+	github.com/moby/term v0.0.0-20221120202655-abb19827d345
 	github.com/nxadm/tail v1.4.8
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.26.0
@@ -112,7 +112,7 @@ require (
 	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/google/go-containerregistry v0.12.1 // indirect
 	github.com/google/go-intervals v0.0.2 // indirect
-	github.com/google/trillian v1.5.0 // indirect
+	github.com/google/trillian v1.5.1-0.20220819043421-0a389c4bb8d9 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-retryablehttp v0.7.2 // indirect
@@ -151,11 +151,12 @@ require (
 	github.com/sigstore/sigstore v1.5.1 // indirect
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966 // indirect
 	github.com/stefanberger/go-pkcs11uri v0.0.0-20201008174630-78d3cae3a980 // indirect
-	github.com/sylabs/sif/v2 v2.9.0 // indirect
+	github.com/sylabs/sif/v2 v2.9.1 // indirect
 	github.com/tchap/go-patricia v2.3.0+incompatible // indirect
-	github.com/theupdateframework/go-tuf v0.5.2-0.20221207161717-9cb61d6e65f5 // indirect
+	github.com/theupdateframework/go-tuf v0.5.2 // indirect
 	github.com/titanous/rocacheck v0.0.0-20171023193734-afe73141d399 // indirect
 	github.com/vbatts/tar-split v0.11.2 // indirect
+	github.com/vbauerster/mpb/v8 v8.1.6 // indirect
 	github.com/vishvananda/netns v0.0.0-20210104183010-2eb08e3e575f // indirect
 	github.com/xeipuuv/gojsonpointer v0.0.0-20190905194746-02993c407bfb // indirect
 	github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415 // indirect
@@ -164,6 +165,7 @@ require (
 	go.mozilla.org/pkcs7 v0.0.0-20210826202110-33d05740a352 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	golang.org/x/crypto v0.5.0 // indirect
+	golang.org/x/exp v0.0.0-20230206171751-46f607a40771 // indirect
 	golang.org/x/mod v0.7.0 // indirect
 	golang.org/x/oauth2 v0.4.0 // indirect
 	golang.org/x/tools v0.4.0 // indirect
@@ -179,3 +181,5 @@ require (
 replace github.com/opencontainers/runc => github.com/opencontainers/runc v1.1.1-0.20220617142545-8b9452f75cbc
 
 replace github.com/containers/storage => github.com/containers/storage v1.45.3-0.20230131031022-998b8bf212eb
+
+replace github.com/docker/docker => github.com/docker/docker v20.10.23+incompatible

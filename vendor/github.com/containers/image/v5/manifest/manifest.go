@@ -106,9 +106,9 @@ func GuessMIMEType(manifest []byte) string {
 	// A subset of manifest fields; the rest is silently ignored by json.Unmarshal.
 	// Also docker/distribution/manifest.Versioned.
 	meta := struct {
-		MediaType     string      `json:"mediaType"`
-		SchemaVersion int         `json:"schemaVersion"`
-		Signatures    interface{} `json:"signatures"`
+		MediaType     string `json:"mediaType"`
+		SchemaVersion int    `json:"schemaVersion"`
+		Signatures    any    `json:"signatures"`
 	}{}
 	if err := json.Unmarshal(manifest, &meta); err != nil {
 		return ""

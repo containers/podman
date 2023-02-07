@@ -10,6 +10,8 @@ import (
 	"github.com/opencontainers/go-digest"
 	imgspec "github.com/opencontainers/image-spec/specs-go"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
+	"golang.org/x/exp/maps"
+	"golang.org/x/exp/slices"
 )
 
 // OCI1Index is just an alias for the OCI index type, but one which we can
@@ -85,7 +87,7 @@ func (index *OCI1Index) ChooseInstance(ctx *types.SystemContext) (digest.Digest,
 				Architecture: d.Platform.Architecture,
 				OS:           d.Platform.OS,
 				OSVersion:    d.Platform.OSVersion,
-				OSFeatures:   dupStringSlice(d.Platform.OSFeatures),
+				OSFeatures:   slices.Clone(d.Platform.OSFeatures),
 				Variant:      d.Platform.Variant,
 			}
 			if platform.MatchesPlatform(imagePlatform, wantedPlatform) {
@@ -120,7 +122,7 @@ func OCI1IndexFromComponents(components []imgspecv1.Descriptor, annotations map[
 			Versioned:   imgspec.Versioned{SchemaVersion: 2},
 			MediaType:   imgspecv1.MediaTypeImageIndex,
 			Manifests:   make([]imgspecv1.Descriptor, len(components)),
-			Annotations: dupStringStringMap(annotations),
+			Annotations: maps.Clone(annotations),
 		},
 	}
 	for i, component := range components {
@@ -130,7 +132,7 @@ func OCI1IndexFromComponents(components []imgspecv1.Descriptor, annotations map[
 				Architecture: component.Platform.Architecture,
 				OS:           component.Platform.OS,
 				OSVersion:    component.Platform.OSVersion,
-				OSFeatures:   dupStringSlice(component.Platform.OSFeatures),
+				OSFeatures:   slices.Clone(component.Platform.OSFeatures),
 				Variant:      component.Platform.Variant,
 			}
 		}
@@ -138,8 +140,8 @@ func OCI1IndexFromComponents(components []imgspecv1.Descriptor, annotations map[
 			MediaType:   component.MediaType,
 			Size:        component.Size,
 			Digest:      component.Digest,
-			URLs:        dupStringSlice(component.URLs),
-			Annotations: dupStringStringMap(component.Annotations),
+			URLs:        slices.Clone(component.URLs),
+			Annotations: maps.Clone(component.Annotations),
 			Platform:    platform,
 		}
 		index.Manifests[i] = m
@@ -173,12 +175,12 @@ func (index *OCI1Index) ToSchema2List() (*Schema2List, error) {
 				MediaType: manifest.MediaType,
 				Size:      manifest.Size,
 				Digest:    manifest.Digest,
-				URLs:      dupStringSlice(manifest.URLs),
+				URLs:      slices.Clone(manifest.URLs),
 			},
 			Schema2PlatformSpec{
 				OS:           platform.OS,
 				Architecture: platform.Architecture,
-				OSFeatures:   dupStringSlice(platform.OSFeatures),
+				OSFeatures:   slices.Clone(platform.OSFeatures),
 				OSVersion:    platform.OSVersion,
 				Variant:      platform.Variant,
 			},
