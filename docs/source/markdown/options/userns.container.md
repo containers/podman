@@ -28,7 +28,9 @@ Example: `containers:2147483647:2147483648`.
 
 Podman allocates unique ranges of UIDs and GIDs from the `containers` subordinate user ids. The size of the ranges is based on the number of UIDs required in the image. The number of UIDs and GIDs can be overridden with the `size` option.
 
-The option `--userns=keep-id` uses all the subuids and subgids of the user. Using `--userns=auto` when starting new containers will not work as long as any containers exist that were started with `--userns=keep-id`.
+The option `--userns=keep-id` uses all the subuids and subgids of the user.  
+The option `--userns=nomap` uses all the subuids and subgids of the user except the user's own ID.  
+Using `--userns=auto` when starting new containers will consequently not work as long as any containers exist that were started with `--userns=keep-id` or `--userns=nomap`.
 
   Valid `auto` options:
 
