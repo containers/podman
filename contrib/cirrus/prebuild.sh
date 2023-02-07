@@ -45,9 +45,15 @@ if [[ "${DISTRO_NV}" =~ fedora ]]; then
     # Tests for lib.sh
     showrun ${SCRIPT_BASE}/lib.sh.t
 
-    export PREBUILD=1
-    # TODO: Disabled due to test failure breaking all PRs
-    # showrun bash ${CIRRUS_WORKING_DIR}/.github/actions/check_cirrus_cron/test.sh
+    # Run this during daily cron job to prevent a GraphQL API change/breakage
+    # from impacting every PR.  Down-side being if it does fail, a maintainer
+    # will need to do some archaeology to find it.
+    # Defined by CI system
+    # shellcheck disable=SC2154
+    if [[ "$CIRRUS_CRON" == "main" ]]; then
+      export PREBUILD=1
+      showrun bash ${CIRRUS_WORKING_DIR}/.github/actions/check_cirrus_cron/test.sh
+    fi
 fi
 
 msg "Checking 3rd party network service connectivity"
