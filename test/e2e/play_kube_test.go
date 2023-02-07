@@ -1702,10 +1702,10 @@ func testHTTPServer(port string, shouldErr bool, expectedResponse string) {
 		time.Sleep(interval)
 		interval *= 2
 	}
-	Expect(err).To(BeNil())
+	Expect(err).ToNot(HaveOccurred())
 
 	body, err := io.ReadAll(resp.Body)
-	Expect(err).To(BeNil())
+	Expect(err).ToNot(HaveOccurred())
 	Expect(string(body)).Should(Equal(expectedResponse))
 }
 

@@ -47,6 +47,7 @@ linters:
     - lll
     - gosec
     - maligned
+    - musttag # way to many warnings to fix for now, also some false positives
     - gomoddirectives
     - containedctx
     - contextcheck

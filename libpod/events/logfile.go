@@ -91,7 +91,7 @@ func (e EventLogFile) writeString(s string) error {
 
 func (e EventLogFile) getTail(options ReadOptions) (*tail.Tail, error) {
 	reopen := true
-	seek := tail.SeekInfo{Offset: 0, Whence: os.SEEK_END}
+	seek := tail.SeekInfo{Offset: 0, Whence: io.SeekEnd}
 	if options.FromStart || !options.Stream {
 		seek.Whence = 0
 		reopen = false
