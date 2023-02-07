@@ -135,6 +135,25 @@ Show all events created until the given timestamp
 The *since* and *until* values can be RFC3339Nano time stamps or a Go duration string such as 10m, 5h. If no
 *since* or *until* values are provided, only new events will be shown.
 
+## JOURNALD IDENTIFIERS
+
+The journald events-backend of Podman uses the following journald identifiers.  You can use the identifiers to filter Podman events directly with `journalctl`.
+
+| **Identifier**                | **Description**                                         |
+|-------------------------------|---------------------------------------------------------|
+| SYSLOG_IDENTIFIER             | Always set to "podman"                                  |
+| PODMAN_EVENT                  | The event status as described above                     |
+| PODMAN_TYPE                   | The event type as described above                       |
+| PODMAN_TIME                   | The time stamp when the event was written               |
+| PODMAN_NAME                   | Name of the event object (e.g., container, image)       |
+| PODMAN_ID                     | ID of the event object (e.g., container, image)         |
+| PODMAN_EXIT_CODE              | Exit code of the container                              |
+| PODMAN_POD_ID                 | Pod ID of the container                                 |
+| PODMAN_LABELS                 | Labels of the container                                 |
+| PODMAN_HEALTH_STATUS          | Health status of the container                          |
+| PODMAN_CONTAINER_INSPECT_DATA | The JSON payload of `podman-inspect` as described above |
+| PODMAN_NETWORK_NAME           | The name of the network                                 |
+
 ## EXAMPLES
 
 Showing Podman events
