@@ -4396,10 +4396,12 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 		initialUsernsConfig, err := os.ReadFile("/proc/self/uid_map")
 		Expect(err).ToNot(HaveOccurred())
 		if isRootless() {
-			unshare := podmanTest.Podman([]string{"unshare", "cat", "/proc/self/uid_map"})
-			unshare.WaitWithDefaultTimeout()
-			Expect(unshare).Should(Exit(0))
-			initialUsernsConfig = unshare.Out.Contents()
+			// Use podmanTest.PodmanBinary because podman-remote unshare cannot be used
+			cmd := exec.Command(podmanTest.PodmanBinary, "unshare", "cat", "/proc/self/uid_map")
+			session, err := Start(cmd, GinkgoWriter, GinkgoWriter)
+			Expect(err).ToNot(HaveOccurred())
+			Eventually(session, DefaultWaitTimeout).Should(Exit(0))
+			initialUsernsConfig = session.Out.Contents()
 		}
 
 		pod := getPod()
