@@ -35,6 +35,43 @@ my $Markdown_Path = "$Docs_Path/markdown";
 # Global error count
 my $Errs = 0;
 
+# Table of exceptions for documenting fields in '--format {{.Foo}}'
+#
+# Autocomplete is wonderful, and it's even better when we document the
+# existing options. Unfortunately, sometimes internal structures get
+# exposed that are of no use to anyone and cannot be guaranteed. Avoid
+# documenting those. This table lists those exceptions. Format is:
+#
+#      foo       .Bar
+#
+# ...such that "podman foo --format '{{.Bar}}'" will not be documented.
+#
+my $Format_Exceptions = <<'END_EXCEPTIONS';
+# Deep internal structs; pretty sure these are permanent exceptions
+events       .Details
+history      .ImageHistoryLayer
+images       .ImageSummary
+network-ls   .Network
+
+# FIXME: this one, maybe? But someone needs to write the text
+machine-list    .Starting
+
+# No clue what these are. Some are just different-case dups of others.
+pod-ps  .Containers .Id .InfraId .ListPodsReport .Namespace
+ps      .Cgroup .CGROUPNS .IPC .ListContainer .MNT .Namespaces .NET .PIDNS .User .USERNS .UTS
+
+# I think .Destination is an internal struct, but .IsMachine maybe needs doc?
+system-connection-list .Destination .IsMachine
+END_EXCEPTIONS
+
+my %Format_Exceptions;
+for my $line (split "\n", $Format_Exceptions) {
+    $line =~ s/#.*$//;                  # strip comments
+    next unless $line;                  # skip empty lines
+    my ($subcommand, @fields) = split(' ', $line);
+    $Format_Exceptions{"podman-$subcommand"} = \@fields;
+}
+
 # END   user-customizable section
 ###############################################################################
 
@@ -126,14 +163,38 @@ sub main {
 sub xref_by_help {
     my ($help, $man, @subcommand) = @_;
 
+  OPTION:
     for my $k (sort keys %$help) {
         if (exists $man->{$k}) {
             if (ref $help->{$k}) {
+                # This happens when 'podman foo --format' offers
+                # autocompletion that looks like a Go template, but those
+                # template options aren't documented in the man pages.
+                if ($k eq '--format' && ! ref($man->{$k})) {
+                    warn "$ME: 'podman @subcommand': --format options are available through autocomplete, but are not documented in $man->{_path}\n";
+
+                    # FIXME: don't make this an error... yet.
+                    # ++$Errs;
+                    next OPTION;
+                }
+
                 xref_by_help($help->{$k}, $man->{$k}, @subcommand, $k);
             }
             # Otherwise, non-ref is leaf node such as a --option
         }
         else {
+            # Not documented in man. However, handle '...' as a special case
+            # in formatting strings. E.g., 'podman info .Host' is documented
+            # in the man page as '.Host ...' to indicate that the subfields
+            # are way too many to list individually.
+            my $k_copy = $k;
+            while ($k_copy =~ s/\.[^.]+$//) {
+                if (($man->{$k_copy}||'') eq '...') {
+                    next OPTION;
+                }
+            }
+
+            # Nope, it's not that case.
             my $man = $man->{_path} || 'man';
             warn "$ME: 'podman @subcommand --help' lists '$k', which is not in $man\n";
             ++$Errs;
@@ -152,10 +213,22 @@ sub xref_by_man {
     my ($help, $man, @subcommand) = @_;
 
     # FIXME: this generates way too much output
+  KEYWORD:
     for my $k (grep { $_ ne '_path' } sort keys %$man) {
+        if ($k eq '--format' && ref($man->{$k}) && ! ref($help->{$k})) {
+            warn "$ME: 'podman @subcommand': --format options documented in man page, but not available via autocomplete\n";
+            next KEYWORD;
+        }
+
         if (exists $help->{$k}) {
             if (ref $man->{$k}) {
                 xref_by_man($help->{$k}, $man->{$k}, @subcommand, $k);
+            }
+            elsif ($k =~ /^-/) {
+                # This is OK: we don't recurse into options
+            }
+            else {
+                # FIXME: should never get here, but we do. Figure it out later.
             }
         }
         elsif ($k ne '--help' && $k ne '-h') {
@@ -254,15 +327,39 @@ sub podman_help {
             }
         }
         elsif ($section eq 'options') {
+            my $opt = '';
+
             # Handle '--foo' or '-f, --foo'
             if ($line =~ /^\s{1,10}(--\S+)\s/) {
                 print "> podman @_ $1\n"                        if $debug;
-                $help{$1} = 1;
+                $opt = $1;
+                $help{$opt} = 1;
             }
             elsif ($line =~ /^\s{1,10}(-\S),\s+(--\S+)\s/) {
                 print "> podman @_ $1, $2\n"                    if $debug;
-                $help{$1} = $help{$2} = 1;
+                $opt = $2;
+                $help{$1} = $help{$opt} = 1;
             }
+
+            # Special case for --format: run podman with autocomplete.
+            # If that lists one or more '{{.Foo}}' or '{{.Foo.' entries
+            # (indicating terminal or nonterminal nodes respectively)
+            # convert our option data structure from scalar (indicating
+            # that we just cross-check for existence in the man page)
+            # to hashref (indicating that we recurse down and cross-check
+            # each individual param).
+            if ($opt eq '--format') {
+                my @completions = _completions(@_, '--format', '{{.');
+                for my $c (@completions) {
+                    if ($c =~ /^\{\{(\.\S+)(\.|\}\})$/) {
+                        # First time through: convert to a hashref
+                        $help{$opt} = {}   if ! ref($help{$opt});
+
+                        # Remember this param
+                        $help{$opt}{$1} = 1;
+                    }
+                }
+           }
         }
     }
     close $fh
@@ -420,6 +517,31 @@ sub podman_man {
                     }
                 }
             }
+
+            # --format does not always mean a Go format! E.g., push --format=oci
+            if ($previous_flag eq '--format') {
+                # ...but if there's a table like '| .Foo | blah blah |'
+                # then it's definitely a Go template. '.Foo ...' (three dots)
+                # indicates that .Foo includes a number of subfields .Foo.Xxx,
+                # .Foo.Yyy too numerous to list individually in man pages.
+                #                   1     12   3      32
+                if ($line =~ /^\|\s+(\.\S+)(\s+(\.\.\.))?\s+\|/) {
+                    my ($format, $etc) = ($1, $3);
+
+                    # Confirmed: we have a table with '.Foo' strings, so
+                    # this is a Go template. Override previous (scalar)
+                    # setting of the --format flag with a hash, indicating
+                    # that we will recursively cross-check each param.
+                    if (! ref($man{$previous_flag})) {
+                        $man{$previous_flag} = { _path => $subpath };
+                    }
+
+                    # ...and document this format option. $etc, if set,
+                    # will be '...' which indicates that $format has
+                    # too many subformats to document individually.
+                    $man{$previous_flag}{$format} = $etc || 1;
+                }
+            }
         }
 
         # It's easy to make mistakes in the SEE ALSO elements.
@@ -428,6 +550,13 @@ sub podman_man {
         }
     }
     close $fh;
+
+    # Done reading man page. If there are any '--format' exceptions defined
+    # for this command, flag them as seen, and as '...' so we don't
+    # complain about any sub-fields.
+    if (my $fields = $Format_Exceptions{$command}) {
+        $man{"--format"}{$_} = '...' for @$fields;
+    }
 
     # Special case: the 'image trust' man page tries hard to cover both set
     # and show, which means it ends up not being machine-readable.
@@ -509,6 +638,45 @@ sub podman_rst {
     $rst{image}{trust}{$_} = { _desc => 'ok' } for (qw(set show));
 
     return \%rst;
+}
+
+##################
+#  _completions  #  run podman __completeNoDesc, return list of completions
+##################
+sub _completions {
+    my $kidpid = open my $podman_fh, '-|';
+    if (! defined $kidpid) {
+        die "$ME: Could not fork: $!\n";
+    }
+
+    if ($kidpid == 0) {
+        # We are the child
+        close STDERR;
+        exec $PODMAN, '__completeNoDesc', @_;
+        die "$ME: Could not exec: $!\n";
+    }
+
+    # We are the parent
+    my @completions;
+    while (my $line = <$podman_fh>) {
+        chomp $line;
+        push @completions, $line;
+
+        # Recursively expand Go templates, like '{{.Server.Os}}'
+        if ($line =~ /^\{\{\..*\.$/) {
+            my @cmd_copy = @_;          # clone of podman subcommands...
+            pop @cmd_copy;              # ...so we can recurse with new format
+            my @subcompletions = _completions(@cmd_copy, $line);
+
+            # A huge number of deep fields are time-related. Don't document them.
+            my @is_time = grep { /Nanosecond|UnixNano|YearDay/ } @subcompletions;
+            push @completions, @subcompletions
+                unless @is_time >= 3;
+        }
+    }
+    close $podman_fh
+        or warn "$ME: Error running podman __completeNoDesc @_\n";
+    return @completions;
 }
 
 # END   data gathering

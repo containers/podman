@@ -88,7 +88,6 @@ Valid placeholders for the Go template are listed below:
 | .History        | History of the image layer                                 |
 | .ID             | Image ID (truncated)                                       |
 | .Id             | Image ID (full SHA)                                        |
-| .ImageSummary   | Internal data structure, not actually useful               |
 | .IsDangling     | Is image dangling? (true/false)                            |
 | .IsReadOnly     | Is unage read-only? (true/false)                           |
 | .Labels         | map[] of labels                                            |
