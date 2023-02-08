@@ -426,6 +426,9 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 		} else {
 			defer os.Unsetenv("TMPDIR")
 		}
+		if IsRemote() {
+			podmanTest.RestartRemoteService()
+		}
 
 		session := podmanTest.Podman([]string{"info", "--format", "{{.Store.ImageCopyTmpDir}}"})
 		session.WaitWithDefaultTimeout()
