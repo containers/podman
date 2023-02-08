@@ -16,70 +16,70 @@ const (
 	UnitDirDistro = "/usr/share/containers/systemd"
 
 	// Names of commonly used systemd/quadlet group names
-	UnitGroup       = "Unit"
-	InstallGroup    = "Install"
-	ServiceGroup    = "Service"
 	ContainerGroup  = "Container"
-	XContainerGroup = "X-Container"
-	VolumeGroup     = "Volume"
-	XVolumeGroup    = "X-Volume"
+	InstallGroup    = "Install"
 	KubeGroup       = "Kube"
-	XKubeGroup      = "X-Kube"
 	NetworkGroup    = "Network"
+	ServiceGroup    = "Service"
+	UnitGroup       = "Unit"
+	VolumeGroup     = "Volume"
+	XContainerGroup = "X-Container"
+	XKubeGroup      = "X-Kube"
 	XNetworkGroup   = "X-Network"
+	XVolumeGroup    = "X-Volume"
 )
 
 // All the supported quadlet keys
 const (
+	KeyAddCapability         = "AddCapability"
+	KeyAddDevice             = "AddDevice"
+	KeyAnnotation            = "Annotation"
+	KeyConfigMap             = "ConfigMap"
 	KeyContainerName         = "ContainerName"
-	KeyImage                 = "Image"
+	KeyCopy                  = "Copy"
+	KeyDevice                = "Device"
+	KeyDropCapability        = "DropCapability"
 	KeyEnvironment           = "Environment"
 	KeyEnvironmentFile       = "EnvironmentFile"
 	KeyEnvironmentHost       = "EnvironmentHost"
 	KeyExec                  = "Exec"
-	KeyNoNewPrivileges       = "NoNewPrivileges"
-	KeyDropCapability        = "DropCapability"
-	KeyAddCapability         = "AddCapability"
-	KeyReadOnly              = "ReadOnly"
-	KeyRemapUsers            = "RemapUsers"
-	KeyRemapUID              = "RemapUid"
-	KeyRemapGID              = "RemapGid"
-	KeyRemapUIDSize          = "RemapUidSize"
-	KeyRootfs                = "Rootfs"
-	KeyNotify                = "Notify"
 	KeyExposeHostPort        = "ExposeHostPort"
-	KeyPublishPort           = "PublishPort"
-	KeyUser                  = "User"
 	KeyGroup                 = "Group"
-	KeyDevice                = "Device"
-	KeyType                  = "Type"
-	KeyOptions               = "Options"
-	KeyCopy                  = "Copy"
-	KeyVolume                = "Volume"
-	KeyPodmanArgs            = "PodmanArgs"
+	KeyImage                 = "Image"
 	KeyLabel                 = "Label"
-	KeyAnnotation            = "Annotation"
-	KeyRunInit               = "RunInit"
-	KeyVolatileTmp           = "VolatileTmp"
-	KeyTimezone              = "Timezone"
-	KeySeccompProfile        = "SeccompProfile"
-	KeySecurityLabelDisable  = "SecurityLabelDisable"
-	KeySecurityLabelFileType = "SecurityLabelFileType"
-	KeySecurityLabelType     = "SecurityLabelType"
-	KeySecurityLabelLevel    = "SecurityLabelLevel"
-	KeyAddDevice             = "AddDevice"
 	KeyNetwork               = "Network"
-	KeyYaml                  = "Yaml"
 	KeyNetworkDisableDNS     = "DisableDNS"
 	KeyNetworkDriver         = "Driver"
 	KeyNetworkGateway        = "Gateway"
-	KeyNetworkInternal       = "Internal"
-	KeyNetworkIPRange        = "IPRange"
 	KeyNetworkIPAMDriver     = "IPAMDriver"
+	KeyNetworkIPRange        = "IPRange"
 	KeyNetworkIPv6           = "IPv6"
+	KeyNetworkInternal       = "Internal"
 	KeyNetworkOptions        = "Options"
 	KeyNetworkSubnet         = "Subnet"
-	KeyConfigMap             = "ConfigMap"
+	KeyNoNewPrivileges       = "NoNewPrivileges"
+	KeyNotify                = "Notify"
+	KeyOptions               = "Options"
+	KeyPodmanArgs            = "PodmanArgs"
+	KeyPublishPort           = "PublishPort"
+	KeyReadOnly              = "ReadOnly"
+	KeyRemapGID              = "RemapGid"
+	KeyRemapUID              = "RemapUid"
+	KeyRemapUIDSize          = "RemapUidSize"
+	KeyRemapUsers            = "RemapUsers"
+	KeyRootfs                = "Rootfs"
+	KeyRunInit               = "RunInit"
+	KeySeccompProfile        = "SeccompProfile"
+	KeySecurityLabelDisable  = "SecurityLabelDisable"
+	KeySecurityLabelFileType = "SecurityLabelFileType"
+	KeySecurityLabelLevel    = "SecurityLabelLevel"
+	KeySecurityLabelType     = "SecurityLabelType"
+	KeyTimezone              = "Timezone"
+	KeyType                  = "Type"
+	KeyUser                  = "User"
+	KeyVolatileTmp           = "VolatileTmp"
+	KeyVolume                = "Volume"
+	KeyYaml                  = "Yaml"
 )
 
 var (
@@ -87,77 +87,77 @@ var (
 
 	// Supported keys in "Container" group
 	supportedContainerKeys = map[string]bool{
+		KeyAddCapability:         true,
+		KeyAddDevice:             true,
+		KeyAnnotation:            true,
 		KeyContainerName:         true,
-		KeyImage:                 true,
+		KeyDropCapability:        true,
 		KeyEnvironment:           true,
 		KeyEnvironmentFile:       true,
 		KeyEnvironmentHost:       true,
 		KeyExec:                  true,
-		KeyNoNewPrivileges:       true,
-		KeyDropCapability:        true,
-		KeyAddCapability:         true,
-		KeyReadOnly:              true,
-		KeyRemapUsers:            true,
-		KeyRemapUID:              true,
-		KeyRemapGID:              true,
-		KeyRemapUIDSize:          true,
-		KeyRootfs:                true,
-		KeyNotify:                true,
 		KeyExposeHostPort:        true,
-		KeyPublishPort:           true,
-		KeyUser:                  true,
 		KeyGroup:                 true,
-		KeyVolume:                true,
-		KeyPodmanArgs:            true,
+		KeyImage:                 true,
 		KeyLabel:                 true,
-		KeyAnnotation:            true,
+		KeyNetwork:               true,
+		KeyNoNewPrivileges:       true,
+		KeyNotify:                true,
+		KeyPodmanArgs:            true,
+		KeyPublishPort:           true,
+		KeyReadOnly:              true,
+		KeyRemapGID:              true,
+		KeyRemapUID:              true,
+		KeyRemapUIDSize:          true,
+		KeyRemapUsers:            true,
+		KeyRootfs:                true,
 		KeyRunInit:               true,
-		KeyVolatileTmp:           true,
-		KeyTimezone:              true,
 		KeySeccompProfile:        true,
 		KeySecurityLabelDisable:  true,
 		KeySecurityLabelFileType: true,
-		KeySecurityLabelType:     true,
 		KeySecurityLabelLevel:    true,
-		KeyAddDevice:             true,
-		KeyNetwork:               true,
+		KeySecurityLabelType:     true,
+		KeyTimezone:              true,
+		KeyUser:                  true,
+		KeyVolatileTmp:           true,
+		KeyVolume:                true,
 	}
 
 	// Supported keys in "Volume" group
 	supportedVolumeKeys = map[string]bool{
-		KeyUser:    true,
-		KeyGroup:   true,
-		KeyDevice:  true,
-		KeyType:    true,
-		KeyOptions: true,
 		KeyCopy:    true,
+		KeyDevice:  true,
+		KeyGroup:   true,
 		KeyLabel:   true,
+		KeyOptions: true,
+		KeyType:    true,
+		KeyUser:    true,
 	}
 
 	// Supported keys in "Volume" group
 	supportedNetworkKeys = map[string]bool{
+		KeyLabel:             true,
 		KeyNetworkDisableDNS: true,
 		KeyNetworkDriver:     true,
 		KeyNetworkGateway:    true,
-		KeyNetworkInternal:   true,
-		KeyNetworkIPRange:    true,
 		KeyNetworkIPAMDriver: true,
+		KeyNetworkIPRange:    true,
 		KeyNetworkIPv6:       true,
+		KeyNetworkInternal:   true,
 		KeyNetworkOptions:    true,
 		KeyNetworkSubnet:     true,
-		KeyLabel:             true,
 	}
 
 	// Supported keys in "Kube" group
 	supportedKubeKeys = map[string]bool{
-		KeyYaml:         true,
-		KeyRemapUID:     true,
-		KeyRemapGID:     true,
-		KeyRemapUsers:   true,
-		KeyRemapUIDSize: true,
-		KeyNetwork:      true,
 		KeyConfigMap:    true,
+		KeyNetwork:      true,
 		KeyPublishPort:  true,
+		KeyRemapGID:     true,
+		KeyRemapUID:     true,
+		KeyRemapUIDSize: true,
+		KeyRemapUsers:   true,
+		KeyYaml:         true,
 	}
 )
 
