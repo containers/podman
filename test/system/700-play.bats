@@ -99,6 +99,12 @@ RELABEL="system_u:object_r:container_file_t:s0"
        is "$output" "${RELABEL} $TESTDIR" "selinux relabel should have happened"
     fi
 
+    # Now rerun twice to make sure nothing gets removed
+    run_podman 125 play kube $PODMAN_TMPDIR/test.yaml
+    is "$output" ".* is in use: pod already exists"
+    run_podman 125 play kube $PODMAN_TMPDIR/test.yaml
+    is "$output" ".* is in use: pod already exists"
+
     run_podman stop -a -t 0
     run_podman pod rm -t 0 -f test_pod
 }
