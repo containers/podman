@@ -114,6 +114,24 @@ function service_cleanup() {
     systemctl daemon-reload
 }
 
+function create_secret() {
+    local secret_name=$(random_string)
+    local secret_file=$PODMAN_TMPDIR/secret_$(random_string)
+    local secret=$(random_string)
+
+    echo $secret > $secret_file
+    run_podman secret create $secret_name $secret_file
+
+    SECRET_NAME=$secret_name
+    SECRET=$secret
+}
+
+function remove_secret() {
+    local secret_name="$1"
+
+    run_podman secret rm $secret_name
+}
+
 @test "quadlet - basic" {
     local quadlet_file=$PODMAN_TMPDIR/basic_$(random_string).container
     cat > $quadlet_file <<EOF
@@ -475,6 +493,58 @@ EOF
     is "$output" "system_u:object_r:container_ro_file_t:s0:c100,c200" "container should be started with correct Mount Label"
 
     service_cleanup $QUADLET_SERVICE_NAME failed
+}
+
+@test "quadlet - secret as environment variable" {
+    create_secret
+
+    local quadlet_file=$PODMAN_TMPDIR/basic_$(random_string).container
+    cat > $quadlet_file <<EOF
+[Container]
+ContainerName=$NAME
+Image=$IMAGE
+Secret=$SECRET_NAME,type=env,target=MYSECRET
+Exec=sh -c "echo STARTED CONTAINER; echo "READY=1" | socat -u STDIN unix-sendto:\$NOTIFY_SOCKET; top"
+EOF
+
+    run_quadlet "$quadlet_file"
+    service_setup $QUADLET_SERVICE_NAME
+
+    # Ensure we have output. Output is synced via sd-notify (socat in Exec)
+    run journalctl "--since=$STARTED_TIME" --unit="$QUADLET_SERVICE_NAME"
+    is "$output" '.*STARTED CONTAINER.*'
+
+    run_podman exec $QUADLET_CONTAINER_NAME /bin/sh -c "printenv MYSECRET"
+    is "$output" $SECRET
+
+    service_cleanup $QUADLET_SERVICE_NAME failed
+    remove_secret $SECRET_NAME
+}
+
+@test "quadlet - secret as a file" {
+    create_secret
+
+    local quadlet_file=$PODMAN_TMPDIR/basic_$(random_string).container
+    cat > $quadlet_file <<EOF
+[Container]
+ContainerName=$NAME
+Image=$IMAGE
+Secret=$SECRET_NAME,type=mount,target=/root/secret
+Exec=sh -c "echo STARTED CONTAINER; echo "READY=1" | socat -u STDIN unix-sendto:\$NOTIFY_SOCKET; top"
+EOF
+
+    run_quadlet "$quadlet_file"
+    service_setup $QUADLET_SERVICE_NAME
+
+    # Ensure we have output. Output is synced via sd-notify (socat in Exec)
+    run journalctl "--since=$STARTED_TIME" --unit="$QUADLET_SERVICE_NAME"
+    is "$output" '.*STARTED CONTAINER.*'
+
+    run_podman exec $QUADLET_CONTAINER_NAME /bin/sh -c "cat /root/secret"
+    is "$output" $SECRET
+
+    service_cleanup $QUADLET_SERVICE_NAME failed
+    remove_secret $SECRET_NAME
 }
 
 # vim: filetype=sh
