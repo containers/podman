@@ -279,14 +279,19 @@ func play(cmd *cobra.Command, args []string) error {
 	}
 
 	if err := kubeplay(reader); err != nil {
+		// FIXME: The cleanup logic below must be fixed to only remove
+		// resources that were created before a failure.  Otherwise,
+		// rerunning the same YAML file will cause an error and remove
+		// the previously created workload.
+		//
 		// teardown any containers, pods, and volumes that might have created before we hit the error
-		teardownReader, trErr := readerFromArg(args[0])
-		if trErr != nil {
-			return trErr
-		}
-		if tErr := teardown(teardownReader, entities.PlayKubeDownOptions{Force: true}, true); tErr != nil && !errorhandling.Contains(tErr, define.ErrNoSuchPod) {
-			return fmt.Errorf("error tearing down workloads %q after kube play error %q", tErr, err)
-		}
+		//		teardownReader, trErr := readerFromArg(args[0])
+		//		if trErr != nil {
+		//			return trErr
+		//		}
+		//		if tErr := teardown(teardownReader, entities.PlayKubeDownOptions{Force: true}, true); tErr != nil && !errorhandling.Contains(tErr, define.ErrNoSuchPod) {
+		//			return fmt.Errorf("error tearing down workloads %q after kube play error %q", tErr, err)
+		//		}
 		return err
 	}
 
