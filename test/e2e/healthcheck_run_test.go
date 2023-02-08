@@ -267,7 +267,7 @@ var _ = Describe("Podman healthcheck run", func() {
 		inspect = podmanTest.InspectContainer("hc")
 		Expect(inspect[0].State.Health).To(HaveField("Status", define.HealthCheckHealthy))
 
-		// Test podman ps --filter heath is working (#11687)
+		// Test podman ps --filter health is working (#11687)
 		ps := podmanTest.Podman([]string{"ps", "--filter", "health=healthy"})
 		ps.WaitWithDefaultTimeout()
 		Expect(ps).Should(Exit(0))
@@ -366,7 +366,7 @@ HEALTHCHECK CMD ls -l / 2>&1`, ALPINE)
 		inspect = podmanTest.InspectContainer(ctrName)
 		Expect(inspect[0].State.Health).To(HaveField("Status", define.HealthCheckHealthy))
 
-		// Test podman ps --filter heath is working (#11687)
+		// Test podman ps --filter health is working (#11687)
 		ps := podmanTest.Podman([]string{"ps", "--filter", "health=healthy"})
 		ps.WaitWithDefaultTimeout()
 		Expect(ps).Should(Exit(0))
