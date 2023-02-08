@@ -58,7 +58,7 @@ Currently, only the `Alias`, `WantedBy` and `RequiredBy` keys are supported.
 words `WantedBy=other.service`, not `WantedBy=other.container`. The same is
 true for other kinds of dependencies, too, like `After=other.service`.
 
-================================================================================
+=====================================================================
 
 ### Container units [Container]
 
@@ -73,7 +73,46 @@ I.e. a `$name.container` file will create a `$name.service` unit and a `systemd-
 
 There is only one required key, `Image`, which defines the container image the service should run.
 
-Supported keys in `Container` section are:
+Valid options for `[Container]` are listed below:
+
+| **[Container] options**          | **podman run equivalent**              |
+| -----------------                | ------------------                     |
+| AddCapability=CAP                | --cap-add CAP                          |
+| AddDevice=/dev/foo               | --device /dev/foo                      |
+| Annotation="YXZ"                 | --annotation "XYZ"                     |
+| ContainerName=name               | --name name                            |
+| DropCapability=CAP               | --cap-drop=CAP                         |
+| Environment=foo=bar              | --env foo=bar                          |
+| EnvironmentFile=/tmp/env         | --env-file /tmp/env                    |
+| EnvironmentHost=true             | --env-host                             |
+| Exec=/usr/bin/command            | Command after image specification - /usr/bin/command   |
+| ExposeHostPort=50-59             | --expose 50-59                         |
+| Group=1234                       | --user UID:1234                        |
+| Image=ubi8                       | Image specification - ubi8             |
+| Label="YXZ"                      | --label "XYZ"                          |
+| Network=host                     | --net host                             |
+| NoNewPrivileges=true             | --security-opt no-new-privileges       |
+| Rootfs=/var/lib/rootfs           | --rootfs /var/lib/rootfs               |
+| Notify=true                      | --sdnotify container                   |
+| PodmanArgs=--add-host foobar     | --add-host foobar                      |
+| PublishPort=true                 | --publish                              |
+| ReadOnly=true                    | --read-only                            |
+| RemapGid=keep-id                 | --group-add keep-id                    |
+| RemapUid=0:100000:2000           | --uidmap 0:100000:2000                 |
+| RemapUidSize=6000                | --userns auto:6000                     |
+| RemapUsers=auto                  | --userns auto                          |
+| RunInit=true                     | --init                                 |
+| SeccompProfile=/tmp/s.json       | --security-opt seccomp=/tmp/s.json     |
+| SecurityLabelDisable=true        | --security-opt label=disable           |
+| SecurityLabelFileType=usr_t      | --security-opt label=filetype:usr_t    |
+| SecurityLabelLevel=s0:c1,c2      | --security-opt label=level:s0:c1,c2    |
+| SecurityLabelType=spc_t          | --security-opt label=type:spc_t        |
+| Timezone=local                   | --tz local                             |
+| User=bin                         | --user bin                             |
+| VolatileTmp=true                 | --tmpfs /tmp                           |
+| Volume=/source:/dest             | --volume /source:/dest                 |
+
+Description of `[Container]` section are:
 
 #### `AddCapability=`
 
@@ -328,7 +367,7 @@ created by using a `$name.volume` quadlet file.
 
 This key can be listed multiple times.
 
-================================================================================
+=====================================================================
 
 ### Kube units [Kube]
 
@@ -340,7 +379,20 @@ interact with the container.
 
 There is only one required key, `Yaml`, which defines the path to the Kubernetes YAML file.
 
-Supported keys in the `Kube` section are:
+Valid options for `[Kube]` are listed below:
+
+| **[Kube] options**               | **podman kube play equivalent**        |
+| -----------------                | ------------------                     |
+| ConfigMap=/tmp/config.map        | --config-map /tmp/config.map           |
+| Network=host                     | --net host                             |
+| PublishPort=59-60                | --publish=59-60                        |
+| RemapGid=keep-id                 | --group-add keep-id                    |
+| RemapUid=0:100000:2000           | --uidmap 0:100000:2000                 |
+| RemapUidSize=6000                | --userns auto:6000                     |
+| RemapUsers=auto                  | --userns auto                          |
+| Yaml=/tmp/kube.yaml              | podman kube play /tmp/kube.yaml        |
+
+Supported keys in the `[Kube]` section are:
 
 #### `ConfigMap=`
 
@@ -413,7 +465,7 @@ only on user systemd units.
 
 The path, absolute or relative to the location of the unit file, to the Kubernetes YAML file to use.
 
-========================================================================
+=====================================================================
 
 ### Network units [Network]
 
@@ -428,7 +480,22 @@ Using network units allows containers to depend on networks being automatically 
 particularly interesting when using special options to control network creation, as Podman will
 otherwise create networks with the default options.
 
-Supported keys in `Network` section are:
+Valid options for `[Network]` are listed below:
+
+| **[Network] options**            | **podman network create equivalent**   |
+| -----------------                | ------------------                     |
+| DisableDNS=true                  | --disable-dns                          |
+| Driver=bridge                    | --driver bridge                        |
+| Gateway=192.168.55.3             | --gateway 192.168.55.3                 |
+| Internal=true                    | --internal                             |
+| IPAMDriver=dhcp                  | --ipam-driver dhcp                     |
+| IPRange=192.168.55.128/25        | --ip-range 192.168.55.128/25           |
+| IPv6=true                        | --ipv6                                 |
+| Label="YXZ"                      | --label "XYZ"                          |
+| Options=isolate                  | --opt isolate                          |
+| Subnet=192.5.0.0/16              | --subnet 192.5.0.0/16                  |
+
+Supported keys in `[Network]` section are:
 
 #### `DisableDNS=` (defaults to `no`)
 
@@ -497,7 +564,7 @@ This is equivalent to the Podman `--subnet` option
 
 This key can be listed multiple times.
 
-================================================================================
+=====================================================================
 
 ### Volume units [Volume]
 
@@ -512,7 +579,17 @@ Using volume units allows containers to depend on volumes being automatically pr
 particularly interesting when using special options to control volume creation, as Podman will
 otherwise create volumes with the default options.
 
-Supported keys in `Volume` section are:
+Valid options for `[Volume]` are listed below:
+
+| **[Volume] options**             | **podman volume create equivalent**   |
+| -----------------                | ------------------                    |
+| Device=tmpfs                     | --opt device=tmpfs                    |
+| Copy=true                        | --opt copy                            |
+| Groupt=192                       | --opt group=192                       |
+| Label="foo=bar"                  | --label "foo=bar"                     |
+| Options=XYZ                      | --opt XYZ                             |
+
+Supported keys in `[Volume]` section are:
 
 #### `Copy=` (default to `yes`)
 

@@ -134,7 +134,7 @@ var (
 		KeyUser:    true,
 	}
 
-	// Supported keys in "Volume" group
+	// Supported keys in "Network" group
 	supportedNetworkKeys = map[string]bool{
 		KeyLabel:             true,
 		KeyNetworkDisableDNS: true,
