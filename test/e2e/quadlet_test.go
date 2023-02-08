@@ -481,6 +481,7 @@ var _ = Describe("quadlet system generator", func() {
 		Entry("env-file.container", "env-file.container"),
 		Entry("env-host.container", "env-host.container"),
 		Entry("env-host-false.container", "env-host-false.container"),
+		Entry("secrets.container", "secrets.container"),
 
 		Entry("basic.volume", "basic.volume"),
 		Entry("label.volume", "label.volume"),

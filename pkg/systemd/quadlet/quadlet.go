@@ -74,6 +74,7 @@ const (
 	KeySecurityLabelFileType = "SecurityLabelFileType"
 	KeySecurityLabelLevel    = "SecurityLabelLevel"
 	KeySecurityLabelType     = "SecurityLabelType"
+	KeySecret                = "Secret"
 	KeyTimezone              = "Timezone"
 	KeyType                  = "Type"
 	KeyUser                  = "User"
@@ -117,6 +118,7 @@ var (
 		KeySecurityLabelFileType: true,
 		KeySecurityLabelLevel:    true,
 		KeySecurityLabelType:     true,
+		KeySecret:                true,
 		KeyTimezone:              true,
 		KeyUser:                  true,
 		KeyVolatileTmp:           true,
@@ -516,6 +518,11 @@ func ConvertContainer(container *parser.UnitFile, isUser bool) (*parser.UnitFile
 
 	if envHost, ok := container.LookupBoolean(ContainerGroup, KeyEnvironmentHost); ok {
 		podman.addBool("--env-host", envHost)
+	}
+
+	secrets := container.LookupAllArgs(ContainerGroup, KeySecret)
+	for _, secret := range secrets {
+		podman.add("--secret", secret)
 	}
 
 	podmanArgs := container.LookupAllArgs(ContainerGroup, KeyPodmanArgs)

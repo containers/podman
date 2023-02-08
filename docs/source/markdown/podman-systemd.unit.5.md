@@ -301,6 +301,11 @@ Set the label process level for the container processes.
 
 Set the label process type for the container processes.
 
+#### `Secret=`
+
+Use a Podman secret in the container either as a file or an environment variable.
+This is equivalent to the Podman `--secret` option and generally has the form `secret[,opt=opt ...]`
+
 #### `Timezone=` (if unset uses system-configured default)
 
 The timezone to run the container in.
