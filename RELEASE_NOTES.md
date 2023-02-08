@@ -1,5 +1,15 @@
 # Release Notes
 
+## 4.4.1
+### Changes
+- Added the `podman-systemd.unit` man page, which can also be displayed using `man quadlet` ([#17349](https://github.com/containers/podman/issues/17349)).
+- Documented journald identifiers used in the journald backend for the `podman events` command.
+
+### Bugfixes
+- Fixed a bug where the default handling of pids-limit was incorrect.
+- Fixed a bug where parallel calls to `make docs` crashed ([#17322](https://github.com/containers/podman/issues/17322)).
+- Fixed a regression in the `podman kube play` command where existing resources got mistakenly removed.
+
 ## 4.4.0
 ### Features
 - Introduce Quadlet, a new systemd-generator that easily writes and maintains systemd services using Podman.
