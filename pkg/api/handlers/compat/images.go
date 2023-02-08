@@ -201,6 +201,7 @@ func CreateImageFromSrc(w http.ResponseWriter, r *http.Request) {
 		source = f.Name()
 		if err := SaveFromBody(f, r); err != nil {
 			utils.Error(w, http.StatusInternalServerError, fmt.Errorf("failed to write temporary file: %w", err))
+			return
 		}
 	}
 

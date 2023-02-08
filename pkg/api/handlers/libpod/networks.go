@@ -68,6 +68,7 @@ func UpdateNetwork(w http.ResponseWriter, r *http.Request) {
 	err := ic.NetworkUpdate(r.Context(), name, networkUpdateOptions)
 	if err != nil {
 		utils.Error(w, http.StatusInternalServerError, err)
+		return
 	}
 
 	utils.WriteResponse(w, http.StatusNoContent, nil)

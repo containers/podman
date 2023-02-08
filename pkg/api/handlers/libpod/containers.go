@@ -163,6 +163,7 @@ func UnmountContainer(w http.ResponseWriter, r *http.Request) {
 	// "container not mounted" error so we can surface that to the endpoint user
 	if err := conn.Unmount(false); err != nil {
 		utils.InternalServerError(w, err)
+		return
 	}
 	utils.WriteResponse(w, http.StatusNoContent, "")
 }
@@ -178,6 +179,7 @@ func MountContainer(w http.ResponseWriter, r *http.Request) {
 	m, err := conn.Mount()
 	if err != nil {
 		utils.InternalServerError(w, err)
+		return
 	}
 	utils.WriteResponse(w, http.StatusOK, m)
 }
@@ -188,11 +190,13 @@ func ShowMountedContainers(w http.ResponseWriter, r *http.Request) {
 	conns, err := runtime.GetAllContainers()
 	if err != nil {
 		utils.InternalServerError(w, err)
+		return
 	}
 	for _, conn := range conns {
 		mounted, mountPoint, err := conn.Mounted()
 		if err != nil {
 			utils.InternalServerError(w, err)
+			return
 		}
 		if !mounted {
 			continue
