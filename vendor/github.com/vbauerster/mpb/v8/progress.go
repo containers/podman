@@ -39,10 +39,7 @@ type pState struct {
 	heapUpdated bool
 	pMatrix     map[int][]chan int
 	aMatrix     map[int][]chan int
-
-	// for reuse purposes
-	rows []io.Reader
-	pool []*Bar
+	rows        []io.Reader
 
 	// following are provided/overrided by user
 	refreshRate        time.Duration
@@ -72,8 +69,7 @@ func New(options ...ContainerOption) *Progress {
 // method has been called.
 func NewWithContext(ctx context.Context, options ...ContainerOption) *Progress {
 	s := &pState{
-		rows:          make([]io.Reader, 0, 64),
-		pool:          make([]*Bar, 0, 64),
+		rows:          make([]io.Reader, 32),
 		refreshRate:   defaultRefreshRate,
 		popPriority:   math.MinInt32,
 		manualRefresh: make(chan interface{}),
@@ -275,9 +271,6 @@ func (p *Progress) serve(s *pState, cw *cwriter.Writer) {
 	defer close(p.shutdown)
 
 	render := func() error {
-		if s.bHeap.Len() == 0 {
-			return nil
-		}
 		return s.render(cw)
 	}
 
@@ -336,6 +329,8 @@ func (s *pState) render(cw *cwriter.Writer) error {
 
 func (s *pState) flush(wg *sync.WaitGroup, cw *cwriter.Writer, height int) error {
 	var popCount int
+	pool := make([]*Bar, 0, s.bHeap.Len())
+	s.rows = s.rows[:0]
 
 	for s.bHeap.Len() > 0 {
 		b := heap.Pop(&s.bHeap).(*Bar)
@@ -362,7 +357,7 @@ func (s *pState) flush(wg *sync.WaitGroup, cw *cwriter.Writer, height int) error
 			if qb, ok := s.queueBars[b]; ok {
 				delete(s.queueBars, b)
 				qb.priority = b.priority
-				s.pool = append(s.pool, qb)
+				pool = append(pool, qb)
 				s.heapUpdated = true
 				continue
 			}
@@ -383,25 +378,15 @@ func (s *pState) flush(wg *sync.WaitGroup, cw *cwriter.Writer, height int) error
 				continue
 			}
 		}
-		s.pool = append(s.pool, b)
+		pool = append(pool, b)
 	}
 
-	switch len(s.pool) {
-	case 0:
-		if s.heapUpdated {
-			s.updateSyncMatrix()
-			s.heapUpdated = false
-		}
-	case 1:
-		heap.Push(&s.bHeap, s.pool[0])
-		s.pool = s.pool[:0]
-	default:
+	if len(pool) != 0 {
 		wg.Add(1)
 		go func() {
-			for _, b := range s.pool {
+			for _, b := range pool {
 				heap.Push(&s.bHeap, b)
 			}
-			s.pool = s.pool[:0]
 			wg.Done()
 		}()
 	}
@@ -414,7 +399,6 @@ func (s *pState) flush(wg *sync.WaitGroup, cw *cwriter.Writer, height int) error
 	}
 
 	err := cw.Flush(len(s.rows) - popCount)
-	s.rows = s.rows[:0]
 	return err
 }
 

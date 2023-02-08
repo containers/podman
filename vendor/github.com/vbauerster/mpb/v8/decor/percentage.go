@@ -23,7 +23,7 @@ func (s percentageType) Format(st fmt.State, verb rune) {
 		}
 	}
 
-	p := bytePool.Get().(*[]byte)
+	p := bytesPool.Get().(*[]byte)
 	b := strconv.AppendFloat(*p, float64(s), 'f', prec, 64)
 	if st.Flag(' ') {
 		b = append(b, ' ', '%')
@@ -34,7 +34,7 @@ func (s percentageType) Format(st fmt.State, verb rune) {
 	if err != nil {
 		panic(err)
 	}
-	bytePool.Put(p)
+	bytesPool.Put(p)
 }
 
 // Percentage returns percentage decorator. It's a wrapper of NewPercentage.
