@@ -19,9 +19,12 @@ driver options can be set using the **--opt** flag.
 
 Specify the volume driver name (default **local**).
 There are two drivers supported by Podman itself: **local** and **image**.
+
 The **local** driver uses a directory on disk as the backend by default, but can also use the **mount(8)** command to mount a filesystem as the volume if **--opt** is specified.
+
 The **image** driver uses an image as the backing store of for the volume.
 An overlay filesystem will be created, which allows changes to the volume to be committed as a new layer on top of the image.
+
 Using a value other than **local** or **image**, Podman will attempt to create the volume using a volume plugin with the given name.
 Such plugins must be defined in the **volume_plugins** section of the **[containers.conf(5)](https://github.com/containers/common/blob/main/docs/containers.conf.5.md)** configuration file.
 
@@ -41,10 +44,12 @@ Set metadata for a volume (e.g., --label mykey=value).
 
 Set driver specific options.
 For the default driver, **local**, this allows a volume to be configured to mount a filesystem on the host.
+
 For the `local` driver the following options are supported: `type`, `device`, `o`, and `[no]copy`.
-The `type` option sets the type of the filesystem to be mounted, and is equivalent to the `-t` flag to **mount(8)**.
-The `device` option sets the device to be mounted, and is equivalent to the `device` argument to **mount(8)**.
-The `copy` option enables copying files from the container image path where the mount is created to the newly created volume on the first run.  `copy` is the default.
+
+  - The `type` option sets the type of the filesystem to be mounted, and is equivalent to the `-t` flag to **mount(8)**.
+  - The `device` option sets the device to be mounted, and is equivalent to the `device` argument to **mount(8)**.
+  - The `copy` option enables copying files from the container image path where the mount is created to the newly created volume on the first run.  `copy` is the default.
 
 The `o` option sets options for the mount, and is equivalent to the filesystem
 options (also `-o`) passed to **mount(8)** with the following exceptions:

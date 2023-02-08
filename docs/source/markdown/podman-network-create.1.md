@@ -34,6 +34,7 @@ Driver to manage the network. Currently `bridge`, `macvlan` and `ipvlan` are sup
 As rootless the `macvlan` and `ipvlan` driver have no access to the host network interfaces because rootless networking requires a separate network namespace.
 
 Special considerations for the *netavark* backend:
+
 - The `macvlan` driver requires the `--subnet` option, DHCP is currently not supported.
 - The `ipvlan` driver is not currently supported.
 
@@ -61,9 +62,12 @@ The argument order of the **--subnet**, **--gateway** and **--ip-range** options
 #### **--ipam-driver**=*driver*
 
 Set the ipam driver (IP Address Management Driver) for the network. When unset podman will choose an
-ipam driver automatically based on the network driver. Valid values are:
- - `host-local`: IP addresses are assigned locally.
+ipam driver automatically based on the network driver.
+
+Valid values are:
+
  - `dhcp`: IP addresses are assigned from a dhcp server on the network. This driver is not yet supported with netavark. For CNI the *dhcp* plugin needs to be activated before.
+ - `host-local`: IP addresses are assigned locally.
  - `none`: No ip addresses are assigned to the interfaces.
 
 View the driver in the **podman network inspect** output under the `ipam_options` field.
@@ -81,14 +85,17 @@ Set metadata for a network (e.g., --label mykey=value).
 Set driver specific options.
 
 All drivers accept the `mtu` and `metric` options.
+
 - `mtu`: Sets the Maximum Transmission Unit (MTU) and takes an integer value.
 - `metric` Sets the Route Metric for the default route created in every container joined to this network. Accepts a positive integer value. Can only be used with the Netavark network backend.
 
 Additionally the `bridge` driver supports the following options:
+
 - `vlan`: This option assign VLAN tag and enables vlan\_filtering. Defaults to none.
 - `isolate`: This option isolates networks by blocking traffic between those that have this option enabled.
 
 The `macvlan` and `ipvlan` driver support the following options:
+
 - `parent`: The host device which should be used for the macvlan interface. Defaults to the default route interface.
 - `mode`: This option sets the specified ip/macvlan mode on the interface.
   - Supported values for `macvlan` are `bridge`, `private`, `vepa`, `passthru`. Defaults to `bridge`.

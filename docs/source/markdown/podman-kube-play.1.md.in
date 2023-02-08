@@ -8,12 +8,16 @@ podman-kube-play - Create containers, pods and volumes based on Kubernetes YAML
 
 ## DESCRIPTION
 **podman kube play** will read in a structured file of Kubernetes YAML.  It will then recreate the containers, pods or volumes described in the YAML.  Containers within a pod are then started and the ID of the new Pod or the name of the new Volume is output. If the yaml file is specified as "-" then `podman kube play` will read the YAML file from stdin.
-Using the `--down` command line option, it is also capable of tearing down the pods created by a previous run of `podman kube play`.
-Using the `--replace` command line option, it will tear down the pods(if any) created by a previous run of `podman kube play` and recreate the pods with the Kubernetes YAML file.
-Ideally the input file would be one created by Podman (see podman-kube-generate(1)).  This would guarantee a smooth import and expected results.
 The input can also be a URL that points to a YAML file such as https://podman.io/demo.yml. `podman kube play` will read the YAML from the URL and create pods and containers from it.
 
+Using the `--down` command line option, it is also capable of tearing down the pods created by a previous run of `podman kube play`.
+
+Using the `--replace` command line option, it will tear down the pods(if any) created by a previous run of `podman kube play` and recreate the pods with the Kubernetes YAML file.
+
+Ideally the input file would be one created by Podman (see podman-kube-generate(1)).  This would guarantee a smooth import and expected results.
+
 Currently, the supported Kubernetes kinds are:
+
 - Pod
 - Deployment
 - PersistentVolumeClaim
@@ -21,7 +25,11 @@ Currently, the supported Kubernetes kinds are:
 
 `Kubernetes Pods or Deployments`
 
-Only three volume types are supported by kube play, the *hostPath*, *emptyDir*, and *persistentVolumeClaim* volume types. For the *hostPath* volume type, only the  *default (empty)*, *DirectoryOrCreate*, *Directory*, *FileOrCreate*, *File*, *Socket*, *CharDevice* and *BlockDevice* subtypes are supported. Podman interprets the value of *hostPath* *path* as a file path when it contains at least one forward slash, otherwise Podman treats the value as the name of a named volume. When using a *persistentVolumeClaim*, the value for *claimName* is the name for the Podman named volume. When using an *emptyDir* volume, podman creates an anonymous volume that is attached the containers running inside the pod and is deleted once the pod is removed.
+Only three volume types are supported by kube play, the *hostPath*, *emptyDir*, and *persistentVolumeClaim* volume types.
+
+- When using the *hostPath* volume type, only the  *default (empty)*, *DirectoryOrCreate*, *Directory*, *FileOrCreate*, *File*, *Socket*, *CharDevice* and *BlockDevice* subtypes are supported. Podman interprets the value of *hostPath* *path* as a file path when it contains at least one forward slash, otherwise Podman treats the value as the name of a named volume.
+- When using a *persistentVolumeClaim*, the value for *claimName* is the name for the Podman named volume.
+- When using an *emptyDir* volume, Podman creates an anonymous volume that is attached the containers running inside the pod and is deleted once the pod is removed.
 
 Note: The default restart policy for containers is `always`.  You can change the default by setting the `restartPolicy` field in the spec.
 
