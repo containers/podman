@@ -327,8 +327,10 @@ func main() {
 	}
 
 	if len(units) == 0 {
+		// containers/podman/issues/17374: exit cleanly but log that we
+		// had nothing to do
 		Debugf("No files to parse from %s", sourcePaths)
-		os.Exit(1)
+		os.Exit(0)
 	}
 
 	if !dryRun {
