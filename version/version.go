@@ -27,7 +27,7 @@ const (
 // NOTE: remember to bump the version at the top
 // of the top-level README.md file when this is
 // bumped.
-var Version = semver.MustParse("4.4.1")
+var Version = semver.MustParse("4.4.2-dev")
 
 // See https://docs.docker.com/engine/api/v1.40/
 // libpod compat handlers are expected to honor docker API versions
