@@ -803,6 +803,7 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force, remo
 	}
 
 	// Stop the container's storage
+	startTime := time.Now()
 	if err := c.teardownStorage(); err != nil {
 		if cleanupErr == nil {
 			cleanupErr = err
@@ -810,6 +811,9 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force, remo
 			logrus.Errorf("Cleaning up storage: %v", err)
 		}
 	}
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Teardown Storage: %s", elapsed.String())
 
 	// Remove the container's CID file on container removal.
 	if cidFile, ok := c.config.Spec.Annotations[define.InspectAnnotationCIDFile]; ok {

@@ -795,9 +795,15 @@ func (s *BoltState) RemoveContainer(ctr *Container) error {
 	}
 	defer s.deferredCloseDBCon(db)
 
+	startTime := time.Now()
+
 	err = db.Update(func(tx *bolt.Tx) error {
 		return s.removeContainer(ctr, nil, tx)
 	})
+
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Remove container: %s", elapsed.String())
 	return err
 }
 
@@ -823,13 +829,19 @@ func (s *BoltState) UpdateContainer(ctr *Container) error {
 	}
 	defer s.deferredCloseDBCon(db)
 
-	return db.View(func(tx *bolt.Tx) error {
+	startTime := time.Now()
+	err = db.View(func(tx *bolt.Tx) error {
 		ctrBucket, err := getCtrBucket(tx)
 		if err != nil {
 			return err
 		}
 		return s.getContainerStateDB(ctrID, ctr, ctrBucket)
 	})
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Update container: %s", elapsed.String())
+
+	return err
 }
 
 // SaveContainer saves a container's current state in the database
@@ -860,6 +872,7 @@ func (s *BoltState) SaveContainer(ctr *Container) error {
 	}
 	defer s.deferredCloseDBCon(db)
 
+	startTime := time.Now()
 	err = db.Update(func(tx *bolt.Tx) error {
 		ctrBucket, err := getCtrBucket(tx)
 		if err != nil {
@@ -886,6 +899,10 @@ func (s *BoltState) SaveContainer(ctr *Container) error {
 
 		return nil
 	})
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Save container: %s", elapsed.String())
+
 	return err
 }
 
@@ -913,6 +930,7 @@ func (s *BoltState) ContainerInUse(ctr *Container) ([]string, error) {
 	}
 	defer s.deferredCloseDBCon(db)
 
+	startTime := time.Now()
 	err = db.View(func(tx *bolt.Tx) error {
 		ctrBucket, err := getCtrBucket(tx)
 		if err != nil {
@@ -945,6 +963,9 @@ func (s *BoltState) ContainerInUse(ctr *Container) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Container in use: %s", elapsed.String())
 
 	return depCtrs, nil
 }
@@ -1348,6 +1369,7 @@ func (s *BoltState) GetContainerConfig(id string) (*ContainerConfig, error) {
 	}
 	defer s.deferredCloseDBCon(db)
 
+	startTime := time.Now()
 	err = db.View(func(tx *bolt.Tx) error {
 		ctrBucket, err := getCtrBucket(tx)
 		if err != nil {
@@ -1359,6 +1381,9 @@ func (s *BoltState) GetContainerConfig(id string) (*ContainerConfig, error) {
 	if err != nil {
 		return nil, err
 	}
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Update container config: %s", elapsed.String())
 
 	return config, nil
 }
@@ -3440,9 +3465,14 @@ func (s *BoltState) RemoveContainerFromPod(pod *Pod, ctr *Container) error {
 	}
 	defer s.deferredCloseDBCon(db)
 
+	startTime := time.Now()
 	err = db.Update(func(tx *bolt.Tx) error {
 		return s.removeContainer(ctr, pod, tx)
 	})
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Remove container from pod: %s", elapsed.String())
+
 	return err
 }
 

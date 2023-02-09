@@ -264,6 +264,7 @@ func (s *BoltState) getDBCon() (*bolt.DB, error) {
 
 	endTime := time.Now()
 	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("----------")
 	logrus.Errorf("Getting database connection: %s", elapsed.String())
 
 	return db, nil
@@ -291,6 +292,7 @@ func (s *BoltState) closeDBCon(db *bolt.DB) error {
 	endTime := time.Now()
 	elapsed := endTime.Sub(startTime)
 	logrus.Errorf("Closing database connection: %s", elapsed.String())
+	logrus.Errorf("----------")
 
 	return err
 }
