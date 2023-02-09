@@ -977,7 +977,7 @@ func (c *dockerClient) getBlob(ctx context.Context, ref dockerReference, info ty
 	cache.RecordKnownLocation(ref.Transport(), bicTransportScope(ref), info.Digest, newBICLocationReference(ref))
 	blobSize := getBlobSize(res)
 
-	reconnectingReader, err := newBodyReader(ctx, c, path, res.Body)
+	reconnectingReader, err := newBodyReader(ctx, c, path, res, res.Body)
 	if err != nil {
 		res.Body.Close()
 		return nil, 0, err

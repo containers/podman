@@ -1,17 +1,16 @@
 package docker
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
 	"io"
 	"math"
-	"math/rand"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
-	"syscall"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -38,15 +37,22 @@ type bodyReader struct {
 	lastRetryTime   time.Time     // time.Time{} if N/A
 	offset          int64         // Current offset within the blob
 	lastSuccessTime time.Time     // time.Time{} if N/A
+
+	originalHeaders string
 }
 
 // newBodyReader creates a bodyReader for request path in c.
 // firstBody is an already correctly opened body for the blob, returning the full blob from the start.
 // If reading from firstBody fails, bodyReader may heuristically decide to resume.
-func newBodyReader(ctx context.Context, c *dockerClient, path string, firstBody io.ReadCloser) (io.ReadCloser, error) {
+func newBodyReader(ctx context.Context, c *dockerClient, path string, resp *http.Response, firstBody io.ReadCloser) (io.ReadCloser, error) {
 	logURL, err := c.resolveRequestURL(path)
 	if err != nil {
 		return nil, err
+	}
+	var headers bytes.Buffer
+	if err := resp.Header.Write(&headers); err != nil {
+		headers.Reset()
+		fmt.Fprintf(&headers, "Error writing headers: %v", err)
 	}
 	res := &bodyReader{
 		ctx:                 ctx,
@@ -60,6 +66,8 @@ func newBodyReader(ctx context.Context, c *dockerClient, path string, firstBody 
 		lastRetryTime:   time.Time{},
 		offset:          0,
 		lastSuccessTime: time.Time{},
+
+		originalHeaders: headers.String(),
 	}
 	return res, nil
 }
@@ -147,62 +155,19 @@ func (br *bodyReader) Read(p []byte) (int, error) {
 		br.lastSuccessTime = time.Now()
 		return n, err // Unlike the default: case, don’t log anything.
 
-	case errors.Is(err, io.ErrUnexpectedEOF) || errors.Is(err, syscall.ECONNRESET):
-		originalErr := err
-		redactedURL := br.logURL.Redacted()
-		if err := br.errorIfNotReconnecting(originalErr, redactedURL); err != nil {
-			return n, err
-		}
-
-		if err := br.body.Close(); err != nil {
-			logrus.Debugf("Error closing blob body: %v", err) // … and ignore err otherwise
-		}
-		br.body = nil
-		time.Sleep(1*time.Second + time.Duration(rand.Intn(100_000))*time.Microsecond) // Some jitter so that a failure blip doesn’t cause a deterministic stampede
-
-		headers := map[string][]string{
-			"Range": {fmt.Sprintf("bytes=%d-", br.offset)},
-		}
-		res, err := br.c.makeRequest(br.ctx, http.MethodGet, br.path, headers, nil, v2Auth, nil)
-		if err != nil {
-			return n, fmt.Errorf("%w (while reconnecting: %v)", originalErr, err)
-		}
-		consumedBody := false
-		defer func() {
-			if !consumedBody {
-				res.Body.Close()
-			}
-		}()
-		switch res.StatusCode {
-		case http.StatusPartialContent: // OK
-			// A client MUST inspect a 206 response's Content-Type and Content-Range field(s) to determine what parts are enclosed and whether additional requests are needed.
-			// The recipient of an invalid Content-Range MUST NOT attempt to recombine the received content with a stored representation.
-			first, last, completeLength, err := parseContentRange(res)
-			if err != nil {
-				return n, fmt.Errorf("%w (after reconnecting, invalid Content-Range header: %v)", originalErr, err)
-			}
-			// We don’t handle responses that start at an unrequested offset, nor responses that terminate before the end of the full blob.
-			if first != br.offset || (completeLength != -1 && last+1 != completeLength) {
-				return n, fmt.Errorf("%w (after reconnecting at offset %d, got unexpected Content-Range %d-%d/%d)", originalErr, br.offset, first, last, completeLength)
-			}
-			// Continue below
-		case http.StatusOK:
-			return n, fmt.Errorf("%w (after reconnecting, server did not process a Range: header, status %d)", originalErr, http.StatusOK)
-		default:
-			err := registryHTTPResponseToError(res)
-			return n, fmt.Errorf("%w (after reconnecting, fetching blob: %v)", originalErr, err)
-		}
-
-		logrus.Debugf("Successfully reconnected to %s", redactedURL)
-		consumedBody = true
-		br.body = res.Body
-		br.lastRetryOffset = br.offset
-		br.lastRetryTime = time.Time{}
-		return n, nil
-
 	default:
 		logrus.Debugf("Error reading blob body from %s: %#v", br.logURL.Redacted(), err)
-		return n, err
+		originalErr := err
+		currentTime := time.Now()
+		msSinceFirstConnection := millisecondsSinceOptional(currentTime, br.firstConnectionTime)
+		msSinceLastRetry := millisecondsSinceOptional(currentTime, br.lastRetryTime)
+		msSinceLastSuccess := millisecondsSinceOptional(currentTime, br.lastSuccessTime)
+		logrus.Debugf("Reading blob body from %s failed (%#v), decision inputs: total %d @%.3f ms, last retry %d @%.3f ms, last progress @%.3f ms",
+			br.logURL.Redacted(), originalErr, br.offset, msSinceFirstConnection, br.lastRetryOffset, msSinceLastRetry, msSinceLastSuccess)
+		logrus.Errorf("Original HTTP response headers: %s", br.originalHeaders)
+		return n, fmt.Errorf("[URL: %#v; total %d @%.3f ms, last retry %d @%.3f ms, last progress @ %.3f ms; original response headers: %#v] %w",
+			br.logURL.Redacted(), br.offset, msSinceFirstConnection, br.lastRetryOffset, msSinceLastRetry, msSinceLastSuccess,
+			br.originalHeaders, err)
 	}
 }
 

@@ -287,9 +287,9 @@ build-all-new-commits:
 
 .PHONY: vendor
 vendor:
-	$(GO) mod tidy -compat=1.18
-	$(GO) mod vendor
-	$(GO) mod verify
+	#DO NOT MERGE THIS $(GO) mod tidy -compat=1.18
+	#DO NOT MERGE THIS $(GO) mod vendor
+	#DO NOT MERGE THIS $(GO) mod verify
 
 
 # We define *-in-container targets for the following make targets. This allow the targets to be run in a container.

@@ -18,8 +18,8 @@ source $AUTOMATION_LIB_PATH/common_lib.sh
 cd $CIRRUS_WORKING_DIR
 
 showrun make .install.goimports
-showrun make vendor
-SUGGESTION="run 'make vendor' and commit all changes" ./hack/tree_status.sh
+#DO NOT MERGE THIS showrun make vendor
+#DO NOT MERGE THIS SUGGESTION="run 'make vendor' and commit all changes" ./hack/tree_status.sh
 showrun make generate-bindings
 SUGGESTION="run 'make generate-bindings' and commit all changes" ./hack/tree_status.sh
 showrun make completions
