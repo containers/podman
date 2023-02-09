@@ -583,6 +583,19 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 		}
 	}
 
+	// Add the the original container names from the kube yaml as aliases for it. This will allow network to work with
+	// both just containerName as well as containerName-podName.
+	// In the future, we want to extend this to the CLI as well, where the name of the container created will not have
+	// the podName appended to it, but this is a breaking change and will be done in podman 5.0
+	ctrNameAliases := make([]string, 0, len(podYAML.Spec.Containers))
+	for _, container := range podYAML.Spec.Containers {
+		ctrNameAliases = append(ctrNameAliases, container.Name)
+	}
+	for k, v := range podSpec.PodSpecGen.Networks {
+		v.Aliases = append(v.Aliases, ctrNameAliases...)
+		podSpec.PodSpecGen.Networks[k] = v
+	}
+
 	if serviceContainer != nil {
 		podSpec.PodSpecGen.ServiceContainerID = serviceContainer.ID()
 	}
@@ -695,6 +708,7 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 		if _, ok := ctrNames[container.Name]; ok {
 			return nil, nil, fmt.Errorf("the pod %q is invalid; duplicate container name %q detected", podName, container.Name)
 		}
+
 		ctrNames[container.Name] = ""
 		pulledImage, labels, err := ic.getImageAndLabelInfo(ctx, cwd, annotations, writer, container, options)
 		if err != nil {

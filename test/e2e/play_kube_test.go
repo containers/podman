@@ -5006,4 +5006,30 @@ spec:
 		Expect(hostIpcNS).To(Equal(ctrIpcNS))
 	})
 
+	It("podman play kube with ctrName should be in network alias", func() {
+		ctrName := "test-ctr"
+		ctrNameInKubePod := ctrName + "-pod-" + ctrName
+		session1 := podmanTest.Podman([]string{"run", "-d", "--name", ctrName, ALPINE, "top"})
+		session1.WaitWithDefaultTimeout()
+		Expect(session1).Should(Exit(0))
+
+		outputFile := filepath.Join(podmanTest.RunRoot, "pod.yaml")
+		kube := podmanTest.Podman([]string{"kube", "generate", ctrName, "-f", outputFile})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		rm := podmanTest.Podman([]string{"pod", "rm", "-t", "0", "-f", ctrName})
+		rm.WaitWithDefaultTimeout()
+		Expect(rm).Should(Exit(0))
+
+		play := podmanTest.Podman([]string{"kube", "play", outputFile})
+		play.WaitWithDefaultTimeout()
+		Expect(play).Should(Exit(0))
+
+		inspect := podmanTest.Podman([]string{"inspect", ctrNameInKubePod})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).Should(Exit(0))
+		Expect(inspect.OutputToString()).To(ContainSubstring("\"Aliases\": [ \"" + ctrName + "\""))
+	})
+
 })
