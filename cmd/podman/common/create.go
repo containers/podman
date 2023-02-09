@@ -604,6 +604,10 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		createFlags.StringVar(&cf.PasswdEntry, passwdEntryName, "", "Entry to write to /etc/passwd")
 		_ = cmd.RegisterFlagCompletionFunc(passwdEntryName, completion.AutocompleteNone)
 
+		groupEntryName := "group-entry"
+		createFlags.StringVar(&cf.GroupEntry, groupEntryName, "", "Entry to write to /etc/group")
+		_ = cmd.RegisterFlagCompletionFunc(groupEntryName, completion.AutocompleteNone)
+
 		decryptionKeysFlagName := "decryption-key"
 		createFlags.StringSliceVar(
 			&cf.DecryptionKeys,

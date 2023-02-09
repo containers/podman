@@ -2277,6 +2277,19 @@ func WithPasswdEntry(passwdEntry string) CtrCreateOption {
 	}
 }
 
+// WithGroupEntry sets the entry to write to the /etc/group file.
+func WithGroupEntry(groupEntry string) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return define.ErrCtrFinalized
+		}
+
+		ctr.config.GroupEntry = groupEntry
+
+		return nil
+	}
+}
+
 // WithMountAllDevices sets the option to mount all of a privileged container's
 // host devices
 func WithMountAllDevices() CtrCreateOption {

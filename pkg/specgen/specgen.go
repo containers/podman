@@ -160,7 +160,7 @@ type ContainerBasicConfig struct {
 	// Conflicts with UtsNS if UtsNS is not set to private.
 	// Optional.
 	Hostname string `json:"hostname,omitempty"`
-	// HostUses is a list of host usernames or UIDs to add to the container
+	// HostUsers is a list of host usernames or UIDs to add to the container
 	// /etc/passwd file
 	HostUsers []string `json:"hostusers,omitempty"`
 	// Sysctl sets kernel parameters for the container
@@ -219,6 +219,8 @@ type ContainerBasicConfig struct {
 	Passwd *bool `json:"manage_password,omitempty"`
 	// PasswdEntry specifies arbitrary data to append to a file.
 	PasswdEntry string `json:"passwd_entry,omitempty"`
+	// GroupEntry specifies arbitrary data to append to a file.
+	GroupEntry string `json:"group_entry,omitempty"`
 }
 
 // ContainerStorageConfig contains information on the storage configuration of a
