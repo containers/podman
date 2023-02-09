@@ -396,15 +396,6 @@ bin/rootlessport: $(SOURCES) go.mod go.sum
 .PHONY: rootlessport
 rootlessport: bin/rootlessport
 
-.PHONY: podman-remote-experimental
-podman-remote-experimental: $(SRCBINDIR)/experimental/podman$(BINSFX)
-$(SRCBINDIR)/experimental/podman$(BINSFX): $(SOURCES) go.mod go.sum | $(SRCBINDIR)
-	$(GOCMD) build \
-		$(BUILDFLAGS) \
-		$(GO_LDFLAGS) '$(LDFLAGS_PODMAN)' \
-		-tags "${REMOTETAGS} experimental" \
-		-o $@ ./cmd/podman
-
 ###
 ### Secondary binary-build targets
 ###

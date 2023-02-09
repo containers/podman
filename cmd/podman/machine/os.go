@@ -1,6 +1,5 @@
-//go:build (amd64 || arm64) && experimental
+//go:build amd64 || arm64
 // +build amd64 arm64
-// +build experimental
 
 package machine
 
@@ -13,8 +12,8 @@ import (
 var (
 	OSCmd = &cobra.Command{
 		Use:               "os",
-		Short:             "Manage a virtual machine's os",
-		Long:              "Manage a virtual machine's operating system",
+		Short:             "Manage a Podman virtual machine's OS",
+		Long:              "Manage a Podman virtual machine's operating system",
 		PersistentPreRunE: validate.NoOp,
 		RunE:              validate.SubCommandExists,
 	}
