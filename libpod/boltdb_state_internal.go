@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"time"
 
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/rootless"
@@ -249,6 +250,8 @@ func readOnlyValidateConfig(bucket *bolt.Bucket, toCheck dbConfigValidation) (bo
 // Must be paired with a `defer closeDBCon()` on the returned database, to
 // ensure the state is properly unlocked
 func (s *BoltState) getDBCon() (*bolt.DB, error) {
+	startTime := time.Now()
+
 	// We need an in-memory lock to avoid issues around POSIX file advisory
 	// locks as described in the link below:
 	// https://www.sqlite.org/src/artifact/c230a7a24?ln=994-1081
@@ -258,6 +261,10 @@ func (s *BoltState) getDBCon() (*bolt.DB, error) {
 	if err != nil {
 		return nil, fmt.Errorf("opening database %s: %w", s.dbPath, err)
 	}
+
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Getting database connection: %s", elapsed.String())
 
 	return db, nil
 }
@@ -275,9 +282,15 @@ func (s *BoltState) deferredCloseDBCon(db *bolt.DB) {
 // MUST be used in place of `db.Close()` to ensure proper unlocking of the
 // state.
 func (s *BoltState) closeDBCon(db *bolt.DB) error {
+	startTime := time.Now()
+
 	err := db.Close()
 
 	s.dbLock.Unlock()
+
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Closing database connection: %s", elapsed.String())
 
 	return err
 }
@@ -412,9 +425,14 @@ func (s *BoltState) getContainerConfigFromDB(id []byte, config *ContainerConfig,
 		return fmt.Errorf("container %s missing config key in DB: %w", string(id), define.ErrInternal)
 	}
 
+
+	startTime := time.Now()
 	if err := json.Unmarshal(configBytes, config); err != nil {
 		return fmt.Errorf("unmarshalling container %s config: %w", string(id), err)
 	}
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Unmarshalling config: %s", elapsed.String())
 
 	// convert ports to the new format if needed
 	if len(config.ContainerNetworkConfig.OldPortMappings) > 0 && len(config.ContainerNetworkConfig.PortMappings) == 0 {
@@ -616,10 +634,15 @@ func (s *BoltState) addContainer(ctr *Container, pod *Pod) error {
 	ctr.config.Networks = nil
 
 	// JSON container structs to insert into DB
+	// TODO use a higher-performance struct encoding than JSON
+	startTime := time.Now()
 	configJSON, err := json.Marshal(ctr.config)
 	if err != nil {
 		return fmt.Errorf("marshalling container %s config to JSON: %w", ctr.ID(), err)
 	}
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Marshalling config: %s", elapsed.String())
 	stateJSON, err := json.Marshal(ctr.state)
 	if err != nil {
 		return fmt.Errorf("marshalling container %s state to JSON: %w", ctr.ID(), err)
@@ -659,6 +682,7 @@ func (s *BoltState) addContainer(ctr *Container, pod *Pod) error {
 	}
 	defer s.deferredCloseDBCon(db)
 
+	startTime = time.Now()
 	err = db.Update(func(tx *bolt.Tx) error {
 		idsBucket, err := getIDBucket(tx)
 		if err != nil {
@@ -855,6 +879,9 @@ func (s *BoltState) addContainer(ctr *Container, pod *Pod) error {
 
 		return nil
 	})
+	endTime = time.Now()
+	elapsed = endTime.Sub(startTime)
+	logrus.Errorf("DB Create Container TX: %s", elapsed.String())
 	return err
 }
 
