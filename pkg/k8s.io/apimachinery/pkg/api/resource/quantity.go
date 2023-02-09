@@ -120,7 +120,7 @@ type CanonicalValue interface {
 	AsCanonicalBase1024Bytes(out []byte) ([]byte, int32)
 }
 
-// Format lists the three possible formattings of a quantity.
+// Format lists the three possible formats of a quantity.
 type Format string
 
 const (
