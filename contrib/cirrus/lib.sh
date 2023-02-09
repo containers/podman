@@ -346,10 +346,12 @@ localbenchmarks() {
       # Checked above in req_env_vars
       # shellcheck disable=SC2154
       echo "\
+BENCH_ENV_VER=1
 CPUTOTAL=$(grep -ce '^processor' /proc/cpuinfo)
-INST_TYPE=$EC2_INST_TYPE  # one day may include other cloud's VM types.
-MEMTOTAL=$(awk -F: '$1 == "MemTotal" { print $2 }' </proc/meminfo | sed -e "s/^ *//")
-UNAME_RM=$(uname -r -m)
+INST_TYPE=$EC2_INST_TYPE
+MEMTOTALKB=$(awk -F: '$1 == "MemTotal" { print $2 }' </proc/meminfo | sed -e "s/^ *//" | cut -d ' ' -f 1)
+UNAME_R=$(uname -r)
+UNAME_M=$(uname -m)
 "
     ) > $datadir/benchmarks.env
     make localbenchmarks | tee $datadir/benchmarks.raw
