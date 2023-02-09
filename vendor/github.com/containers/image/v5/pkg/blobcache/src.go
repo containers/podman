@@ -10,9 +10,9 @@ import (
 	"github.com/containers/image/v5/internal/image"
 	"github.com/containers/image/v5/internal/imagesource"
 	"github.com/containers/image/v5/internal/imagesource/impl"
+	"github.com/containers/image/v5/internal/manifest"
 	"github.com/containers/image/v5/internal/private"
 	"github.com/containers/image/v5/internal/signature"
-	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/pkg/compression"
 	"github.com/containers/image/v5/transports"
 	"github.com/containers/image/v5/types"
@@ -207,7 +207,7 @@ func streamChunksFromFile(streams chan io.ReadCloser, errs chan error, file io.R
 			break
 		}
 		s := signalCloseReader{
-			closed: make(chan interface{}),
+			closed: make(chan struct{}),
 			stream: io.LimitReader(file, int64(c.Length)),
 		}
 		streams <- s
@@ -218,7 +218,7 @@ func streamChunksFromFile(streams chan io.ReadCloser, errs chan error, file io.R
 }
 
 type signalCloseReader struct {
-	closed chan interface{}
+	closed chan struct{}
 	stream io.Reader
 }
 

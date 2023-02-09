@@ -6,9 +6,11 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/containers/image/v5/internal/set"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/types"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/exp/slices"
 )
 
 // preferredManifestMIMETypes lists manifest MIME types in order of our preference, if we can't use the original manifest and need to convert.
@@ -19,7 +21,7 @@ var preferredManifestMIMETypes = []string{manifest.DockerV2Schema2MediaType, man
 // orderedSet is a list of strings (MIME types or platform descriptors in our case), with each string appearing at most once.
 type orderedSet struct {
 	list     []string
-	included map[string]struct{}
+	included *set.Set[string]
 }
 
 // newOrderedSet creates a correctly initialized orderedSet.
@@ -27,15 +29,15 @@ type orderedSet struct {
 func newOrderedSet() *orderedSet {
 	return &orderedSet{
 		list:     []string{},
-		included: map[string]struct{}{},
+		included: set.New[string](),
 	}
 }
 
 // append adds s to the end of os, only if it is not included already.
 func (os *orderedSet) append(s string) {
-	if _, ok := os.included[s]; !ok {
+	if !os.included.Contains(s) {
 		os.list = append(os.list, s)
-		os.included[s] = struct{}{}
+		os.included.Add(s)
 	}
 }
 
@@ -80,10 +82,10 @@ func determineManifestConversion(in determineManifestConversionInputs) (manifest
 			otherMIMETypeCandidates: []string{},
 		}, nil
 	}
-	supportedByDest := map[string]struct{}{}
+	supportedByDest := set.New[string]()
 	for _, t := range destSupportedManifestMIMETypes {
 		if !in.requiresOCIEncryption || manifest.MIMETypeSupportsEncryption(t) {
-			supportedByDest[t] = struct{}{}
+			supportedByDest.Add(t)
 		}
 	}
 
@@ -96,7 +98,7 @@ func determineManifestConversion(in determineManifestConversionInputs) (manifest
 	prioritizedTypes := newOrderedSet()
 
 	// First of all, prefer to keep the original manifest unmodified.
-	if _, ok := supportedByDest[srcType]; ok {
+	if supportedByDest.Contains(srcType) {
 		prioritizedTypes.append(srcType)
 	}
 	if in.cannotModifyManifestReason != "" {
@@ -113,7 +115,7 @@ func determineManifestConversion(in determineManifestConversionInputs) (manifest
 
 	// Then use our list of preferred types.
 	for _, t := range preferredManifestMIMETypes {
-		if _, ok := supportedByDest[t]; ok {
+		if supportedByDest.Contains(t) {
 			prioritizedTypes.append(t)
 		}
 	}
@@ -166,11 +168,8 @@ func (c *copier) determineListConversion(currentListMIMEType string, destSupport
 	prioritizedTypes := newOrderedSet()
 	// The first priority is the current type, if it's in the list, since that lets us avoid a
 	// conversion that isn't strictly necessary.
-	for _, t := range destSupportedMIMETypes {
-		if t == currentListMIMEType {
-			prioritizedTypes.append(currentListMIMEType)
-			break
-		}
+	if slices.Contains(destSupportedMIMETypes, currentListMIMEType) {
+		prioritizedTypes.append(currentListMIMEType)
 	}
 	// Pick out the other list types that we support.
 	for _, t := range destSupportedMIMETypes {

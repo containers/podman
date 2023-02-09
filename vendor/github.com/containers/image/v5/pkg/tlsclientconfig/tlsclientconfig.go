@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/sirupsen/logrus"
+	"golang.org/x/exp/slices"
 )
 
 // SetupCertificates opens all .crt, .cert, and .key files in dir and appends / loads certs and key pairs as appropriate to tlsc
@@ -80,12 +81,9 @@ func SetupCertificates(dir string, tlsc *tls.Config) error {
 }
 
 func hasFile(files []os.DirEntry, name string) bool {
-	for _, f := range files {
-		if f.Name() == name {
-			return true
-		}
-	}
-	return false
+	return slices.ContainsFunc(files, func(f os.DirEntry) bool {
+		return f.Name() == name
+	})
 }
 
 // NewTransport Creates a default transport

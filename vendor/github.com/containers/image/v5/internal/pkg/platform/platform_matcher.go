@@ -25,6 +25,7 @@ import (
 
 	"github.com/containers/image/v5/types"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
+	"golang.org/x/exp/slices"
 )
 
 // For Linux, the kernel has already detected the ABI, ISA and Features.
@@ -152,13 +153,9 @@ func WantedPlatforms(ctx *types.SystemContext) ([]imgspecv1.Platform, error) {
 	if wantedVariant != "" {
 		// If the user requested a specific variant, we'll walk down
 		// the list from most to least compatible.
-		if compatibility[wantedArch] != nil {
-			variantOrder := compatibility[wantedArch]
-			for i, v := range variantOrder {
-				if wantedVariant == v {
-					variants = variantOrder[i:]
-					break
-				}
+		if variantOrder := compatibility[wantedArch]; variantOrder != nil {
+			if i := slices.Index(variantOrder, wantedVariant); i != -1 {
+				variants = variantOrder[i:]
 			}
 		}
 		if variants == nil {

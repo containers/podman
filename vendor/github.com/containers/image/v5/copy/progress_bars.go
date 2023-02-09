@@ -120,7 +120,7 @@ func (bar *progressBar) mark100PercentComplete() {
 		bar.SetCurrent(bar.originalSize) // This triggers the completion condition.
 	} else {
 		// -1 = unknown size
-		// 0 is somewhat of a a special case: Unlike c/image, where 0 is a definite known
+		// 0 is somewhat of a special case: Unlike c/image, where 0 is a definite known
 		// size (possible at least in theory), in mpb, zero-sized progress bars are treated
 		// as unknown size, in particular they are not configured to be marked as
 		// complete on bar.Current() reaching bar.total (because that would happen already
