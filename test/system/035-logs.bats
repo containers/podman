@@ -283,7 +283,7 @@ function _log_test_follow() {
     run_podman ${events_backend} logs -f $cname
     is "$output" "$contentA
 $contentB
-$contentC" "logs -f on exitted container works"
+$contentC" "logs -f on exited container works"
 
     run_podman ${events_backend} rm -t 0 -f $cname
 }

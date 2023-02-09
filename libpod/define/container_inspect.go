@@ -341,7 +341,7 @@ type InspectContainerHostConfig struct {
 	// DnsSearch is a list of DNS search domains that will be set in the
 	// container's resolv.conf
 	DnsSearch []string `json:"DnsSearch"`
-	// ExtraHosts contains hosts that will be aded to the container's
+	// ExtraHosts contains hosts that will be added to the container's
 	// /etc/hosts.
 	ExtraHosts []string `json:"ExtraHosts"`
 	// GroupAdd contains groups that the user inside the container will be
