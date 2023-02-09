@@ -20,13 +20,14 @@ Secrets can be queried individually by providing their full name or a unique par
 Format secret output using Go template.
 
 | **Placeholder**          | **Description**                                                   |
-| ------------------------ | ----------------------------------------------------------------- |
+|--------------------------|-------------------------------------------------------------------|
 | .CreatedAt               | When secret was created (relative timestamp, human-readable)      |
 | .ID                      | ID of secret                                                      |
 | .Spec                    | Details of secret                                                 |
 | .Spec.Driver             | Driver info                                                       |
 | .Spec.Driver.Name        | Driver name (string)                                              |
 | .Spec.Driver.Options ... | Driver options (map of driver-specific options)                   |
+| .Spec.Labels             | Labels for this secret                                            |
 | .Spec.Name               | Name of secret                                                    |
 | .UpdatedAt               | When secret was last updated (relative timestamp, human-readable) |
 

@@ -38,6 +38,7 @@ Valid placeholders for the Go template are listed below:
 | .HostsPath           | Path to container /etc/hosts file (string)         |
 | .ID                  | Container ID (full 64-char hash)                   |
 | .Image               | Container image ID (64-char hash)                  |
+| .ImageDigest         | Container image digest (sha256:+64-char hash)      |
 | .ImageName           | Container image name (string)                      |
 | .IsInfra             | Is this an infra container? (string: true/false)   |
 | .IsService           | Is this a service container? (string: true/false)  |

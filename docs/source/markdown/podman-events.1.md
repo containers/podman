@@ -101,19 +101,20 @@ In the case where an ID is used, the ID may be in its full or shortened form.  T
 
 Format the output to JSON Lines or using the given Go template.
 
-| **Placeholder**    | **Description**                               |
-|--------------------|-----------------------------------------------|
-| .Attributes        | created_at, _by, labels, and more (map[])     |
-| .ContainerExitCode | Exit code (int)                               |
-| .Details ...       | Internal structure, not actually useful       |
-| .HealthStatus      | Health Status (string)                        |
-| .ID                | Container ID (full 64-bit SHA)                |
-| .Image             | Name of image being run (string)              |
-| .Name              | Container name (string)                       |
-| .Network           | Name of network being used (string)           |
-| .Status            | Event status (e.g., create, start, died, ...) |
-| .Time              | Event timestamp (string)                      |
-| .Type              | Event type (e.g., image, container, pod, ...) |
+| **Placeholder**       | **Description**                               |
+|-----------------------|-----------------------------------------------|
+| .Attributes           | created_at, _by, labels, and more (map[])     |
+| .ContainerExitCode    | Exit code (int)                               |
+| .ContainerInspectData | Payload of the container's inspect            |
+| .HealthStatus         | Health Status (string)                        |
+| .ID                   | Container ID (full 64-bit SHA)                |
+| .Image                | Name of image being run (string)              |
+| .Name                 | Container name (string)                       |
+| .Network              | Name of network being used (string)           |
+| .PodID                | ID of pod associated with container, if any   |
+| .Status               | Event status (e.g., create, start, died, ...) |
+| .Time                 | Event timestamp (string)                      |
+| .Type                 | Event type (e.g., image, container, pod, ...) |
 
 #### **--help**
 

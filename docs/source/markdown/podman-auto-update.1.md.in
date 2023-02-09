@@ -61,12 +61,12 @@ Valid placeholders for the Go template are listed below:
 
 | **Placeholder** | **Description**                        |
 | --------------- | -------------------------------------- |
-| .Unit           | Name of the systemd unit               |
-| .ContainerName  | Name of the container                  |
-| .ContainerID    | ID of the container                    |
 | .Container      | ID and name of the container           |
+| .ContainerID    | ID of the container                    |
+| .ContainerName  | Name of the container                  |
 | .Image          | Name of the image                      |
 | .Policy         | Auto-update policy of the container    |
+| .Unit           | Name of the systemd unit               |
 | .Updated        | Update status: true,false,failed       |
 
 #### **--rollback**
