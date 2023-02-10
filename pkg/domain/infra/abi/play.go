@@ -314,14 +314,37 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, body io.Reader, options
 		return nil, fmt.Errorf("YAML document does not contain any supported kube kind")
 	}
 
+	// If we started containers along with a service container, we are
+	// running inside a systemd unit and need to set the main PID.
 	if options.ServiceContainer && ranContainers {
-		message := fmt.Sprintf("MAINPID=%d\n%s", os.Getpid(), daemon.SdNotifyReady)
-		if err := notifyproxy.SendMessage("", message); err != nil {
-			return nil, err
-		}
+		switch len(notifyProxies) {
+		case 0: // Optimization for containers/podman/issues/17345
+			// No container needs sdnotify, so we can mark the
+			// service container's conmon as the main PID and
+			// return early.
+			data, err := serviceContainer.Inspect(false)
+			if err != nil {
+				return nil, err
+			}
+			message := fmt.Sprintf("MAINPID=%d\n%s", data.State.ConmonPid, daemon.SdNotifyReady)
+			if err := notifyproxy.SendMessage("", message); err != nil {
+				return nil, err
+			}
+		default:
+			// At least one container has a custom sdnotify policy,
+			// so we need to let the sdnotify proxies run for the
+			// lifetime of the service container.  That means, we
+			// need to wait for the service container to stop.
+			// Podman will hence be marked as the main PID.  That
+			// comes at the cost of keeping Podman running.
+			message := fmt.Sprintf("MAINPID=%d\n%s", os.Getpid(), daemon.SdNotifyReady)
+			if err := notifyproxy.SendMessage("", message); err != nil {
+				return nil, err
+			}
 
-		if _, err := serviceContainer.Wait(ctx); err != nil {
-			return nil, fmt.Errorf("waiting for service container: %w", err)
+			if _, err := serviceContainer.Wait(ctx); err != nil {
+				return nil, fmt.Errorf("waiting for service container: %w", err)
+			}
 		}
 	}
 
