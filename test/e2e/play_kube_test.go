@@ -4525,7 +4525,7 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 		Expect(inspect.OutputToString()).To(ContainSubstring(devicePath))
 	})
 
-	It("podman play kube reports error when the device does not exists", func() {
+	It("podman play kube reports error when the device does not exist", func() {
 		SkipIfRootless("It needs root access to create devices")
 
 		devicePath := "/dev/foodevdir/baddevice"

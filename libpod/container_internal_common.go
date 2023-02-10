@@ -296,7 +296,7 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 
 	// Check if the spec file mounts contain the options z, Z, U or idmap.
 	// If they have z or Z, relabel the source directory and then remove the option.
-	// If they have U, chown the source directory and them remove the option.
+	// If they have U, chown the source directory and then remove the option.
 	// If they have idmap, then calculate the mappings to use in the OCI config file.
 	for i := range g.Config.Mounts {
 		m := &g.Config.Mounts[i]
@@ -1331,7 +1331,7 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 	}
 
 	// Let's try to stat() CRIU's inventory file. If it does not exist, it makes
-	// no sense to try a restore. This is a minimal check if a checkpoint exist.
+	// no sense to try a restore. This is a minimal check if a checkpoint exists.
 	if _, err := os.Stat(filepath.Join(c.CheckpointPath(), "inventory.img")); os.IsNotExist(err) {
 		return nil, 0, fmt.Errorf("a complete checkpoint for this container cannot be found, cannot restore: %w", err)
 	}

@@ -133,7 +133,7 @@ var _ = Describe("Podman volume create", func() {
 	})
 
 	It("podman import/export volume should fail", func() {
-		// try import on volume or source which does not exists
+		// try import on volume or source which does not exist
 		SkipIfRemote("Volume export check does not work with a remote client")
 
 		session := podmanTest.Podman([]string{"volume", "import", "notfound", "notfound.tar"})

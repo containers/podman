@@ -146,7 +146,7 @@ func add(cmd *cobra.Command, args []string) error {
 		info, err := os.Stat(uri.Path)
 		switch {
 		case errors.Is(err, os.ErrNotExist):
-			logrus.Warnf("%q does not exists", uri.Path)
+			logrus.Warnf("%q does not exist", uri.Path)
 		case errors.Is(err, os.ErrPermission):
 			logrus.Warnf("You do not have permission to read %q", uri.Path)
 		case err != nil:

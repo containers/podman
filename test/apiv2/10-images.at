@@ -215,7 +215,7 @@ t POST "libpod/build?remote=https%3A%2F%2Fgithub.com%2Falpinelinux%2Fdocker-alpi
 # Build api response header must contain Content-type: application/json
 t POST "build?dockerfile=containerfile" $CONTAINERFILE_TAR application/json 200
 response_headers=$(cat "$WORKDIR/curl.headers.out")
-like "$response_headers" ".*application/json.*" "header does not contains application/json"
+like "$response_headers" ".*application/json.*" "header does not contain application/json"
 
 # PR #12091: output from compat API must now include {"aux":{"ID":"sha..."}}
 t POST "build?dockerfile=containerfile" $CONTAINERFILE_TAR 200 \

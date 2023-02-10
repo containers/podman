@@ -367,7 +367,7 @@ type ContainerMiscConfig struct {
 	// RestartPolicy indicates what action the container will take upon
 	// exiting naturally.
 	// Allowed options are "no" (take no action), "on-failure" (restart on
-	// non-zero exit code, up an a maximum of RestartRetries times),
+	// non-zero exit code, up to a maximum of RestartRetries times),
 	// and "always" (always restart the container on any exit code).
 	// The empty string is treated as the default ("no")
 	RestartPolicy string `json:"restart_policy,omitempty"`

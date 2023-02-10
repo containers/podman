@@ -477,7 +477,7 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 			vol.Name = stringid.GenerateRandomID()
 			isAnonymous = true
 		} else {
-			// Check if it exists already
+			// Check if it already exists
 			dbVol, err := r.state.Volume(vol.Name)
 			if err == nil {
 				ctrNamedVolumes = append(ctrNamedVolumes, dbVol)
@@ -503,7 +503,7 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 
 		needsChown := true
 
-		// If volume-opts are set parse and add driver opts.
+		// If volume-opts are set, parse and add driver opts.
 		if len(vol.Options) > 0 {
 			isDriverOpts := false
 			driverOpts := make(map[string]string)

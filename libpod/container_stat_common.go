@@ -60,7 +60,7 @@ func (c *Container) stat(containerMountPoint string, containerPath string) (*def
 		}
 		// Not all errors from secureStat map to ErrNotExist, so we
 		// have to look into the error string.  Turning it into an
-		// ENOENT let's the API handlers return the correct status code
+		// ENOENT lets the API handlers return the correct status code
 		// which is crucial for the remote client.
 		if os.IsNotExist(statErr) || strings.Contains(statErr.Error(), "o such file or directory") {
 			statErr = copy.ErrENOENT

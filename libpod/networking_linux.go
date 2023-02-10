@@ -78,7 +78,7 @@ func (r *RootlessNetNS) Do(toRun func() error) error {
 		// 1. XDG_RUNTIME_DIR -> XDG_RUNTIME_DIR/rootless-netns/XDG_RUNTIME_DIR
 		// 2. /run/systemd -> XDG_RUNTIME_DIR/rootless-netns/run/systemd (only if it exists)
 		// 3. XDG_RUNTIME_DIR/rootless-netns/resolv.conf -> /etc/resolv.conf or XDG_RUNTIME_DIR/rootless-netns/run/symlink/target
-		// 4. XDG_RUNTIME_DIR/rootless-netns/var/lib/cni -> /var/lib/cni (if /var/lib/cni does not exists use the parent dir)
+		// 4. XDG_RUNTIME_DIR/rootless-netns/var/lib/cni -> /var/lib/cni (if /var/lib/cni does not exist, use the parent dir)
 		// 5. XDG_RUNTIME_DIR/rootless-netns/run -> /run
 
 		// Create a new mount namespace,
@@ -124,7 +124,7 @@ func (r *RootlessNetNS) Do(toRun func() error) error {
 			// If /etc/resolv.conf has more than one symlink under /run, e.g.
 			// -> /run/systemd/resolve/stub-resolv.conf -> /run/systemd/resolve/resolv.conf
 			// we would put the netns resolv.conf file to the last path. However this will
-			// break dns because the second link does not exists in the mount ns.
+			// break dns because the second link does not exist in the mount ns.
 			// see https://github.com/containers/podman/issues/11222
 			//
 			// We also need to resolve all path components not just the last file.
@@ -255,7 +255,7 @@ func (r *RootlessNetNS) Do(toRun func() error) error {
 func (r *RootlessNetNS) Cleanup(runtime *Runtime) error {
 	_, err := os.Stat(r.dir)
 	if os.IsNotExist(err) {
-		// the directory does not exists no need for cleanup
+		// the directory does not exist, so no need for cleanup
 		return nil
 	}
 	activeNetns := func(c *Container) bool {
@@ -322,7 +322,7 @@ func (r *RootlessNetNS) Cleanup(runtime *Runtime) error {
 }
 
 // GetRootlessNetNs returns the rootless netns object. If create is set to true
-// the rootless network namespace will be created if it does not exists already.
+// the rootless network namespace will be created if it does not already exist.
 // If called as root it returns always nil.
 // On success the returned RootlessCNI lock is locked and must be unlocked by the caller.
 func (r *Runtime) GetRootlessNetNs(new bool) (*RootlessNetNS, error) {

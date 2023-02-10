@@ -102,7 +102,7 @@ func CreateVolume(w http.ResponseWriter, r *http.Request) {
 		err            error
 	)
 	if len(input.Name) != 0 {
-		// See if the volume exists already
+		// See if the volume already exists
 		existingVolume, err = runtime.GetVolume(input.Name)
 		if err != nil && !errors.Is(err, define.ErrNoSuchVolume) {
 			utils.InternalServerError(w, err)

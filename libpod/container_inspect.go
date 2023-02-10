@@ -185,7 +185,7 @@ func (c *Container) getContainerInspectData(size bool, driverData *define.Driver
 	}
 
 	if c.config.HealthCheckConfig != nil {
-		// This container has a healthcheck defined in it; we need to add it's state
+		// This container has a healthcheck defined in it; we need to add its state
 		healthCheckState, err := c.getHealthCheckLog()
 		if err != nil {
 			// An error here is not considered fatal; no health state will be displayed

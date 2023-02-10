@@ -72,7 +72,7 @@ func (r *RootlessNetNS) Cleanup(runtime *Runtime) error {
 }
 
 // GetRootlessNetNs returns the rootless netns object. If create is set to true
-// the rootless network namespace will be created if it does not exists already.
+// the rootless network namespace will be created if it does not already exist.
 // If called as root it returns always nil.
 // On success the returned RootlessCNI lock is locked and must be unlocked by the caller.
 func (r *Runtime) GetRootlessNetNs(new bool) (*RootlessNetNS, error) {

@@ -143,7 +143,7 @@ func getTailLog(path string, tail int) ([]*LogLine, error) {
 				nllCounter++
 			}
 		}
-		// if we have enough log lines, we can hangup
+		// if we have enough log lines, we can hang up
 		if nllCounter >= tail {
 			break
 		}
@@ -244,7 +244,7 @@ func NewLogLine(line string) (*LogLine, error) {
 }
 
 // NewJournaldLogLine creates a LogLine from the specified line from journald.
-// Note that if withID is set, the first item of the message is considerred to
+// Note that if withID is set, the first item of the message is considered to
 // be the container ID and set as such.
 func NewJournaldLogLine(line string, withID bool) (*LogLine, error) {
 	splitLine := strings.Split(line, " ")
