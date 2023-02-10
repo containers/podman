@@ -4,16 +4,16 @@
 ####> are applicable to all of those.
 #### **--userns**=*mode*
 
-Set the user namespace mode for the container. It defaults to the **PODMAN_USERNS** environment variable. An empty value ("") means user namespaces are disabled unless an explicit mapping is set with the **--uidmap** and **--gidmap** options.
+Set the user namespace mode for the container. It defaults to the **PODMAN_USERNS** environment variable. An empty value ("") or **host** means user namespaces are disabled, unless an explicit mapping is set with the **--uidmap** and **--gidmap** options or podman is rootless.
 
 This option is incompatible with **--gidmap**, **--uidmap**, **--subuidname** and **--subgidname**.
 
-Rootless user --userns=Key mappings:
+User --userns=Key mappings:
 
-Key       | Host User |  Container User
-----------|---------------|---------------------
-""        |$UID         |0 (Default User account mapped to root user in container.)
-keep-id   |$UID         |$UID (Map user account to same UID within container.)
+Key       | Host User   |  Container User
+----------|-------------|---------------------
+"" or host|$UID         | 0 (Default User account mapped to root user in container.)
+keep-id   |$UID         | $UID (Map user account to same UID within container.)
 keep-id:uid=200,gid=210 |$UID| 200:210 (Map user account to specified uid, gid value within container.)
 auto      |$UID         | nil (Host User UID is not mapped into container.)
 nomap     |$UID         | nil (Host User UID is not mapped into container.)
