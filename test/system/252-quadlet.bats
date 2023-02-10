@@ -420,7 +420,8 @@ EOF
     run_podman container inspect  --format "{{.State.Status}}" test_pod-test
     is "$output" "running" "container should be started by systemd and hence be running"
 
-    service_cleanup $QUADLET_SERVICE_NAME inactive
+    # The service is marked as failed as the service container exits non-zero.
+    service_cleanup $QUADLET_SERVICE_NAME failed
     run_podman rmi $(pause_image)
 }
 
