@@ -80,11 +80,22 @@ var installCmd = &cobra.Command{
 
 func init() {
 	addPrefixFlag(installCmd)
+	addUserFlag(installCmd)
 	rootCmd.AddCommand(installCmd)
 }
 
 func install(cmd *cobra.Command, args []string) error {
-	userName, uid, homeDir, err := getUser()
+
+	var err error
+	inputUser := cmd.Flag("user").Value.String()
+
+	if inputUser == "" {
+		inputUser, err = lookupUser()
+		if err != nil {
+			return err
+		}
+	}
+	userName, uid, homeDir, err := getUser(inputUser)
 	if err != nil {
 		return err
 	}

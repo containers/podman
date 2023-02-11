@@ -72,20 +72,26 @@ func getUserInfo(name string) (string, string, string, error) {
 	entry := readCapped(output)
 	elements := strings.Split(entry, ":")
 	if len(elements) < 9 || elements[0] != name {
-		return "", "", "", errors.New("Could not look up user")
+		return "", "", "", errors.New("could not look up user")
 	}
 
 	return elements[0], elements[2], elements[8], nil
 }
 
-func getUser() (string, string, string, error) {
+func lookupUser() (string, error) {
+
 	name, found := os.LookupEnv("SUDO_USER")
 	if !found {
 		name, found = os.LookupEnv("USER")
 		if !found {
-			return "", "", "", errors.New("could not determine user")
+			return "", errors.New("could not determine user")
 		}
 	}
+
+	return name, nil
+}
+
+func getUser(name string) (string, string, string, error) {
 
 	_, uid, home, err := getUserInfo(name)
 	if err != nil {
@@ -140,6 +146,17 @@ func readCapped(reader io.Reader) string {
 
 func addPrefixFlag(cmd *cobra.Command) {
 	cmd.Flags().StringVar(&installPrefix, "prefix", defaultPrefix, "Sets the install location prefix")
+}
+
+func addUserFlag(cmd *cobra.Command) {
+	switch cmd.Name() {
+	case "install":
+		cmd.Flags().StringVar(&installPrefix, "user", "", "Install the helper for the provided user")
+	case "uninstall":
+		cmd.Flags().StringVar(&installPrefix, "user", "", "Uninstall the helper for the provided user")
+	default:
+		cmd.Flags().StringVar(&installPrefix, "user", "", "Runs the helper on behalf of the provided user")
+	}
 }
 
 func silentUsage(cmd *cobra.Command, args []string) {

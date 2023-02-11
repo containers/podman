@@ -22,11 +22,23 @@ var uninstallCmd = &cobra.Command{
 
 func init() {
 	addPrefixFlag(uninstallCmd)
+	addUserFlag(uninstallCmd)
 	rootCmd.AddCommand(uninstallCmd)
 }
 
 func uninstall(cmd *cobra.Command, args []string) error {
-	userName, _, _, err := getUser()
+
+	var err error
+	inputUser := cmd.Flag("user").Value.String()
+
+	if inputUser == "" {
+		inputUser, err = lookupUser()
+		if err != nil {
+			return err
+		}
+	}
+
+	userName, _, _, err := getUser(inputUser)
 	if err != nil {
 		return err
 	}
