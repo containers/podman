@@ -50,7 +50,7 @@ Generate ssh keys with an empty passphrase
 
 ssh-keygen -t ed25519 -f C:\qemu-remote\remote
 
-### Ingition for FCOS
+### Ignition for FCOS
 
 Create ignition file C:\qemu-remote\remote.ign with the content of
 ```

@@ -109,19 +109,19 @@ var _ = Describe("podman machine init", func() {
 		Expect(startSession).To(Exit(0))
 
 		sshCPU := sshMachine{}
-		CPUsession, err := mb.setName(name).setCmd(sshCPU.withSSHComand([]string{"lscpu", "|", "grep", "\"CPU(s):\"", "|", "head", "-1"})).run()
+		CPUsession, err := mb.setName(name).setCmd(sshCPU.withSSHCommand([]string{"lscpu", "|", "grep", "\"CPU(s):\"", "|", "head", "-1"})).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(CPUsession).To(Exit(0))
 		Expect(CPUsession.outputToString()).To(ContainSubstring("2"))
 
 		sshDisk := sshMachine{}
-		diskSession, err := mb.setName(name).setCmd(sshDisk.withSSHComand([]string{"sudo", "fdisk", "-l", "|", "grep", "Disk"})).run()
+		diskSession, err := mb.setName(name).setCmd(sshDisk.withSSHCommand([]string{"sudo", "fdisk", "-l", "|", "grep", "Disk"})).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(diskSession).To(Exit(0))
 		Expect(diskSession.outputToString()).To(ContainSubstring("102 GiB"))
 
 		sshMemory := sshMachine{}
-		memorySession, err := mb.setName(name).setCmd(sshMemory.withSSHComand([]string{"cat", "/proc/meminfo", "|", "grep", "-i", "'memtotal'", "|", "grep", "-o", "'[[:digit:]]*'"})).run()
+		memorySession, err := mb.setName(name).setCmd(sshMemory.withSSHCommand([]string{"cat", "/proc/meminfo", "|", "grep", "-i", "'memtotal'", "|", "grep", "-o", "'[[:digit:]]*'"})).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(memorySession).To(Exit(0))
 		foundMemory, err := strconv.Atoi(memorySession.outputToString())
@@ -130,7 +130,7 @@ var _ = Describe("podman machine init", func() {
 		Expect(foundMemory).To(BeNumerically("<", 4200000))
 
 		sshTimezone := sshMachine{}
-		timezoneSession, err := mb.setName(name).setCmd(sshTimezone.withSSHComand([]string{"date"})).run()
+		timezoneSession, err := mb.setName(name).setCmd(sshTimezone.withSSHCommand([]string{"date"})).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(timezoneSession).To(Exit(0))
 		Expect(timezoneSession.outputToString()).To(ContainSubstring("HST"))
@@ -156,7 +156,7 @@ var _ = Describe("podman machine init", func() {
 		Expect(startSession).To(Exit(0))
 
 		ssh2 := sshMachine{}
-		sshSession2, err := mb.setName(name).setCmd(ssh2.withSSHComand([]string{"ls /testmountdir"})).run()
+		sshSession2, err := mb.setName(name).setCmd(ssh2.withSSHCommand([]string{"ls /testmountdir"})).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(sshSession2).To(Exit(0))
 		Expect(sshSession2.outputToString()).To(ContainSubstring("example"))

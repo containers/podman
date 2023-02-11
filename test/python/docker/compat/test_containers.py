@@ -220,7 +220,7 @@ class TestContainers(common.DockerTestCase):
         _, out = ctr.exec_run(["stat", "-c", "%u:%g", "/workspace"])
         self.assertEqual(out.rstrip(), b"1042:1043", "UID/GID set in dockerfile")
 
-    def test_non_existant_workdir(self):
+    def test_non_existent_workdir(self):
         dockerfile = (
             b"FROM quay.io/libpod/alpine:latest\n"
             b"USER root\n"
@@ -233,7 +233,7 @@ class TestContainers(common.DockerTestCase):
             image=img.id,
             detach=True,
             command="top",
-            volumes=["test_non_existant_workdir:/workspace"],
+            volumes=["test_non_existent_workdir:/workspace"],
         )
         ctr.start()
         ret, _ = ctr.exec_run(["stat", "/workspace/scratch/test"])

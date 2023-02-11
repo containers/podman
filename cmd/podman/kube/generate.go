@@ -17,7 +17,7 @@ import (
 var (
 	generateOptions     = entities.GenerateKubeOptions{}
 	generateFile        = ""
-	generateDescription = `Command generates Kubernetes Pod, Service or PersistenVolumeClaim YAML (v1 specification) from Podman containers, pods or volumes.
+	generateDescription = `Command generates Kubernetes Pod, Service or PersistentVolumeClaim YAML (v1 specification) from Podman containers, pods or volumes.
 
   Whether the input is for a container or pod, Podman will always generate the specification as a pod.`
 

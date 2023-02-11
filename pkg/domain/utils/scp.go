@@ -400,7 +400,7 @@ func RemoteArgLength(input string, side int) int {
 	return -1
 }
 
-// GetSerivceInformation takes the parsed list of hosts to connect to and validates the information
+// GetServiceInformation takes the parsed list of hosts to connect to and validates the information
 func GetServiceInformation(sshInfo *entities.ImageScpConnections, cliConnections []string, cfg *config.Config) (map[string]config.Destination, error) {
 	var serv map[string]config.Destination
 	var urlS string

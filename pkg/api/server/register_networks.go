@@ -238,8 +238,8 @@ func (s *APIServer) registerNetworkHandlers(r *mux.Router) error {
 	// ---
 	// tags:
 	//  - networks
-	// summary: Update exisiting podman network
-	// description: Update exisiting podman network
+	// summary: Update existing podman network
+	// description: Update existing podman network
 	// produces:
 	// - application/json
 	// parameters:

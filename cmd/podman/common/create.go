@@ -17,8 +17,8 @@ const sizeWithUnitFormat = "(format: `<number>[<unit>]`, where unit = b (bytes),
 var podmanConfig = registry.PodmanConfig()
 
 // ContainerToPodOptions takes the Container and Pod Create options, assigning the matching values back to podCreate for the purpose of the libpod API
-// For this function to succeed, the JSON tags in PodCreateOptions and ContainerCreateOptions need to match due to the Marshaling and Unmarshaling done.
-// The types of the options also need to match or else the unmarshaling will fail even if the tags match
+// For this function to succeed, the JSON tags in PodCreateOptions and ContainerCreateOptions need to match due to the Marshalling and Unmarshalling done.
+// The types of the options also need to match or else the unmarshalling will fail even if the tags match
 func ContainerToPodOptions(containerCreate *entities.ContainerCreateOptions, podCreate *entities.PodCreateOptions) error {
 	contMarshal, err := json.Marshal(containerCreate)
 	if err != nil {
@@ -780,15 +780,15 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		)
 		_ = cmd.RegisterFlagCompletionFunc(pidFlagName, AutocompleteNamespace)
 
-		volumeDesciption := "Bind mount a volume into the container"
+		volumeDescription := "Bind mount a volume into the container"
 		if registry.IsRemote() {
-			volumeDesciption = "Bind mount a volume into the container. Volume source will be on the server machine, not the client"
+			volumeDescription = "Bind mount a volume into the container. Volume source will be on the server machine, not the client"
 		}
 		volumeFlagName := "volume"
 		createFlags.StringArrayVarP(
 			&cf.Volume,
 			volumeFlagName, "v", cf.Volume,
-			volumeDesciption,
+			volumeDescription,
 		)
 		_ = cmd.RegisterFlagCompletionFunc(volumeFlagName, AutocompleteVolumeFlag)
 
