@@ -2,6 +2,7 @@ package libpod
 
 import (
 	"bytes"
+	"database/sql"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -158,6 +159,7 @@ func checkRuntimeConfig(db *bolt.DB, rt *Runtime) error {
 	missingFields := []dbConfigValidation{}
 
 	// Let's try and validate read-only first
+	startTime := time.Now()
 	err = db.View(func(tx *bolt.Tx) error {
 		configBkt, err := getRuntimeConfigBucket(tx)
 		if err != nil {
@@ -179,13 +181,17 @@ func checkRuntimeConfig(db *bolt.DB, rt *Runtime) error {
 	if err != nil {
 		return err
 	}
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Validate DB config: %s", elapsed.String())
 
 	if len(missingFields) == 0 {
 		return nil
 	}
 
 	// Populate missing fields
-	return db.Update(func(tx *bolt.Tx) error {
+	startTime = time.Now()
+	err = db.Update(func(tx *bolt.Tx) error {
 		configBkt, err := getRuntimeConfigBucket(tx)
 		if err != nil {
 			return err
@@ -204,6 +210,11 @@ func checkRuntimeConfig(db *bolt.DB, rt *Runtime) error {
 
 		return nil
 	})
+	endTime = time.Now()
+	elapsed = endTime.Sub(startTime)
+	logrus.Errorf("Fix DB config: %s", elapsed.String())
+
+	return err
 }
 
 // Attempt a read-only validation of a configuration entry in the DB against an
@@ -427,7 +438,6 @@ func (s *BoltState) getContainerConfigFromDB(id []byte, config *ContainerConfig,
 		return fmt.Errorf("container %s missing config key in DB: %w", string(id), define.ErrInternal)
 	}
 
-
 	startTime := time.Now()
 	if err := json.Unmarshal(configBytes, config); err != nil {
 		return fmt.Errorf("unmarshalling container %s config: %w", string(id), err)
@@ -461,9 +471,13 @@ func (s *BoltState) getContainerStateDB(id []byte, ctr *Container, ctrsBkt *bolt
 		return fmt.Errorf("container %s does not have a state key in DB: %w", ctr.ID(), define.ErrInternal)
 	}
 
+	startTime := time.Now()
 	if err := json.Unmarshal(newStateBytes, newState); err != nil {
 		return fmt.Errorf("unmarshalling container %s state: %w", ctr.ID(), err)
 	}
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Unmarshal container state: %s", elapsed.String())
 
 	// backwards compat, previously we used a extra bucket for the netns so try to get it from there
 	netNSBytes := ctrToUpdate.Get(netNSKey)
@@ -645,11 +659,16 @@ func (s *BoltState) addContainer(ctr *Container, pod *Pod) error {
 	endTime := time.Now()
 	elapsed := endTime.Sub(startTime)
 	logrus.Errorf("Marshalling config: %s", elapsed.String())
+
+	startTime = time.Now()
 	stateJSON, err := json.Marshal(ctr.state)
 	if err != nil {
 		return fmt.Errorf("marshalling container %s state to JSON: %w", ctr.ID(), err)
 	}
 	dependsCtrs := ctr.Dependencies()
+	endTime = time.Now()
+	elapsed = endTime.Sub(startTime)
+	logrus.Errorf("Marshalling state: %s", elapsed.String())
 
 	ctrID := []byte(ctr.ID())
 	ctrName := []byte(ctr.Name())
@@ -677,6 +696,46 @@ func (s *BoltState) addContainer(ctr *Container, pod *Pod) error {
 		}
 		networks[net] = optBytes
 	}
+
+	query := "INSERT INTO containers VALUES ( ?, ?, ?, ? );"
+	query2 := "INSERT INTO containerState VALUES ( ?, ?, ? );"
+
+	var podNullStr sql.NullString
+	if ctr.config.Pod == "" {
+		podNullStr = sql.NullString{}
+	} else {
+		podNullStr = sql.NullString{
+			String: ctr.config.Pod,
+			Valid: true,
+		}
+	}
+
+	startTime = time.Now()
+	tx, err := s.db.Begin()
+	if err != nil {
+		return fmt.Errorf("cannot start DB insert transaction: %w", err)
+	}
+	if _, err := tx.Exec(query, ctr.ID(), ctr.Name(), podNullStr, configJSON); err != nil {
+		if err2 := tx.Rollback(); err2 != nil {
+			logrus.Errorf("Error rolling back transaction: %v", err2)
+		}
+		return fmt.Errorf("cannot insert row in DB: %w", err)
+	}
+	if _, err := tx.Exec(query2, ctr.ID(), int(ctr.state.State), stateJSON); err != nil {
+		if err2 := tx.Rollback(); err2 != nil {
+			logrus.Errorf("Error rolling back transaction: %v", err2)
+		}
+		return fmt.Errorf("cannot insert state row in DB: %w", err)
+	}
+	if err := tx.Commit(); err != nil {
+		if err2 := tx.Rollback(); err2 != nil {
+			logrus.Errorf("Error rolling back transaction: %v", err2)
+		}
+		return fmt.Errorf("cannot commit insert transaction in DB: %w", err)
+	}
+	endTime = time.Now()
+	elapsed = endTime.Sub(startTime)
+	logrus.Errorf("SQL DB insert config: %s", elapsed.String())
 
 	db, err := s.getDBCon()
 	if err != nil {

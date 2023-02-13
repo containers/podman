@@ -2,6 +2,7 @@ package libpod
 
 import (
 	"bytes"
+	"database/sql"
 	"errors"
 	"fmt"
 	"net"
@@ -15,6 +16,8 @@ import (
 	jsoniter "github.com/json-iterator/go"
 	"github.com/sirupsen/logrus"
 	bolt "go.etcd.io/bbolt"
+
+	_ "github.com/mattn/go-sqlite3"
 )
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
@@ -27,6 +30,8 @@ type BoltState struct {
 	namespace      string
 	namespaceBytes []byte
 	runtime        *Runtime
+
+	db *sql.DB
 }
 
 // A brief description of the format of the BoltDB state:
@@ -96,6 +101,85 @@ func NewBoltState(path string, runtime *Runtime) (State, error) {
 	// concurrent access.
 	// As such, just a db.Close() is fine here.
 	defer db.Close()
+
+	startTime := time.Now()
+	sqlDB, err := sql.Open("sqlite3", "db.sql?_loc=auto")
+	if err != nil {
+		return nil, fmt.Errorf("opening sqlite3 database: %w", err)
+	}
+	state.db = sqlDB
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("SQL DB Open Conn: %s", elapsed.String())
+
+	startTime = time.Now()
+	// Ensure connectivity
+	if err := state.db.Ping(); err != nil {
+		return nil, fmt.Errorf("cannot establish connection to sqlite3 database: %w", err)
+	}
+	endTime = time.Now()
+	elapsed = endTime.Sub(startTime)
+	logrus.Errorf("SQL DB ping: %s", elapsed.String())
+
+	// Enable foreign keys and WAL mode for performance.
+	// Force full fsyncs to ensure we are reboot-safe.
+	startTime = time.Now()
+	if _, err := state.db.Exec("PRAGMA foreign_keys = ON;"); err != nil {
+		return nil, fmt.Errorf("enabling foreign key support in database: %w", err)
+	}
+	if _, err := state.db.Exec("PRAGMA journal_mode = WAL;"); err != nil {
+		return nil, fmt.Errorf("switching journal to WAL mode: %w", err)
+	}
+	if _, err := state.db.Exec("PRAGMA syncronous = FULL;"); err != nil {
+		return nil, fmt.Errorf("setting full fsync mode in db: %w", err)
+	}
+	endTime = time.Now()
+	elapsed = endTime.Sub(startTime)
+	logrus.Errorf("SQL DB pragmas: %s", elapsed.String())
+
+	const ctrTable = `
+        CREATE TABLE IF NOT EXISTS containers(
+            Id              TEXT    NOT NULL PRIMARY KEY,
+            Name            TEXT    NOT NULL UNIQUE,
+            Pod             TEXT,
+            Config          TEXT    NOT NULL
+        );
+        `
+
+	const ctrStateTable = `
+        CREATE TABLE IF NOT EXISTS containerState(
+            Id              TEXT    NOT NULL PRIMARY KEY,
+            State           INTEGER NOT NULL,
+            Json            TEXT    NOT NULL
+        );
+        `
+
+	startTime = time.Now()
+	tx, err := state.db.Begin()
+	if err != nil {
+		return nil, fmt.Errorf("cannot start DB create transaction: %w", err)
+	}
+	if _, err := tx.Exec(ctrTable); err != nil {
+		if err2 := tx.Rollback(); err2 != nil {
+			logrus.Errorf("Error rolling back transaction: %v", err2)
+		}
+		return nil, fmt.Errorf("cannot create table in DB: %w", err)
+	}
+	if _, err := tx.Exec(ctrStateTable); err != nil {
+		if err2 := tx.Rollback(); err2 != nil {
+			logrus.Errorf("Error rolling back transaction: %v", err2)
+		}
+		return nil, fmt.Errorf("cannot create state table in DB: %w", err)
+	}
+	if err := tx.Commit(); err != nil {
+		if err2 := tx.Rollback(); err2 != nil {
+			logrus.Errorf("Error rolling back transaction: %v", err2)
+		}
+		return nil, fmt.Errorf("cannot commit create table transaction in DB: %w", err)
+	}
+	endTime = time.Now()
+	elapsed = endTime.Sub(startTime)
+	logrus.Errorf("SQL DB create table: %s", elapsed.String())
 
 	createBuckets := [][]byte{
 		idRegistryBkt,
@@ -448,6 +532,7 @@ func (s *BoltState) GetDBConfig() (*DBConfig, error) {
 	}
 	defer s.deferredCloseDBCon(db)
 
+	startTime := time.Now()
 	err = db.View(func(tx *bolt.Tx) error {
 		configBucket, err := getRuntimeConfigBucket(tx)
 		if err != nil {
@@ -477,6 +562,9 @@ func (s *BoltState) GetDBConfig() (*DBConfig, error) {
 	if err != nil {
 		return nil, err
 	}
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Get DB Config: %s", elapsed.String())
 
 	return cfg, nil
 }
@@ -732,6 +820,7 @@ func (s *BoltState) HasContainer(id string) (bool, error) {
 
 	exists := false
 
+	startTime := time.Now()
 	err = db.View(func(tx *bolt.Tx) error {
 		ctrBucket, err := getCtrBucket(tx)
 		if err != nil {
@@ -755,6 +844,9 @@ func (s *BoltState) HasContainer(id string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Container exists: %s", elapsed.String())
 
 	return exists, nil
 }
@@ -829,7 +921,24 @@ func (s *BoltState) UpdateContainer(ctr *Container) error {
 	}
 	defer s.deferredCloseDBCon(db)
 
+	query := "SELECT Json FROM containerState WHERE Id=?;"
+
 	startTime := time.Now()
+	var jsonCfg string
+	ctrCfg := new(ContainerConfig)
+	row := s.db.QueryRow(query, ctr.ID())
+	err = row.Scan(&jsonCfg)
+	if err != nil {
+		return fmt.Errorf("scanning state JSON: %w", err)
+	}
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("SQL State Retrieve: %s", elapsed.String())
+	if err := json.Unmarshal([]byte(jsonCfg), &ctrCfg); err != nil {
+		return fmt.Errorf("unmarshalling sql state: %w", err)
+	}
+
+	startTime = time.Now()
 	err = db.View(func(tx *bolt.Tx) error {
 		ctrBucket, err := getCtrBucket(tx)
 		if err != nil {
@@ -837,8 +946,8 @@ func (s *BoltState) UpdateContainer(ctr *Container) error {
 		}
 		return s.getContainerStateDB(ctrID, ctr, ctrBucket)
 	})
-	endTime := time.Now()
-	elapsed := endTime.Sub(startTime)
+	endTime = time.Now()
+	elapsed = endTime.Sub(startTime)
 	logrus.Errorf("Update container: %s", elapsed.String())
 
 	return err
@@ -858,10 +967,15 @@ func (s *BoltState) SaveContainer(ctr *Container) error {
 		return fmt.Errorf("container %s is in namespace %q, does not match our namespace %q: %w", ctr.ID(), ctr.config.Namespace, s.namespace, define.ErrNSMismatch)
 	}
 
+	startTime := time.Now()
 	stateJSON, err := json.Marshal(ctr.state)
 	if err != nil {
 		return fmt.Errorf("marshalling container %s state to JSON: %w", ctr.ID(), err)
 	}
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Marshal state JSON: %s", elapsed.String())
+
 	netNSPath := ctr.state.NetNS
 
 	ctrID := []byte(ctr.ID())
@@ -872,7 +986,30 @@ func (s *BoltState) SaveContainer(ctr *Container) error {
 	}
 	defer s.deferredCloseDBCon(db)
 
-	startTime := time.Now()
+	query := "UPDATE containerState SET State = ?, Json = ? WHERE Id = ?;"
+
+	startTime = time.Now()
+	tx, err := s.db.Begin()
+	if err != nil {
+		return fmt.Errorf("cannot start DB insert transaction: %w", err)
+	}
+	if _, err := tx.Exec(query, int(ctr.state.State), stateJSON, ctr.ID()); err != nil {
+		if err2 := tx.Rollback(); err2 != nil {
+			logrus.Errorf("Error rolling back transaction: %v", err2)
+		}
+		return fmt.Errorf("cannot insert state row in DB: %w", err)
+	}
+	if err := tx.Commit(); err != nil {
+		if err2 := tx.Rollback(); err2 != nil {
+			logrus.Errorf("Error rolling back transaction: %v", err2)
+		}
+		return fmt.Errorf("cannot commit insert transaction in DB: %w", err)
+	}
+	endTime = time.Now()
+	elapsed = endTime.Sub(startTime)
+	logrus.Errorf("SQL DB save state: %s", elapsed.String())
+
+	startTime = time.Now()
 	err = db.Update(func(tx *bolt.Tx) error {
 		ctrBucket, err := getCtrBucket(tx)
 		if err != nil {
@@ -899,8 +1036,8 @@ func (s *BoltState) SaveContainer(ctr *Container) error {
 
 		return nil
 	})
-	endTime := time.Now()
-	elapsed := endTime.Sub(startTime)
+	endTime = time.Now()
+	elapsed = endTime.Sub(startTime)
 	logrus.Errorf("Save container: %s", elapsed.String())
 
 	return err
@@ -1066,6 +1203,7 @@ func (s *BoltState) GetNetworks(ctr *Container) (map[string]types.PerNetworkOpti
 
 	var convertDB bool
 
+	startTime := time.Now()
 	err = db.View(func(tx *bolt.Tx) error {
 		ctrBucket, err := getCtrBucket(tx)
 		if err != nil {
@@ -1103,6 +1241,10 @@ func (s *BoltState) GetNetworks(ctr *Container) (map[string]types.PerNetworkOpti
 	if err != nil {
 		return nil, err
 	}
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Get networks: %s", elapsed.String())
+
 	if convertDB {
 		err = db.Update(func(tx *bolt.Tx) error {
 			ctrBucket, err := getCtrBucket(tx)
@@ -1369,7 +1511,24 @@ func (s *BoltState) GetContainerConfig(id string) (*ContainerConfig, error) {
 	}
 	defer s.deferredCloseDBCon(db)
 
+	query := "SELECT Config FROM containers WHERE Id=?;"
+
 	startTime := time.Now()
+	var jsonCfg string
+	ctrCfg := new(ContainerConfig)
+	row := s.db.QueryRow(query, id)
+	err = row.Scan(&jsonCfg)
+	if err != nil {
+		return nil, fmt.Errorf("scanning cfg JSON: %w", err)
+	}
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("SQL Config Retrieve: %s", elapsed.String())
+	if err := json.Unmarshal([]byte(jsonCfg), &ctrCfg); err != nil {
+		return nil, fmt.Errorf("unmarshalling sql: %w", err)
+	}
+
+	startTime = time.Now()
 	err = db.View(func(tx *bolt.Tx) error {
 		ctrBucket, err := getCtrBucket(tx)
 		if err != nil {
@@ -1381,8 +1540,8 @@ func (s *BoltState) GetContainerConfig(id string) (*ContainerConfig, error) {
 	if err != nil {
 		return nil, err
 	}
-	endTime := time.Now()
-	elapsed := endTime.Sub(startTime)
+	endTime = time.Now()
+	elapsed = endTime.Sub(startTime)
 	logrus.Errorf("Update container config: %s", elapsed.String())
 
 	return config, nil
@@ -1527,6 +1686,8 @@ func (s *BoltState) PruneContainerExitCodes() error {
 	toRemoveIDs := []string{}
 
 	threshold := time.Minute * 5
+
+	startTime := time.Now()
 	err = db.View(func(tx *bolt.Tx) error {
 		timeStampBucket, err := getExitCodeTimeStampBucket(tx)
 		if err != nil {
@@ -1547,8 +1708,12 @@ func (s *BoltState) PruneContainerExitCodes() error {
 	if err != nil {
 		return fmt.Errorf("reading exit codes to prune: %w", err)
 	}
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Retrieving exec sessions: %s", elapsed.String())
 
 	if len(toRemoveIDs) > 0 {
+		startTime = time.Now()
 		err = db.Update(func(tx *bolt.Tx) error {
 			exitCodeBucket, err := getExitCodeBucket(tx)
 			if err != nil {
@@ -1581,6 +1746,9 @@ func (s *BoltState) PruneContainerExitCodes() error {
 		if err != nil {
 			return fmt.Errorf("pruning exit codes: %w", err)
 		}
+		endTime = time.Now()
+		elapsed = endTime.Sub(startTime)
+		logrus.Errorf("Removing exec sessions from DB: %s", elapsed.String())
 	}
 
 	return nil
@@ -1813,6 +1981,7 @@ func (s *BoltState) RemoveContainerExecSessions(ctr *Container) error {
 	ctrID := []byte(ctr.ID())
 	sessions := []string{}
 
+	startTime := time.Now()
 	err = db.Update(func(tx *bolt.Tx) error {
 		execBucket, err := getExecBucket(tx)
 		if err != nil {
@@ -1864,6 +2033,9 @@ func (s *BoltState) RemoveContainerExecSessions(ctr *Container) error {
 
 		return nil
 	})
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Removing all container exec sessions: %s", elapsed.String())
 	return err
 }
 
@@ -2611,6 +2783,7 @@ func (s *BoltState) RemoveVolume(volume *Volume) error {
 	}
 	defer s.deferredCloseDBCon(db)
 
+	startTime := time.Now()
 	err = db.Update(func(tx *bolt.Tx) error {
 		volBkt, err := getVolBucket(tx)
 		if err != nil {
@@ -2686,6 +2859,10 @@ func (s *BoltState) RemoveVolume(volume *Volume) error {
 
 		return nil
 	})
+	endTime := time.Now()
+	elapsed := endTime.Sub(startTime)
+	logrus.Errorf("Add volume to DB: %s", elapsed.String())
+
 	return err
 }
 
