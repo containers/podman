@@ -277,4 +277,20 @@ function check_label() {
     is "$output" "${RELABEL} $tmpdir" "Shared Relabel Correctly"
 }
 
+@test "podman selinux nested" {
+    skip_if_no_selinux
+
+    ROOTCONTEXT='rw,rootcontext="system_u:object_r:container_file_t:s0:c1,c2"'
+    SELINUXMNT="selinuxfs.*(rw,nosuid,noexec,relatime)"
+
+    SELINUXMNT="tmpfs.*selinux.*\(ro"
+    run_podman run --rm --security-opt label=level:s0:c1,c2 $IMAGE mount
+    assert "$output" !~ "${ROOTCONTEXT}" "Don't use rootcontext"
+    assert "$output" =~ "${SELINUXMNT}" "Mount SELinux file system readwrite"
+
+    run_podman run --rm --security-opt label=nested --security-opt label=level:s0:c1,c2 $IMAGE mount
+    assert "$output" =~ "${ROOTCONTEXT}" "Uses rootcontext"
+    assert "$output" =~ "${SELINUXMNT}" "Mount SELinux file system readwrite"
+}
+
 # vim: filetype=sh

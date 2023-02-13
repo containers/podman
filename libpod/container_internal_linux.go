@@ -32,8 +32,13 @@ var (
 )
 
 func (c *Container) mountSHM(shmOptions string) error {
+	contextType := "context"
+	if c.config.LabelNested {
+		contextType = "rootcontext"
+	}
+
 	if err := unix.Mount("shm", c.config.ShmDir, "tmpfs", unix.MS_NOEXEC|unix.MS_NOSUID|unix.MS_NODEV,
-		label.FormatMountLabel(shmOptions, c.config.MountLabel)); err != nil {
+		label.FormatMountLabelByType(shmOptions, c.config.MountLabel, contextType)); err != nil {
 		return fmt.Errorf("failed to mount shm tmpfs %q: %w", c.config.ShmDir, err)
 	}
 	return nil

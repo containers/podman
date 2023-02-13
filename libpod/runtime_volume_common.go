@@ -120,15 +120,13 @@ func (r *Runtime) newVolume(ctx context.Context, noCreatePluginVolume bool, opti
 		volume.config.StorageImageID = image.ID()
 
 		// Create a backing container in c/storage.
-		storageConfig := storage.ContainerOptions{
-			LabelOpts: []string{"filetype:container_file_t:s0"},
-		}
+		storageConfig := storage.ContainerOptions{}
 		if len(volume.config.MountLabel) > 0 {
 			context, err := selinux.NewContext(volume.config.MountLabel)
 			if err != nil {
 				return nil, fmt.Errorf("failed to get SELinux context from %s: %w", volume.config.MountLabel, err)
 			}
-			storageConfig.LabelOpts = []string{fmt.Sprintf("filetype:%s:s0", context["type"])}
+			storageConfig.LabelOpts = []string{fmt.Sprintf("filetype:%s", context["type"])}
 		}
 		if _, err := r.storageService.CreateContainerStorage(ctx, r.imageContext, imgString, image.ID(), volume.config.StorageName, volume.config.StorageID, storageConfig); err != nil {
 			return nil, fmt.Errorf("creating backing storage for image driver: %w", err)

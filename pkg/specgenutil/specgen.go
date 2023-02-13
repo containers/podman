@@ -620,53 +620,57 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 	}
 
 	for _, opt := range c.SecurityOpt {
-		if opt == "no-new-privileges" {
-			s.ContainerSecurityConfig.NoNewPrivileges = true
+		// Docker deprecated the ":" syntax but still supports it,
+		// so we need to as well
+		var con []string
+		if strings.Contains(opt, "=") {
+			con = strings.SplitN(opt, "=", 2)
 		} else {
-			// Docker deprecated the ":" syntax but still supports it,
-			// so we need to as well
-			var con []string
-			if strings.Contains(opt, "=") {
-				con = strings.SplitN(opt, "=", 2)
-			} else {
-				con = strings.SplitN(opt, ":", 2)
+			con = strings.SplitN(opt, ":", 2)
+		}
+		if len(con) != 2 &&
+			con[0] != "no-new-privileges" {
+			return fmt.Errorf("invalid --security-opt 1: %q", opt)
+		}
+		switch con[0] {
+		case "apparmor":
+			s.ContainerSecurityConfig.ApparmorProfile = con[1]
+			s.Annotations[define.InspectAnnotationApparmor] = con[1]
+		case "label":
+			if con[1] == "nested" {
+				s.ContainerSecurityConfig.LabelNested = true
+				continue
 			}
-			if len(con) != 2 {
-				return fmt.Errorf("invalid --security-opt 1: %q", opt)
-			}
-			switch con[0] {
-			case "apparmor":
-				s.ContainerSecurityConfig.ApparmorProfile = con[1]
-				s.Annotations[define.InspectAnnotationApparmor] = con[1]
-			case "label":
-				// TODO selinux opts and label opts are the same thing
-				s.ContainerSecurityConfig.SelinuxOpts = append(s.ContainerSecurityConfig.SelinuxOpts, con[1])
-				s.Annotations[define.InspectAnnotationLabel] = strings.Join(s.ContainerSecurityConfig.SelinuxOpts, ",label=")
-			case "mask":
-				s.ContainerSecurityConfig.Mask = append(s.ContainerSecurityConfig.Mask, strings.Split(con[1], ":")...)
-			case "proc-opts":
-				s.ProcOpts = strings.Split(con[1], ",")
-			case "seccomp":
-				s.SeccompProfilePath = con[1]
-				s.Annotations[define.InspectAnnotationSeccomp] = con[1]
+			// TODO selinux opts and label opts are the same thing
+			s.ContainerSecurityConfig.SelinuxOpts = append(s.ContainerSecurityConfig.SelinuxOpts, con[1])
+			s.Annotations[define.InspectAnnotationLabel] = strings.Join(s.ContainerSecurityConfig.SelinuxOpts, ",label=")
+		case "mask":
+			s.ContainerSecurityConfig.Mask = append(s.ContainerSecurityConfig.Mask, strings.Split(con[1], ":")...)
+		case "proc-opts":
+			s.ProcOpts = strings.Split(con[1], ",")
+		case "seccomp":
+			s.SeccompProfilePath = con[1]
+			s.Annotations[define.InspectAnnotationSeccomp] = con[1]
 			// this option is for docker compatibility, it is the same as unmask=ALL
-			case "systempaths":
-				if con[1] == "unconfined" {
-					s.ContainerSecurityConfig.Unmask = append(s.ContainerSecurityConfig.Unmask, []string{"ALL"}...)
-				} else {
-					return fmt.Errorf("invalid systempaths option %q, only `unconfined` is supported", con[1])
-				}
-			case "unmask":
-				s.ContainerSecurityConfig.Unmask = append(s.ContainerSecurityConfig.Unmask, con[1:]...)
-			case "no-new-privileges":
-				noNewPrivileges, err := strconv.ParseBool(con[1])
+		case "systempaths":
+			if con[1] == "unconfined" {
+				s.ContainerSecurityConfig.Unmask = append(s.ContainerSecurityConfig.Unmask, []string{"ALL"}...)
+			} else {
+				return fmt.Errorf("invalid systempaths option %q, only `unconfined` is supported", con[1])
+			}
+		case "unmask":
+			s.ContainerSecurityConfig.Unmask = append(s.ContainerSecurityConfig.Unmask, con[1:]...)
+		case "no-new-privileges":
+			noNewPrivileges := true
+			if len(con) == 2 {
+				noNewPrivileges, err = strconv.ParseBool(con[1])
 				if err != nil {
 					return fmt.Errorf("invalid --security-opt 2: %q", opt)
 				}
-				s.ContainerSecurityConfig.NoNewPrivileges = noNewPrivileges
-			default:
-				return fmt.Errorf("invalid --security-opt 2: %q", opt)
 			}
+			s.ContainerSecurityConfig.NoNewPrivileges = noNewPrivileges
+		default:
+			return fmt.Errorf("invalid --security-opt 2: %q", opt)
 		}
 	}
 
@@ -689,6 +693,17 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 	}
 	if len(s.Volumes) == 0 || len(c.Volume) != 0 {
 		s.Volumes = volumes
+	}
+
+	if s.ContainerSecurityConfig.LabelNested {
+		// Need to unmask the SELinux file system
+		s.Unmask = append(s.Unmask, "/sys/fs/selinux", "/proc")
+		s.Mounts = append(s.Mounts, specs.Mount{
+			Source:      "/sys/fs/selinux",
+			Destination: "/sys/fs/selinux",
+			Type:        define.TypeBind,
+		})
+		s.Annotations[define.RunOCIMountContextType] = "rootcontext"
 	}
 	// TODO make sure these work in clone
 	if len(s.OverlayVolumes) == 0 {
