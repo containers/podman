@@ -429,15 +429,27 @@ sub podman_man {
             }
 
             # In podman-<subcommand>.1.md
-            elsif ($line =~ /^\|\s+(\S+)\s+\|\s+\[\S+\]\((\S+)\.1\.md\)/) {
+            #                      1   1        2  3   3    4   4         2
+            elsif ($line =~ /^\|\s+(\S+)\s+\|\s+(\[(\S+)\]\((\S+)\.1\.md\))/) {
                 # $1 will be changed by recursion _*BEFORE*_ left-hand assignment
-                my $subcmd = $1;
+                my ($subcmd, $blob, $shown_name, $link_name) = ($1, $2, $3, $4);
                 if ($previous_subcmd gt $subcmd) {
                     warn "$ME: $subpath:$.: '$previous_subcmd' and '$subcmd' are out of order\n";
                     ++$Errs;
                 }
                 $previous_subcmd = $subcmd;
-                $man{$subcmd} = podman_man($2);
+                $man{$subcmd} = podman_man($link_name);
+
+                # Check for inconsistencies between the displayed man page name
+                # and the actual man page name, e.g.
+                #  '[podman-bar(1)](podman-baz.1.md)
+                $shown_name =~ s/\(\d\)$//;
+                $shown_name =~ s/\\//g;         # backslashed hyphens
+                (my $should_be = $link_name) =~ s/\.1\.md$//;
+                if ($shown_name ne $should_be) {
+                    warn "$ME: $subpath:$.: '$shown_name' should be '$should_be' in '$blob'\n";
+                    ++$Errs;
+                }
             }
         }
 
