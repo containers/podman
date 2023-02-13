@@ -84,21 +84,19 @@ func StartAttachCtr(ctx context.Context, ctr *libpod.Container, stdout, stderr, 
 		streams.AttachInput = false
 	}
 
-	if !startContainer {
-		if sigProxy {
-			ProxySignals(ctr)
-		}
+	if sigProxy {
+		// To prevent a race condition, install the signal handler
+		// before starting/attaching to the container.
+		ProxySignals(ctr)
+	}
 
+	if !startContainer {
 		return ctr.Attach(streams, detachKeys, resize)
 	}
 
 	attachChan, err := ctr.StartAndAttach(ctx, streams, detachKeys, resize, true)
 	if err != nil {
 		return err
-	}
-
-	if sigProxy {
-		ProxySignals(ctr)
 	}
 
 	if stdout == nil && stderr == nil {

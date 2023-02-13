@@ -3,7 +3,14 @@
 load helpers
 
 # Command to run in each of the tests.
-SLEEPLOOP='trap "echo BYE;exit 0" INT;echo READY;while :;do sleep 0.1;done'
+SLEEPLOOP='trap "echo BYE;exit 0" INT;echo READY;while :;do echo RUNNING;sleep 0.1;done'
+
+function setup() {
+    basic_setup
+
+    TESTLOG=$PODMAN_TMPDIR/container-stdout
+}
+
 
 # Main test code: wait for container to exist and be ready, send it a
 # signal, wait for container to acknowledge and exit.
@@ -26,8 +33,21 @@ function _test_sigproxy() {
           fi
     done
 
-    # Now that container exists, wait for it to declare itself READY
-    wait_for_ready $cname
+    # Now that container exists, wait for it to declare itself RUNNING
+    timeout=10
+    while :;do
+          sleep 0.5
+          if grep -q RUNNING $TESTLOG; then
+              break
+          fi
+          timeout=$((timeout - 1))
+          if [[ $timeout -eq 0 ]]; then
+              run_podman ps -a
+              echo "log from container:"
+              cat $TESTLOG
+              die "Timed out waiting for container $cname to start"
+          fi
+    done
 
     # Signal, and wait for container to exit
     kill -INT $kidpid
@@ -52,7 +72,7 @@ function _test_sigproxy() {
 
 @test "podman sigproxy test: run" {
     # We're forced to use $PODMAN because run_podman cannot be backgrounded
-    $PODMAN run -i --name c_run $IMAGE sh -c "$SLEEPLOOP" &
+    $PODMAN run -i --name c_run $IMAGE sh -c "$SLEEPLOOP" >$TESTLOG &
     local kidpid=$!
 
     _test_sigproxy c_run $kidpid
@@ -62,7 +82,7 @@ function _test_sigproxy() {
     run_podman create --name c_start $IMAGE sh -c "$SLEEPLOOP"
 
     # See above comments regarding $PODMAN and backgrounding
-    $PODMAN start --attach c_start &
+    $PODMAN start --attach c_start >$TESTLOG &
     local kidpid=$!
 
     _test_sigproxy c_start $kidpid
@@ -72,7 +92,7 @@ function _test_sigproxy() {
     run_podman run -d --name c_attach $IMAGE sh -c "$SLEEPLOOP"
 
     # See above comments regarding $PODMAN and backgrounding
-    $PODMAN attach c_attach &
+    $PODMAN attach c_attach >$TESTLOG &
     local kidpid=$!
 
     _test_sigproxy c_attach $kidpid
