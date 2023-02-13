@@ -985,7 +985,7 @@ func (c *dockerClient) getBlob(ctx context.Context, ref dockerReference, info ty
 	return reconnectingReader, blobSize, nil
 }
 
-// getOCIDescriptorContents returns the contents a blob spcified by descriptor in ref, which must fit within limit.
+// getOCIDescriptorContents returns the contents a blob specified by descriptor in ref, which must fit within limit.
 func (c *dockerClient) getOCIDescriptorContents(ctx context.Context, ref dockerReference, desc imgspecv1.Descriptor, maxSize int, cache types.BlobInfoCache) ([]byte, error) {
 	// Note that this copies all kinds of attachments: attestations, and whatever else is there,
 	// not just signatures. We leave the signature consumers to decide based on the MIME type.

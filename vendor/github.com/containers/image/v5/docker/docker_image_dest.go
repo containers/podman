@@ -742,7 +742,7 @@ func layerMatchesSigstoreSignature(layer imgspecv1.Descriptor, mimeType string,
 }
 
 // putBlobBytesAsOCI uploads a blob with the specified contents, and returns an appropriate
-// OCI descriptior.
+// OCI descriptor.
 func (d *dockerImageDestination) putBlobBytesAsOCI(ctx context.Context, contents []byte, mimeType string, options private.PutBlobOptions) (imgspecv1.Descriptor, error) {
 	blobDigest := digest.FromBytes(contents)
 	info, err := d.PutBlobWithOptions(ctx, bytes.NewReader(contents),

@@ -200,7 +200,7 @@ func streamChunksFromFile(streams chan io.ReadCloser, errs chan error, file io.R
 	defer file.Close()
 
 	for _, c := range chunks {
-		// Always seek to the desired offest; that way we don’t need to care about the consumer
+		// Always seek to the desired offset; that way we don’t need to care about the consumer
 		// not reading all of the chunk, or about the position going backwards.
 		if _, err := file.Seek(int64(c.Offset), io.SeekStart); err != nil {
 			errs <- err
