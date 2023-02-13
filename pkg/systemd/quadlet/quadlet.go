@@ -317,7 +317,7 @@ func ConvertContainer(container *parser.UnitFile, isUser bool) (*parser.UnitFile
 	// We use crun as the runtime and delegated groups to it
 	service.Add(ServiceGroup, "Delegate", "yes")
 	podman.add(
-		"--runtime", "/usr/bin/crun",
+		"--runtime", "crun",
 		"--cgroups=split")
 
 	timezone, ok := container.Lookup(ContainerGroup, KeyTimezone)
