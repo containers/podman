@@ -15,7 +15,7 @@ var (
 
 func handleError(data []byte, unmarshalErrorInto interface{}) error {
 	if err := json.Unmarshal(data, unmarshalErrorInto); err != nil {
-		return fmt.Errorf("unmarshaling error into %#v, data %q: %w", unmarshalErrorInto, string(data), err)
+		return fmt.Errorf("unmarshalling error into %#v, data %q: %w", unmarshalErrorInto, string(data), err)
 	}
 	return unmarshalErrorInto.(error)
 }
@@ -36,7 +36,7 @@ func (h APIResponse) ProcessWithError(unmarshalInto interface{}, unmarshalErrorI
 	if h.IsSuccess() || h.IsRedirection() {
 		if unmarshalInto != nil {
 			if err := json.Unmarshal(data, unmarshalInto); err != nil {
-				return fmt.Errorf("unmarshaling into %#v, data %q: %w", unmarshalInto, string(data), err)
+				return fmt.Errorf("unmarshalling into %#v, data %q: %w", unmarshalInto, string(data), err)
 			}
 			return nil
 		}

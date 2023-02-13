@@ -281,7 +281,7 @@ func isUnambiguousName(imageName string) bool {
 //
 // We implement a simple version of this from scratch here to avoid
 // a huge dependency in the generator just for a warning.
-func warnIfAmbigiousName(container *parser.UnitFile) {
+func warnIfAmbiguousName(container *parser.UnitFile) {
 	imageName, ok := container.Lookup(quadlet.ContainerGroup, quadlet.KeyImage)
 	if !ok {
 		return
@@ -347,7 +347,7 @@ func main() {
 
 		switch {
 		case strings.HasSuffix(name, ".container"):
-			warnIfAmbigiousName(unit)
+			warnIfAmbiguousName(unit)
 			service, err = quadlet.ConvertContainer(unit, isUser)
 		case strings.HasSuffix(name, ".volume"):
 			service, err = quadlet.ConvertVolume(unit, name)

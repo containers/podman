@@ -77,7 +77,7 @@ func CloseQuiet(f *os.File) {
 
 // Contains checks if err's message contains sub's message. Contains should be
 // used iff either err or sub has lost type information (e.g., due to
-// marshaling).  For typed errors, please use `errors.Contains(...)` or `Is()`
+// marshalling).  For typed errors, please use `errors.Contains(...)` or `Is()`
 // in recent version of Go.
 func Contains(err error, sub error) bool {
 	return strings.Contains(err.Error(), sub.Error())

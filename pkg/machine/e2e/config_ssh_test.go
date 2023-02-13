@@ -25,7 +25,7 @@ func (s *sshMachine) withUsername(name string) *sshMachine { //nolint:unused
 	return s
 }
 
-func (s *sshMachine) withSSHComand(sshCommand []string) *sshMachine {
+func (s *sshMachine) withSSHCommand(sshCommand []string) *sshMachine {
 	s.sshCommand = sshCommand
 	return s
 }

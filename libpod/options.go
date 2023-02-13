@@ -1911,7 +1911,7 @@ func WithInfraConfig(compatibleOptions InfraInherit) CtrCreateOption {
 
 		err = json.Unmarshal(compatMarshal, ctr.config)
 		if err != nil {
-			return errors.New("could not unmarshal compatible options into contrainer config")
+			return errors.New("could not unmarshal compatible options into container config")
 		}
 		return nil
 	}

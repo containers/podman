@@ -590,7 +590,7 @@ Valid options for `[Volume]` are listed below:
 | -----------------                | ------------------                    |
 | Device=tmpfs                     | --opt device=tmpfs                    |
 | Copy=true                        | --opt copy                            |
-| Groupt=192                       | --opt group=192                       |
+| Group=192                        | --opt group=192                       |
 | Label="foo=bar"                  | --label "foo=bar"                     |
 | Options=XYZ                      | --opt XYZ                             |
 

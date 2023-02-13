@@ -307,8 +307,8 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 }
 
 // ConfigToSpec takes a completed container config and converts it back into a specgenerator for purposes of cloning an existing container
-func ConfigToSpec(rt *libpod.Runtime, specg *specgen.SpecGenerator, contaierID string) (*libpod.Container, *libpod.InfraInherit, error) {
-	c, err := rt.LookupContainer(contaierID)
+func ConfigToSpec(rt *libpod.Runtime, specg *specgen.SpecGenerator, containerID string) (*libpod.Container, *libpod.InfraInherit, error) {
+	c, err := rt.LookupContainer(containerID)
 	if err != nil {
 		return nil, nil, err
 	}

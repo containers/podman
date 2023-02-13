@@ -297,7 +297,7 @@ $SCRIPT_BASE/integration_test.sh |&amp; ${TIMESTAMP}
 [+0248s] test_list_container (compat.test_containers.TestContainers) ... ok
 [+0252s] test_mount_preexisting_dir (compat.test_containers.TestContainers) ... ok
 [+0253s] test_mount_rw_by_default (compat.test_containers.TestContainers) ... ok
-[+0257s] test_non_existant_workdir (compat.test_containers.TestContainers) ... ok
+[+0257s] test_non_existent_workdir (compat.test_containers.TestContainers) ... ok
 [+0258s] test_pause_container (compat.test_containers.TestContainers) ... ok
 [+0260s] test_pause_stopped_container (compat.test_containers.TestContainers) ... ok
 [+0261s] test_remove_container (compat.test_containers.TestContainers) ... ok
@@ -366,7 +366,7 @@ $SCRIPT_BASE/integration_test.sh |&amp; ${TIMESTAMP}
 <span class="timestamp">[+0248s] </span><span class='bats-passed'>test_list_container (compat.test_containers.TestContainers) ... ok</span>
 <span class="timestamp">[+0252s] </span><span class='bats-passed'>test_mount_preexisting_dir (compat.test_containers.TestContainers) ... ok</span>
 <span class="timestamp">[+0253s] </span><span class='bats-passed'>test_mount_rw_by_default (compat.test_containers.TestContainers) ... ok</span>
-<span class="timestamp">[+0257s] </span><span class='bats-passed'>test_non_existant_workdir (compat.test_containers.TestContainers) ... ok</span>
+<span class="timestamp">[+0257s] </span><span class='bats-passed'>test_non_existent_workdir (compat.test_containers.TestContainers) ... ok</span>
 <span class="timestamp">[+0258s] </span><span class='bats-passed'>test_pause_container (compat.test_containers.TestContainers) ... ok</span>
 <span class="timestamp">[+0260s] </span><span class='bats-passed'>test_pause_stopped_container (compat.test_containers.TestContainers) ... ok</span>
 <span class="timestamp">[+0261s] </span><span class='bats-passed'>test_remove_container (compat.test_containers.TestContainers) ... ok</span>

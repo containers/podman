@@ -72,7 +72,7 @@ type BoltState struct {
 //   for the exit file to be written and another process removes it along with
 //   the container during auto-removal.  The same race would happen trying to
 //   read the exit code from the containers bucket.  Hence, exit codes go into
-//   their own bucket.  To avoid the rather expensive JSON (un)marshaling, we
+//   their own bucket.  To avoid the rather expensive JSON (un)marshalling, we
 //   have two buckets: one for the exit codes, the other for the timestamps.
 
 // NewBoltState creates a new bolt-backed state database
@@ -1383,7 +1383,7 @@ func (s *BoltState) AddContainerExitCode(id string, exitCode int32) error {
 	rawExitCode := []byte(strconv.Itoa(int(exitCode)))
 	rawTimeStamp, err := time.Now().MarshalText()
 	if err != nil {
-		return fmt.Errorf("marshaling exit-code time stamp: %w", err)
+		return fmt.Errorf("marshalling exit-code time stamp: %w", err)
 	}
 
 	return db.Update(func(tx *bolt.Tx) error {

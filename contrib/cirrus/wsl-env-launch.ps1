@@ -61,7 +61,7 @@ while ($ljob.HasMoreData) {
 }
 
 if ($pjob.State -eq 'Failed') {
-  Write-Output "Failure occured, see above. Extra info:"
+  Write-Output "Failure occurred, see above. Extra info:"
   Receive-Job $pjob
   throw "wsl task failed on us!"
 }
