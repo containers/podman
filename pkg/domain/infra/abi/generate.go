@@ -200,7 +200,7 @@ func (ic *ContainerEngine) GenerateKube(ctx context.Context, nameOrIDs []string,
 
 	// Generate the kube pods from containers.
 	if len(ctrs) >= 1 {
-		po, err := libpod.GenerateForKube(ctx, ctrs)
+		po, err := libpod.GenerateForKube(ctx, ctrs, options.Service)
 		if err != nil {
 			return nil, err
 		}
@@ -249,7 +249,7 @@ func getKubePods(ctx context.Context, pods []*libpod.Pod, getService bool) ([][]
 	svcs := [][]byte{}
 
 	for _, p := range pods {
-		po, sp, err := p.GenerateForKube(ctx)
+		po, sp, err := p.GenerateForKube(ctx, getService)
 		if err != nil {
 			return nil, nil, err
 		}

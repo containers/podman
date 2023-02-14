@@ -33,14 +33,14 @@ import (
 
 // GenerateForKube takes a slice of libpod containers and generates
 // one v1.Pod description that includes just a single container.
-func GenerateForKube(ctx context.Context, ctrs []*Container) (*v1.Pod, error) {
+func GenerateForKube(ctx context.Context, ctrs []*Container, getService bool) (*v1.Pod, error) {
 	// Generate the v1.Pod yaml description
-	return simplePodWithV1Containers(ctx, ctrs)
+	return simplePodWithV1Containers(ctx, ctrs, getService)
 }
 
 // GenerateForKube takes a slice of libpod containers and generates
 // one v1.Pod description
-func (p *Pod) GenerateForKube(ctx context.Context) (*v1.Pod, []v1.ServicePort, error) {
+func (p *Pod) GenerateForKube(ctx context.Context, getService bool) (*v1.Pod, []v1.ServicePort, error) {
 	// Generate the v1.Pod yaml description
 	var (
 		ports        []v1.ContainerPort
@@ -78,7 +78,7 @@ func (p *Pod) GenerateForKube(ctx context.Context) (*v1.Pod, []v1.ServicePort, e
 				Hostnames: []string{hostSli[0]},
 			})
 		}
-		ports, err = portMappingToContainerPort(infraContainer.config.PortMappings)
+		ports, err = portMappingToContainerPort(infraContainer.config.PortMappings, getService)
 		if err != nil {
 			return nil, servicePorts, err
 		}
@@ -90,7 +90,7 @@ func (p *Pod) GenerateForKube(ctx context.Context) (*v1.Pod, []v1.ServicePort, e
 		hostNetwork = infraContainer.NetworkMode() == string(namespaces.NetworkMode(specgen.Host))
 		hostUsers = infraContainer.IDMappings().HostUIDMapping && infraContainer.IDMappings().HostGIDMapping
 	}
-	pod, err := p.podWithContainers(ctx, allContainers, ports, hostNetwork, hostUsers)
+	pod, err := p.podWithContainers(ctx, allContainers, ports, hostNetwork, hostUsers, getService)
 	if err != nil {
 		return nil, servicePorts, err
 	}
@@ -350,7 +350,7 @@ func containersToServicePorts(containers []v1.Container) ([]v1.ServicePort, erro
 	return sps, nil
 }
 
-func (p *Pod) podWithContainers(ctx context.Context, containers []*Container, ports []v1.ContainerPort, hostNetwork, hostUsers bool) (*v1.Pod, error) {
+func (p *Pod) podWithContainers(ctx context.Context, containers []*Container, ports []v1.ContainerPort, hostNetwork, hostUsers, getService bool) (*v1.Pod, error) {
 	deDupPodVolumes := make(map[string]*v1.Volume)
 	first := true
 	podContainers := make([]v1.Container, 0, len(containers))
@@ -385,7 +385,7 @@ func (p *Pod) podWithContainers(ctx context.Context, containers []*Container, po
 				}
 			}
 
-			ctr, volumes, _, annotations, err := containerToV1Container(ctx, ctr)
+			ctr, volumes, _, annotations, err := containerToV1Container(ctx, ctr, getService)
 			if err != nil {
 				return nil, err
 			}
@@ -421,7 +421,7 @@ func (p *Pod) podWithContainers(ctx context.Context, containers []*Container, po
 				deDupPodVolumes[vol.Name] = &vol
 			}
 		} else {
-			_, _, infraDNS, _, err := containerToV1Container(ctx, ctr)
+			_, _, infraDNS, _, err := containerToV1Container(ctx, ctr, getService)
 			if err != nil {
 				return nil, err
 			}
@@ -497,7 +497,7 @@ func newPodObject(podName string, annotations map[string]string, initCtrs, conta
 
 // simplePodWithV1Containers is a function used by inspect when kube yaml needs to be generated
 // for a single container.  we "insert" that container description in a pod.
-func simplePodWithV1Containers(ctx context.Context, ctrs []*Container) (*v1.Pod, error) {
+func simplePodWithV1Containers(ctx context.Context, ctrs []*Container, getService bool) (*v1.Pod, error) {
 	kubeCtrs := make([]v1.Container, 0, len(ctrs))
 	kubeInitCtrs := []v1.Container{}
 	kubeVolumes := make([]v1.Volume, 0)
@@ -555,7 +555,7 @@ func simplePodWithV1Containers(ctx context.Context, ctrs []*Container) (*v1.Pod,
 		if !(ctr.IDMappings().HostUIDMapping && ctr.IDMappings().HostGIDMapping) {
 			hostUsers = false
 		}
-		kubeCtr, kubeVols, ctrDNS, annotations, err := containerToV1Container(ctx, ctr)
+		kubeCtr, kubeVols, ctrDNS, annotations, err := containerToV1Container(ctx, ctr, getService)
 		if err != nil {
 			return nil, err
 		}
@@ -622,7 +622,7 @@ func simplePodWithV1Containers(ctx context.Context, ctrs []*Container) (*v1.Pod,
 
 // containerToV1Container converts information we know about a libpod container
 // to a V1.Container specification.
-func containerToV1Container(ctx context.Context, c *Container) (v1.Container, []v1.Volume, *v1.PodDNSConfig, map[string]string, error) {
+func containerToV1Container(ctx context.Context, c *Container, getService bool) (v1.Container, []v1.Volume, *v1.PodDNSConfig, map[string]string, error) {
 	kubeContainer := v1.Container{}
 	kubeVolumes := []v1.Volume{}
 	annotations := make(map[string]string)
@@ -652,7 +652,7 @@ func containerToV1Container(ctx context.Context, c *Container) (v1.Container, []
 	if err != nil {
 		return kubeContainer, kubeVolumes, nil, annotations, err
 	}
-	ports, err := portMappingToContainerPort(portmappings)
+	ports, err := portMappingToContainerPort(portmappings, getService)
 	if err != nil {
 		return kubeContainer, kubeVolumes, nil, annotations, err
 	}
@@ -799,7 +799,7 @@ func containerToV1Container(ctx context.Context, c *Container) (v1.Container, []
 
 // portMappingToContainerPort takes an portmapping and converts
 // it to a v1.ContainerPort format for kube output
-func portMappingToContainerPort(portMappings []types.PortMapping) ([]v1.ContainerPort, error) {
+func portMappingToContainerPort(portMappings []types.PortMapping, getService bool) ([]v1.ContainerPort, error) {
 	containerPorts := make([]v1.ContainerPort, 0, len(portMappings))
 	for _, p := range portMappings {
 		protocols := strings.Split(p.Protocol, ",")
@@ -819,10 +819,12 @@ func portMappingToContainerPort(portMappings []types.PortMapping) ([]v1.Containe
 			for i := uint16(0); i < p.Range; i++ {
 				cp := v1.ContainerPort{
 					// Name will not be supported
-					HostPort:      int32(p.HostPort + i),
 					HostIP:        p.HostIP,
 					ContainerPort: int32(p.ContainerPort + i),
 					Protocol:      protocol,
+				}
+				if !getService {
+					cp.HostPort = int32(p.HostPort + i)
 				}
 				containerPorts = append(containerPorts, cp)
 			}
