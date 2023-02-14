@@ -72,7 +72,6 @@ var _ = Describe("Podman kube generate", func() {
 		Expect(pod.Spec.Containers[0].SecurityContext).To(BeNil())
 		Expect(pod.Spec.Containers[0].Env).To(BeNil())
 		Expect(pod).To(HaveField("Name", "top-pod"))
-		Expect(pod.Annotations).To(HaveLen(0))
 
 		numContainers := 0
 		for range pod.Spec.Containers {
@@ -1329,5 +1328,41 @@ USER test1`
 		Expect(err).ToNot(HaveOccurred())
 
 		Expect(pod.Spec.Volumes[0].Secret).To(BeNil())
+	})
+
+	It("podman generate & play kube with --ulimit set", func() {
+		ctrName := "ulimit-ctr"
+		ctrNameInKubePod := ctrName + "-pod-" + ctrName
+		session1 := podmanTest.Podman([]string{"run", "-d", "--name", ctrName, "--ulimit", "nofile=1231:3123", ALPINE, "sleep", "1000"})
+		session1.WaitWithDefaultTimeout()
+		Expect(session1).Should(Exit(0))
+
+		outputFile := filepath.Join(podmanTest.RunRoot, "pod.yaml")
+		kube := podmanTest.Podman([]string{"kube", "generate", ctrName, "-f", outputFile})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		b, err := os.ReadFile(outputFile)
+		Expect(err).ShouldNot(HaveOccurred())
+		pod := new(v1.Pod)
+		err = yaml.Unmarshal(b, pod)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(pod.Annotations).To(HaveKey(define.UlimitAnnotation))
+		Expect(pod.Annotations[define.UlimitAnnotation]).To(ContainSubstring("nofile=1231:3123"))
+
+		rm := podmanTest.Podman([]string{"pod", "rm", "-t", "0", "-f", ctrName})
+		rm.WaitWithDefaultTimeout()
+		Expect(rm).Should(Exit(0))
+
+		play := podmanTest.Podman([]string{"kube", "play", outputFile})
+		play.WaitWithDefaultTimeout()
+		Expect(play).Should(Exit(0))
+
+		inspect := podmanTest.Podman([]string{"inspect", ctrNameInKubePod})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).Should(Exit(0))
+		Expect(inspect.OutputToString()).To(ContainSubstring("RLIMIT_NOFILE"))
+		Expect(inspect.OutputToString()).To(ContainSubstring("1231"))
+		Expect(inspect.OutputToString()).To(ContainSubstring("3123"))
 	})
 })

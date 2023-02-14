@@ -273,6 +273,18 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 		s.ResourceLimits.Memory.Reservation = &memoryRes
 	}
 
+	ulimitVal, ok := opts.Annotations[define.UlimitAnnotation]
+	if ok {
+		ulimits := strings.Split(ulimitVal, ",")
+		for _, ul := range ulimits {
+			parsed, err := units.ParseUlimit(ul)
+			if err != nil {
+				return nil, err
+			}
+			s.Rlimits = append(s.Rlimits, spec.POSIXRlimit{Type: parsed.Name, Soft: uint64(parsed.Soft), Hard: uint64(parsed.Hard)})
+		}
+	}
+
 	// TODO: We don't understand why specgen does not take of this, but
 	// integration tests clearly pointed out that it was required.
 	imageData, err := opts.Image.Inspect(ctx, nil)
