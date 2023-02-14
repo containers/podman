@@ -31,7 +31,8 @@ func init() {
 	logDrivers = append(logDrivers, define.JournaldLogging)
 }
 
-func (c *Container) readFromJournal(ctx context.Context, options *logs.LogOptions, logChannel chan *logs.LogLine, colorID int64) error {
+func (c *Container) readFromJournal(ctx context.Context, options *logs.LogOptions,
+	logChannel chan *logs.LogLine, colorID int64, isPassthrough bool) error {
 	// We need the container's events in the same journal to guarantee
 	// consistency, see #10323.
 	if options.Follow && c.runtime.config.Engine.EventsLogger != "journald" {
@@ -67,10 +68,28 @@ func (c *Container) readFromJournal(ctx context.Context, options *logs.LogOption
 	if err := journal.AddDisjunction(); err != nil {
 		return fmt.Errorf("adding filter disjunction to journald logger: %w", err)
 	}
-	match = sdjournal.Match{Field: "CONTAINER_ID_FULL", Value: c.ID()}
-	if err := journal.AddMatch(match.String()); err != nil {
-		return fmt.Errorf("adding filter to journald logger: %v: %w", match, err)
+
+	if isPassthrough {
+		// Match based on systemd unit which is the container is cgroup
+		// so we get the exact logs for a single container even in the
+		// play kube case where a single unit starts more than one container.
+		unitTypeName := "_SYSTEMD_UNIT"
+		if rootless.IsRootless() {
+			unitTypeName = "_SYSTEMD_USER_UNIT"
+		}
+		// FIXME: It looks like it is hardcoded to libpod-ID.scope but I am not
+		// sure were we set this with all the different cgroup modes???
+		match = sdjournal.Match{Field: unitTypeName, Value: "libpod-" + c.ID() + ".scope"}
+		if err := journal.AddMatch(match.String()); err != nil {
+			return fmt.Errorf("adding filter to journald logger: %v: %w", match, err)
+		}
+	} else {
+		match = sdjournal.Match{Field: "CONTAINER_ID_FULL", Value: c.ID()}
+		if err := journal.AddMatch(match.String()); err != nil {
+			return fmt.Errorf("adding filter to journald logger: %v: %w", match, err)
+		}
 	}
+
 	if err := journal.AddMatch(uidMatch.String()); err != nil {
 		return fmt.Errorf("adding filter to journald logger: %v: %w", uidMatch, err)
 	}
