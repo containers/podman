@@ -55,12 +55,12 @@ Valid placeholders for the Go template are listed below:
 
 | **Placeholder** | **Description**              |
 | --------------- | ---------------------------- |
+| .Automated      | "[OK]" if image is automated |
+| .Description    | Image description            |
 | .Index          | Registry                     |
 | .Name           | Image name                   |
-| .Description    | Image description            |
-| .Stars          | Star count of image          |
 | .Official       | "[OK]" if image is official  |
-| .Automated      | "[OK]" if image is automated |
+| .Stars          | Star count of image          |
 | .Tag            | Repository tag               |
 
 Note: use .Tag only if the --list-tags is set.
