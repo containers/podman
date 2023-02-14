@@ -383,11 +383,15 @@ metadata:
 spec:
   containers:
   - command:
-    - top
+    - sh
+    - -c
+    - echo a stdout; echo a stderr 1>&2; sleep inf
     image: $IMAGE
     name: a
   - command:
-    - top
+    - sh
+    - -c
+    - echo b stdout; echo b stderr 1>&2; sleep inf
     image: $IMAGE
     name: b
 EOF
@@ -418,6 +422,10 @@ EOF
     for name in "a" "b"; do
         run_podman container inspect test_pod-${name} --format "{{.HostConfig.LogConfig.Type}}"
         assert $output != "passthrough"
+        # check that we can get the logs with passthrough when we run in a systemd unit
+        run_podman logs test_pod-$name
+        assert "$output" == "$name stdout
+$name stderr" "logs work with passthrough"
     done
 
     # Add a simple `auto-update --dry-run` test here to avoid too much redundancy

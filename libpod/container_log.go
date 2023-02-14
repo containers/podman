@@ -10,6 +10,7 @@ import (
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/libpod/events"
 	"github.com/containers/podman/v4/libpod/logs"
+	systemdDefine "github.com/containers/podman/v4/pkg/systemd/define"
 	"github.com/nxadm/tail"
 	"github.com/nxadm/tail/watch"
 	"github.com/sirupsen/logrus"
@@ -36,11 +37,15 @@ func (r *Runtime) Log(ctx context.Context, containers []*Container, options *log
 func (c *Container) ReadLog(ctx context.Context, options *logs.LogOptions, logChannel chan *logs.LogLine, colorID int64) error {
 	switch c.LogDriver() {
 	case define.PassthroughLogging:
+		// if running under systemd fallback to a more native journald reading
+		if _, ok := c.config.Labels[systemdDefine.EnvVariable]; ok {
+			return c.readFromJournal(ctx, options, logChannel, colorID, true)
+		}
 		return fmt.Errorf("this container is using the 'passthrough' log driver, cannot read logs: %w", define.ErrNoLogs)
 	case define.NoLogging:
 		return fmt.Errorf("this container is using the 'none' log driver, cannot read logs: %w", define.ErrNoLogs)
 	case define.JournaldLogging:
-		return c.readFromJournal(ctx, options, logChannel, colorID)
+		return c.readFromJournal(ctx, options, logChannel, colorID, false)
 	case define.JSONLogging:
 		// TODO provide a separate implementation of this when Conmon
 		// has support.
