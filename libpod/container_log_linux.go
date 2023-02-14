@@ -181,26 +181,17 @@ func (c *Container) readFromJournal(ctx context.Context, options *logs.LogOption
 				continue
 			}
 
-			var message string
-			var formatError error
-
-			if options.Multi {
-				message, formatError = journalFormatterWithID(entry)
-			} else {
-				message, formatError = journalFormatter(entry)
-			}
-
-			if formatError != nil {
-				logrus.Errorf("Failed to parse journald log entry: %v", formatError)
-				return
-			}
-
-			logLine, err := logs.NewJournaldLogLine(message, options.Multi)
-			logLine.ColorID = colorID
+			logLine, err := journalToLogLine(entry)
 			if err != nil {
-				logrus.Errorf("Failed parse log line: %v", err)
+				logrus.Errorf("Failed parse journal entry: %v", err)
 				return
 			}
+			id := c.ID()
+			if len(id) > 12 {
+				id = id[:12]
+			}
+			logLine.CID = id
+			logLine.ColorID = colorID
 			if options.UseName {
 				logLine.CName = c.Name()
 			}
@@ -215,76 +206,37 @@ func (c *Container) readFromJournal(ctx context.Context, options *logs.LogOption
 	return nil
 }
 
-func journalFormatterWithID(entry *sdjournal.JournalEntry) (string, error) {
-	output, err := formatterPrefix(entry)
-	if err != nil {
-		return "", err
-	}
+func journalToLogLine(entry *sdjournal.JournalEntry) (*logs.LogLine, error) {
+	line := &logs.LogLine{}
 
-	id, ok := entry.Fields["CONTAINER_ID_FULL"]
-	if !ok {
-		return "", errors.New("no CONTAINER_ID_FULL field present in journal entry")
-	}
-	if len(id) > 12 {
-		id = id[:12]
-	}
-	output += fmt.Sprintf("%s ", id)
-	// Append message
-	msg, err := formatterMessage(entry)
-	if err != nil {
-		return "", err
-	}
-	output += msg
-	return output, nil
-}
-
-func journalFormatter(entry *sdjournal.JournalEntry) (string, error) {
-	output, err := formatterPrefix(entry)
-	if err != nil {
-		return "", err
-	}
-	// Append message
-	msg, err := formatterMessage(entry)
-	if err != nil {
-		return "", err
-	}
-	output += msg
-	return output, nil
-}
-
-func formatterPrefix(entry *sdjournal.JournalEntry) (string, error) {
 	usec := entry.RealtimeTimestamp
-	tsString := time.Unix(0, int64(usec)*int64(time.Microsecond)).Format(logs.LogTimeFormat)
-	output := fmt.Sprintf("%s ", tsString)
+	line.Time = time.Unix(0, int64(usec)*int64(time.Microsecond))
+
 	priority, ok := entry.Fields["PRIORITY"]
 	if !ok {
-		return "", errors.New("no PRIORITY field present in journal entry")
+		return nil, errors.New("no PRIORITY field present in journal entry")
 	}
 	switch priority {
 	case journaldLogOut:
-		output += "stdout "
+		line.Device = "stdout"
 	case journaldLogErr:
-		output += "stderr "
+		line.Device = "stderr"
 	default:
-		return "", errors.New("unexpected PRIORITY field in journal entry")
+		return nil, errors.New("unexpected PRIORITY field in journal entry")
 	}
 
 	// if CONTAINER_PARTIAL_MESSAGE is defined, the log type is "P"
 	if _, ok := entry.Fields["CONTAINER_PARTIAL_MESSAGE"]; ok {
-		output += fmt.Sprintf("%s ", logs.PartialLogType)
+		line.ParseLogType = logs.PartialLogType
 	} else {
-		output += fmt.Sprintf("%s ", logs.FullLogType)
+		line.ParseLogType = logs.FullLogType
 	}
 
-	return output, nil
-}
-
-func formatterMessage(entry *sdjournal.JournalEntry) (string, error) {
-	// Finally, append the message
-	msg, ok := entry.Fields["MESSAGE"]
+	line.Msg, ok = entry.Fields["MESSAGE"]
 	if !ok {
-		return "", errors.New("no MESSAGE field present in journal entry")
+		return nil, errors.New("no MESSAGE field present in journal entry")
 	}
-	msg = strings.TrimSuffix(msg, "\n")
-	return msg, nil
+	line.Msg = strings.TrimSuffix(line.Msg, "\n")
+
+	return line, nil
 }
