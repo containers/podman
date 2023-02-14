@@ -428,6 +428,12 @@ EOF
 $name stderr" "logs work with passthrough"
     done
 
+    # we cannot assume the ordering between a b, this depends on timing and would flake in CI
+    # use --names so we do not have to get the ID
+    run_podman pod logs --names test_pod
+    assert "$output" =~ ".*^test_pod-a a stdout.*" "logs from container a shown"
+    assert "$output" =~ ".*^test_pod-b b stdout.*" "logs from container b shown"
+
     # Add a simple `auto-update --dry-run` test here to avoid too much redundancy
     # with 255-auto-update.bats
     run_podman auto-update --dry-run --format "{{.Unit}},{{.Container}},{{.Image}},{{.Updated}},{{.Policy}}"
