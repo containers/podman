@@ -189,10 +189,10 @@ function check_listen_env() {
     local stdenv="$1"
     local context="$2"
     if is_remote; then
-	is "$output" "$stdenv" "LISTEN Environment did not pass: $context"
+        is "$output" "$stdenv" "LISTEN Environment did not pass: $context"
     else
-	out=$(for o in $output; do echo $o; done| sort)
-	std=$(echo "$stdenv
+        out=$(for o in $output; do echo $o; done| sort)
+        std=$(echo "$stdenv
 LISTEN_PID=1
 LISTEN_FDS=1
 LISTEN_FDNAMES=listen_fdnames" | sort)

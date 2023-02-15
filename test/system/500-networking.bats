@@ -226,7 +226,7 @@ load helpers.network
        "sdfsdf"
 
     run_podman run -d --network $mynetname -p 127.0.0.1:$myport:$myport \
-	       $IMAGE nc -l -n -v -p $myport
+               $IMAGE nc -l -n -v -p $myport
     cid="$output"
 
     # FIXME: debugging for #11871
@@ -663,9 +663,9 @@ EOF
     is "$output" "search example.com.*" "correct search domain"
     local store=$output
     if is_netavark; then
-	is "$store" ".*nameserver $subnet.1.*" "integrated dns nameserver is set"
+        is "$store" ".*nameserver $subnet.1.*" "integrated dns nameserver is set"
     else
-	is "$store" ".*nameserver 1.1.1.1${nl}nameserver $searchIP${nl}nameserver 1.0.0.1${nl}nameserver 8.8.8.8" "nameserver order is correct"
+        is "$store" ".*nameserver 1.1.1.1${nl}nameserver $searchIP${nl}nameserver 1.0.0.1${nl}nameserver 8.8.8.8" "nameserver order is correct"
     fi
     # we should use the integrated dns server
     run_podman run --network $netname --rm $IMAGE cat /etc/resolv.conf

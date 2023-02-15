@@ -178,7 +178,7 @@ function __run_healthcheck_container() {
             break
         fi
 
-	sleep 0.5
+        sleep 0.5
     done
 
     run_podman rm -f $cname

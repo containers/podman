@@ -639,10 +639,10 @@ json-file | f
         run_podman run --name=$randomname --rootfs $romount:O echo "Hello world"
         is "$output" "Hello world"
 
-	run_podman container inspect $randomname --format "{{.ImageDigest}}"
-	is "$output" "" "Empty image digest for --rootfs container"
+        run_podman container inspect $randomname --format "{{.ImageDigest}}"
+        is "$output" "" "Empty image digest for --rootfs container"
 
-	run_podman rm -f -t0 $randomname
+        run_podman rm -f -t0 $randomname
         run_podman image unmount $IMAGE
     fi
 }

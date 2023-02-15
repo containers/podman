@@ -275,7 +275,7 @@ load helpers
         run_podman exec $destcontainer cat "/$dest_fullname"
         is "$output" "${randomcontent[$id]}" "$description (cp ctr:$src to /$dest)"
 
-	# To CREATED container
+        # To CREATED container
         run_podman create $IMAGE sleep infinity
         destcontainer="$output"
         destcontainers+=($destcontainer)
@@ -303,7 +303,7 @@ load helpers
         run_podman cp cpcontainer:$src $destcontainer:"/$dest"
         run_podman exec $destcontainer cat "/$dest_fullname"
         is "$output" "${randomcontent[$id]}" "$description (cp ctr:$src to /$dest)"
-	# To CREATED container
+        # To CREATED container
         run_podman create $IMAGE sleep infinity
         destcontainer="$output"
         destcontainers+=($destcontainer)
@@ -518,7 +518,7 @@ load helpers
         is "$output" "${randomcontent[0]}
 ${randomcontent[1]}" "$description"
 
-	# To CREATED container
+        # To CREATED container
         run_podman create $IMAGE sleep infinity
         destcontainer="$output"
         destcontainers+=($destcontainer)
@@ -545,7 +545,7 @@ ${randomcontent[1]}" "$description"
             unset dest_fullname
         fi
 
-	# To RUNNING container
+        # To RUNNING container
         run_podman run -d $IMAGE sleep infinity
         destcontainer="$output"
         destcontainers+=($destcontainer)
@@ -554,7 +554,7 @@ ${randomcontent[1]}" "$description"
         is "$output" "${randomcontent[0]}
 ${randomcontent[1]}" "$description"
 
-	# To CREATED container
+        # To CREATED container
         run_podman create $IMAGE sleep infinity
         destcontainer="$output"
         destcontainers+=($destcontainer)
