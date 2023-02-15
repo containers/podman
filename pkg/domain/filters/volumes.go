@@ -39,6 +39,11 @@ func GenerateVolumeFilters(filters url.Values) ([]libpod.VolumeFilter, error) {
 				vf = append(vf, func(v *libpod.Volume) bool {
 					return pruneFilters.MatchLabelFilters([]string{filter}, v.Labels())
 				})
+			case "label!":
+				filter := val
+				vf = append(vf, func(v *libpod.Volume) bool {
+					return !pruneFilters.MatchLabelFilters([]string{filter}, v.Labels())
+				})
 			case "opt":
 				filterArray := strings.SplitN(val, "=", 2)
 				filterKey := filterArray[0]
@@ -102,6 +107,11 @@ func GeneratePruneVolumeFilters(filters url.Values) ([]libpod.VolumeFilter, erro
 			case "label":
 				vf = append(vf, func(v *libpod.Volume) bool {
 					return pruneFilters.MatchLabelFilters([]string{filterVal}, v.Labels())
+				})
+			case "label!":
+				filter := val
+				vf = append(vf, func(v *libpod.Volume) bool {
+					return !pruneFilters.MatchLabelFilters([]string{filter}, v.Labels())
 				})
 			case "until":
 				f, err := createUntilFilterVolumeFunction(filterVal)
