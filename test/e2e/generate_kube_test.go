@@ -150,6 +150,43 @@ var _ = Describe("Podman kube generate", func() {
 		Expect(err).ToNot(HaveOccurred())
 	})
 
+	It("podman generate kube on container with and without service", func() {
+		session := podmanTest.Podman([]string{"create", "--name", "test-ctr", "-p", "3890:3890", ALPINE, "ls"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		kube := podmanTest.Podman([]string{"kube", "generate", "-s", "test-ctr"})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		// Separate out the Service and Pod yaml
+		arr := strings.Split(string(kube.Out.Contents()), "---")
+		Expect(arr).To(HaveLen(2))
+
+		svc := new(v1.Service)
+		err := yaml.Unmarshal([]byte(arr[0]), svc)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(svc.Spec.Ports).To(HaveLen(1))
+		Expect(svc.Spec.Ports[0].TargetPort.IntValue()).To(Equal(3890))
+
+		pod := new(v1.Pod)
+		err = yaml.Unmarshal([]byte(arr[1]), pod)
+		Expect(err).ToNot(HaveOccurred())
+		// Since hostPort will not be set in the yaml, when we unmarshal it it will have a value of 0
+		Expect(pod.Spec.Containers[0].Ports[0].HostPort).To(Equal(int32(0)))
+
+		// Now do kube generate without the --service flag
+		kube = podmanTest.Podman([]string{"kube", "generate", "test-ctr"})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		// The hostPort in the pod yaml should be set to 3890
+		pod = new(v1.Pod)
+		err = yaml.Unmarshal(kube.Out.Contents(), pod)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(pod.Spec.Containers[0].Ports[0].HostPort).To(Equal(int32(3890)))
+	})
+
 	It("podman generate kube on pod", func() {
 		_, rc, _ := podmanTest.CreatePod(map[string][]string{"--name": {"toppod"}})
 		Expect(rc).To(Equal(0))
