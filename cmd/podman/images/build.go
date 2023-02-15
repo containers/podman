@@ -218,7 +218,11 @@ func build(cmd *cobra.Command, args []string) error {
 	var containerFiles []string
 	for _, f := range buildOpts.File {
 		if f == "-" {
-			containerFiles = append(containerFiles, "/dev/stdin")
+			if len(args) == 0 {
+				args = append(args, "-")
+			} else {
+				containerFiles = append(containerFiles, "/dev/stdin")
+			}
 		} else {
 			containerFiles = append(containerFiles, f)
 		}
