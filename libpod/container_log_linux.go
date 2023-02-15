@@ -15,7 +15,6 @@ import (
 	"github.com/containers/podman/v4/libpod/events"
 	"github.com/containers/podman/v4/libpod/logs"
 	"github.com/containers/podman/v4/pkg/rootless"
-	"github.com/coreos/go-systemd/v22/journal"
 	"github.com/coreos/go-systemd/v22/sdjournal"
 	"github.com/sirupsen/logrus"
 )
@@ -30,21 +29,6 @@ const (
 
 func init() {
 	logDrivers = append(logDrivers, define.JournaldLogging)
-}
-
-// initializeJournal will write an empty string to the journal
-// when a journal is created. This solves a problem when people
-// attempt to read logs from a container that has never had stdout/stderr
-func (c *Container) initializeJournal(ctx context.Context) error {
-	m := make(map[string]string)
-	m["SYSLOG_IDENTIFIER"] = "podman"
-	m["PODMAN_ID"] = c.ID()
-	history := events.History
-	m["PODMAN_EVENT"] = history.String()
-	container := events.Container
-	m["PODMAN_TYPE"] = container.String()
-	m["PODMAN_TIME"] = time.Now().Format(time.RFC3339Nano)
-	return journal.Send("", journal.PriInfo, m)
 }
 
 func (c *Container) readFromJournal(ctx context.Context, options *logs.LogOptions, logChannel chan *logs.LogLine, colorID int64) error {
