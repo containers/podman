@@ -4,7 +4,7 @@
 podman\-machine\-inspect - Inspect one or more virtual machines
 
 ## SYNOPSIS
-**podman machine inspect** [*options] *name* ...
+**podman machine inspect** [*options*] *name* ...
 
 ## DESCRIPTION
 
