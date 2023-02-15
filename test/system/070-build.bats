@@ -101,6 +101,12 @@ EOF
     is "$output"   "$rand_content"   "reading generated file in image"
 
     run_podman rmi -f build_test
+
+    # Now try without specifying a context dir
+    run_podman build -t build_test -f - < $containerfile
+    is "$output" ".*COMMIT" "COMMIT seen in log"
+
+    run_podman rmi -f build_test
 }
 
 @test "podman build - global runtime flags test" {
