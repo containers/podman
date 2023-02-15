@@ -21,7 +21,6 @@ import (
 	"github.com/imdario/mergo"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/exp/slices"
-	"golang.org/x/net/http2"
 	"gopkg.in/yaml.v3"
 )
 
@@ -931,14 +930,14 @@ func tlsCacheGet(config *restConfig) (http.RoundTripper, error) {
 		Proxy:               newProxierWithNoProxyCIDR(http.ProxyFromEnvironment),
 		TLSHandshakeTimeout: 10 * time.Second,
 		TLSClientConfig:     tlsConfig,
-		Dial: (&net.Dialer{
+		DialContext: (&net.Dialer{
 			Timeout:   30 * time.Second,
 			KeepAlive: 30 * time.Second,
-		}).Dial,
+		}).DialContext,
 	}
 	// Allow clients to disable http2 if needed.
 	if s := os.Getenv("DISABLE_HTTP2"); len(s) == 0 {
-		_ = http2.ConfigureTransport(t)
+		t.ForceAttemptHTTP2 = true
 	}
 	return t, nil
 }

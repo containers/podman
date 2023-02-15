@@ -17,26 +17,31 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// bodyReaderMinimumProgress is the minimum progress we want to see before we retry
-const bodyReaderMinimumProgress = 1 * 1024 * 1024
+const (
+	// bodyReaderMinimumProgress is the minimum progress we consider a good reason to retry
+	bodyReaderMinimumProgress = 1 * 1024 * 1024
+	// bodyReaderMSSinceLastRetry is the minimum time since a last retry we consider a good reason to retry
+	bodyReaderMSSinceLastRetry = 60 * 1_000
+)
 
 // bodyReader is an io.ReadCloser returned by dockerImageSource.GetBlob,
 // which can transparently resume some (very limited) kinds of aborted connections.
 type bodyReader struct {
-	ctx context.Context
-	c   *dockerClient
-
-	path                string        // path to pass to makeRequest to retry
-	logURL              *url.URL      // a string to use in error messages
-	body                io.ReadCloser // The currently open connection we use to read data, or nil if there is nothing to read from / close.
-	lastRetryOffset     int64
-	offset              int64 // Current offset within the blob
+	ctx                 context.Context
+	c                   *dockerClient
+	path                string   // path to pass to makeRequest to retry
+	logURL              *url.URL // a string to use in error messages
 	firstConnectionTime time.Time
-	lastSuccessTime     time.Time // time.Time{} if N/A
+
+	body            io.ReadCloser // The currently open connection we use to read data, or nil if there is nothing to read from / close.
+	lastRetryOffset int64         // -1 if N/A
+	lastRetryTime   time.Time     // time.Time{} if N/A
+	offset          int64         // Current offset within the blob
+	lastSuccessTime time.Time     // time.Time{} if N/A
 }
 
 // newBodyReader creates a bodyReader for request path in c.
-// firstBody is an already correctly opened body for the blob, returing the full blob from the start.
+// firstBody is an already correctly opened body for the blob, returning the full blob from the start.
 // If reading from firstBody fails, bodyReader may heuristically decide to resume.
 func newBodyReader(ctx context.Context, c *dockerClient, path string, firstBody io.ReadCloser) (io.ReadCloser, error) {
 	logURL, err := c.resolveRequestURL(path)
@@ -44,15 +49,17 @@ func newBodyReader(ctx context.Context, c *dockerClient, path string, firstBody 
 		return nil, err
 	}
 	res := &bodyReader{
-		ctx: ctx,
-		c:   c,
-
+		ctx:                 ctx,
+		c:                   c,
 		path:                path,
 		logURL:              logURL,
-		body:                firstBody,
-		lastRetryOffset:     0,
-		offset:              0,
 		firstConnectionTime: time.Now(),
+
+		body:            firstBody,
+		lastRetryOffset: -1,
+		lastRetryTime:   time.Time{},
+		offset:          0,
+		lastSuccessTime: time.Time{},
 	}
 	return res, nil
 }
@@ -186,10 +193,11 @@ func (br *bodyReader) Read(p []byte) (int, error) {
 			return n, fmt.Errorf("%w (after reconnecting, fetching blob: %v)", originalErr, err)
 		}
 
-		logrus.Debugf("Succesfully reconnected to %s", redactedURL)
+		logrus.Debugf("Successfully reconnected to %s", redactedURL)
 		consumedBody = true
 		br.body = res.Body
 		br.lastRetryOffset = br.offset
+		br.lastRetryTime = time.Time{}
 		return n, nil
 
 	default:
@@ -198,29 +206,40 @@ func (br *bodyReader) Read(p []byte) (int, error) {
 	}
 }
 
-// millisecondsSince is like time.Since(tm).Milliseconds, but it returns a floating-point value
-func millisecondsSince(tm time.Time) float64 {
-	return float64(time.Since(tm).Nanoseconds()) / 1_000_000.0
+// millisecondsSinceOptional is like currentTime.Sub(tm).Milliseconds, but it returns a floating-point value.
+// If tm is time.Time{}, it returns math.NaN()
+func millisecondsSinceOptional(currentTime time.Time, tm time.Time) float64 {
+	if tm == (time.Time{}) {
+		return math.NaN()
+	}
+	return float64(currentTime.Sub(tm).Nanoseconds()) / 1_000_000.0
 }
 
 // errorIfNotReconnecting makes a heuristic decision whether we should reconnect after err at redactedURL; if so, it returns nil,
 // otherwise it returns an appropriate error to return to the caller (possibly augmented with data about the heuristic)
 func (br *bodyReader) errorIfNotReconnecting(originalErr error, redactedURL string) error {
-	totalTime := millisecondsSince(br.firstConnectionTime)
-	failureTime := math.NaN()
-	if (br.lastSuccessTime != time.Time{}) {
-		failureTime = millisecondsSince(br.lastSuccessTime)
-	}
-	logrus.Debugf("Reading blob body from %s failed (%#v), decision inputs: lastRetryOffset %d, offset %d, %.3f ms since first connection, %.3f ms since last progress",
-		redactedURL, originalErr, br.lastRetryOffset, br.offset, totalTime, failureTime)
+	currentTime := time.Now()
+	msSinceFirstConnection := millisecondsSinceOptional(currentTime, br.firstConnectionTime)
+	msSinceLastRetry := millisecondsSinceOptional(currentTime, br.lastRetryTime)
+	msSinceLastSuccess := millisecondsSinceOptional(currentTime, br.lastSuccessTime)
+	logrus.Debugf("Reading blob body from %s failed (%#v), decision inputs: total %d @%.3f ms, last retry %d @%.3f ms, last progress @%.3f ms",
+		redactedURL, originalErr, br.offset, msSinceFirstConnection, br.lastRetryOffset, msSinceLastRetry, msSinceLastSuccess)
 	progress := br.offset - br.lastRetryOffset
-	if progress < bodyReaderMinimumProgress {
-		logrus.Debugf("Not reconnecting to %s because only %d bytes progress made", redactedURL, progress)
-		return fmt.Errorf("(heuristic tuning data: last retry %d, current offset %d; %.3f ms total, %.3f ms since progress): %w",
-			br.lastRetryOffset, br.offset, totalTime, failureTime, originalErr)
+	if progress >= bodyReaderMinimumProgress {
+		logrus.Infof("Reading blob body from %s failed (%v), reconnecting after %d bytes…", redactedURL, originalErr, progress)
+		return nil
 	}
-	logrus.Infof("Reading blob body from %s failed (%v), reconnecting…", redactedURL, originalErr)
-	return nil
+	if br.lastRetryTime == (time.Time{}) || msSinceLastRetry >= bodyReaderMSSinceLastRetry {
+		if br.lastRetryTime == (time.Time{}) {
+			logrus.Infof("Reading blob body from %s failed (%v), reconnecting (first reconnection)…", redactedURL, originalErr)
+		} else {
+			logrus.Infof("Reading blob body from %s failed (%v), reconnecting after %.3f ms…", redactedURL, originalErr, msSinceLastRetry)
+		}
+		return nil
+	}
+	logrus.Debugf("Not reconnecting to %s: insufficient progress %d / time since last retry %.3f ms", redactedURL, progress, msSinceLastRetry)
+	return fmt.Errorf("(heuristic tuning data: total %d @%.3f ms, last retry %d @%.3f ms, last progress @ %.3f ms): %w",
+		br.offset, msSinceFirstConnection, br.lastRetryOffset, msSinceLastRetry, msSinceLastSuccess, originalErr)
 }
 
 // Close implements io.ReadCloser

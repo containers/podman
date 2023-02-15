@@ -2192,7 +2192,7 @@ func (sc *serverConn) newWriterAndRequestNoBody(st *stream, rp requestParam) (*r
 		tlsState = sc.tlsState
 	}
 
-	needsContinue := rp.header.Get("Expect") == "100-continue"
+	needsContinue := httpguts.HeaderValuesContainsToken(rp.header["Expect"], "100-continue")
 	if needsContinue {
 		rp.header.Del("Expect")
 	}

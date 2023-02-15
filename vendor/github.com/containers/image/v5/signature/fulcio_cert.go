@@ -105,7 +105,7 @@ func (f *fulcioTrustRoot) verifyFulcioCertificateAtTime(relevantTime time.Time, 
 	// log of approved Fulcio invocations, and it’s not clear where that would come from, especially human users manually
 	// logging in using OpenID are not going to maintain a record of those actions.
 	//
-	// Also, the SCT does not help reveal _what_ was maliciously signed, nor does it protect against malicous signatures
+	// Also, the SCT does not help reveal _what_ was maliciously signed, nor does it protect against malicious signatures
 	// by correctly-issued certificates.
 	//
 	// So, pragmatically, the ideal design seem to be to only do signatures from a trusted build system (which is, by definition,
