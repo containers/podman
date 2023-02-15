@@ -16,18 +16,18 @@ Pretty-print networks to JSON or using a Go template.
 
 | **Placeholder**    | **Description**                           |
 |--------------------|-------------------------------------------|
-| .ID                | Network ID                                |
-| .Name              | Network name                              |
-| .Driver            | Network driver                            |
-| .Labels            | Network labels                            |
-| .Options           | Network options                           |
-| .IPAMOptions       | Network ipam options                      |
 | .Created           | Timestamp when the network was created    |
-| .Internal          | Network is internal (boolean)             |
-| .IPv6Enabled       | Network has ipv6 subnet (boolean)         |
 | .DNSEnabled        | Network has dns enabled (boolean)         |
+| .Driver            | Network driver                            |
+| .ID                | Network ID                                |
+| .Internal          | Network is internal (boolean)             |
+| .IPAMOptions       | Network ipam options                      |
+| .IPv6Enabled       | Network has ipv6 subnet (boolean)         |
+| .Labels            | Network labels                            |
+| .Name              | Network name                              |
 | .NetworkDNSServers | Array of DNS servers used in this network |
 | .NetworkInterface  | Name of the network interface on the host |
+| .Options           | Network options                           |
 | .Subnets           | List of subnets on this network           |
 
 ## EXAMPLE

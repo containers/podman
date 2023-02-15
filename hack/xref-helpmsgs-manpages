@@ -72,6 +72,29 @@ for my $line (split "\n", $Format_Exceptions) {
     $Format_Exceptions{"podman-$subcommand"} = \@fields;
 }
 
+# Hardcoded list of podman commands for which '--format' does NOT mean
+# a Go format.
+#
+# I realize that it looks stupid to hardcode these: I could instead
+# check "--format ''" and look for completion strings, 'oci', 'json',
+# doesn't matter: if anything shows up, we excuse the missing '{{.'.
+# (We'd still have to make a special exception for 'podman inspect').
+#
+# My reason for hardcoding is that these should be rare exceptions
+# and we want to account for every single one. If a new command gets
+# added, with a --format option that does not autocomplete '{{.',
+# let's make sure it gets extra eyeballs.
+my %Format_Option_Is_Special = map { $_ => 1 } (
+    'build',  'image build',                    # oci | docker
+    'commit', 'container commit',               #  "  "  " "
+    'diff',   'container diff', 'image diff',   # only supports "json"
+    'generate systemd',                         #  "    "  "      "
+    'mount',  'container mount', 'image mount', #  "    "  "      "
+    'push',   'image push', 'manifest push',    # oci | v2s*
+    'save',   'image save',                     # image formats (oci-*, ...)
+    'inspect',                                  # ambiguous (container/image)
+ );
+
 # END   user-customizable section
 ###############################################################################
 
@@ -359,6 +382,30 @@ sub podman_help {
                         $help{$opt}{$1} = 1;
                     }
                 }
+
+                # If subcommand supports '--format {{.x', it should also
+                # support '--format json'
+                if (ref $help{$opt}) {
+                    my @json = _completions(@_, '--format', 'json');
+                    if (! grep { $_ eq 'json' } @json) {
+                        warn "$ME: podman @_ --format json is unimplemented\n";
+                        ++$Errs;
+                    }
+                }
+
+                else {
+                    # --format option for this subcommand does not support
+                    # completion for Go templates. This is OK for an
+                    # existing set of commands (see table at top of script)
+                    # but is a fatal error for any others, presumably a
+                    # new subcommand. Either the subcommand must be fixed
+                    # to support autocompletion, or the subcommand must be
+                    # added to our exclusion list at top.
+                    unless ($Format_Option_Is_Special{"@_"}) {
+                        warn "$ME: podman @_ --format '{{.' does not offer autocompletion\n";
+                        ++$Errs;
+                    }
+                }
            }
         }
     }
@@ -385,6 +432,7 @@ sub podman_man {
     my @most_recent_flags;
     my $previous_subcmd = '';
     my $previous_flag = '';
+    my $previous_format = '';
     while (my $line = <$fh>) {
         chomp $line;
         next unless $line;		# skip empty lines
@@ -431,7 +479,6 @@ sub podman_man {
             # In podman-<subcommand>.1.md
             #                      1   1        2  3   3    4   4         2
             elsif ($line =~ /^\|\s+(\S+)\s+\|\s+(\[(\S+)\]\((\S+)\.1\.md\))/) {
-                # $1 will be changed by recursion _*BEFORE*_ left-hand assignment
                 my ($subcmd, $blob, $shown_name, $link_name) = ($1, $2, $3, $4);
                 if ($previous_subcmd gt $subcmd) {
                     warn "$ME: $subpath:$.: '$previous_subcmd' and '$subcmd' are out of order\n";
@@ -552,6 +599,12 @@ sub podman_man {
                     # will be '...' which indicates that $format has
                     # too many subformats to document individually.
                     $man{$previous_flag}{$format} = $etc || 1;
+
+                    if (lc($format) lt lc($previous_format)) {
+                        warn "$ME: $subpath:$.: format specifier '$format' should precede '$previous_format'\n";
+                        ++$Errs;
+                    }
+                    $previous_format = $format;
                 }
             }
         }
