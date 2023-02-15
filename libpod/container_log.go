@@ -38,14 +38,14 @@ func (c *Container) ReadLog(ctx context.Context, options *logs.LogOptions, logCh
 	switch c.LogDriver() {
 	case define.PassthroughLogging:
 		// if running under systemd fallback to a more native journald reading
-		if _, ok := c.config.Labels[systemdDefine.EnvVariable]; ok {
-			return c.readFromJournal(ctx, options, logChannel, colorID, true)
+		if unitName, ok := c.config.Labels[systemdDefine.EnvVariable]; ok {
+			return c.readFromJournal(ctx, options, logChannel, colorID, unitName)
 		}
 		return fmt.Errorf("this container is using the 'passthrough' log driver, cannot read logs: %w", define.ErrNoLogs)
 	case define.NoLogging:
 		return fmt.Errorf("this container is using the 'none' log driver, cannot read logs: %w", define.ErrNoLogs)
 	case define.JournaldLogging:
-		return c.readFromJournal(ctx, options, logChannel, colorID, false)
+		return c.readFromJournal(ctx, options, logChannel, colorID, "")
 	case define.JSONLogging:
 		// TODO provide a separate implementation of this when Conmon
 		// has support.

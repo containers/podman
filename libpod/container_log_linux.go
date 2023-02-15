@@ -32,7 +32,7 @@ func init() {
 }
 
 func (c *Container) readFromJournal(ctx context.Context, options *logs.LogOptions,
-	logChannel chan *logs.LogLine, colorID int64, isPassthrough bool) error {
+	logChannel chan *logs.LogLine, colorID int64, passthroughUnit string) error {
 	// We need the container's events in the same journal to guarantee
 	// consistency, see #10323.
 	if options.Follow && c.runtime.config.Engine.EventsLogger != "journald" {
@@ -69,7 +69,7 @@ func (c *Container) readFromJournal(ctx context.Context, options *logs.LogOption
 		return fmt.Errorf("adding filter disjunction to journald logger: %w", err)
 	}
 
-	if isPassthrough {
+	if passthroughUnit != "" {
 		// Match based on systemd unit which is the container is cgroup
 		// so we get the exact logs for a single container even in the
 		// play kube case where a single unit starts more than one container.
@@ -77,9 +77,16 @@ func (c *Container) readFromJournal(ctx context.Context, options *logs.LogOption
 		if rootless.IsRootless() {
 			unitTypeName = "_SYSTEMD_USER_UNIT"
 		}
-		// FIXME: It looks like it is hardcoded to libpod-ID.scope but I am not
-		// sure were we set this with all the different cgroup modes???
-		match = sdjournal.Match{Field: unitTypeName, Value: "libpod-" + c.ID() + ".scope"}
+		// By default we will have our own systemd cgroup with the name libpod-<ID>.scope.
+		value := "libpod-" + c.ID() + ".scope"
+		if c.config.CgroupsMode == cgroupSplit {
+			// If cgroup split the container runs in the unit cgroup so we use this for logs,
+			// the good thing is we filter the podman events already out below.
+			// Thus we are left with the real container log and possibly podman output (e.g. logrus).
+			value = passthroughUnit
+		}
+
+		match = sdjournal.Match{Field: unitTypeName, Value: value}
 		if err := journal.AddMatch(match.String()); err != nil {
 			return fmt.Errorf("adding filter to journald logger: %v: %w", match, err)
 		}
