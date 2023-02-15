@@ -328,6 +328,8 @@ Automatically remove the container when it exits. The default is *false*.
 
 @@option shm-size
 
+@@option shm-size-systemd
+
 @@option stop-signal
 
 @@option stop-timeout

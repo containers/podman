@@ -295,6 +295,9 @@ func CreateInit(c *cobra.Command, vals entities.ContainerCreateOptions, isInfra 
 	if c.Flag("shm-size").Changed {
 		vals.ShmSize = c.Flag("shm-size").Value.String()
 	}
+	if c.Flag("shm-size-systemd").Changed {
+		vals.ShmSizeSystemd = c.Flag("shm-size-systemd").Value.String()
+	}
 	if (c.Flag("dns").Changed || c.Flag("dns-option").Changed || c.Flag("dns-search").Changed) && vals.Net != nil && (vals.Net.Network.NSMode == specgen.NoNetwork || vals.Net.Network.IsContainer()) {
 		return vals, fmt.Errorf("conflicting options: dns and the network mode: " + string(vals.Net.Network.NSMode))
 	}

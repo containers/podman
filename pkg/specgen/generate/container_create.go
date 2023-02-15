@@ -512,6 +512,9 @@ func createContainerOptions(rt *libpod.Runtime, s *specgen.SpecGenerator, pod *l
 	if s.ShmSize != nil {
 		options = append(options, libpod.WithShmSize(*s.ShmSize))
 	}
+	if s.ShmSizeSystemd != nil {
+		options = append(options, libpod.WithShmSizeSystemd(*s.ShmSizeSystemd))
+	}
 	if s.Rootfs != "" {
 		options = append(options, libpod.WithRootFS(s.Rootfs, s.RootfsOverlay, s.RootfsMapping))
 	}

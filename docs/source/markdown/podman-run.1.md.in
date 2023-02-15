@@ -358,6 +358,8 @@ container is using it. The default is *false*.
 
 @@option shm-size
 
+@@option shm-size-systemd
+
 @@option sig-proxy
 
 The default is **true**.

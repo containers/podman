@@ -205,6 +205,12 @@ func (c *Container) setupSystemd(mounts []spec.Mount, g generate.Generator) erro
 	if !containerUUIDSet {
 		g.AddProcessEnv("container_uuid", c.ID()[:32])
 	}
+	// limit systemd-specific tmpfs mounts if specified
+	// while creating a pod or ctr, if not, default back to 50%
+	var shmSizeSystemdMntOpt string
+	if c.config.ShmSizeSystemd != 0 {
+		shmSizeSystemdMntOpt = fmt.Sprintf("size=%d", c.config.ShmSizeSystemd)
+	}
 	options := []string{"rw", "rprivate", "nosuid", "nodev"}
 	for _, dest := range []string{"/run", "/run/lock"} {
 		if MountExists(mounts, dest) {
@@ -214,7 +220,7 @@ func (c *Container) setupSystemd(mounts []spec.Mount, g generate.Generator) erro
 			Destination: dest,
 			Type:        "tmpfs",
 			Source:      "tmpfs",
-			Options:     append(options, "tmpcopyup"),
+			Options:     append(options, "tmpcopyup", shmSizeSystemdMntOpt),
 		}
 		g.AddMount(tmpfsMnt)
 	}
@@ -226,7 +232,7 @@ func (c *Container) setupSystemd(mounts []spec.Mount, g generate.Generator) erro
 			Destination: dest,
 			Type:        "tmpfs",
 			Source:      "tmpfs",
-			Options:     append(options, "tmpcopyup"),
+			Options:     append(options, "tmpcopyup", shmSizeSystemdMntOpt),
 		}
 		g.AddMount(tmpfsMnt)
 	}

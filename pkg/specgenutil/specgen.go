@@ -488,6 +488,16 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 		s.ShmSize = &val
 	}
 
+	// SHM Size Systemd
+	if c.ShmSizeSystemd != "" {
+		val, err := units.RAMInBytes(c.ShmSizeSystemd)
+		if err != nil {
+			return fmt.Errorf("unable to translate --shm-size-systemd: %w", err)
+		}
+
+		s.ShmSizeSystemd = &val
+	}
+
 	if c.Net != nil {
 		s.Networks = c.Net.Networks
 	}

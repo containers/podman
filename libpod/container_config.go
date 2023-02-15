@@ -130,6 +130,8 @@ type ContainerRootFSConfig struct {
 	// ShmSize is the size of the container's SHM. Only used if ShmDir was
 	// not set manually at time of creation.
 	ShmSize int64 `json:"shmSize"`
+	// ShmSizeSystemd is the size of systemd-specific tmpfs mounts
+	ShmSizeSystemd int64 `json:"shmSizeSystemd"`
 	// Static directory for container content that will persist across
 	// reboot.
 	// StaticDir is a persistent directory for Libpod files that will
@@ -443,6 +445,7 @@ type InfraInherit struct {
 	SelinuxOpts        []string                 `json:"selinux_opts,omitempty"`
 	Volumes            []*specgen.NamedVolume   `json:"volumes,omitempty"`
 	ShmSize            *int64                   `json:"shm_size"`
+	ShmSizeSystemd     *int64                   `json:"shm_size_systemd"`
 }
 
 // IsDefaultShmSize determines if the user actually set the shm in the parent ctr or if it has been set to the default size

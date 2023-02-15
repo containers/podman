@@ -157,6 +157,8 @@ Note: This options conflict with **--share=cgroup** since that would set the pod
 
 @@option shm-size
 
+@@option shm-size-systemd
+
 @@option subgidname
 
 @@option subuidname

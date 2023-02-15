@@ -638,6 +638,13 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		)
 		_ = cmd.RegisterFlagCompletionFunc(shmSizeFlagName, completion.AutocompleteNone)
 
+		shmSizeSystemdFlagName := "shm-size-systemd"
+		createFlags.String(
+			shmSizeSystemdFlagName, "",
+			"Size of systemd specific tmpfs mounts (/run, /run/lock) "+sizeWithUnitFormat,
+		)
+		_ = cmd.RegisterFlagCompletionFunc(shmSizeSystemdFlagName, completion.AutocompleteNone)
+
 		sysctlFlagName := "sysctl"
 		createFlags.StringSliceVar(
 			&cf.Sysctl,
