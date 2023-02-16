@@ -212,6 +212,49 @@ if [[ -n "$ROOTLESS_USER" ]]; then
     echo "ROOTLESS_UID=$ROOTLESS_UID" >> /etc/ci_environment
 fi
 
+# FIXME! experimental workaround for #16973, the "lookup cdn03.quay.io" flake.
+#
+# If you are reading this on or after April 2023:
+#   * If we're NOT seeing the cdn03 flake any more, well, someone
+#     should probably figure out how to fix systemd-resolved, then
+#     remove this workaround.
+#
+#   * If we're STILL seeing the cdn03 flake, well, this "fix"
+#     didn't work and should be removed.
+#
+# Either way, this block of code should be removed after March 31 2023
+# because it creates a system that is not representative of real-world Fedora.
+if ((CONTAINER==0)); then
+    nsswitch=/etc/authselect/nsswitch.conf
+    if [[ -e $nsswitch ]]; then
+        if grep -q -E 'hosts:.*resolve' $nsswitch; then
+            msg "Disabling systemd-resolved"
+            sed -i -e 's/^\(hosts: *\).*/\1files dns myhostname/' $nsswitch
+            systemctl stop systemd-resolved
+            rm -f /etc/resolv.conf
+
+            # NetworkManager may already be running, or it may not....
+            systemctl start NetworkManager
+            sleep 1
+            systemctl restart NetworkManager
+
+            # ...and it may create resolv.conf upon start/restart, or it
+            # may not. Keep restarting until it does. (Yes, I realize
+            # this is cargocult thinking. Don't care. Not worth the effort
+            # to diagnose and solve properly.)
+            retries=10
+            while ! test -e /etc/resolv.conf;do
+                retries=$((retries - 1))
+                if [[ $retries -eq 0 ]]; then
+                    die "Timed out waiting for resolv.conf"
+                fi
+                systemctl restart NetworkManager
+                sleep 5
+            done
+        fi
+    fi
+fi
+
 # Required to be defined by caller: Are we testing podman or podman-remote client
 # shellcheck disable=SC2154
 case "$PODBIN_NAME" in
