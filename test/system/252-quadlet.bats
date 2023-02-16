@@ -15,6 +15,7 @@ function start_time() {
 
 function setup() {
     skip_if_remote "quadlet tests are meaningless over remote"
+    skip_if_rootless_cgroupsv1 "quadlet tests don't work rootless on RHEL8"
 
     start_time
 
