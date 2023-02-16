@@ -110,6 +110,7 @@ type PlayKubeTeardown struct {
 	StopReport     []*PodStopReport
 	RmReport       []*PodRmReport
 	VolumeRmReport []*VolumeRmReport
+	SecretRmReport []*SecretRmReport
 }
 
 type PlaySecret struct {

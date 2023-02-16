@@ -1257,6 +1257,7 @@ func (ic *ContainerEngine) PlayKubeDown(ctx context.Context, body io.Reader, opt
 	var (
 		podNames    []string
 		volumeNames []string
+		secretNames []string
 	)
 	reports := new(entities.PlayKubeReport)
 
@@ -1313,6 +1314,12 @@ func (ic *ContainerEngine) PlayKubeDown(ctx context.Context, body io.Reader, opt
 				return nil, fmt.Errorf("unable to read YAML as Kube PersistentVolumeClaim: %w", err)
 			}
 			volumeNames = append(volumeNames, pvcYAML.Name)
+		case "Secret":
+			var secret v1.Secret
+			if err := yaml.Unmarshal(document, &secret); err != nil {
+				return nil, fmt.Errorf("unable to read YAML as Kube Secret: %w", err)
+			}
+			secretNames = append(secretNames, secret.Name)
 		default:
 			continue
 		}
@@ -1325,6 +1332,11 @@ func (ic *ContainerEngine) PlayKubeDown(ctx context.Context, body io.Reader, opt
 	}
 
 	reports.RmReport, err = ic.PodRm(ctx, podNames, entities.PodRmOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	reports.SecretRmReport, err = ic.SecretRm(ctx, secretNames, entities.SecretRmOptions{})
 	if err != nil {
 		return nil, err
 	}

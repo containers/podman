@@ -1688,6 +1688,12 @@ func createAndTestSecret(podmanTest *PodmanTestIntegration, secretYamlString, se
 	secretList.WaitWithDefaultTimeout()
 	Expect(secretList).Should(Exit(0))
 	Expect(secretList.OutputToString()).Should(ContainSubstring(secretName))
+
+	// test if secret ID is printed once created
+	secretListQuiet := podmanTest.Podman([]string{"secret", "list", "--quiet"})
+	secretListQuiet.WaitWithDefaultTimeout()
+	Expect(secretListQuiet).Should(Exit(0))
+	Expect(kube.OutputToString()).Should(ContainSubstring(secretListQuiet.OutputToString()))
 }
 
 func deleteAndTestSecret(podmanTest *PodmanTestIntegration, secretName string) {
@@ -3858,6 +3864,31 @@ invalid kube kind
 		Expect(teardown).Should(Exit(0))
 
 		checkls := podmanTest.Podman([]string{"pod", "ps", "--format", "'{{.ID}}'"})
+		checkls.WaitWithDefaultTimeout()
+		Expect(checkls).Should(Exit(0))
+		Expect(checkls.OutputToStringArray()).To(BeEmpty())
+	})
+
+	It("podman play kube teardown with secret", func() {
+		err := writeYaml(secretYaml, kubeYaml)
+		Expect(err).ToNot(HaveOccurred())
+
+		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		ls := podmanTest.Podman([]string{"secret", "ls", "--format", "{{.ID}}"})
+		ls.WaitWithDefaultTimeout()
+		Expect(ls).Should(Exit(0))
+		Expect(ls.OutputToStringArray()).To(HaveLen(1))
+
+		//	 teardown
+		teardown := podmanTest.Podman([]string{"kube", "down", kubeYaml})
+		teardown.WaitWithDefaultTimeout()
+		Expect(teardown).Should(Exit(0))
+		Expect(teardown.OutputToString()).Should(ContainSubstring(ls.OutputToString()))
+
+		checkls := podmanTest.Podman([]string{"secret", "ls", "--format", "'{{.ID}}'"})
 		checkls.WaitWithDefaultTimeout()
 		Expect(checkls).Should(Exit(0))
 		Expect(checkls.OutputToStringArray()).To(BeEmpty())
