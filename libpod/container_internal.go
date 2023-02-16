@@ -29,7 +29,7 @@ import (
 	"github.com/containers/podman/v4/pkg/selinux"
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/containers/storage"
-	"github.com/containers/storage/pkg/archive"
+	"github.com/containers/storage/pkg/chrootarchive"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/mount"
 	"github.com/coreos/go-systemd/v22/daemon"
@@ -763,7 +763,7 @@ func (c *Container) export(path string) error {
 		}()
 	}
 
-	input, err := archive.Tar(mountPoint, archive.Uncompressed)
+	input, err := chrootarchive.Tar(mountPoint, nil, mountPoint)
 	if err != nil {
 		return errors.Wrapf(err, "error reading container directory %q", c.ID())
 	}
