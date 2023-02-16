@@ -40,7 +40,8 @@ Current supported mount TYPEs are **bind**, **volume**, **image**, **tmpfs** and
           The idmap option supports a custom mapping that can be different than the user namespace used by the container.
           The mapping can be specified after the idmap option like: `idmap=uids=0-1-10#10-11-10;gids=0-100-10`.  For each triplet, the first value is the
           start of the backing file system IDs that are mapped to the second value on the host.  The length of this mapping is given in the third value.
-          Multiple ranges are separated with #.
+          Multiple ranges are separated with #.  If the specified mapping is prepended with a '@' then the mapping is considered relative to the container
+          user namespace. The host ID for the mapping is changed to account for the relative position of the container user in the container user namespace.
 
        Options specific to image:
 

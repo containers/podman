@@ -18,10 +18,18 @@ import (
 var hookPath string
 
 func TestParseOptionIDs(t *testing.T) {
-	_, err := parseOptionIDs("uids=100-200-2")
+	idMap := []idtools.IDMap{
+		{
+			ContainerID: 0,
+			HostID:      1,
+			Size:        10000,
+		},
+	}
+
+	_, err := parseOptionIDs(idMap, "uids=100-200-2")
 	assert.NotNil(t, err)
 
-	mappings, err := parseOptionIDs("100-200-2")
+	mappings, err := parseOptionIDs(idMap, "100-200-2")
 	assert.Nil(t, err)
 	assert.NotNil(t, mappings)
 
@@ -31,7 +39,7 @@ func TestParseOptionIDs(t *testing.T) {
 	assert.Equal(t, mappings[0].HostID, 200)
 	assert.Equal(t, mappings[0].Size, 2)
 
-	mappings, err = parseOptionIDs("100-200-2#300-400-5")
+	mappings, err = parseOptionIDs(idMap, "100-200-2#300-400-5")
 	assert.Nil(t, err)
 	assert.NotNil(t, mappings)
 
@@ -44,6 +52,23 @@ func TestParseOptionIDs(t *testing.T) {
 	assert.Equal(t, mappings[1].ContainerID, 300)
 	assert.Equal(t, mappings[1].HostID, 400)
 	assert.Equal(t, mappings[1].Size, 5)
+
+	mappings, err = parseOptionIDs(idMap, "@100-200-2#@300-400-5")
+	assert.Nil(t, err)
+	assert.NotNil(t, mappings)
+
+	assert.Equal(t, len(mappings), 2)
+
+	assert.Equal(t, mappings[0].ContainerID, 100)
+	assert.Equal(t, mappings[0].HostID, 201)
+	assert.Equal(t, mappings[0].Size, 2)
+
+	assert.Equal(t, mappings[1].ContainerID, 300)
+	assert.Equal(t, mappings[1].HostID, 401)
+	assert.Equal(t, mappings[1].Size, 5)
+
+	_, err = parseOptionIDs(idMap, "@10000-20000-2")
+	assert.NotNil(t, err)
 }
 
 func TestParseIDMapMountOption(t *testing.T) {
