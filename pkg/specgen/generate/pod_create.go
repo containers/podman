@@ -264,6 +264,10 @@ func MapSpec(p *specgen.PodSpecGenerator) (*specgen.SpecGenerator, error) {
 		p.InfraContainerSpec.ConmonPidFile = p.InfraConmonPidFile
 	}
 
+	if p.Sysctl != nil && len(p.Sysctl) > 0 {
+		p.InfraContainerSpec.Sysctl = p.Sysctl
+	}
+
 	p.InfraContainerSpec.Image = p.InfraImage
 	return p.InfraContainerSpec, nil
 }
