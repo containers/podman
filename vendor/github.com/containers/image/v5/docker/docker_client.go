@@ -472,12 +472,22 @@ func (c *dockerClient) makeRequest(ctx context.Context, method, path string, hea
 		return nil, err
 	}
 
-	urlString := fmt.Sprintf("%s://%s%s", c.scheme, c.registry, path)
-	requestURL, err := url.Parse(urlString)
+	requestURL, err := c.resolveRequestURL(path)
 	if err != nil {
 		return nil, err
 	}
 	return c.makeRequestToResolvedURL(ctx, method, requestURL, headers, stream, -1, auth, extraScope)
+}
+
+// resolveRequestURL turns a path for c.makeRequest into a full URL.
+// Most users should call makeRequest directly, this exists basically to make the URL available for debug logs.
+func (c *dockerClient) resolveRequestURL(path string) (*url.URL, error) {
+	urlString := fmt.Sprintf("%s://%s%s", c.scheme, c.registry, path)
+	res, err := url.Parse(urlString)
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
 }
 
 // Checks if the auth headers in the response contain an indication of a failed
@@ -965,7 +975,14 @@ func (c *dockerClient) getBlob(ctx context.Context, ref dockerReference, info ty
 		return nil, 0, fmt.Errorf("fetching blob: %w", err)
 	}
 	cache.RecordKnownLocation(ref.Transport(), bicTransportScope(ref), info.Digest, newBICLocationReference(ref))
-	return res.Body, getBlobSize(res), nil
+	blobSize := getBlobSize(res)
+
+	reconnectingReader, err := newBodyReader(ctx, c, path, res.Body)
+	if err != nil {
+		res.Body.Close()
+		return nil, 0, err
+	}
+	return reconnectingReader, blobSize, nil
 }
 
 // getOCIDescriptorContents returns the contents a blob spcified by descriptor in ref, which must fit within limit.
