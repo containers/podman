@@ -34,7 +34,7 @@ import (
 	"github.com/containers/podman/v4/pkg/systemd/notifyproxy"
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/containers/storage"
-	"github.com/containers/storage/pkg/archive"
+	"github.com/containers/storage/pkg/chrootarchive"
 	"github.com/containers/storage/pkg/idmap"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/lockfile"
@@ -761,7 +761,7 @@ func (c *Container) export(out io.Writer) error {
 		}()
 	}
 
-	input, err := archive.Tar(mountPoint, archive.Uncompressed)
+	input, err := chrootarchive.Tar(mountPoint, nil, mountPoint)
 	if err != nil {
 		return fmt.Errorf("reading container directory %q: %w", c.ID(), err)
 	}
