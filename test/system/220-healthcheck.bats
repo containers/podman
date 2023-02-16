@@ -113,12 +113,12 @@ Log[-1].Output   | \"Uh-oh on stdout!\\\nUh-oh on stderr!\"
     img="healthcheck_i"
 
     for policy in none kill restart stop;do
-	if [[ $policy == "none" ]];then
-	    # Do not remove the /uh-oh file for `none` as we want to
-	    # demonstrate that no action was taken
-            _build_health_check_image $img
+        if [[ $policy == "none" ]];then
+           # Do not remove the /uh-oh file for `none` as we want to
+           # demonstrate that no action was taken
+           _build_health_check_image $img
         else
-            _build_health_check_image $img cleanfile
+           _build_health_check_image $img cleanfile
         fi
 
         # Run that healthcheck image.
@@ -140,19 +140,19 @@ Log[-1].Output   | \"Uh-oh on stdout!\\\nUh-oh on stderr!\"
         is "$output" "unhealthy" "output from 'podman healthcheck run' (policy: $policy)"
 
         run_podman inspect $ctr --format "{{.State.Status}} {{.Config.HealthcheckOnFailureAction}}"
-	if [[ $policy == "restart" ]];then
-	    # Container has been restarted and health check works again
-            is "$output" "running $policy" "container has been restarted"
-            run_podman container inspect $ctr --format "{{.State.Healthcheck.FailingStreak}}"
-            is "$output" "0" "Failing streak of restarted container should be 0 again"
-            run_podman healthcheck run $ctr
+        if [[ $policy == "restart" ]];then
+           # Container has been restarted and health check works again
+           is "$output" "running $policy" "container has been restarted"
+           run_podman container inspect $ctr --format "{{.State.Healthcheck.FailingStreak}}"
+           is "$output" "0" "Failing streak of restarted container should be 0 again"
+           run_podman healthcheck run $ctr
         elif [[ $policy == "none" ]];then
             # Container is still running and health check still broken
             is "$output" "running $policy" "container continued running"
             run_podman 1 healthcheck run $ctr
             is "$output" "unhealthy" "output from 'podman healthcheck run' (policy: $policy)"
-	else
-	    # kill and stop yield the container into a non-running state
+        else
+            # kill and stop yield the container into a non-running state
             is "$output" ".* $policy" "container was stopped/killed (policy: $policy)"
             assert "$output" != "running $policy"
             # also make sure that it's not stuck in the stopping state

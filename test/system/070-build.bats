@@ -397,7 +397,7 @@ EOF
     if is_remote; then
         ENVHOST=""
     else
-	ENVHOST="--env-host"
+        ENVHOST="--env-host"
     fi
 
     # Run without args - should run the above script. Verify its output.
@@ -584,7 +584,7 @@ EOF
 
         # Build an image. For .dockerignore
         local -a ignoreflag
-	unset ignoreflag
+        unset ignoreflag
         if [[ $ignorefile != ".dockerignore" ]]; then
             ignoreflag="--ignorefile $tmpdir/$ignorefile"
         fi
@@ -1029,14 +1029,14 @@ EOF
 
     touch $tmpdir/empty-file.txt
     if is_remote && ! is_rootless ; then
-	# TODO: set this file's owner to a UID:GID that will not be mapped
-	# in the context where the remote server is running, which generally
-	# requires us to be root (or running with more mapped IDs) on the
-	# client, but not root (or running with fewer mapped IDs) on the
-	# remote server
-	# 4294967292:4294967292 (0xfffffffc:0xfffffffc) isn't that, but
-	# it will catch errors where a remote server doesn't apply the right
-	# default as it copies content into the container
+        # TODO: set this file's owner to a UID:GID that will not be mapped
+        # in the context where the remote server is running, which generally
+        # requires us to be root (or running with more mapped IDs) on the
+        # client, but not root (or running with fewer mapped IDs) on the
+        # remote server
+        # 4294967292:4294967292 (0xfffffffc:0xfffffffc) isn't that, but
+        # it will catch errors where a remote server doesn't apply the right
+        # default as it copies content into the container
         chown 4294967292:4294967292 $tmpdir/empty-file.txt
     fi
     cat >$tmpdir/Dockerfile <<EOF

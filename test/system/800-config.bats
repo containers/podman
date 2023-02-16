@@ -62,7 +62,7 @@ EOF
     # container" errors from podman wait.
     CONTAINERS_CONF="$conf_tmp" run_podman '?' wait "$cid"
     if [[ $status != 0 ]]; then
-	is "$output" "Error:.*no such container" "unexpected error from podman wait"
+        is "$output" "Error:.*no such container" "unexpected error from podman wait"
     fi
 
     # The --rm option means the container should no longer exist.

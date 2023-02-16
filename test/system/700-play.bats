@@ -567,7 +567,7 @@ EOF
     run_podman kube play $YAML
     if selinux_enabled; then
         run_podman inspect pod1-test1 --format "{{ .MountLabel }}"
-	is "$output" "system_u:object_r:usr_t:s0:c1,c2" "Generated container should use filetype usr_t"
+        is "$output" "system_u:object_r:usr_t:s0:c1,c2" "Generated container should use filetype usr_t"
     fi
     run_podman kube down $YAML
 }
