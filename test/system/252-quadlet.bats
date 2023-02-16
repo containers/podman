@@ -16,6 +16,8 @@ function start_time() {
 function setup() {
     skip_if_remote "quadlet tests are meaningless over remote"
 
+    test -x "$QUADLET" || die "Cannot run quadlet tests without executable \$QUADLET ($QUADLET)"
+
     start_time
 
     basic_setup
@@ -47,7 +49,9 @@ function run_quadlet() {
     local quadlet_tmpdir=$(mktemp -d --tmpdir=$PODMAN_TMPDIR quadlet.XXXXXX)
     cp $sourcefile $quadlet_tmpdir/
 
+    echo "$_LOG_PROMPT $QUADLET $_DASHUSER $UNIT_DIR"
     QUADLET_UNIT_DIRS="$quadlet_tmpdir" run $QUADLET $_DASHUSER $UNIT_DIR
+    echo "$output"
     assert $status -eq 0 "Failed to convert quadlet file: $sourcefile"
     is "$output" "" "quadlet should report no errors"
 

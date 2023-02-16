@@ -2,7 +2,7 @@
 
 # Podman command to run; may be podman-remote
 PODMAN=${PODMAN:-podman}
-QUADLET=${QUADLET:-quadlet}
+QUADLET=${QUADLET:-/usr/libexec/podman/quadlet}
 
 # Standard image to use for most tests
 PODMAN_TEST_IMAGE_REGISTRY=${PODMAN_TEST_IMAGE_REGISTRY:-"quay.io"}
