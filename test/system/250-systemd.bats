@@ -414,10 +414,10 @@ EOF
     run_podman 125 container rm $service_container
     is "$output" "Error: container .* is the service container of pod(s) .* and cannot be removed without removing the pod(s)"
 
-    # Verify that the log-driver for the Pod's containers is passthrough
+    # containers/podman/issues/17482: verify that the log-driver for the Pod's containers is NOT passthrough
     for name in "a" "b"; do
         run_podman container inspect test_pod-${name} --format "{{.HostConfig.LogConfig.Type}}"
-        is $output "passthrough"
+        assert $output != "passthrough"
     done
 
     # Add a simple `auto-update --dry-run` test here to avoid too much redundancy
