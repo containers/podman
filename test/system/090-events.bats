@@ -272,7 +272,7 @@ EOF
         --stream=false          \
         --format="{{.ContainerInspectData}}"
     events_json=$(jq -r --tab . <<< "[$output]")
-    assert "$inspect_json" = "$events_json" "JSON payload in event attributes is the same as the inspect one"
+    assert "$events_json" = "$inspect_json" "JSON payload in event attributes is the same as the inspect one"
 
     # Make sure that the inspect data doesn't show by default in
     # podman-events.
@@ -285,10 +285,16 @@ EOF
     assert "$output" != ".*EffectiveCaps.*"
 }
 
-@test "events - container inspect data" {
+@test "events - container inspect data - journald" {
     skip_if_remote "remote does not support --events-backend"
+    skip_if_journald_unavailable
 
     _events_container_create_inspect_data journald
+}
+
+@test "events - container inspect data - file" {
+    skip_if_remote "remote does not support --events-backend"
+
     _events_container_create_inspect_data file
 }
 
