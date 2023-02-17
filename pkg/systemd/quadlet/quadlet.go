@@ -745,6 +745,9 @@ func ConvertKube(kube *parser.UnitFile, isUser bool) (*parser.UnitFile, error) {
 
 		// Use a service container
 		"--service-container=true",
+
+		// We want output to the journal, so use the log driver.
+		"--log-driver", "passthrough",
 	)
 
 	if err := handleUserRemap(kube, KubeGroup, execStart, isUser, false); err != nil {
