@@ -3,6 +3,7 @@
 ## assert-podman-final-args-regex /tmp/podman_test.*/quadlet/deployment.yml
 ## assert-podman-args "--replace"
 ## assert-podman-args "--service-container=true"
+## assert-podman-args "--log-driver" "passthrough"
 ## assert-podman-stop-args "kube"
 ## assert-podman-stop-args "down"
 ## assert-podman-stop-final-args-regex /tmp/podman_test.*/quadlet/deployment.yml
