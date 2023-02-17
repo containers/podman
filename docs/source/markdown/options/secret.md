@@ -36,11 +36,17 @@ Secret Options
 
 Examples
 
-Mount at `/my/location/mysecret` with UID 1.
-```--secret mysecret,target=/my/location/mysecret,uid=1```
+Mount at `/my/location/mysecret` with UID 1:
+```
+--secret mysecret,target=/my/location/mysecret,uid=1
+```
 
-Mount at `/run/secrets/customtarget` with mode 0777.
-```--secret mysecret,target=customtarget,mode=0777```
+Mount at `/run/secrets/customtarget` with mode 0777:
+```
+--secret mysecret,target=customtarget,mode=0777
+```
 
-Create a secret environment variable called `ENVSEC`.
-```--secret mysecret,type=env,target=ENVSEC```
+Create a secret environment variable called `ENVSEC`:
+```
+--secret mysecret,type=env,target=ENVSEC
+```
