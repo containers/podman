@@ -967,6 +967,49 @@ spec:
     command: ['sh', '-c', 'ls -l /proc/self/ns/ipc']
 `
 
+var podWithSysctlDefined = `
+apiVersion: v1
+kind: Pod
+metadata:
+  name: test-sysctl
+spec:
+  securityContext:
+    sysctls:
+    - name: kernel.msgmax
+      value: "65535"
+    - name: net.core.somaxconn
+      value: "65535"
+  containers:
+  - name: alpine
+    image: quay.io/libpod/alpine:latest
+    command:
+    - "/bin/sh"
+    - "-c"
+    - "sysctl kernel.msgmax;sysctl net.core.somaxconn"
+`
+
+var podWithSysctlHostNetDefined = `
+apiVersion: v1
+kind: Pod
+metadata:
+  name: test-sysctl
+spec:
+  securityContext:
+    sysctls:
+    - name: kernel.msgmax
+      value: "65535"
+    - name: net.core.somaxconn
+      value: "65535"
+  hostNetwork: true
+  containers:
+  - name: alpine
+    image: quay.io/libpod/alpine:latest
+    command:
+    - "/bin/sh"
+    - "-c"
+    - "sysctl kernel.msgmax"
+`
+
 var (
 	defaultCtrName        = "testCtr"
 	defaultCtrCmd         = []string{"top"}
@@ -5034,4 +5077,29 @@ spec:
 		Expect(inspect.OutputToString()).To(ContainSubstring("\"Aliases\": [ \"" + ctrName + "\""))
 	})
 
+	It("podman play kube test with sysctl defined", func() {
+		SkipIfRootless("Network sysctls are not available for rootless")
+		err := writeYaml(podWithSysctlDefined, kubeYaml)
+		Expect(err).ToNot(HaveOccurred())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		logs := podmanTest.Podman([]string{"pod", "logs", "-c", "test-sysctl-alpine", "test-sysctl"})
+		logs.WaitWithDefaultTimeout()
+		Expect(logs).Should(Exit(0))
+		Expect(logs.OutputToString()).To(ContainSubstring("kernel.msgmax = 65535"))
+		Expect(logs.OutputToString()).To(ContainSubstring("net.core.somaxconn = 65535"))
+	})
+
+	It("podman play kube test with sysctl & host network defined", func() {
+		SkipIfRootless("Network sysctls are not available for rootless")
+		err := writeYaml(podWithSysctlHostNetDefined, kubeYaml)
+		Expect(err).ToNot(HaveOccurred())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(125))
+	})
 })

@@ -107,6 +107,17 @@ func ToPodOpt(ctx context.Context, podName string, p entities.PodCreateOptions, 
 			p.Net.DNSOptions = dnsOptions
 		}
 	}
+
+	if pscConfig := podYAML.Spec.SecurityContext; pscConfig != nil {
+		// Extract sysctl list from pod security context
+		if options := pscConfig.Sysctls; len(options) > 0 {
+			sysctlOptions := make([]string, 0, len(options))
+			for _, opts := range options {
+				sysctlOptions = append(sysctlOptions, opts.Name+"="+opts.Value)
+			}
+			p.Sysctl = sysctlOptions
+		}
+	}
 	return p, nil
 }
 
