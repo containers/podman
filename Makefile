@@ -469,6 +469,11 @@ $(MANPAGES): %: %.md .install.md2man docdir
 	       -e 's;<\(/\)\?\(a\|a\s\+[^>]*\|sup\)>;;g'    \
 	       -e 's/\\$$/  /g' $<                         |\
 	$(GOMD2MAN) -out $(subst source/markdown,build/man,$@)
+# FIXME: 2023-02-16: we may need a multi-commit approach to
+# enable this.
+#	@if grep 'included file options/' docs/build/man/*; then \
+#		echo "FATAL: man pages must not contain ^^^^"; exit 1; \
+#	fi
 
 .PHONY: docdir
 docdir:
