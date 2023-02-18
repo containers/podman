@@ -78,7 +78,7 @@ The first step in using the Podman remote client is to configure a connection.
 You can add a connection by using the `podman-remote system connection add` command.
 
 ```
-podman-remote system connection add myuser --identity ~/.ssh/id_ed25519 ssh://192.168.122.1/run/user/1000/podman/podman.sock
+podman-remote system connection add myuser --identity ~/.ssh/id_ed25519 ssh://myuser@192.168.122.1/run/user/1000/podman/podman.sock
 ```
 
 This will add a remote connection to Podman and if it is the first connection added, it will mark the connection as the default.  You can observe your connections with `podman-remote system connection list`:
