@@ -45,3 +45,19 @@ This allows the shared use of examples in the option file:
 As a special case, `podman-pod-X` becomes just `X` (the "pod" is removed).
 This makes the `pod-id-file` man page more useful. To get the full
 subcommand including 'pod', use `<<fullsubcommand>>`.
+
+Restrictions
+============
+
+There is a restriction for having a single text line with three
+back-ticks in the front and the end of the line.  For instance:
+
+\`\`\`Some man page text\`\`\`
+
+This is currently not allowed and will cause a corruption of the
+compiled man page.  Instead, put the three back-ticks on separate
+lines like:
+
+\`\`\`
+Some man page text
+\`\`\`
