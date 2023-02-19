@@ -58,11 +58,9 @@ Currently, only the `Alias`, `WantedBy` and `RequiredBy` keys are supported.
 words `WantedBy=other.service`, not `WantedBy=other.container`. The same is
 true for other kinds of dependencies, too, like `After=other.service`.
 
-=====================================================================
+## Container units [Container]
 
-### Container units [Container]
-
-Container units are named with a `.container` extension and contain a `[Container] `section describing
+Container units are named with a `.container` extension and contain a `[Container]` section describing
 the container that should be run as a service. The resulting service file will contain a line like
 `ExecStart=podman run … image-name`, and most of the keys in this section control the command-line
 options passed to Podman. However, some options also affect the details of how systemd is set up to run and
@@ -114,7 +112,7 @@ Valid options for `[Container]` are listed below:
 
 Description of `[Container]` section are:
 
-#### `AddCapability=`
+### `AddCapability=`
 
 By default, the container runs with no capabilities (due to DropCapabilities='all'). If any specific
 caps are needed, then add them with this key. For example using `AddCapability=CAP_DAC_OVERRIDE`.
@@ -126,7 +124,7 @@ For example:
 AddCapability=CAP_DAC_OVERRIDE CAP_IPC_OWNER
 ```
 
-#### `AddDevice=`
+### `AddDevice=`
 
 Adds a device node from the host into the container. The format of this is
 `HOST-DEVICE[:CONTAINER-DEVICE][:PERMISSIONS]`, where `HOST-DEVICE` is the path of
@@ -136,20 +134,20 @@ the container, and `PERMISSIONS` is a list of permissions combining 'r' for read
 
 This key can be listed multiple times.
 
-#### `Annotation=`
+### `Annotation=`
 
 Set one or more OCI annotations on the container. The format is a list of `key=value` items,
 similar to `Environment`.
 
 This key can be listed multiple times.
 
-#### `ContainerName=`
+### `ContainerName=`
 
 The (optional) name of the Podman container. If this is not specified, the default value
 of `systemd-%N` will be used, which is the same as the service name but with a `systemd-`
 prefix to avoid conflicts with user-managed containers.
 
-#### `DropCapability=` (defaults to `all`)
+### `DropCapability=` (defaults to `all`)
 
 Drop these capabilities from the default podman capability set, or `all` to drop all capabilities.
 
@@ -160,41 +158,41 @@ For example:
 DropCapability=CAP_DAC_OVERRIDE CAP_IPC_OWNER
 ```
 
-#### `Environment=`
+### `Environment=`
 
 Set an environment variable in the container. This uses the same format as
 [services in systemd](https://www.freedesktop.org/software/systemd/man/systemd.exec.html#Environment=)
 and can be listed multiple times.
 
-#### `EnvironmentFile=`
+### `EnvironmentFile=`
 
 Use a line-delimited file to set environment variables in the container.
 The path may be absolute or relative to the location of the unit file.
 This key may be used multiple times, and the order persists when passed to `podman run`.
 
-#### `EnvironmentHost=` (defaults to `no`)
+### `EnvironmentHost=` (defaults to `no`)
 
 Use the host environment inside of the container.
 
-#### `Exec=`
+### `Exec=`
 
 If this is set then it defines what command line to run in the container. If it is not set the
 default entry point of the container image is used. The format is the same as for
 [systemd command lines](https://www.freedesktop.org/software/systemd/man/systemd.service.html#Command%20lines).
 
-#### `ExposeHostPort=`
+### `ExposeHostPort=`
 
 Exposes a port, or a range of ports (e.g. `50-59`), from the host to the container. Equivalent
 to the Podman `--expose` option.
 
 This key can be listed multiple times.
 
-#### `Group=`
+### `Group=`
 
 The (numeric) gid to run as inside the container. This does not need to match the gid on the host,
 which can be modified with `RemapUsers`, but if that is not specified, this gid is also used on the host.
 
-#### `Image=`
+### `Image=`
 
 The image to run in the container. This image must be locally installed for the service to work
 when it is activated, because the generated service file will never try to download images.
@@ -204,14 +202,14 @@ performance and robustness reasons.
 The format of the name is the same as when passed to `podman run`, so it supports e.g., using
 `:tag` or using digests guarantee a specific image version.
 
-#### `Label=`
+### `Label=`
 
 Set one or more OCI labels on the container. The format is a list of `key=value` items,
 similar to `Environment`.
 
 This key can be listed multiple times.
 
-#### `Network=`
+### `Network=`
 
 Specify a custom network for the container. This has the same format as the `--network` option
 to `podman run`. For example, use `host` to use the host network in the container, or `none` to
@@ -224,12 +222,12 @@ created by using a `$name.network` quadlet file.
 
 This key can be listed multiple times.
 
-#### `NoNewPrivileges=` (defaults to `no`)
+### `NoNewPrivileges=` (defaults to `no`)
 
 If enabled (which is the default), this disables the container processes from gaining additional privileges via things like
 setuid and file capabilities.
 
-#### `Rootfs=`
+### `Rootfs=`
 
 The rootfs to use for the container. Rootfs points to a directory on the system that contains the content to be run within the container. This option conflicts with the `Image` option.
 
@@ -237,7 +235,7 @@ The format of the rootfs is the same as when passed to `podman run --rootfs`, so
 
 Note: On SELinux systems, the rootfs needs the correct label, which is by default unconfined_u:object_r:container_file_t:s0.
 
-#### `Notify=` (defaults to `no`)
+### `Notify=` (defaults to `no`)
 
 By default, Podman is run in such a way that the systemd startup notify command is handled by
 the container runtime. In other words, the service is deemed started when the container runtime
@@ -246,7 +244,7 @@ starts the child in the container. However, if the container application support
 `Notify`to true will pass the notification details to the container allowing it to notify
 of startup on its own.
 
-#### `PodmanArgs=`
+### `PodmanArgs=`
 
 This key contains a list of arguments passed directly to the end of the `podman run` command
 in the generated file (right before the image name in the command line). It can be used to
@@ -258,7 +256,7 @@ The format of this is a space separated list of arguments, which can optionally 
 escaped to allow inclusion of whitespace and other control characters. This key can be listed
 multiple times.
 
-#### `PublishPort=`
+### `PublishPort=`
 
 Exposes a port, or a range of ports (e.g. `50-59`), from the container to the host. Equivalent
 to the Podman `--publish` option. The format is similar to the Podman options, which is of
@@ -275,13 +273,13 @@ allocated port can be found with the `podman port` command.
 
 This key can be listed multiple times.
 
-#### `ReadOnly=` (defaults to `no`)
+### `ReadOnly=` (defaults to `no`)
 
 If enabled, makes image read-only, with /var/tmp, /tmp and /run a tmpfs (unless disabled by `VolatileTmp=no`).r
 
 **NOTE:** Podman will automatically copy any content from the image onto the tmpfs
 
-#### `RemapGid=`
+### `RemapGid=`
 
 `RemapGid` key to force a particular host uid to be mapped to the container.
 
@@ -292,17 +290,17 @@ If `RemapUsers` is enabled, this specifies a gid mapping of the form `container_
 which will map `amount` number of gids on the host starting at `from_gid` into the container, starting
 at `container_gid`.
 
-#### `RemapUid=`
+### `RemapUid=`
 
 If `RemapUsers` is enabled, this specifies a uid mapping of the form `container_uid:from_uid:amount`,
 which will map `amount` number of uids on the host starting at `from_uid` into the container, starting
 at `container_uid`.
 
-#### `RemapUidSize=`
+### `RemapUidSize=`
 
 If `RemapUsers` is enabled and set to `auto`, this specifies the count of the ids to remap
 
-#### `RemapUsers=`
+### `RemapUsers=`
 
 If this is set, then host user and group ids are remapped in the container. It currently
 supports values: `auto`, `manual` and `keep-id`.
@@ -314,53 +312,53 @@ In `auto` mode mode, the subuids and subgids allocated to the `containers` user 
 host uids/gids to use for the container. By default this will try to estimate a count of the ids
 to remap, but `RemapUidSize` can be specified to use an explicit size. Use `RemapUid` and
 
-#### `RunInit=` (default to `no`)
+### `RunInit=` (default to `no`)
 
 If enabled, the container will have a minimal init process inside the
 container that forwards signals and reaps processes.
 
-#### `SeccompProfile=`
+### `SeccompProfile=`
 
 Set the seccomp profile to use in the container. If unset, the default podman profile is used.
 Set to either the pathname of a json file, or `unconfined` to disable the seccomp filters.
 
-#### `SecurityLabelDisable=`
+### `SecurityLabelDisable=`
 
 Turn off label separation for the container.
 
-#### `SecurityLabelFileType=`
+### `SecurityLabelFileType=`
 
 Set the label file type for the container files.
 
-#### `SecurityLabelLevel=`
+### `SecurityLabelLevel=`
 
 Set the label process level for the container processes.
 
-#### `SecurityLabelType=`
+### `SecurityLabelType=`
 
 Set the label process type for the container processes.
 
-#### `Secret=`
+### `Secret=`
 
 Use a Podman secret in the container either as a file or an environment variable.
 This is equivalent to the Podman `--secret` option and generally has the form `secret[,opt=opt ...]`
 
-#### `Timezone=` (if unset uses system-configured default)
+### `Timezone=` (if unset uses system-configured default)
 
 The timezone to run the container in.
 
-#### `User=`
+### `User=`
 
 The (numeric) uid to run as inside the container. This does not need to match the uid on the host,
 which can be modified with `RemapUsers`, but if that is not specified, this uid is also used on the host.
 
-#### `VolatileTmp=` (default to `no`, or `yes` if `ReadOnly` enabled)
+### `VolatileTmp=` (default to `no`, or `yes` if `ReadOnly` enabled)
 
 If enabled, the container will have a fresh tmpfs mounted on `/tmp`.
 
 **NOTE:** Podman will automatically copy any content from the image onto the tmpfs
 
-#### `Volume=`
+### `Volume=`
 
 Mount a volume in the container. This is equivalent to the Podman `--volume` option, and
 generally has the form `[[SOURCE-VOLUME|HOST-DIR:]CONTAINER-DIR[:OPTIONS]]`.
@@ -372,11 +370,9 @@ created by using a `$name.volume` quadlet file.
 
 This key can be listed multiple times.
 
-=====================================================================
+## Kube units [Kube]
 
-### Kube units [Kube]
-
-Kube units are named with a `.kube` extension and contain a `[Kube] `section describing
+Kube units are named with a `.kube` extension and contain a `[Kube]` section describing
 how `podman kube play` should be run as a service. The resulting service file will contain a line like
 `ExecStart=podman kube play … file.yml`, and most of the keys in this section control the command-line
 options passed to Podman. However, some options also affect the details of how systemd is set up to run and
@@ -399,7 +395,7 @@ Valid options for `[Kube]` are listed below:
 
 Supported keys in the `[Kube]` section are:
 
-#### `ConfigMap=`
+### `ConfigMap=`
 
 Pass the Kubernetes ConfigMap YAML at path to `podman kube play` via the `--configmap` argument.
 Unlike the `configmap` argument, the value may contain only one path but
@@ -407,7 +403,7 @@ it may be absolute or relative to the location of the unit file.
 
 This key may be used multiple times
 
-#### `Network=`
+### `Network=`
 
 Specify a custom network for the container. This has the same format as the `--network` option
 to `podman kube play`. For example, use `host` to use the host network in the container, or `none` to
@@ -420,7 +416,7 @@ created by using a `$name.network` quadlet file.
 
 This key can be listed multiple times.
 
-#### `PublishPort=`
+### `PublishPort=`
 
 Exposes a port, or a range of ports (e.g. `50-59`), from the container to the host. Equivalent
 to the `podman kube play`'s `--publish` option. The format is similar to the Podman options, which is of
@@ -437,23 +433,23 @@ entry from the unit file will take precedence
 
 This key can be listed multiple times.
 
-#### `RemapGid=`
+### `RemapGid=`
 
 If `RemapUsers` is enabled, this specifies a gid mapping of the form `container_gid:from_gid:amount`,
 which will map `amount` number of gids on the host starting at `from_gid` into the container, starting
 at `container_gid`.
 
-#### `RemapUid=`
+### `RemapUid=`
 
 If `RemapUsers` is enabled, this specifies a uid mapping of the form `container_uid:from_uid:amount`,
 which will map `amount` number of uids on the host starting at `from_uid` into the container, starting
 at `container_uid`.
 
-#### `RemapUidSize=`
+### `RemapUidSize=`
 
 If `RemapUsers` is enabled and set to `auto`, this specifies the count of the ids to remap.
 
-#### `RemapUsers=`
+### `RemapUsers=`
 
 If this is set, then host user and group ids are remapped in the container. It currently
 supports values: `auto`, and `keep-id`.
@@ -466,13 +462,11 @@ to remap, but `RemapUidSize` can be specified to use an explicit size. Use `Rema
 In `keep-id` mode, the running user is mapped to the same id in the container. This is supported
 only on user systemd units.
 
-#### `Yaml=`
+### `Yaml=`
 
 The path, absolute or relative to the location of the unit file, to the Kubernetes YAML file to use.
 
-=====================================================================
-
-### Network units [Network]
+## Network units [Network]
 
 Network files are named with a `.network` extension and contain a section `[Network]` describing the
 named Podman network. The generated service is a one-time command that ensures that the network
@@ -502,19 +496,19 @@ Valid options for `[Network]` are listed below:
 
 Supported keys in `[Network]` section are:
 
-#### `DisableDNS=` (defaults to `no`)
+### `DisableDNS=` (defaults to `no`)
 
 If enabled, disables the DNS plugin for this network.
 
 This is equivalent to the Podman `--disable-dns` option
 
-#### `Driver=` (defaults to `bridge`)
+### `Driver=` (defaults to `bridge`)
 
 Driver to manage the network. Currently `bridge`, `macvlan` and `ipvlan` are supported.
 
 This is equivalent to the Podman `--driver` option
 
-#### `Gateway=`
+### `Gateway=`
 
 Define a gateway for the subnet. If you want to provide a gateway address, you must also provide a subnet option.
 
@@ -522,19 +516,19 @@ This is equivalent to the Podman `--gateway` option
 
 This key can be listed multiple times.
 
-#### `Internal=` (defaults to `no`)
+### `Internal=` (defaults to `no`)
 
 Restrict external access of this network.
 
 This is equivalent to the Podman `--internal` option
 
-#### `IPAMDriver=`
+### `IPAMDriver=`
 
 Set the ipam driver (IP Address Management Driver) for the network. Currently `host-local`, `dhcp` and `none` are supported.
 
 This is equivalent to the Podman `--ipam-driver` option
 
-#### `IPRange=`
+### `IPRange=`
 
 Allocate  container  IP  from a range. The range must be a complete subnet and in CIDR notation. The ip-range option must be used with a subnet option.
 
@@ -542,26 +536,26 @@ This is equivalent to the Podman `--ip-range` option
 
 This key can be listed multiple times.
 
-#### `IPv6=`
+### `IPv6=`
 
 Enable IPv6 (Dual Stack) networking.
 
 This is equivalent to the Podman `--ipv6` option
 
-#### `Label=`
+### `Label=`
 
 Set one or more OCI labels on the network. The format is a list of
 `key=value` items, similar to `Environment`.
 
 This key can be listed multiple times.
 
-#### `Options=`
+### `Options=`
 
 Set driver specific options.
 
 This is equivalent to the Podman `--opt` option
 
-#### `Subnet=`
+### `Subnet=`
 
 The subnet in CIDR notation.
 
@@ -569,9 +563,7 @@ This is equivalent to the Podman `--subnet` option
 
 This key can be listed multiple times.
 
-=====================================================================
-
-### Volume units [Volume]
+## Volume units [Volume]
 
 Volume files are named with a `.volume` extension and contain a section `[Volume]` describing the
 named Podman volume. The generated service is a one-time command that ensures that the volume
@@ -596,35 +588,35 @@ Valid options for `[Volume]` are listed below:
 
 Supported keys in `[Volume]` section are:
 
-#### `Copy=` (default to `yes`)
+### `Copy=` (default to `yes`)
 
 If enabled, the content of the image located at the mountpoint of the volume is copied into the
 volume on the first run.
 
-#### `Device=`
+### `Device=`
 
 The path of a device which should be mounted for the volume.
 
-#### `Group=`
+### `Group=`
 
 The host (numeric) gid, or group name to use as the group for the volume
 
-#### `Label=`
+### `Label=`
 
 Set one or more OCI labels on the volume. The format is a list of
 `key=value` items, similar to `Environment`.
 
 This key can be listed multiple times.
 
-#### `Options=`
+### `Options=`
 
 The mount options to use for a filesystem as used by the **mount(8)** command `-o` option.
 
-#### `Type=`
+### `Type=`
 
 The filesystem type of `Device` as used by the **mount(8)** commands `-t` option.
 
-#### `User=`
+### `User=`
 
 The host (numeric) uid, or user name to use as the owner for the volume
 
@@ -691,5 +683,5 @@ Label=org.test.Key=value
 ## SEE ALSO
 **[systemd.unit(5)](https://www.freedesktop.org/software/systemd/man/systemd.unit.html)**,
 **[systemd.service(5)](https://www.freedesktop.org/software/systemd/man/systemd.service.html)**,
-**[podman-run(1)](podman-run.1.md)**
+**[podman-run(1)](podman-run.1.md)**,
 **[podman-network-create(1)](podman-network-create.1.md)**
