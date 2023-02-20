@@ -10,6 +10,7 @@ import (
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/sirupsen/logrus"
 
+	// SQLite backend for database/sql
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -156,18 +157,18 @@ func sqliteInitTables(conn *sql.DB) (defErr error) {
         );`
 
 	tables := map[string]string{
-		"DBConfig": dbConfig,
-		"IDNamespace": idNamespace,
-		"ContainerConfig": containerConfig,
-		"ContainerState": containerState,
+		"DBConfig":             dbConfig,
+		"IDNamespace":          idNamespace,
+		"ContainerConfig":      containerConfig,
+		"ContainerState":       containerState,
 		"ContainerExecSession": containerExecSession,
-		"ContainerDependency": containerDependency,
-		"ContainerVolume": containerVolume,
-		"ContainerExitCode": containerExitCode,
-		"PodConfig": podConfig,
-		"PodState": podState,
-		"VolumeConfig": volumeConfig,
-		"volumeState": volumeState,
+		"ContainerDependency":  containerDependency,
+		"ContainerVolume":      containerVolume,
+		"ContainerExitCode":    containerExitCode,
+		"PodConfig":            podConfig,
+		"PodState":             podState,
+		"VolumeConfig":         volumeConfig,
+		"volumeState":          volumeState,
 	}
 
 	tx, err := conn.Begin()
@@ -364,11 +365,12 @@ func (s *SQLiteState) addContainer(ctr *Container) (defErr error) {
 				return fmt.Errorf("container dependency %s does not exist in database: %w", dep, define.ErrNoSuchCtr)
 			}
 		}
-		if ctr.config.Pod == "" && depPod.Valid {
+		switch {
+		case ctr.config.Pod == "" && depPod.Valid:
 			return fmt.Errorf("container dependency %s is part of a pod, but container is not: %w", dep, define.ErrInvalidArg)
-		} else if ctr.config.Pod != "" && !depPod.Valid {
-			return fmt.Errorf("container dependency %s is not part of a pod, but this container belongs to pod %s", dep, ctr.config.Pod, define.ErrInvalidArg)
-		} else if ctr.config.Pod != "" && depPod.String != ctr.config.Pod {
+		case ctr.config.Pod != "" && !depPod.Valid:
+			return fmt.Errorf("container dependency %s is not part of pod, but this container belongs to pod %s: %w", dep, ctr.config.Pod, define.ErrInvalidArg)
+		case ctr.config.Pod != "" && depPod.String != ctr.config.Pod:
 			return fmt.Errorf("container dependency %s is part of pod %s but container is part of pod %s, pods must match: %w", dep, depPod.String, ctr.config.Pod, define.ErrInvalidArg)
 		}
 

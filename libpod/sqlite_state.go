@@ -14,6 +14,7 @@ import (
 	"github.com/containers/storage"
 	"github.com/sirupsen/logrus"
 
+	// SQLite backend for database/sql
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -54,7 +55,7 @@ func NewSqliteState(runtime *Runtime) (_ State, defErr error) {
 	if _, err := state.conn.Exec("PRAGMA journal_mode = WAL;"); err != nil {
 		return nil, fmt.Errorf("switching journal to WAL mode: %w", err)
 	}
-	if _, err := state.conn.Exec("PRAGMA syncronous = FULL;"); err != nil {
+	if _, err := state.conn.Exec("PRAGMA synchronous = FULL;"); err != nil {
 		return nil, fmt.Errorf("setting full fsync mode in db: %w", err)
 	}
 
@@ -92,7 +93,9 @@ func (s *SQLiteState) Refresh() (defErr error) {
 	// Retrieve all containers, pods, and volumes.
 	// Maps are indexed by ID (or volume name) so we know which goes where,
 	// and store the marshalled state JSON
-	var ctrStates, podStates, volumeStates map[string]string
+	ctrStates := make(map[string]string)
+	podStates := make(map[string]string)
+	volumeStates := make(map[string]string)
 
 	ctrRows, err := s.conn.Query("SELECT Id, Json FROM ContainerState;")
 	if err != nil {
@@ -117,12 +120,12 @@ func (s *SQLiteState) Refresh() (defErr error) {
 		// Refresh the state
 		resetContainerState(ctrState)
 
-		stateJson, err := json.Marshal(ctrState)
+		newJSON, err := json.Marshal(ctrState)
 		if err != nil {
 			return fmt.Errorf("marshalling container state json: %w", err)
 		}
 
-		ctrStates[id] = string(stateJson)
+		ctrStates[id] = string(newJSON)
 	}
 
 	podRows, err := s.conn.Query("SELECT Id, Json FROM PodState;")
@@ -148,12 +151,12 @@ func (s *SQLiteState) Refresh() (defErr error) {
 		// Refresh the state
 		resetPodState(podState)
 
-		stateJson, err := json.Marshal(podState)
+		newJSON, err := json.Marshal(podState)
 		if err != nil {
 			return fmt.Errorf("marshalling pod state json: %w", err)
 		}
 
-		podStates[id] = string(stateJson)
+		podStates[id] = string(newJSON)
 	}
 
 	volRows, err := s.conn.Query("SELECT Name, Json FROM VolumeState;")
@@ -168,7 +171,7 @@ func (s *SQLiteState) Refresh() (defErr error) {
 		)
 
 		if err := volRows.Scan(&name, &stateJSON); err != nil {
-			return fmt.Errorf("scanning volume state row: %w")
+			return fmt.Errorf("scanning volume state row: %w", err)
 		}
 
 		volState := new(VolumeState)
@@ -180,12 +183,12 @@ func (s *SQLiteState) Refresh() (defErr error) {
 		// Refresh the state
 		resetVolumeState(volState)
 
-		stateJson, err := json.Marshal(volState)
+		newJSON, err := json.Marshal(volState)
 		if err != nil {
 			return fmt.Errorf("marshalling volume state json: %w", err)
 		}
 
-		volumeStates[name] = string(stateJson)
+		volumeStates[name] = string(newJSON)
 	}
 
 	// Write updated states back to DB, and perform additional maintenance
@@ -549,7 +552,7 @@ func (s *SQLiteState) HasContainer(id string) (bool, error) {
 		}
 		return false, fmt.Errorf("looking up container %s in database: %w", id, err)
 	} else if check != 1 {
-		return false, fmt.Errorf("check digit for container %s lookup incorrect", id, define.ErrInternal)
+		return false, fmt.Errorf("check digit for container %s lookup incorrect: %w", id, define.ErrInternal)
 	}
 
 	return true, nil

@@ -18,10 +18,10 @@ import (
 
 // BoltState is a state implementation backed by a Bolt DB
 type BoltState struct {
-	valid          bool
-	dbPath         string
-	dbLock         sync.Mutex
-	runtime        *Runtime
+	valid   bool
+	dbPath  string
+	dbLock  sync.Mutex
+	runtime *Runtime
 }
 
 // A brief description of the format of the BoltDB state:
