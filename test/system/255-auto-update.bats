@@ -525,4 +525,72 @@ EOF
     rm -f $UNIT_DIR/$unit_name
 }
 
+@test "podman auto-update - pod" {
+    dockerfile=$PODMAN_TMPDIR/Dockerfile
+    cat >$dockerfile <<EOF
+FROM $IMAGE
+RUN touch /123
+EOF
+
+    podname=$(random_string)
+    ctrname=$(random_string)
+    podunit="$UNIT_DIR/pod-$podname.service.*"
+    ctrunit="$UNIT_DIR/container-$ctrname.service.*"
+    local_image=localhost/image:$(random_string 10)
+
+    run_podman tag $IMAGE $local_image
+
+    run_podman pod create --name=$podname
+    run_podman create --label "io.containers.autoupdate=local" --pod=$podname --name=$ctrname $local_image top
+
+    # cd into the unit dir to generate the two files.
+    pushd "$UNIT_DIR"
+    run_podman generate systemd --name --new --files $podname
+    is "$output" ".*$podunit.*"
+    is "$output" ".*$ctrunit.*"
+    popd
+
+    systemctl daemon-reload
+
+    run systemctl start pod-$podname.service
+    assert $status -eq 0 "Error starting pod systemd unit: $output"
+    _wait_service_ready container-$ctrname.service
+
+    run_podman pod inspect --format "{{.State}}" $podname
+    is "$output" "Running" "pod is in running state"
+    run_podman container inspect --format "{{.State.Status}}" $ctrname
+    is "$output" "running" "container is in running state"
+
+    run_podman pod inspect --format "{{.ID}}" $podname
+    podid="$output"
+    run_podman container inspect --format "{{.ID}}" $ctrname
+    ctrid="$output"
+
+    # Note that the pod's unit is listed below, not the one of the container.
+    run_podman auto-update --dry-run --format "{{.Unit}},{{.Image}},{{.Updated}},{{.Policy}}"
+    is "$output" ".*pod-$podname.service,$local_image,false,local.*" "No update available"
+
+    run_podman build -t $local_image -f $dockerfile
+
+    run_podman auto-update --dry-run --format "{{.Unit}},{{.Image}},{{.Updated}},{{.Policy}}"
+    is "$output" ".*pod-$podname.service,$local_image,pending,local.*" "Image updated is pending"
+
+    run_podman auto-update --format "{{.Unit}},{{.Image}},{{.Updated}},{{.Policy}}"
+    is "$output" ".*pod-$podname.service,$local_image,true,local.*" "Service has been restarted"
+    _wait_service_ready container-$ctrname.service
+
+    run_podman pod inspect --format "{{.ID}}" $podname
+    assert "$output" != "$podid" "pod has been recreated"
+    run_podman container inspect --format "{{.ID}}" $ctrname
+    assert "$output" != "$ctrid" "container has been recreated"
+
+    run systemctl stop pod-$podname.service
+    assert $status -eq 0 "Error stopping pod systemd unit: $output"
+
+    run_podman pod rm -f $podname
+    run_podman rmi $local_image $(pause_image)
+    rm -f $podunit $ctrunit
+    systemctl daemon-reload
+}
+
 # vim: filetype=sh

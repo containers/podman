@@ -398,7 +398,11 @@ func (u *updater) assembleTasks(ctx context.Context) []error {
 
 		// Make sure the container runs in a systemd unit which is
 		// stored as a label at container creation.
-		unit, exists := labels[systemdDefine.EnvVariable]
+		unit, exists, err := u.systemdUnitForContainer(ctr, labels)
+		if err != nil {
+			errors = append(errors, err)
+			continue
+		}
 		if !exists {
 			errors = append(errors, fmt.Errorf("auto-updating container %q: no %s label found", ctr.ID(), systemdDefine.EnvVariable))
 			continue
@@ -434,6 +438,31 @@ func (u *updater) assembleTasks(ctx context.Context) []error {
 	}
 
 	return errors
+}
+
+// systemdUnitForContainer returns the name of the container's systemd unit.
+// If the container is part of a pod, the pod's infra container's systemd unit
+// is returned.  This allows for auto update to restart the pod's systemd unit.
+func (u *updater) systemdUnitForContainer(c *libpod.Container, labels map[string]string) (string, bool, error) {
+	podID := c.ConfigNoCopy().Pod
+	if podID == "" {
+		unit, exists := labels[systemdDefine.EnvVariable]
+		return unit, exists, nil
+	}
+
+	pod, err := u.runtime.LookupPod(podID)
+	if err != nil {
+		return "", false, fmt.Errorf("looking up pod's systemd unit: %w", err)
+	}
+
+	infra, err := pod.InfraContainer()
+	if err != nil {
+		return "", false, fmt.Errorf("looking up pod's systemd unit: %w", err)
+	}
+
+	infraLabels := infra.Labels()
+	unit, exists := infraLabels[systemdDefine.EnvVariable]
+	return unit, exists, nil
 }
 
 // assembleImageMap creates a map from `image ID -> *libimage.Image` for image lookups.
