@@ -102,15 +102,15 @@ func parseIDMapMountOption(idMappings stypes.IDMappingOptions, option string) ([
 	gidMappings := make([]spec.LinuxIDMapping, len(gidMap))
 	for i, uidmap := range uidMap {
 		uidMappings[i] = spec.LinuxIDMapping{
-			HostID:      uint32(uidmap.ContainerID),
-			ContainerID: uint32(uidmap.HostID),
+			HostID:      uint32(uidmap.HostID),
+			ContainerID: uint32(uidmap.ContainerID),
 			Size:        uint32(uidmap.Size),
 		}
 	}
 	for i, gidmap := range gidMap {
 		gidMappings[i] = spec.LinuxIDMapping{
-			HostID:      uint32(gidmap.ContainerID),
-			ContainerID: uint32(gidmap.HostID),
+			HostID:      uint32(gidmap.HostID),
+			ContainerID: uint32(gidmap.ContainerID),
 			Size:        uint32(gidmap.Size),
 		}
 	}
