@@ -602,7 +602,7 @@ func (c *Container) teardownStorage() error {
 // Reset resets state fields to default values.
 // It is performed before a refresh and clears the state after a reboot.
 // It does not save the results - assumes the database will do that for us.
-func resetState(state *ContainerState) {
+func resetContainerState(state *ContainerState) {
 	state.PID = 0
 	state.ConmonPID = 0
 	state.Mountpoint = ""

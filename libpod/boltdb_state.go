@@ -12,12 +12,9 @@ import (
 
 	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/podman/v4/libpod/define"
-	jsoniter "github.com/json-iterator/go"
 	"github.com/sirupsen/logrus"
 	bolt "go.etcd.io/bbolt"
 )
-
-var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 // BoltState is a state implementation backed by a Bolt DB
 type BoltState struct {
@@ -282,8 +279,8 @@ func (s *BoltState) Refresh() error {
 					return fmt.Errorf("unmarshalling state for pod %s: %w", string(id), err)
 				}
 
-				// Clear the Cgroup path
-				state.CgroupPath = ""
+				// Refresh the state
+				resetPodState(state)
 
 				newStateBytes, err := json.Marshal(state)
 				if err != nil {
@@ -315,7 +312,7 @@ func (s *BoltState) Refresh() error {
 				return fmt.Errorf("unmarshalling state for container %s: %w", string(id), err)
 			}
 
-			resetState(state)
+			resetContainerState(state)
 
 			newStateBytes, err := json.Marshal(state)
 			if err != nil {
@@ -390,9 +387,7 @@ func (s *BoltState) Refresh() error {
 				return fmt.Errorf("unmarshalling state for volume %s: %w", string(id), err)
 			}
 
-			// Reset mount count to 0
-			oldState.MountCount = 0
-			oldState.MountPoint = ""
+			resetVolumeState(oldState)
 
 			newState, err := json.Marshal(oldState)
 			if err != nil {
@@ -515,10 +510,10 @@ func (s *BoltState) SetNamespace(ns string) error {
 	return nil
 }
 
-// GetName returns the name associated with a given ID. Since IDs are globally
-// unique, it works for both containers and pods.
+// GetContainerName returns the name associated with a given ID.
 // Returns ErrNoSuchCtr if the ID does not exist.
-func (s *BoltState) GetName(id string) (string, error) {
+// TODO TODO TODO: Rewrite this to only retrieve containers.
+func (s *BoltState) GetContainerName(id string) (string, error) {
 	if id == "" {
 		return "", define.ErrEmptyID
 	}
@@ -557,6 +552,61 @@ func (s *BoltState) GetName(id string) (string, error) {
 			idNs := nsBkt.Get(idBytes)
 			if !bytes.Equal(idNs, s.namespaceBytes) {
 				return define.ErrNoSuchCtr
+			}
+		}
+
+		name = string(nameBytes)
+		return nil
+	})
+	if err != nil {
+		return "", err
+	}
+
+	return name, nil
+}
+
+// GetPodName returns the name associated with a given ID.
+// Returns ErrNoSuchPor if the ID does not exist.
+// TODO TODO TODO: Rewrite this to only retrieve pods
+func (s *BoltState) GetPodName(id string) (string, error) {
+	if id == "" {
+		return "", define.ErrEmptyID
+	}
+
+	if !s.valid {
+		return "", define.ErrDBClosed
+	}
+
+	idBytes := []byte(id)
+
+	db, err := s.getDBCon()
+	if err != nil {
+		return "", err
+	}
+	defer s.deferredCloseDBCon(db)
+
+	name := ""
+
+	err = db.View(func(tx *bolt.Tx) error {
+		idBkt, err := getIDBucket(tx)
+		if err != nil {
+			return err
+		}
+
+		nameBytes := idBkt.Get(idBytes)
+		if nameBytes == nil {
+			return define.ErrNoSuchPod
+		}
+
+		if s.namespaceBytes != nil {
+			nsBkt, err := getNSBucket(tx)
+			if err != nil {
+				return err
+			}
+
+			idNs := nsBkt.Get(idBytes)
+			if !bytes.Equal(idNs, s.namespaceBytes) {
+				return define.ErrNoSuchPod
 			}
 		}
 
