@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/sirupsen/logrus"
 
@@ -426,6 +427,54 @@ func (s *SQLiteState) removeContainer(ctr *Container) (defErr error) {
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("committing container %s removal transaction: %w", ctr.ID(), err)
 	}
+
+	return nil
+}
+
+// networkModify allows you to modify or add a new network, to add a new network use the new bool
+func (s *SQLiteState) networkModify(ctr *Container, network string, opts types.PerNetworkOptions, new, disconnect bool) error {
+	if !s.valid {
+		return define.ErrDBClosed
+	}
+
+	if !ctr.valid {
+		return define.ErrCtrRemoved
+	}
+
+	if network == "" {
+		return fmt.Errorf("network names must not be empty: %w", define.ErrInvalidArg)
+	}
+
+	if new && disconnect {
+		return fmt.Errorf("new and disconnect are mutually exclusive: %w", define.ErrInvalidArg)
+	}
+
+	// Grab a fresh copy of the config, in case anything changed
+	newCfg, err := s.getCtrConfig(ctr.ID())
+	if err != nil && errors.Is(err, define.ErrNoSuchCtr) {
+		ctr.valid = false
+		return define.ErrNoSuchCtr
+	}
+
+	_, ok := newCfg.Networks[network]
+	if new && ok {
+		return fmt.Errorf("container %s is already connected to network %s: %w", ctr.ID(), network, define.ErrNoSuchNetwork)
+	}
+	if !ok && (!new || disconnect) {
+		return fmt.Errorf("container %s is not connected to network %s: %w", ctr.ID(), network, define.ErrNoSuchNetwork)
+	}
+
+	if !disconnect {
+		newCfg.Networks[network] = opts
+	} else {
+		delete(newCfg.Networks, network)
+	}
+
+	if err := s.rewriteContainerConfig(ctr, newCfg); err != nil {
+		return err
+	}
+
+	ctr.config = newCfg
 
 	return nil
 }
