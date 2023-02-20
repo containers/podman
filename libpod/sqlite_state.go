@@ -808,7 +808,6 @@ func (s *SQLiteState) NetworkModify(ctr *Container, network string, opts types.P
 }
 
 // networkModify allows you to modify or add a new network, to add a new network use the new bool
-// TODO TODO TODO
 func (s *SQLiteState) networkModify(ctr *Container, network string, opts types.PerNetworkOptions, new bool) error {
 	if !s.valid {
 		return define.ErrDBClosed
@@ -822,52 +821,30 @@ func (s *SQLiteState) networkModify(ctr *Container, network string, opts types.P
 		return fmt.Errorf("network names must not be empty: %w", define.ErrInvalidArg)
 	}
 
-	return define.ErrNotImplemented
+	// Grab a fresh copy of the config, in case anything changed
+	newCfg, err := s.getCtrConfig(ctr.ID())
+	if err != nil && errors.Is(err, define.ErrNoSuchCtr) {
+		ctr.valid = false
+		return define.ErrNoSuchCtr
+	}
 
-	// optBytes, err := json.Marshal(opts)
-	// if err != nil {
-	// 	return fmt.Errorf("marshalling network options JSON for container %s: %w", ctr.ID(), err)
-	// }
+	_, ok := newCfg.Networks[network]
+	if new && ok {
+		return fmt.Errorf("container %s is already connected to network %s: %w", ctr.ID(), network, define.ErrInvalidArg)
+	}
+	if !new && !ok {
+		return fmt.Errorf("container %s is not connected to network %s: %w", ctr.ID(), network, define.ErrInvalidArg)
+	}
 
-	// ctrID := []byte(ctr.ID())
+	newCfg.Networks[network] = opts
 
-	// db, err := s.getDBCon()
-	// if err != nil {
-	// 	return err
-	// }
-	// defer s.deferredCloseDBCon(db)
+	if err := s.rewriteContainerConfig(ctr, newCfg); err != nil {
+		return err
+	}
 
-	// return db.Update(func(tx *bolt.Tx) error {
-	// 	ctrBucket, err := getCtrBucket(tx)
-	// 	if err != nil {
-	// 		return err
-	// 	}
+	ctr.config = newCfg
 
-	// 	dbCtr := ctrBucket.Bucket(ctrID)
-	// 	if dbCtr == nil {
-	// 		ctr.valid = false
-	// 		return fmt.Errorf("container %s does not exist in database: %w", ctr.ID(), define.ErrNoSuchCtr)
-	// 	}
-
-	// 	ctrNetworksBkt := dbCtr.Bucket(networksBkt)
-	// 	if ctrNetworksBkt == nil {
-	// 		return fmt.Errorf("container %s does not have a network bucket: %w", ctr.ID(), define.ErrNoSuchNetwork)
-	// 	}
-	// 	netConnected := ctrNetworksBkt.Get([]byte(network))
-
-	// 	if new && netConnected != nil {
-	// 		return fmt.Errorf("container %s is already connected to network %q: %w", ctr.ID(), network, define.ErrNetworkConnected)
-	// 	} else if !new && netConnected == nil {
-	// 		return fmt.Errorf("container %s is not connected to network %q: %w", ctr.ID(), network, define.ErrNoSuchNetwork)
-	// 	}
-
-	// 	// Modify/Add the network
-	// 	if err := ctrNetworksBkt.Put([]byte(network), optBytes); err != nil {
-	// 		return fmt.Errorf("adding container %s to network %s in DB: %w", ctr.ID(), network, err)
-	// 	}
-
-	// 	return nil
-	// })
+	return nil
 }
 
 // NetworkDisconnect disconnects the container from the given network, also
