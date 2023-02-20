@@ -1,3 +1,19 @@
+## 1.27.0
+
+### Features
+- Add HaveExactElements matcher (#634) [9d50783]
+- update Gomega docs to discuss GinkgoHelper() [be32774]
+
+### Maintenance
+- Bump github.com/onsi/ginkgo/v2 from 2.8.0 to 2.8.1 (#639) [296a68b]
+- Bump golang.org/x/net from 0.5.0 to 0.6.0 (#638) [c2b098b]
+- Bump github-pages from 227 to 228 in /docs (#636) [a9069ab]
+- test: update matrix for Go 1.20 (#635) [6bd25c8]
+- Bump github.com/onsi/ginkgo/v2 from 2.7.0 to 2.8.0 (#631) [5445f8b]
+- Bump webrick from 1.7.0 to 1.8.1 in /docs (#630) [03e93bb]
+- codeql: add ruby language (#626) [63c7d21]
+- dependabot: add bundler package-ecosystem for docs (#625) [d92f963]
+
 ## 1.26.0
 
 ### Features
