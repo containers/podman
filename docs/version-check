@@ -21,17 +21,19 @@ function warn() {
     echo "$ME: $*" >&2
 }
 
-# Setup check: exit gracefully unless we're in the desired environment
-if [[ -n "$CIRRUS_PR" ]]; then
-    warn "we don't run on PRs"
-    exit 0
-fi
+if [[ -n "$CIRRUS_CI" ]]; then
 
-if [[ -n "$CIRRUS_CRON" ]]; then
-    if [[ "$CIRRUS_CRON" != "nightly" ]]; then
-        warn "Only meaningful when CIRRUS_CRON=nightly (it is '$CIRRUS_CRON')"
-        exit 0
-    fi
+  # Setup check: exit gracefully unless we're in the desired environment
+  if [[ -n "$CIRRUS_PR" ]]; then
+      warn "we don't run on PRs"
+      exit 0
+  fi
+
+  if [[ "$CIRRUS_CRON" != "main" ]]; then
+      warn "Only meaningful in CI when CIRRUS_CRON=main (it is '$CIRRUS_CRON')"
+      exit 0
+  fi
+
 fi
 
 # No sense running on release branches
