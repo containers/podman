@@ -17,7 +17,7 @@ var (
 	vmtype = "apple"
 )
 
-func GetVirtualizationProvider() machine.Provider {
+func GetVirtualizationProvider() machine.VirtProvider {
 	return hvProvider
 }
 

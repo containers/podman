@@ -43,7 +43,7 @@ func TestMachine(t *testing.T) {
 }
 
 var _ = BeforeSuite(func() {
-	fcd, err := machine.GetFCOSDownload(defaultStream)
+	fcd, err := machine.GetFCOSDownload(defaultStream, machine.Xz)
 	if err != nil {
 		Fail("unable to get virtual machine image")
 	}

@@ -28,7 +28,7 @@ import (
 )
 
 var (
-	wslProvider = &Provider{}
+	wslProvider = &Virtualization{}
 	// vmtype refers to qemu (vs libvirt, krun, etc)
 	vmtype = "wsl"
 )
@@ -204,7 +204,7 @@ const (
 	globalPipe     = "docker_engine"
 )
 
-type Provider struct{}
+type Virtualization struct{}
 
 type MachineVM struct {
 	// ConfigPath is the path to the configuration file
@@ -235,12 +235,12 @@ func (e *ExitCodeError) Error() string {
 	return fmt.Sprintf("Process failed with exit code: %d", e.code)
 }
 
-func GetWSLProvider() machine.Provider {
+func GetWSLProvider() machine.VirtProvider {
 	return wslProvider
 }
 
 // NewMachine initializes an instance of a wsl machine
-func (p *Provider) NewMachine(opts machine.InitOptions) (machine.VM, error) {
+func (p *Virtualization) NewMachine(opts machine.InitOptions) (machine.VM, error) {
 	vm := new(MachineVM)
 	if len(opts.Name) > 0 {
 		vm.Name = opts.Name
@@ -281,7 +281,7 @@ func getConfigPathExt(name string, extension string) (string, error) {
 
 // LoadByName reads a json file that describes a known qemu vm
 // and returns a vm instance
-func (p *Provider) LoadVMByName(name string) (machine.VM, error) {
+func (p *Virtualization) LoadVMByName(name string) (machine.VM, error) {
 	configPath, err := getConfigPath(name)
 	if err != nil {
 		return nil, err
@@ -1418,7 +1418,7 @@ func (v *MachineVM) SSH(name string, opts machine.SSHOptions) error {
 }
 
 // List lists all vm's that use qemu virtualization
-func (p *Provider) List(_ machine.ListOptions) ([]*machine.ListResponse, error) {
+func (p *Virtualization) List(_ machine.ListOptions) ([]*machine.ListResponse, error) {
 	return GetVMInfos()
 }
 
@@ -1547,7 +1547,7 @@ func getMem(vm *MachineVM) (uint64, error) {
 	return total - available, err
 }
 
-func (p *Provider) IsValidVMName(name string) (bool, error) {
+func (p *Virtualization) IsValidVMName(name string) (bool, error) {
 	infos, err := GetVMInfos()
 	if err != nil {
 		return false, err
@@ -1560,7 +1560,7 @@ func (p *Provider) IsValidVMName(name string) (bool, error) {
 	return false, nil
 }
 
-func (p *Provider) CheckExclusiveActiveVM() (bool, string, error) {
+func (p *Virtualization) CheckExclusiveActiveVM() (bool, string, error) {
 	return false, "", nil
 }
 
@@ -1619,7 +1619,7 @@ func (v *MachineVM) getResources() (resources machine.ResourceConfig) {
 }
 
 // RemoveAndCleanMachines removes all machine and cleans up any other files associated with podman machine
-func (p *Provider) RemoveAndCleanMachines() error {
+func (p *Virtualization) RemoveAndCleanMachines() error {
 	var (
 		vm             machine.VM
 		listResponse   []*machine.ListResponse
@@ -1694,6 +1694,6 @@ func (p *Provider) RemoveAndCleanMachines() error {
 	return prevErr
 }
 
-func (p *Provider) VMType() string {
+func (p *Virtualization) VMType() string {
 	return vmtype
 }
