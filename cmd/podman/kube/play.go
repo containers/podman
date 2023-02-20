@@ -251,15 +251,6 @@ func play(cmd *cobra.Command, args []string) error {
 		return errors.New("--force may be specified only with --down")
 	}
 
-	// When running under Systemd use passthrough as the default log-driver.
-	// When doing so, the journal socket is passed to the containers as-is which has two advantages:
-	// 1. journald can see who the actual sender of the log event is,
-	//    rather than thinking everything comes from the conmon process
-	// 2. conmon will not have to copy all the log data
-	if !cmd.Flags().Changed(logDriverFlagName) && playOptions.ServiceContainer {
-		playOptions.LogDriver = define.PassthroughLogging
-	}
-
 	reader, err := readerFromArg(args[0])
 	if err != nil {
 		return err
