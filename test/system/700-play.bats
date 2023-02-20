@@ -241,7 +241,8 @@ EOF
     mkdir -p $TESTDIR
     echo "$testYaml" | sed "s|TESTDIR|${TESTDIR}|g" > $PODMAN_TMPDIR/test.yaml
     run_podman kube play --network host $PODMAN_TMPDIR/test.yaml
-    is "$output" "Pod:.*" "podman kube play should work with --network host"
+    # leading ".*" handles "resource limit blah" warning with runc
+    is "$output" ".*Pod:.*" "podman kube play should work with --network host"
 
     run_podman pod inspect --format "{{.InfraConfig.HostNetwork}}" test_pod
     is "$output" "true" ".InfraConfig.HostNetwork"
