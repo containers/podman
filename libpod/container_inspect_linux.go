@@ -10,7 +10,7 @@ import (
 	"github.com/containers/podman/v4/pkg/util"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
-	"github.com/opencontainers/runtime-tools/validate"
+	"github.com/opencontainers/runtime-tools/validate/capabilities"
 	"github.com/sirupsen/logrus"
 	"github.com/syndtr/gocapability/capability"
 )
@@ -150,7 +150,7 @@ func (c *Container) platformInspectContainerHostConfig(ctrSpec *spec.Spec, hostC
 			}
 			// If we are privileged, use all caps.
 			for _, cap := range capability.List() {
-				if g.HostSpecific && cap > validate.LastCap() {
+				if g.HostSpecific && cap > capabilities.LastCap() {
 					continue
 				}
 				boundingCaps[fmt.Sprintf("CAP_%s", strings.ToUpper(cap.String()))] = true

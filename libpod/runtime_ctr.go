@@ -414,7 +414,6 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 
 		// NewFromSpec() is deprecated according to its comment
 		// however the recommended replace just causes a nil map panic
-		//nolint:staticcheck
 		g := generate.NewFromSpec(ctr.config.Spec)
 		g.RemoveMount("/dev/shm")
 		ctr.config.ShmDir = ""

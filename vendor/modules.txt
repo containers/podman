@@ -64,7 +64,7 @@ github.com/checkpoint-restore/go-criu/v6/stats
 # github.com/chzyer/readline v1.5.1
 ## explicit; go 1.15
 github.com/chzyer/readline
-# github.com/container-orchestrated-devices/container-device-interface v0.5.3
+# github.com/container-orchestrated-devices/container-device-interface v0.5.4
 ## explicit; go 1.17
 github.com/container-orchestrated-devices/container-device-interface/internal/multierror
 github.com/container-orchestrated-devices/container-device-interface/pkg/cdi
@@ -725,14 +725,11 @@ github.com/opencontainers/runc/libcontainer/utils
 # github.com/opencontainers/runtime-spec v1.0.3-0.20220825212826-86290f6a00fb
 ## explicit
 github.com/opencontainers/runtime-spec/specs-go
-# github.com/opencontainers/runtime-tools v0.9.1-0.20221014010322-58c91d646d86
+# github.com/opencontainers/runtime-tools v0.9.1-0.20221107090550-2e043c6bd626
 ## explicit; go 1.16
-github.com/opencontainers/runtime-tools/error
-github.com/opencontainers/runtime-tools/filepath
 github.com/opencontainers/runtime-tools/generate
 github.com/opencontainers/runtime-tools/generate/seccomp
-github.com/opencontainers/runtime-tools/specerror
-github.com/opencontainers/runtime-tools/validate
+github.com/opencontainers/runtime-tools/validate/capabilities
 # github.com/opencontainers/selinux v1.11.0
 ## explicit; go 1.19
 github.com/opencontainers/selinux/go-selinux
@@ -880,15 +877,6 @@ github.com/vishvananda/netlink/nl
 # github.com/vishvananda/netns v0.0.0-20210104183010-2eb08e3e575f
 ## explicit; go 1.12
 github.com/vishvananda/netns
-# github.com/xeipuuv/gojsonpointer v0.0.0-20190905194746-02993c407bfb
-## explicit
-github.com/xeipuuv/gojsonpointer
-# github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415
-## explicit
-github.com/xeipuuv/gojsonreference
-# github.com/xeipuuv/gojsonschema v1.2.0
-## explicit
-github.com/xeipuuv/gojsonschema
 # go.etcd.io/bbolt v1.3.7
 ## explicit; go 1.17
 go.etcd.io/bbolt
