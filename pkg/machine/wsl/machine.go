@@ -28,7 +28,6 @@ import (
 )
 
 var (
-	wslProvider = &Virtualization{}
 	// vmtype refers to qemu (vs libvirt, krun, etc)
 	vmtype = "wsl"
 )
@@ -204,7 +203,23 @@ const (
 	globalPipe     = "docker_engine"
 )
 
-type Virtualization struct{}
+type Virtualization struct {
+	artifact    machine.Artifact
+	compression machine.ImageCompression
+	format      machine.ImageFormat
+}
+
+func (p *Virtualization) Artifact() machine.Artifact {
+	return p.artifact
+}
+
+func (p *Virtualization) Compression() machine.ImageCompression {
+	return p.compression
+}
+
+func (p *Virtualization) Format() machine.ImageFormat {
+	return p.format
+}
 
 type MachineVM struct {
 	// ConfigPath is the path to the configuration file
@@ -236,7 +251,11 @@ func (e *ExitCodeError) Error() string {
 }
 
 func GetWSLProvider() machine.VirtProvider {
-	return wslProvider
+	return &Virtualization{
+		artifact:    machine.None,
+		compression: machine.Xz,
+		format:      machine.Tar,
+	}
 }
 
 // NewMachine initializes an instance of a wsl machine

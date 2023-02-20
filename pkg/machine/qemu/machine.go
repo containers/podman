@@ -35,13 +35,17 @@ import (
 )
 
 var (
-	qemuProvider = &Virtualization{}
 	// vmtype refers to qemu (vs libvirt, krun, etc).
+	// Could this be moved into  Provider
 	vmtype = "qemu"
 )
 
 func GetVirtualizationProvider() machine.VirtProvider {
-	return qemuProvider
+	return &Virtualization{
+		artifact:    machine.Qemu,
+		compression: machine.Xz,
+		format:      machine.Qcow,
+	}
 }
 
 const (
@@ -252,10 +256,12 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 	v.Rootful = opts.Rootful
 
 	switch opts.ImagePath {
-	case Testing, Next, Stable, "":
+	// TODO these need to be re-typed as FCOSStreams
+	case machine.Testing.String(), machine.Next.String(), machine.Stable.String(), "":
 		// Get image as usual
 		v.ImageStream = opts.ImagePath
-		dd, err := machine.NewFcosDownloader(vmtype, v.Name, opts.ImagePath)
+		vp := GetVirtualizationProvider()
+		dd, err := machine.NewFcosDownloader(vmtype, v.Name, machine.FCOSStreamFromString(opts.ImagePath), vp)
 
 		if err != nil {
 			return false, err
@@ -1219,6 +1225,18 @@ func (p *Virtualization) CheckExclusiveActiveVM() (bool, string, error) {
 		}
 	}
 	return false, "", nil
+}
+
+func (p *Virtualization) Artifact() machine.Artifact {
+	return p.artifact
+}
+
+func (p *Virtualization) Compression() machine.ImageCompression {
+	return p.compression
+}
+
+func (p *Virtualization) Format() machine.ImageFormat {
+	return p.format
 }
 
 // startHostNetworking runs a binary on the host system that allows users

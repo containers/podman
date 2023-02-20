@@ -6,20 +6,11 @@ import (
 	"github.com/containers/podman/v4/pkg/machine"
 )
 
-const (
-	// FCOS streams
-	// Testing FCOS stream
-	Testing string = "testing"
-	// Next FCOS stream
-	Next string = "next"
-	// Stable FCOS stream
-	Stable string = "stable"
-
-	// Max length of fully qualified socket path
-
-)
-
-type Virtualization struct{}
+type Virtualization struct {
+	artifact    machine.Artifact
+	compression machine.ImageCompression
+	format      machine.ImageFormat
+}
 
 // Deprecated: MachineVMV1 is being deprecated in favor a more flexible and informative
 // structure

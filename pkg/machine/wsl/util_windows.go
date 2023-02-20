@@ -1,3 +1,6 @@
+//go:build windows
+// +build windows
+
 package wsl
 
 import (
@@ -12,11 +15,10 @@ import (
 	"unicode/utf16"
 	"unsafe"
 
+	"github.com/containers/storage/pkg/homedir"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/windows"
 	"golang.org/x/sys/windows/registry"
-
-	"github.com/containers/storage/pkg/homedir"
 )
 
 // nolint

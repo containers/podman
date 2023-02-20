@@ -1,5 +1,5 @@
-//go:build amd64 || arm64
-// +build amd64 arm64
+//go:build windows
+// +build windows
 
 package wsl
 
