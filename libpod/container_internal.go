@@ -1525,7 +1525,7 @@ func (c *Container) mountStorage() (_ string, deferredErr error) {
 	mountPoint := c.config.Rootfs
 
 	if c.config.RootfsMapping != nil {
-		uidMappings, gidMappings, err := parseIDMapMountOption(c.config.IDMappings, *c.config.RootfsMapping, false)
+		uidMappings, gidMappings, err := parseIDMapMountOption(c.config.IDMappings, *c.config.RootfsMapping)
 		if err != nil {
 			return "", err
 		}

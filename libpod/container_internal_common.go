@@ -74,7 +74,7 @@ func parseOptionIDs(option string) ([]idtools.IDMap, error) {
 	return ret, nil
 }
 
-func parseIDMapMountOption(idMappings stypes.IDMappingOptions, option string, invert bool) ([]spec.LinuxIDMapping, []spec.LinuxIDMapping, error) {
+func parseIDMapMountOption(idMappings stypes.IDMappingOptions, option string) ([]spec.LinuxIDMapping, []spec.LinuxIDMapping, error) {
 	uidMap := idMappings.UIDMap
 	gidMap := idMappings.GIDMap
 	if strings.HasPrefix(option, "idmap=") {
@@ -101,33 +101,17 @@ func parseIDMapMountOption(idMappings stypes.IDMappingOptions, option string, in
 	uidMappings := make([]spec.LinuxIDMapping, len(uidMap))
 	gidMappings := make([]spec.LinuxIDMapping, len(gidMap))
 	for i, uidmap := range uidMap {
-		if invert {
-			uidMappings[i] = spec.LinuxIDMapping{
-				HostID:      uint32(uidmap.ContainerID),
-				ContainerID: uint32(uidmap.HostID),
-				Size:        uint32(uidmap.Size),
-			}
-		} else {
-			uidMappings[i] = spec.LinuxIDMapping{
-				HostID:      uint32(uidmap.HostID),
-				ContainerID: uint32(uidmap.ContainerID),
-				Size:        uint32(uidmap.Size),
-			}
+		uidMappings[i] = spec.LinuxIDMapping{
+			HostID:      uint32(uidmap.HostID),
+			ContainerID: uint32(uidmap.ContainerID),
+			Size:        uint32(uidmap.Size),
 		}
 	}
 	for i, gidmap := range gidMap {
-		if invert {
-			gidMappings[i] = spec.LinuxIDMapping{
-				HostID:      uint32(gidmap.ContainerID),
-				ContainerID: uint32(gidmap.HostID),
-				Size:        uint32(gidmap.Size),
-			}
-		} else {
-			gidMappings[i] = spec.LinuxIDMapping{
-				HostID:      uint32(gidmap.HostID),
-				ContainerID: uint32(gidmap.ContainerID),
-				Size:        uint32(gidmap.Size),
-			}
+		gidMappings[i] = spec.LinuxIDMapping{
+			HostID:      uint32(gidmap.HostID),
+			ContainerID: uint32(gidmap.ContainerID),
+			Size:        uint32(gidmap.Size),
 		}
 	}
 	return uidMappings, gidMappings, nil
@@ -304,7 +288,7 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 		for _, o := range m.Options {
 			if o == "idmap" || strings.HasPrefix(o, "idmap=") {
 				var err error
-				m.UIDMappings, m.GIDMappings, err = parseIDMapMountOption(c.config.IDMappings, o, true)
+				m.UIDMappings, m.GIDMappings, err = parseIDMapMountOption(c.config.IDMappings, o)
 				if err != nil {
 					return nil, err
 				}
