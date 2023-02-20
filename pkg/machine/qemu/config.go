@@ -19,7 +19,7 @@ const (
 
 )
 
-type Provider struct{}
+type Virtualization struct{}
 
 // Deprecated: MachineVMV1 is being deprecated in favor a more flexible and informative
 // structure

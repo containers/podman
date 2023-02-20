@@ -5,6 +5,6 @@ import (
 	"github.com/containers/podman/v4/pkg/machine/wsl"
 )
 
-func GetSystemDefaultProvider() machine.Provider {
+func GetSystemDefaultProvider() machine.VirtProvider {
 	return wsl.GetWSLProvider()
 }

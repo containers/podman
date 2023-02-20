@@ -18,17 +18,13 @@ import (
 	"github.com/coreos/stream-metadata-go/fedoracoreos"
 	"github.com/coreos/stream-metadata-go/release"
 	"github.com/coreos/stream-metadata-go/stream"
-
 	digest "github.com/opencontainers/go-digest"
 	"github.com/sirupsen/logrus"
 )
 
-// These should eventually be moved into machine/qemu as
-// they are specific to running qemu
-var (
-	artifact = "qemu"
-	Format   = "qcow2.xz"
-)
+type imageCompression int64
+type artifact int64
+type imageFormat int64
 
 const (
 	// Used for testing the latest podman in fcos
@@ -36,14 +32,76 @@ const (
 	podmanTesting     = "podman-testing"
 	PodmanTestingHost = "fedorapeople.org"
 	PodmanTestingURL  = "groups/podman/testing"
+
+	Xz imageCompression = iota
+	Zip
+	Gz
+	Bz2
+
+	Qemu artifact = iota
+	HyperV
+	None
+
+	qcow imageFormat = iota
+	vhdx
+	Tar
 )
+
+//
+// TODO artifact, imageformat, and imagecompression should be probably combined into some sort
+// of object which can "produce" the correct output we are looking for bc things like
+// image format contain both the image type AND the compression.  This work can be done before
+// or after the hyperv work.  For now, my preference is to NOT change things and just get things
+// typed strongly
+//
+
+func (a artifact) String() string {
+	if a == HyperV {
+		return "hyperv"
+	}
+	return "qemu"
+}
+
+func (imf imageFormat) String() string {
+	switch imf {
+	case vhdx:
+		return "vhdx.zip"
+	case Tar:
+		return "tar.xz"
+	}
+	return "qcow2.xz"
+}
+
+func (c imageCompression) String() string {
+	switch c {
+	case Gz:
+		return "gz"
+	case Zip:
+		return "zip"
+	case Bz2:
+		return "bz2"
+	}
+	return "xz"
+}
+
+func compressionFromFile(path string) imageCompression {
+	switch {
+	case strings.HasSuffix(path, Bz2.String()):
+		return Bz2
+	case strings.HasSuffix(path, Gz.String()):
+		return Gz
+	case strings.HasSuffix(path, Zip.String()):
+		return Zip
+	}
+	return Xz
+}
 
 type FcosDownload struct {
 	Download
 }
 
 func NewFcosDownloader(vmType, vmName, imageStream string) (DistributionDownload, error) {
-	info, err := GetFCOSDownload(imageStream)
+	info, err := GetFCOSDownload(imageStream, Xz)
 	if err != nil {
 		return nil, err
 	}
@@ -62,9 +120,9 @@ func NewFcosDownloader(vmType, vmName, imageStream string) (DistributionDownload
 	fcd := FcosDownload{
 		Download: Download{
 			Arch:      GetFcosArch(),
-			Artifact:  artifact,
+			Artifact:  Qemu,
 			CacheDir:  cacheDir,
-			Format:    Format,
+			Format:    qcow,
 			ImageName: imageName,
 			LocalPath: filepath.Join(cacheDir, imageName),
 			Sha256sum: info.Sha256Sum,
@@ -151,7 +209,7 @@ func getStreamURL(streamType string) url2.URL {
 
 // This should get Exported and stay put as it will apply to all fcos downloads
 // getFCOS parses fedoraCoreOS's stream and returns the image download URL and the release version
-func GetFCOSDownload(imageStream string) (*FcosDownloadInfo, error) {
+func GetFCOSDownload(imageStream string, compression imageCompression) (*FcosDownloadInfo, error) {
 	var (
 		fcosstable stream.Stream
 		altMeta    release.Release
@@ -193,7 +251,7 @@ func GetFCOSDownload(imageStream string) (*FcosDownloadInfo, error) {
 		if !ok {
 			return nil, fmt.Errorf("unable to pull VM image: no targetArch in stream")
 		}
-		qcow2, ok := arches.Media.Qemu.Artifacts["qcow2.xz"]
+		qcow2, ok := arches.Media.Qemu.Artifacts[qcow.String()]
 		if !ok {
 			return nil, fmt.Errorf("unable to pull VM image: no qcow2.xz format in stream")
 		}
@@ -202,7 +260,7 @@ func GetFCOSDownload(imageStream string) (*FcosDownloadInfo, error) {
 		return &FcosDownloadInfo{
 			Location:        disk.Location,
 			Sha256Sum:       disk.Sha256,
-			CompressionType: "xz",
+			CompressionType: compression.String(),
 		}, nil
 	}
 
@@ -217,7 +275,7 @@ func GetFCOSDownload(imageStream string) (*FcosDownloadInfo, error) {
 	if artifacts == nil {
 		return nil, fmt.Errorf("unable to pull VM image: no artifact in stream")
 	}
-	qemu, ok := artifacts[artifact]
+	qemu, ok := artifacts[Qemu.String()]
 	if !ok {
 		return nil, fmt.Errorf("unable to pull VM image: no qemu artifact in stream")
 	}
@@ -225,7 +283,7 @@ func GetFCOSDownload(imageStream string) (*FcosDownloadInfo, error) {
 	if formats == nil {
 		return nil, fmt.Errorf("unable to pull VM image: no formats in stream")
 	}
-	qcow, ok := formats[Format]
+	qcow, ok := formats[qcow.String()]
 	if !ok {
 		return nil, fmt.Errorf("unable to pull VM image: no qcow2.xz format in stream")
 	}
@@ -237,6 +295,6 @@ func GetFCOSDownload(imageStream string) (*FcosDownloadInfo, error) {
 		Location:        disk.Location,
 		Release:         qemu.Release,
 		Sha256Sum:       disk.Sha256,
-		CompressionType: "xz",
+		CompressionType: compression.String(),
 	}, nil
 }

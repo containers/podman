@@ -47,7 +47,7 @@ const (
 	DefaultMachineName string = "podman-machine-default"
 )
 
-type Provider interface {
+type VirtProvider interface {
 	NewMachine(opts InitOptions) (VM, error)
 	LoadVMByName(name string) (VM, error)
 	List(opts ListOptions) ([]*ListResponse, error)
@@ -72,10 +72,10 @@ var (
 
 type Download struct {
 	Arch                  string
-	Artifact              string
+	Artifact              artifact
 	CompressionType       string
 	CacheDir              string
-	Format                string
+	Format                imageFormat
 	ImageName             string
 	LocalPath             string
 	LocalUncompressedFile string

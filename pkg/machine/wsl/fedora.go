@@ -43,9 +43,9 @@ func NewFedoraDownloader(vmType, vmName, releaseStream string) (machine.Distribu
 	f := FedoraDownload{
 		Download: machine.Download{
 			Arch:      machine.GetFcosArch(),
-			Artifact:  "",
+			Artifact:  machine.None,
 			CacheDir:  cacheDir,
-			Format:    machine.Format,
+			Format:    machine.Tar,
 			ImageName: imageName,
 			LocalPath: filepath.Join(cacheDir, imageName),
 			URL:       downloadURL,

@@ -35,12 +35,12 @@ import (
 )
 
 var (
-	qemuProvider = &Provider{}
+	qemuProvider = &Virtualization{}
 	// vmtype refers to qemu (vs libvirt, krun, etc).
 	vmtype = "qemu"
 )
 
-func GetVirtualizationProvider() machine.Provider {
+func GetVirtualizationProvider() machine.VirtProvider {
 	return qemuProvider
 }
 
@@ -64,7 +64,7 @@ const (
 
 // NewMachine initializes an instance of a virtual machine based on the qemu
 // virtualization.
-func (p *Provider) NewMachine(opts machine.InitOptions) (machine.VM, error) {
+func (p *Virtualization) NewMachine(opts machine.InitOptions) (machine.VM, error) {
 	vmConfigDir, err := machine.GetConfDir(vmtype)
 	if err != nil {
 		return nil, err
@@ -231,7 +231,7 @@ func migrateVM(configPath string, config []byte, vm *MachineVM) error {
 
 // LoadVMByName reads a json file that describes a known qemu vm
 // and returns a vm instance
-func (p *Provider) LoadVMByName(name string) (machine.VM, error) {
+func (p *Virtualization) LoadVMByName(name string) (machine.VM, error) {
 	vm := &MachineVM{Name: name}
 	vm.HostUser = machine.HostUser{UID: -1} // posix reserves -1, so use it to signify undefined
 	if err := vm.update(); err != nil {
@@ -1117,7 +1117,7 @@ func getDiskSize(path string) (uint64, error) {
 }
 
 // List lists all vm's that use qemu virtualization
-func (p *Provider) List(_ machine.ListOptions) ([]*machine.ListResponse, error) {
+func (p *Virtualization) List(_ machine.ListOptions) ([]*machine.ListResponse, error) {
 	return getVMInfos()
 }
 
@@ -1193,7 +1193,7 @@ func getVMInfos() ([]*machine.ListResponse, error) {
 	return listed, err
 }
 
-func (p *Provider) IsValidVMName(name string) (bool, error) {
+func (p *Virtualization) IsValidVMName(name string) (bool, error) {
 	infos, err := getVMInfos()
 	if err != nil {
 		return false, err
@@ -1208,7 +1208,7 @@ func (p *Provider) IsValidVMName(name string) (bool, error) {
 
 // CheckExclusiveActiveVM checks if there is a VM already running
 // that does not allow other VMs to be running
-func (p *Provider) CheckExclusiveActiveVM() (bool, string, error) {
+func (p *Virtualization) CheckExclusiveActiveVM() (bool, string, error) {
 	vms, err := getVMInfos()
 	if err != nil {
 		return false, "", fmt.Errorf("checking VM active: %w", err)
@@ -1670,7 +1670,7 @@ func (v *MachineVM) editCmdLine(flag string, value string) {
 }
 
 // RemoveAndCleanMachines removes all machine and cleans up any other files associated with podman machine
-func (p *Provider) RemoveAndCleanMachines() error {
+func (p *Virtualization) RemoveAndCleanMachines() error {
 	var (
 		vm             machine.VM
 		listResponse   []*machine.ListResponse
@@ -1745,7 +1745,7 @@ func (p *Provider) RemoveAndCleanMachines() error {
 	return prevErr
 }
 
-func (p *Provider) VMType() string {
+func (p *Virtualization) VMType() string {
 	return vmtype
 }
 

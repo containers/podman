@@ -86,19 +86,9 @@ func supportedURL(path string) (url *url2.URL) {
 }
 
 func (d Download) GetLocalUncompressedFile(dataDir string) string {
-	var (
-		extension string
-	)
-	switch {
-	case strings.HasSuffix(d.LocalPath, ".bz2"):
-		extension = ".bz2"
-	case strings.HasSuffix(d.LocalPath, ".gz"):
-		extension = ".gz"
-	case strings.HasSuffix(d.LocalPath, ".xz"):
-		extension = ".xz"
-	}
+	extension := compressionFromFile(dataDir)
 	uncompressedFilename := d.VMName + "_" + d.ImageName
-	return filepath.Join(dataDir, strings.TrimSuffix(uncompressedFilename, extension))
+	return filepath.Join(dataDir, strings.TrimSuffix(uncompressedFilename, extension.String()))
 }
 
 func (g GenericDownload) Get() *Download {
@@ -224,11 +214,11 @@ func Decompress(localPath, uncompressedPath string) error {
 
 // Will error out if file without .xz already exists
 // Maybe extracting then renaming is a good idea here..
-// depends on xz: not pre-installed on mac, so it becomes a brew dependency
+// depends on Xz: not pre-installed on mac, so it becomes a brew dependency
 func decompressXZ(src string, output io.WriteCloser) error {
 	var read io.Reader
 	var cmd *exec.Cmd
-	// Prefer xz utils for fastest performance, fallback to go xi2 impl
+	// Prefer Xz utils for fastest performance, fallback to go xi2 impl
 	if _, err := exec.LookPath("xz"); err == nil {
 		cmd = exec.Command("xz", "-d", "-c", "-k", src)
 		read, err = cmd.StdoutPipe()
