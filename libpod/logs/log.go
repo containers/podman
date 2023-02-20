@@ -243,36 +243,6 @@ func NewLogLine(line string) (*LogLine, error) {
 	return &l, nil
 }
 
-// NewJournaldLogLine creates a LogLine from the specified line from journald.
-// Note that if withID is set, the first item of the message is considered to
-// be the container ID and set as such.
-func NewJournaldLogLine(line string, withID bool) (*LogLine, error) {
-	splitLine := strings.Split(line, " ")
-	if len(splitLine) < 4 {
-		return nil, fmt.Errorf("'%s' is not a valid container log line", line)
-	}
-	logTime, err := time.Parse(LogTimeFormat, splitLine[0])
-	if err != nil {
-		return nil, fmt.Errorf("unable to convert time %s from container log: %w", splitLine[0], err)
-	}
-	var msg, id string
-	if withID {
-		id = splitLine[3]
-		msg = strings.Join(splitLine[4:], " ")
-	} else {
-		msg = strings.Join(splitLine[3:], " ")
-		// NO ID
-	}
-	l := LogLine{
-		Time:         logTime,
-		Device:       splitLine[1],
-		ParseLogType: splitLine[2],
-		Msg:          msg,
-		CID:          id,
-	}
-	return &l, nil
-}
-
 // Partial returns a bool if the log line is a partial log type
 func (l *LogLine) Partial() bool {
 	return l.ParseLogType == PartialLogType
