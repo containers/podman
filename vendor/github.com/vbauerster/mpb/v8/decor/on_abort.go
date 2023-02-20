@@ -35,6 +35,6 @@ func (d *onAbortWrapper) Decor(s Statistics) string {
 	return d.Decorator.Decor(s)
 }
 
-func (d *onAbortWrapper) Base() Decorator {
+func (d *onAbortWrapper) Unwrap() Decorator {
 	return d.Decorator
 }

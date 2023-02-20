@@ -40,6 +40,11 @@ func New(out io.Writer) *Writer {
 	return w
 }
 
+// IsTerminal tells whether underlying io.Writer is terminal.
+func (w *Writer) IsTerminal() bool {
+	return w.terminal
+}
+
 // GetTermSize returns WxH of underlying terminal.
 func (w *Writer) GetTermSize() (width, height int, err error) {
 	return w.termSize(w.fd)

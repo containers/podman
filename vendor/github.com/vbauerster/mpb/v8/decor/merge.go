@@ -63,7 +63,7 @@ func (d *mergeDecorator) Sync() (chan int, bool) {
 	return d.wc.Sync()
 }
 
-func (d *mergeDecorator) Base() Decorator {
+func (d *mergeDecorator) Unwrap() Decorator {
 	return d.Decorator
 }
 
