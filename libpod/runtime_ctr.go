@@ -736,8 +736,6 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force, remo
 		}
 	}
 
-	logrus.Errorf("PAST INUSE")
-
 	// Check that the container's in a good state to be removed.
 	if c.ensureState(define.ContainerStateRunning, define.ContainerStateStopping) {
 		time := c.StopTimeout()
