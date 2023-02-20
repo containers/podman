@@ -1,3 +1,9 @@
+## 1.27.1
+
+### Maintenance
+
+- Bump golang.org/x/net from 0.6.0 to 0.7.0 (#640) [bc686cd]
+
 ## 1.27.0
 
 ### Features
