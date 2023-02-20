@@ -2,6 +2,7 @@ package libimage
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -54,6 +55,19 @@ type SearchOptions struct {
 	NoTrunc bool
 	// Authfile is the path to the authentication file.
 	Authfile string
+	// Path to the certificates directory.
+	CertDirPath string
+	// Username to use when authenticating at a container registry.
+	Username string
+	// Password to use when authenticating at a container registry.
+	Password string
+	// Credentials is an alternative way to specify credentials in format
+	// "username[:password]".  Cannot be used in combination with
+	// Username/Password.
+	Credentials string
+	// IdentityToken is used to authenticate the user and get
+	// an access token for the registry.
+	IdentityToken string `json:"identitytoken,omitempty"`
 	// InsecureSkipTLSVerify allows to skip TLS verification.
 	InsecureSkipTLSVerify types.OptionalBool
 	// ListTags returns the search result with available tags
@@ -199,6 +213,35 @@ func (r *Runtime) searchImageInRegistry(ctx context.Context, term, registry stri
 
 	if options.Authfile != "" {
 		sys.AuthFilePath = options.Authfile
+	}
+
+	if options.CertDirPath != "" {
+		sys.DockerCertPath = options.CertDirPath
+	}
+
+	authConf := &types.DockerAuthConfig{IdentityToken: options.IdentityToken}
+	if options.Username != "" {
+		if options.Credentials != "" {
+			return nil, errors.New("username/password cannot be used with credentials")
+		}
+		authConf.Username = options.Username
+		authConf.Password = options.Password
+	}
+
+	if options.Credentials != "" {
+		split := strings.SplitN(options.Credentials, ":", 2)
+		switch len(split) {
+		case 1:
+			authConf.Username = split[0]
+		default:
+			authConf.Username = split[0]
+			authConf.Password = split[1]
+		}
+	}
+	// We should set the authConf unless a token was set.  That's especially
+	// useful for Podman's remote API.
+	if options.IdentityToken != "" {
+		sys.DockerAuthConfig = authConf
 	}
 
 	if options.ListTags {

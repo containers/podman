@@ -2,7 +2,6 @@ package core
 
 import (
 	"crypto"
-	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -12,7 +11,7 @@ import (
 	"time"
 
 	"golang.org/x/crypto/ocsp"
-	"gopkg.in/square/go-jose.v2"
+	"gopkg.in/go-jose/go-jose.v2"
 
 	"github.com/letsencrypt/boulder/identifier"
 	"github.com/letsencrypt/boulder/probs"
@@ -53,7 +52,6 @@ const (
 type AcmeChallenge string
 
 // These types are the available challenges
-// TODO(#5009): Make this a custom type as well.
 const (
 	ChallengeTypeHTTP01    = AcmeChallenge("http-01")
 	ChallengeTypeDNS01     = AcmeChallenge("dns-01")
@@ -87,42 +85,8 @@ var OCSPStatusToInt = map[OCSPStatus]int{
 // DNSPrefix is attached to DNS names in DNS challenges
 const DNSPrefix = "_acme-challenge"
 
-// CertificateRequest is just a CSR
-//
-// This data is unmarshalled from JSON by way of RawCertificateRequest, which
-// represents the actual structure received from the client.
-type CertificateRequest struct {
-	CSR   *x509.CertificateRequest // The CSR
-	Bytes []byte                   // The original bytes of the CSR, for logging.
-}
-
 type RawCertificateRequest struct {
 	CSR JSONBuffer `json:"csr"` // The encoded CSR
-}
-
-// UnmarshalJSON provides an implementation for decoding CertificateRequest objects.
-func (cr *CertificateRequest) UnmarshalJSON(data []byte) error {
-	var raw RawCertificateRequest
-	err := json.Unmarshal(data, &raw)
-	if err != nil {
-		return err
-	}
-
-	csr, err := x509.ParseCertificateRequest(raw.CSR)
-	if err != nil {
-		return err
-	}
-
-	cr.CSR = csr
-	cr.Bytes = raw.CSR
-	return nil
-}
-
-// MarshalJSON provides an implementation for encoding CertificateRequest objects.
-func (cr CertificateRequest) MarshalJSON() ([]byte, error) {
-	return json.Marshal(RawCertificateRequest{
-		CSR: cr.CSR.Raw,
-	})
 }
 
 // Registration objects represent non-public metadata attached
@@ -373,9 +337,6 @@ type Authorization struct {
 	// slice and the order of these challenges may not be predictable.
 	Challenges []Challenge `json:"challenges,omitempty" db:"-"`
 
-	// This field is deprecated. It's filled in by WFE for the ACMEv1 API.
-	Combinations [][]int `json:"combinations,omitempty" db:"combinations"`
-
 	// Wildcard is a Boulder-specific Authorization field that indicates the
 	// authorization was created as a result of an order containing a name with
 	// a `*.`wildcard prefix. This will help convey to users that an
@@ -399,38 +360,25 @@ func (authz *Authorization) FindChallengeByStringID(id string) int {
 // SolvedBy will look through the Authorizations challenges, returning the type
 // of the *first* challenge it finds with Status: valid, or an error if no
 // challenge is valid.
-func (authz *Authorization) SolvedBy() (*AcmeChallenge, error) {
+func (authz *Authorization) SolvedBy() (AcmeChallenge, error) {
 	if len(authz.Challenges) == 0 {
-		return nil, fmt.Errorf("Authorization has no challenges")
+		return "", fmt.Errorf("Authorization has no challenges")
 	}
 	for _, chal := range authz.Challenges {
 		if chal.Status == StatusValid {
-			return &chal.Type, nil
+			return chal.Type, nil
 		}
 	}
-	return nil, fmt.Errorf("Authorization not solved by any challenge")
+	return "", fmt.Errorf("Authorization not solved by any challenge")
 }
 
 // JSONBuffer fields get encoded and decoded JOSE-style, in base64url encoding
 // with stripped padding.
 type JSONBuffer []byte
 
-// URL-safe base64 encode that strips padding
-func base64URLEncode(data []byte) string {
-	var result = base64.URLEncoding.EncodeToString(data)
-	return strings.TrimRight(result, "=")
-}
-
-// URL-safe base64 decoder that adds padding
-func base64URLDecode(data string) ([]byte, error) {
-	var missing = (4 - len(data)%4) % 4
-	data += strings.Repeat("=", missing)
-	return base64.URLEncoding.DecodeString(data)
-}
-
 // MarshalJSON encodes a JSONBuffer for transmission.
 func (jb JSONBuffer) MarshalJSON() (result []byte, err error) {
-	return json.Marshal(base64URLEncode(jb))
+	return json.Marshal(base64.RawURLEncoding.EncodeToString(jb))
 }
 
 // UnmarshalJSON decodes a JSONBuffer to an object.
@@ -440,7 +388,7 @@ func (jb *JSONBuffer) UnmarshalJSON(data []byte) (err error) {
 	if err != nil {
 		return err
 	}
-	*jb, err = base64URLDecode(str)
+	*jb, err = base64.RawURLEncoding.DecodeString(strings.TrimRight(str, "="))
 	return
 }
 

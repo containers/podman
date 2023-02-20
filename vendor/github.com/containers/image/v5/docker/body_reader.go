@@ -229,12 +229,12 @@ func (br *bodyReader) errorIfNotReconnecting(originalErr error, redactedURL stri
 		logrus.Infof("Reading blob body from %s failed (%v), reconnecting after %d bytes…", redactedURL, originalErr, progress)
 		return nil
 	}
-	if br.lastRetryTime == (time.Time{}) || msSinceLastRetry >= bodyReaderMSSinceLastRetry {
-		if br.lastRetryTime == (time.Time{}) {
-			logrus.Infof("Reading blob body from %s failed (%v), reconnecting (first reconnection)…", redactedURL, originalErr)
-		} else {
-			logrus.Infof("Reading blob body from %s failed (%v), reconnecting after %.3f ms…", redactedURL, originalErr, msSinceLastRetry)
-		}
+	if br.lastRetryTime == (time.Time{}) {
+		logrus.Infof("Reading blob body from %s failed (%v), reconnecting (first reconnection)…", redactedURL, originalErr)
+		return nil
+	}
+	if msSinceLastRetry >= bodyReaderMSSinceLastRetry {
+		logrus.Infof("Reading blob body from %s failed (%v), reconnecting after %.3f ms…", redactedURL, originalErr, msSinceLastRetry)
 		return nil
 	}
 	logrus.Debugf("Not reconnecting to %s: insufficient progress %d / time since last retry %.3f ms", redactedURL, progress, msSinceLastRetry)

@@ -190,7 +190,7 @@ func (ref archiveReference) NewImage(ctx context.Context, sys *types.SystemConte
 // NewImageSource returns a types.ImageSource for this reference.
 // The caller must call .Close() on the returned ImageSource.
 func (ref archiveReference) NewImageSource(ctx context.Context, sys *types.SystemContext) (types.ImageSource, error) {
-	return newImageSource(ctx, sys, ref)
+	return newImageSource(sys, ref)
 }
 
 // NewImageDestination returns a types.ImageDestination for this reference.

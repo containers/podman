@@ -50,8 +50,8 @@ func SigstoreFromComponents(untrustedMimeType string, untrustedPayload []byte, u
 	}
 }
 
-// SigstoreFromBlobChunk converts a Sigstore signature, as returned by Sigstore.blobChunk, into a Sigstore object.
-func SigstoreFromBlobChunk(blobChunk []byte) (Sigstore, error) {
+// sigstoreFromBlobChunk converts a Sigstore signature, as returned by Sigstore.blobChunk, into a Sigstore object.
+func sigstoreFromBlobChunk(blobChunk []byte) (Sigstore, error) {
 	var v sigstoreJSONRepresentation
 	if err := json.Unmarshal(blobChunk, &v); err != nil {
 		return Sigstore{}, err

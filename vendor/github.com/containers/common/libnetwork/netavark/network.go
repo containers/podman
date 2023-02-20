@@ -54,7 +54,7 @@ type netavarkNetwork struct {
 	syslog bool
 
 	// lock is a internal lock for critical operations
-	lock lockfile.Locker
+	lock *lockfile.LockFile
 
 	// modTime is the timestamp when the config dir was modified
 	modTime time.Time

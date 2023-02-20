@@ -44,7 +44,7 @@ type storageImageSource struct {
 }
 
 // newImageSource sets up an image for reading.
-func newImageSource(ctx context.Context, sys *types.SystemContext, imageRef storageReference) (*storageImageSource, error) {
+func newImageSource(sys *types.SystemContext, imageRef storageReference) (*storageImageSource, error) {
 	// First, locate the image.
 	img, err := imageRef.resolveImage(sys)
 	if err != nil {

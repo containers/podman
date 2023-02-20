@@ -13,9 +13,6 @@ import (
 
 	"github.com/letsencrypt/boulder/core"
 	berrors "github.com/letsencrypt/boulder/errors"
-	"github.com/letsencrypt/boulder/features"
-	sapb "github.com/letsencrypt/boulder/sa/proto"
-	"google.golang.org/grpc"
 
 	"github.com/titanous/rocacheck"
 )
@@ -68,10 +65,12 @@ func badKey(msg string, args ...interface{}) error {
 	return fmt.Errorf("%w%s", ErrBadKey, fmt.Errorf(msg, args...))
 }
 
-// BlockedKeyCheckFunc is used to pass in the sa.BlockedKey method to KeyPolicy,
-// rather than storing a full sa.SQLStorageAuthority. This makes testing
+// BlockedKeyCheckFunc is used to pass in the sa.BlockedKey functionality to KeyPolicy,
+// rather than storing a full sa.SQLStorageAuthority. This allows external
+// users who don’t want to import all of boulder/sa, and makes testing
 // significantly simpler.
-type BlockedKeyCheckFunc func(context.Context, *sapb.KeyBlockedRequest, ...grpc.CallOption) (*sapb.Exists, error)
+// On success, the function returns a boolean which is true if the key is blocked.
+type BlockedKeyCheckFunc func(ctx context.Context, keyHash []byte) (bool, error)
 
 // KeyPolicy determines which types of key may be used with various boulder
 // operations.
@@ -82,7 +81,7 @@ type KeyPolicy struct {
 	weakRSAList        *WeakRSAKeys
 	blockedList        *blockedKeys
 	fermatRounds       int
-	dbCheck            BlockedKeyCheckFunc
+	blockedCheck       BlockedKeyCheckFunc
 }
 
 // NewKeyPolicy returns a KeyPolicy that allows RSA, ECDSA256 and ECDSA384.
@@ -97,7 +96,7 @@ func NewKeyPolicy(config *Config, bkc BlockedKeyCheckFunc) (KeyPolicy, error) {
 		AllowRSA:           true,
 		AllowECDSANISTP256: true,
 		AllowECDSANISTP384: true,
-		dbCheck:            bkc,
+		blockedCheck:       bkc,
 	}
 	if config.WeakKeyFile != "" {
 		keyList, err := LoadWeakRSASuffixes(config.WeakKeyFile)
@@ -142,15 +141,15 @@ func (policy *KeyPolicy) GoodKey(ctx context.Context, key crypto.PublicKey) erro
 			return badKey("public key is forbidden")
 		}
 	}
-	if policy.dbCheck != nil {
+	if policy.blockedCheck != nil {
 		digest, err := core.KeyDigest(key)
 		if err != nil {
 			return badKey("%w", err)
 		}
-		exists, err := policy.dbCheck(ctx, &sapb.KeyBlockedRequest{KeyHash: digest[:]})
+		exists, err := policy.blockedCheck(ctx, digest[:])
 		if err != nil {
 			return err
-		} else if exists.Exists {
+		} else if exists {
 			return badKey("public key is forbidden")
 		}
 	}
@@ -275,6 +274,12 @@ func (policy *KeyPolicy) goodCurve(c elliptic.Curve) (err error) {
 	}
 }
 
+// Baseline Requirements, Section 6.1.5 requires key size >= 2048 and a multiple
+// of 8 bits: https://github.com/cabforum/servercert/blob/main/docs/BR.md#615-key-sizes
+// Baseline Requirements, Section 6.1.1.3 requires that we reject any keys which
+// have a known method to easily compute their private key, such as Debian Weak
+// Keys. Our enforcement mechanism relies on enumerating all Debian Weak Keys at
+// common key sizes, so we restrict all issuance to those common key sizes.
 var acceptableRSAKeySizes = map[int]bool{
 	2048: true,
 	3072: true,
@@ -290,27 +295,12 @@ func (policy *KeyPolicy) goodKeyRSA(key *rsa.PublicKey) (err error) {
 		return badKey("key is on a known weak RSA key list")
 	}
 
-	// Baseline Requirements Appendix A
-	// Modulus must be >= 2048 bits and <= 4096 bits
 	modulus := key.N
+
+	// See comment on acceptableRSAKeySizes above.
 	modulusBitLen := modulus.BitLen()
-	if features.Enabled(features.RestrictRSAKeySizes) {
-		if !acceptableRSAKeySizes[modulusBitLen] {
-			return badKey("key size not supported: %d", modulusBitLen)
-		}
-	} else {
-		const maxKeySize = 4096
-		if modulusBitLen < 2048 {
-			return badKey("key too small: %d", modulusBitLen)
-		}
-		if modulusBitLen > maxKeySize {
-			return badKey("key too large: %d > %d", modulusBitLen, maxKeySize)
-		}
-		// Bit lengths that are not a multiple of 8 may cause problems on some
-		// client implementations.
-		if modulusBitLen%8 != 0 {
-			return badKey("key length wasn't a multiple of 8: %d", modulusBitLen)
-		}
+	if !acceptableRSAKeySizes[modulusBitLen] {
+		return badKey("key size not supported: %d", modulusBitLen)
 	}
 
 	// Rather than support arbitrary exponents, which significantly increases

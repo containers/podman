@@ -994,7 +994,7 @@ func (c *dockerClient) getOCIDescriptorContents(ctx context.Context, ref dockerR
 		return nil, err
 	}
 	defer reader.Close()
-	payload, err := iolimits.ReadAtMost(reader, iolimits.MaxSignatureBodySize)
+	payload, err := iolimits.ReadAtMost(reader, maxSize)
 	if err != nil {
 		return nil, fmt.Errorf("reading blob %s in %s: %w", desc.Digest.String(), ref.ref.Name(), err)
 	}

@@ -24,7 +24,7 @@ type Signature interface {
 	blobChunk() ([]byte, error)
 }
 
-// BlobChunk returns a representation of sig as a []byte, suitable for long-term storage.
+// Blob returns a representation of sig as a []byte, suitable for long-term storage.
 func Blob(sig Signature) ([]byte, error) {
 	chunk, err := sig.blobChunk()
 	if err != nil {
@@ -79,7 +79,7 @@ func FromBlob(blob []byte) (Signature, error) {
 		case bytes.Equal(formatBytes, []byte(SimpleSigningFormat)):
 			return SimpleSigningFromBlob(blobChunk), nil
 		case bytes.Equal(formatBytes, []byte(SigstoreFormat)):
-			return SigstoreFromBlobChunk(blobChunk)
+			return sigstoreFromBlobChunk(blobChunk)
 		default:
 			return nil, fmt.Errorf("unrecognized signature format %q", string(formatBytes))
 		}

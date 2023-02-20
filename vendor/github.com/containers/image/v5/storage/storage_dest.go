@@ -159,7 +159,7 @@ func (s *storageImageDestination) computeNextBlobCacheFile() string {
 // to any other readers for download using the supplied digest.
 // If stream.Read() at any time, ESPECIALLY at end of input, returns an error, PutBlob MUST 1) fail, and 2) delete any data stored so far.
 func (s *storageImageDestination) PutBlobWithOptions(ctx context.Context, stream io.Reader, blobinfo types.BlobInfo, options private.PutBlobOptions) (types.BlobInfo, error) {
-	info, err := s.putBlobToPendingFile(ctx, stream, blobinfo, &options)
+	info, err := s.putBlobToPendingFile(stream, blobinfo, &options)
 	if err != nil {
 		return info, err
 	}
@@ -173,7 +173,7 @@ func (s *storageImageDestination) PutBlobWithOptions(ctx context.Context, stream
 
 // putBlobToPendingFile implements ImageDestination.PutBlobWithOptions, storing stream into an on-disk file.
 // The caller must arrange the blob to be eventually committed using s.commitLayer().
-func (s *storageImageDestination) putBlobToPendingFile(ctx context.Context, stream io.Reader, blobinfo types.BlobInfo, options *private.PutBlobOptions) (types.BlobInfo, error) {
+func (s *storageImageDestination) putBlobToPendingFile(stream io.Reader, blobinfo types.BlobInfo, options *private.PutBlobOptions) (types.BlobInfo, error) {
 	// Stores a layer or data blob in our temporary directory, checking that any information
 	// in the blobinfo matches the incoming data.
 	errorBlobInfo := types.BlobInfo{
@@ -203,7 +203,7 @@ func (s *storageImageDestination) putBlobToPendingFile(ctx context.Context, stre
 
 	diffID := digest.Canonical.Digester()
 	// Copy the data to the file.
-	// TODO: This can take quite some time, and should ideally be cancellable using ctx.Done().
+	// TODO: This can take quite some time, and should ideally be cancellable using context.Context.
 	_, err = io.Copy(diffID.Hash(), decompressed)
 	decompressed.Close()
 	if err != nil {
@@ -302,7 +302,7 @@ func (s *storageImageDestination) PutBlobPartial(ctx context.Context, chunkAcces
 // reflected in the manifest that will be written.
 // If the transport can not reuse the requested blob, TryReusingBlob returns (false, {}, nil); it returns a non-nil error only on an unexpected failure.
 func (s *storageImageDestination) TryReusingBlobWithOptions(ctx context.Context, blobinfo types.BlobInfo, options private.TryReusingBlobOptions) (bool, types.BlobInfo, error) {
-	reused, info, err := s.tryReusingBlobAsPending(ctx, blobinfo, &options)
+	reused, info, err := s.tryReusingBlobAsPending(blobinfo, &options)
 	if err != nil || !reused || options.LayerIndex == nil {
 		return reused, info, err
 	}
@@ -312,7 +312,7 @@ func (s *storageImageDestination) TryReusingBlobWithOptions(ctx context.Context,
 
 // tryReusingBlobAsPending implements TryReusingBlobWithOptions, filling s.blobDiffIDs and other metadata.
 // The caller must arrange the blob to be eventually committed using s.commitLayer().
-func (s *storageImageDestination) tryReusingBlobAsPending(ctx context.Context, blobinfo types.BlobInfo, options *private.TryReusingBlobOptions) (bool, types.BlobInfo, error) {
+func (s *storageImageDestination) tryReusingBlobAsPending(blobinfo types.BlobInfo, options *private.TryReusingBlobOptions) (bool, types.BlobInfo, error) {
 	// lock the entire method as it executes fairly quickly
 	s.lock.Lock()
 	defer s.lock.Unlock()
