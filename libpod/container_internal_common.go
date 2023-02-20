@@ -57,17 +57,37 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func parseOptionIDs(option string) ([]idtools.IDMap, error) {
+func parseOptionIDs(ctrMappings []idtools.IDMap, option string) ([]idtools.IDMap, error) {
 	ranges := strings.Split(option, "#")
 	ret := make([]idtools.IDMap, len(ranges))
 	for i, m := range ranges {
 		var v idtools.IDMap
+
+		relative := false
+		if m[0] == '@' {
+			relative = true
+			m = m[1:]
+		}
 		_, err := fmt.Sscanf(m, "%d-%d-%d", &v.ContainerID, &v.HostID, &v.Size)
 		if err != nil {
 			return nil, err
 		}
 		if v.ContainerID < 0 || v.HostID < 0 || v.Size < 1 {
 			return nil, fmt.Errorf("invalid value for %q", option)
+		}
+
+		if relative {
+			found := false
+			for _, m := range ctrMappings {
+				if v.ContainerID >= m.ContainerID && v.ContainerID < m.ContainerID+m.Size {
+					v.HostID += m.HostID - m.ContainerID
+					found = true
+					break
+				}
+			}
+			if !found {
+				return nil, fmt.Errorf("could not find a user namespace mapping for the relative mapping %q", option)
+			}
 		}
 		ret[i] = v
 	}
@@ -83,12 +103,12 @@ func parseIDMapMountOption(idMappings stypes.IDMappingOptions, option string, in
 		for _, i := range options {
 			switch {
 			case strings.HasPrefix(i, "uids="):
-				uidMap, err = parseOptionIDs(strings.Replace(i, "uids=", "", 1))
+				uidMap, err = parseOptionIDs(idMappings.UIDMap, strings.Replace(i, "uids=", "", 1))
 				if err != nil {
 					return nil, nil, err
 				}
 			case strings.HasPrefix(i, "gids="):
-				gidMap, err = parseOptionIDs(strings.Replace(i, "gids=", "", 1))
+				gidMap, err = parseOptionIDs(idMappings.GIDMap, strings.Replace(i, "gids=", "", 1))
 				if err != nil {
 					return nil, nil, err
 				}
