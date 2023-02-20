@@ -272,8 +272,7 @@ Deleted: $pauseID" "infra images gets removed as well"
     pname=$(random_string)
     run_podman create --pod new:$pname $IMAGE
 
-    run_podman version --format "{{.Server.Version}}-{{.Server.Built}}"
-    pauseImage=localhost/podman-pause:$output
+    pauseImage=$(pause_image)
     run_podman inspect --format '{{.ID}}' $pauseImage
     pauseID=$output
 
