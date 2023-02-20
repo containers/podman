@@ -26,6 +26,7 @@ type LoginOptions struct {
 	Stdin                     io.Reader // set to os.Stdin
 	Stdout                    io.Writer // set to os.Stdout
 	AcceptUnspecifiedRegistry bool      // set to true if allows login with unspecified registry
+	NoWriteBack               bool      // set to true to not write the credentials to the authfile/cred helpers
 }
 
 // LogoutOptions represents the results for flags in logout

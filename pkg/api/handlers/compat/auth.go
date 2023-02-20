@@ -4,9 +4,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 
+	"github.com/containers/common/pkg/auth"
 	DockerClient "github.com/containers/image/v5/docker"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v4/libpod"
@@ -15,13 +17,6 @@ import (
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	docker "github.com/docker/docker/api/types"
 )
-
-func stripAddressOfScheme(address string) string {
-	for _, s := range []string{"https", "http"} {
-		address = strings.TrimPrefix(address, s+"://")
-	}
-	return address
-}
 
 func Auth(w http.ResponseWriter, r *http.Request) {
 	var authConfig docker.AuthConfig
@@ -41,9 +36,13 @@ func Auth(w http.ResponseWriter, r *http.Request) {
 	sysCtx := runtime.SystemContext()
 	sysCtx.DockerInsecureSkipTLSVerify = skipTLS
 
-	fmt.Println("Authenticating with existing credentials...")
-	registry := stripAddressOfScheme(authConfig.ServerAddress)
-	if err := DockerClient.CheckAuth(r.Context(), sysCtx, authConfig.Username, authConfig.Password, registry); err == nil {
+	loginOpts := &auth.LoginOptions{
+		Username:    authConfig.Username,
+		Password:    authConfig.Password,
+		Stdout:      io.Discard,
+		NoWriteBack: true, // to prevent credentials to be written on disk
+	}
+	if err := auth.Login(r.Context(), sysCtx, loginOpts, []string{authConfig.ServerAddress}); err == nil {
 		utils.WriteResponse(w, http.StatusOK, entities.AuthReport{
 			IdentityToken: "",
 			Status:        "Login Succeeded",
