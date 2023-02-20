@@ -212,7 +212,7 @@ func Decompress(localPath, uncompressedPath string) error {
 	return decompressEverythingElse(localPath, uncompressedFileWriter)
 }
 
-// Will error out if file without .xz already exists
+// Will error out if file without .Xz already exists
 // Maybe extracting then renaming is a good idea here..
 // depends on Xz: not pre-installed on mac, so it becomes a brew dependency
 func decompressXZ(src string, output io.WriteCloser) error {
