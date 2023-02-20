@@ -13,6 +13,35 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
+func (s *SQLiteState) migrateSchemaIfNecessary() (defErr error) {
+	row := s.conn.QueryRow("SELECT SchemaVersion FROM DBConfig;")
+	var schemaVer int
+	if err := row.Scan(&schemaVer); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			// Brand-new, unpopulated DB.
+			// Schema was just created, so it has to be the latest.
+			return nil
+		}
+	}
+
+	// If the schema version 0 or less, it's invalid
+	if schemaVer <= 0 {
+		return fmt.Errorf("database schema version %d is invalid: %w", schemaVer, define.ErrInternal)
+	}
+
+	if schemaVer != schemaVersion {
+		// If the DB is a later schema than we support, we have to error
+		if schemaVer > schemaVersion {
+			return fmt.Errorf("database has schema version %d while this libpod version only supports version %d: %w",
+				schemaVer, schemaVersion, define.ErrInternal)
+		}
+
+		// Perform schema migration here, one version at a time.
+	}
+
+	return nil
+}
+
 // Initialize all required tables for the SQLite state
 func sqliteInitTables(conn *sql.DB) (defErr error) {
 	// Technically we could split the "CREATE TABLE IF NOT EXISTS" and ");"
@@ -282,6 +311,118 @@ func (s *SQLiteState) rewriteContainerConfig(ctr *Container, newCfg *ContainerCo
 
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("committing transaction to rewrite container %s config: %w", ctr.ID(), err)
+	}
+
+	return nil
+}
+
+func (s *SQLiteState) addContainer(ctr *Container) (defErr error) {
+	configJSON, err := json.Marshal(ctr.config)
+	if err != nil {
+		return fmt.Errorf("marshalling container config json: %w", err)
+	}
+
+	stateJSON, err := json.Marshal(ctr.state)
+	if err != nil {
+		return fmt.Errorf("marshalling container state json: %w", err)
+	}
+	deps := ctr.Dependencies()
+
+	pod := sql.NullString{}
+	if ctr.config.Pod != "" {
+		pod.Valid = true
+		pod.String = ctr.config.Pod
+	}
+
+	tx, err := s.conn.Begin()
+	if err != nil {
+		return fmt.Errorf("beginning container create transaction: %w", err)
+	}
+	defer func() {
+		if defErr != nil {
+			if err := tx.Rollback(); err != nil {
+				logrus.Errorf("Error rolling back transaction to create container: %v", err)
+			}
+		}
+	}()
+
+	if _, err := tx.Exec("INSERT INTO IDNamespace VALUES (?);", ctr.ID()); err != nil {
+		return fmt.Errorf("adding container id to database: %w", err)
+	}
+	if _, err := tx.Exec("INSERT INTO ContainerConfig VALUES (?, ?, ?, ?);", ctr.ID(), ctr.Name(), pod, configJSON); err != nil {
+		return fmt.Errorf("adding container config to database: %w", err)
+	}
+	if _, err := tx.Exec("INSERT INTO ContainerState VALUES (?, ?, ?, ?);", ctr.ID(), int(ctr.state.State), ctr.state.ExitCode, stateJSON); err != nil {
+		return fmt.Errorf("adding container state to database: %w", err)
+	}
+	for _, dep := range deps {
+		// Check if the dependency is in the same pod
+		var depPod sql.NullString
+		row := tx.QueryRow("SELECT PodID FROM ContainerConfig WHERE Id=?;", dep)
+		if err := row.Scan(&depPod); err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				return fmt.Errorf("container dependency %s does not exist in database: %w", dep, define.ErrNoSuchCtr)
+			}
+		}
+		if ctr.config.Pod == "" && depPod.Valid {
+			return fmt.Errorf("container dependency %s is part of a pod, but container is not: %w", dep, define.ErrInvalidArg)
+		} else if ctr.config.Pod != "" && !depPod.Valid {
+			return fmt.Errorf("container dependency %s is not part of a pod, but this container belongs to pod %s", dep, ctr.config.Pod, define.ErrInvalidArg)
+		} else if ctr.config.Pod != "" && depPod.String != ctr.config.Pod {
+			return fmt.Errorf("container dependency %s is part of pod %s but container is part of pod %s, pods must match: %w", dep, depPod.String, ctr.config.Pod, define.ErrInvalidArg)
+		}
+
+		if _, err := tx.Exec("INSERT INTO ContainerDependency VALUES (?, ?);", ctr.ID(), dep); err != nil {
+			return fmt.Errorf("adding container dependency %s to database: %w", dep, err)
+		}
+	}
+	for _, vol := range ctr.config.NamedVolumes {
+		if _, err := tx.Exec("INSERT INTO ContainerVolume VALUES (?, ?);", ctr.ID(), vol.Name); err != nil {
+			return fmt.Errorf("adding container volume %s to database: %w", vol.Name, err)
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("committing transaction: %w", err)
+	}
+
+	return nil
+}
+
+func (s *SQLiteState) removeContainer(ctr *Container) (defErr error) {
+	tx, err := s.conn.Begin()
+	if err != nil {
+		return fmt.Errorf("beginning container %s removal transaction: %w", ctr.ID(), err)
+	}
+	defer func() {
+		if defErr != nil {
+			if err := tx.Rollback(); err != nil {
+				logrus.Errorf("Error rolling back transaction to remove container %s: %v", ctr.ID(), err)
+			}
+		}
+	}()
+
+	if _, err := tx.Exec("DELETE FROM IDNamespace WHERE Id=?;", ctr.ID()); err != nil {
+		return fmt.Errorf("removing container %s id from database: %w", ctr.ID(), err)
+	}
+	if _, err := tx.Exec("DELETE FROM ContainerConfig WHERE Id=?;", ctr.ID()); err != nil {
+		return fmt.Errorf("removing container %s config from database: %w", ctr.ID(), err)
+	}
+	if _, err := tx.Exec("DELETE FROM ContainerState WHERE Id=?;", ctr.ID()); err != nil {
+		return fmt.Errorf("removing container %s state from database: %w", ctr.ID(), err)
+	}
+	if _, err := tx.Exec("DELETE FROM ContainerDependency WHERE Id=?;", ctr.ID()); err != nil {
+		return fmt.Errorf("removing container %s dependencies from database: %w", ctr.ID(), err)
+	}
+	if _, err := tx.Exec("DELETE FROM ContainerVolume WHERE ContainerID=?;", ctr.ID()); err != nil {
+		return fmt.Errorf("removing container %s volumes from database: %w", ctr.ID(), err)
+	}
+	if _, err := tx.Exec("DELETE FROM ContainerExecSession WHERE ContainerID=?;", ctr.ID()); err != nil {
+		return fmt.Errorf("removing container %s exec sessions from database: %w", ctr.ID(), err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("committing container %s removal transaction: %w", ctr.ID(), err)
 	}
 
 	return nil

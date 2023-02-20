@@ -490,7 +490,6 @@ func (s *BoltState) ValidateDBConfig(runtime *Runtime) error {
 
 // GetContainerName returns the name associated with a given ID.
 // Returns ErrNoSuchCtr if the ID does not exist.
-// TODO TODO TODO: Rewrite this to only retrieve containers.
 func (s *BoltState) GetContainerName(id string) (string, error) {
 	if id == "" {
 		return "", define.ErrEmptyID
@@ -516,8 +515,18 @@ func (s *BoltState) GetContainerName(id string) (string, error) {
 			return err
 		}
 
+		ctrsBkt, err := getCtrBucket(tx)
+		if err != nil {
+			return err
+		}
+
 		nameBytes := idBkt.Get(idBytes)
 		if nameBytes == nil {
+			return define.ErrNoSuchCtr
+		}
+
+		ctrExists := ctrsBkt.Bucket(idBytes)
+		if ctrExists == nil {
 			return define.ErrNoSuchCtr
 		}
 
@@ -533,7 +542,6 @@ func (s *BoltState) GetContainerName(id string) (string, error) {
 
 // GetPodName returns the name associated with a given ID.
 // Returns ErrNoSuchPor if the ID does not exist.
-// TODO TODO TODO: Rewrite this to only retrieve pods
 func (s *BoltState) GetPodName(id string) (string, error) {
 	if id == "" {
 		return "", define.ErrEmptyID
@@ -559,8 +567,18 @@ func (s *BoltState) GetPodName(id string) (string, error) {
 			return err
 		}
 
+		podBkt, err := getPodBucket(tx)
+		if err != nil {
+			return err
+		}
+
 		nameBytes := idBkt.Get(idBytes)
 		if nameBytes == nil {
+			return define.ErrNoSuchPod
+		}
+
+		podExists := podBkt.Bucket(idBytes)
+		if podExists == nil {
 			return define.ErrNoSuchPod
 		}
 

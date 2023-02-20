@@ -58,7 +58,9 @@ func NewSqliteState(runtime *Runtime) (_ State, defErr error) {
 		return nil, fmt.Errorf("setting full fsync mode in db: %w", err)
 	}
 
-	// TODO: Check schema version here and perform migration if necessary
+	if err := state.migrateSchemaIfNecessary(); err != nil {
+		return nil, err
+	}
 
 	// Set up tables
 	if err := sqliteInitTables(state.conn); err != nil {
@@ -555,7 +557,7 @@ func (s *SQLiteState) HasContainer(id string) (bool, error) {
 
 // AddContainer adds a container to the state
 // The container being added cannot belong to a pod
-func (s *SQLiteState) AddContainer(ctr *Container) (defErr error) {
+func (s *SQLiteState) AddContainer(ctr *Container) error {
 	if !s.valid {
 		return define.ErrDBClosed
 	}
@@ -568,63 +570,13 @@ func (s *SQLiteState) AddContainer(ctr *Container) (defErr error) {
 		return fmt.Errorf("cannot add a container that belongs to a pod with AddContainer - use AddContainerToPod: %w", define.ErrInvalidArg)
 	}
 
-	configJSON, err := json.Marshal(ctr.config)
-	if err != nil {
-		return fmt.Errorf("marshalling container config json: %w", err)
-	}
-
-	stateJSON, err := json.Marshal(ctr.state)
-	if err != nil {
-		return fmt.Errorf("marshalling container state json: %w", err)
-	}
-	deps := ctr.Dependencies()
-
-	// TODO: Verify all dependencies are part of the same pod as this
-	// container
-
-	tx, err := s.conn.Begin()
-	if err != nil {
-		return fmt.Errorf("beginning container create transaction: %w", err)
-	}
-	defer func() {
-		if defErr != nil {
-			if err := tx.Rollback(); err != nil {
-				logrus.Errorf("Error rolling back transaction to create container: %v", err)
-			}
-		}
-	}()
-
-	if _, err := tx.Exec("INSERT INTO IDNamespace VALUES (?);", ctr.ID()); err != nil {
-		return fmt.Errorf("adding container id to database: %w", err)
-	}
-	if _, err := tx.Exec("INSERT INTO ContainerConfig VALUES (?, ?, ?, ?);", ctr.ID(), ctr.Name(), sql.NullString{}, configJSON); err != nil {
-		return fmt.Errorf("adding container config to database: %w", err)
-	}
-	if _, err := tx.Exec("INSERT INTO ContainerState VALUES (?, ?, ?, ?);", ctr.ID(), int(ctr.state.State), ctr.state.ExitCode, stateJSON); err != nil {
-		return fmt.Errorf("adding container state to database: %w", err)
-	}
-	for _, dep := range deps {
-		if _, err := tx.Exec("INSERT INTO ContainerDependency VALUES (?, ?);", ctr.ID(), dep); err != nil {
-			return fmt.Errorf("adding container dependency %s to database: %w", dep, err)
-		}
-	}
-	for _, vol := range ctr.config.NamedVolumes {
-		if _, err := tx.Exec("INSERT INTO ContainerVolume VALUES (?, ?);", ctr.ID(), vol.Name); err != nil {
-			return fmt.Errorf("adding container volume %s to database: %w", vol.Name, err)
-		}
-	}
-
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("committing transaction: %w", err)
-	}
-
-	return nil
+	return s.addContainer(ctr)
 }
 
 // RemoveContainer removes a container from the state
 // Only removes containers not in pods - for containers that are a member of a
 // pod, use RemoveContainerFromPod
-func (s *SQLiteState) RemoveContainer(ctr *Container) (defErr error) {
+func (s *SQLiteState) RemoveContainer(ctr *Container) error {
 	if !s.valid {
 		return define.ErrDBClosed
 	}
@@ -633,42 +585,7 @@ func (s *SQLiteState) RemoveContainer(ctr *Container) (defErr error) {
 		return fmt.Errorf("container %s is part of a pod, use RemoveContainerFromPod instead: %w", ctr.ID(), define.ErrPodExists)
 	}
 
-	tx, err := s.conn.Begin()
-	if err != nil {
-		return fmt.Errorf("beginning container %s removal transaction: %w", ctr.ID(), err)
-	}
-	defer func() {
-		if defErr != nil {
-			if err := tx.Rollback(); err != nil {
-				logrus.Errorf("Error rolling back transaction to remove container %s: %v", ctr.ID(), err)
-			}
-		}
-	}()
-
-	if _, err := tx.Exec("DELETE FROM IDNamespace WHERE Id=?;", ctr.ID()); err != nil {
-		return fmt.Errorf("removing container %s id from database: %w", ctr.ID(), err)
-	}
-	if _, err := tx.Exec("DELETE FROM ContainerConfig WHERE Id=?;", ctr.ID()); err != nil {
-		return fmt.Errorf("removing container %s config from database: %w", ctr.ID(), err)
-	}
-	if _, err := tx.Exec("DELETE FROM ContainerState WHERE Id=?;", ctr.ID()); err != nil {
-		return fmt.Errorf("removing container %s state from database: %w", ctr.ID(), err)
-	}
-	if _, err := tx.Exec("DELETE FROM ContainerDependency WHERE Id=?;", ctr.ID()); err != nil {
-		return fmt.Errorf("removing container %s dependencies from database: %w", ctr.ID(), err)
-	}
-	if _, err := tx.Exec("DELETE FROM ContainerVolume WHERE ContainerID=?;", ctr.ID()); err != nil {
-		return fmt.Errorf("removing container %s volumes from database: %w", ctr.ID(), err)
-	}
-	if _, err := tx.Exec("DELETE FROM ContainerExecSession WHERE ContainerID=?;", ctr.ID()); err != nil {
-		return fmt.Errorf("removing container %s exec sessions from database: %w", ctr.ID(), err)
-	}
-
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("committing container %s removal transaction: %w", ctr.ID(), err)
-	}
-
-	return nil
+	return s.removeContainer(ctr)
 }
 
 // UpdateContainer updates a container's state from the database
@@ -2263,7 +2180,6 @@ func (s *SQLiteState) RemovePodContainers(pod *Pod) error {
 
 // AddContainerToPod adds the given container to an existing pod
 // The container will be added to the state and the pod
-// TODO TODO TODO
 func (s *SQLiteState) AddContainerToPod(pod *Pod, ctr *Container) error {
 	if !s.valid {
 		return define.ErrDBClosed
@@ -2281,12 +2197,11 @@ func (s *SQLiteState) AddContainerToPod(pod *Pod, ctr *Container) error {
 		return fmt.Errorf("container %s is not part of pod %s: %w", ctr.ID(), pod.ID(), define.ErrNoSuchCtr)
 	}
 
-	return define.ErrNotImplemented
+	return s.addContainer(ctr)
 }
 
 // RemoveContainerFromPod removes a container from an existing pod
 // The container will also be removed from the state
-// TODO TODO TODO
 func (s *SQLiteState) RemoveContainerFromPod(pod *Pod, ctr *Container) error {
 	if !s.valid {
 		return define.ErrDBClosed
@@ -2304,7 +2219,7 @@ func (s *SQLiteState) RemoveContainerFromPod(pod *Pod, ctr *Container) error {
 		return fmt.Errorf("container %s is not part of pod %s: %w", ctr.ID(), pod.ID(), define.ErrInvalidArg)
 	}
 
-	return define.ErrNotImplemented
+	return s.removeContainer(ctr)
 }
 
 // UpdatePod updates a pod's state from the database.
