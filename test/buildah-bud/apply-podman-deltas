@@ -249,5 +249,12 @@ skip_if_remote "different error messages between podman & podman-remote" \
 
 # END   tests which are skipped due to actual podman or podman-remote bugs.
 ###############################################################################
+# BEGIN temporary workarounds that must be reevaluated periodically
+
+skip "Test is completely broken, see buildah issue 4396" \
+     "bud-multiple-platform-values"
+
+# END   temporary workarounds that must be reevaluated periodically
+###############################################################################
 
 exit $RC
