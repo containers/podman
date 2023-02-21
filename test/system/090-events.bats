@@ -71,8 +71,8 @@ load helpers
     run_podman --events-backend=file events --stream=false --filter type=image --since $t0
     is "$output" ".*image push $imageID dir:$pushedDir
 .*image save $imageID $tarball
-.*image loadfromarchive *$tarball
-.*image pull *docker-archive:$tarball
+.*image loadfromarchive $imageID $tarball
+.*image pull $imageID docker-archive:$tarball
 .*image tag $imageID $tag
 .*image untag $imageID $tag:latest
 .*image tag $imageID $tag

@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/containers/image/v5/internal/manifest"
-	internalManifest "github.com/containers/image/v5/internal/manifest"
 	compressiontypes "github.com/containers/image/v5/pkg/compression/types"
 	"github.com/containers/image/v5/types"
 	ociencspec "github.com/containers/ocicrypt/spec"
@@ -197,7 +196,7 @@ func (m *OCI1) Inspect(configGetter func(types.BlobInfo) ([]byte, error)) (*type
 		// Most software calling this without human intervention is going to expect the values to be realistic and relevant,
 		// and is probably better served by failing; we can always re-visit that later if we fail now, but
 		// if we started returning some data for OCI artifacts now, we couldn’t start failing in this function later.
-		return nil, internalManifest.NewNonImageArtifactError(m.Config.MediaType)
+		return nil, manifest.NewNonImageArtifactError(m.Config.MediaType)
 	}
 
 	config, err := configGetter(m.ConfigInfo())
@@ -248,7 +247,7 @@ func (m *OCI1) ImageID([]digest.Digest) (string, error) {
 	// (The only known caller of ImageID is storage/storageImageDestination.computeID,
 	// which can’t work with non-image artifacts.)
 	if m.Config.MediaType != imgspecv1.MediaTypeImageConfig {
-		return "", internalManifest.NewNonImageArtifactError(m.Config.MediaType)
+		return "", manifest.NewNonImageArtifactError(m.Config.MediaType)
 	}
 
 	if err := m.Config.Digest.Validate(); err != nil {

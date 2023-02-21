@@ -211,7 +211,7 @@ func (config *directClientConfig) ClientConfig() (*restConfig, error) {
 			return nil, err
 		}
 
-		serverAuthPartialConfig, err := getServerIdentificationPartialConfig(configAuthInfo, configClusterInfo)
+		serverAuthPartialConfig, err := getServerIdentificationPartialConfig(configClusterInfo)
 		if err != nil {
 			return nil, err
 		}
@@ -230,7 +230,7 @@ func (config *directClientConfig) ClientConfig() (*restConfig, error) {
 // 1.  configClusterInfo (the final result of command line flags and merged .kubeconfig files)
 // 2.  configAuthInfo.auth-path (this file can contain information that conflicts with #1, and we want #1 to win the priority)
 // 3.  load the ~/.kubernetes_auth file as a default
-func getServerIdentificationPartialConfig(configAuthInfo clientcmdAuthInfo, configClusterInfo clientcmdCluster) (*restConfig, error) {
+func getServerIdentificationPartialConfig(configClusterInfo clientcmdCluster) (*restConfig, error) {
 	mergedConfig := &restConfig{}
 
 	// configClusterInfo holds the information identify the server provided by .kubeconfig
