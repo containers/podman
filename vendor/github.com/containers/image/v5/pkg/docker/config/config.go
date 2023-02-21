@@ -12,7 +12,6 @@ import (
 	"strings"
 
 	"github.com/containers/image/v5/docker/reference"
-	"github.com/containers/image/v5/internal/set"
 	"github.com/containers/image/v5/pkg/sysregistriesv2"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/storage/pkg/homedir"
@@ -140,7 +139,10 @@ func GetAllCredentials(sys *types.SystemContext) (map[string]types.DockerAuthCon
 	// possible sources, and then call `GetCredentials` on them.  That
 	// prevents us from having to reverse engineer the logic in
 	// `GetCredentials`.
-	allKeys := set.New[string]()
+	allKeys := make(map[string]bool)
+	addKey := func(s string) {
+		allKeys[s] = true
+	}
 
 	// To use GetCredentials, we must at least convert the URL forms into host names.
 	// While we're at it, we’ll also canonicalize docker.io to the standard format.
@@ -164,14 +166,14 @@ func GetAllCredentials(sys *types.SystemContext) (map[string]types.DockerAuthCon
 				// direct mapping to a registry, so we can just
 				// walk the map.
 				for registry := range auths.CredHelpers {
-					allKeys.Add(registry)
+					addKey(registry)
 				}
 				for key := range auths.AuthConfigs {
 					key := normalizeAuthFileKey(key, path.legacyFormat)
 					if key == normalizedDockerIORegistry {
 						key = "docker.io"
 					}
-					allKeys.Add(key)
+					addKey(key)
 				}
 			}
 		// External helpers.
@@ -186,7 +188,7 @@ func GetAllCredentials(sys *types.SystemContext) (map[string]types.DockerAuthCon
 				}
 			}
 			for registry := range creds {
-				allKeys.Add(registry)
+				addKey(registry)
 			}
 		}
 	}
@@ -194,7 +196,7 @@ func GetAllCredentials(sys *types.SystemContext) (map[string]types.DockerAuthCon
 	// Now use `GetCredentials` to the specific auth configs for each
 	// previously listed registry.
 	authConfigs := make(map[string]types.DockerAuthConfig)
-	for _, key := range allKeys.Values() {
+	for key := range allKeys {
 		authConf, err := GetCredentials(sys, key)
 		if err != nil {
 			// Note: we rely on the logging in `GetCredentials`.
@@ -392,16 +394,17 @@ func RemoveAuthentication(sys *types.SystemContext, key string) error {
 		if isNamespaced {
 			logrus.Debugf("Not removing credentials because namespaced keys are not supported for the credential helper: %s", helper)
 			return
-		}
-		err := deleteAuthFromCredHelper(helper, key)
-		if err == nil {
-			logrus.Debugf("Credentials for %q were deleted from credential helper %s", key, helper)
-			isLoggedIn = true
-			return
-		}
-		if credentials.IsErrCredentialsNotFoundMessage(err.Error()) {
-			logrus.Debugf("Not logged in to %s with credential helper %s", key, helper)
-			return
+		} else {
+			err := deleteAuthFromCredHelper(helper, key)
+			if err == nil {
+				logrus.Debugf("Credentials for %q were deleted from credential helper %s", key, helper)
+				isLoggedIn = true
+				return
+			}
+			if credentials.IsErrCredentialsNotFoundMessage(err.Error()) {
+				logrus.Debugf("Not logged in to %s with credential helper %s", key, helper)
+				return
+			}
 		}
 		multiErr = multierror.Append(multiErr, fmt.Errorf("removing credentials for %s from credential helper %s: %w", key, helper, err))
 	}
@@ -756,8 +759,8 @@ func decodeDockerAuth(path, key string, conf dockerAuthConfig) (types.DockerAuth
 		return types.DockerAuthConfig{}, err
 	}
 
-	user, passwordPart, valid := strings.Cut(string(decoded), ":")
-	if !valid {
+	parts := strings.SplitN(string(decoded), ":", 2)
+	if len(parts) != 2 {
 		// if it's invalid just skip, as docker does
 		if len(decoded) > 0 { // Docker writes "auths": { "$host": {} } entries if a credential helper is used, don’t warn about those
 			logrus.Warnf(`Error parsing the "auth" field of a credential entry %q in %q, missing semicolon`, key, path) // Don’t include the text of decoded, because that might put secrets into a log.
@@ -767,7 +770,8 @@ func decodeDockerAuth(path, key string, conf dockerAuthConfig) (types.DockerAuth
 		return types.DockerAuthConfig{}, nil
 	}
 
-	password := strings.Trim(passwordPart, "\x00")
+	user := parts[0]
+	password := strings.Trim(parts[1], "\x00")
 	return types.DockerAuthConfig{
 		Username:      user,
 		Password:      password,
@@ -782,7 +786,7 @@ func normalizeAuthFileKey(key string, legacyFormat bool) string {
 	stripped = strings.TrimPrefix(stripped, "https://")
 
 	if legacyFormat || stripped != key {
-		stripped, _, _ = strings.Cut(stripped, "/")
+		stripped = strings.SplitN(stripped, "/", 2)[0]
 	}
 
 	return normalizeRegistry(stripped)

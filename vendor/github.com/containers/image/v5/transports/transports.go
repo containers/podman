@@ -5,7 +5,6 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/containers/image/v5/internal/set"
 	"github.com/containers/image/v5/types"
 )
 
@@ -67,21 +66,22 @@ func Register(t types.ImageTransport) {
 // This is the generally recommended way to refer to images in the UI.
 //
 // NOTE: The returned string is not promised to be equal to the original input to ParseImageName;
-// e.g. default attribute values omitted by the user may be filled in the return value, or vice versa.
+// e.g. default attribute values omitted by the user may be filled in in the return value, or vice versa.
 func ImageName(ref types.ImageReference) string {
 	return ref.Transport().Name() + ":" + ref.StringWithinTransport()
 }
-
-var deprecatedTransports = set.NewWithValues("atomic")
 
 // ListNames returns a list of non deprecated transport names.
 // Deprecated transports can be used, but are not presented to users.
 func ListNames() []string {
 	kt.mu.Lock()
 	defer kt.mu.Unlock()
+	deprecated := map[string]bool{
+		"atomic": true,
+	}
 	var names []string
 	for _, transport := range kt.transports {
-		if !deprecatedTransports.Contains(transport.Name()) {
+		if !deprecated[transport.Name()] {
 			names = append(names, transport.Name())
 		}
 	}

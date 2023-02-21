@@ -12,7 +12,6 @@ import (
 	"github.com/containers/image/v5/internal/private"
 	"github.com/containers/image/v5/manifest"
 	digest "github.com/opencontainers/go-digest"
-	"golang.org/x/exp/slices"
 )
 
 func (pr *prSignedBy) isSignatureAuthorAccepted(ctx context.Context, image private.UnparsedImage, sig []byte) (signatureAcceptanceResult, *Signature, error) {
@@ -68,8 +67,10 @@ func (pr *prSignedBy) isSignatureAuthorAccepted(ctx context.Context, image priva
 
 	signature, err := verifyAndExtractSignature(mech, sig, signatureAcceptanceRules{
 		validateKeyIdentity: func(keyIdentity string) error {
-			if slices.Contains(trustedIdentities, keyIdentity) {
-				return nil
+			for _, trustedIdentity := range trustedIdentities {
+				if keyIdentity == trustedIdentity {
+					return nil
+				}
 			}
 			// Coverage: We use a private GPG home directory and only import trusted keys, so this should
 			// not be reachable.

@@ -100,7 +100,7 @@ func WithFulcioAndPreexistingOIDCIDToken(fulcioURL *url.URL, oidcIDToken string)
 // WithFulcioAndDeviceAuthorizationGrantOIDC sets up signing to use a short-lived key and a Fulcio-issued certificate
 // based on an OIDC ID token obtained using a device authorization grant (RFC 8628).
 //
-// interactiveOutput must be directly accessible to a human user in real time (i.e. not be just a log file).
+// interactiveOutput must be directly accesible to a human user in real time (i.e. not be just a log file).
 func WithFulcioAndDeviceAuthorizationGrantOIDC(fulcioURL *url.URL, oidcIssuerURL *url.URL, oidcClientID, oidcClientSecret string,
 	interactiveOutput io.Writer) internal.Option {
 	return func(s *internal.SigstoreSigner) error {

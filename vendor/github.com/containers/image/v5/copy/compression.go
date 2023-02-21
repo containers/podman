@@ -10,7 +10,6 @@ import (
 	compressiontypes "github.com/containers/image/v5/pkg/compression/types"
 	"github.com/containers/image/v5/types"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/exp/maps"
 )
 
 // bpDetectCompressionStepData contains data that the copy pipeline needs about the “detect compression” step.
@@ -200,9 +199,7 @@ func (ic *imageCopier) bpcDecompressCompressed(stream *sourceStream, detected bp
 }
 
 // bpcPreserveOriginal returns a *bpCompressionStepData for not changing the original blob.
-// This does not change the sourceStream parameter; we include it for symmetry with other
-// pipeline steps.
-func (ic *imageCopier) bpcPreserveOriginal(_ *sourceStream, detected bpDetectCompressionStepData,
+func (ic *imageCopier) bpcPreserveOriginal(stream *sourceStream, detected bpDetectCompressionStepData,
 	layerCompressionChangeSupported bool) *bpCompressionStepData {
 	logrus.Debugf("Using original blob without modification")
 	// Remember if the original blob was compressed, and if so how, so that if
@@ -235,7 +232,9 @@ func (d *bpCompressionStepData) updateCompressionEdits(operation *types.LayerCom
 	if *annotations == nil {
 		*annotations = map[string]string{}
 	}
-	maps.Copy(*annotations, d.uploadedAnnotations)
+	for k, v := range d.uploadedAnnotations {
+		(*annotations)[k] = v
+	}
 }
 
 // recordValidatedBlobData updates b.blobInfoCache with data about the created uploadedInfo adnd the original srcInfo.

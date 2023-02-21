@@ -28,7 +28,7 @@ type UntrustedRekorSET struct {
 }
 
 type UntrustedRekorPayload struct {
-	Body           []byte // In cosign, this is an any, but only a string works
+	Body           []byte // In cosign, this is an interface{}, but only a string works
 	IntegratedTime int64
 	LogIndex       int64
 	LogID          string
@@ -51,7 +51,7 @@ func (s *UntrustedRekorSET) UnmarshalJSON(data []byte) error {
 // strictUnmarshalJSON is UnmarshalJSON, except that it may return the internal JSONFormatError error type.
 // Splitting it into a separate function allows us to do the JSONFormatError → InvalidSignatureError in a single place, the caller.
 func (s *UntrustedRekorSET) strictUnmarshalJSON(data []byte) error {
-	return ParanoidUnmarshalJSONObjectExactFields(data, map[string]any{
+	return ParanoidUnmarshalJSONObjectExactFields(data, map[string]interface{}{
 		"SignedEntryTimestamp": &s.UntrustedSignedEntryTimestamp,
 		"Payload":              &s.UntrustedPayload,
 	})
@@ -63,7 +63,7 @@ var _ json.Marshaler = (*UntrustedRekorSET)(nil)
 
 // MarshalJSON implements the json.Marshaler interface.
 func (s UntrustedRekorSET) MarshalJSON() ([]byte, error) {
-	return json.Marshal(map[string]any{
+	return json.Marshal(map[string]interface{}{
 		"SignedEntryTimestamp": s.UntrustedSignedEntryTimestamp,
 		"Payload":              s.UntrustedPayload,
 	})
@@ -86,7 +86,7 @@ func (p *UntrustedRekorPayload) UnmarshalJSON(data []byte) error {
 // strictUnmarshalJSON is UnmarshalJSON, except that it may return the internal JSONFormatError error type.
 // Splitting it into a separate function allows us to do the JSONFormatError → InvalidSignatureError in a single place, the caller.
 func (p *UntrustedRekorPayload) strictUnmarshalJSON(data []byte) error {
-	return ParanoidUnmarshalJSONObjectExactFields(data, map[string]any{
+	return ParanoidUnmarshalJSONObjectExactFields(data, map[string]interface{}{
 		"body":           &p.Body,
 		"integratedTime": &p.IntegratedTime,
 		"logIndex":       &p.LogIndex,
@@ -100,7 +100,7 @@ var _ json.Marshaler = (*UntrustedRekorPayload)(nil)
 
 // MarshalJSON implements the json.Marshaler interface.
 func (p UntrustedRekorPayload) MarshalJSON() ([]byte, error) {
-	return json.Marshal(map[string]any{
+	return json.Marshal(map[string]interface{}{
 		"body":           p.Body,
 		"integratedTime": p.IntegratedTime,
 		"logIndex":       p.LogIndex,
@@ -159,7 +159,7 @@ func VerifyRekorSET(publicKey *ecdsa.PublicKey, unverifiedRekorSET []byte, unver
 	}
 	hashedRekordV001Bytes, err := json.Marshal(hashedRekord.Spec)
 	if err != nil {
-		// Coverage: hashedRekord.Spec is an any that was just unmarshaled,
+		// Coverage: hashedRekord.Spec is an interface{} that was just unmarshaled,
 		// so this should never fail.
 		return time.Time{}, NewInvalidSignatureError(fmt.Sprintf("re-creating hashedrekord spec: %v", err))
 	}

@@ -17,7 +17,7 @@ func leveledLoggerForLogrus(logger *logrus.Logger) retryablehttp.LeveledLogger {
 }
 
 // log is the actual conversion implementation
-func (l *leveledLogger) log(level logrus.Level, msg string, keysAndValues []any) {
+func (l *leveledLogger) log(level logrus.Level, msg string, keysAndValues []interface{}) {
 	fields := logrus.Fields{}
 	for i := 0; i < len(keysAndValues)-1; i += 2 {
 		key := keysAndValues[i]
@@ -32,21 +32,21 @@ func (l *leveledLogger) log(level logrus.Level, msg string, keysAndValues []any)
 }
 
 // Debug implements retryablehttp.LeveledLogger
-func (l *leveledLogger) Debug(msg string, keysAndValues ...any) {
+func (l *leveledLogger) Debug(msg string, keysAndValues ...interface{}) {
 	l.log(logrus.DebugLevel, msg, keysAndValues)
 }
 
 // Error implements retryablehttp.LeveledLogger
-func (l *leveledLogger) Error(msg string, keysAndValues ...any) {
+func (l *leveledLogger) Error(msg string, keysAndValues ...interface{}) {
 	l.log(logrus.ErrorLevel, msg, keysAndValues)
 }
 
 // Info implements retryablehttp.LeveledLogger
-func (l *leveledLogger) Info(msg string, keysAndValues ...any) {
+func (l *leveledLogger) Info(msg string, keysAndValues ...interface{}) {
 	l.log(logrus.InfoLevel, msg, keysAndValues)
 }
 
 // Warn implements retryablehttp.LeveledLogger
-func (l *leveledLogger) Warn(msg string, keysAndValues ...any) {
+func (l *leveledLogger) Warn(msg string, keysAndValues ...interface{}) {
 	l.log(logrus.WarnLevel, msg, keysAndValues)
 }

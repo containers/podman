@@ -8,13 +8,10 @@ import (
 	"time"
 
 	"github.com/containers/image/v5/docker/reference"
-	"github.com/containers/image/v5/internal/manifest"
-	"github.com/containers/image/v5/internal/set"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/storage/pkg/regexp"
 	"github.com/docker/docker/api/types/versions"
 	"github.com/opencontainers/go-digest"
-	"golang.org/x/exp/slices"
 )
 
 // Schema1FSLayers is an entry of the "fsLayers" array in docker/distribution schema 1.
@@ -56,16 +53,16 @@ type Schema1V1Compatibility struct {
 // Schema1FromManifest creates a Schema1 manifest instance from a manifest blob.
 // (NOTE: The instance is not necessary a literal representation of the original blob,
 // layers with duplicate IDs are eliminated.)
-func Schema1FromManifest(manifestBlob []byte) (*Schema1, error) {
+func Schema1FromManifest(manifest []byte) (*Schema1, error) {
 	s1 := Schema1{}
-	if err := json.Unmarshal(manifestBlob, &s1); err != nil {
+	if err := json.Unmarshal(manifest, &s1); err != nil {
 		return nil, err
 	}
 	if s1.SchemaVersion != 1 {
 		return nil, fmt.Errorf("unsupported schema version %d", s1.SchemaVersion)
 	}
-	if err := manifest.ValidateUnambiguousManifestFormat(manifestBlob, DockerV2Schema1SignedMediaType,
-		manifest.AllowedFieldFSLayers|manifest.AllowedFieldHistory); err != nil {
+	if err := validateUnambiguousManifestFormat(manifest, DockerV2Schema1SignedMediaType,
+		allowedFieldFSLayers|allowedFieldHistory); err != nil {
 		return nil, err
 	}
 	if err := s1.initialize(); err != nil {
@@ -186,22 +183,22 @@ func (m *Schema1) fixManifestLayers() error {
 		return errors.New("Invalid parent ID in the base layer of the image")
 	}
 	// check general duplicates to error instead of a deadlock
-	idmap := set.New[string]()
+	idmap := make(map[string]struct{})
 	var lastID string
 	for _, img := range m.ExtractedV1Compatibility {
 		// skip IDs that appear after each other, we handle those later
-		if img.ID != lastID && idmap.Contains(img.ID) {
+		if _, exists := idmap[img.ID]; img.ID != lastID && exists {
 			return fmt.Errorf("ID %+v appears multiple times in manifest", img.ID)
 		}
 		lastID = img.ID
-		idmap.Add(lastID)
+		idmap[lastID] = struct{}{}
 	}
 	// backwards loop so that we keep the remaining indexes after removing items
 	for i := len(m.ExtractedV1Compatibility) - 2; i >= 0; i-- {
 		if m.ExtractedV1Compatibility[i].ID == m.ExtractedV1Compatibility[i+1].ID { // repeated ID. remove and continue
-			m.FSLayers = slices.Delete(m.FSLayers, i, i+1)
-			m.History = slices.Delete(m.History, i, i+1)
-			m.ExtractedV1Compatibility = slices.Delete(m.ExtractedV1Compatibility, i, i+1)
+			m.FSLayers = append(m.FSLayers[:i], m.FSLayers[i+1:]...)
+			m.History = append(m.History[:i], m.History[i+1:]...)
+			m.ExtractedV1Compatibility = append(m.ExtractedV1Compatibility[:i], m.ExtractedV1Compatibility[i+1:]...)
 		} else if m.ExtractedV1Compatibility[i].Parent != m.ExtractedV1Compatibility[i+1].ID {
 			return fmt.Errorf("Invalid parent ID. Expected %v, got %v", m.ExtractedV1Compatibility[i+1].ID, m.ExtractedV1Compatibility[i].Parent)
 		}

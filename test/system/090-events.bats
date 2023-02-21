@@ -71,8 +71,8 @@ load helpers
     run_podman --events-backend=file events --stream=false --filter type=image --since $t0
     is "$output" ".*image push $imageID dir:$pushedDir
 .*image save $imageID $tarball
-.*image loadfromarchive *$tarball
-.*image pull *docker-archive:$tarball
+.*image loadfromarchive $imageID *$tarball
+.*image pull $imageID $IMAGE
 .*image tag $imageID $tag
 .*image untag $imageID $tag:latest
 .*image tag $imageID $tag
@@ -85,7 +85,7 @@ load helpers
     local -a expect=("push--dir:$pushedDir"
                      "save--$tarball"
                      "loadfromarchive--$tarball"
-                     "pull--docker-archive:$tarball"
+                     "pull--$IMAGE"
                      "tag--$tag"
                      "untag--$tag:latest"
                      "tag--$tag"
@@ -150,7 +150,11 @@ function _events_disjunctive_filters() {
 events_logfile_path="$events_file"
 EOF
     CONTAINERS_CONF="$containersconf" run_podman --events-backend=file pull $IMAGE
-    assert "$(< $events_file)" =~ "\"Name\":\"$IMAGE\"" "Image found in events"
+
+    run_podman image inspect --format "{{.ID}}" $IMAGE
+    imageID="$output"
+
+    assert "$(< $events_file)" =~ "\"Name\":\"$imageID\"" "Image found in events"
 }
 
 function _populate_events_file() {

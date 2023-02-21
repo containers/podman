@@ -25,24 +25,24 @@ import (
 // ParseImageName converts a URL-like image name to a types.ImageReference.
 func ParseImageName(imgName string) (types.ImageReference, error) {
 	// Keep this in sync with TransportFromImageName!
-	transportName, withinTransport, valid := strings.Cut(imgName, ":")
-	if !valid {
+	parts := strings.SplitN(imgName, ":", 2)
+	if len(parts) != 2 {
 		return nil, fmt.Errorf(`Invalid image name "%s", expected colon-separated transport:reference`, imgName)
 	}
-	transport := transports.Get(transportName)
+	transport := transports.Get(parts[0])
 	if transport == nil {
-		return nil, fmt.Errorf(`Invalid image name "%s", unknown transport "%s"`, imgName, transportName)
+		return nil, fmt.Errorf(`Invalid image name "%s", unknown transport "%s"`, imgName, parts[0])
 	}
-	return transport.ParseReference(withinTransport)
+	return transport.ParseReference(parts[1])
 }
 
 // TransportFromImageName converts an URL-like name to a types.ImageTransport or nil when
 // the transport is unknown or when the input is invalid.
 func TransportFromImageName(imageName string) types.ImageTransport {
 	// Keep this in sync with ParseImageName!
-	transportName, _, valid := strings.Cut(imageName, ":")
-	if valid {
-		return transports.Get(transportName)
+	parts := strings.SplitN(imageName, ":", 2)
+	if len(parts) == 2 {
+		return transports.Get(parts[0])
 	}
 	return nil
 }

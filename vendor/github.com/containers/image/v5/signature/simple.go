@@ -81,19 +81,19 @@ func (s untrustedSignature) MarshalJSON() ([]byte, error) {
 	if s.UntrustedDockerManifestDigest == "" || s.UntrustedDockerReference == "" {
 		return nil, errors.New("Unexpected empty signature content")
 	}
-	critical := map[string]any{
+	critical := map[string]interface{}{
 		"type":     signatureType,
 		"image":    map[string]string{"docker-manifest-digest": s.UntrustedDockerManifestDigest.String()},
 		"identity": map[string]string{"docker-reference": s.UntrustedDockerReference},
 	}
-	optional := map[string]any{}
+	optional := map[string]interface{}{}
 	if s.UntrustedCreatorID != nil {
 		optional["creator"] = *s.UntrustedCreatorID
 	}
 	if s.UntrustedTimestamp != nil {
 		optional["timestamp"] = *s.UntrustedTimestamp
 	}
-	signature := map[string]any{
+	signature := map[string]interface{}{
 		"critical": critical,
 		"optional": optional,
 	}
@@ -118,7 +118,7 @@ func (s *untrustedSignature) UnmarshalJSON(data []byte) error {
 // Splitting it into a separate function allows us to do the internal.JSONFormatError → InvalidSignatureError in a single place, the caller.
 func (s *untrustedSignature) strictUnmarshalJSON(data []byte) error {
 	var critical, optional json.RawMessage
-	if err := internal.ParanoidUnmarshalJSONObjectExactFields(data, map[string]any{
+	if err := internal.ParanoidUnmarshalJSONObjectExactFields(data, map[string]interface{}{
 		"critical": &critical,
 		"optional": &optional,
 	}); err != nil {
@@ -128,7 +128,7 @@ func (s *untrustedSignature) strictUnmarshalJSON(data []byte) error {
 	var creatorID string
 	var timestamp float64
 	var gotCreatorID, gotTimestamp = false, false
-	if err := internal.ParanoidUnmarshalJSONObject(optional, func(key string) any {
+	if err := internal.ParanoidUnmarshalJSONObject(optional, func(key string) interface{} {
 		switch key {
 		case "creator":
 			gotCreatorID = true
@@ -137,7 +137,7 @@ func (s *untrustedSignature) strictUnmarshalJSON(data []byte) error {
 			gotTimestamp = true
 			return &timestamp
 		default:
-			var ignore any
+			var ignore interface{}
 			return &ignore
 		}
 	}); err != nil {
@@ -156,7 +156,7 @@ func (s *untrustedSignature) strictUnmarshalJSON(data []byte) error {
 
 	var t string
 	var image, identity json.RawMessage
-	if err := internal.ParanoidUnmarshalJSONObjectExactFields(critical, map[string]any{
+	if err := internal.ParanoidUnmarshalJSONObjectExactFields(critical, map[string]interface{}{
 		"type":     &t,
 		"image":    &image,
 		"identity": &identity,
@@ -168,14 +168,14 @@ func (s *untrustedSignature) strictUnmarshalJSON(data []byte) error {
 	}
 
 	var digestString string
-	if err := internal.ParanoidUnmarshalJSONObjectExactFields(image, map[string]any{
+	if err := internal.ParanoidUnmarshalJSONObjectExactFields(image, map[string]interface{}{
 		"docker-manifest-digest": &digestString,
 	}); err != nil {
 		return err
 	}
 	s.UntrustedDockerManifestDigest = digest.Digest(digestString)
 
-	return internal.ParanoidUnmarshalJSONObjectExactFields(identity, map[string]any{
+	return internal.ParanoidUnmarshalJSONObjectExactFields(identity, map[string]interface{}{
 		"docker-reference": &s.UntrustedDockerReference,
 	})
 }

@@ -46,7 +46,7 @@ type PolicyRequirement interface {
 	// - sarRejected if the signature has not been verified;
 	//   in that case error must be non-nil, and should be an PolicyRequirementError if evaluation
 	//   succeeded but the result was rejection.
-	// - sarUnknown if this PolicyRequirement does not deal with signatures.
+	// - sarUnknown if if this PolicyRequirement does not deal with signatures.
 	//   NOTE: sarUnknown should not be returned if this PolicyRequirement should make a decision but something failed.
 	//   Returning sarUnknown and a non-nil error value is invalid.
 	// WARNING: This makes the signature contents acceptable for further processing,

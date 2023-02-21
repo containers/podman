@@ -21,7 +21,6 @@ import (
 	"github.com/containers/image/v5/internal/iolimits"
 	"github.com/containers/image/v5/internal/private"
 	"github.com/containers/image/v5/internal/putblobdigest"
-	"github.com/containers/image/v5/internal/set"
 	"github.com/containers/image/v5/internal/signature"
 	"github.com/containers/image/v5/internal/streamdigest"
 	"github.com/containers/image/v5/internal/uploadreader"
@@ -33,8 +32,6 @@ import (
 	"github.com/opencontainers/go-digest"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/exp/maps"
-	"golang.org/x/exp/slices"
 )
 
 type dockerImageDestination struct {
@@ -734,15 +731,24 @@ func layerMatchesSigstoreSignature(layer imgspecv1.Descriptor, mimeType string,
 		// But right now we don’t want to deal with corner cases like bad digest formats
 		// or unavailable algorithms; in the worst case we end up with duplicate signature
 		// entries.
-		layer.Digest.String() != digest.FromBytes(payloadBlob).String() ||
-		!maps.Equal(layer.Annotations, annotations) {
+		layer.Digest.String() != digest.FromBytes(payloadBlob).String() {
 		return false
 	}
+	if len(layer.Annotations) != len(annotations) {
+		return false
+	}
+	for k, v1 := range layer.Annotations {
+		if v2, ok := annotations[k]; !ok || v1 != v2 {
+			return false
+		}
+	}
+	// All annotations in layer exist in sig, and the number of annotations is the same, so all annotations
+	// in sig also exist in layer.
 	return true
 }
 
 // putBlobBytesAsOCI uploads a blob with the specified contents, and returns an appropriate
-// OCI descriptor.
+// OCI descriptior.
 func (d *dockerImageDestination) putBlobBytesAsOCI(ctx context.Context, contents []byte, mimeType string, options private.PutBlobOptions) (imgspecv1.Descriptor, error) {
 	blobDigest := digest.FromBytes(contents)
 	info, err := d.PutBlobWithOptions(ctx, bytes.NewReader(contents),
@@ -797,11 +803,12 @@ func (d *dockerImageDestination) putSignaturesToAPIExtension(ctx context.Context
 	if err != nil {
 		return err
 	}
-	existingSigNames := set.New[string]()
+	existingSigNames := map[string]struct{}{}
 	for _, sig := range existingSignatures.Signatures {
-		existingSigNames.Add(sig.Name)
+		existingSigNames[sig.Name] = struct{}{}
 	}
 
+sigExists:
 	for _, newSigWithFormat := range signatures {
 		newSigSimple, ok := newSigWithFormat.(signature.SimpleSigning)
 		if !ok {
@@ -809,10 +816,10 @@ func (d *dockerImageDestination) putSignaturesToAPIExtension(ctx context.Context
 		}
 		newSig := newSigSimple.UntrustedSignature()
 
-		if slices.ContainsFunc(existingSignatures.Signatures, func(existingSig extensionSignature) bool {
-			return existingSig.Version == extensionSignatureSchemaVersion && existingSig.Type == extensionSignatureTypeAtomic && bytes.Equal(existingSig.Content, newSig)
-		}) {
-			continue
+		for _, existingSig := range existingSignatures.Signatures {
+			if existingSig.Version == extensionSignatureSchemaVersion && existingSig.Type == extensionSignatureTypeAtomic && bytes.Equal(existingSig.Content, newSig) {
+				continue sigExists
+			}
 		}
 
 		// The API expect us to invent a new unique name. This is racy, but hopefully good enough.
@@ -824,7 +831,7 @@ func (d *dockerImageDestination) putSignaturesToAPIExtension(ctx context.Context
 				return fmt.Errorf("generating random signature len %d: %w", n, err)
 			}
 			signatureName = fmt.Sprintf("%s@%032x", manifestDigest.String(), randBytes)
-			if !existingSigNames.Contains(signatureName) {
+			if _, ok := existingSigNames[signatureName]; !ok {
 				break
 			}
 		}

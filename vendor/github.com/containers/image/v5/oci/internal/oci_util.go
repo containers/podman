@@ -58,7 +58,13 @@ func splitPathAndImageWindows(reference string) (string, string) {
 }
 
 func splitPathAndImageNonWindows(reference string) (string, string) {
-	path, image, _ := strings.Cut(reference, ":") // image is set to "" if there is no ":"
+	sep := strings.SplitN(reference, ":", 2)
+	path := sep[0]
+
+	var image string
+	if len(sep) == 2 {
+		image = sep[1]
+	}
 	return path, image
 }
 

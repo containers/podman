@@ -448,8 +448,8 @@ func SearchRegistry(ctx context.Context, sys *types.SystemContext, registry, ima
 		if link == "" {
 			break
 		}
-		linkURLPart, _, _ := strings.Cut(link, ";")
-		linkURL, err := url.Parse(strings.Trim(linkURLPart, "<>"))
+		linkURLStr := strings.Trim(strings.Split(link, ";")[0], "<>")
+		linkURL, err := url.Parse(linkURLStr)
 		if err != nil {
 			return searchRes, err
 		}
@@ -596,7 +596,7 @@ func (c *dockerClient) makeRequestToResolvedURL(ctx context.Context, method stri
 		case <-time.After(delay):
 			// Nothing
 		}
-		delay *= 2 // If the registry does not specify a delay, back off exponentially.
+		delay = delay * 2 // If the registry does not specify a delay, back off exponentially.
 	}
 }
 
@@ -985,7 +985,7 @@ func (c *dockerClient) getBlob(ctx context.Context, ref dockerReference, info ty
 	return reconnectingReader, blobSize, nil
 }
 
-// getOCIDescriptorContents returns the contents a blob specified by descriptor in ref, which must fit within limit.
+// getOCIDescriptorContents returns the contents a blob spcified by descriptor in ref, which must fit within limit.
 func (c *dockerClient) getOCIDescriptorContents(ctx context.Context, ref dockerReference, desc imgspecv1.Descriptor, maxSize int, cache types.BlobInfoCache) ([]byte, error) {
 	// Note that this copies all kinds of attachments: attestations, and whatever else is there,
 	// not just signatures. We leave the signature consumers to decide based on the MIME type.

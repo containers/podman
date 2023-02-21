@@ -9,8 +9,8 @@ import (
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/internal/image"
 	"github.com/containers/image/v5/types"
+
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
-	"golang.org/x/exp/maps"
 )
 
 // ConfigUpdater is an interface that ImageReferences for "tarball" images also
@@ -35,7 +35,9 @@ func (r *tarballReference) ConfigUpdate(config imgspecv1.Image, annotations map[
 	if r.annotations == nil {
 		r.annotations = make(map[string]string)
 	}
-	maps.Copy(r.annotations, annotations)
+	for k, v := range annotations {
+		r.annotations[k] = v
+	}
 	return nil
 }
 
@@ -71,7 +73,7 @@ func (r *tarballReference) NewImage(ctx context.Context, sys *types.SystemContex
 func (r *tarballReference) DeleteImage(ctx context.Context, sys *types.SystemContext) error {
 	for _, filename := range r.filenames {
 		if err := os.Remove(filename); err != nil && !os.IsNotExist(err) {
-			return fmt.Errorf("error removing %q: %w", filename, err)
+			return fmt.Errorf("error removing %q: %v", filename, err)
 		}
 	}
 	return nil

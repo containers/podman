@@ -66,15 +66,17 @@ func FromBlob(blob []byte) (Signature, error) {
 		// The newer format: binary 0, format name, newline, data
 	case 0x00:
 		blob = blob[1:]
-		formatBytes, blobChunk, foundNewline := bytes.Cut(blob, []byte{'\n'})
-		if !foundNewline {
+		newline := bytes.IndexByte(blob, '\n')
+		if newline == -1 {
 			return nil, fmt.Errorf("invalid signature format, missing newline")
 		}
+		formatBytes := blob[:newline]
 		for _, b := range formatBytes {
 			if b < 32 || b >= 0x7F {
 				return nil, fmt.Errorf("invalid signature format, non-ASCII byte %#x", b)
 			}
 		}
+		blobChunk := blob[newline+1:]
 		switch {
 		case bytes.Equal(formatBytes, []byte(SimpleSigningFormat)):
 			return SimpleSigningFromBlob(blobChunk), nil
@@ -99,4 +101,11 @@ func UnsupportedFormatError(sig Signature) error {
 	default:
 		return fmt.Errorf("unsupported, and unrecognized, signature format %q", string(formatID))
 	}
+}
+
+// copyByteSlice returns a guaranteed-fresh copy of a byte slice
+// Use this to make sure the underlying data is not shared and can’t be unexpectedly modified.
+func copyByteSlice(s []byte) []byte {
+	res := []byte{}
+	return append(res, s...)
 }

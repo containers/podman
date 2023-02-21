@@ -13,9 +13,9 @@ import (
 	"github.com/containers/image/v5/internal/rootless"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/storage/pkg/homedir"
+	"github.com/ghodss/yaml"
 	"github.com/opencontainers/go-digest"
 	"github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v3"
 )
 
 // systemRegistriesDirPath is the path to registries.d, used for locating lookaside Docker signature storage.
@@ -39,18 +39,18 @@ var defaultDockerDir = "/var/lib/containers/sigstore"
 // registryConfiguration is one of the files in registriesDirPath configuring lookaside locations, or the result of merging them all.
 // NOTE: Keep this in sync with docs/registries.d.md!
 type registryConfiguration struct {
-	DefaultDocker *registryNamespace `yaml:"default-docker"`
+	DefaultDocker *registryNamespace `json:"default-docker"`
 	// The key is a namespace, using fully-expanded Docker reference format or parent namespaces (per dockerReference.PolicyConfiguration*),
-	Docker map[string]registryNamespace `yaml:"docker"`
+	Docker map[string]registryNamespace `json:"docker"`
 }
 
 // registryNamespace defines lookaside locations for a single namespace.
 type registryNamespace struct {
-	Lookaside              string `yaml:"lookaside"`         // For reading, and if LookasideStaging is not present, for writing.
-	LookasideStaging       string `yaml:"lookaside-staging"` // For writing only.
-	SigStore               string `yaml:"sigstore"`          // For compatibility, deprecated in favor of Lookaside.
-	SigStoreStaging        string `yaml:"sigstore-staging"`  // For compatibility, deprecated in favor of LookasideStaging.
-	UseSigstoreAttachments *bool  `yaml:"use-sigstore-attachments,omitempty"`
+	Lookaside              string `json:"lookaside"`         // For reading, and if LookasideStaging is not present, for writing.
+	LookasideStaging       string `json:"lookaside-staging"` // For writing only.
+	SigStore               string `json:"sigstore"`          // For compatibility, deprecated in favor of Lookaside.
+	SigStoreStaging        string `json:"sigstore-staging"`  // For compatibility, deprecated in favor of LookasideStaging.
+	UseSigstoreAttachments *bool  `json:"use-sigstore-attachments,omitempty"`
 }
 
 // lookasideStorageBase is an "opaque" type representing a lookaside Docker signature storage.

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/containers/image/v5/internal/manifest"
 	internalManifest "github.com/containers/image/v5/internal/manifest"
 	compressiontypes "github.com/containers/image/v5/pkg/compression/types"
 	"github.com/containers/image/v5/types"
@@ -13,7 +12,6 @@ import (
 	"github.com/opencontainers/go-digest"
 	"github.com/opencontainers/image-spec/specs-go"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
-	"golang.org/x/exp/slices"
 )
 
 // BlobInfoFromOCI1Descriptor returns a types.BlobInfo based on the input OCI1 descriptor.
@@ -51,13 +49,13 @@ func SupportedOCI1MediaType(m string) error {
 }
 
 // OCI1FromManifest creates an OCI1 manifest instance from a manifest blob.
-func OCI1FromManifest(manifestBlob []byte) (*OCI1, error) {
+func OCI1FromManifest(manifest []byte) (*OCI1, error) {
 	oci1 := OCI1{}
-	if err := json.Unmarshal(manifestBlob, &oci1); err != nil {
+	if err := json.Unmarshal(manifest, &oci1); err != nil {
 		return nil, err
 	}
-	if err := manifest.ValidateUnambiguousManifestFormat(manifestBlob, imgspecv1.MediaTypeImageIndex,
-		manifest.AllowedFieldConfig|manifest.AllowedFieldLayers); err != nil {
+	if err := validateUnambiguousManifestFormat(manifest, imgspecv1.MediaTypeImageIndex,
+		allowedFieldConfig|allowedFieldLayers); err != nil {
 		return nil, err
 	}
 	return &oci1, nil
@@ -162,8 +160,10 @@ func (m *OCI1) UpdateLayerInfos(layerInfos []types.BlobInfo) error {
 // getEncryptedMediaType will return the mediatype to its encrypted counterpart and return
 // an error if the mediatype does not support encryption
 func getEncryptedMediaType(mediatype string) (string, error) {
-	if slices.Contains(strings.Split(mediatype, "+")[1:], "encrypted") {
-		return "", fmt.Errorf("unsupported mediaType: %v already encrypted", mediatype)
+	for _, s := range strings.Split(mediatype, "+")[1:] {
+		if s == "encrypted" {
+			return "", fmt.Errorf("unsupported mediaType: %v already encrypted", mediatype)
+		}
 	}
 	unsuffixedMediatype := strings.Split(mediatype, "+")[0]
 	switch unsuffixedMediatype {
@@ -178,7 +178,7 @@ func getEncryptedMediaType(mediatype string) (string, error) {
 // an error if the mediatype does not support decryption
 func getDecryptedMediaType(mediatype string) (string, error) {
 	if !strings.HasSuffix(mediatype, "+encrypted") {
-		return "", fmt.Errorf("unsupported mediaType to decrypt: %v", mediatype)
+		return "", fmt.Errorf("unsupported mediaType to decrypt %v:", mediatype)
 	}
 
 	return strings.TrimSuffix(mediatype, "+encrypted"), nil

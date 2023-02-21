@@ -21,7 +21,6 @@ import (
 	"github.com/containers/image/v5/internal/imagedestination/stubs"
 	"github.com/containers/image/v5/internal/private"
 	"github.com/containers/image/v5/internal/putblobdigest"
-	"github.com/containers/image/v5/internal/set"
 	"github.com/containers/image/v5/internal/signature"
 	"github.com/containers/image/v5/internal/tmpdir"
 	"github.com/containers/image/v5/manifest"
@@ -35,7 +34,6 @@ import (
 	digest "github.com/opencontainers/go-digest"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/exp/slices"
 )
 
 var (
@@ -244,7 +242,7 @@ type zstdFetcher struct {
 
 // GetBlobAt converts from chunked.GetBlobAt to BlobChunkAccessor.GetBlobAt.
 func (f *zstdFetcher) GetBlobAt(chunks []chunked.ImageSourceChunk) (chan io.ReadCloser, chan error, error) {
-	newChunks := make([]private.ImageSourceChunk, 0, len(chunks))
+	var newChunks []private.ImageSourceChunk
 	for _, v := range chunks {
 		i := private.ImageSourceChunk{
 			Offset: v.Offset,
@@ -797,14 +795,14 @@ func (s *storageImageDestination) Commit(ctx context.Context, unparsedToplevel t
 
 	// Add the non-layer blobs as data items.  Since we only share layers, they should all be in files, so
 	// we just need to screen out the ones that are actually layers to get the list of non-layers.
-	dataBlobs := set.New[digest.Digest]()
+	dataBlobs := make(map[digest.Digest]struct{})
 	for blob := range s.filenames {
-		dataBlobs.Add(blob)
+		dataBlobs[blob] = struct{}{}
 	}
 	for _, layerBlob := range layerBlobs {
-		dataBlobs.Delete(layerBlob.Digest)
+		delete(dataBlobs, layerBlob.Digest)
 	}
-	for _, blob := range dataBlobs.Values() {
+	for blob := range dataBlobs {
 		v, err := os.ReadFile(s.filenames[blob])
 		if err != nil {
 			return fmt.Errorf("copying non-layer blob %q to image: %w", blob, err)
@@ -885,7 +883,9 @@ func (s *storageImageDestination) PutManifest(ctx context.Context, manifestBlob 
 	if err != nil {
 		return err
 	}
-	s.manifest = slices.Clone(manifestBlob)
+	newBlob := make([]byte, len(manifestBlob))
+	copy(newBlob, manifestBlob)
+	s.manifest = newBlob
 	s.manifestDigest = digest
 	return nil
 }
