@@ -279,6 +279,20 @@ func finalizePodSqlite(pod *Pod) error {
 	return nil
 }
 
+// Finalize a volume that was pulled out of the database
+func finalizeVolumeSqlite(vol *Volume) error {
+	// Get the lock
+	lock, err := vol.runtime.lockManager.RetrieveLock(vol.config.LockID)
+	if err != nil {
+		return fmt.Errorf("retrieving lock for volume %s: %w", vol.Name(), err)
+	}
+	vol.lock = lock
+
+	vol.valid = true
+
+	return nil
+}
+
 func (s *SQLiteState) rewriteContainerConfig(ctr *Container, newCfg *ContainerConfig) (defErr error) {
 	json, err := json.Marshal(newCfg)
 	if err != nil {
@@ -404,6 +418,9 @@ func (s *SQLiteState) removeContainer(ctr *Container) (defErr error) {
 		}
 	}()
 
+	// TODO TODO TODO:
+	// Need to verify that at least 1 row was deleted from ContainerConfig.
+	// Otherwise return ErrNoSuchCtr.
 	if _, err := tx.Exec("DELETE FROM IDNamespace WHERE ID=?;", ctr.ID()); err != nil {
 		return fmt.Errorf("removing container %s id from database: %w", ctr.ID(), err)
 	}
