@@ -483,6 +483,7 @@ var _ = Describe("quadlet system generator", func() {
 		Entry("env-host.container", "env-host.container"),
 		Entry("env-host-false.container", "env-host-false.container"),
 		Entry("secrets.container", "secrets.container"),
+		Entry("logdriver.container", "logdriver.container"),
 
 		Entry("basic.volume", "basic.volume"),
 		Entry("label.volume", "label.volume"),
@@ -500,6 +501,7 @@ var _ = Describe("quadlet system generator", func() {
 		Entry("Kube - ConfigMap", "configmap.kube"),
 		Entry("Kube - Publish IPv4 ports", "ports.kube"),
 		Entry("Kube - Publish IPv6 ports", "ports_ipv6.kube"),
+		Entry("Kube - Logdriver", "logdriver.kube"),
 
 		Entry("Network - Basic", "basic.network"),
 		Entry("Network - Label", "label.network"),

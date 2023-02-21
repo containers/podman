@@ -88,6 +88,7 @@ Valid options for `[Container]` are listed below:
 | Group=1234                       | --user UID:1234                        |
 | Image=ubi8                       | Image specification - ubi8             |
 | Label="YXZ"                      | --label "XYZ"                          |
+| LogDriver=journald               | --log-driver journald                  |
 | Network=host                     | --net host                             |
 | NoNewPrivileges=true             | --security-opt no-new-privileges       |
 | Rootfs=/var/lib/rootfs           | --rootfs /var/lib/rootfs               |
@@ -208,6 +209,13 @@ Set one or more OCI labels on the container. The format is a list of `key=value`
 similar to `Environment`.
 
 This key can be listed multiple times.
+
+### `LogDriver=`
+
+Set the log-driver Podman should use when running the container.
+Equivalent to the Podman `--log-driver` option.
+
+The default value is `passthrough`.
 
 ### `Network=`
 
@@ -385,6 +393,7 @@ Valid options for `[Kube]` are listed below:
 | **[Kube] options**               | **podman kube play equivalent**        |
 | -----------------                | ------------------                     |
 | ConfigMap=/tmp/config.map        | --config-map /tmp/config.map           |
+| LogDriver=journald               | --log-driver journald                  |
 | Network=host                     | --net host                             |
 | PublishPort=59-60                | --publish=59-60                        |
 | RemapGid=keep-id                 | --group-add keep-id                    |
@@ -402,6 +411,13 @@ Unlike the `configmap` argument, the value may contain only one path but
 it may be absolute or relative to the location of the unit file.
 
 This key may be used multiple times
+
+### `LogDriver=`
+
+Set the log-driver Podman should use when running the container.
+Equivalent to the Podman `--log-driver` option.
+
+The default value is `passthrough`.
 
 ### `Network=`
 

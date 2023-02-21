@@ -27,6 +27,9 @@ const (
 	XKubeGroup      = "X-Kube"
 	XNetworkGroup   = "X-Network"
 	XVolumeGroup    = "X-Volume"
+
+	// Use passthough as the default log driver to output to Journal
+	defaultLogDriver = "passthrough"
 )
 
 // All the supported quadlet keys
@@ -47,6 +50,7 @@ const (
 	KeyGroup                 = "Group"
 	KeyImage                 = "Image"
 	KeyLabel                 = "Label"
+	KeyLogDriver             = "LogDriver"
 	KeyNetwork               = "Network"
 	KeyNetworkDisableDNS     = "DisableDNS"
 	KeyNetworkDriver         = "Driver"
@@ -101,6 +105,7 @@ var (
 		KeyGroup:                 true,
 		KeyImage:                 true,
 		KeyLabel:                 true,
+		KeyLogDriver:             true,
 		KeyNetwork:               true,
 		KeyNoNewPrivileges:       true,
 		KeyNotify:                true,
@@ -153,6 +158,7 @@ var (
 	// Supported keys in "Kube" group
 	supportedKubeKeys = map[string]bool{
 		KeyConfigMap:    true,
+		KeyLogDriver:    true,
 		KeyNetwork:      true,
 		KeyPublishPort:  true,
 		KeyRemapGID:     true,
@@ -309,10 +315,9 @@ func ConvertContainer(container *parser.UnitFile, isUser bool) (*parser.UnitFile
 
 		// On clean shutdown, remove container
 		"--rm",
-
-		// But we still want output to the journal, so use the log driver.
-		"--log-driver", "passthrough",
 	)
+
+	handleLogDriver(container, ContainerGroup, podman)
 
 	// We use crun as the runtime and delegated groups to it
 	service.Add(ServiceGroup, "Delegate", "yes")
@@ -793,10 +798,9 @@ func ConvertKube(kube *parser.UnitFile, isUser bool) (*parser.UnitFile, error) {
 
 		// Use a service container
 		"--service-container=true",
-
-		// We want output to the journal, so use the log driver.
-		"--log-driver", "passthrough",
 	)
+
+	handleLogDriver(kube, KubeGroup, execStart)
 
 	if err := handleUserRemap(kube, KubeGroup, execStart, isUser, false); err != nil {
 		return nil, err
@@ -981,4 +985,12 @@ func handlePublishPorts(unitFile *parser.UnitFile, groupName string, podman *Pod
 	}
 
 	return nil
+}
+
+func handleLogDriver(unitFile *parser.UnitFile, groupName string, podman *PodmanCmdline) {
+	logDriver, found := unitFile.Lookup(groupName, KeyLogDriver)
+	if !found {
+		logDriver = defaultLogDriver
+	}
+	podman.add("--log-driver", logDriver)
 }
