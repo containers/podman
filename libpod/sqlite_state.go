@@ -49,12 +49,16 @@ func NewSqliteState(runtime *Runtime) (_ State, defErr error) {
 		return nil, fmt.Errorf("cannot connect to database: %w", err)
 	}
 
+	// Enable foreign keys constraints, which we use extensively in our
+	// tables.
 	if _, err := state.conn.Exec("PRAGMA foreign_keys = ON;"); err != nil {
 		return nil, fmt.Errorf("enabling foreign key support in database: %w", err)
 	}
+	// Enable WAL mode for performance - https://www.sqlite.org/wal.html
 	if _, err := state.conn.Exec("PRAGMA journal_mode = WAL;"); err != nil {
 		return nil, fmt.Errorf("switching journal to WAL mode: %w", err)
 	}
+	// Force WAL mode to fsync after every transaction, for reboot safety.
 	if _, err := state.conn.Exec("PRAGMA synchronous = FULL;"); err != nil {
 		return nil, fmt.Errorf("setting full fsync mode in db: %w", err)
 	}
@@ -97,7 +101,7 @@ func (s *SQLiteState) Refresh() (defErr error) {
 	podStates := make(map[string]string)
 	volumeStates := make(map[string]string)
 
-	ctrRows, err := s.conn.Query("SELECT Id, Json FROM ContainerState;")
+	ctrRows, err := s.conn.Query("SELECT ID, JSON FROM ContainerState;")
 	if err != nil {
 		return fmt.Errorf("querying for container states: %w", err)
 	}
@@ -128,7 +132,7 @@ func (s *SQLiteState) Refresh() (defErr error) {
 		ctrStates[id] = string(newJSON)
 	}
 
-	podRows, err := s.conn.Query("SELECT Id, Json FROM PodState;")
+	podRows, err := s.conn.Query("SELECT ID, JSON FROM PodState;")
 	if err != nil {
 		return fmt.Errorf("querying for pod states: %w", err)
 	}
@@ -159,7 +163,7 @@ func (s *SQLiteState) Refresh() (defErr error) {
 		podStates[id] = string(newJSON)
 	}
 
-	volRows, err := s.conn.Query("SELECT Name, Json FROM VolumeState;")
+	volRows, err := s.conn.Query("SELECT Name, JSON FROM VolumeState;")
 	if err != nil {
 		return fmt.Errorf("querying for volume states: %w", err)
 	}
@@ -201,23 +205,23 @@ func (s *SQLiteState) Refresh() (defErr error) {
 	defer func() {
 		if defErr != nil {
 			if err := tx.Rollback(); err != nil {
-				logrus.Errorf("Error rolling back transaction to refresh database state: %v", err)
+				logrus.Errorf("Rolling back transaction to refresh database state: %v", err)
 			}
 		}
 	}()
 
 	for id, json := range ctrStates {
-		if _, err := tx.Exec("UPDATE TABLE ContainerState SET Json=? WHERE Id=?;", json, id); err != nil {
+		if _, err := tx.Exec("UPDATE TABLE ContainerState SET JSON=? WHERE ID=?;", json, id); err != nil {
 			return fmt.Errorf("updating container state: %w", err)
 		}
 	}
 	for id, json := range podStates {
-		if _, err := tx.Exec("UPDATE TABLE PodState SET Json=? WHERE Id=?;", json, id); err != nil {
+		if _, err := tx.Exec("UPDATE TABLE PodState SET JSON=? WHERE ID=?;", json, id); err != nil {
 			return fmt.Errorf("updating pod state: %w", err)
 		}
 	}
 	for name, json := range volumeStates {
-		if _, err := tx.Exec("UPDATE TABLE VolumeState SET Json=? WHERE Name=?;", json, name); err != nil {
+		if _, err := tx.Exec("UPDATE TABLE VolumeState SET JSON=? WHERE Name=?;", json, name); err != nil {
 			return fmt.Errorf("updating volume state: %w", err)
 		}
 	}
@@ -319,7 +323,7 @@ func (s *SQLiteState) ValidateDBConfig(runtime *Runtime) (defErr error) {
 			defer func() {
 				if defErr != nil {
 					if err := tx.Rollback(); err != nil {
-						logrus.Errorf("Error rolling back transaction to create DB config: %v", err)
+						logrus.Errorf("Rolling back transaction to create DB config: %v", err)
 					}
 				}
 			}()
@@ -386,7 +390,7 @@ func (s *SQLiteState) GetContainerName(id string) (string, error) {
 
 	var name string
 
-	row := s.conn.QueryRow("SELECT Name FROM ContainerConfig WHERE Id=?;", id)
+	row := s.conn.QueryRow("SELECT Name FROM ContainerConfig WHERE ID=?;", id)
 	if err := row.Scan(&name); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return "", define.ErrNoSuchCtr
@@ -411,7 +415,7 @@ func (s *SQLiteState) GetPodName(id string) (string, error) {
 
 	var name string
 
-	row := s.conn.QueryRow("SELECT Name FROM PodConfig WHERE Id=?;", id)
+	row := s.conn.QueryRow("SELECT Name FROM PodConfig WHERE ID=?;", id)
 	if err := row.Scan(&name); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return "", define.ErrNoSuchPod
@@ -461,7 +465,7 @@ func (s *SQLiteState) LookupContainerID(idOrName string) (string, error) {
 		return "", define.ErrDBClosed
 	}
 
-	rows, err := s.conn.Query("SELECT Id FROM ContainerConfig WHERE ContainerConfig.Name=? OR (ContainerConfig.Id LIKE ?);", idOrName, idOrName)
+	rows, err := s.conn.Query("SELECT ID FROM ContainerConfig WHERE ContainerConfig.Name=? OR (ContainerConfig.ID LIKE ?);", idOrName, idOrName)
 	if err != nil {
 		return "", fmt.Errorf("looking up container %q in database: %w", idOrName, err)
 	}
@@ -496,7 +500,7 @@ func (s *SQLiteState) LookupContainer(idOrName string) (*Container, error) {
 		return nil, define.ErrDBClosed
 	}
 
-	rows, err := s.conn.Query("SELECT Json FROM ContainerConfig WHERE ContainerConfig.Name=? OR (ContainerConfig.Id LIKE ?);", idOrName, idOrName)
+	rows, err := s.conn.Query("SELECT JSON FROM ContainerConfig WHERE ContainerConfig.Name=? OR (ContainerConfig.ID LIKE ?);", idOrName, idOrName)
 	if err != nil {
 		return nil, fmt.Errorf("looking up container %q in database: %w", idOrName, err)
 	}
@@ -543,7 +547,7 @@ func (s *SQLiteState) HasContainer(id string) (bool, error) {
 		return false, define.ErrDBClosed
 	}
 
-	row := s.conn.QueryRow("SELECT 1 FROM ContainerConfig WHERE Id=?;", id)
+	row := s.conn.QueryRow("SELECT 1 FROM ContainerConfig WHERE ID=?;", id)
 
 	var check int
 	if err := row.Scan(&check); err != nil {
@@ -601,7 +605,7 @@ func (s *SQLiteState) UpdateContainer(ctr *Container) error {
 		return define.ErrCtrRemoved
 	}
 
-	row := s.conn.QueryRow("SELECT Json FROM ContainerState WHERE Id=?;", ctr.ID())
+	row := s.conn.QueryRow("SELECT JSON FROM ContainerState WHERE ID=?;", ctr.ID())
 
 	var rawJSON string
 	if err := row.Scan(&rawJSON); err != nil {
@@ -644,12 +648,12 @@ func (s *SQLiteState) SaveContainer(ctr *Container) (defErr error) {
 	defer func() {
 		if defErr != nil {
 			if err := tx.Rollback(); err != nil {
-				logrus.Errorf("Error rolling back transaction to save container %s state: %v", ctr.ID(), err)
+				logrus.Errorf("Rolling back transaction to save container %s state: %v", ctr.ID(), err)
 			}
 		}
 	}()
 
-	result, err := tx.Exec("UPDATE ContainerState SET Json=? WHERE Id=?;", stateJSON, ctr.ID())
+	result, err := tx.Exec("UPDATE ContainerState SET JSON=? WHERE ID=?;", stateJSON, ctr.ID())
 	if err != nil {
 		return fmt.Errorf("writing container %s state: %w", ctr.ID(), err)
 	}
@@ -681,7 +685,7 @@ func (s *SQLiteState) ContainerInUse(ctr *Container) ([]string, error) {
 		return nil, define.ErrCtrRemoved
 	}
 
-	rows, err := s.conn.Query("SELECT Id FROM ContainerDependency WHERE DependencyID=?;", ctr.ID())
+	rows, err := s.conn.Query("SELECT ID FROM ContainerDependency WHERE DependencyID=?;", ctr.ID())
 	if err != nil {
 		return nil, fmt.Errorf("retrieving containers that depend on container %s: %w", ctr.ID(), err)
 	}
@@ -709,7 +713,7 @@ func (s *SQLiteState) AllContainers(loadState bool) ([]*Container, error) {
 	ctrs := []*Container{}
 
 	if loadState {
-		rows, err := s.conn.Query("SELECT ContainerConfig.Json, ContainerState.Json AS StateJson INNER JOIN ContainerState ON ContainerConfig.Id = ContainerState.Id;")
+		rows, err := s.conn.Query("SELECT ContainerConfig.JSON, ContainerState.JSON AS StateJSON INNER JOIN ContainerState ON ContainerConfig.ID = ContainerState.ID;")
 		if err != nil {
 			return nil, fmt.Errorf("retrieving all containers from database: %w", err)
 		}
@@ -736,7 +740,7 @@ func (s *SQLiteState) AllContainers(loadState bool) ([]*Container, error) {
 			ctrs = append(ctrs, ctr)
 		}
 	} else {
-		rows, err := s.conn.Query("SELECT Json FROM ContainerConfig;")
+		rows, err := s.conn.Query("SELECT JSON FROM ContainerConfig;")
 		if err != nil {
 			return nil, fmt.Errorf("retrieving all containers from database: %w", err)
 		}
@@ -843,7 +847,7 @@ func (s *SQLiteState) AddContainerExitCode(id string, exitCode int32) (defErr er
 	defer func() {
 		if defErr != nil {
 			if err := tx.Rollback(); err != nil {
-				logrus.Errorf("Error rolling back transaction to add exit code: %v", err)
+				logrus.Errorf("Rolling back transaction to add exit code: %v", err)
 			}
 		}
 	}()
@@ -869,7 +873,7 @@ func (s *SQLiteState) GetContainerExitCode(id string) (int32, error) {
 		return -1, define.ErrDBClosed
 	}
 
-	row := s.conn.QueryRow("SELECT ExitCode FROM ContainerExitCode WHERE Id=?;", id)
+	row := s.conn.QueryRow("SELECT ExitCode FROM ContainerExitCode WHERE ID=?;", id)
 
 	var exitCode int32
 	if err := row.Scan(&exitCode); err != nil {
@@ -893,7 +897,7 @@ func (s *SQLiteState) GetContainerExitCodeTimeStamp(id string) (*time.Time, erro
 		return nil, define.ErrDBClosed
 	}
 
-	row := s.conn.QueryRow("SELECT Timestamp FROM ContainerExitCode WHERE Id=?;", id)
+	row := s.conn.QueryRow("SELECT Timestamp FROM ContainerExitCode WHERE ID=?;", id)
 
 	var timestamp int64
 	if err := row.Scan(&timestamp); err != nil {
@@ -923,7 +927,7 @@ func (s *SQLiteState) PruneContainerExitCodes() (defErr error) {
 	defer func() {
 		if defErr != nil {
 			if err := tx.Rollback(); err != nil {
-				logrus.Errorf("Error rolling back transaction to remove old timestamps: %v", err)
+				logrus.Errorf("Rolling back transaction to remove old timestamps: %v", err)
 			}
 		}
 	}()
@@ -1418,7 +1422,7 @@ func (s *SQLiteState) LookupPod(idOrName string) (*Pod, error) {
 		return nil, define.ErrDBClosed
 	}
 
-	rows, err := s.conn.Query("SELECT Json FROM PodConfig WHERE PodConfig.Name=? OR (PodConfig.Id LIKE ?);", idOrName, idOrName)
+	rows, err := s.conn.Query("SELECT JSON FROM PodConfig WHERE PodConfig.Name=? OR (PodConfig.ID LIKE ?);", idOrName, idOrName)
 	if err != nil {
 		return nil, fmt.Errorf("looking up pod %q in database: %w", idOrName, err)
 	}

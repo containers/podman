@@ -51,60 +51,60 @@ func sqliteInitTables(conn *sql.DB) (defErr error) {
 	// run the SQL, but that seems unnecessary.
 	const dbConfig = `
         CREATE TABLE IF NOT EXISTS DBConfig(
-                Id            INTEGER PRIMARY KEY NOT NULL,
+                ID            INTEGER PRIMARY KEY NOT NULL,
                 SchemaVersion INTEGER NOT NULL,
-                Os            TEXT    NOT NULL,
+                OS            TEXT    NOT NULL,
                 StaticDir     TEXT    NOT NULL,
                 TmpDir        TEXT    NOT NULL,
                 GraphRoot     TEXT    NOT NULL,
                 RunRoot       TEXT    NOT NULL,
                 GraphDriver   TEXT    NOT NULL,
                 VolumeDir     TEXT    NOT NULL,
-                CHECK (Id IN (1))
+                CHECK (ID IN (1))
         );`
 
 	const idNamespace = `
         CREATE TABLE IF NOT EXISTS IDNamespace(
-                Id TEXT PRIMARY KEY NOT NULL
+                ID TEXT PRIMARY KEY NOT NULL
         );`
 
 	const containerConfig = `
         CREATE TABLE IF NOT EXISTS ContainerConfig(
-                Id              TEXT    PRIMARY KEY NOT NULL,
+                ID              TEXT    PRIMARY KEY NOT NULL,
                 Name            TEXT    UNIQUE NOT NULL,
                 PodID           TEXT,
-                Json            TEXT    NOT NULL,
-                FOREIGN KEY (Id)    REFERENCES IDNamespace(Id)    DEFERRABLE INITIALLY DEFERRED,
-                FOREIGN KEY (Id)    REFERENCES ContainerState(Id) DEFERRABLE INITIALLY DEFERRED,
-                FOREIGN KEY (PodID) REFERENCES PodConfig(Id)
+                JSON            TEXT    NOT NULL,
+                FOREIGN KEY (ID)    REFERENCES IDNamespace(ID)    DEFERRABLE INITIALLY DEFERRED,
+                FOREIGN KEY (ID)    REFERENCES ContainerState(ID) DEFERRABLE INITIALLY DEFERRED,
+                FOREIGN KEY (PodID) REFERENCES PodConfig(ID)
         );`
 
 	const containerState = `
         CREATE TABLE IF NOT EXISTS ContainerState(
-                Id       TEXT    PRIMARY KEY NOT NULL,
+                ID       TEXT    PRIMARY KEY NOT NULL,
                 State    INTEGER NOT NULL,
                 ExitCode INTEGER,
-                Json     TEXT    NOT NULL,
-                FOREIGN KEY (Id) REFERENCES ContainerConfig(Id) DEFERRABLE INITIALLY DEFERRED,
+                JSON     TEXT    NOT NULL,
+                FOREIGN KEY (ID) REFERENCES ContainerConfig(ID) DEFERRABLE INITIALLY DEFERRED,
                 CHECK (ExitCode BETWEEN 0 AND 255)
         );`
 
 	const containerExecSession = `
         CREATE TABLE IF NOT EXISTS ContainerExecSession(
-                Id          TEXT PRIMARY KEY NOT NULL,
+                ID          TEXT PRIMARY KEY NOT NULL,
                 ContainerID TEXT NOT NULL,
-                Json        TEXT NOT NULL,
-                FOREIGN KEY (ContainerID) REFERENCES ContainerConfig(Id)
+                JSON        TEXT NOT NULL,
+                FOREIGN KEY (ContainerID) REFERENCES ContainerConfig(ID)
         );`
 
 	const containerDependency = `
         CREATE TABLE IF NOT EXISTS ContainerDependency(
-                Id           TEXT NOT NULL,
+                ID           TEXT NOT NULL,
                 DependencyID TEXT NOT NULL,
-                PRIMARY KEY (Id, DependencyID),
-                FOREIGN KEY (Id)           REFERENCES ContainerConfig(Id) DEFERRABLE INITIALLY DEFERRED,
-                FOREIGN KEY (DependencyID) REFERENCES ContainerConfig(Id),
-                CHECK (Id <> DependencyID)
+                PRIMARY KEY (ID, DependencyID),
+                FOREIGN KEY (ID)           REFERENCES ContainerConfig(ID) DEFERRABLE INITIALLY DEFERRED,
+                FOREIGN KEY (DependencyID) REFERENCES ContainerConfig(ID),
+                CHECK (ID <> DependencyID)
         );`
 
 	const containerVolume = `
@@ -112,13 +112,13 @@ func sqliteInitTables(conn *sql.DB) (defErr error) {
                 ContainerID TEXT NOT NULL,
                 VolumeName  TEXT NOT NULL,
                 PRIMARY KEY (ContainerID, VolumeName),
-                FOREIGN KEY (ContainerID) REFERENCES ContainerConfig(Id) DEFERRABLE INITIALLY DEFERRED,
+                FOREIGN KEY (ContainerID) REFERENCES ContainerConfig(ID) DEFERRABLE INITIALLY DEFERRED,
                 FOREIGN KEY (VolumeName)  REFERENCES VolumeConfig(Name)
         );`
 
 	const containerExitCode = `
         CREATE TABLE IF NOT EXISTS ContainerExitCode(
-                Id        TEXT    PRIMARY KEY NOT NULL,
+                ID        TEXT    PRIMARY KEY NOT NULL,
                 Timestamp INTEGER NOT NULL,
                 ExitCode  INTEGER NOT NULL,
                 CHECK (ExitCode BETWEEN 0 AND 255)
@@ -126,34 +126,34 @@ func sqliteInitTables(conn *sql.DB) (defErr error) {
 
 	const podConfig = `
         CREATE TABLE IF NOT EXISTS PodConfig(
-                Id              TEXT    PRIMARY KEY NOT NULL,
+                ID              TEXT    PRIMARY KEY NOT NULL,
                 Name            TEXT    UNIQUE NOT NULL,
-                Json            TEXT    NOT NULL,
-                FOREIGN KEY (Id) REFERENCES IDNamespace(Id) DEFERRABLE INITIALLY DEFERRED,
-                FOREIGN KEY (Id) REFERENCES PodState(Id)    DEFERRABLE INITIALLY DEFERRED
+                JSON            TEXT    NOT NULL,
+                FOREIGN KEY (ID) REFERENCES IDNamespace(ID) DEFERRABLE INITIALLY DEFERRED,
+                FOREIGN KEY (ID) REFERENCES PodState(ID)    DEFERRABLE INITIALLY DEFERRED
         );`
 
 	const podState = `
         CREATE TABLE IF NOT EXISTS PodState(
-                Id               TEXT PRIMARY KEY NOT NULL,
-                InfraContainerId TEXT,
-                Json             TEXT NOT NULL,
-                FOREIGN KEY (Id)               REFERENCES PodConfig(Id)       DEFERRABLE INITIALLY DEFERRED,
-                FOREIGN KEY (InfraContainerId) REFERENCES ContainerConfig(Id) DEFERRABLE INITIALLY DEFERRED
+                ID               TEXT PRIMARY KEY NOT NULL,
+                InfraContainerID TEXT,
+                JSON             TEXT NOT NULL,
+                FOREIGN KEY (ID)               REFERENCES PodConfig(ID)       DEFERRABLE INITIALLY DEFERRED,
+                FOREIGN KEY (InfraContainerID) REFERENCES ContainerConfig(ID) DEFERRABLE INITIALLY DEFERRED
         );`
 
 	const volumeConfig = `
         CREATE TABLE IF NOT EXISTS VolumeConfig(
                 Name            TEXT    PRIMARY KEY NOT NULL,
                 StorageID       TEXT,
-                Json            TEXT    NOT NULL,
+                JSON            TEXT    NOT NULL,
                 FOREIGN KEY (Name) REFERENCES VolumeState(Name) DEFERRABLE INITIALLY DEFERRED
         );`
 
 	const volumeState = `
         CREATE TABLE IF NOT EXISTS VolumeState(
                 Name TEXT PRIMARY KEY NOT NULL,
-                Json TEXT NOT NULL,
+                JSON TEXT NOT NULL,
                 FOREIGN KEY (Name) REFERENCES VolumeConfig(Name) DEFERRABLE INITIALLY DEFERRED
         );`
 
@@ -169,7 +169,7 @@ func sqliteInitTables(conn *sql.DB) (defErr error) {
 		"PodConfig":            podConfig,
 		"PodState":             podState,
 		"VolumeConfig":         volumeConfig,
-		"volumeState":          volumeState,
+		"VolumeState":          volumeState,
 	}
 
 	tx, err := conn.Begin()
@@ -179,7 +179,7 @@ func sqliteInitTables(conn *sql.DB) (defErr error) {
 	defer func() {
 		if defErr != nil {
 			if err := tx.Rollback(); err != nil {
-				logrus.Errorf("Error rolling back transaction to create tables: %v", err)
+				logrus.Errorf("Rolling back transaction to create tables: %v", err)
 			}
 		}
 	}()
@@ -199,7 +199,7 @@ func sqliteInitTables(conn *sql.DB) (defErr error) {
 
 // Get the config of a container with the given ID from the database
 func (s *SQLiteState) getCtrConfig(id string) (*ContainerConfig, error) {
-	row := s.conn.QueryRow("SELECT Json FROM ContainerConfig WHERE Id=?;", id)
+	row := s.conn.QueryRow("SELECT JSON FROM ContainerConfig WHERE ID=?;", id)
 
 	var rawJSON string
 	if err := row.Scan(&rawJSON); err != nil {
@@ -293,12 +293,12 @@ func (s *SQLiteState) rewriteContainerConfig(ctr *Container, newCfg *ContainerCo
 	defer func() {
 		if defErr != nil {
 			if err := tx.Rollback(); err != nil {
-				logrus.Errorf("Error rolling back transaction to rewrite container %s config: %v", ctr.ID(), err)
+				logrus.Errorf("Rolling back transaction to rewrite container %s config: %v", ctr.ID(), err)
 			}
 		}
 	}()
 
-	results, err := tx.Exec("UPDATE TABLE ContainerConfig SET Name=?, Json=? WHERE Id=?;", newCfg.Name, json, ctr.ID())
+	results, err := tx.Exec("UPDATE TABLE ContainerConfig SET Name=?, JSON=? WHERE ID=?;", newCfg.Name, json, ctr.ID())
 	if err != nil {
 		return fmt.Errorf("updating container config table with new configuration for container %s: %w", ctr.ID(), err)
 	}
@@ -343,7 +343,7 @@ func (s *SQLiteState) addContainer(ctr *Container) (defErr error) {
 	defer func() {
 		if defErr != nil {
 			if err := tx.Rollback(); err != nil {
-				logrus.Errorf("Error rolling back transaction to create container: %v", err)
+				logrus.Errorf("Rolling back transaction to create container: %v", err)
 			}
 		}
 	}()
@@ -360,7 +360,7 @@ func (s *SQLiteState) addContainer(ctr *Container) (defErr error) {
 	for _, dep := range deps {
 		// Check if the dependency is in the same pod
 		var depPod sql.NullString
-		row := tx.QueryRow("SELECT PodID FROM ContainerConfig WHERE Id=?;", dep)
+		row := tx.QueryRow("SELECT PodID FROM ContainerConfig WHERE ID=?;", dep)
 		if err := row.Scan(&depPod); err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
 				return fmt.Errorf("container dependency %s does not exist in database: %w", dep, define.ErrNoSuchCtr)
@@ -400,21 +400,21 @@ func (s *SQLiteState) removeContainer(ctr *Container) (defErr error) {
 	defer func() {
 		if defErr != nil {
 			if err := tx.Rollback(); err != nil {
-				logrus.Errorf("Error rolling back transaction to remove container %s: %v", ctr.ID(), err)
+				logrus.Errorf("Rolling back transaction to remove container %s: %v", ctr.ID(), err)
 			}
 		}
 	}()
 
-	if _, err := tx.Exec("DELETE FROM IDNamespace WHERE Id=?;", ctr.ID()); err != nil {
+	if _, err := tx.Exec("DELETE FROM IDNamespace WHERE ID=?;", ctr.ID()); err != nil {
 		return fmt.Errorf("removing container %s id from database: %w", ctr.ID(), err)
 	}
-	if _, err := tx.Exec("DELETE FROM ContainerConfig WHERE Id=?;", ctr.ID()); err != nil {
+	if _, err := tx.Exec("DELETE FROM ContainerConfig WHERE ID=?;", ctr.ID()); err != nil {
 		return fmt.Errorf("removing container %s config from database: %w", ctr.ID(), err)
 	}
-	if _, err := tx.Exec("DELETE FROM ContainerState WHERE Id=?;", ctr.ID()); err != nil {
+	if _, err := tx.Exec("DELETE FROM ContainerState WHERE ID=?;", ctr.ID()); err != nil {
 		return fmt.Errorf("removing container %s state from database: %w", ctr.ID(), err)
 	}
-	if _, err := tx.Exec("DELETE FROM ContainerDependency WHERE Id=?;", ctr.ID()); err != nil {
+	if _, err := tx.Exec("DELETE FROM ContainerDependency WHERE ID=?;", ctr.ID()); err != nil {
 		return fmt.Errorf("removing container %s dependencies from database: %w", ctr.ID(), err)
 	}
 	if _, err := tx.Exec("DELETE FROM ContainerVolume WHERE ContainerID=?;", ctr.ID()); err != nil {
