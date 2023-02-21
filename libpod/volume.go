@@ -67,6 +67,8 @@ type VolumeConfig struct {
 	// StorageImageID is the ID of the image the volume was based off of.
 	// Only used for image volumes.
 	StorageImageID string `json:"storageImageID,omitempty"`
+	// MountLabel is the SELinux label to assign to mount points
+	MountLabel string `json:"mountlabel,omitempty"`
 }
 
 // VolumeState holds the volume's mutable state.

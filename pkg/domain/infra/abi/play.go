@@ -34,6 +34,7 @@ import (
 	"github.com/coreos/go-systemd/v22/daemon"
 	"github.com/ghodss/yaml"
 	"github.com/opencontainers/go-digest"
+	"github.com/opencontainers/selinux/go-selinux"
 	"github.com/sirupsen/logrus"
 	yamlv3 "gopkg.in/yaml.v3"
 )
@@ -279,7 +280,7 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, body io.Reader, options
 				}
 			}
 
-			r, err := ic.playKubePVC(ctx, &pvcYAML)
+			r, err := ic.playKubePVC(ctx, "", &pvcYAML)
 			if err != nil {
 				return nil, err
 			}
@@ -535,7 +536,12 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 		configMaps = append(configMaps, cm)
 	}
 
-	volumes, err := kube.InitializeVolumes(podYAML.Spec.Volumes, configMaps, secretsManager)
+	mountLabel, err := getMountLabel(podYAML.Spec.SecurityContext)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	volumes, err := kube.InitializeVolumes(podYAML.Spec.Volumes, configMaps, secretsManager, mountLabel)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -544,7 +550,11 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 	// defined by a configmap or secret
 	for _, v := range volumes {
 		if (v.Type == kube.KubeVolumeTypeConfigMap || v.Type == kube.KubeVolumeTypeSecret) && !v.Optional {
-			vol, err := ic.Libpod.NewVolume(ctx, libpod.WithVolumeName(v.Source))
+			volumeOptions := []libpod.VolumeCreateOption{
+				libpod.WithVolumeName(v.Source),
+				libpod.WithVolumeMountLabel(mountLabel),
+			}
+			vol, err := ic.Libpod.NewVolume(ctx, volumeOptions...)
 			if err != nil {
 				if errors.Is(err, define.ErrVolumeExists) {
 					// Volume for this configmap already exists do not
@@ -971,7 +981,7 @@ func (ic *ContainerEngine) getImageAndLabelInfo(ctx context.Context, cwd string,
 }
 
 // playKubePVC creates a podman volume from a kube persistent volume claim.
-func (ic *ContainerEngine) playKubePVC(ctx context.Context, pvcYAML *v1.PersistentVolumeClaim) (*entities.PlayKubeReport, error) {
+func (ic *ContainerEngine) playKubePVC(ctx context.Context, mountLabel string, pvcYAML *v1.PersistentVolumeClaim) (*entities.PlayKubeReport, error) {
 	var report entities.PlayKubeReport
 	opts := make(map[string]string)
 
@@ -987,6 +997,7 @@ func (ic *ContainerEngine) playKubePVC(ctx context.Context, pvcYAML *v1.Persiste
 		libpod.WithVolumeName(name),
 		libpod.WithVolumeLabels(pvcYAML.Labels),
 		libpod.WithVolumeIgnoreIfExist(),
+		libpod.WithVolumeMountLabel(mountLabel),
 	}
 
 	// Get pvc annotations and create remaining podman volume options if available.
@@ -1414,4 +1425,32 @@ func (ic *ContainerEngine) playKubeSecret(secret *v1.Secret) (*entities.SecretCr
 	r.ID = secretID
 
 	return r, nil
+}
+
+func getMountLabel(securityContext *v1.PodSecurityContext) (string, error) {
+	var mountLabel string
+	if securityContext == nil {
+		return "", nil
+	}
+	seopt := securityContext.SELinuxOptions
+	if seopt == nil {
+		return mountLabel, nil
+	}
+	if seopt.Level == "" && seopt.FileType == "" {
+		return mountLabel, nil
+	}
+	privLabel := selinux.PrivContainerMountLabel()
+	con, err := selinux.NewContext(privLabel)
+	if err != nil {
+		return mountLabel, err
+	}
+
+	con["level"] = "s0"
+	if seopt.Level != "" {
+		con["level"] = seopt.Level
+	}
+	if seopt.FileType != "" {
+		con["type"] = seopt.FileType
+	}
+	return con.Get(), nil
 }

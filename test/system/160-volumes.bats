@@ -519,5 +519,15 @@ EOF
     run_podman rm -f -t 0 -a
 }
 
+@test "podman run with building volume and selinux file label" {
+    skip_if_no_selinux
+    run_podman create --security-opt label=filetype:usr_t --volume myvol:/myvol $IMAGE top
+    run_podman volume inspect myvol --format '{{ .Mountpoint }}'
+    path=${output}
+    run ls -Zd $path
+    is "$output" "system_u:object_r:usr_t:s0 $path" "volume should be labeled with usr_t type"
+    run_podman volume rm myvol --force
+}
+
 
 # vim: filetype=sh

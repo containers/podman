@@ -107,6 +107,18 @@ func (p *Pod) Name() string {
 	return p.config.Name
 }
 
+// MountLabel returns the SELinux label associated with the pod
+func (p *Pod) MountLabel() (string, error) {
+	if !p.HasInfraContainer() {
+		return "", nil
+	}
+	ctr, err := p.infraContainer()
+	if err != nil {
+		return "", err
+	}
+	return ctr.MountLabel(), nil
+}
+
 // Namespace returns the pod's libpod namespace.
 // Namespaces are used to logically separate containers and pods in the state.
 func (p *Pod) Namespace() string {

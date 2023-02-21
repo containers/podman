@@ -559,18 +559,24 @@ EOF
 
 @test "podman kube generate filetype" {
     YAML=$PODMAN_TMPDIR/test.yml
-    run_podman create --pod new:pod1 --security-opt label=level:s0:c1,c2 --security-opt label=filetype:usr_t --name test1 $IMAGE true
+    run_podman create --pod new:pod1 --security-opt label=level:s0:c1,c2 --security-opt label=filetype:usr_t -v myvol:/myvol --name test1 $IMAGE true
     run_podman kube generate pod1 -f $YAML
     run cat $YAML
     is "$output" ".*filetype: usr_t" "Generated YAML file should contain filetype usr_t"
     run_podman pod rm --force pod1
+    run_podman volume rm myvol --force
 
     run_podman kube play $YAML
     if selinux_enabled; then
         run_podman inspect pod1-test1 --format "{{ .MountLabel }}"
         is "$output" "system_u:object_r:usr_t:s0:c1,c2" "Generated container should use filetype usr_t"
+        run_podman volume inspect myvol --format '{{ .Mountpoint }}'
+        path=${output}
+        run ls -Zd $path
+        is "$output" "system_u:object_r:usr_t:s0 $path" "volume should be labeled with usr_t type"
     fi
     run_podman kube down $YAML
+    run_podman volume rm myvol --force
 }
 
 # kube play --wait=true, where we clear up the created containers, pods, and volumes when a kill or sigterm is triggered

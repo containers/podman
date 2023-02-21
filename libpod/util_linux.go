@@ -109,13 +109,16 @@ var lvpReleaseLabel = label.ReleaseLabel
 
 // LabelVolumePath takes a mount path for a volume and gives it an
 // selinux label of either shared or not
-func LabelVolumePath(path string) error {
-	_, mountLabel, err := lvpInitLabels([]string{})
-	if err != nil {
-		return fmt.Errorf("getting default mountlabels: %w", err)
-	}
-	if err := lvpReleaseLabel(mountLabel); err != nil {
-		return fmt.Errorf("releasing label %q: %w", mountLabel, err)
+func LabelVolumePath(path, mountLabel string) error {
+	if mountLabel == "" {
+		var err error
+		_, mountLabel, err = lvpInitLabels([]string{})
+		if err != nil {
+			return fmt.Errorf("getting default mountlabels: %w", err)
+		}
+		if err := lvpReleaseLabel(mountLabel); err != nil {
+			return fmt.Errorf("releasing label %q: %w", mountLabel, err)
+		}
 	}
 
 	if err := lvpRelabel(path, mountLabel, true); err != nil {
