@@ -212,10 +212,10 @@ This key can be listed multiple times.
 
 ### `LogDriver=`
 
-Set the log-driver podman should use when running the container.
+Set the log-driver Podman should use when running the container.
 Equivalent to the Podman `--log-driver` option.
 
-The default value is `passthrough`
+The default value is `passthrough`.
 
 ### `Network=`
 
@@ -414,10 +414,10 @@ This key may be used multiple times
 
 ### `LogDriver=`
 
-Set the log-driver podman should use when running the container.
+Set the log-driver Podman should use when running the container.
 Equivalent to the Podman `--log-driver` option.
 
-The default value is `passthrough`
+The default value is `passthrough`.
 
 ### `Network=`
 
