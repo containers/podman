@@ -104,6 +104,9 @@ t GET networks/podman 200 \
 
 # network create docker
 t POST networks/create Name=net3\ IPAM='{"Config":[]}' 201
+# create with same name should not error unless CheckDuplicate is set
+t POST networks/create Name=net3 201
+t POST networks/create Name=net3\ CheckDuplicate=true 409
 # network delete docker
 t DELETE networks/net3 204
 
