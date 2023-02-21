@@ -341,10 +341,9 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, body io.Reader, options
 			if err := notifyproxy.SendMessage("", message); err != nil {
 				return nil, err
 			}
-
-			if _, err := serviceContainer.Wait(ctx); err != nil {
-				return nil, fmt.Errorf("waiting for service container: %w", err)
-			}
+		}
+		if _, err := serviceContainer.Wait(ctx); err != nil {
+			return nil, fmt.Errorf("waiting for service container: %w", err)
 		}
 	}
 
