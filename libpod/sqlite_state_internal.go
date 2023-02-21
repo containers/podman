@@ -93,7 +93,6 @@ func sqliteInitTables(conn *sql.DB) (defErr error) {
         CREATE TABLE IF NOT EXISTS ContainerExecSession(
                 ID          TEXT PRIMARY KEY NOT NULL,
                 ContainerID TEXT NOT NULL,
-                JSON        TEXT NOT NULL,
                 FOREIGN KEY (ContainerID) REFERENCES ContainerConfig(ID)
         );`
 
