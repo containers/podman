@@ -541,7 +541,7 @@ func (s *BoltState) GetContainerName(id string) (string, error) {
 }
 
 // GetPodName returns the name associated with a given ID.
-// Returns ErrNoSuchPor if the ID does not exist.
+// Returns ErrNoSuchPod if the ID does not exist.
 func (s *BoltState) GetPodName(id string) (string, error) {
 	if id == "" {
 		return "", define.ErrEmptyID

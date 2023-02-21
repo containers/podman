@@ -428,7 +428,7 @@ func makeRuntime(runtime *Runtime) (retErr error) {
 	}
 
 	if runtime.config.Engine.Namespace != "" {
-		return fmt.Errorf("namespaces are not supported by this version of Libpod: %w", define.ErrNotImplemented)
+		return fmt.Errorf("namespaces are not supported by this version of Libpod, please unset the `namespace` field in containers.conf: %w", define.ErrNotImplemented)
 	}
 
 	needsUserns := os.Geteuid() != 0
