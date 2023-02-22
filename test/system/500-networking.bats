@@ -665,21 +665,28 @@ EOF
     if is_netavark; then
         assert "$store" == "search example.com${nl}nameserver $subnet.1" "only integrated dns nameserver is set"
     else
-        is "$store" ".*nameserver 1.1.1.1${nl}nameserver $searchIP${nl}nameserver 1.0.0.1${nl}nameserver 8.8.8.8" "nameserver order is correct"
+        assert "$store" == "search example.com
+nameserver 1.1.1.1
+nameserver $searchIP
+nameserver 1.0.0.1
+nameserver 8.8.8.8" "nameserver order is correct"
     fi
     # we should use the integrated dns server
     run_podman run --network $netname --rm $IMAGE cat /etc/resolv.conf
-    is "$output" "search dns.podman.*" "correct search domain"
-    is "$output" ".*nameserver $subnet.1.*" "integrated dns nameserver is set"
+    assert "$output" =~ "search dns.podman.*" "correct search domain"
+    assert "$output" =~ ".*nameserver $subnet.1.*" \
+           "integrated dns nameserver is set"
 
     # host network should keep localhost nameservers
     if grep 127.0.0. /etc/resolv.conf >/dev/null; then
         run_podman run --network host --rm $IMAGE cat /etc/resolv.conf
-        is "$output" ".*nameserver 127\.0\.0.*" "resolv.conf contains localhost nameserver"
+        assert "$output" =~ ".*nameserver 127\.0\.0.*" \
+               "resolv.conf contains localhost nameserver"
     fi
     # host net + dns still works
     run_podman run --network host --dns 1.1.1.1 --rm $IMAGE cat /etc/resolv.conf
-    is "$output" ".*nameserver 1\.1\.1\.1.*" "resolv.conf contains 1.1.1.1 nameserver"
+    assert "$output" =~ ".*nameserver 1\.1\.1\.1.*" \
+           "resolv.conf contains 1.1.1.1 nameserver"
 }
 
 @test "podman run port forward range" {

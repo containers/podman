@@ -49,8 +49,7 @@ function _require_crun() {
 
     # Remove the pod and the pause image
     run_podman pod rm $random_pod_name
-    run_podman version --format "{{.Server.Version}}-{{.Server.Built}}"
-    run_podman rmi -f localhost/podman-pause:$output
+    run_podman rmi -f $(pause_image)
 }
 
 @test "podman --remote --group-add keep-groups " {
@@ -142,4 +141,5 @@ EOF
     pid=$output
     run_podman run --rm --pod $pid $IMAGE id -u
     is "${output}" "$user" "Container should run as the current user"
+    run_podman rmi -f $(pause_image)
 }
