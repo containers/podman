@@ -333,6 +333,7 @@ func teardown(body io.Reader, options entities.PlayKubeDownOptions, quiet bool) 
 		podStopErrors utils.OutputErrors
 		podRmErrors   utils.OutputErrors
 		volRmErrors   utils.OutputErrors
+		secRmErrors   utils.OutputErrors
 	)
 	reports, err := registry.ContainerEngine().PlayKubeDown(registry.GetContext(), body, options)
 	if err != nil {
@@ -379,6 +380,24 @@ func teardown(body io.Reader, options entities.PlayKubeDownOptions, quiet bool) 
 
 	// Output rm'd volumes
 	if !quiet {
+		fmt.Println("Secrets removed:")
+	}
+	for _, removed := range reports.SecretRmReport {
+		switch {
+		case removed.Err != nil:
+			secRmErrors = append(secRmErrors, removed.Err)
+		case quiet:
+		default:
+			fmt.Println(removed.ID)
+		}
+	}
+	lastSecretRmError := secRmErrors.PrintErrors()
+	if lastPodRmError != nil {
+		fmt.Fprintf(os.Stderr, "Error: %s\n", lastSecretRmError)
+	}
+
+	// Output rm'd volumes
+	if !quiet {
 		fmt.Println("Volumes removed:")
 	}
 	for _, removed := range reports.VolumeRmReport {
@@ -405,6 +424,14 @@ func kubeplay(body io.Reader) error {
 			fmt.Println("Volumes:")
 		}
 		fmt.Println(volume.Name)
+	}
+
+	// Print secrets report
+	for i, secret := range report.Secrets {
+		if i == 0 {
+			fmt.Println("Secrets:")
+		}
+		fmt.Println(secret.CreateReport.ID)
 	}
 
 	// Print pods report
