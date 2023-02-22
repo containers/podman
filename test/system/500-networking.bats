@@ -663,7 +663,7 @@ EOF
     is "$output" "search example.com.*" "correct search domain"
     local store=$output
     if is_netavark; then
-        is "$store" ".*nameserver $subnet.1.*" "integrated dns nameserver is set"
+        assert "$store" == "search example.com${nl}nameserver $subnet.1" "only integrated dns nameserver is set"
     else
         is "$store" ".*nameserver 1.1.1.1${nl}nameserver $searchIP${nl}nameserver 1.0.0.1${nl}nameserver 8.8.8.8" "nameserver order is correct"
     fi
