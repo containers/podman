@@ -1,4 +1,4 @@
-## assert-podman-final-args run --name=systemd-%N --cidfile=%t/%N.cid --replace --rm --log-driver passthrough --runtime /usr/bin/crun --cgroups=split --sdnotify=conmon  -d localhost/imagename
+## assert-podman-final-args run --name=systemd-%N --cidfile=%t/%N.cid --replace --rm --log-driver passthrough --cgroups=split --sdnotify=conmon  -d localhost/imagename
 
 [Container]
 Image=localhost/imagename
