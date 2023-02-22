@@ -334,35 +334,36 @@ func makeRuntime(runtime *Runtime) (retErr error) {
 
 	// Set up the state.
 	//
+	// TODO: We probably need a "default" type that will select BoltDB if
+	// a DB exists already, and SQLite otherwise.
+	//
 	// TODO - if we further break out the state implementation into
 	// libpod/state, the config could take care of the code below.  It
 	// would further allow to move the types and consts into a coherent
 	// package.
-	switch runtime.config.Engine.StateType {
-	case config.InMemoryStateStore:
-		return fmt.Errorf("in-memory state is currently disabled: %w", define.ErrInvalidArg)
-	case config.SQLiteStateStore:
-		return fmt.Errorf("SQLite state is currently disabled: %w", define.ErrInvalidArg)
-	case config.BoltDBStateStore:
-		if os.Getenv("PODMANDB") == "sqlite" {
-			state, err := NewSqliteState(runtime)
-			if err != nil {
-				return err
-			}
-			runtime.state = state
-		} else {
-			baseDir := runtime.config.Engine.StaticDir
-			if runtime.storageConfig.TransientStore {
-				baseDir = runtime.config.Engine.TmpDir
-			}
-			dbPath := filepath.Join(baseDir, "bolt_state.db")
-
-			state, err := NewBoltState(dbPath, runtime)
-			if err != nil {
-				return err
-			}
-			runtime.state = state
+	backend, err := config.ParseDBBackend(runtime.config.Engine.DBBackend)
+	if err != nil {
+		return err
+	}
+	switch backend {
+	case config.DBBackendBoltDB:
+		baseDir := runtime.config.Engine.StaticDir
+		if runtime.storageConfig.TransientStore {
+			baseDir = runtime.config.Engine.TmpDir
 		}
+		dbPath := filepath.Join(baseDir, "bolt_state.db")
+
+		state, err := NewBoltState(dbPath, runtime)
+		if err != nil {
+			return err
+		}
+		runtime.state = state
+	case config.DBBackendSQLite:
+		state, err := NewSqliteState(runtime)
+		if err != nil {
+			return err
+		}
+		runtime.state = state
 	default:
 		return fmt.Errorf("unrecognized state type passed (%v): %w", runtime.config.Engine.StateType, define.ErrInvalidArg)
 	}
