@@ -62,11 +62,8 @@ BuildRequires: ostree-devel
 BuildRequires: systemd
 BuildRequires: systemd-devel
 Requires: conmon >= 2:2.0.30-2
-Requires: containers-common-extra >= 4:1-78
-Requires: iptables
-Requires: nftables
+Requires: containers-common-extra >= 4:1-87
 Recommends: catatonit
-Suggests: qemu-user-static
 Conflicts: quadlet
 Provides: %{name}-quadlet
 Obsoletes: %{name}-quadlet <= 101:0.0.git.17877.f247b4d4-1
