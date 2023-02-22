@@ -90,49 +90,49 @@ func TestParseIDMapMountOption(t *testing.T) {
 		UIDMap: uidMap,
 		GIDMap: gidMap,
 	}
-	uids, gids, err := parseIDMapMountOption(options, "idmap", true)
+	uids, gids, err := parseIDMapMountOption(options, "idmap")
 	assert.Nil(t, err)
 	assert.Equal(t, len(uids), 1)
 	assert.Equal(t, len(gids), 1)
 
-	assert.Equal(t, uids[0].ContainerID, uint32(1000))
-	assert.Equal(t, uids[0].HostID, uint32(0))
+	assert.Equal(t, uids[0].HostID, uint32(1000))
+	assert.Equal(t, uids[0].ContainerID, uint32(0))
 	assert.Equal(t, uids[0].Size, uint32(10000))
 
-	assert.Equal(t, gids[0].ContainerID, uint32(2000))
-	assert.Equal(t, gids[0].HostID, uint32(0))
+	assert.Equal(t, gids[0].HostID, uint32(2000))
+	assert.Equal(t, gids[0].ContainerID, uint32(0))
 	assert.Equal(t, gids[0].Size, uint32(10000))
 
-	uids, gids, err = parseIDMapMountOption(options, "idmap=uids=0-1-10#10-11-10;gids=0-3-10", true)
+	uids, gids, err = parseIDMapMountOption(options, "idmap=uids=0-1-10#10-11-10;gids=0-3-10")
 	assert.Nil(t, err)
 	assert.Equal(t, len(uids), 2)
 	assert.Equal(t, len(gids), 1)
 
-	assert.Equal(t, uids[0].ContainerID, uint32(1))
-	assert.Equal(t, uids[0].HostID, uint32(0))
+	assert.Equal(t, uids[0].HostID, uint32(1))
+	assert.Equal(t, uids[0].ContainerID, uint32(0))
 	assert.Equal(t, uids[0].Size, uint32(10))
 
-	assert.Equal(t, uids[1].ContainerID, uint32(11))
-	assert.Equal(t, uids[1].HostID, uint32(10))
+	assert.Equal(t, uids[1].HostID, uint32(11))
+	assert.Equal(t, uids[1].ContainerID, uint32(10))
 	assert.Equal(t, uids[1].Size, uint32(10))
 
-	assert.Equal(t, gids[0].ContainerID, uint32(3))
-	assert.Equal(t, gids[0].HostID, uint32(0))
+	assert.Equal(t, gids[0].HostID, uint32(3))
+	assert.Equal(t, gids[0].ContainerID, uint32(0))
 	assert.Equal(t, gids[0].Size, uint32(10))
 
-	_, _, err = parseIDMapMountOption(options, "idmap=uids=0-1-10#10-11-10;gids=0-3-10;foobar=bar", true)
+	_, _, err = parseIDMapMountOption(options, "idmap=uids=0-1-10#10-11-10;gids=0-3-10;foobar=bar")
 	assert.NotNil(t, err)
 
-	_, _, err = parseIDMapMountOption(options, "idmap=uids=0-1-10#10-11-10;gids=0-3-10#0-12", true)
+	_, _, err = parseIDMapMountOption(options, "idmap=uids=0-1-10#10-11-10;gids=0-3-10#0-12")
 	assert.NotNil(t, err)
 
-	_, _, err = parseIDMapMountOption(options, "idmap=uids=0-1-10#10-11-10;gids=0-3-10#0-12--12", true)
+	_, _, err = parseIDMapMountOption(options, "idmap=uids=0-1-10#10-11-10;gids=0-3-10#0-12--12")
 	assert.NotNil(t, err)
 
-	_, _, err = parseIDMapMountOption(options, "idmap=uids=0-1-10#10-11-10;gids=0-3-10#-1-12-12", true)
+	_, _, err = parseIDMapMountOption(options, "idmap=uids=0-1-10#10-11-10;gids=0-3-10#-1-12-12")
 	assert.NotNil(t, err)
 
-	_, _, err = parseIDMapMountOption(options, "idmap=uids=0-1-10#10-11-10;gids=0-3-10#0--12-0", true)
+	_, _, err = parseIDMapMountOption(options, "idmap=uids=0-1-10#10-11-10;gids=0-3-10#0--12-0")
 	assert.NotNil(t, err)
 }
 
