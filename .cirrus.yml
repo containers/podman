@@ -73,6 +73,50 @@ gcp_credentials: ENCRYPTED[a28959877b2c9c36f151781b0a05407218cda646c7d047fc556e4
 aws_credentials: ENCRYPTED[4ca070bffe28eb9b27d63c568b52970dd46f119c3a83b8e443241e895dbf1737580b4d84eed27a311a2b74287ef9f79f]
 
 
+# Exercise the "libpod" API with a small set of common
+# operations to ensure they are functional.
+bindings_task:
+    name: "Test Bindings"
+    alias: bindings
+    # Don't create task for PRs using [CI:DOCS] or [CI:BUILD]
+    # Docs: ./contrib/cirrus/CIModes.md
+    only_if: >-
+        $CIRRUS_PR != '' &&
+        $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*' &&
+        $CIRRUS_CHANGE_TITLE !=~ '.*CI:COPR.*' &&
+        $CIRRUS_CHANGE_TITLE !=~ '.*CI:BUILD.*'
+    depends_on:
+        - build
+    gce_instance: &standardvm
+        image_project: libpod-218412
+        zone: "us-central1-a"
+        cpu: 2
+        memory: "4Gb"
+        # Required to be 200gig, do not modify - has i/o performance impact
+        # according to gcloud CLI tool warning messages.
+        disk: 200
+        image_name: "${VM_IMAGE_NAME}"  # from stdenvars
+    env:
+        <<: *stdenvars
+        TEST_FLAVOR: bindings
+    clone_script: *get_gosrc
+    setup_script: *setup
+    main_script: *main
+    always: &logs_artifacts
+        <<: *runner_stats
+        # Required for `contrib/cirrus/logformatter` to work properly
+        html_artifacts:
+            path: ./*.html
+            type: text/html
+        server_log_artifacts:
+            path: ./podman-server.log
+            type: text/plain
+        df_script: '$SCRIPT_BASE/logcollector.sh df'
+        audit_log_script: '$SCRIPT_BASE/logcollector.sh audit'
+        journal_script: '$SCRIPT_BASE/logcollector.sh journal'
+        podman_system_info_script: '$SCRIPT_BASE/logcollector.sh podman'
+        time_script: '$SCRIPT_BASE/logcollector.sh time'
+
 # N/B: This matrix of build tasks are critical to CI, along with the following
 # aarch64 task. They build binaries for all CI platforms, and versions. On
 # success, the contents of the repository are preserved as an artifact for
@@ -84,15 +128,10 @@ build_task:
     # Multiarch doesn't depend on buildability in this automation context
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: "$CIRRUS_CRON != 'multiarch'"
-    gce_instance: &standardvm
-        image_project: libpod-218412
-        zone: "us-central1-a"
-        cpu: 2
-        memory: "4Gb"
-        # Required to be 200gig, do not modify - has i/o performance impact
-        # according to gcloud CLI tool warning messages.
-        disk: 200
-        image_name: "${VM_IMAGE_NAME}"  # from stdenvars
+    gce_instance: &buildvm
+        <<: *standardvm
+        cpu: 8
+        memory: "16Gb"
     matrix: &platform_axis
         # Ref: https://cirrus-ci.org/guide/writing-tasks/#matrix-modification
         - env: &stdenvars
@@ -278,41 +317,6 @@ validate_aarch64_task:
     always: *runner_stats
 
 
-# Exercise the "libpod" API with a small set of common
-# operations to ensure they are functional.
-bindings_task:
-    name: "Test Bindings"
-    alias: bindings
-    # Don't create task for PRs using [CI:DOCS] or [CI:BUILD]
-    # Docs: ./contrib/cirrus/CIModes.md
-    only_if: >-
-        $CIRRUS_PR != '' &&
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*' &&
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:COPR.*' &&
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:BUILD.*'
-    depends_on:
-        - build
-    gce_instance: *standardvm
-    env:
-        <<: *stdenvars
-        TEST_FLAVOR: bindings
-    clone_script: *get_gosrc
-    setup_script: *setup
-    main_script: *main
-    always: &logs_artifacts
-        <<: *runner_stats
-        # Required for `contrib/cirrus/logformatter` to work properly
-        html_artifacts:
-            path: ./*.html
-            type: text/html
-        server_log_artifacts:
-            path: ./podman-server.log
-            type: text/plain
-        df_script: '$SCRIPT_BASE/logcollector.sh df'
-        audit_log_script: '$SCRIPT_BASE/logcollector.sh audit'
-        journal_script: '$SCRIPT_BASE/logcollector.sh journal'
-        podman_system_info_script: '$SCRIPT_BASE/logcollector.sh podman'
-        time_script: '$SCRIPT_BASE/logcollector.sh time'
 
 
 # Build the "libpod" API documentation `swagger.yaml` and
@@ -359,7 +363,7 @@ alt_build_task:
     env:
         <<: *stdenvars
         TEST_FLAVOR: "altbuild"
-    gce_instance: *standardvm
+    gce_instance: *buildvm
     matrix:
       - env:
             ALT_NAME: 'Build Each Commit'
@@ -846,7 +850,7 @@ buildah_bud_test_task:
             PODBIN_NAME: podman
         - env:
             PODBIN_NAME: remote
-    gce_instance: *standardvm
+    gce_instance: *buildvm
     timeout_in: 45m
     clone_script: *get_gosrc
     setup_script: *setup
