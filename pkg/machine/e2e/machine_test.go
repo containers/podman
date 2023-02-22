@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/containers/podman/v4/pkg/machine"
+	"github.com/containers/podman/v4/pkg/machine/qemu"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -21,7 +22,7 @@ func TestMain(m *testing.M) {
 }
 
 const (
-	defaultStream string = "testing"
+	defaultStream machine.FCOSStream = machine.Testing
 )
 
 var (
@@ -43,7 +44,8 @@ func TestMachine(t *testing.T) {
 }
 
 var _ = BeforeSuite(func() {
-	fcd, err := machine.GetFCOSDownload(defaultStream, machine.Xz)
+	qemuVP := qemu.GetVirtualizationProvider()
+	fcd, err := machine.GetFCOSDownload(qemuVP, defaultStream)
 	if err != nil {
 		Fail("unable to get virtual machine image")
 	}

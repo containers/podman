@@ -1,5 +1,5 @@
-//go:build arm64 && !windows && !linux
-// +build arm64,!windows,!linux
+//go:build arm64 && darwin
+// +build arm64,darwin
 
 package applehv
 
@@ -9,16 +9,17 @@ import (
 	"github.com/containers/podman/v4/pkg/machine"
 )
 
-type Provider struct{}
-
 var (
-	hvProvider = &Provider{}
 	// vmtype refers to qemu (vs libvirt, krun, etc).
 	vmtype = "apple"
 )
 
 func GetVirtualizationProvider() machine.VirtProvider {
-	return hvProvider
+	return &Virtualization{
+		artifact:    machine.None,
+		compression: machine.Xz,
+		format:      machine.Qcow,
+	}
 }
 
 const (
@@ -41,30 +42,4 @@ const (
 	dockerGlobal
 )
 
-func (p *Provider) NewMachine(opts machine.InitOptions) (machine.VM, error) {
-	return nil, machine.ErrNotImplemented
-}
-
-func (p *Provider) LoadVMByName(name string) (machine.VM, error) {
-	return nil, machine.ErrNotImplemented
-}
-
-func (p *Provider) List(opts machine.ListOptions) ([]*machine.ListResponse, error) {
-	return nil, machine.ErrNotImplemented
-}
-
-func (p *Provider) IsValidVMName(name string) (bool, error) {
-	return false, machine.ErrNotImplemented
-}
-
-func (p *Provider) CheckExclusiveActiveVM() (bool, string, error) {
-	return false, "", machine.ErrNotImplemented
-}
-
-func (p *Provider) RemoveAndCleanMachines() error {
-	return machine.ErrNotImplemented
-}
-
-func (p *Provider) VMType() string {
-	return vmtype
 }

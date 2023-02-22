@@ -48,11 +48,14 @@ const (
 )
 
 type VirtProvider interface {
-	NewMachine(opts InitOptions) (VM, error)
-	LoadVMByName(name string) (VM, error)
-	List(opts ListOptions) ([]*ListResponse, error)
-	IsValidVMName(name string) (bool, error)
+	Artifact() Artifact
 	CheckExclusiveActiveVM() (bool, string, error)
+	Compression() ImageCompression
+	Format() ImageFormat
+	IsValidVMName(name string) (bool, error)
+	List(opts ListOptions) ([]*ListResponse, error)
+	LoadVMByName(name string) (VM, error)
+	NewMachine(opts InitOptions) (VM, error)
 	RemoveAndCleanMachines() error
 	VMType() string
 }
@@ -72,10 +75,10 @@ var (
 
 type Download struct {
 	Arch                  string
-	Artifact              artifact
+	Artifact              Artifact
 	CompressionType       string
 	CacheDir              string
-	Format                imageFormat
+	Format                ImageFormat
 	ImageName             string
 	LocalPath             string
 	LocalUncompressedFile string

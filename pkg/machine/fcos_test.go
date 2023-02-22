@@ -9,7 +9,7 @@ func Test_compressionFromFile(t *testing.T) {
 	var tests = []struct {
 		name string
 		args args
-		want imageCompression
+		want ImageCompression
 	}{
 		{
 			name: "xz",
@@ -52,7 +52,7 @@ func Test_compressionFromFile(t *testing.T) {
 func TestImageCompression_String(t *testing.T) {
 	tests := []struct {
 		name string
-		c    imageCompression
+		c    ImageCompression
 		want string
 	}{
 		{
@@ -93,17 +93,17 @@ func TestImageCompression_String(t *testing.T) {
 func TestImageFormat_String(t *testing.T) {
 	tests := []struct {
 		name string
-		imf  imageFormat
+		imf  ImageFormat
 		want string
 	}{
 		{
 			name: "vhdx.zip",
-			imf:  vhdx,
+			imf:  Vhdx,
 			want: "vhdx.zip",
 		},
 		{
 			name: "qcow2",
-			imf:  qcow,
+			imf:  Qcow,
 			want: "qcow2.xz",
 		},
 	}
@@ -119,7 +119,7 @@ func TestImageFormat_String(t *testing.T) {
 func Test_artifact_String(t *testing.T) {
 	tests := []struct {
 		name string
-		a    artifact
+		a    Artifact
 		want string
 	}{
 		{
@@ -136,6 +136,42 @@ func Test_artifact_String(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.a.String(); got != tt.want {
+				t.Errorf("String() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestFCOSStream_String(t *testing.T) {
+	tests := []struct {
+		name string
+		st   FCOSStream
+		want string
+	}{
+		{
+			name: "testing",
+			st:   Testing,
+			want: "testing",
+		},
+		{
+			name: "stable",
+			st:   Stable,
+			want: "stable",
+		},
+		{
+			name: "next",
+			st:   Next,
+			want: "next",
+		},
+		{
+			name: "default is stable",
+			st:   99,
+			want: "stable",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.st.String(); got != tt.want {
 				t.Errorf("String() = %v, want %v", got, tt.want)
 			}
 		})
