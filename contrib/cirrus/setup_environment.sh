@@ -56,9 +56,13 @@ echo -e "\n# Begin single-use VM global variables (${BASH_SOURCE[0]})" \
     done <<<"$(passthrough_envars)"
 ) >> "/etc/ci_environment"
 
-# This is a possible manual maintenance gaff, check to be sure everything matches.
+# This is a possible manual maintenance gaff, i.e. forgetting to update a
+# *_NAME variable in .cirrus.yml.  check to be sure at least one comparison
+# matches the actual OS being run.  Ignore details, such as debian point-release
+# number and/or '-aarch64' suffix.
 # shellcheck disable=SC2154
-[[ "$DISTRO_NV" =~ $OS_REL_VER ]] || \
+grep -q "$DISTRO_NV" <<<"$OS_REL_VER" || \
+    grep -q "$OS_REL_VER" <<<"$DISTRO_NV" || \
     die "Automation spec. '$DISTRO_NV'; actual host '$OS_REL_VER'"
 
 # Only allow this script to execute once
@@ -118,7 +122,7 @@ fi
 
 # Which distribution are we testing on.
 case "$OS_RELEASE_ID" in
-    ubuntu) ;;
+    debian) ;;
     fedora)
         if ((CONTAINER==0)); then
             # All SELinux distros need this for systemd-in-a-container
@@ -351,64 +355,6 @@ case "$TEST_FLAVOR" in
         remove_packaged_podman_files
         make install PREFIX=/usr ETCDIR=/etc
         install_test_configs
-        ;;
-    gitlab)
-        # ***WARNING*** ***WARNING*** ***WARNING*** ***WARNING***
-        # This sets up a special ubuntu environment exclusively for
-        # running the upstream gitlab-runner unit tests through
-        # podman as a drop-in replacement for the Docker daemon.
-        # Test and setup information can be found here:
-        # https://gitlab.com/gitlab-org/gitlab-runner/-/issues/27270#note_499585550
-        #
-        # Unless you know what you're doing, and/or are in contact
-        # with the upstream gitlab-runner developers/community,
-        # please don't make changes willy-nilly to this setup.
-        # It's designed to follow upstream gitlab-runner development
-        # and alert us if any podman change breaks their foundation.
-        #
-        # That said, if this task does break in strange ways or requires
-        # updates you're unsure of.  Please consult with the upstream
-        # community through an issue near the one linked above.  If
-        # an extended period of breakage is expected, please un-comment
-        # the related `allow_failures: $CI == $CI` line in `.cirrus.yml`.
-        # ***WARNING*** ***WARNING*** ***WARNING*** ***WARNING***
-
-        if [[ "$OS_RELEASE_ID" != "ubuntu" ]]; then
-            die "This test only runs on Ubuntu due to sheer laziness"
-        fi
-
-        remove_packaged_podman_files
-        make install PREFIX=/usr ETCDIR=/etc
-
-        msg "Installing docker and containerd"
-        # N/B: Tests check/expect `docker info` output, and this `!= podman info`
-        ooe.sh dpkg -i \
-            $PACKAGE_DOWNLOAD_DIR/containerd.io*.deb \
-            $PACKAGE_DOWNLOAD_DIR/docker-ce*.deb
-
-        msg "Disabling docker service and socket activation"
-        systemctl stop docker.service docker.socket
-        systemctl disable docker.service docker.socket
-        rm -rf /run/docker*
-        # Guarantee the docker daemon can't be started, even by accident
-        rm -vf $(type -P dockerd)
-
-        msg "Recursively chowning source to $ROOTLESS_USER"
-        chown -R $ROOTLESS_USER:$ROOTLESS_USER "$GOPATH" "$GOSRC"
-
-        msg "Obtaining necessary gitlab-runner testing bits"
-        slug="gitlab.com/gitlab-org/gitlab-runner"
-        helper_fqin="registry.gitlab.com/gitlab-org/gitlab-runner/gitlab-runner-helper:x86_64-latest-pwsh"
-        ssh="ssh $ROOTLESS_USER@localhost -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o CheckHostIP=no env GOPATH=$GOPATH"
-        showrun $ssh go install github.com/jstemmer/go-junit-report/v2@v2.0.0
-        showrun $ssh git clone https://$slug $GOPATH/src/$slug
-        showrun $ssh make -C $GOPATH/src/$slug development_setup
-        showrun $ssh bash -c "'cd $GOPATH/src/$slug && GOPATH=$GOPATH go get .'"
-
-        showrun $ssh podman pull $helper_fqin
-        # Tests expect image with this exact name
-        showrun $ssh podman tag $helper_fqin \
-            docker.io/gitlab/gitlab-runner-helper:x86_64-latest-pwsh
         ;;
     swagger)
         make .install.swagger
