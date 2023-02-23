@@ -716,7 +716,7 @@ func (s *SQLiteState) AllContainers(loadState bool) ([]*Container, error) {
 	ctrs := []*Container{}
 
 	if loadState {
-		rows, err := s.conn.Query("SELECT ContainerConfig.JSON, ContainerState.JSON AS StateJSON INNER JOIN ContainerState ON ContainerConfig.ID = ContainerState.ID;")
+		rows, err := s.conn.Query("SELECT ContainerConfig.JSON, ContainerState.JSON AS StateJSON FROM ContainerConfig INNER JOIN ContainerState ON ContainerConfig.ID = ContainerState.ID;")
 		if err != nil {
 			return nil, fmt.Errorf("retrieving all containers from database: %w", err)
 		}
