@@ -1280,7 +1280,7 @@ func (s *SQLiteState) LookupPod(idOrName string) (*Pod, error) {
 		return nil, define.ErrDBClosed
 	}
 
-	rows, err := s.conn.Query("SELECT JSON FROM PodConfig WHERE PodConfig.Name=? OR (PodConfig.ID LIKE ?);", idOrName, idOrName)
+	rows, err := s.conn.Query("SELECT JSON FROM PodConfig WHERE PodConfig.Name=? OR (PodConfig.ID LIKE ?);", idOrName, idOrName+"%")
 	if err != nil {
 		return nil, fmt.Errorf("looking up pod %q in database: %w", idOrName, err)
 	}
@@ -1441,6 +1441,13 @@ func (s *SQLiteState) AddPod(pod *Pod) (defErr error) {
 		return define.ErrPodRemoved
 	}
 
+	infraID := sql.NullString{}
+	if pod.state.InfraContainerID != "" {
+		if err := infraID.Scan(pod.state.InfraContainerID); err != nil {
+			return fmt.Errorf("scanning infra container ID %q: %w", pod.state.InfraContainerID, err)
+		}
+	}
+
 	configJSON, err := json.Marshal(pod.config)
 	if err != nil {
 		return fmt.Errorf("marshalling pod config json: %w", err)
@@ -1463,11 +1470,13 @@ func (s *SQLiteState) AddPod(pod *Pod) (defErr error) {
 		}
 	}()
 
+	if _, err := tx.Exec("INSERT INTO IDNamespace VALUES (?);", pod.ID()); err != nil {
+		return fmt.Errorf("adding pod id to database: %w", err)
+	}
 	if _, err := tx.Exec("INSERT INTO PodConfig VALUES (?, ?, ?);", pod.ID(), pod.Name(), configJSON); err != nil {
 		return fmt.Errorf("adding pod config to database: %w", err)
 	}
-
-	if _, err := tx.Exec("INSERT INTO PodState VALUES (?, ?, ?);", pod.ID(), pod.state.InfraContainerID, stateJSON); err != nil {
+	if _, err := tx.Exec("INSERT INTO PodState VALUES (?, ?, ?);", pod.ID(), infraID, stateJSON); err != nil {
 		return fmt.Errorf("adding pod state to database: %w", err)
 	}
 
@@ -1502,7 +1511,7 @@ func (s *SQLiteState) RemovePod(pod *Pod) (defErr error) {
 	}()
 
 	var check int
-	row := tx.QueryRow("SELECT 1 FROM ContainerConfig WHERE PodID=?;", pod.ID())
+	row := tx.QueryRow("SELECT 1 FROM ContainerConfig WHERE PodID=? AND ID!=?;", pod.ID(), pod.state.InfraContainerID)
 	if err := row.Scan(&check); err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {
 			return fmt.Errorf("checking if pod %s has containers in database: %w", pod.ID(), err)
@@ -1523,7 +1532,15 @@ func (s *SQLiteState) RemovePod(pod *Pod) (defErr error) {
 		return nil
 	}
 
-	result, err := tx.Exec("DELETE FROM PodConfig WHERE ID=?;", pod.ID())
+	result, err := tx.Exec("DELETE FROM IDNamespace WHERE ID=?;", pod.ID())
+	if err != nil {
+		return fmt.Errorf("removing pod %s id from database: %w", pod.ID(), err)
+	}
+	if err := checkResult(result); err != nil {
+		return err
+	}
+
+	result, err = tx.Exec("DELETE FROM PodConfig WHERE ID=?;", pod.ID())
 	if err != nil {
 		return fmt.Errorf("removing pod %s config from database: %w", pod.ID(), err)
 	}
@@ -1537,6 +1554,10 @@ func (s *SQLiteState) RemovePod(pod *Pod) (defErr error) {
 	}
 	if err := checkResult(result); err != nil {
 		return err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("committing pod %s removal transaction: %w", pod.ID(), err)
 	}
 
 	return nil
