@@ -223,7 +223,7 @@ type CapabilityDriver interface {
 	Capabilities() Capabilities
 }
 
-// AdditionalLayer reprents a layer that is stored in the additional layer store
+// AdditionalLayer represents a layer that is stored in the additional layer store
 // This API is experimental and can be changed without bumping the major version number.
 type AdditionalLayer interface {
 	// CreateAs creates a new layer from this additional layer

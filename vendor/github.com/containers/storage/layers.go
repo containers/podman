@@ -281,7 +281,7 @@ type rwLayerStore interface {
 	// unmount unmounts a layer when it is no longer in use.
 	// If conditional is set, it will fail with ErrLayerNotMounted if the layer is not mounted (without conditional, the caller is
 	// making a promise that the layer is actually mounted).
-	// If force is set, it will physically try to unmount it even if it is mounted multple times, or even if (!conditional and)
+	// If force is set, it will physically try to unmount it even if it is mounted multiple times, or even if (!conditional and)
 	// there are no records of it being mounted in the first place.
 	// It returns whether the layer was still mounted at the time this function returned.
 	// WARNING: The return value may already be obsolete by the time it is available
