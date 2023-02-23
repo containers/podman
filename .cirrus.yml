@@ -834,12 +834,8 @@ buildah_bud_test_task:
         - build
         - local_integration_test
     env:
+        <<: *stdenvars
         TEST_FLAVOR: bud
-        DISTRO_NV: ${FEDORA_NAME}
-        # Not used here, is used in other tasks
-        VM_IMAGE_NAME: ${FEDORA_CACHE_IMAGE_NAME}
-        CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
-        CI_DESIRED_NETWORK: netavark
     matrix:
         - env:
             PODBIN_NAME: podman
@@ -852,6 +848,29 @@ buildah_bud_test_task:
     main_script: *main
     always: *int_logs_artifacts
 
+rootless_buildah_bud_test_task:
+    name: *std_name_fmt
+    alias: rootless_buildah_bud_test
+    # Docs: ./contrib/cirrus/CIModes.md
+    only_if: $CIRRUS_CRON == 'treadmill'
+    depends_on:
+        - build
+        - rootless_integration_test
+    env:
+        <<: *stdenvars
+        TEST_FLAVOR: bud
+        PRIV_NAME: rootless
+    matrix:
+        - env:
+            PODBIN_NAME: podman
+        - env:
+            PODBIN_NAME: remote
+    gce_instance: *standardvm
+    timeout_in: 45m
+    clone_script: *get_gosrc
+    setup_script: *setup
+    main_script: *main
+    always: *int_logs_artifacts
 
 upgrade_test_task:
     name: "Upgrade test: from $PODMAN_UPGRADE_FROM"
@@ -997,6 +1016,7 @@ success_task:
         - rootless_remote_system_test
         - minikube_test
         - buildah_bud_test
+        - rootless_buildah_bud_test
         - upgrade_test
         - image_build
         - meta
