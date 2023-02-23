@@ -521,7 +521,7 @@ func (s *SQLiteState) LookupContainer(idOrName string) (*Container, error) {
 		foundResult = true
 	}
 	if !foundResult {
-		return nil, define.ErrNoSuchCtr
+		return nil, fmt.Errorf("no container with name or ID %q found: %w", idOrName, define.ErrNoSuchCtr)
 	}
 
 	ctr := new(Container)
