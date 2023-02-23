@@ -212,17 +212,17 @@ func (s *SQLiteState) Refresh() (defErr error) {
 	}()
 
 	for id, json := range ctrStates {
-		if _, err := tx.Exec("UPDATE TABLE ContainerState SET JSON=? WHERE ID=?;", json, id); err != nil {
+		if _, err := tx.Exec("UPDATE ContainerState SET JSON=? WHERE ID=?;", json, id); err != nil {
 			return fmt.Errorf("updating container state: %w", err)
 		}
 	}
 	for id, json := range podStates {
-		if _, err := tx.Exec("UPDATE TABLE PodState SET JSON=? WHERE ID=?;", json, id); err != nil {
+		if _, err := tx.Exec("UPDATE PodState SET JSON=? WHERE ID=?;", json, id); err != nil {
 			return fmt.Errorf("updating pod state: %w", err)
 		}
 	}
 	for name, json := range volumeStates {
-		if _, err := tx.Exec("UPDATE TABLE VolumeState SET JSON=? WHERE Name=?;", json, name); err != nil {
+		if _, err := tx.Exec("UPDATE VolumeState SET JSON=? WHERE Name=?;", json, name); err != nil {
 			return fmt.Errorf("updating volume state: %w", err)
 		}
 	}
