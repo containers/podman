@@ -736,8 +736,8 @@ func (s *SQLiteState) AllContainers(loadState bool) ([]*Container, error) {
 			if err := json.Unmarshal([]byte(configJSON), ctr.config); err != nil {
 				return nil, fmt.Errorf("unmarshalling container config: %w", err)
 			}
-			if err := json.Unmarshal([]byte(stateJSON), ctr.config); err != nil {
-				return nil, fmt.Errorf("unmarshalling container %s config: %w", ctr.ID(), err)
+			if err := json.Unmarshal([]byte(stateJSON), ctr.state); err != nil {
+				return nil, fmt.Errorf("unmarshalling container %s state: %w", ctr.ID(), err)
 			}
 
 			ctrs = append(ctrs, ctr)
