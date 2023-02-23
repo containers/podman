@@ -457,6 +457,7 @@ func rootFlags(cmd *cobra.Command, podmanConfig *entities.PodmanConfig) {
 		namespaceFlagName := "namespace"
 		pFlags.StringVar(&podmanConfig.ContainersConf.Engine.Namespace, namespaceFlagName, podmanConfig.ContainersConfDefaultsRO.Engine.Namespace, "Set the libpod namespace, used to create separate views of the containers and pods on the system")
 		_ = cmd.RegisterFlagCompletionFunc(namespaceFlagName, completion.AutocompleteNone)
+		_ = pFlags.MarkHidden(namespaceFlagName)
 
 		networkBackendFlagName := "network-backend"
 		pFlags.StringVar(&podmanConfig.ContainersConf.Network.NetworkBackend, networkBackendFlagName, podmanConfig.ContainersConfDefaultsRO.Network.NetworkBackend, `Network backend to use ("cni"|"netavark")`)

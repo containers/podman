@@ -253,7 +253,7 @@ func ListContainerBatch(rt *libpod.Runtime, ctr *libpod.Container, opts entities
 		Status:     healthStatus,
 	}
 	if opts.Pod && len(conConfig.Pod) > 0 {
-		podName, err := rt.GetName(conConfig.Pod)
+		podName, err := rt.GetPodName(conConfig.Pod)
 		if err != nil {
 			if errors.Is(err, define.ErrNoSuchCtr) {
 				return entities.ListContainer{}, fmt.Errorf("could not find container %s pod (id %s) in state: %w", conConfig.ID, conConfig.Pod, define.ErrNoSuchPod)

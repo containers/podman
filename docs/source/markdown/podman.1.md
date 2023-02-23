@@ -82,11 +82,6 @@ Remote connections use local containers.conf for default.
 
 Log messages at and above specified level: debug, info, warn, error, fatal or panic (default: "warn")
 
-#### **--namespace**=*namespace*
-
-Set libpod namespace. Namespaces are used to separate groups of containers and pods in libpod's state.
-When namespace is set, created containers and pods will join the given namespace, and only containers and pods in the given namespace will be visible to Podman.
-
 #### **--network-cmd-path**=*path*
 Path to the command binary to use for setting up a network.  It is currently only used for setting up a slirp4netns(1) or pasta(1) network.  If "" is used then the binary is looked up using the $PATH environment variable.
 
