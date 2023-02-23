@@ -466,7 +466,7 @@ func (s *SQLiteState) LookupContainerID(idOrName string) (string, error) {
 		return "", define.ErrDBClosed
 	}
 
-	rows, err := s.conn.Query("SELECT ID FROM ContainerConfig WHERE ContainerConfig.Name=? OR (ContainerConfig.ID LIKE ?);", idOrName, idOrName)
+	rows, err := s.conn.Query("SELECT ID FROM ContainerConfig WHERE ContainerConfig.Name=? OR (ContainerConfig.ID LIKE ?);", idOrName, idOrName+"%")
 	if err != nil {
 		return "", fmt.Errorf("looking up container %q in database: %w", idOrName, err)
 	}
@@ -502,7 +502,7 @@ func (s *SQLiteState) LookupContainer(idOrName string) (*Container, error) {
 		return nil, define.ErrDBClosed
 	}
 
-	rows, err := s.conn.Query("SELECT JSON FROM ContainerConfig WHERE ContainerConfig.Name=? OR (ContainerConfig.ID LIKE ?);", idOrName, idOrName)
+	rows, err := s.conn.Query("SELECT JSON FROM ContainerConfig WHERE ContainerConfig.Name=? OR (ContainerConfig.ID LIKE ?);", idOrName, idOrName+"%")
 	if err != nil {
 		return nil, fmt.Errorf("looking up container %q in database: %w", idOrName, err)
 	}
