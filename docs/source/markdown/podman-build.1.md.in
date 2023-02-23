@@ -18,8 +18,8 @@ either 'Containerfile' or 'Dockerfile'.
 The build context directory can be specified as the http(s) URL of an archive,
 git repository or Containerfile.
 
-If no context directory is specified, then Podman will assume the current
-working directory as the build context, which should contain the Containerfile.
+When invoked with `-f` and a path to a Containerfile, with no explicit CONTEXT
+directory, Podman will use the Containerfile's parent directory as its build context.
 
 Containerfiles ending with a ".in" suffix will be preprocessed via CPP(1).  This
 can be useful to decompose Containerfiles into several reusable parts that can
