@@ -855,7 +855,7 @@ func (s *SQLiteState) AddContainerExitCode(id string, exitCode int32) (defErr er
 		}
 	}()
 
-	if _, err := tx.Exec("INSERT INTO ContainerExitCode VALUES (?, ?, ?);", id, time.Now().Unix(), exitCode); err != nil {
+	if _, err := tx.Exec("INSERT OR REPLACE INTO ContainerExitCode VALUES (?, ?, ?);", id, time.Now().Unix(), exitCode); err != nil {
 		return fmt.Errorf("adding container %s exit code %d: %w", id, exitCode, err)
 	}
 
