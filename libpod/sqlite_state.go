@@ -1908,7 +1908,7 @@ func (s *SQLiteState) SaveVolume(volume *Volume) (defErr error) {
 		}
 	}()
 
-	results, err := tx.Exec("UPDATE TABLE VolumeState SET JSON=? WHERE Name=?;", stateJSON, volume.Name())
+	results, err := tx.Exec("UPDATE VolumeState SET JSON=? WHERE Name=?;", stateJSON, volume.Name())
 	if err != nil {
 		return fmt.Errorf("updating volume %s state in DB: %w", volume.Name(), err)
 	}
