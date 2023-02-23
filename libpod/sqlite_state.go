@@ -2033,7 +2033,7 @@ func (s *SQLiteState) LookupVolume(name string) (*Volume, error) {
 		return nil, define.ErrDBClosed
 	}
 
-	rows, err := s.conn.Query("SELECT JSON FROM VolumeConfig WHERE Name LIKE ?;", name)
+	rows, err := s.conn.Query("SELECT JSON FROM VolumeConfig WHERE Name LIKE ?;", name+"%")
 	if err != nil {
 		return nil, fmt.Errorf("querying database for volume %s: %w", name, err)
 	}
