@@ -86,7 +86,7 @@ func sqliteInitTables(conn *sql.DB) (defErr error) {
                 ExitCode INTEGER,
                 JSON     TEXT    NOT NULL,
                 FOREIGN KEY (ID) REFERENCES ContainerConfig(ID) DEFERRABLE INITIALLY DEFERRED,
-                CHECK (ExitCode BETWEEN 0 AND 255)
+                CHECK (ExitCode BETWEEN -1 AND 255)
         );`
 
 	const containerExecSession = `
@@ -120,7 +120,7 @@ func sqliteInitTables(conn *sql.DB) (defErr error) {
                 ID        TEXT    PRIMARY KEY NOT NULL,
                 Timestamp INTEGER NOT NULL,
                 ExitCode  INTEGER NOT NULL,
-                CHECK (ExitCode BETWEEN 0 AND 255)
+                CHECK (ExitCode BETWEEN -1 AND 255)
         );`
 
 	const podConfig = `
