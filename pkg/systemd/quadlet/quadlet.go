@@ -319,11 +319,9 @@ func ConvertContainer(container *parser.UnitFile, isUser bool) (*parser.UnitFile
 
 	handleLogDriver(container, ContainerGroup, podman)
 
-	// We use crun as the runtime and delegated groups to it
+	// We delegate groups to the runtime
 	service.Add(ServiceGroup, "Delegate", "yes")
-	podman.add(
-		"--runtime", "crun",
-		"--cgroups=split")
+	podman.add("--cgroups=split")
 
 	timezone, ok := container.Lookup(ContainerGroup, KeyTimezone)
 	if ok && len(timezone) > 0 {
