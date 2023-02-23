@@ -1,9 +1,22 @@
 # Release Notes
 
+## 4.4.2
+### Security
+- This release fixes CVE-2023-0778, which allowed a malicious user to potentially replace a normal file in a volume with a symlink while exporting the volume, allowing for access to arbitrary files on the host file system.
+
+### Bugfixes
+- Fixed a bug where containers started via the `podman-kube` systemd template would always use the "passthrough" log driver ([#17482](https://github.com/containers/podman/issues/17482)).
+- Fixed a bug where pulls would unexpectedly encounter an EOF error. Now, Podman automatically transparently resumes aborted pull connections.
+- Fixed a race condition in Podman's signal proxy.
+
+### Misc
+- Updated the containers/image library to v5.24.1.
+
 ## 4.4.1
 ### Changes
 - Added the `podman-systemd.unit` man page, which can also be displayed using `man quadlet` ([#17349](https://github.com/containers/podman/issues/17349)).
 - Documented journald identifiers used in the journald backend for the `podman events` command.
+- Dropped the CAP_CHROOT, CAP_AUDIT_WRITE, CAP_MKNOD, CAP_MKNOD default capabilities.
 
 ### Bugfixes
 - Fixed a bug where the default handling of pids-limit was incorrect.
