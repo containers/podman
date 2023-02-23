@@ -1299,7 +1299,7 @@ func (s *SQLiteState) LookupPod(idOrName string) (*Pod, error) {
 		foundResult = true
 	}
 	if !foundResult {
-		return nil, define.ErrNoSuchPod
+		return nil, fmt.Errorf("no pod with name or ID %s found: %w", idOrName, define.ErrNoSuchPod)
 	}
 
 	return s.createPod(rawJSON)
