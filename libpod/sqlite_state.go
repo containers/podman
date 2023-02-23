@@ -64,13 +64,13 @@ func NewSqliteState(runtime *Runtime) (_ State, defErr error) {
 		return nil, fmt.Errorf("setting full fsync mode in db: %w", err)
 	}
 
-	if err := state.migrateSchemaIfNecessary(); err != nil {
-		return nil, err
-	}
-
 	// Set up tables
 	if err := sqliteInitTables(state.conn); err != nil {
 		return nil, fmt.Errorf("creating tables: %w", err)
+	}
+
+	if err := state.migrateSchemaIfNecessary(); err != nil {
+		return nil, err
 	}
 
 	state.valid = true
