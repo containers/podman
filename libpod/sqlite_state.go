@@ -1093,7 +1093,7 @@ func (s *SQLiteState) RemoveContainerExecSessions(ctr *Container) (defErr error)
 		}
 	}()
 
-	if _, err := tx.Exec("DELETE FROM ContainerExecSessions WHERE ContainerID=?;", ctr.ID()); err != nil {
+	if _, err := tx.Exec("DELETE FROM ContainerExecSession WHERE ContainerID=?;", ctr.ID()); err != nil {
 		return fmt.Errorf("removing container %s exec sessions from database: %w", ctr.ID(), err)
 	}
 
