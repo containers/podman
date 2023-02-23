@@ -64,13 +64,13 @@ func NewSqliteState(runtime *Runtime) (_ State, defErr error) {
 		return nil, fmt.Errorf("setting full fsync mode in db: %w", err)
 	}
 
-	if err := state.migrateSchemaIfNecessary(); err != nil {
-		return nil, err
-	}
-
 	// Set up tables
 	if err := sqliteInitTables(state.conn); err != nil {
 		return nil, fmt.Errorf("creating tables: %w", err)
+	}
+
+	if err := state.migrateSchemaIfNecessary(); err != nil {
+		return nil, err
 	}
 
 	state.valid = true
@@ -212,17 +212,17 @@ func (s *SQLiteState) Refresh() (defErr error) {
 	}()
 
 	for id, json := range ctrStates {
-		if _, err := tx.Exec("UPDATE TABLE ContainerState SET JSON=? WHERE ID=?;", json, id); err != nil {
+		if _, err := tx.Exec("UPDATE ContainerState SET JSON=? WHERE ID=?;", json, id); err != nil {
 			return fmt.Errorf("updating container state: %w", err)
 		}
 	}
 	for id, json := range podStates {
-		if _, err := tx.Exec("UPDATE TABLE PodState SET JSON=? WHERE ID=?;", json, id); err != nil {
+		if _, err := tx.Exec("UPDATE PodState SET JSON=? WHERE ID=?;", json, id); err != nil {
 			return fmt.Errorf("updating pod state: %w", err)
 		}
 	}
 	for name, json := range volumeStates {
-		if _, err := tx.Exec("UPDATE TABLE VolumeState SET JSON=? WHERE Name=?;", json, name); err != nil {
+		if _, err := tx.Exec("UPDATE VolumeState SET JSON=? WHERE Name=?;", json, name); err != nil {
 			return fmt.Errorf("updating volume state: %w", err)
 		}
 	}
@@ -466,7 +466,7 @@ func (s *SQLiteState) LookupContainerID(idOrName string) (string, error) {
 		return "", define.ErrDBClosed
 	}
 
-	rows, err := s.conn.Query("SELECT ID FROM ContainerConfig WHERE ContainerConfig.Name=? OR (ContainerConfig.ID LIKE ?);", idOrName, idOrName)
+	rows, err := s.conn.Query("SELECT ID FROM ContainerConfig WHERE ContainerConfig.Name=? OR (ContainerConfig.ID LIKE ?);", idOrName, idOrName+"%")
 	if err != nil {
 		return "", fmt.Errorf("looking up container %q in database: %w", idOrName, err)
 	}
@@ -502,7 +502,7 @@ func (s *SQLiteState) LookupContainer(idOrName string) (*Container, error) {
 		return nil, define.ErrDBClosed
 	}
 
-	rows, err := s.conn.Query("SELECT JSON FROM ContainerConfig WHERE ContainerConfig.Name=? OR (ContainerConfig.ID LIKE ?);", idOrName, idOrName)
+	rows, err := s.conn.Query("SELECT JSON FROM ContainerConfig WHERE ContainerConfig.Name=? OR (ContainerConfig.ID LIKE ?);", idOrName, idOrName+"%")
 	if err != nil {
 		return nil, fmt.Errorf("looking up container %q in database: %w", idOrName, err)
 	}
@@ -521,7 +521,7 @@ func (s *SQLiteState) LookupContainer(idOrName string) (*Container, error) {
 		foundResult = true
 	}
 	if !foundResult {
-		return nil, define.ErrNoSuchCtr
+		return nil, fmt.Errorf("no container with name or ID %q found: %w", idOrName, define.ErrNoSuchCtr)
 	}
 
 	ctr := new(Container)
@@ -716,7 +716,7 @@ func (s *SQLiteState) AllContainers(loadState bool) ([]*Container, error) {
 	ctrs := []*Container{}
 
 	if loadState {
-		rows, err := s.conn.Query("SELECT ContainerConfig.JSON, ContainerState.JSON AS StateJSON INNER JOIN ContainerState ON ContainerConfig.ID = ContainerState.ID;")
+		rows, err := s.conn.Query("SELECT ContainerConfig.JSON, ContainerState.JSON AS StateJSON FROM ContainerConfig INNER JOIN ContainerState ON ContainerConfig.ID = ContainerState.ID;")
 		if err != nil {
 			return nil, fmt.Errorf("retrieving all containers from database: %w", err)
 		}
@@ -736,8 +736,8 @@ func (s *SQLiteState) AllContainers(loadState bool) ([]*Container, error) {
 			if err := json.Unmarshal([]byte(configJSON), ctr.config); err != nil {
 				return nil, fmt.Errorf("unmarshalling container config: %w", err)
 			}
-			if err := json.Unmarshal([]byte(stateJSON), ctr.config); err != nil {
-				return nil, fmt.Errorf("unmarshalling container %s config: %w", ctr.ID(), err)
+			if err := json.Unmarshal([]byte(stateJSON), ctr.state); err != nil {
+				return nil, fmt.Errorf("unmarshalling container %s state: %w", ctr.ID(), err)
 			}
 
 			ctrs = append(ctrs, ctr)
@@ -855,8 +855,8 @@ func (s *SQLiteState) AddContainerExitCode(id string, exitCode int32) (defErr er
 		}
 	}()
 
-	if _, err := tx.Exec("INSERT INTO ContainerExitCode VALUES (?, ?, ?);", id, time.Now().Unix(), exitCode); err != nil {
-		return fmt.Errorf("adding container %s exit code: %w", id, err)
+	if _, err := tx.Exec("INSERT OR REPLACE INTO ContainerExitCode VALUES (?, ?, ?);", id, time.Now().Unix(), exitCode); err != nil {
+		return fmt.Errorf("adding container %s exit code %d: %w", id, exitCode, err)
 	}
 
 	if err := tx.Commit(); err != nil {
@@ -1093,7 +1093,7 @@ func (s *SQLiteState) RemoveContainerExecSessions(ctr *Container) (defErr error)
 		}
 	}()
 
-	if _, err := tx.Exec("DELETE FROM ContainerExecSessions WHERE ContainerID=?;", ctr.ID()); err != nil {
+	if _, err := tx.Exec("DELETE FROM ContainerExecSession WHERE ContainerID=?;", ctr.ID()); err != nil {
 		return fmt.Errorf("removing container %s exec sessions from database: %w", ctr.ID(), err)
 	}
 
@@ -1150,8 +1150,7 @@ func (s *SQLiteState) SafeRewriteContainerConfig(ctr *Container, oldName, newNam
 // RewritePodConfig rewrites a pod's configuration.
 // WARNING: This function is DANGEROUS. Do not use without reading the full
 // comment on this function in state.go.
-// TODO TODO TODO
-func (s *SQLiteState) RewritePodConfig(pod *Pod, newCfg *PodConfig) error {
+func (s *SQLiteState) RewritePodConfig(pod *Pod, newCfg *PodConfig) (defErr error) {
 	if !s.valid {
 		return define.ErrDBClosed
 	}
@@ -1160,38 +1159,41 @@ func (s *SQLiteState) RewritePodConfig(pod *Pod, newCfg *PodConfig) error {
 		return define.ErrPodRemoved
 	}
 
-	return define.ErrNotImplemented
+	json, err := json.Marshal(newCfg)
+	if err != nil {
+		return fmt.Errorf("error marshalling pod %s config JSON: %w", pod.ID(), err)
+	}
 
-	// newCfgJSON, err := json.Marshal(newCfg)
-	// if err != nil {
-	// 	return fmt.Errorf("marshalling new configuration JSON for pod %s: %w", pod.ID(), err)
-	// }
+	tx, err := s.conn.Begin()
+	if err != nil {
+		return fmt.Errorf("beginning transaction to rewrite pod %s config: %w", pod.ID(), err)
+	}
+	defer func() {
+		if defErr != nil {
+			if err := tx.Rollback(); err != nil {
+				logrus.Errorf("Rolling back transaction to rewrite pod %s config: %v", pod.ID(), err)
+			}
+		}
+	}()
 
-	// db, err := s.getDBCon()
-	// if err != nil {
-	// 	return err
-	// }
-	// defer s.deferredCloseDBCon(db)
+	results, err := tx.Exec("UPDATE PodConfig SET Name=?, JSON=? WHERE ID=?;", newCfg.Name, json, pod.ID())
+	if err != nil {
+		return fmt.Errorf("updating pod config table with new configuration for pod %s: %w", pod.ID(), err)
+	}
+	rows, err := results.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("retrieving pod %s config rewrite rows affected: %w", pod.ID(), err)
+	}
+	if rows == 0 {
+		pod.valid = false
+		return define.ErrNoSuchPod
+	}
 
-	// err = db.Update(func(tx *bolt.Tx) error {
-	// 	podBkt, err := getPodBucket(tx)
-	// 	if err != nil {
-	// 		return err
-	// 	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("committing transaction to rewrite pod %s config: %w", pod.ID(), err)
+	}
 
-	// 	podDB := podBkt.Bucket([]byte(pod.ID()))
-	// 	if podDB == nil {
-	// 		pod.valid = false
-	// 		return fmt.Errorf("no pod with ID %s found in DB: %w", pod.ID(), define.ErrNoSuchPod)
-	// 	}
-
-	// 	if err := podDB.Put(configKey, newCfgJSON); err != nil {
-	// 		return fmt.Errorf("updating pod %s config JSON: %w", pod.ID(), err)
-	// 	}
-
-	// 	return nil
-	// })
-	// return err
+	return nil
 }
 
 // RewriteVolumeConfig rewrites a volume's configuration.
@@ -1242,7 +1244,6 @@ func (s *SQLiteState) RewriteVolumeConfig(volume *Volume, newCfg *VolumeConfig) 
 }
 
 // Pod retrieves a pod given its full ID
-// TODO TODO TODO
 func (s *SQLiteState) Pod(id string) (*Pod, error) {
 	if id == "" {
 		return nil, define.ErrEmptyID
@@ -1252,33 +1253,21 @@ func (s *SQLiteState) Pod(id string) (*Pod, error) {
 		return nil, define.ErrDBClosed
 	}
 
-	return nil, define.ErrNotImplemented
+	row := s.conn.QueryRow("SELECT JSON FROM PodConfig WHERE ID=?;", id)
+	var rawJSON string
+	if err := row.Scan(&rawJSON); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, define.ErrNoSuchPod
+		}
+		return nil, fmt.Errorf("retrieving pod %s config from DB: %w", id, err)
+	}
 
-	// podID := []byte(id)
+	ctrCfg := new(ContainerConfig)
+	if err := json.Unmarshal([]byte(rawJSON), ctrCfg); err != nil {
+		return nil, fmt.Errorf("unmarshalling container %s config: %w", id, err)
+	}
 
-	// pod := new(Pod)
-	// pod.config = new(PodConfig)
-	// pod.state = new(podState)
-
-	// db, err := s.getDBCon()
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// defer s.deferredCloseDBCon(db)
-
-	// err = db.View(func(tx *bolt.Tx) error {
-	// 	podBkt, err := getPodBucket(tx)
-	// 	if err != nil {
-	// 		return err
-	// 	}
-
-	// 	return s.getPodFromDB(podID, pod, podBkt)
-	// })
-	// if err != nil {
-	// 	return nil, err
-	// }
-
-	// return pod, nil
+	return s.createPod(rawJSON)
 }
 
 // LookupPod retrieves a pod from a full or unique partial ID, or a name.
@@ -1291,7 +1280,7 @@ func (s *SQLiteState) LookupPod(idOrName string) (*Pod, error) {
 		return nil, define.ErrDBClosed
 	}
 
-	rows, err := s.conn.Query("SELECT JSON FROM PodConfig WHERE PodConfig.Name=? OR (PodConfig.ID LIKE ?);", idOrName, idOrName)
+	rows, err := s.conn.Query("SELECT JSON FROM PodConfig WHERE PodConfig.Name=? OR (PodConfig.ID LIKE ?);", idOrName, idOrName+"%")
 	if err != nil {
 		return nil, fmt.Errorf("looking up pod %q in database: %w", idOrName, err)
 	}
@@ -1310,27 +1299,13 @@ func (s *SQLiteState) LookupPod(idOrName string) (*Pod, error) {
 		foundResult = true
 	}
 	if !foundResult {
-		return nil, define.ErrNoSuchPod
+		return nil, fmt.Errorf("no pod with name or ID %s found: %w", idOrName, define.ErrNoSuchPod)
 	}
 
-	pod := new(Pod)
-	pod.config = new(PodConfig)
-	pod.state = new(podState)
-	pod.runtime = s.runtime
-
-	if err := json.Unmarshal([]byte(rawJSON), pod.config); err != nil {
-		return nil, fmt.Errorf("unmarshalling pod JSON: %w", err)
-	}
-
-	if err := finalizePodSqlite(pod); err != nil {
-		return nil, err
-	}
-
-	return pod, nil
+	return s.createPod(rawJSON)
 }
 
 // HasPod checks if a pod with the given ID exists in the state
-// TODO TODO TODO
 func (s *SQLiteState) HasPod(id string) (bool, error) {
 	if id == "" {
 		return false, define.ErrEmptyID
@@ -1340,47 +1315,22 @@ func (s *SQLiteState) HasPod(id string) (bool, error) {
 		return false, define.ErrDBClosed
 	}
 
-	return false, define.ErrNotImplemented
+	row := s.conn.QueryRow("SELECT 1 FROM PodConfig WHERE ID=?;", id)
 
-	// podID := []byte(id)
+	var check int
+	if err := row.Scan(&check); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return false, nil
+		}
+		return false, fmt.Errorf("looking up pod %s in database: %w", id, err)
+	} else if check != 1 {
+		return false, fmt.Errorf("check digit for pod %s lookup incorrect: %w", id, define.ErrInternal)
+	}
 
-	// exists := false
-
-	// db, err := s.getDBCon()
-	// if err != nil {
-	// 	return false, err
-	// }
-	// defer s.deferredCloseDBCon(db)
-
-	// err = db.View(func(tx *bolt.Tx) error {
-	// 	podBkt, err := getPodBucket(tx)
-	// 	if err != nil {
-	// 		return err
-	// 	}
-
-	// 	podDB := podBkt.Bucket(podID)
-	// 	if podDB != nil {
-	// 		if s.namespaceBytes != nil {
-	// 			podNS := podDB.Get(namespaceKey)
-	// 			if bytes.Equal(s.namespaceBytes, podNS) {
-	// 				exists = true
-	// 			}
-	// 		} else {
-	// 			exists = true
-	// 		}
-	// 	}
-
-	// 	return nil
-	// })
-	// if err != nil {
-	// 	return false, err
-	// }
-
-	// return exists, nil
+	return true, nil
 }
 
 // PodHasContainer checks if the given pod has a container with the given ID
-// TODO TODO TODO
 func (s *SQLiteState) PodHasContainer(pod *Pod, id string) (bool, error) {
 	if id == "" {
 		return false, define.ErrEmptyID
@@ -1394,59 +1344,21 @@ func (s *SQLiteState) PodHasContainer(pod *Pod, id string) (bool, error) {
 		return false, define.ErrPodRemoved
 	}
 
-	return false, define.ErrNotImplemented
+	var check int
+	row := s.conn.QueryRow("SELECT 1 FROM ContainerConfig WHERE ID=? AND PodID=?;", id, pod.ID())
+	if err := row.Scan(&check); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return false, nil
+		}
+		return false, fmt.Errorf("checking if pod %s has container %s in database: %w", pod.ID(), id, err)
+	} else if check != 1 {
+		return false, fmt.Errorf("check digit for pod %s lookup incorrect: %w", id, define.ErrInternal)
+	}
 
-	// ctrID := []byte(id)
-	// podID := []byte(pod.ID())
-
-	// exists := false
-
-	// db, err := s.getDBCon()
-	// if err != nil {
-	// 	return false, err
-	// }
-	// defer s.deferredCloseDBCon(db)
-
-	// err = db.View(func(tx *bolt.Tx) error {
-	// 	podBkt, err := getPodBucket(tx)
-	// 	if err != nil {
-	// 		return err
-	// 	}
-
-	// 	// Get pod itself
-	// 	podDB := podBkt.Bucket(podID)
-	// 	if podDB == nil {
-	// 		pod.valid = false
-	// 		return fmt.Errorf("pod %s not found in database: %w", pod.ID(), define.ErrNoSuchPod)
-	// 	}
-
-	// 	// Get pod containers bucket
-	// 	podCtrs := podDB.Bucket(containersBkt)
-	// 	if podCtrs == nil {
-	// 		return fmt.Errorf("pod %s missing containers bucket in DB: %w", pod.ID(), define.ErrInternal)
-	// 	}
-
-	// 	// Don't bother with a namespace check on the container -
-	// 	// We maintain the invariant that container namespaces must
-	// 	// match the namespace of the pod they join.
-	// 	// We already checked the pod namespace, so we should be fine.
-
-	// 	ctr := podCtrs.Get(ctrID)
-	// 	if ctr != nil {
-	// 		exists = true
-	// 	}
-
-	// 	return nil
-	// })
-	// if err != nil {
-	// 	return false, err
-	// }
-
-	// return exists, nil
+	return true, nil
 }
 
 // PodContainersByID returns the IDs of all containers present in the given pod
-// TODO TODO TODO
 func (s *SQLiteState) PodContainersByID(pod *Pod) ([]string, error) {
 	if !s.valid {
 		return nil, define.ErrDBClosed
@@ -1456,62 +1368,26 @@ func (s *SQLiteState) PodContainersByID(pod *Pod) ([]string, error) {
 		return nil, define.ErrPodRemoved
 	}
 
-	return nil, define.ErrNotImplemented
+	rows, err := s.conn.Query("SELECT ID FROM ContainerConfig WHERE PodID=?;", pod.ID())
+	if err != nil {
+		return nil, fmt.Errorf("retrieving container IDs of pod %s from database: %w", pod.ID(), err)
+	}
+	defer rows.Close()
 
-	// if s.namespace != "" && s.namespace != pod.config.Namespace {
-	// 	return nil, fmt.Errorf("pod %s is in namespace %q but we are in namespace %q: %w", pod.ID(), pod.config.Namespace, s.namespace, define.ErrNSMismatch)
-	// }
+	var ids []string
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return nil, fmt.Errorf("scanning container from database: %w", err)
+		}
 
-	// podID := []byte(pod.ID())
+		ids = append(ids, id)
+	}
 
-	// ctrs := []string{}
-
-	// db, err := s.getDBCon()
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// defer s.deferredCloseDBCon(db)
-
-	// err = db.View(func(tx *bolt.Tx) error {
-	// 	podBkt, err := getPodBucket(tx)
-	// 	if err != nil {
-	// 		return err
-	// 	}
-
-	// 	// Get pod itself
-	// 	podDB := podBkt.Bucket(podID)
-	// 	if podDB == nil {
-	// 		pod.valid = false
-	// 		return fmt.Errorf("pod %s not found in database: %w", pod.ID(), define.ErrNoSuchPod)
-	// 	}
-
-	// 	// Get pod containers bucket
-	// 	podCtrs := podDB.Bucket(containersBkt)
-	// 	if podCtrs == nil {
-	// 		return fmt.Errorf("pod %s missing containers bucket in DB: %w", pod.ID(), define.ErrInternal)
-	// 	}
-
-	// 	// Iterate through all containers in the pod
-	// 	err = podCtrs.ForEach(func(id, val []byte) error {
-	// 		ctrs = append(ctrs, string(id))
-
-	// 		return nil
-	// 	})
-	// 	if err != nil {
-	// 		return err
-	// 	}
-
-	// 	return nil
-	// })
-	// if err != nil {
-	// 	return nil, err
-	// }
-
-	// return ctrs, nil
+	return ids, nil
 }
 
 // PodContainers returns all the containers present in the given pod
-// TODO TODO TODO
 func (s *SQLiteState) PodContainers(pod *Pod) ([]*Container, error) {
 	if !s.valid {
 		return nil, define.ErrDBClosed
@@ -1521,67 +1397,42 @@ func (s *SQLiteState) PodContainers(pod *Pod) ([]*Container, error) {
 		return nil, define.ErrPodRemoved
 	}
 
-	return nil, define.ErrNotImplemented
+	rows, err := s.conn.Query("SELECT JSON FROM ContainerConfig WHERE PodID=?;", pod.ID())
+	if err != nil {
+		return nil, fmt.Errorf("retrieving containers of pod %s from database: %w", pod.ID(), err)
+	}
+	defer rows.Close()
 
-	// podID := []byte(pod.ID())
+	var ctrs []*Container
+	for rows.Next() {
+		var rawJSON string
+		if err := rows.Scan(&rawJSON); err != nil {
+			return nil, fmt.Errorf("scanning container from database: %w", err)
+		}
 
-	// ctrs := []*Container{}
+		ctr := new(Container)
+		ctr.config = new(ContainerConfig)
+		ctr.state = new(ContainerState)
+		ctr.runtime = s.runtime
 
-	// db, err := s.getDBCon()
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// defer s.deferredCloseDBCon(db)
+		if err := json.Unmarshal([]byte(rawJSON), ctr.config); err != nil {
+			return nil, fmt.Errorf("unmarshalling container config: %w", err)
+		}
 
-	// err = db.View(func(tx *bolt.Tx) error {
-	// 	podBkt, err := getPodBucket(tx)
-	// 	if err != nil {
-	// 		return err
-	// 	}
+		ctrs = append(ctrs, ctr)
+	}
 
-	// 	ctrBkt, err := getCtrBucket(tx)
-	// 	if err != nil {
-	// 		return err
-	// 	}
+	for _, ctr := range ctrs {
+		if err := finalizeCtrSqlite(ctr); err != nil {
+			return nil, err
+		}
+	}
 
-	// 	// Get pod itself
-	// 	podDB := podBkt.Bucket(podID)
-	// 	if podDB == nil {
-	// 		pod.valid = false
-	// 		return fmt.Errorf("pod %s not found in database: %w", pod.ID(), define.ErrNoSuchPod)
-	// 	}
-
-	// 	// Get pod containers bucket
-	// 	podCtrs := podDB.Bucket(containersBkt)
-	// 	if podCtrs == nil {
-	// 		return fmt.Errorf("pod %s missing containers bucket in DB: %w", pod.ID(), define.ErrInternal)
-	// 	}
-
-	// 	// Iterate through all containers in the pod
-	// 	err = podCtrs.ForEach(func(id, val []byte) error {
-	// 		newCtr := new(Container)
-	// 		newCtr.config = new(ContainerConfig)
-	// 		newCtr.state = new(ContainerState)
-	// 		ctrs = append(ctrs, newCtr)
-
-	// 		return s.getContainerFromDB(id, newCtr, ctrBkt, false)
-	// 	})
-	// 	if err != nil {
-	// 		return err
-	// 	}
-
-	// 	return nil
-	// })
-	// if err != nil {
-	// 	return nil, err
-	// }
-
-	// return ctrs, nil
+	return ctrs, nil
 }
 
 // AddPod adds the given pod to the state.
-// TODO TODO TODO
-func (s *SQLiteState) AddPod(pod *Pod) error {
+func (s *SQLiteState) AddPod(pod *Pod) (defErr error) {
 	if !s.valid {
 		return define.ErrDBClosed
 	}
@@ -1590,129 +1441,55 @@ func (s *SQLiteState) AddPod(pod *Pod) error {
 		return define.ErrPodRemoved
 	}
 
-	return define.ErrNotImplemented
+	infraID := sql.NullString{}
+	if pod.state.InfraContainerID != "" {
+		if err := infraID.Scan(pod.state.InfraContainerID); err != nil {
+			return fmt.Errorf("scanning infra container ID %q: %w", pod.state.InfraContainerID, err)
+		}
+	}
 
-	// podID := []byte(pod.ID())
-	// podName := []byte(pod.Name())
+	configJSON, err := json.Marshal(pod.config)
+	if err != nil {
+		return fmt.Errorf("marshalling pod config json: %w", err)
+	}
 
-	// var podNamespace []byte
-	// if pod.config.Namespace != "" {
-	// 	podNamespace = []byte(pod.config.Namespace)
-	// }
+	stateJSON, err := json.Marshal(pod.state)
+	if err != nil {
+		return fmt.Errorf("marshalling pod state json: %w", err)
+	}
 
-	// podConfigJSON, err := json.Marshal(pod.config)
-	// if err != nil {
-	// 	return fmt.Errorf("marshalling pod %s config to JSON: %w", pod.ID(), err)
-	// }
+	tx, err := s.conn.Begin()
+	if err != nil {
+		return fmt.Errorf("beginning pod create transaction: %w", err)
+	}
+	defer func() {
+		if defErr != nil {
+			if err := tx.Rollback(); err != nil {
+				logrus.Errorf("Rolling back transaction to create pod: %v", err)
+			}
+		}
+	}()
 
-	// podStateJSON, err := json.Marshal(pod.state)
-	// if err != nil {
-	// 	return fmt.Errorf("marshalling pod %s state to JSON: %w", pod.ID(), err)
-	// }
+	if _, err := tx.Exec("INSERT INTO IDNamespace VALUES (?);", pod.ID()); err != nil {
+		return fmt.Errorf("adding pod id to database: %w", err)
+	}
+	if _, err := tx.Exec("INSERT INTO PodConfig VALUES (?, ?, ?);", pod.ID(), pod.Name(), configJSON); err != nil {
+		return fmt.Errorf("adding pod config to database: %w", err)
+	}
+	if _, err := tx.Exec("INSERT INTO PodState VALUES (?, ?, ?);", pod.ID(), infraID, stateJSON); err != nil {
+		return fmt.Errorf("adding pod state to database: %w", err)
+	}
 
-	// db, err := s.getDBCon()
-	// if err != nil {
-	// 	return err
-	// }
-	// defer s.deferredCloseDBCon(db)
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("committing transaction: %w", err)
+	}
 
-	// err = db.Update(func(tx *bolt.Tx) error {
-	// 	podBkt, err := getPodBucket(tx)
-	// 	if err != nil {
-	// 		return err
-	// 	}
-
-	// 	allPodsBkt, err := getAllPodsBucket(tx)
-	// 	if err != nil {
-	// 		return err
-	// 	}
-
-	// 	idsBkt, err := getIDBucket(tx)
-	// 	if err != nil {
-	// 		return err
-	// 	}
-
-	// 	namesBkt, err := getNamesBucket(tx)
-	// 	if err != nil {
-	// 		return err
-	// 	}
-
-	// 	nsBkt, err := getNSBucket(tx)
-	// 	if err != nil {
-	// 		return err
-	// 	}
-
-	// 	// Check if we already have something with the given ID and name
-	// 	idExist := idsBkt.Get(podID)
-	// 	if idExist != nil {
-	// 		err = define.ErrPodExists
-	// 		if allPodsBkt.Get(idExist) == nil {
-	// 			err = define.ErrCtrExists
-	// 		}
-	// 		return fmt.Errorf("ID \"%s\" is in use: %w", pod.ID(), err)
-	// 	}
-	// 	nameExist := namesBkt.Get(podName)
-	// 	if nameExist != nil {
-	// 		err = define.ErrPodExists
-	// 		if allPodsBkt.Get(nameExist) == nil {
-	// 			err = define.ErrCtrExists
-	// 		}
-	// 		return fmt.Errorf("name \"%s\" is in use: %w", pod.Name(), err)
-	// 	}
-
-	// 	// We are good to add the pod
-	// 	// Make a bucket for it
-	// 	newPod, err := podBkt.CreateBucket(podID)
-	// 	if err != nil {
-	// 		return fmt.Errorf("creating bucket for pod %s: %w", pod.ID(), err)
-	// 	}
-
-	// 	// Make a subbucket for pod containers
-	// 	if _, err := newPod.CreateBucket(containersBkt); err != nil {
-	// 		return fmt.Errorf("creating bucket for pod %s containers: %w", pod.ID(), err)
-	// 	}
-
-	// 	if err := newPod.Put(configKey, podConfigJSON); err != nil {
-	// 		return fmt.Errorf("storing pod %s configuration in DB: %w", pod.ID(), err)
-	// 	}
-
-	// 	if err := newPod.Put(stateKey, podStateJSON); err != nil {
-	// 		return fmt.Errorf("storing pod %s state JSON in DB: %w", pod.ID(), err)
-	// 	}
-
-	// 	if podNamespace != nil {
-	// 		if err := newPod.Put(namespaceKey, podNamespace); err != nil {
-	// 			return fmt.Errorf("storing pod %s namespace in DB: %w", pod.ID(), err)
-	// 		}
-	// 		if err := nsBkt.Put(podID, podNamespace); err != nil {
-	// 			return fmt.Errorf("storing pod %s namespace in DB: %w", pod.ID(), err)
-	// 		}
-	// 	}
-
-	// 	// Add us to the ID and names buckets
-	// 	if err := idsBkt.Put(podID, podName); err != nil {
-	// 		return fmt.Errorf("storing pod %s ID in DB: %w", pod.ID(), err)
-	// 	}
-	// 	if err := namesBkt.Put(podName, podID); err != nil {
-	// 		return fmt.Errorf("storing pod %s name in DB: %w", pod.Name(), err)
-	// 	}
-	// 	if err := allPodsBkt.Put(podID, podName); err != nil {
-	// 		return fmt.Errorf("storing pod %s in all pods bucket in DB: %w", pod.ID(), err)
-	// 	}
-
-	// 	return nil
-	// })
-	// if err != nil {
-	// 	return err
-	// }
-
-	// return nil
+	return nil
 }
 
 // RemovePod removes the given pod from the state.
 // Only empty pods can be removed.
-// TODO TODO TODO
-func (s *SQLiteState) RemovePod(pod *Pod) error {
+func (s *SQLiteState) RemovePod(pod *Pod) (defErr error) {
 	if !s.valid {
 		return define.ErrDBClosed
 	}
@@ -1721,93 +1498,73 @@ func (s *SQLiteState) RemovePod(pod *Pod) error {
 		return define.ErrPodRemoved
 	}
 
-	return define.ErrNotImplemented
+	tx, err := s.conn.Begin()
+	if err != nil {
+		return fmt.Errorf("beginning pod %s removal transaction: %w", pod.ID(), err)
+	}
+	defer func() {
+		if defErr != nil {
+			if err := tx.Rollback(); err != nil {
+				logrus.Errorf("Rolling back transaction to remove pod %s: %v", pod.ID(), err)
+			}
+		}
+	}()
 
-	// podID := []byte(pod.ID())
-	// podName := []byte(pod.Name())
+	var check int
+	row := tx.QueryRow("SELECT 1 FROM ContainerConfig WHERE PodID=? AND ID!=?;", pod.ID(), pod.state.InfraContainerID)
+	if err := row.Scan(&check); err != nil {
+		if !errors.Is(err, sql.ErrNoRows) {
+			return fmt.Errorf("checking if pod %s has containers in database: %w", pod.ID(), err)
+		}
+	} else if check != 0 {
+		return fmt.Errorf("pod %s is not empty: %w", pod.ID(), define.ErrCtrExists)
+	}
 
-	// db, err := s.getDBCon()
-	// if err != nil {
-	// 	return err
-	// }
-	// defer s.deferredCloseDBCon(db)
+	checkResult := func(result sql.Result) error {
+		rows, err := result.RowsAffected()
+		if err != nil {
+			return fmt.Errorf("retrieving pod %s delete rows affected: %w", pod.ID(), err)
+		}
+		if rows == 0 {
+			pod.valid = false
+			return define.ErrNoSuchPod
+		}
+		return nil
+	}
 
-	// err = db.Update(func(tx *bolt.Tx) error {
-	// 	podBkt, err := getPodBucket(tx)
-	// 	if err != nil {
-	// 		return err
-	// 	}
+	result, err := tx.Exec("DELETE FROM IDNamespace WHERE ID=?;", pod.ID())
+	if err != nil {
+		return fmt.Errorf("removing pod %s id from database: %w", pod.ID(), err)
+	}
+	if err := checkResult(result); err != nil {
+		return err
+	}
 
-	// 	allPodsBkt, err := getAllPodsBucket(tx)
-	// 	if err != nil {
-	// 		return err
-	// 	}
+	result, err = tx.Exec("DELETE FROM PodConfig WHERE ID=?;", pod.ID())
+	if err != nil {
+		return fmt.Errorf("removing pod %s config from database: %w", pod.ID(), err)
+	}
+	if err := checkResult(result); err != nil {
+		return err
+	}
 
-	// 	idsBkt, err := getIDBucket(tx)
-	// 	if err != nil {
-	// 		return err
-	// 	}
+	result, err = tx.Exec("DELETE FROM PodState WHERE ID=?;", pod.ID())
+	if err != nil {
+		return fmt.Errorf("removing pod %s state from database: %w", pod.ID(), err)
+	}
+	if err := checkResult(result); err != nil {
+		return err
+	}
 
-	// 	namesBkt, err := getNamesBucket(tx)
-	// 	if err != nil {
-	// 		return err
-	// 	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("committing pod %s removal transaction: %w", pod.ID(), err)
+	}
 
-	// 	nsBkt, err := getNSBucket(tx)
-	// 	if err != nil {
-	// 		return err
-	// 	}
-
-	// 	// Check if the pod exists
-	// 	podDB := podBkt.Bucket(podID)
-	// 	if podDB == nil {
-	// 		pod.valid = false
-	// 		return fmt.Errorf("pod %s does not exist in DB: %w", pod.ID(), define.ErrNoSuchPod)
-	// 	}
-
-	// 	// Check if pod is empty
-	// 	// This should never be nil
-	// 	// But if it is, we can assume there are no containers in the
-	// 	// pod.
-	// 	// So let's eject the malformed pod without error.
-	// 	podCtrsBkt := podDB.Bucket(containersBkt)
-	// 	if podCtrsBkt != nil {
-	// 		cursor := podCtrsBkt.Cursor()
-	// 		if id, _ := cursor.First(); id != nil {
-	// 			return fmt.Errorf("pod %s is not empty: %w", pod.ID(), define.ErrCtrExists)
-	// 		}
-	// 	}
-
-	// 	// Pod is empty, and ready for removal
-	// 	// Let's kick it out
-	// 	if err := idsBkt.Delete(podID); err != nil {
-	// 		return fmt.Errorf("removing pod %s ID from DB: %w", pod.ID(), err)
-	// 	}
-	// 	if err := namesBkt.Delete(podName); err != nil {
-	// 		return fmt.Errorf("removing pod %s name (%s) from DB: %w", pod.ID(), pod.Name(), err)
-	// 	}
-	// 	if err := nsBkt.Delete(podID); err != nil {
-	// 		return fmt.Errorf("removing pod %s namespace from DB: %w", pod.ID(), err)
-	// 	}
-	// 	if err := allPodsBkt.Delete(podID); err != nil {
-	// 		return fmt.Errorf("removing pod %s ID from all pods bucket in DB: %w", pod.ID(), err)
-	// 	}
-	// 	if err := podBkt.DeleteBucket(podID); err != nil {
-	// 		return fmt.Errorf("removing pod %s from DB: %w", pod.ID(), err)
-	// 	}
-
-	// 	return nil
-	// })
-	// if err != nil {
-	// 	return err
-	// }
-
-	// return nil
+	return nil
 }
 
 // RemovePodContainers removes all containers in a pod.
-// TODO TODO TODO
-func (s *SQLiteState) RemovePodContainers(pod *Pod) error {
+func (s *SQLiteState) RemovePodContainers(pod *Pod) (defErr error) {
 	if !s.valid {
 		return define.ErrDBClosed
 	}
@@ -1816,119 +1573,36 @@ func (s *SQLiteState) RemovePodContainers(pod *Pod) error {
 		return define.ErrPodRemoved
 	}
 
-	return define.ErrNotImplemented
+	tx, err := s.conn.Begin()
+	if err != nil {
+		return fmt.Errorf("beginning removal transaction for containers of pod %s: %w", pod.ID(), err)
+	}
+	defer func() {
+		if defErr != nil {
+			if err := tx.Rollback(); err != nil {
+				logrus.Errorf("Rolling back transaction to remove containers of pod %s: %v", pod.ID(), err)
+			}
+		}
+	}()
 
-	// podID := []byte(pod.ID())
+	rows, err := tx.Query("SELECT ID FROM ContainerConfig WHERE PodID=?;", pod.ID())
+	if err != nil {
+		return fmt.Errorf("retrieving container IDs of pod %s from database: %w", pod.ID(), err)
+	}
+	defer rows.Close()
 
-	// db, err := s.getDBCon()
-	// if err != nil {
-	// 	return err
-	// }
-	// defer s.deferredCloseDBCon(db)
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return fmt.Errorf("scanning container from database: %w", err)
+		}
 
-	// err = db.Update(func(tx *bolt.Tx) error {
-	// 	podBkt, err := getPodBucket(tx)
-	// 	if err != nil {
-	// 		return err
-	// 	}
+		if err := s.removeContainerWithTx(id, tx); err != nil {
+			return err
+		}
+	}
 
-	// 	ctrBkt, err := getCtrBucket(tx)
-	// 	if err != nil {
-	// 		return err
-	// 	}
-
-	// 	allCtrsBkt, err := getAllCtrsBucket(tx)
-	// 	if err != nil {
-	// 		return err
-	// 	}
-
-	// 	idsBkt, err := getIDBucket(tx)
-	// 	if err != nil {
-	// 		return err
-	// 	}
-
-	// 	namesBkt, err := getNamesBucket(tx)
-	// 	if err != nil {
-	// 		return err
-	// 	}
-
-	// 	// Check if the pod exists
-	// 	podDB := podBkt.Bucket(podID)
-	// 	if podDB == nil {
-	// 		pod.valid = false
-	// 		return fmt.Errorf("pod %s does not exist in DB: %w", pod.ID(), define.ErrNoSuchPod)
-	// 	}
-
-	// 	podCtrsBkt := podDB.Bucket(containersBkt)
-	// 	if podCtrsBkt == nil {
-	// 		return fmt.Errorf("pod %s does not have a containers bucket: %w", pod.ID(), define.ErrInternal)
-	// 	}
-
-	// 	// Traverse all containers in the pod with a cursor
-	// 	// for-each has issues with data mutation
-	// 	err = podCtrsBkt.ForEach(func(id, name []byte) error {
-	// 		// Get the container so we can check dependencies
-	// 		ctr := ctrBkt.Bucket(id)
-	// 		if ctr == nil {
-	// 			// This should never happen
-	// 			// State is inconsistent
-	// 			return fmt.Errorf("pod %s referenced nonexistent container %s: %w", pod.ID(), string(id), define.ErrNoSuchCtr)
-	// 		}
-	// 		ctrDeps := ctr.Bucket(dependenciesBkt)
-	// 		// This should never be nil, but if it is, we're
-	// 		// removing it anyways, so continue if it is
-	// 		if ctrDeps != nil {
-	// 			err = ctrDeps.ForEach(func(depID, name []byte) error {
-	// 				exists := podCtrsBkt.Get(depID)
-	// 				if exists == nil {
-	// 					return fmt.Errorf("container %s has dependency %s outside of pod %s: %w", string(id), string(depID), pod.ID(), define.ErrCtrExists)
-	// 				}
-	// 				return nil
-	// 			})
-	// 			if err != nil {
-	// 				return err
-	// 			}
-	// 		}
-
-	// 		// Dependencies are set, we're clear to remove
-
-	// 		if err := ctrBkt.DeleteBucket(id); err != nil {
-	// 			return fmt.Errorf("deleting container %s from DB: %w", string(id), define.ErrInternal)
-	// 		}
-
-	// 		if err := idsBkt.Delete(id); err != nil {
-	// 			return fmt.Errorf("deleting container %s ID in DB: %w", string(id), err)
-	// 		}
-
-	// 		if err := namesBkt.Delete(name); err != nil {
-	// 			return fmt.Errorf("deleting container %s name in DB: %w", string(id), err)
-	// 		}
-
-	// 		if err := allCtrsBkt.Delete(id); err != nil {
-	// 			return fmt.Errorf("deleting container %s ID from all containers bucket in DB: %w", string(id), err)
-	// 		}
-
-	// 		return nil
-	// 	})
-	// 	if err != nil {
-	// 		return err
-	// 	}
-
-	// 	// Delete and recreate the bucket to empty it
-	// 	if err := podDB.DeleteBucket(containersBkt); err != nil {
-	// 		return fmt.Errorf("removing pod %s containers bucket: %w", pod.ID(), err)
-	// 	}
-	// 	if _, err := podDB.CreateBucket(containersBkt); err != nil {
-	// 		return fmt.Errorf("recreating pod %s containers bucket: %w", pod.ID(), err)
-	// 	}
-
-	// 	return nil
-	// })
-	// if err != nil {
-	// 	return err
-	// }
-
-	// return nil
+	return nil
 }
 
 // AddContainerToPod adds the given container to an existing pod
@@ -1976,7 +1650,6 @@ func (s *SQLiteState) RemoveContainerFromPod(pod *Pod, ctr *Container) error {
 }
 
 // UpdatePod updates a pod's state from the database.
-// TODO TODO TODO
 func (s *SQLiteState) UpdatePod(pod *Pod) error {
 	if !s.valid {
 		return define.ErrDBClosed
@@ -1986,54 +1659,29 @@ func (s *SQLiteState) UpdatePod(pod *Pod) error {
 		return define.ErrPodRemoved
 	}
 
-	return define.ErrNotImplemented
+	row := s.conn.QueryRow("SELECT JSON FROM PodState WHERE ID=?;", pod.ID())
 
-	// newState := new(podState)
+	var rawJSON string
+	if err := row.Scan(&rawJSON); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			// Pod was removed
+			pod.valid = false
+			return fmt.Errorf("no pod with ID %s found in database: %w", pod.ID(), define.ErrNoSuchPod)
+		}
+	}
 
-	// db, err := s.getDBCon()
-	// if err != nil {
-	// 	return err
-	// }
-	// defer s.deferredCloseDBCon(db)
+	newState := new(podState)
+	if err := json.Unmarshal([]byte(rawJSON), newState); err != nil {
+		return fmt.Errorf("unmarshalling pod %s state JSON: %w", pod.ID(), err)
+	}
 
-	// podID := []byte(pod.ID())
+	pod.state = newState
 
-	// err = db.View(func(tx *bolt.Tx) error {
-	// 	podBkt, err := getPodBucket(tx)
-	// 	if err != nil {
-	// 		return err
-	// 	}
-
-	// 	podDB := podBkt.Bucket(podID)
-	// 	if podDB == nil {
-	// 		pod.valid = false
-	// 		return fmt.Errorf("no pod with ID %s found in database: %w", pod.ID(), define.ErrNoSuchPod)
-	// 	}
-
-	// 	// Get the pod state JSON
-	// 	podStateBytes := podDB.Get(stateKey)
-	// 	if podStateBytes == nil {
-	// 		return fmt.Errorf("pod %s is missing state key in DB: %w", pod.ID(), define.ErrInternal)
-	// 	}
-
-	// 	if err := json.Unmarshal(podStateBytes, newState); err != nil {
-	// 		return fmt.Errorf("unmarshalling pod %s state JSON: %w", pod.ID(), err)
-	// 	}
-
-	// 	return nil
-	// })
-	// if err != nil {
-	// 	return err
-	// }
-
-	// pod.state = newState
-
-	// return nil
+	return nil
 }
 
 // SavePod saves a pod's state to the database.
-// TODO TODO TODO
-func (s *SQLiteState) SavePod(pod *Pod) error {
+func (s *SQLiteState) SavePod(pod *Pod) (defErr error) {
 	if !s.valid {
 		return define.ErrDBClosed
 	}
@@ -2042,104 +1690,71 @@ func (s *SQLiteState) SavePod(pod *Pod) error {
 		return define.ErrPodRemoved
 	}
 
-	return define.ErrNotImplemented
+	stateJSON, err := json.Marshal(pod.state)
+	if err != nil {
+		return fmt.Errorf("marshalling pod %s state JSON: %w", pod.ID(), err)
+	}
 
-	// stateJSON, err := json.Marshal(pod.state)
-	// if err != nil {
-	// 	return fmt.Errorf("marshalling pod %s state to JSON: %w", pod.ID(), err)
-	// }
+	tx, err := s.conn.Begin()
+	if err != nil {
+		return fmt.Errorf("beginning pod %s save transaction: %w", pod.ID(), err)
+	}
+	defer func() {
+		if defErr != nil {
+			if err := tx.Rollback(); err != nil {
+				logrus.Errorf("Rolling back transaction to save pod %s state: %v", pod.ID(), err)
+			}
+		}
+	}()
 
-	// db, err := s.getDBCon()
-	// if err != nil {
-	// 	return err
-	// }
-	// defer s.deferredCloseDBCon(db)
+	result, err := tx.Exec("UPDATE PodState SET JSON=? WHERE ID=?;", stateJSON, pod.ID())
+	if err != nil {
+		return fmt.Errorf("writing pod %s state: %w", pod.ID(), err)
+	}
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("retrieving pod %s save rows affected: %w", pod.ID(), err)
+	}
+	if rows == 0 {
+		pod.valid = false
+		return define.ErrNoSuchPod
+	}
 
-	// podID := []byte(pod.ID())
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("committing pod %s state: %w", pod.ID(), err)
+	}
 
-	// err = db.Update(func(tx *bolt.Tx) error {
-	// 	podBkt, err := getPodBucket(tx)
-	// 	if err != nil {
-	// 		return err
-	// 	}
-
-	// 	podDB := podBkt.Bucket(podID)
-	// 	if podDB == nil {
-	// 		pod.valid = false
-	// 		return fmt.Errorf("no pod with ID %s found in database: %w", pod.ID(), define.ErrNoSuchPod)
-	// 	}
-
-	// 	// Set the pod state JSON
-	// 	if err := podDB.Put(stateKey, stateJSON); err != nil {
-	// 		return fmt.Errorf("updating pod %s state in database: %w", pod.ID(), err)
-	// 	}
-
-	// 	return nil
-	// })
-	// if err != nil {
-	// 	return err
-	// }
-
-	// return nil
+	return nil
 }
 
 // AllPods returns all pods present in the state.
-// TODO TODO TODO
 func (s *SQLiteState) AllPods() ([]*Pod, error) {
 	if !s.valid {
 		return nil, define.ErrDBClosed
 	}
 
-	return nil, define.ErrNotImplemented
+	pods := []*Pod{}
+	rows, err := s.conn.Query("SELECT JSON FROM PodConfig;")
+	if err != nil {
+		return nil, fmt.Errorf("retrieving all pods from database: %w", err)
+	}
+	defer rows.Close()
 
-	// pods := []*Pod{}
+	for rows.Next() {
+		var rawJSON string
+		if err := rows.Scan(&rawJSON); err != nil {
+			return nil, fmt.Errorf("scanning pod from database: %w", err)
+		}
 
-	// db, err := s.getDBCon()
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// defer s.deferredCloseDBCon(db)
+		pod, err := s.createPod(rawJSON)
+		if err != nil {
+			return nil, err
+		}
 
-	// err = db.View(func(tx *bolt.Tx) error {
-	// 	allPodsBucket, err := getAllPodsBucket(tx)
-	// 	if err != nil {
-	// 		return err
-	// 	}
+		pods = append(pods, pod)
+	}
 
-	// 	podBucket, err := getPodBucket(tx)
-	// 	if err != nil {
-	// 		return err
-	// 	}
-
-	// 	err = allPodsBucket.ForEach(func(id, name []byte) error {
-	// 		podExists := podBucket.Bucket(id)
-	// 		// This check can be removed if performance becomes an
-	// 		// issue, but much less helpful errors will be produced
-	// 		if podExists == nil {
-	// 			return fmt.Errorf("inconsistency in state - pod %s is in all pods bucket but pod not found: %w", string(id), define.ErrInternal)
-	// 		}
-
-	// 		pod := new(Pod)
-	// 		pod.config = new(PodConfig)
-	// 		pod.state = new(podState)
-
-	// 		if err := s.getPodFromDB(id, pod, podBucket); err != nil {
-	// 			if !errors.Is(err, define.ErrNSMismatch) {
-	// 				logrus.Errorf("Retrieving pod %s from the database: %v", string(id), err)
-	// 			}
-	// 		} else {
-	// 			pods = append(pods, pod)
-	// 		}
-
-	// 		return nil
-	// 	})
-	// 	return err
-	// })
-	// if err != nil {
-	// 	return nil, err
-	// }
-
-	// return pods, nil
+	return pods, nil
 }
 
 // AddVolume adds the given volume to the state. It also adds ctrDepID to
@@ -2314,7 +1929,7 @@ func (s *SQLiteState) SaveVolume(volume *Volume) (defErr error) {
 		}
 	}()
 
-	results, err := tx.Exec("UPDATE TABLE VolumeState SET JSON=? WHERE Name=?;", stateJSON, volume.Name())
+	results, err := tx.Exec("UPDATE VolumeState SET JSON=? WHERE Name=?;", stateJSON, volume.Name())
 	if err != nil {
 		return fmt.Errorf("updating volume %s state in DB: %w", volume.Name(), err)
 	}
@@ -2418,7 +2033,7 @@ func (s *SQLiteState) LookupVolume(name string) (*Volume, error) {
 		return nil, define.ErrDBClosed
 	}
 
-	rows, err := s.conn.Query("SELECT JSON FROM VolumeConfig WHERE Name LIKE ?;", name)
+	rows, err := s.conn.Query("SELECT JSON FROM VolumeConfig WHERE Name LIKE ?;", name+"%")
 	if err != nil {
 		return nil, fmt.Errorf("querying database for volume %s: %w", name, err)
 	}

@@ -86,7 +86,7 @@ func sqliteInitTables(conn *sql.DB) (defErr error) {
                 ExitCode INTEGER,
                 JSON     TEXT    NOT NULL,
                 FOREIGN KEY (ID) REFERENCES ContainerConfig(ID) DEFERRABLE INITIALLY DEFERRED,
-                CHECK (ExitCode BETWEEN 0 AND 255)
+                CHECK (ExitCode BETWEEN -1 AND 255)
         );`
 
 	const containerExecSession = `
@@ -120,7 +120,7 @@ func sqliteInitTables(conn *sql.DB) (defErr error) {
                 ID        TEXT    PRIMARY KEY NOT NULL,
                 Timestamp INTEGER NOT NULL,
                 ExitCode  INTEGER NOT NULL,
-                CHECK (ExitCode BETWEEN 0 AND 255)
+                CHECK (ExitCode BETWEEN -1 AND 255)
         );`
 
 	const podConfig = `
@@ -266,17 +266,24 @@ func finalizeCtrSqlite(ctr *Container) error {
 }
 
 // Finalize a pod that was pulled out of the database.
-func finalizePodSqlite(pod *Pod) error {
-	// Get the lock
-	lock, err := pod.runtime.lockManager.RetrieveLock(pod.config.LockID)
-	if err != nil {
-		return fmt.Errorf("retrieving lock for pod %s: %w", pod.ID(), err)
+func (s *SQLiteState) createPod(rawJSON string) (*Pod, error) {
+	config := new(PodConfig)
+	if err := json.Unmarshal([]byte(rawJSON), config); err != nil {
+		return nil, fmt.Errorf("unmarshalling pod config: %w", err)
 	}
-	pod.lock = lock
+	lock, err := s.runtime.lockManager.RetrieveLock(config.LockID)
+	if err != nil {
+		return nil, fmt.Errorf("retrieving lock for pod %s: %w", config.ID, err)
+	}
 
+	pod := new(Pod)
+	pod.config = config
+	pod.state = new(podState)
+	pod.lock = lock
+	pod.runtime = s.runtime
 	pod.valid = true
 
-	return nil
+	return pod, nil
 }
 
 // Finalize a volume that was pulled out of the database
@@ -343,10 +350,10 @@ func (s *SQLiteState) addContainer(ctr *Container) (defErr error) {
 	}
 	deps := ctr.Dependencies()
 
-	pod := sql.NullString{}
+	podID := sql.NullString{}
 	if ctr.config.Pod != "" {
-		pod.Valid = true
-		pod.String = ctr.config.Pod
+		podID.Valid = true
+		podID.String = ctr.config.Pod
 	}
 
 	tx, err := s.conn.Begin()
@@ -364,7 +371,7 @@ func (s *SQLiteState) addContainer(ctr *Container) (defErr error) {
 	if _, err := tx.Exec("INSERT INTO IDNamespace VALUES (?);", ctr.ID()); err != nil {
 		return fmt.Errorf("adding container id to database: %w", err)
 	}
-	if _, err := tx.Exec("INSERT INTO ContainerConfig VALUES (?, ?, ?, ?);", ctr.ID(), ctr.Name(), pod, configJSON); err != nil {
+	if _, err := tx.Exec("INSERT INTO ContainerConfig VALUES (?, ?, ?, ?);", ctr.ID(), ctr.Name(), podID, configJSON); err != nil {
 		return fmt.Errorf("adding container config to database: %w", err)
 	}
 	if _, err := tx.Exec("INSERT INTO ContainerState VALUES (?, ?, ?, ?);", ctr.ID(), int(ctr.state.State), ctr.state.ExitCode, stateJSON); err != nil {
@@ -405,11 +412,13 @@ func (s *SQLiteState) addContainer(ctr *Container) (defErr error) {
 	return nil
 }
 
+// removeContainer remove the specified container from the database.
 func (s *SQLiteState) removeContainer(ctr *Container) (defErr error) {
 	tx, err := s.conn.Begin()
 	if err != nil {
 		return fmt.Errorf("beginning container %s removal transaction: %w", ctr.ID(), err)
 	}
+
 	defer func() {
 		if defErr != nil {
 			if err := tx.Rollback(); err != nil {
@@ -418,32 +427,41 @@ func (s *SQLiteState) removeContainer(ctr *Container) (defErr error) {
 		}
 	}()
 
-	// TODO TODO TODO:
-	// Need to verify that at least 1 row was deleted from ContainerConfig.
-	// Otherwise return ErrNoSuchCtr.
-	if _, err := tx.Exec("DELETE FROM IDNamespace WHERE ID=?;", ctr.ID()); err != nil {
-		return fmt.Errorf("removing container %s id from database: %w", ctr.ID(), err)
-	}
-	if _, err := tx.Exec("DELETE FROM ContainerConfig WHERE ID=?;", ctr.ID()); err != nil {
-		return fmt.Errorf("removing container %s config from database: %w", ctr.ID(), err)
-	}
-	if _, err := tx.Exec("DELETE FROM ContainerState WHERE ID=?;", ctr.ID()); err != nil {
-		return fmt.Errorf("removing container %s state from database: %w", ctr.ID(), err)
-	}
-	if _, err := tx.Exec("DELETE FROM ContainerDependency WHERE ID=?;", ctr.ID()); err != nil {
-		return fmt.Errorf("removing container %s dependencies from database: %w", ctr.ID(), err)
-	}
-	if _, err := tx.Exec("DELETE FROM ContainerVolume WHERE ContainerID=?;", ctr.ID()); err != nil {
-		return fmt.Errorf("removing container %s volumes from database: %w", ctr.ID(), err)
-	}
-	if _, err := tx.Exec("DELETE FROM ContainerExecSession WHERE ContainerID=?;", ctr.ID()); err != nil {
-		return fmt.Errorf("removing container %s exec sessions from database: %w", ctr.ID(), err)
+	if err := s.removeContainerWithTx(ctr.ID(), tx); err != nil {
+		return err
 	}
 
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("committing container %s removal transaction: %w", ctr.ID(), err)
 	}
 
+	return nil
+}
+
+// removeContainerWithTx removes the container with the specified transaction.
+// Callers are responsible for committing.
+func (s *SQLiteState) removeContainerWithTx(id string, tx *sql.Tx) error {
+	// TODO TODO TODO:
+	// Need to verify that at least 1 row was deleted from ContainerConfig.
+	// Otherwise return ErrNoSuchCtr.
+	if _, err := tx.Exec("DELETE FROM IDNamespace WHERE ID=?;", id); err != nil {
+		return fmt.Errorf("removing container %s id from database: %w", id, err)
+	}
+	if _, err := tx.Exec("DELETE FROM ContainerConfig WHERE ID=?;", id); err != nil {
+		return fmt.Errorf("removing container %s config from database: %w", id, err)
+	}
+	if _, err := tx.Exec("DELETE FROM ContainerState WHERE ID=?;", id); err != nil {
+		return fmt.Errorf("removing container %s state from database: %w", id, err)
+	}
+	if _, err := tx.Exec("DELETE FROM ContainerDependency WHERE ID=?;", id); err != nil {
+		return fmt.Errorf("removing container %s dependencies from database: %w", id, err)
+	}
+	if _, err := tx.Exec("DELETE FROM ContainerVolume WHERE ContainerID=?;", id); err != nil {
+		return fmt.Errorf("removing container %s volumes from database: %w", id, err)
+	}
+	if _, err := tx.Exec("DELETE FROM ContainerExecSession WHERE ContainerID=?;", id); err != nil {
+		return fmt.Errorf("removing container %s exec sessions from database: %w", id, err)
+	}
 	return nil
 }
 
