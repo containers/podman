@@ -28,7 +28,7 @@ type SQLiteState struct {
 	runtime *Runtime
 }
 
-// NewBoltState creates a new bolt-backed state database
+// NewSqliteState creates a new SQLite-backed state database.
 func NewSqliteState(runtime *Runtime) (_ State, defErr error) {
 	state := new(SQLiteState)
 
