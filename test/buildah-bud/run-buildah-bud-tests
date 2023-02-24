@@ -105,8 +105,10 @@ set -e
 # during the git-checkout-buildah step, then come back twenty minutes later
 # to an expired sudo prompt and no tests have run. (No need to do this
 # for checkout; only when running tests)
-if [[ -n $do_test ]]; then
-    sudo --validate
+export SUDO=
+if [[ -n $do_test ]] && ! [[ "$PRIV_NAME" == "rootless" ]]; then
+    SUDO=sudo
+    $SUDO --validate
 fi
 
 # Before pulling buildah (while still cd'ed to podman repo), try to determine
@@ -227,7 +229,7 @@ review the test failure and double-check your changes.
 "
     fi
 
-    (set -x;sudo env TMPDIR=/var/tmp \
+    (set -x;$SUDO env TMPDIR=/var/tmp \
                  PODMAN_BINARY=$PODMAN_BINARY \
                  PODMAN_SERVER_LOG=$PODMAN_SERVER_LOG \
                  REMOTE=$REMOTE \
