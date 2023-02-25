@@ -61,7 +61,7 @@ type DynamicIgnition struct {
 }
 
 // NewIgnitionFile
-func NewIgnitionFile(ign DynamicIgnition) error {
+func NewIgnitionFile(ign DynamicIgnition, vmType VMType) error {
 	if len(ign.Name) < 1 {
 		ign.Name = DefaultIgnitionUserName
 	}
@@ -187,7 +187,6 @@ ExecStartPost=/usr/bin/systemctl daemon-reload
 [Install]
 WantedBy=sysinit.target
 `
-	_ = ready
 	ignSystemd := Systemd{
 		Units: []Unit{
 			{
@@ -214,11 +213,6 @@ WantedBy=sysinit.target
 				Name:     "remove-moby.service",
 				Contents: &deMoby,
 			},
-			{
-				Enabled:  boolToPtr(true),
-				Name:     "envset-fwcfg.service",
-				Contents: &envset,
-			},
 		}}
 	ignConfig := Config{
 		Ignition: ignVersion,
@@ -226,6 +220,17 @@ WantedBy=sysinit.target
 		Storage:  ignStorage,
 		Systemd:  ignSystemd,
 	}
+
+	// Only qemu has the qemu firmware environment setting
+	if vmType == QemuVirt {
+		qemuUnit := Unit{
+			Enabled:  boolToPtr(true),
+			Name:     "envset-fwcfg.service",
+			Contents: &envset,
+		}
+		ignSystemd.Units = append(ignSystemd.Units, qemuUnit)
+	}
+
 	b, err := json.Marshal(ignConfig)
 	if err != nil {
 		return err

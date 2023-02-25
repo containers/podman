@@ -4,6 +4,7 @@
 package machine
 
 import (
+	"archive/zip"
 	"bufio"
 	"errors"
 	"fmt"
@@ -13,6 +14,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
@@ -31,7 +33,7 @@ type GenericDownload struct {
 }
 
 // NewGenericDownloader is used when the disk image is provided by the user
-func NewGenericDownloader(vmType, vmName, pullPath string) (DistributionDownload, error) {
+func NewGenericDownloader(vmType VMType, vmName, pullPath string) (DistributionDownload, error) {
 	var (
 		imageName string
 	)
@@ -57,7 +59,7 @@ func NewGenericDownloader(vmType, vmName, pullPath string) (DistributionDownload
 	}
 	dl.VMName = vmName
 	dl.ImageName = imageName
-	dl.LocalUncompressedFile = filepath.Join(dataDir, imageName)
+	dl.LocalUncompressedFile = dl.GetLocalUncompressedFile(dataDir)
 	// The download needs to be pulled into the datadir
 
 	gd := GenericDownload{Download: dl}
@@ -86,9 +88,11 @@ func supportedURL(path string) (url *url2.URL) {
 }
 
 func (d Download) GetLocalUncompressedFile(dataDir string) string {
-	extension := compressionFromFile(dataDir)
-	uncompressedFilename := d.VMName + "_" + d.ImageName
-	return filepath.Join(dataDir, strings.TrimSuffix(uncompressedFilename, extension.String()))
+	compressedFilename := d.VMName + "_" + d.ImageName
+	extension := compressionFromFile(compressedFilename)
+	uncompressedFile := strings.TrimSuffix(compressedFilename, fmt.Sprintf(".%s", extension.String()))
+	d.LocalUncompressedFile = filepath.Join(dataDir, uncompressedFile)
+	return d.LocalUncompressedFile
 }
 
 func (g GenericDownload) Get() *Download {
@@ -193,6 +197,7 @@ func DownloadVMImage(downloadURL *url2.URL, imageName string, localImagePath str
 }
 
 func Decompress(localPath, uncompressedPath string) error {
+	var isZip bool
 	uncompressedFileWriter, err := os.OpenFile(uncompressedPath, os.O_CREATE|os.O_RDWR, 0600)
 	if err != nil {
 		return err
@@ -201,13 +206,18 @@ func Decompress(localPath, uncompressedPath string) error {
 	if err != nil {
 		return err
 	}
-
+	if strings.HasSuffix(localPath, ".zip") {
+		isZip = true
+	}
 	compressionType := archive.DetectCompression(sourceFile)
-	if compressionType != archive.Uncompressed {
+	if compressionType != archive.Uncompressed || isZip {
 		fmt.Println("Extracting compressed file")
 	}
 	if compressionType == archive.Xz {
 		return decompressXZ(localPath, uncompressedFileWriter)
+	}
+	if isZip && runtime.GOOS == "windows" {
+		return decompressZip(localPath, uncompressedFileWriter)
 	}
 	return decompressEverythingElse(localPath, uncompressedFileWriter)
 }
@@ -277,6 +287,32 @@ func decompressEverythingElse(src string, output io.WriteCloser) error {
 	}()
 
 	_, err = io.Copy(output, uncompressStream)
+	return err
+}
+
+func decompressZip(src string, output io.WriteCloser) error {
+	zipReader, err := zip.OpenReader(src)
+	if err != nil {
+		return err
+	}
+	if len(zipReader.File) != 1 {
+		return errors.New("machine image files should consist of a single compressed file")
+	}
+	f, err := zipReader.File[0].Open()
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err := f.Close(); err != nil {
+			logrus.Error(err)
+		}
+	}()
+	defer func() {
+		if err := output.Close(); err != nil {
+			logrus.Error(err)
+		}
+	}()
+	_, err = io.Copy(output, f)
 	return err
 }
 

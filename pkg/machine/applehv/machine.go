@@ -11,7 +11,7 @@ import (
 
 var (
 	// vmtype refers to qemu (vs libvirt, krun, etc).
-	vmtype = "apple"
+	vmtype = machine.AppleHvVirt
 )
 
 func GetVirtualizationProvider() machine.VirtProvider {

@@ -37,7 +37,7 @@ import (
 var (
 	// vmtype refers to qemu (vs libvirt, krun, etc).
 	// Could this be moved into  Provider
-	vmtype = "qemu"
+	vmtype = machine.QemuVirt
 )
 
 func GetVirtualizationProvider() machine.VirtProvider {
@@ -392,7 +392,7 @@ func (v *MachineVM) Init(opts machine.InitOptions) (bool, error) {
 		UID:       v.UID,
 	}
 
-	err = machine.NewIgnitionFile(ign)
+	err = machine.NewIgnitionFile(ign, machine.QemuVirt)
 	return err == nil, err
 }
 
@@ -1335,7 +1335,7 @@ func (v *MachineVM) isIncompatible() bool {
 }
 
 func (v *MachineVM) userGlobalSocketLink() (string, error) {
-	path, err := machine.GetDataDir(v.Name)
+	path, err := machine.GetDataDir(machine.QemuVirt)
 	if err != nil {
 		logrus.Errorf("Resolving data dir: %s", err.Error())
 		return "", err
@@ -1346,7 +1346,7 @@ func (v *MachineVM) userGlobalSocketLink() (string, error) {
 
 func (v *MachineVM) forwardSocketPath() (*machine.VMFile, error) {
 	sockName := "podman.sock"
-	path, err := machine.GetDataDir(v.Name)
+	path, err := machine.GetDataDir(machine.QemuVirt)
 	if err != nil {
 		logrus.Errorf("Resolving data dir: %s", err.Error())
 		return nil, err
@@ -1743,7 +1743,7 @@ func (p *Virtualization) RemoveAndCleanMachines() error {
 	return prevErr
 }
 
-func (p *Virtualization) VMType() string {
+func (p *Virtualization) VMType() machine.VMType {
 	return vmtype
 }
 

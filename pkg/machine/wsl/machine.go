@@ -29,7 +29,7 @@ import (
 
 var (
 	// vmtype refers to qemu (vs libvirt, krun, etc)
-	vmtype = "wsl"
+	vmtype = machine.WSLVirt
 )
 
 const (
@@ -1713,6 +1713,6 @@ func (p *Virtualization) RemoveAndCleanMachines() error {
 	return prevErr
 }
 
-func (p *Virtualization) VMType() string {
+func (p *Virtualization) VMType() machine.VMType {
 	return vmtype
 }
