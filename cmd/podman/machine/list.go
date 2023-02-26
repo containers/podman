@@ -53,7 +53,7 @@ func init() {
 
 	flags := lsCmd.Flags()
 	formatFlagName := "format"
-	flags.StringVar(&listFlag.format, formatFlagName, "{{range .}}{{.Name}}\t{{.VMType}}\t{{.Created}}\t{{.LastUp}}\t{{.CPUs}}\t{{.Memory}}\t{{.DiskSize}}\n{{end -}}", "Format volume output using JSON or a Go template")
+	flags.StringVar(&listFlag.format, formatFlagName, "{{range .}}{{.Name}}\u0009{{.VMType}}\u0009{{.Created}}\u0009{{.LastUp}}\u0009{{.CPUs}}\u0009{{.Memory}}\u0009{{.DiskSize}}\n{{end -}}", "Format volume output using JSON or a Go template")
 	_ = lsCmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(&entities.ListReporter{}))
 	flags.BoolVarP(&listFlag.noHeading, "noheading", "n", false, "Do not print headers")
 	flags.BoolVarP(&listFlag.quiet, "quiet", "q", false, "Show only machine names")
