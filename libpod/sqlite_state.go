@@ -1470,6 +1470,19 @@ func (s *SQLiteState) AddPod(pod *Pod) (defErr error) {
 		}
 	}()
 
+	// TODO: explore whether there's a more idiomatic way to do error checks for the name.
+	// There is a sqlite3.ErrConstraintUnique error but I (vrothberg) couldn't find a way
+	// to work with the returned errors yet.
+	var check int
+	row := tx.QueryRow("SELECT 1 FROM PodConfig WHERE Name=?;", pod.Name())
+	if err := row.Scan(&check); err != nil {
+		if !errors.Is(err, sql.ErrNoRows) {
+			return fmt.Errorf("checking if pod name %s exists in database: %w", pod.ID(), err)
+		}
+	} else if check != 0 {
+		return fmt.Errorf("name \"%s\" is in use: %w", pod.Name(), define.ErrPodExists)
+	}
+
 	if _, err := tx.Exec("INSERT INTO IDNamespace VALUES (?);", pod.ID()); err != nil {
 		return fmt.Errorf("adding pod id to database: %w", err)
 	}
