@@ -161,15 +161,15 @@ Note: **N/A** means that the option cannot be supported in a single-node Podman 
 
 ## Deployment Fields
 
-| Field                                 | Support |
-|---------------------------------------|---------|
-| replicas                              | ✅      |
-| selector                              | ✅      |
-| template                              | ✅      |
-| minReadySeconds                       |         |
-| strategy.type                         |         |
-| strategy.rollingUpdate.maxSurge       |         |
-| strategy.rollingUpdate.maxUnavailable |         |
-| revisionHistoryLimit                  |         |
-| progressDeadlineSeconds               |         |
-| paused                                |         |
+| Field                                 | Support                                               |
+|---------------------------------------|-------------------------------------------------------|
+| replicas                              | ✅ (the actual replica count is ignored and set to 1) |
+| selector                              | ✅                                                    |
+| template                              | ✅                                                    |
+| minReadySeconds                       |                                                       |
+| strategy.type                         |                                                       |
+| strategy.rollingUpdate.maxSurge       |                                                       |
+| strategy.rollingUpdate.maxUnavailable |                                                       |
+| revisionHistoryLimit                  |                                                       |
+| progressDeadlineSeconds               |                                                       |
+| paused                                |                                                       |
