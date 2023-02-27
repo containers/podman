@@ -275,8 +275,6 @@ function _run_altbuild() {
         *Windows*)
             make podman-remote-release-windows_amd64.zip
             make podman.msi
-            # TODO: Script is broken, see #17620 for possible fix.
-            # docs/version-check
             ;;
         *Without*)
             make build-no-cgo
