@@ -318,7 +318,7 @@ func (s *SQLiteState) rewriteContainerConfig(ctr *Container, newCfg *ContainerCo
 		}
 	}()
 
-	results, err := tx.Exec("UPDATE TABLE ContainerConfig SET Name=?, JSON=? WHERE ID=?;", newCfg.Name, json, ctr.ID())
+	results, err := tx.Exec("UPDATE ContainerConfig SET Name=?, JSON=? WHERE ID=?;", newCfg.Name, json, ctr.ID())
 	if err != nil {
 		return fmt.Errorf("updating container config table with new configuration for container %s: %w", ctr.ID(), err)
 	}
