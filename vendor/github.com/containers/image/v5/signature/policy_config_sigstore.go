@@ -147,7 +147,7 @@ func (pr *prSigstoreSigned) UnmarshalJSON(data []byte) error {
 	var gotKeyPath, gotKeyData, gotFulcio, gotRekorPublicKeyPath, gotRekorPublicKeyData bool
 	var fulcio prSigstoreSignedFulcio
 	var signedIdentity json.RawMessage
-	if err := internal.ParanoidUnmarshalJSONObject(data, func(key string) any {
+	if err := internal.ParanoidUnmarshalJSONObject(data, func(key string) interface{} {
 		switch key {
 		case "type":
 			return &tmp.Type
@@ -298,7 +298,7 @@ func (f *prSigstoreSignedFulcio) UnmarshalJSON(data []byte) error {
 	*f = prSigstoreSignedFulcio{}
 	var tmp prSigstoreSignedFulcio
 	var gotCAPath, gotCAData, gotOIDCIssuer, gotSubjectEmail bool // = false...
-	if err := internal.ParanoidUnmarshalJSONObject(data, func(key string) any {
+	if err := internal.ParanoidUnmarshalJSONObject(data, func(key string) interface{} {
 		switch key {
 		case "caPath":
 			gotCAPath = true

@@ -381,7 +381,7 @@ func v1ConfigFromConfigJSON(configJSON []byte, v1ID, parentV1ID string, throwawa
 	delete(rawContents, "rootfs")
 	delete(rawContents, "history")
 
-	updates := map[string]any{"id": v1ID}
+	updates := map[string]interface{}{"id": v1ID}
 	if parentV1ID != "" {
 		updates["parent"] = parentV1ID
 	}

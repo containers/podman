@@ -41,7 +41,7 @@ type bodyReader struct {
 }
 
 // newBodyReader creates a bodyReader for request path in c.
-// firstBody is an already correctly opened body for the blob, returning the full blob from the start.
+// firstBody is an already correctly opened body for the blob, returing the full blob from the start.
 // If reading from firstBody fails, bodyReader may heuristically decide to resume.
 func newBodyReader(ctx context.Context, c *dockerClient, path string, firstBody io.ReadCloser) (io.ReadCloser, error) {
 	logURL, err := c.resolveRequestURL(path)
@@ -193,7 +193,7 @@ func (br *bodyReader) Read(p []byte) (int, error) {
 			return n, fmt.Errorf("%w (after reconnecting, fetching blob: %v)", originalErr, err)
 		}
 
-		logrus.Debugf("Successfully reconnected to %s", redactedURL)
+		logrus.Debugf("Succesfully reconnected to %s", redactedURL)
 		consumedBody = true
 		br.body = res.Body
 		br.lastRetryOffset = br.offset

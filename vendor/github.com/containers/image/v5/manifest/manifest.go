@@ -1,9 +1,10 @@
 package manifest
 
 import (
+	"encoding/json"
 	"fmt"
 
-	"github.com/containers/image/v5/internal/manifest"
+	internalManifest "github.com/containers/image/v5/internal/manifest"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/libtrust"
 	digest "github.com/opencontainers/go-digest"
@@ -15,28 +16,28 @@ import (
 // FIXME(runcom, mitr): should we have a mediatype pkg??
 const (
 	// DockerV2Schema1MediaType MIME type represents Docker manifest schema 1
-	DockerV2Schema1MediaType = manifest.DockerV2Schema1MediaType
+	DockerV2Schema1MediaType = "application/vnd.docker.distribution.manifest.v1+json"
 	// DockerV2Schema1MediaType MIME type represents Docker manifest schema 1 with a JWS signature
-	DockerV2Schema1SignedMediaType = manifest.DockerV2Schema1SignedMediaType
+	DockerV2Schema1SignedMediaType = "application/vnd.docker.distribution.manifest.v1+prettyjws"
 	// DockerV2Schema2MediaType MIME type represents Docker manifest schema 2
-	DockerV2Schema2MediaType = manifest.DockerV2Schema2MediaType
+	DockerV2Schema2MediaType = "application/vnd.docker.distribution.manifest.v2+json"
 	// DockerV2Schema2ConfigMediaType is the MIME type used for schema 2 config blobs.
-	DockerV2Schema2ConfigMediaType = manifest.DockerV2Schema2ConfigMediaType
+	DockerV2Schema2ConfigMediaType = "application/vnd.docker.container.image.v1+json"
 	// DockerV2Schema2LayerMediaType is the MIME type used for schema 2 layers.
-	DockerV2Schema2LayerMediaType = manifest.DockerV2Schema2LayerMediaType
+	DockerV2Schema2LayerMediaType = "application/vnd.docker.image.rootfs.diff.tar.gzip"
 	// DockerV2SchemaLayerMediaTypeUncompressed is the mediaType used for uncompressed layers.
-	DockerV2SchemaLayerMediaTypeUncompressed = manifest.DockerV2SchemaLayerMediaTypeUncompressed
+	DockerV2SchemaLayerMediaTypeUncompressed = "application/vnd.docker.image.rootfs.diff.tar"
 	// DockerV2ListMediaType MIME type represents Docker manifest schema 2 list
-	DockerV2ListMediaType = manifest.DockerV2ListMediaType
+	DockerV2ListMediaType = "application/vnd.docker.distribution.manifest.list.v2+json"
 	// DockerV2Schema2ForeignLayerMediaType is the MIME type used for schema 2 foreign layers.
-	DockerV2Schema2ForeignLayerMediaType = manifest.DockerV2Schema2ForeignLayerMediaType
+	DockerV2Schema2ForeignLayerMediaType = "application/vnd.docker.image.rootfs.foreign.diff.tar"
 	// DockerV2Schema2ForeignLayerMediaType is the MIME type used for gzipped schema 2 foreign layers.
-	DockerV2Schema2ForeignLayerMediaTypeGzip = manifest.DockerV2Schema2ForeignLayerMediaTypeGzip
+	DockerV2Schema2ForeignLayerMediaTypeGzip = "application/vnd.docker.image.rootfs.foreign.diff.tar.gzip"
 )
 
 // NonImageArtifactError (detected via errors.As) is used when asking for an image-specific operation
 // on an object which is not a “container image” in the standard sense (e.g. an OCI artifact)
-type NonImageArtifactError = manifest.NonImageArtifactError
+type NonImageArtifactError = internalManifest.NonImageArtifactError
 
 // SupportedSchema2MediaType checks if the specified string is a supported Docker v2s2 media type.
 func SupportedSchema2MediaType(m string) error {
@@ -101,21 +102,102 @@ type LayerInfo struct {
 // GuessMIMEType guesses MIME type of a manifest and returns it _if it is recognized_, or "" if unknown or unrecognized.
 // FIXME? We should, in general, prefer out-of-band MIME type instead of blindly parsing the manifest,
 // but we may not have such metadata available (e.g. when the manifest is a local file).
-func GuessMIMEType(manifestBlob []byte) string {
-	return manifest.GuessMIMEType(manifestBlob)
+func GuessMIMEType(manifest []byte) string {
+	// A subset of manifest fields; the rest is silently ignored by json.Unmarshal.
+	// Also docker/distribution/manifest.Versioned.
+	meta := struct {
+		MediaType     string      `json:"mediaType"`
+		SchemaVersion int         `json:"schemaVersion"`
+		Signatures    interface{} `json:"signatures"`
+	}{}
+	if err := json.Unmarshal(manifest, &meta); err != nil {
+		return ""
+	}
+
+	switch meta.MediaType {
+	case DockerV2Schema2MediaType, DockerV2ListMediaType,
+		imgspecv1.MediaTypeImageManifest, imgspecv1.MediaTypeImageIndex: // A recognized type.
+		return meta.MediaType
+	}
+	// this is the only way the function can return DockerV2Schema1MediaType, and recognizing that is essential for stripping the JWS signatures = computing the correct manifest digest.
+	switch meta.SchemaVersion {
+	case 1:
+		if meta.Signatures != nil {
+			return DockerV2Schema1SignedMediaType
+		}
+		return DockerV2Schema1MediaType
+	case 2:
+		// Best effort to understand if this is an OCI image since mediaType
+		// wasn't in the manifest for OCI image-spec < 1.0.2.
+		// For docker v2s2 meta.MediaType should have been set. But given the data, this is our best guess.
+		ociMan := struct {
+			Config struct {
+				MediaType string `json:"mediaType"`
+			} `json:"config"`
+		}{}
+		if err := json.Unmarshal(manifest, &ociMan); err != nil {
+			return ""
+		}
+		switch ociMan.Config.MediaType {
+		case imgspecv1.MediaTypeImageConfig:
+			return imgspecv1.MediaTypeImageManifest
+		case DockerV2Schema2ConfigMediaType:
+			// This case should not happen since a Docker image
+			// must declare a top-level media type and
+			// `meta.MediaType` has already been checked.
+			return DockerV2Schema2MediaType
+		}
+		// Maybe an image index or an OCI artifact.
+		ociIndex := struct {
+			Manifests []imgspecv1.Descriptor `json:"manifests"`
+		}{}
+		if err := json.Unmarshal(manifest, &ociIndex); err != nil {
+			return ""
+		}
+		if len(ociIndex.Manifests) != 0 {
+			if ociMan.Config.MediaType == "" {
+				return imgspecv1.MediaTypeImageIndex
+			}
+			// FIXME: this is mixing media types of manifests and configs.
+			return ociMan.Config.MediaType
+		}
+		// It's most likely an OCI artifact with a custom config media
+		// type which is not (and cannot) be covered by the media-type
+		// checks cabove.
+		return imgspecv1.MediaTypeImageManifest
+	}
+	return ""
 }
 
 // Digest returns the a digest of a docker manifest, with any necessary implied transformations like stripping v1s1 signatures.
-func Digest(manifestBlob []byte) (digest.Digest, error) {
-	return manifest.Digest(manifestBlob)
+func Digest(manifest []byte) (digest.Digest, error) {
+	if GuessMIMEType(manifest) == DockerV2Schema1SignedMediaType {
+		sig, err := libtrust.ParsePrettySignature(manifest, "signatures")
+		if err != nil {
+			return "", err
+		}
+		manifest, err = sig.Payload()
+		if err != nil {
+			// Coverage: This should never happen, libtrust's Payload() can fail only if joseBase64UrlDecode() fails, on a string
+			// that libtrust itself has josebase64UrlEncode()d
+			return "", err
+		}
+	}
+
+	return digest.FromBytes(manifest), nil
 }
 
 // MatchesDigest returns true iff the manifest matches expectedDigest.
 // Error may be set if this returns false.
 // Note that this is not doing ConstantTimeCompare; by the time we get here, the cryptographic signature must already have been verified,
 // or we are not using a cryptographic channel and the attacker can modify the digest along with the manifest blob.
-func MatchesDigest(manifestBlob []byte, expectedDigest digest.Digest) (bool, error) {
-	return manifest.MatchesDigest(manifestBlob, expectedDigest)
+func MatchesDigest(manifest []byte, expectedDigest digest.Digest) (bool, error) {
+	// This should eventually support various digest types.
+	actualDigest, err := Digest(manifest)
+	if err != nil {
+		return false, err
+	}
+	return expectedDigest == actualDigest, nil
 }
 
 // AddDummyV2S1Signature adds an JWS signature with a temporary key (i.e. useless) to a v2s1 manifest.
@@ -149,7 +231,30 @@ func MIMETypeSupportsEncryption(mimeType string) bool {
 // NormalizedMIMEType returns the effective MIME type of a manifest MIME type returned by a server,
 // centralizing various workarounds.
 func NormalizedMIMEType(input string) string {
-	return manifest.NormalizedMIMEType(input)
+	switch input {
+	// "application/json" is a valid v2s1 value per https://github.com/docker/distribution/blob/master/docs/spec/manifest-v2-1.md .
+	// This works for now, when nothing else seems to return "application/json"; if that were not true, the mapping/detection might
+	// need to happen within the ImageSource.
+	case "application/json":
+		return DockerV2Schema1SignedMediaType
+	case DockerV2Schema1MediaType, DockerV2Schema1SignedMediaType,
+		imgspecv1.MediaTypeImageManifest,
+		imgspecv1.MediaTypeImageIndex,
+		DockerV2Schema2MediaType,
+		DockerV2ListMediaType:
+		return input
+	default:
+		// If it's not a recognized manifest media type, or we have failed determining the type, we'll try one last time
+		// to deserialize using v2s1 as per https://github.com/docker/distribution/blob/master/manifests.go#L108
+		// and https://github.com/docker/distribution/blob/master/manifest/schema1/manifest.go#L50
+		//
+		// Crane registries can also return "text/plain", or pretty much anything else depending on a file extension “recognized” in the tag.
+		// This makes no real sense, but it happens
+		// because requests for manifests are
+		// redirected to a content distribution
+		// network which is configured that way. See https://bugzilla.redhat.com/show_bug.cgi?id=1389442
+		return DockerV2Schema1SignedMediaType
+	}
 }
 
 // FromBlob returns a Manifest instance for the specified manifest blob and the corresponding MIME type

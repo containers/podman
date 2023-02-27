@@ -43,7 +43,7 @@ func (s *storageImageCloser) Size() (int64, error) {
 
 // newImage creates an image that also knows its size
 func newImage(ctx context.Context, sys *types.SystemContext, s storageReference) (types.ImageCloser, error) {
-	src, err := newImageSource(sys, s)
+	src, err := newImageSource(ctx, sys, s)
 	if err != nil {
 		return nil, err
 	}

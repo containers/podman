@@ -19,7 +19,7 @@ type Writer struct {
 	archive     *tarfile.Writer
 	writer      io.Closer
 
-	// The following state can only be accessed with the mutex held.
+	// The following state can only be acccessed with the mutex held.
 	mutex     sync.Mutex
 	hadCommit bool // At least one successful commit has happened
 }

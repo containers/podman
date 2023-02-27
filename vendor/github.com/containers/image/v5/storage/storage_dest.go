@@ -21,7 +21,6 @@ import (
 	"github.com/containers/image/v5/internal/imagedestination/stubs"
 	"github.com/containers/image/v5/internal/private"
 	"github.com/containers/image/v5/internal/putblobdigest"
-	"github.com/containers/image/v5/internal/set"
 	"github.com/containers/image/v5/internal/signature"
 	"github.com/containers/image/v5/internal/tmpdir"
 	"github.com/containers/image/v5/manifest"
@@ -35,7 +34,6 @@ import (
 	digest "github.com/opencontainers/go-digest"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/exp/slices"
 )
 
 var (
@@ -159,7 +157,7 @@ func (s *storageImageDestination) computeNextBlobCacheFile() string {
 // to any other readers for download using the supplied digest.
 // If stream.Read() at any time, ESPECIALLY at end of input, returns an error, PutBlob MUST 1) fail, and 2) delete any data stored so far.
 func (s *storageImageDestination) PutBlobWithOptions(ctx context.Context, stream io.Reader, blobinfo types.BlobInfo, options private.PutBlobOptions) (types.BlobInfo, error) {
-	info, err := s.putBlobToPendingFile(stream, blobinfo, &options)
+	info, err := s.putBlobToPendingFile(ctx, stream, blobinfo, &options)
 	if err != nil {
 		return info, err
 	}
@@ -173,7 +171,7 @@ func (s *storageImageDestination) PutBlobWithOptions(ctx context.Context, stream
 
 // putBlobToPendingFile implements ImageDestination.PutBlobWithOptions, storing stream into an on-disk file.
 // The caller must arrange the blob to be eventually committed using s.commitLayer().
-func (s *storageImageDestination) putBlobToPendingFile(stream io.Reader, blobinfo types.BlobInfo, options *private.PutBlobOptions) (types.BlobInfo, error) {
+func (s *storageImageDestination) putBlobToPendingFile(ctx context.Context, stream io.Reader, blobinfo types.BlobInfo, options *private.PutBlobOptions) (types.BlobInfo, error) {
 	// Stores a layer or data blob in our temporary directory, checking that any information
 	// in the blobinfo matches the incoming data.
 	errorBlobInfo := types.BlobInfo{
@@ -203,7 +201,7 @@ func (s *storageImageDestination) putBlobToPendingFile(stream io.Reader, blobinf
 
 	diffID := digest.Canonical.Digester()
 	// Copy the data to the file.
-	// TODO: This can take quite some time, and should ideally be cancellable using context.Context.
+	// TODO: This can take quite some time, and should ideally be cancellable using ctx.Done().
 	_, err = io.Copy(diffID.Hash(), decompressed)
 	decompressed.Close()
 	if err != nil {
@@ -244,7 +242,7 @@ type zstdFetcher struct {
 
 // GetBlobAt converts from chunked.GetBlobAt to BlobChunkAccessor.GetBlobAt.
 func (f *zstdFetcher) GetBlobAt(chunks []chunked.ImageSourceChunk) (chan io.ReadCloser, chan error, error) {
-	newChunks := make([]private.ImageSourceChunk, 0, len(chunks))
+	var newChunks []private.ImageSourceChunk
 	for _, v := range chunks {
 		i := private.ImageSourceChunk{
 			Offset: v.Offset,
@@ -302,7 +300,7 @@ func (s *storageImageDestination) PutBlobPartial(ctx context.Context, chunkAcces
 // reflected in the manifest that will be written.
 // If the transport can not reuse the requested blob, TryReusingBlob returns (false, {}, nil); it returns a non-nil error only on an unexpected failure.
 func (s *storageImageDestination) TryReusingBlobWithOptions(ctx context.Context, blobinfo types.BlobInfo, options private.TryReusingBlobOptions) (bool, types.BlobInfo, error) {
-	reused, info, err := s.tryReusingBlobAsPending(blobinfo, &options)
+	reused, info, err := s.tryReusingBlobAsPending(ctx, blobinfo, &options)
 	if err != nil || !reused || options.LayerIndex == nil {
 		return reused, info, err
 	}
@@ -312,7 +310,7 @@ func (s *storageImageDestination) TryReusingBlobWithOptions(ctx context.Context,
 
 // tryReusingBlobAsPending implements TryReusingBlobWithOptions, filling s.blobDiffIDs and other metadata.
 // The caller must arrange the blob to be eventually committed using s.commitLayer().
-func (s *storageImageDestination) tryReusingBlobAsPending(blobinfo types.BlobInfo, options *private.TryReusingBlobOptions) (bool, types.BlobInfo, error) {
+func (s *storageImageDestination) tryReusingBlobAsPending(ctx context.Context, blobinfo types.BlobInfo, options *private.TryReusingBlobOptions) (bool, types.BlobInfo, error) {
 	// lock the entire method as it executes fairly quickly
 	s.lock.Lock()
 	defer s.lock.Unlock()
@@ -797,14 +795,14 @@ func (s *storageImageDestination) Commit(ctx context.Context, unparsedToplevel t
 
 	// Add the non-layer blobs as data items.  Since we only share layers, they should all be in files, so
 	// we just need to screen out the ones that are actually layers to get the list of non-layers.
-	dataBlobs := set.New[digest.Digest]()
+	dataBlobs := make(map[digest.Digest]struct{})
 	for blob := range s.filenames {
-		dataBlobs.Add(blob)
+		dataBlobs[blob] = struct{}{}
 	}
 	for _, layerBlob := range layerBlobs {
-		dataBlobs.Delete(layerBlob.Digest)
+		delete(dataBlobs, layerBlob.Digest)
 	}
-	for _, blob := range dataBlobs.Values() {
+	for blob := range dataBlobs {
 		v, err := os.ReadFile(s.filenames[blob])
 		if err != nil {
 			return fmt.Errorf("copying non-layer blob %q to image: %w", blob, err)
@@ -885,7 +883,9 @@ func (s *storageImageDestination) PutManifest(ctx context.Context, manifestBlob 
 	if err != nil {
 		return err
 	}
-	s.manifest = slices.Clone(manifestBlob)
+	newBlob := make([]byte, len(manifestBlob))
+	copy(newBlob, manifestBlob)
+	s.manifest = newBlob
 	s.manifestDigest = digest
 	return nil
 }

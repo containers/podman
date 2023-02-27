@@ -1,12 +1,103 @@
 package manifest
 
 import (
+	"encoding/json"
 	"fmt"
 
 	compressiontypes "github.com/containers/image/v5/pkg/compression/types"
 	"github.com/containers/image/v5/types"
 	"github.com/sirupsen/logrus"
 )
+
+// dupStringSlice returns a deep copy of a slice of strings, or nil if the
+// source slice is empty.
+func dupStringSlice(list []string) []string {
+	if len(list) == 0 {
+		return nil
+	}
+	dup := make([]string, len(list))
+	copy(dup, list)
+	return dup
+}
+
+// dupStringStringMap returns a deep copy of a map[string]string, or nil if the
+// passed-in map is nil or has no keys.
+func dupStringStringMap(m map[string]string) map[string]string {
+	if len(m) == 0 {
+		return nil
+	}
+	result := make(map[string]string)
+	for k, v := range m {
+		result[k] = v
+	}
+	return result
+}
+
+// allowedManifestFields is a bit mask of “essential” manifest fields that validateUnambiguousManifestFormat
+// can expect to be present.
+type allowedManifestFields int
+
+const (
+	allowedFieldConfig allowedManifestFields = 1 << iota
+	allowedFieldFSLayers
+	allowedFieldHistory
+	allowedFieldLayers
+	allowedFieldManifests
+	allowedFieldFirstUnusedBit // Keep this at the end!
+)
+
+// validateUnambiguousManifestFormat rejects manifests (incl. multi-arch) that look like more than
+// one kind we currently recognize, i.e. if they contain any of the known “essential” format fields
+// other than the ones the caller specifically allows.
+// expectedMIMEType is used only for diagnostics.
+// NOTE: The caller should do the non-heuristic validations (e.g. check for any specified format
+// identification/version, or other “magic numbers”) before calling this, to cleanly reject unambiguous
+// data that just isn’t what was expected, as opposed to actually ambiguous data.
+func validateUnambiguousManifestFormat(manifest []byte, expectedMIMEType string,
+	allowed allowedManifestFields) error {
+	if allowed >= allowedFieldFirstUnusedBit {
+		return fmt.Errorf("internal error: invalid allowedManifestFields value %#v", allowed)
+	}
+	// Use a private type to decode, not just a map[string]interface{}, because we want
+	// to also reject case-insensitive matches (which would be used by Go when really decoding
+	// the manifest).
+	// (It is expected that as manifest formats are added or extended over time, more fields will be added
+	// here.)
+	detectedFields := struct {
+		Config    interface{} `json:"config"`
+		FSLayers  interface{} `json:"fsLayers"`
+		History   interface{} `json:"history"`
+		Layers    interface{} `json:"layers"`
+		Manifests interface{} `json:"manifests"`
+	}{}
+	if err := json.Unmarshal(manifest, &detectedFields); err != nil {
+		// The caller was supposed to already validate version numbers, so this should not happen;
+		// let’s not bother with making this error “nice”.
+		return err
+	}
+	unexpected := []string{}
+	// Sadly this isn’t easy to automate in Go, without reflection. So, copy&paste.
+	if detectedFields.Config != nil && (allowed&allowedFieldConfig) == 0 {
+		unexpected = append(unexpected, "config")
+	}
+	if detectedFields.FSLayers != nil && (allowed&allowedFieldFSLayers) == 0 {
+		unexpected = append(unexpected, "fsLayers")
+	}
+	if detectedFields.History != nil && (allowed&allowedFieldHistory) == 0 {
+		unexpected = append(unexpected, "history")
+	}
+	if detectedFields.Layers != nil && (allowed&allowedFieldLayers) == 0 {
+		unexpected = append(unexpected, "layers")
+	}
+	if detectedFields.Manifests != nil && (allowed&allowedFieldManifests) == 0 {
+		unexpected = append(unexpected, "manifests")
+	}
+	if len(unexpected) != 0 {
+		return fmt.Errorf(`rejecting ambiguous manifest, unexpected fields %#v in supposedly %s`,
+			unexpected, expectedMIMEType)
+	}
+	return nil
+}
 
 // layerInfosToStrings converts a list of layer infos, presumably obtained from a Manifest.LayerInfos()
 // method call, into a format suitable for inclusion in a types.ImageInspectInfo structure.

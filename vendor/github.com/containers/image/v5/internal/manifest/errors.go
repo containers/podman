@@ -2,10 +2,6 @@ package manifest
 
 import "fmt"
 
-// FIXME: This is a duplicate of c/image/manifestDockerV2Schema2ConfigMediaType.
-// Deduplicate that, depending on outcome of https://github.com/containers/image/pull/1791 .
-const dockerV2Schema2ConfigMediaType = "application/vnd.docker.container.image.v1+json"
-
 // NonImageArtifactError (detected via errors.As) is used when asking for an image-specific operation
 // on an object which is not a “container image” in the standard sense (e.g. an OCI artifact)
 //
@@ -32,9 +28,5 @@ func NewNonImageArtifactError(mimeType string) error {
 }
 
 func (e NonImageArtifactError) Error() string {
-	// Special-case these invalid mixed images, which show up from time to time:
-	if e.mimeType == dockerV2Schema2ConfigMediaType {
-		return fmt.Sprintf("invalid mixed OCI image with Docker v2s2 config (%q)", e.mimeType)
-	}
 	return fmt.Sprintf("unsupported image-specific operation on artifact with type %q", e.mimeType)
 }

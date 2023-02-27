@@ -18,8 +18,6 @@ import (
 	digest "github.com/opencontainers/go-digest"
 	imgspecs "github.com/opencontainers/image-spec/specs-go"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
-	"golang.org/x/exp/maps"
-	"golang.org/x/exp/slices"
 )
 
 type tarballImageSource struct {
@@ -64,13 +62,13 @@ func (r *tarballReference) NewImageSource(ctx context.Context, sys *types.System
 		} else {
 			file, err = os.Open(filename)
 			if err != nil {
-				return nil, fmt.Errorf("error opening %q for reading: %w", filename, err)
+				return nil, fmt.Errorf("error opening %q for reading: %v", filename, err)
 			}
 			defer file.Close()
 			reader = file
 			fileinfo, err := file.Stat()
 			if err != nil {
-				return nil, fmt.Errorf("error reading size of %q: %w", filename, err)
+				return nil, fmt.Errorf("error reading size of %q: %v", filename, err)
 			}
 			blobSize = fileinfo.Size()
 			blobTime = fileinfo.ModTime()
@@ -170,6 +168,10 @@ func (r *tarballReference) NewImageSource(ctx context.Context, sys *types.System
 			MediaType: blobTypes[i],
 		})
 	}
+	annotations := make(map[string]string)
+	for k, v := range r.annotations {
+		annotations[k] = v
+	}
 	manifest := imgspecv1.Manifest{
 		Versioned: imgspecs.Versioned{
 			SchemaVersion: 2,
@@ -180,7 +182,7 @@ func (r *tarballReference) NewImageSource(ctx context.Context, sys *types.System
 			MediaType: imgspecv1.MediaTypeImageConfig,
 		},
 		Layers:      layerDescriptors,
-		Annotations: maps.Clone(r.annotations),
+		Annotations: annotations,
 	}
 
 	// Encode the manifest.
@@ -226,19 +228,20 @@ func (is *tarballImageSource) GetBlob(ctx context.Context, blobinfo types.BlobIn
 		return io.NopCloser(bytes.NewBuffer(is.config)), is.configSize, nil
 	}
 	// Maybe one of the layer blobs.
-	i := slices.Index(is.blobIDs, blobinfo.Digest)
-	if i == -1 {
-		return nil, -1, fmt.Errorf("no blob with digest %q found", blobinfo.Digest.String())
+	for i := range is.blobIDs {
+		if blobinfo.Digest == is.blobIDs[i] {
+			// We want to read that layer: open the file or memory block and hand it back.
+			if is.filenames[i] == "-" {
+				return io.NopCloser(bytes.NewBuffer(is.reference.stdin)), int64(len(is.reference.stdin)), nil
+			}
+			reader, err := os.Open(is.filenames[i])
+			if err != nil {
+				return nil, -1, fmt.Errorf("error opening %q: %v", is.filenames[i], err)
+			}
+			return reader, is.blobSizes[i], nil
+		}
 	}
-	// We want to read that layer: open the file or memory block and hand it back.
-	if is.filenames[i] == "-" {
-		return io.NopCloser(bytes.NewBuffer(is.reference.stdin)), int64(len(is.reference.stdin)), nil
-	}
-	reader, err := os.Open(is.filenames[i])
-	if err != nil {
-		return nil, -1, fmt.Errorf("error opening %q: %v", is.filenames[i], err)
-	}
-	return reader, is.blobSizes[i], nil
+	return nil, -1, fmt.Errorf("no blob with digest %q found", blobinfo.Digest.String())
 }
 
 // GetManifest returns the image's manifest along with its MIME type (which may be empty when it can't be determined but the manifest is available).

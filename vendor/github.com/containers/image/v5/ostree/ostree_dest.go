@@ -69,7 +69,7 @@ type manifestSchema struct {
 }
 
 type ostreeImageDestination struct {
-	impl.Compat
+	compat impl.Compat
 	impl.PropertyMethodsInitialize
 	stubs.NoPutBlobPartialInitialize
 	stubs.AlwaysSupportsSignatures

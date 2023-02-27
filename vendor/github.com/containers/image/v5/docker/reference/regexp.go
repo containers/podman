@@ -1,10 +1,9 @@
 package reference
 
 import (
+	storageRegexp "github.com/containers/storage/pkg/regexp"
 	"regexp"
 	"strings"
-
-	storageRegexp "github.com/containers/storage/pkg/regexp"
 )
 
 const (

@@ -44,7 +44,7 @@ type storageImageSource struct {
 }
 
 // newImageSource sets up an image for reading.
-func newImageSource(sys *types.SystemContext, imageRef storageReference) (*storageImageSource, error) {
+func newImageSource(ctx context.Context, sys *types.SystemContext, imageRef storageReference) (*storageImageSource, error) {
 	// First, locate the image.
 	img, err := imageRef.resolveImage(sys)
 	if err != nil {
@@ -186,7 +186,7 @@ func (s *storageImageSource) getBlobAndLayerID(digest digest.Digest, layers []st
 }
 
 // GetManifest() reads the image's manifest.
-func (s *storageImageSource) GetManifest(ctx context.Context, instanceDigest *digest.Digest) (manifestBlob []byte, mimeType string, err error) {
+func (s *storageImageSource) GetManifest(ctx context.Context, instanceDigest *digest.Digest) (manifestBlob []byte, MIMEType string, err error) {
 	if instanceDigest != nil {
 		key := manifestBigDataKey(*instanceDigest)
 		blob, err := s.imageRef.transport.store.ImageBigData(s.image.ID, key)

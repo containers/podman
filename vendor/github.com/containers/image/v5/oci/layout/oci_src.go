@@ -12,8 +12,8 @@ import (
 
 	"github.com/containers/image/v5/internal/imagesource/impl"
 	"github.com/containers/image/v5/internal/imagesource/stubs"
-	"github.com/containers/image/v5/internal/manifest"
 	"github.com/containers/image/v5/internal/private"
+	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/pkg/tlsclientconfig"
 	"github.com/containers/image/v5/types"
 	"github.com/docker/go-connections/tlsconfig"

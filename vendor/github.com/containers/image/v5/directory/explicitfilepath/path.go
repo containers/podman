@@ -9,7 +9,7 @@ import (
 // ResolvePathToFullyExplicit returns the input path converted to an absolute, no-symlinks, cleaned up path.
 // To do so, all elements of the input path must exist; as a special case, the final component may be
 // a non-existent name (but not a symlink pointing to a non-existent name)
-// This is intended as a helper for implementations of types.ImageReference.PolicyConfigurationIdentity etc.
+// This is intended as a a helper for implementations of types.ImageReference.PolicyConfigurationIdentity etc.
 func ResolvePathToFullyExplicit(path string) (string, error) {
 	switch _, err := os.Lstat(path); {
 	case err == nil:

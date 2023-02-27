@@ -16,7 +16,6 @@ import (
 	"github.com/containers/storage/pkg/homedir"
 	"github.com/containers/storage/pkg/regexp"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/exp/maps"
 )
 
 // systemRegistriesConfPath is the path to the system-wide registry
@@ -1020,9 +1019,12 @@ func (c *parsedConfig) updateWithConfigurationFrom(updates *parsedConfig) {
 	// Go maps have a non-deterministic order when iterating the keys, so
 	// we dump them in a slice and sort it to enforce some order in
 	// Registries slice.  Some consumers of c/image (e.g., CRI-O) log the
-	// configuration where a non-deterministic order could easily cause
+	// the configuration where a non-deterministic order could easily cause
 	// confusion.
-	prefixes := maps.Keys(registryMap)
+	prefixes := []string{}
+	for prefix := range registryMap {
+		prefixes = append(prefixes, prefix)
+	}
 	sort.Strings(prefixes)
 
 	c.partialV2.Registries = []Registry{}

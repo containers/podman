@@ -33,12 +33,12 @@ import (
 // limitations under the License.
 
 const (
-	// from sigstore/cosign/pkg/cosign.sigstorePrivateKeyPemType.
+	// from sigstore/cosign/pkg/cosign.sigstorePrivateKeyPemType
 	sigstorePrivateKeyPemType = "ENCRYPTED COSIGN PRIVATE KEY"
 )
 
 // from sigstore/cosign/pkg/cosign.loadPrivateKey
-// FIXME: Do we need all of these key formats?
+// FIXME: Do we need all of these key formats, and all of those
 func loadPrivateKey(key []byte, pass []byte) (signature.SignerVerifier, error) {
 	// Decrypt first
 	p, _ := pem.Decode(key)

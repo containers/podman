@@ -14,7 +14,7 @@ require (
 	github.com/containers/buildah v1.29.1-0.20230201192322-e56eb25575c7
 	github.com/containers/common v0.51.1-0.20230221111605-852ca05a1fbb
 	github.com/containers/conmon v2.0.20+incompatible
-	github.com/containers/image/v5 v5.24.2-0.20230221092641-10858b2058d8
+	github.com/containers/image/v5 v5.24.2
 	github.com/containers/ocicrypt v1.1.7
 	github.com/containers/psgo v1.8.0
 	github.com/containers/storage v1.45.4
@@ -158,12 +158,12 @@ require (
 	github.com/theupdateframework/go-tuf v0.5.2 // indirect
 	github.com/titanous/rocacheck v0.0.0-20171023193734-afe73141d399 // indirect
 	github.com/vbatts/tar-split v0.11.2 // indirect
+	github.com/vbauerster/mpb/v7 v7.5.3 // indirect
 	github.com/vishvananda/netns v0.0.0-20210104183010-2eb08e3e575f // indirect
 	go.mongodb.org/mongo-driver v1.11.1 // indirect
 	go.mozilla.org/pkcs7 v0.0.0-20210826202110-33d05740a352 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	golang.org/x/crypto v0.6.0 // indirect
-	golang.org/x/exp v0.0.0-20230206171751-46f607a40771 // indirect
 	golang.org/x/mod v0.8.0 // indirect
 	golang.org/x/oauth2 v0.5.0 // indirect
 	golang.org/x/tools v0.6.0 // indirect

@@ -11,7 +11,7 @@ import (
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
-// ImageTransport is a top-level namespace for ways to store/load an image.
+// ImageTransport is a top-level namespace for ways to to store/load an image.
 // It should generally correspond to ImageSource/ImageDestination implementations.
 //
 // Note that ImageTransport is based on "ways the users refer to image storage", not necessarily on the underlying physical transport.
@@ -48,7 +48,7 @@ type ImageReference interface {
 	// StringWithinTransport returns a string representation of the reference, which MUST be such that
 	// reference.Transport().ParseReference(reference.StringWithinTransport()) returns an equivalent reference.
 	// NOTE: The returned string is not promised to be equal to the original input to ParseReference;
-	// e.g. default attribute values omitted by the user may be filled in the return value, or vice versa.
+	// e.g. default attribute values omitted by the user may be filled in in the return value, or vice versa.
 	// WARNING: Do not use the return value in the UI to describe an image, it does not contain the Transport().Name() prefix;
 	// instead, see transports.ImageName().
 	StringWithinTransport() string
@@ -138,7 +138,7 @@ type BlobInfo struct {
 	// or if it should be compressed or decompressed.  The field defaults to
 	// preserve the original layer's compressedness.
 	// TODO: To remove together with CryptoOperation in re-design to remove
-	// field out of BlobInfo.
+	// field out out of BlobInfo.
 	CompressionOperation LayerCompression
 	// CompressionAlgorithm is used in Image.UpdateLayerInfos to set the correct
 	// MIME type for compressed layers (e.g., gzip or zstd). This field MUST be
@@ -149,7 +149,7 @@ type BlobInfo struct {
 	// CryptoOperation is used in Image.UpdateLayerInfos to instruct
 	// whether the original layer was encrypted/decrypted
 	// TODO: To remove together with CompressionOperation in re-design to
-	// remove field out of BlobInfo.
+	// remove field out out of BlobInfo.
 	CryptoOperation LayerCrypto
 	// Before adding any fields to this struct, read the NOTE above.
 }

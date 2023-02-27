@@ -40,7 +40,7 @@ func httpResponseToError(res *http.Response, context string) error {
 		return ErrUnauthorizedForCredentials{Err: err}
 	default:
 		if context != "" {
-			context += ": "
+			context = context + ": "
 		}
 		return fmt.Errorf("%sinvalid status code from registry %d (%s)", context, res.StatusCode, http.StatusText(res.StatusCode))
 	}

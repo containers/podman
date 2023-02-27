@@ -10,7 +10,7 @@ import (
 )
 
 // FromReference returns a types.ImageCloser implementation for the default instance reading from reference.
-// If reference points to a manifest list, .Manifest() still returns the manifest list,
+// If reference poitns to a manifest list, .Manifest() still returns the manifest list,
 // but other methods transparently return data from an appropriate image instance.
 //
 // The caller must call .Close() on the returned ImageCloser.

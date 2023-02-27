@@ -146,11 +146,11 @@ func (c *openshiftClient) getImage(ctx context.Context, imageStreamImageName str
 // convertDockerImageReference takes an image API DockerImageReference value and returns a reference we can actually use;
 // currently OpenShift stores the cluster-internal service IPs here, which are unusable from the outside.
 func (c *openshiftClient) convertDockerImageReference(ref string) (string, error) {
-	_, repo, gotRepo := strings.Cut(ref, "/")
-	if !gotRepo {
+	parts := strings.SplitN(ref, "/", 2)
+	if len(parts) != 2 {
 		return "", fmt.Errorf("Invalid format of docker reference %s: missing '/'", ref)
 	}
-	return reference.Domain(c.ref.dockerReference) + "/" + repo, nil
+	return reference.Domain(c.ref.dockerReference) + "/" + parts[1], nil
 }
 
 // These structs are subsets of github.com/openshift/origin/pkg/image/api/v1 and its dependencies.

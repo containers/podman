@@ -234,30 +234,35 @@ func (s *storageTransport) ParseReference(reference string) (types.ImageReferenc
 		reference = reference[closeIndex+1:]
 		// Peel off a "driver@" from the start.
 		driverInfo := ""
-		driverPart1, driverPart2, gotDriver := strings.Cut(storeSpec, "@")
-		if !gotDriver {
-			storeSpec = driverPart1
+		driverSplit := strings.SplitN(storeSpec, "@", 2)
+		if len(driverSplit) != 2 {
 			if storeSpec == "" {
 				return nil, ErrInvalidReference
 			}
 		} else {
-			driverInfo = driverPart1
+			driverInfo = driverSplit[0]
 			if driverInfo == "" {
 				return nil, ErrInvalidReference
 			}
-			storeSpec = driverPart2
+			storeSpec = driverSplit[1]
 			if storeSpec == "" {
 				return nil, ErrInvalidReference
 			}
 		}
 		// Peel off a ":options" from the end.
 		var options []string
-		storeSpec, optionsPart, gotOptions := strings.Cut(storeSpec, ":")
-		if gotOptions {
-			options = strings.Split(optionsPart, ",")
+		optionsSplit := strings.SplitN(storeSpec, ":", 2)
+		if len(optionsSplit) == 2 {
+			options = strings.Split(optionsSplit[1], ",")
+			storeSpec = optionsSplit[0]
 		}
 		// Peel off a "+runroot" from the new end.
-		storeSpec, runRootInfo, _ := strings.Cut(storeSpec, "+") // runRootInfo is "" if there is no "+"
+		runRootInfo := ""
+		runRootSplit := strings.SplitN(storeSpec, "+", 2)
+		if len(runRootSplit) == 2 {
+			runRootInfo = runRootSplit[1]
+			storeSpec = runRootSplit[0]
+		}
 		// The rest is our graph root.
 		rootInfo := storeSpec
 		// Check that any paths are absolute paths.

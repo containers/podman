@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/containers/image/v5/internal/manifest"
+	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/types"
 )
 

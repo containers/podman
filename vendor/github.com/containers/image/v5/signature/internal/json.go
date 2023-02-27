@@ -5,8 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-
-	"github.com/containers/image/v5/internal/set"
 )
 
 // JSONFormatError is returned when JSON does not match expected format.
@@ -22,8 +20,8 @@ func (err JSONFormatError) Error() string {
 //
 // The fieldResolver approach is useful for decoding the Policy.Transports map; using it for structs is a bit lazy,
 // we could use reflection to automate this. Later?
-func ParanoidUnmarshalJSONObject(data []byte, fieldResolver func(string) any) error {
-	seenKeys := set.New[string]()
+func ParanoidUnmarshalJSONObject(data []byte, fieldResolver func(string) interface{}) error {
+	seenKeys := map[string]struct{}{}
 
 	dec := json.NewDecoder(bytes.NewReader(data))
 	t, err := dec.Token()
@@ -47,10 +45,10 @@ func ParanoidUnmarshalJSONObject(data []byte, fieldResolver func(string) any) er
 			// Coverage: This should never happen, dec.Token() rejects non-string-literals in this state.
 			return JSONFormatError(fmt.Sprintf("Key string literal expected, got \"%s\"", t))
 		}
-		if seenKeys.Contains(key) {
+		if _, ok := seenKeys[key]; ok {
 			return JSONFormatError(fmt.Sprintf("Duplicate key \"%s\"", key))
 		}
-		seenKeys.Add(key)
+		seenKeys[key] = struct{}{}
 
 		valuePtr := fieldResolver(key)
 		if valuePtr == nil {
@@ -70,11 +68,11 @@ func ParanoidUnmarshalJSONObject(data []byte, fieldResolver func(string) any) er
 // ParanoidUnmarshalJSONObjectExactFields unmarshals data as a JSON object, but failing on the slightest unexpected aspect
 // (including duplicated keys, unrecognized keys, and non-matching types). Each of the fields in exactFields
 // must be present exactly once, and none other fields are accepted.
-func ParanoidUnmarshalJSONObjectExactFields(data []byte, exactFields map[string]any) error {
-	seenKeys := set.New[string]()
-	if err := ParanoidUnmarshalJSONObject(data, func(key string) any {
+func ParanoidUnmarshalJSONObjectExactFields(data []byte, exactFields map[string]interface{}) error {
+	seenKeys := map[string]struct{}{}
+	if err := ParanoidUnmarshalJSONObject(data, func(key string) interface{} {
 		if valuePtr, ok := exactFields[key]; ok {
-			seenKeys.Add(key)
+			seenKeys[key] = struct{}{}
 			return valuePtr
 		}
 		return nil
@@ -82,7 +80,7 @@ func ParanoidUnmarshalJSONObjectExactFields(data []byte, exactFields map[string]
 		return err
 	}
 	for key := range exactFields {
-		if !seenKeys.Contains(key) {
+		if _, ok := seenKeys[key]; !ok {
 			return JSONFormatError(fmt.Sprintf(`Key "%s" missing in a JSON object`, key))
 		}
 	}

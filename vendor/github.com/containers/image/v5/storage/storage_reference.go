@@ -14,7 +14,6 @@ import (
 	"github.com/containers/storage"
 	digest "github.com/opencontainers/go-digest"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/exp/slices"
 )
 
 // A storageReference holds an arbitrary name and/or an ID, which is a 32-byte
@@ -53,15 +52,17 @@ func newReference(transport storageTransport, named reference.Named, id string) 
 // imageMatchesRepo returns true iff image.Names contains an element with the same repo as ref
 func imageMatchesRepo(image *storage.Image, ref reference.Named) bool {
 	repo := ref.Name()
-	return slices.ContainsFunc(image.Names, func(name string) bool {
-		if named, err := reference.ParseNormalizedNamed(name); err == nil && named.Name() == repo {
-			return true
+	for _, name := range image.Names {
+		if named, err := reference.ParseNormalizedNamed(name); err == nil {
+			if named.Name() == repo {
+				return true
+			}
 		}
-		return false
-	})
+	}
+	return false
 }
 
-// multiArchImageMatchesSystemContext returns true if the passed-in image both contains a
+// multiArchImageMatchesSystemContext returns true if if the passed-in image both contains a
 // multi-arch manifest that matches the passed-in digest, and the image is the per-platform
 // image instance that matches sys.
 //
@@ -169,9 +170,11 @@ func (s *storageReference) resolveImage(sys *types.SystemContext) (*storage.Imag
 	// sake of older consumers that don't know there's a whole list in there now.
 	if s.named != nil {
 		if digested, ok := s.named.(reference.Digested); ok {
-			digest := digested.Digest()
-			if slices.Contains(loadedImage.Digests, digest) {
-				loadedImage.Digest = digest
+			for _, digest := range loadedImage.Digests {
+				if digest == digested.Digest() {
+					loadedImage.Digest = digest
+					break
+				}
 			}
 		}
 	}
@@ -204,10 +207,10 @@ func (s storageReference) StringWithinTransport() string {
 	}
 	res := "[" + s.transport.store.GraphDriverName() + "@" + s.transport.store.GraphRoot() + "+" + s.transport.store.RunRoot() + optionsList + "]"
 	if s.named != nil {
-		res += s.named.String()
+		res = res + s.named.String()
 	}
 	if s.id != "" {
-		res += "@" + s.id
+		res = res + "@" + s.id
 	}
 	return res
 }
@@ -215,10 +218,10 @@ func (s storageReference) StringWithinTransport() string {
 func (s storageReference) PolicyConfigurationIdentity() string {
 	res := "[" + s.transport.store.GraphDriverName() + "@" + s.transport.store.GraphRoot() + "]"
 	if s.named != nil {
-		res += s.named.String()
+		res = res + s.named.String()
 	}
 	if s.id != "" {
-		res += "@" + s.id
+		res = res + "@" + s.id
 	}
 	return res
 }
@@ -277,7 +280,7 @@ func (s storageReference) DeleteImage(ctx context.Context, sys *types.SystemCont
 }
 
 func (s storageReference) NewImageSource(ctx context.Context, sys *types.SystemContext) (types.ImageSource, error) {
-	return newImageSource(sys, s)
+	return newImageSource(ctx, sys, s)
 }
 
 func (s storageReference) NewImageDestination(ctx context.Context, sys *types.SystemContext) (types.ImageDestination, error) {

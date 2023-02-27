@@ -7,8 +7,8 @@ import (
 
 	"github.com/containers/image/v5/internal/private"
 	"github.com/containers/image/v5/types"
-	"github.com/vbauerster/mpb/v8"
-	"github.com/vbauerster/mpb/v8/decor"
+	"github.com/vbauerster/mpb/v7"
+	"github.com/vbauerster/mpb/v7/decor"
 )
 
 // newProgressPool creates a *mpb.Progress.
@@ -120,7 +120,7 @@ func (bar *progressBar) mark100PercentComplete() {
 		bar.SetCurrent(bar.originalSize) // This triggers the completion condition.
 	} else {
 		// -1 = unknown size
-		// 0 is somewhat of a special case: Unlike c/image, where 0 is a definite known
+		// 0 is somewhat of a a special case: Unlike c/image, where 0 is a definite known
 		// size (possible at least in theory), in mpb, zero-sized progress bars are treated
 		// as unknown size, in particular they are not configured to be marked as
 		// complete on bar.Current() reaching bar.total (because that would happen already
