@@ -17,6 +17,7 @@ type Stream struct {
 // Metadata for a release or stream
 type Metadata struct {
 	LastModified string `json:"last-modified"`
+	Generator    string `json:"generator,omitempty"`
 }
 
 // Arch contains release details for a particular hardware architecture
@@ -44,31 +45,72 @@ type ImageFormat struct {
 // Artifact represents one image file, plus its metadata
 type Artifact struct {
 	Location           string `json:"location"`
-	Signature          string `json:"signature"`
+	Signature          string `json:"signature,omitempty"`
 	Sha256             string `json:"sha256"`
 	UncompressedSha256 string `json:"uncompressed-sha256,omitempty"`
 }
 
 // Images contains images available in cloud providers
 type Images struct {
-	Aws *AwsImage `json:"aws,omitempty"`
-	Gcp *GcpImage `json:"gcp,omitempty"`
+	Aliyun   *ReplicatedImage  `json:"aliyun,omitempty"`
+	Aws      *AwsImage         `json:"aws,omitempty"`
+	Gcp      *GcpImage         `json:"gcp,omitempty"`
+	Ibmcloud *ReplicatedObject `json:"ibmcloud,omitempty"`
+	KubeVirt *ContainerImage   `json:"kubevirt,omitempty"`
+	PowerVS  *ReplicatedObject `json:"powervs,omitempty"`
 }
 
-// AwsImage represents an image across all AWS regions
-type AwsImage struct {
-	Regions map[string]AwsRegionImage `json:"regions,omitempty"`
+// ReplicatedImage represents an image in all regions of an AWS-like cloud
+type ReplicatedImage struct {
+	Regions map[string]SingleImage `json:"regions,omitempty"`
 }
 
-// AwsRegionImage represents an image in one AWS region
-type AwsRegionImage struct {
+// SingleImage represents a globally-accessible image or an image in a
+// single region of an AWS-like cloud
+type SingleImage struct {
 	Release string `json:"release"`
 	Image   string `json:"image"`
 }
 
+// ContainerImage represents a tagged container image
+type ContainerImage struct {
+	Release string `json:"release"`
+	// Preferred way to reference the image, which might be by tag or digest
+	Image     string `json:"image"`
+	DigestRef string `json:"digest-ref"`
+}
+
+// AwsImage is a typedef for backwards compatibility.
+type AwsImage = ReplicatedImage
+
+// AwsRegionImage is a typedef for backwards compatibility.
+type AwsRegionImage = SingleImage
+
+// RegionImage is a typedef for backwards compatibility.
+type RegionImage = SingleImage
+
 // GcpImage represents a GCP cloud image
 type GcpImage struct {
-	Project string `json:"project,omitempty"`
+	Release string `json:"release"`
+	Project string `json:"project"`
 	Family  string `json:"family,omitempty"`
-	Name    string `json:"name,omitempty"`
+	Name    string `json:"name"`
 }
+
+// ReplicatedObject represents an object in all regions of an IBMCloud-like
+// cloud
+type ReplicatedObject struct {
+	Regions map[string]SingleObject `json:"regions,omitempty"`
+}
+
+// SingleObject represents a globally-accessible cloud storage object, or
+// an object in a single region of an IBMCloud-like cloud
+type SingleObject struct {
+	Release string `json:"release"`
+	Object  string `json:"object"`
+	Bucket  string `json:"bucket"`
+	Url     string `json:"url"`
+}
+
+// RegionObject is a typedef for backwards compatibility.
+type RegionObject = SingleObject

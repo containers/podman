@@ -39,18 +39,37 @@ func (releaseArch *Arch) toStreamArch(rel *Release) stream.Arch {
 	if relRHCOSExt != nil {
 		rhcosExt = &rhcos.Extensions{}
 	}
+
+	if releaseArch.Media.Aliyun != nil {
+		artifacts["aliyun"] = stream.PlatformArtifacts{
+			Release: rel.Release,
+			Formats: mapFormats(releaseArch.Media.Aliyun.Artifacts),
+		}
+		aliyunImages := stream.ReplicatedImage{
+			Regions: make(map[string]stream.SingleImage),
+		}
+		if releaseArch.Media.Aliyun.Images != nil {
+			for region, image := range releaseArch.Media.Aliyun.Images {
+				si := stream.SingleImage{Release: rel.Release, Image: image.Image}
+				aliyunImages.Regions[region] = si
+
+			}
+			cloudImages.Aliyun = &aliyunImages
+		}
+	}
+
 	if releaseArch.Media.Aws != nil {
 		artifacts["aws"] = stream.PlatformArtifacts{
 			Release: rel.Release,
 			Formats: mapFormats(releaseArch.Media.Aws.Artifacts),
 		}
-		awsAmis := stream.AwsImage{
-			Regions: make(map[string]stream.AwsRegionImage),
+		awsAmis := stream.ReplicatedImage{
+			Regions: make(map[string]stream.SingleImage),
 		}
 		if releaseArch.Media.Aws.Images != nil {
 			for region, ami := range releaseArch.Media.Aws.Images {
-				ri := stream.AwsRegionImage{Release: rel.Release, Image: ami.Image}
-				awsAmis.Regions[region] = ri
+				si := stream.SingleImage{Release: rel.Release, Image: ami.Image}
+				awsAmis.Regions[region] = si
 
 			}
 			cloudImages.Aws = &awsAmis
@@ -76,10 +95,10 @@ func (releaseArch *Arch) toStreamArch(rel *Release) stream.Arch {
 		// See https://github.com/coreos/stream-metadata-go/issues/13
 	}
 
-	if releaseArch.Media.Aliyun != nil {
-		artifacts["aliyun"] = stream.PlatformArtifacts{
+	if releaseArch.Media.AzureStack != nil {
+		artifacts["azurestack"] = stream.PlatformArtifacts{
 			Release: rel.Release,
-			Formats: mapFormats(releaseArch.Media.Aliyun.Artifacts),
+			Formats: mapFormats(releaseArch.Media.AzureStack.Artifacts),
 		}
 	}
 
@@ -105,9 +124,24 @@ func (releaseArch *Arch) toStreamArch(rel *Release) stream.Arch {
 
 		if releaseArch.Media.Gcp.Image != nil {
 			cloudImages.Gcp = &stream.GcpImage{
+				Release: rel.Release,
 				Name:    releaseArch.Media.Gcp.Image.Name,
 				Family:  releaseArch.Media.Gcp.Image.Family,
 				Project: releaseArch.Media.Gcp.Image.Project,
+			}
+		}
+	}
+
+	if releaseArch.Media.KubeVirt != nil {
+		artifacts["kubevirt"] = stream.PlatformArtifacts{
+			Release: rel.Release,
+			Formats: mapFormats(releaseArch.Media.KubeVirt.Artifacts),
+		}
+		if releaseArch.Media.KubeVirt.Image != nil {
+			cloudImages.KubeVirt = &stream.ContainerImage{
+				Release:   rel.Release,
+				Image:     releaseArch.Media.KubeVirt.Image.Image,
+				DigestRef: releaseArch.Media.KubeVirt.Image.DigestRef,
 			}
 		}
 	}
@@ -130,6 +164,22 @@ func (releaseArch *Arch) toStreamArch(rel *Release) stream.Arch {
 			Release: rel.Release,
 			Formats: mapFormats(releaseArch.Media.Ibmcloud.Artifacts),
 		}
+		ibmcloudObjects := stream.ReplicatedObject{
+			Regions: make(map[string]stream.SingleObject),
+		}
+		if releaseArch.Media.Ibmcloud.Images != nil {
+			for region, object := range releaseArch.Media.Ibmcloud.Images {
+				so := stream.SingleObject{
+					Release: rel.Release,
+					Object:  object.Object,
+					Bucket:  object.Bucket,
+					Url:     object.Url,
+				}
+				ibmcloudObjects.Regions[region] = so
+
+			}
+			cloudImages.Ibmcloud = &ibmcloudObjects
+		}
 	}
 
 	// if releaseArch.Media.Packet != nil {
@@ -143,10 +193,40 @@ func (releaseArch *Arch) toStreamArch(rel *Release) stream.Arch {
 	// 	cloudImages.Packet = &packetImage
 	// }
 
+	if releaseArch.Media.Nutanix != nil {
+		artifacts["nutanix"] = stream.PlatformArtifacts{
+			Release: rel.Release,
+			Formats: mapFormats(releaseArch.Media.Nutanix.Artifacts),
+		}
+	}
+
 	if releaseArch.Media.Openstack != nil {
 		artifacts["openstack"] = stream.PlatformArtifacts{
 			Release: rel.Release,
 			Formats: mapFormats(releaseArch.Media.Openstack.Artifacts),
+		}
+	}
+
+	if releaseArch.Media.PowerVS != nil {
+		artifacts["powervs"] = stream.PlatformArtifacts{
+			Release: rel.Release,
+			Formats: mapFormats(releaseArch.Media.PowerVS.Artifacts),
+		}
+		powervsObjects := stream.ReplicatedObject{
+			Regions: make(map[string]stream.SingleObject),
+		}
+		if releaseArch.Media.PowerVS.Images != nil {
+			for region, object := range releaseArch.Media.PowerVS.Images {
+				so := stream.SingleObject{
+					Release: rel.Release,
+					Object:  object.Object,
+					Bucket:  object.Bucket,
+					Url:     object.Url,
+				}
+				powervsObjects.Regions[region] = so
+
+			}
+			cloudImages.PowerVS = &powervsObjects
 		}
 	}
 
@@ -157,13 +237,19 @@ func (releaseArch *Arch) toStreamArch(rel *Release) stream.Arch {
 		}
 	}
 
-	// if releaseArch.Media.Virtualbox != nil {
-	// 	virtualbox := StreamMediaDetails{
-	// 		Release: rel.Release,
-	// 		Formats: releaseArch.Media.Virtualbox.Artifacts,
-	// 	}
-	// 	artifacts.Virtualbox = &virtualbox
-	// }
+	if releaseArch.Media.QemuSecex != nil {
+		artifacts["qemu-secex"] = stream.PlatformArtifacts{
+			Release: rel.Release,
+			Formats: mapFormats(releaseArch.Media.QemuSecex.Artifacts),
+		}
+	}
+
+	if releaseArch.Media.VirtualBox != nil {
+		artifacts["virtualbox"] = stream.PlatformArtifacts{
+			Release: rel.Release,
+			Formats: mapFormats(releaseArch.Media.VirtualBox.Artifacts),
+		}
+	}
 
 	if releaseArch.Media.Vmware != nil {
 		artifacts["vmware"] = stream.PlatformArtifacts{

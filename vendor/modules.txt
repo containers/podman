@@ -338,8 +338,8 @@ github.com/coreos/go-systemd/v22/dbus
 github.com/coreos/go-systemd/v22/internal/dlopen
 github.com/coreos/go-systemd/v22/journal
 github.com/coreos/go-systemd/v22/sdjournal
-# github.com/coreos/stream-metadata-go v0.0.0-20210225230131-70edb9eb47b3
-## explicit; go 1.15
+# github.com/coreos/stream-metadata-go v0.4.1
+## explicit; go 1.17
 github.com/coreos/stream-metadata-go/fedoracoreos
 github.com/coreos/stream-metadata-go/fedoracoreos/internals
 github.com/coreos/stream-metadata-go/release
