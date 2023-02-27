@@ -1186,7 +1186,7 @@ func (s *SQLiteState) RewritePodConfig(pod *Pod, newCfg *PodConfig) (defErr erro
 	}
 	if rows == 0 {
 		pod.valid = false
-		return define.ErrNoSuchPod
+		return fmt.Errorf("no pod with ID %s found in DB: %w", pod.ID(), define.ErrNoSuchPod)
 	}
 
 	if err := tx.Commit(); err != nil {
