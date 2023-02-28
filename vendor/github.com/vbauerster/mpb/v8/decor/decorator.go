@@ -137,7 +137,7 @@ type WC struct {
 
 // FormatMsg formats final message according to WC.W and WC.C.
 // Should be called by any Decorator implementation.
-func (wc *WC) FormatMsg(msg string) string {
+func (wc WC) FormatMsg(msg string) string {
 	pureWidth := runewidth.StringWidth(msg)
 	viewWidth := runewidth.StringWidth(stripansi.Strip(msg))
 	max := wc.W
@@ -154,9 +154,10 @@ func (wc *WC) FormatMsg(msg string) string {
 
 // Init initializes width related config.
 func (wc *WC) Init() WC {
-	wc.fill = runewidth.FillLeft
 	if (wc.C & DidentRight) != 0 {
 		wc.fill = runewidth.FillRight
+	} else {
+		wc.fill = runewidth.FillLeft
 	}
 	if (wc.C & DSyncWidth) != 0 {
 		// it's deliberate choice to override wsync on each Init() call,
@@ -167,7 +168,7 @@ func (wc *WC) Init() WC {
 }
 
 // Sync is implementation of Synchronizer interface.
-func (wc *WC) Sync() (chan int, bool) {
+func (wc WC) Sync() (chan int, bool) {
 	if (wc.C&DSyncWidth) != 0 && wc.wsync == nil {
 		panic(fmt.Sprintf("%T is not initialized", wc))
 	}

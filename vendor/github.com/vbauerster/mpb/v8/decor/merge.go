@@ -7,6 +7,12 @@ import (
 	"github.com/mattn/go-runewidth"
 )
 
+var (
+	_ Decorator = (*mergeDecorator)(nil)
+	_ Wrapper   = (*mergeDecorator)(nil)
+	_ Decorator = (*placeHolderDecorator)(nil)
+)
+
 // Merge wraps its decorator argument with intention to sync width
 // with several decorators of another bar. Visual example:
 //
@@ -25,7 +31,7 @@ func Merge(decorator Decorator, placeholders ...WC) Decorator {
 	md := &mergeDecorator{
 		Decorator:    decorator,
 		wc:           decorator.GetConf(),
-		placeHolders: make([]*placeHolderDecorator, len(placeholders)),
+		placeHolders: make([]Decorator, len(placeholders)),
 	}
 	decorator.SetConf(WC{})
 	for i, wc := range placeholders {
@@ -40,7 +46,7 @@ func Merge(decorator Decorator, placeholders ...WC) Decorator {
 type mergeDecorator struct {
 	Decorator
 	wc           WC
-	placeHolders []*placeHolderDecorator
+	placeHolders []Decorator
 }
 
 func (d *mergeDecorator) GetConf() WC {
@@ -51,12 +57,8 @@ func (d *mergeDecorator) SetConf(conf WC) {
 	d.wc = conf.Init()
 }
 
-func (d *mergeDecorator) MergeUnwrap() []Decorator {
-	decorators := make([]Decorator, len(d.placeHolders))
-	for i, ph := range d.placeHolders {
-		decorators[i] = ph
-	}
-	return decorators
+func (d *mergeDecorator) PlaceHolders() []Decorator {
+	return d.placeHolders
 }
 
 func (d *mergeDecorator) Sync() (chan int, bool) {
@@ -76,21 +78,21 @@ func (d *mergeDecorator) Decor(s Statistics) string {
 		cellCount++
 	}
 
-	total := runewidth.StringWidth(d.placeHolders[0].FormatMsg(""))
+	total := runewidth.StringWidth(d.placeHolders[0].GetConf().FormatMsg(""))
 	pw := (cellCount - total) / len(d.placeHolders)
 	rem := (cellCount - total) % len(d.placeHolders)
 
 	var diff int
 	for i := 1; i < len(d.placeHolders); i++ {
-		ph := d.placeHolders[i]
+		wc := d.placeHolders[i].GetConf()
 		width := pw - diff
-		if (ph.WC.C & DextraSpace) != 0 {
+		if (wc.C & DextraSpace) != 0 {
 			width--
 			if width < 0 {
 				width = 0
 			}
 		}
-		max := runewidth.StringWidth(ph.FormatMsg(strings.Repeat(" ", width)))
+		max := runewidth.StringWidth(wc.FormatMsg(strings.Repeat(" ", width)))
 		total += max
 		diff = max - pw
 	}

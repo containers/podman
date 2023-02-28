@@ -16,6 +16,12 @@ This package provides various compression algorithms.
 
 # changelog
 
+* Jan 21st, 2023 (v1.15.15)
+	* deflate: Improve level 7-9 by @klauspost in https://github.com/klauspost/compress/pull/739
+	* zstd: Add delta encoding support by @greatroar in https://github.com/klauspost/compress/pull/728
+	* zstd: Various speed improvements by @greatroar https://github.com/klauspost/compress/pull/741 https://github.com/klauspost/compress/pull/734 https://github.com/klauspost/compress/pull/736 https://github.com/klauspost/compress/pull/744 https://github.com/klauspost/compress/pull/743 https://github.com/klauspost/compress/pull/745
+	* gzhttp: Add SuffixETag() and DropETag() options to prevent ETag collisions on compressed responses by @willbicks in https://github.com/klauspost/compress/pull/740
+
 * Jan 3rd, 2023 (v1.15.14)
 
 	* flate: Improve speed in big stateless blocks https://github.com/klauspost/compress/pull/718

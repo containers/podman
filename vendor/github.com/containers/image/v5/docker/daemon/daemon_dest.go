@@ -69,6 +69,7 @@ func newImageDestination(ctx context.Context, sys *types.SystemContext, ref daem
 
 // imageLoadGoroutine accepts tar stream on reader, sends it to c, and reports error or success by writing to statusChannel
 func imageLoadGoroutine(ctx context.Context, c *client.Client, reader *io.PipeReader, statusChannel chan<- error) {
+	defer c.Close()
 	err := errors.New("Internal error: unexpected panic in imageLoadGoroutine")
 	defer func() {
 		logrus.Debugf("docker-daemon: sending done, status %v", err)

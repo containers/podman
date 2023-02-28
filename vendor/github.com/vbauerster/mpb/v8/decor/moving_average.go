@@ -7,6 +7,12 @@ import (
 	"github.com/VividCortex/ewma"
 )
 
+var (
+	_ ewma.MovingAverage = (*threadSafeMovingAverage)(nil)
+	_ ewma.MovingAverage = (*medianWindow)(nil)
+	_ sort.Interface     = (*medianWindow)(nil)
+)
+
 type threadSafeMovingAverage struct {
 	ewma.MovingAverage
 	mu sync.Mutex

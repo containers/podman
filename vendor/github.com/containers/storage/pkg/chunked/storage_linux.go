@@ -1302,10 +1302,13 @@ func (c *chunkedDiffer) ApplyDiff(dest string, options *archive.TarOptions) (gra
 
 	var missingParts []missingPart
 
-	mergedEntries, err := c.mergeTocEntries(c.fileType, toc.Entries)
+	mergedEntries, totalSize, err := c.mergeTocEntries(c.fileType, toc.Entries)
 	if err != nil {
 		return output, err
 	}
+
+	output.Size = totalSize
+
 	if err := maybeDoIDRemap(mergedEntries, options); err != nil {
 		return output, err
 	}
@@ -1589,7 +1592,9 @@ func mustSkipFile(fileType compressedFileType, e internal.FileMetadata) bool {
 	return false
 }
 
-func (c *chunkedDiffer) mergeTocEntries(fileType compressedFileType, entries []internal.FileMetadata) ([]internal.FileMetadata, error) {
+func (c *chunkedDiffer) mergeTocEntries(fileType compressedFileType, entries []internal.FileMetadata) ([]internal.FileMetadata, int64, error) {
+	var totalFilesSize int64
+
 	countNextChunks := func(start int) int {
 		count := 0
 		for _, e := range entries[start:] {
@@ -1618,8 +1623,11 @@ func (c *chunkedDiffer) mergeTocEntries(fileType compressedFileType, entries []i
 		if mustSkipFile(fileType, e) {
 			continue
 		}
+
+		totalFilesSize += e.Size
+
 		if e.Type == TypeChunk {
-			return nil, fmt.Errorf("chunk type without a regular file")
+			return nil, -1, fmt.Errorf("chunk type without a regular file")
 		}
 
 		if e.Type == TypeReg {
@@ -1652,7 +1660,7 @@ func (c *chunkedDiffer) mergeTocEntries(fileType compressedFileType, entries []i
 			lastChunkOffset = mergedEntries[i].Chunks[j].Offset
 		}
 	}
-	return mergedEntries, nil
+	return mergedEntries, totalFilesSize, nil
 }
 
 // validateChunkChecksum checks if the file at $root/$path[offset:chunk.ChunkSize] has the

@@ -21,9 +21,9 @@ import (
 	"errors"
 
 	"github.com/coreos/go-oidc/v3/oidc"
+	"github.com/go-jose/go-jose/v3"
 	soauth "github.com/sigstore/sigstore/pkg/oauth"
 	"golang.org/x/oauth2"
-	"gopkg.in/square/go-jose.v2"
 )
 
 const (

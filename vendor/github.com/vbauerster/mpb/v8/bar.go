@@ -44,7 +44,6 @@ type bState struct {
 	rmOnComplete      bool
 	noPop             bool
 	autoRefresh       bool
-	manualRefresh     bool
 	aDecorators       []decor.Decorator
 	pDecorators       []decor.Decorator
 	averageDecorators []decor.AverageDecorator
@@ -53,7 +52,7 @@ type bState struct {
 	buffers           [3]*bytes.Buffer
 	filler            BarFiller
 	extender          extenderFunc
-	refreshCh         chan time.Time
+	renderReq         chan<- time.Time
 	waitBar           *Bar // key for (*pState).queueBars
 }
 
@@ -145,9 +144,7 @@ func (b *Bar) Current() int64 {
 // operation for example.
 func (b *Bar) SetRefill(amount int64) {
 	select {
-	case b.operateState <- func(s *bState) {
-		s.refill = amount
-	}:
+	case b.operateState <- func(s *bState) { s.refill = amount }:
 	case <-b.done:
 	}
 }
@@ -250,7 +247,7 @@ func (b *Bar) EwmaSetCurrent(current int64, iterDur time.Duration) {
 	select {
 	case b.operateState <- func(s *bState) {
 		if n := current - s.current; n > 0 {
-			s.ewmaUpdate(n, iterDur)
+			s.decoratorEwmaUpdate(n, iterDur)
 		}
 		s.current = current
 		if s.triggerComplete && s.current >= s.total {
@@ -309,7 +306,7 @@ func (b *Bar) EwmaIncrInt64(n int64, iterDur time.Duration) {
 	}
 	select {
 	case b.operateState <- func(s *bState) {
-		s.ewmaUpdate(n, iterDur)
+		s.decoratorEwmaUpdate(n, iterDur)
 		s.current += n
 		if s.triggerComplete && s.current >= s.total {
 			s.current = s.total
@@ -326,9 +323,7 @@ func (b *Bar) EwmaIncrInt64(n int64, iterDur time.Duration) {
 // or after progress resume.
 func (b *Bar) DecoratorAverageAdjust(start time.Time) {
 	select {
-	case b.operateState <- func(s *bState) {
-		s.decoratorAverageAdjust(start)
-	}:
+	case b.operateState <- func(s *bState) { s.decoratorAverageAdjust(start) }:
 	case <-b.done:
 	}
 }
@@ -457,13 +452,13 @@ func (b *Bar) triggerCompletion(s *bState) {
 		// Technically this call isn't required, but if refresh rate is set to
 		// one hour for example and bar completes within a few minutes p.Wait()
 		// will wait for one hour. This call helps to avoid unnecessary waiting.
-		go b.tryEarlyRefresh(s.refreshCh)
-	} else if !s.manualRefresh {
+		go b.tryEarlyRefresh(s.renderReq)
+	} else {
 		b.cancel()
 	}
 }
 
-func (b *Bar) tryEarlyRefresh(refreshCh chan<- time.Time) {
+func (b *Bar) tryEarlyRefresh(renderReq chan<- time.Time) {
 	var anyOtherRunning bool
 	b.container.traverseBars(func(bar *Bar) bool {
 		anyOtherRunning = b != bar && bar.IsRunning()
@@ -472,7 +467,7 @@ func (b *Bar) tryEarlyRefresh(refreshCh chan<- time.Time) {
 	if !anyOtherRunning {
 		for {
 			select {
-			case refreshCh <- time.Now():
+			case renderReq <- time.Now():
 			case <-b.done:
 				return
 			}
@@ -593,7 +588,7 @@ func (s *bState) wSyncTable() (table syncTable) {
 	return table
 }
 
-func (s bState) ewmaUpdate(n int64, dur time.Duration) {
+func (s bState) decoratorEwmaUpdate(n int64, dur time.Duration) {
 	var wg sync.WaitGroup
 	for i := 0; i < len(s.ewmaDecorators); i++ {
 		switch d := s.ewmaDecorators[i]; i {

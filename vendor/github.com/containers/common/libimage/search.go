@@ -2,7 +2,6 @@ package libimage
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -219,29 +218,12 @@ func (r *Runtime) searchImageInRegistry(ctx context.Context, term, registry stri
 		sys.DockerCertPath = options.CertDirPath
 	}
 
-	authConf := &types.DockerAuthConfig{IdentityToken: options.IdentityToken}
-	if options.Username != "" {
-		if options.Credentials != "" {
-			return nil, errors.New("username/password cannot be used with credentials")
-		}
-		authConf.Username = options.Username
-		authConf.Password = options.Password
+	dockerAuthConfig, err := getDockerAuthConfig(options.Username, options.Password, options.Credentials, options.IdentityToken)
+	if err != nil {
+		return nil, err
 	}
-
-	if options.Credentials != "" {
-		split := strings.SplitN(options.Credentials, ":", 2)
-		switch len(split) {
-		case 1:
-			authConf.Username = split[0]
-		default:
-			authConf.Username = split[0]
-			authConf.Password = split[1]
-		}
-	}
-	// We should set the authConf unless a token was set.  That's especially
-	// useful for Podman's remote API.
-	if options.IdentityToken != "" {
-		sys.DockerAuthConfig = authConf
+	if dockerAuthConfig != nil {
+		sys.DockerAuthConfig = dockerAuthConfig
 	}
 
 	if options.ListTags {

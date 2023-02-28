@@ -1,5 +1,7 @@
 package decor
 
+var _ Decorator = (*any)(nil)
+
 // Any decorator displays text, that can be changed during decorator's
 // lifetime via provided DecorFunc.
 //

@@ -1,5 +1,10 @@
 package decor
 
+var (
+	_ Decorator = (*onAbortWrapper)(nil)
+	_ Wrapper   = (*onAbortWrapper)(nil)
+)
+
 // OnAbort returns decorator, which wraps provided decorator with sole
 // purpose to display provided message on abort event. It has no effect
 // if bar.Abort(drop bool) is called with true argument.

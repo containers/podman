@@ -8,6 +8,13 @@ import (
 	"github.com/VividCortex/ewma"
 )
 
+var (
+	_ Decorator        = (*movingAverageETA)(nil)
+	_ EwmaDecorator    = (*movingAverageETA)(nil)
+	_ Decorator        = (*averageETA)(nil)
+	_ AverageDecorator = (*averageETA)(nil)
+)
+
 // TimeNormalizer interface. Implementors could be passed into
 // MovingAverageETA, in order to affect i.e. normalize its output.
 type TimeNormalizer interface {

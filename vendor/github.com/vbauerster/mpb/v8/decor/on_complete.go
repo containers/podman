@@ -1,5 +1,10 @@
 package decor
 
+var (
+	_ Decorator = (*onCompleteWrapper)(nil)
+	_ Wrapper   = (*onCompleteWrapper)(nil)
+)
+
 // OnComplete returns decorator, which wraps provided decorator with
 // sole purpose to display provided message on complete event.
 //

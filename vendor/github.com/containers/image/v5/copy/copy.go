@@ -150,6 +150,11 @@ type Options struct {
 	ForceManifestMIMEType string
 	ImageListSelection    ImageListSelection // set to either CopySystemImage (the default), CopyAllImages, or CopySpecificImages to control which instances we copy when the source reference is a list; ignored if the source reference is not a list
 	Instances             []digest.Digest    // if ImageListSelection is CopySpecificImages, copy only these instances and the list itself
+	// Give priority to pulling gzip images if multiple images are present when configured to OptionalBoolTrue,
+	// prefers the best compression if this is configured as OptionalBoolFalse. Choose automatically (and the choice may change over time)
+	// if this is set to OptionalBoolUndefined (which is the default behavior, and recommended for most callers).
+	// This only affects CopySystemImage.
+	PreferGzipInstances types.OptionalBool
 
 	// If OciEncryptConfig is non-nil, it indicates that an image should be encrypted.
 	// The encryption options is derived from the construction of EncryptConfig object.
@@ -322,7 +327,7 @@ func Image(ctx context.Context, policyContext *signature.PolicyContext, destRef,
 		if err != nil {
 			return nil, fmt.Errorf("parsing primary manifest as list for %s: %w", transports.ImageName(srcRef), err)
 		}
-		instanceDigest, err := manifestList.ChooseInstance(options.SourceCtx) // try to pick one that matches options.SourceCtx
+		instanceDigest, err := manifestList.ChooseInstanceByCompression(options.SourceCtx, options.PreferGzipInstances) // try to pick one that matches options.SourceCtx
 		if err != nil {
 			return nil, fmt.Errorf("choosing an image from manifest list %s: %w", transports.ImageName(srcRef), err)
 		}
