@@ -2046,24 +2046,25 @@ func (s *SQLiteState) LookupVolume(name string) (*Volume, error) {
 		return nil, define.ErrDBClosed
 	}
 
-	rows, err := s.conn.Query("SELECT JSON FROM VolumeConfig WHERE Name LIKE ?;", name+"%")
+	rows, err := s.conn.Query("SELECT Name, JSON FROM VolumeConfig WHERE Name LIKE ? ORDER BY LENGTH(Name) ASC;", name+"%")
 	if err != nil {
 		return nil, fmt.Errorf("querying database for volume %s: %w", name, err)
 	}
 	defer rows.Close()
 
-	var configJSON string
-	foundResult := false
+	var foundName, configJSON string
 	for rows.Next() {
-		if foundResult {
+		if foundName != "" {
 			return nil, fmt.Errorf("more than one result for volume name %s: %w", name, define.ErrVolumeExists)
 		}
-		if err := rows.Scan(&configJSON); err != nil {
+		if err := rows.Scan(&foundName, &configJSON); err != nil {
 			return nil, fmt.Errorf("retrieving volume %s config from database: %w", name, err)
 		}
-		foundResult = true
+		if foundName == name {
+			break
+		}
 	}
-	if !foundResult {
+	if foundName == "" {
 		return nil, fmt.Errorf("no volume with name %q found: %w", name, define.ErrNoSuchVolume)
 	}
 
