@@ -93,6 +93,8 @@ Additionally the `bridge` driver supports the following options:
 
 - `vlan`: This option assign VLAN tag and enables vlan\_filtering. Defaults to none.
 - `isolate`: This option isolates networks by blocking traffic between those that have this option enabled.
+- `com.docker.network.bridge.name`: This option assigns the given name to the created Linux Bridge
+- `com.docker.network.driver.mtu`: Sets the Maximum Transmission Unit (MTU) and takes an integer value.
 
 The `macvlan` and `ipvlan` driver support the following options:
 
