@@ -1243,8 +1243,6 @@ func (s *SQLiteState) RewriteVolumeConfig(volume *Volume, newCfg *VolumeConfig) 
 	}
 
 	return nil
-
-	return define.ErrNotImplemented
 }
 
 // Pod retrieves a pod given its full ID
