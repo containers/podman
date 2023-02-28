@@ -1477,7 +1477,7 @@ func (s *SQLiteState) AddPod(pod *Pod) (defErr error) {
 	row := tx.QueryRow("SELECT 1 FROM PodConfig WHERE Name=?;", pod.Name())
 	if err := row.Scan(&check); err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {
-			return fmt.Errorf("checking if pod name %s exists in database: %w", pod.ID(), err)
+			return fmt.Errorf("checking if pod name %s exists in database: %w", pod.Name(), err)
 		}
 	} else if check != 0 {
 		return fmt.Errorf("name \"%s\" is in use: %w", pod.Name(), define.ErrPodExists)
@@ -2064,7 +2064,7 @@ func (s *SQLiteState) LookupVolume(name string) (*Volume, error) {
 		foundResult = true
 	}
 	if !foundResult {
-		return nil, define.ErrNoSuchVolume
+		return nil, fmt.Errorf("no volume with name %q found: %w", name, define.ErrNoSuchVolume)
 	}
 
 	vol := new(Volume)
