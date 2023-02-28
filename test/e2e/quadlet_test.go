@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"regexp"
 	"strings"
 
@@ -175,6 +176,44 @@ func (t *quadletTestcase) assertPodmanArgsRegex(args []string, unit *parser.Unit
 	return findSublistRegex(podmanArgs, args) != -1
 }
 
+func keyValueStringToMap(keyValueString, separator string) map[string]string {
+	keyValMap := make(map[string]string)
+	keyVarList := strings.Split(keyValueString, separator)
+	for _, param := range keyVarList {
+		kv := strings.Split(param, "=")
+		keyValMap[kv[0]] = kv[1]
+	}
+
+	return keyValMap
+}
+
+func (t *quadletTestcase) assertPodmanArgsKeyVal(args []string, unit *parser.UnitFile, key string) bool {
+	podmanArgs, _ := unit.LookupLastArgs("Service", key)
+
+	expectedKeyValMap := keyValueStringToMap(args[2], args[1])
+	argKeyLocation := 0
+	for {
+		subListLocation := findSublist(podmanArgs[argKeyLocation:], []string{args[0]})
+		if subListLocation == -1 {
+			break
+		}
+
+		argKeyLocation += subListLocation
+		actualKeyValMap := keyValueStringToMap(podmanArgs[argKeyLocation+1], args[1])
+		if reflect.DeepEqual(expectedKeyValMap, actualKeyValMap) {
+			return true
+		}
+
+		argKeyLocation += 2
+
+		if argKeyLocation > len(podmanArgs) {
+			break
+		}
+	}
+
+	return false
+}
+
 func (t *quadletTestcase) assertPodmanFinalArgs(args []string, unit *parser.UnitFile, key string) bool {
 	podmanArgs, _ := unit.LookupLastArgs("Service", key)
 	if len(podmanArgs) < len(args) {
@@ -197,6 +236,10 @@ func (t *quadletTestcase) assertStartPodmanArgs(args []string, unit *parser.Unit
 
 func (t *quadletTestcase) assertStartPodmanArgsRegex(args []string, unit *parser.UnitFile) bool {
 	return t.assertPodmanArgsRegex(args, unit, "ExecStart")
+}
+
+func (t *quadletTestcase) assertStartPodmanArgsKeyVal(args []string, unit *parser.UnitFile) bool {
+	return t.assertPodmanArgsKeyVal(args, unit, "ExecStart")
 }
 
 func (t *quadletTestcase) assertStartPodmanFinalArgs(args []string, unit *parser.UnitFile) bool {
@@ -264,6 +307,8 @@ func (t *quadletTestcase) doAssert(check []string, unit *parser.UnitFile, sessio
 		ok = t.assertStartPodmanArgs(args, unit)
 	case "assert-podman-args-regex":
 		ok = t.assertStartPodmanArgsRegex(args, unit)
+	case "assert-podman-args-key-val":
+		ok = t.assertStartPodmanArgsKeyVal(args, unit)
 	case "assert-podman-final-args":
 		ok = t.assertStartPodmanFinalArgs(args, unit)
 	case "assert-podman-final-args-regex":
@@ -484,6 +529,7 @@ var _ = Describe("quadlet system generator", func() {
 		Entry("env-host-false.container", "env-host-false.container"),
 		Entry("secrets.container", "secrets.container"),
 		Entry("logdriver.container", "logdriver.container"),
+		Entry("mount.container", "mount.container"),
 
 		Entry("basic.volume", "basic.volume"),
 		Entry("label.volume", "label.volume"),

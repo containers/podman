@@ -1,0 +1,20 @@
+[Container]
+Image=localhost/imagename
+## assert-podman-args-key-val "--mount" "," "type=bind,source=/path/on/host,destination=/path/in/container"
+Mount=type=bind,source=/path/on/host,destination=/path/in/container
+## assert-podman-args-key-val "--mount" "," "type=bind,src=/path/on/host,dst=/path/in/container,relabel=shared"
+Mount=type=bind,src=/path/on/host,dst=/path/in/container,relabel=shared
+## assert-podman-args-key-val "--mount" "," "type=bind,src=/path/on/host,dst=/path/in/container,relabel=shared,U=true"
+Mount=type=bind,src=/path/on/host,dst=/path/in/container,relabel=shared,U=true
+## assert-podman-args-key-val "--mount" "," "type=volume,source=vol1,destination=/path/in/container,ro=true"
+Mount=type=volume,source=vol1,destination=/path/in/container,ro=true
+## assert-podman-args-key-val "--mount" "," "type=volume,source=systemd-vol2,destination=/path/in/container,ro=true"
+## assert-key-is "Unit" "Requires" "vol2-volume.service"
+## assert-key-is "Unit" "After" "vol2-volume.service"
+Mount=type=volume,source=vol2.volume,destination=/path/in/container,ro=true
+## assert-podman-args-key-val "--mount" "," "type=tmpfs,tmpfs-size=512M,destination=/path/in/container"
+Mount=type=tmpfs,tmpfs-size=512M,destination=/path/in/container
+## assert-podman-args-key-val "--mount" "," "type=image,source=fedora,destination=/fedora-image,rw=true"
+Mount=type=image,source=fedora,destination=/fedora-image,rw=true
+## assert-podman-args-key-val "--mount" "," "type=devpts,destination=/dev/pts"
+Mount=type=devpts,destination=/dev/pts
