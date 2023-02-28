@@ -149,6 +149,15 @@ if [[ -n $do_checkout ]]; then
     failhint="'git clone' failed - this should never happen!"
     (set -x;git clone -q $shallow_checkout https://$BUILDAH_REPO $buildah_dir)
 
+    # Recent versions of git (like `2.39`) disallow some operations (like `am`)
+    # without an identity being set.  In this case, git will throw an error
+    # with a helpful error message for humans to ponder.  However, when running
+    # under automation, nobody cares about this condition or message, because
+    # the environment is disposable.
+    if [[ "$CI" == "true" ]]; then
+      git config --system --add safe.directory $buildah_dir
+    fi
+
     cd $buildah_dir
     if [[ -z $shallow_checkout ]]; then
         # extract the SHA (rightmost field) from, e.g., v1.2-YYYMMDD-<sha>
