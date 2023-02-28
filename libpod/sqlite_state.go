@@ -1199,8 +1199,7 @@ func (s *SQLiteState) RewritePodConfig(pod *Pod, newCfg *PodConfig) (defErr erro
 // RewriteVolumeConfig rewrites a volume's configuration.
 // WARNING: This function is DANGEROUS. Do not use without reading the full
 // comment on this function in state.go.
-// TODO TODO TODO
-func (s *SQLiteState) RewriteVolumeConfig(volume *Volume, newCfg *VolumeConfig) error {
+func (s *SQLiteState) RewriteVolumeConfig(volume *Volume, newCfg *VolumeConfig) (defErr error) {
 	if !s.valid {
 		return define.ErrDBClosed
 	}
@@ -1209,38 +1208,43 @@ func (s *SQLiteState) RewriteVolumeConfig(volume *Volume, newCfg *VolumeConfig) 
 		return define.ErrVolumeRemoved
 	}
 
+	json, err := json.Marshal(newCfg)
+	if err != nil {
+		return fmt.Errorf("error marshalling volume %s new config JSON: %w", volume.Name(), err)
+	}
+
+	tx, err := s.conn.Begin()
+	if err != nil {
+		return fmt.Errorf("beginning transaction to rewrite volume %s config: %w", volume.Name(), err)
+	}
+	defer func() {
+		if defErr != nil {
+			if err := tx.Rollback(); err != nil {
+				logrus.Errorf("Rolling back transaction to rewrite volume %s config: %v", volume.Name(), err)
+			}
+		}
+	}()
+
+	results, err := tx.Exec("UPDATE VolumeConfig SET Name=?, JSON=? WHERE ID=?;", newCfg.Name, json, volume.Name())
+	if err != nil {
+		return fmt.Errorf("updating volume config table with new configuration for volume %s: %w", volume.Name(), err)
+	}
+	rows, err := results.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("retrieving volume %s config rewrite rows affected: %w", volume.Name(), err)
+	}
+	if rows == 0 {
+		volume.valid = false
+		return fmt.Errorf("no volume with name %q found in DB: %w", volume.Name(), define.ErrNoSuchVolume)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("committing transaction to rewrite volume %s config: %w", volume.Name(), err)
+	}
+
+	return nil
+
 	return define.ErrNotImplemented
-
-	// newCfgJSON, err := json.Marshal(newCfg)
-	// if err != nil {
-	// 	return fmt.Errorf("marshalling new configuration JSON for volume %q: %w", volume.Name(), err)
-	// }
-
-	// db, err := s.getDBCon()
-	// if err != nil {
-	// 	return err
-	// }
-	// defer s.deferredCloseDBCon(db)
-
-	// err = db.Update(func(tx *bolt.Tx) error {
-	// 	volBkt, err := getVolBucket(tx)
-	// 	if err != nil {
-	// 		return err
-	// 	}
-
-	// 	volDB := volBkt.Bucket([]byte(volume.Name()))
-	// 	if volDB == nil {
-	// 		volume.valid = false
-	// 		return fmt.Errorf("no volume with name %q found in DB: %w", volume.Name(), define.ErrNoSuchVolume)
-	// 	}
-
-	// 	if err := volDB.Put(configKey, newCfgJSON); err != nil {
-	// 		return fmt.Errorf("updating volume %q config JSON: %w", volume.Name(), err)
-	// 	}
-
-	// 	return nil
-	// })
-	// return err
 }
 
 // Pod retrieves a pod given its full ID
