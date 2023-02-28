@@ -399,9 +399,13 @@ func (s *SQLiteState) addContainer(ctr *Container) (defErr error) {
 			return fmt.Errorf("adding container dependency %s to database: %w", dep, err)
 		}
 	}
+	volMap := make(map[string]bool)
 	for _, vol := range ctr.config.NamedVolumes {
-		if _, err := tx.Exec("INSERT INTO ContainerVolume VALUES (?, ?);", ctr.ID(), vol.Name); err != nil {
-			return fmt.Errorf("adding container volume %s to database: %w", vol.Name, err)
+		if _, ok := volMap[vol.Name]; !ok {
+			if _, err := tx.Exec("INSERT INTO ContainerVolume VALUES (?, ?);", ctr.ID(), vol.Name); err != nil {
+				return fmt.Errorf("adding container volume %s to database: %w", vol.Name, err)
+			}
+			volMap[vol.Name] = true
 		}
 	}
 
