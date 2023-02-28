@@ -153,4 +153,16 @@ USER 1000`, ALPINE)
 		Expect(run).Should(Exit(0))
 		Expect(run.OutputToString()).To(ContainSubstring("12345-12346-container user-/etc-12345"))
 	})
+
+	It("podman run --group-entry flag", func() {
+		// Test that the line we add doesn't contain anything else than what is specified
+		run := podmanTest.Podman([]string{"run", "--user", "1234:1234", "--group-entry=FOO", ALPINE, "grep", "^FOO$", "/etc/group"})
+		run.WaitWithDefaultTimeout()
+		Expect(run).Should(Exit(0))
+
+		run = podmanTest.Podman([]string{"run", "--user", "12345:12346", "--group-entry=$GID", ALPINE, "tail", "/etc/group"})
+		run.WaitWithDefaultTimeout()
+		Expect(run).Should(Exit(0))
+		Expect(run.OutputToString()).To(ContainSubstring("12346"))
+	})
 })

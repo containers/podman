@@ -2232,7 +2232,7 @@ func (c *Container) generateGroupEntry() (string, error) {
 		groupString += entry
 		addedGID = gid
 	}
-	if c.config.User != "" {
+	if c.config.User != "" || c.config.GroupEntry != "" {
 		entry, err := c.generateUserGroupEntry(addedGID)
 		if err != nil {
 			return "", err
@@ -2287,7 +2287,7 @@ func (c *Container) generateCurrentUserGroupEntry() (string, int, error) {
 // Make an entry in /etc/group for the group the container was specified to run
 // as.
 func (c *Container) generateUserGroupEntry(addedGID int) (string, error) {
-	if c.config.User == "" {
+	if c.config.User == "" && c.config.GroupEntry == "" {
 		return "", nil
 	}
 
@@ -2307,12 +2307,24 @@ func (c *Container) generateUserGroupEntry(addedGID int) (string, error) {
 	}
 
 	// Check if the group already exists
-	_, err = lookup.GetGroup(c.state.Mountpoint, group)
+	g, err := lookup.GetGroup(c.state.Mountpoint, group)
 	if err != runcuser.ErrNoGroupEntries {
 		return "", err
 	}
 
+	if c.config.GroupEntry != "" {
+		return c.groupEntry(g.Name, strconv.Itoa(g.Gid), g.List), nil
+	}
+
 	return fmt.Sprintf("%d:x:%d:%s\n", gid, gid, splitUser[0]), nil
+}
+
+func (c *Container) groupEntry(groupname, gid string, list []string) string {
+	s := c.config.GroupEntry
+	s = strings.ReplaceAll(s, "$GROUPNAME", groupname)
+	s = strings.ReplaceAll(s, "$GID", gid)
+	s = strings.ReplaceAll(s, "$USERLIST", strings.Join(list, ","))
+	return s + "\n"
 }
 
 // generatePasswdEntry generates an entry or entries into /etc/passwd as
@@ -2494,7 +2506,7 @@ func (c *Container) generateUserPasswdEntry(addedUID int) (string, error) {
 	return fmt.Sprintf("%d:*:%d:%d:container user:%s:/bin/sh\n", uid, uid, gid, c.WorkingDir()), nil
 }
 
-func (c *Container) passwdEntry(username string, uid, gid, name, homeDir string) string {
+func (c *Container) passwdEntry(username, uid, gid, name, homeDir string) string {
 	s := c.config.PasswdEntry
 	s = strings.ReplaceAll(s, "$USERNAME", username)
 	s = strings.ReplaceAll(s, "$UID", uid)
@@ -2518,7 +2530,7 @@ func (c *Container) passwdEntry(username string, uid, gid, name, homeDir string)
 // read-only. In this case, the function will return nothing ("", "", nil).
 func (c *Container) generatePasswdAndGroup() (string, string, error) {
 	if !c.config.AddCurrentUserPasswdEntry && c.config.User == "" &&
-		len(c.config.HostUsers) == 0 {
+		len(c.config.HostUsers) == 0 && c.config.GroupEntry == "" {
 		return "", "", nil
 	}
 

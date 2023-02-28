@@ -161,6 +161,8 @@ See [**Environment**](#environment) note below for precedence and examples.
 
 @@option group-add
 
+@@option group-entry
+
 @@option health-cmd
 
 @@option health-interval

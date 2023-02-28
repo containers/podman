@@ -356,6 +356,8 @@ type ContainerMiscConfig struct {
 	CgroupsMode string `json:"cgroupsMode,omitempty"`
 	// Cgroup parent of the container.
 	CgroupParent string `json:"cgroupParent"`
+	// GroupEntry specifies arbitrary data to append to a file.
+	GroupEntry string `json:"group_entry,omitempty"`
 	// LogPath log location
 	LogPath string `json:"logPath"`
 	// LogTag is the tag used for logging
