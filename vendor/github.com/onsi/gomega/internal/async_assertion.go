@@ -425,10 +425,18 @@ func (assertion *AsyncAssertion) match(matcher types.GomegaMatcher, desiredMatch
 
 		if actualErr == nil {
 			if matcherErr == nil {
-				if desiredMatch {
-					message += matcher.FailureMessage(actual)
+				if desiredMatch != matches {
+					if desiredMatch {
+						message += matcher.FailureMessage(actual)
+					} else {
+						message += matcher.NegatedFailureMessage(actual)
+					}
 				} else {
-					message += matcher.NegatedFailureMessage(actual)
+					if assertion.asyncType == AsyncAssertionTypeConsistently {
+						message += "There is no failure as the matcher passed to Consistently has not yet failed"
+					} else {
+						message += "There is no failure as the matcher passed to Eventually succeeded on its most recent iteration"
+					}
 				}
 			} else {
 				var fgErr formattedGomegaError
