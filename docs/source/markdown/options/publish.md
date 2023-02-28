@@ -21,3 +21,9 @@ Host port does not have to be specified (e.g. `podman run -p 127.0.0.1::80`).
 If it is not, the container port will be randomly assigned a port on the host.
 
 Use **podman port** to see the actual mapping: `podman port $CONTAINER $CONTAINERPORT`.
+
+Note for CNI networking: 
+By default using **--publish**, **-p**=*[hostPort]:containerPort[/protocol]* will expose the port **only for IPv4**. 
+For IPv6 please do the following - **-p**=*[[::]:[hostPort]:]containerPort[/protocol]*.
+
+
