@@ -12,7 +12,6 @@ load helpers.network
 
 function setup() {
     basic_setup
-    skip_if_rootless "FIXME: #17598 all pasta tests skipped for new version in new CI VM images."
     skip_if_not_rootless "pasta networking only available in rootless mode"
     skip_if_no_pasta "pasta not found: install pasta(1) to run these tests"
 
