@@ -23,7 +23,7 @@ If it is not, the container port will be randomly assigned a port on the host.
 Use **podman port** to see the actual mapping: `podman port $CONTAINER $CONTAINERPORT`.
 
 Note for CNI networking: 
-By default using **--publish**, **-p**=*[hostPort]:containerPort[/protocol]* will expose the port **only for IPv4**. 
-For IPv6 please do the following - **-p**=*[[::]:[hostPort]:]containerPort[/protocol]*.
+By default using `--publish`, `-p=[hostPort]:containerPort[/protocol]` will expose the port **only for IPv4**. 
+For IPv6 please do the following - `-p=[[::]:[hostPort]:]containerPort[/protocol]` - where `[::]` is exposing the port onto IPv6.
 
 
