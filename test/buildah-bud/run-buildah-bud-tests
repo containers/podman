@@ -155,7 +155,13 @@ if [[ -n $do_checkout ]]; then
     # under automation, nobody cares about this condition or message, because
     # the environment is disposable.
     if [[ "$CI" == "true" ]]; then
-      git config --system --add safe.directory $buildah_dir
+        (
+        _gc='git config --global'
+        set -x
+        $_gc user.email "TMcTestFace@example.com"
+        $_gc user.name "Testy McTestface"
+        $_gc --add safe.directory $buildah_dir
+        )
     fi
 
     cd $buildah_dir
