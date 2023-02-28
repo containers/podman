@@ -41,21 +41,7 @@ func WithRefreshRate(d time.Duration) ContainerOption {
 // Refresh will occur upon receive value from provided ch.
 func WithManualRefresh(ch <-chan interface{}) ContainerOption {
 	return func(s *pState) {
-		s.manualRefresh = true
-		go func(refreshCh chan<- time.Time, done <-chan struct{}) {
-			for {
-				select {
-				case x := <-ch:
-					if t, ok := x.(time.Time); ok {
-						refreshCh <- t
-					} else {
-						refreshCh <- time.Now()
-					}
-				case <-done:
-					return
-				}
-			}
-		}(s.refreshCh, s.ctx.Done())
+		s.manualRC = ch
 	}
 }
 
@@ -65,7 +51,7 @@ func WithManualRefresh(ch <-chan interface{}) ContainerOption {
 // rendering will start as soon as provided chan is closed.
 func WithRenderDelay(ch <-chan struct{}) ContainerOption {
 	return func(s *pState) {
-		s.renderDelay = ch
+		s.delayRC = ch
 	}
 }
 

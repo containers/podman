@@ -36,7 +36,7 @@ type pState struct {
 	ctx          context.Context
 	hm           heapManager
 	dropS, dropD chan struct{}
-	refreshCh    chan time.Time
+	renderReq    chan time.Time
 	idCount      int
 	popPriority  int
 
@@ -44,9 +44,9 @@ type pState struct {
 	refreshRate      time.Duration
 	reqWidth         int
 	popCompleted     bool
-	manualRefresh    bool
 	autoRefresh      bool
-	renderDelay      <-chan struct{}
+	delayRC          <-chan struct{}
+	manualRC         <-chan interface{}
 	shutdownNotifier chan<- interface{}
 	queueBars        map[*Bar]*Bar
 	output           io.Writer
@@ -64,13 +64,16 @@ func New(options ...ContainerOption) *Progress {
 // context. It's not possible to reuse instance after (*Progress).Wait
 // method has been called.
 func NewWithContext(ctx context.Context, options ...ContainerOption) *Progress {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	ctx, cancel := context.WithCancel(ctx)
 	s := &pState{
 		ctx:         ctx,
 		hm:          make(heapManager),
 		dropS:       make(chan struct{}),
 		dropD:       make(chan struct{}),
-		refreshCh:   make(chan time.Time),
+		renderReq:   make(chan time.Time),
 		refreshRate: defaultRefreshRate,
 		popPriority: math.MinInt32,
 		queueBars:   make(map[*Bar]*Bar),
@@ -84,26 +87,32 @@ func NewWithContext(ctx context.Context, options ...ContainerOption) *Progress {
 		}
 	}
 
-	go s.hm.run()
-
-	cw := cwriter.New(s.output)
-	if (cw.IsTerminal() || s.autoRefresh) && !s.manualRefresh {
-		s.autoRefresh = true
-		go s.newTicker(s.renderDelay != nil)
-	} else {
-		s.autoRefresh = false
-	}
-
 	p := &Progress{
 		uwg:          s.uwg,
 		operateState: make(chan func(*pState)),
 		interceptIO:  make(chan func(io.Writer)),
-		done:         ctx.Done(),
 		cancel:       cancel,
+	}
+
+	cw := cwriter.New(s.output)
+	if s.manualRC != nil {
+		done := make(chan struct{})
+		p.done = done
+		s.autoRefresh = false
+		go s.manualRefreshListener(done)
+	} else if cw.IsTerminal() || s.autoRefresh {
+		done := make(chan struct{})
+		p.done = done
+		s.autoRefresh = true
+		go s.autoRefreshListener(done)
+	} else {
+		p.done = ctx.Done()
+		s.autoRefresh = false
 	}
 
 	p.pwg.Add(1)
 	go p.serve(s, cw)
+	go s.hm.run()
 	return p
 }
 
@@ -241,7 +250,7 @@ func (p *Progress) serve(s *pState, cw *cwriter.Writer) {
 			op(s)
 		case fn := <-p.interceptIO:
 			fn(cw)
-		case <-s.refreshCh:
+		case <-s.renderReq:
 			e := render()
 			if e != nil {
 				p.cancel() // cancel all bars
@@ -267,17 +276,34 @@ func (p *Progress) serve(s *pState, cw *cwriter.Writer) {
 	}
 }
 
-func (s *pState) newTicker(delay bool) {
-	if delay {
-		<-s.renderDelay
+func (s pState) autoRefreshListener(done chan struct{}) {
+	if s.delayRC != nil {
+		<-s.delayRC
 	}
 	ticker := time.NewTicker(s.refreshRate)
 	defer ticker.Stop()
 	for {
 		select {
 		case t := <-ticker.C:
-			s.refreshCh <- t
+			s.renderReq <- t
 		case <-s.ctx.Done():
+			close(done)
+			return
+		}
+	}
+}
+
+func (s pState) manualRefreshListener(done chan struct{}) {
+	for {
+		select {
+		case x := <-s.manualRC:
+			if t, ok := x.(time.Time); ok {
+				s.renderReq <- t
+			} else {
+				s.renderReq <- time.Now()
+			}
+		case <-s.ctx.Done():
+			close(done)
 			return
 		}
 	}
@@ -383,16 +409,15 @@ func (s *pState) flush(cw *cwriter.Writer, height int) error {
 	return cw.Flush(len(rows) - popCount)
 }
 
-func (s *pState) makeBarState(total int64, filler BarFiller, options ...BarOption) *bState {
+func (s pState) makeBarState(total int64, filler BarFiller, options ...BarOption) *bState {
 	bs := &bState{
-		id:            s.idCount,
-		priority:      s.idCount,
-		reqWidth:      s.reqWidth,
-		total:         total,
-		filler:        filler,
-		refreshCh:     s.refreshCh,
-		autoRefresh:   s.autoRefresh,
-		manualRefresh: s.manualRefresh,
+		id:          s.idCount,
+		priority:    s.idCount,
+		reqWidth:    s.reqWidth,
+		total:       total,
+		filler:      filler,
+		renderReq:   s.renderReq,
+		autoRefresh: s.autoRefresh,
 	}
 
 	if total > 0 {

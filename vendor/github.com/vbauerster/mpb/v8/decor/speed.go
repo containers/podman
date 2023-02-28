@@ -2,10 +2,18 @@ package decor
 
 import (
 	"fmt"
+	"io"
 	"math"
 	"time"
 
 	"github.com/VividCortex/ewma"
+)
+
+var (
+	_ Decorator        = (*movingAverageSpeed)(nil)
+	_ EwmaDecorator    = (*movingAverageSpeed)(nil)
+	_ Decorator        = (*averageSpeed)(nil)
+	_ AverageDecorator = (*averageSpeed)(nil)
 )
 
 // FmtAsSpeed adds "/s" to the end of the input formatter. To be
@@ -13,16 +21,16 @@ import (
 //
 //	fmt.Printf("%.1f", FmtAsSpeed(SizeB1024(2048)))
 func FmtAsSpeed(input fmt.Formatter) fmt.Formatter {
-	return &speedFormatter{input}
+	return speedFormatter{input}
 }
 
 type speedFormatter struct {
 	fmt.Formatter
 }
 
-func (self *speedFormatter) Format(st fmt.State, verb rune) {
+func (self speedFormatter) Format(st fmt.State, verb rune) {
 	self.Formatter.Format(st, verb)
-	_, err := st.Write([]byte("/s"))
+	_, err := io.WriteString(st, "/s")
 	if err != nil {
 		panic(err)
 	}
