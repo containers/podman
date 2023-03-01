@@ -112,7 +112,7 @@ function _confirm_update() {
     local old_iid=$2
 
     # Image has already been pulled, so this shouldn't take too long
-    local timeout=5
+    local timeout=10
     while [[ $timeout -gt 0 ]]; do
         sleep 1
         run_podman '?' inspect --format "{{.Image}}" $cname
