@@ -8,7 +8,9 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 
 	"github.com/containers/common/pkg/auth"
 	"github.com/containers/common/pkg/completion"
@@ -18,6 +20,7 @@ import (
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/containers/podman/v4/cmd/podman/utils"
 	"github.com/containers/podman/v4/libpod/define"
+	"github.com/containers/podman/v4/libpod/shutdown"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/errorhandling"
 	"github.com/containers/podman/v4/pkg/util"
@@ -155,6 +158,9 @@ func playFlags(cmd *cobra.Command) {
 	flags.StringSliceVar(&playOptions.PublishPorts, publishPortsFlagName, []string{}, "Publish a container's port, or a range of ports, to the host")
 	_ = cmd.RegisterFlagCompletionFunc(publishPortsFlagName, completion.AutocompleteNone)
 
+	waitFlagName := "wait"
+	flags.BoolVarP(&playOptions.Wait, waitFlagName, "w", false, "Clean up all objects created when a SIGTERM is received or pods exit")
+
 	if !registry.IsRemote() {
 		certDirFlagName := "cert-dir"
 		flags.StringVar(&playOptions.CertDir, certDirFlagName, "", "`Pathname` of a directory containing TLS certificates and keys")
@@ -257,11 +263,11 @@ func play(cmd *cobra.Command, args []string) error {
 	}
 
 	if playOptions.Down {
-		return teardown(reader, entities.PlayKubeDownOptions{Force: playOptions.Force}, false)
+		return teardown(reader, entities.PlayKubeDownOptions{Force: playOptions.Force})
 	}
 
 	if playOptions.Replace {
-		if err := teardown(reader, entities.PlayKubeDownOptions{Force: playOptions.Force}, false); err != nil && !errorhandling.Contains(err, define.ErrNoSuchPod) {
+		if err := teardown(reader, entities.PlayKubeDownOptions{Force: playOptions.Force}); err != nil && !errorhandling.Contains(err, define.ErrNoSuchPod) {
 			return err
 		}
 		if _, err := reader.Seek(0, 0); err != nil {
@@ -269,21 +275,67 @@ func play(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	if err := kubeplay(reader); err != nil {
+	// Create a channel to catch an interrupt or SIGTERM signal
+	ch := make(chan os.Signal, 1)
+	var teardownReader *bytes.Reader
+	if playOptions.Wait {
+		// Stop the the shutdown signal handler so we can actually clean up after a SIGTERM or interrupt
+		if err := shutdown.Stop(); err != nil && err != shutdown.ErrNotStarted {
+			return err
+		}
+		signal.Notify(ch, os.Interrupt, syscall.SIGTERM)
+		playOptions.ServiceContainer = true
+
+		// Read the kube yaml file again so that a reader can be passed down to the teardown function
+		teardownReader, err = readerFromArg(args[0])
+		if err != nil {
+			return err
+		}
+		fmt.Println("Use ctrl+c to clean up or wait for pods to exit")
+	}
+
+	var teardownErr error
+	cancelled := false
+	if playOptions.Wait {
+		// use a goroutine to wait for a sigterm or interrupt
+		go func() {
+			<-ch
+			// clean up any volumes that were created as well
+			fmt.Println("\nCleaning up containers, pods, and volumes...")
+			cancelled = true
+			if err := teardown(teardownReader, entities.PlayKubeDownOptions{Force: true}); err != nil && !errorhandling.Contains(err, define.ErrNoSuchPod) {
+				teardownErr = fmt.Errorf("error during cleanup: %v", err)
+			}
+		}()
+	}
+
+	if playErr := kubeplay(reader); playErr != nil {
 		// FIXME: The cleanup logic below must be fixed to only remove
 		// resources that were created before a failure.  Otherwise,
 		// rerunning the same YAML file will cause an error and remove
 		// the previously created workload.
 		//
 		// teardown any containers, pods, and volumes that might have created before we hit the error
-		//		teardownReader, trErr := readerFromArg(args[0])
-		//		if trErr != nil {
-		//			return trErr
-		//		}
-		//		if tErr := teardown(teardownReader, entities.PlayKubeDownOptions{Force: true}, true); tErr != nil && !errorhandling.Contains(tErr, define.ErrNoSuchPod) {
-		//			return fmt.Errorf("error tearing down workloads %q after kube play error %q", tErr, err)
-		//		}
-		return err
+		// reader, err := readerFromArg(args[0])
+		// if err != nil {
+		// 	return err
+		// }
+		// if err := teardown(reader, entities.PlayKubeDownOptions{Force: true}, true); err != nil && !errorhandling.Contains(err, define.ErrNoSuchPod) {
+		// 	return fmt.Errorf("error tearing down workloads %q after kube play error %q", err, playErr)
+		// }
+		return playErr
+	}
+	if teardownErr != nil {
+		return teardownErr
+	}
+
+	// cleanup if --wait=true and the pods have exited
+	if playOptions.Wait && !cancelled {
+		fmt.Println("Cleaning up containers, pods, and volumes...")
+		// clean up any volumes that were created as well
+		if err := teardown(teardownReader, entities.PlayKubeDownOptions{Force: true}); err != nil && !errorhandling.Contains(err, define.ErrNoSuchPod) {
+			return err
+		}
 	}
 
 	return nil
@@ -328,7 +380,7 @@ func readerFromArg(fileName string) (*bytes.Reader, error) {
 	return bytes.NewReader(data), nil
 }
 
-func teardown(body io.Reader, options entities.PlayKubeDownOptions, quiet bool) error {
+func teardown(body io.Reader, options entities.PlayKubeDownOptions) error {
 	var (
 		podStopErrors utils.OutputErrors
 		podRmErrors   utils.OutputErrors
@@ -341,14 +393,11 @@ func teardown(body io.Reader, options entities.PlayKubeDownOptions, quiet bool) 
 	}
 
 	// Output stopped pods
-	if !quiet {
-		fmt.Println("Pods stopped:")
-	}
+	fmt.Println("Pods stopped:")
 	for _, stopped := range reports.StopReport {
 		switch {
 		case len(stopped.Errs) > 0:
 			podStopErrors = append(podStopErrors, stopped.Errs...)
-		case quiet:
 		default:
 			fmt.Println(stopped.Id)
 		}
@@ -360,14 +409,11 @@ func teardown(body io.Reader, options entities.PlayKubeDownOptions, quiet bool) 
 	}
 
 	// Output rm'd pods
-	if !quiet {
-		fmt.Println("Pods removed:")
-	}
+	fmt.Println("Pods removed:")
 	for _, removed := range reports.RmReport {
 		switch {
 		case removed.Err != nil:
 			podRmErrors = append(podRmErrors, removed.Err)
-		case quiet:
 		default:
 			fmt.Println(removed.Id)
 		}
@@ -379,14 +425,11 @@ func teardown(body io.Reader, options entities.PlayKubeDownOptions, quiet bool) 
 	}
 
 	// Output rm'd volumes
-	if !quiet {
-		fmt.Println("Secrets removed:")
-	}
+	fmt.Println("Secrets removed:")
 	for _, removed := range reports.SecretRmReport {
 		switch {
 		case removed.Err != nil:
 			secRmErrors = append(secRmErrors, removed.Err)
-		case quiet:
 		default:
 			fmt.Println(removed.ID)
 		}
@@ -397,14 +440,11 @@ func teardown(body io.Reader, options entities.PlayKubeDownOptions, quiet bool) 
 	}
 
 	// Output rm'd volumes
-	if !quiet {
-		fmt.Println("Volumes removed:")
-	}
+	fmt.Println("Volumes removed:")
 	for _, removed := range reports.VolumeRmReport {
 		switch {
 		case removed.Err != nil:
 			volRmErrors = append(volRmErrors, removed.Err)
-		case quiet:
 		default:
 			fmt.Println(removed.Id)
 		}
@@ -418,6 +458,23 @@ func kubeplay(body io.Reader) error {
 	if err != nil {
 		return err
 	}
+	if err := printPlayReport(report); err != nil {
+		return err
+	}
+
+	// If --wait=true, we need wait for the service container to exit so that we know that the pod has exited and we can clean up
+	if playOptions.Wait {
+		_, err := registry.ContainerEngine().ContainerWait(registry.GetContext(), []string{report.ServiceContainerID}, entities.WaitOptions{})
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// printPlayReport goes through the report returned by KubePlay and prints it out in a human
+// friendly format.
+func printPlayReport(report *entities.PlayKubeReport) error {
 	// Print volumes report
 	for i, volume := range report.Volumes {
 		if i == 0 {
@@ -473,6 +530,5 @@ func kubeplay(body io.Reader) error {
 	if ctrsFailed > 0 {
 		return fmt.Errorf("failed to start %d containers", ctrsFailed)
 	}
-
 	return nil
 }

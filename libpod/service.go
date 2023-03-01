@@ -134,10 +134,12 @@ func (p *Pod) maybeStopServiceContainer() error {
 			return
 		}
 		logrus.Debugf("Stopping service container %s", serviceCtr.ID())
-		if err := serviceCtr.Stop(); err != nil {
-			if !errors.Is(err, define.ErrCtrStopped) {
-				logrus.Errorf("Stopping service container %s: %v", serviceCtr.ID(), err)
-			}
+		if err := serviceCtr.Stop(); err != nil && !errors.Is(err, define.ErrCtrStopped) {
+			// Log this in debug mode so that we don't print out an error and confuse the user
+			// when the service container can't be stopped because it is in created state
+			// This can happen when an error happens during kube play and we are trying to
+			// clean up after the error.
+			logrus.Debugf("Error stopping service container %s: %v", serviceCtr.ID(), err)
 		}
 	})
 	return nil
