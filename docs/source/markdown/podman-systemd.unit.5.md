@@ -89,6 +89,7 @@ Valid options for `[Container]` are listed below:
 | Image=ubi8                       | Image specification - ubi8             |
 | Label="YXZ"                      | --label "XYZ"                          |
 | LogDriver=journald               | --log-driver journald                  |
+| Mount=type=bind,source=/path/on/host,destination=/path/in/container | --mount type=bind,source=/path/on/host,destination=/path/in/container |
 | Network=host                     | --net host                             |
 | NoNewPrivileges=true             | --security-opt no-new-privileges       |
 | Rootfs=/var/lib/rootfs           | --rootfs /var/lib/rootfs               |
@@ -216,6 +217,19 @@ Set the log-driver Podman should use when running the container.
 Equivalent to the Podman `--log-driver` option.
 
 The default value is `passthrough`.
+
+### `Mount=`
+
+Attach a filesystem mount to the container.
+This is equivalent to the Podman `--mount` option, and
+generally has the form `type=TYPE,TYPE-SPECIFIC-OPTION[,...]`.
+
+As a special case, for `type=volume` if `source` ends with `.volume`, a Podman named volume called
+`systemd-$name` will be used as the source, and the generated systemd service will contain
+a dependency on the `$name-volume.service`. Such a volume can be automatically be lazily
+created by using a `$name.volume` quadlet file.
+
+This key can be listed multiple times.
 
 ### `Network=`
 

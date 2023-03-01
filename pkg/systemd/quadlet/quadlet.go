@@ -51,6 +51,7 @@ const (
 	KeyImage                 = "Image"
 	KeyLabel                 = "Label"
 	KeyLogDriver             = "LogDriver"
+	KeyMount                 = "Mount"
 	KeyNetwork               = "Network"
 	KeyNetworkDisableDNS     = "DisableDNS"
 	KeyNetworkDriver         = "Driver"
@@ -106,6 +107,7 @@ var (
 		KeyImage:                 true,
 		KeyLabel:                 true,
 		KeyLogDriver:             true,
+		KeyMount:                 true,
 		KeyNetwork:               true,
 		KeyNoNewPrivileges:       true,
 		KeyNotify:                true,
@@ -464,21 +466,7 @@ func ConvertContainer(container *parser.UnitFile, isUser bool) (*parser.UnitFile
 		}
 
 		if source != "" {
-			if source[0] == '/' {
-				// Absolute path
-				service.Add(UnitGroup, "RequiresMountsFor", source)
-			} else if strings.HasSuffix(source, ".volume") {
-				// the podman volume name is systemd-$name
-				volumeName := replaceExtension(source, "", "systemd-", "")
-
-				// the systemd unit name is $name-volume.service
-				volumeServiceName := replaceExtension(source, ".service", "", "-volume")
-
-				source = volumeName
-
-				service.Add(UnitGroup, "Requires", volumeServiceName)
-				service.Add(UnitGroup, "After", volumeServiceName)
-			}
+			source = handleStorageSource(service, source)
 		}
 
 		podman.add("-v")
@@ -528,6 +516,34 @@ func ConvertContainer(container *parser.UnitFile, isUser bool) (*parser.UnitFile
 	secrets := container.LookupAllArgs(ContainerGroup, KeySecret)
 	for _, secret := range secrets {
 		podman.add("--secret", secret)
+	}
+
+	mounts := container.LookupAllArgs(ContainerGroup, KeyMount)
+	for _, mount := range mounts {
+		params := strings.Split(mount, ",")
+		paramsMap := make(map[string]string, len(params))
+		for _, param := range params {
+			kv := strings.Split(param, "=")
+			paramsMap[kv[0]] = kv[1]
+		}
+		if paramType, ok := paramsMap["type"]; ok {
+			if paramType == "volume" || paramType == "bind" {
+				if paramSource, ok := paramsMap["source"]; ok {
+					paramsMap["source"] = handleStorageSource(service, paramSource)
+				} else if paramSource, ok = paramsMap["src"]; ok {
+					paramsMap["src"] = handleStorageSource(service, paramSource)
+				}
+			}
+		}
+		paramsArray := make([]string, 0, len(params))
+		paramsArray = append(paramsArray, fmt.Sprintf("%s=%s", "type", paramsMap["type"]))
+		for k, v := range paramsMap {
+			if k != "type" {
+				paramsArray = append(paramsArray, fmt.Sprintf("%s=%s", k, v))
+			}
+		}
+		mountStr := strings.Join(paramsArray, ",")
+		podman.add("--mount", mountStr)
 	}
 
 	podmanArgs := container.LookupAllArgs(ContainerGroup, KeyPodmanArgs)
@@ -991,4 +1007,24 @@ func handleLogDriver(unitFile *parser.UnitFile, groupName string, podman *Podman
 		logDriver = defaultLogDriver
 	}
 	podman.add("--log-driver", logDriver)
+}
+
+func handleStorageSource(unitFile *parser.UnitFile, source string) string {
+	if source[0] == '/' {
+		// Absolute path
+		unitFile.Add(UnitGroup, "RequiresMountsFor", source)
+	} else if strings.HasSuffix(source, ".volume") {
+		// the podman volume name is systemd-$name
+		volumeName := replaceExtension(source, "", "systemd-", "")
+
+		// the systemd unit name is $name-volume.service
+		volumeServiceName := replaceExtension(source, ".service", "", "-volume")
+
+		source = volumeName
+
+		unitFile.Add(UnitGroup, "Requires", volumeServiceName)
+		unitFile.Add(UnitGroup, "After", volumeServiceName)
+	}
+
+	return source
 }
