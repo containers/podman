@@ -339,6 +339,12 @@ func (s *SQLiteState) rewriteContainerConfig(ctr *Container, newCfg *ContainerCo
 }
 
 func (s *SQLiteState) addContainer(ctr *Container) (defErr error) {
+	for net := range ctr.config.Networks {
+		opts := ctr.config.Networks[net]
+		opts.Aliases = append(opts.Aliases, ctr.config.ID[:12])
+		ctr.config.Networks[net] = opts
+	}
+
 	configJSON, err := json.Marshal(ctr.config)
 	if err != nil {
 		return fmt.Errorf("marshalling container config json: %w", err)
@@ -503,6 +509,9 @@ func (s *SQLiteState) networkModify(ctr *Container, network string, opts types.P
 	}
 
 	if !disconnect {
+		if newCfg.Networks == nil {
+			newCfg.Networks = make(map[string]types.PerNetworkOptions)
+		}
 		newCfg.Networks[network] = opts
 	} else {
 		delete(newCfg.Networks, network)
