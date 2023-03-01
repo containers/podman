@@ -90,6 +90,11 @@ func (list *Schema2ListPublic) UpdateInstances(updates []ListUpdate) error {
 	return nil
 }
 
+func (list *Schema2ListPublic) ChooseInstanceByCompression(ctx *types.SystemContext, preferGzip types.OptionalBool) (digest.Digest, error) {
+	// ChooseInstanceByCompression is same as ChooseInstance for schema2 manifest list.
+	return list.ChooseInstance(ctx)
+}
+
 // ChooseInstance parses blob as a schema2 manifest list, and returns the digest
 // of the image which is appropriate for the current environment.
 func (list *Schema2ListPublic) ChooseInstance(ctx *types.SystemContext) (digest.Digest, error) {

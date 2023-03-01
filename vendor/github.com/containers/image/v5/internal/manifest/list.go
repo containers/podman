@@ -51,6 +51,10 @@ type List interface {
 	ListPublic
 	// CloneInternal returns a deep copy of this list and its contents.
 	CloneInternal() List
+	// ChooseInstanceInstanceByCompression selects which manifest is most appropriate for the platform and compression described by the
+	// SystemContext ( or for the current platform if the SystemContext doesn't specify any detail ) and preferGzip for compression which
+	// when configured to OptionalBoolTrue and chooses best available compression when it is OptionalBoolFalse or left OptionalBoolUndefined.
+	ChooseInstanceByCompression(ctx *types.SystemContext, preferGzip types.OptionalBool) (digest.Digest, error)
 }
 
 // ListUpdate includes the fields which a List's UpdateInstances() method will modify.

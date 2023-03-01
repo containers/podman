@@ -94,6 +94,7 @@ func (s *ociImageSource) Reference() types.ImageReference {
 
 // Close removes resources associated with an initialized ImageSource, if any.
 func (s *ociImageSource) Close() error {
+	s.client.CloseIdleConnections()
 	return nil
 }
 

@@ -96,8 +96,8 @@ func NewTransport() *http.Transport {
 		Proxy:               http.ProxyFromEnvironment,
 		DialContext:         direct.DialContext,
 		TLSHandshakeTimeout: 10 * time.Second,
-		// TODO(dmcgowan): Call close idle connections when complete and use keep alive
-		DisableKeepAlives: true,
+		IdleConnTimeout:     90 * time.Second,
+		MaxIdleConns:        100,
 	}
 	return tr
 }

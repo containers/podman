@@ -35,7 +35,7 @@ func (e *ErrBadName) Is(target error) bool {
 }
 
 // newErrBadName returns a ErrBadName which returns the given formatted string from Error().
-func newErrBadName(fmtStr string, args ...interface{}) *ErrBadName {
+func newErrBadName(fmtStr string, args ...any) *ErrBadName {
 	return &ErrBadName{fmt.Sprintf(fmtStr, args...)}
 }
 

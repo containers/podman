@@ -3,6 +3,7 @@ package manifest
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"runtime"
 
 	platform "github.com/containers/image/v5/internal/pkg/platform"
@@ -12,6 +13,16 @@ import (
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
+)
+
+const (
+	// OCI1InstanceAnnotationCompressionZSTD is an annotation name that can be placed on a manifest descriptor in an OCI index.
+	// The value of the annotation must be the string "true".
+	// If this annotation is present on a manifest, consuming that image instance requires support for Zstd compression.
+	// That also suggests that this instance benefits from
+	// Zstd compression, so it can be preferred by compatible consumers over instances that
+	// use gzip, depending on their local policy.
+	OCI1InstanceAnnotationCompressionZSTD = "io.github.containers.compression.zstd"
 )
 
 // OCI1IndexPublic is just an alias for the OCI index type, but one which we can
@@ -73,37 +84,90 @@ func (index *OCI1IndexPublic) UpdateInstances(updates []ListUpdate) error {
 	return nil
 }
 
-// ChooseInstance parses blob as an oci v1 manifest index, and returns the digest
-// of the image which is appropriate for the current environment.
-func (index *OCI1IndexPublic) ChooseInstance(ctx *types.SystemContext) (digest.Digest, error) {
+// instanceIsZstd returns true if instance is a zstd instance otherwise false.
+func instanceIsZstd(manifest imgspecv1.Descriptor) bool {
+	if value, ok := manifest.Annotations[OCI1InstanceAnnotationCompressionZSTD]; ok && value == "true" {
+		return true
+	}
+	return false
+}
+
+type instanceCandidate struct {
+	platformIndex    int           // Index of the candidate in platform.WantedPlatforms: lower numbers are preferred; or math.maxInt if the candidate doesn’t have a platform
+	isZstd           bool          // tells if particular instance if zstd instance
+	manifestPosition int           // A zero-based index of the instance in the manifest list
+	digest           digest.Digest // Instance digest
+}
+
+func (ic instanceCandidate) isPreferredOver(other *instanceCandidate, preferGzip bool) bool {
+	switch {
+	case ic.platformIndex != other.platformIndex:
+		return ic.platformIndex < other.platformIndex
+	case ic.isZstd != other.isZstd:
+		if !preferGzip {
+			return ic.isZstd
+		} else {
+			return !ic.isZstd
+		}
+	case ic.manifestPosition != other.manifestPosition:
+		return ic.manifestPosition < other.manifestPosition
+	}
+	panic("internal error: invalid comparision between two candidates") // This should not be reachable because in all calls we make, the two candidates differ at least in manifestPosition.
+}
+
+// chooseInstance is a private equivalent to ChooseInstanceByCompression,
+// shared by ChooseInstance and ChooseInstanceByCompression.
+func (index *OCI1IndexPublic) chooseInstance(ctx *types.SystemContext, preferGzip types.OptionalBool) (digest.Digest, error) {
+	didPreferGzip := false
+	if preferGzip == types.OptionalBoolTrue {
+		didPreferGzip = true
+	}
 	wantedPlatforms, err := platform.WantedPlatforms(ctx)
 	if err != nil {
 		return "", fmt.Errorf("getting platform information %#v: %w", ctx, err)
 	}
-	for _, wantedPlatform := range wantedPlatforms {
-		for _, d := range index.Manifests {
-			if d.Platform == nil {
+	var bestMatch *instanceCandidate
+	bestMatch = nil
+	for manifestIndex, d := range index.Manifests {
+		candidate := instanceCandidate{platformIndex: math.MaxInt, manifestPosition: manifestIndex, isZstd: instanceIsZstd(d), digest: d.Digest}
+		if d.Platform != nil {
+			foundPlatform := false
+			for platformIndex, wantedPlatform := range wantedPlatforms {
+				imagePlatform := imgspecv1.Platform{
+					Architecture: d.Platform.Architecture,
+					OS:           d.Platform.OS,
+					OSVersion:    d.Platform.OSVersion,
+					OSFeatures:   slices.Clone(d.Platform.OSFeatures),
+					Variant:      d.Platform.Variant,
+				}
+				if platform.MatchesPlatform(imagePlatform, wantedPlatform) {
+					foundPlatform = true
+					candidate.platformIndex = platformIndex
+					break
+				}
+			}
+			if !foundPlatform {
 				continue
 			}
-			imagePlatform := imgspecv1.Platform{
-				Architecture: d.Platform.Architecture,
-				OS:           d.Platform.OS,
-				OSVersion:    d.Platform.OSVersion,
-				OSFeatures:   slices.Clone(d.Platform.OSFeatures),
-				Variant:      d.Platform.Variant,
-			}
-			if platform.MatchesPlatform(imagePlatform, wantedPlatform) {
-				return d.Digest, nil
-			}
+		}
+		if bestMatch == nil || candidate.isPreferredOver(bestMatch, didPreferGzip) {
+			bestMatch = &candidate
 		}
 	}
-
-	for _, d := range index.Manifests {
-		if d.Platform == nil {
-			return d.Digest, nil
-		}
+	if bestMatch != nil {
+		return bestMatch.digest, nil
 	}
 	return "", fmt.Errorf("no image found in image index for architecture %s, variant %q, OS %s", wantedPlatforms[0].Architecture, wantedPlatforms[0].Variant, wantedPlatforms[0].OS)
+}
+
+func (index *OCI1Index) ChooseInstanceByCompression(ctx *types.SystemContext, preferGzip types.OptionalBool) (digest.Digest, error) {
+	return index.chooseInstance(ctx, preferGzip)
+}
+
+// ChooseInstance parses blob as an oci v1 manifest index, and returns the digest
+// of the image which is appropriate for the current environment.
+func (index *OCI1IndexPublic) ChooseInstance(ctx *types.SystemContext) (digest.Digest, error) {
+	return index.chooseInstance(ctx, types.OptionalBoolFalse)
 }
 
 // Serialize returns the index in a blob format.

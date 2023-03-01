@@ -11,15 +11,14 @@ import (
 type BarOption func(*bState)
 
 func inspect(decorators []decor.Decorator) (dest []decor.Decorator) {
-	type mergeWrapper interface {
-		MergeUnwrap() []decor.Decorator
-	}
 	for _, decorator := range decorators {
 		if decorator == nil {
 			continue
 		}
-		if mw, ok := decorator.(mergeWrapper); ok {
-			dest = append(dest, mw.MergeUnwrap()...)
+		if d, ok := decorator.(interface {
+			PlaceHolders() []decor.Decorator
+		}); ok {
+			dest = append(dest, d.PlaceHolders()...)
 		}
 		dest = append(dest, decorator)
 	}

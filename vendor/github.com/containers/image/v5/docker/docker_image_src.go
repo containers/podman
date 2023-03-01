@@ -153,6 +153,7 @@ func newImageSourceAttempt(ctx context.Context, sys *types.SystemContext, logica
 	s.Compat = impl.AddCompat(s)
 
 	if err := s.ensureManifestIsLoaded(ctx); err != nil {
+		client.Close()
 		return nil, err
 	}
 	return s, nil
@@ -166,7 +167,7 @@ func (s *dockerImageSource) Reference() types.ImageReference {
 
 // Close removes resources associated with an initialized ImageSource, if any.
 func (s *dockerImageSource) Close() error {
-	return nil
+	return s.c.Close()
 }
 
 // simplifyContentType drops parameters from a HTTP media type (see https://tools.ietf.org/html/rfc7231#section-3.1.1.1)
@@ -605,6 +606,7 @@ func deleteImage(ctx context.Context, sys *types.SystemContext, ref dockerRefere
 	if err != nil {
 		return err
 	}
+	defer c.Close()
 
 	headers := map[string][]string{
 		"Accept": manifest.DefaultRequestedManifestMIMETypes,
