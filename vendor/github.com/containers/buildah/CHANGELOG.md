@@ -2,6 +2,9 @@
 
 # Changelog
 
+## v1.29.1 (2023-02-15)
+    update to c/image 5.24.1
+
 ## v1.29.0 (2023-01-25)
 
     tests: improve build-with-network-test

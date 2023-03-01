@@ -30,7 +30,7 @@ const (
 	Package = "buildah"
 	// Version for the Package.  Bump version in contrib/rpm/buildah.spec
 	// too.
-	Version = "1.30.0-dev"
+	Version = "1.29.1"
 
 	// DefaultRuntime if containers.conf fails.
 	DefaultRuntime = "runc"

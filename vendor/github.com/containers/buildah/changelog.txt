@@ -1,3 +1,6 @@
+- Changelog for v1.29.1 (2023-02-15)
+  * Update to c/image 5.24.1
+
 - Changelog for v1.29.0 (2023-01-25)
   * tests: improve build-with-network-test
   * Bump c/storagev1.45.3, c/imagev5.24.0, c/commonv0.51.0
