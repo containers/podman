@@ -239,11 +239,12 @@ function _confirm_update() {
 
 @test "podman auto-update - label io.containers.autoupdate=local" {
     generate_service localtest local
+    _wait_service_ready container-$cname.service
+
     image=quay.io/libpod/localtest:latest
     run_podman commit --change CMD=/bin/bash $cname $image
     run_podman image inspect --format "{{.ID}}" $image
 
-    _wait_service_ready container-$cname.service
     run_podman auto-update --dry-run --format "{{.Unit}},{{.Image}},{{.Updated}},{{.Policy}}"
     is "$output" ".*container-$cname.service,quay.io/libpod/localtest:latest,pending,local.*" "Image update is pending."
 
