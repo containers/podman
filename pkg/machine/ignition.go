@@ -513,6 +513,34 @@ Delegate=memory pids cpu io
 		}
 	}
 
+	files = append(files, File{
+		Node: Node{
+			User:  getNodeUsr("root"),
+			Group: getNodeGrp("root"),
+			Path:  "/etc/chrony.conf",
+		},
+		FileEmbedded1: FileEmbedded1{
+			Append: []Resource{{
+				Source: encodeDataURLPtr("\nconfdir /etc/chrony.d\n"),
+			}},
+		},
+	})
+
+	// Issue #11541: allow Chrony to update the system time when it has drifted
+	// far from NTP time.
+	files = append(files, File{
+		Node: Node{
+			User:  getNodeUsr("root"),
+			Group: getNodeGrp("root"),
+			Path:  "/etc/chrony.d/50-podman-makestep.conf",
+		},
+		FileEmbedded1: FileEmbedded1{
+			Contents: Resource{
+				Source: encodeDataURLPtr("makestep 1 -1\n"),
+			},
+		},
+	})
+
 	return files
 }
 
