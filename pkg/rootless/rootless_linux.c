@@ -386,6 +386,7 @@ can_use_shortcut (char **argv)
 
       if (strcmp (argv[argc], "mount") == 0
           || strcmp (argv[argc], "machine") == 0
+          || strcmp (argv[argc], "version") == 0
           || strcmp (argv[argc], "context") == 0
           || strcmp (argv[argc], "search") == 0
           || (strcmp (argv[argc], "system") == 0 && argv[argc+1] && strcmp (argv[argc+1], "service") != 0))
