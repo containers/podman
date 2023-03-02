@@ -9,6 +9,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/containers/podman/v4/libpod/events"
 	"github.com/containers/podman/v4/pkg/machine"
@@ -90,5 +91,24 @@ func rm(_ *cobra.Command, args []string) error {
 		return err
 	}
 	newMachineEvent(events.Remove, events.Event{Name: vmName})
+	err = updateDefaultMachineInConfig(vmName)
+	if err != nil {
+		return fmt.Errorf("failed to update default machine: %v", err)
+	}
 	return nil
+}
+
+func updateDefaultMachineInConfig(vmName string) error {
+	cfg, err := config.ReadCustomConfig()
+	if err != nil {
+		return err
+	}
+	if cfg.Engine.ActiveService == vmName {
+		cfg.Engine.ActiveService = ""
+		for machine := range cfg.Engine.ServiceDestinations {
+			cfg.Engine.ActiveService = machine
+			break
+		}
+	}
+	return cfg.Write()
 }
