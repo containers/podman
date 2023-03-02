@@ -318,7 +318,7 @@ func (s *SQLiteState) rewriteContainerConfig(ctr *Container, newCfg *ContainerCo
 		}
 	}()
 
-	results, err := tx.Exec("UPDATE TABLE ContainerConfig SET Name=?, JSON=? WHERE ID=?;", newCfg.Name, json, ctr.ID())
+	results, err := tx.Exec("UPDATE ContainerConfig SET Name=?, JSON=? WHERE ID=?;", newCfg.Name, json, ctr.ID())
 	if err != nil {
 		return fmt.Errorf("updating container config table with new configuration for container %s: %w", ctr.ID(), err)
 	}
@@ -339,6 +339,12 @@ func (s *SQLiteState) rewriteContainerConfig(ctr *Container, newCfg *ContainerCo
 }
 
 func (s *SQLiteState) addContainer(ctr *Container) (defErr error) {
+	for net := range ctr.config.Networks {
+		opts := ctr.config.Networks[net]
+		opts.Aliases = append(opts.Aliases, ctr.config.ID[:12])
+		ctr.config.Networks[net] = opts
+	}
+
 	configJSON, err := json.Marshal(ctr.config)
 	if err != nil {
 		return fmt.Errorf("marshalling container config json: %w", err)
@@ -399,9 +405,13 @@ func (s *SQLiteState) addContainer(ctr *Container) (defErr error) {
 			return fmt.Errorf("adding container dependency %s to database: %w", dep, err)
 		}
 	}
+	volMap := make(map[string]bool)
 	for _, vol := range ctr.config.NamedVolumes {
-		if _, err := tx.Exec("INSERT INTO ContainerVolume VALUES (?, ?);", ctr.ID(), vol.Name); err != nil {
-			return fmt.Errorf("adding container volume %s to database: %w", vol.Name, err)
+		if _, ok := volMap[vol.Name]; !ok {
+			if _, err := tx.Exec("INSERT INTO ContainerVolume VALUES (?, ?);", ctr.ID(), vol.Name); err != nil {
+				return fmt.Errorf("adding container volume %s to database: %w", vol.Name, err)
+			}
+			volMap[vol.Name] = true
 		}
 	}
 
@@ -499,6 +509,9 @@ func (s *SQLiteState) networkModify(ctr *Container, network string, opts types.P
 	}
 
 	if !disconnect {
+		if newCfg.Networks == nil {
+			newCfg.Networks = make(map[string]types.PerNetworkOptions)
+		}
 		newCfg.Networks[network] = opts
 	} else {
 		delete(newCfg.Networks, network)

@@ -1186,7 +1186,7 @@ func (s *SQLiteState) RewritePodConfig(pod *Pod, newCfg *PodConfig) (defErr erro
 	}
 	if rows == 0 {
 		pod.valid = false
-		return define.ErrNoSuchPod
+		return fmt.Errorf("no pod with ID %s found in DB: %w", pod.ID(), define.ErrNoSuchPod)
 	}
 
 	if err := tx.Commit(); err != nil {
@@ -1199,8 +1199,7 @@ func (s *SQLiteState) RewritePodConfig(pod *Pod, newCfg *PodConfig) (defErr erro
 // RewriteVolumeConfig rewrites a volume's configuration.
 // WARNING: This function is DANGEROUS. Do not use without reading the full
 // comment on this function in state.go.
-// TODO TODO TODO
-func (s *SQLiteState) RewriteVolumeConfig(volume *Volume, newCfg *VolumeConfig) error {
+func (s *SQLiteState) RewriteVolumeConfig(volume *Volume, newCfg *VolumeConfig) (defErr error) {
 	if !s.valid {
 		return define.ErrDBClosed
 	}
@@ -1209,38 +1208,41 @@ func (s *SQLiteState) RewriteVolumeConfig(volume *Volume, newCfg *VolumeConfig) 
 		return define.ErrVolumeRemoved
 	}
 
-	return define.ErrNotImplemented
+	json, err := json.Marshal(newCfg)
+	if err != nil {
+		return fmt.Errorf("error marshalling volume %s new config JSON: %w", volume.Name(), err)
+	}
 
-	// newCfgJSON, err := json.Marshal(newCfg)
-	// if err != nil {
-	// 	return fmt.Errorf("marshalling new configuration JSON for volume %q: %w", volume.Name(), err)
-	// }
+	tx, err := s.conn.Begin()
+	if err != nil {
+		return fmt.Errorf("beginning transaction to rewrite volume %s config: %w", volume.Name(), err)
+	}
+	defer func() {
+		if defErr != nil {
+			if err := tx.Rollback(); err != nil {
+				logrus.Errorf("Rolling back transaction to rewrite volume %s config: %v", volume.Name(), err)
+			}
+		}
+	}()
 
-	// db, err := s.getDBCon()
-	// if err != nil {
-	// 	return err
-	// }
-	// defer s.deferredCloseDBCon(db)
+	results, err := tx.Exec("UPDATE VolumeConfig SET Name=?, JSON=? WHERE ID=?;", newCfg.Name, json, volume.Name())
+	if err != nil {
+		return fmt.Errorf("updating volume config table with new configuration for volume %s: %w", volume.Name(), err)
+	}
+	rows, err := results.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("retrieving volume %s config rewrite rows affected: %w", volume.Name(), err)
+	}
+	if rows == 0 {
+		volume.valid = false
+		return fmt.Errorf("no volume with name %q found in DB: %w", volume.Name(), define.ErrNoSuchVolume)
+	}
 
-	// err = db.Update(func(tx *bolt.Tx) error {
-	// 	volBkt, err := getVolBucket(tx)
-	// 	if err != nil {
-	// 		return err
-	// 	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("committing transaction to rewrite volume %s config: %w", volume.Name(), err)
+	}
 
-	// 	volDB := volBkt.Bucket([]byte(volume.Name()))
-	// 	if volDB == nil {
-	// 		volume.valid = false
-	// 		return fmt.Errorf("no volume with name %q found in DB: %w", volume.Name(), define.ErrNoSuchVolume)
-	// 	}
-
-	// 	if err := volDB.Put(configKey, newCfgJSON); err != nil {
-	// 		return fmt.Errorf("updating volume %q config JSON: %w", volume.Name(), err)
-	// 	}
-
-	// 	return nil
-	// })
-	// return err
+	return nil
 }
 
 // Pod retrieves a pod given its full ID
@@ -1469,6 +1471,19 @@ func (s *SQLiteState) AddPod(pod *Pod) (defErr error) {
 			}
 		}
 	}()
+
+	// TODO: explore whether there's a more idiomatic way to do error checks for the name.
+	// There is a sqlite3.ErrConstraintUnique error but I (vrothberg) couldn't find a way
+	// to work with the returned errors yet.
+	var check int
+	row := tx.QueryRow("SELECT 1 FROM PodConfig WHERE Name=?;", pod.Name())
+	if err := row.Scan(&check); err != nil {
+		if !errors.Is(err, sql.ErrNoRows) {
+			return fmt.Errorf("checking if pod name %s exists in database: %w", pod.Name(), err)
+		}
+	} else if check != 0 {
+		return fmt.Errorf("name \"%s\" is in use: %w", pod.Name(), define.ErrPodExists)
+	}
 
 	if _, err := tx.Exec("INSERT INTO IDNamespace VALUES (?);", pod.ID()); err != nil {
 		return fmt.Errorf("adding pod id to database: %w", err)
@@ -2033,25 +2048,26 @@ func (s *SQLiteState) LookupVolume(name string) (*Volume, error) {
 		return nil, define.ErrDBClosed
 	}
 
-	rows, err := s.conn.Query("SELECT JSON FROM VolumeConfig WHERE Name LIKE ?;", name+"%")
+	rows, err := s.conn.Query("SELECT Name, JSON FROM VolumeConfig WHERE Name LIKE ? ORDER BY LENGTH(Name) ASC;", name+"%")
 	if err != nil {
 		return nil, fmt.Errorf("querying database for volume %s: %w", name, err)
 	}
 	defer rows.Close()
 
-	var configJSON string
-	foundResult := false
+	var foundName, configJSON string
 	for rows.Next() {
-		if foundResult {
+		if foundName != "" {
 			return nil, fmt.Errorf("more than one result for volume name %s: %w", name, define.ErrVolumeExists)
 		}
-		if err := rows.Scan(&configJSON); err != nil {
+		if err := rows.Scan(&foundName, &configJSON); err != nil {
 			return nil, fmt.Errorf("retrieving volume %s config from database: %w", name, err)
 		}
-		foundResult = true
+		if foundName == name {
+			break
+		}
 	}
-	if !foundResult {
-		return nil, define.ErrNoSuchVolume
+	if foundName == "" {
+		return nil, fmt.Errorf("no volume with name %q found: %w", name, define.ErrNoSuchVolume)
 	}
 
 	vol := new(Volume)
