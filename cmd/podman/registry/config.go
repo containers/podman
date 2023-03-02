@@ -17,7 +17,7 @@ const (
 	// NoMoveProcess used as cobra.Annotation when command doesn't need Podman to be moved to a separate cgroup
 	NoMoveProcess = "NoMoveProcess"
 
-	// ParentNSRequired used as cobra.Annotation when command requires root access
+	// ParentNSRequired used as cobra.Annotation when a command should not be run in the podman rootless user namespace, also requires updates in `pkg/rootless/rootless_linux.c` in function `can_use_shortcut()` to exclude the command name there.
 	ParentNSRequired = "ParentNSRequired"
 
 	// UnshareNSRequired used as cobra.Annotation when command requires modified user namespace

@@ -81,13 +81,6 @@ func parseCommands() *cobra.Command {
 					return fmt.Errorf("cannot run command %q in rootless mode, must execute `podman unshare` first", cmd.CommandPath())
 				}
 			}
-		} else {
-			_, found = c.Command.Annotations[registry.ParentNSRequired]
-			if rootless.IsRootless() && found && c.Command.Name() != "scp" {
-				c.Command.RunE = func(cmd *cobra.Command, args []string) error {
-					return fmt.Errorf("cannot run command %q in rootless mode", cmd.CommandPath())
-				}
-			}
 		}
 		addCommand(c)
 	}
