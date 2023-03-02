@@ -265,6 +265,10 @@ func getRuntime(ctx context.Context, fs *flag.FlagSet, opts *engineOpts) (*libpo
 		options = append(options, libpod.WithRegistriesConf(cfg.RegistriesConf))
 	}
 
+	if fs.Changed("db-backend") {
+		options = append(options, libpod.WithDatabaseBackend(cfg.ContainersConf.Engine.DBBackend))
+	}
+
 	// no need to handle the error, it will return false anyway
 	if syslog, _ := fs.GetBool("syslog"); syslog {
 		options = append(options, libpod.WithSyslog())

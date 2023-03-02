@@ -423,6 +423,9 @@ func rootFlags(cmd *cobra.Command, podmanConfig *entities.PodmanConfig) {
 		}
 		podmanConfig.Remote = true
 	} else {
+		// A *hidden* flag to change the database backend.
+		pFlags.StringVar(&podmanConfig.ContainersConf.Engine.DBBackend, "db-backend", podmanConfig.ContainersConfDefaultsRO.Engine.DBBackend, "Database backend to use")
+
 		cgroupManagerFlagName := "cgroup-manager"
 		pFlags.StringVar(&podmanConfig.ContainersConf.Engine.CgroupManager, cgroupManagerFlagName, podmanConfig.ContainersConfDefaultsRO.Engine.CgroupManager, "Cgroup manager to use (\"cgroupfs\"|\"systemd\")")
 		_ = cmd.RegisterFlagCompletionFunc(cgroupManagerFlagName, common.AutocompleteCgroupManager)
@@ -498,6 +501,7 @@ func rootFlags(cmd *cobra.Command, podmanConfig *entities.PodmanConfig) {
 		// Hide these flags for both ABI and Tunneling
 		for _, f := range []string{
 			"cpu-profile",
+			"db-backend",
 			"default-mounts-file",
 			"max-workers",
 			"memory-profile",

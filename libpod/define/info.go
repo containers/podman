@@ -34,6 +34,7 @@ type HostInfo struct {
 	Conmon            *ConmonInfo      `json:"conmon"`
 	CPUs              int              `json:"cpus"`
 	CPUUtilization    *CPUUsage        `json:"cpuUtilization"`
+	DatabaseBackend   string           `json:"databaseBackend"`
 	Distribution      DistributionInfo `json:"distribution"`
 	EventLogger       string           `json:"eventLogger"`
 	Hostname          string           `json:"hostname"`

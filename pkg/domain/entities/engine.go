@@ -34,6 +34,7 @@ type PodmanConfig struct {
 
 	ContainersConf           *config.Config
 	ContainersConfDefaultsRO *config.Config // The read-only! defaults from containers.conf.
+	DBBackend                string         // Hidden: change the database backend
 	DockerConfig             string         // Used for Docker compatibility
 	CgroupUsage              string         // rootless code determines Usage message
 	ConmonPath               string         // --conmon flag will set Engine.ConmonPath

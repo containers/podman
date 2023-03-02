@@ -282,6 +282,16 @@ func WithRegistriesConf(path string) RuntimeOption {
 	}
 }
 
+// WithDatabaseBackend configures the runtime's database backend.
+func WithDatabaseBackend(value string) RuntimeOption {
+	logrus.Debugf("Setting custom database backend: %q", value)
+	return func(rt *Runtime) error {
+		// The value will be parsed later on.
+		rt.config.Engine.DBBackend = value
+		return nil
+	}
+}
+
 // WithHooksDir sets the directories to look for OCI runtime hook configuration.
 func WithHooksDir(hooksDirs ...string) RuntimeOption {
 	return func(rt *Runtime) error {
