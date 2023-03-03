@@ -513,7 +513,7 @@ func provisionWSLDist(v *MachineVM) (string, error) {
 	}
 
 	// Fixes newuidmap
-	if err = wslInvoke(dist, "rpm", "-q", "--restore", "shadow-utils", "2>/dev/null"); err != nil {
+	if err = wslInvoke(dist, "rpm", "--restore", "shadow-utils"); err != nil {
 		return "", fmt.Errorf("package permissions restore of shadow-utils on guest OS failed: %w", err)
 	}
 
