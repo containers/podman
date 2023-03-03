@@ -40,11 +40,9 @@ Installing Podman
 Installing the Windows Podman client begins by downloading the Podman Windows
 installer. The Windows installer is built with each Podman release and can be
 downloaded from the official
- [Github release page](https://github.com/containers/podman/releases). The
-Windows installer file is named podman-#.#.#-setup.exe, where the # symbols
-represent the version number of Podman. Be sure to download a 4.1 or later
-release for the capabilities discussed in this guide.
-As of 2023-02-21 the latest version is [v4.4.1](https://github.com/containers/podman/releases/download/v4.4.1/podman-4.4.1-setup.exe).
+ [Github release page](https://github.com/containers/podman/releases).
+Be sure to download a 4.1 or later release for the capabilities discussed
+in this guide.
 
 ![Installing Podman 4.1.0](podman-win-install.jpg)
 
