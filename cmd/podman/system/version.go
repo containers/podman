@@ -22,6 +22,9 @@ var (
 		Short:             "Display the Podman version information",
 		RunE:              version,
 		ValidArgsFunction: completion.AutocompleteNone,
+		Annotations: map[string]string{
+			registry.ParentNSRequired: "",
+		},
 	}
 	versionFormat string
 )

@@ -15,8 +15,7 @@ var (
 	imageScpCommand    = &cobra.Command{
 		Use: "scp [options] IMAGE [HOST::]",
 		Annotations: map[string]string{
-			registry.UnshareNSRequired: "",
-			registry.ParentNSRequired:  "",
+			registry.ParentNSRequired: "",
 		},
 		Long:              saveScpDescription,
 		Short:             "securely copy images",
