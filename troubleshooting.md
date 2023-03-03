@@ -1344,3 +1344,45 @@ $ podman run --rm \
 
 Replace `/bin/cat /proc/self/uid_map` with
 `/bin/cat /proc/self/gid_map` to show the GID mapping.
+
+### 40) Podman fails to find expected image with "error locating pulled image", "image not known"
+
+When trying to do a Podman command that pulls an image from local storage or a remote repository,
+an error is raised saying "image not known" or "error locating pulled image".  Even though the image
+had been verified before the Podman command was invoked.
+
+#### Symptom
+
+After verifying that an image is in place either locally or on a remote repository, a Podman command
+referencing that image will fail in a manner like:
+```
+# ls Containerfile
+FROM registry.access.redhat.com/ubi8-minimal:latest
+MAINTAINER Podman Community
+USER root
+
+# podman build .
+STEP 1/2: FROM registry.access.redhat.com/ubi8-minimal
+Trying to pull registry.access.redhat.com/ubi8-minimal:latest...
+Getting image source signatures
+Checking if image destination supports signatures
+Copying blob a6577091999b done
+Copying config abb1ba1bce done
+Writing manifest to image destination
+Storing signatures
+Error: error creating build container: error locating pulled image "registry.access.redhat.com/ubi8-minimal:latest" name in containers storage: registry.access.redhat.com/ubi8-minimal:latest: image not known
+```
+
+#### Solution
+The general cause for this is a timing issue.  To make Podman commands as
+efficient as possible, read and write locks are only established for critical
+sections within the code.  When pulling an image from a repository, a copy of
+that image is first written to local storage using a write lock.  This lock is
+released before the image is then acquired/read.  If another process does a
+harmful command such as `podman system prune --all` or `podman system reset`
+or `podman rmi --all`, between the time the image is written and before the
+first process can acquire it, this type of `image not known` error can arise.
+
+The maintainers of Podman have considered heavier-duty locks to close this
+timing window. However, the slowdown that all Podman commands would encounter
+was not considered worth the cost of completely closing this small timing window.
