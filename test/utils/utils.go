@@ -65,6 +65,7 @@ type PodmanTest struct {
 	ImageCacheDir      string
 	ImageCacheFS       string
 	NetworkBackend     NetworkBackend
+	DatabaseBackend    string
 	PodmanBinary       string
 	PodmanMakeOptions  func(args []string, noEvents, noCache bool) []string
 	RemoteCommand      *exec.Cmd
