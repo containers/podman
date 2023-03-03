@@ -2,6 +2,7 @@ package events
 
 import (
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -76,12 +77,6 @@ func TestTruncationOutput(t *testing.T) {
 9
 10
 `
-	contentAfter := `6
-7
-8
-9
-10
-`
 	// Create dummy file
 	tmp, err := os.CreateTemp("", "log-rotation")
 	require.NoError(t, err)
@@ -99,11 +94,14 @@ func TestTruncationOutput(t *testing.T) {
 	require.NoError(t, err)
 	afterTruncation, err := os.ReadFile(tmp.Name())
 	require.NoError(t, err)
-
-	// Test if rotation was successful
-	require.NoError(t, err, "Log content has changed")
+	// Content has changed
 	require.NotEqual(t, beforeTruncation, afterTruncation)
-	require.Equal(t, string(afterTruncation), contentAfter)
+	split := strings.Split(string(afterTruncation), "\n")
+	require.Len(t, split, 8) // 2 events + 5 rotated lines + last new line
+	require.Contains(t, split[0], "\"Attributes\":{\"io.podman.event.rotate\":\"begin\"}")
+	require.Equal(t, split[1:6], []string{"6", "7", "8", "9", "10"})
+	require.Contains(t, split[6], "\"Attributes\":{\"io.podman.event.rotate\":\"end\"}")
+	require.Contains(t, split[7], "")
 }
 
 func TestRenameLog(t *testing.T) {
