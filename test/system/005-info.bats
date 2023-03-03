@@ -150,4 +150,16 @@ host.slirp4netns.executable | $expr_path
     fi
 }
 
+@test "podman --db-backend info - basic output" {
+    # TODO: this tests needs to change once sqlite is being tested in the system tests
+    skip_if_remote "--db-backend does not work on a remote client"
+    for backend in boltdb sqlite; do
+        run_podman --db-backend=$backend info --format "{{ .Host.DatabaseBackend }}"
+        is "$output" "$backend"
+    done
+
+    run_podman 125 --db-backend=bogus info --format "{{ .Host.DatabaseBackend }}"
+    is "$output" "Error: unsupported database backend: \"bogus\""
+}
+
 # vim: filetype=sh
