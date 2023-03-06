@@ -557,7 +557,7 @@ local_integration_test_task: &local_integration_test_task
     alias: local_integration_test
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: *not_tag_branch_build_docs
-    depends_on:
+    depends_on: &build_unit
         - build
         - unit_test
     matrix: *platform_axis
@@ -593,9 +593,7 @@ container_integration_test_task:
     alias: container_integration_test
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: *not_tag_branch_build_docs
-    depends_on:
-        - build
-        - unit_test
+    depends_on: *build_unit
     matrix: &fedora_vm_axis
         - env:
               DISTRO_NV: ${FEDORA_NAME}
@@ -626,9 +624,7 @@ rootless_integration_test_task:
     alias: rootless_integration_test
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: *not_tag_branch_build_docs
-    depends_on:
-        - build
-        - unit_test
+    depends_on: *build_unit
     matrix: *platform_axis
     gce_instance: *standardvm
     timeout_in: 90m
@@ -712,9 +708,7 @@ local_system_test_task: &local_system_test_task
     name: *std_name_fmt
     alias: local_system_test
     only_if: *not_tag_build_docs_multiarch
-    depends_on:
-        - build
-        - local_integration_test
+    depends_on: *build_unit
     matrix: *platform_axis
     gce_instance: *standardvm
     env:
@@ -731,9 +725,7 @@ local_system_test_aarch64_task: &local_system_test_task_aarch64
     # Don't create task for tags, or if using [CI:DOCS], [CI:BUILD], multiarch
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: *not_tag_build_docs_multiarch
-    depends_on:
-        - build_aarch64
-        - local_integration_test
+    depends_on: *build_unit
     ec2_instance: *standard_build_ec2_aarch64
     env:
         <<: *stdenvars_aarch64
@@ -748,9 +740,6 @@ local_system_test_aarch64_task: &local_system_test_task_aarch64
 remote_system_test_task:
     <<: *local_system_test_task
     alias: remote_system_test
-    depends_on:
-        - build
-        - remote_integration_test
     env:
         TEST_FLAVOR: sys
         PODBIN_NAME: remote
@@ -759,9 +748,6 @@ remote_system_test_task:
 remote_system_test_aarch64_task:
     <<: *local_system_test_task_aarch64
     alias: remote_system_test_aarch64
-    depends_on:
-        - build_aarch64
-        - remote_integration_test
     env:
         TEST_FLAVOR: sys
         PODBIN_NAME: remote
@@ -779,9 +765,6 @@ rootless_remote_system_test_task:
               CI_DESIRED_NETWORK: netavark
     <<: *local_system_test_task
     alias: rootless_remote_system_test
-    depends_on:
-        - build
-        - remote_integration_test
     gce_instance: *standardvm
     env:
         TEST_FLAVOR: sys
@@ -794,9 +777,7 @@ rootless_system_test_task:
     alias: rootless_system_test
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: *not_tag_build_docs_multiarch
-    depends_on:
-        - build
-        - rootless_integration_test
+    depends_on: *build_unit
     matrix: *platform_axis
     gce_instance: *standardvm
     env:
