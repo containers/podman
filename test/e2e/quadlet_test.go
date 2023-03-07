@@ -500,6 +500,7 @@ var _ = Describe("quadlet system generator", func() {
 		Entry("exec.container", "exec.container"),
 		Entry("image.container", "image.container"),
 		Entry("install.container", "install.container"),
+		Entry("ip.container", "ip.container"),
 		Entry("label.container", "label.container"),
 		Entry("name.container", "name.container"),
 		Entry("network.container", "network.container"),

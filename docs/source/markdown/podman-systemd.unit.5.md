@@ -87,6 +87,8 @@ Valid options for `[Container]` are listed below:
 | ExposeHostPort=50-59             | --expose 50-59                         |
 | Group=1234                       | --user UID:1234                        |
 | Image=ubi8                       | Image specification - ubi8             |
+| IP=192.5.0.1                     | --ip 192.5.0.0                         |
+| IP6=fd46:db93:aa76:ac37::10      | --ip6 2001:db8::1                      |
 | Label="YXZ"                      | --label "XYZ"                          |
 | LogDriver=journald               | --log-driver journald                  |
 | Mount=type=bind,source=/path/on/host,destination=/path/in/container | --mount type=bind,source=/path/on/host,destination=/path/in/container |
@@ -203,6 +205,16 @@ performance and robustness reasons.
 
 The format of the name is the same as when passed to `podman run`, so it supports e.g., using
 `:tag` or using digests guarantee a specific image version.
+
+### `IP=`
+
+Specify a static IPv4 address for the container, for example **10.88.64.128**.
+Equivalent to the Podman `--ip` option.
+
+### `IP6=`
+
+Specify a static IPv6 address for the container, for example **fd46:db93:aa76:ac37::10**.
+Equivalent to the Podman `--ip6` option.
 
 ### `Label=`
 
