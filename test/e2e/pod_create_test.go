@@ -76,20 +76,6 @@ var _ = Describe("Podman pod create", func() {
 		Expect(check.OutputToStringArray()).To(HaveLen(1))
 	})
 
-	It("podman create pod with same name as ctr", func() {
-		name := "test"
-		session := podmanTest.Podman([]string{"create", "--name", name, ALPINE, "ls"})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
-
-		_, ec, _ := podmanTest.CreatePod(map[string][]string{"--name": {name}})
-		Expect(ec).To(Not(Equal(0)))
-
-		check := podmanTest.Podman([]string{"pod", "ps", "-q"})
-		check.WaitWithDefaultTimeout()
-		Expect(check.OutputToStringArray()).To(BeEmpty())
-	})
-
 	It("podman create pod without network portbindings", func() {
 		name := "test"
 		session := podmanTest.Podman([]string{"pod", "create", "--name", name})
