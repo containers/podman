@@ -53,8 +53,8 @@ github.com/blang/semver/v4
 # github.com/buger/goterm v1.0.4
 ## explicit; go 1.15
 github.com/buger/goterm
-# github.com/checkpoint-restore/checkpointctl v0.0.0-20220321135231-33f4a66335f0
-## explicit; go 1.15
+# github.com/checkpoint-restore/checkpointctl v0.1.0
+## explicit; go 1.18
 github.com/checkpoint-restore/checkpointctl/lib
 # github.com/checkpoint-restore/go-criu/v6 v6.3.0
 ## explicit; go 1.16
