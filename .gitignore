@@ -36,6 +36,7 @@ release.txt
 /test/version/version
 /test/testvol/testvol
 /test/tools/build
+/test/e2e/ginkgo-node-*
 .vscode*
 tags
 result

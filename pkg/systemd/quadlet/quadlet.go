@@ -49,6 +49,8 @@ const (
 	KeyExposeHostPort        = "ExposeHostPort"
 	KeyGroup                 = "Group"
 	KeyImage                 = "Image"
+	KeyIP                    = "IP"
+	KeyIP6                   = "IP6"
 	KeyLabel                 = "Label"
 	KeyLogDriver             = "LogDriver"
 	KeyMount                 = "Mount"
@@ -105,6 +107,8 @@ var (
 		KeyExposeHostPort:        true,
 		KeyGroup:                 true,
 		KeyImage:                 true,
+		KeyIP:                    true,
+		KeyIP6:                   true,
 		KeyLabel:                 true,
 		KeyLogDriver:             true,
 		KeyMount:                 true,
@@ -493,6 +497,16 @@ func ConvertContainer(container *parser.UnitFile, isUser bool) (*parser.UnitFile
 	}
 
 	podman.addEnv(podmanEnv)
+
+	ip, ok := container.Lookup(ContainerGroup, KeyIP)
+	if ok && len(ip) > 0 {
+		podman.add("--ip", ip)
+	}
+
+	ip6, ok := container.Lookup(ContainerGroup, KeyIP6)
+	if ok && len(ip6) > 0 {
+		podman.add("--ip6", ip6)
+	}
 
 	labels := container.LookupAllKeyVal(ContainerGroup, KeyLabel)
 	podman.addLabels(labels)
