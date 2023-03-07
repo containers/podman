@@ -1482,7 +1482,7 @@ func (s *SQLiteState) AddPod(pod *Pod) (defErr error) {
 			return fmt.Errorf("checking if pod name %s exists in database: %w", pod.Name(), err)
 		}
 	} else if check != 0 {
-		return fmt.Errorf("name \"%s\" is in use: %w", pod.Name(), define.ErrPodExists)
+		return fmt.Errorf("name %q is in use: %w", pod.Name(), define.ErrPodExists)
 	}
 
 	if _, err := tx.Exec("INSERT INTO IDNamespace VALUES (?);", pod.ID()); err != nil {
@@ -1815,6 +1815,17 @@ func (s *SQLiteState) AddVolume(volume *Volume) (defErr error) {
 			}
 		}
 	}()
+
+	// TODO: There has to be a better way of doing this
+	var check int
+	row := tx.QueryRow("SELECT 1 FROM VolumeConfig WHERE Name=?;", volume.Name())
+	if err := row.Scan(&check); err != nil {
+		if !errors.Is(err, sql.ErrNoRows) {
+			return fmt.Errorf("checking if volume name %s exists in database: %w", volume.Name(), err)
+		}
+	} else if check != 0 {
+		return fmt.Errorf("name %q is in use: %w", volume.Name(), define.ErrVolumeExists)
+	}
 
 	if _, err := tx.Exec("INSERT INTO VolumeConfig VALUES (?, ?, ?);", volume.Name(), storageID, cfgJSON); err != nil {
 		return fmt.Errorf("adding volume %s config to database: %w", volume.Name(), err)

@@ -374,6 +374,17 @@ func (s *SQLiteState) addContainer(ctr *Container) (defErr error) {
 		}
 	}()
 
+	// TODO: There has to be a better way of doing this
+	var check int
+	row := tx.QueryRow("SELECT 1 FROM ContainerConfig WHERE Name=?;", ctr.Name())
+	if err := row.Scan(&check); err != nil {
+		if !errors.Is(err, sql.ErrNoRows) {
+			return fmt.Errorf("checking if container name %s exists in database: %w", ctr.Name(), err)
+		}
+	} else if check != 0 {
+		return fmt.Errorf("name %q is in use: %w", ctr.Name(), define.ErrCtrExists)
+	}
+
 	if _, err := tx.Exec("INSERT INTO IDNamespace VALUES (?);", ctr.ID()); err != nil {
 		return fmt.Errorf("adding container id to database: %w", err)
 	}
