@@ -93,7 +93,8 @@ function __ipv4_to_procfs() {
 # ipv4_to_procfs() - IPv4 address representation to big-endian procfs format
 # $1:	Text representation of IPv4 address
 function ipv4_to_procfs() {
-    IFS='.' __ipv4_to_procfs ${1}
+    IFS='.' read -r o1 o2 o3 o4 <<< $1
+    __ipv4_to_procfs $o1 $o2 $o3 $o4
 }
 
 
@@ -268,7 +269,7 @@ function port_is_free() {
     ! port_is_bound ${@}
 }
 
-# wait_for_port() - Return once port is available on the host
+# wait_for_port() - Return once port is bound (available for use by clients)
 # $1:	Host or address to check for possible binding
 # $2:	Port number
 # $3:	Optional timeout, 5 seconds if not given
@@ -279,7 +280,7 @@ function wait_for_port() {
 
     # Wait
     while [ $_timeout -gt 0 ]; do
-        port_is_free ${port} "${host}" && return
+        port_is_bound ${port} "${host}" && return
         sleep 1
         _timeout=$(( $_timeout - 1 ))
     done
