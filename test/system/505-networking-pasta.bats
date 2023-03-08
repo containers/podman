@@ -319,7 +319,7 @@ function teardown() {
 @test "podman networking with pasta(1) - External resolver, IPv4" {
     skip_if_no_ipv4 "IPv4 not routable on the host"
 
-    run_podman run --net=pasta $IMAGE nslookup 127.0.0.1 || :
+    run_podman '?' run --net=pasta $IMAGE nslookup 127.0.0.1
 
     assert "$output" =~ "1.0.0.127.in-addr.arpa" \
            "127.0.0.1 not resolved"
@@ -335,14 +335,12 @@ function teardown() {
 }
 
 @test "podman networking with pasta(1) - Local forwarder, IPv4" {
-    skip "FIXME: #17074: some pasta dns problem"
     skip_if_no_ipv4 "IPv4 not routable on the host"
 
     run_podman run --dns 198.51.100.1 \
-        --net=pasta:--dns-forward,198.51.100.1 $IMAGE nslookup 127.0.0.1
+        --net=pasta:--dns-forward,198.51.100.1 $IMAGE nslookup 127.0.0.1 || :
 
-    assert "$output" =~ "1.0.0.127.in-addr.arpa" \
-           "127.0.0.1 not resolved to 1.0.0.127.in-addr.arpa"
+    assert "$output" =~ "1.0.0.127.in-addr.arpa" "No answer from resolver"
 }
 
 @test "podman networking with pasta(1) - Local forwarder, IPv6" {
