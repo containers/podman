@@ -13,6 +13,7 @@ import (
 	"github.com/containers/podman/v4/cmd/podman/common"
 	"github.com/containers/podman/v4/cmd/podman/registry"
 	"github.com/containers/podman/v4/pkg/domain/entities"
+	"github.com/containers/podman/v4/pkg/util"
 	"github.com/spf13/cobra"
 )
 
@@ -21,10 +22,11 @@ import (
 type searchOptionsWrapper struct {
 	entities.ImageSearchOptions
 	// CLI only flags
-	Compatible   bool   // Docker compat
-	TLSVerifyCLI bool   // Used to convert to an optional bool later
-	Format       string // For go templating
-	NoTrunc      bool
+	Compatible     bool // Docker compat
+	CredentialsCLI string
+	TLSVerifyCLI   bool   // Used to convert to an optional bool later
+	Format         string // For go templating
+	NoTrunc        bool
 }
 
 // listEntryTag is a utility structure used for json serialization.
@@ -100,8 +102,18 @@ func searchFlags(cmd *cobra.Command) {
 	flags.StringVar(&searchOptions.Authfile, authfileFlagName, auth.GetDefaultAuthFile(), "Path of the authentication file. Use REGISTRY_AUTH_FILE environment variable to override")
 	_ = cmd.RegisterFlagCompletionFunc(authfileFlagName, completion.AutocompleteDefault)
 
+	credsFlagName := "creds"
+	flags.StringVar(&searchOptions.CredentialsCLI, credsFlagName, "", "`Credentials` (USERNAME:PASSWORD) to use for authenticating to a registry")
+	_ = cmd.RegisterFlagCompletionFunc(credsFlagName, completion.AutocompleteNone)
+
 	flags.BoolVar(&searchOptions.TLSVerifyCLI, "tls-verify", true, "Require HTTPS and verify certificates when contacting registries")
 	flags.BoolVar(&searchOptions.ListTags, "list-tags", false, "List the tags of the input registry")
+
+	if !registry.IsRemote() {
+		certDirFlagName := "cert-dir"
+		flags.StringVar(&searchOptions.CertDir, certDirFlagName, "", "`Pathname` of a directory containing TLS certificates and keys")
+		_ = cmd.RegisterFlagCompletionFunc(certDirFlagName, completion.AutocompleteDefault)
+	}
 }
 
 // imageSearch implements the command for searching images.
@@ -130,6 +142,15 @@ func imageSearch(cmd *cobra.Command, args []string) error {
 		if _, err := os.Stat(searchOptions.Authfile); err != nil {
 			return err
 		}
+	}
+
+	if searchOptions.CredentialsCLI != "" {
+		creds, err := util.ParseRegistryCreds(searchOptions.CredentialsCLI)
+		if err != nil {
+			return err
+		}
+		searchOptions.Username = creds.Username
+		searchOptions.Password = creds.Password
 	}
 
 	searchReport, err := registry.ImageEngine().Search(registry.GetContext(), searchTerm, searchOptions.ImageSearchOptions)

@@ -461,6 +461,10 @@ func (ir *ImageEngine) Search(ctx context.Context, term string, opts entities.Im
 
 	searchOptions := &libimage.SearchOptions{
 		Authfile:              opts.Authfile,
+		CertDirPath:           opts.CertDir,
+		Username:              opts.Username,
+		Password:              opts.Password,
+		IdentityToken:         opts.IdentityToken,
 		Filter:                *filter,
 		Limit:                 opts.Limit,
 		NoTrunc:               true,
