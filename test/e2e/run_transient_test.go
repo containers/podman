@@ -56,8 +56,8 @@ var _ = Describe("Podman run with volumes", func() {
 		Expect(filepath.Join(runContainerStorageDir, "volatile-containers.json")).Should(Not(BeAnExistingFile()))
 
 		if podmanTest.DatabaseBackend == "sqlite" {
-			Expect(filepath.Join(containerStorageDir, "db.sql")).Should(BeARegularFile())
-			Expect(filepath.Join(runContainerStorageDir, "db.sql")).Should(Not(BeAnExistingFile()))
+			Expect(filepath.Join(podmanTest.Root, "db.sql")).Should(BeARegularFile())
+			Expect(filepath.Join(podmanTest.RunRoot, "db.sql")).Should(Not(BeAnExistingFile()))
 		} else {
 			Expect(filepath.Join(dbDir, "bolt_state.db")).Should(BeARegularFile())
 			Expect(filepath.Join(runDBDir, "bolt_state.db")).Should(Not(BeAnExistingFile()))
@@ -76,8 +76,8 @@ var _ = Describe("Podman run with volumes", func() {
 		Expect(filepath.Join(runContainerStorageDir, "volatile-containers.json")).Should(Not(BeAnExistingFile()))
 
 		if podmanTest.DatabaseBackend == "sqlite" {
-			Expect(filepath.Join(containerStorageDir, "db.sql")).Should(BeARegularFile())
-			Expect(filepath.Join(runContainerStorageDir, "db.sql")).Should(Not(BeAnExistingFile()))
+			Expect(filepath.Join(podmanTest.Root, "db.sql")).Should(BeARegularFile())
+			Expect(filepath.Join(podmanTest.RunRoot, "db.sql")).Should(Not(BeAnExistingFile()))
 		} else {
 			Expect(filepath.Join(dbDir, "bolt_state.db")).Should(BeARegularFile())
 			Expect(filepath.Join(runDBDir, "bolt_state.db")).Should(Not(BeAnExistingFile()))
@@ -97,8 +97,8 @@ var _ = Describe("Podman run with volumes", func() {
 		Expect(filepath.Join(runContainerStorageDir, "volatile-containers.json")).Should(BeARegularFile())
 
 		if podmanTest.DatabaseBackend == "sqlite" {
-			Expect(filepath.Join(containerStorageDir, "db.sql")).Should(Not(BeAnExistingFile()))
-			Expect(filepath.Join(runContainerStorageDir, "db.sql")).Should(BeARegularFile())
+			Expect(filepath.Join(podmanTest.Root, "db.sql")).Should(Not(BeAnExistingFile()))
+			Expect(filepath.Join(podmanTest.RunRoot, "db.sql")).Should(BeARegularFile())
 		} else {
 			Expect(filepath.Join(dbDir, "bolt_state.db")).Should(Not(BeAnExistingFile()))
 			Expect(filepath.Join(runDBDir, "bolt_state.db")).Should(BeARegularFile())

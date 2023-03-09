@@ -147,19 +147,19 @@ esac
 # shellcheck disable=SC2154
 case "$CI_DESIRED_DATABASE" in
     sqlite)
-	warn "Forcing PODMAN_DB=sqlite"
-	echo "PODMAN_DB=sqlite" >> /etc/ci_environment
+        warn "Forcing PODMAN_DB=sqlite"
+        echo "PODMAN_DB=sqlite" >> /etc/ci_environment
 	;;
     boltdb)
-	warn "Forcing PODMAN_DB=boltdb"
-	echo "PODMAN_DB=boltdb" >> /etc/ci_environment
+        warn "Forcing PODMAN_DB=boltdb"
+        echo "PODMAN_DB=boltdb" >> /etc/ci_environment
 	;;
     "")
-	warn "Using default Podman database"
-	;;
+        warn "Using default Podman database"
+        ;;
     *)
-	die_unknown CI_DESIRED_DATABASE
-	;;
+        die_unknown CI_DESIRED_DATABASE
+        ;;
 esac
 
 # Required to be defined by caller: The environment where primary testing happens

@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"os"
 	"path/filepath"
 	goruntime "runtime"
 	"strings"
@@ -32,7 +33,19 @@ type SQLiteState struct {
 func NewSqliteState(runtime *Runtime) (_ State, defErr error) {
 	state := new(SQLiteState)
 
-	conn, err := sql.Open("sqlite3", filepath.Join(runtime.storageConfig.GraphRoot, "db.sql?_loc=auto"))
+	basePath := runtime.storageConfig.GraphRoot
+	if runtime.storageConfig.TransientStore {
+		basePath = runtime.storageConfig.RunRoot
+	}
+
+	// c/storage is set up *after* the DB - so even though we use the c/s
+	// root (or, for transient, runroot) dir, we need to make the dir
+	// ourselves.
+	if err := os.MkdirAll(basePath, 0700); err != nil {
+		return nil, fmt.Errorf("creating root directory: %w", err)
+	}
+
+	conn, err := sql.Open("sqlite3", filepath.Join(basePath, "db.sql?_loc=auto"))
 	if err != nil {
 		return nil, fmt.Errorf("initializing sqlite database: %w", err)
 	}
