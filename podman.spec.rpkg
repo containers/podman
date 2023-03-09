@@ -172,7 +172,9 @@ PODMAN_VERSION=%{version} %{__make} DESTDIR=%{buildroot} PREFIX=%{_prefix} ETCDI
         install.docker \
         install.docker-docs \
         install.remote \
+%if 0%{?fedora} || 0%{?rhel} >= 10
         install.modules-load
+%endif
 
 install -d -p %{buildroot}/%{_datadir}/%{name}/test/system
 cp -pav test/system %{buildroot}/%{_datadir}/%{name}/test/
@@ -225,7 +227,9 @@ fi
 %{_userunitdir}/%{name}-kube@.service
 %{_tmpfilesdir}/%{name}.conf
 %{_user_tmpfilesdir}/%{name}-docker.conf
+%if 0%{?fedora} || 0%{?rhel} >= 10
 %{_modulesloaddir}/%{name}-iptables.conf
+%endif
 
 %files docker
 %{_bindir}/docker
