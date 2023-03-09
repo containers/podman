@@ -1665,6 +1665,18 @@ func WithVolumeLabels(labels map[string]string) VolumeCreateOption {
 	}
 }
 
+// WithVolumeMountLabel sets the MountLabel of the volume.
+func WithVolumeMountLabel(mountLabel string) VolumeCreateOption {
+	return func(volume *Volume) error {
+		if volume.valid {
+			return define.ErrVolumeFinalized
+		}
+
+		volume.config.MountLabel = mountLabel
+		return nil
+	}
+}
+
 // WithVolumeOptions sets the options of the volume.
 func WithVolumeOptions(options map[string]string) VolumeCreateOption {
 	return func(volume *Volume) error {

@@ -51,7 +51,7 @@ type KubeVolume struct {
 }
 
 // Create a KubeVolume from an HostPathVolumeSource
-func VolumeFromHostPath(hostPath *v1.HostPathVolumeSource) (*KubeVolume, error) {
+func VolumeFromHostPath(hostPath *v1.HostPathVolumeSource, mountLabel string) (*KubeVolume, error) {
 	if hostPath.Type != nil {
 		switch *hostPath.Type {
 		case v1.HostPathDirectoryOrCreate:
@@ -59,7 +59,7 @@ func VolumeFromHostPath(hostPath *v1.HostPathVolumeSource) (*KubeVolume, error) 
 				return nil, err
 			}
 			// Label a newly created volume
-			if err := libpod.LabelVolumePath(hostPath.Path); err != nil {
+			if err := libpod.LabelVolumePath(hostPath.Path, mountLabel); err != nil {
 				return nil, fmt.Errorf("giving %s a label: %w", hostPath.Path, err)
 			}
 		case v1.HostPathFileOrCreate:
@@ -73,7 +73,8 @@ func VolumeFromHostPath(hostPath *v1.HostPathVolumeSource) (*KubeVolume, error) 
 				}
 			}
 			// unconditionally label a newly created volume
-			if err := libpod.LabelVolumePath(hostPath.Path); err != nil {
+
+			if err := libpod.LabelVolumePath(hostPath.Path, mountLabel); err != nil {
 				return nil, fmt.Errorf("giving %s a label: %w", hostPath.Path, err)
 			}
 		case v1.HostPathSocket:
@@ -232,10 +233,10 @@ func VolumeFromEmptyDir(emptyDirVolumeSource *v1.EmptyDirVolumeSource, name stri
 }
 
 // Create a KubeVolume from one of the supported VolumeSource
-func VolumeFromSource(volumeSource v1.VolumeSource, configMaps []v1.ConfigMap, secretsManager *secrets.SecretsManager, volName string) (*KubeVolume, error) {
+func VolumeFromSource(volumeSource v1.VolumeSource, configMaps []v1.ConfigMap, secretsManager *secrets.SecretsManager, volName, mountLabel string) (*KubeVolume, error) {
 	switch {
 	case volumeSource.HostPath != nil:
-		return VolumeFromHostPath(volumeSource.HostPath)
+		return VolumeFromHostPath(volumeSource.HostPath, mountLabel)
 	case volumeSource.PersistentVolumeClaim != nil:
 		return VolumeFromPersistentVolumeClaim(volumeSource.PersistentVolumeClaim)
 	case volumeSource.ConfigMap != nil:
@@ -250,11 +251,11 @@ func VolumeFromSource(volumeSource v1.VolumeSource, configMaps []v1.ConfigMap, s
 }
 
 // Create a map of volume name to KubeVolume
-func InitializeVolumes(specVolumes []v1.Volume, configMaps []v1.ConfigMap, secretsManager *secrets.SecretsManager) (map[string]*KubeVolume, error) {
+func InitializeVolumes(specVolumes []v1.Volume, configMaps []v1.ConfigMap, secretsManager *secrets.SecretsManager, mountLabel string) (map[string]*KubeVolume, error) {
 	volumes := make(map[string]*KubeVolume)
 
 	for _, specVolume := range specVolumes {
-		volume, err := VolumeFromSource(specVolume.VolumeSource, configMaps, secretsManager, specVolume.Name)
+		volume, err := VolumeFromSource(specVolume.VolumeSource, configMaps, secretsManager, specVolume.Name, mountLabel)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create volume %q: %w", specVolume.Name, err)
 		}

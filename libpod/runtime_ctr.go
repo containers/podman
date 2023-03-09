@@ -495,7 +495,10 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 		logrus.Debugf("Creating new volume %s for container", vol.Name)
 
 		// The volume does not exist, so we need to create it.
-		volOptions := []VolumeCreateOption{WithVolumeName(vol.Name)}
+		volOptions := []VolumeCreateOption{
+			WithVolumeName(vol.Name),
+			WithVolumeMountLabel(ctr.MountLabel()),
+		}
 		if isAnonymous {
 			volOptions = append(volOptions, withSetAnon())
 		}
