@@ -497,6 +497,15 @@ function skip_if_cgroupsv1() {
     fi
 }
 
+#######################
+#  skip_if_cgroupsv2  #  ...with an optional message
+#######################
+function skip_if_cgroupsv2() {
+    if is_cgroupsv2; then
+        skip "${1:-test requires cgroupsv1}"
+    fi
+}
+
 ######################
 #  skip_if_rootless_cgroupsv1  #  ...with an optional message
 ######################
