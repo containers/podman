@@ -446,7 +446,7 @@ func (c *Container) addNetworkNamespace(g *generate.Generator) error {
 func (c *Container) addSystemdMounts(g *generate.Generator) error {
 	if c.Systemd() {
 		if err := c.setupSystemd(g.Mounts(), *g); err != nil {
-			return fmt.Errorf("adding systemd-specific mounts: %w", err)
+			return err
 		}
 	}
 	return nil
