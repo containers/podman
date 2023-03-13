@@ -183,7 +183,7 @@ following PowerShell command in your terminal session:
 
 Or in a classic CMD prompt:
 
-        set DOCKER_HOST = 'npipe:////./pipe/podman-machine-default'
+        set DOCKER_HOST=npipe:////./pipe/podman-machine-default
 
 Alternatively, terminate the other process and restart podman machine.
 Machine "podman-machine-default" started successfully

@@ -1060,8 +1060,8 @@ func (v *MachineVM) Start(name string, opts machine.StartOptions) error {
 				fmt.Printf("following powershell command in your terminal session:\n")
 				fmt.Printf("\n\t$Env:DOCKER_HOST = '%s'\n", pipeName)
 				fmt.Printf("\nOr in a classic CMD prompt:\n")
-				fmt.Printf("\n\tset DOCKER_HOST = '%s'\n", pipeName)
-				fmt.Printf("\nAlternatively terminate the other process and restart podman machine.\n")
+				fmt.Printf("\n\tset DOCKER_HOST=%s\n", pipeName)
+				fmt.Printf("\nAlternatively, terminate the other process and restart podman machine.\n")
 			}
 		}
 	}
