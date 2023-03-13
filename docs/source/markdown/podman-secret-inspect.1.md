@@ -23,7 +23,7 @@ Format secret output using Go template.
 |--------------------------|-------------------------------------------------------------------|
 | .CreatedAt               | When secret was created (relative timestamp, human-readable)      |
 | .ID                      | ID of secret                                                      |
-| .Spec                    | Details of secret                                                 |
+| .Spec ...                | Details of secret                                                 |
 | .Spec.Driver             | Driver info                                                       |
 | .Spec.Driver.Name        | Driver name (string)                                              |
 | .Spec.Driver.Options ... | Driver options (map of driver-specific options)                   |
