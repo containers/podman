@@ -55,6 +55,19 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(ContainSubstring("2048"))
+
+		// Reset CONTAINERS_CONF to "/dev/null"
+		// Local should go back to defaults but remote should be set on server side
+		os.Setenv("CONTAINERS_CONF", "/dev/null")
+		session = podmanTest.Podman([]string{"run", "--rm", fedoraMinimal, "ulimit", "-n"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		if IsRemote() {
+			Expect(session.OutputToString()).To(ContainSubstring("500"))
+		} else {
+			Expect(session.OutputToString()).To(Not(Equal("500")))
+		}
+
 	})
 
 	It("having additional env", func() {
