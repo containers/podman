@@ -1,3 +1,13 @@
+## 1.27.3
+
+### Fixes
+- format.Object now always includes err.Error() when passed an error [86d97ef]
+- Fix HaveExactElements to work inside ContainElement or other collection matchers (#648) [636757e]
+
+### Maintenance
+- Bump github.com/golang/protobuf from 1.5.2 to 1.5.3 (#649) [cc16689]
+- Bump github.com/onsi/ginkgo/v2 from 2.8.4 to 2.9.0 (#646) [e783366]
+
 ## 1.27.2
 
 ### Fixes
