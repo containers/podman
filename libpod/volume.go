@@ -46,9 +46,9 @@ type VolumeConfig struct {
 	// Whether this volume is anonymous (will be removed on container exit)
 	IsAnon bool `json:"isAnon"`
 	// UID the volume will be created as.
-	UID int `json:"uid"`
+	UID *int `json:"uid"`
 	// GID the volume will be created as.
-	GID int `json:"gid"`
+	GID *int `json:"gid"`
 	// Size maximum of the volume.
 	Size uint64 `json:"size"`
 	// Inodes maximum of the volume.
@@ -200,7 +200,10 @@ func (v *Volume) uid() int {
 	if v.state.UIDChowned > 0 {
 		return v.state.UIDChowned
 	}
-	return v.config.UID
+	if v.config.UID == nil {
+		return -1
+	}
+	return *v.config.UID
 }
 
 // GID returns the GID the volume will be created as.
@@ -220,7 +223,10 @@ func (v *Volume) gid() int {
 	if v.state.GIDChowned > 0 {
 		return v.state.GIDChowned
 	}
-	return v.config.GID
+	if v.config.GID == nil {
+		return -1
+	}
+	return *v.config.GID
 }
 
 // CreatedTime returns the time the volume was created at. It was not tracked

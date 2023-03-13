@@ -159,15 +159,33 @@ func (r *Runtime) newVolume(ctx context.Context, noCreatePluginVolume bool, opti
 		if err := os.MkdirAll(volPathRoot, 0700); err != nil {
 			return nil, fmt.Errorf("creating volume directory %q: %w", volPathRoot, err)
 		}
-		if err := idtools.SafeChown(volPathRoot, volume.config.UID, volume.config.GID); err != nil {
-			return nil, fmt.Errorf("chowning volume directory %q to %d:%d: %w", volPathRoot, volume.config.UID, volume.config.GID, err)
+		uid, gid := func() (int, int) {
+			uid := volume.uid()
+			gid := volume.gid()
+			switch {
+			case uid != -1 && gid != -1:
+				return uid, gid
+			case uid == -1:
+				return os.Getuid(), gid
+			case gid == -1:
+				return uid, os.Getgid()
+			}
+			return -1, -1
+		}()
+
+		if uid != -1 && gid != -1 {
+			if err := idtools.SafeChown(volPathRoot, uid, gid); err != nil {
+				return nil, fmt.Errorf("chowning volume directory %q to %d:%d: %w", volPathRoot, uid, gid, err)
+			}
 		}
 		fullVolPath := filepath.Join(volPathRoot, "_data")
 		if err := os.MkdirAll(fullVolPath, 0755); err != nil {
 			return nil, fmt.Errorf("creating volume directory %q: %w", fullVolPath, err)
 		}
-		if err := idtools.SafeChown(fullVolPath, volume.config.UID, volume.config.GID); err != nil {
-			return nil, fmt.Errorf("chowning volume directory %q to %d:%d: %w", fullVolPath, volume.config.UID, volume.config.GID, err)
+		if uid != -1 && gid != -1 {
+			if err := idtools.SafeChown(fullVolPath, uid, gid); err != nil {
+				return nil, fmt.Errorf("chowning volume directory %q to %d:%d: %w", fullVolPath, uid, gid, err)
+			}
 		}
 		if err := LabelVolumePath(fullVolPath, volume.config.MountLabel); err != nil {
 			return nil, err

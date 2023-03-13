@@ -1700,7 +1700,7 @@ func WithVolumeUID(uid int) VolumeCreateOption {
 			return define.ErrVolumeFinalized
 		}
 
-		volume.config.UID = uid
+		volume.config.UID = &uid
 
 		return nil
 	}
@@ -1739,7 +1739,7 @@ func WithVolumeGID(gid int) VolumeCreateOption {
 			return define.ErrVolumeFinalized
 		}
 
-		volume.config.GID = gid
+		volume.config.GID = &gid
 
 		return nil
 	}

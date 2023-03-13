@@ -529,5 +529,26 @@ EOF
     run_podman volume rm myvol --force
 }
 
+@test "podman default volume with --keep-id and --user " {
+    skip_if_not_rootless "--userns=keep-id only works in rootless mode"
+    myvolume=myvol$(random_string)
+    myvolume2=myvol$(random_string)
+    myfile=myfile$(random_string)
+    mytext=$(random_string)
+    run_podman run --userns=keep-id --user=${UID} -v ${myvolume}:/vol:z $IMAGE sh -c "echo $mytext > /vol/$myfile"
+    run_podman volume inspect $myvolume --format '{{.Mountpoint}}'
+    mount=$output
+    run stat -c %u $(dirname ${output})
+    is "$output" "$UID"  "Volume directory should be created with current UID"
+    run stat -c %u $mount/$myfile
+    is "$output" "$UID"  "Volume data should be created with current UID"
+    run_podman run --userns=keep-id --user=1:2 -v ${myvolume2}:/vol:z $IMAGE sh -c "echo $mytext > /vol/$myfile"
+    run_podman volume inspect $myvolume2 --format '{{.Mountpoint}}'
+    mount=$(dirname ${output})
+    run stat -c %u $mount
+    is "$output" "$UID"  "Volumes should be created with current UID"
+    run stat -c %u $mount/$myfile
+    assert "$output" != "$UID"  "Content should not be created with current UID when user run with different UID"
+}
 
 # vim: filetype=sh

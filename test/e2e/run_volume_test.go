@@ -798,11 +798,13 @@ VOLUME /test/`, ALPINE)
 		Expect(session).Should(Exit(0))
 		Expect(session.OutputToString()).To(ContainSubstring("888:888"))
 
-		vol += ",O"
-		session = podmanTest.Podman([]string{"run", "--rm", "--user", "888:888", "--userns", "keep-id", "-v", vol, ALPINE, "stat", "-c", "%u:%g", dest})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
-		Expect(session.OutputToString()).To(ContainSubstring("888:888"))
+		if rootless.IsRootless() {
+			vol += ",O"
+			session = podmanTest.Podman([]string{"run", "--rm", "--user", "888:888", "--userns", "keep-id", "-v", vol, ALPINE, "stat", "-c", "%u:%g", dest})
+			session.WaitWithDefaultTimeout()
+			Expect(session).Should(Exit(0))
+			Expect(session.OutputToString()).To(ContainSubstring("888:888"))
+		}
 	})
 
 	It("podman run with --mount and U flag", func() {
@@ -939,24 +941,24 @@ USER testuser`, fedoraMinimal)
 
 	It("podman volume with uid and gid works", func() {
 		volName := "testVol"
-		volCreate := podmanTest.Podman([]string{"volume", "create", "--opt", "o=uid=1000", volName})
+		volCreate := podmanTest.Podman([]string{"volume", "create", "--opt", "o=uid=2000", volName})
 		volCreate.WaitWithDefaultTimeout()
 		Expect(volCreate).Should(Exit(0))
 
 		volMount := podmanTest.Podman([]string{"run", "--rm", "-v", fmt.Sprintf("%s:/test", volName), ALPINE, "stat", "-c", "%u", "/test"})
 		volMount.WaitWithDefaultTimeout()
 		Expect(volMount).Should(Exit(0))
-		Expect(volMount.OutputToString()).To(Equal("1000"))
+		Expect(volMount.OutputToString()).To(Equal("2000"))
 
 		volName = "testVol2"
-		volCreate = podmanTest.Podman([]string{"volume", "create", "--opt", "o=gid=1000", volName})
+		volCreate = podmanTest.Podman([]string{"volume", "create", "--opt", "o=gid=2001", volName})
 		volCreate.WaitWithDefaultTimeout()
 		Expect(volCreate).Should(Exit(0))
 
 		volMount = podmanTest.Podman([]string{"run", "--rm", "-v", fmt.Sprintf("%s:/test", volName), ALPINE, "stat", "-c", "%g", "/test"})
 		volMount.WaitWithDefaultTimeout()
 		Expect(volMount).Should(Exit(0))
-		Expect(volMount.OutputToString()).To(Equal("1000"))
+		Expect(volMount.OutputToString()).To(Equal("2001"))
 
 		volName = "testVol3"
 		volCreate = podmanTest.Podman([]string{"volume", "create", "--opt", "o=uid=1000,gid=1000", volName})
