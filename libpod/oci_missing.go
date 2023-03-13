@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	"github.com/containers/common/pkg/resize"
@@ -26,7 +27,8 @@ type MissingRuntime struct {
 	// Name is the name of the missing runtime. Will be used in errors.
 	name string
 	// exitsDir is the directory for exit files.
-	exitsDir string
+	exitsDir   string
+	persistDir string
 }
 
 // Get a new MissingRuntime for the given name.
@@ -50,6 +52,7 @@ func getMissingRuntime(name string, r *Runtime) OCIRuntime {
 	newRuntime := new(MissingRuntime)
 	newRuntime.name = name
 	newRuntime.exitsDir = filepath.Join(r.config.Engine.TmpDir, "exits")
+	newRuntime.persistDir = filepath.Join(r.config.Engine.TmpDir, "persists")
 
 	missingRuntimes[name] = newRuntime
 
@@ -218,6 +221,16 @@ func (r *MissingRuntime) ExitFilePath(ctr *Container) (string, error) {
 		return "", fmt.Errorf("must provide a valid container to get exit file path: %w", define.ErrInvalidArg)
 	}
 	return filepath.Join(r.exitsDir, ctr.ID()), nil
+}
+
+func (r *MissingRuntime) OOMFilePath(ctr *Container) (string, error) {
+	if ctr == nil {
+		return "", fmt.Errorf("must provide a valid container to get oom file path: %w", define.ErrInvalidArg)
+	}
+	if !strings.Contains(r.persistDir, ctr.ID()) {
+		r.persistDir = filepath.Join(r.persistDir, ctr.ID())
+	}
+	return filepath.Join(r.persistDir, "oom"), nil
 }
 
 // RuntimeInfo returns information on the missing runtime

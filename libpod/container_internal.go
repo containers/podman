@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -142,6 +143,10 @@ func (c *Container) exitFilePath() (string, error) {
 	return c.ociRuntime.ExitFilePath(c)
 }
 
+func (c *Container) oomFilePath() (string, error) {
+	return c.ociRuntime.OOMFilePath(c)
+}
+
 // Wait for the container's exit file to appear.
 // When it does, update our state based on it.
 func (c *Container) waitForExitFileAndSync() error {
@@ -191,7 +196,10 @@ func (c *Container) handleExitFile(exitFile string, fi os.FileInfo) error {
 	}
 	c.state.ExitCode = int32(statusCode)
 
-	oomFilePath := filepath.Join(c.bundlePath(), "oom")
+	oomFilePath, err := c.oomFilePath()
+	if err != nil {
+		return err
+	}
 	if _, err = os.Stat(oomFilePath); err == nil {
 		c.state.OOMKilled = true
 	}
@@ -725,11 +733,6 @@ func (c *Container) removeConmonFiles() error {
 		return fmt.Errorf("removing container %s winsz file: %w", c.ID(), err)
 	}
 
-	oomFile := filepath.Join(c.bundlePath(), "oom")
-	if err := os.Remove(oomFile); err != nil && !os.IsNotExist(err) {
-		return fmt.Errorf("removing container %s OOM file: %w", c.ID(), err)
-	}
-
 	// Remove the exit file so we don't leak memory in tmpfs
 	exitFile, err := c.exitFilePath()
 	if err != nil {
@@ -737,6 +740,16 @@ func (c *Container) removeConmonFiles() error {
 	}
 	if err := os.Remove(exitFile); err != nil && !os.IsNotExist(err) {
 		return fmt.Errorf("removing container %s exit file: %w", c.ID(), err)
+	}
+
+	// Remove the persist dir for the container
+	oomFile, err := c.oomFilePath()
+	if err != nil {
+		return err
+	}
+	persistDir, _ := filepath.Split(oomFile)
+	if err := os.RemoveAll(persistDir); err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return fmt.Errorf("removing container %s persist directory: %w", c.ID(), err)
 	}
 
 	return nil

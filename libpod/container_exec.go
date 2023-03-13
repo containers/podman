@@ -886,6 +886,11 @@ func (c *Container) execExitFileDir(sessionID string) string {
 	return filepath.Join(c.execBundlePath(sessionID), "exit")
 }
 
+// execOOMFileDir gets the path to the container's persist directory
+func (c *Container) execOOMFileDir(sessionID string) string {
+	return filepath.Join(c.execBundlePath(sessionID), "persists", c.ID())
+}
+
 // execOCILog returns the file path for the exec sessions oci log
 func (c *Container) execOCILog(sessionID string) string {
 	if !c.ociRuntime.SupportsJSONErrors() {

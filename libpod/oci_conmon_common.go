@@ -65,6 +65,7 @@ type ConmonOCIRuntime struct {
 	supportsKVM       bool
 	supportsNoCgroups bool
 	enableKeyring     bool
+	persistDir        string
 }
 
 // Make a new Conmon-based OCI runtime with the given options.
@@ -143,7 +144,12 @@ func newConmonOCIRuntime(name string, paths []string, conmonPath string, runtime
 		return nil, fmt.Errorf("no valid executable found for OCI runtime %s: %w", name, define.ErrInvalidArg)
 	}
 
+	// exitDir can be replaced with persistDir completely as the exit file is written there as well
+	// but this would be a breaking change, so something to do in podman 5.0
+	// TODO: podman v5.0
 	runtime.exitsDir = filepath.Join(runtime.tmpDir, "exits")
+	// The persist-dir is where conmon writes the exit file and oom file if the container was oom killed, we join the container ID to this path later on
+	runtime.persistDir = filepath.Join(runtime.tmpDir, "persists")
 
 	// Create the exit files and attach sockets directories
 	if err := os.MkdirAll(runtime.exitsDir, 0750); err != nil {
@@ -897,6 +903,16 @@ func (r *ConmonOCIRuntime) ExitFilePath(ctr *Container) (string, error) {
 	return filepath.Join(r.exitsDir, ctr.ID()), nil
 }
 
+func (r *ConmonOCIRuntime) OOMFilePath(ctr *Container) (string, error) {
+	if ctr == nil {
+		return "", fmt.Errorf("must provide a valid container to get oom file path: %w", define.ErrInvalidArg)
+	}
+	if !strings.Contains(r.persistDir, ctr.ID()) {
+		r.persistDir = filepath.Join(r.persistDir, ctr.ID())
+	}
+	return filepath.Join(r.persistDir, "oom"), nil
+}
+
 // RuntimeInfo provides information on the runtime.
 func (r *ConmonOCIRuntime) RuntimeInfo() (*define.ConmonInfo, *define.OCIRuntimeInfo, error) {
 	runtimePackage := packageVersion(r.path)
@@ -1035,7 +1051,10 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 		pidfile = filepath.Join(ctr.state.RunDir, "pidfile")
 	}
 
-	args := r.sharedConmonArgs(ctr, ctr.ID(), ctr.bundlePath(), pidfile, ctr.LogPath(), r.exitsDir, ociLog, ctr.LogDriver(), logTag)
+	args, err := r.sharedConmonArgs(ctr, ctr.ID(), ctr.bundlePath(), pidfile, ctr.LogPath(), r.exitsDir, r.persistDir, ociLog, ctr.LogDriver(), logTag)
+	if err != nil {
+		return 0, err
+	}
 
 	if ctr.config.SdNotifyMode == define.SdNotifyModeContainer && ctr.config.SdNotifySocket != "" {
 		args = append(args, fmt.Sprintf("--sdnotify-socket=%s", ctr.config.SdNotifySocket))
@@ -1289,7 +1308,22 @@ func (r *ConmonOCIRuntime) configureConmonEnv(runtimeDir string) []string {
 }
 
 // sharedConmonArgs takes common arguments for exec and create/restore and formats them for the conmon CLI
-func (r *ConmonOCIRuntime) sharedConmonArgs(ctr *Container, cuuid, bundlePath, pidPath, logPath, exitDir, ociLogPath, logDriver, logTag string) []string {
+func (r *ConmonOCIRuntime) sharedConmonArgs(ctr *Container, cuuid, bundlePath, pidPath, logPath, exitDir, persistDir, ociLogPath, logDriver, logTag string) ([]string, error) {
+	if !strings.Contains(persistDir, ctr.ID()) {
+		persistDir = filepath.Join(persistDir, ctr.ID())
+	}
+	// Make the persists directory for the container after appending the ctr ID to it
+	// This is needed as conmon writes the exit and oom file in the given persist directory path as just "exit" and "oom"
+	// So creating a directory with the container ID under the persist dir will help keep track of which container the
+	// exit and oom files belong to.
+	// TODO: v5.0 use the exit file from the persist dir only and discard the use of exit-dir
+	if err := os.MkdirAll(persistDir, 0750); err != nil {
+		// The directory is allowed to exist
+		if !os.IsExist(err) {
+			return nil, fmt.Errorf("creating OCI runtime oom files directory for ctr %q: %w", ctr.ID(), err)
+		}
+	}
+
 	// set the conmon API version to be able to use the correct sync struct keys
 	args := []string{
 		"--api-version", "1",
@@ -1300,6 +1334,7 @@ func (r *ConmonOCIRuntime) sharedConmonArgs(ctr *Container, cuuid, bundlePath, p
 		"-p", pidPath,
 		"-n", ctr.Name(),
 		"--exit-dir", exitDir,
+		"--persist-dir", persistDir,
 		"--full-attach",
 	}
 	if len(r.runtimeFlags) > 0 {
@@ -1364,7 +1399,7 @@ func (r *ConmonOCIRuntime) sharedConmonArgs(ctr *Container, cuuid, bundlePath, p
 		logrus.Debugf("Running with no Cgroups")
 		args = append(args, "--runtime-arg", "--cgroup-manager", "--runtime-arg", "disabled")
 	}
-	return args
+	return args, nil
 }
 
 func startCommand(cmd *exec.Cmd, ctr *Container) error {

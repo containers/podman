@@ -147,6 +147,8 @@ type OCIRuntime interface { //nolint:interfacebloat
 	// This is the path to that file for a given container.
 	ExitFilePath(ctr *Container) (string, error)
 
+	OOMFilePath(ctr *Container) (string, error)
+
 	// RuntimeInfo returns verbose information about the runtime.
 	RuntimeInfo() (*define.ConmonInfo, *define.OCIRuntimeInfo, error)
 
