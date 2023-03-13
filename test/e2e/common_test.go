@@ -727,6 +727,13 @@ func SkipIfNotSystemd(manager, reason string) {
 	}
 }
 
+func SkipOnOSVersion(os, version string) {
+	info := GetHostDistributionInfo()
+	if info.Distribution == os && info.Version == version {
+		Skip(fmt.Sprintf("Test doesn't work on %s %s", os, version))
+	}
+}
+
 func SkipIfNotFedora() {
 	info := GetHostDistributionInfo()
 	if info.Distribution != "fedora" {
