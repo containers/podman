@@ -890,6 +890,13 @@ func (c *Container) execExitFileDir(sessionID string) string {
 	return filepath.Join(c.execBundlePath(sessionID), "exit")
 }
 
+// execPersistDir gets the path to the container's persist directory
+// The persist directory container the exit file and oom file (if oomkilled)
+// of a container
+func (c *Container) execPersistDir(sessionID string) string {
+	return filepath.Join(c.execBundlePath(sessionID), "persist", c.ID())
+}
+
 // execOCILog returns the file path for the exec sessions oci log
 func (c *Container) execOCILog(sessionID string) string {
 	if !c.ociRuntime.SupportsJSONErrors() {
@@ -916,6 +923,9 @@ func (c *Container) createExecBundle(sessionID string) (retErr error) {
 		if !os.IsExist(err) {
 			return fmt.Errorf("creating OCI runtime exit file path %s: %w", c.execExitFileDir(sessionID), err)
 		}
+	}
+	if err := os.MkdirAll(c.execPersistDir(sessionID), execDirPermission); err != nil {
+		return fmt.Errorf("creating OCI runtime persist directory path %s: %w", c.execPersistDir(sessionID), err)
 	}
 	return nil
 }

@@ -64,6 +64,7 @@ type ConmonOCIRuntime struct {
 	supportsKVM       bool
 	supportsNoCgroups bool
 	enableKeyring     bool
+	persistDir        string
 }
 
 // Make a new Conmon-based OCI runtime with the given options.
@@ -143,13 +144,15 @@ func newConmonOCIRuntime(name string, paths []string, conmonPath string, runtime
 	}
 
 	runtime.exitsDir = filepath.Join(runtime.tmpDir, "exits")
+	// The persist-dir is where conmon writes the exit file and oom file (if oom killed), we join the container ID to this path later on
+	runtime.persistDir = filepath.Join(runtime.tmpDir, "persist")
 
 	// Create the exit files and attach sockets directories
 	if err := os.MkdirAll(runtime.exitsDir, 0750); err != nil {
-		// The directory is allowed to exist
-		if !os.IsExist(err) {
-			return nil, fmt.Errorf("creating OCI runtime exit files directory: %w", err)
-		}
+		return nil, fmt.Errorf("creating OCI runtime exit files directory: %w", err)
+	}
+	if err := os.MkdirAll(runtime.persistDir, 0750); err != nil {
+		return nil, fmt.Errorf("creating OCI runtime persist directory: %w", err)
 	}
 	return runtime, nil
 }
@@ -940,6 +943,12 @@ func (r *ConmonOCIRuntime) ExitFilePath(ctr *Container) (string, error) {
 	return filepath.Join(r.exitsDir, ctr.ID()), nil
 }
 
+// OOMFilePath is the path to a container's oom file.
+// The oom file will only exist if the container was oom killed.
+func (r *ConmonOCIRuntime) OOMFilePath(ctr *Container) (string, error) {
+	return filepath.Join(r.persistDir, ctr.ID(), "oom"), nil
+}
+
 // RuntimeInfo provides information on the runtime.
 func (r *ConmonOCIRuntime) RuntimeInfo() (*define.ConmonInfo, *define.OCIRuntimeInfo, error) {
 	runtimePackage := version.Package(r.path)
@@ -1107,7 +1116,11 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 		pidfile = filepath.Join(ctr.state.RunDir, "pidfile")
 	}
 
-	args := r.sharedConmonArgs(ctr, ctr.ID(), ctr.bundlePath(), pidfile, ctr.LogPath(), r.exitsDir, ociLog, ctr.LogDriver(), logTag)
+	persistDir := filepath.Join(r.persistDir, ctr.ID())
+	args, err := r.sharedConmonArgs(ctr, ctr.ID(), ctr.bundlePath(), pidfile, ctr.LogPath(), r.exitsDir, persistDir, ociLog, ctr.LogDriver(), logTag)
+	if err != nil {
+		return 0, err
+	}
 
 	if ctr.config.SdNotifyMode == define.SdNotifyModeContainer && ctr.config.SdNotifySocket != "" {
 		args = append(args, fmt.Sprintf("--sdnotify-socket=%s", ctr.config.SdNotifySocket))
@@ -1363,7 +1376,16 @@ func (r *ConmonOCIRuntime) configureConmonEnv() ([]string, error) {
 }
 
 // sharedConmonArgs takes common arguments for exec and create/restore and formats them for the conmon CLI
-func (r *ConmonOCIRuntime) sharedConmonArgs(ctr *Container, cuuid, bundlePath, pidPath, logPath, exitDir, ociLogPath, logDriver, logTag string) []string {
+// func (r *ConmonOCIRuntime) sharedConmonArgs(ctr *Container, cuuid, bundlePath, pidPath, logPath, exitDir, persistDir, ociLogPath, logDriver, logTag string) ([]string, error) {
+func (r *ConmonOCIRuntime) sharedConmonArgs(ctr *Container, cuuid, bundlePath, pidPath, logPath, exitDir, persistDir, ociLogPath, logDriver, logTag string) ([]string, error) {
+	// Make the persists directory for the container after the ctr ID is appended to it in the caller
+	// This is needed as conmon writes the exit and oom file in the given persist directory path as just "exit" and "oom"
+	// So creating a directory with the container ID under the persist dir will help keep track of which container the
+	// exit and oom files belong to.
+	if err := os.MkdirAll(persistDir, 0750); err != nil {
+		return nil, fmt.Errorf("creating OCI runtime oom files directory for ctr %q: %w", ctr.ID(), err)
+	}
+
 	// set the conmon API version to be able to use the correct sync struct keys
 	args := []string{
 		"--api-version", "1",
@@ -1374,6 +1396,7 @@ func (r *ConmonOCIRuntime) sharedConmonArgs(ctr *Container, cuuid, bundlePath, p
 		"-p", pidPath,
 		"-n", ctr.Name(),
 		"--exit-dir", exitDir,
+		"--persist-dir", persistDir,
 		"--full-attach",
 	}
 	if len(r.runtimeFlags) > 0 {
@@ -1436,7 +1459,7 @@ func (r *ConmonOCIRuntime) sharedConmonArgs(ctr *Container, cuuid, bundlePath, p
 		logrus.Debugf("Running with no Cgroups")
 		args = append(args, "--runtime-arg", "--cgroup-manager", "--runtime-arg", "disabled")
 	}
-	return args
+	return args, nil
 }
 
 // newPipe creates a unix socket pair for communication.
