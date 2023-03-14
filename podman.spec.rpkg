@@ -114,6 +114,15 @@ Requires: gnupg
 
 This package contains system tests for %{name}
 
+%package tests-e2e
+Summary: End-to-End tests for %{name}
+Requires: %{name} = %{epoch}:%{version}-%{release}
+
+%description tests-e2e
+%{summary}
+
+This package contains e2e tests for %{name}
+
 %package remote
 Summary: (Experimental) Remote client for managing %{name} containers
 
@@ -176,8 +185,13 @@ PODMAN_VERSION=%{version} %{__make} DESTDIR=%{buildroot} PREFIX=%{_prefix} ETCDI
         install.modules-load
 %endif
 
+# install system tests
 install -d -p %{buildroot}/%{_datadir}/%{name}/test/system
 cp -pav test/system %{buildroot}/%{_datadir}/%{name}/test/
+
+# install e2e tests
+install -d -p %{buildroot}/%{_datadir}/%{name}/test/e2e
+cp -pav test/e2e %{buildroot}/%{_datadir}/%{name}/test/
 
 # do not include docker and %%{name}-remote man pages in main package
 for file in `find %{buildroot}%{_mandir}/man[15] -type f | sed "s,%{buildroot},," | grep -v -e remote -e docker`; do
@@ -249,7 +263,15 @@ fi
 
 %files tests
 %license LICENSE
-%{_datadir}/%{name}/test
+%dir %{_datadir}/%{name}/test
+%dir %{_datadir}/%{name}/test/system
+%{_datadir}/%{name}/test/system/*
+
+%files tests-e2e
+%license LICENSE
+%dir %{_datadir}/%{name}/test
+%dir %{_datadir}/%{name}/test/e2e
+%{_datadir}/%{name}/test/e2e/*
 
 %changelog
 {{{ git_dir_changelog }}}
