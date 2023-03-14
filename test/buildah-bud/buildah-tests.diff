@@ -1,18 +1,18 @@
-From 5e0eb222e83de4edb009bfe09ef34908cbdced01 Mon Sep 17 00:00:00 2001
+From 49aa33946b9d5757f59c80f0b7827579c8456598 Mon Sep 17 00:00:00 2001
 From: Ed Santiago <santiago@redhat.com>
 Date: Thu, 6 Oct 2022 17:32:59 -0600
 Subject: [PATCH] tweaks for running buildah tests under podman
 
 Signed-off-by: Ed Santiago <santiago@redhat.com>
 ---
- tests/helpers.bash | 80 +++++++++++++++++++++++++++++++++++++++++++---
- 1 file changed, 76 insertions(+), 4 deletions(-)
+ tests/helpers.bash | 87 +++++++++++++++++++++++++++++++++++++++++++---
+ 1 file changed, 83 insertions(+), 4 deletions(-)
 
 diff --git a/tests/helpers.bash b/tests/helpers.bash
-index aab3f72e..7c82e37e 100644
+index 349145f29..40a46da4e 100644
 --- a/tests/helpers.bash
 +++ b/tests/helpers.bash
-@@ -70,6 +70,30 @@ EOF
+@@ -70,6 +70,37 @@ EOF
      ROOTDIR_OPTS="--root ${TEST_SCRATCH_DIR}/root --runroot ${TEST_SCRATCH_DIR}/runroot --storage-driver ${STORAGE_DRIVER}"
      BUILDAH_REGISTRY_OPTS="--registries-conf ${TEST_SOURCES}/registries.conf --registries-conf-dir ${TEST_SCRATCH_DIR}/registries.d --short-name-alias-conf ${TEST_SCRATCH_DIR}/cache/shortnames.conf"
      PODMAN_REGISTRY_OPTS="--registries-conf ${TEST_SOURCES}/registries.conf"
@@ -28,6 +28,12 @@ index aab3f72e..7c82e37e 100644
 +            ) >> $PODMAN_SERVER_LOG
 +        fi
 +
++        # Path to podman socket file
++        local sockdir=/run
++        if is_rootless; then
++            sockdir=${XDG_RUNTIME_DIR:-/run/user/$(id -u)}
++        fi
++        PODMAN_SOCK_FILE=$sockdir/podman/podman.sock
 +        # static CONTAINERS_CONF needed for capabilities test. As of 2021-07-01
 +        # no tests in bud.bats override this; if at some point any test does
 +        # so, it will probably need to be skip_if_remote()d.
@@ -35,28 +41,29 @@ index aab3f72e..7c82e37e 100644
 +        PODMAN_SERVER_PID=$!
 +        local timeout=10
 +        while ((timeout > 0)); do
-+            test -S /run/podman/podman.sock && return
++            test -S $PODMAN_SOCK_FILE && return
 +            sleep 0.2
++            timeout=$((timeout - 1))
 +        done
 +        die "podman server never came up"
 +    fi
  }
  
  function starthttpd() {
-@@ -113,6 +137,12 @@ function teardown_tests() {
+@@ -113,6 +144,12 @@ function teardown_tests() {
      stop_git_daemon
      stop_registry
  
 +    if [[ -n "$PODMAN_SERVER_PID" ]]; then
 +        kill $PODMAN_SERVER_PID
 +        wait $PODMAN_SERVER_PID
-+        rm -f /run/podman/podman.sock
++        rm -f $PODMAN_SOCK_FILE
 +    fi
 +
      # Workaround for #1991 - buildah + overlayfs leaks mount points.
      # Many tests leave behind /var/tmp/.../root/overlay and sub-mounts;
      # let's find those and clean them up, otherwise 'rm -rf' fails.
-@@ -202,7 +232,12 @@ function copy() {
+@@ -202,7 +239,12 @@ function copy() {
  }
  
  function podman() {
@@ -70,7 +77,7 @@ index aab3f72e..7c82e37e 100644
  }
  
  # There are various scenarios where we would like to execute `tests` as rootless user, however certain commands like `buildah mount`
-@@ -266,8 +301,36 @@ function run_buildah() {
+@@ -266,8 +308,36 @@ function run_buildah() {
          --retry)         retry=3;        shift;;  # retry network flakes
      esac
  
@@ -108,7 +115,7 @@ index aab3f72e..7c82e37e 100644
  
      # If session is rootless and `buildah mount` is invoked, perform unshare,
      # since normal user cannot mount a filesystem unless they're in a user namespace along with its own mount namespace.
-@@ -281,8 +344,8 @@ function run_buildah() {
+@@ -281,8 +351,8 @@ function run_buildah() {
          retry=$(( retry - 1 ))
  
          # stdout is only emitted upon error; this echo is to help a debugger
@@ -119,7 +126,7 @@ index aab3f72e..7c82e37e 100644
          # without "quotes", multiple lines are glommed together into one
          if [ -n "$output" ]; then
              echo "$output"
-@@ -614,6 +677,15 @@ function skip_if_no_docker() {
+@@ -621,6 +691,15 @@ function skip_if_no_docker() {
    fi
  }
  
@@ -136,5 +143,5 @@ index aab3f72e..7c82e37e 100644
    daemondir=${TEST_SCRATCH_DIR}/git-daemon
    mkdir -p ${daemondir}/repo
 -- 
-2.39.0
+2.39.2
 
