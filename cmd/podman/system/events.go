@@ -72,7 +72,7 @@ func eventsFlags(cmd *cobra.Command) {
 	flags.StringVar(&eventFormat, formatFlagName, "", "format the output using a Go template")
 	_ = cmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(&events.Event{}))
 
-	flags.BoolVar(&eventOptions.Stream, "stream", true, "stream new events; for testing only")
+	flags.BoolVar(&eventOptions.Stream, "stream", true, "stream events and do not exit when returning the last known event")
 
 	sinceFlagName := "since"
 	flags.StringVar(&eventOptions.Since, sinceFlagName, "", "show all events created since timestamp")
@@ -83,8 +83,6 @@ func eventsFlags(cmd *cobra.Command) {
 	untilFlagName := "until"
 	flags.StringVar(&eventOptions.Until, untilFlagName, "", "show all events until timestamp")
 	_ = cmd.RegisterFlagCompletionFunc(untilFlagName, completion.AutocompleteNone)
-
-	_ = flags.MarkHidden("stream")
 }
 
 func eventsCmd(cmd *cobra.Command, _ []string) error {

@@ -128,6 +128,9 @@ Do not truncate the output (default *true*).
 
 Show all events created since the given timestamp
 
+#### **--stream**
+
+Stream events and do not exit after reading the last known event (default *true*).
 
 #### **--until**=*timestamp*
 
