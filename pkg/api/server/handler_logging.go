@@ -1,7 +1,10 @@
 package server
 
 import (
+	"bufio"
+	"errors"
 	"io"
+	"net"
 	"net/http"
 	"time"
 
@@ -31,6 +34,28 @@ func (l responseWriter) Write(b []byte) (int, error) {
 		"X-Reference-Id": l.Header().Get("X-Reference-Id"),
 	}).Trace(string(b))
 	return l.ResponseWriter.Write(b)
+}
+
+func (l responseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	if wrapped, ok := l.ResponseWriter.(http.Hijacker); ok {
+		return wrapped.Hijack()
+	}
+
+	return nil, nil, errors.New("ResponseWriter does not support hijacking")
+}
+
+func (l responseWriter) Header() http.Header {
+	return l.ResponseWriter.Header()
+}
+
+func (l responseWriter) WriteHeader(statusCode int) {
+	l.ResponseWriter.WriteHeader(statusCode)
+}
+
+func (l responseWriter) Flush() {
+	if wrapped, ok := l.ResponseWriter.(http.Flusher); ok {
+		wrapped.Flush()
+	}
 }
 
 func loggingHandler() mux.MiddlewareFunc {
