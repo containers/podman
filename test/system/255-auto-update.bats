@@ -338,11 +338,13 @@ EOF
         fi
     done
 
-    # Only check that the last service is started. Previous services should already be activated.
-    _wait_service_ready container-$cname.service
+    # Make sure all services are ready.
+    for cname in "${cnames[@]}"; do
+        _wait_service_ready container-$cname.service
+    done
     run_podman commit --change CMD=/bin/bash $local_cname quay.io/libpod/localtest:latest
     # Exit code is expected, due to invalid 'fakevalue'
-    run_podman 125 auto-update
+    run_podman 125 auto-update --rollback=false
     update_log=$output
     is "$update_log" ".*invalid auto-update policy.*" "invalid policy setup"
     is "$update_log" ".*Error: invalid auto-update policy.*" "invalid policy setup"
