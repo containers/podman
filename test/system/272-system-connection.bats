@@ -113,7 +113,7 @@ $c2[ ]\+tcp://localhost:54321[ ]\+true" \
                         system service -t 99 tcp://localhost:$_SERVICE_PORT &
     _SERVICE_PID=$!
     # Wait for the port and the podman-service to be ready.
-    wait_for_port localhost $_SERVICE_PORT
+    wait_for_port 127.0.0.1 $_SERVICE_PORT
     local timeout=10
     while [[ $timeout -gt 1 ]]; do
         _run_podman_remote '?' info --format '{{.Host.RemoteSocket.Path}}'
