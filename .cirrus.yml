@@ -55,6 +55,7 @@ env:
     DISTRO_NV:               # any {PRIOR_,}{FEDORA,DEBIAN}_NAME value
     VM_IMAGE_NAME:           # One of the "Google-cloud VM Images" (above)
     CTR_FQIN:                # One of the "Container FQIN's" (above)
+    CI_DESIRED_DATABASE: boltdb # One of "", "sqlite", "boltdb"
 
     # Curl-command prefix for downloading task artifacts, simply add the
     # the url-encoded task name, artifact name, and path as a suffix.
@@ -563,7 +564,7 @@ windows_smoke_test_task:
 local_integration_test_task: &local_integration_test_task
     # Integration-test task name convention:
     # <int.|sys.> <podman|remote> <Distro NV> <root|rootless>
-    name: &std_name_fmt "$TEST_FLAVOR $PODBIN_NAME $DISTRO_NV $PRIV_NAME $TEST_ENVIRON"
+    name: &std_name_fmt "$TEST_FLAVOR $PODBIN_NAME $DISTRO_NV $PRIV_NAME $TEST_ENVIRON ${CI_DESIRED_DATABASE}"
     alias: local_integration_test
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: *not_tag_branch_build_docs
