@@ -171,7 +171,7 @@ function _confirm_update() {
     is "$output" ".* system auto-update"
 
     since=$(date --iso-8601=seconds)
-    run_podman auto-update --format "{{.Unit}},{{.Image}},{{.Updated}},{{.Policy}}"
+    run_podman auto-update --rollback=false --format "{{.Unit}},{{.Image}},{{.Updated}},{{.Policy}}"
     is "$output" "Trying to pull.*" "Image is updated."
     is "$output" ".*container-$cname.service,quay.io/libpod/alpine:latest,true,registry.*" "Image is updated."
     run_podman events --filter type=system --since $since --stream=false
@@ -248,7 +248,7 @@ function _confirm_update() {
     run_podman auto-update --dry-run --format "{{.Unit}},{{.Image}},{{.Updated}},{{.Policy}}"
     is "$output" ".*container-$cname.service,quay.io/libpod/localtest:latest,pending,local.*" "Image update is pending."
 
-    run_podman auto-update --format "{{.Unit}},{{.Image}},{{.Updated}},{{.Policy}}"
+    run_podman auto-update --rollback=false --format "{{.Unit}},{{.Image}},{{.Updated}},{{.Policy}}"
     is "$output" ".*container-$cname.service,quay.io/libpod/localtest:latest,true,local.*" "Image is updated."
 
     _confirm_update $cname $ori_image
@@ -338,11 +338,13 @@ EOF
         fi
     done
 
-    # Only check that the last service is started. Previous services should already be activated.
-    _wait_service_ready container-$cname.service
+    # Make sure all services are ready.
+    for cname in "${cnames[@]}"; do
+        _wait_service_ready container-$cname.service
+    done
     run_podman commit --change CMD=/bin/bash $local_cname quay.io/libpod/localtest:latest
     # Exit code is expected, due to invalid 'fakevalue'
-    run_podman 125 auto-update
+    run_podman 125 auto-update --rollback=false
     update_log=$output
     is "$update_log" ".*invalid auto-update policy.*" "invalid policy setup"
     is "$update_log" ".*Error: invalid auto-update policy.*" "invalid policy setup"
