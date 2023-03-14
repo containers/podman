@@ -171,7 +171,7 @@ function _confirm_update() {
     is "$output" ".* system auto-update"
 
     since=$(date --iso-8601=seconds)
-    run_podman auto-update --format "{{.Unit}},{{.Image}},{{.Updated}},{{.Policy}}"
+    run_podman auto-update --rollback=false --format "{{.Unit}},{{.Image}},{{.Updated}},{{.Policy}}"
     is "$output" "Trying to pull.*" "Image is updated."
     is "$output" ".*container-$cname.service,quay.io/libpod/alpine:latest,true,registry.*" "Image is updated."
     run_podman events --filter type=system --since $since --stream=false
@@ -248,7 +248,7 @@ function _confirm_update() {
     run_podman auto-update --dry-run --format "{{.Unit}},{{.Image}},{{.Updated}},{{.Policy}}"
     is "$output" ".*container-$cname.service,quay.io/libpod/localtest:latest,pending,local.*" "Image update is pending."
 
-    run_podman auto-update --format "{{.Unit}},{{.Image}},{{.Updated}},{{.Policy}}"
+    run_podman auto-update --rollback=false --format "{{.Unit}},{{.Image}},{{.Updated}},{{.Policy}}"
     is "$output" ".*container-$cname.service,quay.io/libpod/localtest:latest,true,local.*" "Image is updated."
 
     _confirm_update $cname $ori_image
