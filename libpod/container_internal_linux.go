@@ -242,16 +242,16 @@ func (c *Container) setupSystemd(mounts []spec.Mount, g generate.Generator) erro
 		return err
 	}
 
+	hasCgroupNs := false
+	for _, ns := range c.config.Spec.Linux.Namespaces {
+		if ns.Type == spec.CgroupNamespace {
+			hasCgroupNs = true
+			break
+		}
+	}
+
 	if unified {
 		g.RemoveMount("/sys/fs/cgroup")
-
-		hasCgroupNs := false
-		for _, ns := range c.config.Spec.Linux.Namespaces {
-			if ns.Type == spec.CgroupNamespace {
-				hasCgroupNs = true
-				break
-			}
-		}
 
 		var systemdMnt spec.Mount
 		if hasCgroupNs {
@@ -271,40 +271,46 @@ func (c *Container) setupSystemd(mounts []spec.Mount, g generate.Generator) erro
 		}
 		g.AddMount(systemdMnt)
 	} else {
-		mountOptions := []string{"bind", "rprivate"}
-		skipMount := false
-
-		var statfs unix.Statfs_t
-		if err := unix.Statfs("/sys/fs/cgroup/systemd", &statfs); err != nil {
-			if errors.Is(err, os.ErrNotExist) {
-				// If the mount is missing on the host, we cannot bind mount it so
-				// just skip it.
-				skipMount = true
-			}
-			mountOptions = append(mountOptions, "nodev", "noexec", "nosuid")
-		} else {
-			if statfs.Flags&unix.MS_NODEV == unix.MS_NODEV {
-				mountOptions = append(mountOptions, "nodev")
-			}
-			if statfs.Flags&unix.MS_NOEXEC == unix.MS_NOEXEC {
-				mountOptions = append(mountOptions, "noexec")
-			}
-			if statfs.Flags&unix.MS_NOSUID == unix.MS_NOSUID {
-				mountOptions = append(mountOptions, "nosuid")
-			}
-			if statfs.Flags&unix.MS_RDONLY == unix.MS_RDONLY {
-				mountOptions = append(mountOptions, "ro")
-			}
+		hasSystemdMount := MountExists(mounts, "/sys/fs/cgroup/systemd")
+		if hasCgroupNs && !hasSystemdMount {
+			return errors.New("cgroup namespace is not supported with cgroup v1 and systemd mode")
 		}
-		if !skipMount {
-			systemdMnt := spec.Mount{
-				Destination: "/sys/fs/cgroup/systemd",
-				Type:        "bind",
-				Source:      "/sys/fs/cgroup/systemd",
-				Options:     mountOptions,
+		mountOptions := []string{"bind", "rprivate"}
+
+		if !hasSystemdMount {
+			skipMount := hasSystemdMount
+			var statfs unix.Statfs_t
+			if err := unix.Statfs("/sys/fs/cgroup/systemd", &statfs); err != nil {
+				if errors.Is(err, os.ErrNotExist) {
+					// If the mount is missing on the host, we cannot bind mount it so
+					// just skip it.
+					skipMount = true
+				}
+				mountOptions = append(mountOptions, "nodev", "noexec", "nosuid")
+			} else {
+				if statfs.Flags&unix.MS_NODEV == unix.MS_NODEV {
+					mountOptions = append(mountOptions, "nodev")
+				}
+				if statfs.Flags&unix.MS_NOEXEC == unix.MS_NOEXEC {
+					mountOptions = append(mountOptions, "noexec")
+				}
+				if statfs.Flags&unix.MS_NOSUID == unix.MS_NOSUID {
+					mountOptions = append(mountOptions, "nosuid")
+				}
+				if statfs.Flags&unix.MS_RDONLY == unix.MS_RDONLY {
+					mountOptions = append(mountOptions, "ro")
+				}
 			}
-			g.AddMount(systemdMnt)
-			g.AddLinuxMaskedPaths("/sys/fs/cgroup/systemd/release_agent")
+			if !skipMount {
+				systemdMnt := spec.Mount{
+					Destination: "/sys/fs/cgroup/systemd",
+					Type:        "bind",
+					Source:      "/sys/fs/cgroup/systemd",
+					Options:     mountOptions,
+				}
+				g.AddMount(systemdMnt)
+				g.AddLinuxMaskedPaths("/sys/fs/cgroup/systemd/release_agent")
+			}
 		}
 	}
 
@@ -446,7 +452,7 @@ func (c *Container) addNetworkNamespace(g *generate.Generator) error {
 func (c *Container) addSystemdMounts(g *generate.Generator) error {
 	if c.Systemd() {
 		if err := c.setupSystemd(g.Mounts(), *g); err != nil {
-			return fmt.Errorf("adding systemd-specific mounts: %w", err)
+			return err
 		}
 	}
 	return nil
