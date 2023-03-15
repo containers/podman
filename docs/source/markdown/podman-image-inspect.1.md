@@ -18,6 +18,34 @@ all results in a JSON array.  If a format is specified, the given template will 
 Format the output using the given Go template.
 The keys of the returned JSON can be used as the values for the --format flag (see examples below).
 
+Valid placeholders for the Go template are listed below:
+
+| **Placeholder**      | **Description**                                    |
+| -----------------    | ------------------                                 |
+| .Annotations         | Annotation information included in the image       |
+| .Architecture        | Architecture of software in the image              |
+| .Author              | Image author                                       |
+| .Comment             | Image comment                                      |
+| .Config ...          | Structure with config info                         |
+| .Created             | Image creation time (string, ISO3601)              |
+| .Digest              | Image digest (sha256:+64-char hash)                |
+| .GraphDriver ...     | Structure for the graph driver info                |
+| .HealthCheck ...     | Structure for the health check info                |
+| .History             | History information stored in image                |
+| .ID                  | Image ID (full 64-char hash)                       |
+| .Labels              | Label information included in the image            |
+| .ManifestType        | Manifest type of the image                         |
+| .NamesHistory        | Name history information stored in image           |
+| .Os                  | Operating system of software in the image          |
+| .Parent              | Parent image of the specified image                |
+| .RepoDigests         | Repository digests for the image                   |
+| .RepoTags            | Repository tags for the image                      |
+| .RootFS ...          | Structure for the root file system info            |
+| .Size                | Size of image, in bytes                            |
+| .User                | Default user to execute the image as               |
+| .Version             | Image Version                                      |
+| .VirtualSize         | Virtual size of image, in bytes                    |
+
 ## EXAMPLE
 
 ```
