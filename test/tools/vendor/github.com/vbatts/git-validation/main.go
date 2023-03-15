@@ -22,6 +22,7 @@ var (
 	flDebug        = flag.Bool("D", false, "debug output")
 	flQuiet        = flag.Bool("q", false, "less output")
 	flDir          = flag.String("d", ".", "git directory to validate from")
+	flNoGithub     = flag.Bool("no-github", false, "disables Github Actions environment checks (when env GITHUB_ACTIONS=true is set)")
 	flNoTravis     = flag.Bool("no-travis", false, "disables travis environment checks (when env TRAVIS=true is set)")
 	flTravisPROnly = flag.Bool("travis-pr-only", true, "when on travis, only run validations if the CI-Build is checking pull-request build")
 )
@@ -72,6 +73,10 @@ func main() {
 			} else if os.Getenv("TRAVIS_COMMIT") != "" {
 				commitRange = os.Getenv("TRAVIS_COMMIT")
 			}
+		}
+		// https://docs.github.com/en/actions/reference/environment-variables
+		if strings.ToLower(os.Getenv("GITHUB_ACTIONS")) == "true" && !*flNoGithub {
+			commitRange = fmt.Sprintf("%s..%s", os.Getenv("GITHUB_SHA"), "HEAD")
 		}
 	}
 

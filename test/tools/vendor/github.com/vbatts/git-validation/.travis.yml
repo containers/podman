@@ -4,10 +4,7 @@ go_import_path: github.com/vbatts/git-validation
 
 go:
   - "tip"
-  - "1.x"
-  - "1.11.x"
-  - "1.10.x"
-  - "1.9.x"
+  - "1.13.x"
 
 env:
 
@@ -27,10 +24,8 @@ before_script:
 
 before_install:
   - go get ./...
-  - if [[ "$(go version |awk '{ print $3 }')" =~ ^go1\.11\. ]] ; then go get -u golang.org/x/lint/golint ; fi
 
 script:
-  - if [[ "$(go version |awk '{ print $3 }')" =~ ^go1\.11\. ]] ; then golint -set_exit_status ./... ; fi
   - go vet -x ./...
   - go build .
   - go test -v ./...
