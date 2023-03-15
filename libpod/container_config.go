@@ -219,6 +219,8 @@ type ContainerSecurityConfig struct {
 	// Libpod - mostly used in rootless containers where the user running
 	// Libpod wants to retain their UID inside the container.
 	AddCurrentUserPasswdEntry bool `json:"addCurrentUserPasswdEntry,omitempty"`
+	// LabelNested, allow labeling separation from within a container
+	LabelNested bool `json:"label_nested"`
 }
 
 // ContainerNameSpaceConfig is an embedded sub-config providing

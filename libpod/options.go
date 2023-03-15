@@ -2341,3 +2341,16 @@ func WithMountAllDevices() CtrCreateOption {
 		return nil
 	}
 }
+
+// WithLabelNested sets the LabelNested flag allowing label separation within container
+func WithLabelNested(nested bool) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return define.ErrCtrFinalized
+		}
+
+		ctr.config.LabelNested = nested
+
+		return nil
+	}
+}

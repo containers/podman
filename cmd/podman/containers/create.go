@@ -257,7 +257,7 @@ func CreateInit(c *cobra.Command, vals entities.ContainerCreateOptions, isInfra 
 					if registry.IsRemote() {
 						return vals, errors.New("the '--group-add keep-groups' option is not supported in remote mode")
 					}
-					vals.Annotation = append(vals.Annotation, "run.oci.keep_original_groups=1")
+					vals.Annotation = append(vals.Annotation, fmt.Sprintf("%s=1", define.RunOCIKeepOriginalGroups))
 				} else {
 					groups = append(groups, g)
 				}

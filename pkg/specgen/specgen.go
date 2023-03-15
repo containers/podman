@@ -396,6 +396,10 @@ type ContainerSecurityConfig struct {
 	// mount temporary file systems
 	ReadWriteTmpfs bool `json:"read_write_tmpfs,omitempty"`
 
+	// LabelNested indicates whether or not the container is allowed to
+	// run fully nested containers including labelling
+	LabelNested bool `json:"label_nested,omitempty"`
+
 	// Umask is the umask the init process of the container will be run with.
 	Umask string `json:"umask,omitempty"`
 	// ProcOpts are the options used for the proc mount.

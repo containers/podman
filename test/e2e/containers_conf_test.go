@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/containers/podman/v4/libpod/define"
 	. "github.com/containers/podman/v4/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -111,7 +112,7 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 		result := podmanTest.Podman([]string{"top", "test1", "capeff"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
-		Expect(result.Out.Contents()).To(
+		Expect(result.OutputToString()).To(
 			And(
 				ContainSubstring("FOWNER"),
 				ContainSubstring("SETFCAP"),
@@ -128,7 +129,7 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 		result := podmanTest.Podman([]string{"container", "top", "test1", "capeff"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
-		Expect(result.Out.Contents()).ToNot(
+		Expect(result.OutputToString()).ToNot(
 			And(
 				ContainSubstring("SETUID"),
 				ContainSubstring("FOWNER"),
@@ -266,7 +267,7 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		Expect(session.OutputToStringArray()).To(ContainElement(HavePrefix("search")))
-		Expect(session.Out.Contents()).To(
+		Expect(session.OutputToString()).To(
 			And(
 				ContainSubstring("foobar.com"),
 				ContainSubstring("1.2.3.4"),
@@ -322,7 +323,7 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		Expect(session.OutputToStringArray()).To(ContainElement(HavePrefix("search")))
-		Expect(session.Out.Contents()).To(
+		Expect(session.OutputToString()).To(
 			And(
 				ContainSubstring("foobar.com"),
 				ContainSubstring("1.2.3.4"),
@@ -333,26 +334,26 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 		session = podmanTest.Podman([]string{"run", "--rm", ALPINE, "cat", "/proc/sys/net/ipv4/ping_group_range"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.Out.Contents()).To(ContainSubstring("1000"))
+		Expect(session.OutputToString()).To(ContainSubstring("1000"))
 
 		// shm-size
 		session = podmanTest.Podman([]string{"run", ALPINE, "grep", "shm", "/proc/self/mounts"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.Out.Contents()).To(ContainSubstring("size=200k"))
+		Expect(session.OutputToString()).To(ContainSubstring("size=200k"))
 
 		// ulimits
 		session = podmanTest.Podman([]string{"run", "--rm", fedoraMinimal, "ulimit", "-n"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.Out.Contents()).To(ContainSubstring("500"))
+		Expect(session.OutputToString()).To(ContainSubstring("500"))
 
 		// Configuration that comes from remote client
 		// Timezone
 		session = podmanTest.Podman([]string{"run", ALPINE, "date", "+'%H %Z'"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.Out.Contents()).To(
+		Expect(session.OutputToString()).To(
 			Or(
 				ContainSubstring("EST"),
 				ContainSubstring("EDT"),
@@ -366,21 +367,21 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 	})
 
 	It("add annotations", func() {
-		// containers.conf is set to   "run.oci.keep_original_groups=1"
+		// containers.conf is set to "run.oci.keep_original_groups=1"
 		session := podmanTest.Podman([]string{"create", "--rm", "--name", "test", fedoraMinimal})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 
 		inspect := podmanTest.Podman([]string{"inspect", "--format", "{{ .Config.Annotations }}", "test"})
 		inspect.WaitWithDefaultTimeout()
-		Expect(inspect.Out.Contents()).To(ContainSubstring("run.oci.keep_original_groups:1"))
+		Expect(inspect.OutputToString()).To(ContainSubstring(fmt.Sprintf("%s:1", define.RunOCIKeepOriginalGroups)))
 	})
 
 	It("--add-host and no-hosts=true fails", func() {
 		session := podmanTest.Podman([]string{"run", "-dt", "--add-host", "test1:127.0.0.1", ALPINE, "top"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).To(ExitWithError())
-		Expect(session.Err.Contents()).To(ContainSubstring("--no-hosts and --add-host cannot be set together"))
+		Expect(session.ErrorToString()).To(ContainSubstring("--no-hosts and --add-host cannot be set together"))
 
 		session = podmanTest.Podman([]string{"run", "-dt", "--add-host", "test1:127.0.0.1", "--no-hosts=false", ALPINE, "top"})
 		session.WaitWithDefaultTimeout()
@@ -391,12 +392,12 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 		session := podmanTest.Podman([]string{"run", "--rm", "--name", "test", ALPINE, "cat", "/etc/hosts"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.Out.Contents()).ToNot(ContainSubstring("test"))
+		Expect(session.OutputToString()).ToNot(ContainSubstring("test"))
 
 		session = podmanTest.Podman([]string{"run", "--rm", "--name", "test", "--no-hosts=false", ALPINE, "cat", "/etc/hosts"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.Out.Contents()).To(ContainSubstring("test"))
+		Expect(session.OutputToString()).To(ContainSubstring("test"))
 	})
 
 	It("seccomp profile path", func() {
@@ -462,7 +463,7 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 		session = podmanTest.Podman([]string{"info", "--format", "{{.Store.ImageCopyTmpDir}}"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
-		Expect(session.Out.Contents()).To(ContainSubstring(storagePath))
+		Expect(session.OutputToString()).To(ContainSubstring(storagePath))
 
 		containersConf = []byte("[engine]\nimage_copy_tmp_dir=\"storage1\"")
 		err = os.WriteFile(configPath, containersConf, os.ModePerm)
@@ -472,7 +473,7 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 			session = podmanTest.Podman([]string{"info", "--format", "{{.Store.ImageCopyTmpDir}}"})
 			session.WaitWithDefaultTimeout()
 			Expect(session).Should(Exit(125))
-			Expect(session.Err.Contents()).To(ContainSubstring("invalid image_copy_tmp_dir value \"storage1\" (relative paths are not accepted)"))
+			Expect(session.ErrorToString()).To(ContainSubstring("invalid image_copy_tmp_dir value \"storage1\" (relative paths are not accepted)"))
 
 			os.Setenv("TMPDIR", "/hoge")
 			session = podmanTest.Podman([]string{"info", "--format", "{{.Store.ImageCopyTmpDir}}"})
@@ -490,7 +491,7 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 		result := podmanTest.Podman([]string{"system", "service", "--help"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(0))
-		Expect(result.Out.Contents()).To(ContainSubstring("(default 1234)"))
+		Expect(result.OutputToString()).To(ContainSubstring("(default 1234)"))
 	})
 
 	It("bad infra_image name", func() {
@@ -512,17 +513,17 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 		result := podmanTest.Podman([]string{"pod", "create", "--infra-image", infra2})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(125))
-		Expect(result.Err.Contents()).To(ContainSubstring(error2String))
+		Expect(result.ErrorToString()).To(ContainSubstring(error2String))
 
 		result = podmanTest.Podman([]string{"pod", "create"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(125))
-		Expect(result.Err.Contents()).To(ContainSubstring(errorString))
+		Expect(result.ErrorToString()).To(ContainSubstring(errorString))
 
 		result = podmanTest.Podman([]string{"create", "--pod", "new:pod1", ALPINE})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(Exit(125))
-		Expect(result.Err.Contents()).To(ContainSubstring(errorString))
+		Expect(result.ErrorToString()).To(ContainSubstring(errorString))
 	})
 
 	It("set .engine.remote=true", func() {
