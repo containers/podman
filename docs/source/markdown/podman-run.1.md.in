@@ -341,7 +341,8 @@ Suppress output information when pulling images
 
 #### **--rm**
 
-Automatically remove the container when it exits. The default is **false**.
+Automatically remove the container and any anonymous unnamed volume associated with
+the container when it exits. The default is **false**.
 
 #### **--rmi**
 
