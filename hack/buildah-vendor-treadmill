@@ -366,17 +366,38 @@ sub tweak_cirrus_test_order {
             $in_depend = $1;
         }
         elsif ($in_depend && $line =~ /^($in_depend\s+-\s+)(\S+)/) {
-            if ($current_task eq 'buildah_bud_test') {
-                # Buildah bud test now depends on validate, so it runs early
-                $line = "${1}validate";
+            my $indent = $1;
+
+            # Run the buildah-bud tests early: that's the entire point
+            # of the treadmill PR. Here we switch Cirrus task dependencies
+            # such that bud tests run as early as possible.
+            if ($current_task =~ /buildah_bud_test/) {
+                # Buildah bud test now depends on validate...
+                $line = "${indent}validate";
+                # ...and *rootless* bud depends on the regular bud test.
+                $line = "${indent}buildah_bud_test"
+                    if $current_task =~ /rootless/;
             }
             elsif ($2 eq 'validate' && $current_task ne 'success') {
-                # Other tests that relied on validate, now rely on bud instead
-                $line = "${1}buildah_bud_test";
+                # Other tests that relied on validate, now rely on
+                # rootless bud tests instead. The point of the treadmill PR
+                # is to run the bud tests, then rootless bud tests, and
+                # only then, if everything passes, run normal tests.
+                # (Reason: bud tests are the only ones likely to fail,
+                # and we want to see failures early).
+                $line = "${indent}rootless_buildah_bud_test";
             }
         }
         else {
             undef $in_depend;
+
+            # Rootless tests normally run only on nightly treadmill, but
+            # we really should run them here too. Remove the 'only' clause.
+            if ($current_task eq 'rootless_buildah_bud_test') {
+                if ($line =~ /^\s+only_if:.*treadmill/) {
+                    next;
+                }
+            }
         }
 
         print { $out } $line, "\n";
