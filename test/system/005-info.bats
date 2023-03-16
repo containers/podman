@@ -93,6 +93,26 @@ host.slirp4netns.executable | $expr_path
     is "$output" "$CI_DESIRED_NETWORK" "CI_DESIRED_NETWORK (from .cirrus.yml)"
 }
 
+@test "podman info - confirm desired database" {
+    skip "FIXME: no way yet (2023-03-16) to override DB in system tests"
+    if [[ -z "$CI_DESIRED_DATABASE" ]]; then
+        # When running in Cirrus, CI_DESIRED_DATABASE *must* be defined
+        # in .cirrus.yml so we can double-check that all CI VMs are
+        # using netavark or cni as desired.
+        if [[ -n "$CIRRUS_CI" ]]; then
+            die "CIRRUS_CI is set, but CI_DESIRED_DATABASE is not! See #16389"
+        fi
+
+        # Not running under Cirrus (e.g., gating tests, or dev laptop).
+        # Totally OK to skip this test.
+        skip "CI_DESIRED_DATABASE is unset--OK, because we're not in Cirrus"
+    fi
+
+    run_podman info --format '{{.Host.DatabaseBackend}}'
+    is "$output" "$CI_DESIRED_DATABASE" "CI_DESIRED_DATABASE (from .cirrus.yml)"
+}
+
+
 # 2021-04-06 discussed in watercooler: RHEL must never use crun, even if
 # using cgroups v2.
 @test "podman info - RHEL8 must use runc" {

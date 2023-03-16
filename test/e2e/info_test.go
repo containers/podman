@@ -181,4 +181,19 @@ var _ = Describe("Podman Info", func() {
 		Expect(session).To(Exit(0))
 		Expect(session.OutputToString()).To(Equal(want))
 	})
+
+	It("Podman info: check desired database backend", func() {
+		// defined in .cirrus.yml
+		want := os.Getenv("CI_DESIRED_DATABASE")
+		if want == "" {
+			if os.Getenv("CIRRUS_CI") == "" {
+				Skip("CI_DESIRED_DATABASE is not set--this is OK because we're not running under Cirrus")
+			}
+			Fail("CIRRUS_CI is set, but CI_DESIRED_DATABASE is not! See #16389")
+		}
+		session := podmanTest.Podman([]string{"info", "--format", "{{.Host.DatabaseBackend}}"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).To(Exit(0))
+		Expect(session.OutputToString()).To(Equal(want))
+	})
 })
