@@ -53,19 +53,31 @@ gce_instance:
     image_name: "${FEDORA_CACHE_IMAGE_NAME}"
 
 
-fedora_testing_task: &fedora_testing
-    alias: fedora_testing
-    name: &std_test_name "${OS_NAME} ${TEST_DRIVER}"
+linux_testing: &linux_testing
     depends_on:
         - lint
     only_if: $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*'
     gce_instance:  # Only need to specify differences from defaults (above)
         image_name: "${VM_IMAGE}"
 
+    # Separate scripts for separate outputs, makes debugging easier.
+    setup_script: '${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/setup.sh |& ${_TIMESTAMP}'
+    build_and_test_script: '${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/build_and_test.sh |& ${_TIMESTAMP}'
+
+    always:
+        df_script: '${_DFCMD} || true'
+        rh_audit_log_script: '${_RAUDITCMD} || true'
+        ubuntu_audit_log_script: '${_UAUDITCMD} || true'
+        journal_log_script: '${_JOURNALCMD} || true'
+
+
+fedora_testing_task: &fedora_testing
+    <<: *linux_testing
+    alias: fedora_testing
+    name: &std_test_name "${OS_NAME} ${TEST_DRIVER}"
     env:
         OS_NAME: "${FEDORA_NAME}"
         VM_IMAGE: "${FEDORA_CACHE_IMAGE_NAME}"
-
     # Not all $TEST_DRIVER combinations valid for all $VM_IMAGE types.
     matrix: &test_matrix
         - env:
@@ -81,26 +93,16 @@ fedora_testing_task: &fedora_testing
         - env:
             TEST_DRIVER: "btrfs"
 
-    # Separate scripts for separate outputs, makes debugging easier.
-    setup_script: '${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/setup.sh |& ${_TIMESTAMP}'
-    build_and_test_script: '${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/build_and_test.sh |& ${_TIMESTAMP}'
-
-    always:
-        df_script: '${_DFCMD} || true'
-        rh_audit_log_script: '${_RAUDITCMD} || true'
-        ubuntu_audit_log_script: '${_UAUDITCMD} || true'
-        journal_log_script: '${_JOURNALCMD} || true'
-
 
 # aufs was dropped between 20.04 and 22.04, can't test it
 ubuntu_testing_task: &ubuntu_testing
-    <<: *fedora_testing
+    <<: *linux_testing
     alias: ubuntu_testing
     name: *std_test_name
-    only_if: $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*'
     env:
         OS_NAME: "${UBUNTU_NAME}"
         VM_IMAGE: "${UBUNTU_CACHE_IMAGE_NAME}"
+    # Not all $TEST_DRIVER combinations valid for all $VM_IMAGE types.
     matrix:
         - env:
             TEST_DRIVER: "vfs"

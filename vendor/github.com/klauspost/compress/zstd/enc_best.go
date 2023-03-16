@@ -32,7 +32,6 @@ type match struct {
 	length int32
 	rep    int32
 	est    int32
-	_      [12]byte // Aligned size to cache line: 4+4+4+4+4 bytes + 12 bytes padding = 32 bytes
 }
 
 const highScore = 25000
@@ -189,12 +188,6 @@ encodeLoop:
 			panic("offset0 was 0")
 		}
 
-		bestOf := func(a, b *match) *match {
-			if a.est-b.est+(a.s-b.s)*bitsPerByte>>10 < 0 {
-				return a
-			}
-			return b
-		}
 		const goodEnough = 100
 
 		nextHashL := hashLen(cv, bestLongTableBits, bestLongLen)
@@ -202,40 +195,41 @@ encodeLoop:
 		candidateL := e.longTable[nextHashL]
 		candidateS := e.table[nextHashS]
 
-		matchAt := func(offset int32, s int32, first uint32, rep int32) match {
+		// Set m to a match at offset if it looks like that will improve compression.
+		improve := func(m *match, offset int32, s int32, first uint32, rep int32) {
 			if s-offset >= e.maxMatchOff || load3232(src, offset) != first {
-				return match{s: s, est: highScore}
+				return
 			}
 			if debugAsserts {
 				if !bytes.Equal(src[s:s+4], src[offset:offset+4]) {
 					panic(fmt.Sprintf("first match mismatch: %v != %v, first: %08x", src[s:s+4], src[offset:offset+4], first))
 				}
 			}
-			m := match{offset: offset, s: s, length: 4 + e.matchlen(s+4, offset+4, src), rep: rep}
-			m.estBits(bitsPerByte)
-			return m
+			cand := match{offset: offset, s: s, length: 4 + e.matchlen(s+4, offset+4, src), rep: rep}
+			cand.estBits(bitsPerByte)
+			if m.est >= highScore || cand.est-m.est+(cand.s-m.s)*bitsPerByte>>10 < 0 {
+				*m = cand
+			}
 		}
 
-		m1 := matchAt(candidateL.offset-e.cur, s, uint32(cv), -1)
-		m2 := matchAt(candidateL.prev-e.cur, s, uint32(cv), -1)
-		m3 := matchAt(candidateS.offset-e.cur, s, uint32(cv), -1)
-		m4 := matchAt(candidateS.prev-e.cur, s, uint32(cv), -1)
-		best := bestOf(bestOf(&m1, &m2), bestOf(&m3, &m4))
+		best := match{s: s, est: highScore}
+		improve(&best, candidateL.offset-e.cur, s, uint32(cv), -1)
+		improve(&best, candidateL.prev-e.cur, s, uint32(cv), -1)
+		improve(&best, candidateS.offset-e.cur, s, uint32(cv), -1)
+		improve(&best, candidateS.prev-e.cur, s, uint32(cv), -1)
 
 		if canRepeat && best.length < goodEnough {
 			cv32 := uint32(cv >> 8)
 			spp := s + 1
-			m1 := matchAt(spp-offset1, spp, cv32, 1)
-			m2 := matchAt(spp-offset2, spp, cv32, 2)
-			m3 := matchAt(spp-offset3, spp, cv32, 3)
-			best = bestOf(bestOf(best, &m1), bestOf(&m2, &m3))
+			improve(&best, spp-offset1, spp, cv32, 1)
+			improve(&best, spp-offset2, spp, cv32, 2)
+			improve(&best, spp-offset3, spp, cv32, 3)
 			if best.length > 0 {
 				cv32 = uint32(cv >> 24)
 				spp += 2
-				m1 := matchAt(spp-offset1, spp, cv32, 1)
-				m2 := matchAt(spp-offset2, spp, cv32, 2)
-				m3 := matchAt(spp-offset3, spp, cv32, 3)
-				best = bestOf(bestOf(best, &m1), bestOf(&m2, &m3))
+				improve(&best, spp-offset1, spp, cv32, 1)
+				improve(&best, spp-offset2, spp, cv32, 2)
+				improve(&best, spp-offset3, spp, cv32, 3)
 			}
 		}
 		// Load next and check...
@@ -262,18 +256,16 @@ encodeLoop:
 			candidateL2 := e.longTable[hashLen(cv2, bestLongTableBits, bestLongLen)]
 
 			// Short at s+1
-			m1 := matchAt(candidateS.offset-e.cur, s, uint32(cv), -1)
+			improve(&best, candidateS.offset-e.cur, s, uint32(cv), -1)
 			// Long at s+1, s+2
-			m2 := matchAt(candidateL.offset-e.cur, s, uint32(cv), -1)
-			m3 := matchAt(candidateL.prev-e.cur, s, uint32(cv), -1)
-			m4 := matchAt(candidateL2.offset-e.cur, s+1, uint32(cv2), -1)
-			m5 := matchAt(candidateL2.prev-e.cur, s+1, uint32(cv2), -1)
-			best = bestOf(bestOf(bestOf(best, &m1), &m2), bestOf(bestOf(&m3, &m4), &m5))
+			improve(&best, candidateL.offset-e.cur, s, uint32(cv), -1)
+			improve(&best, candidateL.prev-e.cur, s, uint32(cv), -1)
+			improve(&best, candidateL2.offset-e.cur, s+1, uint32(cv2), -1)
+			improve(&best, candidateL2.prev-e.cur, s+1, uint32(cv2), -1)
 			if false {
 				// Short at s+3.
 				// Too often worse...
-				m := matchAt(e.table[hashLen(cv2>>8, bestShortTableBits, bestShortLen)].offset-e.cur, s+2, uint32(cv2>>8), -1)
-				best = bestOf(best, &m)
+				improve(&best, e.table[hashLen(cv2>>8, bestShortTableBits, bestShortLen)].offset-e.cur, s+2, uint32(cv2>>8), -1)
 			}
 			// See if we can find a better match by checking where the current best ends.
 			// Use that offset to see if we can find a better full match.
@@ -284,13 +276,10 @@ encodeLoop:
 				// For this compression level 2 yields the best results.
 				const skipBeginning = 2
 				if pos := candidateEnd.offset - e.cur - best.length + skipBeginning; pos >= 0 {
-					m := matchAt(pos, best.s+skipBeginning, load3232(src, best.s+skipBeginning), -1)
-					bestEnd := bestOf(best, &m)
+					improve(&best, pos, best.s+skipBeginning, load3232(src, best.s+skipBeginning), -1)
 					if pos := candidateEnd.prev - e.cur - best.length + skipBeginning; pos >= 0 {
-						m := matchAt(pos, best.s+skipBeginning, load3232(src, best.s+skipBeginning), -1)
-						bestEnd = bestOf(bestEnd, &m)
+						improve(&best, pos, best.s+skipBeginning, load3232(src, best.s+skipBeginning), -1)
 					}
-					best = bestEnd
 				}
 			}
 		}
