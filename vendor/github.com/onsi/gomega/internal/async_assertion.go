@@ -412,7 +412,7 @@ func (assertion *AsyncAssertion) match(matcher types.GomegaMatcher, desiredMatch
 				message += format.Object(attachment.Object, 1)
 			}
 		} else {
-			message = preamble + "\n" + err.Error() + "\n" + format.Object(err, 1)
+			message = preamble + "\n" + format.Object(err, 1)
 		}
 		return message
 	}

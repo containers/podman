@@ -16,6 +16,21 @@ This package provides various compression algorithms.
 
 # changelog
 
+* Mar 13, 2023 - [v1.16.1](https://github.com/klauspost/compress/releases/tag/v1.16.1)
+	* zstd: Speed up + improve best encoder by @greatroar in https://github.com/klauspost/compress/pull/776
+	* gzhttp: Add optional [BREACH mitigation](https://github.com/klauspost/compress/tree/master/gzhttp#breach-mitigation). https://github.com/klauspost/compress/pull/762 https://github.com/klauspost/compress/pull/768 https://github.com/klauspost/compress/pull/769 https://github.com/klauspost/compress/pull/770 https://github.com/klauspost/compress/pull/767
+	* s2: Add Intel LZ4s converter https://github.com/klauspost/compress/pull/766
+	* zstd: Minor bug fixes https://github.com/klauspost/compress/pull/771 https://github.com/klauspost/compress/pull/772 https://github.com/klauspost/compress/pull/773
+	* huff0: Speed up compress1xDo by @greatroar in https://github.com/klauspost/compress/pull/774
+
+* Feb 26, 2023 - [v1.16.0](https://github.com/klauspost/compress/releases/tag/v1.16.0)
+	* s2: Add [Dictionary](https://github.com/klauspost/compress/tree/master/s2#dictionaries) support.  https://github.com/klauspost/compress/pull/685
+	* s2: Add Compression Size Estimate.  https://github.com/klauspost/compress/pull/752
+	* s2: Add support for custom stream encoder. https://github.com/klauspost/compress/pull/755
+	* s2: Add LZ4 block converter. https://github.com/klauspost/compress/pull/748
+	* s2: Support io.ReaderAt in ReadSeeker. https://github.com/klauspost/compress/pull/747
+	* s2c/s2sx: Use concurrent decoding. https://github.com/klauspost/compress/pull/746
+
 * Jan 21st, 2023 (v1.15.15)
 	* deflate: Improve level 7-9 by @klauspost in https://github.com/klauspost/compress/pull/739
 	* zstd: Add delta encoding support by @greatroar in https://github.com/klauspost/compress/pull/728

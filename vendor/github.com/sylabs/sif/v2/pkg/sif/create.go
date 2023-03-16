@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2022, Sylabs Inc. All rights reserved.
+// Copyright (c) 2018-2023, Sylabs Inc. All rights reserved.
 // Copyright (c) 2017, SingularityWare, LLC. All rights reserved.
 // Copyright (c) 2017, Yannick Cote <yhcote@gmail.com> All rights reserved.
 // This software is licensed under a 3-clause BSD license. Please consult the
@@ -69,7 +69,7 @@ func (f *FileImage) writeDataObject(i int, di DescriptorInput, t time.Time) erro
 
 	// If this is a primary partition, verify there isn't another primary partition, and update the
 	// architecture in the global header.
-	if p, ok := di.opts.extra.(partition); ok && p.Parttype == PartPrimSys {
+	if p, ok := di.opts.md.(partition); ok && p.Parttype == PartPrimSys {
 		if ds, err := f.GetDescriptors(WithPartitionType(PartPrimSys)); err == nil && len(ds) > 0 {
 			return errPrimaryPartition
 		}
@@ -636,9 +636,6 @@ func (f *FileImage) SetPrimPart(id uint32, opts ...SetOpt) error {
 	if err != nil && !errors.Is(err, ErrObjectNotFound) {
 		return fmt.Errorf("%w", err)
 	}
-
-	f.h.Arch = getSIFArch(arch)
-
 	extra := partition{
 		Fstype:   fs,
 		Parttype: PartPrimSys,
@@ -648,6 +645,8 @@ func (f *FileImage) SetPrimPart(id uint32, opts ...SetOpt) error {
 	if err := descr.setExtra(extra); err != nil {
 		return fmt.Errorf("%w", err)
 	}
+
+	descr.ModifiedAt = so.t.Unix()
 
 	if olddescr != nil {
 		oldfs, _, oldarch, err := olddescr.getPartitionMetadata()
@@ -664,12 +663,15 @@ func (f *FileImage) SetPrimPart(id uint32, opts ...SetOpt) error {
 		if err := olddescr.setExtra(oldextra); err != nil {
 			return fmt.Errorf("%w", err)
 		}
+
+		olddescr.ModifiedAt = so.t.Unix()
 	}
 
 	if err := f.writeDescriptors(); err != nil {
 		return fmt.Errorf("%w", err)
 	}
 
+	f.h.Arch = getSIFArch(arch)
 	f.h.ModifiedAt = so.t.Unix()
 
 	if err := f.writeHeader(); err != nil {
