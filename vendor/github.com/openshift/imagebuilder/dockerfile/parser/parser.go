@@ -4,6 +4,7 @@ package parser
 import (
 	"bufio"
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"regexp"
@@ -12,9 +13,9 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/openshift/imagebuilder/dockerfile/command"
+	sRegexp "github.com/containers/storage/pkg/regexp"
 	"github.com/containers/storage/pkg/system"
-	"github.com/pkg/errors"
+	"github.com/openshift/imagebuilder/dockerfile/command"
 )
 
 // Node is a structure used to represent a parse tree.
@@ -28,7 +29,6 @@ import (
 // This data structure is frankly pretty lousy for handling complex languages,
 // but lucky for us the Dockerfile isn't very complicated. This structure
 // works a little more effectively than a "proper" parse tree for our needs.
-//
 type Node struct {
 	Value      string          // actual content
 	Next       *Node           // the next item in the current sexp
@@ -82,10 +82,10 @@ func (node *Node) AddChild(child *Node, startLine, endLine int) {
 
 var (
 	dispatch             map[string]func(string, *Directive) (*Node, map[string]bool, error)
-	tokenWhitespace      = regexp.MustCompile(`[\t\v\f\r ]+`)
-	tokenEscapeCommand   = regexp.MustCompile(`^#[ \t]*escape[ \t]*=[ \t]*(?P<escapechar>.).*$`)
-	tokenPlatformCommand = regexp.MustCompile(`^#[ \t]*platform[ \t]*=[ \t]*(?P<platform>.*)$`)
-	tokenComment         = regexp.MustCompile(`^#.*$`)
+	tokenWhitespace      = sRegexp.Delayed(`[\t\v\f\r ]+`)
+	tokenEscapeCommand   = sRegexp.Delayed(`^#[ \t]*escape[ \t]*=[ \t]*(?P<escapechar>.).*$`)
+	tokenPlatformCommand = sRegexp.Delayed(`^#[ \t]*platform[ \t]*=[ \t]*(?P<platform>.*)$`)
+	tokenComment         = sRegexp.Delayed(`^#.*$`)
 )
 
 // DefaultEscapeToken is the default escape token

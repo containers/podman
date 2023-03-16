@@ -34,10 +34,14 @@ var replaceEnvAllowed = map[string]bool{
 
 // Certain commands are allowed to have their args split into more
 // words after env var replacements. Meaning:
-//   ENV foo="123 456"
-//   EXPOSE $foo
+//
+//	ENV foo="123 456"
+//	EXPOSE $foo
+//
 // should result in the same thing as:
-//   EXPOSE 123 456
+//
+//	EXPOSE 123 456
+//
 // and not treat "123 456" as a single word.
 // Note that: EXPOSE "$foo" and EXPOSE $foo are not the same thing.
 // Quotes will cause it to still be treated as single word.
