@@ -171,7 +171,15 @@ function _confirm_update() {
     is "$output" ".* system auto-update"
 
     since=$(date --iso-8601=seconds)
-    run_podman auto-update --rollback=false --format "{{.Unit}},{{.Image}},{{.Updated}},{{.Policy}}"
+    run_podman '?' auto-update --rollback=false --format "{{.Unit}},{{.Image}},{{.Updated}},{{.Policy}}"
+    if [[ $status -ne 0 ]]; then
+        echo "------------------------------------ SYSTEMCTL STATUS"
+        systemctl status container-$cname.service
+        echo "------------------------------------ JOURNALCAL LOGS"
+        journalctl --unit container-$cname.service
+        echo "------------------------------------"
+        die "auto update failed with exit code $status: $output"
+    fi
     is "$output" "Trying to pull.*" "Image is updated."
     is "$output" ".*container-$cname.service,quay.io/libpod/alpine:latest,true,registry.*" "Image is updated."
     run_podman events --filter type=system --since $since --stream=false
@@ -248,7 +256,15 @@ function _confirm_update() {
     run_podman auto-update --dry-run --format "{{.Unit}},{{.Image}},{{.Updated}},{{.Policy}}"
     is "$output" ".*container-$cname.service,quay.io/libpod/localtest:latest,pending,local.*" "Image update is pending."
 
-    run_podman auto-update --rollback=false --format "{{.Unit}},{{.Image}},{{.Updated}},{{.Policy}}"
+    run_podman '?' auto-update --rollback=false --format "{{.Unit}},{{.Image}},{{.Updated}},{{.Policy}}"
+    if [[ $status -ne 0 ]]; then
+        echo "------------------------------------ SYSTEMCTL STATUS"
+        systemctl status container-$cname.service
+        echo "------------------------------------ JOURNALCAL LOGS"
+        journalctl --unit container-$cname.service
+        echo "------------------------------------"
+        die "auto update failed with exit code $status: $output"
+    fi
     is "$output" ".*container-$cname.service,quay.io/libpod/localtest:latest,true,local.*" "Image is updated."
 
     _confirm_update $cname $ori_image
@@ -353,6 +369,11 @@ EOF
     is "$n_updated" "2" "Number of images updated from registry."
 
     for cname in "${!expect_update[@]}"; do
+        echo "------------------------------------ SYSTEMCTL STATUS"
+        systemctl status container-$cname.service
+        echo "------------------------------------ JOURNALCAL LOGS"
+        journalctl --unit container-$cname.service
+        echo "------------------------------------"
         is "$update_log" ".*$cname.*" "container with auto-update policy image updated"
         # Just because podman says it fetched, doesn't mean it actually updated
         _confirm_update $cname $img_id
