@@ -619,8 +619,8 @@ spec:
     - name: server
       image: $IMAGE
       command:
-      - sleep
-      - "5"
+      - echo
+      - "hello"
 " > $fname
 
     run_podman kube play --wait $fname
