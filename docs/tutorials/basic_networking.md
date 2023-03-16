@@ -259,7 +259,7 @@ valid_lft forever preferred_lft forever
 ```
 
 For rootless containers, make sure to open the firewall ports on the host so that a client outside the host can communicate.
-An example if you are using a red hat based distro.
+An example if you are using firewalld:
 
 ```
 sudo firewall-cmd --add-port=8080/tcp --permanent 
