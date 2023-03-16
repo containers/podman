@@ -120,7 +120,9 @@ func (r *Runtime) newVolume(ctx context.Context, noCreatePluginVolume bool, opti
 		volume.config.StorageImageID = image.ID()
 
 		// Create a backing container in c/storage.
-		storageConfig := storage.ContainerOptions{}
+		storageConfig := storage.ContainerOptions{
+			LabelOpts: []string{"filetype:container_file_t", "level:s0"},
+		}
 		if len(volume.config.MountLabel) > 0 {
 			context, err := selinux.NewContext(volume.config.MountLabel)
 			if err != nil {

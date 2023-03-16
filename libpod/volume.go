@@ -136,7 +136,7 @@ func (v *Volume) Labels() map[string]string {
 // MountPoint returns the volume's mountpoint on the host
 func (v *Volume) MountPoint() (string, error) {
 	// For the sake of performance, avoid locking unless we have to.
-	if v.UsesVolumeDriver() {
+	if v.UsesVolumeDriver() || v.config.Driver == define.VolumeDriverImage {
 		v.lock.Lock()
 		defer v.lock.Unlock()
 

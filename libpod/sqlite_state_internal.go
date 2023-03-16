@@ -295,6 +295,21 @@ func finalizeVolumeSqlite(vol *Volume) error {
 	}
 	vol.lock = lock
 
+	// Retrieve volume driver
+	if vol.UsesVolumeDriver() {
+		plugin, err := vol.runtime.getVolumePlugin(vol.config)
+		if err != nil {
+			// We want to fail gracefully here, to ensure that we
+			// can still remove volumes even if their plugin is
+			// missing. Otherwise, we end up with volumes that
+			// cannot even be retrieved from the database and will
+			// cause things like `volume ls` to fail.
+			logrus.Errorf("Volume %s uses volume plugin %s, but it cannot be accessed - some functionality may not be available: %v", vol.Name(), vol.config.Driver, err)
+		} else {
+			vol.plugin = plugin
+		}
+	}
+
 	vol.valid = true
 
 	return nil
@@ -373,6 +388,17 @@ func (s *SQLiteState) addContainer(ctr *Container) (defErr error) {
 			}
 		}
 	}()
+
+	// TODO: There has to be a better way of doing this
+	var check int
+	row := tx.QueryRow("SELECT 1 FROM ContainerConfig WHERE Name=?;", ctr.Name())
+	if err := row.Scan(&check); err != nil {
+		if !errors.Is(err, sql.ErrNoRows) {
+			return fmt.Errorf("checking if container name %s exists in database: %w", ctr.Name(), err)
+		}
+	} else if check != 0 {
+		return fmt.Errorf("name %q is in use: %w", ctr.Name(), define.ErrCtrExists)
+	}
 
 	if _, err := tx.Exec("INSERT INTO IDNamespace VALUES (?);", ctr.ID()); err != nil {
 		return fmt.Errorf("adding container id to database: %w", err)
@@ -502,7 +528,7 @@ func (s *SQLiteState) networkModify(ctr *Container, network string, opts types.P
 
 	_, ok := newCfg.Networks[network]
 	if new && ok {
-		return fmt.Errorf("container %s is already connected to network %s: %w", ctr.ID(), network, define.ErrNoSuchNetwork)
+		return fmt.Errorf("container %s is already connected to network %s: %w", ctr.ID(), network, define.ErrNetworkConnected)
 	}
 	if !ok && (!new || disconnect) {
 		return fmt.Errorf("container %s is not connected to network %s: %w", ctr.ID(), network, define.ErrNoSuchNetwork)

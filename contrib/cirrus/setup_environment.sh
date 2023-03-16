@@ -142,6 +142,26 @@ case "$CI_DESIRED_NETWORK" in
     *)          die_unknown CI_DESIRED_NETWORK ;;
 esac
 
+# Database: force SQLite or BoltDB as requested in .cirrus.yml.
+# If unset, will default to BoltDB.
+# shellcheck disable=SC2154
+case "$CI_DESIRED_DATABASE" in
+    sqlite)
+        warn "Forcing PODMAN_DB=sqlite"
+        echo "PODMAN_DB=sqlite" >> /etc/ci_environment
+	;;
+    boltdb)
+        warn "Forcing PODMAN_DB=boltdb"
+        echo "PODMAN_DB=boltdb" >> /etc/ci_environment
+	;;
+    "")
+        warn "Using default Podman database"
+        ;;
+    *)
+        die_unknown CI_DESIRED_DATABASE
+        ;;
+esac
+
 # Required to be defined by caller: The environment where primary testing happens
 # shellcheck disable=SC2154
 case "$TEST_ENVIRON" in

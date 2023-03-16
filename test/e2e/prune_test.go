@@ -563,7 +563,6 @@ var _ = Describe("Podman prune", func() {
 		SkipIfRemote("Can't drop database while daemon running")
 
 		containerStorageDir := filepath.Join(podmanTest.Root, podmanTest.ImageCacheFS+"-containers")
-		dbDir := filepath.Join(podmanTest.Root, "libpod")
 
 		// Create container 1
 		create := podmanTest.Podman([]string{"create", "--name", "test", BB})
@@ -580,8 +579,15 @@ var _ = Describe("Podman prune", func() {
 		// Drop podman database and storage, losing track of container 1 (but directory remains)
 		err = os.Remove(filepath.Join(containerStorageDir, "containers.json"))
 		Expect(err).ToNot(HaveOccurred())
-		err = os.RemoveAll(dbDir)
-		Expect(err).ToNot(HaveOccurred())
+
+		if podmanTest.DatabaseBackend == "sqlite" {
+			err = os.Remove(filepath.Join(podmanTest.Root, "db.sql"))
+			Expect(err).ToNot(HaveOccurred())
+		} else {
+			dbDir := filepath.Join(podmanTest.Root, "libpod")
+			err = os.RemoveAll(dbDir)
+			Expect(err).ToNot(HaveOccurred())
+		}
 
 		Expect(podmanTest.NumberOfContainers()).To(Equal(0))
 

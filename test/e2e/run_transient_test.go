@@ -54,8 +54,14 @@ var _ = Describe("Podman run with volumes", func() {
 		Expect(filepath.Join(containerStorageDir, "volatile-containers.json")).Should(Not(BeAnExistingFile()))
 		Expect(filepath.Join(runContainerStorageDir, "containers.json")).Should(Not(BeAnExistingFile()))
 		Expect(filepath.Join(runContainerStorageDir, "volatile-containers.json")).Should(Not(BeAnExistingFile()))
-		Expect(filepath.Join(dbDir, "bolt_state.db")).Should(BeARegularFile())
-		Expect(filepath.Join(runDBDir, "bolt_state.db")).Should(Not(BeAnExistingFile()))
+
+		if podmanTest.DatabaseBackend == "sqlite" {
+			Expect(filepath.Join(podmanTest.Root, "db.sql")).Should(BeARegularFile())
+			Expect(filepath.Join(podmanTest.RunRoot, "db.sql")).Should(Not(BeAnExistingFile()))
+		} else {
+			Expect(filepath.Join(dbDir, "bolt_state.db")).Should(BeARegularFile())
+			Expect(filepath.Join(runDBDir, "bolt_state.db")).Should(Not(BeAnExistingFile()))
+		}
 	})
 
 	It("podman run --rm with no transient-store", func() {
@@ -68,8 +74,14 @@ var _ = Describe("Podman run with volumes", func() {
 		Expect(filepath.Join(containerStorageDir, "volatile-containers.json")).Should(BeARegularFile())
 		Expect(filepath.Join(runContainerStorageDir, "containers.json")).Should(Not(BeAnExistingFile()))
 		Expect(filepath.Join(runContainerStorageDir, "volatile-containers.json")).Should(Not(BeAnExistingFile()))
-		Expect(filepath.Join(dbDir, "bolt_state.db")).Should(BeARegularFile())
-		Expect(filepath.Join(runDBDir, "bolt_state.db")).Should(Not(BeAnExistingFile()))
+
+		if podmanTest.DatabaseBackend == "sqlite" {
+			Expect(filepath.Join(podmanTest.Root, "db.sql")).Should(BeARegularFile())
+			Expect(filepath.Join(podmanTest.RunRoot, "db.sql")).Should(Not(BeAnExistingFile()))
+		} else {
+			Expect(filepath.Join(dbDir, "bolt_state.db")).Should(BeARegularFile())
+			Expect(filepath.Join(runDBDir, "bolt_state.db")).Should(Not(BeAnExistingFile()))
+		}
 	})
 
 	It("podman run --transient-store", func() {
@@ -83,8 +95,14 @@ var _ = Describe("Podman run with volumes", func() {
 		Expect(filepath.Join(containerStorageDir, "volatile-containers.json")).Should(Not(BeAnExistingFile()))
 		Expect(filepath.Join(runContainerStorageDir, "containers.json")).Should(Not(BeAnExistingFile()))
 		Expect(filepath.Join(runContainerStorageDir, "volatile-containers.json")).Should(BeARegularFile())
-		Expect(filepath.Join(dbDir, "bolt_state.db")).Should(Not(BeAnExistingFile()))
-		Expect(filepath.Join(runDBDir, "bolt_state.db")).Should(BeARegularFile())
+
+		if podmanTest.DatabaseBackend == "sqlite" {
+			Expect(filepath.Join(podmanTest.Root, "db.sql")).Should(Not(BeAnExistingFile()))
+			Expect(filepath.Join(podmanTest.RunRoot, "db.sql")).Should(BeARegularFile())
+		} else {
+			Expect(filepath.Join(dbDir, "bolt_state.db")).Should(Not(BeAnExistingFile()))
+			Expect(filepath.Join(runDBDir, "bolt_state.db")).Should(BeARegularFile())
+		}
 	})
 
 })
