@@ -673,7 +673,7 @@ func (ic *ContainerEngine) ContainerRestore(ctx context.Context, namesOrIds []st
 		}
 		ctrs = make([]*libpod.Container, 0, len(containers))
 		for i := range containers {
-			ctrs[i] = containers[i].Container
+			ctrs = append(ctrs, containers[i].Container)
 		}
 	default:
 		for _, nameOrID := range namesOrIds {
