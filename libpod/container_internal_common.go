@@ -2012,7 +2012,11 @@ func (c *Container) generateResolvConf() error {
 	// If the user provided dns, it trumps all; then dns masq; then resolv.conf
 	keepHostServers := false
 	if len(nameservers) == 0 {
-		keepHostServers = true
+		// when no network name servers or not netavark use host servers
+		// for aardvark dns we only want our single server in there
+		if len(networkNameServers) == 0 || networkBackend != string(types.Netavark) {
+			keepHostServers = true
+		}
 		// first add the nameservers from the networks status
 		nameservers = networkNameServers
 		// slirp4netns has a built in DNS forwarder.

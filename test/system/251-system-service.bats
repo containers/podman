@@ -69,3 +69,22 @@ function teardown() {
 
     systemctl stop $SERVICE_NAME
 }
+
+# Regression test for https://github.com/containers/podman/issues/17749
+@test "podman-system-service --log-level=trace should be able to hijack" {
+    skip_if_remote "podman system service unavailable over remote"
+
+    port=$(random_free_port)
+    URL=tcp://127.0.0.1:$port
+
+    systemd-run --unit=$SERVICE_NAME $PODMAN --log-level=trace system service $URL --time=0
+    wait_for_port 127.0.0.1 $port
+
+    out=o-$(random_string)
+    cname=c-$(random_string)
+    run_podman --url $URL run --name $cname $IMAGE echo $out
+    assert "$output" == "$out" "service is able to hijack and stream output back"
+
+    run_podman --url $URL rm $cname
+    systemctl stop $SERVICE_NAME
+}

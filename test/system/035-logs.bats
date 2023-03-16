@@ -319,14 +319,14 @@ function _log_test_follow_since() {
 
     # Now do the same with a running container to check #16950.
     run_podman ${events_backend} run --log-driver=$driver --name $cname -d $IMAGE \
-        sh -c "sleep 0.5; while :; do echo $content && sleep 3; done"
+        sh -c "sleep 1; while :; do echo $content && sleep 5; done"
 
     # sleep is required to make sure the podman event backend no longer sees the start event in the log
     # This value must be greater or equal than the the value given in --since below
     sleep 0.2
 
     # Make sure podman logs actually follows by giving a low timeout and check that the command times out
-    PODMAN_TIMEOUT=2 run_podman 124 ${events_backend} logs --since 0.1s -f $cname
+    PODMAN_TIMEOUT=3 run_podman 124 ${events_backend} logs --since 0.1s -f $cname
     assert "$output" =~ "^$content
 timeout: sending signal TERM to command.*" "logs --since -f on running container works"
 

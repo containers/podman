@@ -277,10 +277,17 @@ func CreateNetwork(w http.ResponseWriter, r *http.Request) {
 		// FIXME can we use the IPAM driver and options?
 	}
 
+	opts := nettypes.NetworkCreateOptions{
+		IgnoreIfExists: !networkCreate.CheckDuplicate,
+	}
 	ic := abi.ContainerEngine{Libpod: runtime}
-	newNetwork, err := ic.NetworkCreate(r.Context(), network, nil)
+	newNetwork, err := ic.NetworkCreate(r.Context(), network, &opts)
 	if err != nil {
-		utils.InternalServerError(w, err)
+		if errors.Is(err, nettypes.ErrNetworkExists) {
+			utils.Error(w, http.StatusConflict, err)
+		} else {
+			utils.InternalServerError(w, err)
+		}
 		return
 	}
 
