@@ -88,15 +88,15 @@ func parseNumber(input []byte) number {
 		neg = true
 		s = s[1:]
 		size++
-		if len(s) == 0 {
-			return number{}
-		}
 		// Consume any whitespace or comments between the
 		// negative sign and the rest of the number
 		lenBefore := len(s)
 		s = consume(s, 0)
 		sep = lenBefore - len(s)
 		size += sep
+		if len(s) == 0 {
+			return number{}
+		}
 	}
 
 	switch {
