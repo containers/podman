@@ -15,6 +15,7 @@ import (
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/namespaces"
 	"github.com/containers/podman/v4/pkg/specgen"
+	"github.com/containers/podman/v4/pkg/specgenutil"
 	"github.com/containers/podman/v4/pkg/util"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/selinux/go-selinux/label"
@@ -29,6 +30,12 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 	if err != nil {
 		return nil, nil, nil, err
 	}
+
+	rlimits, err := specgenutil.GenRlimits(rtc.Ulimits())
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	s.Rlimits = append(rlimits, s.Rlimits...)
 
 	// If joining a pod, retrieve the pod for use, and its infra container
 	var pod *libpod.Pod

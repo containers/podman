@@ -233,6 +233,28 @@ func setNamespaces(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions)
 	return nil
 }
 
+func GenRlimits(ulimits []string) ([]specs.POSIXRlimit, error) {
+	rlimits := make([]specs.POSIXRlimit, 0, len(ulimits))
+	// Rlimits/Ulimits
+	for _, u := range ulimits {
+		if u == "host" {
+			rlimits = nil
+			break
+		}
+		ul, err := units.ParseUlimit(u)
+		if err != nil {
+			return nil, fmt.Errorf("ulimit option %q requires name=SOFT:HARD, failed to be parsed: %w", u, err)
+		}
+		rl := specs.POSIXRlimit{
+			Type: ul.Name,
+			Hard: uint64(ul.Hard),
+			Soft: uint64(ul.Soft),
+		}
+		rlimits = append(rlimits, rl)
+	}
+	return rlimits, nil
+}
+
 func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions, args []string) error {
 	rtc, err := config.Default()
 	if err != nil {
@@ -738,21 +760,9 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 	// DeviceCgroupRules: c.StringSlice("device-cgroup-rule"),
 
 	// Rlimits/Ulimits
-	for _, u := range c.Ulimit {
-		if u == "host" {
-			s.Rlimits = nil
-			break
-		}
-		ul, err := units.ParseUlimit(u)
-		if err != nil {
-			return fmt.Errorf("ulimit option %q requires name=SOFT:HARD, failed to be parsed: %w", u, err)
-		}
-		rl := specs.POSIXRlimit{
-			Type: ul.Name,
-			Hard: uint64(ul.Hard),
-			Soft: uint64(ul.Soft),
-		}
-		s.Rlimits = append(s.Rlimits, rl)
+	s.Rlimits, err = GenRlimits(c.Ulimit)
+	if err != nil {
+		return err
 	}
 
 	logOpts := make(map[string]string)

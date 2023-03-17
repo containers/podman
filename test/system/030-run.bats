@@ -1006,6 +1006,24 @@ EOF
     CONTAINERS_CONF="$containersconf" run_podman 1 run --rm --read-only-tmpfs=false $IMAGE touch /tmp/testro
 }
 
+@test "podman run ulimit from containers.conf" {
+    skip_if_remote "containers.conf has to be set on remote, only tested on E2E test"
+    containersconf=$PODMAN_TMPDIR/containers.conf
+    nofile1=$((RANDOM % 10000 + 5))
+    nofile2=$((RANDOM % 10000 + 5))
+    cat >$containersconf <<EOF
+[containers]
+default_ulimits = [
+  "nofile=${nofile1}:${nofile1}",
+]
+EOF
+
+    CONTAINERS_CONF="$containersconf" run_podman run --rm $IMAGE grep "Max open files" /proc/self/limits
+    assert "$output" =~ " ${nofile1}  * ${nofile1}  * files"
+    CONTAINERS_CONF="$containersconf" run_podman run --ulimit nofile=${nofile2}:${nofile2} --rm $IMAGE grep "Max open files" /proc/self/limits
+    assert "$output" =~ " ${nofile2}  * ${nofile2}  * files"
+}
+
 @test "podman run bad --name" {
     randomname=$(random_string 30)
     run_podman 125 create --name "$randomname/bad" $IMAGE
