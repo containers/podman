@@ -41,6 +41,7 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 		f := CurrentGinkgoTestDescription()
 		processTestResult(f)
 		os.Unsetenv("CONTAINERS_CONF")
+		os.Unsetenv("CONTAINERS_CONF_OVERRIDE")
 	})
 
 	It("limits test", func() {
@@ -100,6 +101,36 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 
 		}
 
+	})
+
+	It("cgroup_conf in containers.conf", func() {
+		if isCgroupsV1() {
+			Skip("Setting cgroup_confs not supported on cgroupv1")
+		}
+		// FIXME: Needs crun-1.8.2-2 to allow this with --cgroup-manager=cgroupfs, once this is available remove the skip below.
+		SkipIfRootless("--cgroup-manager=cgoupfs and --cgroup-conf not supported in rootless mode with crun")
+		conffile := filepath.Join(podmanTest.TempDir, "container.conf")
+		tempdir, err = CreateTempDirInTempDir()
+		Expect(err).ToNot(HaveOccurred())
+
+		err := os.WriteFile(conffile, []byte("[containers]\ncgroup_conf = [\"pids.max=1234\",]\n"), 0755)
+		Expect(err).ToNot(HaveOccurred())
+
+		os.Setenv("CONTAINERS_CONF_OVERRIDE", conffile)
+		if IsRemote() {
+			podmanTest.RestartRemoteService()
+		}
+
+		// containers.conf is set to "pids.max=1234"
+		session := podmanTest.Podman([]string{"run", "--rm", ALPINE, "cat", "/sys/fs/cgroup/pids.max"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).To(Equal("1234"))
+
+		session = podmanTest.Podman([]string{"run", "--rm", "--cgroup-conf", "pids.max=400", ALPINE, "cat", "/sys/fs/cgroup/pids.max"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).To(Equal("400"))
 	})
 
 	It("having additional env", func() {
