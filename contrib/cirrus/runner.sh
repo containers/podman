@@ -345,15 +345,25 @@ function _run_gitlab() {
     return $ret
 }
 
-logformatter() {
+# Name pattern for logformatter output file, derived from environment
+function output_name() {
+    # .cirrus.yml defines this as a short readable string for web UI
+    std_name_fmt=$(sed -ne 's/^.*std_name_fmt \"\(.*\)\"/\1/p' <.cirrus.yml)
+    test -n "$std_name_fmt" || die "Could not grep 'std_name_fmt' from .cirrus.yml"
+
+    # Interpolate envariables. 'set -u' throws fatal if any are undefined
+    (
+        set -u
+        eval echo "$std_name_fmt" | tr ' ' '-'
+    )
+}
+
+function logformatter() {
     if [[ "$CI" == "true" ]]; then
-        # Use similar format as human-friendly task name from .cirrus.yml
-        # shellcheck disable=SC2154
-        output_name="$TEST_FLAVOR-$PODBIN_NAME-$DISTRO_NV-$PRIV_NAME-$TEST_ENVIRON"
         # Requires stdin and stderr combined!
         cat - \
             |& awk --file "${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/timestamp.awk" \
-            |& "${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/logformatter" "$output_name"
+            |& "${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/logformatter" "$(output_name)"
     else
         # Assume script is run by a human, they want output immediately
         cat -
