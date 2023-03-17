@@ -50,6 +50,7 @@ function setup() {
         'Logdriver:{{.Host.LogDriver}}'
         'Cgroups:{{.Host.CgroupsVersion}}+{{.Host.CgroupManager}}'
         'Net:{{.Host.NetworkBackend}}'
+        'DB:{{.Host.DatabaseBackend}}'
     )
     run_podman info --format "$(IFS='/' echo ${want[@]})"
     echo "# $output" >&3
