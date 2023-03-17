@@ -47,6 +47,10 @@ $ podman push myimage oci-archive:/tmp/myimage
 
 ## OPTIONS
 
+#### **--all-tags**, **-a**
+
+Push all tags of an image to the repository
+
 @@option authfile
 
 @@option cert-dir

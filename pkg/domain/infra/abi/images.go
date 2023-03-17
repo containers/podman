@@ -336,20 +336,54 @@ func (ir *ImageEngine) Push(ctx context.Context, source string, destination stri
 		pushOptions.Writer = os.Stderr
 	}
 
-	pushedManifestBytes, pushError := ir.Libpod.LibimageRuntime().Push(ctx, source, destination, pushOptions)
-	if pushError == nil {
-		if options.DigestFile != "" {
-			manifestDigest, err := manifest.Digest(pushedManifestBytes)
-			if err != nil {
-				return err
-			}
+	pushImage := func(dest string) error {
+		pushedManifestBytes, pushError := ir.Libpod.LibimageRuntime().Push(ctx, source, dest, pushOptions)
+		if pushError == nil {
+			if options.DigestFile != "" {
+				manifestDigest, err := manifest.Digest(pushedManifestBytes)
+				if err != nil {
+					return err
+				}
 
-			if err := os.WriteFile(options.DigestFile, []byte(manifestDigest.String()), 0644); err != nil {
-				return err
+				if err := os.WriteFile(options.DigestFile, []byte(manifestDigest.String()), 0644); err != nil {
+					return err
+				}
 			}
 		}
+		return pushError
+	}
+
+	var pushError error
+	if options.AllTags {
+		// retrieves all of the images that are associated with the source given by the user
+		listOptions := libimage.ListImagesOptions{}
+		listOptions.Filters = []string{fmt.Sprintf("reference=%s", source)}
+		images, err := ir.Libpod.LibimageRuntime().ListImages(ctx, []string{}, &listOptions)
+		if err != nil {
+			return err
+		}
+
+		for _, image := range images {
+			if len(image.Names()) < 1 {
+				return errors.New("attempting to push an unnamed image")
+			}
+
+			tagPrefixIdx := strings.LastIndex(image.Names()[0], ":")
+			tag := image.Names()[0][tagPrefixIdx:]
+
+			pushError = pushImage(destination + tag)
+			if pushError != nil {
+				break
+			}
+		}
+	} else {
+		pushError = pushImage(destination)
+	}
+
+	if pushError == nil {
 		return nil
 	}
+
 	// If the image could not be found, we may be referring to a manifest
 	// list but could not find a matching image instance in the local
 	// containers storage. In that case, fall back and attempt to push the
@@ -358,6 +392,7 @@ func (ir *ImageEngine) Push(ctx context.Context, source string, destination stri
 		_, err := ir.ManifestPush(ctx, source, destination, options)
 		return err
 	}
+
 	return pushError
 }
 

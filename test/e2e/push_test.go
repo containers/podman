@@ -395,4 +395,22 @@ var _ = Describe("Podman push", func() {
 		Expect(session).Should(Exit(0))
 	})
 
+	It("podman push all tags to container-storage", func() {
+		SkipIfRemote("Remote push does not support containers-storage transport")
+
+		session := podmanTest.Podman([]string{"pull", ALPINELISTTAG})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"push", "-a", "alpine", "containers-storage:test-image"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		session = podmanTest.Podman([]string{"images", "test-image"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+
+		testimageCount := strings.Count(session.OutputToString(), "test-image")
+		Expect(testimageCount).To(Equal(2))
+	})
 })

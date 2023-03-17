@@ -181,6 +181,9 @@ type ImagePullReport struct {
 type ImagePushOptions struct {
 	// All indicates that all images referenced in an manifest list should be pushed
 	All bool
+	// AllTags indicates that all tags of the specified image are to be pushed to
+	// the registry
+	AllTags bool
 	// Authfile is the path to the authentication file. Ignored for remote
 	// calls.
 	Authfile string
