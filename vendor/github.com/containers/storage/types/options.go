@@ -152,20 +152,24 @@ func defaultStoreOptionsIsolated(rootless bool, rootlessUID int, storageConf str
 			}
 		}
 	}
-	if storageOpts.RunRoot != "" {
-		runRoot, err := expandEnvPath(storageOpts.RunRoot, rootlessUID)
-		if err != nil {
-			return storageOpts, err
-		}
-		storageOpts.RunRoot = runRoot
+	if storageOpts.RunRoot == "" {
+		return storageOpts, fmt.Errorf("runroot must be set")
 	}
-	if storageOpts.GraphRoot != "" {
-		graphRoot, err := expandEnvPath(storageOpts.GraphRoot, rootlessUID)
-		if err != nil {
-			return storageOpts, err
-		}
-		storageOpts.GraphRoot = graphRoot
+	runRoot, err := expandEnvPath(storageOpts.RunRoot, rootlessUID)
+	if err != nil {
+		return storageOpts, err
 	}
+	storageOpts.RunRoot = runRoot
+
+	if storageOpts.GraphRoot == "" {
+		return storageOpts, fmt.Errorf("graphroot must be set")
+	}
+	graphRoot, err := expandEnvPath(storageOpts.GraphRoot, rootlessUID)
+	if err != nil {
+		return storageOpts, err
+	}
+	storageOpts.GraphRoot = graphRoot
+
 	if storageOpts.RootlessStoragePath != "" {
 		storagePath, err := expandEnvPath(storageOpts.RootlessStoragePath, rootlessUID)
 		if err != nil {
@@ -186,7 +190,7 @@ func loadStoreOptions(rootless bool, rootlessUID int) (StoreOptions, error) {
 	return defaultStoreOptionsIsolated(rootless, rootlessUID, storageConf)
 }
 
-// UpdateOptions should be called iff container engine recieved a SIGHUP,
+// UpdateOptions should be called iff container engine received a SIGHUP,
 // otherwise use DefaultStoreOptions
 func UpdateStoreOptions(rootless bool, rootlessUID int) (StoreOptions, error) {
 	storeOptions, storeError = loadStoreOptions(rootless, rootlessUID)

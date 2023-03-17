@@ -12,6 +12,7 @@ import (
 	"syscall"
 
 	"github.com/containers/storage/pkg/archive"
+	"github.com/containers/storage/pkg/idmap"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/ioutils"
 	"github.com/containers/storage/pkg/mount"
@@ -243,20 +244,20 @@ func supportsIdmappedLowerLayers(home string) (bool, error) {
 	_ = idtools.MkdirAs(upperDir, 0700, 0, 0)
 	_ = idtools.MkdirAs(workDir, 0700, 0, 0)
 
-	idmap := []idtools.IDMap{
+	mapping := []idtools.IDMap{
 		{
 			ContainerID: 0,
 			HostID:      0,
 			Size:        1,
 		},
 	}
-	pid, cleanupFunc, err := createUsernsProcess(idmap, idmap)
+	pid, cleanupFunc, err := idmap.CreateUsernsProcess(mapping, mapping)
 	if err != nil {
 		return false, err
 	}
 	defer cleanupFunc()
 
-	if err := createIDMappedMount(lowerDir, lowerMappedDir, int(pid)); err != nil {
+	if err := idmap.CreateIDMappedMount(lowerDir, lowerMappedDir, int(pid)); err != nil {
 		return false, fmt.Errorf("create mapped mount: %w", err)
 	}
 	defer unix.Unmount(lowerMappedDir, unix.MNT_DETACH)

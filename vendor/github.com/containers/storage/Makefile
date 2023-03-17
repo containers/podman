@@ -3,25 +3,19 @@ export GOPROXY=https://proxy.golang.org
 
 .PHONY: \
 	all \
-	binary \
 	clean \
-	cross \
 	default \
 	docs \
-	gccgo \
 	help \
 	install.tools \
 	local-binary \
 	local-cross \
 	local-gccgo \
+	local-test \
 	local-test-integration \
 	local-test-unit \
 	local-validate \
 	lint \
-	test \
-	test-integration \
-	test-unit \
-	validate \
 	vendor
 
 PACKAGE := github.com/containers/storage
@@ -40,26 +34,24 @@ ifeq ($(shell $(GO) help mod >/dev/null 2>&1 && echo true), true)
 	MOD_VENDOR=-mod=vendor
 endif
 
-RUNINVM := vagrant/runinvm.sh
-
-default all: local-binary docs local-validate local-cross local-gccgo test-unit test-integration ## validate all checks, build and cross-build\nbinaries and docs, run tests in a VM
+default all: local-binary docs local-validate local-cross ## validate all checks, build and cross-build\nbinaries and docs
 
 clean: ## remove all built files
 	$(RM) -f containers-storage containers-storage.* docs/*.1 docs/*.5
 
-sources := $(wildcard *.go cmd/containers-storage/*.go drivers/*.go drivers/*/*.go pkg/*/*.go pkg/*/*/*.go)
+sources := $(wildcard *.go cmd/containers-storage/*.go drivers/*.go drivers/*/*.go internal/*/*.go pkg/*/*.go pkg/*/*/*.go types/*.go)
 containers-storage: $(sources) ## build using gc on the host
 	$(GO) build $(MOD_VENDOR) -compiler gc $(BUILDFLAGS) ./cmd/containers-storage
 
 codespell:
-	codespell -S Makefile,build,buildah,buildah.spec,imgtype,copy,AUTHORS,bin,vendor,.git,go.sum,CHANGELOG.md,changelog.txt,seccomp.json,.cirrus.yml,"*.xz,*.gz,*.tar,*.tgz,*ico,*.png,*.1,*.5,*.orig,*.rej" -L flate,uint,iff,od,ERRO -w
+	codespell -S Makefile,build,buildah,buildah.spec,imgtype,copy,AUTHORS,bin,vendor,.git,go.sum,CHANGELOG.md,changelog.txt,seccomp.json,.cirrus.yml,"*.xz,*.gz,*.tar,*.tgz,*ico,*.png,*.1,*.5,*.orig,*.rej" -L worl,flate,uint,iff,od,ERRO -w
 
 binary local-binary: containers-storage
 
-local-gccgo: ## build using gccgo on the host
+local-gccgo gccgo: ## build using gccgo on the host
 	GCCGO=$(PWD)/hack/gccgo-wrapper.sh $(GO) build $(MOD_VENDOR) -compiler gccgo $(BUILDFLAGS) -o containers-storage.gccgo ./cmd/containers-storage
 
-local-cross: ## cross build the binaries for arm, darwin, and freebsd
+local-cross cross: ## cross build the binaries for arm, darwin, and freebsd
 	@for target in linux/amd64 linux/386 linux/arm linux/arm64 linux/ppc64 linux/ppc64le linux/s390x linux/mips linux/mipsle linux/mips64 linux/mips64le darwin/amd64 windows/amd64 freebsd/amd64 freebsd/arm64 ; do \
 		os=`echo $${target} | cut -f1 -d/` ; \
 		arch=`echo $${target} | cut -f2 -d/` ; \
@@ -68,36 +60,20 @@ local-cross: ## cross build the binaries for arm, darwin, and freebsd
 		env CGO_ENABLED=0 GOOS=$${os} GOARCH=$${arch} $(GO) build $(MOD_VENDOR) -compiler gc -tags "$(NATIVETAGS) $(TAGS)" $(FLAGS) -o containers-storage.$${suffix} ./cmd/containers-storage || exit 1 ; \
 	done
 
-cross: ## cross build the binaries for arm, darwin, and\nfreebsd using VMs
-	$(RUNINVM) $(MAKE) local-$@
-
 docs: install.tools ## build the docs on the host
 	$(MAKE) -C docs docs
 
-gccgo: ## build using gccgo using VMs
-	$(RUNINVM) $(MAKE) local-$@
+local-test: local-binary local-test-unit local-test-integration ## build the binaries and run the tests
 
-test: local-binary ## build the binaries and run the tests using VMs
-	$(RUNINVM) $(MAKE) local-binary local-cross local-test-unit local-test-integration
-
-local-test-unit: local-binary ## run the unit tests on the host (requires\nsuperuser privileges)
+local-test-unit test-unit: local-binary ## run the unit tests on the host (requires\nsuperuser privileges)
 	@$(GO) test $(MOD_VENDOR) $(BUILDFLAGS) $(TESTFLAGS) $(shell $(GO) list ./... | grep -v ^$(PACKAGE)/vendor)
 
-test-unit: local-binary ## run the unit tests using VMs
-	$(RUNINVM) $(MAKE) local-$@
-
-local-test-integration: local-binary ## run the integration tests on the host (requires\nsuperuser privileges)
+local-test-integration test-integration: local-binary ## run the integration tests on the host (requires\nsuperuser privileges)
 	@cd tests; ./test_runner.bash
 
-test-integration: local-binary ## run the integration tests using VMs
-	$(RUNINVM) $(MAKE) local-$@
-
-local-validate: install.tools ## validate DCO and gofmt on the host
+local-validate validate: install.tools ## validate DCO and gofmt on the host
 	@./hack/git-validation.sh
 	@./hack/gofmt.sh
-
-validate: ## validate DCO, gofmt, ./pkg/ isolation, golint,\ngo vet and vendor using VMs
-	$(RUNINVM) $(MAKE) local-$@
 
 install.tools:
 	$(MAKE) -C tests/tools

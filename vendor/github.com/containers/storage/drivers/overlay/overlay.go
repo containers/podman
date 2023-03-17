@@ -26,6 +26,7 @@ import (
 	"github.com/containers/storage/pkg/chrootarchive"
 	"github.com/containers/storage/pkg/directory"
 	"github.com/containers/storage/pkg/fsutils"
+	"github.com/containers/storage/pkg/idmap"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/mount"
 	"github.com/containers/storage/pkg/parsers"
@@ -46,8 +47,7 @@ var (
 )
 
 const (
-	defaultPerms     = os.FileMode(0555)
-	selinuxLabelTest = "system_u:object_r:container_file_t:s0"
+	defaultPerms = os.FileMode(0555)
 )
 
 // This backend uses the overlay union filesystem for containers
@@ -314,7 +314,10 @@ func Init(home string, options graphdriver.Options) (graphdriver.Driver, error) 
 	}
 	fsName, ok := graphdriver.FsNames[fsMagic]
 	if !ok {
-		return nil, fmt.Errorf("filesystem type %#x reported for %s is not supported with 'overlay': %w", fsMagic, filepath.Dir(home), graphdriver.ErrIncompatibleFS)
+		if opts.mountProgram == "" {
+			return nil, fmt.Errorf("filesystem type %#x reported for %s is not supported with 'overlay': %w", fsMagic, filepath.Dir(home), graphdriver.ErrIncompatibleFS)
+		}
+		fsName = "<unknown>"
 	}
 	backingFs = fsName
 
@@ -652,6 +655,8 @@ func SupportsNativeOverlay(home, runhome string) (bool, error) {
 
 func supportsOverlay(home string, homeMagic graphdriver.FsMagic, rootUID, rootGID int) (supportsDType bool, err error) {
 	// We can try to modprobe overlay first
+
+	selinuxLabelTest := selinux.PrivContainerMountLabel()
 
 	exec.Command("modprobe", "overlay").Run()
 
@@ -1504,14 +1509,14 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 		}
 	}
 
-	if d.supportsIDmappedMounts() && len(options.UidMaps) > 0 && len(options.GidMaps) > 0 {
+	if !disableShifting && len(options.UidMaps) > 0 && len(options.GidMaps) > 0 {
 		var newAbsDir []string
 		mappedRoot := filepath.Join(d.home, id, "mapped")
 		if err := os.MkdirAll(mappedRoot, 0700); err != nil {
 			return "", err
 		}
 
-		pid, cleanupFunc, err := createUsernsProcess(options.UidMaps, options.GidMaps)
+		pid, cleanupFunc, err := idmap.CreateUsernsProcess(options.UidMaps, options.GidMaps)
 		if err != nil {
 			return "", err
 		}
@@ -1528,7 +1533,7 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 			if !found {
 				root = filepath.Join(mappedRoot, fmt.Sprintf("%d", c))
 				c++
-				if err := createIDMappedMount(mappedMountSrc, root, int(pid)); err != nil {
+				if err := idmap.CreateIDMappedMount(mappedMountSrc, root, int(pid)); err != nil {
 					return "", fmt.Errorf("create mapped mount for %q on %q: %w", mappedMountSrc, root, err)
 				}
 				idMappedMounts[mappedMountSrc] = root
@@ -2097,8 +2102,8 @@ func (d *Driver) supportsIDmappedMounts() bool {
 
 // SupportsShifting tells whether the driver support shifting of the UIDs/GIDs in an userNS
 func (d *Driver) SupportsShifting() bool {
-	if os.Getenv("_TEST_FORCE_SUPPORT_SHIFTING") == "yes-please" {
-		return true
+	if os.Getenv("_CONTAINERS_OVERLAY_DISABLE_IDMAP") == "yes" {
+		return false
 	}
 	if d.options.mountProgram != "" {
 		return true

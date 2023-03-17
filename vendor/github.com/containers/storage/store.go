@@ -519,7 +519,7 @@ type Store interface {
 	GarbageCollect() error
 }
 
-// AdditionalLayer reprents a layer that is contained in the additional layer store
+// AdditionalLayer represents a layer that is contained in the additional layer store
 // This API is experimental and can be changed without bumping the major version number.
 type AdditionalLayer interface {
 	// PutAs creates layer based on this handler, using diff contents from the additional
@@ -820,7 +820,7 @@ func (s *store) GIDMap() []idtools.IDMap {
 	return copyIDMap(s.gidMap)
 }
 
-// This must only be called when constructing store; it writes to fields that are assumed to be constant after constrution.
+// This must only be called when constructing store; it writes to fields that are assumed to be constant after construction.
 func (s *store) load() error {
 	var driver drivers.Driver
 	if err := func() error { // A scope for defer
@@ -3341,7 +3341,14 @@ func (s *store) GarbageCollect() error {
 		return s.containerStore.GarbageCollect()
 	})
 
-	moreErr := s.writeToLayerStore(func(rlstore rwLayerStore) error {
+	moreErr := s.writeToImageStore(func() error {
+		return s.imageStore.GarbageCollect()
+	})
+	if firstErr == nil {
+		firstErr = moreErr
+	}
+
+	moreErr = s.writeToLayerStore(func(rlstore rwLayerStore) error {
 		return rlstore.GarbageCollect()
 	})
 	if firstErr == nil {

@@ -281,7 +281,7 @@ type rwLayerStore interface {
 	// unmount unmounts a layer when it is no longer in use.
 	// If conditional is set, it will fail with ErrLayerNotMounted if the layer is not mounted (without conditional, the caller is
 	// making a promise that the layer is actually mounted).
-	// If force is set, it will physically try to unmount it even if it is mounted multple times, or even if (!conditional and)
+	// If force is set, it will physically try to unmount it even if it is mounted multiple times, or even if (!conditional and)
 	// there are no records of it being mounted in the first place.
 	// It returns whether the layer was still mounted at the time this function returned.
 	// WARNING: The return value may already be obsolete by the time it is available
@@ -678,10 +678,13 @@ func (r *layerStore) GarbageCollect() error {
 
 		// Remove layer and any related data of unreferenced id
 		if err := r.driver.Remove(id); err != nil {
+			logrus.Debugf("removing driver layer %q", id)
 			return err
 		}
 
+		logrus.Debugf("removing %q", r.tspath(id))
 		os.Remove(r.tspath(id))
+		logrus.Debugf("removing %q", r.datadir(id))
 		os.RemoveAll(r.datadir(id))
 	}
 	return nil

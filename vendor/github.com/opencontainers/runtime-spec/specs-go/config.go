@@ -319,6 +319,10 @@ type LinuxMemory struct {
 	DisableOOMKiller *bool `json:"disableOOMKiller,omitempty"`
 	// Enables hierarchical memory accounting
 	UseHierarchy *bool `json:"useHierarchy,omitempty"`
+	// CheckBeforeUpdate enables checking if a new memory limit is lower
+	// than the current usage during update, and if so, rejecting the new
+	// limit.
+	CheckBeforeUpdate *bool `json:"checkBeforeUpdate,omitempty"`
 }
 
 // LinuxCPU for Linux cgroup 'cpu' resource management
@@ -327,6 +331,9 @@ type LinuxCPU struct {
 	Shares *uint64 `json:"shares,omitempty"`
 	// CPU hardcap limit (in usecs). Allowed cpu time in a given period.
 	Quota *int64 `json:"quota,omitempty"`
+	// CPU hardcap burst limit (in usecs). Allowed accumulated cpu time additionally for burst in a
+	// given period.
+	Burst *uint64 `json:"burst,omitempty"`
 	// CPU period to be used for hardcapping (in usecs).
 	Period *uint64 `json:"period,omitempty"`
 	// How much time realtime scheduling may use (in usecs).
@@ -645,6 +652,10 @@ const (
 	// LinuxSeccompFlagSpecAllow can be used to disable Speculative Store
 	// Bypass mitigation. (since Linux 4.17)
 	LinuxSeccompFlagSpecAllow LinuxSeccompFlag = "SECCOMP_FILTER_FLAG_SPEC_ALLOW"
+
+	// LinuxSeccompFlagWaitKillableRecv can be used to switch to the wait
+	// killable semantics. (since Linux 5.19)
+	LinuxSeccompFlagWaitKillableRecv LinuxSeccompFlag = "SECCOMP_FILTER_FLAG_WAIT_KILLABLE_RECV"
 )
 
 // Additional architectures permitted to be used for system calls
