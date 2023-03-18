@@ -46,7 +46,8 @@ the “In Progress” label be set and a member will do so for you.
 
 ## Contributing to Podman
 
-This section describes how to start a contribution to Podman. These instructions are geared towards using a Linux development machine, which is required for doing development on the podman backend. Check out these instructions for [building the podman client on MacOSX](./build_osx.md).
+This section describes how to start a contribution to Podman. These instructions are geared towards using a Linux development machine, which is required for doing development on the Podman backend. Check out these instructions for building the Podman client on [MacOSX](./build_osx.md) or
+[Windows](./build_windows.md).
 
 ### Prepare your environment
 
