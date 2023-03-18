@@ -57,9 +57,9 @@ options (also `-o`) passed to **mount(8)** with the following exceptions:
   - The `o` option supports `uid` and `gid` options to set the UID and GID of the created volume that are not normally supported by **mount(8)**.
   - The `o` option supports the `size` option to set the maximum size of the created volume, the `inodes` option to set the maximum number of inodes for the volume and `noquota` to completely disable quota support even for tracking of disk usage. Currently these flags are only supported on "xfs" file system mounted with the `prjquota` flag described in the **xfs_quota(8)** man page.
   - The `o` option supports using volume options other than the UID/GID options with the **local** driver and requires root privileges.
-  - The `o` options supports the `timeout` option which allows users to set a driver specific timeout in seconds before volume creation fails. For example, **--opts=o=timeout=10** sets a driver timeout of 10 seconds.
+  - The `o` options supports the `timeout` option which allows users to set a driver specific timeout in seconds before volume creation fails. For example, **--opt=o=timeout=10** sets a driver timeout of 10 seconds.
 
-***Note*** Do not confuse the `--opts,-o` create option with the `-o` mount option.  For example, with `podman volume create`, use `-o=o=uid=1000` *not* `-o=uid=1000`.
+***Note*** Do not confuse the `--opt,-o` create option with the `-o` mount option.  For example, with `podman volume create`, use `-o=o=uid=1000` *not* `-o=uid=1000`.
 
 For the **image** driver, the only supported option is `image`, which specifies the image the volume is based on.
 This option is mandatory when using the **image** driver.
