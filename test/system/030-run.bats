@@ -1027,8 +1027,9 @@ EOF
 @test "podman run ulimit from containers.conf" {
     skip_if_remote "containers.conf has to be set on remote, only tested on E2E test"
     containersconf=$PODMAN_TMPDIR/containers.conf
-    nofile1=$((RANDOM % 10000 + 5))
-    nofile2=$((RANDOM % 10000 + 5))
+    # Safe minimum: anything under 27 barfs w/ "crun: ... Too many open files"
+    nofile1=$((30 + RANDOM % 10000))
+    nofile2=$((30 + RANDOM % 10000))
     cat >$containersconf <<EOF
 [containers]
 default_ulimits = [
