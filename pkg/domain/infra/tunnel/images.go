@@ -340,7 +340,7 @@ func (ir *ImageEngine) Search(ctx context.Context, term string, opts entities.Im
 
 	options := new(images.SearchOptions)
 	options.WithAuthfile(opts.Authfile).WithFilters(mappedFilters).WithLimit(opts.Limit)
-	options.WithListTags(opts.ListTags)
+	options.WithListTags(opts.ListTags).WithPassword(opts.Password).WithUsername(opts.Username)
 	if s := opts.SkipTLSVerify; s != types.OptionalBoolUndefined {
 		if s == types.OptionalBoolTrue {
 			options.WithSkipTLSVerify(true)

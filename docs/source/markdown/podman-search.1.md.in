@@ -32,10 +32,14 @@ Further note that searching without a search term will only work for registries 
 
 @@option authfile
 
+@@option cert-dir
+
 #### **--compatible**
 
 After the name and the description, also show the stars, official and automated descriptors as Docker does.
 Podman does not show these descriptors by default since they are not supported by most public container registries.
+
+@@option creds
 
 #### **--filter**, **-f**=*filter*
 

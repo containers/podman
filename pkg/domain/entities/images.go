@@ -261,6 +261,16 @@ type ImageSearchOptions struct {
 	// Authfile is the path to the authentication file. Ignored for remote
 	// calls.
 	Authfile string
+	// CertDir is the path to certificate directories.  Ignored for remote
+	// calls.
+	CertDir string
+	// Username for authenticating against the registry.
+	Username string
+	// Password for authenticating against the registry.
+	Password string
+	// IdentityToken is used to authenticate the user and get
+	// an access token for the registry.
+	IdentityToken string
 	// Filters for the search results.
 	Filters []string
 	// Limit the number of results.

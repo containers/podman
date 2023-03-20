@@ -44,7 +44,7 @@ var _ = Describe("Podman images", func() {
 	})
 
 	// Test using credentials.
-	It("tag + push + pull (with credentials)", func() {
+	It("tag + push + pull + search (with credentials)", func() {
 
 		imageRep := "localhost:" + registry.Port + "/test"
 		imageTag := "latest"
@@ -64,6 +64,11 @@ var _ = Describe("Podman images", func() {
 		// Now pull the image.
 		pullOpts := new(images.PullOptions)
 		_, err = images.Pull(bt.conn, imageRef, pullOpts.WithSkipTLSVerify(true).WithPassword(registry.Password).WithUsername(registry.User))
+		Expect(err).ToNot(HaveOccurred())
+
+		// Last, but not least, exercise search.
+		searchOptions := new(images.SearchOptions)
+		_, err = images.Search(bt.conn, imageRef, searchOptions.WithSkipTLSVerify(true).WithPassword(registry.Password).WithUsername(registry.User))
 		Expect(err).ToNot(HaveOccurred())
 	})
 

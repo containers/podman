@@ -1014,10 +1014,6 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//     type: boolean
 	//     default: false
 	//   - in: query
-	//     name: credentials
-	//     description: "username:password for the registry"
-	//     type: string
-	//   - in: query
 	//     name: Arch
 	//     description: Pull image for the specified architecture.
 	//     type: string
