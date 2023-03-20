@@ -48,6 +48,17 @@ const (
 	KeyExec                  = "Exec"
 	KeyExposeHostPort        = "ExposeHostPort"
 	KeyGroup                 = "Group"
+	KeyHealthCmd             = "HealthCmd"
+	KeyHealthInterval        = "HealthInterval"
+	KeyHealthOnFailure       = "HealthOnFailure"
+	KeyHealthRetries         = "HealthRetries"
+	KeyHealthStartPeriod     = "HealthStartPeriod"
+	KeyHealthStartupCmd      = "HealthStartupCmd"
+	KeyHealthStartupInterval = "HealthStartupInterval"
+	KeyHealthStartupRetries  = "HealthStartupRetries"
+	KeyHealthStartupSuccess  = "HealthStartupSuccess"
+	KeyHealthStartupTimeout  = "HealthStartupTimeout"
+	KeyHealthTimeout         = "HealthTimeout"
 	KeyImage                 = "Image"
 	KeyIP                    = "IP"
 	KeyIP6                   = "IP6"
@@ -106,6 +117,17 @@ var (
 		KeyExec:                  true,
 		KeyExposeHostPort:        true,
 		KeyGroup:                 true,
+		KeyHealthCmd:             true,
+		KeyHealthInterval:        true,
+		KeyHealthOnFailure:       true,
+		KeyHealthRetries:         true,
+		KeyHealthStartPeriod:     true,
+		KeyHealthStartupCmd:      true,
+		KeyHealthStartupInterval: true,
+		KeyHealthStartupRetries:  true,
+		KeyHealthStartupSuccess:  true,
+		KeyHealthStartupTimeout:  true,
+		KeyHealthTimeout:         true,
 		KeyImage:                 true,
 		KeyIP:                    true,
 		KeyIP6:                   true,
@@ -559,6 +581,8 @@ func ConvertContainer(container *parser.UnitFile, isUser bool) (*parser.UnitFile
 		mountStr := strings.Join(paramsArray, ",")
 		podman.add("--mount", mountStr)
 	}
+
+	handleHealth(container, ContainerGroup, podman)
 
 	podmanArgs := container.LookupAllArgs(ContainerGroup, KeyPodmanArgs)
 	podman.add(podmanArgs...)
@@ -1041,4 +1065,28 @@ func handleStorageSource(unitFile *parser.UnitFile, source string) string {
 	}
 
 	return source
+}
+
+func handleHealth(unitFile *parser.UnitFile, groupName string, podman *PodmanCmdline) {
+	keyArgMap := [][2]string{
+		{KeyHealthCmd, "cmd"},
+		{KeyHealthInterval, "interval"},
+		{KeyHealthOnFailure, "on-failure"},
+		{KeyHealthRetries, "retries"},
+		{KeyHealthStartPeriod, "start-period"},
+		{KeyHealthTimeout, "timeout"},
+		{KeyHealthStartupCmd, "startup-cmd"},
+		{KeyHealthStartupInterval, "startup-interval"},
+		{KeyHealthStartupRetries, "startup-retries"},
+		{KeyHealthStartupSuccess, "startup-success"},
+		{KeyHealthStartupTimeout, "startup-timeout"},
+	}
+
+	for _, keyArg := range keyArgMap {
+		val, found := unitFile.Lookup(groupName, keyArg[0])
+		if found && len(val) > 0 {
+			podman.addf("--health-%s", keyArg[1])
+			podman.addf("%s", val)
+		}
+	}
 }
