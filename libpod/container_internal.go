@@ -229,6 +229,15 @@ func (c *Container) handleExitFile(exitFile string, fi os.FileInfo) error {
 }
 
 func (c *Container) shouldRestart() bool {
+	if c.config.HealthCheckOnFailureAction == define.HealthCheckOnFailureActionRestart {
+		isUnhealthy, err := c.isUnhealthy()
+		if err != nil {
+			logrus.Errorf("Checking if container is unhealthy: %v", err)
+		} else if isUnhealthy {
+			return true
+		}
+	}
+
 	// If we did not get a restart policy match, return false
 	// Do the same if we're not a policy that restarts.
 	if !c.state.RestartPolicyMatch ||
@@ -266,6 +275,12 @@ func (c *Container) handleRestartPolicy(ctx context.Context) (_ bool, retErr err
 	// Need to check if dependencies are alive.
 	if err := c.checkDependenciesAndHandleError(); err != nil {
 		return false, err
+	}
+
+	if c.config.HealthCheckConfig != nil {
+		if err := c.removeTransientFiles(ctx, c.config.StartupHealthCheckConfig != nil && !c.state.StartupHCPassed); err != nil {
+			return false, err
+		}
 	}
 
 	// Is the container running again?
@@ -1429,6 +1444,7 @@ func (c *Container) restartWithTimeout(ctx context.Context, timeout uint) (retEr
 		if err := c.stop(timeout); err != nil {
 			return err
 		}
+
 		if c.config.HealthCheckConfig != nil {
 			if err := c.removeTransientFiles(context.Background(), c.config.StartupHealthCheckConfig != nil && !c.state.StartupHCPassed); err != nil {
 				logrus.Error(err.Error())
