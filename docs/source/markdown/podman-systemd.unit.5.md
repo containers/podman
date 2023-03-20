@@ -86,6 +86,17 @@ Valid options for `[Container]` are listed below:
 | Exec=/usr/bin/command            | Command after image specification - /usr/bin/command   |
 | ExposeHostPort=50-59             | --expose 50-59                         |
 | Group=1234                       | --user UID:1234                        |
+| HealthCmd="/usr/bin/command"     | --health-cmd="/usr/bin/command"        |
+| HealthInterval=2m                | --health-interval=2m                   |
+| HealthOnFailure=kill          | --health-on-failure=kill            |
+| HealthRetries=5                  | --health-retries=5                     |
+| HealthStartPeriod=1m             | --health-start-period=period=1m        |
+| HealthStartupCmd="/usr/bin/command" | --health-startup-cmd="/usr/bin/command" |
+| HealthStartupInterval=1m         | --health-startup-interval=2m           |
+| HealthStartupRetries=8           | --health-startup-retries=8             |
+| HealthStartupSuccess=2           | --health-startup-success=2             |
+| HealthStartupTimeout=1m33s       | --health-startup-timeout=1m33s         |
+| HealthTimeout=20s                | --health-timeout=20s                   |
 | Image=ubi8                       | Image specification - ubi8             |
 | IP=192.5.0.1                     | --ip 192.5.0.0                         |
 | IP6=fd46:db93:aa76:ac37::10      | --ip6 2001:db8::1                      |
@@ -195,6 +206,65 @@ This key can be listed multiple times.
 
 The (numeric) gid to run as inside the container. This does not need to match the gid on the host,
 which can be modified with `RemapUsers`, but if that is not specified, this gid is also used on the host.
+
+
+### `HealthCmd=`
+
+Set or alter a healthcheck command for a container. A value of none disables existing healthchecks.
+Equivalent to the Podman `--health-cmd` option.
+
+### `HealthInterval=`
+
+Set an interval for the healthchecks. An interval of disable results in no automatic timer setup.
+Equivalent to the Podman `--health-interval` option.
+
+### `HealthOnFailure=`
+
+Action to take once the container transitions to an unhealthy state.
+The "kill" action in combination integrates best with systemd. Once
+the container turns unhealthy, it gets killed and systemd will restart
+service.
+Equivalent to the Podman `--health-on-failure` option.
+
+### `HealthRetries=`
+
+The number of retries allowed before a healthcheck is considered to be unhealthy.
+Equivalent to the Podman `--health-retries` option.
+
+### `HealthStartPeriod=`
+
+The initialization time needed for a container to bootstrap.
+Equivalent to the Podman `--health-start-period` option.
+
+### `HealthStartupCmd=`
+
+Set a startup healthcheck command for a container.
+Equivalent to the Podman `--health-startup-cmd` option.
+
+### `HealthStartupInterval=`
+
+Set an interval for the startup healthcheck. An interval of disable results in no automatic timer setup.
+Equivalent to the Podman `--health-startup-interval` option.
+
+### `HealthStartupRetries=`
+
+The number of attempts allowed before the startup healthcheck restarts the container.
+Equivalent to the Podman `--health-startup-retries` option.
+
+### `HealthStartupSuccess=`
+
+The number of successful runs required before the startup healthcheck will succeed and the regular healthcheck will begin.
+Equivalent to the Podman `--health-startup-success` option.
+
+### `HealthStartupTimeout=`
+
+The maximum time a startup healthcheck command has to complete before it is marked as failed.
+Equivalent to the Podman `--health-startup-timeout` option.
+
+### `HealthTimeout=`
+
+The maximum time allowed to complete the healthcheck before an interval is considered failed.
+Equivalent to the Podman `--health-timeout` option.
 
 ### `Image=`
 
