@@ -57,7 +57,7 @@ type VirtProvider interface {
 	LoadVMByName(name string) (VM, error)
 	NewMachine(opts InitOptions) (VM, error)
 	RemoveAndCleanMachines() error
-	VMType() string
+	VMType() VMType
 }
 
 type RemoteConnectionType string
@@ -183,7 +183,7 @@ func (rc RemoteConnectionType) MakeSSHURL(host, path, port, userName string) url
 }
 
 // GetCacheDir returns the dir where VM images are downloaded into when pulled
-func GetCacheDir(vmType string) (string, error) {
+func GetCacheDir(vmType VMType) (string, error) {
 	dataDir, err := GetDataDir(vmType)
 	if err != nil {
 		return "", err
@@ -197,12 +197,12 @@ func GetCacheDir(vmType string) (string, error) {
 
 // GetDataDir returns the filepath where vm images should
 // live for podman-machine.
-func GetDataDir(vmType string) (string, error) {
+func GetDataDir(vmType VMType) (string, error) {
 	dataDirPrefix, err := DataDirPrefix()
 	if err != nil {
 		return "", err
 	}
-	dataDir := filepath.Join(dataDirPrefix, vmType)
+	dataDir := filepath.Join(dataDirPrefix, vmType.String())
 	if _, err := os.Stat(dataDir); !errors.Is(err, os.ErrNotExist) {
 		return dataDir, nil
 	}
@@ -222,12 +222,12 @@ func DataDirPrefix() (string, error) {
 
 // GetConfigDir returns the filepath to where configuration
 // files for podman-machine should live
-func GetConfDir(vmType string) (string, error) {
+func GetConfDir(vmType VMType) (string, error) {
 	confDirPrefix, err := ConfDirPrefix()
 	if err != nil {
 		return "", err
 	}
-	confDir := filepath.Join(confDirPrefix, vmType)
+	confDir := filepath.Join(confDirPrefix, vmType.String())
 	if _, err := os.Stat(confDir); !errors.Is(err, os.ErrNotExist) {
 		return confDir, nil
 	}
@@ -378,4 +378,25 @@ type ConnectionConfig struct {
 	PodmanSocket *VMFile `json:"PodmanSocket"`
 	// PodmanPipe is the exported podman service named pipe (Windows hosts only)
 	PodmanPipe *VMFile `json:"PodmanPipe"`
+}
+
+type VMType int64
+
+const (
+	QemuVirt VMType = iota
+	WSLVirt
+	AppleHvVirt
+	HyperVVirt
+)
+
+func (v VMType) String() string {
+	switch v {
+	case WSLVirt:
+		return "wsl"
+	case AppleHvVirt:
+		return "applehv"
+	case HyperVVirt:
+		return "hyperv"
+	}
+	return "qemu"
 }

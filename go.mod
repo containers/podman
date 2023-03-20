@@ -15,6 +15,7 @@ require (
 	github.com/containers/common v0.51.1-0.20230316131336-0be880eaeb02
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/image/v5 v5.24.3-0.20230314083015-0c6d07e02a9a
+	github.com/containers/libhvee v0.0.1
 	github.com/containers/ocicrypt v1.1.7
 	github.com/containers/psgo v1.8.0
 	github.com/containers/storage v1.45.5-0.20230315220505-1c6287eea927
@@ -94,6 +95,7 @@ require (
 	github.com/felixge/httpsnoop v1.0.3 // indirect
 	github.com/fsouza/go-dockerclient v1.9.3 // indirect
 	github.com/go-jose/go-jose/v3 v3.0.0 // indirect
+	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/go-openapi/analysis v0.21.4 // indirect
 	github.com/go-openapi/errors v0.20.3 // indirect
 	github.com/go-openapi/jsonpointer v0.19.5 // indirect

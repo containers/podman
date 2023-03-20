@@ -141,15 +141,15 @@ func hostInfo() (*entities.MachineHostInfo, error) {
 		}
 	}
 
-	host.VMType = provider.VMType()
+	host.VMType = provider.VMType().String()
 
-	dataDir, err := machine.GetDataDir(host.VMType)
+	dataDir, err := machine.GetDataDir(provider.VMType())
 	if err != nil {
 		return nil, fmt.Errorf("failed to get machine image dir")
 	}
 	host.MachineImageDir = dataDir
 
-	confDir, err := machine.GetConfDir(host.VMType)
+	confDir, err := machine.GetConfDir(provider.VMType())
 	if err != nil {
 		return nil, fmt.Errorf("failed to get machine config dir %w", err)
 	}
