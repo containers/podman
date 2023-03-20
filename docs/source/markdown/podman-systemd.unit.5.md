@@ -88,7 +88,7 @@ Valid options for `[Container]` are listed below:
 | Group=1234                       | --user UID:1234                        |
 | HealthCmd="/usr/bin/command"     | --health-cmd="/usr/bin/command"        |
 | HealthInterval=2m                | --health-interval=2m                   |
-| HealthOnFailure=restart          | --health-on-failure=restart            |
+| HealthOnFailure=kill          | --health-on-failure=kill            |
 | HealthRetries=5                  | --health-retries=5                     |
 | HealthStartPeriod=1m             | --health-start-period=period=1m        |
 | HealthStartupCmd="/usr/bin/command" | --health-startup-cmd="/usr/bin/command" |
@@ -221,6 +221,9 @@ Equivalent to the Podman `--health-interval` option.
 ### `HealthOnFailure=`
 
 Action to take once the container transitions to an unhealthy state.
+The "kill" action in combination integrates best with systemd. Once
+the container turns unhealthy, it gets killed and systemd will restart
+service.
 Equivalent to the Podman `--health-on-failure` option.
 
 ### `HealthRetries=`
