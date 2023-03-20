@@ -187,7 +187,24 @@ func keyValueStringToMap(keyValueString, separator string) map[string]string {
 	return keyValMap
 }
 
-func (t *quadletTestcase) assertPodmanArgsKeyVal(args []string, unit *parser.UnitFile, key string) bool {
+func keyValMapEqualRegex(expectedKeyValMap, actualKeyValMap map[string]string) bool {
+	if len(expectedKeyValMap) != len(actualKeyValMap) {
+		return false
+	}
+	for key, expectedValue := range expectedKeyValMap {
+		actualValue, ok := actualKeyValMap[key]
+		if !ok {
+			return false
+		}
+		matched, err := regexp.MatchString(expectedValue, actualValue)
+		if err != nil || !matched {
+			return false
+		}
+	}
+	return true
+}
+
+func (t *quadletTestcase) assertPodmanArgsKeyVal(args []string, unit *parser.UnitFile, key string, allowRegex bool) bool {
 	podmanArgs, _ := unit.LookupLastArgs("Service", key)
 
 	expectedKeyValMap := keyValueStringToMap(args[2], args[1])
@@ -200,7 +217,11 @@ func (t *quadletTestcase) assertPodmanArgsKeyVal(args []string, unit *parser.Uni
 
 		argKeyLocation += subListLocation
 		actualKeyValMap := keyValueStringToMap(podmanArgs[argKeyLocation+1], args[1])
-		if reflect.DeepEqual(expectedKeyValMap, actualKeyValMap) {
+		if allowRegex {
+			if keyValMapEqualRegex(expectedKeyValMap, actualKeyValMap) {
+				return true
+			}
+		} else if reflect.DeepEqual(expectedKeyValMap, actualKeyValMap) {
 			return true
 		}
 
@@ -239,7 +260,11 @@ func (t *quadletTestcase) assertStartPodmanArgsRegex(args []string, unit *parser
 }
 
 func (t *quadletTestcase) assertStartPodmanArgsKeyVal(args []string, unit *parser.UnitFile) bool {
-	return t.assertPodmanArgsKeyVal(args, unit, "ExecStart")
+	return t.assertPodmanArgsKeyVal(args, unit, "ExecStart", false)
+}
+
+func (t *quadletTestcase) assertStartPodmanArgsKeyValRegex(args []string, unit *parser.UnitFile) bool {
+	return t.assertPodmanArgsKeyVal(args, unit, "ExecStart", true)
 }
 
 func (t *quadletTestcase) assertStartPodmanFinalArgs(args []string, unit *parser.UnitFile) bool {
@@ -309,6 +334,8 @@ func (t *quadletTestcase) doAssert(check []string, unit *parser.UnitFile, sessio
 		ok = t.assertStartPodmanArgsRegex(args, unit)
 	case "assert-podman-args-key-val":
 		ok = t.assertStartPodmanArgsKeyVal(args, unit)
+	case "assert-podman-args-key-val-regex":
+		ok = t.assertStartPodmanArgsKeyValRegex(args, unit)
 	case "assert-podman-final-args":
 		ok = t.assertStartPodmanFinalArgs(args, unit)
 	case "assert-podman-final-args-regex":

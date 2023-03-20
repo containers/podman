@@ -1,5 +1,6 @@
 ## assert-podman-args -v /host/dir:/container/volume
 ## assert-podman-args -v /host/dir2:/container/volume2:Z
+## assert-podman-args-regex -v .*/podman_test.*/quadlet/host/dir3:/container/volume3
 ## assert-podman-args -v named:/container/named
 ## assert-podman-args -v systemd-quadlet:/container/quadlet localhost/imagename
 
@@ -7,6 +8,7 @@
 Image=localhost/imagename
 Volume=/host/dir:/container/volume
 Volume=/host/dir2:/container/volume2:Z
+Volume=./host/dir3:/container/volume3
 Volume=/container/empty
 Volume=named:/container/named
 Volume=quadlet.volume:/container/quadlet
