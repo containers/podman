@@ -77,20 +77,21 @@ Pretty-print containers to JSON or using a Go template
 
 Valid placeholders for the Go template are listed below:
 
-| **Placeholder**     | **Description**                                    |
-|---------------------|----------------------------------------------------|
-| .Cgroup             | Cgroup path of pod                                 |
-| .ContainerIds       | Comma-separated list of container IDs in the pod   |
-| .ContainerNames     | Comma-separated list of container names in the pod |
-| .ContainerStatuses  | Comma-separated list of container statuses         |
-| .Created            | Creation time of pod                               |
-| .ID                 | Container ID                                       |
-| .InfraID            | Pod infra container ID                             |
-| .Labels             | All the labels assigned to the pod                 |
-| .Name               | Name of pod                                        |
-| .Networks           | Show all networks connected to the infra container |
-| .NumberOfContainers | Show the number of containers attached to pod      |
-| .Status             | Status of pod                                      |
+| **Placeholder**     | **Description**                                      |
+|---------------------|------------------------------------------------------|
+| .Cgroup             | Cgroup path of pod                                   |
+| .ContainerIds       | Comma-separated list of container IDs in the pod     |
+| .ContainerNames     | Comma-separated list of container names in the pod   |
+| .ContainerStatuses  | Comma-separated list of container statuses           |
+| .Created            | Creation time of pod                                 |
+| .ID                 | Container ID                                         |
+| .InfraID            | Pod infra container ID                               |
+| .Labels             | All the labels assigned to the pod                   |
+| .Name               | Name of pod                                          |
+| .Networks           | Show all networks connected to the infra container   |
+| .NumberOfContainers | Show the number of containers attached to pod        |
+| .Restarts           | Show the total number of container restarts in a pod |
+| .Status             | Status of pod                                        |
 
 #### **--help**, **-h**
 

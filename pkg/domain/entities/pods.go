@@ -38,9 +38,10 @@ type ListPodsReport struct {
 }
 
 type ListPodContainer struct {
-	Id     string //nolint:revive,stylecheck
-	Names  string
-	Status string
+	Id           string //nolint:revive,stylecheck
+	Names        string
+	Status       string
+	RestartCount uint
 }
 
 type PodPauseOptions struct {
