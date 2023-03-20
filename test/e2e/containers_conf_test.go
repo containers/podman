@@ -70,6 +70,38 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 
 	})
 
+	It("oom-score-adj", func() {
+		SkipIfRootlessCgroupsV1("Setting limits not supported on cgroupv1 for rootless users")
+		// containers.conf is set to "oom_score_adj=999"
+		session := podmanTest.Podman([]string{"run", "--rm", ALPINE, "cat", "/proc/self/oom_score_adj"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.OutputToString()).To(Equal("999"))
+
+		raw, err := os.ReadFile("/proc/self/oom_score_adj")
+		Expect(err).ToNot(HaveOccurred())
+
+		rawS := strings.TrimSuffix(string(raw), "\n")
+
+		// Reset CONTAINERS_CONF to "/dev/null"
+		// Local should go back to defaults but remote should be set on server side
+		os.Setenv("CONTAINERS_CONF", "/dev/null")
+		session = podmanTest.Podman([]string{"run", "--rm", ALPINE, "cat", "/proc/self/oom_score_adj"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		if IsRemote() {
+			Expect(session.OutputToString()).To(Equal("999"))
+		} else {
+			if isRootless() {
+				Expect(session.OutputToString()).To(ContainSubstring(rawS))
+			} else {
+				Expect(session.OutputToString()).To(ContainSubstring("0"))
+			}
+
+		}
+
+	})
+
 	It("having additional env", func() {
 		// containers.conf default env includes foo
 		session := podmanTest.Podman([]string{"run", ALPINE, "printenv"})

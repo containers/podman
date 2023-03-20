@@ -840,6 +840,24 @@ EOF
     current_oom_score_adj=$(cat /proc/self/oom_score_adj)
     run_podman run --rm $IMAGE cat /proc/self/oom_score_adj
     is "$output" "$current_oom_score_adj" "different oom_score_adj in the container"
+
+    oomscore=$((current_oom_score_adj+1))
+    run_podman run --oom-score-adj=$oomscore --rm $IMAGE cat /proc/self/oom_score_adj
+    is "$output" "$oomscore" "one more then default oomscore"
+
+    skip_if_remote "containersconf needs to be set on server side"
+    oomscore=$((oomscore+1))
+    containersconf=$PODMAN_TMPDIR/containers.conf
+    cat >$containersconf <<EOF
+[containers]
+oom_score_adj=$oomscore
+EOF
+    CONTAINERS_CONF=$PODMAN_TMPDIR/containers.conf run_podman run --rm $IMAGE cat /proc/self/oom_score_adj
+    is "$output" "$oomscore" "two more then default oomscore"
+
+    oomscore=$((oomscore+1))
+    CONTAINERS_CONF=$PODMAN_TMPDIR/containers.conf run_podman run --oom-score-adj=$oomscore --rm $IMAGE cat /proc/self/oom_score_adj
+    is "$output" "$oomscore" "--oom-score-adj should overide containers.conf"
 }
 
 # CVE-2022-1227 : podman top joins container mount NS and uses nsenter from image

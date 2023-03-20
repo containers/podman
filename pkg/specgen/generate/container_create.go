@@ -37,6 +37,10 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 	}
 	s.Rlimits = append(rlimits, s.Rlimits...)
 
+	if s.OOMScoreAdj == nil {
+		s.OOMScoreAdj = rtc.Containers.OOMScoreAdj
+	}
+
 	// If joining a pod, retrieve the pod for use, and its infra container
 	var pod *libpod.Pod
 	var infra *libpod.Container
