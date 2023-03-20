@@ -50,6 +50,7 @@ Valid placeholders for the Go template are listed below:
 | .Name                | Pod name                                    |
 | .Namespace           | Namespace                                   |
 | .NumContainers       | Number of containers in the pod             |
+| .RestartPolicy       | Restart policy of the pod                   |
 | .SecurityOpts        | Security options                            |
 | .SharedNamespaces    | Pod shared namespaces                       |
 | .State               | Pod state                                   |

@@ -143,6 +143,10 @@ but only by the pod itself.
 
 @@option replace
 
+@@option restart
+
+Default restart policy for all the containers in a pod.
+
 @@option security-opt
 
 #### **--share**=*namespace*
