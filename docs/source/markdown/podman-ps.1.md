@@ -89,6 +89,7 @@ Valid placeholders for the Go template are listed below:
 | .Pod               | Pod the container is associated with (SHA)   |
 | .PodName           | Seems to be empty no matter what             |
 | .Ports             | Exposed ports                                |
+| .Restarts          | Display the container restart count          |
 | .RunningFor        | Time elapsed since container was started     |
 | .Size              | Size of container                            |
 | .StartedAt         | Time (epoch seconds) the container started   |

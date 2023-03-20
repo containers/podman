@@ -203,7 +203,6 @@ type ContainerState struct {
 	// restart policy. This is NOT incremented by normal container restarts
 	// (only by restart policy).
 	RestartCount uint `json:"restartCount,omitempty"`
-
 	// StartupHCPassed indicates that the startup healthcheck has
 	// succeeded and the main healthcheck can begin.
 	StartupHCPassed bool `json:"startupHCPassed,omitempty"`
@@ -728,6 +727,18 @@ func (c *Container) State() (define.ContainerStatus, error) {
 		}
 	}
 	return c.state.State, nil
+}
+
+func (c *Container) RestartCount() (uint, error) {
+	if !c.batched {
+		c.lock.Lock()
+		defer c.lock.Unlock()
+
+		if err := c.syncContainer(); err != nil {
+			return 0, err
+		}
+	}
+	return c.state.RestartCount, nil
 }
 
 // Mounted returns whether the container is mounted and the path it is mounted
