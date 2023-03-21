@@ -857,7 +857,7 @@ EOF
 
     oomscore=$((oomscore+1))
     CONTAINERS_CONF=$PODMAN_TMPDIR/containers.conf run_podman run --oom-score-adj=$oomscore --rm $IMAGE cat /proc/self/oom_score_adj
-    is "$output" "$oomscore" "--oom-score-adj should overide containers.conf"
+    is "$output" "$oomscore" "--oom-score-adj should override containers.conf"
 }
 
 # CVE-2022-1227 : podman top joins container mount NS and uses nsenter from image

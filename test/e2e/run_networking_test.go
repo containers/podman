@@ -144,7 +144,7 @@ var _ = Describe("Podman run networking", func() {
 		// already expected to be present and processed by
 		// Podman's DNS resolver i.e ( aarvark-dns or dnsname ).
 		Expect(session.OutputToString()).ToNot(ContainSubstring("nameserver 1.1.1.1"))
-		// But /etc/resolve.conf must contain othe nameserver
+		// But /etc/resolve.conf must contain other nameserver
 		// i.e dns server configured for network.
 		Expect(session.OutputToString()).To(ContainSubstring("nameserver"))
 
