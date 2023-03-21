@@ -45,7 +45,7 @@ func NewSqliteState(runtime *Runtime) (_ State, defErr error) {
 		return nil, fmt.Errorf("creating root directory: %w", err)
 	}
 
-	conn, err := sql.Open("sqlite3", filepath.Join(basePath, "db.sql?_loc=auto"))
+	conn, err := sql.Open("sqlite3", filepath.Join(basePath, "db.sql?_loc=auto&cache=shared"))
 	if err != nil {
 		return nil, fmt.Errorf("initializing sqlite database: %w", err)
 	}
@@ -56,6 +56,9 @@ func NewSqliteState(runtime *Runtime) (_ State, defErr error) {
 			}
 		}
 	}()
+
+	// Necessary to avoid database locked errors.
+	conn.SetMaxOpenConns(1)
 
 	state.conn = conn
 
