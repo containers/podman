@@ -1366,6 +1366,15 @@ func (ic *ContainerEngine) PlayKubeDown(ctx context.Context, body io.Reader, opt
 		}
 	}
 
+	// Remove the service container to ensure it is removed before we return for the remote case
+	// Needed for the clean up with podman kube play --wait in the remote case
+	if reports.ServiceContainerID != "" {
+		_, err = ic.ContainerRm(ctx, []string{reports.ServiceContainerID}, entities.RmOptions{})
+		if err != nil && !errors.Is(err, define.ErrNoSuchCtr) {
+			return nil, err
+		}
+	}
+
 	return reports, nil
 }
 
