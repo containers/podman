@@ -711,6 +711,29 @@ podman_machine_aarch64_task:
     always: *machine_logs_benchmarks
 
 
+bench_stuff_task:
+    name: Record machine benchmarks
+    alias: bench_stuff
+    # Only run on merge and never for cirrus-cron.
+    only_if: $CIRRUS_BRANCH == 'main' && $CIRRUS_CRON == ''
+    depends_on:
+        - podman_machine
+        - podman_machine_aarch64
+    gce_instance: *standardvm
+    env:
+        <<: *stdenvars
+        PR: podman run -it --rm -v /tmp/data:/tmp/data:Z -w /tmp/data
+        GACJSON: ENCRYPTED[acd4a8bd843dab6dd135c379a2819546187fd2c7ce43e5839c6db4c798ed652f5b456f5d1716afef662554ee94e098ee]
+    clone_script: &noop mkdir -p $CIRRUS_WORKING_DIR
+    script:
+        - mkdir /tmp/data
+        # Download benchmark.env and benchmark.csv from podman-machine tasks
+        - $PR quay.io/libpod/ccia $CIRRUS_BUILD_ID benchmark/data
+        - podman secret create --env GACJSON GACJSON
+        # Parse and upload benchmark data to GCE firestore database
+        - $PR --secret GACJSON -e GOOGLE_APPLICATION_CREDENTIALS=/run/secrets/GACJSON quay.io/libpod/bench_stuff ./$CIRRUS_BUILD_ID
+
+
 # Always run subsequent to integration tests.  While parallelism is lost
 # with runtime, debugging system-test failures can be more challenging
 # for some golang developers.  Otherwise the following tasks run across
@@ -968,7 +991,7 @@ meta_task:
         GCPJSON: ENCRYPTED[3a198350077849c8df14b723c0f4c9fece9ebe6408d35982e7adf2105a33f8e0e166ed3ed614875a0887e1af2b8775f4]
         GCPNAME: ENCRYPTED[2f9738ef295a706f66a13891b40e8eaa92a89e0e87faf8bed66c41eca72bf76cfd190a6f2d0e8444c631fdf15ed32ef6]
         GCPPROJECT: libpod-218412
-    clone_script: &noop mkdir -p $CIRRUS_WORKING_DIR
+    clone_script: *noop
     script: /usr/local/bin/entrypoint.sh
 
 
