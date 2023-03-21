@@ -492,7 +492,11 @@ func ConvertContainer(container *parser.UnitFile, isUser bool) (*parser.UnitFile
 		}
 
 		if source != "" {
-			source = handleStorageSource(service, source)
+			var err error
+			source, err = handleStorageSource(container, service, source)
+			if err != nil {
+				return nil, err
+			}
 		}
 
 		podman.add("-v")
@@ -564,10 +568,14 @@ func ConvertContainer(container *parser.UnitFile, isUser bool) (*parser.UnitFile
 		}
 		if paramType, ok := paramsMap["type"]; ok {
 			if paramType == "volume" || paramType == "bind" {
+				var err error
 				if paramSource, ok := paramsMap["source"]; ok {
-					paramsMap["source"] = handleStorageSource(service, paramSource)
+					paramsMap["source"], err = handleStorageSource(container, service, paramSource)
 				} else if paramSource, ok = paramsMap["src"]; ok {
-					paramsMap["src"] = handleStorageSource(service, paramSource)
+					paramsMap["src"], err = handleStorageSource(container, service, paramSource)
+				}
+				if err != nil {
+					return nil, err
 				}
 			}
 		}
@@ -1047,10 +1055,17 @@ func handleLogDriver(unitFile *parser.UnitFile, groupName string, podman *Podman
 	podman.add("--log-driver", logDriver)
 }
 
-func handleStorageSource(unitFile *parser.UnitFile, source string) string {
+func handleStorageSource(quadletUnitFile, serviceUnitFile *parser.UnitFile, source string) (string, error) {
+	if source[0] == '.' {
+		var err error
+		source, err = getAbsolutePath(quadletUnitFile, source)
+		if err != nil {
+			return "", err
+		}
+	}
 	if source[0] == '/' {
 		// Absolute path
-		unitFile.Add(UnitGroup, "RequiresMountsFor", source)
+		serviceUnitFile.Add(UnitGroup, "RequiresMountsFor", source)
 	} else if strings.HasSuffix(source, ".volume") {
 		// the podman volume name is systemd-$name
 		volumeName := replaceExtension(source, "", "systemd-", "")
@@ -1060,11 +1075,11 @@ func handleStorageSource(unitFile *parser.UnitFile, source string) string {
 
 		source = volumeName
 
-		unitFile.Add(UnitGroup, "Requires", volumeServiceName)
-		unitFile.Add(UnitGroup, "After", volumeServiceName)
+		serviceUnitFile.Add(UnitGroup, "Requires", volumeServiceName)
+		serviceUnitFile.Add(UnitGroup, "After", volumeServiceName)
 	}
 
-	return source
+	return source, nil
 }
 
 func handleHealth(unitFile *parser.UnitFile, groupName string, podman *PodmanCmdline) {

@@ -467,6 +467,8 @@ If enabled, the container will have a fresh tmpfs mounted on `/tmp`.
 Mount a volume in the container. This is equivalent to the Podman `--volume` option, and
 generally has the form `[[SOURCE-VOLUME|HOST-DIR:]CONTAINER-DIR[:OPTIONS]]`.
 
+If `SOURCE-VOLUME` starts with `.`, Quadlet will resolve the path relative to the location of the unit file.
+
 As a special case, if `SOURCE-VOLUME` ends with `.volume`, a Podman named volume called
 `systemd-$name` will be used as the source, and the generated systemd service will contain
 a dependency on the `$name-volume.service`. Such a volume can be automatically be lazily
