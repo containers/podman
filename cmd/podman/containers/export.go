@@ -79,7 +79,7 @@ func export(cmd *cobra.Command, args []string) error {
 		if err := parse.ValidateFileName(outputFile); err != nil {
 			return err
 		}
-		// open file here with WRONLY since on MacOS it can fail to open /dev/stderr in read mode for example
+		// open file here with O_WRONLY since on MacOS it can fail to open /dev/stderr in read mode for example
 		// https://github.com/containers/podman/issues/16870
 		file, err := os.OpenFile(outputFile, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 		if err != nil {

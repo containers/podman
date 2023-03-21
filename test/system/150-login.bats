@@ -203,19 +203,19 @@ function _push_search_test() {
                --creds ${PODMAN_LOGIN_USER}:${PODMAN_LOGIN_PASS} \
                $IMAGE localhost:${PODMAN_LOGIN_REGISTRY_PORT}/$destname
 
-    # Search a pushed image without --cert-dir will be failed if --tls-verify=true
+    # Search a pushed image without --cert-dir should fail if --tls-verify=true
     run_podman $2 search --tls-verify=$1 \
                --format "table {{.Name}}" \
                --creds ${PODMAN_LOGIN_USER}:${PODMAN_LOGIN_PASS} \
                localhost:${PODMAN_LOGIN_REGISTRY_PORT}/$destname
 
-    # Search a pushed image without --creds will be failed
+    # Search a pushed image without --creds should fail
     run_podman 125 search --tls-verify=$1 \
                --format "table {{.Name}}" \
                --cert-dir ${PODMAN_LOGIN_WORKDIR}/trusted-registry-cert-dir \
                localhost:${PODMAN_LOGIN_REGISTRY_PORT}/$destname
 
-    # Search a pushed image will be successed
+    # Search a pushed image should succeed
     run_podman search --tls-verify=$1 \
                --format "table {{.Name}}" \
                --cert-dir ${PODMAN_LOGIN_WORKDIR}/trusted-registry-cert-dir \

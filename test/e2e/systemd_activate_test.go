@@ -72,7 +72,7 @@ var _ = Describe("Systemd activate", func() {
 		defer os.RemoveAll(tmpRootDir)
 
 		// When SELinux is enabled, a storage root directory should be
-		// labeld with a specific value
+		// labeled with a specific value
 		if selinux.GetEnabled() {
 			rootDir := "/var/lib/containers"
 			label := "container_var_lib_t"
