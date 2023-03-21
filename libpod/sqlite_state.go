@@ -81,9 +81,6 @@ func NewSqliteState(runtime *Runtime) (_ State, defErr error) {
 		}
 	}()
 
-	// Necessary to avoid database locked errors.
-	conn.SetMaxOpenConns(1)
-
 	state.conn = conn
 
 	if err := state.conn.Ping(); err != nil {
