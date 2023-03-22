@@ -60,6 +60,7 @@ var (
 		"CAP_SETGID",
 		"CAP_SETPCAP",
 		"CAP_SETUID",
+		"CAP_SYS_CHROOT",
 	}
 
 	// Search these locations in which CNIPlugins can be installed.
