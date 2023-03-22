@@ -38,8 +38,6 @@ const (
 	sqliteOptionSynchronous = "&_sync=FULL"
 	// Allow foreign keys (https://www.sqlite.org/pragma.html#pragma_foreign_keys).
 	sqliteOptionForeignKeys = "&_foreign_keys=1"
-	// Enable cache sharing for threads within a process
-	sqliteOptionSharedCache = "&cache=shared"
 	// Make sure that transactions happen exclusively.
 	sqliteOptionTXLock = "&_txlock=exclusive"
 
@@ -49,7 +47,6 @@ const (
 		sqliteOptionJournal +
 		sqliteOptionSynchronous +
 		sqliteOptionForeignKeys +
-		sqliteOptionSharedCache +
 		sqliteOptionTXLock
 )
 
