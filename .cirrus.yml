@@ -283,6 +283,7 @@ alt_build_task:
     only_if: &no_rhel_release |
         $CIRRUS_BRANCH !=~ 'v[0-9\.]+-rhel' &&
         $CIRRUS_BASE_BRANCH !=~ 'v[0-9\.]+-rhel'
+    skip: $CI == $CI
     env:
         <<: *stdenvars
         TEST_FLAVOR: "altbuild"
@@ -320,6 +321,7 @@ osx_alt_build_task:
     alias: osx_alt_build
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: *no_rhel_release  # RHEL never releases podman mac installer binary
+    skip: $CI == $CI
     persistent_worker: &mac_pw
         labels:
             os: darwin
@@ -432,6 +434,7 @@ bindings_task:
         $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*' &&
         $CIRRUS_CHANGE_TITLE !=~ '.*CI:BUILD.*' &&
         $CIRRUS_CHANGE_TITLE !=~ '.*CI:MACHINE.*'
+    skip: $CI == $CI
     depends_on: &build
         - build_success
     gce_instance: *standardvm
@@ -467,6 +470,7 @@ swagger_task:
     only_if: |
         $CIRRUS_CHANGE_TITLE !=~ '.*CI:BUILD.*' &&
         $CIRRUS_CHANGE_TITLE !=~ '.*CI:MACHINE.*'
+    skip: $CI == $CI
     depends_on: *build
     gce_instance: *standardvm
     env:
@@ -493,6 +497,7 @@ win_installer_task:
       $CIRRUS_TAG == '' &&
       $CIRRUS_BRANCH !=~ 'v[0-9\.]+-rhel' &&
       $CIRRUS_BASE_BRANCH !=~ 'v[0-9\.]+-rhel'
+    skip: $CI == $CI
     depends_on: *build
     ec2_instance: &windows
         image: "${WINDOWS_AMI}"
@@ -551,7 +556,7 @@ docker-py_test_task:
         $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*' &&
         $CIRRUS_CHANGE_TITLE !=~ '.*CI:BUILD.*' &&
         $CIRRUS_CHANGE_TITLE !=~ '.*CI:MACHINE.*'
-    depends_on: *build
+    skip: $CI == $CI
     gce_instance: *standardvm
     env:
         <<: *stdenvars
@@ -569,6 +574,7 @@ unit_test_task:
     alias: unit_test
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: *not_tag_branch_build_docs_machine
+    skip: $CI == $CI
     depends_on: *build
     matrix:
         - env: *stdenvars
@@ -591,6 +597,7 @@ apiv2_test_task:
     alias: apiv2_test
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: *not_tag_branch_build_docs_machine
+    skip: $CI == $CI
     depends_on: *build
     gce_instance: *standardvm
     # Test is normally pretty quick, about 10-minutes.  If it hangs,
@@ -615,6 +622,7 @@ compose_test_task:
     alias: compose_test
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: *not_tag_branch_build_docs_machine
+    skip: $CI == $CI
     depends_on: *build
     gce_instance: *standardvm
     matrix:
@@ -736,6 +744,7 @@ podman_machine_task:
          $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*' &&
          $CIRRUS_CHANGE_TITLE !=~ '.*CI:BUILD.*'
         ) || $CIRRUS_CRON == "main"
+    skip: $CI == $CI
     depends_on: *build
     ec2_instance:
         image: "${VM_IMAGE_NAME}"
@@ -757,6 +766,7 @@ podman_machine_aarch64_task:
     name: *std_name_fmt
     alias: podman_machine_aarch64
     only_if: *machine_cron_not_tag_build_docs
+    skip: $CI == $CI
     depends_on: *build
     ec2_instance:
         <<: *standard_build_ec2_aarch64
@@ -778,6 +788,7 @@ podman_machine_windows_task:
     # Only run for non-docs/copr PRs and non-release branch builds
     # and never for tags.  Docs: ./contrib/cirrus/CIModes.md
     only_if: *machine_cron_not_tag_build_docs
+    skip: $CI == $CI
     depends_on: *build
     ec2_instance:
         <<: *windows
@@ -802,6 +813,7 @@ podman_machine_mac_task:
     name: *std_name_fmt
     alias: podman_machine_mac
     only_if: *machine_cron_not_tag_build_docs
+    skip: $CI == $CI
     depends_on: *build
     persistent_worker: *mac_pw
     env:
@@ -859,6 +871,7 @@ local_system_test_task: &local_system_test_task
     gce_instance: *standardvm
     env:
         TEST_FLAVOR: sys
+    timeout_in: 45m
     clone_script: *get_gosrc
     setup_script: *setup
     main_script: *main
@@ -878,6 +891,7 @@ local_system_test_aarch64_task: &local_system_test_task_aarch64
         <<: *stdenvars_aarch64
         TEST_FLAVOR: sys
         DISTRO_NV: ${FEDORA_AARCH64_NAME}
+    timeout_in: 45m
     clone_script: *get_gosrc_aarch64
     setup_script: *setup
     main_script: *main
@@ -929,6 +943,7 @@ rootless_system_test_task:
     env:
         TEST_FLAVOR: sys
         PRIV_NAME: rootless
+    timeout_in: 45m
     clone_script: *get_gosrc
     setup_script: *setup
     main_script: *main
@@ -940,6 +955,7 @@ minikube_test_task:
     alias: minikube_test
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: *not_tag_magic
+    skip: $CI == $CI
     depends_on: *build
     gce_instance: *standardvm
     env:
@@ -972,6 +988,7 @@ buildah_bud_test_task:
     alias: buildah_bud_test
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: *not_tag_magic
+    skip: $CI == $CI
     depends_on: *build
     env:
         <<: *stdenvars
