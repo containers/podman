@@ -3,6 +3,8 @@
 
 package hypervctl
 
+import "fmt"
+
 const ProcessorResourceType = "Microsoft:Hyper-V:Processor"
 
 /*
@@ -88,5 +90,9 @@ func fetchDefaultProcessorSettings() (*ProcessorSettings, error) {
 }
 
 func createProcessorSettings(settings *ProcessorSettings) (string, error) {
-	return createResourceSettingGeneric(settings, ProcessorResourceType)
+	str, err := createResourceSettingGeneric(settings, ProcessorResourceType)
+	if err != nil {
+		err = fmt.Errorf("could not create processor settings: %w", err)
+	}
+	return str, err
 }

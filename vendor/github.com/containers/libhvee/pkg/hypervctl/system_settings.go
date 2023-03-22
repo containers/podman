@@ -174,7 +174,7 @@ func addResource(service *wmiext.Service, systemSettingPath string, resourceSett
 		return "", fmt.Errorf("AddResourceSettings failed: %w", err)
 	}
 
-	err = waitVMResult(res, service, job)
+	err = waitVMResult(res, service, job, "failed to add resource", nil)
 
 	if len(resultingSettings) > 0 {
 		return resultingSettings[0], err

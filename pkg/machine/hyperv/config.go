@@ -70,16 +70,16 @@ func (v Virtualization) IsValidVMName(name string) (bool, error) {
 }
 
 func (v Virtualization) List(opts machine.ListOptions) ([]*machine.ListResponse, error) {
-	var response []*machine.ListResponse
-	vmm := hypervctl.NewVirtualMachineManager()
-	vms, err := vmm.GetAll()
+	mms, err := v.loadFromLocalJson()
 	if err != nil {
 		return nil, err
 	}
 
-	for _, vm := range vms {
-		m := &HyperVMachine{Name: vm.ElementName}
-		mm, err := m.loadFromFile()
+	var response []*machine.ListResponse
+	vmm := hypervctl.NewVirtualMachineManager()
+
+	for _, mm := range mms {
+		vm, err := vmm.GetMachine(mm.Name)
 		if err != nil {
 			return nil, err
 		}
@@ -159,8 +159,7 @@ func (v Virtualization) NewMachine(opts machine.InitOptions) (machine.VM, error)
 	config := hypervctl.HardwareConfig{
 		CPUs:     uint16(opts.CPUS),
 		DiskPath: imagePath.GetPath(),
-		// TODO remove this and make real
-		DiskSize: 100,
+		DiskSize: opts.DiskSize,
 		Memory:   int32(opts.Memory),
 	}
 
@@ -251,7 +250,7 @@ func (v Virtualization) loadFromLocalJson() ([]*HyperVMachine, error) {
 		if e != nil {
 			return e
 		}
-		if filepath.Ext(d.Name()) == "json" {
+		if filepath.Ext(d.Name()) == ".json" {
 			jsonFiles = append(jsonFiles, input)
 		}
 		return nil

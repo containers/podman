@@ -183,18 +183,27 @@ func (vm *VirtualMachine) kvpOperation(op string, key string, value string, ille
 	return err
 }
 
-func waitVMResult(res int32, service *wmiext.Service, job *wmiext.Instance) error {
+func waitVMResult(res int32, service *wmiext.Service, job *wmiext.Instance, errorMsg string, translate func(int) error) error {
 	var err error
 
-	if res == 4096 {
+	switch res {
+	case 0:
+		return nil
+	case 4096:
 		err = wmiext.WaitJob(service, job)
 		defer job.Close()
+	default:
+		if translate != nil {
+			return translate(int(res))
+		}
+
+		return fmt.Errorf("%s (result code %d)", errorMsg, res)
 	}
 
 	if err != nil {
 		desc, _ := job.GetAsString("ErrorDescription")
 		desc = strings.Replace(desc, "\n", " ", -1)
-		return fmt.Errorf("failed to define system: %w (%s)", err, desc)
+		return fmt.Errorf("%s: %w (%s)", errorMsg, err, desc)
 	}
 
 	return err
@@ -270,7 +279,7 @@ func (vm *VirtualMachine) Start() error {
 		Out("ReturnValue", &res).End(); err != nil {
 		return err
 	}
-	return waitVMResult(res, srv, job)
+	return waitVMResult(res, srv, job, "failed to start vm", nil)
 }
 
 func getService(_ *wmiext.Service) (*wmiext.Service, error) {
@@ -328,7 +337,7 @@ func (vm *VirtualMachine) GetSummaryInformation(requestedFields SummaryRequestSe
 	}
 	defer service.Close()
 
-	instance, err := service.FindFirstRelatedInstance(vm.Path(), "Msvm_VirtualSystemSettingData")
+	instance, err := vm.fetchSystemSettingsInstance(service)
 	if err != nil {
 		return nil, err
 	}
@@ -418,6 +427,98 @@ func (vmm *VirtualMachineManager) NewVirtualMachine(name string, config *Hardwar
 	return nil
 }
 
+func (vm *VirtualMachine) fetchSystemSettingsInstance(service *wmiext.Service) (*wmiext.Instance, error) {
+	// When a settings snapshot is taken there are multiple associations, use only the realized/active version
+	return service.FindFirstRelatedInstanceThrough(vm.Path(), "Msvm_VirtualSystemSettingData", "Msvm_SettingsDefineState")
+}
+
+func (vm *VirtualMachine) fetchExistingResourceSettings(service *wmiext.Service, resourceType string, resourceSettings interface{}) error {
+	const errFmt = "could not fetch resource settings (%s): %w"
+	// When a settings snapshot is taken there are multiple associations, use only the realized/active version
+	instance, err := vm.fetchSystemSettingsInstance(service)
+	if err != nil {
+		return fmt.Errorf(errFmt, resourceType, err)
+	}
+	defer instance.Close()
+
+	path, err := instance.Path()
+	if err != nil {
+		return fmt.Errorf(errFmt, resourceType, err)
+
+	}
+
+	return service.FindFirstRelatedObject(path, resourceType, resourceSettings)
+}
+
+// Update processor and/or mem
+func (vm *VirtualMachine) UpdateProcessorMemSettings(updateProcessor func(*ProcessorSettings), updateMemory func(*MemorySettings)) error {
+	service, err := wmiext.NewLocalService(HyperVNamespace)
+	if err != nil {
+		return err
+	}
+	defer service.Close()
+
+	proc := &ProcessorSettings{}
+	mem := &MemorySettings{}
+
+	var settings []string
+	if updateProcessor != nil {
+		err = vm.fetchExistingResourceSettings(service, "Msvm_ProcessorSettingData", proc)
+		if err != nil {
+			return err
+		}
+
+		updateProcessor(proc)
+
+		processorStr, err := createProcessorSettings(proc)
+		if err != nil {
+			return err
+		}
+		settings = append(settings, processorStr)
+	}
+
+	if updateMemory != nil {
+		err = vm.fetchExistingResourceSettings(service, "Msvm_MemorySettingData", mem)
+		if err != nil {
+			return err
+		}
+
+		updateMemory(mem)
+
+		memStr, err := createMemorySettings(mem)
+		if err != nil {
+			return err
+		}
+
+		settings = append(settings, memStr)
+	}
+
+	if len(settings) < 1 {
+		return nil
+	}
+
+	vsms, err := service.GetSingletonInstance("Msvm_VirtualSystemManagementService")
+	if err != nil {
+		return err
+	}
+	defer vsms.Close()
+
+	var job *wmiext.Instance
+	var res int32
+	err = vsms.BeginInvoke("ModifyResourceSettings").
+		In("ResourceSettings", settings).
+		Execute().
+		Out("Job", &job).
+		Out("ReturnValue", &res).
+		End()
+
+	if err != nil {
+		return fmt.Errorf("failed to modify resource settings: %w", err)
+	}
+
+	return waitVMResult(res, service, job, "failed to modify resource settings", translateModifyError)
+}
+
 func (vm *VirtualMachine) remove() (int32, error) {
 	var (
 		err error
@@ -433,7 +534,7 @@ func (vm *VirtualMachine) remove() (int32, error) {
 		return -1, err
 	}
 
-	wmiInst, err := srv.FindFirstRelatedInstance(vm.Path(), "Msvm_VirtualSystemSettingData")
+	wmiInst, err := vm.fetchSystemSettingsInstance(srv)
 	if err != nil {
 		return -1, err
 	}
@@ -448,7 +549,7 @@ func (vm *VirtualMachine) remove() (int32, error) {
 	if err != nil {
 		return -1, err
 	}
-	defer wmiInst.Close()
+	defer vsms.Close()
 
 	var (
 		job             *wmiext.Instance
@@ -465,7 +566,7 @@ func (vm *VirtualMachine) remove() (int32, error) {
 	}
 
 	// do i have this correct? you can get an error without a result?
-	if err := waitVMResult(res, srv, job); err != nil {
+	if err := waitVMResult(res, srv, job, "failed to remove vm", nil); err != nil {
 		return -1, err
 	}
 	return res, nil
