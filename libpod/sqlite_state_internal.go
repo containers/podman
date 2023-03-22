@@ -16,6 +16,20 @@ import (
 )
 
 func (s *SQLiteState) migrateSchemaIfNecessary() (defErr error) {
+	// First, check if the DBConfig table exists
+	checkRow := s.conn.QueryRow("SELECT 1 FROM sqlite_master WHERE type='table' AND name='DBConfig';")
+	var check int
+	if err := checkRow.Scan(&check); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil
+		}
+		return fmt.Errorf("checking if DB config table exists: %w", err)
+	}
+	if check != 1 {
+		// Table does not exist, fresh database, no need to migrate.
+		return nil
+	}
+
 	row := s.conn.QueryRow("SELECT SchemaVersion FROM DBConfig;")
 	var schemaVer int
 	if err := row.Scan(&schemaVer); err != nil {
@@ -24,6 +38,7 @@ func (s *SQLiteState) migrateSchemaIfNecessary() (defErr error) {
 			// Schema was just created, so it has to be the latest.
 			return nil
 		}
+		return fmt.Errorf("scanning schema version from DB config: %w", err)
 	}
 
 	// If the schema version 0 or less, it's invalid

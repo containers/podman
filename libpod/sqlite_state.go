@@ -29,6 +29,30 @@ type SQLiteState struct {
 	runtime *Runtime
 }
 
+const (
+	// Deal with timezone automatically.
+	sqliteOptionLocation = "_loc=auto"
+	// Set the journal mode (https://www.sqlite.org/pragma.html#pragma_journal_mode).
+	sqliteOptionJournal = "&_journal=WAL"
+	// Force WAL mode to fsync after each transaction (https://www.sqlite.org/pragma.html#pragma_synchronous).
+	sqliteOptionSynchronous = "&_sync=FULL"
+	// Allow foreign keys (https://www.sqlite.org/pragma.html#pragma_foreign_keys).
+	sqliteOptionForeignKeys = "&_foreign_keys=1"
+	// Enable cache sharing for threads within a process
+	sqliteOptionSharedCache = "&cache=shared"
+	// Make sure that transactions happen exclusively.
+	sqliteOptionTXLock = "&_txlock=exclusive"
+
+	// Assembled sqlite options used when opening the database.
+	sqliteOptions = "db.sql?" +
+		sqliteOptionLocation +
+		sqliteOptionJournal +
+		sqliteOptionSynchronous +
+		sqliteOptionForeignKeys +
+		sqliteOptionSharedCache +
+		sqliteOptionTXLock
+)
+
 // NewSqliteState creates a new SQLite-backed state database.
 func NewSqliteState(runtime *Runtime) (_ State, defErr error) {
 	state := new(SQLiteState)
@@ -45,7 +69,7 @@ func NewSqliteState(runtime *Runtime) (_ State, defErr error) {
 		return nil, fmt.Errorf("creating root directory: %w", err)
 	}
 
-	conn, err := sql.Open("sqlite3", filepath.Join(basePath, "db.sql?_loc=auto"))
+	conn, err := sql.Open("sqlite3", filepath.Join(basePath, sqliteOptions))
 	if err != nil {
 		return nil, fmt.Errorf("initializing sqlite database: %w", err)
 	}
@@ -63,27 +87,14 @@ func NewSqliteState(runtime *Runtime) (_ State, defErr error) {
 		return nil, fmt.Errorf("cannot connect to database: %w", err)
 	}
 
-	// Enable foreign keys constraints, which we use extensively in our
-	// tables.
-	if _, err := state.conn.Exec("PRAGMA foreign_keys = ON;"); err != nil {
-		return nil, fmt.Errorf("enabling foreign key support in database: %w", err)
-	}
-	// Enable WAL mode for performance - https://www.sqlite.org/wal.html
-	if _, err := state.conn.Exec("PRAGMA journal_mode = WAL;"); err != nil {
-		return nil, fmt.Errorf("switching journal to WAL mode: %w", err)
-	}
-	// Force WAL mode to fsync after every transaction, for reboot safety.
-	if _, err := state.conn.Exec("PRAGMA synchronous = FULL;"); err != nil {
-		return nil, fmt.Errorf("setting full fsync mode in db: %w", err)
+	// Migrate schema (if necessary)
+	if err := state.migrateSchemaIfNecessary(); err != nil {
+		return nil, err
 	}
 
 	// Set up tables
 	if err := sqliteInitTables(state.conn); err != nil {
 		return nil, fmt.Errorf("creating tables: %w", err)
-	}
-
-	if err := state.migrateSchemaIfNecessary(); err != nil {
-		return nil, err
 	}
 
 	state.valid = true
