@@ -15,7 +15,10 @@ function start_time() {
 
 function setup() {
     skip_if_remote "quadlet tests are meaningless over remote"
-    skip_if_rootless_cgroupsv1 "quadlet tests don't work rootless on RHEL8"
+    skip_if_rootless_cgroupsv1 "Can't use --cgroups=split w/ CGv1 (#17456)"
+    skip_if_journald_unavailable "quadlet isn't really usable without journal"
+
+    test -x "$QUADLET" || die "Cannot run quadlet tests without executable \$QUADLET ($QUADLET)"
 
     start_time
 

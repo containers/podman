@@ -244,6 +244,8 @@ READY=1" "sdnotify sent MAINPID and READY"
 }
 
 @test "sdnotify : play kube - with policies" {
+    skip_if_journald_unavailable
+
     # Pull that image. Retry in case of flakes.
     run_podman pull $SYSTEMD_IMAGE || \
         run_podman pull $SYSTEMD_IMAGE || \
