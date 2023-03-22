@@ -58,7 +58,7 @@ env:
     DISTRO_NV:               # any {PRIOR_,}{FEDORA,DEBIAN}_NAME value
     VM_IMAGE_NAME:           # One of the "Google-cloud VM Images" (above)
     CTR_FQIN:                # One of the "Container FQIN's" (above)
-    CI_DESIRED_DATABASE: boltdb # One of "", "sqlite", "boltdb"
+    CI_DESIRED_DATABASE: sqlite # One of "", "sqlite", "boltdb"
 
     # Curl-command prefix for downloading task artifacts, simply add the
     # the url-encoded task name, artifact name, and path as a suffix.
