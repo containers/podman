@@ -53,3 +53,16 @@ type StatsJSON struct {
 	// Networks request version >=1.21
 	Networks map[string]docker.NetworkStats `json:"networks,omitempty"`
 }
+
+// DockerStatsJSON is the same as StatsJSON except for the lowercase
+// "id" in the JSON tag. This is needed for docker compat but we should
+// not change the libpod API output for backwards compat reasons.
+type DockerStatsJSON struct {
+	Stats
+
+	Name string `json:"name,omitempty"`
+	ID   string `json:"id,omitempty"`
+
+	// Networks request version >=1.21
+	Networks map[string]docker.NetworkStats `json:"networks,omitempty"`
+}
