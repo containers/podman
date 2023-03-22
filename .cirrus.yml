@@ -293,6 +293,7 @@ bindings_task:
         $CIRRUS_PR != '' &&
         $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*' &&
         $CIRRUS_CHANGE_TITLE !=~ '.*CI:BUILD.*'
+    skip: $CI == $CI
     depends_on:
         - build
     gce_instance: *standardvm
@@ -326,6 +327,7 @@ swagger_task:
     # Don't create task for [CI:BUILD]
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: $CIRRUS_CHANGE_TITLE !=~ '.*CI:BUILD.*'
+    skip: $CI == $CI
     depends_on:
         - build
     gce_instance: *standardvm
@@ -357,6 +359,7 @@ alt_build_task:
     only_if: &no_rhel_release |
         $CIRRUS_BRANCH !=~ 'v[0-9\.]+-rhel' &&
         $CIRRUS_BASE_BRANCH !=~ 'v[0-9\.]+-rhel'
+    skip: $CI == $CI
     depends_on:
         - build
     env:
@@ -395,6 +398,7 @@ win_installer_task:
       $CIRRUS_TAG == '' &&
       $CIRRUS_BRANCH !=~ 'v[0-9\.]+-rhel' &&
       $CIRRUS_BASE_BRANCH !=~ 'v[0-9\.]+-rhel'
+    skip: $CI == $CI
     depends_on:
       - alt_build
     ec2_instance:
@@ -418,6 +422,7 @@ osx_alt_build_task:
     alias: osx_alt_build
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: *no_rhel_release
+    skip: $CI == $CI
     depends_on:
         - build
     env:
@@ -490,7 +495,7 @@ docker-py_test_task:
         $CIRRUS_PR != '' &&
         $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*' &&
         $CIRRUS_CHANGE_TITLE !=~ '.*CI:BUILD.*'
-
+    skip: $CI == $CI
     depends_on:
         - build
     gce_instance: *standardvm
@@ -510,6 +515,7 @@ unit_test_task:
     alias: unit_test
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: *not_tag_branch_build_docs
+    skip: $CI == $CI
     depends_on:
         - build
         - validate
@@ -534,6 +540,7 @@ apiv2_test_task:
     alias: apiv2_test
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: *not_tag_branch_build_docs
+    skip: $CI == $CI
     depends_on:
         - build
         - validate
@@ -560,6 +567,7 @@ compose_test_task:
     alias: compose_test
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: *not_tag_branch_build_docs
+    skip: $CI == $CI
     depends_on:
         - build
         - validate
@@ -596,6 +604,7 @@ windows_smoke_test_task:
         $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*' &&
         $CIRRUS_BRANCH !=~ 'v[0-9\.]+-rhel' &&
         $CIRRUS_BASE_BRANCH !=~ 'v[0-9\.]+-rhel'
+    skip: $CI == $CI
     depends_on:
       - alt_build
     ec2_instance:
@@ -711,6 +720,7 @@ podman_machine_task:
         $CIRRUS_TAG == '' &&
         $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*' &&
         $CIRRUS_CHANGE_TITLE !=~ '.*CI:BUILD.*'
+    skip: $CI == $CI
     depends_on:
         - build
         - local_integration_test
@@ -738,6 +748,7 @@ podman_machine_aarch64_task:
     name: *std_name_fmt
     alias: podman_machine_aarch64
     only_if: *not_tag_build_docs
+    skip: $CI == $CI
     depends_on:
         - build_aarch64
         - validate_aarch64
@@ -773,6 +784,7 @@ local_system_test_task: &local_system_test_task
     gce_instance: *standardvm
     env:
         TEST_FLAVOR: sys
+    timeout_in: 45m
     clone_script: *get_gosrc
     setup_script: *setup
     main_script: *main
@@ -793,6 +805,7 @@ local_system_test_aarch64_task: &local_system_test_task_aarch64
         <<: *stdenvars_aarch64
         TEST_FLAVOR: sys
         DISTRO_NV: ${FEDORA_AARCH64_NAME}
+    timeout_in: 45m
     clone_script: *get_gosrc_aarch64
     setup_script: *setup
     main_script: *main
@@ -845,6 +858,7 @@ rootless_system_test_task:
     env:
         TEST_FLAVOR: sys
         PRIV_NAME: rootless
+    timeout_in: 45m
     clone_script: *get_gosrc
     setup_script: *setup
     main_script: *main
@@ -855,6 +869,7 @@ minikube_test_task:
     alias: minikube_test
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: *not_tag_build_docs
+    skip: $CI == $CI
     depends_on:
         - build
         - rootless_system_test
@@ -873,6 +888,7 @@ buildah_bud_test_task:
     alias: buildah_bud_test
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: *not_tag_branch_build_docs
+    skip: $CI == $CI
     depends_on:
         - build
         - local_integration_test
@@ -896,6 +912,7 @@ rootless_buildah_bud_test_task:
     alias: rootless_buildah_bud_test
     # Please keep this as-is: the buildah treadmill (#13808) relies on it.
     only_if: $CIRRUS_CRON == 'treadmill'
+    skip: $CI == $CI
     depends_on:
         - build
         - rootless_integration_test
@@ -920,6 +937,7 @@ upgrade_test_task:
     alias: upgrade_test
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: *not_tag_branch_build_docs
+    skip: $CI == $CI
     depends_on:
         - build
         - local_system_test
