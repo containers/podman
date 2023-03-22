@@ -403,4 +403,27 @@ function teardown() {
     run_podman network rm $netname
 }
 
+# rhbz#2177611 : podman breaks checkpoint/restore
+@test "podman checkpoint/restore the latest container" {
+    skip_if_remote "podman-remote does not support --latest option"
+    # checkpoint/restore -l must print the IDs
+    run_podman run -d $IMAGE top
+    ctrID="$output"
+    run_podman container checkpoint --latest
+    is "$output" "$ctrID"
+
+    run_podman container inspect \
+               --format '{{.State.Status}}:{{.State.Running}}:{{.State.Paused}}:{{.State.Checkpointed}}' $ctrID
+    is "$output" "exited:false:false:true" "State. Status:Running:Pause:Checkpointed"
+
+    run_podman container restore -l
+    is "$output" "$ctrID"
+
+    run_podman container inspect \
+               --format '{{.State.Status}}:{{.State.Running}}:{{.State.Paused}}:{{.State.Checkpointed}}' $ctrID
+    is "$output" "running:true:false:false" "State. Status:Running:Pause:Checkpointed"
+
+    run_podman rm -t 0 -f $ctrID
+}
+
 # vim: filetype=sh
