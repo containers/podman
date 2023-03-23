@@ -82,7 +82,7 @@ content with a shared content label. Shared volume labels allow all containers
 to read/write content. The **Z** option tells Podman to label the content with
 a private unshared label Only the current <<container|pod>> can use a private
 volume. Relabeling walks the file system under the volume and changes the label
-on each file, it the volume has thousands of inodes, this process will take a
+on each file, if the volume has thousands of inodes, this process will take a
 long time, delaying the start of the <<container|pod>>. If the volume
 was previously relabeled with the `z` option, Podman is optimized to not relabel
 a second time. If files are moved into the volume, then the labels can be
