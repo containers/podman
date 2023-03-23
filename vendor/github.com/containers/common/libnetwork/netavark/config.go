@@ -57,17 +57,6 @@ func (n *netavarkNetwork) NetworkUpdate(name string, options types.NetworkUpdate
 	if err != nil {
 		return err
 	}
-	// Nameservers must be IP Addresses.
-	for _, dnsServer := range options.AddDNSServers {
-		if net.ParseIP(dnsServer) == nil {
-			return fmt.Errorf("unable to parse ip %s specified in AddDNSServer: %w", dnsServer, types.ErrInvalidArg)
-		}
-	}
-	for _, dnsServer := range options.RemoveDNSServers {
-		if net.ParseIP(dnsServer) == nil {
-			return fmt.Errorf("unable to parse ip %s specified in RemoveDNSServer: %w", dnsServer, types.ErrInvalidArg)
-		}
-	}
 	networkDNSServersBefore := network.NetworkDNSServers
 	networkDNSServersAfter := []string{}
 	for _, server := range networkDNSServersBefore {
@@ -166,7 +155,6 @@ func (n *netavarkNetwork) networkCreate(newNetwork *types.Network, defaultNet bo
 
 	switch newNetwork.Driver {
 	case types.BridgeNetworkDriver:
-		internalutil.MapDockerBridgeDriverOptions(newNetwork)
 		err = internalutil.CreateBridge(n, newNetwork, usedNetworks, n.defaultsubnetPools)
 		if err != nil {
 			return nil, err
@@ -198,7 +186,6 @@ func (n *netavarkNetwork) networkCreate(newNetwork *types.Network, defaultNet bo
 				if err != nil {
 					return nil, err
 				}
-
 			default:
 				return nil, fmt.Errorf("unsupported bridge network option %s", key)
 			}
@@ -264,6 +251,9 @@ func createMacvlan(network *types.Network) error {
 	// we already validated the drivers before so we just have to set the default here
 	switch network.IPAMOptions[types.Driver] {
 	case "":
+		if len(network.Subnets) == 0 {
+			return fmt.Errorf("macvlan driver needs at least one subnet specified, DHCP is not yet supported with netavark")
+		}
 		network.IPAMOptions[types.Driver] = types.HostLocalIPAMDriver
 	case types.HostLocalIPAMDriver:
 		if len(network.Subnets) == 0 {
@@ -363,11 +353,13 @@ func (n *netavarkNetwork) NetworkInspect(nameOrID string) (types.Network, error)
 func validateIPAMDriver(n *types.Network) error {
 	ipamDriver := n.IPAMOptions[types.Driver]
 	switch ipamDriver {
-	case "", types.HostLocalIPAMDriver, types.DHCPIPAMDriver:
+	case "", types.HostLocalIPAMDriver:
 	case types.NoneIPAMDriver:
 		if len(n.Subnets) > 0 {
 			return errors.New("none ipam driver is set but subnets are given")
 		}
+	case types.DHCPIPAMDriver:
+		return errors.New("dhcp ipam driver is not yet supported with netavark")
 	default:
 		return fmt.Errorf("unsupported ipam driver %q", ipamDriver)
 	}

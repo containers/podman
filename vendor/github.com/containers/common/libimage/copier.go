@@ -167,37 +167,39 @@ var storageAllowedPolicyScopes = signature.PolicyTransportScopes{
 	},
 }
 
-// getDockerAuthConfig extracts a docker auth config. Returns nil if
-// no credentials are set.
-func getDockerAuthConfig(name, passwd, creds, idToken string) (*types.DockerAuthConfig, error) {
-	numCredsSources := 0
+// getDockerAuthConfig extracts a docker auth config from the CopyOptions.  Returns
+// nil if no credentials are set.
+func (options *CopyOptions) getDockerAuthConfig() (*types.DockerAuthConfig, error) {
+	authConf := &types.DockerAuthConfig{IdentityToken: options.IdentityToken}
 
-	if name != "" {
-		numCredsSources++
-	}
-	if creds != "" {
-		name, passwd, _ = strings.Cut(creds, ":")
-		numCredsSources++
-	}
-	if idToken != "" {
-		numCredsSources++
-	}
-	authConf := &types.DockerAuthConfig{
-		Username:      name,
-		Password:      passwd,
-		IdentityToken: idToken,
-	}
-
-	switch numCredsSources {
-	case 0:
-		// Return nil if there is no credential source.
-		return nil, nil
-	case 1:
+	if options.Username != "" {
+		if options.Credentials != "" {
+			return nil, errors.New("username/password cannot be used with credentials")
+		}
+		authConf.Username = options.Username
+		authConf.Password = options.Password
 		return authConf, nil
-	default:
-		// Cannot use the multiple credential sources.
-		return nil, errors.New("cannot use the multiple credential sources")
 	}
+
+	if options.Credentials != "" {
+		split := strings.SplitN(options.Credentials, ":", 2)
+		switch len(split) {
+		case 1:
+			authConf.Username = split[0]
+		default:
+			authConf.Username = split[0]
+			authConf.Password = split[1]
+		}
+		return authConf, nil
+	}
+
+	// We should return nil unless a token was set.  That's especially
+	// useful for Podman's remote API.
+	if options.IdentityToken != "" {
+		return authConf, nil
+	}
+
+	return nil, nil
 }
 
 // newCopier creates a copier.  Note that fields in options *may* overwrite the
@@ -235,7 +237,7 @@ func (r *Runtime) newCopier(options *CopyOptions) (*copier, error) {
 		c.systemContext.SignaturePolicyPath = options.SignaturePolicyPath
 	}
 
-	dockerAuthConfig, err := getDockerAuthConfig(options.Username, options.Password, options.Credentials, options.IdentityToken)
+	dockerAuthConfig, err := options.getDockerAuthConfig()
 	if err != nil {
 		return nil, err
 	}
