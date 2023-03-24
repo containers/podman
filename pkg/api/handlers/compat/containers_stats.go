@@ -202,7 +202,14 @@ streamLabel: // A label to flatten the scope
 			Networks: net,
 		}
 
-		if err := coder.Encode(s); err != nil {
+		var jsonOut interface{}
+		if utils.IsLibpodRequest(r) {
+			jsonOut = s
+		} else {
+			jsonOut = DockerStatsJSON(s)
+		}
+
+		if err := coder.Encode(jsonOut); err != nil {
 			logrus.Errorf("Unable to encode stats: %v", err)
 			return
 		}

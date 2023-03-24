@@ -113,7 +113,13 @@ if root; then
     podman run --name $CTRNAME -d -m 512m -v /tmp:/tmp $IMAGE top
 
     t GET libpod/containers/$CTRNAME/stats?stream=false 200 \
-    .memory_stats.limit=536870912
+    .memory_stats.limit=536870912 \
+    .Id~[0-9a-f]\\{64\\}
+
+    # Make sure docker compat endpoint shows "id" lowercase
+    t GET containers/$CTRNAME/stats?stream=false 200 \
+    .memory_stats.limit=536870912 \
+    .id~[0-9a-f]\\{64\\}
 
     podman rm -f $CTRNAME
 fi
