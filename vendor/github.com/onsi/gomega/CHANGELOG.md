@@ -1,3 +1,9 @@
+## 1.27.5
+
+### Maintenance
+- Bump github.com/onsi/ginkgo/v2 from 2.9.1 to 2.9.2 (#653) [a215021]
+- Bump github.com/go-task/slim-sprig (#652) [a26fed8]
+
 ## 1.27.4
 
 ### Fixes
