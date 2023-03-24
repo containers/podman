@@ -176,6 +176,9 @@ PODMAN_VERSION=%{version} %{__make} DESTDIR=%{buildroot} PREFIX=%{_prefix} ETCDI
         install.modules-load
 %endif
 
+# Sanitize paths in %%{_bindir}/docker
+sed -i 's;%{buildroot}%{_sysconfdir};%{_sysconfdir}/containers;g' %{buildroot}%{_bindir}/docker
+
 install -d -p %{buildroot}/%{_datadir}/%{name}/test/system
 cp -pav test/system %{buildroot}/%{_datadir}/%{name}/test/
 
