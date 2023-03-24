@@ -487,26 +487,29 @@ func (s *SQLiteState) LookupContainerID(idOrName string) (string, error) {
 		return "", define.ErrDBClosed
 	}
 
-	rows, err := s.conn.Query("SELECT ID FROM ContainerConfig WHERE ContainerConfig.Name=? OR (ContainerConfig.ID LIKE ?);", idOrName, idOrName+"%")
+	rows, err := s.conn.Query("SELECT ID, Name FROM ContainerConfig WHERE ContainerConfig.Name=? OR (ContainerConfig.ID LIKE ?);", idOrName, idOrName+"%")
 	if err != nil {
 		return "", fmt.Errorf("looking up container %q in database: %w", idOrName, err)
 	}
 	defer rows.Close()
 
-	var id string
-	foundResult := false
+	var (
+		id, name string
+		resCount uint
+	)
 	for rows.Next() {
-		if foundResult {
-			return "", fmt.Errorf("more than one result for container %q: %w", idOrName, define.ErrCtrExists)
-		}
-
-		if err := rows.Scan(&id); err != nil {
+		if err := rows.Scan(&id, &name); err != nil {
 			return "", fmt.Errorf("retrieving container %q ID from database: %w", idOrName, err)
 		}
-		foundResult = true
+		if name == idOrName {
+			return id, nil
+		}
+		resCount++
 	}
-	if !foundResult {
+	if resCount == 0 {
 		return "", define.ErrNoSuchCtr
+	} else if resCount > 1 {
+		return "", fmt.Errorf("more than one result for container %q: %w", idOrName, define.ErrCtrExists)
 	}
 
 	return id, nil
@@ -523,26 +526,33 @@ func (s *SQLiteState) LookupContainer(idOrName string) (*Container, error) {
 		return nil, define.ErrDBClosed
 	}
 
-	rows, err := s.conn.Query("SELECT JSON FROM ContainerConfig WHERE ContainerConfig.Name=? OR (ContainerConfig.ID LIKE ?);", idOrName, idOrName+"%")
+	rows, err := s.conn.Query("SELECT JSON, Name FROM ContainerConfig WHERE ContainerConfig.Name=? OR (ContainerConfig.ID LIKE ?);", idOrName, idOrName+"%")
 	if err != nil {
 		return nil, fmt.Errorf("looking up container %q in database: %w", idOrName, err)
 	}
 	defer rows.Close()
 
-	var rawJSON string
-	foundResult := false
+	var (
+		rawJSON, name string
+		exactName     bool
+		resCount      uint
+	)
 	for rows.Next() {
-		if foundResult {
-			return nil, fmt.Errorf("more than one result for container %q: %w", idOrName, define.ErrCtrExists)
-		}
-
-		if err := rows.Scan(&rawJSON); err != nil {
+		if err := rows.Scan(&rawJSON, &name); err != nil {
 			return nil, fmt.Errorf("retrieving container %q ID from database: %w", idOrName, err)
 		}
-		foundResult = true
+		if name == idOrName {
+			exactName = true
+			break
+		}
+		resCount++
 	}
-	if !foundResult {
-		return nil, fmt.Errorf("no container with name or ID %q found: %w", idOrName, define.ErrNoSuchCtr)
+	if !exactName {
+		if resCount == 0 {
+			return nil, fmt.Errorf("no container with name or ID %q found: %w", idOrName, define.ErrNoSuchCtr)
+		} else if resCount > 1 {
+			return nil, fmt.Errorf("more than one result for container %q: %w", idOrName, define.ErrCtrExists)
+		}
 	}
 
 	ctr := new(Container)
@@ -1303,26 +1313,33 @@ func (s *SQLiteState) LookupPod(idOrName string) (*Pod, error) {
 		return nil, define.ErrDBClosed
 	}
 
-	rows, err := s.conn.Query("SELECT JSON FROM PodConfig WHERE PodConfig.Name=? OR (PodConfig.ID LIKE ?);", idOrName, idOrName+"%")
+	rows, err := s.conn.Query("SELECT JSON, Name FROM PodConfig WHERE PodConfig.Name=? OR (PodConfig.ID LIKE ?);", idOrName, idOrName+"%")
 	if err != nil {
 		return nil, fmt.Errorf("looking up pod %q in database: %w", idOrName, err)
 	}
 	defer rows.Close()
 
-	var rawJSON string
-	foundResult := false
+	var (
+		rawJSON, name string
+		exactName     bool
+		resCount      uint
+	)
 	for rows.Next() {
-		if foundResult {
-			return nil, fmt.Errorf("more than one result for pod %q: %w", idOrName, define.ErrCtrExists)
-		}
-
-		if err := rows.Scan(&rawJSON); err != nil {
+		if err := rows.Scan(&rawJSON, &name); err != nil {
 			return nil, fmt.Errorf("error retrieving pod %q ID from database: %w", idOrName, err)
 		}
-		foundResult = true
+		if name == idOrName {
+			exactName = true
+			break
+		}
+		resCount++
 	}
-	if !foundResult {
-		return nil, fmt.Errorf("no pod with name or ID %s found: %w", idOrName, define.ErrNoSuchPod)
+	if !exactName {
+		if resCount == 0 {
+			return nil, fmt.Errorf("no pod with name or ID %s found: %w", idOrName, define.ErrNoSuchPod)
+		} else if resCount > 1 {
+			return nil, fmt.Errorf("more than one result for pod %q: %w", idOrName, define.ErrCtrExists)
+		}
 	}
 
 	return s.createPod(rawJSON)

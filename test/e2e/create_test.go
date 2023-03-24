@@ -718,4 +718,21 @@ var _ = Describe("Podman create", func() {
 		setup.WaitWithDefaultTimeout()
 		Expect(setup).Should(Exit(0))
 	})
+
+	It("create container with name subset of existing ID", func() {
+		create1 := podmanTest.Podman([]string{"create", "-t", ALPINE, "top"})
+		create1.WaitWithDefaultTimeout()
+		Expect(create1).Should(Exit(0))
+		ctr1ID := create1.OutputToString()
+
+		ctr2Name := ctr1ID[:5]
+		create2 := podmanTest.Podman([]string{"create", "-t", "--name", ctr2Name, ALPINE, "top"})
+		create2.WaitWithDefaultTimeout()
+		Expect(create2).Should(Exit(0))
+
+		inspect := podmanTest.Podman([]string{"inspect", "--format", "{{.Name}}", ctr2Name})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).Should(Exit(0))
+		Expect(inspect.OutputToString()).Should(Equal(ctr2Name))
+	})
 })
