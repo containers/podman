@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/containers/podman/v4/libpod/define"
+	"github.com/containers/podman/v4/pkg/util"
 	"github.com/stretchr/testify/require"
 )
 
@@ -35,4 +36,37 @@ func TestGetSdNotifyMode(t *testing.T) {
 		require.NoError(t, err, "%v", test)
 		require.Equal(t, test.result, result, "%v", test)
 	}
+}
+
+func TestGetBuildArgs(t *testing.T) {
+	prefix := util.BuildArgumentsAnnotationPrefix
+	name := "test-pod"
+	annotations := map[string]string{
+		// Good cases
+		prefix + ".ARG/" + name:         "Test1",
+		prefix + ".another-arg/" + name: "Test2",
+		prefix + ".empty-value/" + name: "",
+		prefix + ".ARG2":                "Test4",
+
+		// Bad cases
+		"some-prefix-" + prefix + ".another-arg": "BadTest1",
+		"pfx." + prefix + ".another-arg":         "BadTest2",
+		prefix + "/":                             "BadTest3",
+		prefix:                                   "BadTest4",
+		"incorrect-prefix":                       "BadTest5",
+		"/":                                      "BadTest6",
+		prefix + ".ARG/another-pod":              "BadTest7",
+		prefix + ".ARG/test-pod2":                "BadTest8",
+		prefix + ".ARG/pfx-test-pod":             "BadTest9",
+	}
+
+	expected := map[string]string{
+		"ARG":         "Test1",
+		"another-arg": "Test2",
+		"empty-value": "",
+		"ARG2":        "Test4",
+	}
+
+	args := getBuildArgs(annotations, name)
+	require.Equal(t, args, expected)
 }

@@ -369,7 +369,13 @@ func (p *Pod) podWithContainers(ctx context.Context, containers []*Container, po
 				if define.IsReservedAnnotation(k) || annotations.IsReservedAnnotation(k) {
 					continue
 				}
-				podAnnotations[fmt.Sprintf("%s/%s", k, removeUnderscores(ctr.Name()))] = TruncateKubeAnnotation(v)
+
+				if strings.HasPrefix(k, util.BuildArgumentsAnnotationPrefix) {
+					// Build arguments should output the same way they were created.
+					podAnnotations[k] = TruncateKubeAnnotation(v)
+				} else {
+					podAnnotations[fmt.Sprintf("%s/%s", k, removeUnderscores(ctr.Name()))] = TruncateKubeAnnotation(v)
+				}
 			}
 			// Convert auto-update labels into kube annotations
 			for k, v := range getAutoUpdateAnnotations(ctr.Name(), ctr.Labels()) {

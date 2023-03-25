@@ -15,4 +15,6 @@ const (
 	VolumeMountOptsAnnotation = "volume.podman.io/mount-options"
 	// Kube annotation for podman volume import source.
 	VolumeImportSourceAnnotation = "volume.podman.io/import-source"
+	// Kube annotation prefix for buildah build arguments.
+	BuildArgumentsAnnotationPrefix = "io.podman.build-args"
 )

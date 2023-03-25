@@ -915,6 +915,7 @@ func (ic *ContainerEngine) getImageAndLabelInfo(ctx context.Context, cwd string,
 		buildOpts.CommonBuildOpts = commonOpts
 		buildOpts.Output = container.Image
 		buildOpts.ContextDirectory = filepath.Dir(buildFile)
+		buildOpts.Args = getBuildArgs(annotations, container.Name)
 		if _, _, err := ic.Libpod.Build(ctx, *buildOpts, []string{buildFile}...); err != nil {
 			return nil, nil, err
 		}
