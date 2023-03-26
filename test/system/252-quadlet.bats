@@ -558,4 +558,28 @@ EOF
     remove_secret $SECRET_NAME
 }
 
+@test "quadlet - volume path using specifier" {
+    local tmp_path=$(mktemp -d --tmpdir=$PODMAN_TMPDIR quadlet.volume.XXXXXX)
+    local tmp_dir=${tmp_path#/tmp/}
+    local file_name="f$(random_string 10).txt"
+    local file_content="data_$(random_string 15)"
+    echo $file_content > $tmp_path/$file_name
+
+    local quadlet_file=$PODMAN_TMPDIR/basic_$(random_string).container
+    cat > $quadlet_file <<EOF
+[Container]
+Image=$IMAGE
+Volume=%T/$tmp_dir:/test_content:Z
+Exec=sh -c "echo STARTED CONTAINER; echo "READY=1" | socat -u STDIN unix-sendto:\$NOTIFY_SOCKET; top"
+EOF
+
+    run_quadlet "$quadlet_file"
+    service_setup $QUADLET_SERVICE_NAME
+
+    run_podman exec $QUADLET_CONTAINER_NAME /bin/sh -c "cat /test_content/$file_name"
+    is "$output" $file_content
+
+    rm -rf $tmp_path
+}
+
 # vim: filetype=sh
