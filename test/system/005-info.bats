@@ -182,4 +182,30 @@ host.slirp4netns.executable | $expr_path
     is "$output" "Error: unsupported database backend: \"bogus\""
 }
 
+@test "CONTAINERS_CONF_OVERRIDE" {
+    skip_if_remote "remote does not support CONTAINERS_CONF*"
+
+    containersConf=$PODMAN_TMPDIR/containers.conf
+    cat >$containersConf <<EOF
+[engine]
+database_backend = "boltdb"
+EOF
+
+    overrideConf=$PODMAN_TMPDIR/override.conf
+    cat >$overrideConf <<EOF
+[engine]
+database_backend = "sqlite"
+EOF
+
+    CONTAINERS_CONF="$containersConf" run_podman info --format "{{ .Host.DatabaseBackend }}"
+    is "$output" "boltdb"
+
+    CONTAINERS_CONF_OVERRIDE=$overrideConf run_podman info --format "{{ .Host.DatabaseBackend }}"
+    is "$output" "sqlite"
+
+    # CONTAINERS_CONF will be overriden by _OVERRIDE
+    CONTAINERS_CONF=$containersConf CONTAINERS_CONF_OVERRIDE=$overrideConf run_podman info --format "{{ .Host.DatabaseBackend }}"
+    is "$output" "sqlite"
+}
+
 # vim: filetype=sh
