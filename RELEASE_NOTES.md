@@ -1,5 +1,12 @@
 # Release Notes
 
+## 4.4.4
+### Changes
+- Podman now writes direct mappings for idmapped mounts.
+
+### Bugfixes
+- Fixed a regression which caused the MacOS installer to fail if podman-mac-helper was already installed ([#17910](https://github.com/containers/podman/issues/17910)).
+
 ## 4.4.3
 ### Security
 - This release fixes CVE-2022-41723, a vulnerability in the golang.org/x/net package where a maliciously crafted HTTP/2 stream could cause excessive CPU consumption, sufficient to cause a denial of service.
